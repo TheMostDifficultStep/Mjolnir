@@ -1,7 +1,7 @@
 # Mjolnir
 Text Editor, Music Player, Image Viewer, and more!
 
-Mjolnir is a very large integrated application environment I used to host a number of built in application types...
+Mjolnir is a very large integrated application environment I use to host a number of built in application types...
 
 1) Text editor. Uniscribe and FreeType2
 2) Music Player. Windows and Alsa.
