@@ -2,8 +2,8 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Drawing;
 using System.Text;
+using System.Drawing;
 using System.Windows.Forms;
 using System.IO;
 using System.Xml;
@@ -22,7 +22,6 @@ using Play.Parse.Impl;
 namespace Mjolnir {
     /// <summary>
     /// The form where all the other window's live for the Retro (normal) desktop case.
-	/// I want to make a tablet UI eventually.
     /// </summary>
     public partial class MainWin :
         Form,
@@ -271,6 +270,8 @@ namespace Mjolnir {
 
             InitializeMenu    ( xmlConfig );
             InitializeEdges   ( xmlConfig );
+            // It's super dangerous to be calling InitializeLocation which moves the window
+            // BEFORE WE'VE InitNew/Loaded the Program.
             InitializeLocation( xmlConfig );
             InitializeShepards( xmlConfig );
 

@@ -95,6 +95,7 @@ namespace Mjolnir {
 
         private FTManager _oFTManager;
 
+        // https://docs.microsoft.com/en-us/xamarin/xamarin-forms/platform/other/gtk?tabs=windows
         [STAThread]
         static void Main(string[] rgArgs) {
             Application.OleRequired();
@@ -119,11 +120,9 @@ namespace Mjolnir {
                 // but I might separate the xmlConfig for the program and the window and
                 // then I could set up the window on demand, based on the persistance data.
 			    try {
-				    oProgram.MainWindow = new MainWin( oProgram );
-
-				    oProgram.MainWindow.Initialize( xmlConfig );
-				    oProgram.SessionLoad( rgArgs );
-			    } catch( Exception oEx ) {
+				    oProgram.SessionLoad( rgArgs, xmlConfig );
+                }
+                catch ( Exception oEx ) {
                     oProgram.TryLogXmlError( oEx, "Couldn't configure Main window." );
 
                     return;
@@ -375,11 +374,33 @@ namespace Mjolnir {
             _oDocSlot_Find.InitNew();
         }
 
-		/// <summary>
-		/// Self hosting ourselves! Look for the first session in the command line. 
-		/// If found, Load() from it. Else, InitNew(). 
-		/// </summary>
-        protected void SessionLoad( string[] rgArgs ) {
+        /// <summary>
+        /// Basically all the errors that can happen while we're trying to load
+        /// up or configuration xml file and our session xlm file.
+        /// </summary>
+		void TryLogXmlError(Exception oEx, string strMessage)
+        {
+            Type[] rgErrors = { typeof( XPathException ),
+                                typeof( XmlException ),
+                                typeof( NullReferenceException ),
+                                typeof( InvalidOperationException ),
+                                typeof( ArgumentNullException ),
+                                typeof( FormatException ),
+                                typeof( OverflowException ),
+                                typeof( GrammerNotFoundException ),
+                                typeof( InvalidCastException ),
+                                typeof( ApplicationException ) };
+            if (rgErrors.IsUnhandled(oEx))
+                throw oEx;
+
+            this.LogError("program session", strMessage);
+        }
+
+        /// <summary>
+        /// Self hosting ourselves! Look for the first session in the command line. 
+        /// If found, Load() from it. Else, InitNew(). 
+        /// </summary>
+        protected void SessionLoad( string[] rgArgs, XmlDocument xmlConfig ) {
 			List<string> rgArgsClean = new List<string>(5);
 			int          iPvs        = -1;
 
@@ -403,16 +424,19 @@ namespace Mjolnir {
 					throw;
 			}
 
+            // MainWindow references this, so got to initialize it first.
 			_oDocSite_Session = new Program.SessonSlot( this );
 
-			try {
+            // BUG: In the future, we'll move this into the program initnew/load.
+            MainWindow = new MainWin(this);
+            MainWindow.Initialize(xmlConfig);
+
+            try {
 				if( iPvs < 0 ) {
 					_oDocSite_Session.InitNew();
 				} else {
 					_oDocSite_Session.Load( rgArgs[iPvs] );
 				}
-
-				MainWindow.DocumentShowAll( rgArgsClean );
 			} catch( Exception oEx ) {
 				Type[] rgErrors = { typeof( NullReferenceException ),
 									typeof( ArgumentException ),
@@ -424,9 +448,11 @@ namespace Mjolnir {
 
                 LogError( "Session", "Session Init/Load error" );
 			}
+
+            MainWindow.DocumentShowAll(rgArgsClean);
         }
 
-		public bool InitNew() {
+        public bool InitNew() {
 			if( !MainWindow.InitNew() ) {
                 LogError( "program initnew", "Couldn't initialize main window." );
 				return false;
@@ -437,27 +463,6 @@ namespace Mjolnir {
 			return true;
 		}
 
-        /// <summary>
-        /// Basically all the errors that can happen while we're trying to load
-        /// up or configuration xml file and our session xlm file.
-        /// </summary>
-		void TryLogXmlError( Exception oEx, string strMessage ) {
-			Type[] rgErrors = { typeof( XPathException ),
-								typeof( XmlException ),
-								typeof( NullReferenceException ),
-								typeof( InvalidOperationException ),
-								typeof( ArgumentNullException ),
-								typeof( FormatException ),
-								typeof( OverflowException ),
-                                typeof( GrammerNotFoundException ),
-                                typeof( InvalidCastException ),
-                                typeof( ApplicationException ) };
-			if( rgErrors.IsUnhandled( oEx ) )
-				throw oEx;
-
-            this.LogError( "program session", strMessage );
-		}
-        
 		/// <summary>
 		/// Sesson load method. Unlike Initialize these can techically fail and it would not
         /// be catastropic. I also Load the window here, which is slighly weird since I refused
@@ -963,8 +968,9 @@ namespace Mjolnir {
         private bool LoadConfigDoc( XmlDocument xmlConfig ) {
             string strAppDataDir = AppDataPath;
 
-            string strAppConfig  = strAppDataDir + "\\config.phree";
-            string strAppDefault = Path.GetDirectoryName( Application.ExecutablePath ) + "\\config.phree";
+            string strConfigName = "config.phree";
+            string strAppConfig  = strAppDataDir + "\\" + strConfigName;
+            string strAppDefault = Path.GetDirectoryName( Application.ExecutablePath ) + "\\" + strConfigName;
 
             try {
                 // Does our app config directory exist? If not, create it.
@@ -974,9 +980,13 @@ namespace Mjolnir {
 
                 // Does our app config file exist? If not, create it in our appdata section.
                 if( !File.Exists( strAppConfig ) ) {
-                    xmlConfig.Load( strAppDefault );
-                    //InitializePathsToGrammer( Path.GetDirectoryName( Application.ExecutablePath ), xmlDocument);
-                    xmlConfig.Save( strAppConfig );
+                    Assembly oAssembly = Assembly.GetExecutingAssembly();
+                    string   strResource = "Mjolnir.Content." + strConfigName;
+                    using (Stream oStream = oAssembly.GetManifestResourceStream(strResource)) {
+                        xmlConfig.Load( oStream );
+                        //InitializePathsToGrammer( Path.GetDirectoryName( Application.ExecutablePath ), xmlDocument);
+                        xmlConfig.Save( strAppConfig );
+                    }
                 } else {
                     xmlConfig.Load( strAppConfig );
                 }
@@ -987,7 +997,9 @@ namespace Mjolnir {
 									 typeof( PathTooLongException ),
 									 typeof( DirectoryNotFoundException ),
 									 typeof( IOException ),
-									 typeof( NotSupportedException ) };
+									 typeof( NotSupportedException ),
+                                     typeof( NullReferenceException ),
+                                     typeof( BadImageFormatException ) };
 
                 LogError( "config", "Unable to read given config file" );
 

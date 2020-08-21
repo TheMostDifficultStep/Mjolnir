@@ -91,6 +91,7 @@ namespace Play.Interfaces.Embedding {
 				throw new InvalidOperationException( "Could not retrieve given image resource : " + strResourceName );
 			}
 		}
+
 	}
 
     /// <summary>

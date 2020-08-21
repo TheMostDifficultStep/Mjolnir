@@ -1,0 +1,93 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<config>
+  <addons>
+  </addons>
+  <languages>
+    <streams>
+      <parser type="text" assembly="foo" class="phree_bee.ParseEventsText" />
+      <parser type="tags" assembly="foo" class="phree_bee.ParseEventsTag" />
+      <parser type="words" assembly="foo" class="EditorNS.SimpleWordBreaker" />
+    </streams>
+    <grammars homebase="%profile%/bnf">
+      <!-- don't change name's willy nilly, the program is looking for line_breakr & html_4_trad -->
+      <grammar name="line_breaker" type="words" file="linebreaker.bnf" />
+      <grammar name="html_4_trad" type="tags" file="html_4_traditional.bnf" />
+      <grammar name="html_4_xhtml" type="tags" file="html_4_xhtml.bnf" />
+      <grammar name="idl" type="text" file="idl.bnf" />
+      <grammar name="html" type="text" file="html.bnf" />
+      <grammar name="nimble" type="text" file="nimble3.bnf" />
+      <grammar name="build" type="text" file="build_log.bnf" />
+      <grammar name="resource" type="text" file="rc.bnf" />
+      <grammar name="text" type="text" file="text2.bnf" />
+      <grammar name="m3u" type="text" file="m3u.bnf" />
+      <grammar name="ini" type="text" file="ini.bnf" />
+      <grammar name="perl" type="text" file="perl.bnf" />
+      <grammar name="extractor" type="text" file="extractor.bnf" />
+      <grammar name="regex" type="text" file="regex.bnf" />
+      <grammar name="directory" type="text" file="directory.bnf" />
+	  <grammar name="properties" type="text" file="property_page.bnf" />
+	  <grammar name="binary-text" type="text" file="binary-text.bnf" />
+    </grammars>
+    <maps>
+      <!-- Map the extension to a grammar name -->
+	  <map extn=".config" grammar="html"/>
+      <map extn=".conf" grammar="text" />
+      <map extn=".bnf" grammar="html" />
+      <map extn=".wpl" grammar="html" />
+      <map extn=".pl" grammar="perl" />
+      <map extn=".ini" grammar="ini" />
+      <map extn=".idl" grammar="idl" />
+      <map extn=".nbl3" grammar="nimble" />
+      <map extn=".rdl" grammar="html" />
+      <map extn=".rds" grammar="html" />
+      <map extn=".wiq" grammar="html" />
+      <map extn=".lcg" grammar="html" />
+      <map extn=".bld" grammar="build" />
+      <map extn=".wsdl" grammar="html" />
+      <map extn=".wtq" grammar="html" />
+      <map extn=".xsl" grammar="html" />
+      <map extn=".xsd" grammar="html" />
+      <map extn=".man" grammar="html" />
+      <map extn=".mum" grammar="html" />
+      <map extn=".lci" grammar="html" />
+      <map extn=".rc" grammar="resource" />
+      <map extn=".resx" grammar="html" />
+      <map extn=".txt" grammar="text" />
+      <map extn=".extr" grammar="extractor" />
+      <map extn=".m3u" grammar="m3u" />
+      <map extn=".tab" grammar="text" />
+      <map extn=".script" grammar="text" />
+      <map extn=".sitemap" grammar="html" />
+      <map extn=".dat" grammar="text" />
+      <map extn=".DAT" grammar="text" />
+      <map extn=".err" grammar="text" />
+      <map extn=".tsv" grammar="text" />
+      <map extn=".csv" grammar="text" />
+      <map extn=".css" grammar="html" />
+      <map extn=".pvs" grammar="html" />
+      <map extn=".regex" grammar="regex" />
+	  <map extn=".dir" grammar="directory" />
+      <map extn=".prp" grammar="properties" />
+	  <map extn=".bin" grammar="binary-text" />
+    </maps>
+  </languages>
+  <mainwindow>
+    <favorites>
+    </favorites>
+    <location left="100" top="20" width="800" height="800" />
+    <margin left="340" right="0" top="34" bottom="100" />
+    <docking>
+      <dock tool="find"        visible="false" edge="bottom" solo="true"  icon="icon_find.gif"        display="Find" />
+      <dock tool="matches"     visible="false" edge="bottom" solo="true"  icon="icon_match.gif"       display="Results" />
+      <dock tool="outline"     visible="true"  edge="left"   solo="false" icon="icon_outline.gif"     display="Outline"     decor="{64EC31FE-F28E-49A6-A12A-9194214DD0D6}" />
+      <dock tool="navigate"    visible="false" edge="left"   solo="false" icon="icon_navigate.gif"    display="Properties"  decor="{1509A246-5CB0-41B1-A6D2-572D38EEC9C5}" />
+      <dock tool="menu"        visible="true"  edge="top"    solo="true"  icon="icon_menu.gif"        display="Menu" />
+      <dock tool="views"       visible="false" edge="bottom" solo="true"  icon="icon_windows.gif"     display="Views" />
+      <dock tool="alerts"      visible="false" edge="bottom" solo="true"  icon="icon_output.gif"      display="Alerts" />
+      <dock tool="productions" visible="false" edge="left"   solo="false" icon="icon_productions.gif" display="Productions" decor="{266BE614-5336-4B45-A132-43640E659F69}" />
+	  <dock tool="options"     visible="false" edge="left"   solo="false" icon="icon_productions.gif" display="Options" decor="{6AECF17A-D91B-452F-9B67-840144446DDB}" />
+    </docking>
+    <documents bgcolor="white">
+    </documents>
+  </mainwindow>
+</config>
