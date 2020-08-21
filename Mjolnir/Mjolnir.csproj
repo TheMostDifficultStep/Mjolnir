@@ -1,0 +1,73 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ApplicationIcon>Content\icon_program.ico</ApplicationIcon>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="Content\icons8-bookmark-book-512.png" />
+    <None Remove="Content\icon_album.gif" />
+    <None Remove="Content\icon_catform.gif" />
+    <None Remove="Content\icon_errors.gif" />
+    <None Remove="Content\icon_find.gif" />
+    <None Remove="Content\icon_match.gif" />
+    <None Remove="Content\icon_menu.gif" />
+    <None Remove="Content\icon_navigate.gif" />
+    <None Remove="Content\icon_outline.gif" />
+    <None Remove="Content\icon_output.gif" />
+    <None Remove="Content\icon_play.gif" />
+    <None Remove="Content\icon_productions.gif" />
+    <None Remove="Content\icon_program.ico" />
+    <None Remove="Content\icon_properties.gif" />
+    <None Remove="Content\icon_save.gif" />
+    <None Remove="Content\icon_windows.gif" />
+    <None Remove="Content\linebreaker.bnf" />
+    <None Remove="Content\text2.bnf" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Content\icons8-bookmark-book-512.png" />
+    <EmbeddedResource Include="Content\icon_album.gif" />
+    <EmbeddedResource Include="Content\icon_catform.gif" />
+    <EmbeddedResource Include="Content\icon_errors.gif" />
+    <EmbeddedResource Include="Content\icon_find.gif" />
+    <EmbeddedResource Include="Content\icon_match.gif" />
+    <EmbeddedResource Include="Content\icon_menu.gif" />
+    <EmbeddedResource Include="Content\icon_navigate.gif" />
+    <EmbeddedResource Include="Content\icon_outline.gif" />
+    <EmbeddedResource Include="Content\icon_output.gif" />
+    <EmbeddedResource Include="Content\icon_play.gif" />
+    <EmbeddedResource Include="Content\icon_productions.gif" />
+    <EmbeddedResource Include="Content\icon_program.ico" />
+    <EmbeddedResource Include="Content\icon_properties.gif" />
+    <EmbeddedResource Include="Content\icon_save.gif" />
+    <EmbeddedResource Include="Content\icon_windows.gif" />
+    <EmbeddedResource Include="Content\linebreaker.bnf" />
+    <EmbeddedResource Include="Content\text2.bnf" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Drawing\Drawing.csproj" />
+    <ProjectReference Include="..\Editor\Editor.csproj" />
+    <ProjectReference Include="..\ImageViewer\ImageViewer.csproj" />
+    <ProjectReference Include="..\Interfaces\Interfaces.csproj" />
+    <ProjectReference Include="..\MorsePractice\MorsePractice.csproj" />
+    <ProjectReference Include="..\Mp3-Play\Mp3-Play.csproj" />
+    <ProjectReference Include="..\MusicWalker\MusicWalker.csproj" />
+    <ProjectReference Include="..\ParseAll\ParseAll.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="libmpg123-0.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+</Project>

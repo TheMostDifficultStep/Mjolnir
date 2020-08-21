@@ -1,0 +1,80 @@
+﻿<?xml version="1.0" ?>
+<bnfstuff>
+  <metadata>
+    <colortable>
+        <color name="black"   value="black" />
+        <color name="blue"    value="blue" />
+        <color name="red"     value="red"  />
+    </colortable>
+    <terminals>
+      <term name="myEmpty"      class="TextTermEmpty" />
+      <term name="myspace"      class="TextTermSpace" />
+      <term name="myPunc"       class="TextTermPunctuation" />
+      <term name="myAlphaNum"   class="TextTermAlphaNum" />
+      <term name="myEverything" class="TextTermEverything" />
+      <term name="myAnyOf"      class="TextTermAnyOf" />
+      <term name="myToken"      class="TextTermToken" />
+    </terminals>
+  </metadata>
+    <bnftable>
+        <state name="start">
+            <production>
+                <nont state="text" />
+            </production>
+        </state>
+
+        <state name="text">
+            <production>
+                <nont state="space" />
+                <nont state="text" />
+            </production>
+            <production>
+                <term class="myToken" id="w" value="/&gt;" />
+                <nont state="text" />
+            </production>
+            <production>
+                <term class="myToken" id="w" value="&lt;/" />
+                <nont state="text" />
+            </production>
+            <production>
+                <term class="myAlphaNum" id="w" />
+                <nont state="text" />
+            </production>
+            <production>
+                <term class="myAnyOf" id="w" value="=&quot;&apos;!-#" />
+                <nont state="text" />
+            </production>
+            <production>
+                <term class="myPunc" id="w"/>
+                <nont state="text" />
+            </production>
+            <production>
+                <term class="myEverything" id="w" />
+                <nont state="text" />
+            </production>
+            <production>
+                <term class="myEmpty" />
+            </production>
+
+        </state>
+
+        <state name="space">
+            <production>
+                <term class="myspace" />
+                <nont state="space.cont" />
+            </production>
+        </state>
+
+        <state name="space.cont">
+            <production>
+                <term class="myspace" />
+                <nont state="space.cont" />
+            </production>
+
+            <production>
+                <term class="myEmpty" />
+            </production>
+        </state>
+
+    </bnftable>
+</bnfstuff>

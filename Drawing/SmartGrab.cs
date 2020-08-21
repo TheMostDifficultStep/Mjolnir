@@ -1,0 +1,605 @@
+using System;
+using System.Drawing;
+using System.Drawing.Drawing2D;
+
+using SkiaSharp;
+
+using Play.Interfaces.Embedding;
+
+namespace Play.Rectangles
+{
+    public interface ISmartDrag : IDisposable
+    {
+        SmartRect Guest{ get; }
+        SmartRect Outer{ get; }
+        void      Move(int p_iX, int p_iY );
+      //void      Paint( Graphics ); // A paint method would be pretty spiffy, hmmm...
+    }
+
+    // I inherit from a SmartRect so I'm easy to manipulate. However, there advantages
+    // to having no extent and deriving it completely from the Guest I host. For
+    // example if the Guest size changes I won't update myself unless I have a callback.
+    // The rect we inherit from is the "inner" rect. Outer rect lives as a property.
+    public class SmartGrab :
+        SmartRect
+    {
+        protected SmartRect[] m_rgoHandles   = new SmartRect[12];
+        protected int         m_iBorderWidth = 6;
+        protected int         m_iHalfWidth   = 3;
+        protected bool        m_fHovering    = false;
+        protected SmartRect   m_rctGuest     = null;
+        protected RectSize    m_oMyHandler   = null;
+        protected SmartRect   m_rcOuter      = new SmartRect();
+        protected bool        m_fLiveDrag    = true;
+        protected SHOWSTATE   m_eShowState   = SHOWSTATE.Inactive;
+        protected bool[]      m_frgMoveable  = new bool[4];
+        protected SCALAR      m_eMoveable    = 0;
+
+		protected SmartRect[] _rgHandlesBorder = new SmartRect[4];
+		protected SmartRect[] _rgHandlesCorner = new SmartRect[4];
+		protected SmartRect[] _rgHandlesMiddle = new SmartRect[4];
+
+        public enum HIT
+        {
+            NONE     = 0,
+            EDGE     = 0x01,
+            CORNER   = 0x02,
+            MIDPOINT = 0x04,
+            INSIDE   = 0x08
+        }
+
+        public bool Hidden { get; set; }
+
+        public SmartGrab(SmartRect p_rctGuest, int p_iBorder, bool fLiveDrag, SCALAR eMoveable ) :
+            base(p_rctGuest) // copy coords to inner rect of ourselves.
+        {
+			m_rctGuest = p_rctGuest ?? throw new ArgumentNullException("The guest must not be null");
+
+            if (p_iBorder < 2)
+                throw new ArgumentException("Border width must be greater than one.");
+
+            m_fLiveDrag = fLiveDrag;
+            m_eMoveable = eMoveable;
+            uint uiPower = 1;
+
+            for( uint i = 0; i < m_frgMoveable.Length; ++i ) {
+                uint uiResult = uiPower & (uint)eMoveable;
+                m_frgMoveable[i] = uiResult != 0 ? true : false;
+                uiPower *= 2;
+            }
+
+            // Listen to our guest's resizing events.
+            m_oMyHandler = new RectSize(OnGuestUpdate);
+            m_rctGuest.SizeEvent += m_oMyHandler;
+
+            // Create all the smart rect's
+            for (int i = 0; i < m_rgoHandles.Length; ++i)
+                m_rgoHandles[i] = new SmartRect();
+
+			for( int i = 0; i < 4; ++i ) {
+				_rgHandlesBorder[i] = m_rgoHandles[i];
+				_rgHandlesMiddle[i] = m_rgoHandles[i+4];
+				_rgHandlesCorner[i] = m_rgoHandles[i+8];
+			}
+
+            // The rest are initialized with the border width and height.
+            for (int i = 4; i < m_rgoHandles.Length; ++i)
+                m_rgoHandles[i].SetPoint(SET.RIGID, LOCUS.LOWERRIGHT | LOCUS.EXTENT, p_iBorder, p_iBorder);
+
+            m_iBorderWidth = p_iBorder;
+            m_iHalfWidth   = p_iBorder >> 1;
+
+            m_rcOuter.Copy = this;
+            m_rcOuter.SetScalar(SET.INCR, SCALAR.ALL, m_iBorderWidth);
+
+            UpdateHandles();
+        }
+
+        public void OnGuestUpdate(SmartRect oGuest )
+        {
+            if (!IsEqual(SCALAR.ALL, oGuest))
+                Copy = oGuest;
+        }
+
+        public SHOWSTATE Show
+        {
+            get {
+                return (m_eShowState);
+            }
+
+            set {
+                m_eShowState = value;
+            }
+        }
+
+        protected SmartRect[] Handles {
+            get {
+                return( m_rgoHandles );
+            }
+        }
+
+        /// <summary>Our rectangle has changed so let's update the handles to follow.</summary> 
+        public virtual void UpdateHandles()
+        {
+            SCALAR[] l_rgSeq = { SCALAR.RIGHT, SCALAR.BOTTOM, SCALAR.LEFT, SCALAR.TOP };
+
+            //m_oOuter.Copy = this;
+
+            //// Inflate all to include the border size. Use this rect to set it up.
+            //m_oOuter.SetScalar(SET.INCR, SCALAR.ALL, m_iBorderWidth);
+
+            // Review: this offseting is coordinate system dependant. Shift the center up/left by
+            // half the width of a middle box so we can use those values to create upper left of middle rects.
+            SKPointI l_pntCenter = m_rcOuter.GetPoint(LOCUS.CENTER);
+            l_pntCenter.X -= m_iHalfWidth;
+            l_pntCenter.Y -= m_iHalfWidth;
+
+            // Now push an edge of each inflated rect to the outer edge of
+            // the Guest/view we are sizing to get our grab handles.
+            // Stick the middle rects in the center and nudge each to the side
+            // it occupies.
+            for (uint i = 0; i < 4; ++i) {
+                SCALAR l_uiScalar4 = l_rgSeq[i];
+                SCALAR l_uiScalarO = l_rgSeq[(i + 2) % 4]; // Scalar on the opposite side.
+
+                _rgHandlesBorder[i].Copy = m_rcOuter;
+                _rgHandlesBorder[i].SetScalar(SET.STRETCH, l_uiScalar4, GetScalar(l_uiScalarO));
+
+				_rgHandlesMiddle[i].SetPoint (SET.RIGID, LOCUS.UPPERLEFT, l_pntCenter.X, l_pntCenter.Y);
+                _rgHandlesMiddle[i].SetScalar(SET.RIGID, l_uiScalar4, GetScalar(l_uiScalarO));
+            }
+
+            // Lastly simply calculate the corner rects so we can color them separately.
+            for (uint i = 0; i < 4; ++i) {
+                uint j = (i + 1) % 4;
+
+                _rgHandlesCorner[i].Intersect(_rgHandlesBorder[i], _rgHandlesBorder[j]);
+            }
+        }
+
+        // Our inner rect has changed so we need to modify the outer rect.
+        protected override void OnSize() {
+            // Copy our inner size to the outer and then inflate the outer.
+            m_rcOuter.Copy = this;
+
+            if( !Hidden )
+                m_rcOuter.SetScalar(SET.INCR, SCALAR.ALL, m_iBorderWidth);
+
+            base.OnSize();
+        }
+
+        public override void Raise_OnSize(SmartRect p_rctOld)
+        {
+            base.Raise_OnSize(p_rctOld);
+
+            UpdateHandles();
+
+            if ( m_fLiveDrag && m_rctGuest != null)
+                m_rctGuest.Copy = this;
+        }
+
+        public SmartRect Guest
+        {
+            get { return (m_rctGuest); }
+
+            set
+            {
+				// If we have an old event sink, remove it.
+				m_rctGuest.SizeEvent -= m_oMyHandler;
+
+                m_rctGuest = value ?? throw new ArgumentNullException("The guest must not be null"); // Take a pointer to the Guest.
+
+                // Set our handler onto our new guest to listen for size events.
+                m_rctGuest.SizeEvent += m_oMyHandler;
+
+                Copy = m_rctGuest;  // Copy the coordinates of it to ourselves.
+                UpdateHandles();
+            }
+        }
+
+        public HIT IsHit(int p_iX, int p_iY, out LOCUS pr_uiEdges)
+        {
+            LOCUS[] l_rguiSeq = { LOCUS.LEFT, LOCUS.TOP, LOCUS.RIGHT, LOCUS.BOTTOM };
+            HIT     l_eType   = HIT.NONE;
+
+            pr_uiEdges = 0;
+
+            if (base.IsInside(p_iX, p_iY))
+                l_eType = HIT.INSIDE;
+
+            if( l_eType == HIT.NONE ) {
+                // First try midpoint rects.
+                for (int i = 0; i < 4; ++i) {
+                    if( m_frgMoveable[i] ) {
+                        if (_rgHandlesMiddle[i].IsInside(p_iX, p_iY)) {
+                            pr_uiEdges = l_rguiSeq[i];
+                            l_eType = HIT.MIDPOINT;
+                        }
+                    }
+                }
+            }
+
+            if (l_eType == HIT.NONE) {
+                // Then try edges. If hit two edges then it is a corner.
+                for (int i = 0; i < 4; ++i) {
+                    if( m_frgMoveable[i] ) {
+                        if (_rgHandlesBorder[i].IsInside(p_iX, p_iY)) {
+                            pr_uiEdges |= l_rguiSeq[i];
+                            l_eType++; // 1=EDGE, 2=CORNER
+                        }
+                    }
+                }
+            }
+
+            return (l_eType);
+        }
+
+        /// <summery>Our notion of what's "inside" is related to the the grab
+        //			 handle itself versus what it is (wrapped) around.</summery>
+        public override bool IsInside(int p_iX, int p_iY)
+        {
+            if( Hidden )
+                return( false );
+
+            LOCUS l_eEdge   = LOCUS.EMPTY;
+            HIT   l_eHit    = IsHit(p_iX, p_iY, out l_eEdge );
+            bool  l_fInside = false;
+
+            if( l_eHit == HIT.CORNER ||
+                l_eHit == HIT.EDGE   ||
+                l_eHit == HIT.MIDPOINT )
+                l_fInside = true;
+            
+            return( l_fInside );
+        }
+
+		/// <summary>
+		/// When dragging if it's a corner we might need to preserve aspect. This
+		/// function can be overridden to provide a drag object that honors aspect.
+		/// </summary>
+		public virtual SmartGrabDrag CreateAspectDrag(
+			DragFinished  p_oFinished,
+            SET           p_eStretch,
+            LOCUS         p_eEdges,
+            int           p_iX, 
+            int           p_iY
+		) {
+			return new SmartGrabDrag( p_oFinished, this, p_eStretch, p_eEdges, p_iX, p_iY);
+		}
+
+        /// <summary>
+        /// Call this to start a drag operation.
+        /// </summary>
+        public SmartGrabDrag BeginDrag(int p_iX, int p_iY)
+        {
+            SmartGrabDrag r_oDrag  = null;
+
+            switch( IsHit( p_iX, p_iY, out LOCUS l_eEdges ))
+            {
+                case HIT.CORNER:
+                case HIT.MIDPOINT:
+                    r_oDrag = CreateAspectDrag( null, SET.STRETCH, l_eEdges, p_iX, p_iY);
+                    break;
+
+                case HIT.INSIDE:
+                case HIT.EDGE:
+                    r_oDrag = new SmartGrabDrag( null, this, SET.RIGID, LOCUS.UPPERLEFT, p_iX, p_iY);
+                    break;
+            }
+
+            return (r_oDrag);
+        }
+
+        public void HoverStop() {
+            m_fHovering = false;
+        }
+
+        public bool HoverChanged(int p_iX, int p_iY)
+        {
+            bool l_fIsInside = IsInside(p_iX, p_iY);
+            bool l_fChanged  = l_fIsInside != m_fHovering;
+
+            if (l_fChanged) {
+                m_fHovering = l_fIsInside;
+            }
+
+            return (l_fChanged);
+        }
+
+        public bool Hovering
+        {
+            get {
+                return (m_fHovering);
+            }
+        }
+
+        public override SmartRect Outer
+        {
+            get {
+                return (m_rcOuter);
+            }
+        }
+
+		public Color FocusColor {
+			get {
+				Color oFocusColor = Color.Empty;
+
+                switch( m_eShowState ) {
+                    case SHOWSTATE.Focused:
+                        oFocusColor = SystemColors.Highlight;
+                        break;
+                    case SHOWSTATE.Active:
+                        oFocusColor = Color.FromArgb( 255, 0xa0, 0xa0, 0xa0 );
+                        break;
+                    case SHOWSTATE.Inactive:
+                        if( m_fHovering )
+                            oFocusColor = Color.FromArgb( 255, 0xa0, 0xa0, 0xa0 );
+                        else
+                            oFocusColor = Color.FromArgb( 000, 0x00, 0x55, 0xE5);
+                        break;
+                }
+
+				return( oFocusColor );
+			}
+		}
+
+        public override void Paint(Graphics oGraphics)
+        {
+            Brush oEdgeBrush   = null;
+            Brush oCornerBrush = null;
+
+            if( Hidden )
+                return;
+
+            try {
+                oCornerBrush = new SolidBrush(Color.White);
+                oEdgeBrush   = new SolidBrush(FocusColor);
+
+                // The main color of the border rect
+                for (int i = 0; i < 4; ++i) {
+                    Rectangle oRect = m_rgoHandles[i].Rect;
+
+                    oGraphics.FillRectangle(oEdgeBrush, oRect);
+                }
+
+                if (Hovering) {
+                    SCALAR[] l_rguiCorner = { SCALAR.LEFT   | SCALAR.TOP, 
+                                              SCALAR.TOP    | SCALAR.RIGHT, 
+                                              SCALAR.RIGHT  | SCALAR.BOTTOM, 
+                                              SCALAR.BOTTOM | SCALAR.LEFT };
+
+                    for (int i = 0; i < 4; ++i) {
+                        if( m_frgMoveable[i] ) {
+                            oGraphics.FillRectangle( oCornerBrush, _rgHandlesMiddle[i].Rect);
+                        };
+                        // If the and of the two values is the same then both
+                        // bits are on and the value should be the same as the corner tested.
+                        if( ( m_eMoveable & l_rguiCorner[i] ) == l_rguiCorner[i] ) {
+                            oGraphics.FillRectangle( oCornerBrush, _rgHandlesCorner[i].Rect);
+                        };
+                    }
+                }
+            } finally {
+                if (oCornerBrush != null)
+                    oCornerBrush.Dispose();
+                if( oEdgeBrush != null )
+                    oEdgeBrush.Dispose();
+            }
+        }
+    } // class SmartGrab
+
+	/// <remarks>Currently a work in progress.</remarks>
+	public class SmartSelect : SmartGrab {
+		public DragMode Mode { get; set; }
+
+		/// <summary>
+		/// This a thin selection box tool.
+		/// </summary>
+		public SmartSelect( ) : 
+			base( new SmartRect(), 7, fLiveDrag:false, eMoveable:SCALAR.ALL ) 
+		{
+			Mode = DragMode.FreeStyle;
+		}
+
+		public override bool IsInside(int iX,int iY) {
+			if( base.IsInside( iX, iY ) )
+				return true;
+
+			if( IsHit( iX, iX, out LOCUS eEdges ) == SmartGrab.HIT.INSIDE ) 
+				return true;
+
+			return false;
+		}
+
+		public override SmartGrabDrag CreateAspectDrag(
+			DragFinished  p_oFinished,
+            SET           p_eStretch,
+            LOCUS         p_eEdges,
+            int           p_iX, 
+            int           p_iY
+		) {
+			switch( Mode ) {
+				default:
+				case DragMode.FreeStyle:
+					return new SmartGrabDrag( p_oFinished, this, p_eStretch, p_eEdges, p_iX, p_iY );
+				case DragMode.FixedRatio:
+					return new SmartSelectDrag( p_oFinished, this, p_eStretch, p_eEdges, p_iX, p_iY);
+			}
+		}
+
+		/// <summary>
+		/// We draw our rectangle just outside of the selected area!!
+		/// </summary>
+		public override void Paint( Graphics oGraphics ) {
+            if( Hidden )
+                return;
+
+            try {
+                using( Brush oCornerBrush = new SolidBrush(FocusColor) ) {
+					using( Brush oBrush = new HatchBrush( HatchStyle.DiagonalCross, 
+						                       foreColor:Color.Black, 
+											   backColor:Color.White ) ) {
+						using( Pen oPen = new Pen( oBrush ) ) {
+							SmartRect oBorder = new SmartRect( this );
+							oBorder.SetScalar( SET.INCR, SCALAR.LEFT | SCALAR.TOP, 1 );
+							oGraphics.DrawRectangle( oPen, oBorder.Rect);
+
+							for (int i = 0; i < 4; ++i) {
+								if( m_frgMoveable[i] ) {
+									oGraphics.FillRectangle( oCornerBrush, _rgHandlesMiddle[i].Rect);
+									oGraphics.FillRectangle( oCornerBrush, _rgHandlesCorner[i].Rect);
+								}
+							}
+						}
+					}
+				}
+			} catch( Exception oEx ) {
+				Type[] rgErrors = { typeof( NullReferenceException ), 
+									typeof( IndexOutOfRangeException ) };
+
+				if( rgErrors.IsUnhandled( oEx ) )
+					throw;
+			}
+		}
+
+		public override void UpdateHandles() {
+			base.UpdateHandles();
+		}
+	}
+
+    public delegate void DragFinished( object oGuest, SKPointI pntLast );
+
+    /// <summary>
+    /// This object keeps track of the drag handle operations going on for the grab handle
+    /// object. Technically we are a view on the guest document which looks like a smart
+    /// rect to us. So it could also be a document but since the document coordinates typically
+    /// aren't matched to the world space I don't recon that'll happen often.
+    /// </summary>
+    public class SmartGrabDrag : 
+        SmartRect, 
+        ISmartDrag
+    {
+        protected readonly SET          _eStretch        = SET.STRETCH;
+        protected readonly LOCUS        _eEdges          = LOCUS.EMPTY;
+        protected readonly SmartRect    _rcGuestOrigSize = new SmartRect(); // The dimensions that the guest started as.
+        protected readonly SKPointI     _pntGuestStart;
+        protected readonly SKPointI     _pntOffset;
+		protected          SKPointI     _pntLastMove;
+        protected readonly DragFinished _oFinished = null;
+
+        public SmartGrabDrag(
+            DragFinished  p_oFinished,
+            SmartRect     p_oGuest,
+            SET           p_eStretch,
+            LOCUS         p_eEdges,
+            int           p_iX, 
+            int           p_iY )
+        {
+            Guest                 = p_oGuest ?? throw new ArgumentNullException("The guest may not be null");
+            _eEdges               = p_eEdges;
+            _eStretch             = p_eStretch;
+            _rcGuestOrigSize.Copy = p_oGuest;
+            this.Copy             = p_oGuest;
+
+            // This is co-dependent on our implementation of Dragging on the guest. This means
+            // we'll typically need subclasses to control the actual drag.
+            _pntGuestStart = Guest.GetPoint( p_eEdges );
+            _pntOffset     = new SKPointI( _pntGuestStart.X - p_iX, _pntGuestStart.Y - p_iY );
+			_pntLastMove   = new SKPointI( p_iX, p_iY );
+
+            _oFinished = p_oFinished;
+        }
+
+        public SmartRect Guest { get; }
+
+        public override SmartRect Outer
+        {
+            get
+            {
+                return (Guest.Outer);
+            }
+        }
+
+        /// <summary>
+        /// this is the function we override if we want to change the drag behavior.
+        /// </summary>
+        protected virtual void SetPoint( int p_iX, int p_iY ) 
+        {
+            Guest.SetPoint(_eStretch, _eEdges, p_iX, p_iY);
+        }
+
+        /// <summary>
+        /// Follow the tracking position (mouse) with this method.
+        /// </summary>
+        /// <param name="iX">New position X of tracking point.</param>
+        /// <param name="iY">New position Y of tracking point.</param>
+        public virtual void Move(int iX, int iY)
+        {
+			_pntLastMove.X = iX;
+			_pntLastMove.Y = iY;
+
+            iX += _pntOffset.X;
+            iY += _pntOffset.Y;
+
+            //this.Copy = _oGuest.Outer; // Copy current guest size/position.
+ 
+            SetPoint( iX, iY );
+
+            //this.Union(_oGuest.Outer); // Union with new size/position to get a dirty rect.
+        }
+
+        /// <summary>
+        /// We are done moving. (Typically Mouse up) 
+        /// </summary>
+        public virtual void Dispose() {
+			_oFinished?.Invoke( Guest, _pntLastMove );
+		}
+    } // class SmartGrabDrag
+
+	public class SmartSelectDrag : SmartGrabDrag {
+		SKPointI _pntOppoSide;
+
+		public SmartSelectDrag(
+            DragFinished  p_oFinished,
+            SmartRect     p_oGuest,
+            SET           p_eStretch,
+            LOCUS         p_eEdges,
+            int           p_iX, 
+            int           p_iY) : base( p_oFinished, p_oGuest, p_eStretch, p_eEdges, p_iX, p_iY )
+        {
+			LOCUS eOppoEdge = GetInvert( p_eEdges );
+
+			try {
+				_pntOppoSide = p_oGuest.GetPoint( eOppoEdge );
+			} catch( ArgumentOutOfRangeException ) {
+				// Huh, I forget why I do this... ^_^;;
+				if( ( eOppoEdge & LOCUS.LEFT & LOCUS.TOP ) != 0 )
+					_pntOppoSide = p_oGuest.GetPoint( LOCUS.UPPERLEFT );
+				if( ( eOppoEdge & LOCUS.RIGHT & LOCUS.BOTTOM ) != 0 )
+					_pntOppoSide = p_oGuest.GetPoint( LOCUS.LOWERRIGHT );
+			}
+		}
+
+		/// <summary>
+		/// Right now we do square drag as an experiment. In the future we'll get the
+		/// aspect from a options dialog that shows for the tool.
+		/// </summary>
+        public override void Move(int p_iX, int p_iY)
+        {
+            p_iX += _pntOffset.X;
+            p_iY += _pntOffset.Y;
+
+			Size szDiff = new Size( p_iX - _pntOppoSide.X, p_iY - _pntOppoSide.Y );
+
+			if( Math.Abs( szDiff.Width ) > Math.Abs( szDiff.Height ) ) {
+				p_iX = _pntOppoSide.X + szDiff.Width;
+				p_iY = _pntOppoSide.Y + szDiff.Width;
+			} else {
+				p_iX = _pntOppoSide.X + szDiff.Height;
+				p_iY = _pntOppoSide.Y + szDiff.Height;
+			}
+
+            SetPoint( p_iX, p_iY );
+        }
+	}
+}

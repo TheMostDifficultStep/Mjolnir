@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="Content\icons8-music-24.png" />
+    <None Remove="Content\icons8-playlist-48.png" />
+    <None Remove="Content\icons8-radio-48.png" />
+    <None Remove="Content\icons8-voice-48.png" />
+    <None Remove="Content\icon_album.gif" />
+    <None Remove="Content\speaker.psd" />
+    <None Remove="Content\volume.cur" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Content\icons8-music-24.png" />
+    <EmbeddedResource Include="Content\icons8-playlist-48.png" />
+    <EmbeddedResource Include="Content\icons8-radio-48.png" />
+    <EmbeddedResource Include="Content\icons8-voice-48.png" />
+    <EmbeddedResource Include="Content\icon_album.gif" />
+    <EmbeddedResource Include="Content\volume.cur" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Drawing\Drawing.csproj" />
+    <ProjectReference Include="..\Editor\Editor.csproj" />
+    <ProjectReference Include="..\ImageViewer\ImageViewer.csproj" />
+    <ProjectReference Include="..\Interfaces\Interfaces.csproj" />
+    <ProjectReference Include="..\Mp3-Play\Mp3-Play.csproj" />
+    <ProjectReference Include="..\ParseAll\ParseAll.csproj" />
+  </ItemGroup>
+
+</Project>

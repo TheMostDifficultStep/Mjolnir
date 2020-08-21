@@ -1,0 +1,27 @@
+International Morse Code
+
+a .-	  v ...-
+b -...	w .--
+c -.-.	x -..-
+d -..	 y -.--
+e .	   z --..
+f ..-.	. .-.-.-
+h ....	, --..--
+i ..	  ? ..--..
+j .---	/ -..-.
+k -.-	 @ .--.-.
+l .-..	1 .----
+m --	  2 ..---
+n -.	  3 ...--
+o ---	 4 ....-
+p .--.	5 .....
+q --.-	6 -....
+r .-.	 7 --...
+s ...	 8 ---..
+t -	   9 ----.
+u ..-	 0 -----
+
+1 dash = 3 dots
+Space between symbols = 1 dot.
+Space between letters = 3 dots.
+Space between words   = 7 dots.

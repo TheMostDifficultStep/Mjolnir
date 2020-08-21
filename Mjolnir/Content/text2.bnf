@@ -1,0 +1,816 @@
+﻿<?xml version="1.0" ?>
+<bnfstuff>
+  <metadata>
+    <colortable>
+      <color name="black"     value="black" />
+      <color name="blue"      value="blue" />
+      <color name="red"       value="red"  />
+      <color name="darkred"   value="darkred"  />
+      <color name="green"     value="green"  />
+      <color name="grey"      value="gray" />
+      <color name="purple"    value="purple" />
+      <color name="violet"    value="violet" />
+      <color name="darkblue"  value="darkblue" />
+      <color name="brown"     value="brown" />
+      <color name="darkgreen" value="darkgreen" />
+      <color name="yellow"    value="yellowgreen" />
+    </colortable>
+    <terminals>
+      <term name="mytoken"   class="TextTermToken" />
+      <term name="myliteral" class="TextTermLiteral" />
+      <term name="mynumber"  class="TextTermNumber" />
+      <term name="myspace"   class="TextTermSpace" />
+      <term name="mycr"      class="TextTermCR" />
+      <term name="myEmpty"   class="TextTermEmpty" />
+      <term name="myanyof"   class="TextTermAnyOf" />
+    </terminals>
+  </metadata>
+
+  <bnftable>
+    <state name="start">
+      <production>
+        <nont state="body" />
+      </production>
+    </state>
+
+    <state name="body">
+      <production>
+        <nont state="comment" />
+        <nont state="body" />
+      </production>
+      <production>
+        <nont state="commentline" />
+        <nont state="body" />
+      </production>
+      <production>
+        <nont state="replyline" />
+        <nont state="body" />
+      </production>
+      <production>
+        <nont state="url" />
+        <nont state="body" />
+      </production>
+      <production>
+        <nont state="localpath" />
+        <nont state="body" />
+      </production>
+      <production>
+        <nont state="unc" />
+        <nont state="body" />
+      </production>
+      <production>
+        <nont state="flag" />
+        <nont state="body" />
+      </production>
+      <production>
+        <nont state="email" />
+        <nont state="body" />
+      </production>
+      <production>
+        <nont state="date" />
+        <nont state="body" />
+      </production>
+      <production>
+        <nont state="sproc" />
+        <nont state="body" />
+      </production>
+      <production>
+        <nont state="checkbox" />
+        <nont state="body" />
+      </production>
+      <production>
+        <nont state="hashnum" />
+        <nont state="body" />
+      </production>
+      <production>
+        <nont state="sd-resolve" />
+        <nont state="body" />
+      </production>
+      <production>
+        <nont state="text" />
+        <nont state="body" />
+      </production>
+      <production>
+        <term class="mycr" />
+        <nont state="body" />
+      </production>
+      <production>
+        <term class="myEmpty" />
+      </production>
+    </state>
+
+    <state name="year" >
+      <production>
+         <term class="mytoken" value="20" />
+         <term class="mynumber" id="dyear" />
+      </production>
+    </state>
+
+    <state name="date" >
+      <capture>
+        <binding id="dmonth" color="blue" />
+        <binding id="dday"   color="red" />
+        <binding id="dyear"  color="purple" />
+      </capture>
+      <production lookahead = "5" >
+         <nont state="year" id="dyear" />
+         <term class="myanyof" value="/-" />
+         <term class="mynumber" id="dmonth" />
+         <term class="myanyof" value="/-" />
+         <term class="mynumber" id="dday" />
+      </production>
+      <production lookahead="5" >
+         <term class="mynumber" id="dmonth" />
+         <term class="myanyof" value="/-" />
+         <term class="mynumber" id="dday" />
+         <term class="myanyof" value="/-" />
+         <nont state="year" id="dyear" />
+      </production>
+    </state>
+
+    <state name="sproc" >
+      <capture>
+        <binding id="sproc" color="red" />
+      </capture>
+      <production lookahead = "2" >
+         <term class="mytoken" value="sp_" id="sproc" />
+         <term class="myliteral" id="sproc" />
+         <nont state="sproc.ext" id="sproc" />
+      </production>
+      <production lookahead = "2" >
+         <term class="mytoken" value="dbo." id="sproc" />
+         <term class="myliteral" id="sproc" />
+         <nont state="sproc.ext" id="sproc" />
+      </production>
+    </state>
+
+    <state name="sproc.ext" >
+      <production >
+         <term class="myanyof" value="_" />
+         <nont state="sproc.ext" />
+      </production>
+      <production >
+         <term class="mynumber" />
+         <nont state="sproc.ext" />
+      </production>
+      <production >
+         <term class="myliteral" />
+         <nont state="sproc.ext" />
+      </production>
+      <production >
+         <term class="myEmpty" />
+      </production>
+    </state>
+
+    <state name="checkbox" >
+      <capture>
+        <binding id="blank"   color="red" />
+        <binding id="fixed"   color="blue" />
+        <binding id="wontfix" color="grey" />
+        <binding id="unknown" color="yellow" />
+      </capture>
+      <production >
+         <term class="mytoken" value="[ ]" id="blank" />
+         <term class="myspace" />
+      </production>
+      <production >
+         <term class="mytoken" value="[*]" id="fixed" />
+         <term class="myspace" />
+      </production>
+      <production >
+         <term class="mytoken" value="[x]" id="wontfix" />
+         <term class="myspace" />
+      </production>
+      <production >
+         <term class="mytoken" value="[?]" id="unknown" />
+         <term class="myspace" />
+      </production>
+    </state>
+
+    <state name="hashnum" >
+      <capture>
+        <binding id="hashsigil" color="red" />
+        <binding id="hashnum"   color="darkred" />
+      </capture>
+      <production >
+         <term class="mytoken" value="#" id="hashsigil" />
+         <term class="mynumber" id="hashnum" />
+      </production>
+    </state>
+
+    <state name="sd-resolve" >
+      <capture>
+        <binding id="resolvetag"  color="darkred" />
+        <binding id="resolvetype" color="red" />
+        <binding id="resfile"     color="blue" />
+        <binding id="reslocation" color="violet" />
+        <binding id="trailer"     color="darkred" />
+      </capture>
+      <production lookahead="3" >
+         <term class="mycr" occur="*" /><!-- we have to be aggressive or we always loose out to the "replyline" state -->
+         <term class="mytoken" value="&gt;&gt;&gt;&gt; " id="resolvetype" />
+         <term class="mytoken" value="ORIGINAL" id="resolvetag" />
+         <nont state="st-resolve.chunk" />
+         <nont state="st-resolve.trailer" id="trailer" />
+      </production>
+      <production >
+         <term class="mytoken" value="==== " id="resolvetype" />
+         <term class="mytoken" value="THEIRS" id="resolvetag" />
+         <nont state="st-resolve.chunk" />
+         <nont state="st-resolve.trailer" id="trailer" />
+      </production>
+      <production >
+         <term class="mytoken" value="==== " id="resolvetype" />
+         <term class="mytoken" value="YOURS" id="resolvetag" />
+         <term class="mytoken" value=" " />
+         <nont state="localpath.cont" id="resfile" />
+         <nont state="st-resolve.trailer" id="trailer" />
+      </production>
+      <production >
+         <term class="mytoken" value="&lt;&lt;&lt;&lt; " id="resolvetype" />
+         <term class="mytoken" value="END" id="resolvetag"  />
+         <nont state="st-resolve.trailer" id="trailer" />
+      </production>
+    </state>
+
+    <state name="st-resolve.chunk" >
+      <production >
+         <term class="mytoken" value=" " />
+         <nont state="localpath.cont" id="resfile" />
+         <term class="mytoken" value="#" />
+         <term class="mynumber" id="reslocation" />
+      </production >
+    </state>
+
+    <state name="st-resolve.trailer" >
+      <production >
+         <term class="mytoken" value=" " />
+         <term class="myanyof" value="+" />
+         <term class="mycr" />
+      </production>
+    </state> 
+
+    <state name="flag" >
+      <capture>
+        <binding id="sigel"  color="red" />
+        <binding id="sigel2" color="blue" />
+        <binding id="flag"   color="red" />
+        <binding id="param"  color="purple" />
+      </capture>
+      <production>
+        <term class="myspace" occur="+" />
+        <term class="mytoken" value="-" id="sigel" />
+        <nont state="flag.in" id="flag" />
+        <nont state="flag.optionalparam" />
+      </production>
+      <production>
+        <term class="myspace" occur="+" />
+        <term class="mytoken" value="/" id="sigel" />
+        <nont state="flag.in" id="flag" />
+        <nont state="flag.optionalparam" />
+      </production>
+    </state>
+
+    <!-- Since a flag and it's param are the same, reuse this class for both -->
+    <state name="flag.in" >
+      <production>
+        <term class="myanyof" value="\_" />
+        <nont state="flag.in" />
+      </production>
+      <production>
+        <term class="myliteral" />
+        <nont state="flag.in" />
+      </production>
+      <production>
+        <term class="mynumber" />
+        <nont state="flag.in" />
+      </production>
+      <production>
+        <term class="myEmpty" />
+      </production>
+    </state>
+
+    <state name="flag.optionalparam" >
+      <production>
+        <term class="myspace" occur="*" />
+        <term class="myanyof" value=":"  id="sigel2" />
+        <term class="myspace" occur="*" />
+        <nont state="flag.in" id="param" />
+      </production>
+      <production>
+        <term class="myEmpty" />
+      </production>
+    </state>
+
+    <state name="email" >
+      <capture>
+        <binding id="mailaddress" color="darkred" />
+        <binding id="atsign" color="red" />
+        <binding id="maildomain" color="darkblue" />
+      </capture>
+      <production lookahead="3" >
+        <nont state="mailaddress" id="mailaddress" />
+        <term class="mytoken" id="atsign" value="@" />
+        <nont state="domain" id="maildomain" />
+      </production>
+    </state>
+
+    <state name="mailaddress" >
+      <production>
+         <term class="myliteral" />
+         <nont state="mailaddress.next" />
+      </production>
+    </state>
+
+    <state name="mailaddress.next" >
+      <production>
+         <term class="myliteral" />
+         <nont state="mailaddress.next" />
+      </production>
+      <production>
+         <term class="myanyof" value="._-" occur="1" />
+         <nont state="mailaddress.next" />
+      </production>
+      <production>
+         <term class="mynumber" />
+         <nont state="mailaddress.next" />
+      </production>
+      <production>
+         <term class="myEmpty" />
+      </production>
+    </state>
+
+    <state name="url" >
+      <capture>
+        <binding id="url" color="blue" />
+      </capture>
+      <production>
+        <nont state="url.next" id="url" />
+      </production>
+    </state>
+
+    <state name="url.next" >
+      <capture>
+        <binding id="uattribs" color="darkred" />
+        <binding id="pbinding" color="red" array="true" />
+        <binding id="urlseperator" color="red" />
+      </capture>
+      <production>
+        <term class="mytoken" value="file://" />
+        <nont state="domain" />
+      </production>
+      <production>
+        <term class="mytoken" value="http://" />
+        <nont state="domain" />
+      </production>
+      <production>
+        <term class="mytoken" value="vc://" />
+        <nont state="domain" />
+      </production>
+      <production>
+        <term class="mytoken" value="https://" />
+        <nont state="domain"  />
+      </production>
+      <production>
+        <term class="mytoken" value="www." />
+        <nont state="domain"  />
+      </production>
+    </state>
+
+    <state name="domain" >
+      <production>
+        <term class="myliteral" />
+        <nont state="domain" />
+      </production>
+      <production>
+        <term class="mynumber" />
+        <nont state="domain" />
+      </production>
+      <production>
+        <term class="myanyof" value="+./-:=_%(){}"/>
+        <nont state="domain" />
+      </production>
+      <production>
+        <term class="mytoken" value="?" id="urlseperator" />
+        <nont state="URL.Attribs" id="uattribs" />
+      </production>
+      <production>
+        <term class="mytoken" value="#" id="urlseperator" />
+        <nont state="URL.Attribs" id="uattribs" />
+        <!-- <nont state="mailaddress" id="uattribs" /> cheating, but it'll work for now.. -->
+      </production>
+      <production>
+        <term class="mytoken" value="*" />
+      </production>
+      <production>
+        <term class="myEmpty" />
+      </production>
+    </state>
+
+    <state name="PerlBinding" >
+      <production>
+        <term class="mytoken" value="$" />
+        <term class="myliteral" />
+        <nont state="URL.Attribs" />
+      </production>
+    </state>
+
+    <state name="URL.value.term" >
+      <production >
+        <nont state="PerlBinding" id="pbinding" />
+      </production>
+      <production>
+        <term class="myliteral" />
+      </production>
+      <production>
+        <term class="mynumber"  />
+      </production>
+      <production>
+        <term class="mytoken" value="&amp;amp;" />
+      </production>
+      <production>
+        <term class="myanyof" value="\/%-_.,:=+&apos;; " />
+      </production>
+    </state>
+
+    <state name="URL.value.cont" >
+      <production>
+         <nont state="URL.value.term" />
+         <nont state="URL.value.cont" />
+      </production>
+      <production>
+         <term class="myEmpty" />
+      </production>
+    </state >
+
+    <state name="URL.value" >
+      <production>
+         <nont state="URL.value.term" />
+         <nont state="URL.value.cont" />
+      </production>
+    </state >
+
+    <state name="URL.name.term" >
+      <production >
+        <nont state="PerlBinding" id="pbinding" />
+      </production>
+      <production>
+        <term class="myliteral"  />
+      </production>
+      <production>
+        <term class="mynumber"  />
+      </production>
+      <production>
+        <term class="myanyof" value=":-" />
+      </production>
+      <!-- Note: it's never a good idea to try to have myEmpty as a terminal in these style states -->
+    </state>
+
+    <state name="URL.name.cont" >
+      <production >
+        <nont state="URL.name.term" />
+        <nont state="URL.name.cont" />
+      </production>
+      <production>
+        <term class="myEmpty" />
+      </production>
+    </state>
+
+    <state name="URL.name+" >
+      <production >
+        <nont state="URL.name.term" />
+        <nont state="URL.name.cont" />
+      </production>
+    </state>
+
+    <state name="URL.optvalue" >
+      <production>
+        <term class="mytoken" value="=" />
+        <nont state="URL.value" id="urlvalue" />
+      </production>
+      <production>
+        <term class="myEmpty" />
+      </production>
+    </state>
+
+    <state name="URL.Attribs.cont" >
+      <production>
+        <term class="mytoken" value="&amp;" id="urlseparator" />
+        <nont state="URL.name+" id="urlname" />
+        <nont state="URL.optvalue" />
+        <nont state="URL.Attribs.cont" />
+      </production>
+      <production>
+        <term class="myEmpty" />
+      </production>
+    </state>
+
+
+    <state name="URL.Attribs" >
+      <capture >
+          <binding id = "urlseparator" color = "darkred" array="true" />
+          <binding id = "urlname"      color = "darkred" array="true" />
+          <binding id = "urlvalue"     color = "grey"    array="true" />
+      </capture >
+      <production>
+        <nont state="URL.name+" id="urlname" />
+        <nont state="URL.optvalue" />
+        <nont state="URL.Attribs.cont" />
+      </production>
+    </state>
+
+    <state name="localpath" >
+      <capture>
+        <binding id="segments" color="blue" array="true" />
+        <binding id="base"     color="purple" />
+      </capture>
+
+      <production >
+        <nont state="driveletter" id="base" />
+        <nont state="localpath.cont" />
+      </production>
+
+      <!-- add this one for editing the environment variables -->
+      <production>
+        <nont state="environmentvariable" id="base" />
+        <nont state="localpath.cont" />
+      </production>
+    </state>
+
+    <state name="driveletter" >
+      <production >
+        <term class="myanyof" 
+              value="abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ" 
+              maxmatch="1" />
+        <term class="mytoken" value=":" />
+      </production>
+    </state>
+
+    <state name="unc" >
+      <capture>
+        <binding id="unc" color="darkred" />
+        <binding id="server" color="darkblue" />
+      </capture>
+      <production >
+        <term class="mytoken" value="\\" id="unc"/>
+        <nont state="alphanum" id="server" />
+        <nont state="localpath.cont" id="unc" />
+      </production>
+    </state>
+
+    <state name="alphanum" >
+      <production>
+        <term class="myliteral" />
+        <nont state="alphanum.cont" />
+      </production>
+      <production>
+        <term class="mynumber" />
+        <nont state="alphanum.cont" />
+      </production>
+    </state>
+
+    <!-- once we see punctuation we drop into a cautious mode not allowing spaces.
+         we'll pop out when hit the next backslash whereupon spaces are ok again -->
+    <state name="alphanum.exnt" >
+      <production>
+        <term class="myanyof" value=".-_*()&amp;"/>
+        <nont state="alphanum.exnt" />
+      </production>
+      <production>
+        <term class="myliteral" />
+        <nont state="alphanum.exnt" />
+      </production>
+      <production>
+        <term class="mynumber" />
+        <nont state="alphanum.exnt" />
+      </production>
+      <production>
+        <term class="myEmpty" />
+      </production>
+    </state>
+
+    <state name="alphanum.cont" >
+      <production>
+        <!-- Allow wildcards in the directory name, and spaces as long as not the first 
+             thing after the backslash -->
+        <term class="myanyof" value=".-_*()&amp;"/>
+        <nont state="alphanum.exnt" />
+      </production>
+      <production>
+        <term class="myspace" />
+        <nont state="alphanum.cont" />
+      </production>
+      <production>
+        <term class="myliteral" />
+        <nont state="alphanum.cont" />
+      </production>
+      <production>
+        <term class="mynumber" />
+        <nont state="alphanum.cont" />
+      </production>
+      <production>
+        <term class="myEmpty" />
+      </production>
+    </state>
+
+    <state name="environmentvariable" >
+      <production>
+        <term class="mytoken" value="%" />
+        <term class="myliteral" />
+        <term class="mytoken" value="%" />
+      </production>
+    </state>
+
+    <state name="nameoptions" >
+      <production>
+         <nont state="environmentvariable" />
+      </production>
+      <production>
+         <nont state="alphanum" />
+      </production>
+    </state>
+
+    <state name="localpath.cont" >
+      <capture>
+        <binding id="delim" color="blue" />
+      </capture>
+      <production>
+        <nont state="nameoptions" id="segments" />
+      </production>
+
+      <production lookahead="2" >
+        <term class="mytoken" value="\" id="delim" />
+        <nont state="nameoptions" id="segments" />
+        <nont state="localpath.cont" />
+      </production>
+
+      <production>
+        <term class="myanyof" value="\" id="delim" />
+      </production>
+
+      <production>
+        <term class="myEmpty" />
+      </production>
+    </state>
+
+    <state name="text">
+      <production>
+        <term class="myliteral" />
+      </production>
+      <production>
+        <term class="mynumber" />
+      </production>
+      <production>
+        <term class="mytoken" value="/" />
+      </production>
+      <production>
+        <term class="mytoken" value="\" />
+      </production>
+      <production>
+        <term class="mytoken" value=":" />
+      </production>
+      <production>
+        <term class="myanyof" value="&amp;&apos;~!@$%^*`’?|[]{}~!()_-=+.,;&#09;&gt;&lt;" maxmatch="1" />
+      </production>
+      <production>
+        <term class="myspace" />
+      </production>
+    </state>
+
+    <state name="replyline">
+      <capture>
+        <binding id="delim" color="blue" />
+        <binding id="ctext" color="darkred" />
+      </capture>
+      <production lookahead="2">
+        <term class="mycr" />
+        <term class="mytoken" value="&gt;" id="delim" />
+        <term class="myspace" occur="*" />
+        <nont state="replyline.in" />
+      </production>
+    </state>
+
+    <state name="replyline.in" >
+      <production >
+        <term class="mytoken" value="&gt;" id="delim" />
+        <term class="myspace" occur="*" />
+        <nont state="replyline.in" />
+      </production>
+      <production>
+        <nont state="commentline.in" id="ctext" />
+      </production>
+    </state>
+
+    <state name="commentline">
+      <capture>
+        <binding id="delim" color="green" />
+        <binding id="ctext" color="green" />
+      </capture>
+      <production>
+        <term class="myspace" occur="*" /> <!-- need these to compete with the "flag" state -->
+        <term class="mytoken" value="--" id="delim" />
+        <nont state="commentline.in" id="ctext" />
+      </production>
+      <production>
+        <term class="myspace" occur="*" /> <!-- need these to compete with the "flag" state -->
+        <term class="mytoken" value="//" id="delim" />
+        <nont state="commentline.in" id="ctext" />
+      </production>
+      <production>
+        <term class="mytoken" value="#" id="delim" />
+        <nont state="commentline.in" id="ctext" />
+      </production>
+    </state>
+
+    <state name="commentline.in">
+      <production>
+        <term class="myanyof" value="&gt;&lt;&amp;&apos;_-+=/(){}[]%^*@!?,.;:#&#32;&#09;\|$~" maxmatch ="1" />
+        <nont state="commentline.in" />
+      </production>
+      <production>
+        <term class="myanyof" value="&quot;" />
+        <nont state="commentline.in" />
+      </production>
+      <production>
+        <term class="myliteral" />
+        <nont state="commentline.in" />
+      </production>
+      <production>
+        <term class="mynumber" />
+        <nont state="commentline.in" />
+      </production>
+      <production>
+        <term class="myEmpty" />
+      </production>
+    </state>
+
+    <state name="comment">
+      <capture>
+        <binding id="cdelim" color="violet" />
+        <binding id="ctext" color="brown" />
+      </capture>
+      <production >
+        <term class="mytoken" value="&quot;" id="cdelim" />
+        <nont state="comment.in"  id="ctext" />
+        <term class="mytoken" value="&quot;" id="cdelim" />
+      </production>
+    </state>
+
+    <state name="comment.in">
+      <production>
+        <term class="mytoken" value="\&quot;" />
+        <nont state="comment.in" />
+      </production>
+      <production>
+        <term class="mytoken" value="\" />
+        <nont state="comment.in" />
+      </production>
+      <production>
+        <term class="myanyof" value="&gt;&lt;?&apos;.,:/;{}[]~!@#$%^&amp;*()-_+=|"/>
+        <nont state="comment.in" />
+      </production>
+      <production>
+        <term class="myliteral" />
+        <nont state="comment.in" />
+      </production>
+      <production>
+        <term class="mynumber" />
+        <nont state="comment.in" />
+      </production>
+      <production>
+        <nont state="nonemptyspace" />
+        <nont state="comment.in" />
+      </production>
+      <production>
+        <term class="myEmpty" />
+      </production>
+    </state>
+
+    <!-- space is any blank characters and/or carrage return line feeds -->
+    <state name="nonemptyspace">
+      <production>
+        <term class="myspace" />
+        <nont state="space" />
+      </production>
+      <production>
+        <term class="mycr" />
+        <nont state="space" />
+      </production>
+    </state>
+
+    <state name="space">
+      <production lookahead="2">
+        <term class="myspace" />
+        <nont state="space" />
+      </production>
+      <production lookahead="2">
+        <term class="mycr" />
+        <nont state="space" />
+      </production>
+      <production>
+        <term class="myEmpty" />
+      </production>
+    </state>
+  </bnftable>
+
+</bnfstuff>

@@ -1,0 +1,824 @@
+﻿using System;
+using System.Text;
+using System.Windows.Forms;
+using System.Drawing;
+using System.IO;
+using System.Xml;
+using System.Collections.Generic;
+
+using Play.Interfaces.Embedding;
+using Play.Edit;
+using Play.Rectangles;
+
+namespace Mjolnir {
+    /// <summary>
+    /// This little object gives us a way to match a ToolStripMenuItem back to the
+    /// Tool ID it is tracking!
+    /// </summary>
+	public class MenuItemWithID : 
+        ToolStripMenuItem
+    {
+		public int ID { get; }
+
+		public MenuItemWithID( int iID, string strValue, EventHandler oHandler ) :
+			base( strValue, null, oHandler ) 
+        {
+            ID = iID;
+		}
+	}
+    
+    public class ViewSlot : 
+        IPgViewSite,
+        IPgViewNotify,
+		IPgShellSite,
+        IDisposable
+    {
+        protected readonly MainWin  _oHost;    // Back pointer to the container.
+        private   readonly IDocSlot _oDocSite; // Pointer to the document site our view site is showing.
+
+        protected Control                      _oGuest;
+				  IPgSave<XmlDocumentFragment> _oGuestSaveXml;
+		protected IPgLoad<XmlElement>          _oGuestLoadXml;
+		protected IPgCommandView               _oGuestCommand;
+				  IPgTools                     _oGuestTools;
+
+        readonly ColorRange  _oRangeText = new ColorRange( 0, 0, 0 );
+        public CacheWrapped  CacheTitle { get; }
+        public Line          ShortTitle { get; } = new TextLine( 0, string.Empty );
+
+        static   UInt32 _iIDCount;
+        readonly UInt32 _iID;
+
+        IntPtr                    _ipHIcon = IntPtr.Zero;
+        Icon                      _oIcon   = null;
+        ToolStripMenuItem         _oMenuItem; // This is our entry in the list of windows the shell is showing.
+		protected LayoutRect      _oLayout;   // Put our new Framelet here.
+        string                    _strShortTitle = string.Empty; // cached string for main title bar.
+
+		private List<MenuItemWithID> ToolBox { get; }
+		public  virtual LayoutRect   Layout  { get { return _oLayout; } }
+
+		public Guid ViewType { get; private set; }
+
+		///<exception cref="ArgumentNullException" />
+        internal ViewSlot( MainWin oHost, IDocSlot oDocSite, Guid guidViewType ) {
+            _iID       = _iIDCount;
+            _iIDCount += 1;
+
+            _oHost    = oHost    ?? throw new ArgumentNullException( "view needs a valid host to operate." );
+            _oDocSite = oDocSite ?? throw new ArgumentNullException( "view needs a valid document site to operate." );
+
+			ToolBox = new List<MenuItemWithID>(3);
+
+            CacheTitle = new CacheWrapped( ShortTitle ); 
+			CacheTitle.Words.Add(_oRangeText);
+
+			ViewType = guidViewType;
+        }
+
+        public void ViewCreate( Guid guidViewType ) {
+            try {
+                GuestAssign( (Control)_oDocSite.Controller.CreateView( this, _oDocSite.Document, guidViewType ) );
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( InvalidOperationException ),
+                                    typeof( ApplicationException ),
+                                    typeof( ArgumentException ),
+                                    typeof( ArgumentNullException ),
+                                    typeof( InvalidCastException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
+
+                LogError( "View", "Unable to creat view on document." );
+                throw new ApplicationException( "Unable to creat view", oEx );
+            }
+        }
+
+        /// <summary>
+        /// This method is for internal access to the control.
+        /// BUG: This doesn't match how I'm using GuestSet (on doc slots) now a days.
+        /// </summary>
+        internal Control Guest {
+            get { return (_oGuest); }
+			set { GuestAssign( value ); }
+        }
+
+		/// <exception cref="ArgumentNullException" />
+		/// <exception cref="ArgumentException" />
+		protected virtual void GuestAssign( Control oGuest ) {
+            _oGuest        = oGuest ?? throw new ArgumentNullException( "View site needs a guest to be valid." );
+            _oGuestCommand = oGuest as IPgCommandView ?? throw new ArgumentException( "view needs IPgCommand." );
+			_oGuestSaveXml = oGuest as IPgSave<XmlDocumentFragment> ?? throw new ArgumentException( "view needs IPgSave<XmlDocumentFragment>" );
+			_oGuestLoadXml = oGuest as IPgLoad<XmlElement> ?? throw new ArgumentException( "view needs IPgLoad<XmlElement>." );
+			_oGuestTools   = oGuest as IPgTools; // Ok to be null.
+
+            try { 
+              // TODO: Need to merge this value to what I'm using for long/short names
+                _oMenuItem = new ToolStripMenuItem( _oDocSite.TitleShort, null, new EventHandler(this.OnMenuSelectView));
+		        _oLayout   = new LayoutControl( oGuest, LayoutRect.CSS.Pixels );
+	          //_oLayout   = new FrameletForView( this, (uint)(this._oHost.Document.FontStandard.Height * 1.5 ) );
+            } catch( Exception oEx ) { 
+                throw new ArgumentException( "Unable to prep ViewSite for new View.", oEx );
+            }
+            DocumentReferenceIncrement( +1 );
+		}
+
+		/// <summary>
+		/// Might want to reinvestigate the dispose pattern for this one.
+		/// </summary>
+        public virtual void Dispose() {
+			if( _oGuest != null ) {
+				_oGuest.Hide();
+				_oGuest.Site = null;
+				_oGuest.Dispose();
+				_oGuest = null;
+			}
+
+			// Dispose after the guest, since it'll call our OnFocus as it is destroyed!
+			if( _oMenuItem != null ) {
+ 				_oMenuItem.Dispose();
+				_oMenuItem = null;
+			}
+
+			ToolBox.Clear();
+
+			// TODO: Should probably check if we've been disposed of to be safe. ^_^;;
+            DocumentReferenceIncrement( -1 );
+        }
+
+        public virtual void DocumentReferenceIncrement( int i ) {
+            _oDocSite.Reference += i;
+        }
+
+        /// <summary>
+        /// Little helper function.
+        /// </summary>
+        public bool Wrap {
+            set {
+                if( _oGuest is EditWin oGuestEdit ) {
+                    oGuestEdit.Wrap = value;
+                }
+            }
+        }
+
+        public string LastPath {
+            get { return( _oDocSite.LastPath ); }
+        }
+
+        public uint ID {
+            get { return( _iID ); }
+        }
+        
+        /// <summary>
+        /// Go to the guest view and ask for it's bitmap to be used as the icon.
+        /// But here's the rub. You can create an icon handle from a bitmap then
+        /// call Icon.FromHandle() to create an Icon but that little shit won't 
+        /// take control of the handle. Then the lazy form simply takes a reference
+        /// to the given icon, meaning unless you clear the form icon first you 
+        /// can't destroy the handle you're stuck with. Sooooo....
+        /// </summary>
+        internal void CreateIcon() {
+            IntPtr ipHIcon = IntPtr.Zero;
+            try {
+                Bitmap oBitmap = (Bitmap)_oGuestCommand.Iconic;
+				if( oBitmap != null ) {
+					ipHIcon = oBitmap.GetHicon();
+					using( Icon oIcon = Icon.FromHandle( ipHIcon ) ) {
+						_oIcon = (Icon)oIcon.Clone();
+					}
+				}
+            } catch( InvalidCastException ) {
+				// this is kinda cool. If our image is something super modern and cool, I'll have
+				// to create the icon differently. ^_^;
+            } finally {
+                if( ipHIcon != IntPtr.Zero )
+                    MyExtensions.DestroyIcon( ipHIcon );
+            }
+        }
+
+		/// <summary>
+		/// Got to the view and ask it for all the tools.
+		/// </summary>
+		internal void ToolsInit() {
+			if( _oGuestTools != null ) {
+				for( int i = 0; i < _oGuestTools.ToolCount; ++i ) {
+					ToolBox.Add( new MenuItemWithID( i, _oGuestTools.ToolName( i ), OnToolClicked ) );
+				}
+			}
+		}
+
+		internal void ToolsMenuLoad( ToolStripMenuItem oTools ) {
+			try {
+				oTools.DropDownItems.Clear();
+
+				foreach( MenuItemWithID oItem in ToolBox ) {
+					oItem.Checked = oItem.ID == _oGuestTools.ToolSelect;
+					oTools.DropDownItems.Add( oItem );
+				}
+			} catch( NullReferenceException ) {
+			}
+		}
+
+		protected void OnToolClicked(object sender, EventArgs e) {
+			try {
+				if (sender is MenuItemWithID oItem) {
+					_oGuestTools.ToolSelect = oItem.ID;
+				}
+			} catch( NullReferenceException )  {
+			}
+		}
+
+		internal virtual bool InitNew() {
+			try {
+				if( !_oGuestLoadXml.InitNew() ) // BUG: A parse finish from the scheduler is showing up before we call this!
+					return( false );
+
+				ToolsInit();
+			} catch( Exception oEx ) {
+				Type[] rgErrors = { typeof( ArgumentException ), 
+					                typeof( ArgumentNullException ),
+									typeof( NullReferenceException ),
+									typeof( InvalidOperationException ) };
+				if( rgErrors.IsUnhandled( oEx ) )
+					throw;
+
+				_oHost.LogError( this, "storage", "Can't initialize view." );
+				return( false );
+			}
+
+            CreateIcon();
+
+            // This keeps us from tabbing into our document and then blasting a bunch
+            // of spaces into the document because we tabbed our way into it. The document 
+            // still accepts tabs, but you have to specifically set focus to it.
+            _oGuest.TabStop = false;
+
+            UpdateTitle();
+        
+            return( true );
+        }
+
+        internal bool Load( XmlElement xmlRoot ) {
+			try {
+				if( !_oGuestLoadXml.Load( xmlRoot ) ) {
+					LogError( "storage", "Couldn't load view from xml." );
+					return( false );
+				}
+				ToolsInit();
+			} catch( Exception oEx ) {
+				Type[] rgErrors = { typeof( ArgumentException ), 
+					                typeof( ArgumentNullException ),
+									typeof( NullReferenceException ),
+									typeof( InvalidOperationException ) };
+				if( rgErrors.IsUnhandled( oEx ) )
+					throw;
+
+				LogError( "storage", "Couldn't load view from string" );
+				return( false );
+			}
+
+            CreateIcon();
+
+            _oGuest.TabStop = false;
+
+            return( true );
+        }
+
+        internal bool Save( XmlDocumentFragment oWriter ) {
+			try {
+				return( _oGuestSaveXml.Save( oWriter ) );
+			} catch( Exception oEx ) {
+				Type[] rgErrors = { typeof( ArgumentException ), 
+					                typeof( ArgumentNullException ),
+									typeof( NullReferenceException ),
+									typeof( InvalidOperationException ) };
+				if( rgErrors.IsUnhandled( oEx ) )
+					throw;
+
+				LogError( "storage", "Couldn't save view to text writer" );
+			}
+			return( false );
+        }
+
+       /// <summary>
+        /// Every view links to the document site that spawned it. In this manner we can
+        /// track when the last view on the document has been closed and thus close the
+        /// document as well.
+        /// </summary>
+        internal IDocSlot DocumentSite {
+            get{ return( _oDocSite ); }
+        }
+
+        public virtual FILESTATS FileStatus { get { return( FILESTATS.UNKNOWN ); } }
+
+        public ToolStripMenuItem MenuItem {
+            get{ return( _oMenuItem ); }
+        }
+
+        public virtual void OnNavigate( int iLine, int iOffset ) { }
+
+        /// <summary>
+        ///     Set the focus to the control at this site. Focus doesn't actually work until the
+        ///     window handle get's created. But Select works everytime.
+        /// </summary>
+        /// <remarks>In windowless, we would call something like IPgWindowless::Blur() on the
+        ///     windowless control loosing focus and call IPgWindowless::Focus() 
+        ///     on windowless control gaining focus. Windowless controls just like
+        ///     windowed controls are required to call OnFocus() on our site which
+        ///     finally sets the current view.
+        /// </remarks>
+        public void SetFocus() {
+			try {
+				// When the view gets the focus message that signals the shell to BringToFront() it.
+				_oGuest.Select();
+				_oGuest.Focus();
+			} catch( NullReferenceException ) {
+				LogError( "windowing", "Guest is null!", true );
+			}
+        }
+
+        public bool Focused {
+            get { 
+				try {
+					return( _oGuest.Focused ); 
+				} catch( NullReferenceException ) {
+					LogError( "windowing", "Guest is null!", false );
+					return( false );
+				}
+			}
+        }
+
+		/// <summary>
+		/// When the user selects a view from the menu, we switch back to solo view if not in solo view.
+		/// </summary>
+		/// <seealso cref="MainWin.OnViewAll"/>
+        public void OnMenuSelectView( object sender, EventArgs e ) {
+			_oHost._eLayout = MainWin.TOPLAYOUT.Solo;
+            _oHost.ViewSelect( this, true );
+        }
+
+        // BUG: We can change the view a number of ways. Need to unify.
+        internal void BringToFront() {
+			try {
+				_oGuest.BringToFront();
+			} catch( NullReferenceException ) {
+				LogError( "windowing", "Guest is null!", false );
+			}
+        }
+
+        /// <summary>
+        /// 12/15/2015 : I use this when changing views to get the cursor back on screen.
+        ///              Need a command like ScrollToPrimaryEdit() or some such. But I might
+        ///              not even want to do that.
+        /// TODO: Make this some sort of IPgCommand
+        /// </summary>
+        internal void ScrollToPrimaryEdit() {
+            IPgTextView oGuestText = _oGuest as IPgTextView;
+            if( oGuestText != null )
+                oGuestText.ScrollToCaret();
+        }
+        
+        public virtual IPgParent     Host       => _oHost;
+		public virtual IPgViewNotify EventChain => this;
+
+        public virtual void LogError( string strMessage, string strDetails, bool fShow=true ) {
+            _oHost.LogError( this, strMessage, strDetails, fShow );
+        }
+
+        /// <summary>
+        /// When the window we host gets the focus it is required to
+        /// call our site here so we can update the UI.
+        /// </summary>
+        /// <remarks>I used to have focus problems on create of the window. It
+        /// might be that's not bothering me now so I've commented out the
+        /// redundant and possibly infinite loop causing, guest focus.</remarks>
+        public virtual void NotifyFocused( bool fSelect ) {
+            try {
+                if( fSelect ) {
+                    _oGuest.BringToFront();
+
+                    _oHost.OnViewFocused( this );
+                } else {
+                    _oHost.OnViewBlurred( this );
+                }
+            } catch( NullReferenceException ) {
+                LogError( "internal", "View site, MenuItem is probably null OnFocused()." );
+            }
+        }
+
+        public virtual bool IsCommandPress( char cChar ) {
+            return( false );
+        }
+
+        public virtual bool IsCommandKey( CommandKey ckKey, KeyBoardEnum kbModifiers ) {
+            if( ckKey == CommandKey.Find && kbModifiers == KeyBoardEnum.Control ) {
+                SmartHerderBase oHerder = _oHost.DecorOpen( "find", true );
+                if( oHerder != null ) {
+                    oHerder.AdornmentFocus( null ); // since find is a solo, we don't need it's view site!
+                }
+                return( true );
+            }
+            return( false );
+        }
+
+        public void UpdateTitle() {
+            _oMenuItem.Text = TitleLong;
+            _strShortTitle  = TitleShort;
+
+            CacheTitle.Invalidate();
+        }
+
+        public bool IsTextInvalid {  get { return CacheTitle.IsInvalid; } }
+
+        public void UpdateText( IntPtr hDC, ref IntPtr hScriptCache, float flFontHeight, 
+                                SCRIPT_FONTPROPERTIES sDefFontProps ) 
+        {
+            // TODO: This instance represents an interesting case where we need to update the text, but the
+            //       width might not be known by the manager, Or a re-layout calc is going to be required when
+            //       the text changes! In our case it's because we're sharing the cached text amoung TWO different
+            //       layouts!!
+            //       Request an OnSizeChanged event on the MainWindow.
+            CacheTitle.Update( hDC, ref hScriptCache, 4, flFontHeight, sDefFontProps, null, 1000, null );
+            _oRangeText.Length = CacheTitle.Line.ElementCount;
+        }
+
+        public void SetLayout( MainWin.TOPLAYOUT eLayout ) {
+            //switch( eLayout ) {
+            //    case MainWin.TOPLAYOUT.Multi:
+            //        Layout.TitleHidden = false;
+            //        break;
+            //    case MainWin.TOPLAYOUT.Solo:
+            //        Layout.TitleHidden = true;
+            //        break;
+            //}
+        }
+
+        public virtual void Notify( ShellNotify eEvent ) {
+			switch( eEvent ) {
+				case ShellNotify.BannerChanged:
+					UpdateTitle();
+					_oHost.SetTitle(); // If we aren't focused we won't affect anything.
+					break;
+
+				case ShellNotify.DocumentDirty:
+					_oHost.SessionDirtySet( true ); 
+					break;
+
+				case ShellNotify.ToolChanged:
+					foreach( MenuItemWithID oTool in ToolBox ) {
+						oTool.Checked = oTool.ID == _oGuestTools.ToolSelect;
+					}
+					break;
+			}
+		}
+
+
+        /// <summary>
+        /// This command is originated in the shell for the currently focused
+        /// view. We turn around and ask our document to ask the shell for a
+        /// save. At this point we could as for a save of our settings too! ^_^
+        /// </summary>
+        /// <returns></returns>
+        public void SaveDocument( bool fAtNewLocation ) {
+            // TODO: When the shell has to put up a dialog it's going to be a
+            // modal one, thus pushing a message loop. That's a bit of a crock. Perhaps I
+            // need a save/savecomplete protocol.
+            _oDocSite.Save(fAtNewLocation);
+
+            _oHost.UpdateAllTitlesFor( _oDocSite );
+        }
+
+        /// <summary>
+        /// This get's called by the drop down menu item and by proxy the WindowsList. By using
+        /// ViewIDTitle we can tell the difference between our views!
+        /// </summary>
+        public string TitleLong {
+            get {
+				try {
+					StringBuilder sbTitle = new StringBuilder( _oDocSite.TitleLong );
+
+					if( !string.IsNullOrEmpty( _oGuestCommand.Banner ) ) {
+						sbTitle.Append( " @ " );
+						sbTitle.Append( _oGuestCommand.Banner );
+					}
+
+					return( sbTitle.ToString() );
+				} catch ( NullReferenceException ) {
+					return( "View" );
+				}
+            }
+        }
+
+        public string TitleShort {
+            get {
+				try {
+					int iViewID = _oHost.ViewTitleID( this );
+
+                    ShortTitle.Empty();
+                    ShortTitle.TryAppend( _oDocSite.TitleShort );
+
+					if( iViewID > -1 ) {
+                        ShortTitle.TryAppend( ", " );
+                        ShortTitle.TryAppend( iViewID.ToString() );
+					}
+					if( !string.IsNullOrEmpty( _oGuestCommand.Banner ) ) {
+                        ShortTitle.TryAppend( " @ " );
+                        ShortTitle.TryAppend( _oGuestCommand.Banner );
+					}
+
+					return ShortTitle.ToString();
+				} catch( NullReferenceException ) {
+					return( "View" );
+				}
+            }
+        }
+
+        /// <summary>
+        /// Our view site get's tossed into the WindowsList. And ToString() get's called to spew the text.
+        /// so I want the short title. You can select it to see the path in the window title bar.
+        /// </summary>
+        public override string ToString() {
+            return( _strShortTitle );
+        }
+
+        public Icon Icon {
+            get {
+                return( _oIcon ); 
+            }
+        }
+
+        internal Image Iconic { get { return _oGuestCommand.Iconic; } }
+
+        public bool Execute( Guid sCommand ) {
+			try {
+				return _oGuestCommand.Execute( sCommand );
+			} catch( NullReferenceException ) {
+				LogError( "commands", "Guest does not support IPgCommand" );
+				return false;
+			}
+        }
+
+        // TODO: Figure out how to pass the filename back on a per view basis. 
+        public virtual string FileName {
+            get {
+                return( _oDocSite.FileName );
+            }
+        }
+
+        /// <summary>
+        /// Request the shell to create a new view on this view's document.
+        /// </summary>
+		/// <remarks>
+		/// I'd like to make this a service. But as the main program is the only source 
+		/// for services that won't work if we ever support more than one top level window.
+		/// </remarks>
+        public object AddView(Guid guidViewType, bool fFocus) {
+            foreach( IPgCommandView oSibling in _oHost.EnumViews( _oDocSite ) ) {
+                if( oSibling.Catagory == guidViewType ) {
+                    _oHost.CurrentView = oSibling;
+                    return oSibling;
+                }
+            }
+			try {
+				EditorShowEnum eShow = fFocus ? EditorShowEnum.FOCUS : EditorShowEnum.SILENT;
+				ViewSlot       oSlot = _oHost.ViewCreate( _oDocSite, guidViewType, eShow );
+
+				return oSlot.Guest;
+			} catch( NullReferenceException ) {
+				return null;
+			}
+        }
+
+        public IEnumerable<IPgCommandView> EnumerateSiblings {
+            get {
+                return _oHost.EnumViews( _oDocSite );
+            }
+        }
+
+        public void FocusMe() {
+            _oHost.CurrentView = Guest;
+        }
+
+        public void FocusCenterView() {
+			_oHost.FocusCurrentView();
+		}
+
+        public uint SiteID { get { return _iID; } }
+	}
+
+    /// <summary>
+    /// This view slot is so that we don't create lock counts that keep the
+    /// main window open. We use this for the various decor views.
+    /// </summary>
+	internal class NonRefCountSlot : ViewSlot {
+		///<exception cref="ArgumentNullException" />
+        public NonRefCountSlot( MainWin oHost, IDocSlot oDocSite, Guid oGuid ) :
+            base( oHost, oDocSite, oGuid )
+        {
+        }
+
+		public override IPgViewNotify EventChain => this;
+
+		/// <remarks>
+		/// A little bit evil, in the future whe should probably have our viewsite inherit from
+		/// the DecorSite which is the restricted one.
+		/// </remarks>
+		/// <param name="oGuest"></param>
+		protected override void GuestAssign( Control oGuest ) {
+            _oGuest        = oGuest ?? throw new ArgumentNullException( "Decor view site needs a guest to be valid." );
+			_oGuestCommand = oGuest as IPgCommandView ?? throw new ArgumentException( "view must support IPgCommand" );
+		}
+
+		/// <remarks>
+		/// Override so we don't try to change the title or set the icon like a normal 
+		/// view would do. 
+		/// </remarks>
+		/// <seealso cref="DecorSlot"/>
+        internal override bool InitNew() {
+			try {
+				if( Guest is IPgLoad oGuestLoad ) {
+					if( !oGuestLoad.InitNew() ) // BUG: A parse finish from the scheduler is showing up before we call this!
+						return( false );
+				} else {
+					LogError( "Initialize", "Guest does not support IPgLoad" );
+				}
+			} catch( Exception oEx ) {
+				Type[] rgErrors = { typeof( ArgumentException ), 
+					                typeof( ArgumentNullException ),
+									typeof( NullReferenceException ),
+									typeof( InvalidOperationException ) };
+				if( rgErrors.IsUnhandled( oEx ) )
+					throw;
+
+				_oHost.LogError( this, "storage", "Can't initialize view." );
+				return false;
+			}
+			return true;
+		}
+
+        /// <summery> Ignore any ref counting.</summery>
+        public override void DocumentReferenceIncrement( int i ) {
+        }
+	}
+
+	/// <summary>
+	/// BUG: Inheriting from ViewSite is probably not the best thing.
+	/// Commands for each tool window means something different, for one
+	/// ViewSelector document is hosted by MainWin and NOT Program,
+	/// thus the view site cannot produce a IDocSlot.
+	/// </summary>
+	internal class DecorSlot : NonRefCountSlot {
+		SmartHerderBase _oHerder;
+
+		///<exception cref="ArgumentNullException" />
+        public DecorSlot( MainWin oHost, IDocSlot oDocSite, SmartHerderBase oHerder ) :
+            base( oHost, oDocSite, Guid.Empty )
+        {
+			_oHerder = oHerder ?? throw new ArgumentNullException( "Herder required." );
+        }
+
+		public override IPgViewNotify EventChain => this;
+
+		/// <remarks>
+		/// A little bit evil, in the future whe should probably have our viewsite inherit from
+		/// the DecorSite which is the restricted one.
+        /// BUG: Look into changing GuestAssign to GuestSet to match others.
+		/// </remarks>
+		protected override void GuestAssign( Control oGuest ) {
+            _oGuest = oGuest ?? throw new ArgumentNullException( "Decor view site needs a guest to be valid." );
+		}
+
+        /// <summary>
+        /// Shell focus events are for the tools to track the current document view.
+        /// If a tool get's the focus, it's not the same.
+        /// </summary>
+        /// <param name="fSelect"></param>
+        public override void NotifyFocused(bool fSelect) {
+			if( fSelect )
+				_oHerder.OnFocused();
+			else
+				_oHerder.OnBlurred();
+
+			_oHost.Invalidate();
+        }
+
+        /// <summary>
+        /// A dialog control on the side should not accept either TAB and ENTER key.
+        /// </summary>
+        public override bool IsCommandKey( CommandKey ckKey, KeyBoardEnum kbModifiers ) {
+            switch( ckKey ) {
+                case CommandKey.Tab:
+                    return( true );
+            }
+            return( false );
+        }
+        public override bool IsCommandPress( char cChar ) {
+            switch( cChar ) {
+                case '\r':
+                    return( true );
+            }
+            return( false );
+        }
+
+		public override void Notify( ShellNotify eEvent ) {
+			// Ignore this event from decor. These are usually recycled views that don't know
+			// they are being used as decor.
+		}
+	}
+
+    /// <summary>
+    /// This object begs the question, where is the best place to put all the specialized behavior on these complex objects
+    /// utilizing my text editor. I'm thinking that I should subclass the edit win, then I can leverage my view creation system.
+    /// But I'm going to go with this for the moment... 4/7/2020
+    /// </summary>
+    /// <remarks>We don't bring to top on views when the user navigates the view window. I prefer hitting the space bar like
+    /// a button to make the view switch.</remarks>
+    internal class ViewSelectorSlot : DecorSlot {
+        readonly ViewsEditor _oDoc_Views;
+                 IPgTextView _oViewText; 
+
+        public ViewSelectorSlot(MainWin oHost, IDocSlot oDocSite, SmartHerderBase oHerder ) :
+            base(oHost, oDocSite, oHerder)
+        {
+            _oDoc_Views = oDocSite.Document as ViewsEditor ?? throw new ArgumentException( "Document must support a ViewSite Editor" );
+        }
+
+		protected override void GuestAssign( Control oGuest ) {
+            base.GuestAssign( oGuest );
+
+            _oViewText = oGuest as IPgTextView ?? throw new ArgumentException( "Control must support IPgTextView" );
+
+            oGuest.Cursor      = Cursors.Hand;
+            //oGuest.ContextMenu = new ContextMenu();
+
+            //oGuest.ContextMenu.MenuItems.Add( new MenuItem( "Goto",  new EventHandler( MenuGotoView ),        Shortcut.CtrlG ) );
+            //oGuest.ContextMenu.MenuItems.Add( new MenuItem( "Close", new EventHandler( MenuCloseViewCommand), Shortcut.Del ) );
+
+            _oHost.ViewChanged += _oHost_ViewChanged; // This should be on the InitNew. If we fail init we're still wired up.
+		}
+
+        private void _oHost_ViewChanged(IPgTextView oView) {
+            try {
+                foreach( ViewsLine oViewLine in _oDoc_Views ) {
+                    if( oViewLine.ViewSite.Guest is IPgTextView oViewText ) {
+                        if( oViewText == oView )
+                            _oDoc_Views.HighLight = oViewLine;
+                    }
+                }
+            } catch( NullReferenceException ) {
+                LogError( "View Selector", "Problem monitering switch." );
+            }
+        }
+
+        public override bool IsCommandPress( char cChar ) {
+            switch( cChar ) {
+                case ' ':
+                    GotoView( fFocus:false );
+                    return( true );
+                case '\r':
+                    GotoView( fFocus:true );
+                    return( true );
+                case '\u001B': // escape: Just go back to view.
+                    _oHost.SetFocusAtCenter();
+                    return( true );
+            }
+            return( false );
+        }
+
+        protected void GotoView( bool fFocus ) {
+			try {
+                _oHost.ViewSelect( _oDoc_Views[_oViewText.Caret.Line].ViewSite, fFocus );
+			} catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( NullReferenceException ),
+                                    typeof( IndexOutOfRangeException ),
+                                    typeof( ArgumentOutOfRangeException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
+
+                LogError( "View Selector", "Error trying to focus view." );
+			}
+        }
+
+        protected void MenuGotoView( object s, EventArgs e ) {
+            GotoView( fFocus:true );
+        }
+
+        protected void MenuCloseViewCommand( object s, EventArgs e ) {
+			try {
+				_oHost.ViewClose( _oDoc_Views[_oViewText.Caret.Line].ViewSite );
+			} catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( NullReferenceException ),
+                                    typeof( IndexOutOfRangeException ),
+                                    typeof( ArgumentOutOfRangeException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
+
+                LogError( "View Selector", "Error trying close view." );
+			}
+        }
+
+        public override void Dispose() {
+            _oGuest.Dispose();
+            _oHost.ViewChanged -= _oHost_ViewChanged;
+        }
+    }
+}

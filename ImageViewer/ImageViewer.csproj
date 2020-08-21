@@ -1,0 +1,41 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="Content\icon-folder.png" />
+    <None Remove="Content\icon-portrait.png" />
+    <None Remove="Content\icons8-cardboard-box-48.png" />
+    <None Remove="Content\icons8-cut-40.png" />
+    <None Remove="Content\icons8-error-48.png" />
+    <None Remove="Content\icons8-search-more-48.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Content\icon-folder.png" />
+    <EmbeddedResource Include="Content\icon-portrait.png" />
+    <EmbeddedResource Include="Content\icons8-cardboard-box-48.png" />
+    <EmbeddedResource Include="Content\icons8-cut-40.png" />
+    <EmbeddedResource Include="Content\icons8-error-48.png" />
+    <EmbeddedResource Include="Content\icons8-search-more-48.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="SkiaSharp" Version="2.80.2-preview.9" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Drawing\Drawing.csproj" />
+    <ProjectReference Include="..\Editor\Editor.csproj" />
+    <ProjectReference Include="..\Interfaces\Interfaces.csproj" />
+    <ProjectReference Include="..\ParseAll\ParseAll.csproj" />
+  </ItemGroup>
+
+</Project>
