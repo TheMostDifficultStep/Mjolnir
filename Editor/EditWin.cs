@@ -1240,20 +1240,22 @@ namespace Play.Edit {
         protected override void OnMouseUp(MouseEventArgs e) {
             base.OnMouseUp( e );
             
-             if( _iSelectedTool == 1 || (ModifierKeys & Keys.Control) != 0) {
-                if(_oCacheMan.GlyphPointToRange(ClientToWorld(e.Location), _oLastCursor ) != null ) {
-                    IPgWordRange oRange = FindFormattingUnderRange( _oLastCursor );
-                    if( oRange != null ) { 
-                        foreach( KeyValuePair<string, HyperLink> oPair in HyperLinks ) { 
-                            if( oRange.StateName == oPair.Key ) {
-                                oPair.Value( _oLastCursor.Line , oRange ); // Call the delegate!
-                            }
-                        }
-                    }
-                }
+            if( _iSelectedTool == 1 || ((ModifierKeys & Keys.Control) != 0) && e.Button == MouseButtons.Left ) {
+                IPgWordRange oRange = FindFormattingUnderRange( _oLastCursor );
+                HyperLink    oLink  = HyperLinkFind( PointToClient( e.Location ) );
+
+                oLink?.Invoke(_oLastCursor.Line, oRange); 
+            }
+            if( ((ModifierKeys & Keys.Control) != 0) && e.Button == MouseButtons.Right ) {
+                IPgWordRange oRange       = FindFormattingUnderRange(_oLastCursor);
+                string       strSelection = _oCaretPos.Line.SubString(oRange.Offset, oRange.Length);
+                DataObject   oDataObject  = new DataObject();
+
+                oDataObject.SetData(strSelection);
+                Clipboard.SetDataObject(oDataObject);
             }
 
-           _rctDragBounds = null;
+            _rctDragBounds = null;
 
             CaretIconRefreshLocation();
 
