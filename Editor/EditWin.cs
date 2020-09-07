@@ -1242,7 +1242,7 @@ namespace Play.Edit {
             
             if( _iSelectedTool == 1 || ((ModifierKeys & Keys.Control) != 0) && e.Button == MouseButtons.Left ) {
                 IPgWordRange oRange = FindFormattingUnderRange( _oLastCursor );
-                HyperLink    oLink  = HyperLinkFind( PointToClient( e.Location ) );
+                HyperLink    oLink  = HyperLinkFind( e.Location );
 
                 oLink?.Invoke(_oLastCursor.Line, oRange); 
             }
