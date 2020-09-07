@@ -1240,19 +1240,13 @@ namespace Play.Edit {
         protected override void OnMouseUp(MouseEventArgs e) {
             base.OnMouseUp( e );
             
-            if( _iSelectedTool == 1 || ((ModifierKeys & Keys.Control) != 0) && e.Button == MouseButtons.Left ) {
+            if( e.Button == MouseButtons.Left &&
+                    ( _iSelectedTool == 1 ) || ( (ModifierKeys & Keys.Control) != 0)
+            ) {
                 IPgWordRange oRange = FindFormattingUnderRange( _oLastCursor );
                 HyperLink    oLink  = HyperLinkFind( e.Location );
 
                 oLink?.Invoke(_oLastCursor.Line, oRange); 
-            }
-            if( ((ModifierKeys & Keys.Control) != 0) && e.Button == MouseButtons.Right ) {
-                IPgWordRange oRange       = FindFormattingUnderRange(_oLastCursor);
-                string       strSelection = _oCaretPos.Line.SubString(oRange.Offset, oRange.Length);
-                DataObject   oDataObject  = new DataObject();
-
-                oDataObject.SetData(strSelection);
-                Clipboard.SetDataObject(oDataObject);
             }
 
             _rctDragBounds = null;
