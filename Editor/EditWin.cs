@@ -1240,8 +1240,9 @@ namespace Play.Edit {
         protected override void OnMouseUp(MouseEventArgs e) {
             base.OnMouseUp( e );
             
-            if( e.Button == MouseButtons.Left &&
-                    ( _iSelectedTool == 1 ) || ( (ModifierKeys & Keys.Control) != 0)
+            if( ( e.Button == MouseButtons.Left &&
+                    ( _iSelectedTool == 1 ) || ( (ModifierKeys & Keys.Control) != 0) ) &&
+                !TextSelector.IsSelected( Selections )
             ) {
                 IPgWordRange oRange = FindFormattingUnderRange( _oLastCursor );
                 HyperLink    oLink  = HyperLinkFind( e.Location );

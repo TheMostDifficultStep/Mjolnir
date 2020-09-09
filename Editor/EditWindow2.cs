@@ -1150,27 +1150,26 @@ namespace Play.Edit {
             }
         }
 
+        /// <summary>If we are over a hyper link and there is no selection: jump if the
+        /// left button pressed, jump if browse mode or control key pressed.</summary>
         /// <remarks>Whether we dropped or not we need to clear the drag bounds rect.
         /// So don't clear it in the OnDragDrop() event, we need to clear it
         /// here too in case we are not dragging.
         /// </remarks>
         protected override void OnMouseUp(MouseEventArgs e) {
             base.OnMouseUp( e );
-            
-             if( _iSelectedTool == 1 || (ModifierKeys & Keys.Control) != 0) {
-                if(_oCacheMan.GlyphPointToRange(ClientToWorld( new SKPointI( e.Location.X, e.Location.Y )), _oLastCursor ) != null ) {
-                    IPgWordRange oRange = FindFormattingUnderRange( _oLastCursor );
-                    if( oRange != null ) { 
-                        foreach( KeyValuePair<string, HyperLink> oPair in HyperLinks ) { 
-                            if( oRange.StateName == oPair.Key ) {
-                                oPair.Value( _oLastCursor.Line , oRange ); // Call the delegate!
-                            }
-                        }
-                    }
-                }
+
+            if(( e.Button == MouseButtons.Left &&
+                    ( _iSelectedTool == 1) || ((ModifierKeys & Keys.Control) != 0) ) &&
+                !TextSelector.IsSelected(Selections)
+            ) {
+                IPgWordRange oRange = FindFormattingUnderRange(_oLastCursor);
+                HyperLink oLink = HyperLinkFind(new SKPointI( e.Location.X, e.Location.Y ) );
+
+                oLink?.Invoke(_oLastCursor.Line, oRange);
             }
 
-           _rctDragBounds = null;
+            _rctDragBounds = null;
 
             CaretIconRefreshLocation();
 
