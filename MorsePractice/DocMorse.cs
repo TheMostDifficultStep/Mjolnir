@@ -355,8 +355,8 @@ namespace Play.MorsePractice {
                     while (oReadQrz.Peek() >= 0) {
                         string strLine = oReadQrz.ReadLine();
                         string strSrch = "Base64.decode(\"";
-                        int iStart = strLine.LastIndexOf(strSrch);
-                        int iEnd = strLine.LastIndexOf("\"");
+                        int    iStart  = strLine.LastIndexOf(strSrch);
+                        int    iEnd    = strLine.LastIndexOf("\"");
 
                         if (iStart > 0) {
                             byte[] rgBiography = null;
@@ -380,6 +380,9 @@ namespace Play.MorsePractice {
                         }
                     }
                 }
+                // On this second pass we load the stream into the page html editor. We could 
+                // probably do this first, THEN pull the base64 blob if we deal with the parse better.
+                // The first scan is mostly hacky. ^_^;;
                 oStream.Seek( 0, SeekOrigin.Begin );
                 using (StreamReader oReadQrz = new StreamReader(oStream)) {
                     CallSignPageHtml.Load( oReadQrz );
@@ -559,6 +562,10 @@ namespace Play.MorsePractice {
         }
     }
 
+    /// <summary>
+    /// Cheap attempt at skimming the address from the HTML. It doesn't work. 
+    /// What I really need to do is to make a TAG grammer to pull this information.
+    /// </summary>
     public class ParseQrzHTMLSkimmer : ParseHandlerHTML {
         MorseDoc Document { get; }
 

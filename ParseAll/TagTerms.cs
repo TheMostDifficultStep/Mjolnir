@@ -27,11 +27,14 @@ namespace Play.Parse.Impl.Text
         /// it here as a helper function.</remarks>
         public static string GetTagAttribute( this MemoryState<char> oChild, DataStream<char> oTextStream, string strAttribName ) {
             try { 
+                if( oChild.Values == null )
+                    return string.Empty;
+
                 string    strReturn = string.Empty;
                 int       iIndex    = oChild.IndexOfBinding( "attribs" );
                 ArrayList rgAttribs = (ArrayList)oChild.Values[iIndex] as ArrayList;
 
-                if( rgAttribs != null ) {
+                if( rgAttribs != null && iIndex >= 0 ) {
                     foreach( MemoryState<char> oAttrib in rgAttribs ) {
                         int iAttrName = oAttrib.IndexOfBinding( "attribname" );
                         int iAttrValu = oAttrib.IndexOfBinding( "attribvalue" );
@@ -48,6 +51,8 @@ namespace Play.Parse.Impl.Text
                 return ( strReturn );
             } catch( Exception oEx ) { 
                 Type[] rgErrors = { typeof( NullReferenceException ),
+                                    typeof( IndexOutOfRangeException ),
+                                    typeof( ArgumentOutOfRangeException ),
                                     typeof( ArgumentNullException ) };
                 if( rgErrors.IsUnhandled( oEx ) )  {
                     throw;
@@ -306,5 +311,4 @@ namespace Play.Parse.Impl.Text
             return( false );
         }
 	}
-
 }

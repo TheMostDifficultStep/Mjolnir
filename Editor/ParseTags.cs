@@ -148,12 +148,13 @@ namespace Play.Integration {
         readonly private   TagGrammer     _oTagGrammer;
         readonly private   ParseEventsTag _oTagHandler;
         readonly protected List<TagInfo>  _rgTagBag = new List<TagInfo>(100);
+        readonly protected string         _strTagGrammerName = "html_4_trad";
 
         public ParseHandlerHTML( Editor oDocument ) : base( oDocument, "html" ) {
             try {
-                _oTagGrammer = (TagGrammer)((IPgGrammers)_oDocument.Services).GetGrammer("html_4_trad");
+                _oTagGrammer = (TagGrammer)((IPgGrammers)_oDocument.Services).GetGrammer(_strTagGrammerName);
             } catch (Exception oEx) {
-                string strMessage = "Couldn't find html_4_trad grammar.";
+                string strMessage = "Couldn't find grammar: " + _strTagGrammerName;
                 Type[] rgErrors = { typeof( NullReferenceException ),
                                     typeof( InvalidCastException ),
                                     typeof( FileNotFoundException ), // TODO: Migrate away from this.
