@@ -584,7 +584,7 @@ namespace Play.ImageViewer {
         // Let's just skip 'em for now. 'Course if shell click on it, shell will show a blank. ^_^;;
         // NOTE: Perhaps should load this list from the config file.
         // NOTE: 8/7/2020, Probably can handle bmp latency with the new ThumbsPopulateEnum...
-        public static readonly string[] _rgFileExts = { ".jpeg", ".jpg", ".gif", ".png" };
+        public static readonly string[] _rgFileExts = { ".jpeg", ".jpg", ".gif", ".png", ".webp" };
 
         public event ImagesUpdatedEvent ThumbsUpdated;
         public event TextParsedEvent    TextParsed;

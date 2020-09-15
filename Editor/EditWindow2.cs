@@ -302,7 +302,7 @@ namespace Play.Edit {
             }
             // cour.ttf, consola.ttf
             uint uiStdText = _oStdUI.FontCache( _oStdUI.FaceCache( @"C:\windows\fonts\consola.ttf" ), 12, sResolution );
-            uint uiEmojID  = _oStdUI.FontCache( _oStdUI.FaceCache( @"C:\Users\Frodo\AppData\Local\Microsoft\Windows\Fonts\NotoEmoji-Regular.ttf" ), 12, sResolution );
+            //uint uiEmojID  = _oStdUI.FontCache( _oStdUI.FaceCache( @"C:\Users\Frodo\AppData\Local\Microsoft\Windows\Fonts\NotoEmoji-Regular.ttf" ), 12, sResolution );
 
 			return new CacheManager2( new CacheManSlot( this ),
 									  _oStdUI.FontRendererAt( uiStdText ), 
