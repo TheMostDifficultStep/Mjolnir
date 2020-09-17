@@ -101,7 +101,7 @@ namespace Play.Edit {
 				if( iLength <= 0 )
 					return;
 
-				if( oElem is ProdBase<char> oProdElem && oElem.IsTerm && oElem.IsVisible ) {
+				if( oElem is ProdBase<char> && oElem.IsTerm && oElem.IsVisible ) {
 					Line.Formatting.Add( new WordRange( iStart, iLength, 0 ) );
 				}
 			}

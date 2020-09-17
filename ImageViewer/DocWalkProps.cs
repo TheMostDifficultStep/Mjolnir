@@ -78,7 +78,7 @@ namespace Play.ImageViewer {
 				oLine.Formatting.Add(oMemElem);
 			} else {
 				if( p_oElem is ProdBase<char> oProdElem && p_oElem.IsTerm ) {
-					oLine.Formatting.Add( new ColorRange( iLineOffset, p_iLength, 0 ) );
+					oLine.Formatting.Add( new ColorRange( iLineOffset, p_iLength, 0 ) ); // BUG: WordRange?
 				}
 			}
 		} 

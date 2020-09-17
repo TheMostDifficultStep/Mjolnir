@@ -764,7 +764,7 @@ namespace Play.Edit {
                 }
                 yield break;
             }
-			yield return( new ColorRange( 0, Line.ElementCount, 0 ) );
+			yield return( new WordRange( 0, Line.ElementCount, 0 ) );
 		}
 
 		IEnumerator IEnumerable.GetEnumerator() {
