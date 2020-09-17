@@ -102,7 +102,7 @@ namespace Play.Edit {
 					return;
 
 				if( oElem is ProdBase<char> oProdElem && oElem.IsTerm && oElem.IsVisible ) {
-					Line.Formatting.Add( new ColorRange( iStart, iLength, 0 ) );
+					Line.Formatting.Add( new WordRange( iStart, iLength, 0 ) );
 				}
 			}
 

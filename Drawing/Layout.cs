@@ -411,7 +411,7 @@ namespace Play.Rectangles {
 							oRow.Track = uiTrack;
                         iColumn += oCell.Span + 1; // Make sure we skip over the spanned cell!!
 					}
-                    _oRowStack.Track += oRow.Track + 3;
+                    _oRowStack.Track += oRow.Track + _uiMargin; // BUG: Margins are all messed up.
                 }
             } catch ( Exception oEx ) {
 				Type[] rgErrors = { 
@@ -436,7 +436,7 @@ namespace Play.Rectangles {
         public override bool LayoutChildren() {
             try {
 
-                if( _eLayout != CSS.Flex )
+                if( _eLayout != CSS.Flex ) // BUG: This seems odd. Should flex be on for row height calculation??
                     HeightDesired( Width );
                 else
                     LayoutColumnWidth( Width, Height );
