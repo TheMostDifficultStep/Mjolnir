@@ -246,7 +246,7 @@ namespace Play.Edit {
 				}
 
 				using( SKPaint skPaint = new SKPaint() ) {
-					skPaint.Color = _oStdUI.ColorsStandardAt( StdUIColors.BG );
+					skPaint.Color = _oStdUI.ColorsStandardAt( StdUIColors.BGReadOnly );
 
 					e.Surface.Canvas.DrawRect( new SKRect( 0, 0, this.Width, this.Height ), skPaint );
 				

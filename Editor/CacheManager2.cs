@@ -55,7 +55,7 @@ namespace Play.Edit {
         readonly SmartRect                _oTextRect = new SmartRect(); // World coordinates of our view port.
 
                   IPgFontRender Font       { get; }
-        protected IPgGlyph      GlyphLt    { get; }
+        protected IPgGlyph      GlyphLt    { get; } // Our end of line character.
         public    int           FontHeight { get; } // Helps us determine scrolling distances.
 
         // TODO: Get the font from the site instead of from the constructor? Maybe?

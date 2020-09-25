@@ -41,6 +41,15 @@ namespace Play.Edit {
     /// depends on whether there is one glyph per code point. Need to understand better
     /// clusters and how they relate to UTF-32. It might be clusters define the relationship
     /// to a sequence of UTF-8. Which then makes sense. UTF-32 clusters would always be 1-1.
+    /// Ok, this explains it...
+    /// https://en.wikipedia.org/wiki/Unicode_equivalence
+    /// Diacritics are examples of letters that can be both precomposed
+    /// or two glyphs combined. So while in the NON precompsed case we'll have TWO code points, 
+    /// we'll see only ONE character on the screen. 
+    /// So my notion of PgCluster is the right approach. This represents a single editable unit.
+    /// So the Glyph could be assigned to a code point, but we need a composition object to track
+    /// the resulting multi code point object. Note this is different than the variable length
+    /// multi byte values of UTF8 that can make up a codepoint! -_-;;
     /// </summary>
     public interface IPgGlyph {
         UInt32     FaceIndex   { get; }
