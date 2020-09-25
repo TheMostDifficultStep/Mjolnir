@@ -256,8 +256,8 @@ namespace Play.Parse.Impl {
             }
         }
 
-        protected void SendError( XmlElement p_oXmlPElem,
-                                  string     p_strMessage )
+        protected void LogError( XmlElement p_oXmlPElem,
+                                 string     p_strMessage )
         {
             StringBuilder sbError = new StringBuilder();
             State<T>      oState  = _oSite.Host as State<T>;
@@ -269,10 +269,10 @@ namespace Play.Parse.Impl {
             sbError.Append( p_oXmlPElem.OuterXml );
             sbError.Append( p_strMessage );
 
-            SendError( sbError.ToString() );
+            LogError( sbError.ToString() );
         }
 
-        protected void SendError( string strMessage ) 
+        protected void LogError( string strMessage ) 
         {
             _oSite.LogError( "internal error", strMessage );
         }
@@ -288,6 +288,33 @@ namespace Play.Parse.Impl {
             return( false );
         }
 
+        protected ProdElem<T> CreateElem( Grammer<T> oGrammar, XmlElement xmlElem, IGrammerElemFactory<T> oElemFactory ) {
+            switch (xmlElem.Name) {
+                case "nont": {
+                    string   strName = xmlElem.GetAttribute("state");
+                    State<T> oState  = oGrammar.FindState(strName);
+
+                    if( oState == null ) {
+                        LogError( xmlElem, "Could not find referenced state: " + strName );
+                        throw new GrammerImplementationError();
+                    }
+
+                    return new ProdState<T>(oState);
+                }
+                case "term": {
+                    ProdElem<T> oElem = oElemFactory.CreateProdTerminal( xmlElem.GetAttribute("class") );
+                    if( oElem == null ) {
+                        LogError(xmlElem, "Unable to create requested terminal: " + xmlElem.GetAttribute("class") + ".");
+                        throw new GrammerImplementationError();
+                    }
+
+                    return oElem;
+                }
+                default:
+                    throw new GrammerImplementationError("Unexpected terminal type in production" );
+            }
+        }
+
         // Note: we read the productions in the bind method of the states, which
         // happens after read of the states. This is because we need to know 
         // all the states so we can bind to them here in the productions.
@@ -298,92 +325,68 @@ namespace Play.Parse.Impl {
             IGrammerElemFactory<T> oElemFactory = _oSite.Grammar as IGrammerElemFactory<T>;
 
             if( oGrammar == null ) {
-                SendError( "could not cast grammar callback to Grammer<T>" );
+                LogError( "could not cast grammar callback to Grammer<T>" );
                 return( false );
             }
             if( oElemFactory == null ) {
-                SendError( "could not cast grammar callback to IGrammerElemFactory<T>" );
+                LogError( "could not cast grammar callback to IGrammerElemFactory<T>" );
                 return( false );
             }
             if( p_xmlProd == null ) {
-                SendError( "When loading the production reader a valid xmlelement with the production must be provided!" );
+                LogError( "When loading the production reader, a valid xmlElement with the production must be provided!" );
                 return( false );
             }
 
             XmlNodeList rgProductionElements = p_xmlProd.SelectNodes("term|nont|virt");
 
             if( rgProductionElements == null ) {
-                SendError( "Could not find valid elements within the production." );
+                LogError( "Could not find valid elements within the production." );
                 return( false );
             }
 
-            bool        fInTerm = true;
-            ProdElem<T> oElem   = null;
+            bool fInTerm = true;
 
-            foreach( XmlNode oXmlPElem2 in rgProductionElements ) {
-                XmlElement oXmlPElem = oXmlPElem2 as XmlElement;
-                bool       fLoaded   = false;
+            foreach( XmlNode oXmlPNode in rgProductionElements ) {
+                XmlElement oXmlPElem = oXmlPNode as XmlElement;
 
                 try {
-                    switch( oXmlPElem.Name ) {
-                        case "nont" : {
-                            State <T> oState = oGrammar.FindState( oXmlPElem.GetAttribute("state") );
+                    ProdElem<T> oElem = CreateElem( oGrammar, oXmlPElem, oElemFactory );
 
-                            if( oState == null ) {
-                                SendError( oXmlPElem, "Could not find referenced state." );
-                                return(false);
-                            }
-                            //oElem = oElemFactory.CreateProdState( oState );
-                            oElem = new ProdState<T>( oState );
-
-                            if( oElem == null ) {
-                                SendError( oXmlPElem, "Unable to create requested production state: " + State.Name + "." );
-                                return(false);
-                            }
-                            fInTerm = false;
-                            break;
-                            } 
-                        case "term": {
-                            oElem = oElemFactory.CreateProdTerminal( oXmlPElem.GetAttribute("class") );
-                            if( oElem == null ) {
-                                SendError( oXmlPElem, "Unable to create requested production state: " + oXmlPElem.GetAttribute("class") + "." );
-                                return( false );
-					        }
-                            break;
-                            }
-                        default: {
-                                SendError( oXmlPElem, "Unexpected terminal type in production" );
-                                return( false );
-                            }
-                    }
-                    if( oElem != null ) {
-                        fLoaded = oElem.Load(oXmlPElem);
-                    }
-                    if( fLoaded == false ) {
-                        SendError( oXmlPElem, "Error loading element." );
+                    if( !oElem.Load(oXmlPElem) ) {
+                        LogError( oXmlPElem, "Error loading element." );
                         return( false );
                     }
 
+                    if( fInTerm == true && !oElem.IsTerm )
+                        fInTerm = false;
                     if( fInTerm )
                         _iLook++;
 
                     oElem.Host = this;
                     _rgChildren.Add( oElem );
-                } catch ( XmlException ) {
-                    SendError( oXmlPElem, "Unexpected XML Read error in your grammar." );
+                } catch ( Exception oEx ) {
+                    Type[] rgErrors = { typeof( XmlException ),
+                                        typeof( ArgumentException ),
+                                        typeof( ArgumentNullException ),
+                                        typeof( NullReferenceException ),
+                                        typeof( GrammerImplementationError ) };
+                    if( rgErrors.IsUnhandled( oEx ) )
+                        throw;
+
+                    LogError( oXmlPElem, "Unexpected XML Read error in your grammar." );
                     return( false );
                 }
             }
             // If nothing got loaded then we don't want to risk loading a binding sentinal, it won't
-            // MemoryState parent for this production and fail at runtime.
+            // have a MemoryState parent for this production and fail at runtime.
             if( _rgChildren.Count == 0 ) {
-                SendError( "There no elements in a production for state: " + State.Name + "." );
+                LogError( "There no elements in a production for state: " + State.Name + "." );
                 return ( false );
             }
             // We could GP fault if the bindings haven't been loaded yet. But if they are not
             // loaded then we can't do this operation correctly. So let's throw a specific exception.
             if( State.Bindings == null ) {
-                SendError( "The state: " + State.Name + ", has not been loaded because" + 
+                LogError( "The state: " + State.Name + ", has not been loaded because" + 
                            " it's bindings have not been initialized." );
                 return( false );
             }
@@ -402,7 +405,7 @@ namespace Play.Parse.Impl {
 				if( rgErrors.IsUnhandled( oEx ) )
 					throw;
 
-                SendError( "Invalid lookahead: " + State.Name + "." );
+                LogError( "Invalid lookahead: " + State.Name + "." );
             }
 
             // This means that we didn't find any starting terminals
@@ -411,7 +414,7 @@ namespace Play.Parse.Impl {
                 _iLook = 1;
 
             if( _iLook > _rgChildren.Count ) {
-                SendError( "The look ahead is greater then the" +
+                LogError( "The look ahead is greater then the" +
                            "\r number of elements in a production!" +
                            "\r State: " + State.Name + "." );
                 return( false );
@@ -419,7 +422,7 @@ namespace Play.Parse.Impl {
 
             foreach( ProdElem<T> oChild in _rgChildren ) {
                 if( oChild == null ) {
-                    SendError( "All children for this production were not instantianted! State: " + State.Name + " Production: " + Index );
+                    LogError( "All children for this production were not instantianted! State: " + State.Name + " Production: " + Index );
                     return( false );
                 }
             }

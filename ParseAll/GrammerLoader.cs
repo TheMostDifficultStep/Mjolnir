@@ -11,6 +11,11 @@ namespace Play.Parse.Impl {
 		public GrammerNotFoundException( string strMessage ) : base( strMessage ) {}
 		public GrammerNotFoundException( string strMessage, Exception oInnerException ) : base( strMessage, oInnerException ) {}
 	}
+    public class GrammerImplementationError : SystemException  {
+        public GrammerImplementationError() : base() { }
+        public GrammerImplementationError(string strMessage) : base(strMessage) { }
+        public GrammerImplementationError(string strMessage, Exception oInnerException) : base(strMessage, oInnerException) { }
+    }
     public abstract class StateSiteAbstract<T> : IPgBaseSite {
         public abstract Grammer<T> Grammar { get; }
         public abstract IPgParent  Host{ get; }
