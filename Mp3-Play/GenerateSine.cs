@@ -12,7 +12,7 @@ namespace Play.Sound {
 		private const int    _iSamples  = 4400;
 		private List<double> _rgSamples = new List<double>(_iSamples);
 		public  List<double> Results { get; } = new List<double>(_iSamples);
-		public  double       Max;
+		public  double       _dblMax;
 
 		/// <summary>
 		/// A little experiment with the fourier equation. I generate a signal
@@ -31,13 +31,16 @@ namespace Play.Sound {
 			FourierSum();
 		}
 
+		/// <summary>
+		/// Discrete Cosine Transform
+		/// </summary>
 		public void DCTSum() {
 			double dSquareRoot = Math.Sqrt( 2 / (double)_rgSamples.Count );
 			double dTwoDivN    = 2 / (double)_rgSamples.Count;
 			double dDoubleSamp = 2 * _rgSamples.Count;
 			int    iStep = 1; // Step MUST be 1 or we miss the frequency entirely, exp: if freq = cos( x * 400 ) (x < 2*pi)
 
-			Max = 0;
+			_dblMax = 0;
 
 			for( int k=1; k<_rgSamples.Count - 1; k += iStep ) {
 				try {
@@ -52,8 +55,8 @@ namespace Play.Sound {
 
 					X = dTwoDivN * X;
 
-					if( Max < X )
-						Max = X;
+					if( _dblMax < X )
+						_dblMax = X;
 
 					Results.Add( X );
 				} catch( OverflowException ) {
@@ -69,7 +72,7 @@ namespace Play.Sound {
 			double dCoef = 2*Math.PI / _rgSamples.Count;
 			int    iStep = 1;
 
-			Max = 0;
+			_dblMax = 0;
 
 		    for( int k=1; k<_rgSamples.Count/2; k += iStep ) {
 		  //for( int k=440; k<460; k += iStep ) { // Tuning my radio works!! ^_^
@@ -89,8 +92,8 @@ namespace Play.Sound {
 					double dMagn = Math.Sqrt( X * X + Y * Y );
 				  //double dAngl = Math.Atan2( Y, X );
 
-					if( Max < dMagn )
-						Max = dMagn;
+					if( _dblMax < dMagn )
+						_dblMax = dMagn;
 
 					Results.Add( dMagn );
 				} catch( OverflowException ) {
@@ -311,7 +314,7 @@ namespace Play.Sound {
 			Byte[] rgBytes = new Byte[4];
 
 			try {
-				for( int i = 0; i< _rgBuffer.Length; i=i+iWordSize ) {
+				for( int i = 0; i< _rgBuffer.Length; i+=iWordSize ) {
 					short iSample = (short)(Math.Sin( rad ) * power );
 
 					for( int j =0; j < GetBytes( iSample, ref rgBytes ); ++j ) {

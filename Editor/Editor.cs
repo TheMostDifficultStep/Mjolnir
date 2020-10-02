@@ -214,10 +214,11 @@ namespace Play.Edit {
             _oSiteBase = oSite;                // Ok if this is null.
             _oSiteFile = oSite as IPgFileSite; // Ok if this is null also, informative more than imperative.
 
-			Grammer<char> oLineBreakerGrammar = LineBreakerGrammar;
-			if( oLineBreakerGrammar != null ) {
-				_oParseWords = new WordBreakerHandler( LineBreakerGrammar );
-			}
+            // If not used, we can init before we've read the grammars and use this for errors reporting.
+			//Grammer<char> oLineBreakerGrammar = LineBreakerGrammar;
+			//if( oLineBreakerGrammar != null ) {
+			//	_oParseWords = new WordBreakerHandler( LineBreakerGrammar );
+			//}
 			
 			for( int i=0; i<_rgUndoStacks.Length; ++i ) {
                 _rgUndoStacks[i] = new Stack<IUndoUnit>();

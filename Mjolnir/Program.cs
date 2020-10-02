@@ -71,6 +71,7 @@ namespace Mjolnir {
         protected TextSlot          _oDocSlot_Alerts;
         protected TextSlot          _oDocSlot_Results;
         protected XmlSlot           _oDocSlot_Recents;
+//      protected XmlSlot           _oDocSlot_Fonts;
         protected XmlSlot           _oDocSlot_SearchKey;
         protected ComplexXmlSlot    _oDocSlot_Find;
         protected Program.TextSlot  _oDocSite_Session; // Hosting ourself, so don't be confused! ^_^;
@@ -84,7 +85,7 @@ namespace Mjolnir {
         public IDocSlot     FindSlot      => _oDocSlot_Find;
         public IDocSlot     AlertSlot     => _oDocSlot_Alerts;
 
-        // I'm dithering on FontMenu living on the program or just the main window.
+        // BUG: I'm dithering on FontMenu living on the program or just the main window.
 		public Font         FontMenu      { get; } = new Font( "Segoe UI Symbol", 11 ); // So we can show our play/pause stuff.
 		public Font         FontStandard  { get; } = new Font( "Consolas", 11 ); 
 		public bool         IsDirty       => _fSessionDirty;
@@ -315,8 +316,15 @@ namespace Mjolnir {
 		/// Load up the program global settings. This is not the same as loading session state.
 		/// </summary>
         protected void Initialize( XmlDocument xmlConfig ) {
-			// BUG: If this fails, we're borked. Need to make us more resilient to failing to load config.
-            if( !LoadConfigDoc( xmlConfig ) )
+            // This works only because the plain text editor doesn't use the parser.
+            // Maybe we can tack one on AFTER the grammars have successfully loaded.
+            _oDocSlot_Alerts = new InternalSlot(this, "Alerts");
+            _oDocSlot_Alerts.CreateDocument();
+            _oDocSlot_Alerts.InitNew();
+            _oDoc_Alerts = (Editor)_oDocSlot_Alerts.Document;
+
+            // BUG: If this fails, we're borked. Need to make us more resilient to failing to load config.
+            if ( !LoadConfigDoc( xmlConfig ) )
                 throw new ApplicationException( "Couldn't load configuration" );
 
             InitializeLanguages( xmlConfig );
@@ -327,10 +335,19 @@ namespace Mjolnir {
                 _rgTxtColors.Add( new SKColor( sColor.R, sColor.G, sColor.B ) );
 			}
 
-            _oDocSlot_Alerts = new InternalSlot( this, "Alerts" );
-            _oDocSlot_Alerts.CreateDocument();
-            _oDocSlot_Alerts.InitNew();
-            _oDoc_Alerts = (Editor)_oDocSlot_Alerts.Document;
+            //_oDocSlot_Fonts = new XmlSlot( this, ".txt", "Fonts" );
+            //_oDocSlot_Fonts.CreateDocument();
+            //try {
+            //    XmlElement xmlFonts = xmlConfig.SelectSingleNode("config/fonts") as XmlElement;
+            //    if( xmlFonts != null ) {
+            //        _oDocSlot_Fonts.Load(xmlFonts);
+            //        // Else some sort of dialog to initialize fonts?
+            //    }
+            //} catch ( Exception oEx ) {
+            //    TryLogXmlError(oEx, "Couldn't load program fonts.");
+            //}
+
+            // old init alerts here, but moved to top...
 
             InitializePlugins    ( xmlConfig );
             InitializeControllers();
@@ -542,10 +559,10 @@ namespace Mjolnir {
                 TryLogXmlError( oEx, "Couldn't load main window session state." );
 			}
 
-			// TODO: See SessionSetDirty() for notes about this. It should not be dirty right from initialization
-			//       but as we load views it sets the dirty bit. Need to figure a way around that. Especially if
-			//       setting the bit starts sending notifications.
-			_fSessionDirty = false;
+            // TODO: See SessionSetDirty() for notes about this. It should not be dirty right from initialization
+            //       but as we load views it sets the dirty bit. Need to figure a way around that. Especially if
+            //       setting the bit starts sending notifications.
+            _fSessionDirty = false;
 
 			MainWindow.SetTitle(); // Little hack for the session state.
                 
@@ -590,7 +607,7 @@ namespace Mjolnir {
                 }
             }
 
-            if(  RecentsSlot != null ) {
+            if (  RecentsSlot != null ) {
                 XmlElement xmlFaves = xmlRoot.CreateElement( "Recent" );
                 xmlSession.AppendChild( xmlFaves );
                 // Since we can't control how much goes into the recent's file. We'll
