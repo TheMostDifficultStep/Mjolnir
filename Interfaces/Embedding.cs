@@ -319,6 +319,11 @@ namespace Play.Interfaces.Embedding {
         public static readonly Guid EditWrapOff = new Guid( "{88E72180-CFC9-441D-B106-07632D628EFA}" );
     }
 
+    public static class GlobalFonts {
+        public static readonly Guid FontStdText = new Guid( "{6191E9C7-EF86-4101-BA74-A1A7118A0893}" );
+        public static readonly Guid FontStdMenu = new Guid( "{FE111207-061D-4485-BE52-486522247DCD}");
+    }
+
     // I don't think I need a GetTypeInfo() since I can derive the T by reflection. Here's
     // a snippit of what I think I need. 
     // See... http://stackoverflow.com/questions/1121834/finding-out-if-a-type-implements-a-generic-interface

@@ -89,7 +89,7 @@ namespace Mjolnir {
                                    typeof( ArgumentOutOfRangeException ), 
                                    typeof( ApplicationException ) };
         public IntPtr Handle   { get; }
-        public byte[] FilePath { get; }
+        public string FilePath { get; }
         public int    ID       { get; }
         public uint   CurrentHeight { get; protected set; } // Current glyph generation setting.
         static byte[] GammaTable = new byte[256];
@@ -103,11 +103,11 @@ namespace Mjolnir {
         /// <param name="ipFace">Int pointer to a unmanaged freetype font face.</param>
         /// <param name="rgFilePath">utf8 path to file. Back to the future!</param>
         /// <param name="uiID">ID for this element.</param>
-        public FTFace( IntPtr ipFace, byte[] rgFilePath, int uiID ) {
+        public FTFace( IntPtr ipFace, string strFilePath, int uiID ) {
             if( ipFace == IntPtr.Zero )
                 throw new ArgumentNullException( "Face Handle must not be null." );
             Handle   = ipFace;
-            FilePath = rgFilePath ?? throw new ArgumentNullException( "Face filepath must not be null." );
+            FilePath = strFilePath ?? throw new ArgumentNullException( "Face filepath must not be null." );
             ID       = uiID;
         }
 
@@ -331,16 +331,16 @@ namespace Mjolnir {
     }
 
     public class FTManager : IDisposable {
-        static Type[] rgErrors = { typeof( EntryPointNotFoundException ),
-                                   typeof( BadImageFormatException ),
-                                   typeof( ArgumentOutOfRangeException ),
-                                   typeof( ArgumentNullException ),
-                                   typeof( NullReferenceException ) };
+        static Type[] _rgErrors = { typeof( EntryPointNotFoundException ),
+                                    typeof( BadImageFormatException ),
+                                    typeof( ArgumentOutOfRangeException ),
+                                    typeof( ArgumentNullException ),
+                                    typeof( NullReferenceException ) };
 
-        private   bool             _fDisposedValue;
-        protected List<FTFace>     _rgFace    = new List<FTFace>();
-        protected List<FaceRender> _rgRenders = new List<FaceRender>();
-		public    IntPtr            Handle { get; }
+        private   bool                      _fDisposedValue;
+        protected readonly List<FTFace>     _rgFace    = new List<FTFace>();
+        protected readonly List<FaceRender> _rgRenders = new List<FaceRender>();
+		public    IntPtr                    Handle { get; } // Main handle from the FreeType Init.
 
         /// <summary>BUG: This is probably pointless, unless i only allow one of these objects
         ///  to be created at a time. Else we have to check the size on every GlyphLoad()
@@ -380,7 +380,7 @@ namespace Mjolnir {
                 try {
                     iError = FreeType2API.PG_FreeType_Init( &ipHandle );
                 } catch( Exception oEx ) {
-                    if( rgErrors.IsUnhandled( oEx ) )
+                    if( _rgErrors.IsUnhandled( oEx ) )
                         throw;
                 }
 				if( iError != 0 )
@@ -394,7 +394,7 @@ namespace Mjolnir {
             try {
 			    FreeType2API.PG_FreeType_Done( Handle );
             } catch( Exception oEx ) {
-                if( rgErrors.IsUnhandled( oEx ) )
+                if( _rgErrors.IsUnhandled( oEx ) )
                     throw;
             }
 		}
@@ -404,7 +404,7 @@ namespace Mjolnir {
             try {
                 iError = FreeType2API.PG_Face_Done( oFace.Handle );
             } catch( Exception oEx ) {
-                if( rgErrors.IsUnhandled( oEx ) )
+                if( _rgErrors.IsUnhandled( oEx ) )
                     throw;
             }
             if( iError != 0 )
@@ -450,16 +450,22 @@ namespace Mjolnir {
         }
 
         /// <summary>
-        /// Notify the manager what font you want to use.
+        /// Notify the manager what font you want to use. The font will be cached so repeat
+        /// calls will returned the cached face id value.
         /// </summary>
         /// <param name="strPath">path to the font to use.</param>
-        /// <returns>FaceID</returns>
-        /// <remarks>I should probably set the height, and resolution here just to get going.</remarks>
+        /// <returns>a FaceID. use this value to get a font of the proper size.</returns>
         /// <exception cref="ApplicationException" />
         public UInt16 FaceCache( string strPath ) {
             int    iError     = 0;
             IntPtr ipFace     = IntPtr.Zero;
             byte[] rgFileName = null;
+
+            foreach( FTFace oLook in _rgFace ) {
+                if( String.Compare( oLook.FilePath, strPath ) == 0 ) {
+                    return (UInt16)oLook.ID;
+                }
+            }
 
             unsafe {
                 try {
@@ -468,20 +474,22 @@ namespace Mjolnir {
                         iError = FreeType2API.PG_Face_New( Handle, pFileName, &ipFace);
                     }
                 } catch( Exception oEx ) {
-                    if( rgErrors.IsUnhandled( oEx ) )
+                    if( _rgErrors.IsUnhandled( oEx ) )
                         throw;
                 }
             }
             if( iError != 0 )
                 throw new ApplicationException( "Couldn't create new FontFace : " + iError.ToString() );
 
-            FTFace oFace = new FTFace( ipFace, rgFileName, _rgFace.Count );
+            FTFace oFace = new FTFace( ipFace, strPath, _rgFace.Count );
 
             _rgFace.Add( oFace );
 
-            return (UInt16)(_rgFace.Count - 1);
+            return (UInt16)( oFace.ID );
         }
 
+        /// <summary>For the given face, cache a font for the given height and resolution.</summary>
+        /// <exception cref="ArgumentOutOfRangeException" />
         public uint FaceCacheSize( ushort uiFace, uint uiHeight, SKSize skResolution ) {
             foreach( FaceRender oRender in _rgRenders ) {
                 if( oRender.Face.ID    == uiFace &&
@@ -513,14 +521,18 @@ namespace Mjolnir {
         }
 
         /// <summary>
-        /// Generate a glyph using any of the currently cached fonts. This is really
-        /// wishfull thinking since we get the glyph index from the shaper and would have
-        /// to change fonts and ask it again. I'll just keep this for fun until I've
-        /// fleshed out my interactions with a real shaper.
+        /// Generate a glyph using any of the currently cached fonts. Starts with
+        /// the given render and then FALLS BACK to other fonts if the glyph cannot
+        /// be found.
+        /// This is somewhat wishfull thinking since we should get the glyph index 
+        /// from the shaper and would have to change fonts and ask it again. I'll 
+        /// just keep this for fun until I've fleshed out my interactions with a real shaper.
         /// </summary>
+        /// <remarks>This function is called by the implementation of IPgFontRender</remarks>
+        /// <seealso cref="FaceRenderStub" />
         protected IPgGlyph GlyphFrom( FaceRender oRender, UInt32 uiCode ) {
             if( oRender == null )
-                throw new ArgumentOutOfRangeException( "Bad Face Render Index" );
+                throw new ArgumentOutOfRangeException( "Bad Face Renderer" );
 
             // Try the load the glyph with the given font, if fail, we get the 
             // default empty glyph, but try the others for a better fit!!

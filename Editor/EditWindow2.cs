@@ -68,8 +68,7 @@ namespace Play.Edit {
         ushort        FaceCache       ( string strFilePath ); // Enter the requested face
         uint          FontCache       ( ushort uiFaceID, uint uiHeight, SKSize skResolution );
         IPgFontRender FontRendererAt  ( uint uiRenderID );
-      //IPgFontRender FontStdTextAt   ( SKSize skResolution );
-      //IPgFontRender FontStdMenuAt   ( SKSize skResolution );
+        IPgFontRender FontStd         ( Guid sGuid, SKSize skResolution );
         SKColor       ColorsStandardAt( StdUIColors eColor );
 
         IReadOnlyList<SKColor> ColorsText { get; }

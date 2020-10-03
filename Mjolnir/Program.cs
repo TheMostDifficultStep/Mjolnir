@@ -71,7 +71,7 @@ namespace Mjolnir {
         protected TextSlot          _oDocSlot_Alerts;
         protected TextSlot          _oDocSlot_Results;
         protected XmlSlot           _oDocSlot_Recents;
-//      protected XmlSlot           _oDocSlot_Fonts;
+        protected InternalSlot      _oDocSlot_Fonts;
         protected XmlSlot           _oDocSlot_SearchKey;
         protected ComplexXmlSlot    _oDocSlot_Find;
         protected Program.TextSlot  _oDocSite_Session; // Hosting ourself, so don't be confused! ^_^;
@@ -327,6 +327,24 @@ namespace Mjolnir {
             if ( !LoadConfigDoc( xmlConfig ) )
                 throw new ApplicationException( "Couldn't load configuration" );
 
+            // Store our cached fonts so we can look 'em up quickly.
+            _oDocSlot_Fonts = new InternalSlot(this, "Fonts");
+            _oDocSlot_Fonts.CreateDocument();
+            try {
+                if( _oDocSlot_Fonts.Document is Editor docFonts ) {
+                    using Editor.Manipulator oManip = docFonts.CreateManipulator();
+
+				    foreach( XmlNode xmlNode in xmlConfig.SelectNodes("config/fonts/font") ) {
+					    if (xmlNode is XmlElement xmlElem) {
+						    Line oLine = oManip.LineAppendNoUndo( xmlElem.InnerText );
+                            oLine.Extra = xmlElem.GetAttribute("id");
+                        }
+				    }
+                }
+            } catch( Exception oEx ) {
+                TryLogXmlError( oEx, "Couldn't load program fonts." );
+            }
+
             InitializeLanguages( xmlConfig );
 
             // Parser color table. BUG: Technically this can get new colors over time.
@@ -334,18 +352,6 @@ namespace Mjolnir {
 				Color sColor = Color.FromName( oMap._strValue );
                 _rgTxtColors.Add( new SKColor( sColor.R, sColor.G, sColor.B ) );
 			}
-
-            //_oDocSlot_Fonts = new XmlSlot( this, ".txt", "Fonts" );
-            //_oDocSlot_Fonts.CreateDocument();
-            //try {
-            //    XmlElement xmlFonts = xmlConfig.SelectSingleNode("config/fonts") as XmlElement;
-            //    if( xmlFonts != null ) {
-            //        _oDocSlot_Fonts.Load(xmlFonts);
-            //        // Else some sort of dialog to initialize fonts?
-            //    }
-            //} catch ( Exception oEx ) {
-            //    TryLogXmlError(oEx, "Couldn't load program fonts.");
-            //}
 
             // old init alerts here, but moved to top...
 
@@ -1410,6 +1416,10 @@ namespace Mjolnir {
 
         public IPgFontRender FontRendererAt( uint uiRenderID ) {
             return _oFTManager.GetFontRenderer( uiRenderID );
+        }
+
+        public IPgFontRender FontStd( Guid sGuid, SKSize skResolution ) {
+            throw new NotImplementedException();
         }
 
         /// <summary>
