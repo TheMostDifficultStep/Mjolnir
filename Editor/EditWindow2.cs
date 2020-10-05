@@ -68,7 +68,7 @@ namespace Play.Edit {
         ushort        FaceCache       ( string strFilePath ); // Enter the requested face
         uint          FontCache       ( ushort uiFaceID, uint uiHeight, SKSize skResolution );
         IPgFontRender FontRendererAt  ( uint uiRenderID );
-        IPgFontRender FontStd         ( Guid sGuid, SKSize skResolution );
+        IPgFontRender FontStandardAt  ( string strName, SKSize skResolution );
         SKColor       ColorsStandardAt( StdUIColors eColor );
 
         IReadOnlyList<SKColor> ColorsText { get; }
@@ -317,6 +317,35 @@ namespace Play.Edit {
 									  TextExtent );
 		}
 
+        /// <summary>
+        /// New dot net 5 way of spinning up a process. 
+        /// </summary>
+        /// <param name="strUrl"></param>
+        private void BrowserLink( string strUrl ) {
+            try {
+                ProcessStartInfo psi = new ProcessStartInfo {
+                    FileName        = strUrl,
+                    UseShellExecute = true
+                };
+                Process.Start( psi );
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( ObjectDisposedException ), 
+                                    typeof( FileNotFoundException ),
+                                    typeof( NullReferenceException ),
+                                    typeof( System.ComponentModel.Win32Exception ) };
+                if( rgErrors.IsUnhandled( oEx ) ) 
+                    throw;
+            }
+        }
+        
+        private void OnBrowserLink( Line oLine, IPgWordRange oRange ) {
+            BrowserLink( oLine.SubString( oRange.Offset, oRange.Length) );
+        }
+
+        private void OnCallSign( Line oLine, IPgWordRange oRange ) {
+            BrowserLink( "http://www.qrz.com/db/" +  oLine.SubString( oRange.Offset, oRange.Length) );
+        }
+
         public virtual WorkerStatus PlayStatus {
 			get { return _oDocument.PlayStatus; }
 		}
@@ -382,30 +411,6 @@ namespace Play.Edit {
 					break;
 			}
 		}
-
-        private void OnBrowserLink( Line oLine, IPgWordRange oRange ) {
-            try {
-                Process.Start( oLine.SubString( oRange.Offset, oRange.Length) );
-            } catch( Exception oEx ) {
-                Type[] rgErrors = { typeof( ObjectDisposedException ), 
-                                    typeof( FileNotFoundException ),
-                                    typeof( NullReferenceException ) };
-                if( rgErrors.IsUnhandled( oEx ) ) 
-                    throw;
-            }
-        }
-
-        private void OnCallSign( Line oLine, IPgWordRange oRange ) {
-            try {
-                Process.Start( "http://www.qrz.com/db/" +  oLine.SubString( oRange.Offset, oRange.Length) );
-            } catch( Exception oEx ) {
-                Type[] rgErrors = { typeof( ObjectDisposedException ), 
-                                    typeof( FileNotFoundException ),
-                                    typeof( NullReferenceException ) };
-                if( rgErrors.IsUnhandled( oEx ) ) 
-                    throw;
-            }
-        }
 
         public bool InitNew() {
 			if( !InitInternal( ))

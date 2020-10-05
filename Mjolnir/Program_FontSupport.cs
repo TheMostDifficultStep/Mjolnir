@@ -491,6 +491,7 @@ namespace Mjolnir {
         /// <summary>For the given face, cache a font for the given height and resolution.</summary>
         /// <exception cref="ArgumentOutOfRangeException" />
         public uint FaceCacheSize( ushort uiFace, uint uiHeight, SKSize skResolution ) {
+            // Try find the font if it has already been cached.
             foreach( FaceRender oRender in _rgRenders ) {
                 if( oRender.Face.ID    == uiFace &&
                     oRender.Height     == oRender.Height &&
@@ -500,6 +501,7 @@ namespace Mjolnir {
                 }
             }
 
+            // Didn't find it so create a renderer for the new size/resolution.
             FaceRender oNew = new FaceRender( _rgFace[uiFace], skResolution, uiHeight, (uint)_rgRenders.Count );
 
             _rgRenders.Add( oNew );

@@ -100,41 +100,6 @@ namespace Play.Edit {
             return( iSpaceWidth );
         }
 
-        /// <summary>
-        /// Simply update invalid elements.
-        /// </summary>
-        public void CacheValidate( IntPtr hDC, int iWidth, int iLineHeight ) {
-            foreach( UniscribeCache oElem in _rgOldCache ) {
-                // BUG: Got a race condition going on with the parser. If we create a view after 
-                // the document has been parsed we don't get words loaded into the cache. Normally
-				// the text editor parses words on a cache element basis. We're trying something a
-				// bit different here.
-                if (oElem.Color.Count > 0 ) {
-					oElem.Words.Clear();
-                    foreach( IColorRange oRange in oElem.Line.Formatting ) {
-                        oElem.Words.Add( oRange );
-                    }
-                }
-                if (oElem.Words.Count < 1) {
-                    oElem.Words.Add(new ColorRange(0,oElem.Line.ElementCount,0));
-				}
-                if ( oElem.IsInvalid ) {
-                    oElem.Update( hDC, ref _hScriptCache, _iTabWidth, iLineHeight, 
-                                  _sDefFontProps, null, iWidth, _rgSelections );
-                }
-            }
-        }
-
-        public void FormattingChanged( int iWidth ) {
-            foreach( UniscribeCache oElem in _rgOldCache ) {
-                oElem.Words.Clear();
-                foreach( IColorRange oRange in oElem.Line.Formatting ) {
-                    oElem.Words.Add( oRange );
-                }
-                oElem.Invalidate();
-            }
-        }
-
         public void Add( UniscribeCache oCache ) {
             _rgOldCache.Add( oCache );
         }
@@ -814,19 +779,22 @@ namespace Play.Edit {
             }
         }
 
+        /// <see cref="CacheManager2" />
         public void OnChangeFormatting( ICollection<ILineSelection> rgSelection ) {
-			// BUG Not sure why I added the screen pos recalc here, but I need to sort
-			// the items before I do it else the screen gets scrambled! I've disabled
-			// the code for now. While I am sorting the cache after refresh now, I'm
-			// leaving the recalc code commented out for now.
-
-			//UniscribeCache oPrev = null;
-            foreach( UniscribeCache oCache in _rgOldCache ) {
+            foreach ( UniscribeCache oCache in _rgOldCache ) {
+                // BUG: Seems like I've messed up the Formatting/Color/Words unholy trinity. This patches
+                //      it up so word wrapping MOSTLY works in the old UNISCRIBE case. I'm not going to
+                //      mess with it further since I'd rather be using my FreeType implementation anyway.
+                if (oCache.Color.Count > 0 ) {
+                    oCache.Words.Clear();
+                    foreach( IColorRange oRange in oCache.Line.Formatting ) {
+                        oCache.Words.Add( oRange );
+                    }
+                }
+                if (oCache.Words.Count < 1) {
+                    oCache.Words.Add(new ColorRange(0, oCache.Line.ElementCount,0));
+				}
                 oCache.OnChangeFormatting( Width, rgSelection );
-
-				//if( oPrev != null )
-				//	oCache.Top = oPrev.Bottom + 1;
-				//oPrev = oCache;
             }
         }
 

@@ -86,8 +86,8 @@ namespace Mjolnir {
         public IDocSlot     AlertSlot     => _oDocSlot_Alerts;
 
         // BUG: I'm dithering on FontMenu living on the program or just the main window.
-		public Font         FontMenu      { get; } = new Font( "Segoe UI Symbol", 11 ); // So we can show our play/pause stuff.
-		public Font         FontStandard  { get; } = new Font( "Consolas", 11 ); 
+		public Font         FontMenu      { get; } = new Font( "Segoe UI Symbol", 11 ); // Segoe UI Symbol, So we can show our play/pause stuff.
+        public Font         FontStandard  { get; } = new Font( "Consolas", 11 ); // Consolas
 		public bool         IsDirty       => _fSessionDirty;
 
 		protected Alerts _oWin_AlertsForm;
@@ -117,7 +117,7 @@ namespace Mjolnir {
                     oProgram.TryLogXmlError( oEx, "Couldn't read global config." );
 				    return;
                 }
-                // It's tempting to put the main window stuf in the initialize procedure, 
+                // It's tempting to put the main window stuff in the initialize procedure, 
                 // but I might separate the xmlConfig for the program and the window and
                 // then I could set up the window on demand, based on the persistance data.
 			    try {
@@ -317,7 +317,8 @@ namespace Mjolnir {
 		/// </summary>
         protected void Initialize( XmlDocument xmlConfig ) {
             // This works only because the plain text editor doesn't use the parser.
-            // Maybe we can tack one on AFTER the grammars have successfully loaded.
+            // TODO: Maybe we can tack one on AFTER the grammars have successfully loaded.
+            // So then we get all the parser features!!
             _oDocSlot_Alerts = new InternalSlot(this, "Alerts");
             _oDocSlot_Alerts.CreateDocument();
             _oDocSlot_Alerts.InitNew();
@@ -332,14 +333,17 @@ namespace Mjolnir {
             _oDocSlot_Fonts.CreateDocument();
             try {
                 if( _oDocSlot_Fonts.Document is Editor docFonts ) {
-                    using Editor.Manipulator oManip = docFonts.CreateManipulator();
-
-				    foreach( XmlNode xmlNode in xmlConfig.SelectNodes("config/fonts/font") ) {
-					    if (xmlNode is XmlElement xmlElem) {
-						    Line oLine = oManip.LineAppendNoUndo( xmlElem.InnerText );
-                            oLine.Extra = xmlElem.GetAttribute("id");
-                        }
-				    }
+                    using( Editor.Manipulator oManip = docFonts.CreateManipulator() ) {
+				        foreach( XmlNode xmlNode in xmlConfig.SelectNodes("config/fonts/font") ) {
+					        if (xmlNode is XmlElement xmlElem) {
+						        Line oLine = oManip.LineAppendNoUndo( xmlElem.InnerText );
+                                oLine.Extra = xmlElem.GetAttribute("system");
+                            }
+				        }
+                    }
+                    foreach( Line oLine in docFonts ) {
+                        FaceCache( oLine.ToString() );
+                    }
                 }
             } catch( Exception oEx ) {
                 TryLogXmlError( oEx, "Couldn't load program fonts." );
@@ -1418,7 +1422,7 @@ namespace Mjolnir {
             return _oFTManager.GetFontRenderer( uiRenderID );
         }
 
-        public IPgFontRender FontStd( Guid sGuid, SKSize skResolution ) {
+        public IPgFontRender FontStandardAt( string strName, SKSize skResolution ) {
             throw new NotImplementedException();
         }
 

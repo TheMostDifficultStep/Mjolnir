@@ -1,5 +1,9 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <config>
+  <fonts>
+    <font system="text">C:\windows\fonts\consola.ttf</font>
+    <font system="menu">C:\windows\fonts\seguisym.ttf</font>
+  </fonts>
   <addons>
   </addons>
   <languages>

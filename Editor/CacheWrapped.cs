@@ -367,9 +367,6 @@ namespace Play.Edit {
         internal override void OnChangeFormatting( int iWidth, ICollection<ILineSelection> rgSelections ) {
 			WrapSegmentsCreate( iWidth );
 			
-			//if( !WrapSegmentsCreate( rgLeft ) )
-   //             return;
-
 			base.OnChangeFormatting( iWidth, rgSelections );
         } // end method
 
