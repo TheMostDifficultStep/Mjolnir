@@ -135,9 +135,9 @@ namespace Play.Edit {
         public         bool IsInvalid { get; protected set; } = true;
         public         int  FontHeight{ protected set; get; }
 
-        protected readonly List<GlyphItem> _rgGlyphs   = new List<GlyphItem>(100); // Glyphs that construct characters.
-        protected readonly List<PgCluster> _rgClusters    = new List<PgCluster>(100); // Single unit representing a character.
-        protected readonly List<int>       _rgClusterMap = new List<int>(100);       // Cluster map from UTF to Clots.
+        protected readonly List<GlyphItem> _rgGlyphs     = new List<GlyphItem>(100); // Glyphs that construct characters.
+        protected readonly List<PgCluster> _rgClusters   = new List<PgCluster>(100); // Single unit representing a character.
+        protected readonly List<int>       _rgClusterMap = new List<int>(100);       // Cluster map from UTF to Cluster.
 
         public FTCacheLine( Line oLine ) {
             Line = oLine ?? throw new ArgumentNullException();
@@ -387,6 +387,8 @@ namespace Play.Edit {
         /// Apply the line formatting and selection color to the clusters.
         /// </summary>
         public virtual void OnChangeFormatting( ICollection<ILineSelection> rgSelections ) {
+            ClusterColorClear();
+
             // Only grab the color ranges, States can have a color set but then the
             // subsequent terminals are all black and we blast our color set.
 			foreach( IColorRange oColor in Line.Formatting ) {
@@ -425,6 +427,12 @@ namespace Play.Edit {
                     if( rgErrors.IsUnhandled( oEx ) ) 
                         throw;
                 }
+            }
+        }
+
+        protected void ClusterColorClear() {
+            foreach( PgCluster oCluster in _rgClusters ) {
+                oCluster.ColorIndex = 0;
             }
         }
 

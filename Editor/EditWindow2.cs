@@ -774,11 +774,12 @@ namespace Play.Edit {
                 SKCanvas  skCanvas  = skSurface.Canvas;
 
                 using( SKPaint skPaint = new SKPaint() ) {
-                    // Paint window BG. BUG: We could get by without this if there was no space between lines.
+                    // Paint all window background. BUG: We could get by without this if there was no space between lines.
                     skPaint.BlendMode = SKBlendMode.Src;
                     skPaint.Color     = _oStdUI.ColorsStandardAt( _fReadOnly ? StdUIColors.BGReadOnly : StdUIColors.BG );
                     skCanvas.DrawRect( e.Info.Rect, skPaint );
 
+                    // No paint the lines.
                     foreach( FTCacheLine oCache in _oCacheMan ) {
                         PaintBackground( skCanvas, skPaint, oCache );
 
