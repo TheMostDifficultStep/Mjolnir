@@ -73,8 +73,6 @@ namespace Play.Edit {
                                           set { Coordinates.advance_em_x = (short)value; } }
         public int        AdvanceLeftEm { get; set; }
 
-        //public int Offset     { get; set; }
-        //public int Length     { get; set; } // Length in code points.
         public int ColorIndex { get; set; }
 
         public MemoryRange Glyph;
@@ -106,25 +104,6 @@ namespace Play.Edit {
         }
     }
 
-    /// <summary>
-    /// This is what we cache on the line. Each one of these is unique. They point to
-    /// glyphs which were generated on a per character basis. So if you type to "p" chara's
-    /// two GlyphItems are created but the point to the same Glyph. I might be able to
-    /// put the code point right on the Glyph and that would remove the need for the GlyphItem.
-    /// </summary>
-    public struct GlyphItem {
-        // This might be a great use for the new "rune" type.
-        public uint     CodePoint { get; private set; }
-        public IPgGlyph Glyph     { get; private set; }
-        public uint     Length    { get; private set; }
-
-        public GlyphItem( IPgGlyph oGlyph, uint uiCodePoint, uint uiLen ) {
-            Glyph     = oGlyph;
-            CodePoint = uiCodePoint;
-            Length    = uiLen;
-        }
-    }
-
     public class FTCacheLine : 
 		IEnumerable<IColorRange>
     {
@@ -135,9 +114,9 @@ namespace Play.Edit {
         public         bool IsInvalid { get; protected set; } = true;
         public         int  FontHeight{ protected set; get; }
 
-        protected readonly List<GlyphItem> _rgGlyphs     = new List<GlyphItem>(100); // Glyphs that construct characters.
+        protected readonly List<IPgGlyph>  _rgGlyphs     = new List<IPgGlyph >(100); // Glyphs that construct characters.
         protected readonly List<PgCluster> _rgClusters   = new List<PgCluster>(100); // Single unit representing a character.
-        protected readonly List<int>       _rgClusterMap = new List<int>(100);       // Cluster map from UTF to Cluster.
+        protected readonly List<int>       _rgClusterMap = new List<int      >(100); // Cluster map from UTF to Cluster.
 
         public FTCacheLine( Line oLine ) {
             Line = oLine ?? throw new ArgumentNullException();
@@ -191,13 +170,18 @@ namespace Play.Edit {
         }
 
         public PgCluster ClusterAt( int iSourceOffset ) {
-            if( _rgClusters.Count == 0 )
-                return null;
+            try {
+                if( _rgClusters.Count == 0 )
+                    return null;
 
-            return _rgClusters[_rgClusterMap[iSourceOffset]];
+                return _rgClusters[_rgClusterMap[iSourceOffset]];
+            } catch( ArgumentOutOfRangeException ) {
+                return null;
+            }
         }
 
-        public IEnumerator<GlyphItem> ClusterCharacters( PgCluster oCluster ) {
+        /// <exception cref="ArgumentNullException" />
+        public IEnumerator<IPgGlyph> ClusterCharacters( PgCluster oCluster ) {
             if( oCluster == null )
                 throw new ArgumentNullException();
 
@@ -260,25 +244,36 @@ namespace Play.Edit {
 
             CharStream oStream = new CharStream( Line );
             while( oStream.InBounds( oStream.Position ) ) {
-                int  iOffs  = oStream.Position;
-                uint uiCode = ReadCodepointFrom( oStream ); 
+                int      iOffs  = oStream.Position;
+                uint     uiCode = ReadCodepointFrom( oStream );
+                int      iLen   = oStream.Position - iOffs;
+                IPgGlyph oGlyph = oFR.GetGlyph(uiCode);
 
-                _rgGlyphs.Add( new GlyphItem( oFR.GetGlyph( uiCode ), uiCode, (uint)(oStream.Position - iOffs )) );
+                oGlyph.CodeLength = iLen; // In the future we'll set it in the font manager. (both 16/32 values)
+
+                _rgGlyphs.Add( oGlyph );
             }
         }
 
         protected void Update_EndOfLine( IPgFontRender oFR, int iEmAdvanceAbs ) {
             PgCluster oCluster = new PgCluster(_rgGlyphs.Count);
+
             oCluster.AdvanceLeftEm = iEmAdvanceAbs; // New left size advance.
             oCluster.IsVisible     = false;
             oCluster.Glyph.Length  = 1;
-            _rgClusters.Add(oCluster);
-            _rgGlyphs.Add(new GlyphItem(oFR.GetGlyph(0x20), 10, 1 )); // use space glyph, but codepoint LF.
+
+            _rgClusters.Add( oCluster );
+            _rgGlyphs  .Add( oFR.GetGlyph(0x20) ); // use space glyph, but codepoint LF.
         }
 
         /// <summary>
         /// Generate a map from UTF-16 indicies to Cluster offsets. Use the cluster
-        /// map to index parser color info back to the cluster.
+        /// map to index parser color info back to the cluster. This is the standard 
+        /// cluster handling that always comes up with unicode. This routine gives
+        /// us a way to map from the source back to our cluster. CusterSrc is the UTF(16)
+        /// stream.
+        /// ClusterMap :  0 0 0 1 1
+        /// ClusterSrc :  5 2 8 3 2
         /// </summary>
         protected void Update_ClusterMap() {
             _rgClusterMap.Clear();
@@ -288,10 +283,10 @@ namespace Play.Edit {
 
                 oCluster.Source.Offset = _rgClusterMap.Count;
                 for( int j = oCluster.Glyph.Offset; j < oCluster.Glyph.Offset + oCluster.Glyph.Length; ++j ) {
-                    for( int k = 0; k < _rgGlyphs[j].Length; ++k ) {
+                    for( int k = 0; k < _rgGlyphs[j].CodeLength; ++k ) {
                         _rgClusterMap.Add( i );
                     }
-                    oCluster.Source.Length += (int)_rgGlyphs[j].Length;
+                    oCluster.Source.Length += (int)_rgGlyphs[j].CodeLength;
                 }
             }
         }
@@ -326,7 +321,7 @@ namespace Play.Edit {
                     _rgClusters.Add( oCluster );
 
                     oCluster.Glyph.Length++; 
-                    oCluster.Coordinates = _rgGlyphs[iGlyphIndex].Glyph.Coordinates;
+                    oCluster.Coordinates = _rgGlyphs[iGlyphIndex].Coordinates;
                     if( _rgGlyphs[iGlyphIndex].CodePoint == 0x09 ) {
                         IPgGlyph oTab = oFR.GetGlyph( 0x20 );
                         oCluster.AdvanceOffsEm = oTab.Coordinates.advance_em_x << 2; // Hard wired tab size...
@@ -361,7 +356,7 @@ namespace Play.Edit {
                     }
                 }
 
-                Update_EndOfLine( oFR, iEmAdvanceAbs );
+                Update_EndOfLine ( oFR, iEmAdvanceAbs );
                 Update_ClusterMap();
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( NullReferenceException ),
@@ -518,7 +513,7 @@ namespace Play.Edit {
                                                                       oStdUI.ColorsText[ oCluster.ColorIndex ];
 
                             //foreach( int iGlyph in oCluster ) {
-                                DrawGlyph( skCanvas, skPaint, flX, flY, _rgGlyphs[oCluster.Glyph.Offset].Glyph );
+                                DrawGlyph( skCanvas, skPaint, flX, flY, _rgGlyphs[oCluster.Glyph.Offset] );
                             //}
                         }
                     } // end foreach

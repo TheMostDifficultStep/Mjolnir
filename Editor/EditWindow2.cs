@@ -52,10 +52,12 @@ namespace Play.Edit {
     /// multi byte values of UTF8 that can make up a codepoint! -_-;;
     /// </summary>
     public interface IPgGlyph {
-        UInt32     FaceIndex   { get; }
+        UInt32     FaceIndex   { get; } // index to the face index from freetype.
         UInt32     Glyph       { get; }
         SKBitmap   Image       { get; }
         FTGlyphPos Coordinates { get; }
+        UInt32     CodePoint   { get; }
+        int        CodeLength  { get; set; } // Encoded word length either utf16 or utf8 depending on implementation.
     }
 
     public interface IPgFontRender : IDisposable {
@@ -1570,10 +1572,10 @@ namespace Play.Edit {
 		/// <remarks>Note that List<T> throws ArgumentOutOfRangeException for the same cases 
 		/// where arrays use IndexOutOfRangeException. It's a bitch I know.</remarks>
         protected virtual void DecorNavigatorUpdate( NavigationSource eSource, ILineRange oCaret ) {
-            int                    iLine = 0, iIndex = 0, iLineCharCount = 0;
-            IEnumerator<GlyphItem> itrGlyphs;
-            StringBuilder          sbBuild = new StringBuilder();
-            int                    iGlyphCount = 0;
+            int                   iLine = 0, iIndex = 0, iLineCharCount = 0;
+            IEnumerator<IPgGlyph> itrGlyphs;
+            StringBuilder         sbBuild = new StringBuilder();
+            int                   iGlyphCount = 0;
 
             try {
                 iLine          = oCaret.Line.At + 1;

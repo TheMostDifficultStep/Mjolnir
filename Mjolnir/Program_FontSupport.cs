@@ -69,13 +69,16 @@ namespace Mjolnir {
 
         public SKBitmap   Image       { get; }
         public FTGlyphPos Coordinates { get; }
+        public UInt32     CodePoint   { get; }
+        public int        CodeLength  { get; set; }
 
-        public GlyphInfo( uint uiFaceIndex, uint uiGlyph, SKBitmap skGlyphBmp, FTGlyphPos ftGlyphPos )
+        public GlyphInfo( uint uiFaceIndex, uint uiCodePoint, uint uiGlyph, SKBitmap skGlyphBmp, FTGlyphPos ftGlyphPos )
         {
             FaceIndex   = uiFaceIndex;
             Glyph       = uiGlyph;
             Image       = skGlyphBmp;
             Coordinates = ftGlyphPos;
+            CodeLength  = 1; // default set UTF32 length. 1 32 bit value.
         }
     }
 
@@ -242,15 +245,17 @@ namespace Mjolnir {
         /// can also expect to have an externally generated set of GlyphCoordinates. Worse, we'll
         /// have to coordinate with the font used by the shaper. Worry about all that later.</remarks>
         /// <exception cref="ApplicationException" />
-        public IPgGlyph GlyphLoad( uint uiGlyph ) {
+        public IPgGlyph GlyphLoad( uint uiCode ) {
             if( CurrentHeight == 0 )
                 throw new ArgumentException( "Glyph height has not be set." );
 
+            uint uiGlyph = GlyphFromCodePoint(uiCode);
+            
             try {
                 GlyphGenerate( FT_Render_Mode.FT_RENDER_MODE_NORMAL, uiGlyph );
                 SKBitmap skGlyphBitmap = GlyphCopyCurrent( out FTGlyphPos oGlyphCoords );
 
-                return new GlyphInfo( (uint)ID, uiGlyph, skGlyphBitmap, oGlyphCoords );
+                return new GlyphInfo( (uint)ID, uiCode, uiGlyph, skGlyphBitmap, oGlyphCoords );
             } catch( Exception oEx ) {
                 if( rgErrors.IsUnhandled( oEx ) )
                     throw;
@@ -288,37 +293,14 @@ namespace Mjolnir {
         /// <remarks>This is a bit wrong since normally we'd have a glyph index from the
         /// shaper calculated from a particular font.</remarks>
         public bool GlyphLoad( uint uiCode, out IPgGlyph oGlyph ) {
-            uint uiGlyph = Face.GlyphFromCodePoint( uiCode );
-
             foreach( IPgGlyph oTry in _rgRendered ) {
-                if( oTry.Glyph == uiGlyph ) {
+                if( oTry.CodePoint == uiCode) {
                     oGlyph = oTry;
                     return oTry.Glyph != 0;
                 }
             }
 
-            oGlyph = Face.GlyphLoad( uiGlyph );
-
-            _rgRendered.Add( oGlyph );
-
-            return oGlyph.Glyph != 0;
-        }
-
-        /// <summary>
-        /// Not used at present but probably the future when I use an external shaper.
-        /// </summary>
-        public bool GlyphLoad( uint uiGlyph, uint uiCode, out IPgGlyph oGlyph ) {
-            if( uiGlyph != Face.GlyphFromCodePoint( uiCode ) )
-                throw new ArgumentException( "Glyph does not exist for matching codepoint" );
-
-            foreach( IPgGlyph oTry in _rgRendered ) {
-                if( oTry.Glyph == uiGlyph ) {
-                    oGlyph = oTry;
-                    return oTry.Glyph != 0;
-                }
-            }
-
-            oGlyph = Face.GlyphLoad( uiGlyph );
+            oGlyph = Face.GlyphLoad( uiCode );
 
             _rgRendered.Add( oGlyph );
 

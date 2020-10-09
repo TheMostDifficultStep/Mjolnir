@@ -504,7 +504,7 @@ namespace Play.Edit {
         /// many codepoints! This brings up the issue of editing these multi point
         /// grapheme's but I'll side step that for the moment.</remarks>
         /// <exception cref="ArgumentException" />
-        public IEnumerator<GlyphItem> EnumGrapheme( ILineRange oCaret ) {
+        public IEnumerator<IPgGlyph> EnumGrapheme( ILineRange oCaret ) {
             if( oCaret == null || oCaret.Line == null )
                 throw new ArgumentException( "Caret or Line on Caret is empty" );
 
@@ -514,6 +514,9 @@ namespace Play.Edit {
                 return null;
 
             PgCluster oCluster = oElem.ClusterAt( oCaret.Offset );
+
+            if( oCluster == null )
+                return null;
 
             return oElem.ClusterCharacters( oCluster );
         }

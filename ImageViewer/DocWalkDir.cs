@@ -110,8 +110,8 @@ namespace Play.ImageViewer {
                                     typeof( PathTooLongException ),
                                     typeof( InvalidDataException )
                                   };
-                if( !rgErrors.Contains( oEx.GetType() ) ) {
-                    throw new InvalidProgramException( "Unable to access thumbnail cache" );
+                if( rgErrors.IsUnhandled( oEx ) ) {
+                    throw;
                 }
             }
         }
@@ -144,7 +144,7 @@ namespace Play.ImageViewer {
                                     typeof( UnauthorizedAccessException ),
                                   };
                 if( rgErrors.IsUnhandled( oEx ) )
-                    throw;
+                    throw new ApplicationException( "Couldn't Save Thumbs.", oEx );
 
                 LogError( "thumbnail cache", "Can't access the thumbnail cache. Is the file locked?" );
             }
@@ -333,9 +333,10 @@ namespace Play.ImageViewer {
                                     typeof( ArgumentNullException ),
                                     typeof( NullReferenceException ),
                                     typeof( ApplicationException ) };
-                if( !rgErrors.Contains( oEx.GetType() ) )
-                    throw new InvalidProgramException( "Unrecognized Directory Read Error" );
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw new ApplicationException( "Unrecognized Directory Read Error", oEx );
 
+                LogError( "ImageViewer", "Couldn't move to next directory" );
                 return;
             }
         }
@@ -358,8 +359,8 @@ namespace Play.ImageViewer {
                                     typeof( DirectoryNotFoundException ),
                                     typeof( System.Security.SecurityException ),
                                     typeof( UnauthorizedAccessException ) };
-                if( !rgErrors.Contains( oEx.GetType() ) )
-                    throw new InvalidProgramException( "Unrecognized Directory Read Error" );
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw new ApplicationException( "Couldn't load children of given directory.", oEx );
 
                 return false;
             }
