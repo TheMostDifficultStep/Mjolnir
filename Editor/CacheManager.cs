@@ -507,6 +507,15 @@ namespace Play.Edit {
 			try {
 				UniscribeCache oPrev = null;
 				foreach( UniscribeCache oElem in _rgOldCache ) {
+                    if( oElem.Color.Count > 0 ) {
+					    oElem.Words.Clear();
+                        foreach( IColorRange oRange in oElem.Line.Formatting ) {
+                            oElem.Words.Add( oRange );
+                        }
+                    }
+                    if( oElem.Words.Count < 1 ) {
+                        oElem.Words.Add(new ColorRange(0,oElem.Line.ElementCount,0));
+				    }
 					if( oElem.IsInvalid )
 						ElemUpdate( hDC, oElem );
 
@@ -782,18 +791,6 @@ namespace Play.Edit {
         /// <see cref="CacheManager2" />
         public void OnChangeFormatting( ICollection<ILineSelection> rgSelection ) {
             foreach ( UniscribeCache oCache in _rgOldCache ) {
-                // BUG: Seems like I've messed up the Formatting/Color/Words unholy trinity. This patches
-                //      it up so word wrapping MOSTLY works in the old UNISCRIBE case. I'm not going to
-                //      mess with it further since I'd rather be using my FreeType implementation anyway.
-                if (oCache.Color.Count > 0 ) {
-                    oCache.Words.Clear();
-                    foreach( IColorRange oRange in oCache.Line.Formatting ) {
-                        oCache.Words.Add( oRange );
-                    }
-                }
-                if (oCache.Words.Count < 1) {
-                    oCache.Words.Add(new ColorRange(0, oCache.Line.ElementCount,0));
-				}
                 oCache.OnChangeFormatting( Width, rgSelection );
             }
         }

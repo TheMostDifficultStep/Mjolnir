@@ -200,6 +200,9 @@ namespace Play.Edit {
             return pntLocation.Y >= Top && pntLocation.Y < Bottom;
         }
 
+        /// <summary>
+        /// A dummy enumerator that identifies all the text as a single black run.
+        /// </summary>
 		public IEnumerator<IColorRange> EnumBlack() {
 			yield return( new ColorRange( 0, Line.ElementCount, 0 ) );
 		}
@@ -249,7 +252,7 @@ namespace Play.Edit {
                 int      iLen   = oStream.Position - iOffs;
                 IPgGlyph oGlyph = oFR.GetGlyph(uiCode);
 
-                oGlyph.CodeLength = iLen; // In the future we'll set it in the font manager. (both 16/32 values)
+                oGlyph.CodeLength = iLen; // In the future we'll set it in the font manager. (both 16&32 values)
 
                 _rgGlyphs.Add( oGlyph );
             }

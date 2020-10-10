@@ -1228,9 +1228,9 @@ namespace Mjolnir {
         {
 			GetMappedGrammerErrors eError = GetMappedGrammerSite(strLanguage, out LangSlot oSite);
 
-			if ( eError != GetMappedGrammerErrors.OK ) {
-                LogGrammerError( eError, strLanguage );
-            }
+			//if ( eError != GetMappedGrammerErrors.OK ) {
+   //             LogGrammerError( eError, strLanguage );
+   //         }
 
             return( oSite );
         }
