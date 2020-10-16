@@ -359,6 +359,15 @@ namespace Play.Edit {
 			try {
 				FTCacheLine oPrev = null;
 				foreach( FTCacheLine oElem in _rgOldCache ) {
+        //            if( oElem.Color.Count > 0 ) {
+					   // oElem.Words.Clear();
+        //                foreach( IColorRange oRange in oElem.Line.Formatting ) {
+        //                    oElem.Words.Add( oRange );
+        //                }
+        //            }
+        //            if( oElem.Words.Count < 1 ) {
+        //                oElem.Words.Add(new ColorRange(0,oElem.Line.ElementCount,0));
+				    //}
 					if( oElem.IsInvalid )
 						ElemUpdate( oElem );
 
@@ -628,11 +637,11 @@ namespace Play.Edit {
         /// Line has been updated. We'll need to give the cache access to a DC for the font works,
         /// But right now the font cache seems to be working well enough.
         /// </summary>
-        /// <param name="oLine">the line that changed.</param>
         public void OnLineUpdated( Line oLine ) {
             foreach( FTCacheLine oCache in _rgOldCache ) {
                 if( oCache.Line == oLine ) {
-                    oCache.Invalidate();
+                    oCache.Update( Font );
+                    //oCache.Invalidate();
                 }
             }
         }
@@ -641,6 +650,7 @@ namespace Play.Edit {
         /// TODO: Should invalidate our host window.
         /// </summary>
         public void OnLineAdded( Line oLine ) {
+            OnLineUpdated( oLine );
         }
 
         /// <summary>
@@ -663,7 +673,7 @@ namespace Play.Edit {
         ///         changed, needs the "update"</remarks> 
         public void OnChangeFormatting( ICollection<ILineSelection> rgSelection, int iWidth ) {
             foreach( FTCacheLine oCache in _rgOldCache ) {
-                oCache.Update( Font );
+              //oCache.Update( Font ); Just can't call this here. Too slow.
                 oCache.OnChangeFormatting( rgSelection );
                 oCache.OnChangeSize( iWidth );
             }

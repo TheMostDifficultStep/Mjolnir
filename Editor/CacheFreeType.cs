@@ -75,17 +75,17 @@ namespace Play.Edit {
 
         public int ColorIndex { get; set; }
 
-        public MemoryRange Glyph;
+        public MemoryRange Glyphs;
         public MemoryRange Source;
 
         public int  Segment   { get; set; }
-        public bool IsVisible { get; set; } = true;
+        public bool IsVisible { get; set; } = true; // TODO: Map to Unicode data for this.
 
         public PgCluster( int iGlyphIndex ) {
             Coordinates  = new FTGlyphPos();
 
-            Glyph.Offset  = iGlyphIndex;
-            Glyph.Length  = 0;
+            Glyphs.Offset = iGlyphIndex;
+            Glyphs.Length = 0;
             Source.Offset = 0;
             Source.Length = 0;
 
@@ -93,8 +93,11 @@ namespace Play.Edit {
             Segment      = 0;
         }
 
+        /// <summary>
+        /// Enumerate the glyphs that make up this cluster.
+        /// </summary>
         public IEnumerator<int> GetEnumerator() {
-            for( int i = Glyph.Offset; i < Glyph.Offset + Glyph.Length; ++i ) {
+            for( int i = Glyphs.Offset; i < Glyphs.Offset + Glyphs.Length; ++i ) {
                 yield return i;
             }
         }
@@ -185,7 +188,7 @@ namespace Play.Edit {
             if( oCluster == null )
                 throw new ArgumentNullException();
 
-            for( int i=oCluster.Glyph.Offset; i<oCluster.Glyph.Offset + oCluster.Glyph.Length; ++i ) {
+            for( int i=oCluster.Glyphs.Offset; i<oCluster.Glyphs.Offset + oCluster.Glyphs.Length; ++i ) {
                 yield return _rgGlyphs[i];
             }
         }
@@ -242,28 +245,12 @@ namespace Play.Edit {
             return 0;
         }
 
-        protected void LoadCodePoints( IPgFontRender oFR ) {
-            _rgGlyphs.Clear();
-
-            CharStream oStream = new CharStream( Line );
-            while( oStream.InBounds( oStream.Position ) ) {
-                int      iOffs  = oStream.Position;
-                uint     uiCode = ReadCodepointFrom( oStream );
-                int      iLen   = oStream.Position - iOffs;
-                IPgGlyph oGlyph = oFR.GetGlyph(uiCode);
-
-                oGlyph.CodeLength = iLen; // In the future we'll set it in the font manager. (both 16&32 values)
-
-                _rgGlyphs.Add( oGlyph );
-            }
-        }
-
         protected void Update_EndOfLine( IPgFontRender oFR, int iEmAdvanceAbs ) {
             PgCluster oCluster = new PgCluster(_rgGlyphs.Count);
 
             oCluster.AdvanceLeftEm = iEmAdvanceAbs; // New left size advance.
             oCluster.IsVisible     = false;
-            oCluster.Glyph.Length  = 1;
+            oCluster.Glyphs.Length  = 1;
 
             _rgClusters.Add( oCluster );
             _rgGlyphs  .Add( oFR.GetGlyph(0x20) ); // use space glyph, but codepoint LF.
@@ -285,12 +272,33 @@ namespace Play.Edit {
                 PgCluster oCluster = _rgClusters[i];
 
                 oCluster.Source.Offset = _rgClusterMap.Count;
-                for( int j = oCluster.Glyph.Offset; j < oCluster.Glyph.Offset + oCluster.Glyph.Length; ++j ) {
+                for( int j = oCluster.Glyphs.Offset; j < oCluster.Glyphs.Offset + oCluster.Glyphs.Length; ++j ) {
                     for( int k = 0; k < _rgGlyphs[j].CodeLength; ++k ) {
                         _rgClusterMap.Add( i );
                     }
                     oCluster.Source.Length += (int)_rgGlyphs[j].CodeLength;
                 }
+            }
+        }
+
+        protected void LoadCodePoints( IPgFontRender oFR ) {
+            _rgGlyphs.Clear();
+
+            CharStream oStream = new CharStream( Line );
+            while( oStream.InBounds( oStream.Position ) ) {
+                int      iOffs  = oStream.Position;
+                uint     uiCode = ReadCodepointFrom( oStream );
+                int      iLen   = oStream.Position - iOffs;
+                IPgGlyph oGlyph;
+                
+                if( uiCode == 0x09 )
+                    oGlyph = oFR.GetGlyph(0x20);
+                else
+                    oGlyph = oFR.GetGlyph(uiCode);
+
+                oGlyph.CodeLength = iLen; // In the future we'll set it in the font manager. (both 16&32 values)
+
+                _rgGlyphs.Add( oGlyph );
             }
         }
 
@@ -323,14 +331,8 @@ namespace Play.Edit {
                     oCluster = new PgCluster( iGlyphIndex );
                     _rgClusters.Add( oCluster );
 
-                    oCluster.Glyph.Length++; 
-                    oCluster.Coordinates = _rgGlyphs[iGlyphIndex].Coordinates;
-                    if( _rgGlyphs[iGlyphIndex].CodePoint == 0x09 ) {
-                        IPgGlyph oTab = oFR.GetGlyph( 0x20 );
-                        oCluster.AdvanceOffsEm = oTab.Coordinates.advance_em_x << 2; // Hard wired tab size...
-                        oCluster.IsVisible     = false;
-                    }
-
+                    oCluster.Glyphs.Length++; 
+                    oCluster.Coordinates   = _rgGlyphs[iGlyphIndex].Coordinates;
                     oCluster.AdvanceLeftEm = iEmAdvanceAbs; 
                     iEmAdvanceAbs += oCluster.AdvanceOffsEm;
 
@@ -338,20 +340,20 @@ namespace Play.Edit {
                         break;
 
                     if( _rgGlyphs[iGlyphIndex].CodePoint == 0x200d ) {
-                        oCluster.Glyph.Length++;
+                        oCluster.Glyphs.Length++;
 
                         if( ++iGlyphIndex >= _rgGlyphs.Count )
                             break;
 
                         // Simply eat the alternate character. for now.
-                        oCluster.Glyph.Length++;
+                        oCluster.Glyphs.Length++;
 
                         if( ++iGlyphIndex >= _rgGlyphs.Count )
                             break;
 
                         if( _rgGlyphs[iGlyphIndex].CodePoint >= 0xfe00 &&
                             _rgGlyphs[iGlyphIndex].CodePoint <= 0xfe0f ) {
-                            oCluster.Glyph.Length++;
+                            oCluster.Glyphs.Length++;
 
                             if( ++iGlyphIndex >= _rgGlyphs.Count )
                                 break;
@@ -505,7 +507,7 @@ namespace Play.Edit {
                             float flX = pntLowerLeft.X + (float)(oCluster.AdvanceLeftEm >> 6); 
                             float flY = pntLowerLeft.Y + iYDiff - oCluster.Coordinates.top;
 
-                            // Only draw if we need to override the last panted bg color.
+                            // Only draw if we need to override the last painted bg color.
                             if( oCluster.ColorIndex < 0 ) {
                                 skPaint.Color = oStdUI.ColorsStandardAt( StdUIColors.BGSelectedFocus );
                                 DrawGlyphBack( skCanvas, skPaint, flX, pntLowerLeft.Y + iYDiff, oCluster );
@@ -516,7 +518,7 @@ namespace Play.Edit {
                                                                       oStdUI.ColorsText[ oCluster.ColorIndex ];
 
                             //foreach( int iGlyph in oCluster ) {
-                                DrawGlyph( skCanvas, skPaint, flX, flY, _rgGlyphs[oCluster.Glyph.Offset] );
+                                DrawGlyph( skCanvas, skPaint, flX, flY, _rgGlyphs[oCluster.Glyphs.Offset] );
                             //}
                         }
                     } // end foreach

@@ -133,6 +133,7 @@ namespace Mjolnir {
 					Application.Run( oProgram.MainWindow );
 				} catch( Exception oEx ) {
 					oProgram.LogError( "internal", oEx.Message );
+                    oProgram.BombOut( oEx );
 					// BUG: This would be a great place for use to write out the alerts
 					//      and this last error to a file somewhere. ^_^;;
 					Console.WriteLine( oEx.Message );
@@ -202,6 +203,32 @@ namespace Mjolnir {
 				LogError( null, "internal", "Coudn't open Alerts window.", false );
 			}
 		}
+
+        public void BombOut( Exception oOutGoingEx ) {
+            try {
+                string strFile = Path.Combine(AppDataPath, "bombout.txt" );
+                using ( Stream oStream = new FileStream( strFile, FileMode.Open, FileAccess.Write ) ) {
+                    using( StreamWriter oWrite = new StreamWriter( oStream ) ) {
+                        oWrite.Write( oOutGoingEx.StackTrace );
+                    }
+                }
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( ArgumentException ),
+                                    typeof( ArgumentNullException ),
+                                    typeof( ArgumentOutOfRangeException ),
+                                    typeof( NotSupportedException ),
+                                    typeof( System.Security.SecurityException ),
+                                    typeof( FileNotFoundException ),
+                                    typeof( IOException ),
+                                    typeof( DirectoryNotFoundException ),
+                                    typeof( PathTooLongException ),
+                                    typeof( InvalidDataException )
+                                  };
+                if( rgErrors.IsUnhandled( oEx ) ) {
+                    throw;
+                }
+            }
+        }
 
 		/// <summary>
 		/// In this case these would be global documents you might want to show all the time.
