@@ -76,6 +76,7 @@ namespace Mjolnir {
         {
             FaceIndex   = uiFaceIndex;
             Glyph       = uiGlyph;
+            CodePoint   = uiCodePoint;
             Image       = skGlyphBmp;
             Coordinates = ftGlyphPos;
             CodeLength  = 1; // default set UTF32 length. 1 32 bit value.

@@ -634,14 +634,14 @@ namespace Play.Edit {
         }
 
         /// <summary>
-        /// Line has been updated. We'll need to give the cache access to a DC for the font works,
-        /// But right now the font cache seems to be working well enough.
+        /// We used to simply call oCache.Update(), however, word wrapping doesn't work
+        /// unless we call the resize too. So call ElemUpdate for completeness.
         /// </summary>
+        /// <seealso cref="ElemUpdate"/>
         public void OnLineUpdated( Line oLine ) {
             foreach( FTCacheLine oCache in _rgOldCache ) {
                 if( oCache.Line == oLine ) {
-                    oCache.Update( Font );
-                    //oCache.Invalidate();
+                    ElemUpdate( oCache );
                 }
             }
         }
