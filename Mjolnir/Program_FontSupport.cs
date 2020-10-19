@@ -241,20 +241,21 @@ namespace Mjolnir {
         }
         /// <summary>Call SetSize first to set the going size of the glyphs being generated.</summary>
         /// <seealso cref="SetSize" />
-        /// <remarks>It's a bit clunky that we pass both the Gliph index AND the Code Point, but
-        /// we can expect to be given the Glyph index from a shaper and not the code point. We
-        /// can also expect to have an externally generated set of GlyphCoordinates. Worse, we'll
-        /// have to coordinate with the font used by the shaper. Worry about all that later.</remarks>
+        /// <remarks>I'm hacking the tab character here. If I allowed the glyph coordinates to be 
+        /// modified I might be able to get around that, but I like them readonly.</remarks>
         /// <exception cref="ApplicationException" />
         public IPgGlyph GlyphLoad( uint uiCode ) {
             if( CurrentHeight == 0 )
                 throw new ArgumentException( "Glyph height has not be set." );
 
-            uint uiGlyph = GlyphFromCodePoint(uiCode);
+            uint uiGlyph = GlyphFromCodePoint(uiCode == 9 ? 32 : uiCode );
             
             try {
                 GlyphGenerate( FT_Render_Mode.FT_RENDER_MODE_NORMAL, uiGlyph );
                 SKBitmap skGlyphBitmap = GlyphCopyCurrent( out FTGlyphPos oGlyphCoords );
+
+                if( uiCode == 9 )
+                    oGlyphCoords.advance_em_x *= 4;
 
                 return new GlyphInfo( (uint)ID, uiCode, uiGlyph, skGlyphBitmap, oGlyphCoords );
             } catch( Exception oEx ) {
@@ -279,6 +280,8 @@ namespace Mjolnir {
             Resolution = sResolution;
             Height     = uiHeight;
             ID         = uiID;
+
+            oFace.SetSize(uiHeight, sResolution);
         }
 
         public uint RendererID { get => ID; }
@@ -409,27 +412,25 @@ namespace Mjolnir {
 
         public static float InchPerMeter { get { return 39.3701f; } }
 
-        public uint GetRenderer( uint uiFace, uint uiHeight, SKSize sResolution ) {
-            uint   uiFoundFace = uint.MaxValue;
-            FTFace oFace       = _rgFace[(int)uiFace];
-
+        /// <summary>For the given face, cache a font for the given height and resolution.</summary>
+        /// <exception cref="ArgumentOutOfRangeException" />
+        public uint FaceCacheSize( ushort uiFace, uint uiHeight, SKSize skResolution ) {
+            // Try find the font if it has already been cached.
             foreach( FaceRender oRenderTry in _rgRenders ) {
-                if( oRenderTry.Face.ID == uiFace ) {
-                    uiFoundFace = uiFace;
-                    if( oRenderTry.Height     == uiHeight &&
-                        oRenderTry.Resolution == sResolution ) {
-                        return oRenderTry.ID;
-                    }
+                if( oRenderTry.Face.ID    == uiFace &&
+                    oRenderTry.Height     == oRenderTry.Height &&
+                    oRenderTry.Resolution == oRenderTry.Resolution )  
+                {
+                    return oRenderTry.ID;
                 }
             }
 
-            FaceRender oRender = new FaceRender( oFace, sResolution, uiHeight, (uint)_rgRenders.Count );
+            // Didn't find it so create a renderer for the new size/resolution.
+            FaceRender oRender = new FaceRender( _rgFace[uiFace], skResolution, uiHeight, (uint)_rgRenders.Count );
 
             _rgRenders.Add( oRender );
 
-            oFace.SetSize( uiHeight, sResolution );
-
-            return oRender.ID;
+            return( oRender.ID );
         }
 
         /// <summary>
@@ -469,27 +470,6 @@ namespace Mjolnir {
             _rgFace.Add( oFace );
 
             return (UInt16)( oFace.ID );
-        }
-
-        /// <summary>For the given face, cache a font for the given height and resolution.</summary>
-        /// <exception cref="ArgumentOutOfRangeException" />
-        public uint FaceCacheSize( ushort uiFace, uint uiHeight, SKSize skResolution ) {
-            // Try find the font if it has already been cached.
-            foreach( FaceRender oRender in _rgRenders ) {
-                if( oRender.Face.ID    == uiFace &&
-                    oRender.Height     == oRender.Height &&
-                    oRender.Resolution == oRender.Resolution )  
-                {
-                    return oRender.ID;
-                }
-            }
-
-            // Didn't find it so create a renderer for the new size/resolution.
-            FaceRender oNew = new FaceRender( _rgFace[uiFace], skResolution, uiHeight, (uint)_rgRenders.Count );
-
-            _rgRenders.Add( oNew );
-
-            return( oNew.ID );
         }
 
         /// <summary>
@@ -538,7 +518,6 @@ namespace Mjolnir {
                     if( oFaceFallback.ID != oRender.Face.ID ) {
                         if( oFaceFallback.GlyphFromCodePoint( uiCode ) != 0 ) {
                             FaceRender oRenderNew = new FaceRender( oFaceFallback, oRender.Resolution, oRender.Height, (uint)_rgRenders.Count );
-                            oRenderNew.SetSize();
                             oRenderNew.GlyphLoad( uiCode, out IPgGlyph oGlyphTry );
                             _rgRenders.Add( oRenderNew );
                             return oGlyphTry;

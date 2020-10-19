@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Windows.Forms;
 using System.Drawing;
 
 using SkiaSharp;
@@ -8,7 +7,6 @@ using SkiaSharp.Views.Desktop;
 
 using Play.Interfaces.Embedding;
 using Play.Rectangles;
-using Play.Parse.Impl;
 
 namespace Play.Edit {
 	public class LayoutText : LayoutRect {

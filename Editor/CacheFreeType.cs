@@ -291,10 +291,7 @@ namespace Play.Edit {
                 int      iLen   = oStream.Position - iOffs;
                 IPgGlyph oGlyph;
                 
-                if( uiCode == 0x09 )
-                    oGlyph = oFR.GetGlyph(0x20);
-                else
-                    oGlyph = oFR.GetGlyph(uiCode);
+                oGlyph = oFR.GetGlyph(uiCode);
 
                 oGlyph.CodeLength = iLen; // In the future we'll set it in the font manager. (both 16&32 values)
 

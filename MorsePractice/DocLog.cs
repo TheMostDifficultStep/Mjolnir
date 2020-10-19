@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections;
 
 using Play.Interfaces.Embedding;
 using Play.Edit;
-using System.Collections;
 
 namespace Play.MorsePractice {
 	public class CallData {
