@@ -75,8 +75,8 @@ namespace Play.Edit {
 
         public int ColorIndex { get; set; }
 
-        public MemoryRange Glyphs;
-        public MemoryRange Source;
+        public MemoryRange Glyphs; // This points to the glyphs array start/length of the glyphs in this cluster.
+        public MemoryRange Source; // 
 
         public int  Segment   { get; set; }
         public bool IsVisible { get; set; } = true; // TODO: Map to Unicode data for this.
@@ -104,6 +104,13 @@ namespace Play.Edit {
 
         IEnumerator IEnumerable.GetEnumerator() {
             return GetEnumerator();
+        }
+
+        public int Increment( int iAdvance, int iSegment ) {
+            Segment       = iSegment;
+            AdvanceLeftEm = iAdvance;
+
+            return iAdvance + AdvanceOffsEm;
         }
     }
 
@@ -260,19 +267,23 @@ namespace Play.Edit {
         /// Generate a map from UTF-16 indicies to Cluster offsets. Use the cluster
         /// map to index parser color info back to the cluster. This is the standard 
         /// cluster handling that always comes up with unicode. This routine gives
-        /// us a way to map from the source back to our cluster. CusterSrc is the UTF(16)
-        /// stream.
+        /// us a way to map from the source back to our cluster. 
+        /// stream. 
+        ///               0 1 2 3 4
         /// ClusterMap :  0 0 0 1 1
-        /// ClusterSrc :  5 2 8 3 2
+        /// Utf Stream :  5 2 8 3 2 
+        /// ... cluster 0 has 3 elements, cluster 1 has 2 elements.
         /// </summary>
         protected void Update_ClusterMap() {
             _rgClusterMap.Clear();
 
+            int iSrcOffset = 0;
             for( int i = 0; i<_rgClusters.Count; ++i ) {
                 PgCluster oCluster = _rgClusters[i];
 
-                oCluster.Source.Offset = _rgClusterMap.Count;
+                oCluster.Source.Offset = iSrcOffset; // _rgClusterMap.Count; 
                 for( int j = oCluster.Glyphs.Offset; j < oCluster.Glyphs.Offset + oCluster.Glyphs.Length; ++j ) {
+                    iSrcOffset += _rgGlyphs[j].CodeLength;
                     for( int k = 0; k < _rgGlyphs[j].CodeLength; ++k ) {
                         _rgClusterMap.Add( i );
                     }
@@ -709,7 +720,7 @@ namespace Play.Edit {
         /// <remarks>This depends on how we set up the EOL marker!!</remarks>
         protected int OffsetHorizontalBound( int iIncrement ) {
             if( iIncrement >= 0 && _rgClusters.Count > 1 ) {
-                return(  _rgClusters[_rgClusters.Count-2].Source.Offset );
+                return(  _rgClusters[_rgClusters.Count-2].Source.Offset ); 
             }
 
             return( 0 );

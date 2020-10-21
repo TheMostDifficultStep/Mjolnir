@@ -7,6 +7,7 @@ using SkiaSharp;
 
 using Play.Parse.Impl;
 using Play.Interfaces.Embedding;
+using System.Text;
 
 namespace Play.Edit {
     /// <summary>
@@ -19,7 +20,7 @@ namespace Play.Edit {
     /// </summary>
     public class FTCacheWrap : FTCacheLine
     {
-        readonly List<int> _rgWrapSegment  = new List<int>(); // +1 the number of wrapped lines.
+        int _iWrapCount = 0;
 
         public FTCacheWrap( Line oLine ) : base( oLine ) 
         {
@@ -27,7 +28,7 @@ namespace Play.Edit {
 
         override public int Height {
             get { 
-                return( (int)( _rgWrapSegment.Count < 2 ? base.Height : ( _rgWrapSegment.Count - 1 ) * base.Height ) );
+                return( (int)(_iWrapCount < 0 ? base.Height : ( _iWrapCount + 1 ) * base.Height ) );
             }
         }
 
@@ -48,14 +49,14 @@ namespace Play.Edit {
         protected override bool NavigateVertical( int iIncrement, int iAdvance, ref int iOffset ) {
             try {
                 // Any movement will put us out of this set of wrapped lines.
-                if( _rgClusters.Count > 0 )
+                if( _rgClusters.Count < 1 )
                     return( false );
 
                 int iWrapSegm = _rgClusters[iOffset].Segment;
 
                 if( iWrapSegm + iIncrement < 0 )
                     return( false );
-                if( iWrapSegm + iIncrement >= _rgWrapSegment.Count )
+                if( iWrapSegm + iIncrement > _iWrapCount )
                     return( false );
 
                 iOffset = FindNearestOffset( iWrapSegm + iIncrement, iAdvance );
@@ -74,25 +75,36 @@ namespace Play.Edit {
         /// This advance is essentially the X coordinate on the screen translated
         /// to the world coordinates. The maximim value is the screen width.
         /// </summary>
-        /// <param name="iWrapSegm">The particular wrapped line we are interested in.</param>
+        /// <param name="iSegment">The particular segment we are interested in.</param>
         /// <param name="iAdvance">The horizontal distance in "pixels" we are interested in.</param>
-        public int FindNearestOffset( int iWrapSegm, int iAdvance ) {
-            if( _rgWrapSegment.Count < 1 || _rgClusters.Count < 1 )
+        public int FindNearestOffset( int iSegment, int iAdvance ) {
+            if( _rgClusters.Count < 1 )
                 return 0;
 
-            if( iWrapSegm >= _rgWrapSegment.Count )
-                iWrapSegm = _rgWrapSegment.Count - 1;
-            if( iWrapSegm < 0 )
-                iWrapSegm = 0;
+            if( iSegment > _iWrapCount )
+                iSegment = _iWrapCount;
+            if( iSegment < 0 )
+                iSegment = 0;
 
             try {
-                int iAbsAdvance = _rgWrapSegment[iWrapSegm] + iAdvance;
-
-                int i = _rgClusters.Count - 1;
-                while( i > 0 && _rgClusters[i].AdvanceLeftEm << 6 >= iAbsAdvance ) {
-                    --i;
+                int iAdvanceLeftEm = iAdvance << 6;
+                int ClusterCompare( PgCluster oTry ) {
+                    if( iSegment < oTry.Segment )
+                        return -1;
+                    if( iSegment > oTry.Segment )
+                        return  1;
+                    if( iAdvanceLeftEm < oTry.AdvanceLeftEm )
+                        return -1;
+                    if( iAdvanceLeftEm >= oTry.AdvanceLeftEm + ( oTry.AdvanceOffsEm >> 1 ) )
+                        return 1;
+                    return 0;
                 }
-                return i;
+                int iIndex = FindStuff<PgCluster>.BinarySearch( _rgClusters, 0, _rgClusters.Count - 1, ClusterCompare );
+
+                if( iIndex < 0 )
+                    iIndex = ~iIndex; // But if miss, this element is on the closest edge.
+
+				return _rgClusters[iIndex].Source.Offset; 
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( ArgumentOutOfRangeException ),
                                     typeof( NullReferenceException ) };
@@ -135,44 +147,24 @@ namespace Play.Edit {
         /// first element.</returns>
         public override int GlyphPointToOffset( SKPointI pntWorld ) {
 			try {
-				if( _rgClusters.Count < 1 )
-					return 0;
+				int iSegment;
 
-                int iTopCluster = _rgClusters.Count-1;
-				int iYDiff      = pntWorld.Y - Top;
-				int iYOffs;
-
-				// Since the lines are wrapped. We need to inspect the _rgWrapDiff array to
-				// find on which wrapped segment to begin searching for the X offset.
-				for( iYOffs = 0; iYOffs <_rgWrapSegment.Count; ++iYOffs ) {
-					if( ( Top + ( iYOffs + 1 ) * base.Height ) > pntWorld.Y )
+				// Since the lines are wrapped, find which segment we think
+                // the desired offset is in.
+				for( iSegment = 0; iSegment <= _iWrapCount; ++iSegment ) {
+					if( ( Top + ( iSegment + 1 ) * base.Height ) > pntWorld.Y )
 						break;
 				}
 
-				if( iYOffs + 1 >= _rgWrapSegment.Count )
-					return( iTopCluster );
-
-                int iWorldXEm = pntWorld.X << 6;
-                int ClusterCompare( PgCluster oTry ) {
-                    if (iWorldXEm < oTry.AdvanceLeftEm)
-                        return -1;
-                    if (iWorldXEm >= oTry.AdvanceLeftEm + ( oTry.AdvanceOffsEm >> 1 ))
-                        return 1;
-                    return 0;
-                }
-                int iIndex = FindStuff<PgCluster>.BinarySearch( _rgClusters, _rgWrapSegment[iYOffs], _rgWrapSegment[iYOffs+1], ClusterCompare );
-
-                if( iIndex < 0 )
-                    iIndex = ~iIndex; // But if miss, this element is on the closest edge.
-
-				return _rgClusters[iIndex].Source.Offset;
+                return FindNearestOffset( iSegment, pntWorld.X );
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( ArgumentOutOfRangeException ),
-                                    typeof( NullReferenceException ) };
+                                    typeof( NullReferenceException ),
+                                    typeof( ArgumentException ) };
                 if( rgErrors.IsUnhandled( oEx ) )
                     throw;
 
-                Debug.Fail( "GlyphPointToOffset1() index exception." );
+                Debug.Fail( "GlyphPointToOffset() index exception." );
 				return 0;
 			}
         }
@@ -190,7 +182,7 @@ namespace Play.Edit {
         /// the user arrows up and down, we can expect overflow. Need to guard for that.
         /// </remarks>
         public override Point GlyphOffsetToPoint( int iOffset ) {
-            if( _rgWrapSegment.Count < 1 || _rgClusters.Count < 1 || _rgClusterMap.Count < 1 )
+            if( _rgClusters.Count < 1 || _rgClusterMap.Count < 1 )
                 return new Point( 0, 0 );
 
             if( iOffset > _rgClusterMap.Count - 1 )
@@ -199,14 +191,9 @@ namespace Play.Edit {
                 iOffset = 0;
 			
 			try {
-				int iYDiff = 0;
-				int iWLine = _rgClusters[_rgClusterMap[iOffset]].Segment;
-
-				if( iWLine < _rgWrapSegment.Count ) { // small safety check.
-					iYDiff = (int)base.Height * iWLine;
-				}
-
-				Point pntLocation = new Point( _rgClusters[_rgClusterMap[iOffset]].AdvanceLeftEm >> 6, iYDiff );
+                PgCluster oCluster    = _rgClusters[_rgClusterMap[iOffset]];
+                int       iYOffset    = (int)base.Height * oCluster.Segment;
+				Point     pntLocation = new Point( oCluster.AdvanceLeftEm >> 6, iYOffset );
                                              
 				return( pntLocation );
             } catch( Exception oEx ) {
@@ -236,7 +223,7 @@ namespace Play.Edit {
                 if( iAdvance + _rgClusters[iIndex].AdvanceOffsEm > iDisplayWidth && iIndex != 0 )
                     return false;
 
-                _rgClusters[iIndex].Segment       = _rgWrapSegment.Count-1;
+                _rgClusters[iIndex].Segment       = _iWrapCount;
                 _rgClusters[iIndex].AdvanceLeftEm = iAdvance;
 
                 iAdvance += _rgClusters[iIndex].AdvanceOffsEm;
@@ -257,8 +244,7 @@ namespace Play.Edit {
         /// <remarks>TODO: Our line breaking is limited by the word breaks. That's not as good
         /// as spacing, since periods are getting placed on a new line. I'll probably go
         /// back to a word break; parser. But not yet.</remarks>
-        public virtual void WrapSegmentsCreate( int iDisplayWidth ) {
-            _rgWrapSegment.Clear();
+        public virtual void WrapSegmentsCreateOld( int iDisplayWidth ) {
             if( _rgClusters.Count < 1 )
                 return;
 
@@ -271,7 +257,7 @@ namespace Play.Edit {
 			int                      iAdvance = 0;
 
 			try {
-                _rgWrapSegment.Add( 0 );
+                _iWrapCount = 0;
                 eWords.MoveNext();
 
                 int iIndex = 0; // It's possible for one word to span many lines.
@@ -280,7 +266,7 @@ namespace Play.Edit {
                     while( true ) { 
                         if( LoadWord(  eWords.Current, iDisplayWidth, ref iAdvance, ref iIndex ) ) {
                             if( !eWords.MoveNext() ) {
-                                _rgWrapSegment.Add( _rgClusters.Count - 1 );
+                                ++_iWrapCount;
                                 return;
                             }
                             iWordCount++;
@@ -293,8 +279,8 @@ namespace Play.Edit {
                         }
                     }
                     iAdvance = 0;
-                    _rgWrapSegment.Add( iIndex );
-                    if( _rgWrapSegment.Count > 1000 )
+                    ++_iWrapCount;
+                    if( _iWrapCount > 1000 )
                         throw new ApplicationException( "Just stop at some arbitrary 'too big' value." );
                 }
 			} catch( Exception oEx ) {
@@ -307,5 +293,47 @@ namespace Play.Edit {
 					throw;
 			}
         } // end method
+
+        public virtual void WrapSegmentsCreate( int iDisplayWidth ) {
+            if( _rgClusters.Count < 1 )
+                return;
+
+            iDisplayWidth <<= 6;
+
+            _iWrapCount = 0;
+            int iAdvance   = 0;
+            int iBreak     = 1;
+
+            try {
+                for( int iCluster = 0; iCluster < _rgClusters.Count; ++iCluster ) {
+                    PgCluster oCluster = _rgClusters[iCluster];
+                    if( Rune.IsWhiteSpace( (Rune)_rgGlyphs[oCluster.Glyphs.Offset].CodePoint ) ) 
+                        iBreak = iCluster;
+
+                    if( iAdvance + oCluster.AdvanceOffsEm > iDisplayWidth && iCluster - iBreak > 0 ) {
+                        _iWrapCount++;
+                        iAdvance = 0;
+                        for( int iSub = iBreak + 1; iSub < iCluster; ++iSub ) {
+                            iAdvance = _rgClusters[iSub].Increment( iAdvance, _iWrapCount );
+                        }
+                        iBreak = iCluster;
+                    }
+
+                    iAdvance = oCluster.Increment( iAdvance, _iWrapCount );
+                }
+                //_rgWrapSegment.Add( _rgClusters.Count );
+            } catch( Exception oEx ) {
+                Type[] rgError = { typeof( IndexOutOfRangeException ),
+                                   typeof( ArgumentOutOfRangeException ),
+                                   typeof( NullReferenceException ),
+                                   typeof( ArgumentOutOfRangeException ) };
+                if( rgError.IsUnhandled(oEx) )
+                    throw;
+
+                for( int iCluster = 0; iCluster < _rgClusters.Count; ++iCluster ) {
+                    iAdvance = _rgClusters[iCluster].Increment( iAdvance, 0 );
+                }
+            }
+        }
     } // end class
 }

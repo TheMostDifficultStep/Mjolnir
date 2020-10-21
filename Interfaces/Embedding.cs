@@ -15,15 +15,13 @@ namespace Play.Interfaces.Embedding {
         /// <summary>
         /// Find the line containing stream offset we are looking for.
         /// </summary>
-        /// <returns>Matching index, else inverse of closest match, returns
-        /// -1 in the case that the bounds are out of order. Usually the case
-        /// where the collection is empty.</returns>
+        /// <returns>Matching index, else inverse of closest match.</returns>
         /// <exception cref="ArgumentOutOfRangeException" />
         /// <exception cref="NullReferenceException" />
         public static int BinarySearch( List<T> rgLines, int iLow, int iHigh, FindPredicate<T> delCompare ) 
         {
             if( iLow > iHigh )
-                return -1; // Our one out of bounds return condition.
+                throw new ArgumentException( "Low > High" ); // Our one out of bounds return condition.
 
             int iMid = iLow;
             int iCmp;

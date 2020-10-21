@@ -781,7 +781,7 @@ namespace Play.Edit {
                     skPaint.Color     = _oStdUI.ColorsStandardAt( _fReadOnly ? StdUIColors.BGReadOnly : StdUIColors.BG );
                     skCanvas.DrawRect( e.Info.Rect, skPaint );
 
-                    // No paint the lines.
+                    // Now paint the lines.
                     foreach( FTCacheLine oCache in _oCacheMan ) {
                         PaintBackground( skCanvas, skPaint, oCache );
 
