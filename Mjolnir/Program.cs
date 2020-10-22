@@ -206,7 +206,7 @@ namespace Mjolnir {
 
         public void BombOut( Exception oOutGoingEx ) {
             try {
-                string strFile = Path.Combine(AppDataPath, "bombout.txt" );
+                string strFile = Path.Combine(AppDataPath, "crashout.txt" );
                 using ( Stream oStream = new FileStream( strFile, FileMode.Create, FileAccess.Write ) ) {
                     using( StreamWriter oWrite = new StreamWriter( oStream ) ) {
                         oWrite.Write( oOutGoingEx.StackTrace );

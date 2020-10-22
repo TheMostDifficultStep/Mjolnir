@@ -256,13 +256,16 @@ namespace Play.Edit {
 
         protected void Update_EndOfLine( IPgFontRender oFR, int iEmAdvanceAbs ) {
             PgCluster oCluster = new PgCluster(_rgGlyphs.Count);
+            IPgGlyph  oGlyph   = oFR.GetGlyph(0x20);
 
             oCluster.AdvanceLeftEm = iEmAdvanceAbs; // New left size advance.
+            oCluster.AdvanceOffsEm = oGlyph.Coordinates.advance_em_x;
+            oCluster.Coordinates   = oGlyph.Coordinates;
             oCluster.IsVisible     = false;
             oCluster.Glyphs.Length  = 1;
 
             _rgClusters.Add( oCluster );
-            _rgGlyphs  .Add( oFR.GetGlyph(0x20) ); // use space glyph, but codepoint LF.
+            _rgGlyphs  .Add( oGlyph ); // use space glyph, but codepoint LF.
         }
 
         /// <summary>

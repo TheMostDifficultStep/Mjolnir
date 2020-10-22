@@ -237,12 +237,15 @@ namespace Play.Edit {
                     int iIndex = oRange.Offset;
                     int iPass  = _iWrapCount;
                     while( !LoadWord( oRange, iDisplayWidth, ref iAdvance, ref iIndex ) ) {
-                        if( iPass == _iWrapCount )  // Only Move the start of the word to the next line when it wraps the first time!!
+                        if( iPass == _iWrapCount )  // Reset only for the first wrap.
                             iIndex = oRange.Offset;
                         iAdvance = 0;
                         _iWrapCount++;
                     }
                 }
+                // Don't forget to patch up our trailing glyph that isn't in the source.
+                _rgClusters[_rgClusters.Count-1].AdvanceLeftEm = iAdvance;
+                _rgClusters[_rgClusters.Count-1].Segment       = _iWrapCount;
             } catch( Exception oEx ) {
                 Type[] rgError = { typeof( IndexOutOfRangeException ),
                                    typeof( ArgumentOutOfRangeException ),
