@@ -144,7 +144,7 @@ namespace Play.Edit {
         }
 
 		public void WordBreak(UniscribeCache oCache) {
-			_oSite.WordBreak( oCache );
+			_oSite.WordBreak( oCache.Line, oCache.Words );
 		}
 
         protected override void LogError( string strDetails ) {
@@ -502,7 +502,7 @@ namespace Play.Edit {
 		/// We redo the elem.top in case a line grows in height.
         /// </summary>
         /// <param name="hDC"></param>
-        protected void CacheValidate( IntPtr hDC )
+        [Obsolete]protected void CacheValidate( IntPtr hDC )
         {
 			try {
 				UniscribeCache oPrev = null;
@@ -510,11 +510,12 @@ namespace Play.Edit {
                     if( oElem.Color.Count > 0 ) {
 					    oElem.Words.Clear();
                         foreach( IColorRange oRange in oElem.Line.Formatting ) {
-                            oElem.Words.Add( oRange );
+                            // BUG: UGLY HACK ALERT!! Words & Formatting aren't compatible here, dont' want to fix.
+                            oElem.Words.Add( new WordRange( oRange.Offset, oRange.Length, oRange.ColorIndex ) );
                         }
                     }
                     if( oElem.Words.Count < 1 ) {
-                        oElem.Words.Add(new ColorRange(0,oElem.Line.ElementCount,0));
+                        oElem.Words.Add(new WordRange(0,oElem.Line.ElementCount,0));
 				    }
 					if( oElem.IsInvalid )
 						ElemUpdate( hDC, oElem );

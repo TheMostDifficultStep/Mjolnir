@@ -71,7 +71,7 @@ namespace Mjolnir {
 			ToolBox = new List<MenuItemWithID>(3);
 
             CacheTitle = new CacheWrapped( ShortTitle ); 
-			CacheTitle.Words.Add(_oRangeText);
+			//CacheTitle.Words.Add(_oRangeText);
 
 			ViewType = guidViewType;
         }

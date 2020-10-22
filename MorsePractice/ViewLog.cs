@@ -153,9 +153,9 @@ namespace Play.MorsePractice {
 
 					// This is super crude. But let's go for it at the moment.
 					oCache.Words.Clear();
-					foreach (IColorRange oRange in oCache.Line.Formatting) {
-						oCache.Words.Add(oRange);
-					}
+					//foreach (IColorRange oRange in oCache.Line.Formatting) {
+					//	oCache.Words.Add(oRange);
+					//}
 				}
 			}
 

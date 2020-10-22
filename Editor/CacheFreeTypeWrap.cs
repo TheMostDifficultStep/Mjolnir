@@ -22,8 +22,7 @@ namespace Play.Edit {
     {
         int _iWrapCount = 0;
 
-        public FTCacheWrap( Line oLine ) : base( oLine ) 
-        {
+        public FTCacheWrap( Line oLine ) : base( oLine ) {
         }
 
         override public int Height {
@@ -212,116 +211,38 @@ namespace Play.Edit {
         /// </summary>
         /// <remarks>Our formatting info can contain a fake EOL word that is outside the cluster limits.</remarks>
         private bool LoadWord( IColorRange oWord, int iDisplayWidth, ref int iAdvance, ref int iIndex ) {
-            if( oWord == null )
-                return true;
-
             while( iIndex < oWord.Offset + oWord.Length ) {
                 if( iIndex >= _rgClusters.Count )
                     return true;
-                // We only fail if the index is non-zero. That'll wrap us around and
-                // then our index will be zero where we always put at least one word up.
-                if( iAdvance + _rgClusters[iIndex].AdvanceOffsEm > iDisplayWidth && iIndex != 0 )
+
+                PgCluster oCluster = _rgClusters[iIndex];
+
+                // Put at least ONE character on a line when advance is zero.
+                if( oCluster.IsVisible && iAdvance + oCluster.AdvanceOffsEm > iDisplayWidth && iAdvance > 0 )
                     return false;
 
-                _rgClusters[iIndex].Segment       = _iWrapCount;
-                _rgClusters[iIndex].AdvanceLeftEm = iAdvance;
-
-                iAdvance += _rgClusters[iIndex].AdvanceOffsEm;
+                iAdvance = oCluster.Increment( iAdvance, _iWrapCount );
                 ++iIndex;
             }
             return true;
         }
 
-        /// <summary>
-        /// We can use any rules to generate the formatting collection BUT the range's 
-        /// must be in order.
-        /// </summary>
-		/// <remarks>This algorithm can break up long words. If a long word is encountered,
-        /// it is reset to the left and wrapped continuiously from that point on.</remarks>
-        /// <param name="iDisplayWidth">At present constant for whole paragraph, but if we wanted
-        /// interesting text effects like wrap around objects this might be variable on a
-        /// per line basis.</param>
-        /// <remarks>TODO: Our line breaking is limited by the word breaks. That's not as good
-        /// as spacing, since periods are getting placed on a new line. I'll probably go
-        /// back to a word break; parser. But not yet.</remarks>
-        public virtual void WrapSegmentsCreateOld( int iDisplayWidth ) {
-            if( _rgClusters.Count < 1 )
-                return;
-
-            iDisplayWidth <<= 6;
-
-            if( iDisplayWidth <= 0 )
-                return;
-
-            IEnumerator<IColorRange> eWords   = GetEnumerator();
-			int                      iAdvance = 0;
-
-			try {
-                _iWrapCount = 0;
-                eWords.MoveNext();
-
-                int iIndex = 0; // It's possible for one word to span many lines.
-                while( true ) {
-                    int iWordCount = 0;
-                    while( true ) { 
-                        if( LoadWord(  eWords.Current, iDisplayWidth, ref iAdvance, ref iIndex ) ) {
-                            if( !eWords.MoveNext() ) {
-                                ++_iWrapCount;
-                                return;
-                            }
-                            iWordCount++;
-                        } else {
-                            // If there are already words on the line, Reset the index and 
-                            // re-write current word out on the next line.
-                            if( iWordCount > 1 )
-                                iIndex =  eWords.Current.Offset;
-                            break;
-                        }
-                    }
-                    iAdvance = 0;
-                    ++_iWrapCount;
-                    if( _iWrapCount > 1000 )
-                        throw new ApplicationException( "Just stop at some arbitrary 'too big' value." );
-                }
-			} catch( Exception oEx ) {
-				Type[] rgError = { typeof( IndexOutOfRangeException ),
-					               typeof( ArgumentOutOfRangeException ),
-								   typeof( NullReferenceException ),
-                                   typeof( InvalidCastException ),
-                                   typeof( ApplicationException ) };
-				if( rgError.IsUnhandled( oEx ))
-					throw;
-			}
-        } // end method
-
         public virtual void WrapSegmentsCreate( int iDisplayWidth ) {
-            if( _rgClusters.Count < 1 )
-                return;
-
+            int iAdvance  = 0;
             iDisplayWidth <<= 6;
-
-            _iWrapCount = 0;
-            int iAdvance   = 0;
-            int iBreak     = 1;
+            _iWrapCount   = 0;
 
             try {
-                for( int iCluster = 0; iCluster < _rgClusters.Count; ++iCluster ) {
-                    PgCluster oCluster = _rgClusters[iCluster];
-                    if( Rune.IsWhiteSpace( (Rune)_rgGlyphs[oCluster.Glyphs.Offset].CodePoint ) ) 
-                        iBreak = iCluster;
-
-                    if( iAdvance + oCluster.AdvanceOffsEm > iDisplayWidth && iCluster - iBreak > 0 ) {
-                        _iWrapCount++;
+				foreach( IPgWordRange oRange in Words ) {
+                    int iIndex = oRange.Offset;
+                    int iPass  = _iWrapCount;
+                    while( !LoadWord( oRange, iDisplayWidth, ref iAdvance, ref iIndex ) ) {
+                        if( iPass == _iWrapCount )  // Only Move the start of the word to the next line when it wraps the first time!!
+                            iIndex = oRange.Offset;
                         iAdvance = 0;
-                        for( int iSub = iBreak + 1; iSub < iCluster; ++iSub ) {
-                            iAdvance = _rgClusters[iSub].Increment( iAdvance, _iWrapCount );
-                        }
-                        iBreak = iCluster;
+                        _iWrapCount++;
                     }
-
-                    iAdvance = oCluster.Increment( iAdvance, _iWrapCount );
                 }
-                //_rgWrapSegment.Add( _rgClusters.Count );
             } catch( Exception oEx ) {
                 Type[] rgError = { typeof( IndexOutOfRangeException ),
                                    typeof( ArgumentOutOfRangeException ),

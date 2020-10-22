@@ -6,28 +6,11 @@ using System.Windows.Forms;
 //using System.Web.MimeMapping;  BCL in .NET Framework 4.5. Need to find this.
 
 using Play.Interfaces.Embedding;
+using Play.Parse.Impl;
 
 namespace Play.Edit {
 	[Obsolete( "You can use linq now." )]
     public static class MyExtensions {
-		//public static bool Contains( this Type[] rgList, Type oFind ) {
-		//    foreach( Type oType in rgList ) {
-		//        if( oType == oFind ) {
-		//            return( true );
-		//        }
-		//    }
-		//    return( false );
-		//}
-
-		//public static bool Contains( this string[] rgList, string oFind ) {
-		//	foreach( string oType in rgList ) {
-		//		if( string.Compare( oType, oFind ) == 0 ) {
-		//			return( true );
-		//		}
-		//	}
-		//	return( false );
-		//}
-
 		public static bool Find(this bool[] rgList, bool fContinue, out int iIndex ) {
 			if( fContinue ) {
 				for( iIndex=0; iIndex< rgList.Length; ++iIndex ) {
@@ -69,7 +52,7 @@ namespace Play.Edit {
 
         public virtual FILESTATS FileStatus { get { return( FILESTATS.UNKNOWN ); } }
 
-		public virtual void WordBreak( UniscribeCache oCache ) {}
+        public virtual void WordBreak( Line oLine, ICollection<IPgWordRange> rgWords ) { }
     }
 
     static class HRESULT {

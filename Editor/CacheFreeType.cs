@@ -128,6 +128,8 @@ namespace Play.Edit {
         protected readonly List<PgCluster> _rgClusters   = new List<PgCluster>(100); // Single unit representing a character.
         protected readonly List<int>       _rgClusterMap = new List<int      >(100); // Cluster map from UTF to Cluster.
 
+        public List<IPgWordRange> Words { get; } = new List<IPgWordRange>();
+
         public FTCacheLine( Line oLine ) {
             Line = oLine ?? throw new ArgumentNullException();
         }
@@ -341,6 +343,7 @@ namespace Play.Edit {
 
                     oCluster.Glyphs.Length++; 
                     oCluster.Coordinates   = _rgGlyphs[iGlyphIndex].Coordinates;
+                    oCluster.IsVisible     = !Rune.IsWhiteSpace( (Rune)_rgGlyphs[iGlyphIndex].CodePoint );
                     oCluster.AdvanceLeftEm = iEmAdvanceAbs; 
                     iEmAdvanceAbs += oCluster.AdvanceOffsEm;
 
@@ -507,28 +510,26 @@ namespace Play.Edit {
             using( SKPaint skPaint = new SKPaint() ) {
                 skPaint.FilterQuality = SKFilterQuality.High;
 
-                try {
+                try { // Draw all glyphs so whitespace is properly colored when selected.
 			        foreach( PgCluster oCluster in _rgClusters ) {
-                        if( oCluster.IsVisible ) {
-                            int iYDiff = FontHeight * oCluster.Segment;
+                        int iYDiff = FontHeight * oCluster.Segment;
 
-                            float flX = pntLowerLeft.X + (float)(oCluster.AdvanceLeftEm >> 6); 
-                            float flY = pntLowerLeft.Y + iYDiff - oCluster.Coordinates.top;
+                        float flX = pntLowerLeft.X + (float)(oCluster.AdvanceLeftEm >> 6); 
+                        float flY = pntLowerLeft.Y + iYDiff - oCluster.Coordinates.top;
 
-                            // Only draw if we need to override the last painted bg color.
-                            if( oCluster.ColorIndex < 0 ) {
-                                skPaint.Color = oStdUI.ColorsStandardAt( StdUIColors.BGSelectedFocus );
-                                DrawGlyphBack( skCanvas, skPaint, flX, pntLowerLeft.Y + iYDiff, oCluster );
-                            }
-
-                            // Negative numbers can be hyper links too need to work that out. 
-                            skPaint.Color = oCluster.ColorIndex < 0 ? oStdUI.ColorsStandardAt( StdUIColors.TextSelected ) : 
-                                                                      oStdUI.ColorsText[ oCluster.ColorIndex ];
-
-                            //foreach( int iGlyph in oCluster ) {
-                                DrawGlyph( skCanvas, skPaint, flX, flY, _rgGlyphs[oCluster.Glyphs.Offset] );
-                            //}
+                        // Only draw if we need to override the last painted bg color.
+                        if( oCluster.ColorIndex < 0 ) {
+                            skPaint.Color = oStdUI.ColorsStandardAt( StdUIColors.BGSelectedFocus );
+                            DrawGlyphBack( skCanvas, skPaint, flX, pntLowerLeft.Y + iYDiff, oCluster );
                         }
+
+                        // Negative numbers can be hyper links too need to work that out. 
+                        skPaint.Color = oCluster.ColorIndex < 0 ? oStdUI.ColorsStandardAt( StdUIColors.TextSelected ) : 
+                                                                    oStdUI.ColorsText[ oCluster.ColorIndex ];
+
+                        //foreach( int iGlyph in oCluster ) {
+                            DrawGlyph( skCanvas, skPaint, flX, flY, _rgGlyphs[oCluster.Glyphs.Offset] );
+                        //}
                     } // end foreach
                 } catch( Exception oEx ) {
                     Type[] rgErrors = { typeof( ArgumentOutOfRangeException ),

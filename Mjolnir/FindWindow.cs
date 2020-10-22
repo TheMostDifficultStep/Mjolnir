@@ -480,7 +480,7 @@ namespace Mjolnir {
                         Line oNew = oSearchManip.LineAppend( oMatchBuilder.ToString() ); 
                         oMatchBuilder.Length = 0;
                         if( oNew != null ) {
-							_oDoc_SearchResults.WordBreak( oNew, oNew.Formatting );
+							//_oDoc_SearchResults.WordBreak( oNew, oNew.Formatting );
                             if( strFormat == "Location" ) {
                                 oNew.Formatting.Add( new ColorRange( iPreamble + iDiff, oRange.Length, _oWinMain.GetColorIndex( "red" ) ) );
                             }

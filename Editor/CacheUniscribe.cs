@@ -547,13 +547,13 @@ namespace Play.Edit {
         protected int               _iTop = 0;
         protected bool              _fNeedsUpdate = true;
 
-                  readonly ICollection<IColorRange>  _rgWords        = new List<IColorRange>( 1 ); // Mixed use with Line formatting objects so need IColorRange, vs IPgMemoryRange
+                  readonly ICollection<IPgWordRange> _rgWords        = new List<IPgWordRange>( 1 ); // Mixed use with Line formatting objects so need IColorRange, vs IPgMemoryRange
         protected readonly ICollection<IColorRange>  _rgSlicedColor  = new List<IColorRange>(); // Segmented Color info.
 
         public UniscribeCache( Line oLine ) {
             _oLine = oLine ?? throw new ArgumentNullException();
 
-            _rgWords.Add( new ColorRange( 0, int.MaxValue, 0 ) );
+            _rgWords.Add( new WordRange( 0, int.MaxValue, 0 ) );
         }
 
         /// <summary>
@@ -631,7 +631,7 @@ namespace Play.Edit {
         /// <summary>
         /// Line breaker formatting.
         /// </summary>
-        public virtual ICollection<IColorRange> Words {
+        public virtual ICollection<IPgWordRange> Words {
             get {
                 return( _rgWords );
             }

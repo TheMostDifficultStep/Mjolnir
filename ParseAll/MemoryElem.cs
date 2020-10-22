@@ -30,7 +30,6 @@ namespace Play.Parse.Impl
     /// Move to Play.Parse
     /// </summary>
     public interface IPgWordRange : IColorRange {
-        //void Summate(int iCumulativeCount);
         bool   IsWord    { get; }
         bool   IsTerm    { get; }
         string StateName { get; }

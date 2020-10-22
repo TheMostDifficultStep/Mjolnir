@@ -287,10 +287,9 @@ namespace Play.Edit {
             }
         }
 
-		public void WordBreak( Line oLine, ICollection<IColorRange> rgWords ) {
-			// BUG: Right now _oParseWords can be null, but I'd like to get rid of that possibility soon.
-			if( _oParseWords != null )
-				_oParseWords.Parse( oLine.GetStream(), rgWords );
+		public void WordBreak( Line oLine, ICollection<IPgWordRange> rgWords ) {
+            if( _oParseWords != null )
+			    _oParseWords.Parse( oLine.GetStream(), rgWords );
 			oLine.WordCount = rgWords.Count;
 		}
 

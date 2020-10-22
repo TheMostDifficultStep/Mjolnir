@@ -3,21 +3,15 @@ using System.Collections.Generic;
 using System.Linq;
 
 using Play.Interfaces.Embedding;
+using Play.Parse.Impl;
 
 namespace Play.Edit {
 	public partial class EditWin {
-		/// <summary>
-		/// There is only one Cache manager slot per edit window.
-		/// </summary>
 		class CacheManSlot : CacheManagerAbstractSite {
 			readonly EditWin _oHost;
 
 			public CacheManSlot( EditWin oHost ) {
 				_oHost = oHost ?? throw new ArgumentNullException( "Cache Manager needs a Edit Window as host." );
-			}
-
-			public override void WordBreak(UniscribeCache oCache) {
-				_oHost.WordBreak( oCache.Line, oCache.Words );
 			}
 
 			public override bool IsWrapped( int iLine ) {
@@ -147,7 +141,11 @@ namespace Play.Edit {
 				// if the index is a hit first and return null if not!!
 				return( _oHost._oDocument.GetLine( iLineAt ) );
 			}
-		} // end class CacheSite
+
+			public override void WordBreak( Line oLine, ICollection<IPgWordRange> rgWords ) {
+				_oHost.WordBreak( oLine, rgWords );
+			}
+		} // end class CacheManSlot
 	}
 
 	public partial class EditWindow2 {
@@ -159,10 +157,6 @@ namespace Play.Edit {
 
 			public CacheManSlot( EditWindow2 oHost ) {
 				_oHost = oHost ?? throw new ArgumentNullException( "Cache Manager needs a Edit Window as host." );
-			}
-
-			public override void WordBreak(UniscribeCache oCache) {
-				throw new NotImplementedException();
 			}
 
 			public override bool IsWrapped( int iLine ) {
@@ -292,6 +286,11 @@ namespace Play.Edit {
 					return null;
 				}
 			}
+
+			public override void WordBreak( Line oLine, ICollection<IPgWordRange> rgWords ) {
+				_oHost.WordBreak( oLine, rgWords );
+			}
+
 		} // end class
 	}
 

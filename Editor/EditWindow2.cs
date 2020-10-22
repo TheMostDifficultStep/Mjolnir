@@ -1994,7 +1994,7 @@ namespace Play.Edit {
         /// Need to think about this one. I recognize the need for straight up word breaking.
         /// But prsently I simply rely on the main file type parser for all formatting info.
         /// </summary>
-		[Obsolete]public void WordBreak( Line oLine, ICollection< IColorRange > rgWords ) {
+		public void WordBreak( Line oLine, ICollection< IPgWordRange > rgWords ) {
 			_oDocument.WordBreak( oLine, rgWords );
 		}
 

@@ -2018,7 +2018,7 @@ namespace Play.Edit {
             }
         }
 
-		public void WordBreak( Line oLine, ICollection< IColorRange > rgWords ) {
+		public void WordBreak( Line oLine, ICollection< IPgWordRange > rgWords ) {
 			_oDocument.WordBreak( oLine, rgWords );
 		}
 

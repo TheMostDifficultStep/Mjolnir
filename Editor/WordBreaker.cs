@@ -141,15 +141,15 @@ namespace Play.Edit {
 
     /// <summary>
     /// An instance of this object is paired with an editor, so that
-    /// the document can be parsed.
+    /// the document word broken for the viewers.
     /// </summary>
     public class WordBreakerHandler :
         IParseEvents<char>
     {
-        private DataStream<char>         _oStream;
-        private Grammer<char>            _oGrammer;
-        private ParseIterator<char>      _oParseIter;
-        private ICollection<IColorRange> _rgWords;
+        private DataStream<char>          _oStream;
+        private Grammer<char>             _oGrammer;
+        private ParseIterator<char>       _oParseIter;
+        private ICollection<IPgWordRange> _rgWords;
 
         public WordBreakerHandler( Grammer<char> oLanguage ) {
             _oGrammer = oLanguage ?? throw new ArgumentNullException( "Language must not be null" );
@@ -160,7 +160,7 @@ namespace Play.Edit {
         /// </summary>
         /// <param name="oStream">The stream to parse against.</param>
         /// <param name="oStartState">The start state to begin with.</param>
-        public void Parse( DataStream<char> oStream, ICollection<IColorRange> rgWords ) {
+        public void Parse( DataStream<char> oStream, ICollection<IPgWordRange> rgWords ) {
             try {
                 _rgWords = rgWords;
                 _oStream = oStream;
@@ -173,10 +173,10 @@ namespace Play.Edit {
                     _rgWords.Clear();
 
                     while( _oParseIter.MoveNext() );
-
-                    _rgWords = null; // Just clear our reference. We were filling the collection for someone else.
                 }
             } catch( NullReferenceException ) {
+            } finally {
+                _rgWords = null; // Just clear our reference. We were filling the collection for someone else.
             }
         }
 
@@ -186,13 +186,10 @@ namespace Play.Edit {
         /// <param name="p_oTerm">The element that has been matched.</param>
         /// <param name="p_lStart">Stream position.</param>
         /// <param name="p_lLength">Length of the match.</param>
-        void IParseEvents<char>.OnMatch( ProdBase<char> p_oElem, int p_iStart, int p_iLength ) {
-            if( p_oElem.ID == "w" ) {
-                IColorRange oRange = p_oElem as IColorRange;
-
-                oRange.Offset = p_iStart; // This works since we are only breaking a single line.
-
-                _rgWords.Add( oRange );
+        void IParseEvents<char>.OnMatch( ProdBase<char> oElem, int iStart, int iLength ) {
+            // We'll re-use these later.
+            if( oElem.IsTerm ) {
+                _rgWords.Add(new WordRange(iStart, iLength, 0 ));
             }
         } 
 

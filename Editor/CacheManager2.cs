@@ -8,6 +8,7 @@ using SkiaSharp;
 
 using Play.Interfaces.Embedding;
 using Play.Rectangles;
+using Play.Parse.Impl;
 
 namespace Play.Edit {
     public class CacheBase2 :
@@ -339,6 +340,7 @@ namespace Play.Edit {
 			try {
 				oElem.Update( Font );
                 oElem.OnChangeFormatting( _oSite.Selections );
+                _oSite.WordBreak( oElem.Line, oElem.Words );
                 oElem.OnChangeSize( this.Width );
 			} catch( Exception oEx ) {
 				Type[] rgErrors = { typeof( NullReferenceException ),

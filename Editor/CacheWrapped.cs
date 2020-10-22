@@ -82,7 +82,7 @@ namespace Play.Edit {
     {
         // Wrapping info.
         readonly List<WrapSegment> _rgWrapSegment  = new List<WrapSegment>(); // same size as number of wrapped lines. Value to subtract from AdvanceAbs
-        readonly List<IColorRange> _rgWordBreaking = new List<IColorRange>(); // Word breaking info.
+        readonly List<IPgWordRange> _rgWordBreaking = new List<IPgWordRange>(); // Word breaking info.
 		protected int[]            _rgWrapOffsets; // Given the glyph index, report what line segment it belongs on!
 
         public CacheWrapped( Line oLine ) : base( oLine ) 
@@ -100,7 +100,7 @@ namespace Play.Edit {
             }
         }
 
-        public override ICollection<IColorRange> Words {
+        public override ICollection<IPgWordRange> Words {
             get {
                 return( _rgWordBreaking );
             }
