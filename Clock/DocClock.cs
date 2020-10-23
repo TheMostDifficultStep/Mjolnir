@@ -82,7 +82,7 @@ namespace Clock {
         public bool   IsDirty  => false;
 
         public bool InitNew() {
-            _rgLayout.Add(new LayoutText2  ( null, LayoutRect.CSS.Percent, 40 ) ); // time
+            _rgLayout.Add(new LayoutText2  ( null, LayoutRect.CSS.Percent, 40, 0 ) ); // time
             _rgLayout.Add(new LayoutControl( null, LayoutRect.CSS.Percent, 60 ) ); // zones.
 
             return true;
