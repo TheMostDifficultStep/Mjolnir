@@ -338,9 +338,10 @@ namespace Play.Edit {
         /// an update might not be wise.</remarks>
         protected void ElemUpdate( FTCacheLine oElem ) {
 			try {
+                _oSite.WordBreak( oElem.Line, oElem.Words );
+
 				oElem.Update( Font );
                 oElem.OnChangeFormatting( _oSite.Selections );
-                _oSite.WordBreak( oElem.Line, oElem.Words );
                 oElem.OnChangeSize( this.Width );
 			} catch( Exception oEx ) {
 				Type[] rgErrors = { typeof( NullReferenceException ),

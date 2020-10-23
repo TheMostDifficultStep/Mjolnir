@@ -236,9 +236,10 @@ namespace Play.ImageViewer {
         public void OnTextParsed() {
             using( IPgFontRender oFR = _oStdUI.FontRendererAt( _uiStdText ) ) {
                 foreach( FTCacheLine oCache in _oTextCache ) {
+                    Document.FileList.WordBreak(oCache.Line, oCache.Words); // BUG: Need to see why not see text on first boot.
+
                     oCache.Update( oFR );
                     oCache.OnChangeFormatting( null );
-                    Document.FileList.WordBreak(oCache.Line, oCache.Words); // BUG: Need to see why not see text on first boot.
                     oCache.OnChangeSize( _iImgHeight - 16 ); // BUG remove hard coded deal.
                 }
             }

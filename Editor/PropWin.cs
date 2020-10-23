@@ -53,11 +53,13 @@ namespace Play.Edit {
 
 	public class LayoutText2 : LayoutRect {
 		public FTCacheLine Cache { get; }
+		public int         ColumnIndex { get; }
 
-		public LayoutText2( FTCacheLine oCache, LayoutRect.CSS eUnits, uint uiTrack ) :
+		public LayoutText2( FTCacheLine oCache, LayoutRect.CSS eUnits, uint uiTrack, int iCol ) :
 			base( eUnits, uiTrack, 1 ) 
 		{
 			Cache = oCache ?? throw new ArgumentNullException();
+			ColumnIndex = iCol;
 		}
 
 		public override uint TrackDesired(AXIS eParentAxis, int uiRail) {
@@ -76,8 +78,7 @@ namespace Play.Edit {
 			return (uint)iValue;
 		}
 
-        public void Paint( SKCanvas skCanvas, IPgStandardUI2 oStdUI ) 
-		{
+        public void Paint( SKCanvas skCanvas, IPgStandardUI2 oStdUI ) {
             if( !Hidden ) { 
 				Cache.Render( skCanvas, oStdUI, new PointF( Left, Top ) );
             }
@@ -142,9 +143,9 @@ namespace Play.Edit {
 			foreach( PropertyItem oProperty in _oDocument ) {
 				List<LayoutRect> rgRow = new List<LayoutRect>(2);
 
-				LayoutText2 oName   = new LayoutText2( new FTCacheWrap( oProperty.Name  ), LayoutRect.CSS.Flex, 1 );
-				LayoutText2 oValue  = new LayoutText2( new FTCacheWrap( oProperty.Value ), LayoutRect.CSS.Flex, 1 );
-				LayoutText2 oSpacer = new LayoutText2( oDash,                              LayoutRect.CSS.Flex, 1 );
+				LayoutText2 oName   = new LayoutText2( new FTCacheWrap( oProperty.Name  ), LayoutRect.CSS.Flex, 1, 0 );
+				LayoutText2 oValue  = new LayoutText2( new FTCacheWrap( oProperty.Value ), LayoutRect.CSS.Flex, 1, 2 );
+				LayoutText2 oSpacer = new LayoutText2( oDash,                              LayoutRect.CSS.Flex, 1, 1 );
 
                 // Load the text cache up so we can measure the text
 				_rgCache.Add( oName );
@@ -226,7 +227,9 @@ namespace Play.Edit {
 				foreach( LayoutText2 oCell in _rgCache ) {
 					// BUG: Got to figure out where I can init the static items once.
 					if( oCell.Cache.IsInvalid ) {
+						// TODO: Parse the cell.
 						oCell.Cache.Update( oFR );
+						oCell.Cache.OnChangeSize( int.MaxValue );
 					}
 				}
 			}
@@ -247,8 +250,12 @@ namespace Play.Edit {
 					skPaint.Color = _oStdUI.ColorsStandardAt( StdUIColors.BGReadOnly );
 
 					e.Surface.Canvas.DrawRect( new SKRect( 0, 0, this.Width, this.Height ), skPaint );
+
+					//List<SKColor> rgColors = new List<SKColor>(3) { SKColors.Red, SKColors.White, SKColors.Blue };
 				
 					foreach( LayoutText2 oCell in _rgCache ) {
+						//skPaint.Color = rgColors[oCell.ColumnIndex];
+						//e.Surface.Canvas.DrawRect( oCell.SKRect, skPaint );
 						oCell.Cache.Render( e.Surface.Canvas, _oStdUI, new PointF( oCell.Left, oCell.Top ) );
 					}
 				}

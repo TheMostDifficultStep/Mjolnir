@@ -326,8 +326,10 @@ namespace Play.Edit {
         /// 0x2695 staff of aesculapius. (cp 0x2695)
         /// 0xfe0f variation selector-16 (cp 0xfe0f) emoji with color.
         /// </summary>
-        public void Update( IPgFontRender oFR )
-        {
+        /// <remarks>After 30 years it occurs to me that I'm setting advance offsets here,
+        /// AND in WrapSegmentsCreate() I need to resolve that!!</remarks>
+        /// <seealso cref="FTCacheWrap.WrapSegmentsCreate"/>
+        public void Update( IPgFontRender oFR ) {
             if( oFR == null )
                 throw new ArgumentNullException();
 
@@ -347,8 +349,8 @@ namespace Play.Edit {
                     oCluster.Glyphs.Length++; 
                     oCluster.Coordinates   = _rgGlyphs[iGlyphIndex].Coordinates;
                     oCluster.IsVisible     = !Rune.IsWhiteSpace( (Rune)_rgGlyphs[iGlyphIndex].CodePoint );
-                    oCluster.AdvanceLeftEm = iEmAdvanceAbs; 
-                    iEmAdvanceAbs += oCluster.AdvanceOffsEm;
+                    //oCluster.AdvanceLeftEm = iEmAdvanceAbs; 
+                    //iEmAdvanceAbs += oCluster.AdvanceOffsEm;
 
                     if( ++iGlyphIndex >= _rgGlyphs.Count )
                         break;
@@ -390,11 +392,30 @@ namespace Play.Edit {
         } // end method
 
         /// <summary>
-        /// Place holder for word wrapping implementation.
+        /// In the no word wrap case, the segment is 0 for all characters. This
+        /// just needs to be called around the Update time, and is not needed
+        /// for resize.
+        /// </summary>
+        /// <remarks>We don't need to set the last EOL character since when
+        /// enumerating the clusters we get it unlike when we use the
+        /// parser.</remarks>
+        /// <param name="iDisplayWidth"></param>
+        /// <seealso cref="Update"/>
+        /// <seealso cref="OnChangeSize"/>
+        public virtual void WrapSegmentsCreate( int iDisplayWidth ) {
+            int iAdvance = 0;
+
+            for( int iCluster = 0; iCluster < _rgClusters.Count; ++iCluster ) {
+                iAdvance = _rgClusters[iCluster].Increment( iAdvance, 0 );
+            }
+        }
+
+        /// <summary>
+        /// Since we don't word wrap, just use max int for the width.
         /// </summary>
         /// <param name="iDisplayWidth">Width in "pixels" of the view</param>
-        /// <param name="oFormatting">Formatting information.</param>
         public virtual void OnChangeSize( int iWidth ) {
+            WrapSegmentsCreate( int.MaxValue );
         }
 
         /// <summary>

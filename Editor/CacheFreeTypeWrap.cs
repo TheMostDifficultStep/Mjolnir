@@ -227,7 +227,16 @@ namespace Play.Edit {
             return true;
         }
 
-        public virtual void WrapSegmentsCreate( int iDisplayWidth ) {
+        public override void WrapSegmentsCreate( int iDisplayWidth ) {
+            if( _rgClusters.Count < 1 )
+                return;
+
+            // We could actually just wrap without word info, look into that later.
+            if( Words.Count == 0 ) {
+                base.WrapSegmentsCreate( iDisplayWidth );
+                return;
+            }
+
             int iAdvance  = 0;
             iDisplayWidth <<= 6;
             _iWrapCount   = 0;
@@ -254,9 +263,7 @@ namespace Play.Edit {
                 if( rgError.IsUnhandled(oEx) )
                     throw;
 
-                for( int iCluster = 0; iCluster < _rgClusters.Count; ++iCluster ) {
-                    iAdvance = _rgClusters[iCluster].Increment( iAdvance, 0 );
-                }
+                base.WrapSegmentsCreate( iDisplayWidth );
             }
         }
     } // end class
