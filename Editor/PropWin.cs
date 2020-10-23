@@ -62,11 +62,16 @@ namespace Play.Edit {
 			ColumnIndex = iCol;
 		}
 
+		/// <summary>
+		/// I need to rethink the implementation of this.
+		/// </summary>
+		/// <param name="eParentAxis"></param>
+		/// <param name="uiRail"></param>
 		public override uint TrackDesired(AXIS eParentAxis, int uiRail) {
 			int iValue = 0;
             
             if( eParentAxis == AXIS.HORIZ ) {
-                iValue = Cache.UnwrappedWidth;
+                iValue = Cache.UnwrappedWidth; 
 			} else {
  				Cache.OnChangeSize( uiRail );
 				iValue = Cache.Height;

@@ -169,6 +169,7 @@ namespace Play.Edit {
 
         /// <summary>
         /// Total width of the line UNWRAPPED. 
+        /// BUG: Let's cache the max size at some point.
         /// </summary>
         public int UnwrappedWidth { 
             get { 
