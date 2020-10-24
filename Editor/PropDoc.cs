@@ -182,9 +182,16 @@ namespace Play.Edit {
 		public IPgParent Parentage => _oSiteBase.Host;
 		public IPgParent Services  => Parentage.Services;
 
+		public WordBreakerHandler ParseWords { get; } // A basic word breaker/counter for wrapped views.
+
 		public PropDoc( IPgBaseSite oSiteBase ) {
 			_oSiteBase = oSiteBase ?? throw new ArgumentNullException();
 
+			Grammer<char> oLineBreakerGrammar = LineBreakerGrammar;
+			if( oLineBreakerGrammar != null ) {
+				ParseWords = new WordBreakerHandler( LineBreakerGrammar );
+			}
+			
 			try {
 				_oTextGrammar = (Grammer<char>)((IPgGrammers)Services).GetGrammer( "text" );
 			} catch ( Exception oEx ) {
@@ -215,6 +222,30 @@ namespace Play.Edit {
 			foreach( IPgPropertyChanges oEvent in _rgChangeEvents ) {
 				oEvent.OnPropertiesClear();
 			}
+		}
+
+        public virtual Grammer<char> LineBreakerGrammar {
+            get {
+				try {
+					IPgGrammers oGrammars = Services as IPgGrammers;
+					return( oGrammars.GetGrammer("line_breaker") as Grammer<char> ); 
+				} catch( Exception oEx ) {
+					Type[] rgErrors = { typeof( NullReferenceException ),
+										typeof( InvalidCastException ),
+										typeof( FileNotFoundException ),
+										typeof( GrammerNotFoundException ) };
+					if( rgErrors.IsUnhandled( oEx ))
+						throw;
+
+					return( null );
+				}
+            }
+        }
+
+		public void WordBreak( Line oLine, ICollection<IPgWordRange> rgWords ) {
+            if( ParseWords != null )
+			    ParseWords.Parse( oLine.GetStream(), rgWords );
+			oLine.WordCount = rgWords.Count;
 		}
 
 		/// <summary>

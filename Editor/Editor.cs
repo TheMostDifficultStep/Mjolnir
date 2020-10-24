@@ -279,7 +279,7 @@ namespace Play.Edit {
 					Type[] rgErrors = { typeof( NullReferenceException ),
 										typeof( InvalidCastException ),
 										typeof( FileNotFoundException ) };
-					if( !rgErrors.Contains( oEx.GetType() ))
+					if( rgErrors.IsUnhandled( oEx ))
 						throw;
 
 					return( null );

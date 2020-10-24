@@ -71,7 +71,7 @@ namespace Play.Edit {
 			int iValue = 0;
             
             if( eParentAxis == AXIS.HORIZ ) {
-                iValue = Cache.UnwrappedWidth; 
+                iValue = Cache.UnwrappedWidth + 10; // BUG: need to add a bit, else it wraps.
 			} else {
  				Cache.OnChangeSize( uiRail );
 				iValue = Cache.Height;
@@ -98,9 +98,9 @@ namespace Play.Edit {
 		IPgLoad,
 		IPgPropertyChanges
 	{
-		readonly IPgViewSite   _oSiteView;
-		readonly PropDoc       _oDocument;
-		readonly SmartTable    _oTable = new SmartTable( 20, LayoutRect.CSS.None ); // Add some slop. Not measuring well...
+		readonly IPgViewSite    _oSiteView;
+		readonly PropDoc        _oDocument;
+		readonly SmartTable     _oTable = new SmartTable( 5, LayoutRect.CSS.None ); // Add some slop. Not measuring well...
 		readonly IPgStandardUI2 _oStdUI;
 		readonly int            _iActiveColumn = 2; // Only one column of our text ever changes.
 
@@ -114,8 +114,7 @@ namespace Play.Edit {
  			_oStdUI    = oSiteView.Host.Services as IPgStandardUI2 ?? throw new ArgumentException( "Parent view must provide IPgStandardUI service" );
 		}
 
-		protected override void Dispose( bool fDisposing ) 
-		{
+		protected override void Dispose( bool fDisposing ) {
 			if( fDisposing ) {
 				_oDocument.ListenerRemove( this );
 			}
@@ -232,9 +231,9 @@ namespace Play.Edit {
 				foreach( LayoutText2 oCell in _rgCache ) {
 					// BUG: Got to figure out where I can init the static items once.
 					if( oCell.Cache.IsInvalid ) {
-						// TODO: Parse the cell.
+						_oDocument.WordBreak( oCell.Cache.Line, oCell.Cache.Words );
 						oCell.Cache.Update( oFR );
-						oCell.Cache.OnChangeSize( int.MaxValue );
+						oCell.Cache.OnChangeSize( int.MaxValue >> 6 ); // BUG: Ugly hack alert!!
 					}
 				}
 			}
