@@ -695,6 +695,7 @@ namespace Play.ImageViewer {
 
             Next( 0 );
 
+            _oSiteWorkThumb.Queue( ThumbsCreateEnum( new SKSize(100, 100)), 0 );
             _oSiteWorkParse.Queue( CreateParseWorker(), 0 );
 
             return( true );
