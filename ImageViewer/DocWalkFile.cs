@@ -1009,14 +1009,15 @@ namespace Play.ImageViewer {
                 return false;
             }
             try {
-                FileInfo oFile    = new FileInfo( CurrentFullPath );
-                FileLine oFileNew = _oDisplayLine as FileLine;
-				FileLine oFileOld = _oLineOld     as FileLine;
+				FileLine oFileOld = _oLineOld as FileLine;
 
-                oFileNew._dtModifiedDate = oFile.LastWriteTime;
-                oFileNew._lFileSize      = oFile.Length;
+				if( !fSendImageUpdate && !FileLine.IsNullOrEmpty( oFileOld ) ) {
+                    FileLine oFileNew = _oDisplayLine as FileLine;
+                    FileInfo oFile    = new FileInfo( CurrentFullPath );
 
-				if( !fSendImageUpdate ) {
+                    oFileNew._dtModifiedDate = oFile.LastWriteTime;
+                    oFileNew._lFileSize      = oFile.Length;
+
 					if( DateTime.Compare( oFileNew._dtModifiedDate, oFileOld._dtModifiedDate ) == 0 &&
 						oFileNew._lFileSize == oFileOld._lFileSize &&
 						Bitmap != null ) {
@@ -1053,13 +1054,12 @@ namespace Play.ImageViewer {
                 p_iDir = -1;
 
             // Note: When we're showing directories. They're never really empty since the ".." element is always present!
-            if( FileList.ElementCount <= 0 ||
-                Line.IsNullOrEmpty( _oDisplayLine ) ) 
-            { 
+            if( FileList.ElementCount <= 0 ) { 
                 return( new FileLine(0, string.Empty) );
             }
 
-			int iNext = _oDisplayLine.At;
+			int iNext = Line.IsNullOrEmpty(_oDisplayLine) ? 0 : _oDisplayLine.At;
+
 			for( int i=0; i<FileList.ElementCount; ++i ) {
 				iNext = ( iNext + p_iDir ) % FileList.ElementCount;
 
