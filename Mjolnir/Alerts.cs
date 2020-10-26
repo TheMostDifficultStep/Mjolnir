@@ -25,7 +25,7 @@ namespace Mjolnir {
 			BaseEditor oAlertsDoc = (BaseEditor)oProgram.AlertSlot.Document ?? throw new InvalidOperationException("too soon for alerts");
 
 			Program.ViewSlot oAlertSlot = new Program.ViewSlot( oProgram );
-			oAlertSlot.Guest = _oWin_Alerts = new EditWin( oAlertSlot, oAlertsDoc, true, false );
+			oAlertSlot.Guest = _oWin_Alerts = new EditWindow2( oAlertSlot, oAlertsDoc, true, false );
 
 			if( !oAlertSlot.InitNew() ) {
 				throw new InvalidOperationException( "Coudn't set up Alerts window." );

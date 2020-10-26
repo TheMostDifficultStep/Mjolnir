@@ -304,7 +304,7 @@ namespace Play.ImageViewer {
 			SKCanvas  skCanvas  = skSurface.Canvas;
 
 			using( SKPaint skPaint = new SKPaint() ) {
-				skPaint .Color = SKColors.White;
+				skPaint .Color = _oStdUI.ColorsStandardAt(StdUIColors.BGReadOnly);
 				skCanvas.DrawRect( e.Info.Rect, skPaint );
 
                 try {

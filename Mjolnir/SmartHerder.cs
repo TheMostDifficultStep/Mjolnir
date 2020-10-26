@@ -229,6 +229,12 @@ namespace Mjolnir {
                                                0, 
                                                this.GetScalar(SCALAR.WIDTH) + 1,
                                                this.GetScalar(SCALAR.HEIGHT) + 1);
+                } else {
+                    p_oGraphics.FillRectangle( Brushes.LightGray,
+                                               0,
+                                               0, 
+                                               this.GetScalar(SCALAR.WIDTH) + 1,
+                                               this.GetScalar(SCALAR.HEIGHT) + 1);
                 }
 
                 p_oGraphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;

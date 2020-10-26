@@ -153,7 +153,7 @@ namespace Mjolnir {
 			    _rgStdColors[ (int)StdUIColors.BGSelectedFocus] = new SKColor(  49, 106, 197 ); // BGSelectedFocus, Selected   w/  focus blue.
 			    _rgStdColors[ (int)StdUIColors.BGSelectedBlur]  = new SKColor( 130, 130, 130 ); // BGSelectedBlur,  Selected   w/o focus grey.
 			    _rgStdColors[ (int)StdUIColors.BG]              = new SKColor( 255, 255, 255 ); // BG,              Unselected w/o cursor. (was 244)
-			    _rgStdColors[ (int)StdUIColors.BGReadOnly]      = new SKColor( 220, 220, 220 ); // BGReadOnly,      Some kind of light grey.
+			    _rgStdColors[ (int)StdUIColors.BGReadOnly]      = new SKColor( 240, 240, 240 ); // BGReadOnly,      Some kind of light grey.
 			    _rgStdColors[ (int)StdUIColors.Text]            = new SKColor(   0,   0,   0 ); // Text,            Black.
 			    _rgStdColors[ (int)StdUIColors.TextSelected]    = new SKColor( 255, 255, 255 ); // TextSelected,    White.
 			    _rgStdColors[ (int)StdUIColors.MusicLine]       = new SKColor( 200, 255, 200 ); // MusicLine,       Light green.

@@ -48,6 +48,6 @@ namespace Mjolnir {
 		}
 
 		#endregion
-        private EditWin _oWin_Alerts;
+        private EditWindow2 _oWin_Alerts;
 	}
 }

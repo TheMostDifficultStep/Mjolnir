@@ -487,7 +487,7 @@ namespace Play.ImageViewer {
 
             using SKPaint skPaint = new SKPaint();
 
-            skPaint .Color = _oStdUI.ColorsStandardAt( StdUIColors.BG );
+            skPaint .Color = _oStdUI.ColorsStandardAt( StdUIColors.BGReadOnly );
             skCanvas.DrawRect( e.Info.Rect, skPaint );
 
             foreach( ImageBase oImage in _rgThumbs ) {
