@@ -436,6 +436,9 @@ namespace Play.Edit {
 					// it's place and we end up at the top. 
 					this.ScrollToCaret();
 				}
+                if( xmlRoot.SelectSingleNode("keylock" ) is XmlElement xmlKeyLock ) {
+                    _fReadOnly = bool.Parse( xmlKeyLock.GetAttribute("readonly" ));
+                }
 			} catch( Exception oEx ) {
 				Type[] rgErrors = { typeof( XPathException ),
 									typeof( NullReferenceException ),
@@ -460,6 +463,12 @@ namespace Play.Edit {
             xmlCursor.SetAttribute( "column", CaretPos.Offset.ToString() );
 
             xmlRoot.AppendChild( xmlCursor );
+
+            XmlElement xmlKeyboardLock = xmlRoot.OwnerDocument.CreateElement( "keylock" );
+
+            xmlKeyboardLock.SetAttribute( "readonly", _fReadOnly.ToString() );
+
+            xmlRoot.AppendChild(xmlKeyboardLock);
 
             return true;
         }
@@ -2181,7 +2190,15 @@ namespace Play.Edit {
 				case var r when r == GlobalCommands.Play:
 					PlayMorse();
 					return true;
-				case var r when r == GlobalCommands.Stop:
+                case var r when r == GlobalCommands.ReadWrite:
+                    _fReadOnly = false;
+                    Invalidate();
+                    return true;
+                case var r when r == GlobalCommands.ReadOnly:
+                    _fReadOnly = true;
+                    Invalidate();
+                    return true;
+                case var r when r == GlobalCommands.Stop:
 					if( _oMorse != null ) {
 						_oMorse.Stop();
 						_oMorse = null;

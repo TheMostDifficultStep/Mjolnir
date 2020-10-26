@@ -740,9 +740,8 @@ namespace Play.ImageViewer {
         public TextWinReadOnly( IPgViewSite oBaseSite, ImageViewIcons oViewOwner ) :
 			base( oBaseSite, oViewOwner.Document.FileList )
         {
-            Cursor = Cursors.Hand;
-
-            _fReadOnly    = true;
+            Cursor   = Cursors.Hand;
+            ReadOnly = true;
 
             // We'll still get a line event in the owner view, but it'll be where we already are.
             CaretPos.Line   = oViewOwner.Document.CurrentElement;

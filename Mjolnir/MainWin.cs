@@ -556,11 +556,6 @@ namespace Mjolnir {
             _miViewCreate = new ToolStripMenuItem("View", BitmapCreateFromChar( "\xE187" ), rgSubMenu4.ToArray() );
             oFileMenu.DropDownItems.Add( _miViewCreate );
 
-            List<ToolStripMenuItem> rgSubMenuPlay = new List<ToolStripMenuItem>();
-            rgSubMenuPlay.Add( new ToolStripMenuItem("Sequential",  BitmapCreateFromChar( "\xE149" ), new EventHandler(this.OnDocPlaySeqential)));
-            rgSubMenuPlay.Add( new ToolStripMenuItem("Random",      BitmapCreateFromChar( "\xE14b" ), new EventHandler(this.OnDocPlayRandom   )));
-            oFileMenu.DropDownItems.Add(new ToolStripMenuItem("Play",      BitmapCreateFromChar( "\xE189" ), rgSubMenuPlay.ToArray() ) );
-
             oFileMenu.DropDownItems.Add(new ToolStripSeparator() ); //---
             oFileMenu.DropDownItems.Add(new ToolStripMenuItem("Save",       BitmapCreateFromChar( "\xe105" ), new EventHandler(this.OnDocSave), Keys.Control | Keys.S ));
             oFileMenu.DropDownItems.Add(new ToolStripMenuItem("Save As...", BitmapCreateFromChar( "\xe159" ), new EventHandler(this.OnDocSaveAs)));
@@ -568,12 +563,19 @@ namespace Mjolnir {
           //oFileMenu.DropDownItems.Add(new ToolStripMenuItem("Run",        null, new EventHandler(this.OnRun)));
             oFileMenu.DropDownItems.Add(new ToolStripSeparator() ); //---
 
-            ToolStripMenuItem[] rgSubMenu3 = new ToolStripMenuItem[3];
-            rgSubMenu3[0] = new ToolStripMenuItem("Name",        BitmapCreateFromChar( "\xE132" ), new EventHandler(this.OnFileCopyName));
-            rgSubMenu3[1] = new ToolStripMenuItem("Directory",   BitmapCreateFromChar( "\xE188" ), new EventHandler(this.OnFileCopyDirectory));
-            rgSubMenu3[2] = new ToolStripMenuItem("Path",        BitmapCreateFromChar( "\xE1DA" ), new EventHandler(this.OnFileCopyPath));
+            ToolStripMenuItem[] rgSubMenu3 = new ToolStripMenuItem[3] {
+                new ToolStripMenuItem("Name",        BitmapCreateFromChar( "\xE132" ), new EventHandler(this.OnFileCopyName)),
+                new ToolStripMenuItem("Directory",   BitmapCreateFromChar( "\xE188" ), new EventHandler(this.OnFileCopyDirectory)),
+                new ToolStripMenuItem("Path",        BitmapCreateFromChar( "\xE1DA" ), new EventHandler(this.OnFileCopyPath))
+            };
 
             oFileMenu.DropDownItems.Add(new ToolStripMenuItem("Copy",   BitmapCreateFromChar( "\xE16D" ), rgSubMenu3 ) );
+
+            List<ToolStripMenuItem> rgSubMenuPlay = new List<ToolStripMenuItem>();
+            rgSubMenuPlay.Add(new ToolStripMenuItem("Sequential", BitmapCreateFromChar("\xE149"), new EventHandler(this.OnDocPlaySeqential)));
+            rgSubMenuPlay.Add(new ToolStripMenuItem("Random",     BitmapCreateFromChar("\xE14b"), new EventHandler(this.OnDocPlayRandom)));
+            oFileMenu.DropDownItems.Add(new ToolStripMenuItem("Play", BitmapCreateFromChar("\xE189"), rgSubMenuPlay.ToArray()));
+
             oFileMenu.DropDownItems.Add(new ToolStripSeparator() ); //---
 
             oFileMenu.DropDownItems.Add(new ToolStripMenuItem("Close",  BitmapCreateFromChar( "\xe10a" ), new EventHandler(this.OnFileClose))); // s/b file close, close all views and file!
@@ -586,15 +588,26 @@ namespace Mjolnir {
             oEditMenu.DropDownItems.Add(new ToolStripMenuItem("Copy",  BitmapCreateFromChar( "\xE16D" ), new EventHandler(this.OnEditCopy),  Keys.Control | Keys.C));
             oEditMenu.DropDownItems.Add(new ToolStripMenuItem("Paste", BitmapCreateFromChar( "\xE16C" ), new EventHandler(this.OnEditPaste), Keys.Control | Keys.V));
 
-            ToolStripMenuItem[] rgSubMenu2 = new ToolStripMenuItem[3];
-            rgSubMenu2[0] = new ToolStripMenuItem("Img",    BitmapCreateFromChar( "\xE114" ), new EventHandler(this.OnEditPasteAsImg));
-            rgSubMenu2[1] = new ToolStripMenuItem("Text",   BitmapCreateFromChar( "\xE185" ), new EventHandler(this.OnEditPasteAsText));
-            rgSubMenu2[2] = new ToolStripMenuItem("Base64", BitmapCreateFromChar( "\xE159" ), new EventHandler(this.OnEditPasteAsBase64 ));
+            ToolStripMenuItem[] rgSubMenu2 = new ToolStripMenuItem[3] {
+                new ToolStripMenuItem("Img",    BitmapCreateFromChar( "\xE114" ), new EventHandler(this.OnEditPasteAsImg)),
+                new ToolStripMenuItem("Text",   BitmapCreateFromChar( "\xE185" ), new EventHandler(this.OnEditPasteAsText)),
+                new ToolStripMenuItem("Base64", BitmapCreateFromChar( "\xE159" ), new EventHandler(this.OnEditPasteAsBase64 ))
+            };
 
             oEditMenu.DropDownItems.Add(new ToolStripMenuItem("Paste as",   BitmapCreateFromChar( "\xE16C" ), rgSubMenu2 ) );
             oEditMenu.DropDownItems.Add(new ToolStripSeparator() ); //---
+
             oEditMenu.DropDownItems.Add(new ToolStripMenuItem("Undo",       BitmapCreateFromChar( "\xE10e" ), new EventHandler(this.OnEditUndo),    Keys.Control | Keys.Z ));
             oEditMenu.DropDownItems.Add(new ToolStripMenuItem("Delete",     BitmapCreateFromChar( "\xE107" ), new EventHandler(this.OnEditDelete ), Keys.Delete ) );
+
+            oEditMenu.DropDownItems.Add(new ToolStripSeparator()); //---
+
+            List<ToolStripMenuItem> rgSubMenuLock = new List<ToolStripMenuItem> {
+                new ToolStripMenuItem("Accept", BitmapCreateFromChar( "\xE1f7" ), new EventHandler(this.OnEditUnlock )),
+                new ToolStripMenuItem("Block",  BitmapCreateFromChar( "\xE1f6" ), new EventHandler(this.OnEditLock ))
+            };
+            oEditMenu.DropDownItems.Add(new ToolStripMenuItem("Text", BitmapCreateFromChar("\xE144"), rgSubMenuLock.ToArray()));
+
             oEditMenu.DropDownItems.Add(new ToolStripSeparator() ); //---
             oEditMenu.DropDownItems.Add(new ToolStripMenuItem("Select All", BitmapCreateFromChar( "\xE14e" ), new EventHandler(this.OnEditSelectAll), Keys.Control | Keys.A));
 			oEditMenu.DropDownItems.Add(new ToolStripMenuItem("Select Off", BitmapCreateFromChar( "\x0000" ), new EventHandler(this.OnEditSelectOff), Keys.Control | Keys.D));
@@ -1277,6 +1290,16 @@ namespace Mjolnir {
                 oDataObject.SetData( _oSelectedWinSite.FileName );
                 Clipboard.SetDataObject( oDataObject );                
             }
+        }
+
+        protected void OnEditUnlock( object sender, EventArgs e ) {
+            if (_oSelectedWinSite != null)
+                _oSelectedWinSite.Execute(GlobalCommands.ReadWrite );
+        }
+
+        protected void OnEditLock( object sender, EventArgs e ) {
+            if (_oSelectedWinSite != null)
+                _oSelectedWinSite.Execute(GlobalCommands.ReadOnly );
         }
 
         protected void OnEditCut( object sender, EventArgs e ) {
