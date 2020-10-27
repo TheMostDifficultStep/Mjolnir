@@ -223,6 +223,7 @@ namespace Play.ImageViewer {
         private void OnTextLoaded() {
             ThumbsPopulate();
             ThumbsLayout();
+            ThumbsTextUpdate();
 
             _oTextRect.SetScalar(SET.RIGID, SCALAR.TOP, 0 );
 		    ScrollActiveVisible();
@@ -230,19 +231,17 @@ namespace Play.ImageViewer {
         }
 
         public void OnThumbsUpdated() {
+            // Bug: Maybe Populate and Layout?
+            ThumbsTextUpdate();
             Invalidate();
         }
 
+        /// <summary>
+        /// 10/27/2020: We only need a repaint when the text get's parsed since that'll only
+        /// affect the colorization of the text. We can't yet share Formatting collection
+        /// with the Word collection. I'm liking the robustness of the seperated parses.
+        /// </summary>
         public void OnTextParsed() {
-            using( IPgFontRender oFR = _oStdUI.FontRendererAt( _uiStdText ) ) {
-                foreach( FTCacheLine oCache in _oTextCache ) {
-                    Document.FileList.WordBreak(oCache.Line, oCache.Words); // BUG: Need to see why not see text on first boot.
-
-                    oCache.Update( oFR );
-                    oCache.OnChangeFormatting( null );
-                    oCache.OnChangeSize( _iImgHeight - 16 ); // BUG remove hard coded deal.
-                }
-            }
             Invalidate();
         }
 
@@ -609,6 +608,18 @@ namespace Play.ImageViewer {
 					_oTextCache.Add(oRect.Text);
 				}
 			}
+        }
+
+        protected void ThumbsTextUpdate() {
+            using( IPgFontRender oFR = _oStdUI.FontRendererAt( _uiStdText ) ) {
+                foreach( FTCacheLine oCache in _oTextCache ) {
+                    Document.FileList.WordBreak(oCache.Line, oCache.Words); // BUG: Need to see why not see text on first boot.
+
+                    oCache.Update( oFR );
+                    oCache.OnChangeFormatting( null );
+                    oCache.OnChangeSize( _iImgHeight - 16 ); // BUG remove hard coded deal.
+                }
+            }
         }
 
         /// <remarks>Should use the layout manager instead of this.</remarks>
