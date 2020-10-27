@@ -1144,9 +1144,11 @@ namespace Play.ImageViewer {
                         ImageLoad( strFileName );
                         Raise_TextLoaded   ();
                         Raise_DirtyDoc     ();
-                        Raise_UpdatedThumbs();
+
+                        _oSiteWorkThumb.Queue(ThumbsCreateEnum(new SKSize(100, 100)), 0);
+                        _oSiteWorkParse.Queue(CreateParseWorker(), 0);
                     }
-                    if( oDataObject.GetDataPresent(DataFormats.FileDrop) ) {
+                    if ( oDataObject.GetDataPresent(DataFormats.FileDrop) ) {
                         string[] rgFileDrop = oDataObject.GetData(DataFormats.FileDrop) as string[];
 
                         using( Editor.Manipulator oBulk = new Editor.Manipulator( FileList ) ) {
@@ -1157,7 +1159,9 @@ namespace Play.ImageViewer {
                         ImageLoad( rgFileDrop[0] );
                         Raise_TextLoaded   ();
                         Raise_DirtyDoc     ();
-                        Raise_UpdatedThumbs();
+
+                        _oSiteWorkThumb.Queue(ThumbsCreateEnum(new SKSize(100, 100)), 0);
+                        _oSiteWorkParse.Queue(CreateParseWorker(), 0);
                     }
                 }
             }
