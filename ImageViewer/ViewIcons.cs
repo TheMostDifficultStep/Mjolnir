@@ -116,7 +116,7 @@ namespace Play.ImageViewer {
         protected const int  _iMarginRight = 5;
         protected const int  _iMarginTop   = 5;
         protected const int  _iMarginBot   = 5;
-		protected    SKColor _clrFolder = new SKColor( 244, 244,  48 );
+		protected    SKColor _clrFolder = new SKColor( 245, 220, 125 );
 		protected    SKColor _clrFile   = new SKColor( 182, 255, 237 ); // We'll actually make an icon in the future.
 
         public ImageWalkerDoc Document { get { return _oDocument; }  }
