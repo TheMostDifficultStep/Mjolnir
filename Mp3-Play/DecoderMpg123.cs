@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Text;
+
 ///<summary>
 ///  Copyright (c) Dragonaur
 ///
@@ -41,7 +43,7 @@ namespace Play.Sound {
 	/// </summary>
 	[Obsolete]public unsafe class Mpg123c : IPgReader {
 		[DllImport ("libmpg123-0.dll")] private static extern void *        mpg123_new( char * pcDecoder, ref Mpg123_Errors iErr );
-		[DllImport ("libmpg123-0.dll")] private static extern Mpg123_Errors mpg123_open( void * pMpg, string strFileName );
+		[DllImport ("libmpg123-0.dll")] private static extern Mpg123_Errors mpg123_open( void * pMpg, byte[] rgFileName );
 		[DllImport ("libmpg123-0.dll")] private static extern UInt32        mpg123_outblock( void * pMpg ); // Must use 64 bit lib.
 		[DllImport ("libmpg123-0.dll")] private static extern Mpg123_Errors mpg123_getformat( void * pMpg, ref long lRate, ref int iChannels, ref int iEncoding );
 		[DllImport ("libmpg123-0.dll")] private static extern Mpg123_Errors mpg123_read( void * pMpg, byte * rgBuffer, UInt32 uiBufSize, ref UInt32 uiRead );
@@ -77,8 +79,10 @@ namespace Play.Sound {
 			_pMpg = mpg123_new( null, ref eErr );
 			if( eErr != Mpg123_Errors.MPG123_OK )
 				throw new InvalidOperationException( "Couldn't initialize a new MPG123 decoder. (" + eErr.ToString() + ")" );
+			
+			byte[] rgFileName = Encoding.UTF8.GetBytes( strFileName );
 
-			if(  mpg123_open( _pMpg, strFileName ) != Mpg123_Errors.MPG123_OK )
+			if(  mpg123_open( _pMpg, rgFileName) != Mpg123_Errors.MPG123_OK )
 				throw new FileNotFoundException( "Couldn't open file requested" );
 
 			_rgBuffer = new byte[mpg123_outblock( _pMpg )];
@@ -204,7 +208,7 @@ namespace Play.Sound {
 	/// <summary>This is a reader which reads mp3 files and returns PCM Little Endian order.</summary>
 	public unsafe class Mpg123 : AbstractReader {
 		[DllImport ("libmpg123-0.dll")] private static extern void *        mpg123_new( char * pcDecoder, ref Mpg123_Errors iErr );
-		[DllImport ("libmpg123-0.dll")] private static extern Mpg123_Errors mpg123_open( void * pMpg, string strFileName );
+		[DllImport ("libmpg123-0.dll")] private static extern Mpg123_Errors mpg123_open( void * pMpg, byte[] rgFileName );
 		[DllImport ("libmpg123-0.dll")] private static extern UInt32        mpg123_outblock( void * pMpg ); // Must use 64 bit lib.
 		[DllImport ("libmpg123-0.dll")] private static extern Mpg123_Errors mpg123_getformat( void * pMpg, ref long lRate, ref int iChannels, ref int iEncoding );
 		[DllImport ("libmpg123-0.dll")] private static extern Mpg123_Errors mpg123_read( void * pMpg, byte * rgBuffer, UInt32 uiBufSize, ref UInt32 uiRead );
@@ -235,7 +239,9 @@ namespace Play.Sound {
 			if( eErr != Mpg123_Errors.MPG123_OK )
 				throw new InvalidOperationException( "Couldn't initialize a new MPG123 decoder. (" + eErr.ToString() + ")" );
 
-			if(  mpg123_open( _pMpg, strFileName ) != Mpg123_Errors.MPG123_OK )
+			byte[] rgFileName = Encoding.UTF8.GetBytes(strFileName);
+
+			if (  mpg123_open( _pMpg, rgFileName) != Mpg123_Errors.MPG123_OK )
 				throw new FileNotFoundException( "Couldn't open file requested" );
 
 			_rgBuffer = new byte[mpg123_outblock( _pMpg )];
