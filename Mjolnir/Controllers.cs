@@ -345,7 +345,7 @@ namespace Mjolnir {
         }
 
         public override IDisposable CreateView( IPgViewSite oViewSite, object oDocument, Guid guidViewType ) {
-            return new EditWindow2( oViewSite, (Editor)oDocument );
+            return new EditWindow2( oViewSite, (Editor)oDocument, fReadOnly:true );
         }
     }
 }

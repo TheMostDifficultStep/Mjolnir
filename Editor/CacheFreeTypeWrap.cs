@@ -9,13 +9,13 @@ using Play.Interfaces.Embedding;
 
 namespace Play.Edit {
     /// <summary>
+    /// Cache a single line of info but allow for wrap around when displaying on a narrow window.
+    /// </summary>
+    /// <remarks>
     /// I don't strictly need this object since a line Range would work minus the Advance
     /// information. I can always look up the advance using the offset. So I'm going to
     /// think about this for a bit.
-    /// </summary>
-    /// <summary>
-    /// Cache a single line of info but allow for wrap around when displaying on a narrow window.
-    /// </summary>
+    /// </remarks>
     public class FTCacheWrap : FTCacheLine {
         int _iWrapCount = 0;
 

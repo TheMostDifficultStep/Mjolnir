@@ -282,7 +282,7 @@ namespace Mjolnir {
             // Whenever the search results tool window is navigated, I need to know.
             // TODO: We've got the PlayHilights line which would be perfect for this.
 			// BUG: Move to InitNew().
-			if( oShell.DecorSoloSearch( "matches" ) is EditWin oEditWin ) {
+			if( oShell.DecorSoloSearch( "matches" ) is EditWindow2 oEditWin ) {
 				oEditWin.LineChanged += new Navigation( OnMatchNavigation );
 			}
 
