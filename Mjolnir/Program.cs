@@ -32,7 +32,7 @@ namespace Mjolnir {
 		IDisposable
     {
         public static Guid FindDialog  { get; } = new Guid( "{231E4D61-499A-427E-A1D3-EC4A579A5E6D}" );
-        public static Guid MatchesView { get; } = new Guid( "{827841DE-DC4B-4970-B539-A32ED521E4FE}" );
+        public static Guid MatchesView { get; } = new Guid( "{B9218737-4EC6-4E5F-BF2A-D41949CD07DA}" );
         public static Guid ViewSelector{ get; } = new Guid( "{195E19DB-4BCE-4CAE-BE02-263536F00851}" );
         public static Guid MainWin     { get; } = new Guid( "{B091DED3-33C8-4BD1-8390-CA568CA7F9FC}" );
 
@@ -417,7 +417,7 @@ namespace Mjolnir {
             _oDocSlot_SearchKey.CreateDocument();
 			_oDocSlot_SearchKey.InitNew(); 
 
-            _oDocSlot_Results = new InternalSlot( this, ".txt", "Find Results" );
+            _oDocSlot_Results = new InternalSlot( this, ".results", "Find Results" );
             _oDocSlot_Results.CreateDocument();
             _oDocSlot_Results.InitNew();
 
@@ -1083,6 +1083,7 @@ namespace Mjolnir {
         }
 
         public void InitializeControllers() {
+            Controllers.Add( new ControllerForResults() );
 			Controllers.Add( new ControllerForParsedText( this ) );
             Controllers.Add( new ControllerForHtml( this ));
             Controllers.Add( new ControllerForSearch() );

@@ -332,4 +332,20 @@ namespace Mjolnir {
             throw new NotImplementedException();
         }
     }
+
+    public class ControllerForResults :
+        Controller
+    {
+        public ControllerForResults() {
+            _rgExtensions.Add(".results");
+        }
+
+        public override IDisposable CreateDocument( IPgBaseSite oSite, string strExtension ) {
+            return new Editor( oSite );
+        }
+
+        public override IDisposable CreateView( IPgViewSite oViewSite, object oDocument, Guid guidViewType ) {
+            return new EditWindow2( oViewSite, (Editor)oDocument );
+        }
+    }
 }
