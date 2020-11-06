@@ -120,8 +120,9 @@ namespace Play.Edit {
         public         Line Line      { get; }
         public         int  At        { get { return Line.At; } }
         public         int  Top       { get; set; }
-        public virtual int  Height    { get { return FontHeight; } }
+        public virtual int  Height    { get { return LineHeight; } }
         public         bool IsInvalid { get; protected set; } = true;
+        public         int  LineHeight{ protected set; get; }
         public         int  FontHeight{ protected set; get; }
 
         protected readonly List<IPgGlyph>  _rgGlyphs     = new List<IPgGlyph >(100); // Glyphs that construct characters.
@@ -140,8 +141,9 @@ namespace Play.Edit {
         public override string ToString() {
             StringBuilder sbBuild = new StringBuilder();
 
+            sbBuild.Append( "T:" );
             sbBuild.Append( Top );
-            sbBuild.Append( "->" );
+            sbBuild.Append( "B:" );
             sbBuild.Append( Bottom );
             sbBuild.Append( "@" );
             sbBuild.Append( Line.At.ToString() );
@@ -334,7 +336,8 @@ namespace Play.Edit {
             if( oFR == null )
                 throw new ArgumentNullException();
 
-            FontHeight = (int)(oFR.FontHeight * 1.5 ); // Height of our box. BUG, don't guess.
+            FontHeight = (int)oFR.FontHeight;
+            LineHeight = (int)(FontHeight * 1.5); // Height of our box. BUG, don't guess.
             LoadCodePoints( oFR );
 
             _rgClusters.Clear();
@@ -511,7 +514,7 @@ namespace Play.Edit {
             float         flY,
             PgCluster     oCluster )
         {
-            SKRect skRect = new SKRect( flX, flY - FontHeight, 
+            SKRect skRect = new SKRect( flX, flY - LineHeight, // Wrestling with this. LineHeight or FontHeight isn't quite right.
                                         flX + ( oCluster.AdvanceOffsEm >> 6 ), 
                                         flY );
 
@@ -537,7 +540,7 @@ namespace Play.Edit {
 
                 try { // Draw all glyphs so whitespace is properly colored when selected.
 			        foreach( PgCluster oCluster in _rgClusters ) {
-                        int iYDiff = FontHeight * oCluster.Segment;
+                        int iYDiff = LineHeight * oCluster.Segment;
 
                         float flX = pntLowerLeft.X + (float)(oCluster.AdvanceLeftEm >> 6); 
                         float flY = pntLowerLeft.Y + iYDiff - oCluster.Coordinates.top;
@@ -545,12 +548,12 @@ namespace Play.Edit {
                         // Only draw if we need to override the last painted bg color.
                         if( oCluster.ColorIndex < 0 ) {
                             skPaint.Color = oStdUI.ColorsStandardAt( StdUIColors.BGSelectedFocus );
-                            DrawGlyphBack( skCanvas, skPaint, flX, pntLowerLeft.Y + iYDiff, oCluster );
+                            DrawGlyphBack( skCanvas, skPaint, flX, pntEditAt.Y + LineHeight + iYDiff, oCluster );
                         }
 
-                        // Negative numbers can be hyper links too need to work that out. 
+                        // Negative numbers can be hyper links too, need to work that out. 
                         skPaint.Color = oCluster.ColorIndex < 0 ? oStdUI.ColorsStandardAt( StdUIColors.TextSelected ) : 
-                                                                    oStdUI.ColorsText[ oCluster.ColorIndex ];
+                                                                  oStdUI.ColorsText[ oCluster.ColorIndex ];
 
                         //foreach( int iGlyph in oCluster ) {
                             DrawGlyph( skCanvas, skPaint, flX, flY, _rgGlyphs[oCluster.Glyphs.Offset] );

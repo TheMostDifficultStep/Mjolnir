@@ -44,8 +44,8 @@ namespace Mjolnir {
             IPgBaseSite,
 			IPgFileSite
         {
-            protected readonly Program       _oHost;
-            protected readonly int           _iDocCount;
+            protected readonly Program        _oHost;
+            protected readonly int            _iDocCount;
             protected readonly IPgController2 _oController;
 
             protected IDisposable _oGuestDispose;

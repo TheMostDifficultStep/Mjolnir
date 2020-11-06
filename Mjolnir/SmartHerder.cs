@@ -193,6 +193,7 @@ namespace Mjolnir {
             //          _rcInner.GetScalar(SCALAR.BOTTOM));
         }
 
+        // https://stackoverflow.com/questions/45077047/rotate-photo-with-skiasharp
         /// <summary>
         /// I'm just tinkering here. I've got some of the GDI32 code to rotate the
         /// text but the image is the crappy .net GDI functions. I need to implement a bit blit

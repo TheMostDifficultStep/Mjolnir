@@ -910,7 +910,9 @@ namespace Play.ImageViewer {
 						LayoutImageBase oTempRct = new LayoutImageBase( skSize );
 						using SKBitmap  oTempBmp = ImageRect.LoadImage( Path.Combine( CurrentDirectory, oFileName.ToString() ) );
 
-						oFileName.Extra = oTempRct.CreateReScaledImage( oTempBmp ); 
+                        if( oTempBmp != null ) {
+						    oFileName.Extra = oTempRct.CreateReScaledImage( oTempBmp ); 
+                        }
                         ++iCount;
 						yield return( 0 );
 					}

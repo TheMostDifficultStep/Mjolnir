@@ -316,4 +316,20 @@ namespace Mjolnir {
             return (oEditor);
         }
     }
+
+    public class ControllerForSearch :
+        Controller
+    {
+        public ControllerForSearch() {
+            _rgExtensions.Add(".search");
+        }
+
+        public override IDisposable CreateDocument( IPgBaseSite oSite, string strExtension ) {
+            return new FormsEditor( oSite );
+        }
+
+        public override IDisposable CreateView( IPgViewSite oViewSite, object oDocument, Guid guidViewType ) {
+            throw new NotImplementedException();
+        }
+    }
 }

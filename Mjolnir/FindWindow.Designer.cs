@@ -42,9 +42,9 @@ namespace Mjolnir {
             //this._oWin_SearchKey.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left)
             //            | System.Windows.Forms.AnchorStyles.Right)));
             //this._oWin_SearchKey.Location = new System.Drawing.Point(3, 12);
-            this._oWin_SearchKey.Name = "_oTextBox1";
-            this._oWin_SearchKey.Size = new System.Drawing.Size(324, 20);
-            this._oWin_SearchKey.TabIndex = 0;
+            //this._oWin_SearchKey.Name = "_oTextBox1";
+            //this._oWin_SearchKey.Size = new System.Drawing.Size(324, 20);
+            //this._oWin_SearchKey.TabIndex = 0;
             // 
             // oRegExpr
             // 
@@ -120,7 +120,7 @@ namespace Mjolnir {
 			this.Controls.Add(this.button2);
 			this.Controls.Add(this.button1);
 			this.Controls.Add(this.oMatchCase);
-			this.Controls.Add(this._oWin_SearchKey);
+			//this.Controls.Add(this._oWin_SearchKey);
 			this.Margin = new System.Windows.Forms.Padding(10);
             this.Name = "FindWindow";
             this.Size = new System.Drawing.Size(330, 117);
@@ -137,6 +137,5 @@ namespace Mjolnir {
 		private CheckBox  oMatchCase;
         private LinkLabel oGoto;
         private LinkLabel oResults;
-        private Control   _oWin_SearchKey;
     }
 }

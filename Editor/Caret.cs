@@ -8,14 +8,73 @@ namespace Play.Edit {
     /// </summary>
     /// 
 
+    public interface IPgCacheCaret : ILineRange {
+        int Advance { get; set; }
+    }
+
+    public class SimpleCacheCaret : IPgCacheCaret  {
+        protected int         _iOffset = 0;
+        protected FTCacheLine _oCache;
+        public    int         Advance { get; set; }
+
+        public SimpleCacheCaret( FTCacheLine oCache ) {
+            Cache    = oCache;
+            _iOffset = 0;
+        }
+
+		public int ColorIndex {
+			get { return( 0 ); }
+		}
+
+        public override string ToString() {
+            return( "(" + _iOffset.ToString() + "...) " + Line.SubString( 0, 50 ) );
+        }
+
+        public int At {
+            get { return Line.At; }
+        }
+
+        public int Offset {
+            get { return _iOffset; }
+            
+            set {
+                if( value > Line.ElementCount )
+                    value = Line.ElementCount;
+                if( value <= 0 )
+                    value = 0;
+
+                _iOffset = value;
+            }
+        }
+        
+        public int Length {
+            get { return 0; }
+            set { throw new ArgumentOutOfRangeException("Caret length is always zero" ); }
+        }
+        
+        public Line Line {
+            get { return Cache.Line; }
+            set {
+                if( value != Cache.Line )
+                    throw new ApplicationException(); 
+            }
+        }
+
+        public FTCacheLine Cache {
+            get { return _oCache; }
+            set { _oCache = value ?? throw new NotImplementedException(); }
+        }
+
+
+    }
+
     public class SimpleLineCaret :
         ILineRange
     {
         protected Line _oLine;
         protected int  _iOffset = 0;
 
-        public SimpleLineCaret( Line oLine, int iLineOffset )
-        {
+        public SimpleLineCaret( Line oLine, int iLineOffset ) {
             if( oLine == null )
                 throw new ArgumentNullException();
             if( iLineOffset < 0 )
@@ -27,15 +86,12 @@ namespace Play.Edit {
             _oLine   = oLine;
         }
 
-		public void Summate( int iPrev ) {
-		}
-
 		public int ColorIndex {
 			get { return( 0 ); }
 		}
 
         public override string ToString() {
-            return( "(" + _iOffset.ToString() + ") " + _oLine.SubString( 0, 50 ) );
+            return( "(" + _iOffset.ToString() + "...) " + _oLine.SubString( 0, 50 ) );
         }
 
         public int At {
@@ -45,8 +101,7 @@ namespace Play.Edit {
         /// <summary>
         /// Returns the current line relative offset.
         /// </summary>
-        public int Offset 
-        {
+        public int Offset {
             get {
                 return( _iOffset );
             }
@@ -61,8 +116,7 @@ namespace Play.Edit {
             }
         }
         
-        public int Length 
-        {
+        public int Length {
             get {
                 return( 0 );
             }
@@ -77,18 +131,13 @@ namespace Play.Edit {
         /// </summary>
         /// <remarks>We need to keep a line pointer instead of an At index in case
         /// lines above us get deleted! We auto track that way. </remarks>
-        public Line Line
-        {
+        public Line Line {
             get {
                 return( _oLine );
             }
             
             set {
-                // This get's called by the editor. Our previous editline might have been deleted. 
-                if( value == null )
-                    throw new ArgumentNullException();
-
-                _oLine = value;
+                _oLine = value ?? throw new ArgumentNullException();
             }
         }
     }

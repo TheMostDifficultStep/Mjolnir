@@ -158,6 +158,8 @@ namespace Mjolnir {
 			    _rgStdColors[ (int)StdUIColors.TextSelected]    = new SKColor( 255, 255, 255 ); // TextSelected,    White.
 			    _rgStdColors[ (int)StdUIColors.MusicLine]       = new SKColor( 200, 255, 200 ); // MusicLine,       Light green.
 			    _rgStdColors[ (int)StdUIColors.MusicLinePaused] = new SKColor( 255, 255, 150 ); // MusicLinePaused, Light yellow.
+                _rgStdColors[ (int)StdUIColors.TitleBoxBlur]    = new SKColor( 211, 211, 211 ); // Un focused title bar and grab border.
+                _rgStdColors[ (int)StdUIColors.TitleBoxFocus]   = new SKColor( 112, 165, 234 ); // Focused title bar and grab border (blue)
             } catch( IndexOutOfRangeException ) {
                 // BUG: I'd like to log it but nothing is ready to go at this point! I should probably make
                 //      an array to hold REALLY EARLY errors like this and then spew 'em when we're we're able.
@@ -384,8 +386,6 @@ namespace Mjolnir {
                 _rgTxtColors.Add( new SKColor( sColor.R, sColor.G, sColor.B ) );
 			}
 
-            // old init alerts here, but moved to top...
-
             InitializePlugins    ( xmlConfig );
             InitializeControllers();
 
@@ -413,9 +413,7 @@ namespace Mjolnir {
  			// BUG: it's part of the window session load/init sequence. And the MainWin is trying
 			// to get at the parse handler in it's constructor. So we've got to InitNew/Load before
 			// that. So I'll InitNew() now and let load get called subsequently...for now. ^_^;;
-			// NOTE: I would love to swap parsers on the fly (txt/regex) for the search key!!!!
-			//ControllerForParsedText oFactory = new ControllerForParsedText( this );
-			_oDocSlot_SearchKey = new XmlSlot( this, ".regex", "Find String" );
+			_oDocSlot_SearchKey = new XmlSlot( this, ".search", "Find String" );
             _oDocSlot_SearchKey.CreateDocument();
 			_oDocSlot_SearchKey.InitNew(); 
 
@@ -423,6 +421,7 @@ namespace Mjolnir {
             _oDocSlot_Results.CreateDocument();
             _oDocSlot_Results.InitNew();
 
+            // We'll move the search key into the complexxmlslot's doc eventually.
             _oDocSlot_Find = new ComplexXmlSlot( this );
             _oDocSlot_Find.CreateDocument();
             _oDocSlot_Find.InitNew();
@@ -1005,8 +1004,7 @@ namespace Mjolnir {
             return( _rgGrammarColors.Count - 1 );
         }
 
-        public int GetColorIndex(string strName)
-        {
+        public int GetColorIndex(string strName) {
             for( int i=0; i<_rgGrammarColors.Count; ++i ) {
                 if( strName == _rgGrammarColors[i]._strName ) {
                     return( i );
@@ -1087,6 +1085,7 @@ namespace Mjolnir {
         public void InitializeControllers() {
 			Controllers.Add( new ControllerForParsedText( this ) );
             Controllers.Add( new ControllerForHtml( this ));
+            Controllers.Add( new ControllerForSearch() );
 
             // In the future I'll make these packages load on the fly and I can remove
             // hard dependencies to these assemblies!!

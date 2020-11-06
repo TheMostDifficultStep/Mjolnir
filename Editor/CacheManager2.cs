@@ -520,7 +520,7 @@ namespace Play.Edit {
             if( oCaret == null || oCaret.Line == null )
                 throw new ArgumentException( "Caret or Line on Caret is empty" );
 
-            FTCacheLine oElem = CacheLocate( oCaret.Line.At );
+            FTCacheLine oElem = CacheLocate( oCaret.At );
 
             if( oElem == null ) 
                 return null;
@@ -550,7 +550,7 @@ namespace Play.Edit {
             int iOffset = oCaret.Offset;
 
             // If total miss, build a new screen based on the location of the caret.
-            FTCacheLine oElem = CacheLocate( oCaret.Line.At );
+            FTCacheLine oElem = CacheLocate( oCaret.At );
             if( oElem == null ) {
                 return CaretMove.MISS;
             }
@@ -583,7 +583,7 @@ namespace Play.Edit {
         }
 
         public bool IsHit( ILineRange oCaret ) {
-            FTCacheLine oCache = CacheLocate( oCaret.Line.At );
+            FTCacheLine oCache = CacheLocate( oCaret.At );
 
             if( oCache != null ) {
                 Point pntCaretLoc = oCache.GlyphOffsetToPoint( oCaret.Offset );
@@ -744,7 +744,7 @@ namespace Play.Edit {
         /// <param name="pntLocation">return world relative graphics coordinates.</param>
         /// <returns></returns>
         public bool GlyphLineToPoint( ILineRange oSelection, out Point pntWorld ) {
-            FTCacheLine oCache = CacheLocate( oSelection.Line.At );
+            FTCacheLine oCache = CacheLocate( oSelection.At );
 
             if( oCache != null ) {
                 pntWorld = oCache.GlyphOffsetToPoint( oSelection.Offset );

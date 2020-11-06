@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Drawing;
 using System.Diagnostics;
 
@@ -7,7 +6,6 @@ using SkiaSharp;
 
 using Play.Parse.Impl;
 using Play.Interfaces.Embedding;
-using System.Text;
 
 namespace Play.Edit {
     /// <summary>
@@ -18,8 +16,7 @@ namespace Play.Edit {
     /// <summary>
     /// Cache a single line of info but allow for wrap around when displaying on a narrow window.
     /// </summary>
-    public class FTCacheWrap : FTCacheLine
-    {
+    public class FTCacheWrap : FTCacheLine {
         int _iWrapCount = 0;
 
         public FTCacheWrap( Line oLine ) : base( oLine ) {

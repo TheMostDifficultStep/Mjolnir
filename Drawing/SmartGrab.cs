@@ -335,7 +335,7 @@ namespace Play.Rectangles
                         if( m_fHovering )
                             oFocusColor = Color.FromArgb( 255, 0xa0, 0xa0, 0xa0 );
                         else
-                            oFocusColor = Color.FromArgb( 000, 0x00, 0x55, 0xE5);
+                            oFocusColor = Color.FromArgb(255, 211, 211, 211); // Color.FromArgb( 000, 0x00, 0x55, 0xE5);
                         break;
                 }
 

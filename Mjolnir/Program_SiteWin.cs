@@ -82,6 +82,12 @@ namespace Mjolnir {
                 _strFileName = strName;
             }
 
+            public XmlSlot( Program oProgram, IPgController2 oController ) : 
+                base( oProgram, oController, string.Empty ) 
+            {
+                _strFileName = string.Empty;
+            }
+
             protected override void GuestSet( IDisposable value ) {
                 base.GuestSet( value );
 
@@ -139,10 +145,6 @@ namespace Mjolnir {
                 return( true );
             }
 
-            //protected void LogError( string strMessage ) {
-            //    LogError( "session", strMessage );
-            //}
-
             /// <summary>
             /// We're getting a save request from our guest. So we'll save the
             /// entire session.
@@ -153,6 +155,7 @@ namespace Mjolnir {
                 _oHost.SessionSave( false );
                 return( true );
             }
+
             public override void Notify( ShellNotify eEvent ) {
 				switch( eEvent ) {
 					case ShellNotify.DocumentDirty:

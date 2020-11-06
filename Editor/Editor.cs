@@ -194,13 +194,13 @@ namespace Play.Edit {
 
         IRefCount _oUndoMaster      = null;
         string    _strEOL           = "\r\n";
-        int       _iCumulativeCount = 0;
+        protected int       _iCumulativeCount = 0;
         int       _iUndoMode        = 0;
         bool      _fIsDirty         = false;
         long      _lWordCount       = 0;
 		Line      _oLineHighLight   = null;
 
-        readonly IArray<Line>             _rgLines;
+        protected readonly IArray<Line>   _rgLines;
         readonly ICollection<ILineEvents> _rgBufferCallbacks = new List<ILineEvents>();
         readonly ICollection<ILineRange>  _rgCursors         = new List<ILineRange>();
         readonly Stack<IUndoUnit>[]       _rgUndoStacks      = new Stack<IUndoUnit>[2];
@@ -600,9 +600,9 @@ namespace Play.Edit {
         /// <param name="strText">Insert this text as a new line.</param>
 		/// <remarks>BUG: I should parse the text looking for control characters. See the
 		/// clipboard copy version.</remarks>
-        public void LineAppend( string strText ) {
+        public void LineAppend( string strText, bool fUndoable = true ) {
             using( Manipulator oBulk = this.CreateManipulator() ) {
-                oBulk.LineInsert( this.ElementCount, strText );
+                oBulk.LineInsert( this.ElementCount, strText, fUndoable );
             }
         }
 
@@ -663,12 +663,12 @@ namespace Play.Edit {
 
                     if( oRangeLine != null ) {
                         // Blast any dummy lines. Brilliant, but sleasy. ^_^;;
-                        if( oRangeLine.At == oLine.At ) {
+                        if( oRangeLine.At == oLine.At && oRangeLine != oLine ) {
                             oCaret.Line = oLine;
                         }
                         // Make sure the line is assigned on the line range, second 
                         // Check the two lines are EQUAL (but not necessarily the same reference)
-                        if( oCaret.Line.At == oLine.At ) {
+                        if( oCaret.At == oLine.At ) {
                             Marker.ShiftInsert( oCaret, iIndex, 1 );
                         }
                     }

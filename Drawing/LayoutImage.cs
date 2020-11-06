@@ -91,7 +91,8 @@ namespace Play.Rectangles {
                 if( rgErrors.IsUnhandled( oEx ))
                     throw;
                 
-                throw new ApplicationException( "Problem loading associated image for this ImageRect" );
+                // used to throw, but I'm using this in an enumerator, so...
+                return null;
             }
         }
 

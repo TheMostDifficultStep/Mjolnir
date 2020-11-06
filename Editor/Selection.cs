@@ -44,8 +44,8 @@ namespace Play.Edit {
             if( _oEndRange.Line == null )
                 return( false );
 
-            return( oLine.At > _oStartRange.Line.At &&
-                    oLine.At < _oEndRange.Line.At );
+            return( oLine.At > _oStartRange.At &&
+                    oLine.At < _oEndRange.At );
         }
 
         public Line StartLine {

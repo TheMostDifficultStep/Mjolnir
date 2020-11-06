@@ -84,7 +84,7 @@ namespace Play.Edit {
 
 			protected void NeighborhoodOfCaret( out Line oLine, out int iOffs ) {
 				try {
-					oLine = GetLine( _oHost._oCaretPos.Line.At );
+					oLine = GetLine( _oHost._oCaretPos.At );
 					iOffs = _oHost._oCaretPos.Offset; 
 
 					if( iOffs < 0 )
@@ -230,7 +230,7 @@ namespace Play.Edit {
 
 			protected void NeighborhoodOfCaret( out Line oLine, out int iOffs ) {
 				try {
-					oLine = GetLine( _oHost.CaretPos.Line.At );
+					oLine = GetLine( _oHost.CaretPos.At );
 					iOffs = _oHost.CaretPos.Offset; 
 
 					if( iOffs < 0 )

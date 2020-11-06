@@ -387,7 +387,7 @@ namespace Play.Edit {
         {
             XmlElement xmlCursor = xmlRoot.OwnerDocument.CreateElement( "cursor" );
 
-            xmlCursor.SetAttribute( "line",   _oCaretPos.Line.At.ToString() );
+            xmlCursor.SetAttribute( "line",   _oCaretPos.At    .ToString() );
             xmlCursor.SetAttribute( "column", _oCaretPos.Offset.ToString() );
 
             xmlRoot.AppendChild( xmlCursor );
@@ -524,7 +524,7 @@ namespace Play.Edit {
 
             // TODO: This might be a dummy line. So we need dummies to be at 0.
             //       Still a work in progress. See oBulk.LineInsert() below...
-            int iLine = _oCaretPos.Line.At;
+            int iLine = _oCaretPos.At;
 
             if( sOperation == ClipboardOperations.Text ||
                 sOperation == ClipboardOperations.Default 
@@ -536,7 +536,7 @@ namespace Play.Edit {
                         SelectionDelete(); // TODO: Check effect of interleaved insert/delete.
                         if( _oCaretPos.Line != null ) {
                             using( TextReader oReader = new StringReader(strPaste)  ) {
-                                oBulk.StreamInsert(_oCaretPos.Line.At, _oCaretPos.Offset, oReader );
+                                oBulk.StreamInsert(_oCaretPos.At, _oCaretPos.Offset, oReader );
                             }
                         }
                     }
@@ -614,7 +614,7 @@ namespace Play.Edit {
 
                             using( TextReader oReader = new StringReader(strResult)  ) {
                                 // BUG: Get the file extension and create scheme wrapper.
-                                oBulk.StreamInsert(_oCaretPos.Line.At, _oCaretPos.Offset, oReader );
+                                oBulk.StreamInsert(_oCaretPos.At, _oCaretPos.Offset, oReader );
                             }
                         }
                     } catch( Exception oEx ) {
@@ -710,7 +710,7 @@ namespace Play.Edit {
 			int    iIndex         = -1;
             foreach( UniscribeCache oCache in _oCacheMan ) {
 				bool[] rgBGColorKey = { _oDocument.HighLight != null && _oDocument.HighLight.At == oCache.At,
-									    iColor >= 0 && oCache.At == _oCaretPos.Line.At && !_fSingleLine };
+									    iColor >= 0 && oCache.At == _oCaretPos.At && !_fSingleLine };
 
 				if( rgBGColorKey.Find( !fPaintingSelection, out iIndex ) ) {
 					uiOldColor = Gdi32.SetBackColor( hDC, rgBGColorValue[iIndex] );
@@ -837,7 +837,7 @@ namespace Play.Edit {
 
 			// Paint whole line it's special BG color.
 			foreach( UniscribeCache oCache in _oCacheMan ) {
-				if( _oCaretPos.Line      != null && oCache.At == _oCaretPos.Line.At && !_fSingleLine )
+				if( _oCaretPos.Line      != null && oCache.At == _oCaretPos.At && !_fSingleLine )
 					PaintSpecialBackground( oE, StdUIColors.BGWithCursor, oCache );
 				if( _oDocument.HighLight != null && oCache.At == _oDocument.HighLight.At )
 					PaintSpecialBackground( oE, _oDocument.PlayHighlightColor, oCache );
@@ -1591,9 +1591,9 @@ namespace Play.Edit {
                     ILineSelection oRange = _rgRanges[SelectionTypes.Start];
 
                     if( oRange.Offset < oRange.Line.ElementCount )
-                        oBulk.LineTextDelete( oRange.Line.At, oRange );
+                        oBulk.LineTextDelete( oRange.At, oRange );
                     if( oRange.IsEOLSelected )
-                        oBulk.LineMergeWithNext( oRange.Line.At );
+                        oBulk.LineMergeWithNext( oRange.At );
                 }
 
                 SelectionClear();
@@ -1615,7 +1615,7 @@ namespace Play.Edit {
         protected virtual void Raise_Navigated( NavigationSource eSource, ILineRange oCarat ) {
             // TODO: only want to signal next two when line is actually changed.
             // Note: Currently used by FindWindow and ViewSiteLine objects.
-            LineChanged?.Invoke( oCarat.Line.At );
+            LineChanged?.Invoke( oCarat.At );
 
             _oSiteView.Notify( ShellNotify.BannerChanged );
 
@@ -1628,7 +1628,7 @@ namespace Play.Edit {
             int iLine = 0, iIndex = 0, iLineCharCount = 0, iChar = 0;
 
             try {
-                iLine          = oCarat.Line.At + 1;
+                iLine          = oCarat.At + 1;
                 iIndex         = oCarat.Offset;
                 iLineCharCount = oCarat.Line.ElementCount;
                 iChar          = oCarat.Line.ElementCount > oCarat.Offset ? oCarat.Line[oCarat.Offset] : 0;
@@ -1849,12 +1849,12 @@ namespace Play.Edit {
                     if( TextSelector.IsSelected( _rgSelectionTypes ) ) {
                        using( _oDocument.UndoMasterBegin() ) {
                            SelectionDelete(); // Blast whatever was selected and replace with this char.
-                           _oDocument.LineCharInsert( _oCaretPos.Line.At, 
+                           _oDocument.LineCharInsert( _oCaretPos.At, 
                                                       _oCaretPos.Offset, 
                                                       e.KeyChar);
                        }
                     } else {
-                       _oDocument.LineCharInsert( _oCaretPos.Line.At, 
+                       _oDocument.LineCharInsert( _oCaretPos.At, 
                                                   _oCaretPos.Offset, 
                                                   e.KeyChar);
                     }

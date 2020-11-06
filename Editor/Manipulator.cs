@@ -71,7 +71,7 @@ namespace Play.Edit {
             /// <param name="iLine"></param>
             /// <param name="strLine"></param>
             /// <remarks>What about -append- at end. It's essentially an insert before the Count position.</remarks>
-            public Line LineInsert( int iLine, string strLine ) {
+            public Line LineInsert( int iLine, string strLine, bool fUndoable = true ) {
                 if( iLine < 0 || iLine > _rgLines.ElementCount ) {
                     Raise_HostError("LineInsert(): Line is out of range.");
                     return ( null );
@@ -136,7 +136,7 @@ namespace Play.Edit {
                     _oDocument.Raise_BeforeLineDelete( oLine );
 
                     foreach( ILineRange oCaret in _oDocument.CaretEnumerable ) {
-                        if( oCaret.Line != null && oCaret.Line.At == oLine.At ) {
+                        if( oCaret.Line != null && oCaret.At == oLine.At ) {
                             if( iLine > 0 ) {
                                 // Hmmm... probably should be the NEXT line not the prev...
                                 Line oNewLine = _rgLines[iLine - 1];
@@ -321,7 +321,7 @@ namespace Play.Edit {
                     bool fResult = oLine.TryInsert(iDestOffset, strSource, iSrcIndex, iSrcLength);
                     if( fResult ) {
                         foreach( ILineRange oCaret in _oDocument.CaretEnumerable ) {
-                            if( oCaret.Line != null && oCaret.Line.At == oLine.At )
+                            if( oCaret.Line != null && oCaret.At == oLine.At )
                                 Marker.ShiftInsert(oCaret, iDestOffset, iSrcLength);
                         }
 
@@ -335,6 +335,10 @@ namespace Play.Edit {
                 } catch ( NullReferenceException ) {
                     return( false );
                 }
+            }
+
+            public void LineCharInsert( int iLine, int iIndex, char cChar ) {
+                _oDocument.LineCharInsert( iLine, iIndex, cChar );
             }
 
             /// <summary>
@@ -362,7 +366,7 @@ namespace Play.Edit {
                             Marker.ShiftDelete( oFormat, oRange );
                         }
                         foreach( ILineRange oCaret in _oDocument.CaretEnumerable ) {
-                            if( oCaret.Line != null && oCaret.Line.At == oLine.At ) {
+                            if( oCaret.Line != null && oCaret.At == oLine.At ) {
                                 if( oCaret.Offset >= oRange.Offset ) {
                                     oCaret.Offset = oRange.Offset;
                                 }
@@ -410,7 +414,7 @@ namespace Play.Edit {
                             oLine.Formatting.Add( oRange );
                         }
                         foreach( ILineRange oCaret in _oDocument.CaretEnumerable ) {
-                            if( oCaret.Line != null && oCaret.Line.At == oNext.At ) {
+                            if( oCaret.Line != null && oCaret.At == oNext.At ) {
                                 oCaret.Line   = oLine; // Gotta do this first to prevent clipping to previous line length. ^_^;;
                                 oCaret.Offset += iEndOffset;
                             }
@@ -471,7 +475,7 @@ namespace Play.Edit {
                     _oDocument.Raise_AfterInsertLine( oLineAfter );
 
                     foreach( ILineRange oRange in _oDocument.CaretEnumerable ) {
-                        if( oRange.Line != null && oRange.Line.At == oLine.At && oRange.Offset >= iOffset ) {
+                        if( oRange.Line != null && oRange.At == oLine.At && oRange.Offset >= iOffset ) {
                             oRange.Line   = oLineAfter;
                             oRange.Offset = 0;
                         }

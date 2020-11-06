@@ -459,7 +459,7 @@ namespace Play.Edit {
         {
             XmlElement xmlCursor = xmlRoot.OwnerDocument.CreateElement( "cursor" );
 
-            xmlCursor.SetAttribute( "line",   CaretPos.Line.At.ToString() );
+            xmlCursor.SetAttribute( "line",   CaretPos.At    .ToString() );
             xmlCursor.SetAttribute( "column", CaretPos.Offset.ToString() );
 
             xmlRoot.AppendChild( xmlCursor );
@@ -582,7 +582,7 @@ namespace Play.Edit {
 
             // TODO: This might be a dummy line. So we need dummies to be at 0.
             //       Still a work in progress. See oBulk.LineInsert() below...
-            int iLine = CaretPos.Line.At;
+            int iLine = CaretPos.At;
 
             if( sOperation == ClipboardOperations.Text ||
                 sOperation == ClipboardOperations.Default 
@@ -594,7 +594,7 @@ namespace Play.Edit {
                         SelectionDelete(); // TODO: Check effect of interleaved insert/delete.
                         if( CaretPos.Line != null ) {
                             using( TextReader oReader = new StringReader(strPaste)  ) {
-                                oBulk.StreamInsert(CaretPos.Line.At, CaretPos.Offset, oReader );
+                                oBulk.StreamInsert(CaretPos.At, CaretPos.Offset, oReader );
                             }
                         }
                     }
@@ -672,7 +672,7 @@ namespace Play.Edit {
 
                             using( TextReader oReader = new StringReader(strResult)  ) {
                                 // BUG: Get the file extension and create scheme wrapper.
-                                oBulk.StreamInsert(CaretPos.Line.At, CaretPos.Offset, oReader );
+                                oBulk.StreamInsert(CaretPos.At, CaretPos.Offset, oReader );
                             }
                         }
                     } catch( Exception oEx ) {
@@ -763,7 +763,7 @@ namespace Play.Edit {
             PointF      pntUL  = RenderAt( oCache );
             SKRect      skRect = new SKRect( _pntScreenTL.X, pntUL.Y, Width, pntUL.Y + oCache.Height );
 
-            if (CaretPos.Line != null && oCache.At == CaretPos.Line.At && !_fSingleLine)
+            if (CaretPos.Line != null && oCache.At == CaretPos.At && !_fSingleLine)
                 eBg = StdUIColors.BGWithCursor;
             if (_oDocument.HighLight != null && oCache.At == _oDocument.HighLight.At)
                 eBg = _oDocument.PlayHighlightColor;
@@ -1515,7 +1515,7 @@ namespace Play.Edit {
                 if( _rgRanges.ContainsKey( SelectionTypes.End ) ) {
                     ILineSelection oRange = _rgRanges[SelectionTypes.End];
 
-                    oBulk.LineTextDelete( oRange.Line.At, oRange );
+                    oBulk.LineTextDelete( oRange.At, oRange );
                 }
                 if( _rgRanges.ContainsKey(SelectionTypes.Middle ) ) {
                     SelectMiddle oRangeSel = _rgRanges[SelectionTypes.Middle] as SelectMiddle;
@@ -1536,9 +1536,9 @@ namespace Play.Edit {
                     ILineSelection oRange = _rgRanges[SelectionTypes.Start];
 
                     if( oRange.Offset < oRange.Line.ElementCount )
-                        oBulk.LineTextDelete( oRange.Line.At, oRange );
+                        oBulk.LineTextDelete( oRange.At, oRange );
                     if( oRange.IsEOLSelected )
-                        oBulk.LineMergeWithNext( oRange.Line.At );
+                        oBulk.LineMergeWithNext( oRange.At );
                 }
 
                 SelectionClear();
@@ -1560,7 +1560,7 @@ namespace Play.Edit {
         protected virtual void Raise_Navigated( NavigationSource eSource, ILineRange oCarat ) {
             // TODO: only want to signal next two when line is actually changed.
             // Note: Currently used by FindWindow and ViewSiteLine objects.
-            LineChanged?.Invoke( oCarat.Line.At );
+            LineChanged?.Invoke( oCarat.At );
 
             _oSiteView.Notify( ShellNotify.BannerChanged );
 
@@ -1587,7 +1587,7 @@ namespace Play.Edit {
             int                   iGlyphCount = 0;
 
             try {
-                iLine          = oCaret.Line.At + 1;
+                iLine          = oCaret.At + 1;
                 iIndex         = oCaret.Offset;
                 iLineCharCount = oCaret.Line.ElementCount;
                 itrGlyphs      = _oCacheMan.EnumGrapheme( oCaret );
@@ -1830,12 +1830,12 @@ namespace Play.Edit {
                     if( TextSelector.IsSelected( _rgSelectionTypes ) ) {
                        using( _oDocument.UndoMasterBegin() ) {
                            SelectionDelete(); // Blast whatever was selected and replace with this char.
-                           _oDocument.LineCharInsert( CaretPos.Line.At, 
+                           _oDocument.LineCharInsert( CaretPos.At, 
                                                       CaretPos.Offset, 
                                                       e.KeyChar);
                        }
                     } else {
-                       _oDocument.LineCharInsert( CaretPos.Line.At, 
+                       _oDocument.LineCharInsert( CaretPos.At, 
                                                   CaretPos.Offset, 
                                                   e.KeyChar);
                     }
@@ -2010,7 +2010,7 @@ namespace Play.Edit {
         public TextPosition Caret {
             get { 
                 try {
-                    return new TextPosition( CaretPos.Line.At, CaretPos.Offset );
+                    return new TextPosition( CaretPos.At, CaretPos.Offset );
                 } catch( NullReferenceException ) {
                     _oSiteView.LogError( "View", "CaretLine accessor exception" );
                     return new TextPosition( 0, 0 );

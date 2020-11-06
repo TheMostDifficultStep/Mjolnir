@@ -391,6 +391,8 @@ namespace Play.Interfaces.Embedding {
         TextSelected,
 		MusicLine,
 		MusicLinePaused,
+        TitleBoxBlur,
+        TitleBoxFocus,
         Max
     };
 
