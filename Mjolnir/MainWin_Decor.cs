@@ -488,7 +488,7 @@ namespace Mjolnir {
             _rgSideBox[(int)EDGE.LEFT  ].SetRect( LOCUS.UPPERLEFT,
                                                   0,
                                                   _rcFrame.Outer.Top,
-                                                  _rcFrame.Outer.Left - 1,
+                                                  _rcFrame.Outer.Left,
                                                   ClientRectangle.Height - _rcFrame.Outer.Top );
             _rgSideBox[(int)EDGE.TOP   ].SetRect( LOCUS.UPPERLEFT, 
                                                   0,
