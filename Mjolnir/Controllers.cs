@@ -241,11 +241,15 @@ namespace Mjolnir {
         /// <returns></returns>
         public override IDisposable CreateView( IPgViewSite oBaseSite, object oDocument, Guid guidViewType ) {
             try {
-                if( guidViewType == EditWindow2.ViewType ) {
-                    return new EditWindow2( oBaseSite, (Editor)oDocument );
-                }
+                switch( guidViewType ) {
+                    case var r when r == EditWindow2.ViewType:
+                    case var s when s == Guid.Empty:
+                    default:
+                        return new EditWindow2( oBaseSite, (Editor)oDocument );
 
-                return( new EditWin( oBaseSite, (Editor)oDocument ) );
+                    case var t when t == EditWin.ViewType:
+                        return new EditWin( oBaseSite, (Editor)oDocument );
+                }
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( NullReferenceException ),
                                     typeof( InvalidCastException ),
@@ -258,9 +262,8 @@ namespace Mjolnir {
         }
 
         public override IEnumerator<IPgViewType> GetEnumerator() {
-            // TODO: Move the guid to the view's class at least.
- 	        yield return new ViewType( "Default", Guid.Empty );
-            yield return new ViewType( "Experimental", EditWindow2.ViewType );
+ 	        yield return new ViewType( "Default",   EditWindow2.ViewType );
+            yield return new ViewType( "Old Style", EditWin    .ViewType );
         }
 
     }

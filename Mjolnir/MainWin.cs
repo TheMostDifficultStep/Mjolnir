@@ -143,6 +143,7 @@ namespace Mjolnir {
                         
                         oEditWin.HyperLinks.Add( "ViewSwitch", OnHyperViewSwitch );
                         oEditWin.ToolSelect = 1;
+                        oEditWin.Wrap       = false;
 
                         return oEditWin;
                     }

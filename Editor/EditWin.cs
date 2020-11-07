@@ -71,6 +71,7 @@ namespace Play.Edit {
         ILineEvents,
         IPgSelectionHelper
     {
+        public static readonly Guid ViewType = new Guid( "{BB301F8C-18C2-4EF0-AEAC-90145A4BBCB1}" );
         static DashedPen _oPenError = new DashedPen(); // BUG: Not getting freed. But there is only one.
         
         protected readonly BaseEditor     _oDocument;   // Reference to the line editor we are using. 
