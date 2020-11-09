@@ -4,6 +4,8 @@ using System.Collections.Generic;
 using System.Text;
 using System.Windows.Forms;
 using System.Text.RegularExpressions;
+using System.Drawing;
+using System.IO;
 
 using SkiaSharp;
 using SkiaSharp.Views.Desktop;
@@ -12,10 +14,7 @@ using Play.Interfaces.Embedding;
 using Play.Edit;
 using Play.Integration;
 using Play.Rectangles;
-using System.Drawing;
 using Play.Parse.Impl;
-using System.IO;
-using System.ComponentModel.DataAnnotations;
 
 namespace Mjolnir {
     public class FormsEditor : Editor {
@@ -71,8 +70,7 @@ namespace Mjolnir {
         }
     }
 
-    public class SimpleRange : ILineSelection
-    {
+    public class SimpleRange : ILineSelection {
         int _iStart  = 0;
 
         public int Start { 
@@ -286,6 +284,14 @@ namespace Mjolnir {
 				oEditWin.LineChanged += new Navigation( OnMatchNavigation );
 			}
 
+            // This changed frmo ContextMenu to ContextMenuStrip in .net 5
+            if( this.ContextMenuStrip == null ) {
+                ContextMenuStrip oMenu = new ContextMenuStrip();
+                oMenu.Items.Add( new ToolStripMenuItem( "Cut",  null,  new EventHandler( this.OnCut    ), Keys.Control | Keys.X ) );
+                oMenu.Items.Add( new ToolStripMenuItem( "Copy",  null, new EventHandler( this.OnCopy   ), Keys.Control | Keys.C ) );
+                oMenu.Items.Add( new ToolStripMenuItem( "Paste", null, new EventHandler( this.OnPaste  ), Keys.Control | Keys.V ) );
+                this.ContextMenuStrip = oMenu;
+            }
             InitializeComponent();
 
 			_oParseEvents = null;// _oDoc_SearchKey.ParseHandler;
@@ -565,6 +571,12 @@ namespace Mjolnir {
                     case Keys.Control | Keys.Z:
                         _oDoc_SearchForm.Undo();
                         return( true );
+                    case Keys.Control | Keys.V:
+                        ClipboardPasteFrom( Clipboard.GetDataObject(), ClipboardOperations.Default );
+                        return true;
+                    case Keys.Control | Keys.C:
+                        ClipboardCopyTo();
+                        return true;
                     case Keys.Delete: {
                         OnKey_Delete( false );
                         return( true );
@@ -628,6 +640,91 @@ namespace Mjolnir {
             base.OnMouseUp( e );
 
             CaretIconRefresh();
+        }
+
+        private void OnCut( object o, EventArgs e ) {
+            ClipboardCutTo();
+        }
+
+        public void ClipboardCutTo() {
+            ClipboardCopyTo();
+            SelectionDelete();
+        }
+
+        protected void SelectionDelete() {
+            if( IsSelection ) {
+                using( Editor.Manipulator oBulk = _oDoc_SearchForm.CreateManipulator() ) {
+                    oBulk.LineTextDelete( Caret.At, _oLayoutSearchKey.Selection );
+                }
+            }
+        }
+
+        private void OnCopy( object o, EventArgs e ) {
+            ClipboardCopyTo();
+        }
+
+        private void OnPaste( object o, EventArgs e ) {
+            ClipboardPasteFrom( Clipboard.GetDataObject(), ClipboardOperations.Default );
+        }
+
+        public virtual void ClipboardCopyTo() {
+            DataObject   oDataObject  = new DataObject();
+            IMemoryRange oSelection;
+
+			// If I've got a selection use it. Else use current caret pos. Note,
+			// right mouse button press, removes any selection, moves the caret 
+			// AND brings up the context menu. In the future we'll want to give the
+			// option to choose the desired portion of any complex object.
+			try {
+				if( IsSelection ) {
+					oSelection = _oLayoutSearchKey.Selection;
+				} else {
+					oSelection = new ColorRange( 0, _oLayoutSearchKey.Cache.Line.ElementCount, 0 );
+ 				}
+				if( oSelection != null ) {
+					string strSelection = Caret.Line.SubString( oSelection.Offset, oSelection.Length );
+
+				    oDataObject.SetData      ( strSelection );
+				    Clipboard  .SetDataObject( oDataObject );
+				}
+			} catch( NullReferenceException ) {
+			}
+        }
+
+        public void ClipboardPasteFrom( 
+            object oDataSource, 
+            Guid   sOperation ) 
+        {
+            //if( _fReadOnly )
+            //    return;
+
+            if( Caret.Cache == null )
+                return;
+
+            try {
+                IDataObject oDataObject = oDataSource as IDataObject;
+
+                // TODO: This might be a dummy line. So we need dummies to be at -1.
+                //       Still a work in progress. See oBulk.LineInsert() below...
+                if( sOperation == ClipboardOperations.Text ||
+                    sOperation == ClipboardOperations.Default 
+                  ) {
+                    string strPaste = oDataObject.GetData(typeof(System.String)) as string;
+                    using( Editor.Manipulator oBulk = new Editor.Manipulator( _oDoc_SearchForm ) ) {
+                        if( IsSelection ) {
+                            oBulk.LineTextDelete( Caret.At, _oLayoutSearchKey.Selection );
+                        }
+                        using( TextReader oReader = new StringReader( strPaste )  ) {
+                            oBulk.StreamInsert( Caret.At, Caret.Offset, oReader );
+                        }
+                    }
+                }
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( NullReferenceException ),
+                                    typeof( InvalidCastException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
+            }
         }
 
         void Reset() {

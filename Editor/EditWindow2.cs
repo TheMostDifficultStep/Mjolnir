@@ -135,7 +135,6 @@ namespace Play.Edit {
         ILineEvents,
         IPgSelectionHelper
     {
-        static DashedPen _oPenError = new DashedPen(); // BUG: Not getting freed. But there is only one.
         public static readonly Guid ViewType = new Guid( "{B9218737-4EC6-4E5F-BF2A-D41949CD07DA}" );
         
         protected readonly BaseEditor     _oDocument;   // Reference to the line editor we are using. 
@@ -240,13 +239,14 @@ namespace Play.Edit {
             //_oScrollBarVirt.Dock = DockStyle.Left;
             _oScrollBarVirt.Scroll += new ScrollBarEvent( OnScrollBar ); // BUG: do on init....
 
-            //if( this.ContextMenu == null ) {
-                //ContextMenu oMenu = new ContextMenu();
-                //oMenu.MenuItems.Add( new MenuItem( "Cut",   new EventHandler( this.OnCut    ), Shortcut.CtrlX ) );
-                //oMenu.MenuItems.Add( new MenuItem( "Copy",  new EventHandler( this.OnCopy   ), Shortcut.CtrlC ) );
-                //oMenu.MenuItems.Add( new MenuItem( "Paste", new EventHandler( this.OnPaste  ), Shortcut.CtrlV ) );
-                //this.ContextMenu = oMenu;
-            //}
+            // This changed frmo ContextMenu to ContextMenuStrip in .net 5
+            if( this.ContextMenuStrip == null ) {
+                ContextMenuStrip oMenu = new ContextMenuStrip();
+                oMenu.Items.Add( new ToolStripMenuItem( "Cut",  null,  new EventHandler( this.OnCut    ), Keys.Control | Keys.X ) );
+                oMenu.Items.Add( new ToolStripMenuItem( "Copy",  null, new EventHandler( this.OnCopy   ), Keys.Control | Keys.C ) );
+                oMenu.Items.Add( new ToolStripMenuItem( "Paste", null, new EventHandler( this.OnPaste  ), Keys.Control | Keys.V ) );
+                this.ContextMenuStrip = oMenu;
+            }
 
             Controls.Add(_oScrollBarVirt);
 
@@ -944,11 +944,12 @@ namespace Play.Edit {
 
         /// <summary>
         /// Use this to find something to select when the user double clicks.
+        /// BUG: can be static/and on a helper class.
         /// </summary>
         /// <param name="oSearchPos">A LineRange containing the line and offset/length
         /// position use for the search.</param>
         /// <returns>Returns the formatting element under the Search position.</returns>
-        protected IPgWordRange FindFormattingUnderRange( ILineRange oSearchPos ) {
+        public static IPgWordRange FindFormattingUnderRange( ILineRange oSearchPos ) {
             if( oSearchPos == null )
                 throw new ArgumentNullException();
             if( oSearchPos.Line == null )
@@ -957,16 +958,16 @@ namespace Play.Edit {
             IPgWordRange oTerminal = null;
 
             try { 
-                foreach(IPgWordRange oRange in oSearchPos.Line.Formatting ) {
-                    if( oSearchPos.Offset >= oRange.Offset &&
+                foreach(IPgWordRange oTry in oSearchPos.Line.Formatting ) {
+                    if( oTry is IPgWordRange oRange &&
+                        oSearchPos.Offset >= oRange.Offset &&
                         oSearchPos.Offset  < oRange.Offset + oRange.Length )
                     {
 						// The first word we find is the best choice.
 						if( oRange.IsWord ) {
 							return oRange;
 						}
-						// Else the terminal under the carat is our best bet. But
-                        // keep trying for better...
+						// The term under the carat is OK, But keep trying for better...
 						if( oRange.IsTerm ) {
 							oTerminal = oRange;
 						}
