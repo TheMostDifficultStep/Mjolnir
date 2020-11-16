@@ -5,7 +5,7 @@ using SkiaSharp;
 
 namespace Play.Rectangles
 {
-	public enum AXIS {
+	public enum TRACK {
 		VERT,
 		HORIZ
 	}
@@ -549,11 +549,17 @@ namespace Play.Rectangles
 			}
         }
 
-		public Extent GetRail( AXIS eAxis ) {
+        /// <summary>
+        /// The rail is the distance between the tracks, perpendicular to the 
+        /// direction of travel.
+        /// </summary>
+        /// <param name="eAxis"></param>
+        /// <returns></returns>
+		public Extent GetRail( TRACK eAxis ) {
 			switch( eAxis ) {
-				case AXIS.HORIZ:
+				case TRACK.HORIZ:
 					return new Extent( Top, Bottom );
-				case AXIS.VERT:
+				case TRACK.VERT:
 					return new Extent( Left, Right );
 			}
 
@@ -561,13 +567,13 @@ namespace Play.Rectangles
 		}
 
 		/// <exception cref="InvalidOperationException" />
-		public Extent GetTrack( AXIS eAxis ) {
+		public Extent GetTrack( TRACK eAxis ) {
 			switch( eAxis ) {
-				case AXIS.HORIZ:
+				case TRACK.HORIZ:
 					if( Width < 0 )
 						throw new InvalidOperationException( "Track Width cannot be negative." );
 					return new Extent( Left, Right );
-				case AXIS.VERT:
+				case TRACK.VERT:
 					if( Height < 0 )
 						throw new InvalidOperationException( "Track height cannot be negative." );
 
@@ -577,11 +583,11 @@ namespace Play.Rectangles
 			throw new InvalidOperationException( "Weird");
 		}
 
-		public int GetExtent( AXIS eAxis ) {
+		public int GetExtent( TRACK eAxis ) {
 			switch( eAxis ) {
-				case AXIS.HORIZ:
+				case TRACK.HORIZ:
 					return Width;
-				case AXIS.VERT:
+				case TRACK.VERT:
 					return Height;
 			}
 
@@ -824,12 +830,12 @@ namespace Play.Rectangles
 		/// <param name="iFixed">the size of the fixed dimension.</param>
 		/// <param name="eDir">The fixed dimension.</param>
 		/// <returns></returns>
-		public static uint ExtentDesired( float flAspectWH, uint uiFixed, AXIS eDir ) {
+		public static uint ExtentDesired( float flAspectWH, uint uiFixed, TRACK eDir ) {
 			switch( eDir ) {
-				case AXIS.HORIZ:
+				case TRACK.HORIZ:
 					return (uint)(uiFixed * flAspectWH);
 
-				case AXIS.VERT:
+				case TRACK.VERT:
 					return (uint)(uiFixed / flAspectWH );
 			}
 			

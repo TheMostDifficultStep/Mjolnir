@@ -17,56 +17,58 @@ using Play.Rectangles;
 using Play.Parse.Impl;
 
 namespace Mjolnir {
-    public class FormsEditor : Editor {
-        public FormsEditor( IPgBaseSite oSite ) : base( oSite ) {
+    public class SimpleCacheCaret : IPgCacheCaret  {
+        protected int         _iOffset = 0;
+        protected LayoutSingleLine _oCache;
+        public    int         Advance { get; set; }
+
+        public SimpleCacheCaret( LayoutSingleLine oCache ) {
+            _oCache  = oCache;
+            _iOffset = 0;
         }
 
-        public override bool Load( TextReader oReader ) {
-            _iCumulativeCount = 0;
-			HighLight         = null;
+		public int ColorIndex {
+			get { return( 0 ); }
+		}
+
+        public override string ToString() {
+            return( "(" + _iOffset.ToString() + "...) " + Line.SubString( 0, 50 ) );
+        }
+
+        public int At {
+            get { return Line.At; }
+        }
+
+        public int Offset {
+            get { return _iOffset; }
             
-            try {
-                int    iLine   = -1;
-                string strLine = oReader.ReadLine();
-                while( strLine != null ) {
-                    ++iLine;
-                    Line oLine;
-                    if( iLine < _rgLines.ElementCount ) {
-                        oLine = _rgLines[iLine];
-                        oLine.TryDelete( 0, int.MaxValue, out string strRemoved );
-                        oLine.TryAppend( strLine );
-                        Raise_AfterLineUpdate( oLine, 0, strRemoved.Length, oLine.ElementCount );
-                    } else { 
-                        oLine = CreateLine( iLine, strLine );
-                        _rgLines.Insert( _rgLines.ElementCount, oLine );
-                        Raise_AfterInsertLine( oLine );
-                    }
-                        
-                    _iCumulativeCount = oLine.Summate( iLine, _iCumulativeCount );
-                    strLine = oReader.ReadLine();
-                }
-                while( _rgLines.ElementCount > iLine + 1 ) {
-                    int iDelete = _rgLines.ElementCount - 1;
-                    Raise_BeforeLineDelete( _rgLines[iDelete] );
-                    _rgLines.RemoveAt( iDelete );
-                }
-            } catch( Exception oE ) {
-                Type[] rgErrors = { typeof( IOException ),
-                                    typeof( NullReferenceException ),
-                                    typeof( ArgumentNullException ),
-                                    typeof( ArgumentException ) };
-                if( rgErrors.IsUnhandled( oE ) )
-                    throw;
+            set {
+                if( value > Line.ElementCount )
+                    value = Line.ElementCount;
+                if( value <= 0 )
+                    value = 0;
 
-                _oSiteBase.LogError( "editor", "Unable to read stream (file) contents." );
-
-                return( false );
-            } finally {
-                Raise_MultiFinished();
-                Raise_BufferEvent( BUFFEREVENTS.LOADED );  
+                _iOffset = value;
             }
+        }
+        
+        public int Length {
+            get { return 0; }
+            set { throw new ArgumentOutOfRangeException("Caret length is always zero" ); }
+        }
+        
+        public Line Line {
+            get { return Cache.Cache.Line; }
+            set {
+                if( value != Cache.Cache.Line )
+                    throw new ApplicationException(); 
+            }
+        }
 
-            return (true);
+        public LayoutSingleLine Cache {
+            get { return _oCache; }
+            // We'll remove this later.
+            set { _oCache = value ?? throw new ArgumentNullException(); }
         }
     }
 
@@ -144,19 +146,22 @@ namespace Mjolnir {
 
         public void Paint( SKCanvas skCanvas, IPgStandardUI2 oStdUI ) {
             SKPointI pntUL = this.GetPoint(LOCUS.UPPERLEFT);
-            using SKPaint skPaint = new SKPaint() { Color = SKColors.White };
+            using SKPaint skPaint = new SKPaint() { Color = SKColors.LightBlue };
 
             skCanvas.DrawRect( this.Left, this.Top, this.Width, this.Height, skPaint );
 
             Cache.Render( skCanvas, oStdUI, new PointF( pntUL.X, pntUL.Y ) );
         }
 
-        public override uint TrackDesired(AXIS eParentAxis, int uiRail) {
-            return eParentAxis switch {
-                AXIS.HORIZ => (uint)Cache.UnwrappedWidth,
-                AXIS.VERT  => (uint)Cache.Height,
-                _ => throw new ArgumentOutOfRangeException(),
-            };
+        public override uint TrackDesired(TRACK eParentAxis, int uiRail) {
+            switch( eParentAxis ) {
+                case TRACK.HORIZ: return (uint)Cache.UnwrappedWidth;
+                case TRACK.VERT : {
+                    Cache.OnChangeSize( uiRail );
+                    return (uint)Cache.Height;
+                }
+                default: throw new ArgumentOutOfRangeException();
+            }
         }
 
         /// <summary>
@@ -223,174 +228,149 @@ namespace Mjolnir {
 
             Cache.OnChangeFormatting( _rgSelections );
         }
-
     }
 
-    /// <remarks>
-    /// TODO: 1/6/2017 : We are an interesting hybrid tool on a document since we require a sister view 
-	/// to show our results. I should really create a "find" document & controller to centralize all this.
-    /// </remarks>
-    public partial class FindWindow : 
-		SKControl,
-		IEnumerable<ILineRange>,
-		IPgLoad,
-		IPgParent
-	{
-                  readonly MainWin       _oWinMain; 
+    public class FormsEditor : Editor {
+        public FormsEditor( IPgBaseSite oSite ) : base( oSite ) {
+        }
+
+        public override bool Load( TextReader oReader ) {
+            _iCumulativeCount = 0;
+			HighLight         = null;
+            
+            try {
+                int    iLine   = -1;
+                string strLine = oReader.ReadLine();
+                while( strLine != null ) {
+                    ++iLine;
+                    Line oLine;
+                    if( iLine < _rgLines.ElementCount ) {
+                        oLine = _rgLines[iLine];
+                        oLine.TryDelete( 0, int.MaxValue, out string strRemoved );
+                        oLine.TryAppend( strLine );
+                        Raise_AfterLineUpdate( oLine, 0, strRemoved.Length, oLine.ElementCount );
+                    } else { 
+                        oLine = CreateLine( iLine, strLine );
+                        _rgLines.Insert( _rgLines.ElementCount, oLine );
+                        Raise_AfterInsertLine( oLine );
+                    }
+                        
+                    _iCumulativeCount = oLine.Summate( iLine, _iCumulativeCount );
+                    strLine = oReader.ReadLine();
+                }
+                while( _rgLines.ElementCount > iLine + 1 ) {
+                    int iDelete = _rgLines.ElementCount - 1;
+                    Raise_BeforeLineDelete( _rgLines[iDelete] );
+                    _rgLines.RemoveAt( iDelete );
+                }
+            } catch( Exception oE ) {
+                Type[] rgErrors = { typeof( IOException ),
+                                    typeof( NullReferenceException ),
+                                    typeof( ArgumentNullException ),
+                                    typeof( ArgumentException ) };
+                if( rgErrors.IsUnhandled( oE ) )
+                    throw;
+
+                _oSiteBase.LogError( "editor", "Unable to read stream (file) contents." );
+
+                return( false );
+            } finally {
+                Raise_MultiFinished();
+                Raise_BufferEvent( BUFFEREVENTS.LOADED );  
+            }
+
+            return (true);
+        }
+    }
+
+    public class FormsWindow : SKControl {
 		protected readonly IPgViewSite   _oSiteView;
         protected readonly IPgViewNotify _oViewEvents; // Our site from the window manager (view interface).
 
-                 ViewChanged      _oViewChangedHandler;
-        readonly ParseHandlerText _oParseEvents       = null;
+        protected readonly List<LayoutSingleLine> _rgCacheList = new List<LayoutSingleLine>();
 
-        readonly Editor           _oDoc_SearchResults = null;
-		readonly SmartTable       _oLayout            = new SmartTable(5, LayoutRect.CSS.None );
-
-        IPgTextView             _oView; // This value changes when current view is switched.
-        IEnumerator<ILineRange> _oEnumResults;
-        TextPosition            _sEnumStart = new TextPosition( 0, 0 );
-
-        protected SimpleCacheCaret Caret { get; }
-        readonly LayoutSingleLine _oLayoutSearchKey;
-        readonly FormsEditor      _oDoc_SearchForm;
-
-        IPgStandardUI2 StdUI => _oWinMain.Document;
-        uint           StdText { get; set; }
+        protected Editor           DocForms { get; }
+        protected SimpleCacheCaret Caret    { get; }
+        public    uint             StdText  { get; set; }
+        protected IPgStandardUI2   StdUI    { get; }
 
         readonly static Keys[] _rgHandledKeys = { Keys.PageDown, Keys.PageUp, Keys.Down,
                                                   Keys.Up, Keys.Right, Keys.Left, Keys.Back,
                                                   Keys.Delete, Keys.Enter, Keys.Tab,
                                                   Keys.Control | Keys.A, Keys.Control | Keys.F };
 
-        /// <remarks>Look into moving more into the initnew() call. Too many event sinks happening in here!!</remarks>
-        public FindWindow( IPgViewSite oSiteView, MainWin oShell ) {
-			_oWinMain    = oShell    ?? throw new ArgumentNullException( "Shell reference must not be null" );
+        public FormsWindow( IPgViewSite oSiteView, Editor oDocForms ) {
 			_oSiteView   = oSiteView ?? throw new ArgumentNullException( "Find window needs a site!!" );
-            _oViewEvents = oSiteView.EventChain ?? throw new ArgumentException("Site.EventChain must support IPgViewSiteEvents");
-
-            _oDoc_SearchForm = (FormsEditor)_oWinMain.Document.SearchSlot.Document; 
-            _oDoc_SearchForm.LineAppend( string.Empty, fUndoable:false );
-            _oLayoutSearchKey = new LayoutSingleLine( new FTCacheWrap( _oDoc_SearchForm[0] ), LayoutRect.CSS.Flex) { Span = 4 };
-            Caret = new SimpleCacheCaret( _oLayoutSearchKey.Cache );
+            _oViewEvents = _oSiteView.EventChain ?? throw new ArgumentException("Site.EventChain must support IPgViewSiteEvents");
+            DocForms     = oDocForms ?? throw new ArgumentNullException( "Forms needes a text buffer" );
+            StdUI        = (IPgStandardUI2)oSiteView.Host.Services;
 
             Array.Sort<Keys>(_rgHandledKeys);
 
-            _oDoc_SearchResults = _oWinMain.Document.ResultsSlot.Document as Editor;
+            Caret = new SimpleCacheCaret( null );
+        }
 
-            // Whenever the search results tool window is navigated, I need to know.
-            // TODO: We've got the PlayHilights line which would be perfect for this.
-			// BUG: Move to InitNew().
-			if( oShell.DecorSoloSearch( "matches" ) is EditWindow2 oEditWin ) {
-				oEditWin.LineChanged += new Navigation( OnMatchNavigation );
-			}
+        public virtual void Submit() {
+        }
 
-            // This changed frmo ContextMenu to ContextMenuStrip in .net 5
+        // Let Forms know what keys we want sent our way.
+        protected override bool IsInputKey(Keys keyData) {
+            int iIndex = Array.BinarySearch<Keys>(_rgHandledKeys, keyData);
+
+            if (iIndex >= 0)
+                return (true);
+
+            return base.IsInputKey( keyData );
+        }
+
+        protected override void Dispose( bool disposing ) {
+            DocForms.CaretRemove( Caret ); // Unplug it so we won't get any callbacks when we're dead.
+            DocForms.BufferEvent -= Document_BufferEvent;
+
+            base.Dispose(disposing);
+        }
+
+        public virtual bool InitNew() {
+            // This changed from ContextMenu to ContextMenuStrip in .net 5
             if( this.ContextMenuStrip == null ) {
                 ContextMenuStrip oMenu = new ContextMenuStrip();
-                oMenu.Items.Add( new ToolStripMenuItem( "Cut",  null,  new EventHandler( this.OnCut    ), Keys.Control | Keys.X ) );
+                oMenu.Items.Add( new ToolStripMenuItem( "Cut",   null, new EventHandler( this.OnCut    ), Keys.Control | Keys.X ) );
                 oMenu.Items.Add( new ToolStripMenuItem( "Copy",  null, new EventHandler( this.OnCopy   ), Keys.Control | Keys.C ) );
                 oMenu.Items.Add( new ToolStripMenuItem( "Paste", null, new EventHandler( this.OnPaste  ), Keys.Control | Keys.V ) );
                 this.ContextMenuStrip = oMenu;
             }
-            InitializeComponent();
 
-			_oParseEvents = null;// _oDoc_SearchKey.ParseHandler;
-            if( _oParseEvents != null ) {
-                _oParseEvents.DisableParsing = oSearchType.SelectedItem.ToString() != "Regex";
-            }
-        }
-
-		/// <summary>
-		/// This is where we should be setting up the callbacks and extra.
-		/// </summary>
-		/// <returns></returns>
-		public bool InitNew() {
-            EventHandler oGotFocusHandler  = new EventHandler( this.OnChildFocus );
-            EventHandler oLostFocusHandler = new EventHandler( this.OnChildBlur  );
-            // Bind all the focus events. It would be nice if the children just
-            // automatically called some parent event. But I think that's fantasy.
-            foreach (Control oChild in Controls) {
-                oChild.GotFocus  += oGotFocusHandler;
-                oChild.LostFocus += oLostFocusHandler;
-            }
-
-            button1.Click += new System.EventHandler(this.Next_Click);
-            button2.Click += new System.EventHandler(this.SearchAll_Click);
-
-            _oDoc_SearchForm.BufferEvent += Document_BufferEvent;
-            _oDoc_SearchForm.CaretAdd( Caret ); // Document moves our caret and keeps it in sync.
-
-			// Accessing the SearchType dropdown, so it needs to be initialized, see above.
-			// TODO: Event calbacks are better set up in the InitNew(), and not in constructor.
-            oSearchType.SelectedIndexChanged  += new EventHandler(OnSearchTypesIndexChanged);
-
-            // BUG: Poster child for event problem. The OnViewChanged event @ startup has already occured.
-            //      so we don't know who's focused at the moment.
-            _oViewChangedHandler = new ViewChanged(OnViewChanged);
-            _oWinMain.ViewChanged += _oViewChangedHandler;
+            DocForms.BufferEvent += Document_BufferEvent;
+            DocForms.CaretAdd( Caret ); // Document moves our caret and keeps it in sync.
 
             SKSize sResolution = new SKSize(96, 96);
             using (Graphics oGraphics = this.CreateGraphics()) {
                 sResolution.Width  = oGraphics.DpiX;
                 sResolution.Height = oGraphics.DpiY;
             }
+
             StdText = StdUI.FontCache(StdUI.FaceCache(@"C:\windows\fonts\consola.ttf"), 12, sResolution);
-            _oLayoutSearchKey.Cache.Update(StdUI.FontRendererAt( StdText ) );
-
-            // If we the columns get too narrow, Labels might request double height,
-            // Even if they don't use it!
-			_oLayout.Add( new LayoutRect( LayoutRect.CSS.Pixels, 43, .25f ) );
-			_oLayout.Add( new LayoutRect( LayoutRect.CSS.Pixels, 43, .25f ) );
-			_oLayout.Add( new LayoutRect( LayoutRect.CSS.Pixels, 43, .25f ) );
-			_oLayout.Add( new LayoutRect( LayoutRect.CSS.Pixels, 43, .25f ) );
-			_oLayout.Add( new LayoutRect( LayoutRect.CSS.None ) );
-
-            _oLayout.AddRow( new List<LayoutRect>() { _oLayoutSearchKey } ); // Daaaamn! This is nice.
-
-			_oLayout.AddRow( new List<LayoutRect>() {
-			    new LayoutControl( oSearchType, LayoutRect.CSS.Flex ) { Span=1 },
-			    new LayoutControl( oMatchCase,  LayoutRect.CSS.Flex ) { Span=1 }
-            } );
-
-			_oLayout.AddRow( new List<LayoutRect>() {
-			    new LayoutControl( button1,  LayoutRect.CSS.Flex ),
-			    new LayoutControl( button2,  LayoutRect.CSS.Flex ),
-			    new LayoutControl( oGoto,    LayoutRect.CSS.Flex ),
-			    new LayoutControl( oResults, LayoutRect.CSS.Flex ) 
-            } );
-
-			_oLayout.SetRect( 0, 0, Width, Height );
-			_oLayout.LayoutChildren();
-
-			return true;
-		}
-
-        public bool IsSelection {
-            get {
-                if( Caret.At != _oLayoutSearchKey.Cache.At )
-                    return false;
-
-                SimpleRange oRange = _oLayoutSearchKey.Selection;
-
-                return( _oLayoutSearchKey.Selection.Length > 0 );
+            foreach( LayoutSingleLine oCache in _rgCacheList ) {
+                oCache.Cache.Update( StdUI.FontRendererAt( StdText ) );
             }
+
+            return true;
         }
 
+        /// <summary>
+        /// Just update the entire cache. We'll get more selective in the future.
+        /// </summary>
         private void Document_BufferEvent( BUFFEREVENTS eEvent ) {
             switch( eEvent ) {
                 case BUFFEREVENTS.SINGLELINE:
                 case BUFFEREVENTS.MULTILINE:
-                    _oLayoutSearchKey.Cache.Update( StdUI.FontRendererAt( StdText ) );
-                    _oLayoutSearchKey.Cache.OnChangeSize( this.Width );
+                    foreach( LayoutSingleLine oCache in _rgCacheList ) {
+                        oCache.Cache.Update( StdUI.FontRendererAt( StdText ) );
+                        oCache.Cache.OnChangeSize( oCache.Width );
+                    }
                     Invalidate();
                     break;
             }
-        }
-
-        protected override void OnPaintSurface(SKPaintSurfaceEventArgs e) {
-            base.OnPaintSurface(e);
-
-            _oLayoutSearchKey.Paint( e.Surface.Canvas, _oWinMain.Document );
         }
 
         public void CaretMove( Axis eAxis, int iDir ) {
@@ -398,11 +378,11 @@ namespace Mjolnir {
                 int iOffset  = Caret.Offset;
                 int iAdvance = Caret.Advance;
 
-                _oLayoutSearchKey.Selection.Length = 0;
-                _oLayoutSearchKey.OnChangeFormatting();
+                Caret.Cache.Selection.Length = 0;
+                Caret.Cache.OnChangeFormatting();
 
                 // If total miss, build a new screen based on the location of the caret.
-                FTCacheLine oElem = _oLayoutSearchKey.Cache;
+                FTCacheLine oElem = Caret.Cache.Cache;
 
                 if( iDir != 0 ) {
                     // First, see if we can navigate within the line we are currently at.
@@ -411,13 +391,12 @@ namespace Mjolnir {
 
                         FTCacheLine oNext = null; // PreCache( oElem.At + iDir );
                         if( oNext != null ) {
-                            // Find out where to place the cursor as it moves to the next line.
                             iOffset = oNext.OffsetBound( eAxis, iDir * -1, iAdvance );
                             oElem   = oNext;
                         }
                     }
                     // If going up or down ends up null, we won't be moving the caret.
-                    Caret.Cache   = oElem;
+                    //Caret.Cache   = oElem;
                     Caret.Offset  = iOffset;
                     Caret.Advance = iAdvance;
                 }
@@ -443,25 +422,39 @@ namespace Mjolnir {
             Invalidate();
         }
 
-        // Let Forms know what keys we want sent our way.
-        protected override bool IsInputKey(Keys keyData) {
-            int iIndex = Array.BinarySearch<Keys>(_rgHandledKeys, keyData);
+        protected void CaretIconRefresh() {
+            if( Focused != true )
+                return;
 
-            if (iIndex >= 0)
-                return (true);
-
-            return base.IsInputKey( keyData );
+            if( Caret.Cache != null ) {
+                SKPointI pntCaretWorldLoc  = Caret.Cache.CaretWorldPosition( Caret ); 
+                SKPointI pntCaretScreenLoc = new SKPointI( pntCaretWorldLoc.X + Caret.Cache.Left, 
+                                                           pntCaretWorldLoc.Y + Caret.Cache.Top );
+                if( Caret.Cache.IsInside( pntCaretWorldLoc.X, pntCaretWorldLoc.Y ) ) {
+                    User32.SetCaretPos(pntCaretScreenLoc.X, pntCaretScreenLoc.Y);
+                } else {
+                    User32.SetCaretPos( -10, -10 ); // Park it off screen.
+                }
+            }
         }
 
-        public void OnKeyDown_Arrows( Axis eAxis, int iDir ) {
-            CaretMove( eAxis, iDir );
+        /// <summary>
+        /// See if there is non zero selection on the cache element pointed to by the caret.
+        /// </summary>
+        public bool IsSelection {
+            get {
+                if( Caret.Cache == null )
+                    return false;
+
+                return( Caret.Cache.Selection.Length > 0 );
+            }
         }
 
         public void OnKey_Delete( bool fBackSpace ) {
             try {
-                using Editor.Manipulator oBulk = _oDoc_SearchForm.CreateManipulator();
+                using Editor.Manipulator oBulk = DocForms.CreateManipulator();
                 if( IsSelection ) {
-                    oBulk.LineTextDelete( Caret.At, _oLayoutSearchKey.Selection );
+                    oBulk.LineTextDelete( Caret.At, Caret.Cache.Selection );
                 } else {
                     if( fBackSpace ) {
                         if( Caret.Offset > 0 ) {
@@ -496,12 +489,12 @@ namespace Mjolnir {
 
                 if( !char.IsControl( e.KeyChar ) || e.KeyChar == 0x0009 ) { 
                     if( IsSelection ) {
-                        using( Editor.Manipulator oBulk = _oDoc_SearchForm.CreateManipulator() ) {
-                            oBulk.LineTextDelete( Caret.At, _oLayoutSearchKey.Selection );
+                        using( Editor.Manipulator oBulk = DocForms.CreateManipulator() ) {
+                            oBulk.LineTextDelete( Caret.At, Caret.Cache.Selection );
                             oBulk.LineCharInsert( Caret.At, Caret.Offset, e.KeyChar );
                         }
                     } else {
-                        _oDoc_SearchForm.LineCharInsert( Caret.At, Caret.Offset, e.KeyChar);
+                        DocForms.LineCharInsert( Caret.At, Caret.Offset, e.KeyChar);
                     }
                     // Find the new carat position and update its screen location. 
                     OnKeyDown_Arrows( Axis.Horizontal, 0 );
@@ -515,6 +508,62 @@ namespace Mjolnir {
                     throw;
                 _oSiteView.LogError( "Forms", "Unable to accept character." );
             }
+        }
+
+        protected override void OnPaintSurface(SKPaintSurfaceEventArgs e) {
+            base.OnPaintSurface(e);
+
+            SKCanvas skCanvas = e.Surface.Canvas;
+
+            foreach( LayoutSingleLine oCache in _rgCacheList ) {
+                skCanvas.Save();
+                skCanvas.ClipRect( new SKRect( oCache.Left, oCache.Top, oCache.Right, oCache.Bottom ), SKClipOperation.Intersect );
+                oCache.Paint( e.Surface.Canvas, StdUI );
+                skCanvas.Restore();
+            }
+        }
+
+        /// <summary>
+        /// We'll need to change this to the layout update code. FindWindow
+        /// overrides this behavior completely.
+        /// </summary>
+        /// <seealso cref="FindWindow.OnSizeChanged(EventArgs)"/>
+        protected override void OnSizeChanged( EventArgs e ) {
+            foreach( LayoutSingleLine oCache in _rgCacheList ) {
+                oCache.Cache.OnChangeSize( oCache.Width );
+            }
+            CaretIconRefresh();
+            Invalidate();
+        }
+
+        protected override void OnGotFocus(EventArgs e) {
+            base.OnGotFocus( e );
+
+            _oSiteView.EventChain.NotifyFocused(true);
+
+            // Not perfect but getting better...
+            int iLineHeight = (int)(StdUI.FontRendererAt( StdText ).FontHeight * 1.5 );
+
+            User32.CreateCaret( this.Handle, IntPtr.Zero, 2, iLineHeight );
+            CaretIconRefresh(); 
+            User32.ShowCaret  ( this.Handle );
+
+            Point oMouse = PointToClient( MousePosition );
+
+            this.Invalidate();
+        }
+
+        protected override void OnLostFocus(EventArgs e) {
+            base.OnLostFocus( e );
+
+            User32.DestroyCaret();
+            _oSiteView.EventChain.NotifyFocused(false);
+
+            this.Invalidate();
+        }
+
+        protected void OnKeyDown_Arrows( Axis eAxis, int iDir ) {
+            CaretMove( eAxis, iDir );
         }
 
         protected override void OnKeyDown(KeyEventArgs e) {
@@ -543,7 +592,7 @@ namespace Mjolnir {
                     break;
 
                 case Keys.Enter:
-                    Next_Click( null, e );
+                    Submit();
                     break;
                 case Keys.Tab:
                     //_oViewEvents.IsCommandKey( CommandKey.Tab, (KeyBoardEnum)e.Modifiers );
@@ -569,7 +618,7 @@ namespace Mjolnir {
                         Invalidate();
                         return( true );
                     case Keys.Control | Keys.Z:
-                        _oDoc_SearchForm.Undo();
+                        DocForms.Undo();
                         return( true );
                     case Keys.Control | Keys.V:
                         ClipboardPasteFrom( Clipboard.GetDataObject(), ClipboardOperations.Default );
@@ -587,30 +636,18 @@ namespace Mjolnir {
             return base.ProcessCmdKey( ref msg, keyData );
         } // end method
 
-        private void CaretIconRefresh() {
-            if( Focused != true )
-                return;
-
-            // We'll have more than one control eventually.
-            //if( ) {
-                SKPointI pntCaretWorldLoc  = _oLayoutSearchKey.CaretWorldPosition( Caret ); 
-                SKPointI pntCaretScreenLoc = new SKPointI( pntCaretWorldLoc.X + _oLayoutSearchKey.Left, 
-                                                           pntCaretWorldLoc.Y + _oLayoutSearchKey.Top );
-
-                User32.SetCaretPos(pntCaretScreenLoc.X, pntCaretScreenLoc.Y);
-            //} else {
-            //    if( _oCacheMan.Count == 0 ) 
-            //        User32.SetCaretPos( _oScrollBarVirt.Width, 0 );
-            //    else
-            //        User32.SetCaretPos( -10, -_oCacheMan.FontHeight ); // Park it off screen.
-            //}
-        }
-
         protected override void OnMouseDown(MouseEventArgs e) {
             base.OnMouseDown( e );
             Select();
 
-            _oLayoutSearchKey.SelectHead( Caret, e.Location, ModifierKeys == Keys.Shift );
+            // Set the caret for sure if hit. If not just leave it where ever it was.
+            foreach( LayoutSingleLine oCache in _rgCacheList ) {
+                if( oCache.IsInside( e.X, e.Y ) ) {
+                    Caret.Cache = oCache;
+
+                    oCache.SelectHead( Caret, e.Location, ModifierKeys == Keys.Shift );
+                }
+            }
 
             CaretIconRefresh();
             Invalidate();
@@ -619,20 +656,23 @@ namespace Mjolnir {
         protected override void OnMouseMove(MouseEventArgs e) {
             base.OnMouseMove(e);
 
-            if( _oLayoutSearchKey.IsInside( e.Location.X, e.Location.Y ) ) {
-                Cursor = Cursors.IBeam;
-            } else {
-                Cursor = Cursors.Arrow;
+            foreach( LayoutSingleLine oCache in _rgCacheList ) {
+                if( oCache.IsInside( e.X, e.Y ) ) {
+                    Cursor = Cursors.IBeam;
+                    break;
+                } else {
+                    Cursor = Cursors.Arrow;
+                }
             }
 
-            if ((e.Button & MouseButtons.Left) == MouseButtons.Left &&
-                e.Clicks == 0)
-            {
-                _oLayoutSearchKey.SelectNext( Caret, e.Location );
+            if ((e.Button & MouseButtons.Left) == MouseButtons.Left && e.Clicks == 0 ) {
+                if( Caret.Cache != null ) {
+                    Caret.Cache.SelectNext( Caret, e.Location );
 
-                CaretIconRefresh();
-                Invalidate();
-                Update();
+                    CaretIconRefresh();
+                    Invalidate();
+                    Update();
+                }
             }
         }
 
@@ -653,8 +693,8 @@ namespace Mjolnir {
 
         protected void SelectionDelete() {
             if( IsSelection ) {
-                using( Editor.Manipulator oBulk = _oDoc_SearchForm.CreateManipulator() ) {
-                    oBulk.LineTextDelete( Caret.At, _oLayoutSearchKey.Selection );
+                using( Editor.Manipulator oBulk = DocForms.CreateManipulator() ) {
+                    oBulk.LineTextDelete( Caret.At, Caret.Cache.Selection );
                 }
             }
         }
@@ -677,9 +717,9 @@ namespace Mjolnir {
 			// option to choose the desired portion of any complex object.
 			try {
 				if( IsSelection ) {
-					oSelection = _oLayoutSearchKey.Selection;
+					oSelection = Caret.Cache.Selection;
 				} else {
-					oSelection = new ColorRange( 0, _oLayoutSearchKey.Cache.Line.ElementCount, 0 );
+					oSelection = new ColorRange( 0, Caret.Cache.Cache.Line.ElementCount, 0 );
  				}
 				if( oSelection != null ) {
 					string strSelection = Caret.Line.SubString( oSelection.Offset, oSelection.Length );
@@ -710,9 +750,9 @@ namespace Mjolnir {
                     sOperation == ClipboardOperations.Default 
                   ) {
                     string strPaste = oDataObject.GetData(typeof(System.String)) as string;
-                    using( Editor.Manipulator oBulk = new Editor.Manipulator( _oDoc_SearchForm ) ) {
+                    using( Editor.Manipulator oBulk = new Editor.Manipulator( DocForms ) ) {
                         if( IsSelection ) {
-                            oBulk.LineTextDelete( Caret.At, _oLayoutSearchKey.Selection );
+                            oBulk.LineTextDelete( Caret.At, Caret.Cache.Selection );
                         }
                         using( TextReader oReader = new StringReader( strPaste )  ) {
                             oBulk.StreamInsert( Caret.At, Caret.Offset, oReader );
@@ -726,6 +766,115 @@ namespace Mjolnir {
                     throw;
             }
         }
+    }
+
+    /// <remarks>
+    /// TODO: 1/6/2017 : We are an interesting hybrid tool on a document since we require a sister view 
+	/// to show our results. I should really create a "find" document & controller to centralize all this.
+    /// </remarks>
+    public partial class FindWindow : 
+		FormsWindow,
+		IEnumerable<ILineRange>,
+		IPgLoad,
+		IPgParent
+	{
+        readonly MainWin _oWinMain; 
+
+                 ViewChanged      _oViewChangedHandler;
+        readonly ParseHandlerText _oParseEvents       = null;
+        readonly Editor           _oDoc_SearchResults = null;
+		readonly SmartTable       _oLayout            = new SmartTable(5, LayoutRect.CSS.None );
+
+        IPgTextView             _oView; // This value changes when current view is switched.
+        IEnumerator<ILineRange> _oEnumResults;
+        TextPosition            _sEnumStart = new TextPosition( 0, 0 );
+
+        readonly LayoutSingleLine _oLayoutSearchKey;
+
+		public IPgParent Parentage => _oWinMain;
+		public IPgParent Services  => Parentage.Services;
+
+        public FindWindow( IPgViewSite oSiteView, MainWin oShell ) : 
+            base( oSiteView, (Editor)oShell.Document.SearchSlot.Document )
+        {
+			_oWinMain = oShell ?? throw new ArgumentNullException( "Shell reference must not be null" );
+
+            DocForms.LineAppend( string.Empty, fUndoable:false );
+            _oLayoutSearchKey = new LayoutSingleLine( new FTCacheWrap( DocForms[0] ), LayoutRect.CSS.Flex) { Span = 4 };
+            Caret.Cache = _oLayoutSearchKey;
+            _rgCacheList.Add( _oLayoutSearchKey );
+
+            _oDoc_SearchResults = _oWinMain.Document.ResultsSlot.Document as Editor;
+
+            InitializeComponent();
+
+			_oParseEvents = null;// _oDoc_SearchKey.ParseHandler;
+            if( _oParseEvents != null ) {
+                _oParseEvents.DisableParsing = oSearchType.SelectedItem.ToString() != "Regex";
+            }
+        }
+
+		/// <summary>
+		/// This is where we should be setting up the callbacks and extra.
+		/// </summary>
+		/// <returns></returns>
+		public override bool InitNew() {
+            if( !base.InitNew() )
+                return false;
+
+            EventHandler oGotFocusHandler  = new EventHandler( this.OnChildFocus );
+            EventHandler oLostFocusHandler = new EventHandler( this.OnChildBlur  );
+            // Bind all the focus events. It would be nice if the children just
+            // automatically called some parent event. But I think that's fantasy.
+            foreach (Control oChild in Controls) {
+                oChild.GotFocus  += oGotFocusHandler;
+                oChild.LostFocus += oLostFocusHandler;
+            }
+
+            button1.Click += new System.EventHandler(this.Next_Click);
+            button2.Click += new System.EventHandler(this.SearchAll_Click);
+
+            // Whenever the search results tool window is navigated, I need to know.
+            // TODO: We've got the PlayHilights line which would be perfect for this.
+			if( _oWinMain.DecorSoloSearch( "matches" ) is EditWindow2 oEditWin ) {
+				oEditWin.LineChanged += new Navigation( OnMatchNavigation );
+			}
+
+			// Accessing the SearchType dropdown, so it needs to be initialized, see above.
+            oSearchType.SelectedIndexChanged  += new EventHandler(OnSearchTypesIndexChanged);
+
+            // BUG: Poster child for event problem. The OnViewChanged event @ startup has already occured.
+            //      so we don't know who's focused at the moment.
+            _oViewChangedHandler = new ViewChanged(OnViewChanged);
+            _oWinMain.ViewChanged += _oViewChangedHandler;
+
+            // If we the columns get too narrow, Labels might request double height,
+            // Even if they don't use it!
+			_oLayout.Add( new LayoutRect( LayoutRect.CSS.Pixels, 43, .25f ) );
+			_oLayout.Add( new LayoutRect( LayoutRect.CSS.Pixels, 43, .25f ) );
+			_oLayout.Add( new LayoutRect( LayoutRect.CSS.Pixels, 43, .25f ) );
+			_oLayout.Add( new LayoutRect( LayoutRect.CSS.Pixels, 43, .25f ) );
+			_oLayout.Add( new LayoutRect( LayoutRect.CSS.None ) );
+
+            _oLayout.AddRow( new List<LayoutRect>() { _oLayoutSearchKey } ); // Daaaamn! This is nice.
+
+			_oLayout.AddRow( new List<LayoutRect>() {
+			    new LayoutControl( oSearchType, LayoutRect.CSS.Flex ) { Span=1 },
+			    new LayoutControl( oMatchCase,  LayoutRect.CSS.Flex ) { Span=1 }
+            } );
+
+			_oLayout.AddRow( new List<LayoutRect>() {
+			    new LayoutControl( button1,  LayoutRect.CSS.Flex ),
+			    new LayoutControl( button2,  LayoutRect.CSS.Flex ),
+			    new LayoutControl( oGoto,    LayoutRect.CSS.Flex ),
+			    new LayoutControl( oResults, LayoutRect.CSS.Flex ) 
+            } );
+
+			_oLayout.SetRect( 0, 0, Width, Height );
+			_oLayout.LayoutChildren();
+
+			return true;
+		}
 
         void Reset() {
             _oEnumResults = null;
@@ -737,9 +886,6 @@ namespace Mjolnir {
 		}
 
         public string ResultsTitle { get { return( "Results" ); } }
-
-		public IPgParent Parentage => _oWinMain;
-		public IPgParent Services  => Parentage.Services;
 
 		void OnMatchNavigation( int iLine ) {
             try {
@@ -764,16 +910,14 @@ namespace Mjolnir {
             }
         }
 
-        void Regex_SelectedIndexChanged(object sender, System.EventArgs e)
-        {
+        void Regex_SelectedIndexChanged(object sender, System.EventArgs e) {
             Reset();
         }
 
-        void MoveCaretToLineAndShow()
-        {
+        void MoveCaretToLineAndShow() {
             try {
                 int iRequestedLine = 0;
-                if( int.TryParse( _oDoc_SearchForm.GetLine( 0 ).ToString(), out iRequestedLine ) ) {
+                if( int.TryParse( DocForms[0].ToString(), out iRequestedLine ) ) {
                     iRequestedLine -= 1;
 
 					_oView.SelectionSet( iRequestedLine, 0, 0 );
@@ -823,6 +967,10 @@ namespace Mjolnir {
 		protected override void OnSizeChanged(EventArgs e) {
 			_oLayout.SetRect( 0, 0, Width, Height );
 			_oLayout.LayoutChildren();
+
+            CaretIconRefresh();
+
+            Invalidate();
 
 			//base.OnSizeChanged(e);
 		}
@@ -983,11 +1131,11 @@ namespace Mjolnir {
 			try {
 				switch( oSearchType.SelectedItem.ToString() ) {
 					case "Text":
-						return( CreateTextEnum( _oView.DocumentText as IReadableBag<Line>, _oDoc_SearchForm[0].ToString(), _oView.Caret.Line ) );
+						return CreateTextEnum( _oView.DocumentText as IReadableBag<Line>, DocForms[0].ToString(), _oView.Caret.Line );
 					case "Regex":
-						return( CreateRegexEnum( _oView.DocumentText as IReadableBag<Line>, _oDoc_SearchForm[0].ToString(), _oView.Caret.Line ) );
+						return CreateRegexEnum( _oView.DocumentText as IReadableBag<Line>, DocForms[0].ToString(), _oView.Caret.Line );
 					case "Line":
-						return( CreateLineNumberEnum( _oView.DocumentText as IReadableBag<Line>, _oDoc_SearchForm[0].ToString() ) );
+						return CreateLineNumberEnum( _oView.DocumentText as IReadableBag<Line>, DocForms[0].ToString() );
 				}
 			} catch( NullReferenceException ) {
                 _oWinMain.LogError( null, "search", "Problem generating Search enumerators." );
@@ -1008,6 +1156,12 @@ namespace Mjolnir {
         /// focus to the searched view. There is a goto hyperlink for that in the dialog.
         /// </summary>
         private void Next_Click( object sender, EventArgs e ) {
+            Submit();
+        }
+
+        public override void Submit() {
+            base.Submit();
+
             _oDoc_SearchResults.Clear();
 
             if( _oEnumResults == null ) {
@@ -1085,32 +1239,6 @@ namespace Mjolnir {
                 } catch ( NullReferenceException ) {
                 }
             }
-        }
-
-        protected override void OnGotFocus(EventArgs e) {
-            base.OnGotFocus( e );
-
-            _oSiteView.EventChain.NotifyFocused(true);
-
-            // Not perfect but getting better...
-            int iLineHeight = (int)(StdUI.FontRendererAt( StdText ).FontHeight * 1.5 );
-
-            User32.CreateCaret( this.Handle, IntPtr.Zero, 2, iLineHeight );
-            CaretIconRefresh(); 
-            User32.ShowCaret  ( this.Handle );
-
-            Point oMouse = PointToClient( MousePosition );
-
-            this.Invalidate();
-        }
-
-        protected override void OnLostFocus(EventArgs e) {
-            base.OnLostFocus( e );
-
-            User32.DestroyCaret();
-            _oSiteView.EventChain.NotifyFocused(false);
-
-            this.Invalidate();
         }
 
         /// <summary>

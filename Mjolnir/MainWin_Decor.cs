@@ -19,11 +19,11 @@ namespace Mjolnir {
 		readonly List<SmartBinder> _rgSpacers = new List<SmartBinder>();
 				 uint              _uiSpacer;
 
-		public SideRect( AXIS eDir, uint uiSpacer ) : base( eDir, 0 ) {
+		public SideRect( TRACK eDir, uint uiSpacer ) : base( eDir, 0 ) {
 			_uiSpacer = uiSpacer;
 		}
 
-		public SideRect( AXIS eDir, uint uiSpacer, uint uiTrack, float flMaxPercent ) : 
+		public SideRect( TRACK eDir, uint uiSpacer, uint uiTrack, float flMaxPercent ) : 
 			base( eDir, 0, uiTrack, flMaxPercent ) 
 		{
 			_uiSpacer = uiSpacer;
@@ -691,10 +691,10 @@ namespace Mjolnir {
 
 			// Sort 'em so they'll insert somewhere near where dragged.
             switch( oSide.Direction ){
-				case AXIS.VERT:
+				case TRACK.VERT:
 					rgSort.Sort( new CompareVertical() );
 					break;
-				case AXIS.HORIZ:
+				case TRACK.HORIZ:
 					rgSort.Sort( new CompareHorizontal() );
 					break;
 			}

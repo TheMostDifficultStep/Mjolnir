@@ -18,8 +18,8 @@ namespace Play.Edit {
 			Cache = oCache ?? throw new ArgumentNullException();
 		}
 
-		public override uint TrackDesired(AXIS eParentAxis, int uiRail) {
-			if( eParentAxis == AXIS.VERT ) {
+		public override uint TrackDesired(TRACK eParentAxis, int uiRail) {
+			if( eParentAxis == TRACK.VERT ) {
 				if (Cache is CacheWrapped oWrap) {
 					List<int> rgSides = new List<int>(2) { 0, (int)uiRail };
 					oWrap.WrapSegmentsCreate( this.Width );
@@ -28,7 +28,7 @@ namespace Play.Edit {
 
 			int iValue = 0;
             
-            if( eParentAxis == AXIS.HORIZ )
+            if( eParentAxis == TRACK.HORIZ )
                 iValue = Cache.Width;
             else
                 iValue = Cache.Height;
@@ -67,10 +67,10 @@ namespace Play.Edit {
 		/// </summary>
 		/// <param name="eParentAxis"></param>
 		/// <param name="uiRail"></param>
-		public override uint TrackDesired(AXIS eParentAxis, int uiRail) {
+		public override uint TrackDesired(TRACK eParentAxis, int uiRail) {
 			int iValue = 0;
             
-            if( eParentAxis == AXIS.HORIZ ) {
+            if( eParentAxis == TRACK.HORIZ ) {
                 iValue = Cache.UnwrappedWidth + 10; // BUG: need to add a bit, else it wraps.
 			} else {
  				Cache.OnChangeSize( uiRail );

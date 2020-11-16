@@ -782,6 +782,11 @@ namespace Play.Edit {
             return( i );
         }
 
+        /// <summary>
+        /// When moving from a different cache element this function returns the
+        /// offset position for the carat on the new element.
+        /// </summary>
+        /// <returns>Offset position.</returns>
         public int OffsetBound( Axis eAxis, int iIncrement, int iAdvance ) {
             switch( eAxis ) {
                 case Axis.Horizontal:

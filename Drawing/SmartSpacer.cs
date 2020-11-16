@@ -107,14 +107,14 @@ namespace Play.Rectangles {
         SmartRect _oTwo;
         SCALAR    _eSideTwo;
 
-        public SmartSpacer( AXIS eDir, SmartRect oOne, SmartRect oTwo, int iPixelTrack ) :
+        public SmartSpacer( TRACK eDir, SmartRect oOne, SmartRect oTwo, int iPixelTrack ) :
 			base( iPixelTrack )
         {
             _oOne = oOne;
             _oTwo = oTwo;
 
-            _eSideOne = eDir == AXIS.VERT ? SCALAR.BOTTOM : SCALAR.RIGHT;
-            _eSideTwo = eDir == AXIS.VERT ? SCALAR.TOP    : SCALAR.LEFT;
+            _eSideOne = eDir == TRACK.VERT ? SCALAR.BOTTOM : SCALAR.RIGHT;
+            _eSideTwo = eDir == TRACK.VERT ? SCALAR.TOP    : SCALAR.LEFT;
         }
 
         /// <summary>
@@ -131,7 +131,7 @@ namespace Play.Rectangles {
 
     public class SmartSpacerDrag : SmartGrabDrag
     {
-		AXIS _eAxis;
+		TRACK _eAxis;
 
         /// <summary>
         /// This constructor is used to drag the spacer and thus re-size the adornments
@@ -140,7 +140,7 @@ namespace Play.Rectangles {
         public SmartSpacerDrag(
             DragFinished oFinished,
             SmartRect    oGuest,
-			AXIS		 eAxis,
+			TRACK		 eAxis,
             int          iX,
             int          iY ) : 
             base( oFinished, oGuest, SET.RIGID, LOCUS.UPPERLEFT, iX, iY )
@@ -154,11 +154,11 @@ namespace Play.Rectangles {
         protected override void SetPoint( int iX, int iY ) 
         {
             switch( _eAxis ) {
-                case AXIS.VERT:
+                case TRACK.VERT:
                     // Dragging us up and down.
                     Guest.SetPoint(SET.RIGID, LOCUS.UPPERLEFT, this.GetScalar(SCALAR.LEFT), iY );
                     break;
-                case AXIS.HORIZ:
+                case TRACK.HORIZ:
                     // Dragging us left and right.
                     Guest.SetPoint(SET.RIGID, LOCUS.UPPERLEFT, iX, this.GetScalar(SCALAR.TOP));
                     break;

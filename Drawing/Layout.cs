@@ -38,7 +38,7 @@ namespace Play.Rectangles {
 		public int   Span  { get; set; } = 0; // CSS span value minus 1. Bummer here but shared with SmartTable.
 		public bool  Hidden = false;
 
-		public virtual uint TrackDesired( AXIS eParentAxis, int uiRail ) { return Track; }
+		public virtual uint TrackDesired( TRACK eParentAxis, int uiRail ) { return Track; }
 		public virtual void Invalidate() { }
 	}
 
@@ -86,20 +86,20 @@ namespace Play.Rectangles {
 	{
 		protected List<LayoutRect> _rgLayout = new List<LayoutRect>();
 
-		public AXIS Direction { get; set; }
+		public TRACK Direction { get; set; }
 
-		public LayoutStack( AXIS eAxis, uint uiMargin ) : 
+		public LayoutStack( TRACK eAxis, uint uiMargin ) : 
 			base( uiMargin ) 
 		{
 			Direction = eAxis;
 		}
-        public LayoutStack(AXIS eAxis, CSS eUnits, uint uiMargin) :
+        public LayoutStack(TRACK eAxis, CSS eUnits, uint uiMargin) :
             base(eUnits, uiMargin, 0, 0 )
         {
             Direction = eAxis;
         }
         
-        protected LayoutStack( AXIS eAxis, uint uiMargin, uint uiTrackFromParent, float flMaxPercent ) : 
+        protected LayoutStack( TRACK eAxis, uint uiMargin, uint uiTrackFromParent, float flMaxPercent ) : 
 			base( CSS.Pixels, uiMargin, uiTrackFromParent, flMaxPercent ) 
 		{
 			Direction = eAxis;
@@ -128,7 +128,7 @@ namespace Play.Rectangles {
 			}
 		}
 
-		public override uint TrackDesired( AXIS eParentAxis, int uiRailsExtent ) {
+		public override uint TrackDesired( TRACK eParentAxis, int uiRailsExtent ) {
 			return (uint)GetTrack( eParentAxis ).Distance; // BUG: Revisit this.
 		}
 
@@ -227,7 +227,15 @@ namespace Play.Rectangles {
 					}
 				}
 
-				// This is the "box car" for current section of track we are calculating. ^_^
+				// So once the track is set, some objects might want more height (rail).
+				//for( int i = 0; i<Count; ++i ) {
+				//	uint uiItemRail = Item(i).TrackDesired( Direction, (int)_rgTrack[i] );
+				//	if( uiItemRail > uiRailsDistance )
+				//		uiRailsDistance = uiItemRail;
+				//}
+				//extRail.Stop = extRail.Start + (int)uiRailsDistance;
+
+				// This is a "box car" for current section of track we are calculating. ^_^
 				Extent extCarriageTrack = new Extent( extTrack.Start, 0 ); 
 
 				// This is fortuous, we only set the client position/size at the end of all our work.
@@ -256,7 +264,7 @@ namespace Play.Rectangles {
 		}
 
 		protected virtual void SetRect( Extent pntRails, Extent pntTrack, SmartRect oClient ) {
-			if( Direction == AXIS.VERT ) {
+			if( Direction == TRACK.VERT ) {
 				oClient.SetRect( pntRails.Start, pntTrack.Start, pntRails.Stop, pntTrack.Stop );
 			} else {
 				oClient.SetRect( pntTrack.Start, pntRails.Start, pntTrack.Stop, pntRails.Stop );
@@ -265,11 +273,11 @@ namespace Play.Rectangles {
 	}
 
 	public class LayoutStackVertical : LayoutStack {
-		public LayoutStackVertical( uint uiMargin ) : base( AXIS.VERT, uiMargin ) {
+		public LayoutStackVertical( uint uiMargin ) : base( TRACK.VERT, uiMargin ) {
 		}
 
 		public LayoutStackVertical( uint uiMargin, uint uiTrack, float flMaxPercent ) : 
-			base( AXIS.VERT, uiMargin, uiTrack, flMaxPercent ) 
+			base( TRACK.VERT, uiMargin, uiTrack, flMaxPercent ) 
 		{
 		}
 
@@ -279,11 +287,11 @@ namespace Play.Rectangles {
 	}
 
 	public class LayoutStackHorizontal : LayoutStack {
-		public LayoutStackHorizontal( uint uiMargin ) : base( AXIS.HORIZ, uiMargin ) {
+		public LayoutStackHorizontal( uint uiMargin ) : base( TRACK.HORIZ, uiMargin ) {
 		}
 
 		public LayoutStackHorizontal( uint uiMargin, uint uiTrack, float flMaxPercent ) : 
-			base( AXIS.HORIZ, uiMargin, uiTrack, flMaxPercent ) 
+			base( TRACK.HORIZ, uiMargin, uiTrack, flMaxPercent ) 
 		{
 		}
 
@@ -355,7 +363,7 @@ namespace Play.Rectangles {
                     oColumn.Track = 0;
                     foreach( LayoutStack oRow in _oRowStack ) {
                         LayoutRect oCell          = oRow.Item(iColumn);
-        				uint       uiTrackDesired = oCell.TrackDesired(AXIS.HORIZ, iHeight);
+        				uint       uiTrackDesired = oCell.TrackDesired(TRACK.HORIZ, iHeight);
 
                         if( oColumn.Track < uiTrackDesired ) {
                             oColumn.Track = uiTrackDesired;
@@ -375,11 +383,11 @@ namespace Play.Rectangles {
             return true;
         }
 
-        public override uint TrackDesired(AXIS eParentAxis, int iRail) {
+        public override uint TrackDesired(TRACK eParentAxis, int iRail) {
             switch( eParentAxis ) {
-                case AXIS.HORIZ:
+                case TRACK.HORIZ:
                     return (uint)Width;
-                case AXIS.VERT:
+                case TRACK.VERT:
                     HeightDesired( iRail );
                     return _oRowStack.Track;
             }
@@ -405,7 +413,7 @@ namespace Play.Rectangles {
                     foreach( LayoutRect oCell in oRow ) {
                         int  iLeft   = _oColStack.Item(iColumn             ).Left;
                         int  iRight  = _oColStack.Item(iColumn + oCell.Span).Right;
-                        uint uiTrack = oCell.TrackDesired( AXIS.VERT, iRight - iLeft );
+                        uint uiTrack = oCell.TrackDesired( TRACK.VERT, iRight - iLeft );
 
 						if( uiTrack > oRow.Track )
 							oRow.Track = uiTrack;
@@ -452,7 +460,7 @@ namespace Play.Rectangles {
                         int iRight      = _oColStack.Item(iColumn + oCell.Span).Right;
                         int iTop        = iRowStart;
                         int iBottom     = iRowStart + (int)oRow.Track;
-                        int iHeightDiff = (int)(oRow.Track - oCell.TrackDesired(AXIS.VERT, iRight - iLeft));
+                        int iHeightDiff = (int)(oRow.Track - oCell.TrackDesired(TRACK.VERT, iRight - iLeft));
 
                         // vertical justify...BUG need this switched off/on
                         if (iHeightDiff > 0) {

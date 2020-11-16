@@ -224,21 +224,34 @@ namespace Play.Edit {
             return true;
         }
 
+        protected void WrapSegmentNoWordsCreate( int iDisplayWidth ) {
+            iDisplayWidth <<= 6;
+            int iAdvance = 0;
+            _iWrapCount  = 0;
+
+            for( int iCluster = 0; iCluster < _rgClusters.Count; ++iCluster ) {
+                iAdvance = _rgClusters[iCluster].Increment( iAdvance, _iWrapCount );
+                if( iAdvance > iDisplayWidth ) {
+                    iAdvance = 0;
+                    _iWrapCount++;
+                }
+            }
+        }
+
         public override void WrapSegmentsCreate( int iDisplayWidth ) {
             if( _rgClusters.Count < 1 )
                 return;
 
-            // We could actually just wrap without word info, look into that later.
-            if( Words.Count == 0 ) {
-                base.WrapSegmentsCreate( iDisplayWidth );
-                return;
-            }
-
-            int iAdvance  = 0;
-            iDisplayWidth <<= 6;
-            _iWrapCount   = 0;
-
             try {
+                // We could actually just wrap without word info, look into that later.
+                if( Words.Count == 0 ) {
+                    WrapSegmentNoWordsCreate( iDisplayWidth );
+                    return;
+                }
+
+                iDisplayWidth <<= 6;
+                int iAdvance  = 0;
+                _iWrapCount   = 0;
 				foreach( IPgWordRange oRange in Words ) {
                     int iIndex = oRange.Offset;
                     int iPass  = _iWrapCount;

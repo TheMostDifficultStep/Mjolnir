@@ -18,11 +18,11 @@ namespace Play.Rectangles {
             this.SetRect( LOCUS.UPPERLEFT, 0, 0, (int)szSize.Width, (int)szSize.Height );
 		}
 
-        public override uint TrackDesired( AXIS eParentAxis, int iRail ) {
+        public override uint TrackDesired( TRACK eParentAxis, int iRail ) {
             float flImageAspect  = World.Width / (float)World.Height;
 			int   iReturn;
 
-			if( eParentAxis == AXIS.HORIZ ) {
+			if( eParentAxis == TRACK.HORIZ ) {
                 iReturn = (int)(iRail * flImageAspect);
             } else {
                 iReturn = (int)(iRail / flImageAspect);

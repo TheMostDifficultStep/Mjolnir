@@ -423,10 +423,10 @@ namespace Mjolnir {
         protected void InitializeEdges( XmlDocument xmlDocument ) {
             XmlElement xmlElem = xmlDocument.SelectSingleNode( "config/mainwindow/margin" ) as XmlElement;
 
-			_rgSideBox.Add( new SideRect( AXIS.VERT,  5 ) );
-			_rgSideBox.Add( new SideRect( AXIS.VERT,  5 ) );
-			_rgSideBox.Add( new SideRect( AXIS.VERT,  5 ) );
-			_rgSideBox.Add( new SideRect( AXIS.HORIZ, 5 ) );
+			_rgSideBox.Add( new SideRect( TRACK.VERT,  5 ) );
+			_rgSideBox.Add( new SideRect( TRACK.VERT,  5 ) );
+			_rgSideBox.Add( new SideRect( TRACK.VERT,  5 ) );
+			_rgSideBox.Add( new SideRect( TRACK.HORIZ, 5 ) );
 
             // 8/15/2016 TODO : Need to get organized about edges and margins w/r to menu docked at top.
             // PreferedSize returns utter nonsense for the Width/Height of the TopMenu!!
@@ -1713,9 +1713,9 @@ namespace Mjolnir {
 				foreach( SideRect oSide in _rgSideBox ) {
 					if( oSide.Hover( e.X, e.Y, out bool fChanged ) ) {
 						switch( oSide.Direction ) {
-							case AXIS.VERT:
+							case TRACK.VERT:
 								this.Cursor = Cursors.SizeNS; break;
-							case AXIS.HORIZ:
+							case TRACK.HORIZ:
 								this.Cursor = Cursors.SizeWE; break;
 						}
 					}

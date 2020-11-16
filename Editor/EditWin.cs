@@ -42,10 +42,10 @@ namespace Play.Rectangles {
 			_oControl.Bounds = this.Rect;
 		}
 
-		public override uint TrackDesired(AXIS eParentAxis, int uiRail) {
-			Size szProposed = eParentAxis == AXIS.HORIZ ? new Size( Width, uiRail ) : new Size( uiRail, Height );
+		public override uint TrackDesired(TRACK eParentAxis, int uiRail) {
+			Size szProposed = eParentAxis == TRACK.HORIZ ? new Size( Width, uiRail ) : new Size( uiRail, Height );
 			Size szPrefered = _oControl.GetPreferredSize( szProposed );
-			int  iTrack     = eParentAxis == AXIS.HORIZ ? szPrefered.Width : szPrefered.Height;
+			int  iTrack     = eParentAxis == TRACK.HORIZ ? szPrefered.Width : szPrefered.Height;
 
 			return (uint)iTrack;
 		}

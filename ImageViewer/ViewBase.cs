@@ -38,7 +38,7 @@ namespace Play.ImageViewer {
 			this.SizeEvent += OnSizeEvent;
 		}
 
-		public override uint TrackDesired( AXIS eParentAxis, int iRailExtent ) {
+		public override uint TrackDesired( TRACK eParentAxis, int iRailExtent ) {
 			try {
 				if( iRailExtent <= 0 )
 					return 0;

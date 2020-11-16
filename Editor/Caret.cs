@@ -12,62 +12,6 @@ namespace Play.Edit {
         int Advance { get; set; }
     }
 
-    public class SimpleCacheCaret : IPgCacheCaret  {
-        protected int         _iOffset = 0;
-        protected FTCacheLine _oCache;
-        public    int         Advance { get; set; }
-
-        public SimpleCacheCaret( FTCacheLine oCache ) {
-            Cache    = oCache;
-            _iOffset = 0;
-        }
-
-		public int ColorIndex {
-			get { return( 0 ); }
-		}
-
-        public override string ToString() {
-            return( "(" + _iOffset.ToString() + "...) " + Line.SubString( 0, 50 ) );
-        }
-
-        public int At {
-            get { return Line.At; }
-        }
-
-        public int Offset {
-            get { return _iOffset; }
-            
-            set {
-                if( value > Line.ElementCount )
-                    value = Line.ElementCount;
-                if( value <= 0 )
-                    value = 0;
-
-                _iOffset = value;
-            }
-        }
-        
-        public int Length {
-            get { return 0; }
-            set { throw new ArgumentOutOfRangeException("Caret length is always zero" ); }
-        }
-        
-        public Line Line {
-            get { return Cache.Line; }
-            set {
-                if( value != Cache.Line )
-                    throw new ApplicationException(); 
-            }
-        }
-
-        public FTCacheLine Cache {
-            get { return _oCache; }
-            set { _oCache = value ?? throw new NotImplementedException(); }
-        }
-
-
-    }
-
     public class SimpleLineCaret :
         ILineRange
     {
