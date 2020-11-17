@@ -358,7 +358,7 @@ namespace Mjolnir {
         /// <summary>
         /// Just update the entire cache. We'll get more selective in the future.
         /// </summary>
-        private void Document_BufferEvent( BUFFEREVENTS eEvent ) {
+        protected void Document_BufferEvent( BUFFEREVENTS eEvent ) {
             switch( eEvent ) {
                 case BUFFEREVENTS.SINGLELINE:
                 case BUFFEREVENTS.MULTILINE:
@@ -864,6 +864,7 @@ namespace Mjolnir {
 			    new LayoutControl( button2,  LayoutRect.CSS.Flex ),
             } );
 
+            Document_BufferEvent( BUFFEREVENTS.MULTILINE );
             OnSizeChanged( new EventArgs() );
 
 			return true;
