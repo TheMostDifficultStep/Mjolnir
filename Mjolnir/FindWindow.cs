@@ -288,6 +288,7 @@ namespace Mjolnir {
         protected readonly IPgViewNotify _oViewEvents; // Our site from the window manager (view interface).
 
         protected readonly List<LayoutSingleLine> _rgCacheList = new List<LayoutSingleLine>();
+        protected ParentRect Layout2 { get; set; } = new LayoutStackHorizontal( 5 );
 
         protected Editor           DocForms { get; }
         protected SimpleCacheCaret Caret    { get; }
@@ -308,19 +309,6 @@ namespace Mjolnir {
             Array.Sort<Keys>(_rgHandledKeys);
 
             Caret = new SimpleCacheCaret( null );
-        }
-
-        public virtual void Submit() {
-        }
-
-        // Let Forms know what keys we want sent our way.
-        protected override bool IsInputKey(Keys keyData) {
-            int iIndex = Array.BinarySearch<Keys>(_rgHandledKeys, keyData);
-
-            if (iIndex >= 0)
-                return (true);
-
-            return base.IsInputKey( keyData );
         }
 
         protected override void Dispose( bool disposing ) {
@@ -350,11 +338,21 @@ namespace Mjolnir {
             }
 
             StdText = StdUI.FontCache(StdUI.FaceCache(@"C:\windows\fonts\consola.ttf"), 12, sResolution);
-            foreach( LayoutSingleLine oCache in _rgCacheList ) {
-                oCache.Cache.Update( StdUI.FontRendererAt( StdText ) );
-            }
 
             return true;
+        }
+
+        public virtual void Submit() {
+        }
+
+        // Let Forms know what keys we want sent our way.
+        protected override bool IsInputKey(Keys keyData) {
+            int iIndex = Array.BinarySearch<Keys>(_rgHandledKeys, keyData);
+
+            if (iIndex >= 0)
+                return (true);
+
+            return base.IsInputKey( keyData );
         }
 
         /// <summary>
@@ -515,12 +513,14 @@ namespace Mjolnir {
 
             SKCanvas skCanvas = e.Surface.Canvas;
 
-            foreach( LayoutSingleLine oCache in _rgCacheList ) {
+            foreach( LayoutSingleLine oCache in _rgCacheList )
+            {
                 skCanvas.Save();
-                skCanvas.ClipRect( new SKRect( oCache.Left, oCache.Top, oCache.Right, oCache.Bottom ), SKClipOperation.Intersect );
-                oCache.Paint( e.Surface.Canvas, StdUI );
+                skCanvas.ClipRect(new SKRect(oCache.Left, oCache.Top, oCache.Right, oCache.Bottom), SKClipOperation.Intersect);
+                oCache.Paint(e.Surface.Canvas, StdUI);
                 skCanvas.Restore();
             }
+            // Layout2.Paint( e.Surface.Canvas ); Use this to see what the columns look like.
         }
 
         /// <summary>
@@ -529,10 +529,11 @@ namespace Mjolnir {
         /// </summary>
         /// <seealso cref="FindWindow.OnSizeChanged(EventArgs)"/>
         protected override void OnSizeChanged( EventArgs e ) {
-            foreach( LayoutSingleLine oCache in _rgCacheList ) {
-                oCache.Cache.OnChangeSize( oCache.Width );
-            }
+			Layout2.SetRect( 0, 0, Width, Height );
+			Layout2.LayoutChildren();
+
             CaretIconRefresh();
+
             Invalidate();
         }
 
@@ -783,13 +784,10 @@ namespace Mjolnir {
                  ViewChanged      _oViewChangedHandler;
         readonly ParseHandlerText _oParseEvents       = null;
         readonly Editor           _oDoc_SearchResults = null;
-		readonly SmartTable       _oLayout            = new SmartTable(5, LayoutRect.CSS.None );
 
         IPgTextView             _oView; // This value changes when current view is switched.
         IEnumerator<ILineRange> _oEnumResults;
         TextPosition            _sEnumStart = new TextPosition( 0, 0 );
-
-        readonly LayoutSingleLine _oLayoutSearchKey;
 
 		public IPgParent Parentage => _oWinMain;
 		public IPgParent Services  => Parentage.Services;
@@ -800,9 +798,6 @@ namespace Mjolnir {
 			_oWinMain = oShell ?? throw new ArgumentNullException( "Shell reference must not be null" );
 
             DocForms.LineAppend( string.Empty, fUndoable:false );
-            _oLayoutSearchKey = new LayoutSingleLine( new FTCacheWrap( DocForms[0] ), LayoutRect.CSS.Flex) { Span = 4 };
-            Caret.Cache = _oLayoutSearchKey;
-            _rgCacheList.Add( _oLayoutSearchKey );
 
             _oDoc_SearchResults = _oWinMain.Document.ResultsSlot.Document as Editor;
 
@@ -848,37 +843,42 @@ namespace Mjolnir {
             _oViewChangedHandler = new ViewChanged(OnViewChanged);
             _oWinMain.ViewChanged += _oViewChangedHandler;
 
+            LayoutSingleLine oLayoutSearchKey = new LayoutSingleLine( new FTCacheWrap( DocForms[0] ), LayoutRect.CSS.Flex) { Span = 4 };
+            Caret.Cache = oLayoutSearchKey;
+            _rgCacheList.Add( oLayoutSearchKey );
+
+            SmartTable oTable = new SmartTable( 5, LayoutRect.CSS.None );
+            Layout2 = oTable;
+
             // If we the columns get too narrow, Labels might request double height,
             // Even if they don't use it!
-			_oLayout.Add( new LayoutRect( LayoutRect.CSS.Pixels, 43, .25f ) );
-			_oLayout.Add( new LayoutRect( LayoutRect.CSS.Pixels, 43, .25f ) );
-			_oLayout.Add( new LayoutRect( LayoutRect.CSS.Pixels, 43, .25f ) );
-			_oLayout.Add( new LayoutRect( LayoutRect.CSS.Pixels, 43, .25f ) );
-			_oLayout.Add( new LayoutRect( LayoutRect.CSS.None ) );
+			oTable.Add( new LayoutRect( LayoutRect.CSS.Pixels, 50, .25f ) );
+			oTable.Add( new LayoutRect( LayoutRect.CSS.Pixels, 50, .25f ) );
+			oTable.Add( new LayoutRect( LayoutRect.CSS.Pixels, 50, .25f ) );
+			oTable.Add( new LayoutRect( LayoutRect.CSS.Pixels, 50, .25f ) );
+			oTable.Add( new LayoutRect( LayoutRect.CSS.None ) );
 
-            _oLayout.AddRow( new List<LayoutRect>() { _oLayoutSearchKey } ); // Daaaamn! This is nice.
+            oTable.AddRow( new List<LayoutRect>() { oLayoutSearchKey } ); 
 
-			_oLayout.AddRow( new List<LayoutRect>() {
+			oTable.AddRow( new List<LayoutRect>() {
 			    new LayoutControl( oSearchType, LayoutRect.CSS.Flex ) { Span=1 },
 			    new LayoutControl( oMatchCase,  LayoutRect.CSS.Flex ) { Span=1 }
             } );
 
-			_oLayout.AddRow( new List<LayoutRect>() {
+			oTable.AddRow( new List<LayoutRect>() {
+			    new LayoutRect( LayoutRect.CSS.Flex ),
+			    new LayoutRect( LayoutRect.CSS.Flex ),
 			    new LayoutControl( button1,  LayoutRect.CSS.Flex ),
 			    new LayoutControl( button2,  LayoutRect.CSS.Flex ),
-			    new LayoutControl( oGoto,    LayoutRect.CSS.Flex ),
-			    new LayoutControl( oResults, LayoutRect.CSS.Flex ) 
             } );
 
-			_oLayout.SetRect( 0, 0, Width, Height );
-			_oLayout.LayoutChildren();
+            OnSizeChanged( new EventArgs() );
 
 			return true;
 		}
 
         void Reset() {
             _oEnumResults = null;
-            this.oResults.Text = ResultsTitle;
         }
 
 		public MainWin Host {
@@ -964,16 +964,16 @@ namespace Mjolnir {
              this.Enabled = true;
         }
 
-		protected override void OnSizeChanged(EventArgs e) {
-			_oLayout.SetRect( 0, 0, Width, Height );
-			_oLayout.LayoutChildren();
+		//protected override void OnSizeChanged(EventArgs e) {
+		//	Layout2.SetRect( 0, 0, Width, Height );
+		//	Layout2.LayoutChildren();
 
-            CaretIconRefresh();
+  //          CaretIconRefresh();
 
-            Invalidate();
+  //          Invalidate();
 
-			//base.OnSizeChanged(e);
-		}
+		//	//base.OnSizeChanged(e);
+		//}
 
         /// <summary>
         /// Look for a match in the section of the line given.
@@ -1181,63 +1181,60 @@ namespace Mjolnir {
 				_oView.ScrollToCaret();
                 _oEnumResults = null;
             }
-
-            this.oResults.Text = ResultsTitle;
         }
 
         private void SearchAll_Click(object sender, EventArgs e) {
-            _oDoc_SearchResults.Clear();
-
-            using( Editor.Manipulator oSearchManip = _oDoc_SearchResults.CreateManipulator() ) {
-                StringBuilder oMatchBuilder = new StringBuilder();
-
-                // oSearchType.SelectedItem.ToString() ;
-                string strFormat = "Location"; // Location or Table
-
-                foreach( ILineRange oRange in this ) {
-                    int    iStart    = oRange.Offset > 10 ? oRange.Offset - 10 : 0;
-                    int    iDiff     = oRange.Offset - iStart;
-                    int    iPreamble = 0;
-                        
-                    if( strFormat == "Location" ) { // BUG: should be localized ^_^;
-                        oMatchBuilder.Append( "(" );
-                        oMatchBuilder.Append( string.Format( "{0,3}", oRange.At + 1 ) );
-                        oMatchBuilder.Append( ") " );
-
-                        iPreamble = oMatchBuilder.Length;
-                        oMatchBuilder.Append( oRange.Line.SubString( iStart, 50 ) );
-                    } else {
-                        oMatchBuilder.Append( oRange.Line.SubString( oRange.Offset, oRange.Length ) );
-                    }
-
-                    bool fMulti = false;
-                    if( fMulti ) {
-                        // For regex groups, which we don't support at the moment. 
-                        oMatchBuilder.Append( "\t" );
-                    } else {
-                        Line oNew = oSearchManip.LineAppend( oMatchBuilder.ToString() ); 
-                        oMatchBuilder.Length = 0;
-                        if( oNew != null ) {
-							//_oDoc_SearchResults.WordBreak( oNew, oNew.Formatting );
-                            if( strFormat == "Location" ) {
-                                oNew.Formatting.Add( new ColorRange( iPreamble + iDiff, oRange.Length, _oWinMain.GetColorIndex( "red" ) ) );
-                            }
-                            oNew.Extra = oRange;
-                        }
-                    }
-                }; // end foreach
-            } // end using
             try {
-                // Have to check since not everyone is an editor in our system. eg ImageViewer!! ^_^;;
-                if( _oView.DocumentText is BaseEditor oViewDoc ) {
-                    this.oResults.Text = ResultsTitle + " (" + _oDoc_SearchResults.ElementCount.ToString() + 
-                                         " in " + oViewDoc.ElementCount.ToString() + " lines)";
+                _oDoc_SearchResults.Clear();
+
+                using( Editor.Manipulator oSearchManip = _oDoc_SearchResults.CreateManipulator() ) {
+                    StringBuilder oMatchBuilder = new StringBuilder();
+
+                    // oSearchType.SelectedItem.ToString() ;
+                    string strFormat = "Location"; // Location or Table
+
+                    foreach( ILineRange oRange in this ) {
+                        int    iStart    = oRange.Offset > 10 ? oRange.Offset - 10 : 0;
+                        int    iDiff     = oRange.Offset - iStart;
+                        int    iPreamble = 0;
+                        
+                        if( strFormat == "Location" ) { // BUG: should be localized ^_^;
+                            oMatchBuilder.Append( "(" );
+                            oMatchBuilder.Append( string.Format( "{0,3}", oRange.At + 1 ) );
+                            oMatchBuilder.Append( ") " );
+
+                            iPreamble = oMatchBuilder.Length;
+                            oMatchBuilder.Append( oRange.Line.SubString( iStart, 50 ) );
+                        } else {
+                            oMatchBuilder.Append( oRange.Line.SubString( oRange.Offset, oRange.Length ) );
+                        }
+
+                        bool fMulti = false;
+                        if( fMulti ) {
+                            // For regex groups, which we don't support at the moment. 
+                            oMatchBuilder.Append( "\t" );
+                        } else {
+                            Line oNew = oSearchManip.LineAppend( oMatchBuilder.ToString() ); 
+                            oMatchBuilder.Length = 0;
+                            if( oNew != null ) {
+							    //_oDoc_SearchResults.WordBreak( oNew, oNew.Formatting );
+                                if( strFormat == "Location" ) {
+                                    oNew.Formatting.Add( new ColorRange( iPreamble + iDiff, oRange.Length, _oWinMain.GetColorIndex( "red" ) ) );
+                                }
+                                oNew.Extra = oRange;
+                            }
+                        }
+                    }; // end foreach
+                } // end using
+
+                if( _oDoc_SearchResults.ElementCount > 0 ) {
+                    _oWinMain.DecorOpen( "matches", true );
                 }
-            } catch( NullReferenceException ) {
-                try {
-                    this.oResults.Text = ResultsTitle;
-                } catch ( NullReferenceException ) {
-                }
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( NullReferenceException ),
+                                    typeof( ArgumentOutOfRangeException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
             }
         }
 
@@ -1272,8 +1269,7 @@ namespace Mjolnir {
 			_oWinMain.Invalidate();
         }
 
-        private void Goto_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
-        {
+        private void Goto_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e) {
             if( _oView != null ) {
                 _oWinMain.CurrentView = _oView;
                 _oView.ScrollToCaret();

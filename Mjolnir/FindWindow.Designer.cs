@@ -30,8 +30,6 @@ namespace Mjolnir {
             this.oMatchCase = new System.Windows.Forms.CheckBox();
             this.button1 = new System.Windows.Forms.Button();
             this.button2 = new System.Windows.Forms.Button();
-            this.oGoto = new System.Windows.Forms.LinkLabel();
-            this.oResults = new System.Windows.Forms.LinkLabel();
             this.oSearchType = new System.Windows.Forms.ComboBox();
 
 			// Lay them out.
@@ -87,35 +85,11 @@ namespace Mjolnir {
             this.button2.TabIndex = 4;
             this.button2.Text = "All";
             this.button2.UseVisualStyleBackColor = true;
-            // 
-            // Edit
-            // 
-            this.oGoto.AutoSize = true;
-            //this.oGoto.Location = new System.Drawing.Point(89, 69);
-            this.oGoto.Name = "oGoto";
-            //this.oGoto.Size = new System.Drawing.Size(25, 13);
-            this.oGoto.TabIndex = 5;
-            this.oGoto.TabStop = true;
-            this.oGoto.Text = "edit"; //"\xe16d"
-            this.oGoto.LinkClicked += this.Goto_LinkClicked;
-            // 
-            // Results
-            // 
-            this.oResults.AutoSize = true;
-            //this.oResults.Location = new System.Drawing.Point(118, 69);
-            this.oResults.Name = "oResults";
-            //this.oResults.Size = new System.Drawing.Size(25, 13);
-            this.oResults.TabIndex = 6;
-            this.oResults.TabStop = true;
-            this.oResults.Text = this.ResultsTitle;
-            this.oResults.LinkClicked += this.Results_LinkClicked;
 			// 
 			// FindWindow
 			// 
 			//this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
 			//this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-			this.Controls.Add(this.oResults);
-			this.Controls.Add(this.oGoto);
 			this.Controls.Add(this.oSearchType);
 			this.Controls.Add(this.button2);
 			this.Controls.Add(this.button1);
@@ -135,7 +109,5 @@ namespace Mjolnir {
         private Button    button2;
         private ComboBox  oSearchType;
 		private CheckBox  oMatchCase;
-        private LinkLabel oGoto;
-        private LinkLabel oResults;
     }
 }

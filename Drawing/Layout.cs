@@ -150,7 +150,8 @@ namespace Play.Rectangles {
 
 				Extent extTrack        = GetTrack( Direction );
 				uint   uiRailsDistance = (uint)extRail .Distance; 
-				long   iTrackDistance  = extTrack.Distance - Gaps; // This is how much available track.
+				long   iTrackAvailable = extTrack.Distance - Gaps; // This is how much available track.
+				long   iTrackRemaining = iTrackAvailable;
 				uint   uiCssNoneCount  = 0; // Count of the number of layout "none" objects.
 
 				uint[] _rgTrack = new uint[ Count ];
@@ -165,17 +166,17 @@ namespace Play.Rectangles {
 					if( oChild.Units == CSS.Pixels ) {
 						uint uiDesired = oChild.Track;
 						if( oChild.TrackMaxPercent > 0f && oChild.TrackMaxPercent <= 1f ) {
-							uint uiChildMax = (uint)(iTrackDistance * oChild.TrackMaxPercent);
+							uint uiChildMax = (uint)(iTrackAvailable * oChild.TrackMaxPercent);
 							if( uiDesired > uiChildMax )
 								uiDesired = uiChildMax;
 						}
 						_rgTrack[i]     = uiDesired;
-						iTrackDistance -= (int)_rgTrack[i];
+						iTrackRemaining -= (int)_rgTrack[i];
 					}
 				}
 
-				if( iTrackDistance < 0 )
-					iTrackDistance = 0;
+				if( iTrackRemaining < 0 )
+					iTrackRemaining = 0;
 
 				// Flex objects work intelligently based on desired width or alternatively height.
 				for( int i = 0; i<Count; ++i ) {
@@ -188,20 +189,20 @@ namespace Play.Rectangles {
 						// available. For example: a short list of items below an image. Then we could
 						// let the image object be larger than it's percent max.
 						if( oChild.TrackMaxPercent > 0f && oChild.TrackMaxPercent <= 1f ) {
-							uint uiChildMax = (uint)(iTrackDistance * oChild.TrackMaxPercent);
+							uint uiChildMax = (uint)(iTrackAvailable * oChild.TrackMaxPercent);
 							if( uiDesired > uiChildMax )
 								uiDesired = uiChildMax;
 						}
 						_rgTrack[i]     = uiDesired;
-						iTrackDistance -= _rgTrack[i];
+						iTrackRemaining -= _rgTrack[i];
 					}
 				}
 
-				if( iTrackDistance < 0 )
-					iTrackDistance = 0;
+				if( iTrackRemaining < 0 )
+					iTrackRemaining = 0;
 
 				// Note 1: Need to add the margins between each object to the remaining track extent.
-				uint uiRemainingExtent = (uint)iTrackDistance;
+				uint uiRemainingExtent = (uint)iTrackRemaining;
 
 				// We can't have both Percent and None objects, so if we have ANY "none"
 				// objects, we just punt on the percent objects.
@@ -395,7 +396,6 @@ namespace Play.Rectangles {
             return( 0 );
         }
 
-
         /// <summary>
         /// Width of the table needs to be set, but the height can vary if the table is set to CSS flex layout.
         /// Currently we're not set up to scroll the contents of the table if the height is not enough.
@@ -494,6 +494,16 @@ namespace Play.Rectangles {
                 if (oRow is LayoutStack oStack)
                     yield return oStack;
             }
+        }
+
+        public override void Paint( SKCanvas skCanvas ) {
+			int i=0;
+			using SKPaint skPaint = new SKPaint();
+            foreach( SmartRect oColumn in _oColStack ) {
+				SKColor skColor = ( i++ % 2 == 0 ) ? SKColors.White : SKColors.LightGray;
+				skPaint.Color = skColor;
+				skCanvas.DrawRect( oColumn.Left, oColumn.Top, oColumn.Width, oColumn.Height, skPaint );
+			}
         }
     } // End class.
 
