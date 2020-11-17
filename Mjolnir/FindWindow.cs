@@ -513,8 +513,7 @@ namespace Mjolnir {
 
             SKCanvas skCanvas = e.Surface.Canvas;
 
-            foreach( LayoutSingleLine oCache in _rgCacheList )
-            {
+            foreach( LayoutSingleLine oCache in _rgCacheList ) {
                 skCanvas.Save();
                 skCanvas.ClipRect(new SKRect(oCache.Left, oCache.Top, oCache.Right, oCache.Bottom), SKClipOperation.Intersect);
                 oCache.Paint(e.Surface.Canvas, StdUI);
@@ -523,11 +522,6 @@ namespace Mjolnir {
             // Layout2.Paint( e.Surface.Canvas ); Use this to see what the columns look like.
         }
 
-        /// <summary>
-        /// We'll need to change this to the layout update code. FindWindow
-        /// overrides this behavior completely.
-        /// </summary>
-        /// <seealso cref="FindWindow.OnSizeChanged(EventArgs)"/>
         protected override void OnSizeChanged( EventArgs e ) {
 			Layout2.SetRect( 0, 0, Width, Height );
 			Layout2.LayoutChildren();
@@ -755,9 +749,7 @@ namespace Mjolnir {
                         if( IsSelection ) {
                             oBulk.LineTextDelete( Caret.At, Caret.Cache.Selection );
                         }
-                        using( TextReader oReader = new StringReader( strPaste )  ) {
-                            oBulk.StreamInsert( Caret.At, Caret.Offset, oReader );
-                        }
+                        oBulk.LineTextInsert( Caret.At, Caret.Offset, strPaste, 0, strPaste.Length );
                     }
                 }
             } catch( Exception oEx ) {
