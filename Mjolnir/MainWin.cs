@@ -281,12 +281,7 @@ namespace Mjolnir {
             oViewSitesSlot.InitNew();
             _oDoc_ViewSelector = (ViewsEditor)oViewSitesSlot.Document;
 
-            InitializeSoloWindows();
-
             DecorMenuReload();
-
-            Document.RecentsAddListener( new MainWin_Recent( this ) );
-            Document.EventUpdateTitles += UpdateAllTitlesFor;
         }
 
         //protected override void Dispose(bool disposing) {
@@ -761,67 +756,6 @@ namespace Mjolnir {
                 if (string.Compare("menu", oMenuItem.Text, true) == 0 && oHerderMenu != null) { // BUG: hard coded values.
                     oMenuItem.Enabled = !oHerderMenu.Hidden;
                 }
-            }
-        }
-
-        /// <summary>
-        /// These are the addornment windows that are solo. That is, they apply to what ever
-        /// document is currently displayed. Adornments that bind to a single document are created
-        /// by that document's controller. I might need to modify this concept for my new SQL addornment.
-        /// BUG: If the herder/shepard is for non-solo objects but we pass a null site, we crash!
-        /// BUG: We could migrate this to the IPgCommand pattern and create these decorations on demand
-        /// from the main window. Especially since the matches and alerts views aren't typically used.
-        /// </summary>
-        protected void InitializeSoloWindows() {
-            try {
-				if( _oTopMenu != null ) {
-					_oTopMenu.Dock        = DockStyle.None;
-					_oTopMenu.AutoSize    = false;
-					_oTopMenu.LayoutStyle = ToolStripLayoutStyle.Flow;
-					_oTopMenu.CanOverflow = false;
-
-					DecorAdd( "menu", _oTopMenu );
-				} else {
-					LogError( null, "Main Window", "Top menu was not created!" );
-				}
-
-                // BUG: This is a little bit of a problem since the docslot is hosted by the program but the
-                // view is on the main window. So we're not using the best controller for the view creation.
-				DecorSlot oAlertsSite = new DecorSlot( this, Document.AlertSlot, Shepardfind( "alerts" ) );
-                oAlertsSite.ViewCreate( Guid.Empty );
-				oAlertsSite.InitNew();
-				DecorAdd( "alerts", oAlertsSite.Guest );
-
-                // BUG: We're using a general controller from the program on the InternalSlot, what we really
-                // need is a specialized controller for these internal views. Because this view is just defaulting
-                // to the standard EditWin. I'd like it to be an EditWindow2, but I can't change the current controller
-                // without effecting views I don't want to change. SeeAlso the "alerts" above.
-				DecorSlot oResultsSite = new DecorSlot( this, Document.ResultsSlot, Shepardfind( "matches" ) );
-                oResultsSite.ViewCreate( Program.MatchesView );
-                oResultsSite.InitNew();
-                DecorAdd( "matches", oResultsSite.Guest );
-
-				DecorSlot oFindSite = new DecorSlot( this, Document.FindSlot, Shepardfind( "find" ) );
-                oFindSite.ViewCreate( Program.FindDialog );
-				oFindSite.InitNew();
-				DecorAdd( "find", oFindSite.Guest );
-
-                DecorSlot oSelectorSite = new ViewSelectorSlot(this, _oDoc_ViewSelector.Site as IDocSlot, Shepardfind( "views" ));
-                oSelectorSite.ViewCreate( Program.ViewSelector );
-                oSelectorSite.InitNew();
-                DecorAdd( "views", oSelectorSite.Guest);
-            } catch( Exception oEx ) {
-				Type[] rgErrors = { typeof( ArgumentNullException ),
-									typeof( ArgumentException ),
-									typeof( NullReferenceException ),
-									typeof( ApplicationException ),
-									typeof( InvalidCastException ) };
-
-                if( rgErrors.IsUnhandled( oEx ) )
-                    throw;
-
-                LogError( null, "internal", "Coundn't add one of the adornments." );
-				// We're probably leak'n in this case. But it's not normal and I'm not going to worry about cleanup here.
             }
         }
 
@@ -2311,6 +2245,67 @@ namespace Mjolnir {
             return( -1 );
         }
 
+        /// <summary>
+        /// These are the addornment windows that are solo. That is, they apply to what ever
+        /// document is currently displayed. Adornments that bind to a single document are created
+        /// by that document's controller. I might need to modify this concept for my new SQL addornment.
+        /// BUG: If the herder/shepard is for non-solo objects but we pass a null site, we crash!
+        /// BUG: We could migrate this to the IPgCommand pattern and create these decorations on demand
+        /// from the main window. Especially since the matches and alerts views aren't typically used.
+        /// </summary>
+        protected void InitializeSoloWindows() {
+            try {
+				if( _oTopMenu != null ) {
+					_oTopMenu.Dock        = DockStyle.None;
+					_oTopMenu.AutoSize    = false;
+					_oTopMenu.LayoutStyle = ToolStripLayoutStyle.Flow;
+					_oTopMenu.CanOverflow = false;
+
+					DecorAdd( "menu", _oTopMenu );
+				} else {
+					LogError( null, "Main Window", "Top menu was not created!" );
+				}
+
+                // BUG: This is a little bit of a problem since the docslot is hosted by the program but the
+                // view is on the main window. So we're not using the best controller for the view creation.
+				DecorSlot oAlertsSite = new DecorSlot( this, Document.AlertSlot, Shepardfind( "alerts" ) );
+                oAlertsSite.ViewCreate( Guid.Empty );
+				oAlertsSite.InitNew();
+				DecorAdd( "alerts", oAlertsSite.Guest );
+
+                // BUG: We're using a general controller from the program on the InternalSlot, what we really
+                // need is a specialized controller for these internal views. Because this view is just defaulting
+                // to the standard EditWin. I'd like it to be an EditWindow2, but I can't change the current controller
+                // without effecting views I don't want to change. SeeAlso the "alerts" above.
+				DecorSlot oResultsSite = new DecorSlot( this, Document.ResultsSlot, Shepardfind( "matches" ) );
+                oResultsSite.ViewCreate( Program.MatchesView );
+                oResultsSite.InitNew();
+                DecorAdd( "matches", oResultsSite.Guest );
+
+				DecorSlot oFindSite = new DecorSlot( this, Document.FindSlot, Shepardfind( "find" ) );
+                oFindSite.ViewCreate( Program.FindDialog );
+				oFindSite.InitNew();
+				DecorAdd( "find", oFindSite.Guest );
+
+                DecorSlot oSelectorSite = new ViewSelectorSlot(this, _oDoc_ViewSelector.Site as IDocSlot, Shepardfind( "views" ));
+                oSelectorSite.ViewCreate( Program.ViewSelector );
+                oSelectorSite.InitNew();
+                DecorAdd( "views", oSelectorSite.Guest);
+            } catch( Exception oEx ) {
+				Type[] rgErrors = { typeof( ArgumentNullException ),
+									typeof( ArgumentException ),
+									typeof( NullReferenceException ),
+									typeof( ApplicationException ),
+									typeof( InvalidCastException ) };
+
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
+
+                LogError( null, "internal", "Coundn't add one of the adornments." );
+				// We're probably leak'n in this case. But it's not normal and I'm not going to worry about cleanup here.
+            }
+        }
+
         /// <remarks>
 		/// At this point pretty satisfied with the two step window load. Any controller implementation
         /// could easily deal with the two step initialization of a window. Mainly the goal is to have
@@ -2319,6 +2314,11 @@ namespace Mjolnir {
 		/// </remarks>
         public bool InitNew() {
             //Document.SearchSlot.InitNew();
+
+            InitializeSoloWindows();
+
+            Document.RecentsAddListener( new MainWin_Recent( this ) );
+            Document.EventUpdateTitles += UpdateAllTitlesFor;
 
 			ViewSlot oLastSlot = null;
 
@@ -2365,6 +2365,11 @@ namespace Mjolnir {
 
                 this.LogError( null, "window session", strMessage );
 			}
+
+            InitializeSoloWindows();
+
+            Document.RecentsAddListener( new MainWin_Recent( this ) );
+            Document.EventUpdateTitles += UpdateAllTitlesFor;
 
 			try {
 				if( xmlWinRoot.SelectSingleNode( "Location" ) is XmlElement xmlLocation ) {

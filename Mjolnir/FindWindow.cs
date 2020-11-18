@@ -789,8 +789,6 @@ namespace Mjolnir {
         {
 			_oWinMain = oShell ?? throw new ArgumentNullException( "Shell reference must not be null" );
 
-            DocForms.LineAppend( string.Empty, fUndoable:false );
-
             _oDoc_SearchResults = _oWinMain.Document.ResultsSlot.Document as Editor;
 
             InitializeComponent();

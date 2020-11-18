@@ -511,6 +511,11 @@ namespace Mjolnir {
 				return false;
 			}
 
+            // Forms act different than a document. They can't be empty.
+            if( SearchSlot.Document is Editor oSearchKey ) {
+                oSearchKey.LineAppend( string.Empty, fUndoable:false ); 
+            }
+
 			_fSessionDirty = false;
 
 			return true;
@@ -580,6 +585,13 @@ namespace Mjolnir {
 			} catch( Exception oEx ) {
                 TryLogXmlError( oEx, "Couldn't read find string." );
 			}
+
+            // Forms are a little different than documents. Need to flesh that out.
+            if( SearchSlot.Document is Editor oSearchKey &&
+                oSearchKey.ElementCount < 1 ) 
+            {
+                oSearchKey.LineAppend( string.Empty, fUndoable:false );
+            }
 
             // BUG: We can improve our fault tolerance by improving the chance that InitNew get's called
             //      in the event of an xmlexception or failed load.
