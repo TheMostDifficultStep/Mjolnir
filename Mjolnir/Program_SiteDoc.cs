@@ -623,6 +623,12 @@ namespace Mjolnir {
             ) : base( oProgram, oController, string.Empty ) {
             }
         
+            public InternalSlot(
+                Program        oProgram,
+                IPgController2 oController,
+                string         strExtension
+            ) : base( oProgram, oController, strExtension ) {
+            }
         }
 
 		/// <summary>

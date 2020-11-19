@@ -2291,6 +2291,12 @@ namespace Mjolnir {
                 oSelectorSite.ViewCreate( Program.ViewSelector );
                 oSelectorSite.InitNew();
                 DecorAdd( "views", oSelectorSite.Guest);
+
+                DecorSlot oClockSite = new DecorSlot( this, Document.ClockSlot, Shepardfind( "clock" ) );
+                oClockSite.ViewCreate( Program.Clock );
+                oClockSite.InitNew();
+                DecorAdd( "clock", oClockSite.Guest);
+
             } catch( Exception oEx ) {
 				Type[] rgErrors = { typeof( ArgumentNullException ),
 									typeof( ArgumentException ),

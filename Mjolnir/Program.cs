@@ -31,6 +31,7 @@ namespace Mjolnir {
 		IPgStandardUI2,
 		IDisposable
     {
+        public static Guid Clock       { get; } = new Guid( "{DEA39235-7E0A-4539-88A0-2FB775E7A8CC}" );
         public static Guid FindDialog  { get; } = new Guid( "{231E4D61-499A-427E-A1D3-EC4A579A5E6D}" );
         public static Guid MatchesView { get; } = new Guid( "{B9218737-4EC6-4E5F-BF2A-D41949CD07DA}" );
         public static Guid ViewSelector{ get; } = new Guid( "{195E19DB-4BCE-4CAE-BE02-263536F00851}" );
@@ -48,7 +49,7 @@ namespace Mjolnir {
         readonly Dictionary<string, LangSlot>     _rgLanguageSite  = new Dictionary<string, LangSlot>();    // Load on demand
         readonly Dictionary<string, GrammerMap>   _rgGrammarMap    = new Dictionary<string, GrammerMap>();  // Initialized on startup.
 
-        protected            bool  _fSessionDirty = false;
+        protected bool _fSessionDirty = false;
 
         protected readonly List<IDocSlot> _rgDocSites = new List<IDocSlot>(); 
         int    _iDocCount = 0;    // Running count of files created for uniqueness. TODO deal with overflow.
@@ -74,6 +75,7 @@ namespace Mjolnir {
         protected InternalSlot      _oDocSlot_Fonts;
         protected XmlSlot           _oDocSlot_SearchKey;
         protected ComplexXmlSlot    _oDocSlot_Find;
+        protected InternalSlot      _oDocSlot_Clock;
         protected Program.TextSlot  _oDocSite_Session; // Hosting ourself, so don't be confused! ^_^;
           
         /// <summery>Views can use this to create views on the scrapbook</summery>
@@ -84,6 +86,7 @@ namespace Mjolnir {
 		public XmlSlot      SearchSlot    => _oDocSlot_SearchKey;
         public IDocSlot     FindSlot      => _oDocSlot_Find;
         public IDocSlot     AlertSlot     => _oDocSlot_Alerts;
+        public InternalSlot ClockSlot     => _oDocSlot_Clock;
 
         // BUG: I'm dithering on FontMenu living on the program or just the main window.
 		public Font         FontMenu      { get; } = new Font( "Segoe UI Symbol", 11 ); // Segoe UI Symbol, So we can show our play/pause stuff.
@@ -425,6 +428,10 @@ namespace Mjolnir {
             _oDocSlot_Find = new ComplexXmlSlot( this );
             _oDocSlot_Find.CreateDocument();
             _oDocSlot_Find.InitNew();
+
+            _oDocSlot_Clock = new InternalSlot( this, new ControllerForTopLevelWindows( this ), ".clock" );
+            _oDocSlot_Clock.CreateDocument();
+            _oDocSlot_Clock.InitNew();
         }
 
         /// <summary>

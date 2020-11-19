@@ -4,6 +4,8 @@ using System.IO;
 
 using Play.Interfaces.Embedding; 
 using Play.Edit;
+using Play.Forms;
+using Play.Clock;
 using Play.Integration;
 
 namespace Mjolnir {
@@ -19,15 +21,18 @@ namespace Mjolnir {
         }
         
         public override IDisposable CreateDocument( IPgBaseSite oSite, string strFileExt) {
+            if( string.Compare( strFileExt, ".clock", ignoreCase:true ) == 0 ) {
+                return new DocumentClock( oSite );
+            }
+
             return _oDocument;
         }
 
         public override IDisposable CreateView( IPgViewSite oBaseSite, object oDocument, Guid guidViewType ) {
-            if( oDocument as Program == null ) {
-                throw new ArgumentException( "Given document is not the program document" );
-            }
-
             try {
+                if( guidViewType == Program.Clock ) {
+                    return new ViewClock( oBaseSite, oDocument as DocumentClock );
+                }
 				if( guidViewType == Program.FindDialog ) {
                     if( _oDocument.MainWindow == null )
                         throw new ApplicationException( "Main Window has not been created yet!" );
@@ -35,7 +40,6 @@ namespace Mjolnir {
                 }
 				if( guidViewType == Program.MainWin ) {
                     MainWin oMainWin = new MainWin( _oDocument );
-                    //oMainWin.Initialize( xmlConfig );
 					return oMainWin;
                 }
             } catch( Exception oEx ) {
@@ -54,6 +58,7 @@ namespace Mjolnir {
         public override IEnumerator<IPgViewType> GetEnumerator() {
  	        yield return new ViewType( "Find",         Program.FindDialog  );
  	        yield return new ViewType( "Main Window",  Program.MainWin );
+            yield return new ViewType( "Clock",        Program.Clock );
         }
     }
 

@@ -30,12 +30,14 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		.editorconfig = .editorconfig
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Clock", "Clock\Clock.csproj", "{B8BE97CE-B3E2-45B3-AD6D-89131D0CD510}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Clock", "Clock\Clock.csproj", "{B8BE97CE-B3E2-45B3-AD6D-89131D0CD510}"
 	ProjectSection(ProjectDependencies) = postProject
 		{F8A4F164-FA14-4F50-B6D7-EC50A8FA73C5} = {F8A4F164-FA14-4F50-B6D7-EC50A8FA73C5}
 		{9E494DD4-7E47-4906-9519-DB2112E04BCF} = {9E494DD4-7E47-4906-9519-DB2112E04BCF}
 		{771EE5F3-9464-4F82-9D2D-185F1F434598} = {771EE5F3-9464-4F82-9D2D-185F1F434598}
 	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Forms", "Forms\Forms.csproj", "{1CAEAA95-A9B9-4C26-99FD-1FD877263EA7}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -190,6 +192,18 @@ Global
 		{B8BE97CE-B3E2-45B3-AD6D-89131D0CD510}.Release|x64.Build.0 = Release|Any CPU
 		{B8BE97CE-B3E2-45B3-AD6D-89131D0CD510}.Release|x86.ActiveCfg = Release|Any CPU
 		{B8BE97CE-B3E2-45B3-AD6D-89131D0CD510}.Release|x86.Build.0 = Release|Any CPU
+		{1CAEAA95-A9B9-4C26-99FD-1FD877263EA7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1CAEAA95-A9B9-4C26-99FD-1FD877263EA7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1CAEAA95-A9B9-4C26-99FD-1FD877263EA7}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{1CAEAA95-A9B9-4C26-99FD-1FD877263EA7}.Debug|x64.Build.0 = Debug|Any CPU
+		{1CAEAA95-A9B9-4C26-99FD-1FD877263EA7}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{1CAEAA95-A9B9-4C26-99FD-1FD877263EA7}.Debug|x86.Build.0 = Debug|Any CPU
+		{1CAEAA95-A9B9-4C26-99FD-1FD877263EA7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1CAEAA95-A9B9-4C26-99FD-1FD877263EA7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1CAEAA95-A9B9-4C26-99FD-1FD877263EA7}.Release|x64.ActiveCfg = Release|Any CPU
+		{1CAEAA95-A9B9-4C26-99FD-1FD877263EA7}.Release|x64.Build.0 = Release|Any CPU
+		{1CAEAA95-A9B9-4C26-99FD-1FD877263EA7}.Release|x86.ActiveCfg = Release|Any CPU
+		{1CAEAA95-A9B9-4C26-99FD-1FD877263EA7}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

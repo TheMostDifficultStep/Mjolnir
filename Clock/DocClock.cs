@@ -10,8 +10,9 @@ using Play.Interfaces.Embedding;
 using Play.Rectangles;
 using System.Drawing;
 using Play.Edit;
+using Play.Forms;
 
-namespace Clock {
+namespace Play.Clock {
     public class DocumentClock :
         IPgParent,
         IPgSave<TextWriter>,
@@ -19,10 +20,6 @@ namespace Clock {
         IDisposable
     {
         IPgBaseSite Site { get; }
-
-        public DocumentClock( IPgBaseSite oSite ) {
-            Site = oSite ?? throw new ArgumentNullException("Document site must not be null." );
-        }
 
 		public class DocSlot : 
 			IPgBaseSite
@@ -48,6 +45,10 @@ namespace Clock {
 
         public Editor DocZones { get; protected set; }
 
+        public DocumentClock( IPgBaseSite oSite ) {
+            Site = oSite ?? throw new ArgumentNullException("Document site must not be null." );
+        }
+
         public void Dispose() {
         }
 
@@ -55,6 +56,10 @@ namespace Clock {
 
         public bool InitNew(){
             DocZones = new Editor( new DocSlot( this ) );
+
+            DocZones.LineAppend( "8:00" );
+            DocZones.LineAppend( "utc" );
+
             return true;
         }
 
@@ -68,22 +73,52 @@ namespace Clock {
     }
 
     public class ViewClock :
-        SKControl,
+        FormsWindow,
         IPgLoad<XmlElement>,
         IPgSave<XmlDocumentFragment>,
+        IPgParent,
         IPgCommandView,
         IBufferEvents
     {
-        readonly LayoutStackVertical _rgLayout = new LayoutStackVertical( 5 );
-
         public Guid   Catagory => Guid.Empty; // Default view.
         public string Banner   => "World Clock";
         public Image  Iconic   => null;
         public bool   IsDirty  => false;
 
-        public bool InitNew() {
-            _rgLayout.Add(new LayoutText2  ( null, LayoutRect.CSS.Percent, 40, 0 ) ); // time
-            _rgLayout.Add(new LayoutControl( null, LayoutRect.CSS.Percent, 60 ) ); // zones.
+        protected readonly IPgViewSite _oViewSite;
+
+        public IPgParent Parentage => _oViewSite.Host;
+        public IPgParent Services  => Parentage.Services;
+
+        protected DocumentClock Document { get; }
+
+        public ViewClock( IPgViewSite oViewSite, DocumentClock oDocClock ) : base( oViewSite, oDocClock.DocZones ) {
+            Document   = oDocClock ?? throw new ArgumentNullException( "Clock document must not be null." );
+            _oViewSite = oViewSite;
+        }
+
+        public override bool InitNew() {
+            if( !base.InitNew() ) 
+                return false;
+
+            SmartTable oLayout = new SmartTable( 5, LayoutRect.CSS.None );
+            Layout2 = oLayout;
+
+            oLayout.Add( new LayoutRect( LayoutRect.CSS.Percent, 60, 0 ) ); // time
+            oLayout.Add( new LayoutRect( LayoutRect.CSS.Percent, 40, 0 ) ); // zones.
+
+            LayoutSingleLine oLayoutTime = new LayoutSingleLine( new FTCacheWrap( DocForms[0] ), LayoutRect.CSS.Flex);
+            LayoutSingleLine oLayoutZone = new LayoutSingleLine( new FTCacheWrap( DocForms[1] ), LayoutRect.CSS.Flex);
+
+            oLayout.AddRow( new List<LayoutRect>() { oLayoutTime, oLayoutZone } );
+
+            CacheList.Add( oLayoutTime );
+            CacheList.Add( oLayoutZone );
+
+            Caret.Cache = oLayoutTime;
+
+            Document_BufferEvent( BUFFEREVENTS.MULTILINE );
+            OnSizeChanged( new EventArgs() );
 
             return true;
         }
