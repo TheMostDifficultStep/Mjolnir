@@ -301,8 +301,8 @@ namespace Play.Forms {
 
         public FormsWindow( IPgViewSite oSiteView, Editor oDocForms ) {
 			_oSiteView   = oSiteView ?? throw new ArgumentNullException( "Find window needs a site!!" );
-            _oViewEvents = _oSiteView.EventChain ?? throw new ArgumentException("Site.EventChain must support IPgViewSiteEvents");
-            DocForms     = oDocForms ?? throw new ArgumentNullException( "Forms needes a text buffer" );
+            _oViewEvents = oSiteView.EventChain ?? throw new ArgumentException("Site.EventChain must support IPgViewSiteEvents");
+            DocForms     = oDocForms ?? throw new ArgumentNullException( "Forms needs a text buffer" );
             StdUI        = (IPgStandardUI2)oSiteView.Host.Services;
 
             Array.Sort<Keys>(_rgHandledKeys);
@@ -315,7 +315,7 @@ namespace Play.Forms {
         /// </summary>
         protected override void Dispose( bool disposing ) {
             if( disposing ) {
-                DocForms.BufferEvent -= Document_BufferEvent;
+                DocForms.BufferEvent -= OnDocument_BufferEvent;
                 DocForms.CaretRemove( Caret );
             }
 
@@ -332,7 +332,7 @@ namespace Play.Forms {
                 this.ContextMenuStrip = oMenu;
             }
 
-            DocForms.BufferEvent += Document_BufferEvent;
+            DocForms.BufferEvent += OnDocument_BufferEvent;
             DocForms.CaretAdd( Caret ); // Document moves our caret and keeps it in sync.
 
             SKSize sResolution = new SKSize(96, 96);
@@ -362,7 +362,7 @@ namespace Play.Forms {
         /// <summary>
         /// Just update the entire cache. We'll get more selective in the future.
         /// </summary>
-        protected void Document_BufferEvent( BUFFEREVENTS eEvent ) {
+        protected void OnDocument_BufferEvent( BUFFEREVENTS eEvent ) {
             switch( eEvent ) {
                 case BUFFEREVENTS.SINGLELINE:
                 case BUFFEREVENTS.MULTILINE:
