@@ -159,30 +159,6 @@ namespace Play.Controls
         }
     } // end class
 
-    public class Vent : ControlRect
-    {
-        public override void Paint(System.Drawing.Graphics p_oGraphics)
-        {
-          //base.Paint(p_oGraphics);
-
-            if( this[SCALAR.WIDTH] <= 0 || this[SCALAR.HEIGHT] <= 0 )
-                return;
-
-            Rectangle rctPerimeter = this.Rect;
-            SKPointI  pntCenter    = this.GetPoint( LOCUS.CENTER );
-            SmartRect rctDot       = new SmartRect( LOCUS.CENTER, 
-                                                    pntCenter.X, pntCenter.Y, 
-                                                    (int)(p_oGraphics.DpiX / 9 ), (int)(p_oGraphics.DpiY / 9) );
-
-            //using( Brush oCustom = new SolidBrush(Color.FromArgb( 255, 240, 240, 240 ) ) ) {
-            //    p_oGraphics.FillRectangle( oCustom,  this.Rect );
-            //}
-            using( Brush oBase = new SolidBrush( GetBaseColor() ) ) {
-                p_oGraphics.FillRectangle( oBase, rctDot.Rect );
-            }
-        }
-    } // end class
-
     public class Middle : ControlRect {
         public override void Paint(Graphics p_oGraphics)
         {
@@ -344,7 +320,6 @@ namespace Play.Controls
         readonly ControlRect _oMiddle = new Middle();
         readonly ControlRect _oThumb  = new Thumb();
         readonly Shadow      _oHisto  = new Shadow();
-        readonly ControlRect _oVent   = new Vent();
 
         readonly List<ControlRect> _rgRender = new List<ControlRect>();
 
@@ -365,7 +340,6 @@ namespace Play.Controls
             _rgRender.Add( _oMiddle  );
             _rgRender.Add( _oHisto );
             _rgRender.Add( _oThumb  );
-            _rgRender.Add( _oVent );
 
             foreach( ControlRect oRect in _rgRender ) {
                 oRect.Host = this;
@@ -559,9 +533,6 @@ namespace Play.Controls
                 Invalidate();
             }
 
-            if( _oVent.IsInside( e.X, e.Y ) ) {
-                Cursor = Cursors.SizeAll;
-            }
             if( _oUp.IsInside( e.X, e.Y ) ) {
                 Cursor = Cursors.PanNorth;
             }
@@ -596,7 +567,7 @@ namespace Play.Controls
 
         private int MiddleHeight {
             get {
-                int iMiddleHeight = this.Height - _oDown[SCALAR.HEIGHT ] - _oUp[SCALAR.HEIGHT ] - _oVent[SCALAR.HEIGHT];
+                int iMiddleHeight = this.Height - _oDown[SCALAR.HEIGHT ] - _oUp[SCALAR.HEIGHT ];
 
                 if( iMiddleHeight < 0 )
                     iMiddleHeight = 0;
@@ -608,14 +579,9 @@ namespace Play.Controls
         private void SetSizes( Graphics oGraphics ) {
             int      iMinWidth = (int)(oGraphics.DpiY * .1875);
 
-            _oVent.SetRect(LOCUS.UPPERLEFT,
-                              0,
-                              0,
-                              this.Width,
-                              (int)( this.Width >= iMinWidth ? iMinWidth : 0 ) );
             _oUp  .SetRect(LOCUS.UPPERLEFT,
                               0,
-                              _oVent[SCALAR.BOTTOM ],
+                              0,
                               this.Width,
                               (int)(oGraphics.DpiY * .1875) );
             _oDown.SetRect(LOCUS.UPPERLEFT,
