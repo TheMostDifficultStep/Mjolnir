@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Xml;
+using System.Reflection;
 
 using SkiaSharp;
 using SkiaSharp.Views.Desktop;
@@ -102,7 +103,7 @@ namespace Play.Clock {
                 FormattedTimeString( DateTime.Now.ToUniversalTime(), DocZones[0], DocZones[1] );
                 FormattedTimeString( DateTime.Now,                   DocZones[3], DocZones[4] );
 
-                ClockEvent( BUFFEREVENTS.MULTILINE );
+                ClockEvent?.Invoke( BUFFEREVENTS.MULTILINE );
 
                 yield return 10000;
             }
@@ -117,13 +118,13 @@ namespace Play.Clock {
         IPgCommandView,
         IBufferEvents
     {
-        public Guid   Catagory => Guid.Empty; // Default view.
-        public string Banner   => "World Clock";
-        public Image  Iconic   => null;
-        public bool   IsDirty  => false;
+        private   readonly string      _strViewIcon  = "Play.Clock.Content.icon_clock.gif";
+        protected readonly IPgViewSite _oViewSite;
 
-        protected readonly IPgViewSite       _oViewSite;
-
+        public Guid      Catagory  => Guid.Empty; // Default view.
+        public string    Banner    => "World Clock";
+        public Image     Iconic    { get; }
+        public bool      IsDirty   => false;
         public IPgParent Parentage => _oViewSite.Host;
         public IPgParent Services  => Parentage.Services;
 
@@ -132,6 +133,8 @@ namespace Play.Clock {
         public ViewClock( IPgViewSite oViewSite, DocumentClock oDocClock ) : base( oViewSite, oDocClock.DocZones ) {
             Document   = oDocClock ?? throw new ArgumentNullException( "Clock document must not be null." );
             _oViewSite = oViewSite;
+
+			Iconic = ImageResourceHelper.GetImageResource( Assembly.GetExecutingAssembly(), _strViewIcon );
         }
 
         protected override void Dispose( bool disposing ) {
@@ -174,7 +177,7 @@ namespace Play.Clock {
 
             Caret.Cache = oLayoutTimeUtc;
 
-            OnDocument_BufferEvent( BUFFEREVENTS.MULTILINE );
+            OnDocumentEvent( BUFFEREVENTS.MULTILINE );
             OnSizeChanged( new EventArgs() );
 
             return true;
@@ -197,7 +200,7 @@ namespace Play.Clock {
         }
 
         public void OnEvent(BUFFEREVENTS eEvent) {
-            OnDocument_BufferEvent( BUFFEREVENTS.MULTILINE );
+            OnDocumentEvent( BUFFEREVENTS.MULTILINE );
             Invalidate();
         }
     }

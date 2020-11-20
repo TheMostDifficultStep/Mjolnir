@@ -315,7 +315,7 @@ namespace Play.Forms {
         /// </summary>
         protected override void Dispose( bool disposing ) {
             if( disposing ) {
-                DocForms.BufferEvent -= OnDocument_BufferEvent;
+                DocForms.BufferEvent -= OnDocumentEvent;
                 DocForms.CaretRemove( Caret );
             }
 
@@ -332,7 +332,7 @@ namespace Play.Forms {
                 this.ContextMenuStrip = oMenu;
             }
 
-            DocForms.BufferEvent += OnDocument_BufferEvent;
+            DocForms.BufferEvent += OnDocumentEvent;
             DocForms.CaretAdd( Caret ); // Document moves our caret and keeps it in sync.
 
             SKSize sResolution = new SKSize(96, 96);
@@ -362,7 +362,7 @@ namespace Play.Forms {
         /// <summary>
         /// Just update the entire cache. We'll get more selective in the future.
         /// </summary>
-        protected void OnDocument_BufferEvent( BUFFEREVENTS eEvent ) {
+        protected void OnDocumentEvent( BUFFEREVENTS eEvent ) {
             switch( eEvent ) {
                 case BUFFEREVENTS.SINGLELINE:
                 case BUFFEREVENTS.MULTILINE:

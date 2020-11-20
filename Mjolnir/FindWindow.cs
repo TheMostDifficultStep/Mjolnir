@@ -112,7 +112,7 @@ namespace Mjolnir {
 			    new LayoutControl( button2,  LayoutRect.CSS.Flex ),
             } );
 
-            OnDocument_BufferEvent( BUFFEREVENTS.MULTILINE );
+            OnDocumentEvent( BUFFEREVENTS.MULTILINE );
             OnSizeChanged( new EventArgs() );
 
 			return true;

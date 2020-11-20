@@ -6,6 +6,14 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="Content\icon_clock.gif" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Content\icon_clock.gif" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Drawing\Drawing.csproj" />
     <ProjectReference Include="..\Editor\Editor.csproj" />
     <ProjectReference Include="..\Forms\Forms.csproj" />
