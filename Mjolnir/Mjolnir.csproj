@@ -15,6 +15,7 @@
     <None Remove="Content\icons8-bookmark-book-512.png" />
     <None Remove="Content\icon_album.gif" />
     <None Remove="Content\icon_catform.gif" />
+    <None Remove="Content\icon_clock.gif" />
     <None Remove="Content\icon_errors.gif" />
     <None Remove="Content\icon_find.gif" />
     <None Remove="Content\icon_match.gif" />
@@ -36,6 +37,7 @@
     <EmbeddedResource Include="Content\icons8-bookmark-book-512.png" />
     <EmbeddedResource Include="Content\icon_album.gif" />
     <EmbeddedResource Include="Content\icon_catform.gif" />
+    <EmbeddedResource Include="Content\icon_clock.gif" />
     <EmbeddedResource Include="Content\icon_errors.gif" />
     <EmbeddedResource Include="Content\icon_find.gif" />
     <EmbeddedResource Include="Content\icon_match.gif" />

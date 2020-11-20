@@ -314,8 +314,10 @@ namespace Play.Forms {
         /// Unplug events so we won't get any callbacks when we're dead.
         /// </summary>
         protected override void Dispose( bool disposing ) {
-            DocForms.BufferEvent -= Document_BufferEvent;
-            DocForms.CaretRemove( Caret );
+            if( disposing ) {
+                DocForms.BufferEvent -= Document_BufferEvent;
+                DocForms.CaretRemove( Caret );
+            }
 
             base.Dispose(disposing);
         }
@@ -637,12 +639,14 @@ namespace Play.Forms {
             base.OnMouseDown( e );
             Select();
 
-            // Set the caret for sure if hit. If not just leave it where ever it was.
-            foreach( LayoutSingleLine oCache in CacheList ) {
-                if( oCache.IsInside( e.X, e.Y ) ) {
-                    Caret.Cache = oCache;
+            if( e.Button == MouseButtons.Left ) {
+                // Set the caret for sure if hit. If not just leave it where ever it was.
+                foreach( LayoutSingleLine oCache in CacheList ) {
+                    if( oCache.IsInside( e.X, e.Y ) ) {
+                        Caret.Cache = oCache;
 
-                    oCache.SelectHead( Caret, e.Location, ModifierKeys == Keys.Shift );
+                        oCache.SelectHead( Caret, e.Location, ModifierKeys == Keys.Shift );
+                    }
                 }
             }
 

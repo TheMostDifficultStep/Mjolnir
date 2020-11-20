@@ -42,6 +42,11 @@ namespace Play.Clock {
 
         public IPgParent Parentage => Site.Host;
         public IPgParent Services  => Parentage;
+        public bool      IsDirty   => false;
+
+        protected IPgRoundRobinWork _oWorkPlace;
+
+        public event BufferEvent  ClockEvent;
 
         public Editor DocZones { get; protected set; }
 
@@ -52,13 +57,18 @@ namespace Play.Clock {
         public void Dispose() {
         }
 
-        public bool IsDirty => false;
-
         public bool InitNew(){
             DocZones = new Editor( new DocSlot( this ) );
 
             DocZones.LineAppend( "8:00" );
             DocZones.LineAppend( "utc" );
+
+			try {
+				_oWorkPlace = ((IPgScheduler)Services).CreateWorkPlace();
+                _oWorkPlace.Queue( CreateWorker(), 1000 );
+			} catch( InvalidCastException ) {
+				Site.LogError( "Clock Doc", "Can't set up time update" );
+			}
 
             return true;
         }
@@ -69,6 +79,23 @@ namespace Play.Clock {
 
         public bool Save(TextWriter oStream) {
             return true;
+        }
+
+        public IEnumerator<int> CreateWorker() {
+            while( true ) {
+                DateTime oDT = DateTime.Now.ToUniversalTime();
+
+                Line oTimeLine = DocZones[0];
+
+                string strTime = oDT.Hour.ToString( "D2" ) + ":" + oDT.Minute.ToString( "D2") + " " + oDT.ToShortDateString();
+
+                oTimeLine.Empty();
+                oTimeLine.TryAppend( strTime );
+
+                ClockEvent( BUFFEREVENTS.SINGLELINE );
+
+                yield return 10000;
+            }
         }
     }
 
@@ -85,7 +112,7 @@ namespace Play.Clock {
         public Image  Iconic   => null;
         public bool   IsDirty  => false;
 
-        protected readonly IPgViewSite _oViewSite;
+        protected readonly IPgViewSite       _oViewSite;
 
         public IPgParent Parentage => _oViewSite.Host;
         public IPgParent Services  => Parentage.Services;
@@ -97,9 +124,19 @@ namespace Play.Clock {
             _oViewSite = oViewSite;
         }
 
+        protected override void Dispose( bool disposing ) {
+            if( disposing ) {
+                Document.ClockEvent -= OnEvent;
+                DocForms.CaretRemove( Caret );
+            }
+            base.Dispose(disposing);
+        }
+
         public override bool InitNew() {
             if( !base.InitNew() ) 
                 return false;
+
+            Document.ClockEvent += OnEvent;
 
             SmartTable oLayout = new SmartTable( 5, LayoutRect.CSS.None );
             Layout2 = oLayout;
@@ -140,7 +177,8 @@ namespace Play.Clock {
         }
 
         public void OnEvent(BUFFEREVENTS eEvent) {
-            throw new NotImplementedException();
+            Document_BufferEvent( BUFFEREVENTS.MULTILINE );
+            Invalidate();
         }
     }
 }
