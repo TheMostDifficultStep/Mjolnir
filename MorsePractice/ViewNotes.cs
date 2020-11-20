@@ -1,5 +1,4 @@
 ﻿using System;
-//using System.Windows.Forms;
 
 using Play.Interfaces.Embedding;
 using Play.Parse.Impl;
@@ -50,7 +49,7 @@ namespace Play.MorsePractice {
     /// This is a stand alone document view to be used to show the notes.
     /// </summary>
     class ViewNotes :
-        EditWin
+        EditWindow2
     {
         public static readonly Guid _guidViewCategory = new Guid("{9fe5d0bc-0b91-4556-bf52-f9d823a7346c}");
 
@@ -104,8 +103,8 @@ namespace Play.MorsePractice {
         }
 
         /// <seealso cref="ViewBio.InitNewInternal"/>
-        protected override bool InitNewInternal() {
-            if( !base.InitNewInternal() )
+        protected override bool InitInternal() {
+            if( !base.InitInternal() )
                 return false;
 
             //if (this.ContextMenuStrip != null) {

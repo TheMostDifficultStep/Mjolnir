@@ -72,17 +72,17 @@ namespace Play.MorsePractice {
 		readonly MorseDoc    _oDocMorse;
 		readonly LayoutStack _rgLayout;
 
-		EditWin ViewSource { get; }
-		EditWin ViewNotes  { get; }
-		EditWin ViewStats  { get; }
+		EditWindow2 ViewSource { get; }
+		EditWindow2 ViewNotes  { get; }
+		EditWindow2 ViewStats  { get; }
 
 		public ViewMorse( IPgViewSite oSiteView, MorseDoc oDocument ) {
 			_oSiteView = oSiteView ?? throw new ArgumentNullException();
 			_oDocMorse = oDocument ?? throw new ArgumentNullException();
 
-			ViewSource = new EditWin( new ViewMorseSlot     ( this ), _oDocMorse.Source ) { Parent = this };
-			ViewNotes  = new EditWin( new ViewMorseNotesSlot( this ), _oDocMorse.Notes  ) { Parent = this };
-			ViewStats  = new EditWin( new ViewMorseSlot     ( this ), _oDocMorse.Stats, fReadOnly:true ) { Parent = this };
+			ViewSource = new EditWindow2( new ViewMorseSlot     ( this ), _oDocMorse.Source ) { Parent = this };
+			ViewNotes  = new EditWindow2( new ViewMorseNotesSlot( this ), _oDocMorse.Notes  ) { Parent = this };
+			ViewStats  = new EditWindow2( new ViewMorseSlot     ( this ), _oDocMorse.Stats, fReadOnly:true ) { Parent = this };
 
 			_rgLayout = new LayoutStackHorizontal( 15 ) {
 				new LayoutStackVertical( 15 ) {
