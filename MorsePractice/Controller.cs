@@ -31,9 +31,6 @@ namespace Play.MorsePractice
 
 			try {
                 switch( guidViewType ) {
-                    case Guid r when r == _guidMorseTable:
-					    return new EditWin( oBaseSite, oMorsePractice.Morse, fReadOnly:true );
-
 				    case Guid r when r == ViewMorse._guidViewCategory:
 					    return new ViewMorse( oBaseSite, oMorsePractice );
 
@@ -43,17 +40,20 @@ namespace Play.MorsePractice
                     case Guid r when r == ViewNotes._guidViewCategory:
                         return new ViewNotes(oBaseSite, oMorsePractice);
 
-                    case Guid r when r == _guidSchedule:
-                        return new EditWin( oBaseSite, oMorsePractice.Calls, fReadOnly:true, fSingleLine:false );
-
-                    case Guid r when r == _guidRawBio:
-                        return new EditWin(oBaseSite, oMorsePractice.CallSignBioHtml, fReadOnly: true);
-
-                    case Guid r when r == _guidRawPage:
-                        return new EditWin(oBaseSite, oMorsePractice.CallSignPageHtml, fReadOnly: true);
-
                     case Guid r when r == ViewLog.ViewLogger:
                         return new ViewLog( oBaseSite, oMorsePractice );
+
+                    case Guid r when r == _guidMorseTable:
+					    return new EditWindow2( oBaseSite, oMorsePractice.Morse, fReadOnly:true );
+
+                    case Guid r when r == _guidSchedule:
+                        return new EditWindow2( oBaseSite, oMorsePractice.Calls, fReadOnly:true, fSingleLine:false );
+
+                    case Guid r when r == _guidRawBio:
+                        return new EditWindow2(oBaseSite, oMorsePractice.CallSignBioHtml, fReadOnly: true);
+
+                    case Guid r when r == _guidRawPage:
+                        return new EditWindow2(oBaseSite, oMorsePractice.CallSignPageHtml, fReadOnly: true);
 
                     default:
                         return new ViewNotes(oBaseSite, oMorsePractice );

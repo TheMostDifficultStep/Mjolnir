@@ -4,9 +4,6 @@ using System.IO;
 using System.Xml;
 using System.Reflection;
 
-using SkiaSharp;
-using SkiaSharp.Views.Desktop;
-
 using Play.Interfaces.Embedding;
 using Play.Rectangles;
 using System.Drawing;

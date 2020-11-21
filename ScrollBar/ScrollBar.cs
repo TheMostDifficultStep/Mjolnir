@@ -1,19 +1,18 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
-using System.Drawing.Drawing2D;
 using System.Windows.Forms;
 
 using SkiaSharp;
+using SkiaSharp.Views.Desktop;
 
 using Play.Rectangles;
 using Play.Interfaces.Embedding;
 
-namespace Play.Controls
-{
+namespace Play.Controls {
     public delegate void ScrollBarEvent( ScrollEvents e );
 
-    public class ControlRect : 
+    public abstract class GadgetRect : 
         SmartRect,
         IPgVisibleObject2
     {
@@ -22,8 +21,21 @@ namespace Play.Controls
         SHOWSTATE  _eViewState = SHOWSTATE.Inactive;
         bool       _fIsHidden  = false;
 
-        protected Color _oColorActive   = Color.FromArgb(122, 164, 234);
-        protected Color _oColorInActive = Color.FromArgb(160, 160, 160);
+        protected SKColor _oColorActive   = new SKColor(122, 164, 234);
+        protected SKColor _oColorInActive = new SKColor(160, 160, 160);
+
+        public abstract void Paint( SKCanvas skCanvas, IPgStandardUI oStdUI );
+
+        /// <summary>
+        /// Bug: We used to be able to get this on the Graphics pointer in GDI32 on paint.
+        /// SKContro doesn't seem to have anything so hard coded for now but we 
+        /// can still get from the window if we want.
+        /// </summary>
+        public SKPoint Dpi {
+            get {
+                return new SKPoint( 96, 96 );
+            }
+        }
 
         public ScrollBar2 Host {
             get{
@@ -35,14 +47,16 @@ namespace Play.Controls
             }
         }
 
-        public Color GetBaseColor() {
-            if( _fHovering ) {
+        public SKColor BaseColor {
+            get {
+                if( _fHovering ) {
+                    return _oColorActive;
+                }
+                if( _eViewState == SHOWSTATE.Inactive ) {
+                    return( _oColorInActive );
+                }
                 return _oColorActive;
             }
-            if( _eViewState == SHOWSTATE.Inactive ) {
-                return( _oColorInActive );
-            }
-            return( _oColorActive );
         }
 
         #region ISmartDragGuest Members
@@ -106,14 +120,11 @@ namespace Play.Controls
 
         #region IPgObjectWithSite Members
 
-        public IPgBaseSite HostSite
-        {
-            get
-            {
+        public IPgBaseSite HostSite {
+            get {
                 throw new NotImplementedException();
             }
-            set
-            {
+            set {
                 throw new NotImplementedException();
             }
         }
@@ -130,86 +141,43 @@ namespace Play.Controls
         LEFT
     }
 
-    public class Extremity : ControlRect
-    {
+    public class Extremity : GadgetRect {
         ScrollDirection _eDir = ScrollDirection.NONE;
 
         public Extremity( ScrollDirection eDir ) {
             _eDir = eDir;
         }
 
-        public override void Paint(System.Drawing.Graphics p_oGraphics)
-        {
-          //base.Paint(p_oGraphics);
+        public override void Paint( SKCanvas skCanvas, IPgStandardUI oStdUI ) {
+            SKPointI  pntCenter = this.GetPoint( LOCUS.CENTER );
+            SmartRect rctDot    = new SmartRect( LOCUS.CENTER, 
+                                                 pntCenter.X, pntCenter.Y, 
+                                                 (int)(Dpi.X / 16), (int)(Dpi.Y / 16) );
 
-            Rectangle rctPerimeter = this.Rect;
-            SKPointI  pntCenter    = this.GetPoint( LOCUS.CENTER );
-            SmartRect rctDot       = new SmartRect( LOCUS.CENTER, 
-                                                    pntCenter.X, pntCenter.Y, 
-                                                    (int)(p_oGraphics.DpiX / 16), (int)(p_oGraphics.DpiY / 16) );
+            using SKPaint skPaint = new SKPaint() { Color = BaseColor };
 
-          using( Brush oCustom = new SolidBrush(Color.FromArgb( 255, 240, 240, 240 ) ) ) {
-                using( Brush oBase = new SolidBrush( GetBaseColor() ) ) {
-                    //p_oGraphics.FillRectangle( oCustom,  this.Rect );
-                    p_oGraphics.SmoothingMode = SmoothingMode.AntiAlias;
-                    p_oGraphics.FillEllipse( oBase, rctDot.Rect );
-                    p_oGraphics.SmoothingMode = SmoothingMode.None;
-                }
-            }
+            skCanvas.DrawRect( rctDot.Left, rctDot.Top, rctDot.Width, rctDot.Height, skPaint );
         }
     } // end class
 
-    public class Middle : ControlRect {
-        public override void Paint(Graphics p_oGraphics)
-        {
-            base.Paint(p_oGraphics);
-            //SmartRect rcRight = new SmartRect( this );
-            //SmartRect rcLeft  = new SmartRect( this );
-            //SmartRect rcSquare = new SmartRect( this[SCALAR.LEFT], this[SCALAR.TOP], this[SCALAR.LEFT] + this[SCALAR.WIDTH], this[SCALAR.TOP] + this[SCALAR.WIDTH] );
-
-            //int       iSliver = (int)( this[SCALAR.WIDTH] / 3.5 );
-
-            //rcRight.SetScalar( SET.FLOAT, SCALAR.LEFT,  this[SCALAR.WIDTH] - iSliver - 1);
-            //rcLeft .SetScalar( SET.FLOAT, SCALAR.RIGHT, iSliver );
-
-            //Color clrBase = Color.FromArgb( 255, 235, 235, 240 );
-            //Color clrEdge = Color.FromArgb( 255, 210, 210, 220 );
-
-            //// I like a little bit of a contrast with the border when it's not lit so you can see the scroll region.
-            //// hence 227 instead of 240. When I have a real color managment system I'll toss all this hard code.
-            //using( Brush oSolid = new SolidBrush( clrBase ) ) {  // was 240
-            //    p_oGraphics.FillRectangle( oSolid, this.Rect );
-            //}
-            //if( this[SCALAR.WIDTH] >= .1875F * p_oGraphics.DpiX ) {
-            //    using( Brush oLeftBrush = new LinearGradientBrush( rcLeft.Rect, clrEdge, clrBase,LinearGradientMode.Horizontal ) ) {
-            //        p_oGraphics.FillRectangle( oLeftBrush,  rcLeft.Rect );
-            //    }
-            //    using( Brush oTopBrush = new LinearGradientBrush(rcSquare.Rect,  clrEdge, clrBase,LinearGradientMode.Vertical ) ) {
-            //        p_oGraphics.FillRectangle( oTopBrush,   rcSquare.Rect );
-            //    }
-            //    using( Brush oRightBrush = new LinearGradientBrush( rcRight.Rect,  clrBase, clrEdge, LinearGradientMode.Horizontal ) ) {
-            //        p_oGraphics.FillRectangle( oRightBrush, rcRight.Rect );
-            //    }
-            //}
+    public class Middle : GadgetRect {
+        public override void Paint( SKCanvas skCanvas, IPgStandardUI oStdUI ) {
+            base.Paint( skCanvas );
         }
     }
 
-    public class ThumbBase : ControlRect {
-        public override void Paint(Graphics p_oGraphics)
-        {
+    public class ThumbBase : GadgetRect {
+        public override void Paint( SKCanvas skCanvas, IPgStandardUI oStdUI ) {
             if( Hidden ) 
                 return;
 
-            base.Paint(p_oGraphics);
-
             int iWidth = this[SCALAR.WIDTH];
 
-            if( iWidth >= 0.1875F * p_oGraphics.DpiX ) {
-                //if( this[SCALAR.HEIGHT] > 0.5F * p_oGraphics.DpiX ) 
-                    iWidth = (int)( p_oGraphics.DpiX / 7 );
+            if( iWidth >= 0.1875F * Dpi.X ) {
+                iWidth = (int)( Dpi.X / 7 );
             }
 
-            int iLeft = (( this[SCALAR.WIDTH] - iWidth  ) / 2 ) + 1;
+            int iLeft = (( this[SCALAR.WIDTH] - iWidth ) / 2 ) + 1;
 
             SmartRect rctWhole = new SmartRect( LOCUS.UPPERLEFT,
                                                 iLeft,
@@ -217,117 +185,50 @@ namespace Play.Controls
                                                 iWidth-1,
                                                 this[SCALAR.HEIGHT] );
 
-            SmartRect rctTop = new SmartRect( LOCUS.UPPERLEFT, 
-                                              rctWhole[SCALAR.LEFT],  
-                                              rctWhole[SCALAR.TOP], 
-                                              rctWhole[SCALAR.WIDTH],
-                                              rctWhole[SCALAR.WIDTH] );
-            SmartRect rctBot = new SmartRect( LOCUS.LOWERLEFT, 
-                                              rctWhole[SCALAR.LEFT],  
-                                              rctWhole[SCALAR.BOTTOM], 
-                                              rctWhole[SCALAR.WIDTH], 
-                                              rctWhole[SCALAR.WIDTH] );
+            using SKPaint skPaint = new SKPaint() { Color = BaseColor };
 
-            SKPointI  pntTopCenter = rctTop.GetPoint( LOCUS.CENTER );
-            SKPointI  pntBotCenter = rctBot.GetPoint( LOCUS.CENTER );
-
-            SmartRect rctSlider = new SmartRect( LOCUS.UPPERLEFT, 
-                                                 rctWhole[SCALAR.LEFT], 
-                                                 pntTopCenter.Y, 
-                                                 rctWhole[SCALAR.WIDTH], 
-                                                 pntBotCenter.Y - pntTopCenter.Y);
-
-
-            using( Brush oGray = new SolidBrush( GetBaseColor() ) ) {
-                p_oGraphics.SmoothingMode = SmoothingMode.AntiAlias;
-                p_oGraphics.FillEllipse  ( oGray, rctTop.Rect );
-                p_oGraphics.FillEllipse  ( oGray, rctBot.Rect );
-
-                p_oGraphics.FillRectangle( oGray, rctSlider.Rect );
-                p_oGraphics.SmoothingMode = SmoothingMode.None;
-            }
-
+            skCanvas.DrawRect( rctWhole.Left, rctWhole.Top, rctWhole.Width, rctWhole.Height, skPaint );
         }
     }
 
     public class Thumb : ThumbBase {
-        public override void Paint(Graphics p_oGraphics)
-        {
+        public override void Paint( SKCanvas skCanvas, IPgStandardUI oStdUI ) {
             if( Hidden ) 
                 return;
 
-            base.Paint(p_oGraphics);
+            base.Paint( skCanvas, oStdUI ); // This paints our base color.
 
             // Turn this off if we're very narrow. Also I'm thinking I'd actually rather only light this up when
             // hovering instead of only when we're active.
-            if( this[SCALAR.WIDTH] >= 0.1875F * p_oGraphics.DpiX && this.ShowAs == SHOWSTATE.Active ) {
+            if( this[SCALAR.WIDTH] >= 0.1875F * Dpi.X && this.ShowAs == SHOWSTATE.Active ) {
                 SKPointI  pntCenter = this.GetPoint( LOCUS.CENTER );
 
                 SmartRect rctBadge = new SmartRect( LOCUS.CENTER,
                                                     pntCenter.X, pntCenter.Y, 
-                                                    (int)(p_oGraphics.DpiX / 18), 
-                                                    (int)(p_oGraphics.DpiY / 18) );
+                                                    (int)(Dpi.X / 18), 
+                                                    (int)(Dpi.Y / 18) );
 
-                //p_oGraphics.SmoothingMode = SmoothingMode.AntiAlias;
-
-                if( this.GetScalar(SCALAR.HEIGHT) > (int)(p_oGraphics.DpiY / 16) + 2 ) {
-                    using( Brush oWhite = new SolidBrush( Color.White ) ) {
-                        p_oGraphics.FillRectangle( oWhite, rctBadge.Rect );
-                    }
+                if( this.GetScalar(SCALAR.HEIGHT) > (int)(Dpi.Y / 16) + 2 ) {
+                    using SKPaint skPaint = new SKPaint() { Color = SKColors.White };
+                    skCanvas.DrawRect( rctBadge.Left, rctBadge.Top, rctBadge.Width, rctBadge.Height, skPaint );
                 }
-                p_oGraphics.SmoothingMode = SmoothingMode.None;
             }
         }
     }
 
-    public class Shadow : ThumbBase {
-        public Shadow() : base() {
-            _oColorActive   = Color.FromArgb( 160, 160, 160, 160);
-            _oColorInActive = Color.FromArgb( 160, 160, 160, 160);
-        }
-    }
+    public class ScrollBar2 : SKControl {
+        readonly GadgetRect _oUp     = new Extremity( ScrollDirection.UP);
+        readonly GadgetRect _oDown   = new Extremity( ScrollDirection.DOWN);
+        readonly GadgetRect _oMiddle = new Middle();
+        readonly GadgetRect _oThumb  = new Thumb();
 
-    public class Thumb2 : ControlRect {
-        public override void Paint(Graphics p_oGraphics)
-        {
-            if( Hidden )
-                return;
+        readonly List<GadgetRect> _rgRender = new List<GadgetRect>();
 
-            base.Paint(p_oGraphics);
-
-            SKPointI pntCenter = this.GetPoint( LOCUS.CENTER );
-
-            Point[] rgPoints = { new Point( this.GetScalar(SCALAR.RIGHT), this.GetScalar(SCALAR.TOP) ), 
-                                 new Point( this.GetScalar(SCALAR.LEFT ), pntCenter.Y ), 
-                                 new Point( this.GetScalar(SCALAR.RIGHT), this.GetScalar(SCALAR.BOTTOM) ) };
-
-            SmartRect rctButton = new SmartRect( LOCUS.CENTER,
-                                                 pntCenter.X, pntCenter.Y, 
-                                                 (int)(p_oGraphics.DpiX / 16), (int)(p_oGraphics.DpiY / 16) );
-
-            p_oGraphics.SmoothingMode = SmoothingMode.AntiAlias;
-
-            using( Brush oGray = new SolidBrush( GetBaseColor() ) ) {
-                p_oGraphics.FillPolygon( oGray, rgPoints );
-            }
-        }
-    }
-
-    public class ScrollBar2 : Control
-    {
-        readonly ControlRect _oUp     = new Extremity( ScrollDirection.UP);
-        readonly ControlRect _oDown   = new Extremity( ScrollDirection.DOWN);
-        readonly ControlRect _oMiddle = new Middle();
-        readonly ControlRect _oThumb  = new Thumb();
-        readonly Shadow      _oHisto  = new Shadow();
-
-        readonly List<ControlRect> _rgRender = new List<ControlRect>();
-
-        readonly Timer _oTimer = new Timer();
-        readonly int   _iPause = 400;
-        readonly int   _iInterval = 60;
+        readonly Timer _oTimer           = new Timer();
+        readonly int   _iPause           = 400;
+        readonly int   _iInterval        = 60;
+        SHOWSTATE      _eViewState       = SHOWSTATE.Inactive;
         ScrollEvents   _eLastScrollEvent = ScrollEvents.EndScroll;
-        SHOWSTATE     _eViewState = SHOWSTATE.Inactive;
 
         float _flExposureFraction = (float)0.1;
         float _flProgressFraction = (float)0.0;
@@ -338,10 +239,9 @@ namespace Play.Controls
             _rgRender.Add( _oUp );
             _rgRender.Add( _oDown );
             _rgRender.Add( _oMiddle  );
-            _rgRender.Add( _oHisto );
             _rgRender.Add( _oThumb  );
 
-            foreach( ControlRect oRect in _rgRender ) {
+            foreach( GadgetRect oRect in _rgRender ) {
                 oRect.Host = this;
             }
 
@@ -360,9 +260,7 @@ namespace Play.Controls
         protected void Raise_Scroll( ScrollEvents e ) {
             _eLastScrollEvent = e;
 
-            if( Scroll != null ) {
-                Scroll( e );
-            }
+            Scroll?.Invoke( e );
         }
 
         public void Show( SHOWSTATE eState ) {
@@ -375,8 +273,7 @@ namespace Play.Controls
             Invalidate();
         }
 
-        public void Refresh( float flExposureFraction, float flProgressFraction ) 
-        {
+        public void Refresh( float flExposureFraction, float flProgressFraction ) {
             if( flExposureFraction > 1 )
                 flExposureFraction = 1;
             if( flExposureFraction < 0 )
@@ -389,8 +286,6 @@ namespace Play.Controls
 
             _flExposureFraction = flExposureFraction;
             _flProgressFraction = flProgressFraction;
-
-            _oHisto.Hidden = true;
 
             Invalidate();
         }
@@ -415,14 +310,12 @@ namespace Play.Controls
             }
         }
 
-        protected override void OnSizeChanged(EventArgs e)
-        {
+        protected override void OnSizeChanged(EventArgs e) {
             base.OnSizeChanged(e);
             Invalidate();
         }
 
-        void OnTick(object sender, EventArgs e)
-        {
+        void OnTick(object sender, EventArgs e) {
             Raise_Scroll( _eLastScrollEvent );
 
             // We start the wait time at a high value and then shorten
@@ -436,14 +329,19 @@ namespace Play.Controls
             _oTimer.Interval = _iPause;
             _oTimer.Start();
 
-            _oHisto.Rect = _oThumb.Rect;
-            _oHisto.ShowAs = SHOWSTATE.Active;
-
             Raise_Scroll( e );
         }
 
-        protected override void OnMouseDown(MouseEventArgs e)
-        {
+        protected void Raise_ThumbFinished() {
+            if( _oDrag != null ) {
+                Raise_Scroll(ScrollEvents.ThumbPosition);
+
+                _oDrag.Dispose();
+                _oDrag = null;
+            }
+        }
+
+        protected override void OnMouseDown( MouseEventArgs e ) {
             base.OnMouseDown(e);
 
             if( _oUp.IsInside( e.X, e.Y ) ) {
@@ -466,7 +364,6 @@ namespace Play.Controls
                         break;
                     case LOCUS.CENTER:
                         _oDrag = new SmartGrabDrag( null, _oThumb, SET.RIGID, LOCUS.UPPERLEFT, e.X, e.Y );
-                        _oHisto.Rect = _oThumb.Rect;
 
                         Invalidate();
                         break;
@@ -474,8 +371,7 @@ namespace Play.Controls
             }
         }
 
-        protected override void OnMouseUp(MouseEventArgs e)
-        {
+        protected override void OnMouseUp( MouseEventArgs e ) {
             base.OnMouseUp(e);
             _oTimer.Stop();
 
@@ -484,8 +380,7 @@ namespace Play.Controls
             Invalidate();
         }
 
-        protected override void OnMouseLeave(EventArgs e)
-        {
+        protected override void OnMouseLeave( EventArgs e ) {
             base.OnMouseLeave(e);
 
             _oTimer.Stop();
@@ -499,17 +394,7 @@ namespace Play.Controls
             Invalidate();
         }
 
-        protected void Raise_ThumbFinished() {
-            if( _oDrag != null ) {
-                Raise_Scroll(ScrollEvents.ThumbPosition);
-
-                _oDrag.Dispose();
-                _oDrag = null;
-            }
-            _oHisto.Hidden = true;
-        }
-
-        protected override void OnMouseMove(MouseEventArgs e)
+        protected override void OnMouseMove( MouseEventArgs e )
         {
             base.OnMouseMove(e);
 
@@ -554,7 +439,7 @@ namespace Play.Controls
             }
         }
 
-        protected override void OnMouseHover(EventArgs e)
+        protected override void OnMouseHover( EventArgs e )
         {
             base.OnMouseHover(e);
 
@@ -576,30 +461,33 @@ namespace Play.Controls
             }
         }
 
-        private void SetSizes( Graphics oGraphics ) {
-            int      iMinWidth = (int)(oGraphics.DpiY * .1875);
-
-            _oUp  .SetRect(LOCUS.UPPERLEFT,
+        /// <summary>
+        /// This is pretty simple, but we could replace this code with the new
+        /// LayoutStack object. As a matter of fact, we'll do that if we
+        /// ever must have a horizontal scroll bar. 
+        /// </summary>
+        private void SetSizes( SKPoint pntDpi ) {
+            _oUp  .SetRect( LOCUS.UPPERLEFT,
                               0,
                               0,
                               this.Width,
-                              (int)(oGraphics.DpiY * .1875) );
-            _oDown.SetRect(LOCUS.UPPERLEFT,
+                              (int)(pntDpi.Y * .1875) );
+            _oDown.SetRect( LOCUS.UPPERLEFT,
                               0,
                               _oUp[SCALAR.BOTTOM ],
                               this.Width,
-                              (int)(oGraphics.DpiY * .1875) );
+                              (int)(pntDpi.Y * .1875) );
 
             int iMiddleHeight = MiddleHeight;
 
-            _oMiddle .SetRect(LOCUS.UPPERLEFT,
-                              0,
-                              _oDown[SCALAR.BOTTOM ],
-                              this.Width,
-                              iMiddleHeight  );
+            _oMiddle .SetRect( LOCUS.UPPERLEFT,
+                               0,
+                               _oDown[SCALAR.BOTTOM ],
+                               this.Width,
+                               iMiddleHeight  );
 
             int iThumbHeight = (int)(iMiddleHeight * _flExposureFraction);
-            int iMinHeight   = (int)(oGraphics.DpiX * 3 / 10);
+            int iMinHeight   = (int)(pntDpi.X * 3 / 10);
             if( iThumbHeight < iMinHeight ) {
                 iThumbHeight = iMinHeight;
             }
@@ -625,51 +513,30 @@ namespace Play.Controls
             }
 
             _oThumb.Hidden = _oThumb[SCALAR.HEIGHT] >= _oMiddle[SCALAR.HEIGHT];
-
-            //VIEWSTATE vsThumb = _oThumb.Show;
-            //if( iThumbHeight >= iMiddleHeight )
-            //    _oThumb.Show = VIEWSTATE.Hide;
         }
 
-        private void PaintRightStrip( Graphics oGraphics ) {
-            SmartRect rcWhole = new SmartRect( LOCUS.UPPERLEFT, 0, 0, this.Width, this.Height );
-            SmartRect rcRight = new SmartRect( rcWhole );
-            int       iSliver = (int)( rcWhole[SCALAR.WIDTH] / 3.5 );
-            Color     clrEdge = Color.FromArgb( 255, 210, 210, 220 );
-            Color     clrBase = Color.FromArgb( 255, 235, 235, 240 );
-
-            rcRight.SetScalar( SET.STRETCH, SCALAR.LEFT,  rcWhole[SCALAR.WIDTH] - iSliver - 1);
-
-            if( rcWhole[SCALAR.WIDTH] >= .1875F * oGraphics.DpiX ) {
-                using( Brush oRightBrush = new LinearGradientBrush( rcRight.Rect,  clrBase, clrEdge, LinearGradientMode.Horizontal ) ) {
-                    oGraphics.FillRectangle( oRightBrush, rcRight.Rect );
-                }
-            }
-        }
-
-        protected override void OnPaint( PaintEventArgs p_oE )
-        {
-            Graphics oGraphics = p_oE.Graphics;
-
-            SetSizes( p_oE.Graphics );
-
-            Color     clrBase = Color.FromArgb( 255, 235, 235, 240 );
-            SmartRect rcWhole = new SmartRect( LOCUS.UPPERLEFT, 0, 0, this.Width, this.Height );
-            using( Brush oSolid = new SolidBrush( clrBase ) ) {  
-                oGraphics.FillRectangle( oSolid, rcWhole.Rect );
-            }
-
-            // TODO: Turn on if our bg color is close to the editor bg color.
-            // PaintRightStrip();
+        protected override void OnPaintSurface( SKPaintSurfaceEventArgs e ) {
+            base.OnPaintSurface(e);
 
             try {
-                foreach( SmartRect oRect in _rgRender ) {
-                    oRect.Paint( oGraphics );
-                }
-            } catch( ArgumentException ) {
-            }
+                SetSizes( new SKPoint( 96, 96 ) );
 
-            //_oThumb.Show = vsThumb;
+                Color     clrBase = Color.FromArgb( 255, 235, 235, 240 );
+                SmartRect rcWhole = new SmartRect( LOCUS.UPPERLEFT, 0, 0, this.Width, this.Height );
+
+                using SKPaint skPaint = new SKPaint() { Color = new SKColor( clrBase.R, clrBase.G, clrBase.B ) };
+                e.Surface.Canvas.DrawRect( rcWhole.Left, rcWhole.Top, rcWhole.Width, rcWhole.Height, skPaint );
+
+                foreach( GadgetRect oRect in _rgRender ) {
+                    oRect.Paint( e.Surface.Canvas, null );
+                }
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( ArgumentException ),
+                                    typeof( ArgumentNullException ),
+                                    typeof( NullReferenceException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
+            }
         }
     }
 }
