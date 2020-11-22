@@ -64,6 +64,9 @@ namespace Play.Clock {
             DocZones.LineAppend( string.Empty, fUndoable:false );
             DocZones.LineAppend( string.Empty, fUndoable:false );
             DocZones.LineAppend( "local",      fUndoable:false );
+            DocZones.LineAppend( string.Empty, fUndoable:false );
+            DocZones.LineAppend( "12hr clock", fUndoable:false );
+            DocZones.LineAppend( "local",      fUndoable:false );
 
 			try {
 				_oWorkPlace = ((IPgScheduler)Services).CreateWorkPlace();
@@ -95,10 +98,21 @@ namespace Play.Clock {
 
         public IEnumerator<int> CreateWorker() {
             while( true ) {
-                DateTime oDT = DateTime.Now.ToUniversalTime();
+                DateTime oDT = DateTime.Now;
 
-                FormattedTimeString( DateTime.Now.ToUniversalTime(), DocZones[0], DocZones[1] );
-                FormattedTimeString( DateTime.Now,                   DocZones[3], DocZones[4] );
+                FormattedTimeString( oDT.ToUniversalTime(), DocZones[0], DocZones[1] );
+                FormattedTimeString( oDT,                   DocZones[3], DocZones[4] );
+
+                int    iHour     = oDT.Hour;
+                string strMidDay = "am"; 
+
+                if( iHour >= 12 ) {
+                    strMidDay = "pm";
+                    iHour    -= 12;
+                }
+
+                DocZones[6].Empty();
+                DocZones[6].TryAppend( iHour.ToString( "D2" ) + ":" + oDT.Minute.ToString( "D2" ) + strMidDay );
 
                 ClockEvent?.Invoke( BUFFEREVENTS.MULTILINE );
 
@@ -151,8 +165,8 @@ namespace Play.Clock {
             SmartTable oLayout = new SmartTable( 5, LayoutRect.CSS.None );
             Layout2 = oLayout;
 
-            oLayout.Add( new LayoutRect( LayoutRect.CSS.Percent, 25, 0 ) ); // time
-            oLayout.Add( new LayoutRect( LayoutRect.CSS.Percent, 50, 0 ) ); // date
+            oLayout.Add( new LayoutRect( LayoutRect.CSS.Percent, 30, 0 ) ); // time
+            oLayout.Add( new LayoutRect( LayoutRect.CSS.Percent, 45, 0 ) ); // date
             oLayout.Add( new LayoutRect( LayoutRect.CSS.Percent, 25, 0 ) ); // zones.
             
             var oLayoutTimeUtc = new LayoutSingleLine( new FTCacheWrap( Document.DocZones[0] ), LayoutRect.CSS.Flex );
@@ -161,9 +175,13 @@ namespace Play.Clock {
             var oLayoutTimePst = new LayoutSingleLine( new FTCacheWrap( Document.DocZones[3] ), LayoutRect.CSS.Flex );
             var oLayoutDatePst = new LayoutSingleLine( new FTCacheWrap( Document.DocZones[4] ), LayoutRect.CSS.Flex );
             var oLayoutZonePst = new LayoutSingleLine( new FTCacheWrap( Document.DocZones[5] ), LayoutRect.CSS.Flex );
+            var oLayoutTime12h = new LayoutSingleLine( new FTCacheWrap( Document.DocZones[6] ), LayoutRect.CSS.Flex );
+            var oLayoutDate12h = new LayoutSingleLine( new FTCacheWrap( Document.DocZones[7] ), LayoutRect.CSS.Flex );
+            var oLayoutZone12h = new LayoutSingleLine( new FTCacheWrap( Document.DocZones[8] ), LayoutRect.CSS.Flex );
 
             oLayout.AddRow( new List<LayoutRect>() { oLayoutTimeUtc, oLayoutDateUtc, oLayoutZoneUtc } );
             oLayout.AddRow( new List<LayoutRect>() { oLayoutTimePst, oLayoutDatePst, oLayoutZonePst } );
+            oLayout.AddRow( new List<LayoutRect>() { oLayoutTime12h, oLayoutDate12h, oLayoutZone12h } );
 
             CacheList.Add( oLayoutTimeUtc );
             CacheList.Add( oLayoutDateUtc );
@@ -171,6 +189,9 @@ namespace Play.Clock {
             CacheList.Add( oLayoutTimePst );
             CacheList.Add( oLayoutDatePst );
             CacheList.Add( oLayoutZonePst );
+            CacheList.Add( oLayoutTime12h );
+            CacheList.Add( oLayoutDate12h );
+            CacheList.Add( oLayoutZone12h );
 
             Caret.Cache = oLayoutTimeUtc;
 
