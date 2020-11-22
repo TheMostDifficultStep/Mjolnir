@@ -16,13 +16,10 @@ namespace Play.Controls {
         SmartRect,
         IPgVisibleObject2
     {
-        ScrollBar2 _oHost;
-        bool       _fHovering  = false;
-        SHOWSTATE  _eViewState = SHOWSTATE.Inactive;
-        bool       _fIsHidden  = false;
-
-        protected SKColor _oColorActive   = new SKColor(122, 164, 234);
-        protected SKColor _oColorInActive = new SKColor(160, 160, 160);
+        private   SHOWSTATE _eViewState     = SHOWSTATE.Inactive;
+        private   bool      _fIsHidden      = false;
+        protected SKColor   _oColorActive   = new SKColor(122, 164, 234);
+        protected SKColor   _oColorInActive = new SKColor(160, 160, 160);
 
         public abstract void Paint( SKCanvas skCanvas, IPgStandardUI oStdUI );
 
@@ -37,62 +34,14 @@ namespace Play.Controls {
             }
         }
 
-        public ScrollBar2 Host {
-            get{
-                return( _oHost );
-            }
-
-            set {
-                _oHost = value;
-            }
-        }
-
         public SKColor BaseColor {
             get {
-                if( _fHovering ) {
-                    return _oColorActive;
-                }
                 if( _eViewState == SHOWSTATE.Inactive ) {
                     return( _oColorInActive );
                 }
                 return _oColorActive;
             }
         }
-
-        #region ISmartDragGuest Members
-
-        /// <summary>
-        /// If we are in hover mode stop hovering since another nearby object might have
-        /// been chosen instead.
-        /// </summary>
-        public void HoverStop() {
-            if( _fHovering ) {
-                _fHovering = false;
-                //OnAttribute();
-            }
-        }
-
-        public bool Hovering {
-            get {
-                return ( _fHovering );
-            }
-        }
-
-        public bool Hover( int p_iX, int p_iY, out bool fChanged ) {
-            bool fIsInside = IsInside(p_iX, p_iY);
-            
-			fChanged = fIsInside != _fHovering;
-
-            if( fChanged ) {
-                _fHovering = fIsInside;
-            }
-
-            return fIsInside;
-        }
-
-        #endregion
-
-        #region IPgVisibleObject2 Members
 
         public virtual SHOWSTATE ShowAs {
             get {
@@ -108,29 +57,6 @@ namespace Play.Controls {
             set { _fIsHidden = value; }
             get { return( _fIsHidden ); }
         }
-
-        public bool Help {
-            get {
-                return( false );
-            }
-            set {}
-        }
-
-        #endregion
-
-        #region IPgObjectWithSite Members
-
-        public IPgBaseSite HostSite {
-            get {
-                throw new NotImplementedException();
-            }
-            set {
-                throw new NotImplementedException();
-            }
-        }
-
-        #endregion
-
     } // End class
 
     public enum ScrollDirection {
@@ -142,10 +68,7 @@ namespace Play.Controls {
     }
 
     public class Extremity : GadgetRect {
-        ScrollDirection _eDir = ScrollDirection.NONE;
-
-        public Extremity( ScrollDirection eDir ) {
-            _eDir = eDir;
+        public Extremity() {
         }
 
         public override void Paint( SKCanvas skCanvas, IPgStandardUI oStdUI ) {
@@ -158,7 +81,7 @@ namespace Play.Controls {
 
             skCanvas.DrawRect( rctDot.Left, rctDot.Top, rctDot.Width, rctDot.Height, skPaint );
         }
-    } // end class
+    }
 
     public class Middle : GadgetRect {
         public override void Paint( SKCanvas skCanvas, IPgStandardUI oStdUI ) {
@@ -220,8 +143,8 @@ namespace Play.Controls {
         protected readonly IPgBaseSite       _oSite; // Doesn't need a view site at present.
         protected readonly IPgRoundRobinWork _oSiteWorkThumb;
 
-        readonly GadgetRect _oUp     = new Extremity( ScrollDirection.UP);   // Page up region
-        readonly GadgetRect _oDown   = new Extremity( ScrollDirection.DOWN); // Page down region
+        readonly GadgetRect _oUp     = new Extremity(); // Page up   region
+        readonly GadgetRect _oDown   = new Extremity(); // Page down region
         readonly GadgetRect _oMiddle = new Middle(); // The area where the thumb lives.
         readonly GadgetRect _oThumb  = new Thumb();  // The thumb itself!
 
@@ -229,8 +152,7 @@ namespace Play.Controls {
 
         public event ScrollBarEvent Scroll;
 
-        readonly int _iInterval  = 60; // time in ms before next page scroll event.
-        SHOWSTATE    _eViewState = SHOWSTATE.Inactive;
+        SHOWSTATE _eViewState = SHOWSTATE.Inactive;
 
         float _flExposureFraction = (float)0.1;
         float _flProgressFraction = (float)0.0;
@@ -252,15 +174,10 @@ namespace Play.Controls {
             _rgRender.Add( _oMiddle  );
             _rgRender.Add( _oThumb  );
 
-            foreach( GadgetRect oRect in _rgRender ) {
-                oRect.Host = this;
-            }
-
             this.Cursor = Cursors.Hand;
             
             DoubleBuffered = true;
-
-            TabStop = false;
+            TabStop        = false;
         }
 
         /// <summary>
@@ -286,7 +203,9 @@ namespace Play.Controls {
         }
 
         protected void ScrollPagerStart( ScrollEvents e ) {
-            _oSiteWorkThumb.Queue( CreateScroller( e ), 0 ); // No wait to start.
+            // Wait just in case we cancel before beginning auto page scroll.
+            _oSiteWorkThumb.Queue( CreateScroller( e ), 200 );
+            Raise_Scroll( e ); // Need this one bump, in case just want to scroll only one page.
         }
 
         /// <summary>
@@ -297,7 +216,7 @@ namespace Play.Controls {
         public IEnumerator<int> CreateScroller( ScrollEvents e) {
             while( true ) {
                 Raise_Scroll( e );
-                yield return _iInterval;
+                yield return 60;
             }
         }
         
