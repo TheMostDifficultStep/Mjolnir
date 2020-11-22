@@ -111,7 +111,7 @@ namespace Play.Edit {
         protected readonly CaretPosition _oCaretPos;
 
       //readonly ScrollBar  _hScrollBar     = new HScrollBar();
-        readonly ScrollBar2 _oScrollBarVirt = new ScrollBar2();
+        readonly ScrollBar2 _oScrollBarVirt;
 
 		PropDoc NavProps { get; }
         public event Navigation LineChanged;
@@ -151,9 +151,9 @@ namespace Play.Edit {
 			_oViewEvents = oSiteView.EventChain ?? throw new ArgumentException( "Site.EventChain must support IPgViewSiteEvents" );
  			_oStdUI      = oSiteView.Host.Services as IPgStandardUI2 ?? throw new ArgumentException( "Parent view must provide IPgStandardUI service" );
 
-			_oDocument = p_oDocument ?? throw new ArgumentNullException();
-
-			//Parent = oSiteView.Host as Control;
+			_oDocument      = p_oDocument ?? throw new ArgumentNullException();
+            _oScrollBarVirt = new ScrollBar2( new DocSlot( this ) );
+            //Parent = oSiteView.Host as Control;
 
             InitializeComponent();
 

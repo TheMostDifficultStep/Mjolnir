@@ -216,26 +216,37 @@ namespace Play.Controls {
         }
     }
 
-    public class ScrollBar2 : SKControl {
-        readonly GadgetRect _oUp     = new Extremity( ScrollDirection.UP);
-        readonly GadgetRect _oDown   = new Extremity( ScrollDirection.DOWN);
-        readonly GadgetRect _oMiddle = new Middle();
-        readonly GadgetRect _oThumb  = new Thumb();
+    public class ScrollBar2 : SKControl, IPgParent {
+        protected readonly IPgBaseSite       _oSite; // Doesn't need a view site at present.
+        protected readonly IPgRoundRobinWork _oSiteWorkThumb;
+
+        readonly GadgetRect _oUp     = new Extremity( ScrollDirection.UP);   // Page up region
+        readonly GadgetRect _oDown   = new Extremity( ScrollDirection.DOWN); // Page down region
+        readonly GadgetRect _oMiddle = new Middle(); // The area where the thumb lives.
+        readonly GadgetRect _oThumb  = new Thumb();  // The thumb itself!
 
         readonly List<GadgetRect> _rgRender = new List<GadgetRect>();
 
-        readonly Timer _oTimer           = new Timer();
-        readonly int   _iPause           = 400;
-        readonly int   _iInterval        = 60;
-        SHOWSTATE      _eViewState       = SHOWSTATE.Inactive;
-        ScrollEvents   _eLastScrollEvent = ScrollEvents.EndScroll;
+        public event ScrollBarEvent Scroll;
+
+        readonly int _iInterval  = 60; // time in ms before next page scroll event.
+        SHOWSTATE    _eViewState = SHOWSTATE.Inactive;
 
         float _flExposureFraction = (float)0.1;
         float _flProgressFraction = (float)0.0;
 
+        public IPgParent Parentage => _oSite.Host;
+        public IPgParent Services  => Parentage.Services;
+
         SmartGrabDrag _oDrag = null;
 
-        public ScrollBar2() {
+        public ScrollBar2( IPgBaseSite oSite ) {
+            _oSite = oSite ?? throw new ArgumentNullException( "Site must not be null" );
+
+            if( Services is IPgScheduler oScheduler ) {
+                _oSiteWorkThumb = oScheduler.CreateWorkPlace(); // Just disables auto page scroll.
+            }
+
             _rgRender.Add( _oUp );
             _rgRender.Add( _oDown );
             _rgRender.Add( _oMiddle  );
@@ -249,20 +260,47 @@ namespace Play.Controls {
             
             DoubleBuffered = true;
 
-            _oTimer.Interval = _iPause;
-            _oTimer.Tick += new EventHandler( OnTick);
-
             TabStop = false;
         }
 
-        public event ScrollBarEvent Scroll;
-
+        /// <summary>
+        /// Call this for any type of scroll event
+        /// </summary>
         protected void Raise_Scroll( ScrollEvents e ) {
-            _eLastScrollEvent = e;
-
             Scroll?.Invoke( e );
         }
 
+        /// <summary>
+        /// Call this when finished scrolling, cleans up after drag operations
+        /// and stops page scroll worker.
+        /// </summary>
+        protected void Raise_ScrollFinished() {
+            _oSiteWorkThumb.Stop();
+
+            if( _oDrag != null ) {
+                Raise_Scroll(ScrollEvents.ThumbPosition);
+
+                _oDrag.Dispose();
+                _oDrag = null;
+            }
+        }
+
+        protected void ScrollPagerStart( ScrollEvents e ) {
+            _oSiteWorkThumb.Queue( CreateScroller( e ), 0 ); // No wait to start.
+        }
+
+        /// <summary>
+        /// This is our worker object that is called back by the round robin scheduler.
+        /// </summary>
+        /// <param name="e">The type of scroll event we want to trigger.</param>
+        /// <returns>Time in milliseconds we'd like until the next event.</returns>
+        public IEnumerator<int> CreateScroller( ScrollEvents e) {
+            while( true ) {
+                Raise_Scroll( e );
+                yield return _iInterval;
+            }
+        }
+        
         public void Show( SHOWSTATE eState ) {
             foreach( IPgVisibleObject2 oView in _rgRender ) {
                 oView.ShowAs = eState;
@@ -273,6 +311,10 @@ namespace Play.Controls {
             Invalidate();
         }
 
+        /// <summary>
+        /// We'll end up back here after OnTick events.
+        /// </summary>
+        /// <seealso cref="RaiseScroll"/>
         public void Refresh( float flExposureFraction, float flProgressFraction ) {
             if( flExposureFraction > 1 )
                 flExposureFraction = 1;
@@ -315,52 +357,24 @@ namespace Play.Controls {
             Invalidate();
         }
 
-        void OnTick(object sender, EventArgs e) {
-            Raise_Scroll( _eLastScrollEvent );
-
-            // We start the wait time at a high value and then shorten
-            // it while the user holds down the mouse.
-            if( _oTimer.Interval > _iInterval ) {
-                _oTimer.Interval = _iInterval;
-            }
-        }
-
-        protected void StartScroll( ScrollEvents e ) {
-            _oTimer.Interval = _iPause;
-            _oTimer.Start();
-
-            Raise_Scroll( e );
-        }
-
-        protected void Raise_ThumbFinished() {
-            if( _oDrag != null ) {
-                Raise_Scroll(ScrollEvents.ThumbPosition);
-
-                _oDrag.Dispose();
-                _oDrag = null;
-            }
-        }
-
         protected override void OnMouseDown( MouseEventArgs e ) {
             base.OnMouseDown(e);
 
             if( _oUp.IsInside( e.X, e.Y ) ) {
-                //StartScroll(ScrollEvents.SmallDecrement );
                 _flProgressFraction = 0;
                 Raise_Scroll( ScrollEvents.First );
             }
             if( _oDown.IsInside( e.X, e.Y ) ) {
-                //StartScroll(ScrollEvents.SmallIncrement );
                 _flProgressFraction = 100;
                 Raise_Scroll( ScrollEvents.Last );
             }
             if( _oMiddle.IsInside( e.X, e.Y ) ) {
                 switch( _oThumb.IsWhere( e.X, e.Y ) ) {
                     case LOCUS.TOP:
-                        StartScroll(ScrollEvents.LargeDecrement );
+                        ScrollPagerStart(ScrollEvents.LargeDecrement );
                         break;
                     case LOCUS.BOTTOM:
-                        StartScroll(ScrollEvents.LargeIncrement );
+                        ScrollPagerStart(ScrollEvents.LargeIncrement );
                         break;
                     case LOCUS.CENTER:
                         _oDrag = new SmartGrabDrag( null, _oThumb, SET.RIGID, LOCUS.UPPERLEFT, e.X, e.Y );
@@ -373,9 +387,8 @@ namespace Play.Controls {
 
         protected override void OnMouseUp( MouseEventArgs e ) {
             base.OnMouseUp(e);
-            _oTimer.Stop();
 
-            Raise_ThumbFinished();
+            Raise_ScrollFinished();
 
             Invalidate();
         }
@@ -383,9 +396,7 @@ namespace Play.Controls {
         protected override void OnMouseLeave( EventArgs e ) {
             base.OnMouseLeave(e);
 
-            _oTimer.Stop();
-
-            Raise_ThumbFinished();
+            Raise_ScrollFinished();
 
             // Set children to my view state.
             foreach( IPgVisibleObject2 oView in _rgRender ) {
@@ -394,8 +405,7 @@ namespace Play.Controls {
             Invalidate();
         }
 
-        protected override void OnMouseMove( MouseEventArgs e )
-        {
+        protected override void OnMouseMove( MouseEventArgs e ) {
             base.OnMouseMove(e);
 
             if( _oDrag != null ) {
@@ -439,8 +449,7 @@ namespace Play.Controls {
             }
         }
 
-        protected override void OnMouseHover( EventArgs e )
-        {
+        protected override void OnMouseHover( EventArgs e ) {
             base.OnMouseHover(e);
 
             foreach( IPgVisibleObject2 oView in _rgRender ) {
@@ -519,12 +528,12 @@ namespace Play.Controls {
             base.OnPaintSurface(e);
 
             try {
-                SetSizes( new SKPoint( 96, 96 ) );
+                SetSizes( new SKPoint( 96, 96 ) ); // BUG: Can't get this from SK stuff.
 
-                Color     clrBase = Color.FromArgb( 255, 235, 235, 240 );
+                SKColor   clrBase = new SKColor( 235, 235, 240 );
                 SmartRect rcWhole = new SmartRect( LOCUS.UPPERLEFT, 0, 0, this.Width, this.Height );
 
-                using SKPaint skPaint = new SKPaint() { Color = new SKColor( clrBase.R, clrBase.G, clrBase.B ) };
+                using SKPaint skPaint = new SKPaint() { Color = clrBase };
                 e.Surface.Canvas.DrawRect( rcWhole.Left, rcWhole.Top, rcWhole.Width, rcWhole.Height, skPaint );
 
                 foreach( GadgetRect oRect in _rgRender ) {

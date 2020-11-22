@@ -107,7 +107,7 @@ namespace Play.ImageViewer {
     {
         protected readonly CacheBase2      _oTextCache     = new CacheBase2();
         protected readonly SmartRect       _oTextRect      = new SmartRect();
-        protected readonly ScrollBar2      _oScrollBarVirt = new ScrollBar2();
+        protected readonly ScrollBar2      _oScrollBarVirt;
         protected readonly List<ImageBase> _rgThumbs       = new List<ImageBase>();
         protected          uint            _uiStdText      = 0;
 
@@ -121,11 +121,30 @@ namespace Play.ImageViewer {
 
         public ImageWalkerDoc Document { get { return _oDocument; }  }
 
+	    protected class DocSlot :
+		    IPgBaseSite
+	    {
+		    protected readonly ImageViewIcons _oHost;
+
+		    public DocSlot( ImageViewIcons oHost ) {
+			    _oHost = oHost ?? throw new ArgumentNullException();
+		    }
+
+		    public IPgParent Host => _oHost;
+
+		    public void LogError(string strMessage, string strDetails, bool fShow=true) {
+			    _oHost._oViewSite.LogError( strMessage, strDetails, fShow );
+		    }
+
+		    public void Notify( ShellNotify eEvent ) {
+		    }
+	    } // End class
+
         public ImageViewIcons( IPgViewSite oBaseSite, ImageWalkerDoc oDoc ) : base( oBaseSite, oDoc ) {
-            Cursor         = Cursors.Hand;
+            Cursor = Cursors.Hand;
 
 			//new LayoutFlowUniform( new Size( 50, 50 ), _rgThumbs );
-
+            _oScrollBarVirt      = new ScrollBar2( new DocSlot( this ) );
             _oScrollBarVirt.Dock = DockStyle.Left;
 
             Controls.Add(_oScrollBarVirt);            

@@ -67,17 +67,19 @@ namespace Play.ImageViewer {
 		}
 	}
 
-    public class ImageViewBase : SKControl {
+    public class ImageViewBase : SKControl, IPgParent {
         protected readonly IPgViewSite    _oViewSite;
         protected readonly IPgViewNotify  _oViewNotify;
 		protected readonly IPgStandardUI2 _oStdUI;
 		protected          Size           _whBorder = new Size( 0, 0 ); // 7 px all the way around X 2.
 
-
         readonly static Keys[] _rgHandledKeys = { Keys.PageDown, Keys.PageUp, Keys.Down,
                                                   Keys.Up, Keys.Right, Keys.Left, Keys.Back,
                                                   Keys.Delete, Keys.Enter, Keys.Tab, 
                                                   Keys.Control | Keys.A, Keys.Control | Keys.F };
+
+        public IPgParent Parentage => _oViewSite.Host;
+        public IPgParent Services  => Parentage.Services;
 
         public ImageViewBase( IPgViewSite oViewSite ) {
             DoubleBuffered = true;
