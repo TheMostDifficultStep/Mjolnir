@@ -202,9 +202,13 @@ namespace Play.Controls {
             }
         }
 
-        protected void ScrollPagerStart( ScrollEvents e ) {
-            // Wait just in case we cancel before beginning auto page scroll.
-            _oSiteWorkThumb.Queue( CreateScroller( e ), 200 );
+        /// <summary>
+        /// Wait 200ms before starting the worker, just in case we cancel the job
+        /// before beginning page scroll repeat.
+        /// </summary>
+        /// <param name="e">The type of scroll we want to repeat.</param>
+        protected void RepeaterStart( ScrollEvents e ) {
+            _oSiteWorkThumb.Queue( RepeaterCreate( e ), 200 );
             Raise_Scroll( e ); // Need this one bump, in case just want to scroll only one page.
         }
 
@@ -213,7 +217,7 @@ namespace Play.Controls {
         /// </summary>
         /// <param name="e">The type of scroll event we want to trigger.</param>
         /// <returns>Time in milliseconds we'd like until the next event.</returns>
-        public IEnumerator<int> CreateScroller( ScrollEvents e) {
+        public IEnumerator<int> RepeaterCreate( ScrollEvents e) {
             while( true ) {
                 Raise_Scroll( e );
                 yield return 60;
@@ -290,10 +294,10 @@ namespace Play.Controls {
             if( _oMiddle.IsInside( e.X, e.Y ) ) {
                 switch( _oThumb.IsWhere( e.X, e.Y ) ) {
                     case LOCUS.TOP:
-                        ScrollPagerStart(ScrollEvents.LargeDecrement );
+                        RepeaterStart(ScrollEvents.LargeDecrement );
                         break;
                     case LOCUS.BOTTOM:
-                        ScrollPagerStart(ScrollEvents.LargeIncrement );
+                        RepeaterStart(ScrollEvents.LargeIncrement );
                         break;
                     case LOCUS.CENTER:
                         _oDrag = new SmartGrabDrag( null, _oThumb, SET.RIGID, LOCUS.UPPERLEFT, e.X, e.Y );
