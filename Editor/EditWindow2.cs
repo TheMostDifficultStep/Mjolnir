@@ -157,7 +157,7 @@ namespace Play.Edit {
 
         readonly ICollection<ILineSelection> _rgSelectionTypes = new List<ILineSelection>( 3 );
 
-        protected readonly LineRange _oLastCursor = new LineRange();
+        protected readonly LineRange _oLastCursor = new LineRange(); // Just need a spare for use with the hyperlink stuff.
         protected CacheManager2      _oCacheMan;
         protected bool               _fReadOnly;
         protected readonly Bitmap    _oIcon;
@@ -244,9 +244,10 @@ namespace Play.Edit {
             // This changed frmo ContextMenu to ContextMenuStrip in .net 5
             if( this.ContextMenuStrip == null ) {
                 ContextMenuStrip oMenu = new ContextMenuStrip();
-                oMenu.Items.Add( new ToolStripMenuItem( "Cut",  null,  new EventHandler( this.OnCut    ), Keys.Control | Keys.X ) );
-                oMenu.Items.Add( new ToolStripMenuItem( "Copy",  null, new EventHandler( this.OnCopy   ), Keys.Control | Keys.C ) );
-                oMenu.Items.Add( new ToolStripMenuItem( "Paste", null, new EventHandler( this.OnPaste  ), Keys.Control | Keys.V ) );
+                oMenu.Items.Add( new ToolStripMenuItem( "Cut",   null, this.OnCut,   Keys.Control | Keys.X ) );
+                oMenu.Items.Add( new ToolStripMenuItem( "Copy",  null, this.OnCopy,  Keys.Control | Keys.C ) );
+                oMenu.Items.Add( new ToolStripMenuItem( "Paste", null, this.OnPaste, Keys.Control | Keys.V ) );
+                oMenu.Items.Add( new ToolStripMenuItem( "Jump",  null, this.OnJump,  Keys.Control | Keys.J ) );
                 this.ContextMenuStrip = oMenu;
             }
 
@@ -522,6 +523,33 @@ namespace Play.Edit {
 
         public bool SetFocus() {
             return( this.Focus() );
+        }
+        
+        private void OnJump( object sender, EventArgs e ) {
+            HyperLinkFind( CaretPos, fDoJump:true );
+        }
+
+        protected bool HyperLinkFind( ILineRange oPosition, bool fDoJump ) {
+            IPgWordRange oRange = FindFormattingUnderRange( CaretPos );
+            if( oRange != null ) { 
+                foreach( KeyValuePair<string, HyperLink> oPair in HyperLinks ) { 
+                    if( oRange.StateName == oPair.Key ) {
+                        if( fDoJump )
+                            oPair.Value?.Invoke( CaretPos.Line, oRange );
+                        else
+                            return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        protected bool HyperLinkFind( SKPointI oLocation, bool fDoJump ) {
+            if( _oCacheMan.GlyphPointToRange(ClientToWorld(oLocation), _oLastCursor ) != null ) {
+                return HyperLinkFind( _oLastCursor, fDoJump );
+            }
+
+            return false;
         }
         
         private void OnCut( object o, EventArgs e ) {
@@ -1101,21 +1129,6 @@ namespace Play.Edit {
             CaretIconRefreshLocation();
         }
 
-        protected HyperLink HyperLinkFind( SKPointI oLocation ) {
-            if( _oCacheMan.GlyphPointToRange(ClientToWorld(oLocation), _oLastCursor ) != null ) {
-                IPgWordRange oRange = FindFormattingUnderRange( _oLastCursor );
-                if( oRange != null ) { 
-                    foreach( KeyValuePair<string, HyperLink> oPair in HyperLinks ) { 
-                        if( oRange.StateName == oPair.Key ) {
-                            return oPair.Value;
-                        }
-                    }
-                }
-            }
-
-            return null;
-        }
-        
         /// <summary>
         /// Begin the drag drop if the cursor moves outside the _rctDragging rect
         /// while the left button stays down.
@@ -1132,14 +1145,17 @@ namespace Play.Edit {
             if( _iSelectedTool == 1 || ( ModifierKeys & Keys.Control ) != 0 ) {
                 Cursor oNewCursor = Cursors.IBeam;
                 if(_oCacheMan.GlyphPointToRange(ClientToWorld( new SKPointI( e.Location.X, e.Location.Y )), _oLastCursor ) != null ) {
-                    IPgWordRange oRange = FindFormattingUnderRange( _oLastCursor );
-                    if( oRange != null ) { 
-                        foreach( KeyValuePair<string, HyperLink> oPair in HyperLinks ) { 
-                            if( oRange.StateName == oPair.Key ) {
-                                oNewCursor = Cursors.Hand;
-                            }
-                        }
-                    }
+                    if( HyperLinkFind( _oLastCursor, fDoJump:false ) )
+                        oNewCursor = Cursors.Hand;
+
+                    //IPgWordRange oRange = FindFormattingUnderRange( _oLastCursor );
+                    //if( oRange != null ) { 
+                    //    foreach( KeyValuePair<string, HyperLink> oPair in HyperLinks ) { 
+                    //        if( oRange.StateName == oPair.Key ) {
+                    //            oNewCursor = Cursors.Hand;
+                    //        }
+                    //    }
+                    //}
                 }
                 Cursor = oNewCursor;
             } else { 
@@ -1191,10 +1207,7 @@ namespace Play.Edit {
                     ( _iSelectedTool == 1) || ((ModifierKeys & Keys.Control) != 0) ) &&
                 !TextSelector.IsSelected(Selections)
             ) {
-                IPgWordRange oRange = FindFormattingUnderRange(_oLastCursor);
-                HyperLink oLink = HyperLinkFind(new SKPointI( e.Location.X, e.Location.Y ) );
-
-                oLink?.Invoke(_oLastCursor.Line, oRange);
+                HyperLinkFind( new SKPointI( e.Location.X, e.Location.Y ), fDoJump:true );
             }
 
             _rctDragBounds = null;
@@ -1782,7 +1795,7 @@ namespace Play.Edit {
                         Point  oLocation  = Cursor.Position;
                         Point  oTemp      = PointToClient( oLocation );
 
-                        if ( HyperLinkFind( new SKPointI( oTemp.X, oTemp.Y ) ) != null )
+                        if( HyperLinkFind( new SKPointI( oTemp.X, oTemp.Y ), fDoJump:false ) )
                             oNewCursor = Cursors.Hand;
 
                         Cursor = oNewCursor;

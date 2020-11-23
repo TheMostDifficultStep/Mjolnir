@@ -761,6 +761,7 @@ namespace Play.Edit {
         /// Given a point location attempt to locate the nearest line/glyph.
         /// </summary>
         /// <param name="pntLocation">Graphics location of interest in world coordinates.</param>
+        /// <param name="oCaret">This object line offset is updated to the closest line offset.</param>
         public FTCacheLine GlyphPointToRange( SKPointI pntLocation, ILineRange oCaret ) {
             foreach( FTCacheLine oElem in _rgOldCache ) {
                 if( oElem.Top    <= pntLocation.Y &&
