@@ -530,7 +530,7 @@ namespace Play.Edit {
         }
 
         protected bool HyperLinkFind( ILineRange oPosition, bool fDoJump ) {
-            IPgWordRange oRange = FindFormattingUnderRange( CaretPos );
+            IPgWordRange oRange = FindFormattingUnderRange( oPosition );
             if( oRange != null ) { 
                 foreach( KeyValuePair<string, HyperLink> oPair in HyperLinks ) { 
                     if( oRange.StateName == oPair.Key ) {
@@ -1144,19 +1144,9 @@ namespace Play.Edit {
 
             if( _iSelectedTool == 1 || ( ModifierKeys & Keys.Control ) != 0 ) {
                 Cursor oNewCursor = Cursors.IBeam;
-                if(_oCacheMan.GlyphPointToRange(ClientToWorld( new SKPointI( e.Location.X, e.Location.Y )), _oLastCursor ) != null ) {
-                    if( HyperLinkFind( _oLastCursor, fDoJump:false ) )
-                        oNewCursor = Cursors.Hand;
+                if( HyperLinkFind( new SKPointI( e.Location.X, e.Location.Y ), fDoJump:false ) )
+                    oNewCursor = Cursors.Hand;
 
-                    //IPgWordRange oRange = FindFormattingUnderRange( _oLastCursor );
-                    //if( oRange != null ) { 
-                    //    foreach( KeyValuePair<string, HyperLink> oPair in HyperLinks ) { 
-                    //        if( oRange.StateName == oPair.Key ) {
-                    //            oNewCursor = Cursors.Hand;
-                    //        }
-                    //    }
-                    //}
-                }
                 Cursor = oNewCursor;
             } else { 
                 if( Cursor != Cursors.IBeam )
