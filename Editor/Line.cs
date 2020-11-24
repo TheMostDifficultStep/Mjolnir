@@ -99,7 +99,7 @@ namespace Play.Edit {
         /// A member variable that the user of the editor can use to store
         /// line relavent data.
         /// </summary>
-        /// <remarks>TODO: Let's upgrade to IPgWordRange, we'll have to touch
+        /// <remarks>TODO/BUG: Let's upgrade to IPgWordRange, we'll have to touch
         /// a number of places, the manipulator for one.</remarks>
         public ICollection<IColorRange> Formatting {
             get {

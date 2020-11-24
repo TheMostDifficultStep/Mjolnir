@@ -5,7 +5,8 @@ using Play.Parse.Impl;
 namespace Play.Edit {
 
     public class ColorRange :
-        IColorRange 
+        IColorRange,
+        IPgWordRange
     {
         protected int _iOffset = -1;
         protected int _iLength = 0;
@@ -80,6 +81,10 @@ namespace Play.Edit {
         }
 
         public string Qualified => string.Empty;
+
+        public bool   IsWord    => false;
+        public bool   IsTerm    => true;
+        public string StateName => "Manual Color Range";
     } // end class
 
     /// <summary>

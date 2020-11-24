@@ -65,6 +65,10 @@ namespace Play.MorsePractice {
             _oSiteShell = oSiteView as IPgShellSite ?? throw new ArgumentException("Parent view must provide IPgShellSite service");
         }
 
+        /// <summary>
+        /// At present we don't use this, we used to open our own browser, but now call the 
+        /// system set browser.
+        /// </summary>
         protected void OnCallSign( Line oLine, IPgWordRange oRange ) {
             try { 
                 _oSiteShell.AddView(ViewQrz._guidViewCategory, fFocus: true);
@@ -85,6 +89,7 @@ namespace Play.MorsePractice {
         protected override void Raise_Navigated( NavigationSource eSource, ILineRange oCarat ) {
             base.Raise_Navigated(eSource, oCarat);
 
+            // Look to see if a callsign in our Calls file is where the cursor is.
             foreach( IColorRange oColor in oCarat.Line.Formatting ) {
                 if( oColor is IPgWordRange oWord && oWord.StateName == "callsign" && oWord.Offset == 0 ) {
                     string strCaratCall = oCarat.Line.SubString( oWord.Offset, oWord.Length );

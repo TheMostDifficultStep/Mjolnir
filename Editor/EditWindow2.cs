@@ -238,10 +238,9 @@ namespace Play.Edit {
             Cursor         = Cursors.IBeam;
             DoubleBuffered = true;
 
-            //_oScrollBarVirt.Dock = DockStyle.Left;
             _oScrollBarVirt.Scroll += new ScrollBarEvent( OnScrollBar ); // BUG: do on init....
 
-            // This changed frmo ContextMenu to ContextMenuStrip in .net 5
+            // This changed from ContextMenu to ContextMenuStrip in .net 5
             if( this.ContextMenuStrip == null ) {
                 ContextMenuStrip oMenu = new ContextMenuStrip();
                 oMenu.Items.Add( new ToolStripMenuItem( "Cut",   null, this.OnCut,   Keys.Control | Keys.X ) );
