@@ -331,7 +331,7 @@ namespace Play.Edit {
         /// </summary>
         /// <remarks>After 30 years it occurs to me that I'm setting advance offsets here,
         /// AND in WrapSegmentsCreate() I need to resolve that!!</remarks>
-        /// <seealso cref="FTCacheWrap.WrapSegmentsCreate"/>
+        /// <seealso cref="FTCacheWrap.WrapSegments"/>
         public void Update( IPgFontRender oFR ) {
             if( oFR == null )
                 throw new ArgumentNullException();
@@ -406,7 +406,7 @@ namespace Play.Edit {
         /// <param name="iDisplayWidth"></param>
         /// <seealso cref="Update"/>
         /// <seealso cref="OnChangeSize"/>
-        public virtual void WrapSegmentsCreate( int iDisplayWidth ) {
+        public virtual void WrapSegments( int iDisplayWidth ) {
             int iAdvance = 0;
 
             for( int iCluster = 0; iCluster < _rgClusters.Count; ++iCluster ) {
@@ -419,7 +419,7 @@ namespace Play.Edit {
         /// </summary>
         /// <param name="iDisplayWidth">Width in "pixels" of the view</param>
         public virtual void OnChangeSize( int iWidth ) {
-            WrapSegmentsCreate( int.MaxValue );
+            WrapSegments( int.MaxValue );
         }
 
         /// <summary>

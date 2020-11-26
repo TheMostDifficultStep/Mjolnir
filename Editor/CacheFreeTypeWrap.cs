@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Drawing;
 using System.Diagnostics;
+using System.Collections.Generic;
 
 using SkiaSharp;
 
@@ -32,7 +33,7 @@ namespace Play.Edit {
         /// Feed the Cache line the new width of the display area. Rewrap words.
         /// </summary>
         public override void OnChangeSize( int iWidth ) {
-			WrapSegmentsCreate( iWidth );
+			WrapSegments( iWidth );
         }
 
         /// <summary>
@@ -204,10 +205,9 @@ namespace Play.Edit {
         } // end method
 
         /// <summary>
-        /// Just a dumb I've got no formatting word wrapper. Not even as good
-        /// as if each word was one character.
+        /// Just a dumb "I've got no formatting" word wrapper. Just wrap whenever hit an edge.
         /// </summary>
-        protected void WrapSegmentNoWordsCreate( int iDisplayWidth ) {
+        protected void WrapSegmentNoWords( int iDisplayWidth ) {
             iDisplayWidth <<= 6;
             int iAdvance = 0;
             _iWrapCount  = 0;
@@ -232,7 +232,7 @@ namespace Play.Edit {
 
                 PgCluster oCluster = _rgClusters[iIndex];
 
-                // Put at least ONE character on a line when advance is zero.
+                // Put at least ONE character on a line. So advance MUST be > 0.
                 if( oCluster.IsVisible && iAdvance + oCluster.AdvanceOffsEm > iDisplayWidth && iAdvance > 0 )
                     return false;
 
@@ -242,29 +242,40 @@ namespace Play.Edit {
             return true;
         }
 
-        public override void WrapSegmentsCreate( int iDisplayWidth ) {
+        public override void WrapSegments( int iDisplayWidth ) {
             try {
                 if( _rgClusters.Count < 1 )
                     return;
 
-                // We could actually just wrap without word info, look into that later.
                 if( Words.Count == 0 ) {
-                    WrapSegmentNoWordsCreate( iDisplayWidth );
+                    WrapSegmentNoWords( iDisplayWidth );
                     return;
                 }
 
                 iDisplayWidth <<= 6;
                 int iAdvance  = 0;
                 _iWrapCount   = 0;
-				foreach( IPgWordRange oRange in Words ) {
-                    int iIndex = oRange.Offset;
-                    int iPass  = _iWrapCount;
-                    while( !LoadWord( oRange, iDisplayWidth, ref iAdvance, ref iIndex ) ) {
-                        if( iPass == _iWrapCount )  // Reset only for the first wrap.
-                            iIndex = oRange.Offset;
-                        iAdvance = 0;
-                        _iWrapCount++;
-                    }
+                IEnumerator<IPgWordRange> oEnum = Words.GetEnumerator();
+
+				while( oEnum.MoveNext() ) {
+                    int iIndex = oEnum.Current.Offset;
+                    do {
+                        // The first word on a line never get's a redo. Only it's tail will wrap.
+                        while( !LoadWord( oEnum.Current, iDisplayWidth, ref iAdvance, ref iIndex ) ) {
+                            iAdvance = 0;
+                            _iWrapCount++;
+                        }
+                        if( !oEnum.MoveNext() )
+                            break;
+                        iIndex = oEnum.Current.Offset;
+
+                        // There MUST be one word on line before try redo the next on the next line.
+                        if( !LoadWord( oEnum.Current, iDisplayWidth, ref iAdvance, ref iIndex ) ) {
+                            iAdvance = 0;
+                            _iWrapCount++;                 // Advance the line/wrap
+                            iIndex = oEnum.Current.Offset; // Redo the word on next line!
+                        }
+                    } while( true );
                 }
                 // Don't forget to patch up our trailing glyph that isn't in the source.
                 _rgClusters[_rgClusters.Count-1].AdvanceLeftEm = iAdvance;
@@ -277,7 +288,7 @@ namespace Play.Edit {
                 if( rgError.IsUnhandled(oEx) )
                     throw;
 
-                base.WrapSegmentsCreate( iDisplayWidth );
+                base.WrapSegments( iDisplayWidth );
             }
         }
     } // end class
