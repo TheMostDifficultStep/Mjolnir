@@ -157,7 +157,7 @@ namespace Play.Edit {
 
         readonly ICollection<ILineSelection> _rgSelectionTypes = new List<ILineSelection>( 3 );
 
-        protected readonly LineRange _oLastCursor = new LineRange(); // Just need a spare for use with the hyperlink stuff.
+        protected readonly LineRange _oLastCursor = new LineRange(); // A spare for use with the hyperlink stuff.
         protected CacheManager2      _oCacheMan;
         protected bool               _fReadOnly;
         protected readonly Bitmap    _oIcon;
@@ -169,7 +169,6 @@ namespace Play.Edit {
                   readonly TextSelector  _oTextSelector;
         protected          CaretPosition CaretPos { get; set; }
 
-      //readonly ScrollBar  _hScrollBar     = new HScrollBar();
         readonly ScrollBar2 _oScrollBarVirt;
 
 		PropDoc NavProps { get; }
@@ -238,8 +237,6 @@ namespace Play.Edit {
             Cursor         = Cursors.IBeam;
             DoubleBuffered = true;
 
-            _oScrollBarVirt.Scroll += new ScrollBarEvent( OnScrollBar ); // BUG: do on init....
-
             // This changed from ContextMenu to ContextMenuStrip in .net 5
             if( this.ContextMenuStrip == null ) {
                 ContextMenuStrip oMenu = new ContextMenuStrip();
@@ -260,6 +257,7 @@ namespace Play.Edit {
         protected override void Dispose( bool disposing ) {
             if( disposing ) {
                 _oDocument.CaretRemove( CaretPos );
+                _oScrollBarVirt.Scroll -= OnScrollBar; 
             }
 
             base.Dispose(disposing);
@@ -279,6 +277,8 @@ namespace Play.Edit {
 				LogError( "editor", "Unable to create CacheManager" );
 				return( false );
 			}
+
+            _oScrollBarVirt.Scroll += OnScrollBar; 
 
             _pntScreenTL.X = _oScrollBarVirt.Width + 1; // Make it match where we render the cache.
             ScrollBarRefresh();

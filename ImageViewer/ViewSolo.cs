@@ -136,8 +136,8 @@ namespace Play.ImageViewer {
             }
 
             ContextMenuStrip oMenu = new ContextMenuStrip();
-            oMenu.Items.Add(new ToolStripMenuItem("Copy", null, new EventHandler(this.ClipboardCopyTo), Keys.Control | Keys.C));
-            oMenu.Items.Add(new ToolStripMenuItem("Snip", null, new EventHandler(this.SelectionSnip)));
+            oMenu.Items.Add(new ToolStripMenuItem("Copy", null, this.ClipboardCopyTo, Keys.Control | Keys.C));
+            oMenu.Items.Add(new ToolStripMenuItem("Snip", null, this.SelectionSnip));
             oMenu.Opened += new EventHandler(this.ContextMenuShowing);
             this.ContextMenuStrip = oMenu;
 

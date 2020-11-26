@@ -204,6 +204,24 @@ namespace Play.Edit {
         } // end method
 
         /// <summary>
+        /// Just a dumb I've got no formatting word wrapper. Not even as good
+        /// as if each word was one character.
+        /// </summary>
+        protected void WrapSegmentNoWordsCreate( int iDisplayWidth ) {
+            iDisplayWidth <<= 6;
+            int iAdvance = 0;
+            _iWrapCount  = 0;
+
+            for( int iCluster = 0; iCluster < _rgClusters.Count; ++iCluster ) {
+                iAdvance = _rgClusters[iCluster].Increment( iAdvance, _iWrapCount );
+                if( iAdvance > iDisplayWidth ) {
+                    iAdvance = 0;
+                    _iWrapCount++;
+                }
+            }
+        }
+
+        /// <summary>
         /// Load the current color range into the clusters list as much as possible.
         /// </summary>
         /// <remarks>Our formatting info can contain a fake EOL word that is outside the cluster limits.</remarks>
@@ -224,25 +242,11 @@ namespace Play.Edit {
             return true;
         }
 
-        protected void WrapSegmentNoWordsCreate( int iDisplayWidth ) {
-            iDisplayWidth <<= 6;
-            int iAdvance = 0;
-            _iWrapCount  = 0;
-
-            for( int iCluster = 0; iCluster < _rgClusters.Count; ++iCluster ) {
-                iAdvance = _rgClusters[iCluster].Increment( iAdvance, _iWrapCount );
-                if( iAdvance > iDisplayWidth ) {
-                    iAdvance = 0;
-                    _iWrapCount++;
-                }
-            }
-        }
-
         public override void WrapSegmentsCreate( int iDisplayWidth ) {
-            if( _rgClusters.Count < 1 )
-                return;
-
             try {
+                if( _rgClusters.Count < 1 )
+                    return;
+
                 // We could actually just wrap without word info, look into that later.
                 if( Words.Count == 0 ) {
                     WrapSegmentNoWordsCreate( iDisplayWidth );

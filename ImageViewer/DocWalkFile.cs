@@ -171,6 +171,8 @@ namespace Play.ImageViewer {
     }
 
     unsafe public class User32 {
+        public const Int32 WS_POPUP = unchecked((int)0x80000000);
+
         [DllImport("user32.dll")]
         [return: MarshalAs(UnmanagedType.Bool)]
         public static extern bool GetIconInfo(IntPtr hIcon, ref IconInfo pIconInfo);

@@ -244,8 +244,8 @@ namespace Play.ImageViewer {
         protected readonly SmartRect _rctWorldPort   = new SmartRect( LOCUS.UPPERLEFT, 0, 0, 0, 0 );
 
 		public ImageSoloDoc Document { get; }
-		public IPgParent    Parentage => _oViewSite.Host;
-		public IPgParent    Services  => Document.Parentage.Services;
+		//public IPgParent    Parentage => _oViewSite.Host;
+		//public IPgParent    Services  => Document.Parentage.Services;
 
 		public ImageViewSingle( IPgViewSite oSiteBase, ImageSoloDoc oDocSolo ) : base( oSiteBase ) {
 			Document = oDocSolo ?? throw new ArgumentNullException( "Document must not be null." );
