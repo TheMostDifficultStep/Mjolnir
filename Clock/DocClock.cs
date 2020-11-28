@@ -57,7 +57,6 @@ namespace Play.Clock {
         }
 
         public bool InitNew(){
-
             DocZones.LineAppend( string.Empty, fUndoable:false );
             DocZones.LineAppend( string.Empty, fUndoable:false );
             DocZones.LineAppend( "utc",        fUndoable:false );
@@ -106,7 +105,7 @@ namespace Play.Clock {
                 int    iHour     = oDT.Hour;
                 string strMidDay = "am"; 
 
-                if( iHour >= 12 ) {
+                if( iHour > 12 ) {
                     strMidDay = "pm";
                     iHour    -= 12;
                 }
