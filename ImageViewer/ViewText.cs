@@ -8,7 +8,7 @@ namespace Play.ImageViewer {
     /// This is our text viewer for the ImageWalkerDoc object. The EditWin object is overriden so that the
     /// FileList sub document can be accessed from within the ImageWalkerDoc.
     /// </summary>
-    public class ImageViewText : EditWin {
+    public class ImageViewText : EditWindow2 {
         protected readonly ImageWalkerDoc _oDocumentWalker; 
 		public static readonly Guid _gViewType = new Guid( "{AD026867-FE9C-4F5F-9A50-3228B3716F9F}" );
 

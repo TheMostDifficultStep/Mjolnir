@@ -210,8 +210,7 @@ namespace Play.ImageViewer {
         }
     }
 
-    public class FileLineArray : IArray<Line>, IArray<FileLine>
-    {
+    public class FileLineArray : IArray<Line>, IArray<FileLine> {
         List<FileLine> _rgLines = new List<FileLine>();
 
         public int  ElementCount { get { return( _rgLines.Count ); } }
@@ -237,8 +236,7 @@ namespace Play.ImageViewer {
         FileLine IReadableBag<FileLine>.this[int iIndex] { get{ return( _rgLines[iIndex] ); } }
     }
 
-    public class FileEditor : BaseEditor 
-    {
+    public class FileEditor : BaseEditor {
         public FileEditor( IPgBaseSite oSite ) : base( oSite ) {
 
         }
@@ -447,8 +445,7 @@ namespace Play.ImageViewer {
 
 		public virtual bool IsDirty => false;
 
-		private ImageCodecInfo GetEncoder(ImageFormat format)  
-		{  
+		private ImageCodecInfo GetEncoder(ImageFormat format) {  
 			ImageCodecInfo[] codecs = ImageCodecInfo.GetImageDecoders();  
 			foreach (ImageCodecInfo codec in codecs) {  
 				if (codec.FormatID == format.Guid) {  

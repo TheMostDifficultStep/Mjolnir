@@ -18,6 +18,7 @@ using Play.Edit;
 using Play.Integration;
 using Play.Parse.Impl.Text;
 using Play.Parse.Impl;
+using Play.ImageViewer;
 //using MySql.Data.MySqlClient;
 
 namespace Play.MorsePractice {
@@ -38,7 +39,6 @@ namespace Play.MorsePractice {
 	{
         readonly IPgScheduler      _oScheduler;
         readonly IPgRoundRobinWork _oTaskPlace;
-        readonly IPgRoundRobinWork _oTaskSched;
 
         protected class MorseDocSlot :
 			IPgBaseSite
@@ -66,7 +66,7 @@ namespace Play.MorsePractice {
 		public Editor   Source { get; } // practice code tones generated from this editor.
 		public Editor   Notes  { get; } // practice screen notes. and primary view.
 		public Editor   Stats  { get; } // put stats or more audio reference here.
-		public Editor   Morse  { get; } // Our reference to the morse values. Let's make this audio!!
+		public Editor   MorseReference  { get; } // Our reference to the morse values. Let's make this audio!!
         public CallsDoc Calls  { get; } // List of callsigns in left hand column of notes file.
 
         public Editor CallSign        { get; }
@@ -75,6 +75,10 @@ namespace Play.MorsePractice {
         public Editor CallSignBioHtml { get; } // base 64 converted HTML streaml;
         public Editor CallSignPageHtml{ get; } // This is the main page returned by qrz.
 
+        public ImageSoloDoc SolarMap { get; }
+        public ImageSoloDoc SolarVhf { get; }
+
+		protected static readonly HttpClient _oHttpClient = new HttpClient(); 
 
         /// <summary>
         /// Document object for a little Morse Practice document.
@@ -83,18 +87,20 @@ namespace Play.MorsePractice {
 			_oSiteBase  = oSiteBase ?? throw new ArgumentNullException();
             _oScheduler = Services as IPgScheduler ?? throw new ArgumentException("Host requries IPgScheduler");
             _oTaskPlace = _oScheduler.CreateWorkPlace() ?? throw new InvalidOperationException("Couldn't create a worksite from scheduler for file downloader.");
-            _oTaskSched = _oScheduler.CreateWorkPlace() ?? throw new ApplicationException( "Couldnt' create a worksite from scheduler for schedule.");
 
-            Source           = new Editor( new MorseDocSlot( this ) );
-			Notes            = new Editor( new MorseDocSlot( this ) );
+            Source           = new Editor( new MorseDocSlot( this ) ); // Morse code source for practice.
+			Notes            = new Editor( new MorseDocSlot( this ) ); // Notes for listening to morse, or log files.
 			Stats            = new Editor( new MorseDocSlot( this ) );
-			Morse            = new Editor( new MorseDocSlot( this ) );
-            Calls            = new CallsDoc( new MorseDocSlot( this ) );
+			MorseReference   = new Editor( new MorseDocSlot( this ) ); // Refrence table of morse code letters.
+            Calls            = new CallsDoc( new MorseDocSlot( this ) ); // document for outline, compiled list of stations
             CallSign         = new Editor( new MorseDocSlot( this ) );
             CallSignPageHtml = new Editor( new MorseDocSlot( this ) );
             CallSignBioHtml  = new Editor( new MorseDocSlot( this ) );
             CallSignBio      = new Editor( new MorseDocSlot( this ) );
             CallSignAddress  = new Editor( new MorseDocSlot( this ) );
+
+            SolarMap = new ImageSoloDoc( new MorseDocSlot( this ) );
+            SolarVhf = new ImageSoloDoc( new MorseDocSlot( this ) );
 
             new ParseBioHTMLSkimmer( this );
             new ParseQrzHTMLSkimmer( this );
@@ -111,7 +117,7 @@ namespace Play.MorsePractice {
 				Source.Dispose();
 				Notes .Dispose();
 				Stats .Dispose();
-                Morse .Dispose();
+                MorseReference .Dispose();
                 Calls .Dispose();
 
                 CallSign        .Dispose();
@@ -119,6 +125,9 @@ namespace Play.MorsePractice {
                 CallSignBio     .Dispose();
                 CallSignBioHtml .Dispose();
                 CallSignAddress .Dispose();
+
+                SolarMap.Dispose();
+                SolarVhf.Dispose();
 
                 _fDisposed = true;
 			}
@@ -144,7 +153,7 @@ namespace Play.MorsePractice {
 			try {
 				using( Stream oStream = oAssembly.GetManifestResourceStream( _strMorseTable )) {
 					using( TextReader oText = new StreamReader( oStream, true ) ) {
-						Morse.Load( oText );
+						MorseReference.Load( oText );
 					}
 				}
 			} catch( Exception oEx ) {
@@ -159,6 +168,17 @@ namespace Play.MorsePractice {
 			}
 		}
 
+        public async void LoadSolar() {
+            using Stream oStreamVhf = await _oHttpClient.GetStreamAsync( @"http://www.hamqsl.com/solar101vhf.php" );
+            using Stream oStreamMap = await _oHttpClient.GetStreamAsync( @"http://www.hamqsl.com/solarmap.php" );
+
+            SolarVhf.Load( oStreamVhf );
+            SolarMap.Load( oStreamMap );
+        }
+
+        /// <summary>
+        /// Both InitNew and Load call this base initialization function.
+        /// </summary>
 		protected bool Initialize() {
 			if( !Source.InitNew() )
 				return false;
@@ -183,6 +203,11 @@ namespace Play.MorsePractice {
                 return false;
 			if( !Stats.InitNew() )
 				return false;
+
+            if( !SolarMap.InitNew() )
+                return false;
+            if( !SolarVhf.InitNew() )
+                return false;
 
             for( int i=0; i<3; ++i ) {
                 List<Line> rgRow = new List<Line>(7);

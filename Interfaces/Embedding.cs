@@ -367,7 +367,7 @@ namespace Play.Interfaces.Embedding {
     /// for view objects responding to user input.
 	/// </summary>
     public interface IPgCommandView : IPgCommandBase {
-        Guid   Catagory { get; } // This is the View Type guid. 
+        Guid   Catagory { get; } // This is the View Type guid. Only used in one place. See if I can factor this out.
         object Decorate( IPgViewSite oBaseSite, Guid sGuid );
     }
 

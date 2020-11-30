@@ -252,6 +252,10 @@ namespace Play.ImageViewer {
 		}
 
         public virtual bool InitNew() {
+			if( Parentage is Control oParent ) {
+				Parent = oParent;
+			}
+
             if( Document.Bitmap != null ) {
                 _rctWorldPort.SetRect( LOCUS.UPPERLEFT, 0, 0, Document.Bitmap.Width, Document.Bitmap.Height);
             }

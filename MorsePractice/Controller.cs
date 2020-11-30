@@ -31,6 +31,9 @@ namespace Play.MorsePractice
 
 			try {
                 switch( guidViewType ) {
+                    case Guid r when r == ViewSolar._guidViewCatagory:
+                        return new ViewSolar( oBaseSite, oMorsePractice );
+
 				    case Guid r when r == ViewMorse._guidViewCategory:
 					    return new ViewMorse( oBaseSite, oMorsePractice );
 
@@ -44,7 +47,7 @@ namespace Play.MorsePractice
                         return new ViewLog( oBaseSite, oMorsePractice );
 
                     case Guid r when r == _guidMorseTable:
-					    return new EditWindow2( oBaseSite, oMorsePractice.Morse, fReadOnly:true );
+					    return new EditWindow2( oBaseSite, oMorsePractice.MorseReference, fReadOnly:true );
 
                     case Guid r when r == _guidSchedule:
                         return new EditWindow2( oBaseSite, oMorsePractice.Calls, fReadOnly:true, fSingleLine:false );
@@ -79,6 +82,7 @@ namespace Play.MorsePractice
             yield return new ViewType( "Qrz Raw Bio",  _guidRawBio );
             yield return new ViewType( "Qrz Raw Page", _guidRawPage );
             yield return new ViewType( "Logger", ViewLog.ViewLogger );
+            yield return new ViewType( "Solar Weather", ViewSolar._guidViewCatagory );
         }
     }
 

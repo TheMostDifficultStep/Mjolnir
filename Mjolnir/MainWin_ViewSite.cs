@@ -572,6 +572,8 @@ namespace Mjolnir {
 		/// for services that won't work if we ever support more than one top level window.
 		/// </remarks>
         public object AddView(Guid guidViewType, bool fFocus) {
+            // If we've got a view already of the given view type, just use that.
+            // This looks like the ONLY place that uses the catagory method... Sigh. BUG.
             foreach( IPgCommandView oSibling in _oHost.EnumViews( _oDocSite ) ) {
                 if( oSibling.Catagory == guidViewType ) {
                     _oHost.CurrentView = oSibling;

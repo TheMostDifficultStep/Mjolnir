@@ -3,6 +3,7 @@
   <PropertyGroup>
     <TargetFramework>netcoreapp3.1</TargetFramework>
     <UseWindowsForms>true</UseWindowsForms>
+    <RootNamespace>Play.MorsePractice</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
@@ -16,6 +17,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Drawing\Drawing.csproj" />
     <ProjectReference Include="..\Editor\Editor.csproj" />
+    <ProjectReference Include="..\ImageViewer\ImageViewer.csproj" />
     <ProjectReference Include="..\Interfaces\Interfaces.csproj" />
     <ProjectReference Include="..\Mp3-Play\Mp3-Play.csproj" />
     <ProjectReference Include="..\ParseAll\ParseAll.csproj" />
