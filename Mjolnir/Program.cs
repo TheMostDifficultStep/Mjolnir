@@ -1114,6 +1114,7 @@ namespace Mjolnir {
 			Controllers.Add( new Play.MusicWalker  .MusicWalkerController() );
 			Controllers.Add( new Play.MusicWalker  .M3uController() );
 			Controllers.Add( new Play.MorsePractice.MorseController() );
+            Controllers.Add( new Play.Clock        .SolarController() );
         }
 
         /// <summary>
