@@ -76,8 +76,6 @@ namespace Play.Clock
 		public IPgParent Parentage => _oSiteBase.Host;
 		public IPgParent Services  => Parentage.Services;
 
-        public ICollection<ICollection<Line>> Rows { get; } = new List<ICollection<Line>>();
-
         public async void LoadSolar() {
             using Stream oStreamVhf = await _oHttpClient.GetStreamAsync( @"http://www.hamqsl.com/solar101vhf.php" );
             using Stream oStreamMap = await _oHttpClient.GetStreamAsync( @"http://www.hamqsl.com/solarmap.php" );
@@ -94,15 +92,6 @@ namespace Play.Clock
                 return false;
             if( !SolarVhf.InitNew() )
                 return false;
-
-            for( int i=0; i<3; ++i ) {
-                List<Line> rgRow = new List<Line>(7);
-
-                for( int j=0; j<7; ++j ) {
-                    rgRow.Add( new TextLine( j, j.ToString() ) );
-                }
-                Rows.Add( rgRow );
-            }
 
 			return true;
 		}
