@@ -76,6 +76,12 @@ namespace Play.Clock
 		public IPgParent Parentage => _oSiteBase.Host;
 		public IPgParent Services  => Parentage.Services;
 
+		/// <summary>
+		/// TODO: So technically I could call something on the view to refresh itself after the loads,
+		/// HOWEVER, each image's view knows it has loaded and I think should ask their containing
+		/// view to invalidat and thus reload. But that then doubles the work since here is the
+		/// only place we know it's an atomic update. Still thinking about this.
+		/// </summary>
         public async void LoadSolar() {
             using Stream oStreamVhf = await _oHttpClient.GetStreamAsync( @"http://www.hamqsl.com/solar101vhf.php" );
             using Stream oStreamMap = await _oHttpClient.GetStreamAsync( @"http://www.hamqsl.com/solarmap.php" );
@@ -100,12 +106,16 @@ namespace Play.Clock
 			if( !Initialize() ) 
 				return false;
 
+			LoadSolar();
+
 			return true;
 		}
 
 		public bool Load(TextReader oStream) {
 			if( !Initialize() ) 
 				return false;
+
+			LoadSolar();
 
 			return true;
 		}
