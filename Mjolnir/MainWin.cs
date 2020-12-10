@@ -192,8 +192,7 @@ namespace Mjolnir {
         /// instance to the ViewSelector and can sort it all out later. The main complexity is that
         /// decor views want access to an IDocSlot on the document. That sux and we need to work on that.
         /// </summary>
-        protected class MainWinDocSlot : IPgBaseSite, IDocSlot
-        {
+        protected class MainWinDocSlot : IPgBaseSite, IDocSlot  {
             MainWin                 _oHost;
             ControllerForMainWindow _oController;
             IDisposable             _oGuest;
@@ -208,7 +207,7 @@ namespace Mjolnir {
             public int            ID         => 0;
             public IDisposable    Document   => _oGuest;
             public bool           IsDirty    => false;
-            public string         Title => "View Selector";
+            public string         Title      => "View Selector";
             public string         FileName   => string.Empty;
             public IPgController2 Controller => _oController;
 

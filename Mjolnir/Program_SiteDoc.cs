@@ -27,7 +27,7 @@ namespace Mjolnir {
         bool        IsDirty  { get; }
         bool        Save( bool fNewLocation );
         void        Dispose();
-        string      Title     { get; }
+        string      Title     { get; } // Slightly redundant, but more flexible than FileName. Do not use for Views. (they have their own system)
         string      FileName  { get; }
         int         Reference { get; set; }
         bool        InitNew();
@@ -229,6 +229,11 @@ namespace Mjolnir {
                 sbTitle.Append( "?" );
             }
 
+            /// <summary>
+            /// We could almost remove this. The one advantage it has is that if the file name
+            /// has not been chosen yet, we'll ask our subclasses for a value to use for the name
+            /// and thus not be an empty string.
+            /// </summary>
 			public virtual string Title {
                 get {
                     StringBuilder sbTitle = new StringBuilder( FileName );
@@ -399,6 +404,9 @@ namespace Mjolnir {
             /// before returning! 
             /// </summary>
             /// <returns>True if saved successfully.</returns>
+            /// <remarks>This is interesting in that the Save is going to originate from a displayed view,
+            /// so really the best error would include the "Banner" from the view. But we don't know
+            /// about it down here and so use the "Title" instead.</remarks>
             public bool Save( bool fAtNewLocation ) {
                 if( _oGuestSave == null ) {
                     LogError( "Cannot persist " + Title, ". The object does not support IPgSave<TextWriter>." );

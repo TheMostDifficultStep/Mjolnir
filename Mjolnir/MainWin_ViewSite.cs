@@ -113,7 +113,7 @@ namespace Mjolnir {
 
             try { 
               // TODO: Need to merge this value to what I'm using for long/short names
-                _oMenuItem = new ToolStripMenuItem( _oDocSite.Title, null, new EventHandler(this.OnMenuSelectView));
+                _oMenuItem = new ToolStripMenuItem( _oViewCommand.Banner, null, new EventHandler(this.OnMenuSelectView));
 		        _oLayout   = new LayoutControl( oGuest, LayoutRect.CSS.Pixels );
 	          //_oLayout   = new FrameletForView( this, (uint)(this._oHost.Document.FontStandard.Height * 1.5 ) );
             } catch( Exception oEx ) { 
