@@ -121,7 +121,7 @@ namespace Play.Rectangles {
                     }
                 }
                 return oReSized;
-            } catch( Exception oEx ) {
+            } catch( NullReferenceException ) {
                 return null;
             }
         }

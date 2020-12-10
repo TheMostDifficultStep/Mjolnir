@@ -607,7 +607,7 @@ namespace Play.Interfaces.Embedding {
         object DocumentText { get; }
     }
 
-    public delegate void ViewChanged( IPgTextView oView );
+    public delegate void ViewChanged( object oView );
 
     /// <summary>
     /// So far, I've been able to derive all data streams from this

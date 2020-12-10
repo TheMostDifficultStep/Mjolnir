@@ -96,8 +96,9 @@ namespace Mjolnir {
         /// <summary>
         /// This method is for internal access to the control.
         /// BUG: This doesn't match how I'm using GuestSet (on doc slots) now a days.
+        /// Plus, I'd rather this object is a IPgParent and not CONTROL!.
         /// </summary>
-        internal Control Guest {
+        [Obsolete]internal Control Guest {
             get { return (_oGuest); }
 			set { GuestAssign( value ); }
         }
@@ -755,16 +756,15 @@ namespace Mjolnir {
             //oGuest.ContextMenu.MenuItems.Add( new MenuItem( "Goto",  new EventHandler( MenuGotoView ),        Shortcut.CtrlG ) );
             //oGuest.ContextMenu.MenuItems.Add( new MenuItem( "Close", new EventHandler( MenuCloseViewCommand), Shortcut.Del ) );
 
-            _oHost.ViewChanged += _oHost_ViewChanged; // This should be on the InitNew. If we fail init we're still wired up.
+            _oHost.ViewChanged += OnHost_ViewChanged; // This should be on the InitNew. If we fail init we're still wired up.
 		}
 
-        private void _oHost_ViewChanged(IPgTextView oView) {
+        private void OnHost_ViewChanged( object oView ) {
             try {
                 foreach( ViewsLine oViewLine in _oDoc_Views ) {
-                    if( oViewLine.ViewSite.Guest is IPgTextView oViewText ) {
-                        if( oViewText == oView )
-                            _oDoc_Views.HighLight = oViewLine;
-                    }
+                    // Just want to see if the objects are the same.
+                    if( oViewLine.ViewSite.Guest == oView )
+                        _oDoc_Views.HighLight = oViewLine;
                 }
             } catch( NullReferenceException ) {
                 LogError( "View Selector", "Problem monitering switch." );
@@ -820,7 +820,7 @@ namespace Mjolnir {
 
         public override void Dispose() {
             _oGuest.Dispose();
-            _oHost.ViewChanged -= _oHost_ViewChanged;
+            _oHost.ViewChanged -= OnHost_ViewChanged;
         }
     }
 }

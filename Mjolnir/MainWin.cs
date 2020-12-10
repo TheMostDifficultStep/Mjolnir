@@ -353,7 +353,7 @@ namespace Mjolnir {
             // what we really need is a multi-step construction. First we wire up our window and wait until we have our handle and can display
             // messages. Then load up children, then send this event.
             if (_oSelectedWinSite != null && ViewChanged != null)
-                ViewChanged(_oSelectedWinSite.Guest as IPgTextView);
+                ViewChanged(_oSelectedWinSite.Guest as IPgParent ); // BUG, guest really needs to be a IPgParent.
 
 			if( _hScriptCache == IntPtr.Zero ) { 
                 using( Graphics oG = this.CreateGraphics() ) { 
@@ -1784,7 +1784,7 @@ namespace Mjolnir {
                 }
 
                 if( _oSelectedWinSite != oViewSite )
-                    ViewChanged?.Invoke(oViewSite.Guest as IPgTextView); 
+                    ViewChanged?.Invoke(oViewSite.Guest as IPgParent ); // BUG: Guest needs to be a IPgParent.
 
                 _oSelectedWinSite = oViewSite;
                 _oSelectedDocSite = oViewSite.DocumentSite;

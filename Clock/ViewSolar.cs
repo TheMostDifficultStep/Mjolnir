@@ -89,6 +89,22 @@ namespace Play.Clock {
             return true;
         }
 
+        protected override void OnGotFocus(EventArgs e) {
+            base.OnGotFocus( e );
+
+            _oViewEvents.NotifyFocused( true );
+
+            this.Invalidate();
+        }
+
+        protected override void OnLostFocus(EventArgs e) {
+            base.OnLostFocus( e );
+
+            _oViewEvents.NotifyFocused( false );
+
+            this.Invalidate();
+        }
+
         protected override void OnSizeChanged( EventArgs e ) {
 			Layout2.SetRect( 0, 0, Width, Height );
 			Layout2.LayoutChildren();

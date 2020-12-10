@@ -294,7 +294,7 @@ namespace Play.MorsePractice {
             }
         }
 
-        public static async void test() {
+        public static void test() {
             //var builder = new MySqlConnectionStringBuilder
             //{
             //    Server = "YOUR-SERVER.mysql.database.azure.com",
