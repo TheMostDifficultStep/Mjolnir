@@ -43,6 +43,17 @@ namespace Play.MusicWalker {
 		ImageViewSingle ViewSettings{ get; }
 	  //ComboBox        ViewRecievers{ get; }
 
+		public Image     Iconic   { get; }
+		public string    Banner   => Document.FileBase;
+		public Guid      Catagory => Guid.Empty;
+
+		public IPgParent Parentage => _oSiteView.Host;
+		public IPgParent Services  => Parentage.Services;
+
+		public bool IsDirty => ViewLibrary.IsDirty;
+
+		public int CurrentAlbumIndex => ViewLibrary.Caret.Line;
+
 		protected class MusicWinSlot :
 			IPgBaseSite
 		{
@@ -129,8 +140,7 @@ namespace Play.MusicWalker {
 			}
 		}
 
-        public MusicWin( IPgViewSite oBaseSite, MusicCollection oDoc ) 
-		{
+        public MusicWin( IPgViewSite oBaseSite, MusicCollection oDoc ) {
 			Document     = oDoc      ?? throw new ArgumentNullException( "Music Edit Win needs Music Document." );
 			_oSiteView   = oBaseSite ?? throw new ArgumentNullException( "ViewSite must not be null for Music Window" );
 			_oViewEvents = oBaseSite.EventChain ?? throw new ArgumentException( "Site must support EventChain" );
@@ -276,17 +286,6 @@ namespace Play.MusicWalker {
 
 			return true;
 		}
-
-		public Image     Iconic   {get; }
-		public string    Banner   => "Music Library";
-		public Guid      Catagory => Guid.Empty;
-
-		public IPgParent Parentage => _oSiteView.Host;
-		public IPgParent Services  => Parentage.Services;
-
-		public bool IsDirty => ViewLibrary.IsDirty;
-
-		public int CurrentAlbumIndex => ViewLibrary.Caret.Line;
 
 		protected override void OnSizeChanged( EventArgs e ) {
 			base.OnSizeChanged(e);

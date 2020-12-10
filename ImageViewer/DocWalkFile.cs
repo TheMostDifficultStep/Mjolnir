@@ -575,6 +575,7 @@ namespace Play.ImageViewer {
 			public IPgParent Host       => _oDoc;
 			public FILESTATS FileStatus => FILESTATS.UNKNOWN;
 			public string    FilePath   => string.Empty;
+            public string    FileBase   => string.Empty;
 
 			public virtual Encoding FileEncoding => Encoding.Default;
 		}
@@ -936,7 +937,7 @@ namespace Play.ImageViewer {
         public string CurrentFileName {
             get { 
                 try {
-                    return( Path.GetFileName( _oDisplayLine.ToString() ) ); 
+                    return Path.GetFileName( _oDisplayLine.ToString() ); 
                 } catch( Exception oEx ) {
                     Type[] rgErr = { typeof( NullReferenceException ),
                                      typeof( ArgumentException ) };

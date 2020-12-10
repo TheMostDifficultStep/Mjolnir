@@ -361,11 +361,19 @@ namespace Play.Edit {
 		/// </summary>
 		public string FilePath {
 			get { 
-				try {
-					return( _oSiteFile.FilePath ); 
-				} catch( NullReferenceException ) {
-					return( string.Empty );
-				}
+                if( _oSiteFile != null )
+					return _oSiteFile.FilePath; 
+
+                return string.Empty;
+			}
+		}
+
+		public string FileBase {
+			get { 
+                if( _oSiteFile != null )
+					return _oSiteFile.FileBase; 
+
+                return string.Empty;
 			}
 		}
 

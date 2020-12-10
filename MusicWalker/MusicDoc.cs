@@ -283,6 +283,7 @@ namespace Play.MusicWalker {
 		IDisposable 
 	{
 		protected readonly IPgBaseSite       _oSiteBase;
+		protected readonly IPgFileSite       _oSiteFile;
 		protected readonly IPgGrammers       _oGrammars;
 		protected readonly IPgScheduler      _oScheduler;
 		protected readonly IPgSound          _oSound;
@@ -455,9 +456,10 @@ namespace Play.MusicWalker {
 
 		public MusicCollection( IPgBaseSite oSite ) {
 			_oSiteBase  = oSite ?? throw new ArgumentNullException();
-			_oGrammars  = Services as IPgGrammers  ?? throw new ArgumentException( "Host requires IPgGrammerProvider" );
-			_oSound     = Services as IPgSound     ?? throw new ArgumentException( "Host requires IPgSound");
-            _oScheduler = Services as IPgScheduler ?? throw new ArgumentException( "Host requries IPgScheduler" );
+			_oSiteFile  = oSite    as IPgFileSite  ?? throw new ArgumentException( "Document requeires IPgFileSite" );
+			_oGrammars  = Services as IPgGrammers  ?? throw new ArgumentException( "Document requires IPgGrammerProvider" );
+			_oSound     = Services as IPgSound     ?? throw new ArgumentException( "Document requires IPgSound");
+            _oScheduler = Services as IPgScheduler ?? throw new ArgumentException( "Document requries IPgScheduler" );
             _oWorkPlace = _oScheduler.CreateWorkPlace() ?? throw new InvalidOperationException( "Couldn't create a worksite from scheduler.");
             _oTaskPlace = _oScheduler.CreateWorkPlace() ?? throw new InvalidOperationException( "Couldn't create a worksite from scheduler.");
 
@@ -508,6 +510,8 @@ namespace Play.MusicWalker {
 			//	_oHost = null;
 			//}
 		}
+
+		public string FileBase => _oSiteFile.FileBase;
 
 		/// <exception cref="InvalidOperationException" />
 		public Stream GetEmbedding( string strResource ) {

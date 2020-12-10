@@ -36,20 +36,19 @@ namespace Mjolnir {
         protected readonly MainWin  _oHost;    // Back pointer to the container.
         private   readonly IDocSlot _oDocSite; // Pointer to the document site our view site is showing.
 
-        protected Control                      _oGuest;
-				  IPgSave<XmlDocumentFragment> _oGuestSaveXml;
-		protected IPgLoad<XmlElement>          _oGuestLoadXml;
-		protected IPgCommandView               _oGuestCommand;
-				  IPgTools                     _oGuestTools;
+        protected Control                      _oViewControl;
+				  IPgSave<XmlDocumentFragment> _oViewSaveXml;
+		protected IPgLoad<XmlElement>          _oViewLoadXml;
+		protected IPgCommandView               _oViewCommand;
+				  IPgTools                     _oViewTools;
 
         readonly ColorRange  _oRangeText = new ColorRange( 0, 0, 0 );
-        public CacheWrapped  CacheTitle { get; }
+        //public CacheWrapped  CacheTitle { get; }
         public Line          ShortTitle { get; } = new TextLine( 0, string.Empty );
 
         static   UInt32 _iIDCount;
         readonly UInt32 _iID;
 
-        IntPtr                    _ipHIcon = IntPtr.Zero;
         Icon                      _oIcon   = null;
         ToolStripMenuItem         _oMenuItem; // This is our entry in the list of windows the shell is showing.
 		protected LayoutRect      _oLayout;   // Put our new Framelet here.
@@ -70,7 +69,7 @@ namespace Mjolnir {
 
 			ToolBox = new List<MenuItemWithID>(3);
 
-            CacheTitle = new CacheWrapped( ShortTitle ); 
+            //CacheTitle = new CacheWrapped( ShortTitle ); 
 			//CacheTitle.Words.Add(_oRangeText);
 
 			ViewType = guidViewType;
@@ -99,18 +98,18 @@ namespace Mjolnir {
         /// Plus, I'd rather this object is a IPgParent and not CONTROL!.
         /// </summary>
         [Obsolete]internal Control Guest {
-            get { return (_oGuest); }
+            get { return (_oViewControl); }
 			set { GuestAssign( value ); }
         }
 
 		/// <exception cref="ArgumentNullException" />
 		/// <exception cref="ArgumentException" />
 		protected virtual void GuestAssign( Control oGuest ) {
-            _oGuest        = oGuest ?? throw new ArgumentNullException( "View site needs a guest to be valid." );
-            _oGuestCommand = oGuest as IPgCommandView ?? throw new ArgumentException( "view needs IPgCommand." );
-			_oGuestSaveXml = oGuest as IPgSave<XmlDocumentFragment> ?? throw new ArgumentException( "view needs IPgSave<XmlDocumentFragment>" );
-			_oGuestLoadXml = oGuest as IPgLoad<XmlElement> ?? throw new ArgumentException( "view needs IPgLoad<XmlElement>." );
-			_oGuestTools   = oGuest as IPgTools; // Ok to be null.
+            _oViewControl        = oGuest ?? throw new ArgumentNullException( "View site needs a guest to be valid." );
+            _oViewCommand = oGuest as IPgCommandView ?? throw new ArgumentException( "view needs IPgCommand." );
+			_oViewSaveXml = oGuest as IPgSave<XmlDocumentFragment> ?? throw new ArgumentException( "view needs IPgSave<XmlDocumentFragment>" );
+			_oViewLoadXml = oGuest as IPgLoad<XmlElement> ?? throw new ArgumentException( "view needs IPgLoad<XmlElement>." );
+			_oViewTools   = oGuest as IPgTools; // Ok to be null.
 
             try { 
               // TODO: Need to merge this value to what I'm using for long/short names
@@ -127,11 +126,11 @@ namespace Mjolnir {
 		/// Might want to reinvestigate the dispose pattern for this one.
 		/// </summary>
         public virtual void Dispose() {
-			if( _oGuest != null ) {
-				_oGuest.Hide();
-				_oGuest.Site = null;
-				_oGuest.Dispose();
-				_oGuest = null;
+			if( _oViewControl != null ) {
+				_oViewControl.Hide();
+				_oViewControl.Site = null;
+				_oViewControl.Dispose();
+				_oViewControl = null;
 			}
 
 			// Dispose after the guest, since it'll call our OnFocus as it is destroyed!
@@ -155,7 +154,7 @@ namespace Mjolnir {
         /// </summary>
         public bool Wrap {
             set {
-                if( _oGuest is EditWin oGuestEdit ) {
+                if( _oViewControl is EditWin oGuestEdit ) {
                     oGuestEdit.Wrap = value;
                 }
             }
@@ -180,7 +179,7 @@ namespace Mjolnir {
         internal void CreateIcon() {
             IntPtr ipHIcon = IntPtr.Zero;
             try {
-                Bitmap oBitmap = (Bitmap)_oGuestCommand.Iconic;
+                Bitmap oBitmap = (Bitmap)_oViewCommand.Iconic;
 				if( oBitmap != null ) {
 					ipHIcon = oBitmap.GetHicon();
 					using( Icon oIcon = Icon.FromHandle( ipHIcon ) ) {
@@ -200,9 +199,9 @@ namespace Mjolnir {
 		/// Got to the view and ask it for all the tools.
 		/// </summary>
 		internal void ToolsInit() {
-			if( _oGuestTools != null ) {
-				for( int i = 0; i < _oGuestTools.ToolCount; ++i ) {
-					ToolBox.Add( new MenuItemWithID( i, _oGuestTools.ToolName( i ), OnToolClicked ) );
+			if( _oViewTools != null ) {
+				for( int i = 0; i < _oViewTools.ToolCount; ++i ) {
+					ToolBox.Add( new MenuItemWithID( i, _oViewTools.ToolName( i ), OnToolClicked ) );
 				}
 			}
 		}
@@ -212,7 +211,7 @@ namespace Mjolnir {
 				oTools.DropDownItems.Clear();
 
 				foreach( MenuItemWithID oItem in ToolBox ) {
-					oItem.Checked = oItem.ID == _oGuestTools.ToolSelect;
+					oItem.Checked = oItem.ID == _oViewTools.ToolSelect;
 					oTools.DropDownItems.Add( oItem );
 				}
 			} catch( NullReferenceException ) {
@@ -222,7 +221,7 @@ namespace Mjolnir {
 		protected void OnToolClicked(object sender, EventArgs e) {
 			try {
 				if (sender is MenuItemWithID oItem) {
-					_oGuestTools.ToolSelect = oItem.ID;
+					_oViewTools.ToolSelect = oItem.ID;
 				}
 			} catch( NullReferenceException )  {
 			}
@@ -230,7 +229,7 @@ namespace Mjolnir {
 
 		internal virtual bool InitNew() {
 			try {
-				if( !_oGuestLoadXml.InitNew() ) // BUG: A parse finish from the scheduler is showing up before we call this!
+				if( !_oViewLoadXml.InitNew() ) // BUG: A parse finish from the scheduler is showing up before we call this!
 					return( false );
 
 				ToolsInit();
@@ -251,7 +250,7 @@ namespace Mjolnir {
             // This keeps us from tabbing into our document and then blasting a bunch
             // of spaces into the document because we tabbed our way into it. The document 
             // still accepts tabs, but you have to specifically set focus to it.
-            _oGuest.TabStop = false;
+            _oViewControl.TabStop = false;
 
             UpdateTitle();
         
@@ -260,7 +259,7 @@ namespace Mjolnir {
 
         internal bool Load( XmlElement xmlRoot ) {
 			try {
-				if( !_oGuestLoadXml.Load( xmlRoot ) ) {
+				if( !_oViewLoadXml.Load( xmlRoot ) ) {
 					LogError( "storage", "Couldn't load view from xml." );
 					return( false );
 				}
@@ -279,14 +278,14 @@ namespace Mjolnir {
 
             CreateIcon();
 
-            _oGuest.TabStop = false;
+            _oViewControl.TabStop = false;
 
             return( true );
         }
 
         internal bool Save( XmlDocumentFragment oWriter ) {
 			try {
-				return( _oGuestSaveXml.Save( oWriter ) );
+				return( _oViewSaveXml.Save( oWriter ) );
 			} catch( Exception oEx ) {
 				Type[] rgErrors = { typeof( ArgumentException ), 
 					                typeof( ArgumentNullException ),
@@ -330,8 +329,8 @@ namespace Mjolnir {
         public void SetFocus() {
 			try {
 				// When the view gets the focus message that signals the shell to BringToFront() it.
-				_oGuest.Select();
-				_oGuest.Focus();
+				_oViewControl.Select();
+				_oViewControl.Focus();
 			} catch( NullReferenceException ) {
 				LogError( "windowing", "Guest is null!", true );
 			}
@@ -340,7 +339,7 @@ namespace Mjolnir {
         public bool Focused {
             get { 
 				try {
-					return( _oGuest.Focused ); 
+					return( _oViewControl.Focused ); 
 				} catch( NullReferenceException ) {
 					LogError( "windowing", "Guest is null!", false );
 					return( false );
@@ -360,7 +359,7 @@ namespace Mjolnir {
         // BUG: We can change the view a number of ways. Need to unify.
         internal void BringToFront() {
 			try {
-				_oGuest.BringToFront();
+				_oViewControl.BringToFront();
 			} catch( NullReferenceException ) {
 				LogError( "windowing", "Guest is null!", false );
 			}
@@ -373,7 +372,7 @@ namespace Mjolnir {
         /// TODO: Make this some sort of IPgCommand
         /// </summary>
         internal void ScrollToPrimaryEdit() {
-            IPgTextView oGuestText = _oGuest as IPgTextView;
+            IPgTextView oGuestText = _oViewControl as IPgTextView;
             if( oGuestText != null )
                 oGuestText.ScrollToCaret();
         }
@@ -395,7 +394,7 @@ namespace Mjolnir {
         public virtual void NotifyFocused( bool fSelect ) {
             try {
                 if( fSelect ) {
-                    _oGuest.BringToFront();
+                    _oViewControl.BringToFront();
 
                     _oHost.OnViewFocused( this );
                 } else {
@@ -423,24 +422,12 @@ namespace Mjolnir {
 
         public void UpdateTitle() {
             _oMenuItem.Text = TitleLong;
-            _strShortTitle  = TitleShort;
+            _strShortTitle  = TitleLong;
 
-            CacheTitle.Invalidate();
+            //CacheTitle.Invalidate();
         }
 
-        public bool IsTextInvalid {  get { return CacheTitle.IsInvalid; } }
-
-        public void UpdateText( IntPtr hDC, ref IntPtr hScriptCache, float flFontHeight, 
-                                SCRIPT_FONTPROPERTIES sDefFontProps ) 
-        {
-            // TODO: This instance represents an interesting case where we need to update the text, but the
-            //       width might not be known by the manager, Or a re-layout calc is going to be required when
-            //       the text changes! In our case it's because we're sharing the cached text amoung TWO different
-            //       layouts!!
-            //       Request an OnSizeChanged event on the MainWindow.
-            CacheTitle.Update( hDC, ref hScriptCache, 4, flFontHeight, sDefFontProps, null, 1000, null );
-            _oRangeText.Length = CacheTitle.Line.ElementCount;
-        }
+        public bool IsTextInvalid {  get { return false; /* CacheTitle.IsInvalid; */ } }
 
         public void SetLayout( MainWin.TOPLAYOUT eLayout ) {
             //switch( eLayout ) {
@@ -466,7 +453,7 @@ namespace Mjolnir {
 
 				case ShellNotify.ToolChanged:
 					foreach( MenuItemWithID oTool in ToolBox ) {
-						oTool.Checked = oTool.ID == _oGuestTools.ToolSelect;
+						oTool.Checked = oTool.ID == _oViewTools.ToolSelect;
 					}
 					break;
 			}
@@ -495,39 +482,18 @@ namespace Mjolnir {
         public string TitleLong {
             get {
 				try {
-					StringBuilder sbTitle = new StringBuilder( _oDocSite.TitleLong );
+					StringBuilder sbTitle = new StringBuilder();
+					int iViewID = _oHost.ViewTitleID( this );
 
-					if( !string.IsNullOrEmpty( _oGuestCommand.Banner ) ) {
-						sbTitle.Append( " @ " );
-						sbTitle.Append( _oGuestCommand.Banner );
+					sbTitle.Append( _oViewCommand.Banner );
+
+					if( iViewID > -1 ) {
+                        sbTitle.Append( ", " );
+                        sbTitle.Append( iViewID.ToString() );
 					}
 
 					return( sbTitle.ToString() );
 				} catch ( NullReferenceException ) {
-					return( "View" );
-				}
-            }
-        }
-
-        public string TitleShort {
-            get {
-				try {
-					int iViewID = _oHost.ViewTitleID( this );
-
-                    ShortTitle.Empty();
-                    ShortTitle.TryAppend( _oDocSite.TitleShort );
-
-					if( iViewID > -1 ) {
-                        ShortTitle.TryAppend( ", " );
-                        ShortTitle.TryAppend( iViewID.ToString() );
-					}
-					if( !string.IsNullOrEmpty( _oGuestCommand.Banner ) ) {
-                        ShortTitle.TryAppend( " @ " );
-                        ShortTitle.TryAppend( _oGuestCommand.Banner );
-					}
-
-					return ShortTitle.ToString();
-				} catch( NullReferenceException ) {
 					return( "View" );
 				}
             }
@@ -547,11 +513,11 @@ namespace Mjolnir {
             }
         }
 
-        internal Image Iconic { get { return _oGuestCommand.Iconic; } }
+        internal Image Iconic { get { return _oViewCommand.Iconic; } }
 
         public bool Execute( Guid sCommand ) {
 			try {
-				return _oGuestCommand.Execute( sCommand );
+				return _oViewCommand.Execute( sCommand );
 			} catch( NullReferenceException ) {
 				LogError( "commands", "Guest does not support IPgCommand" );
 				return false;
@@ -627,8 +593,8 @@ namespace Mjolnir {
 		/// </remarks>
 		/// <param name="oGuest"></param>
 		protected override void GuestAssign( Control oGuest ) {
-            _oGuest        = oGuest ?? throw new ArgumentNullException( "Decor view site needs a guest to be valid." );
-			_oGuestCommand = oGuest as IPgCommandView ?? throw new ArgumentException( "view must support IPgCommand" );
+            _oViewControl        = oGuest ?? throw new ArgumentNullException( "Decor view site needs a guest to be valid." );
+			_oViewCommand = oGuest as IPgCommandView ?? throw new ArgumentException( "view must support IPgCommand" );
 		}
 
 		/// <remarks>
@@ -687,7 +653,7 @@ namespace Mjolnir {
         /// BUG: Look into changing GuestAssign to GuestSet to match others.
 		/// </remarks>
 		protected override void GuestAssign( Control oGuest ) {
-            _oGuest = oGuest ?? throw new ArgumentNullException( "Decor view site needs a guest to be valid." );
+            _oViewControl = oGuest ?? throw new ArgumentNullException( "Decor view site needs a guest to be valid." );
 		}
 
         /// <summary>
@@ -819,7 +785,7 @@ namespace Mjolnir {
         }
 
         public override void Dispose() {
-            _oGuest.Dispose();
+            _oViewControl.Dispose();
             _oHost.ViewChanged -= OnHost_ViewChanged;
         }
     }

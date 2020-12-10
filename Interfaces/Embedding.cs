@@ -216,7 +216,8 @@ namespace Play.Interfaces.Embedding {
     public interface IPgFileSite {
         FILESTATS FileStatus   { get; }
         Encoding  FileEncoding { get; }
-		string    FilePath     { get; }
+		string    FilePath     { get; } // Path only.
+        string    FileBase     { get; } // File name plus extention. No path.
     }
 
     public enum FILESTATS {

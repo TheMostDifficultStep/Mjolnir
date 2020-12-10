@@ -388,7 +388,7 @@ namespace Mjolnir {
                 if( _rgDCErrors.IsUnhandled( oEx ) )
                     throw;
 
-				LogError( oViewSite, "decor", "Could not create decor for view : " + oViewSite.TitleShort, false );
+				LogError( oViewSite, "decor", "Could not create decor for view : " + oViewSite.TitleLong, false );
 
 				oDecorSite.Dispose();
 
@@ -407,7 +407,7 @@ namespace Mjolnir {
                 if( _rgDCErrors.IsUnhandled( oEx ) )
                     throw;
 
-				LogError( oViewSite, "decor", "Could not load decor for view : " + oViewSite.TitleShort, false );
+				LogError( oViewSite, "decor", "Could not load decor for view : " + oViewSite.TitleLong, false );
 
 				return false;
             }
@@ -566,13 +566,13 @@ namespace Mjolnir {
 			        //if( _hScriptCache == IntPtr.Zero )
 				       // _sDefFontProps.Load( oDC.Handle, ref _hScriptCache );
 
-                    foreach( ViewsLine oLine in _oDoc_ViewSelector ) {
-                        if( oLine.ViewSite.IsTextInvalid ) {
-                            oLine.ViewSite.UpdateText( oDC.Handle, ref _hScriptCache, ToolsFont.Height, _sDefFontProps );
-                        }
-                        //if( _eLayout == TOPLAYOUT.Multi )
-                        //    oLine.ViewSite.Layout.Render( oDC.Handle, _hScriptCache );
-                    }
+                    //foreach( ViewsLine oLine in _oDoc_ViewSelector ) {
+                    //    if( oLine.ViewSite.IsTextInvalid ) {
+                    //        oLine.ViewSite.UpdateText( oDC.Handle, ref _hScriptCache, ToolsFont.Height, _sDefFontProps );
+                    //    }
+                    //    //if( _eLayout == TOPLAYOUT.Multi )
+                    //    //    oLine.ViewSite.Layout.Render( oDC.Handle, _hScriptCache );
+                    //}
                     //if( _eLayout == TOPLAYOUT.Solo && _oSelectedWinSite != null )
                     //    _oSelectedWinSite.Layout.Render( oDC.Handle, _hScriptCache );
                 }

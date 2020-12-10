@@ -186,6 +186,16 @@ namespace Mjolnir {
 				}
 			}
 
+            public string FileBase {
+				get { 
+					try {
+						return( Path.GetFileName( FileName ) ); 
+					} catch( NullReferenceException ) {
+						return( string.Empty );
+					}
+				}
+            }
+
             public virtual string FileName {
                 get {
                     return( _strFileName );
@@ -825,19 +835,19 @@ namespace Mjolnir {
             /// <summary>
             /// Might look into just using the base behavior for this. Need to sort out how we identify slots.
             /// </summary>
-            public override string TitleLong {
-                get {
-                    StringBuilder sbTitle = new StringBuilder();
+            //public override string TitleLong {
+            //    get {
+            //        StringBuilder sbTitle = new StringBuilder();
 
-                    sbTitle.Append( _oGuestLoad.CurrentURL );
+            //        sbTitle.Append( _oGuestLoad.CurrentURL );
 
-                    if( IsDirty ) {
-                        sbTitle.Append( "*" );
-                    }
+            //        if( IsDirty ) {
+            //            sbTitle.Append( "*" );
+            //        }
 
-                    return( sbTitle.ToString() );
-                }
-            }
+            //        return( sbTitle.ToString() );
+            //    }
+            //}
 
             /// <summary>
             /// BUG: Not easy to tell apart two image browsers looking at the

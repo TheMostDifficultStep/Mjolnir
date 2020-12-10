@@ -41,26 +41,35 @@ namespace Play.MorsePractice {
         readonly IPgRoundRobinWork _oTaskPlace;
 
         protected class MorseDocSlot :
-			IPgBaseSite
+			IPgBaseSite,
+            IPgFileSite
 		{
 			protected readonly MorseDoc _oHost;
+            protected readonly string   _strName;
 
-			public MorseDocSlot( MorseDoc oHost ) {
-				_oHost = oHost ?? throw new ArgumentNullException();
+			public MorseDocSlot( MorseDoc oHost, string strName ) {
+				_oHost   = oHost   ?? throw new ArgumentNullException();
+                _strName = strName ?? throw new ArgumentNullException();
 			}
 
 			public IPgParent Host => _oHost;
 
-			public void LogError(string strMessage, string strDetails, bool fShow=true) {
+            public void LogError(string strMessage, string strDetails, bool fShow=true) {
 				_oHost.LogError( strMessage, strDetails, fShow );
 			}
 
 			public void Notify( ShellNotify eEvent ) {
 			}
+
+            FILESTATS IPgFileSite.FileStatus   => _oHost._oSiteFile.FileStatus;
+            Encoding  IPgFileSite.FileEncoding => _oHost._oSiteFile.FileEncoding;
+            string    IPgFileSite.FilePath     => _oHost._oSiteFile.FilePath;
+            string    IPgFileSite.FileBase     => _oHost._oSiteFile.FileBase + " / " + _strName;
 		}
 
 		readonly string      _strMorseTable = @"Play.MorsePractice.Content.international-morse-code.txt";
 		readonly IPgBaseSite _oSiteBase;
+        readonly IPgFileSite _oSiteFile;
 
         // Stuff for the morse code pracice view.
 		public Editor   Source { get; } // practice code tones generated from this editor.
@@ -75,9 +84,6 @@ namespace Play.MorsePractice {
         public Editor CallSignBioHtml { get; } // base 64 converted HTML streaml;
         public Editor CallSignPageHtml{ get; } // This is the main page returned by qrz.
 
-        public ImageSoloDoc SolarMap { get; }
-        public ImageSoloDoc SolarVhf { get; }
-
 		protected static readonly HttpClient _oHttpClient = new HttpClient(); 
 
         /// <summary>
@@ -85,22 +91,20 @@ namespace Play.MorsePractice {
         /// </summary>
         public MorseDoc( IPgBaseSite oSiteBase ) {
 			_oSiteBase  = oSiteBase ?? throw new ArgumentNullException();
+            _oSiteFile  = oSiteBase as IPgFileSite ?? throw new ArgumentException( "Host needs the IPgFileSite interface" );
             _oScheduler = Services as IPgScheduler ?? throw new ArgumentException("Host requries IPgScheduler");
             _oTaskPlace = _oScheduler.CreateWorkPlace() ?? throw new InvalidOperationException("Couldn't create a worksite from scheduler for file downloader.");
 
-            Source           = new Editor( new MorseDocSlot( this ) ); // Morse code source for practice.
-			Notes            = new Editor( new MorseDocSlot( this ) ); // Notes for listening to morse, or log files.
-			Stats            = new Editor( new MorseDocSlot( this ) );
-			MorseReference   = new Editor( new MorseDocSlot( this ) ); // Refrence table of morse code letters.
-            Calls            = new CallsDoc( new MorseDocSlot( this ) ); // document for outline, compiled list of stations
-            CallSign         = new Editor( new MorseDocSlot( this ) );
-            CallSignPageHtml = new Editor( new MorseDocSlot( this ) );
-            CallSignBioHtml  = new Editor( new MorseDocSlot( this ) );
-            CallSignBio      = new Editor( new MorseDocSlot( this ) );
-            CallSignAddress  = new Editor( new MorseDocSlot( this ) );
-
-            SolarMap = new ImageSoloDoc( new MorseDocSlot( this ) );
-            SolarVhf = new ImageSoloDoc( new MorseDocSlot( this ) );
+            Source           = new Editor  ( new MorseDocSlot( this, "Source" ) ); // Morse code source for practice.
+			Notes            = new Editor  ( new MorseDocSlot( this, "Notes"  ) ); // Notes for listening to morse, or log files.
+			Stats            = new Editor  ( new MorseDocSlot( this, "Stats"  ) );
+			MorseReference   = new Editor  ( new MorseDocSlot( this, "Ref"    ) ); // Refrence table of morse code letters.
+            Calls            = new CallsDoc( new MorseDocSlot( this, "Calls"  ) ); // document for outline, compiled list of stations
+            CallSign         = new Editor  ( new MorseDocSlot( this, "CallSign" ) );
+            CallSignPageHtml = new Editor  ( new MorseDocSlot( this, "PageSrc"  ) );
+            CallSignBioHtml  = new Editor  ( new MorseDocSlot( this, "PageBioSrc"  ) );
+            CallSignBio      = new Editor  ( new MorseDocSlot( this, "PageBio" ) );
+            CallSignAddress  = new Editor  ( new MorseDocSlot( this, "CallAddr" ) );
 
             new ParseBioHTMLSkimmer( this );
             new ParseQrzHTMLSkimmer( this );
@@ -125,9 +129,6 @@ namespace Play.MorsePractice {
                 CallSignBio     .Dispose();
                 CallSignBioHtml .Dispose();
                 CallSignAddress .Dispose();
-
-                SolarMap.Dispose();
-                SolarVhf.Dispose();
 
                 _fDisposed = true;
 			}
@@ -168,14 +169,6 @@ namespace Play.MorsePractice {
 			}
 		}
 
-        public async void LoadSolar() {
-            using Stream oStreamVhf = await _oHttpClient.GetStreamAsync( @"http://www.hamqsl.com/solar101vhf.php" );
-            using Stream oStreamMap = await _oHttpClient.GetStreamAsync( @"http://www.hamqsl.com/solarmap.php" );
-
-            SolarVhf.Load( oStreamVhf );
-            SolarMap.Load( oStreamMap );
-        }
-
         /// <summary>
         /// Both InitNew and Load call this base initialization function.
         /// </summary>
@@ -203,11 +196,6 @@ namespace Play.MorsePractice {
                 return false;
 			if( !Stats.InitNew() )
 				return false;
-
-            if( !SolarMap.InitNew() )
-                return false;
-            if( !SolarVhf.InitNew() )
-                return false;
 
             for( int i=0; i<3; ++i ) {
                 List<Line> rgRow = new List<Line>(7);

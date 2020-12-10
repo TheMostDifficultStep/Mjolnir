@@ -58,7 +58,7 @@ namespace Mjolnir {
         }
 
         /// <summary>
-        /// this is lame for all the obvious reasons.
+        /// BUG: this is lame for all the obvious reasons.
         /// </summary>
         public override char this[int iIndex] {
              get {

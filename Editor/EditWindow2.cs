@@ -2148,7 +2148,18 @@ namespace Play.Edit {
                         ++iStart;
                     }
 
-                    return( oLine.SubString( iStart, 25 ) );
+                    StringBuilder sbBanner = new StringBuilder();
+
+                    sbBanner.Append( _oDocument.FileBase );
+                    sbBanner.Append( " @ " );
+                    foreach( char oChar in oLine.SubString( iStart, 25 ) ) {
+                        if( oChar == '\t' )
+                            sbBanner.Append( " " );
+                        else
+                            sbBanner.Append( oChar );
+                    }
+
+                    return sbBanner.ToString() ;
                 } catch( NullReferenceException ) {
                     return( string.Empty );
                 }

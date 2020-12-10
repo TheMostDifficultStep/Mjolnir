@@ -1129,7 +1129,7 @@ namespace Mjolnir {
 
             if( _oSelectedWinSite != null ) {
                 sbTitle.Append( " | " );
-                sbTitle.Append( _oSelectedWinSite.TitleShort );
+                sbTitle.Append( _oSelectedWinSite.TitleLong );
 
                 this.Icon = _oSelectedWinSite.Icon;
             }

@@ -83,11 +83,14 @@ namespace Play.Clock
 		/// only place we know it's an atomic update. Still thinking about this.
 		/// </summary>
         public async void LoadSolar() {
-            using Stream oStreamVhf = await _oHttpClient.GetStreamAsync( @"http://www.hamqsl.com/solar101vhf.php" );
-            using Stream oStreamMap = await _oHttpClient.GetStreamAsync( @"http://www.hamqsl.com/solarmap.php" );
+			try {
+				using Stream oStreamVhf = await _oHttpClient.GetStreamAsync( @"http://www.hamqsl.com/solar101vhf.php" );
+				using Stream oStreamMap = await _oHttpClient.GetStreamAsync( @"http://www.hamqsl.com/solarmap.php" );
 
-            SolarVhf.Load( oStreamVhf );
-            SolarMap.Load( oStreamMap );
+				SolarVhf.Load( oStreamVhf );
+				SolarMap.Load( oStreamMap );
+			} catch( TargetInvocationException ) {
+			}
         }
 
         /// <summary>
