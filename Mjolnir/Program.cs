@@ -1090,7 +1090,7 @@ namespace Mjolnir {
             foreach( IDocSlot oDocSite in _rgDocSites ) {
                 fCancel |= oDocSite.IsDirty; 
                 if( oDocSite.IsDirty ) {
-                    sbDocs.AppendLine( oDocSite.TitleShort );
+                    sbDocs.AppendLine( oDocSite.Title );
                 }
             }
 

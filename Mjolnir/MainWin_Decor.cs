@@ -388,7 +388,7 @@ namespace Mjolnir {
                 if( _rgDCErrors.IsUnhandled( oEx ) )
                     throw;
 
-				LogError( oViewSite, "decor", "Could not create decor for view : " + oViewSite.TitleLong, false );
+				LogError( oViewSite, "decor", "Could not create decor for view : " + oViewSite.Title, false );
 
 				oDecorSite.Dispose();
 
@@ -407,7 +407,7 @@ namespace Mjolnir {
                 if( _rgDCErrors.IsUnhandled( oEx ) )
                     throw;
 
-				LogError( oViewSite, "decor", "Could not load decor for view : " + oViewSite.TitleLong, false );
+				LogError( oViewSite, "decor", "Could not load decor for view : " + oViewSite.Title, false );
 
 				return false;
             }

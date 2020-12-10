@@ -27,8 +27,7 @@ namespace Mjolnir {
         bool        IsDirty  { get; }
         bool        Save( bool fNewLocation );
         void        Dispose();
-        string      TitleShort{ get; }
-        string      TitleLong { get; }
+        string      Title     { get; }
         string      FileName  { get; }
         int         Reference { get; set; }
         bool        InitNew();
@@ -230,7 +229,7 @@ namespace Mjolnir {
                 sbTitle.Append( "?" );
             }
 
-			public virtual string TitleLong {
+			public virtual string Title {
                 get {
                     StringBuilder sbTitle = new StringBuilder( FileName );
 
@@ -246,23 +245,23 @@ namespace Mjolnir {
                 }
             }
 
-            public virtual string TitleShort {
-                get {
-                    StringBuilder sbTitle = new StringBuilder();
+            //public virtual string TitleShort {
+            //    get {
+            //        StringBuilder sbTitle = new StringBuilder();
 
-                    if( string.IsNullOrEmpty( FileName ) ) {
-                        NewFileTitleAppend( sbTitle );
-                    } else {
-                        sbTitle.Append( Path.GetFileName( FileName ) );
-                    }
+            //        if( string.IsNullOrEmpty( FileName ) ) {
+            //            NewFileTitleAppend( sbTitle );
+            //        } else {
+            //            sbTitle.Append( Path.GetFileName( FileName ) );
+            //        }
 
-                    if( IsDirty ) {
-                        sbTitle.Append( "*" );
-                    }
+            //        if( IsDirty ) {
+            //            sbTitle.Append( "*" );
+            //        }
 
-                    return( sbTitle.ToString() );
-                }
-            }
+            //        return( sbTitle.ToString() );
+            //    }
+            //}
 
             public abstract bool IsDirty {
                 get;
@@ -303,7 +302,7 @@ namespace Mjolnir {
 
             // Debug helper
             public override string ToString() {
-                return TitleShort;
+                return Title;
             }
 
 			/// <summary>
@@ -402,7 +401,7 @@ namespace Mjolnir {
             /// <returns>True if saved successfully.</returns>
             public bool Save( bool fAtNewLocation ) {
                 if( _oGuestSave == null ) {
-                    LogError( "Cannot persist " + TitleShort, ". The object does not support IPgSave<TextWriter>." );
+                    LogError( "Cannot persist " + Title, ". The object does not support IPgSave<TextWriter>." );
                     return false;
                 }
 				if( !_fLoaded ) {
@@ -456,7 +455,7 @@ namespace Mjolnir {
             /// <returns>true if successful.</returns>
             public override bool InitNew() {
                 if( _oGuestLoad == null ) {
-                    LogError( "document", "Init failure, this object does not support IPgLoad<TextReader>: " + TitleShort );
+                    LogError( "document", "Init failure, this object does not support IPgLoad<TextReader>: " + Title );
                     return( false );
                 }
 
@@ -479,7 +478,7 @@ namespace Mjolnir {
             /// <returns>true if successful.</returns>
             public override bool Load( string strFileName ) {
                 if( _oGuestLoad == null ) {
-                    LogError( "document", "Load failure, his object does not support IPgLoad<TextReader>: " + TitleShort );
+                    LogError( "document", "Load failure, his object does not support IPgLoad<TextReader>: " + Title );
                     return( false );
                 }
 
@@ -695,7 +694,7 @@ namespace Mjolnir {
             /// <summary>
             /// Change the behavior for our session title case. Just want the filename and no path.
             /// </summary>
-            public override string TitleShort {
+            public override string Title {
                 get {
 					string strFileOnly = Path.GetFileName( FileName );
 
@@ -710,12 +709,6 @@ namespace Mjolnir {
                     }
 
                     return( sbTitle.ToString() );
-                }
-            }
-
-            public override string TitleLong {
-                get {
-                    return( TitleShort );
                 }
             }
 
@@ -803,7 +796,7 @@ namespace Mjolnir {
             /// </summary>
             public bool Save( bool fRename ) {
                 if( _oGuestSave == null ) {
-                    LogError( "Cannot persist " + TitleShort, ". The object does not support IPgSaveURL." );
+                    LogError( "Cannot persist " + Title, ". The object does not support IPgSaveURL." );
                     return( false );
                 }
 
@@ -831,34 +824,6 @@ namespace Mjolnir {
 						break;
 				}
             }
-
-            /// <summary>
-            /// Might look into just using the base behavior for this. Need to sort out how we identify slots.
-            /// </summary>
-            //public override string TitleLong {
-            //    get {
-            //        StringBuilder sbTitle = new StringBuilder();
-
-            //        sbTitle.Append( _oGuestLoad.CurrentURL );
-
-            //        if( IsDirty ) {
-            //            sbTitle.Append( "*" );
-            //        }
-
-            //        return( sbTitle.ToString() );
-            //    }
-            //}
-
-            /// <summary>
-            /// BUG: Not easy to tell apart two image browsers looking at the
-            ///      same directory with only one view open on each document. 
-            /// </summary>
-            public override string TitleShort {
-                get {
-                    return( TitleLong );
-                }
-            }
         }
-
     }    
 }

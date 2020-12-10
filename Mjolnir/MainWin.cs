@@ -208,8 +208,7 @@ namespace Mjolnir {
             public int            ID         => 0;
             public IDisposable    Document   => _oGuest;
             public bool           IsDirty    => false;
-            public string         TitleShort => "View Selector";
-            public string         TitleLong  => TitleShort;
+            public string         Title => "View Selector";
             public string         FileName   => string.Empty;
             public IPgController2 Controller => _oController;
 
@@ -1129,13 +1128,13 @@ namespace Mjolnir {
 
             if( _oSelectedWinSite != null ) {
                 sbTitle.Append( " | " );
-                sbTitle.Append( _oSelectedWinSite.TitleLong );
+                sbTitle.Append( _oSelectedWinSite.Title );
 
                 this.Icon = _oSelectedWinSite.Icon;
             }
 
 			// Followed by session name. If I've got one.
-			string strSessionName = Document.SessionSlot.TitleShort;
+			string strSessionName = Document.SessionSlot.Title;
 			if( !string.IsNullOrEmpty( strSessionName ) ) {
                 sbTitle.Append( " | " );
 				sbTitle.Append( strSessionName );
@@ -1175,7 +1174,7 @@ namespace Mjolnir {
                     oViewSite.DocumentSite.Reference == 1 ) 
                 {
                     DialogResult eResult = MessageBox.Show( "Would you like to save your work for this document: " + 
-                                                            oViewSite.DocumentSite.TitleShort + "?",
+                                                            oViewSite.DocumentSite.Title + "?",
                                                             "Caution!",
                                                             MessageBoxButtons.YesNoCancel );
                     if( eResult != DialogResult.Cancel ) {
@@ -1688,7 +1687,7 @@ namespace Mjolnir {
 
             oViewSite.Guest.Parent = this;           // When called, the view gets an OnHandleCreated() call!
             oViewSite.Guest.Bounds = _rcFrame.Rect; // When called, the view gets an OnSizeChanged() call!
-            oViewSite.Guest.Text = "Phree Bee - " + oViewSite.TitleLong; // We never see this, but... ^_^;
+            oViewSite.Guest.Text = "Phree Bee - " + oViewSite.Title; // We never see this, but... ^_^;
 
             this.Controls.Add( oViewSite.Guest );
 
@@ -1983,7 +1982,7 @@ namespace Mjolnir {
 				if( rgErrors.IsUnhandled( oEx ) )
 					throw;
 				
-                LogError( null, "internal", "Can't create view for document: " + oDocSlot.TitleShort );
+                LogError( null, "internal", "Can't create view for document: " + oDocSlot.Title );
 				return null;
             }
 
