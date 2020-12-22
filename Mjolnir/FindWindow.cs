@@ -85,8 +85,9 @@ namespace Mjolnir {
             _oViewChangedHandler   = new ViewChanged(OnViewChanged);
             _oWinMain.ViewChanged += _oViewChangedHandler;
 
+            DocForms.LineAppend( string.Empty, false );
             LayoutSingleLine oLayoutSearchKey = new LayoutSingleLine( new FTCacheWrap( DocForms[0] ), LayoutRect.CSS.Flex) { Span = 4 };
-            Caret.Cache = oLayoutSearchKey;
+            Caret.Layout = oLayoutSearchKey;
             CacheList.Add( oLayoutSearchKey );
 
             SmartTable oTable = new SmartTable( 5, LayoutRect.CSS.None );

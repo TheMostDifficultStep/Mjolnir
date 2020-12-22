@@ -17,12 +17,12 @@ using Play.Parse.Impl;
 
 namespace Play.Forms {
     public class SimpleCacheCaret : IPgCacheCaret  {
-        protected int         _iOffset = 0;
-        protected LayoutSingleLine _oCache;
-        public    int         Advance { get; set; }
+        protected int              _iOffset = 0;
+        protected LayoutSingleLine _oLayout;
+        public    int              Advance { get; set; }
 
-        public SimpleCacheCaret( LayoutSingleLine oCache ) {
-            _oCache  = oCache;
+        public SimpleCacheCaret( LayoutSingleLine oLayout ) {
+            _oLayout  = oLayout;
             _iOffset = 0;
         }
 
@@ -57,17 +57,18 @@ namespace Play.Forms {
         }
         
         public Line Line {
-            get { return Cache.Cache.Line; }
+            get { return Layout.Cache.Line; }
             set {
-                if( value != Cache.Cache.Line )
-                    throw new ApplicationException(); 
+                if( value != Layout.Cache.Line )
+                    throw new ApplicationException();
             }
         }
 
-        public LayoutSingleLine Cache {
-            get { return _oCache; }
-            // We'll remove this later.
-            set { _oCache = value ?? throw new ArgumentNullException(); }
+        public LayoutSingleLine Layout {
+            get { return _oLayout; }
+            // If the line is read only on the FTCacheLine then it kind of makes sense to
+            // only allow updating the Cache element and not the Line.
+            set { _oLayout = value ?? throw new ArgumentNullException(); }
         }
     }
 
@@ -380,11 +381,11 @@ namespace Play.Forms {
                 int iOffset  = Caret.Offset;
                 int iAdvance = Caret.Advance;
 
-                Caret.Cache.Selection.Length = 0;
-                Caret.Cache.OnChangeFormatting();
+                Caret.Layout.Selection.Length = 0;
+                Caret.Layout.OnChangeFormatting();
 
                 // If total miss, build a new screen based on the location of the caret.
-                FTCacheLine oElem = Caret.Cache.Cache;
+                FTCacheLine oElem = Caret.Layout.Cache;
 
                 if( iDir != 0 ) {
                     // First, see if we can navigate within the line we are currently at.
@@ -428,11 +429,11 @@ namespace Play.Forms {
             if( Focused != true )
                 return;
 
-            if( Caret.Cache != null ) {
-                SKPointI pntCaretWorldLoc  = Caret.Cache.CaretWorldPosition( Caret ); 
-                SKPointI pntCaretScreenLoc = new SKPointI( pntCaretWorldLoc.X + Caret.Cache.Left, 
-                                                           pntCaretWorldLoc.Y + Caret.Cache.Top );
-                if( Caret.Cache.IsInside( pntCaretWorldLoc.X, pntCaretWorldLoc.Y ) ) {
+            if( Caret.Layout != null ) {
+                SKPointI pntCaretWorldLoc  = Caret.Layout.CaretWorldPosition( Caret ); 
+                SKPointI pntCaretScreenLoc = new SKPointI( pntCaretWorldLoc.X + Caret.Layout.Left, 
+                                                           pntCaretWorldLoc.Y + Caret.Layout.Top );
+                if( Caret.Layout.IsInside( pntCaretWorldLoc.X, pntCaretWorldLoc.Y ) ) {
                     User32.SetCaretPos(pntCaretScreenLoc.X, pntCaretScreenLoc.Y);
                 } else {
                     User32.SetCaretPos( -10, -10 ); // Park it off screen.
@@ -445,10 +446,10 @@ namespace Play.Forms {
         /// </summary>
         public bool IsSelection {
             get {
-                if( Caret.Cache == null )
+                if( Caret.Layout == null )
                     return false;
 
-                return( Caret.Cache.Selection.Length > 0 );
+                return( Caret.Layout.Selection.Length > 0 );
             }
         }
 
@@ -456,7 +457,7 @@ namespace Play.Forms {
             try {
                 using Editor.Manipulator oBulk = DocForms.CreateManipulator();
                 if( IsSelection ) {
-                    oBulk.LineTextDelete( Caret.At, Caret.Cache.Selection );
+                    oBulk.LineTextDelete( Caret.At, Caret.Layout.Selection );
                 } else {
                     if( fBackSpace ) {
                         if( Caret.Offset > 0 ) {
@@ -492,7 +493,7 @@ namespace Play.Forms {
                 if( !char.IsControl( e.KeyChar ) || e.KeyChar == 0x0009 ) { 
                     if( IsSelection ) {
                         using( Editor.Manipulator oBulk = DocForms.CreateManipulator() ) {
-                            oBulk.LineTextDelete( Caret.At, Caret.Cache.Selection );
+                            oBulk.LineTextDelete( Caret.At, Caret.Layout.Selection );
                             oBulk.LineCharInsert( Caret.At, Caret.Offset, e.KeyChar );
                         }
                     } else {
@@ -643,7 +644,7 @@ namespace Play.Forms {
                 // Set the caret for sure if hit. If not just leave it where ever it was.
                 foreach( LayoutSingleLine oCache in CacheList ) {
                     if( oCache.IsInside( e.X, e.Y ) ) {
-                        Caret.Cache = oCache;
+                        Caret.Layout = oCache;
 
                         oCache.SelectHead( Caret, e.Location, ModifierKeys == Keys.Shift );
                     }
@@ -667,8 +668,8 @@ namespace Play.Forms {
             }
 
             if ((e.Button & MouseButtons.Left) == MouseButtons.Left && e.Clicks == 0 ) {
-                if( Caret.Cache != null ) {
-                    Caret.Cache.SelectNext( Caret, e.Location );
+                if( Caret.Layout != null ) {
+                    Caret.Layout.SelectNext( Caret, e.Location );
 
                     CaretIconRefresh();
                     Invalidate();
@@ -695,7 +696,7 @@ namespace Play.Forms {
         protected void SelectionDelete() {
             if( IsSelection ) {
                 using( Editor.Manipulator oBulk = DocForms.CreateManipulator() ) {
-                    oBulk.LineTextDelete( Caret.At, Caret.Cache.Selection );
+                    oBulk.LineTextDelete( Caret.At, Caret.Layout.Selection );
                 }
             }
         }
@@ -718,9 +719,9 @@ namespace Play.Forms {
 			// option to choose the desired portion of any complex object.
 			try {
 				if( IsSelection ) {
-					oSelection = Caret.Cache.Selection;
+					oSelection = Caret.Layout.Selection;
 				} else {
-					oSelection = new ColorRange( 0, Caret.Cache.Cache.Line.ElementCount, 0 );
+					oSelection = new ColorRange( 0, Caret.Layout.Cache.Line.ElementCount, 0 );
  				}
 				if( oSelection != null ) {
 					string strSelection = Caret.Line.SubString( oSelection.Offset, oSelection.Length );
@@ -739,7 +740,7 @@ namespace Play.Forms {
             //if( _fReadOnly )
             //    return;
 
-            if( Caret.Cache == null )
+            if( Caret.Layout == null )
                 return;
 
             try {
@@ -753,7 +754,7 @@ namespace Play.Forms {
                     string strPaste = oDataObject.GetData(typeof(System.String)) as string;
                     using( Editor.Manipulator oBulk = new Editor.Manipulator( DocForms ) ) {
                         if( IsSelection ) {
-                            oBulk.LineTextDelete( Caret.At, Caret.Cache.Selection );
+                            oBulk.LineTextDelete( Caret.At, Caret.Layout.Selection );
                         }
                         oBulk.LineTextInsert( Caret.At, Caret.Offset, strPaste, 0, strPaste.Length );
                     }

@@ -2150,13 +2150,25 @@ namespace Play.Edit {
 
                     StringBuilder sbBanner = new StringBuilder();
 
-                    sbBanner.Append( _oDocument.FileBase );
+                    if( string.IsNullOrEmpty( _oDocument.FileBase ) ) {
+                        sbBanner.Append( "<Unsaved Text File>" );
+                    } else {
+                        sbBanner.Append( _oDocument.FileBase );
+                    }
+
+                    string strCurrentLine = oLine.SubString( iStart, 25 );
+
                     sbBanner.Append( " @ " );
-                    foreach( char oChar in oLine.SubString( iStart, 25 ) ) {
-                        if( oChar == '\t' )
-                            sbBanner.Append( " " );
-                        else
-                            sbBanner.Append( oChar );
+
+                    if( string.IsNullOrEmpty( strCurrentLine ) ) {
+                        sbBanner.Append( "<Empty Line>" );
+                    } else {
+                        foreach( char oChar in strCurrentLine ) {
+                            if( oChar == '\t' )
+                                sbBanner.Append( " " );
+                            else
+                                sbBanner.Append( oChar );
+                        }
                     }
 
                     return sbBanner.ToString() ;

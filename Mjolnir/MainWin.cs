@@ -1436,21 +1436,21 @@ namespace Mjolnir {
 			if( WindowState != FormWindowState.Minimized )
 				LayoutFrame();
 
-			// TODO: Give the main window a site from the program!!
-			if( !Document.SessionDirty ) {
-				Document.SessionDirtySet();
-				SetTitle();
-			}
+			// Note: I don't think I want to dirty the session just b/c of a size change.
+			//if( !Document.SessionDirty ) {
+			//	Document.SessionDirtySet();
+			//	SetTitle();
+			//}
         }
 
 		protected override void OnLocationChanged(EventArgs e) {
 			base.OnLocationChanged(e);
 
-			// TODO: Give the main window a site from the program!!
-			if( !Document.SessionDirty ) {
-				Document.SessionDirtySet();
-				SetTitle();
-			}
+			// Note: I don't think I want to dirty the session just b/c of a loc change.
+			//if( !Document.SessionDirty ) {
+			//	Document.SessionDirtySet();
+			//	SetTitle();
+			//}
 		}
 
         /// <summary>

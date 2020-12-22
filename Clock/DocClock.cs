@@ -192,7 +192,7 @@ namespace Play.Clock {
             CacheList.Add( oLayoutDate12h );
             CacheList.Add( oLayoutZone12h );
 
-            Caret.Cache = oLayoutTimeUtc;
+            Caret.Layout = oLayoutTimeUtc;
 
             OnDocumentEvent( BUFFEREVENTS.MULTILINE );
             OnSizeChanged( new EventArgs() );

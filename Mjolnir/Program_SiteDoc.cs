@@ -14,12 +14,11 @@ namespace Mjolnir {
     /// In order to accomodate more view types, let's expose very little behavior to the shell
     /// in general. The shell needs very little from the document (as you can see).
     /// 
-    /// Actually these slots should live on the program class. But I lazily tacked them on the
-    /// MainWindow when I first tacked this all together. I call them slots because they are
-    /// implementations of site's for guests. The guest document see's this object as a site.
-    /// The shell see's it as a slot. Because it might have it's own site from it's container!!
+    /// I call site implementations, slots, because they are implementations of site's for document. The 
+    /// guest document see's this object as a site. The shell see's it as a slot. Because it 
+    /// might have it's own site from it's container!!
     /// 
-    /// This interface is for the Shell's benefit and not the guests. Upward facing so to speak.
+    /// This particular interface is for the Shell's benefit and not the guests. Upward facing so to speak.
     /// </summary>
     public interface IDocSlot {
 		int         ID { get; }
