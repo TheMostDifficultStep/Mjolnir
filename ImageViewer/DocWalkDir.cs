@@ -31,21 +31,9 @@ namespace Play.ImageViewer {
         }
 
         /// <summary>
-        /// Use the this property to identify the object. The CurrentDirectory might be null
-        /// in cases where the loading string directory does not exist or at some point if the
-        /// directory we are pointing to gets deleted. Note, this is slightly different than
-        /// standard documents who's files are read by the shell, thus the shell can keep the
-        /// file path.
+        /// Show the file we're pointed at, and then the directory we are perusing.
         /// </summary>
-        /// <seealso cref="CurrentDirectory"/>
-        public string Title {
-            get {
-                if( string.IsNullOrEmpty( CurrentDirectory ) )
-                    return "Document is Zombie";
-
-                return( CurrentDirectory );
-            }
-        }
+        public override string Banner => CurrentFileName + " @ " + CurrentDirectory;
 
         public override string CurrentDirectory {
             get { 

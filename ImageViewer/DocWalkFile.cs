@@ -509,6 +509,7 @@ namespace Play.ImageViewer {
         IPgCommandBase,
         IDisposable
     {
+        protected readonly IPgFileSite       _oSiteFile;
         protected readonly IPgRoundRobinWork _oSiteWorkThumb;
         protected readonly IPgRoundRobinWork _oSiteWorkParse;
         protected readonly Grammer<char>     _oGrammar;
@@ -591,6 +592,8 @@ namespace Play.ImageViewer {
         public event TextLoadedEvent    TextLoaded;
 
         public ImageWalkerDoc( IPgBaseSite oSiteBase ) : base( oSiteBase ) {
+            _oSiteFile = (IPgFileSite)oSiteBase ?? throw new ArgumentNullException();
+
             IPgScheduler oScheduler = Services as IPgScheduler ?? throw new ArgumentException( "Host requires IPgScheduler" );
 
             _oSiteWorkParse = oScheduler.CreateWorkPlace() ?? throw new InvalidProgramException  ( "Could not create a worksite1 from scheduler.");
@@ -620,8 +623,31 @@ namespace Play.ImageViewer {
 
         }
 
-        public string Banner => "Image Viewer";
-        public Image  Iconic => _oIcon;
+        /// <summary>
+        /// Show the file we are viewing and the file from which it came. 
+        /// Note: CurrentDirectory might be null
+        /// in cases where the loading string directory does not exist or at some point if the
+        /// directory we are pointing to gets deleted. Note, this is slightly different than
+        /// standard documents who's files are read by the shell, thus the shell can keep the
+        /// file path.
+        /// </summary>
+        public virtual string Banner { 
+            get {
+                StringBuilder sbBuilder = new StringBuilder();
+
+                sbBuilder.Append( CurrentFileName );
+                sbBuilder.Append(  " @ " );
+                if( string.IsNullOrEmpty( _oSiteFile.FileBase ) ) {
+                    sbBuilder.Append( "Unnamed Scraps File" );
+                } else {
+                    sbBuilder.Append( _oSiteFile.FilePath );
+                    sbBuilder.Append( Path.DirectorySeparatorChar );
+                    sbBuilder.Append( _oSiteFile.FileBase );
+                }
+
+                return sbBuilder.ToString();
+        }   }
+        public         Image  Iconic => _oIcon;
 
         internal void LogError( string strCatagory, string strMessage ) {
             _oSiteBase.LogError( strCatagory, strMessage );

@@ -203,7 +203,7 @@ namespace Play.ImageViewer {
             return( true );
         }
 
-        public override string Banner { get { return( "[" + _oDocument.CurrentFileName + "]" ); } }
+        public override string Banner => "[" + _oDocument.Banner + "]";
 
 		protected void ScrollActiveVisible() {
 			// BUG: Note we call this same type of code on decor direction. Make
