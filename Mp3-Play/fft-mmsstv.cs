@@ -15,6 +15,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Play.Sound.FFT {
 	//#define CM_FFT  WM_USER+403
@@ -292,7 +293,6 @@ namespace Play.Sound.FFT {
 		protected readonly FFTControlValues m_oFFTCtrl;
 
 		// BUG! Looks like this needs to be based on the variable FFTSize!!!!
-		public  static readonly int    FFT_BUFSIZE = 2048; // We could set this based on the FFTControlValues. But we're never larger. (atm)
 		private static readonly double PI2         = Math.PI * 2;
 
 		static readonly double SCALEADJ_1 = -5.5;
@@ -856,24 +856,34 @@ namespace Play.Sound.FFT {
 			m_oFFTCtrl = oControl ?? throw new ArgumentNullException( "Need control values." );
 			m_FFTDIS   = 0;
 
-			// My guess is that since the max value that FFT_SIZE ever get's
+			// This variable is bizzare in that FFT_BUFSIZE exists regardless of the fact FFTSize
+			// is used in the code as well. 
+			// My guess is that since the max value that FFTSize (FFT_SIZE) ever get's
 			// set to is 2048. So we can use the const FFT_BUFSIZE which is set to 2048.
-			m_Work = new int[(int)Math.Sqrt( FFT_BUFSIZE ) + 1];
+			// Given I used the C# array length instead of passing the length seperately, in various
+			// places in this code, I'll make them the same value.
+			int FFT_BUFSIZE = m_oFFTCtrl.FFTSize;
+
+			m_Work = new int[(int)Math.Sqrt( FFT_BUFSIZE ) ]; // Was sqrt(fft_bufsize)+1 but doesnt seem to be needed.
 
 			// Note: FFT_BUFSIZE was a define, but FFT_BUFSIZE is global and changes.
 			m_tSinCos0 = new double[FFT_BUFSIZE/4];
 			m_tSinCos1 = new double[(FFT_BUFSIZE/4) + 1]; // We gp fault unless I add one.
 			m_tWindow  = new double[FFT_BUFSIZE];
-			m_pStgBuf  = new double[FFT_BUFSIZE];
+			m_pStgBuf  = new double[FFT_BUFSIZE]; // This definitely has to be at least equal to FFTSize.
 
 			InitFFT();
 		}
 
-		public virtual void InitFFT()	{
+		/// <summary>
+		/// It's quite possible the original implentation allowed you to resize the FFT and then
+		/// call InitFFT(); I'm going to require a you to toss the FFT and make a new one.
+		/// </summary>
+		protected virtual void InitFFT()	{
 			m_Work.Initialize(); //memset(m_Work, 0, sizeof(int[SQRT_FFT_SIZE+2]));
 
-			m_Work[0] = m_oFFTCtrl.FFTSize/4;
-			m_Work[1] = m_oFFTCtrl.FFTSize/4;
+			//m_Work[0] = m_oFFTCtrl.FFTSize/4;
+			//m_Work[1] = m_oFFTCtrl.FFTSize/4;
 
 			// Note: m_Work is sqrt of FFTSize in length.
 			makewt( m_Work, m_tSinCos0 );
@@ -886,7 +896,7 @@ namespace Play.Sound.FFT {
 		//		m_tWindow[i] = 1.0; // Untapered input.
 		//		m_tWindow[i] = (0.5 - 0.5*cos( (PI2*i)/(FFT_SIZE-1) ));	
 				m_tWindow[i] = (0.5 - 0.5*Math.Cos( (PI2*i)/m_oFFTCtrl.FFTSize ));	// ハニング窓, Hanning window.
-		//		m_tWindow[i] = 0.46 - 0.5*cos( (PI2*i)/FFT_SIZE ) + 0.08*cos(2*PI2*i/FFT_SIZE);	// Blackman window.
+		//		m_tWindow[i] = 0.46 - 0.5*Math.Cos( (PI2*i)/m_oFFTCtrl.FFTSize ) + 0.08*Math.Cos(2*PI2*i/m_oFFTCtrl.FFTSize);	// Blackman window.
 			}
 			m_StgSize      = 1;
 			m_StgScale     = 1.0;
@@ -905,6 +915,8 @@ namespace Play.Sound.FFT {
 		public void Calc( double [] rgInBuf, double dbGain, int iStg, int[] rgOutBuf) {
 			if( m_FFTDIS > 0 ) 
 				return;		// for math error
+			if( rgInBuf.Length != m_oFFTCtrl.FFTSize )
+				throw new ArgumentException( "invalid input buff" );
 			if( rgInBuf.Length > m_tWindow.Length )
 				throw new ArgumentException( "Input buffer is too large." );
 			if( m_oFFTCtrl.TopBucket > m_pStgBuf.Length / 2 )
@@ -925,24 +937,33 @@ namespace Play.Sound.FFT {
 				m_StgK     = 0.0;
 			}
 
-			// While our math is double our values max are float.
-			// Here's where we apply the (Hanning) window to the data.
-			for( int i=0; i < rgInBuf.Length; i++ ){
-				if( rgInBuf[i] > 32768.0 ){
-					rgInBuf[i] = 32768.0;
+			try {
+				// While our math is double our values max are float.
+				// Here's where we apply the (Hanning) window to the data.
+				for( int i=0; i < rgInBuf.Length; i++ ){
+					if( rgInBuf[i] > 32768.0 ){
+						rgInBuf[i] = 32768.0;
+					}
+					else if( rgInBuf[i] < -32768.0 ){
+						rgInBuf[i] = -32768.0;
+					}
+					rgInBuf[i] *= m_tWindow[i]; // This is why we should probably alloc window size to FTTSize
 				}
-				else if( rgInBuf[i] < -32768.0 ){
-					rgInBuf[i] = -32768.0;
+
+				bitrv2 ( m_oFFTCtrl.FFTSize, m_Work,  rgInBuf );
+				cftfsub( m_oFFTCtrl.FFTSize, rgInBuf, m_tSinCos0 );
+				rftfsub( m_oFFTCtrl.FFTSize, rgInBuf, m_tSinCos1 );
+
+				for( int i = 0, dp = 0; i < m_oFFTCtrl.TopBucket; i++, dp += 2 ) {
+					rgOutBuf[i] = (int)(dbGain * m_pStgBuf[dp]);
 				}
-				rgInBuf[i] *= m_tWindow[i];
-			}
-
-			bitrv2 ( m_oFFTCtrl.FFTSize, m_Work, rgInBuf );
-			cftfsub( m_oFFTCtrl.FFTSize, rgInBuf,  m_tSinCos0 );
-			rftfsub( m_oFFTCtrl.FFTSize, rgInBuf,  m_tSinCos1 );
-
-			for( int i = 0, dp = 0; i < m_oFFTCtrl.TopBucket; i++, dp += 2 ) {
-				rgOutBuf[i] = (int)(dbGain * m_pStgBuf[dp]);
+			} catch( Exception oEx ) {
+				Type[] rgErrors = { typeof( IndexOutOfRangeException ),
+									typeof( ArgumentOutOfRangeException ),
+									typeof( NullReferenceException ) };
+				if( !rgErrors.Contains( oEx.GetType() )  )
+					throw;
+				// Would be nice to report the error.
 			}
 
 			m_FFTDIS--;
@@ -981,7 +1002,7 @@ namespace Play.Sound.FFT {
 			};
 		}
 
-        public override void InitFFT() {
+        protected override void InitFFT() {
             base.InitFFT();
 
 			m_CollectFFT      = false;
