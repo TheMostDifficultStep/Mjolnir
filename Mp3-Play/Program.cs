@@ -1,5 +1,5 @@
 ﻿///<summary>
-///  Copyright (c) Dragonaur
+///  Copyright (c) https://github.com/TheMostDifficultStep
 ///
 ///  Permission is hereby granted, free of charge, to any person obtaining
 ///  a copy of this software and associated documentation files (the
@@ -28,6 +28,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading;
+
+using Play.Sound.FFT;
 
 namespace Play.Sound {
 	class MainClass	{
@@ -221,5 +223,117 @@ namespace Play.Sound {
 				PlaySongs( oMpgFactory, rgPlay );
 			}
 		}
-	}
+	} // end Class
+
+    class Program2 {
+        static void Main2(string[] args) {
+            Console.WriteLine("Hello World!");
+
+            Test4();
+        }
+
+        protected static void Test1() {
+            // Example data:
+            List<int> data = new List<int>() {
+                 14, 30, 35, 34, 34, 40, 46, 45, 30, 4,  -26,  -48,  -55,  -49,  -37,
+                -28,  -24,  -22,  -13,  6,  32, 55, 65, 57, 38, 17, 1,  -6, -11,  -19,  -34,
+                -51,  -61,  -56,  -35,  -7, 18, 32, 35, 34, 35, 41, 46, 43, 26, -2, -31,  -50,
+                -55,  -47,  -35,  -27,  -24,  -21,  -10,  11, 37, 58, 64, 55, 34, 13, -1, -7
+            };
+            // Answer should be: 4, 9, 28, 23, 13 (peak data, if frequency is 64)
+
+            //EasyFFT oFFT = new EasyFFT(6);
+
+            //oFFT.Peaks(oFFT.FFT(data, 100));
+
+            //PrintPeaks( oFFT );
+        }
+
+        //protected static void PrintPeaks( EasyFFT oFFT ) {
+        //    for (int i = 0; i < oFFT.f_peaks.Length; ++i) {
+        //        Console.WriteLine(oFFT.f_peaks[i].ToString());
+        //    }
+        //}
+
+        protected static void Test3() {
+            FFTControlValues oCtrl    = FFTControlValues.FindMode( 11025 );
+            int              iSamples = (int)oCtrl.FFTSize;
+            List<double>     data     = new List<double>();
+            float            dStep    = (float)Math.PI * 2 / (float)iSamples; // 2 * pi is 360 degrees.
+
+            for ( float rad = 0; data.Count < iSamples; rad += dStep ) {
+                double dbSample = 40 * MathF.Sin(rad * 400F);
+                
+                dbSample += 20 * Math.Sin(rad * 200F);
+
+                data.Add(dbSample);
+            }
+
+            CFFT oFFT = new CFFT( oCtrl );
+
+            oFFT.Calc( data.ToArray(), 30, 0, oFFT.m_fft );
+
+            Console.WriteLine( "Samples: " + iSamples.ToString() );
+        }
+
+        /// <summary>
+        /// Generate enough samples to fill the FFT sample size. In this 
+        /// function we're generating a signal that might get "decimated" by the FFT loader.
+        /// This is the function you want to use to test the FFTLoader and it's "decimation" modes.
+        /// </summary>
+        /// <param name="oCtrl">The control values for the FFT.</param>
+        /// <param name="data">Generated data stream.</param>
+        protected static void LoadData( FFTControlValues oCtrl, List<double> data ) {
+            // We need FFTSize number of samples.
+            for( double t = 0; data.Count < oCtrl.FFTSize; t += 1 / oCtrl.SampBase ) {
+                double dbSample = 0;
+                    
+                dbSample += 40 * Math.Sin( Math.PI * 2 * 400 * t);
+                dbSample += 20 * Math.Sin( Math.PI * 2 * 200 * t);
+
+                data.Add(dbSample);
+            }
+        }
+
+        /// <summary>
+        /// Trying to generate enough samples to fill the FFT sample size. And
+        /// Raw FFTSampleFreq. This data will not be correct for the "decimated"
+        /// modes of the FFT loader, since FFTSampFreq represents the frequency
+        /// of the "decimated" signal.
+        /// </summary>
+        /// <param name="oCtrl">The control values for the FFT.</param>
+        /// <param name="data">Generated data stream.</param>
+        protected static void LoadDataRaw( FFTControlValues oCtrl, List<double> data ) {
+            // We need FFTSize number of samples.
+            for( double t = 0; data.Count < oCtrl.FFTSize; t += 1 / oCtrl.FFTSampFreq ) {
+                double dbSample = 0;
+                    
+                dbSample += 40 * Math.Sin( Math.PI * 2 * 400 * t);
+                dbSample += 20 * Math.Sin( Math.PI * 2 * 200 * t);
+
+                data.Add(dbSample);
+            }
+        }
+
+        protected static void Test4() {
+            FFTControlValues oCtrl  = FFTControlValues.FindMode( 18000.0 );
+            List<double>     rgData = new List<double>();
+            CFFTCollector    oFFT   = new CFFTCollector( oCtrl );
+
+            LoadData( oCtrl, rgData );
+
+            //oFFT.Calc( rgData.ToArray(), 30, 0, oFFT.m_fft );
+            //Array.Clear( oFFT.m_fft, 0, oFFT.m_fft.Length );
+
+            oFFT.CollectFFT( 4, rgData.ToArray(), rgData.Count );
+            oFFT.CalcFFT( 30, 0 );
+            oFFT.CalcFFT( 30, 0 );
+
+            Console.WriteLine( "Samples: " + rgData.Count.ToString() );
+        }
+
+        protected static void Test5() {
+            //FFTControlValues.TestMe();
+        }
+    }
 }

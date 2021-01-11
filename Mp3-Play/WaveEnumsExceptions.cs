@@ -26,7 +26,7 @@
 //-----------------------------------------------------------------------
 
 /// <summary>
-/// Copyright 2018 Dragonaur
+/// Copyright 2018 https://github.com/TheMostDifficultStep
 /// I lifted these enumerations from John Gietzen's WinMM.Net source. That's a lot of
 /// work and there's no use repeating that. But I stripped out the function declarations
 /// and all the joy stick stuff which I'd want in a separate file anyway.

@@ -42,7 +42,7 @@ namespace Play.MusicWalker
 		public override IEnumerator<IPgViewType> GetEnumerator() {
  	        yield return( new ViewType( "Albums", Guid.Empty ) );
  	        yield return( new ViewType( "Play List", _guidViewPlayList ) );
-		  //yield return( new ViewType( "Spectrum", VisualizeWindow._gViewType ) );
+		    yield return( new ViewType( "Spectrum", VisualizeWindow._gViewType ) );
 		}
 	}
 

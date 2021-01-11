@@ -205,7 +205,7 @@ namespace Play.Sound {
 		}
 	} // class Mpg123c
 
-	/// <summary>This is a reader which reads mp3 files and returns PCM Little Endian order.</summary>
+	/// <summary>This is a reader which reads mp3 files and returns PCM Little Endian (intel x86) order.</summary>
 	public unsafe class Mpg123 : AbstractReader {
 		[DllImport ("libmpg123-0.dll")] private static extern void *        mpg123_new( char * pcDecoder, ref Mpg123_Errors iErr );
 		[DllImport ("libmpg123-0.dll")] private static extern Mpg123_Errors mpg123_open( void * pMpg, byte[] rgFileName );

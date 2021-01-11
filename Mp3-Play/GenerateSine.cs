@@ -109,7 +109,7 @@ namespace Play.Sound {
 	/// </summary>
 	/// <seealso cref="BufferReload" />
 	public abstract class AbstractReader : IPgReader {
-		protected byte[] _rgBuffer  = null;
+		protected byte[] _rgBuffer   = null; // Where we store from the data generator.
 		private   uint   _ulRead     = 0;
 		private   uint   _ulBuffered = 0;
 
