@@ -69,21 +69,26 @@ namespace Play.SSTV {
 			oG.FillRectangle( Brushes.White, 0, 0, oSize.Width, oSize.Height );
 
 			double   dbMaxSignal   = 0;
+			double   dbMinSignal   = 0;
 			int[]    rgFFTResult   = _oDocSSTV.FFTResult;
 			int      iFFTResultLen = _oDocSSTV.FFTResultSize;
 
 			if( oSize.Width > iFFTResultLen ) {
 				// There are less FFT results than pixels wide...
-				int iIncr = (int)Math.Round( oSize.Width / (double)iFFTResultLen );
+				double dbStep = oSize.Width / (double)iFFTResultLen;
+				int iIncr = (int)Math.Round( dbStep );
 
 				for( int iResult =0; iResult < iFFTResultLen; ++iResult ) {
 					// Save the max signal for scaling.
 					if( dbMaxSignal < rgFFTResult[iResult] )
 						dbMaxSignal = rgFFTResult[iResult];
+					if( dbMinSignal > rgFFTResult[iResult] )
+						dbMinSignal = rgFFTResult[iResult];
 				}
 
-				for( int i=0, j=0; i < oSize.Width && j<iFFTResultLen; i += iIncr, j++ ) {
-					int y = (int)( oSize.Height * rgFFTResult[j] / dbMaxSignal );
+				for( int i=0; i < oSize.Width; ++i ) {
+					int iSample = (int)( i / dbStep );
+					int y = (int)( oSize.Height * rgFFTResult[iSample] / dbMaxSignal );
 					oG.FillRectangle( Brushes.Aqua, i, 0, iIncr, y );
 				}
 			} else {

@@ -80,8 +80,8 @@ namespace Play.SSTV {
                 double dbSample = 0;
                     
                 dbSample += 80 * Math.Sin( Math.PI * 2 *  400 * t);
-                dbSample += 20 * Math.Sin( Math.PI * 2 *  200 * t);
-                dbSample += 20 * Math.Sin( Math.PI * 2 * 1200 * t);
+                dbSample += 80 * Math.Sin( Math.PI * 2 * 1200 * t);
+                dbSample += 80 * Math.Sin( Math.PI * 2 * 2900 * t);
 
                 rgData.Add(dbSample);
             }
@@ -89,19 +89,20 @@ namespace Play.SSTV {
 
         public bool InitNew2() {
             _oFFT = new CFFT( FFTControlValues.FindMode( 8000 ) );
-			FFTResult = new int[_oFFT.ControlMode.FFTSize/2 + 1];
 
             List<double> rgFFTData = new List<double>();
 
 			LoadData( _oFFT.ControlMode, rgFFTData );
 
-			_oFFT.Calc( rgFFTData.ToArray(), 30, 0, FFTResult );
+            _rgFFTData = rgFFTData.ToArray();
+			FFTResult  = new int   [_oFFT.ControlMode.FFTSize/2];
 
             return true;
         }
 
         public bool InitNew() {
-			string strSong = @"C:\Users\Frodo\Documents\signals\1kHz_Left_Channel.mp3";
+	        //string strSong = @"C:\Users\Frodo\Documents\signals\1kHz_Left_Channel.mp3"; // Max signal 262.
+            string strSong = @"C:\Users\Frodo\Documents\signals\sstv-essexham-image01-martin2.mp3";
 
 			try {
                 FileDecoder = _oSound.CreateSoundDecoder( strSong );
@@ -120,13 +121,11 @@ namespace Play.SSTV {
 
             _oFFT = new CFFT( FFTControlValues.FindMode( FileDecoder.Spec.Rate ) );
 
-            int iFFTSizeInSrcBytes = (int)_oFFT.ControlMode.FFTSize * (int)( FileDecoder.Spec.BitsPerSample / 8 ) * FileDecoder.Spec.Channels;
+            int iFFTSizeInSrcBytes = (int)_oFFT.ControlMode.FFTSize * (int)FileDecoder.Spec.BlockAlign;
 
-            _rgFFTDataBytes = new byte[iFFTSizeInSrcBytes];
-			FFTResult       = new int[_oFFT.ControlMode.FFTSize/2];
+            _rgFFTDataBytes = new byte  [iFFTSizeInSrcBytes];
             _rgFFTData      = new double[_oFFT.ControlMode.FFTSize];
-
-            Array.Clear( _rgFFTDataBytes, 0, _rgFFTDataBytes.Length );
+			FFTResult       = new int   [_oFFT.ControlMode.FFTSize/2];
 
             return true;
         }
@@ -152,33 +151,56 @@ namespace Play.SSTV {
             // different types per sample, byte, short, long, double...
             uint iBytesRead = FileDecoder.Read( _rgFFTDataBytes, 0, (uint)_rgFFTDataBytes.Length );
 
-            if( iBytesRead < _rgFFTDataBytes.Length )
+            if( iBytesRead < _rgFFTDataBytes.Length ) {
+                Array.Clear( _rgFFTData, 0, _rgFFTData.Length );
                 return;
+            }
             if( iChannels == 1 ) // If data is mono, channel used needs to be zero.
                 iChannelUsed = 0;
 
-	        if( FileDecoder.Spec.BitsPerSample == 16 ){	
-                unsafe {
-                    fixed( double * pFFTTrg = _rgFFTData ) {
-                        fixed( void * pFFTSrc = _rgFFTDataBytes ) {
-                            short * pShortSrc = (short*)pFFTSrc;
-			                for( int i = 0, j=iChannelUsed; i < iDataLen; i++, j+=iChannels ) {
-				                pFFTTrg[i] = (double)pShortSrc[j];
-			                }
+            switch( FileDecoder.Spec.BitsPerSample ) {
+                case  16:
+                    unsafe {
+                        fixed( double * pFFTTrg = _rgFFTData ) {
+                            fixed( void * pFFTSrc = _rgFFTDataBytes ) {
+                                short * pShortSrc = (short*)pFFTSrc;
+			                    for( int i = 0, j=iChannelUsed; i < iDataLen; i++, j+=iChannels ) {
+				                    pFFTTrg[i] = (double)pShortSrc[j];
+			                    }
+                            }
                         }
                     }
-                }
-	        } else {
-                throw new NotImplementedException("Opps need to implement.");
+                    break;
+	            case 8:
+                    unsafe {
+                        fixed( double * pFFTTrg = _rgFFTData ) {
+                            fixed( void * pFFTSrc = _rgFFTDataBytes ) {
+                                byte * pByteSrc = (byte*)pFFTSrc;
+			                    for( int i = 0, j=iChannelUsed; i < iDataLen; i++, j+=iChannels ) {
+				                    pFFTTrg[i] = (double)(pByteSrc[j] - 128);
+			                    }
+                            }
+                        }
+                    }
+                    break;
+                default:
+                    throw new NotImplementedException("Opps need to implement.");
             }
         }
 
         public void PlaySegment() {
-            ReadData();
+            try {
+                ReadData();
 
-            _oFFT.Calc( _rgFFTData.ToArray(), 30, 0, FFTResult );
+                _oFFT.Calc( _rgFFTData, 30, 0, FFTResult );
 
-            FFTOutputNotify?.Invoke();
+                FFTOutputNotify?.Invoke();
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( NotImplementedException ),
+                                    typeof( NullReferenceException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
+            }
         }
     }
 }
