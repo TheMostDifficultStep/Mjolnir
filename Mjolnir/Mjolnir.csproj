@@ -66,6 +66,7 @@
     <ProjectReference Include="..\Mp3-Play\Mp3-Play.csproj" />
     <ProjectReference Include="..\MusicWalker\MusicWalker.csproj" />
     <ProjectReference Include="..\ParseAll\ParseAll.csproj" />
+    <ProjectReference Include="..\SSTV\SSTV.csproj" />
   </ItemGroup>
 
   <ItemGroup>

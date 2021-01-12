@@ -172,10 +172,10 @@ namespace Play.Sound {
 
 			using (IPgPlayer oPlayer = CreatePlayer(oSpec)) {
 				using (GenerateMorse oReader = new GenerateMorse(oSpec)) {
-					oReader.Signal = "Sharon prepares for battle.  " +
-									 "Allison captures Sharon in battle.  " +
-									 "Allison finds out it is Sharon too late.  " +
-									 "Breaks her out.  Pull fire alarm or something.";
+					oReader.Signal = "This is a test.  " +
+									 "This is a second test.  " +
+									 "No we see what we are up to.  " +
+									 "Here is more test data.";
 
 					do {
 						SleepMeh( oPlayer.Play( oReader ) );

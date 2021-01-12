@@ -312,7 +312,7 @@ namespace Play.Sound.FFT {
 
 		public int m_FFTGain = 0; // BUG: This comes from sys._mFFTGain. I'm just cutting corners...
 
-		public int		      m_FFTDIS;
+		public int		      m_FFTDIS; // Perhaps the MATH routines are not multithread safe?
 		readonly public int[] m_fft = new int[2048]; // BUG, this actually belongs outside, I put it here while testing.
 
 		bool	m_StgSW;

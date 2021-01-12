@@ -3,8 +3,7 @@ using System.Collections.Generic;
 
 using Play.Interfaces.Embedding;
 
-namespace Play.MusicWalker
-{
+namespace Play.MusicWalker {
 	public class MusicWalkerController : Controller {
         public readonly static Guid _guidViewPlayList = new Guid( "{E61DA3B2-1CD0-4B23-96E3-D4FEBDEEE5F2}" );
 
@@ -42,7 +41,7 @@ namespace Play.MusicWalker
 		public override IEnumerator<IPgViewType> GetEnumerator() {
  	        yield return( new ViewType( "Albums", Guid.Empty ) );
  	        yield return( new ViewType( "Play List", _guidViewPlayList ) );
-		    yield return( new ViewType( "Spectrum", VisualizeWindow._gViewType ) );
+		  //yield return( new ViewType( "Spectrum", VisualizeWindow._gViewType ) );
 		}
 	}
 
