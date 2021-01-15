@@ -110,8 +110,8 @@ namespace Play.Sound {
 	/// <seealso cref="BufferReload" />
 	public abstract class AbstractReader : IPgReader {
 		protected byte[] _rgBuffer   = null; // Where we store from the data generator.
-		private   uint   _ulRead     = 0;
-		private   uint   _ulBuffered = 0;
+		private   uint   _ulBuffered = 0;    // How much data in buffer (might be less than buffer length)
+		private   uint   _ulBuffUsed = 0;    // How much of the buffer has been copied out so far.
 
 		public virtual void Dispose() {	}
 
@@ -205,9 +205,9 @@ namespace Play.Sound {
 					throw new InvalidOperationException( "We're confused." );
 
 				// We've exhausted the current buffer and must load with the next block.
-				if( _ulRead >= _ulBuffered ) {
+				if( _ulBuffUsed >= _ulBuffered ) {
 					try {
-						_ulRead     = 0;
+						_ulBuffUsed     = 0;
 						_ulBuffered = BufferReload( uiCopy );
 					} catch( Exception oEx ) {
 						Type[] rgErrors = { typeof( InvalidOperationException ),
@@ -221,18 +221,24 @@ namespace Play.Sound {
 				}
 
 				// Make sure we don't try to copy outside of the loaded part of the buffer!
-				if( _ulRead + uiCopy > _ulBuffered )
-					uiCopy = _ulBuffered - _ulRead;
+				if( _ulBuffUsed + uiCopy > _ulBuffered )
+					uiCopy = _ulBuffered - _ulBuffUsed;
 
 				// This shouldn't happen unless the BufferReload() comes up empty.
 				if( uiCopy == 0 )
 					return 0;
 
 				try {
-					if( ipPriAddr != IntPtr.Zero ) // Unsafe blit! ^_^;;
-					    Marshal.Copy( _rgBuffer, (int)_ulRead, ipPriAddr + (int)uiBytesConsumed, (int)uiCopy );
-					if( rgAltAddr != null )        // Safe blit! 
-						Buffer.BlockCopy( _rgBuffer, (int)_ulRead, rgAltAddr, (int)uiBytesConsumed + iAltStartIndex, (int)uiCopy );
+					if( ipPriAddr != IntPtr.Zero ) { // Unsafe blit! ^_^;; 
+						//for( uint i=0; i + i < uiCopy; i+=2 ) {
+						//	uint idx = i + _ulBuffUsed;
+						//	if( _rgBuffer[idx] != 220 || _rgBuffer[idx+1] != 5 )
+						//		throw new InvalidOperationException();
+						//}
+					    Marshal.Copy( _rgBuffer, (int)_ulBuffUsed, ipPriAddr + (int)uiBytesConsumed, (int)uiCopy );
+					}
+					if( rgAltAddr != null )        // Safe(r) blit! 
+						Buffer.BlockCopy( _rgBuffer, (int)_ulBuffUsed, rgAltAddr, (int)uiBytesConsumed + iAltStartIndex, (int)uiCopy );
 				} catch( Exception oEx ) {
 					Type[] rgErrors = { typeof( ArgumentOutOfRangeException ),
 										typeof( ArgumentNullException ),
@@ -241,16 +247,142 @@ namespace Play.Sound {
 					if( !rgErrors.Contains( oEx.GetType() ) )
 						throw;
 
-					return 0; // Actually throwing some sort of buffer copy exception would be better.
+					return 0; // Actually throwing some sort of buffer copy exception might be better.
 				}
 
 				uiBytesConsumed += uiCopy;
-				_ulRead         += uiCopy;
+				_ulBuffUsed     += uiCopy;
 			} while( uiBytesConsumed < uiBytesWanted);
 
 			return( uiBytesConsumed );
 		}
+
+		protected virtual bool BufferCopy( ref int iTrg, byte[] rgBuffer, uint uiBuffered, ref uint uiBuffUsed ) {
+			throw new NotImplementedException();
+		}
+
+		/// <summary>
+		/// This is a reader made specifically for the FFT. It has a fixed input buffer
+		/// address so we don't need to keep passing it to the read function. Which is nice
+		/// because then we don't need a differet read function for every target type.
+		/// </summary>
+		/// <returns></returns>
+		public unsafe bool Read() {
+			int iTrg            = 0;
+			int iBytesPerSample = Spec.BitsPerSample / 8; // We'll blow up if bits are not 16 or 8.
+			do {
+				if( _ulBuffUsed >= _ulBuffered ) {
+					try {
+						_ulBuffUsed = 0; 
+						_ulBuffered = BufferReload( (uint)_rgBuffer.Length ) / (uint)iBytesPerSample;
+					} catch( Exception oEx ) {
+						Type[] rgErrors = { typeof( InvalidOperationException ),
+											typeof( NullReferenceException ) };
+						if( !rgErrors.Contains( oEx.GetType() ) )
+							throw;
+
+						_ulBuffered = 0;
+						return false;
+					}
+				}
+
+				// The attempt to fill the target buffer completely.
+				uint uiBuffUsed = _ulBuffUsed;
+				int  iTrgSave   = iTrg;
+				if( !BufferCopy( ref iTrg, _rgBuffer, _ulBuffered, ref _ulBuffUsed ) ) {
+					return true;
+				}
+			} while( _ulBuffered > 0 );
+
+			return false;
+		}
 	} // class 
+
+	/// <summary>
+	/// This is a class we can use for the type of block copies we're interested in. Right now
+	/// it's taylored for the MMSSTV FFT with it's double input type. But later I'll make
+	/// one that copies short for other readers.
+	/// </summary>
+	public class BlockCopies {
+		readonly int _iDecimation = 0;
+		readonly int _iChannel    = 0;
+		readonly int _iChannels   = 2;
+		readonly uint _uiStep     = 1;
+
+		/// <summary>
+		/// This is a bunch of block copy routines tailored to translating a byte buffer 
+		/// into the input type of the FFT.
+		/// </summary>
+		/// <param name="iDecimation">Decimation value for the input 1, 2 or 4</param>
+		/// <param name="iChannels">Number of data channels in block</param>
+		/// <param name="iChannel">Which channel to copy to the output.</param>
+		public BlockCopies( int iDecimation, int iChannels, int iChannel ) {
+			if( iDecimation <= 0 )
+				throw new ArgumentOutOfRangeException( "Decimation must be > 0" );
+
+			_iDecimation = iDecimation;
+			_iChannels   = iChannels;
+			_iChannel    = iChannel;
+
+			_uiStep = (uint)( _iDecimation * _iChannels );
+		}
+
+		/// <summary>
+		/// This is the primary reader for the FFT. It is an example of why we need the buffers to be
+		/// array types, because we need to fix the buffer and walk it according to the data type.
+		/// It might be possible to do via a List(Byte) generic, but it seems a lot of hassle for little
+		/// payback.
+		/// </summary>
+		/// <param name="rgTarget">Target FFT input.</param>
+		/// <param name="iTrg">Which index to start at.</param>
+		/// <param name="rgSource">Source byte stream.</param>
+		/// <param name="uiSrcLen">number of samples of buffered data. Ex: 16 bit stereo would be, 2, the number of bytes per channel.
+		///                        We rely on the buffer being filled in multiples of BLOCK size.</param>
+		/// <param name="uiSrc">Index into Sample location in source. Sample relative.</param>
+		/// <returns>Return true if the target buffer has been filled. False if not.</returns>
+		public bool ReadAsSigned16Bit( double[] rgTarget, ref int iTrg, Byte[] rgSource, uint uiSrcLen, ref uint uiSrc ) {
+			try {
+                unsafe {
+                    fixed( void * pSource = rgSource ) {
+                        short * pShortSrc = (short*)pSource;
+			            while( iTrg < rgTarget.Length && uiSrc < uiSrcLen ) {
+				            rgTarget[iTrg] = (double)pShortSrc[uiSrc+_iChannel];
+							iTrg++; uiSrc += _uiStep;
+						}
+                    }
+                }
+			} catch( Exception oEx ) {
+				Type[] rgErrors = { typeof( IndexOutOfRangeException ),
+									typeof( ArgumentNullException ),
+									typeof( ArgumentException ),
+									typeof( NullReferenceException ) };
+				if( !rgErrors.Contains( oEx.GetType() ) )
+					throw;
+
+				return false;
+			}
+			return iTrg < rgTarget.Length;
+		}
+
+		public bool ReadAsUnsigned8Bit( double[] rgTarget, ref int iTrg, Byte[] rgSource, uint uiSrcLen, ref uint uiSrc ) {
+			try {
+			    while( iTrg < rgTarget.Length && uiSrc < uiSrcLen ) {
+				    rgTarget[iTrg] = (double)(rgSource[uiSrc+_iChannel] - 128 );
+					iTrg++; uiSrc += _uiStep;
+				}
+			} catch( Exception oEx ) {
+				Type[] rgErrors = { typeof( IndexOutOfRangeException ),
+									typeof( ArgumentNullException ),
+									typeof( ArgumentException ),
+									typeof( NullReferenceException ) };
+				if( !rgErrors.Contains( oEx.GetType() ) )
+					throw;
+
+				return false;
+			}
+			return true;
+		}
+	}
 
 	/// <summary>
 	/// A "tapper" is a buffer sitting between a reader generating PCM data and it's player.

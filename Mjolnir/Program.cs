@@ -1401,7 +1401,8 @@ namespace Mjolnir {
         }
 
 		public IPgReader CreateSoundDecoder(string strFileName) {
-			return _oMp3Factory.CreateFor( strFileName );
+            return new Mpg123FFTSupport( strFileName );
+			//return _oMp3Factory.CreateFor( strFileName );
 		}
 
         /// <exception cref="InvalidOperationException" />

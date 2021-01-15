@@ -77,12 +77,14 @@ namespace Play.Sound.FFT {
 		/// </summary>
 		/// <remarks>In the future we might be able to toss this. Need to go back and tinker
 		/// with the FFTCollector subclass.</remarks>
-		private static double CalcDivisor( FFTSampleType eType ) {
+		public static double CalcDivisor( FFTSampleType eType ) {
 			if( eType == 0 ) {
 				return 1;
 			}
 			return (double)eType * 2;
 		}
+
+		public int Decimation => (int)CalcDivisor( FFTSampType );
 
 		/// <summary>Check if the other instance shares the same property values.</summary>
 		/// <remarks>
@@ -329,7 +331,7 @@ namespace Play.Sound.FFT {
 		/// <summary>
 		/// Accessor for the control mode of the FFT.
 		/// </summary>
-		public FFTControlValues ControlMode => m_oFFTCtrl;
+		public FFTControlValues Mode => m_oFFTCtrl;
 
 		protected virtual void PostMessage() {
 			//if( m_Handle != NULL ){

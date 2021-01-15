@@ -285,7 +285,58 @@ namespace Play.Sound {
 
 			return ulBuffered;
 		}
+
 	}
+
+	public class Mpg123FFTSupport : Mpg123 {
+		public double[] Target { get; set; }
+
+		protected double      _dbT = 0; // Keep track of where we are in the signal.
+		protected BlockCopies _oBlockCopy;
+
+		public Mpg123FFTSupport( string strFileName ) : base( strFileName ) {
+			// Unfortunately we can't know the decimation until the FFT mode is retrieved
+			// and we can't know that until the MP3 data rate has been read. >_<;;
+			_oBlockCopy = new BlockCopies( 1, Spec.Channels, 0 );
+		}
+
+		public void Init( int iDecimation, int iChannelUsed ) {
+			_oBlockCopy = new BlockCopies( iDecimation, Spec.Channels, iChannelUsed );
+		}
+
+		/// <summary>
+		/// Generate a test signal. Override BufferReload when you want to test.
+		/// </summary>
+		/// <param name="uiRequest">Minimum of data to load into the buffer.</param>
+		/// <returns></returns>
+        protected  uint BufferReload2( uint uiRequest ) {
+            unsafe {
+                fixed( void * pSource = _rgBuffer ) {
+                    short * pShortSrc = (short*)pSource;
+					int     iSamples  = _rgBuffer.Length / Spec.BitsPerSample * 8;
+
+					for( int i = 0; i < iSamples; _dbT += 1 / (double)Spec.Rate ) {
+						double dbSample = 0;
+
+                        dbSample += 180  * Math.Sin(Math.PI * 2 *  400 * _dbT);
+                        dbSample += 180  * Math.Sin(Math.PI * 2 * 1200 * _dbT);
+                        dbSample += 1500 * Math.Sin(Math.PI * 2 * 2900 * _dbT);
+
+                        //dbSample += 1500;
+
+                        for( int j=0; j<Spec.Channels; ++j ) {
+							pShortSrc[i++] = (short)dbSample;
+						}
+					}
+                }
+            }
+			return (uint)_rgBuffer.Length;
+        }
+
+        protected override bool BufferCopy( ref int iTrg, byte[] rgBuffer, uint uiBuffered, ref uint uiBuffUsed ) {
+            return _oBlockCopy.ReadAsSigned16Bit( Target, ref iTrg, rgBuffer, uiBuffered, ref uiBuffUsed );
+        }
+    }
 
 	/// <summary>
 	/// This is the factory object to create MP3 decoder instances. Should only create one of these.

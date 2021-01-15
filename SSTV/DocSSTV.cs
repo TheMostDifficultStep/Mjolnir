@@ -24,22 +24,18 @@ namespace Play.SSTV {
         public IPgParent Services  => throw new NotImplementedException();
         public bool      IsDirty   => false;
 
-        public IPgReader FileDecoder { get; protected set; }
+        protected Mpg123FFTSupport FileDecoder { get; set; }
 
-		readonly IPgSound _oSound;
-
-		double[] _rgFFTData;      // Data in double precision point.
-        byte[]   _rgFFTDataBytes; // Data in bytes. Gross, we'll fix this in the future.
+		double[] _rgFFTData; // Data input for FFT. Note: it get's destroyed in the process.
 		CFFT     _oFFT;
 
         public int[] FFTResult { get; protected set; }
-        public int   FFTResultSize => _oFFT.ControlMode.TopBucket;
+        public int   FFTResultSize => _oFFT.Mode.TopBucket;
 
         public event FFTOutputEvent FFTOutputNotify;
 
         public DocSSTV( IPgBaseSite oSite ) {
             _oSiteBase = oSite ?? throw new ArgumentNullException( "Site must not be null" );
-			_oSound    = oSite.Host.Services as IPgSound ?? throw new ArgumentNullException( "Host requires IPgSound." );
         }
 
         #region Dispose
@@ -92,20 +88,22 @@ namespace Play.SSTV {
 
             List<double> rgFFTData = new List<double>();
 
-			LoadData( _oFFT.ControlMode, rgFFTData );
+			LoadData( _oFFT.Mode, rgFFTData );
 
             _rgFFTData = rgFFTData.ToArray();
-			FFTResult  = new int   [_oFFT.ControlMode.FFTSize/2];
+			FFTResult  = new int   [_oFFT.Mode.FFTSize/2];
 
             return true;
         }
 
         public bool InitNew() {
-	        //string strSong = @"C:\Users\Frodo\Documents\signals\1kHz_Left_Channel.mp3"; // Max signal 262.
-            string strSong = @"C:\Users\Frodo\Documents\signals\sstv-essexham-image01-martin2.mp3";
+	        //string strSong = @"C:\Users\Frodo\Documents\signals\1kHz_Right_Channel.mp3"; // Max signal 262.
+            //string strSong = @"C:\Users\Frodo\Documents\signals\sstv-essexham-image01-martin2.mp3";
+            string strSong = @"C:\Users\Frodo\Documents\signals\sstv-essexham-image02-scottie2.mp3";
 
 			try {
-                FileDecoder = _oSound.CreateSoundDecoder( strSong );
+                //FileDecoder = _oSound.CreateSoundDecoder( strSong );
+                FileDecoder = new Mpg123FFTSupport( strSong );
 			} catch( Exception oEx ) {
 				Type[] rgErrors = { typeof( FileNotFoundException ),
 									typeof( FileLoadException ), 
@@ -121,11 +119,11 @@ namespace Play.SSTV {
 
             _oFFT = new CFFT( FFTControlValues.FindMode( FileDecoder.Spec.Rate ) );
 
-            int iFFTSizeInSrcBytes = (int)_oFFT.ControlMode.FFTSize * (int)FileDecoder.Spec.BlockAlign;
+            _rgFFTData      = new double[_oFFT.Mode.FFTSize];
+			FFTResult       = new int   [_oFFT.Mode.FFTSize/2];
 
-            _rgFFTDataBytes = new byte  [iFFTSizeInSrcBytes];
-            _rgFFTData      = new double[_oFFT.ControlMode.FFTSize];
-			FFTResult       = new int   [_oFFT.ControlMode.FFTSize/2];
+            FileDecoder.Target = _rgFFTData;
+            FileDecoder.Init( _oFFT.Mode.Decimation, 1 );
 
             return true;
         }
@@ -138,61 +136,11 @@ namespace Play.SSTV {
             return true;
         }
 
-        /// <summary>
-        /// Depending on the spec we have to determine how much
-        /// of the data stream to read, stereo or mono.
-        /// </summary>
-        protected void ReadData() {
-            int iDataLen     = _rgFFTData.Length;
-            int iChannelUsed = 0;
-            int iChannels    = FileDecoder.Spec.Channels;
-
-            // This would be a great opportunity for reader interface that returned
-            // different types per sample, byte, short, long, double...
-            uint iBytesRead = FileDecoder.Read( _rgFFTDataBytes, 0, (uint)_rgFFTDataBytes.Length );
-
-            if( iBytesRead < _rgFFTDataBytes.Length ) {
-                Array.Clear( _rgFFTData, 0, _rgFFTData.Length );
-                return;
-            }
-            if( iChannels == 1 ) // If data is mono, channel used needs to be zero.
-                iChannelUsed = 0;
-
-            switch( FileDecoder.Spec.BitsPerSample ) {
-                case  16:
-                    unsafe {
-                        fixed( double * pFFTTrg = _rgFFTData ) {
-                            fixed( void * pFFTSrc = _rgFFTDataBytes ) {
-                                short * pShortSrc = (short*)pFFTSrc;
-			                    for( int i = 0, j=iChannelUsed; i < iDataLen; i++, j+=iChannels ) {
-				                    pFFTTrg[i] = (double)pShortSrc[j];
-			                    }
-                            }
-                        }
-                    }
-                    break;
-	            case 8:
-                    unsafe {
-                        fixed( double * pFFTTrg = _rgFFTData ) {
-                            fixed( void * pFFTSrc = _rgFFTDataBytes ) {
-                                byte * pByteSrc = (byte*)pFFTSrc;
-			                    for( int i = 0, j=iChannelUsed; i < iDataLen; i++, j+=iChannels ) {
-				                    pFFTTrg[i] = (double)(pByteSrc[j] - 128);
-			                    }
-                            }
-                        }
-                    }
-                    break;
-                default:
-                    throw new NotImplementedException("Opps need to implement.");
-            }
-        }
-
         public void PlaySegment() {
             try {
-                ReadData();
+                FileDecoder.Read();
 
-                _oFFT.Calc( _rgFFTData, 30, 0, FFTResult );
+                _oFFT.Calc( _rgFFTData, 10, 0, FFTResult );
 
                 FFTOutputNotify?.Invoke();
             } catch( Exception oEx ) {

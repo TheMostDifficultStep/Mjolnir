@@ -93,8 +93,8 @@ namespace Play.MusicWalker {
         }
 
 		public bool InitNew() {
-			LoadData( _oFFT.ControlMode, _rgFFTData );
-			_rgFFTResult = new int[_oFFT.ControlMode.TopBucket];
+			LoadData( _oFFT.Mode, _rgFFTData );
+			_rgFFTResult = new int[_oFFT.Mode.TopBucket];
 			_oFFT.Calc( _rgFFTData.ToArray(), 30, 0, _rgFFTResult );
 			return true;
 		}
