@@ -115,7 +115,7 @@ namespace Play.Sound {
 
 		public virtual void Dispose() {	}
 
-		public abstract Specification Spec { get; }
+		public virtual Specification Spec { get; protected set; }
 
 		public bool IsReading {
 			get { return _ulBuffered > 0; }
@@ -388,37 +388,35 @@ namespace Play.Sound {
 	/// A "tapper" is a buffer sitting between a reader generating PCM data and it's player.
 	/// This tapper is designed to store a second worth of PCM data.
 	/// </summary>
-	public abstract class Tapper : AbstractReader {
-		IPgReader DataSource { get; }
-		byte[]    DataCopy   { get; }
-		int       Blocked    { get; set; }
+	//public abstract class Tapper : AbstractReader {
+	//	IPgReader DataSource { get; }
+	//	byte[]    DataCopy   { get; }
+	//	int       Blocked    { get; set; }
 
-		public Tapper( IPgReader oSource ) : base() {
-			DataSource = oSource      ?? throw new ArgumentNullException();
-			Spec       = oSource.Spec ?? throw new ArgumentException();
+	//	public Tapper( IPgReader oSource ) : base() {
+	//		DataSource = oSource      ?? throw new ArgumentNullException();
+	//		Spec       = oSource.Spec ?? throw new ArgumentException();
 
-			_rgBuffer = new byte[ Spec.BlockAlign * Spec.Rate ]; // Our abstract reader's buffer
-			DataCopy  = new byte[ Spec.BlockAlign * Spec.Rate ]; // The copy we want to keep.
-		}
+	//		_rgBuffer = new byte[ Spec.BlockAlign * Spec.Rate ]; // Our abstract reader's buffer
+	//		DataCopy  = new byte[ Spec.BlockAlign * Spec.Rate ]; // The copy we want to keep.
+	//	}
 
-		public override Specification Spec { get; }
+	//	protected override uint BufferReload(uint uiRequest) {
+	//		uint uiRead = DataSource.Read( _rgBuffer, 0, (uint)_rgBuffer.Length );
 
-		protected override uint BufferReload(uint uiRequest) {
-			uint uiRead = DataSource.Read( _rgBuffer, 0, (uint)_rgBuffer.Length );
+	//		if( Blocked <= 0 ) {
+	//			Blocked = 1;
+	//			// I have a (possibly) second worth of PCM data! Time to party!!
+	//			Buffer.BlockCopy( _rgBuffer, 0, DataCopy, 0, (int)uiRead );
+	//			OnReloaded( uiRead);
+	//			Blocked--;
+	//		}
 
-			if( Blocked <= 0 ) {
-				Blocked = 1;
-				// I have a (possibly) second worth of PCM data! Time to party!!
-				Buffer.BlockCopy( _rgBuffer, 0, DataCopy, 0, (int)uiRead );
-				OnReloaded( uiRead);
-				Blocked--;
-			}
+	//		return uiRead;
+	//	}
 
-			return uiRead;
-		}
-
-		public abstract void OnReloaded( uint uiRead );
-	}
+	//	public abstract void OnReloaded( uint uiRead );
+	//}
 
 	public class GenerateSin : AbstractReader {
 		public GenerateSin( Specification oSpec, uint uiFreq ) {
@@ -426,13 +424,12 @@ namespace Play.Sound {
 			GenerateBuffer( uiFreq );
 		}
 
-		public override Specification Spec { get; }
-
 		/// <summary>
 		/// Allocate and load the buffer with the signal in little endian order.
 		/// This will allocate a buffer large enough for one period.
 		/// </summary>
 		/// <param name="uiFreq">Frequency in hertz</param>
+		/// <seealso cref="Mpg123FFTSupport.BufferReload2" />
 		protected void GenerateBuffer( uint uiFreq ) {
 			float power             = (float)Math.Pow( 2, 15 ) - 1;
 			float flSamplesPerCycle = Spec.Rate / (float)uiFreq;
@@ -518,8 +515,6 @@ namespace Play.Sound {
 
 		public uint WordSpacing   { get; set; } = 8;
 		public uint LetterSpacing { get; set; } = 28;
-
-		public override Specification Spec { get; }
 
 		public IEnumerable<char> Signal {
 			set {

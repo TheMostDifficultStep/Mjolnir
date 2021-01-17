@@ -1,5 +1,5 @@
 ﻿///<summary>
-///  Copyright (c) Kirk Goddard
+///  Copyright (c) https://github.com/TheMostDifficultStep
 ///
 ///  Permission is hereby granted, free of charge, to any person obtaining
 ///  a copy of this software and associated documentation files (the
@@ -142,7 +142,7 @@ namespace Play.Sound {
 	public interface IPgReader : IDisposable {
 		bool          IsReading { get; }
 		UInt32        Read( IntPtr ipBuffer, UInt32 uiRequestedBytes );
-		UInt32        Read( byte[] rgBuffer, int iStartIndex, UInt32 uiRequestedBytes );
+		//UInt32        Read( byte[] rgBuffer, int iStartIndex, UInt32 uiRequestedBytes );
 		Specification Spec { get; }
 	}
 

@@ -264,8 +264,6 @@ namespace Play.Sound {
 			}
 		}
 
-		public override Specification Spec { get; }
-
 		protected override uint BufferReload(uint uiRequest) {
 			uint ulBuffered = 0;
 
@@ -306,6 +304,7 @@ namespace Play.Sound {
 
 		/// <summary>
 		/// Generate a test signal. Override BufferReload when you want to test.
+		/// Don't delete this implementation. It's a great example. Notibly "_dbT".
 		/// </summary>
 		/// <param name="uiRequest">Minimum of data to load into the buffer.</param>
 		/// <returns></returns>

@@ -12,6 +12,10 @@ using Play.Sound.FFT;
 using System.Collections;
 
 namespace Play.SSTV {
+    public interface IPgWriter<T> {
+        void Write( T tValue );
+    }
+
     public delegate void FFTOutputEvent();
 
     public class CVCO {
@@ -26,7 +30,7 @@ namespace Play.SSTV {
         public CVCO( double dbSampFreq, double dblToneOffset ) {
 	        m_SampleFreq = dbSampFreq;
 	        m_FreeFreq   = 1900.0 + dblToneOffset;
-	        m_SinTable      = new double[(int)(dbSampFreq*2)];
+	        m_SinTable   = new double[(int)(dbSampFreq*2)];
 	        m_c1         = m_SinTable.Length/16.0;
 	        m_c2         = (int)( (double)m_SinTable.Length * m_FreeFreq / m_SampleFreq );
 	        m_z          = 0;
@@ -82,8 +86,9 @@ namespace Play.SSTV {
     }
 
     public class CSSTVMOD {
-	    readonly protected CVCO   m_vco;
-        readonly protected double m_dblTxSampleFreq;
+        readonly protected IPgWriter<short> m_oWriter;
+	    readonly protected CVCO             m_vco;
+        readonly protected double           m_dblTxSampleFreq;
 
 	    //public int         m_bpf;
 	    //public int         m_bpftap;
@@ -106,7 +111,8 @@ namespace Play.SSTV {
 	    public UInt32      m_VariG   = 588;
 	    public UInt32      m_VariB   = 110;
 
-        public CSSTVMOD( double dblToneOffset, double dblTxSampleFreq ) {
+        public CSSTVMOD( double dblToneOffset, double dblTxSampleFreq, IPgWriter<short> oWriter ) {
+            m_oWriter = oWriter ?? throw new ArgumentNullException( "data writer must not be null" );
             m_dblTxSampleFreq = dblTxSampleFreq;
 	        //m_bpf = 1;
 	        //m_lpf = 0;
@@ -124,6 +130,8 @@ namespace Play.SSTV {
 	        m_outgain = 24578.0;
 	        InitGain();
 
+            m_vco = new CVCO( dblTxSampleFreq, dblToneOffset );
+
 	        m_vco.SetSampleFreq( dblTxSampleFreq );
 	        m_vco.SetFreeFreq  ( 1100 + dblToneOffset );
 	        m_vco.SetGain      ( 2300 - 1100 );
@@ -134,7 +142,7 @@ namespace Play.SSTV {
 
             int iPos = 0;
 	        while( iPos < (int)dbTime ) {
-                Process( iFrequency, iGain ); // TODO: Take output and put in buffer.
+                m_oWriter.Write( (short)Process( iFrequency, iGain ) );
                 iPos++;
             }
 
@@ -184,7 +192,7 @@ namespace Play.SSTV {
 	    //void        CloseTXBuf(void);
 
         // Lame: This should be an array. I'll fix that some time.
-        void InitGain() {
+        protected void InitGain() {
 	        if( m_VariR > 1000 ) m_VariR = 1000;
 	        if( m_VariG > 1000 ) m_VariG = 1000;
 	        if( m_VariB > 1000 ) m_VariB = 1000;
@@ -209,16 +217,22 @@ namespace Play.SSTV {
         }
     }
 
+    /// <summary>
+    /// See TMmsstv::ToTX to find out the line modulation needed for a subclass.
+    /// </summary>
     public abstract class SSTVGenerator :
-        IEnumerable<SSTVMode>
+        IEnumerable<int>
     {
+        public SSTVMode Mode { get; }
+
         private   SKBitmap      _oBitmap;
         private   CSSTVMOD      _oModulator;
         protected List<SKColor> _rgCache = new List<SKColor>( 800 );
 
-        public SSTVGenerator( SKBitmap oBitmap, CSSTVMOD oMod ) {
-            _oBitmap    = oBitmap ?? throw new ArgumentNullException( "Bitmap must not be null." );
-            _oModulator = oMod    ?? throw new ArgumentNullException( "Modulator must not be null." );
+        public SSTVGenerator( SKBitmap oBitmap, CSSTVMOD oModulator, SSTVMode oMode ) {
+            _oBitmap    = oBitmap    ?? throw new ArgumentNullException( "Bitmap must not be null." );
+            _oModulator = oModulator ?? throw new ArgumentNullException( "Modulator must not be null." );
+            Mode        = oMode      ?? throw new ArgumentNullException( "SSTV Mode must not be null." );
         }
 
         protected short ColorToFreq( byte bIntensity ) {
@@ -226,9 +240,9 @@ namespace Play.SSTV {
 	        return (short)( iIntensity + 1500 );               // convert 0->800 to 1500->2300.
         }
 
-        protected SKColor GetPixel( int x, int y ) {
-            return _oBitmap.GetPixel( x, y );
-        }
+        protected SKColor GetPixel( int x, int y ) => _oBitmap.GetPixel( x, y );
+        protected int     Height                   => _oBitmap.Height;
+        public    bool    IsDirty                  => true; // We're always happy to write.
 
         protected int Write( int iFrequency, int iGain, double dbTimeMS ) {
             return _oModulator.Write( iFrequency, iGain, dbTimeMS );
@@ -242,39 +256,46 @@ namespace Play.SSTV {
         /// </summary>
         /// <param name="uiVIS"></param>
         /// <returns></returns>
-        public int WriteVIS( uint uiVIS ) {
-            int iSamples = 0;
+        public void WriteVIS( UInt16 uiVIS ) {
+			Write( 1900, 0x0, 300 );
+			Write( 1200, 0x0,  10 );
+			Write( 1900, 0x0, 300 );
 
-			iSamples += Write( 1900, 0x0, 300 );
-			iSamples += Write( 1200, 0x0,  10 );
-			iSamples += Write( 1900, 0x0, 300 );
-
-			iSamples += Write( 1200, 0x0,  30 ); // start bit.
+			Write( 1200, 0x0,  30 ); // Start bit.
 
             int iVISLenInBits = ( uiVIS >= 0x100 ) ? 16 : 8;
 
 			for( int i = 0; i < iVISLenInBits; i++ ) {
-				iSamples += Write( (short)( ( uiVIS & 0x0001 ) != 0 ? 1100 : 1300), 0x0, 30 );
+				Write( (short)( ( uiVIS & 0x0001 ) != 0 ? 1100 : 1300), 0x0, 30 );
 				uiVIS >>= 1;
 			}
 			
-            iSamples += Write(1200, 0x0, 30);
-
-            return iSamples;
+            Write(1200, 0x0, 30); // Sync
         }
 
         /// <summary>
         /// Generate a line(s) of data.
         /// </summary>
-        /// <param name="iLine">Which line to start with.</param>
-        /// <param name="dbTransmitWidth">Width of the color component block.</param>
+        /// <param name="iLine">Which line to output.</param>
         /// <returns></returns>
-        protected abstract int Line( int iLine );
-
-        public abstract IEnumerator<SSTVMode> GetEnumerator();
+        protected abstract void WriteLine( int iLine );
 
         IEnumerator IEnumerable.GetEnumerator() {
             return GetEnumerator();
+        }
+
+        public virtual IEnumerator<int> GetEnumerator() {
+            WriteVIS( Mode.VIS );
+            yield return 0;
+
+            for( int iLine = 0; iLine < Height; ++iLine ) {
+                WriteLine( iLine );
+                yield return iLine;
+            }
+        }
+
+        public bool Save( BinaryWriter oStream ) {
+            throw new NotImplementedException();
         }
     }
 
@@ -282,52 +303,132 @@ namespace Play.SSTV {
     /// SCT, Scottie S1, S3, DX
     /// </summary>
     public class ScottieGenerator : SSTVGenerator {
-        public SSTVMode Mode { get; }
-
-        public ScottieGenerator( SKBitmap oBitmap, CSSTVMOD oModulator, SSTVMode oMode ) : base( oBitmap, oModulator ) {
-            Mode = oMode ?? throw new ArgumentNullException();
-
+        public ScottieGenerator( SKBitmap oBitmap, CSSTVMOD oModulator, SSTVMode oMode ) : 
+            base( oBitmap, oModulator, oMode )
+        {
             if( oBitmap.Width >= 320 )
                 throw new ArgumentOutOfRangeException( "bitmap must be 320 pix wide." );
         }
 
-        public override IEnumerator<SSTVMode> GetEnumerator() {
+        /// <summary>
+        /// Enumerate the modes we support. Note that only Scotty 1 VIS code matches that
+        /// from OK2MNM, Scottie S2 : 0x38 (vs b8=10111000), and Scottie DX : 0x4C (vs cc=11001100).
+        /// This is because the MMSSTV number has the parity bit (pre)set accordingly.
+        /// </summary>
+        /// <returns></returns>
+        public static IEnumerator<SSTVMode> GetModeEnumerator() {
  	        yield return new SSTVMode( 0x3c, "Scotty 1",  -1, 138.240 );
             yield return new SSTVMode( 0xb8, "Scotty 2",  -1,  88.064 );
             yield return new SSTVMode( 0xcc, "Scotty DX", -1, 345.600 );
         }
 
         /// <summary>
-        /// TMmsstv::LineSCT, 
+        /// TMmsstv::LineSCT, derived.
         /// </summary>
-        /// <param name="iLine"></param>
-        /// <param name="dbTransmitWidth"></param>
+        /// <param name="iLine">The bitmap line to output.</param>
         /// <returns>How many samples written.</returns>
         /// <remarks>I'm not sure how important it is to cache the line from the bitmap.
         /// The original code does this. Saves a multiply I would guess.</remarks>
-        protected override int Line( int iLine ) {
-            int    iSamples        = 0;
+        protected override void WriteLine( int iLine ) {
 	        double dbTransmitWidth = Mode.TxWidthInMS / 320.0;
 
-	        iSamples += Write( 1500, 0x2000, 1.5 );
+            if( iLine > Height )
+                return;
+
+	        Write( 1500, 0x2000, 1.5 );
             _rgCache.Clear();
 
 	        for( int x = 0; x < 320; x++ ) {     // G
                 _rgCache.Add( GetPixel( x, iLine ) );
-		        iSamples += Write( ColorToFreq( _rgCache[x].Green ), 0x2000, dbTransmitWidth );
+		        Write( ColorToFreq( _rgCache[x].Green ), 0x2000, dbTransmitWidth );
 	        }
 	        Write( 1500, 0x3000, 1.5 );
 	        for( int x = 0; x < 320; x++ ) {     // B
-		        iSamples += Write( ColorToFreq( _rgCache[x].Blue  ), 0x3000, dbTransmitWidth );
+		        Write( ColorToFreq( _rgCache[x].Blue  ), 0x3000, dbTransmitWidth );
 	        }
-	        Write(1200, 0, 9);
-	        Write(1500, 0x1000, 1.5 );
+	        Write( 1200, 0, 9 );
+	        Write( 1500, 0x1000, 1.5 );
 	        for( int x = 0; x < 320; x++ ) {     // R
-		        iSamples += Write( ColorToFreq( _rgCache[x].Red   ), 0x1000, dbTransmitWidth );
+		       Write( ColorToFreq( _rgCache[x].Red   ), 0x1000, dbTransmitWidth );
 	        }
+        }
+    }
 
-            return 0;
-        }    
+    /// <summary>
+    /// Consider MemoryStream/BufferedStream, BinaryReader/BinaryWriter
+    /// and UnmanagedMemoryStream 
+    /// for the future, not sure if they quite apply. My current system
+    /// pulls data on demand and only stores as much memory as needed and 
+    /// not the entire stream.
+    /// </summary>
+    public class BufferSSTV : IPgReader, IPgWriter<short> {
+        SSTVGenerator    _oGen;
+        IEnumerator<int> _oGenIter;
+        short[]          _rgBuffer = new short[4096];
+        uint             _uiBuffUsed = 0;
+        uint             _uiBuffered = 0;
+
+        public bool IsReading => _uiBuffered > 0;
+
+        public Specification Spec { get; protected set; }
+
+        public BufferSSTV( SSTVGenerator oGenerator, Specification oSpec ) {
+            _oGen = oGenerator ?? throw new ArgumentNullException();
+            Spec  = oSpec      ?? throw new ArgumentNullException();
+
+            _oGenIter = _oGen.GetEnumerator();
+        }
+
+        public void Dispose() {
+            _oGenIter = null;
+            _oGen     = null;
+        }
+
+        public void Write( short iValue ) {
+            if( _rgBuffer.Length < _uiBuffUsed ) {
+                int iNewLen = _rgBuffer.Length + 4096;
+                Array.Resize<short>( ref _rgBuffer, iNewLen );
+                _uiBuffered = (uint)iNewLen;
+            }
+            _rgBuffer[_uiBuffUsed++] = iValue;
+        }
+
+        public UInt32 Read( IntPtr ipTarget, UInt32 uiTargetBytesAsk ) {
+            uint uiCopied    = 0;
+            uint uiTargetAsk = uiTargetBytesAsk >> 1;
+
+            do {
+                uint uiAvailable = _uiBuffered - _uiBuffUsed;
+                uiTargetAsk -= uiCopied;
+                if( uiAvailable > uiTargetAsk ) {
+                    Marshal.Copy( _rgBuffer, (int)_uiBuffUsed, ipTarget, (int)uiTargetAsk );
+                    _uiBuffUsed += uiTargetAsk;
+                    return( uiTargetAsk << 1 );
+                }
+
+                if( uiAvailable > 0 )
+			        Marshal.Copy( _rgBuffer, (int)_uiBuffUsed, ipTarget + (int)(uiCopied * sizeof(short)), (int)uiAvailable );
+
+                uiCopied += uiAvailable;
+
+                if( BufferReload( uiTargetAsk - uiCopied ) == 0 )
+                    return 0;
+            } while( uiCopied < uiTargetAsk );
+
+            return uiCopied;
+        }
+
+        protected uint BufferReload( uint uiRequest ) {
+            _uiBuffered = 0;
+            _uiBuffUsed = 0;
+
+            while( _uiBuffered < uiRequest ) {
+                if( !_oGenIter.MoveNext() )
+                    break;
+            }
+
+            return _uiBuffered;
+		}
     }
 
     public class DocSSTV :
