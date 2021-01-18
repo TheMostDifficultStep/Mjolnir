@@ -73,6 +73,9 @@ namespace Play.SSTV {
 			int[]    rgFFTResult   = _oDocSSTV.FFTResult;
 			int      iFFTResultLen = _oDocSSTV.FFTResultSize;
 
+			if( iFFTResultLen == 0 )
+				return;
+
 			if( oSize.Width > iFFTResultLen ) {
 				// There are less FFT results than pixels wide...
 				double dbStep = oSize.Width / (double)iFFTResultLen;
@@ -129,6 +132,15 @@ namespace Play.SSTV {
 		}
 
 		public bool Execute(Guid sGuid) {
+			if( sGuid == GlobalCommands.Play ) {
+				_oDocSSTV.PlayBegin();
+				return true;
+			}
+			if( sGuid == GlobalCommands.Stop ) {
+				_oDocSSTV.PlayStop();
+				return true;
+			}
+
 			return false;
 		}
 

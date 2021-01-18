@@ -12,10 +12,14 @@ using Play.Sound.FFT;
 using System.Collections;
 
 namespace Play.SSTV {
-    public interface IPgWriter<T> {
+    public interface IPgBufferWriter<T> {
         void Write( T tValue );
     }
 
+    public interface IPgBufferIterator<T> : IPgBufferWriter<T> {
+        void Clear();
+        IEnumerator<int> Pump { get; set; }
+    }
     public delegate void FFTOutputEvent();
 
     public class CVCO {
@@ -86,9 +90,9 @@ namespace Play.SSTV {
     }
 
     public class CSSTVMOD {
-        readonly protected IPgWriter<short> m_oWriter;
-	    readonly protected CVCO             m_vco;
-        readonly protected double           m_dblTxSampleFreq;
+        readonly protected IPgBufferWriter<short> m_oWriter;
+	    readonly protected CVCO                   m_vco;
+        readonly protected double                 m_dblTxSampleFreq;
 
 	    //public int         m_bpf;
 	    //public int         m_bpftap;
@@ -111,7 +115,11 @@ namespace Play.SSTV {
 	    public UInt32      m_VariG   = 588;
 	    public UInt32      m_VariB   = 110;
 
-        public CSSTVMOD( double dblToneOffset, double dblTxSampleFreq, IPgWriter<short> oWriter ) {
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <exception cref="ArgumentNullException" />
+        public CSSTVMOD( double dblToneOffset, double dblTxSampleFreq, IPgBufferWriter<short> oWriter ) {
             m_oWriter = oWriter ?? throw new ArgumentNullException( "data writer must not be null" );
             m_dblTxSampleFreq = dblTxSampleFreq;
 	        //m_bpf = 1;
@@ -166,8 +174,8 @@ namespace Play.SSTV {
 		    } else {
 			    d = 0;
 		    }
-            // Lame: This should be an array. I'll fix that some time.
 		    if( m_VariOut ) {
+                // Lame: This should be an array. I'll fix that some time. Assuming I get anything working. >_<;;
 			    switch( iGain ){
 				    case 0x1000:
 					    d *= m_outgainR;
@@ -182,7 +190,9 @@ namespace Play.SSTV {
 					    d *= m_outgain;
 					    break;
 			    }
-		    }
+		    } else {
+		        d *= m_outgain;
+            }
             return d;
         }
 
@@ -225,10 +235,14 @@ namespace Play.SSTV {
     {
         public SSTVMode Mode { get; }
 
-        private   SKBitmap      _oBitmap;
-        private   CSSTVMOD      _oModulator;
-        protected List<SKColor> _rgCache = new List<SKColor>( 800 );
+        readonly private   SKBitmap      _oBitmap;
+        readonly private   CSSTVMOD      _oModulator;
+        readonly protected List<SKColor> _rgCache = new List<SKColor>( 800 );
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <exception cref="ArgumentNullException" />
         public SSTVGenerator( SKBitmap oBitmap, CSSTVMOD oModulator, SSTVMode oMode ) {
             _oBitmap    = oBitmap    ?? throw new ArgumentNullException( "Bitmap must not be null." );
             _oModulator = oModulator ?? throw new ArgumentNullException( "Modulator must not be null." );
@@ -303,10 +317,12 @@ namespace Play.SSTV {
     /// SCT, Scottie S1, S3, DX
     /// </summary>
     public class ScottieGenerator : SSTVGenerator {
+
+        /// <exception cref="ArgumentOutOfRangeException" />
         public ScottieGenerator( SKBitmap oBitmap, CSSTVMOD oModulator, SSTVMode oMode ) : 
             base( oBitmap, oModulator, oMode )
         {
-            if( oBitmap.Width >= 320 )
+            if( oBitmap.Width != 320 )
                 throw new ArgumentOutOfRangeException( "bitmap must be 320 pix wide." );
         }
 
@@ -355,16 +371,24 @@ namespace Play.SSTV {
     }
 
     /// <summary>
-    /// Consider MemoryStream/BufferedStream, BinaryReader/BinaryWriter
-    /// and UnmanagedMemoryStream 
-    /// for the future, not sure if they quite apply. My current system
-    /// pulls data on demand and only stores as much memory as needed and 
-    /// not the entire stream.
+    /// New experimental buffer implementation. I'll move this over to
+    /// the mp3-play project once I get it working. This object looks
+    /// like a standard byte stream source (IPgReader) but it also
+    /// implements IPgWriter for indirect on demand loading. This 
+    /// implementation obviates the need to subclass this class's
+    /// BufferReload() function.
     /// </summary>
-    public class BufferSSTV : IPgReader, IPgWriter<short> {
-        SSTVGenerator    _oGen;
-        IEnumerator<int> _oGenIter;
-        short[]          _rgBuffer = new short[4096];
+    /// <remarks>
+    /// Consider MemoryStream/BufferedStream, BinaryReader/BinaryWriter
+    /// and UnmanagedMemoryStream for the future, not sure if they quite apply. 
+    /// </remarks>
+    /// <seealso cref="SetPump"/>
+    public class BufferSSTV :
+        IPgReader, 
+        IPgBufferIterator<short> 
+    {
+        IEnumerator<int> _oDataPump  = null;
+        short[]          _rgBuffer   = new short[32768];
         uint             _uiBuffUsed = 0;
         uint             _uiBuffered = 0;
 
@@ -372,27 +396,53 @@ namespace Play.SSTV {
 
         public Specification Spec { get; protected set; }
 
-        public BufferSSTV( SSTVGenerator oGenerator, Specification oSpec ) {
-            _oGen = oGenerator ?? throw new ArgumentNullException();
-            Spec  = oSpec      ?? throw new ArgumentNullException();
-
-            _oGenIter = _oGen.GetEnumerator();
+        public BufferSSTV( Specification oSpec ) {
+            Spec = oSpec ?? throw new ArgumentNullException();
         }
 
         public void Dispose() {
-            _oGenIter = null;
-            _oGen     = null;
+            _oDataPump = null;
+        }
+
+        /// <summary>
+        /// This object is called by the Buffer to request writer input.
+        /// The return value of the iterator is not used. It will call
+        /// the enumerator as many times as needed to provide data for the
+        /// IPgReader user.
+        /// </summary>
+        /// <param name="oDataPump"></param>
+        public IEnumerator<int> Pump {
+            set {
+                _oDataPump = value ?? throw new ArgumentNullException();
+            }
+            get {
+                return _oDataPump;
+            }
         }
 
         public void Write( short iValue ) {
-            if( _rgBuffer.Length < _uiBuffUsed ) {
-                int iNewLen = _rgBuffer.Length + 4096;
-                Array.Resize<short>( ref _rgBuffer, iNewLen );
-                _uiBuffered = (uint)iNewLen;
+            try {
+                if( _uiBuffered >= _rgBuffer.Length ) {
+                    Array.Resize<short>( ref _rgBuffer, _rgBuffer.Length * 2 );
+                }
+                _rgBuffer[_uiBuffered++] = iValue;
+            } catch( IndexOutOfRangeException ) {
             }
-            _rgBuffer[_uiBuffUsed++] = iValue;
         }
 
+        public void Clear() {
+            _uiBuffered = 0;
+            _uiBuffUsed = 0;
+        }
+
+        /// <summary>
+        /// This is a new experimental Read implementation. If you look at my
+        /// older buffer implementations they are more complicated. Let's see if
+        /// if this works as well.
+        /// </summary>
+        /// <param name="ipTarget">Pointer to unmanaged object</param>
+        /// <param name="uiTargetBytesAsk">Number of bytes requested.</param>
+        /// <returns></returns>
         public UInt32 Read( IntPtr ipTarget, UInt32 uiTargetBytesAsk ) {
             uint uiCopied    = 0;
             uint uiTargetAsk = uiTargetBytesAsk >> 1;
@@ -419,11 +469,13 @@ namespace Play.SSTV {
         }
 
         protected uint BufferReload( uint uiRequest ) {
-            _uiBuffered = 0;
-            _uiBuffUsed = 0;
+            Clear();
+
+            if( Pump == null )
+                return 0;
 
             while( _uiBuffered < uiRequest ) {
-                if( !_oGenIter.MoveNext() )
+                if( !Pump.MoveNext() )
                     break;
             }
 
@@ -439,31 +491,52 @@ namespace Play.SSTV {
     {
         private bool disposedValue;
 
-        protected readonly IPgBaseSite _oSiteBase;
+        protected readonly IPgBaseSite       _oSiteBase;
+		protected readonly IPgRoundRobinWork _oWorkPlace;
+        protected readonly IPgSound          _oSound;
 
         public IPgParent Parentage => _oSiteBase.Host;
-        public IPgParent Services  => throw new NotImplementedException();
+        public IPgParent Services  => Parentage;
         public bool      IsDirty   => false;
 
         protected Mpg123FFTSupport FileDecoder { get; set; }
+        protected BufferSSTV       SSTVBuffer  { get; set; }
+        protected SKBitmap         Bitmap      { get; set; }
+		protected IPgPlayer        _oPlayer;
 
 		double[] _rgFFTData; // Data input for FFT. Note: it get's destroyed in the process.
 		CFFT     _oFFT;
 
         public int[] FFTResult { get; protected set; }
-        public int   FFTResultSize => _oFFT.Mode.TopBucket;
+        public int   FFTResultSize { 
+            get {
+                if( _oFFT == null )
+                    return 0;
+
+                return _oFFT.Mode.TopBucket; // The 3.01kHz size we care about.
+            }
+        }
 
         public event FFTOutputEvent FFTOutputNotify;
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <exception cref="ArgumentNullException" />
+        /// <exception cref="ApplicationException" />
         public DocSSTV( IPgBaseSite oSite ) {
-            _oSiteBase = oSite ?? throw new ArgumentNullException( "Site must not be null" );
+            _oSiteBase  = oSite ?? throw new ArgumentNullException( "Site must not be null" );
+            _oWorkPlace = ((IPgScheduler)Services).CreateWorkPlace() ?? throw new ApplicationException( "Couldn't create a worksite from scheduler.");
+			_oSound     = ((IPgSound)Services) ?? throw new ArgumentNullException( "Guest requires IPgSound from host." );
         }
 
         #region Dispose
         protected virtual void Dispose( bool disposing ) {
             if( !disposedValue ) {
                 if( disposing ) {
-                    FileDecoder.Dispose();
+                    // If init new fails then this won't get created.
+                    if( FileDecoder != null )
+                        FileDecoder.Dispose();
                 }
 
                 // TODO: free unmanaged resources (unmanaged objects) and override finalizer
@@ -517,7 +590,7 @@ namespace Play.SSTV {
             return true;
         }
 
-        public bool InitNew() {
+        public bool InitNew3() {
 	        //string strSong = @"C:\Users\Frodo\Documents\signals\1kHz_Right_Channel.mp3"; // Max signal 262.
             //string strSong = @"C:\Users\Frodo\Documents\signals\sstv-essexham-image01-martin2.mp3";
             string strSong = @"C:\Users\Frodo\Documents\signals\sstv-essexham-image02-scottie2.mp3";
@@ -549,12 +622,57 @@ namespace Play.SSTV {
             return true;
         }
 
+        protected bool LoadBitmap( string strFile ) {
+            Bitmap = SKBitmap.Decode( strFile );
+
+            return Bitmap != null;
+        }
+
+        public bool InitNew() {
+            string strImage = @"C:\Users\Frodo\Documents\signals\test-images\tofu2-320-256.jpg"; 
+            if( !LoadBitmap( strImage ) )
+                return false;
+
+            try {
+                Specification oSpec          = new Specification( 44100, 1, 0, 16 );
+                              SSTVBuffer     = new BufferSSTV( oSpec );
+
+                CSSTVMOD      oSSTVModulator = new CSSTVMOD( 0, oSpec.Rate, SSTVBuffer );
+
+                SSTVMode      oMode          = new SSTVMode( 0xb8, "Scotty 2",  -1,  88.064 );
+                SSTVGenerator oSSTVGenerator = new ScottieGenerator( Bitmap, oSSTVModulator, oMode );
+
+                SSTVBuffer.Pump = oSSTVGenerator.GetEnumerator();
+
+                _oPlayer = new WmmPlayer( oSpec, 1); // _oSound.CreateSoundPlayer( oSpec );
+            } catch( ArgumentOutOfRangeException ) {
+                return false;
+            }
+
+            return true;
+        }
+
+        public IEnumerator<int> GetPlayerTask() {
+            do {
+                uint uiWait = ( _oPlayer.Play( SSTVBuffer ) >> 1 ) + 1;
+                yield return (int)uiWait;
+            } while( SSTVBuffer.IsReading );
+        }
+
         public bool Load( TextReader oStream ) {
             return InitNew();
         }
 
         public bool Save( TextWriter oStream ) {
             return true;
+        }
+
+        public void PlayBegin() {
+            _oWorkPlace.Queue( GetPlayerTask(), 0 );
+        }
+
+        public void PlayStop() {
+            _oWorkPlace.Stop();
         }
 
         public void PlaySegment() {

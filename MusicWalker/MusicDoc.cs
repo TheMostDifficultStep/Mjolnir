@@ -1051,6 +1051,12 @@ namespace Play.MusicWalker {
 			return( "OOPS" );
 		}
 
+		/// <summary>
+		/// This is a pre 'async' keyword implentation of a async task monitor. This is how we
+		/// used to send music commands to net clients and wait for results. This could be
+		/// re-written. But I never got the net client thing working much anyway.
+		/// </summary>
+		/// <returns>Returns the time in ms to wait for next call.</returns>
 		public IEnumerator<int> EnumWatchTask() {
 			while( true ) {
 				do {
