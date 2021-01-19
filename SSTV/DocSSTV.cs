@@ -74,7 +74,10 @@ namespace Play.SSTV {
         }
 
         /// <summary>
-        /// Return the Sin of the frequency, compensated by phase.
+        /// Calculate the sin of the frequence. Not eactly sure of the magic
+        /// here. However, "d" is constant while generating samples of a particular
+        /// frequency, so m_z keeps track of where we are in the sin wave generation.
+        /// Normally, I would do something like wave(t) = sin( freq * t ).
         /// </summary>
         /// <returns>Sin of input value, range -1 to 1</returns>
         public double Do( double d ) {
@@ -146,10 +149,10 @@ namespace Play.SSTV {
         }
 
         public int Write( int iFrequency, int iGain, double dbTimeMS ) {
-	        double dbTime = (dbTimeMS * m_dblTxSampleFreq)/1000.0;
+	        double dbSamples = (dbTimeMS * m_dblTxSampleFreq)/1000.0;
 
             int iPos = 0;
-	        while( iPos < (int)dbTime ) {
+	        while( iPos < (int)dbSamples ) {
                 m_oWriter.Write( (short)Process( iFrequency, iGain ) );
                 iPos++;
             }
@@ -285,6 +288,7 @@ namespace Play.SSTV {
 			}
 			
             Write(1200, 0x0, 30); // Sync
+            Write(1200, 0x0, 9.0 );
         }
 
         /// <summary>
@@ -448,24 +452,35 @@ namespace Play.SSTV {
             uint uiTargetAsk = uiTargetBytesAsk >> 1;
 
             do {
-                uint uiAvailable = _uiBuffered - _uiBuffUsed;
-                uiTargetAsk -= uiCopied;
-                if( uiAvailable > uiTargetAsk ) {
-                    Marshal.Copy( _rgBuffer, (int)_uiBuffUsed, ipTarget, (int)uiTargetAsk );
-                    _uiBuffUsed += uiTargetAsk;
-                    return( uiTargetAsk << 1 );
+                unsafe {
+                    uint   uiAvailable = _uiBuffered - _uiBuffUsed;
+                    short* pTargOffset = (short*)ipTarget.ToPointer();
+                    
+                    pTargOffset += uiCopied;
+                    uiTargetAsk -= uiCopied;
+
+                    if( uiAvailable > uiTargetAsk ) {
+                        for( int i = 0, iFrom = (int)_uiBuffUsed; i< uiTargetAsk; ++i, ++iFrom ) {
+                            *pTargOffset++ = _rgBuffer[iFrom];
+                        }
+                        _uiBuffUsed += uiTargetAsk;
+                        return( uiTargetBytesAsk ); // If here, we always returned the amount asked for.
+                    }
+
+                    if( uiAvailable > 0 ) {
+                        for( int i = 0, iFrom = (int)_uiBuffUsed; i< uiAvailable; ++i, ++iFrom ) {
+                            *pTargOffset++ = _rgBuffer[iFrom];
+                        }
+                    }
+
+                    uiCopied += uiAvailable;
+
+                    if( BufferReload( uiTargetAsk - uiCopied ) == 0 )
+                        return uiCopied << 1;       // If here, we ran out of data.
                 }
-
-                if( uiAvailable > 0 )
-			        Marshal.Copy( _rgBuffer, (int)_uiBuffUsed, ipTarget + (int)(uiCopied * sizeof(short)), (int)uiAvailable );
-
-                uiCopied += uiAvailable;
-
-                if( BufferReload( uiTargetAsk - uiCopied ) == 0 )
-                    return 0;
             } while( uiCopied < uiTargetAsk );
 
-            return uiCopied;
+            return uiCopied << 1;
         }
 
         protected uint BufferReload( uint uiRequest ) {
@@ -474,10 +489,10 @@ namespace Play.SSTV {
             if( Pump == null )
                 return 0;
 
-            while( _uiBuffered < uiRequest ) {
+            do {
                 if( !Pump.MoveNext() )
                     break;
-            }
+            } while( _uiBuffered < uiRequest );
 
             return _uiBuffered;
 		}
@@ -494,6 +509,8 @@ namespace Play.SSTV {
         protected readonly IPgBaseSite       _oSiteBase;
 		protected readonly IPgRoundRobinWork _oWorkPlace;
         protected readonly IPgSound          _oSound;
+
+        DataTester _oDataTester;
 
         public IPgParent Parentage => _oSiteBase.Host;
         public IPgParent Services  => Parentage;
@@ -590,6 +607,87 @@ namespace Play.SSTV {
             return true;
         }
 
+        public class DataTester : 
+            IEnumerable<int>, 
+            IDisposable
+        {
+            IPgBufferWriter<short> _oWriter;
+            IPgReader              _oReader;
+
+            bool disposedValue;
+            readonly int    _iCacheSize = 50;
+            readonly uint   _uiMemSize = 12;
+            readonly IntPtr _iptMem;
+            int _iEnumerations = 0;
+            uint _uiConsumption  = 0;
+
+            public DataTester( BufferSSTV oTVBuffer ) {
+                _oWriter = oTVBuffer ?? throw new ArgumentNullException();
+                _oReader = oTVBuffer ?? throw new ArgumentNullException();
+
+                _iptMem  = Marshal.AllocHGlobal( (int)_uiMemSize);
+            }
+
+            public IEnumerator<int> GetEnumerator() {
+                while( true ) {
+                    _iEnumerations++;
+                    for( short i=0; i < _iCacheSize; ++i ) {
+                        _oWriter.Write( i );
+                    }
+                    yield return _iCacheSize;
+                }
+            }
+
+            IEnumerator IEnumerable.GetEnumerator() {
+                return GetEnumerator();
+            }
+
+            public int ConsumeData() {
+                unsafe {
+                    short * foo = (short*)_iptMem.ToPointer();
+                    uint uiCopied = _oReader.Read( _iptMem, _uiMemSize );
+                    if( uiCopied != _uiMemSize )
+                        throw new ApplicationException( "data read error" );
+                    _uiConsumption += uiCopied;
+
+                    for( int i=0; i<_uiMemSize/2 - 1; ++i ) {
+                        if( foo[i] + 1 != foo[i+1] ) {
+                            if( foo[i] != _iCacheSize - 1  || foo[i+1] != 0 )
+                                throw new ApplicationException( "data content error" );
+                        }
+                    }
+                }
+                return (int)_uiConsumption;
+            }
+
+            protected virtual void Dispose( bool disposing ) {
+                if( !disposedValue ) {
+                    if( disposing ) {
+                        // TODO: dispose managed state (managed objects)
+                    }
+
+                    // TODO: free unmanaged resources (unmanaged objects) and override finalizer
+                    // TODO: set large fields to null
+                    Marshal.FreeHGlobal(_iptMem);
+                    disposedValue = true;
+                }
+            }
+
+            // TODO: override finalizer only if 'Dispose(bool disposing)' has code to free unmanaged resources
+            ~DataTester()
+            {
+                // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+                Dispose(disposing: false);
+            }
+
+            public void Dispose()
+            {
+                // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+                Dispose(disposing: true);
+                GC.SuppressFinalize(this);
+            }
+        }
+
         public bool InitNew3() {
 	        //string strSong = @"C:\Users\Frodo\Documents\signals\1kHz_Right_Channel.mp3"; // Max signal 262.
             //string strSong = @"C:\Users\Frodo\Documents\signals\sstv-essexham-image01-martin2.mp3";
@@ -644,8 +742,13 @@ namespace Play.SSTV {
 
                 SSTVBuffer.Pump = oSSTVGenerator.GetEnumerator();
 
-                _oPlayer = new WmmPlayer( oSpec, 1); // _oSound.CreateSoundPlayer( oSpec );
-            } catch( ArgumentOutOfRangeException ) {
+                _oPlayer = new WmmPlayer(oSpec, 1); // _oSound.CreateSoundPlayer( oSpec );
+
+                //_oDataTester = new DataTester( SSTVBuffer );
+
+                //SSTVBuffer.Pump = _oDataTester.GetEnumerator();
+            }
+            catch( ArgumentOutOfRangeException ) {
                 return false;
             }
 
@@ -669,6 +772,8 @@ namespace Play.SSTV {
 
         public void PlayBegin() {
             _oWorkPlace.Queue( GetPlayerTask(), 0 );
+            //while ( _oDataTester.ConsumeData() < 350000 ) {
+            //}
         }
 
         public void PlayStop() {
