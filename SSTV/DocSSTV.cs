@@ -208,13 +208,11 @@ namespace Play.SSTV {
     public class SSTVMode {
         readonly public byte   VIS;
         readonly public string Name = string.Empty;
-        readonly public double SyncInMS;
         readonly public double TxWidthInMS; // Single line.
 
-        public SSTVMode( byte bVIS, string strName, double dbSync, double dbTxWidth ) {
+        public SSTVMode( byte bVIS, string strName, double dbTxWidth ) {
             VIS         = bVIS;
             Name        = strName;
-            SyncInMS    = dbSync;
             TxWidthInMS = dbTxWidth;
         }
     }
@@ -330,9 +328,9 @@ namespace Play.SSTV {
         /// </summary>
         /// <returns></returns>
         public static IEnumerator<SSTVMode> GetModeEnumerator() {
- 	        yield return new SSTVMode( 0x3c, "Scottie 1",  -1, 138.240 );
-            yield return new SSTVMode( 0xb8, "Scottie 2",  -1,  88.064 );
-            yield return new SSTVMode( 0xcc, "Scottie DX", -1, 345.600 );
+ 	        yield return new SSTVMode( 0x3c, "Scottie 1",  138.240 );
+            yield return new SSTVMode( 0xb8, "Scottie 2",   88.064 );
+            yield return new SSTVMode( 0xcc, "Scottie DX", 345.600 );
         }
 
         /// <summary>
@@ -396,8 +394,8 @@ namespace Play.SSTV {
         /// </summary>
         /// <returns></returns>
         public static IEnumerator<SSTVMode> GetModeEnumerator() {
- 	        yield return new SSTVMode( 0xac, "Martin 1",  -1, 146.432 );
-            yield return new SSTVMode( 0x28, "Martin 2",  -1,  73.216 );
+ 	        yield return new SSTVMode( 0xac, "Martin 1",  146.432 );
+            yield return new SSTVMode( 0x28, "Martin 2",   73.216 );
         }
 
         /// <summary>
@@ -436,6 +434,9 @@ namespace Play.SSTV {
         }
     }
 
+    /// <summary>
+    /// This class generates the PD modes.
+    /// </summary>
     public class GeneratePD : SSTVGenerator {
         struct Chrominance8Bit {
             public byte  Y;
@@ -455,13 +456,13 @@ namespace Play.SSTV {
         }
 
         public static IEnumerator<SSTVMode> GetModeEnumerator() {
- 	        yield return new SSTVMode( 0xdd, "PD 50",   -1,  91.520 );
-            yield return new SSTVMode( 0x63, "PD 90",   -1, 170.240 );
-            yield return new SSTVMode( 0x5f, "PD 120",  -1, 121.600 );
-            yield return new SSTVMode( 0xe2, "PD 160",  -1, 195.584 );
-            yield return new SSTVMode( 0x60, "PD 180",  -1, 183.040 );
-            yield return new SSTVMode( 0xe1, "PD 240",  -1, 244.480 );
-            yield return new SSTVMode( 0xde, "PD 290",  -1, 228.800 );
+ 	        yield return new SSTVMode( 0xdd, "PD 50",    91.520 );
+            yield return new SSTVMode( 0x63, "PD 90",   170.240 );
+            yield return new SSTVMode( 0x5f, "PD 120",  121.600 );
+            yield return new SSTVMode( 0xe2, "PD 160",  195.584 );
+            yield return new SSTVMode( 0x60, "PD 180",  183.040 );
+            yield return new SSTVMode( 0xe1, "PD 240",  244.480 );
+            yield return new SSTVMode( 0xde, "PD 290",  228.800 );
         }
 
         public byte Limit256( double d ) {
@@ -493,7 +494,7 @@ namespace Play.SSTV {
         /// <param name="iLine">The bitmap line to output.</param>
         /// <returns>How many samples written.</returns>
         /// <remarks>Note that you MUST override the default Generator iterator since
-        /// we have to WriteLine ever TWO lines!!</remarks>
+        /// this WriteLine generates TWO lines!!</remarks>
         protected override void WriteLine( int iLine ) {
 	        double dbTransmitWidth = Mode.TxWidthInMS / Width;
 
@@ -544,6 +545,7 @@ namespace Play.SSTV {
             }
         }
     } // End class
+
     /// <summary>
     /// New experimental buffer implementation. I'll move this over to
     /// the mp3-play project once I get it working. This object looks
@@ -831,13 +833,13 @@ namespace Play.SSTV {
                               SSTVBuffer     = new BufferSSTV( oSpec );
                 CSSTVMOD      oSSTVModulator = new CSSTVMOD( 0, oSpec.Rate, SSTVBuffer );
 
-                //SSTVMode      oMode          = new SSTVMode( 0x3c, "Scotty 1",  -1, 138.240 );
+                //SSTVMode      oMode          = new SSTVMode( 0x3c, "Scotty 1",  138.240 );
                 //SSTVGenerator oSSTVGenerator = new GenerateScottie( Bitmap, oSSTVModulator, oMode );
 
-                //SSTVMode      oMode          = new SSTVMode( 0x28, "Martin 2",  -1,  73.216 );
+                //SSTVMode      oMode          = new SSTVMode( 0x28, "Martin 2",   73.216 );
                 //SSTVGenerator oSSTVGenerator = new GenerateMartin(Bitmap, oSSTVModulator, oMode);
 
-                SSTVMode      oMode          = new SSTVMode( 0x63, "PD 90",   -1, 170.240 );
+                SSTVMode      oMode          = new SSTVMode( 0x63, "PD 90",   170.240 );
                 SSTVGenerator oSSTVGenerator = new GeneratePD( Bitmap, oSSTVModulator, oMode );
 
                 SSTVBuffer.Pump = oSSTVGenerator.GetEnumerator();
