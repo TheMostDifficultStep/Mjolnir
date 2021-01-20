@@ -29,7 +29,7 @@
     <ProjectReference Include="..\Editor\Editor.csproj" />
     <ProjectReference Include="..\ImageViewer\ImageViewer.csproj" />
     <ProjectReference Include="..\Interfaces\Interfaces.csproj" />
-    <ProjectReference Include="..\Mp3-Play\Mp3-Play.csproj" />
+    <ProjectReference Include="..\Mp3-Play\DSP-Goodies.csproj" />
     <ProjectReference Include="..\ParseAll\ParseAll.csproj" />
   </ItemGroup>
 

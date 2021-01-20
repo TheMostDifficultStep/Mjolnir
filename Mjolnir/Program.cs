@@ -126,8 +126,7 @@ namespace Mjolnir {
                 // then I could set up the window on demand, based on the persistance data.
 			    try {
 				    oProgram.SessionLoad( rgArgs, xmlConfig );
-                }
-                catch ( Exception oEx ) {
+                } catch ( Exception oEx ) {
                     oProgram.TryLogXmlError( oEx, "Couldn't configure Main window." );
 
                     return;

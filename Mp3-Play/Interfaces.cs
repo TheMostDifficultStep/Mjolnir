@@ -142,7 +142,7 @@ namespace Play.Sound {
 	public interface IPgReader : IDisposable {
 		bool          IsReading { get; }
 		UInt32        Read( IntPtr ipBuffer, UInt32 uiRequestedBytes );
-		//UInt32        Read( byte[] rgBuffer, int iStartIndex, UInt32 uiRequestedBytes );
+	  //UInt32        Read( byte[] rgBuffer, int iStartIndex, UInt32 uiRequestedBytes );
 		Specification Spec { get; }
 	}
 

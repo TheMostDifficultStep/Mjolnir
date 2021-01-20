@@ -2,8 +2,34 @@
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Collections.Generic;
+using System.Collections;
 
 namespace Play.Sound {
+	/// <summary>
+	/// This is a small adjunct for our sound producers. It provides an abstract
+	/// way to write our signal into a data buffer before going to the sound card.
+	/// </summary>
+	/// <typeparam name="T">Data type of a single sample of the stream.</typeparam>
+    public interface IPgBufferWriter<T> {
+        void Write( T tValue );
+    }
+
+	/// <summary>
+	/// Specialization for buffers to request data on demand.
+	/// </summary>
+	/// <typeparam name="T"></typeparam>
+    public interface IPgBufferIterator<T> : IPgBufferWriter<T> {
+		/// <summary>
+		/// Clear the data in the buffer for a reset.
+		/// </summary>
+        void Clear();
+		/// <summary>
+		/// The signal generator provides us with an iterator that we
+		/// walk in order to get signal to be generated and fed into
+		/// our buffer.
+		/// </summary>
+        IEnumerator<int> Pump { get; set; }
+    }
 	/// <summary>
 	/// A little experiment with the fourier equation. This is a "naive" solution in
 	/// that it's the O(n^2) version. Does not scale up. Need to get my hands on a FFT.
@@ -102,10 +128,98 @@ namespace Play.Sound {
 		}
 	}
 
+    /// <summary>
+    /// This is a tiny little data consumer/producer that can test 
+    /// my new iterating sound data buffer.
+    /// </summary>
+    public class DataTester : 
+        IEnumerable<int>, 
+        IDisposable
+    {
+        bool disposedValue;
+
+        readonly IPgBufferWriter<short> _oWriter;
+        readonly IPgReader              _oReader;
+
+        readonly int    _iCacheSize = 50;
+        readonly uint   _uiMemSize  = 12;
+        readonly IntPtr _ipMemAttr;       // Tiny little buffer.
+
+        int  _iEnumerations = 0;
+        uint _uiConsumption = 0;
+
+        public DataTester( object oTVBuffer ) {
+            _oWriter = oTVBuffer as IPgBufferWriter<short> ?? throw new ArgumentNullException();
+            _oReader = oTVBuffer as IPgReader              ?? throw new ArgumentNullException();
+
+            _ipMemAttr = Marshal.AllocHGlobal( (int)_uiMemSize);
+        }
+
+        public IEnumerator<int> GetEnumerator() {
+            while( true ) {
+                _iEnumerations++;
+                for( short i=0; i < _iCacheSize; ++i ) {
+                    _oWriter.Write( i );
+                }
+                yield return _iCacheSize;
+            }
+        }
+
+        IEnumerator IEnumerable.GetEnumerator() {
+            return GetEnumerator();
+        }
+
+        public int ConsumeData() {
+            unsafe {
+                short * foo = (short*)_ipMemAttr.ToPointer();
+                uint uiCopied = _oReader.Read( _ipMemAttr, _uiMemSize );
+                if( uiCopied != _uiMemSize )
+                    throw new ApplicationException( "data read error" );
+                _uiConsumption += uiCopied;
+
+                for( int i=0; i<_uiMemSize/2 - 1; ++i ) {
+                    if( foo[i] + 1 != foo[i+1] ) {
+                        if( foo[i] != _iCacheSize - 1  || foo[i+1] != 0 )
+                            throw new ApplicationException( "data content error" );
+                    }
+                }
+            }
+            return (int)_uiConsumption;
+        }
+
+        #region Dispose
+        protected virtual void Dispose( bool disposing ) {
+            if( !disposedValue ) {
+                if( disposing ) {
+                    // TODO: dispose managed state (managed objects)
+                }
+
+                // TODO: free unmanaged resources (unmanaged objects) and override finalizer
+                // TODO: set large fields to null
+                Marshal.FreeHGlobal(_ipMemAttr);
+                disposedValue = true;
+            }
+        }
+
+        // TODO: override finalizer only if 'Dispose(bool disposing)' has code to free unmanaged resources
+        ~DataTester() {
+            // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+            Dispose(disposing: false);
+        }
+
+        public void Dispose() {
+            // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+            Dispose(disposing: true);
+            GC.SuppressFinalize(this);
+        }
+        #endregion
+    }
+
 	/// <summary>
-	/// Juggling differing sizes of the decoded data and the player buffers is a pain in the
+	/// Juggling differing sizes of the decoded data and the sound player buffers is a pain in the
 	/// rear. This class does the hard work of aligning the buffered decoded data with the
-	/// requests from the players. You simply load your buffer when requested.
+	/// requests from the players. You simply load your buffer when requested. This is a second
+	/// version
 	/// </summary>
 	/// <seealso cref="BufferReload" />
 	public abstract class AbstractReader : IPgReader {
@@ -419,6 +533,8 @@ namespace Play.Sound {
 	//}
 
 	public class GenerateSin : AbstractReader {
+		double rad = 0;
+
 		public GenerateSin( Specification oSpec, uint uiFreq ) {
 			Spec = oSpec;
 			GenerateBuffer( uiFreq );
@@ -438,7 +554,6 @@ namespace Play.Sound {
 			_rgBuffer = new byte[(int)Math.Round( flSamplesPerCycle ) * iWordSize ];
 
 			float  dStep = (float)Math.PI * 2 / flSamplesPerCycle;
-			double rad   = 0;
 
 			Byte[] rgBytes = new Byte[4];
 

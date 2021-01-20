@@ -12,15 +12,14 @@ using Play.Sound.FFT;
 using System.Collections;
 
 namespace Play.SSTV {
-    public interface IPgBufferWriter<T> {
-        void Write( T tValue );
-    }
-
-    public interface IPgBufferIterator<T> : IPgBufferWriter<T> {
-        void Clear();
-        IEnumerator<int> Pump { get; set; }
-    }
     public delegate void FFTOutputEvent();
+
+    public enum GIdx : int {
+        Unused = 0,
+        R = 1,
+        G = 2,
+        B = 3
+    }
 
     public class CVCO {
 	    double	m_c1;	// VCOの利得, VCO Gain.
@@ -101,10 +100,8 @@ namespace Play.SSTV {
 	    //public int         m_bpftap;
 	    //public int         m_lpf;
 	    //public double      m_lpffq;
-	    public double      m_outgain;
-	    public double      m_outgainG;
-	    public double      m_outgainB;
-	    public double      m_outgainR;
+
+        public double[]    m_rgOutGain = new double[4];
 
 	    //public int         m_TuneFreq = 1750;
 	    //public int         m_tune     = 0;
@@ -114,12 +111,10 @@ namespace Play.SSTV {
 	    //CSmooz      avgLPF; // BUG: probably should add this one back.
 
 	    public bool        m_VariOut = false;
-	    public UInt32      m_VariR   = 298;
-	    public UInt32      m_VariG   = 588;
-	    public UInt32      m_VariB   = 110;
+        public UInt32[]    m_rgVariOut = new UInt32[4];
 
         /// <summary>
-        /// 
+        /// Use this class to generate the tones necessary for an SSTV signal.
         /// </summary>
         /// <exception cref="ArgumentNullException" />
         public CSSTVMOD( double dblToneOffset, double dblTxSampleFreq, IPgBufferWriter<short> oWriter ) {
@@ -138,7 +133,13 @@ namespace Play.SSTV {
 		        //m_BPF.Create(m_bpftap, ffBPF, dblTxSampleFreq, lfq, 2800 + dblToneOffset, 40, 1.0);
           //  }
 
-	        m_outgain = 24578.0;
+            m_rgVariOut[(int)GIdx.Unused] = 0;
+	        m_rgVariOut[(int)GIdx.R] = 298; // R
+	        m_rgVariOut[(int)GIdx.G] = 588; // G
+	        m_rgVariOut[(int)GIdx.B] = 110; // B
+
+	        m_rgOutGain[0] = 24578.0;
+
 	        InitGain();
 
             m_vco = new CVCO( dblTxSampleFreq, dblToneOffset );
@@ -148,12 +149,12 @@ namespace Play.SSTV {
 	        m_vco.SetGain      ( 2300 - 1100 );
         }
 
-        public int Write( int iFrequency, int iGain, double dbTimeMS ) {
+        public int Write( int iFrequency, uint uiGain, double dbTimeMS ) {
 	        double dbSamples = (dbTimeMS * m_dblTxSampleFreq)/1000.0;
 
             int iPos = 0;
 	        while( iPos < (int)dbSamples ) {
-                m_oWriter.Write( (short)Process( iFrequency, iGain ) );
+                m_oWriter.Write( (short)Process( iFrequency, uiGain ) );
                 iPos++;
             }
 
@@ -164,38 +165,28 @@ namespace Play.SSTV {
         /// From CSSTVMOD::Do(void), convert frequency signal to a time domain signal and adjust gain.
         /// </summary>
         /// <param name="iFrequency">1500->2300</param>
-        /// <param name="iGain">Gain Selector for R, G & B</param>
+        /// <param name="uiGainIndex">Gain Selector for R, G & B</param>
         /// <returns></returns>
-        protected double Process( int iFrequency, int iGain ) {
+        protected double Process( int iFrequency, uint uiGainIndex ) {
 	        double d;
 
 		    if( iFrequency > 0 ){
-			    d = (double)( iFrequency - 1100 )/(double)(2300-1100); // d: .333 -> 1
+			    d = (double)( iFrequency - 1100 )/(double)(2300-1100); // d: .333 --> 1
 			    //if( m_lpf ) 
                 //  d = avgLPF.Avg(d);
 			    d = m_vco.Do(d); // Convert frequency to time domain.
 		    } else {
 			    d = 0;
 		    }
-		    if( m_VariOut ) {
-                // Lame: This should be an array. I'll fix that some time. Assuming I get anything working. >_<;;
-			    switch( iGain ){
-				    case 0x1000:
-					    d *= m_outgainR;
-					    break;
-				    case 0x2000:
-					    d *= m_outgainG;
-					    break;
-				    case 0x3000:
-					    d *= m_outgainB;
-					    break;
-				    default:
-					    d *= m_outgain;
-					    break;
-			    }
-		    } else {
-		        d *= m_outgain;
-            }
+
+		    if( !m_VariOut )
+                uiGainIndex = 0;
+
+            if( uiGainIndex > m_rgOutGain.Length )
+                throw new ArgumentOutOfRangeException( "Gain is out of range." );
+
+            d *= m_rgOutGain[uiGainIndex];
+
             return d;
         }
 
@@ -204,15 +195,15 @@ namespace Play.SSTV {
 	    //void        OpenTXBuf(int s);
 	    //void        CloseTXBuf(void);
 
-        // Lame: This should be an array. I'll fix that some time.
         protected void InitGain() {
-	        if( m_VariR > 1000 ) m_VariR = 1000;
-	        if( m_VariG > 1000 ) m_VariG = 1000;
-	        if( m_VariB > 1000 ) m_VariB = 1000;
+            for( int i = 0; i< m_rgVariOut.Length; ++i ) {
+	            if( m_rgVariOut[i] > 1000 )
+                    m_rgVariOut[i] = 1000;
+            }
 
-	        m_outgainR = m_outgain * (double)m_VariR * 0.001;
-	        m_outgainG = m_outgain * (double)m_VariG * 0.001;
-	        m_outgainB = m_outgain * (double)m_VariB * 0.001;
+            for( int i = 1; i < m_rgOutGain.Length; ++ i ) {
+	            m_rgOutGain[i] = m_rgOutGain[0] * (double)m_rgVariOut[i] * 0.001;
+            }
         }
     }
 
@@ -261,8 +252,8 @@ namespace Play.SSTV {
         protected int     Height                   => _oBitmap.Height;
         public    bool    IsDirty                  => true; // We're always happy to write.
 
-        protected int Write( int iFrequency, int iGain, double dbTimeMS ) {
-            return _oModulator.Write( iFrequency, iGain, dbTimeMS );
+        protected int Write( int iFrequency, uint uiGain, double dbTimeMS ) {
+            return _oModulator.Write( iFrequency, uiGain, dbTimeMS );
         }
 
         /// <summary>
@@ -287,8 +278,8 @@ namespace Play.SSTV {
 				uiVIS >>= 1;
 			}
 			
-            Write(1200, 0x0, 30); // Sync
-            Write(1200, 0x0, 9.0 );
+            Write(1200, 0x0, 30 ); // Sync
+            Write(1200, 0x0,  9 );
         }
 
         /// <summary>
@@ -320,10 +311,10 @@ namespace Play.SSTV {
     /// <summary>
     /// SCT, Scottie S1, S3, DX
     /// </summary>
-    public class ScottieGenerator : SSTVGenerator {
+    public class GenerateScottie : SSTVGenerator {
 
         /// <exception cref="ArgumentOutOfRangeException" />
-        public ScottieGenerator( SKBitmap oBitmap, CSSTVMOD oModulator, SSTVMode oMode ) : 
+        public GenerateScottie( SKBitmap oBitmap, CSSTVMOD oModulator, SSTVMode oMode ) : 
             base( oBitmap, oModulator, oMode )
         {
             if( oBitmap.Width != 320 )
@@ -360,16 +351,16 @@ namespace Play.SSTV {
 
 	        for( int x = 0; x < 320; x++ ) {     // G
                 _rgCache.Add( GetPixel( x, iLine ) );
-		        Write( ColorToFreq( _rgCache[x].Green ), 0x2000, dbTransmitWidth );
+		        Write( ColorToFreq( _rgCache[x].Green ), (uint)GIdx.G, dbTransmitWidth );
 	        }
 	        Write( 1500, 0x3000, 1.5 );
 	        for( int x = 0; x < 320; x++ ) {     // B
-		        Write( ColorToFreq( _rgCache[x].Blue  ), 0x3000, dbTransmitWidth );
+		        Write( ColorToFreq( _rgCache[x].Blue  ), (uint)GIdx.B, dbTransmitWidth );
 	        }
 	        Write( 1200, 0, 9 );
 	        Write( 1500, 0x1000, 1.5 );
 	        for( int x = 0; x < 320; x++ ) {     // R
-		       Write( ColorToFreq( _rgCache[x].Red   ), 0x1000, dbTransmitWidth );
+		        Write( ColorToFreq( _rgCache[x].Red   ), (uint)GIdx.R, dbTransmitWidth );
 	        }
         }
     }
@@ -392,7 +383,7 @@ namespace Play.SSTV {
         IPgBufferIterator<short> 
     {
         IEnumerator<int> _oDataPump  = null;
-        short[]          _rgBuffer   = new short[32768];
+        short[]          _rgBuffer   = new short[32768]; // Large enough for a single scanline 
         uint             _uiBuffUsed = 0;
         uint             _uiBuffered = 0;
 
@@ -508,7 +499,6 @@ namespace Play.SSTV {
 
         protected readonly IPgBaseSite       _oSiteBase;
 		protected readonly IPgRoundRobinWork _oWorkPlace;
-        protected readonly IPgSound          _oSound;
 
         DataTester _oDataTester;
 
@@ -544,7 +534,6 @@ namespace Play.SSTV {
         public DocSSTV( IPgBaseSite oSite ) {
             _oSiteBase  = oSite ?? throw new ArgumentNullException( "Site must not be null" );
             _oWorkPlace = ((IPgScheduler)Services).CreateWorkPlace() ?? throw new ApplicationException( "Couldn't create a worksite from scheduler.");
-			_oSound     = ((IPgSound)Services) ?? throw new ArgumentNullException( "Guest requires IPgSound from host." );
         }
 
         #region Dispose
@@ -554,6 +543,8 @@ namespace Play.SSTV {
                     // If init new fails then this won't get created.
                     if( FileDecoder != null )
                         FileDecoder.Dispose();
+                    if( _oPlayer != null )
+                        _oPlayer.Dispose();
                 }
 
                 // TODO: free unmanaged resources (unmanaged objects) and override finalizer
@@ -580,6 +571,18 @@ namespace Play.SSTV {
             _oSiteBase.LogError( "SSTV", strMessage );
         }
 
+        protected bool LoadBitmap( string strFile ) {
+            Bitmap = SKBitmap.Decode( strFile );
+
+            return Bitmap != null;
+        }
+
+        /// <summary>
+        /// Set up a sample signal for the FFT. This is for test purposes. I should use
+        /// one of my DSP-Goodies functions but I'm still sorting that all out.
+        /// </summary>
+        /// <param name="oCtrl"></param>
+        /// <param name="rgData"></param>
         protected static void LoadData( FFTControlValues oCtrl, List<double> rgData ) {
             // We need FFTSize number of samples.
 			rgData.Clear();
@@ -605,87 +608,6 @@ namespace Play.SSTV {
 			FFTResult  = new int   [_oFFT.Mode.FFTSize/2];
 
             return true;
-        }
-
-        public class DataTester : 
-            IEnumerable<int>, 
-            IDisposable
-        {
-            IPgBufferWriter<short> _oWriter;
-            IPgReader              _oReader;
-
-            bool disposedValue;
-            readonly int    _iCacheSize = 50;
-            readonly uint   _uiMemSize = 12;
-            readonly IntPtr _iptMem;
-            int _iEnumerations = 0;
-            uint _uiConsumption  = 0;
-
-            public DataTester( BufferSSTV oTVBuffer ) {
-                _oWriter = oTVBuffer ?? throw new ArgumentNullException();
-                _oReader = oTVBuffer ?? throw new ArgumentNullException();
-
-                _iptMem  = Marshal.AllocHGlobal( (int)_uiMemSize);
-            }
-
-            public IEnumerator<int> GetEnumerator() {
-                while( true ) {
-                    _iEnumerations++;
-                    for( short i=0; i < _iCacheSize; ++i ) {
-                        _oWriter.Write( i );
-                    }
-                    yield return _iCacheSize;
-                }
-            }
-
-            IEnumerator IEnumerable.GetEnumerator() {
-                return GetEnumerator();
-            }
-
-            public int ConsumeData() {
-                unsafe {
-                    short * foo = (short*)_iptMem.ToPointer();
-                    uint uiCopied = _oReader.Read( _iptMem, _uiMemSize );
-                    if( uiCopied != _uiMemSize )
-                        throw new ApplicationException( "data read error" );
-                    _uiConsumption += uiCopied;
-
-                    for( int i=0; i<_uiMemSize/2 - 1; ++i ) {
-                        if( foo[i] + 1 != foo[i+1] ) {
-                            if( foo[i] != _iCacheSize - 1  || foo[i+1] != 0 )
-                                throw new ApplicationException( "data content error" );
-                        }
-                    }
-                }
-                return (int)_uiConsumption;
-            }
-
-            protected virtual void Dispose( bool disposing ) {
-                if( !disposedValue ) {
-                    if( disposing ) {
-                        // TODO: dispose managed state (managed objects)
-                    }
-
-                    // TODO: free unmanaged resources (unmanaged objects) and override finalizer
-                    // TODO: set large fields to null
-                    Marshal.FreeHGlobal(_iptMem);
-                    disposedValue = true;
-                }
-            }
-
-            // TODO: override finalizer only if 'Dispose(bool disposing)' has code to free unmanaged resources
-            ~DataTester()
-            {
-                // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
-                Dispose(disposing: false);
-            }
-
-            public void Dispose()
-            {
-                // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
-                Dispose(disposing: true);
-                GC.SuppressFinalize(this);
-            }
         }
 
         public bool InitNew3() {
@@ -720,14 +642,8 @@ namespace Play.SSTV {
             return true;
         }
 
-        protected bool LoadBitmap( string strFile ) {
-            Bitmap = SKBitmap.Decode( strFile );
-
-            return Bitmap != null;
-        }
-
         public bool InitNew() {
-            string strImage = @"C:\Users\Frodo\Documents\signals\test-images\tofu2-320-256.jpg"; 
+            string strImage = @"C:\Users\Frodo\Documents\signals\test-images\tofu3-320-256.jpg"; 
             if( !LoadBitmap( strImage ) )
                 return false;
 
@@ -737,15 +653,14 @@ namespace Play.SSTV {
 
                 CSSTVMOD      oSSTVModulator = new CSSTVMOD( 0, oSpec.Rate, SSTVBuffer );
 
-                SSTVMode      oMode          = new SSTVMode( 0xb8, "Scotty 2",  -1,  88.064 );
-                SSTVGenerator oSSTVGenerator = new ScottieGenerator( Bitmap, oSSTVModulator, oMode );
+                SSTVMode      oMode          = new SSTVMode( 0x3c, "Scotty 1",  -1, 138.240 );
+                SSTVGenerator oSSTVGenerator = new GenerateScottie( Bitmap, oSSTVModulator, oMode );
 
                 SSTVBuffer.Pump = oSSTVGenerator.GetEnumerator();
 
-                _oPlayer = new WmmPlayer(oSpec, 1); // _oSound.CreateSoundPlayer( oSpec );
+                _oPlayer = new WmmPlayer(oSpec, 1); 
 
                 //_oDataTester = new DataTester( SSTVBuffer );
-
                 //SSTVBuffer.Pump = _oDataTester.GetEnumerator();
             }
             catch( ArgumentOutOfRangeException ) {
@@ -755,6 +670,10 @@ namespace Play.SSTV {
             return true;
         }
 
+        /// <summary>
+        /// This is our work iterator we use to play the audio.
+        /// </summary>
+        /// <returns>Amount of time to wait until call again, in Milliseconds.</returns>
         public IEnumerator<int> GetPlayerTask() {
             do {
                 uint uiWait = ( _oPlayer.Play( SSTVBuffer ) >> 1 ) + 1;

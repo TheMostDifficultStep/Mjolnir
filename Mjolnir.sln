@@ -15,7 +15,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Editor", "Editor\Editor.csp
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Mjolnir", "Mjolnir\Mjolnir.csproj", "{2D05F5B9-592F-4A9E-A960-30A6253A3957}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Mp3-Play", "Mp3-Play\Mp3-Play.csproj", "{9600F269-8865-466F-A162-BDCA8A2A2559}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DSP-Goodies", "Mp3-Play\DSP-Goodies.csproj", "{9600F269-8865-466F-A162-BDCA8A2A2559}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ImageViewer", "ImageViewer\ImageViewer.csproj", "{C0A3CDC2-7B88-41D9-9C52-69E26DB46DA2}"
 EndProject
@@ -39,7 +39,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Clock", "Clock\Clock.csproj
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Forms", "Forms\Forms.csproj", "{1CAEAA95-A9B9-4C26-99FD-1FD877263EA7}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SSTV", "SSTV\SSTV.csproj", "{B3AADF59-1138-4197-8212-B179AAA0C9B0}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SSTV", "SSTV\SSTV.csproj", "{B3AADF59-1138-4197-8212-B179AAA0C9B0}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

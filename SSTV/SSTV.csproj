@@ -16,7 +16,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Interfaces\Interfaces.csproj" />
-    <ProjectReference Include="..\Mp3-Play\Mp3-Play.csproj" />
+    <ProjectReference Include="..\Mp3-Play\DSP-Goodies.csproj" />
   </ItemGroup>
 
 </Project>

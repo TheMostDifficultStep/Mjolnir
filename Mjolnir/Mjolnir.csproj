@@ -63,7 +63,7 @@
     <ProjectReference Include="..\ImageViewer\ImageViewer.csproj" />
     <ProjectReference Include="..\Interfaces\Interfaces.csproj" />
     <ProjectReference Include="..\MorsePractice\MorsePractice.csproj" />
-    <ProjectReference Include="..\Mp3-Play\Mp3-Play.csproj" />
+    <ProjectReference Include="..\Mp3-Play\DSP-Goodies.csproj" />
     <ProjectReference Include="..\MusicWalker\MusicWalker.csproj" />
     <ProjectReference Include="..\ParseAll\ParseAll.csproj" />
     <ProjectReference Include="..\SSTV\SSTV.csproj" />
