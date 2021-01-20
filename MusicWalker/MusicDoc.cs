@@ -83,7 +83,13 @@ namespace Play.MusicWalker {
 					if( _oDecoder.IsReading )
 						return true;
 					// If decoder is done, move on to the next song!
-				} catch( NullReferenceException ) {
+				} catch( Exception oEx ) {
+					Type[] rgErrors = { typeof( NullReferenceException ),
+										typeof( ArgumentNullException ),
+										typeof( MMSystemException ) };
+					if( rgErrors.IsUnhandled( oEx ) )
+						throw;
+
 					_oSiteBase.LogError( "player","Problem with current song: " + SongFileName() );
 				}
 			} while( GetNextSong() );

@@ -676,7 +676,19 @@ namespace Play.SSTV {
         /// <returns>Amount of time to wait until call again, in Milliseconds.</returns>
         public IEnumerator<int> GetPlayerTask() {
             do {
-                uint uiWait = ( _oPlayer.Play( SSTVBuffer ) >> 1 ) + 1;
+                uint uiWait = 60000; // Basically stop wasting time here on error.
+                try {
+                    uiWait = ( _oPlayer.Play( SSTVBuffer ) >> 1 ) + 1;
+                } catch( Exception oEx ) {
+                    Type[] rgErrors = { typeof( NullReferenceException ),
+                                        typeof( ArgumentNullException ),
+                                        typeof( MMSystemException ) };
+                    if( rgErrors.IsUnhandled( oEx ) )
+                        throw;
+
+                    _oWorkPlace.Stop();
+                    LogError( "Trouble playing in SSTV" );
+                }
                 yield return (int)uiWait;
             } while( SSTVBuffer.IsReading );
         }

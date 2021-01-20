@@ -418,8 +418,16 @@ namespace Play.Sound {
 						_uiWaitInMs += MilliSecPerBlock;
 					}
 				}
-			} catch( NullReferenceException ) {
-				return 0;
+			} catch( Exception oEx ) {
+				Type[] rgErrors = { typeof( ArgumentException ),
+									typeof( BadDeviceIdException ),
+									typeof( InvalidHandleException ),
+									typeof( MMSystemException ),
+									typeof( NullReferenceException ) };
+				if( !rgErrors.Contains( oEx.GetType() ) ) 
+					throw;
+
+				throw new MMSystemException( "Problem writing sound headers. Check inner exception.", oEx );
 			}
 
 			return _uiWaitInMs;

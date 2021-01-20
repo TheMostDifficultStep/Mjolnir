@@ -91,7 +91,14 @@ namespace Mjolnir {
 						_iStartTick = DateTime.Now.AddMilliseconds( uiWaitInMS ).Ticks;
 						return( true );
 					}
-                } catch( NullReferenceException ) {
+                } catch( Exception oEx ) {
+					// Unfortunately we can't predict all the errors, much less the one's we
+					// can continue from. 
+					Type[] rgErrors = { typeof( ArgumentException ),
+						                typeof( NullReferenceException ) };
+					if( rgErrors.IsUnhandled( oEx ) )
+						throw;
+
                     Stop();
                 }
                 return( false );
