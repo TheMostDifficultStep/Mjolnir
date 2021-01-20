@@ -1,8 +1,6 @@
 ﻿using System;
 using System.IO;
 using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.InteropServices;
 
 using SkiaSharp;
 
@@ -138,7 +136,7 @@ namespace Play.SSTV {
 	        m_rgVariOut[(int)GIdx.G] = 588; // G
 	        m_rgVariOut[(int)GIdx.B] = 110; // B
 
-	        m_rgOutGain[0] = 24578.0;
+	        m_rgOutGain[0] = 20000; // 24578.0; My gain seems high, I'll try turning it down a bit.
 
 	        InitGain();
 
@@ -211,7 +209,7 @@ namespace Play.SSTV {
         readonly public byte   VIS;
         readonly public string Name = string.Empty;
         readonly public double SyncInMS;
-        readonly public double TxWidthInMS;
+        readonly public double TxWidthInMS; // Single line.
 
         public SSTVMode( byte bVIS, string strName, double dbSync, double dbTxWidth ) {
             VIS         = bVIS;
@@ -250,10 +248,15 @@ namespace Play.SSTV {
 
         protected SKColor GetPixel( int x, int y ) => _oBitmap.GetPixel( x, y );
         protected int     Height                   => _oBitmap.Height;
+        protected int     Width                    => _oBitmap.Width;
         public    bool    IsDirty                  => true; // We're always happy to write.
 
-        protected int Write( int iFrequency, uint uiGain, double dbTimeMS ) {
-            return _oModulator.Write( iFrequency, uiGain, dbTimeMS );
+        protected int Write( int iFrequency, uint uiGainSelect, double dbTimeMS ) {
+            return _oModulator.Write( iFrequency, uiGainSelect, dbTimeMS );
+        }
+
+        protected int Write( int iFrequency, double dbTimeMS ) {
+            return _oModulator.Write( iFrequency, 0, dbTimeMS );
         }
 
         /// <summary>
@@ -264,7 +267,7 @@ namespace Play.SSTV {
         /// </summary>
         /// <param name="uiVIS"></param>
         /// <returns></returns>
-        public void WriteVIS( UInt16 uiVIS ) {
+        public virtual void WriteVIS( UInt16 uiVIS ) {
 			Write( 1900, 0x0, 300 );
 			Write( 1200, 0x0,  10 );
 			Write( 1900, 0x0, 300 );
@@ -333,6 +336,17 @@ namespace Play.SSTV {
         }
 
         /// <summary>
+        /// We need to add some extra signal after the VIS for the Scottie case.
+        /// See line 7120 in main.cpp of the MMSSTV project.
+        /// </summary>
+        /// <param name="uiVIS"></param>
+        public override void WriteVIS( ushort uiVIS ) {
+            base.WriteVIS(uiVIS);
+
+            Write( 1200, 0x0, 9 );
+        }
+
+        /// <summary>
         /// TMmsstv::LineSCT, derived.
         /// </summary>
         /// <param name="iLine">The bitmap line to output.</param>
@@ -346,8 +360,6 @@ namespace Play.SSTV {
                 return;
 
             _rgCache.Clear();
-
-            Write( 1200, 0x0,  9 ); // Line 7120 in main.cpp
 
 	        Write( 1500, 0x2000, 1.5 );
 
@@ -371,7 +383,6 @@ namespace Play.SSTV {
     /// MRT1, Martin 1 & 2
     /// </summary>
     public class GenerateMartin : SSTVGenerator {
-
         /// <exception cref="ArgumentOutOfRangeException" />
         public GenerateMartin( SKBitmap oBitmap, CSSTVMOD oModulator, SSTVMode oMode ) : 
             base( oBitmap, oModulator, oMode )
@@ -404,7 +415,7 @@ namespace Play.SSTV {
 
             _rgCache.Clear();
 
-	        Write( 1200, 0, 4.862 );
+	        Write( 1200, 4.862 );
 
 	        Write( 1500, (uint)GIdx.G, 0.572 );   // G
 	        for( int x = 0; x < 320; x++ ) {     
@@ -421,10 +432,118 @@ namespace Play.SSTV {
 	        for( int x = 0; x < 320; x++ ) {
 		        Write( ColorToFreq(_rgCache[x].Red  ), (uint)GIdx.R, dbTransmitWidth );
 	        }
-	        Write( 1500, 0, 0.572);
+	        Write( 1500, 0.572);
         }
     }
 
+    public class GeneratePD : SSTVGenerator {
+        struct Chrominance8Bit {
+            public byte  Y;
+            public byte RY;
+            public byte BY;
+        }
+
+        List<Chrominance8Bit> _rgChrome = new List<Chrominance8Bit>(800);
+
+        /// <exception cref="ArgumentOutOfRangeException" />
+        public GeneratePD( SKBitmap oBitmap, CSSTVMOD oModulator, SSTVMode oMode ) : 
+            base( oBitmap, oModulator, oMode )
+        {
+            // Note: We probably can do better.
+            if( oBitmap.Width > 800 )
+                throw new ArgumentOutOfRangeException( "bitmap must be 800 pix wide." );
+        }
+
+        public static IEnumerator<SSTVMode> GetModeEnumerator() {
+ 	        yield return new SSTVMode( 0xdd, "PD 50",   -1,  91.520 );
+            yield return new SSTVMode( 0x63, "PD 90",   -1, 170.240 );
+            yield return new SSTVMode( 0x5f, "PD 120",  -1, 121.600 );
+            yield return new SSTVMode( 0xe2, "PD 160",  -1, 195.584 );
+            yield return new SSTVMode( 0x60, "PD 180",  -1, 183.040 );
+            yield return new SSTVMode( 0xe1, "PD 240",  -1, 244.480 );
+            yield return new SSTVMode( 0xde, "PD 290",  -1, 228.800 );
+        }
+
+        public byte Limit256( double d ) {
+	        if( d < 0   ) d =   0;
+	        if( d > 255 ) d = 255;
+
+	        return (byte)d;
+        }
+
+        Chrominance8Bit GetRY( SKColor skColor ) {
+            Chrominance8Bit crColor;
+            /*
+            These are the values that make up the table below us. (Don't delete this comment!)
+
+	        Y  =  16.0 + (.003906 * (( 65.738 * R) + (129.057 * G) + ( 25.064 * B)));
+	        RY = 128.0 + (.003906 * ((112.439 * R) + (-94.154 * G) + (-18.285 * B)));
+	        BY = 128.0 + (.003906 * ((-37.945 * R) + (-74.494 * G) + (112.439 * B)));
+            */
+	        crColor.Y  = Limit256(  16.0 + ( 0.256773*skColor.Red + 0.504097*skColor.Green + 0.097900*skColor.Blue) );
+	        crColor.RY = Limit256( 128.0 + ( 0.439187*skColor.Red - 0.367766*skColor.Green - 0.071421*skColor.Blue) );
+	        crColor.BY = Limit256( 128.0 + (-0.148213*skColor.Red - 0.290974*skColor.Green + 0.439187*skColor.Blue) );
+
+            return crColor;
+        }
+
+        /// <summary>
+        /// TMmsstv::LinePD, derived.
+        /// </summary>
+        /// <param name="iLine">The bitmap line to output.</param>
+        /// <returns>How many samples written.</returns>
+        /// <remarks>Note that you MUST override the default Generator iterator since
+        /// we have to WriteLine ever TWO lines!!</remarks>
+        protected override void WriteLine( int iLine ) {
+	        double dbTransmitWidth = Mode.TxWidthInMS / Width;
+
+            if( iLine > Height )
+                return;
+
+            _rgChrome.Clear();
+            
+            Write( 1200, 20.000 );
+	        Write( 1500,  2.080 );
+
+	        for( int x = 0; x < Width; x++ ) {     // Y(odd)
+                SKColor         skPixel = GetPixel( x, iLine );
+                Chrominance8Bit crPixel = GetRY   ( skPixel );
+
+                _rgChrome.Add( crPixel );
+
+		        Write( ColorToFreq( crPixel.Y       ), dbTransmitWidth );
+	        }
+	        for( int x = 0; x < Width; x++ ) {     // R-Y
+		        Write( ColorToFreq( _rgChrome[x].RY ), dbTransmitWidth );
+	        }
+	        for( int x = 0; x < Width; x++ ) {     // B-Y
+                Write( ColorToFreq( _rgChrome[x].BY ), dbTransmitWidth );
+	        }
+            
+            ++iLine;
+	        for( int x = 0; x < Width; x++ ) {     // Y(even)
+                SKColor         skPixel = GetPixel( x, iLine );
+                Chrominance8Bit crPixel = GetRY   ( skPixel );
+
+		        Write( ColorToFreq( crPixel.Y ), dbTransmitWidth );
+	        }
+        }
+
+        public override IEnumerator<int> GetEnumerator() {
+            int iHeight = ( Height % 2 != 0 ) ? Height - 1 : Height;
+
+            if( iHeight < 0 )
+                yield break;
+
+            WriteVIS( Mode.VIS );
+            yield return 0;
+
+            for( int iLine = 0; iLine < Height; iLine+=2 ) {
+                WriteLine( iLine );
+                yield return iLine;
+            }
+        }
+    } // End class
     /// <summary>
     /// New experimental buffer implementation. I'll move this over to
     /// the mp3-play project once I get it working. This object looks
@@ -710,14 +829,16 @@ namespace Play.SSTV {
             try {
                 Specification oSpec          = new Specification( 44100, 1, 0, 16 );
                               SSTVBuffer     = new BufferSSTV( oSpec );
-
                 CSSTVMOD      oSSTVModulator = new CSSTVMOD( 0, oSpec.Rate, SSTVBuffer );
 
                 //SSTVMode      oMode          = new SSTVMode( 0x3c, "Scotty 1",  -1, 138.240 );
                 //SSTVGenerator oSSTVGenerator = new GenerateScottie( Bitmap, oSSTVModulator, oMode );
 
-                SSTVMode oMode = new SSTVMode( 0x28, "Martin 2",  -1,  73.216 );
-                SSTVGenerator oSSTVGenerator = new GenerateMartin(Bitmap, oSSTVModulator, oMode);
+                //SSTVMode      oMode          = new SSTVMode( 0x28, "Martin 2",  -1,  73.216 );
+                //SSTVGenerator oSSTVGenerator = new GenerateMartin(Bitmap, oSSTVModulator, oMode);
+
+                SSTVMode      oMode          = new SSTVMode( 0x63, "PD 90",   -1, 170.240 );
+                SSTVGenerator oSSTVGenerator = new GeneratePD( Bitmap, oSSTVModulator, oMode );
 
                 SSTVBuffer.Pump = oSSTVGenerator.GetEnumerator();
 
@@ -742,7 +863,7 @@ namespace Play.SSTV {
         /// <summary>
         /// This is our work iterator we use to play the audio.
         /// </summary>
-        /// <returns>Amount of time to wait until call again, in Milliseconds.</returns>
+        /// <returns>Amount of time to wait until we want call again, in Milliseconds.</returns>
         public IEnumerator<int> GetPlayerTask() {
             do {
                 uint uiWait = 60000; // Basically stop wasting time here on error.
