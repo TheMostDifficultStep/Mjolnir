@@ -658,6 +658,12 @@ namespace Play.SSTV {
 
                 SSTVBuffer.Pump = oSSTVGenerator.GetEnumerator();
 
+                IEnumerator<string> oIter  = MMHelpers.GetOutputDevices();
+                List<string>        rgDevs = new List<string>();
+                while( oIter.MoveNext() ) {
+                    rgDevs.Add( oIter.Current );
+                }
+
                 _oPlayer = new WmmPlayer(oSpec, 1); 
 
                 //_oDataTester = new DataTester( SSTVBuffer );

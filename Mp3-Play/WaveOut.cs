@@ -43,11 +43,15 @@ using System.Text;
 using System.Globalization;
 
 namespace Play.Sound {
-	public class Helpers {
+	public class MMHelpers {
         [DllImport("winmm.dll", SetLastError = true, CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Winapi)]
 			public static extern MMSYSERROR waveInGetErrorText(MMSYSERROR mmrError, StringBuilder pszText, int cchText);
         [DllImport("winmm.dll", SetLastError = true, CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Winapi)]
 			public static extern MMSYSERROR waveOutGetErrorText(MMSYSERROR mmrError, StringBuilder pszText, int cchText);
+        [DllImport("winmm.dll", SetLastError = true, CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Winapi)]
+			public static extern MMSYSERROR waveOutGetDevCaps( UInt32 uiDevID, ref WAVEOUTCAPS pWOC, UInt32 uiCapStructSize );
+        [DllImport("winmm.dll", SetLastError = true, CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Winapi)]
+			public static extern MMSYSERROR waveInGetDevCaps( UInt32 uiDevID, ref WAVEINCAPS pWOC, UInt32 uiCapStructSize );
 
 		public static string GenerateErrorMessage( MMSYSERROR error, ErrorSource source ) {
 			StringBuilder sbLastError   = new StringBuilder(255);
@@ -94,6 +98,34 @@ namespace Play.Sound {
 
             throw new MMSystemException(strDetails);
         }
+
+		/// <summary>
+		/// Enumerate the output devices. Device ID corresponds to appearance in output list
+		/// Device ID start at zero.
+		/// </summary>
+		public static IEnumerator<string> GetOutputDevices(){
+			WAVEOUTCAPS sOutCaps      = new WAVEOUTCAPS();
+			UInt32      uiOutCapsSize = (uint)Marshal.SizeOf( typeof( WAVEOUTCAPS ) );
+			UInt32      uiDev         = 0;
+
+			while( waveOutGetDevCaps( uiDev++, ref sOutCaps, uiOutCapsSize ) == MMSYSERROR.MMSYSERR_NOERROR ) {
+				yield return sOutCaps.szPname;
+			}
+		}
+
+		/// <summary>
+		/// Enumerate the output devices. Device ID corresponds to appearance in output list
+		/// Device ID start at zero.
+		/// </summary>
+		public static IEnumerator<string> GetInputDevices(){
+			WAVEINCAPS sInCaps       = new WAVEINCAPS();
+			UInt32     uiOutCapsSize = (uint)Marshal.SizeOf( typeof( WAVEINCAPS ) );
+			UInt32     uiDev         = 0;
+
+			while( waveInGetDevCaps( uiDev++, ref sInCaps, uiOutCapsSize ) == MMSYSERROR.MMSYSERR_NOERROR ) {
+				yield return sInCaps.szPname;
+			}
+		}
 	} /* end class */
 	
 	unsafe public class WmmPlayer : IPgPlayer 
@@ -172,7 +204,7 @@ namespace Play.Sound {
 				if( !( _oHeader.dwFlags == WaveHeaderFlags.Prepared ) )
 					error = MMSYSERROR.WAVERR_UNPREPARED;
 
-				Helpers.ThrowOnError( error, ErrorSource.WaveOut );
+				MMHelpers.ThrowOnError( error, ErrorSource.WaveOut );
 			}
 
 			public void UnPrepare( IntPtr hWave ) {
@@ -181,7 +213,7 @@ namespace Play.Sound {
 				if( _oHeader.dwFlags == WaveHeaderFlags.Prepared && _ipUnManagedHeader != IntPtr.Zero ) {
 					eError = waveOutUnprepareHeader( hWave, _ipUnManagedHeader, Marshal.SizeOf(typeof(WAVEHDR) ));
 				}
-				Helpers.ThrowOnError( eError, ErrorSource.WaveOut );
+				MMHelpers.ThrowOnError( eError, ErrorSource.WaveOut );
 
 				WAVEHDR oHeader = (WAVEHDR)Marshal.PtrToStructure( _ipUnManagedHeader, typeof( WAVEHDR ) );
 				_oHeader.dwFlags = oHeader.dwFlags;
@@ -228,7 +260,7 @@ namespace Play.Sound {
 				if( _oHeader.dwBufferLength <= 0 )
 					return( false ); // We're done!
 
-				Helpers.ThrowOnError( waveOutWrite( hWave, _ipUnManagedHeader, Marshal.SizeOf(typeof(WAVEHDR) )), ErrorSource.WaveOut );
+				MMHelpers.ThrowOnError( waveOutWrite( hWave, _ipUnManagedHeader, Marshal.SizeOf(typeof(WAVEHDR) )), ErrorSource.WaveOut );
 
 				return( _oHeader.dwBufferLength == _uiBufferCapacityInBytes );
 			}
@@ -294,7 +326,7 @@ namespace Play.Sound {
 				throw new MMSystemException( "Problem opening sound device", oEx );
 			}
 
-            Helpers.ThrowOnError( eError, ErrorSource.WaveOut );
+            MMHelpers.ThrowOnError( eError, ErrorSource.WaveOut );
 
 			// First step, just prep the header and allocate memory. DO NOT PREP
 			// the header!!! Separate step since if we get an exception in the constructor 
@@ -340,7 +372,7 @@ namespace Play.Sound {
 				}
 			}
 			if( eSaved != MMSYSERROR.MMSYSERR_NOERROR )
-				throw new MMSystemException( Helpers.GenerateErrorMessage( eSaved, ErrorSource.WaveOut ), oEx );
+				throw new MMSystemException( MMHelpers.GenerateErrorMessage( eSaved, ErrorSource.WaveOut ), oEx );
 
 			throw oEx;
 		}
@@ -489,7 +521,7 @@ namespace Play.Sound {
 			_hWave = IntPtr.Zero;
 			
 			// Better late than never!!
-			Helpers.ThrowOnError( eError, ErrorSource.WaveOut );
+			MMHelpers.ThrowOnError( eError, ErrorSource.WaveOut );
 		}
 	} // end class
 } // end namespace
