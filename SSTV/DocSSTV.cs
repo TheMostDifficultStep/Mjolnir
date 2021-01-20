@@ -279,7 +279,6 @@ namespace Play.SSTV {
 			}
 			
             Write(1200, 0x0, 30 ); // Sync
-            Write(1200, 0x0,  9 );
         }
 
         /// <summary>
@@ -328,9 +327,9 @@ namespace Play.SSTV {
         /// </summary>
         /// <returns></returns>
         public static IEnumerator<SSTVMode> GetModeEnumerator() {
- 	        yield return new SSTVMode( 0x3c, "Scotty 1",  -1, 138.240 );
-            yield return new SSTVMode( 0xb8, "Scotty 2",  -1,  88.064 );
-            yield return new SSTVMode( 0xcc, "Scotty DX", -1, 345.600 );
+ 	        yield return new SSTVMode( 0x3c, "Scottie 1",  -1, 138.240 );
+            yield return new SSTVMode( 0xb8, "Scottie 2",  -1,  88.064 );
+            yield return new SSTVMode( 0xcc, "Scottie DX", -1, 345.600 );
         }
 
         /// <summary>
@@ -346,8 +345,11 @@ namespace Play.SSTV {
             if( iLine > Height )
                 return;
 
-	        Write( 1500, 0x2000, 1.5 );
             _rgCache.Clear();
+
+            Write( 1200, 0x0,  9 ); // Line 7120 in main.cpp
+
+	        Write( 1500, 0x2000, 1.5 );
 
 	        for( int x = 0; x < 320; x++ ) {     // G
                 _rgCache.Add( GetPixel( x, iLine ) );
@@ -362,6 +364,64 @@ namespace Play.SSTV {
 	        for( int x = 0; x < 320; x++ ) {     // R
 		        Write( ColorToFreq( _rgCache[x].Red   ), (uint)GIdx.R, dbTransmitWidth );
 	        }
+        }
+    }
+
+    /// <summary>
+    /// MRT1, Martin 1 & 2
+    /// </summary>
+    public class GenerateMartin : SSTVGenerator {
+
+        /// <exception cref="ArgumentOutOfRangeException" />
+        public GenerateMartin( SKBitmap oBitmap, CSSTVMOD oModulator, SSTVMode oMode ) : 
+            base( oBitmap, oModulator, oMode )
+        {
+            if( oBitmap.Width != 320 )
+                throw new ArgumentOutOfRangeException( "bitmap must be 320 pix wide." );
+        }
+
+        /// <summary>
+        /// Enumerate the modes we support. 
+        /// </summary>
+        /// <returns></returns>
+        public static IEnumerator<SSTVMode> GetModeEnumerator() {
+ 	        yield return new SSTVMode( 0xac, "Martin 1",  -1, 146.432 );
+            yield return new SSTVMode( 0x28, "Martin 2",  -1,  73.216 );
+        }
+
+        /// <summary>
+        /// TMmsstv::LineMRT, derived.
+        /// </summary>
+        /// <param name="iLine">The bitmap line to output.</param>
+        /// <returns>How many samples written.</returns>
+        /// <remarks>I'm not sure how important it is to cache the line from the bitmap.
+        /// The original code does this. Saves a multiply I would guess.</remarks>
+        protected override void WriteLine( int iLine ) {
+	        double dbTransmitWidth = Mode.TxWidthInMS / 320.0;
+
+            if( iLine > Height )
+                return;
+
+            _rgCache.Clear();
+
+	        Write( 1200, 0, 4.862 );
+
+	        Write( 1500, (uint)GIdx.G, 0.572 );   // G
+	        for( int x = 0; x < 320; x++ ) {     
+                _rgCache.Add( GetPixel( x, iLine ) );
+		        Write( ColorToFreq(_rgCache[x].Green), (uint)GIdx.G, dbTransmitWidth );
+	        }
+
+	        Write( 1500, (uint)GIdx.B, 0.572 );   // B
+	        for( int x = 0; x < 320; x++ ) {
+		        Write( ColorToFreq(_rgCache[x].Blue ), (uint)GIdx.B, dbTransmitWidth );
+	        }
+
+	        Write( 1500, (uint)GIdx.R, 0.572 );   // R
+	        for( int x = 0; x < 320; x++ ) {
+		        Write( ColorToFreq(_rgCache[x].Red  ), (uint)GIdx.R, dbTransmitWidth );
+	        }
+	        Write( 1500, 0, 0.572);
         }
     }
 
@@ -653,8 +713,11 @@ namespace Play.SSTV {
 
                 CSSTVMOD      oSSTVModulator = new CSSTVMOD( 0, oSpec.Rate, SSTVBuffer );
 
-                SSTVMode      oMode          = new SSTVMode( 0x3c, "Scotty 1",  -1, 138.240 );
-                SSTVGenerator oSSTVGenerator = new GenerateScottie( Bitmap, oSSTVModulator, oMode );
+                //SSTVMode      oMode          = new SSTVMode( 0x3c, "Scotty 1",  -1, 138.240 );
+                //SSTVGenerator oSSTVGenerator = new GenerateScottie( Bitmap, oSSTVModulator, oMode );
+
+                SSTVMode oMode = new SSTVMode( 0x28, "Martin 2",  -1,  73.216 );
+                SSTVGenerator oSSTVGenerator = new GenerateMartin(Bitmap, oSSTVModulator, oMode);
 
                 SSTVBuffer.Pump = oSSTVGenerator.GetEnumerator();
 
