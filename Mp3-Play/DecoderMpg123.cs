@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 
 ///<summary>
-///  Copyright (c) Dragonaur
+/// Copyright 2021 https://github.com/TheMostDifficultStep
 ///
 ///  Permission is hereby granted, free of charge, to any person obtaining
 ///  a copy of this software and associated documentation files (the
