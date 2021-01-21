@@ -17,10 +17,12 @@ namespace Play.SSTV {
 			try {
 				DocSSTV oMySSTVDoc = (DocSSTV)oDocument;
 
-				if( guidViewType == VisualizeWindow._gViewType )
-					return( new VisualizeWindow( oBaseSite, oMySSTVDoc ) );
+				if( guidViewType == WindowFFT.ViewType )
+					return( new WindowFFT( oBaseSite, oMySSTVDoc ) );
+				if( guidViewType == WindowTransmit.ViewType )
+					return( new WindowTransmit( oBaseSite, oMySSTVDoc ) );
 
-				return( new VisualizeWindow( oBaseSite, oMySSTVDoc ) );
+				return( new WindowFFT( oBaseSite, oMySSTVDoc ) );
             } catch( Exception oEx ) {
 				// TODO: Stuff errors collection into the base controller.
                 Type[] rgErrors = { typeof( NullReferenceException ),
@@ -35,7 +37,7 @@ namespace Play.SSTV {
 		}
 
 		public override IEnumerator<IPgViewType> GetEnumerator() {
-		    yield return( new ViewType( "Spectrum", VisualizeWindow._gViewType ) );
+		    yield return( new ViewType( "Spectrum", WindowFFT._gViewType ) );
 		}
 	}
 
