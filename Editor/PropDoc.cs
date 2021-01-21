@@ -233,7 +233,8 @@ namespace Play.Edit {
 					Type[] rgErrors = { typeof( NullReferenceException ),
 										typeof( InvalidCastException ),
 										typeof( FileNotFoundException ),
-										typeof( GrammerNotFoundException ) };
+										typeof( GrammerNotFoundException ),
+										typeof( NotImplementedException ) };
 					if( rgErrors.IsUnhandled( oEx ))
 						throw;
 

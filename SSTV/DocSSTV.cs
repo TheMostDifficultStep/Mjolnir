@@ -5,12 +5,21 @@ using System.Collections.Generic;
 using SkiaSharp;
 
 using Play.Interfaces.Embedding;
+using Play.Edit;
 using Play.Sound;
 using Play.Sound.FFT;
 using System.Collections;
 
 namespace Play.SSTV {
     public delegate void FFTOutputEvent();
+
+    public enum ESstvProperty {
+        ALL,
+        UploadTime,
+        SSTVMode
+    }
+
+    public delegate void SSTVPropertyChange( ESstvProperty eProp );
 
     public enum GIdx : int {
         Unused = 0,
@@ -681,15 +690,21 @@ namespace Play.SSTV {
         protected readonly IPgBaseSite       _oSiteBase;
 		protected readonly IPgRoundRobinWork _oWorkPlace;
 
-        DataTester _oDataTester;
-
         public IPgParent Parentage => _oSiteBase.Host;
         public IPgParent Services  => Parentage;
         public bool      IsDirty   => false;
 
+        public event SSTVPropertyChange PropertyChange;
+
+        DataTester _oDataTester;
+
+        public string BitmapFileName { get; } = @"C:\Users\Frodo\Documents\signals\test-images\tofu3-320-256.jpg"; 
+
+        public SSTVMode TransmitMode { get; protected set; }
+
         protected Mpg123FFTSupport FileDecoder { get; set; }
         protected BufferSSTV       SSTVBuffer  { get; set; }
-        protected SKBitmap         Bitmap      { get; set; }
+        public    SKBitmap         Bitmap      { get; protected set; }
 		protected IPgPlayer        _oPlayer;
 
 		double[] _rgFFTData; // Data input for FFT. Note: it get's destroyed in the process.
@@ -824,8 +839,7 @@ namespace Play.SSTV {
         }
 
         public bool InitNew() {
-            string strImage = @"C:\Users\Frodo\Documents\signals\test-images\tofu3-320-256.jpg"; 
-            if( !LoadBitmap( strImage ) )
+            if( !LoadBitmap( BitmapFileName ) )
                 return false;
 
             try {
@@ -839,8 +853,8 @@ namespace Play.SSTV {
                 //SSTVMode      oMode          = new SSTVMode( 0x28, "Martin 2",   73.216 );
                 //SSTVGenerator oSSTVGenerator = new GenerateMartin(Bitmap, oSSTVModulator, oMode);
 
-                SSTVMode      oMode          = new SSTVMode( 0x63, "PD 90",   170.240 );
-                SSTVGenerator oSSTVGenerator = new GeneratePD( Bitmap, oSSTVModulator, oMode );
+                TransmitMode = new SSTVMode( 0x63, "PD 90",   170.240 );
+                SSTVGenerator oSSTVGenerator = new GeneratePD( Bitmap, oSSTVModulator, TransmitMode );
 
                 SSTVBuffer.Pump = oSSTVGenerator.GetEnumerator();
 
@@ -854,12 +868,18 @@ namespace Play.SSTV {
 
                 //_oDataTester = new DataTester( SSTVBuffer );
                 //SSTVBuffer.Pump = _oDataTester.GetEnumerator();
+
+                // No point in raising any property change events, no view will be there to see them.
             }
             catch( ArgumentOutOfRangeException ) {
                 return false;
             }
 
             return true;
+        }
+
+        protected void Raise_PropertiesUpdated( ESstvProperty eProp ) {
+            PropertyChange?.Invoke( eProp );
         }
 
         /// <summary>
