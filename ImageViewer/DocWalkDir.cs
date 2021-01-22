@@ -476,10 +476,10 @@ namespace Play.ImageViewer {
         /// <summary>
         /// Load the names of the children directories of parent of the current
         /// directory given. Load all the files of the current directory in the
-        /// Reset() call.
+        /// Reset() call. Call this or InitNew() once only.
         /// </summary>
         /// <param name="strFilePath"></param>
-        /// <returns></returns>
+        /// <seealso cref="LoadAgain" />
         public bool LoadURL( string strFilePath ) {
             if( !InitNew() )
                 return false;

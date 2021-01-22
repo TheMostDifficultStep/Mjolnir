@@ -225,7 +225,8 @@ namespace Play.ImageViewer {
 				try {
 					ViewSnipDialog oView = (ViewSnipDialog)_oSiteShell.AddView( ViewSnipDialog.Guid, fFocus:true );
 
-					oView.SnipMake(_rcSelectionBmp, uiReturnID:ID );
+					if( oView != null )
+						oView.SnipMake(_rcSelectionBmp, uiReturnID:ID );
 				} catch( Exception oEx ) {
 					Type[] rgErrors = { typeof( InvalidCastException ),
 										typeof( NullReferenceException ) };

@@ -7,13 +7,17 @@ using SkiaSharp;
 using Play.Interfaces.Embedding;
 using Play.Sound;
 using Play.Sound.FFT;
+using Play.Edit;
+using Play.ImageViewer;
+using System.Text;
 
 namespace Play.SSTV {
     public enum ESstvProperty {
         ALL,
         UploadTime,
         SSTVMode,
-        FFT
+        FFT,
+        TXImage
     }
 
     public delegate void SSTVPropertyChange( ESstvProperty eProp );
@@ -26,6 +30,33 @@ namespace Play.SSTV {
     {
         private bool disposedValue;
 
+		protected class DocSlot :
+			IPgBaseSite,
+            IPgFileSite
+		{
+			protected readonly DocSSTV _oHost;
+
+			public DocSlot( DocSSTV oHost ) {
+				_oHost = oHost ?? throw new ArgumentNullException();
+			}
+
+			public IPgParent Host => _oHost;
+
+            public void LogError(string strMessage, string strDetails, bool fShow=true) {
+				_oHost.LogError( strDetails );
+			}
+
+			public void Notify( ShellNotify eEvent ) {
+				// Might want this value when we close to save the current playing list!!
+			}
+
+            // Need these for the image viewer.
+            public FILESTATS FileStatus   => FILESTATS.READONLY;
+            public Encoding  FileEncoding => Encoding.Default;
+            public string    FilePath     => "Not Implemented";
+            public string    FileBase     => "Not Implemented";
+		}
+
         protected readonly IPgBaseSite       _oSiteBase;
 		protected readonly IPgRoundRobinWork _oWorkPlace;
 
@@ -37,13 +68,16 @@ namespace Play.SSTV {
 
         DataTester _oDataTester;
 
-        public string BitmapFileName { get; } = @"C:\Users\Frodo\Documents\signals\test-images\tofu3-320-256.jpg"; 
+        public Specification  Spec           { get; protected set; } = new Specification( 44100, 1, 0, 16 );
+        public SSTVMode       TransmitMode   { get; protected set; }
+        public Editor         ModeList       { get; protected set; }
+        public ImageWalkerDir ImageList      { get; protected set; }
+        public SKBitmap       Bitmap         => ImageList.Bitmap;
+        public string         BitmapFileName => ImageList.CurrentFileName; 
 
-        public SSTVMode TransmitMode { get; protected set; }
-
-        protected Mpg123FFTSupport FileDecoder { get; set; }
-        protected BufferSSTV       SSTVBuffer  { get; set; }
-        public    SKBitmap         Bitmap      { get; protected set; }
+        protected Mpg123FFTSupport FileDecoder   { get; set; }
+        protected BufferSSTV       SSTVBuffer    { get; set; }
+        protected CSSTVMOD         SSTVModulator { get; set; }
 		protected IPgPlayer        _oPlayer;
 
 		private double[] _rgFFTData; // Data input for FFT. Note: it get's destroyed in the process.
@@ -59,13 +93,16 @@ namespace Play.SSTV {
         }
 
         /// <summary>
-        /// 
+        /// Document type for SSTV transmit and recieve using audio i/o
         /// </summary>
         /// <exception cref="ArgumentNullException" />
         /// <exception cref="ApplicationException" />
         public DocSSTV( IPgBaseSite oSite ) {
             _oSiteBase  = oSite ?? throw new ArgumentNullException( "Site must not be null" );
             _oWorkPlace = ((IPgScheduler)Services).CreateWorkPlace() ?? throw new ApplicationException( "Couldn't create a worksite from scheduler.");
+
+            ModeList  = new Editor        ( new DocSlot( this ) );
+            ImageList = new ImageWalkerDir( new DocSlot( this ) );
         }
 
         #region Dispose
@@ -103,12 +140,6 @@ namespace Play.SSTV {
             _oSiteBase.LogError( "SSTV", strMessage );
         }
 
-        protected bool LoadBitmap( string strFile ) {
-            Bitmap = SKBitmap.Decode( strFile );
-
-            return Bitmap != null;
-        }
-
         /// <summary>
         /// Set up a sample signal for the FFT. This is for test purposes. I should use
         /// one of my DSP-Goodies functions but I'm still sorting that all out.
@@ -126,6 +157,27 @@ namespace Play.SSTV {
                 dbSample += 80 * Math.Sin( Math.PI * 2 * 2900 * t);
 
                 rgData.Add(dbSample);
+            }
+        }
+
+        public void LoadModulators( IEnumerator<SSTVMode> iterMode) {
+            using BaseEditor.Manipulator oBulk = ModeList.CreateManipulator();
+
+            while( iterMode.MoveNext() ) {
+                Line oLine = oBulk.LineAppendNoUndo( iterMode.Current.Name );
+                oLine.Extra = iterMode.Current;
+            }
+        }
+
+        /// <summary>Find all the output devices available.</summary>
+        /// <remarks>
+        /// Trial run for when we actually need this.
+        /// </remarks>
+        public void FindOutputDevices() {
+            IEnumerator<string> oIter  = MMHelpers.GetOutputDevices();
+            List<string>        rgDevs = new List<string>();
+            while( oIter.MoveNext() ) {
+                rgDevs.Add( oIter.Current );
             }
         }
 
@@ -174,44 +226,98 @@ namespace Play.SSTV {
             return true;
         }
 
-        public bool InitNew() {
-            if( !LoadBitmap( BitmapFileName ) )
+        public bool GeneratorSetup( int iIndex ) {
+            TransmitMode = null;
+
+            if( SSTVModulator == null ) {
+                LogError( "SSTV Modulator is not ready for Transmit." );
                 return false;
+            }
 
+            // Normally I'd use a guid to identify the class, but I thought I'd
+            // try something a little different this time.
             try {
-                Specification oSpec          = new Specification( 44100, 1, 0, 16 );
-                              SSTVBuffer     = new BufferSSTV( oSpec );
-                CSSTVMOD      oSSTVModulator = new CSSTVMOD( 0, oSpec.Rate, SSTVBuffer );
+                SSTVGenerator oSSTVGenerator = null;
 
-                //SSTVMode      oMode          = new SSTVMode( 0x3c, "Scotty 1",  138.240 );
-                //SSTVGenerator oSSTVGenerator = new GenerateScottie( Bitmap, oSSTVModulator, oMode );
+                if( ModeList[iIndex].Extra is SSTVMode oMode ) {
+                    if( oMode.Owner == typeof( GeneratePD ) )
+                        oSSTVGenerator = new GeneratePD     ( Bitmap, SSTVModulator, oMode );
+                    if( oMode.Owner == typeof( GenerateMartin ) )
+                        oSSTVGenerator = new GenerateMartin ( Bitmap, SSTVModulator, oMode );
+                    if( oMode.Owner == typeof( GenerateScottie ) )
+                        oSSTVGenerator = new GenerateScottie( Bitmap, SSTVModulator, oMode );
 
-                //SSTVMode      oMode          = new SSTVMode( 0x28, "Martin 2",   73.216 );
-                //SSTVGenerator oSSTVGenerator = new GenerateMartin(Bitmap, oSSTVModulator, oMode);
-
-                TransmitMode = new SSTVMode( 0x63, "PD 90",   170.240 );
-                SSTVGenerator oSSTVGenerator = new GeneratePD( Bitmap, oSSTVModulator, TransmitMode );
-
-                SSTVBuffer.Pump = oSSTVGenerator.GetEnumerator();
-
-                IEnumerator<string> oIter  = MMHelpers.GetOutputDevices();
-                List<string>        rgDevs = new List<string>();
-                while( oIter.MoveNext() ) {
-                    rgDevs.Add( oIter.Current );
+                    if( oSSTVGenerator != null )
+                        TransmitMode = oMode;
                 }
 
-                _oPlayer = new WmmPlayer(oSpec, 1); 
+                if( oSSTVGenerator != null )
+                    SSTVBuffer.Pump = oSSTVGenerator.GetEnumerator();
+
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( ArgumentException ),
+                                    typeof( ArgumentNullException ),
+                                    typeof( ArgumentOutOfRangeException ),
+                                    typeof( NullReferenceException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
+
+                LogError( "Blew chunks trying to create Illudium Q-36 Space Modulator, Isn't that nice?" );
+            }
+
+            return TransmitMode != null;
+        }
+
+        /// <summary>
+        /// Setup the output stream This only needs to be set when the Spec changes.
+        /// </summary>
+        /// <returns></returns>
+        public bool OutputStreamInit() {
+            try {
+                // Help the garbage collector telling the buffer to unlink the pump (via dispose)
+                if( SSTVBuffer != null )
+                    SSTVBuffer.Dispose();
+
+                SSTVBuffer    = new BufferSSTV( Spec );
+                SSTVModulator = new CSSTVMOD( 0, Spec.Rate, SSTVBuffer );
 
                 //_oDataTester = new DataTester( SSTVBuffer );
                 //SSTVBuffer.Pump = _oDataTester.GetEnumerator();
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( ArgumentOutOfRangeException ),
+                                    typeof( NullReferenceException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
 
-                // No point in raising any property change events, no view will be there to see them.
-            }
-            catch( ArgumentOutOfRangeException ) {
                 return false;
             }
 
             return true;
+        }
+
+        public bool InitNew() {
+            if( !ModeList.InitNew() ) // TODO: Set up hilight on TX!!
+                return false;
+            if( !OutputStreamInit() )  // Not really a cause for outright failure...
+                return false;
+
+            LoadModulators( GenerateMartin .GetModeEnumerator() );
+            LoadModulators( GenerateScottie.GetModeEnumerator() );
+            LoadModulators( GeneratePD     .GetModeEnumerator() );
+
+            if( !ImageList.LoadURL( @"C:\Users\Frodo\Pictures") ) 
+                return false;
+
+            ImageList.ImageUpdated += Listen_ImageUpdated;
+
+            // This only needs to change if the Spec is updated.
+            _oPlayer = new WmmPlayer(Spec, 1); 
+
+            return true;
+        }
+
+        private void Listen_ImageUpdated() {
+            Raise_PropertiesUpdated( ESstvProperty.TXImage );
         }
 
         protected void Raise_PropertiesUpdated( ESstvProperty eProp ) {
@@ -239,6 +345,9 @@ namespace Play.SSTV {
                 }
                 yield return (int)uiWait;
             } while( SSTVBuffer.IsReading );
+
+            TransmitMode = null;
+            // Set upload time to "finished" maybe even date/time!
         }
 
         public bool Load( TextReader oStream ) {
@@ -249,8 +358,10 @@ namespace Play.SSTV {
             return true;
         }
 
-        public void PlayBegin() {
-            _oWorkPlace.Queue( GetPlayerTask(), 0 );
+        public void PlayBegin( int iMode ) {
+            if( GeneratorSetup( iMode ) ) {
+                _oWorkPlace.Queue( GetPlayerTask(), 0 );
+            }
             //while ( _oDataTester.ConsumeData() < 350000 ) {
             //}
         }

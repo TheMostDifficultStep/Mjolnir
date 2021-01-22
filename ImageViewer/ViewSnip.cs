@@ -123,7 +123,7 @@ namespace Play.ImageViewer {
 		protected ImageViewSingle SnipView{ get; }
 		protected Input this[Labels eIndex] => _rgProperty[eIndex];
 
-        protected uint _uiReturnID       = 0;
+        protected uint _uiReturnID       = 0; // Which view to return to after snip save.
 		protected bool _fBlockTextEvents = false;
 		protected bool _fDisposed        = false;
 

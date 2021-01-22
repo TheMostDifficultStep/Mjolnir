@@ -8,11 +8,12 @@ using System.IO;
 using SkiaSharp;
 
 using Play.Interfaces.Embedding;
+using Play.Rectangles;
 using Play.Edit;
+using Play.ImageViewer;
 
 namespace Play.SSTV {
-
-	public class WindowTransmit:
+	public class ViewTransmit:
 		Control,
 		IPgParent,
 		IPgLoad<XmlElement>,
@@ -22,17 +23,22 @@ namespace Play.SSTV {
 	{
 		public static Guid ViewType { get; }  = new Guid( "{CED824F5-2C17-418C-9559-84D6B4F571FC}" );
 
-		protected IPgViewSite _oViewSite;
-		protected DocSSTV     _oDocSSTV;
+		protected readonly IPgViewSite   _oSiteView;
+		protected readonly DocSSTV       _oDocSSTV;
+		protected readonly EditWindow2   _oViewMode;
+		protected readonly ImageViewSolo _oViewImage;
 
 		public PropDoc ImageProperties { get; } // Container for properties to show for this window.
 
-		protected class SSTVWinSlot :
-			IPgBaseSite
-		{
-			protected readonly WindowTransmit _oHost;
+		protected LayoutStackVertical _oLayout = new LayoutStackVertical( 5 );
 
-			public SSTVWinSlot( WindowTransmit oHost ) {
+		protected class SSTVWinSlot :
+			IPgViewSite,
+			IPgShellSite
+		{
+			protected readonly ViewTransmit _oHost;
+
+			public SSTVWinSlot( ViewTransmit oHost ) {
 				_oHost = oHost ?? throw new ArgumentNullException();
 			}
 
@@ -45,37 +51,78 @@ namespace Play.SSTV {
 			public void Notify( ShellNotify eEvent ) {
 				// Might want this value when we close to save the current playing list!!
 			}
-		}
 
-		public WindowTransmit( IPgViewSite oViewSite, DocSSTV oDocument ) {
-			_oViewSite = oViewSite ?? throw new ArgumentNullException( "View requires a view site." );
-			_oDocSSTV  = oDocument ?? throw new ArgumentNullException( "View requires a document." );
+            public object AddView( Guid guidViewType, bool fFocus ) {
+                return null;
+            }
 
-            ImageProperties = new PropDoc( new SSTVWinSlot( this ) );
-		}
+            public void FocusMe() {
+                throw new NotImplementedException();
+            }
 
-		public IPgParent Parentage => _oViewSite.Host;
+            public void FocusCenterView() {
+                throw new NotImplementedException();
+            }
+
+            public IPgViewNotify EventChain => _oHost._oSiteView.EventChain;
+
+            public IEnumerable<IPgCommandView> EnumerateSiblings => throw new NotImplementedException();
+
+            public uint SiteID => throw new NotImplementedException();
+        }
+
+		public IPgParent Parentage => _oSiteView.Host;
 		public IPgParent Services  => Parentage.Services;
 		public bool      IsDirty   => false;
-		public string    Banner    => "Frequency Space";
+		public string    Banner    => "Transmit Window";
 		public Image     Iconic    => null;
 		public Guid      Catagory  => ViewType;
 
-		public void LogError( string strMessage ) {
-			_oViewSite.LogError( "SSTV View", strMessage );
+		public ViewTransmit( IPgViewSite oViewSite, DocSSTV oDocument ) {
+			_oSiteView = oViewSite ?? throw new ArgumentNullException( "View requires a view site." );
+			_oDocSSTV  = oDocument ?? throw new ArgumentNullException( "View requires a document." );
+
+            ImageProperties = new PropDoc( new SSTVWinSlot( this ) );
+
+			_oViewMode  = new EditWindow2  ( new SSTVWinSlot( this ), _oDocSSTV.ModeList, true );
+			_oViewImage = new ImageViewSolo( new SSTVWinSlot( this ), _oDocSSTV.ImageList );
 		}
 
-		protected override void Dispose(  bool disposing ) {
+		protected override void Dispose( bool disposing ) {
 			_oDocSSTV.PropertyChange -= Listen_PropertyChange;
 
 			base.Dispose( disposing );
 		}
 
+		public void LogError( string strMessage ) {
+			_oSiteView.LogError( "SSTV View", strMessage );
+		}
+
 		public bool InitNew() {
 			if( !ImageProperties.InitNew() )
                 return false;
+			if( !_oViewMode.InitNew() )
+				return false;
+			if( !_oViewImage.InitNew() )
+				return false;
+
+			_oViewImage.Parent = this;
+			_oViewMode .Parent = this;
 
 			DecorPropertiesInit();
+
+            //_oLayout.Add( new LayoutRect( LayoutRect.CSS.Percent, 60, 0 ) ); // image
+            //_oLayout.Add( new LayoutRect( LayoutRect.CSS.Percent, 40, 0 ) ); // mode
+
+            //_oLayout.AddRow( new List<LayoutRect>() { 
+            //	new LayoutControl( _oViewImage, LayoutRect.CSS.None ),
+            //	new LayoutControl( _oViewMode,  LayoutRect.CSS.None ) } 
+            //);
+
+            _oLayout.Add( new LayoutControl( _oViewImage, LayoutRect.CSS.None ) ); // image
+            _oLayout.Add( new LayoutControl( _oViewMode,  LayoutRect.CSS.None ) ); // mode
+
+            OnSizeChanged( new EventArgs() );
 
 			return true;
 		}
@@ -98,7 +145,12 @@ namespace Play.SSTV {
 		/// specific property in the future. You know, a color coded property, 
 		/// light red or yellow on change would be a cool feature.</remarks>
         private void Listen_PropertyChange( ESstvProperty eProp ) {
-            DecorPropertiesReLoad();
+			switch( eProp ) {
+				case ESstvProperty.ALL:
+				case ESstvProperty.TXImage:
+					DecorPropertiesReLoad();
+					break;
+			}
         }
 
         protected void DecorPropertiesReLoad() {
@@ -135,14 +187,21 @@ namespace Play.SSTV {
 
 		protected override void OnSizeChanged(EventArgs e) {
 			base.OnSizeChanged(e);
-			Invalidate();
+
+			_oLayout.SetRect( 0, 0, Width, Height );
+			_oLayout.LayoutChildren();
+
+            Invalidate();
 		}
 
 		public object Decorate(IPgViewSite oBaseSite,Guid sGuid) {
 			try {
-				if (sGuid.Equals(GlobalDecorations.Properties)) {
+				if( sGuid.Equals(GlobalDecorations.Properties) ) {
 					DecorPropertiesReLoad();
 					return new PropWin( oBaseSite, ImageProperties );
+				}
+				if( sGuid.Equals( GlobalDecorations.Outline ) ) {
+					return _oViewImage.Decorate( oBaseSite, sGuid );
 				}
 				return false;
 			} catch ( Exception oEx ) {
@@ -161,7 +220,7 @@ namespace Play.SSTV {
 
 		public bool Execute(Guid sGuid) {
 			if( sGuid == GlobalCommands.Play ) {
-				_oDocSSTV.PlayBegin();
+				_oDocSSTV.PlayBegin( _oViewMode.Caret.Line );
 				return true;
 			}
 			if( sGuid == GlobalCommands.Stop ) {
@@ -172,6 +231,17 @@ namespace Play.SSTV {
 			return false;
 		}
 
+        protected override void OnGotFocus( EventArgs e ) {
+            base.OnGotFocus(e);
+			_oSiteView.EventChain.NotifyFocused( true );
+			Invalidate();
+        }
+
+        protected override void OnLostFocus( EventArgs e ) {
+            base.OnGotFocus(e);
+			_oSiteView.EventChain.NotifyFocused( false );
+			Invalidate();
+        }
         protected override void OnKeyDown(KeyEventArgs e) {
             if( this.IsDisposed )
                 return;

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Collections.Generic;
+using System.Reflection;
 
 using SkiaSharp;
 
@@ -204,11 +205,13 @@ namespace Play.Sound {
         readonly public byte   VIS;
         readonly public string Name = string.Empty;
         readonly public double TxWidthInMS; // Single line.
+        readonly public Type   Owner;
 
-        public SSTVMode( byte bVIS, string strName, double dbTxWidth ) {
+        public SSTVMode( Type oOwner, byte bVIS, string strName, double dbTxWidth ) {
             VIS         = bVIS;
             Name        = strName;
             TxWidthInMS = dbTxWidth;
+            Owner       = oOwner;
         }
     }
 
@@ -323,9 +326,11 @@ namespace Play.Sound {
         /// </summary>
         /// <returns></returns>
         public static IEnumerator<SSTVMode> GetModeEnumerator() {
- 	        yield return new SSTVMode( 0x3c, "Scottie 1",  138.240 );
-            yield return new SSTVMode( 0xb8, "Scottie 2",   88.064 );
-            yield return new SSTVMode( 0xcc, "Scottie DX", 345.600 );
+            Type oOwner = typeof( GenerateScottie );
+
+ 	        yield return new SSTVMode( oOwner, 0x3c, "Scottie 1",  138.240 );
+            yield return new SSTVMode( oOwner, 0xb8, "Scottie 2",   88.064 );
+            yield return new SSTVMode( oOwner, 0xcc, "Scottie DX", 345.600 );
         }
 
         /// <summary>
@@ -389,8 +394,10 @@ namespace Play.Sound {
         /// </summary>
         /// <returns></returns>
         public static IEnumerator<SSTVMode> GetModeEnumerator() {
- 	        yield return new SSTVMode( 0xac, "Martin 1",  146.432 );
-            yield return new SSTVMode( 0x28, "Martin 2",   73.216 );
+            Type oOwner = typeof( GenerateMartin );
+
+ 	        yield return new SSTVMode( oOwner, 0xac, "Martin 1",  146.432 );
+            yield return new SSTVMode( oOwner, 0x28, "Martin 2",   73.216 );
         }
 
         /// <summary>
@@ -451,13 +458,15 @@ namespace Play.Sound {
         }
 
         public static IEnumerator<SSTVMode> GetModeEnumerator() {
- 	        yield return new SSTVMode( 0xdd, "PD 50",    91.520 );
-            yield return new SSTVMode( 0x63, "PD 90",   170.240 );
-            yield return new SSTVMode( 0x5f, "PD 120",  121.600 );
-            yield return new SSTVMode( 0xe2, "PD 160",  195.584 );
-            yield return new SSTVMode( 0x60, "PD 180",  183.040 );
-            yield return new SSTVMode( 0xe1, "PD 240",  244.480 );
-            yield return new SSTVMode( 0xde, "PD 290",  228.800 );
+            Type oOwner = typeof( GeneratePD );
+
+ 	        yield return new SSTVMode( oOwner, 0xdd, "PD 50",    91.520 );
+            yield return new SSTVMode( oOwner, 0x63, "PD 90",   170.240 );
+            yield return new SSTVMode( oOwner, 0x5f, "PD 120",  121.600 );
+            yield return new SSTVMode( oOwner, 0xe2, "PD 160",  195.584 );
+            yield return new SSTVMode( oOwner, 0x60, "PD 180",  183.040 );
+            yield return new SSTVMode( oOwner, 0xe1, "PD 240",  244.480 );
+            yield return new SSTVMode( oOwner, 0xde, "PD 290",  228.800 );
         }
 
         public byte Limit256( double d ) {
@@ -539,7 +548,7 @@ namespace Play.Sound {
                 yield return iLine;
             }
         }
-    } // End class
+    } 
 
     /// <summary>
     /// New experimental buffer implementation. I'll move this over to
@@ -572,6 +581,7 @@ namespace Play.Sound {
         }
 
         public void Dispose() {
+            Clear();
             _oDataPump = null;
         }
 

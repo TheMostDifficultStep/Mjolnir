@@ -12,7 +12,7 @@ namespace Play.SSTV {
 	/// A little view for showing my fourier transform experiments. I just tacked it onto my
 	/// music object in the hopes of showing frequence responce when I get a faster transform.
 	/// </summary>
-	public class WindowFFT:
+	public class ViewFFT:
 		Control,
 		IPgParent,
 		IPgLoad<XmlElement>,
@@ -25,7 +25,7 @@ namespace Play.SSTV {
 		protected IPgViewSite _oViewSite;
 		protected DocSSTV     _oDocSSTV;
 
-		public WindowFFT( IPgViewSite oViewSite, DocSSTV oDocument ) {
+		public ViewFFT( IPgViewSite oViewSite, DocSSTV oDocument ) {
 			_oViewSite = oViewSite ?? throw new ArgumentNullException( "View requires a view site." );
 			_oDocSSTV  = oDocument ?? throw new ArgumentNullException( "View requires a document." );
 
@@ -152,7 +152,7 @@ namespace Play.SSTV {
 
 		public bool Execute(Guid sGuid) {
 			if( sGuid == GlobalCommands.Play ) {
-				_oDocSSTV.PlayBegin();
+				//_oDocSSTV.PlayBegin( );
 				return true;
 			}
 			if( sGuid == GlobalCommands.Stop ) {
