@@ -19,6 +19,7 @@ namespace Play.SSTV {
 		IPgLoad<XmlElement>,
 		IPgSave<XmlDocumentFragment>,
 		IPgCommandView,
+		IPgTools,
 		IDisposable
 	{
 		public static Guid ViewType { get; }  = new Guid( "{CED824F5-2C17-418C-9559-84D6B4F571FC}" );
@@ -30,7 +31,7 @@ namespace Play.SSTV {
 
 		public PropDoc ImageProperties { get; } // Container for properties to show for this window.
 
-		protected LayoutStackVertical _oLayout = new LayoutStackVertical( 5 );
+		protected LayoutStack _oLayout = new LayoutStackHorizontal( 5 );
 
 		protected class SSTVWinSlot :
 			IPgViewSite,
@@ -78,7 +79,7 @@ namespace Play.SSTV {
 		public Image     Iconic    => null;
 		public Guid      Catagory  => ViewType;
 
-		public ViewTransmit( IPgViewSite oViewSite, DocSSTV oDocument ) {
+        public ViewTransmit( IPgViewSite oViewSite, DocSSTV oDocument ) {
 			_oSiteView = oViewSite ?? throw new ArgumentNullException( "View requires a view site." );
 			_oDocSSTV  = oDocument ?? throw new ArgumentNullException( "View requires a document." );
 
@@ -120,7 +121,7 @@ namespace Play.SSTV {
             //);
 
             _oLayout.Add( new LayoutControl( _oViewImage, LayoutRect.CSS.None ) ); // image
-            _oLayout.Add( new LayoutControl( _oViewMode,  LayoutRect.CSS.None ) ); // mode
+            _oLayout.Add( new LayoutControl( _oViewMode,  LayoutRect.CSS.Pixels, 100 ) ); // mode
 
             OnSizeChanged( new EventArgs() );
 
@@ -188,7 +189,11 @@ namespace Play.SSTV {
 		protected override void OnSizeChanged(EventArgs e) {
 			base.OnSizeChanged(e);
 
-			_oLayout.SetRect( 0, 0, Width, Height );
+			int iHeight = 500;
+			if( Height < iHeight )
+				iHeight = Height;
+
+			_oLayout.SetRect( 0, 0, Width, iHeight );
 			_oLayout.LayoutChildren();
 
             Invalidate();
@@ -253,6 +258,21 @@ namespace Play.SSTV {
                 case Keys.Enter:
                     break;
             }
+        }
+
+        public int ToolCount => _oViewImage.ToolCount;
+
+        public int ToolSelect { 
+			get => _oViewImage.ToolSelect; 
+			set { _oViewImage.ToolSelect = value; } 
+		}
+
+        public string ToolName( int iTool ) {
+            return _oViewImage.ToolName( iTool );
+        }
+
+        public Image ToolIcon( int iTool ) {
+            return _oViewImage.ToolIcon( iTool );
         }
     }
 
