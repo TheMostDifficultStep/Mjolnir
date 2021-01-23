@@ -39,8 +39,7 @@ namespace Play.Rectangles
 		protected SmartRect[] _rgHandlesCorner = new SmartRect[4];
 		protected SmartRect[] _rgHandlesMiddle = new SmartRect[4];
 
-        public enum HIT
-        {
+        public enum HIT {
             NONE     = 0,
             EDGE     = 0x01,
             CORNER   = 0x02,
@@ -197,8 +196,7 @@ namespace Play.Rectangles
             }
         }
 
-        public HIT IsHit(int p_iX, int p_iY, out LOCUS pr_uiEdges)
-        {
+        public HIT IsHit(int p_iX, int p_iY, out LOCUS pr_uiEdges) {
             LOCUS[] l_rguiSeq = { LOCUS.LEFT, LOCUS.TOP, LOCUS.RIGHT, LOCUS.BOTTOM };
             HIT     l_eType   = HIT.NONE;
 
@@ -236,13 +234,11 @@ namespace Play.Rectangles
 
         /// <summery>Our notion of what's "inside" is related to the the grab
         //			 handle itself versus what it is (wrapped) around.</summery>
-        public override bool IsInside(int p_iX, int p_iY)
-        {
+        public override bool IsInside(int p_iX, int p_iY) {
             if( Hidden )
                 return( false );
 
-            LOCUS l_eEdge   = LOCUS.EMPTY;
-            HIT   l_eHit    = IsHit(p_iX, p_iY, out l_eEdge );
+            HIT   l_eHit    = IsHit(p_iX, p_iY, out LOCUS l_eEdge );
             bool  l_fInside = false;
 
             if( l_eHit == HIT.CORNER ||
@@ -253,42 +249,43 @@ namespace Play.Rectangles
             return( l_fInside );
         }
 
+        /// <summary>
+        /// This is the default way to start a drag operation.
+        /// </summary>
+        public SmartGrabDrag BeginDrag( int p_iX, int p_iY, SKPointI p_pntAspect ) {
+            HIT eHit = IsHit( p_iX, p_iY, out LOCUS l_eEdges );
+            switch( eHit ) {
+                case HIT.CORNER:
+                case HIT.MIDPOINT:
+                    return BeginAspectDrag( null, SET.STRETCH, eHit, l_eEdges, p_iX, p_iY, p_pntAspect );
+
+                case HIT.INSIDE:
+                    return new SmartGrabDrag( null, this, SET.RIGID, LOCUS.UPPERLEFT, p_iX, p_iY );
+                case HIT.EDGE:
+                    return new SmartGrabDrag( null, this, SET.RIGID, l_eEdges, p_iX, p_iY );
+            }
+
+            return null;
+        }
+
 		/// <summary>
 		/// When dragging if it's a corner we might need to preserve aspect. This
 		/// function can be overridden to provide a drag object that honors aspect.
+        /// Note the HIT point has already been determined by the caller. This allows
+        /// the user to overide the default hit that the points would produce
+        /// by calling IsHit() on us.
 		/// </summary>
-		public virtual SmartGrabDrag CreateAspectDrag(
+		public virtual SmartGrabDrag BeginAspectDrag(
 			DragFinished  p_oFinished,
             SET           p_eStretch,
+            HIT           p_eHit,
             LOCUS         p_eEdges,
             int           p_iX, 
-            int           p_iY
+            int           p_iY,
+            SKPointI      p_pntAspect
 		) {
-			return new SmartGrabDrag( p_oFinished, this, p_eStretch, p_eEdges, p_iX, p_iY);
+			return new SmartGrabDrag( p_oFinished, this, p_eStretch, p_eEdges, p_iX, p_iY );
 		}
-
-        /// <summary>
-        /// Call this to start a drag operation.
-        /// </summary>
-        public SmartGrabDrag BeginDrag(int p_iX, int p_iY)
-        {
-            SmartGrabDrag r_oDrag  = null;
-
-            switch( IsHit( p_iX, p_iY, out LOCUS l_eEdges ))
-            {
-                case HIT.CORNER:
-                case HIT.MIDPOINT:
-                    r_oDrag = CreateAspectDrag( null, SET.STRETCH, l_eEdges, p_iX, p_iY);
-                    break;
-
-                case HIT.INSIDE:
-                case HIT.EDGE:
-                    r_oDrag = new SmartGrabDrag( null, this, SET.RIGID, LOCUS.UPPERLEFT, p_iX, p_iY);
-                    break;
-            }
-
-            return (r_oDrag);
-        }
 
         public void HoverStop() {
             m_fHovering = false;
@@ -343,8 +340,7 @@ namespace Play.Rectangles
 			}
 		}
 
-        public override void Paint(Graphics oGraphics)
-        {
+        public override void Paint(Graphics oGraphics) {
             Brush oEdgeBrush   = null;
             Brush oCornerBrush = null;
 
@@ -388,17 +384,17 @@ namespace Play.Rectangles
         }
     } // class SmartGrab
 
-	/// <remarks>Currently a work in progress.</remarks>
+	/// <summary>
+	/// This a thin selection box tool. That also supports aspect ratio enforcement.
+	/// </summary>
 	public class SmartSelect : SmartGrab {
 		public DragMode Mode { get; set; }
 
-		/// <summary>
-		/// This a thin selection box tool.
-		/// </summary>
 		public SmartSelect( ) : 
 			base( new SmartRect(), 7, fLiveDrag:false, eMoveable:SCALAR.ALL ) 
 		{
-			Mode = DragMode.FreeStyle;
+			Mode       = DragMode.FreeStyle;
+            Invertable = false;
 		}
 
 		public override bool IsInside(int iX,int iY) {
@@ -411,20 +407,38 @@ namespace Play.Rectangles
 			return false;
 		}
 
-		public override SmartGrabDrag CreateAspectDrag(
+		public override SmartGrabDrag BeginAspectDrag(
 			DragFinished  p_oFinished,
             SET           p_eStretch,
+            HIT           p_eHit,
             LOCUS         p_eEdges,
             int           p_iX, 
-            int           p_iY
+            int           p_iY,
+            SKPointI      p_pntAspect
 		) {
-			switch( Mode ) {
-				default:
-				case DragMode.FreeStyle:
-					return new SmartGrabDrag( p_oFinished, this, p_eStretch, p_eEdges, p_iX, p_iY );
-				case DragMode.FixedRatio:
-					return new SmartSelectDrag( p_oFinished, this, p_eStretch, p_eEdges, p_iX, p_iY);
-			}
+            switch( p_eHit ) {
+                case HIT.CORNER:
+			        switch( Mode ) {
+				        default:
+				        case DragMode.FreeStyle:
+					        return new SmartGrabDrag  ( p_oFinished, this, p_eStretch, p_eEdges, p_iX, p_iY );
+				        case DragMode.FixedRatio:
+					        return new SmartSelectDrag( p_oFinished, this, p_eStretch, p_eEdges, p_iX, p_iY, p_pntAspect );
+			        }
+
+                case HIT.MIDPOINT:
+			        switch( Mode ) {
+				        default:
+				        case DragMode.FreeStyle:
+					        return new SmartGrabDrag  ( p_oFinished, this, p_eStretch, p_eEdges, p_iX, p_iY );
+				        case DragMode.FixedRatio:
+					        return new SmartGrabDrag( p_oFinished, this, SET.RIGID, LOCUS.UPPERLEFT, p_iX, p_iY );
+			        }
+                case HIT.INSIDE:
+                case HIT.EDGE:
+                    return new SmartGrabDrag( p_oFinished, this, SET.RIGID, LOCUS.UPPERLEFT, p_iX, p_iY );
+            }
+            return null;
 		}
 
 		/// <summary>
@@ -441,7 +455,7 @@ namespace Play.Rectangles
 											   backColor:Color.White ) ) {
 						using( Pen oPen = new Pen( oBrush ) ) {
 							SmartRect oBorder = new SmartRect( this );
-							oBorder.SetScalar( SET.INCR, SCALAR.LEFT | SCALAR.TOP, 1 );
+							oBorder  .SetScalar    ( SET.INCR, SCALAR.LEFT | SCALAR.TOP, 1 );
 							oGraphics.DrawRectangle( oPen, oBorder.Rect);
 
 							for (int i = 0; i < 4; ++i) {
@@ -495,6 +509,7 @@ namespace Play.Rectangles
             int           p_iX, 
             int           p_iY )
         {
+            Invertable            = true;
             Guest                 = p_oGuest ?? throw new ArgumentNullException("The guest may not be null");
             _eEdges               = p_eEdges;
             _eStretch             = p_eStretch;
@@ -557,7 +572,8 @@ namespace Play.Rectangles
     } // class SmartGrabDrag
 
 	public class SmartSelectDrag : SmartGrabDrag {
-		SKPointI _pntOppoSide;
+        float _flSlope;
+        float _flIntercept;
 
 		public SmartSelectDrag(
             DragFinished  p_oFinished,
@@ -565,39 +581,46 @@ namespace Play.Rectangles
             SET           p_eStretch,
             LOCUS         p_eEdges,
             int           p_iX, 
-            int           p_iY) : base( p_oFinished, p_oGuest, p_eStretch, p_eEdges, p_iX, p_iY )
+            int           p_iY,
+            SKPointI      p_pntAspect = new SKPointI()
+            ) : base( p_oFinished, p_oGuest, p_eStretch, p_eEdges, p_iX, p_iY )
         {
-			LOCUS eOppoEdge = GetInvert( p_eEdges );
+		    SKPointI pntAnchorSide = new SKPointI( p_iX, p_iY ); // Shouldn't, need this default. But compiler is whining.
+			LOCUS    eOppoEdge     = GetInvert( p_eEdges );
+
+            // Avoid divide by zero problems.
+            if( p_pntAspect.X == 0 ) {
+                p_pntAspect.X = 1;
+            }
 
 			try {
-				_pntOppoSide = p_oGuest.GetPoint( eOppoEdge );
+				pntAnchorSide = p_oGuest.GetPoint( eOppoEdge );
 			} catch( ArgumentOutOfRangeException ) {
-				// Huh, I forget why I do this... ^_^;;
+				// If we get a meaningless eOppoEdge arg generated then we
+                // try to pick something close.
 				if( ( eOppoEdge & LOCUS.LEFT & LOCUS.TOP ) != 0 )
-					_pntOppoSide = p_oGuest.GetPoint( LOCUS.UPPERLEFT );
+					pntAnchorSide = p_oGuest.GetPoint( LOCUS.UPPERLEFT );
 				if( ( eOppoEdge & LOCUS.RIGHT & LOCUS.BOTTOM ) != 0 )
-					_pntOppoSide = p_oGuest.GetPoint( LOCUS.LOWERRIGHT );
+					pntAnchorSide = p_oGuest.GetPoint( LOCUS.LOWERRIGHT );
 			}
+
+            _flSlope = p_pntAspect.Y / (float)p_pntAspect.X;
+
+            if( ( LOCUS.UPPERRIGHT == p_eEdges ) || ( LOCUS.LOWERLEFT  == p_eEdges ) )
+                _flSlope = -_flSlope;
+
+            _flIntercept = pntAnchorSide.Y - ( _flSlope * pntAnchorSide.X );
 		}
 
 		/// <summary>
-		/// Right now we do square drag as an experiment. In the future we'll get the
-		/// aspect from a options dialog that shows for the tool.
+		/// Finally support aspect draw.
 		/// </summary>
-        public override void Move(int p_iX, int p_iY)
-        {
+        public override void Move(int p_iX, int p_iY) {
             p_iX += _pntOffset.X;
             p_iY += _pntOffset.Y;
 
-			Size szDiff = new Size( p_iX - _pntOppoSide.X, p_iY - _pntOppoSide.Y );
-
-			if( Math.Abs( szDiff.Width ) > Math.Abs( szDiff.Height ) ) {
-				p_iX = _pntOppoSide.X + szDiff.Width;
-				p_iY = _pntOppoSide.Y + szDiff.Width;
-			} else {
-				p_iX = _pntOppoSide.X + szDiff.Height;
-				p_iY = _pntOppoSide.Y + szDiff.Height;
-			}
+            // Rememeber: our graphics is in quadrant IV (4) so we're upside down.
+            p_iY = (int)( _flSlope * p_iX + _flIntercept );
 
             SetPoint( p_iX, p_iY );
         }

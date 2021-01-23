@@ -63,6 +63,8 @@ namespace Play.ImageViewer {
                                                   Keys.Delete, Keys.Enter, Keys.Tab, 
                                                   Keys.Control | Keys.A, Keys.Control | Keys.F };
 
+		public SKPointI Aspect { get; set; } = new SKPointI( 1, 1 ); 
+
       //TODO: Save these on the document.
       //Cursor _oCursorGrab;
         Cursor _oCursorHand;
@@ -179,16 +181,16 @@ namespace Play.ImageViewer {
         }
 
 		/// <summary>
-		/// This is our first crude tool options set system. We'll be super kewl in the future.
+		/// Let's us set the selection drag option, free drag or fixed aspect drag.
 		/// </summary>
-		protected DragMode DragMode {
-			get {
-				if( DragOptions[0].CompareTo( "FixedRatio" ) == 0 )
-					return DragMode.FixedRatio;
+		public DragMode DragMode { get; set; } = DragMode.FreeStyle;
+		//	get {
+		//		//if( DragOptions[0].CompareTo( "FixedRatio" ) == 0 )
+		//			return DragMode.FixedRatio;
 
-				return DragMode.FreeStyle;
-			}
-		}
+		//		//return DragMode.FreeStyle;
+		//	}
+		//}
 
 		protected override void OnImageUpdated() {
 			base.OnImageUpdated();
@@ -434,14 +436,15 @@ namespace Play.ImageViewer {
 				_rcSelectionView.Mode = DragMode;
 
 				if( _rcSelectionView.Hidden ) {
+					// We might be in the select mode but the selection is hidden at first, so...
 					_rcSelectionView.Hidden = false;
 					_rcSelectionView.Show   = SHOWSTATE.Focused;
 					_rcSelectionView.SetRect( e.X-1, e.Y-1, e.X+1, e.Y+1 );
-					_oSmartDrag = _rcSelectionView.CreateAspectDrag( null, SET.STRETCH, LOCUS.LOWERRIGHT, e.X, e.Y );
+					// If selection hidden, we choose the lower right as the drag edge.
+					_oSmartDrag = _rcSelectionView.BeginAspectDrag( null, SET.STRETCH, SmartGrab.HIT.CORNER, LOCUS.LOWERRIGHT, e.X, e.Y, Aspect );
 				} else {
-					if( e.Button == MouseButtons.Left &&
-						_rcSelectionView.IsInside( e.X, e.Y ) ) {
-						_oSmartDrag = _rcSelectionView.BeginDrag( e.X, e.Y );
+					if( e.Button == MouseButtons.Left ) {
+						_oSmartDrag = _rcSelectionView.BeginDrag( e.X, e.Y, Aspect );
 					}
 				}
 			}

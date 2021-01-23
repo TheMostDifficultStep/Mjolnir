@@ -110,6 +110,9 @@ namespace Play.SSTV {
 			_oViewImage.Parent = this;
 			_oViewMode .Parent = this;
 
+			_oViewImage.Aspect   = new SKPointI( 320, 256 );
+			_oViewImage.DragMode = DragMode.FixedRatio;
+
 			DecorPropertiesInit();
 
             //_oLayout.Add( new LayoutRect( LayoutRect.CSS.Percent, 60, 0 ) ); // image
@@ -189,6 +192,8 @@ namespace Play.SSTV {
 		protected override void OnSizeChanged(EventArgs e) {
 			base.OnSizeChanged(e);
 
+			// Limit the top to 500. Look's too goofy if larger. If our window
+			// is smaller set the layout rect to that height.
 			int iHeight = 500;
 			if( Height < iHeight )
 				iHeight = Height;

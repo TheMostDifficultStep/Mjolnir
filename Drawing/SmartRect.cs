@@ -3,8 +3,7 @@ using System.Drawing; // We'll be able to finally remove this when we update our
 
 using SkiaSharp;
 
-namespace Play.Rectangles
-{
+namespace Play.Rectangles {
 	public enum TRACK {
 		VERT,
 		HORIZ
@@ -57,8 +56,7 @@ namespace Play.Rectangles
     }
         
     [FlagsAttribute]
-    public enum LOCUS : uint
-    {
+    public enum LOCUS : uint {
         EMPTY      = 0,
         LEFT       = SCALAR.LEFT,
         TOP        = SCALAR.TOP, 
@@ -76,8 +74,7 @@ namespace Play.Rectangles
         ALL        = LEFT | TOP | RIGHT | BOTTOM
     }
 
-    public enum SET
-    {
+    public enum SET {
         STRETCH = 0x00, // simply set the edge, which stretches the whole rect.
         INCR    = 0x01, // increment by the value (+=)
         RIGID   = 0x02  // keep the extent the same.
@@ -87,14 +84,15 @@ namespace Play.Rectangles
     /// We really want to be a class and not a struct since we're inheriting from this with
     /// objects we don't want to be struct.
     /// </summary>
-    public class SmartRect
-    {
+    public class SmartRect {
         protected int[] m_rgiCur = new int[4];
-        SMARTSIZE _eSizing = SMARTSIZE.Normal;
-		bool      _fBlockEvents = false;
 
-        public enum SIDE : int
-        {
+        protected SMARTSIZE _eSizing      = SMARTSIZE.Normal;
+		protected bool      _fBlockEvents = false;
+
+        public bool Invertable { get; set; } = true; // Allow inverted rects.
+
+        public enum SIDE : int {
             LEFT   = 0,
             TOP    = 1,
             RIGHT  = 2,
@@ -110,22 +108,19 @@ namespace Play.Rectangles
             return( (SCALAR)( 1 << iSide ) );
         }
 
-        public SmartRect()
-        {
+        public SmartRect() {
             for (int i = 0; i < m_rgiCur.Length; ++i)
                 m_rgiCur[i] = 0;
         }
 
-        public SmartRect( int iLeft, int iTop, int iRight, int iBottom )
-        {
+        public SmartRect( int iLeft, int iTop, int iRight, int iBottom ) {
             m_rgiCur[(int)SIDE.LEFT]   = iLeft;
             m_rgiCur[(int)SIDE.TOP]    = iTop;
             m_rgiCur[(int)SIDE.RIGHT]  = iRight;
             m_rgiCur[(int)SIDE.BOTTOM] = iBottom;
         }
 
-        public SmartRect(int p_iEdge)
-        {
+        public SmartRect(int p_iEdge) {
             for (int i = 0; i < m_rgiCur.Length; ++i )
             {
                 m_rgiCur[i] = p_iEdge;
@@ -137,8 +132,7 @@ namespace Play.Rectangles
         {
         }
 
-        public SmartRect(int[] p_rglEdges)
-        {
+        public SmartRect(int[] p_rglEdges) {
             if (p_rglEdges == null)
                 throw (new ArgumentNullException("The edges pointer is null."));
 
@@ -151,8 +145,7 @@ namespace Play.Rectangles
                 m_rgiCur[i] = p_rglEdges[i];
         }
 
-        public SmartRect(LOCUS p_uiEdge, int p_iX, int p_iY, int p_iWidth, int p_iHeight)
-        {
+        public SmartRect(LOCUS p_uiEdge, int p_iX, int p_iY, int p_iWidth, int p_iHeight) {
             m_rgiCur[(int)SIDE.LEFT]   = 0;
             m_rgiCur[(int)SIDE.TOP]    = 0;
             m_rgiCur[(int)SIDE.RIGHT]  = p_iWidth;
@@ -262,17 +255,15 @@ namespace Play.Rectangles
             int   p_lSetX,
             int   p_lSetY)
         {
-            int[] l_rglAdjust = { p_lSetX, p_lSetY };
-            int[] l_rgiSign   = { -1, -1, 1, 1 }; // This depends on coordinate system. ^_^;
+            int[] l_rglAdjust = { p_lSetX, p_lSetY }; // 0 is the X coord, 1 is the Y coord.
+            int[] l_rgiSign   = { -1, -1, 1, 1 };     // This depends on coordinate system. ^_^;
             uint  l_uiScalar  = 1;
             bool  fRigid      = (p_uiStretch & SET.RIGID) != 0;
             bool  fIncr       = (p_uiStretch & SET.INCR)  != 0;
 
-            for (uint iEdge4 = 0; iEdge4 < 4; ++iEdge4)
-            {
-                if (((LOCUS)l_uiScalar & p_uiEdges) != 0)
-                {
-                    uint iEdge2 = (iEdge4 % 2);     // Mod 2 of any edge, see l_rglAdjust
+            for (uint iEdge4 = 0; iEdge4 < 4; ++iEdge4) {
+                if (((LOCUS)l_uiScalar & p_uiEdges) != 0) {
+                    uint iAdIdx = (iEdge4 % 2);     // Mod 2 of any edge, see l_rglAdjust
                     uint iEdgeO = (iEdge4 + 2) % 4; // Compute the opposite edge.
                     int  lExtent = 0;
 
@@ -280,13 +271,24 @@ namespace Play.Rectangles
                     if( fRigid )
                         lExtent = m_rgiCur[iEdgeO] - m_rgiCur[iEdge4];
 
-                    // Note: we don't prevent the rect from going inside out!!
+                    int iValue;
                     if( fIncr)
-                        m_rgiCur[iEdge4] += l_rglAdjust[iEdge2] * l_rgiSign[iEdge4];
+                        iValue = m_rgiCur[iEdge4] + l_rglAdjust[iAdIdx] * l_rgiSign[iEdge4];
                     else
-                        m_rgiCur[iEdge4] = l_rglAdjust[iEdge2];
+                        iValue =  l_rglAdjust[iAdIdx];
 
-                    if( fRigid)
+                    // Prevent the rect from going inside out!!
+                    if( !fRigid ) {
+                        if( ( iValue - m_rgiCur[iEdgeO] ) * l_rgiSign[iEdge4] >= 0 ) {
+                            m_rgiCur[iEdge4] = iValue;
+                        }
+                    } 
+                    // If the rect is rigid it's not possible to turn inside out (barring overflow)
+                    if( Invertable || fRigid ) {
+                        m_rgiCur[iEdge4] = iValue;
+                    }
+
+                    if( fRigid )
                         m_rgiCur[iEdgeO] = m_rgiCur[iEdge4] + lExtent;
                 }
                 l_uiScalar = l_uiScalar << 1;

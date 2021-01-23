@@ -157,30 +157,30 @@ namespace Play.ImageViewer {
             float flWindowAspect = whWinSize.Width / (float)whWinSize.Height;
 
 			// Calculate the new image viewport.
-			Size pntSize = new Size( rctBitmap.Width, rctBitmap.Height );
+			Size pntBmpSize = new Size( rctBitmap.Width, rctBitmap.Height );
 
 			if ( flWindowAspect > flImageAspect ) {
                 // Window is wide and squat compared to bitmap.
-                if( pntSize.Height > whWinSize.Height ) {
+                if( pntBmpSize.Height > whWinSize.Height ) {
                     // image takes up entire height.
-                    pntSize.Height = whWinSize.Height;
-                    pntSize.Width  = (int)(whWinSize.Height * flImageAspect);
+                    pntBmpSize.Height = whWinSize.Height;
+                    pntBmpSize.Width  = (int)(whWinSize.Height * flImageAspect);
                 }
             } else {
                 // Window is tall and narrow compared to bitmap.
-                if( pntSize.Width > whWinSize.Width ) {
+                if( pntBmpSize.Width > whWinSize.Width ) {
                     // image takes up entire width.
-                    pntSize.Width  = whWinSize.Width;
-                    pntSize.Height = (int)(whWinSize.Width / flImageAspect);
+                    pntBmpSize.Width  = whWinSize.Width;
+                    pntBmpSize.Height = (int)(whWinSize.Width / flImageAspect);
                 }
             }
 
 			Point pntUpperLeft = new Point {
-				X = ((whWinSize.Width  - pntSize.Width  + _whBorder.Width  ) / 2 ),
-				Y = ((whWinSize.Height - pntSize.Height + _whBorder.Height ) / 2 )
+				X = ((whWinSize.Width  - pntBmpSize.Width  + _whBorder.Width  ) / 2 ),
+				Y = ((whWinSize.Height - pntBmpSize.Height + _whBorder.Height ) / 2 )
 			};
 
-			rctViewPort.SetRect( LOCUS.UPPERLEFT, pntUpperLeft.X, pntUpperLeft.Y, pntSize.Width, pntSize.Height );
+			rctViewPort.SetRect( LOCUS.UPPERLEFT, pntUpperLeft.X, pntUpperLeft.Y, pntBmpSize.Width, pntBmpSize.Height );
         }
 
         /// <summary>

@@ -423,7 +423,7 @@ namespace Mjolnir {
 
             // 8/15/2016 TODO : Need to get organized about edges and margins w/r to menu docked at top.
             // PreferedSize returns utter nonsense for the Width/Height of the TopMenu!!
-            _rcMargin  .SetScalar( SET.STRETCH, SCALAR.TOP, Document.FontStandard.Height + 14 ); // BUG, why do this?
+            _rcMargin  .SetScalar( SET.STRETCH, SCALAR.TOP, Document.FontStandard.Height + 14 ); // NOTE: Need "Invertable" rect rule b/c margin rect's aren't normal rect usage.
             _rcSideSave.SetScalar( SET.STRETCH, SCALAR.TOP, _rcMargin[ SCALAR.TOP ]);
 
             // Read in all the edge values.
