@@ -117,7 +117,7 @@ namespace Play.SSTV {
 			DecorPropertiesInit();
 
             _oLayout.Add( new LayoutControl( _oViewImage, LayoutRect.CSS.None ) ); // image
-            _oLayout.Add( new LayoutControl( _oViewMode,  LayoutRect.CSS.Pixels, 100 ) ); // mode
+            _oLayout.Add( new LayoutControl( _oViewMode,  LayoutRect.CSS.Pixels, 150 ) ); // mode
 
             OnSizeChanged( new EventArgs() );
 

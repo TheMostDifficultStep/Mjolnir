@@ -30,6 +30,14 @@ namespace Play.SSTV {
     {
         private bool disposedValue;
 
+		public class GeneratorMode : Editor {
+			public GeneratorMode(IPgBaseSite oSite) : base(oSite) {
+				//new ParseHandlerText(this, "m3u");
+			}
+
+			public override WorkerStatus PlayStatus => ((DocSSTV)_oSiteBase.Host).PlayStatus;
+		}
+
 		protected class DocSlot :
 			IPgBaseSite,
             IPgFileSite
@@ -68,7 +76,7 @@ namespace Play.SSTV {
 
         public Specification  Spec           { get; protected set; } = new Specification( 44100, 1, 0, 16 );
         public SSTVMode       TransmitMode   { get; protected set; }
-        public Editor         ModeList       { get; protected set; }
+        public GeneratorMode  ModeList       { get; protected set; }
         public ImageWalkerDir ImageList      { get; protected set; }
         public SKBitmap       Bitmap         => ImageList.Bitmap;
         public string         BitmapFileName => ImageList.CurrentFileName; 
@@ -103,7 +111,7 @@ namespace Play.SSTV {
             _oSiteBase  = oSite ?? throw new ArgumentNullException( "Site must not be null" );
             _oWorkPlace = ((IPgScheduler)Services).CreateWorkPlace() ?? throw new ApplicationException( "Couldn't create a worksite from scheduler.");
 
-            ModeList  = new Editor        ( new DocSlot( this ) );
+            ModeList  = new GeneratorMode ( new DocSlot( this ) );
             ImageList = new ImageWalkerDir( new DocSlot( this ) );
             _oDocSnip = new ImageSoloDoc  ( new DocSlot( this ) );
         }
@@ -332,6 +340,8 @@ namespace Play.SSTV {
                 TransmitMode = null;
             }
 
+            ModeList.HighLight = ModeList[iIndex];
+
             return TransmitMode != null;
         }
 
@@ -365,7 +375,8 @@ namespace Play.SSTV {
                 yield return (int)uiWait;
             } while( SSTVBuffer.IsReading );
 
-            TransmitMode = null;
+            TransmitMode       = null;
+            ModeList.HighLight = null;
             // Set upload time to "finished" maybe even date/time!
         }
 
@@ -396,7 +407,11 @@ namespace Play.SSTV {
             //}
         }
 
+		public WorkerStatus PlayStatus => _oWorkPlace.Status;
+
         public void PlayStop() {
+            ModeList.HighLight = null;
+
             _oWorkPlace.Stop();
         }
 
