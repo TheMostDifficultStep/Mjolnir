@@ -381,10 +381,12 @@ namespace Play.SSTV {
         /// Try to begin playing image.
         /// </summary>
         /// <param name="iMode">Which transmission type and mode.</param>
-        /// <param name="skSelect"></param>
+        /// <param name="skSelect">clip region in source bitmap coordinates.</param>
         public void PlayBegin( int iMode, SKRectI skSelect ) {
             if( _oWorkPlace.Status == WorkerStatus.FREE ) {
 			    // The DocSnip object retains ownership of it's generated bitmap and frees it on next load.
+                // Bug: I should check if the selection == the whole bitmap == required dimension
+                //      and I could skip the snip stage.
 			    _oDocSnip.Load( Bitmap, skSelect, new SKSizeI( 320, 256 ) );
                 if( GeneratorSetup( iMode, _oDocSnip.Bitmap ) ) {
                     _oWorkPlace.Queue( GetPlayerTask(), 0 );
