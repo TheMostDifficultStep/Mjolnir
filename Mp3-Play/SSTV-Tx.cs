@@ -223,7 +223,7 @@ namespace Play.Sound {
     {
         public SSTVMode Mode { get; }
 
-        readonly private   SKBitmap      _oBitmap;
+        readonly private   SKBitmap      _oBitmap; // Do not dispose this, caller will deal with it.
         readonly private   CSSTVMOD      _oModulator;
         readonly protected List<SKColor> _rgCache = new List<SKColor>( 800 );
 

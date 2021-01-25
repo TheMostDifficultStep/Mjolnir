@@ -26,10 +26,11 @@ namespace Play.SSTV {
 
 		protected readonly IPgViewSite   _oSiteView;
 		protected readonly DocSSTV       _oDocSSTV;
-		protected readonly EditWindow2   _oViewMode;
-		protected readonly ImageViewSolo _oViewImage;
 
-		public PropDoc ImageProperties { get; } // Container for properties to show for this window.
+		protected readonly EditWindow2   _oViewMode;  // List the modes for the generators.
+		protected readonly ImageViewSolo _oViewImage; // Show the currently selected image.
+
+		protected PropDoc ImageProperties { get; } // Container for properties to show for this window.
 
 		protected LayoutStack _oLayout = new LayoutStackHorizontal( 5 );
 
@@ -114,14 +115,6 @@ namespace Play.SSTV {
 			_oViewImage.DragMode = DragMode.FixedRatio;
 
 			DecorPropertiesInit();
-
-            //_oLayout.Add( new LayoutRect( LayoutRect.CSS.Percent, 60, 0 ) ); // image
-            //_oLayout.Add( new LayoutRect( LayoutRect.CSS.Percent, 40, 0 ) ); // mode
-
-            //_oLayout.AddRow( new List<LayoutRect>() { 
-            //	new LayoutControl( _oViewImage, LayoutRect.CSS.None ),
-            //	new LayoutControl( _oViewMode,  LayoutRect.CSS.None ) } 
-            //);
 
             _oLayout.Add( new LayoutControl( _oViewImage, LayoutRect.CSS.None ) ); // image
             _oLayout.Add( new LayoutControl( _oViewMode,  LayoutRect.CSS.Pixels, 100 ) ); // mode
@@ -230,7 +223,7 @@ namespace Play.SSTV {
 
 		public bool Execute(Guid sGuid) {
 			if( sGuid == GlobalCommands.Play ) {
-				_oDocSSTV.PlayBegin( _oViewMode.Caret.Line );
+				_oDocSSTV.PlayBegin( _oViewMode.Caret.Line, _oViewImage.Selection.SKRect ); 
 				return true;
 			}
 			if( sGuid == GlobalCommands.Stop ) {

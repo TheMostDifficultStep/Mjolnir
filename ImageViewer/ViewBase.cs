@@ -239,7 +239,8 @@ namespace Play.ImageViewer {
 	public class ImageViewSingle : ImageViewBase, IPgParent {
 		protected bool _fDisposed = false;
 
-		protected readonly SmartRect _rcSelectionBmp = new SmartRect();   // selection in Bmp coordinates.
+		public SmartRect Selection { get; } = new SmartRect();   // selection in Bmp coordinates.
+
         protected readonly SmartRect _rctViewPort    = new SmartRect( LOCUS.UPPERLEFT, 0, 0, 0, 0 );
         protected readonly SmartRect _rctWorldPort   = new SmartRect( LOCUS.UPPERLEFT, 0, 0, 0, 0 );
 

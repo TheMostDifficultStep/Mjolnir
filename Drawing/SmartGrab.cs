@@ -397,6 +397,10 @@ namespace Play.Rectangles
             Invertable = false;
 		}
 
+        /// <summary>
+        /// Oops, I forgot I overode this. I need to see if still necesssary. Probably not.
+        /// </summary>
+        /// <seealso cref="BeginAspectDrag"/>
 		public override bool IsInside(int iX,int iY) {
 			if( base.IsInside( iX, iY ) )
 				return true;
@@ -407,6 +411,11 @@ namespace Play.Rectangles
 			return false;
 		}
 
+        /// <summary>
+        /// When Fixed Ratio is on, we must change our behavor for the "edge" and "middle" selector
+        /// cases. Instead of sliding the edge, the whole rect moves. I probably could get the
+        /// aspect to work in that case but I don't want to mess with it right now.
+        /// </summary>
 		public override SmartGrabDrag BeginAspectDrag(
 			DragFinished  p_oFinished,
             SET           p_eStretch,

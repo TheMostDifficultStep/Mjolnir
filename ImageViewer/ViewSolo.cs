@@ -228,7 +228,7 @@ namespace Play.ImageViewer {
 					ViewSnipDialog oView = (ViewSnipDialog)_oSiteShell.AddView( ViewSnipDialog.Guid, fFocus:true );
 
 					if( oView != null )
-						oView.SnipMake(_rcSelectionBmp, uiReturnID:ID );
+						oView.SnipMake(Selection, uiReturnID:ID );
 				} catch( Exception oEx ) {
 					Type[] rgErrors = { typeof( InvalidCastException ),
 										typeof( NullReferenceException ) };
@@ -302,11 +302,11 @@ namespace Play.ImageViewer {
 											     _rctViewPort.Height / (float)Document.Bitmap.Height );
 
 				_rcSelectionView.SetPoint(SET.STRETCH, LOCUS.UPPERLEFT,
-											(int)(_rcSelectionBmp.Left * pntAspect.X ) + _rctViewPort.Left,
-											(int)(_rcSelectionBmp.Top  * pntAspect.Y ) + _rctViewPort.Top );
+											(int)(Selection.Left * pntAspect.X ) + _rctViewPort.Left,
+											(int)(Selection.Top  * pntAspect.Y ) + _rctViewPort.Top );
 				_rcSelectionView.SetPoint(SET.STRETCH, LOCUS.LOWERRIGHT,
-											(int)(_rcSelectionBmp.Right  * pntAspect.X ) + _rctViewPort.Left,
-											(int)(_rcSelectionBmp.Bottom * pntAspect.Y ) + _rctViewPort.Top);
+											(int)(Selection.Right  * pntAspect.X ) + _rctViewPort.Left,
+											(int)(Selection.Bottom * pntAspect.Y ) + _rctViewPort.Top);
 
 				// But we can set up or navigation hotspots w/o a bitmap.
 				int iHalfWidth = Width / 2;
@@ -440,7 +440,7 @@ namespace Play.ImageViewer {
 					_rcSelectionView.Hidden = false;
 					_rcSelectionView.Show   = SHOWSTATE.Focused;
 					_rcSelectionView.SetRect( e.X-1, e.Y-1, e.X+1, e.Y+1 );
-					// If selection hidden, we choose the lower right as the drag edge.
+					// If selection hidden, we choose the lower right as the drag edge to get started.
 					_oSmartDrag = _rcSelectionView.BeginAspectDrag( null, SET.STRETCH, SmartGrab.HIT.CORNER, LOCUS.LOWERRIGHT, e.X, e.Y, Aspect );
 				} else {
 					if( e.Button == MouseButtons.Left ) {
@@ -460,10 +460,10 @@ namespace Play.ImageViewer {
 				SKPoint pntAspect = new SKPoint( Document.Bitmap.Width  / (float)_rctViewPort.Width,
 											     Document.Bitmap.Height / (float)_rctViewPort.Height );
 
-				_rcSelectionBmp.SetPoint( SET.STRETCH, LOCUS.UPPERLEFT, 
+				Selection.SetPoint( SET.STRETCH, LOCUS.UPPERLEFT, 
 										  (int)((_rcSelectionView.Left - _rctViewPort.Left ) * pntAspect.X ),
 										  (int)((_rcSelectionView.Top  - _rctViewPort.Top  ) * pntAspect.Y ) );
-				_rcSelectionBmp.SetPoint( SET.STRETCH, LOCUS.LOWERRIGHT,
+				Selection.SetPoint( SET.STRETCH, LOCUS.LOWERRIGHT,
 										  (int)((_rcSelectionView.Right  - _rctViewPort.Left ) * pntAspect.X ),
 										  (int)((_rcSelectionView.Bottom - _rctViewPort.Top  ) * pntAspect.Y ) );
 				return;
@@ -606,7 +606,7 @@ namespace Play.ImageViewer {
 				_rcSelectionView.Show = SHOWSTATE.Focused;
 				_whBorder             = new Size( 14, 14 );
 
-				_rcSelectionBmp.SetRect( LOCUS.UPPERLEFT ,0, 0, Document.Bitmap.Width, Document.Bitmap.Height );
+				Selection.SetRect( LOCUS.UPPERLEFT ,0, 0, Document.Bitmap.Width, Document.Bitmap.Height );
 
 				ViewPortSizeMax( _rctWorldPort, _rcSelectionView );
 				ViewPortSizeMax( _rctWorldPort, _rctViewPort );

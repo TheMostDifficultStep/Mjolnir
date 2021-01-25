@@ -66,8 +66,6 @@ namespace Play.SSTV {
 
         public event SSTVPropertyChange PropertyChange;
 
-        DataTester _oDataTester;
-
         public Specification  Spec           { get; protected set; } = new Specification( 44100, 1, 0, 16 );
         public SSTVMode       TransmitMode   { get; protected set; }
         public Editor         ModeList       { get; protected set; }
@@ -75,10 +73,14 @@ namespace Play.SSTV {
         public SKBitmap       Bitmap         => ImageList.Bitmap;
         public string         BitmapFileName => ImageList.CurrentFileName; 
 
+        protected readonly ImageSoloDoc  _oDocSnip;   // Clip the image.
+
         protected Mpg123FFTSupport FileDecoder   { get; set; }
         protected BufferSSTV       SSTVBuffer    { get; set; }
         protected CSSTVMOD         SSTVModulator { get; set; }
 		protected IPgPlayer        _oPlayer;
+
+        private DataTester _oDataTester;
 
 		private double[] _rgFFTData; // Data input for FFT. Note: it get's destroyed in the process.
 		private CFFT     _oFFT;
@@ -103,12 +105,16 @@ namespace Play.SSTV {
 
             ModeList  = new Editor        ( new DocSlot( this ) );
             ImageList = new ImageWalkerDir( new DocSlot( this ) );
+            _oDocSnip = new ImageSoloDoc  ( new DocSlot( this ) );
         }
 
         #region Dispose
         protected virtual void Dispose( bool disposing ) {
             if( !disposedValue ) {
                 if( disposing ) {
+                    if( _oDocSnip != null )
+			            _oDocSnip.Dispose(); 
+
                     // If init new fails then this won't get created.
                     if( FileDecoder != null )
                         FileDecoder.Dispose();
@@ -226,48 +232,6 @@ namespace Play.SSTV {
             return true;
         }
 
-        public bool GeneratorSetup( int iIndex ) {
-            TransmitMode = null;
-
-            if( SSTVModulator == null ) {
-                LogError( "SSTV Modulator is not ready for Transmit." );
-                return false;
-            }
-
-            // Normally I'd use a guid to identify the class, but I thought I'd
-            // try something a little different this time.
-            try {
-                SSTVGenerator oSSTVGenerator = null;
-
-                if( ModeList[iIndex].Extra is SSTVMode oMode ) {
-                    if( oMode.Owner == typeof( GeneratePD ) )
-                        oSSTVGenerator = new GeneratePD     ( Bitmap, SSTVModulator, oMode );
-                    if( oMode.Owner == typeof( GenerateMartin ) )
-                        oSSTVGenerator = new GenerateMartin ( Bitmap, SSTVModulator, oMode );
-                    if( oMode.Owner == typeof( GenerateScottie ) )
-                        oSSTVGenerator = new GenerateScottie( Bitmap, SSTVModulator, oMode );
-
-                    if( oSSTVGenerator != null )
-                        TransmitMode = oMode;
-                }
-
-                if( oSSTVGenerator != null )
-                    SSTVBuffer.Pump = oSSTVGenerator.GetEnumerator();
-
-            } catch( Exception oEx ) {
-                Type[] rgErrors = { typeof( ArgumentException ),
-                                    typeof( ArgumentNullException ),
-                                    typeof( ArgumentOutOfRangeException ),
-                                    typeof( NullReferenceException ) };
-                if( rgErrors.IsUnhandled( oEx ) )
-                    throw;
-
-                LogError( "Blew chunks trying to create Illudium Q-36 Space Modulator, Isn't that nice?" );
-            }
-
-            return TransmitMode != null;
-        }
-
         /// <summary>
         /// Setup the output stream This only needs to be set when the Spec changes.
         /// </summary>
@@ -300,6 +264,8 @@ namespace Play.SSTV {
                 return false;
             if( !OutputStreamInit() )  // Not really a cause for outright failure...
                 return false;
+			if( !_oDocSnip.InitNew() )
+				return false;
 
             LoadModulators( GenerateMartin .GetModeEnumerator() );
             LoadModulators( GenerateScottie.GetModeEnumerator() );
@@ -310,10 +276,63 @@ namespace Play.SSTV {
 
             ImageList.ImageUpdated += Listen_ImageUpdated;
 
-            // This only needs to change if the Spec is updated.
+            // This only needs to change if the Spec or Device is updated.
             _oPlayer = new WmmPlayer(Spec, 1); 
 
             return true;
+        }
+
+        /// <summary>
+        /// This sets up our transmit buffer and modulator to send the given image.
+        /// </summary>
+        /// <param name="iIndex">Index of the generator mode to use.</param>
+        /// <param name="oTxImage">Image to display. It should match the generator mode requirements.</param>
+        /// <returns></returns>
+        public bool GeneratorSetup( int iIndex, SKBitmap oTxImage ) {
+            TransmitMode = null;
+
+            if( SSTVModulator == null ) {
+                LogError( "SSTV Modulator is not ready for Transmit." );
+                return false;
+            }
+            if( _oWorkPlace.Status == WorkerStatus.BUSY ||
+                _oWorkPlace.Status == WorkerStatus.PAUSED ) {
+                LogError( "Stop playing current image, to begin the next." );
+                return false;
+            }
+
+            // Normally I'd use a guid to identify the class, but I thought I'd
+            // try something a little different this time.
+            try {
+                SSTVGenerator oSSTVGenerator = null;
+
+                if( ModeList[iIndex].Extra is SSTVMode oMode ) {
+                    if( oMode.Owner == typeof( GeneratePD ) )
+                        oSSTVGenerator = new GeneratePD     ( oTxImage, SSTVModulator, oMode );
+                    if( oMode.Owner == typeof( GenerateMartin ) )
+                        oSSTVGenerator = new GenerateMartin ( oTxImage, SSTVModulator, oMode );
+                    if( oMode.Owner == typeof( GenerateScottie ) )
+                        oSSTVGenerator = new GenerateScottie( oTxImage, SSTVModulator, oMode );
+
+                    if( oSSTVGenerator != null )
+                        TransmitMode = oMode;
+                }
+
+                if( oSSTVGenerator != null )
+                    SSTVBuffer.Pump = oSSTVGenerator.GetEnumerator();
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( ArgumentException ),
+                                    typeof( ArgumentNullException ),
+                                    typeof( ArgumentOutOfRangeException ),
+                                    typeof( NullReferenceException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
+
+                LogError( "Blew chunks trying to create Illudium Q-36 Space Modulator, Isn't that nice?" );
+                TransmitMode = null;
+            }
+
+            return TransmitMode != null;
         }
 
         private void Listen_ImageUpdated() {
@@ -358,9 +377,18 @@ namespace Play.SSTV {
             return true;
         }
 
-        public void PlayBegin( int iMode ) {
-            if( GeneratorSetup( iMode ) ) {
-                _oWorkPlace.Queue( GetPlayerTask(), 0 );
+        /// <summary>
+        /// Try to begin playing image.
+        /// </summary>
+        /// <param name="iMode">Which transmission type and mode.</param>
+        /// <param name="skSelect"></param>
+        public void PlayBegin( int iMode, SKRectI skSelect ) {
+            if( _oWorkPlace.Status == WorkerStatus.FREE ) {
+			    // The DocSnip object retains ownership of it's generated bitmap and frees it on next load.
+			    _oDocSnip.Load( Bitmap, skSelect, new SKSizeI( 320, 256 ) );
+                if( GeneratorSetup( iMode, _oDocSnip.Bitmap ) ) {
+                    _oWorkPlace.Queue( GetPlayerTask(), 0 );
+                }
             }
             //while ( _oDataTester.ConsumeData() < 350000 ) {
             //}
