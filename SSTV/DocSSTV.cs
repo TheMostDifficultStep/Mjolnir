@@ -75,7 +75,6 @@ namespace Play.SSTV {
         public event SSTVPropertyChange PropertyChange;
 
         public Specification  Spec            { get; protected set; } = new Specification( 44100, 1, 0, 16 );
-        public SSTVMode       TransmitMode    { get; protected set; }
         public GeneratorMode  ModeList        { get; protected set; }
         public ImageWalkerDir ImageList       { get; protected set; }
         public SKBitmap       Bitmap          => ImageList.Bitmap;
@@ -299,6 +298,15 @@ namespace Play.SSTV {
             } 
         }
 
+        public SSTVMode TransmitMode { 
+            get {
+                if( _oSSTVGenerator != null )
+                    return _oSSTVGenerator.Mode;
+
+                return null;
+            }
+        }
+
         /// <summary>
         /// This sets up our transmit buffer and modulator to send the given image.
         /// </summary>
@@ -306,8 +314,6 @@ namespace Play.SSTV {
         /// <param name="oTxImage">Image to display. It should match the generator mode requirements.</param>
         /// <returns></returns>
         public bool GeneratorSetup( int iModeIndex, SKBitmap oTxImage ) {
-            TransmitMode = null;
-
             if( _oSSTVModulator == null ) {
                 LogError( "SSTV Modulator is not ready for Transmit." );
                 return false;
@@ -330,9 +336,6 @@ namespace Play.SSTV {
                         _oSSTVGenerator = new GenerateMartin ( oTxImage, _oSSTVModulator, oMode );
                     if( oMode.Owner == typeof( GenerateScottie ) )
                         _oSSTVGenerator = new GenerateScottie( oTxImage, _oSSTVModulator, oMode );
-
-                    if( _oSSTVGenerator != null )
-                        TransmitMode = oMode;
                 }
 
                 if( _oSSTVGenerator != null )
@@ -346,13 +349,13 @@ namespace Play.SSTV {
                     throw;
 
                 LogError( "Blew chunks trying to create Illudium Q-36 Video Modulator, Isn't that nice?" );
-                TransmitMode    = null;
                 _oSSTVGenerator = null;
             }
 
             ModeList.HighLight = ModeList[iModeIndex];
+            Raise_PropertiesUpdated( ESstvProperty.ALL );
 
-            return TransmitMode != null;
+            return _oSSTVGenerator != null;
         }
 
         private void Listen_ImageUpdated() {
@@ -386,7 +389,6 @@ namespace Play.SSTV {
                 yield return (int)uiWait;
             } while( _oSSTVBuffer.IsReading );
 
-            TransmitMode       = null;
             ModeList.HighLight = null;
             // Set upload time to "finished" maybe even date/time!
         }
