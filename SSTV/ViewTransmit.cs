@@ -242,6 +242,26 @@ namespace Play.SSTV {
 				return true;
 			}
 
+            if( sGuid == GlobalCommands.StepLeft ) {
+                _oDocSSTV.ImageList.Next( -1 );
+                return( true );
+            }
+            if( sGuid == GlobalCommands.StepRight ) {
+                _oDocSSTV.ImageList.Next( +1 );
+                return( true );
+            }
+            if( sGuid == GlobalCommands.JumpParent ) {
+                _oDocSSTV.ImageList.DirectoryNext( 0 );
+                return( true );
+            }
+            if( sGuid == GlobalCommands.JumpPrev ) {
+               _oDocSSTV.ImageList. DirectoryNext( -1 );
+                return( true );
+            }
+            if( sGuid == GlobalCommands.JumpNext ) {
+                _oDocSSTV.ImageList.DirectoryNext( +1 );
+                return( true );
+            }
 			return false;
 		}
 
