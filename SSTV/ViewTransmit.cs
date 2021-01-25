@@ -28,7 +28,7 @@ namespace Play.SSTV {
 		protected readonly DocSSTV       _oDocSSTV;
 
 		protected readonly EditWindow2   _oViewMode;  // List the modes for the generators.
-		protected readonly ImageViewSolo _oViewImage; // Show the currently selected image.
+		protected readonly ImageViewTx   _oViewImage; // Show the currently selected image.
 
 		protected PropDoc ImageProperties { get; } // Container for properties to show for this window.
 
@@ -51,7 +51,7 @@ namespace Play.SSTV {
 			}
 
 			public void Notify( ShellNotify eEvent ) {
-				// Might want this value when we close to save the current playing list!!
+				_oHost._oSiteView.Notify( eEvent );
 			}
 
             public object AddView( Guid guidViewType, bool fFocus ) {
@@ -76,7 +76,7 @@ namespace Play.SSTV {
 		public IPgParent Parentage => _oSiteView.Host;
 		public IPgParent Services  => Parentage.Services;
 		public bool      IsDirty   => false;
-		public string    Banner    => "Transmit Window";
+		public string    Banner    => "Transmit Window : " + _oDocSSTV.ImageList.CurrentDirectory;
 		public Image     Iconic    => null;
 		public Guid      Catagory  => ViewType;
 
@@ -86,8 +86,19 @@ namespace Play.SSTV {
 
             ImageProperties = new PropDoc( new SSTVWinSlot( this ) );
 
-			_oViewMode  = new EditWindow2  ( new SSTVWinSlot( this ), _oDocSSTV.ModeList, true );
-			_oViewImage = new ImageViewSolo( new SSTVWinSlot( this ), _oDocSSTV.ImageList );
+			_oViewMode  = new EditWindow2( new SSTVWinSlot( this ), _oDocSSTV.ModeList, true );
+			_oViewImage = new ImageViewTx( new SSTVWinSlot( this ), _oDocSSTV.ImageList );
+		}
+
+		protected class ImageViewTx : ImageViewSolo {
+			public ImageViewTx( IPgViewSite oBaseSite, ImageWalkerDoc oDoc ) : base( oBaseSite, oDoc ) {
+			}
+
+			protected override void ViewPortSizeMax( SmartRect rctBitmap, SmartRect rctViewPort ) {
+				base.ViewPortSizeMax( rctBitmap, rctViewPort );
+
+				rctViewPort.SetScalar( SET.RIGID, SCALAR.TOP, 0 );
+			}
 		}
 
 		protected override void Dispose( bool disposing ) {
@@ -154,7 +165,7 @@ namespace Play.SSTV {
 			using (PropDoc.Manipulator oBulk = ImageProperties.EditProperties) {
 				string strWidth  = string.Empty;
 				string strHeight = string.Empty;
-				string strName   = Path.GetFileName( _oDocSSTV.BitmapFileName );
+				string strName   = Path.GetFileName( _oDocSSTV.ImageList.CurrentFileName );
 				string strMode   = "Unassigned";
 
 				if( _oDocSSTV.Bitmap != null ) {

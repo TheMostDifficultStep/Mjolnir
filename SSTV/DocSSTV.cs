@@ -79,7 +79,6 @@ namespace Play.SSTV {
         public GeneratorMode  ModeList       { get; protected set; }
         public ImageWalkerDir ImageList      { get; protected set; }
         public SKBitmap       Bitmap         => ImageList.Bitmap;
-        public string         BitmapFileName => ImageList.CurrentFileName; 
 
         protected readonly ImageSoloDoc  _oDocSnip;   // Clip the image.
 
@@ -293,10 +292,10 @@ namespace Play.SSTV {
         /// <summary>
         /// This sets up our transmit buffer and modulator to send the given image.
         /// </summary>
-        /// <param name="iIndex">Index of the generator mode to use.</param>
+        /// <param name="iModeIndex">Index of the generator mode to use.</param>
         /// <param name="oTxImage">Image to display. It should match the generator mode requirements.</param>
         /// <returns></returns>
-        public bool GeneratorSetup( int iIndex, SKBitmap oTxImage ) {
+        public bool GeneratorSetup( int iModeIndex, SKBitmap oTxImage ) {
             TransmitMode = null;
 
             if( SSTVModulator == null ) {
@@ -314,7 +313,7 @@ namespace Play.SSTV {
             try {
                 SSTVGenerator oSSTVGenerator = null;
 
-                if( ModeList[iIndex].Extra is SSTVMode oMode ) {
+                if( ModeList[iModeIndex].Extra is SSTVMode oMode ) {
                     if( oMode.Owner == typeof( GeneratePD ) )
                         oSSTVGenerator = new GeneratePD     ( oTxImage, SSTVModulator, oMode );
                     if( oMode.Owner == typeof( GenerateMartin ) )
@@ -336,11 +335,11 @@ namespace Play.SSTV {
                 if( rgErrors.IsUnhandled( oEx ) )
                     throw;
 
-                LogError( "Blew chunks trying to create Illudium Q-36 Space Modulator, Isn't that nice?" );
+                LogError( "Blew chunks trying to create Illudium Q-36 Video Modulator, Isn't that nice?" );
                 TransmitMode = null;
             }
 
-            ModeList.HighLight = ModeList[iIndex];
+            ModeList.HighLight = ModeList[iModeIndex];
 
             return TransmitMode != null;
         }

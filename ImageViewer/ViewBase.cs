@@ -149,7 +149,7 @@ namespace Play.ImageViewer {
         /// the window. I haven't got that fully sorted yet.
         /// </summary>
         /// <returns></returns>
-        protected void ViewPortSizeMax( SmartRect rctBitmap, SmartRect rctViewPort ) 
+        protected virtual void ViewPortSizeMax( SmartRect rctBitmap, SmartRect rctViewPort ) 
         {
             // If we don't have a bitmap we can't do much about setting our viewport.
 			Size  whWinSize      = new Size( this.Width - _whBorder.Width, this.Height - _whBorder.Height );
