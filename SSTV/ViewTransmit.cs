@@ -158,6 +158,9 @@ namespace Play.SSTV {
 				case ESstvProperty.TXImage:
 					DecorPropertiesReLoad();
 					break;
+				case ESstvProperty.UploadTime:
+					DecorPropertiesLoadTime();
+					break;
 			}
         }
 
@@ -181,6 +184,12 @@ namespace Play.SSTV {
                 oBulk.Set( 3, "0%"      );
                 oBulk.Set( 2, strMode   );
 				oBulk.Set( 4, strName   );
+            }
+		}
+
+		protected void DecorPropertiesLoadTime() {
+			using (PropDoc.Manipulator oBulk = ImageProperties.EditProperties) {
+                oBulk.Set( 3, _oDocSSTV.PercentFinished.ToString() + "%" );
             }
 		}
 

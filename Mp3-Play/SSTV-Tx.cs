@@ -239,13 +239,16 @@ namespace Play.Sound {
 
         protected short ColorToFreq( byte bIntensity ) {
 	        int iIntensity = bIntensity * (2300 - 1500) / 256; // convert 0->256 to 0->800.
-	        return (short)( iIntensity + 1500 );               // convert 0->800 to 1500->2300.
+	        return (short)( iIntensity + 1500 );               // offset  0->800 to 1500->2300.
         }
 
         protected SKColor GetPixel( int x, int y ) => _oBitmap.GetPixel( x, y );
         protected int     Height                   => _oBitmap.Height;
         protected int     Width                    => _oBitmap.Width;
         public    bool    IsDirty                  => true; // We're always happy to write.
+
+        protected int     _iLine; // Use this value so we can track how far along we are.
+        public    int     PercentComplete => (int)( _iLine / (float)Height * 100 );
 
         protected int Write( int iFrequency, uint uiGainSelect, double dbTimeMS ) {
             return _oModulator.Write( iFrequency, uiGainSelect, dbTimeMS );
@@ -295,9 +298,9 @@ namespace Play.Sound {
             WriteVIS( Mode.VIS );
             yield return 0;
 
-            for( int iLine = 0; iLine < Height; ++iLine ) {
-                WriteLine( iLine );
-                yield return iLine;
+            for( _iLine = 0; _iLine < Height; ++_iLine ) {
+                WriteLine( _iLine );
+                yield return _iLine;
             }
         }
 
@@ -543,9 +546,9 @@ namespace Play.Sound {
             WriteVIS( Mode.VIS );
             yield return 0;
 
-            for( int iLine = 0; iLine < Height; iLine+=2 ) {
-                WriteLine( iLine );
-                yield return iLine;
+            for( _iLine = 0; _iLine < Height; _iLine+=2 ) {
+                WriteLine( _iLine );
+                yield return _iLine;
             }
         }
     } 
@@ -619,7 +622,7 @@ namespace Play.Sound {
         /// <summary>
         /// This is a new experimental Read implementation. If you look at my
         /// older buffer implementations they are more complicated. Let's see if
-        /// if this works as well.
+        /// if this works as well. Note: we're limited to 16 bit data stream.
         /// </summary>
         /// <param name="ipTarget">Pointer to unmanaged object</param>
         /// <param name="uiTargetBytesAsk">Number of bytes requested.</param>

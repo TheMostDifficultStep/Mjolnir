@@ -74,18 +74,19 @@ namespace Play.SSTV {
 
         public event SSTVPropertyChange PropertyChange;
 
-        public Specification  Spec           { get; protected set; } = new Specification( 44100, 1, 0, 16 );
-        public SSTVMode       TransmitMode   { get; protected set; }
-        public GeneratorMode  ModeList       { get; protected set; }
-        public ImageWalkerDir ImageList      { get; protected set; }
-        public SKBitmap       Bitmap         => ImageList.Bitmap;
+        public Specification  Spec            { get; protected set; } = new Specification( 44100, 1, 0, 16 );
+        public SSTVMode       TransmitMode    { get; protected set; }
+        public GeneratorMode  ModeList        { get; protected set; }
+        public ImageWalkerDir ImageList       { get; protected set; }
+        public SKBitmap       Bitmap          => ImageList.Bitmap;
 
         protected readonly ImageSoloDoc  _oDocSnip;   // Clip the image.
 
         protected Mpg123FFTSupport FileDecoder   { get; set; }
-        protected BufferSSTV       SSTVBuffer    { get; set; }
-        protected CSSTVMOD         SSTVModulator { get; set; }
+        protected BufferSSTV       _oSSTVBuffer;
+        protected CSSTVMOD         _oSSTVModulator;
 		protected IPgPlayer        _oPlayer;
+        protected SSTVGenerator    _oSSTVGenerator;
 
         private DataTester _oDataTester;
 
@@ -246,11 +247,11 @@ namespace Play.SSTV {
         public bool OutputStreamInit() {
             try {
                 // Help the garbage collector telling the buffer to unlink the pump (via dispose)
-                if( SSTVBuffer != null )
-                    SSTVBuffer.Dispose();
+                if( _oSSTVBuffer != null )
+                    _oSSTVBuffer.Dispose();
 
-                SSTVBuffer    = new BufferSSTV( Spec );
-                SSTVModulator = new CSSTVMOD( 0, Spec.Rate, SSTVBuffer );
+                _oSSTVBuffer    = new BufferSSTV( Spec );
+                _oSSTVModulator = new CSSTVMOD( 0, Spec.Rate, _oSSTVBuffer );
 
                 //_oDataTester = new DataTester( SSTVBuffer );
                 //SSTVBuffer.Pump = _oDataTester.GetEnumerator();
@@ -289,6 +290,15 @@ namespace Play.SSTV {
             return true;
         }
 
+        public int PercentFinished {
+            get { 
+                if( _oSSTVGenerator != null ) 
+                    return _oSSTVGenerator.PercentComplete;
+
+                return 0;
+            } 
+        }
+
         /// <summary>
         /// This sets up our transmit buffer and modulator to send the given image.
         /// </summary>
@@ -298,7 +308,7 @@ namespace Play.SSTV {
         public bool GeneratorSetup( int iModeIndex, SKBitmap oTxImage ) {
             TransmitMode = null;
 
-            if( SSTVModulator == null ) {
+            if( _oSSTVModulator == null ) {
                 LogError( "SSTV Modulator is not ready for Transmit." );
                 return false;
             }
@@ -308,25 +318,25 @@ namespace Play.SSTV {
                 return false;
             }
 
+            _oSSTVGenerator = null;
+
             // Normally I'd use a guid to identify the class, but I thought I'd
             // try something a little different this time.
             try {
-                SSTVGenerator oSSTVGenerator = null;
-
                 if( ModeList[iModeIndex].Extra is SSTVMode oMode ) {
                     if( oMode.Owner == typeof( GeneratePD ) )
-                        oSSTVGenerator = new GeneratePD     ( oTxImage, SSTVModulator, oMode );
+                        _oSSTVGenerator = new GeneratePD     ( oTxImage, _oSSTVModulator, oMode );
                     if( oMode.Owner == typeof( GenerateMartin ) )
-                        oSSTVGenerator = new GenerateMartin ( oTxImage, SSTVModulator, oMode );
+                        _oSSTVGenerator = new GenerateMartin ( oTxImage, _oSSTVModulator, oMode );
                     if( oMode.Owner == typeof( GenerateScottie ) )
-                        oSSTVGenerator = new GenerateScottie( oTxImage, SSTVModulator, oMode );
+                        _oSSTVGenerator = new GenerateScottie( oTxImage, _oSSTVModulator, oMode );
 
-                    if( oSSTVGenerator != null )
+                    if( _oSSTVGenerator != null )
                         TransmitMode = oMode;
                 }
 
-                if( oSSTVGenerator != null )
-                    SSTVBuffer.Pump = oSSTVGenerator.GetEnumerator();
+                if( _oSSTVGenerator != null )
+                    _oSSTVBuffer.Pump = _oSSTVGenerator.GetEnumerator();
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( ArgumentException ),
                                     typeof( ArgumentNullException ),
@@ -336,7 +346,8 @@ namespace Play.SSTV {
                     throw;
 
                 LogError( "Blew chunks trying to create Illudium Q-36 Video Modulator, Isn't that nice?" );
-                TransmitMode = null;
+                TransmitMode    = null;
+                _oSSTVGenerator = null;
             }
 
             ModeList.HighLight = ModeList[iModeIndex];
@@ -360,7 +371,7 @@ namespace Play.SSTV {
             do {
                 uint uiWait = 60000; // Basically stop wasting time here on error.
                 try {
-                    uiWait = ( _oPlayer.Play( SSTVBuffer ) >> 1 ) + 1;
+                    uiWait = ( _oPlayer.Play( _oSSTVBuffer ) >> 1 ) + 1;
                 } catch( Exception oEx ) {
                     Type[] rgErrors = { typeof( NullReferenceException ),
                                         typeof( ArgumentNullException ),
@@ -371,8 +382,9 @@ namespace Play.SSTV {
                     _oWorkPlace.Stop();
                     LogError( "Trouble playing in SSTV" );
                 }
+                Raise_PropertiesUpdated( ESstvProperty.UploadTime );
                 yield return (int)uiWait;
-            } while( SSTVBuffer.IsReading );
+            } while( _oSSTVBuffer.IsReading );
 
             TransmitMode       = null;
             ModeList.HighLight = null;
