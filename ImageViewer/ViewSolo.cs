@@ -63,7 +63,32 @@ namespace Play.ImageViewer {
                                                   Keys.Delete, Keys.Enter, Keys.Tab, 
                                                   Keys.Control | Keys.A, Keys.Control | Keys.F };
 
-		public SKPointI Aspect { get; set; } = new SKPointI( 1, 1 ); 
+		private SKPointI _pntAspect = new SKPointI( 1, 1 );
+
+		public SKPointI Aspect { 
+			get { return _pntAspect; } 
+			set {
+				if( value.X == 0 ) {
+					LogError( "View Solo", "Attempt to set illegal aspect." );
+					return;
+				}
+
+				float flOldSlope = _pntAspect.Y / (float)_pntAspect.X;
+				float flNewSlope = value.Y / (float)value.X;
+
+				_pntAspect  = value; 
+
+				if( flOldSlope != flNewSlope && !_rcSelectionView.Hidden ) {
+					SKPointI      pntCorner  = _rcSelectionView.GetPoint( LOCUS.LOWERRIGHT );
+					SmartGrabDrag oSmartDrag = _rcSelectionView.BeginAspectDrag( null, SET.STRETCH, SmartGrab.HIT.CORNER, 
+																				 LOCUS.LOWERRIGHT, pntCorner.X, pntCorner.Y, Aspect );
+					oSmartDrag.Move( pntCorner.X, pntCorner.Y );
+
+					AlignBmpSelectionToViewSelection();
+					Invalidate();
+				}
+			}
+		} 
 
       //TODO: Save these on the document.
       //Cursor _oCursorGrab;
@@ -450,6 +475,18 @@ namespace Play.ImageViewer {
 			}
         }
 
+		protected void AlignBmpSelectionToViewSelection() {
+			SKPoint pntAspect = new SKPoint( Document.Bitmap.Width  / (float)_rctViewPort.Width,
+											    Document.Bitmap.Height / (float)_rctViewPort.Height );
+
+			Selection.SetPoint( SET.STRETCH, LOCUS.UPPERLEFT, 
+										(int)((_rcSelectionView.Left - _rctViewPort.Left ) * pntAspect.X ),
+										(int)((_rcSelectionView.Top  - _rctViewPort.Top  ) * pntAspect.Y ) );
+			Selection.SetPoint( SET.STRETCH, LOCUS.LOWERRIGHT,
+										(int)((_rcSelectionView.Right  - _rctViewPort.Left ) * pntAspect.X ),
+										(int)((_rcSelectionView.Bottom - _rctViewPort.Top  ) * pntAspect.Y ) );
+		}
+
         protected override void OnMouseUp(MouseEventArgs e) {
             base.OnMouseUp(e);
 
@@ -457,15 +494,8 @@ namespace Play.ImageViewer {
 				_oSmartDrag.Dispose();
 				_oSmartDrag = null;
 
-				SKPoint pntAspect = new SKPoint( Document.Bitmap.Width  / (float)_rctViewPort.Width,
-											     Document.Bitmap.Height / (float)_rctViewPort.Height );
+				AlignBmpSelectionToViewSelection();
 
-				Selection.SetPoint( SET.STRETCH, LOCUS.UPPERLEFT, 
-										  (int)((_rcSelectionView.Left - _rctViewPort.Left ) * pntAspect.X ),
-										  (int)((_rcSelectionView.Top  - _rctViewPort.Top  ) * pntAspect.Y ) );
-				Selection.SetPoint( SET.STRETCH, LOCUS.LOWERRIGHT,
-										  (int)((_rcSelectionView.Right  - _rctViewPort.Left ) * pntAspect.X ),
-										  (int)((_rcSelectionView.Bottom - _rctViewPort.Top  ) * pntAspect.Y ) );
 				return;
 			}
 

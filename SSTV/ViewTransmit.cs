@@ -122,7 +122,7 @@ namespace Play.SSTV {
 			_oViewImage.Parent = this;
 			_oViewMode .Parent = this;
 
-			_oViewImage.Aspect   = new SKPointI( 320, 256 );
+			_oViewImage.Aspect   = _oDocSSTV.ResolutionAt( 0 );
 			_oViewImage.DragMode = DragMode.FixedRatio;
 
 			DecorPropertiesInit();
@@ -137,6 +137,8 @@ namespace Play.SSTV {
 
 		protected virtual void DecorPropertiesInit() {
             _oDocSSTV.PropertyChange += Listen_PropertyChange;
+            _oViewMode.LineChanged   += Listen_ViewMode_LineChanged;
+
 			using( PropDoc.Manipulator oBulk = ImageProperties.EditProperties ) {
 				oBulk.Add( "Width" );
 				oBulk.Add( "Height" );
@@ -146,12 +148,16 @@ namespace Play.SSTV {
 			}
 		}
 
-		/// <summary>
-		/// This is our event sink for property changes on the SSTV document.
-		/// </summary>
-		/// <remarks>Right now just update all, but we can just update the
-		/// specific property in the future. You know, a color coded property, 
-		/// light red or yellow on change would be a cool feature.</remarks>
+        private void Listen_ViewMode_LineChanged( int iLine ) {
+			_oViewImage.Aspect = _oDocSSTV.ResolutionAt( iLine );
+        }
+
+        /// <summary>
+        /// This is our event sink for property changes on the SSTV document.
+        /// </summary>
+        /// <remarks>Right now just update all, but we can just update the
+        /// specific property in the future. You know, a color coded property, 
+        /// light red or yellow on change would be a cool feature.</remarks>
         private void Listen_PropertyChange( ESstvProperty eProp ) {
 			switch( eProp ) {
 				case ESstvProperty.ALL:

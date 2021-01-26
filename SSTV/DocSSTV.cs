@@ -308,12 +308,30 @@ namespace Play.SSTV {
         }
 
         /// <summary>
+        /// BUG: This is a bummer but, I use a point for the aspect ratio in my
+        /// SmartRect code. I'll fix that later.
+        /// </summary>
+        /// <param name="iModeIndex">Index into the ModeList</param>
+        /// <returns></returns>
+        public SKPointI ResolutionAt( int iModeIndex ) {
+            if( ModeList[iModeIndex].Extra is SSTVMode oMode )
+                return new SKPointI( oMode.Resolution.Width, oMode.Resolution.Height );
+
+            LogError( "Problem finding SSTVMode. Using default." );
+            return new SKPointI( 320, 240 );
+        }
+
+        /// <summary>
         /// This sets up our transmit buffer and modulator to send the given image.
         /// </summary>
         /// <param name="iModeIndex">Index of the generator mode to use.</param>
         /// <param name="oTxImage">Image to display. It should match the generator mode requirements.</param>
         /// <returns></returns>
-        public bool GeneratorSetup( int iModeIndex, SKBitmap oTxImage ) {
+        public bool GeneratorSetup( SSTVMode oMode, SKBitmap oTxImage ) {
+            if( oMode == null || oTxImage == null ) {
+                LogError( "Mode or Image is null on Generator Setup." );
+                return false;
+            }
             if( _oSSTVModulator == null ) {
                 LogError( "SSTV Modulator is not ready for Transmit." );
                 return false;
@@ -329,14 +347,12 @@ namespace Play.SSTV {
             // Normally I'd use a guid to identify the class, but I thought I'd
             // try something a little different this time.
             try {
-                if( ModeList[iModeIndex].Extra is SSTVMode oMode ) {
-                    if( oMode.Owner == typeof( GeneratePD ) )
-                        _oSSTVGenerator = new GeneratePD     ( oTxImage, _oSSTVModulator, oMode );
-                    if( oMode.Owner == typeof( GenerateMartin ) )
-                        _oSSTVGenerator = new GenerateMartin ( oTxImage, _oSSTVModulator, oMode );
-                    if( oMode.Owner == typeof( GenerateScottie ) )
-                        _oSSTVGenerator = new GenerateScottie( oTxImage, _oSSTVModulator, oMode );
-                }
+                if( oMode.Owner == typeof( GeneratePD ) )
+                    _oSSTVGenerator = new GeneratePD     ( oTxImage, _oSSTVModulator, oMode );
+                if( oMode.Owner == typeof( GenerateMartin ) )
+                    _oSSTVGenerator = new GenerateMartin ( oTxImage, _oSSTVModulator, oMode );
+                if( oMode.Owner == typeof( GenerateScottie ) )
+                    _oSSTVGenerator = new GenerateScottie( oTxImage, _oSSTVModulator, oMode );
 
                 if( _oSSTVGenerator != null )
                     _oSSTVBuffer.Pump = _oSSTVGenerator.GetEnumerator();
@@ -352,7 +368,6 @@ namespace Play.SSTV {
                 _oSSTVGenerator = null;
             }
 
-            ModeList.HighLight = ModeList[iModeIndex];
             Raise_PropertiesUpdated( ESstvProperty.ALL );
 
             return _oSSTVGenerator != null;
@@ -406,14 +421,21 @@ namespace Play.SSTV {
         /// </summary>
         /// <param name="iMode">Which transmission type and mode.</param>
         /// <param name="skSelect">clip region in source bitmap coordinates.</param>
-        public void PlayBegin( int iMode, SKRectI skSelect ) {
-            if( _oWorkPlace.Status == WorkerStatus.FREE ) {
-			    // The DocSnip object retains ownership of it's generated bitmap and frees it on next load.
-                // Bug: I should check if the selection == the whole bitmap == required dimension
-                //      and I could skip the snip stage.
-			    _oDocSnip.Load( Bitmap, skSelect, new SKSizeI( 320, 256 ) );
-                if( GeneratorSetup( iMode, _oDocSnip.Bitmap ) ) {
-                    _oWorkPlace.Queue( GetPlayerTask(), 0 );
+        /// <remarks>It's a little unfortnuate that we just don't pass the mode. But we 
+        /// need to know what index it came from to set the hilight. HOWEVER, we
+        /// count on the skSelect aspect ratio being set with respect to the aspect
+        /// of the given SSTVMode.</remarks>
+        public void PlayBegin( int iModeIndex, SKRectI skSelect ) {
+            if( ModeList[iModeIndex].Extra is SSTVMode oMode ) {
+                if( _oWorkPlace.Status == WorkerStatus.FREE ) {
+			        // The DocSnip object retains ownership of it's generated bitmap and frees it on next load.
+                    // Bug: I should check if the selection == the whole bitmap == required dimension
+                    //      and I could skip the snip stage.
+			        _oDocSnip.Load( Bitmap, skSelect, oMode.Resolution );
+                    if( GeneratorSetup( oMode, _oDocSnip.Bitmap ) ) {
+                        _oWorkPlace.Queue( GetPlayerTask(), 0 );
+                        ModeList.HighLight = ModeList[iModeIndex];
+                    }
                 }
             }
             //while ( _oDataTester.ConsumeData() < 350000 ) {

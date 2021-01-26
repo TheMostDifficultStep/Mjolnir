@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 
 using SkiaSharp;
@@ -202,11 +203,13 @@ namespace Play.Sound {
     }
 
     public class SSTVMode {
-        readonly public byte    VIS;
-        readonly public string  Name = string.Empty;
-        readonly public double  TxWidthInMS; // Single line.
-        readonly public Type    Owner;
-        readonly public SKSizeI Resolution;
+        readonly public  byte    VIS;
+        readonly public  string  Name = string.Empty;
+        readonly public  double  TxWidthInMS; // Single line.
+        readonly public  Type    Owner;
+        readonly private SKSizeI RawRez;
+        readonly public  bool    GreyCalibrate;
+        readonly public  int     ExtraScanLine;
 
         public enum Resolutions { 
             h128or160,
@@ -215,20 +218,29 @@ namespace Play.Sound {
             v256or240,
         }
 
+        public enum GreyscaleTuner {
+            Yes,    // Add 16/8 scan lines of greyscale at top of image.
+            Unused, // Don't send greyscale but add 16 scan lines to vertical.
+            No      // Don't sent gryscale don't add 16 scan lines.
+        }
+
         /// <summary>
         /// 
         /// </summary>
         /// <param name="oOwner"></param>
         /// <param name="bVIS"></param>
-        /// <param name="strName"></param>
-        /// <param name="dbTxWidth"></param>
+        /// <param name="strName">Human readable name of mode.</param>
+        /// <param name="dbTxWidth">Tx width of scan line in ms.</param>
         /// <param name="skSize">Do NOT include the top 16 scan line grey scale in the height value.</param>
         public SSTVMode( Type oOwner, byte bVIS, string strName, double dbTxWidth, SKSizeI skSize  ) {
             VIS         = bVIS;
             Name        = strName;
             TxWidthInMS = dbTxWidth;
             Owner       = oOwner;
-            Resolution  = skSize;
+            RawRez      = skSize;
+
+            ExtraScanLine = 16; // So far no mode I support is using the 8 scan line spec.
+            GreyCalibrate = false;
         }
 
         /// <summary>
@@ -248,6 +260,20 @@ namespace Play.Sound {
 
             eHorz  = ( VIS & iHoriBits ) == 0 ? Resolutions.h128or160 : Resolutions.h256or320;
             eVert  = ( VIS & iVertbits ) == 0 ? Resolutions.v128or120 : Resolutions.v256or240;
+        }
+
+        /// <summary>
+        /// This is a little tricky. Scottie, Martin, and the PD modes all specify 16 scan lines
+        /// of a grey scale calibration added to the output, HOWEVER, I don't see the code to send 
+        /// that in MMSSTV. It looks like they use that area for image.
+        /// </summary>
+        public SKSizeI Resolution {
+            get {
+                if( !GreyCalibrate ) {
+                    return new SKSizeI( RawRez.Width, RawRez.Height + ExtraScanLine );
+                }
+                return RawRez;
+            }
         }
     }
 
@@ -271,6 +297,12 @@ namespace Play.Sound {
             _oBitmap    = oBitmap    ?? throw new ArgumentNullException( "Bitmap must not be null." );
             _oModulator = oModulator ?? throw new ArgumentNullException( "Modulator must not be null." );
             Mode        = oMode      ?? throw new ArgumentNullException( "SSTV Mode must not be null." );
+
+            // These are important since we use the values from the MODE to control transmission.
+            if( oBitmap.Width < oMode.Resolution.Width )
+                throw new ArgumentOutOfRangeException( "bitmap must be at least wide enough for the mode." );
+            if( oBitmap.Height < oMode.Resolution.Height )
+                throw new ArgumentOutOfRangeException( "bitmap must be at least high enough for the mode." );
         }
 
         protected short ColorToFreq( byte bIntensity ) {
@@ -279,8 +311,8 @@ namespace Play.Sound {
         }
 
         protected SKColor GetPixel( int x, int y ) => _oBitmap.GetPixel( x, y );
-        protected int     Height                   => _oBitmap.Height;
-        protected int     Width                    => _oBitmap.Width;
+        protected int     Height                   => Mode.Resolution.Height;
+        protected int     Width                    => Mode.Resolution.Width;
         public    bool    IsDirty                  => true; // We're always happy to write.
 
         protected int     _iLine; // Use this value so we can track how far along we are.
@@ -357,8 +389,6 @@ namespace Play.Sound {
         public GenerateScottie( SKBitmap oBitmap, CSSTVMOD oModulator, SSTVMode oMode ) : 
             base( oBitmap, oModulator, oMode )
         {
-            if( oBitmap.Width != 320 )
-                throw new ArgumentOutOfRangeException( "bitmap must be 320 pix wide." );
         }
 
         /// <summary>
@@ -396,28 +426,37 @@ namespace Play.Sound {
         /// <remarks>I'm not sure how important it is to cache the line from the bitmap.
         /// The original code does this. Saves a multiply I would guess.</remarks>
         protected override void WriteLine( int iLine ) {
-	        double dbTransmitWidth = Mode.TxWidthInMS / 320.0;
+	        double dbTransmitWidth = Mode.TxWidthInMS / 320.0; // Note: hard coded.
 
             if( iLine > Height )
                 return;
 
-            _rgCache.Clear();
+            try {
+                _rgCache.Clear();
+            
+	            Write( 1500, 0x2000, 1.5 );
 
-	        Write( 1500, 0x2000, 1.5 );
+	            for( int x = 0; x < 320; x++ ) {     // G
+                    _rgCache.Add( GetPixel( x, iLine ) );
+		            Write( ColorToFreq( _rgCache[x].Green ), (uint)GIdx.G, dbTransmitWidth );
+	            }
+	            Write( 1500, 0x3000, 1.5 );
+	            for( int x = 0; x < 320; x++ ) {     // B
+		            Write( ColorToFreq( _rgCache[x].Blue  ), (uint)GIdx.B, dbTransmitWidth );
+	            }
+	            Write( 1200, 0, 9 );
+	            Write( 1500, 0x1000, 1.5 );
+	            for( int x = 0; x < 320; x++ ) {     // R
+		            Write( ColorToFreq( _rgCache[x].Red   ), (uint)GIdx.R, dbTransmitWidth );
+	            }
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( AccessViolationException ),
+                                    typeof( NullReferenceException ) };
+                if( !rgErrors.Contains( oEx.GetType() ) )
+                    throw;
 
-	        for( int x = 0; x < 320; x++ ) {     // G
-                _rgCache.Add( GetPixel( x, iLine ) );
-		        Write( ColorToFreq( _rgCache[x].Green ), (uint)GIdx.G, dbTransmitWidth );
-	        }
-	        Write( 1500, 0x3000, 1.5 );
-	        for( int x = 0; x < 320; x++ ) {     // B
-		        Write( ColorToFreq( _rgCache[x].Blue  ), (uint)GIdx.B, dbTransmitWidth );
-	        }
-	        Write( 1200, 0, 9 );
-	        Write( 1500, 0x1000, 1.5 );
-	        for( int x = 0; x < 320; x++ ) {     // R
-		        Write( ColorToFreq( _rgCache[x].Red   ), (uint)GIdx.R, dbTransmitWidth );
-	        }
+                // This would be a good place to return an error.
+            }
         }
     }
 
@@ -429,8 +468,6 @@ namespace Play.Sound {
         public GenerateMartin( SKBitmap oBitmap, CSSTVMOD oModulator, SSTVMode oMode ) : 
             base( oBitmap, oModulator, oMode )
         {
-            if( oBitmap.Width != 320 )
-                throw new ArgumentOutOfRangeException( "bitmap must be 320 pix wide." );
         }
 
         /// <summary>
@@ -452,31 +489,40 @@ namespace Play.Sound {
         /// <remarks>I'm not sure how important it is to cache the line from the bitmap.
         /// The original code does this. Saves a multiply I would guess.</remarks>
         protected override void WriteLine( int iLine ) {
-	        double dbTransmitWidth = Mode.TxWidthInMS / 320.0;
+	        double dbTransmitWidth = Mode.TxWidthInMS / 320.0; // Note: hard coded.
 
             if( iLine > Height )
                 return;
 
-            _rgCache.Clear();
+            try {
+                _rgCache.Clear();
 
-	        Write( 1200, 4.862 );
+	            Write( 1200, 4.862 );
 
-	        Write( 1500, (uint)GIdx.G, 0.572 );   // G
-	        for( int x = 0; x < 320; x++ ) {     
-                _rgCache.Add( GetPixel( x, iLine ) );
-		        Write( ColorToFreq(_rgCache[x].Green), (uint)GIdx.G, dbTransmitWidth );
-	        }
+	            Write( 1500, (uint)GIdx.G, 0.572 );   // G
+	            for( int x = 0; x < 320; x++ ) {     
+                    _rgCache.Add( GetPixel( x, iLine ) );
+		            Write( ColorToFreq(_rgCache[x].Green), (uint)GIdx.G, dbTransmitWidth );
+	            }
 
-	        Write( 1500, (uint)GIdx.B, 0.572 );   // B
-	        for( int x = 0; x < 320; x++ ) {
-		        Write( ColorToFreq(_rgCache[x].Blue ), (uint)GIdx.B, dbTransmitWidth );
-	        }
+	            Write( 1500, (uint)GIdx.B, 0.572 );   // B
+	            for( int x = 0; x < 320; x++ ) {
+		            Write( ColorToFreq(_rgCache[x].Blue ), (uint)GIdx.B, dbTransmitWidth );
+	            }
 
-	        Write( 1500, (uint)GIdx.R, 0.572 );   // R
-	        for( int x = 0; x < 320; x++ ) {
-		        Write( ColorToFreq(_rgCache[x].Red  ), (uint)GIdx.R, dbTransmitWidth );
-	        }
-	        Write( 1500, 0.572);
+	            Write( 1500, (uint)GIdx.R, 0.572 );   // R
+	            for( int x = 0; x < 320; x++ ) {
+		            Write( ColorToFreq(_rgCache[x].Red  ), (uint)GIdx.R, dbTransmitWidth );
+	            }
+	            Write( 1500, 0.572);
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( AccessViolationException ),
+                                    typeof( NullReferenceException ) };
+                if( !rgErrors.Contains( oEx.GetType() ) )
+                    throw;
+
+                // This would be a good place to return an error.
+            }
         }
     }
 
@@ -496,27 +542,25 @@ namespace Play.Sound {
         public GeneratePD( SKBitmap oBitmap, CSSTVMOD oModulator, SSTVMode oMode ) : 
             base( oBitmap, oModulator, oMode )
         {
-            // Note: We probably can do better.
-            if( oBitmap.Width > 800 )
-                throw new ArgumentOutOfRangeException( "bitmap must be 800 pix wide." );
         }
 
         /// <summary>So the scottie and martin modes I'm pretty confident are simply 320 horizontal lines
-        /// But the I know the PD modes are meant to be higher res and I got all the info straight from
+        /// But I know the PD modes are meant to be higher res and I got all the info straight from
         /// the inventor's web site. Which btw does not mention PD50 and PD290 modes. Also not I'm NOT
         /// presently generating the 16 scan line b/w scale. 
+        /// See also:  Martin Bruchanov OK2MNM SSTV-Handbook.
         /// </summary> 
         public static IEnumerator<SSTVMode> GetModeEnumerator() {
             Type oOwner = typeof( GeneratePD );
 
             // these numbers come from https://www.classicsstv.com/pdmodes.php G4IJE the inventor.
- 	        yield return new SSTVMode( oOwner, 0xdd, "PD 50",    91.520, new SKSizeI( 320, 240 ) ); // guess both
+ 	        yield return new SSTVMode( oOwner, 0xdd, "PD 50",    91.520, new SKSizeI( 320, 240 ) ); // see SSTV-Handbook.
             yield return new SSTVMode( oOwner, 0x63, "PD 90",   170.240, new SKSizeI( 320, 240 ) ); 
             yield return new SSTVMode( oOwner, 0x5f, "PD 120",  121.600, new SKSizeI( 640, 480 ) ); 
             yield return new SSTVMode( oOwner, 0xe2, "PD 160",  195.584, new SKSizeI( 512, 384 ) ); 
             yield return new SSTVMode( oOwner, 0x60, "PD 180",  183.040, new SKSizeI( 640, 480 ) );
             yield return new SSTVMode( oOwner, 0xe1, "PD 240",  244.480, new SKSizeI( 640, 480 ) ); 
-            yield return new SSTVMode( oOwner, 0xde, "PD 290",  228.800, new SKSizeI( 640, 480 ) ); // guess both
+            yield return new SSTVMode( oOwner, 0xde, "PD 290",  228.800, new SKSizeI( 800, 600 ) ); // see SSTV-handbook.
         }
 
         public byte Limit256( double d ) {
@@ -555,33 +599,42 @@ namespace Play.Sound {
             if( iLine > Height )
                 return;
 
-            _rgChrome.Clear();
+            try {
+                _rgChrome.Clear();
             
-            Write( 1200, 20.000 );
-	        Write( 1500,  2.080 );
+                Write( 1200, 20.000 );
+	            Write( 1500,  2.080 );
 
-	        for( int x = 0; x < Width; x++ ) {     // Y(odd)
-                SKColor         skPixel = GetPixel( x, iLine );
-                Chrominance8Bit crPixel = GetRY   ( skPixel );
+	            for( int x = 0; x < Width; x++ ) {     // Y(odd)
+                    SKColor         skPixel = GetPixel( x, iLine );
+                    Chrominance8Bit crPixel = GetRY   ( skPixel );
 
-                _rgChrome.Add( crPixel );
+                    _rgChrome.Add( crPixel );
 
-		        Write( ColorToFreq( crPixel.Y       ), dbTransmitWidth );
-	        }
-	        for( int x = 0; x < Width; x++ ) {     // R-Y
-		        Write( ColorToFreq( _rgChrome[x].RY ), dbTransmitWidth );
-	        }
-	        for( int x = 0; x < Width; x++ ) {     // B-Y
-                Write( ColorToFreq( _rgChrome[x].BY ), dbTransmitWidth );
-	        }
+		            Write( ColorToFreq( crPixel.Y       ), dbTransmitWidth );
+	            }
+	            for( int x = 0; x < Width; x++ ) {     // R-Y
+		            Write( ColorToFreq( _rgChrome[x].RY ), dbTransmitWidth );
+	            }
+	            for( int x = 0; x < Width; x++ ) {     // B-Y
+                    Write( ColorToFreq( _rgChrome[x].BY ), dbTransmitWidth );
+	            }
             
-            ++iLine;
-	        for( int x = 0; x < Width; x++ ) {     // Y(even)
-                SKColor         skPixel = GetPixel( x, iLine );
-                Chrominance8Bit crPixel = GetRY   ( skPixel );
+                ++iLine;
+	            for( int x = 0; x < Width; x++ ) {     // Y(even)
+                    SKColor         skPixel = GetPixel( x, iLine );
+                    Chrominance8Bit crPixel = GetRY   ( skPixel );
 
-		        Write( ColorToFreq( crPixel.Y ), dbTransmitWidth );
-	        }
+		            Write( ColorToFreq( crPixel.Y ), dbTransmitWidth );
+	            }
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( AccessViolationException ),
+                                    typeof( NullReferenceException ) };
+                if( !rgErrors.Contains( oEx.GetType() ) )
+                    throw;
+
+                // This would be a good place to return an error.
+            }
         }
 
         public override IEnumerator<int> GetEnumerator() {
