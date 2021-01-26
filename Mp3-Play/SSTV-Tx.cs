@@ -202,16 +202,52 @@ namespace Play.Sound {
     }
 
     public class SSTVMode {
-        readonly public byte   VIS;
-        readonly public string Name = string.Empty;
-        readonly public double TxWidthInMS; // Single line.
-        readonly public Type   Owner;
+        readonly public byte    VIS;
+        readonly public string  Name = string.Empty;
+        readonly public double  TxWidthInMS; // Single line.
+        readonly public Type    Owner;
+        readonly public SKSizeI Resolution;
 
-        public SSTVMode( Type oOwner, byte bVIS, string strName, double dbTxWidth ) {
+        public enum Resolutions { 
+            h128or160,
+            h256or320,
+            v128or120,
+            v256or240,
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="oOwner"></param>
+        /// <param name="bVIS"></param>
+        /// <param name="strName"></param>
+        /// <param name="dbTxWidth"></param>
+        /// <param name="skSize">Do NOT include the top 16 scan line grey scale in the height value.</param>
+        public SSTVMode( Type oOwner, byte bVIS, string strName, double dbTxWidth, SKSizeI skSize  ) {
             VIS         = bVIS;
             Name        = strName;
             TxWidthInMS = dbTxWidth;
             Owner       = oOwner;
+            Resolution  = skSize;
+        }
+
+        /// <summary>
+        /// Basically we're either square resoution or 1 x 1.3 mode. (&Half height modes?)
+        /// 11??: 320 x 240 
+        /// 10??: 320 x 120 
+        /// 11??: 256 x 256 
+        /// 10??: 256 x 128
+        /// 00??: 160 x 120
+        /// 00??: 128 x 128 
+        /// 01??: 128 x 256
+        /// 01??: 160 x 240
+        /// </summary>
+        public void VisResolution( ref Resolutions eHorz, ref Resolutions eVert ) {
+            const int iHoriBits = 0x04;
+            const int iVertbits = 0x08;
+
+            eHorz  = ( VIS & iHoriBits ) == 0 ? Resolutions.h128or160 : Resolutions.h256or320;
+            eVert  = ( VIS & iVertbits ) == 0 ? Resolutions.v128or120 : Resolutions.v256or240;
         }
     }
 
@@ -298,6 +334,9 @@ namespace Play.Sound {
             WriteVIS( Mode.VIS );
             yield return 0;
 
+            // Might need to add the 16 scan line grey scale bar.
+            // All the doc's mention it, but I didn't see MMSSTV code for it.
+
             for( _iLine = 0; _iLine < Height; ++_iLine ) {
                 WriteLine( _iLine );
                 yield return _iLine;
@@ -324,16 +363,18 @@ namespace Play.Sound {
 
         /// <summary>
         /// Enumerate the modes we support. Note that only Scotty 1 VIS code matches that
-        /// from OK2MNM, Scottie S2 : 0x38 (vs b8=10111000), and Scottie DX : 0x4C (vs cc=11001100).
+        /// from OK2MNM; Scottie S2 : 0x38 (vs b8=10111000), and Scottie DX : 0x4C (vs cc=11001100).
         /// This is because the MMSSTV number has the parity bit (pre)set accordingly.
+        /// Note that the video resolution number doesn't seem to make sense for scottie 2.
+        /// if you use OK2MNM's VIS table.
         /// </summary>
         /// <returns></returns>
         public static IEnumerator<SSTVMode> GetModeEnumerator() {
             Type oOwner = typeof( GenerateScottie );
 
- 	        yield return new SSTVMode( oOwner, 0x3c, "Scottie 1",  138.240 );
-            yield return new SSTVMode( oOwner, 0xb8, "Scottie 2",   88.064 );
-            yield return new SSTVMode( oOwner, 0xcc, "Scottie DX", 345.600 );
+ 	        yield return new SSTVMode( oOwner, /* 0 011 1100 */ 0x3c, "Scottie 1",  138.240, new SKSizeI( 320, 240 ));
+            yield return new SSTVMode( oOwner, /* 1 011 1000 */ 0xb8, "Scottie 2",   88.064, new SKSizeI( 320, 240 ));
+            yield return new SSTVMode( oOwner, /* 1 100 1100 */ 0xcc, "Scottie DX", 345.600, new SKSizeI( 320, 240 ));
         }
 
         /// <summary>
@@ -399,8 +440,8 @@ namespace Play.Sound {
         public static IEnumerator<SSTVMode> GetModeEnumerator() {
             Type oOwner = typeof( GenerateMartin );
 
- 	        yield return new SSTVMode( oOwner, 0xac, "Martin 1",  146.432 );
-            yield return new SSTVMode( oOwner, 0x28, "Martin 2",   73.216 );
+ 	        yield return new SSTVMode( oOwner, /* 1010 1100 */ 0xac, "Martin 1",  146.432, new SKSizeI( 320, 240 ) );
+            yield return new SSTVMode( oOwner, /* 0010 1000 */ 0x28, "Martin 2",   73.216, new SKSizeI( 320, 240 ) );
         }
 
         /// <summary>
@@ -460,16 +501,22 @@ namespace Play.Sound {
                 throw new ArgumentOutOfRangeException( "bitmap must be 800 pix wide." );
         }
 
+        /// <summary>So the scottie and martin modes I'm pretty confident are simply 320 horizontal lines
+        /// But the I know the PD modes are meant to be higher res and I got all the info straight from
+        /// the inventor's web site. Which btw does not mention PD50 and PD290 modes. Also not I'm NOT
+        /// presently generating the 16 scan line b/w scale. 
+        /// </summary> 
         public static IEnumerator<SSTVMode> GetModeEnumerator() {
             Type oOwner = typeof( GeneratePD );
 
- 	        yield return new SSTVMode( oOwner, 0xdd, "PD 50",    91.520 );
-            yield return new SSTVMode( oOwner, 0x63, "PD 90",   170.240 );
-            yield return new SSTVMode( oOwner, 0x5f, "PD 120",  121.600 );
-            yield return new SSTVMode( oOwner, 0xe2, "PD 160",  195.584 );
-            yield return new SSTVMode( oOwner, 0x60, "PD 180",  183.040 );
-            yield return new SSTVMode( oOwner, 0xe1, "PD 240",  244.480 );
-            yield return new SSTVMode( oOwner, 0xde, "PD 290",  228.800 );
+            // these numbers come from https://www.classicsstv.com/pdmodes.php G4IJE the inventor.
+ 	        yield return new SSTVMode( oOwner, 0xdd, "PD 50",    91.520, new SKSizeI( 320, 240 ) ); // guess both
+            yield return new SSTVMode( oOwner, 0x63, "PD 90",   170.240, new SKSizeI( 320, 240 ) ); 
+            yield return new SSTVMode( oOwner, 0x5f, "PD 120",  121.600, new SKSizeI( 640, 480 ) ); 
+            yield return new SSTVMode( oOwner, 0xe2, "PD 160",  195.584, new SKSizeI( 512, 384 ) ); 
+            yield return new SSTVMode( oOwner, 0x60, "PD 180",  183.040, new SKSizeI( 640, 480 ) );
+            yield return new SSTVMode( oOwner, 0xe1, "PD 240",  244.480, new SKSizeI( 640, 480 ) ); 
+            yield return new SSTVMode( oOwner, 0xde, "PD 290",  228.800, new SKSizeI( 640, 480 ) ); // guess both
         }
 
         public byte Limit256( double d ) {
@@ -545,6 +592,9 @@ namespace Play.Sound {
 
             WriteVIS( Mode.VIS );
             yield return 0;
+
+            // Might need to add the 16 scan line grey scale bar.
+            // All the doc's mention it, but I didn't see MMSSTV code for it.
 
             for( _iLine = 0; _iLine < Height; _iLine+=2 ) {
                 WriteLine( _iLine );
