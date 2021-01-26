@@ -63,8 +63,11 @@ namespace Play.ImageViewer {
                                                   Keys.Delete, Keys.Enter, Keys.Tab, 
                                                   Keys.Control | Keys.A, Keys.Control | Keys.F };
 
-		private SKPointI _pntAspect = new SKPointI( 1, 1 );
+		private SKPointI _pntAspect = new SKPointI( 320, 240 );
 
+		/// <summary>
+		/// Aspect ratio needed for selection when enforced.
+		/// </summary>
 		public SKPointI Aspect { 
 			get { return _pntAspect; } 
 			set {
@@ -74,10 +77,11 @@ namespace Play.ImageViewer {
 				}
 
 				float flOldSlope = _pntAspect.Y / (float)_pntAspect.X;
-				float flNewSlope = value.Y / (float)value.X;
+				float flNewSlope = value.Y      / (float)value.X;
 
-				_pntAspect  = value; 
+				_pntAspect = value; 
 
+				// Reset the selection to make sure it still matches the current aspect.
 				if( flOldSlope != flNewSlope && !_rcSelectionView.Hidden ) {
 					SKPointI      pntCorner  = _rcSelectionView.GetPoint( LOCUS.LOWERRIGHT );
 					SmartGrabDrag oSmartDrag = _rcSelectionView.BeginAspectDrag( null, SET.STRETCH, SmartGrab.HIT.CORNER, 

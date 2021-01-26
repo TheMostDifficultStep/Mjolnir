@@ -177,8 +177,11 @@ namespace Play.SSTV {
             using BaseEditor.Manipulator oBulk = ModeList.CreateManipulator();
 
             while( iterMode.MoveNext() ) {
-                Line oLine = oBulk.LineAppendNoUndo( iterMode.Current.Name );
-                oLine.Extra = iterMode.Current;
+                SSTVMode oMode    = iterMode.Current;
+                string   strValue = oMode.Name + " : " + oMode.Resolution.Width.ToString() + " x " + oMode.Resolution.Height.ToString();
+                Line     oLine    = oBulk.LineAppendNoUndo( strValue );
+
+                oLine.Extra = oMode;
             }
         }
 
