@@ -27,12 +27,14 @@ namespace Play.SSTV {
 		protected readonly IPgViewSite   _oSiteView;
 		protected readonly DocSSTV       _oDocSSTV;
 
-		protected readonly EditWindow2   _oViewMode;  // List the modes for the generators.
-		protected readonly ImageViewTx   _oViewImage; // Show the currently selected image.
+	  //protected readonly EditWindow2    _oViewMode;    // List the modes for the generators.
+		protected readonly ImageViewTx    _oViewImage;   // Show the currently selected image.
+		protected readonly ImageViewIcons _oViewChoices; // Show the image choices.
+		protected          int            _iCurrentMode = 0;
 
 		protected PropDoc ImageProperties { get; } // Container for properties to show for this window.
 
-		protected LayoutStack _oLayout = new LayoutStackHorizontal( 5 );
+		protected LayoutStack _oLayout = new LayoutStackVertical( 5 );
 
 		protected class SSTVWinSlot :
 			IPgViewSite,
@@ -84,10 +86,9 @@ namespace Play.SSTV {
 			_oSiteView = oViewSite ?? throw new ArgumentNullException( "View requires a view site." );
 			_oDocSSTV  = oDocument ?? throw new ArgumentNullException( "View requires a document." );
 
-            ImageProperties = new PropDoc( new SSTVWinSlot( this ) );
-
-			_oViewMode  = new EditWindow2( new SSTVWinSlot( this ), _oDocSSTV.ModeList, true );
-			_oViewImage = new ImageViewTx( new SSTVWinSlot( this ), _oDocSSTV.ImageList );
+            ImageProperties = new PropDoc       ( new SSTVWinSlot( this ) );
+			_oViewImage     = new ImageViewTx   ( new SSTVWinSlot( this ), _oDocSSTV.ImageList );
+			_oViewChoices   = new ImageViewIcons( new SSTVWinSlot( this ), _oDocSSTV.ImageList );
 		}
 
 		protected class ImageViewTx : ImageViewSolo {
@@ -114,21 +115,21 @@ namespace Play.SSTV {
 		public bool InitNew() {
 			if( !ImageProperties.InitNew() )
                 return false;
-			if( !_oViewMode.InitNew() )
+			if( !_oViewChoices.InitNew() )
 				return false;
 			if( !_oViewImage.InitNew() )
 				return false;
 
-			_oViewImage.Parent = this;
-			_oViewMode .Parent = this;
+			_oViewImage   .Parent = this;
+			_oViewChoices .Parent = this;
 
 			_oViewImage.Aspect   = _oDocSSTV.ResolutionAt( 0 );
 			_oViewImage.DragMode = DragMode.FixedRatio;
 
 			DecorPropertiesInit();
 
-            _oLayout.Add( new LayoutControl( _oViewImage, LayoutRect.CSS.None ) ); // image
-            _oLayout.Add( new LayoutControl( _oViewMode,  LayoutRect.CSS.Pixels, 250 ) ); // mode
+            _oLayout.Add( new LayoutControl( _oViewImage,   LayoutRect.CSS.None ) );        // image
+            _oLayout.Add( new LayoutControl( _oViewChoices, LayoutRect.CSS.Pixels, 250 ) ); // choices
 
             OnSizeChanged( new EventArgs() );
 
@@ -137,7 +138,6 @@ namespace Play.SSTV {
 
 		protected virtual void DecorPropertiesInit() {
             _oDocSSTV.PropertyChange += Listen_PropertyChange;
-            _oViewMode.LineChanged   += Listen_ViewMode_LineChanged;
 
 			using( PropDoc.Manipulator oBulk = ImageProperties.EditProperties ) {
 				oBulk.Add( "Width" );
@@ -149,6 +149,7 @@ namespace Play.SSTV {
 		}
 
         private void Listen_ViewMode_LineChanged( int iLine ) {
+			_iCurrentMode      = iLine;
 			_oViewImage.Aspect = _oDocSSTV.ResolutionAt( iLine );
         }
 
@@ -211,13 +212,7 @@ namespace Play.SSTV {
 		protected override void OnSizeChanged(EventArgs e) {
 			base.OnSizeChanged(e);
 
-			// Limit the top to 500. Look's too goofy if larger. If our window
-			// is smaller set the layout rect to that height.
-			int iHeight = 500;
-			if( Height < iHeight )
-				iHeight = Height;
-
-			_oLayout.SetRect( 0, 0, Width, iHeight );
+			_oLayout.SetRect( 0, 0, Width, Height );
 			_oLayout.LayoutChildren();
 
             Invalidate();
@@ -230,7 +225,11 @@ namespace Play.SSTV {
 					return new PropWin( oBaseSite, ImageProperties );
 				}
 				if( sGuid.Equals( GlobalDecorations.Outline ) ) {
-					return _oViewImage.Decorate( oBaseSite, sGuid );
+					EditWindow2 oView = new EditWindow2( oBaseSite, _oDocSSTV.ModeList, true );
+
+					oView.LineChanged += Listen_ViewMode_LineChanged;
+
+					return oView;
 				}
 				return false;
 			} catch ( Exception oEx ) {
@@ -249,7 +248,7 @@ namespace Play.SSTV {
 
 		public bool Execute(Guid sGuid) {
 			if( sGuid == GlobalCommands.Play ) {
-				_oDocSSTV.PlayBegin( _oViewMode.Caret.Line, _oViewImage.Selection.SKRect ); 
+				_oDocSSTV.PlayBegin( _iCurrentMode, _oViewImage.Selection.SKRect ); 
 				return true;
 			}
 			if( sGuid == GlobalCommands.Stop ) {

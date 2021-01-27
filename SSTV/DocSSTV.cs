@@ -74,7 +74,7 @@ namespace Play.SSTV {
 
         public event SSTVPropertyChange PropertyChange;
 
-        public Specification  Spec            { get; protected set; } = new Specification( 44100, 1, 0, 16 );
+        public Specification  RxSpec          { get; protected set; } = new Specification( 44100, 1, 0, 16 );
         public GeneratorMode  ModeList        { get; protected set; }
         public ImageWalkerDir ImageList       { get; protected set; }
         public SKBitmap       Bitmap          => ImageList.Bitmap;
@@ -252,8 +252,8 @@ namespace Play.SSTV {
                 if( _oSSTVBuffer != null )
                     _oSSTVBuffer.Dispose();
 
-                _oSSTVBuffer    = new BufferSSTV( Spec );
-                _oSSTVModulator = new CSSTVMOD( 0, Spec.Rate, _oSSTVBuffer );
+                _oSSTVBuffer    = new BufferSSTV( RxSpec );
+                _oSSTVModulator = new CSSTVMOD( 0, RxSpec.Rate, _oSSTVBuffer );
 
                 //_oDataTester = new DataTester( SSTVBuffer );
                 //SSTVBuffer.Pump = _oDataTester.GetEnumerator();
@@ -287,7 +287,7 @@ namespace Play.SSTV {
             ImageList.ImageUpdated += Listen_ImageUpdated;
 
             // This only needs to change if the Spec or Device is updated.
-            _oPlayer = new WmmPlayer(Spec, 1); 
+            _oPlayer = new WmmPlayer(RxSpec, 1); 
 
             return true;
         }

@@ -409,7 +409,7 @@ namespace Play.Sound {
         public override void WriteVIS( ushort uiVIS ) {
             base.WriteVIS(uiVIS);
 
-            Write( 1200, 0x0, 9 ); // One time Sync
+            Write( 1200, 0x0, 9 ); // One time Sync, rely on exact timing (in old days)
         }
 
         /// <summary>
@@ -428,7 +428,7 @@ namespace Play.Sound {
             try {
                 _rgCache.Clear();
             
-	            Write( 1500, GainIndx.G, 1.5 ); // porch
+	            Write( 1500, GainIndx.G, 1.5 ); // gap (porch?)
 	            for( int x = 0; x < 320; x++ ) {     // G
                     _rgCache.Add( GetPixel( x, iLine ) );
 		            Write( ColorToFreq( _rgCache[x].Green ), GainIndx.G, dbTimePerPixel );
@@ -456,6 +456,7 @@ namespace Play.Sound {
     /// <summary>
     /// MRT1, Martin 1 & 2
     /// </summary>
+    /// <remarks>Historical note. Martin was invented after Scottie.</remarks>
     public class GenerateMartin : SSTVGenerator {
         /// <exception cref="ArgumentOutOfRangeException" />
         public GenerateMartin( SKBitmap oBitmap, CSSTVMOD oModulator, SSTVMode oMode ) : 
@@ -490,20 +491,20 @@ namespace Play.Sound {
             try {
                 _rgCache.Clear();
 
-	            Write( 1200, 4.862 );
+	            Write( 1200, 4.862 ); // Sync on each line. "free running"
 
-	            Write( 1500, GainIndx.G, 0.572 );   // G
+	            Write( 1500, GainIndx.G, 0.572 );   // G gap
 	            for( int x = 0; x < 320; x++ ) {     
                     _rgCache.Add( GetPixel( x, iLine ) );
 		            Write( ColorToFreq(_rgCache[x].Green), GainIndx.G, dbTimePerPixel );
 	            }
 
-	            Write( 1500, GainIndx.B, 0.572 );   // B
+	            Write( 1500, GainIndx.B, 0.572 );   // B gap
 	            for( int x = 0; x < 320; x++ ) {
 		            Write( ColorToFreq(_rgCache[x].Blue ), GainIndx.B, dbTimePerPixel );
 	            }
 
-	            Write( 1500, GainIndx.R, 0.572 );   // R
+	            Write( 1500, GainIndx.R, 0.572 );   // R gap
 	            for( int x = 0; x < 320; x++ ) {
 		            Write( ColorToFreq(_rgCache[x].Red  ), GainIndx.R, dbTimePerPixel );
 	            }
