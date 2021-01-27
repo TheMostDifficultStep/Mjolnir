@@ -205,7 +205,7 @@ namespace Play.Sound {
     public class SSTVMode {
         readonly public  byte    VIS;
         readonly public  string  Name = string.Empty;
-        readonly public  double  LineWidthInMS; // Single line.
+        readonly public  double  BlockWidthInMS; // Time to relay all pixels of one color component.
         readonly public  Type    Owner;
         readonly private SKSizeI RawRez;
         readonly public  bool    GreyCalibrate;
@@ -229,7 +229,7 @@ namespace Play.Sound {
         public SSTVMode( Type oOwner, byte bVIS, string strName, double dbTxWidth, SKSizeI skSize  ) {
             VIS           = bVIS;
             Name          = strName;
-            LineWidthInMS = dbTxWidth;
+            BlockWidthInMS = dbTxWidth;
             Owner         = oOwner;
             RawRez        = skSize;
 
@@ -420,7 +420,7 @@ namespace Play.Sound {
         /// <remarks>I'm not sure how important it is to cache the line from the bitmap.
         /// The original code does this. Saves a multiply I would guess.</remarks>
         protected override void WriteLine( int iLine ) {
-	        double dbTransmitWidth = Mode.LineWidthInMS / 320.0; // Note: hard coded.
+	        double dbTimePerPixel = Mode.BlockWidthInMS / 320.0; // Note: hard coded.
 
             if( iLine > Height )
                 return;
@@ -431,16 +431,16 @@ namespace Play.Sound {
 	            Write( 1500, GainIndx.G, 1.5 ); // porch
 	            for( int x = 0; x < 320; x++ ) {     // G
                     _rgCache.Add( GetPixel( x, iLine ) );
-		            Write( ColorToFreq( _rgCache[x].Green ), GainIndx.G, dbTransmitWidth );
+		            Write( ColorToFreq( _rgCache[x].Green ), GainIndx.G, dbTimePerPixel );
 	            }
 	            Write( 1500, GainIndx.B, 1.5 );
 	            for( int x = 0; x < 320; x++ ) {     // B
-		            Write( ColorToFreq( _rgCache[x].Blue  ), GainIndx.B, dbTransmitWidth );
+		            Write( ColorToFreq( _rgCache[x].Blue  ), GainIndx.B, dbTimePerPixel );
 	            }
 	            Write( 1200, 9 );
 	            Write( 1500, GainIndx.R, 1.5 );
 	            for( int x = 0; x < 320; x++ ) {     // R
-		            Write( ColorToFreq( _rgCache[x].Red   ), GainIndx.R, dbTransmitWidth );
+		            Write( ColorToFreq( _rgCache[x].Red   ), GainIndx.R, dbTimePerPixel );
 	            }
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( AccessViolationException ),
@@ -482,7 +482,7 @@ namespace Play.Sound {
         /// <remarks>I'm not sure how important it is to cache the line from the bitmap.
         /// The original code does this. Saves a multiply I would guess.</remarks>
         protected override void WriteLine( int iLine ) {
-	        double dbTransmitWidth = Mode.LineWidthInMS / 320.0; // Note: hard coded.
+	        double dbTimePerPixel = Mode.BlockWidthInMS / 320.0; // Note: hard coded.
 
             if( iLine > Height )
                 return;
@@ -495,17 +495,17 @@ namespace Play.Sound {
 	            Write( 1500, GainIndx.G, 0.572 );   // G
 	            for( int x = 0; x < 320; x++ ) {     
                     _rgCache.Add( GetPixel( x, iLine ) );
-		            Write( ColorToFreq(_rgCache[x].Green), GainIndx.G, dbTransmitWidth );
+		            Write( ColorToFreq(_rgCache[x].Green), GainIndx.G, dbTimePerPixel );
 	            }
 
 	            Write( 1500, GainIndx.B, 0.572 );   // B
 	            for( int x = 0; x < 320; x++ ) {
-		            Write( ColorToFreq(_rgCache[x].Blue ), GainIndx.B, dbTransmitWidth );
+		            Write( ColorToFreq(_rgCache[x].Blue ), GainIndx.B, dbTimePerPixel );
 	            }
 
 	            Write( 1500, GainIndx.R, 0.572 );   // R
 	            for( int x = 0; x < 320; x++ ) {
-		            Write( ColorToFreq(_rgCache[x].Red  ), GainIndx.R, dbTransmitWidth );
+		            Write( ColorToFreq(_rgCache[x].Red  ), GainIndx.R, dbTimePerPixel );
 	            }
 	            Write( 1500, 0.572);
             } catch( Exception oEx ) {
@@ -589,7 +589,7 @@ namespace Play.Sound {
         /// <remarks>Note that you MUST override the default Generator iterator since
         /// this WriteLine uses TWO lines!!</remarks>
         protected override void WriteLine( int iLine ) {
-	        double dbPixelWidth = Mode.LineWidthInMS / (double)Width;
+	        double dbTimePerPixel = Mode.BlockWidthInMS / (double)Width;
 
             if( iLine > Height )
                 return;
@@ -606,13 +606,13 @@ namespace Play.Sound {
 
                     _rgChrome.Add( crPixel );
 
-		            Write( ColorToFreq( crPixel.Y       ), dbPixelWidth );
+		            Write( ColorToFreq( crPixel.Y       ), dbTimePerPixel );
 	            }
 	            for( int x = 0; x < Width; x++ ) {     // R-Y
-		            Write( ColorToFreq( _rgChrome[x].RY ), dbPixelWidth );
+		            Write( ColorToFreq( _rgChrome[x].RY ), dbTimePerPixel );
 	            }
 	            for( int x = 0; x < Width; x++ ) {     // B-Y
-                    Write( ColorToFreq( _rgChrome[x].BY ), dbPixelWidth );
+                    Write( ColorToFreq( _rgChrome[x].BY ), dbTimePerPixel );
 	            }
             
                 ++iLine;
@@ -620,7 +620,7 @@ namespace Play.Sound {
                     SKColor         skPixel = GetPixel( x, iLine );
                     Chrominance8Bit crPixel = GetRY   ( skPixel );
 
-		            Write( ColorToFreq( crPixel.Y ), dbPixelWidth );
+		            Write( ColorToFreq( crPixel.Y ), dbTimePerPixel );
 	            }
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( AccessViolationException ),
