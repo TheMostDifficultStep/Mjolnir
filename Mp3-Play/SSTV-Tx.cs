@@ -9,7 +9,7 @@ using SkiaSharp;
 using System.Collections;
 
 namespace Play.Sound {
-    public enum GIdx : int {
+    public enum GainIndx : int {
         Unused = 0,
         R = 1,
         G = 2,
@@ -128,10 +128,10 @@ namespace Play.Sound {
 		        //m_BPF.Create(m_bpftap, ffBPF, dblTxSampleFreq, lfq, 2800 + dblToneOffset, 40, 1.0);
           //  }
 
-            m_rgVariOut[(int)GIdx.Unused] = 0;
-	        m_rgVariOut[(int)GIdx.R] = 298; // R
-	        m_rgVariOut[(int)GIdx.G] = 588; // G
-	        m_rgVariOut[(int)GIdx.B] = 110; // B
+            m_rgVariOut[(int)GainIndx.Unused] = 0;
+	        m_rgVariOut[(int)GainIndx.R] = 298; // R
+	        m_rgVariOut[(int)GainIndx.G] = 588; // G
+	        m_rgVariOut[(int)GainIndx.B] = 110; // B
 
 	        m_rgOutGain[0] = 20000; // 24578.0; My gain seems high, I'll try turning it down a bit.
 
@@ -269,6 +269,7 @@ namespace Play.Sound {
                 return RawRez;
             }
         }
+
     }
 
     /// <summary>
@@ -312,8 +313,8 @@ namespace Play.Sound {
         protected int     _iLine; // Use this value so we can track how far along we are.
         public    int     PercentComplete => (int)( _iLine / (float)Height * 100 );
 
-        protected int Write( int iFrequency, uint uiGainSelect, double dbTimeMS ) {
-            return _oModulator.Write( iFrequency, uiGainSelect, dbTimeMS );
+        protected int Write( int iFrequency, GainIndx uiGainSelect, double dbTimeMS ) {
+            return _oModulator.Write( iFrequency, (uint)uiGainSelect, dbTimeMS );
         }
 
         protected int Write( int iFrequency, double dbTimeMS ) {
@@ -408,7 +409,7 @@ namespace Play.Sound {
         public override void WriteVIS( ushort uiVIS ) {
             base.WriteVIS(uiVIS);
 
-            Write( 1200, 0x0, 9 );
+            Write( 1200, 0x0, 9 ); // One time Sync
         }
 
         /// <summary>
@@ -427,20 +428,19 @@ namespace Play.Sound {
             try {
                 _rgCache.Clear();
             
-	            Write( 1500, 0x2000, 1.5 );
-
+	            Write( 1500, GainIndx.G, 1.5 ); // porch
 	            for( int x = 0; x < 320; x++ ) {     // G
                     _rgCache.Add( GetPixel( x, iLine ) );
-		            Write( ColorToFreq( _rgCache[x].Green ), (uint)GIdx.G, dbTransmitWidth );
+		            Write( ColorToFreq( _rgCache[x].Green ), GainIndx.G, dbTransmitWidth );
 	            }
-	            Write( 1500, 0x3000, 1.5 );
+	            Write( 1500, GainIndx.B, 1.5 );
 	            for( int x = 0; x < 320; x++ ) {     // B
-		            Write( ColorToFreq( _rgCache[x].Blue  ), (uint)GIdx.B, dbTransmitWidth );
+		            Write( ColorToFreq( _rgCache[x].Blue  ), GainIndx.B, dbTransmitWidth );
 	            }
-	            Write( 1200, 0, 9 );
-	            Write( 1500, 0x1000, 1.5 );
+	            Write( 1200, 9 );
+	            Write( 1500, GainIndx.R, 1.5 );
 	            for( int x = 0; x < 320; x++ ) {     // R
-		            Write( ColorToFreq( _rgCache[x].Red   ), (uint)GIdx.R, dbTransmitWidth );
+		            Write( ColorToFreq( _rgCache[x].Red   ), GainIndx.R, dbTransmitWidth );
 	            }
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( AccessViolationException ),
@@ -492,20 +492,20 @@ namespace Play.Sound {
 
 	            Write( 1200, 4.862 );
 
-	            Write( 1500, (uint)GIdx.G, 0.572 );   // G
+	            Write( 1500, GainIndx.G, 0.572 );   // G
 	            for( int x = 0; x < 320; x++ ) {     
                     _rgCache.Add( GetPixel( x, iLine ) );
-		            Write( ColorToFreq(_rgCache[x].Green), (uint)GIdx.G, dbTransmitWidth );
+		            Write( ColorToFreq(_rgCache[x].Green), GainIndx.G, dbTransmitWidth );
 	            }
 
-	            Write( 1500, (uint)GIdx.B, 0.572 );   // B
+	            Write( 1500, GainIndx.B, 0.572 );   // B
 	            for( int x = 0; x < 320; x++ ) {
-		            Write( ColorToFreq(_rgCache[x].Blue ), (uint)GIdx.B, dbTransmitWidth );
+		            Write( ColorToFreq(_rgCache[x].Blue ), GainIndx.B, dbTransmitWidth );
 	            }
 
-	            Write( 1500, (uint)GIdx.R, 0.572 );   // R
+	            Write( 1500, GainIndx.R, 0.572 );   // R
 	            for( int x = 0; x < 320; x++ ) {
-		            Write( ColorToFreq(_rgCache[x].Red  ), (uint)GIdx.R, dbTransmitWidth );
+		            Write( ColorToFreq(_rgCache[x].Red  ), GainIndx.R, dbTransmitWidth );
 	            }
 	            Write( 1500, 0.572);
             } catch( Exception oEx ) {
