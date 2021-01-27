@@ -396,8 +396,8 @@ namespace Play.Sound {
         public static IEnumerator<SSTVMode> GetModeEnumerator() {
             Type oOwner = typeof( GenerateScottie );
 
- 	        yield return new SSTVMode( oOwner, /* 0 011 1100 */ 0x3c, "Scottie 1",  138.240, new SKSizeI( 320, 240 ));
-            yield return new SSTVMode( oOwner, /* 1 011 1000 */ 0xb8, "Scottie 2",   88.064, new SKSizeI( 320, 240 ));
+ 	        yield return new SSTVMode( oOwner, /* 0 011 1100 */ 0x3c, "Scottie  1", 138.240, new SKSizeI( 320, 240 ));
+            yield return new SSTVMode( oOwner, /* 1 011 1000 */ 0xb8, "Scottie  2",  88.064, new SKSizeI( 320, 240 ));
             yield return new SSTVMode( oOwner, /* 1 100 1100 */ 0xcc, "Scottie DX", 345.600, new SKSizeI( 320, 240 ));
         }
 
@@ -550,8 +550,8 @@ namespace Play.Sound {
             Type oOwner = typeof( GeneratePD );
 
             // these numbers come from https://www.classicsstv.com/pdmodes.php G4IJE the inventor.
- 	        yield return new SSTVMode( oOwner, 0xdd, "PD 50",    91.520, new SKSizeI( 320, 240 ) ); // see SSTV-Handbook.
-            yield return new SSTVMode( oOwner, 0x63, "PD 90",   170.240, new SKSizeI( 320, 240 ) ); // Only reliable one.
+ 	        yield return new SSTVMode( oOwner, 0xdd, "PD  50",   91.520, new SKSizeI( 320, 240 ) ); // see SSTV-Handbook.
+            yield return new SSTVMode( oOwner, 0x63, "PD  90",  170.240, new SKSizeI( 320, 240 ) ); // Only reliable one.
             yield return new SSTVMode( oOwner, 0x5f, "PD 120",  121.600, new SKSizeI( 640, 480 ) ); 
             yield return new SSTVMode( oOwner, 0xe2, "PD 160",  195.584, new SKSizeI( 512, 384 ) ); 
             yield return new SSTVMode( oOwner, 0x60, "PD 180",  183.040, new SKSizeI( 640, 480 ) );

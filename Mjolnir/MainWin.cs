@@ -534,6 +534,8 @@ namespace Mjolnir {
             rgSubMenu.Add( new ToolStripMenuItem("M3u",   BitmapCreateFromChar( "\xE189" ), new EventHandler(this.OnDocNewM3u   )));
             rgSubMenu.Add( new ToolStripMenuItem("Scraps",BitmapCreateFromChar( "\xE0a5" ), new EventHandler(this.OnDocNewScraps)));
             rgSubMenu.Add( new ToolStripMenuItem("Morse", BitmapCreateFromChar( "\xE113" ), new EventHandler(this.OnDocNewMorse )));
+            rgSubMenu.Add( new ToolStripMenuItem("SSTV",  BitmapCreateFromChar( "\xE114" ), new EventHandler(this.OnDocNewSSTV )));
+
             oFileMenu.DropDownItems.Add(new ToolStripMenuItem("New",      BitmapCreateFromChar( "\xE295" ), rgSubMenu.ToArray() ) );
             oFileMenu.DropDownItems.Add(new ToolStripMenuItem( "Open...", BitmapCreateFromChar( "\xE132" ), new EventHandler(this.OnDocOpen), Keys.Control | Keys.O ));
             oFileMenu.DropDownItems.Add(new ToolStripMenuItem("Paste",    BitmapCreateFromChar( "\xE16C" ), new EventHandler(this.OnDocPaste)));
@@ -934,6 +936,10 @@ namespace Mjolnir {
 
         public void OnDocNewMorse( object sender, EventArgs e ) {
             EditorInitNewShow( ".morse" );
+        }
+
+        public void OnDocNewSSTV( object sender, EventArgs e ) {
+            EditorInitNewShow( ".mysstv" );
         }
 
         public void OnDocOpen( object sender, EventArgs e ) {
