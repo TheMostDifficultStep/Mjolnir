@@ -205,7 +205,7 @@ namespace Play.Sound {
     public class SSTVMode {
         readonly public  byte    VIS;
         readonly public  string  Name = string.Empty;
-        readonly public  double  TxWidthInMS; // Single line.
+        readonly public  double  LineWidthInMS; // Single line.
         readonly public  Type    Owner;
         readonly private SKSizeI RawRez;
         readonly public  bool    GreyCalibrate;
@@ -218,12 +218,6 @@ namespace Play.Sound {
             v256or240,
         }
 
-        public enum GreyscaleTuner {
-            Yes,    // Add 16/8 scan lines of greyscale at top of image.
-            Unused, // Don't send greyscale but add 16 scan lines to vertical.
-            No      // Don't sent gryscale don't add 16 scan lines.
-        }
-
         /// <summary>
         /// 
         /// </summary>
@@ -233,11 +227,11 @@ namespace Play.Sound {
         /// <param name="dbTxWidth">Tx width of scan line in ms.</param>
         /// <param name="skSize">Do NOT include the top 16 scan line grey scale in the height value.</param>
         public SSTVMode( Type oOwner, byte bVIS, string strName, double dbTxWidth, SKSizeI skSize  ) {
-            VIS         = bVIS;
-            Name        = strName;
-            TxWidthInMS = dbTxWidth;
-            Owner       = oOwner;
-            RawRez      = skSize;
+            VIS           = bVIS;
+            Name          = strName;
+            LineWidthInMS = dbTxWidth;
+            Owner         = oOwner;
+            RawRez        = skSize;
 
             ExtraScanLine = 16; // So far no mode I support is using the 8 scan line spec.
             GreyCalibrate = false;
@@ -384,7 +378,6 @@ namespace Play.Sound {
     /// SCT, Scottie S1, S3, DX
     /// </summary>
     public class GenerateScottie : SSTVGenerator {
-
         /// <exception cref="ArgumentOutOfRangeException" />
         public GenerateScottie( SKBitmap oBitmap, CSSTVMOD oModulator, SSTVMode oMode ) : 
             base( oBitmap, oModulator, oMode )
@@ -426,7 +419,7 @@ namespace Play.Sound {
         /// <remarks>I'm not sure how important it is to cache the line from the bitmap.
         /// The original code does this. Saves a multiply I would guess.</remarks>
         protected override void WriteLine( int iLine ) {
-	        double dbTransmitWidth = Mode.TxWidthInMS / 320.0; // Note: hard coded.
+	        double dbTransmitWidth = Mode.LineWidthInMS / 320.0; // Note: hard coded.
 
             if( iLine > Height )
                 return;
@@ -489,7 +482,7 @@ namespace Play.Sound {
         /// <remarks>I'm not sure how important it is to cache the line from the bitmap.
         /// The original code does this. Saves a multiply I would guess.</remarks>
         protected override void WriteLine( int iLine ) {
-	        double dbTransmitWidth = Mode.TxWidthInMS / 320.0; // Note: hard coded.
+	        double dbTransmitWidth = Mode.LineWidthInMS / 320.0; // Note: hard coded.
 
             if( iLine > Height )
                 return;
@@ -527,7 +520,7 @@ namespace Play.Sound {
     }
 
     /// <summary>
-    /// This class generates the PD modes.
+    /// This class generates the PD modes. Only the PD 90 modes works. >_<;;
     /// </summary>
     public class GeneratePD : SSTVGenerator {
         struct Chrominance8Bit {
@@ -547,7 +540,9 @@ namespace Play.Sound {
         /// <summary>So the scottie and martin modes I'm pretty confident are simply 320 horizontal lines
         /// But I know the PD modes are meant to be higher res and I got all the info straight from
         /// the inventor's web site. Which btw does not mention PD50 and PD290 modes. Also not I'm NOT
-        /// presently generating the 16 scan line b/w scale. 
+        /// presently generating the 16 scan line b/w scale. Note that all of them work. But only the
+        /// PD90 works reliable. The rest require manual sync, and even then, are wavy. This ripple is
+        /// probably what is causing the sync failure.
         /// See also:  Martin Bruchanov OK2MNM SSTV-Handbook.
         /// </summary> 
         public static IEnumerator<SSTVMode> GetModeEnumerator() {
@@ -555,7 +550,7 @@ namespace Play.Sound {
 
             // these numbers come from https://www.classicsstv.com/pdmodes.php G4IJE the inventor.
  	        yield return new SSTVMode( oOwner, 0xdd, "PD 50",    91.520, new SKSizeI( 320, 240 ) ); // see SSTV-Handbook.
-            yield return new SSTVMode( oOwner, 0x63, "PD 90",   170.240, new SKSizeI( 320, 240 ) ); 
+            yield return new SSTVMode( oOwner, 0x63, "PD 90",   170.240, new SKSizeI( 320, 240 ) ); // Only reliable one.
             yield return new SSTVMode( oOwner, 0x5f, "PD 120",  121.600, new SKSizeI( 640, 480 ) ); 
             yield return new SSTVMode( oOwner, 0xe2, "PD 160",  195.584, new SKSizeI( 512, 384 ) ); 
             yield return new SSTVMode( oOwner, 0x60, "PD 180",  183.040, new SKSizeI( 640, 480 ) );
@@ -592,9 +587,9 @@ namespace Play.Sound {
         /// <param name="iLine">The bitmap line to output.</param>
         /// <returns>How many samples written.</returns>
         /// <remarks>Note that you MUST override the default Generator iterator since
-        /// this WriteLine generates TWO lines!!</remarks>
+        /// this WriteLine uses TWO lines!!</remarks>
         protected override void WriteLine( int iLine ) {
-	        double dbTransmitWidth = Mode.TxWidthInMS / Width;
+	        double dbPixelWidth = Mode.LineWidthInMS / (double)Width;
 
             if( iLine > Height )
                 return;
@@ -602,8 +597,8 @@ namespace Play.Sound {
             try {
                 _rgChrome.Clear();
             
-                Write( 1200, 20.000 );
-	            Write( 1500,  2.080 );
+                Write( 1200, 20.000 ); // Sync
+	            Write( 1500,  2.080 ); // Porch
 
 	            for( int x = 0; x < Width; x++ ) {     // Y(odd)
                     SKColor         skPixel = GetPixel( x, iLine );
@@ -611,13 +606,13 @@ namespace Play.Sound {
 
                     _rgChrome.Add( crPixel );
 
-		            Write( ColorToFreq( crPixel.Y       ), dbTransmitWidth );
+		            Write( ColorToFreq( crPixel.Y       ), dbPixelWidth );
 	            }
 	            for( int x = 0; x < Width; x++ ) {     // R-Y
-		            Write( ColorToFreq( _rgChrome[x].RY ), dbTransmitWidth );
+		            Write( ColorToFreq( _rgChrome[x].RY ), dbPixelWidth );
 	            }
 	            for( int x = 0; x < Width; x++ ) {     // B-Y
-                    Write( ColorToFreq( _rgChrome[x].BY ), dbTransmitWidth );
+                    Write( ColorToFreq( _rgChrome[x].BY ), dbPixelWidth );
 	            }
             
                 ++iLine;
@@ -625,7 +620,7 @@ namespace Play.Sound {
                     SKColor         skPixel = GetPixel( x, iLine );
                     Chrominance8Bit crPixel = GetRY   ( skPixel );
 
-		            Write( ColorToFreq( crPixel.Y ), dbTransmitWidth );
+		            Write( ColorToFreq( crPixel.Y ), dbPixelWidth );
 	            }
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( AccessViolationException ),
