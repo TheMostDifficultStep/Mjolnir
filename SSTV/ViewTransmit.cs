@@ -4,6 +4,7 @@ using System.Xml;
 using System.Collections.Generic;
 using System.Windows.Forms;
 using System.IO;
+using System.Reflection;
 
 using SkiaSharp;
 
@@ -22,7 +23,8 @@ namespace Play.SSTV {
 		IPgTools,
 		IDisposable
 	{
-		public static Guid ViewType { get; }  = new Guid( "{CED824F5-2C17-418C-9559-84D6B4F571FC}" );
+		public static Guid   ViewType { get; }  = new Guid( "{CED824F5-2C17-418C-9559-84D6B4F571FC}" );
+		public static string _strIcon =  "Play.SSTV.icons8_camera.png";
 
 		protected readonly IPgViewSite   _oSiteView;
 		protected readonly DocSSTV       _oDocSSTV;
@@ -79,12 +81,14 @@ namespace Play.SSTV {
 		public IPgParent Services  => Parentage.Services;
 		public bool      IsDirty   => false;
 		public string    Banner    => "Transmit Window : " + _oDocSSTV.ImageList.CurrentDirectory;
-		public Image     Iconic    => null;
+		public Image     Iconic    { get; }
 		public Guid      Catagory  => ViewType;
 
         public ViewTransmit( IPgViewSite oViewSite, DocSSTV oDocument ) {
 			_oSiteView = oViewSite ?? throw new ArgumentNullException( "View requires a view site." );
 			_oDocSSTV  = oDocument ?? throw new ArgumentNullException( "View requires a document." );
+
+			Iconic = ImageResourceHelper.GetImageResource( Assembly.GetExecutingAssembly(), _strIcon );
 
             ImageProperties = new PropDoc       ( new SSTVWinSlot( this ) );
 			_oViewImage     = new ImageViewTx   ( new SSTVWinSlot( this ), _oDocSSTV.ImageList );

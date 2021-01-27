@@ -9,6 +9,14 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="icons8_camera.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="icons8_camera.png" />
+  </ItemGroup>
   
   <ItemGroup>
     <PackageReference Include="SkiaSharp" Version="2.80.2" />
