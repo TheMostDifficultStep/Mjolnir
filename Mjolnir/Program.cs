@@ -152,7 +152,7 @@ namespace Mjolnir {
 
             // New color table system.
             try {
-                _rgStdColors[ (int)StdUIColors.BGWithCursor]    = new SKColor( 230, 230, 230 ); // BGWithCursor,    Unselected w/  cursor. 
+                _rgStdColors[ (int)StdUIColors.BGWithCursor]    = new SKColor( 225, 225, 225 ); // BGWithCursor,    Unselected w/  cursor. 
 			    _rgStdColors[ (int)StdUIColors.BGSelectedFocus] = new SKColor(  49, 106, 197 ); // BGSelectedFocus, Selected   w/  focus blue.
 			    _rgStdColors[ (int)StdUIColors.BGSelectedBlur]  = new SKColor( 130, 130, 130 ); // BGSelectedBlur,  Selected   w/o focus grey.
 			    _rgStdColors[ (int)StdUIColors.BG]              = new SKColor( 255, 255, 255 ); // BG,              Unselected w/o cursor. (was 244)
