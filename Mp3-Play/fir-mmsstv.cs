@@ -245,7 +245,7 @@ namespace Play.Sound {
         }
 
 
-        double Do( double[] hp, ref double d, out double j ) {
+        public double Do( double[] hp, ref double d, out double j ) {
             int    iZP = m_W + m_Tap + 1;
             double dd  = 0;
 
@@ -267,7 +267,7 @@ namespace Play.Sound {
             return dd;
         }
 
-		static void MakeFilter( double[]HP, int tap, FirFilt type, 
+		public static void MakeFilter( double[]HP, int tap, FirFilt type, 
 			                    double fs,  double fcl, double fch, 
 								double att, double gain )
 		{

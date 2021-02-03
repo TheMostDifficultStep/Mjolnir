@@ -154,10 +154,12 @@ namespace Play.Sound {
 			m_MSH  = (uint)(1390.0 * 3 * m_SampFreq / 1000.0);     // Highest
 		}
 
-		void SetMode( AllModes mode)
+		/// <remarks>This gets called by the demodulator. Ick. This means
+		/// we can't make the members here readonly.</remarks>
+		public void SetMode( AllModes mode)
 		{
 			//m_SampFreq = sys.m_SampFreq;
-			m_Mode = mode;
+			m_Mode    = mode;
 			m_fNarrow = IsNarrowMode(mode);
 			SetSampFreq();
 			m_WD = (int)m_TW;
@@ -855,7 +857,7 @@ namespace Play.Sound {
 	}
 
 	class CSSTVDEM {
-		public readonly static int TAPMAX = 512;
+		public readonly static int TAPMAX = 512; // BUG: Move to Fir or Fir2 later.
 		readonly static int SSTVDEMBUFMAX = 24;
 
 		readonly CSSTVSET SSTVSET;
@@ -901,7 +903,7 @@ namespace Play.Sound {
 		int         m_VisCnt;
 		int         m_VisTrig;
 		int         m_SyncErr;
-		int         m_NextMode;
+		AllModes    m_NextMode;
 		bool        m_SyncAVT;
 
 		int         m_wBase;
@@ -1120,7 +1122,7 @@ namespace Play.Sound {
 			}
 		}
 
-		public void CalcBPF(double[] H1, double[] H2, double[] H3, ref int bpftap, int bpf, int mode)
+		public void CalcBPF(double[] H1, double[] H2, double[] H3, ref int bpftap, int bpf, AllModes mode)
 		{
 			int lfq  = (int)((m_SyncRestart ? 1100 : 1200) + g_dblToneOffset );
 			int lfq2 = (int)(400 + g_dblToneOffset );
@@ -1129,20 +1131,20 @@ namespace Play.Sound {
 			switch(bpf){
 				case 1:     // Wide
 					bpftap = (int)(24 * SampFreq / 11025.0 );
-					MakeFilter(H1, bpftap, ffBPF, SampFreq, lfq, 2600 + g_dblToneOffset, 20, 1.0);
-					MakeFilter(H2, bpftap, ffBPF, SampFreq,  lfq2, 2500 + g_dblToneOffset, 20, 1.0);
+					CFIR2.MakeFilter(H1, bpftap, FirFilt.ffBPF, SampFreq, lfq, 2600 + g_dblToneOffset, 20, 1.0);
+					CFIR2.MakeFilter(H2, bpftap, FirFilt.ffBPF, SampFreq,  lfq2, 2500 + g_dblToneOffset, 20, 1.0);
 		//			MakeFilter(H3, bpftap, ffBPF, SampFreq,  NARROW_BPFLOW-200, NARROW_BPFHIGH, 20, 1.0);
 					break;
 				case 2:     // Narrow
 					bpftap = (int)(64 * SampFreq / 11025.0 );
-					MakeFilter(H1, bpftap, ffBPF, SampFreq, lfq, 2500 + g_dblToneOffset, 40, 1.0);
-					MakeFilter(H2, bpftap, ffBPF, SampFreq,  lfq2, 2500 + g_dblToneOffset, 20, 1.0);
+					CFIR2.MakeFilter(H1, bpftap, FirFilt.ffBPF, SampFreq, lfq, 2500 + g_dblToneOffset, 40, 1.0);
+					CFIR2.MakeFilter(H2, bpftap, FirFilt.ffBPF, SampFreq,  lfq2, 2500 + g_dblToneOffset, 20, 1.0);
 		//			MakeFilter(H3, bpftap, ffBPF, SampFreq, NARROW_BPFLOW-100, NARROW_BPFHIGH, 40, 1.0);
 					break;
 				case 3:     // Very Narrow
 					bpftap = (int)(96 * SampFreq / 11025.0 );
-					MakeFilter(H1, bpftap, ffBPF, SampFreq, lfq, 2400 + g_dblToneOffset, 50, 1.0);
-					MakeFilter(H2, bpftap, ffBPF, SampFreq,  lfq2, 2500 + g_dblToneOffset, 20, 1.0);
+					CFIR2.MakeFilter(H1, bpftap, FirFilt.ffBPF, SampFreq, lfq, 2400 + g_dblToneOffset, 50, 1.0);
+					CFIR2.MakeFilter(H2, bpftap, FirFilt.ffBPF, SampFreq,  lfq2, 2500 + g_dblToneOffset, 20, 1.0);
 		//			MakeFilter(H3, bpftap, ffBPF, SampFreq,  NARROW_BPFLOW, NARROW_BPFHIGH, 50, 1.0);
 					break;
 				default:
@@ -1152,48 +1154,47 @@ namespace Play.Sound {
 			CalcNarrowBPF(H3, bpftap, bpf, mode);
 		}
 
-		public void CalcNarrowBPF(double[] H3, int bpftap, int bpf, AllModes mode)
-	{
-		int low, high;
-		switch(mode){
-			case AllModes.smMN73:
-				low = 1600; high = 2500;
-				break;
-			case AllModes.smMN110:
-				low = 1600; high = 2500;
-        		break;
-			case AllModes.smMN140:
-				low = 1700; high = 2400;
-        		break;
-			case AllModes.smMC110:
-				low = 1600; high = 2500;
-        		break;
-			case AllModes.smMC140:
-				low = 1650; high = 2500;
-        		break;
-			case AllModes.smMC180:
-				low = 1700; high = 2400;
-        		break;
-			default:
-				low = 1600; high = 2500;
-        		break;
+		public void CalcNarrowBPF(double[] H3, int bpftap, int bpf, AllModes mode) {
+			int low, high;
+			switch(mode){
+				case AllModes.smMN73:
+					low = 1600; high = 2500;
+					break;
+				case AllModes.smMN110:
+					low = 1600; high = 2500;
+        			break;
+				case AllModes.smMN140:
+					low = 1700; high = 2400;
+        			break;
+				case AllModes.smMC110:
+					low = 1600; high = 2500;
+        			break;
+				case AllModes.smMC140:
+					low = 1650; high = 2500;
+        			break;
+				case AllModes.smMC180:
+					low = 1700; high = 2400;
+        			break;
+				default:
+					low = 1600; high = 2500;
+        			break;
+			}
+			low  += (int)g_dblToneOffset;
+			high += (int)g_dblToneOffset;
+			switch(bpf){
+				case 1:     // Wide
+					CFIR2.MakeFilter(H3, bpftap, FirFilt.ffBPF, SampFreq,  low-200, high, 20, 1.0);
+					break;
+				case 2:     // Narrow
+					CFIR2.MakeFilter(H3, bpftap, FirFilt.ffBPF, SampFreq, low-100, high, 40, 1.0);
+					break;
+				case 3:     // Very Narrow
+					CFIR2.MakeFilter(H3, bpftap, FirFilt.ffBPF, SampFreq,  low, high, 50, 1.0);
+					break;
+				default:
+					break;
+			}
 		}
-		low  += g_dblToneOffset;
-		high += g_dblToneOffset;
-		switch(bpf){
-			case 1:     // Wide
-				MakeFilter(H3, bpftap, ffBPF, SampFreq,  low-200, high, 20, 1.0);
-				break;
-			case 2:     // Narrow
-				MakeFilter(H3, bpftap, ffBPF, SampFreq, low-100, high, 40, 1.0);
-				break;
-			case 3:     // Very Narrow
-				MakeFilter(H3, bpftap, ffBPF, SampFreq,  low, high, 50, 1.0);
-				break;
-			default:
-				break;
-		}
-	}
 
 		public void CalcBPF() {
 			CalcBPF(HBPF, HBPFS, HBPFN, ref m_bpftap, m_bpf, SSTVSET.m_Mode);
@@ -1337,18 +1338,19 @@ namespace Play.Sound {
 				CalcNarrowBPF(HBPFN, m_bpftap, m_bpf, SSTVSET.m_Mode);
 		}
 
-		void Start(int mode, int f)	{
+		void Start(AllModes mode, int f)	{
 			m_fqc.Clear();
 			m_sint1.Reset();
 			m_sint2.Reset();
 			m_sint3.Reset();
-			m_wBgn = 0;
+			m_wBgn  = 0;
 			m_rBase = 0;
 			m_SyncMode = 0;
 			SSTVSET.SetMode(mode);
-			m_Sync = 0;
+			m_Sync = false;
 			SetWidth(IsNarrowMode(mode));
-			if( f ){
+
+			if( f != 0 ){
 				Start();
 			} else {
 				m_SyncMode = -1;
@@ -1372,7 +1374,7 @@ namespace Play.Sound {
 			m_wBgn = 0;
 			m_SyncMode = 512;
 			m_Sync = false;
-			m_SyncAVT = 0;
+			m_SyncAVT = false;
 			m_Skip = 0;
 			SetWidth( false );
 		}
@@ -1410,9 +1412,10 @@ namespace Play.Sound {
 			m_ad = s;
 			if( m_bpf > 0 ){
 				if( m_Sync || (m_SyncMode >= 3) ){
-					d = m_BPF.Do(d, m_fNarrow ? HBPFN : HBPF);
+					// BUG: Double check this.
+					d = m_BPF.Do( m_fNarrow ? HBPFN : HBPF, ref d, out _ );
 				} else {
-					d = m_BPF.Do(d, HBPFS);
+					d = m_BPF.Do( HBPFS, ref d, out _ );
 				}
 			}
 			m_lvl.Do(d);
@@ -1439,9 +1442,9 @@ namespace Play.Sound {
 			dsp = m_iirfsk.Do(d);
 			if( dsp < 0.0 ) dsp = -dsp;
 			dsp = m_lpffsk.Do(dsp);
-			DecodeFSK(int(d19), int(dsp));
+			DecodeFSK( (int)d19, (int)dsp);
 
-			if( m_Repeater && !m_Sync && (pRep != NULL) ){
+			if( m_Repeater != 0 && !m_Sync && (pRep != NULL) ){
 				double dsp;
 				dsp = pRep->m_iirrep.Do(d);
 				if( dsp < 0.0 ) dsp = -dsp;
@@ -1449,20 +1452,21 @@ namespace Play.Sound {
 				if( m_RepSQ ){
 					m_repsig = pRep->m_lmsrep.Sig(m_ad);
 				}
-				Repeater(int(dsp), int(d12), int(d19));
+				Repeater((int)dsp, (int)d12, (int)d19);
 			}
 
 			if( m_fNarrow ){
 				if( m_ScopeFlag ){
 					m_Scope[0].WriteData(d19);
 				}
-				if( m_LevelType ) m_SyncLvl.Do(d19);
+				if( m_LevelType != 0 ) 
+					m_SyncLvl.Do(d19);
 			}
 			else {
 				if( m_ScopeFlag ){
 					m_Scope[0].WriteData(d12);
 				}
-				if( m_LevelType ) 
+				if( m_LevelType != 0 ) 
 					m_SyncLvl.Do(d12);
 
 			}
@@ -1564,7 +1568,7 @@ namespace Play.Sound {
 						m_SyncTime--;
 						if( !m_SyncTime ){
 							if( ((d11 < d19) && (d13 < d19)) ||
-								(fabs(d11-d13) < (m_SLvl2)) ){
+								(Math.Abs(d11-d13) < (m_SLvl2)) ){
 								m_SyncMode = 0;
 							}
 							else {
@@ -1577,76 +1581,76 @@ namespace Play.Sound {
 										m_SyncMode++;
 										switch(m_VisData){
 											case 0x82:      // RM8
-												m_NextMode = smRM8;
+												m_NextMode = AllModes.smRM8;
 												break;
 											case 0x86:      // RM12
-												m_NextMode = smRM12;
+												m_NextMode = AllModes.smRM12;
 												break;
 											case 0x84:      // R24
-												m_NextMode = smR24;
+												m_NextMode = AllModes.smR24;
 												break;
 											case 0x88:      // R36
-												m_NextMode = smR36;
+												m_NextMode = AllModes.smR36;
 												break;
 											case 0x0c:      // R72
-												m_NextMode = smR72;
+												m_NextMode = AllModes.smR72;
 												break;
 											case 0x44:      // AVT
-												m_NextMode = smAVT;
+												m_NextMode = AllModes.smAVT;
 												break;
 											case 0x3c:      // SCT1
-												m_NextMode = smSCT1;
+												m_NextMode = AllModes.smSCT1;
 												break;
 											case 0xb8:      // SCT2
-												m_NextMode = smSCT2;
+												m_NextMode = AllModes.smSCT2;
 												break;
 											case 0xcc:      // SCTDX
-												m_NextMode = smSCTDX;
+												m_NextMode = AllModes.smSCTDX;
 												break;
 											case 0xac:      // MRT1
-												m_NextMode = smMRT1;
+												m_NextMode = AllModes.smMRT1;
 												break;
 											case 0x28:      // MRT2
-												m_NextMode = smMRT2;
+												m_NextMode = AllModes.smMRT2;
 												break;
 											case 0xb7:      // SC2-180 $37 00110111
-												m_NextMode = smSC2_180;
+												m_NextMode = AllModes.smSC2_180;
 												break;
 											case 0x3f:      // SC2-120 $3f 00111111
-												m_NextMode = smSC2_120;
+												m_NextMode = AllModes.smSC2_120;
 												break;
 											case 0xbb:      // SC2-60 $3b 10111011
-												m_NextMode = smSC2_60;
+												m_NextMode = AllModes.smSC2_60;
 												break;
 											case 0xdd:      // PD50 $5d  01011101
-												m_NextMode = smPD50;
+												m_NextMode = AllModes.smPD50;
 												break;
 											case 0x63:      // PD90 $63  01100011
-												m_NextMode = smPD90;
+												m_NextMode = AllModes.smPD90;
 												break;
 											case 0x5f:      // PD120 $5f  01011111
-												m_NextMode = smPD120;
+												m_NextMode = AllModes.smPD120;
 												break;
 											case 0xe2:      // PD160 $62  11100010
-												m_NextMode = smPD160;
+												m_NextMode = AllModes.smPD160;
 												break;
 											case 0x60:      // PD180 $60  01100000
-												m_NextMode = smPD180;
+												m_NextMode = AllModes.smPD180;
 												break;
 											case 0xe1:      // PD240 $61  11100001
-												m_NextMode = smPD240;
+												m_NextMode = AllModes.smPD240;
 												break;
 											case 0xde:      // PD290 $5e  11011110
-												m_NextMode = smPD290;
+												m_NextMode = AllModes.smPD290;
 												break;
 											case 0x71:      // P3 $71  01110001
-												m_NextMode = smP3;
+												m_NextMode = AllModes.smP3;
 												break;
 											case 0x72:      // P5 $71  01110010
-												m_NextMode = smP5;
+												m_NextMode = AllModes.smP5;
 												break;
 											case 0xf3:      // P7 $73  11110011
-												m_NextMode = smP7;
+												m_NextMode = AllModes.smP7;
 												break;
 											case 0x23:      // MM Šg’£ VIS
 												m_SyncMode = 9;
@@ -1721,11 +1725,11 @@ namespace Play.Sound {
 										m_ReqSave = 1;
 									}
 								}
-								if( m_NextMode == smAVT ){
+								if( m_NextMode == AllModes.smAVT ){
 									m_SyncTime = ((9 + 910 + 910 + 5311.9424 + 0.30514375) * sys.m_SampFreq / 1000.0);
 									m_SyncMode++;
-									m_SyncAVT = 1;
-									m_Sync = 0;
+									m_SyncAVT = true;
+									m_Sync = false;
 								}
 								else {
 									m_SyncMode = 256;
@@ -1840,16 +1844,16 @@ namespace Play.Sound {
 			if( m_Sync ){
 				switch(m_Type){
 					case 0:		// PLL
-						if( m_afc && (m_lvl.m_CurMax > 16) && (SSTVSET.m_Mode != smAVT) ) SyncFreq(m_fqc.Do(m_lvl.m_Cur));
+						if( m_afc && (m_lvl.m_CurMax > 16) && (SSTVSET.m_Mode != AllModes.smAVT) ) SyncFreq(m_fqc.Do(m_lvl.m_Cur));
 						d = m_pll.Do(m_lvl.m_Cur);
 						break;
 					case 1:		// Zero-crossing
 						d = m_fqc.Do(m_lvl.m_Cur);
-						if( m_afc && (m_lvl.m_CurMax > 16) && (SSTVSET.m_Mode != smAVT) ) SyncFreq(d);
+						if( m_afc && (m_lvl.m_CurMax > 16) && (SSTVSET.m_Mode != AllModes.smAVT) ) SyncFreq(d);
 						break;
 					default:	// Hilbert
 						d = m_hill.Do(m_lvl.m_Cur);
-						if( m_afc && (m_lvl.m_CurMax > 16) && (SSTVSET.m_Mode != smAVT) ) SyncFreq(d);
+						if( m_afc && (m_lvl.m_CurMax > 16) && (SSTVSET.m_Mode != AllModes.smAVT) ) SyncFreq(d);
 						break;
 				}
 				if( m_afc ) d += m_AFCDiff;
@@ -1886,7 +1890,7 @@ namespace Play.Sound {
 					}
 		#endif
 					else {
-						m_B12[n] = (d + 16384) * 0.25;
+						m_B12[n] = (short)((d + 16384) * 0.25);
 					}
 					IncWP();
 				}
