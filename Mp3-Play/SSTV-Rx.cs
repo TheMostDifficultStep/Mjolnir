@@ -87,16 +87,16 @@ namespace Play.Sound {
 		public int      m_OFS    { get; protected set; }
 		public int		m_IOFS   { get; protected set; }
 
-		public readonly double  m_SampFreq;
+		public double  m_SampFreq { get; protected set; }
 
-		public readonly double  m_KSS;
-		public readonly double  m_KS2S;
+		public double  m_KSS { get; protected set; }
+		public double  m_KS2S{ get; protected set; }
 		public int     m_KSB { get; protected set; }
 
 		public int     m_TWD { get; protected set; }
 		public int     m_TL  { get; protected set; }
 		public double  m_TTW { get; protected set; }
-		public readonly double  m_TxSampFreq;
+		public double  m_TxSampFreq { get; protected set; }
 
 		public readonly UInt32[] m_MS = new UInt32[(int)AllModes.smEND];
 		public UInt32   m_MSLL { get; protected set; }
@@ -111,10 +111,29 @@ namespace Play.Sound {
 		public bool	m_fTxNarrow { get; protected set; }
 
 		public readonly double g_dblToneOffset;
+		public readonly double m_dbTxSampOffs;
 
-		public CSSTVSET( double dbToneOffset )
+		public double SampFreq => m_SampFreq;
+
+		static bool IsNarrowMode(AllModes mode)	{
+			switch(mode){
+				case AllModes.smMN73:
+				case AllModes.smMN110:
+				case AllModes.smMN140:
+				case AllModes.smMC110:
+				case AllModes.smMC140:
+				case AllModes.smMC180:
+        			return true;
+				default:
+        			return false;
+			}
+		}
+		public CSSTVSET( double dbToneOffset, double dbSampFreq, double dbTxSampOffs )
 		{
+			m_SampFreq      = dbSampFreq;
+			m_dbTxSampOffs  = dbTxSampOffs;
 			g_dblToneOffset = dbToneOffset;
+
 			m_fNarrow = m_fTxNarrow = false;
 			m_TxMode = AllModes.smSCT1;
 			SetMode(AllModes.smSCT1);
@@ -137,7 +156,7 @@ namespace Play.Sound {
 
 		void SetMode( AllModes mode)
 		{
-			m_SampFreq = sys.m_SampFreq;
+			//m_SampFreq = sys.m_SampFreq;
 			m_Mode = mode;
 			m_fNarrow = IsNarrowMode(mode);
 			SetSampFreq();
@@ -147,7 +166,7 @@ namespace Play.Sound {
 
 		void SetTxMode(AllModes mode)
 		{
-			m_TxSampFreq = sys.m_SampFreq + sys.m_TxSampOff;
+			m_TxSampFreq = m_SampFreq /* sys.m_SampFreq */ + m_dbTxSampOffs /* sys.m_TxSampOff */;
 			m_TxMode = mode;
 			m_fTxNarrow = IsNarrowMode(mode);
 			SetTxSampFreq();
@@ -204,19 +223,19 @@ namespace Play.Sound {
 
 		void SetSampFreq(){
 			switch(m_Mode){
-				case smR36:
+				case AllModes.smR36:
 					m_KS = 88.0 * m_SampFreq / 1000.0;
 					m_KS2 = 44.0 * m_SampFreq / 1000.0;
 					m_OF = 12.0 * m_SampFreq / 1000.0;
 		//            m_OFP = 10.8 * m_SampFreq / 1000.0;
 					m_OFP = 10.7 * m_SampFreq / 1000.0;
 					m_SG = (88.0 + 1.25) * m_SampFreq / 1000.0;
-					m_CG = (88.0 + 3.5) * SampFreq/1000.0;
+					m_CG = (88.0 + 3.5) * SampFreq /1000.0; 
 					m_SB = 94.0 * m_SampFreq / 1000.0;
 					m_CB = m_SB + m_KS2;
 					m_L = 240;
 					break;
-				case smR72:
+				case AllModes.smR72:
 					m_KS = 138.0 * m_SampFreq / 1000.0;
 					m_KS2 = 69.0 * m_SampFreq / 1000.0;
 					m_OF = 12.0 * m_SampFreq / 1000.0;
@@ -227,7 +246,7 @@ namespace Play.Sound {
 					m_CB = m_SB + m_KS2;
 					m_L = 240;
 					break;
-				case smAVT:
+				case AllModes.smAVT:
 					m_KS = 125.0 * m_SampFreq / 1000.0;
 					m_OF = 0.0 * m_SampFreq / 1000.0;
 					m_OFP = 0.0 * m_SampFreq / 1000.0;
@@ -237,7 +256,7 @@ namespace Play.Sound {
 					m_CB = m_KS + m_SB;
 					m_L = 240;
 					break;
-				case smSCT2:
+				case AllModes.smSCT2:
 					m_KS = 88.064 * m_SampFreq / 1000.0;
 					m_OF = 10.5 * m_SampFreq / 1000.0;
 					m_OFP = 10.8 * m_SampFreq / 1000.0;
@@ -247,7 +266,7 @@ namespace Play.Sound {
 					m_CB = m_KS + m_SB;
 					m_L = 256;
 					break;
-				case smSCTDX:
+				case AllModes.smSCTDX:
 					m_KS = 345.6 * m_SampFreq / 1000.0;
 					m_OF = 10.5 * m_SampFreq / 1000.0;
 		//            m_OFP = 9.5 * m_SampFreq / 1000.0;
@@ -258,7 +277,7 @@ namespace Play.Sound {
 					m_CB = m_KS + m_SB;
 					m_L = 256;
 					break;
-				case smMRT1:
+				case AllModes.smMRT1:
 					m_KS = 146.432 * m_SampFreq / 1000.0;
 					m_OF = 5.434 * m_SampFreq / 1000.0;
 		//            m_OFP = 7.3 * m_SampFreq / 1000.0;
@@ -269,7 +288,7 @@ namespace Play.Sound {
 					m_CB = m_KS + m_SB;
 					m_L = 256;
 					break;
-				case smMRT2:
+				case AllModes.smMRT2:
 					m_KS = 73.216 * m_SampFreq / 1000.0;
 					m_OF = 5.434 * m_SampFreq / 1000.0;
 					m_OFP = 7.4 * m_SampFreq / 1000.0;
@@ -279,7 +298,7 @@ namespace Play.Sound {
 					m_CB = m_KS + m_SB;
 					m_L = 256;
 					break;
-				case smSC2_180:
+				case AllModes.smSC2_180:
 					m_KS = 235.0 * m_SampFreq / 1000.0;
 					m_OF = 6.0437 * m_SampFreq / 1000.0;
 		//            m_OFP = 7.5 * m_SampFreq / 1000.0;
@@ -290,7 +309,7 @@ namespace Play.Sound {
 					m_CB = m_KS + m_SB;
 					m_L = 256;
 					break;
-				case smSC2_120:
+				case AllModes.smSC2_120:
 					m_KS = 156.5 * m_SampFreq / 1000.0;
 					m_OF = 6.02248 * m_SampFreq / 1000.0;
 					m_OFP = 7.5 * m_SampFreq / 1000.0;
@@ -300,7 +319,7 @@ namespace Play.Sound {
 					m_CB = m_KS + m_SB;
 					m_L = 256;
 					break;
-				case smSC2_60:
+				case AllModes.smSC2_60:
 					m_KS = 78.128 * m_SampFreq / 1000.0;
 					m_OF = 6.0006 * m_SampFreq / 1000.0;
 					m_OFP = 7.9 * m_SampFreq / 1000.0;
@@ -310,7 +329,7 @@ namespace Play.Sound {
 					m_CB = m_KS + m_SB;
 					m_L = 256;
 					break;
-				case smPD50:
+				case AllModes.smPD50:
 					m_KS = 91.520 * m_SampFreq / 1000.0;
 					m_OF = 22.080 * m_SampFreq / 1000.0;
 					m_OFP = 19.300 * m_SampFreq / 1000.0;
@@ -320,7 +339,7 @@ namespace Play.Sound {
 					m_CB = m_KS + m_SB;
 					m_L = 128;
 					break;
-				case smPD90:
+				case AllModes.smPD90:
 					m_KS = 170.240 * m_SampFreq / 1000.0;
 					m_OF = 22.080 * m_SampFreq / 1000.0;
 					m_OFP = 18.900 * m_SampFreq / 1000.0;
@@ -330,7 +349,7 @@ namespace Play.Sound {
 					m_CB = m_KS + m_SB;
 					m_L = 128;
 					break;
-				case smPD120:
+				case AllModes.smPD120:
 					m_KS = 121.600 * m_SampFreq / 1000.0;
 					m_OF = 22.080 * m_SampFreq / 1000.0;
 					m_OFP = 19.400 * m_SampFreq / 1000.0;
@@ -340,7 +359,7 @@ namespace Play.Sound {
 					m_CB = m_KS + m_SB;
 					m_L = 248;
 					break;
-				case smPD160:
+				case AllModes.smPD160:
 					m_KS = 195.584 * m_SampFreq / 1000.0;
 					m_OF = 22.080 * m_SampFreq / 1000.0;
 					m_OFP = 18.900 * m_SampFreq / 1000.0;
@@ -350,7 +369,7 @@ namespace Play.Sound {
 					m_CB = m_KS + m_SB;
 					m_L = 200;
 					break;
-				case smPD180:
+				case AllModes.smPD180:
 					m_KS = 183.04 * m_SampFreq / 1000.0;
 					m_OF = 22.080 * m_SampFreq / 1000.0;
 					m_OFP = 18.900 * m_SampFreq / 1000.0;
@@ -360,7 +379,7 @@ namespace Play.Sound {
 					m_CB = m_KS + m_SB;
 					m_L = 248;
 					break;
-				case smPD240:
+				case AllModes.smPD240:
 					m_KS = 244.48 * m_SampFreq / 1000.0;
 					m_OF = 22.080 * m_SampFreq / 1000.0;
 					m_OFP = 18.900 * m_SampFreq / 1000.0;
@@ -370,7 +389,7 @@ namespace Play.Sound {
 					m_CB = m_KS + m_SB;
 					m_L = 248;
 					break;
-				case smPD290:
+				case AllModes.smPD290:
 					m_KS = 228.80 * m_SampFreq / 1000.0;
 					m_OF = 22.080 * m_SampFreq / 1000.0;
 					m_OFP = 18.900 * m_SampFreq / 1000.0;
@@ -380,7 +399,7 @@ namespace Play.Sound {
 					m_CB = m_KS + m_SB;
 					m_L = 616/2;
 					break;
-				case smP3:
+				case AllModes.smP3:
 					m_KS = 133.333 * m_SampFreq / 1000.0;
 					m_OF = (5.208 + 1.042) * m_SampFreq / 1000.0;
 					m_OFP = 7.80 * m_SampFreq / 1000.0;
@@ -390,7 +409,7 @@ namespace Play.Sound {
 					m_CB = m_KS + m_SB;
 					m_L = 496;
 					break;
-				case smP5:
+				case AllModes.smP5:
 					m_KS = 200.000 * m_SampFreq / 1000.0;
 					m_OF = (7.813 + 1.562375) * m_SampFreq / 1000.0;
 					m_OFP = 9.20 * m_SampFreq / 1000.0;
@@ -400,7 +419,7 @@ namespace Play.Sound {
 					m_CB = m_KS + m_SB;
 					m_L = 496;
 					break;
-				case smP7:
+				case AllModes.smP7:
 					m_KS = 266.667 * m_SampFreq / 1000.0;
 					m_OF = (10.417 + 2.083) * m_SampFreq / 1000.0;
 					m_OFP = 11.50 * m_SampFreq / 1000.0;
@@ -410,7 +429,7 @@ namespace Play.Sound {
 					m_CB = m_KS + m_SB;
 					m_L = 496;
 					break;
-				case smMR73:
+				case AllModes.smMR73:
 					//|--KS--|--KS2--|--KS2--|
 					//      SG     CG=SB     CB
 					m_KS = 138.0 * m_SampFreq / 1000.0;
@@ -423,7 +442,7 @@ namespace Play.Sound {
 					m_CB = m_SB + m_KS2;
 					m_L = 256;
 					break;
-				case smMR90:
+				case AllModes.smMR90:
 					m_KS = 171.0 * m_SampFreq / 1000.0;
 					m_KS2 = m_KS * 0.5;
 					m_OF = 10.0 * m_SampFreq / 1000.0;
@@ -434,7 +453,7 @@ namespace Play.Sound {
 					m_CB = m_SB + m_KS2;
 					m_L = 256;
 					break;
-				case smMR115:
+				case AllModes.smMR115:
 					m_KS = 220.0 * m_SampFreq / 1000.0;
 					m_KS2 = m_KS * 0.5;
 					m_OF = 10.0 * m_SampFreq / 1000.0;
@@ -445,7 +464,7 @@ namespace Play.Sound {
 					m_CB = m_SB + m_KS2;
 					m_L = 256;
 					break;
-				case smMR140:
+				case AllModes.smMR140:
 					m_KS = 269.0 * m_SampFreq / 1000.0;
 					m_KS2 = m_KS * 0.5;
 					m_OF = 10.0 * m_SampFreq / 1000.0;
@@ -456,7 +475,7 @@ namespace Play.Sound {
 					m_CB = m_SB + m_KS2;
 					m_L = 256;
 					break;
-				case smMR175:
+				case AllModes.smMR175:
 					m_KS = 337.0 * m_SampFreq / 1000.0;
 					m_KS2 = m_KS * 0.5;
 					m_OF = 10.0 * m_SampFreq / 1000.0;
@@ -467,7 +486,7 @@ namespace Play.Sound {
 					m_CB = m_SB + m_KS2;
 					m_L = 256;
 					break;
-				case smMP73:
+				case AllModes.smMP73:
 					m_KS = 140.0 * m_SampFreq / 1000.0;
 					m_OF = 10.0 * m_SampFreq / 1000.0;
 					m_OFP = 10.5 * m_SampFreq / 1000.0;
@@ -477,7 +496,7 @@ namespace Play.Sound {
 					m_CB = m_KS + m_SB;
 					m_L = 128;
 					break;
-				case smMP115:
+				case AllModes.smMP115:
 					m_KS = 223.0 * m_SampFreq / 1000.0;
 					m_OF = 10.0 * m_SampFreq / 1000.0;
 					m_OFP = 10.5 * m_SampFreq / 1000.0;
@@ -487,7 +506,7 @@ namespace Play.Sound {
 					m_CB = m_KS + m_SB;
 					m_L = 128;
 					break;
-				case smMP140:
+				case AllModes.smMP140:
 					m_KS = 270.0 * m_SampFreq / 1000.0;
 					m_OF = 10.0 * m_SampFreq / 1000.0;
 					m_OFP = 10.5 * m_SampFreq / 1000.0;
@@ -497,7 +516,7 @@ namespace Play.Sound {
 					m_CB = m_KS + m_SB;
 					m_L = 128;
 					break;
-				case smMP175:
+				case AllModes.smMP175:
 					m_KS = 340.0 * m_SampFreq / 1000.0;
 					m_OF = 10.0 * m_SampFreq / 1000.0;
 					m_OFP = 10.5 * m_SampFreq / 1000.0;
@@ -507,7 +526,7 @@ namespace Play.Sound {
 					m_CB = m_KS + m_SB;
 					m_L = 128;
 					break;
-				case smML180:
+				case AllModes.smML180:
 					m_KS = 176.5 * m_SampFreq / 1000.0;
 					m_KS2 = m_KS * 0.5;
 					m_OF = 10.0 * m_SampFreq / 1000.0;
@@ -518,7 +537,7 @@ namespace Play.Sound {
 					m_CB = m_SB + m_KS2;
 					m_L = 496;
 					break;
-				case smML240:
+				case AllModes.smML240:
 					m_KS = 236.5 * m_SampFreq / 1000.0;
 					m_KS2 = m_KS * 0.5;
 					m_OF = 10.0 * m_SampFreq / 1000.0;
@@ -529,7 +548,7 @@ namespace Play.Sound {
 					m_CB = m_SB + m_KS2;
 					m_L = 496;
 					break;
-				case smML280:
+				case AllModes.smML280:
 					m_KS = 277.5 * m_SampFreq / 1000.0;
 					m_KS2 = m_KS * 0.5;
 					m_OF = 10.0 * m_SampFreq / 1000.0;
@@ -540,7 +559,7 @@ namespace Play.Sound {
 					m_CB = m_SB + m_KS2;
 					m_L = 496;
 					break;
-				case smML320:
+				case AllModes.smML320:
 					m_KS = 317.5 * m_SampFreq / 1000.0;
 					m_KS2 = m_KS * 0.5;
 					m_OF = 10.0 * m_SampFreq / 1000.0;
@@ -551,7 +570,7 @@ namespace Play.Sound {
 					m_CB = m_SB + m_KS2;
 					m_L = 496;
 					break;
-				case smR24:
+				case AllModes.smR24:
 					m_KS = 92.0 * m_SampFreq / 1000.0;
 					m_KS2 = 46.0 * m_SampFreq / 1000.0;
 					m_OF = 8.0 * m_SampFreq / 1000.0;
@@ -562,7 +581,7 @@ namespace Play.Sound {
 					m_CB = m_SB + m_KS2;
 					m_L = 120;
 					break;
-				case smRM8:
+				case AllModes.smRM8:
 					m_KS = 58.89709 * m_SampFreq / 1000.0;
 					m_OF = 8.0 * m_SampFreq / 1000.0;
 					m_OFP = 8.2 * m_SampFreq / 1000.0;
@@ -572,7 +591,7 @@ namespace Play.Sound {
 					m_CB = m_KS + m_SB;
 					m_L = 120;
 					break;
-				case smRM12:
+				case AllModes.smRM12:
 					m_KS = 92.0 * m_SampFreq / 1000.0;
 					m_OF = 8.0 * m_SampFreq / 1000.0;
 					m_OFP = 8.0 * m_SampFreq / 1000.0;
@@ -582,7 +601,7 @@ namespace Play.Sound {
 					m_CB = m_KS + m_SB;
 					m_L = 120;
 					break;
-				case smMN73:
+				case AllModes.smMN73:
 					m_KS = 140.0 * m_SampFreq / 1000.0;
 					m_OF = 10.0 * m_SampFreq / 1000.0;
 					m_OFP = 10.5 * m_SampFreq / 1000.0;
@@ -592,7 +611,7 @@ namespace Play.Sound {
 					m_CB = m_KS + m_SB;
 					m_L = 128;
 					break;
-				case smMN110:
+				case AllModes.smMN110:
 					m_KS = 212.0 * m_SampFreq / 1000.0;
 					m_OF = 10.0 * m_SampFreq / 1000.0;
 					m_OFP = 10.5 * m_SampFreq / 1000.0;
@@ -602,7 +621,7 @@ namespace Play.Sound {
 					m_CB = m_KS + m_SB;
 					m_L = 128;
 					break;
-				case smMN140:
+				case AllModes.smMN140:
 					m_KS = 270.0 * m_SampFreq / 1000.0;
 					m_OF = 10.0 * m_SampFreq / 1000.0;
 					m_OFP = 10.5 * m_SampFreq / 1000.0;
@@ -612,7 +631,7 @@ namespace Play.Sound {
 					m_CB = m_KS + m_SB;
 					m_L = 128;
 					break;
-				case smMC110:
+				case AllModes.smMC110:
 					m_KS = 140.0 * m_SampFreq / 1000.0;
 					m_OF = 8.0 * m_SampFreq / 1000.0;
 					m_OFP = 8.95 * m_SampFreq / 1000.0;
@@ -622,7 +641,7 @@ namespace Play.Sound {
 					m_CB = m_KS + m_SB;
 					m_L = 256;
 					break;
-				case smMC140:
+				case AllModes.smMC140:
 					m_KS = 180.0 * m_SampFreq / 1000.0;
 					m_OF = 8.0 * m_SampFreq / 1000.0;
 					m_OFP = 8.75 * m_SampFreq / 1000.0;
@@ -632,7 +651,7 @@ namespace Play.Sound {
 					m_CB = m_KS + m_SB;
 					m_L = 256;
 					break;
-				case smMC180:
+				case AllModes.smMC180:
 					m_KS = 232.0 * m_SampFreq / 1000.0;
 					m_OF = 8.0 * m_SampFreq / 1000.0;
 					m_OFP = 8.75 * m_SampFreq / 1000.0;
@@ -657,55 +676,55 @@ namespace Play.Sound {
 			}
 			m_TW = GetTiming(m_Mode) * m_SampFreq / 1000.0;
 			switch(m_Mode){
-				case smPD120:
-				case smPD160:
-				case smPD180:
-				case smPD240:
-				case smPD290:
-				case smP3:
-				case smP5:
-				case smP7:
+				case AllModes.smPD120:
+				case AllModes.smPD160:
+				case AllModes.smPD180:
+				case AllModes.smPD240:
+				case AllModes.smPD290:
+				case AllModes.smP3:
+				case AllModes.smP5:
+				case AllModes.smP7:
 					m_KSS = (m_KS - m_KS/480.0);      // TW for Y or RGB mode
 					m_KS2S = (m_KS2 - m_KS2/480.0);   // TW for Ry, By
-					m_KSB = (m_KSS / 1280.0);          // TW for black adjutment
+					m_KSB = (int)(m_KSS / 1280.0);          // TW for black adjutment
 					break;
-				case smMP73:
-				case smMN73:
-				case smSCTDX:
+				case AllModes.smMP73:
+				case AllModes.smMN73:
+				case AllModes.smSCTDX:
 					m_KSS = (m_KS - m_KS/1280.0);      // TW for Y or RGB mode
 					m_KS2S = (m_KS2 - m_KS2/1280.0);   // TW for Ry, By
-					m_KSB = m_KSS / 1280.0;
+					m_KSB = (int)(m_KSS / 1280.0 );
 					break;
-				case smSC2_180:
-				case smMP115:
-				case smMP140:
-				case smMP175:
-				case smMR90:
-				case smMR115:
-				case smMR140:
-				case smMR175:
-				case smML180:
-				case smML240:
-				case smML280:
-				case smML320:
-				case smMN110:
-				case smMN140:
-				case smMC110:
-				case smMC140:
-				case smMC180:
+				case AllModes.smSC2_180:
+				case AllModes.smMP115:
+				case AllModes.smMP140:
+				case AllModes.smMP175:
+				case AllModes.smMR90:
+				case AllModes.smMR115:
+				case AllModes.smMR140:
+				case AllModes.smMR175:
+				case AllModes.smML180:
+				case AllModes.smML240:
+				case AllModes.smML280:
+				case AllModes.smML320:
+				case AllModes.smMN110:
+				case AllModes.smMN140:
+				case AllModes.smMC110:
+				case AllModes.smMC140:
+				case AllModes.smMC180:
 					m_KSS = m_KS;                   // TW for Y or RGB mode
 					m_KS2S = m_KS2;                 // TW for Ry, By
-					m_KSB = m_KSS / 1280.0;
+					m_KSB = (int)(m_KSS / 1280.0);
 					break;
-				case smMR73:
+				case AllModes.smMR73:
 					m_KSS = (m_KS - m_KS/640.0);      // TW for Y or RGB mode
 					m_KS2S = (m_KS2 - m_KS2/1024.0);  // TW for Ry, By
-					m_KSB = m_KSS / 1024.0;
+					m_KSB = (int)(m_KSS / 1024.0);
 					break;
 				default:
 					m_KSS = (m_KS - m_KS/240.0);      // TW for Y or RGB mode
 					m_KS2S = (m_KS2 - m_KS2/240.0);   // TW for Ry, By
-					m_KSB = (m_KSS / 640.0);          // TW for black adjutment
+					m_KSB = (int)(m_KSS / 640.0);          // TW for black adjutment
 					break;
 			}
 			switch(m_Mode){
@@ -717,12 +736,12 @@ namespace Play.Sound {
     			case AllModes.smMC110:
 				case AllModes.smMC140:
 				case AllModes.smMC180:
-					m_AFCW = 2.0 * SampFreq / 1000.0;
-					m_AFCB = 1.0 * SampFreq / 1000.0;
+					m_AFCW = (int)(2.0 * SampFreq / 1000.0);
+					m_AFCB = (int)(1.0 * SampFreq / 1000.0);
 					break;
 				default:
-					m_AFCW = 3.0 * SampFreq / 1000.0;
-					m_AFCB = 1.5 * SampFreq / 1000.0;
+					m_AFCW = (int)(3.0 * SampFreq / 1000.0);
+					m_AFCB = (int)(1.5 * SampFreq / 1000.0);
 					break;
 			}
 			if( m_KSB > 0 ) 
@@ -1133,33 +1152,33 @@ namespace Play.Sound {
 			CalcNarrowBPF(H3, bpftap, bpf, mode);
 		}
 
-		public void CalcNarrowBPF(double[] H3, int bpftap, int bpf, int mode)
+		public void CalcNarrowBPF(double[] H3, int bpftap, int bpf, AllModes mode)
 	{
 		int low, high;
 		switch(mode){
-			case smMN73:
+			case AllModes.smMN73:
 				low = 1600; high = 2500;
 				break;
-			case smMN110:
+			case AllModes.smMN110:
 				low = 1600; high = 2500;
         		break;
-			case smMN140:
+			case AllModes.smMN140:
 				low = 1700; high = 2400;
         		break;
-			case smMC110:
+			case AllModes.smMC110:
 				low = 1600; high = 2500;
         		break;
-			case smMC140:
+			case AllModes.smMC140:
 				low = 1650; high = 2500;
         		break;
-			case smMC180:
+			case AllModes.smMC180:
 				low = 1700; high = 2400;
         		break;
 			default:
 				low = 1600; high = 2500;
         		break;
 		}
-		low += g_dblToneOffset;
+		low  += g_dblToneOffset;
 		high += g_dblToneOffset;
 		switch(bpf){
 			case 1:     // Wide
