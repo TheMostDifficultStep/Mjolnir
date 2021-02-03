@@ -855,7 +855,7 @@ namespace Play.Sound {
 	}
 
 	class CSSTVDEM {
-		readonly static int TAPMAX = 512;
+		public readonly static int TAPMAX = 512;
 		readonly static int SSTVDEMBUFMAX = 24;
 
 		readonly CSSTVSET SSTVSET;
