@@ -1100,10 +1100,10 @@ namespace Play.Sound {
 		byte        m_fsks;
 		byte        m_fskc;
 		List<byte>  m_fskdata = new List<byte>(20);
-		char[]      m_fskcall = new char[20];
+		List<char>  m_fskcall = new List<char>(20);
 		int			m_fskNRrec;
 		int			m_fskNR;
-		char[]		m_fskNRS = new char[20];
+		List<char>	m_fskNRS  = new List<char>(20);
 
 		//------ リピータ (repeater)
 		int         m_Repeater;
@@ -2198,8 +2198,10 @@ namespace Play.Sound {
 										m_fsks &= 0x3f;
 										if( (m_fskc == m_fsks) && m_fskdecode ){
 											//m_fskdata[m_fskcnt] = 0;
-											StrCopy(m_fskcall, SkipSpace(LPCSTR(m_fskdata)), 16);
-											clipsp(m_fskcall);
+											foreach( byte b in m_fskdata )
+												m_fskcall.Add( (char)b );
+											//StrCopy(m_fskcall, SkipSpace(LPCSTR(m_fskdata)), 16);
+											//clipsp(m_fskcall);
 											m_fskrec = 1;
 											m_fskmode++;
 
@@ -2226,7 +2228,7 @@ namespace Play.Sound {
 										}
 										else if( m_fskc >= 0x10 ){
 											m_fsks = (byte)(m_fskc ^ m_fsks );
-											m_fskNRS[m_fskcnt] = (char)(m_fskc + 0x20);
+											m_fskNRS.Add( (char)(m_fskc + 0x20) );
 											m_fskcnt++;
 											if( m_fskcnt >= 9 ){
 												m_fskmode = 0;
@@ -2239,8 +2241,8 @@ namespace Play.Sound {
 									case 8:         // Check XOR
 										m_fsks &= 0x3f;
 										if( (m_fskc == m_fsks) && m_fskdecode ){
-											m_fskNRS[m_fskcnt] = (char)0;
-											clipsp(m_fskNRS);
+											//m_fskNRS[m_fskcnt] = (char)0;
+											//clipsp(m_fskNRS);
 											m_fskNRrec = 1;
 										}
 										m_fskmode = 0;
@@ -2257,7 +2259,8 @@ namespace Play.Sound {
 									case 10:
 										m_fsks &= 0x3f;
 										if( m_fskc == m_fsks ){
-											sprintf(m_fskNRS, "%03u", m_fskNR);
+											foreach( char c in m_fskNR.ToString() )
+												m_fskNRS.Add( c );
 											m_fskNRrec = 1;
 										}
 										m_fskmode = 0;
