@@ -978,6 +978,10 @@ namespace Play.Sound {
 		double[]  HBPFN = new double[TAPMAX+1];
 
 		protected class REPSET {    // リピータ用の設定
+			public REPSET( double dbSampFreq ) {
+				m_iirrep = new CIIRTANK( dbSampFreq );
+			}
+
 			public CIIRTANK    m_iirrep; // BUG: create these.
 			public CIIR        m_lpfrep;
 			public CLMS        m_lmsrep;
@@ -1135,6 +1139,12 @@ namespace Play.Sound {
 
 		public CSSTVDEM( SYSSET p_sys, int iSampFreq, double dbToneOffset ) {
 			sys = p_sys ?? throw new ArgumentNullException( "sys must not be null." );
+
+			m_iir11  = new CIIRTANK( iSampFreq );
+			m_iir12  = new CIIRTANK( iSampFreq );
+			m_iir13  = new CIIRTANK( iSampFreq );
+			m_iir19  = new CIIRTANK( iSampFreq );
+			m_iirfsk = new CIIRTANK( iSampFreq );
 
 			SampFreq = iSampFreq;
 			g_dblToneOffset = dbToneOffset;

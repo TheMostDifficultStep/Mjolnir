@@ -276,4 +276,160 @@ namespace Play.Sound {
 			fir.MakeFilter( HP );
 		}
     } // End class
+
+	class CIIRTANK {
+		double	z1, z2;
+
+		public double	a0;
+		public double	b1, b2;
+
+		/// <summary>
+		/// Sample frequency comes from the global value.
+		/// </summary>
+		public CIIRTANK( double p_dbSampFreq )
+		{
+			b1 = b2 = a0 = z1 = z2 = 0;
+			SetFreq(2000.0, p_dbSampFreq, 50.0);
+		}
+
+		public void SetFreq(double f, double smp, double bw)
+		{
+			double lb1, lb2, la0;
+			lb1 = 2 * Math.Exp(-Math.PI * bw/smp) * Math.Cos(2 * Math.PI * f / smp);
+			lb2 = -Math.Exp(-2*Math.PI*bw/smp);
+
+			if( bw != 0 ){
+				//const double _gt[]={18.0, 26.0, 20.0, 20.0};
+				//la0 = sin(2 * PI * f/smp) / (_gt[SampType] * 50 / bw);
+				la0 = Math.Sin(2 * Math.PI * f/smp) / ((smp/6.0) / bw);
+			} else {
+				la0 = Math.Sin(2 * Math.PI * f/smp);
+			}
+			b1 = lb1; b2 = lb2; a0 = la0;
+		}
+
+		public double Do(double d)
+		{
+			d *= a0;
+			d += (z1 * b1);
+			d += (z2 * b2);
+			z2 = z1;
+			if( Math.Abs(d) < 1e-37 ) d = 0.0;
+			z1 = d;
+			return d;
+		}
+	}
+
+	class CIIR {
+		protected static int IIRMAX = 16;
+
+		double [] Z;
+
+		public double	[] A;
+		public double	[] B;
+		public int		m_order;
+		public int		m_bc;
+		public double	m_rp;
+
+		public CIIR() {
+			m_order = 0;
+			A = new double[IIRMAX*3];
+			B = new double[IIRMAX*2];
+			Z = new double[IIRMAX*2];
+		}
+
+		void Clear()
+		{
+			Array.Clear( Z, 0, Z.Length );
+		}
+
+		void MakeIIR(double fc, double fs, int order, int bc, double rp)
+		{
+			m_order = order;
+			m_bc = bc;
+			m_rp = rp;
+			MakeIIR(A, B, fc, fs, order, bc, rp);
+		}
+
+		// bc : 0-ƒoƒ^[ƒ[ƒX, 1-ƒ`ƒFƒrƒVƒt
+		// rp : ’Ê‰ßˆæ‚ÌƒŠƒbƒvƒ‹
+		public static void MakeIIR(double []A, double[]B, double fc, double fs, int order, int bc, double rp)
+		{
+			double	w0, wa, u, zt, x;
+			int		j, n;
+
+			if( bc ){		// ƒ`ƒFƒrƒVƒt
+				u = 1.0/(double)((order) * Math.Asinh(1.0/Math.Sqrt(Math.Pow(10.0,0.1*rp)-1.0)));
+			}
+			wa = Math.Tan(Math.PI*fc/fs);
+			w0 = 1.0;
+			n = (order & 1) + 1;
+			double *pA = A;
+			double *pB = B;
+			double d1, d2;
+			for( j = 1; j <= order/2; j++, pA+=3, pB+=2 ){
+				if( bc ){	// ƒ`ƒFƒrƒVƒt
+					d1 = sinh(u)*cos(n*PI/(2*order));
+					d2 = cosh(u)*sin(n*PI/(2*order));
+					w0 = sqrt(d1 * d1 + d2 * d2);
+					zt = sinh(u)*cos(n*PI/(2*order))/w0;
+				}
+				else {		// ƒoƒ^[ƒ[ƒX
+					w0 = 1.0;
+					zt = cos(n*PI/(2*order));
+				}
+				pA[0] = 1 + wa*w0*2*zt + wa*w0*wa*w0;
+				pA[1] = -2 * (wa*w0*wa*w0 - 1)/pA[0];
+				pA[2] = -(1.0 - wa*w0*2*zt + wa*w0*wa*w0)/pA[0];
+				pB[0] = wa*w0*wa*w0 / pA[0];
+				pB[1] = 2*pB[0];
+				n += 2;
+			}
+			if( bc && !(order & 1) ){
+				x = pow( 1.0/pow(10.0,rp/20.0), 1/double(order/2) );
+				pB = B;
+				for( j = 1; j <= order/2; j++, pB+=2 ){
+					pB[0] *= x;
+					pB[1] *= x;
+				}
+			}
+			if( order & 1 ){
+				if( bc ) w0 = sinh(u);
+				j = (order / 2);
+				pA = A + (j*3);
+				pB = B + (j*2);
+				pA[0] = 1 + wa*w0;
+				pA[1] = -(wa*w0 - 1)/pA[0];
+				pB[0] = wa*w0/pA[0];
+				pB[1] = pB[0];
+			}
+		}
+
+		double Do(double d)
+		{
+			int pA = 0;
+			int pB = 0;
+			int pZ = 0;
+			double o;
+
+			for( int i = 0; i < m_order/2; i++, pA+=3, pB+=2, pZ+=2 ){
+				d += Z[pZ] * A[pA+1] + Z[pZ+1] * A[pA+2];
+				o = d * B[pB] + Z[pZ] * B[pB+1] + Z[pZ+1] * B[pB];
+				Z[pZ+1] = Z[pZ];
+				if( Math.Abs(d) < 1e-37 ) 
+					d = 0.0;
+				Z[pZ] = d;
+				d = o;
+			}
+			if( ( m_order & 1 ) != 0 ){
+				d += Z[pZ] * A[pA+1];
+				o = d * B[pB] + Z[pZ] * B[pB];
+				if( Math.Abs(d) < 1e-37 )
+					d = 0.0;
+				Z[pZ] = d;
+				d = o;
+			}
+			return d;
+		}
+	}
 }
