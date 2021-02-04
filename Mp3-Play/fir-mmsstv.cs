@@ -146,7 +146,7 @@ namespace Play.Sound {
             m_Tap = 0;
         }
 
-        void Create(int tap) {
+        public void Create(int tap) {
 	        if( tap == 0 ) {
 		        m_pZ = null;
             } else { 
