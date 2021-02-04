@@ -987,7 +987,7 @@ namespace Play.Sound {
 
 		double   m_ad;
 		int      m_OverFlow;
-		int     m_bpf;
+		int      m_bpf;
 		int      m_bpftap;
 		int      m_Type;
 		int      m_LevelType;
@@ -1093,7 +1093,7 @@ namespace Play.Sound {
 		int         m_fskrec;
 		int         m_fskmode;
 		int         m_fsktime;
-		int         m_fskcnt;
+		int         m_fskcnt; // This gets used between m_fskdata & m_fskNRS 
 		int         m_fskbcnt;
 		int         m_fsknexti;
 		double      m_fsknextd;
@@ -1139,8 +1139,8 @@ namespace Play.Sound {
 			SampFreq = iSampFreq;
 			g_dblToneOffset = dbToneOffset;
 
-			m_bpf = true;      // wide
-			m_ad = 0;
+			m_bpf = 1;      // wide
+			m_ad  = 0;
 
 			m_StgBuf = null;
 			m_StgB12 = null;
@@ -1529,7 +1529,7 @@ namespace Play.Sound {
 			}
 			double d = (s + m_ad) * 0.5;    // LPF
 			m_ad = s;
-			if( m_bpf > 0 ){
+			if( m_bpf != 0 ){
 				if( m_Sync || (m_SyncMode >= 3) ){
 					// BUG: Double check this.
 					d = m_BPF.Do( m_fNarrow ? HBPFN : HBPF, ref d, out _ );
