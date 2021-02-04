@@ -2094,14 +2094,14 @@ namespace Play.Sound {
 		void DecodeFSK(int m, int s) {
 			int d;
 			switch(m_fskmode){
-				case 0:         // ƒXƒy[ƒXƒLƒƒƒŠƒAŒŸo
+				case 0:         // スペースキャリア検出
 					d = Math.Abs(m - s);
 					if( (s > m) && (d >= 2048) ){
 						m_fsktime = (int)((FSKGARD/2) * SSTVSET.m_SampFreq/1000);
 						m_fskmode++;
 					}
 					break;
-				case 1:         // ƒXƒy[ƒXƒLƒƒƒŠƒAŒŸo(˜A‘±)
+				case 1:          // スペースキャリア検出(連続)
 					d = Math.Abs(m - s);
 					if( (s > m) && (d >= 2048) ){
 						m_fsktime--;
@@ -2114,7 +2114,7 @@ namespace Play.Sound {
 						m_fskmode = 0;
 					}
 					break;
-				case 2:         // ƒXƒ^[ƒgƒrƒbƒg‚ÌŒŸo
+				case 2:         // スタートビットの検出
 					d = Math.Abs(m - s);
 					m_fsktime--;
 					if( m_fsktime == 0 ){
@@ -2125,7 +2125,7 @@ namespace Play.Sound {
 						m_fskmode++;
 					}
 					break;
-				case 3:         // ƒXƒ^[ƒgƒrƒbƒg‚ÌŒŸo(’†ŠÔ“_)
+				case 3:         // スタートビットの検出(中間点)
 					m_fsktime--;
 					if( m_fsktime == 0 ){
 						d = Math.Abs(m - s);
