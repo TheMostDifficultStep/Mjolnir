@@ -980,6 +980,7 @@ namespace Play.Sound {
 		protected class REPSET {    // リピータ用の設定
 			public REPSET( double dbSampFreq ) {
 				m_iirrep = new CIIRTANK( dbSampFreq );
+				m_lpfrep = new CIIR();
 			}
 
 			public CIIRTANK    m_iirrep; // BUG: create these.
@@ -1146,6 +1147,12 @@ namespace Play.Sound {
 			m_iir19  = new CIIRTANK( iSampFreq );
 			m_iirfsk = new CIIRTANK( iSampFreq );
 
+			m_lpf11  = new CIIR();
+			m_lpf12  = new CIIR();
+			m_lpf13  = new CIIR();
+			m_lpf19  = new CIIR();
+			m_lpffsk = new CIIR();
+
 			SampFreq = iSampFreq;
 			g_dblToneOffset = dbToneOffset;
 
@@ -1178,15 +1185,16 @@ namespace Play.Sound {
 		//	memset(Z, 0, sizeof(Z));
 			CalcBPF();
 
-			m_iir11.SetFreq(1080 + g_dblToneOffset, SampFreq, 80.0);
-			m_iir12.SetFreq(1200 + g_dblToneOffset, SampFreq, 100.0);
-			m_iir13.SetFreq(1320 + g_dblToneOffset, SampFreq, 80.0);
-			m_iir19.SetFreq(1900 + g_dblToneOffset, SampFreq, 100.0);
+			m_iir11 .SetFreq(1080 + g_dblToneOffset, SampFreq, 80.0);
+			m_iir12 .SetFreq(1200 + g_dblToneOffset, SampFreq, 100.0);
+			m_iir13 .SetFreq(1320 + g_dblToneOffset, SampFreq, 80.0);
+			m_iir19 .SetFreq(1900 + g_dblToneOffset, SampFreq, 100.0);
 			m_iirfsk.SetFreq(FSKSPACE + g_dblToneOffset, SampFreq, 100.0);
-			m_lpf11.MakeIIR(50, SampFreq, 2, 0, 0);
-			m_lpf12.MakeIIR(50, SampFreq, 2, 0, 0);
-			m_lpf13.MakeIIR(50, SampFreq, 2, 0, 0);
-			m_lpf19.MakeIIR(50, SampFreq, 2, 0, 0);
+
+			m_lpf11 .MakeIIR(50, SampFreq, 2, 0, 0);
+			m_lpf12 .MakeIIR(50, SampFreq, 2, 0, 0);
+			m_lpf13 .MakeIIR(50, SampFreq, 2, 0, 0);
+			m_lpf19 .MakeIIR(50, SampFreq, 2, 0, 0);
 			m_lpffsk.MakeIIR(50, SampFreq, 2, 0, 0);
 
 			pRep = null;

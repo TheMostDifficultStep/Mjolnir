@@ -343,7 +343,7 @@ namespace Play.Sound {
 			Array.Clear( Z, 0, Z.Length );
 		}
 
-		void MakeIIR(double fc, double fs, int order, int bc, double rp)
+		public void MakeIIR(double fc, double fs, int order, int bc, double rp)
 		{
 			m_order = order;
 			m_bc = bc;
@@ -351,57 +351,58 @@ namespace Play.Sound {
 			MakeIIR(A, B, fc, fs, order, bc, rp);
 		}
 
-		// bc : 0-ƒoƒ^[ƒ[ƒX, 1-ƒ`ƒFƒrƒVƒt
-		// rp : ’Ê‰ßˆæ‚ÌƒŠƒbƒvƒ‹
+		// bc : 0-バターワース, 1-チェビシフ
+		// rp : 通過域のリップル
 		public static void MakeIIR(double []A, double[]B, double fc, double fs, int order, int bc, double rp)
 		{
-			double	w0, wa, u, zt, x;
+			double	w0, wa, u=0, zt, x;
 			int		j, n;
 
-			if( bc ){		// ƒ`ƒFƒrƒVƒt
+			if( bc != 0 ){		// チェビシフ
 				u = 1.0/(double)((order) * Math.Asinh(1.0/Math.Sqrt(Math.Pow(10.0,0.1*rp)-1.0)));
 			}
 			wa = Math.Tan(Math.PI*fc/fs);
 			w0 = 1.0;
 			n = (order & 1) + 1;
-			double *pA = A;
-			double *pB = B;
+			int pA = 0;
+			int pB = 0;
 			double d1, d2;
 			for( j = 1; j <= order/2; j++, pA+=3, pB+=2 ){
-				if( bc ){	// ƒ`ƒFƒrƒVƒt
-					d1 = sinh(u)*cos(n*PI/(2*order));
-					d2 = cosh(u)*sin(n*PI/(2*order));
-					w0 = sqrt(d1 * d1 + d2 * d2);
-					zt = sinh(u)*cos(n*PI/(2*order))/w0;
+				if( bc != 0 ){	// チェビシフ
+					d1 = Math.Sinh(u)*Math.Cos(n*Math.PI/(2*order));
+					d2 = Math.Cosh(u)*Math.Sin(n*Math.PI/(2*order));
+					w0 = Math.Sqrt(d1 * d1 + d2 * d2);
+					zt = Math.Sinh(u)*Math.Cos(n*Math.PI/(2*order))/w0;
 				}
-				else {		// ƒoƒ^[ƒ[ƒX
+				else {		// バターワース
 					w0 = 1.0;
-					zt = cos(n*PI/(2*order));
+					zt = Math.Cos(n*Math.PI/(2*order));
 				}
-				pA[0] = 1 + wa*w0*2*zt + wa*w0*wa*w0;
-				pA[1] = -2 * (wa*w0*wa*w0 - 1)/pA[0];
-				pA[2] = -(1.0 - wa*w0*2*zt + wa*w0*wa*w0)/pA[0];
-				pB[0] = wa*w0*wa*w0 / pA[0];
-				pB[1] = 2*pB[0];
+				A[pA] = 1 + wa*w0*2*zt + wa*w0*wa*w0;
+				A[pA+1] = -2 * (wa*w0*wa*w0 - 1)/A[pA];
+				A[pA+2] = -(1.0 - wa*w0*2*zt + wa*w0*wa*w0)/A[pA];
+				B[pB] = wa*w0*wa*w0 / A[pA];
+				B[pB+1] = 2*B[pB];
 				n += 2;
 			}
-			if( bc && !(order & 1) ){
-				x = pow( 1.0/pow(10.0,rp/20.0), 1/double(order/2) );
-				pB = B;
+			if( bc != 0 && (order & 1) == 0 ){
+				x = Math.Pow( 1.0/Math.Pow(10.0,rp/20.0), 1/(double)(order/2) );
+				pB = 0;
 				for( j = 1; j <= order/2; j++, pB+=2 ){
-					pB[0] *= x;
-					pB[1] *= x;
+					B[pB] *= x;
+					B[pB+1] *= x;
 				}
 			}
-			if( order & 1 ){
-				if( bc ) w0 = sinh(u);
+			if( ( order & 1 ) != 0 ){
+				if( bc != 0 ) 
+					w0 = Math.Sinh(u);
 				j = (order / 2);
-				pA = A + (j*3);
-				pB = B + (j*2);
-				pA[0] = 1 + wa*w0;
-				pA[1] = -(wa*w0 - 1)/pA[0];
-				pB[0] = wa*w0/pA[0];
-				pB[1] = pB[0];
+				pA = j*3;
+				pB = j*2;
+				A[pA] = 1 + wa*w0;
+				A[pA+1] = -(wa*w0 - 1)/A[pA];
+				B[pB] = wa*w0/A[pA];
+				B[pB+1] = B[pB];
 			}
 		}
 
