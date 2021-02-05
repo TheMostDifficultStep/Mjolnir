@@ -211,6 +211,7 @@ namespace Play.Sound {
 		public readonly double m_dbTxSampOffs;
 
 		public double SampFreq => m_SampFreq;
+		private readonly bool m_bCQ100;
 
 		public static bool IsNarrowMode(AllModes mode)	{
 			switch(mode){
@@ -225,11 +226,15 @@ namespace Play.Sound {
         			return false;
 			}
 		}
-		public CSSTVSET( double dbToneOffset, double dbSampFreq, double dbTxSampOffs )
+		public CSSTVSET( double dbToneOffset, double dbSampFreq, double dbTxSampOffs, bool bCQ100 )
 		{
+			// These used to be globals, I'll see how much they change and if I need
+			// to refactor initialization and such. Since SetSampFreq() get's called
+			// randomly, will have to re-visit these.
 			m_SampFreq      = dbSampFreq;
 			m_dbTxSampOffs  = dbTxSampOffs;
 			g_dblToneOffset = dbToneOffset;
+			m_bCQ100        = bCQ100;
 
 			m_fNarrow = m_fTxNarrow = false;
 			m_TxMode  = AllModes.smSCT1;
@@ -847,7 +852,7 @@ namespace Play.Sound {
 			if( m_KSB > 0 ) 
 				m_KSB++;
 
-			if( sys.m_bCQ100 != 0 ){
+			if( m_bCQ100 ) { // Used to be a global.
     			double d = m_OFP * 1000.0 / SampFreq;
 				m_OFP = (d + (1100.0/g_dblToneOffset)) * SampFreq / 1000.0;
 			}
@@ -951,7 +956,84 @@ namespace Play.Sound {
 			m_TL = iTL;
 			m_TTW = GetTiming(m_TxMode) * m_TxSampFreq / 1000.0;
 		}
+	}
 
+	/// <summary>
+	/// Just a dummy until I get more stuff running.
+	/// </summary>
+	class CScope {
+		public void WriteData( double d ) { }
+	}
+
+	/// <summary>
+	/// Another dummy for now.
+	/// </summary>
+	class CTICK {
+		public void Write( double d ) { }
+	}
+
+
+	class CSmooz{
+		double [] bp;
+		int       Wp;
+
+		public int Max { get; protected set; }
+		public int Cnt { get; protected set; }
+
+		void IncWp(){
+			Wp++;
+			if( Wp >= Max )
+				Wp = 0;
+		}
+
+		double Avg(){
+			double	d = 0.0;
+			int		i;
+			for( i = 0; i < Cnt; i++ ){
+				d += bp[i];
+			}
+			if( Cnt != 0 ){
+				return d/(double)(Cnt);
+			} else {
+				return 0;
+			}
+		}
+
+		public CSmooz(int max = 2){
+			Max = max;
+			bp  = new double[max];
+			Cnt = 0;
+			Wp  = 0;
+		}
+
+		public void SetCount(int n){
+			if( n == 0 ) 
+				n = 1;
+
+			if( Max < n ) {
+				bp  = new double[n];
+				Max = n;
+			}
+			Cnt = Wp = 0;
+		}
+
+		public double SetData(double d){
+			for( int i = 0; i < Max; i++ ){
+				bp[i] = d;
+			}
+			Wp  = 0;
+			Cnt = Max;
+			return d;
+		}
+
+		public double Avg(double d){
+			bp[Wp] = d;
+			IncWp();
+			if( Cnt < Max ){
+				Cnt++;
+			}
+			return Avg();
+		}
 	}
 
 	class CSSTVDEM {
@@ -1214,8 +1296,8 @@ namespace Play.Sound {
 			m_afc = 1;
 
 			m_Tick = 0;
-			pTick = null;
-			m_Avg.SetCount(2.5*SampFreq/1000.0);
+			pTick  = null;
+			m_Avg.SetCount( (int)( 2.5*SampFreq/1000.0 ));
 			m_AFCAVG.SetCount(15);
 			m_AFCFQ = 0;
 			m_AFCInt = (int)(100 * SampFreq / 1000.0 );
@@ -1438,8 +1520,8 @@ namespace Play.Sound {
 			if( m_fNarrow != fNarrow ){
 				m_fNarrow = fNarrow;
 				m_hill.SetWidth(fNarrow);
-    			m_fqc.SetWidth(fNarrow);
-				m_pll.SetWidth(fNarrow);
+    			m_fqc .SetWidth(fNarrow);
+				m_pll .SetWidth(fNarrow);
 			}
 		}
 
@@ -1569,17 +1651,21 @@ namespace Play.Sound {
 			double dsp;
 
 			d12 = m_iir12.Do(d);
-			if( d12 < 0.0 ) d12 = -d12;
+			if( d12 < 0.0 ) 
+				d12 = -d12;
 			d12 = m_lpf12.Do(d12);
 
 			d19 = m_iir19.Do(d);
-			if( d19 < 0.0 ) d19 = -d19;
+			if( d19 < 0.0 ) 
+				d19 = -d19;
 			d19 = m_lpf19.Do(d19);
 
 			dsp = m_iirfsk.Do(d);
-			if( dsp < 0.0 ) dsp = -dsp;
+			if( dsp < 0.0 ) 
+				dsp = -dsp;
 			dsp = m_lpffsk.Do(dsp);
-			DecodeFSK( (int)d19, (int)dsp);
+
+			DecodeFSK( (int)d19, (int)dsp );
 
 			if( m_Repeater != 0 && !m_Sync && (pRep != null) ){
 				double dsp2;
@@ -1607,7 +1693,7 @@ namespace Play.Sound {
 					m_SyncLvl.Do(d12);
 			}
 			if( m_Tick != 0 && (pTick != null) ){
-				pTick->Write(d12);
+				pTick.Write(d12);
 				return;
 			}
 
@@ -1983,7 +2069,6 @@ namespace Play.Sound {
 				}
 			}
 			if( m_Sync ){
-				// TODO: This is PRIME code for inheritance.
 				switch(m_Type){
 					case 0:		// PLL
 						if( m_afc && (m_lvl.m_CurMax > 16) && (SSTVSET.m_Mode != AllModes.smAVT) )
@@ -2109,7 +2194,7 @@ namespace Play.Sound {
 			}
 		}
 
-		void DecodeFSK(int m, int s) {
+		void DecodeFSK( int m, int s ) {
 			int d;
 			switch(m_fskmode){
 				case 0:         // スペースキャリア検出
@@ -2344,7 +2429,7 @@ namespace Play.Sound {
 		void InitRepeater(){
 			if( sys.m_Repeater ) {
 				if( pRep == null )
-					pRep = new REPSET();
+					pRep = new REPSET( SampFreq );
 				pRep.m_iirrep.SetFreq(m_RepTone + g_dblToneOffset, SampFreq, 100.0);
 				pRep.m_lpfrep.MakeIIR(50, SampFreq, 2, 0, 0);
 			} else {

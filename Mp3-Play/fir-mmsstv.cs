@@ -406,7 +406,7 @@ namespace Play.Sound {
 			}
 		}
 
-		double Do(double d)
+		public double Do(double d)
 		{
 			int pA = 0;
 			int pB = 0;

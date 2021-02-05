@@ -453,6 +453,9 @@ namespace Play.SSTV {
             _oWorkPlace.Stop();
         }
 
+        /// <summary>
+        /// Little bit of test code for the fft.
+        /// </summary>
         public void PlaySegment() {
             try {
                 FileDecoder.Read();
