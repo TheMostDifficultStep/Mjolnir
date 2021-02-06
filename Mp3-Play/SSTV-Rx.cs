@@ -1036,6 +1036,167 @@ namespace Play.Sound {
 		}
 	}
 
+	/// <summary>
+	/// This one looks reusable since I pass the CSSTVSET as a param
+	/// to the resetting methods.
+	/// </summary>
+	class CSYNCINT {
+		static readonly int MSYNCLINE = 8;
+
+		UInt32[] m_MSyncList = new UInt32[MSYNCLINE];
+
+		public UInt32 m_MSyncCnt    { get; protected set; }
+		public UInt32 m_MSyncACnt   { get; protected set; }
+		public int	  m_MSyncTime   { get; protected set; }
+		public UInt32 m_MSyncIntPos { get; protected set; }
+		public int    m_MSyncIntMax { get; protected set; }
+		public bool   m_fNarrow     { get; protected set; }
+		public int    m_SyncPhase   { get; set; }
+
+		public CSYNCINT(){
+			m_fNarrow = false;
+			Reset();
+		}
+		public void Reset( bool fNarrow = false ) {
+			Array.Clear( m_MSyncList, 0, m_MSyncList.Length );
+
+			m_fNarrow     = fNarrow;
+
+			m_MSyncACnt   = m_MSyncCnt = 0;
+			m_MSyncIntMax = 0;
+			m_MSyncIntPos = 0;
+			m_SyncPhase   = 0;
+		}
+
+		bool SyncCheckSub( CSSTVSET SSTVSET, AllModes am)
+		{
+			int i = MSYNCLINE-1;
+			int e;
+
+			switch(am){
+				case AllModes.smSC2_60:
+				case AllModes.smSC2_120:
+					return false;
+				case AllModes.smR24:
+				case AllModes.smR36:
+				case AllModes.smMRT2:
+				case AllModes.smPD50:
+				case AllModes.smPD240:
+					if( m_fNarrow ) 
+						return false;
+					e = MSYNCLINE - 4;
+					break;
+				case AllModes.smRM8:
+				case AllModes.smRM12:
+					if( m_fNarrow ) 
+						return false;
+					e = 0;
+					break;
+				case AllModes.smMN73:
+				case AllModes.smMN110:
+				case AllModes.smMN140:
+				case AllModes.smMC110:
+				case AllModes.smMC140:
+				case AllModes.smMC180:
+					if( !m_fNarrow ) 
+						return false;
+					e = MSYNCLINE - 5;
+        			break;
+				default:
+					if( m_fNarrow ) 
+						return false;
+					e = MSYNCLINE - 3;
+					break;
+			}
+			UInt32 deff = (UInt32)(3 * SSTVSET.m_SampFreq / 1000.0); // Was global SampFreq
+			UInt32 cml	= SSTVSET.m_MS[(int)am];
+			UInt32 cmh	= cml + deff;
+			cml -= deff;
+			UInt32 w;
+			for( i--; i >= e; i-- ){
+				w = m_MSyncList[i];
+				int f = 0;
+				if( w > SSTVSET.m_MSL ){
+					if( m_fNarrow ){
+						for( UInt32 k = 1; k <= 2; k++ ){
+							UInt32 ww = w / k;
+							if( (ww > cml) && (ww < cmh) ) f = 1;
+						}
+					}
+					else {
+						for( UInt32 k = 1; k <= 3; k++ ){
+							UInt32 ww = w / k;
+							if( (ww > cml) && (ww < cmh) ) f = 1;
+						}
+					}
+				}
+				if( f == 0 )
+					return false;
+			}
+			return true;
+		}
+
+		int SyncCheck( CSSTVSET oTVSet )
+		{
+			UInt32 deff = (UInt32)(3 * oTVSet.m_SampFreq / 1000.0);
+			UInt32 w = m_MSyncList[MSYNCLINE-1];
+
+			for( UInt32 k = 1; k <= 3; k++ ){
+				UInt32 ww = w / k;
+				if( (ww > oTVSet.m_MSL) && (ww < oTVSet.m_MSH) ){
+					for( int i = 0; i < (int)AllModes.smEND; i++ ){
+						if( oTVSet.m_MS[i] != 0 && (ww > (oTVSet.m_MS[i]-deff)) && (ww < (oTVSet.m_MS[i]+deff)) ){
+							if( SyncCheckSub(oTVSet, (AllModes)i) ){
+								return i + 1;
+							}
+						}
+					}
+				} else {
+					break;
+				}
+			}
+			return 0;
+		}
+
+		public void SyncInc()
+		{
+			m_MSyncCnt++;
+		}
+
+		public void SyncTrig(int d)
+		{
+			m_MSyncIntMax = d;
+			m_MSyncIntPos = m_MSyncCnt;
+		}
+
+		public void SyncMax(int d)
+		{
+			if( m_MSyncIntMax < d ){
+				m_MSyncIntMax = d;
+				m_MSyncIntPos = m_MSyncCnt;
+			}
+		}
+
+		public int SyncStart( CSSTVSET oTVSettings )
+		{
+			int ss = 0;
+			if( m_MSyncIntMax != 0 ){
+				if( (m_MSyncIntPos - m_MSyncACnt) > oTVSettings.m_MSLL ){
+					m_MSyncACnt = m_MSyncIntPos - m_MSyncACnt;
+					//memcpy(m_MSyncList, &m_MSyncList[1], sizeof(int) * (MSYNCLINE - 1));
+					Array.Copy( m_MSyncList, 1, m_MSyncList, 0, MSYNCLINE - 1 );
+					m_MSyncList[MSYNCLINE - 1] = m_MSyncACnt;
+					if( m_MSyncACnt > oTVSettings.m_MSL ){
+						ss = SyncCheck( oTVSettings );
+					}
+					m_MSyncACnt = m_MSyncIntPos;
+				}
+				m_MSyncIntMax = 0;
+			}
+			return ss;
+		}
+	}
+
 	class CSSTVDEM {
 		protected readonly SYSSET sys;
 
@@ -1295,21 +1456,21 @@ namespace Play.Sound {
 			m_lvl.m_agcfast = 1;
 			m_afc = 1;
 
-			m_Tick = 0;
-			pTick  = null;
-			m_Avg.SetCount( (int)( 2.5*SampFreq/1000.0 ));
+			m_Tick   = 0;
+			pTick    = null;
+			m_Avg   .SetCount( (int)( 2.5*SampFreq/1000.0 ));
 			m_AFCAVG.SetCount(15);
-			m_AFCFQ = 0;
+			m_AFCFQ  = 0;
 			m_AFCInt = (int)(100 * SampFreq / 1000.0 );
 			m_AFCDis = 0;
 
 			m_sint1.Reset();
 			m_sint2.Reset();
-			m_sint3.m_fNarrow = true;
-			m_sint3.Reset();
-			m_MSync = true;                                    // Sync remote start ON
+			m_sint3.Reset( fNarrow:true);
+
+			m_MSync       = true;                              // Sync remote start ON
 			m_SyncRestart = true;
-			m_SyncAVT = false;
+			m_SyncAVT     = false;
 
 			m_SenseLvl = 1;
 			SetSenseLvl();
@@ -1706,18 +1867,18 @@ namespace Play.Sound {
 				d11 = m_lpf11.Do(d11);
 
 				switch(m_SyncMode){
-					case 0:                 // 自動開始
+					case 0:                 // 自動開始 : Start automatically
 						if( !m_Sync && m_MSync ){
-							m_VisData = m_sint1.SyncStart();
+							m_VisData = m_sint1.SyncStart( SSTVSET );
 							if( m_VisData > 0 ){
 								SSTVSET.SetMode(m_VisData-1);
 								Start();
 							}
 							else if( (d12 > d19) && (d12 > m_SLvl2) && ((d12-d19) >= m_SLvl2) ){
-								m_sint2.SyncMax(d12);
+								m_sint2.SyncMax( (int)d12);
 							}
 							else {
-								m_VisData = m_sint2.SyncStart();
+								m_VisData = m_sint2.SyncStart( SSTVSET );
 								if( m_VisData > 0 ){
 									m_VisData--;
 									switch(m_VisData){
@@ -1735,17 +1896,16 @@ namespace Play.Sound {
 							}
 		//#if NARROW_SYNC == 1900
 							if( (d19 > d12) && (d19 > dsp) && (d19 > m_SLvl3) && ((d19-d12) >= m_SLvl3) && ((d19-dsp) >= m_SLvl) ){
-								if( m_sint3.m_SyncPhase ){
-									m_sint3.SyncMax(d19);
-								}
-								else {
-									m_sint3.SyncTrig(d19);
+								if( m_sint3.m_SyncPhase != 0 ){
+									m_sint3.SyncMax ( (int)d19); // TODO: check the type of d19
+								} else {
+									m_sint3.SyncTrig( (int)d19);
 									m_sint3.m_SyncPhase++;
 								}
 							}
-							else if( m_sint3.m_SyncPhase ){
+							else if( m_sint3.m_SyncPhase != 0 ){
 								m_sint3.m_SyncPhase = 0;
-								m_VisData = m_sint3.SyncStart();
+								m_VisData = m_sint3.SyncStart(SSTVSET);
 								if( m_VisData > 0 ){
 									m_VisData--;
 									SSTVSET.SetMode(m_VisData);
@@ -1757,18 +1917,18 @@ namespace Play.Sound {
 						if( (d12 > d19) && (d12 > m_SLvl) && ((d12-d19) >= m_SLvl) ){
 							m_SyncMode++;
 							m_SyncTime = (int)(15 * sys.m_SampFreq/1000);
-							if( !m_Sync && m_MSync ) m_sint1.SyncTrig(d12);
+							if( !m_Sync && m_MSync ) m_sint1.SyncTrig( (int)d12);
 						}
 						break;
 					case 1:                 // 1200Hz(30ms)‚ÌŒp‘±ƒ`ƒFƒbƒN
 						if( !m_Sync && m_MSync ){
 							if( (d12 > d19) && (d12 > m_SLvl2) && ((d12-d19) >= m_SLvl2) ){
-								m_sint2.SyncMax(d12);
+								m_sint2.SyncMax( (int)d12);
 							}
 						}
 						if( (d12 > d19) && (d12 > m_SLvl) && ((d12-d19) >= m_SLvl) ){
 							if( !m_Sync && m_MSync ){
-								m_sint1.SyncMax(d12);
+								m_sint1.SyncMax( (int)d12);
 							}
 							m_SyncTime--;
 							if( m_SyncTime == 0 ){
