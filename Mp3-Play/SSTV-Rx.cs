@@ -1136,6 +1136,10 @@ namespace Play.Sound {
 			return true;
 		}
 
+		/// <returns>Returns 1 plus the AllModes value or 0.</returns>
+		/// <remarks>This is seriously lame use of a return code. Either hack the enumeration
+		/// so that zero is not one of the valid modes, or make a return value and pass 
+		/// an out variable to return the mode.</remarks>
 		int SyncCheck( CSSTVSET oTVSet )
 		{
 			UInt32 deff = (UInt32)(3 * oTVSet.m_SampFreq / 1000.0);
@@ -1147,7 +1151,7 @@ namespace Play.Sound {
 					for( int i = 0; i < (int)AllModes.smEND; i++ ){
 						if( oTVSet.m_MS[i] != 0 && (ww > (oTVSet.m_MS[i]-deff)) && (ww < (oTVSet.m_MS[i]+deff)) ){
 							if( SyncCheckSub(oTVSet, (AllModes)i) ){
-								return i + 1;
+								return i + 1; // Honestly, this is lame.
 							}
 						}
 					}
@@ -1177,6 +1181,9 @@ namespace Play.Sound {
 			}
 		}
 
+		/// <remarks>Fix this to return a bool and have an out param for AllMode.</remarks>
+		/// <param name="oTVSettings"></param>
+		/// <returns></returns>
 		public int SyncStart( CSSTVSET oTVSettings )
 		{
 			int ss = 0;
@@ -1200,16 +1207,16 @@ namespace Play.Sound {
 	class CSSTVDEM {
 		protected readonly SYSSET sys;
 
-		readonly static int NARROW_SYNC		= 1900;
-		readonly static int NARROW_LOW		= 2044;
-		readonly static int NARROW_HIGH		= 2300;
-		readonly static int NARROW_CENTER	= ((NARROW_HIGH+NARROW_LOW)/2);
-		readonly static int NARROW_BW		= (NARROW_HIGH - NARROW_LOW);
-		readonly static int NARROW_BWH		= (NARROW_BW/2);
-		readonly static int NARROW_BPFLOW	= 1600;
-		readonly static int NARROW_BPFHIGH	= 2500;
-		readonly static int NARROW_AFCLOW	= 1800;
-		readonly static int NARROW_AFCHIGH	= 1950;
+		public readonly static int NARROW_SYNC		= 1900;
+		public readonly static int NARROW_LOW		= 2044;
+		public readonly static int NARROW_HIGH		= 2300;
+		public readonly static int NARROW_CENTER	= ((NARROW_HIGH+NARROW_LOW)/2);
+		public readonly static int NARROW_BW		= (NARROW_HIGH - NARROW_LOW);
+		public readonly static int NARROW_BWH		= (NARROW_BW/2);
+		public readonly static int NARROW_BPFLOW	= 1600;
+		public readonly static int NARROW_BPFHIGH	= 2500;
+		public readonly static int NARROW_AFCLOW	= 1800;
+		public readonly static int NARROW_AFCHIGH	= 1950;
 
 		public readonly static int TAPMAX = 512; // BUG: Move to Fir or Fir2 later.
 		readonly static int SSTVDEMBUFMAX = 24;
@@ -1232,26 +1239,26 @@ namespace Play.Sound {
 			public CLMS        m_lmsrep;
 		}
 
-		CFIR2	m_BPF;
+		readonly CFIR2 m_BPF;
 
 		double   m_ad;
 		int      m_OverFlow;
 		int      m_bpf;
 		int      m_bpftap;
-		int      m_Type;
-		int      m_LevelType;
+		readonly int      m_Type;
+		readonly int      m_LevelType;
 
-		CIIRTANK m_iir11;
-		CIIRTANK m_iir12;
-		CIIRTANK m_iir13;
-		CIIRTANK m_iir19;
-		CIIRTANK m_iirfsk;
-		CIIR     m_lpf11;
-		CIIR     m_lpf12;
-		CIIR     m_lpf13;
-		CIIR     m_lpf19;
-		CIIR     m_lpffsk;
-		CPLL	 m_pll;
+		readonly CIIRTANK m_iir11;
+		readonly CIIRTANK m_iir12;
+		readonly CIIRTANK m_iir13;
+		readonly CIIRTANK m_iir19;
+		readonly CIIRTANK m_iirfsk;
+		readonly CIIR     m_lpf11;
+		readonly CIIR     m_lpf12;
+		readonly CIIR     m_lpf13;
+		readonly CIIR     m_lpf19;
+		readonly CIIR     m_lpffsk;
+		readonly CPLL	  m_pll;
 		CFQC     m_fqc;
 		CLVL     m_lvl;
 		CSLVL    m_SyncLvl;
@@ -1261,14 +1268,14 @@ namespace Play.Sound {
 
 		int         m_Skip;
 		bool        m_Sync;
-		bool        m_SyncRestart;
+		readonly bool m_SyncRestart;
 		int         m_SyncMode;
 		int         m_SyncTime;
 		int         m_SyncATime;
 		int         m_VisData;
 		int         m_VisCnt;
-		int         m_VisTrig;
-		int         m_SyncErr;
+		readonly int m_VisTrig;
+		readonly int m_SyncErr;
 		AllModes    m_NextMode;
 		bool        m_SyncAVT;
 
@@ -1416,17 +1423,13 @@ namespace Play.Sound {
 			Array.Clear( m_Buf, 0, m_Buf.Length );
 			Array.Clear( m_B12, 0, m_Buf.Length );
 
-			m_pll.SetSampleFreq(SampFreq);
-			m_pll.SetVcoGain(1.0);
-			m_pll.SetFreeFreq(1500, 2300);
-			m_pll.m_loopOrder = 1;
-			m_pll.m_loopFC = 1500;
-			m_pll.m_outOrder = 3;
-			m_pll.m_outFC = 900;
-			m_pll.MakeLoopLPF();
-			m_pll.MakeOutLPF();
+			m_pll = new CPLL( SampFreq, dbToneOffset );
+			m_pll.SetVcoGain ( 1.0 );
+			m_pll.SetFreeFreq( 1500, 2300 );
+			m_pll.MakeLoopLPF(    iLoopOrder:1, iLoopFreq:1500 );
+			m_pll.MakeOutLPF (    iLoopOrder:3, iLoopFreq: 900 );
 
-			Array.Clear( HBPF,  0, HBPF.Length );
+			Array.Clear( HBPF,  0, HBPF .Length );
 			Array.Clear( HBPFS, 0, HBPFS.Length );
 			Array.Clear( HBPFN, 0, HBPFN.Length );
 		//	memset(Z, 0, sizeof(Z));
@@ -1598,11 +1601,9 @@ namespace Play.Sound {
 		}
 
 		void FreeRxBuff() {
-			if( m_StgBuf != null ){
-				m_StgBuf = null;
-				m_StgB12 = null;
-				m_wStgLine = 0;
-			}
+			m_StgBuf   = null;
+			m_StgB12   = null;
+			m_wStgLine = 0;
 		}
 
 		public void OpenCloseRxBuff() {
@@ -1695,7 +1696,7 @@ namespace Play.Sound {
 
 			InitAFC();
 			m_fqc.Clear();
-			m_SyncMode = -1;
+			m_SyncMode = -1; // Here and then...
 			m_Sync = false;
 			m_Skip = 0;
 			m_wPage = m_rPage = 0;
@@ -1716,7 +1717,7 @@ namespace Play.Sound {
 			}
 
 			m_Sync     = true;
-			m_SyncMode = 0;
+			m_SyncMode = 0; // Here? This kills me.
 			SetWidth(m_fNarrow);
 			if( m_fNarrow ) 
 				CalcNarrowBPF(HBPFN, m_bpftap, m_bpf, SSTVSET.m_Mode);
@@ -1867,7 +1868,8 @@ namespace Play.Sound {
 				m_sint2.SyncInc();
 				m_sint3.SyncInc();
 				d11 = m_iir11.Do(d);
-				if( d11 < 0.0 ) d11 = -d11;
+				if( d11 < 0.0 )
+					d11 = -d11;
 				d11 = m_lpf11.Do(d11);
 
 				switch(m_SyncMode){
@@ -1875,22 +1877,20 @@ namespace Play.Sound {
 						if( !m_Sync && m_MSync ){
 							m_VisData = m_sint1.SyncStart( SSTVSET );
 							if( m_VisData > 0 ){
-								SSTVSET.SetMode(m_VisData-1);
+								SSTVSET.SetMode( (AllModes)(m_VisData-1));
 								Start();
-							}
-							else if( (d12 > d19) && (d12 > m_SLvl2) && ((d12-d19) >= m_SLvl2) ){
+							} else if( (d12 > d19) && (d12 > m_SLvl2) && ((d12-d19) >= m_SLvl2) ){
 								m_sint2.SyncMax( (int)d12);
-							}
-							else {
+							} else {
 								m_VisData = m_sint2.SyncStart( SSTVSET );
 								if( m_VisData > 0 ){
 									m_VisData--;
-									switch(m_VisData){
+									switch( (AllModes)m_VisData){
 										case AllModes.smSCT1:
 										case AllModes.smMRT1:
 										case AllModes.smMRT2:
 										case AllModes.smSC2_180:
-											SSTVSET.SetMode(m_VisData);
+											SSTVSET.SetMode( (AllModes)m_VisData);
 											Start();
 											break;
 										default:
@@ -1911,8 +1911,8 @@ namespace Play.Sound {
 								m_sint3.m_SyncPhase = 0;
 								m_VisData = m_sint3.SyncStart(SSTVSET);
 								if( m_VisData > 0 ){
-									m_VisData--;
-									SSTVSET.SetMode(m_VisData);
+									m_VisData--; // Sigh
+									SSTVSET.SetMode( (AllModes)m_VisData);
 									Start();
 								}
 							}
