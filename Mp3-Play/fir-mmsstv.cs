@@ -665,6 +665,16 @@ namespace Play.Sound {
 			m_agca = 0.0;
 		}
 
+		void SetSampleFreq(double f)
+		{
+			m_SampleFreq = f;
+			vco.SetSampleFreq(f);
+			vco.SetFreeFreq(m_FreeFreq + m_ToneOffset); // Wuz global tone.
+			SetVcoGain(1.0);
+			MakeLoopLPF( 1, 1500 );
+			MakeOutLPF ( 3,  900 );
+		}
+
 		public void SetWidth( bool fNarrow)
 		{
 			if( fNarrow ){
@@ -710,31 +720,21 @@ namespace Play.Sound {
 			vco.SetGain(-m_Shift * m_vcogain);
 		}
 
-		void SetSampleFreq(double f)
-		{
-			m_SampleFreq = f;
-			vco.SetSampleFreq(f);
-			vco.SetFreeFreq(m_FreeFreq + m_ToneOffset); // Wuz global tone.
-			SetVcoGain(1.0);
-			MakeLoopLPF( 1, 1500 );
-			MakeOutLPF ( 3,  900 );
-		}
-
 		public double Do(double d)
 		{
 			if( m_Max < d ) m_Max = d;
 			if( m_Min > d ) m_Min = d;
 			if( (d >= 0) && (m_d < 0) ){
-				m_agc = m_Max - m_Min;
-				m_d = (5.0/m_agc);
-				m_agc = (m_agca + m_d) * 0.5;
+				m_agc  = m_Max - m_Min;
+				m_d    = (5.0/m_agc);
+				m_agc  = (m_agca + m_d) * 0.5;
 				m_agca = m_d;
-				m_Max = 1.0;
-				m_Min = -1.0;
+				m_Max  = 1.0;
+				m_Min  = -1.0;
 			}
 			m_d = d;
 			d *= m_agc;
-		// Loop Filter
+
 			m_out = loopLPF.Do(m_err);
 			if( m_out > 1.5 ){
 				m_out = 1.5;
@@ -742,7 +742,6 @@ namespace Play.Sound {
 			else if( m_out < -1.5 ){
 				m_out = -1.5;
 			}
-		// VCO
 			m_vcoout = vco.Do(m_out);
 		// ˆÊ‘Š”äŠr
 			m_err = m_vcoout * d;
