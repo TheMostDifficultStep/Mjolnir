@@ -972,6 +972,91 @@ namespace Play.Sound {
 		public void Write( double d ) { }
 	}
 
+	/// <summary>
+	/// Another dummy for now.
+	/// </summary>
+	class CSLVL {
+		public void Do( double d ) { }
+	}
+
+	class CLVL
+	{
+		public double m_Cur { get; protected set; }
+
+		double m_PeakMax;
+		double m_PeakAGC;
+		double m_Peak;
+		public double m_CurMax { get; protected set; }
+		double m_Max;
+		double m_agc;
+		int    m_CntPeak;
+		bool   m_agcfast;
+
+		int    m_Cnt;
+		int    m_CntMax;
+
+		public CLVL( int iSampFreq, bool fAgcFast = false ){
+			m_agcfast = fAgcFast;
+			m_CntMax = (int)(iSampFreq * 100 / 1000.0);
+			Init();
+		}
+
+		void Init(){
+			m_PeakMax = 0;
+			m_PeakAGC = 0;
+			m_Peak = 0;
+			m_Cur = 0;
+			m_CurMax = 0.0;
+			m_Max = 0;
+			m_agc = 1.0;
+			m_CntPeak = 0;
+			m_Cnt = 0;
+		}
+
+		public void Do(double d ){
+			m_Cur = d;
+			if( d < 0.0 ) d = -d;
+			if( m_Max < d ) m_Max = d;
+			m_Cnt++;
+		}
+
+		void Fix(){
+			if( m_Cnt < m_CntMax ) return;	// did not store yet
+			m_Cnt = 0;
+			m_CntPeak++;
+			if( m_Peak < m_Max ) m_Peak = m_Max;
+			if( m_CntPeak >= 5 ){
+				m_CntPeak = 0;
+				m_PeakMax = m_Max;
+				m_PeakAGC = (m_PeakAGC + m_Max) * 0.5;
+				m_Peak = 0;
+				if( !m_agcfast ){
+					if( (m_PeakAGC > 32) && m_PeakMax != 0 ){
+						m_agc = 16384.0 / m_PeakMax;
+					}
+					else {
+						m_agc = 16384.0 / 32.0;
+					}
+				}
+			} else {
+				if( m_PeakMax < m_Max ) m_PeakMax = m_Max;
+			}
+			m_CurMax = m_Max;
+			if( m_agcfast ){
+				if( m_CurMax > 32 ){
+					m_agc = 16384.0 / m_CurMax;
+				}
+				else {
+					m_agc = 16384.0 / 32.0;
+				}
+			}
+			m_Max = 0;
+		}
+
+		public double AGC(double d){
+			return d * m_agc;
+		}
+	}
 
 	class CSmooz{
 		double [] bp;
@@ -1246,7 +1331,7 @@ namespace Play.Sound {
 		int      m_bpf;
 		int      m_bpftap;
 		readonly int      m_Type;
-		readonly int      m_LevelType;
+		readonly bool     m_LevelType;
 
 		readonly CIIRTANK m_iir11;
 		readonly CIIRTANK m_iir12;
@@ -1258,11 +1343,13 @@ namespace Play.Sound {
 		readonly CIIR     m_lpf13;
 		readonly CIIR     m_lpf19;
 		readonly CIIR     m_lpffsk;
+		readonly CLVL     m_lvl;
+		readonly CSLVL    m_SyncLvl;
+
+		// These three should inherit from a common interface.
 		readonly CPLL	  m_pll;
-		CFQC     m_fqc;
-		CLVL     m_lvl;
-		CSLVL    m_SyncLvl;
-		CHILL    m_hill;
+		readonly CFQC     m_fqc;
+		readonly CHILL    m_hill;
 
 		REPSET   pRep;
 
@@ -1288,7 +1375,7 @@ namespace Play.Sound {
 		int         m_rBase;
 
 		int         m_ReqSave;
-		int         m_LoopBack;
+		//int         m_LoopBack;
 
 		int         m_wStgPage;
 		int         m_wStgLine;
@@ -1315,10 +1402,11 @@ namespace Play.Sound {
 		int         m_Tick;
 		int         m_TickFreq;
 
-		double      m_CurSig;
-		CSmooz      m_Avg;
-		CSmooz      m_AFCAVG;
-		int         m_afc;
+		// More goodies that can probably live on their own class.
+		double      m_CurSig; // Not sure who uses this, or why it's there.
+		readonly CSmooz m_Avg;
+		readonly CSmooz m_AFCAVG;
+		readonly bool   m_afc;
 		int         m_AFCCount;
 		double      m_AFCData;
 		double      m_AFCLock;
@@ -1327,25 +1415,26 @@ namespace Play.Sound {
 		int         m_AFCFlag;
 		int         m_AFCGard;
 		int         m_AFCDis;
-		int         m_AFCInt;
+		readonly int m_AFCInt;
 
-		double		m_AFC_LowVal;		// (Center - SyncLow) * 16384 / BWH
+		double		m_AFC_LowVal;		// (Center - SyncLow ) * 16384 / BWH
 		double		m_AFC_HighVal;		// (Center - SyncHigh) * 16384 / BWH
-		double		m_AFC_SyncVal;		// (Center - Sync) * 16384 / BWH
+		double		m_AFC_SyncVal;		// (Center - Sync    ) * 16384 / BWH
 		double		m_AFC_BWH;			// BWH / 16384.0;
 
-		double		m_AFC_OFFSET;		// 128
+		//double		m_AFC_OFFSET;		// 128
 
-		bool        m_MSync;
-		CSYNCINT    m_sint1;
-		CSYNCINT    m_sint2;
-		CSYNCINT	m_sint3;
+		readonly bool       m_MSync;
+		readonly CSYNCINT   m_sint1;
+		readonly CSYNCINT   m_sint2;
+		readonly CSYNCINT	m_sint3;
 
 		readonly static int FSKGARD   = 100;
 		readonly static int FSKINTVAL = 22;
 		readonly static int FSKSPACE  = 2100;
 
-		bool        m_fskdecode;
+		// This set of goodies could probably to on it's own struct or class.
+		readonly bool m_fskdecode;
 		int         m_fskrec;
 		int         m_fskmode;
 		int         m_fsktime;
@@ -1355,33 +1444,33 @@ namespace Play.Sound {
 		double      m_fsknextd;
 		byte        m_fsks;
 		byte        m_fskc;
-		List<byte>  m_fskdata = new List<byte>(20);
-		List<char>  m_fskcall = new List<char>(20);
+		readonly List<byte>  m_fskdata = new List<byte>(20);
+		readonly List<char>  m_fskcall = new List<char>(20);
 		int			m_fskNRrec;
 		int			m_fskNR;
-		List<char>	m_fskNRS  = new List<char>(20);
+		readonly List<char>	m_fskNRS  = new List<char>(20);
 
 		//------ リピータ (repeater)
 		int         m_Repeater;
-		int         m_RepSQ;
-		int         m_RepTone;
+		readonly int  m_RepSQ;
+		readonly int  m_RepTone;
 		int         m_repmode;
 		int         m_reptime;
 		int         m_repcount;
 		int         m_repsig;
-		int         m_repANS;
-		int         m_repRLY;
-		int         m_repRX;
-		int         m_repTX;
+		//int         m_repANS;
+		//int         m_repRLY;
+		//int         m_repRX;
+		//int         m_repTX;
 
 		int         m_RSLvl;
 		int         m_RSLvl2;
 
 		bool        m_fNarrow;
 
-		double  m_d;
-		double  m_dd;
-		int     m_n;
+		//double  m_d;
+		//double  m_dd;
+		//int     m_n;
 
 		// BUG: See if I can get these from CSSTVSET
 		int SampFreq { get; }
@@ -1389,26 +1478,14 @@ namespace Play.Sound {
 		// This is a global in the original code, but it's pretty clear
 		// that we can't handle it changing mid run. So now it's a readonly
 		// member variable.
-		readonly double g_dblToneOffset;
+		readonly double m_dblToneOffset;
 
 		public CSSTVDEM( SYSSET p_sys, int iSampFreq, int iSampBase, double dbToneOffset ) {
 			sys = p_sys ?? throw new ArgumentNullException( "sys must not be null." );
 
-			m_iir11  = new CIIRTANK( iSampFreq );
-			m_iir12  = new CIIRTANK( iSampFreq );
-			m_iir13  = new CIIRTANK( iSampFreq );
-			m_iir19  = new CIIRTANK( iSampFreq );
-			m_iirfsk = new CIIRTANK( iSampFreq );
-
-			m_lpf11  = new CIIR();
-			m_lpf12  = new CIIR();
-			m_lpf13  = new CIIR();
-			m_lpf19  = new CIIR();
-			m_lpffsk = new CIIR();
-
 			SampFreq = iSampFreq;
 			SampBase = iSampBase;
-			g_dblToneOffset = dbToneOffset;
+			m_dblToneOffset = dbToneOffset;
 
 			m_bpf = 1;      // wide
 			m_ad  = 0;
@@ -1435,11 +1512,23 @@ namespace Play.Sound {
 		//	memset(Z, 0, sizeof(Z));
 			CalcBPF();
 
-			m_iir11 .SetFreq(1080 + g_dblToneOffset, SampFreq, 80.0);
-			m_iir12 .SetFreq(1200 + g_dblToneOffset, SampFreq, 100.0);
-			m_iir13 .SetFreq(1320 + g_dblToneOffset, SampFreq, 80.0);
-			m_iir19 .SetFreq(1900 + g_dblToneOffset, SampFreq, 100.0);
-			m_iirfsk.SetFreq(FSKSPACE + g_dblToneOffset, SampFreq, 100.0);
+			m_iir11  = new CIIRTANK( iSampFreq );
+			m_iir12  = new CIIRTANK( iSampFreq );
+			m_iir13  = new CIIRTANK( iSampFreq );
+			m_iir19  = new CIIRTANK( iSampFreq );
+			m_iirfsk = new CIIRTANK( iSampFreq );
+
+			m_lpf11  = new CIIR();
+			m_lpf12  = new CIIR();
+			m_lpf13  = new CIIR();
+			m_lpf19  = new CIIR();
+			m_lpffsk = new CIIR();
+
+			m_iir11 .SetFreq(1080     + m_dblToneOffset, SampFreq,  80.0);
+			m_iir12 .SetFreq(1200     + m_dblToneOffset, SampFreq, 100.0);
+			m_iir13 .SetFreq(1320     + m_dblToneOffset, SampFreq,  80.0);
+			m_iir19 .SetFreq(1900     + m_dblToneOffset, SampFreq, 100.0);
+			m_iirfsk.SetFreq(FSKSPACE + m_dblToneOffset, SampFreq, 100.0);
 
 			m_lpf11 .MakeIIR(50, SampFreq, 2, 0, 0);
 			m_lpf12 .MakeIIR(50, SampFreq, 2, 0, 0);
@@ -1449,19 +1538,19 @@ namespace Play.Sound {
 
 			pRep = null;
 
-			m_wPage = m_rPage = 0;
-			m_wBase = 0;
-			m_wCnt = 0;
-			m_rBase = 0;
-			m_Skip = 0;
-			m_Sync = false;
-			m_SyncMode = 0;
+			m_wPage     = m_rPage = 0;
+			m_wBase     = 0;
+			m_wCnt      = 0;
+			m_rBase     = 0;
+			m_Skip      = 0;
+			m_Sync      = false;
+			m_SyncMode  = 0;
 			m_ScopeFlag = false;
-			m_LoopBack = 0;
-			m_Lost = 0;
+			//m_LoopBack  = 0;
+			m_Lost      = 0;
 
-			m_lvl.m_agcfast = 1;
-			m_afc = 1;
+			m_lvl = new CLVL( SampFreq, fAgcFast:true );
+			m_afc = true;
 
 			m_Tick   = 0;
 			pTick    = null;
@@ -1482,20 +1571,20 @@ namespace Play.Sound {
 			m_SenseLvl = 1;
 			SetSenseLvl();
 
-			m_Type = 2;
-			m_ReqSave = 0;
-			m_LevelType = 0;
+			m_Type      = 2; // BUG: This s/b parameter.
+			m_ReqSave   = 0;
+			m_LevelType = false; // TODO: Probably sb param too. If make true, implement CSLVL class.
 
-			m_fskrec = 0;
-			m_fskNRrec = 0;
+			m_fskrec    = 0;
+			m_fskNRrec  = 0;
 			m_fskdecode = false;
-			m_fskmode = 0;
+			m_fskmode   = 0;
 
 			m_Repeater = 0;
-			m_RepSQ = 6000;
-			m_RepTone = 1750;
-			m_repmode = 0;
-			m_repANS = m_repRLY = m_repRX = m_repTX = 0;
+			m_RepSQ    = 6000;
+			m_RepTone  = 1750;
+			m_repmode  = 0;
+			//m_repANS = m_repRLY = m_repRX = m_repTX = 0;
 			InitRepeater();
 			SetRepSenseLvl();
 		}
@@ -1511,27 +1600,27 @@ namespace Play.Sound {
 
 		public void CalcBPF(double[] H1, double[] H2, double[] H3, ref int bpftap, int bpf, AllModes mode)
 		{
-			int lfq  = (int)((m_SyncRestart ? 1100 : 1200) + g_dblToneOffset );
-			int lfq2 = (int)(400 + g_dblToneOffset );
+			int lfq  = (int)((m_SyncRestart ? 1100 : 1200) + m_dblToneOffset );
+			int lfq2 = (int)(400 + m_dblToneOffset );
 			if( lfq2 < 50 ) 
 				lfq2 = 50;
 			switch(bpf){
 				case 1:     // Wide
 					bpftap = (int)(24 * SampFreq / 11025.0 );
-					CFIR2.MakeFilter(H1, bpftap, FirFilt.ffBPF, SampFreq, lfq, 2600 + g_dblToneOffset, 20, 1.0);
-					CFIR2.MakeFilter(H2, bpftap, FirFilt.ffBPF, SampFreq,  lfq2, 2500 + g_dblToneOffset, 20, 1.0);
+					CFIR2.MakeFilter(H1, bpftap, FirFilt.ffBPF, SampFreq, lfq, 2600 + m_dblToneOffset, 20, 1.0);
+					CFIR2.MakeFilter(H2, bpftap, FirFilt.ffBPF, SampFreq,  lfq2, 2500 + m_dblToneOffset, 20, 1.0);
 		//			MakeFilter(H3, bpftap, ffBPF, SampFreq,  NARROW_BPFLOW-200, NARROW_BPFHIGH, 20, 1.0);
 					break;
 				case 2:     // Narrow
 					bpftap = (int)(64 * SampFreq / 11025.0 );
-					CFIR2.MakeFilter(H1, bpftap, FirFilt.ffBPF, SampFreq, lfq, 2500 + g_dblToneOffset, 40, 1.0);
-					CFIR2.MakeFilter(H2, bpftap, FirFilt.ffBPF, SampFreq,  lfq2, 2500 + g_dblToneOffset, 20, 1.0);
+					CFIR2.MakeFilter(H1, bpftap, FirFilt.ffBPF, SampFreq, lfq, 2500 + m_dblToneOffset, 40, 1.0);
+					CFIR2.MakeFilter(H2, bpftap, FirFilt.ffBPF, SampFreq,  lfq2, 2500 + m_dblToneOffset, 20, 1.0);
 		//			MakeFilter(H3, bpftap, ffBPF, SampFreq, NARROW_BPFLOW-100, NARROW_BPFHIGH, 40, 1.0);
 					break;
 				case 3:     // Very Narrow
 					bpftap = (int)(96 * SampFreq / 11025.0 );
-					CFIR2.MakeFilter(H1, bpftap, FirFilt.ffBPF, SampFreq, lfq, 2400 + g_dblToneOffset, 50, 1.0);
-					CFIR2.MakeFilter(H2, bpftap, FirFilt.ffBPF, SampFreq,  lfq2, 2500 + g_dblToneOffset, 20, 1.0);
+					CFIR2.MakeFilter(H1, bpftap, FirFilt.ffBPF, SampFreq, lfq, 2400 + m_dblToneOffset, 50, 1.0);
+					CFIR2.MakeFilter(H2, bpftap, FirFilt.ffBPF, SampFreq,  lfq2, 2500 + m_dblToneOffset, 20, 1.0);
 		//			MakeFilter(H3, bpftap, ffBPF, SampFreq,  NARROW_BPFLOW, NARROW_BPFHIGH, 50, 1.0);
 					break;
 				default:
@@ -1566,8 +1655,8 @@ namespace Play.Sound {
 					low = 1600; high = 2500;
         			break;
 			}
-			low  += (int)g_dblToneOffset;
-			high += (int)g_dblToneOffset;
+			low  += (int)m_dblToneOffset;
+			high += (int)m_dblToneOffset;
 			switch(bpf){
 				case 1:     // Wide
 					CFIR2.MakeFilter(H3, bpftap, FirFilt.ffBPF, SampFreq,  low-200, high, 20, 1.0);
@@ -1633,7 +1722,7 @@ namespace Play.Sound {
 			if( f == 0 ) 
 				f = 1200;
 
-			m_iir12.SetFreq(f + g_dblToneOffset, SampFreq, 100.0);
+			m_iir12.SetFreq(f + m_dblToneOffset, SampFreq, 100.0);
 			m_TickFreq = f;
 		}
 
@@ -1673,11 +1762,11 @@ namespace Play.Sound {
 
 		void InitTone(int dfq) {
 			if( m_AFCFQ != dfq ){
-				m_iir11.SetFreq(1080+dfq + g_dblToneOffset, SampFreq, 80.0);
-				m_iir12.SetFreq(1200+dfq + g_dblToneOffset, SampFreq, 100.0);
-				m_iir13.SetFreq(1320+dfq + g_dblToneOffset, SampFreq, 80.0);
-				m_iir19.SetFreq(1900+dfq + g_dblToneOffset, SampFreq, 100.0);
-				m_iirfsk.SetFreq(FSKSPACE+dfq + g_dblToneOffset, SampFreq, 100.0);
+				m_iir11.SetFreq(1080+dfq + m_dblToneOffset, SampFreq, 80.0);
+				m_iir12.SetFreq(1200+dfq + m_dblToneOffset, SampFreq, 100.0);
+				m_iir13.SetFreq(1320+dfq + m_dblToneOffset, SampFreq, 80.0);
+				m_iir19.SetFreq(1900+dfq + m_dblToneOffset, SampFreq, 100.0);
+				m_iirfsk.SetFreq(FSKSPACE+dfq + m_dblToneOffset, SampFreq, 100.0);
 				m_AFCFQ = dfq;
 			}
 		}
@@ -1745,9 +1834,9 @@ namespace Play.Sound {
 		void Stop()	{
 			if( m_AFCFQ != 0 ){
 				if( m_fskdecode ){
-					m_iir11.SetFreq(1080 + g_dblToneOffset, SampFreq, 80.0);
-					m_iir12.SetFreq(1200 + g_dblToneOffset, SampFreq, 100.0);
-					m_iir13.SetFreq(1320 + g_dblToneOffset, SampFreq, 80.0);
+					m_iir11.SetFreq(1080 + m_dblToneOffset, SampFreq, 80.0);
+					m_iir12.SetFreq(1200 + m_dblToneOffset, SampFreq, 100.0);
+					m_iir13.SetFreq(1320 + m_dblToneOffset, SampFreq, 80.0);
 				} else {
 					InitTone(0);
 				}
@@ -1791,7 +1880,7 @@ namespace Play.Sound {
 
 		void Do(double s) {
 			if( (s > 24578.0) || (s < -24578.0) ){
-				m_OverFlow = 1;
+				m_OverFlow = 1; // The grapher probably clears this.
 			}
 			double d = (s + m_ad) * 0.5;    // LPF
 			m_ad = s;
@@ -1849,13 +1938,13 @@ namespace Play.Sound {
 				if( m_ScopeFlag ){
 					m_Scope[0].WriteData(d19);
 				}
-				if( m_LevelType != 0 ) 
+				if( m_LevelType ) 
 					m_SyncLvl.Do(d19);
 			} else {
 				if( m_ScopeFlag ){
 					m_Scope[0].WriteData(d12);
 				}
-				if( m_LevelType != 0 ) 
+				if( m_LevelType ) 
 					m_SyncLvl.Do(d12);
 			}
 			if( m_Tick != 0 && (pTick != null) ){
@@ -1941,8 +2030,7 @@ namespace Play.Sound {
 								m_VisData = 0;
 								m_VisCnt = 8;
 							}
-						}
-						else {
+						} else {
 							m_SyncMode = 0;
 						}
 						break;
@@ -1956,8 +2044,7 @@ namespace Play.Sound {
 							if( ((d11 < d19) && (d13 < d19)) ||
 								(Math.Abs(d11-d13) < (m_SLvl2)) ){
 								m_SyncMode = 0;
-							}
-							else {
+							} else {
 								m_SyncTime = (int)(30 * sys.m_SampFreq/1000 );
 								m_VisData = m_VisData >> 1;
 								if( d11 > d13 ) m_VisData |= 0x0080;
@@ -2047,8 +2134,7 @@ namespace Play.Sound {
 												m_SyncMode = 0;
 												break;
 										}
-									}
-									else {          // Šg’£ VIS
+									} else {          // Šg’£ VIS
 										m_SyncMode = 3;
 										switch(m_VisData){
 											case 0x45:      // MR73
@@ -2250,7 +2336,7 @@ namespace Play.Sound {
 							SyncFreq(d);
 						break;
 				}
-				if( m_afc != 0 ) 
+				if( m_afc ) 
 					d += m_AFCDiff;
 				if( m_Skip != 0 ) {
 					if( m_Skip > 0 ){
@@ -2594,7 +2680,7 @@ namespace Play.Sound {
 			if( sys.m_Repeater ) {
 				if( pRep == null )
 					pRep = new REPSET( SampFreq, SampBase );
-				pRep.m_iirrep.SetFreq(m_RepTone + g_dblToneOffset, SampFreq, 100.0);
+				pRep.m_iirrep.SetFreq(m_RepTone + m_dblToneOffset, SampFreq, 100.0);
 				pRep.m_lpfrep.MakeIIR(50, SampFreq, 2, 0, 0);
 			} else {
 				pRep = null;
