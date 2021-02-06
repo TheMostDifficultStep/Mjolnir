@@ -277,6 +277,182 @@ namespace Play.Sound {
 		}
     } // End class
 
+	class CLMS
+	{
+		private static int LMSTAP = 192;
+
+		double[] Z;					// FIR Z Application
+		double[] D;					// LMS Delay;
+
+		double	m_lmsADJSC;			// ƒXƒP[ƒ‹’²®’l
+		double	m_lmsErr;			// LMS Œë·ƒf[ƒ^
+		double	m_lmsMErr;			// LMS Œë·ƒf[ƒ^i~‚QƒÊj
+		double  m_D;
+
+		public int		m_Tap    { get; protected set; }
+	//	int		m_lmsInv;			// LMS InvOutput
+	//	int		m_lmsDelay;			// LMS Delay
+		public int		m_lmsAGC { get; protected set; }	// LMS AGC
+		public double	m_lmsMU2 { get; protected set; }	// LMS 2ƒÊ
+		public double	m_lmsGM  { get; protected set; }	// LMS ƒÁ
+		public double	[]H      { get; protected set; }	// ƒAƒvƒŠƒP[ƒVƒ‡ƒ“ƒtƒBƒ‹ƒ^‚ÌŒW”
+
+		int     m_Tap_N;
+		int     m_lmsDelay_N;
+		double  m_lmsMU2_N;
+		double  m_lmsGM_N;
+
+		public CLMS( int iSampBase )
+		{
+			Z = new double[LMSTAP+1];
+			H = new double[LMSTAP+1];
+			D = new double[LMSTAP+1];
+			m_D = 0;
+
+			m_lmsADJSC = 1.0 / (double)(32768 * 32768);		// ƒXƒP[ƒ‹’²®’l
+			m_lmsErr = m_lmsMErr = 0;
+
+			m_Tap = (int)((4 * iSampBase/11025) + 0.5);
+		//	m_Tap = int((8 * SampBase/11025) + 0.5);
+			if( m_Tap > LMSTAP ) m_Tap = LMSTAP;
+			m_lmsMU2 = 0.003;			// LMS 2ƒÊ
+			m_lmsGM = 0.9999;			// LMS ƒÁ
+
+			m_Tap_N = (int)((48 * iSampBase/11025) + 0.5);
+			if( m_Tap_N > LMSTAP ) m_Tap_N = LMSTAP;
+		//	m_lmsMU2_N = 0.00018;			// LMS 2ƒÊ
+		//	m_lmsGM_N = 0.999999;			// LMS ƒÁ
+			m_lmsMU2_N = 0.00018;			// LMS 2ƒÊ
+			m_lmsGM_N = 0.999999;			// LMS ƒÁ
+			m_lmsDelay_N = (int)((12 * iSampBase/11025) + 0.5);
+			if( m_lmsDelay_N > LMSTAP ) m_lmsDelay_N = LMSTAP;
+		}
+
+		// “K‰žƒtƒBƒ‹ƒ^‚Ì‰‰ŽZ
+		public double Do(double d)
+		{
+			double a = 0.0;
+			int i;
+
+			// ƒgƒ‰ƒ“ƒXƒo[ƒTƒ‹ƒtƒBƒ‹ƒ^
+			//memcpy(Z, &Z[1], sizeof(double)*m_Tap);
+			Array.Copy( Z, 1, Z, 0, m_Tap );
+			Z[m_Tap] = m_D;
+			for( i = 0; i <= m_Tap; i++ ){
+				a += Z[i] * H[i];
+			}
+			// Œë·ŒvŽZ
+			m_lmsErr = d - a;
+			m_lmsMErr = m_lmsErr * m_lmsMU2 * m_lmsADJSC;	// lmsADJSC = 1/(32768 * 32768) ƒXƒP[ƒŠƒ“ƒO’²®’l
+
+			// ’x‰„Ší‚ÌˆÚ“®
+			m_D = d;
+			// ŒW”XV
+			double sum = 0;
+			for( i = 0; i <= m_Tap; i++ ){
+				H[i] = (m_lmsMErr * (Z[i])) + (H[i] * m_lmsGM);
+				if( H[i] >= 0 ){
+					sum += H[i];
+				} else {
+					sum -= H[i];
+				}
+			}
+			if( sum > 0 ) a /= sum;
+			return a;
+		}
+
+		// “K‰žƒtƒBƒ‹ƒ^‚Ì‰‰ŽZ
+		public double DoN(double d)
+		{
+			double a = 0.0;
+			int i;
+
+			// ƒgƒ‰ƒ“ƒXƒo[ƒTƒ‹ƒtƒBƒ‹ƒ^
+			Array.Copy( Z, 1, Z, 0, m_Tap_N );
+			//memcpy(Z, &Z[1], sizeof(double)*m_Tap_N);
+			Z[m_Tap_N] = D[0];
+			for( i = 0; i <= m_Tap_N; i++ ){
+				a += Z[i] * H[i];
+			}
+			// Œë·ŒvŽZ
+			m_lmsErr = d - a;
+			m_lmsMErr = m_lmsErr * m_lmsMU2_N * m_lmsADJSC;	// lmsADJSC = 1/(32768 * 32768) ƒXƒP[ƒŠƒ“ƒO’²®’l
+
+			// ’x‰„Ší‚ÌˆÚ“®
+			Array.Copy( D, 1, D, 0, m_lmsDelay_N );
+			//memcpy(D, &D[1], sizeof(double)*m_lmsDelay_N);
+			D[m_lmsDelay_N] = d;
+
+			// ŒW”XV
+			for( i = 0; i <= m_Tap_N; i++ ){
+				H[i] = (m_lmsMErr * Z[i]) + (H[i] * m_lmsGM_N);
+			}
+			return m_lmsErr;
+		}
+
+		// “K‰žƒtƒBƒ‹ƒ^‚Ì‰‰ŽZ
+		public void SetAN( int iSampBase, int sw)
+		{
+			m_Tap_N = (int)((48 * iSampBase/11025) + 0.5);
+			if( m_Tap_N > LMSTAP ) 
+				m_Tap_N = LMSTAP;
+
+			m_lmsDelay_N = (int)((12 * iSampBase/11025) + 0.5);
+			if( m_lmsDelay_N > LMSTAP ) 
+				m_lmsDelay_N = LMSTAP;
+
+			Array.Clear( Z, 0, Z.Length );
+			Array.Clear( H, 0, Z.Length );
+			Array.Clear( D, 0, Z.Length );
+
+			switch(sw){
+				case 1:
+					m_lmsMU2_N = 0.00018;			// LMS 2ƒÊ
+					m_lmsGM_N  = 0.999998;			// LMS ƒÁ
+					break;
+				default:
+					m_lmsMU2_N = 0.00005;			// LMS 2ƒÊ
+					m_lmsGM_N  = 0.9999985;			// LMS ƒÁ
+					break;
+			}
+		}
+
+		//-------------------------------------------------
+		// ‘ŠŠÖŒvŽZ‚Ì‰‰ŽZ
+		public int Sig(double d)
+		{
+			double a = 0.0;
+			int i;
+
+			// ƒgƒ‰ƒ“ƒXƒo[ƒTƒ‹ƒtƒBƒ‹ƒ^
+			//memcpy(Z, &Z[1], sizeof(double)*m_Tap);
+			Array.Copy( Z, 1, Z, 0, m_Tap );
+			Z[m_Tap] = m_D;
+
+			for( i = 0; i <= m_Tap; i++ ){
+				a += Z[i] * H[i];
+			}
+			// Œë·ŒvŽZ
+			m_lmsErr = d - a;
+			m_lmsMErr = m_lmsErr * m_lmsMU2 * m_lmsADJSC;	// lmsADJSC = 1/(32768 * 32768) ƒXƒP[ƒŠƒ“ƒO’²®’l
+
+			// ’x‰„Ší‚ÌˆÚ“®
+			m_D = d;
+			// ŒW”XV
+			double sum = 0;
+			for( i = 0; i <= m_Tap; i++ ){
+				H[i] = (m_lmsMErr * Z[i]) + (H[i] * m_lmsGM);
+				if( H[i] >= 0 ){
+					sum += H[i];
+				} else {
+					sum -= H[i];
+				}
+			}
+			return (int)(sum * 32768.0);
+		}
+
+	}
+
 	class CIIRTANK {
 		double	z1, z2;
 

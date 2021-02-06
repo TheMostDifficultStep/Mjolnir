@@ -1221,9 +1221,10 @@ namespace Play.Sound {
 		double[]  HBPFN = new double[TAPMAX+1];
 
 		protected class REPSET {    // リピータ用の設定
-			public REPSET( double dbSampFreq ) {
+			public REPSET( double dbSampFreq, int iSampBase ) {
 				m_iirrep = new CIIRTANK( dbSampFreq );
 				m_lpfrep = new CIIR();
+				m_lmsrep = new CLMS( iSampBase );
 			}
 
 			public CIIRTANK    m_iirrep; // BUG: create these.
@@ -1375,13 +1376,15 @@ namespace Play.Sound {
 		double  m_dd;
 		int     m_n;
 
+		// BUG: See if I can get these from CSSTVSET
 		int SampFreq { get; }
+		int SampBase { get; }
 		// This is a global in the original code, but it's pretty clear
 		// that we can't handle it changing mid run. So now it's a readonly
 		// member variable.
 		readonly double g_dblToneOffset;
 
-		public CSSTVDEM( SYSSET p_sys, int iSampFreq, double dbToneOffset ) {
+		public CSSTVDEM( SYSSET p_sys, int iSampFreq, int iSampBase, double dbToneOffset ) {
 			sys = p_sys ?? throw new ArgumentNullException( "sys must not be null." );
 
 			m_iir11  = new CIIRTANK( iSampFreq );
@@ -1397,6 +1400,7 @@ namespace Play.Sound {
 			m_lpffsk = new CIIR();
 
 			SampFreq = iSampFreq;
+			SampBase = iSampBase;
 			g_dblToneOffset = dbToneOffset;
 
 			m_bpf = 1;      // wide
@@ -2589,7 +2593,7 @@ namespace Play.Sound {
 		void InitRepeater(){
 			if( sys.m_Repeater ) {
 				if( pRep == null )
-					pRep = new REPSET( SampFreq );
+					pRep = new REPSET( SampFreq, SampBase );
 				pRep.m_iirrep.SetFreq(m_RepTone + g_dblToneOffset, SampFreq, 100.0);
 				pRep.m_lpfrep.MakeIIR(50, SampFreq, 2, 0, 0);
 			} else {
