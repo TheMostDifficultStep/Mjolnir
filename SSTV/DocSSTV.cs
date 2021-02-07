@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Collections.Generic;
+using System.Text;
 
 using SkiaSharp;
 
@@ -9,7 +10,6 @@ using Play.Sound;
 using Play.Sound.FFT;
 using Play.Edit;
 using Play.ImageViewer;
-using System.Text;
 
 namespace Play.SSTV {
     public enum ESstvProperty {
@@ -84,6 +84,7 @@ namespace Play.SSTV {
         protected Mpg123FFTSupport FileDecoder   { get; set; }
         protected BufferSSTV       _oSSTVBuffer;
         protected CSSTVMOD         _oSSTVModulator;
+        protected CSSTVDEM         _oSSTVDeModulator;
 		protected IPgPlayer        _oPlayer;
         protected SSTVGenerator    _oSSTVGenerator;
 
@@ -292,6 +293,14 @@ namespace Play.SSTV {
             return true;
         }
 
+        public bool Load( TextReader oStream ) {
+            return InitNew();
+        }
+
+        public bool Save( TextWriter oStream ) {
+            return true;
+        }
+
         public int PercentFinished {
             get { 
                 if( _oSSTVGenerator != null ) 
@@ -411,14 +420,6 @@ namespace Play.SSTV {
             // Set upload time to "finished" maybe even date/time!
         }
 
-        public bool Load( TextReader oStream ) {
-            return InitNew();
-        }
-
-        public bool Save( TextWriter oStream ) {
-            return true;
-        }
-
         /// <summary>
         /// Try to begin playing image.
         /// </summary>
@@ -443,6 +444,59 @@ namespace Play.SSTV {
             }
             //while ( _oDataTester.ConsumeData() < 350000 ) {
             //}
+        }
+
+        public IEnumerator<int> GetRecorderTask() {
+            try {
+                SYSSET           sys      = new SYSSET();
+                FFTControlValues oFFTMode = FFTControlValues.FindMode( RxSpec.Rate );
+
+                _oSSTVDeModulator = new CSSTVDEM( sys, 
+                                                  (int)oFFTMode.SampFreq, 
+                                                  (int)oFFTMode.SampBase, 
+                                                  0 );
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( NullReferenceException ),
+                                    typeof( ArgumentNullException ),
+                                    typeof( MMSystemException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
+                _oWorkPlace.Stop();
+                LogError( "Trouble setting up decoder" );
+            }
+
+            do {
+                for( int i = 0; i< 500; ++i ) {
+                    try {
+                        _oSSTVDeModulator.Do( _oSSTVBuffer.ReadOneSample() );
+                    } catch( Exception oEx ) {
+                        Type[] rgErrors = { typeof( NullReferenceException ),
+                                            typeof( ArgumentNullException ),
+                                            typeof( MMSystemException ),
+                                            typeof( InvalidOperationException ) };
+                        if( rgErrors.IsUnhandled( oEx ) )
+                            throw;
+
+                        _oWorkPlace.Stop();
+                        LogError( "Trouble recordering in SSTV" );
+                    }
+                    yield return 250;
+                }
+            } while( _oSSTVBuffer.IsReading );
+
+            ModeList.HighLight = null;
+            // Set upload time to "finished" maybe even date/time!
+        }
+
+        public void RecordBegin( int iModeIndex, SKRectI skSelect ) {
+            if( ModeList[iModeIndex].Extra is SSTVMode oMode ) {
+                if( _oWorkPlace.Status == WorkerStatus.FREE ) {
+			        _oDocSnip.Load( Bitmap, skSelect, oMode.Resolution );
+                    if( GeneratorSetup( oMode, _oDocSnip.Bitmap ) ) {
+                        _oWorkPlace.Queue( GetRecorderTask(), 0 );
+                    }
+                }
+            }
         }
 
 		public WorkerStatus PlayStatus => _oWorkPlace.Status;

@@ -277,7 +277,7 @@ namespace Play.Sound {
 		}
     } // End class
 
-	class CLMS
+	public class CLMS
 	{
 		private static int LMSTAP = 192;
 
@@ -453,11 +453,11 @@ namespace Play.Sound {
 
 	}
 
-	class CIIRTANK {
+	public class CIIRTANK {
 		double	z1, z2;
 
-		public double	a0;
-		public double	b1, b2;
+		double	a0;
+		double	b1, b2;
 
 		/// <summary>
 		/// Sample frequency comes from the global value.
@@ -496,16 +496,15 @@ namespace Play.Sound {
 		}
 	}
 
-	class CIIR {
+	public class CIIR {
 		protected static int IIRMAX = 16;
 
-		double [] Z;
-
-		public double	[] A;
-		public double	[] B;
-		public int		m_order;
-		public int		m_bc;
-		public double	m_rp;
+		double[] Z;
+		double[] A;
+		double[] B;
+		int		 m_order;
+		int		 m_bc;
+		double	 m_rp;
 
 		public CIIR() {
 			m_order = 0;

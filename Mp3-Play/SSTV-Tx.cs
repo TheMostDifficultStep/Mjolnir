@@ -719,6 +719,22 @@ namespace Play.Sound {
         }
 
         /// <summary>
+        /// This is test reader for the SSTVDemodulator.
+        /// </summary>
+        /// <returns></returns>
+        public short ReadOneSample() {
+            uint uiAvailable = _uiBuffered - _uiBuffUsed;
+            if( uiAvailable > 1 ) {
+                return( _rgBuffer[_uiBuffUsed++] ); // If here, we always returned the amount asked for.
+            } else {
+                if( BufferReload( 1 ) == 0 )
+                    throw new InvalidOperationException("Done" );
+
+                return( _rgBuffer[_uiBuffUsed++] ); // If here, we always returned the amount asked for.
+            }
+        }
+
+        /// <summary>
         /// This is a new experimental Read implementation. If you look at my
         /// older buffer implementations they are more complicated. Let's see if
         /// if this works as well. Note: we're limited to 16 bit data stream.

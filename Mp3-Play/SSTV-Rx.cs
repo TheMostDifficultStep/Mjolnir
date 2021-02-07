@@ -1622,7 +1622,7 @@ namespace Play.Sound {
 		}
 	}
 
-	class CSSTVDEM {
+	public class CSSTVDEM {
 		protected readonly SYSSET sys;
 
 		public readonly static int NARROW_SYNC		= 1900;
@@ -1715,21 +1715,21 @@ namespace Play.Sound {
 
 		int         m_Lost;
 
-		public int         m_BWidth;
-		public short[]     m_Buf;
-		public short[]     m_B12;
+		public int     m_BWidth;
+		public short[] m_Buf;
+		public short[] m_B12;
 
-		public int         m_RxBufAllocSize;
-		public short[]     m_StgBuf;
-		public short[]     m_StgB12;
+		public int     m_RxBufAllocSize;
+		public short[] m_StgBuf;
+		public short[] m_StgB12;
 
-		int         m_SenseLvl;
+		readonly int  m_SenseLvl;
 		double      m_SLvl;
 		double      m_SLvl2;
 		double      m_SLvl3;
 
 		bool        m_ScopeFlag;
-		CScope[]    m_Scope = new CScope[2];
+		readonly CScope[]    m_Scope = new CScope[2];
 
 		CTICK       pTick;
 		int         m_Tick;
@@ -1832,6 +1832,9 @@ namespace Play.Sound {
 
 			Array.Clear( m_Buf, 0, m_Buf.Length );
 			Array.Clear( m_B12, 0, m_Buf.Length );
+
+			m_fqc  = new CFQC( SampFreq, dbToneOffset );
+			m_hill = new CHILL( sys, SampFreq, SampBase, dbToneOffset );
 
 			m_pll = new CPLL( SampFreq, dbToneOffset );
 			m_pll.SetVcoGain ( 1.0 );
@@ -2211,7 +2214,7 @@ namespace Play.Sound {
 			}
 		}
 
-		void Do(double s) {
+		public void Do(double s) {
 			if( (s > 24578.0) || (s < -24578.0) ){
 				m_OverFlow = 1; // The grapher probably clears this.
 			}
