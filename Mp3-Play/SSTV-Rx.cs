@@ -58,7 +58,7 @@ namespace Play.Sound {
 		int     m_TuneTXTime;
 		int     m_TuneSat;
 
-		public bool m_TestDem { get; protected set; } // used
+		public bool m_TestDem { get; protected set; } = false; // used
 		double   m_DemOff;
 		double   m_DemWhite;
 		double   m_DemBlack;
@@ -92,7 +92,7 @@ namespace Play.Sound {
 		double   m_DiffLevelP;
 		double   m_DiffLevelM;
 
-		public bool m_Repeater { get; protected set; } // used
+		public bool m_Repeater { get; protected set; } = false; // used
 		public int  m_RepSenseLvl { get; protected set; }  // トーン検出感度 : Tone detection sensitivity (used)
 		string   m_RepAnsCW;
 		public int m_RepTimeA { get; protected set; }     // トーン検出時間 : Tone detection time 
@@ -115,7 +115,16 @@ namespace Play.Sound {
 
 		int			m_TempDelay;
 		int			m_Temp24;
-		public bool	m_bCQ100 { get; protected set; }
+		public bool	m_bCQ100 { get; protected set; } = false;
+
+		public SYSSET( double dbSampFreq ) {
+			m_SampFreq = dbSampFreq;
+			// Ver1.13 : Added an option that lowers the tone frequency by 1000Hz (use -i option on start)
+			//else if( as == "-i" ){
+			//	sys.m_bCQ100 = TRUE;
+			//	g_dblToneOffset = -1000.0;
+			//}
+		}
 	}
 
 	public enum AllModes {
@@ -993,7 +1002,7 @@ namespace Play.Sound {
 		int		  m_htap;
 		int		  m_df;
 		int		  m_tap;
-		CIIR	  m_iir;
+		readonly CIIR m_iir = new CIIR();
 
 		double SampFreq { get; }
 		double SampBase { get; }
@@ -1010,6 +1019,7 @@ namespace Play.Sound {
 			m_htap = m_tap / 2;
 			MakeHilbert(H, m_tap, SampFreq, 100, SampFreq/2 - 100);
 			m_A[0] = m_A[1] = m_A[2] = m_A[3] = 0;
+
 			m_iir.MakeIIR(1800, SampFreq, 3, 0, 0);
 		}
 
@@ -1175,6 +1185,7 @@ namespace Play.Sound {
 			m_Type = 0;
 
 			m_iir = new CIIR();
+			m_fir = new CSmooz();
 
 			m_Limit    = true;
 			m_d        = 0;
@@ -1232,7 +1243,8 @@ namespace Play.Sound {
 		void CalcLPF()
 		{
 			m_iir.MakeIIR(m_outFC, m_SampFreq, m_outOrder, 0, 0);
-			if( m_SmoozFq < 500 ) m_SmoozFq = 500.0;
+			if( m_SmoozFq < 500 ) 
+				m_SmoozFq = 500.0;
 			m_fir.SetCount( (int)(SampFreq/m_SmoozFq) );
 		}
 
@@ -1641,9 +1653,9 @@ namespace Play.Sound {
 
 		readonly CSSTVSET SSTVSET;
 
-		double[]  HBPF  = new double[TAPMAX+1];
-		double[]  HBPFS = new double[TAPMAX+1];
-		double[]  HBPFN = new double[TAPMAX+1];
+		readonly double[]  HBPF  = new double[TAPMAX+1];
+		readonly double[]  HBPFS = new double[TAPMAX+1];
+		readonly double[]  HBPFN = new double[TAPMAX+1];
 
 		protected class REPSET {    // リピータ用の設定
 			public REPSET( double dbSampFreq, int iSampBase ) {
@@ -1657,7 +1669,7 @@ namespace Play.Sound {
 			public CLMS        m_lmsrep;
 		}
 
-		readonly CFIR2 m_BPF;
+		readonly CFIR2 m_BPF = new CFIR2();
 
 		double   m_ad;
 		int      m_OverFlow;
@@ -1677,7 +1689,7 @@ namespace Play.Sound {
 		readonly CIIR     m_lpf19;
 		readonly CIIR     m_lpffsk;
 		readonly CLVL     m_lvl;
-		readonly CSLVL    m_SyncLvl;
+		readonly CSLVL    m_SyncLvl = new CSLVL();
 
 		// These three should inherit from a common interface.
 		readonly CPLL	  m_pll;
@@ -1737,8 +1749,8 @@ namespace Play.Sound {
 
 		// More goodies that can probably live on their own class.
 		double      m_CurSig; // Not sure who uses this, or why it's there.
-		readonly CSmooz m_Avg;
-		readonly CSmooz m_AFCAVG;
+		readonly CSmooz m_Avg    = new CSmooz();
+		readonly CSmooz m_AFCAVG = new CSmooz();
 		readonly bool   m_afc;
 		int         m_AFCCount;
 		double      m_AFCData;
@@ -1758,9 +1770,9 @@ namespace Play.Sound {
 		//double		m_AFC_OFFSET;		// 128
 
 		readonly bool       m_MSync;
-		readonly CSYNCINT   m_sint1;
-		readonly CSYNCINT   m_sint2;
-		readonly CSYNCINT	m_sint3;
+		readonly CSYNCINT   m_sint1 = new CSYNCINT();
+		readonly CSYNCINT   m_sint2 = new CSYNCINT();
+		readonly CSYNCINT	m_sint3 = new CSYNCINT();
 
 		readonly static int FSKGARD   = 100;
 		readonly static int FSKINTVAL = 22;
@@ -1815,6 +1827,7 @@ namespace Play.Sound {
 
 		public CSSTVDEM( SYSSET p_sys, int iSampFreq, int iSampBase, double dbToneOffset ) {
 			sys = p_sys ?? throw new ArgumentNullException( "sys must not be null." );
+			SSTVSET = new CSSTVSET( 0, iSampFreq, 0, sys.m_bCQ100 );
 
 			SampFreq = iSampFreq;
 			SampBase = iSampBase;

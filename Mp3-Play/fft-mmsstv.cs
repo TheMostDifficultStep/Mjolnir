@@ -121,7 +121,7 @@ namespace Play.Sound.FFT {
         /// rates but the FFT collect code also DECIMATES the higher sample rates since there's more data there 
         /// than needed. 
         /// This code is from InitSampType() called in TMmsstv::ReadSampFreq() and TMmsstv constructor.</remarks>
-        /// <param name="iSamplingFrequency">Read this value from the sound card.</param>
+        /// <param name="dblFrequency">Read this value from the sound card.</param>
 		/// <exception cref="ApplicationException" />
 		public static FFTControlValues FindMode( double dblFrequency ) {
 			if( (dblFrequency > CLOCKMAX) || (dblFrequency < 5000.0) ) 

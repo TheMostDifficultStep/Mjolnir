@@ -448,8 +448,8 @@ namespace Play.SSTV {
 
         public IEnumerator<int> GetRecorderTask() {
             try {
-                SYSSET           sys      = new SYSSET();
                 FFTControlValues oFFTMode = FFTControlValues.FindMode( RxSpec.Rate );
+                SYSSET           sys      = new SYSSET( oFFTMode.SampFreq );
 
                 _oSSTVDeModulator = new CSSTVDEM( sys, 
                                                   (int)oFFTMode.SampFreq, 
@@ -461,27 +461,29 @@ namespace Play.SSTV {
                                     typeof( MMSystemException ) };
                 if( rgErrors.IsUnhandled( oEx ) )
                     throw;
-                _oWorkPlace.Stop();
                 LogError( "Trouble setting up decoder" );
+                yield break;
             }
 
             do {
-                for( int i = 0; i< 500; ++i ) {
-                    try {
+                try {
+                    for( int i = 0; i< 500; ++i ) {
                         _oSSTVDeModulator.Do( _oSSTVBuffer.ReadOneSample() );
-                    } catch( Exception oEx ) {
-                        Type[] rgErrors = { typeof( NullReferenceException ),
-                                            typeof( ArgumentNullException ),
-                                            typeof( MMSystemException ),
-                                            typeof( InvalidOperationException ) };
-                        if( rgErrors.IsUnhandled( oEx ) )
-                            throw;
-
-                        _oWorkPlace.Stop();
-                        LogError( "Trouble recordering in SSTV" );
                     }
-                    yield return 250;
+                } catch( Exception oEx ) {
+                    Type[] rgErrors = { typeof( NullReferenceException ),
+                                        typeof( ArgumentNullException ),
+                                        typeof( MMSystemException ),
+                                        typeof( InvalidOperationException ) };
+                    if( rgErrors.IsUnhandled( oEx ) )
+                        throw;
+
+                    LogError( "Trouble recordering in SSTV" );
+                    // We can't call _oWorkPlace.Stop() b/c we're already in DoWork() which will
+                    // try calling the _oWorker which will have been set to NULL!!
+                    yield break;
                 }
+                yield return 0;
             } while( _oSSTVBuffer.IsReading );
 
             ModeList.HighLight = null;

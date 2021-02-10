@@ -34,8 +34,8 @@ namespace Mjolnir {
             public void Stop() {
 				_iStartTick = Timeout.Infinite;
 
+				_oHost.WorkerPlaceRemove( this );
 				if( _oWorker != null ) {
-					_oHost.WorkerPlaceRemove( this );
 					_oWorker.Dispose();
 					_oWorker = null;
 				}

@@ -723,8 +723,8 @@ namespace Play.Sound {
         /// </summary>
         /// <returns></returns>
         public short ReadOneSample() {
-            uint uiAvailable = _uiBuffered - _uiBuffUsed;
-            if( uiAvailable > 1 ) {
+            int iAvailable = (int)_uiBuffered - (int)_uiBuffUsed;
+            if( iAvailable > 1 ) {
                 return( _rgBuffer[_uiBuffUsed++] ); // If here, we always returned the amount asked for.
             } else {
                 if( BufferReload( 1 ) == 0 )
