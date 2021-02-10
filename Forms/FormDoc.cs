@@ -144,13 +144,13 @@ namespace Play.Forms {
             _rgSelections[0] = Selection;
         }
 
-        public void Paint( SKCanvas skCanvas, IPgStandardUI2 oStdUI ) {
+        public void Paint( SKCanvas skCanvas, IPgStandardUI2 oStdUI, bool fFocused ) {
             SKPointI pntUL = this.GetPoint(LOCUS.UPPERLEFT);
             using SKPaint skPaint = new SKPaint() { Color = SKColors.LightBlue };
 
             skCanvas.DrawRect( this.Left, this.Top, this.Width, this.Height, skPaint );
 
-            Cache.Render( skCanvas, oStdUI, new PointF( pntUL.X, pntUL.Y ) );
+            Cache.Render( skCanvas, oStdUI, new PointF( pntUL.X, pntUL.Y ), fFocused );
         }
 
         public override uint TrackDesired(TRACK eParentAxis, int uiRail) {
@@ -521,7 +521,7 @@ namespace Play.Forms {
             foreach( LayoutSingleLine oCache in CacheList ) {
                 skCanvas.Save();
                 skCanvas.ClipRect(new SKRect(oCache.Left, oCache.Top, oCache.Right, oCache.Bottom), SKClipOperation.Intersect);
-                oCache.Paint(e.Surface.Canvas, StdUI);
+                oCache.Paint(e.Surface.Canvas, StdUI, this.Focused );
                 skCanvas.Restore();
             }
             // Layout2.Paint( e.Surface.Canvas ); Use this to see what the columns look like.

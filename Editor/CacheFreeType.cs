@@ -525,7 +525,8 @@ namespace Play.Edit {
         public virtual void Render(
             SKCanvas       skCanvas,
             IPgStandardUI2 oStdUI,
-            PointF         pntEditAt )
+            PointF         pntEditAt,
+            bool           fFocused = true )
         {
             if( _rgGlyphs.Count <= 0 )
                 return;
@@ -547,7 +548,7 @@ namespace Play.Edit {
 
                         // Only draw if we need to override the last painted bg color.
                         if( oCluster.ColorIndex < 0 ) {
-                            skPaint.Color = oStdUI.ColorsStandardAt( StdUIColors.BGSelectedFocus );
+                            skPaint.Color = oStdUI.ColorsStandardAt( fFocused ? StdUIColors.BGSelectedFocus : StdUIColors.BGSelectedBlur );
                             DrawGlyphBack( skCanvas, skPaint, flX, pntEditAt.Y + LineHeight + iYDiff, oCluster );
                         }
 

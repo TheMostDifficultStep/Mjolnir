@@ -823,7 +823,7 @@ namespace Play.Edit {
                     foreach( FTCacheLine oCache in _oCacheMan ) {
                         PaintBackground( skCanvas, skPaint, oCache );
 
-                        oCache.Render( skCanvas, _oStdUI, RenderAt(oCache) );
+                        oCache.Render( skCanvas, _oStdUI, RenderAt(oCache), this.Focused );
                     }
                 }
             } catch( Exception oEx ) {
