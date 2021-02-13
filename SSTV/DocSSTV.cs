@@ -23,15 +23,13 @@ namespace Play.SSTV {
     public delegate void SSTVPropertyChange( ESstvProperty eProp );
 
     public class TmmSSTV {
-        CSSTVDEM dp;
-        CSSTVSET SSTVSET;
+        readonly CSSTVDEM dp;
+        readonly CSSTVSET SSTVSET;
 
 #region variables
-        int      m_ExtMode;
 	    AllModes m_HistM; // Looks like the last image type recieved.
 
 	    int m_RXW, m_RXH, m_RXPH;
-	    int m_TXW, m_TXH, m_TXPH;
 
 	    double[]  m_Z = new double[3];
         int       m_AX, m_AY;
@@ -75,6 +73,11 @@ namespace Play.SSTV {
 		// Looks like were only using grey scale of the RGB look into turning into greyscale later.
 		readonly SKBitmap pBitmapD12 = new SKBitmap( 800, 600, SKColorType.Rgb888x, SKAlphaType.Unknown );
 #endregion
+
+		public TmmSSTV( CSSTVDEM p_dp, CSSTVSET p_SSTVSET ) {
+			dp      = p_dp      ?? throw new ArgumentNullException( "CSSTVDEM" );
+			SSTVSET = p_SSTVSET ?? throw new ArgumentNullException( "CSSTVSET" );
+		}
 
 		int GetPixelLevel(short ip)
 		{
