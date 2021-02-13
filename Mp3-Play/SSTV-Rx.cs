@@ -313,6 +313,14 @@ namespace Play.Sound {
 			}
 		}
 
+		/// <summary>
+		/// Return the picture size, some modes lose height b/c of the greyscale
+		/// pattern at the top of the image.
+		/// </summary>
+		/// <param name="w">width of the image.</param>
+		/// <param name="h">height of the raw image</param>
+		/// <param name="hp">height of the image minus the grey scale.</param>
+		/// <param name="mode">One of our supported modes.</param>
 		public void GetPictureSize(out int w, out int h, out int hp, AllModes mode)
 		{
 			GetBitmapSize( out w, out h, mode);

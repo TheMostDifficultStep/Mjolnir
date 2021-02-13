@@ -22,6 +22,10 @@ namespace Play.SSTV {
 
     public delegate void SSTVPropertyChange( ESstvProperty eProp );
 
+	/// <summary>
+	/// It's a little bit of a misonmer that the demodulator doesn't include these bits to get the frequencey
+	/// demodulated stuff encoded into a bitmap. But at least we have some factorization of the problem.
+	/// </summary>
     public class TmmSSTV {
         readonly CSSTVDEM dp;
         readonly CSSTVSET SSTVSET;
@@ -29,7 +33,7 @@ namespace Play.SSTV {
 #region variables
 	    AllModes m_HistM; // Looks like the last image type recieved.
 
-	    int m_RXW, m_RXH, m_RXPH;
+	    int m_RXW, m_RXH, m_RXPH; // RXPH is the size NOT including greyscale. Not used yet, but maybe later.
 
 	    double[]  m_Z = new double[3];
         int       m_AX, m_AY;
@@ -41,8 +45,8 @@ namespace Play.SSTV {
 	    int     m_SyncPos, m_SyncRPos;
 	    int     m_SyncMax, m_SyncMin;
 
-	    int     m_SyncAccuracy;
-	    int     m_SyncAccuracyN;
+	    int     m_SyncAccuracy = 1;
+	    int     m_SyncAccuracyN;  // TODO: Gets used in TimerTimer, which isn't implented yet.
 
         //Auto
 	    int     m_Mult;
