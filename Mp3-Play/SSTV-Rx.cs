@@ -166,7 +166,7 @@ namespace Play.Sound {
 
 	public class CSSTVSET {
 		public AllModes m_Mode   { get; protected set; }
-		public AllModes m_TxMode { get; protected set; }
+	  //public AllModes m_TxMode { get; protected set; }
 
 		public double   m_TW     { get; protected set; }
 		public double   m_KS	 { get; protected set; }
@@ -189,10 +189,10 @@ namespace Play.Sound {
 		public double  m_KS2S{ get; protected set; }
 		public int     m_KSB { get; protected set; }
 
-		public int     m_TWD { get; protected set; }
-		public int     m_TL  { get; protected set; }
-		public double  m_TTW { get; protected set; }
-		public double  m_TxSampFreq { get; protected set; }
+		//public int     m_TWD { get; protected set; }
+		//public int     m_TL  { get; protected set; }
+		//public double  m_TTW { get; protected set; }
+		//public double  m_TxSampFreq { get; protected set; }
 
 		public readonly UInt32[] m_MS = new UInt32[(int)AllModes.smEND];
 		public UInt32   m_MSLL { get; protected set; }
@@ -204,7 +204,7 @@ namespace Play.Sound {
 		public int     m_AFCE { get; protected set; }
 
 		public bool	m_fNarrow   { get; protected set; }
-		public bool	m_fTxNarrow { get; protected set; }
+	  //public bool	m_fTxNarrow { get; protected set; }
 
 		public readonly double g_dblToneOffset;
 		public readonly double m_dbTxSampOffs;
@@ -236,8 +236,9 @@ namespace Play.Sound {
 			g_dblToneOffset = dbToneOffset;
 			m_bCQ100        = bCQ100;
 
-			m_fNarrow = m_fTxNarrow = false;
-			m_TxMode  = AllModes.smSCT1;
+			m_fNarrow   = false;
+		  //m_fTxNarrow = false;
+		  //m_TxMode    = AllModes.smSCT1;
 
 			SetMode(AllModes.smSCT1);
 			InitIntervalPara();
@@ -249,12 +250,12 @@ namespace Play.Sound {
 				m_MS[i] = (uint)(GetTiming((AllModes)i) * m_SampFreq / 1000.0 );
 			}
 			m_MS[2] = 0;                                 // AVT
-		//    m_MSLL =  100.0 * m_SampFreq / 1000.0;       // Lowest
-		//    m_MSL  =  147.0 * m_SampFreq / 1000.0;       // Lowest
-		//    m_MSH  = 1050.0 * 3 * m_SampFreq / 1000.0;   // Highest
-			m_MSLL = (uint)(50.0   * m_SampFreq / 1000.0 );        // Lowest
-			m_MSL  = (uint)(63.0   * m_SampFreq / 1000.0 );        // Lowest
-			m_MSH  = (uint)(1390.0 * 3 * m_SampFreq / 1000.0);     // Highest
+		  //m_MSLL =  100.0 *     m_SampFreq / 1000.0;   // Lowest
+		  //m_MSL  =  147.0 *     m_SampFreq / 1000.0;   // Lowest
+		  //m_MSH  = 1050.0 * 3 * m_SampFreq / 1000.0;   // Highest
+			m_MSLL = (uint)(50.0   *     m_SampFreq / 1000.0 );    // Lowest
+			m_MSL  = (uint)(63.0   *     m_SampFreq / 1000.0 );    // Lowest
+			m_MSH  = (uint)(1390.0 * 3 * m_SampFreq / 1000.0 );    // Highest
 		}
 
 		public void SetOFS( int iOFS ) {
@@ -265,7 +266,7 @@ namespace Play.Sound {
 		/// we can't make the members here readonly.</remarks>
 		public void SetMode( AllModes mode)
 		{
-			//m_SampFreq = sys.m_SampFreq;
+			//m_SampFreq = sys.m_SampFreq; <-- this gets set in the constructor now.
 			m_Mode    = mode;
 			m_fNarrow = CSSTVSET.IsNarrowMode(mode);
 			SetSampFreq();
@@ -273,14 +274,14 @@ namespace Play.Sound {
 			m_LM = (int)((m_TW * m_L) + 1 );
 		}
 
-		void SetTxMode(AllModes mode)
-		{
-			m_TxSampFreq = m_SampFreq /* sys.m_SampFreq */ + m_dbTxSampOffs /* sys.m_TxSampOff */;
-			m_TxMode = mode;
-			m_fTxNarrow = CSSTVSET.IsNarrowMode(mode);
-			SetTxSampFreq();
-			m_TWD = (int)m_TTW;
-		}
+		//void SetTxMode(AllModes mode)
+		//{
+		//	m_TxSampFreq = m_SampFreq /* sys.m_SampFreq */ + m_dbTxSampOffs /* sys.m_TxSampOff */;
+		//	m_TxMode = mode;
+		//	m_fTxNarrow = CSSTVSET.IsNarrowMode(mode);
+		//	SetTxSampFreq();
+		//	m_TWD = (int)m_TTW;
+		//}
 
 		void GetBitmapSize( out int w, out int h, AllModes mode) {
 			switch(mode){
@@ -336,7 +337,7 @@ namespace Play.Sound {
 					m_KS = 88.0 * m_SampFreq / 1000.0;
 					m_KS2 = 44.0 * m_SampFreq / 1000.0;
 					m_OF = 12.0 * m_SampFreq / 1000.0;
-		//            m_OFP = 10.8 * m_SampFreq / 1000.0;
+		          //m_OFP = 10.8 * m_SampFreq / 1000.0;
 					m_OFP = 10.7 * m_SampFreq / 1000.0;
 					m_SG = (88.0 + 1.25) * m_SampFreq / 1000.0;
 					m_CG = (88.0 + 3.5) * SampFreq /1000.0; 
@@ -378,7 +379,7 @@ namespace Play.Sound {
 				case AllModes.smSCTDX:
 					m_KS = 345.6 * m_SampFreq / 1000.0;
 					m_OF = 10.5 * m_SampFreq / 1000.0;
-		//            m_OFP = 9.5 * m_SampFreq / 1000.0;
+		          //m_OFP = 9.5 * m_SampFreq / 1000.0;
 					m_OFP = 10.2 * m_SampFreq / 1000.0;
 					m_SG = 347.1 * m_SampFreq / 1000.0;
 					m_CG = m_KS + m_SG;
@@ -389,7 +390,7 @@ namespace Play.Sound {
 				case AllModes.smMRT1:
 					m_KS = 146.432 * m_SampFreq / 1000.0;
 					m_OF = 5.434 * m_SampFreq / 1000.0;
-		//            m_OFP = 7.3 * m_SampFreq / 1000.0;
+		          //m_OFP = 7.3 * m_SampFreq / 1000.0;
 					m_OFP = 7.2 * m_SampFreq / 1000.0;
 					m_SG = 147.004 * m_SampFreq / 1000.0;
 					m_CG = m_KS + m_SG;
@@ -410,7 +411,7 @@ namespace Play.Sound {
 				case AllModes.smSC2_180:
 					m_KS = 235.0 * m_SampFreq / 1000.0;
 					m_OF = 6.0437 * m_SampFreq / 1000.0;
-		//            m_OFP = 7.5 * m_SampFreq / 1000.0;
+		          //m_OFP = 7.5 * m_SampFreq / 1000.0;
 					m_OFP = 7.8 * m_SampFreq / 1000.0;
 					m_SG = m_KS;
 					m_CG = m_KS + m_SG;
@@ -954,12 +955,12 @@ namespace Play.Sound {
 			}
 		}
 
-		void SetTxSampFreq() {
-			int dm1, dm2, iTL;
-			GetPictureSize( out dm1, out dm2, out iTL, m_TxMode);
-			m_TL = iTL;
-			m_TTW = GetTiming(m_TxMode) * m_TxSampFreq / 1000.0;
-		}
+		//void SetTxSampFreq() {
+		//	int dm1, dm2, iTL;
+		//	GetPictureSize( out dm1, out dm2, out iTL, m_TxMode);
+		//	m_TL = iTL;
+		//	m_TTW = GetTiming(m_TxMode) * m_TxSampFreq / 1000.0;
+		//}
 	}
 
 	/// <summary>

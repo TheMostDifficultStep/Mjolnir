@@ -272,7 +272,7 @@ namespace Play.SSTV {
 			SSTVSET.GetPictureSize( out m_RXW, out m_RXH, out m_RXPH, SSTVSET.m_Mode);
 			if( pBitmapRX.Width != m_RXW ){
 				pBitmapRX.Dispose();
-				pBitmapRX = new SKBitmap( m_RXW, m_RXH, SKColorType.Rgba8888, SKAlphaType.Opaque );
+				pBitmapRX = new SKBitmap( m_RXW, m_RXH, SKColorType.Rgb888x, SKAlphaType.Opaque );
 				//PBoxRX->Invalidate();
 			}
 			//UpdateModeBtn();
@@ -389,10 +389,10 @@ namespace Play.SSTV {
 					m_SyncMin  = m_SyncMax = sp;
 					m_SyncRPos = m_SyncPos;
 				} else if( m_SyncMax < sp ){
-					m_SyncMax = sp;
-					m_SyncPos = (int)ps;
+					m_SyncMax  = sp;
+					m_SyncPos  = (int)ps;
 				} else if( m_SyncMin > sp ){
-					m_SyncMin = sp;
+					m_SyncMin  = sp;
 				}
 				int     d, x;
 				x = (int)(ps * pBitmapD12.Width / SSTVSET.m_TW );
