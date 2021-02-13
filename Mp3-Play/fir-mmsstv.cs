@@ -23,7 +23,7 @@ namespace Play.Sound {
 		readonly double gain;
 		readonly double fc;
 
-		double[] hp = new double[CSSTVDEM.TAPMAX+1];		/* 係数配列 : Coefficient array */
+		readonly double[] hp = new double[CSSTVDEM.TAPMAX+1];		/* 係数配列 : Coefficient array */
 
 		public FIR( int tap, FirFilt type, double fs, double fcl, double fch, double att, double gain)
 		{
@@ -34,6 +34,9 @@ namespace Play.Sound {
 			this.fch  = fch;
 			this.att  = att;
 			this.gain = gain;
+
+			if( n > CSSTVDEM.TAPMAX )
+				throw new ArgumentOutOfRangeException( "Tap is too large" );
 
 			if( typ == FirFilt.ffHPF ){
 				fc = 0.5*fs - fcl;
@@ -496,6 +499,9 @@ namespace Play.Sound {
 		}
 	}
 
+	/// <remarks>
+	/// This one is the most complicated port of the bunch. Probably should give it extra attention.
+	/// </remarks>
 	public class CIIR {
 		protected static int IIRMAX = 16;
 

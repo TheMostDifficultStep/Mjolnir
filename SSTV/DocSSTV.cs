@@ -22,6 +22,645 @@ namespace Play.SSTV {
 
     public delegate void SSTVPropertyChange( ESstvProperty eProp );
 
+    public class TmmSSTV {
+        CSSTVDEM dp;
+        CSSTVSET SSTVSET;
+
+#region variables
+        int      m_ExtMode;
+	    AllModes m_HistM; // Looks like the last image type recieved.
+
+	    int m_RXW, m_RXH, m_RXPH;
+	    int m_TXW, m_TXH, m_TXPH;
+
+	    double[]  m_Z = new double[3];
+        int       m_AX, m_AY;
+
+	    short[]  m_Y36 = new short[800];
+	    short[,] m_D36 = new short[2,800];
+        int      m_DSEL;
+
+	    int     m_SyncPos, m_SyncRPos;
+	    int     m_SyncMax, m_SyncMin;
+
+	    int     m_SyncAccuracy;
+	    int     m_SyncAccuracyN;
+
+        //Auto
+	    int     m_Mult;
+
+	    int     m_AutoStopPos;
+	    int[]   m_AutoStopAPos = new int[16];
+	    int     m_AutoStopCnt;
+	    int     m_AutoStopACnt;
+
+	    int     m_AutoSyncCount;
+	    int     m_AutoSyncPos;
+	    int     m_AutoSyncDis;
+	    int     m_AutoSyncDiff;
+
+        //AutoSlant
+	    int       m_ASBgnPos;
+	    int       m_ASCurY;
+	    int       m_ASDis;
+	    int       m_ASBitMask;
+	    double[]  m_ASLmt = new double[7];
+	    int[]     m_ASPos = new int[4];
+	    CSmooz    m_ASAvg = new CSmooz();
+
+		short[] pCalibration = null; // Not strictly necessary yet.
+
+		         SKBitmap pBitmapRX  = new SKBitmap();
+
+		// Looks like were only using grey scale of the RGB look into turning into greyscale later.
+		readonly SKBitmap pBitmapD12 = new SKBitmap( 800, 600, SKColorType.Rgb888x, SKAlphaType.Unknown );
+#endregion
+
+		int GetPixelLevel(short ip)
+		{
+			if( dp.sys.m_DemCalibration && (pCalibration != null) ){
+				int d = (ip / 8) + 2048;
+				if( d < 0 )
+					d = 0;
+				if( d > 4096 )
+					d = 4096;
+				return pCalibration[d];
+			} else {
+				int d = (int)(ip - dp.sys.m_DemOff);
+				if( d >= 0 ){
+					d *= (int)dp.sys.m_DemWhite;
+				} else {
+					d *= (int)dp.sys.m_DemBlack;
+				}
+				return d;
+			}
+		}
+
+		int GetPictureLevel( short ip, int i )
+		{
+			if( dp.sys.m_UseRxBuff != 2 ) {
+				int   d;
+				short ip2 = dp.m_Buf[dp.m_rPage * dp.m_BWidth + i + SSTVSET.m_KSB ];
+
+				if( ip < ip2 ){
+					d = GetPixelLevel(ip2);
+				} else {
+					d = GetPixelLevel(ip);
+				}
+				return d;
+			}
+
+			return GetPixelLevel(ip);
+		}
+
+		static void YCtoRGB( out int R, out int G, out int B, int Y, int RY, int BY)
+		{
+			Y -= 16;
+			R = (int)(1.164457*Y + 1.596128*RY );
+			G = (int)(1.164457*Y - 0.813022*RY - 0.391786*BY );
+			B = (int)(1.164457*Y + 2.017364*BY );
+
+			LimitRGB( ref R, ref G, ref B);
+		}
+
+		static void LimitRGB( ref int R, ref int G, ref int B)
+		{
+			R = Limit256(R);
+			G = Limit256(G);
+			B = Limit256(B);
+		}
+
+		static int Limit256(int d)
+		{
+			if( d < 0 )
+				d = 0;
+			if( d > 255 )
+				d = 255;
+
+			return d;
+		}
+
+        void InitAutoStop( double dbSampBase )
+        {
+	        //memset(m_AutoStopAPos, 0, sizeof(m_AutoStopAPos));
+            Array.Clear( m_AutoStopAPos, 0, m_AutoStopAPos.Length );
+	        m_AutoStopCnt  = 0;
+	        m_AutoStopACnt = 0;
+	        m_AutoStopPos  = 0;
+	        m_ASBgnPos     = 0x7fffffff;
+	        m_ASDis        = 0;
+	        m_ASBitMask    = 0;
+	        m_ASAvg.SetCount(16);
+
+	        m_Z[0] = m_Z[1] = m_Z[2] = 0;
+
+	        m_ASPos[0] = 64;
+	        m_ASPos[1] = 128;
+	        m_ASPos[2] = 160;
+	        m_ASPos[3] = (SSTVSET.m_L - 36);
+
+	        switch(SSTVSET.m_Mode){
+		        case AllModes.smPD50:
+		        case AllModes.smPD90:            // Max 128
+		        case AllModes.smMP73:
+		        case AllModes.smMP115:
+		        case AllModes.smMP140:
+		        case AllModes.smMP175:
+		        case AllModes.smR24:
+		        case AllModes.smRM8:
+		        case AllModes.smRM12:
+                case AllModes.smMN73:
+                case AllModes.smMN110:
+                case AllModes.smMN140:
+			        m_ASPos[0] = 48;
+			        m_ASPos[1] = 64;
+			        m_ASPos[2] = 72;
+			        m_ASPos[3] = 110;
+			        break;
+		        case AllModes.smPD160:           // Max 200
+			        m_ASPos[0] = 48;
+			        m_ASPos[1] = 80;
+			        m_ASPos[2] = 126;
+			        m_ASPos[3] = 160;
+			        break;
+		        case AllModes.smPD290:           // Max 308 Limit 288
+			        m_ASPos[3] = 240;
+			        break;
+		        case AllModes.smP3:              // Max496
+			        m_ASPos[1] = 200;
+			        m_ASPos[2] = 360;
+			        m_ASPos[3] = 496-48;
+			        break;
+		        case AllModes.smP5:              // Max496 Limit 439
+			        m_ASPos[1] = 200;
+			        m_ASPos[2] = 300;
+			        m_ASPos[3] = 380;
+			        break;
+		        case AllModes.smP7:              // Max496 Limit 330
+			        m_ASPos[1] = 128;
+			        m_ASPos[2] = 220;
+			        m_ASPos[3] = 280;
+			        break;
+	        }
+	        m_AutoSyncPos = 0x7fffffff;
+	        m_Mult = (int)(SSTVSET.m_TW / 320.0);
+	        m_AutoSyncDiff = m_Mult * 3;
+
+            int iSomeMagic = (int)(45 * dbSampBase / 11025);
+	        if( m_AutoSyncDiff > iSomeMagic )
+                m_AutoSyncDiff = iSomeMagic;
+        }
+
+		/// <summary>
+		/// This is a whole hot mess of stuff and I'm not going to port it for now.
+		/// </summary>
+		/// <returns></returns>
+		bool AutoStopJob() {
+			return true;
+		}
+
+        /// <summary>
+        /// Bunch of stuff to do when we stop, but I don't think it's necessary to
+        /// sort it all right now.
+        /// </summary>
+        void AllStop() {
+			//bool lost = dp.m_Lost;
+			//if( dp.m_LoopBack != true ){
+			//	WriteHistory(1);
+			//} else {
+			//	SBWHist->Enabled = TRUE;
+			//}
+			//TrackTxMode(0);
+			//UpdateModeBtn();
+			//if( lost )
+            //    InfoRxLost();
+			//UpdateUI();
+         }
+
+        void PrepViewers() {
+			//if( KRSW->Checked ){
+			//	if( pRxView != NULL ){
+			//		if( pRxView->Handle != ::GetForegroundWindow() ){
+			//			::SetForegroundWindow(pRxView->Handle);
+			//		}
+			//	}
+			//	else if( m_MainPage != pgRX ){
+			//		AdjustPage(pgRX);
+			//	}
+			//}
+
+			//if( pRxView != NULL ){
+			//	pRxView->UpdateTitle(SSTVSET.m_Mode, false );
+			//}
+			//if( pComm != NULL )
+            //    pComm->SetScan(dp.m_Sync);
+
+            // DispSyncStat();
+        }
+
+        void PrepDraw() {
+			m_SyncRPos      = m_SyncPos = -1;
+			m_SyncAccuracyN = 0;
+			// SBTO->Enabled   = FALSE; MemoryTX offset.
+			m_DSEL = 0;
+			m_AX   = -1;
+			m_AY   = -5;
+
+			//if( dp.m_ReqSave ){
+			//	WriteHistory(1);
+			//}
+			SSTVSET.GetPictureSize( out m_RXW, out m_RXH, out m_RXPH, SSTVSET.m_Mode);
+			if( pBitmapRX.Width != m_RXW ){
+				pBitmapRX.Dispose();
+				pBitmapRX = new SKBitmap( m_RXW, m_RXH, SKColorType.Rgba8888, SKAlphaType.Opaque );
+				//PBoxRX->Invalidate();
+			}
+			//UpdateModeBtn();
+			//::GetUTC(&m_StartTime);
+
+            // TSpeedButton SBTX, looks like TX send button, down to send. 
+            // but we want to be RX mode. See: TMmsstv::SBTXClick() && TMmsstv::ToRX()
+            // Might be loop back shows what we're sending!! Maybe!
+            dp.PrepDraw( /* SBTX->Down ? sys.m_echo : 0 */ false );
+			//WaveStg.WInit();
+			//RxHist.ClearAddFlag();
+			//SBWHist->Enabled = FALSE;
+			//KRH->Enabled = FALSE; // Copy to history.
+
+            PrepViewers();
+        }
+
+		void ClearTVImages() {
+			//if( KRD->Checked ){ // KRD: AutoClear
+			//	ClearDraw(pBitmapRX, PBoxRX, sys.m_ColorRXB);
+			//}
+			//ClearDraw(pBitmapD12, PBoxD12, clWhite);
+		}
+
+		void DrawSSTV()
+		{
+			if( dp.m_Sync && (dp.m_wPage != dp.m_rPage) ){
+				while( dp.m_Sync && (dp.m_wPage != dp.m_rPage) ){
+					if( dp.m_wBgn != 0 ){
+						if( dp.m_wBgn != 1 ){
+                            PrepDraw();
+						}
+						dp.OnDrawBegin();
+						dp.SyncSSTV( m_SyncAccuracy ); // TODO: Double check this sync value.
+						if( dp.m_wBgn != 0 )
+                            return;
+						m_HistM = SSTVSET.m_Mode;
+						ClearTVImages();
+						InitAutoStop( dp.SampBase );
+						m_AutoSyncCount = m_AutoSyncDis = 0;
+					}
+					//short *ip = &dp->m_Buf[dp->m_rPage * dp->m_BWidth];
+					//short *sp = &dp->m_B12[dp->m_rPage * dp->m_BWidth];
+					int ip = dp.m_rPage * dp.m_BWidth;
+                    dp.StorePage( ip );
+
+					DrawSSTVNormal();
+					if( m_AY > SSTVSET.m_L ){
+						if( dp.m_Sync ){
+							dp.Stop();
+                            AllStop();
+						}
+						break;
+					}
+                    dp.RPageIncrement();
+				}
+				//if( !pSound->IsBusy() ){
+				//	PBoxRXPaint(NULL);
+				//	DrawSync();
+				//}
+			}
+		}
+
+		void DrawSSTVNormal()
+		{
+			int R,G,B; 
+			int gp  = -1;
+			int gp2 = -1;
+			int n   = dp.m_rBase;
+			int bx  = -1;
+			int ay  = -5;
+
+			for( int i = 0; i < SSTVSET.m_WD; i++, n++ ){
+				short ip = dp.m_Buf[dp.m_rPage * dp.m_BWidth + i ];
+
+				if( n < 0 ) 
+					continue;
+
+				double ps = n % (int)SSTVSET.m_TW; // fmod(double(n), SSTVSET.m_TW)
+				int    y  = (int)(((double)n)/SSTVSET.m_TW); 
+
+				if( ay != y ){
+					m_AY = ay = y;
+					if( (SSTVSET.m_Mode == AllModes.smSCT1)||
+						(SSTVSET.m_Mode == AllModes.smSCT2)||
+						(SSTVSET.m_Mode == AllModes.smSCTDX) ){
+						if( (y > 0) && (y <= 256) ){
+							gp = y-1;
+						}
+					}
+					else if( ((SSTVSET.m_Mode >= AllModes.smPD50)&&(SSTVSET.m_Mode <= AllModes.smPD290)) ||
+							 ((SSTVSET.m_Mode >= AllModes.smMP73)&&(SSTVSET.m_Mode <= AllModes.smMP175)) ||
+							 ((SSTVSET.m_Mode >= AllModes.smMN73)&&(SSTVSET.m_Mode <= AllModes.smMN140)) ||
+							 ((SSTVSET.m_Mode >= AllModes.smR24 )&&(SSTVSET.m_Mode <= AllModes.smRM12 ))
+					){
+						if( (y >= 0) && (y < SSTVSET.m_L) ){
+							R   = y * 2;
+							gp  = R;
+							gp2 = R+1;
+						}
+					}
+					else if( (y >= 0) && (y < pBitmapRX.Height) ){
+						gp = y;
+					}
+				}
+
+				short sp = dp.m_B12[dp.m_rPage * dp.m_BWidth + i];
+				if( (int)ps == 0 ){
+					// KRSA, assigned sys.m_UseRxBuff ? TRUE : FALSE, see also GetPictureLevel()
+					if( (dp.sys.m_AutoStop || dp.sys.m_AutoSync /* || KRSA->Checked */ ) && 
+						dp.m_Sync && (m_SyncPos != -1) ){
+						AutoStopJob();
+					}
+					m_SyncMin  = m_SyncMax = sp;
+					m_SyncRPos = m_SyncPos;
+				} else if( m_SyncMax < sp ){
+					m_SyncMax = sp;
+					m_SyncPos = (int)ps;
+				} else if( m_SyncMin > sp ){
+					m_SyncMin = sp;
+				}
+				int     d, x;
+				x = (int)(ps * pBitmapD12.Width / SSTVSET.m_TW );
+				if( (x != bx) && (x < pBitmapD12.Width) && (x >= 0) ){
+					d = sp * 256 / 4096;
+					d = Limit256(d);
+					pBitmapD12.SetPixel( x, y, new SKColor( (byte)d ) );
+					bx = x;
+				}
+				if( ps >= SSTVSET.m_OF ){
+					ps -= SSTVSET.m_OF;
+					switch(SSTVSET.m_Mode){
+					case AllModes.smSCT1:
+					case AllModes.smSCT2:
+					case AllModes.smSCTDX:
+						if( ps < SSTVSET.m_KS ){               // R
+							x = (int)(ps * pBitmapRX.Width / SSTVSET.m_KSS );
+							if( (x != m_AX) && (x >= 0) && (x < 320) ){
+								m_AX = x;
+								if( SSTVSET.m_Mode == AllModes.smSCTDX ){
+									d = GetPixelLevel  (ip);
+								} else {
+									d = GetPictureLevel(ip, i);
+								}
+								d += 128;
+								d = Limit256(d);
+								if( gp > -1 ){
+									pBitmapRX.SetPixel( x, gp, new SKColor( (byte)d, (byte)m_D36[0,x], (byte)m_D36[1,x] ) );
+								}
+							}
+						}
+						else if( ps < SSTVSET.m_CG ){          // G
+							ps -= SSTVSET.m_SG;
+							x = (int)(ps * pBitmapRX.Width / SSTVSET.m_KSS);
+							if( (x != m_AX) && (x >= 0) && (x < 320) ){
+								m_AX = x;
+								if( SSTVSET.m_Mode == AllModes.smSCTDX ){
+									d = GetPixelLevel  (ip);
+								}
+								else {
+									d = GetPictureLevel(ip, i);
+								}
+								d += 128;
+								d = Limit256(d);
+								m_D36[0,x] = (short)d;
+							}
+						}
+						else if( ps < SSTVSET.m_CB ){          // B
+							ps -= SSTVSET.m_SB;
+							x = (int)(ps * pBitmapRX.Width / SSTVSET.m_KSS);
+							if( (x != m_AX) && (x >= 0) && (x < 320) ){
+								m_AX = x;
+								if( SSTVSET.m_Mode == AllModes.smSCTDX ){
+									d = GetPixelLevel  (ip);
+								}
+								else {
+									d = GetPictureLevel(ip, i);
+								}
+								d += 128;
+								d = Limit256(d);
+								m_D36[1,x] = (short)d;
+							}
+						}
+						break;
+					case AllModes.smR36:
+						if( ps < SSTVSET.m_KS ){               // ‹P“x
+							x = (int)(ps * pBitmapRX.Width / SSTVSET.m_KSS);
+							if( (m_AX != x) && (x >= 0) && (x < 320) ){
+								m_AX = x;
+								d = GetPictureLevel(ip, i);
+								d += 128;
+								d = Limit256(d);
+								m_Y36[x] = (short)d;
+							}
+						}
+						else if( ps < SSTVSET.m_CG ){          // TCS
+							ps -= SSTVSET.m_SG;
+							if( ps >= 0 ){
+								d = GetPixelLevel(ip);
+								if( (d >= 64) || (d < -64) ){
+									m_DSEL = (d >= 0) ? 1 : 0;  // RY=1500 m_D36[0], BY=2300 m_D36[1]
+								} else {
+									m_DSEL = m_DSEL != 0 ? 0 : 1;
+								}
+							}
+						}
+						else if( ps < SSTVSET.m_CB ){          // F·
+							ps -= SSTVSET.m_SB;
+							x = (int)(ps * pBitmapRX.Width / SSTVSET.m_KS2S);
+							if( (m_AX != x) && (x >= 0) && (x < 320) && (y < 240) ){
+								m_AX = x;
+								d = GetPixelLevel(ip);
+								m_D36[m_DSEL,x] = (short)d;
+								YCtoRGB( out R, out G, out B, m_Y36[x], m_D36[0,x], m_D36[1,x]);
+								if( gp > -1 ){
+									pBitmapRX.SetPixel( x, gp, new SKColor( (byte)R, (byte)G, (byte)B ) );
+								}
+							}
+						}
+						break;
+					case AllModes.smR24:
+					case AllModes.smR72:
+					case AllModes.smMR73:
+					case AllModes.smMR90:
+					case AllModes.smMR115:
+					case AllModes.smMR140:
+					case AllModes.smMR175:
+					case AllModes.smML180:
+					case AllModes.smML240:
+					case AllModes.smML280:
+					case AllModes.smML320:
+						if( ps < SSTVSET.m_KS ){               // ‹P“x
+							x = (int)(ps * pBitmapRX.Width / SSTVSET.m_KSS );
+							if( (m_AX != x) && (x >= 0) && (x < pBitmapRX.Width) ){
+								m_AX = x;
+								d = GetPictureLevel(ip, i);
+								d += 128;
+								d = Limit256(d);
+								m_Y36[x] = (short)d;
+							}
+						}
+						else if( ps < SSTVSET.m_CG ){          // R-Y
+							ps -= SSTVSET.m_SG;
+							x = (int)(ps * pBitmapRX.Width / SSTVSET.m_KS2S );
+							if( (m_AX != x) && (x >= 0) && (x < pBitmapRX.Width) ){
+								m_AX = x;
+								d = GetPixelLevel(ip);
+								m_D36[1,x] = (short)d;
+							}
+						}
+						else if( ps < SSTVSET.m_CB ){          // B-Y
+							ps -= SSTVSET.m_SB;
+							x = (int)(ps * pBitmapRX.Width / SSTVSET.m_KS2S);
+							if( (m_AX != x) && (x >= 0) && (x < pBitmapRX.Width) && (y < SSTVSET.m_L) ){
+								m_AX = x;
+								d = GetPixelLevel(ip);
+								YCtoRGB( out R, out G, out B, m_Y36[x], m_D36[1,x], d);
+								if( gp > -1 ){
+									pBitmapRX.SetPixel( x, gp, new SKColor( (byte)R, (byte)G, (byte)B ) );
+									if( SSTVSET.m_Mode == AllModes.smR24 ){
+										pBitmapRX.SetPixel( x, gp2, new SKColor( (byte)R, (byte)G, (byte)B ) );
+									}
+								}
+							}
+						}
+						break;
+					case AllModes.smPD50:
+					case AllModes.smPD90:
+					case AllModes.smPD120:
+					case AllModes.smPD160:
+					case AllModes.smPD180:
+					case AllModes.smPD240:
+					case AllModes.smPD290:
+					case AllModes.smMP73:
+					case AllModes.smMP115:
+					case AllModes.smMP140:
+					case AllModes.smMP175:
+					case AllModes.smMN73:
+					case AllModes.smMN110:
+					case AllModes.smMN140:
+						if( ps < SSTVSET.m_KS ){               // ‹P“x
+							x = (int)(ps * pBitmapRX.Width / SSTVSET.m_KSS);
+							if( (m_AX != x) && (x >= 0) && (x < pBitmapRX.Width) ){
+								m_AX = x;
+								d = GetPictureLevel(ip, i);
+								d += 128;
+								d = Limit256(d);
+								m_Y36[x] = (short)d;
+							}
+						}
+						else if( ps < SSTVSET.m_CG ){          // R-Y
+							ps -= SSTVSET.m_SG;
+							x = (int)(ps * pBitmapRX.Width / SSTVSET.m_KSS);
+							if( (m_AX != x) && (x >= 0) && (x < pBitmapRX.Width) ){
+								m_AX = x;
+								d = GetPixelLevel(ip);
+								m_D36[1,x] = (short)d;
+							}
+						}
+						else if( ps < SSTVSET.m_CB ){          // B-Y
+							ps -= SSTVSET.m_SB;
+							x = (int)(ps * pBitmapRX.Width / SSTVSET.m_KSS );
+							if( (m_AX != x) && (x >= 0) && (x < pBitmapRX.Width) ){
+								m_AX = x;
+								d = GetPixelLevel(ip);
+								m_D36[0,x] = (short)d;
+							}
+						}
+						else if( ps < (SSTVSET.m_CB + SSTVSET.m_KS) ){          // Y(even)
+							ps -= SSTVSET.m_CB;
+							x = (int)(ps * pBitmapRX.Width / SSTVSET.m_KSS);
+							if( (m_AX != x) && (x >= 0) && (x < pBitmapRX.Width) && (y < SSTVSET.m_L) ){
+								m_AX = x;
+								if( gp > -1 ){
+									YCtoRGB( out R, out G, out B, m_Y36[x], m_D36[1,x], m_D36[0,x]);
+									pBitmapRX.SetPixel( x, gp, new SKColor( (byte)R, (byte)G, (byte)B ) );
+
+									d = GetPictureLevel(ip, i);
+									d += 128;
+									YCtoRGB( out R, out G, out B, d, m_D36[1,x], m_D36[0,x]);
+									pBitmapRX.SetPixel( x, gp2, new SKColor( (byte)R, (byte)G, (byte)B ) );
+								}
+							}
+						}
+						break;
+					case AllModes.smRM8:
+					case AllModes.smRM12:
+						if( ps < SSTVSET.m_KS ){               // ‹P“x
+							x = (int)(ps * pBitmapRX.Width / SSTVSET.m_KSS);
+							if( (m_AX != x) && (x >= 0) && (x < pBitmapRX.Width) && (y < SSTVSET.m_L) ){
+								m_AX = x;
+								d = GetPictureLevel(ip, i);
+								d *= (int)(256.0 / (256.0 - 32.0));
+								d += 128;
+								d = Limit256(d);
+								if( gp > -1 ){
+									pBitmapRX.SetPixel( x, gp,  new SKColor( (byte)d, (byte)d, (byte)d ) );
+									pBitmapRX.SetPixel( x, gp2, new SKColor( (byte)d, (byte)d, (byte)d ) );
+								}
+							}
+						}
+						break;
+					default:
+						if( ps < SSTVSET.m_KS ){               // R or G(MRT)
+							x = (int)(ps * pBitmapRX.Width / SSTVSET.m_KSS);
+							if( (x != m_AX) && (x >= 0) && (x < pBitmapRX.Width) ){
+								m_AX = x;
+								d = GetPictureLevel(ip, i);
+								d += 128;
+								d = Limit256(d);
+								m_D36[0,x] = (short)d;
+							}
+						}
+						else if( ps < SSTVSET.m_CG ){          // G or B(MRT)
+							ps -= SSTVSET.m_SG;
+							x = (int)(ps * pBitmapRX.Width / SSTVSET.m_KSS);
+							if( (x != m_AX) && (x >= 0) && (x < pBitmapRX.Width) ){
+								m_AX = x;
+								d = GetPictureLevel(ip, i);
+								d += 128;
+								d = Limit256(d);
+								m_D36[1,x] = (short)d;
+							}
+						}
+						else if( ps < SSTVSET.m_CB ){          // B or R(MRT)
+							ps -= SSTVSET.m_SB;
+							x = (int)(ps * pBitmapRX.Width / SSTVSET.m_KSS);
+							if( (x != m_AX) && (x >= 0) && (x < pBitmapRX.Width) ){
+								m_AX = x;
+								d = GetPictureLevel(ip, i);
+								d += 128;
+								d = Limit256(d);
+								if( gp > -1 ){
+									if( (SSTVSET.m_Mode == AllModes.smMRT1)||(SSTVSET.m_Mode == AllModes.smMRT2) ){
+										pBitmapRX.SetPixel( x, gp,  new SKColor( (byte)d, (byte)m_D36[0,x], (byte)m_D36[1,x] ) );
+									} else {
+										pBitmapRX.SetPixel( x, gp,  new SKColor( (byte)m_D36[0,x], (byte)m_D36[1,x], (byte)d ) );
+									}
+								}
+							}
+						}
+						break;
+					}
+				}
+			}
+		}
+    }
+
     public class DocSSTV :
         IPgParent,
         IPgLoad<TextReader>,

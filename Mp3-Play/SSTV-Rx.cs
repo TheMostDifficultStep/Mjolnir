@@ -22,11 +22,11 @@ using System.Text;
 
 namespace Play.Sound {
 	public class SYSSET {
-		int     m_Priority;
+		int     m_Priority = 0;
 
-		int		m_SoundPriority;
-		int		m_SoundStereo;
-		int		m_StereoTX;
+		int		m_SoundPriority = 1;
+		int		m_SoundStereo   = 0;
+		int		m_StereoTX      = 0;
 
 		int		m_TxRxLock;
 		int     m_RTSonRX;
@@ -45,39 +45,31 @@ namespace Play.Sound {
 		int		m_Palette;
 		int     m_BitPixel;
 
-		int     m_FFTType;
-		int		m_FFTGain;
-		int		m_FFTResp;
-		int     m_FFTStg;
-		int     m_FFTWidth;
-		int		m_FFTAGC;
-		int     m_FFTPriority;
-		double	m_TxSampOff;
+		public bool   m_TestDem  { get; protected set; } = false; // used
+		public double m_DemOff   { get; } = 0;
+		public double m_DemWhite { get; } = 128.0/16384.0;
+		public double m_DemBlack { get; } = 128.0/16384.0;
+		public bool   m_DemCalibration { get; } = false; // see TmmSSTV.pCalibration
+
+		//int     m_FFTType;
+		//int		m_FFTGain;
+		//int		m_FFTResp;
+		//int     m_FFTStg;
+		//int     m_FFTWidth;
+		//int		m_FFTAGC;
+		//int     m_FFTPriority;
+		//double	m_TxSampOff;
 		public double	m_SampFreq { get; protected set; } // used
 
-		int     m_TuneTXTime;
-		int     m_TuneSat;
-
-		public bool m_TestDem { get; protected set; } = false; // used
-		double   m_DemOff;
-		double   m_DemWhite;
-		double   m_DemBlack;
-		int      m_DemCalibration;
-		double[] m_Dem17 = new double[17];
+		int      m_TuneTXTime;
+		int      m_TuneSat;
 
 		int      m_Way240;
 		int		 m_AutoMargin;
 				  
-		public bool m_UseRxBuff { get; protected set; } // used
-		int      m_AutoStop;
-		int      m_AutoSync;
-		int      m_CWID;
-		int      m_CWIDFreq;
-		string   m_CWIDText;
-		int      m_CWIDSpeed;
-		int		 m_CWIDWPM;
-		string   m_MMVID;
-		string	 m_CWText;
+		public int  m_UseRxBuff { get; protected set; } = 1; // used
+		public bool m_AutoStop  { get; protected set; } = false; // used
+		public bool m_AutoSync  { get; protected set; } = true;
 				  
 		int      m_TXFSKID;
 
@@ -87,18 +79,16 @@ namespace Play.Sound {
 		int      m_PicSelRTM;
 		int      m_PicSelSmooz;
 
-		int      m_Sharp2D;
 		int      m_Differentiator;
 		double   m_DiffLevelP;
 		double   m_DiffLevelM;
 
 		public bool m_Repeater { get; protected set; } = false; // used
 		public int  m_RepSenseLvl { get; protected set; }  // トーン検出感度 : Tone detection sensitivity (used)
-		string   m_RepAnsCW;
-		public int m_RepTimeA { get; protected set; }     // トーン検出時間 : Tone detection time 
-		public int m_RepTimeB { get; protected set; }     // トーン検出からAnsCW出力までの時間 : Time from tone detection to AnsCW output 
-		public int m_RepTimeC { get; protected set; }     // 受信待機のタイムアウト : Receive wait timeout
-		public int m_RepTimeD { get; protected set; }     // リプレイ送信の遅延時間 : Delay time for replay transmission 
+		public int  m_RepTimeA { get; protected set; }     // トーン検出時間 : Tone detection time 
+		public int  m_RepTimeB { get; protected set; }     // トーン検出からAnsCW出力までの時間 : Time from tone detection to AnsCW output 
+		public int  m_RepTimeC { get; protected set; }     // 受信待機のタイムアウト : Receive wait timeout
+		public int  m_RepTimeD { get; protected set; }     // リプレイ送信の遅延時間 : Delay time for replay transmission 
 
 		int      m_RepBeacon;
 		int      m_RepBeaconMode;
@@ -174,7 +164,7 @@ namespace Play.Sound {
 		smEND,
 	}
 
-	class CSSTVSET {
+	public class CSSTVSET {
 		public AllModes m_Mode   { get; protected set; }
 		public AllModes m_TxMode { get; protected set; }
 
@@ -235,6 +225,7 @@ namespace Play.Sound {
         			return false;
 			}
 		}
+
 		public CSSTVSET( double dbToneOffset, double dbSampFreq, double dbTxSampOffs, bool bCQ100 )
 		{
 			// These used to be globals, I'll see how much they change and if I need
@@ -264,6 +255,10 @@ namespace Play.Sound {
 			m_MSLL = (uint)(50.0   * m_SampFreq / 1000.0 );        // Lowest
 			m_MSL  = (uint)(63.0   * m_SampFreq / 1000.0 );        // Lowest
 			m_MSH  = (uint)(1390.0 * 3 * m_SampFreq / 1000.0);     // Highest
+		}
+
+		public void SetOFS( int iOFS ) {
+			m_IOFS = m_OFS = iOFS;
 		}
 
 		/// <remarks>This gets called by the demodulator. Ick. This means
@@ -317,7 +312,7 @@ namespace Play.Sound {
 			}
 		}
 
-		void GetPictureSize(out int w, out int h, out int hp, AllModes mode)
+		public void GetPictureSize(out int w, out int h, out int hp, AllModes mode)
 		{
 			GetBitmapSize( out w, out h, mode);
 			switch(mode){
@@ -999,7 +994,7 @@ namespace Play.Sound {
 		double	  m_OFF;
 		double	  m_OUT;
 	  //double[]  m_ph;
-		int		  m_htap;
+	    public int m_htap { get; protected set; }
 		int		  m_df;
 		int		  m_tap;
 		readonly CIIR m_iir = new CIIR();
@@ -1016,7 +1011,7 @@ namespace Play.Sound {
 
 			SetWidth( sys, false);
 
-			m_htap = m_tap / 2;
+		    m_htap = m_tap / 2;
 			MakeHilbert(H, m_tap, SampFreq, 100, SampFreq/2 - 100);
 			m_A[0] = m_A[1] = m_A[2] = m_A[3] = 0;
 
@@ -1109,7 +1104,7 @@ namespace Play.Sound {
 
 		public double Do(double d)
 		{
-			d = DoFIR(H, Z, d, m_tap);
+			DoFIR(H, Z, d, m_tap);
 
 			double a = 0; // *m_ph;
 			//if( a )
@@ -1403,7 +1398,7 @@ namespace Play.Sound {
 		}
 	}
 
-	class CSmooz{
+	public class CSmooz{
 		double [] bp;
 		int       Wp;
 
@@ -1635,7 +1630,7 @@ namespace Play.Sound {
 	}
 
 	public class CSSTVDEM {
-		protected readonly SYSSET sys;
+		public SYSSET sys { get; protected set; }
 
 		public readonly static int NARROW_SYNC		= 1900;
 		public readonly static int NARROW_LOW		= 2044;
@@ -1699,7 +1694,7 @@ namespace Play.Sound {
 		REPSET   pRep;
 
 		int         m_Skip;
-		bool        m_Sync;
+		public bool   m_Sync { get; protected set; }
 		readonly bool m_SyncRestart;
 		int         m_SyncMode;
 		int         m_SyncTime;
@@ -1712,20 +1707,29 @@ namespace Play.Sound {
 		bool        m_SyncAVT;
 
 		int         m_wBase;
-		int         m_wPage;
-		int         m_rPage;
+		public int  m_wPage { get; protected set; }
+	    public int  m_rPage { get; protected set; }
 		int         m_wCnt;
 		int         m_wLine;
-		int         m_wBgn;
-		int         m_rBase;
+		public int  m_wBgn { get; protected set; }
+		public int  m_rBase{ get; protected set; }
 
-		int         m_ReqSave;
-		//int         m_LoopBack;
+		public void OnDrawBegin() { m_wBgn = 1; }
+		public void RPageIncrement() {
+			m_rBase += SSTVSET.m_WD;
+
+			if( ++m_rPage >= SSTVDEMBUFMAX ){
+				m_rPage = 0;
+			}
+		}
+
+	    public bool m_ReqSave  { get; protected set; }
+	    public bool m_LoopBack { get; protected set; }
 
 		int         m_wStgPage;
 		int         m_wStgLine;
 
-		int         m_Lost;
+		public bool  m_Lost { get; protected set; }
 
 		public int     m_BWidth;
 		public short[] m_Buf;
@@ -1818,8 +1822,8 @@ namespace Play.Sound {
 		//int     m_n;
 
 		// BUG: See if I can get these from CSSTVSET
-		int SampFreq { get; }
-		int SampBase { get; }
+		public int SampFreq { get; }
+		public int SampBase { get; }
 		// This is a global in the original code, but it's pretty clear
 		// that we can't handle it changing mid run. So now it's a readonly
 		// member variable.
@@ -1895,8 +1899,8 @@ namespace Play.Sound {
 			m_Sync      = false;
 			m_SyncMode  = 0;
 			m_ScopeFlag = false;
-			//m_LoopBack  = 0;
-			m_Lost      = 0;
+			m_LoopBack  = false;
+			m_Lost      = false;
 
 			m_lvl = new CLVL( SampFreq, fAgcFast:true );
 			m_afc = true;
@@ -1921,7 +1925,7 @@ namespace Play.Sound {
 			SetSenseLvl();
 
 			m_Type      = 2; // BUG: This s/b parameter.
-			m_ReqSave   = 0;
+		    m_ReqSave   = false;
 			m_LevelType = false; // TODO: Probably sb param too. If make true, implement CSLVL class.
 
 			m_fskrec    = 0;
@@ -1945,6 +1949,30 @@ namespace Play.Sound {
 			if( pRep != null ){
 				pRep = null;
 			}
+		}
+
+		/// <summary>
+		/// Moved from TmmSSTV. Note that ip == sp in the case of index offset and NOT short* to array.
+		/// </summary>
+		public void StorePage( int ip ) {
+			//short *ip = &m_Buf[m_rPage * m_BWidth];
+			//short *sp = &m_B12[m_rPage * m_BWidth];
+			//if( dp.m_StgBuf ){
+			//	if( ((dp.m_wStgLine + 1) * SSTVSET.m_WD) < dp.m_RxBufAllocSize ){
+			//		memcpy(&dp->m_StgBuf[dp->m_wStgLine * SSTVSET.m_WD], ip, SSTVSET.m_WD*sizeof(short));
+			//		memcpy(&dp->m_StgB12[dp->m_wStgLine * SSTVSET.m_WD], sp, SSTVSET.m_WD*sizeof(short));
+			//		dp.m_wStgLine++;
+			//		if( dp.m_wStgLine == 16 )
+            //            UpdateSBTO();
+			//	}
+			//}
+			//else if( WaveStg.IsOpen() ){
+			//	WaveStg.Write(ip, SSTVSET.m_WD*sizeof(short));
+			//	WaveStg.Write(sp, SSTVSET.m_WD*sizeof(short));
+			//	dp.m_wStgLine++;
+			//	if( dp->m_wStgLine == 16 )
+            //        UpdateSBTO();
+			//}
 		}
 
 		public void CalcBPF(double[] H1, double[] H2, double[] H3, ref int bpftap, int bpf, AllModes mode)
@@ -2047,7 +2075,7 @@ namespace Play.Sound {
 		public void OpenCloseRxBuff() {
 			if( m_Sync ) return;
 
-			if( sys.m_UseRxBuff ){
+			if( sys.m_UseRxBuff == 1 ){
 				if( m_StgBuf == null ){
 					int n = 257 * 1100 * SampFreq / 1000;
 					m_StgBuf = new short[n];
@@ -2129,6 +2157,15 @@ namespace Play.Sound {
 			}
 		}
 
+		public void PrepDraw( bool fLoopBack ) {
+			m_fskcall.Clear();
+
+			m_LoopBack = fLoopBack;
+			m_SyncAVT  = false;
+			m_wStgLine = 0;
+			m_ReqSave  = false;
+		}
+
 		void Start() {
 			SetWidth(CSSTVSET.IsNarrowMode(SSTVSET.m_Mode));
 
@@ -2144,7 +2181,7 @@ namespace Play.Sound {
 			m_rBase = 0;
 			OpenCloseRxBuff();
 			m_wBgn = 2;
-			m_Lost = 0;
+			m_Lost = false;
 
 			int eg = SSTVSET.m_WD + SSTVSET.m_KSB + SSTVSET.m_KSB;
 			int i, j;
@@ -2180,7 +2217,7 @@ namespace Play.Sound {
 			}
 		}
 
-		void Stop()	{
+		public void Stop()	{
 			if( m_AFCFQ != 0 ){
 				if( m_fskdecode ){
 					m_iir11.SetFreq(1080 + m_dblToneOffset, SampFreq, 80.0);
@@ -2543,7 +2580,7 @@ namespace Play.Sound {
 							if( (d12 > d19) &&(d12 > m_SLvl) ){
 								if( m_Sync ){
 									if( m_rBase >= (SSTVSET.m_LM * 65/100) ){
-										m_ReqSave = 1;
+										m_ReqSave = true;
 									}
 								}
 								if( m_NextMode == AllModes.smAVT ){
@@ -2690,8 +2727,7 @@ namespace Play.Sound {
 				if( m_Skip != 0 ) {
 					if( m_Skip > 0 ){
 						m_Skip--;
-					}
-					else {
+					} else {
 						for( ; m_Skip != 0; m_Skip++ ){
 							int n = m_wBase + m_wCnt;
 							m_Buf[n] = (short)-d;
@@ -2699,8 +2735,7 @@ namespace Play.Sound {
 							IncWP();
 						}
 					}
-				}
-				else {
+				} else {
 					if( m_ScopeFlag ){
 						m_Scope[1].WriteData(d);
 					}
@@ -2754,11 +2789,69 @@ namespace Play.Sound {
 			}
 		}
 
+		/// <remarks>This method used to live on the TMmsstv object, but that doesn't
+		/// make sense there. Moved it to the demodulator.</remarks>
+		/// <param name="fSyncAccuracy">Was m_SyncAccuracy on TMmsstv</param>
+		public void SyncSSTV( int iSyncAccuracy )
+		{
+			if( SSTVSET.m_Mode == AllModes.smAVT ){
+				SSTVSET.SetOFS( 0 );
+				m_wBgn = 0;
+				return;
+			}
+			int e = 4;
+			if( iSyncAccuracy != 0 && sys.m_UseRxBuff != 0 && (SSTVSET.m_TW >= SSTVSET.m_SampFreq) ) 
+				e = 3;
+			if( m_wLine >= e ) {
+				int    n = 0;
+				int   wd = (int)((SSTVSET.m_TW) + 2);
+				int[] bp = new int[wd];
+
+				Array.Clear( bp, 0, bp.Length );
+				//memset(bp, 0, sizeof(int)*(wd));
+				for( int pg = 0; pg < e; pg++ ){
+				  //short []sp = &m_B12[pg * m_BWidth];
+					int     ip = pg * m_BWidth;
+					for( int i = 0; i < SSTVSET.m_WD; i++ ){
+						int x = n % (int)SSTVSET.m_TW; // fmod( n, m_TW )
+					  //bp[x] += *sp;
+						bp[x] += m_B12[ip + i];
+						n++;
+					}
+				}
+				n = 0;
+				int max = 0;
+				for( int i = 0; i < wd; i++ ){
+					if( max < bp[i] ){
+						max = bp[i];
+						n = i;
+					}
+				}
+				n -= (int)SSTVSET.m_OFP;
+				n = -n;
+				switch(SSTVSET.m_Mode){
+					case AllModes.smSCT1:
+					case AllModes.smSCT2:
+					case AllModes.smSCTDX:
+						if( n < 0 ) 
+							n += SSTVSET.m_WD;
+						break;
+					default:
+						break;
+				}
+				if( m_Type == 2 ) 
+					n -= m_hill.m_htap/4;
+				SSTVSET.SetOFS( n );
+				m_rBase = n;
+				m_wBgn  = 0;
+			}
+		}
+
 		void SyncFreq(double d) {
 		/*
-			double		m_AFC_LowVal;	// (Center - SyncLow) * 16384 / BWH
+			double		m_AFC_LowVal;	// (Center - SyncLow ) * 16384 / BWH
 			double		m_AFC_HighVal;	// (Center - SyncHigh) * 16384 / BWH
-			double		m_AFC_SyncVal;	// (Center - Sync) * 16384 / BWH
+			double		m_AFC_SyncVal;	// (Center - Sync    ) * 16384 / BWH
 			double		m_AFC_BWH;		// BWH / 16384.0;
 		*/
 			d -= 128;
