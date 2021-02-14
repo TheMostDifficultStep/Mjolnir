@@ -1840,7 +1840,7 @@ namespace Play.Sound {
 
 		public CSSTVDEM( SYSSET p_sys, int iSampFreq, int iSampBase, double dbToneOffset ) {
 			sys = p_sys ?? throw new ArgumentNullException( "sys must not be null." );
-			SSTVSET = new CSSTVSET( 0, iSampFreq, 0, sys.m_bCQ100 );
+			SSTVSET = new CSSTVSET( 0, iSampFreq, 0, sys.m_bCQ100 ); // BUG: Pass this in, TmmSSTV needs it too.
 
 			SampFreq = iSampFreq;
 			SampBase = iSampBase;
@@ -2086,7 +2086,7 @@ namespace Play.Sound {
 
 			if( sys.m_UseRxBuff == 1 ){
 				if( m_StgBuf == null ){
-					int n = 257 * 1100 * SampFreq / 1000;
+					int n = (int)( 257.0 * 1100.0 * SampFreq / 1000.0 );
 					m_StgBuf = new short[n];
 					m_StgB12 = new short[n];
 					//Array.Clear( m_StgBuf, 0, m_StgBuf.Length );
