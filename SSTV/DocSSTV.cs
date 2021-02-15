@@ -33,7 +33,7 @@ namespace Play.SSTV {
 #region variables
 	    AllModes m_HistM; // Looks like the last image type recieved.
 
-	    int m_RXW, m_RXH, m_RXPH; // RXPH is the size NOT including greyscale. Not used yet, but maybe later.
+	    int m_RXW = 320, m_RXH = 256, m_RXPH = 256; // RXPH is the size NOT including greyscale. Not used yet, but maybe later.
 
 	    double[]  m_Z = new double[3];
         int       m_AX, m_AY;
@@ -72,15 +72,18 @@ namespace Play.SSTV {
 
 		short[] pCalibration = null; // Not strictly necessary yet.
 
-		         SKBitmap pBitmapRX  = new SKBitmap();
-
+		public SKBitmap pBitmapRX { get; protected set; } = new SKBitmap();
 		// Looks like were only using grey scale of the RGB look into turning into greyscale later.
-		readonly SKBitmap pBitmapD12 = new SKBitmap( 800, 600, SKColorType.Rgb888x, SKAlphaType.Unknown );
+		public SKBitmap pBitmapD12 { get; } = new SKBitmap( 800, 600, SKColorType.Rgb888x, SKAlphaType.Unknown );
 #endregion
 
 		public TmmSSTV( CSSTVDEM p_dp, CSSTVSET p_SSTVSET ) {
 			dp      = p_dp      ?? throw new ArgumentNullException( "CSSTVDEM" );
 			SSTVSET = p_SSTVSET ?? throw new ArgumentNullException( "CSSTVSET" );
+
+		  //StartOption() ...
+		  //dp.sys.m_bCQ100 = FALSE;
+		  //g_dblToneOffset = 0.0;
 		}
 
 		int GetPixelLevel(short ip)
@@ -1090,17 +1093,28 @@ namespace Play.SSTV {
             //}
         }
 
+		private void SaveRxImage( TmmSSTV oSSTV ) {
+			string strPath = Environment.GetFolderPath( Environment.SpecialFolder.MyPictures );
+
+			using SKImage image  = SKImage.FromBitmap(oSSTV.pBitmapRX);
+			using var     data   = image.Encode( SKEncodedImageFormat.Png, 80 );
+            using var     stream = File.OpenWrite( Path.Combine( strPath, "testmeh.png") );
+
+            data.SaveTo(stream);
+		}
+
         public IEnumerator<int> GetRecorderTask() {
 			TmmSSTV oRxSSTV;
             try {
                 FFTControlValues oFFTMode = FFTControlValues.FindMode( RxSpec.Rate );
-                SYSSET           sys      = new SYSSET( oFFTMode.SampFreq );
+                SYSSET           sys      = new SYSSET  ( oFFTMode.SampFreq );
+				CSSTVSET         oSetSSTV = new CSSTVSET( 0, oFFTMode.SampFreq, 0, sys.m_bCQ100 );
 
-                _oSSTVDeModulator = new CSSTVDEM( sys, 
+                _oSSTVDeModulator = new CSSTVDEM( oSetSSTV,
+												  sys,
                                                   (int)oFFTMode.SampFreq, 
                                                   (int)oFFTMode.SampBase, 
                                                   0 );
-				CSSTVSET oSetSSTV = new CSSTVSET( 0, oFFTMode.SampFreq, 0, sys.m_bCQ100 );
 
 				oRxSSTV = new TmmSSTV( _oSSTVDeModulator, oSetSSTV );
             } catch( Exception oEx ) {
@@ -1127,6 +1141,8 @@ namespace Play.SSTV {
 										typeof( ArithmeticException ) };
                     if( rgErrors.IsUnhandled( oEx ) )
                         throw;
+
+					SaveRxImage( oRxSSTV );
 
                     LogError( "Trouble recordering in SSTV" );
                     // We can't call _oWorkPlace.Stop() b/c we're already in DoWork() which will

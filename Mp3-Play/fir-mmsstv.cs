@@ -228,7 +228,7 @@ namespace Play.Sound {
         /// <remarks>This looks like used to depend on side effect of
         /// m_pZP being set to &m_pZ[m_W+m_Tap+1]. I've removed that.
         /// But it depends on m_W & m_Tap being unchanged in the interrum.
-        /// Not clear if that's a safe assumpyion yet.</remarks>
+        /// Not clear if that's a safe assumption yet.</remarks>
         double Do( double[] hp ) {
             int    iZP = m_W + m_Tap + 1;
             double d   = 0;

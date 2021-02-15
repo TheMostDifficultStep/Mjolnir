@@ -42,9 +42,6 @@ namespace Play.Sound {
 		int		m_SoundFifoRX;
 		int		m_SoundFifoTX;
 
-		int		m_Palette;
-		int     m_BitPixel;
-
 		public bool   m_TestDem  { get; protected set; } = false; // used
 		public double m_DemOff   { get; } = 0;
 		public double m_DemWhite { get; } = 128.0/16384.0;
@@ -52,13 +49,14 @@ namespace Play.Sound {
 		public bool   m_DemCalibration { get; } = false; // see TmmSSTV.pCalibration
 
 		//int     m_FFTType;
-		//int		m_FFTGain;
-		//int		m_FFTResp;
+		//int	  m_FFTGain;
+		//int	  m_FFTResp;
 		//int     m_FFTStg;
 		//int     m_FFTWidth;
-		//int		m_FFTAGC;
+		//int	  m_FFTAGC;
 		//int     m_FFTPriority;
-		//double	m_TxSampOff;
+		//double  m_TxSampOff;
+
 		public double	m_SampFreq { get; protected set; } // used
 
 		int      m_TuneTXTime;
@@ -73,7 +71,6 @@ namespace Play.Sound {
 				  
 		int      m_TXFSKID;
 
-		int      m_FixedTxMode;
 		string[] m_TextList = new string[16];
 
 		int      m_PicSelRTM;
@@ -90,25 +87,16 @@ namespace Play.Sound {
 		public int  m_RepTimeC { get; protected set; }     // 受信待機のタイムアウト : Receive wait timeout
 		public int  m_RepTimeD { get; protected set; }     // リプレイ送信の遅延時間 : Delay time for replay transmission 
 
-		int      m_RepBeacon;
-		int      m_RepBeaconMode;
-		string   m_RepTempTX;
-		string   m_RepTempBeacon;
-		int      m_RepBottomAdj;
-		int      m_RepQuietnessTime;
-		int      m_RepBeaconFilter;
-		string   m_RepFolder;
-
-		int      m_UseB24;
 		string   m_Msg;
-		int		 m_DisFontSmooth;
 
-		int			m_TempDelay;
+	  //int			m_TempDelay;
 		int			m_Temp24;
 		public bool	m_bCQ100 { get; protected set; } = false;
 
 		public SYSSET( double dbSampFreq ) {
 			m_SampFreq = dbSampFreq;
+
+			// See TMMSSTV::StartOption();
 			// Ver1.13 : Added an option that lowers the tone frequency by 1000Hz (use -i option on start)
 			//else if( as == "-i" ){
 			//	sys.m_bCQ100 = TRUE;
@@ -270,8 +258,8 @@ namespace Play.Sound {
 			m_Mode    = mode;
 			m_fNarrow = CSSTVSET.IsNarrowMode(mode);
 			SetSampFreq();
-			m_WD = (int)m_TW;
-			m_LM = (int)((m_TW * m_L) + 1 );
+			m_WD = (int)m_TW; // Why have both?!
+			m_LM = (int)((m_TW * m_L) + 1 ); // Used to know if we've gotten enough of the image to want to save it.
 		}
 
 		//void SetTxMode(AllModes mode)
@@ -342,7 +330,7 @@ namespace Play.Sound {
 		void SetSampFreq(){
 			switch(m_Mode){
 				case AllModes.smR36:
-					m_KS = 88.0 * m_SampFreq / 1000.0;
+					m_KS = 88.0 * m_SampFreq / 1000.0; // This looks like Robot 24...
 					m_KS2 = 44.0 * m_SampFreq / 1000.0;
 					m_OF = 12.0 * m_SampFreq / 1000.0;
 		          //m_OFP = 10.8 * m_SampFreq / 1000.0;
@@ -354,14 +342,14 @@ namespace Play.Sound {
 					m_L = 240;
 					break;
 				case AllModes.smR72:
-					m_KS = 138.0 * m_SampFreq / 1000.0;
-					m_KS2 = 69.0 * m_SampFreq / 1000.0;
-					m_OF = 12.0 * m_SampFreq / 1000.0;
-					m_OFP = 10.7 * m_SampFreq / 1000.0;
-					m_SG = 144.0 * m_SampFreq / 1000.0;
-					m_CG = m_SG + m_KS2;
-					m_SB = 219.0 * m_SampFreq / 1000.0;
-					m_CB = m_SB + m_KS2;
+					m_KS  = 138.0 * m_SampFreq / 1000.0; // This looks correct.
+					m_KS2 =  69.0 * m_SampFreq / 1000.0; // This is the RY/BY times!!! (see sstv-handbook)
+					m_OF  =  12.0 * m_SampFreq / 1000.0; // Line sync pulse!
+					m_OFP =  10.7 * m_SampFreq / 1000.0;
+					m_SG  = 144.0 * m_SampFreq / 1000.0; // 144-138 is 6 btw each color block.
+					m_CG  = m_SG + m_KS2;
+					m_SB  = 219.0 * m_SampFreq / 1000.0;
+					m_CB  = m_SB + m_KS2;
 					m_L = 240;
 					break;
 				case AllModes.smAVT:
@@ -375,14 +363,14 @@ namespace Play.Sound {
 					m_L = 240;
 					break;
 				case AllModes.smSCT2:
-					m_KS = 88.064 * m_SampFreq / 1000.0;
-					m_OF = 10.5 * m_SampFreq / 1000.0;
-					m_OFP = 10.8 * m_SampFreq / 1000.0;
-					m_SG = 89.564 * m_SampFreq / 1000.0;
-					m_CG = m_KS + m_SG;
-					m_SB = m_SG + m_SG;
-					m_CB = m_KS + m_SB;
-					m_L = 256;
+					m_KS  = 88.064 * m_SampFreq / 1000.0; // Time per color block
+					m_OF  = 10.5   * m_SampFreq / 1000.0; // Line sync pulse?
+					m_OFP = 10.8   * m_SampFreq / 1000.0;
+					m_SG  = 89.564 * m_SampFreq / 1000.0; // 89.564 - 88.064 = 1.5, m_OF - 1.5 = 9.0!!
+					m_CG  = m_KS + m_SG;
+					m_SB  = m_SG + m_SG;
+					m_CB  = m_KS + m_SB;
+					m_L   = 256;
 					break;
 				case AllModes.smSCTDX:
 					m_KS = 345.6 * m_SampFreq / 1000.0;
@@ -396,7 +384,7 @@ namespace Play.Sound {
 					m_L = 256;
 					break;
 				case AllModes.smMRT1:
-					m_KS = 146.432 * m_SampFreq / 1000.0;
+					m_KS = 146.432 * m_SampFreq / 1000.0; // Scan line color component block length.
 					m_OF = 5.434 * m_SampFreq / 1000.0;
 		          //m_OFP = 7.3 * m_SampFreq / 1000.0;
 					m_OFP = 7.2 * m_SampFreq / 1000.0;
@@ -458,9 +446,9 @@ namespace Play.Sound {
 					m_L = 128;
 					break;
 				case AllModes.smPD90:
-					m_KS = 170.240 * m_SampFreq / 1000.0;
-					m_OF = 22.080 * m_SampFreq / 1000.0;
-					m_OFP = 18.900 * m_SampFreq / 1000.0;
+					m_KS  = 170.240 * m_SampFreq / 1000.0;
+					m_OF  =  22.080 * m_SampFreq / 1000.0;
+					m_OFP =  18.900 * m_SampFreq / 1000.0;
 					m_SG = m_KS;
 					m_CG = m_KS + m_SG;
 					m_SB = m_SG + m_SG;
@@ -782,13 +770,13 @@ namespace Play.Sound {
 
 		//        case smSCT1:
 				default:        // SCT1
-					m_KS = 138.24 * m_SampFreq / 1000.0;
-					m_OF = 10.5 * m_SampFreq / 1000.0;
-					m_OFP = 10.7 * m_SampFreq / 1000.0;
-					m_SG = 139.74 * m_SampFreq / 1000.0;
-					m_CG = m_KS + m_SG;
-					m_SB = m_SG + m_SG;
-					m_CB = m_KS + m_SB;
+					m_KS  = 138.24 * m_SampFreq / 1000.0;
+					m_OF  =  10.5  * m_SampFreq / 1000.0;
+					m_OFP =  10.7  * m_SampFreq / 1000.0;
+					m_SG  = 139.74 * m_SampFreq / 1000.0;
+					m_CG  = m_KS + m_SG;
+					m_SB  = m_SG + m_SG;
+					m_CB  = m_KS + m_SB;
 					m_L = 256;
 					break;
 			}
@@ -865,6 +853,8 @@ namespace Play.Sound {
 			if( m_KSB > 0 ) 
 				m_KSB++;
 
+			// This is the "-i" option set in TMMSSTV::StartOption() if bCQ100 is
+			// true then the offset is -1000. Else the offset is 0!!
 			if( m_bCQ100 ) { // Used to be a global.
     			double d = m_OFP * 1000.0 / SampFreq;
 				m_OFP = (d + (1100.0/g_dblToneOffset)) * SampFreq / 1000.0;
@@ -1715,18 +1705,21 @@ namespace Play.Sound {
 		AllModes    m_NextMode;
 		bool        m_SyncAVT;
 
-		int         m_wBase;
 		public int  m_wPage { get; protected set; }
 	    public int  m_rPage { get; protected set; }
-		int         m_wCnt;
-		int         m_wLine;
-		public int  m_wBgn { get; protected set; }
-		public int  m_rBase{ get; protected set; }
+		int         m_wCnt;  // How far along on a the scan line we are. a X coord like thing.
+		int         m_wLine; // Count down on the scan lines. a Y coord like thing.
+		int         m_wBase; // this moves forward by m_Bwidth chunks.
+		public int  m_wBgn { get; protected set; } 
+		public int  m_rBase{ get; protected set; } // This moves forward by SSTVSET.m_WD chunks.
 
 		public void OnDrawBegin() { m_wBgn = 1; }
+
 		public void RPageIncrement() {
 			m_rBase += SSTVSET.m_WD;
 
+			// This is the only place we bump up the read page. Looks like if we get beind we
+			// just blast the top of the buffer.
 			if( ++m_rPage >= SSTVDEMBUFMAX ){
 				m_rPage = 0;
 			}
@@ -1740,7 +1733,7 @@ namespace Play.Sound {
 
 		public bool  m_Lost { get; protected set; }
 
-		public int     m_BWidth;
+		public int     m_BWidth; // Width of the scan line in memory.
 		public short[] m_Buf;
 		public short[] m_B12;
 
@@ -1809,13 +1802,13 @@ namespace Play.Sound {
 		readonly List<char>	m_fskNRS  = new List<char>(20);
 
 		//------ リピータ (repeater)
-		int         m_Repeater;
+		bool          m_Repeater = false;
 		readonly int  m_RepSQ;
 		readonly int  m_RepTone;
-		int         m_repmode;
-		int         m_reptime;
-		int         m_repcount;
-		int         m_repsig;
+		int			  m_repmode;
+		int			  m_reptime;
+		int			  m_repcount;
+		int			  m_repsig;
 		//int         m_repANS;
 		//int         m_repRLY;
 		//int         m_repRX;
@@ -1824,7 +1817,7 @@ namespace Play.Sound {
 		int         m_RSLvl;
 		int         m_RSLvl2;
 
-		bool        m_fNarrow;
+		bool        m_fNarrow = false;
 
 		//double  m_d;
 		//double  m_dd;
@@ -1838,20 +1831,24 @@ namespace Play.Sound {
 		// member variable.
 		readonly double m_dblToneOffset;
 
-		public CSSTVDEM( SYSSET p_sys, int iSampFreq, int iSampBase, double dbToneOffset ) {
-			sys = p_sys ?? throw new ArgumentNullException( "sys must not be null." );
-			SSTVSET = new CSSTVSET( 0, iSampFreq, 0, sys.m_bCQ100 ); // BUG: Pass this in, TmmSSTV needs it too.
+		public CSSTVDEM( CSSTVSET p_oSSTVSet, SYSSET p_sys, int iSampFreq, int iSampBase, double dbToneOffset ) {
+			sys     = p_sys      ?? throw new ArgumentNullException( "sys must not be null." );
+			SSTVSET = p_oSSTVSet ?? throw new ArgumentNullException( "CSSTVSSET must not be null" );
 
-			SampFreq = iSampFreq;
-			SampBase = iSampBase;
+			SampFreq        = iSampFreq;
+			SampBase        = iSampBase;
 			m_dblToneOffset = dbToneOffset;
 
-			m_bpf = 1;      // wide
+			m_bpf = 0; // TODO: I set 0 for now was... 1;      // wide
 			m_ad  = 0;
 
 			m_StgBuf = null;
 			m_StgB12 = null;
-			m_BWidth = 1400 * SampFreq / 1000;
+
+			// Our buffer only holds SSTVDEMBUFMAX (24) lines. That must mean we need to
+			// DrawSSTV enough that we unload the buffer in time. m_BWidth must also represent
+			// a maximum line width we'll need since all the modes will of course vary.
+			m_BWidth = (int)(1400 * SampFreq / 1000.0 );
 			int n = SSTVDEMBUFMAX * m_BWidth;
 			m_Buf = new short[n];
 			m_B12 = new short[n];
@@ -1942,7 +1939,6 @@ namespace Play.Sound {
 			m_fskdecode = false;
 			m_fskmode   = 0;
 
-			m_Repeater = 0;
 			m_RepSQ    = 6000;
 			m_RepTone  = 1750;
 			m_repmode  = 0;
@@ -2181,16 +2177,16 @@ namespace Play.Sound {
 			InitAFC();
 			m_fqc.Clear();
 			m_SyncMode = -1; // Here and then...
-			m_Sync = false;
-			m_Skip = 0;
+			m_Sync  = false;
+			m_Skip  = 0;
 			m_wPage = m_rPage = 0;
 			m_wBase = 0;
 			m_wLine = 0;
-			m_wCnt = 0;
+			m_wCnt  = 0;
 			m_rBase = 0;
-			OpenCloseRxBuff();
-			m_wBgn = 2;
-			m_Lost = false;
+		  //OpenCloseRxBuff();
+			m_wBgn  = 2;
+			m_Lost  = false;
 
 			int eg = SSTVSET.m_WD + SSTVSET.m_KSB + SSTVSET.m_KSB;
 			int i, j;
@@ -2201,7 +2197,9 @@ namespace Play.Sound {
 			}
 
 			m_Sync     = true;
-			m_SyncMode = 0; // Here? This kills me.
+			m_SyncMode = 0; // Here? This kills me. Probably due to multi threaded stuff.
+			// However, this combo makes sense. We go back for looking for sync signals at the
+			// same time we're storing the image scan lines.
 			SetWidth(m_fNarrow);
 			if( m_fNarrow ) 
 				CalcNarrowBPF(HBPFN, m_bpftap, m_bpf, SSTVSET.m_Mode);
@@ -2229,21 +2227,23 @@ namespace Play.Sound {
 		public void Stop()	{
 			if( m_AFCFQ != 0 ){
 				if( m_fskdecode ){
-					m_iir11.SetFreq(1080 + m_dblToneOffset, SampFreq, 80.0);
+					m_iir11.SetFreq(1080 + m_dblToneOffset, SampFreq,  80.0);
 					m_iir12.SetFreq(1200 + m_dblToneOffset, SampFreq, 100.0);
-					m_iir13.SetFreq(1320 + m_dblToneOffset, SampFreq, 80.0);
+					m_iir13.SetFreq(1320 + m_dblToneOffset, SampFreq,  80.0);
 				} else {
 					InitTone(0);
 				}
 			}
-			m_fqc.Clear();
+			m_fqc  .Clear();
 			m_sint1.Reset();
 			m_sint2.Reset();
 			m_sint3.Reset();
-			m_wBgn = 0;
+
+			m_wBgn     = 0;
 			m_SyncMode = 512;
-			m_Sync = false;
-			m_SyncAVT = false;
+			m_Sync     = false;
+			m_SyncAVT  = false;
+
 			m_Skip = 0;
 			SetWidth( false );
 		}
@@ -2291,8 +2291,10 @@ namespace Play.Sound {
 			double ad = m_lvl.AGC(d);
 
 			d = ad * 32;
-			if( d > 16384.0 ) d = 16384.0;
-			if( d < -16384.0 ) d = -16384.0;
+			if( d >  16384.0 ) 
+				d =  16384.0;
+			if( d < -16384.0 ) 
+				d = -16384.0;
 
 			double d11;
 			double d12;
@@ -2317,7 +2319,7 @@ namespace Play.Sound {
 
 			DecodeFSK( (int)d19, (int)dsp );
 
-			if( m_Repeater != 0 && !m_Sync && (pRep != null) ){
+			if( m_Repeater && !m_Sync && (pRep != null) ){
 				double dsp2;
 				dsp2 = pRep.m_iirrep.Do(d);
 				if( dsp2 < 0.0 ) 
@@ -2402,18 +2404,21 @@ namespace Play.Sound {
 							}
 		//#endif
 						}
+						// The first 1900hz has been seen, and now we're going down to 1200 for 15 ms. (s/b 10)
 						if( (d12 > d19) && (d12 > m_SLvl) && ((d12-d19) >= m_SLvl) ){
 							m_SyncMode++;
-							m_SyncTime = (int)(15 * sys.m_SampFreq/1000);
-							if( !m_Sync && m_MSync ) m_sint1.SyncTrig( (int)d12);
+							m_SyncTime = (int)(15 * sys.m_SampFreq/1000); // this is probably the ~10 ms between each 1900hz tone.
+							if( !m_Sync && m_MSync ) 
+								m_sint1.SyncTrig( (int)d12);
 						}
 						break;
-					case 1:                 // 1200Hz(30ms)‚ÌŒp‘±ƒ`ƒFƒbƒN
+					case 1:                 // 1200Hz(30ms)‚ の継続チェック: continuous check.
 						if( !m_Sync && m_MSync ){
 							if( (d12 > d19) && (d12 > m_SLvl2) && ((d12-d19) >= m_SLvl2) ){
 								m_sint2.SyncMax( (int)d12);
 							}
 						}
+						// the second 1900hz has been seen now down to 1200hz again for 30ms.
 						if( (d12 > d19) && (d12 > m_SLvl) && ((d12-d19) >= m_SLvl) ){
 							if( !m_Sync && m_MSync ){
 								m_sint1.SyncMax( (int)d12);
@@ -2421,26 +2426,25 @@ namespace Play.Sound {
 							m_SyncTime--;
 							if( m_SyncTime == 0 ){
 								m_SyncMode++;
-								m_SyncTime = (int)(30 * sys.m_SampFreq/1000);
-								m_VisData = 0;
-								m_VisCnt = 8;
+								m_SyncTime = (int)(30 * sys.m_SampFreq/1000); // Each bit is 30 ms!!
+								m_VisData  = 0; // Init value
+								m_VisCnt   = 8; // Start counting down the 8 bits.
 							}
 						} else {
 							m_SyncMode = 0;
 						}
 						break;
 					case 2:                 // Vis decode
-					case 9:
+					case 9:                 // Expanded VIS decode.
 						d13 = m_iir13.Do(d);
 						if( d13 < 0.0 ) d13 = -d13;
 						d13 = m_lpf13.Do(d13);
 						m_SyncTime--;
 						if( m_SyncTime == 0 ){
-							if( ((d11 < d19) && (d13 < d19)) ||
-								(Math.Abs(d11-d13) < (m_SLvl2)) ){
-								m_SyncMode = 0;
+							if( ((d11 < d19) && (d13 < d19)) || (Math.Abs(d11-d13) < (m_SLvl2)) ) {
+								m_SyncMode = 0; // Start over?
 							} else {
-								m_SyncTime = (int)(30 * sys.m_SampFreq/1000 );
+								m_SyncTime = (int)(30 * sys.m_SampFreq/1000 ); // Get next bit.
 								m_VisData = m_VisData >> 1;
 								if( d11 > d13 ) m_VisData |= 0x0080;
 								m_VisCnt--;
@@ -2520,7 +2524,7 @@ namespace Play.Sound {
 											case 0xf3:      // P7 $73  11110011
 												m_NextMode = AllModes.smP7;
 												break;
-											case 0x23:      // MM Šg’£ VIS
+											case 0x23:      // MM 拡張 VIS : Expanded (16bit) VIS!!
 												m_SyncMode = 9;
 												m_VisData = 0;
 												m_VisCnt = 8;
@@ -2529,7 +2533,7 @@ namespace Play.Sound {
 												m_SyncMode = 0;
 												break;
 										}
-									} else {          // Šg’£ VIS
+									} else {          // 拡張 VIS : Vis Expansion
 										m_SyncMode = 3;
 										switch(m_VisData){
 											case 0x45:      // MR73
@@ -2580,15 +2584,17 @@ namespace Play.Sound {
 							}
 						}
 						break;
-					case 3:                 // 1200Hz(30ms)‚Ìƒ`ƒFƒbƒN
+					case 3:                 // 1200Hz(30ms)‚のチェック : check
 						if( !m_Sync ){
 							m_pll.Do(ad);
 						}
 						m_SyncTime--;
 						if( m_SyncTime == 0 ){
-							if( (d12 > d19) &&(d12 > m_SLvl) ){
+							if( (d12 > d19) && (d12 > m_SLvl) ){
 								if( m_Sync ){
-									if( m_rBase >= (SSTVSET.m_LM * 65/100) ){
+									// Looks like we request save only when we're 65% the way thru the whole image.
+									// Seems like it would be simpler to do this at the DrawSSTV level, but whatevah.
+									if( m_rBase >= (SSTVSET.m_LM * 65/100.0) ){
 										m_ReqSave = true;
 									}
 								}
@@ -2596,19 +2602,17 @@ namespace Play.Sound {
 									m_SyncTime = (int)((9 + 910 + 910 + 5311.9424 + 0.30514375) * sys.m_SampFreq / 1000.0);
 									m_SyncMode++;
 									m_SyncAVT = true;
-									m_Sync = false;
-								}
-								else {
+									m_Sync    = false;
+								} else {
 									m_SyncMode = 256;
 								}
 								SSTVSET.SetMode(m_NextMode);
-							}
-							else {
+							} else {
 								m_SyncMode = 0;
 							}
 						}
 						break;
-					case 4:                 // AVT‚Ì1900HzM†‘Ò‚¿
+					case 4:                 // AVT‚ の 1900Hz 信号待ち : Waiting for Signal
 						m_SyncTime--;
 						if( m_SyncTime == 0 ) { 
 							m_SyncMode = 256; 
@@ -2616,9 +2620,9 @@ namespace Play.Sound {
 						}
 
 						d = m_pll.Do(ad);
-						if( (d >= -1000) && (d <= 1000) ){        // First atack
+						if( (d >= -1000) && (d <= 1000) ){        // First attack
 							m_SyncMode++;
-							m_SyncATime = (int)(9.7646 * 0.5 * sys.m_SampFreq / 1000);
+							m_SyncATime = (int)(9.7646 * 0.5 * sys.m_SampFreq / 1000.0);
 						}
 						break;
 					case 5:
@@ -2629,11 +2633,11 @@ namespace Play.Sound {
 						}
 
 						d = m_pll.Do(ad);
-						if( (d >= -800) && (d <= 800) ){        // 2nd atack
+						if( (d >= -800) && (d <= 800) ){        // 2nd attack
 							m_SyncATime--;
 							if( m_SyncATime == 0 ){
 								m_SyncMode++;
-								m_SyncATime = (int)(9.7646 * sys.m_SampFreq / 1000);
+								m_SyncATime = (int)(9.7646 * sys.m_SampFreq / 1000.0);
 								m_VisData = 0;
 								m_VisCnt = 16;
 							}
@@ -2652,21 +2656,22 @@ namespace Play.Sound {
 						m_SyncATime--;
 						if( m_SyncATime == 0 ){
 							if( (d >= 8000)||(d < -8000) ){
-								m_SyncATime = (int)(9.7646 * sys.m_SampFreq / 1000);
+								m_SyncATime = (int)(9.7646 * sys.m_SampFreq / 1000.0);
 								m_VisData = m_VisData << 1;
-								if( d > 0 ) m_VisData |= 0x00000001;
+								if( d > 0 ) 
+									m_VisData |= 0x00000001;
 								m_VisCnt--;
 								if( m_VisCnt == 0 ){
 									int l = m_VisData & 0x00ff;
 									int h = (m_VisData >> 8) & 0x00ff;
 									if( ((l + h) == 0x00ff) && (l >= 0xa0) && (l <= 0xbf) && (h >= 0x40) && (h <= 0x5f)  ){
 										if( h != 0x40 ){
-											m_SyncATime = (int)(9.7646 * 0.7 * sys.m_SampFreq / 1000);
-											m_SyncTime =  (int)((((double)(h - 0x40) * 165.9982) - 0.8) * sys.m_SampFreq / 1000 );
+											m_SyncATime = (int)(9.7646 * 0.7 * sys.m_SampFreq / 1000.0);
+											m_SyncTime =  (int)((((double)(h - 0x40) * 165.9982) - 0.8) * sys.m_SampFreq / 1000.0 );
 											m_SyncMode++;
 										} else {
-											if( m_SyncTime == 0 || (m_SyncTime >= 9.7646 * SampFreq / 1000) ){
-												m_SyncTime = (int)(((9.7646 * 0.5) - 0.8) * sys.m_SampFreq / 1000 );
+											if( m_SyncTime == 0 || (m_SyncTime >= 9.7646 * SampFreq / 1000.0) ){
+												m_SyncTime = (int)(((9.7646 * 0.5) - 0.8) * sys.m_SampFreq / 1000.0 );
 											}
 											m_SyncMode = 8;
 										}
@@ -2679,11 +2684,11 @@ namespace Play.Sound {
 							}
 						}
 						break;
-					case 7:         // “¯Šú
+					case 7:         // 同期 : Same period
 						d = m_pll.Do(ad);
-						if( (d >= -1000) && (d <= 1000) ){        // First atack
+						if( (d >= -1000) && (d <= 1000) ){        // First attack
 							m_SyncMode = 5;
-							m_SyncATime = (int)(9.7646 * 0.5 * sys.m_SampFreq / 1000);
+							m_SyncATime = (int)(9.7646 * 0.5 * sys.m_SampFreq / 1000.0);
 						}
 						else {
 							m_SyncATime--;
@@ -2693,15 +2698,16 @@ namespace Play.Sound {
 						}
 						break;
 					case 8:
+						// This code is weird, given we ARE IN m_SyncMode 8, -1 yields 7 which is NEVER 0!!!!
 						m_SyncMode--;
 						if( m_SyncMode == 0 ){
 							Start();
 						}
 						break;
-					case 256:               // ‹­§ŠJŽn
+					case 256:               // 強制開始 : Forced Start.
 						Start();
 						break;
-					case 512:               // 0.5s‚ÌƒEƒGƒCƒg
+					case 512:               // 0.5sのウエイト : .5 sec wait.
 						m_SyncTime = (int)(SampFreq * 0.5);
 						m_SyncMode++;
 						break;
@@ -2784,13 +2790,19 @@ namespace Play.Sound {
 			}
 		}
 
+		/// <summary>
+		/// My guess is that since we reset the m_wCnt when > m_WD we're not attempting to
+		/// resync on the horizontal sync signal. Might be a nice improvement if we ever get that far.
+		/// </summary>
 		void IncWP() {
-			m_wCnt++;
+			m_wCnt++;      // This is the only place we bump up the (x) position along the scan line.
 			if( m_wCnt >= SSTVSET.m_WD ){
 				m_wCnt = 0;
-				m_wPage++;
+				m_wPage++; // This is the only place we bump up the write page.
 				m_wLine++;
 				m_wBase += m_BWidth;
+
+				// If the wPage becomes larger than the buff, we wrap around.
 				if( m_wPage >= SSTVDEMBUFMAX ){
 					m_wPage = 0;
 					m_wBase = 0;
@@ -3139,7 +3151,7 @@ namespace Play.Sound {
 		}
 
 		//  リピータのON/OFF
-		void SetRepeater(int sw) {
+		void SetRepeater(bool sw) {
 			if( sw != m_Repeater ){
 				m_repmode  = 0;
 				m_Repeater = sw;
