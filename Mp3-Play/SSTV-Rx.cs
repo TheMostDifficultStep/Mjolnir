@@ -18,7 +18,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Text;
 
 namespace Play.Sound {
 	public class SYSSET {
@@ -373,22 +372,22 @@ namespace Play.Sound {
 					m_L   = 256;
 					break;
 				case AllModes.smSCTDX:
-					m_KS = 345.6 * m_SampFreq / 1000.0;
-					m_OF = 10.5 * m_SampFreq / 1000.0;
-		          //m_OFP = 9.5 * m_SampFreq / 1000.0;
-					m_OFP = 10.2 * m_SampFreq / 1000.0;
-					m_SG = 347.1 * m_SampFreq / 1000.0;
+					m_KS  = 345.6 * m_SampFreq / 1000.0;
+					m_OF  =  10.5 * m_SampFreq / 1000.0; // 9.0 hsync + 1.5 gap
+		          //m_OFP =   9.5 * m_SampFreq / 1000.0;
+					m_OFP =  10.2 * m_SampFreq / 1000.0;
+					m_SG  = 347.1 * m_SampFreq / 1000.0; // 1.5 gap + m_KS
 					m_CG = m_KS + m_SG;
 					m_SB = m_SG + m_SG;
 					m_CB = m_KS + m_SB;
 					m_L = 256;
 					break;
 				case AllModes.smMRT1:
-					m_KS = 146.432 * m_SampFreq / 1000.0; // Scan line color component block length.
-					m_OF = 5.434 * m_SampFreq / 1000.0;
-		          //m_OFP = 7.3 * m_SampFreq / 1000.0;
-					m_OFP = 7.2 * m_SampFreq / 1000.0;
-					m_SG = 147.004 * m_SampFreq / 1000.0;
+					m_KS  = 146.432 * m_SampFreq / 1000.0; // Scan line color component block length.
+					m_OF  =   5.434 * m_SampFreq / 1000.0; // 4.862 hsync + .572 gap
+		          //m_OFP =   7.3   * m_SampFreq / 1000.0;
+					m_OFP =   7.2   * m_SampFreq / 1000.0;
+					m_SG  = 147.004 * m_SampFreq / 1000.0;
 					m_CG = m_KS + m_SG;
 					m_SB = m_SG + m_SG;
 					m_CB = m_KS + m_SB;
@@ -1628,6 +1627,12 @@ namespace Play.Sound {
 		}
 	}
 
+	public enum FreqDetect {
+		PLL = 0,
+		FQC,
+		Hilbert
+	}
+
 	public class CSSTVDEM {
 		public SYSSET sys { get; protected set; }
 
@@ -1669,8 +1674,9 @@ namespace Play.Sound {
 		int      m_OverFlow;
 		int      m_bpf;
 		int      m_bpftap;
-		readonly int      m_Type;
-		readonly bool     m_LevelType;
+
+		readonly FreqDetect m_Type      = FreqDetect.FQC; // BUG: This s/b parameter.
+		readonly bool       m_LevelType = false; // TODO: Probably sb param too. If make true, you must implement CSLVL class.
 
 		readonly CIIRTANK m_iir11;
 		readonly CIIRTANK m_iir12;
@@ -1711,15 +1717,15 @@ namespace Play.Sound {
 		int         m_wLine; // Count down on the scan lines. a Y coord like thing.
 		int         m_wBase; // this moves forward by m_Bwidth chunks.
 		public int  m_wBgn { get; protected set; } 
-		public int  m_rBase{ get; protected set; } // This moves forward by SSTVSET.m_WD chunks.
+		public int  m_rBase{ get; protected set; } // Pos in frequency stream, This moves forward by SSTVSET.m_WD chunks. 0 to WD * L
 
 		public void OnDrawBegin() { m_wBgn = 1; }
 
 		public void RPageIncrement() {
 			m_rBase += SSTVSET.m_WD;
 
-			// This is the only place we bump up the read page. Looks like if we get beind we
-			// just blast the top of the buffer.
+			// This is the only place we bump up the read page. Looks like if we get behind we
+			// just blast the top of the buffer. Or hopefully the bottom never catches the top.
 			if( ++m_rPage >= SSTVDEMBUFMAX ){
 				m_rPage = 0;
 			}
@@ -1775,7 +1781,7 @@ namespace Play.Sound {
 
 		//double		m_AFC_OFFSET;		// 128
 
-		readonly bool       m_MSync;
+	  //readonly bool       m_MSync;
 		readonly CSYNCINT   m_sint1 = new CSYNCINT();
 		readonly CSYNCINT   m_sint2 = new CSYNCINT();
 		readonly CSYNCINT	m_sint3 = new CSYNCINT();
@@ -1847,8 +1853,8 @@ namespace Play.Sound {
 
 			// Our buffer only holds SSTVDEMBUFMAX (24) lines. That must mean we need to
 			// DrawSSTV enough that we unload the buffer in time. m_BWidth must also represent
-			// a maximum line width we'll need since all the modes will of course vary.
-			m_BWidth = (int)(1400 * SampFreq / 1000.0 );
+			// a maximum line width we'll need since all the modes, will of, course vary.
+			m_BWidth = (int)(1400 * SampFreq / 1000.0 ); // samples width.
 			int n = SSTVDEMBUFMAX * m_BWidth;
 			m_Buf = new short[n];
 			m_B12 = new short[n];
@@ -1923,16 +1929,14 @@ namespace Play.Sound {
 			m_sint2.Reset();
 			m_sint3.Reset( fNarrow:true);
 
-			m_MSync       = true;                              // Sync remote start ON
+		  //m_MSync       = true;                              // Sync remote start ON
 			m_SyncRestart = true;
 			m_SyncAVT     = false;
 
 			m_SenseLvl = 1;
 			SetSenseLvl();
 
-			m_Type      = 2; // BUG: This s/b parameter.
 		    m_ReqSave   = false;
-			m_LevelType = false; // TODO: Probably sb param too. If make true, implement CSLVL class.
 
 			m_fskrec    = 0;
 			m_fskNRrec  = 0;
@@ -2360,7 +2364,7 @@ namespace Play.Sound {
 
 				switch(m_SyncMode){
 					case 0:                 // 自動開始 : Start automatically
-						if( !m_Sync && m_MSync ){
+						if( !m_Sync /* && m_MSync */ ){
 							m_VisData = m_sint1.SyncStart( SSTVSET );
 							if( m_VisData > 0 ){
 								SSTVSET.SetMode( (AllModes)(m_VisData-1));
@@ -2408,19 +2412,19 @@ namespace Play.Sound {
 						if( (d12 > d19) && (d12 > m_SLvl) && ((d12-d19) >= m_SLvl) ){
 							m_SyncMode++;
 							m_SyncTime = (int)(15 * sys.m_SampFreq/1000); // this is probably the ~10 ms between each 1900hz tone.
-							if( !m_Sync && m_MSync ) 
+							if( !m_Sync /* && m_MSync */ ) 
 								m_sint1.SyncTrig( (int)d12);
 						}
 						break;
 					case 1:                 // 1200Hz(30ms)‚ の継続チェック: continuous check.
-						if( !m_Sync && m_MSync ){
+						if( !m_Sync /* && m_MSync */ ){
 							if( (d12 > d19) && (d12 > m_SLvl2) && ((d12-d19) >= m_SLvl2) ){
 								m_sint2.SyncMax( (int)d12);
 							}
 						}
 						// the second 1900hz has been seen now down to 1200hz again for 30ms.
 						if( (d12 > d19) && (d12 > m_SLvl) && ((d12-d19) >= m_SLvl) ){
-							if( !m_Sync && m_MSync ){
+							if( !m_Sync /* && m_MSync */ ){
 								m_sint1.SyncMax( (int)d12);
 							}
 							m_SyncTime--;
@@ -2721,21 +2725,23 @@ namespace Play.Sound {
 			}
 			if( m_Sync ){
 				switch(m_Type){
-					case 0:		// PLL
+					case FreqDetect.PLL:		// PLL
 						if( m_afc && (m_lvl.m_CurMax > 16) && (SSTVSET.m_Mode != AllModes.smAVT) )
 							SyncFreq(m_fqc.Do(m_lvl.m_Cur));
 						d = m_pll.Do(m_lvl.m_Cur);
 						break;
-					case 1:		// Zero-crossing
+					case FreqDetect.FQC:		// Zero-crossing
 						d = m_fqc.Do(m_lvl.m_Cur);
 						if( m_afc && (m_lvl.m_CurMax > 16) && (SSTVSET.m_Mode != AllModes.smAVT) )
 							SyncFreq(d);
 						break;
-					default:	// Hilbert
+					case FreqDetect.Hilbert:	// Hilbert
 						d = m_hill.Do(m_lvl.m_Cur);
 						if( m_afc && (m_lvl.m_CurMax > 16) && (SSTVSET.m_Mode != AllModes.smAVT) )
 							SyncFreq(d);
 						break;
+					default:
+						throw new NotImplementedException( "Unrecognized Frequency Detector" );
 				}
 				if( m_afc ) 
 					d += m_AFCDiff;
@@ -2776,16 +2782,19 @@ namespace Play.Sound {
 				}
 			}
 			else if( sys.m_TestDem ){
+				// This is used by the TOptionDlg::TimerTimer code for test.
 				switch(m_Type){
-					case 0:
+					case FreqDetect.PLL:
 						m_CurSig = m_Avg.Avg(m_pll.Do(m_lvl.m_Cur));
 						break;
-					case 1:
+					case FreqDetect.FQC:
 						m_CurSig = m_Avg.Avg(m_fqc.Do(m_lvl.m_Cur));
 						break;
-					default:
+					case FreqDetect.Hilbert:
 						m_CurSig = m_Avg.Avg(m_hill.Do(m_lvl.m_Cur));
 						break;
+					default:
+						throw new NotImplementedException( "Unrecognized Frequency Detector" );
 				}
 			}
 		}
@@ -2795,8 +2804,10 @@ namespace Play.Sound {
 		/// resync on the horizontal sync signal. Might be a nice improvement if we ever get that far.
 		/// </summary>
 		void IncWP() {
-			m_wCnt++;      // This is the only place we bump up the (x) position along the scan line.
+			m_wCnt++;      // This is the only place we bump up the (x) position along the frequency scan line.
 			if( m_wCnt >= SSTVSET.m_WD ){
+				// This might be a good place to send an event to process the scan line
+				// in a more orderly fashion than it is done now.
 				m_wCnt = 0;
 				m_wPage++; // This is the only place we bump up the write page.
 				m_wLine++;
@@ -2860,8 +2871,9 @@ namespace Play.Sound {
 					default:
 						break;
 				}
-				if( m_Type == 2 ) 
+				if( m_Type == FreqDetect.Hilbert ) 
 					n -= m_hill.m_htap/4;
+
 				SSTVSET.SetOFS( n );
 				m_rBase = n;
 				m_wBgn  = 0;

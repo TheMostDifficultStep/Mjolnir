@@ -428,7 +428,7 @@ namespace Play.Sound {
             try {
                 _rgCache.Clear();
             
-	            Write( 1500, GainIndx.G, 1.5 ); // gap (porch?)
+	            Write( 1500, GainIndx.G, 1.5 );      // gap (porch?)
 	            for( int x = 0; x < 320; x++ ) {     // G
                     _rgCache.Add( GetPixel( x, iLine ) );
 		            Write( ColorToFreq( _rgCache[x].Green ), GainIndx.G, dbTimePerPixel );
@@ -437,7 +437,7 @@ namespace Play.Sound {
 	            for( int x = 0; x < 320; x++ ) {     // B
 		            Write( ColorToFreq( _rgCache[x].Blue  ), GainIndx.B, dbTimePerPixel );
 	            }
-	            Write( 1200, 9 );
+	            Write( 1200, 9 );                    // HSync in second half!!
 	            Write( 1500, GainIndx.R, 1.5 );
 	            for( int x = 0; x < 320; x++ ) {     // R
 		            Write( ColorToFreq( _rgCache[x].Red   ), GainIndx.R, dbTimePerPixel );
@@ -491,7 +491,7 @@ namespace Play.Sound {
             try {
                 _rgCache.Clear();
 
-	            Write( 1200, 4.862 ); // Sync on each line. "free running"
+	            Write( 1200, 4.862 );               // HSync on each line.
 
 	            Write( 1500, GainIndx.G, 0.572 );   // G gap
 	            for( int x = 0; x < 320; x++ ) {     

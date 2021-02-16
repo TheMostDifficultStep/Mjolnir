@@ -309,6 +309,7 @@ namespace Play.SSTV {
 		public void DrawSSTV()
 		{
 			if( dp.m_Sync && (dp.m_wPage != dp.m_rPage) ){
+				// Go until the rPage catches up with the wPage.
 				while( dp.m_Sync && (dp.m_wPage != dp.m_rPage) ){
 					if( dp.m_wBgn != 0 ){
 						if( dp.m_wBgn != 1 ){
@@ -325,8 +326,8 @@ namespace Play.SSTV {
 					}
 					//short *ip = &dp->m_Buf[dp->m_rPage * dp->m_BWidth];
 					//short *sp = &dp->m_B12[dp->m_rPage * dp->m_BWidth];
-					int ip = dp.m_rPage * dp.m_BWidth;
-                    dp.StorePage( ip );
+					//int ip = dp.m_rPage * dp.m_BWidth;
+                    //dp.StorePage( ip );
 
 					DrawSSTVNormal();
 					if( m_AY > SSTVSET.m_L ){
@@ -354,6 +355,7 @@ namespace Play.SSTV {
 			int bx  = -1;
 			int ay  = -5;
 
+			// Looks like we read one scan line. 
 			for( int i = 0; i < SSTVSET.m_WD; i++, n++ ){
 				short ip = dp.m_Buf[dp.m_rPage * dp.m_BWidth + i ];
 
@@ -402,7 +404,7 @@ namespace Play.SSTV {
 				} else if( m_SyncMin > sp ){
 					m_SyncMin  = sp;
 				}
-				int     d, x;
+				int d, x;
 				x = (int)(ps * pBitmapD12.Width / SSTVSET.m_TW );
 				if( (x != bx) && (x < pBitmapD12.Width) && (x >= 0) ){
 					d = sp * 256 / 4096;
@@ -416,7 +418,7 @@ namespace Play.SSTV {
 						case AllModes.smSCT1:
 						case AllModes.smSCT2:
 						case AllModes.smSCTDX:
-							if( ps < SSTVSET.m_KS ){               // R
+							if( ps < SSTVSET.m_KS ){               // R : 9.0 hsync + 1.5 gap
 								x = (int)(ps * pBitmapRX.Width / SSTVSET.m_KSS );
 								if( (x != m_AX) && (x >= 0) && (x < 320) ){
 									m_AX = x;
@@ -512,7 +514,7 @@ namespace Play.SSTV {
 						case AllModes.smML240:
 						case AllModes.smML280:
 						case AllModes.smML320:
-							if( ps < SSTVSET.m_KS ){               // ‹P“x
+							if( ps < SSTVSET.m_KS ){               // 輝度 : Luminance, Y
 								x = (int)(ps * pBitmapRX.Width / SSTVSET.m_KSS );
 								if( (m_AX != x) && (x >= 0) && (x < pBitmapRX.Width) ){
 									m_AX = x;
@@ -561,7 +563,7 @@ namespace Play.SSTV {
 						case AllModes.smMN73:
 						case AllModes.smMN110:
 						case AllModes.smMN140:
-							if( ps < SSTVSET.m_KS ){               // ‹P“x
+							if( ps < SSTVSET.m_KS ){               // 輝度 : Luminance, Y
 								x = (int)(ps * pBitmapRX.Width / SSTVSET.m_KSS);
 								if( (m_AX != x) && (x >= 0) && (x < pBitmapRX.Width) ){
 									m_AX = x;
@@ -608,7 +610,7 @@ namespace Play.SSTV {
 							break;
 						case AllModes.smRM8:
 						case AllModes.smRM12:
-							if( ps < SSTVSET.m_KS ){               // ‹P“x
+							if( ps < SSTVSET.m_KS ){               // 輝度 : Luminance, Y
 								x = (int)(ps * pBitmapRX.Width / SSTVSET.m_KSS);
 								if( (m_AX != x) && (x >= 0) && (x < pBitmapRX.Width) && (y < SSTVSET.m_L) ){
 									m_AX = x;
@@ -654,7 +656,8 @@ namespace Play.SSTV {
 									d += 128;
 									d = Limit256(d);
 									if( gp > -1 ){
-										if( (SSTVSET.m_Mode == AllModes.smMRT1)||(SSTVSET.m_Mode == AllModes.smMRT2) ){
+										if( (SSTVSET.m_Mode == AllModes.smMRT1)||
+											(SSTVSET.m_Mode == AllModes.smMRT2) ){
 											pBitmapRX.SetPixel( x, gp,  new SKColor( (byte)d, (byte)m_D36[0,x], (byte)m_D36[1,x] ) );
 										} else {
 											pBitmapRX.SetPixel( x, gp,  new SKColor( (byte)m_D36[0,x], (byte)m_D36[1,x], (byte)d ) );
@@ -666,6 +669,7 @@ namespace Play.SSTV {
 					}
 				}
 			}
+			// End for
 		}
     }
 
