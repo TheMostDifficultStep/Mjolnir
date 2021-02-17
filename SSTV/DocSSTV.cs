@@ -86,6 +86,11 @@ namespace Play.SSTV {
 		  //g_dblToneOffset = 0.0;
 		}
 
+		/// <summary>
+		/// Convert ip levels -16,384 (black) through 16,384 (white) to -128 to +128.
+		/// </summary>
+		/// <param name="ip">frequency as a level value.</param>
+		/// <returns></returns>
 		int GetPixelLevel(short ip)
 		{
 			if( dp.sys.m_DemCalibration && (pCalibration != null) ){
@@ -96,13 +101,9 @@ namespace Play.SSTV {
 					d = 4096;
 				return pCalibration[d];
 			} else {
-				int d = (int)(ip - dp.sys.m_DemOff);
-				if( d >= 0 ){
-					d *= (int)dp.sys.m_DemWhite;
-				} else {
-					d *= (int)dp.sys.m_DemBlack;
-				}
-				return d;
+				double d = ip - dp.sys.m_DemOff;
+				d *= ( d >= 0 ) ? dp.sys.m_DemWhite : dp.sys.m_DemBlack;
+				return (int)d;
 			}
 		}
 
@@ -112,6 +113,7 @@ namespace Play.SSTV {
 				int   d;
 				short ip2 = dp.m_Buf[dp.m_rPage * dp.m_BWidth + i + SSTVSET.m_KSB ];
 
+				// I'm going to guess we're trying to get past some sync signal.
 				if( ip < ip2 ){
 					d = GetPixelLevel(ip2);
 				} else {
@@ -1160,13 +1162,39 @@ namespace Play.SSTV {
             // Set upload time to "finished" maybe even date/time!
         }
 
+		public IEnumerator<int> GetRecordTestTask() {
+			TmmSSTV          oRxSSTV = new TmmSSTV( _oSSTVDeModulator, _oSSTVDeModulator.SSTVSET );
+			IEnumerator<int> oIter   = _oSSTVGenerator.GetEnumerator();
+
+			oIter            .MoveNext();
+			_oSSTVDeModulator.SSTVSET.SetMode( AllModes.smMRT1 );
+			_oSSTVDeModulator.Start();
+
+			while( oIter.MoveNext() ) {
+				oRxSSTV.DrawSSTV();
+				yield return 1;
+			};
+			SaveRxImage( oRxSSTV );
+		}
+
         public void RecordBegin( int iModeIndex, SKRectI skSelect ) {
             if( ModeList[iModeIndex].Extra is SSTVMode oMode ) {
                 if( _oWorkPlace.Status == WorkerStatus.FREE ) {
 			        _oDocSnip.Load( Bitmap, skSelect, oMode.Resolution );
-                    if( GeneratorSetup( oMode, _oDocSnip.Bitmap ) ) {
-                        _oWorkPlace.Queue( GetRecorderTask(), 0 );
-                    }
+
+					FFTControlValues oFFTMode  = FFTControlValues.FindMode( RxSpec.Rate );
+					SYSSET           sys       = new SYSSET   ( oFFTMode.SampFreq );
+					CSSTVSET         oSetSSTV  = new CSSTVSET ( 0, oFFTMode.SampFreq, 0, sys.m_bCQ100 );
+					DemodTest        oDemodTst = new DemodTest( oSetSSTV,
+													   sys,
+													   (int)oFFTMode.SampFreq, 
+													   (int)oFFTMode.SampBase, 
+													   0 );
+					_oSSTVDeModulator = oDemodTst;
+					_oSSTVModulator   = new CSSTVMOD      ( 0, RxSpec.Rate, _oSSTVBuffer );
+					_oSSTVGenerator   = new GenerateMartin( _oDocSnip.Bitmap, oDemodTst, oMode );
+
+                    _oWorkPlace.Queue( GetRecordTestTask(), 0 );
                 }
             }
         }

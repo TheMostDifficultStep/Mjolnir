@@ -64,7 +64,7 @@ namespace Play.Sound {
 		int      m_Way240;
 		int		 m_AutoMargin;
 				  
-		public int  m_UseRxBuff { get; protected set; } = 1; // used
+		public int  m_UseRxBuff { get; protected set; } = 2; // was 1; but easer to deal with 2 for now.
 		public bool m_AutoStop  { get; protected set; } = false; // used
 		public bool m_AutoSync  { get; protected set; } = true;
 				  
@@ -789,16 +789,16 @@ namespace Play.Sound {
 				case AllModes.smP3:
 				case AllModes.smP5:
 				case AllModes.smP7:
-					m_KSS = (m_KS - m_KS/480.0);      // TW for Y or RGB mode
+					m_KSS  = (m_KS  - m_KS /480.0);   // TW for Y or RGB mode
 					m_KS2S = (m_KS2 - m_KS2/480.0);   // TW for Ry, By
-					m_KSB = (int)(m_KSS / 1280.0);          // TW for black adjutment
+					m_KSB  = (int)(m_KSS / 1280.0);   // TW for black adjutment
 					break;
 				case AllModes.smMP73:
 				case AllModes.smMN73:
 				case AllModes.smSCTDX:
-					m_KSS = (m_KS - m_KS/1280.0);      // TW for Y or RGB mode
+					m_KSS  = (m_KS  - m_KS/1280.0);    // TW for Y or RGB mode
 					m_KS2S = (m_KS2 - m_KS2/1280.0);   // TW for Ry, By
-					m_KSB = (int)(m_KSS / 1280.0 );
+					m_KSB  = (int)(m_KSS / 1280.0 );
 					break;
 				case AllModes.smSC2_180:
 				case AllModes.smMP115:
@@ -817,19 +817,19 @@ namespace Play.Sound {
 				case AllModes.smMC110:
 				case AllModes.smMC140:
 				case AllModes.smMC180:
-					m_KSS = m_KS;                   // TW for Y or RGB mode
+					m_KSS  = m_KS;                  // TW for Y or RGB mode
 					m_KS2S = m_KS2;                 // TW for Ry, By
-					m_KSB = (int)(m_KSS / 1280.0);
+					m_KSB  = (int)(m_KSS / 1280.0);
 					break;
 				case AllModes.smMR73:
-					m_KSS = (m_KS - m_KS/640.0);      // TW for Y or RGB mode
+					m_KSS  = (m_KS - m_KS/640.0);     // TW for Y or RGB mode
 					m_KS2S = (m_KS2 - m_KS2/1024.0);  // TW for Ry, By
-					m_KSB = (int)(m_KSS / 1024.0);
+					m_KSB  = (int)(m_KSS / 1024.0);
 					break;
 				default:
-					m_KSS = (m_KS - m_KS/240.0);      // TW for Y or RGB mode
+					m_KSS  = (m_KS  - m_KS /240.0);   // TW for Y or RGB mode
 					m_KS2S = (m_KS2 - m_KS2/240.0);   // TW for Ry, By
-					m_KSB = (int)(m_KSS / 640.0);          // TW for black adjutment
+					m_KSB  = (int)(m_KSS / 640.0);    // TW for black adjutment
 					break;
 			}
 			switch(m_Mode){
@@ -1650,7 +1650,7 @@ namespace Play.Sound {
 		public readonly static int TAPMAX = 512; // BUG: Move to Fir or Fir2 later.
 		readonly static int SSTVDEMBUFMAX = 24;
 
-		readonly CSSTVSET SSTVSET;
+		public CSSTVSET SSTVSET { get; protected set; }
 
 		readonly double[]  HBPF  = new double[TAPMAX+1];
 		readonly double[]  HBPFS = new double[TAPMAX+1];
@@ -1713,9 +1713,9 @@ namespace Play.Sound {
 
 		public int  m_wPage { get; protected set; }
 	    public int  m_rPage { get; protected set; }
-		int         m_wCnt;  // How far along on a the scan line we are. a X coord like thing.
+		protected int         m_wCnt;  // How far along on a the scan line we are. a X coord like thing.
 		int         m_wLine; // Count down on the scan lines. a Y coord like thing.
-		int         m_wBase; // this moves forward by m_Bwidth chunks.
+		protected int         m_wBase; // this moves forward by m_Bwidth chunks.
 		public int  m_wBgn { get; protected set; } 
 		public int  m_rBase{ get; protected set; } // Pos in frequency stream, This moves forward by SSTVSET.m_WD chunks. 0 to WD * L
 
@@ -2175,7 +2175,7 @@ namespace Play.Sound {
 			m_ReqSave  = false;
 		}
 
-		void Start() {
+		public void Start() {
 			SetWidth(CSSTVSET.IsNarrowMode(SSTVSET.m_Mode));
 
 			InitAFC();
@@ -2799,11 +2799,12 @@ namespace Play.Sound {
 			}
 		}
 
-		/// <summary>
+		/// <summary>Increment to next scan line. This is the scan line not including VIS and horiz sync.</summary>
+		/// <remarks>
 		/// My guess is that since we reset the m_wCnt when > m_WD we're not attempting to
 		/// resync on the horizontal sync signal. Might be a nice improvement if we ever get that far.
-		/// </summary>
-		void IncWP() {
+		/// </remarks>
+		protected void IncWP() {
 			m_wCnt++;      // This is the only place we bump up the (x) position along the frequency scan line.
 			if( m_wCnt >= SSTVSET.m_WD ){
 				// This might be a good place to send an event to process the scan line
@@ -3289,4 +3290,41 @@ namespace Play.Sound {
 			}
 		}
 	}
+
+	public class DemodTest : CSSTVDEM, IPgModulator {
+		public DemodTest( 
+			CSSTVSET p_oSSTVSet, 
+			SYSSET   p_sys, 
+			int      iSampFreq, 
+			int      iSampBase, 
+			double   dbToneOffset ) : 
+			base( p_oSSTVSet, p_sys, iSampFreq, iSampBase, dbToneOffset )
+		{
+		}
+
+		/// <summary>
+		/// Convert from frequency to level.
+		/// </summary>
+		/// <param name="iFrequency"></param>
+		/// <param name="uiGain"></param>
+		/// <param name="dbTimeMS"></param>
+		/// <returns></returns>
+		public int Write( int iFrequency, uint uiGain, double dbTimeMS )
+        {
+			if( m_Sync && iFrequency >= 1500) {
+				double dbSamples = (dbTimeMS * SampFreq)/1000.0;
+				// We'll only write if the frequencey is 1500 or highter.
+				// convert 1500 to -16,384 and 2300 to 16,384.
+                double foo = Math.Pow( 2, 15 ) / ( 2300 - 1500 );
+				double d   = ( iFrequency - 1900 ) * foo;
+				for( int i = 0; i < dbSamples; ++i ) {
+					int n = m_wBase + m_wCnt;
+					m_Buf[n] = (short)d;
+
+                    IncWP();
+				}
+			}
+			return 0;
+        }
+    }
 }

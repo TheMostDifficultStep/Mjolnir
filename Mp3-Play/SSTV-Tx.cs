@@ -86,7 +86,11 @@ namespace Play.Sound {
         }
     }
 
-    public class CSSTVMOD {
+    public interface IPgModulator {
+        int Write( int iFrequency, uint uiGain, double dbTimeMS );
+    }
+
+    public class CSSTVMOD : IPgModulator {
         readonly protected IPgBufferWriter<short> m_oWriter;
 	    readonly protected CVCO                   m_vco;
         readonly protected double                 m_dblTxSampleFreq;
@@ -159,14 +163,15 @@ namespace Play.Sound {
         /// <summary>
         /// From CSSTVMOD::Do(void), convert frequency signal to a time domain signal and adjust gain.
         /// </summary>
-        /// <param name="iFrequency">1500->2300</param>
+        /// <param name="iFrequency">1200->2300</param>
         /// <param name="uiGainIndex">Gain Selector for R, G & B</param>
         /// <returns></returns>
         protected double Process( int iFrequency, uint uiGainIndex ) {
 	        double d;
 
 		    if( iFrequency > 0 ){
-			    d = (double)( iFrequency - 1100 )/(double)(2300-1100); // d: .333 --> 1
+			    d = (double)( iFrequency - 1100 )/(double)(2300-1100); // d: .083 --> 1
+                // Looks like VCO inputs are basically from 0 to 1.
 			    //if( m_lpf ) 
                 //  d = avgLPF.Avg(d);
 			    d = m_vco.Do(d); // Convert frequency to time domain.
@@ -281,14 +286,14 @@ namespace Play.Sound {
         public SSTVMode Mode { get; }
 
         readonly private   SKBitmap      _oBitmap; // Do not dispose this, caller will deal with it.
-        readonly private   CSSTVMOD      _oModulator;
+        readonly private   IPgModulator     _oModulator;
         readonly protected List<SKColor> _rgCache = new List<SKColor>( 800 );
 
         /// <summary>
         /// 
         /// </summary>
         /// <exception cref="ArgumentNullException" />
-        public SSTVGenerator( SKBitmap oBitmap, CSSTVMOD oModulator, SSTVMode oMode ) {
+        public SSTVGenerator( SKBitmap oBitmap, IPgModulator oModulator, SSTVMode oMode ) {
             _oBitmap    = oBitmap    ?? throw new ArgumentNullException( "Bitmap must not be null." );
             _oModulator = oModulator ?? throw new ArgumentNullException( "Modulator must not be null." );
             Mode        = oMode      ?? throw new ArgumentNullException( "SSTV Mode must not be null." );
@@ -380,7 +385,7 @@ namespace Play.Sound {
     /// </summary>
     public class GenerateScottie : SSTVGenerator {
         /// <exception cref="ArgumentOutOfRangeException" />
-        public GenerateScottie( SKBitmap oBitmap, CSSTVMOD oModulator, SSTVMode oMode ) : 
+        public GenerateScottie( SKBitmap oBitmap, IPgModulator oModulator, SSTVMode oMode ) : 
             base( oBitmap, oModulator, oMode )
         {
         }
@@ -459,7 +464,7 @@ namespace Play.Sound {
     /// <remarks>Historical note. Martin was invented after Scottie.</remarks>
     public class GenerateMartin : SSTVGenerator {
         /// <exception cref="ArgumentOutOfRangeException" />
-        public GenerateMartin( SKBitmap oBitmap, CSSTVMOD oModulator, SSTVMode oMode ) : 
+        public GenerateMartin( SKBitmap oBitmap, IPgModulator oModulator, SSTVMode oMode ) : 
             base( oBitmap, oModulator, oMode )
         {
         }
@@ -533,7 +538,7 @@ namespace Play.Sound {
         List<Chrominance8Bit> _rgChrome = new List<Chrominance8Bit>(800);
 
         /// <exception cref="ArgumentOutOfRangeException" />
-        public GeneratePD( SKBitmap oBitmap, CSSTVMOD oModulator, SSTVMode oMode ) : 
+        public GeneratePD( SKBitmap oBitmap, IPgModulator oModulator, SSTVMode oMode ) : 
             base( oBitmap, oModulator, oMode )
         {
         }
