@@ -64,7 +64,8 @@ namespace Play.Sound {
 		int      m_Way240;
 		int		 m_AutoMargin;
 				  
-		public int  m_UseRxBuff { get; protected set; } = 2; // was 1; but easer to deal with 2 for now.
+		// UseRxBuff : can be CWaveStrage: 2 or m_StgBuf: 1 or off.
+		public int  m_UseRxBuff { get; protected set; } = 2; 
 		public bool m_AutoStop  { get; protected set; } = false; // used
 		public bool m_AutoSync  { get; protected set; } = true;
 				  
@@ -159,7 +160,7 @@ namespace Play.Sound {
 		public double   m_KS	 { get; protected set; }
 		public double   m_KS2	 { get; protected set; }
 		public double	m_OF	 { get; protected set; }
-		public double   m_OFP    { get; protected set; }
+		public double   m_OFP    { get; protected set; } // Looks used to help correct slant.
 		public double   m_CG     { get; protected set; }
 		public double   m_CB     { get; protected set; }
 		public double   m_SG     { get; protected set; }
@@ -344,8 +345,8 @@ namespace Play.Sound {
 					m_KS  = 138.0 * m_SampFreq / 1000.0; // This looks correct.
 					m_KS2 =  69.0 * m_SampFreq / 1000.0; // This is the RY/BY times!!! (see sstv-handbook)
 					m_OF  =  12.0 * m_SampFreq / 1000.0; // Line sync pulse!
-					m_OFP =  10.7 * m_SampFreq / 1000.0;
-					m_SG  = 144.0 * m_SampFreq / 1000.0; // 144-138 is 6 btw each color block.
+					m_OFP =  10.7 * m_SampFreq / 1000.0; // Looks to help with slant correct.
+					m_SG  = 144.0 * m_SampFreq / 1000.0; // 144-138 is 6, btw each color block.
 					m_CG  = m_SG + m_KS2;
 					m_SB  = 219.0 * m_SampFreq / 1000.0;
 					m_CB  = m_SB + m_KS2;
@@ -387,9 +388,9 @@ namespace Play.Sound {
 					m_OF  =   5.434 * m_SampFreq / 1000.0; // 4.862 hsync + .572 gap
 		          //m_OFP =   7.3   * m_SampFreq / 1000.0;
 					m_OFP =   7.2   * m_SampFreq / 1000.0;
-					m_SG  = 147.004 * m_SampFreq / 1000.0;
-					m_CG = m_KS + m_SG;
-					m_SB = m_SG + m_SG;
+					m_SG  = 147.004 * m_SampFreq / 1000.0; // KS + gap.
+					m_CG = m_KS + m_SG; // KS + gap + KS
+					m_SB = m_SG + m_SG; // gap + KS + gap + KS
 					m_CB = m_KS + m_SB;
 					m_L = 256;
 					break;
@@ -822,7 +823,7 @@ namespace Play.Sound {
 					m_KSB  = (int)(m_KSS / 1280.0);
 					break;
 				case AllModes.smMR73:
-					m_KSS  = (m_KS - m_KS/640.0);     // TW for Y or RGB mode
+					m_KSS  = (m_KS  - m_KS / 640.0);  // TW for Y or RGB mode
 					m_KS2S = (m_KS2 - m_KS2/1024.0);  // TW for Ry, By
 					m_KSB  = (int)(m_KSS / 1024.0);
 					break;
@@ -1696,8 +1697,6 @@ namespace Play.Sound {
 		readonly CFQC     m_fqc;
 		readonly CHILL    m_hill;
 
-		REPSET   pRep;
-
 		int         m_Skip;
 		public bool   m_Sync { get; protected set; }
 		readonly bool m_SyncRestart;
@@ -1742,10 +1741,6 @@ namespace Play.Sound {
 		public int     m_BWidth; // Width of the scan line in memory.
 		public short[] m_Buf;
 		public short[] m_B12;
-
-		public int     m_RxBufAllocSize;
-		public short[] m_StgBuf;
-		public short[] m_StgB12;
 
 		readonly int  m_SenseLvl;
 		double      m_SLvl;
@@ -1807,22 +1802,6 @@ namespace Play.Sound {
 		int			m_fskNR;
 		readonly List<char>	m_fskNRS  = new List<char>(20);
 
-		//------ リピータ (repeater)
-		bool          m_Repeater = false;
-		readonly int  m_RepSQ;
-		readonly int  m_RepTone;
-		int			  m_repmode;
-		int			  m_reptime;
-		int			  m_repcount;
-		int			  m_repsig;
-		//int         m_repANS;
-		//int         m_repRLY;
-		//int         m_repRX;
-		//int         m_repTX;
-
-		int         m_RSLvl;
-		int         m_RSLvl2;
-
 		bool        m_fNarrow = false;
 
 		//double  m_d;
@@ -1848,19 +1827,16 @@ namespace Play.Sound {
 			m_bpf = 0; // TODO: I set 0 for now was... 1;      // wide
 			m_ad  = 0;
 
-			m_StgBuf = null;
-			m_StgB12 = null;
-
 			// Our buffer only holds SSTVDEMBUFMAX (24) lines. That must mean we need to
 			// DrawSSTV enough that we unload the buffer in time. m_BWidth must also represent
 			// a maximum line width we'll need since all the modes, will of, course vary.
-			m_BWidth = (int)(1400 * SampFreq / 1000.0 ); // samples width.
+			m_BWidth = (int)(1400 * SampFreq / 1000.0 ); // samples width (MAX).
 			int n = SSTVDEMBUFMAX * m_BWidth;
 			m_Buf = new short[n];
 			m_B12 = new short[n];
 
-			Array.Clear( m_Buf, 0, m_Buf.Length );
-			Array.Clear( m_B12, 0, m_Buf.Length );
+		  //Array.Clear( m_Buf, 0, m_Buf.Length );
+		  //Array.Clear( m_B12, 0, m_Buf.Length );
 
 			m_fqc  = new CFQC( SampFreq, dbToneOffset );
 			m_hill = new CHILL( sys, SampFreq, SampBase, dbToneOffset );
@@ -1874,7 +1850,6 @@ namespace Play.Sound {
 			Array.Clear( HBPF,  0, HBPF .Length );
 			Array.Clear( HBPFS, 0, HBPFS.Length );
 			Array.Clear( HBPFN, 0, HBPFN.Length );
-		//	memset(Z, 0, sizeof(Z));
 			CalcBPF();
 
 			m_iir11  = new CIIRTANK( iSampFreq );
@@ -1900,8 +1875,6 @@ namespace Play.Sound {
 			m_lpf13 .MakeIIR(50, SampFreq, 2, 0, 0);
 			m_lpf19 .MakeIIR(50, SampFreq, 2, 0, 0);
 			m_lpffsk.MakeIIR(50, SampFreq, 2, 0, 0);
-
-			pRep = null;
 
 			m_wPage     = m_rPage = 0;
 			m_wBase     = 0;
@@ -1929,7 +1902,6 @@ namespace Play.Sound {
 			m_sint2.Reset();
 			m_sint3.Reset( fNarrow:true);
 
-		  //m_MSync       = true;                              // Sync remote start ON
 			m_SyncRestart = true;
 			m_SyncAVT     = false;
 
@@ -1942,22 +1914,11 @@ namespace Play.Sound {
 			m_fskNRrec  = 0;
 			m_fskdecode = false;
 			m_fskmode   = 0;
-
-			m_RepSQ    = 6000;
-			m_RepTone  = 1750;
-			m_repmode  = 0;
-			//m_repANS = m_repRLY = m_repRX = m_repTX = 0;
-			InitRepeater();
-			SetRepSenseLvl();
 		}
 
 		public void Dispose() {
 			m_B12 = null;
 			m_Buf = null;
-			FreeRxBuff();
-			if( pRep != null ){
-				pRep = null;
-			}
 		}
 
 		/// <summary>
@@ -2072,30 +2033,6 @@ namespace Play.Sound {
 					delay = (m_bpftap - delay) / 2;
 					m_Skip = delay;
 				}
-			}
-		}
-
-		void FreeRxBuff() {
-			m_StgBuf   = null;
-			m_StgB12   = null;
-			m_wStgLine = 0;
-		}
-
-		public void OpenCloseRxBuff() {
-			if( m_Sync ) return;
-
-			if( sys.m_UseRxBuff == 1 ){
-				if( m_StgBuf == null ){
-					int n = (int)( 257.0 * 1100.0 * SampFreq / 1000.0 );
-					m_StgBuf = new short[n];
-					m_StgB12 = new short[n];
-					//Array.Clear( m_StgBuf, 0, m_StgBuf.Length );
-					//Array.Clear( m_StgB12, 0, m_StgB12.Length );
-					m_RxBufAllocSize = n;
-					m_wStgLine = 0;
-				}
-			} else {
-				FreeRxBuff();
 			}
 		}
 
@@ -2322,18 +2259,6 @@ namespace Play.Sound {
 			dsp = m_lpffsk.Do(dsp);
 
 			DecodeFSK( (int)d19, (int)dsp );
-
-			if( m_Repeater && !m_Sync && (pRep != null) ){
-				double dsp2;
-				dsp2 = pRep.m_iirrep.Do(d);
-				if( dsp2 < 0.0 ) 
-					dsp2 = -dsp2;
-				dsp2 = pRep.m_lpfrep.Do(dsp2);
-				if( m_RepSQ != 0 ){
-					m_repsig = pRep.m_lmsrep.Sig(m_ad);
-				}
-				Repeater((int)dsp2, (int)d12, (int)d19);
-			}
 
 			if( m_fNarrow ){
 				if( m_ScopeFlag ){
@@ -2753,7 +2678,7 @@ namespace Play.Sound {
 							int n = m_wBase + m_wCnt;
 							m_Buf[n] = (short)-d;
 							m_B12[n] = 0;
-							IncWP();
+							WCntIncrement();
 						}
 					}
 				} else {
@@ -2778,7 +2703,7 @@ namespace Play.Sound {
 					else {
 						m_B12[n] = (short)((d + 16384) * 0.25);
 					}
-					IncWP();
+					WCntIncrement();
 				}
 			}
 			else if( sys.m_TestDem ){
@@ -2804,21 +2729,25 @@ namespace Play.Sound {
 		/// My guess is that since we reset the m_wCnt when > m_WD we're not attempting to
 		/// resync on the horizontal sync signal. Might be a nice improvement if we ever get that far.
 		/// </remarks>
-		protected void IncWP() {
+		protected void WCntIncrement() {
 			m_wCnt++;      // This is the only place we bump up the (x) position along the frequency scan line.
 			if( m_wCnt >= SSTVSET.m_WD ){
-				// This might be a good place to send an event to process the scan line
-				// in a more orderly fashion than it is done now.
-				m_wCnt = 0;
-				m_wPage++; // This is the only place we bump up the write page.
-				m_wLine++;
-				m_wBase += m_BWidth;
+				WPageIncrement();
+			}
+		}
 
-				// If the wPage becomes larger than the buff, we wrap around.
-				if( m_wPage >= SSTVDEMBUFMAX ){
-					m_wPage = 0;
-					m_wBase = 0;
-				}
+		protected void WPageIncrement() {
+			// This might be a good place to send an event to process the scan line
+			// in a more orderly fashion than it is done now.
+			m_wCnt = 0;
+			m_wPage++; // This is the only place we bump up the write page.
+			m_wLine++;
+			m_wBase += m_BWidth;
+
+			// If the wPage becomes larger than the buff, we wrap around.
+			if( m_wPage >= SSTVDEMBUFMAX ){
+				m_wPage = 0;
+				m_wBase = 0;
 			}
 		}
 
@@ -3151,144 +3080,6 @@ namespace Play.Sound {
 			}
 		}
 
-		// リピータ変数の初期化 : Initialization of repeater variables 
-		void InitRepeater(){
-			if( sys.m_Repeater ) {
-				if( pRep == null )
-					pRep = new REPSET( SampFreq, SampBase );
-				pRep.m_iirrep.SetFreq(m_RepTone + m_dblToneOffset, SampFreq, 100.0);
-				pRep.m_lpfrep.MakeIIR(50, SampFreq, 2, 0, 0);
-			} else {
-				pRep = null;
-			}
-		}
-
-		//  リピータのON/OFF
-		void SetRepeater(bool sw) {
-			if( sw != m_Repeater ){
-				m_repmode  = 0;
-				m_Repeater = sw;
-			}
-		}
-
-		// リピータトーンの検出感度設定 : Repeater tone detection sensitivity setting
-		void SetRepSenseLvl() {
-			switch(sys.m_RepSenseLvl){
-				case 0:
-					m_RSLvl = 3072;
-					break;
-				case 1:
-					m_RSLvl = 4096;
-					break;
-				case 2:
-					m_RSLvl = 6144;
-					break;
-				default:
-					m_RSLvl = 8192;
-					break;
-			}
-			m_RSLvl2 = m_RSLvl / 2;
-		}
-
-		// リピータトーンの検出処理
-		void Repeater(int d17, int d12, int d19) {
-			int d1 = Math.Abs(d17 - d12);
-			int d2 = Math.Abs(d17 - d19);
-
-			switch(m_repmode){
-				case 0:     // トーン検出のトリガ
-					if( (d1 > m_RSLvl) && (d2 > m_RSLvl2) ){
-						m_reptime = (int)(sys.m_RepTimeA * SSTVSET.m_SampFreq / 1000);
-						m_repmode++;
-					}
-					break;
-				case 1:     // トーンの持続のチェック
-					if( (d1 > m_RSLvl) && (d2 > m_RSLvl2) ){
-						m_reptime--;
-						if( m_reptime == 0 ) {
-							m_repmode++;
-							m_repcount = (int)(10000 * SSTVSET.m_SampFreq / 1000);
-						}
-					} else {
-						m_repmode = 0;
-					}
-					break;
-				case 2:     // ƒg[ƒ“‚ÌI—¹‚ÌŒŸo
-					m_repcount--;
-					if( m_repcount == 0 ){
-						m_repmode = 0;
-					}
-					if( (d1 > m_RSLvl) && (d2 > m_RSLvl2) ){
-						m_reptime  = (int)(sys.m_RepTimeB * SSTVSET.m_SampFreq / 1000);
-						m_repcount = (int)(10000 * SSTVSET.m_SampFreq / 1000);
-						if( m_reptime == 0 ) 
-							m_reptime++;
-					}
-					else if( m_RepSQ != 0 && (m_repsig > m_RepSQ) ){
-						m_reptime = (int)(sys.m_RepTimeB * SSTVSET.m_SampFreq / 1000);
-						if( m_reptime == 0 )
-							m_reptime++;
-					}
-					else {
-						m_reptime--;
-						if( m_reptime == 0 ){
-							m_repmode++;
-						}
-					}
-					break;
-		//        case 3:     // 'K'‚Ì‘—M‘Ò‚¿
-		//            break;
-				case 4:
-					m_reptime  = (int)(sys.m_RepTimeC * SSTVSET.m_SampFreq / 1000 );
-					m_repcount = (int)(sys.m_RepTimeA * SSTVSET.m_SampFreq / 1000 );
-					m_repmode++;
-					break;
-				case 5:       // 10[s]‚Ìƒ^ƒCƒ€ƒAƒEƒg‘Ò‚¿
-					m_reptime--;
-					if( m_reptime == 0 ) {       // ƒ^ƒCƒ€ƒAƒEƒg‚É‚æ‚é‘Ò‹@
-						m_repmode = 0;
-					}
-					else if( (d1 > m_RSLvl) && (d2 > m_RSLvl2) ){
-						m_repcount--;
-						if( m_repcount == 0 ){
-							m_repmode = 2;
-						}
-					} else {
-						m_repcount = (int)(sys.m_RepTimeA * SSTVSET.m_SampFreq / 1000);
-					}
-					break;
-		//        case 6:     // ŽóM’†
-		//            break;
-				case 7:
-					m_reptime  = (int)(sys.m_RepTimeD * SSTVSET.m_SampFreq / 1000 );
-					m_repcount = (int)(20000 * SSTVSET.m_SampFreq / 1000 );
-					if( m_reptime == 0 ) m_reptime++;
-					m_repmode++;
-					break;
-				case 8:        // リプレイ送信前のタイマ
-					m_repcount--;
-					if( m_repcount == 0 ){
-						m_repmode = 0;
-					}
-					if( m_RepSQ != 0 && (m_repsig > m_RepSQ) ){
-						m_reptime = (int)(sys.m_RepTimeD * SSTVSET.m_SampFreq / 1000);
-						if( m_reptime == 0 ) 
-							m_reptime++;
-					} else {
-						m_reptime--;
-						if( m_reptime == 0 ) {
-							m_repmode++;
-						}
-					}
-					break;
-		//        case 9:       // 送信トリガ
-		//            break;
-		//        case 10:      // リプレイ送信中
-		//            break;
-				default:
-					break;
-			}
-		}
 	}
 
 	public class DemodTest : CSSTVDEM, IPgModulator {
@@ -3311,18 +3102,25 @@ namespace Play.Sound {
 		/// <returns></returns>
 		public int Write( int iFrequency, uint uiGain, double dbTimeMS )
         {
-			if( m_Sync && iFrequency >= 1500) {
-				double dbSamples = (dbTimeMS * SampFreq)/1000.0;
-				// We'll only write if the frequencey is 1500 or highter.
-				// convert 1500 to -16,384 and 2300 to 16,384.
-                double foo = Math.Pow( 2, 15 ) / ( 2300 - 1500 );
-				double d   = ( iFrequency - 1900 ) * foo;
-				for( int i = 0; i < dbSamples; ++i ) {
-					int n = m_wBase + m_wCnt;
-					m_Buf[n] = (short)d;
+			if( m_Sync ) {
+				if( iFrequency >= 1500 ) {
+					// This is picture data...
+					double dbSamples = (dbTimeMS * SampFreq)/1000.0;
+					// We'll only write if the frequencey is 1500 or highter.
+					// convert 1500 to -16,384 and 2300 to 16,384.
+					double foo = Math.Pow( 2, 15 ) / ( 2300 - 1500 );
+					double d   = ( iFrequency - 1900 ) * foo;
+					for( int i = 0; i < dbSamples; ++i ) {
+						int n = m_wBase + m_wCnt;
+						m_Buf[n] = (short)d;
 
-                    IncWP();
+						WCntIncrement();
+					}
+				} else {
+					// We'll assume it's the 1200hz HSync signal.
+					WPageIncrement();
 				}
+
 			}
 			return 0;
         }

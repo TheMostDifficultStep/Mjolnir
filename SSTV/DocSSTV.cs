@@ -73,13 +73,13 @@ namespace Play.SSTV {
 		short[] pCalibration = null; // Not strictly necessary yet.
 
 		public SKBitmap pBitmapRX { get; protected set; } = new SKBitmap();
-		// Looks like were only using grey scale of the RGB look into turning into greyscale later.
 		public SKBitmap pBitmapD12 { get; } = new SKBitmap( 800, 600, SKColorType.Rgb888x, SKAlphaType.Unknown );
+		// Looks like were only using grey scale on the D12. Look into turning into greyscale later.
 #endregion
 
-		public TmmSSTV( CSSTVDEM p_dp, CSSTVSET p_SSTVSET ) {
-			dp      = p_dp      ?? throw new ArgumentNullException( "CSSTVDEM" );
-			SSTVSET = p_SSTVSET ?? throw new ArgumentNullException( "CSSTVSET" );
+		public TmmSSTV( CSSTVDEM p_dp ) {
+			dp      = p_dp         ?? throw new ArgumentNullException( "CSSTVDEM" );
+			SSTVSET = p_dp.SSTVSET ?? throw new ArgumentNullException( "CSSTVSET" );
 
 		  //StartOption() ...
 		  //dp.sys.m_bCQ100 = FALSE;
@@ -1122,7 +1122,7 @@ namespace Play.SSTV {
                                                   (int)oFFTMode.SampBase, 
                                                   0 );
 
-				oRxSSTV = new TmmSSTV( _oSSTVDeModulator, oSetSSTV );
+				oRxSSTV = new TmmSSTV( _oSSTVDeModulator );
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( NullReferenceException ),
                                     typeof( ArgumentNullException ),
@@ -1163,10 +1163,10 @@ namespace Play.SSTV {
         }
 
 		public IEnumerator<int> GetRecordTestTask() {
-			TmmSSTV          oRxSSTV = new TmmSSTV( _oSSTVDeModulator, _oSSTVDeModulator.SSTVSET );
+			TmmSSTV          oRxSSTV = new TmmSSTV( _oSSTVDeModulator );
 			IEnumerator<int> oIter   = _oSSTVGenerator.GetEnumerator();
 
-			oIter            .MoveNext();
+			oIter            .MoveNext(); // skip the VIS for now.
 			_oSSTVDeModulator.SSTVSET.SetMode( AllModes.smMRT1 );
 			_oSSTVDeModulator.Start();
 
@@ -1186,10 +1186,10 @@ namespace Play.SSTV {
 					SYSSET           sys       = new SYSSET   ( oFFTMode.SampFreq );
 					CSSTVSET         oSetSSTV  = new CSSTVSET ( 0, oFFTMode.SampFreq, 0, sys.m_bCQ100 );
 					DemodTest        oDemodTst = new DemodTest( oSetSSTV,
-													   sys,
-													   (int)oFFTMode.SampFreq, 
-													   (int)oFFTMode.SampBase, 
-													   0 );
+															    sys,
+															    (int)oFFTMode.SampFreq, 
+															    (int)oFFTMode.SampBase, 
+															    0 );
 					_oSSTVDeModulator = oDemodTst;
 					_oSSTVModulator   = new CSSTVMOD      ( 0, RxSpec.Rate, _oSSTVBuffer );
 					_oSSTVGenerator   = new GenerateMartin( _oDocSnip.Bitmap, oDemodTst, oMode );
