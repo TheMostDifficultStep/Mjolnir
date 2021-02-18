@@ -31,8 +31,6 @@ namespace Play.SSTV {
         readonly CSSTVSET SSTVSET;
 
 #region variables
-	    AllModes m_HistM; // Looks like the last image type recieved.
-
 	    int m_RXW = 320, m_RXH = 256, m_RXPH = 256; // RXPH is the size NOT including greyscale. Not used yet, but maybe later.
 
 	    double[]  m_Z = new double[3];
@@ -321,13 +319,10 @@ namespace Play.SSTV {
 						dp.SyncSSTV( m_SyncAccuracy ); // TODO: Double check this sync value.
 						if( dp.m_wBgn != 0 )
                             return;
-						m_HistM = SSTVSET.m_Mode;
 						ClearTVImages();
 						InitAutoStop( dp.SampBase );
 						m_AutoSyncCount = m_AutoSyncDis = 0;
 					}
-					//short *ip = &dp->m_Buf[dp->m_rPage * dp->m_BWidth];
-					//short *sp = &dp->m_B12[dp->m_rPage * dp->m_BWidth];
 					//int ip = dp.m_rPage * dp.m_BWidth;
                     //dp.StorePage( ip );
 

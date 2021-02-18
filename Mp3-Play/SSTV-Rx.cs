@@ -1710,13 +1710,14 @@ namespace Play.Sound {
 		AllModes    m_NextMode;
 		bool        m_SyncAVT;
 
-		public int  m_wPage { get; protected set; }
-	    public int  m_rPage { get; protected set; }
-		protected int         m_wCnt;  // How far along on a the scan line we are. a X coord like thing.
-		int         m_wLine; // Count down on the scan lines. a Y coord like thing.
-		protected int         m_wBase; // this moves forward by m_Bwidth chunks.
-		public int  m_wBgn { get; protected set; } 
-		public int  m_rBase{ get; protected set; } // Pos in frequency stream, This moves forward by SSTVSET.m_WD chunks. 0 to WD * L
+		public   bool m_fFreeRun { get; protected set; } = false;
+		public   int  m_wPage { get; protected set; }
+	    public   int  m_rPage { get; protected set; }
+		protected int m_wCnt;  // How far along on a the scan line we are. a X coord like thing.
+		          int m_wLine; // Count down on the scan lines. a Y coord like thing.
+		protected int m_wBase; // this moves forward by m_Bwidth chunks.
+		public    int m_wBgn { get; protected set; } 
+		public    int m_rBase{ get; protected set; } // Pos in frequency stream, This moves forward by SSTVSET.m_WD chunks. 0 to WD * L
 
 		public void OnDrawBegin() { m_wBgn = 1; }
 
@@ -2731,7 +2732,7 @@ namespace Play.Sound {
 		/// </remarks>
 		protected void WCntIncrement() {
 			m_wCnt++;      // This is the only place we bump up the (x) position along the frequency scan line.
-			if( m_wCnt >= SSTVSET.m_WD ){
+			if( m_fFreeRun && m_wCnt >= SSTVSET.m_WD ){
 				WPageIncrement();
 			}
 		}
@@ -3118,6 +3119,7 @@ namespace Play.Sound {
 					}
 				} else {
 					// We'll assume it's the 1200hz HSync signal.
+					// Set m_fFreeRun false, so we don't compete with the line width.
 					WPageIncrement();
 				}
 
