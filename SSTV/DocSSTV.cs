@@ -27,37 +27,37 @@ namespace Play.SSTV {
 	/// demodulated stuff encoded into a bitmap. But at least we have some factorization of the problem.
 	/// </summary>
     public class TmmSSTV {
-        readonly CSSTVDEM dp;
-        readonly CSSTVSET SSTVSET;
+        protected readonly CSSTVDEM dp;
+        protected readonly CSSTVSET SSTVSET;
 
 #region variables
-	    int m_RXW = 320, m_RXH = 256, m_RXPH = 256; // RXPH is the size NOT including greyscale. Not used yet, but maybe later.
+	    protected int m_RXW = 320, m_RXH = 256, m_RXPH = 256; // RXPH is the size NOT including greyscale. Not used yet, but maybe later.
 
-	    double[]  m_Z = new double[3];
-        int       m_AX, m_AY;
+	    protected double[]  m_Z = new double[3];
+        protected int       m_AX, m_AY;
 
-	    short[]  m_Y36 = new short[800];
-	    short[,] m_D36 = new short[2,800];
-        int      m_DSEL;
+	    protected short[]  m_Y36 = new short[800];
+	    protected short[,] m_D36 = new short[2,800];
+        protected int      m_DSEL;
 
-	    int     m_SyncPos, m_SyncRPos; // RPos Gets set in AutoStopJob() which we haven't implemented yet 
-	    int     m_SyncMax, m_SyncMin;
+	    protected int     m_SyncPos, m_SyncRPos; // RPos Gets set in AutoStopJob() which we haven't implemented yet 
+	    protected int     m_SyncMax, m_SyncMin;
 
-	    int     m_SyncAccuracy = 1;
-	    int     m_SyncAccuracyN;  // TODO: Gets used in TimerTimer, which isn't implented yet.
+	   protected  int     m_SyncAccuracy = 1;
+	   protected  int     m_SyncAccuracyN;  // TODO: Gets used in TimerTimer, which isn't implented yet.
 
         //Auto
-	    int     m_Mult;
+	    protected int     m_Mult;
 
-	    int     m_AutoStopPos;
-	    int[]   m_AutoStopAPos = new int[16];
-	    int     m_AutoStopCnt;
-	    int     m_AutoStopACnt;
+	    protected int     m_AutoStopPos;
+	    protected int[]   m_AutoStopAPos = new int[16];
+	    protected int     m_AutoStopCnt;
+	    protected int     m_AutoStopACnt;
 
-	    int     m_AutoSyncCount;
-	    int     m_AutoSyncPos;
-	    int     m_AutoSyncDis;
-	    int     m_AutoSyncDiff;
+	    protected int     m_AutoSyncCount;
+	    protected int     m_AutoSyncPos;
+	    protected int     m_AutoSyncDis;
+	    protected int     m_AutoSyncDiff;
 
         //AutoSlant
 	    int       m_ASBgnPos;
@@ -89,7 +89,7 @@ namespace Play.SSTV {
 		/// </summary>
 		/// <param name="ip">frequency as a level value.</param>
 		/// <returns></returns>
-		int GetPixelLevel(short ip)
+		protected int GetPixelLevel(short ip)
 		{
 			if( dp.sys.m_DemCalibration && (pCalibration != null) ){
 				int d = (ip / 8) + 2048;
@@ -105,7 +105,7 @@ namespace Play.SSTV {
 			}
 		}
 
-		int GetPictureLevel( short ip, int i )
+		protected int GetPictureLevel( short ip, int i )
 		{
 			if( dp.sys.m_UseRxBuff != 2 ) {
 				int   d;
@@ -140,7 +140,7 @@ namespace Play.SSTV {
 			B = Limit256(B);
 		}
 
-		static int Limit256(int d)
+		protected static int Limit256(int d)
 		{
 			if( d < 0 )
 				d = 0;
@@ -225,7 +225,7 @@ namespace Play.SSTV {
 		/// This is a whole hot mess of stuff and I'm not going to port it for now.
 		/// </summary>
 		/// <returns></returns>
-		bool AutoStopJob() {
+		protected bool AutoStopJob() {
 			return true;
 		}
 
@@ -308,84 +308,80 @@ namespace Play.SSTV {
 
 		public void DrawSSTV()
 		{
-			if( dp.m_Sync && (dp.m_wPage != dp.m_rPage) ){
-				// Go until the rPage catches up with the wPage.
-				while( dp.m_Sync && (dp.m_wPage != dp.m_rPage) ){
-					if( dp.m_wBgn != 0 ){
-						if( dp.m_wBgn != 1 ){
-                            PrepDraw();
-						}
-						dp.OnDrawBegin();
-						dp.SyncSSTV( m_SyncAccuracy ); // TODO: Double check this sync value.
-						if( dp.m_wBgn != 0 )
-                            return;
-						ClearTVImages();
-						InitAutoStop( dp.SampBase );
-						m_AutoSyncCount = m_AutoSyncDis = 0;
+			// Go until the rPage catches up with the wPage.
+			while( dp.m_Sync && (dp.m_wPage != dp.m_rPage) ){
+				if( dp.m_wBgn != 0 ){
+					if( dp.m_wBgn != 1 ){
+                        PrepDraw();
 					}
-					//int ip = dp.m_rPage * dp.m_BWidth;
-                    //dp.StorePage( ip );
-
-					DrawSSTVNormal();
-					if( m_AY > SSTVSET.m_L ){
-						if( dp.m_Sync ){
-							dp.Stop();
-                            AllStop();
-						}
-						break;
-					}
-                    dp.RPageIncrement();
+					dp.OnDrawBegin();
+					//dp.SyncSSTV( m_SyncAccuracy ); // TODO: Double check this sync value.
+					//if( dp.m_wBgn != 0 )
+                    //    return;
+					ClearTVImages();
+					InitAutoStop( dp.SampBase );
+					m_AutoSyncCount = m_AutoSyncDis = 0;
 				}
-				//if( !pSound->IsBusy() ){
-				//	PBoxRXPaint(NULL);
-				//	DrawSync();
-				//}
+				//int ip = dp.m_rPage * dp.m_BWidth;
+                //dp.StorePage( ip );
+
+				DrawSSTVNormal();
+				if( m_AY > SSTVSET.m_L ){
+					if( dp.m_Sync ){
+						dp.Stop();
+                        AllStop();
+					}
+					break;
+				}
+                dp.RPageIncrement();
 			}
 		}
 
-		void DrawSSTVNormal()
+		protected virtual void DrawSSTVNormal()
 		{
-			int R,G,B; 
-			int gp  = -1;
-			int gp2 = -1;
-			int n   = dp.m_rBase;
+			int R,G,B; int gp  = -1; int gp2 = -1; // Moving this int the loop causees black bitmap. hmmm....
+			int n   = dp.m_rBase; // Increments in += SSTVSET.m_WD chunks.
 			int bx  = -1;
 			int ay  = -5;
 
-			// Looks like we read one scan line. 
-			for( int i = 0; i < SSTVSET.m_WD; i++, n++ ){
-				short ip = dp.m_Buf[dp.m_rPage * dp.m_BWidth + i ];
+			if( n < 0 ) 
+				throw new ApplicationException( "m_rBase went negative" );
 
-				if( n < 0 ) 
-					continue;
-
-				int y = (int)(n/SSTVSET.m_TW); 
-				if( ay != y ){
-					m_AY = ay = y;
-					if( (SSTVSET.m_Mode == AllModes.smSCT1)||
-						(SSTVSET.m_Mode == AllModes.smSCT2)||
-						(SSTVSET.m_Mode == AllModes.smSCTDX) ){
-						if( (y > 0) && (y <= 256) ){
-							gp = y-1;
-						}
-					}
-					else if( ((SSTVSET.m_Mode >= AllModes.smPD50)&&(SSTVSET.m_Mode <= AllModes.smPD290)) ||
-							 ((SSTVSET.m_Mode >= AllModes.smMP73)&&(SSTVSET.m_Mode <= AllModes.smMP175)) ||
-							 ((SSTVSET.m_Mode >= AllModes.smMN73)&&(SSTVSET.m_Mode <= AllModes.smMN140)) ||
-							 ((SSTVSET.m_Mode >= AllModes.smR24 )&&(SSTVSET.m_Mode <= AllModes.smRM12 ))
-					){
-						if( (y >= 0) && (y < SSTVSET.m_L) ){
-							R   = y * 2;
-							gp  = R;
-							gp2 = R+1;
-						}
-					}
-					else if( (y >= 0) && (y < pBitmapRX.Height) ){
-						gp = y;
+			int y = (int)(n/SSTVSET.m_TW); 
+			if( ay != y ){
+				m_AY = ay = y;
+				if( (SSTVSET.m_Mode == AllModes.smSCT1)||
+					(SSTVSET.m_Mode == AllModes.smSCT2)||
+					(SSTVSET.m_Mode == AllModes.smSCTDX) ){
+					if( (y > 0) && (y <= 256) ){
+						gp = y-1;
 					}
 				}
+				else if( ((SSTVSET.m_Mode >= AllModes.smPD50)&&(SSTVSET.m_Mode <= AllModes.smPD290)) ||
+							((SSTVSET.m_Mode >= AllModes.smMP73)&&(SSTVSET.m_Mode <= AllModes.smMP175)) ||
+							((SSTVSET.m_Mode >= AllModes.smMN73)&&(SSTVSET.m_Mode <= AllModes.smMN140)) ||
+							((SSTVSET.m_Mode >= AllModes.smR24 )&&(SSTVSET.m_Mode <= AllModes.smRM12 ))
+				){
+					if( (y >= 0) && (y < SSTVSET.m_L) ){
+						R   = y * 2;
+						gp  = R;
+						gp2 = R+1;
+					}
+				}
+				else if( (y >= 0) && (y < pBitmapRX.Height) ){
+					gp = y;
+				}
+			}
+
+			// Looks like we read one scan line. n represents our position through the
+			// entire stream. That is used to determine the "Y" coordinate at the start
+			// then it is incremented to determine the "X" pos.
+			for( int i = 0; i < SSTVSET.m_WD; i++, n++ ){
+				short ip = dp.m_Buf[dp.m_rPage * dp.m_BWidth + i];
+			 // Y calculation was here.
 
 				double ps = n % (int)SSTVSET.m_TW; // fmod(double(n), SSTVSET.m_TW)
+
 				short  sp = dp.m_B12[dp.m_rPage * dp.m_BWidth + i];
 				if( (int)ps == 0 ){
 					// KRSA, assigned sys.m_UseRxBuff ? TRUE : FALSE, see also GetPictureLevel()
@@ -409,6 +405,7 @@ namespace Play.SSTV {
 					pBitmapD12.SetPixel( x, y, new SKColor( (byte)d ) );
 					bx = x;
 				}
+
 				if( ps >= SSTVSET.m_OF ){
 					ps -= SSTVSET.m_OF;
 					switch(SSTVSET.m_Mode){
@@ -668,7 +665,126 @@ namespace Play.SSTV {
 			}
 			// End for
 		}
+
+		protected byte GetLevel256( short ip ) {
+			int d;
+			d = GetPixelLevel(ip);
+			d += 128;
+			return (byte)Limit256(d);
+		}
+    } // End Class
+
+	public delegate void setPixel( int iX, byte bLevel );
+
+	public class ColorChannel {
+		public double   Min      { get; set; }
+		public double   Max      { get; protected set; }
+		public setPixel SetPixel { get; protected set; }
+
+		public ColorChannel( double dbOffset, setPixel fnSet ) {
+			Max      = dbOffset;
+			SetPixel = fnSet;
+		}
+
+        public override string ToString() {
+			string strType = SetPixel != null ? SetPixel.GetType().ToString() : string.Empty;
+            return Max.ToString() + " " + strType;
+        }
     }
+
+	public class TmmMartin : TmmSSTV {
+		List<ColorChannel> _rgSlots = new List<ColorChannel>(5);
+
+		void PixelSetGreen( int iX, byte bValue ) {
+			m_D36[0,iX] = bValue;
+		}
+
+		void PixelSetBlue( int iX, byte bValue ) {
+			m_D36[1,iX] = bValue;
+		}
+
+		void PixelSetRed( int iX, byte bValue ) {
+			pBitmapRX.SetPixel( iX, m_AY,  new SKColor( bValue, (byte)m_D36[0,iX], (byte)m_D36[1,iX] ) );
+		}
+
+		public TmmMartin( CSSTVDEM p_dp ) : base( p_dp ) {
+			double dbGap = .572 * p_dp.SampFreq / 1000.0;
+			double dbIdx = 0;
+
+			_rgSlots.Add( new ColorChannel( dbIdx += SSTVSET.m_OF, null ) );
+			_rgSlots.Add( new ColorChannel( dbIdx += SSTVSET.m_KS, PixelSetGreen ) );
+			_rgSlots.Add( new ColorChannel( dbIdx += dbGap,        null ) );
+			_rgSlots.Add( new ColorChannel( dbIdx += SSTVSET.m_KS, PixelSetBlue ));
+			_rgSlots.Add( new ColorChannel( dbIdx += dbGap,        null ) );
+			_rgSlots.Add( new ColorChannel( dbIdx += SSTVSET.m_KS, PixelSetRed ));
+
+			double dbStart = 0;
+			for( int i = 0; i< _rgSlots.Count; ++i ) {
+				_rgSlots[i].Min = dbStart;
+				dbStart = _rgSlots[i].Max + 1;
+			}
+		}
+
+		protected override void DrawSSTVNormal() {
+			int n   = dp.m_rBase; // Increments in += SSTVSET.m_WD chunks.
+			int bx  = -1;
+			int AX  = -1;
+			int sl  = 0;
+
+			if( n < 0 ) 
+				throw new ApplicationException( "m_rBase went negative" );
+
+			m_AY = (int)(n/SSTVSET.m_TW); 
+			if( (m_AY < 0) || (m_AY >= pBitmapRX.Height) ){
+				return;
+			}
+
+			for( int i = 0; i < SSTVSET.m_WD; i++, n++ ){
+				double ps = n % (int)SSTVSET.m_TW; // fmod(double(n), SSTVSET.m_TW)
+				short  ip = dp.m_Buf[dp.m_rPage * dp.m_BWidth + i];
+				short  sp = dp.m_B12[dp.m_rPage * dp.m_BWidth + i];
+
+                #region D12
+                if( (int)ps == 0 ){
+					// KRSA, assigned sys.m_UseRxBuff ? TRUE : FALSE, see also GetPictureLevel()
+					if( (dp.sys.m_AutoStop || dp.sys.m_AutoSync /* || KRSA->Checked */ ) && 
+						dp.m_Sync && (m_SyncPos != -1) ){
+						AutoStopJob();
+					}
+					m_SyncMin  = m_SyncMax = sp;
+					m_SyncRPos = m_SyncPos;
+				} else if( m_SyncMax < sp ){
+					m_SyncMax  = sp;
+					m_SyncPos  = (int)ps;
+				} else if( m_SyncMin > sp ){
+					m_SyncMin  = sp;
+				}
+				int d, x;
+				x = (int)(ps * pBitmapD12.Width / SSTVSET.m_TW );
+				if( (x != bx) && (x < pBitmapD12.Width) && (x >= 0) ){
+					d = sp * 256 / 4096;
+					d = Limit256(d);
+					pBitmapD12.SetPixel( x, m_AY, new SKColor( (byte)d ) );
+					bx = x;
+				}
+                #endregion
+
+				for( ; sl < _rgSlots.Count; ++sl ) {
+					ColorChannel oChannel = _rgSlots[sl];
+					if( i < oChannel.Max ) {
+						if( oChannel.SetPixel != null ) {
+							x = (int)((i-oChannel.Min) * pBitmapRX.Width / SSTVSET.m_KS);
+							if( (x != AX) && (x >= 0) && (x < pBitmapRX.Width) ){
+								AX = x;
+								_rgSlots[sl].SetPixel( x, GetLevel256( ip ) );
+							}
+						}
+						break;
+					}
+				}
+			} // End for
+		}
+	}
 
     public class DocSSTV :
         IPgParent,
@@ -1158,12 +1274,13 @@ namespace Play.SSTV {
         }
 
 		public IEnumerator<int> GetRecordTestTask() {
-			TmmSSTV          oRxSSTV = new TmmSSTV( _oSSTVDeModulator );
 			IEnumerator<int> oIter   = _oSSTVGenerator.GetEnumerator();
 
 			oIter            .MoveNext(); // skip the VIS for now.
 			_oSSTVDeModulator.SSTVSET.SetMode( AllModes.smMRT1 );
 			_oSSTVDeModulator.Start();
+
+			TmmSSTV          oRxSSTV = new TmmMartin( _oSSTVDeModulator );
 
 			while( oIter.MoveNext() ) {
 				oRxSSTV.DrawSSTV();
@@ -1177,7 +1294,7 @@ namespace Play.SSTV {
                 if( _oWorkPlace.Status == WorkerStatus.FREE ) {
 			        _oDocSnip.Load( Bitmap, skSelect, oMode.Resolution );
 
-					FFTControlValues oFFTMode  = FFTControlValues.FindMode( RxSpec.Rate );
+					FFTControlValues oFFTMode  = FFTControlValues.FindMode( 8000 ); // RxSpec.Rate
 					SYSSET           sys       = new SYSSET   ( oFFTMode.SampFreq );
 					CSSTVSET         oSetSSTV  = new CSSTVSET ( 0, oFFTMode.SampFreq, 0, sys.m_bCQ100 );
 					DemodTest        oDemodTst = new DemodTest( oSetSSTV,

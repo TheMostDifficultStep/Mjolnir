@@ -259,7 +259,7 @@ namespace Play.Sound {
 			m_fNarrow = CSSTVSET.IsNarrowMode(mode);
 			SetSampFreq();
 			m_WD = (int)m_TW; // Why have both?!
-			m_LM = (int)((m_TW * m_L) + 1 ); // Used to know if we've gotten enough of the image to want to save it.
+			m_LM = (int)((m_TW * m_L) + 1 ); // This used to find if we've gotten enough of the image to want to save it.
 		}
 
 		//void SetTxMode(AllModes mode)
@@ -1716,10 +1716,10 @@ namespace Play.Sound {
 		protected int m_wCnt;  // How far along on a the scan line we are. a X coord like thing.
 		          int m_wLine; // Count down on the scan lines. a Y coord like thing.
 		protected int m_wBase; // this moves forward by m_Bwidth chunks.
-		public    int m_wBgn { get; protected set; } 
 		public    int m_rBase{ get; protected set; } // Pos in frequency stream, This moves forward by SSTVSET.m_WD chunks. 0 to WD * L
+		public    int m_wBgn { get; protected set; } 
 
-		public void OnDrawBegin() { m_wBgn = 1; }
+		public void OnDrawBegin() { m_wBgn = 0; } // Was 1.
 
 		public void RPageIncrement() {
 			m_rBase += SSTVSET.m_WD;
@@ -2134,7 +2134,7 @@ namespace Play.Sound {
 			int i, j;
 			for( i = 0; i < SSTVDEMBUFMAX; i++ ){
 				for( j = SSTVSET.m_WD; j < eg; j++ ){
-					m_Buf[i*m_BWidth + j] = -16384;
+					m_Buf[i*m_BWidth + j] = -16384; // Set to black.
 				}
 			}
 
@@ -3084,6 +3084,8 @@ namespace Play.Sound {
 	}
 
 	public class DemodTest : CSSTVDEM, IPgModulator {
+		double m_dbWPos;
+
 		public DemodTest( 
 			CSSTVSET p_oSSTVSet, 
 			SYSSET   p_sys, 
@@ -3103,28 +3105,36 @@ namespace Play.Sound {
 		/// <returns></returns>
 		public int Write( int iFrequency, uint uiGain, double dbTimeMS )
         {
+			void WriteMeh() {
+				double dbSamples = (dbTimeMS * SampFreq)/1000.0;
+				// Convert 1500 to -16,384 and 2300 to 16,384.
+				double foo = Math.Pow( 2, 15 ) / ( 2300 - 1500 );
+				double d   = ( iFrequency - 1900 ) * foo;
+				for( int i = 0; i < dbSamples + 1; ++i ) {
+					int n = m_wBase + (int)m_dbWPos + i;
+					m_Buf[n] = (short)d;
+				}
+				m_dbWPos += dbSamples;
+			}
+
 			if( m_Sync ) {
 				if( iFrequency >= 1500 ) {
 					// This is picture data...
-					double dbSamples = (dbTimeMS * SampFreq)/1000.0;
-					// We'll only write if the frequencey is 1500 or highter.
-					// convert 1500 to -16,384 and 2300 to 16,384.
-					double foo = Math.Pow( 2, 15 ) / ( 2300 - 1500 );
-					double d   = ( iFrequency - 1900 ) * foo;
-					for( int i = 0; i < dbSamples; ++i ) {
-						int n = m_wBase + m_wCnt;
-						m_Buf[n] = (short)d;
-
-						WCntIncrement();
-					}
+					WriteMeh();
 				} else {
 					// We'll assume it's the 1200hz HSync signal.
 					// Set m_fFreeRun false, so we don't compete with the line width.
+					// BUG: since called at SOL instead of EOL, we're mess'n up the m_wPage and m_wBase values.
+					m_dbWPos = 0;
 					WPageIncrement();
+					WriteMeh();
 				}
 
 			}
 			return 0;
         }
-    }
+
+    } // end Class
+
+
 }

@@ -513,7 +513,7 @@ namespace Play.Sound {
 	            for( int x = 0; x < 320; x++ ) {
 		            Write( ColorToFreq(_rgCache[x].Red  ), GainIndx.R, dbTimePerPixel );
 	            }
-	            Write( 1500, 0.572);
+	            //Write( 1500, 0.572);
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( AccessViolationException ),
                                     typeof( NullReferenceException ) };
