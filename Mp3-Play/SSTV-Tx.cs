@@ -242,6 +242,11 @@ namespace Play.Sound {
             GreyCalibrate = false;
         }
 
+        public override string ToString()
+        {
+            return Name;
+        }
+
         /// <summary>
         /// Basically we're either square resoution or 1 x 1.3 mode. (&Half height modes?)
         /// 11??: 320 x 240 

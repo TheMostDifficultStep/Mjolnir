@@ -353,14 +353,14 @@ namespace Play.Sound {
 					m_L = 240;
 					break;
 				case AllModes.smAVT:
-					m_KS = 125.0 * m_SampFreq / 1000.0;
-					m_OF = 0.0 * m_SampFreq / 1000.0;
-					m_OFP = 0.0 * m_SampFreq / 1000.0;
-					m_SG = m_KS;
-					m_CG = m_KS + m_SG;
-					m_SB = m_SG + m_SG;
-					m_CB = m_KS + m_SB;
-					m_L = 240;
+					m_KS  = 125.0 * m_SampFreq / 1000.0;
+					m_OF  =   0.0;
+					m_OFP =   0.0;
+					m_SG  = m_KS;
+					m_CG  = m_KS + m_SG;
+					m_SB  = m_SG + m_SG;
+					m_CB  = m_KS + m_SB;
+					m_L   = 240;
 					break;
 				case AllModes.smSCT2:
 					m_KS  = 88.064 * m_SampFreq / 1000.0; // Time per color block
@@ -3118,18 +3118,23 @@ namespace Play.Sound {
 			}
 
 			if( m_Sync ) {
-				if( iFrequency >= 1500 ) {
-					// This is picture data...
-					WriteMeh();
-				} else {
-					// We'll assume it's the 1200hz HSync signal.
-					// Set m_fFreeRun false, so we don't compete with the line width.
-					// BUG: since called at SOL instead of EOL, we're mess'n up the m_wPage and m_wBase values.
+				//Martin way.
+				//if( iFrequency >= 1500 ) {
+				//	// This is picture data...
+				//	WriteMeh();
+				//} else {
+				//	// We'll assume it's the 1200hz HSync signal.
+				//	// Set m_fFreeRun false, so we don't compete with the line width.
+				//	// BUG: since called at SOL instead of EOL, we're mess'n up the m_wPage and m_wBase values.
+				//	m_dbWPos = 0;
+				//	WPageIncrement();
+				//	WriteMeh();
+				//}
+				if( m_dbWPos > SSTVSET.m_TW ) {
 					m_dbWPos = 0;
 					WPageIncrement();
-					WriteMeh();
 				}
-
+				WriteMeh();
 			}
 			return 0;
         }

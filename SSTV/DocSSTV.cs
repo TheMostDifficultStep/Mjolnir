@@ -43,8 +43,8 @@ namespace Play.SSTV {
 	    protected int     m_SyncPos, m_SyncRPos; // RPos Gets set in AutoStopJob() which we haven't implemented yet 
 	    protected int     m_SyncMax, m_SyncMin;
 
-	   protected  int     m_SyncAccuracy = 1;
-	   protected  int     m_SyncAccuracyN;  // TODO: Gets used in TimerTimer, which isn't implented yet.
+	    protected int     m_SyncAccuracy = 1;
+	    protected int     m_SyncAccuracyN;  // TODO: Gets used in TimerTimer, which isn't implented yet.
 
         //Auto
 	    protected int     m_Mult;
@@ -74,6 +74,8 @@ namespace Play.SSTV {
 		public SKBitmap pBitmapD12 { get; } = new SKBitmap( 800, 600, SKColorType.Rgb888x, SKAlphaType.Unknown );
 		// Looks like were only using grey scale on the D12. Look into turning into greyscale later.
 #endregion
+
+		protected readonly List<ColorChannel> _rgSlots = new List<ColorChannel>(5);
 
 		public TmmSSTV( CSSTVDEM p_dp ) {
 			dp      = p_dp         ?? throw new ArgumentNullException( "CSSTVDEM" );
@@ -325,7 +327,8 @@ namespace Play.SSTV {
 				//int ip = dp.m_rPage * dp.m_BWidth;
                 //dp.StorePage( ip );
 
-				DrawSSTVNormal();
+				// DrawSSTVNormal();
+				DrawSSTVNormal2();
 				if( m_AY > SSTVSET.m_L ){
 					if( dp.m_Sync ){
 						dp.Stop();
@@ -337,7 +340,7 @@ namespace Play.SSTV {
 			}
 		}
 
-		protected virtual void DrawSSTVNormal()
+		protected void DrawSSTVNormal()
 		{
 			int R,G,B; int gp  = -1; int gp2 = -1; // Moving this int the loop causees black bitmap. hmmm....
 			int n   = dp.m_rBase; // Increments in += SSTVSET.m_WD chunks.
@@ -666,11 +669,91 @@ namespace Play.SSTV {
 			// End for
 		}
 
+
+		protected void DrawSSTVNormal2() {
+			int n  = dp.m_rBase; // Increments in += SSTVSET.m_WD chunks.
+			int dx = -1;         // Saved X pos from the B12 buffer.
+			int rx = -1;         // Saved X pos from the Rx  buffer.
+			int ch = 0;          // current channel skimming the Rx buffer portion.
+
+			if( n < 0 ) 
+				throw new ApplicationException( "m_rBase went negative" );
+
+			try {
+				m_AY = (int)(n/SSTVSET.m_TW); 
+				if( (m_AY < 0) || (m_AY >= pBitmapRX.Height) )
+					return;
+
+				// KRSA, assigned sys.m_UseRxBuff ? TRUE : FALSE, see also GetPictureLevel()
+				if( (dp.sys.m_AutoStop || dp.sys.m_AutoSync /* || KRSA->Checked */ ) && 
+					dp.m_Sync && (m_SyncPos != -1) ) {
+					AutoStopJob();
+				}
+				m_SyncMin  = m_SyncMax = dp.m_B12[dp.m_rPage * dp.m_BWidth];
+				m_SyncRPos = m_SyncPos;
+
+				for( int i = 0; i < SSTVSET.m_WD; i++ /*, n++ */ ){
+				  //double ps = n % (int)SSTVSET.m_TW; // fmod(double(n), SSTVSET.m_TW)
+					short  ip = dp.m_Buf[dp.m_rPage * dp.m_BWidth + i];
+					short  sp = dp.m_B12[dp.m_rPage * dp.m_BWidth + i];
+
+					#region D12
+					if( m_SyncMax < sp ) {
+						m_SyncMax = sp;
+						m_SyncPos = i; // was (int)ps
+					} else if( m_SyncMin > sp ) {
+						m_SyncMin = sp;
+					}
+					int x = (int)(i * pBitmapD12.Width / SSTVSET.m_TW ); // was ps, note TW == WD.
+					if( (x != dx) && (x < pBitmapD12.Width) && (x >= 0) ){
+						int d = sp * 256 / 4096;
+						d = Limit256(d);
+						pBitmapD12.SetPixel( x, m_AY, new SKColor( (byte)d ) );
+						dx = x;
+					}
+					#endregion
+
+					do {
+						ColorChannel oChannel = _rgSlots[ch];
+						if( i < oChannel.Max ) {
+							if( oChannel.SetPixel != null ) {
+								x = (int)((i-oChannel.Min) * pBitmapRX.Width / SSTVSET.m_KS);
+								if( (x != rx) && (x >= 0) && (x < pBitmapRX.Width) ){
+									rx = x;
+									_rgSlots[ch].SetPixel( x, GetLevel256( ip ) );
+								}
+							}
+							break;
+						}
+					} while( ++ch < _rgSlots.Count );
+					// We'll throw an exception before ever getting to the bottom.
+				} // End for
+			} catch( Exception oEx ) {
+				Type[] rgErrors = { typeof( ArgumentOutOfRangeException ),
+									typeof( IndexOutOfRangeException ),
+									typeof( NullReferenceException ),
+									typeof( DivideByZeroException )
+								  };
+				if( rgErrors.IsUnhandled( oEx ) )
+					throw;
+
+				throw new ApplicationException( "Problem decoding scan line." );
+			}
+		}
+
 		protected byte GetLevel256( short ip ) {
 			int d;
 			d = GetPixelLevel(ip);
 			d += 128;
 			return (byte)Limit256(d);
+		}
+
+		protected void InitSlots() {
+			double dbStart = 0;
+			for( int i = 0; i< _rgSlots.Count; ++i ) {
+				_rgSlots[i].Min = dbStart;
+				dbStart = _rgSlots[i].Max + 1/ (dp.SampFreq * 1000 );
+			}
 		}
     } // End Class
 
@@ -693,8 +776,6 @@ namespace Play.SSTV {
     }
 
 	public class TmmMartin : TmmSSTV {
-		List<ColorChannel> _rgSlots = new List<ColorChannel>(5);
-
 		void PixelSetGreen( int iX, byte bValue ) {
 			m_D36[0,iX] = bValue;
 		}
@@ -717,75 +798,42 @@ namespace Play.SSTV {
 			_rgSlots.Add( new ColorChannel( dbIdx += SSTVSET.m_KS, PixelSetBlue ));
 			_rgSlots.Add( new ColorChannel( dbIdx += dbGap,        null ) );
 			_rgSlots.Add( new ColorChannel( dbIdx += SSTVSET.m_KS, PixelSetRed ));
+			_rgSlots.Add( new ColorChannel( double.MaxValue,       null ) );
 
-			double dbStart = 0;
-			for( int i = 0; i< _rgSlots.Count; ++i ) {
-				_rgSlots[i].Min = dbStart;
-				dbStart = _rgSlots[i].Max + 1;
-			}
-		}
-
-		protected override void DrawSSTVNormal() {
-			int n   = dp.m_rBase; // Increments in += SSTVSET.m_WD chunks.
-			int bx  = -1;
-			int AX  = -1;
-			int sl  = 0;
-
-			if( n < 0 ) 
-				throw new ApplicationException( "m_rBase went negative" );
-
-			m_AY = (int)(n/SSTVSET.m_TW); 
-			if( (m_AY < 0) || (m_AY >= pBitmapRX.Height) ){
-				return;
-			}
-
-			for( int i = 0; i < SSTVSET.m_WD; i++, n++ ){
-				double ps = n % (int)SSTVSET.m_TW; // fmod(double(n), SSTVSET.m_TW)
-				short  ip = dp.m_Buf[dp.m_rPage * dp.m_BWidth + i];
-				short  sp = dp.m_B12[dp.m_rPage * dp.m_BWidth + i];
-
-                #region D12
-                if( (int)ps == 0 ){
-					// KRSA, assigned sys.m_UseRxBuff ? TRUE : FALSE, see also GetPictureLevel()
-					if( (dp.sys.m_AutoStop || dp.sys.m_AutoSync /* || KRSA->Checked */ ) && 
-						dp.m_Sync && (m_SyncPos != -1) ){
-						AutoStopJob();
-					}
-					m_SyncMin  = m_SyncMax = sp;
-					m_SyncRPos = m_SyncPos;
-				} else if( m_SyncMax < sp ){
-					m_SyncMax  = sp;
-					m_SyncPos  = (int)ps;
-				} else if( m_SyncMin > sp ){
-					m_SyncMin  = sp;
-				}
-				int d, x;
-				x = (int)(ps * pBitmapD12.Width / SSTVSET.m_TW );
-				if( (x != bx) && (x < pBitmapD12.Width) && (x >= 0) ){
-					d = sp * 256 / 4096;
-					d = Limit256(d);
-					pBitmapD12.SetPixel( x, m_AY, new SKColor( (byte)d ) );
-					bx = x;
-				}
-                #endregion
-
-				for( ; sl < _rgSlots.Count; ++sl ) {
-					ColorChannel oChannel = _rgSlots[sl];
-					if( i < oChannel.Max ) {
-						if( oChannel.SetPixel != null ) {
-							x = (int)((i-oChannel.Min) * pBitmapRX.Width / SSTVSET.m_KS);
-							if( (x != AX) && (x >= 0) && (x < pBitmapRX.Width) ){
-								AX = x;
-								_rgSlots[sl].SetPixel( x, GetLevel256( ip ) );
-							}
-						}
-						break;
-					}
-				}
-			} // End for
+			InitSlots();
 		}
 	}
 
+	public class TmmScottie : TmmSSTV {
+		void PixelSetGreen( int iX, byte bValue ) {
+			m_D36[0,iX] = bValue;
+		}
+
+		void PixelSetBlue( int iX, byte bValue ) {
+			m_D36[1,iX] = bValue;
+		}
+
+		void PixelSetRed( int iX, byte bValue ) {
+			pBitmapRX.SetPixel( iX, m_AY,  new SKColor( bValue, (byte)m_D36[0,iX], (byte)m_D36[1,iX] ) );
+		}
+
+		public TmmScottie( CSSTVDEM p_dp ) : base( p_dp ) {
+			double dbGap   = 1.5 * p_dp.SampFreq / 1000.0;
+			double dbHSync = 9.0 * p_dp.SampFreq / 1000.0;
+			double dbIdx   = 0;
+
+			_rgSlots.Add( new ColorChannel( dbIdx += dbGap,        null ) );
+			_rgSlots.Add( new ColorChannel( dbIdx += SSTVSET.m_KS, PixelSetGreen ) );
+			_rgSlots.Add( new ColorChannel( dbIdx += dbGap,        null ) );
+			_rgSlots.Add( new ColorChannel( dbIdx += SSTVSET.m_KS, PixelSetBlue ));
+			_rgSlots.Add( new ColorChannel( dbIdx += dbHSync,      null ) );
+			_rgSlots.Add( new ColorChannel( dbIdx += dbGap,        null ) );
+			_rgSlots.Add( new ColorChannel( dbIdx += SSTVSET.m_KS, PixelSetRed ));
+			_rgSlots.Add( new ColorChannel( double.MaxValue,       null ) );
+
+			InitSlots();
+		}
+	}
     public class DocSSTV :
         IPgParent,
         IPgLoad<TextReader>,
@@ -1277,10 +1325,10 @@ namespace Play.SSTV {
 			IEnumerator<int> oIter   = _oSSTVGenerator.GetEnumerator();
 
 			oIter            .MoveNext(); // skip the VIS for now.
-			_oSSTVDeModulator.SSTVSET.SetMode( AllModes.smMRT1 );
+			_oSSTVDeModulator.SSTVSET.SetMode( AllModes.smSCT1 );
 			_oSSTVDeModulator.Start();
 
-			TmmSSTV          oRxSSTV = new TmmMartin( _oSSTVDeModulator );
+			TmmSSTV          oRxSSTV = new TmmScottie( _oSSTVDeModulator );
 
 			while( oIter.MoveNext() ) {
 				oRxSSTV.DrawSSTV();
@@ -1303,8 +1351,8 @@ namespace Play.SSTV {
 															    (int)oFFTMode.SampBase, 
 															    0 );
 					_oSSTVDeModulator = oDemodTst;
-					_oSSTVModulator   = new CSSTVMOD      ( 0, RxSpec.Rate, _oSSTVBuffer );
-					_oSSTVGenerator   = new GenerateMartin( _oDocSnip.Bitmap, oDemodTst, oMode );
+					_oSSTVModulator   = new CSSTVMOD      ( 0, oFFTMode.SampFreq, _oSSTVBuffer );
+					_oSSTVGenerator   = new GenerateScottie( _oDocSnip.Bitmap, oDemodTst, oMode );
 
                     _oWorkPlace.Queue( GetRecordTestTask(), 0 );
                 }
