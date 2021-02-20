@@ -91,7 +91,7 @@ namespace Play.SSTV {
 		/// </summary>
 		/// <param name="ip">frequency as a level value.</param>
 		/// <returns></returns>
-		protected int GetPixelLevel(short ip)
+		protected short GetPixelLevel(short ip)
 		{
 			if( dp.sys.m_DemCalibration && (pCalibration != null) ){
 				int d = (ip / 8) + 2048;
@@ -103,7 +103,7 @@ namespace Play.SSTV {
 			} else {
 				double d = ip - dp.sys.m_DemOff;
 				d *= ( d >= 0 ) ? dp.sys.m_DemWhite : dp.sys.m_DemBlack;
-				return (int)d;
+				return (short)d;
 			}
 		}
 
@@ -125,24 +125,24 @@ namespace Play.SSTV {
 			return GetPixelLevel(ip);
 		}
 
-		static void YCtoRGB( out int R, out int G, out int B, int Y, int RY, int BY)
+		protected static void YCtoRGB( out short R, out short G, out short B, int Y, int RY, int BY)
 		{
 			Y -= 16;
-			R = (int)(1.164457*Y + 1.596128*RY );
-			G = (int)(1.164457*Y - 0.813022*RY - 0.391786*BY );
-			B = (int)(1.164457*Y + 2.017364*BY );
+			R = (short)(1.164457*Y + 1.596128*RY );
+			G = (short)(1.164457*Y - 0.813022*RY - 0.391786*BY );
+			B = (short)(1.164457*Y + 2.017364*BY );
 
 			LimitRGB( ref R, ref G, ref B);
 		}
 
-		static void LimitRGB( ref int R, ref int G, ref int B)
+		protected static void LimitRGB( ref short R, ref short G, ref short B)
 		{
 			R = Limit256(R);
 			G = Limit256(G);
 			B = Limit256(B);
 		}
 
-		protected static int Limit256(int d)
+		protected static short Limit256(short d)
 		{
 			if( d < 0 )
 				d = 0;
@@ -150,6 +150,16 @@ namespace Play.SSTV {
 				d = 255;
 
 			return d;
+		}
+
+		protected static short Limit256(int d)
+		{
+			if( d < 0 )
+				d = 0;
+			if( d > 255 )
+				d = 255;
+
+			return (short)d;
 		}
 
         void InitAutoStop( double dbSampBase )
@@ -329,7 +339,9 @@ namespace Play.SSTV {
 
 				// DrawSSTVNormal();
 				DrawSSTVNormal2();
-				if( m_AY > SSTVSET.m_L ){
+
+				// Need to figure out m_L useage so we can remove this.
+				if( m_AY > SSTVSET.m_L * LineMultiplier ){
 					if( dp.m_Sync ){
 						dp.Stop();
                         AllStop();
@@ -342,7 +354,7 @@ namespace Play.SSTV {
 
 		protected void DrawSSTVNormal()
 		{
-			int R,G,B; int gp  = -1; int gp2 = -1; // Moving this int the loop causees black bitmap. hmmm....
+			short R,G,B; int gp  = -1; int gp2 = -1; // Moving this int the loop causees black bitmap. hmmm....
 			int n   = dp.m_rBase; // Increments in += SSTVSET.m_WD chunks.
 			int bx  = -1;
 			int ay  = -5;
@@ -366,7 +378,7 @@ namespace Play.SSTV {
 							((SSTVSET.m_Mode >= AllModes.smR24 )&&(SSTVSET.m_Mode <= AllModes.smRM12 ))
 				){
 					if( (y >= 0) && (y < SSTVSET.m_L) ){
-						R   = y * 2;
+						R   = (short)( y * 2 );
 						gp  = R;
 						gp2 = R+1;
 					}
@@ -669,6 +681,7 @@ namespace Play.SSTV {
 			// End for
 		}
 
+		protected virtual int LineMultiplier => 1;
 
 		protected void DrawSSTVNormal2() {
 			int n  = dp.m_rBase; // Increments in += SSTVSET.m_WD chunks.
@@ -680,7 +693,7 @@ namespace Play.SSTV {
 				throw new ApplicationException( "m_rBase went negative" );
 
 			try {
-				m_AY = (int)(n/SSTVSET.m_TW); 
+				m_AY = (int)Math.Round(n/SSTVSET.m_TW) * LineMultiplier; // PD needs us to use Round (.999 is 1)
 				if( (m_AY < 0) || (m_AY >= pBitmapRX.Height) )
 					return;
 
@@ -720,7 +733,7 @@ namespace Play.SSTV {
 								x = (int)((i-oChannel.Min) * pBitmapRX.Width / SSTVSET.m_KS);
 								if( (x != rx) && (x >= 0) && (x < pBitmapRX.Width) ){
 									rx = x;
-									_rgSlots[ch].SetPixel( x, GetLevel256( ip ) );
+									oChannel.SetPixel( x, ip );
 								}
 							}
 							break;
@@ -741,13 +754,6 @@ namespace Play.SSTV {
 			}
 		}
 
-		protected byte GetLevel256( short ip ) {
-			int d;
-			d = GetPixelLevel(ip);
-			d += 128;
-			return (byte)Limit256(d);
-		}
-
 		protected void InitSlots() {
 			double dbStart = 0;
 			for( int i = 0; i< _rgSlots.Count; ++i ) {
@@ -755,9 +761,32 @@ namespace Play.SSTV {
 				dbStart = _rgSlots[i].Max + 1/ (dp.SampFreq * 1000 );
 			}
 		}
+
+		protected void PixelSetGreen( int iX, short sValue ) {
+			sValue      = (short)( GetPixelLevel(sValue) + 128 );
+			m_D36[0,iX] = (short)Limit256(sValue);
+		}
+
+		protected void PixelSetBlue( int iX, short sValue ) {
+			sValue      = (short)( GetPixelLevel(sValue) + 128 );
+			m_D36[1,iX] = (short)Limit256(sValue);
+		}
+
+		/// <summary>
+		/// Cache the Green and Blue values first and finish with this call.
+		/// </summary>
+		/// <param name="iX"></param>
+		/// <param name="sValue"></param>
+		protected void PixelSetRed( int iX, short sValue ) {
+			sValue = (short)( GetPixelLevel(sValue) + 128 );
+			pBitmapRX.SetPixel( iX, m_AY,  new SKColor( (byte)Limit256(sValue), 
+				                                        (byte)m_D36[0,iX], 
+														(byte)m_D36[1,iX] ) );
+		}
+
     } // End Class
 
-	public delegate void setPixel( int iX, byte bLevel );
+	public delegate void setPixel( int iX, short sLevel );
 
 	public class ColorChannel {
 		public double   Min      { get; set; }
@@ -776,18 +805,6 @@ namespace Play.SSTV {
     }
 
 	public class TmmMartin : TmmSSTV {
-		void PixelSetGreen( int iX, byte bValue ) {
-			m_D36[0,iX] = bValue;
-		}
-
-		void PixelSetBlue( int iX, byte bValue ) {
-			m_D36[1,iX] = bValue;
-		}
-
-		void PixelSetRed( int iX, byte bValue ) {
-			pBitmapRX.SetPixel( iX, m_AY,  new SKColor( bValue, (byte)m_D36[0,iX], (byte)m_D36[1,iX] ) );
-		}
-
 		public TmmMartin( CSSTVDEM p_dp ) : base( p_dp ) {
 			double dbGap = .572 * p_dp.SampFreq / 1000.0;
 			double dbIdx = 0;
@@ -805,18 +822,6 @@ namespace Play.SSTV {
 	}
 
 	public class TmmScottie : TmmSSTV {
-		void PixelSetGreen( int iX, byte bValue ) {
-			m_D36[0,iX] = bValue;
-		}
-
-		void PixelSetBlue( int iX, byte bValue ) {
-			m_D36[1,iX] = bValue;
-		}
-
-		void PixelSetRed( int iX, byte bValue ) {
-			pBitmapRX.SetPixel( iX, m_AY,  new SKColor( bValue, (byte)m_D36[0,iX], (byte)m_D36[1,iX] ) );
-		}
-
 		public TmmScottie( CSSTVDEM p_dp ) : base( p_dp ) {
 			double dbGap   = 1.5 * p_dp.SampFreq / 1000.0;
 			double dbHSync = 9.0 * p_dp.SampFreq / 1000.0;
@@ -829,6 +834,50 @@ namespace Play.SSTV {
 			_rgSlots.Add( new ColorChannel( dbIdx += dbHSync,      null ) );
 			_rgSlots.Add( new ColorChannel( dbIdx += dbGap,        null ) );
 			_rgSlots.Add( new ColorChannel( dbIdx += SSTVSET.m_KS, PixelSetRed ));
+			_rgSlots.Add( new ColorChannel( double.MaxValue,       null ) );
+
+			InitSlots();
+		}
+	}
+
+	public class TmmPD : TmmSSTV {
+		protected override int LineMultiplier => 2;
+
+		void PixelSetY1( int iX, short sValue ) {
+			m_Y36[iX] = (short)( GetPixelLevel(sValue) + 128 );
+		}
+
+		void PixelSetRY( int iX, short sValue ) {
+			m_D36[1,iX] = GetPixelLevel( sValue );
+		}
+
+		void PixelSetBY( int iX, short sValue ) {
+			m_D36[0,iX] = GetPixelLevel( sValue );
+		}
+
+		void PixelSetY2( int iX, short sValue ) {
+			short R, G, B;
+
+			YCtoRGB( out R, out G, out B, m_Y36[iX], m_D36[1,iX], m_D36[0,iX]);
+			pBitmapRX.SetPixel( iX, m_AY,    new SKColor( (byte)R, (byte)G, (byte)B ) );
+
+			sValue    = (short)( GetPixelLevel(sValue) + 128 );
+
+			YCtoRGB( out R, out G, out B, sValue,    m_D36[1,iX], m_D36[0,iX]);
+			pBitmapRX.SetPixel( iX, m_AY+1,  new SKColor( (byte)R, (byte)G, (byte)B ) );
+		}
+
+		public TmmPD( CSSTVDEM p_dp ) : base( p_dp ) {
+			double dbGap   = 2.08 * p_dp.SampFreq / 1000.0;
+			double dbHSync = 20.0 * p_dp.SampFreq / 1000.0;
+			double dbIdx   = 0;
+
+			_rgSlots.Add( new ColorChannel( dbIdx += dbHSync,      null ) );
+			_rgSlots.Add( new ColorChannel( dbIdx += dbGap,        null ) );
+			_rgSlots.Add( new ColorChannel( dbIdx += SSTVSET.m_KS, PixelSetY1 ) );
+			_rgSlots.Add( new ColorChannel( dbIdx += SSTVSET.m_KS, PixelSetRY ) );
+			_rgSlots.Add( new ColorChannel( dbIdx += SSTVSET.m_KS, PixelSetBY ) );
+			_rgSlots.Add( new ColorChannel( dbIdx += SSTVSET.m_KS, PixelSetY2 ) );
 			_rgSlots.Add( new ColorChannel( double.MaxValue,       null ) );
 
 			InitSlots();
@@ -1325,10 +1374,10 @@ namespace Play.SSTV {
 			IEnumerator<int> oIter   = _oSSTVGenerator.GetEnumerator();
 
 			oIter            .MoveNext(); // skip the VIS for now.
-			_oSSTVDeModulator.SSTVSET.SetMode( AllModes.smSCT1 );
+			_oSSTVDeModulator.SSTVSET.SetMode( AllModes.smPD90 );
 			_oSSTVDeModulator.Start();
 
-			TmmSSTV          oRxSSTV = new TmmScottie( _oSSTVDeModulator );
+			TmmSSTV          oRxSSTV = new TmmPD( _oSSTVDeModulator );
 
 			while( oIter.MoveNext() ) {
 				oRxSSTV.DrawSSTV();
@@ -1352,7 +1401,7 @@ namespace Play.SSTV {
 															    0 );
 					_oSSTVDeModulator = oDemodTst;
 					_oSSTVModulator   = new CSSTVMOD      ( 0, oFFTMode.SampFreq, _oSSTVBuffer );
-					_oSSTVGenerator   = new GenerateScottie( _oDocSnip.Bitmap, oDemodTst, oMode );
+					_oSSTVGenerator   = new GeneratePD( _oDocSnip.Bitmap, oDemodTst, oMode );
 
                     _oWorkPlace.Queue( GetRecordTestTask(), 0 );
                 }
