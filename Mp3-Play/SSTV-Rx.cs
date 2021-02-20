@@ -223,10 +223,7 @@ namespace Play.Sound {
 			m_dbTxSampOffs  = dbTxSampOffs;
 			g_dblToneOffset = dbToneOffset;
 			m_bCQ100        = bCQ100;
-
-			m_fNarrow   = false;
-		  //m_fTxNarrow = false;
-		  //m_TxMode    = AllModes.smSCT1;
+			m_fNarrow       = false;  // Recieve width.
 
 			SetMode(AllModes.smSCT1);
 			InitIntervalPara();
@@ -238,9 +235,6 @@ namespace Play.Sound {
 				m_MS[i] = (uint)(GetTiming((AllModes)i) * m_SampFreq / 1000.0 );
 			}
 			m_MS[2] = 0;                                 // AVT
-		  //m_MSLL =  100.0 *     m_SampFreq / 1000.0;   // Lowest
-		  //m_MSL  =  147.0 *     m_SampFreq / 1000.0;   // Lowest
-		  //m_MSH  = 1050.0 * 3 * m_SampFreq / 1000.0;   // Highest
 			m_MSLL = (uint)(50.0   *     m_SampFreq / 1000.0 );    // Lowest
 			m_MSL  = (uint)(63.0   *     m_SampFreq / 1000.0 );    // Lowest
 			m_MSH  = (uint)(1390.0 * 3 * m_SampFreq / 1000.0 );    // Highest
@@ -1635,7 +1629,9 @@ namespace Play.Sound {
 	}
 
 	public class CSSTVDEM {
-		public SYSSET sys { get; protected set; }
+		public SYSSET   sys  { get; protected set; }
+		public SSTVMode Mode { get; set; } // Make this protected set once we get there.
+		public CSSTVSET SSTVSET { get; protected set; }
 
 		public readonly static int NARROW_SYNC		= 1900;
 		public readonly static int NARROW_LOW		= 2044;
@@ -1650,8 +1646,6 @@ namespace Play.Sound {
 
 		public readonly static int TAPMAX = 512; // BUG: Move to Fir or Fir2 later.
 		readonly static int SSTVDEMBUFMAX = 24;
-
-		public CSSTVSET SSTVSET { get; protected set; }
 
 		readonly double[]  HBPF  = new double[TAPMAX+1];
 		readonly double[]  HBPFS = new double[TAPMAX+1];
@@ -1722,7 +1716,7 @@ namespace Play.Sound {
 		public void OnDrawBegin() { m_wBgn = 0; } // Was 1.
 
 		public void RPageIncrement() {
-			m_rBase += SSTVSET.m_WD;
+			m_rBase += Mode.ScanLineWidthInSamples; // SSTVSET.m_WD
 
 			// This is the only place we bump up the read page. Looks like if we get behind we
 			// just blast the top of the buffer. Or hopefully the bottom never catches the top.
@@ -2522,8 +2516,9 @@ namespace Play.Sound {
 						if( m_SyncTime == 0 ){
 							if( (d12 > d19) && (d12 > m_SLvl) ){
 								if( m_Sync ){
-									// Looks like we request save only when we're 65% the way thru the whole image.
-									// Seems like it would be simpler to do this at the DrawSSTV level, but whatevah.
+									// Looks like we request save when we're 65% the way thru an image,
+									// and then suddenly get a new image. Better way to do this is to
+									// push the current image into a save queue on a different "thread".
 									if( m_rBase >= (SSTVSET.m_LM * 65/100.0) ){
 										m_ReqSave = true;
 									}
@@ -2732,7 +2727,7 @@ namespace Play.Sound {
 		/// </remarks>
 		protected void WCntIncrement() {
 			m_wCnt++;      // This is the only place we bump up the (x) position along the frequency scan line.
-			if( m_fFreeRun && m_wCnt >= SSTVSET.m_WD ){
+			if( m_fFreeRun && m_wCnt >= Mode.ScanLineWidthInSamples ){ // SSTVSET.m_WD: Hack allert!!
 				WPageIncrement();
 			}
 		}
@@ -3118,7 +3113,7 @@ namespace Play.Sound {
 			}
 
 			if( m_Sync ) {
-				//Martin way.
+				//Martin way, using hsync signal.
 				//if( iFrequency >= 1500 ) {
 				//	// This is picture data...
 				//	WriteMeh();
@@ -3130,7 +3125,7 @@ namespace Play.Sound {
 				//	WPageIncrement();
 				//	WriteMeh();
 				//}
-				if( m_dbWPos > SSTVSET.m_TW ) {
+				if( m_dbWPos > Mode.ScanLineWidthInSamples ) { // SSTVSET.m_TW
 					m_dbWPos = 0;
 					WPageIncrement();
 				}

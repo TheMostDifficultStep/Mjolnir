@@ -207,14 +207,28 @@ namespace Play.Sound {
         }
     }
 
+    /// <summary>
+    /// List of known modes. I could do something like my controllers in the future
+    /// where you register your controller and the controller is called to create
+    /// an instance. But this is easiest for now.
+    /// </summary>
+    public enum TVMode {
+        None = 0,
+        Martin,
+        Scottie,
+        PD
+    }
+
     public class SSTVMode {
         readonly public  byte    VIS;
         readonly public  string  Name = string.Empty;
         readonly public  double  BlockWidthInMS; // Time to relay all pixels of one color component.
-        readonly public  Type    Owner;
+        readonly public  TVMode  Owner;
         readonly private SKSizeI RawRez;
         readonly public  bool    GreyCalibrate;
         readonly public  int     ExtraScanLine;
+
+        public int ScanLineWidthInSamples { get; set; } // Cheat for my TestEncoder. s/b able to remove soon.
 
         public enum Resolutions { 
             h128or160,
@@ -231,12 +245,12 @@ namespace Play.Sound {
         /// <param name="strName">Human readable name of mode.</param>
         /// <param name="dbTxWidth">Tx width of scan line in ms.</param>
         /// <param name="skSize">Do NOT include the top 16 scan line grey scale in the height value.</param>
-        public SSTVMode( Type oOwner, byte bVIS, string strName, double dbTxWidth, SKSizeI skSize  ) {
-            VIS           = bVIS;
-            Name          = strName;
+        public SSTVMode( TVMode eOwner, byte bVIS, string strName, double dbTxWidth, SKSizeI skSize  ) {
+            VIS            = bVIS;
+            Name           = strName;
             BlockWidthInMS = dbTxWidth;
-            Owner         = oOwner;
-            RawRez        = skSize;
+            Owner          = eOwner;
+            RawRez         = skSize;
 
             ExtraScanLine = 16; // So far no mode I support is using the 8 scan line spec.
             GreyCalibrate = false;
@@ -404,11 +418,9 @@ namespace Play.Sound {
         /// </summary>
         /// <returns></returns>
         public static IEnumerator<SSTVMode> GetModeEnumerator() {
-            Type oOwner = typeof( GenerateScottie );
-
- 	        yield return new SSTVMode( oOwner, /* 0 011 1100 */ 0x3c, "Scottie  1", 138.240, new SKSizeI( 320, 240 ));
-            yield return new SSTVMode( oOwner, /* 1 011 1000 */ 0xb8, "Scottie  2",  88.064, new SKSizeI( 320, 240 ));
-            yield return new SSTVMode( oOwner, /* 1 100 1100 */ 0xcc, "Scottie DX", 345.600, new SKSizeI( 320, 240 ));
+ 	        yield return new SSTVMode( TVMode.Scottie, 0x3c, "Scottie  1", 138.240, new SKSizeI( 320, 240 ));
+            yield return new SSTVMode( TVMode.Scottie, 0xb8, "Scottie  2",  88.064, new SKSizeI( 320, 240 ));
+            yield return new SSTVMode( TVMode.Scottie, 0xcc, "Scottie DX", 345.600, new SKSizeI( 320, 240 ));
         }
 
         /// <summary>
@@ -479,10 +491,8 @@ namespace Play.Sound {
         /// </summary>
         /// <returns></returns>
         public static IEnumerator<SSTVMode> GetModeEnumerator() {
-            Type oOwner = typeof( GenerateMartin );
-
- 	        yield return new SSTVMode( oOwner, /* 1010 1100 */ 0xac, "Martin 1",  146.432, new SKSizeI( 320, 240 ) );
-            yield return new SSTVMode( oOwner, /* 0010 1000 */ 0x28, "Martin 2",   73.216, new SKSizeI( 320, 240 ) );
+ 	        yield return new SSTVMode( TVMode.Martin, 0xac, "Martin 1",  146.432, new SKSizeI( 320, 240 ) );
+            yield return new SSTVMode( TVMode.Martin, 0x28, "Martin 2",   73.216, new SKSizeI( 320, 240 ) );
         }
 
         /// <summary>
@@ -557,16 +567,14 @@ namespace Play.Sound {
         /// See also:  Martin Bruchanov OK2MNM SSTV-Handbook.
         /// </summary> 
         public static IEnumerator<SSTVMode> GetModeEnumerator() {
-            Type oOwner = typeof( GeneratePD );
-
             // these numbers come from https://www.classicsstv.com/pdmodes.php G4IJE the inventor.
- 	        yield return new SSTVMode( oOwner, 0xdd, "PD  50",   91.520, new SKSizeI( 320, 240 ) ); // see SSTV-Handbook.
-            yield return new SSTVMode( oOwner, 0x63, "PD  90",  170.240, new SKSizeI( 320, 240 ) ); // Only reliable one.
-            yield return new SSTVMode( oOwner, 0x5f, "PD 120",  121.600, new SKSizeI( 640, 480 ) ); 
-            yield return new SSTVMode( oOwner, 0xe2, "PD 160",  195.584, new SKSizeI( 512, 384 ) ); 
-            yield return new SSTVMode( oOwner, 0x60, "PD 180",  183.040, new SKSizeI( 640, 480 ) );
-            yield return new SSTVMode( oOwner, 0xe1, "PD 240",  244.480, new SKSizeI( 640, 480 ) ); 
-            yield return new SSTVMode( oOwner, 0xde, "PD 290",  228.800, new SKSizeI( 800, 600 ) ); // see SSTV-handbook.
+ 	        yield return new SSTVMode( TVMode.PD, 0xdd, "PD  50",   91.520, new SKSizeI( 320, 240 ) ); // see SSTV-Handbook.
+            yield return new SSTVMode( TVMode.PD, 0x63, "PD  90",  170.240, new SKSizeI( 320, 240 ) ); // Only reliable one.
+            yield return new SSTVMode( TVMode.PD, 0x5f, "PD 120",  121.600, new SKSizeI( 640, 480 ) ); 
+            yield return new SSTVMode( TVMode.PD, 0xe2, "PD 160",  195.584, new SKSizeI( 512, 384 ) ); 
+            yield return new SSTVMode( TVMode.PD, 0x60, "PD 180",  183.040, new SKSizeI( 640, 480 ) );
+            yield return new SSTVMode( TVMode.PD, 0xe1, "PD 240",  244.480, new SKSizeI( 640, 480 ) ); 
+            yield return new SSTVMode( TVMode.PD, 0xde, "PD 290",  228.800, new SKSizeI( 800, 600 ) ); // see SSTV-handbook.
         }
 
         public byte Limit256( double d ) {
