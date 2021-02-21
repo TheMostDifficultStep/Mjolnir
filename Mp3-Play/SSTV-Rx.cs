@@ -17,6 +17,7 @@
 //-----------------------------------------------------------------------------------------------------------------------------------------------
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 
 namespace Play.Sound {
@@ -108,7 +109,7 @@ namespace Play.Sound {
 	public enum AllModes {
 		smR36 = 0,
 		smR72,
-		smAVT,
+		smAVT_obsolete,
 		smSCT1,
 		smSCT2,
 		smSCTDX,
@@ -153,34 +154,13 @@ namespace Play.Sound {
 	}
 
 	public class CSSTVSET {
-		public AllModes m_Mode   { get; protected set; }
-	  //public AllModes m_TxMode { get; protected set; }
-
-		public double   m_TW     { get; protected set; }
-		public double   m_KS	 { get; protected set; }
-		public double   m_KS2	 { get; protected set; }
-		public double	m_OF	 { get; protected set; }
 		public double   m_OFP    { get; protected set; } // Looks used to help correct slant.
-		public double   m_CG     { get; protected set; }
-		public double   m_CB     { get; protected set; }
-		public double   m_SG     { get; protected set; }
-		public double   m_SB     { get; protected set; }
-		public int      m_WD     { get; protected set; }
 		public int      m_L      { get; protected set; }
 		public int      m_LM     { get; protected set; }
 		public int      m_OFS    { get; protected set; }
 		public int		m_IOFS   { get; protected set; }
 
 		public double  m_SampFreq { get; protected set; }
-
-		public double  m_KSS { get; protected set; }
-		public double  m_KS2S{ get; protected set; }
-		public int     m_KSB { get; protected set; }
-
-		//public int     m_TWD { get; protected set; }
-		//public int     m_TL  { get; protected set; }
-		//public double  m_TTW { get; protected set; }
-		//public double  m_TxSampFreq { get; protected set; }
 
 		public readonly UInt32[] m_MS = new UInt32[(int)AllModes.smEND];
 		public UInt32   m_MSLL { get; protected set; }
@@ -200,21 +180,15 @@ namespace Play.Sound {
 		public double SampFreq => m_SampFreq;
 		private readonly bool m_bCQ100;
 
-		public static bool IsNarrowMode(AllModes mode)	{
-			switch(mode){
-				case AllModes.smMN73:
-				case AllModes.smMN110:
-				case AllModes.smMN140:
-				case AllModes.smMC110:
-				case AllModes.smMC140:
-				case AllModes.smMC180:
-        			return true;
-				default:
-        			return false;
-			}
+		/// <summary>
+		/// Should we ever support: smMN73,smMN110,smMN140,smMC110,smMC140, or smMC180,
+		/// those are all narrow band.
+		/// </summary>
+		public static bool IsNarrowMode(SSTVMode mode)	{
+			return false;
 		}
 
-		public CSSTVSET( double dbToneOffset, double dbSampFreq, double dbTxSampOffs, bool bCQ100 )
+		public CSSTVSET( SSTVMode oMode, double dbToneOffset, double dbSampFreq, double dbTxSampOffs, bool bCQ100 )
 		{
 			// These used to be globals, I'll see how much they change and if I need
 			// to refactor initialization and such. Since SetSampFreq() get's called
@@ -225,7 +199,7 @@ namespace Play.Sound {
 			m_bCQ100        = bCQ100;
 			m_fNarrow       = false;  // Recieve width.
 
-			SetMode(AllModes.smSCT1);
+			SetMode( oMode ); 
 			InitIntervalPara();
 		}
 
@@ -246,596 +220,18 @@ namespace Play.Sound {
 
 		/// <remarks>This gets called by the demodulator. Ick. This means
 		/// we can't make the members here readonly.</remarks>
-		public void SetMode( AllModes mode)
+		public void SetMode( SSTVMode tvMode )
 		{
 			//m_SampFreq = sys.m_SampFreq; <-- this gets set in the constructor now.
-			m_Mode    = mode;
-			m_fNarrow = CSSTVSET.IsNarrowMode(mode);
-			SetSampFreq();
-			m_WD = (int)m_TW; // Why have both?!
-			m_LM = (int)((m_TW * m_L) + 1 ); // This used to find if we've gotten enough of the image to want to save it.
+			m_fNarrow = CSSTVSET.IsNarrowMode( tvMode );
+			SetSampFreq( tvMode );
+			m_LM = (int)((tvMode.ScanLineWidthInSamples * m_L) + 1 ); // This used to find if we've gotten enough of the image to want to save it.
 		}
 
-		//void SetTxMode(AllModes mode)
-		//{
-		//	m_TxSampFreq = m_SampFreq /* sys.m_SampFreq */ + m_dbTxSampOffs /* sys.m_TxSampOff */;
-		//	m_TxMode = mode;
-		//	m_fTxNarrow = CSSTVSET.IsNarrowMode(mode);
-		//	SetTxSampFreq();
-		//	m_TWD = (int)m_TTW;
-		//}
-
-		void GetBitmapSize( out int w, out int h, AllModes mode) {
-			switch(mode){
-				case AllModes.smPD120:
-				case AllModes.smPD180:
-				case AllModes.smPD240:
-				case AllModes.smP3:
-				case AllModes.smP5:
-				case AllModes.smP7:
-				case AllModes.smML180:
-				case AllModes.smML240:
-				case AllModes.smML280:
-				case AllModes.smML320:
-					w = 640;
-					h = 496;
-					break;
-				case AllModes.smPD160:
-					w = 512;
-					h = 400;
-					break;
-				case AllModes.smPD290:
-					w = 800;
-					h = 616;
-					break;
-				default:        // SCT1
-					w = 320;
-					h = 256;
-					break;
-			}
-		}
-
-		/// <summary>
-		/// Return the picture size, some modes lose height b/c of the greyscale
-		/// pattern at the top of the image.
-		/// </summary>
-		/// <param name="w">width of the image.</param>
-		/// <param name="h">height of the raw image</param>
-		/// <param name="hp">height of the image minus the grey scale.</param>
-		/// <param name="mode">One of our supported modes.</param>
-		public void GetPictureSize(out int w, out int h, out int hp, AllModes mode)
-		{
-			GetBitmapSize( out w, out h, mode);
-			switch(mode){
-				case AllModes.smRM8:
-				case AllModes.smRM12:
-				case AllModes.smR24:
-				case AllModes.smR36:
-				case AllModes.smR72:
-				case AllModes.smAVT:
-					hp = 240;
-					break;
-				default:
-					hp = h;
-					break;
-			}
-		}
-
-		void SetSampFreq(){
-			switch(m_Mode){
-				case AllModes.smR36:
-					m_KS = 88.0 * m_SampFreq / 1000.0; // This looks like Robot 24...
-					m_KS2 = 44.0 * m_SampFreq / 1000.0;
-					m_OF = 12.0 * m_SampFreq / 1000.0;
-		          //m_OFP = 10.8 * m_SampFreq / 1000.0;
-					m_OFP = 10.7 * m_SampFreq / 1000.0;
-					m_SG = (88.0 + 1.25) * m_SampFreq / 1000.0;
-					m_CG = (88.0 + 3.5) * SampFreq /1000.0; 
-					m_SB = 94.0 * m_SampFreq / 1000.0;
-					m_CB = m_SB + m_KS2;
-					m_L = 240;
-					break;
-				case AllModes.smR72:
-					m_KS  = 138.0 * m_SampFreq / 1000.0; // This looks correct.
-					m_KS2 =  69.0 * m_SampFreq / 1000.0; // This is the RY/BY times!!! (see sstv-handbook)
-					m_OF  =  12.0 * m_SampFreq / 1000.0; // Line sync pulse!
-					m_OFP =  10.7 * m_SampFreq / 1000.0; // Looks to help with slant correct.
-					m_SG  = 144.0 * m_SampFreq / 1000.0; // 144-138 is 6, btw each color block.
-					m_CG  = m_SG + m_KS2;
-					m_SB  = 219.0 * m_SampFreq / 1000.0;
-					m_CB  = m_SB + m_KS2;
-					m_L = 240;
-					break;
-				case AllModes.smAVT:
-					m_KS  = 125.0 * m_SampFreq / 1000.0;
-					m_OF  =   0.0;
-					m_OFP =   0.0;
-					m_SG  = m_KS;
-					m_CG  = m_KS + m_SG;
-					m_SB  = m_SG + m_SG;
-					m_CB  = m_KS + m_SB;
-					m_L   = 240;
-					break;
-				case AllModes.smSCT2:
-					m_KS  = 88.064 * m_SampFreq / 1000.0; // Time per color block
-					m_OF  = 10.5   * m_SampFreq / 1000.0; // Line sync pulse?
-					m_OFP = 10.8   * m_SampFreq / 1000.0;
-					m_SG  = 89.564 * m_SampFreq / 1000.0; // 89.564 - 88.064 = 1.5, m_OF - 1.5 = 9.0!!
-					m_CG  = m_KS + m_SG;
-					m_SB  = m_SG + m_SG;
-					m_CB  = m_KS + m_SB;
-					m_L   = 256;
-					break;
-				case AllModes.smSCTDX:
-					m_KS  = 345.6 * m_SampFreq / 1000.0;
-					m_OF  =  10.5 * m_SampFreq / 1000.0; // 9.0 hsync + 1.5 gap
-		          //m_OFP =   9.5 * m_SampFreq / 1000.0;
-					m_OFP =  10.2 * m_SampFreq / 1000.0;
-					m_SG  = 347.1 * m_SampFreq / 1000.0; // 1.5 gap + m_KS
-					m_CG = m_KS + m_SG;
-					m_SB = m_SG + m_SG;
-					m_CB = m_KS + m_SB;
-					m_L = 256;
-					break;
-				case AllModes.smMRT1:
-					m_KS  = 146.432 * m_SampFreq / 1000.0; // Scan line color component block length.
-					m_OF  =   5.434 * m_SampFreq / 1000.0; // 4.862 hsync + .572 gap
-		          //m_OFP =   7.3   * m_SampFreq / 1000.0;
-					m_OFP =   7.2   * m_SampFreq / 1000.0;
-					m_SG  = 147.004 * m_SampFreq / 1000.0; // KS + gap.
-					m_CG = m_KS + m_SG; // KS + gap + KS
-					m_SB = m_SG + m_SG; // gap + KS + gap + KS
-					m_CB = m_KS + m_SB;
-					m_L = 256;
-					break;
-				case AllModes.smMRT2:
-					m_KS = 73.216 * m_SampFreq / 1000.0;
-					m_OF = 5.434 * m_SampFreq / 1000.0;
-					m_OFP = 7.4 * m_SampFreq / 1000.0;
-					m_SG = 73.788 * m_SampFreq / 1000.0;
-					m_CG = m_KS + m_SG;
-					m_SB = m_SG + m_SG;
-					m_CB = m_KS + m_SB;
-					m_L = 256;
-					break;
-				case AllModes.smSC2_180:
-					m_KS = 235.0 * m_SampFreq / 1000.0;
-					m_OF = 6.0437 * m_SampFreq / 1000.0;
-		          //m_OFP = 7.5 * m_SampFreq / 1000.0;
-					m_OFP = 7.8 * m_SampFreq / 1000.0;
-					m_SG = m_KS;
-					m_CG = m_KS + m_SG;
-					m_SB = m_SG + m_SG;
-					m_CB = m_KS + m_SB;
-					m_L = 256;
-					break;
-				case AllModes.smSC2_120:
-					m_KS = 156.5 * m_SampFreq / 1000.0;
-					m_OF = 6.02248 * m_SampFreq / 1000.0;
-					m_OFP = 7.5 * m_SampFreq / 1000.0;
-					m_SG = m_KS;
-					m_CG = m_KS + m_SG;
-					m_SB = m_SG + m_SG;
-					m_CB = m_KS + m_SB;
-					m_L = 256;
-					break;
-				case AllModes.smSC2_60:
-					m_KS = 78.128 * m_SampFreq / 1000.0;
-					m_OF = 6.0006 * m_SampFreq / 1000.0;
-					m_OFP = 7.9 * m_SampFreq / 1000.0;
-					m_SG = m_KS;
-					m_CG = m_KS + m_SG;
-					m_SB = m_SG + m_SG;
-					m_CB = m_KS + m_SB;
-					m_L = 256;
-					break;
-				case AllModes.smPD50:
-					m_KS = 91.520 * m_SampFreq / 1000.0;
-					m_OF = 22.080 * m_SampFreq / 1000.0;
-					m_OFP = 19.300 * m_SampFreq / 1000.0;
-					m_SG = m_KS;
-					m_CG = m_KS + m_SG;
-					m_SB = m_SG + m_SG;
-					m_CB = m_KS + m_SB;
-					m_L = 128;
-					break;
-				case AllModes.smPD90:
-					m_KS  = 170.240 * m_SampFreq / 1000.0;
-					m_OF  =  22.080 * m_SampFreq / 1000.0;
-					m_OFP =  18.900 * m_SampFreq / 1000.0;
-					m_SG = m_KS;
-					m_CG = m_KS + m_SG;
-					m_SB = m_SG + m_SG;
-					m_CB = m_KS + m_SB;
-					m_L = 128;
-					break;
-				case AllModes.smPD120:
-					m_KS = 121.600 * m_SampFreq / 1000.0;
-					m_OF = 22.080 * m_SampFreq / 1000.0;
-					m_OFP = 19.400 * m_SampFreq / 1000.0;
-					m_SG = m_KS;
-					m_CG = m_KS + m_SG;
-					m_SB = m_SG + m_SG;
-					m_CB = m_KS + m_SB;
-					m_L = 248;
-					break;
-				case AllModes.smPD160:
-					m_KS = 195.584 * m_SampFreq / 1000.0;
-					m_OF = 22.080 * m_SampFreq / 1000.0;
-					m_OFP = 18.900 * m_SampFreq / 1000.0;
-					m_SG = m_KS;
-					m_CG = m_KS + m_SG;
-					m_SB = m_SG + m_SG;
-					m_CB = m_KS + m_SB;
-					m_L = 200;
-					break;
-				case AllModes.smPD180:
-					m_KS = 183.04 * m_SampFreq / 1000.0;
-					m_OF = 22.080 * m_SampFreq / 1000.0;
-					m_OFP = 18.900 * m_SampFreq / 1000.0;
-					m_SG = m_KS;
-					m_CG = m_KS + m_SG;
-					m_SB = m_SG + m_SG;
-					m_CB = m_KS + m_SB;
-					m_L = 248;
-					break;
-				case AllModes.smPD240:
-					m_KS = 244.48 * m_SampFreq / 1000.0;
-					m_OF = 22.080 * m_SampFreq / 1000.0;
-					m_OFP = 18.900 * m_SampFreq / 1000.0;
-					m_SG = m_KS;
-					m_CG = m_KS + m_SG;
-					m_SB = m_SG + m_SG;
-					m_CB = m_KS + m_SB;
-					m_L = 248;
-					break;
-				case AllModes.smPD290:
-					m_KS = 228.80 * m_SampFreq / 1000.0;
-					m_OF = 22.080 * m_SampFreq / 1000.0;
-					m_OFP = 18.900 * m_SampFreq / 1000.0;
-					m_SG = m_KS;
-					m_CG = m_KS + m_SG;
-					m_SB = m_SG + m_SG;
-					m_CB = m_KS + m_SB;
-					m_L = 616/2;
-					break;
-				case AllModes.smP3:
-					m_KS = 133.333 * m_SampFreq / 1000.0;
-					m_OF = (5.208 + 1.042) * m_SampFreq / 1000.0;
-					m_OFP = 7.80 * m_SampFreq / 1000.0;
-					m_SG = (133.333 + 1.042) * m_SampFreq / 1000.0;
-					m_CG = m_KS + m_SG;
-					m_SB = m_SG + m_SG;
-					m_CB = m_KS + m_SB;
-					m_L = 496;
-					break;
-				case AllModes.smP5:
-					m_KS = 200.000 * m_SampFreq / 1000.0;
-					m_OF = (7.813 + 1.562375) * m_SampFreq / 1000.0;
-					m_OFP = 9.20 * m_SampFreq / 1000.0;
-					m_SG = (200.000 + 1.562375) * m_SampFreq / 1000.0;
-					m_CG = m_KS + m_SG;
-					m_SB = m_SG + m_SG;
-					m_CB = m_KS + m_SB;
-					m_L = 496;
-					break;
-				case AllModes.smP7:
-					m_KS = 266.667 * m_SampFreq / 1000.0;
-					m_OF = (10.417 + 2.083) * m_SampFreq / 1000.0;
-					m_OFP = 11.50 * m_SampFreq / 1000.0;
-					m_SG = (266.667 + 2.083) * m_SampFreq / 1000.0;
-					m_CG = m_KS + m_SG;
-					m_SB = m_SG + m_SG;
-					m_CB = m_KS + m_SB;
-					m_L = 496;
-					break;
-				case AllModes.smMR73:
-					//|--KS--|--KS2--|--KS2--|
-					//      SG     CG=SB     CB
-					m_KS = 138.0 * m_SampFreq / 1000.0;
-					m_KS2 = m_KS * 0.5;
-					m_OF = 10.0 * m_SampFreq / 1000.0;
-					m_OFP = 10.6 * m_SampFreq / 1000.0;
-					m_SG = m_KS + 0.1;
-					m_CG = m_SG + m_KS2;
-					m_SB = m_CG + 0.1;
-					m_CB = m_SB + m_KS2;
-					m_L = 256;
-					break;
-				case AllModes.smMR90:
-					m_KS = 171.0 * m_SampFreq / 1000.0;
-					m_KS2 = m_KS * 0.5;
-					m_OF = 10.0 * m_SampFreq / 1000.0;
-					m_OFP = 10.6 * m_SampFreq / 1000.0;
-					m_SG = m_KS + 0.1;
-					m_CG = m_SG + m_KS2;
-					m_SB = m_CG + 0.1;
-					m_CB = m_SB + m_KS2;
-					m_L = 256;
-					break;
-				case AllModes.smMR115:
-					m_KS = 220.0 * m_SampFreq / 1000.0;
-					m_KS2 = m_KS * 0.5;
-					m_OF = 10.0 * m_SampFreq / 1000.0;
-					m_OFP = 10.6 * m_SampFreq / 1000.0;
-					m_SG = m_KS + 0.1;
-					m_CG = m_SG + m_KS2;
-					m_SB = m_CG + 0.1;
-					m_CB = m_SB + m_KS2;
-					m_L = 256;
-					break;
-				case AllModes.smMR140:
-					m_KS = 269.0 * m_SampFreq / 1000.0;
-					m_KS2 = m_KS * 0.5;
-					m_OF = 10.0 * m_SampFreq / 1000.0;
-					m_OFP = 10.6 * m_SampFreq / 1000.0;
-					m_SG = m_KS + 0.1;
-					m_CG = m_SG + m_KS2;
-					m_SB = m_CG + 0.1;
-					m_CB = m_SB + m_KS2;
-					m_L = 256;
-					break;
-				case AllModes.smMR175:
-					m_KS = 337.0 * m_SampFreq / 1000.0;
-					m_KS2 = m_KS * 0.5;
-					m_OF = 10.0 * m_SampFreq / 1000.0;
-					m_OFP = 10.6 * m_SampFreq / 1000.0;
-					m_SG = m_KS + 0.1;
-					m_CG = m_SG + m_KS2;
-					m_SB = m_CG + 0.1;
-					m_CB = m_SB + m_KS2;
-					m_L = 256;
-					break;
-				case AllModes.smMP73:
-					m_KS = 140.0 * m_SampFreq / 1000.0;
-					m_OF = 10.0 * m_SampFreq / 1000.0;
-					m_OFP = 10.5 * m_SampFreq / 1000.0;
-					m_SG = m_KS;
-					m_CG = m_KS + m_SG;
-					m_SB = m_SG + m_SG;
-					m_CB = m_KS + m_SB;
-					m_L = 128;
-					break;
-				case AllModes.smMP115:
-					m_KS = 223.0 * m_SampFreq / 1000.0;
-					m_OF = 10.0 * m_SampFreq / 1000.0;
-					m_OFP = 10.5 * m_SampFreq / 1000.0;
-					m_SG = m_KS;
-					m_CG = m_KS + m_SG;
-					m_SB = m_SG + m_SG;
-					m_CB = m_KS + m_SB;
-					m_L = 128;
-					break;
-				case AllModes.smMP140:
-					m_KS = 270.0 * m_SampFreq / 1000.0;
-					m_OF = 10.0 * m_SampFreq / 1000.0;
-					m_OFP = 10.5 * m_SampFreq / 1000.0;
-					m_SG = m_KS;
-					m_CG = m_KS + m_SG;
-					m_SB = m_SG + m_SG;
-					m_CB = m_KS + m_SB;
-					m_L = 128;
-					break;
-				case AllModes.smMP175:
-					m_KS = 340.0 * m_SampFreq / 1000.0;
-					m_OF = 10.0 * m_SampFreq / 1000.0;
-					m_OFP = 10.5 * m_SampFreq / 1000.0;
-					m_SG = m_KS;
-					m_CG = m_KS + m_SG;
-					m_SB = m_SG + m_SG;
-					m_CB = m_KS + m_SB;
-					m_L = 128;
-					break;
-				case AllModes.smML180:
-					m_KS = 176.5 * m_SampFreq / 1000.0;
-					m_KS2 = m_KS * 0.5;
-					m_OF = 10.0 * m_SampFreq / 1000.0;
-					m_OFP = 10.6 * m_SampFreq / 1000.0;
-					m_SG = m_KS + 0.1;
-					m_CG = m_SG + m_KS2;
-					m_SB = m_CG + 0.1;
-					m_CB = m_SB + m_KS2;
-					m_L = 496;
-					break;
-				case AllModes.smML240:
-					m_KS = 236.5 * m_SampFreq / 1000.0;
-					m_KS2 = m_KS * 0.5;
-					m_OF = 10.0 * m_SampFreq / 1000.0;
-					m_OFP = 10.6 * m_SampFreq / 1000.0;
-					m_SG = m_KS + 0.1;
-					m_CG = m_SG + m_KS2;
-					m_SB = m_CG + 0.1;
-					m_CB = m_SB + m_KS2;
-					m_L = 496;
-					break;
-				case AllModes.smML280:
-					m_KS = 277.5 * m_SampFreq / 1000.0;
-					m_KS2 = m_KS * 0.5;
-					m_OF = 10.0 * m_SampFreq / 1000.0;
-					m_OFP = 10.6 * m_SampFreq / 1000.0;
-					m_SG = m_KS + 0.1;
-					m_CG = m_SG + m_KS2;
-					m_SB = m_CG + 0.1;
-					m_CB = m_SB + m_KS2;
-					m_L = 496;
-					break;
-				case AllModes.smML320:
-					m_KS = 317.5 * m_SampFreq / 1000.0;
-					m_KS2 = m_KS * 0.5;
-					m_OF = 10.0 * m_SampFreq / 1000.0;
-					m_OFP = 10.6 * m_SampFreq / 1000.0;
-					m_SG = m_KS + 0.1;
-					m_CG = m_SG + m_KS2;
-					m_SB = m_CG + 0.1;
-					m_CB = m_SB + m_KS2;
-					m_L = 496;
-					break;
-				case AllModes.smR24:
-					m_KS = 92.0 * m_SampFreq / 1000.0;
-					m_KS2 = 46.0 * m_SampFreq / 1000.0;
-					m_OF = 8.0 * m_SampFreq / 1000.0;
-					m_OFP = 8.1 * m_SampFreq / 1000.0;
-					m_SG = m_KS + 4.0 * m_SampFreq / 1000.0;
-					m_CG = m_SG + m_KS2;
-					m_SB = m_CG + 4.0 * m_SampFreq / 1000.0;
-					m_CB = m_SB + m_KS2;
-					m_L = 120;
-					break;
-				case AllModes.smRM8:
-					m_KS = 58.89709 * m_SampFreq / 1000.0;
-					m_OF = 8.0 * m_SampFreq / 1000.0;
-					m_OFP = 8.2 * m_SampFreq / 1000.0;
-					m_SG = m_KS;
-					m_CG = m_KS + m_SG;
-					m_SB = m_SG + m_SG;
-					m_CB = m_KS + m_SB;
-					m_L = 120;
-					break;
-				case AllModes.smRM12:
-					m_KS = 92.0 * m_SampFreq / 1000.0;
-					m_OF = 8.0 * m_SampFreq / 1000.0;
-					m_OFP = 8.0 * m_SampFreq / 1000.0;
-					m_SG = m_KS;
-					m_CG = m_KS + m_SG;
-					m_SB = m_SG + m_SG;
-					m_CB = m_KS + m_SB;
-					m_L = 120;
-					break;
-				case AllModes.smMN73:
-					m_KS = 140.0 * m_SampFreq / 1000.0;
-					m_OF = 10.0 * m_SampFreq / 1000.0;
-					m_OFP = 10.5 * m_SampFreq / 1000.0;
-					m_SG = m_KS;
-					m_CG = m_KS + m_SG;
-					m_SB = m_SG + m_SG;
-					m_CB = m_KS + m_SB;
-					m_L = 128;
-					break;
-				case AllModes.smMN110:
-					m_KS = 212.0 * m_SampFreq / 1000.0;
-					m_OF = 10.0 * m_SampFreq / 1000.0;
-					m_OFP = 10.5 * m_SampFreq / 1000.0;
-					m_SG = m_KS;
-					m_CG = m_KS + m_SG;
-					m_SB = m_SG + m_SG;
-					m_CB = m_KS + m_SB;
-					m_L = 128;
-					break;
-				case AllModes.smMN140:
-					m_KS = 270.0 * m_SampFreq / 1000.0;
-					m_OF = 10.0 * m_SampFreq / 1000.0;
-					m_OFP = 10.5 * m_SampFreq / 1000.0;
-					m_SG = m_KS;
-					m_CG = m_KS + m_SG;
-					m_SB = m_SG + m_SG;
-					m_CB = m_KS + m_SB;
-					m_L = 128;
-					break;
-				case AllModes.smMC110:
-					m_KS = 140.0 * m_SampFreq / 1000.0;
-					m_OF = 8.0 * m_SampFreq / 1000.0;
-					m_OFP = 8.95 * m_SampFreq / 1000.0;
-					m_SG = m_KS;
-					m_CG = m_KS + m_SG;
-					m_SB = m_SG + m_SG;
-					m_CB = m_KS + m_SB;
-					m_L = 256;
-					break;
-				case AllModes.smMC140:
-					m_KS = 180.0 * m_SampFreq / 1000.0;
-					m_OF = 8.0 * m_SampFreq / 1000.0;
-					m_OFP = 8.75 * m_SampFreq / 1000.0;
-					m_SG = m_KS;
-					m_CG = m_KS + m_SG;
-					m_SB = m_SG + m_SG;
-					m_CB = m_KS + m_SB;
-					m_L = 256;
-					break;
-				case AllModes.smMC180:
-					m_KS = 232.0 * m_SampFreq / 1000.0;
-					m_OF = 8.0 * m_SampFreq / 1000.0;
-					m_OFP = 8.75 * m_SampFreq / 1000.0;
-					m_SG = m_KS;
-					m_CG = m_KS + m_SG;
-					m_SB = m_SG + m_SG;
-					m_CB = m_KS + m_SB;
-					m_L = 256;
-					break;
-
-		//        case smSCT1:
-				default:        // SCT1
-					m_KS  = 138.24 * m_SampFreq / 1000.0;
-					m_OF  =  10.5  * m_SampFreq / 1000.0;
-					m_OFP =  10.7  * m_SampFreq / 1000.0;
-					m_SG  = 139.74 * m_SampFreq / 1000.0;
-					m_CG  = m_KS + m_SG;
-					m_SB  = m_SG + m_SG;
-					m_CB  = m_KS + m_SB;
-					m_L = 256;
-					break;
-			}
-			m_TW = GetTiming(m_Mode) * m_SampFreq / 1000.0;
-			switch(m_Mode){
-				case AllModes.smPD120:
-				case AllModes.smPD160:
-				case AllModes.smPD180:
-				case AllModes.smPD240:
-				case AllModes.smPD290:
-				case AllModes.smP3:
-				case AllModes.smP5:
-				case AllModes.smP7:
-					m_KSS  = (m_KS  - m_KS /480.0);   // TW for Y or RGB mode
-					m_KS2S = (m_KS2 - m_KS2/480.0);   // TW for Ry, By
-					m_KSB  = (int)(m_KSS / 1280.0);   // TW for black adjutment
-					break;
-				case AllModes.smMP73:
-				case AllModes.smMN73:
-				case AllModes.smSCTDX:
-					m_KSS  = (m_KS  - m_KS/1280.0);    // TW for Y or RGB mode
-					m_KS2S = (m_KS2 - m_KS2/1280.0);   // TW for Ry, By
-					m_KSB  = (int)(m_KSS / 1280.0 );
-					break;
-				case AllModes.smSC2_180:
-				case AllModes.smMP115:
-				case AllModes.smMP140:
-				case AllModes.smMP175:
-				case AllModes.smMR90:
-				case AllModes.smMR115:
-				case AllModes.smMR140:
-				case AllModes.smMR175:
-				case AllModes.smML180:
-				case AllModes.smML240:
-				case AllModes.smML280:
-				case AllModes.smML320:
-				case AllModes.smMN110:
-				case AllModes.smMN140:
-				case AllModes.smMC110:
-				case AllModes.smMC140:
-				case AllModes.smMC180:
-					m_KSS  = m_KS;                  // TW for Y or RGB mode
-					m_KS2S = m_KS2;                 // TW for Ry, By
-					m_KSB  = (int)(m_KSS / 1280.0);
-					break;
-				case AllModes.smMR73:
-					m_KSS  = (m_KS  - m_KS / 640.0);  // TW for Y or RGB mode
-					m_KS2S = (m_KS2 - m_KS2/1024.0);  // TW for Ry, By
-					m_KSB  = (int)(m_KSS / 1024.0);
-					break;
-				default:
-					m_KSS  = (m_KS  - m_KS /240.0);   // TW for Y or RGB mode
-					m_KS2S = (m_KS2 - m_KS2/240.0);   // TW for Ry, By
-					m_KSB  = (int)(m_KSS / 640.0);    // TW for black adjutment
-					break;
-			}
-			switch(m_Mode){
-				case AllModes.smMRT1:
-				case AllModes.smMRT2:
-				case AllModes.smSC2_60:
-				case AllModes.smSC2_120:
-				case AllModes.smSC2_180:
-    			case AllModes.smMC110:
-				case AllModes.smMC140:
-				case AllModes.smMC180:
+		void SetSampFreq(SSTVMode tvMode){
+			//m_TW = GetTiming(m_Mode) * m_SampFreq / 1000.0;
+			switch(tvMode.Family){
+				case TVFamily.Martin:
 					m_AFCW = (int)(2.0 * SampFreq / 1000.0);
 					m_AFCB = (int)(1.0 * SampFreq / 1000.0);
 					break;
@@ -844,8 +240,6 @@ namespace Play.Sound {
 					m_AFCB = (int)(1.5 * SampFreq / 1000.0);
 					break;
 			}
-			if( m_KSB > 0 ) 
-				m_KSB++;
 
 			// This is the "-i" option set in TMMSSTV::StartOption() if bCQ100 is
 			// true then the offset is -1000. Else the offset is 0!!
@@ -862,8 +256,6 @@ namespace Play.Sound {
 					return 150.0;
 				case AllModes.smR72:
 					return 300.0;
-				case AllModes.smAVT:
-					return 375;
 				case AllModes.smSCT2:
 					return 277.692;
 				case AllModes.smSCTDX:
@@ -1558,7 +950,7 @@ namespace Play.Sound {
 		/// <remarks>This is seriously lame use of a return code. Either hack the enumeration
 		/// so that zero is not one of the valid modes, or make a return value and pass 
 		/// an out variable to return the mode.</remarks>
-		int SyncCheck( CSSTVSET oTVSet )
+		bool SyncCheck( CSSTVSET oTVSet, out AllModes oMode )
 		{
 			UInt32 deff = (UInt32)(3 * oTVSet.m_SampFreq / 1000.0);
 			UInt32 w = m_MSyncList[MSYNCLINE-1];
@@ -1569,7 +961,8 @@ namespace Play.Sound {
 					for( int i = 0; i < (int)AllModes.smEND; i++ ){
 						if( oTVSet.m_MS[i] != 0 && (ww > (oTVSet.m_MS[i]-deff)) && (ww < (oTVSet.m_MS[i]+deff)) ){
 							if( SyncCheckSub(oTVSet, (AllModes)i) ){
-								return i + 1; // Honestly, this is lame.
+								oMode = (AllModes)i;
+								return true;
 							}
 						}
 					}
@@ -1577,7 +970,8 @@ namespace Play.Sound {
 					break;
 				}
 			}
-			return 0;
+			oMode = AllModes.smEND;
+			return false;
 		}
 
 		public void SyncInc()
@@ -1602,9 +996,8 @@ namespace Play.Sound {
 		/// <remarks>Fix this to return a bool and have an out param for AllMode.</remarks>
 		/// <param name="oTVSettings"></param>
 		/// <returns></returns>
-		public int SyncStart( CSSTVSET oTVSettings )
+		public bool SyncStart( CSSTVSET oTVSettings, out AllModes ss )
 		{
-			int ss = 0;
 			if( m_MSyncIntMax != 0 ){
 				if( (m_MSyncIntPos - m_MSyncACnt) > oTVSettings.m_MSLL ){
 					m_MSyncACnt = m_MSyncIntPos - m_MSyncACnt;
@@ -1612,13 +1005,14 @@ namespace Play.Sound {
 					Array.Copy( m_MSyncList, 1, m_MSyncList, 0, MSYNCLINE - 1 );
 					m_MSyncList[MSYNCLINE - 1] = m_MSyncACnt;
 					if( m_MSyncACnt > oTVSettings.m_MSL ){
-						ss = SyncCheck( oTVSettings );
+						return SyncCheck( oTVSettings, out ss );
 					}
 					m_MSyncACnt = m_MSyncIntPos;
 				}
 				m_MSyncIntMax = 0;
 			}
-			return ss;
+			ss = AllModes.smEND;
+			return false;
 		}
 	}
 
@@ -1628,10 +1022,19 @@ namespace Play.Sound {
 		Hilbert
 	}
 
-	public class CSSTVDEM {
+	public delegate void NextMode( SSTVMode tvMode );
+
+	/// <summary>
+	/// So my SSTVMode object is a bit different than the CSSTVSET one. I have a different mode object per
+	/// TV format. CSSTVSET changes it's state depending on which format it is re-initialized to. Thus,
+	/// the Mode gets assigned every time a new image comes down.
+	/// </summary>
+	public class CSSTVDEM : IEnumerable<SSTVMode> {
 		public SYSSET   sys  { get; protected set; }
-		public SSTVMode Mode { get; set; } // Make this protected set once we get there.
+		public SSTVMode Mode { get; protected set; } 
 		public CSSTVSET SSTVSET { get; protected set; }
+
+		public event NextMode ListenNextMode;
 
 		public readonly static int NARROW_SYNC		= 1900;
 		public readonly static int NARROW_LOW		= 2044;
@@ -1696,7 +1099,7 @@ namespace Play.Sound {
 		readonly bool m_SyncRestart;
 		int         m_SyncMode;
 		int         m_SyncTime;
-		int         m_SyncATime;
+		int         m_SyncATime; // probably to support AVT modes.
 		int         m_VisData;
 		int         m_VisCnt;
 		readonly int m_VisTrig;
@@ -1725,15 +1128,12 @@ namespace Play.Sound {
 			}
 		}
 
-	    public bool m_ReqSave  { get; protected set; }
-	    public bool m_LoopBack { get; protected set; }
-
-		int         m_wStgPage;
-		int         m_wStgLine;
+	    public bool  m_ReqSave  { get; protected set; }
+	    public bool  m_LoopBack { get; protected set; }
 
 		public bool  m_Lost { get; protected set; }
 
-		public int     m_BWidth; // Width of the scan line in memory.
+		public int     m_BWidth; // Max width of a scan line for paged memory.
 		public short[] m_Buf;
 		public short[] m_B12;
 
@@ -1839,8 +1239,8 @@ namespace Play.Sound {
 			m_pll = new CPLL( SampFreq, dbToneOffset );
 			m_pll.SetVcoGain ( 1.0 );
 			m_pll.SetFreeFreq( 1500, 2300 );
-			m_pll.MakeLoopLPF(    iLoopOrder:1, iLoopFreq:1500 );
-			m_pll.MakeOutLPF (    iLoopOrder:3, iLoopFreq: 900 );
+			m_pll.MakeLoopLPF( iLoopOrder:1, iLoopFreq:1500 );
+			m_pll.MakeOutLPF ( iLoopOrder:3, iLoopFreq: 900 );
 
 			Array.Clear( HBPF,  0, HBPF .Length );
 			Array.Clear( HBPFS, 0, HBPFS.Length );
@@ -1940,7 +1340,7 @@ namespace Play.Sound {
 			//}
 		}
 
-		public void CalcBPF(double[] H1, double[] H2, double[] H3, ref int bpftap, int bpf, AllModes mode)
+		public void CalcBPF(double[] H1, double[] H2, double[] H3, ref int bpftap, int bpf)
 		{
 			int lfq  = (int)((m_SyncRestart ? 1100 : 1200) + m_dblToneOffset );
 			int lfq2 = (int)(400 + m_dblToneOffset );
@@ -1949,27 +1349,27 @@ namespace Play.Sound {
 			switch(bpf){
 				case 1:     // Wide
 					bpftap = (int)(24 * SampFreq / 11025.0 );
-					CFIR2.MakeFilter(H1, bpftap, FirFilt.ffBPF, SampFreq, lfq, 2600 + m_dblToneOffset, 20, 1.0);
-					CFIR2.MakeFilter(H2, bpftap, FirFilt.ffBPF, SampFreq,  lfq2, 2500 + m_dblToneOffset, 20, 1.0);
+					CFIR2.MakeFilter(H1, bpftap, FirFilt.ffBPF, SampFreq,  lfq, 2600 + m_dblToneOffset, 20, 1.0);
+					CFIR2.MakeFilter(H2, bpftap, FirFilt.ffBPF, SampFreq, lfq2, 2500 + m_dblToneOffset, 20, 1.0);
 		//			MakeFilter(H3, bpftap, ffBPF, SampFreq,  NARROW_BPFLOW-200, NARROW_BPFHIGH, 20, 1.0);
 					break;
 				case 2:     // Narrow
 					bpftap = (int)(64 * SampFreq / 11025.0 );
-					CFIR2.MakeFilter(H1, bpftap, FirFilt.ffBPF, SampFreq, lfq, 2500 + m_dblToneOffset, 40, 1.0);
-					CFIR2.MakeFilter(H2, bpftap, FirFilt.ffBPF, SampFreq,  lfq2, 2500 + m_dblToneOffset, 20, 1.0);
+					CFIR2.MakeFilter(H1, bpftap, FirFilt.ffBPF, SampFreq,  lfq, 2500 + m_dblToneOffset, 40, 1.0);
+					CFIR2.MakeFilter(H2, bpftap, FirFilt.ffBPF, SampFreq, lfq2, 2500 + m_dblToneOffset, 20, 1.0);
 		//			MakeFilter(H3, bpftap, ffBPF, SampFreq, NARROW_BPFLOW-100, NARROW_BPFHIGH, 40, 1.0);
 					break;
 				case 3:     // Very Narrow
 					bpftap = (int)(96 * SampFreq / 11025.0 );
-					CFIR2.MakeFilter(H1, bpftap, FirFilt.ffBPF, SampFreq, lfq, 2400 + m_dblToneOffset, 50, 1.0);
-					CFIR2.MakeFilter(H2, bpftap, FirFilt.ffBPF, SampFreq,  lfq2, 2500 + m_dblToneOffset, 20, 1.0);
+					CFIR2.MakeFilter(H1, bpftap, FirFilt.ffBPF, SampFreq,  lfq, 2400 + m_dblToneOffset, 50, 1.0);
+					CFIR2.MakeFilter(H2, bpftap, FirFilt.ffBPF, SampFreq, lfq2, 2500 + m_dblToneOffset, 20, 1.0);
 		//			MakeFilter(H3, bpftap, ffBPF, SampFreq,  NARROW_BPFLOW, NARROW_BPFHIGH, 50, 1.0);
 					break;
 				default:
 					bpftap = 0;
 					break;
 			}
-			CalcNarrowBPF(H3, bpftap, bpf, mode);
+		  //CalcNarrowBPF(H3, bpftap, bpf, SSTVSET.m_Mode); If I add those modes I'll figure this out.
 		}
 
 		public void CalcNarrowBPF(double[] H3, int bpftap, int bpf, AllModes mode) {
@@ -2015,7 +1415,7 @@ namespace Play.Sound {
 		}
 
 		public void CalcBPF() {
-			CalcBPF(HBPF, HBPFS, HBPFN, ref m_bpftap, m_bpf, SSTVSET.m_Mode);
+			CalcBPF(HBPF, HBPFS, HBPFN, ref m_bpftap, m_bpf );
 			m_BPF.Create(m_bpftap);
 		}
 
@@ -2103,12 +1503,17 @@ namespace Play.Sound {
 
 			m_LoopBack = fLoopBack;
 			m_SyncAVT  = false;
-			m_wStgLine = 0;
 			m_ReqSave  = false;
 		}
 
-		public void Start() {
-			SetWidth(CSSTVSET.IsNarrowMode(SSTVSET.m_Mode));
+		/// <summary>
+		/// this method gets called when we are ready to rock and roll. In the original
+		/// system TmmSSTV would toss it's previous image and start a new one.
+		/// In the new system I'll try tossing TmmSSTV and create a new one.
+		/// </summary>
+		public void Start( SSTVMode tvMode ) {
+			Mode = tvMode;
+			SetWidth(CSSTVSET.IsNarrowMode( tvMode ));
 
 			InitAFC();
 			m_fqc.Clear();
@@ -2124,41 +1529,46 @@ namespace Play.Sound {
 			m_wBgn  = 2;
 			m_Lost  = false;
 
-			int eg = SSTVSET.m_WD + SSTVSET.m_KSB + SSTVSET.m_KSB;
-			int i, j;
-			for( i = 0; i < SSTVDEMBUFMAX; i++ ){
-				for( j = SSTVSET.m_WD; j < eg; j++ ){
-					m_Buf[i*m_BWidth + j] = -16384; // Set to black.
-				}
-			}
+			// If they're running slow/fast? then we'll wander beyond the data
+			// sent and so they set the value to black. Seems Hacky to me.
+			//int eg = SSTVSET.m_WD + SSTVSET.m_KSB + SSTVSET.m_KSB;
+			//int i, j;
+			//for( i = 0; i < SSTVDEMBUFMAX; i++ ){
+			//	for( j = SSTVSET.m_WD; j < eg; j++ ){
+			//		m_Buf[i*m_BWidth + j] = -16384; // Set to black.
+			//	}
+			//}
 
 			m_Sync     = true;
 			m_SyncMode = 0; // Here? This kills me. Probably due to multi threaded stuff.
 			// However, this combo makes sense. We go back for looking for sync signals at the
 			// same time we're storing the image scan lines.
 			SetWidth(m_fNarrow);
-			if( m_fNarrow ) 
-				CalcNarrowBPF(HBPFN, m_bpftap, m_bpf, SSTVSET.m_Mode);
+
+			ListenNextMode?.Invoke( tvMode );
+			// Don't suppor narrow band modes.
+			//if( m_fNarrow ) 
+			//	CalcNarrowBPF(HBPFN, m_bpftap, m_bpf, SSTVSET.m_Mode);
 		}
 
-		void Start(AllModes mode, int f)	{
-			m_fqc.Clear();
-			m_sint1.Reset();
-			m_sint2.Reset();
-			m_sint3.Reset();
-			m_wBgn  = 0;
-			m_rBase = 0;
-			m_SyncMode = 0;
-			SSTVSET.SetMode(mode);
-			m_Sync = false;
-			SetWidth(CSSTVSET.IsNarrowMode(mode));
+		//void Start(SSTVMode tvMode, int f)	{
+		//	m_fqc.Clear();
+		//	m_sint1.Reset();
+		//	m_sint2.Reset();
+		//	m_sint3.Reset();
+		//	m_wBgn     = 0;
+		//	m_rBase    = 0;
+		//	m_SyncMode = 0;
+		//	SSTVSET.SetMode(tvMode);
+		//	m_Sync     = false;
+		//	SetWidth(CSSTVSET.IsNarrowMode(tvMode));
 
-			if( f != 0 ){
-				Start();
-			} else {
-				m_SyncMode = -1;
-			}
-		}
+		//	if( f != 0 ){
+		//		Start( tvMode );
+		//	} else {
+		//		m_SyncMode = -1;
+		//	}
+		//}
 
 		public void Stop()	{
 			if( m_AFCFQ != 0 ){
@@ -2217,8 +1627,9 @@ namespace Play.Sound {
 			m_ad = s;
 			if( m_bpf != 0 ){
 				if( m_Sync || (m_SyncMode >= 3) ){
-					// BUG: Double check this.
-					d = m_BPF.Do( m_fNarrow ? HBPFN : HBPF, ref d, out _ );
+					// BUG: Double check this _ stuff.
+					// We don't support narrow band modes.
+					d = m_BPF.Do( /* m_fNarrow ? HBPFN : */ HBPF, ref d, out _ );
 				} else {
 					d = m_BPF.Do( HBPFS, ref d, out _ );
 				}
@@ -2253,7 +1664,7 @@ namespace Play.Sound {
 				dsp = -dsp;
 			dsp = m_lpffsk.Do(dsp);
 
-			DecodeFSK( (int)d19, (int)dsp );
+			// DecodeFSK( (int)d19, (int)dsp );
 
 			if( m_fNarrow ){
 				if( m_ScopeFlag ){
@@ -2274,6 +1685,7 @@ namespace Play.Sound {
 			}
 
 			if( !m_Sync || m_SyncRestart || m_SyncAVT ){
+				SSTVMode tvMode;
 				m_sint1.SyncInc();
 				m_sint2.SyncInc();
 				m_sint3.SyncInc();
@@ -2285,23 +1697,28 @@ namespace Play.Sound {
 				switch(m_SyncMode){
 					case 0:                 // 自動開始 : Start automatically
 						if( !m_Sync /* && m_MSync */ ){
-							m_VisData = m_sint1.SyncStart( SSTVSET );
-							if( m_VisData > 0 ){
-								SSTVSET.SetMode( (AllModes)(m_VisData-1));
-								Start();
+							if( m_sint1.SyncStart( SSTVSET, out AllModes eLegacy ) ) {
+								tvMode = GetSSTVMode( eLegacy );
+								if( tvMode != null ) {
+									SSTVSET.SetMode( tvMode );
+									Start( tvMode );
+								}
 							} else if( (d12 > d19) && (d12 > m_SLvl2) && ((d12-d19) >= m_SLvl2) ){
 								m_sint2.SyncMax( (int)d12);
 							} else {
-								m_VisData = m_sint2.SyncStart( SSTVSET );
-								if( m_VisData > 0 ){
-									m_VisData--;
-									switch( (AllModes)m_VisData){
+								if( m_sint2.SyncStart( SSTVSET, out eLegacy ) ) {
+									switch( eLegacy ){
 										case AllModes.smSCT1:
 										case AllModes.smMRT1:
 										case AllModes.smMRT2:
 										case AllModes.smSC2_180:
-											SSTVSET.SetMode( (AllModes)m_VisData);
-											Start();
+											{
+											tvMode = GetSSTVMode( eLegacy );
+											if( tvMode != null ) {
+												SSTVSET.SetMode( tvMode );
+												Start( tvMode );
+											}
+											}
 											break;
 										default:
 											break;
@@ -2319,11 +1736,12 @@ namespace Play.Sound {
 							}
 							else if( m_sint3.m_SyncPhase != 0 ){
 								m_sint3.m_SyncPhase = 0;
-								m_VisData = m_sint3.SyncStart(SSTVSET);
-								if( m_VisData > 0 ){
-									m_VisData--; // Sigh
-									SSTVSET.SetMode( (AllModes)m_VisData);
-									Start();
+								if( m_sint3.SyncStart(SSTVSET, out eLegacy) ) {
+									tvMode = GetSSTVMode( eLegacy );
+									if( tvMode != null ) {
+										SSTVSET.SetMode( tvMode );
+										Start( tvMode );
+									}
 								}
 							}
 		//#endif
@@ -2390,9 +1808,6 @@ namespace Play.Sound {
 												break;
 											case 0x0c:      // R72
 												m_NextMode = AllModes.smR72;
-												break;
-											case 0x44:      // AVT
-												m_NextMode = AllModes.smAVT;
 												break;
 											case 0x3c:      // SCT1
 												m_NextMode = AllModes.smSCT1;
@@ -2523,15 +1938,11 @@ namespace Play.Sound {
 										m_ReqSave = true;
 									}
 								}
-								if( m_NextMode == AllModes.smAVT ){
-									m_SyncTime = (int)((9 + 910 + 910 + 5311.9424 + 0.30514375) * sys.m_SampFreq / 1000.0);
-									m_SyncMode++;
-									m_SyncAVT = true;
-									m_Sync    = false;
-								} else {
-									m_SyncMode = 256;
+								m_SyncMode = 256;
+								tvMode = GetSSTVMode( m_NextMode );
+								if( tvMode != null ) {
+									SSTVSET.SetMode( tvMode );
 								}
-								SSTVSET.SetMode(m_NextMode);
 							} else {
 								m_SyncMode = 0;
 							}
@@ -2625,12 +2036,16 @@ namespace Play.Sound {
 					case 8:
 						// This code is weird, given we ARE IN m_SyncMode 8, -1 yields 7 which is NEVER 0!!!!
 						m_SyncMode--;
-						if( m_SyncMode == 0 ){
-							Start();
+						if( m_SyncMode == 0 ) {
+							tvMode = GetSSTVMode( m_NextMode );
+							if( tvMode != null ) 
+								Start( tvMode );
 						}
 						break;
 					case 256:               // 強制開始 : Forced Start.
-						Start();
+						tvMode = GetSSTVMode( m_NextMode );
+						if( tvMode != null ) 
+							Start( tvMode );
 						break;
 					case 512:               // 0.5sのウエイト : .5 sec wait.
 						m_SyncTime = (int)(SampFreq * 0.5);
@@ -2647,18 +2062,18 @@ namespace Play.Sound {
 			if( m_Sync ){
 				switch(m_Type){
 					case FreqDetect.PLL:		// PLL
-						if( m_afc && (m_lvl.m_CurMax > 16) && (SSTVSET.m_Mode != AllModes.smAVT) )
+						if( m_afc && (m_lvl.m_CurMax > 16) )
 							SyncFreq(m_fqc.Do(m_lvl.m_Cur));
 						d = m_pll.Do(m_lvl.m_Cur);
 						break;
 					case FreqDetect.FQC:		// Zero-crossing
 						d = m_fqc.Do(m_lvl.m_Cur);
-						if( m_afc && (m_lvl.m_CurMax > 16) && (SSTVSET.m_Mode != AllModes.smAVT) )
+						if( m_afc && (m_lvl.m_CurMax > 16) )
 							SyncFreq(d);
 						break;
 					case FreqDetect.Hilbert:	// Hilbert
 						d = m_hill.Do(m_lvl.m_Cur);
-						if( m_afc && (m_lvl.m_CurMax > 16) && (SSTVSET.m_Mode != AllModes.smAVT) )
+						if( m_afc && (m_lvl.m_CurMax > 16) )
 							SyncFreq(d);
 						break;
 					default:
@@ -2684,20 +2099,10 @@ namespace Play.Sound {
 					int n = m_wBase + m_wCnt;
 					m_Buf[n] = (short)-d;
 
-		//#if NARROW_SYNC == 1200
-		//			if( SSTVSET.m_Mode != AllModes.smAVT ){
-		//				m_B12[n] = (short)d12;
-		//			}
-		//#else
 					if( m_fNarrow ){
 						m_B12[n] = (short)d19;
-					}
-					else if( SSTVSET.m_Mode != AllModes.smAVT ){
+					} else {
 						m_B12[n] = (short)d12;
-					}
-		//#endif
-					else {
-						m_B12[n] = (short)((d + 16384) * 0.25);
 					}
 					WCntIncrement();
 				}
@@ -2749,20 +2154,19 @@ namespace Play.Sound {
 
 		/// <remarks>This method used to live on the TMmsstv object, but that doesn't
 		/// make sense there. Moved it to the demodulator.</remarks>
-		/// <param name="fSyncAccuracy">Was m_SyncAccuracy on TMmsstv</param>
+		/// <param name="fSyncAccuracy">fSyncAccuracy was m_SyncAccuracy on TMmsstv</param>
+		/// <remarks>I see two ways to correct slant. MMSSTV has the CSTVSET values static
+		/// so they must change the page width. Since they were using for the distance
+		/// along the scan line (ps = n%width) they then get corrected.
+		/// I'm going to change my parse values by updated a copy of the mode.</remarks>
 		public void SyncSSTV( int iSyncAccuracy )
 		{
-			if( SSTVSET.m_Mode == AllModes.smAVT ){
-				SSTVSET.SetOFS( 0 );
-				m_wBgn = 0;
-				return;
-			}
 			int e = 4;
-			if( iSyncAccuracy != 0 && sys.m_UseRxBuff != 0 && (SSTVSET.m_TW >= SSTVSET.m_SampFreq) ) 
+			if( iSyncAccuracy != 0 && sys.m_UseRxBuff != 0 && (Mode.ScanLineWidthInSamples >= SSTVSET.m_SampFreq) ) 
 				e = 3;
 			if( m_wLine >= e ) {
 				int    n = 0;
-				int   wd = (int)((SSTVSET.m_TW) + 2);
+				int   wd = (int)(Mode.ScanLineWidthInSamples + 2);
 				int[] bp = new int[wd];
 
 				Array.Clear( bp, 0, bp.Length );
@@ -2770,8 +2174,8 @@ namespace Play.Sound {
 				for( int pg = 0; pg < e; pg++ ){
 				  //short []sp = &m_B12[pg * m_BWidth];
 					int     ip = pg * m_BWidth;
-					for( int i = 0; i < SSTVSET.m_WD; i++ ){
-						int x = n % (int)SSTVSET.m_TW; // fmod( n, m_TW )
+					for( int i = 0; i < Mode.ScanLineWidthInSamples; i++ ){
+						int x = n % Mode.ScanLineWidthInSamples; 
 					  //bp[x] += *sp;
 						bp[x] += m_B12[ip + i];
 						n++;
@@ -2787,15 +2191,9 @@ namespace Play.Sound {
 				}
 				n -= (int)SSTVSET.m_OFP;
 				n = -n;
-				switch(SSTVSET.m_Mode){
-					case AllModes.smSCT1:
-					case AllModes.smSCT2:
-					case AllModes.smSCTDX:
-						if( n < 0 ) 
-							n += SSTVSET.m_WD;
-						break;
-					default:
-						break;
+				if( Mode.Family == TVFamily.Scottie ) {
+					if( n < 0 ) 
+						n += Mode.ScanLineWidthInSamples;
 				}
 				if( m_Type == FreqDetect.Hilbert ) 
 					n -= m_hill.m_htap/4;
@@ -2845,6 +2243,10 @@ namespace Play.Sound {
 			}
 		}
 
+		/// <summary>
+		/// This looks like extra stuff to support MN and MC modes. I'm going to punt
+		/// on these for now.
+		/// </summary>
 		void DecodeFSK( int m, int s ) {
 			int d;
 			switch(m_fskmode){
@@ -3059,11 +2461,11 @@ namespace Play.Sound {
 													m_NextMode = 0;
 													break;
 											}
-											// BUG: You can never get to AllModes.smR36 because it is zero!!
-											if( (m_SyncRestart || !m_Sync) && m_NextMode != 0 && (m_SyncMode >= 0) ){
-												SSTVSET.SetMode(m_NextMode);
-												Start();
-											}
+											// I'm not going to support these modes for now.
+											//if( (m_SyncRestart || !m_Sync) && m_NextMode != 0 && (m_SyncMode >= 0) ){
+											//	SSTVSET.SetMode(m_NextMode);
+											//	Start();
+											//}
 										}
 										m_fskmode = 0;
 										break;
@@ -3076,7 +2478,35 @@ namespace Play.Sound {
 			}
 		}
 
-	}
+        public IEnumerator<SSTVMode> GetEnumerator()
+        {
+            IEnumerator<SSTVMode> itrMode = GenerateMartin .GetModeEnumerator();
+			while( itrMode.MoveNext() ) 
+				yield return itrMode.Current;
+			
+            itrMode = GenerateScottie.GetModeEnumerator();
+			while( itrMode.MoveNext() ) 
+				yield return itrMode.Current;
+
+            itrMode = GeneratePD     .GetModeEnumerator();
+			while( itrMode.MoveNext() ) 
+				yield return itrMode.Current;
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return GetEnumerator();
+        }
+
+		protected SSTVMode GetSSTVMode( AllModes eLegacy ) {
+			foreach( SSTVMode tvMode in this ) {
+				if( tvMode.LegacyMode == eLegacy ) {
+					return tvMode;
+				}
+			}
+			return null;
+		}
+    }
 
 	public class DemodTest : CSSTVDEM, IPgModulator {
 		double m_dbWPos;

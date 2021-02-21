@@ -26,7 +26,7 @@ namespace Play.SSTV {
 	/// It's a little bit of a misonmer that the demodulator doesn't include these bits to get the frequencey
 	/// demodulated stuff encoded into a bitmap. But at least we have some factorization of the problem.
 	/// </summary>
-    public class TmmSSTV {
+    public class TmmSSTV : IDisposable {
         protected readonly CSSTVDEM dp;
         protected readonly CSSTVSET SSTVSET;
 
@@ -87,7 +87,17 @@ namespace Play.SSTV {
 		}
 
 		/// <summary>
-		/// Return the scan line width in samples.
+		/// This is a good argument for long lived TmmSSTV since, I'm going to alloc the
+		/// pBitmapXX images twice, once at allocation, and then next at PrepDraw().
+		/// </summary>
+		/// <seealso cref="PrepDraw"/>
+		public void Dispose() {
+			pBitmapD12.Dispose();
+			pBitmapRX .Dispose();
+		}
+
+		/// <summary>
+		/// Return the scan line width in samples. Millisecond based.
 		/// </summary>
 		public double ScanWidthInSamples {
 			get {
@@ -121,18 +131,18 @@ namespace Play.SSTV {
 
 		protected int GetPictureLevel( short ip, int i )
 		{
-			if( dp.sys.m_UseRxBuff != 2 ) {
-				int   d;
-				short ip2 = dp.m_Buf[dp.m_rPage * dp.m_BWidth + i + SSTVSET.m_KSB ];
+			//if( dp.sys.m_UseRxBuff != 2 ) {
+			//	int   d;
+			//	short ip2 = dp.m_Buf[dp.m_rPage * dp.m_BWidth + i + SSTVSET.m_KSB ];
 
-				// I'm going to guess we're trying to get past some sync signal.
-				if( ip < ip2 ){
-					d = GetPixelLevel(ip2);
-				} else {
-					d = GetPixelLevel(ip);
-				}
-				return d;
-			}
+			//	// I'm going to guess we're trying to get past some sync signal.
+			//	if( ip < ip2 ){
+			//		d = GetPixelLevel(ip2);
+			//	} else {
+			//		d = GetPixelLevel(ip);
+			//	}
+			//	return d;
+			//}
 
 			return GetPixelLevel(ip);
 		}
@@ -176,22 +186,23 @@ namespace Play.SSTV {
 
         void InitAutoStop( double dbSampBase )
         {
-	        //memset(m_AutoStopAPos, 0, sizeof(m_AutoStopAPos));
             Array.Clear( m_AutoStopAPos, 0, m_AutoStopAPos.Length );
+
 	        m_AutoStopCnt  = 0;
 	        m_AutoStopACnt = 0;
 	        m_AutoStopPos  = 0;
 	        m_ASBgnPos     = 0x7fffffff;
 	        m_ASDis        = 0;
 	        m_ASBitMask    = 0;
+
 	        m_ASAvg.SetCount(16);
 
 	        m_ASPos[0] = 64;
 	        m_ASPos[1] = 128;
 	        m_ASPos[2] = 160;
-	        m_ASPos[3] = (SSTVSET.m_L - 36);
+	        m_ASPos[3] = (dp.Mode.Resolution.Height - 36);
 
-	        switch(SSTVSET.m_Mode){
+	        switch(dp.Mode.LegacyMode){
 		        case AllModes.smPD50:
 		        case AllModes.smPD90:            // Max 128
 		        case AllModes.smMP73:
@@ -235,7 +246,7 @@ namespace Play.SSTV {
 			        break;
 	        }
 	        m_AutoSyncPos  = 0x7fffffff;
-	        m_Mult         = (int)(SSTVSET.m_TW / 320.0);
+	        m_Mult         = (int)(dp.Mode.ScanLineWidthInSamples / 320.0);
 	        m_AutoSyncDiff = m_Mult * 3;
 
             int iSomeMagic = (int)(45 * dbSampBase / 11025);
@@ -340,6 +351,7 @@ namespace Play.SSTV {
 		public void DrawSSTV()
 		{
 			// Go until the rPage catches up with the wPage.
+			// Process one full scan line at a time.
 			while( dp.m_Sync && (dp.m_wPage != dp.m_rPage) ){
 				if( dp.m_wBgn != 0 ){
 					if( dp.m_wBgn != 1 ){
@@ -382,9 +394,9 @@ namespace Play.SSTV {
 			if( n < 0 ) 
 				throw new ApplicationException( "m_rBase went negative" );
 
-			try {
+			try { // Added the B12 height check b/c of PD290 error. Look into that.
 				m_AY = (int)Math.Round(n/ScanWidthInSamples) * LineMultiplier; // PD needs us to use Round (.999 is 1)
-				if( (m_AY < 0) || (m_AY >= pBitmapRX.Height) )
+				if( (m_AY < 0) || (m_AY >= pBitmapRX.Height) || (m_AY >= pBitmapD12.Height) )
 					return;
 
 				// KRSA, assigned sys.m_UseRxBuff ? TRUE : FALSE, see also GetPictureLevel()
@@ -408,7 +420,7 @@ namespace Play.SSTV {
 						m_SyncMin = sp;
 					}
 					int x = i * pBitmapD12.Width / QuickWidth; // "i" was ps, QW was TW, note TW == WD.
-					if( (x != dx) && (x < pBitmapD12.Width) && (x >= 0) ){
+					if( (x != dx) && (x >= 0) && (x < pBitmapD12.Width)){
 						int d = sp * 256 / 4096;
 						d = Limit256(d);
 						pBitmapD12.SetPixel( x, m_AY, new SKColor( (byte)d ) );
@@ -439,6 +451,7 @@ namespace Play.SSTV {
 				if( rgErrors.IsUnhandled( oEx ) )
 					throw;
 
+				// In the future well write some error message to the screen & reset.
 				throw new ApplicationException( "Problem decoding scan line.", oEx );
 			}
 		}
@@ -496,7 +509,7 @@ namespace Play.SSTV {
 
 	public class TmmMartin : TmmSSTV {
 		public TmmMartin( CSSTVDEM p_dp ) : base( p_dp ) {
-			if( p_dp.Mode.Owner != TVMode.Martin )
+			if( p_dp.Mode.Family != TVFamily.Martin )
 				throw new ArgumentOutOfRangeException( "Mode must be of Martin type" );
 
 			double dbClr = p_dp.Mode.BlockWidthInMS * p_dp.SampFreq / 1000.0;
@@ -519,7 +532,7 @@ namespace Play.SSTV {
 
 	public class TmmScottie : TmmSSTV {
 		public TmmScottie( CSSTVDEM p_dp ) : base( p_dp ) {
-			if( p_dp.Mode.Owner != TVMode.Scottie )
+			if( p_dp.Mode.Family != TVFamily.Scottie )
 				throw new ArgumentOutOfRangeException( "Mode must be of Scottie type" );
 
 			double dbClr = p_dp.Mode.BlockWidthInMS * p_dp.SampFreq / 1000.0;
@@ -542,7 +555,7 @@ namespace Play.SSTV {
 
 	public class TmmPD : TmmSSTV {
 		public TmmPD( CSSTVDEM p_dp ) : base( p_dp ) {
-			if( p_dp.Mode.Owner != TVMode.PD )
+			if( p_dp.Mode.Family != TVFamily.PD )
 				throw new ArgumentOutOfRangeException( "Mode must be of PD type" );
 
 			double dbClr   = p_dp.Mode.BlockWidthInMS * p_dp.SampFreq / 1000.0;
@@ -652,6 +665,8 @@ namespace Play.SSTV {
         protected CSSTVDEM         _oSSTVDeModulator;
 		protected IPgPlayer        _oPlayer;
         protected SSTVGenerator    _oSSTVGenerator;
+		protected TmmSSTV          _oRxSSTV;
+
 
         private DataTester _oDataTester;
 
@@ -924,12 +939,12 @@ namespace Play.SSTV {
             // Normally I'd use a guid to identify the class, but I thought I'd
             // try something a little different this time.
             try {
-				switch( oMode.Owner ) {
-					case TVMode.PD:
+				switch( oMode.Family ) {
+					case TVFamily.PD:
 						_oSSTVGenerator = new GeneratePD     ( oTxImage, _oSSTVModulator, oMode ); break;
-					case TVMode.Martin:
+					case TVFamily.Martin:
 						_oSSTVGenerator = new GenerateMartin ( oTxImage, _oSSTVModulator, oMode ); break;
-					case TVMode.Scottie:
+					case TVFamily.Scottie:
 						_oSSTVGenerator = new GenerateScottie( oTxImage, _oSSTVModulator, oMode ); break;
 					default:
 						return false;
@@ -1016,6 +1031,9 @@ namespace Play.SSTV {
         }
 
 		private void SaveRxImage( TmmSSTV oSSTV ) {
+			if( oSSTV == null )
+				return;
+
 			string strPath = Environment.GetFolderPath( Environment.SpecialFolder.MyPictures );
 
 			using SKImage image  = SKImage.FromBitmap(oSSTV.pBitmapRX);
@@ -1025,12 +1043,36 @@ namespace Play.SSTV {
             data.SaveTo(stream);
 		}
 
+		/// <summary>
+		/// The decoder has determined the the incoming video mode. Create a
+		/// Tmm??? to match the given mode.
+		/// </summary>
+		/// <remarks>
+		/// I might need to toss this approach and just have a TmmSSTV that 
+		/// understands all the modes. But let's see how far I can take this
+		/// new approach. Certainly I'll have send a message if the
+		/// decoder is in a different thread than the renderer.</remarks>
+        private void SSTVDeModulator_ListenNextMode( SSTVMode tvMode )
+        {
+			if( _oRxSSTV != null )
+				_oRxSSTV.Dispose();
+
+            _oRxSSTV = tvMode.Family switch {
+                TVFamily.PD      => new TmmPD     (_oSSTVDeModulator),
+                TVFamily.Martin  => new TmmMartin (_oSSTVDeModulator),
+                TVFamily.Scottie => new TmmScottie(_oSSTVDeModulator),
+
+                _ => throw new ArgumentOutOfRangeException("Unrecognized Mode Type."),
+            };
+
+			tvMode.ScanLineWidthInSamples = _oRxSSTV.QuickWidth;
+        }
+
         public IEnumerator<int> GetRecorderTask() {
-			TmmSSTV oRxSSTV;
             try {
                 FFTControlValues oFFTMode = FFTControlValues.FindMode( RxSpec.Rate );
                 SYSSET           sys      = new SYSSET  ( oFFTMode.SampFreq );
-				CSSTVSET         oSetSSTV = new CSSTVSET( 0, oFFTMode.SampFreq, 0, sys.m_bCQ100 );
+				CSSTVSET         oSetSSTV = new CSSTVSET( GenerateScottie.Default, 0, oFFTMode.SampFreq, 0, sys.m_bCQ100 );
 
                 _oSSTVDeModulator = new CSSTVDEM( oSetSSTV,
 												  sys,
@@ -1038,7 +1080,7 @@ namespace Play.SSTV {
                                                   (int)oFFTMode.SampBase, 
                                                   0 );
 
-				oRxSSTV = new TmmSSTV( _oSSTVDeModulator );
+                _oSSTVDeModulator.ListenNextMode += SSTVDeModulator_ListenNextMode;
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( NullReferenceException ),
                                     typeof( ArgumentNullException ),
@@ -1054,7 +1096,9 @@ namespace Play.SSTV {
                     for( int i = 0; i< 500; ++i ) {
                         _oSSTVDeModulator.Do( _oSSTVBuffer.ReadOneSample() );
                     }
-					oRxSSTV.DrawSSTV();
+					if( _oRxSSTV != null ) {
+						_oRxSSTV.DrawSSTV();
+					}
 				} catch( Exception oEx ) {
                     Type[] rgErrors = { typeof( NullReferenceException ),
                                         typeof( ArgumentNullException ),
@@ -1064,37 +1108,37 @@ namespace Play.SSTV {
                     if( rgErrors.IsUnhandled( oEx ) )
                         throw;
 
-					SaveRxImage( oRxSSTV );
+					SaveRxImage( _oRxSSTV );
 
                     LogError( "Trouble recordering in SSTV" );
                     // We can't call _oWorkPlace.Stop() b/c we're already in DoWork() which will
                     // try calling the _oWorker which will have been set to NULL!!
-                    yield break;
+                    break; // Drop down so we can unplug from our Demodulator.
                 }
                 yield return 0;
             } while( _oSSTVBuffer.IsReading );
 
-            ModeList.HighLight = null;
+			_oSSTVDeModulator.ListenNextMode -= SSTVDeModulator_ListenNextMode;
+			ModeList.HighLight = null;
             // Set upload time to "finished" maybe even date/time!
         }
 
-		public IEnumerator<int> GetRecordTestTask( SSTVMode oMode ) {
+        public IEnumerator<int> GetRecordTestTask( SSTVMode oMode ) {
 			if( oMode == null )
 				throw new ArgumentNullException( "Mode must not be Null." );
 
 			IEnumerator<int> oIter   = _oSSTVGenerator.GetEnumerator();
 
 			oIter            .MoveNext(); // skip the VIS for now.
-			_oSSTVDeModulator.SSTVSET.SetMode( AllModes.smSCTDX );
-			_oSSTVDeModulator.Mode = oMode;
-			_oSSTVDeModulator.Start();
+			_oSSTVDeModulator.SSTVSET.SetMode( oMode );
+			_oSSTVDeModulator.Start( oMode );
 
 			TmmSSTV oRxSSTV = null;
 
-            oRxSSTV = oMode.Owner switch {
-                TVMode.PD      => new TmmPD     (_oSSTVDeModulator),
-                TVMode.Martin  => new TmmMartin (_oSSTVDeModulator),
-                TVMode.Scottie => new TmmScottie(_oSSTVDeModulator),
+            oRxSSTV = oMode.Family switch {
+                TVFamily.PD      => new TmmPD     (_oSSTVDeModulator),
+                TVFamily.Martin  => new TmmMartin (_oSSTVDeModulator),
+                TVFamily.Scottie => new TmmScottie(_oSSTVDeModulator),
 
                 _ => throw new ArgumentOutOfRangeException("Unrecognized Mode Type."),
             };
@@ -1115,7 +1159,7 @@ namespace Play.SSTV {
 
 					FFTControlValues oFFTMode  = FFTControlValues.FindMode( 8000 ); // RxSpec.Rate
 					SYSSET           sys       = new SYSSET   ( oFFTMode.SampFreq );
-					CSSTVSET         oSetSSTV  = new CSSTVSET ( 0, oFFTMode.SampFreq, 0, sys.m_bCQ100 );
+					CSSTVSET         oSetSSTV  = new CSSTVSET ( oMode, 0, oFFTMode.SampFreq, 0, sys.m_bCQ100 );
 					DemodTest        oDemodTst = new DemodTest( oSetSSTV,
 															    sys,
 															    (int)oFFTMode.SampFreq, 
@@ -1124,10 +1168,10 @@ namespace Play.SSTV {
 					_oSSTVDeModulator = oDemodTst;
 					_oSSTVModulator   = new CSSTVMOD( 0, oFFTMode.SampFreq, _oSSTVBuffer );
 
-					_oSSTVGenerator = oMode.Owner switch {
-						TVMode.PD      => new GeneratePD     ( _oDocSnip.Bitmap, oDemodTst, oMode ),
-						TVMode.Martin  => new GenerateMartin ( _oDocSnip.Bitmap, oDemodTst, oMode ),
-						TVMode.Scottie => new GenerateScottie( _oDocSnip.Bitmap, oDemodTst, oMode ),
+					_oSSTVGenerator = oMode.Family switch {
+						TVFamily.PD      => new GeneratePD     ( _oDocSnip.Bitmap, oDemodTst, oMode ),
+						TVFamily.Martin  => new GenerateMartin ( _oDocSnip.Bitmap, oDemodTst, oMode ),
+						TVFamily.Scottie => new GenerateScottie( _oDocSnip.Bitmap, oDemodTst, oMode ),
 
 						_ => throw new ArgumentOutOfRangeException("Unrecognized Mode Type."),
 					};
