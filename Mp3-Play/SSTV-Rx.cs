@@ -1107,7 +1107,7 @@ namespace Play.Sound {
 		AllModes    m_NextMode;
 		bool        m_SyncAVT;
 
-		public   bool m_fFreeRun { get; protected set; } = false;
+		public   bool m_fFreeRun { get; protected set; } = true; // set false for Test1
 		public   int  m_wPage { get; protected set; }
 	    public   int  m_rPage { get; protected set; }
 		protected int m_wCnt;  // How far along on a the scan line we are. a X coord like thing.
@@ -1728,7 +1728,7 @@ namespace Play.Sound {
 		//#if NARROW_SYNC == 1900
 							if( (d19 > d12) && (d19 > dsp) && (d19 > m_SLvl3) && ((d19-d12) >= m_SLvl3) && ((d19-dsp) >= m_SLvl) ){
 								if( m_sint3.m_SyncPhase != 0 ){
-									m_sint3.SyncMax ( (int)d19); // TODO: check the type of d19
+									m_sint3.SyncMax ( (int)d19);
 								} else {
 									m_sint3.SyncTrig( (int)d19);
 									m_sint3.m_SyncPhase++;
@@ -1788,9 +1788,11 @@ namespace Play.Sound {
 							} else {
 								m_SyncTime = (int)(30 * sys.m_SampFreq/1000 ); // Get next bit.
 								m_VisData = m_VisData >> 1;
-								if( d11 > d13 ) m_VisData |= 0x0080;
+								if( d11 > d13 ) 
+									m_VisData |= 0x0080;
 								m_VisCnt--;
 								if( m_VisCnt == 0 ){
+									// I would expect this to be the normal place when the VIS has been decoded.
 									if( m_SyncMode == 2 ){
 										m_SyncMode++;
 										switch(m_VisData){

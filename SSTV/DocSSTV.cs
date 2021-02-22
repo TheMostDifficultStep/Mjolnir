@@ -33,8 +33,6 @@ namespace Play.SSTV {
 #region variables
 		public int        QuickWidth { get; protected set; } // Call set ScanWidthInSamples to set this.
 
-	    protected int m_RXW = 320, m_RXH = 256, m_RXPH = 256; // RXPH is the size NOT including greyscale. Not used yet, but maybe later.
-
         protected int     m_AX, m_AY;
 
 	    protected short[]  m_Y36 = new short[800];
@@ -44,7 +42,7 @@ namespace Play.SSTV {
 	    protected int     m_SyncMax, m_SyncMin;
 
 	    protected int     m_SyncAccuracy = 1;
-	    protected int     m_SyncAccuracyN;  // TODO: Gets used in TimerTimer, which isn't implented yet.
+	    protected int     m_SyncAccuracyN;  // TODO: Gets used in TimerTimer, which isn't implemented yet.
 
         //Auto
 	    protected int     m_Mult;
@@ -71,8 +69,9 @@ namespace Play.SSTV {
 		short[] pCalibration = null; // Not strictly necessary yet.
 
 		public SKBitmap pBitmapRX  { get; protected set; } = new SKBitmap();
-		public SKBitmap pBitmapD12 { get; } = new SKBitmap( 800, 600, SKColorType.Rgb888x, SKAlphaType.Unknown );
+		public SKBitmap pBitmapD12 { get; } = new SKBitmap( 800, 616, SKColorType.Rgb888x, SKAlphaType.Unknown );
 		// Looks like were only using grey scale on the D12. Look into turning into greyscale later.
+		// Need to look into the greyscale calibration height of bitmap issue. (+16 scan lines)
 #endregion
 
 		protected readonly List<ColorChannel> _rgSlots = new List<ColorChannel>(10);
@@ -1068,29 +1067,13 @@ namespace Play.SSTV {
 			tvMode.ScanLineWidthInSamples = _oRxSSTV.QuickWidth;
         }
 
+		/// <summary>
+		/// Note that we don't take the mode in this task since it's got to be
+		/// devined from the VIS by the CSSTVDEM object.
+		/// </summary>
+		/// <returns>Time to wait until next call in ms.</returns>
         public IEnumerator<int> GetRecorderTask() {
-            try {
-                FFTControlValues oFFTMode = FFTControlValues.FindMode( RxSpec.Rate );
-                SYSSET           sys      = new SYSSET  ( oFFTMode.SampFreq );
-				CSSTVSET         oSetSSTV = new CSSTVSET( GenerateScottie.Default, 0, oFFTMode.SampFreq, 0, sys.m_bCQ100 );
-
-                _oSSTVDeModulator = new CSSTVDEM( oSetSSTV,
-												  sys,
-                                                  (int)oFFTMode.SampFreq, 
-                                                  (int)oFFTMode.SampBase, 
-                                                  0 );
-
-                _oSSTVDeModulator.ListenNextMode += SSTVDeModulator_ListenNextMode;
-            } catch( Exception oEx ) {
-                Type[] rgErrors = { typeof( NullReferenceException ),
-                                    typeof( ArgumentNullException ),
-                                    typeof( MMSystemException ) };
-                if( rgErrors.IsUnhandled( oEx ) )
-                    throw;
-                LogError( "Trouble setting up decoder" );
-                yield break;
-            }
-
+            _oSSTVDeModulator.ListenNextMode += SSTVDeModulator_ListenNextMode;
             do {
                 try {
                     for( int i = 0; i< 500; ++i ) {
@@ -1115,7 +1098,7 @@ namespace Play.SSTV {
                     // try calling the _oWorker which will have been set to NULL!!
                     break; // Drop down so we can unplug from our Demodulator.
                 }
-                yield return 0;
+                yield return 0; // 44,100 hz is slow, let's go as fast as possible. >_<;;
             } while( _oSSTVBuffer.IsReading );
 
 			_oSSTVDeModulator.ListenNextMode -= SSTVDeModulator_ListenNextMode;
@@ -1123,6 +1106,43 @@ namespace Play.SSTV {
             // Set upload time to "finished" maybe even date/time!
         }
 
+		/// <summary>
+		/// This is my second test where we generate video and encode it to a 
+		/// time varying signal to be decoded by the CSSTVDEM object! Because we're
+		/// not intercepting the signal before the VCO we can use the normal 
+		/// GeneratorSetup call.
+		/// </summary>
+		/// <param name="iModeIndex">TV Mode to use.</param>
+		/// <param name="skSelect"></param>
+		/// <remarks>Set CSSTVDEM::m_fFreeRun = true</remarks>
+        public void RecordBegin2( int iModeIndex, SKRectI skSelect ) {
+            if( ModeList[iModeIndex].Extra is SSTVMode oMode ) {
+                if( _oWorkPlace.Status == WorkerStatus.FREE ) {
+			        _oDocSnip.Load( Bitmap, skSelect, oMode.Resolution );
+					if( GeneratorSetup( oMode, _oDocSnip.Bitmap ) ) {
+						FFTControlValues oFFTMode  = FFTControlValues.FindMode( RxSpec.Rate ); 
+						SYSSET           sys       = new SYSSET   ( oFFTMode.SampFreq );
+						CSSTVSET         oSetSSTV  = new CSSTVSET ( oMode, 0, oFFTMode.SampFreq, 0, sys.m_bCQ100 );
+						CSSTVDEM         oDemodTst = new CSSTVDEM ( oSetSSTV,
+																	sys,
+																	(int)oFFTMode.SampFreq, 
+																	(int)oFFTMode.SampBase, 
+																	0 );
+						_oSSTVDeModulator = oDemodTst;
+
+						_oWorkPlace.Queue( GetRecorderTask(), 0 );
+					}
+                }
+            }
+        }
+
+		/// <summary>
+		/// In this test we skip the VIS and simply test video transmit and receive.
+		/// The CSSTVDEM object is not used in these tests. The transmit and recieve
+		/// are set from the given mode.
+		/// </summary>
+		/// <param name="oMode">User selected mode. Any should would.</param>
+		/// <returns>Time in ms before next call wanted.</returns>
         public IEnumerator<int> GetRecordTestTask( SSTVMode oMode ) {
 			if( oMode == null )
 				throw new ArgumentNullException( "Mode must not be Null." );
@@ -1152,6 +1172,18 @@ namespace Play.SSTV {
 			SaveRxImage( oRxSSTV );
 		}
 
+		/// <summary>
+		/// This test generates the the video signal but doesn't actually create audio
+		/// tone but a fake stream of frequency data. Thus skipping the A/D coverter code
+		/// we're just testing the video encode / decode. We do this by re-assigning
+		/// the _oSSTVModulator with a new one set to our test frequency.
+		/// </summary>
+		/// <param name="iModeIndex">TV Format to use.</param>
+		/// <param name="skSelect">Portion of the image we want to transmit.</param>
+		/// <remarks>Use a low sample rate so it's easier to slog thru the data. 
+		///          Set CSSTVDEM::m_fFreeRun to false!!</remarks>
+		/// <seealso cref="InitNew" />
+		/// <seealso cref="OutputStreamInit"/>
         public void RecordBegin( int iModeIndex, SKRectI skSelect ) {
             if( ModeList[iModeIndex].Extra is SSTVMode oMode ) {
                 if( _oWorkPlace.Status == WorkerStatus.FREE ) {
