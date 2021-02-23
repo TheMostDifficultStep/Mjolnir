@@ -17,11 +17,14 @@ namespace Play.SSTV {
 			try {
 				DocSSTV oMySSTVDoc = (DocSSTV)oDocument;
 
-				if( guidViewType == ViewFFT.ViewType )
+				if( guidViewType == ViewFFT     .ViewType )
 					return new ViewFFT( oBaseSite, oMySSTVDoc );
 				if( guidViewType == ViewTransmit.ViewType )
 					return new ViewTransmit( oBaseSite, oMySSTVDoc );
+				if( guidViewType == ViewRecieve .ViewType )
+					return new ViewRecieve( oBaseSite, oMySSTVDoc );
 
+				// Make the receive the default in the future.
 				return new ViewTransmit( oBaseSite, oMySSTVDoc );
             } catch( Exception oEx ) {
 				// TODO: Stuff errors collection into the base controller.
@@ -39,6 +42,7 @@ namespace Play.SSTV {
 		public override IEnumerator<IPgViewType> GetEnumerator() {
 		    yield return new ViewType( "Spectrum",  ViewFFT     .ViewType );
 			yield return new ViewType( "Tx Screen", ViewTransmit.ViewType );
+			yield return new ViewType( "Rx Screen", ViewRecieve .ViewType );
 		}
 	}
 

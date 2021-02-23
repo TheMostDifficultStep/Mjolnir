@@ -14,23 +14,22 @@ using Play.Edit;
 using Play.ImageViewer;
 
 namespace Play.SSTV {
-	public class ViewTransmit:
+	public class ViewRecieve:
 		Control,
 		IPgParent,
 		IPgLoad<XmlElement>,
 		IPgSave<XmlDocumentFragment>,
 		IPgCommandView,
-		IPgTools,
 		IDisposable
 	{
-		public static Guid   ViewType { get; }  = new Guid( "{CED824F5-2C17-418C-9559-84D6B4F571FC}" );
-		public static string _strIcon =  "Play.SSTV.icons8_camera.png";
+		public static Guid   ViewType { get; }  = new Guid( "{A7F75A46-1800-4605-87EC-2D8B960D1599}" );
+		public static string _strIcon =  "Play.SSTV.icons8_tv.png";
 
 		protected readonly IPgViewSite   _oSiteView;
 		protected readonly DocSSTV       _oDocSSTV;
 
 		protected readonly ImageViewSolo  _oViewImage;   // Show the currently selected image.
-		protected readonly ImageViewIcons _oViewChoices; // Show the image choices.
+		protected readonly ImageViewIcons _oViewSync;    // The sync bitmap.
 		protected          int            _iCurrentMode = 0;
 
 		protected PropDoc ImageProperties { get; } // Container for properties to show for this window.
@@ -41,9 +40,9 @@ namespace Play.SSTV {
 			IPgViewSite,
 			IPgShellSite
 		{
-			protected readonly ViewTransmit _oHost;
+			protected readonly ViewRecieve _oHost;
 
-			public SSTVWinSlot( ViewTransmit oHost ) {
+			public SSTVWinSlot( ViewRecieve oHost ) {
 				_oHost = oHost ?? throw new ArgumentNullException();
 			}
 
@@ -79,11 +78,11 @@ namespace Play.SSTV {
 		public IPgParent Parentage => _oSiteView.Host;
 		public IPgParent Services  => Parentage.Services;
 		public bool      IsDirty   => false;
-		public string    Banner    => "Transmit Window : " + _oDocSSTV.ImageList.CurrentDirectory;
+		public string    Banner    => "Receive Window : " + _oDocSSTV.ImageList.CurrentDirectory;
 		public Image     Iconic    { get; }
 		public Guid      Catagory  => ViewType;
 
-        public ViewTransmit( IPgViewSite oViewSite, DocSSTV oDocument ) {
+        public ViewRecieve( IPgViewSite oViewSite, DocSSTV oDocument ) {
 			_oSiteView = oViewSite ?? throw new ArgumentNullException( "View requires a view site." );
 			_oDocSSTV  = oDocument ?? throw new ArgumentNullException( "View requires a document." );
 
@@ -91,21 +90,7 @@ namespace Play.SSTV {
 
             ImageProperties = new PropDoc       ( new SSTVWinSlot( this ) );
 			_oViewImage     = new ImageViewSolo ( new SSTVWinSlot( this ), _oDocSSTV.ImageList );
-			_oViewChoices   = new ImageViewIcons( new SSTVWinSlot( this ), _oDocSSTV.ImageList );
-		}
-
-		/// <summary>
-		/// Used to use this for displaying the image at the top. 
-		/// </summary>
-		protected class ImageViewTx : ImageViewSolo {
-			public ImageViewTx( IPgViewSite oBaseSite, ImageWalkerDoc oDoc ) : base( oBaseSite, oDoc ) {
-			}
-
-			protected override void ViewPortSizeMax( SmartRect rctBitmap, SmartRect rctViewPort ) {
-				base.ViewPortSizeMax( rctBitmap, rctViewPort );
-
-				rctViewPort.SetScalar( SET.RIGID, SCALAR.TOP, 0 );
-			}
+			_oViewSync      = new ImageViewIcons( new SSTVWinSlot( this ), _oDocSSTV.ImageList );
 		}
 
 		protected override void Dispose( bool disposing ) {
@@ -121,21 +106,18 @@ namespace Play.SSTV {
 		public bool InitNew() {
 			if( !ImageProperties.InitNew() )
                 return false;
-			if( !_oViewChoices.InitNew() )
+			if( !_oViewSync.InitNew() )
 				return false;
 			if( !_oViewImage.InitNew() )
 				return false;
 
-			_oViewImage   .Parent = this;
-			_oViewChoices .Parent = this;
-
-			_oViewImage.Aspect   = _oDocSSTV.ResolutionAt( 0 );
-			_oViewImage.DragMode = DragMode.FixedRatio;
+			_oViewImage.Parent = this;
+			_oViewSync .Parent = this;
 
 			DecorPropertiesInit();
 
-            _oLayout.Add( new LayoutControl( _oViewImage,   LayoutRect.CSS.None ) );        // image
-            _oLayout.Add( new LayoutControl( _oViewChoices, LayoutRect.CSS.Pixels, 250 ) ); // choices
+            _oLayout.Add( new LayoutControl( _oViewImage, LayoutRect.CSS.Percent, 60 ) );
+            _oLayout.Add( new LayoutControl( _oViewSync , LayoutRect.CSS.Percent, 40 ) );
 
             OnSizeChanged( new EventArgs() );
 
@@ -230,13 +212,6 @@ namespace Play.SSTV {
 					DecorPropertiesReLoad();
 					return new PropWin( oBaseSite, ImageProperties );
 				}
-				if( sGuid.Equals( GlobalDecorations.Outline ) ) {
-					EditWindow2 oView = new EditWindow2( oBaseSite, _oDocSSTV.ModeList, true );
-
-					oView.LineChanged += Listen_ViewMode_LineChanged;
-
-					return oView;
-				}
 				return false;
 			} catch ( Exception oEx ) {
 				Type[] rgErrors = { typeof( NotImplementedException ),
@@ -254,35 +229,15 @@ namespace Play.SSTV {
 
 		public bool Execute(Guid sGuid) {
 			if( sGuid == GlobalCommands.Play ) {
-				// Still using this screen to test recieve.
-				_oDocSSTV.RecordBegin( _iCurrentMode, _oViewImage.Selection.SKRect ); 
+				//_oDocSSTV.PlayBegin( _iCurrentMode, _oViewImage.Selection.SKRect ); 
+				_oDocSSTV.RecordBegin2( _iCurrentMode, _oViewImage.Selection.SKRect );
 				return true;
 			}
 			if( sGuid == GlobalCommands.Stop ) {
-				_oDocSSTV.PlayStop();
+				_oDocSSTV.PlayStop(); // Stop record or play.
 				return true;
 			}
 
-            if( sGuid == GlobalCommands.StepLeft ) {
-                _oDocSSTV.ImageList.Next( -1 );
-                return( true );
-            }
-            if( sGuid == GlobalCommands.StepRight ) {
-                _oDocSSTV.ImageList.Next( +1 );
-                return( true );
-            }
-            if( sGuid == GlobalCommands.JumpParent ) {
-                _oDocSSTV.ImageList.DirectoryNext( 0 );
-                return( true );
-            }
-            if( sGuid == GlobalCommands.JumpPrev ) {
-               _oDocSSTV.ImageList. DirectoryNext( -1 );
-                return( true );
-            }
-            if( sGuid == GlobalCommands.JumpNext ) {
-                _oDocSSTV.ImageList.DirectoryNext( +1 );
-                return( true );
-            }
 			return false;
 		}
 
@@ -310,20 +265,6 @@ namespace Play.SSTV {
             }
         }
 
-        public int ToolCount => _oViewImage.ToolCount;
-
-        public int ToolSelect { 
-			get => _oViewImage.ToolSelect; 
-			set { _oViewImage.ToolSelect = value; } 
-		}
-
-        public string ToolName( int iTool ) {
-            return _oViewImage.ToolName( iTool );
-        }
-
-        public Image ToolIcon( int iTool ) {
-            return _oViewImage.ToolIcon( iTool );
-        }
     }
 
 }

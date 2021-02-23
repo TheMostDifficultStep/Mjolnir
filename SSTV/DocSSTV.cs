@@ -69,7 +69,7 @@ namespace Play.SSTV {
 		short[] pCalibration = null; // Not strictly necessary yet.
 
 		public SKBitmap pBitmapRX  { get; protected set; } = new SKBitmap();
-		public SKBitmap pBitmapD12 { get; } = new SKBitmap( 800, 616, SKColorType.Rgb888x, SKAlphaType.Unknown );
+		public SKBitmap _pBitmapD12 { get; } = new SKBitmap( 800, 616, SKColorType.Rgb888x, SKAlphaType.Unknown );
 		// Looks like were only using grey scale on the D12. Look into turning into greyscale later.
 		// Need to look into the greyscale calibration height of bitmap issue. (+16 scan lines)
 #endregion
@@ -91,7 +91,7 @@ namespace Play.SSTV {
 		/// </summary>
 		/// <seealso cref="PrepDraw"/>
 		public void Dispose() {
-			pBitmapD12.Dispose();
+			_pBitmapD12.Dispose();
 			pBitmapRX .Dispose();
 		}
 
@@ -319,12 +319,6 @@ namespace Play.SSTV {
 										  SKAlphaType.Opaque );
 			}
 
-			//SSTVSET.GetPictureSize( out m_RXW, out m_RXH, out m_RXPH, SSTVSET.m_Mode);
-			//if( pBitmapRX.Width != m_RXW ){
-			//	pBitmapRX.Dispose();
-			//	pBitmapRX = new SKBitmap( m_RXW, m_RXH, SKColorType.Rgb888x, SKAlphaType.Opaque );
-			//	//PBoxRX->Invalidate();
-			//}
 			//UpdateModeBtn();
 			//::GetUTC(&m_StartTime);
 
@@ -384,18 +378,24 @@ namespace Play.SSTV {
 		protected virtual int LineMultiplier => 1;
 
 		protected void DrawSSTVNormal2() {
-			int n  = dp.m_rBase; // Increments in += SSTVSET.m_WD chunks.
-			int dx = -1;         // Saved X pos from the B12 buffer.
-			int rx = -1;         // Saved X pos from the Rx  buffer.
-			int ch = 0;          // current channel skimming the Rx buffer portion.
-			double dbClr = dp.Mode.BlockWidthInMS * dp.SampFreq / 1000.0; // BUG: Def need to fix this. >_<;;
+			int n         = dp.m_rBase; // Increments in += SSTVSET.m_WD chunks.
+			int dx        = -1;         // Saved X pos from the B12 buffer.
+			int rx        = -1;         // Saved X pos from the Rx  buffer.
+			int ch        = 0;          // current channel skimming the Rx buffer portion.
+			int rPageOffs = dp.m_rPage * dp.m_BWidth;
+
+			// Color channel is the same width for each color so just do this once.
+			// Will need slant correction at some point, so this will need updating...
+			double dbClrBlock  = dp.Mode.BlockWidthInMS * dp.SampFreq / 1000.0; // Color block size in samples.
+			double dbRxXScale  = pBitmapRX.Width  / dbClrBlock;
+			double dbR12XScale = _pBitmapD12.Width / QuickWidth;
 
 			if( n < 0 ) 
 				throw new ApplicationException( "m_rBase went negative" );
 
 			try { // Added the B12 height check b/c of PD290 error. Look into that.
 				m_AY = (int)Math.Round(n/ScanWidthInSamples) * LineMultiplier; // PD needs us to use Round (.999 is 1)
-				if( (m_AY < 0) || (m_AY >= pBitmapRX.Height) || (m_AY >= pBitmapD12.Height) )
+				if( (m_AY < 0) || (m_AY >= pBitmapRX.Height) || (m_AY >= _pBitmapD12.Height) )
 					return;
 
 				// KRSA, assigned sys.m_UseRxBuff ? TRUE : FALSE, see also GetPictureLevel()
@@ -403,13 +403,13 @@ namespace Play.SSTV {
 					dp.m_Sync && (m_SyncPos != -1) ) {
 					AutoStopJob();
 				}
-				m_SyncMin  = m_SyncMax = dp.m_B12[dp.m_rPage * dp.m_BWidth];
+				m_SyncMin  = m_SyncMax = dp.m_B12[rPageOffs];
 				m_SyncRPos = m_SyncPos;
 
 				for( int i = 0; i < QuickWidth; i++ /*, n++ */ ){ // SSTVSET.m_WD
 				  //double ps = n % (int)SSTVSET.m_TW; // fmod(double(n), SSTVSET.m_TW)
-					short  ip = dp.m_Buf[dp.m_rPage * dp.m_BWidth + i];
-					short  sp = dp.m_B12[dp.m_rPage * dp.m_BWidth + i];
+					short  ip = dp.m_Buf[rPageOffs + i];
+					short  sp = dp.m_B12[rPageOffs + i];
 
 					#region D12
 					if( m_SyncMax < sp ) {
@@ -418,11 +418,11 @@ namespace Play.SSTV {
 					} else if( m_SyncMin > sp ) {
 						m_SyncMin = sp;
 					}
-					int x = i * pBitmapD12.Width / QuickWidth; // "i" was ps, QW was TW, note TW == WD.
-					if( (x != dx) && (x >= 0) && (x < pBitmapD12.Width)){
+					int x = i * (int)dbR12XScale; // "i" was ps, QW was TW, note TW == WD.
+					if( (x != dx) && (x >= 0) && (x < _pBitmapD12.Width)){
 						int d = sp * 256 / 4096;
 						d = Limit256(d);
-						pBitmapD12.SetPixel( x, m_AY, new SKColor( (byte)d ) );
+						_pBitmapD12.SetPixel( x, m_AY, new SKColor( (byte)d ) );
 						dx = x;
 					}
 					#endregion
@@ -431,8 +431,8 @@ namespace Play.SSTV {
 						ColorChannel oChannel = _rgSlots[ch];
 						if( i < oChannel.Max ) {
 							if( oChannel.SetPixel != null ) {
-								x = (int)((i-oChannel.Min) * pBitmapRX.Width / dbClr );
-								if( (x != rx) && (x >= 0) && (x < pBitmapRX.Width) ){
+								x = (int)((i - oChannel.Min) * dbRxXScale );
+								if( (x != rx) && (x >= 0) && (x < pBitmapRX.Width) ) {
 									rx = x; oChannel.SetPixel( x, ip );
 								}
 							}
