@@ -168,7 +168,7 @@ namespace Play.SSTV {
         private void Listen_PropertyChange( ESstvProperty eProp ) {
 			switch( eProp ) {
 				case ESstvProperty.ALL:
-				case ESstvProperty.TXImage:
+				case ESstvProperty.TXImageChanged:
 					DecorPropertiesReLoad();
 					break;
 				case ESstvProperty.UploadTime:

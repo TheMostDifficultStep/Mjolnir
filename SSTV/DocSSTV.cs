@@ -17,7 +17,9 @@ namespace Play.SSTV {
         UploadTime,
         SSTVMode,
         FFT,
-        TXImage
+        TXImageChanged,
+		RXImageNew,
+		DownLoadTime
     }
 
     public delegate void SSTVPropertyChange( ESstvProperty eProp );
@@ -66,9 +68,9 @@ namespace Play.SSTV {
 	    int[]     m_ASPos = new int[4];
 	    CSmooz    m_ASAvg = new CSmooz();
 
-		short[] pCalibration = null; // Not strictly necessary yet.
+		short[] _pCalibration = null; // Not strictly necessary yet.
 
-		public SKBitmap pBitmapRX  { get; protected set; } = new SKBitmap();
+		public SKBitmap _pBitmapRX  { get; protected set; } 
 		public SKBitmap _pBitmapD12 { get; } = new SKBitmap( 800, 616, SKColorType.Rgb888x, SKAlphaType.Unknown );
 		// Looks like were only using grey scale on the D12. Look into turning into greyscale later.
 		// Need to look into the greyscale calibration height of bitmap issue. (+16 scan lines)
@@ -80,6 +82,10 @@ namespace Play.SSTV {
 			dp      = p_dp         ?? throw new ArgumentNullException( "CSSTVDEM" );
 			SSTVSET = p_dp.SSTVSET ?? throw new ArgumentNullException( "CSSTVSET" );
 
+			_pBitmapRX = new SKBitmap( dp.Mode.Resolution.Width, 
+									   dp.Mode.Resolution.Height, 
+									   SKColorType.Rgb888x, 
+									   SKAlphaType.Opaque );
 		  //StartOption() ...
 		  //dp.sys.m_bCQ100 = FALSE;
 		  //g_dblToneOffset = 0.0;
@@ -92,7 +98,7 @@ namespace Play.SSTV {
 		/// <seealso cref="PrepDraw"/>
 		public void Dispose() {
 			_pBitmapD12.Dispose();
-			pBitmapRX .Dispose();
+			_pBitmapRX .Dispose();
 		}
 
 		/// <summary>
@@ -114,13 +120,13 @@ namespace Play.SSTV {
 		/// <returns></returns>
 		protected short GetPixelLevel(short ip)
 		{
-			if( dp.sys.m_DemCalibration && (pCalibration != null) ){
+			if( dp.sys.m_DemCalibration && (_pCalibration != null) ){
 				int d = (ip / 8) + 2048;
 				if( d < 0 )
 					d = 0;
 				if( d > 4096 )
 					d = 4096;
-				return pCalibration[d];
+				return _pCalibration[d];
 			} else {
 				double d = ip - dp.sys.m_DemOff;
 				d *= ( d >= 0 ) ? dp.sys.m_DemWhite : dp.sys.m_DemBlack;
@@ -309,14 +315,16 @@ namespace Play.SSTV {
 			//if( dp.m_ReqSave ){
 			//	WriteHistory(1);
 			//}
-			if( dp.Mode.Resolution.Width  != pBitmapRX.Width ||
-				dp.Mode.Resolution.Height != pBitmapRX.Height   )
+			if( _pBitmapRX == null ||
+				dp.Mode.Resolution.Width  != _pBitmapRX.Width ||
+				dp.Mode.Resolution.Height != _pBitmapRX.Height   )
 			{
-				pBitmapRX.Dispose();
-				pBitmapRX = new SKBitmap( dp.Mode.Resolution.Width, 
-										  dp.Mode.Resolution.Height, 
-										  SKColorType.Rgb888x, 
-										  SKAlphaType.Opaque );
+				if( _pBitmapRX != null )
+					_pBitmapRX.Dispose();
+				_pBitmapRX = new SKBitmap( dp.Mode.Resolution.Width, 
+										   dp.Mode.Resolution.Height, 
+										   SKColorType.Rgb888x, 
+										   SKAlphaType.Opaque );
 			}
 
 			//UpdateModeBtn();
@@ -387,7 +395,7 @@ namespace Play.SSTV {
 			// Color channel is the same width for each color so just do this once.
 			// Will need slant correction at some point, so this will need updating...
 			double dbClrBlock  = dp.Mode.BlockWidthInMS * dp.SampFreq / 1000.0; // Color block size in samples.
-			double dbRxXScale  = pBitmapRX.Width  / dbClrBlock;
+			double dbRxXScale  = _pBitmapRX.Width  / dbClrBlock;
 			double dbR12XScale = _pBitmapD12.Width / QuickWidth;
 
 			if( n < 0 ) 
@@ -395,7 +403,7 @@ namespace Play.SSTV {
 
 			try { // Added the B12 height check b/c of PD290 error. Look into that.
 				m_AY = (int)Math.Round(n/ScanWidthInSamples) * LineMultiplier; // PD needs us to use Round (.999 is 1)
-				if( (m_AY < 0) || (m_AY >= pBitmapRX.Height) || (m_AY >= _pBitmapD12.Height) )
+				if( (m_AY < 0) || (m_AY >= _pBitmapRX.Height) || (m_AY >= _pBitmapD12.Height) )
 					return;
 
 				// KRSA, assigned sys.m_UseRxBuff ? TRUE : FALSE, see also GetPictureLevel()
@@ -432,7 +440,7 @@ namespace Play.SSTV {
 						if( i < oChannel.Max ) {
 							if( oChannel.SetPixel != null ) {
 								x = (int)((i - oChannel.Min) * dbRxXScale );
-								if( (x != rx) && (x >= 0) && (x < pBitmapRX.Width) ) {
+								if( (x != rx) && (x >= 0) && (x < _pBitmapRX.Width) ) {
 									rx = x; oChannel.SetPixel( x, ip );
 								}
 							}
@@ -481,7 +489,7 @@ namespace Play.SSTV {
 		/// <param name="sValue"></param>
 		protected void PixelSetRed( int iX, short sValue ) {
 			sValue = (short)( GetPixelLevel(sValue) + 128 );
-			pBitmapRX.SetPixel( iX, m_AY,  new SKColor( (byte)Limit256(sValue), 
+			_pBitmapRX.SetPixel( iX, m_AY,  new SKColor( (byte)Limit256(sValue), 
 				                                        (byte)m_D36[0,iX], 
 														(byte)m_D36[1,iX] ) );
 		}
@@ -591,12 +599,12 @@ namespace Play.SSTV {
 			short R, G, B;
 
 			YCtoRGB( out R, out G, out B, m_Y36[iX], m_D36[1,iX], m_D36[0,iX]);
-			pBitmapRX.SetPixel( iX, m_AY,    new SKColor( (byte)R, (byte)G, (byte)B ) );
+			_pBitmapRX.SetPixel( iX, m_AY,    new SKColor( (byte)R, (byte)G, (byte)B ) );
 
 			sValue    = (short)( GetPixelLevel(sValue) + 128 );
 
 			YCtoRGB( out R, out G, out B, sValue,    m_D36[1,iX], m_D36[0,iX]);
-			pBitmapRX.SetPixel( iX, m_AY+1,  new SKColor( (byte)R, (byte)G, (byte)B ) );
+			_pBitmapRX.SetPixel( iX, m_AY+1,  new SKColor( (byte)R, (byte)G, (byte)B ) );
 		}
 	}
     public class DocSSTV :
@@ -666,6 +674,9 @@ namespace Play.SSTV {
         protected SSTVGenerator    _oSSTVGenerator;
 		protected TmmSSTV          _oRxSSTV;
 
+		public ImageSoloDoc ReceiveImage { get; protected set; }
+		public ImageSoloDoc SyncImage    { get; protected set; }
+
 
         private DataTester _oDataTester;
 
@@ -693,6 +704,9 @@ namespace Play.SSTV {
             ModeList  = new GeneratorMode ( new DocSlot( this ) );
             ImageList = new ImageWalkerDir( new DocSlot( this ) );
             _oDocSnip = new ImageSoloDoc  ( new DocSlot( this ) );
+
+			ReceiveImage = new ImageSoloDoc( new DocSlot( this ) );
+			SyncImage    = new ImageSoloDoc( new DocSlot( this ) );
         }
 
         #region Dispose
@@ -857,6 +871,11 @@ namespace Play.SSTV {
 			if( !_oDocSnip.InitNew() )
 				return false;
 
+			if( !ReceiveImage.InitNew() )
+				return false;
+			if( !SyncImage.InitNew() )
+				return false;
+
             LoadModulators( GenerateMartin .GetModeEnumerator() );
             LoadModulators( GenerateScottie.GetModeEnumerator() );
             LoadModulators( GeneratePD     .GetModeEnumerator() );
@@ -969,7 +988,7 @@ namespace Play.SSTV {
         }
 
         private void Listen_ImageUpdated() {
-            Raise_PropertiesUpdated( ESstvProperty.TXImage );
+            Raise_PropertiesUpdated( ESstvProperty.TXImageChanged );
         }
 
         protected void Raise_PropertiesUpdated( ESstvProperty eProp ) {
@@ -1035,7 +1054,7 @@ namespace Play.SSTV {
 
 			string strPath = Environment.GetFolderPath( Environment.SpecialFolder.MyPictures );
 
-			using SKImage image  = SKImage.FromBitmap(oSSTV.pBitmapRX);
+			using SKImage image  = SKImage.FromBitmap(oSSTV._pBitmapRX);
 			using var     data   = image.Encode( SKEncodedImageFormat.Png, 80 );
             using var     stream = File.OpenWrite( Path.Combine( strPath, "testmeh.png") );
 
@@ -1044,14 +1063,19 @@ namespace Play.SSTV {
 
 		/// <summary>
 		/// The decoder has determined the the incoming video mode. Create a
-		/// Tmm??? to match the given mode.
+		/// Tmm??? to match the given mode. This call comes from CSSTVDEM::Start() 
+		/// Start() resets the write buffer. Then later when DrawSSTV get's called
+		/// the bitmaps get allocated noting the begin. More thread issues to
+		/// keep in mind. We can grab the image pointer here since the mode
+		/// won't change. But that won't be true if we re-use the TmmSSTV object.
+		/// Then we'll need an event on TmSSTV.
 		/// </summary>
 		/// <remarks>
 		/// I might need to toss this approach and just have a TmmSSTV that 
 		/// understands all the modes. But let's see how far I can take this
 		/// new approach. Certainly I'll have send a message if the
 		/// decoder is in a different thread than the renderer.</remarks>
-        private void SSTVDeModulator_ListenNextMode( SSTVMode tvMode )
+        private void ListenNextRxMode( SSTVMode tvMode )
         {
 			if( _oRxSSTV != null )
 				_oRxSSTV.Dispose();
@@ -1065,6 +1089,8 @@ namespace Play.SSTV {
             };
 
 			tvMode.ScanLineWidthInSamples = _oRxSSTV.QuickWidth;
+
+			// TODO: Send an event to the views.
         }
 
 		/// <summary>
@@ -1073,7 +1099,7 @@ namespace Play.SSTV {
 		/// </summary>
 		/// <returns>Time to wait until next call in ms.</returns>
         public IEnumerator<int> GetRecorderTask() {
-            _oSSTVDeModulator.ListenNextMode += SSTVDeModulator_ListenNextMode;
+            _oSSTVDeModulator.ListenNextMode += ListenNextRxMode;
             do {
                 try {
                     for( int i = 0; i< 500; ++i ) {
@@ -1101,7 +1127,7 @@ namespace Play.SSTV {
                 yield return 0; // 44,100 hz is slow, let's go as fast as possible. >_<;;
             } while( _oSSTVBuffer.IsReading );
 
-			_oSSTVDeModulator.ListenNextMode -= SSTVDeModulator_ListenNextMode;
+			_oSSTVDeModulator.ListenNextMode -= ListenNextRxMode;
 			ModeList.HighLight = null;
             // Set upload time to "finished" maybe even date/time!
         }

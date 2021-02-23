@@ -28,9 +28,9 @@ namespace Play.SSTV {
 		protected readonly IPgViewSite   _oSiteView;
 		protected readonly DocSSTV       _oDocSSTV;
 
-		protected readonly ImageViewSolo  _oViewImage;   // Show the currently selected image.
-		protected readonly ImageViewIcons _oViewSync;    // The sync bitmap.
-		protected          int            _iCurrentMode = 0;
+		protected readonly ImageViewSingle _oViewRx;      // Show the currently selected image.
+		protected readonly ImageViewSingle _oViewSync;    // The sync bitmap.
+		protected          int             _iCurrentMode = 0;
 
 		protected PropDoc ImageProperties { get; } // Container for properties to show for this window.
 
@@ -88,9 +88,9 @@ namespace Play.SSTV {
 
 			Iconic = ImageResourceHelper.GetImageResource( Assembly.GetExecutingAssembly(), _strIcon );
 
-            ImageProperties = new PropDoc       ( new SSTVWinSlot( this ) );
-			_oViewImage     = new ImageViewSolo ( new SSTVWinSlot( this ), _oDocSSTV.ImageList );
-			_oViewSync      = new ImageViewIcons( new SSTVWinSlot( this ), _oDocSSTV.ImageList );
+            ImageProperties = new PropDoc        ( new SSTVWinSlot( this ) );
+			_oViewRx        = new ImageViewSingle( new SSTVWinSlot( this ), _oDocSSTV.ReceiveImage );
+			_oViewSync      = new ImageViewSingle( new SSTVWinSlot( this ), _oDocSSTV.SyncImage );
 		}
 
 		protected override void Dispose( bool disposing ) {
@@ -108,15 +108,15 @@ namespace Play.SSTV {
                 return false;
 			if( !_oViewSync.InitNew() )
 				return false;
-			if( !_oViewImage.InitNew() )
+			if( !_oViewRx.InitNew() )
 				return false;
 
-			_oViewImage.Parent = this;
-			_oViewSync .Parent = this;
+			_oViewRx  .Parent = this;
+			_oViewSync.Parent = this;
 
 			DecorPropertiesInit();
 
-            _oLayout.Add( new LayoutControl( _oViewImage, LayoutRect.CSS.Percent, 60 ) );
+            _oLayout.Add( new LayoutControl( _oViewRx,    LayoutRect.CSS.Percent, 60 ) );
             _oLayout.Add( new LayoutControl( _oViewSync , LayoutRect.CSS.Percent, 40 ) );
 
             OnSizeChanged( new EventArgs() );
@@ -136,11 +136,6 @@ namespace Play.SSTV {
 			}
 		}
 
-        private void Listen_ViewMode_LineChanged( int iLine ) {
-			_iCurrentMode      = iLine;
-			_oViewImage.Aspect = _oDocSSTV.ResolutionAt( iLine );
-        }
-
         /// <summary>
         /// This is our event sink for property changes on the SSTV document.
         /// </summary>
@@ -150,10 +145,10 @@ namespace Play.SSTV {
         private void Listen_PropertyChange( ESstvProperty eProp ) {
 			switch( eProp ) {
 				case ESstvProperty.ALL:
-				case ESstvProperty.TXImage:
+				case ESstvProperty.RXImageNew:
 					DecorPropertiesReLoad();
 					break;
-				case ESstvProperty.UploadTime:
+				case ESstvProperty.DownLoadTime:
 					DecorPropertiesLoadTime();
 					break;
 			}
@@ -166,9 +161,9 @@ namespace Play.SSTV {
 				string strName   = Path.GetFileName( _oDocSSTV.ImageList.CurrentFileName );
 				string strMode   = "Unassigned";
 
-				if( _oDocSSTV.Bitmap != null ) {
-					strWidth  = _oDocSSTV.Bitmap.Width .ToString();
-					strHeight = _oDocSSTV.Bitmap.Height.ToString();
+				if( _oDocSSTV.ReceiveImage.Bitmap != null ) {
+					strWidth  = _oDocSSTV.ReceiveImage.Bitmap.Width .ToString();
+					strHeight = _oDocSSTV.ReceiveImage.Bitmap.Height.ToString();
 				}
 				if( _oDocSSTV.TransmitMode != null ) {
 					strMode = _oDocSSTV.TransmitMode.Name;
@@ -230,7 +225,7 @@ namespace Play.SSTV {
 		public bool Execute(Guid sGuid) {
 			if( sGuid == GlobalCommands.Play ) {
 				//_oDocSSTV.PlayBegin( _iCurrentMode, _oViewImage.Selection.SKRect ); 
-				_oDocSSTV.RecordBegin2( _iCurrentMode, _oViewImage.Selection.SKRect );
+				_oDocSSTV.RecordBegin2( _iCurrentMode, _oViewRx.Selection.SKRect );
 				return true;
 			}
 			if( sGuid == GlobalCommands.Stop ) {
