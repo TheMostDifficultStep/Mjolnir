@@ -902,9 +902,11 @@ namespace Play.SSTV {
 
             ImageList.ImageUpdated += Listen_ImageUpdated;
 
-            // This only needs to change if the Spec or Device is updated.
+            // BUG: Hard coded device.
 			if( MaxOutputDevice >= 1 ) {
 				_oPlayer = new WmmPlayer(RxSpec, 1); 
+			} else {
+				_oPlayer = new WmmPlayer(RxSpec, 0); 
 			}
 
             return true;
@@ -1093,11 +1095,16 @@ namespace Play.SSTV {
 		/// I might need to toss this approach and just have a TmmSSTV that 
 		/// understands all the modes. But let's see how far I can take this
 		/// new approach. Certainly I'll have send a message if the
-		/// decoder is in a different thread than the renderer.</remarks>
+		/// decoder is in a different thread than the renderer.
+		/// Also, it's clunky to set the bitmaps as I'm doing. Need to look
+		/// into that more later.</remarks>
         private void ListenNextRxMode( SSTVMode tvMode )
         {
-			if( _oRxSSTV != null )
+			if( _oRxSSTV != null ) {
+				ReceiveImage.Bitmap = null;
+				SyncImage   .Bitmap = null;
 				_oRxSSTV.Dispose();
+			}
 
             _oRxSSTV = tvMode.Family switch {
                 TVFamily.PD      => new TmmPD     (_oSSTVDeModulator),
@@ -1109,8 +1116,10 @@ namespace Play.SSTV {
 
 			tvMode.ScanLineWidthInSamples = _oRxSSTV.QuickWidth;
 
+			ReceiveImage.Bitmap = _oRxSSTV._pBitmapRX;
+			SyncImage   .Bitmap = _oRxSSTV._pBitmapD12;
 
-			// TODO: Send an event to the views.
+			Raise_PropertiesUpdated( ESstvProperty.RXImageNew );
         }
 
 		/// <summary>
@@ -1209,10 +1218,14 @@ namespace Play.SSTV {
                 _ => throw new ArgumentOutOfRangeException("Unrecognized Mode Type."),
             };
 
+			ReceiveImage.Bitmap = oRxSSTV._pBitmapRX;
+			SyncImage   .Bitmap = oRxSSTV._pBitmapD12;
+
 			oMode.ScanLineWidthInSamples = oRxSSTV.QuickWidth;
 
             while( oIter.MoveNext() ) {
 				oRxSSTV.DrawSSTV();
+				Raise_PropertiesUpdated( ESstvProperty.DownLoadTime );
 				yield return 1;
 			};
 			SaveRxImage( oRxSSTV );
