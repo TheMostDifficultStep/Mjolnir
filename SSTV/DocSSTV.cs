@@ -25,8 +25,9 @@ namespace Play.SSTV {
     public delegate void SSTVPropertyChange( ESstvProperty eProp );
 
 	/// <summary>
-	/// It's a little bit of a misonmer that the demodulator doesn't include these bits to get the frequencey
-	/// demodulated stuff encoded into a bitmap. But at least we have some factorization of the problem.
+	/// The demodulator get's the signal from the time to frequency domain. It looks like it
+	/// lives on it's own thread. This object then reads the buffer populated by the demodulator
+	/// perhaps in yet another thread. 
 	/// </summary>
     public class TmmSSTV : IDisposable {
         protected readonly CSSTVDEM dp;
@@ -92,8 +93,10 @@ namespace Play.SSTV {
 		}
 
 		/// <summary>
-		/// This is a good argument for long lived TmmSSTV since, I'm going to alloc the
-		/// pBitmapXX images twice, once at allocation, and then next at PrepDraw().
+		/// This is a good argument for long lived TmmSSTV since, I can potentially
+		/// allocate once at constructor and then again at PrepDraw. I'll midigate that
+		/// by using the current mode to creat the RX bitmap sos it shouldn't need
+		/// realloc.
 		/// </summary>
 		/// <seealso cref="PrepDraw"/>
 		public void Dispose() {
@@ -863,6 +866,17 @@ namespace Play.SSTV {
             return true;
         }
 
+		public int MaxOutputDevice {
+			get {
+				IEnumerator<string> iterOutput = MMHelpers.GetOutputDevices();
+				int                 iCount     = -1;
+				while( iterOutput.MoveNext() ) {
+					++iCount;
+				}
+				return iCount;
+			}
+		}
+
         public bool InitNew() {
             if( !ModeList.InitNew() ) // TODO: Set up hilight on TX!!
                 return false;
@@ -880,13 +894,18 @@ namespace Play.SSTV {
             LoadModulators( GenerateScottie.GetModeEnumerator() );
             LoadModulators( GeneratePD     .GetModeEnumerator() );
 
-            if( !ImageList.LoadURL( @"C:\Users\Frodo\Pictures") ) 
+			string strPath = Environment.GetFolderPath( Environment.SpecialFolder.MyPictures );
+            if( !ImageList.LoadURL( strPath ) ) {
+				LogError( "Couldn't find pictures directory for SSTV" );
                 return false;
+			}
 
             ImageList.ImageUpdated += Listen_ImageUpdated;
 
             // This only needs to change if the Spec or Device is updated.
-            _oPlayer = new WmmPlayer(RxSpec, 1); 
+			if( MaxOutputDevice >= 1 ) {
+				_oPlayer = new WmmPlayer(RxSpec, 1); 
+			}
 
             return true;
         }
@@ -1089,6 +1108,7 @@ namespace Play.SSTV {
             };
 
 			tvMode.ScanLineWidthInSamples = _oRxSSTV.QuickWidth;
+
 
 			// TODO: Send an event to the views.
         }

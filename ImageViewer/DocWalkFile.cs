@@ -282,9 +282,21 @@ namespace Play.ImageViewer {
 
 		public IPgParent Parentage   => _oSiteBase.Host;
 		public IPgParent Services    => Parentage.Services;
-		public SKBitmap  Bitmap      { get; protected set; }
+		public SKBitmap  Bitmap      { 
+            get { return _skBitmap; }
+            set { 
+                    if( _skBitmap != null ) {
+                        _skBitmap.Dispose();
+                    }
+                    _skBitmap = value;
+                    Raise_ImageUpdated(); // Use the one that can be overloaded.
+		        }
+        }
+        
         public Bitmap    ErrorBitmap => _oBitmapUnknown;
         public SKBitmap  ErrorBmp    => _oSKBmpError;
+
+        private SKBitmap _skBitmap;
 
         public event ImageUpdatedEvent ImageUpdated;
 
@@ -372,14 +384,15 @@ namespace Play.ImageViewer {
 
 		protected void BitmapClear() {
             if( Bitmap != null ) {
-                Bitmap.Dispose();
-                Bitmap = null;
+                SKBitmap skTemp = Bitmap;
+                Bitmap = null; // This sends the event.
+                skTemp.Dispose();
             }
 		}
 		
 		public void Raise_Clear() {
 			BitmapClear();
-			Raise_ImageUpdated();
+			//Raise_ImageUpdated();
 		}
 
 		public virtual bool InitNew() {
@@ -1060,10 +1073,10 @@ namespace Play.ImageViewer {
 
             try {
                 using( Stream oStream = File.OpenRead( FullPathFromLine( oLine ) ) ) {
-                    BitmapClear();
+                    //BitmapClear();
                     Bitmap = SKBitmap.Decode( oStream );
                 }
-				Raise_ImageUpdated();
+				//Raise_ImageUpdated();
 
 				return true;
 			} catch( Exception oEx ) {

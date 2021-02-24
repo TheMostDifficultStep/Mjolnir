@@ -485,7 +485,8 @@ namespace Play.ImageViewer {
                 return false;
 
             try {
-                LoadAgain( strFilePath );
+                if( !LoadAgain( strFilePath ) )
+                    return false;
             } catch( ApplicationException ) {
                 return false;
             }
