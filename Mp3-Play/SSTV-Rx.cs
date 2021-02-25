@@ -1034,7 +1034,7 @@ namespace Play.Sound {
 		public SSTVMode Mode { get; protected set; } 
 		public CSSTVSET SSTVSET { get; protected set; }
 
-		public event NextMode ListenNextMode;
+		public event NextMode ShoutNextMode; // This will need to be an message.
 
 		public readonly static int NARROW_SYNC		= 1900;
 		public readonly static int NARROW_LOW		= 2044;
@@ -1053,18 +1053,6 @@ namespace Play.Sound {
 		readonly double[]  HBPF  = new double[TAPMAX+1];
 		readonly double[]  HBPFS = new double[TAPMAX+1];
 		readonly double[]  HBPFN = new double[TAPMAX+1];
-
-		protected class REPSET {    // リピータ用の設定
-			public REPSET( double dbSampFreq, int iSampBase ) {
-				m_iirrep = new CIIRTANK( dbSampFreq );
-				m_lpfrep = new CIIR();
-				m_lmsrep = new CLMS( iSampBase );
-			}
-
-			public CIIRTANK    m_iirrep; // BUG: create these.
-			public CIIR        m_lpfrep;
-			public CLMS        m_lmsrep;
-		}
 
 		readonly CFIR2 m_BPF = new CFIR2();
 
@@ -1545,7 +1533,7 @@ namespace Play.Sound {
 			// same time we're storing the image scan lines.
 			SetWidth(m_fNarrow);
 
-			ListenNextMode?.Invoke( tvMode );
+			ShoutNextMode?.Invoke( tvMode );
 			// Don't suppor narrow band modes.
 			//if( m_fNarrow ) 
 			//	CalcNarrowBPF(HBPFN, m_bpftap, m_bpf, SSTVSET.m_Mode);

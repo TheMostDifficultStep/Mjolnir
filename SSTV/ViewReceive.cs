@@ -226,7 +226,7 @@ namespace Play.SSTV {
 		public bool Execute(Guid sGuid) {
 			if( sGuid == GlobalCommands.Play ) {
 				//_oDocSSTV.PlayBegin( _iCurrentMode, _oViewImage.Selection.SKRect ); 
-				_oDocSSTV.RecordBegin( _iCurrentMode, new SKRectI( 0, 0, 320, 256 ) );
+				_oDocSSTV.RecordBegin2( _iCurrentMode, new SKRectI( 0, 0, 320, 256 ) );
 				return true;
 			}
 			if( sGuid == GlobalCommands.Stop ) {

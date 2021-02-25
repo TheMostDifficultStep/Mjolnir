@@ -77,6 +77,8 @@ namespace Play.SSTV {
 		// Need to look into the greyscale calibration height of bitmap issue. (+16 scan lines)
 #endregion
 
+		public event SSTVPropertyChange ShoutTvEvents;
+
 		protected readonly List<ColorChannel> _rgSlots = new List<ColorChannel>(10);
 
 		public TmmSSTV( CSSTVDEM p_dp ) {
@@ -192,6 +194,9 @@ namespace Play.SSTV {
 			return (short)d;
 		}
 
+		/// <summary>
+		/// Note: if we retune the slot timing, we'll need to call this again.
+		/// </summary>
         void InitAutoStop( double dbSampBase )
         {
             Array.Clear( m_AutoStopAPos, 0, m_AutoStopAPos.Length );
@@ -257,6 +262,7 @@ namespace Play.SSTV {
 	        m_Mult         = (int)(dp.Mode.ScanLineWidthInSamples / 320.0);
 	        m_AutoSyncDiff = m_Mult * 3;
 
+			// I would love to know why this requires SampBase!! instead of SampFreq!!
             int iSomeMagic = (int)(45 * dbSampBase / 11025);
 	        if( m_AutoSyncDiff > iSomeMagic )
                 m_AutoSyncDiff = iSomeMagic;
@@ -363,8 +369,6 @@ namespace Play.SSTV {
 					}
 					dp.OnDrawBegin();
 					//dp.SyncSSTV( m_SyncAccuracy ); // TODO: Double check this sync value.
-					//if( dp.m_wBgn != 0 )
-                    //    return;
 					ClearTVImages();
 					InitAutoStop( dp.SampBase );
 					m_AutoSyncCount = m_AutoSyncDis = 0;
@@ -374,6 +378,7 @@ namespace Play.SSTV {
 
 				// DrawSSTVNormal();
 				DrawSSTVNormal2();
+				ShoutTvEvents?.Invoke( ESstvProperty.DownLoadTime );
 
 				if( m_AY > dp.Mode.Resolution.Height ){ // SSTVSET.m_L
 					if( dp.m_Sync ){
@@ -399,7 +404,7 @@ namespace Play.SSTV {
 			// Will need slant correction at some point, so this will need updating...
 			double dbClrBlock  = dp.Mode.BlockWidthInMS * dp.SampFreq / 1000.0; // Color block size in samples.
 			double dbRxXScale  = _pBitmapRX.Width  / dbClrBlock;
-			double dbR12XScale = _pBitmapD12.Width / QuickWidth;
+			double dbD12XScale = _pBitmapD12.Width / (double)QuickWidth;
 
 			if( n < 0 ) 
 				throw new ApplicationException( "m_rBase went negative" );
@@ -419,7 +424,6 @@ namespace Play.SSTV {
 
 				for( int i = 0; i < QuickWidth; i++ /*, n++ */ ){ // SSTVSET.m_WD
 				  //double ps = n % (int)SSTVSET.m_TW; // fmod(double(n), SSTVSET.m_TW)
-					short  ip = dp.m_Buf[rPageOffs + i];
 					short  sp = dp.m_B12[rPageOffs + i];
 
 					#region D12
@@ -429,11 +433,11 @@ namespace Play.SSTV {
 					} else if( m_SyncMin > sp ) {
 						m_SyncMin = sp;
 					}
-					int x = i * (int)dbR12XScale; // "i" was ps, QW was TW, note TW == WD.
+					int x = (int)( i * dbD12XScale ); // "i" was ps, QW was TW, note TW == WD.
 					if( (x != dx) && (x >= 0) && (x < _pBitmapD12.Width)){
 						int d = sp * 256 / 4096;
 						d = Limit256(d);
-						_pBitmapD12.SetPixel( x, m_AY, new SKColor( (byte)d ) );
+						_pBitmapD12.SetPixel( x, m_AY, new SKColor( (byte)d, (byte)d, (byte)d ) );
 						dx = x;
 					}
 					#endregion
@@ -444,6 +448,7 @@ namespace Play.SSTV {
 							if( oChannel.SetPixel != null ) {
 								x = (int)((i - oChannel.Min) * dbRxXScale );
 								if( (x != rx) && (x >= 0) && (x < _pBitmapRX.Width) ) {
+									short ip = dp.m_Buf[rPageOffs + i];
 									rx = x; oChannel.SetPixel( x, ip );
 								}
 							}
@@ -1120,6 +1125,15 @@ namespace Play.SSTV {
 			SyncImage   .Bitmap = _oRxSSTV._pBitmapD12;
 
 			Raise_PropertiesUpdated( ESstvProperty.RXImageNew );
+            _oRxSSTV.ShoutTvEvents += ListenTvEvents;
+        }
+
+		/// <summary>
+		/// Forward events coming from TmmSSTV
+		/// </summary>
+        private void ListenTvEvents( ESstvProperty eProp )
+        {
+            Raise_PropertiesUpdated( eProp );
         }
 
 		/// <summary>
@@ -1128,7 +1142,7 @@ namespace Play.SSTV {
 		/// </summary>
 		/// <returns>Time to wait until next call in ms.</returns>
         public IEnumerator<int> GetRecorderTask() {
-            _oSSTVDeModulator.ListenNextMode += ListenNextRxMode;
+            _oSSTVDeModulator.ShoutNextMode += ListenNextRxMode;
             do {
                 try {
                     for( int i = 0; i< 500; ++i ) {
@@ -1156,20 +1170,20 @@ namespace Play.SSTV {
                 yield return 0; // 44,100 hz is slow, let's go as fast as possible. >_<;;
             } while( _oSSTVBuffer.IsReading );
 
-			_oSSTVDeModulator.ListenNextMode -= ListenNextRxMode;
+			_oSSTVDeModulator.ShoutNextMode -= ListenNextRxMode;
 			ModeList.HighLight = null;
             // Set upload time to "finished" maybe even date/time!
         }
 
-		/// <summary>
-		/// This is my second test where we generate video and encode it to a 
-		/// time varying signal to be decoded by the CSSTVDEM object! Because we're
-		/// not intercepting the signal before the VCO we can use the normal 
-		/// GeneratorSetup call.
-		/// </summary>
-		/// <param name="iModeIndex">TV Mode to use.</param>
-		/// <param name="skSelect"></param>
-		/// <remarks>Set CSSTVDEM::m_fFreeRun = true</remarks>
+        /// <summary>
+        /// This is my 2nd test where we generate video and encode it to a 
+        /// time varying signal to be decoded by the CSSTVDEM object! Because we're
+        /// not intercepting the signal before the VCO we can use the normal 
+        /// GeneratorSetup call.
+        /// </summary>
+        /// <param name="iModeIndex">TV Mode to use.</param>
+        /// <param name="skSelect"></param>
+        /// <remarks>Set CSSTVDEM::m_fFreeRun = true</remarks>
         public void RecordBegin2( int iModeIndex, SKRectI skSelect ) {
             if( ModeList[iModeIndex].Extra is SSTVMode oMode ) {
                 if( _oWorkPlace.Status == WorkerStatus.FREE ) {
@@ -1192,7 +1206,7 @@ namespace Play.SSTV {
         }
 
 		/// <summary>
-		/// In this test we skip the VIS and simply test video transmit and receive.
+		/// In this 1'st test we skip the VIS and simply test video transmit and receive.
 		/// The CSSTVDEM object is not used in these tests. The transmit and recieve
 		/// are set from the given mode.
 		/// </summary>
