@@ -1100,21 +1100,11 @@ namespace Play.Sound {
 	    public   int  m_rPage { get; protected set; }
 		protected int m_wCnt;  // How far along on a the scan line we are. a X coord like thing.
 		          int m_wLine; // Count down on the scan lines. a Y coord like thing.
-		protected int m_wBase; // this moves forward by m_Bwidth chunks.
+		protected int m_wBase; // this moves forward by m_Bwidth (scanlinewidthinsamples) chunks.
 		public    int m_rBase{ get; protected set; } // Pos in frequency stream, This moves forward by SSTVSET.m_WD chunks. 0 to WD * L
 		public    int m_wBgn { get; protected set; } 
 
 		public void OnDrawBegin() { m_wBgn = 0; } // Was 1.
-
-		public void RPageIncrement() {
-			m_rBase += Mode.ScanLineWidthInSamples; // SSTVSET.m_WD
-
-			// This is the only place we bump up the read page. Looks like if we get behind we
-			// just blast the top of the buffer. Or hopefully the bottom never catches the top.
-			if( ++m_rPage >= SSTVDEMBUFMAX ){
-				m_rPage = 0;
-			}
-		}
 
 	    public bool  m_ReqSave  { get; protected set; }
 	    public bool  m_LoopBack { get; protected set; }
@@ -1126,7 +1116,7 @@ namespace Play.Sound {
 		public short[] m_B12;
 
 		readonly int  m_SenseLvl;
-		double      m_SLvl;
+		public double m_SLvl { get; protected set; }
 		double      m_SLvl2;
 		double      m_SLvl3;
 
@@ -1767,7 +1757,8 @@ namespace Play.Sound {
 					case 2:                 // Vis decode
 					case 9:                 // Expanded VIS decode.
 						d13 = m_iir13.Do(d);
-						if( d13 < 0.0 ) d13 = -d13;
+						if( d13 < 0.0 ) 
+							d13 = -d13;
 						d13 = m_lpf13.Do(d13);
 						m_SyncTime--;
 						if( m_SyncTime == 0 ){
@@ -1777,7 +1768,7 @@ namespace Play.Sound {
 								m_SyncTime = (int)(30 * sys.m_SampFreq/1000 ); // Get next bit.
 								m_VisData = m_VisData >> 1;
 								if( d11 > d13 ) 
-									m_VisData |= 0x0080;
+									m_VisData |= 0x0080; // Set the 8th bit and we shift right for next.
 								m_VisCnt--;
 								if( m_VisCnt == 0 ){
 									// I would expect this to be the normal place when the VIS has been decoded.
@@ -1922,8 +1913,8 @@ namespace Play.Sound {
 							if( (d12 > d19) && (d12 > m_SLvl) ){
 								if( m_Sync ){
 									// Looks like we request save when we're 65% the way thru an image,
-									// and then suddenly get a new image. Better way to do this is to
-									// push the current image into a save queue on a different "thread".
+									// and then suddenly get a new image. I'd do this back when the 
+									// new mode was requested.
 									if( m_rBase >= (SSTVSET.m_LM * 65/100.0) ){
 										m_ReqSave = true;
 									}
@@ -2123,22 +2114,32 @@ namespace Play.Sound {
 		protected void WCntIncrement() {
 			m_wCnt++;      // This is the only place we bump up the (x) position along the frequency scan line.
 			if( m_fFreeRun && m_wCnt >= Mode.ScanLineWidthInSamples ){ // SSTVSET.m_WD: Hack allert!!
-				WPageIncrement();
+				PageWIncrement();
 			}
 		}
 
-		protected void WPageIncrement() {
+		protected void PageWIncrement() {
 			// This might be a good place to send an event to process the scan line
 			// in a more orderly fashion than it is done now.
 			m_wCnt = 0;
 			m_wPage++; // This is the only place we bump up the write page.
 			m_wLine++;
-			m_wBase += m_BWidth;
+			m_wBase += Mode.ScanLineWidthInSamples; // m_BWidth;
 
 			// If the wPage becomes larger than the buff, we wrap around.
 			if( m_wPage >= SSTVDEMBUFMAX ){
 				m_wPage = 0;
 				m_wBase = 0;
+			}
+		}
+
+		public void PageRIncrement() {
+			m_rBase += Mode.ScanLineWidthInSamples; // SSTVSET.m_WD
+
+			// This is the only place we bump up the read page. Looks like if we get behind we
+			// just blast the top of the buffer. Or hopefully the bottom never catches the top.
+			if( ++m_rPage >= SSTVDEMBUFMAX ){
+				m_rPage = 0;
 			}
 		}
 
@@ -2547,7 +2548,7 @@ namespace Play.Sound {
 				//}
 				if( m_dbWPos > Mode.ScanLineWidthInSamples ) { // SSTVSET.m_TW
 					m_dbWPos = 0;
-					WPageIncrement();
+					PageWIncrement();
 				}
 				WriteMeh();
 			}

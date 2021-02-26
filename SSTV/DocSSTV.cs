@@ -25,7 +25,7 @@ namespace Play.SSTV {
     public delegate void SSTVPropertyChange( ESstvProperty eProp );
 
 	/// <summary>
-	/// The demodulator get's the signal from the time to frequency domain. It looks like it
+	/// The demodulator converts the signal from the time to frequency domain. It looks like it
 	/// lives on it's own thread. This object then reads the buffer populated by the demodulator
 	/// perhaps in yet another thread. 
 	/// </summary>
@@ -41,8 +41,9 @@ namespace Play.SSTV {
 	    protected short[]  m_Y36 = new short[800];
 	    protected short[,] m_D36 = new short[2,800];
 
-	    protected int     m_SyncPos, m_SyncRPos; // RPos Gets set in AutoStopJob() which we haven't implemented yet 
+	    protected int     m_SyncPos, m_SyncRPos; // RPos Also gets set in AutoStopJob() which we haven't implemented yet 
 	    protected int     m_SyncMax, m_SyncMin;
+		protected int     m_SyncHit, m_SyncLast;
 
 	    protected int     m_SyncAccuracy = 1;
 	    protected int     m_SyncAccuracyN;  // TODO: Gets used in TimerTimer, which isn't implemented yet.
@@ -320,7 +321,7 @@ namespace Play.SSTV {
 			m_SyncAccuracyN = 0;
 			m_AX			= -1;
 			m_AY			= -5;
-
+			m_SyncHit       = m_SyncLast = -1;
 			//if( dp.m_ReqSave ){
 			//	WriteHistory(1);
 			//}
@@ -387,7 +388,7 @@ namespace Play.SSTV {
 					}
 					break;
 				}
-                dp.RPageIncrement();
+                dp.PageRIncrement();
 			}
 		}
 
@@ -398,7 +399,7 @@ namespace Play.SSTV {
 			int dx        = -1;         // Saved X pos from the B12 buffer.
 			int rx        = -1;         // Saved X pos from the Rx  buffer.
 			int ch        = 0;          // current channel skimming the Rx buffer portion.
-			int rPageOffs = dp.m_rPage * dp.m_BWidth;
+			int rPageOffs = dp.m_rPage * (int)ScanWidthInSamples; // dp.m_BWidth;
 
 			// Color channel is the same width for each color so just do this once.
 			// Will need slant correction at some point, so this will need updating...
@@ -419,14 +420,22 @@ namespace Play.SSTV {
 					dp.m_Sync && (m_SyncPos != -1) ) {
 					AutoStopJob();
 				}
-				m_SyncMin  = m_SyncMax = dp.m_B12[rPageOffs];
-				m_SyncRPos = m_SyncPos;
+				m_SyncMin  = m_SyncMax = dp.m_B12[rPageOffs]; // Reset sync detect for next pass
+				m_SyncRPos = m_SyncPos;                       // Save the last detected sync.
+				if( m_SyncHit > -1 ) {
+					int iOffs = m_SyncHit - m_SyncLast;
+					m_SyncLast = m_SyncHit;
+					m_SyncHit  = -1;
+				}
 
 				for( int i = 0; i < QuickWidth; i++ /*, n++ */ ){ // SSTVSET.m_WD
 				  //double ps = n % (int)SSTVSET.m_TW; // fmod(double(n), SSTVSET.m_TW)
 					short  sp = dp.m_B12[rPageOffs + i];
 
 					#region D12
+					if( sp > dp.m_SLvl ) {
+						m_SyncHit = rPageOffs + i;
+					}
 					if( m_SyncMax < sp ) {
 						m_SyncMax = sp;
 						m_SyncPos = i; // was (int)ps

@@ -697,6 +697,8 @@ namespace Play.Sound {
         short[]          _rgBuffer   = new short[32768]; // Large enough for a single scanline 
         uint             _uiBuffUsed = 0;
         uint             _uiBuffered = 0;
+        uint             _uiAbsRead  = 0;
+        uint             _uiAbsWrite = 0;
 
         public bool IsReading => _uiBuffered > 0;
 
@@ -732,6 +734,7 @@ namespace Play.Sound {
                 if( _uiBuffered >= _rgBuffer.Length ) {
                     Array.Resize<short>( ref _rgBuffer, _rgBuffer.Length * 2 );
                 }
+                _uiAbsWrite++;
                 _rgBuffer[_uiBuffered++] = iValue;
             } catch( IndexOutOfRangeException ) {
             }
@@ -748,14 +751,13 @@ namespace Play.Sound {
         /// <returns></returns>
         public short ReadOneSample() {
             int iAvailable = (int)_uiBuffered - (int)_uiBuffUsed;
-            if( iAvailable > 1 ) {
-                return( _rgBuffer[_uiBuffUsed++] ); // If here, we always returned the amount asked for.
-            } else {
+
+            if( iAvailable <= 0 ) {
                 if( BufferReload( 1 ) == 0 )
                     throw new InvalidOperationException("Done" );
-
-                return( _rgBuffer[_uiBuffUsed++] ); // If here, we always returned the amount asked for.
             }
+            _uiAbsRead++;
+            return( _rgBuffer[_uiBuffUsed++] ); // If here, we always returned the amount asked for.
         }
 
         /// <summary>
