@@ -255,7 +255,7 @@ namespace Play.SSTV {
 		public bool Execute(Guid sGuid) {
 			if( sGuid == GlobalCommands.Play ) {
 				// Still using this screen to test recieve.
-				_oDocSSTV.RecordBegin2( _iCurrentMode, _oViewImage.Selection.SKRect ); 
+				_oDocSSTV.RecordBegin( _iCurrentMode, _oViewImage.Selection.SKRect ); 
 				return true;
 			}
 			if( sGuid == GlobalCommands.Stop ) {

@@ -754,7 +754,7 @@ namespace Play.Sound {
 
             if( iAvailable <= 0 ) {
                 if( BufferReload( 1 ) == 0 )
-                    throw new InvalidOperationException("Done" );
+                    throw new IndexOutOfRangeException( "Done" );
             }
             _uiAbsRead++;
             return( _rgBuffer[_uiBuffUsed++] ); // If here, we always returned the amount asked for.

@@ -30,12 +30,9 @@ namespace Play.SSTV {
 	/// perhaps in yet another thread. 
 	/// </summary>
     public class TmmSSTV : IDisposable {
-        protected readonly CSSTVDEM dp;
-        protected readonly CSSTVSET SSTVSET;
+        protected readonly CSSTVDEM _dp;
 
 #region variables
-		public int        QuickWidth { get; protected set; } // Call set ScanWidthInSamples to set this.
-
         protected int     m_AX, m_AY;
 
 	    protected short[]  m_Y36 = new short[800];
@@ -44,6 +41,7 @@ namespace Play.SSTV {
 	    protected int     m_SyncPos, m_SyncRPos; // RPos Also gets set in AutoStopJob() which we haven't implemented yet 
 	    protected int     m_SyncMax, m_SyncMin;
 		protected int     m_SyncHit, m_SyncLast;
+		readonly protected List<SKPointI> _rgSyncDetect = new List<SKPointI>(256);
 
 	    protected int     m_SyncAccuracy = 1;
 	    protected int     m_SyncAccuracyN;  // TODO: Gets used in TimerTimer, which isn't implemented yet.
@@ -83,13 +81,12 @@ namespace Play.SSTV {
 		protected readonly List<ColorChannel> _rgSlots = new List<ColorChannel>(10);
 
 		public TmmSSTV( CSSTVDEM p_dp ) {
-			dp      = p_dp         ?? throw new ArgumentNullException( "CSSTVDEM" );
-			SSTVSET = p_dp.SSTVSET ?? throw new ArgumentNullException( "CSSTVSET" );
+			_dp = p_dp ?? throw new ArgumentNullException( "CSSTVDEM" );
 
-			_pBitmapRX = new SKBitmap( dp.Mode.Resolution.Width, 
-									   dp.Mode.Resolution.Height, 
-									   SKColorType.Rgb888x, 
-									   SKAlphaType.Opaque );
+			//_pBitmapRX = new SKBitmap( dp.Mode.Resolution.Width, 
+			//						   dp.Mode.Resolution.Height, 
+			//						   SKColorType.Rgb888x, 
+			//						   SKAlphaType.Opaque );
 		  //StartOption() ...
 		  //dp.sys.m_bCQ100 = FALSE;
 		  //g_dblToneOffset = 0.0;
@@ -126,7 +123,7 @@ namespace Play.SSTV {
 		/// <returns></returns>
 		protected short GetPixelLevel(short ip)
 		{
-			if( dp.sys.m_DemCalibration && (_pCalibration != null) ){
+			if( _dp.sys.m_DemCalibration && (_pCalibration != null) ){
 				int d = (ip / 8) + 2048;
 				if( d < 0 )
 					d = 0;
@@ -134,8 +131,8 @@ namespace Play.SSTV {
 					d = 4096;
 				return _pCalibration[d];
 			} else {
-				double d = ip - dp.sys.m_DemOff;
-				d *= ( d >= 0 ) ? dp.sys.m_DemWhite : dp.sys.m_DemBlack;
+				double d = ip - _dp.sys.m_DemOff;
+				d *= ( d >= 0 ) ? _dp.sys.m_DemWhite : _dp.sys.m_DemBlack;
 				return (short)d;
 			}
 		}
@@ -214,9 +211,9 @@ namespace Play.SSTV {
 	        m_ASPos[0] = 64;
 	        m_ASPos[1] = 128;
 	        m_ASPos[2] = 160;
-	        m_ASPos[3] = (dp.Mode.Resolution.Height - 36);
+	        m_ASPos[3] = (_dp.Mode.Resolution.Height - 36);
 
-	        switch(dp.Mode.LegacyMode){
+	        switch(_dp.Mode.LegacyMode){
 		        case AllModes.smPD50:
 		        case AllModes.smPD90:            // Max 128
 		        case AllModes.smMP73:
@@ -260,7 +257,7 @@ namespace Play.SSTV {
 			        break;
 	        }
 	        m_AutoSyncPos  = 0x7fffffff;
-	        m_Mult         = (int)(dp.Mode.ScanLineWidthInSamples / 320.0);
+	        m_Mult         = (int)(_dp.Mode.ScanLineWidthInSamples / 320.0);
 	        m_AutoSyncDiff = m_Mult * 3;
 
 			// I would love to know why this requires SampBase!! instead of SampFreq!!
@@ -321,18 +318,21 @@ namespace Play.SSTV {
 			m_SyncAccuracyN = 0;
 			m_AX			= -1;
 			m_AY			= -5;
-			m_SyncHit       = m_SyncLast = -1;
+			m_SyncHit       = -1;
+			m_SyncLast		= 0;
+
+			_rgSyncDetect.Clear();
 			//if( dp.m_ReqSave ){
 			//	WriteHistory(1);
 			//}
 			if( _pBitmapRX == null ||
-				dp.Mode.Resolution.Width  != _pBitmapRX.Width ||
-				dp.Mode.Resolution.Height != _pBitmapRX.Height   )
+				_dp.Mode.Resolution.Width  != _pBitmapRX.Width ||
+				_dp.Mode.Resolution.Height != _pBitmapRX.Height   )
 			{
 				if( _pBitmapRX != null )
 					_pBitmapRX.Dispose();
-				_pBitmapRX = new SKBitmap( dp.Mode.Resolution.Width, 
-										   dp.Mode.Resolution.Height, 
+				_pBitmapRX = new SKBitmap( _dp.Mode.Resolution.Width, 
+										   _dp.Mode.Resolution.Height, 
 										   SKColorType.Rgb888x, 
 										   SKAlphaType.Opaque );
 			}
@@ -343,7 +343,7 @@ namespace Play.SSTV {
             // TSpeedButton SBTX, looks like TX send button, down to send. 
             // but we want to be RX mode. See: TMmsstv::SBTXClick() && TMmsstv::ToRX()
             // Might be loop back shows what we're sending!! Maybe!
-            dp.PrepDraw( /* SBTX->Down ? sys.m_echo : 0 */ false );
+            _dp.PrepDraw( /* SBTX->Down ? sys.m_echo : 0 */ false );
 			//WaveStg.WInit();
 			//RxHist.ClearAddFlag();
 			//SBWHist->Enabled = FALSE;
@@ -363,15 +363,15 @@ namespace Play.SSTV {
 		{
 			// Go until the rPage catches up with the wPage.
 			// Process one full scan line at a time.
-			while( dp.m_Sync && (dp.m_wPage != dp.m_rPage) ){
-				if( dp.m_wBgn != 0 ){
-					if( dp.m_wBgn != 1 ){
+			while( _dp.m_Sync && (_dp.m_wPage != _dp.m_rPage) ){
+				if( _dp.m_wBgn != 0 ){
+					if( _dp.m_wBgn != 1 ){
                         PrepDraw();
 					}
-					dp.OnDrawBegin();
+					_dp.OnDrawBegin();
 					//dp.SyncSSTV( m_SyncAccuracy ); // TODO: Double check this sync value.
 					ClearTVImages();
-					InitAutoStop( dp.SampBase );
+					InitAutoStop( _dp.SampBase );
 					m_AutoSyncCount = m_AutoSyncDis = 0;
 				}
 				//int ip = dp.m_rPage * dp.m_BWidth;
@@ -381,59 +381,64 @@ namespace Play.SSTV {
 				DrawSSTVNormal2();
 				ShoutTvEvents?.Invoke( ESstvProperty.DownLoadTime );
 
-				if( m_AY > dp.Mode.Resolution.Height ){ // SSTVSET.m_L
-					if( dp.m_Sync ){
-						dp.Stop();
+				if( m_AY > _dp.Mode.Resolution.Height ){ // SSTVSET.m_L
+					if( _dp.m_Sync ){
+						_dp.Stop();
                         AllStop();
 					}
 					break;
 				}
-                dp.PageRIncrement();
+                _dp.PageRIncrement( (int)Math.Round( ScanWidthInSamples ) );
 			}
 		}
 
-		protected virtual int LineMultiplier => 1;
+		protected int LineMultiplier { get; set; }
 
 		protected void DrawSSTVNormal2() {
-			int n         = dp.m_rBase; // Increments in += SSTVSET.m_WD chunks.
-			int dx        = -1;         // Saved X pos from the B12 buffer.
-			int rx        = -1;         // Saved X pos from the Rx  buffer.
-			int ch        = 0;          // current channel skimming the Rx buffer portion.
-			int rPageOffs = dp.m_rPage * (int)ScanWidthInSamples; // dp.m_BWidth;
+			int    n           = _dp.m_rBase; // Increments in += SSTVSET.m_WD chunks.
+			int    dx          = -1;         // Saved X pos from the B12 buffer.
+			int    rx          = -1;         // Saved X pos from the Rx  buffer.
+			int    ch          = 0;          // current channel skimming the Rx buffer portion.
+			double dbScanWidth = ScanWidthInSamples;
+			int    iScanWidth  = (int)Math.Round( dbScanWidth );
+			int    rPageOffs   = _dp.m_rPage * iScanWidth; // dp.m_BWidth;
 
 			// Color channel is the same width for each color so just do this once.
 			// Will need slant correction at some point, so this will need updating...
-			double dbClrBlock  = dp.Mode.BlockWidthInMS * dp.SampFreq / 1000.0; // Color block size in samples.
+			double dbClrBlock  = _dp.Mode.BlockWidthInMS * _dp.SampFreq / 1000.0; // Color block size in samples.
 			double dbRxXScale  = _pBitmapRX.Width  / dbClrBlock;
-			double dbD12XScale = _pBitmapD12.Width / (double)QuickWidth;
+			double dbD12XScale = _pBitmapD12.Width / dbScanWidth;
 
 			if( n < 0 ) 
 				throw new ApplicationException( "m_rBase went negative" );
 
 			try { // Added the B12 height check b/c of PD290 error. Look into that.
-				m_AY = (int)Math.Round(n/ScanWidthInSamples) * LineMultiplier; // PD needs us to use Round (.999 is 1)
+				m_AY = (int)Math.Round(n/dbScanWidth) * LineMultiplier; // PD needs us to use Round (.999 is 1)
 				if( (m_AY < 0) || (m_AY >= _pBitmapRX.Height) || (m_AY >= _pBitmapD12.Height) )
 					return;
 
 				// KRSA, assigned sys.m_UseRxBuff ? TRUE : FALSE, see also GetPictureLevel()
-				if( (dp.sys.m_AutoStop || dp.sys.m_AutoSync /* || KRSA->Checked */ ) && 
-					dp.m_Sync && (m_SyncPos != -1) ) {
+				if( (_dp.sys.m_AutoStop || _dp.sys.m_AutoSync /* || KRSA->Checked */ ) && 
+					_dp.m_Sync && (m_SyncPos != -1) ) {
 					AutoStopJob();
 				}
-				m_SyncMin  = m_SyncMax = dp.m_B12[rPageOffs]; // Reset sync detect for next pass
+				m_SyncMin  = m_SyncMax = _dp.m_B12[rPageOffs]; // Reset sync detect for next pass
 				m_SyncRPos = m_SyncPos;                       // Save the last detected sync.
 				if( m_SyncHit > -1 ) {
 					int iOffs = m_SyncHit - m_SyncLast;
+					_rgSyncDetect.Add( new SKPointI( m_SyncHit, iOffs ) );
+					//if( m_AY == 7 )
+					//	InitSlots( iOffs / dbScanWidth );
 					m_SyncLast = m_SyncHit;
 					m_SyncHit  = -1;
 				}
 
-				for( int i = 0; i < QuickWidth; i++ /*, n++ */ ){ // SSTVSET.m_WD
+				for( int i = 0; i < iScanWidth; i++ /*, n++ */ ){ // SSTVSET.m_WD
 				  //double ps = n % (int)SSTVSET.m_TW; // fmod(double(n), SSTVSET.m_TW)
-					short  sp = dp.m_B12[rPageOffs + i];
+					short  sp = _dp.m_B12[rPageOffs + i];
 
 					#region D12
-					if( sp > dp.m_SLvl ) {
+					if( sp > _dp.m_SLvl ) {
 						m_SyncHit = rPageOffs + i;
 					}
 					if( m_SyncMax < sp ) {
@@ -457,7 +462,7 @@ namespace Play.SSTV {
 							if( oChannel.SetPixel != null ) {
 								x = (int)((i - oChannel.Min) * dbRxXScale );
 								if( (x != rx) && (x >= 0) && (x < _pBitmapRX.Width) ) {
-									short ip = dp.m_Buf[rPageOffs + i];
+									short ip = _dp.m_Buf[rPageOffs + i];
 									rx = x; oChannel.SetPixel( x, ip );
 								}
 							}
@@ -476,17 +481,16 @@ namespace Play.SSTV {
 					throw;
 
 				// In the future well write some error message to the screen & reset.
-				throw new ApplicationException( "Problem decoding scan line.", oEx );
+				//throw new ApplicationException( "Problem decoding scan line.", oEx );
 			}
 		}
 
-		protected void InitSlots() {
-			double dbStart = 0;
+		protected void InitSlots( double dbCorrection ) {
+			double dbIdx = 0;
 			for( int i = 0; i< _rgSlots.Count; ++i ) {
-				_rgSlots[i].Min = dbStart;
-				dbStart = _rgSlots[i].Max + 1/ (dp.SampFreq * 1000 );
+				dbIdx = _rgSlots[i].Reset( dbIdx, dbCorrection );
 			}
-			QuickWidth = (int)ScanWidthInSamples;
+			_dp.Mode.ScanLineWidthInSamples = (int)ScanWidthInSamples;
 		}
 
 		protected void PixelSetGreen( int iX, short sValue ) {
@@ -511,108 +515,19 @@ namespace Play.SSTV {
 														(byte)m_D36[1,iX] ) );
 		}
 
-    } // End Class
-
-	public delegate void setPixel( int iX, short sLevel );
-
-	public class ColorChannel {
-		public double   Min      { get; set; }
-		public double   Max      { get; protected set; }
-		public setPixel SetPixel { get; protected set; }
-
-		public ColorChannel( double dbOffset, setPixel fnSet ) {
-			Max      = dbOffset;
-			SetPixel = fnSet;
-		}
-
-        public override string ToString() {
-			string strType = SetPixel != null ? SetPixel.GetType().ToString() : string.Empty;
-            return Max.ToString() + " " + strType;
-        }
-    }
-
-	public class TmmMartin : TmmSSTV {
-		public TmmMartin( CSSTVDEM p_dp ) : base( p_dp ) {
-			if( p_dp.Mode.Family != TVFamily.Martin )
-				throw new ArgumentOutOfRangeException( "Mode must be of Martin type" );
-
-			double dbClr = p_dp.Mode.BlockWidthInMS * p_dp.SampFreq / 1000.0;
-			double dbSyc = 4.862 * p_dp.SampFreq / 1000.0;
-			double dbGap = 0.572 * p_dp.SampFreq / 1000.0;
-			double dbIdx = 0;
-
-			_rgSlots.Add( new ColorChannel( dbIdx += dbSyc, null ) );
-			_rgSlots.Add( new ColorChannel( dbIdx += dbGap, null ) );
-			_rgSlots.Add( new ColorChannel( dbIdx += dbClr,  PixelSetGreen ) );
-			_rgSlots.Add( new ColorChannel( dbIdx += dbGap,  null ) );
-			_rgSlots.Add( new ColorChannel( dbIdx += dbClr,  PixelSetBlue ));
-			_rgSlots.Add( new ColorChannel( dbIdx += dbGap,  null ) );
-			_rgSlots.Add( new ColorChannel( dbIdx += dbClr,  PixelSetRed ));
-			_rgSlots.Add( new ColorChannel( double.MaxValue, null ) );
-
-			InitSlots();
-		}
-	}
-
-	public class TmmScottie : TmmSSTV {
-		public TmmScottie( CSSTVDEM p_dp ) : base( p_dp ) {
-			if( p_dp.Mode.Family != TVFamily.Scottie )
-				throw new ArgumentOutOfRangeException( "Mode must be of Scottie type" );
-
-			double dbClr = p_dp.Mode.BlockWidthInMS * p_dp.SampFreq / 1000.0;
-			double dbGap = 1.5 * p_dp.SampFreq / 1000.0;
-			double dbSyc = 9.0 * p_dp.SampFreq / 1000.0;
-			double dbIdx = 0;
-
-			_rgSlots.Add( new ColorChannel( dbIdx += dbGap,  null ) );
-			_rgSlots.Add( new ColorChannel( dbIdx += dbClr,  PixelSetGreen ) );
-			_rgSlots.Add( new ColorChannel( dbIdx += dbGap,  null ) );
-			_rgSlots.Add( new ColorChannel( dbIdx += dbClr,  PixelSetBlue ));
-			_rgSlots.Add( new ColorChannel( dbIdx += dbSyc,  null ) );
-			_rgSlots.Add( new ColorChannel( dbIdx += dbGap,  null ) );
-			_rgSlots.Add( new ColorChannel( dbIdx += dbClr,  PixelSetRed ));
-			_rgSlots.Add( new ColorChannel( double.MaxValue, null ) );
-
-			InitSlots();
-		}
-	}
-
-	public class TmmPD : TmmSSTV {
-		public TmmPD( CSSTVDEM p_dp ) : base( p_dp ) {
-			if( p_dp.Mode.Family != TVFamily.PD )
-				throw new ArgumentOutOfRangeException( "Mode must be of PD type" );
-
-			double dbClr   = p_dp.Mode.BlockWidthInMS * p_dp.SampFreq / 1000.0;
-			double dbGap   = 2.08 * p_dp.SampFreq / 1000.0;
-			double dbHSync = 20.0 * p_dp.SampFreq / 1000.0;
-			double dbIdx   = 0;
-
-			_rgSlots.Add( new ColorChannel( dbIdx += dbHSync, null ) );
-			_rgSlots.Add( new ColorChannel( dbIdx += dbGap,   null ) );
-			_rgSlots.Add( new ColorChannel( dbIdx += dbClr,   PixelSetY1 ) );
-			_rgSlots.Add( new ColorChannel( dbIdx += dbClr,   PixelSetRY ) );
-			_rgSlots.Add( new ColorChannel( dbIdx += dbClr,   PixelSetBY ) );
-			_rgSlots.Add( new ColorChannel( dbIdx += dbClr,   PixelSetY2 ) );
-			_rgSlots.Add( new ColorChannel( double.MaxValue,  null ) );
-
-			InitSlots();
-		}
-
-		protected override int LineMultiplier => 2;
-
-		void PixelSetY1( int iX, short sValue ) {
+		protected void PixelSetY1( int iX, short sValue ) {
 			m_Y36[iX] = (short)( GetPixelLevel(sValue) + 128 );
 		}
 
-		void PixelSetRY( int iX, short sValue ) {
+		protected void PixelSetRY( int iX, short sValue ) {
 			m_D36[1,iX] = GetPixelLevel( sValue );
 		}
 
-		void PixelSetBY( int iX, short sValue ) {
+		protected void PixelSetBY( int iX, short sValue ) {
 			m_D36[0,iX] = GetPixelLevel( sValue );
 		}
 
-		void PixelSetY2( int iX, short sValue ) {
+		protected void PixelSetY2( int iX, short sValue ) {
 			short R, G, B;
 
 			YCtoRGB( out R, out G, out B, m_Y36[iX], m_D36[1,iX], m_D36[0,iX]);
@@ -623,7 +538,111 @@ namespace Play.SSTV {
 			YCtoRGB( out R, out G, out B, sValue,    m_D36[1,iX], m_D36[0,iX]);
 			_pBitmapRX.SetPixel( iX, m_AY+1,  new SKColor( (byte)R, (byte)G, (byte)B ) );
 		}
-	}
+
+		public void InitMartin( SSTVMode oMode, int iSampFreq, double dbCorrection ) {
+			if( oMode == null )
+				throw new ArgumentNullException( "Mode must not be null." );
+			if( oMode.Family != TVFamily.Martin )
+				throw new ArgumentOutOfRangeException( "Mode must be of Martin type" );
+
+			LineMultiplier = 1;
+
+			double dbClr = oMode.BlockWidthInMS * iSampFreq / 1000.0;
+			double dbSyc = 4.862 * iSampFreq / 1000.0;
+			double dbGap = 0.572 * iSampFreq / 1000.0;
+
+			_rgSlots.Clear();
+
+			_rgSlots.Add( new ColorChannel( dbSyc, null ) );
+			_rgSlots.Add( new ColorChannel( dbGap, null ) );
+			_rgSlots.Add( new ColorChannel( dbClr, PixelSetGreen ) );
+			_rgSlots.Add( new ColorChannel( dbGap, null ) );
+			_rgSlots.Add( new ColorChannel( dbClr, PixelSetBlue ));
+			_rgSlots.Add( new ColorChannel( dbGap, null ) );
+			_rgSlots.Add( new ColorChannel( dbClr, PixelSetRed ));
+			_rgSlots.Add( new ColorChannel( double.MaxValue, null ) );
+
+			InitSlots( dbCorrection );
+		}
+
+		public void InitScottie( SSTVMode oMode, int iSampFreq, double dbCorrection ) {
+			if( oMode == null )
+				throw new ArgumentNullException( "Mode must not be null." );
+			if( oMode.Family != TVFamily.Scottie )
+				throw new ArgumentOutOfRangeException( "Mode must be of Scottie type" );
+
+			LineMultiplier = 1;
+
+			double dbClr = oMode.BlockWidthInMS * iSampFreq / 1000.0;
+			double dbGap = 1.5 * iSampFreq / 1000.0;
+			double dbSyc = 9.0 * iSampFreq / 1000.0;
+
+			_rgSlots.Clear();
+
+			_rgSlots.Add( new ColorChannel( dbGap,  null ) );
+			_rgSlots.Add( new ColorChannel( dbClr,  PixelSetGreen ) );
+			_rgSlots.Add( new ColorChannel( dbGap,  null ) );
+			_rgSlots.Add( new ColorChannel( dbClr,  PixelSetBlue ));
+			_rgSlots.Add( new ColorChannel( dbSyc,  null ) );
+			_rgSlots.Add( new ColorChannel( dbGap,  null ) );
+			_rgSlots.Add( new ColorChannel( dbClr,  PixelSetRed ));
+			_rgSlots.Add( new ColorChannel( double.MaxValue, null ) );
+
+			InitSlots(dbCorrection);
+		}
+
+		public void InitPD( SSTVMode oMode, int iSampFreq, double dbCorrection ) {
+			if( oMode == null )
+				throw new ArgumentNullException( "Mode must not be null." );
+			if( oMode.Family != TVFamily.PD )
+				throw new ArgumentOutOfRangeException( "Mode must be of PD type" );
+
+			LineMultiplier = 2;
+
+			double dbClr   = oMode.BlockWidthInMS * iSampFreq / 1000.0;
+			double dbHSync = 20.0 * iSampFreq / 1000.0;
+			double dbGap   = 2.08 * iSampFreq / 1000.0;
+
+			_rgSlots.Clear();
+
+			_rgSlots.Add( new ColorChannel( dbHSync, null ) );
+			_rgSlots.Add( new ColorChannel( dbGap,   null ) );
+			_rgSlots.Add( new ColorChannel( dbClr,   PixelSetY1 ) );
+			_rgSlots.Add( new ColorChannel( dbClr,   PixelSetRY ) );
+			_rgSlots.Add( new ColorChannel( dbClr,   PixelSetBY ) );
+			_rgSlots.Add( new ColorChannel( dbClr,   PixelSetY2 ) );
+			_rgSlots.Add( new ColorChannel( double.MaxValue,  null ) );
+
+			InitSlots( dbCorrection );
+		}
+
+    } // End Class TmmSSTV
+
+	public delegate void setPixel( int iX, short sLevel );
+
+	public class ColorChannel {
+		public readonly double _dbWidth;
+		public double   Min      { get; set; }
+		public double   Max      { get; protected set; }
+		public setPixel SetPixel { get; protected set; }
+
+		public ColorChannel( double dbWidthInSamples, setPixel fnSet ) {
+			_dbWidth = dbWidthInSamples;
+			SetPixel = fnSet;
+		}
+
+		public double Reset( double dbStart, double dbCorrection ) {
+			Min = dbStart;
+			Max = dbStart + ( _dbWidth * dbCorrection );
+			return Max;
+		}
+
+        public override string ToString() {
+			string strType = SetPixel != null ? SetPixel.GetType().ToString() : string.Empty;
+            return Max.ToString() + " " + strType;
+        }
+    }
+
     public class DocSSTV :
         IPgParent,
         IPgLoad<TextReader>,
@@ -1114,27 +1133,30 @@ namespace Play.SSTV {
 		/// into that more later.</remarks>
         private void ListenNextRxMode( SSTVMode tvMode )
         {
-			if( _oRxSSTV != null ) {
-				ReceiveImage.Bitmap = null;
-				SyncImage   .Bitmap = null;
-				_oRxSSTV.Dispose();
-			}
+			ReceiveImage.Bitmap = null;
+			SyncImage   .Bitmap = null;
 
-            _oRxSSTV = tvMode.Family switch {
-                TVFamily.PD      => new TmmPD     (_oSSTVDeModulator),
-                TVFamily.Martin  => new TmmMartin (_oSSTVDeModulator),
-                TVFamily.Scottie => new TmmScottie(_oSSTVDeModulator),
+            switch( tvMode.Family ) {
+                case TVFamily.PD: 
+					_oRxSSTV.InitPD     ( tvMode, _oSSTVBuffer.Spec.Rate, 1 ); 
+					break;
+                case TVFamily.Martin: 
+					_oRxSSTV.InitMartin ( tvMode, _oSSTVBuffer.Spec.Rate, 1 ); 
+					break;
+                case TVFamily.Scottie: 
+					_oRxSSTV.InitScottie( tvMode, _oSSTVBuffer.Spec.Rate, 1 ); 
+					break;
 
-                _ => throw new ArgumentOutOfRangeException("Unrecognized Mode Type."),
-            };
+                default: 
+					throw new ArgumentOutOfRangeException("Unrecognized Mode Type.");
+            }
 
-			tvMode.ScanLineWidthInSamples = _oRxSSTV.QuickWidth;
+			tvMode.ScanLineWidthInSamples = (int)Math.Round( _oRxSSTV.ScanWidthInSamples );
 
 			ReceiveImage.Bitmap = _oRxSSTV._pBitmapRX;
 			SyncImage   .Bitmap = _oRxSSTV._pBitmapD12;
 
 			Raise_PropertiesUpdated( ESstvProperty.RXImageNew );
-            _oRxSSTV.ShoutTvEvents += ListenTvEvents;
         }
 
 		/// <summary>
@@ -1146,8 +1168,8 @@ namespace Play.SSTV {
         }
 
 		/// <summary>
-		/// Note that we don't take the mode in this task since it's got to be
-		/// devined from the VIS by the CSSTVDEM object.
+		/// Note that we don't take the mode in this task since we want it
+		/// to be divined from the VIS by the CSSTVDEM object.
 		/// </summary>
 		/// <returns>Time to wait until next call in ms.</returns>
         public IEnumerator<int> GetRecorderTask() {
@@ -1165,18 +1187,21 @@ namespace Play.SSTV {
                                         typeof( ArgumentNullException ),
                                         typeof( MMSystemException ),
                                         typeof( InvalidOperationException ),
-										typeof( ArithmeticException ) };
+										typeof( ArithmeticException ),
+										typeof( IndexOutOfRangeException ) };
                     if( rgErrors.IsUnhandled( oEx ) )
                         throw;
 
 					SaveRxImage( _oRxSSTV );
 
-                    LogError( "Trouble recordering in SSTV" );
-                    // We can't call _oWorkPlace.Stop() b/c we're already in DoWork() which will
-                    // try calling the _oWorker which will have been set to NULL!!
+					if( oEx.GetType() != typeof( IndexOutOfRangeException ) ) {
+						LogError( "Trouble recordering in SSTV" );
+					}
+					// Don't call _oWorkPlace.Stop() b/c we're already in DoWork() which will
+					// try calling the _oWorker which will have been set to NULL!!
                     break; // Drop down so we can unplug from our Demodulator.
                 }
-                yield return 0; // 44,100 hz is slow, let's go as fast as possible. >_<;;
+                yield return 0; // 44,100 hz is a lot to process, let's go as fast as possible. >_<;;
             } while( _oSSTVBuffer.IsReading );
 
 			_oSSTVDeModulator.ShoutNextMode -= ListenNextRxMode;
@@ -1206,6 +1231,9 @@ namespace Play.SSTV {
 																	(int)oFFTMode.SampFreq, 
 																	(int)oFFTMode.SampBase, 
 																	0 );
+						_oRxSSTV          = new TmmSSTV( oDemodTst );
+						_oRxSSTV.ShoutTvEvents += ListenTvEvents;
+
 						_oSSTVDeModulator = oDemodTst;
 
 						_oWorkPlace.Queue( GetRecorderTask(), 0 );
@@ -1225,38 +1253,41 @@ namespace Play.SSTV {
 			if( oMode == null )
 				throw new ArgumentNullException( "Mode must not be Null." );
 
-			IEnumerator<int> oIter   = _oSSTVGenerator.GetEnumerator();
+			IEnumerator<int> oIter = _oSSTVGenerator.GetEnumerator();
 
 			oIter            .MoveNext(); // skip the VIS for now.
 			_oSSTVDeModulator.SSTVSET.SetMode( oMode );
 			_oSSTVDeModulator.Start( oMode );
 
-			TmmSSTV oRxSSTV = null;
+            switch( oMode.Family ) {
+                case TVFamily.PD: 
+					_oRxSSTV.InitPD     ( oMode, _oSSTVDeModulator.SampFreq, 1 ); break;
+                case TVFamily.Martin: 
+					_oRxSSTV.InitMartin ( oMode, _oSSTVDeModulator.SampFreq, 1 ); break;
+                case TVFamily.Scottie: 
+					_oRxSSTV.InitScottie( oMode, _oSSTVDeModulator.SampFreq, 1 ); break;
 
-            oRxSSTV = oMode.Family switch {
-                TVFamily.PD      => new TmmPD     (_oSSTVDeModulator),
-                TVFamily.Martin  => new TmmMartin (_oSSTVDeModulator),
-                TVFamily.Scottie => new TmmScottie(_oSSTVDeModulator),
+                default: 
+					throw new ArgumentOutOfRangeException("Unrecognized Mode Type.");
+            }
 
-                _ => throw new ArgumentOutOfRangeException("Unrecognized Mode Type."),
-            };
 
-			ReceiveImage.Bitmap = oRxSSTV._pBitmapRX;
-			SyncImage   .Bitmap = oRxSSTV._pBitmapD12;
+			ReceiveImage.Bitmap = _oRxSSTV._pBitmapRX;
+			SyncImage   .Bitmap = _oRxSSTV._pBitmapD12;
 
-			oMode.ScanLineWidthInSamples = oRxSSTV.QuickWidth;
+			oMode.ScanLineWidthInSamples = (int)Math.Round( _oRxSSTV.ScanWidthInSamples );
 
             while( oIter.MoveNext() ) {
-				oRxSSTV.DrawSSTV();
+				_oRxSSTV.DrawSSTV();
 				Raise_PropertiesUpdated( ESstvProperty.DownLoadTime );
 				yield return 1;
 			};
-			SaveRxImage( oRxSSTV );
+			SaveRxImage( _oRxSSTV );
 		}
 
 		/// <summary>
-		/// This test generates the the video signal but doesn't actually create audio
-		/// tone but a fake stream of frequency data. Thus skipping the A/D coverter code
+		/// This 1'st test generates the the video signal but doesn't actually create audio
+		/// tone stream but a fake stream of frequency data. Thus skipping the A/D coverter code
 		/// we're just testing the video encode / decode. We do this by re-assigning
 		/// the _oSSTVModulator with a new one set to our test frequency.
 		/// </summary>
@@ -1281,6 +1312,7 @@ namespace Play.SSTV {
 															    0 );
 					_oSSTVDeModulator = oDemodTst;
 					_oSSTVModulator   = new CSSTVMOD( 0, oFFTMode.SampFreq, _oSSTVBuffer );
+					_oRxSSTV          = new TmmSSTV ( _oSSTVDeModulator );
 
 					_oSSTVGenerator = oMode.Family switch {
 						TVFamily.PD      => new GeneratePD     ( _oDocSnip.Bitmap, oDemodTst, oMode ),

@@ -2133,8 +2133,9 @@ namespace Play.Sound {
 			}
 		}
 
-		public void PageRIncrement() {
-			m_rBase += Mode.ScanLineWidthInSamples; // SSTVSET.m_WD
+		public void PageRIncrement( int iWidthInSamples ) {
+			m_rBase += iWidthInSamples; // SSTVSET.m_WD
+			Mode.ScanLineWidthInSamples = iWidthInSamples; // Ugly hack alert!!
 
 			// This is the only place we bump up the read page. Looks like if we get behind we
 			// just blast the top of the buffer. Or hopefully the bottom never catches the top.
@@ -2469,6 +2470,9 @@ namespace Play.Sound {
 			}
 		}
 
+		/// <summary>
+		/// Enumerate all the transmit modes we support.
+		/// </summary>
         public IEnumerator<SSTVMode> GetEnumerator()
         {
             IEnumerator<SSTVMode> itrMode = GenerateMartin .GetModeEnumerator();
@@ -2513,11 +2517,8 @@ namespace Play.Sound {
 		}
 
 		/// <summary>
-		/// Convert from frequency to level.
+		/// Convert from frequency to level. This is a test harness function.
 		/// </summary>
-		/// <param name="iFrequency"></param>
-		/// <param name="uiGain"></param>
-		/// <param name="dbTimeMS"></param>
 		/// <returns></returns>
 		public int Write( int iFrequency, uint uiGain, double dbTimeMS )
         {
@@ -2528,7 +2529,8 @@ namespace Play.Sound {
 				double d   = ( iFrequency - 1900 ) * foo;
 				for( int i = 0; i < dbSamples + 1; ++i ) {
 					int n = m_wBase + (int)m_dbWPos + i;
-					m_Buf[n] = (short)d;
+					if( n < m_Buf.Length )
+						m_Buf[n] = (short)d;
 				}
 				m_dbWPos += dbSamples;
 			}
@@ -2543,9 +2545,10 @@ namespace Play.Sound {
 				//	// Set m_fFreeRun false, so we don't compete with the line width.
 				//	// BUG: since called at SOL instead of EOL, we're mess'n up the m_wPage and m_wBase values.
 				//	m_dbWPos = 0;
-				//	WPageIncrement();
+				//	PageWIncrement();
 				//	WriteMeh();
 				//}
+
 				if( m_dbWPos > Mode.ScanLineWidthInSamples ) { // SSTVSET.m_TW
 					m_dbWPos = 0;
 					PageWIncrement();
