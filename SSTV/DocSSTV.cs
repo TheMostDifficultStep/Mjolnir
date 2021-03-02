@@ -402,11 +402,6 @@ namespace Play.SSTV {
 			double dbScanWidth = ScanWidthInSamples;
 			int    iScanWidth  = (int)Math.Round( dbScanWidth );
 			int    rPageOffs   = _dp.m_rPage * iScanWidth; // dp.m_BWidth;
-
-			// Color channel is the same width for each color so just do this once.
-			// Will need slant correction at some point, so this will need updating...
-			double dbClrBlock  = _dp.Mode.BlockWidthInMS * _dp.SampFreq / 1000.0; // Color block size in samples.
-			double dbRxXScale  = _pBitmapRX.Width  / dbClrBlock;
 			double dbD12XScale = _pBitmapD12.Width / dbScanWidth;
 
 			if( n < 0 ) 
@@ -423,7 +418,7 @@ namespace Play.SSTV {
 					AutoStopJob();
 				}
 				m_SyncMin  = m_SyncMax = _dp.m_B12[rPageOffs]; // Reset sync detect for next pass
-				m_SyncRPos = m_SyncPos;                       // Save the last detected sync.
+				m_SyncRPos = m_SyncPos;                        // Save the last detected sync.
 				if( m_SyncHit > -1 ) {
 					int iOffs = m_SyncHit - m_SyncLast;
 					_rgSyncDetect.Add( new SKPointI( m_SyncHit, iOffs ) );
@@ -460,7 +455,7 @@ namespace Play.SSTV {
 						ColorChannel oChannel = _rgSlots[ch];
 						if( i < oChannel.Max ) {
 							if( oChannel.SetPixel != null ) {
-								x = (int)((i - oChannel.Min) * dbRxXScale );
+								x = (int)((i - oChannel.Min) * oChannel.Scaling );
 								if( (x != rx) && (x >= 0) && (x < _pBitmapRX.Width) ) {
 									short ip = _dp.m_Buf[rPageOffs + i];
 									rx = x; oChannel.SetPixel( x, ip );
@@ -485,10 +480,10 @@ namespace Play.SSTV {
 			}
 		}
 
-		protected void InitSlots( double dbCorrection ) {
+		protected void InitSlots( int iBmpWidth, double dbCorrection ) {
 			double dbIdx = 0;
 			for( int i = 0; i< _rgSlots.Count; ++i ) {
-				dbIdx = _rgSlots[i].Reset( dbIdx, dbCorrection );
+				dbIdx = _rgSlots[i].Reset( iBmpWidth, dbIdx, dbCorrection );
 			}
 			_dp.Mode.ScanLineWidthInSamples = (int)ScanWidthInSamples;
 		}
@@ -562,7 +557,7 @@ namespace Play.SSTV {
 			_rgSlots.Add( new ColorChannel( dbClr, PixelSetRed ));
 			_rgSlots.Add( new ColorChannel( double.MaxValue, null ) );
 
-			InitSlots( dbCorrection );
+			InitSlots( oMode.Resolution.Width, dbCorrection );
 		}
 
 		public void InitScottie( SSTVMode oMode, int iSampFreq, double dbCorrection ) {
@@ -588,7 +583,7 @@ namespace Play.SSTV {
 			_rgSlots.Add( new ColorChannel( dbClr,  PixelSetRed ));
 			_rgSlots.Add( new ColorChannel( double.MaxValue, null ) );
 
-			InitSlots(dbCorrection);
+			InitSlots( oMode.Resolution.Width, dbCorrection );
 		}
 
 		public void InitPD( SSTVMode oMode, int iSampFreq, double dbCorrection ) {
@@ -613,7 +608,7 @@ namespace Play.SSTV {
 			_rgSlots.Add( new ColorChannel( dbClr,   PixelSetY2 ) );
 			_rgSlots.Add( new ColorChannel( double.MaxValue,  null ) );
 
-			InitSlots( dbCorrection );
+			InitSlots( oMode.Resolution.Width, dbCorrection );
 		}
 
     } // End Class TmmSSTV
@@ -621,19 +616,26 @@ namespace Play.SSTV {
 	public delegate void setPixel( int iX, short sLevel );
 
 	public class ColorChannel {
-		public readonly double _dbWidth;
+		public readonly double _dbScanWidth;           // The original specification.
+		public double          _dbScanWidthCorrected;  // Compensated value.
+
 		public double   Min      { get; set; }
 		public double   Max      { get; protected set; }
 		public setPixel SetPixel { get; protected set; }
+		public double   Scaling  { get; protected set; }
 
 		public ColorChannel( double dbWidthInSamples, setPixel fnSet ) {
-			_dbWidth = dbWidthInSamples;
-			SetPixel = fnSet;
+			_dbScanWidth = dbWidthInSamples;
+			SetPixel     = fnSet;
 		}
 
-		public double Reset( double dbStart, double dbCorrection ) {
+		public double Reset( int iBmpWidth, double dbStart, double dbCorrection ) {
+			_dbScanWidthCorrected = _dbScanWidth * dbCorrection;
+
+			Scaling = iBmpWidth / _dbScanWidthCorrected;
+
 			Min = dbStart;
-			Max = dbStart + ( _dbWidth * dbCorrection );
+			Max = dbStart + ( _dbScanWidthCorrected );
 			return Max;
 		}
 
@@ -1256,7 +1258,7 @@ namespace Play.SSTV {
 			IEnumerator<int> oIter = _oSSTVGenerator.GetEnumerator();
 
 			oIter            .MoveNext(); // skip the VIS for now.
-			_oSSTVDeModulator.SSTVSET.SetMode( oMode );
+			_oSSTVDeModulator.SstvSet.SetMode( oMode );
 			_oSSTVDeModulator.Start( oMode );
 
             switch( oMode.Family ) {

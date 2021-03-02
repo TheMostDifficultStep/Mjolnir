@@ -1024,6 +1024,16 @@ namespace Play.Sound {
 
 	public delegate void NextMode( SSTVMode tvMode );
 
+	public struct SyncCoordinate {
+		public int Start { get; private set; }
+		public int Width { get; private set; }
+
+		public SyncCoordinate( int iStart, int iWidth ) {
+			Start = iStart;
+			Width = iWidth;
+		}
+	}
+
 	/// <summary>
 	/// So my SSTVMode object is a bit different than the CSSTVSET one. I have a different mode object per
 	/// TV format. CSSTVSET changes it's state depending on which format it is re-initialized to. Thus,
@@ -1032,7 +1042,7 @@ namespace Play.Sound {
 	public class CSSTVDEM : IEnumerable<SSTVMode> {
 		public SYSSET   sys  { get; protected set; }
 		public SSTVMode Mode { get; protected set; } 
-		public CSSTVSET SSTVSET { get; protected set; }
+		public CSSTVSET SstvSet { get; protected set; }
 
 		public event NextMode ShoutNextMode; // This will need to be an message.
 
@@ -1094,6 +1104,8 @@ namespace Play.Sound {
 		readonly int m_SyncErr;
 		AllModes    m_NextMode;
 		bool        m_SyncAVT;
+		readonly protected List<SyncCoordinate> _rgSyncDetect = new List<SyncCoordinate>(256); // Dup of the one in TmmSSTV for a bit.
+		protected int     m_SyncHit, m_SyncLast;
 
 		public   bool m_fFreeRun { get; protected set; } = true; // set false for Test1
 		public   int  m_wPage { get; protected set; }
@@ -1191,7 +1203,7 @@ namespace Play.Sound {
 
 		public CSSTVDEM( CSSTVSET p_oSSTVSet, SYSSET p_sys, int iSampFreq, int iSampBase, double dbToneOffset ) {
 			sys     = p_sys      ?? throw new ArgumentNullException( "sys must not be null." );
-			SSTVSET = p_oSSTVSet ?? throw new ArgumentNullException( "CSSTVSSET must not be null" );
+			SstvSet = p_oSSTVSet ?? throw new ArgumentNullException( "CSSTVSSET must not be null" );
 
 			SampFreq        = iSampFreq;
 			SampBase        = iSampBase;
@@ -1506,6 +1518,9 @@ namespace Play.Sound {
 		  //OpenCloseRxBuff();
 			m_wBgn  = 2;
 			m_Lost  = false;
+			m_SyncHit       = -1;
+			m_SyncLast		= 0;
+
 
 			// If they're running slow/fast? then we'll wander beyond the data
 			// sent and so they set the value to black. Seems Hacky to me.
@@ -1675,16 +1690,16 @@ namespace Play.Sound {
 				switch(m_SyncMode){
 					case 0:                 // 自動開始 : Start automatically
 						if( !m_Sync /* && m_MSync */ ){
-							if( m_sint1.SyncStart( SSTVSET, out AllModes eLegacy ) ) {
+							if( m_sint1.SyncStart( SstvSet, out AllModes eLegacy ) ) {
 								tvMode = GetSSTVMode( eLegacy );
 								if( tvMode != null ) {
-									SSTVSET.SetMode( tvMode );
+									SstvSet.SetMode( tvMode );
 									Start( tvMode );
 								}
 							} else if( (d12 > d19) && (d12 > m_SLvl2) && ((d12-d19) >= m_SLvl2) ){
 								m_sint2.SyncMax( (int)d12);
 							} else {
-								if( m_sint2.SyncStart( SSTVSET, out eLegacy ) ) {
+								if( m_sint2.SyncStart( SstvSet, out eLegacy ) ) {
 									switch( eLegacy ){
 										case AllModes.smSCT1:
 										case AllModes.smMRT1:
@@ -1693,7 +1708,7 @@ namespace Play.Sound {
 											{
 											tvMode = GetSSTVMode( eLegacy );
 											if( tvMode != null ) {
-												SSTVSET.SetMode( tvMode );
+												SstvSet.SetMode( tvMode );
 												Start( tvMode );
 											}
 											}
@@ -1714,10 +1729,10 @@ namespace Play.Sound {
 							}
 							else if( m_sint3.m_SyncPhase != 0 ){
 								m_sint3.m_SyncPhase = 0;
-								if( m_sint3.SyncStart(SSTVSET, out eLegacy) ) {
+								if( m_sint3.SyncStart(SstvSet, out eLegacy) ) {
 									tvMode = GetSSTVMode( eLegacy );
 									if( tvMode != null ) {
-										SSTVSET.SetMode( tvMode );
+										SstvSet.SetMode( tvMode );
 										Start( tvMode );
 									}
 								}
@@ -1915,14 +1930,14 @@ namespace Play.Sound {
 									// Looks like we request save when we're 65% the way thru an image,
 									// and then suddenly get a new image. I'd do this back when the 
 									// new mode was requested.
-									if( m_rBase >= (SSTVSET.m_LM * 65/100.0) ){
+									if( m_rBase >= (SstvSet.m_LM * 65/100.0) ){
 										m_ReqSave = true;
 									}
 								}
 								m_SyncMode = 256;
 								tvMode = GetSSTVMode( m_NextMode );
 								if( tvMode != null ) {
-									SSTVSET.SetMode( tvMode );
+									SstvSet.SetMode( tvMode );
 								}
 							} else {
 								m_SyncMode = 0;
@@ -2080,6 +2095,9 @@ namespace Play.Sound {
 					int n = m_wBase + m_wCnt;
 					m_Buf[n] = (short)-d;
 
+					if( d12 > m_SLvl ) {
+						m_SyncHit = n;
+					}
 					if( m_fNarrow ){
 						m_B12[n] = (short)d19;
 					} else {
@@ -2119,6 +2137,14 @@ namespace Play.Sound {
 		}
 
 		protected void PageWIncrement() {
+			if( m_SyncHit > -1 ) {
+				int iWidth = m_SyncHit - m_SyncLast;
+				_rgSyncDetect.Add( new SyncCoordinate( m_SyncHit, iWidth ) );
+
+				m_SyncLast = m_SyncHit;
+				m_SyncHit  = -1;
+			}
+
 			// This might be a good place to send an event to process the scan line
 			// in a more orderly fashion than it is done now.
 			m_wCnt = 0;
@@ -2134,8 +2160,8 @@ namespace Play.Sound {
 		}
 
 		public void PageRIncrement( int iWidthInSamples ) {
-			m_rBase += iWidthInSamples; // SSTVSET.m_WD
-			Mode.ScanLineWidthInSamples = iWidthInSamples; // Ugly hack alert!!
+			m_rBase += Mode.ScanLineWidthInSamples; // SSTVSET.m_WD
+			//Mode.ScanLineWidthInSamples = iWidthInSamples; // Ugly hack alert!!
 
 			// This is the only place we bump up the read page. Looks like if we get behind we
 			// just blast the top of the buffer. Or hopefully the bottom never catches the top.
@@ -2154,7 +2180,7 @@ namespace Play.Sound {
 		public void SyncSSTV( int iSyncAccuracy )
 		{
 			int e = 4;
-			if( iSyncAccuracy != 0 && sys.m_UseRxBuff != 0 && (Mode.ScanLineWidthInSamples >= SSTVSET.m_SampFreq) ) 
+			if( iSyncAccuracy != 0 && sys.m_UseRxBuff != 0 && (Mode.ScanLineWidthInSamples >= SstvSet.m_SampFreq) ) 
 				e = 3;
 			if( m_wLine >= e ) {
 				int    n = 0;
@@ -2181,7 +2207,7 @@ namespace Play.Sound {
 						n = i;
 					}
 				}
-				n -= (int)SSTVSET.m_OFP;
+				n -= (int)SstvSet.m_OFP;
 				n = -n;
 				if( Mode.Family == TVFamily.Scottie ) {
 					if( n < 0 ) 
@@ -2190,7 +2216,7 @@ namespace Play.Sound {
 				if( m_Type == FreqDetect.Hilbert ) 
 					n -= m_hill.m_htap/4;
 
-				SSTVSET.SetOFS( n );
+				SstvSet.SetOFS( n );
 				m_rBase = n;
 				m_wBgn  = 0;
 			}
@@ -2206,9 +2232,9 @@ namespace Play.Sound {
 			d -= 128;
 
 			if( (d <= m_AFC_LowVal) && (d >= m_AFC_HighVal) ){
-				if( m_AFCDis == 0 && (m_AFCCount >= SSTVSET.m_AFCB) && (m_AFCCount <= SSTVSET.m_AFCE) ){
+				if( m_AFCDis == 0 && (m_AFCCount >= SstvSet.m_AFCB) && (m_AFCCount <= SstvSet.m_AFCE) ){
 					m_AFCData = m_Avg.Avg(d);
-					if( m_AFCCount == SSTVSET.m_AFCE ){
+					if( m_AFCCount == SstvSet.m_AFCE ){
 						if( m_AFCGard != 0 ) {
 							m_AFCLock = m_AFCAVG.SetData(m_AFCData);
 							m_AFCGard = 0;
@@ -2224,7 +2250,7 @@ namespace Play.Sound {
 				m_AFCCount++;
 			}
 			else {
-				if( (m_AFCCount >= SSTVSET.m_AFCB) && m_AFCGard != 0 ){
+				if( (m_AFCCount >= SstvSet.m_AFCB) && m_AFCGard != 0 ){
 					m_AFCGard--;
 					if( m_AFCGard == 0 ) 
 						m_AFCAVG.SetData(m_AFCLock);
@@ -2245,7 +2271,7 @@ namespace Play.Sound {
 				case 0:         // スペースキャリア検出
 					d = Math.Abs(m - s);
 					if( (s > m) && (d >= 2048) ){
-						m_fsktime = (int)((FSKGARD/2) * SSTVSET.m_SampFreq/1000);
+						m_fsktime = (int)((FSKGARD/2) * SstvSet.m_SampFreq/1000);
 						m_fskmode++;
 					}
 					break;
@@ -2254,7 +2280,7 @@ namespace Play.Sound {
 					if( (s > m) && (d >= 2048) ){
 						m_fsktime--;
 						if( m_fsktime == 0 ){
-							m_fsktime = (int)(FSKGARD * SSTVSET.m_SampFreq/1000);
+							m_fsktime = (int)(FSKGARD * SstvSet.m_SampFreq/1000);
 							m_fskmode++;
 						}
 					}
@@ -2269,7 +2295,7 @@ namespace Play.Sound {
 						m_fskmode = 0;
 					}
 					else if( (m > s) && (d >= 2048) ){
-						m_fsktime = (int)((FSKINTVAL/2) * SSTVSET.m_SampFreq/1000);
+						m_fsktime = (int)((FSKINTVAL/2) * SstvSet.m_SampFreq/1000);
 						m_fskmode++;
 					}
 					break;
@@ -2279,7 +2305,7 @@ namespace Play.Sound {
 						d = Math.Abs(m - s);
 						if( (m > s) && (d >= 2048) ){
 							m_fsktime = 0;
-							m_fsknextd = (double)((FSKINTVAL)/1000.0 * SSTVSET.m_SampFreq);
+							m_fsknextd = (double)((FSKINTVAL)/1000.0 * SstvSet.m_SampFreq);
 							m_fsknexti = (int)m_fsknextd;
 							m_fskbcnt = 0;
 							m_fskc = 0;
@@ -2298,7 +2324,7 @@ namespace Play.Sound {
 							m_fskmode = 0;
 						}
 						else {
-							m_fsknextd += (double)((FSKINTVAL)/1000.0 * SSTVSET.m_SampFreq);
+							m_fsknextd += (double)((FSKINTVAL)/1000.0 * SstvSet.m_SampFreq);
 							m_fsknexti = (int)m_fsknextd;
 							m_fskc = (byte)(m_fskc >> 1);
 							if( m > s ) m_fskc |= 0x20;
@@ -2527,10 +2553,13 @@ namespace Play.Sound {
 				// Convert 1500 to -16,384 and 2300 to 16,384.
 				double foo = Math.Pow( 2, 15 ) / ( 2300 - 1500 );
 				double d   = ( iFrequency - 1900 ) * foo;
-				for( int i = 0; i < dbSamples + 1; ++i ) {
-					int n = m_wBase + (int)m_dbWPos + i;
-					if( n < m_Buf.Length )
-						m_Buf[n] = (short)d;
+				int    n   = m_wBase + (int)m_dbWPos;
+				for( int i = 0; i < dbSamples + 1; ++i, ++n ) {
+					m_Buf[n] = (short)d;
+					if( iFrequency < 1500 ) {
+						m_SyncHit = n;
+						m_B12[n]  = (short)(m_SLvl + 1);
+					}
 				}
 				m_dbWPos += dbSamples;
 			}
@@ -2549,7 +2578,8 @@ namespace Play.Sound {
 				//	WriteMeh();
 				//}
 
-				if( m_dbWPos > Mode.ScanLineWidthInSamples ) { // SSTVSET.m_TW
+				// This is hyper criticall! If we miss it by a fraction then we start drifting off!!
+				if( Math.Round( m_dbWPos ) >= Mode.ScanLineWidthInSamples ) { // SSTVSET.m_TW
 					m_dbWPos = 0;
 					PageWIncrement();
 				}
