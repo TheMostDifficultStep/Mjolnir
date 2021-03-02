@@ -1107,7 +1107,6 @@ namespace Play.Sound {
 		readonly protected List<SyncCoordinate> _rgSyncDetect = new List<SyncCoordinate>(256); // Dup of the one in TmmSSTV for a bit.
 		protected int     m_SyncHit, m_SyncLast;
 
-		public   bool m_fFreeRun { get; protected set; } = true; // set false for Test1
 		public   int  m_wPage { get; protected set; }
 	    public   int  m_rPage { get; protected set; }
 		protected int m_wCnt;  // How far along on a the scan line we are. a X coord like thing.
@@ -2131,7 +2130,7 @@ namespace Play.Sound {
 		/// </remarks>
 		protected void WCntIncrement() {
 			m_wCnt++;      // This is the only place we bump up the (x) position along the frequency scan line.
-			if( m_fFreeRun && m_wCnt >= Mode.ScanLineWidthInSamples ){ // SSTVSET.m_WD: Hack allert!!
+			if( m_wCnt >= Mode.ScanLineWidthInSamples ){ // was SSTVSET.m_WD
 				PageWIncrement();
 			}
 		}
@@ -2159,9 +2158,8 @@ namespace Play.Sound {
 			}
 		}
 
-		public void PageRIncrement( int iWidthInSamples ) {
+		public void PageRIncrement() {
 			m_rBase += Mode.ScanLineWidthInSamples; // SSTVSET.m_WD
-			//Mode.ScanLineWidthInSamples = iWidthInSamples; // Ugly hack alert!!
 
 			// This is the only place we bump up the read page. Looks like if we get behind we
 			// just blast the top of the buffer. Or hopefully the bottom never catches the top.
@@ -2543,9 +2541,11 @@ namespace Play.Sound {
 		}
 
 		/// <summary>
-		/// Convert from frequency to level. This is a test harness function.
+		/// Convert from frequency to level. This is a test harness function. Helps us
+		/// make sure we have all our ducks in a row and understand the problem!!
+		/// When this works it means, we generate and recieve precisly the same data.
+		/// The Rx and Tx sections understand one another.
 		/// </summary>
-		/// <returns></returns>
 		public int Write( int iFrequency, uint uiGain, double dbTimeMS )
         {
 			void WriteMeh() {
@@ -2556,6 +2556,7 @@ namespace Play.Sound {
 				int    n   = m_wBase + (int)m_dbWPos;
 				for( int i = 0; i < dbSamples + 1; ++i, ++n ) {
 					m_Buf[n] = (short)d;
+					// This next bit simulates a hsync hit. 
 					if( iFrequency < 1500 ) {
 						m_SyncHit = n;
 						m_B12[n]  = (short)(m_SLvl + 1);
@@ -2571,14 +2572,15 @@ namespace Play.Sound {
 				//	WriteMeh();
 				//} else {
 				//	// We'll assume it's the 1200hz HSync signal.
-				//	// Set m_fFreeRun false, so we don't compete with the line width.
 				//	// BUG: since called at SOL instead of EOL, we're mess'n up the m_wPage and m_wBase values.
 				//	m_dbWPos = 0;
 				//	PageWIncrement();
 				//	WriteMeh();
 				//}
 
-				// This is hyper criticall! If we miss it by a fraction then we start drifting off!!
+				// This is hyper criticall! If we miss it by a fraction then we start drifting off
+				// by this first chunk of sync data. Remember we only get called for the first sample
+				// and the rest are loaded into the buffer.
 				if( Math.Round( m_dbWPos ) >= Mode.ScanLineWidthInSamples ) { // SSTVSET.m_TW
 					m_dbWPos = 0;
 					PageWIncrement();

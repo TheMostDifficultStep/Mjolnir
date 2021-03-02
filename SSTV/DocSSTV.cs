@@ -388,7 +388,7 @@ namespace Play.SSTV {
 					}
 					break;
 				}
-                _dp.PageRIncrement( (int)Math.Round( ScanWidthInSamples ) );
+                _dp.PageRIncrement();
 			}
 		}
 
