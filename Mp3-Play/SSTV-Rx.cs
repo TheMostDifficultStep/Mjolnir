@@ -2546,6 +2546,7 @@ namespace Play.Sound {
 		/// When this works it means, we generate and recieve precisly the same data.
 		/// The Rx and Tx sections understand one another.
 		/// </summary>
+		/// <exception cref="ApplicationException" />
 		public int Write( int iFrequency, uint uiGain, double dbTimeMS )
         {
 			void WriteMeh() {
@@ -2558,6 +2559,8 @@ namespace Play.Sound {
 					m_Buf[n] = (short)d;
 					// This next bit simulates a hsync hit. 
 					if( iFrequency < 1500 ) {
+						if( Mode.Family == TVFamily.Martin && m_dbWPos > 0 ) // S/B zero when we're seeing the hsync. 
+							throw new ApplicationException("Buffer alignment problem.");
 						m_SyncHit = n;
 						m_B12[n]  = (short)(m_SLvl + 1);
 					}
