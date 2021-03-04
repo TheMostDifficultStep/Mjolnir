@@ -270,27 +270,6 @@ namespace Play.SSTV
 			//UpdateUI();
          }
 
-        void PrepViewers() {
-			//if( KRSW->Checked ){
-			//	if( pRxView != NULL ){
-			//		if( pRxView->Handle != ::GetForegroundWindow() ){
-			//			::SetForegroundWindow(pRxView->Handle);
-			//		}
-			//	}
-			//	else if( m_MainPage != pgRX ){
-			//		AdjustPage(pgRX);
-			//	}
-			//}
-
-			//if( pRxView != NULL ){
-			//	pRxView->UpdateTitle(SSTVSET.m_Mode, false );
-			//}
-			//if( pComm != NULL )
-            //    pComm->SetScan(dp.m_Sync);
-
-            // DispSyncStat();
-        }
-
         void PrepDraw() {
 			m_SyncRPos      = m_SyncPos = -1;
 			m_SyncAccuracyN = 0;
@@ -326,8 +305,6 @@ namespace Play.SSTV
 			//RxHist.ClearAddFlag();
 			//SBWHist->Enabled = FALSE;
 			//KRH->Enabled = FALSE; // Copy to history.
-
-            PrepViewers();
         }
 
 		void ClearTVImages() {
@@ -344,10 +321,12 @@ namespace Play.SSTV
 			while( _dp.m_Sync && (_dp.m_wPage != _dp.m_rPage) ){
 				if( _dp.m_wBgn != 0 ){
 					if( _dp.m_wBgn != 1 ){
+						// So there's two ways to start up. 1 when the VIS is detected thus
+						// we need possibly re-alloc the bitmaps. The 2'nd when a re-sync is attempted.
+						// In the second case we don't want to reset the bitmaps.
                         PrepDraw();
 					}
 					_dp.OnDrawBegin();
-					//dp.SyncSSTV( m_SyncAccuracy ); // TODO: Double check this sync value.
 					ClearTVImages();
 					InitAutoStop( _dp.SampBase );
 					m_AutoSyncCount = m_AutoSyncDis = 0;
@@ -355,11 +334,10 @@ namespace Play.SSTV
 				//int ip = dp.m_rPage * dp.m_BWidth;
                 //dp.StorePage( ip );
 
-				// DrawSSTVNormal();
-				DrawSSTVNormal2();
+				DrawSSTVNormal();
 				ShoutTvEvents?.Invoke( ESstvProperty.DownLoadTime );
 
-				if( m_AY > _dp.Mode.Resolution.Height ){ // SSTVSET.m_L
+				if( m_AY > _dp.Mode.Resolution.Height ){ 
 					if( _dp.m_Sync ){
 						_dp.Stop();
                         AllStop();
@@ -372,11 +350,11 @@ namespace Play.SSTV
 
 		protected int LineMultiplier { get; set; }
 
-		protected void DrawSSTVNormal2() {
+		protected void DrawSSTVNormal() {
 			int    n           = _dp.m_rBase; // Increments in += SSTVSET.m_WD chunks.
-			int    dx          = -1;         // Saved X pos from the B12 buffer.
-			int    rx          = -1;         // Saved X pos from the Rx  buffer.
-			int    ch          = 0;          // current channel skimming the Rx buffer portion.
+			int    dx          = -1;          // Saved X pos from the B12 buffer.
+			int    rx          = -1;          // Saved X pos from the Rx  buffer.
+			int    ch          = 0;           // current channel skimming the Rx buffer portion.
 			double dbScanWidth = ScanWidthInSamples;
 			int    iScanWidth  = (int)Math.Round( dbScanWidth );
 			int    rPageOffs   = _dp.m_rPage * iScanWidth; // dp.m_BWidth;
@@ -406,8 +384,7 @@ namespace Play.SSTV
 					m_SyncHit  = -1;
 				}
 
-				for( int i = 0; i < iScanWidth; i++ /*, n++ */ ){ // SSTVSET.m_WD
-				  //double ps = n % (int)SSTVSET.m_TW; // fmod(double(n), SSTVSET.m_TW)
+				for( int i = 0; i < iScanWidth; i++ ){ 
 					short  sp = _dp.m_B12[rPageOffs + i];
 
 					#region D12
@@ -416,11 +393,11 @@ namespace Play.SSTV
 					}
 					if( m_SyncMax < sp ) {
 						m_SyncMax = sp;
-						m_SyncPos = i; // was (int)ps
+						m_SyncPos = i; 
 					} else if( m_SyncMin > sp ) {
 						m_SyncMin = sp;
 					}
-					int x = (int)( i * dbD12XScale ); // "i" was ps, QW was TW, note TW == WD.
+					int x = (int)( i * dbD12XScale );
 					if( (x != dx) && (x >= 0) && (x < _pBitmapD12.Width)){
 						int d = sp * 256 / 4096;
 						d = Limit256(d);
@@ -453,7 +430,7 @@ namespace Play.SSTV
 				if( rgErrors.IsUnhandled( oEx ) )
 					throw;
 
-				// In the future well write some error message to the screen & reset.
+				// In the future we'll write some error message to the screen & reset.
 				//throw new ApplicationException( "Problem decoding scan line.", oEx );
 			}
 		}
@@ -469,7 +446,7 @@ namespace Play.SSTV
 			for( int i = 0; i< _rgSlots.Count; ++i ) {
 				dbIdx = _rgSlots[i].Reset( iBmpWidth, dbIdx, dbCorrection );
 			}
-			// This is critical in the 1'st test harness. Need to inspect.
+			// TODO: This is critical in the 1'st test harness. Need to inspect.
 			_dp.Mode.ScanLineWidthInSamples = (int)Math.Round( ScanWidthInSamples );
 		}
 
@@ -486,8 +463,6 @@ namespace Play.SSTV
 		/// <summary>
 		/// Cache the Green and Blue values first and finish with this call.
 		/// </summary>
-		/// <param name="iX"></param>
-		/// <param name="sValue"></param>
 		protected void PixelSetRed( int iX, short sValue ) {
 			sValue = (short)( GetPixelLevel(sValue) + 128 );
 			_pBitmapRX.SetPixel( iX, m_AY,  new SKColor( (byte)Limit256(sValue), 
@@ -507,6 +482,9 @@ namespace Play.SSTV
 			m_D36[0,iX] = GetPixelLevel( sValue );
 		}
 
+		/// <summary>
+		/// Cache the RY and BY values first and finish with this call.
+		/// </summary>
 		protected void PixelSetY2( int iX, short sValue ) {
 			short R, G, B;
 

@@ -1107,18 +1107,19 @@ namespace Play.Sound {
 		readonly protected List<SyncCoordinate> _rgSyncDetect = new List<SyncCoordinate>(256); // Dup of the one in TmmSSTV for a bit.
 		protected int     m_SyncHit, m_SyncLast;
 
-		public   int  m_wPage { get; protected set; }
-	    public   int  m_rPage { get; protected set; }
-		protected int m_wCnt;  // How far along on a the scan line we are. a X coord like thing.
-		          int m_wLine; // Count down on the scan lines. a Y coord like thing.
-		protected int m_wBase; // this moves forward by m_Bwidth (scanlinewidthinsamples) chunks.
-		public    int m_rBase{ get; protected set; } // Pos in frequency stream, This moves forward by SSTVSET.m_WD chunks. 0 to WD * L
-		public    int m_wBgn { get; protected set; } 
+		          int m_wLine;                        // Only used by the old SyncSSTV call. Might remove later.
+		public   int  m_wPage { get; protected set; } // This determines WHEN we read into the Rx & R12 buffers. Where the writer is.
+	    public   int  m_rPage { get; protected set; } // this determines WHEN we read from the Rx & R12 buffers. Where the reader is.
+		protected int m_wCnt;                         // How far along on a the scan line we are receiving the image.
+
+		// Base pointer represent how far along in samples over the entire image we've gone. 
+		protected int m_wBase;                        // Write pos in samples stream. Moves forward by scanlinewidthinsamples chunks. Always < size of buffer.
+		public    int m_rBase { get; protected set; } // Read  pos in samples stream, Moves forward by scanlinewidthinsamples chunks. Entire image scanlines.
+		public    int m_wBgn  { get; protected set; } 
 
 		public void OnDrawBegin() { m_wBgn = 0; } // Was 1.
 
 	    public bool  m_ReqSave  { get; protected set; }
-	    public bool  m_LoopBack { get; protected set; }
 
 		public bool  m_Lost { get; protected set; }
 
@@ -1268,7 +1269,6 @@ namespace Play.Sound {
 			m_Sync      = false;
 			m_SyncMode  = 0;
 			m_ScopeFlag = false;
-			m_LoopBack  = false;
 			m_Lost      = false;
 
 			m_lvl = new CLVL( SampFreq, fAgcFast:true );
@@ -1490,7 +1490,6 @@ namespace Play.Sound {
 		public void PrepDraw( bool fLoopBack ) {
 			m_fskcall.Clear();
 
-			m_LoopBack = fLoopBack;
 			m_SyncAVT  = false;
 			m_ReqSave  = false;
 		}
