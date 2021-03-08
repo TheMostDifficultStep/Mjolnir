@@ -87,13 +87,17 @@ namespace Play.Sound {
     }
 
     public interface IPgModulator {
-        int Write( int iFrequency, uint uiGain, double dbTimeMS );
+        void Reset();
+        int  Write( int iFrequency, uint uiGain, double dbTimeMS );
     }
 
     public class CSSTVMOD : IPgModulator {
         readonly protected IPgBufferWriter<short> m_oWriter;
 	    readonly protected CVCO                   m_vco;
         readonly protected double                 m_dblTxSampleFreq;
+
+        protected double _dbWritten = 0;
+        protected int    _iPos      = 0;
 
 	    //public int         m_bpf;
 	    //public int         m_bpftap;
@@ -151,13 +155,19 @@ namespace Play.Sound {
         public int Write( int iFrequency, uint uiGain, double dbTimeMS ) {
 	        double dbSamples = (dbTimeMS * m_dblTxSampleFreq)/1000.0;
 
-            int iPos = 0;
-	        while( iPos < (int)dbSamples ) {
+            _dbWritten += dbSamples;
+
+	        while( _iPos < (int)_dbWritten ) {
                 m_oWriter.Write( (short)Process( iFrequency, uiGain ) );
-                iPos++;
+                _iPos++;
             }
 
-            return iPos;
+            return _iPos;
+        }
+
+        public void Reset() {
+            _dbWritten = 0;
+            _iPos      = 0;
         }
 
         /// <summary>
@@ -356,6 +366,8 @@ namespace Play.Sound {
         /// <param name="uiVIS"></param>
         /// <returns></returns>
         public virtual void WriteVIS( UInt16 uiVIS ) {
+            _oModulator.Reset();
+
 			Write( 1900, 0x0, 300 );
 			Write( 1200, 0x0,  10 );
 			Write( 1900, 0x0, 300 );
@@ -534,7 +546,7 @@ namespace Play.Sound {
 	            for( int x = 0; x < 320; x++ ) {
 		            Write( ColorToFreq(_rgCache[x].Red  ), GainIndx.R, dbTimePerPixel );
 	            }
-	            //Write( 1500, 0.572);
+	            Write( 1200, 0.0);                  // Just a check to see how many samples sent!
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( AccessViolationException ),
                                     typeof( NullReferenceException ) };
