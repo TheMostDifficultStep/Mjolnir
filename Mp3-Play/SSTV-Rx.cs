@@ -1107,13 +1107,13 @@ namespace Play.Sound {
 		readonly protected List<SyncCoordinate> _rgSyncDetect = new List<SyncCoordinate>(256); // Dup of the one in TmmSSTV for a bit.
 		protected int     m_SyncHit, m_SyncLast;
 
-		          int m_wLine;                        // Only used by the old SyncSSTV call. Might remove later.
-		public   int  m_wPage { get; protected set; } // This determines WHEN we read into the Rx & R12 buffers. Where the writer is.
-	    public   int  m_rPage { get; protected set; } // this determines WHEN we read from the Rx & R12 buffers. Where the reader is.
+		//          int m_wLine;                        // Only used by the old SyncSSTV call. Might remove later.
+		//public   int  m_wPage { get; protected set; } // This determines WHEN we read into the Rx & R12 buffers. Where the writer is.
+	 //   public   int  m_rPage { get; protected set; } // this determines WHEN we read from the Rx & R12 buffers. Where the reader is.
 		protected int m_wCnt;                         // How far along on a the scan line we are receiving the image.
 
 		// Base pointer represent how far along in samples over the entire image we've gone. 
-		protected int m_wBase;                        // Write pos in samples stream. Moves forward by scanlinewidthinsamples chunks. Always < size of buffer.
+		public    int m_wBase { get; protected set; }                        // Write pos in samples stream. Moves forward by scanlinewidthinsamples chunks. Always < size of buffer.
 		public    int m_rBase { get; protected set; } // Read  pos in samples stream, Moves forward by scanlinewidthinsamples chunks. Entire image scanlines.
 		public    int m_wBgn  { get; protected set; } 
 
@@ -1261,7 +1261,6 @@ namespace Play.Sound {
 			m_lpf19 .MakeIIR(50, SampFreq, 2, 0, 0);
 			m_lpffsk.MakeIIR(50, SampFreq, 2, 0, 0);
 
-			m_wPage     = m_rPage = 0;
 			m_wBase     = 0;
 			m_wCnt      = 0;
 			m_rBase     = 0;
@@ -1508,9 +1507,7 @@ namespace Play.Sound {
 			m_SyncMode = -1; // Here and then...
 			m_Sync  = false;
 			m_Skip  = 0;
-			m_wPage = m_rPage = 0;
 			m_wBase = 0;
-			m_wLine = 0;
 			m_wCnt  = 0;
 			m_rBase = 0;
 		  //OpenCloseRxBuff();
@@ -2090,11 +2087,11 @@ namespace Play.Sound {
 					if( m_ScopeFlag ){
 						m_Scope[1].WriteData(d);
 					}
-					int n = m_wBase + m_wCnt;
+					int n = m_wCnt;
 					m_Buf[n] = (short)-d;
 
 					if( d12 > m_SLvl ) {
-						m_SyncHit = n;
+						m_SyncHit = m_wBase;
 					}
 					if( m_fNarrow ){
 						m_B12[n] = (short)d19;
@@ -2128,43 +2125,17 @@ namespace Play.Sound {
 		/// resync on the horizontal sync signal. Might be a nice improvement if we ever get that far.
 		/// </remarks>
 		protected void WCntIncrement() {
-			m_wCnt++;      // This is the only place we bump up the (x) position along the frequency scan line.
-			if( m_wCnt >= Mode.ScanLineWidthInSamples ){ // was SSTVSET.m_WD
-				PageWIncrement();
-			}
-		}
-
-		protected void PageWIncrement() {
-			if( m_SyncHit > -1 ) {
-				int iWidth = m_SyncHit - m_SyncLast;
-				_rgSyncDetect.Add( new SyncCoordinate( m_SyncHit, iWidth ) );
-
-				m_SyncLast = m_SyncHit;
-				m_SyncHit  = -1;
-			}
-
-			// This might be a good place to send an event to process the scan line
-			// in a more orderly fashion than it is done now.
-			m_wCnt = 0;
-			m_wPage++; // This is the only place we bump up the write page.
-			m_wLine++;
-			m_wBase += Mode.ScanLineWidthInSamples; // m_BWidth;
-
-			// If the wPage becomes larger than the buff, we wrap around.
-			if( m_wPage >= SSTVDEMBUFMAX ){
-				m_wPage = 0;
-				m_wBase = 0;
+			m_wCnt ++;      // This is the only place we bump up the (x) position along the frequency scan line.
+			m_wBase++;
+			if( m_wCnt >= m_Buf.Length ){ 
+				m_wCnt = 0;
 			}
 		}
 
 		public void PageRIncrement() {
-			m_rBase += Mode.ScanLineWidthInSamples; // SSTVSET.m_WD
-
-			// This is the only place we bump up the read page. Looks like if we get behind we
-			// just blast the top of the buffer. Or hopefully the bottom never catches the top.
-			if( ++m_rPage >= SSTVDEMBUFMAX ){
-				m_rPage = 0;
-			}
+			m_rBase += Mode.ScanLineWidthInSamples;
+			m_SyncLast = m_SyncHit;
+			m_SyncHit  = -1;
 		}
 
 		/// <remarks>This method used to live on the TMmsstv object, but that doesn't
@@ -2174,50 +2145,50 @@ namespace Play.Sound {
 		/// so they must change the page width. Since they were using for the distance
 		/// along the scan line (ps = n%width) they then get corrected.
 		/// I'm going to change my parse values by updated a copy of the mode.</remarks>
-		public void SyncSSTV( int iSyncAccuracy )
-		{
-			int e = 4;
-			if( iSyncAccuracy != 0 && sys.m_UseRxBuff != 0 && (Mode.ScanLineWidthInSamples >= SstvSet.m_SampFreq) ) 
-				e = 3;
-			if( m_wLine >= e ) {
-				int    n = 0;
-				int   wd = (int)(Mode.ScanLineWidthInSamples + 2);
-				int[] bp = new int[wd];
+		//public void SyncSSTV( int iSyncAccuracy )
+		//{
+		//	int e = 4;
+		//	if( iSyncAccuracy != 0 && sys.m_UseRxBuff != 0 && (Mode.ScanLineWidthInSamples >= SstvSet.m_SampFreq) ) 
+		//		e = 3;
+		//	if( m_wLine >= e ) {
+		//		int    n = 0;
+		//		int   wd = (int)(Mode.ScanLineWidthInSamples + 2);
+		//		int[] bp = new int[wd];
 
-				Array.Clear( bp, 0, bp.Length );
-				//memset(bp, 0, sizeof(int)*(wd));
-				for( int pg = 0; pg < e; pg++ ){
-				  //short []sp = &m_B12[pg * m_BWidth];
-					int     ip = pg * m_BWidth;
-					for( int i = 0; i < Mode.ScanLineWidthInSamples; i++ ){
-						int x = n % Mode.ScanLineWidthInSamples; 
-					  //bp[x] += *sp;
-						bp[x] += m_B12[ip + i];
-						n++;
-					}
-				}
-				n = 0;
-				int max = 0;
-				for( int i = 0; i < wd; i++ ){
-					if( max < bp[i] ){
-						max = bp[i];
-						n = i;
-					}
-				}
-				n -= (int)SstvSet.m_OFP;
-				n = -n;
-				if( Mode.Family == TVFamily.Scottie ) {
-					if( n < 0 ) 
-						n += Mode.ScanLineWidthInSamples;
-				}
-				if( m_Type == FreqDetect.Hilbert ) 
-					n -= m_hill.m_htap/4;
+		//		Array.Clear( bp, 0, bp.Length );
+		//		//memset(bp, 0, sizeof(int)*(wd));
+		//		for( int pg = 0; pg < e; pg++ ){
+		//		  //short []sp = &m_B12[pg * m_BWidth];
+		//			int     ip = pg * m_BWidth;
+		//			for( int i = 0; i < Mode.ScanLineWidthInSamples; i++ ){
+		//				int x = n % Mode.ScanLineWidthInSamples; 
+		//			  //bp[x] += *sp;
+		//				bp[x] += m_B12[ip + i];
+		//				n++;
+		//			}
+		//		}
+		//		n = 0;
+		//		int max = 0;
+		//		for( int i = 0; i < wd; i++ ){
+		//			if( max < bp[i] ){
+		//				max = bp[i];
+		//				n = i;
+		//			}
+		//		}
+		//		n -= (int)SstvSet.m_OFP;
+		//		n = -n;
+		//		if( Mode.Family == TVFamily.Scottie ) {
+		//			if( n < 0 ) 
+		//				n += Mode.ScanLineWidthInSamples;
+		//		}
+		//		if( m_Type == FreqDetect.Hilbert ) 
+		//			n -= m_hill.m_htap/4;
 
-				SstvSet.SetOFS( n );
-				m_rBase = n;
-				m_wBgn  = 0;
-			}
-		}
+		//		SstvSet.SetOFS( n );
+		//		m_rBase = n;
+		//		m_wBgn  = 0;
+		//	}
+		//}
 
 		void SyncFreq(double d) {
 		/*
@@ -2539,6 +2510,10 @@ namespace Play.Sound {
 		{
 		}
 
+		public void Reset() {
+			m_dbWPos = 0;
+		}
+
 		/// <summary>
 		/// Convert from frequency to level. This is a test harness function. Helps us
 		/// make sure we have all our ducks in a row and understand the problem!!
@@ -2553,18 +2528,22 @@ namespace Play.Sound {
 				// Convert 1500 to -16,384 and 2300 to 16,384.
 				double foo = Math.Pow( 2, 15 ) / ( 2300 - 1500 );
 				double d   = ( iFrequency - 1900 ) * foo;
-				int    n   = m_wBase + (int)m_dbWPos;
-				for( int i = 0; i < dbSamples + 1; ++i, ++n ) {
-					m_Buf[n] = (short)d;
+				int    n   = m_wBase;
+				for( int i = 0; i < dbSamples; ++i, ++n ) {
+					int    idx = n % m_Buf.Length;
+					m_Buf[idx] = (short)d;
 					// This next bit simulates a hsync hit. 
 					if( iFrequency < 1500 ) {
-						if( Mode.Family == TVFamily.Martin && m_dbWPos > 0 ) // S/B zero when we're seeing the hsync. 
-							throw new ApplicationException("Buffer alignment problem.");
+						//if( Mode.Family == TVFamily.Martin ) // S/B zero when we're seeing the hsync. 
+						//	throw new ApplicationException("Buffer alignment problem.");
 						m_SyncHit = n;
-						m_B12[n]  = (short)(m_SLvl + 1);
+						m_B12[idx]  = (short)(m_SLvl + 1);
 					}
 				}
+				// We need to track the floating point value, because the integer value accumulates
+				// errors at too great of a rate on a per line basis! ^_^;;
 				m_dbWPos += dbSamples;
+				m_wBase  = (int)Math.Round( m_dbWPos );
 			}
 
 			if( m_Sync ) {
@@ -2580,13 +2559,6 @@ namespace Play.Sound {
 				//	WriteMeh();
 				//}
 
-				// This is hyper criticall! If we miss it by a fraction then we start drifting off
-				// by this first chunk of sync data. Remember we only get called for the first sample
-				// and the rest are loaded into the buffer.
-				if( Math.Round( m_dbWPos ) >= Mode.ScanLineWidthInSamples ) { // SSTVSET.m_TW
-					m_dbWPos = 0;
-					PageWIncrement();
-				}
 				WriteMeh();
 			}
 			return 0;

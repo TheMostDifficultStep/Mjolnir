@@ -318,7 +318,7 @@ namespace Play.SSTV
 		{
 			// Go until the rPage catches up with the wPage.
 			// Process one full scan line at a time.
-			while( _dp.m_Sync && (_dp.m_wPage != _dp.m_rPage) ){
+			while( _dp.m_Sync && (_dp.m_wBase >=_dp.m_rBase + _dp.Mode.ScanLineWidthInSamples ) ){
 				if( _dp.m_wBgn != 0 ){
 					if( _dp.m_wBgn != 1 ){
 						// So there's two ways to start up. 1 when the VIS is detected thus
@@ -334,7 +334,14 @@ namespace Play.SSTV
 				//int ip = dp.m_rPage * dp.m_BWidth;
                 //dp.StorePage( ip );
 
+				// KRSA, assigned sys.m_UseRxBuff ? TRUE : FALSE, see also GetPictureLevel() 
+				if( (_dp.sys.m_AutoStop || _dp.sys.m_AutoSync /* || KRSA->Checked */ ) && 
+					_dp.m_Sync && (m_SyncPos != -1) ) {
+					AutoStopJob();
+				}
 				DrawSSTVNormal();
+				_dp.PageRIncrement();
+
 				ShoutTvEvents?.Invoke( ESstvProperty.DownLoadTime );
 
 				if( m_AY > _dp.Mode.Resolution.Height ){ 
@@ -344,58 +351,46 @@ namespace Play.SSTV
 					}
 					break;
 				}
-                _dp.PageRIncrement();
 			}
 		}
 
 		protected int LineMultiplier { get; set; }
 
 		protected void DrawSSTVNormal() {
-			int    n           = _dp.m_rBase; // Increments in += SSTVSET.m_WD chunks.
 			int    dx          = -1;          // Saved X pos from the B12 buffer.
 			int    rx          = -1;          // Saved X pos from the Rx  buffer.
 			int    ch          = 0;           // current channel skimming the Rx buffer portion.
 			double dbScanWidth = ScanWidthInSamples;
 			int    iScanWidth  = (int)Math.Round( dbScanWidth );
-			int    rPageOffs   = _dp.m_rPage * iScanWidth; // dp.m_BWidth;
+			int    rPageOffs   = _dp.m_rBase;
 			double dbD12XScale = _pBitmapD12.Width / dbScanWidth;
 
-			if( n < 0 ) 
-				throw new ApplicationException( "m_rBase went negative" );
-
 			try { // Added the B12 height check b/c of PD290 error. Look into that.
-				m_AY = (int)Math.Round(n/dbScanWidth) * LineMultiplier; // PD needs us to use Round (.999 is 1)
+				m_AY = (int)Math.Round(rPageOffs/dbScanWidth) * LineMultiplier; // PD needs us to use Round (.999 is 1)
 				if( (m_AY < 0) || (m_AY >= _pBitmapRX.Height) || (m_AY >= _pBitmapD12.Height) )
 					return;
 
-				// KRSA, assigned sys.m_UseRxBuff ? TRUE : FALSE, see also GetPictureLevel()
-				if( (_dp.sys.m_AutoStop || _dp.sys.m_AutoSync /* || KRSA->Checked */ ) && 
-					_dp.m_Sync && (m_SyncPos != -1) ) {
-					AutoStopJob();
-				}
-				m_SyncMin  = m_SyncMax = _dp.m_B12[rPageOffs]; // Reset sync detect for next pass
+				int idx1 = ( rPageOffs ) % _dp.m_Buf.Length;
+				m_SyncMin  = m_SyncMax = _dp.m_B12[idx1]; // Reset sync detect for next pass
 				m_SyncRPos = m_SyncPos;                        // Save the last detected sync.
 				if( m_SyncHit > -1 ) {
 					int iOffs = m_SyncHit - m_SyncLast;
 					_rgSyncDetect.Add( new SKPointI( m_SyncHit, iOffs ) );
-                    if( m_AY == 7 )
-                        InitSlots( _dp.Mode.Resolution.Width, iOffs / dbScanWidth);
+                    //if( m_AY == 7 ) {
+                    //    InitSlots( _dp.Mode.Resolution.Width, iOffs / dbScanWidth);
+						//_dp.m_rPage = m_SyncHit;
+					//}
                     m_SyncLast = m_SyncHit;
 					m_SyncHit  = -1;
 				}
 
 				for( int i = 0; i < iScanWidth; i++ ){ 
-					short  sp = _dp.m_B12[rPageOffs + i];
+					int    idx = ( rPageOffs + i ) % _dp.m_Buf.Length;
+					short  sp  = _dp.m_B12[idx];
 
 					#region D12
 					if( sp > _dp.m_SLvl ) {
 						m_SyncHit = rPageOffs + i;
-					}
-					if( m_SyncMax < sp ) {
-						m_SyncMax = sp;
-						m_SyncPos = i; 
-					} else if( m_SyncMin > sp ) {
-						m_SyncMin = sp;
 					}
 					int x = (int)( i * dbD12XScale );
 					if( (x != dx) && (x >= 0) && (x < _pBitmapD12.Width)){
@@ -412,7 +407,7 @@ namespace Play.SSTV
 							if( oChannel.SetPixel != null ) {
 								x = (int)((i - oChannel.Min) * oChannel.Scaling );
 								if( (x != rx) && (x >= 0) && (x < _pBitmapRX.Width) ) {
-									short ip = _dp.m_Buf[rPageOffs + i];
+									short ip = _dp.m_Buf[idx];
 									rx = x; oChannel.SetPixel( x, ip );
 								}
 							}
