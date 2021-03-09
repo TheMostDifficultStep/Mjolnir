@@ -362,40 +362,39 @@ namespace Play.SSTV
 			int    ch          = 0;           // current channel skimming the Rx buffer portion.
 			double dbScanWidth = ScanWidthInSamples;
 			int    iScanWidth  = (int)Math.Round( dbScanWidth );
-			int    rPageOffs   = _dp.m_rBase;
+			int    rBase       = _dp.m_rBase;
 			double dbD12XScale = _pBitmapD12.Width / dbScanWidth;
 
 			try { // Added the B12 height check b/c of PD290 error. Look into that.
-				m_AY = (int)Math.Round(rPageOffs/dbScanWidth) * LineMultiplier; // PD needs us to use Round (.999 is 1)
+				m_AY = (int)Math.Round(rBase/dbScanWidth) * LineMultiplier; // PD needs us to use Round (.999 is 1)
 				if( (m_AY < 0) || (m_AY >= _pBitmapRX.Height) || (m_AY >= _pBitmapD12.Height) )
 					return;
 
-				int idx1 = ( rPageOffs ) % _dp.m_Buf.Length;
+				int idx1 = rBase % _dp.m_Buf.Length;
 				m_SyncMin  = m_SyncMax = _dp.m_B12[idx1]; // Reset sync detect for next pass
-				m_SyncRPos = m_SyncPos;                        // Save the last detected sync.
+				m_SyncRPos = m_SyncPos;                   // Save the last detected sync.
 				if( m_SyncHit > -1 ) {
 					int iOffs = m_SyncHit - m_SyncLast;
 					_rgSyncDetect.Add( new SKPointI( m_SyncHit, iOffs ) );
                     //if( m_AY == 7 ) {
                     //    InitSlots( _dp.Mode.Resolution.Width, iOffs / dbScanWidth);
-						//_dp.m_rPage = m_SyncHit;
+					//    _dp.m_rPage = m_SyncHit;
 					//}
                     m_SyncLast = m_SyncHit;
 					m_SyncHit  = -1;
 				}
 
 				for( int i = 0; i < iScanWidth; i++ ){ 
-					int    idx = ( rPageOffs + i ) % _dp.m_Buf.Length;
+					int    idx = ( rBase + i ) % _dp.m_Buf.Length;
 					short  sp  = _dp.m_B12[idx];
 
 					#region D12
 					if( sp > _dp.m_SLvl ) {
-						m_SyncHit = rPageOffs + i;
+						m_SyncHit = rBase + i; // Save the absolute position of the sync.
 					}
 					int x = (int)( i * dbD12XScale );
 					if( (x != dx) && (x >= 0) && (x < _pBitmapD12.Width)){
-						int d = sp * 256 / 4096;
-						d = Limit256(d);
+						int d = Limit256((short)(sp * 256F / 4096F));
 						_pBitmapD12.SetPixel( x, m_AY, new SKColor( (byte)d, (byte)d, (byte)d ) );
 						dx = x;
 					}

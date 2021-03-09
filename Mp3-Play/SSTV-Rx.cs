@@ -1044,6 +1044,8 @@ namespace Play.Sound {
 		public SSTVMode Mode { get; protected set; } 
 		public CSSTVSET SstvSet { get; protected set; }
 
+		protected Dictionary<byte, SSTVMode > ModeDictionary { get; } = new Dictionary<byte, SSTVMode>();
+
 		public event NextMode ShoutNextMode; // This will need to be an message.
 
 		public readonly static int NARROW_SYNC		= 1900;
@@ -1208,6 +1210,10 @@ namespace Play.Sound {
 			SampFreq        = iSampFreq;
 			SampBase        = iSampBase;
 			m_dblToneOffset = dbToneOffset;
+
+			foreach( SSTVMode oMode in this ) {
+				ModeDictionary.Add( oMode.VIS, oMode );
+			}
 
 			m_bpf = 0; // TODO: I set 0 for now was... 1;      // wide
 			m_ad  = 0;
@@ -1516,17 +1522,6 @@ namespace Play.Sound {
 			m_SyncHit       = -1;
 			m_SyncLast		= 0;
 
-
-			// If they're running slow/fast? then we'll wander beyond the data
-			// sent and so they set the value to black. Seems Hacky to me.
-			//int eg = SSTVSET.m_WD + SSTVSET.m_KSB + SSTVSET.m_KSB;
-			//int i, j;
-			//for( i = 0; i < SSTVDEMBUFMAX; i++ ){
-			//	for( j = SSTVSET.m_WD; j < eg; j++ ){
-			//		m_Buf[i*m_BWidth + j] = -16384; // Set to black.
-			//	}
-			//}
-
 			m_Sync     = true;
 			m_SyncMode = 0; // Here? This kills me. Probably due to multi threaded stuff.
 			// However, this combo makes sense. We go back for looking for sync signals at the
@@ -1534,7 +1529,7 @@ namespace Play.Sound {
 			SetWidth(m_fNarrow);
 
 			ShoutNextMode?.Invoke( tvMode );
-			// Don't suppor narrow band modes.
+			// Don't support narrow band modes.
 			//if( m_fNarrow ) 
 			//	CalcNarrowBPF(HBPFN, m_bpftap, m_bpf, SSTVSET.m_Mode);
 		}
@@ -1784,131 +1779,20 @@ namespace Play.Sound {
 									// I would expect this to be the normal place when the VIS has been decoded.
 									if( m_SyncMode == 2 ){
 										m_SyncMode++;
-										switch(m_VisData){
-											case 0x82:      // RM8
-												m_NextMode = AllModes.smRM8;
-												break;
-											case 0x86:      // RM12
-												m_NextMode = AllModes.smRM12;
-												break;
-											case 0x84:      // R24
-												m_NextMode = AllModes.smR24;
-												break;
-											case 0x88:      // R36
-												m_NextMode = AllModes.smR36;
-												break;
-											case 0x0c:      // R72
-												m_NextMode = AllModes.smR72;
-												break;
-											case 0x3c:      // SCT1
-												m_NextMode = AllModes.smSCT1;
-												break;
-											case 0xb8:      // SCT2
-												m_NextMode = AllModes.smSCT2;
-												break;
-											case 0xcc:      // SCTDX
-												m_NextMode = AllModes.smSCTDX;
-												break;
-											case 0xac:      // MRT1
-												m_NextMode = AllModes.smMRT1;
-												break;
-											case 0x28:      // MRT2
-												m_NextMode = AllModes.smMRT2;
-												break;
-											case 0xb7:      // SC2-180 $37 00110111
-												m_NextMode = AllModes.smSC2_180;
-												break;
-											case 0x3f:      // SC2-120 $3f 00111111
-												m_NextMode = AllModes.smSC2_120;
-												break;
-											case 0xbb:      // SC2-60 $3b 10111011
-												m_NextMode = AllModes.smSC2_60;
-												break;
-											case 0xdd:      // PD50 $5d  01011101
-												m_NextMode = AllModes.smPD50;
-												break;
-											case 0x63:      // PD90 $63  01100011
-												m_NextMode = AllModes.smPD90;
-												break;
-											case 0x5f:      // PD120 $5f  01011111
-												m_NextMode = AllModes.smPD120;
-												break;
-											case 0xe2:      // PD160 $62  11100010
-												m_NextMode = AllModes.smPD160;
-												break;
-											case 0x60:      // PD180 $60  01100000
-												m_NextMode = AllModes.smPD180;
-												break;
-											case 0xe1:      // PD240 $61  11100001
-												m_NextMode = AllModes.smPD240;
-												break;
-											case 0xde:      // PD290 $5e  11011110
-												m_NextMode = AllModes.smPD290;
-												break;
-											case 0x71:      // P3 $71  01110001
-												m_NextMode = AllModes.smP3;
-												break;
-											case 0x72:      // P5 $71  01110010
-												m_NextMode = AllModes.smP5;
-												break;
-											case 0xf3:      // P7 $73  11110011
-												m_NextMode = AllModes.smP7;
-												break;
-											case 0x23:      // MM 拡張 VIS : Expanded (16bit) VIS!!
+
+										if( ModeDictionary.TryGetValue((byte)m_VisData, out SSTVMode tvModeFound ) ) {
+											m_NextMode = tvModeFound.LegacyMode;
+										} else {
+											if( m_VisData == 0x23 ) {      // MM 拡張 VIS : Expanded (16bit) VIS!!
 												m_SyncMode = 9;
-												m_VisData = 0;
-												m_VisCnt = 8;
-												break;
-											default:
+												m_VisData  = 0;
+												m_VisCnt   = 8;
+											} else {
 												m_SyncMode = 0;
-												break;
+											}
 										}
-									} else {          // 拡張 VIS : Vis Expansion
-										m_SyncMode = 3;
-										switch(m_VisData){
-											case 0x45:      // MR73
-												m_NextMode = AllModes.smMR73;
-												break;
-											case 0x46:      // MR90
-												m_NextMode = AllModes.smMR90;
-												break;
-											case 0x49:      // MR115
-												m_NextMode = AllModes.smMR115;
-												break;
-											case 0x4a:      // MR140
-												m_NextMode = AllModes.smMR140;
-												break;
-											case 0x4c:      // MR175
-												m_NextMode = AllModes.smMR175;
-												break;
-											case 0x25:      // MP73
-												m_NextMode = AllModes.smMP73;
-												break;
-											case 0x29:      // MP115
-												m_NextMode = AllModes.smMP115;
-												break;
-											case 0x2a:      // MP140
-												m_NextMode = AllModes.smMP140;
-												break;
-											case 0x2c:      // MP175
-												m_NextMode = AllModes.smMP175;
-												break;
-											case 0x85:      // ML180
-												m_NextMode = AllModes.smML180;
-												break;
-											case 0x86:      // ML240
-												m_NextMode = AllModes.smML240;
-												break;
-											case 0x89:      // ML280
-												m_NextMode = AllModes.smML280;
-												break;
-											case 0x8a:      // ML320
-												m_NextMode = AllModes.smML320;
-												break;
-											default:
-												m_SyncMode = 0;
-												break;
-										}
+									} else {          // 拡張 VIS : Vis Expansion not supported.
+										m_SyncMode = 0;
 									}
 								}
 							}
