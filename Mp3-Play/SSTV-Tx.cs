@@ -368,20 +368,20 @@ namespace Play.Sound {
         public virtual void WriteVIS( UInt16 uiVIS ) {
             _oModulator.Reset();
 
-			Write( 1900, 0x0, 300 );
-			Write( 1200, 0x0,  10 );
-			Write( 1900, 0x0, 300 );
+			Write( 1900, 300 );
+			Write( 1200,  10 );
+			Write( 1900, 300 );
 
-			Write( 1200, 0x0,  30 ); // Start bit.
+			Write( 1200,  30 ); // Start bit.
 
             int iVISLenInBits = ( uiVIS >= 0x100 ) ? 16 : 8;
 
 			for( int i = 0; i < iVISLenInBits; i++ ) {
-				Write( (short)( ( uiVIS & 0x0001 ) != 0 ? 1100 : 1300), 0x0, 30 );
+				Write( (short)( ( uiVIS & 0x0001 ) != 0 ? 1100 : 1300 ), 0x0, 30 );
 				uiVIS >>= 1;
 			}
 			
-            Write(1200, 0x0, 30 ); // Sync
+            Write( 1200,  30 ); // Stop bit.
         }
 
         /// <summary>
@@ -449,7 +449,7 @@ namespace Play.Sound {
         public override void WriteVIS( ushort uiVIS ) {
             base.WriteVIS(uiVIS);
 
-            Write( 1200, 0x0, 9 ); // One time Sync, rely on exact timing (in old days)
+            Write( 1200, 9 ); // One time Sync, rely on exact timing (in old days)
         }
 
         /// <summary>
