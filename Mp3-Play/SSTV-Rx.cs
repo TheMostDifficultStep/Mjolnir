@@ -250,6 +250,9 @@ namespace Play.Sound {
 			m_AFCE = m_AFCB + m_AFCW;
 		}
 
+		/// <summary>
+		/// Note: This is used by SyncCheck and might be removable when I get my own synchronizer working.
+		/// </summary>
 		double GetTiming(AllModes mode) {
 			switch(mode){
 				case AllModes.smR36:
@@ -867,6 +870,7 @@ namespace Play.Sound {
 			m_fNarrow = false;
 			Reset();
 		}
+
 		public void Reset( bool fNarrow = false ) {
 			Array.Clear( m_MSyncList, 0, m_MSyncList.Length );
 
@@ -946,7 +950,7 @@ namespace Play.Sound {
 			return true;
 		}
 
-		/// <returns>Returns 1 plus the AllModes value or 0.</returns>
+		/// <returns>Used to add 1 plus the AllModes value or 0.</returns>
 		/// <remarks>This is seriously lame use of a return code. Either hack the enumeration
 		/// so that zero is not one of the valid modes, or make a return value and pass 
 		/// an out variable to return the mode.</remarks>
@@ -1672,6 +1676,8 @@ namespace Play.Sound {
 				m_sint1.SyncInc();
 				m_sint2.SyncInc();
 				m_sint3.SyncInc();
+
+				// The only time we care about this one is in VIS.
 				d11 = m_iir11.Do(d);
 				if( d11 < 0.0 )
 					d11 = -d11;
@@ -1679,56 +1685,56 @@ namespace Play.Sound {
 
 				switch(m_SyncMode){
 					case 0:                 // 自動開始 : Start automatically
-						if( !m_Sync /* && m_MSync */ ){
-							if( m_sint1.SyncStart( SstvSet, out AllModes eLegacy ) ) {
-								tvMode = GetSSTVMode( eLegacy );
-								if( tvMode != null ) {
-									SstvSet.SetMode( tvMode );
-									Start( tvMode );
-								}
-							} else if( (d12 > d19) && (d12 > m_SLvl2) && ((d12-d19) >= m_SLvl2) ){
-								m_sint2.SyncMax( (int)d12);
-							} else {
-								if( m_sint2.SyncStart( SstvSet, out eLegacy ) ) {
-									switch( eLegacy ){
-										case AllModes.smSCT1:
-										case AllModes.smMRT1:
-										case AllModes.smMRT2:
-										case AllModes.smSC2_180:
-											{
-											tvMode = GetSSTVMode( eLegacy );
-											if( tvMode != null ) {
-												SstvSet.SetMode( tvMode );
-												Start( tvMode );
-											}
-											}
-											break;
-										default:
-											break;
-									}
-								}
-							}
-		//#if NARROW_SYNC == 1900
-							if( (d19 > d12) && (d19 > dsp) && (d19 > m_SLvl3) && ((d19-d12) >= m_SLvl3) && ((d19-dsp) >= m_SLvl) ){
-								if( m_sint3.m_SyncPhase != 0 ){
-									m_sint3.SyncMax ( (int)d19);
-								} else {
-									m_sint3.SyncTrig( (int)d19);
-									m_sint3.m_SyncPhase++;
-								}
-							}
-							else if( m_sint3.m_SyncPhase != 0 ){
-								m_sint3.m_SyncPhase = 0;
-								if( m_sint3.SyncStart(SstvSet, out eLegacy) ) {
-									tvMode = GetSSTVMode( eLegacy );
-									if( tvMode != null ) {
-										SstvSet.SetMode( tvMode );
-										Start( tvMode );
-									}
-								}
-							}
-		//#endif
-						}
+		//				if( !m_Sync /* && m_MSync */ ){
+		//					if( m_sint1.SyncStart( SstvSet, out AllModes eLegacy ) ) {
+		//						tvMode = GetSSTVMode( eLegacy );
+		//						if( tvMode != null ) {
+		//							SstvSet.SetMode( tvMode );
+		//							Start( tvMode );
+		//						}
+		//					} else if( (d12 > d19) && (d12 > m_SLvl2) && ((d12-d19) >= m_SLvl2) ){
+		//						m_sint2.SyncMax( (int)d12);
+		//					} else {
+		//						if( m_sint2.SyncStart( SstvSet, out eLegacy ) ) {
+		//							switch( eLegacy ){
+		//								case AllModes.smSCT1:
+		//								case AllModes.smMRT1:
+		//								case AllModes.smMRT2:
+		//								case AllModes.smSC2_180:
+		//									{
+		//									tvMode = GetSSTVMode( eLegacy );
+		//									if( tvMode != null ) {
+		//										SstvSet.SetMode( tvMode );
+		//										Start( tvMode );
+		//									}
+		//									}
+		//									break;
+		//								default:
+		//									break;
+		//							}
+		//						}
+		//					}
+		////#if NARROW_SYNC == 1900
+		//					if( (d19 > d12) && (d19 > dsp) && (d19 > m_SLvl3) && ((d19-d12) >= m_SLvl3) && ((d19-dsp) >= m_SLvl) ){
+		//						if( m_sint3.m_SyncPhase != 0 ){
+		//							m_sint3.SyncMax ( (int)d19);
+		//						} else {
+		//							m_sint3.SyncTrig( (int)d19);
+		//							m_sint3.m_SyncPhase++;
+		//						}
+		//					}
+		//					else if( m_sint3.m_SyncPhase != 0 ){
+		//						m_sint3.m_SyncPhase = 0;
+		//						if( m_sint3.SyncStart(SstvSet, out eLegacy) ) {
+		//							tvMode = GetSSTVMode( eLegacy );
+		//							if( tvMode != null ) {
+		//								SstvSet.SetMode( tvMode );
+		//								Start( tvMode );
+		//							}
+		//						}
+		//					}
+		////#endif
+		//				}
 						// The first 1900hz has been seen, and now we're going down to 1200 for 15 ms. (s/b 10)
 						if( (d12 > d19) && (d12 > m_SLvl) && ((d12-d19) >= m_SLvl) ){
 							m_SyncMode++;
@@ -1753,7 +1759,7 @@ namespace Play.Sound {
 								m_SyncMode++;
 								m_SyncTime = (int)(30 * sys.m_SampFreq/1000); // Each bit is 30 ms!!
 								m_VisData  = 0; // Init value
-								m_VisCnt   = 8; // Start counting down the 8 bits.
+								m_VisCnt   = 8; // Start counting down the 8 bits, (after 30ms).
 							}
 						} else {
 							m_SyncMode = 0;
@@ -1776,12 +1782,14 @@ namespace Play.Sound {
 									m_VisData |= 0x0080; // Set the 8th bit and we shift right for next.
 								m_VisCnt--;
 								if( m_VisCnt == 0 ){
-									// I would expect this to be the normal place when the VIS has been decoded.
+									// Note: we've picked up the last bit to determine the VIS, but we need
+									//       to walk over the 30ms STOP bit.
 									if( m_SyncMode == 2 ){
 										m_SyncMode++;
 
 										if( ModeDictionary.TryGetValue((byte)m_VisData, out SSTVMode tvModeFound ) ) {
 											m_NextMode = tvModeFound.LegacyMode;
+											m_SyncTime += (int)(7 * sys.m_SampFreq/1000.0 ); // HACK: This fixes us. But why?
 										} else {
 											if( m_VisData == 0x23 ) {      // MM 拡張 VIS : Expanded (16bit) VIS!!
 												m_SyncMode = 9;
@@ -1798,7 +1806,7 @@ namespace Play.Sound {
 							}
 						}
 						break;
-					case 3:                 // 1200Hz(30ms)‚のチェック : check
+					case 3:                 // 1200Hz(30ms)‚のチェック : check. 30ms STOP bit.
 						if( !m_Sync ){
 							m_pll.Do(ad);
 						}

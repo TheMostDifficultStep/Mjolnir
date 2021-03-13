@@ -456,26 +456,43 @@ namespace Play.Sound {
 
 	}
 
+	/// <summary>This IIRTank thing is probably a simple parallel RLC tank circuit, BANDPASS filter.</summary>
+	/// <remarks>
+	/// Fred J. Taylor, in Encyclopedia of Physical Science and Technology (Third Edition), 2003:  First, if magnitude frequency 
+	/// response is to be sharp or abrupt in terms of a transition between passbands and stopbands (called the filter skirt), 
+	/// the IIR is the design of choice. If phase performance is the design objective, an FIR should be chosen. The IIRs are
+	/// generally of low order (N ≤ 16), while the FIRs are usually of high order (N ≥ 16).
+	/// </remarks>
 	public class CIIRTANK {
-		double	z1, z2;
+		double	z1, z2;  // past 1 or 2 ago values
 
-		double	a0;
+		double	a0;      // Coefficients for the filter.
 		double	b1, b2;
 
 		/// <summary>
 		/// Sample frequency comes from the global value.
+		/// B's are coeff's applied to the input. A's are coeff's to past values of the output.
 		/// </summary>
 		public CIIRTANK( double p_dbSampFreq )
 		{
 			b1 = b2 = a0 = z1 = z2 = 0;
-			SetFreq(2000.0, p_dbSampFreq, 50.0);
+			SetFreq(2000.0, p_dbSampFreq, 50.0); // dummy values.
 		}
 
+		/// <summary>
+		/// Since the sampling frequency is all that changes as we this object we really could save
+		/// our frequency responce and bandwidth. But that's a small thing.
+		/// Note: ω = 2 π f
+		/// </summary>
+		/// <param name="f"  >The frequency we are looking for! Yay!</param>
+		/// <param name="smp">Sampling frequency</param>
+		/// <param name="bw" >Bandwidth perhaps??</param>
+		/// <remarks>Why the lb? and la0 rigmarole? The world may never know.</remarks>
 		public void SetFreq(double f, double smp, double bw)
 		{
 			double lb1, lb2, la0;
-			lb1 = 2 * Math.Exp(-Math.PI * bw/smp) * Math.Cos(2 * Math.PI * f / smp);
-			lb2 = -Math.Exp(-2*Math.PI*bw/smp);
+			lb1 = 2 * Math.Exp(  -Math.PI * bw/smp) * Math.Cos(2 * Math.PI * f/smp);
+			lb2 =    -Math.Exp(-2*Math.PI * bw/smp);
 
 			if( bw != 0 ){
 				//const double _gt[]={18.0, 26.0, 20.0, 20.0};
@@ -493,7 +510,8 @@ namespace Play.Sound {
 			d += (z1 * b1);
 			d += (z2 * b2);
 			z2 = z1;
-			if( Math.Abs(d) < 1e-37 ) d = 0.0;
+			if( Math.Abs(d) < 1e-37 ) 
+				d = 0.0;
 			z1 = d;
 			return d;
 		}
@@ -505,18 +523,14 @@ namespace Play.Sound {
 	public class CIIR {
 		protected static int IIRMAX = 16;
 
-		double[] Z;
-		double[] A;
-		double[] B;
-		int		 m_order;
+		readonly double[] Z = new double[IIRMAX*2];
+		readonly double[] A = new double[IIRMAX*3];
+		readonly double[] B = new double[IIRMAX*2];
+		int		 m_order = 0;
 		int		 m_bc;
 		double	 m_rp;
 
 		public CIIR() {
-			m_order = 0;
-			A = new double[IIRMAX*3];
-			B = new double[IIRMAX*2];
-			Z = new double[IIRMAX*2];
 		}
 
 		void Clear()
@@ -532,8 +546,8 @@ namespace Play.Sound {
 			MakeIIR(A, B, fc, fs, order, bc, rp);
 		}
 
-		// bc : 0-バターワース, 1-チェビシフ
-		// rp : 通過域のリップル
+		// bc : 0-バターワース, 1-チェビシフ : 0-Butterworth, 1-Chevisif
+		// rp : 通過域のリップル : Ripple in the pass area
 		public static void MakeIIR(double []A, double[]B, double fc, double fs, int order, int bc, double rp)
 		{
 			double	w0, wa, u=0, zt, x;
@@ -587,8 +601,7 @@ namespace Play.Sound {
 			}
 		}
 
-		public double Do(double d)
-		{
+		public double Do(double d) {
 			int pA = 0;
 			int pB = 0;
 			int pZ = 0;
