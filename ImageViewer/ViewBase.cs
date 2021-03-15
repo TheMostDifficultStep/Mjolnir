@@ -237,7 +237,7 @@ namespace Play.ImageViewer {
 	/// But that might not be possible for a variety of reasons.
 	/// </summary>
 	public class ImageViewSingle : ImageViewBase, IPgParent {
-		protected bool _fDisposed = false;
+		public bool _fDisposed { get; private set; } = false;
 
 		public SmartRect Selection { get; } = new SmartRect();   // selection in Bmp coordinates.
 

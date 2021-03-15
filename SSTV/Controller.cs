@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 
 using Play.Interfaces.Embedding;
+using Play.ImageViewer;
 
 namespace Play.SSTV {
 	public class MySSTVController : Controller {
@@ -21,8 +22,10 @@ namespace Play.SSTV {
 					return new ViewFFT( oBaseSite, oMySSTVDoc );
 				if( guidViewType == ViewTransmit.ViewType )
 					return new ViewTransmit( oBaseSite, oMySSTVDoc );
-				if( guidViewType == ViewRecieve .ViewType )
-					return new ViewRecieve( oBaseSite, oMySSTVDoc );
+				//if( guidViewType == ViewRecieve .ViewType )
+				//	return new ViewRecieve( oBaseSite, oMySSTVDoc );
+				if( guidViewType == SSTVReceiveImage.ViewRX )
+					return new SSTVReceiveImage( oBaseSite, oMySSTVDoc );
 
 				// Make the receive the default in the future.
 				return new ViewTransmit( oBaseSite, oMySSTVDoc );
@@ -42,7 +45,8 @@ namespace Play.SSTV {
 		public override IEnumerator<IPgViewType> GetEnumerator() {
 		    yield return new ViewType( "Spectrum",  ViewFFT     .ViewType );
 			yield return new ViewType( "Tx Screen", ViewTransmit.ViewType );
-			yield return new ViewType( "Rx Screen", ViewRecieve .ViewType );
+		  //yield return new ViewType( "Rx Screen", ViewRecieve .ViewType );
+			yield return new ViewType( "Rx Image",  SSTVReceiveImage.ViewRX );
 		}
 	}
 

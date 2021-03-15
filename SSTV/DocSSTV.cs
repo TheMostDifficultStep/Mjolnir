@@ -537,6 +537,8 @@ namespace Play.SSTV {
 
 			tvMode.ScanLineWidthInSamples = (int)Math.Round( _oRxSSTV.ScanWidthInSamples );
 
+            _oRxSSTV.PrepDraw();
+
 			ReceiveImage.Bitmap = _oRxSSTV._pBitmapRX;
 			SyncImage   .Bitmap = _oRxSSTV._pBitmapD12;
 
@@ -623,6 +625,14 @@ namespace Play.SSTV {
 						_oWorkPlace.Queue( GetRecorderTask(), 0 );
 					}
                 }
+            }
+        }
+
+        public void RecordBegin3() {
+            if( ImageList.Bitmap != null ) {
+                RecordBegin2( 0, new SKRectI( 0, 0, ImageList.Bitmap.Width, ImageList.Bitmap.Height ) );
+            } else {
+                LogError( "Please select a bitmap first" );
             }
         }
 

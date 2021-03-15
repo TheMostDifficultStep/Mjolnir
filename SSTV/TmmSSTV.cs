@@ -270,7 +270,7 @@ namespace Play.SSTV
 			//UpdateUI();
          }
 
-        void PrepDraw() {
+        public void PrepDraw() {
 			m_SyncRPos      = m_SyncPos = -1;
 			m_SyncAccuracyN = 0;
 			m_AX			= -1;
@@ -320,12 +320,13 @@ namespace Play.SSTV
 			// Process one full scan line at a time.
 			while( _dp.m_Sync && (_dp.m_wBase >=_dp.m_rBase + _dp.Mode.ScanLineWidthInSamples ) ){
 				if( _dp.m_wBgn != 0 ){
-					if( _dp.m_wBgn != 1 ){
+					//if( _dp.m_wBgn != 1 ){
 						// So there's two ways to start up. 1 when the VIS is detected thus
 						// we need possibly re-alloc the bitmaps. The 2'nd when a re-sync is attempted.
 						// In the second case we don't want to reset the bitmaps.
-                        PrepDraw();
-					}
+                    //    PrepDraw();
+					//}
+					// BUG: Move all this to prepdraw
 					_dp.OnDrawBegin();
 					ClearTVImages();
 					InitAutoStop( _dp.SampBase );

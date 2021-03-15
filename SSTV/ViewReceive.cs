@@ -150,7 +150,9 @@ namespace Play.SSTV {
 					break;
 				case ESstvProperty.DownLoadTime:
 					DecorPropertiesLoadTime();
-					Refresh(); // Got to force it or it won't update. Hogging the loop I'll bet.
+					_oViewRx  .Invalidate();
+					_oViewSync.Invalidate();
+					//Refresh(); // Got to force it or it won't update. Hogging the loop I'll bet.
 					break;
 			}
         }
@@ -263,4 +265,72 @@ namespace Play.SSTV {
 
     }
 
+	public class SSTVReceiveImage : 
+		ImageViewSingle, 
+		IPgCommandView,
+		IPgSave<XmlDocumentFragment>,
+		IPgLoad<XmlElement>
+	{
+		public static Guid ViewRX { get; } = new Guid( "{5213847C-8B38-49D8-AAE2-C870F5E6FB51}" );
+
+        public Guid   Catagory => ViewRX;
+        public string Banner   => "SSTV Rx Image";
+        public Image  Iconic   => null;
+        public bool   IsDirty  => false;
+
+        DocSSTV _oDocSSTV;
+
+		public SSTVReceiveImage( IPgViewSite oSiteBase, DocSSTV oDocSSTV ) : base( oSiteBase, oDocSSTV.ReceiveImage ) {
+			_oDocSSTV = oDocSSTV ?? throw new ArgumentNullException( "oDocSSTV must not be null." );
+		}
+
+        protected override void Dispose( bool fDisposing )
+        {
+			if( fDisposing && !_fDisposed ) {
+				_oDocSSTV.PropertyChange -= ListenDoc_PropertyChange;
+			}
+			base.Dispose( fDisposing );
+        }
+
+        public override bool InitNew()
+        {
+            if( !base.InitNew() )
+				return false;
+
+            _oDocSSTV.PropertyChange += ListenDoc_PropertyChange;
+			return true;
+        }
+
+        private void ListenDoc_PropertyChange( ESstvProperty eProp )
+        {
+            switch( eProp ) {
+				case ESstvProperty.DownLoadTime:
+					Invalidate();
+					break;
+			}
+        }
+
+        public override bool Execute( Guid sGuid )
+        {
+			if( sGuid == GlobalCommands.Play ) 
+				_oDocSSTV.RecordBegin3();
+
+            return base.Execute(sGuid);
+        }
+
+        public object Decorate( IPgViewSite oBaseSite, Guid sGuid )
+        {
+            return false;
+        }
+
+        public bool Save( XmlDocumentFragment oStream )
+        {
+            return true;
+        }
+
+        public bool Load( XmlElement oStream )
+        {
+            return InitNew();
+        }
+    }
 }
