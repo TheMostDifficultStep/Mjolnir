@@ -1125,7 +1125,7 @@ namespace Play.Sound {
 
 		// Base pointer represent how far along in samples over the entire image we've gone. 
 		public    int m_wBase { get; protected set; }                        // Write pos in samples stream. Moves forward by scanlinewidthinsamples chunks. Always < size of buffer.
-		public    int m_rBase { get; protected set; } // Read  pos in samples stream, Moves forward by scanlinewidthinsamples chunks. Entire image scanlines.
+		public    double m_rBase { get; protected set; } // Read  pos in samples stream, Moves forward by scanlinewidthinsamples chunks. Entire image scanlines.
 
 	    public bool  m_ReqSave  { get; protected set; }
 
@@ -2028,8 +2028,15 @@ namespace Play.Sound {
 			}
 		}
 
-		public void PageRIncrement() {
-			m_rBase += Mode.ScanLineWidthInSamples;
+		/// <summary>
+		/// Bump up our page read position.
+		/// </summary>
+		/// <param name="dbWidthInSamples">read page increment by samples in double precision.</param>
+		/// <remarks>It is hyper critical that we count the samples in floating point!! Else as in 
+		/// all cases, the error per scan builds up and we begin to slant!!</remarks>
+		/// <seealso cref="CSSTVMOD.Write(int, uint, double)"/>
+		public void PageRIncrement( double dbWidthInSamples ) {
+			m_rBase    += dbWidthInSamples;
 			m_SyncLast = m_SyncHit;
 			m_SyncHit  = -1;
 		}

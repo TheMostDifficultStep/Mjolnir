@@ -235,7 +235,7 @@ namespace Play.SSTV
 			        break;
 	        }
 	        m_AutoSyncPos  = 0x7fffffff;
-	        m_Mult         = (int)(_dp.Mode.ScanLineWidthInSamples / 320.0);
+	        m_Mult         = (int)(ScanWidthInSamples / 320.0);
 	        m_AutoSyncDiff = m_Mult * 3;
 
 			// I would love to know why this requires SampBase!! instead of SampFreq!!
@@ -317,14 +317,14 @@ namespace Play.SSTV
 		/// <remarks>This function will loop until the rPage catches up with the wPage. 
 		/// </remarks>
 		public void DrawSSTV() {
-			while( _dp.m_Sync && (_dp.m_wBase >=_dp.m_rBase + _dp.Mode.ScanLineWidthInSamples ) ){
+			while( _dp.m_Sync && (_dp.m_wBase >=_dp.m_rBase + ScanWidthInSamples ) ){
                 //dp.StorePage();
 
 				if( (_dp.sys.m_AutoStop || _dp.sys.m_AutoSync ) && _dp.m_Sync && (m_SyncPos != -1) ) {
 					AutoStopJob();
 				}
 				DrawSSTVNormal();
-				_dp.PageRIncrement();
+				_dp.PageRIncrement( ScanWidthInSamples );
 
 				ShoutTvEvents?.Invoke( ESstvProperty.DownLoadTime );
 
@@ -344,7 +344,7 @@ namespace Play.SSTV
 			int    ch          = 0;           // current channel skimming the Rx buffer portion.
 			double dbScanWidth = ScanWidthInSamples;
 			int    iScanWidth  = (int)Math.Round( dbScanWidth );
-			int    rBase       = _dp.m_rBase;
+			int    rBase       = (int)Math.Round( _dp.m_rBase );
 			double dbD12XScale = _pBitmapD12.Width / dbScanWidth;
 
 			try { // Added the B12 height check b/c of PD290 error. Look into that.
@@ -422,8 +422,6 @@ namespace Play.SSTV
 			for( int i = 0; i< _rgSlots.Count; ++i ) {
 				dbIdx = _rgSlots[i].Reset( iBmpWidth, dbIdx, dbCorrection );
 			}
-			// TODO: This is critical in the 1'st test harness. Need to inspect.
-			_dp.Mode.ScanLineWidthInSamples = (int)Math.Round( ScanWidthInSamples );
 		}
 
 		protected void PixelSetGreen( int iX, short sValue ) {

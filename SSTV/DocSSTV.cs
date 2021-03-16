@@ -529,8 +529,6 @@ namespace Play.SSTV {
 					throw new ArgumentOutOfRangeException("Unrecognized Mode Type.");
             }
 
-			tvMode.ScanLineWidthInSamples = (int)Math.Round( _oRxSSTV.ScanWidthInSamples );
-
             _oRxSSTV.PrepDraw(); // bitmap allocated in here.
 
 			ReceiveImage.Bitmap = _oRxSSTV._pBitmapRX;
