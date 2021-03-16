@@ -486,13 +486,13 @@ namespace Play.SSTV {
             //}
         }
 
-		private void SaveRxImage( TmmSSTV oSSTV ) {
-			if( oSSTV == null )
+		private void SaveRxImage() {
+			if( ReceiveImage.Bitmap == null )
 				return;
 
 			string strPath = Environment.GetFolderPath( Environment.SpecialFolder.MyPictures );
 
-			using SKImage image  = SKImage.FromBitmap(oSSTV._pBitmapRX);
+			using SKImage image  = SKImage.FromBitmap(ReceiveImage.Bitmap);
 			using var     data   = image.Encode( SKEncodedImageFormat.Png, 80 );
             using var     stream = File.OpenWrite( Path.Combine( strPath, "testmeh.png") );
 
@@ -500,35 +500,29 @@ namespace Play.SSTV {
 		}
 
 		/// <summary>
-		/// The decoder has determined the the incoming video mode. Create a
-		/// Tmm??? to match the given mode. This call comes from CSSTVDEM::Start() 
-		/// Start() resets the write buffer. Then later when DrawSSTV get's called
-		/// the bitmaps get allocated noting the begin. More thread issues to
-		/// keep in mind. We can grab the image pointer here since the mode
-		/// won't change. But that won't be true if we re-use the TmmSSTV object.
-		/// Then we'll need an event on TmSSTV.
+		/// The decoder has determined the the incoming video mode. Set the 
+		/// TmmSSTV to match the given mode. This call comes from CSSTVDEM::Start() 
+		/// Start() resets the write buffer. More thread issues to
+		/// keep in mind.
 		/// </summary>
 		/// <remarks>
-		/// I might need to toss this approach and just have a TmmSSTV that 
-		/// understands all the modes. But let's see how far I can take this
-		/// new approach. Certainly I'll have send a message if the
-		/// decoder is in a different thread than the renderer.
-		/// Also, it's clunky to set the bitmaps as I'm doing. Need to look
-		/// into that more later.</remarks>
-        private void ListenNextRxMode( SSTVMode tvMode )
-        {
+		/// I switched to a TmmSSTV that understands all the modes and is switched
+        /// between them on the fly. The benefit is that I don't need to set
+        /// up the event hooks everytime a new image comes down in the case where I
+        /// was alloc'ing TmmSSTV subclasses.</remarks>
+        private void ListenNextRxMode( SSTVMode tvMode ) {
 			ReceiveImage.Bitmap = null;
 			SyncImage   .Bitmap = null;
 
             switch( tvMode.Family ) {
                 case TVFamily.PD: 
-					_oRxSSTV.InitPD     ( tvMode, _oSSTVBuffer.Spec.Rate, 1 ); 
+					_oRxSSTV.InitPD     ( tvMode, _oSSTVDeModulator.SampFreq, 1 ); // _oSSTVBuffer.Spec.Rate
 					break;
                 case TVFamily.Martin: 
-					_oRxSSTV.InitMartin ( tvMode, _oSSTVBuffer.Spec.Rate, 1 ); 
+					_oRxSSTV.InitMartin ( tvMode, _oSSTVDeModulator.SampFreq, 1 ); 
 					break;
                 case TVFamily.Scottie: 
-					_oRxSSTV.InitScottie( tvMode, _oSSTVBuffer.Spec.Rate, 1 ); 
+					_oRxSSTV.InitScottie( tvMode, _oSSTVDeModulator.SampFreq, 1 ); 
 					break;
 
                 default: 
@@ -537,7 +531,7 @@ namespace Play.SSTV {
 
 			tvMode.ScanLineWidthInSamples = (int)Math.Round( _oRxSSTV.ScanWidthInSamples );
 
-            _oRxSSTV.PrepDraw();
+            _oRxSSTV.PrepDraw(); // bitmap allocated in here.
 
 			ReceiveImage.Bitmap = _oRxSSTV._pBitmapRX;
 			SyncImage   .Bitmap = _oRxSSTV._pBitmapD12;
@@ -578,7 +572,7 @@ namespace Play.SSTV {
                     if( rgErrors.IsUnhandled( oEx ) )
                         throw;
 
-					SaveRxImage( _oRxSSTV );
+					SaveRxImage();
 
 					if( oEx.GetType() != typeof( IndexOutOfRangeException ) ) {
 						LogError( "Trouble recordering in SSTV" );
@@ -641,7 +635,7 @@ namespace Play.SSTV {
 		/// The CSSTVDEM object is not used in these tests. The transmit and recieve
 		/// are set from the given mode.
 		/// </summary>
-		/// <param name="oMode">User selected mode. Any should would.</param>
+		/// <param name="oMode">User selected mode. Any should work.</param>
 		/// <returns>Time in ms before next call wanted.</returns>
         public IEnumerator<int> GetRecordTestTask( SSTVMode oMode ) {
 			if( oMode == null )
@@ -653,30 +647,11 @@ namespace Play.SSTV {
 			_oSSTVDeModulator.SstvSet.SetMode( oMode );
 			_oSSTVDeModulator.Start( oMode );
 
-            switch( oMode.Family ) {
-                case TVFamily.PD: 
-					_oRxSSTV.InitPD     ( oMode, _oSSTVDeModulator.SampFreq, 1 ); break;
-                case TVFamily.Martin: 
-					_oRxSSTV.InitMartin ( oMode, _oSSTVDeModulator.SampFreq, 1 ); break;
-                case TVFamily.Scottie: 
-					_oRxSSTV.InitScottie( oMode, _oSSTVDeModulator.SampFreq, 1 ); break;
-
-                default: 
-					throw new ArgumentOutOfRangeException("Unrecognized Mode Type.");
-            }
-
-
-			ReceiveImage.Bitmap = _oRxSSTV._pBitmapRX;
-			SyncImage   .Bitmap = _oRxSSTV._pBitmapD12;
-
-			oMode.ScanLineWidthInSamples = (int)Math.Round( _oRxSSTV.ScanWidthInSamples );
-
             while( oIter.MoveNext() ) {
 				_oRxSSTV.DrawSSTV();
-				Raise_PropertiesUpdated( ESstvProperty.DownLoadTime );
 				yield return 1;
 			};
-			SaveRxImage( _oRxSSTV );
+			SaveRxImage();
 		}
 
 		/// <summary>
@@ -715,6 +690,8 @@ namespace Play.SSTV {
 
 						_ => throw new ArgumentOutOfRangeException("Unrecognized Mode Type."),
 					};
+
+                    _oSSTVDeModulator.ShoutNextMode += ListenNextRxMode;
 
                     _oWorkPlace.Queue( GetRecordTestTask( oMode ), 0 );
                 }

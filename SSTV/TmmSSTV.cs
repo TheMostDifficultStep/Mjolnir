@@ -305,39 +305,22 @@ namespace Play.SSTV
 			//RxHist.ClearAddFlag();
 			//SBWHist->Enabled = FALSE;
 			//KRH->Enabled = FALSE; // Copy to history.
+
+			// TODO: I'll probably need to call these if re-draw for slant correction.
+			InitAutoStop( _dp.SampBase );
+			m_AutoSyncCount = m_AutoSyncDis = 0;
         }
 
-		void ClearTVImages() {
-			//if( KRD->Checked ){ // KRD: AutoClear
-			//	ClearDraw(pBitmapRX, PBoxRX, sys.m_ColorRXB);
-			//}
-			//ClearDraw(pBitmapD12, PBoxD12, clWhite);
-		}
-
-		public void DrawSSTV()
-		{
-			// Go until the rPage catches up with the wPage.
-			// Process one full scan line at a time.
+		/// <summary>
+		/// Call this function periodically to collect the sstv scan lines.
+		/// </summary>
+		/// <remarks>This function will loop until the rPage catches up with the wPage. 
+		/// </remarks>
+		public void DrawSSTV() {
 			while( _dp.m_Sync && (_dp.m_wBase >=_dp.m_rBase + _dp.Mode.ScanLineWidthInSamples ) ){
-				if( _dp.m_wBgn != 0 ){
-					//if( _dp.m_wBgn != 1 ){
-						// So there's two ways to start up. 1 when the VIS is detected thus
-						// we need possibly re-alloc the bitmaps. The 2'nd when a re-sync is attempted.
-						// In the second case we don't want to reset the bitmaps.
-                    //    PrepDraw();
-					//}
-					// BUG: Move all this to prepdraw
-					_dp.OnDrawBegin();
-					ClearTVImages();
-					InitAutoStop( _dp.SampBase );
-					m_AutoSyncCount = m_AutoSyncDis = 0;
-				}
-				//int ip = dp.m_rPage * dp.m_BWidth;
-                //dp.StorePage( ip );
+                //dp.StorePage();
 
-				// KRSA, assigned sys.m_UseRxBuff ? TRUE : FALSE, see also GetPictureLevel() 
-				if( (_dp.sys.m_AutoStop || _dp.sys.m_AutoSync /* || KRSA->Checked */ ) && 
-					_dp.m_Sync && (m_SyncPos != -1) ) {
+				if( (_dp.sys.m_AutoStop || _dp.sys.m_AutoSync ) && _dp.m_Sync && (m_SyncPos != -1) ) {
 					AutoStopJob();
 				}
 				DrawSSTVNormal();
@@ -346,10 +329,8 @@ namespace Play.SSTV
 				ShoutTvEvents?.Invoke( ESstvProperty.DownLoadTime );
 
 				if( m_AY > _dp.Mode.Resolution.Height ){ 
-					if( _dp.m_Sync ){
-						_dp.Stop();
-                        AllStop();
-					}
+					_dp.Stop();
+                    AllStop();
 					break;
 				}
 			}

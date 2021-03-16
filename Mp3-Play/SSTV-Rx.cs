@@ -21,6 +21,7 @@ using System.Collections;
 using System.Collections.Generic;
 
 namespace Play.Sound {
+
 	public class SYSSET {
 		int     m_Priority = 0;
 
@@ -153,10 +154,15 @@ namespace Play.Sound {
 		smEND,
 	}
 
+	public enum BandPass {
+		Undefined = -1,
+		Wide = 1,
+		Narrow = 2,
+		VeryNarrow = 3
+	}
+
 	public class CSSTVSET {
 		public double   m_OFP    { get; protected set; } // Looks used to help correct slant.
-		public int      m_L      { get; protected set; }
-		public int      m_LM     { get; protected set; }
 		public int      m_OFS    { get; protected set; }
 		public int		m_IOFS   { get; protected set; }
 
@@ -225,7 +231,6 @@ namespace Play.Sound {
 			//m_SampFreq = sys.m_SampFreq; <-- this gets set in the constructor now.
 			m_fNarrow = CSSTVSET.IsNarrowMode( tvMode );
 			SetSampFreq( tvMode );
-			m_LM = (int)((tvMode.ScanLineWidthInSamples * m_L) + 1 ); // This used to find if we've gotten enough of the image to want to save it.
 		}
 
 		void SetSampFreq(SSTVMode tvMode){
@@ -1074,7 +1079,7 @@ namespace Play.Sound {
 
 		double   m_ad;
 		int      m_OverFlow;
-		int      m_bpf;
+		BandPass m_bpf = BandPass.Undefined;
 		int      m_bpftap;
 
 		readonly FreqDetect m_Type      = FreqDetect.FQC; // BUG: This s/b parameter.
@@ -1121,15 +1126,11 @@ namespace Play.Sound {
 		// Base pointer represent how far along in samples over the entire image we've gone. 
 		public    int m_wBase { get; protected set; }                        // Write pos in samples stream. Moves forward by scanlinewidthinsamples chunks. Always < size of buffer.
 		public    int m_rBase { get; protected set; } // Read  pos in samples stream, Moves forward by scanlinewidthinsamples chunks. Entire image scanlines.
-		public    int m_wBgn  { get; protected set; } 
-
-		public void OnDrawBegin() { m_wBgn = 0; } // Was 1.
 
 	    public bool  m_ReqSave  { get; protected set; }
 
 		public bool  m_Lost { get; protected set; }
 
-		public int     m_BWidth; // Max width of a scan line for paged memory.
 		public short[] m_Buf;
 		public short[] m_B12;
 
@@ -1219,16 +1220,13 @@ namespace Play.Sound {
 				ModeDictionary.Add( oMode.VIS, oMode );
 			}
 
-			m_bpf = 0; // TODO: I set 0 for now was... 1;      // wide
 			m_ad  = 0;
 
-			// Our buffer only holds SSTVDEMBUFMAX (24) lines. That must mean we need to
-			// DrawSSTV enough that we unload the buffer in time. m_BWidth must also represent
-			// a maximum line width we'll need since all the modes, will of, course vary.
-			m_BWidth = (int)(1400 * SampFreq / 1000.0 ); // samples width (MAX).
-			int n = SSTVDEMBUFMAX * m_BWidth;
-			m_Buf = new short[n];
-			m_B12 = new short[n];
+			// Our buffer only holds SSTVDEMBUFMAX (24) lines. 
+			int iBufWidth = (int)(1400 * SampFreq / 1000.0 ); // samples width (MAX).
+			int iBufSize  = SSTVDEMBUFMAX * iBufWidth;
+			m_Buf = new short[iBufSize];
+			m_B12 = new short[iBufSize];
 
 		  //Array.Clear( m_Buf, 0, m_Buf.Length );
 		  //Array.Clear( m_B12, 0, m_Buf.Length );
@@ -1245,7 +1243,8 @@ namespace Play.Sound {
 			Array.Clear( HBPF,  0, HBPF .Length );
 			Array.Clear( HBPFS, 0, HBPFS.Length );
 			Array.Clear( HBPFN, 0, HBPFN.Length );
-			CalcBPF();
+			SetBPF( BandPass.Wide );
+			//CalcBPF();
 
 			m_iir11  = new CIIRTANK( iSampFreq );
 			m_iir12  = new CIIRTANK( iSampFreq );
@@ -1338,26 +1337,26 @@ namespace Play.Sound {
 			//}
 		}
 
-		public void CalcBPF(double[] H1, double[] H2, double[] H3, ref int bpftap, int bpf)
+		public void CalcBPF(double[] H1, double[] H2, double[] H3, ref int bpftap, BandPass bpf)
 		{
 			int lfq  = (int)((m_SyncRestart ? 1100 : 1200) + m_dblToneOffset );
 			int lfq2 = (int)(400 + m_dblToneOffset );
 			if( lfq2 < 50 ) 
 				lfq2 = 50;
 			switch(bpf){
-				case 1:     // Wide
+				case BandPass.Wide:
 					bpftap = (int)(24 * SampFreq / 11025.0 );
 					CFIR2.MakeFilter(H1, bpftap, FirFilt.ffBPF, SampFreq,  lfq, 2600 + m_dblToneOffset, 20, 1.0);
 					CFIR2.MakeFilter(H2, bpftap, FirFilt.ffBPF, SampFreq, lfq2, 2500 + m_dblToneOffset, 20, 1.0);
 		//			MakeFilter(H3, bpftap, ffBPF, SampFreq,  NARROW_BPFLOW-200, NARROW_BPFHIGH, 20, 1.0);
 					break;
-				case 2:     // Narrow
+				case BandPass.Narrow:
 					bpftap = (int)(64 * SampFreq / 11025.0 );
 					CFIR2.MakeFilter(H1, bpftap, FirFilt.ffBPF, SampFreq,  lfq, 2500 + m_dblToneOffset, 40, 1.0);
 					CFIR2.MakeFilter(H2, bpftap, FirFilt.ffBPF, SampFreq, lfq2, 2500 + m_dblToneOffset, 20, 1.0);
 		//			MakeFilter(H3, bpftap, ffBPF, SampFreq, NARROW_BPFLOW-100, NARROW_BPFHIGH, 40, 1.0);
 					break;
-				case 3:     // Very Narrow
+				case BandPass.VeryNarrow: 
 					bpftap = (int)(96 * SampFreq / 11025.0 );
 					CFIR2.MakeFilter(H1, bpftap, FirFilt.ffBPF, SampFreq,  lfq, 2400 + m_dblToneOffset, 50, 1.0);
 					CFIR2.MakeFilter(H2, bpftap, FirFilt.ffBPF, SampFreq, lfq2, 2500 + m_dblToneOffset, 20, 1.0);
@@ -1370,7 +1369,7 @@ namespace Play.Sound {
 		  //CalcNarrowBPF(H3, bpftap, bpf, SSTVSET.m_Mode); If I add those modes I'll figure this out.
 		}
 
-		public void CalcNarrowBPF(double[] H3, int bpftap, int bpf, AllModes mode) {
+		public void CalcNarrowBPF(double[] H3, int bpftap, BandPass bpf, AllModes mode) {
 			int low, high;
 			switch(mode){
 				case AllModes.smMN73:
@@ -1398,13 +1397,13 @@ namespace Play.Sound {
 			low  += (int)m_dblToneOffset;
 			high += (int)m_dblToneOffset;
 			switch(bpf){
-				case 1:     // Wide
+				case BandPass.Wide:
 					CFIR2.MakeFilter(H3, bpftap, FirFilt.ffBPF, SampFreq,  low-200, high, 20, 1.0);
 					break;
-				case 2:     // Narrow
+				case BandPass.Narrow:
 					CFIR2.MakeFilter(H3, bpftap, FirFilt.ffBPF, SampFreq, low-100, high, 40, 1.0);
 					break;
-				case 3:     // Very Narrow
+				case BandPass.VeryNarrow:
 					CFIR2.MakeFilter(H3, bpftap, FirFilt.ffBPF, SampFreq,  low, high, 50, 1.0);
 					break;
 				default:
@@ -1417,10 +1416,17 @@ namespace Play.Sound {
 			m_BPF.Create(m_bpftap);
 		}
 
-		void SetBPF(int bpf) {
+		/// <summary>
+		/// This looks it can help with image offset issue but it only
+		/// looks like skip is only called via mouse operations or if this
+		/// function is called on setup.
+		/// </summary>
+		/// <param name="bpf">1:wide, 2:narrow, 3:very narrow</param>
+		void SetBPF(BandPass bpf) {
 			if( bpf != m_bpf ){
-				int delay = m_bpftap;
 				m_bpf = bpf;
+
+				int delay = m_bpftap;
 				CalcBPF();
 				if( m_Sync ){
 					delay = (m_bpftap - delay) / 2;
@@ -1521,7 +1527,6 @@ namespace Play.Sound {
 			m_wCnt  = 0;
 			m_rBase = 0;
 		  //OpenCloseRxBuff();
-			m_wBgn  = 2;
 			m_Lost  = false;
 			m_SyncHit       = -1;
 			m_SyncLast		= 0;
@@ -1572,7 +1577,6 @@ namespace Play.Sound {
 			m_sint2.Reset();
 			m_sint3.Reset();
 
-			m_wBgn     = 0;
 			m_SyncMode = 512;
 			m_Sync     = false;
 			m_SyncAVT  = false;
@@ -1817,9 +1821,9 @@ namespace Play.Sound {
 									// Looks like we request save when we're 65% the way thru an image,
 									// and then suddenly get a new image. I'd do this back when the 
 									// new mode was requested.
-									if( m_rBase >= (SstvSet.m_LM * 65/100.0) ){
-										m_ReqSave = true;
-									}
+									//if( m_rBase >= (SstvSet.m_LM * 65/100.0) ){
+									//	m_ReqSave = true;
+									//}
 								}
 								m_SyncMode = 256;
 								tvMode = GetSSTVMode( m_NextMode );
@@ -1965,9 +1969,9 @@ namespace Play.Sound {
 				if( m_afc ) 
 					d += m_AFCDiff;
 				if( m_Skip != 0 ) {
-					if( m_Skip > 0 ){
+					if( m_Skip > 0 ){ // Ignore this data
 						m_Skip--;
-					} else {
+					} else {          // Pad the overshoot.
 						for( ; m_Skip != 0; m_Skip++ ){
 							int n = m_wBase + m_wCnt;
 							m_Buf[n] = (short)-d;
