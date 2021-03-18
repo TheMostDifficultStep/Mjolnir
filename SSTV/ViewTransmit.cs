@@ -231,13 +231,14 @@ namespace Play.SSTV {
 					return new PropWin( oBaseSite, ImageProperties );
 				}
 				if( sGuid.Equals( GlobalDecorations.Outline ) ) {
-					EditWindow2 oView = new EditWindow2( oBaseSite, _oDocSSTV.ModeList, true );
+					//EditWindow2 oView = new EditWindow2( oBaseSite, _oDocSSTV.ModeList, true );
 
-					oView.LineChanged += Listen_ViewMode_LineChanged;
+					//oView.LineChanged += Listen_ViewMode_LineChanged;
 
-					return oView;
+					//return oView;
+					return new ImageViewIcons( oBaseSite, _oDocSSTV.ImageList );
 				}
-				return false;
+				return null;
 			} catch ( Exception oEx ) {
 				Type[] rgErrors = { typeof( NotImplementedException ),
 									typeof( NullReferenceException ),
@@ -323,6 +324,72 @@ namespace Play.SSTV {
 
         public Image ToolIcon( int iTool ) {
             return _oViewImage.ToolIcon( iTool );
+        }
+    }
+
+	public class SSTVTransmitSelect: 
+		ImageViewSolo 
+	{
+		public static Guid ViewType { get; } = new Guid( "{5BC25D2B-3F4E-4339-935C-CFADC2650B35}" );
+
+        public override Guid   Catagory => ViewType;
+        public override string Banner   => "SSTV Tx Image";
+
+        DocSSTV _oDocSSTV;
+
+		public SSTVTransmitSelect( IPgViewSite oSiteBase, DocSSTV oDocSSTV ) : base( oSiteBase, oDocSSTV.ImageList ) {
+			_oDocSSTV = oDocSSTV ?? throw new ArgumentNullException( "oDocSSTV must not be null." );
+		}
+
+        protected override void Dispose( bool fDisposing )
+        {
+			if( fDisposing && !_fDisposed ) {
+				_oDocSSTV.PropertyChange -= ListenDoc_PropertyChange;
+			}
+			base.Dispose( fDisposing );
+        }
+
+        public override bool InitNew()
+        {
+            if( !base.InitNew() )
+				return false;
+
+            _oDocSSTV.PropertyChange += ListenDoc_PropertyChange;
+
+			Aspect   = _oDocSSTV.ResolutionAt( 0 );
+			DragMode = DragMode.FixedRatio;
+
+			return true;
+        }
+
+        private void ListenDoc_PropertyChange( ESstvProperty eProp )
+        {
+            //switch( eProp ) {
+			//	case ESstvProperty.DownLoadTime:
+			//		Invalidate();
+			//		break;
+			//}
+        }
+
+		public void ListenDoc_ModeChange( int iLine ) {
+			Aspect = _oDocSSTV.ResolutionAt( iLine );
+		}
+
+        public override bool Execute( Guid sGuid ) {
+			if( sGuid == GlobalCommands.Play ) 
+				_oDocSSTV.RecordBegin2( 0, Selection.SKRect );
+
+            return base.Execute(sGuid);
+        }
+
+        public override object Decorate( IPgViewSite oBaseSite, Guid sGuid ) {
+			if( sGuid.Equals( GlobalDecorations.Outline ) ) {
+				return new ImageViewIcons( oBaseSite, _oDocSSTV.ImageList );
+			}
+			if( sGuid.Equals( GlobalDecorations.Options ) ) {
+				return new EditWindow2( oBaseSite, _oDocSSTV.ModeList );
+			}
+            return base.Decorate( oBaseSite, sGuid );
         }
     }
 

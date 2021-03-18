@@ -14,6 +14,9 @@ using Play.Edit;
 using Play.ImageViewer;
 
 namespace Play.SSTV {
+	/// <summary>
+	/// This view shows both the SSTV image and the sync image.
+	/// </summary>
 	public class ViewRecieve:
 		Control,
 		IPgParent,
@@ -32,6 +35,7 @@ namespace Play.SSTV {
 		protected readonly ImageViewSingle _oViewSync;    // The sync bitmap.
 		protected          int             _iCurrentMode = 0;
 
+		// BUG: Consider moving this to the DocSSTV object so more views can use it.
 		protected PropDoc ImageProperties { get; } // Container for properties to show for this window.
 
 		protected LayoutStack _oLayout = new LayoutStackVertical( 5 );
@@ -262,18 +266,20 @@ namespace Play.SSTV {
                     break;
             }
         }
-
     }
 
+	/// <summary>
+	/// This view shows the single image being downloaded from the audio stream.
+	/// </summary>
 	public class SSTVReceiveImage : 
 		ImageViewSingle, 
 		IPgCommandView,
 		IPgSave<XmlDocumentFragment>,
 		IPgLoad<XmlElement>
 	{
-		public static Guid ViewRX { get; } = new Guid( "{5213847C-8B38-49D8-AAE2-C870F5E6FB51}" );
+		public static Guid ViewType { get; } = new Guid( "{5213847C-8B38-49D8-AAE2-C870F5E6FB51}" );
 
-        public Guid   Catagory => ViewRX;
+        public Guid   Catagory => ViewType;
         public string Banner   => "SSTV Rx Image";
         public Image  Iconic   => null;
         public bool   IsDirty  => false;

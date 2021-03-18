@@ -49,8 +49,9 @@ namespace Play.SSTV {
 		{
 			protected readonly DocSSTV _oHost;
 
-			public DocSlot( DocSSTV oHost ) {
-				_oHost = oHost ?? throw new ArgumentNullException();
+			public DocSlot( DocSSTV oHost, string strFileBase = "Not Implemented" ) {
+				_oHost = oHost ?? throw new ArgumentNullException( "Host" );
+                FileBase = strFileBase ?? throw new ArgumentNullException("File base string" );
 			}
 
 			public IPgParent Host => _oHost;
@@ -67,7 +68,7 @@ namespace Play.SSTV {
             public FILESTATS FileStatus   => FILESTATS.READONLY;
             public Encoding  FileEncoding => Encoding.Default;
             public string    FilePath     => "Not Implemented";
-            public string    FileBase     => "Not Implemented";
+            public string    FileBase     { get; protected set; }
 		}
 
         protected readonly IPgBaseSite       _oSiteBase;
@@ -96,7 +97,7 @@ namespace Play.SSTV {
 
 		public ImageSoloDoc ReceiveImage { get; protected set; }
 		public ImageSoloDoc SyncImage    { get; protected set; }
-
+        public int          TvModeIndex  { get; protected set; } = 0;
 
         private DataTester _oDataTester;
 
@@ -121,7 +122,7 @@ namespace Play.SSTV {
             _oSiteBase  = oSite ?? throw new ArgumentNullException( "Site must not be null" );
             _oWorkPlace = ((IPgScheduler)Services).CreateWorkPlace() ?? throw new ApplicationException( "Couldn't create a worksite from scheduler.");
 
-            ModeList  = new GeneratorMode ( new DocSlot( this ) );
+            ModeList  = new GeneratorMode ( new DocSlot( this, "SSTV Tx Modes" ) );
             ImageList = new ImageWalkerDir( new DocSlot( this ) );
             _oDocSnip = new ImageSoloDoc  ( new DocSlot( this ) );
 
@@ -543,6 +544,16 @@ namespace Play.SSTV {
         private void ListenTvEvents( ESstvProperty eProp )
         {
             Raise_PropertiesUpdated( eProp );
+        }
+
+        /// <summary>
+        /// This will be our central SSTV mode selector, any view setting
+        /// the mode will cause our selection to move. At present it won't
+        /// work but I'm just tinkering.
+        /// </summary>
+        /// <param name="iLine"></param>
+        public void Listen_TvModeSelect( int iLine ) {
+			TvModeIndex = iLine;
         }
 
 		/// <summary>

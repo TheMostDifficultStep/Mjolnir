@@ -1118,18 +1118,17 @@ namespace Play.Sound {
 		readonly protected List<SyncCoordinate> _rgSyncDetect = new List<SyncCoordinate>(256); // Dup of the one in TmmSSTV for a bit.
 		protected int     m_SyncHit, m_SyncLast;
 
-		//          int m_wLine;                        // Only used by the old SyncSSTV call. Might remove later.
-		//public   int  m_wPage { get; protected set; } // This determines WHEN we read into the Rx & R12 buffers. Where the writer is.
-	 //   public   int  m_rPage { get; protected set; } // this determines WHEN we read from the Rx & R12 buffers. Where the reader is.
+	  //         int m_wLine;                         // Only used by the old SyncSSTV call. Might remove later.
+      //public   int  m_wPage { get; protected set; } // This determines WHEN we read into the Rx & R12 buffers. Where the writer is.
+	  //public   int  m_rPage { get; protected set; } // this determines WHEN we read from the Rx & R12 buffers. Where the reader is.
 		protected int m_wCnt;                         // How far along on a the scan line we are receiving the image.
 
 		// Base pointer represent how far along in samples over the entire image we've gone. 
-		public    int m_wBase { get; protected set; }                        // Write pos in samples stream. Moves forward by scanlinewidthinsamples chunks. Always < size of buffer.
+		public    int    m_wBase { get; protected set; } // Write pos in samples stream. Moves forward by scanlinewidthinsamples chunks. Always < size of buffer.
 		public    double m_rBase { get; protected set; } // Read  pos in samples stream, Moves forward by scanlinewidthinsamples chunks. Entire image scanlines.
 
 	    public bool  m_ReqSave  { get; protected set; }
-
-		public bool  m_Lost { get; protected set; }
+		public bool  m_Lost     { get; protected set; }
 
 		public short[] m_Buf;
 		public short[] m_B12;

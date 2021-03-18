@@ -114,7 +114,7 @@ namespace Play.ImageViewer {
         readonly List<SmartRect> _rgLeft  = new List<SmartRect>(3);
         readonly List<SmartRect> _rgRight = new List<SmartRect>(3);
 
-        public         Guid      Catagory	  => Guid.Empty;
+        public virtual Guid      Catagory	  => Guid.Empty;
         public virtual string    Banner		  => _oDocWalker.Banner;
 		public virtual Image     Iconic		  => _oIcon;
         public         object    DocumentText => _oDocWalker;
