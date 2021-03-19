@@ -142,12 +142,13 @@ namespace Play.Edit {
         protected readonly IPgViewSite    _oSiteView;   // Our site from the window manager (base interface).
 		protected readonly IPgStandardUI2 _oStdUI;
 
-        protected Point _pntScreenTL = new Point( 0, 0 ); // Gets overwritten in OnSizeChanged()
-
         bool         _fWrap         = true;
         int          _iAdvance      = 0; // Horizontal prefered position of cursor, world units.
         SmartRect    _rctDragBounds = null; // TODO: Move this into the selector.
         SizeF        _szScrollBars  = new SizeF( .1875F, .1875F );
+
+        protected readonly LayoutRect            _rctScreenTL = new LayoutRect( LayoutRect.CSS.None );
+        protected readonly LayoutStackHorizontal _oLayout     = new LayoutStackHorizontal( 5 );
 
         // see System.Collections.ReadOnlyCollectionBase for readonly collections.
         readonly static Keys[] _rgHandledKeys = { Keys.PageDown, Keys.PageUp, Keys.Down,
@@ -280,10 +281,20 @@ namespace Play.Edit {
 
             _oScrollBarVirt.Scroll += OnScrollBar; 
 
-            _pntScreenTL.X = _oScrollBarVirt.Width + 1; // Make it match where we render the cache.
             ScrollBarRefresh();
             CaretIconRefreshLocation();
 
+            using( Graphics oGraphics = this.CreateGraphics() ) {
+                int iWidth = (int)(oGraphics.DpiX * _szScrollBars.Width);
+
+                var oLayoutSBVirt = new LayoutControl( _oScrollBarVirt, LayoutRect.CSS.Pixels, (uint)iWidth);
+                _oLayout.Add( oLayoutSBVirt ); 
+              //_oLayout.Add( new LayoutRect( LayoutRect.CSS.Pixels, 27, 0 ) ); Waaahhh! new select column!!
+                _oLayout.Add( _rctScreenTL  ); 
+
+			    _oLayout.SetRect( 0, 0, Width, Height );
+			    _oLayout.LayoutChildren();
+            }
 			// Kind of evil since we 'might' get called back even before we exit this proc!
 			_oDocument.ListenerAdd(this);    // TODO, consider making this a normal .net event.
 			_oDocument.CaretAdd(CaretPos); // Document moves our caret and keeps it in sync.
@@ -779,7 +790,7 @@ namespace Play.Edit {
         /// <param name="oCache"></param>
         /// <returns></returns>
         protected virtual PointF RenderAt( FTCacheLine oCache ) {
-            return( _oCacheMan.RenderAt( oCache, _pntScreenTL ) );
+            return( _oCacheMan.RenderAt( oCache, new Point( _rctScreenTL.Left, _rctScreenTL.Top ) ) );
         }
 
         /// <summary>Paint just the background of just this cache element. And only
@@ -790,7 +801,7 @@ namespace Play.Edit {
         protected void PaintBackground( SKCanvas skCanvas, SKPaint skPaint, FTCacheLine oCache ) {
             StdUIColors eBg    = StdUIColors.Max;
             PointF      pntUL  = RenderAt( oCache );
-            SKRect      skRect = new SKRect( _pntScreenTL.X, pntUL.Y, Width, pntUL.Y + oCache.Height );
+            SKRect      skRect = new SKRect( _rctScreenTL.Left, pntUL.Y, _rctScreenTL.Right, pntUL.Y + oCache.Height );
 
             if (CaretPos.Line != null && oCache.At == CaretPos.At && !_fSingleLine)
                 eBg = StdUIColors.BGWithCursor;
@@ -927,13 +938,17 @@ namespace Play.Edit {
                 return;
 			}
 
-            using( Graphics oGraphics = this.CreateGraphics() ) {
-                int iWidth = (int)(oGraphics.DpiX * _szScrollBars.Width ); 
-                _pntScreenTL = new Point(  iWidth + 1, 0 ); // Where to display the upperleft of the lines.
+            //using( Graphics oGraphics = this.CreateGraphics() )
+            //{
+            //    int iWidth = (int)(oGraphics.DpiX * _szScrollBars.Width);
+            //    _pntScreenTL = new Point(iWidth + 1, 0); // Where to display the upperleft of the lines.
 
-                _oScrollBarVirt.Width  = iWidth;
-                _oScrollBarVirt.Height = this.Height;
-            }
+            //    _oScrollBarVirt.Width = iWidth;
+            //    _oScrollBarVirt.Height = this.Height;
+            //}
+
+            _oLayout.SetRect( 0, 0, Width, Height );
+			_oLayout.LayoutChildren();
 
             // BUG: Not setting the wrap properly the first time through even tho
             //      a parse has already occured because of another view.
@@ -1013,7 +1028,7 @@ namespace Play.Edit {
         }
 
         public Point TopLeft {
-            get { return( _pntScreenTL ); }
+            get { return new Point( _rctScreenTL.Left, _rctScreenTL.Top ); }
         }
 
         protected Size TextExtent {
@@ -1562,6 +1577,9 @@ namespace Play.Edit {
             return base.IsInputKey( keyData );
         }
 
+        /// <summary>
+        /// Send an event when the line changed.
+        /// </summary>
         protected virtual void Raise_Navigated( NavigationSource eSource, ILineRange oCarat ) {
             // TODO: only want to signal next two when line is actually changed.
             // Note: Currently used by FindWindow and ViewSiteLine objects.
@@ -1951,7 +1969,7 @@ namespace Play.Edit {
         /// Parses roll in after the user changes the text.
         /// </summary>
         protected void OnFormatChanged() {
-            _oCacheMan.OnChangeFormatting( this.Selections, this.Width - _pntScreenTL.X );
+            _oCacheMan.OnChangeFormatting( this.Selections, _rctScreenTL.Width );
 
             this.Invalidate();
         }
