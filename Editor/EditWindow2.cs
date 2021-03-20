@@ -147,7 +147,9 @@ namespace Play.Edit {
         SmartRect    _rctDragBounds = null; // TODO: Move this into the selector.
         SizeF        _szScrollBars  = new SizeF( .1875F, .1875F );
 
-        protected readonly LayoutRect            _rctScreenTL = new LayoutRect( LayoutRect.CSS.None );
+        protected          IPgGlyph              _oCheque     = null;
+        protected          LayoutRect            _rctCheques;
+        protected readonly LayoutRect            _rctTextArea = new LayoutRect( LayoutRect.CSS.None );
         protected readonly LayoutStackHorizontal _oLayout     = new LayoutStackHorizontal( 5 );
 
         // see System.Collections.ReadOnlyCollectionBase for readonly collections.
@@ -159,10 +161,11 @@ namespace Play.Edit {
         readonly ICollection<ILineSelection> _rgSelectionTypes = new List<ILineSelection>( 3 );
 
         protected readonly LineRange _oLastCursor = new LineRange(); // A spare for use with the hyperlink stuff.
-        protected CacheManager2      _oCacheMan;
-        protected bool               _fReadOnly;
+        protected      CacheManager2 _oCacheMan;
+        protected          bool      _fReadOnly;
         protected readonly Bitmap    _oIcon;
         protected readonly bool      _fSingleLine; // Little hack until I make single line editors.
+        protected          bool      _fCheckMarks = false; // Right now subclass and reset this to use checkmarks.
 
         public Dictionary<string, HyperLink> HyperLinks { get; } = new Dictionary<string, HyperLink>();
 
@@ -285,12 +288,14 @@ namespace Play.Edit {
             CaretIconRefreshLocation();
 
             using( Graphics oGraphics = this.CreateGraphics() ) {
-                int iWidth = (int)(oGraphics.DpiX * _szScrollBars.Width);
-
+                int iWidth        = (int)(oGraphics.DpiX * _szScrollBars.Width);
                 var oLayoutSBVirt = new LayoutControl( _oScrollBarVirt, LayoutRect.CSS.Pixels, (uint)iWidth);
-                _oLayout.Add( oLayoutSBVirt ); 
-              //_oLayout.Add( new LayoutRect( LayoutRect.CSS.Pixels, 27, 0 ) ); Waaahhh! new select column!!
-                _oLayout.Add( _rctScreenTL  ); 
+                    _rctCheques   = new LayoutRect( LayoutRect.CSS.Pixels, (uint)(_oCheque.Coordinates.advance_em_x >> 6), 0 );
+
+                _oLayout.Add( oLayoutSBVirt );   // Scrollbar
+                if( _fCheckMarks )                  // If I could turn off columns I wouldn't need to do this.
+                    _oLayout.Add( _rctCheques ); // Whoooo! new select column!!
+                _oLayout.Add( _rctTextArea  );   // Main text area.
 
 			    _oLayout.SetRect( 0, 0, Width, Height );
 			    _oLayout.LayoutChildren();
@@ -315,18 +320,19 @@ namespace Play.Edit {
         /// ways to get device resolution.
         /// </summary>
 		protected virtual CacheManager2 CreateCacheManager() {
-            //Screen myScreen = Screen.FromControl(this);
-            //Rectangle area = myScreen.WorkingArea;
-
-            SKSize sResolution = new SKSize( 96, 96 ); // 106, 106
+            SKSize sResolution = new SKSize( 96, 96 );
             using( Graphics oGraphics = this.CreateGraphics() ) {
                 sResolution.Width  = oGraphics.DpiX;
                 sResolution.Height = oGraphics.DpiY;
             }
             // cour.ttf, consola.ttf
-            uint uiStdText = _oStdUI.FontCache( _oStdUI.FaceCache( @"C:\windows\fonts\consola.ttf" ), 12, sResolution );
-            _oStdUI.FontCache( _oStdUI.FaceCache( @"C:\windows\fonts\seguisym.ttf" ), 12, sResolution );
-            //uint uiEmojID  = _oStdUI.FontCache( _oStdUI.FaceCache( @"C:\Users\Frodo\AppData\Local\Microsoft\Windows\Fonts\NotoEmoji-Regular.ttf" ), 12, sResolution );
+            uint uiStdText = _oStdUI.FontCache( _oStdUI.FaceCache( @"C:\windows\fonts\consola.ttf"  ), 12, sResolution );
+            uint uiStdUI   = _oStdUI.FontCache( _oStdUI.FaceCache( @"C:\windows\fonts\seguisym.ttf" ), 12, sResolution );
+          //uint uiEmojID  = _oStdUI.FontCache( _oStdUI.FaceCache( @"C:\Users\Frodo\AppData\Local\Microsoft\Windows\Fonts\NotoEmoji-Regular.ttf" ), 12, sResolution );
+
+            IPgFontRender oRender = _oStdUI.FontRendererAt( uiStdUI );
+            
+            _oCheque = oRender.GetGlyph(0x2714); // TODO: Make overridable.
 
 			return new CacheManager2( new CacheManSlot( this ),
 									  _oStdUI.FontRendererAt( uiStdText ), 
@@ -791,7 +797,7 @@ namespace Play.Edit {
         /// <param name="oCache"></param>
         /// <returns></returns>
         protected virtual PointF RenderAt( FTCacheLine oCache ) {
-            return( _oCacheMan.RenderAt( oCache, new Point( _rctScreenTL.Left, _rctScreenTL.Top ) ) );
+            return( _oCacheMan.RenderAt( oCache, new Point( _rctTextArea.Left, _rctTextArea.Top ) ) );
         }
 
         /// <summary>Paint just the background of just this cache element. And only
@@ -802,7 +808,7 @@ namespace Play.Edit {
         protected void PaintBackground( SKCanvas skCanvas, SKPaint skPaint, FTCacheLine oCache ) {
             StdUIColors eBg    = StdUIColors.Max;
             PointF      pntUL  = RenderAt( oCache );
-            SKRect      skRect = new SKRect( _rctScreenTL.Left, pntUL.Y, _rctScreenTL.Right, pntUL.Y + oCache.Height );
+            SKRect      skRect = new SKRect( _rctTextArea.Left, pntUL.Y, _rctTextArea.Right, pntUL.Y + oCache.Height );
 
             if (CaretPos.Line != null && oCache.At == CaretPos.At && !_fSingleLine)
                 eBg = StdUIColors.BGWithCursor;
@@ -816,6 +822,30 @@ namespace Play.Edit {
             }
         }
 
+        /// <summary>
+        /// This is a simple little glyph draw for the left hand column check mark.
+        /// </summary>
+        public static void DrawGlyph( 
+            SKCanvas      skCanvas, 
+            SKPaint       skPaint,
+            float         flX, 
+            float         flY, 
+            IPgGlyph      oGlyph
+        ) {
+            SKRect skRect = new SKRect( flX, flY, 
+                                        flX + oGlyph.Image.Width, 
+                                        flY + oGlyph.Image.Height );
+            // So XOR only works with alpha, which explains why my
+            // Alpha8 bitmap works with this.
+            skPaint .BlendMode = SKBlendMode.Xor;
+            skCanvas.DrawBitmap(oGlyph.Image, flX, flY, skPaint);
+
+            // So the BG is already the color we wanted, it get's XOR'd and
+            // has a transparency set, then we draw our text colored rect...
+            skPaint .BlendMode = SKBlendMode.DstOver;
+            skCanvas.DrawRect(skRect, skPaint);
+        }
+
         protected override void OnPaintSurface( SKPaintSurfaceEventArgs e ) {
             base.OnPaintSurface(e);
 
@@ -824,19 +854,24 @@ namespace Play.Edit {
 
                 SKSurface skSurface = e.Surface;
                 SKCanvas  skCanvas  = skSurface.Canvas;
+                using SKPaint skPaint2 = new SKPaint {
+                    Color = SKColors.Blue
+                };
+                using SKPaint skPaint = new SKPaint() {
+                    BlendMode = SKBlendMode.Src,
+                    Color     = _oStdUI.ColorsStandardAt(_fReadOnly ? StdUIColors.BGReadOnly : StdUIColors.BG)
+                };
+                // Paint all window background. BUG: We could get by without this if there was no space between lines.
+                skCanvas.DrawRect(e.Info.Rect, skPaint);
 
-                using( SKPaint skPaint = new SKPaint() ) {
-                    // Paint all window background. BUG: We could get by without this if there was no space between lines.
-                    skPaint.BlendMode = SKBlendMode.Src;
-                    skPaint.Color     = _oStdUI.ColorsStandardAt( _fReadOnly ? StdUIColors.BGReadOnly : StdUIColors.BG );
-                    skCanvas.DrawRect( e.Info.Rect, skPaint );
+                // Now paint the lines.
+                foreach( FTCacheLine oCache in _oCacheMan ) {
+                    PaintBackground(skCanvas, skPaint, oCache);
 
-                    // Now paint the lines.
-                    foreach( FTCacheLine oCache in _oCacheMan ) {
-                        PaintBackground( skCanvas, skPaint, oCache );
+                    if( _oDocument.CheckedLine == oCache.Line )
+                        DrawGlyph(skCanvas, skPaint2, _rctCheques.Left, RenderAt(oCache).Y, _oCheque );
 
-                        oCache.Render( skCanvas, _oStdUI, RenderAt(oCache), this.Focused );
-                    }
+                    oCache.Render(skCanvas, _oStdUI, RenderAt(oCache), this.Focused);
                 }
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( NullReferenceException ),
@@ -1029,7 +1064,7 @@ namespace Play.Edit {
         }
 
         public Point TopLeft {
-            get { return new Point( _rctScreenTL.Left, _rctScreenTL.Top ); }
+            get { return new Point( _rctTextArea.Left, _rctTextArea.Top ); }
         }
 
         protected Size TextExtent {
@@ -1164,8 +1199,14 @@ namespace Play.Edit {
 
                 Cursor = oNewCursor;
             } else { 
-                if( Cursor != Cursors.IBeam )
-                    Cursor = Cursors.IBeam;
+                if( _rctTextArea.IsInside( e.Location.X, e.Location.Y ) ) {
+                    if( Cursor != Cursors.IBeam )
+                        Cursor = Cursors.IBeam;
+                }
+                if( _rctCheques.IsInside( e.Location.X, e.Location.Y ) ) {
+                    if( Cursor != Cursors.Arrow )
+                        Cursor = Cursors.Arrow;
+                }
             }
 
             if( ( e.Button & MouseButtons.Left ) == MouseButtons.Left &&
@@ -1218,6 +1259,11 @@ namespace Play.Edit {
             _rctDragBounds = null;
 
             CaretIconRefreshLocation();
+
+            if( _rctCheques.IsInside( e.Location.X, e.Location.Y ) ) {
+                _oDocument.CheckedLine = CaretPos.Line;
+                Raise_SelectionChanged();
+            }
 
             // We ONLY navigate on the MouseUp portion of the mouse messages.
             Raise_Navigated( NavigationSource.UI, CaretPos );
@@ -1970,7 +2016,7 @@ namespace Play.Edit {
         /// Parses roll in after the user changes the text.
         /// </summary>
         protected void OnFormatChanged() {
-            _oCacheMan.OnChangeFormatting( this.Selections, _rctScreenTL.Width );
+            _oCacheMan.OnChangeFormatting( this.Selections, _rctTextArea.Width );
 
             this.Invalidate();
         }

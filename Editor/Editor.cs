@@ -199,6 +199,7 @@ namespace Play.Edit {
         bool      _fIsDirty         = false;
         long      _lWordCount       = 0;
 		Line      _oLineHighLight   = null;
+        public Line CheckedLine { get; set; }
 
         protected readonly IArray<Line>   _rgLines;
         readonly ICollection<ILineEvents> _rgBufferCallbacks = new List<ILineEvents>();
