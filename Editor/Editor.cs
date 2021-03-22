@@ -137,6 +137,7 @@ namespace Play.Edit {
     }
 
 	public delegate void HilightEvent();
+    public delegate void CheckedEvent( Line oLineChecked );
 
 	/// <summary>
 	/// Tiny special purpose interface for music players that are going to message what current line
@@ -199,7 +200,12 @@ namespace Play.Edit {
         bool      _fIsDirty         = false;
         long      _lWordCount       = 0;
 		Line      _oLineHighLight   = null;
-        public Line CheckedLine { get; set; }
+        Line      _oCheckedLine     = null;
+
+        public Line CheckedLine { 
+            get{ return _oCheckedLine; }
+            set{ _oCheckedLine = value; CheckedEvent?.Invoke( value ); }
+        }
 
         protected readonly IArray<Line>   _rgLines;
         readonly ICollection<ILineEvents> _rgBufferCallbacks = new List<ILineEvents>();
@@ -210,6 +216,7 @@ namespace Play.Edit {
         
         public event BufferEvent  BufferEvent;
 		public event HilightEvent HilightEvent;
+        public event CheckedEvent CheckedEvent;
 
         public BaseEditor( IPgBaseSite oSite ) {
             _oSiteBase = oSite;                // Ok if this is null.

@@ -295,8 +295,12 @@ namespace Play.SSTV {
 			}
 		}
 
+        void Listen_ModeChanged( Line oLine ) {
+            Raise_PropertiesUpdated( ESstvProperty.SSTVMode );
+        }
+
         public bool InitNew() {
-            if( !ModeList.InitNew() ) // TODO: Set up hilight on TX!!
+            if( !ModeList .InitNew() ) // TODO: Set up hilight on TX!!
                 return false;
             if( !OutputStreamInit() )  // Not really a cause for outright failure...
                 return false;
@@ -305,8 +309,11 @@ namespace Play.SSTV {
 
 			if( !ReceiveImage.InitNew() )
 				return false;
-			if( !SyncImage.InitNew() )
+			if( !SyncImage   .InitNew() )
 				return false;
+
+            ModeList.CheckedEvent += Listen_ModeChanged;
+            ModeList.CheckedLine = ModeList[0];
 
             LoadModulators( GenerateMartin .GetModeEnumerator() );
             LoadModulators( GenerateScottie.GetModeEnumerator() );
@@ -360,14 +367,16 @@ namespace Play.SSTV {
         /// BUG: This is a bummer but, I use a point for the aspect ratio in my
         /// SmartRect code. I'll fix that later.
         /// </summary>
-        /// <param name="iModeIndex">Index into the ModeList</param>
-        /// <returns></returns>
-        public SKPointI ResolutionAt( int iModeIndex ) {
-            if( ModeList[iModeIndex].Extra is SSTVMode oMode )
-                return new SKPointI( oMode.Resolution.Width, oMode.Resolution.Height );
-
-            LogError( "Problem finding SSTVMode. Using default." );
-            return new SKPointI( 320, 240 );
+        public SKPointI Resolution {
+            get {
+                try {
+                    if( ModeList.CheckedLine.Extra is SSTVMode oMode )
+                        return new SKPointI( oMode.Resolution.Width, oMode.Resolution.Height );
+                } catch( NullReferenceException ) {
+                    LogError( "Problem finding SSTVMode. Using default." );
+                }
+                return new SKPointI( 320, 240 );
+            }
         }
 
         /// <summary>
@@ -470,21 +479,28 @@ namespace Play.SSTV {
         /// need to know what index it came from to set the hilight. HOWEVER, we
         /// count on the skSelect aspect ratio being set with respect to the aspect
         /// of the given SSTVMode.</remarks>
-        public void PlayBegin( int iModeIndex, SKRectI skSelect ) {
-            if( ModeList[iModeIndex].Extra is SSTVMode oMode ) {
-                if( _oWorkPlace.Status == WorkerStatus.FREE ) {
-			        // The DocSnip object retains ownership of it's generated bitmap and frees it on next load.
-                    // Bug: I should check if the selection == the whole bitmap == required dimension
-                    //      and I could skip the snip stage.
-			        _oDocSnip.Load( Bitmap, skSelect, oMode.Resolution );
-                    if( GeneratorSetup( oMode, _oDocSnip.Bitmap ) ) {
-                        _oWorkPlace.Queue( GetPlayerTask(), 0 );
-                        ModeList.HighLight = ModeList[iModeIndex];
+        public void PlayBegin( SKRectI skSelect ) {
+            try {
+                if( ModeList.CheckedLine == null )
+                    ModeList.CheckedLine = ModeList[0];
+
+                if( ModeList.CheckedLine.Extra is SSTVMode oMode ) {
+                    if( _oWorkPlace.Status == WorkerStatus.FREE ) {
+			            // The DocSnip object retains ownership of it's generated bitmap and frees it on next load.
+                        // Bug: I should check if the selection == the whole bitmap == required dimension
+                        //      and I could skip the snip stage.
+			            _oDocSnip.Load( Bitmap, skSelect, oMode.Resolution );
+                        if( GeneratorSetup( oMode, _oDocSnip.Bitmap ) ) {
+                            _oWorkPlace.Queue( GetPlayerTask(), 0 );
+                            ModeList.HighLight = ModeList.CheckedLine;
+                        }
                     }
                 }
+                //while ( _oDataTester.ConsumeData() < 350000 ) {
+                //}
+            } catch( NullReferenceException ) {
+                LogError( "Probably Buggered in the ModeList" );
             }
-            //while ( _oDataTester.ConsumeData() < 350000 ) {
-            //}
         }
 
 		private void SaveRxImage() {
@@ -498,6 +514,7 @@ namespace Play.SSTV {
             using var     stream = File.OpenWrite( Path.Combine( strPath, "testmeh.png") );
 
             data.SaveTo(stream);
+            ModeList.HighLight = null;
 		}
 
 		/// <summary>
@@ -536,6 +553,12 @@ namespace Play.SSTV {
 			SyncImage   .Bitmap = _oRxSSTV._pBitmapD12;
 
 			Raise_PropertiesUpdated( ESstvProperty.RXImageNew );
+            foreach( Line oLine in ModeList ) {
+                if( oLine.Extra is SSTVMode oLineMode ) {
+                    if( oLineMode.LegacyMode == tvMode.LegacyMode )
+                        ModeList.HighLight = oLine;
+                }
+            }
         }
 
 		/// <summary>
@@ -607,33 +630,40 @@ namespace Play.SSTV {
         /// <param name="iModeIndex">TV Mode to use.</param>
         /// <param name="skSelect"></param>
         /// <remarks>Set CSSTVDEM::m_fFreeRun = true</remarks>
-        public void RecordBegin2( int iModeIndex, SKRectI skSelect ) {
-            if( ModeList[iModeIndex].Extra is SSTVMode oMode ) {
-                if( _oWorkPlace.Status == WorkerStatus.FREE ) {
-			        _oDocSnip.Load( Bitmap, skSelect, oMode.Resolution );
-					if( GeneratorSetup( oMode, _oDocSnip.Bitmap ) ) {
-						FFTControlValues oFFTMode  = FFTControlValues.FindMode( RxSpec.Rate ); 
-						SYSSET           sys       = new SYSSET   ( oFFTMode.SampFreq );
-						CSSTVSET         oSetSSTV  = new CSSTVSET ( oMode, 0, oFFTMode.SampFreq, 0, sys.m_bCQ100 );
-						CSSTVDEM         oDemodTst = new CSSTVDEM ( oSetSSTV,
-																	sys,
-																	(int)oFFTMode.SampFreq, 
-																	(int)oFFTMode.SampBase, 
-																	0 );
-						_oRxSSTV          = new TmmSSTV( oDemodTst );
-						_oRxSSTV.ShoutTvEvents += ListenTvEvents;
+        public void RecordBegin2( SKRectI skSelect ) {
+            try {
+                if( ModeList.CheckedLine == null )
+                    ModeList.CheckedLine = ModeList[0];
 
-						_oSSTVDeModulator = oDemodTst;
+                if( ModeList.CheckedLine.Extra is SSTVMode oMode ) {
+                    if( _oWorkPlace.Status == WorkerStatus.FREE ) {
+			            _oDocSnip.Load( Bitmap, skSelect, oMode.Resolution );
+					    if( GeneratorSetup( oMode, _oDocSnip.Bitmap ) ) {
+						    FFTControlValues oFFTMode  = FFTControlValues.FindMode( RxSpec.Rate ); 
+						    SYSSET           sys       = new SYSSET   ( oFFTMode.SampFreq );
+						    CSSTVSET         oSetSSTV  = new CSSTVSET ( oMode, 0, oFFTMode.SampFreq, 0, sys.m_bCQ100 );
+						    CSSTVDEM         oDemodTst = new CSSTVDEM ( oSetSSTV,
+																	    sys,
+																	    (int)oFFTMode.SampFreq, 
+																	    (int)oFFTMode.SampBase, 
+																	    0 );
+						    _oRxSSTV          = new TmmSSTV( oDemodTst );
+						    _oRxSSTV.ShoutTvEvents += ListenTvEvents;
 
-						_oWorkPlace.Queue( GetRecorderTask(), 0 );
-					}
+						    _oSSTVDeModulator = oDemodTst;
+
+						    _oWorkPlace.Queue( GetRecorderTask(), 0 );
+					    }
+                    }
                 }
+            } catch( NullReferenceException ) {
+                LogError( "Probably Buggered twice in the ModeList." );
             }
         }
 
         public void RecordBegin3() {
             if( ImageList.Bitmap != null ) {
-                RecordBegin2( 0, new SKRectI( 0, 0, ImageList.Bitmap.Width, ImageList.Bitmap.Height ) );
+                RecordBegin2( new SKRectI( 0, 0, ImageList.Bitmap.Width, ImageList.Bitmap.Height ) );
             } else {
                 LogError( "Please select a bitmap first" );
             }
@@ -675,35 +705,39 @@ namespace Play.SSTV {
 		///          Set CSSTVDEM::m_fFreeRun to false!!</remarks>
 		/// <seealso cref="InitNew" />
 		/// <seealso cref="OutputStreamInit"/>
-        public void RecordBegin( int iModeIndex, SKRectI skSelect ) {
-            if( ModeList[iModeIndex].Extra is SSTVMode oMode ) {
-                if( _oWorkPlace.Status == WorkerStatus.FREE ) {
-			        _oDocSnip.Load( Bitmap, skSelect, oMode.Resolution );
+        public void RecordBegin( SKRectI skSelect ) {
+            try {
+                if( ModeList.CheckedLine.Extra is SSTVMode oMode ) {
+                    if( _oWorkPlace.Status == WorkerStatus.FREE ) {
+			            _oDocSnip.Load( Bitmap, skSelect, oMode.Resolution );
 
-					FFTControlValues oFFTMode  = FFTControlValues.FindMode( 8000 ); // RxSpec.Rate
-					SYSSET           sys       = new SYSSET   ( oFFTMode.SampFreq );
-					CSSTVSET         oSetSSTV  = new CSSTVSET ( oMode, 0, oFFTMode.SampFreq, 0, sys.m_bCQ100 );
-					DemodTest        oDemodTst = new DemodTest( oSetSSTV,
-															    sys,
-															    (int)oFFTMode.SampFreq, 
-															    (int)oFFTMode.SampBase, 
-															    0 );
-					_oSSTVDeModulator = oDemodTst;
-					_oSSTVModulator   = new CSSTVMOD( 0, oFFTMode.SampFreq, _oSSTVBuffer );
-					_oRxSSTV          = new TmmSSTV ( _oSSTVDeModulator );
+					    FFTControlValues oFFTMode  = FFTControlValues.FindMode( 8000 ); // RxSpec.Rate
+					    SYSSET           sys       = new SYSSET   ( oFFTMode.SampFreq );
+					    CSSTVSET         oSetSSTV  = new CSSTVSET ( oMode, 0, oFFTMode.SampFreq, 0, sys.m_bCQ100 );
+					    DemodTest        oDemodTst = new DemodTest( oSetSSTV,
+															        sys,
+															        (int)oFFTMode.SampFreq, 
+															        (int)oFFTMode.SampBase, 
+															        0 );
+					    _oSSTVDeModulator = oDemodTst;
+					    _oSSTVModulator   = new CSSTVMOD( 0, oFFTMode.SampFreq, _oSSTVBuffer );
+					    _oRxSSTV          = new TmmSSTV ( _oSSTVDeModulator );
 
-					_oSSTVGenerator = oMode.Family switch {
-						TVFamily.PD      => new GeneratePD     ( _oDocSnip.Bitmap, oDemodTst, oMode ),
-						TVFamily.Martin  => new GenerateMartin ( _oDocSnip.Bitmap, oDemodTst, oMode ),
-						TVFamily.Scottie => new GenerateScottie( _oDocSnip.Bitmap, oDemodTst, oMode ),
+					    _oSSTVGenerator = oMode.Family switch {
+						    TVFamily.PD      => new GeneratePD     ( _oDocSnip.Bitmap, oDemodTst, oMode ),
+						    TVFamily.Martin  => new GenerateMartin ( _oDocSnip.Bitmap, oDemodTst, oMode ),
+						    TVFamily.Scottie => new GenerateScottie( _oDocSnip.Bitmap, oDemodTst, oMode ),
 
-						_ => throw new ArgumentOutOfRangeException("Unrecognized Mode Type."),
-					};
+						    _ => throw new ArgumentOutOfRangeException("Unrecognized Mode Type."),
+					    };
 
-                    _oSSTVDeModulator.ShoutNextMode += ListenNextRxMode;
+                        _oSSTVDeModulator.ShoutNextMode += ListenNextRxMode;
 
-                    _oWorkPlace.Queue( GetRecordTestTask( oMode ), 0 );
+                        _oWorkPlace.Queue( GetRecordTestTask( oMode ), 0 );
+                    }
                 }
+            } catch( NullReferenceException ) {
+                LogError( "Ooops didn't pick up mode (I think)" );
             }
         }
 

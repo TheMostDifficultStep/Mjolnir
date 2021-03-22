@@ -14,6 +14,10 @@ using Play.Edit;
 using Play.ImageViewer;
 
 namespace Play.SSTV {
+	/// <summary>
+	/// This is a fancy transmit viewer where the outline was the mode selector and a secondary
+	/// view was the directory of images. I'm going to make this an all in one viewer soon.
+	/// </summary>
 	public class ViewTransmit:
 		Control,
 		IPgParent,
@@ -31,7 +35,6 @@ namespace Play.SSTV {
 
 		protected readonly ImageViewSolo  _oViewImage;   // Show the currently selected image.
 		protected readonly ImageViewIcons _oViewChoices; // Show the image choices.
-		protected          int            _iCurrentMode = 0;
 
 		protected PropDoc ImageProperties { get; } // Container for properties to show for this window.
 
@@ -129,7 +132,7 @@ namespace Play.SSTV {
 			_oViewImage   .Parent = this;
 			_oViewChoices .Parent = this;
 
-			_oViewImage.Aspect   = _oDocSSTV.ResolutionAt( 0 );
+			_oViewImage.Aspect   = _oDocSSTV.Resolution;
 			_oViewImage.DragMode = DragMode.FixedRatio;
 
 			DecorPropertiesInit();
@@ -154,11 +157,6 @@ namespace Play.SSTV {
 			}
 		}
 
-        private void Listen_ViewMode_LineChanged( int iLine ) {
-			_iCurrentMode      = iLine;
-			_oViewImage.Aspect = _oDocSSTV.ResolutionAt( iLine );
-        }
-
         /// <summary>
         /// This is our event sink for property changes on the SSTV document.
         /// </summary>
@@ -173,6 +171,9 @@ namespace Play.SSTV {
 					break;
 				case ESstvProperty.UploadTime:
 					DecorPropertiesLoadTime();
+					break;
+				case ESstvProperty.SSTVMode:
+					_oViewImage.Aspect = _oDocSSTV.Resolution;
 					break;
 			}
         }
@@ -256,7 +257,7 @@ namespace Play.SSTV {
 		public bool Execute(Guid sGuid) {
 			if( sGuid == GlobalCommands.Play ) {
 				// Still using this screen to test recieve.
-				_oDocSSTV.RecordBegin( _iCurrentMode, _oViewImage.Selection.SKRect ); 
+				_oDocSSTV.RecordBegin( _oViewImage.Selection.SKRect ); 
 				return true;
 			}
 			if( sGuid == GlobalCommands.Stop ) {
@@ -327,6 +328,9 @@ namespace Play.SSTV {
         }
     }
 
+	/// <summary>
+	/// This is a view so we can select a transmit image. Basically a slightly motified directory viewer.
+	/// </summary>
 	public class SSTVTransmitSelect: 
 		ImageViewSolo 
 	{
@@ -356,7 +360,7 @@ namespace Play.SSTV {
 
             _oDocSSTV.PropertyChange += ListenDoc_PropertyChange;
 
-			Aspect   = _oDocSSTV.ResolutionAt( 0 );
+			Aspect   = _oDocSSTV.Resolution;
 			DragMode = DragMode.FixedRatio;
 
 			return true;
@@ -364,22 +368,21 @@ namespace Play.SSTV {
 
         private void ListenDoc_PropertyChange( ESstvProperty eProp )
         {
-            //switch( eProp ) {
-			//	case ESstvProperty.DownLoadTime:
-			//		Invalidate();
-			//		break;
-			//}
+            switch( eProp ) {
+				case ESstvProperty.DownLoadTime:
+					Invalidate();
+					break;
+				case ESstvProperty.SSTVMode:
+					Aspect = _oDocSSTV.Resolution;
+					break;
+			}
         }
-
-		public void ListenDoc_ModeChange( int iLine ) {
-			Aspect = _oDocSSTV.ResolutionAt( iLine );
-		}
 
         public override bool Execute( Guid sGuid ) {
 			if( sGuid == GlobalCommands.Play ) 
-				_oDocSSTV.RecordBegin2( 0, Selection.SKRect );
+				_oDocSSTV.RecordBegin2( Selection.SKRect );
 
-            return base.Execute(sGuid);
+            return base.Execute( sGuid );
         }
 
         public override object Decorate( IPgViewSite oBaseSite, Guid sGuid ) {
@@ -387,10 +390,15 @@ namespace Play.SSTV {
 				return new ImageViewIcons( oBaseSite, _oDocSSTV.ImageList );
 			}
 			if( sGuid.Equals( GlobalDecorations.Options ) ) {
-				return new EditWindow2( oBaseSite, _oDocSSTV.ModeList );
+				return new SSTVModeView( oBaseSite, _oDocSSTV.ModeList );
 			}
             return base.Decorate( oBaseSite, sGuid );
         }
     }
 
+	public class SSTVModeView : EditWindow2 {
+		public SSTVModeView( IPgViewSite oSite, Editor oEditor ) : base( oSite, oEditor, fReadOnly:false, fSingleLine:false ) {
+			_fCheckMarks = true;
+		}
+	}
 }

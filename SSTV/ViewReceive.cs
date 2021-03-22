@@ -15,7 +15,8 @@ using Play.ImageViewer;
 
 namespace Play.SSTV {
 	/// <summary>
-	/// This view shows both the SSTV image and the sync image.
+	/// This view shows both the SSTV image and the sync image. But I don't think I want to use
+	/// this object.
 	/// </summary>
 	public class ViewRecieve:
 		Control,
@@ -231,8 +232,8 @@ namespace Play.SSTV {
 
 		public bool Execute(Guid sGuid) {
 			if( sGuid == GlobalCommands.Play ) {
-				//_oDocSSTV.PlayBegin( _iCurrentMode, _oViewImage.Selection.SKRect ); 
-				_oDocSSTV.RecordBegin2( _iCurrentMode, new SKRectI( 0, 0, 320, 256 ) );
+				//_oDocSSTV.PlayBegin( _oViewImage.Selection.SKRect ); 
+				_oDocSSTV.RecordBegin2( new SKRectI( 0, 0, 320, 256 ) );
 				return true;
 			}
 			if( sGuid == GlobalCommands.Stop ) {
