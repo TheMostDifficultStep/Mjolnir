@@ -312,12 +312,12 @@ namespace Play.SSTV {
 			if( !SyncImage   .InitNew() )
 				return false;
 
-            ModeList.CheckedEvent += Listen_ModeChanged;
-            ModeList.CheckedLine = ModeList[0];
-
             LoadModulators( GenerateMartin .GetModeEnumerator() );
             LoadModulators( GenerateScottie.GetModeEnumerator() );
             LoadModulators( GeneratePD     .GetModeEnumerator() );
+
+            ModeList.CheckedEvent += Listen_ModeChanged; // set checkmark AFTER load the modulators... ^_^;;
+            ModeList.CheckedLine = ModeList[0];
 
 			string strPath = Environment.GetFolderPath( Environment.SpecialFolder.MyPictures );
             if( !ImageList.LoadURL( strPath ) ) {
