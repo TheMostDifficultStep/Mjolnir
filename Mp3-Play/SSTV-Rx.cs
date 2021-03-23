@@ -1792,7 +1792,7 @@ namespace Play.Sound {
 
 										if( ModeDictionary.TryGetValue((byte)m_VisData, out SSTVMode tvModeFound ) ) {
 											m_NextMode = tvModeFound.LegacyMode;
-											m_SyncTime += (int)(7 * sys.m_SampFreq/1000.0 ); // HACK: This fixes us. But why?
+											m_SyncTime += (int)(7 * sys.m_SampFreq/1000.0 ); // HACK: This fixes us for all modes. But why?
 										} else {
 											if( m_VisData == 0x23 ) {      // MM 拡張 VIS : Expanded (16bit) VIS!!
 												m_SyncMode = 9;

@@ -12,7 +12,7 @@ using SkiaSharp.Views.Desktop;
 using SkiaSharp;
 
 namespace Play.ImageViewer {
-	enum ImageSoloTools : int {
+	public enum ImageSoloTools : int {
 		Select = 0,
 		Navigate
 	}
@@ -55,8 +55,9 @@ namespace Play.ImageViewer {
 				 float          _flZoom = 1;
 		readonly ImageWalkerDoc _oDocWalker;
 		readonly IPgShellSite   _oSiteShell;
-				 ImageSoloTools _eToolCurrent = ImageSoloTools.Navigate;
-		readonly List<string>   _rgTools      = new List<string>();
+
+		protected ImageSoloTools _eToolCurrent = ImageSoloTools.Navigate;
+		readonly  List<string>   _rgTools      = new List<string>();
 
         readonly static Keys[] _rgHandledKeys = { Keys.PageDown, Keys.PageUp, Keys.Down,
                                                   Keys.Up, Keys.Right, Keys.Left, Keys.Back,

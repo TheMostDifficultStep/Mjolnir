@@ -329,7 +329,7 @@ namespace Play.SSTV {
     }
 
 	/// <summary>
-	/// This is a view so we can select a transmit image. Basically a slightly motified directory viewer.
+	/// This is a new view so we can select a transmit image. Basically a slightly motified directory viewer.
 	/// </summary>
 	public class SSTVTransmitSelect: 
 		ImageViewSolo 
@@ -358,6 +358,7 @@ namespace Play.SSTV {
             if( !base.InitNew() )
 				return false;
 
+			ToolSelect = 0; // Crude but should be sufficient to freeze Skywalker...
             _oDocSSTV.PropertyChange += ListenDoc_PropertyChange;
 
 			Aspect   = _oDocSSTV.Resolution;
@@ -379,8 +380,10 @@ namespace Play.SSTV {
         }
 
         public override bool Execute( Guid sGuid ) {
-			if( sGuid == GlobalCommands.Play ) 
-				_oDocSSTV.RecordBegin2( Selection.SKRect );
+			if( sGuid == GlobalCommands.Play ) {
+				_oDocSSTV.PlayBegin( this.Selection.SKRect );   // Normal tx button behavior.
+			  //_oDocSSTV.RecordBeginTest2( Selection.SKRect ); // Test reception button behavior.
+			}
 
             return base.Execute( sGuid );
         }
@@ -396,8 +399,11 @@ namespace Play.SSTV {
         }
     }
 
+	/// <summary>
+	/// A little subclass of the editwindow to turn on the check marks. turn on readonly and have multiline.
+	/// </summary>
 	public class SSTVModeView : EditWindow2 {
-		public SSTVModeView( IPgViewSite oSite, Editor oEditor ) : base( oSite, oEditor, fReadOnly:false, fSingleLine:false ) {
+		public SSTVModeView( IPgViewSite oSite, Editor oEditor ) : base( oSite, oEditor, fReadOnly:true, fSingleLine:false ) {
 			_fCheckMarks = true;
 		}
 	}

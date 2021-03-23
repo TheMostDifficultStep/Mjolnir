@@ -447,15 +447,16 @@ namespace Play.Sound {
         }
 
         /// <summary>
-        /// We need to add some extra signal after the VIS for the Scottie case.
-        /// See line 7120 in main.cpp of the MMSSTV project.
+        /// See line 7120 in main.cpp of the MMSSTV project. He adds this one time sync signal at the start.
+        /// But it doesn't seem to make sense, as it throws off the horizontal alignment (not the slant) of
+        /// the recieved image in my system. All the modes work happily w/o this code as doesn MMSSTV. So punt.
         /// </summary>
         /// <param name="uiVIS"></param>
-        public override void WriteVIS( ushort uiVIS ) {
-            base.WriteVIS(uiVIS);
+        //public override void WriteVIS( ushort uiVIS ) {
+        //    base.WriteVIS(uiVIS);
 
-            Write( 1200, 9 ); // One time Sync, rely on exact timing (in old days)
-        }
+        //    Write( 1200, 9 ); // One time Sync, rely on exact timing (in old days)
+        //}
 
         /// <summary>
         /// TMmsstv::LineSCT, derived.

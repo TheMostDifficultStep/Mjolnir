@@ -328,7 +328,7 @@ namespace Play.Sound {
 
             MMHelpers.ThrowOnError( eError, ErrorSource.WaveOut );
 
-			// First step, just prep the header and allocate memory. DO NOT PREP
+			// First step, just create the header and allocate memory. DO NOT PREP
 			// the header!!! Separate step since if we get an exception in the constructor 
 			// we can't actually dispose, and thus unprep, the new object!!
 			for (uint iAlloc=0; iAlloc < _iBlockCapacity; ++iAlloc ) {

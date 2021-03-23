@@ -232,8 +232,7 @@ namespace Play.SSTV {
 
 		public bool Execute(Guid sGuid) {
 			if( sGuid == GlobalCommands.Play ) {
-				//_oDocSSTV.PlayBegin( _oViewImage.Selection.SKRect ); 
-				_oDocSSTV.RecordBegin2( new SKRectI( 0, 0, 320, 256 ) );
+				_oDocSSTV.RecordBeginTest2( new SKRectI( 0, 0, 320, 256 ) );
 				return true;
 			}
 			if( sGuid == GlobalCommands.Stop ) {
@@ -320,15 +319,31 @@ namespace Play.SSTV {
         public override bool Execute( Guid sGuid )
         {
 			if( sGuid == GlobalCommands.Play ) 
-				_oDocSSTV.RecordBegin3();
+				_oDocSSTV.RecordBeginTest3();
 
             return base.Execute(sGuid);
         }
 
-        public object Decorate( IPgViewSite oBaseSite, Guid sGuid )
-        {
-            return false;
-        }
+		public object Decorate(IPgViewSite oBaseSite,Guid sGuid) {
+			try {
+				if( sGuid.Equals(GlobalDecorations.Properties) ) {
+					//DecorPropertiesReLoad();
+					//return new PropWin( oBaseSite, ImageProperties );
+				}
+				return false;
+			} catch ( Exception oEx ) {
+				Type[] rgErrors = { typeof( NotImplementedException ),
+									typeof( NullReferenceException ),
+									typeof( ArgumentException ),
+									typeof( ArgumentNullException ) };
+				if( rgErrors.IsUnhandled( oEx ) )
+					throw;
+
+				LogError( "SSTV", "Couldn't create SSTV decor: " + sGuid.ToString() );
+			}
+
+            return( null );
+		}
 
         public bool Save( XmlDocumentFragment oStream )
         {

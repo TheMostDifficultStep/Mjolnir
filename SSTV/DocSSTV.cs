@@ -630,7 +630,7 @@ namespace Play.SSTV {
         /// <param name="iModeIndex">TV Mode to use.</param>
         /// <param name="skSelect"></param>
         /// <remarks>Set CSSTVDEM::m_fFreeRun = true</remarks>
-        public void RecordBegin2( SKRectI skSelect ) {
+        public void RecordBeginTest2( SKRectI skSelect ) {
             try {
                 if( ModeList.CheckedLine == null )
                     ModeList.CheckedLine = ModeList[0];
@@ -661,9 +661,9 @@ namespace Play.SSTV {
             }
         }
 
-        public void RecordBegin3() {
+        public void RecordBeginTest3() {
             if( ImageList.Bitmap != null ) {
-                RecordBegin2( new SKRectI( 0, 0, ImageList.Bitmap.Width, ImageList.Bitmap.Height ) );
+                RecordBeginTest2( new SKRectI( 0, 0, ImageList.Bitmap.Width, ImageList.Bitmap.Height ) );
             } else {
                 LogError( "Please select a bitmap first" );
             }
