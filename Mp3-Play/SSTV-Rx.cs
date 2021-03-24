@@ -1688,56 +1688,6 @@ namespace Play.Sound {
 
 				switch(m_SyncMode){
 					case 0:                 // 自動開始 : Start automatically
-		//				if( !m_Sync /* && m_MSync */ ){
-		//					if( m_sint1.SyncStart( SstvSet, out AllModes eLegacy ) ) {
-		//						tvMode = GetSSTVMode( eLegacy );
-		//						if( tvMode != null ) {
-		//							SstvSet.SetMode( tvMode );
-		//							Start( tvMode );
-		//						}
-		//					} else if( (d12 > d19) && (d12 > m_SLvl2) && ((d12-d19) >= m_SLvl2) ){
-		//						m_sint2.SyncMax( (int)d12);
-		//					} else {
-		//						if( m_sint2.SyncStart( SstvSet, out eLegacy ) ) {
-		//							switch( eLegacy ){
-		//								case AllModes.smSCT1:
-		//								case AllModes.smMRT1:
-		//								case AllModes.smMRT2:
-		//								case AllModes.smSC2_180:
-		//									{
-		//									tvMode = GetSSTVMode( eLegacy );
-		//									if( tvMode != null ) {
-		//										SstvSet.SetMode( tvMode );
-		//										Start( tvMode );
-		//									}
-		//									}
-		//									break;
-		//								default:
-		//									break;
-		//							}
-		//						}
-		//					}
-		////#if NARROW_SYNC == 1900
-		//					if( (d19 > d12) && (d19 > dsp) && (d19 > m_SLvl3) && ((d19-d12) >= m_SLvl3) && ((d19-dsp) >= m_SLvl) ){
-		//						if( m_sint3.m_SyncPhase != 0 ){
-		//							m_sint3.SyncMax ( (int)d19);
-		//						} else {
-		//							m_sint3.SyncTrig( (int)d19);
-		//							m_sint3.m_SyncPhase++;
-		//						}
-		//					}
-		//					else if( m_sint3.m_SyncPhase != 0 ){
-		//						m_sint3.m_SyncPhase = 0;
-		//						if( m_sint3.SyncStart(SstvSet, out eLegacy) ) {
-		//							tvMode = GetSSTVMode( eLegacy );
-		//							if( tvMode != null ) {
-		//								SstvSet.SetMode( tvMode );
-		//								Start( tvMode );
-		//							}
-		//						}
-		//					}
-		////#endif
-		//				}
 						// The first 1900hz has been seen, and now we're going down to 1200 for 15 ms. (s/b 10)
 						if( (d12 > d19) && (d12 > m_SLvl) && ((d12-d19) >= m_SLvl) ){
 							m_SyncMode++;
@@ -1795,10 +1745,10 @@ namespace Play.Sound {
 											m_SyncTime += (int)(7 * sys.m_SampFreq/1000.0 ); // HACK: This fixes us for all modes. But why?
 										} else {
 											if( m_VisData == 0x23 ) {      // MM 拡張 VIS : Expanded (16bit) VIS!!
-												m_SyncMode = 9;
-												m_VisData  = 0;
-												m_VisCnt   = 8;
-											} else {
+											//	m_SyncMode = 9;
+											//	m_VisData  = 0;
+											//	m_VisCnt   = 8;
+											//} else {
 												m_SyncMode = 0;
 											}
 										}
@@ -1824,123 +1774,14 @@ namespace Play.Sound {
 									//	m_ReqSave = true;
 									//}
 								}
-								m_SyncMode = 256;
 								tvMode = GetSSTVMode( m_NextMode );
 								if( tvMode != null ) {
 									SstvSet.SetMode( tvMode );
+									Start( tvMode );
 								}
 							} else {
 								m_SyncMode = 0;
 							}
-						}
-						break;
-					case 4:                 // AVT‚ の 1900Hz 信号待ち : Waiting for Signal
-						m_SyncTime--;
-						if( m_SyncTime == 0 ) { 
-							m_SyncMode = 256; 
-							break;
-						}
-
-						d = m_pll.Do(ad);
-						if( (d >= -1000) && (d <= 1000) ){        // First attack
-							m_SyncMode++;
-							m_SyncATime = (int)(9.7646 * 0.5 * sys.m_SampFreq / 1000.0);
-						}
-						break;
-					case 5:
-						m_SyncTime--;
-						if( m_SyncTime == 0 ) { 
-							m_SyncMode = 256; 
-							break;
-						}
-
-						d = m_pll.Do(ad);
-						if( (d >= -800) && (d <= 800) ){        // 2nd attack
-							m_SyncATime--;
-							if( m_SyncATime == 0 ){
-								m_SyncMode++;
-								m_SyncATime = (int)(9.7646 * sys.m_SampFreq / 1000.0);
-								m_VisData = 0;
-								m_VisCnt = 16;
-							}
-						} else {
-							m_SyncMode = 4;
-						}
-						break;
-					case 6:
-						m_SyncTime--;
-						if( m_SyncTime == 0 ) { 
-							m_SyncMode = 256; 
-							break;
-						}
-
-						d = m_pll.Do(ad);
-						m_SyncATime--;
-						if( m_SyncATime == 0 ){
-							if( (d >= 8000)||(d < -8000) ){
-								m_SyncATime = (int)(9.7646 * sys.m_SampFreq / 1000.0);
-								m_VisData = m_VisData << 1;
-								if( d > 0 ) 
-									m_VisData |= 0x00000001;
-								m_VisCnt--;
-								if( m_VisCnt == 0 ){
-									int l = m_VisData & 0x00ff;
-									int h = (m_VisData >> 8) & 0x00ff;
-									if( ((l + h) == 0x00ff) && (l >= 0xa0) && (l <= 0xbf) && (h >= 0x40) && (h <= 0x5f)  ){
-										if( h != 0x40 ){
-											m_SyncATime = (int)(9.7646 * 0.7 * sys.m_SampFreq / 1000.0);
-											m_SyncTime =  (int)((((double)(h - 0x40) * 165.9982) - 0.8) * sys.m_SampFreq / 1000.0 );
-											m_SyncMode++;
-										} else {
-											if( m_SyncTime == 0 || (m_SyncTime >= 9.7646 * SampFreq / 1000.0) ){
-												m_SyncTime = (int)(((9.7646 * 0.5) - 0.8) * sys.m_SampFreq / 1000.0 );
-											}
-											m_SyncMode = 8;
-										}
-									} else {
-										m_SyncMode = 4;
-									}
-								}
-							} else {
-								m_SyncMode = 4;
-							}
-						}
-						break;
-					case 7:         // 同期 : Same period
-						d = m_pll.Do(ad);
-						if( (d >= -1000) && (d <= 1000) ){        // First attack
-							m_SyncMode = 5;
-							m_SyncATime = (int)(9.7646 * 0.5 * sys.m_SampFreq / 1000.0);
-						}
-						else {
-							m_SyncATime--;
-							if( m_SyncATime == 0 ){
-								m_SyncMode = 4;
-							}
-						}
-						break;
-					case 8:
-						// This code is weird, given we ARE IN m_SyncMode 8, -1 yields 7 which is NEVER 0!!!!
-						m_SyncMode--;
-						if( m_SyncMode == 0 ) {
-							tvMode = GetSSTVMode( m_NextMode );
-							if( tvMode != null ) 
-								Start( tvMode );
-						}
-						break;
-					case 256:               // 強制開始 : Forced Start.
-						tvMode = GetSSTVMode( m_NextMode );
-						if( tvMode != null ) 
-							Start( tvMode );
-						break;
-					case 512:               // 0.5sのウエイト : .5 sec wait.
-						m_SyncTime = (int)(SampFreq * 0.5);
-						m_SyncMode++;
-						break;
-					case 513:
-						m_SyncTime--;
-						if( m_SyncTime == 0 ){
-							m_SyncMode = 0;
 						}
 						break;
 				}
