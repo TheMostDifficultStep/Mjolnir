@@ -1103,18 +1103,16 @@ namespace Play.Sound {
 		readonly CFQC     m_fqc;
 		readonly CHILL    m_hill;
 
-		int         m_Skip;
 		public bool   m_Sync { get; protected set; }
+		int           m_SyncMode;
+		int           m_SyncTime;
+		int           m_VisData;
+		int           m_VisCnt;
+		int           m_Skip;
 		readonly bool m_SyncRestart;
-		int         m_SyncMode;
-		int         m_SyncTime;
-		int         m_SyncATime; // probably to support AVT modes.
-		int         m_VisData;
-		int         m_VisCnt;
-		readonly int m_VisTrig;
-		readonly int m_SyncErr;
-		AllModes    m_NextMode;
-		bool        m_SyncAVT;
+		readonly int  m_SyncErr;
+		AllModes      m_NextMode;
+
 		readonly protected List<SyncCoordinate> _rgSyncDetect = new List<SyncCoordinate>(256); // Dup of the one in TmmSSTV for a bit.
 		protected int     m_SyncHit, m_SyncLast;
 
@@ -1294,7 +1292,6 @@ namespace Play.Sound {
 			m_sint3.Reset( fNarrow:true);
 
 			m_SyncRestart = true;
-			m_SyncAVT     = false;
 
 			m_SenseLvl = 1;
 			SetSenseLvl();
@@ -1504,7 +1501,6 @@ namespace Play.Sound {
 		public void PrepDraw( bool fLoopBack ) {
 			m_fskcall.Clear();
 
-			m_SyncAVT  = false;
 			m_ReqSave  = false;
 		}
 
@@ -1578,7 +1574,6 @@ namespace Play.Sound {
 
 			m_SyncMode = 512;
 			m_Sync     = false;
-			m_SyncAVT  = false;
 
 			m_Skip = 0;
 			SetWidth( false );
@@ -1674,7 +1669,7 @@ namespace Play.Sound {
 				return;
 			}
 
-			if( !m_Sync || m_SyncRestart || m_SyncAVT ){
+			if( !m_Sync || m_SyncRestart ){
 				SSTVMode tvMode;
 				m_sint1.SyncInc();
 				m_sint2.SyncInc();
@@ -1969,241 +1964,6 @@ namespace Play.Sound {
 				m_AFCCount = 0;
 				if( m_AFCDis != 0 )
 					m_AFCDis--;
-			}
-		}
-
-		/// <summary>
-		/// This looks like extra stuff to support MN and MC modes. I'm going to punt
-		/// on these for now.
-		/// </summary>
-		void DecodeFSK( int m, int s ) {
-			int d;
-			switch(m_fskmode){
-				case 0:         // スペースキャリア検出
-					d = Math.Abs(m - s);
-					if( (s > m) && (d >= 2048) ){
-						m_fsktime = (int)((FSKGARD/2) * SstvSet.m_SampFreq/1000);
-						m_fskmode++;
-					}
-					break;
-				case 1:          // スペースキャリア検出(連続)
-					d = Math.Abs(m - s);
-					if( (s > m) && (d >= 2048) ){
-						m_fsktime--;
-						if( m_fsktime == 0 ){
-							m_fsktime = (int)(FSKGARD * SstvSet.m_SampFreq/1000);
-							m_fskmode++;
-						}
-					}
-					else {
-						m_fskmode = 0;
-					}
-					break;
-				case 2:         // スタートビットの検出
-					d = Math.Abs(m - s);
-					m_fsktime--;
-					if( m_fsktime == 0 ){
-						m_fskmode = 0;
-					}
-					else if( (m > s) && (d >= 2048) ){
-						m_fsktime = (int)((FSKINTVAL/2) * SstvSet.m_SampFreq/1000);
-						m_fskmode++;
-					}
-					break;
-				case 3:         // スタートビットの検出(中間点)
-					m_fsktime--;
-					if( m_fsktime == 0 ){
-						d = Math.Abs(m - s);
-						if( (m > s) && (d >= 2048) ){
-							m_fsktime = 0;
-							m_fsknextd = (double)((FSKINTVAL)/1000.0 * SstvSet.m_SampFreq);
-							m_fsknexti = (int)m_fsknextd;
-							m_fskbcnt = 0;
-							m_fskc = 0;
-							m_fskmode++;
-						}
-						else {
-							m_fskmode = 0;
-						}
-					}
-					break;
-				default:
-					m_fsktime++;
-					if( m_fsktime >= m_fsknexti ){
-						d = Math.Abs(m - s);
-						if( d < 2048 ){
-							m_fskmode = 0;
-						}
-						else {
-							m_fsknextd += (double)((FSKINTVAL)/1000.0 * SstvSet.m_SampFreq);
-							m_fsknexti = (int)m_fsknextd;
-							m_fskc = (byte)(m_fskc >> 1);
-							if( m > s ) m_fskc |= 0x20;
-							m_fskbcnt++;
-							if( m_fskbcnt >= 6 ){
-								m_fskbcnt = 0;
-								switch(m_fskmode){
-									case 4:         // First SYNC 0x2A
-										if( m_fskc == 0x2a ){
-											m_fskcnt = 0;
-											m_fskbcnt = 0;
-											m_fsks = 0;
-											m_fskc = 0;
-											m_fskmode++;
-										}
-										else if( m_fskc == 0x2d ){
-											m_fskcnt = 0;
-											m_fskbcnt = 0;
-											m_fsks = 0;
-											m_fskc = 0;
-											m_fskmode = 16;
-										}
-										else {
-											m_fskmode = 0;
-										}
-										break;
-									case 5:         // Store data
-										if( m_fskc == 0x01 ){
-											if( m_fskcnt >= 1 ){
-												m_fskmode++;
-											}
-											else {
-												m_fskmode = 0;
-											}
-										}
-										else {
-											m_fsks = (byte)(m_fskc ^ m_fsks); // XOR
-											m_fskdata.Add( (byte)(m_fskc + 0x20) );
-											if( m_fskdata.Count >= 17 ){
-												m_fskmode = 0;
-											}
-										}
-										break;
-									case 6:         // Check XOR
-										m_fsks &= 0x3f;
-										if( (m_fskc == m_fsks) && m_fskdecode ){
-											//m_fskdata[m_fskcnt] = 0;
-											foreach( byte b in m_fskdata )
-												m_fskcall.Add( (char)b );
-											//StrCopy(m_fskcall, SkipSpace(LPCSTR(m_fskdata)), 16);
-											//clipsp(m_fskcall);
-											m_fskrec = 1;
-											m_fskmode++;
-
-											m_fskcnt = 0;
-											m_fsks = 0;
-											m_fskc = 0;
-										} else {
-											m_fskmode = 0;
-										}
-										break;
-									case 7:         // Store data
-										if( m_fskc == 0x01 ){
-											if( m_fskcnt >= 1 ){
-												m_fskmode++;
-											}
-											else {
-												m_fskmode = 0;
-											}
-										}
-										else if( m_fskc == 0x02 ){
-											m_fsks = 0x02;
-											m_fskNR = 0;
-											m_fskmode = 9;
-										}
-										else if( m_fskc >= 0x10 ){
-											m_fsks = (byte)(m_fskc ^ m_fsks );
-											m_fskNRS.Add( (char)(m_fskc + 0x20) );
-											m_fskcnt++;
-											if( m_fskcnt >= 9 ){
-												m_fskmode = 0;
-											}
-										}
-										else {
-											m_fskmode = 0;
-										}
-										break;
-									case 8:         // Check XOR
-										m_fsks &= 0x3f;
-										if( (m_fskc == m_fsks) && m_fskdecode ){
-											//m_fskNRS[m_fskcnt] = (char)0;
-											//clipsp(m_fskNRS);
-											m_fskNRrec = 1;
-										}
-										m_fskmode = 0;
-										break;
-									case 9:
-										m_fsks  = (byte)(m_fskc ^ m_fsks);
-										m_fskNR = m_fskNR << 6;
-										m_fskNR += m_fskc;
-										m_fskcnt++;
-										if( m_fskcnt >= 2 ){
-											m_fskmode++;
-										}
-										break;
-									case 10:
-										m_fsks &= 0x3f;
-										if( m_fskc == m_fsks ){
-											foreach( char c in m_fskNR.ToString() )
-												m_fskNRS.Add( c );
-											m_fskNRrec = 1;
-										}
-										m_fskmode = 0;
-										break;
-									case 16:
-										m_fsks = (byte)(m_fskc ^ m_fsks);
-										if( m_fskc == 0x15 ){
-											m_fskmode++;
-										}
-										else {
-											m_fskmode = 0;
-										}
-                            			break;
-									case 17:
-										m_fsks = (byte)(m_fskc ^ m_fsks);
-										m_fskdata[0] = m_fskc;
-										m_fskmode++;
-                            			break;
-									case 18:
-										m_fsks &= 0x3f;
-										if( m_fskc == m_fsks ){
-											switch( m_fskdata[0] ) {
-												case 0x02:
-													m_NextMode = AllModes.smMN73;
-													break;
-												case 0x04:
-													m_NextMode = AllModes.smMN110;
-													break;
-												case 0x05:
-													m_NextMode = AllModes.smMN140;
-													break;
-												case 0x14:
-													m_NextMode = AllModes.smMC110;
-													break;
-												case 0x15:
-													m_NextMode = AllModes.smMC140;
-													break;
-												case 0x16:
-													m_NextMode = AllModes.smMC180;
-													break;
-												default:
-													m_NextMode = 0;
-													break;
-											}
-											// I'm not going to support these modes for now.
-											//if( (m_SyncRestart || !m_Sync) && m_NextMode != 0 && (m_SyncMode >= 0) ){
-											//	SSTVSET.SetMode(m_NextMode);
-											//	Start();
-											//}
-										}
-										m_fskmode = 0;
-										break;
-								}
-								m_fskc = 0;
-							}
-						}
-					}
-					break;
 			}
 		}
 
