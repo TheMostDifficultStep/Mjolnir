@@ -86,7 +86,10 @@ namespace Mjolnir {
 
             public bool DoWork( ref uint uiWaitInMS ) {
                 try {
-                    if( _oWorker.MoveNext() ) {
+					// Check if workier is not null since stop called in MoveNext() will set
+					// our worker to null but the site will get re-queue for more work depending
+					// on the current value returned (0).
+                    if( _oWorker != null && _oWorker.MoveNext() ) {
 						uiWaitInMS = (uint)_oWorker.Current;
 						_iStartTick = DateTime.Now.AddMilliseconds( uiWaitInMS ).Ticks;
 						return( true );

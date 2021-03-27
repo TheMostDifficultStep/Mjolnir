@@ -400,13 +400,13 @@ namespace Play.Sound {
 		double SampBase { get; }
 		double ToneOffs { get; }
 
-		public CHILL( SYSSET sys, double dbSampFreq, double dbSampBase, double dbToneOffset )
+		public CHILL( bool bCQ100, double dbSampFreq, double dbSampBase, double dbToneOffset )
 		{
 			SampFreq = dbSampFreq;
 			SampBase = dbSampBase;
 			ToneOffs = dbToneOffset;
 
-			SetWidth( sys, false);
+			SetWidth( bCQ100, false);
 
 		    m_htap = m_tap / 2;
 			MakeHilbert(H, m_tap, SampFreq, 100, SampFreq/2 - 100);
@@ -416,7 +416,7 @@ namespace Play.Sound {
 		}
 
 		//---------------------------------------------------------------------------
-		//‚e‚h‚qƒtƒBƒ‹ƒ^iƒqƒ‹ƒxƒ‹ƒg•ÏŠ·ƒtƒBƒ‹ƒ^j‚ÌÝŒv
+		// ＦＩＲフィルタ（ヒルベルト変換フィルタ）の設計 : (Hilbert transform filter) design
 		//
 		static void MakeHilbert(double [] H, int N, double fs, double fc1, double fc2)
 		{
@@ -457,7 +457,7 @@ namespace Play.Sound {
 			}
 		}
 
-		public void SetWidth( SYSSET sys, bool fNarrow )
+		public void SetWidth( bool bCQ100, bool fNarrow )
 		{
 			if( fNarrow ){
 				m_OFF = (2 * Math.PI * (CSSTVDEM.NARROW_CENTER + ToneOffs)) / SampFreq;
@@ -480,13 +480,13 @@ namespace Play.Sound {
 				m_tap = 12; //12
 				m_df = 0;
 			}
-			if( sys.m_bCQ100 ){
+			if( bCQ100 ){
 				m_tap *= 3;
 			}
 		}
 
 		//-------------------------------------------------
-		// ‚e‚h‚qƒtƒBƒ‹ƒ^‚Ì‚½‚½‚«ž‚Ý‰‰ŽZ
+		// ＦＩＲフィルタのたたき込み演算 : FIR filter tapping operation
 		static double DoFIR(double []hp, double []zp, double d, int tap)
 		{
 			//memcpy(zp, &zp[1], sizeof(double)*tap);
@@ -1129,7 +1129,6 @@ namespace Play.Sound {
 		public    int    m_wBase { get; protected set; } // Write pos in samples stream. Moves forward by scanlinewidthinsamples chunks. Always < size of buffer.
 		public    double m_rBase { get; protected set; } // Read  pos in samples stream, Moves forward by scanlinewidthinsamples chunks. Entire image scanlines.
 
-	    public bool  m_ReqSave  { get; protected set; }
 		public bool  m_Lost     { get; protected set; }
 
 		public short[] m_Buf;
@@ -1216,7 +1215,7 @@ namespace Play.Sound {
 		  //Array.Clear( m_B12, 0, m_Buf.Length );
 
 			m_fqc  = new CFQC( SampFreq, dbToneOffset );
-			m_hill = new CHILL( sys, SampFreq, SampBase, dbToneOffset );
+			m_hill = new CHILL( sys.m_bCQ100, SampFreq, SampBase, dbToneOffset );
 
 			m_pll = new CPLL( SampFreq, dbToneOffset );
 			m_pll.SetVcoGain ( 1.0 );
@@ -1282,8 +1281,6 @@ namespace Play.Sound {
 
 			m_SenseLvl = 1;
 			SetSenseLvl();
-
-		    m_ReqSave   = false;
 		}
 
 		public void Dispose() {
@@ -1478,10 +1475,6 @@ namespace Play.Sound {
     			m_fqc .SetWidth(fNarrow);
 				m_pll .SetWidth(fNarrow);
 			}
-		}
-
-		public void PrepDraw( bool fLoopBack ) {
-			m_ReqSave  = false;
 		}
 
 		/// <summary>

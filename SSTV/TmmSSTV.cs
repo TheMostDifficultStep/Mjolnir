@@ -279,9 +279,7 @@ namespace Play.SSTV
 			m_SyncLast		= 0;
 
 			_rgSyncDetect.Clear();
-			//if( dp.m_ReqSave ){
-			//	WriteHistory(1);
-			//}
+
 			if( _pBitmapRX == null ||
 				_dp.Mode.Resolution.Width  != _pBitmapRX.Width ||
 				_dp.Mode.Resolution.Height != _pBitmapRX.Height   )
@@ -297,10 +295,6 @@ namespace Play.SSTV
 			//UpdateModeBtn();
 			//::GetUTC(&m_StartTime);
 
-            // TSpeedButton SBTX, looks like TX send button, down to send. 
-            // but we want to be RX mode. See: TMmsstv::SBTXClick() && TMmsstv::ToRX()
-            // Might be loop back shows what we're sending!! Maybe!
-            _dp.PrepDraw( /* SBTX->Down ? sys.m_echo : 0 */ false );
 			//WaveStg.WInit();
 			//RxHist.ClearAddFlag();
 			//SBWHist->Enabled = FALSE;
@@ -347,7 +341,7 @@ namespace Play.SSTV
 			int    rBase       = (int)Math.Round( _dp.m_rBase );
 			double dbD12XScale = _pBitmapD12.Width / dbScanWidth;
 
-			try { // Added the B12 height check b/c of PD290 error. Look into that.
+			try { 
 				m_AY = (int)Math.Round(rBase/dbScanWidth) * LineMultiplier; // PD needs us to use Round (.999 is 1)
 				if( (m_AY < 0) || (m_AY >= _pBitmapRX.Height) || (m_AY >= _pBitmapD12.Height) )
 					return;
@@ -388,8 +382,7 @@ namespace Play.SSTV
 							if( oChannel.SetPixel != null ) {
 								x = (int)((i - oChannel.Min) * oChannel.Scaling );
 								if( (x != rx) && (x >= 0) && (x < _pBitmapRX.Width) ) {
-									short ip = _dp.m_Buf[idx];
-									rx = x; oChannel.SetPixel( x, ip );
+									rx = x; oChannel.SetPixel( x, _dp.m_Buf[idx] );
 								}
 							}
 							break;
@@ -548,10 +541,14 @@ namespace Play.SSTV
 			InitSlots( oMode.Resolution.Width, dbCorrection );
 		}
 
+		/// <summary>
+		/// Change the image parsing mode we are in. 
+		/// </summary>
+		/// <param name="tvMode"></param>
 		public void SSTVModeTransition( SSTVMode tvMode ) {
             switch( tvMode.Family ) {
                 case TVFamily.PD: 
-					InitPD     ( tvMode, _dp.SampFreq, 1 ); // _oSSTVBuffer.Spec.Rate
+					InitPD     ( tvMode, _dp.SampFreq, 1 ); 
 					break;
                 case TVFamily.Martin: 
 					InitMartin ( tvMode, _dp.SampFreq, 1 ); 

@@ -630,7 +630,7 @@ namespace Play.SSTV {
             readonly AutoResetEvent _autoEvent;
 
             public SSTVMode NextMode { get; protected set; } 
-            public TmmSSTV  RxSSTV   {  get; protected set; }
+            public TmmSSTV  RxSSTV   { get; protected set; }
             CSSTVDEM        _oSSTVDeModulator;
 
             public ThreadWorker( AutoResetEvent  autoEvent, string strFileName ) {
@@ -702,12 +702,17 @@ namespace Play.SSTV {
                         _autoEvent.Set();
                     }
                 }
+
+                NextMode = null;
             }
 
             private void Listen_NextRxMode( SSTVMode tvMode )
             {
-                RxSSTV.SSTVModeTransition( tvMode ); // bitmap allocated in here. (may throw exception...)
-                NextMode = tvMode;
+                try {
+                    RxSSTV.SSTVModeTransition( tvMode ); // bitmap allocated in here.
+                    NextMode = tvMode;
+                } catch( ArgumentOutOfRangeException ) {
+                }
             }
         }
 
