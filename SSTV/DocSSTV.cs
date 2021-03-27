@@ -687,7 +687,7 @@ namespace Play.SSTV {
 			    CSSTVDEM         oDemod    = new CSSTVDEM ( oSetSSTV,
 														    sys,
 														    (int)oFFTMode.SampFreq, 
-														    (int)oFFTMode.SampBase, // This might be our oscillator frequency.
+														    (int)oFFTMode.SampBase, 
 														    0 );
 
                 _oSSTVDeModulator = oDemod;

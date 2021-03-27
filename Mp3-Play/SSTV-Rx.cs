@@ -40,32 +40,14 @@ namespace Play.Sound {
 		int		m_TimeOffsetMin;
 		int		m_LogLink;
 
-		int		m_SoundFifoRX;
-		int		m_SoundFifoTX;
-
 		public bool   m_TestDem  { get; protected set; } = false; // used
 		public double m_DemOff   { get; } = 0;
 		public double m_DemWhite { get; } = 128.0/16384.0;
 		public double m_DemBlack { get; } = 128.0/16384.0;
 		public bool   m_DemCalibration { get; } = false; // see TmmSSTV.pCalibration
 
-		//int     m_FFTType;
-		//int	  m_FFTGain;
-		//int	  m_FFTResp;
-		//int     m_FFTStg;
-		//int     m_FFTWidth;
-		//int	  m_FFTAGC;
-		//int     m_FFTPriority;
-		//double  m_TxSampOff;
-
 		public double	m_SampFreq { get; protected set; } // used
 
-		int      m_TuneTXTime;
-		int      m_TuneSat;
-
-		int      m_Way240;
-		int		 m_AutoMargin;
-				  
 		// UseRxBuff : can be CWaveStrage: 2 or m_StgBuf: 1 or off.
 		public int  m_UseRxBuff { get; protected set; } = 2; 
 		public bool m_AutoStop  { get; protected set; } = false; // used
@@ -82,17 +64,6 @@ namespace Play.Sound {
 		double   m_DiffLevelP;
 		double   m_DiffLevelM;
 
-		public bool m_Repeater { get; protected set; } = false; // used
-		public int  m_RepSenseLvl { get; protected set; }  // トーン検出感度 : Tone detection sensitivity (used)
-		public int  m_RepTimeA { get; protected set; }     // トーン検出時間 : Tone detection time 
-		public int  m_RepTimeB { get; protected set; }     // トーン検出からAnsCW出力までの時間 : Time from tone detection to AnsCW output 
-		public int  m_RepTimeC { get; protected set; }     // 受信待機のタイムアウト : Receive wait timeout
-		public int  m_RepTimeD { get; protected set; }     // リプレイ送信の遅延時間 : Delay time for replay transmission 
-
-		string   m_Msg;
-
-	  //int			m_TempDelay;
-		int			m_Temp24;
 		public bool	m_bCQ100 { get; protected set; } = false;
 
 		public SYSSET( double dbSampFreq ) {
@@ -384,9 +355,9 @@ namespace Play.Sound {
 	{
 		public static int HILLTAP = 48;
 
-		double[]  Z = new double[HILLTAP+1];
-		double[]  H = new double[HILLTAP+1];
-		double[]  m_A = new double[4];
+		readonly double[]  Z = new double[HILLTAP+1];
+		readonly double[]  H = new double[HILLTAP+1];
+		readonly double[]  m_A = new double[4];
 
 		double	  m_OFF;
 		double	  m_OUT;
@@ -1471,7 +1442,7 @@ namespace Play.Sound {
 		void SetWidth( bool fNarrow) {
 			if( m_fNarrow != fNarrow ){
 				m_fNarrow = fNarrow;
-				m_hill.SetWidth( sys, fNarrow);
+				m_hill.SetWidth( sys.m_bCQ100, fNarrow);
     			m_fqc .SetWidth(fNarrow);
 				m_pll .SetWidth(fNarrow);
 			}
