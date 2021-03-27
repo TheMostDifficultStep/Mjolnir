@@ -311,6 +311,7 @@ namespace Play.SSTV {
         {
             switch( eProp ) {
 				case ESstvProperty.DownLoadTime:
+				case ESstvProperty.DownLoadFinished:
 					Invalidate();
 					break;
 			}
@@ -318,8 +319,14 @@ namespace Play.SSTV {
 
         public override bool Execute( Guid sGuid )
         {
-			if( sGuid == GlobalCommands.Play ) 
-				_oDocSSTV.RecordBeginTest3();
+			if( sGuid == GlobalCommands.Play ) {
+				//_oDocSSTV.RecordBeginTest3();
+				// \\hefty3\frodo\Documents\Radio\sstv\sstv-test-files\sstv_test-1.wav
+				// C:\Users\Frodo\Documents\signals\ic-705\20201230\20201230_060411.wav
+				// C:\Users\Frodo\Documents\signals\iss\2020-12-31
+
+				_oDocSSTV.RecordBeginFileRead2( @"C:\Users\Frodo\Documents\signals\iss\2020-12-31\20201231_1743z.wav");
+			}
 
             return base.Execute(sGuid);
         }

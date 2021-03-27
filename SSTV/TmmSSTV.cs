@@ -548,6 +548,24 @@ namespace Play.SSTV
 			InitSlots( oMode.Resolution.Width, dbCorrection );
 		}
 
+		public void SSTVModeTransition( SSTVMode tvMode ) {
+            switch( tvMode.Family ) {
+                case TVFamily.PD: 
+					InitPD     ( tvMode, _dp.SampFreq, 1 ); // _oSSTVBuffer.Spec.Rate
+					break;
+                case TVFamily.Martin: 
+					InitMartin ( tvMode, _dp.SampFreq, 1 ); 
+					break;
+                case TVFamily.Scottie: 
+					InitScottie( tvMode, _dp.SampFreq, 1 ); 
+					break;
+
+                default: 
+					throw new ArgumentOutOfRangeException("Unrecognized Mode Type.");
+            }
+
+            PrepDraw(); // bitmap allocated in here.
+		}
     } // End Class TmmSSTV
 
 	public delegate void setPixel( int iX, short sLevel );

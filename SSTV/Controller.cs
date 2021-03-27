@@ -35,7 +35,6 @@ namespace Play.SSTV {
 				if( guidViewType == ViewTransmitModes ) {
 					// Seealso ViewTransmit.Listen_ViewMode_LineChanged()
 					EditWindow2 oView = new SSTVModeView( oBaseSite, oMySSTVDoc.ModeList );
-					oView.LineChanged += oMySSTVDoc.Listen_TvModeSelect;
 					return oView;
 				}
 

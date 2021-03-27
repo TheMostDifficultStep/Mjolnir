@@ -381,7 +381,7 @@ namespace Play.SSTV {
 
         public override bool Execute( Guid sGuid ) {
 			if( sGuid == GlobalCommands.Play ) {
-				_oDocSSTV.PlayBegin( this.Selection.SKRect );   // Normal tx button behavior.
+			    _oDocSSTV.PlayBegin( this.Selection.SKRect );   // Normal tx button behavior.
 			  //_oDocSSTV.RecordBeginTest2( Selection.SKRect ); // Test reception button behavior.
 			}
 

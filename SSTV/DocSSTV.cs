@@ -2,8 +2,11 @@
 using System.IO;
 using System.Collections.Generic;
 using System.Text;
+using System.Threading;
 
 using SkiaSharp;
+using NAudio.Wave;
+using NAudio.Wave.SampleProviders;
 
 using Play.Interfaces.Embedding;
 using Play.Sound;
@@ -19,7 +22,8 @@ namespace Play.SSTV {
         FFT,
         TXImageChanged,
 		RXImageNew,
-		DownLoadTime
+		DownLoadTime,
+        DownLoadFinished
     }
 
     public delegate void SSTVPropertyChange( ESstvProperty eProp );
@@ -31,6 +35,8 @@ namespace Play.SSTV {
         IDisposable
     {
         private bool disposedValue;
+        AutoResetEvent _oAutoReset = new AutoResetEvent(false);
+        Thread         _oThread    = null;
 
         /// <summary>
         /// This editor shows the list of modes we can modulate.
@@ -97,7 +103,6 @@ namespace Play.SSTV {
 
 		public ImageSoloDoc ReceiveImage { get; protected set; }
 		public ImageSoloDoc SyncImage    { get; protected set; }
-        public int          TvModeIndex  { get; protected set; } = 0;
 
         private DataTester _oDataTester;
 
@@ -444,7 +449,9 @@ namespace Play.SSTV {
         }
 
         /// <summary>
-        /// This is our work iterator we use to play the audio.
+        /// This is our work iterator we use to play the audio. It's my standandard player that
+        /// queue's up a portion of sounds and then wait's half that time to return and top
+        /// off the buffers again.
         /// </summary>
         /// <returns>Amount of time to wait until we want call again, in Milliseconds.</returns>
         public IEnumerator<int> GetPlayerTask() {
@@ -471,14 +478,9 @@ namespace Play.SSTV {
         }
 
         /// <summary>
-        /// Try to begin playing image.
+        /// Begin transmitting the image.
         /// </summary>
-        /// <param name="iMode">Which transmission type and mode.</param>
         /// <param name="skSelect">clip region in source bitmap coordinates.</param>
-        /// <remarks>It's a little unfortnuate that we just don't pass the mode. But we 
-        /// need to know what index it came from to set the hilight. HOWEVER, we
-        /// count on the skSelect aspect ratio being set with respect to the aspect
-        /// of the given SSTVMode.</remarks>
         public void PlayBegin( SKRectI skSelect ) {
             try {
                 if( ModeList.CheckedLine == null )
@@ -500,6 +502,212 @@ namespace Play.SSTV {
                 //}
             } catch( NullReferenceException ) {
                 LogError( "Probably Buggered in the ModeList" );
+            }
+        }
+
+        /// <summary>
+        /// New test, read from audio file. BUG, need to see if the stream is stereo.
+        /// </summary>
+        public IEnumerator<int> GetReceiveFromFileTask( AudioFileReader oReader ) {
+            _oSSTVDeModulator.ShoutNextMode += ListenNextRxMode; // BUG: no need to do every time.
+
+            var foo = new WaveToSampleProvider(oReader);
+
+            int     iChannels = oReader.WaveFormat.Channels;
+            int     iBits     = oReader.WaveFormat.BitsPerSample; 
+            float[] rgBuff    = new float[1500]; // BUG: Make this scan line sized in the future.
+            int     iRead     = 0;
+
+            double From32to16( int i ) => rgBuff[i] * 32768;
+            double From16to16( int i ) => rgBuff[i];
+
+            Func<int, double> ConvertInput = iBits == 16 ? From16to16 : (Func<int, double>)From32to16;
+
+            do {
+                try {
+                    iRead = foo.Read( rgBuff, 0, rgBuff.Length );
+                    for( int i = 0; i< iRead; ++i ) {
+                        _oSSTVDeModulator.Do( ConvertInput(i) );
+                    }
+					_oRxSSTV.DrawSSTV();
+				} catch( Exception oEx ) {
+                    Type[] rgErrors = { typeof( NullReferenceException ),
+                                        typeof( ArgumentNullException ),
+                                        typeof( MMSystemException ),
+                                        typeof( InvalidOperationException ),
+										typeof( ArithmeticException ),
+										typeof( IndexOutOfRangeException ) };
+                    if( rgErrors.IsUnhandled( oEx ) )
+                        throw;
+
+					if( oEx.GetType() != typeof( IndexOutOfRangeException ) ) {
+						LogError( "Trouble recordering in SSTV" );
+					}
+					// Don't call _oWorkPlace.Stop() b/c we're already in DoWork() which will
+					// try calling the _oWorker which will have been set to NULL!!
+                    break; // Drop down so we can unplug from our Demodulator.
+                }
+                yield return 1; // 44,100 hz is a lot to process, let's go as fast as possible. >_<;;
+            } while( iRead == rgBuff.Length );
+
+            oReader.Dispose();
+
+            ListenTvEvents( ESstvProperty.DownLoadFinished );
+
+			_oSSTVDeModulator.ShoutNextMode -= ListenNextRxMode;
+			ModeList.HighLight = null;
+        }
+
+        /// <summary>
+        /// This is a partialy successful thread that reads data from a wav file and loads the image.
+        /// Unfortunately it seems to have problems displaying the image as it goes because it is
+        /// hogging the main message queue, I think. I'm going to try true multi threading next.
+        /// </summary>
+        /// <param name="strFileName"></param>
+        public void RecordBeginFileRead( string strFileName ) {
+            var reader1 = new AudioFileReader(strFileName);
+
+			FFTControlValues oFFTMode  = FFTControlValues.FindMode( reader1.WaveFormat.SampleRate ); // RxSpec.Rate
+			SYSSET           sys       = new SYSSET   ( oFFTMode.SampFreq );
+			CSSTVSET         oSetSSTV  = new CSSTVSET ( TVFamily.Martin, 0, oFFTMode.SampFreq, 0, sys.m_bCQ100 );
+			CSSTVDEM         oDemod    = new CSSTVDEM ( oSetSSTV,
+														sys,
+														(int)oFFTMode.SampFreq, 
+														(int)oFFTMode.SampBase, // This might be our oscillator frequency.
+														0 );
+			_oSSTVDeModulator = oDemod;
+			_oRxSSTV          = new TmmSSTV ( _oSSTVDeModulator );
+
+			_oWorkPlace.Queue( GetReceiveFromFileTask(reader1), 0 );
+        }
+
+        /// <summary>
+        /// This is our true multithreading experiment! Cross your fingers!!
+        /// </summary>
+        /// <param name="strFileName"></param>
+        public void RecordBeginFileRead2( string strFileName ) {
+            if( _oThread == null ) {
+                ThreadWorker oWorker        = new ThreadWorker( _oAutoReset, strFileName );
+                ThreadStart  threadDelegate = new ThreadStart ( oWorker.DoWork );
+
+                _oThread = new Thread( threadDelegate );
+                _oThread.Start();
+
+                _oWorkPlace.Queue( GetThreadAdviser( oWorker ), 1 );
+            }
+        }
+
+        public IEnumerator<int> GetThreadAdviser( ThreadWorker oWorker ) {
+            while( _oThread.IsAlive ) {
+                if( oWorker.NextMode != null ) {
+			        ReceiveImage.Bitmap = oWorker.RxSSTV._pBitmapRX;
+			        SyncImage   .Bitmap = oWorker.RxSSTV._pBitmapD12;
+
+			        Raise_PropertiesUpdated( ESstvProperty.RXImageNew );
+
+                    foreach( Line oLine in ModeList ) {
+                        if( oLine.Extra is SSTVMode oLineMode ) {
+                            if( oLineMode.LegacyMode == oWorker.NextMode.LegacyMode )
+                                ModeList.HighLight = oLine;
+                        }
+                    }
+                    _oAutoReset.Set(); // Unblock the DrawSSTV()
+                    break;
+                }
+
+                yield return 250;
+            }
+            while( _oThread.IsAlive ) {
+                yield return 250;
+                Raise_PropertiesUpdated( ESstvProperty.DownLoadTime );
+            }
+
+            // BUG: bitmaps come from RxSSTV and that thread is about to DIE!!
+        }
+
+        public class ThreadWorker {
+            readonly string         _strFileName;
+            readonly AutoResetEvent _autoEvent;
+
+            public SSTVMode NextMode { get; protected set; } 
+            public TmmSSTV  RxSSTV   {  get; protected set; }
+            CSSTVDEM        _oSSTVDeModulator;
+
+            public ThreadWorker( AutoResetEvent  autoEvent, string strFileName ) {
+                _autoEvent   = autoEvent   ?? throw new ArgumentNullException();
+                _strFileName = strFileName ?? throw new ArgumentNullException();
+            }
+
+            public IEnumerator<int> GetReceiveFromFileTask( AudioFileReader oReader ) {
+                var foo = new WaveToSampleProvider(oReader);
+
+                int     iChannels = oReader.WaveFormat.Channels;
+                int     iBits     = oReader.WaveFormat.BitsPerSample; 
+                float[] rgBuff    = new float[1500]; // BUG: Make this scan line sized in the future.
+                int     iRead     = 0;
+
+                double From32to16( int i ) => rgBuff[i] * 32768;
+                double From16to16( int i ) => rgBuff[i];
+
+                Func<int, double> ConvertInput = iBits == 16 ? From16to16 : (Func<int, double>)From32to16;
+
+                do {
+                    try {
+                        iRead = foo.Read( rgBuff, 0, rgBuff.Length );
+                        for( int i = 0; i< iRead; ++i ) {
+                            _oSSTVDeModulator.Do( ConvertInput(i) );
+                        }
+				    } catch( Exception oEx ) {
+                        Type[] rgErrors = { typeof( NullReferenceException ),
+                                            typeof( ArgumentNullException ),
+                                            typeof( MMSystemException ),
+                                            typeof( InvalidOperationException ),
+										    typeof( ArithmeticException ),
+										    typeof( IndexOutOfRangeException ) };
+                        if( rgErrors.IsUnhandled( oEx ) )
+                            throw;
+
+					    //if( oEx.GetType() != typeof( IndexOutOfRangeException ) ) {
+						   // LogError( "Trouble recordering in SSTV" );
+					    //}
+					    // Don't call _oWorkPlace.Stop() b/c we're already in DoWork() which will
+					    // try calling the _oWorker which will have been set to NULL!!
+                        break; // Drop down so we can unplug from our Demodulator.
+                    }
+                    yield return 0; 
+                } while( iRead == rgBuff.Length );
+            }
+
+            public void DoWork() {
+                using var oReader = new AudioFileReader(_strFileName); 
+
+			    FFTControlValues oFFTMode  = FFTControlValues.FindMode( oReader.WaveFormat.SampleRate ); // RxSpec.Rate
+			    SYSSET           sys       = new SYSSET   ( oFFTMode.SampFreq );
+			    CSSTVSET         oSetSSTV  = new CSSTVSET ( TVFamily.Martin, 0, oFFTMode.SampFreq, 0, sys.m_bCQ100 );
+			    CSSTVDEM         oDemod    = new CSSTVDEM ( oSetSSTV,
+														    sys,
+														    (int)oFFTMode.SampFreq, 
+														    (int)oFFTMode.SampBase, // This might be our oscillator frequency.
+														    0 );
+
+                _oSSTVDeModulator = oDemod;
+			    RxSSTV            = new TmmSSTV( oDemod );
+
+                oDemod.ShoutNextMode += Listen_NextRxMode;
+
+                IEnumerator<int> oIter = GetReceiveFromFileTask( oReader );
+                while( oIter.MoveNext() ) {
+                    if( _autoEvent.WaitOne(0) ) {
+                        RxSSTV    .DrawSSTV();
+                        _autoEvent.Set();
+                    }
+                }
+            }
+
+            private void Listen_NextRxMode( SSTVMode tvMode )
+            {
+                RxSSTV.SSTVModeTransition( tvMode ); // bitmap allocated in here. (may throw exception...)
+                NextMode = tvMode;
             }
         }
 
@@ -532,22 +740,7 @@ namespace Play.SSTV {
 			ReceiveImage.Bitmap = null;
 			SyncImage   .Bitmap = null;
 
-            switch( tvMode.Family ) {
-                case TVFamily.PD: 
-					_oRxSSTV.InitPD     ( tvMode, _oSSTVDeModulator.SampFreq, 1 ); // _oSSTVBuffer.Spec.Rate
-					break;
-                case TVFamily.Martin: 
-					_oRxSSTV.InitMartin ( tvMode, _oSSTVDeModulator.SampFreq, 1 ); 
-					break;
-                case TVFamily.Scottie: 
-					_oRxSSTV.InitScottie( tvMode, _oSSTVDeModulator.SampFreq, 1 ); 
-					break;
-
-                default: 
-					throw new ArgumentOutOfRangeException("Unrecognized Mode Type.");
-            }
-
-            _oRxSSTV.PrepDraw(); // bitmap allocated in here.
+            _oRxSSTV.SSTVModeTransition( tvMode ); // bitmap allocated in here. (may throw exception...)
 
 			ReceiveImage.Bitmap = _oRxSSTV._pBitmapRX;
 			SyncImage   .Bitmap = _oRxSSTV._pBitmapD12;
@@ -567,16 +760,12 @@ namespace Play.SSTV {
         private void ListenTvEvents( ESstvProperty eProp )
         {
             Raise_PropertiesUpdated( eProp );
-        }
 
-        /// <summary>
-        /// This will be our central SSTV mode selector, any view setting
-        /// the mode will cause our selection to move. At present it won't
-        /// work but I'm just tinkering.
-        /// </summary>
-        /// <param name="iLine"></param>
-        public void Listen_TvModeSelect( int iLine ) {
-			TvModeIndex = iLine;
+            switch( eProp ) {
+                case ESstvProperty.DownLoadFinished:
+                    SaveRxImage();
+                    break;
+            }
         }
 
 		/// <summary>
@@ -585,7 +774,7 @@ namespace Play.SSTV {
 		/// </summary>
 		/// <returns>Time to wait until next call in ms.</returns>
         public IEnumerator<int> GetRecorderTask() {
-            _oSSTVDeModulator.ShoutNextMode += ListenNextRxMode;
+            _oSSTVDeModulator.ShoutNextMode += ListenNextRxMode; // BUG: no need to do every time.
             do {
                 try {
                     for( int i = 0; i< 500; ++i ) {
@@ -641,7 +830,7 @@ namespace Play.SSTV {
 					    if( GeneratorSetup( oMode, _oDocSnip.Bitmap ) ) {
 						    FFTControlValues oFFTMode  = FFTControlValues.FindMode( RxSpec.Rate ); 
 						    SYSSET           sys       = new SYSSET   ( oFFTMode.SampFreq );
-						    CSSTVSET         oSetSSTV  = new CSSTVSET ( oMode, 0, oFFTMode.SampFreq, 0, sys.m_bCQ100 );
+						    CSSTVSET         oSetSSTV  = new CSSTVSET ( oMode.Family, 0, oFFTMode.SampFreq, 0, sys.m_bCQ100 );
 						    CSSTVDEM         oDemodTst = new CSSTVDEM ( oSetSSTV,
 																	    sys,
 																	    (int)oFFTMode.SampFreq, 
@@ -683,7 +872,7 @@ namespace Play.SSTV {
 			IEnumerator<int> oIter = _oSSTVGenerator.GetEnumerator();
 
 			oIter            .MoveNext(); // skip the VIS for now.
-			_oSSTVDeModulator.SstvSet.SetMode( oMode );
+			_oSSTVDeModulator.SstvSet.SetMode( oMode.Family );
 			_oSSTVDeModulator.Start( oMode );
 
             while( oIter.MoveNext() ) {
@@ -713,7 +902,7 @@ namespace Play.SSTV {
 
 					    FFTControlValues oFFTMode  = FFTControlValues.FindMode( 8000 ); // RxSpec.Rate
 					    SYSSET           sys       = new SYSSET   ( oFFTMode.SampFreq );
-					    CSSTVSET         oSetSSTV  = new CSSTVSET ( oMode, 0, oFFTMode.SampFreq, 0, sys.m_bCQ100 );
+					    CSSTVSET         oSetSSTV  = new CSSTVSET ( oMode.Family, 0, oFFTMode.SampFreq, 0, sys.m_bCQ100 );
 					    DemodTest        oDemodTst = new DemodTest( oSetSSTV,
 															        sys,
 															        (int)oFFTMode.SampFreq, 

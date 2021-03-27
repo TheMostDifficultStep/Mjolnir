@@ -190,11 +190,15 @@ namespace Play.Sound {
 		/// Should we ever support: smMN73,smMN110,smMN140,smMC110,smMC140, or smMC180,
 		/// those are all narrow band.
 		/// </summary>
-		public static bool IsNarrowMode(SSTVMode mode)	{
+		public static bool IsNarrowMode(TVFamily tvFamily)	{
 			return false;
 		}
 
-		public CSSTVSET( SSTVMode oMode, double dbToneOffset, double dbSampFreq, double dbTxSampOffs, bool bCQ100 )
+		/// <summary>
+		/// Object to hold the state of our audio inputs.
+		/// </summary>
+		/// <param name="tvFamily">BUG: Work to get rid of this param. It gets overridden later.</param>
+		public CSSTVSET( TVFamily tvFamily, double dbToneOffset, double dbSampFreq, double dbTxSampOffs, bool bCQ100 )
 		{
 			// These used to be globals, I'll see how much they change and if I need
 			// to refactor initialization and such. Since SetSampFreq() get's called
@@ -205,7 +209,7 @@ namespace Play.Sound {
 			m_bCQ100        = bCQ100;
 			m_fNarrow       = false;  // Recieve width.
 
-			SetMode( oMode ); 
+			SetMode( tvFamily ); 
 			InitIntervalPara();
 		}
 
@@ -226,16 +230,16 @@ namespace Play.Sound {
 
 		/// <remarks>This gets called by the demodulator. Ick. This means
 		/// we can't make the members here readonly.</remarks>
-		public void SetMode( SSTVMode tvMode )
+		public void SetMode( TVFamily tvFamily )
 		{
 			//m_SampFreq = sys.m_SampFreq; <-- this gets set in the constructor now.
-			m_fNarrow = CSSTVSET.IsNarrowMode( tvMode );
-			SetSampFreq( tvMode );
+			m_fNarrow = CSSTVSET.IsNarrowMode( tvFamily );
+			SetSampFreq( tvFamily );
 		}
 
-		void SetSampFreq(SSTVMode tvMode){
+		void SetSampFreq(TVFamily tvFamily ){
 			//m_TW = GetTiming(m_Mode) * m_SampFreq / 1000.0;
-			switch(tvMode.Family){
+			switch(tvFamily){
 				case TVFamily.Martin:
 					m_AFCW = (int)(2.0 * SampFreq / 1000.0);
 					m_AFCB = (int)(1.0 * SampFreq / 1000.0);
@@ -1170,26 +1174,9 @@ namespace Play.Sound {
 		readonly CSYNCINT   m_sint2 = new CSYNCINT();
 		readonly CSYNCINT	m_sint3 = new CSYNCINT();
 
-		readonly static int FSKGARD   = 100;
-		readonly static int FSKINTVAL = 22;
 		readonly static int FSKSPACE  = 2100;
 
-		// This set of goodies could probably to on it's own struct or class.
-		readonly bool m_fskdecode;
-		int         m_fskrec;
-		int         m_fskmode;
-		int         m_fsktime;
-		int         m_fskcnt; // This gets used between m_fskdata & m_fskNRS 
-		int         m_fskbcnt;
-		int         m_fsknexti;
-		double      m_fsknextd;
-		byte        m_fsks;
-		byte        m_fskc;
-		readonly List<byte>  m_fskdata = new List<byte>(20);
-		readonly List<char>  m_fskcall = new List<char>(20);
-		int			m_fskNRrec;
-		int			m_fskNR;
-		readonly List<char>	m_fskNRS  = new List<char>(20);
+		readonly bool m_fskdecode = false; // A vestage of the fskDecode stuff.
 
 		bool        m_fNarrow = false;
 
@@ -1297,11 +1284,6 @@ namespace Play.Sound {
 			SetSenseLvl();
 
 		    m_ReqSave   = false;
-
-			m_fskrec    = 0;
-			m_fskNRrec  = 0;
-			m_fskdecode = false;
-			m_fskmode   = 0;
 		}
 
 		public void Dispose() {
@@ -1499,8 +1481,6 @@ namespace Play.Sound {
 		}
 
 		public void PrepDraw( bool fLoopBack ) {
-			m_fskcall.Clear();
-
 			m_ReqSave  = false;
 		}
 
@@ -1511,7 +1491,7 @@ namespace Play.Sound {
 		/// </summary>
 		public void Start( SSTVMode tvMode ) {
 			Mode = tvMode;
-			SetWidth(CSSTVSET.IsNarrowMode( tvMode ));
+			SetWidth(CSSTVSET.IsNarrowMode( tvMode.Family ));
 
 			InitAFC();
 			m_fqc.Clear();
@@ -1737,7 +1717,7 @@ namespace Play.Sound {
 
 										if( ModeDictionary.TryGetValue((byte)m_VisData, out SSTVMode tvModeFound ) ) {
 											m_NextMode = tvModeFound.LegacyMode;
-											m_SyncTime += (int)(7 * sys.m_SampFreq/1000.0 ); // HACK: This fixes us for all modes. But why?
+											m_SyncTime += (int)(3 * sys.m_SampFreq/1000.0 ); // HACK: This fixes us for all modes. But why?
 										} else {
 											if( m_VisData == 0x23 ) {      // MM 拡張 VIS : Expanded (16bit) VIS!!
 											//	m_SyncMode = 9;
@@ -1771,7 +1751,7 @@ namespace Play.Sound {
 								}
 								tvMode = GetSSTVMode( m_NextMode );
 								if( tvMode != null ) {
-									SstvSet.SetMode( tvMode );
+									SstvSet.SetMode( tvMode.Family ); 
 									Start( tvMode );
 								}
 							} else {
