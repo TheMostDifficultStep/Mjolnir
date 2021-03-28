@@ -14,7 +14,10 @@ namespace Play.SSTV
 	/// lives on it's own thread. This object then reads the buffer populated by the demodulator
 	/// perhaps in yet another thread. 
 	/// </summary>
-    public class TmmSSTV : IDisposable {
+	/// <remarks>I've removed the disposable because I'm going to lean on the GC to clean up the
+	/// unused bitmaps. I'll see how bad of a problem this is and deal with it if necessary.</remarks>
+    public class TmmSSTV {
+		private   bool _fDisposed = false;
         protected readonly CSSTVDEM _dp;
 
 #region variables
@@ -77,9 +80,21 @@ namespace Play.SSTV
 		  //g_dblToneOffset = 0.0;
 		}
 
+		/// <summary>
+		/// Still tinkering with disposal methods. At present we don't call dispose and just
+		/// hope the GC will clean up fast enough.
+		/// </summary>
+		/// <remarks>I read about this pattern for multithreaded objects and checking flags.
+		/// I wish I could recall the paper. ^_^;; The idea is that if we get prempted and
+		/// the other thread gets dispose called we'll pick up on that when we enter.</remarks>
 		public void Dispose() {
-			_pBitmapD12.Dispose();
-			_pBitmapRX .Dispose();
+			if( !_fDisposed ) {
+				_fDisposed = true;
+				if( !_fDisposed ) {
+					_pBitmapD12?.Dispose();
+					_pBitmapRX ?.Dispose();
+				}
+			}
 		}
 
 		/// <summary>
@@ -284,8 +299,12 @@ namespace Play.SSTV
 				_dp.Mode.Resolution.Width  != _pBitmapRX.Width ||
 				_dp.Mode.Resolution.Height != _pBitmapRX.Height   )
 			{
-				if( _pBitmapRX != null )
-					_pBitmapRX.Dispose(); // <--- BUG: Right here, UI thread will be in trouble if still reading...
+				// Don't dispose! The UI thread might be reference the object for read. Instead
+				// We'll just drop it and let the UI do that when it catches up and let the GC
+				// clean up. Given we're not creating these like wild fire I think we won't have
+				// too much memory floating around.
+				//if( _pBitmapRX != null )
+				//	_pBitmapRX.Dispose(); // <--- BUG: Right here, UI thread will be in trouble if still reading...
 				_pBitmapRX = new SKBitmap( _dp.Mode.Resolution.Width, 
 										   _dp.Mode.Resolution.Height, 
 										   SKColorType.Rgb888x, 

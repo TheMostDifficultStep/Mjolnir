@@ -626,6 +626,7 @@ namespace Play.SSTV {
             }
 
             // BUG: bitmaps come from RxSSTV and that thread is about to DIE!!
+            _oThread = null;
         }
 
         public class ThreadWorker {
