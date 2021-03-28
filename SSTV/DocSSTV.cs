@@ -35,8 +35,7 @@ namespace Play.SSTV {
         IDisposable
     {
         private bool disposedValue;
-        AutoResetEvent _oAutoReset = new AutoResetEvent(false);
-        Thread         _oThread    = null;
+        Thread       _oThread    = null;
 
         /// <summary>
         /// This editor shows the list of modes we can modulate.
@@ -587,7 +586,7 @@ namespace Play.SSTV {
         /// <param name="strFileName"></param>
         public void RecordBeginFileRead2( string strFileName ) {
             if( _oThread == null ) {
-                ThreadWorker oWorker        = new ThreadWorker( _oAutoReset, strFileName );
+                ThreadWorker oWorker        = new ThreadWorker( strFileName );
                 ThreadStart  threadDelegate = new ThreadStart ( oWorker.DoWork );
 
                 _oThread = new Thread( threadDelegate );
@@ -597,6 +596,11 @@ namespace Play.SSTV {
             }
         }
 
+        /// <summary>
+        /// Poll the receive thread showing progress on the image download.
+        /// </summary>
+        /// <param name="oWorker"></param>
+        /// <returns></returns>
         public IEnumerator<int> GetThreadAdviser( ThreadWorker oWorker ) {
             while( _oThread.IsAlive ) {
                 if( oWorker.NextMode != null ) {
@@ -611,7 +615,6 @@ namespace Play.SSTV {
                                 ModeList.HighLight = oLine;
                         }
                     }
-                    _oAutoReset.Set(); // Unblock the DrawSSTV()
                     break;
                 }
 
@@ -626,15 +629,13 @@ namespace Play.SSTV {
         }
 
         public class ThreadWorker {
-            readonly string         _strFileName;
-            readonly AutoResetEvent _autoEvent;
+            readonly string _strFileName;
 
             public SSTVMode NextMode { get; protected set; } 
             public TmmSSTV  RxSSTV   { get; protected set; }
             CSSTVDEM        _oSSTVDeModulator;
 
-            public ThreadWorker( AutoResetEvent  autoEvent, string strFileName ) {
-                _autoEvent   = autoEvent   ?? throw new ArgumentNullException();
+            public ThreadWorker( string strFileName ) {
                 _strFileName = strFileName ?? throw new ArgumentNullException();
             }
 
@@ -702,6 +703,10 @@ namespace Play.SSTV {
                 NextMode = null;
             }
 
+            /// <summary>
+            /// Listen to the decoder when it spots a new image. This is in the same thread as the decoder.
+            /// </summary>
+            /// <param name="tvMode"></param>
             private void Listen_NextRxMode( SSTVMode tvMode )
             {
                 try {

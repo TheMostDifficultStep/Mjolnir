@@ -24,11 +24,11 @@ namespace Play.SSTV {
 
 				if( guidViewType == ViewFFT     .ViewType )
 					return new ViewFFT( oBaseSite, oMySSTVDoc );
-				//if( guidViewType == ViewTransmit.ViewType )
-				//	return new ViewTransmit( oBaseSite, oMySSTVDoc );
-				//if( guidViewType == ViewRecieve .ViewType )
-				//	return new ViewRecieve( oBaseSite, oMySSTVDoc );
-				if( guidViewType == SSTVTransmitSelect.ViewType )
+                //if( guidViewType == ViewTransmit.ViewType )
+                //	return new ViewTransmit( oBaseSite, oMySSTVDoc );
+                if( guidViewType == ViewRecieve.ViewType )
+                    return new ViewRecieve(oBaseSite, oMySSTVDoc);
+                if( guidViewType == SSTVTransmitSelect.ViewType )
 					return new SSTVTransmitSelect( oBaseSite, oMySSTVDoc );
 				if( guidViewType == SSTVReceiveImage.ViewType )
 					return new SSTVReceiveImage( oBaseSite, oMySSTVDoc );
@@ -56,7 +56,7 @@ namespace Play.SSTV {
 		public override IEnumerator<IPgViewType> GetEnumerator() {
 		  //yield return new ViewType( "Spectrum",  ViewFFT           .ViewType );
 		  //yield return new ViewType( "Tx Screen", ViewTransmit      .ViewType );
-		  //yield return new ViewType( "Rx Screen", ViewRecieve       .ViewType );
+		    yield return new ViewType( "Rx Screen", ViewRecieve       .ViewType );
 		    yield return new ViewType( "Tx Image",  SSTVTransmitSelect.ViewType );
 			yield return new ViewType( "Rx Image",  SSTVReceiveImage  .ViewType );
 			yield return new ViewType( "Tx Modes",  ViewTransmitModes );

@@ -256,7 +256,7 @@ namespace Play.SSTV
         /// Bunch of stuff to do when we stop, but I don't think it's necessary to
         /// sort it all right now.
         /// </summary>
-        void AllStop() {
+        void Stop() {
 			//bool lost = dp.m_Lost;
 			//if( dp.m_LoopBack != true ){
 			//	WriteHistory(1);
@@ -270,7 +270,7 @@ namespace Play.SSTV
 			//UpdateUI();
          }
 
-        public void PrepDraw() {
+        public void Start() {
 			m_SyncRPos      = m_SyncPos = -1;
 			m_SyncAccuracyN = 0;
 			m_AX			= -1;
@@ -285,7 +285,7 @@ namespace Play.SSTV
 				_dp.Mode.Resolution.Height != _pBitmapRX.Height   )
 			{
 				if( _pBitmapRX != null )
-					_pBitmapRX.Dispose();
+					_pBitmapRX.Dispose(); // <--- BUG: Right here, UI thread will be in trouble if still reading...
 				_pBitmapRX = new SKBitmap( _dp.Mode.Resolution.Width, 
 										   _dp.Mode.Resolution.Height, 
 										   SKColorType.Rgb888x, 
@@ -324,7 +324,7 @@ namespace Play.SSTV
 
 				if( m_AY > _dp.Mode.Resolution.Height ){ 
 					_dp.Stop();
-                    AllStop();
+                    Stop();
 					break;
 				}
 			}
@@ -354,7 +354,7 @@ namespace Play.SSTV
 					_rgSyncDetect.Add( new SKPointI( m_SyncHit, iOffs ) );
                     //if( m_AY == 7 ) {
                     //    InitSlots( _dp.Mode.Resolution.Width, iOffs / dbScanWidth);
-					//    _dp.m_rPage = m_SyncHit;
+					//    //_dp.m_rPage = m_SyncHit;
 					//}
                     m_SyncLast = m_SyncHit;
 					m_SyncHit  = -1;
@@ -561,7 +561,7 @@ namespace Play.SSTV
 					throw new ArgumentOutOfRangeException("Unrecognized Mode Type.");
             }
 
-            PrepDraw(); // bitmap allocated in here.
+            Start(); // bitmap allocated in here.
 		}
     } // End Class TmmSSTV
 

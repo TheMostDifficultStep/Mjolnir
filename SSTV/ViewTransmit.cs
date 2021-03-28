@@ -15,7 +15,7 @@ using Play.ImageViewer;
 
 namespace Play.SSTV {
 	/// <summary>
-	/// This is a fancy transmit viewer where the outline was the mode selector and a secondary
+	/// This is the older fancy transmit viewer where the outline was the mode selector and a secondary
 	/// view was the directory of images. I'm going to make this an all in one viewer soon.
 	/// </summary>
 	public class ViewTransmit:
@@ -256,8 +256,7 @@ namespace Play.SSTV {
 
 		public bool Execute(Guid sGuid) {
 			if( sGuid == GlobalCommands.Play ) {
-				// Still using this screen to test recieve.
-				_oDocSSTV.RecordBegin( _oViewImage.Selection.SKRect ); 
+				// Currently do nothing. 
 				return true;
 			}
 			if( sGuid == GlobalCommands.Stop ) {
