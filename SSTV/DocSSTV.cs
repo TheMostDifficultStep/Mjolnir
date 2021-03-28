@@ -695,12 +695,8 @@ namespace Play.SSTV {
 
                 oDemod.ShoutNextMode += Listen_NextRxMode;
 
-                IEnumerator<int> oIter = GetReceiveFromFileTask( oReader );
-                while( oIter.MoveNext() ) {
-                    if( _autoEvent.WaitOne(0) ) {
-                        RxSSTV    .DrawSSTV();
-                        _autoEvent.Set();
-                    }
+                for( IEnumerator<int> oIter = GetReceiveFromFileTask( oReader ); oIter.MoveNext(); ) {
+                    RxSSTV.DrawSSTV();
                 }
 
                 NextMode = null;

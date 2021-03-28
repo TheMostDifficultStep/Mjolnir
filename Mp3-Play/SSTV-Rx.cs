@@ -1140,9 +1140,9 @@ namespace Play.Sound {
 		//double		m_AFC_OFFSET;		// 128
 
 	  //readonly bool       m_MSync;
-		readonly CSYNCINT   m_sint1 = new CSYNCINT();
-		readonly CSYNCINT   m_sint2 = new CSYNCINT();
-		readonly CSYNCINT	m_sint3 = new CSYNCINT();
+		//readonly CSYNCINT   m_sint1 = new CSYNCINT();
+		//readonly CSYNCINT   m_sint2 = new CSYNCINT();
+		//readonly CSYNCINT	m_sint3 = new CSYNCINT();
 
 		readonly static int FSKSPACE  = 2100;
 
@@ -1244,9 +1244,9 @@ namespace Play.Sound {
 			m_AFCInt = (int)(100 * SampFreq / 1000.0 );
 			m_AFCDis = 0;
 
-			m_sint1.Reset();
-			m_sint2.Reset();
-			m_sint3.Reset( fNarrow:true);
+			//m_sint1.Reset();
+			//m_sint2.Reset();
+			//m_sint3.Reset( fNarrow:true);
 
 			m_SyncRestart = true;
 
@@ -1512,9 +1512,9 @@ namespace Play.Sound {
 				}
 			}
 			m_fqc  .Clear();
-			m_sint1.Reset();
-			m_sint2.Reset();
-			m_sint3.Reset();
+			//m_sint1.Reset();
+			//m_sint2.Reset();
+			//m_sint3.Reset();
 
 			m_SyncMode = 512;
 			m_Sync     = false;
@@ -1615,9 +1615,9 @@ namespace Play.Sound {
 
 			if( !m_Sync || m_SyncRestart ){
 				SSTVMode tvMode;
-				m_sint1.SyncInc();
-				m_sint2.SyncInc();
-				m_sint3.SyncInc();
+				//m_sint1.SyncInc();
+				//m_sint2.SyncInc();
+				//m_sint3.SyncInc();
 
 				// The only time we care about this one is in VIS.
 				d11 = m_iir11.Do(d);
@@ -1631,21 +1631,21 @@ namespace Play.Sound {
 						if( (d12 > d19) && (d12 > m_SLvl) && ((d12-d19) >= m_SLvl) ){
 							m_SyncMode++;
 							m_SyncTime = (int)(15 * sys.m_SampFreq/1000); // this is probably the ~10 ms between each 1900hz tone.
-							if( !m_Sync /* && m_MSync */ ) 
-								m_sint1.SyncTrig( (int)d12);
+							//if( !m_Sync /* && m_MSync */ ) 
+							//	m_sint1.SyncTrig( (int)d12);
 						}
 						break;
 					case 1:                 // 1200Hz(30ms)‚ の継続チェック: continuous check.
-						if( !m_Sync /* && m_MSync */ ){
-							if( (d12 > d19) && (d12 > m_SLvl2) && ((d12-d19) >= m_SLvl2) ){
-								m_sint2.SyncMax( (int)d12);
-							}
-						}
+						//if( !m_Sync /* && m_MSync */ ){
+						//	if( (d12 > d19) && (d12 > m_SLvl2) && ((d12-d19) >= m_SLvl2) ){
+						//		m_sint2.SyncMax( (int)d12);
+						//	}
+						//}
 						// the second 1900hz has been seen now down to 1200hz again for 30ms.
 						if( (d12 > d19) && (d12 > m_SLvl) && ((d12-d19) >= m_SLvl) ){
-							if( !m_Sync /* && m_MSync */ ){
-								m_sint1.SyncMax( (int)d12);
-							}
+							//if( !m_Sync /* && m_MSync */ ){
+							//	m_sint1.SyncMax( (int)d12);
+							//}
 							m_SyncTime--;
 							if( m_SyncTime == 0 ){
 								m_SyncMode++;
