@@ -284,10 +284,55 @@ namespace Play.SSTV {
         public Image  Iconic   => null;
         public bool   IsDirty  => false;
 
+		protected readonly IPgViewSite _oSiteView;
+
         DocSSTV _oDocSSTV;
+		protected PropDoc ImageProperties { get; } // Container for properties to show for this window.
+
+		protected class SSTVWinSlot :
+			IPgViewSite,
+			IPgShellSite
+		{
+			protected readonly SSTVReceiveImage _oHost;
+
+			public SSTVWinSlot( SSTVReceiveImage oHost ) {
+				_oHost = oHost ?? throw new ArgumentNullException();
+			}
+
+			public IPgParent Host => _oHost;
+
+			public void LogError(string strMessage, string strDetails, bool fShow=true) {
+				_oHost._oSiteView.LogError( strMessage, strDetails, fShow );
+			}
+
+			public void Notify( ShellNotify eEvent ) {
+				_oHost._oSiteView.Notify( eEvent );
+			}
+
+            public object AddView( Guid guidViewType, bool fFocus ) {
+                return null;
+            }
+
+            public void FocusMe() {
+                throw new NotImplementedException();
+            }
+
+            public void FocusCenterView() {
+                throw new NotImplementedException();
+            }
+
+            public IPgViewNotify EventChain => _oHost._oSiteView.EventChain;
+
+            public IEnumerable<IPgCommandView> EnumerateSiblings => throw new NotImplementedException();
+
+            public uint SiteID => throw new NotImplementedException();
+        }
 
 		public SSTVReceiveImage( IPgViewSite oSiteBase, DocSSTV oDocSSTV ) : base( oSiteBase, oDocSSTV.ReceiveImage ) {
-			_oDocSSTV = oDocSSTV ?? throw new ArgumentNullException( "oDocSSTV must not be null." );
+			_oSiteView = oSiteBase ?? throw new ArgumentNullException( "SiteBase must not be null." );
+			_oDocSSTV  = oDocSSTV  ?? throw new ArgumentNullException( "DocSSTV must not be null." );
+
+            ImageProperties = new PropDoc( new SSTVWinSlot( this ) );
 		}
 
         protected override void Dispose( bool fDisposing )
@@ -302,20 +347,81 @@ namespace Play.SSTV {
         {
             if( !base.InitNew() )
 				return false;
+			if( !ImageProperties.InitNew() ) 
+				return false;
 
             _oDocSSTV.PropertyChange += ListenDoc_PropertyChange;
+
+			DecorPropertiesInit();
+
 			return true;
         }
 
-        private void ListenDoc_PropertyChange( ESstvProperty eProp )
-        {
-            switch( eProp ) {
-				case ESstvProperty.DownLoadTime:
+		protected virtual void DecorPropertiesInit() {
+			using( PropDoc.Manipulator oBulk = ImageProperties.EditProperties ) {
+				oBulk.Add( "Width" );
+				oBulk.Add( "Height" );
+				oBulk.Add( "Encoding" );
+				oBulk.Add( "Received" );
+				oBulk.Add( "Name" );
+			}
+		}
+
+        /// <summary>
+        /// This is our event sink for property changes on the SSTV document.
+        /// </summary>
+        /// <remarks>Right now just update all, but we can just update the
+        /// specific property in the future. You know, a color coded property, 
+        /// light red or yellow on change would be a cool feature.</remarks>
+        private void ListenDoc_PropertyChange( ESstvProperty eProp ) {
+			switch( eProp ) {
+				case ESstvProperty.ALL:
+				case ESstvProperty.RXImageNew:
+					DecorPropertiesReLoad();
+					break;
 				case ESstvProperty.DownLoadFinished:
+				case ESstvProperty.DownLoadTime:
+					DecorPropertiesLoadTime();
 					Invalidate();
 					break;
 			}
         }
+
+        protected void DecorPropertiesReLoad() {
+			using (PropDoc.Manipulator oBulk = ImageProperties.EditProperties) {
+				string strWidth  = string.Empty;
+				string strHeight = string.Empty;
+				string strName   = Path.GetFileName( _oDocSSTV.ImageList.CurrentFileName );
+				string strMode   = "Unassigned";
+
+				if( _oDocSSTV.ReceiveImage.Bitmap != null ) {
+					strWidth  = _oDocSSTV.ReceiveImage.Bitmap.Width .ToString();
+					strHeight = _oDocSSTV.ReceiveImage.Bitmap.Height.ToString();
+				}
+				if( _oDocSSTV.RxMode != null ) {
+					strMode   = _oDocSSTV.RxMode.Name;
+				}
+				if( _oDocSSTV.TransmitMode != null ) {
+					strMode = _oDocSSTV.TransmitMode.Name;
+				}
+
+                oBulk.Set( 0, strWidth  );
+                oBulk.Set( 1, strHeight );
+                oBulk.Set( 2, strMode   );
+                oBulk.Set( 3, "0%" );
+				oBulk.Set( 4, strName   );
+            }
+		}
+
+		protected void DecorPropertiesLoadTime() {
+			using (PropDoc.Manipulator oBulk = ImageProperties.EditProperties) {
+				float  flPercent = 0;
+				if( _oDocSSTV.ReceiveImage.Bitmap != null ) {
+					flPercent = ( _oDocSSTV.ScanLine * 100 / _oDocSSTV.ReceiveImage.Bitmap.Height ) ;
+				}
+                oBulk.Set( 3, flPercent.ToString() + "%" );
+            }
+		}
 
         public override bool Execute( Guid sGuid )
         {
@@ -334,8 +440,8 @@ namespace Play.SSTV {
 		public object Decorate(IPgViewSite oBaseSite,Guid sGuid) {
 			try {
 				if( sGuid.Equals(GlobalDecorations.Properties) ) {
-					//DecorPropertiesReLoad();
-					//return new PropWin( oBaseSite, ImageProperties );
+					DecorPropertiesReLoad();
+					return new PropWin( oBaseSite, ImageProperties );
 				}
 				return false;
 			} catch ( Exception oEx ) {

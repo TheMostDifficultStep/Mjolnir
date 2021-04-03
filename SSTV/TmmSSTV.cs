@@ -62,6 +62,7 @@ namespace Play.SSTV
 		public SKBitmap _pBitmapD12 { get; } = new SKBitmap( 800, 616, SKColorType.Rgb888x, SKAlphaType.Unknown );
 		// Looks like were only using grey scale on the D12. Look into turning into greyscale later.
 		// Need to look into the greyscale calibration height of bitmap issue. (+16 scan lines)
+		public int      ScanLine => m_AY;
 #endregion
 
 		public event SSTVPropertyChange ShoutTvEvents;

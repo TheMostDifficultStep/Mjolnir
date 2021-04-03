@@ -85,10 +85,13 @@ namespace Play.SSTV {
 
         public event SSTVPropertyChange PropertyChange;
 
+        public Editor         RxDirectory     { get; protected set; } // Files in the receive directory.
         public Specification  RxSpec          { get; protected set; } = new Specification( 44100, 1, 0, 16 );
         public GeneratorMode  ModeList        { get; protected set; }
         public ImageWalkerDir ImageList       { get; protected set; }
         public SKBitmap       Bitmap          => ImageList.Bitmap;
+        public SSTVMode       RxMode          { get; protected set; } = null;
+        public int            ScanLine        { get; protected set; }
 
         protected readonly ImageSoloDoc  _oDocSnip;   // Clip the image.
 
@@ -126,9 +129,10 @@ namespace Play.SSTV {
             _oSiteBase  = oSite ?? throw new ArgumentNullException( "Site must not be null" );
             _oWorkPlace = ((IPgScheduler)Services).CreateWorkPlace() ?? throw new ApplicationException( "Couldn't create a worksite from scheduler.");
 
-            ModeList  = new GeneratorMode ( new DocSlot( this, "SSTV Tx Modes" ) );
-            ImageList = new ImageWalkerDir( new DocSlot( this ) );
-            _oDocSnip = new ImageSoloDoc  ( new DocSlot( this ) );
+            ModeList        = new GeneratorMode ( new DocSlot( this, "SSTV Tx Modes" ) );
+            ImageList       = new ImageWalkerDir( new DocSlot( this ) );
+            _oDocSnip       = new ImageSoloDoc  ( new DocSlot( this ) );
+            RxDirectory     = new Editor        ( new DocSlot( this ) );
 
 			ReceiveImage = new ImageSoloDoc( new DocSlot( this ) );
 			SyncImage    = new ImageSoloDoc( new DocSlot( this ) );
@@ -315,6 +319,8 @@ namespace Play.SSTV {
 				return false;
 			if( !SyncImage   .InitNew() )
 				return false;
+            if( !RxDirectory .InitNew() )
+                return false;
 
             LoadModulators( GenerateMartin .GetModeEnumerator() );
             LoadModulators( GenerateScottie.GetModeEnumerator() );
@@ -606,6 +612,8 @@ namespace Play.SSTV {
                 if( oWorker.NextMode != null ) {
 			        ReceiveImage.Bitmap = oWorker.RxSSTV._pBitmapRX;
 			        SyncImage   .Bitmap = oWorker.RxSSTV._pBitmapD12;
+                    RxMode              = oWorker.NextMode;
+                    ScanLine            = oWorker.ScanLine;
 
 			        Raise_PropertiesUpdated( ESstvProperty.RXImageNew );
 
@@ -621,9 +629,14 @@ namespace Play.SSTV {
                 yield return 250;
             }
             while( _oThread.IsAlive ) {
-                yield return 250;
+                ScanLine = oWorker.ScanLine;
                 Raise_PropertiesUpdated( ESstvProperty.DownLoadTime );
+
+                yield return 250;
             }
+
+            ScanLine = ReceiveImage.Bitmap.Height;
+            Raise_PropertiesUpdated( ESstvProperty.DownLoadFinished );
 
             // BUG: bitmaps come from RxSSTV and that thread is about to DIE!!
             _oThread = null;
@@ -634,6 +647,8 @@ namespace Play.SSTV {
 
             public SSTVMode NextMode { get; protected set; } 
             public TmmSSTV  RxSSTV   { get; protected set; }
+            public int      ScanLine => RxSSTV.ScanLine;
+
             CSSTVDEM        _oSSTVDeModulator;
 
             public ThreadWorker( string strFileName ) {
