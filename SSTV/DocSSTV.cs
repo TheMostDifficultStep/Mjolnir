@@ -91,7 +91,7 @@ namespace Play.SSTV {
         public ImageWalkerDir ImageList       { get; protected set; }
         public SKBitmap       Bitmap          => ImageList.Bitmap;
         public SSTVMode       RxMode          { get; protected set; } = null;
-        public int            ScanLine        { get; protected set; }
+        public int            RxScanLine      { get; protected set; } // Thread Adviser polls for this from the workthread.
 
         protected readonly ImageSoloDoc  _oDocSnip;   // Clip the image.
 
@@ -105,6 +105,15 @@ namespace Play.SSTV {
 
 		public ImageSoloDoc ReceiveImage { get; protected set; }
 		public ImageSoloDoc SyncImage    { get; protected set; }
+
+        public int PercentRxComplete { 
+            get {
+				if( ReceiveImage.Bitmap != null ) {
+					return ( RxScanLine * 100 / ReceiveImage.Bitmap.Height ) ;
+				}
+                return 0;
+            }
+        }
 
         private DataTester _oDataTester;
 
@@ -358,7 +367,7 @@ namespace Play.SSTV {
         public int PercentFinished {
             get { 
                 if( _oSSTVGenerator != null ) 
-                    return _oSSTVGenerator.PercentComplete;
+                    return _oSSTVGenerator.PercentTxComplete;
 
                 return 0;
             } 
@@ -613,7 +622,7 @@ namespace Play.SSTV {
 			        ReceiveImage.Bitmap = oWorker.RxSSTV._pBitmapRX;
 			        SyncImage   .Bitmap = oWorker.RxSSTV._pBitmapD12;
                     RxMode              = oWorker.NextMode;
-                    ScanLine            = oWorker.ScanLine;
+                    RxScanLine            = oWorker.ScanLine;
 
 			        Raise_PropertiesUpdated( ESstvProperty.RXImageNew );
 
@@ -629,13 +638,13 @@ namespace Play.SSTV {
                 yield return 250;
             }
             while( _oThread.IsAlive ) {
-                ScanLine = oWorker.ScanLine;
+                RxScanLine = oWorker.ScanLine;
                 Raise_PropertiesUpdated( ESstvProperty.DownLoadTime );
 
                 yield return 250;
             }
 
-            ScanLine = ReceiveImage.Bitmap.Height;
+            RxScanLine = ReceiveImage.Bitmap.Height;
             Raise_PropertiesUpdated( ESstvProperty.DownLoadFinished );
 
             // BUG: bitmaps come from RxSSTV and that thread is about to DIE!!

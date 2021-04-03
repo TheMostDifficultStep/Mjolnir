@@ -352,7 +352,7 @@ namespace Play.Sound {
         public    bool    IsDirty                  => true; // We're always happy to write.
 
         protected int     _iLine; // Use this value so we can track how far along we are.
-        public    int     PercentComplete => (int)( _iLine / (float)Height * 100 );
+        public    int     PercentTxComplete => (int)( _iLine * 100 / (float)Height );
 
         protected int Write( int iFrequency, GainIndx uiGainSelect, double dbTimeMS ) {
             return _oModulator.Write( iFrequency, (uint)uiGainSelect, dbTimeMS );

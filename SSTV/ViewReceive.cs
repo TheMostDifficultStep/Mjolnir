@@ -402,7 +402,7 @@ namespace Play.SSTV {
 					strMode   = _oDocSSTV.RxMode.Name;
 				}
 				if( _oDocSSTV.TransmitMode != null ) {
-					strMode = _oDocSSTV.TransmitMode.Name;
+					strMode   = _oDocSSTV.TransmitMode.Name;
 				}
 
                 oBulk.Set( 0, strWidth  );
@@ -415,11 +415,7 @@ namespace Play.SSTV {
 
 		protected void DecorPropertiesLoadTime() {
 			using (PropDoc.Manipulator oBulk = ImageProperties.EditProperties) {
-				float  flPercent = 0;
-				if( _oDocSSTV.ReceiveImage.Bitmap != null ) {
-					flPercent = ( _oDocSSTV.ScanLine * 100 / _oDocSSTV.ReceiveImage.Bitmap.Height ) ;
-				}
-                oBulk.Set( 3, flPercent.ToString() + "%" );
+                oBulk.Set( 3, _oDocSSTV.PercentRxComplete.ToString() + "%" );
             }
 		}
 
