@@ -759,6 +759,10 @@ namespace Play.SSTV {
             _oThread = null;
         }
 
+        /// <summary>
+        /// Encapsulate everything I need to decode a SSTV image from a WAV file. In the
+        /// future I'll make a version of this which is reading from an audio input device.
+        /// </summary>
         public class ThreadWorker {
             readonly string _strFileName;
 

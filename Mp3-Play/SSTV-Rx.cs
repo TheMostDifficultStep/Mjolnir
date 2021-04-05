@@ -231,8 +231,9 @@ namespace Play.Sound {
 		}
 
 		/// <summary>
-		/// Note: This is used by SyncCheck and might be removable when I get my own synchronizer working.
+		/// this is the approximate time per scan line. The times seem a tiny bit off, I forget why but I don't use this presently.
 		/// </summary>
+		/// <remarks>This is used by SyncCheck and might be removable when I get my own synchronizer working.</remarks>
 		double GetTiming(AllModes mode) {
 			switch(mode){
 				case AllModes.smR36:
