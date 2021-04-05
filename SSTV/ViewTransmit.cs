@@ -3,7 +3,6 @@ using System.Drawing;
 using System.Xml;
 using System.Collections.Generic;
 using System.Windows.Forms;
-using System.IO;
 using System.Reflection;
 
 using SkiaSharp;
@@ -30,15 +29,19 @@ namespace Play.SSTV {
 		public static Guid   ViewType { get; }  = new Guid( "{CED824F5-2C17-418C-9559-84D6B4F571FC}" );
 		public static string _strIcon =  "Play.SSTV.icons8_camera.png";
 
-		protected readonly IPgViewSite   _oSiteView;
-		protected readonly DocSSTV       _oDocSSTV;
-
+		protected readonly IPgViewSite    _oSiteView;
+		protected readonly DocSSTV        _oDocSSTV;	 // Main document.
 		protected readonly ImageViewSolo  _oViewImage;   // Show the currently selected image.
 		protected readonly ImageViewIcons _oViewChoices; // Show the image choices.
 
-		protected PropDoc ImageProperties { get; } // Container for properties to show for this window.
-
 		protected LayoutStack _oLayout = new LayoutStackVertical( 5 );
+
+		public IPgParent Parentage => _oSiteView.Host;
+		public IPgParent Services  => Parentage.Services;
+		public bool      IsDirty   => false;
+		public string    Banner    => "Transmit Window : " + _oDocSSTV.TxImageList.CurrentDirectory;
+		public Image     Iconic    { get; }
+		public Guid      Catagory  => ViewType;
 
 		protected class SSTVWinSlot :
 			IPgViewSite,
@@ -79,22 +82,14 @@ namespace Play.SSTV {
             public uint SiteID => throw new NotImplementedException();
         }
 
-		public IPgParent Parentage => _oSiteView.Host;
-		public IPgParent Services  => Parentage.Services;
-		public bool      IsDirty   => false;
-		public string    Banner    => "Transmit Window : " + _oDocSSTV.ImageList.CurrentDirectory;
-		public Image     Iconic    { get; }
-		public Guid      Catagory  => ViewType;
-
         public ViewTransmit( IPgViewSite oViewSite, DocSSTV oDocument ) {
 			_oSiteView = oViewSite ?? throw new ArgumentNullException( "View requires a view site." );
 			_oDocSSTV  = oDocument ?? throw new ArgumentNullException( "View requires a document." );
 
 			Iconic = ImageResourceHelper.GetImageResource( Assembly.GetExecutingAssembly(), _strIcon );
 
-            ImageProperties = new PropDoc       ( new SSTVWinSlot( this ) );
-			_oViewImage     = new ImageViewSolo ( new SSTVWinSlot( this ), _oDocSSTV.ImageList );
-			_oViewChoices   = new ImageViewIcons( new SSTVWinSlot( this ), _oDocSSTV.ImageList );
+			_oViewImage     = new ImageViewSolo ( new SSTVWinSlot( this ), _oDocSSTV.TxImageList );
+			_oViewChoices   = new ImageViewIcons( new SSTVWinSlot( this ), _oDocSSTV.TxImageList );
 		}
 
 		/// <summary>
@@ -122,8 +117,6 @@ namespace Play.SSTV {
 		}
 
 		public bool InitNew() {
-			if( !ImageProperties.InitNew() )
-                return false;
 			if( !_oViewChoices.InitNew() )
 				return false;
 			if( !_oViewImage.InitNew() )
@@ -135,7 +128,7 @@ namespace Play.SSTV {
 			_oViewImage.Aspect   = _oDocSSTV.Resolution;
 			_oViewImage.DragMode = DragMode.FixedRatio;
 
-			DecorPropertiesInit();
+            _oDocSSTV.PropertyChange += Listen_PropertyChange;
 
             _oLayout.Add( new LayoutControl( _oViewImage,   LayoutRect.CSS.None ) );        // image
             _oLayout.Add( new LayoutControl( _oViewChoices, LayoutRect.CSS.Pixels, 250 ) ); // choices
@@ -145,67 +138,21 @@ namespace Play.SSTV {
 			return true;
 		}
 
-		protected virtual void DecorPropertiesInit() {
-            _oDocSSTV.PropertyChange += Listen_PropertyChange;
-
-			using( PropDoc.Manipulator oBulk = ImageProperties.EditProperties ) {
-				oBulk.Add( "Width" );
-				oBulk.Add( "Height" );
-				oBulk.Add( "Encoding" );
-				oBulk.Add( "Sent" );
-				oBulk.Add( "Name" );
-			}
-		}
-
         /// <summary>
         /// This is our event sink for property changes on the SSTV document.
+		/// Only need to do something when the mode changes and we reset our
+		/// selection aspect ratio.
         /// </summary>
         /// <remarks>Right now just update all, but we can just update the
         /// specific property in the future. You know, a color coded property, 
         /// light red or yellow on change would be a cool feature.</remarks>
         private void Listen_PropertyChange( ESstvProperty eProp ) {
 			switch( eProp ) {
-				case ESstvProperty.ALL:
-				case ESstvProperty.TXImageChanged:
-					DecorPropertiesReLoad();
-					break;
-				case ESstvProperty.UploadTime:
-					DecorPropertiesLoadTime();
-					break;
 				case ESstvProperty.SSTVMode:
 					_oViewImage.Aspect = _oDocSSTV.Resolution;
 					break;
 			}
         }
-
-        protected void DecorPropertiesReLoad() {
-			using (PropDoc.Manipulator oBulk = ImageProperties.EditProperties) {
-				string strWidth  = string.Empty;
-				string strHeight = string.Empty;
-				string strName   = Path.GetFileName( _oDocSSTV.ImageList.CurrentFileName );
-				string strMode   = "Unassigned";
-
-				if( _oDocSSTV.Bitmap != null ) {
-					strWidth  = _oDocSSTV.Bitmap.Width .ToString();
-					strHeight = _oDocSSTV.Bitmap.Height.ToString();
-				}
-				if( _oDocSSTV.TransmitMode != null ) {
-					strMode = _oDocSSTV.TransmitMode.Name;
-				}
-
-                oBulk.Set( 0, strWidth  );
-                oBulk.Set( 1, strHeight );
-                oBulk.Set( 3, "0%"      );
-                oBulk.Set( 2, strMode   );
-				oBulk.Set( 4, strName   );
-            }
-		}
-
-		protected void DecorPropertiesLoadTime() {
-			using (PropDoc.Manipulator oBulk = ImageProperties.EditProperties) {
-                oBulk.Set( 3, _oDocSSTV.PercentFinished.ToString() + "%" );
-            }
-		}
 
         public bool Load(XmlElement oStream) {
 			InitNew();
@@ -228,8 +175,7 @@ namespace Play.SSTV {
 		public object Decorate(IPgViewSite oBaseSite,Guid sGuid) {
 			try {
 				if( sGuid.Equals(GlobalDecorations.Properties) ) {
-					DecorPropertiesReLoad();
-					return new PropWin( oBaseSite, ImageProperties );
+					return new PropWin( oBaseSite, _oDocSSTV.Properties );
 				}
 				if( sGuid.Equals( GlobalDecorations.Outline ) ) {
 					//EditWindow2 oView = new EditWindow2( oBaseSite, _oDocSSTV.ModeList, true );
@@ -237,7 +183,7 @@ namespace Play.SSTV {
 					//oView.LineChanged += Listen_ViewMode_LineChanged;
 
 					//return oView;
-					return new ImageViewIcons( oBaseSite, _oDocSSTV.ImageList );
+					return new ImageViewIcons( oBaseSite, _oDocSSTV.TxImageList );
 				}
 				return null;
 			} catch ( Exception oEx ) {
@@ -256,7 +202,7 @@ namespace Play.SSTV {
 
 		public bool Execute(Guid sGuid) {
 			if( sGuid == GlobalCommands.Play ) {
-				// Currently do nothing. 
+				_oDocSSTV.TxBegin( _oViewImage.Selection.SKRect );
 				return true;
 			}
 			if( sGuid == GlobalCommands.Stop ) {
@@ -265,23 +211,23 @@ namespace Play.SSTV {
 			}
 
             if( sGuid == GlobalCommands.StepLeft ) {
-                _oDocSSTV.ImageList.Next( -1 );
+                _oDocSSTV.TxImageList.Next( -1 );
                 return( true );
             }
             if( sGuid == GlobalCommands.StepRight ) {
-                _oDocSSTV.ImageList.Next( +1 );
+                _oDocSSTV.TxImageList.Next( +1 );
                 return( true );
             }
             if( sGuid == GlobalCommands.JumpParent ) {
-                _oDocSSTV.ImageList.DirectoryNext( 0 );
+                _oDocSSTV.TxImageList.DirectoryNext( 0 );
                 return( true );
             }
             if( sGuid == GlobalCommands.JumpPrev ) {
-               _oDocSSTV.ImageList. DirectoryNext( -1 );
+               _oDocSSTV.TxImageList. DirectoryNext( -1 );
                 return( true );
             }
             if( sGuid == GlobalCommands.JumpNext ) {
-                _oDocSSTV.ImageList.DirectoryNext( +1 );
+                _oDocSSTV.TxImageList.DirectoryNext( +1 );
                 return( true );
             }
 			return false;
@@ -336,11 +282,11 @@ namespace Play.SSTV {
 		public static Guid ViewType { get; } = new Guid( "{5BC25D2B-3F4E-4339-935C-CFADC2650B35}" );
 
         public override Guid   Catagory => ViewType;
-        public override string Banner   => "SSTV Tx Image";
+        public override string Banner   => "SSTV Tx Image : " + _oDocSSTV.TxImageList.CurrentDirectory;
 
         DocSSTV _oDocSSTV;
 
-		public SSTVTransmitSelect( IPgViewSite oSiteBase, DocSSTV oDocSSTV ) : base( oSiteBase, oDocSSTV.ImageList ) {
+		public SSTVTransmitSelect( IPgViewSite oSiteBase, DocSSTV oDocSSTV ) : base( oSiteBase, oDocSSTV.TxImageList ) {
 			_oDocSSTV = oDocSSTV ?? throw new ArgumentNullException( "oDocSSTV must not be null." );
 		}
 
@@ -380,16 +326,22 @@ namespace Play.SSTV {
 
         public override bool Execute( Guid sGuid ) {
 			if( sGuid == GlobalCommands.Play ) {
-			    _oDocSSTV.PlayBegin( this.Selection.SKRect );   // Normal tx button behavior.
+			    _oDocSSTV.TxBegin( this.Selection.SKRect );   // Normal tx button behavior.
 			  //_oDocSSTV.RecordBeginTest2( Selection.SKRect ); // Test reception button behavior.
+			}
+			if( sGuid == GlobalCommands.Stop ) {
+				_oDocSSTV.PlayStop();
 			}
 
             return base.Execute( sGuid );
         }
 
         public override object Decorate( IPgViewSite oBaseSite, Guid sGuid ) {
+			if( sGuid.Equals(GlobalDecorations.Properties) ) {
+				return new PropWin( oBaseSite, _oDocSSTV.Properties );
+			}
 			if( sGuid.Equals( GlobalDecorations.Outline ) ) {
-				return new ImageViewIcons( oBaseSite, _oDocSSTV.ImageList );
+				return new ImageViewIcons( oBaseSite, _oDocSSTV.TxImageList );
 			}
 			if( sGuid.Equals( GlobalDecorations.Options ) ) {
 				return new SSTVModeView( oBaseSite, _oDocSSTV.ModeList );

@@ -34,10 +34,6 @@ namespace Play.SSTV {
 
 		protected readonly ImageViewSingle _oViewRx;      // Show the currently selected image.
 		protected readonly ImageViewSingle _oViewSync;    // The sync bitmap.
-		protected          int             _iCurrentMode = 0;
-
-		// BUG: Consider moving this to the DocSSTV object so more views can use it.
-		protected PropDoc ImageProperties { get; } // Container for properties to show for this window.
 
 		protected LayoutStack _oLayout = new LayoutStackVertical( 5 );
 
@@ -83,7 +79,7 @@ namespace Play.SSTV {
 		public IPgParent Parentage => _oSiteView.Host;
 		public IPgParent Services  => Parentage.Services;
 		public bool      IsDirty   => false;
-		public string    Banner    => "Receive Window : " + _oDocSSTV.ImageList.CurrentDirectory;
+		public string    Banner    => "Receive Window : " + _oDocSSTV.TxImageList.CurrentDirectory;
 		public Image     Iconic    { get; }
 		public Guid      Catagory  => ViewType;
 
@@ -93,7 +89,6 @@ namespace Play.SSTV {
 
 			Iconic = ImageResourceHelper.GetImageResource( Assembly.GetExecutingAssembly(), _strIcon );
 
-            ImageProperties = new PropDoc        ( new SSTVWinSlot( this ) );
 			_oViewRx        = new ImageViewSingle( new SSTVWinSlot( this ), _oDocSSTV.ReceiveImage );
 			_oViewSync      = new ImageViewSingle( new SSTVWinSlot( this ), _oDocSSTV.SyncImage );
 		}
@@ -109,8 +104,6 @@ namespace Play.SSTV {
 		}
 
 		public bool InitNew() {
-			if( !ImageProperties.InitNew() )
-                return false;
 			if( !_oViewSync.InitNew() )
 				return false;
 			if( !_oViewRx.InitNew() )
@@ -119,7 +112,7 @@ namespace Play.SSTV {
 			_oViewRx  .Parent = this;
 			_oViewSync.Parent = this;
 
-			DecorPropertiesInit();
+            _oDocSSTV.PropertyChange += Listen_PropertyChange;
 
             _oLayout.Add( new LayoutControl( _oViewRx,    LayoutRect.CSS.Percent, 60 ) );
             _oLayout.Add( new LayoutControl( _oViewSync , LayoutRect.CSS.Percent, 40 ) );
@@ -129,18 +122,6 @@ namespace Play.SSTV {
 			return true;
 		}
 
-		protected virtual void DecorPropertiesInit() {
-            _oDocSSTV.PropertyChange += Listen_PropertyChange;
-
-			using( PropDoc.Manipulator oBulk = ImageProperties.EditProperties ) {
-				oBulk.Add( "Width" );
-				oBulk.Add( "Height" );
-				oBulk.Add( "Encoding" );
-				oBulk.Add( "Sent" );
-				oBulk.Add( "Name" );
-			}
-		}
-
         /// <summary>
         /// This is our event sink for property changes on the SSTV document.
         /// </summary>
@@ -148,48 +129,9 @@ namespace Play.SSTV {
         /// specific property in the future. You know, a color coded property, 
         /// light red or yellow on change would be a cool feature.</remarks>
         private void Listen_PropertyChange( ESstvProperty eProp ) {
-			switch( eProp ) {
-				case ESstvProperty.ALL:
-				case ESstvProperty.RXImageNew:
-					DecorPropertiesReLoad();
-					break;
-				case ESstvProperty.DownLoadTime:
-					DecorPropertiesLoadTime();
-					_oViewRx  .Invalidate();
-					_oViewSync.Invalidate();
-					//Refresh(); // Got to force it or it won't update. Hogging the loop I'll bet.
-					break;
-			}
+			_oViewRx  .Refresh();
+			_oViewSync.Refresh();
         }
-
-        protected void DecorPropertiesReLoad() {
-			using (PropDoc.Manipulator oBulk = ImageProperties.EditProperties) {
-				string strWidth  = string.Empty;
-				string strHeight = string.Empty;
-				string strName   = Path.GetFileName( _oDocSSTV.ImageList.CurrentFileName );
-				string strMode   = "Unassigned";
-
-				if( _oDocSSTV.ReceiveImage.Bitmap != null ) {
-					strWidth  = _oDocSSTV.ReceiveImage.Bitmap.Width .ToString();
-					strHeight = _oDocSSTV.ReceiveImage.Bitmap.Height.ToString();
-				}
-				if( _oDocSSTV.TransmitMode != null ) {
-					strMode = _oDocSSTV.TransmitMode.Name;
-				}
-
-                oBulk.Set( 0, strWidth  );
-                oBulk.Set( 1, strHeight );
-                oBulk.Set( 3, "0%"      );
-                oBulk.Set( 2, strMode   );
-				oBulk.Set( 4, strName   );
-            }
-		}
-
-		protected void DecorPropertiesLoadTime() {
-			using (PropDoc.Manipulator oBulk = ImageProperties.EditProperties) {
-                oBulk.Set( 3, _oDocSSTV.PercentFinished.ToString() + "%" );
-            }
-		}
 
         public bool Load(XmlElement oStream) {
 			InitNew();
@@ -212,8 +154,7 @@ namespace Play.SSTV {
 		public object Decorate(IPgViewSite oBaseSite,Guid sGuid) {
 			try {
 				if( sGuid.Equals(GlobalDecorations.Properties) ) {
-					DecorPropertiesReLoad();
-					return new PropWin( oBaseSite, ImageProperties );
+					return new PropWin( oBaseSite, _oDocSSTV.Properties );
 				}
 				return false;
 			} catch ( Exception oEx ) {
@@ -287,7 +228,6 @@ namespace Play.SSTV {
 		protected readonly IPgViewSite _oSiteView;
 
         DocSSTV _oDocSSTV;
-		protected PropDoc ImageProperties { get; } // Container for properties to show for this window.
 
 		protected class SSTVWinSlot :
 			IPgViewSite,
@@ -331,8 +271,6 @@ namespace Play.SSTV {
 		public SSTVReceiveImage( IPgViewSite oSiteBase, DocSSTV oDocSSTV ) : base( oSiteBase, oDocSSTV.ReceiveImage ) {
 			_oSiteView = oSiteBase ?? throw new ArgumentNullException( "SiteBase must not be null." );
 			_oDocSSTV  = oDocSSTV  ?? throw new ArgumentNullException( "DocSSTV must not be null." );
-
-            ImageProperties = new PropDoc( new SSTVWinSlot( this ) );
 		}
 
         protected override void Dispose( bool fDisposing )
@@ -347,25 +285,11 @@ namespace Play.SSTV {
         {
             if( !base.InitNew() )
 				return false;
-			if( !ImageProperties.InitNew() ) 
-				return false;
 
             _oDocSSTV.PropertyChange += ListenDoc_PropertyChange;
 
-			DecorPropertiesInit();
-
 			return true;
         }
-
-		protected virtual void DecorPropertiesInit() {
-			using( PropDoc.Manipulator oBulk = ImageProperties.EditProperties ) {
-				oBulk.Add( "Width" );
-				oBulk.Add( "Height" );
-				oBulk.Add( "Encoding" );
-				oBulk.Add( "Received" );
-				oBulk.Add( "Name" );
-			}
-		}
 
         /// <summary>
         /// This is our event sink for property changes on the SSTV document.
@@ -374,50 +298,8 @@ namespace Play.SSTV {
         /// specific property in the future. You know, a color coded property, 
         /// light red or yellow on change would be a cool feature.</remarks>
         private void ListenDoc_PropertyChange( ESstvProperty eProp ) {
-			switch( eProp ) {
-				case ESstvProperty.ALL:
-				case ESstvProperty.RXImageNew:
-					DecorPropertiesReLoad();
-					break;
-				case ESstvProperty.DownLoadFinished:
-				case ESstvProperty.DownLoadTime:
-					DecorPropertiesLoadTime();
-					Invalidate();
-					break;
-			}
+			Invalidate();
         }
-
-        protected void DecorPropertiesReLoad() {
-			using (PropDoc.Manipulator oBulk = ImageProperties.EditProperties) {
-				string strWidth  = string.Empty;
-				string strHeight = string.Empty;
-				string strName   = Path.GetFileName( _oDocSSTV.ImageList.CurrentFileName );
-				string strMode   = "Unassigned";
-
-				if( _oDocSSTV.ReceiveImage.Bitmap != null ) {
-					strWidth  = _oDocSSTV.ReceiveImage.Bitmap.Width .ToString();
-					strHeight = _oDocSSTV.ReceiveImage.Bitmap.Height.ToString();
-				}
-				if( _oDocSSTV.RxMode != null ) {
-					strMode   = _oDocSSTV.RxMode.Name;
-				}
-				if( _oDocSSTV.TransmitMode != null ) {
-					strMode   = _oDocSSTV.TransmitMode.Name;
-				}
-
-                oBulk.Set( 0, strWidth  );
-                oBulk.Set( 1, strHeight );
-                oBulk.Set( 2, strMode   );
-                oBulk.Set( 3, "0%" );
-				oBulk.Set( 4, strName   );
-            }
-		}
-
-		protected void DecorPropertiesLoadTime() {
-			using (PropDoc.Manipulator oBulk = ImageProperties.EditProperties) {
-                oBulk.Set( 3, _oDocSSTV.PercentRxComplete.ToString() + "%" );
-            }
-		}
 
         public override bool Execute( Guid sGuid )
         {
@@ -426,8 +308,9 @@ namespace Play.SSTV {
 				// \\hefty3\frodo\Documents\Radio\sstv\sstv-test-files\sstv_test-1.wav
 				// C:\Users\Frodo\Documents\signals\ic-705\20201230\20201230_060411.wav
 				// C:\Users\Frodo\Documents\signals\iss\2020-12-31
+				// C:\Users\Frodo\Documents\signals\iss\2020-12-31\20201231_1743z.wav
 
-				_oDocSSTV.RecordBeginFileRead2( @"C:\Users\Frodo\Documents\signals\iss\2020-12-31\20201231_1743z.wav");
+				_oDocSSTV.RecordBeginFileRead2( @"\\hefty3\frodo\Documents\Radio\sstv\sstv-test-files\sstv_test-1.wav");
 			}
 
             return base.Execute(sGuid);
@@ -436,8 +319,7 @@ namespace Play.SSTV {
 		public object Decorate(IPgViewSite oBaseSite,Guid sGuid) {
 			try {
 				if( sGuid.Equals(GlobalDecorations.Properties) ) {
-					DecorPropertiesReLoad();
-					return new PropWin( oBaseSite, ImageProperties );
+					return new PropWin( oBaseSite, _oDocSSTV.Properties );
 				}
 				return false;
 			} catch ( Exception oEx ) {

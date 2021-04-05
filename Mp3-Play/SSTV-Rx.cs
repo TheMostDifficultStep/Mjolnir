@@ -1057,7 +1057,8 @@ namespace Play.Sound {
 		BandPass m_bpf = BandPass.Undefined;
 		int      m_bpftap;
 
-		readonly FreqDetect m_Type      = FreqDetect.FQC; // BUG: This s/b parameter.
+		// looks like hilbert is broken. FQC & PLL seem to work fine!!
+		readonly FreqDetect m_Type      = FreqDetect.PLL; // FreqDetect.FQC; // BUG: This s/b parameter.
 		readonly bool       m_LevelType = false; // TODO: Probably sb param too. If make true, you must implement CSLVL class.
 
 		readonly CIIRTANK m_iir11;
@@ -1681,7 +1682,7 @@ namespace Play.Sound {
 
 										if( ModeDictionary.TryGetValue((byte)m_VisData, out SSTVMode tvModeFound ) ) {
 											m_NextMode = tvModeFound.LegacyMode;
-											m_SyncTime += (int)(3 * sys.m_SampFreq/1000.0 ); // HACK: This fixes us for all modes. But why?
+											m_SyncTime += (int)(16 * sys.m_SampFreq/1000.0 ); // HACK: This fixes us for all modes. But why? 3 for martin 16 for scottie.
 										} else {
 											if( m_VisData == 0x23 ) {      // MM 拡張 VIS : Expanded (16bit) VIS!!
 											//	m_SyncMode = 9;
@@ -1819,58 +1820,6 @@ namespace Play.Sound {
 			m_SyncLast = m_SyncHit;
 			m_SyncHit  = -1;
 		}
-
-		/// <remarks>This method used to live on the TMmsstv object, but that doesn't
-		/// make sense there. Moved it to the demodulator.</remarks>
-		/// <param name="fSyncAccuracy">fSyncAccuracy was m_SyncAccuracy on TMmsstv</param>
-		/// <remarks>I see two ways to correct slant. MMSSTV has the CSTVSET values static
-		/// so they must change the page width. Since they were using for the distance
-		/// along the scan line (ps = n%width) they then get corrected.
-		/// I'm going to change my parse values by updated a copy of the mode.</remarks>
-		//public void SyncSSTV( int iSyncAccuracy )
-		//{
-		//	int e = 4;
-		//	if( iSyncAccuracy != 0 && sys.m_UseRxBuff != 0 && (Mode.ScanLineWidthInSamples >= SstvSet.m_SampFreq) ) 
-		//		e = 3;
-		//	if( m_wLine >= e ) {
-		//		int    n = 0;
-		//		int   wd = (int)(Mode.ScanLineWidthInSamples + 2);
-		//		int[] bp = new int[wd];
-
-		//		Array.Clear( bp, 0, bp.Length );
-		//		//memset(bp, 0, sizeof(int)*(wd));
-		//		for( int pg = 0; pg < e; pg++ ){
-		//		  //short []sp = &m_B12[pg * m_BWidth];
-		//			int     ip = pg * m_BWidth;
-		//			for( int i = 0; i < Mode.ScanLineWidthInSamples; i++ ){
-		//				int x = n % Mode.ScanLineWidthInSamples; 
-		//			  //bp[x] += *sp;
-		//				bp[x] += m_B12[ip + i];
-		//				n++;
-		//			}
-		//		}
-		//		n = 0;
-		//		int max = 0;
-		//		for( int i = 0; i < wd; i++ ){
-		//			if( max < bp[i] ){
-		//				max = bp[i];
-		//				n = i;
-		//			}
-		//		}
-		//		n -= (int)SstvSet.m_OFP;
-		//		n = -n;
-		//		if( Mode.Family == TVFamily.Scottie ) {
-		//			if( n < 0 ) 
-		//				n += Mode.ScanLineWidthInSamples;
-		//		}
-		//		if( m_Type == FreqDetect.Hilbert ) 
-		//			n -= m_hill.m_htap/4;
-
-		//		SstvSet.SetOFS( n );
-		//		m_rBase = n;
-		//		m_wBgn  = 0;
-		//	}
-		//}
 
 		void SyncFreq(double d) {
 		/*

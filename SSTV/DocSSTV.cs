@@ -88,10 +88,11 @@ namespace Play.SSTV {
         public Editor         RxDirectory     { get; protected set; } // Files in the receive directory.
         public Specification  RxSpec          { get; protected set; } = new Specification( 44100, 1, 0, 16 );
         public GeneratorMode  ModeList        { get; protected set; }
-        public ImageWalkerDir ImageList       { get; protected set; }
-        public SKBitmap       Bitmap          => ImageList.Bitmap;
-        public SSTVMode       RxMode          { get; protected set; } = null;
+        public ImageWalkerDir TxImageList       { get; protected set; }
+        public SKBitmap       Bitmap          => TxImageList.Bitmap;
+        public SSTVMode       RxMode          { get; protected set; } = null; // Thread advisor polls this from work thread.
         public int            RxScanLine      { get; protected set; } // Thread Adviser polls for this from the workthread.
+		public PropDoc        Properties      { get; } // Container for properties to show for this window.
 
         protected readonly ImageSoloDoc  _oDocSnip;   // Clip the image.
 
@@ -139,12 +140,14 @@ namespace Play.SSTV {
             _oWorkPlace = ((IPgScheduler)Services).CreateWorkPlace() ?? throw new ApplicationException( "Couldn't create a worksite from scheduler.");
 
             ModeList        = new GeneratorMode ( new DocSlot( this, "SSTV Tx Modes" ) );
-            ImageList       = new ImageWalkerDir( new DocSlot( this ) );
+            TxImageList     = new ImageWalkerDir( new DocSlot( this ) );
             _oDocSnip       = new ImageSoloDoc  ( new DocSlot( this ) );
             RxDirectory     = new Editor        ( new DocSlot( this ) );
 
 			ReceiveImage = new ImageSoloDoc( new DocSlot( this ) );
 			SyncImage    = new ImageSoloDoc( new DocSlot( this ) );
+
+            Properties   = new PropDoc( new DocSlot( this ) );
         }
 
         #region Dispose
@@ -205,6 +208,11 @@ namespace Play.SSTV {
             }
         }
 
+        /// <summary>
+        /// Walk the iterator of SSTVModes and populate the ModeList. This sets
+        /// up the human readable names and maps to the associated mode.
+        /// </summary>
+        /// <param name="iterMode"></param>
         public void LoadModulators( IEnumerator<SSTVMode> iterMode) {
             using BaseEditor.Manipulator oBulk = ModeList.CreateManipulator();
 
@@ -242,6 +250,11 @@ namespace Play.SSTV {
             return true;
         }
 
+        /// <summary>
+        /// This was an experiment to read a signal into the fft and take a look
+        /// at the results. No longer in use. I'll archive it somehow later.
+        /// </summary>
+        /// <returns></returns>
         public bool InitNew3() {
 	        //string strSong = @"C:\Users\Frodo\Documents\signals\1kHz_Right_Channel.mp3"; // Max signal 262.
             //string strSong = @"C:\Users\Frodo\Documents\signals\sstv-essexham-image01-martin2.mp3";
@@ -275,9 +288,9 @@ namespace Play.SSTV {
         }
 
         /// <summary>
-        /// Setup the output stream This only needs to be set when the Spec changes.
+        /// Setup the output stream for transmit. This only needs to be set when the Spec 
+        /// (eg sample rate, or channels and etc) changes.
         /// </summary>
-        /// <returns></returns>
         public bool OutputStreamInit() {
             try {
                 // Help the garbage collector telling the buffer to unlink the pump (via dispose)
@@ -317,7 +330,7 @@ namespace Play.SSTV {
         }
 
         public bool InitNew() {
-            if( !ModeList .InitNew() ) // TODO: Set up hilight on TX!!
+            if( !ModeList .InitNew() ) 
                 return false;
             if( !OutputStreamInit() )  // Not really a cause for outright failure...
                 return false;
@@ -331,20 +344,26 @@ namespace Play.SSTV {
             if( !RxDirectory .InitNew() )
                 return false;
 
+            if( !Properties.InitNew() )
+                return false;
+
+            PropertiesInit();
+
             LoadModulators( GenerateMartin .GetModeEnumerator() );
             LoadModulators( GenerateScottie.GetModeEnumerator() );
             LoadModulators( GeneratePD     .GetModeEnumerator() );
 
-            ModeList.CheckedEvent += Listen_ModeChanged; // set checkmark AFTER load the modulators... ^_^;;
-            ModeList.CheckedLine = ModeList[0];
-
 			string strPath = Environment.GetFolderPath( Environment.SpecialFolder.MyPictures );
-            if( !ImageList.LoadURL( strPath ) ) {
+            if( !TxImageList.LoadURL( strPath ) ) {
 				LogError( "Couldn't find pictures directory for SSTV" );
                 return false;
 			}
+            // Set this after TxImageList load since the CheckedLine call will 
+            // call Listen_ModeChanged and that calls the properties update event.
+            ModeList.CheckedEvent += Listen_ModeChanged; // set checkmark AFTER load the modulators... ^_^;;
+            ModeList.CheckedLine = ModeList[0];
 
-            ImageList.ImageUpdated += Listen_ImageUpdated;
+            TxImageList.ImageUpdated += Listen_ImageUpdated;
 
             // BUG: Hard coded device.
 			if( MaxOutputDevice >= 1 ) {
@@ -356,6 +375,66 @@ namespace Play.SSTV {
             return true;
         }
 
+		protected virtual void PropertiesInit() {
+			using( PropDoc.Manipulator oBulk = Properties.EditProperties ) {
+				oBulk.Add( "RxWidth" );
+				oBulk.Add( "RxHeight" );
+				oBulk.Add( "Encoding" );
+				oBulk.Add( "Received" );
+				oBulk.Add( "Name" );
+				oBulk.Add( "Sent" );
+                oBulk.Add( "TxWidth" );
+                oBulk.Add( "TxHeight" );
+			}
+		}
+
+        protected void PropertiesReLoad() {
+			using (PropDoc.Manipulator oBulk = Properties.EditProperties) {
+				string strWidth    = string.Empty;
+				string strHeight   = string.Empty;
+				string strTxWidth  = string.Empty;
+				string strTxHeight = string.Empty;
+				string strName     = Path.GetFileName( TxImageList.CurrentFileName );
+				string strMode     = "Unassigned";
+
+				if( ReceiveImage.Bitmap != null ) {
+					strWidth  = ReceiveImage.Bitmap.Width .ToString();
+					strHeight = ReceiveImage.Bitmap.Height.ToString();
+				}
+                if( TxImageList.Bitmap != null ) {
+					strTxWidth  = TxImageList.Bitmap.Width .ToString();
+					strTxHeight = TxImageList.Bitmap.Height.ToString();
+                }
+				if( RxMode != null ) {
+					strMode   = RxMode.Name;
+				}
+				if( TxMode != null ) {
+					strMode   = TxMode.Name;
+				}
+
+                oBulk.Set( 0, strWidth  );
+                oBulk.Set( 1, strHeight );
+                oBulk.Set( 2, strMode   );
+                oBulk.Set( 3, "0%" );
+				oBulk.Set( 4, strName   );
+                oBulk.Set( 5, "0%" );
+                oBulk.Set( 6, strTxWidth );
+                oBulk.Set( 7, strTxHeight );
+            }
+		}
+
+		protected void PropertiesLoadTime() {
+			using (PropDoc.Manipulator oBulk = Properties.EditProperties) {
+                oBulk.Set( 3, PercentRxComplete.ToString() + "%" );
+            }
+		}
+
+		protected void PropertiesSendTime() {
+			using (PropDoc.Manipulator oBulk = Properties.EditProperties) {
+                oBulk.Set( 5, PercentTxComplete.ToString() + "%" );
+            }
+		}
+
         public bool Load( TextReader oStream ) {
             return InitNew();
         }
@@ -364,7 +443,10 @@ namespace Play.SSTV {
             return true;
         }
 
-        public int PercentFinished {
+        /// <summary>
+        /// Not used at present. I'll probably delete this later.
+        /// </summary>
+        public int PercentTxComplete {
             get { 
                 if( _oSSTVGenerator != null ) 
                     return _oSSTVGenerator.PercentTxComplete;
@@ -373,7 +455,7 @@ namespace Play.SSTV {
             } 
         }
 
-        public SSTVMode TransmitMode { 
+        public SSTVMode TxMode { 
             get {
                 if( _oSSTVGenerator != null )
                     return _oSSTVGenerator.Mode;
@@ -415,7 +497,7 @@ namespace Play.SSTV {
             }
             if( _oWorkPlace.Status == WorkerStatus.BUSY ||
                 _oWorkPlace.Status == WorkerStatus.PAUSED ) {
-                LogError( "Stop playing current image, to begin the next." );
+                LogError( "Stop playing current image. Then begin the next." );
                 return false;
             }
 
@@ -458,7 +540,26 @@ namespace Play.SSTV {
             Raise_PropertiesUpdated( ESstvProperty.TXImageChanged );
         }
 
+        /// <summary>
+        /// This is a slightly different property page system than before. Instead
+        /// of each view managing it's own set of properties, I've got this global
+        /// store here. I'll try subclassing the decor view for the properties in the
+        /// future. But all the values will be here.
+        /// </summary>
+        /// <param name="eProp"></param>
         protected void Raise_PropertiesUpdated( ESstvProperty eProp ) {
+            switch( eProp ) {
+                case ESstvProperty.DownLoadTime:
+                case ESstvProperty.DownLoadFinished:
+                    PropertiesLoadTime();
+                    break;
+                case ESstvProperty.UploadTime:
+                    PropertiesSendTime();
+                    break;
+                default:
+                    PropertiesReLoad();
+                    break;
+            }
             PropertyChange?.Invoke( eProp );
         }
 
@@ -468,7 +569,7 @@ namespace Play.SSTV {
         /// off the buffers again.
         /// </summary>
         /// <returns>Amount of time to wait until we want call again, in Milliseconds.</returns>
-        public IEnumerator<int> GetPlayerTask() {
+        public IEnumerator<int> GetTxTask() {
             do {
                 uint uiWait = 60000; // Basically stop wasting time here on error.
                 try {
@@ -495,19 +596,23 @@ namespace Play.SSTV {
         /// Begin transmitting the image.
         /// </summary>
         /// <param name="skSelect">clip region in source bitmap coordinates.</param>
-        public void PlayBegin( SKRectI skSelect ) {
+        public void TxBegin( SKRectI skSelect ) {
             try {
+                if( _oWorkPlace.Status != WorkerStatus.FREE ) {
+                    LogError( "Already sending, receiving or paused." );
+                    return;
+                }
                 if( ModeList.CheckedLine == null )
                     ModeList.CheckedLine = ModeList[0];
 
                 if( ModeList.CheckedLine.Extra is SSTVMode oMode ) {
                     if( _oWorkPlace.Status == WorkerStatus.FREE ) {
 			            // The DocSnip object retains ownership of it's generated bitmap and frees it on next load.
-                        // Bug: I should check if the selection == the whole bitmap == required dimension
-                        //      and I could skip the snip stage.
+                        // TODO: I should check if the selection == the whole bitmap == required dimension
+                        //       and I could skip the snip stage.
 			            _oDocSnip.Load( Bitmap, skSelect, oMode.Resolution );
                         if( GeneratorSetup( oMode, _oDocSnip.Bitmap ) ) {
-                            _oWorkPlace.Queue( GetPlayerTask(), 0 );
+                            _oWorkPlace.Queue( GetTxTask(), 0 );
                             ModeList.HighLight = ModeList.CheckedLine;
                         }
                     }
@@ -596,7 +701,9 @@ namespace Play.SSTV {
         }
 
         /// <summary>
-        /// This is our true multithreading experiment! Cross your fingers!!
+        /// This is our true multithreading experiment! Looks like it works
+        /// pretty well. The decoder and filters and all live in the bg thread.
+        /// The foreground tread only poles the bitmap from time to time.
         /// </summary>
         /// <param name="strFileName"></param>
         public void RecordBeginFileRead2( string strFileName ) {
@@ -622,7 +729,7 @@ namespace Play.SSTV {
 			        ReceiveImage.Bitmap = oWorker.RxSSTV._pBitmapRX;
 			        SyncImage   .Bitmap = oWorker.RxSSTV._pBitmapD12;
                     RxMode              = oWorker.NextMode;
-                    RxScanLine            = oWorker.ScanLine;
+                    RxScanLine          = oWorker.ScanLine;
 
 			        Raise_PropertiesUpdated( ESstvProperty.RXImageNew );
 
@@ -646,8 +753,9 @@ namespace Play.SSTV {
 
             RxScanLine = ReceiveImage.Bitmap.Height;
             Raise_PropertiesUpdated( ESstvProperty.DownLoadFinished );
+            ModeList.HighLight = null;
 
-            // BUG: bitmaps come from RxSSTV and that thread is about to DIE!!
+            // NOTE: bitmaps come from RxSSTV and that thread is about to DIE!!
             _oThread = null;
         }
 
@@ -656,7 +764,7 @@ namespace Play.SSTV {
 
             public SSTVMode NextMode { get; protected set; } 
             public TmmSSTV  RxSSTV   { get; protected set; }
-            public int      ScanLine => RxSSTV.ScanLine;
+            public int      ScanLine => RxSSTV.ScanLine; // used for progress rpt.
 
             CSSTVDEM        _oSSTVDeModulator;
 
@@ -705,27 +813,35 @@ namespace Play.SSTV {
             }
 
             public void DoWork() {
-                using var oReader = new AudioFileReader(_strFileName); 
+                try {
+                    using var oReader = new AudioFileReader(_strFileName); 
 
-			    FFTControlValues oFFTMode  = FFTControlValues.FindMode( oReader.WaveFormat.SampleRate ); // RxSpec.Rate
-			    SYSSET           sys       = new SYSSET   ( oFFTMode.SampFreq );
-			    CSSTVSET         oSetSSTV  = new CSSTVSET ( TVFamily.Martin, 0, oFFTMode.SampFreq, 0, sys.m_bCQ100 );
-			    CSSTVDEM         oDemod    = new CSSTVDEM ( oSetSSTV,
-														    sys,
-														    (int)oFFTMode.SampFreq, 
-														    (int)oFFTMode.SampBase, 
-														    0 );
+			        FFTControlValues oFFTMode  = FFTControlValues.FindMode( oReader.WaveFormat.SampleRate ); // RxSpec.Rate
+			        SYSSET           sys       = new SYSSET   ( oFFTMode.SampFreq );
+			        CSSTVSET         oSetSSTV  = new CSSTVSET ( TVFamily.Martin, 0, oFFTMode.SampFreq, 0, sys.m_bCQ100 );
+			        CSSTVDEM         oDemod    = new CSSTVDEM ( oSetSSTV,
+														        sys,
+														        (int)oFFTMode.SampFreq, 
+														        (int)oFFTMode.SampBase, 
+														        0 );
 
-                _oSSTVDeModulator = oDemod;
-			    RxSSTV            = new TmmSSTV( oDemod );
+                    _oSSTVDeModulator = oDemod;
+			        RxSSTV            = new TmmSSTV( oDemod );
 
-                oDemod.ShoutNextMode += Listen_NextRxMode;
+                    oDemod.ShoutNextMode += Listen_NextRxMode;
 
-                for( IEnumerator<int> oIter = GetReceiveFromFileTask( oReader ); oIter.MoveNext(); ) {
-                    RxSSTV.DrawSSTV();
+                    for( IEnumerator<int> oIter = GetReceiveFromFileTask( oReader ); oIter.MoveNext(); ) {
+                        RxSSTV.DrawSSTV();
+                    }
+
+                    NextMode = null;
+                } catch( Exception oEx ) {
+                    Type[] rgErrors = { typeof( DirectoryNotFoundException ),
+                                        typeof( NullReferenceException ),
+                                        typeof( ApplicationException ) };
+                    if( rgErrors.IsUnhandled( oEx ) )
+                        throw;
                 }
-
-                NextMode = null;
             }
 
             /// <summary>
@@ -882,8 +998,8 @@ namespace Play.SSTV {
         }
 
         public void RecordBeginTest3() {
-            if( ImageList.Bitmap != null ) {
-                RecordBeginTest2( new SKRectI( 0, 0, ImageList.Bitmap.Width, ImageList.Bitmap.Height ) );
+            if( TxImageList.Bitmap != null ) {
+                RecordBeginTest2( new SKRectI( 0, 0, TxImageList.Bitmap.Width, TxImageList.Bitmap.Height ) );
             } else {
                 LogError( "Please select a bitmap first" );
             }
