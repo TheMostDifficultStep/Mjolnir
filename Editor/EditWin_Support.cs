@@ -55,6 +55,11 @@ namespace Play.Edit {
         public virtual void WordBreak( Line oLine, ICollection<IPgWordRange> rgWords ) { }
     }
 
+    public static class WM {
+        [Obsolete]public const Int32 WM_USER = 1024; // 0x400 
+        public const Int32 WM_APP = 32768; // 0x8000				
+    }
+
     static class HRESULT {
         public const Int32 E_OUTOFMEMORY = -2147024882; // 0x8007000E;
         public const Int32 E_INVALIDARG  = -2147024809; // 0x80070057;

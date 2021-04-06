@@ -19,6 +19,7 @@ namespace Play.SSTV
     public class TmmSSTV {
 		private   bool _fDisposed = false;
         protected readonly CSSTVDEM _dp;
+		protected readonly IntPtr   _ipWindow = IntPtr.Zero;
 
 #region variables
         protected int     m_AX, m_AY;
@@ -300,7 +301,7 @@ namespace Play.SSTV
 				_dp.Mode.Resolution.Width  != _pBitmapRX.Width ||
 				_dp.Mode.Resolution.Height != _pBitmapRX.Height   )
 			{
-				// Don't dispose! The UI thread might be reference the object for read. Instead
+				// Don't dispose! The UI thread might be referencing the object for read. Instead
 				// We'll just drop it and let the UI do that when it catches up and let the GC
 				// clean up. Given we're not creating these like wild fire I think we won't have
 				// too much memory floating around.
@@ -310,6 +311,10 @@ namespace Play.SSTV
 										   _dp.Mode.Resolution.Height, 
 										   SKColorType.Rgb888x, 
 										   SKAlphaType.Opaque );
+
+				if( _ipWindow != IntPtr.Zero ) {
+					Edit.User32.PostMessage( _ipWindow, Play.Edit.WM.WM_APP, new IntPtr( 1 ), IntPtr.Zero );
+				}
 			}
 
 			//UpdateModeBtn();

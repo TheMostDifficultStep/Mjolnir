@@ -299,57 +299,8 @@ namespace Play.SSTV {
         /// specific property in the future. You know, a color coded property, 
         /// light red or yellow on change would be a cool feature.</remarks>
         private void ListenDoc_PropertyChange( ESstvProperty eProp ) {
-			switch( eProp ) {
-				case ESstvProperty.ALL:
-				case ESstvProperty.RXImageNew:
-					DecorPropertiesReLoad();
-					break;
-				case ESstvProperty.DownLoadFinished:
-				case ESstvProperty.DownLoadTime:
-					DecorPropertiesLoadTime();
-					Invalidate();
-					break;
-			}
+			Invalidate();
         }
-
-		/// <summary>
-		/// Change our property page values by reading from the DocSSTV object
-		/// </summary>
-		/// <remarks>It would be nice to have this live on the Document object
-		/// but these values are a little different from send to recieve so it's
-		/// easier to just cut and paste the differences.
-		/// </remarks>
-        protected void DecorPropertiesReLoad() {
-			using (PropDoc.Manipulator oBulk = ImageProperties.EditProperties) {
-				string strWidth  = string.Empty;
-				string strHeight = string.Empty;
-				string strName   = Path.GetFileName( _oDocSSTV.ImageList.CurrentFileName );
-				string strMode   = "Unassigned";
-
-				if( _oDocSSTV.ReceiveImage.Bitmap != null ) {
-					strWidth  = _oDocSSTV.ReceiveImage.Bitmap.Width .ToString();
-					strHeight = _oDocSSTV.ReceiveImage.Bitmap.Height.ToString();
-				}
-				if( _oDocSSTV.RxMode != null ) {
-					strMode   = _oDocSSTV.RxMode.Name;
-				}
-				if( _oDocSSTV.TransmitMode != null ) {
-					strMode   = _oDocSSTV.TransmitMode.Name;
-				}
-
-                oBulk.Set( 0, strWidth  );
-                oBulk.Set( 1, strHeight );
-                oBulk.Set( 2, strMode   );
-                oBulk.Set( 3, "0%" );
-				oBulk.Set( 4, strName   );
-            }
-		}
-
-		protected void DecorPropertiesLoadTime() {
-			using (PropDoc.Manipulator oBulk = ImageProperties.EditProperties) {
-                oBulk.Set( 3, _oDocSSTV.PercentRxComplete.ToString() + "%" );
-            }
-		}
 
         public override bool Execute( Guid sGuid )
         {
