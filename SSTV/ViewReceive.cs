@@ -79,7 +79,7 @@ namespace Play.SSTV {
 		public IPgParent Parentage => _oSiteView.Host;
 		public IPgParent Services  => Parentage.Services;
 		public bool      IsDirty   => false;
-		public string    Banner    => "Receive Window : " + _oDocSSTV.TxImageList.CurrentDirectory;
+		public string    Banner    => "Debug Receive Window : " + _oDocSSTV.TxImageList.CurrentDirectory;
 		public Image     Iconic    { get; }
 		public Guid      Catagory  => ViewType;
 

@@ -417,6 +417,7 @@ namespace Play.SSTV
 				if( rgErrors.IsUnhandled( oEx ) )
 					throw;
 
+				ShoutTvEvents?.Invoke( ESstvProperty.DrawingThreadException );
 				// In the future we'll write some error message to the screen & reset.
 				//throw new ApplicationException( "Problem decoding scan line.", oEx );
 			}

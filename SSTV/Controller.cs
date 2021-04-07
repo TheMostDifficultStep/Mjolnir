@@ -38,8 +38,7 @@ namespace Play.SSTV {
 					return oView;
 				}
 
-				// Make the receive the default in the future.
-				return new SSTVTransmitSelect( oBaseSite, oMySSTVDoc );
+				return new SSTVReceiveImage( oBaseSite, oMySSTVDoc );
             } catch( Exception oEx ) {
 				// TODO: Stuff errors collection into the base controller.
                 Type[] rgErrors = { typeof( NullReferenceException ),
@@ -54,12 +53,12 @@ namespace Play.SSTV {
 		}
 
 		public override IEnumerator<IPgViewType> GetEnumerator() {
-		  //yield return new ViewType( "Spectrum",  ViewFFT           .ViewType );
-		  //yield return new ViewType( "Tx Screen", ViewTransmit      .ViewType );
-		    yield return new ViewType( "Rx Screen", ViewRecieve       .ViewType );
-		    yield return new ViewType( "Tx Image",  SSTVTransmitSelect.ViewType );
-			yield return new ViewType( "Rx Image",  SSTVReceiveImage  .ViewType );
-			yield return new ViewType( "Tx Modes",  ViewTransmitModes );
+		  //yield return new ViewType( "Spectrum",       ViewFFT           .ViewType );
+		  //yield return new ViewType( "Tx Screen",      ViewTransmit      .ViewType );
+			yield return new ViewType( "Rx Image",       SSTVReceiveImage  .ViewType );
+		    yield return new ViewType( "Rx Dual Screen", ViewRecieve       .ViewType );
+		    yield return new ViewType( "Tx Image",       SSTVTransmitSelect.ViewType );
+			yield return new ViewType( "Tx Modes",       ViewTransmitModes );
 		}
 	}
 

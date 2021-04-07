@@ -24,7 +24,9 @@ namespace Play.SSTV {
         TXImageChanged,
 		RXImageNew,
 		DownLoadTime,
-        DownLoadFinished
+        DownLoadFinished,
+        DrawingThreadException,
+        WorkerThreadException
     }
 
     public delegate void SSTVPropertyChange( ESstvProperty eProp );
@@ -752,13 +754,17 @@ namespace Play.SSTV {
                         case ESstvProperty.DownLoadTime:
                             PropertiesLoadTime( oWorker.RxSSTV.PercentRxComplete );
                             PropertyChange?.Invoke( ESstvProperty.DownLoadTime );
-                            ReceiveImage.Raise_ImageUpdated();
                             break;
                         case ESstvProperty.DownLoadFinished:
                             PropertiesLoadTime( oWorker.RxSSTV.PercentRxComplete );
                             PropertyChange?.Invoke( ESstvProperty.DownLoadFinished );
-                            ReceiveImage.Raise_ImageUpdated();
                             ModeList.HighLight = null;
+                            break;
+                        case ESstvProperty.DrawingThreadException:
+                            LogError( "Worker thread Drawing Exception" );
+                            break;
+                        case ESstvProperty.WorkerThreadException:
+                            LogError( "Worker thread Exception" );
                             break;
                     }
                 } else {

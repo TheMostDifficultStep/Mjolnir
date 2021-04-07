@@ -102,6 +102,8 @@ namespace Play.SSTV
                                         typeof( ApplicationException ) };
                     if( rgErrors.IsUnhandled( oEx ) )
                         throw;
+
+                    _oMsgQueue.Enqueue( ESstvProperty.WorkerThreadException );
                 }
             }
 
@@ -116,7 +118,8 @@ namespace Play.SSTV
 
         /// <summary>
         /// Listen to the decoder when it spots a new image. DO NOT 
-        /// enqueue ESstvProperty.SSTVMode to the UI msg queue.
+        /// enqueue ESstvProperty.SSTVMode to the UI msg queue. TmmSSTV
+        /// will Shout that as a TvEvent.
         /// </summary>
         /// <remarks>The bitmap only changes when the mode changes and
         /// the next image isn't necessarily a different mode. I need to
