@@ -299,7 +299,14 @@ namespace Play.SSTV {
         /// specific property in the future. You know, a color coded property, 
         /// light red or yellow on change would be a cool feature.</remarks>
         private void ListenDoc_PropertyChange( ESstvProperty eProp ) {
-			Invalidate();
+			switch( eProp ) {
+				case ESstvProperty.DownLoadFinished:
+					Refresh();
+					break;
+				default:
+					Invalidate();
+					break;
+			}
         }
 
         public override bool Execute( Guid sGuid )

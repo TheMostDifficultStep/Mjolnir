@@ -156,6 +156,7 @@ namespace Play.Sound {
 
 		public double SampFreq => m_SampFreq;
 		private readonly bool m_bCQ100;
+		public TVFamily Mode { get; protected set; }
 
 		/// <summary>
 		/// Should we ever support: smMN73,smMN110,smMN140,smMC110,smMC140, or smMC180,
@@ -203,6 +204,7 @@ namespace Play.Sound {
 		/// we can't make the members here readonly.</remarks>
 		public void SetMode( TVFamily tvFamily )
 		{
+			Mode = tvFamily;
 			//m_SampFreq = sys.m_SampFreq; <-- this gets set in the constructor now.
 			m_fNarrow = CSSTVSET.IsNarrowMode( tvFamily );
 			SetSampFreq( tvFamily );
@@ -1031,7 +1033,7 @@ namespace Play.Sound {
 
 		protected Dictionary<byte, SSTVMode > ModeDictionary { get; } = new Dictionary<byte, SSTVMode>();
 
-		public event NextMode ShoutNextMode; // This will need to be an message.
+		public event NextMode ShoutNextMode; 
 
 		public readonly static int NARROW_SYNC		= 1900;
 		public readonly static int NARROW_LOW		= 2044;
@@ -1059,7 +1061,7 @@ namespace Play.Sound {
 		int      m_bpftap;
 
 		// looks like hilbert is broken. FQC & PLL seem to work fine!!
-		readonly FreqDetect m_Type      = FreqDetect.PLL; // FreqDetect.FQC; // BUG: This s/b parameter.
+		public readonly FreqDetect m_Type      = FreqDetect.PLL; // FreqDetect.FQC; // BUG: This s/b parameter.
 		readonly bool       m_LevelType = false; // TODO: Probably sb param too. If make true, you must implement CSLVL class.
 
 		readonly CIIRTANK m_iir11;
@@ -1079,6 +1081,8 @@ namespace Play.Sound {
 		readonly CPLL	  m_pll;
 		readonly CFQC     m_fqc;
 		readonly CHILL    m_hill;
+
+		public int HillTaps => m_hill.m_htap;
 
 		public bool   m_Sync { get; protected set; }
 		int           m_SyncMode;

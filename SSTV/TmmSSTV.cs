@@ -19,7 +19,7 @@ namespace Play.SSTV
     public class TmmSSTV {
 		private   bool _fDisposed = false;
         protected readonly CSSTVDEM _dp;
-		protected readonly IntPtr   _ipWindow = IntPtr.Zero;
+		public    SSTVMode Mode => _dp.Mode;
 
 #region variables
         protected int     m_AX, m_AY;
@@ -66,7 +66,7 @@ namespace Play.SSTV
 		public int      ScanLine => m_AY;
 #endregion
 
-		public event SSTVPropertyChange ShoutTvEvents;
+		public event SSTVPropertyChange ShoutTvEvents; // TODO: Since threaded version poles, we don't need this.
 
 		protected readonly List<ColorChannel> _rgSlots = new List<ColorChannel>(10);
 
@@ -269,24 +269,6 @@ namespace Play.SSTV
 			return true;
 		}
 
-        /// <summary>
-        /// Bunch of stuff to do when we stop, but I don't think it's necessary to
-        /// sort it all right now.
-        /// </summary>
-        void Stop() {
-			//bool lost = dp.m_Lost;
-			//if( dp.m_LoopBack != true ){
-			//	WriteHistory(1);
-			//} else {
-			//	SBWHist->Enabled = TRUE;
-			//}
-			//TrackTxMode(0);
-			//UpdateModeBtn();
-			//if( lost )
-            //    InfoRxLost();
-			//UpdateUI();
-         }
-
         public void Start() {
 			m_SyncRPos      = m_SyncPos = -1;
 			m_SyncAccuracyN = 0;
@@ -296,6 +278,8 @@ namespace Play.SSTV
 			m_SyncLast		= 0;
 
 			_rgSyncDetect.Clear();
+
+			ShoutTvEvents?.Invoke(ESstvProperty.SSTVMode );
 
 			if( _pBitmapRX == null ||
 				_dp.Mode.Resolution.Width  != _pBitmapRX.Width ||
@@ -312,9 +296,7 @@ namespace Play.SSTV
 										   SKColorType.Rgb888x, 
 										   SKAlphaType.Opaque );
 
-				if( _ipWindow != IntPtr.Zero ) {
-					Edit.User32.PostMessage( _ipWindow, Play.Edit.WM.WM_APP, new IntPtr( 1 ), IntPtr.Zero );
-				}
+				ShoutTvEvents?.Invoke(ESstvProperty.RXImageNew );
 			}
 
 			//UpdateModeBtn();
@@ -328,6 +310,15 @@ namespace Play.SSTV
 			// TODO: I'll probably need to call these if re-draw for slant correction.
 			InitAutoStop( _dp.SampBase );
 			m_AutoSyncCount = m_AutoSyncDis = 0;
+        }
+
+        public int PercentRxComplete { 
+            get {
+				if( _pBitmapRX != null ) {
+					return ( m_AY * 100 / _pBitmapRX.Height ) ;
+				}
+                return 0;
+            }
         }
 
 		/// <summary>
@@ -345,12 +336,14 @@ namespace Play.SSTV
 				DrawSSTVNormal();
 				_dp.PageRIncrement( ScanWidthInSamples );
 
-				ShoutTvEvents?.Invoke( ESstvProperty.DownLoadTime );
+				SyncSSTV( false );
 
-				if( m_AY > _dp.Mode.Resolution.Height ){ 
+				if( m_AY >= _dp.Mode.Resolution.Height ){ 
 					_dp.Stop();
-                    Stop();
+					ShoutTvEvents?.Invoke( ESstvProperty.DownLoadFinished );
 					break;
+				} else {
+					ShoutTvEvents?.Invoke( ESstvProperty.DownLoadTime );
 				}
 			}
 		}
@@ -440,42 +433,42 @@ namespace Play.SSTV
             int e = 4;
             if( fSyncAccuracy /* && sys.m_UseRxBuff != 0 */ )
                 e = 3;
-            if( m_AY >= e )  {
-                //		int    n = 0;
-                //		int   wd = (int)(Mode.ScanLineWidthInSamples + 2);
-                //		int[] bp = new int[wd];
+            if( m_AY == e )  { // was >=
+                int   n   = 0;
+				int   iSW = (int)ScanWidthInSamples;
+                int   wd  = iSW + 2;
+                int[] bp  = new int[wd]; // Array.Clear( bp, 0, bp.Length );
 
-                //		Array.Clear( bp, 0, bp.Length );
-                //		for( int pg = 0; pg < e; pg++ ){
-                //		  //short []sp = &m_B12[pg * m_BWidth];
-                //			int     ip = pg * m_BWidth;
-                //			for( int i = 0; i < Mode.ScanLineWidthInSamples; i++ ){
-                //				int x = n % Mode.ScanLineWidthInSamples; 
-                //			  //bp[x] += *sp;
-                //				bp[x] += m_B12[ip + i];
-                //				n++;
-                //			}
-                //		}
-                //		n = 0;
-                //		int max = 0;
-                //		for( int i = 0; i < wd; i++ ){
-                //			if( max < bp[i] ){
-                //				max = bp[i];
-                //				n = i;
-                //			}
-                //		}
-                //		n -= (int)SstvSet.m_OFP;
-                //		n = -n;
-                //		if( Mode.Family == TVFamily.Scottie ) {
-                //			if( n < 0 ) 
-                //				n += Mode.ScanLineWidthInSamples;
-                //		}
-                //		if( m_Type == FreqDetect.Hilbert ) 
-                //			n -= m_hill.m_htap/4;
+                for( int pg = 0; pg < e; pg++ ){
+                	//short []sp = &m_B12[pg * m_BWidth];
+                	int  ip = (int)(pg * ScanWidthInSamples);
+                	for( int i = 0; i < iSW; i++ ){
+                		int x = n % iSW; 
+                		//bp[x] += *sp;
+                		bp[x] += _dp.m_B12[ip + i];
+                		n++;
+                	}
+                }
+                n = 0;
+                int max = 0;
+                for( int i = 0; i < wd; i++ ){
+                	if( max < bp[i] ){
+                		max = bp[i];
+                		n = i;
+                	}
+                }
+                n -= (int)_dp.SstvSet.m_OFP; // OF(P) is hsync plus one gap time in samples 
+                n = -n;
+                if( _dp.SstvSet.Mode == TVFamily.Scottie ) {
+                	if( n < 0 ) 
+                		n += iSW;
+                }
+                if( _dp.m_Type == FreqDetect.Hilbert ) 
+                	n -= _dp.HillTaps/4;
 
-                //		SstvSet.SetOFS( n );
-                //		m_rBase = n;
-                //		m_wBgn  = 0;
+                //SstvSet.SetOFS( n );
+                //_dp.m_rBase = n;
+                //m_wBgn  = 0; redraw.
             }
         }
 
