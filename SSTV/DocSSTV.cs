@@ -25,8 +25,9 @@ namespace Play.SSTV {
 		RXImageNew,
 		DownLoadTime,
         DownLoadFinished,
-        DrawingThreadException,
-        WorkerThreadException
+        ThreadDrawingException,
+        ThreadWorkerException,
+        ThreadReadException
     }
 
     public delegate void SSTVPropertyChange( ESstvProperty eProp );
@@ -733,7 +734,7 @@ namespace Play.SSTV {
         /// <param name="oWorker"></param>
         public IEnumerator<int> GetThreadAdviser( ThreadWorker oWorker ) {
             while( _oThread.IsAlive ) {
-                if( _oMsgQueue.TryDequeue( out ESstvProperty eResult ) ) {
+                while( _oMsgQueue.TryDequeue( out ESstvProperty eResult ) ) {
                     switch( eResult ) {
                         case ESstvProperty.RXImageNew:
 			                ReceiveImage.Bitmap = oWorker.RxSSTV._pBitmapRX;
@@ -760,15 +761,13 @@ namespace Play.SSTV {
                             PropertyChange?.Invoke( ESstvProperty.DownLoadFinished );
                             ModeList.HighLight = null;
                             break;
-                        case ESstvProperty.DrawingThreadException:
+                        case ESstvProperty.ThreadDrawingException:
                             LogError( "Worker thread Drawing Exception" );
                             break;
-                        case ESstvProperty.WorkerThreadException:
+                        case ESstvProperty.ThreadWorkerException:
                             LogError( "Worker thread Exception" );
                             break;
                     }
-                } else {
-                    ReceiveImage.Raise_ImageUpdated();
                 }
                 yield return 250;
             }
@@ -780,7 +779,7 @@ namespace Play.SSTV {
         /// <summary>
         /// This is our true multithreading experiment! Looks like it works
         /// pretty well. The decoder and filters and all live in the bg thread.
-        /// The foreground tread only poles the bitmap from time to time.
+        /// The foreground tread only polls the bitmap from time to time.
         /// </summary>
         /// <param name="strFileName"></param>
         public void RecordBeginFileRead2( string strFileName ) {
