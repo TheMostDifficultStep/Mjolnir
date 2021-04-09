@@ -1728,6 +1728,23 @@ namespace Play.Sound {
 							}
 						}
 						break;
+					case 256:                // 強制開始 : Forced start.
+						tvMode = GetSSTVMode( m_NextMode );
+						if( tvMode != null ) {
+							SstvSet.SetMode( tvMode.Family ); 
+							Start( tvMode );
+						}
+						break;
+					case 512:               // 0.5sのウエイト : .5s wait.
+						m_SyncTime = (int)(sys.m_SampFreq * 0.5);
+						m_SyncMode++;
+						break;
+					case 513:
+						m_SyncTime--;
+						if( m_SyncTime <= 0 ){
+							m_SyncMode = 0;
+						}
+						break;
 				}
 			}
 			if( m_Sync ){
