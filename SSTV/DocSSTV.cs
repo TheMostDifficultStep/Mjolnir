@@ -676,7 +676,7 @@ namespace Play.SSTV {
                     for( int i = 0; i< iRead; ++i ) {
                         _oSSTVDeModulator.Do( ConvertInput(i) );
                     }
-					_oRxSSTV.DrawSSTV();
+					_oRxSSTV.SSTVDraw();
 				} catch( Exception oEx ) {
                     Type[] rgErrors = { typeof( NullReferenceException ),
                                         typeof( ArgumentNullException ),
@@ -823,7 +823,7 @@ namespace Play.SSTV {
 			ReceiveImage.Bitmap = null;
 			SyncImage   .Bitmap = null;
 
-            _oRxSSTV.SSTVModeTransition( tvMode ); // bitmap allocated in here. (may throw exception...)
+            _oRxSSTV.ModeTransition( tvMode ); // bitmap allocated in here. (may throw exception...)
 
 			ReceiveImage.Bitmap = _oRxSSTV._pBitmapRX;
 			SyncImage   .Bitmap = _oRxSSTV._pBitmapD12;
@@ -864,7 +864,7 @@ namespace Play.SSTV {
                         _oSSTVDeModulator.Do( _oSSTVBuffer.ReadOneSample() );
                     }
 					if( _oRxSSTV != null ) {
-						_oRxSSTV.DrawSSTV();
+						_oRxSSTV.SSTVDraw();
 					}
 				} catch( Exception oEx ) {
                     Type[] rgErrors = { typeof( NullReferenceException ),
@@ -959,7 +959,7 @@ namespace Play.SSTV {
 			_oSSTVDeModulator.Start( oMode );
 
             while( oIter.MoveNext() ) {
-				_oRxSSTV.DrawSSTV();
+				_oRxSSTV.SSTVDraw();
 				yield return 1;
 			};
 			SaveRxImage();

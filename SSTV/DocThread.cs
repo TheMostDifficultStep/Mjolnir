@@ -90,7 +90,7 @@ namespace Play.SSTV
                 RxSSTV.ShoutTvEvents += Listen_TvEvents;
 
                 for( IEnumerator<int> oIter = GetReceiveFromFileTask( oReader ); oIter.MoveNext(); ) {
-                    RxSSTV.DrawSSTV();
+                    RxSSTV.SSTVDraw();
                 }
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( DirectoryNotFoundException ),
@@ -122,7 +122,7 @@ namespace Play.SSTV
         /// separate out those events.</remarks>
         private void Listen_NextRxMode( SSTVMode tvMode ) {
             try {
-                RxSSTV.SSTVModeTransition( tvMode ); // bitmap allocated in here.
+                RxSSTV.ModeTransition( tvMode ); // bitmap allocated in here.
             } catch( ArgumentOutOfRangeException ) {
             }
         }

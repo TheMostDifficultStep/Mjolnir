@@ -269,21 +269,21 @@ namespace Play.SSTV {
             public uint SiteID => throw new NotImplementedException();
         }
 
-		public SSTVReceiveImage( IPgViewSite oSiteBase, DocSSTV oDocSSTV ) : base( oSiteBase, oDocSSTV.ReceiveImage ) {
+		public SSTVReceiveImage( IPgViewSite oSiteBase, DocSSTV oDocSSTV ) : 
+			base( oSiteBase, oDocSSTV.ReceiveImage ) 
+		{
 			_oSiteView = oSiteBase ?? throw new ArgumentNullException( "SiteBase must not be null." );
 			_oDocSSTV  = oDocSSTV  ?? throw new ArgumentNullException( "DocSSTV must not be null." );
 		}
 
-        protected override void Dispose( bool fDisposing )
-        {
+        protected override void Dispose( bool fDisposing ) {
 			if( fDisposing && !_fDisposed ) {
 				_oDocSSTV.PropertyChange -= ListenDoc_PropertyChange;
 			}
 			base.Dispose( fDisposing );
         }
 
-        public override bool InitNew()
-        {
+        public override bool InitNew() {
             if( !base.InitNew() )
 				return false;
 
@@ -309,8 +309,7 @@ namespace Play.SSTV {
 			}
         }
 
-        public override bool Execute( Guid sGuid )
-        {
+        public override bool Execute( Guid sGuid ) {
 			if( sGuid == GlobalCommands.Play ) {
 				//_oDocSSTV.RecordBeginTest3();
 				// \\hefty3\frodo\Documents\Radio\sstv\sstv-test-files\sstv_test-1.wav
@@ -344,13 +343,11 @@ namespace Play.SSTV {
             return( null );
 		}
 
-        public bool Save( XmlDocumentFragment oStream )
-        {
+        public bool Save( XmlDocumentFragment oStream ) {
             return true;
         }
 
-        public bool Load( XmlElement oStream )
-        {
+        public bool Load( XmlElement oStream ) {
             return InitNew();
         }
     }

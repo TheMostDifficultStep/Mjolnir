@@ -19,7 +19,7 @@ namespace Play.SSTV
     public class TmmSSTV {
 		private            bool     _fDisposed = false;
         protected readonly CSSTVDEM _dp;
-		protected          int      _iSampOffset = 170; // Use to correct image offset!!
+		protected          int      _iSampOffset = 180; // Use to correct image offset!!
 
 		public SSTVMode Mode => _dp.Mode;
 
@@ -75,10 +75,6 @@ namespace Play.SSTV
 		public TmmSSTV( CSSTVDEM p_dp ) {
 			_dp = p_dp ?? throw new ArgumentNullException( "CSSTVDEM" );
 
-			//_pBitmapRX = new SKBitmap( dp.Mode.Resolution.Width, 
-			//						   dp.Mode.Resolution.Height, 
-			//						   SKColorType.Rgb888x, 
-			//						   SKAlphaType.Opaque );
 		  //StartOption() ...
 		  //dp.sys.m_bCQ100 = FALSE;
 		  //g_dblToneOffset = 0.0;
@@ -118,8 +114,7 @@ namespace Play.SSTV
 		/// </summary>
 		/// <param name="ip">frequency as a level value.</param>
 		/// <returns></returns>
-		protected short GetPixelLevel(short ip)
-		{
+		protected short GetPixelLevel(short ip)	{
 			if( _dp.sys.m_DemCalibration && (_pCalibration != null) ){
 				int d = (ip / 8) + 2048;
 				if( d < 0 )
@@ -134,8 +129,7 @@ namespace Play.SSTV
 			}
 		}
 
-		protected int GetPictureLevel( short ip, int i )
-		{
+		protected int GetPictureLevel( short ip, int i ) {
 			//if( dp.sys.m_UseRxBuff != 2 ) {
 			//	int   d;
 			//	short ip2 = dp.m_Buf[dp.m_rPage * dp.m_BWidth + i + SSTVSET.m_KSB ];
@@ -169,8 +163,7 @@ namespace Play.SSTV
 			B = Limit256(B);
 		}
 
-		protected static short Limit256(short d)
-		{
+		protected static short Limit256(short d) {
 			if( d < 0 )
 				d = 0;
 			if( d > 255 )
@@ -179,8 +172,7 @@ namespace Play.SSTV
 			return d;
 		}
 
-		protected static short Limit256(int d)
-		{
+		protected static short Limit256(int d) {
 			if( d < 0 )
 				d = 0;
 			if( d > 255 )
@@ -188,6 +180,17 @@ namespace Play.SSTV
 
 			return (short)d;
 		}
+
+        public int PercentRxComplete { 
+            get {
+				if( _pBitmapRX != null ) {
+					return ( m_AY * 100 / _pBitmapRX.Height ) ;
+				}
+                return 0;
+            }
+        }
+
+		protected int LineMultiplier { get; set; }
 
 		/// <summary>
 		/// Note: if we retune the slot timing, we'll need to call this again.
@@ -308,28 +311,19 @@ namespace Play.SSTV
 			m_AutoSyncCount = m_AutoSyncDis = 0;
         }
 
-        public int PercentRxComplete { 
-            get {
-				if( _pBitmapRX != null ) {
-					return ( m_AY * 100 / _pBitmapRX.Height ) ;
-				}
-                return 0;
-            }
-        }
-
 		/// <summary>
 		/// Call this function periodically to collect the sstv scan lines.
 		/// </summary>
 		/// <remarks>This function will loop until the rPage catches up with the wPage. 
 		/// </remarks>
-		public void DrawSSTV() {
+		public void SSTVDraw() {
 			while( _dp.m_Sync && (_dp.m_wBase >=_dp.m_rBase + ScanWidthInSamples + _iSampOffset ) ){
                 //dp.StorePage();
 
 				if( (_dp.sys.m_AutoStop || _dp.sys.m_AutoSync ) && _dp.m_Sync && (m_SyncPos != -1) ) {
 					AutoStopJob();
 				}
-				DrawSSTVNormal();
+				SSTVDrawNormal();
 				_dp.PageRIncrement( ScanWidthInSamples );
 
 				//SyncSSTV( false );
@@ -344,9 +338,7 @@ namespace Play.SSTV
 			}
 		}
 
-		protected int LineMultiplier { get; set; }
-
-		protected void DrawSSTVNormal() {
+		protected void SSTVDrawNormal() {
 			int    dx          = -1;          // Saved X pos from the B12 buffer.
 			int    rx          = -1;          // Saved X pos from the Rx  buffer.
 			int    ch          = 0;           // current channel skimming the Rx buffer portion.
@@ -424,7 +416,7 @@ namespace Play.SSTV
 		/// so they must change the page width. Since they were using for the distance
 		/// along the scan line (ps = n%width) they then get corrected.
 		/// I'm going to change my parse values by updated a copy of the mode.</remarks>
-		public void SyncSSTV( bool fSyncAccuracy ) {
+		public void SSTVSync( bool fSyncAccuracy ) {
             int e = 4;
             if( fSyncAccuracy /* && sys.m_UseRxBuff != 0 */ )
                 e = 3;
@@ -611,7 +603,7 @@ namespace Play.SSTV
 		/// Change the image parsing mode we are in. 
 		/// </summary>
 		/// <param name="tvMode"></param>
-		public void SSTVModeTransition( SSTVMode tvMode ) {
+		public void ModeTransition( SSTVMode tvMode ) {
             switch( tvMode.Family ) {
                 case TVFamily.PD: 
 					InitPD     ( tvMode, _dp.SampFreq, 1 ); 
