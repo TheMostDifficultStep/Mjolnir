@@ -498,10 +498,10 @@ namespace Play.Sound {
 					break;
 			}
 			if( d >= Math.PI ){
-				d = d - Math.PI*2;
+				d -= Math.PI*2;
 			}
 			else if( d <= -Math.PI ){
-				d = d + Math.PI*2;
+				d += Math.PI*2;
 			}
 			d += m_OFF;
 			return m_iir.Do(d * m_OUT);
@@ -1675,7 +1675,7 @@ namespace Play.Sound {
 								m_SyncMode = 0; // Start over?
 							} else {
 								m_SyncTime = (int)(30 * sys.m_SampFreq/1000 ); // Get next bit.
-								m_VisData = m_VisData >> 1;
+								m_VisData >>= 1;
 								if( d11 > d13 ) 
 									m_VisData |= 0x0080; // Set the 8th bit and we shift right for next.
 								m_VisCnt--;
@@ -1687,7 +1687,6 @@ namespace Play.Sound {
 
 										if( ModeDictionary.TryGetValue((byte)m_VisData, out SSTVMode tvModeFound ) ) {
 											m_NextMode = tvModeFound.LegacyMode;
-											m_SyncTime += (int)(16 * sys.m_SampFreq/1000.0 ); // HACK: This fixes us for all modes. But why? 3 for martin 16 for scottie.
 										} else {
 											if( m_VisData == 0x23 ) {      // MM 拡張 VIS : Expanded (16bit) VIS!!
 											//	m_SyncMode = 9;
@@ -1824,6 +1823,10 @@ namespace Play.Sound {
 			m_rBase    += dbWidthInSamples;
 			m_SyncLast = m_SyncHit;
 			m_SyncHit  = -1;
+		}
+
+		public void PageRReset() {
+			m_rBase = 0;
 		}
 
 		void SyncFreq(double d) {

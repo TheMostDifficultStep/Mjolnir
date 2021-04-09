@@ -229,7 +229,7 @@ namespace Play.Sound {
     /// where you register your controller and the controller is called to create
     /// an instance. But this is easiest for now.
     /// </summary>
-    public enum TVFamily {
+    public enum TVFamily : int {
         None = 0,
         Martin,
         Scottie,
@@ -245,6 +245,8 @@ namespace Play.Sound {
         readonly public  bool     GreyCalibrate;
         readonly public  int      ExtraScanLine;
         readonly public  AllModes LegacyMode;       // Legacy support.
+
+        readonly protected List<double> _rgOffset = new List<double>() { 0, 7.2, 10.2, 18.9 };
 
         public enum Resolutions { 
             h128or160,
@@ -276,6 +278,12 @@ namespace Play.Sound {
         public override string ToString()
         {
             return Name;
+        }
+
+        public double Offset {
+            get {
+                return _rgOffset[(int)Family];
+            }
         }
 
         /// <summary>

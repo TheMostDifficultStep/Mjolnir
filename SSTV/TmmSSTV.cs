@@ -5,21 +5,23 @@ using SkiaSharp;
 
 using Play.Interfaces.Embedding;
 using Play.Sound;
-using Play.ImageViewer;
 
 namespace Play.SSTV
 {
 	/// <summary>
-	/// The demodulator converts the signal from the time to frequency domain. It looks like it
-	/// lives on it's own thread. This object then reads the buffer populated by the demodulator
-	/// perhaps in yet another thread. 
+	/// The demodulator converts the signal from the time to frequency domain. In the original
+	/// code. It looks like it lives on it's own thread. I'm going to put it with the demodulator
+	/// in the same thread. 
 	/// </summary>
-	/// <remarks>I've removed the disposable because I'm going to lean on the GC to clean up the
-	/// unused bitmaps. I'll see how bad of a problem this is and deal with it if necessary.</remarks>
+	/// <remarks>I've removed the disposable on this class because I'm going to lean on the GC 
+	/// to clean up the unused bitmaps since they are shared with the UI thread. I'll see how 
+	/// bad of a problem this is and deal with it if necessary. Rust language, here I come...</remarks>
     public class TmmSSTV {
-		private   bool _fDisposed = false;
+		private            bool     _fDisposed = false;
         protected readonly CSSTVDEM _dp;
-		public    SSTVMode Mode => _dp.Mode;
+		protected          int      _iSampOffset = 170; // Use to correct image offset!!
+
+		public SSTVMode Mode => _dp.Mode;
 
 #region variables
         protected int     m_AX, m_AY;
@@ -299,13 +301,7 @@ namespace Play.SSTV
 				ShoutTvEvents?.Invoke(ESstvProperty.RXImageNew );
 			}
 
-			//UpdateModeBtn();
 			//::GetUTC(&m_StartTime);
-
-			//WaveStg.WInit();
-			//RxHist.ClearAddFlag();
-			//SBWHist->Enabled = FALSE;
-			//KRH->Enabled = FALSE; // Copy to history.
 
 			// TODO: I'll probably need to call these if re-draw for slant correction.
 			InitAutoStop( _dp.SampBase );
@@ -327,7 +323,7 @@ namespace Play.SSTV
 		/// <remarks>This function will loop until the rPage catches up with the wPage. 
 		/// </remarks>
 		public void DrawSSTV() {
-			while( _dp.m_Sync && (_dp.m_wBase >=_dp.m_rBase + ScanWidthInSamples ) ){
+			while( _dp.m_Sync && (_dp.m_wBase >=_dp.m_rBase + ScanWidthInSamples + _iSampOffset ) ){
                 //dp.StorePage();
 
 				if( (_dp.sys.m_AutoStop || _dp.sys.m_AutoSync ) && _dp.m_Sync && (m_SyncPos != -1) ) {
@@ -336,7 +332,7 @@ namespace Play.SSTV
 				DrawSSTVNormal();
 				_dp.PageRIncrement( ScanWidthInSamples );
 
-				SyncSSTV( false );
+				//SyncSSTV( false );
 
 				if( m_AY >= _dp.Mode.Resolution.Height ){ 
 					_dp.Stop();
@@ -379,7 +375,7 @@ namespace Play.SSTV
 				}
 
 				for( int i = 0; i < iScanWidth; i++ ){ 
-					int    idx = ( rBase + i ) % _dp.m_Buf.Length;
+					int    idx = ( rBase + i + _iSampOffset ) % _dp.m_Buf.Length;
 					short  sp  = _dp.m_B12[idx];
 
 					#region D12
@@ -437,6 +433,7 @@ namespace Play.SSTV
 				int   iSW = (int)ScanWidthInSamples;
                 int   wd  = iSW + 2;
                 int[] bp  = new int[wd]; // Array.Clear( bp, 0, bp.Length );
+				int   iSampOffs = (int)_dp.Mode.Offset * _dp.SampFreq / 1000;
 
                 for( int pg = 0; pg < e; pg++ ){
                 	//short []sp = &m_B12[pg * m_BWidth];
@@ -456,7 +453,7 @@ namespace Play.SSTV
                 		n = i;
                 	}
                 }
-                n -= (int)_dp.SstvSet.m_OFP; // OF(P) is hsync plus one gap time in samples 
+                n -= iSampOffs; // OF(P) is hsync plus one gap time in samples 
                 n = -n;
                 if( _dp.SstvSet.Mode == TVFamily.Scottie ) {
                 	if( n < 0 ) 
@@ -465,8 +462,10 @@ namespace Play.SSTV
                 if( _dp.m_Type == FreqDetect.Hilbert ) 
                 	n -= _dp.HillTaps/4;
 
+				_iSampOffset = n;
+				_dp.PageRReset();
                 //SstvSet.SetOFS( n );
-                //_dp.m_rBase = n;
+				//_dp.m_rBase = n;
                 //m_wBgn  = 0; redraw.
             }
         }
