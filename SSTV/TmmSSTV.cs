@@ -19,8 +19,8 @@ namespace Play.SSTV
     public class TmmSSTV {
 		private            bool     _fDisposed = false;
         protected readonly CSSTVDEM _dp;
-		protected          int      _iSampOffset = 180; // Use to correct image offset!!
-
+		protected          int      _iSyncOffset = 0; // 90 pd, 240 sc1, Use to correct image offset!!
+		protected		   int      _iSyncCheck  = 4;
 		public SSTVMode Mode => _dp.Mode;
 
 #region variables
@@ -281,6 +281,7 @@ namespace Play.SSTV
 			m_AY			= -5;
 			m_SyncHit       = -1;
 			m_SyncLast		= 0;
+			_iSyncCheck     = 4;
 
 			_rgSyncDetect.Clear();
 
@@ -317,7 +318,7 @@ namespace Play.SSTV
 		/// <remarks>This function will loop until the rPage catches up with the wPage. 
 		/// </remarks>
 		public void SSTVDraw() {
-			while( _dp.m_Sync && (_dp.m_wBase >=_dp.m_rBase + ScanWidthInSamples + _iSampOffset ) ){
+			while( _dp.m_Sync && (_dp.m_wBase >=_dp.m_rBase + ScanWidthInSamples + _iSyncOffset ) ){
                 //dp.StorePage();
 
 				if( (_dp.sys.m_AutoStop || _dp.sys.m_AutoSync ) && _dp.m_Sync && (m_SyncPos != -1) ) {
@@ -326,7 +327,7 @@ namespace Play.SSTV
 				SSTVDrawNormal();
 				_dp.PageRIncrement( ScanWidthInSamples );
 
-				//SyncSSTV( false );
+				SSTVSync();
 
 				if( m_AY >= _dp.Mode.Resolution.Height ){ 
 					_dp.Stop();
@@ -367,14 +368,14 @@ namespace Play.SSTV
 				}
 
 				for( int i = 0; i < iScanWidth; i++ ){ 
-					int    idx = ( rBase + i + _iSampOffset ) % _dp.m_Buf.Length;
+					int    idx = ( rBase + i + _iSyncOffset ) % _dp.m_Buf.Length;
 					short  sp  = _dp.m_B12[idx];
 
 					#region D12
 					if( sp > _dp.m_SLvl ) {
-						m_SyncHit = rBase + i; // Save the absolute position of the sync.
+						m_SyncHit = rBase + i + _iSyncOffset; // Save the absolute position of the sync.
 					}
-					int x = (int)( i * dbD12XScale );
+					int x = (int)( ( i + _iSyncOffset ) * dbD12XScale );
 					if( (x != dx) && (x >= 0) && (x < _pBitmapD12.Width)){
 						int d = Limit256((short)(sp * 256F / 4096F));
 						_pBitmapD12.SetPixel( x, m_AY, new SKColor( (byte)d, (byte)d, (byte)d ) );
@@ -409,52 +410,41 @@ namespace Play.SSTV
 			}
 		}
 
-		/// <summary>Looks like this tries to determine the start the image data
-		/// after the VIS.</summary>
-		/// <param name="fSyncAccuracy">fSyncAccuracy was m_SyncAccuracy on TMmsstv</param>
+		/// <summary>This call tries to determine the start the image data
+		/// after the VIS. Offset correction.</summary>
 		/// <remarks>I see two ways to correct slant. MMSSTV has the CSTVSET values static
 		/// so they must change the page width. Since they were using for the distance
 		/// along the scan line (ps = n%width) they then get corrected.
 		/// I'm going to change my parse values by updated a copy of the mode.</remarks>
-		public void SSTVSync( bool fSyncAccuracy ) {
-            int e = 4;
-            if( fSyncAccuracy /* && sys.m_UseRxBuff != 0 */ )
-                e = 3;
-            if( m_AY == e )  { // was >=
-                int   n   = 0;
-				int   iSW = (int)ScanWidthInSamples;
-                int   wd  = iSW + 2;
-                int[] bp  = new int[wd]; // Array.Clear( bp, 0, bp.Length );
-				int   iSampOffs = (int)_dp.Mode.Offset * _dp.SampFreq / 1000;
+		public void SSTVSync() {
+            if( m_AY >= _iSyncCheck )  { // was >=
 
-                for( int pg = 0; pg < e; pg++ ){
-                	//short []sp = &m_B12[pg * m_BWidth];
-                	int  ip = (int)(pg * ScanWidthInSamples);
+				int   iSW       = (int)ScanWidthInSamples;
+                int[] bp        = new int[iSW]; // Array.Clear( bp, 0, bp.Length );
+				int   iOffsExpd = (int)_dp.Mode.Offset * _dp.SampFreq / 1000;
+
+				// sum into bp[] four scan lines of data.
+                for( int pg = 0; pg < _iSyncCheck; pg++ ){
+                	int  ip = pg * iSW;
                 	for( int i = 0; i < iSW; i++ ){
-                		int x = n % iSW; 
-                		//bp[x] += *sp;
-                		bp[x] += _dp.m_B12[ip + i];
-                		n++;
+						bp[i] += _dp.m_B12[ip + i];
                 	}
                 }
-                n = 0;
-                int max = 0;
-                for( int i = 0; i < wd; i++ ){
-                	if( max < bp[i] ){
-                		max = bp[i];
-                		n = i;
+				// then go back and look for the cumulative max.
+                int iOffsFound = 0;
+                int iSignalMax = 0;
+                for( int i = 0; i < bp.Length; i++ ){
+                	if( iSignalMax < bp[i] ){
+                		iSignalMax = bp[i];
+                		iOffsFound   = i;
                 	}
                 }
-                n -= iSampOffs; // OF(P) is hsync plus one gap time in samples 
-                n = -n;
-                if( _dp.SstvSet.Mode == TVFamily.Scottie ) {
-                	if( n < 0 ) 
-                		n += iSW;
-                }
+                iOffsFound -= iOffsExpd;  
                 if( _dp.m_Type == FreqDetect.Hilbert ) 
-                	n -= _dp.HillTaps/4;
+                	iOffsFound -= _dp.HillTaps/4; // BUG: Add instead of subtract?
 
-				_iSampOffset = n;
+				_iSyncCheck  = int.MaxValue; // Stop from trying again.
+				_iSyncOffset = iOffsFound;
 				_dp.PageRReset();
                 //SstvSet.SetOFS( n );
 				//_dp.m_rBase = n;

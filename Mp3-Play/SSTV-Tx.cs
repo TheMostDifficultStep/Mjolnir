@@ -246,8 +246,6 @@ namespace Play.Sound {
         readonly public  int      ExtraScanLine;
         readonly public  AllModes LegacyMode;       // Legacy support.
 
-        readonly protected List<double> _rgOffset = new List<double>() { 0, 7.2, 10.2, 18.9 };
-
         public enum Resolutions { 
             h128or160,
             h256or320,
@@ -263,7 +261,9 @@ namespace Play.Sound {
         /// <param name="strName">Human readable name of mode.</param>
         /// <param name="dbTxWidth">Tx width of scan line in ms.</param>
         /// <param name="skSize">Do NOT include the top 16 scan line grey scale in the height value.</param>
-        public SSTVMode( TVFamily tvMode, byte bVIS, string strName, double dbTxWidth, SKSizeI skSize, AllModes eLegacy = AllModes.smEND ) {
+        public SSTVMode( TVFamily tvMode, byte bVIS, string strName, 
+                         double dbTxWidth, SKSizeI skSize, AllModes eLegacy = AllModes.smEND ) 
+        {
             VIS            = bVIS;
             Name           = strName;
             BlockWidthInMS = dbTxWidth;
@@ -275,14 +275,27 @@ namespace Play.Sound {
             GreyCalibrate = false;
         }
 
-        public override string ToString()
-        {
+        public override string ToString() {
             return Name;
         }
 
+        /// <summary>
+        /// This is the offset from the start of the scan line to the data.
+        /// Basically the time for the sync and one gap. Used for aligning
+        /// the offset of the image.
+        /// </summary>
         public double Offset {
             get {
-                return _rgOffset[(int)Family];
+                switch( Family ) {
+                    case TVFamily.Martin:
+                        return 4.862 + 0.572;
+                    case TVFamily.PD:
+                        return 20 + 2.08;
+                    case TVFamily.Scottie:
+                        return ( 1.5 * 3 ) + ( BlockWidthInMS * 2 ) + 9;
+                    default:
+                        throw new NotImplementedException();
+                }
             }
         }
 
@@ -329,7 +342,7 @@ namespace Play.Sound {
     {
         public SSTVMode Mode { get; }
 
-        readonly private   SKBitmap      _oBitmap; // Do not dispose this, caller will deal with it.
+        readonly private   SKBitmap      _oBitmap; // Do not dispose this, caller owns it.
         readonly private   IPgModulator  _oModulator;
         readonly protected List<SKColor> _rgCache = new List<SKColor>( 800 );
 
@@ -445,8 +458,8 @@ namespace Play.Sound {
         /// </summary>
         /// <returns></returns>
         public static IEnumerator<SSTVMode> GetModeEnumerator() {
- 	        yield return new SSTVMode( TVFamily.Scottie, 0x3c, "Scottie  1", 138.240, new SKSizeI( 320, 240 ), AllModes.smSCT1);
-            yield return new SSTVMode( TVFamily.Scottie, 0xb8, "Scottie  2",  88.064, new SKSizeI( 320, 240 ), AllModes.smSCT2);
+ 	        yield return new SSTVMode( TVFamily.Scottie, 0x3c, "Scottie 1",  138.240, new SKSizeI( 320, 240 ), AllModes.smSCT1);
+            yield return new SSTVMode( TVFamily.Scottie, 0xb8, "Scottie 2",   88.064, new SKSizeI( 320, 240 ), AllModes.smSCT2);
             yield return new SSTVMode( TVFamily.Scottie, 0xcc, "Scottie DX", 345.600, new SKSizeI( 320, 240 ), AllModes.smSCTDX);
         }
 

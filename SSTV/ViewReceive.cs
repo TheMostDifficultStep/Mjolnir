@@ -312,12 +312,12 @@ namespace Play.SSTV {
         public override bool Execute( Guid sGuid ) {
 			if( sGuid == GlobalCommands.Play ) {
 				//_oDocSSTV.RecordBeginTest3();
-				// \\hefty3\frodo\Documents\Radio\sstv\sstv-test-files\sstv_test-1.wav
+				// \\hefty3\frodo\Documents\Radio\sstv\sstv-test-files\sstv_test-1.wav	scottie 1
 				// C:\Users\Frodo\Documents\signals\ic-705\20201230\20201230_060411.wav
-				// C:\Users\Frodo\Documents\signals\iss\2020-12-31
 				// C:\Users\Frodo\Documents\signals\iss\2020-12-31\20201231_1743z.wav
+				// \\hefty3\frodo\Documents\Radio\sstv\iss-passes\20201231_1743zg.wav
 
-				_oDocSSTV.RecordBeginFileRead2( @"\\hefty3\frodo\Documents\Radio\sstv\sstv-test-files\sstv_test-1.wav");
+				_oDocSSTV.RecordBeginFileRead2( @"\\hefty3\frodo\Documents\Radio\sstv\iss-passes\20201231_1743zg.wav");
 			}
 
             return base.Execute(sGuid);

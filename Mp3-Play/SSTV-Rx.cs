@@ -1627,16 +1627,14 @@ namespace Play.Sound {
 
 				// The only time we care about this one is in VIS.
 				d11 = m_iir11.Do(d);
-				if( d11 < 0.0 )
-					d11 = -d11;
-				d11 = m_lpf11.Do(d11);
+				d11 = m_lpf11.Do( Math.Abs( d11 ));
 
 				switch(m_SyncMode){
 					case 0:                 // 自動開始 : Start automatically
 						// The first 1900hz has been seen, and now we're going down to 1200 for 15 ms. (s/b 10)
 						if( (d12 > d19) && (d12 > m_SLvl) && ((d12-d19) >= m_SLvl) ){
 							m_SyncMode++;
-							m_SyncTime = (int)(15 * sys.m_SampFreq/1000); // this is probably the ~10 ms between each 1900hz tone.
+							m_SyncTime = (int)(10 * sys.m_SampFreq/1000); // this is probably the ~10 ms between each 1900hz tone.
 							//if( !m_Sync /* && m_MSync */ ) 
 							//	m_sint1.SyncTrig( (int)d12);
 						}
