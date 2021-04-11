@@ -20,7 +20,7 @@ namespace Play.SSTV {
 		IPgCommandView,
 		IDisposable
 	{
-		public static Guid ViewType {get;} = new Guid( "{EF0DB19C-CEB3-47CC-A52B-9E6DBD389485}" );
+		public static Guid GUID {get;} = new Guid( "{EF0DB19C-CEB3-47CC-A52B-9E6DBD389485}" );
 
 		protected IPgViewSite _oViewSite;
 		protected DocSSTV     _oDocSSTV;
@@ -36,7 +36,7 @@ namespace Play.SSTV {
 		public bool      IsDirty   => false;
 		public string    Banner    => "Frequency Space";
 		public Image     Iconic    => null;
-		public Guid      Catagory  => ViewType;
+		public Guid      Catagory  => GUID;
 
 		public void LogError( string strMessage ) {
 			_oViewSite.LogError( "SSTV View", strMessage );

@@ -22,23 +22,23 @@ namespace Play.SSTV {
 			try {
 				DocSSTV oMySSTVDoc = (DocSSTV)oDocument;
 
-				if( guidViewType == ViewFFT     .ViewType )
+				if( guidViewType == ViewFFT.GUID )
 					return new ViewFFT( oBaseSite, oMySSTVDoc );
-                //if( guidViewType == ViewTransmit.ViewType )
-                //	return new ViewTransmit( oBaseSite, oMySSTVDoc );
-                if( guidViewType == ViewRecieve.ViewType )
-                    return new ViewRecieve(oBaseSite, oMySSTVDoc);
-                if( guidViewType == SSTVTransmitSelect.ViewType )
-					return new SSTVTransmitSelect( oBaseSite, oMySSTVDoc );
-				if( guidViewType == SSTVReceiveImage.ViewType )
-					return new SSTVReceiveImage( oBaseSite, oMySSTVDoc );
+                if( guidViewType == ViewRxAndSync.GUID )
+                    return new ViewRxAndSync(oBaseSite, oMySSTVDoc);
+                if( guidViewType == SSTVTxImage.GUID )
+					return new SSTVTxImage( oBaseSite, oMySSTVDoc );
+				if( guidViewType == SSTVRxImage.GUID )
+					return new SSTVRxImage( oBaseSite, oMySSTVDoc );
+				if( guidViewType == ViewSettings.GUID )
+					return new ViewSettings( oBaseSite, oMySSTVDoc );
 				if( guidViewType == ViewTransmitModes ) {
 					// Seealso ViewTransmit.Listen_ViewMode_LineChanged()
 					EditWindow2 oView = new SSTVModeView( oBaseSite, oMySSTVDoc.ModeList );
 					return oView;
 				}
 
-				return new SSTVReceiveImage( oBaseSite, oMySSTVDoc );
+				return new SSTVRxImage( oBaseSite, oMySSTVDoc );
             } catch( Exception oEx ) {
 				// TODO: Stuff errors collection into the base controller.
                 Type[] rgErrors = { typeof( NullReferenceException ),
@@ -53,12 +53,12 @@ namespace Play.SSTV {
 		}
 
 		public override IEnumerator<IPgViewType> GetEnumerator() {
-		  //yield return new ViewType( "Spectrum",       ViewFFT           .ViewType );
-		  //yield return new ViewType( "Tx Screen",      ViewTransmit      .ViewType );
-			yield return new ViewType( "Rx Image",       SSTVReceiveImage  .ViewType );
-		    yield return new ViewType( "Rx Dual Screen", ViewRecieve       .ViewType );
-		    yield return new ViewType( "Tx Image",       SSTVTransmitSelect.ViewType );
+		  //yield return new ViewType( "Spectrum",       ViewFFT      .ViewType );
+			yield return new ViewType( "Rx Image",       SSTVRxImage  .GUID );
+		    yield return new ViewType( "Rx Dual Screen", ViewRxAndSync.GUID );
+		    yield return new ViewType( "Tx Image",       SSTVTxImage  .GUID );
 			yield return new ViewType( "Tx Modes",       ViewTransmitModes );
+			yield return new ViewType( "Settings",       ViewSettings .GUID );
 		}
 	}
 

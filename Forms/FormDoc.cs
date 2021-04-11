@@ -1,7 +1,5 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Text;
 using System.Windows.Forms;
 using System.Drawing;
 using System.IO;
@@ -11,7 +9,6 @@ using SkiaSharp.Views.Desktop;
 
 using Play.Interfaces.Embedding;
 using Play.Edit;
-using Play.Integration;
 using Play.Rectangles;
 using Play.Parse.Impl;
 

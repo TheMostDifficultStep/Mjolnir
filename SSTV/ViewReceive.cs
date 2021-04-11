@@ -18,7 +18,7 @@ namespace Play.SSTV {
 	/// This view shows both the SSTV image and the sync image. But I don't think I want to use
 	/// this object.
 	/// </summary>
-	public class ViewRecieve:
+	public class ViewRxAndSync:
 		Control,
 		IPgParent,
 		IPgLoad<XmlElement>,
@@ -26,7 +26,7 @@ namespace Play.SSTV {
 		IPgCommandView,
 		IDisposable
 	{
-		public static Guid   ViewType { get; }  = new Guid( "{A7F75A46-1800-4605-87EC-2D8B960D1599}" );
+		public static Guid   GUID { get; }  = new Guid( "{A7F75A46-1800-4605-87EC-2D8B960D1599}" );
 		public static string _strIcon =  "Play.SSTV.icons8_tv.png";
 
 		protected readonly IPgViewSite   _oSiteView;
@@ -41,9 +41,9 @@ namespace Play.SSTV {
 			IPgViewSite,
 			IPgShellSite
 		{
-			protected readonly ViewRecieve _oHost;
+			protected readonly ViewRxAndSync _oHost;
 
-			public SSTVWinSlot( ViewRecieve oHost ) {
+			public SSTVWinSlot( ViewRxAndSync oHost ) {
 				_oHost = oHost ?? throw new ArgumentNullException();
 			}
 
@@ -81,9 +81,9 @@ namespace Play.SSTV {
 		public bool      IsDirty   => false;
 		public string    Banner    => "Debug Receive Window : " + _oDocSSTV.TxImageList.CurrentDirectory;
 		public Image     Iconic    { get; }
-		public Guid      Catagory  => ViewType;
+		public Guid      Catagory  => GUID;
 
-        public ViewRecieve( IPgViewSite oViewSite, DocSSTV oDocument ) {
+        public ViewRxAndSync( IPgViewSite oViewSite, DocSSTV oDocument ) {
 			_oSiteView = oViewSite ?? throw new ArgumentNullException( "View requires a view site." );
 			_oDocSSTV  = oDocument ?? throw new ArgumentNullException( "View requires a document." );
 
@@ -213,20 +213,24 @@ namespace Play.SSTV {
 	/// This view shows the single image being downloaded from the audio stream. Haven't sorted
 	/// out how to switch between the microphone (usb in) and selecting an audio stream.
 	/// </summary>
-	public class SSTVReceiveImage : 
+	public class SSTVRxImage : 
 		ImageViewSingle, 
 		IPgCommandView,
 		IPgSave<XmlDocumentFragment>,
-		IPgLoad<XmlElement>
+		IPgLoad<XmlElement>,
+		IPgTools
 	{
-		public static Guid ViewType { get; } = new Guid( "{5213847C-8B38-49D8-AAE2-C870F5E6FB51}" );
+		public static Guid GUID { get; } = new Guid( "{5213847C-8B38-49D8-AAE2-C870F5E6FB51}" );
 
-        public Guid   Catagory => ViewType;
+        public Guid   Catagory => GUID;
         public string Banner   => "SSTV Rx Image";
         public Image  Iconic   => null;
         public bool   IsDirty  => false;
 
-		protected readonly IPgViewSite _oSiteView;
+        protected readonly IPgViewSite _oSiteView;
+
+		readonly List<string> _rgToolBox = new List<string>() { "File", "Port" };
+		protected int         _iToolSelected = 0;
 
         DocSSTV _oDocSSTV;
 
@@ -234,9 +238,9 @@ namespace Play.SSTV {
 			IPgViewSite,
 			IPgShellSite
 		{
-			protected readonly SSTVReceiveImage _oHost;
+			protected readonly SSTVRxImage _oHost;
 
-			public SSTVWinSlot( SSTVReceiveImage oHost ) {
+			public SSTVWinSlot( SSTVRxImage oHost ) {
 				_oHost = oHost ?? throw new ArgumentNullException();
 			}
 
@@ -269,7 +273,7 @@ namespace Play.SSTV {
             public uint SiteID => throw new NotImplementedException();
         }
 
-		public SSTVReceiveImage( IPgViewSite oSiteBase, DocSSTV oDocSSTV ) : 
+		public SSTVRxImage( IPgViewSite oSiteBase, DocSSTV oDocSSTV ) : 
 			base( oSiteBase, oDocSSTV.ReceiveImage ) 
 		{
 			_oSiteView = oSiteBase ?? throw new ArgumentNullException( "SiteBase must not be null." );
@@ -317,7 +321,14 @@ namespace Play.SSTV {
 				// C:\Users\Frodo\Documents\signals\iss\2020-12-31\20201231_1743z.wav
 				// \\hefty3\frodo\Documents\Radio\sstv\iss-passes\20201231_1743zg.wav
 
-				_oDocSSTV.RecordBeginFileRead2( @"\\hefty3\frodo\Documents\Radio\sstv\iss-passes\20201231_1743zg.wav");
+				switch( _iToolSelected ) {
+					case 0:
+						_oDocSSTV.RecordBeginFileRead2( @"\\hefty3\frodo\Documents\Radio\sstv\iss-passes\20201231_1743zg.wav");
+						return true;
+					case 1:
+						LogError( "SSTV Command", "Audio Port not supported yet" );
+						return true;
+				}
 			}
 
             return base.Execute(sGuid);
@@ -349,6 +360,24 @@ namespace Play.SSTV {
 
         public bool Load( XmlElement oStream ) {
             return InitNew();
+        }
+
+        public int ToolCount => _rgToolBox.Count;
+
+        public int ToolSelect { 
+			get => _iToolSelected; 
+			set {
+				_iToolSelected = value;
+				_oSiteView.Notify( ShellNotify.ToolChanged );
+			}
+		}
+
+        public string ToolName( int iTool ) {
+            return _rgToolBox[iTool];
+        }
+
+        public Image ToolIcon( int iTool ) {
+            return null;
         }
     }
 }

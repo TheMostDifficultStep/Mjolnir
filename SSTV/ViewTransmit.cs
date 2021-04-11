@@ -276,17 +276,17 @@ namespace Play.SSTV {
 	/// <summary>
 	/// This is a new view so we can select a transmit image. Basically a slightly motified directory viewer.
 	/// </summary>
-	public class SSTVTransmitSelect: 
+	public class SSTVTxImage: 
 		ImageViewSolo 
 	{
-		public static Guid ViewType { get; } = new Guid( "{5BC25D2B-3F4E-4339-935C-CFADC2650B35}" );
+		public static Guid GUID { get; } = new Guid( "{5BC25D2B-3F4E-4339-935C-CFADC2650B35}" );
 
-        public override Guid   Catagory => ViewType;
+        public override Guid   Catagory => GUID;
         public override string Banner   => "SSTV Tx Image : " + _oDocSSTV.TxImageList.CurrentDirectory;
 
         DocSSTV _oDocSSTV;
 
-		public SSTVTransmitSelect( IPgViewSite oSiteBase, DocSSTV oDocSSTV ) : base( oSiteBase, oDocSSTV.TxImageList ) {
+		public SSTVTxImage( IPgViewSite oSiteBase, DocSSTV oDocSSTV ) : base( oSiteBase, oDocSSTV.TxImageList ) {
 			_oDocSSTV = oDocSSTV ?? throw new ArgumentNullException( "oDocSSTV must not be null." );
 		}
 

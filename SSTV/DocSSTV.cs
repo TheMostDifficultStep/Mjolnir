@@ -14,6 +14,7 @@ using Play.Sound;
 using Play.Sound.FFT;
 using Play.Edit;
 using Play.ImageViewer;
+using Play.Forms;
 
 namespace Play.SSTV {
     public enum ESstvProperty {
@@ -41,6 +42,7 @@ namespace Play.SSTV {
         private bool disposedValue;
         Thread       _oThread  = null;
         readonly ConcurrentQueue<ESstvProperty> _oMsgQueue = new ConcurrentQueue<ESstvProperty>(); // communique from bg thread to ui thread.
+        public Editor Settings { get; }
 
         /// <summary>
         /// This editor shows the list of modes we can modulate.
@@ -149,6 +151,7 @@ namespace Play.SSTV {
 			SyncImage    = new ImageSoloDoc( new DocSlot( this ) );
 
             Properties   = new PropDoc( new DocSlot( this ) );
+            Settings     = new FormsEditor( new DocSlot( this ) );
         }
 
         #region Dispose
@@ -347,8 +350,11 @@ namespace Play.SSTV {
 
             if( !Properties.InitNew() )
                 return false;
+            if( !Settings  .InitNew() )
+                return false;
 
             PropertiesInit();
+            SettingsInit();
 
             LoadModulators( GenerateMartin .GetModeEnumerator() );
             LoadModulators( GenerateScottie.GetModeEnumerator() );
@@ -388,6 +394,23 @@ namespace Play.SSTV {
                 oBulk.Add( "TxHeight" );
 			}
 		}
+
+        protected virtual void SettingsInit() {
+            Settings.LineAppend( "Tx Device",  fUndoable:false );
+            Settings.LineAppend( string.Empty, fUndoable:false );
+
+            Settings.LineAppend( "Rx Device",  fUndoable:false );
+            Settings.LineAppend( string.Empty, fUndoable:false );
+
+            Settings.LineAppend( "Jpeg Quality", fUndoable:false );
+            Settings.LineAppend( string.Empty,   fUndoable:false );
+
+            Settings.LineAppend( "Load Dir",   fUndoable:false );
+            Settings.LineAppend( string.Empty, fUndoable:false );
+
+            Settings.LineAppend( "Save Dir",   fUndoable:false );
+            Settings.LineAppend( string.Empty, fUndoable:false );
+        }
 
         protected void PropertiesReLoad() {
 			using (PropDoc.Manipulator oBulk = Properties.EditProperties) {
