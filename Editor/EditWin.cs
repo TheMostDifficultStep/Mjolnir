@@ -43,6 +43,9 @@ namespace Play.Rectangles {
 		}
 
 		public override uint TrackDesired(TRACK eParentAxis, int uiRail) {
+            if( Units == CSS.Pixels ) // Go with the set track size.
+                return Track;
+
 			Size szProposed = eParentAxis == TRACK.HORIZ ? new Size( Width, uiRail ) : new Size( uiRail, Height );
 			Size szPrefered = _oControl.GetPreferredSize( szProposed );
 			int  iTrack     = eParentAxis == TRACK.HORIZ ? szPrefered.Width : szPrefered.Height;

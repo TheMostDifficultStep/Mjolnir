@@ -34,7 +34,7 @@ namespace Play.SSTV {
 					return new ViewSettings( oBaseSite, oMySSTVDoc );
 				if( guidViewType == ViewTransmitModes ) {
 					// Seealso ViewTransmit.Listen_ViewMode_LineChanged()
-					EditWindow2 oView = new SSTVModeView( oBaseSite, oMySSTVDoc.ModeList );
+					EditWindow2 oView = new CheckList( oBaseSite, oMySSTVDoc.ModeList );
 					return oView;
 				}
 

@@ -344,7 +344,7 @@ namespace Play.SSTV {
 				return new ImageViewIcons( oBaseSite, _oDocSSTV.TxImageList );
 			}
 			if( sGuid.Equals( GlobalDecorations.Options ) ) {
-				return new SSTVModeView( oBaseSite, _oDocSSTV.ModeList );
+				return new CheckList( oBaseSite, _oDocSSTV.ModeList );
 			}
             return base.Decorate( oBaseSite, sGuid );
         }
@@ -353,8 +353,8 @@ namespace Play.SSTV {
 	/// <summary>
 	/// A little subclass of the editwindow to turn on the check marks. turn on readonly and have multiline.
 	/// </summary>
-	public class SSTVModeView : EditWindow2 {
-		public SSTVModeView( IPgViewSite oSite, Editor oEditor ) : base( oSite, oEditor, fReadOnly:true, fSingleLine:false ) {
+	public class CheckList : EditWindow2 {
+		public CheckList( IPgViewSite oSite, Editor oEditor ) : base( oSite, oEditor, fReadOnly:true, fSingleLine:false ) {
 			_fCheckMarks = true;
 		}
 	}

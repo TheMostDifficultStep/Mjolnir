@@ -84,7 +84,8 @@ namespace Play.SSTV {
                 oLayoutValue = new LayoutSingleLine( new FTCacheWrap( Document.Settings[iIndex+1] ), LayoutRect.CSS.Flex );
             } else {
                 oEditWin.InitNew();
-                oLayoutValue = new LayoutControl( oEditWin, LayoutRect.CSS.Pixels, 200 );
+                oEditWin.Parent = this;
+                oLayoutValue = new LayoutControl( oEditWin, LayoutRect.CSS.Pixels, 100 );
             }
 
             oLayout.AddRow( new List<LayoutRect>() { oLayoutLabel, oLayoutValue } );
@@ -103,6 +104,7 @@ namespace Play.SSTV {
             if( !PortRxList.InitNew() ) 
                 return false;
 
+
             PortRxList.LineAppend( "one" );
             PortRxList.LineAppend( "two" );
             PortRxList.LineAppend( "three" );
@@ -114,8 +116,8 @@ namespace Play.SSTV {
             oLayout.Add( new LayoutRect( LayoutRect.CSS.Percent, 40, 0 ) ); // Name.
             oLayout.Add( new LayoutRect( LayoutRect.CSS.Percent, 65, 0 ) ); // Value.
 
-            PropertyInitRow( oLayout, 0, new EditWindow2( new WinSlot( this ), PortTxList ) );
-            PropertyInitRow( oLayout, 2, new EditWindow2( new WinSlot( this ), PortRxList ) );
+            PropertyInitRow( oLayout, 0, new CheckList( new WinSlot( this ), PortTxList ) );
+            PropertyInitRow( oLayout, 2, new CheckList( new WinSlot( this ), PortRxList ) );
             PropertyInitRow( oLayout, 4 );
             PropertyInitRow( oLayout, 6 );
             PropertyInitRow( oLayout, 8 );
