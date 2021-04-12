@@ -192,6 +192,10 @@ namespace Play.Clock {
             CacheList.Add( oLayoutDate12h );
             CacheList.Add( oLayoutZone12h );
 
+            foreach( LayoutSingleLine oCache in CacheList ) {
+                oCache.BgColor = SkiaSharp.SKColors.LightBlue;
+            }
+
             Caret.Layout = oLayoutTimeUtc;
 
             OnDocumentEvent( BUFFEREVENTS.MULTILINE );

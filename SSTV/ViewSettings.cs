@@ -21,8 +21,9 @@ namespace Play.SSTV {
     {
         public static Guid GUID {get;} = new Guid("{5B8AC3A1-A20C-431B-BA13-09314BA767FC}");
 
-        private   readonly string      _strViewIcon  = "Play.SSTV.icons8_tv.png";
-        protected readonly IPgViewSite _oViewSite;
+        private   readonly string         _strViewIcon  = "Play.SSTV.icons8_tv.png";
+        protected readonly IPgViewSite    _oViewSite;
+		protected readonly IPgStandardUI2 _oStdUI;
 
         public Guid      Catagory  => GUID; 
         public string    Banner    => "MySSTV Settings";
@@ -62,6 +63,7 @@ namespace Play.SSTV {
         {
             Document   = oDocSSTV ?? throw new ArgumentNullException( "Clock document must not be null." );
             _oViewSite = oViewSite;
+ 			_oStdUI    = oViewSite.Host.Services as IPgStandardUI2 ?? throw new ArgumentException( "Parent view must provide IPgStandardUI service" );
 
             PortTxList = new Editor( new WinSlot( this ) );
             PortRxList = new Editor( new WinSlot( this ) );
@@ -90,9 +92,13 @@ namespace Play.SSTV {
 
             oLayout.AddRow( new List<LayoutRect>() { oLayoutLabel, oLayoutValue } );
 
+            oLayoutLabel.BgColor = _oStdUI.ColorsStandardAt( StdUIColors.BGReadOnly );
+
             CacheList.Add( oLayoutLabel );
-            if( oLayoutValue is LayoutSingleLine oLayoutSingle )
+            if( oLayoutValue is LayoutSingleLine oLayoutSingle ) {
+                oLayoutSingle.BgColor = _oStdUI.ColorsStandardAt( StdUIColors.BG );
                 CacheList.Add( oLayoutSingle );
+            }
         }
 
         public override bool InitNew() {
@@ -122,6 +128,7 @@ namespace Play.SSTV {
             PropertyInitRow( oLayout, 6 );
             PropertyInitRow( oLayout, 8 );
             
+
             Caret.Layout = CacheList[0];
 
             OnDocumentEvent( BUFFEREVENTS.MULTILINE );

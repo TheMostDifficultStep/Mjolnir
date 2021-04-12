@@ -132,6 +132,7 @@ namespace Play.Forms {
     public class LayoutSingleLine : LayoutRect {
         public FTCacheLine Cache { get; }
         public SimpleRange Selection { get; } = new SimpleRange(0);
+        public SKColor     BgColor { get; set; } = SKColors.LightBlue;
 
         // Normally selection lives on the view, but I'll put it here for forms for now.
         protected ILineSelection[] _rgSelections = new ILineSelection[1];
@@ -143,7 +144,7 @@ namespace Play.Forms {
 
         public void Paint( SKCanvas skCanvas, IPgStandardUI2 oStdUI, bool fFocused ) {
             SKPointI pntUL = this.GetPoint(LOCUS.UPPERLEFT);
-            using SKPaint skPaint = new SKPaint() { Color = SKColors.LightBlue };
+            using SKPaint skPaint = new SKPaint() { Color = BgColor };
 
             skCanvas.DrawRect( this.Left, this.Top, this.Width, this.Height, skPaint );
 
