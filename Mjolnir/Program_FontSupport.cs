@@ -289,6 +289,10 @@ namespace Mjolnir {
             oFace.SetSize( uiHeight, sResolution);
         }
 
+        public void SetSize() {
+            Face.SetSize( _uiUnMagnifiedHeight, Resolution );
+        }
+
         public uint RendererID { get => ID; }
 
         /// <summary>
@@ -314,10 +318,6 @@ namespace Mjolnir {
             _rgRendered.Add( oGlyph );
 
             return oGlyph.Glyph != 0;
-        }
-
-        public void SetSize() {
-            Face.SetSize( _uiUnMagnifiedHeight, Resolution );
         }
     }
 
