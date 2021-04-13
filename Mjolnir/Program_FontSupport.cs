@@ -273,15 +273,20 @@ namespace Mjolnir {
         public uint   Height     { get; }
         public uint   ID         { get; }
 
-        protected List<IPgGlyph> _rgRendered = new List<IPgGlyph>( 50 );
+        readonly protected List<IPgGlyph> _rgRendered = new List<IPgGlyph>( 50 );
+        readonly protected uint           _uiUnMagnifiedHeight;
 
         public FaceRender( FTFace oFace, SKSize sResolution, uint uiHeight, uint uiID ) {
             Face       = oFace ?? throw new ArgumentNullException( "Font face must not be null." );
+
+            _uiUnMagnifiedHeight = uiHeight;
+            double dblScale = sResolution.Height / 96.0;
+
             Resolution = sResolution;
-            Height     = uiHeight;
+            Height     = (uint)(_uiUnMagnifiedHeight * dblScale );
             ID         = uiID;
 
-            oFace.SetSize(uiHeight, sResolution);
+            oFace.SetSize( uiHeight, sResolution);
         }
 
         public uint RendererID { get => ID; }
@@ -312,7 +317,7 @@ namespace Mjolnir {
         }
 
         public void SetSize() {
-            Face.SetSize( Height, Resolution );
+            Face.SetSize( _uiUnMagnifiedHeight, Resolution );
         }
     }
 

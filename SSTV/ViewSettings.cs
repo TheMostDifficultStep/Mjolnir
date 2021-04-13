@@ -87,7 +87,7 @@ namespace Play.SSTV {
             } else {
                 oEditWin.InitNew();
                 oEditWin.Parent = this;
-                oLayoutValue = new LayoutControl( oEditWin, LayoutRect.CSS.Pixels, 70 );
+                oLayoutValue = new LayoutControl( oEditWin, LayoutRect.CSS.Pixels, 100 );
             }
 
             oLayout.AddRow( new List<LayoutRect>() { oLayoutLabel, oLayoutValue } );
