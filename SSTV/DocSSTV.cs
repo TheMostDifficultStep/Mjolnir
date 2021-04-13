@@ -93,6 +93,8 @@ namespace Play.SSTV {
 
         public event SSTVPropertyChange PropertyChange;
 
+        public Editor         PortTxList      { get; } 
+        public Editor         PortRxList      { get; }
         public Editor         RxDirectory     { get; protected set; } // Files in the receive directory.
         public Specification  RxSpec          { get; protected set; } = new Specification( 44100, 1, 0, 16 );
         public GeneratorMode  ModeList        { get; protected set; }
@@ -147,6 +149,8 @@ namespace Play.SSTV {
             TxImageList     = new ImageWalkerDir( new DocSlot( this ) );
             _oDocSnip       = new ImageSoloDoc  ( new DocSlot( this ) );
             RxDirectory     = new Editor        ( new DocSlot( this ) );
+            PortTxList      = new Editor        ( new DocSlot( this ) );
+            PortRxList      = new Editor        ( new DocSlot( this ) );
 
 			ReceiveImage = new ImageSoloDoc( new DocSlot( this ) );
 			SyncImage    = new ImageSoloDoc( new DocSlot( this ) );
@@ -326,6 +330,7 @@ namespace Play.SSTV {
 				int                 iCount     = -1;
 				while( iterOutput.MoveNext() ) {
 					++iCount;
+                    
 				}
 				return iCount;
 			}
@@ -348,6 +353,10 @@ namespace Play.SSTV {
 			if( !SyncImage   .InitNew() )
 				return false;
             if( !RxDirectory .InitNew() )
+                return false;
+            if( !PortTxList.InitNew() )
+                return false;
+            if( !PortRxList.InitNew() ) 
                 return false;
 
             if( !Properties.InitNew() )
@@ -376,13 +385,6 @@ namespace Play.SSTV {
 
             TxImageList.ImageUpdated += Listen_ImageUpdated;
 
-            // BUG: Hard coded device.
-			if( MaxOutputDevice >= 1 ) {
-				_oPlayer = new WmmPlayer(RxSpec, 1); 
-			} else {
-				_oPlayer = new WmmPlayer(RxSpec, 0); 
-			}
-
             return true;
         }
 
@@ -399,6 +401,28 @@ namespace Play.SSTV {
 			}
 		}
 
+        protected void InitTxDeviceList() {
+			IEnumerator<string> iterOutput = MMHelpers.GetOutputDevices();
+
+			for( int iCount = -1; iterOutput.MoveNext(); ++iCount ) {
+                PortTxList.LineAppend( iterOutput.Current, fUndoable:false );
+			}
+
+            // BUG: can't change this value yet.
+			if( PortTxList.ElementCount >= 1 ) {
+				_oPlayer = new WmmPlayer(RxSpec, 1); 
+			} else {
+			    if( PortTxList.ElementCount >= 0 ) {
+				    _oPlayer = new WmmPlayer(RxSpec, 0); 
+                }
+			}
+
+            IEnumerator<string> iterInput = MMHelpers.GetInputDevices();
+			for( int iCount = -1; iterInput.MoveNext(); ++iCount ) {
+                PortRxList.LineAppend( iterInput.Current, fUndoable:false );
+			}
+        }
+
         protected virtual void SettingsInit() {
             Settings_Labels.LineAppend( "Tx Device",    fUndoable:false );
             Settings_Labels.LineAppend( "Rx Device",    fUndoable:false );
@@ -409,6 +433,17 @@ namespace Play.SSTV {
 
             for( int i=0; i<Settings_Labels.ElementCount; ++i ) {
                 Settings_Values.LineAppend( string.Empty, fUndoable:false );
+            }
+
+            InitTxDeviceList();
+
+            string strSaveDir = Environment.GetFolderPath( Environment.SpecialFolder.MyPictures );
+            string strLoadDir = Environment.GetFolderPath( Environment.SpecialFolder.MyDocuments );
+
+            using( BaseEditor.Manipulator oBulk = Settings_Values.CreateManipulator() ) {
+                oBulk.LineTextInsert( 2, 0, "80", 0, 2 );
+                oBulk.LineTextInsert( 3, 0, strLoadDir, 0, strLoadDir.Length );
+                oBulk.LineTextInsert( 4, 0, strSaveDir, 0, strSaveDir.Length );
             }
         }
 
@@ -675,81 +710,81 @@ namespace Play.SSTV {
             }
         }
 
-        /// <summary>
-        /// New test, read from audio file. BUG, need to see if the stream is stereo.
-        /// </summary>
-        public IEnumerator<int> GetReceiveFromFileTask( AudioFileReader oReader ) {
-            _oSSTVDeModulator.ShoutNextMode += ListenNextRxMode; // BUG: no need to do every time.
+   //     /// <summary>
+   //     /// New test, read from audio file. BUG, need to see if the stream is stereo.
+   //     /// </summary>
+   //     public IEnumerator<int> GetReceiveFromFileTask( AudioFileReader oReader ) {
+   //         _oSSTVDeModulator.ShoutNextMode += ListenNextRxMode; // BUG: no need to do every time.
 
-            var foo = new WaveToSampleProvider(oReader);
+   //         var foo = new WaveToSampleProvider(oReader);
 
-            int     iChannels = oReader.WaveFormat.Channels;
-            int     iBits     = oReader.WaveFormat.BitsPerSample; 
-            float[] rgBuff    = new float[1500]; // BUG: Make this scan line sized in the future.
-            int     iRead     = 0;
+   //         int     iChannels = oReader.WaveFormat.Channels;
+   //         int     iBits     = oReader.WaveFormat.BitsPerSample; 
+   //         float[] rgBuff    = new float[1500]; // BUG: Make this scan line sized in the future.
+   //         int     iRead     = 0;
 
-            double From32to16( int i ) => rgBuff[i] * 32768;
-            double From16to16( int i ) => rgBuff[i];
+   //         double From32to16( int i ) => rgBuff[i] * 32768;
+   //         double From16to16( int i ) => rgBuff[i];
 
-            Func<int, double> ConvertInput = iBits == 16 ? From16to16 : (Func<int, double>)From32to16;
+   //         Func<int, double> ConvertInput = iBits == 16 ? From16to16 : (Func<int, double>)From32to16;
 
-            do {
-                try {
-                    iRead = foo.Read( rgBuff, 0, rgBuff.Length );
-                    for( int i = 0; i< iRead; ++i ) {
-                        _oSSTVDeModulator.Do( ConvertInput(i) );
-                    }
-					_oRxSSTV.SSTVDraw();
-				} catch( Exception oEx ) {
-                    Type[] rgErrors = { typeof( NullReferenceException ),
-                                        typeof( ArgumentNullException ),
-                                        typeof( MMSystemException ),
-                                        typeof( InvalidOperationException ),
-										typeof( ArithmeticException ),
-										typeof( IndexOutOfRangeException ) };
-                    if( rgErrors.IsUnhandled( oEx ) )
-                        throw;
+   //         do {
+   //             try {
+   //                 iRead = foo.Read( rgBuff, 0, rgBuff.Length );
+   //                 for( int i = 0; i< iRead; ++i ) {
+   //                     _oSSTVDeModulator.Do( ConvertInput(i) );
+   //                 }
+			//		_oRxSSTV.SSTVDraw();
+			//	} catch( Exception oEx ) {
+   //                 Type[] rgErrors = { typeof( NullReferenceException ),
+   //                                     typeof( ArgumentNullException ),
+   //                                     typeof( MMSystemException ),
+   //                                     typeof( InvalidOperationException ),
+			//							typeof( ArithmeticException ),
+			//							typeof( IndexOutOfRangeException ) };
+   //                 if( rgErrors.IsUnhandled( oEx ) )
+   //                     throw;
 
-					if( oEx.GetType() != typeof( IndexOutOfRangeException ) ) {
-						LogError( "Trouble recordering in SSTV" );
-					}
-					// Don't call _oWorkPlace.Stop() b/c we're already in DoWork() which will
-					// try calling the _oWorker which will have been set to NULL!!
-                    break; // Drop down so we can unplug from our Demodulator.
-                }
-                yield return 1; // 44,100 hz is a lot to process, let's go as fast as possible. >_<;;
-            } while( iRead == rgBuff.Length );
+			//		if( oEx.GetType() != typeof( IndexOutOfRangeException ) ) {
+			//			LogError( "Trouble recordering in SSTV" );
+			//		}
+			//		// Don't call _oWorkPlace.Stop() b/c we're already in DoWork() which will
+			//		// try calling the _oWorker which will have been set to NULL!!
+   //                 break; // Drop down so we can unplug from our Demodulator.
+   //             }
+   //             yield return 1; // 44,100 hz is a lot to process, let's go as fast as possible. >_<;;
+   //         } while( iRead == rgBuff.Length );
 
-            oReader.Dispose();
+   //         oReader.Dispose();
 
-            ListenTvEvents( ESstvProperty.DownLoadFinished );
+   //         ListenTvEvents( ESstvProperty.DownLoadFinished );
 
-			_oSSTVDeModulator.ShoutNextMode -= ListenNextRxMode;
-			ModeList.HighLight = null;
-        }
+			//_oSSTVDeModulator.ShoutNextMode -= ListenNextRxMode;
+			//ModeList.HighLight = null;
+   //     }
 
-        /// <summary>
-        /// This is a partialy successful thread that reads data from a wav file and loads the image.
-        /// Unfortunately it seems to have problems displaying the image as it goes because it is
-        /// hogging the main message queue, I think. I'm going to try true multi threading next.
-        /// </summary>
-        /// <param name="strFileName"></param>
-        public void RecordBeginFileRead( string strFileName ) {
-            var reader1 = new AudioFileReader(strFileName);
+   //     /// <summary>
+   //     /// This is a partialy successful thread that reads data from a wav file and loads the image.
+   //     /// Unfortunately it seems to have problems displaying the image as it goes because it is
+   //     /// hogging the main message queue, I think. I'm going to try true multi threading next.
+   //     /// </summary>
+   //     /// <param name="strFileName"></param>
+   //     public void RecordBeginFileRead( string strFileName ) {
+   //         var reader1 = new AudioFileReader(strFileName);
 
-			FFTControlValues oFFTMode  = FFTControlValues.FindMode( reader1.WaveFormat.SampleRate ); // RxSpec.Rate
-			SYSSET           sys       = new SYSSET   ( oFFTMode.SampFreq );
-			CSSTVSET         oSetSSTV  = new CSSTVSET ( TVFamily.Martin, 0, oFFTMode.SampFreq, 0, sys.m_bCQ100 );
-			CSSTVDEM         oDemod    = new CSSTVDEM ( oSetSSTV,
-														sys,
-														(int)oFFTMode.SampFreq, 
-														(int)oFFTMode.SampBase, // This might be our oscillator frequency.
-														0 );
-			_oSSTVDeModulator = oDemod;
-			_oRxSSTV          = new TmmSSTV ( _oSSTVDeModulator );
+			//FFTControlValues oFFTMode  = FFTControlValues.FindMode( reader1.WaveFormat.SampleRate ); // RxSpec.Rate
+			//SYSSET           sys       = new SYSSET   ( oFFTMode.SampFreq );
+			//CSSTVSET         oSetSSTV  = new CSSTVSET ( TVFamily.Martin, 0, oFFTMode.SampFreq, 0, sys.m_bCQ100 );
+			//CSSTVDEM         oDemod    = new CSSTVDEM ( oSetSSTV,
+			//											sys,
+			//											(int)oFFTMode.SampFreq, 
+			//											(int)oFFTMode.SampBase, // This might be our oscillator frequency.
+			//											0 );
+			//_oSSTVDeModulator = oDemod;
+			//_oRxSSTV          = new TmmSSTV ( _oSSTVDeModulator );
 
-			_oWorkPlace.Queue( GetReceiveFromFileTask(reader1), 0 );
-        }
+			//_oWorkPlace.Queue( GetReceiveFromFileTask(reader1), 0 );
+   //     }
 
         /// <summary>
         /// Poll the receive thread showing progress on the image download.

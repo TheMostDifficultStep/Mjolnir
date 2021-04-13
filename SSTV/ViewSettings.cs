@@ -33,8 +33,6 @@ namespace Play.SSTV {
         public IPgParent Services  => Parentage.Services;
 
         protected DocSSTV Document   { get; }
-        protected Editor  PortTxList { get; } 
-        protected Editor  PortRxList { get; }
 
 		protected class WinSlot :
 			IPgViewSite
@@ -64,9 +62,6 @@ namespace Play.SSTV {
             Document   = oDocSSTV ?? throw new ArgumentNullException( "Clock document must not be null." );
             _oViewSite = oViewSite;
  			_oStdUI    = oViewSite.Host.Services as IPgStandardUI2 ?? throw new ArgumentException( "Parent view must provide IPgStandardUI service" );
-
-            PortTxList = new Editor( new WinSlot( this ) );
-            PortRxList = new Editor( new WinSlot( this ) );
 
 			Iconic     = ImageResourceHelper.GetImageResource( Assembly.GetExecutingAssembly(), _strViewIcon );
         }
@@ -105,28 +100,14 @@ namespace Play.SSTV {
             if( !base.InitNew() ) 
                 return false;
 
-            if( !PortTxList.InitNew() )
-                return false;
-            if( !PortRxList.InitNew() ) 
-                return false;
-
-            PortTxList.LineAppend( "one" );
-            PortTxList.LineAppend( "two" );
-            PortTxList.LineAppend( "three" );
-
-            PortRxList.LineAppend( "one" );
-            PortRxList.LineAppend( "two" );
-            PortRxList.LineAppend( "three" );
-            PortRxList.LineAppend( "four" );
-
             SmartTable oLayout = new SmartTable( 5, LayoutRect.CSS.None );
             Layout2 = oLayout;
 
             oLayout.Add( new LayoutRect( LayoutRect.CSS.Percent, 40, 0 ) ); // Name.
             oLayout.Add( new LayoutRect( LayoutRect.CSS.Percent, 65, 0 ) ); // Value.
 
-            PropertyInitRow( oLayout, 0, new CheckList( new WinSlot( this ), PortTxList ) );
-            PropertyInitRow( oLayout, 1, new CheckList( new WinSlot( this ), PortRxList ) );
+            PropertyInitRow( oLayout, 0, new CheckList( new WinSlot( this ), Document.PortTxList ) );
+            PropertyInitRow( oLayout, 1, new CheckList( new WinSlot( this ), Document.PortRxList ) );
             PropertyInitRow( oLayout, 2 );
             PropertyInitRow( oLayout, 3 );
             PropertyInitRow( oLayout, 4 );
