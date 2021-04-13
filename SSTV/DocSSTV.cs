@@ -42,7 +42,8 @@ namespace Play.SSTV {
         private bool disposedValue;
         Thread       _oThread  = null;
         readonly ConcurrentQueue<ESstvProperty> _oMsgQueue = new ConcurrentQueue<ESstvProperty>(); // communique from bg thread to ui thread.
-        public Editor Settings { get; }
+        public Editor Settings_Labels { get; }
+        public Editor Settings_Values { get; }
 
         /// <summary>
         /// This editor shows the list of modes we can modulate.
@@ -150,8 +151,9 @@ namespace Play.SSTV {
 			ReceiveImage = new ImageSoloDoc( new DocSlot( this ) );
 			SyncImage    = new ImageSoloDoc( new DocSlot( this ) );
 
-            Properties   = new PropDoc( new DocSlot( this ) );
-            Settings     = new FormsEditor( new DocSlot( this ) );
+            Properties      = new PropDoc( new DocSlot( this ) );
+            Settings_Labels = new FormsEditor( new DocSlot( this ) );
+            Settings_Values = new FormsEditor( new DocSlot( this ) );
         }
 
         #region Dispose
@@ -350,7 +352,9 @@ namespace Play.SSTV {
 
             if( !Properties.InitNew() )
                 return false;
-            if( !Settings  .InitNew() )
+            if( !Settings_Labels  .InitNew() )
+                return false;
+            if( !Settings_Values  .InitNew() )
                 return false;
 
             PropertiesInit();
@@ -396,20 +400,16 @@ namespace Play.SSTV {
 		}
 
         protected virtual void SettingsInit() {
-            Settings.LineAppend( "Tx Device",  fUndoable:false );
-            Settings.LineAppend( string.Empty, fUndoable:false );
+            Settings_Labels.LineAppend( "Tx Device",    fUndoable:false );
+            Settings_Labels.LineAppend( "Rx Device",    fUndoable:false );
+            Settings_Labels.LineAppend( "Jpeg Quality", fUndoable:false );
+            Settings_Labels.LineAppend( "Load Dir",     fUndoable:false );
+            Settings_Labels.LineAppend( "Save Dir",     fUndoable:false );
+            Settings_Labels.LineAppend( "Tx Mode",      fUndoable:false );
 
-            Settings.LineAppend( "Rx Device",  fUndoable:false );
-            Settings.LineAppend( string.Empty, fUndoable:false );
-
-            Settings.LineAppend( "Jpeg Quality", fUndoable:false );
-            Settings.LineAppend( string.Empty,   fUndoable:false );
-
-            Settings.LineAppend( "Load Dir",   fUndoable:false );
-            Settings.LineAppend( string.Empty, fUndoable:false );
-
-            Settings.LineAppend( "Save Dir",   fUndoable:false );
-            Settings.LineAppend( string.Empty, fUndoable:false );
+            for( int i=0; i<Settings_Labels.ElementCount; ++i ) {
+                Settings_Values.LineAppend( string.Empty, fUndoable:false );
+            }
         }
 
         protected void PropertiesReLoad() {

@@ -59,7 +59,7 @@ namespace Play.SSTV {
         }
 
         public ViewSettings( IPgViewSite oViewSite, DocSSTV oDocSSTV ) :
-            base( oViewSite, oDocSSTV.Settings ) 
+            base( oViewSite, oDocSSTV.Settings_Labels ) 
         {
             Document   = oDocSSTV ?? throw new ArgumentNullException( "Clock document must not be null." );
             _oViewSite = oViewSite;
@@ -79,11 +79,11 @@ namespace Play.SSTV {
         }
 
         public void PropertyInitRow( SmartTable oLayout, int iIndex, EditWindow2 oEditWin = null ) {
-            var oLayoutLabel = new LayoutSingleLine( new FTCacheWrap( Document.Settings[iIndex]   ), LayoutRect.CSS.Flex );
+            var oLayoutLabel = new LayoutSingleLine( new FTCacheWrap( Document.Settings_Labels[iIndex]   ), LayoutRect.CSS.Flex );
             LayoutRect oLayoutValue;
             
             if( oEditWin == null ) {
-                oLayoutValue = new LayoutSingleLine( new FTCacheWrap( Document.Settings[iIndex+1] ), LayoutRect.CSS.Flex );
+                oLayoutValue = new LayoutSingleLine( new FTCacheWrap( Document.Settings_Values[iIndex] ), LayoutRect.CSS.Flex );
             } else {
                 oEditWin.InitNew();
                 oEditWin.Parent = this;
@@ -126,11 +126,11 @@ namespace Play.SSTV {
             oLayout.Add( new LayoutRect( LayoutRect.CSS.Percent, 65, 0 ) ); // Value.
 
             PropertyInitRow( oLayout, 0, new CheckList( new WinSlot( this ), PortTxList ) );
-            PropertyInitRow( oLayout, 2, new CheckList( new WinSlot( this ), PortRxList ) );
+            PropertyInitRow( oLayout, 1, new CheckList( new WinSlot( this ), PortRxList ) );
+            PropertyInitRow( oLayout, 2 );
+            PropertyInitRow( oLayout, 3 );
             PropertyInitRow( oLayout, 4 );
-            PropertyInitRow( oLayout, 6 );
-            PropertyInitRow( oLayout, 8 );
-            
+            PropertyInitRow( oLayout, 5, new CheckList( new WinSlot( this ), Document.ModeList ) );
 
             Caret.Layout = CacheList[0];
 
