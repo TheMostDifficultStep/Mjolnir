@@ -864,6 +864,12 @@ namespace Play.Edit {
                 // Paint all window background. BUG: We could get by without this if there was no space between lines.
                 skCanvas.DrawRect(e.Info.Rect, skPaint);
 
+                if( _fCheckMarks ) {
+                    skPaint.Color = _oStdUI.ColorsStandardAt( StdUIColors.BG );
+
+                    skCanvas.DrawRect( _rctCheques.SKRect, skPaint );
+                }
+
                 // Now paint the lines.
                 foreach( FTCacheLine oCache in _oCacheMan ) {
                     PaintBackground(skCanvas, skPaint, oCache);

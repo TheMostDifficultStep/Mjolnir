@@ -87,7 +87,7 @@ namespace Play.SSTV {
             } else {
                 oEditWin.InitNew();
                 oEditWin.Parent = this;
-                oLayoutValue = new LayoutControl( oEditWin, LayoutRect.CSS.Pixels, 100 );
+                oLayoutValue = new LayoutControl( oEditWin, LayoutRect.CSS.Pixels, 70 );
             }
 
             oLayout.AddRow( new List<LayoutRect>() { oLayoutLabel, oLayoutValue } );
@@ -110,6 +110,9 @@ namespace Play.SSTV {
             if( !PortRxList.InitNew() ) 
                 return false;
 
+            PortTxList.LineAppend( "one" );
+            PortTxList.LineAppend( "two" );
+            PortTxList.LineAppend( "three" );
 
             PortRxList.LineAppend( "one" );
             PortRxList.LineAppend( "two" );
