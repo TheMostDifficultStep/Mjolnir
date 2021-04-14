@@ -45,6 +45,8 @@ namespace Play.Sound {
 		readonly uint          _uiPlayMS     = 100;
 		         void *        _pAO          = null;
                  IntPtr        _ipBuffer     = IntPtr.Zero;
+
+		public int DeviceID { get; protected set; } = -1;
         
 		public LibAO( Specification oSpec ) {
 			_oSpec = oSpec ?? throw new ArgumentNullException();

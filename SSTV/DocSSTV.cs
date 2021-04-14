@@ -408,15 +408,6 @@ namespace Play.SSTV {
                 PortTxList.LineAppend( iterOutput.Current, fUndoable:false );
 			}
 
-            // BUG: can't change this value yet.
-			if( PortTxList.ElementCount >= 1 ) {
-				_oPlayer = new WmmPlayer(RxSpec, 1); 
-			} else {
-			    if( PortTxList.ElementCount >= 0 ) {
-				    _oPlayer = new WmmPlayer(RxSpec, 0); 
-                }
-			}
-
             IEnumerator<string> iterInput = MMHelpers.GetInputDevices();
 			for( int iCount = -1; iterInput.MoveNext(); ++iCount ) {
                 PortRxList.LineAppend( iterInput.Current, fUndoable:false );
@@ -688,25 +679,43 @@ namespace Play.SSTV {
                     LogError( "Already sending, receiving or paused." );
                     return;
                 }
+                if( PortTxList.ElementCount <= 0 ) {
+                    LogError( "No sound device to send to" );
+                    return;
+                }
+                if( PortTxList.CheckedLine == null )
+                    PortTxList.CheckedLine = PortTxList[0];
                 if( ModeList.CheckedLine == null )
                     ModeList.CheckedLine = ModeList[0];
 
                 if( ModeList.CheckedLine.Extra is SSTVMode oMode ) {
-                    if( _oWorkPlace.Status == WorkerStatus.FREE ) {
-			            // The DocSnip object retains ownership of it's generated bitmap and frees it on next load.
-                        // TODO: I should check if the selection == the whole bitmap == required dimension
-                        //       and I could skip the snip stage.
-			            _oDocSnip.Load( Bitmap, skSelect, oMode.Resolution );
-                        if( GeneratorSetup( oMode, _oDocSnip.Bitmap ) ) {
-                            _oWorkPlace.Queue( GetTxTask(), 0 );
-                            ModeList.HighLight = ModeList.CheckedLine;
+			        // The DocSnip object retains ownership of it's generated bitmap and frees it on next load.
+                    // TODO: I should check if the selection == the whole bitmap == required dimension
+                    //       and I could skip the snip stage.
+			        _oDocSnip.Load( Bitmap, skSelect, oMode.Resolution );
+                    if( GeneratorSetup( oMode, _oDocSnip.Bitmap ) ) {
+                        if( _oPlayer == null ) {
+                            _oPlayer = new WmmPlayer(RxSpec, PortTxList.CheckedLine.At );
+                        } else {
+                            if( _oPlayer.DeviceID != PortTxList.CheckedLine.At ) {
+                                _oPlayer.Dispose();
+                                _oPlayer = new WmmPlayer(RxSpec, PortTxList.CheckedLine.At ); 
+                            }
                         }
+
+                        _oWorkPlace.Queue( GetTxTask(), 0 );
+                        ModeList.HighLight = ModeList.CheckedLine;
                     }
                 }
                 //while ( _oDataTester.ConsumeData() < 350000 ) {
                 //}
-            } catch( NullReferenceException ) {
-                LogError( "Probably Buggered in the ModeList" );
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( NullReferenceException ),
+                                    typeof( MMSystemException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
+
+                LogError( "Can't launch Transmit task!" );
             }
         }
 
@@ -791,7 +800,7 @@ namespace Play.SSTV {
         /// </summary>
         /// <param name="oWorker"></param>
         public IEnumerator<int> GetThreadAdviser( ThreadWorker oWorker ) {
-            while( _oThread.IsAlive ) {
+            while( _oThread.IsAlive || _oMsgQueue.Count > 0 ) {
                 while( _oMsgQueue.TryDequeue( out ESstvProperty eResult ) ) {
                     switch( eResult ) {
                         case ESstvProperty.RXImageNew:
@@ -818,6 +827,7 @@ namespace Play.SSTV {
                             PropertiesLoadTime( oWorker.RxSSTV.PercentRxComplete );
                             PropertyChange?.Invoke( ESstvProperty.DownLoadFinished );
                             ModeList.HighLight = null;
+                            SaveRxImage(); // Race condition possible, when image reused.
                             break;
                         case ESstvProperty.ThreadDrawingException:
                             LogError( "Worker thread Drawing Exception" );
@@ -856,11 +866,14 @@ namespace Play.SSTV {
 			if( ReceiveImage.Bitmap == null )
 				return;
 
-			string strPath = Environment.GetFolderPath( Environment.SpecialFolder.MyPictures );
+			string strSave = Settings_Values[4].ToString();
+                
+            if( !int.TryParse( Settings_Values[3].ToString(), out int iQuality ) )
+                iQuality = 80;
 
 			using SKImage image  = SKImage.FromBitmap(ReceiveImage.Bitmap);
-			using var     data   = image.Encode( SKEncodedImageFormat.Png, 80 );
-            using var     stream = File.OpenWrite( Path.Combine( strPath, "testmeh.png") );
+			using var     data   = image.Encode( SKEncodedImageFormat.Png, iQuality );
+            using var     stream = File.OpenWrite( Path.Combine( strSave, "testmeh.png") );
 
             data.SaveTo(stream);
             ModeList.HighLight = null;

@@ -150,5 +150,6 @@ namespace Play.Sound {
 		uint          Play( IPgReader oBuffer );
 		Specification Spec { get; }
 		uint		  Busy { get; }
+		int           DeviceID { get; }
 	}
 } // End namespace

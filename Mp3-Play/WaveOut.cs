@@ -287,6 +287,8 @@ namespace Play.Sound {
         WaveOutProc         _oCallback;
 		uint				_uiWaitInMs; // Bleed time.
 
+		public int DeviceID { get; protected set; }
+
 		readonly Specification _oSpec;
 
 		/// <summary>
@@ -300,6 +302,8 @@ namespace Play.Sound {
 		public WmmPlayer( Specification oSpec, int iDeviceID ) {
 			_oCallback = new WaveOutProc(this.InternalCallback);
 			_oSpec     = oSpec ?? throw new ArgumentNullException();
+
+			DeviceID = iDeviceID;
 
 			_oFormat.wFormatTag       = (short)WaveFormatTag.Pcm; // Little-endian
 			_oFormat.wBitsPerSample   = (short)oSpec.BitsPerSample;

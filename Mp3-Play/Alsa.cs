@@ -69,6 +69,8 @@ namespace Play.Sound {
                  IntPtr        _ipPlayBuff       = IntPtr.Zero;
                  uint          _uiPlayByteSize   = 0;
 
+		public int DeviceID { get; protected set; } = -1;
+
 		public Alsa( Specification oSpec ) {
 			if( oSpec == null )
 				throw new ArgumentNullException();
