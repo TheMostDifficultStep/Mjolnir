@@ -57,7 +57,9 @@ namespace Play.SSTV {
         }
 
         public ViewSettings( IPgViewSite oViewSite, DocSSTV oDocSSTV ) :
-            base( oViewSite, oDocSSTV.Settings_Labels ) 
+            // Note: Only the Settings_Values lines will send our base 
+            //       the labels can't participate in colorization events.
+            base( oViewSite, oDocSSTV.Settings_Values ) 
         {
             Document   = oDocSSTV ?? throw new ArgumentNullException( "Clock document must not be null." );
             _oViewSite = oViewSite;

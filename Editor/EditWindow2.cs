@@ -301,7 +301,7 @@ namespace Play.Edit {
 			    _oLayout.LayoutChildren();
             }
 			// Kind of evil since we 'might' get called back even before we exit this proc!
-			_oDocument.ListenerAdd(this);    // TODO, consider making this a normal .net event.
+			_oDocument.ListenerAdd(this);  // TODO, consider making this a normal .net event.
 			_oDocument.CaretAdd(CaretPos); // Document moves our caret and keeps it in sync.
 
 			_oDocument.HilightEvent += OnHighLightChanged;

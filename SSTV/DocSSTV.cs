@@ -15,6 +15,7 @@ using Play.Sound.FFT;
 using Play.Edit;
 using Play.ImageViewer;
 using Play.Forms;
+using Play.Integration;
 
 namespace Play.SSTV {
     public enum ESstvProperty {
@@ -158,6 +159,8 @@ namespace Play.SSTV {
             Properties      = new PropDoc( new DocSlot( this ) );
             Settings_Labels = new FormsEditor( new DocSlot( this ) );
             Settings_Values = new FormsEditor( new DocSlot( this ) );
+
+            new ParseHandlerText( Settings_Values, "text" );
         }
 
         #region Dispose
@@ -795,11 +798,22 @@ namespace Play.SSTV {
 			//_oWorkPlace.Queue( GetReceiveFromFileTask(reader1), 0 );
    //     }
 
+        protected void DownloadFinished() {
+            PropertyChange?.Invoke( ESstvProperty.DownLoadFinished );
+            ModeList.HighLight = null;
+            SaveRxImage(); // Race condition possible, when image reused.
+        }
+
         /// <summary>
         /// Poll the receive thread showing progress on the image download.
+        /// Haven't set this up for continuous receive. This thread is just
+        /// for the file decode right now.
         /// </summary>
         /// <param name="oWorker"></param>
         public IEnumerator<int> GetThreadAdviser( ThreadWorker oWorker ) {
+            bool fReceivedFinishedMsg = false;
+
+            // Note: The thread can finish but we haven't picked up all the messages!!
             while( _oThread.IsAlive || _oMsgQueue.Count > 0 ) {
                 while( _oMsgQueue.TryDequeue( out ESstvProperty eResult ) ) {
                     switch( eResult ) {
@@ -824,10 +838,10 @@ namespace Play.SSTV {
                             PropertyChange?.Invoke( ESstvProperty.DownLoadTime );
                             break;
                         case ESstvProperty.DownLoadFinished:
+                            // NOTE: This might never come along!
                             PropertiesLoadTime( oWorker.RxSSTV.PercentRxComplete );
-                            PropertyChange?.Invoke( ESstvProperty.DownLoadFinished );
-                            ModeList.HighLight = null;
-                            SaveRxImage(); // Race condition possible, when image reused.
+                            DownloadFinished();
+                            fReceivedFinishedMsg = true;
                             break;
                         case ESstvProperty.ThreadDrawingException:
                             LogError( "Worker thread Drawing Exception" );
@@ -839,6 +853,10 @@ namespace Play.SSTV {
                 }
                 yield return 250;
             }
+
+            // TODO: Make this a settings value.
+            if( !fReceivedFinishedMsg && oWorker.RxSSTV.PercentRxComplete > 60 )
+                DownloadFinished();
 
             // NOTE: bitmaps come from RxSSTV and that thread is about to DIE!!
             _oThread = null;

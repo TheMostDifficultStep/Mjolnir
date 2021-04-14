@@ -149,7 +149,6 @@ namespace Play.Integration {
             _oStream    = _oDocument.CreateStream() ?? throw new InvalidProgramException( "Parser Listener couldn't create a stream from the document" );
 
             _oDocument.BufferEvent += _oDocEvent = new BufferEvent(this.OnEvent);   
-
         }
 
 		public BaseEditor ProductionsEdit {
@@ -198,6 +197,12 @@ namespace Play.Integration {
             } 
         }
 
+        /// <summary>
+        /// Note tha the parser calls _Doc.Raise( BUFFEREVENTS.FORMATTED ) in OnFinished()
+        /// we end up back here!! So be careful!! Note also, that we're not forwarding
+        /// that FORMATTED event back out to the views here. Views only get the event
+        /// via their IBufferEvents interface.
+        /// </summary>
         public void OnEvent( BUFFEREVENTS eEvent ) {
             // 10/14/2018 : I should re-test the large file case. The scheduler is much
 			// smarter now and I think it wouldn't be a problem.

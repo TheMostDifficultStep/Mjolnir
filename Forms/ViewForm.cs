@@ -96,10 +96,12 @@ namespace Play.Forms {
         /// </summary>
         protected void OnDocumentEvent( BUFFEREVENTS eEvent ) {
             switch( eEvent ) {
+                case BUFFEREVENTS.FORMATTED:
                 case BUFFEREVENTS.SINGLELINE:
                 case BUFFEREVENTS.MULTILINE:
                     foreach( LayoutSingleLine oCache in CacheList ) {
                         oCache.Cache.Update( StdUI.FontRendererAt( StdText ) );
+                        oCache.OnChangeFormatting();
                         oCache.Cache.OnChangeSize( oCache.Width );
                     }
                     Invalidate();
