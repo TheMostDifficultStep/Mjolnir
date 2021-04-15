@@ -165,8 +165,8 @@ namespace Play.MusicWalker {
 		public PropDoc        AlbumProperties { get; }
 
         public M3UDocument( IPgBaseSite oSite ) : base( oSite ) {
-			AlbumArt        = new ImageWalkerDir( new DocSlot( this ) );
-			AlbumProperties = new PropDoc       ( new DocSlot( this ) );
+			AlbumArt        = new ImageWalkerDir( new DocSlot( this ) ); // Note: ImageWalker needs a better IPgFileSite implementation.
+			AlbumProperties = new PropDoc       ( new DocSlot( this ) ); //       need to subclass this DocSlot.
         }
 
 		private void AlbumPropertiesLoad() {
