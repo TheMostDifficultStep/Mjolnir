@@ -105,8 +105,8 @@ namespace Play.SSTV {
             SmartTable oLayout = new SmartTable( 5, LayoutRect.CSS.None );
             Layout2 = oLayout;
 
-            oLayout.Add( new LayoutRect( LayoutRect.CSS.Percent, 40, 0 ) ); // Name.
-            oLayout.Add( new LayoutRect( LayoutRect.CSS.Percent, 65, 0 ) ); // Value.
+            oLayout.Add( new LayoutRect( LayoutRect.CSS.Flex, 30, 0 ) ); // Name.
+            oLayout.Add( new LayoutRect( LayoutRect.CSS.None, 70, 0 ) ); // Value.
 
             PropertyInitRow( oLayout, 0, new CheckList( new WinSlot( this ), Document.PortTxList ) );
             PropertyInitRow( oLayout, 1, new CheckList( new WinSlot( this ), Document.PortRxList ) );
