@@ -21,7 +21,7 @@ namespace Play.SSTV {
     {
         public static Guid GUID {get;} = new Guid("{5B8AC3A1-A20C-431B-BA13-09314BA767FC}");
 
-        private   readonly string         _strViewIcon  = "Play.SSTV.icons8_tv.png";
+        private   readonly string         _strViewIcon  = "Play.SSTV.icons8_settings.png";
         protected readonly IPgViewSite    _oViewSite;
 		protected readonly IPgStandardUI2 _oStdUI;
 
