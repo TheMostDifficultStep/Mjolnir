@@ -229,7 +229,7 @@ namespace Play.SSTV {
 
         protected readonly IPgViewSite _oSiteView;
 
-		readonly List<string> _rgToolBox = new List<string>() { "File", "Port" };
+		readonly List<string> _rgToolBox = new List<string>() { "File", "File w/o VIS", "Port" };
 		protected int         _iToolSelected = 0;
 
         DocSSTV _oDocSSTV;
@@ -338,6 +338,9 @@ namespace Play.SSTV {
 			try {
 				if( sGuid.Equals(GlobalDecorations.Properties) ) {
 					return new PropWin( oBaseSite, _oDocSSTV.Properties );
+				}
+				if( sGuid.Equals( GlobalDecorations.Options ) ) {
+					return new CheckList( oBaseSite, _oDocSSTV.ModeList );
 				}
 				return false;
 			} catch ( Exception oEx ) {
