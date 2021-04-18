@@ -21,7 +21,7 @@ namespace Play.SSTV {
     {
         public static Guid GUID {get;} = new Guid("{5B8AC3A1-A20C-431B-BA13-09314BA767FC}");
 
-        private   readonly string         _strViewIcon  = "Play.SSTV.icons8_tv.png";
+        private   readonly string         _strViewIcon  = "Play.SSTV.icons8_settings.png";
         protected readonly IPgViewSite    _oViewSite;
 		protected readonly IPgStandardUI2 _oStdUI;
 
@@ -105,8 +105,8 @@ namespace Play.SSTV {
             SmartTable oLayout = new SmartTable( 5, LayoutRect.CSS.None );
             Layout2 = oLayout;
 
-            oLayout.Add( new LayoutRect( LayoutRect.CSS.Percent, 40, 0 ) ); // Name.
-            oLayout.Add( new LayoutRect( LayoutRect.CSS.Percent, 65, 0 ) ); // Value.
+            oLayout.Add( new LayoutRect( LayoutRect.CSS.Flex, 30, 0 ) ); // Name.
+            oLayout.Add( new LayoutRect( LayoutRect.CSS.None, 70, 0 ) ); // Value.
 
             PropertyInitRow( oLayout, 0, new CheckList( new WinSlot( this ), Document.PortTxList ) );
             PropertyInitRow( oLayout, 1, new CheckList( new WinSlot( this ), Document.PortRxList ) );

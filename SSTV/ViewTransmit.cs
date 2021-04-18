@@ -39,7 +39,7 @@ namespace Play.SSTV {
 		public IPgParent Parentage => _oSiteView.Host;
 		public IPgParent Services  => Parentage.Services;
 		public bool      IsDirty   => false;
-		public string    Banner    => "Transmit Window : " + _oDocSSTV.TxImageList.CurrentDirectory;
+		public string    Banner    => "MySSSTV Transmit Image : " + _oDocSSTV.TxImageList.CurrentDirectory;
 		public Image     Iconic    { get; }
 		public Guid      Catagory  => ViewType;
 

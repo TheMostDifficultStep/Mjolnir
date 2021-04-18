@@ -148,13 +148,16 @@ namespace Play.Forms {
             Cache.Render( skCanvas, oStdUI, new PointF( pntUL.X, pntUL.Y ), fFocused );
         }
 
+        /// <seealso cref="FTCacheLine.Update"/>
+        /// <seealso cref="FTCacheLine.UnwrappedWidth"/>
         public override uint TrackDesired(TRACK eParentAxis, int uiRail) {
+            // Looks like unwrapped width of each character is not being summated for the cache
+            // element on Update(); In any event, it might just be best to recalc here anyway.
+            Cache.OnChangeSize( uiRail );
+
             switch( eParentAxis ) {
                 case TRACK.HORIZ: return (uint)Cache.UnwrappedWidth;
-                case TRACK.VERT : {
-                    Cache.OnChangeSize( uiRail );
-                    return (uint)Cache.Height;
-                }
+                case TRACK.VERT : return (uint)Cache.Height;
                 default: throw new ArgumentOutOfRangeException();
             }
         }

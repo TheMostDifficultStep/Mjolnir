@@ -221,10 +221,11 @@ namespace Play.SSTV {
 		IPgTools
 	{
 		public static Guid GUID { get; } = new Guid( "{5213847C-8B38-49D8-AAE2-C870F5E6FB51}" );
+		public static string _strIcon =  "Play.SSTV.icons8_tv.png";
 
         public Guid   Catagory => GUID;
-        public string Banner   => "SSTV Rx Image";
-        public Image  Iconic   => null;
+        public string Banner   => "MySSTV Receive Image";
+        public Image  Iconic   { get; protected set; }
         public bool   IsDirty  => false;
 
         protected readonly IPgViewSite _oSiteView;
@@ -278,6 +279,8 @@ namespace Play.SSTV {
 		{
 			_oSiteView = oSiteBase ?? throw new ArgumentNullException( "SiteBase must not be null." );
 			_oDocSSTV  = oDocSSTV  ?? throw new ArgumentNullException( "DocSSTV must not be null." );
+
+			Iconic = ImageResourceHelper.GetImageResource( Assembly.GetExecutingAssembly(), _strIcon );
 		}
 
         protected override void Dispose( bool fDisposing ) {

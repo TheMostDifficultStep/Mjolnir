@@ -12,11 +12,13 @@
 
   <ItemGroup>
     <None Remove="icons8_camera.png" />
+    <None Remove="icons8_settings.png" />
     <None Remove="icons8_tv.png" />
   </ItemGroup>
 
   <ItemGroup>
     <EmbeddedResource Include="icons8_camera.png" />
+    <EmbeddedResource Include="icons8_settings.png" />
     <EmbeddedResource Include="icons8_tv.png" />
   </ItemGroup>
   

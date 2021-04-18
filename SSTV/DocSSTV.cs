@@ -418,12 +418,12 @@ namespace Play.SSTV {
         }
 
         protected virtual void SettingsInit() {
-            Settings_Labels.LineAppend( "Tx Device",    fUndoable:false );
-            Settings_Labels.LineAppend( "Rx Device",    fUndoable:false );
-            Settings_Labels.LineAppend( "Jpeg Quality", fUndoable:false );
-            Settings_Labels.LineAppend( "Load Dir",     fUndoable:false );
-            Settings_Labels.LineAppend( "Save Dir",     fUndoable:false );
-            Settings_Labels.LineAppend( "Tx Mode",      fUndoable:false );
+            Settings_Labels.LineAppend( "Transmit to Device",  fUndoable:false );
+            Settings_Labels.LineAppend( "Receive from Device", fUndoable:false );
+            Settings_Labels.LineAppend( "Image Save Quality",  fUndoable:false );
+            Settings_Labels.LineAppend( "Load Directory",      fUndoable:false );
+            Settings_Labels.LineAppend( "Save Directory",      fUndoable:false );
+            Settings_Labels.LineAppend( "Transmit Mode",       fUndoable:false );
 
             for( int i=0; i<Settings_Labels.ElementCount; ++i ) {
                 Settings_Values.LineAppend( string.Empty, fUndoable:false );

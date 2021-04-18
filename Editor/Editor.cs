@@ -6,6 +6,7 @@ using System.Linq;
 
 using Play.Parse.Impl;
 using Play.Interfaces.Embedding;
+using System.Text;
 
 // These classes could be part of an editor sub namespace perhaps. Then the 
 // Line definitions could be part of a lighter module. Just trying to sort out
@@ -164,7 +165,8 @@ namespace Play.Edit {
      {
 		public class DocSlot:
 			IPgBaseSite,
-			IPgSiteHilight
+			IPgSiteHilight,
+            IPgFileSite
 		{
 			protected BaseEditor _oHost;
 
@@ -174,7 +176,14 @@ namespace Play.Edit {
 
 			public IPgParent Host => _oHost;
 
-			public void LogError(string strMessage, string strDetails, bool fShow=true) {
+            FILESTATS IPgFileSite.FileStatus => FILESTATS.UNKNOWN;
+
+            Encoding IPgFileSite.FileEncoding => Encoding.UTF8;
+
+            string IPgFileSite.FilePath => "Foo";
+            string IPgFileSite.FileBase => "Bar";
+
+            public void LogError(string strMessage, string strDetails, bool fShow=true) {
 				_oHost._oSiteBase.LogError( strMessage, strDetails, fShow );
 			}
 
