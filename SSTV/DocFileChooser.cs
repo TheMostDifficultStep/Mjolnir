@@ -35,6 +35,7 @@ namespace Play.SSTV {
         public IPgParent Parentage => _oSiteBase.Host;
         public IPgParent Services  => Parentage.Services;
 
+
         protected string _oDisplayLine;
 
 
@@ -43,9 +44,6 @@ namespace Play.SSTV {
 		{
 			readonly FileWalkerDir _oDoc;
 
-			/// <summary>
-			/// This is for our editor instance we are hosting!!
-			/// </summary>
 			public FileWalkerDocSlot( FileWalkerDir oDoc ) {
 				_oDoc = oDoc ?? throw new ArgumentNullException( "Image document must not be null." );
 			}
@@ -74,29 +72,6 @@ namespace Play.SSTV {
         }
 
         public void Raise_TextLoaded() {
-        }
-
-        /// <summary>
-        /// Show the file we're pointed at, and then the directory we are perusing.
-        /// </summary>
-        public string Banner => CurrentFileName + " @ " + CurrentDirectory;
-
-        /// <summary>
-        /// Get file name without path.
-        /// </summary>
-        public string CurrentFileName {
-            get { 
-                try {
-                    return Path.GetFileName( _oDisplayLine.ToString() ); 
-                } catch( Exception oEx ) {
-                    Type[] rgErrors = { typeof( NullReferenceException ),
-                                     typeof( ArgumentException ) };
-
-                    if( rgErrors.IsUnhandled( oEx ) )
-                        throw new InvalidOperationException();
-                }
-                return( string.Empty );
-            }
         }
 
         public string CurrentDirectory {
