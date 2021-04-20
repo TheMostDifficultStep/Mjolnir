@@ -43,8 +43,10 @@ namespace Play.SSTV {
         private bool disposedValue;
         Thread       _oThread  = null;
         readonly ConcurrentQueue<ESstvProperty> _oMsgQueue = new ConcurrentQueue<ESstvProperty>(); // communique from bg thread to ui thread.
-        public Editor Settings_Labels { get; }
-        public Editor Settings_Values { get; }
+
+        public Editor      Settings_Labels { get; }
+        public Editor      Settings_Values { get; }
+        public FileChooser Chooser { get; }
 
         /// <summary>
         /// This editor shows the list of modes we can modulate.
@@ -159,6 +161,7 @@ namespace Play.SSTV {
             Properties      = new PropDoc( new DocSlot( this ) );
             Settings_Labels = new FormsEditor( new DocSlot( this ) );
             Settings_Values = new FormsEditor( new DocSlot( this ) );
+            Chooser         = new FileChooser( new DocSlot( this ) );
 
             new ParseHandlerText( Settings_Values, "text" );
         }
@@ -368,9 +371,11 @@ namespace Play.SSTV {
                 return false;
             if( !Settings_Values  .InitNew() )
                 return false;
-
             PropertiesInit();
             SettingsInit();
+
+            // No reason to fail if the dir is unusable.
+            Chooser.LoadURL( Settings_Values[3].ToString() );
 
             LoadModulators( GenerateMartin .GetModeEnumerator() );
             LoadModulators( GenerateScottie.GetModeEnumerator() );

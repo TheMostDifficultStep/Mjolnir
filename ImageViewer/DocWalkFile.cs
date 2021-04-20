@@ -749,7 +749,8 @@ namespace Play.ImageViewer {
         }
 
         /// <summary>
-        /// The Line extra can be null and we still "understand" the line. 
+        /// The Line extra can be null and we still "understand" the line. Just
+        /// looking for a file type that we care about.
         /// </summary>
 		public bool IsLineUnderstood( Line oLine ) {
             try { 
@@ -1233,6 +1234,11 @@ namespace Play.ImageViewer {
             TextLoaded?.Invoke();
         }
 
+        /// <summary>
+        /// BUG: Huh, doesn't look like it's getting used anymore. Might
+        /// be able to remove this and the GateFilesEvent object.
+        /// </summary>
+        /// <param name="eEvent"></param>
         void OnFileList_BufferEvent(BUFFEREVENTS eEvent) {
             using( GateFilesEvent oGate = new GateFilesEvent( this ) ) {
                 if( oGate.Open ) {

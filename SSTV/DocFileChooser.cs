@@ -4,47 +4,36 @@ using System.IO;
 
 using Play.Interfaces.Embedding;
 using Play.Edit;
+using Play.ImageViewer;
 using System.Drawing;
 
 namespace Play.SSTV {
-    public class FileLine : TextLine {
-        public long     _lFileSize  = 0;
-        public DateTime _dtModifiedDate;
-		public bool     _fIsDirectory = false;
-
-        public FileLine( int iLine, string strValue) : base( iLine, strValue )
-        {
-        }
-    }
-
-    public class FileWalkerDir : 
+    public class FileChooser : 
         IPgParent,
         IPgCommandBase,
         IDisposable,
         IPgLoadURL,
         IPgSaveURL
     {
-        DirectoryInfo        _oDirectory;
         readonly IPgBaseSite _oSiteBase;
 
         readonly static string _strIcon = @"ImageViewer.Content.icon-folder.png";
 
-        public bool      IsDirty => false;
-        public Image     Iconic  => null;
-        public Editor    FileList { get; }
-        public IPgParent Parentage => _oSiteBase.Host;
-        public IPgParent Services  => Parentage.Services;
+        public bool       IsDirty   => false;
+        public Image      Iconic    => null;
+        public IPgParent  Parentage => _oSiteBase.Host;
+        public IPgParent  Services  => Parentage.Services;
+        public string     Banner    => "Hello!";
 
-
-        protected string _oDisplayLine;
-
+        protected DirectoryInfo _oDirectory;
+        public    FileEditor    FileList { get; }
 
 		public class FileWalkerDocSlot : 
 			IPgBaseSite
 		{
-			readonly FileWalkerDir _oDoc;
+			readonly FileChooser _oDoc;
 
-			public FileWalkerDocSlot( FileWalkerDir oDoc ) {
+			public FileWalkerDocSlot( FileChooser oDoc ) {
 				_oDoc = oDoc ?? throw new ArgumentNullException( "Image document must not be null." );
 			}
 
@@ -58,10 +47,10 @@ namespace Play.SSTV {
 			public IPgParent Host => _oDoc;
 		}
 
-        public FileWalkerDir( IPgBaseSite oSiteBase ) {
+        public FileChooser( IPgBaseSite oSiteBase ) {
             _oSiteBase = oSiteBase ?? throw new ArgumentNullException( "Document needs a site." );
 
-            FileList = new Editor( new FileWalkerDocSlot( this) );
+            FileList = new FileEditor( new FileWalkerDocSlot( this) );
         }
 
         public void Dispose() {
@@ -95,7 +84,12 @@ namespace Play.SSTV {
         public string CurrentFullPath {
 			get {
 				try {
-					return( Path.Combine( CurrentDirectory, _oDisplayLine.ToString() ) );
+                    Line oSelected = FileList.CheckedLine;
+
+                    if( oSelected == null )
+                        oSelected = FileList[0];
+
+					return( Path.Combine( CurrentDirectory, oSelected.ToString() ) );
 				} catch( Exception oEx ) {
 					Type[] rgErrors = { typeof( ArgumentException ),
 										typeof( NullReferenceException ) };
@@ -116,7 +110,7 @@ namespace Play.SSTV {
         }
 
         protected bool IsFileExtensionUnderstood( string strExtn ) {
-            return false;
+            return string.Equals( strExtn, ".wav" );
         }
 
         /// <summary>
@@ -127,49 +121,47 @@ namespace Play.SSTV {
                 using( Editor.Manipulator oManip = FileList.CreateManipulator() ) {
                     // Need the gate AFTER the manipulator since it'll block the call back OnBufferChange()
                     // that gets called when the dispose on the manipulator get's called.
-                    /* using( GateFilesEvent oGate = new GateFilesEvent( this ) ) */ {
-						FileLine oLineNew = oManip.LineAppendNoUndo( ".." ) as FileLine;
-						oLineNew._fIsDirectory = true;
+					FileLine oLineNew = oManip.LineAppendNoUndo( ".." ) as FileLine;
+					oLineNew._fIsDirectory = true;
 
-                        // 12/23/2015 : I could potentially put fileinfo's directly into my document. But 
-						// We're more 'document' compatible if we use string paths.
-                        List<FileInfo> rgFiles = new List<FileInfo>();
-                        foreach( FileInfo oFile in oDir.GetFiles( "*.*", SearchOption.TopDirectoryOnly ) ) {
-							if( !oFile.Attributes.HasFlag( FileAttributes.Hidden)) {
-								rgFiles.Add( oFile );
-							}
-                        }
-
-                        // Insert the directories first so they are at the top. Sort with NaturalCompare
-                        DirectoryInfo[] rgDir = oDir.GetDirectories( "*.*" );
-                        List<DirectoryInfo> rgDirList = new List<DirectoryInfo>( rgDir );
-                        rgDirList.Sort((x,y) => ( NaturalCompare( x.Name, y.Name ) ) );
-
-                        foreach( DirectoryInfo oDirChild in rgDirList ) {
-							if( !oDirChild.Attributes.HasFlag( FileAttributes.Hidden)) {
-								oLineNew = oManip.LineAppendNoUndo( oDirChild.Name ) as FileLine; // Don't load the path!!!
-
-								oLineNew._dtModifiedDate = oDirChild.LastWriteTime;
-								oLineNew._fIsDirectory   = true;
-							}
-                        }
-
-                        // Sort so newest files are at the top. Hence the "negative sign"
-                        // TODO : should be able to sort any way at any time!!! very cool.
-                        rgFiles.Sort( (x,y) => - ( x.CreationTime.CompareTo( y.CreationTime ) ) );
-
-                        foreach( FileInfo oFile in rgFiles ) {
-							// Want to override what we load in the dialog box version of this control
-							// even tho' the thumbnails list will only load the understood file extensions.
-                            if( IsFileExtensionUnderstood( oFile.Extension ) ) {
-                                oLineNew = oManip.LineAppendNoUndo( oFile.Name ) as FileLine; // Don't load the path!!!
-
-                                oLineNew._dtModifiedDate = oFile.LastWriteTime;
-                            }
-                        }
-
-						return true;
+                    // 12/23/2015 : I could potentially put fileinfo's directly into my document. But 
+					// We're more 'document' compatible if we use string paths.
+                    List<FileInfo> rgFiles = new List<FileInfo>();
+                    foreach( FileInfo oFile in oDir.GetFiles( "*.*", SearchOption.TopDirectoryOnly ) ) {
+						if( !oFile.Attributes.HasFlag( FileAttributes.Hidden)) {
+							rgFiles.Add( oFile );
+						}
                     }
+
+                    // Insert the directories first so they are at the top. Sort with NaturalCompare
+                    DirectoryInfo[] rgDir = oDir.GetDirectories( "*.*" );
+                    List<DirectoryInfo> rgDirList = new List<DirectoryInfo>( rgDir );
+                    rgDirList.Sort((x,y) => ( NaturalCompare( x.Name, y.Name ) ) );
+
+                    foreach( DirectoryInfo oDirChild in rgDirList ) {
+						if( !oDirChild.Attributes.HasFlag( FileAttributes.Hidden)) {
+							oLineNew = oManip.LineAppendNoUndo( "[" + oDirChild.Name + "]" ) as FileLine; // Don't load the path!!!
+
+							oLineNew._dtModifiedDate = oDirChild.LastWriteTime;
+							oLineNew._fIsDirectory   = true;
+						}
+                    }
+
+                    // Sort so newest files are at the top. Hence the "negative sign"
+                    // TODO : should be able to sort any way at any time!!! very cool.
+                    rgFiles.Sort( (x,y) => - ( x.CreationTime.CompareTo( y.CreationTime ) ) );
+
+                    foreach( FileInfo oFile in rgFiles ) {
+						// Want to override what we load in the dialog box version of this control
+						// even tho' the thumbnails list will only load the understood file extensions.
+                        if( IsFileExtensionUnderstood( oFile.Extension ) ) {
+                            oLineNew = oManip.LineAppendNoUndo( oFile.Name ) as FileLine; // Don't load the path!!!
+
+                            oLineNew._dtModifiedDate = oFile.LastWriteTime;
+                        }
+                    }
+
+					return true;
                 }
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( NullReferenceException ),
@@ -242,7 +234,6 @@ namespace Play.SSTV {
 
         /// <summary>
         /// Only the directory viewer is actually capable of reloading our contents on demand.
-        /// Need to redo the view's thumb collection.
         /// </summary>
         /// <remarks>
         /// Can't tell the difference between path's with ext and file with ext.
@@ -347,8 +338,7 @@ namespace Play.SSTV {
             // We can't deal with cut and paste where we actually move the file so we'll just ignore for now.
         }
 
-        public bool Execute( Guid sGuid )
-        {
+        public bool Execute( Guid sGuid ) {
             throw new NotImplementedException();
         }
     }
