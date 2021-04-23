@@ -346,7 +346,7 @@ namespace Play.SSTV {
 					return new CheckList( oBaseSite, _oDocSSTV.ModeList );
 				}
 				if( sGuid.Equals( GlobalDecorations.Outline ) ) {
-					return new EditWindow2( oBaseSite, _oDocSSTV.Chooser.FileList, fReadOnly:true  );
+					return new EditWindow2( oBaseSite, _oDocSSTV.Chooser.FileList, fReadOnly:true  ) { ToolSelect = 2 };
 				}
 				return false;
 			} catch ( Exception oEx ) {

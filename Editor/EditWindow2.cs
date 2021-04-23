@@ -255,6 +255,7 @@ namespace Play.Edit {
 
 			_rgTools.Add( "Edit" );
 			_rgTools.Add( "Browse" );
+            _rgTools.Add( "Choose" );
 			_rgTools.Add( "Morse" );
         }
 
@@ -1198,6 +1199,14 @@ namespace Play.Edit {
         protected override void OnMouseMove(MouseEventArgs e) {
             base.OnMouseMove( e );
 
+            if( _iSelectedTool == 2 ) {
+                if( ( ModifierKeys & Keys.Control ) != 0 ) {
+                    Cursor = Cursors.IBeam;
+                } else {
+                    Cursor = Cursors.Arrow;
+                }
+                return;
+            }
             if( _iSelectedTool == 1 || ( ModifierKeys & Keys.Control ) != 0 ) {
                 Cursor oNewCursor = Cursors.IBeam;
                 if( HyperLinkFind( new SKPointI( e.Location.X, e.Location.Y ), fDoJump:false ) )
@@ -1850,7 +1859,7 @@ namespace Play.Edit {
                     _oViewEvents.IsCommandKey( CommandKey.Tab, (KeyBoardEnum)e.Modifiers );
                     break;
                 case Keys.ControlKey:
-                    if( _iSelectedTool != 1 ) { 
+                    if( _iSelectedTool == 0 ) { 
                         Cursor oNewCursor = Cursors.IBeam;
                         Point  oLocation  = Cursor.Position;
                         Point  oTemp      = PointToClient( oLocation );
@@ -1873,7 +1882,7 @@ namespace Play.Edit {
 
             switch( e.KeyCode ) {
                 case Keys.ControlKey:
-                    if( _iSelectedTool != 1 )
+                    if( _iSelectedTool == 0 )
                         Cursor = Cursors.IBeam;
                     break;
             }
