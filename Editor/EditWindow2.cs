@@ -831,9 +831,10 @@ namespace Play.Edit {
             if( _oDocument.HighLight != null && oCache.At == _oDocument.HighLight.At)
                 eBg = _oDocument.PlayHighlightColor;
             if( _iSelectedTool == 2 ) {
-                Point pntMouse = this.PointToClient( MousePosition );
-                if( oCache.Top    <= pntMouse.Y &&
-                    oCache.Bottom >= pntMouse.Y &&
+                Point    pntMouse = this.PointToClient( MousePosition );
+                SKPointI pntWorld = ClientToWorld( new SKPointI( pntMouse.X, pntMouse.Y ) );
+                if( oCache.Top    <= pntWorld.Y &&
+                    oCache.Bottom >= pntWorld.Y &&
                     _rctTextArea.Left  < pntMouse.X &&
                     _rctTextArea.Right > pntMouse.X ) {
                     eBg = StdUIColors.BGWithCursor;
@@ -1234,7 +1235,11 @@ namespace Play.Edit {
                 if( ( ModifierKeys & Keys.Control ) != 0 ) {
                     Cursor = Cursors.IBeam;
                 } else {
-                    Cursor = Cursors.Arrow;
+                    Cursor oNewCursor = Cursors.Arrow;
+                    if( HyperLinkFind( new SKPointI( e.Location.X, e.Location.Y ), fDoJump:false ) )
+                        oNewCursor = Cursors.Hand;
+
+                    Cursor = oNewCursor;
                 }
                 Invalidate();
             } else {
@@ -1303,7 +1308,8 @@ namespace Play.Edit {
                 if( ( e.Button == MouseButtons.Left &&
                       ((ModifierKeys & Keys.Control) == 0) ) 
                   ) {
-                    FTCacheLine oElem = _oCacheMan.GlyphPointToRange( new SKPointI( e.Location.X, e.Location.Y ), _oLastCursor );
+                    SKPointI pntWorld = ClientToWorld( new SKPointI( e.Location.X, e.Location.Y ) );
+                    FTCacheLine oElem = _oCacheMan.GlyphPointToRange( pntWorld, _oLastCursor );
                     if( oElem != null ) { 
                         foreach( KeyValuePair<string, HyperLink> oPair in HyperLinks ) { 
                             if( "chooser" == oPair.Key ) { // Gonna be easy to forget this is here. ^_^;;
@@ -1909,7 +1915,8 @@ namespace Play.Edit {
                     _oViewEvents.IsCommandKey( CommandKey.Tab, (KeyBoardEnum)e.Modifiers );
                     break;
                 case Keys.ControlKey:
-                    if( _iSelectedTool == 0 || _iSelectedTool == 2 ) { 
+                    // Note: This comes in occasionally even if keep pressing ctrl.
+                    if( _iSelectedTool == 0 ) { 
                         Cursor oNewCursor = Cursors.IBeam;
                         Point  oLocation  = Cursor.Position;
                         Point  oTemp      = PointToClient( oLocation );
@@ -1918,6 +1925,10 @@ namespace Play.Edit {
                             oNewCursor = Cursors.Hand;
 
                         Cursor = oNewCursor;
+                    } else {
+                        if( _iSelectedTool == 2 ) {
+                            Cursor = Cursors.IBeam; // Ignore any hyperlinks.
+                        }
                     }
                     break;
             }

@@ -5,6 +5,7 @@ using System.IO;
 using Play.Interfaces.Embedding;
 using Play.Edit;
 using Play.ImageViewer;
+using Play.Parse.Impl;
 using System.Drawing;
 
 namespace Play.SSTV {
@@ -25,8 +26,29 @@ namespace Play.SSTV {
         public IPgParent  Services  => Parentage.Services;
         public string     Banner    => "Hello!";
 
+        protected readonly IPgStandardUI2 _oStdUI;
+
         protected DirectoryInfo _oDirectory;
         public    FileEditor    FileList { get; }
+
+        public class DirectoryHyperLink : IPgWordRange {
+            readonly int _iLength;
+            readonly int _iClrIndex;
+
+            public DirectoryHyperLink( int iLen, int iClrIndex ) {
+                _iLength   = iLen;
+                _iClrIndex = iClrIndex;
+            }
+
+            public bool IsWord => true;
+            public bool IsTerm => true;
+
+            public string StateName  => "chooser";
+            public int    ColorIndex { get => _iClrIndex; set => throw new NotImplementedException(); }
+
+            public int Offset { get => 1;        set => throw new NotImplementedException(); }
+            public int Length { get => _iLength; set => throw new NotImplementedException(); }
+        }
 
 		public class FileWalkerDocSlot : 
 			IPgBaseSite
@@ -49,6 +71,7 @@ namespace Play.SSTV {
 
         public FileChooser( IPgBaseSite oSiteBase ) {
             _oSiteBase = oSiteBase ?? throw new ArgumentNullException( "Document needs a site." );
+ 			_oStdUI    = oSiteBase.Host.Services as IPgStandardUI2 ?? throw new ArgumentException( "Parent view must provide IPgStandardUI service" );
 
             FileList = new FileEditor( new FileWalkerDocSlot( this) );
         }
@@ -123,6 +146,7 @@ namespace Play.SSTV {
                     // that gets called when the dispose on the manipulator get's called.
 					FileLine oLineNew = oManip.LineAppendNoUndo( "[..]" ) as FileLine;
 					oLineNew._fIsDirectory = true;
+                    oLineNew.Formatting.Add( new DirectoryHyperLink( 2, 1 ) );
 
                     // 12/23/2015 : I could potentially put fileinfo's directly into my document. But 
 					// We're more 'document' compatible if we use string paths.
@@ -144,6 +168,7 @@ namespace Play.SSTV {
 
 							oLineNew._dtModifiedDate = oDirChild.LastWriteTime;
 							oLineNew._fIsDirectory   = true;
+                            oLineNew.Formatting.Add( new DirectoryHyperLink( oDirChild.Name.Length, 1 ) );
 						}
                     }
 
@@ -183,6 +208,7 @@ namespace Play.SSTV {
                 using( Editor.Manipulator oManip = FileList.CreateManipulator() ) {
 					FileLine oLineNew = oManip.LineAppendNoUndo( "[..]" ) as FileLine;
 					oLineNew._fIsDirectory = true;
+                    oLineNew.Formatting.Add( new DirectoryHyperLink( 2, 1 ) );
 				}
 
 				return false;
