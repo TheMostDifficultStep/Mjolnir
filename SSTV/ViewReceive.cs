@@ -224,14 +224,16 @@ namespace Play.SSTV {
 		public static string _strIcon =  "Play.SSTV.icons8_tv.png";
 
         public Guid   Catagory => GUID;
-        public string Banner   => "MySSTV Receive Image";
+        public string Banner   => _strBanner;
         public Image  Iconic   { get; protected set; }
         public bool   IsDirty  => false;
 
         protected readonly IPgViewSite _oSiteView;
 
-		readonly List<string> _rgToolBox = new List<string>() { "File", "File w/o VIS", "Port" };
-		protected int         _iToolSelected = 0;
+		readonly List<string>   _rgToolBox = new List<string>() { "File", "File w/o VIS", "Port" };
+		protected int           _iToolSelected = 0;
+		protected static string _strBaseTitle = "MySSTV Receive";
+		protected string        _strBanner    = _strBaseTitle;
 
         DocSSTV _oDocSSTV;
 
@@ -326,6 +328,8 @@ namespace Play.SSTV {
 				switch( _iToolSelected ) {
 					case 0:
 						// TODO: Change our title to match what we're trying to show!!
+						_strBanner = _strBaseTitle + " : " + _oDocSSTV.Chooser.CurrentFullPath;
+						_oSiteView.Notify( ShellNotify.BannerChanged );
 						_oDocSSTV.RecordBeginFileRead2( _oDocSSTV.Chooser.CurrentFullPath );
 						return true;
 					case 1:
