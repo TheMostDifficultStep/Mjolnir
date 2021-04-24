@@ -121,7 +121,7 @@ namespace Play.SSTV {
                 using( Editor.Manipulator oManip = FileList.CreateManipulator() ) {
                     // Need the gate AFTER the manipulator since it'll block the call back OnBufferChange()
                     // that gets called when the dispose on the manipulator get's called.
-					FileLine oLineNew = oManip.LineAppendNoUndo( ".." ) as FileLine;
+					FileLine oLineNew = oManip.LineAppendNoUndo( "[..]" ) as FileLine;
 					oLineNew._fIsDirectory = true;
 
                     // 12/23/2015 : I could potentially put fileinfo's directly into my document. But 
@@ -181,7 +181,7 @@ namespace Play.SSTV {
 				LogError( "Image Walker", "Couldn't use the directory given." ); 
                 FileList.Clear();
                 using( Editor.Manipulator oManip = FileList.CreateManipulator() ) {
-					FileLine oLineNew = oManip.LineAppendNoUndo( ".." ) as FileLine;
+					FileLine oLineNew = oManip.LineAppendNoUndo( "[..]" ) as FileLine;
 					oLineNew._fIsDirectory = true;
 				}
 

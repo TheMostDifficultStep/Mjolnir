@@ -337,6 +337,26 @@ namespace Play.SSTV {
             return base.Execute(sGuid);
         }
 
+		/// <summary>
+		/// Sort of weird to just grab the choose event right from the view, but it
+		/// is quick and easy.
+		/// </summary>
+		public void OnChooser( Line oLine, Play.Parse.Impl.IPgWordRange oRange ) {
+			try {
+				if( oLine is FileLine oFile && oFile._fIsDirectory ) {
+					_oDocSSTV.Chooser.LoadAgain( Path.Combine( _oDocSSTV.Chooser.CurrentDirectory, 
+															   oFile.SubString( 1, oFile.ElementCount - 2 ) ) );
+				}
+			} catch( Exception oEx ) { 
+				Type[] rgErrors = { typeof( ArgumentOutOfRangeException ),
+									typeof( ArgumentNullException ),
+									typeof( NullReferenceException ) };
+				if( rgErrors.IsUnhandled( oEx ) ) {
+					throw;
+				}
+			}
+		}
+
 		public object Decorate(IPgViewSite oBaseSite,Guid sGuid) {
 			try {
 				if( sGuid.Equals(GlobalDecorations.Properties) ) {
@@ -346,7 +366,11 @@ namespace Play.SSTV {
 					return new CheckList( oBaseSite, _oDocSSTV.ModeList );
 				}
 				if( sGuid.Equals( GlobalDecorations.Outline ) ) {
-					return new EditWindow2( oBaseSite, _oDocSSTV.Chooser.FileList, fReadOnly:true  ) { ToolSelect = 2 };
+					EditWindow2 oWin = new EditWindow2( oBaseSite, _oDocSSTV.Chooser.FileList, fReadOnly:true  );
+					oWin.ToolSelect = 2;
+					oWin.HyperLinks.Add( "chooser", OnChooser );
+
+					return oWin;
 				}
 				return false;
 			} catch ( Exception oEx ) {

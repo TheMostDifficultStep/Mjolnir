@@ -186,7 +186,22 @@ namespace Play.Edit {
         public object    DocumentText => _oDocument;
 		public IPgParent Services     => Parentage.Services;
 
-		protected class DocSlot :
+        protected class ChooserHyperLink : IPgWordRange
+        {
+            public ChooserHyperLink() {
+            }
+
+            public bool IsWord => true;
+            public bool IsTerm => true;
+
+            public string StateName => "chooser";
+            public int    ColorIndex => 0;
+
+            public int Offset { get => 0; set => throw new NotImplementedException(); }
+            public int Length { get => int.MaxValue; set => throw new NotImplementedException(); }
+        }
+
+        protected class DocSlot :
 			IPgBaseSite
 		{
 			protected readonly EditWindow2 _oHost;
@@ -811,10 +826,19 @@ namespace Play.Edit {
             PointF      pntUL  = RenderAt( oCache );
             SKRect      skRect = new SKRect( _rctTextArea.Left, pntUL.Y, _rctTextArea.Right, pntUL.Y + oCache.Height );
 
-            if (CaretPos.Line != null && oCache.At == CaretPos.At && !_fSingleLine)
+            if( CaretPos.Line != null && oCache.At == CaretPos.At && !_fSingleLine)
                 eBg = StdUIColors.BGWithCursor;
-            if (_oDocument.HighLight != null && oCache.At == _oDocument.HighLight.At)
+            if( _oDocument.HighLight != null && oCache.At == _oDocument.HighLight.At)
                 eBg = _oDocument.PlayHighlightColor;
+            if( _iSelectedTool == 2 ) {
+                Point pntMouse = this.PointToClient( MousePosition );
+                if( oCache.Top    <= pntMouse.Y &&
+                    oCache.Bottom >= pntMouse.Y &&
+                    _rctTextArea.Left  < pntMouse.X &&
+                    _rctTextArea.Right > pntMouse.X ) {
+                    eBg = StdUIColors.BGWithCursor;
+                }
+            }
 
             if( eBg != StdUIColors.Max ) {
                 skPaint .BlendMode = SKBlendMode.Src;
@@ -1186,6 +1210,13 @@ namespace Play.Edit {
             CaretIconRefreshLocation();
         }
 
+        protected override void OnMouseLeave( EventArgs e ) {
+            base.OnMouseLeave(e);
+            if( _iSelectedTool == 2 ) {
+                Invalidate();
+            }
+        }
+
         /// <summary>
         /// Begin the drag drop if the cursor moves outside the _rctDragging rect
         /// while the left button stays down.
@@ -1205,22 +1236,23 @@ namespace Play.Edit {
                 } else {
                     Cursor = Cursors.Arrow;
                 }
-                return;
-            }
-            if( _iSelectedTool == 1 || ( ModifierKeys & Keys.Control ) != 0 ) {
-                Cursor oNewCursor = Cursors.IBeam;
-                if( HyperLinkFind( new SKPointI( e.Location.X, e.Location.Y ), fDoJump:false ) )
-                    oNewCursor = Cursors.Hand;
+                Invalidate();
+            } else {
+                if( _iSelectedTool == 1 || ( ModifierKeys & Keys.Control ) != 0 ) {
+                    Cursor oNewCursor = Cursors.IBeam;
+                    if( HyperLinkFind( new SKPointI( e.Location.X, e.Location.Y ), fDoJump:false ) )
+                        oNewCursor = Cursors.Hand;
 
-                Cursor = oNewCursor;
-            } else { 
-                if( _rctTextArea.IsInside( e.Location.X, e.Location.Y ) ) {
-                    if( Cursor != Cursors.IBeam )
-                        Cursor = Cursors.IBeam;
-                }
-                if( _rctCheques.IsInside( e.Location.X, e.Location.Y ) ) {
-                    if( Cursor != Cursors.Arrow )
-                        Cursor = Cursors.Arrow;
+                    Cursor = oNewCursor;
+                } else { 
+                    if( _rctTextArea.IsInside( e.Location.X, e.Location.Y ) ) {
+                        if( Cursor != Cursors.IBeam )
+                            Cursor = Cursors.IBeam;
+                    }
+                    if( _rctCheques.IsInside( e.Location.X, e.Location.Y ) ) {
+                        if( Cursor != Cursors.Arrow )
+                            Cursor = Cursors.Arrow;
+                    }
                 }
             }
 
@@ -1247,10 +1279,13 @@ namespace Play.Edit {
                         Update();
                     } 
                 } else {
-                    // We had no selection or pressed left mouse key with the cursor outside of that 
-                    // section and now we are creating a new selection.
-                    UpdateSelection( new SKPointI( e.Location.X, e.Location.Y ) );
-                    Update();
+                    // No matter what mode we are in. If we're showing a cursor, allow select.
+                    if( Cursor == Cursors.IBeam ) {
+                        // We had no selection or pressed left mouse key with the cursor outside of that 
+                        // section and now we are creating a new selection.
+                        UpdateSelection( new SKPointI( e.Location.X, e.Location.Y ) );
+                        Update();
+                    }
                 }
             }
         }
@@ -1264,11 +1299,26 @@ namespace Play.Edit {
         protected override void OnMouseUp(MouseEventArgs e) {
             base.OnMouseUp( e );
 
-            if(( e.Button == MouseButtons.Left &&
-                    ( _iSelectedTool == 1) || ((ModifierKeys & Keys.Control) != 0) ) &&
-                !TextSelector.IsSelected(Selections)
-            ) {
-                HyperLinkFind( new SKPointI( e.Location.X, e.Location.Y ), fDoJump:true );
+            if( _iSelectedTool == 2 ) {
+                if( ( e.Button == MouseButtons.Left &&
+                      ((ModifierKeys & Keys.Control) == 0) ) 
+                  ) {
+                    FTCacheLine oElem = _oCacheMan.GlyphPointToRange( new SKPointI( e.Location.X, e.Location.Y ), _oLastCursor );
+                    if( oElem != null ) { 
+                        foreach( KeyValuePair<string, HyperLink> oPair in HyperLinks ) { 
+                            if( "chooser" == oPair.Key ) {
+                                oPair.Value?.Invoke( oElem.Line, new ChooserHyperLink() );
+                            }
+                        }
+                    }
+                }
+            } else {
+                if( ( e.Button == MouseButtons.Left &&
+                      ( _iSelectedTool == 1) || ((ModifierKeys & Keys.Control) != 0) ) &&
+                    !TextSelector.IsSelected(Selections)
+                ) {
+                    HyperLinkFind( new SKPointI( e.Location.X, e.Location.Y ), fDoJump:true );
+                }
             }
 
             _rctDragBounds = null;
@@ -1859,7 +1909,7 @@ namespace Play.Edit {
                     _oViewEvents.IsCommandKey( CommandKey.Tab, (KeyBoardEnum)e.Modifiers );
                     break;
                 case Keys.ControlKey:
-                    if( _iSelectedTool == 0 ) { 
+                    if( _iSelectedTool == 0 || _iSelectedTool == 2 ) { 
                         Cursor oNewCursor = Cursors.IBeam;
                         Point  oLocation  = Cursor.Position;
                         Point  oTemp      = PointToClient( oLocation );
