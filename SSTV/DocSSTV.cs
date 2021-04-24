@@ -874,6 +874,10 @@ namespace Play.SSTV {
         /// </summary>
         /// <param name="strFileName"></param>
         public void RecordBeginFileRead2( string strFileName ) {
+            if( string.IsNullOrEmpty( strFileName ) ) {
+                LogError( "Invalid filename for SSTV image read" );
+                return;
+            }
             if( _oThread == null ) {
                 ThreadWorker oWorker        = new ThreadWorker( _oMsgQueue, strFileName );
                 ThreadStart  threadDelegate = new ThreadStart ( oWorker.DoWork );

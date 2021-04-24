@@ -1306,7 +1306,7 @@ namespace Play.Edit {
                     FTCacheLine oElem = _oCacheMan.GlyphPointToRange( new SKPointI( e.Location.X, e.Location.Y ), _oLastCursor );
                     if( oElem != null ) { 
                         foreach( KeyValuePair<string, HyperLink> oPair in HyperLinks ) { 
-                            if( "chooser" == oPair.Key ) {
+                            if( "chooser" == oPair.Key ) { // Gonna be easy to forget this is here. ^_^;;
                                 oPair.Value?.Invoke( oElem.Line, new ChooserHyperLink() );
                             }
                         }

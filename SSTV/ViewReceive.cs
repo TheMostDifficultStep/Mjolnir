@@ -318,7 +318,6 @@ namespace Play.SSTV {
 
         public override bool Execute( Guid sGuid ) {
 			if( sGuid == GlobalCommands.Play ) {
-				//_oDocSSTV.RecordBeginTest3();
 				// \\hefty3\frodo\Documents\Radio\sstv\sstv-test-files\sstv_test-1.wav	scottie 1
 				// C:\Users\Frodo\Documents\signals\ic-705\20201230\20201230_060411.wav
 				// C:\Users\Frodo\Documents\signals\iss\2020-12-31\20201231_1743z.wav
@@ -326,7 +325,8 @@ namespace Play.SSTV {
 
 				switch( _iToolSelected ) {
 					case 0:
-						_oDocSSTV.RecordBeginFileRead2( @"\\hefty3\frodo\Documents\Radio\sstv\iss-passes\20201231_1743zg.wav");
+						// TODO: Change our title to match what we're trying to show!!
+						_oDocSSTV.RecordBeginFileRead2( _oDocSSTV.Chooser.CurrentFullPath );
 						return true;
 					case 1:
 						LogError( "SSTV Command", "Audio Port not supported yet" );
@@ -337,26 +337,6 @@ namespace Play.SSTV {
             return base.Execute(sGuid);
         }
 
-		/// <summary>
-		/// Sort of weird to just grab the choose event right from the view, but it
-		/// is quick and easy.
-		/// </summary>
-		public void OnChooser( Line oLine, Play.Parse.Impl.IPgWordRange oRange ) {
-			try {
-				if( oLine is FileLine oFile && oFile._fIsDirectory ) {
-					_oDocSSTV.Chooser.LoadAgain( Path.Combine( _oDocSSTV.Chooser.CurrentDirectory, 
-															   oFile.SubString( 1, oFile.ElementCount - 2 ) ) );
-				}
-			} catch( Exception oEx ) { 
-				Type[] rgErrors = { typeof( ArgumentOutOfRangeException ),
-									typeof( ArgumentNullException ),
-									typeof( NullReferenceException ) };
-				if( rgErrors.IsUnhandled( oEx ) ) {
-					throw;
-				}
-			}
-		}
-
 		public object Decorate(IPgViewSite oBaseSite,Guid sGuid) {
 			try {
 				if( sGuid.Equals(GlobalDecorations.Properties) ) {
@@ -366,11 +346,7 @@ namespace Play.SSTV {
 					return new CheckList( oBaseSite, _oDocSSTV.ModeList );
 				}
 				if( sGuid.Equals( GlobalDecorations.Outline ) ) {
-					EditWindow2 oWin = new EditWindow2( oBaseSite, _oDocSSTV.Chooser.FileList, fReadOnly:true  );
-					oWin.ToolSelect = 2;
-					oWin.HyperLinks.Add( "chooser", OnChooser );
-
-					return oWin;
+					return new TextDirView( oBaseSite, _oDocSSTV );
 				}
 				return false;
 			} catch ( Exception oEx ) {
@@ -413,4 +389,41 @@ namespace Play.SSTV {
             return null;
         }
     }
+
+	public class TextDirView : EditWindow2 {
+		protected readonly DocSSTV _oDocSSTV;
+
+		public TextDirView( IPgViewSite oSiteView, DocSSTV oSSTV ) :
+			base( oSiteView, oSSTV.Chooser?.FileList, fReadOnly:true ) 
+		{
+			_oDocSSTV = oSSTV ?? throw new ArgumentNullException();
+
+			_fCheckMarks = true;
+			ToolSelect = 2;
+			HyperLinks.Add( "chooser", OnChooser );
+		}
+
+		public void OnChooser( Line oLine, Parse.Impl.IPgWordRange oRange ) {
+			try {
+				if( oLine is FileLine oFile ) {
+					if( oFile._fIsDirectory ) {
+						string strName = oFile.SubString( 1, oFile.ElementCount - 2 );
+						if( !string.IsNullOrEmpty( strName ) ) {
+							_oDocSSTV.Chooser.LoadAgain( Path.Combine( _oDocSSTV.Chooser.CurrentDirectory, strName ) );
+						}
+					} else {
+						_oDocSSTV.Chooser.FileList.CheckedLine = oLine;
+					}
+				}
+			} catch( Exception oEx ) { 
+				Type[] rgErrors = { typeof( ArgumentOutOfRangeException ),
+									typeof( ArgumentNullException ),
+									typeof( ArgumentException ), 
+									typeof( NullReferenceException ) };
+				if( rgErrors.IsUnhandled( oEx ) ) {
+					throw;
+				}
+			}
+		}
+	}
 }
