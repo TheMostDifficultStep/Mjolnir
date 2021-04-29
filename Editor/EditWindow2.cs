@@ -2210,6 +2210,7 @@ namespace Play.Edit {
             if( _oCacheMan.GlyphLineToPoint( CaretPos, out Point pntCaretWorldLoc ) ) {
                 _iAdvance = pntCaretWorldLoc.X;
             }
+            CaretIconRefreshLocation();
         }
 
         /// <summary>
