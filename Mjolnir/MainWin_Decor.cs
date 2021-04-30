@@ -485,11 +485,13 @@ namespace Mjolnir {
 			if( _rcFrame.Hidden )
 				return;
 
+            int iSpace = _rcFrame.Left - _rcFrame.Outer.Left;
+
             _rgSideBox[(int)EDGE.LEFT  ].SetRect( LOCUS.UPPERLEFT,
                                                   0,
                                                   _rcFrame.Outer.Top,
                                                   _rcFrame.Outer.Left,
-                                                  ClientRectangle.Height - _rcFrame.Outer.Top );
+                                                  /* ClientRectangle.Height - _rcFrame.Outer.Top */ _rcFrame.Outer.Height - iSpace);
             _rgSideBox[(int)EDGE.TOP   ].SetRect( LOCUS.UPPERLEFT, 
                                                   0,
                                                   0,
@@ -499,11 +501,11 @@ namespace Mjolnir {
                                                   _rcFrame.Outer.Right,
                                                   _rcFrame.Outer.Top,
                                                   ClientRectangle.Right  - _rcFrame.Outer.Right,
-                                                  ClientRectangle.Height - _rcFrame.Outer.Top );
+                                                  /* ClientRectangle.Height - _rcFrame.Outer.Top */ _rcFrame.Outer.Height - iSpace);
             _rgSideBox[(int)EDGE.BOTTOM].SetRect( LOCUS.UPPERLEFT, 
-                                                  _rcFrame.Outer.Left, 
+                                                  /* _rcFrame.Outer.Left */ 0, 
                                                   _rcFrame.Outer.Bottom,
-                                                  _rcFrame.Outer.Width,
+                                                  /* _rcFrame.Outer.Width */ ClientRectangle.Width,
                                                   ClientRectangle.Bottom - _rcFrame.Outer.Bottom );
 
 			
