@@ -282,7 +282,7 @@ namespace Play.SSTV {
 		public static Guid GUID { get; } = new Guid( "{5BC25D2B-3F4E-4339-935C-CFADC2650B35}" );
 
         public override Guid   Catagory => GUID;
-        public override string Banner   => "MySSTV Tx Image : " + _oDocSSTV.TxImageList.CurrentDirectory;
+        public override string Banner   => "MySSTV Transmit Image : " + _oDocSSTV.TxImageList.CurrentDirectory;
 
         DocSSTV _oDocSSTV;
 

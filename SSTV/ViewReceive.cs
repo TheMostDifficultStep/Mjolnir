@@ -320,11 +320,6 @@ namespace Play.SSTV {
 
         public override bool Execute( Guid sGuid ) {
 			if( sGuid == GlobalCommands.Play ) {
-				// \\hefty3\frodo\Documents\Radio\sstv\sstv-test-files\sstv_test-1.wav	scottie 1
-				// C:\Users\Frodo\Documents\signals\ic-705\20201230\20201230_060411.wav
-				// C:\Users\Frodo\Documents\signals\iss\2020-12-31\20201231_1743z.wav
-				// \\hefty3\frodo\Documents\Radio\sstv\iss-passes\20201231_1743zg.wav
-
 				switch( _iToolSelected ) {
 					case 0:
 						// TODO: Change our title to match what we're trying to show!!
