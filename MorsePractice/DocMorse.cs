@@ -7,6 +7,9 @@ using System.Net;
 using System.Net.Http;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using System.IO.Ports;
+using System.Collections.Concurrent;
+
 //using System.Data.SqlClient;
 //Microsoft.Data.SqlClient the new api for ms db's
 //https://mariadb.com/kb/en/mariadb-and-net/ // Question and answer.
@@ -18,7 +21,6 @@ using Play.Edit;
 using Play.Integration;
 using Play.Parse.Impl.Text;
 using Play.Parse.Impl;
-using Play.ImageViewer;
 //using MySql.Data.MySqlClient;
 
 namespace Play.MorsePractice {
@@ -84,6 +86,9 @@ namespace Play.MorsePractice {
         public Editor CallSignBioHtml { get; } // base 64 converted HTML streaml;
         public Editor CallSignPageHtml{ get; } // This is the main page returned by qrz.
 
+        protected SerialPort _spCiV;
+        readonly ConcurrentQueue<byte[]> _oMsgQueue = new ConcurrentQueue<byte[]>();
+
 		protected static readonly HttpClient _oHttpClient = new HttpClient(); 
 
         /// <summary>
@@ -118,6 +123,8 @@ namespace Play.MorsePractice {
 
 		public void Dispose() {
 			if( !_fDisposed ) {
+                _spCiV?.Close();
+
 				Source.Dispose();
 				Notes .Dispose();
 				Stats .Dispose();
@@ -169,10 +176,104 @@ namespace Play.MorsePractice {
 			}
 		}
 
+        IEnumerator<int> ListenToCom() {
+            while( true ) {
+                if( _oMsgQueue.TryDequeue( out byte[] rgMsg ) ) {
+                    SerialToList( rgMsg );
+                }
+                yield return 250;
+            }
+        }
+
+        protected void SerialToList( byte[] rgMsg ) {
+            int           iIndex    = 0;
+            StringBuilder rgBuilder = new StringBuilder();
+
+            foreach( byte bByte in rgMsg ) {
+                rgBuilder.Append( bByte.ToString( "X2" ));
+
+                if( bByte == 0xfd ) {
+                    iIndex = 0;
+                    Notes.LineAppend( rgBuilder.ToString() );
+                    rgBuilder.Clear();
+                } else {
+                    rgBuilder.Append( " " );
+                    iIndex++;
+                }
+            }
+
+            Notes.LineAppend( rgBuilder.ToString() );
+
+            rgBuilder.Clear();
+        }
+
+        protected void SerialToOffset( byte[] rgMsg ) {
+            int           iIndex    = 0;
+            StringBuilder rgBuilder = new StringBuilder();
+
+            foreach( byte bByte in rgMsg ) {
+                rgBuilder.Append( "offset(" );
+                rgBuilder.Append( iIndex.ToString( "D2" ) );
+                rgBuilder.Append( ") :" );
+                rgBuilder.Append( bByte.ToString( "X2" ));
+
+                Notes.LineAppend( rgBuilder.ToString() );
+                rgBuilder.Clear();
+
+                if( bByte == 0xfd ) {
+                    iIndex = 0;
+                    Notes.LineAppend( string.Empty );
+                } else {
+                    iIndex++;
+                }
+            }
+        }
+
+        static int BCDtoInt( byte bcd ) {
+            int iResult = 0;
+
+            iResult += (10 * (bcd >> 4));
+            iResult += bcd & 0xf;
+
+            return iResult;
+        }
+
+        protected void InitSerial() {
+
+            _oTaskPlace.Queue( ListenToCom(), 100 );
+
+            _spCiV = new SerialPort("COM4");
+
+            _spCiV.BaudRate  = 9600;
+            _spCiV.Parity    = Parity.None;
+            _spCiV.StopBits  = StopBits.One;
+            _spCiV.DataBits  = 8;
+            _spCiV.Handshake = Handshake.None;
+
+            _spCiV.DataReceived += CiV_DataReceived; 
+            _spCiV.Open();
+        }
+
+        /// <summary>
+        /// This event comes in asynchronously on it's own thread. Queue up the message
+        /// so that the foreground tread can pick it up.
+        /// </summary>
+        /// <remarks>Would be nice if we could post a message to the forground so that
+        /// it spins up a task that can terminate once all the data has been pulled.</remarks>
+        private void CiV_DataReceived( object sender, SerialDataReceivedEventArgs e ) {
+            int iBytesWaiting = _spCiV.BytesToRead;
+            if( iBytesWaiting > 0 ) {
+                byte[] rgMsg = new byte[iBytesWaiting];
+
+                _spCiV.Read( rgMsg, 0, iBytesWaiting );
+                _oMsgQueue.Enqueue( rgMsg );
+            }
+        }
+
         /// <summary>
         /// Both InitNew and Load call this base initialization function.
         /// </summary>
-		protected bool Initialize() {
+        protected bool Initialize() {
 			if( !Source.InitNew() )
 				return false;
 			if( !Notes.InitNew() )
@@ -196,6 +297,8 @@ namespace Play.MorsePractice {
                 return false;
 			if( !Stats.InitNew() )
 				return false;
+
+            InitSerial();
 
             for( int i=0; i<3; ++i ) {
                 List<Line> rgRow = new List<Line>(7);
