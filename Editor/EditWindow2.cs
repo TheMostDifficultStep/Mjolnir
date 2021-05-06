@@ -76,12 +76,13 @@ namespace Play.Edit {
         IReadOnlyList<SKColor> ColorsText { get; }
     }
 
-    public abstract class DataStream2<T> {
+    public abstract class DataStream2<T> : DataStream<T> {
         protected int _iPos = 0;
 
-        public abstract int Count { get; }
-        public int Position { get =>_iPos; set { _iPos = value; } }
-        public bool InBounds( int p_iPos ) {
+        public abstract int  Count    { get; }
+        public override int  Position { get =>_iPos; set { _iPos = value; } }
+
+        public override bool InBounds( int p_iPos ) {
             if( p_iPos < 0 )
                 return false;
             if( p_iPos >= Count )
@@ -90,12 +91,18 @@ namespace Play.Edit {
             return true;
         }
 
-		public abstract T this [ int iPos ] { get; }
-
         public T Read() {
             return this[_iPos++];
         }
 
+        /// <summary>
+        /// A handful of functions use this on DataStream[T] so while I hate to add this
+        /// to DataStream2, inheriting from DataStream makes this more useful. I'll look
+        /// Into removing this method in the future.
+        /// </summary>
+		public override string SubString( int iPos, int iLen ) {
+            throw new NotImplementedException( "No substring in DataStream2<T>" );
+        }
     }
 
     public class ByteStream : DataStream2<byte>, IPgDataStream<byte> {
@@ -122,6 +129,10 @@ namespace Play.Edit {
         public CharStream( Line oLine, int iOffset ) {
             Line     = oLine ?? throw new ArgumentException( "Line is null on line range" );
             Position = iOffset;
+        }
+
+		public override string SubString( int iPos, int iLen ) {
+            return Line.SubString( iPos, iLen );
         }
     }
 

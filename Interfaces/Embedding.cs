@@ -620,26 +620,16 @@ namespace Play.Interfaces.Embedding {
     public abstract class DataStream<T>
 	{
         public abstract bool InBounds(int p_iPos); // less than EOF.
-
-		public abstract int Position 
-		{
-			get;
-			set;
-		}
-
-		public abstract T this [int iPos ] 
-		{
-			get;
-		}
-
-		public abstract string SubString( int iPos, int iLen );
+		public abstract int Position { get;	set; }
+		public abstract T this [int iPos ] { get; }
+		[Obsolete]public abstract string SubString( int iPos, int iLen ); // Pretty much used for debugging.
 	}
 
     public interface IPgDataStream<T> {
         bool InBounds(int p_iPos); // less than EOF.
 		int  Position { get; set; }
 		T    this [ int iPos ] { get; }
-        T    Read();
+        T    Read(); // Read a single element and advance pointer.
 	}
 
     public static class ErrorReporting {
@@ -656,6 +646,12 @@ namespace Play.Interfaces.Embedding {
 
 			return( true );
 		}
+    }
+
+    public interface IIcomCiVEvents {
+        void CiVError          ( string strError );
+        void CiVFrequencyChange( int iFrequency );
+        void CiVModeChange     ( string strMode, string strFilter );
     }
 
     public class ViewType : IPgViewType {

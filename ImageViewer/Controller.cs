@@ -98,7 +98,7 @@ namespace Play.ImageViewer {
         /// <param name="strExtension"></param>
         /// <returns></returns>
         public override PgDocumentDescriptor Suitability(string strExtension) {
-            byte bPriority = string.IsNullOrEmpty( strExtension ) ? (byte)255 : (byte)125;
+            byte bPriority = string.IsNullOrEmpty( strExtension ) ? (byte)255 : (byte)20;
 
             return new PgDocumentDescriptor( strExtension, 
                                              typeof( IPgLoadURL ), 

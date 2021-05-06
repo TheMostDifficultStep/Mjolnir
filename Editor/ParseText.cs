@@ -260,8 +260,7 @@ namespace Play.Integration {
         /// </summary>
         public virtual void OnMatch( ProdBase<char> p_oElem, int p_iStream, int p_iLength ) {
             // Note: We're super dependent on MemoryElem inheriting from IPgWordRange in most places.
-            MemoryElem<char> oMemElem  = p_oElem as MemoryElem<char>;
-            if( oMemElem != null ) { // Capture's both terms and states.
+            if( p_oElem is MemoryElem<char> oMemElem  ) { // Capture's both terms and states.
                 //if( oMemElem.ColorIndex > 0  ) {
                     Line oLine = _oStream.SeekLine( oMemElem.Start, out int iLineOffset);
 
@@ -299,8 +298,8 @@ namespace Play.Integration {
             if (p_oElem is MemoryState<char> oMemState) { 
                 if ( oMemState.StateName == "checkbox" ) {
                     // Add unchecked elements into the outline.
-                    if( _oStream[oMemElem.Start + 1] == ' ' ) {
-                        Line oLine = _oStream.SeekLine( oMemElem.Start );
+                    if( _oStream[oMemState.Start + 1] == ' ' ) {
+                        Line oLine = _oStream.SeekLine( oMemState.Start );
                         if( _rgDocOutline != null )
                             _rgDocOutline.LineAppend( oLine.ToString() );
                             // new ListNode( p_iStart, oLine.ToString() );

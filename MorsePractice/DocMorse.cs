@@ -21,6 +21,7 @@ using Play.Edit;
 using Play.Integration;
 using Play.Parse.Impl.Text;
 using Play.Parse.Impl;
+
 //using MySql.Data.MySqlClient;
 
 namespace Play.MorsePractice {
@@ -86,8 +87,10 @@ namespace Play.MorsePractice {
         public Editor CallSignBioHtml { get; } // base 64 converted HTML streaml;
         public Editor CallSignPageHtml{ get; } // This is the main page returned by qrz.
 
-        protected SerialPort _spCiV;
+                 SerialPort              _spCiV; // Good cantidate for "init once"
         readonly ConcurrentQueue<byte[]> _oMsgQueue = new ConcurrentQueue<byte[]>();
+        readonly Line                    _oDataGrams = new TextLine( 0, string.Empty );
+        readonly Grammer<char>           _oCiVGrammar;
 
 		protected static readonly HttpClient _oHttpClient = new HttpClient(); 
 
@@ -99,6 +102,20 @@ namespace Play.MorsePractice {
             _oSiteFile  = oSiteBase as IPgFileSite ?? throw new ArgumentException( "Host needs the IPgFileSite interface" );
             _oScheduler = Services as IPgScheduler ?? throw new ArgumentException("Host requries IPgScheduler");
             _oTaskPlace = _oScheduler.CreateWorkPlace() ?? throw new InvalidOperationException("Couldn't create a worksite from scheduler for file downloader.");
+
+			try {
+				_oCiVGrammar = (Grammer<char>)((IPgGrammers)Services).GetGrammer( "civ" );
+			} catch ( Exception oEx ) {
+                Type[] rgErrors = { typeof( NullReferenceException ),
+                                    typeof( InvalidCastException ),
+                                    typeof( ArgumentNullException ),
+									typeof( FileNotFoundException ),
+									typeof( GrammerNotFoundException ) };
+                if( !rgErrors.Contains( oEx.GetType() ) )
+                    throw;
+
+				LogError( "Morse", "Couldn't get grammar for Ci-V parser." );
+			}
 
             Source           = new Editor  ( new MorseDocSlot( this, "Source" ) ); // Morse code source for practice.
 			Notes            = new Editor  ( new MorseDocSlot( this, "Notes"  ) ); // Notes for listening to morse, or log files.
@@ -176,29 +193,59 @@ namespace Play.MorsePractice {
 			}
 		}
 
+        /// <summary>
+        /// This is a task we use to monitor the serial port message queue.
+        /// While I could make a parser that parses over 'byte' for ease of debugging
+        /// I convert the byte stream to a human readable 'char' stream. Also I can stick
+        /// the stream into my editor and see colorization, so it's a win / win.
+        /// </summary>
         IEnumerator<int> ListenToCom() {
             while( true ) {
                 if( _oMsgQueue.TryDequeue( out byte[] rgMsg ) ) {
-                    SerialToList( rgMsg );
+                    SerialToDatagram( rgMsg );
+
+                    if( _oCiVGrammar != null ) {
+                        CharStream     oStream = new CharStream( _oDataGrams );
+                        DatagramParser oParse  = new DatagramParser( oStream, _oCiVGrammar );
+
+                        oParse.Parse();
+                    }
                 }
                 yield return 250;
             }
         }
 
+        /// <summary>
+        /// this procedure displays the data as one datagram per line. I've
+        /// written the ci-v grammar to parse this stream
+        /// </summary>
+        protected void SerialToDatagram( byte[] rgMsg ) {
+            _oDataGrams.Empty();
+
+            foreach( byte bByte in rgMsg ) {
+                string strByte = bByte.ToString( "X2" );
+
+                _oDataGrams.TryAppend( strByte + " " );
+            }
+        }
+
+        /// <summary>
+        /// this procedure displays the data as one datagram per line in the
+        /// Notes editor. 
+        /// </summary>
         protected void SerialToList( byte[] rgMsg ) {
-            int           iIndex    = 0;
             StringBuilder rgBuilder = new StringBuilder();
 
             foreach( byte bByte in rgMsg ) {
-                rgBuilder.Append( bByte.ToString( "X2" ));
+                string strByte = bByte.ToString( "X2" );
+
+                rgBuilder.Append( strByte );
 
                 if( bByte == 0xfd ) {
-                    iIndex = 0;
                     Notes.LineAppend( rgBuilder.ToString() );
                     rgBuilder.Clear();
                 } else {
                     rgBuilder.Append( " " );
-                    iIndex++;
                 }
             }
 
@@ -207,6 +254,10 @@ namespace Play.MorsePractice {
             rgBuilder.Clear();
         }
 
+        /// <summary>
+        /// This procedure identifies each byte by it's offset and shows each
+        /// on a single line in the Notes editor.
+        /// </summary>
         protected void SerialToOffset( byte[] rgMsg ) {
             int           iIndex    = 0;
             StringBuilder rgBuilder = new StringBuilder();
@@ -229,17 +280,9 @@ namespace Play.MorsePractice {
             }
         }
 
-        static int BCDtoInt( byte bcd ) {
-            int iResult = 0;
-
-            iResult += (10 * (bcd >> 4));
-            iResult += bcd & 0xf;
-
-            return iResult;
-        }
-
         protected void InitSerial() {
-
+            // this is crude since we're polling even if no messages.
+            // we'll fix this up later.
             _oTaskPlace.Queue( ListenToCom(), 100 );
 
             _spCiV = new SerialPort("COM4");
