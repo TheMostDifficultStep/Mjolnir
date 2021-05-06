@@ -44,7 +44,7 @@ namespace Play.MorsePractice
                         return new ViewLog( oBaseSite, oMorsePractice );
 
                     case Guid r when r == _guidMorseTable:
-					    return new EditWindow2( oBaseSite, oMorsePractice.MorseReference, fReadOnly:true );
+					    return new EditWindow2( oBaseSite, oMorsePractice.Morse, fReadOnly:true );
 
                     case Guid r when r == _guidSchedule:
                         return new EditWindow2( oBaseSite, oMorsePractice.Calls, fReadOnly:true, fSingleLine:false );

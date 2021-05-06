@@ -10,7 +10,7 @@ namespace Play.MorsePractice {
     public class DatagramParser : IParseEvents<char>, IDisposable {
         readonly protected DataStream2<char>    _oStream;
         readonly protected Grammer<char>        _oGrammar;
-        readonly protected List<IIcomCiVEvents> _rgEvents = new List<IIcomCiVEvents>();
+        readonly protected List<IPgCiVEvents> _rgEvents = new List<IPgCiVEvents>();
 
         readonly protected static Dictionary<string, string> _rgModes = new Dictionary<string, string>();
 
@@ -36,11 +36,11 @@ namespace Play.MorsePractice {
             _rgEvents.Clear();
         }
 
-        public void ListerAdd( IIcomCiVEvents oSink ) {
+        public void ListerAdd( IPgCiVEvents oSink ) {
             _rgEvents.Add( oSink );
         }
 
-        public void ListerRemove( IIcomCiVEvents oSink ) {
+        public void ListerRemove( IPgCiVEvents oSink ) {
             _rgEvents.Remove( oSink );
         }
 
@@ -61,7 +61,7 @@ namespace Play.MorsePractice {
                                 case "01":
                                     string strMode   = GetStringBinding( _oStream, oData, "mode"   );
                                     string strFilter = GetStringBinding( _oStream, oData, "filter" );
-                                    foreach( IIcomCiVEvents oSink in _rgEvents ) {
+                                    foreach( IPgCiVEvents oSink in _rgEvents ) {
                                         oSink.CiVModeChange( _rgModes[strMode],  "FIL" + strFilter );
                                     }
                                     break;
@@ -74,7 +74,7 @@ namespace Play.MorsePractice {
                                         iResult += int.Parse( strValue ) * iPow;
                                         iPow *= 10;
                                     }
-                                    foreach( IIcomCiVEvents oSink in _rgEvents ) {
+                                    foreach( IPgCiVEvents oSink in _rgEvents ) {
                                         oSink.CiVFrequencyChange( iResult );
                                     }
                                 } break;

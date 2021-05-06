@@ -648,7 +648,7 @@ namespace Play.Interfaces.Embedding {
 		}
     }
 
-    public interface IIcomCiVEvents {
+    public interface IPgCiVEvents {
         void CiVError          ( string strError );
         void CiVFrequencyChange( int iFrequency );
         void CiVModeChange     ( string strMode, string strFilter );

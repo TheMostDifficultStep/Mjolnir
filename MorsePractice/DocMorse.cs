@@ -38,10 +38,13 @@ namespace Play.MorsePractice {
 		IPgLoad<TextReader>,
 		IPgSave<TextWriter>,
         IPgTableDocument,
+        IPgCiVEvents,
         IDisposable
 	{
         readonly IPgScheduler      _oScheduler;
-        readonly IPgRoundRobinWork _oTaskPlace;
+        readonly IPgRoundRobinWork _oTaskQrz;
+        readonly IPgRoundRobinWork _oTaskCiv;
+        readonly IPgRoundRobinWork _oTaskTimer;
 
         protected class MorseDocSlot :
 			IPgBaseSite,
@@ -78,7 +81,7 @@ namespace Play.MorsePractice {
 		public Editor   Source { get; } // practice code tones generated from this editor.
 		public Editor   Notes  { get; } // practice screen notes. and primary view.
 		public Editor   Stats  { get; } // put stats or more audio reference here.
-		public Editor   MorseReference  { get; } // Our reference to the morse values. Let's make this audio!!
+		public Editor   Morse  { get; } // Our reference to the morse values. Let's make this audio!!
         public CallsDoc Calls  { get; } // List of callsigns in left hand column of notes file.
 
         public Editor CallSign        { get; }
@@ -89,8 +92,11 @@ namespace Play.MorsePractice {
 
                  SerialPort              _spCiV; // Good cantidate for "init once"
         readonly ConcurrentQueue<byte[]> _oMsgQueue = new ConcurrentQueue<byte[]>();
-        readonly Line                    _oDataGrams = new TextLine( 0, string.Empty );
+        readonly Line                    _oDataGram = new TextLine( 0, string.Empty );
         readonly Grammer<char>           _oCiVGrammar;
+        readonly DatagramParser          _oParse;
+
+        int _iFrequencyLast = -1;
 
 		protected static readonly HttpClient _oHttpClient = new HttpClient(); 
 
@@ -101,10 +107,14 @@ namespace Play.MorsePractice {
 			_oSiteBase  = oSiteBase ?? throw new ArgumentNullException();
             _oSiteFile  = oSiteBase as IPgFileSite ?? throw new ArgumentException( "Host needs the IPgFileSite interface" );
             _oScheduler = Services as IPgScheduler ?? throw new ArgumentException("Host requries IPgScheduler");
-            _oTaskPlace = _oScheduler.CreateWorkPlace() ?? throw new InvalidOperationException("Couldn't create a worksite from scheduler for file downloader.");
+            _oTaskQrz   = _oScheduler.CreateWorkPlace() ?? throw new ApplicationException("No worksite for file downloader.");
+            _oTaskCiv   = _oScheduler.CreateWorkPlace() ?? throw new ApplicationException("No worksite for Civ." );
+            _oTaskTimer = _oScheduler.CreateWorkPlace() ?? throw new ApplicationException("No worksite for Keydown timer." );
 
 			try {
 				_oCiVGrammar = (Grammer<char>)((IPgGrammers)Services).GetGrammer( "civ" );
+                _oParse      = new DatagramParser( new CharStream( _oDataGram ), _oCiVGrammar );
+                _oParse.ListerAdd( this );
 			} catch ( Exception oEx ) {
                 Type[] rgErrors = { typeof( NullReferenceException ),
                                     typeof( InvalidCastException ),
@@ -114,13 +124,13 @@ namespace Play.MorsePractice {
                 if( !rgErrors.Contains( oEx.GetType() ) )
                     throw;
 
-				LogError( "Morse", "Couldn't get grammar for Ci-V parser." );
+				LogError( "Morse", "Couldn't get grammar for Ci-V parser. But able to run elsewise." );
 			}
 
             Source           = new Editor  ( new MorseDocSlot( this, "Source" ) ); // Morse code source for practice.
 			Notes            = new Editor  ( new MorseDocSlot( this, "Notes"  ) ); // Notes for listening to morse, or log files.
 			Stats            = new Editor  ( new MorseDocSlot( this, "Stats"  ) );
-			MorseReference   = new Editor  ( new MorseDocSlot( this, "Ref"    ) ); // Refrence table of morse code letters.
+			Morse            = new Editor  ( new MorseDocSlot( this, "Ref"    ) ); // Refrence table of morse code letters.
             Calls            = new CallsDoc( new MorseDocSlot( this, "Calls"  ) ); // document for outline, compiled list of stations
             CallSign         = new Editor  ( new MorseDocSlot( this, "CallSign" ) );
             CallSignPageHtml = new Editor  ( new MorseDocSlot( this, "PageSrc"  ) );
@@ -141,11 +151,12 @@ namespace Play.MorsePractice {
 		public void Dispose() {
 			if( !_fDisposed ) {
                 _spCiV?.Close();
+                _oParse.Dispose();
 
 				Source.Dispose();
 				Notes .Dispose();
 				Stats .Dispose();
-                MorseReference .Dispose();
+                Morse .Dispose();
                 Calls .Dispose();
 
                 CallSign        .Dispose();
@@ -178,7 +189,7 @@ namespace Play.MorsePractice {
 			try {
 				using( Stream oStream = oAssembly.GetManifestResourceStream( _strMorseTable )) {
 					using( TextReader oText = new StreamReader( oStream, true ) ) {
-						MorseReference.Load( oText );
+						Morse.Load( oText );
 					}
 				}
 			} catch( Exception oEx ) {
@@ -193,6 +204,46 @@ namespace Play.MorsePractice {
 			}
 		}
 
+        public void CiVError( string strError ) {
+            LogError( "Ci-V", strError );
+        }
+
+        public void CiVFrequencyChange( int iFrequency ) {
+            if( _iFrequencyLast == 146960000 && iFrequency == 146360000 ) {
+                Notes.LineAppend( "Timer triggered..." );
+                _oTaskTimer.Queue( ListenForTimout( 180 ), 0 );
+            }
+            if( _iFrequencyLast == 146820000 && iFrequency == 146220000 ) {
+                Notes.LineAppend( "Timer triggered..." );
+                _oTaskTimer.Queue( ListenForTimout( 120 ), 0 );
+            }
+            _iFrequencyLast = iFrequency;
+        }
+
+        public void CiVModeChange( string strMode, string strFilter ) {
+        }
+
+        /// <summary>
+        /// Take the time and subtract 10 seconds because not so precise!! ^_^;;
+        /// </summary>
+        /// <param name="iTime">Time in seconds.</param>
+        /// <returns></returns>
+        IEnumerator<int> ListenForTimout( int iTime ) {
+            DateTime oStart = DateTime.Now.AddSeconds( iTime - 10 );
+            TimeSpan oSpan;
+
+            do {
+                oSpan = oStart.Subtract( DateTime.Now );
+                if( oSpan.TotalSeconds < 0 )
+                    break;
+                Notes.LineAppend( "Ticking..." + Math.Round( oSpan.TotalSeconds ).ToString( "N0" ) );
+
+                yield return ( oSpan.TotalSeconds > 10 ) ? 10000 : 1000;
+            } while( true );
+
+            Notes.LineAppend( "TIMEOUT!" );
+        }
+
         /// <summary>
         /// This is a task we use to monitor the serial port message queue.
         /// While I could make a parser that parses over 'byte' for ease of debugging
@@ -203,35 +254,33 @@ namespace Play.MorsePractice {
             while( true ) {
                 if( _oMsgQueue.TryDequeue( out byte[] rgMsg ) ) {
                     SerialToDatagram( rgMsg );
-
-                    if( _oCiVGrammar != null ) {
-                        CharStream     oStream = new CharStream( _oDataGrams );
-                        DatagramParser oParse  = new DatagramParser( oStream, _oCiVGrammar );
-
-                        oParse.Parse();
-                    }
                 }
-                yield return 250;
+                yield return 1000; // Return after 1000 ms.
             }
         }
 
         /// <summary>
         /// this procedure displays the data as one datagram per line. I've
-        /// written the ci-v grammar to parse this stream
+        /// written the ci-v grammar to parse this stream. You can use one
+        /// of the other SerialTo... functions to debug things.
         /// </summary>
+        /// <seealso cref="SerialToList"/>
+        /// <seealso cref="SerialToOffset"/>
         protected void SerialToDatagram( byte[] rgMsg ) {
-            _oDataGrams.Empty();
+            _oDataGram.Empty();
 
             foreach( byte bByte in rgMsg ) {
                 string strByte = bByte.ToString( "X2" );
 
-                _oDataGrams.TryAppend( strByte + " " );
+                _oDataGram.TryAppend( strByte + " " );
             }
+
+            _oParse?.Parse();
         }
 
         /// <summary>
         /// this procedure displays the data as one datagram per line in the
-        /// Notes editor. 
+        /// Notes editor. Not currently in use.
         /// </summary>
         protected void SerialToList( byte[] rgMsg ) {
             StringBuilder rgBuilder = new StringBuilder();
@@ -256,7 +305,7 @@ namespace Play.MorsePractice {
 
         /// <summary>
         /// This procedure identifies each byte by it's offset and shows each
-        /// on a single line in the Notes editor.
+        /// on a single line in the Notes editor. Not currently in use.
         /// </summary>
         protected void SerialToOffset( byte[] rgMsg ) {
             int           iIndex    = 0;
@@ -283,7 +332,7 @@ namespace Play.MorsePractice {
         protected void InitSerial() {
             // this is crude since we're polling even if no messages.
             // we'll fix this up later.
-            _oTaskPlace.Queue( ListenToCom(), 100 );
+            _oTaskCiv.Queue( ListenToCom(), 100 );
 
             _spCiV = new SerialPort("COM4");
 
@@ -622,11 +671,11 @@ namespace Play.MorsePractice {
             oQuery.Append(CallSign[0]);
             oQuery.Append("&mode=callsign");
 
-            if (_oTaskPlace.Status == WorkerStatus.FREE) {
+            if (_oTaskQrz.Status == WorkerStatus.FREE) {
                 try {
                     StringContent oContent = new StringContent(oQuery.ToString(), System.Text.Encoding.UTF8, strMediaType);
                     Task<HttpResponseMessage> oTask = client.PostAsync(strURL, oContent);
-                    _oTaskPlace.Queue(EnumWatchTask(oTask), 100);
+                    _oTaskQrz.Queue(EnumWatchTask(oTask), 100);
                 } catch (HttpRequestException) {
                     PageReset();
 
