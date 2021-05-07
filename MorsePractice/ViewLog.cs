@@ -25,6 +25,9 @@ namespace Play.MorsePractice {
 		void TableListenerRemove( IPgTableEvents oEvent );
     }
 
+	/// <summary>
+	/// An experiment to read a log in an SQL file. Just a fragment and unfinished.
+	/// </summary>
 	public class ViewLog : Control,
 		IPgCommandView,
         IPgLoad<XmlElement>,

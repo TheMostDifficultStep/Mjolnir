@@ -318,8 +318,8 @@ namespace Play.MorsePractice {
 
 		public void Dispose() {
 			if( !_fDisposed ) {
-                _spCiV?.Close();
-                _oParse.Dispose();
+                _spCiV ?.Close();
+                _oParse?.Dispose();
 
 				Notes .Dispose();
                 Calls .Dispose();
@@ -651,6 +651,9 @@ namespace Play.MorsePractice {
 
         static readonly HttpClient client = new HttpClient();
 
+        /// <summary>
+        /// This is all obsolete and should use the async functions.
+        /// </summary>
         public IEnumerator<int> EnumWatchTask(Task<HttpResponseMessage> oTask)
         {
             Task<Stream> oTask3 = null;
@@ -818,6 +821,10 @@ namespace Play.MorsePractice {
             }
         }
 
+        /// <summary>
+        /// A way to sink SQL events. Unfinished.
+        /// </summary>
+        /// <param name="oEvent"></param>
         public void TableListenerAdd(IPgTableEvents oEvent) {
         }
 
