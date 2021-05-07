@@ -12,7 +12,6 @@ using System.Runtime.InteropServices;
 using System.Linq;
 
 using SkiaSharp;
-using SkiaSharp.Views.Desktop;
 
 using Play.Interfaces.Embedding; 
 using Play.Rectangles;
@@ -534,7 +533,8 @@ namespace Mjolnir {
             rgSubMenu.Add( new ToolStripMenuItem("M3u",   BitmapCreateFromChar( "\xE189" ), new EventHandler(this.OnDocNewM3u   )));
             rgSubMenu.Add( new ToolStripMenuItem("Scraps",BitmapCreateFromChar( "\xE0a5" ), new EventHandler(this.OnDocNewScraps)));
             rgSubMenu.Add( new ToolStripMenuItem("Morse", BitmapCreateFromChar( "\xE113" ), new EventHandler(this.OnDocNewMorse )));
-            rgSubMenu.Add( new ToolStripMenuItem("SSTV",  BitmapCreateFromChar( "\xE114" ), new EventHandler(this.OnDocNewSSTV )));
+            rgSubMenu.Add( new ToolStripMenuItem("Log",   BitmapCreateFromChar( "\xE113" ), new EventHandler(this.OnDocNewLogger)));
+            rgSubMenu.Add( new ToolStripMenuItem("SSTV",  BitmapCreateFromChar( "\xE114" ), new EventHandler(this.OnDocNewSSTV  )));
 
             oFileMenu.DropDownItems.Add(new ToolStripMenuItem("New",      BitmapCreateFromChar( "\xE295" ), rgSubMenu.ToArray() ) );
             oFileMenu.DropDownItems.Add(new ToolStripMenuItem( "Open...", BitmapCreateFromChar( "\xE132" ), new EventHandler(this.OnDocOpen), Keys.Control | Keys.O ));
@@ -936,6 +936,10 @@ namespace Mjolnir {
 
         public void OnDocNewMorse( object sender, EventArgs e ) {
             EditorInitNewShow( ".morse" );
+        }
+
+        public void OnDocNewLogger( object sender, EventArgs e ) {
+            EditorInitNewShow( ".mlog" );
         }
 
         public void OnDocNewSSTV( object sender, EventArgs e ) {

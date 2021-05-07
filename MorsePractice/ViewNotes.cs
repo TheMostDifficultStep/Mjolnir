@@ -10,9 +10,9 @@ namespace Play.MorsePractice {
     /// </summary>
     class ViewBio : EditWin { 
         protected readonly ViewQrz  _oParent;
-        protected readonly MorseDoc _oDocMorse;
+        protected readonly DocNotes _oDocMorse;
 
-        public ViewBio(IPgViewSite oSiteView, MorseDoc oDocument ) : 
+        public ViewBio(IPgViewSite oSiteView, DocNotes oDocument ) : 
             base( oSiteView, oDocument.CallSignBio )
         {
             _oDocMorse  = oDocument ?? throw new ArgumentNullException( "Document must not be null.");
@@ -56,9 +56,9 @@ namespace Play.MorsePractice {
 		public override Guid Catagory => _guidViewCategory;
 
         protected readonly IPgShellSite _oSiteShell;
-        protected readonly MorseDoc     _oDocMorse;
+        protected readonly DocNotes     _oDocMorse;
 
-        public ViewNotes(IPgViewSite oSiteView, MorseDoc oDocument ) : 
+        public ViewNotes(IPgViewSite oSiteView, DocNotes oDocument ) : 
             base( oSiteView, oDocument.Notes )
         {
             _oDocMorse  = oDocument ?? throw new ArgumentNullException( "Document must not be null.");

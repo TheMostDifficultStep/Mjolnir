@@ -1102,10 +1102,10 @@ namespace Mjolnir {
         }
 
         public void InitializeControllers() {
-            Controllers.Add( new ControllerForResults() );
+            Controllers.Add( new ControllerForResults   () );
 			Controllers.Add( new ControllerForParsedText( this ) );
-            Controllers.Add( new ControllerForHtml( this ));
-            Controllers.Add( new ControllerForSearch() );
+            Controllers.Add( new ControllerForHtml      ( this ));
+            Controllers.Add( new ControllerForSearch    () );
 
             // In the future I'll make these packages load on the fly and I can remove
             // hard dependencies to these assemblies!!
@@ -1114,6 +1114,7 @@ namespace Mjolnir {
 			Controllers.Add( new Play.MusicWalker  .MusicWalkerController() );
 			Controllers.Add( new Play.MusicWalker  .M3uController() );
 			Controllers.Add( new Play.MorsePractice.MorseController() );
+			Controllers.Add( new Play.MorsePractice.MorseController2() );
             Controllers.Add( new Play.Clock        .SolarController() );
             Controllers.Add( new Play.SSTV         .MySSTVController() );
         }

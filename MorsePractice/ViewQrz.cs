@@ -7,7 +7,6 @@ using Play.Rectangles;
 using Play.Interfaces.Embedding;
 using Play.Edit;
 
-
 namespace Play.MorsePractice {
     class ViewQrz :
         Control,
@@ -21,7 +20,7 @@ namespace Play.MorsePractice {
 
         readonly IPgViewSite  _oSiteView;
         readonly IPgShellSite _oSiteShell;
-        readonly MorseDoc     _oDocMorse;
+        readonly DocNotes     _oDocMorse;
         readonly LayoutStack  _rgLayout;
 
         protected bool _fDisposed = false;
@@ -86,7 +85,7 @@ namespace Play.MorsePractice {
         public Editor CallSignBio    { get { return _oDocMorse.CallSignBio; } }
 
         EditWin ViewCallSign { get; }
-		EditWin ViewBiograph   { get; }
+		EditWin ViewBiograph { get; }
 
         public bool IsDirty => false;
 
@@ -94,8 +93,7 @@ namespace Play.MorsePractice {
 
         public object DocumentText => ((IPgTextView)ViewBiograph).DocumentText;
 
-        public ViewQrz(IPgViewSite oSiteView, MorseDoc oDocument)
-        {
+        public ViewQrz( IPgViewSite oSiteView, DocNotes oDocument ) {
             _oSiteView  = oSiteView ?? throw new ArgumentNullException();
             _oDocMorse  = oDocument ?? throw new ArgumentNullException();
             _oSiteShell = oSiteView as IPgShellSite ?? throw new ArgumentException("Parent view must provide IPgShellSite service");
@@ -112,10 +110,8 @@ namespace Play.MorsePractice {
             };
         }
 
-        protected override void Dispose(bool disposing)
-        {
-            if (disposing && !_fDisposed)
-            {
+        protected override void Dispose( bool disposing ) {
+            if( disposing && !_fDisposed ) {
                 ViewCallSign.Dispose();
                 ViewBiograph  .Dispose();
 
@@ -130,16 +126,15 @@ namespace Play.MorsePractice {
         }
 
         public bool InitNew() {
-            if (!ViewCallSign.InitNew())
+            if( !ViewCallSign.InitNew())
                 return false;
-            if (!ViewBiograph.InitNew())
+            if( !ViewBiograph.InitNew())
                 return false;
 
             return true;
         }
         
-        public bool Save(XmlDocumentFragment oStream)
-        {
+        public bool Save(XmlDocumentFragment oStream) {
             return true;
         }
 
