@@ -352,10 +352,13 @@ namespace Play.MorsePractice {
             if( _iFrequencyLast == 146960000 && iFrequency == 146360000 ) {
                 Notes.LineAppend( "Timer triggered..." );
                 _oTaskTimer.Queue( ListenForTimout( 180 ), 0 );
-            }
-            if( _iFrequencyLast == 146820000 && iFrequency == 146220000 ) {
-                Notes.LineAppend( "Timer triggered..." );
-                _oTaskTimer.Queue( ListenForTimout( 120 ), 0 );
+            } else {
+                if( _iFrequencyLast == 146820000 && iFrequency == 146220000 ) {
+                    Notes.LineAppend( "Timer triggered..." );
+                    _oTaskTimer.Queue( ListenForTimout( 120 ), 0 );
+                } else {
+                    _oTaskTimer.Stop(); // stopped talking most likely. 
+                }
             }
             _iFrequencyLast = iFrequency;
         }
