@@ -268,6 +268,7 @@ namespace Play.MorsePractice {
         readonly DatagramParser          _oParse;
 
         int _iFrequencyLast = -1;
+        Dictionary <int, RepeaterDir> _rgRepeaters = new Dictionary<int, RepeaterDir>();
 
 		protected static readonly HttpClient _oHttpClient = new HttpClient(); 
 
@@ -348,17 +349,35 @@ namespace Play.MorsePractice {
             LogError( "Ci-V", strError );
         }
 
+        public struct RepeaterDir {
+            public RepeaterDir( int iFreq, int iOffs, int iTime, string strInfo = "", string strDesc = "" ) {
+                _iFrequency = iFreq;
+                _iOffset    = iOffs;
+
+                Timeout     = iTime;
+                Info        = new TextLine( 0, strInfo );
+                Description = new TextLine( 0, strDesc );
+            }
+
+            private readonly int  _iFrequency;
+            private readonly int  _iOffset;
+
+            public int  Timeout     { get; }
+            public Line Info        { get; }
+            public Line Description { get; }
+
+            public int  Output => _iFrequency;
+            public int  Input  => _iFrequency + _iOffset;
+        }
+
         public void CiVFrequencyChange( int iFrequency ) {
-            if( _iFrequencyLast == 146960000 && iFrequency == 146360000 ) {
+            if( _rgRepeaters.TryGetValue( iFrequency, out RepeaterDir oRepeater ) &&
+                ( _iFrequencyLast == oRepeater.Output || _iFrequencyLast == -1 ) ) 
+            {
                 Notes.LineAppend( "Timer triggered..." );
-                _oTaskTimer.Queue( ListenForTimout( 180 ), 0 );
+                _oTaskTimer.Queue( ListenForTimout( oRepeater.Timeout ), 0 );
             } else {
-                if( _iFrequencyLast == 146820000 && iFrequency == 146220000 ) {
-                    Notes.LineAppend( "Timer triggered..." );
-                    _oTaskTimer.Queue( ListenForTimout( 120 ), 0 );
-                } else {
-                    _oTaskTimer.Stop(); // stopped talking most likely. 
-                }
+                _oTaskTimer.Stop(); // stopped talking most likely.
             }
             _iFrequencyLast = iFrequency;
         }
@@ -477,16 +496,52 @@ namespace Play.MorsePractice {
             // we'll fix this up later.
             _oTaskCiv.Queue( ListenToCom(), 100 );
 
-            _spCiV = new SerialPort("COM4");
+            SerialPort oCiV;
+            try {
+                oCiV = new SerialPort("COM4");
+            } catch( IOException ) {
+                LogError( "Morse COM access", "Unable to open COM port. Timer disabled" );
+                return;
+            }
 
-            _spCiV.BaudRate  = 9600;
-            _spCiV.Parity    = Parity.None;
-            _spCiV.StopBits  = StopBits.One;
-            _spCiV.DataBits  = 8;
-            _spCiV.Handshake = Handshake.None;
+            try {
+                oCiV.BaudRate  = 9600;
+                oCiV.Parity    = Parity.None;
+                oCiV.StopBits  = StopBits.One;
+                oCiV.DataBits  = 8;
+                oCiV.Handshake = Handshake.None;
 
-            _spCiV.DataReceived += CiV_DataReceived; 
-            _spCiV.Open();
+                oCiV.DataReceived += CiV_DataReceived; 
+                oCiV.Open();
+
+                _spCiV = oCiV;
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( UnauthorizedAccessException ),
+                                    typeof( IOException ),
+                                    typeof( ArgumentOutOfRangeException ),
+                                    typeof( ArgumentException ),
+                                    typeof( InvalidOperationException ),
+                                    typeof( NullReferenceException ),
+                                    typeof( FileNotFoundException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
+
+                oCiV.Dispose();
+
+                LogError( "Morse COM access", "Unable to open COM port. Timer disabled" );
+            }
+        }
+
+        protected void InitRepeaters() {
+            List< RepeaterDir > _rgTemp = new List<RepeaterDir>();
+
+            _rgTemp.Add( new RepeaterDir( 146960000,  -600000, 180 ));
+            _rgTemp.Add( new RepeaterDir(  53170000, -1700000, 120 ));
+            _rgTemp.Add( new RepeaterDir( 146820000,  -600000, 120 ));
+
+            foreach( RepeaterDir oItem in _rgTemp ) {
+                _rgRepeaters.Add( oItem.Input, oItem );
+            }
         }
 
         /// <summary>
@@ -529,7 +584,8 @@ namespace Play.MorsePractice {
             if( !CallSignAddress.InitNew() )
                 return false;
 
-            InitSerial();
+            InitSerial   ();
+            InitRepeaters();
 
             for( int i=0; i<3; ++i ) {
                 List<Line> rgRow = new List<Line>(7);
