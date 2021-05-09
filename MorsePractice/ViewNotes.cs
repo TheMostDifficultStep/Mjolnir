@@ -138,6 +138,9 @@ namespace Play.MorsePractice {
                     //       Need some way to communicate with outline owner w/o creating a nightmare.
                     return new EditWindow2(oBaseSite, _oDocMorse.Calls, fReadOnly: true, fSingleLine: false);
                 }
+                if( sGuid.Equals( GlobalDecorations.Properties ) ) {
+                    return new ViewStandardProperties( oBaseSite, _oDocMorse.Properties );
+                }
                 return base.Decorate(oBaseSite, sGuid);
             } catch (Exception oEx) {
                 Type[] rgErrors = { typeof( NotImplementedException ),
@@ -151,6 +154,16 @@ namespace Play.MorsePractice {
             }
 
             return (null);
+        }
+
+        public override bool Execute( Guid sGuid )
+        {
+            if( sGuid == GlobalCommands.Play ) {
+                _oDocMorse.CiVFrequencyChange( 51470000 ); // test without key up repeater. (intput frequency)
+                return true;
+            } else {
+                return base.Execute(sGuid);
+            }
         }
     } // End class
 }
