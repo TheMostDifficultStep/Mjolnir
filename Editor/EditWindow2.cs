@@ -2211,6 +2211,7 @@ namespace Play.Edit {
                     break;
             }
 
+            SelectionClear();
             if( oLine != null ) {
                 CaretPos.Line   = oLine;
                 CaretPos.Offset = iOffset;

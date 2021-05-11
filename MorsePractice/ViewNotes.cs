@@ -45,6 +45,41 @@ namespace Play.MorsePractice {
         }
     }
 
+    public class ViewSimple : EditWindow2 {
+        public static readonly Guid _guidViewCategory = new Guid("{868D414A-5614-4D9D-8F7E-C46D85BCE294}");
+
+		public override Guid Catagory => _guidViewCategory;
+
+        protected readonly DocNotes     _oDocMorse;
+
+        public ViewSimple(IPgViewSite oSiteView, DocNotes oDocument ) : 
+            base( oSiteView, oDocument.Notes )
+        {
+            _oDocMorse  = oDocument ?? throw new ArgumentNullException( "Document must not be null.");
+        }
+
+        public override object Decorate( IPgViewSite oBaseSite, Guid sGuid ) {
+            try {
+                if( sGuid.Equals( GlobalDecorations.Properties ) ) {
+                    return new ViewStandardProperties( oBaseSite, _oDocMorse.Properties );
+                }
+                return base.Decorate(oBaseSite, sGuid);
+            } catch (Exception oEx) {
+                Type[] rgErrors = { typeof( NotImplementedException ),
+                                    typeof( NullReferenceException ),
+                                    typeof( ArgumentException ),
+                                    typeof( ArgumentNullException ) };
+                if (rgErrors.IsUnhandled(oEx))
+                    throw;
+
+                LogError("decor", "Couldn't create EditWin decor: " + sGuid.ToString());
+            }
+
+            return (null);
+        }
+
+    }
+
     /// <summary>
     /// This is a stand alone document view to be used to show the notes.
     /// </summary>

@@ -269,6 +269,7 @@ namespace Play.MorsePractice {
         readonly Line                    _oDataGram = new TextLine( 0, string.Empty );
         readonly Grammer<char>           _oCiVGrammar;
         readonly DatagramParser          _oParse;
+        public bool ScanCallsFlag { get; set; } = true;
 
         int _iFrequencyLast = -1;
         Dictionary <int, RepeaterDir> _rgRepeaters = new Dictionary<int, RepeaterDir>();
@@ -386,6 +387,7 @@ namespace Play.MorsePractice {
                 Properties.UpdateValue( 0, "Timer triggered..." );
                 _oTaskTimer.Queue( ListenForTimout( oRepeater.Timeout ), 0 );
             } else {
+                Properties.UpdateValue( 0, "Stopped." );
                 _oTaskTimer.Stop(); // stopped talking most likely.
             }
             _iFrequencyLast = iFrequency;
@@ -543,13 +545,14 @@ namespace Play.MorsePractice {
         }
 
         protected void InitRepeaters() {
-            List< RepeaterDir > _rgTemp = new List<RepeaterDir>();
+            List< RepeaterDir > rgTemp = new List<RepeaterDir>();
 
-            _rgTemp.Add( new RepeaterDir( 146960000,  -600000, 180 ));
-            _rgTemp.Add( new RepeaterDir(  53170000, -1700000, 120 ));
-            _rgTemp.Add( new RepeaterDir( 146820000,  -600000, 120 ));
+            rgTemp.Add( new RepeaterDir( 146960000,  -600000, 180 ));
+            rgTemp.Add( new RepeaterDir(  53170000, -1700000, 120 ));
+            rgTemp.Add( new RepeaterDir( 146820000,  -600000, 120 ));
+            rgTemp.Add( new RepeaterDir(  52870000, -1700000, 180 ));
 
-            foreach( RepeaterDir oItem in _rgTemp ) {
+            foreach( RepeaterDir oItem in rgTemp ) {
                 _rgRepeaters.Add( oItem.Input, oItem );
             }
         }
@@ -587,7 +590,9 @@ namespace Play.MorsePractice {
 
             // Note: Change this to trigger after a notes parse.
             //_oTaskSched.Queue( EnumCallsScanTask(), 3000 );
-            Notes.BufferEvent += Notes_BufferEvent;
+            if( ScanCallsFlag ) {
+                Notes.BufferEvent += Notes_BufferEvent;
+            }
 
             if( !CallSign.InitNew())
                 return false;

@@ -6,6 +6,10 @@ using Play.Edit;
 
 namespace Play.MorsePractice
 {
+    /// <summary>
+    /// This is the simple more code practice document. Which was the original reason I wrote
+    /// all this.
+    /// </summary>
     public class MorseController : 
         Controller 
     {
@@ -69,11 +73,11 @@ namespace Play.MorsePractice
         protected readonly static Guid _guidSchedule   = new Guid( "{7E7AAEE2-154F-4876-AD5B-7DA80E1A1055}" );
 
         public MorseController2() {
-			_rgExtensions.Add( ".mlog" );
+			_rgExtensions.Add( ".netlog" );
         }
 
         public override IDisposable CreateDocument( IPgBaseSite oSite, string strExtension ) {
-			if( strExtension.ToLower() == ".mlog" ) {
+			if( strExtension.ToLower() == ".netlog" ) {
 				return( new DocNotes( oSite ) );
 			}
 
@@ -125,6 +129,53 @@ namespace Play.MorsePractice
             yield return new ViewType( "Qrz Raw Bio",  _guidRawBio );
             yield return new ViewType( "Qrz Raw Page", _guidRawPage );
             yield return new ViewType( "Logger",       ViewLog.ViewLogger );
+        }
+    }
+
+    public class MorseController3 : 
+        Controller 
+    {
+        protected readonly static Guid _guidRawBio     = new Guid( "{e6bfe197-9cbd-43cc-9098-4a8db5b19066}" );
+        protected readonly static Guid _guidRawPage    = new Guid( "{2c71fdb9-c842-4df3-8f55-7fdffbb757bc}" );
+        protected readonly static Guid _guidSchedule   = new Guid( "{7E7AAEE2-154F-4876-AD5B-7DA80E1A1055}" );
+
+        public MorseController3() {
+			_rgExtensions.Add( ".stdlog" );
+        }
+
+        public override IDisposable CreateDocument( IPgBaseSite oSite, string strExtension ) {
+			if( strExtension.ToLower() == ".stdlog" ) {
+				return new DocNotes( oSite ) { ScanCallsFlag = false };
+			}
+
+			return null;
+        }
+
+        public override IDisposable CreateView( IPgViewSite oBaseSite, object oDocument, Guid guidViewType ) {
+            DocNotes oMorsePractice = oDocument as DocNotes ?? throw new ArgumentException( "Argument must be an ImageWalkerDoc" );
+
+			try {
+                switch( guidViewType ) {
+                    case Guid r when r == ViewSimple._guidViewCategory:
+                        return new ViewSimple(oBaseSite, oMorsePractice);
+
+                    default:
+                        return new ViewSimple(oBaseSite, oMorsePractice );
+                }
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( NullReferenceException ),
+                                    typeof( InvalidCastException ),
+                                    typeof( ArgumentNullException ),
+									typeof( ArgumentException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
+
+				throw new InvalidOperationException( "Controller couldn't create view for Image document.", oEx );
+            }
+        }
+
+        public override IEnumerator<IPgViewType> GetEnumerator() {
+            yield return new ViewType( "Notes", ViewSimple._guidViewCategory );
         }
     }
 }
