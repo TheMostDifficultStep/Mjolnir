@@ -43,7 +43,6 @@ namespace Play.MorsePractice {
 		IPgParent,
 		IPgLoad<TextReader>,
 		IPgSave<TextWriter>,
-        IPgTableDocument,
         IDisposable
 	{
         readonly IPgScheduler      _oScheduler;
@@ -124,8 +123,6 @@ namespace Play.MorsePractice {
 		public IPgParent Parentage => _oSiteBase.Host;
 		public IPgParent Services  => Parentage.Services;
 
-        public ICollection<ICollection<Line>> Rows { get; } = new List<ICollection<Line>>();
-
         /// <summary>
         /// Load Morse code reference text.
         /// </summary>
@@ -163,15 +160,6 @@ namespace Play.MorsePractice {
 			if( !Stats.InitNew() )
 				return false;
 
-            for( int i=0; i<3; ++i ) {
-                List<Line> rgRow = new List<Line>(7);
-
-                for( int j=0; j<7; ++j ) {
-                    rgRow.Add( new TextLine( j, j.ToString() ) );
-                }
-                Rows.Add( rgRow );
-            }
-
             LoadMorse();
          // LoadStats(); We'll load the stats table here, it'll double as an audio reference.
 
@@ -199,12 +187,6 @@ namespace Play.MorsePractice {
 
             return true;
 		}
-
-        public void TableListenerAdd(IPgTableEvents oEvent) {
-        }
-
-        public void TableListenerRemove(IPgTableEvents oEvent) {
-        }
     }
 
     /// <summary>
@@ -214,7 +196,6 @@ namespace Play.MorsePractice {
 		IPgParent,
 		IPgLoad<TextReader>,
 		IPgSave<TextWriter>,
-        IPgTableDocument,
         IPgCiVEvents,
         IDisposable
 	{
@@ -264,17 +245,31 @@ namespace Play.MorsePractice {
         public Editor CallSignBioHtml { get; } // base 64 converted HTML streaml;
         public Editor CallSignPageHtml{ get; } // This is the main page returned by qrz.
 
-                 SerialPort              _spCiV; // Good cantidate for "init once"
+                 SerialPort              _oCiV; // Good cantidate for "init once"
         readonly ConcurrentQueue<byte[]> _oMsgQueue = new ConcurrentQueue<byte[]>();
         readonly Line                    _oDataGram = new TextLine( 0, string.Empty );
         readonly Grammer<char>           _oCiVGrammar;
         readonly DatagramParser          _oParse;
-        public bool ScanCallsFlag { get; set; } = true;
 
-        int _iFrequencyLast = -1;
+        public bool FlagScanCalls { get; set; } = true;  // Set up call back to buffer to parse calls.
+        public bool FlagSComsOn   { get; set; } = false; // Turn on the com ports.
+
         Dictionary <int, RepeaterDir> _rgRepeaters = new Dictionary<int, RepeaterDir>();
 
 		protected static readonly HttpClient _oHttpClient = new HttpClient(); 
+
+        protected static Type[] CiVErrorList {
+            get {
+                Type[] rgErrors = { typeof( UnauthorizedAccessException ),
+                                    typeof( IOException ),
+                                    typeof( ArgumentOutOfRangeException ),
+                                    typeof( ArgumentException ),
+                                    typeof( InvalidOperationException ),
+                                    typeof( NullReferenceException ),
+                                    typeof( FileNotFoundException ) };
+                return rgErrors;
+            }
+        }
 
         /// <summary>
         /// Document object for a little Morse Practice document.
@@ -325,7 +320,7 @@ namespace Play.MorsePractice {
 
 		public void Dispose() {
 			if( !_fDisposed ) {
-                _spCiV ?.Close();
+                _oCiV ?.Close();
                 _oParse?.Dispose();
 
 				Notes .Dispose();
@@ -349,7 +344,7 @@ namespace Play.MorsePractice {
 		public IPgParent Parentage => _oSiteBase.Host;
 		public IPgParent Services  => Parentage.Services;
 
-        public ICollection<ICollection<Line>> Rows { get; } = new List<ICollection<Line>>();
+        //public ICollection<ICollection<Line>> Rows { get; } = new List<ICollection<Line>>();
 
         public void CiVError( string strError ) {
             LogError( "Ci-V", strError );
@@ -390,7 +385,6 @@ namespace Play.MorsePractice {
                 Properties.UpdateValue( 0, "Stopped." );
                 _oTaskTimer.Stop(); // stopped talking most likely.
             }
-            _iFrequencyLast = iFrequency;
         }
 
         public void CiVModeChange( string strMode, string strFilter ) {
@@ -503,44 +497,48 @@ namespace Play.MorsePractice {
             }
         }
 
+        /// <summary>
+        /// set up the COM port i/o.
+        /// </summary>
+        /// <remarks>
+        /// Turns out we can always set ourselves up to listen to a COM port, BUT
+        /// we might not be able to open it, or we don't want to open it right away.
+        /// </remarks>
         protected void InitSerial() {
-            // this is crude since we're polling even if no messages.
+            // This is crude since we're polling even if no messages.
             // we'll fix this up later.
             _oTaskCiv.Queue( ListenToCom(), 100 );
 
-            SerialPort oCiV;
             try {
-                oCiV = new SerialPort("COM4");
+                _oCiV = new SerialPort("COM4");
+                _oCiV.BaudRate = 9600;
+                _oCiV.Parity = Parity.None;
+                _oCiV.StopBits = StopBits.One;
+                _oCiV.DataBits = 8;
+                _oCiV.Handshake = Handshake.None;
+
+                _oCiV.DataReceived += CiV_DataReceived;
             } catch( IOException ) {
                 LogError( "Morse COM access", "Unable to open COM port. Timer disabled" );
+                Properties.UpdateValue( 1, "Failed Alloc" );
                 return;
             }
 
             try {
-                oCiV.BaudRate  = 9600;
-                oCiV.Parity    = Parity.None;
-                oCiV.StopBits  = StopBits.One;
-                oCiV.DataBits  = 8;
-                oCiV.Handshake = Handshake.None;
-
-                oCiV.DataReceived += CiV_DataReceived; 
-                oCiV.Open();
-
-                _spCiV = oCiV;
+                if( FlagSComsOn ) {
+                    _oCiV.Open();
+                    Properties.UpdateValue( 1, "On" );
+                } else {
+                    Properties.UpdateValue( 1, "Off" );
+                }
             } catch( Exception oEx ) {
-                Type[] rgErrors = { typeof( UnauthorizedAccessException ),
-                                    typeof( IOException ),
-                                    typeof( ArgumentOutOfRangeException ),
-                                    typeof( ArgumentException ),
-                                    typeof( InvalidOperationException ),
-                                    typeof( NullReferenceException ),
-                                    typeof( FileNotFoundException ) };
-                if( rgErrors.IsUnhandled( oEx ) )
+                if( CiVErrorList.IsUnhandled( oEx ) )
                     throw;
 
-                oCiV.Dispose();
+                _oCiV.Dispose();
 
                 LogError( "Morse COM access", "Unable to open COM port. Timer disabled" );
+                Properties.UpdateValue( 1, "Failed Open" );
             }
         }
 
@@ -557,8 +555,14 @@ namespace Play.MorsePractice {
             }
         }
 
+        /// <summary>
+        /// Properties are initialized first... BUT the values and where they
+        /// come from might not be initialized yet. So those will have to come
+        /// come later.
+        /// </summary>
         protected void InitProperties() {
             Properties.AddLabel( "Timer" );
+            Properties.AddLabel( "Timer Enable" );
         }
 
         /// <summary>
@@ -568,11 +572,11 @@ namespace Play.MorsePractice {
         /// <remarks>Would be nice if we could post a message to the forground so that
         /// it spins up a task that can terminate once all the data has been pulled.</remarks>
         private void CiV_DataReceived( object sender, SerialDataReceivedEventArgs e ) {
-            int iBytesWaiting = _spCiV.BytesToRead;
+            int iBytesWaiting = _oCiV.BytesToRead;
             if( iBytesWaiting > 0 ) {
                 byte[] rgMsg = new byte[iBytesWaiting];
 
-                _spCiV.Read( rgMsg, 0, iBytesWaiting );
+                _oCiV?.Read( rgMsg, 0, iBytesWaiting );
                 _oMsgQueue.Enqueue( rgMsg );
             }
         }
@@ -590,7 +594,7 @@ namespace Play.MorsePractice {
 
             // Note: Change this to trigger after a notes parse.
             //_oTaskSched.Queue( EnumCallsScanTask(), 3000 );
-            if( ScanCallsFlag ) {
+            if( FlagScanCalls ) {
                 Notes.BufferEvent += Notes_BufferEvent;
             }
 
@@ -605,18 +609,18 @@ namespace Play.MorsePractice {
             if( !CallSignAddress.InitNew() )
                 return false;
 
+            InitProperties();
             InitSerial    ();
             InitRepeaters ();
-            InitProperties();
 
-            for( int i=0; i<3; ++i ) {
-                List<Line> rgRow = new List<Line>(7);
+            //for( int i=0; i<3; ++i ) {
+            //    List<Line> rgRow = new List<Line>(7);
 
-                for( int j=0; j<7; ++j ) {
-                    rgRow.Add( new TextLine( j, j.ToString() ) );
-                }
-                Rows.Add( rgRow );
-            }
+            //    for( int j=0; j<7; ++j ) {
+            //        rgRow.Add( new TextLine( j, j.ToString() ) );
+            //    }
+            //    Rows.Add( rgRow );
+            //}
 
 			return true;
 		}
@@ -911,6 +915,43 @@ namespace Play.MorsePractice {
 
         public void TableListenerRemove(IPgTableEvents oEvent) {
         }
+
+        public bool Execute( Guid guidCmnd ) {
+            if( guidCmnd == GlobalCommands.Play ) {
+                try {
+                    if( !_oCiV.IsOpen ) {
+                        _oCiV.Open();
+                        Properties.UpdateValue( 1, "On" );
+                    } else {
+                        Properties.UpdateValue( 1, "Already Opened" );
+                    }
+                } catch( Exception oEx ) {
+                    if( CiVErrorList.IsUnhandled( oEx ) )
+                        throw;
+
+                    Properties.UpdateValue( 1, "Open Error" );
+                }
+                return true; // Handled, even if ended in error.
+            }
+            if( guidCmnd == GlobalCommands.Stop ) {
+                try {
+                    if( _oCiV.IsOpen ) {
+                        _oCiV.Close();
+                        Properties.UpdateValue( 1, "Off" );
+                    } else {
+                        Properties.UpdateValue( 1, "Already Closed" );
+                    }
+                } catch( Exception oEx ) {
+                    if( CiVErrorList.IsUnhandled( oEx ) )
+                        throw;
+
+                    Properties.UpdateValue( 1, "Close Error" );
+                }
+                return true; // Handled, even if ended in error.
+            }
+
+            return false;
+        }
     }
 
     public class DocProperties : IPgParent, IPgLoad {
@@ -959,9 +1000,9 @@ namespace Play.MorsePractice {
             return true;
         }
 
-        public void AddLabel( string strLabel ) {
-            Property_Labels.LineAppend( strLabel,     fUndoable:false );
-            Property_Values.LineAppend( string.Empty, fUndoable:false );
+        public void AddLabel( string strLabel, string strValue = "" ) {
+            Property_Labels.LineAppend( strLabel, fUndoable:false );
+            Property_Values.LineAppend( strValue, fUndoable:false );
         }
 
         public Line this[int iIndex] { 

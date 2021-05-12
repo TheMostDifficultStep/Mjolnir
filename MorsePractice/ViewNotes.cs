@@ -45,23 +45,26 @@ namespace Play.MorsePractice {
         }
     }
 
+    /// <summary>
+    /// This is the editor that does not show the outline with the callsign tally.
+    /// </summary>
     public class ViewSimple : EditWindow2 {
         public static readonly Guid _guidViewCategory = new Guid("{868D414A-5614-4D9D-8F7E-C46D85BCE294}");
 
 		public override Guid Catagory => _guidViewCategory;
 
-        protected readonly DocNotes     _oDocMorse;
+        protected readonly DocNotes _oDocNotes;
 
         public ViewSimple(IPgViewSite oSiteView, DocNotes oDocument ) : 
             base( oSiteView, oDocument.Notes )
         {
-            _oDocMorse  = oDocument ?? throw new ArgumentNullException( "Document must not be null.");
+            _oDocNotes  = oDocument ?? throw new ArgumentNullException( "Document must not be null.");
         }
 
         public override object Decorate( IPgViewSite oBaseSite, Guid sGuid ) {
             try {
                 if( sGuid.Equals( GlobalDecorations.Properties ) ) {
-                    return new ViewStandardProperties( oBaseSite, _oDocMorse.Properties );
+                    return new ViewStandardProperties( oBaseSite, _oDocNotes.Properties );
                 }
                 return base.Decorate(oBaseSite, sGuid);
             } catch (Exception oEx) {
@@ -78,10 +81,17 @@ namespace Play.MorsePractice {
             return (null);
         }
 
+        public override bool Execute( Guid sGuid ) {
+            if( _oDocNotes.Execute( sGuid ) )
+                return true;
+
+            return base.Execute(sGuid);
+        }
     }
 
     /// <summary>
-    /// This is a stand alone document view to be used to show the notes.
+    /// This is a stand alone document view to be used to show the notes with a 
+    /// decoration that is list of callsigns found in the document.
     /// </summary>
     class ViewNotes :
         EditWindow2
@@ -191,14 +201,16 @@ namespace Play.MorsePractice {
             return (null);
         }
 
-        public override bool Execute( Guid sGuid )
-        {
-            if( sGuid == GlobalCommands.Play ) {
-                _oDocMorse.CiVFrequencyChange( 51470000 ); // test without key up repeater. (intput frequency)
+        public override bool Execute( Guid sGuid ) {
+            if( _oDocMorse.Execute( sGuid ) )
                 return true;
-            } else {
-                return base.Execute(sGuid);
-            }
+
+            return base.Execute( sGuid );
+
+            //if( sGuid == GlobalCommands.Play ) {
+            //    _oDocMorse.CiVFrequencyChange( 51470000 ); // test without key up repeater. (intput frequency)
+            //    return true;
+            //}
         }
     } // End class
 }

@@ -78,7 +78,7 @@ namespace Play.MorsePractice
 
         public override IDisposable CreateDocument( IPgBaseSite oSite, string strExtension ) {
 			if( strExtension.ToLower() == ".netlog" ) {
-				return( new DocNotes( oSite ) );
+				return new DocNotes( oSite ) { FlagSComsOn = true };
 			}
 
 			return null;
@@ -95,8 +95,8 @@ namespace Play.MorsePractice
                     case Guid r when r == ViewNotes._guidViewCategory:
                         return new ViewNotes(oBaseSite, oMorsePractice);
 
-                    case Guid r when r == ViewLog.ViewLogger:
-                        return new ViewLog( oBaseSite, oMorsePractice );
+                    //case Guid r when r == ViewLog.ViewLogger:
+                    //    return new ViewLog( oBaseSite, oMorsePractice );
 
                     case Guid r when r == _guidSchedule:
                         return new EditWindow2( oBaseSite, oMorsePractice.Calls, fReadOnly:true, fSingleLine:false );
@@ -128,7 +128,7 @@ namespace Play.MorsePractice
             yield return new ViewType( "Qrz",          ViewQrz._guidViewCategory );
             yield return new ViewType( "Qrz Raw Bio",  _guidRawBio );
             yield return new ViewType( "Qrz Raw Page", _guidRawPage );
-            yield return new ViewType( "Logger",       ViewLog.ViewLogger );
+          //yield return new ViewType( "Logger",       ViewLog.ViewLogger ); broken for now.
         }
     }
 
@@ -141,7 +141,7 @@ namespace Play.MorsePractice
 
         public override IDisposable CreateDocument( IPgBaseSite oSite, string strExtension ) {
 			if( strExtension.ToLower() == ".stdlog" ) {
-				return new DocNotes( oSite ) { ScanCallsFlag = false };
+				return new DocNotes( oSite ) { FlagScanCalls = false };
 			}
 
 			return null;
