@@ -444,7 +444,8 @@ namespace Mjolnir {
 			switch( eEvent ) {
 				case ShellNotify.BannerChanged:
 					UpdateTitle();
-					_oHost.SetTitle(); // If we aren't focused we won't affect anything.
+                    // This updates all the view banners in the view list and calls SetTitle()
+                    _oHost.UpdateAllTitlesFor( this._oDocSite ); 
 					break;
 
 				case ShellNotify.DocumentDirty:

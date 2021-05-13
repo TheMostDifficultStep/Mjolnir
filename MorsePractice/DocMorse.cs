@@ -930,7 +930,7 @@ namespace Play.MorsePractice {
                         throw;
 
                     Properties.UpdateValue( 1, "Open Error" );
-                    LogError( "Morse Com port", oEx.Message, fShow:false );
+                    LogError( "Morse", oEx.Message, fShow:false );
                 }
                 return true; // Handled, even if ended in error.
             }
@@ -947,7 +947,7 @@ namespace Play.MorsePractice {
                         throw;
 
                     Properties.UpdateValue( 1, "Close Error" );
-                    LogError( "Morse Com port", oEx.Message, fShow:false );
+                    LogError( "Morse", oEx.Message, fShow:false );
                 }
                 return true; // Handled, even if ended in error.
             }
