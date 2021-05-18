@@ -21,7 +21,6 @@ using Play.Rectangles;
 using Play.Edit;
 using Play.Integration;
 using Play.Parse.Impl;
-using Play.Forms;
 
 //using MySql.Data.MySqlClient;
 
@@ -956,6 +955,10 @@ namespace Play.MorsePractice {
         }
     }
 
+    /// <summary>
+    /// Document for labels and values style form. Makes separating readable values
+    /// from readonly values. Probably move this over to forms project at some time.
+    /// </summary>
     public class DocProperties : IPgParent, IPgLoad {
         protected readonly IPgBaseSite _oSiteBase;
 
@@ -1019,72 +1022,6 @@ namespace Play.MorsePractice {
             oLine.TryAppend( strValue );
 
             Property_Values.Raise_BufferEvent( BUFFEREVENTS.MULTILINE ); // single line probably depends on the caret.
-        }
-    }
-
-    public class ViewStandardProperties : 
-        FormsWindow,
-        IBufferEvents,
-        IPgLoad
-     {
-        public static Guid GUID {get;} = new Guid("{80C855E0-C2F6-4641-9A7C-B6A8A53B3FDF}");
-
-        protected DocProperties Document { get; }
-		protected readonly IPgStandardUI2 _oStdUI;
-
-        public ViewStandardProperties( IPgViewSite oSiteView, DocProperties oDocument ) : base( oSiteView, oDocument.Property_Values ) {
-            Document = oDocument ?? throw new ArgumentNullException( "ViewStandardProperties's Document is null." );
- 			_oStdUI  = oSiteView.Host.Services as IPgStandardUI2 ?? throw new ArgumentException( "Parent view must provide IPgStandardUI service" );
-        }
-
-        public void PropertyInitRow( SmartTable oLayout, int iIndex, EditWindow2 oEditWin = null ) {
-            var oLayoutLabel = new LayoutSingleLine( new FTCacheWrap( Document.Property_Labels[iIndex]   ), LayoutRect.CSS.Flex );
-            LayoutRect oLayoutValue;
-            
-            if( oEditWin == null ) {
-                oLayoutValue = new LayoutSingleLine( new FTCacheWrap( Document.Property_Values[iIndex] ), LayoutRect.CSS.Flex );
-            } else {
-                oEditWin.InitNew();
-                oEditWin.Parent = this;
-                oLayoutValue = new LayoutControl( oEditWin, LayoutRect.CSS.Pixels, 100 );
-            }
-
-            oLayout.AddRow( new List<LayoutRect>() { oLayoutLabel, oLayoutValue } );
-
-            oLayoutLabel.BgColor = _oStdUI.ColorsStandardAt( StdUIColors.BGReadOnly );
-
-            CacheList.Add( oLayoutLabel );
-            if( oLayoutValue is LayoutSingleLine oLayoutSingle ) {
-                oLayoutSingle.BgColor = _oStdUI.ColorsStandardAt( StdUIColors.BG );
-                CacheList.Add( oLayoutSingle );
-            }
-        }
-
-        public override bool InitNew() {
-            if( !base.InitNew() ) 
-                return false;
-
-            SmartTable oLayout = new SmartTable( 5, LayoutRect.CSS.None );
-            Layout2 = oLayout;
-
-            oLayout.Add( new LayoutRect( LayoutRect.CSS.Flex, 30, 0 ) ); // Name.
-            oLayout.Add( new LayoutRect( LayoutRect.CSS.None, 70, 0 ) ); // Value.
-
-            foreach( Line oLine in Document.Property_Labels ) {
-                PropertyInitRow( oLayout, oLine.At );
-            }
-
-            Caret.Layout = CacheList[0];
-
-            OnDocumentEvent( BUFFEREVENTS.MULTILINE );
-            OnSizeChanged( new EventArgs() );
-
-            return true;
-        }
-
-        public void OnEvent( BUFFEREVENTS eEvent ) {
-            OnDocumentEvent( BUFFEREVENTS.MULTILINE );
-            Invalidate();
         }
     }
 }

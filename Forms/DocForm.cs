@@ -228,6 +228,12 @@ namespace Play.Forms {
         }
     }
 
+    /// <summary>
+    /// This is basically an editor that loads all the lines but doesn't offer
+    /// undo, so that the user doesn't accidently hit undo and remove forms items.
+    /// This implementation is a bit obsolete since I'm leaning towards a values/labels
+    /// version which separates writable items.
+    /// </summary>
     public class FormsEditor : Editor {
         public FormsEditor( IPgBaseSite oSite ) : base( oSite ) {
         }
