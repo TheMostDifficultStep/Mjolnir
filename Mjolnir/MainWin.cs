@@ -455,7 +455,8 @@ namespace Mjolnir {
                     foreach( SideIdentify eSide in Enum.GetValues( typeof( SideIdentify ) ) ) {
                         string strSide = eSide.ToString().ToLower();
                         if( int.TryParse( xmlElem.GetAttribute( strSide ), out int iValue ) ) {
-							_rgSideInfo.Add(eSide, new SideRect( _rgDim[strSide].eTrack, 5 ) { SideSaved = iValue } );
+                            SideStuff sStuff  = _rgDim[strSide];
+							_rgSideInfo.Add(eSide, new SideRect( sStuff.eTrack, 5 ) { SideSaved = iValue, SideInit = sStuff.iInit } );
                             if( (int)eSide < 4 )
 							    _rgSide[(int)eSide] = iValue;
 						} else {
