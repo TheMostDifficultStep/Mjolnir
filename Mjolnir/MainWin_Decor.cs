@@ -31,6 +31,9 @@ namespace Mjolnir {
 
 		IEnumerable<SmartBinder> Spacers => _rgSpacers;
 
+        public int ExtentSaved { get; set; } = 0;
+        public int Extent      { get { return GetExtent( Direction ); }                               }
+
 		public override void Paint(Graphics oGraphics) {
 			foreach( SmartRect rcChild in _rgLayout ) {
 				rcChild.Paint( oGraphics );
@@ -253,9 +256,11 @@ namespace Mjolnir {
 
                     oBitmap = new Bitmap( 1, 1 ); 
                 }
-                try {
-                    iEdge = (int)_rgSideNames[strToolEdge];
-                } catch( KeyNotFoundException ) {
+                foreach( SideIdentify eSide in _rgSideInfo.Keys ) {
+                    if( string.Compare( strToolEdge, eSide.ToString().ToLower() ) == 0 ) {
+                        iEdge = (int)eSide;
+                        break;
+                    }
                 }
 
                 try {
@@ -486,32 +491,38 @@ namespace Mjolnir {
 				return;
 
             int iSpace = _rcFrame.Left - _rcFrame.Outer.Left;
+            int iMenu  = 34;
 
-            _rgSideBox[(int)EDGE.LEFT  ].SetRect( LOCUS.UPPERLEFT,
+            _rgSideInfo[SideIdentify.Left  ].SetRect( LOCUS.UPPERLEFT,
                                                   0,
                                                   _rcFrame.Outer.Top,
                                                   _rcFrame.Outer.Left,
                                                   /* ClientRectangle.Height - _rcFrame.Outer.Top */ _rcFrame.Outer.Height - iSpace);
-            _rgSideBox[(int)EDGE.TOP   ].SetRect( LOCUS.UPPERLEFT, 
+            _rgSideInfo[SideIdentify.Top   ].SetRect( LOCUS.UPPERLEFT, 
                                                   0,
                                                   0,
                                                   ClientRectangle.Width,
                                                   _rcFrame.Outer.Top );
-            _rgSideBox[(int)EDGE.RIGHT ].SetRect( LOCUS.UPPERLEFT,
+            _rgSideInfo[SideIdentify.Right ].SetRect( LOCUS.UPPERLEFT,
                                                   _rcFrame.Outer.Right,
                                                   _rcFrame.Outer.Top,
                                                   ClientRectangle.Right  - _rcFrame.Outer.Right,
                                                   /* ClientRectangle.Height - _rcFrame.Outer.Top */ _rcFrame.Outer.Height - iSpace);
-            _rgSideBox[(int)EDGE.BOTTOM].SetRect( LOCUS.UPPERLEFT, 
+            _rgSideInfo[SideIdentify.Bottom].SetRect( LOCUS.UPPERLEFT, 
                                                   /* _rcFrame.Outer.Left */ 0, 
                                                   _rcFrame.Outer.Bottom,
                                                   /* _rcFrame.Outer.Width */ ClientRectangle.Width,
                                                   ClientRectangle.Bottom - _rcFrame.Outer.Bottom );
+            _rgSideInfo[SideIdentify.Tabs  ].SetRect( LOCUS.UPPERLEFT,
+                                                   _rcFrame.Outer.Left,
+                                                   _rcFrame.Outer.Top,
+                                                   _rcFrame.Outer.Width,
+                                                   iMenu );
 
 			
 			// TODO: It doesn't look like the side boxes re-layout children if their
 			//       size changes. That might be a nice feature.
-			foreach( SideRect oSide in _rgSideBox ) {
+			foreach( SideRect oSide in _rgSideInfo.Values ) {
 				oSide.LayoutChildren();
 			}
         }
@@ -594,11 +605,10 @@ namespace Mjolnir {
         /// we need to adjust the inside rectangle.
         /// </summary>
 		/// <seealso cref="OnInsideAdjusted"/>
-        protected void LayoutFrame()
-        {
-            Point ulPoint = new Point( _rcSide.Left, LayoutSizeTop() + ( _rcFrame.Hidden ? 0 : 5 ) );
-            Point lrPoint = new Point( ClientRectangle.Right  - _rcSide[SCALAR.RIGHT],
-                                       ClientRectangle.Bottom - _rcSide[SCALAR.BOTTOM]);
+        protected void LayoutFrame() {
+            Point ulPoint = new Point( _rgSide[(int)SideIdentify.Left], LayoutSizeTop() + ( _rcFrame.Hidden ? 0 : 5 ) );
+            Point lrPoint = new Point( ClientRectangle.Right  - _rgSide[(int)SideIdentify.Right],
+                                       ClientRectangle.Bottom - _rgSide[(int)SideIdentify.Bottom]);
 			SmartRect rcTemp = new SmartRect();
 
             rcTemp.SetPoint(SET.STRETCH, LOCUS.UPPERLEFT,  ulPoint.X, ulPoint.Y);
@@ -626,10 +636,10 @@ namespace Mjolnir {
                 Rectangle rctClient = this.ClientRectangle; // The host window size.
 
 				// BUG: I can probably better set this with one call.
-                _rcSide.SetScalar(SET.STRETCH, SCALAR.LEFT,   _rcFrame.Left);
-                _rcSide.SetScalar(SET.STRETCH, SCALAR.TOP,    _rcFrame.Top);
-                _rcSide.SetScalar(SET.STRETCH, SCALAR.RIGHT,  rctClient.Right  - _rcFrame.Right);
-                _rcSide.SetScalar(SET.STRETCH, SCALAR.BOTTOM, rctClient.Bottom - _rcFrame.Bottom);
+                _rgSide[(int)SideIdentify.Left  ] = _rcFrame.Left;
+                _rgSide[(int)SideIdentify.Top   ] = _rcFrame.Top;
+                _rgSide[(int)SideIdentify.Right ] = rctClient.Right  - _rcFrame.Right;
+                _rgSide[(int)SideIdentify.Bottom] = rctClient.Bottom - _rcFrame.Bottom;
             }
 
 			LayoutViews    ();
@@ -667,11 +677,11 @@ namespace Mjolnir {
 		/// between loads. Won't ensure the shepard is loaded with an eligible
 		/// decor.
 		/// </summary>
-        protected void LayoutLoadShepardsAt( int iSide ) {
+        protected void LayoutLoadShepardsAt( SideIdentify iSide ) {
 			SideRect oSide = null;
 			
 			try {
-				oSide = _rgSideBox[iSide];
+				oSide = _rgSideInfo[iSide];
 			} catch( ArgumentOutOfRangeException ) {
 				LogError( null, "Decor", "Attempting to layout a non existing side! ^_^;" );
 				return;
@@ -684,7 +694,7 @@ namespace Mjolnir {
 
 			// Load visible shepard even if empty.
 			foreach( SmartHerderBase oShepard in this ) {
-				if( oShepard.Orientation == iSide &&
+				if( oShepard.Orientation == (int)iSide &&
 					oShepard.Hidden      == false )
 				{
 					rgSort.Add( oShepard );
@@ -734,8 +744,8 @@ namespace Mjolnir {
 		}
 
         protected void LayoutLoadShepards() {
-            for( int iSide = 0; iSide<_rgSideBox.Count; ++iSide ) {
-                LayoutLoadShepardsAt(iSide);
+            foreach( SideIdentify eSide in _rgSideInfo.Keys ) {
+                LayoutLoadShepardsAt(eSide);
             }
         }
 
@@ -746,8 +756,7 @@ namespace Mjolnir {
         /// when we switch from viewing adorments to off and back. It's
         /// not called when the main window is resized.
         /// </summary>
-        protected uint LayoutFrameValidate( SmartRect rcTest )
-        {
+        protected uint LayoutFrameValidate( SmartRect rcTest ) {
             Rectangle rcTemp   = this.ClientRectangle;
             SmartRect rcClient = new SmartRect( rcTemp.Left, rcTemp.Top, rcTemp.Right, rcTemp.Bottom );
             int[]     rgiMultiplier = { 1, 1, -1, -1 };
@@ -755,7 +764,7 @@ namespace Mjolnir {
             uint      uiReturn = 0;
 
             if( !_rcFrame.Hidden )
-                rcClient.Inflate(-1, _rcMargin ); // -1 means deflate.
+                rcClient.Inflate(-1, _rgMargin ); // -1 means deflate.
 
             for( int i = 0; i < 4; ++i ) {
                 int iDifference = rcTest.GetSide(i) - rcClient.GetSide(i);
@@ -763,7 +772,7 @@ namespace Mjolnir {
                 // Check that the "inside" is in bounds.
                 if( iDifference * rgiMultiplier[i] < 0 ) {
                     rcTest .SetScalar(SET.STRETCH, (SCALAR)uiEdge,  rcClient.GetSide(i));
-                    _rcSide.SetScalar(SET.STRETCH, (SCALAR)uiEdge, _rcFrame.Hidden ? 0 : _rcMargin.GetSide(i));
+                    _rgSide[i] = _rcFrame.Hidden ? 0 : _rgMargin[i];
 
                     uiReturn |= uiEdge; // Return which edge(s) are now closed.
                 }
@@ -781,7 +790,7 @@ namespace Mjolnir {
         /// <param name="oE"></param>
         protected void DecorLocationShow( PaintEventArgs oE )
         {
-            foreach( SmartRect oRect in _rgSideBox ) {
+            foreach( SmartRect oRect in _rgSideInfo.Values ) {
                 oE.Graphics.DrawLine( Pens.Aquamarine, 
                                       oRect.GetScalar(SCALAR.LEFT),
                                       oRect.GetScalar(SCALAR.TOP),
@@ -819,9 +828,9 @@ namespace Mjolnir {
         /// <seealso cref="ViewSelect(ViewSlot, bool)" />
         public void DecorLoad( XmlElement xmlRoot ) {
             try {
-				XmlNodeList rgXmlViews = xmlRoot.SelectNodes( "Decors/Decor");
-                bool        fAnyCheck  = false;
-                List<int>   rgOrient = new List<int>();
+				XmlNodeList        rgXmlViews = xmlRoot.SelectNodes( "Decors/Decor");
+                bool               fAnyCheck  = false;
+                List<SideIdentify> rgOrient = new List<SideIdentify>();
 
 				foreach( XmlElement xmlView in rgXmlViews ) {
                     string strDecor = xmlView.GetAttribute( "name" );
@@ -829,15 +838,15 @@ namespace Mjolnir {
                         if( string.Compare( oDecorVis.Shepard.Name, strDecor ) == 0 ) {
                             oDecorVis.Checked = true;
 						    oDecorVis.Shepard.Hidden = false;
-			                rgOrient.Add( oDecorVis.Shepard.Orientation );
+			                rgOrient.Add( (SideIdentify)oDecorVis.Shepard.Orientation );
                             fAnyCheck = true;
                         }
                     }
                 }
                 if( fAnyCheck ) {
                     DecorMenuReload();
-                    foreach( int iOrientation in rgOrient ) {
-			            LayoutLoadShepardsAt( iOrientation );
+                    foreach( SideIdentify eOrientation in rgOrient ) {
+			            LayoutLoadShepardsAt( eOrientation );
                     }
                 }
             } catch ( Exception oEx ) {
@@ -857,7 +866,10 @@ namespace Mjolnir {
         /// </summary>
         public void DecorShow() {
             _rcFrame.Hidden = false;
-            _rcSide .Copy   = _rcSideSave;
+            _rgSideSave.CopyTo( _rgSide, 0 );
+            foreach( KeyValuePair<SideIdentify, SideRect> oPair in _rgSideInfo ) {
+                oPair.Value.ExtentSaved = oPair.Value.Extent;
+            }
 
  			if( _miDecorMenu.DropDownItems[0] is ToolStripMenuItem oItem ) {
 				oItem.Checked = true;
@@ -871,7 +883,10 @@ namespace Mjolnir {
         }
 
         public void DecorHide() {
-            _rcSideSave.Copy = _rcSide;
+            _rgSide.CopyTo( _rgSideSave, 0 );
+            foreach( KeyValuePair<SideIdentify, SideRect> oPair in _rgSideInfo ) {
+                oPair.Value.ExtentSaved = oPair.Value.Extent;
+            }
 
             foreach( SmartHerderBase oShepard in this ) {
                 if( oShepard.Name != "menu")
@@ -883,10 +898,12 @@ namespace Mjolnir {
 			}
 
             _rcFrame.Hidden = true; // The view housed inside is still visible.
-            _rcSide.Copy     = new SmartRect( 0, LayoutSizeTop(), 0, 0 );
+            _rgSide.Clear();
+            _rgSide[(int)SideIdentify.Top] = LayoutSizeTop();
 
             // No need to shuffle, since we we've disabled all the decor anyway!!
             LayoutFrame();
+            //LayoutSideBoxes();
         }
 
 		public void DecorToggle() {
@@ -900,11 +917,11 @@ namespace Mjolnir {
         /// the inner rectangle. _rcMargin represents what we look like in the "no decor" mode.
         /// Basically space for the top menu with zero along the remaining sides.</remarks>
         protected bool IsSideOpen( int iOrientation ) {
-            return( _rcSide[iOrientation] > _rcMargin.GetSide( iOrientation ) );
+            return( _rgSide[iOrientation] > _rgMargin[ iOrientation ] );
         }
 
 		protected bool IsSideSavedClosed( int iOrientation ) {
-			return( _rcSideSave[iOrientation] <= _rcMargin.GetSide( iOrientation ) );
+			return( _rgSideSave[iOrientation] <= _rgMargin[ iOrientation ] );
 		}
 
         /// <summary>
@@ -918,7 +935,7 @@ namespace Mjolnir {
         protected bool IsAnyShepardReady( int iOrientation ) {
             bool fAnyReady = false;
 
-			foreach( SmartHerderBase oShepard in _rgSideBox[iOrientation] ) {
+			foreach( SmartHerderBase oShepard in _rgSideInfo[(SideIdentify)iOrientation] ) {
                 if( oShepard.AdornmentShuffle( _oSelectedWinSite ) ) {
                     fAnyReady = true; // Don't break on first true, so we'll shuffle the rest.
                 }
@@ -932,20 +949,26 @@ namespace Mjolnir {
 		/// no decor, so currently hidden. 
 		/// </summary>
         private void DecorSideShuffle( int iOrientation ) {
-            bool   fIsSideLoaded = IsAnyShepardReady ( iOrientation );
-            SCALAR eSide         = SmartRect.ToScalar( iOrientation );
+            bool     fIsSideLoaded = IsAnyShepardReady ( iOrientation );
+            SCALAR   eSide         = SmartRect.ToScalar( iOrientation );
+            SideRect oSide         = _rgSideInfo[(SideIdentify)iOrientation];
 
             if( IsSideOpen( iOrientation) ) {
                 if( !fIsSideLoaded ) {
-                    _rcSideSave.SetScalar( SET.STRETCH, eSide, _rcSide[eSide]   ); // Save side value.
-                    _rcSide    .SetScalar( SET.STRETCH, eSide, 0                ); // Close side.
+                    _rgSideSave[iOrientation] = _rgSide[iOrientation]; // Save side value.
+                    _rgSide    [iOrientation] = 0; // Close side.
+                    oSide.ExtentSaved = oSide.Extent;
 					Invalidate();
 				}
             } else {
                 if( fIsSideLoaded ) {
-					if( IsSideSavedClosed( iOrientation ) )
-						 _rcSideSave.SetScalar( SET.STRETCH, eSide, _rcSideInit[eSide] );
-                    _rcSide.SetScalar( SET.STRETCH, eSide, _rcSideSave[eSide] ); // Open side.
+					if( IsSideSavedClosed( iOrientation ) ) {
+                        oSide.ExtentSaved = _rgSideInit[iOrientation];
+						_rgSideSave[iOrientation] = _rgSideInit[iOrientation];
+                    }
+
+                    _rgSide[iOrientation] = _rgSideSave[iOrientation]; // Open side.
+                    oSide.SetScalar( SET.STRETCH, eSide, oSide.ExtentSaved ); // Open side.
 					Invalidate();
                 }
             }
@@ -1003,7 +1026,7 @@ namespace Mjolnir {
 
             int iOrientation = oMenuItem.Shepard.Orientation;
 
-			LayoutLoadShepardsAt( iOrientation ); // A shepard is coming or going.
+			LayoutLoadShepardsAt( (SideIdentify)iOrientation ); // A shepard is coming or going.
 
             // first set up the new decor or close the old decor.
             switch ( fNewState ) {

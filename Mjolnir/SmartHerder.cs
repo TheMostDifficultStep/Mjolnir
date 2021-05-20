@@ -135,7 +135,7 @@ namespace Mjolnir {
         }
 
         /// <summary>
-        /// Essentially which side we are in. Probably should use the SIDE enumeration at some point.
+        /// Essentially which side we are in. Probably should use the SideIdentifier enumeration at some point.
         /// </summary>
         public int Orientation
         {

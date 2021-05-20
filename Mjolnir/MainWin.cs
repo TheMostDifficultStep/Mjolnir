@@ -19,6 +19,14 @@ using Play.Edit;
 using Play.Parse.Impl;
 
 namespace Mjolnir {
+    public enum SideIdentify {
+        Left,
+        Top,
+        Right,
+        Bottom,
+        Tabs
+    }
+
     /// <summary>
     /// The form where all the other window's live for the Retro (normal) desktop case.
     /// </summary>
@@ -34,11 +42,12 @@ namespace Mjolnir {
         public Font		  ToolsFont		   => Document.FontStandard;
 
         readonly SmartGrab      _rcFrame    = new SmartGrab( new SmartRect( LOCUS.UPPERLEFT, 50, 50, 300, 300 ),  5, true, SCALAR.ALL );
-        readonly SmartRect      _rcMargin   = new SmartRect(5);  // BUG: This is probably obsolete.
-        readonly SmartRect      _rcSide     = new SmartRect(5);  // This defines the distance from each edge of the app win to the inside rect.
-        readonly SmartRect      _rcSideSave = new SmartRect();   // Save whatever the side settings where when visible.
-        readonly SmartRect      _rcSideInit = new SmartRect( 250, 34, 250, 100 ); // If a side was closed, this will be it's new side size.
-        readonly List<SideRect> _rgSideBox  = new List<SideRect>(4); // This are the visual slots for our tool windows.
+        readonly int[]          _rgMargin   = new int[5] { 5, 5, 5, 5, 5 };  
+        readonly int[]          _rgSide     = new int[5];  // This defines the distance from each edge of the app win to the inside rect.
+        readonly int[]          _rgSideSave = new int[5];  // Save whatever the side settings where when visible.
+        readonly int[]          _rgSideInit = new int[5] { 250, 34, 250, 100, 34 }; // If a side was closed, this will be it's new side size.
+
+        readonly Dictionary<SideIdentify, SideRect> _rgSideInfo = new Dictionary<SideIdentify, SideRect>(5);
 
         readonly SmartRect _rctDragBounds     = new SmartRect( LOCUS.CENTER, 0, 0, 0, 0 ); // Might want to subclass a smartrect with ISmartDrag methods...
         ISmartDrag         _oDrag             = null; // This is our standard drag drop object.
@@ -55,7 +64,7 @@ namespace Mjolnir {
         readonly MainWinDecorEnum _oDecorEnum;
 
         readonly Dictionary<string, SmartHerderBase> _rgShepards  = new Dictionary<string, SmartHerderBase>(); 
-        readonly Dictionary<string, EDGE>            _rgSideNames = new Dictionary<string, EDGE>();
+      //readonly Dictionary<string, EDGE>            _rgSideNames = new Dictionary<string, EDGE>();
 
 		readonly ParentRect _oLayout2;
 		readonly ParentRect _oLayout1;
@@ -415,28 +424,29 @@ namespace Mjolnir {
         protected void InitializeEdges( XmlDocument xmlDocument ) {
             XmlElement xmlElem = xmlDocument.SelectSingleNode( "config/mainwindow/margin" ) as XmlElement;
 
-			_rgSideBox.Add( new SideRect( TRACK.VERT,  5 ) );
-			_rgSideBox.Add( new SideRect( TRACK.VERT,  5 ) );
-			_rgSideBox.Add( new SideRect( TRACK.VERT,  5 ) );
-			_rgSideBox.Add( new SideRect( TRACK.HORIZ, 5 ) );
+            Dictionary<string, TRACK> _rgDim = new Dictionary<string, TRACK>();
+
+			_rgDim.Add( "left",   TRACK.VERT );
+			_rgDim.Add( "top",    TRACK.VERT );
+			_rgDim.Add( "right",  TRACK.VERT );
+			_rgDim.Add( "bottom", TRACK.HORIZ );
+            _rgDim.Add( "tabs",   TRACK.HORIZ );
 
             // 8/15/2016 TODO : Need to get organized about edges and margins w/r to menu docked at top.
             // PreferedSize returns utter nonsense for the Width/Height of the TopMenu!!
-            _rcMargin  .SetScalar( SET.STRETCH, SCALAR.TOP, Document.FontStandard.Height + 14 ); // NOTE: Need "Invertable" rect rule b/c margin rect's aren't normal rect usage.
-            _rcSideSave.SetScalar( SET.STRETCH, SCALAR.TOP, _rcMargin[ SCALAR.TOP ]);
+            int iMenu = Document.FontStandard.Height + 14; // NOTE: Need "Invertable" rect rule b/c margin rect's aren't normal rect usage.
+            _rgMargin[(int)SideIdentify.Top] = Document.FontStandard.Height + 14; // NOTE: Need "Invertable" rect rule b/c margin rect's aren't normal rect usage.
+            _rgSideSave[(int)SideIdentify.Top] = _rgMargin[(int)SideIdentify.Top];
 
             // Read in all the edge values.
             try {
-                _rgSideNames.Add("left",   EDGE.LEFT);
-                _rgSideNames.Add("top",    EDGE.TOP );
-                _rgSideNames.Add("right",  EDGE.RIGHT );
-                _rgSideNames.Add("bottom", EDGE.BOTTOM );
-
                 if( xmlElem != null ) {
-                    foreach( string strEdge in _rgSideNames.Keys ) {
-                        int iEdge  = (int)_rgSideNames[strEdge];
-                        if( int.TryParse( xmlElem.GetAttribute( strEdge ), out int iValue ) ) {
-							_rcSide[iEdge] = iValue;
+                    foreach( SideIdentify eSide in Enum.GetValues( typeof( SideIdentify ) ) ) {
+                        string strSide = eSide.ToString().ToLower();
+                        if( int.TryParse( xmlElem.GetAttribute( strSide ), out int iValue ) ) {
+							_rgSideInfo.Add(eSide, new SideRect( _rgDim[strSide], 5 ) { ExtentSaved = iValue } );
+                            if( (int)eSide < 4 )
+							    _rgSide[(int)eSide] = iValue;
 						} else {
 							LogError( null, "initialization", "Couldn't read margins from config." );
 						}
@@ -450,8 +460,12 @@ namespace Mjolnir {
                     throw;
 
                 // Just set all margins to zero on error.
-                for( int i=0; i<4; ++i ) {
-                    _rcSide[i] = 0;
+                for( int i=0; i<_rgSide.Length; ++i ) {
+                    _rgSide[i] = 0;
+                }
+                foreach( SideIdentify eSide in Enum.GetValues( typeof( SideIdentify ) ) ) {
+                    string strSide = eSide.ToString().ToLower();
+                    _rgSideInfo.Add( eSide, new SideRect( _rgDim[strSide], 5 ) { ExtentSaved = iMenu } );
                 }
             }
 
@@ -1483,23 +1497,24 @@ namespace Mjolnir {
             int             iOldOrientation = oShepard.Orientation;
 
             // Look in our side boxes to see where the drag ended.
-            for( int i=0; i<_rgSideBox.Count; ++i ) {
-                SmartRect oRect = _rgSideBox[i];
+            foreach( KeyValuePair<SideIdentify, SideRect> oPair in _rgSideInfo ) {
+          //for( int i=0; i<_rgSideBox.Count; ++i ) {
+                SmartRect oRect = oPair.Value;
 
                 if( oRect.IsInside( pntLast.X, pntLast.Y ) ) {
-                    oShepard.Orientation = i;
+                    oShepard.Orientation = (int)oPair.Key;
                     break;
                 }
             }
 
             // Update the remaining herders in the old orientation.
             if( iOldOrientation != oShepard.Orientation ) {
-				LayoutLoadShepardsAt( iOldOrientation );
+				LayoutLoadShepardsAt( (SideIdentify)iOldOrientation );
 				DecorSideShuffle    ( iOldOrientation ); // close side if no other decor wants it.
 			}
 
             // Update the new target.
-            LayoutLoadShepardsAt( oShepard.Orientation );
+            LayoutLoadShepardsAt( (SideIdentify)oShepard.Orientation );
             LayoutFrame();
         }
         
@@ -1532,9 +1547,10 @@ namespace Mjolnir {
             try {
                 _rcFrame.Paint( oArgs.Graphics );
 
-				for( int i = 0; i < _rgSideBox.Count; ++i ) {
-					SmartRect oBox = _rgSideBox[i];
-					if( IsSideOpen( i ) ) {
+                foreach( KeyValuePair<SideIdentify, SideRect> oPair in _rgSideInfo ) {
+			  //for( int i = 0; i < _rgSideBox.Count; ++i ) {
+					SmartRect oBox = oPair.Value;
+					if( IsSideOpen( (int)oPair.Key ) ) {
 						oBox.Paint( oArgs.Graphics );
 					}
 				}
@@ -1569,7 +1585,7 @@ namespace Mjolnir {
                 l_eHitAt == SmartGrab.HIT.CORNER) {
                 oDrag = new SmartGrabDrag( new DragFinished( FinishBorderDrag ), _rcFrame, SET.STRETCH, l_uiEdges, pntCenter.X, pntCenter.Y);
             } else {
-				foreach( SideRect oSide in _rgSideBox ) {
+				foreach( SideRect oSide in _rgSideInfo.Values ) {
 					oDrag = oSide.SpacerDragTry( pntCenter.X, pntCenter.Y );
 					if( oDrag != null )
 						break;
@@ -1657,7 +1673,7 @@ namespace Mjolnir {
                 if( _rcFrame.HoverChanged( e.X, e.Y ) ) {
                     Invalidate();
                 }
-				foreach( SideRect oSide in _rgSideBox ) {
+				foreach( SideRect oSide in _rgSideInfo.Values ) {
 					if( oSide.Hover( e.X, e.Y, out bool fChanged ) ) {
 						switch( oSide.Direction ) {
 							case TRACK.VERT:
@@ -1679,7 +1695,7 @@ namespace Mjolnir {
 
             if( _oDrag == null ) {
                 _rcFrame.HoverStop();
-				foreach( SideRect oSide in _rgSideBox ) {
+				foreach( SideRect oSide in _rgSideInfo.Values ) {
 					oSide.HoverStop();
 				}
             } else {
