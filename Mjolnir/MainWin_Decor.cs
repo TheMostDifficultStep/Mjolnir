@@ -31,6 +31,7 @@ namespace Mjolnir {
 
 		IEnumerable<SmartBinder> Spacers => _rgSpacers;
 
+        public int SideInit  { get; set; } = 0;
         public int SideSaved { get; set; } = 0;
         public int Extent    { get { return GetExtent( Direction ); }                               }
 
@@ -961,10 +962,9 @@ namespace Mjolnir {
             } else {
                 if( fIsSideLoaded ) {
 					if( IsSideSavedClosed( iOrientation ) ) {
-                        oSide.SideSaved = _rgSideInit[iOrientation];
+                        oSide.SideSaved = oSide.SideInit; 
                     }
-                    _rgSide[iOrientation] = _rgSideInfo[(SideIdentify)iOrientation].SideSaved;
-                    //_rgSide[iOrientation] = _rgSideSave[iOrientation]; // Open side.
+                    _rgSide[iOrientation] = oSide.SideSaved;
                     oSide.SetScalar( SET.STRETCH, eSide, oSide.SideSaved ); // Open side.
 					Invalidate();
                 }

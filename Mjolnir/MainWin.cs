@@ -43,8 +43,7 @@ namespace Mjolnir {
 
         readonly SmartGrab      _rcFrame    = new SmartGrab( new SmartRect( LOCUS.UPPERLEFT, 50, 50, 300, 300 ),  5, true, SCALAR.ALL );
         readonly int[]          _rgMargin   = new int[5] { 5, 5, 5, 5, 5 };  
-        readonly int[]          _rgSide     = new int[5];  // This defines the distance from each edge of the app win to the inside rect.
-        readonly int[]          _rgSideInit = new int[5] { 250, 34, 250, 100, 34 }; // If a side was closed, this will be it's new side size.
+        readonly int[]          _rgSide     = new int[5];  // This defines the 1D distance from each edge of the app win to the inside rect.
 
         readonly Dictionary<SideIdentify, SideRect> _rgSideInfo = new Dictionary<SideIdentify, SideRect>(5);
 
@@ -415,6 +414,20 @@ namespace Mjolnir {
                 xeType.SetAttribute( "file", strInstallDir + "\\" + strFile );
             }
         }
+
+        /// <summary>
+        /// Prep us for moving more of this info into the config xml file,
+        /// instead of hard coded as is.
+        /// </summary>
+        protected struct SideStuff {
+            public SideStuff( TRACK p_eTrack, int p_iInit ) {
+                eTrack = p_eTrack;
+                iInit  = p_iInit;
+            }
+
+            public TRACK eTrack;
+            public int   iInit;
+        }
         
         /// <summary>
         /// Find the values we persisted for our border margins.
@@ -423,13 +436,13 @@ namespace Mjolnir {
         protected void InitializeEdges( XmlDocument xmlDocument ) {
             XmlElement xmlElem = xmlDocument.SelectSingleNode( "config/mainwindow/margin" ) as XmlElement;
 
-            Dictionary<string, TRACK> _rgDim = new Dictionary<string, TRACK>();
+            Dictionary<string, SideStuff> _rgDim = new Dictionary<string, SideStuff>();
 
-			_rgDim.Add( "left",   TRACK.VERT );
-			_rgDim.Add( "top",    TRACK.VERT );
-			_rgDim.Add( "right",  TRACK.VERT );
-			_rgDim.Add( "bottom", TRACK.HORIZ );
-            _rgDim.Add( "tabs",   TRACK.HORIZ );
+			_rgDim.Add( "left",   new SideStuff( TRACK.VERT,  250 ) );
+			_rgDim.Add( "top",    new SideStuff( TRACK.VERT,   34 ) );
+			_rgDim.Add( "right",  new SideStuff( TRACK.VERT,  250 ) );
+			_rgDim.Add( "bottom", new SideStuff( TRACK.HORIZ, 100 ) );
+            _rgDim.Add( "tabs",   new SideStuff( TRACK.HORIZ,  34 ) );
 
             // 8/15/2016 TODO : Need to get organized about edges and margins w/r to menu docked at top.
             // PreferedSize returns utter nonsense for the Width/Height of the TopMenu!!
@@ -442,7 +455,7 @@ namespace Mjolnir {
                     foreach( SideIdentify eSide in Enum.GetValues( typeof( SideIdentify ) ) ) {
                         string strSide = eSide.ToString().ToLower();
                         if( int.TryParse( xmlElem.GetAttribute( strSide ), out int iValue ) ) {
-							_rgSideInfo.Add(eSide, new SideRect( _rgDim[strSide], 5 ) { SideSaved = iValue } );
+							_rgSideInfo.Add(eSide, new SideRect( _rgDim[strSide].eTrack, 5 ) { SideSaved = iValue } );
                             if( (int)eSide < 4 )
 							    _rgSide[(int)eSide] = iValue;
 						} else {
@@ -462,8 +475,9 @@ namespace Mjolnir {
                     _rgSide[i] = 0;
                 }
                 foreach( SideIdentify eSide in Enum.GetValues( typeof( SideIdentify ) ) ) {
-                    string strSide = eSide.ToString().ToLower();
-                    _rgSideInfo.Add( eSide, new SideRect( _rgDim[strSide], 5 ) { SideSaved = iMenu } );
+                    string    strSide = eSide.ToString().ToLower();
+                    SideStuff sStuff  = _rgDim[strSide];
+                    _rgSideInfo.Add( eSide, new SideRect( sStuff.eTrack, 5 ) { SideSaved = iMenu, SideInit = sStuff.iInit } );
                 }
             }
 
