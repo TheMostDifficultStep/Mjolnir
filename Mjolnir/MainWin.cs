@@ -44,7 +44,6 @@ namespace Mjolnir {
         readonly SmartGrab      _rcFrame    = new SmartGrab( new SmartRect( LOCUS.UPPERLEFT, 50, 50, 300, 300 ),  5, true, SCALAR.ALL );
         readonly int[]          _rgMargin   = new int[5] { 5, 5, 5, 5, 5 };  
         readonly int[]          _rgSide     = new int[5];  // This defines the distance from each edge of the app win to the inside rect.
-        readonly int[]          _rgSideSave = new int[5];  // Save whatever the side settings where when visible.
         readonly int[]          _rgSideInit = new int[5] { 250, 34, 250, 100, 34 }; // If a side was closed, this will be it's new side size.
 
         readonly Dictionary<SideIdentify, SideRect> _rgSideInfo = new Dictionary<SideIdentify, SideRect>(5);
@@ -436,7 +435,6 @@ namespace Mjolnir {
             // PreferedSize returns utter nonsense for the Width/Height of the TopMenu!!
             int iMenu = Document.FontStandard.Height + 14; // NOTE: Need "Invertable" rect rule b/c margin rect's aren't normal rect usage.
             _rgMargin[(int)SideIdentify.Top] = Document.FontStandard.Height + 14; // NOTE: Need "Invertable" rect rule b/c margin rect's aren't normal rect usage.
-            _rgSideSave[(int)SideIdentify.Top] = _rgMargin[(int)SideIdentify.Top];
 
             // Read in all the edge values.
             try {
@@ -444,7 +442,7 @@ namespace Mjolnir {
                     foreach( SideIdentify eSide in Enum.GetValues( typeof( SideIdentify ) ) ) {
                         string strSide = eSide.ToString().ToLower();
                         if( int.TryParse( xmlElem.GetAttribute( strSide ), out int iValue ) ) {
-							_rgSideInfo.Add(eSide, new SideRect( _rgDim[strSide], 5 ) { ExtentSaved = iValue } );
+							_rgSideInfo.Add(eSide, new SideRect( _rgDim[strSide], 5 ) { SideSaved = iValue } );
                             if( (int)eSide < 4 )
 							    _rgSide[(int)eSide] = iValue;
 						} else {
@@ -465,9 +463,11 @@ namespace Mjolnir {
                 }
                 foreach( SideIdentify eSide in Enum.GetValues( typeof( SideIdentify ) ) ) {
                     string strSide = eSide.ToString().ToLower();
-                    _rgSideInfo.Add( eSide, new SideRect( _rgDim[strSide], 5 ) { ExtentSaved = iMenu } );
+                    _rgSideInfo.Add( eSide, new SideRect( _rgDim[strSide], 5 ) { SideSaved = iMenu } );
                 }
             }
+
+            _rgSideInfo[SideIdentify.Top].SideSaved = _rgMargin[(int)SideIdentify.Top];
 
             _rcFrame.Hidden     = false;
             _rcFrame.Show       = SHOWSTATE.Inactive;

@@ -31,8 +31,8 @@ namespace Mjolnir {
 
 		IEnumerable<SmartBinder> Spacers => _rgSpacers;
 
-        public int ExtentSaved { get; set; } = 0;
-        public int Extent      { get { return GetExtent( Direction ); }                               }
+        public int SideSaved { get; set; } = 0;
+        public int Extent    { get { return GetExtent( Direction ); }                               }
 
 		public override void Paint(Graphics oGraphics) {
 			foreach( SmartRect rcChild in _rgLayout ) {
@@ -866,9 +866,8 @@ namespace Mjolnir {
         /// </summary>
         public void DecorShow() {
             _rcFrame.Hidden = false;
-            _rgSideSave.CopyTo( _rgSide, 0 );
             foreach( KeyValuePair<SideIdentify, SideRect> oPair in _rgSideInfo ) {
-                oPair.Value.ExtentSaved = oPair.Value.Extent;
+                oPair.Value.SideSaved = oPair.Value.Extent;
             }
 
  			if( _miDecorMenu.DropDownItems[0] is ToolStripMenuItem oItem ) {
@@ -883,9 +882,8 @@ namespace Mjolnir {
         }
 
         public void DecorHide() {
-            _rgSide.CopyTo( _rgSideSave, 0 );
             foreach( KeyValuePair<SideIdentify, SideRect> oPair in _rgSideInfo ) {
-                oPair.Value.ExtentSaved = oPair.Value.Extent;
+                oPair.Value.SideSaved = oPair.Value.Extent;
             }
 
             foreach( SmartHerderBase oShepard in this ) {
@@ -921,7 +919,8 @@ namespace Mjolnir {
         }
 
 		protected bool IsSideSavedClosed( int iOrientation ) {
-			return( _rgSideSave[iOrientation] <= _rgMargin[ iOrientation ] );
+            return _rgSideInfo[(SideIdentify)iOrientation].SideSaved <= _rgMargin[ iOrientation ];
+		  //return( _rgSideSave[iOrientation] <= _rgMargin[ iOrientation ] );
 		}
 
         /// <summary>
@@ -955,20 +954,18 @@ namespace Mjolnir {
 
             if( IsSideOpen( iOrientation) ) {
                 if( !fIsSideLoaded ) {
-                    _rgSideSave[iOrientation] = _rgSide[iOrientation]; // Save side value.
-                    _rgSide    [iOrientation] = 0; // Close side.
-                    oSide.ExtentSaved = oSide.Extent;
+                    oSide.SideSaved = _rgSide[iOrientation];
+                    _rgSide[iOrientation] = 0; // Close side.
 					Invalidate();
 				}
             } else {
                 if( fIsSideLoaded ) {
 					if( IsSideSavedClosed( iOrientation ) ) {
-                        oSide.ExtentSaved = _rgSideInit[iOrientation];
-						_rgSideSave[iOrientation] = _rgSideInit[iOrientation];
+                        oSide.SideSaved = _rgSideInit[iOrientation];
                     }
-
-                    _rgSide[iOrientation] = _rgSideSave[iOrientation]; // Open side.
-                    oSide.SetScalar( SET.STRETCH, eSide, oSide.ExtentSaved ); // Open side.
+                    _rgSide[iOrientation] = _rgSideInfo[(SideIdentify)iOrientation].SideSaved;
+                    //_rgSide[iOrientation] = _rgSideSave[iOrientation]; // Open side.
+                    oSide.SetScalar( SET.STRETCH, eSide, oSide.SideSaved ); // Open side.
 					Invalidate();
                 }
             }
