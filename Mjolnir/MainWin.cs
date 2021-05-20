@@ -41,9 +41,9 @@ namespace Mjolnir {
 		public SolidBrush ToolsBrushActive { get; } = new SolidBrush( Color.FromArgb( 255, 112, 165, 234 ) ) ?? throw new InvalidOperationException("Main Window could not create tools color brush."); 
         public Font		  ToolsFont		   => Document.FontStandard;
 
-        readonly SmartGrab      _rcFrame    = new SmartGrab( new SmartRect( LOCUS.UPPERLEFT, 50, 50, 300, 300 ),  5, true, SCALAR.ALL );
-        readonly int[]          _rgMargin   = new int[5] { 5, 5, 5, 5, 5 };  
-        readonly int[]          _rgSide     = new int[5];  // This defines the 1D distance from each edge of the app win to the inside rect.
+        readonly SmartGrab _rcFrame  = new SmartGrab( new SmartRect( LOCUS.UPPERLEFT, 50, 50, 300, 300 ),  5, true, SCALAR.ALL );
+        readonly int[]     _rgMargin = new int[5] { 5, 5, 5, 5, 5 };  
+        readonly int[]     _rgSide   = new int[5];  // This defines the 1D distance from each edge of the app win to the inside rect.
 
         readonly Dictionary<SideIdentify, SideRect> _rgSideInfo = new Dictionary<SideIdentify, SideRect>(5);
 

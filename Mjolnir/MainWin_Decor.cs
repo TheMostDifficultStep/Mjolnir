@@ -921,7 +921,6 @@ namespace Mjolnir {
 
 		protected bool IsSideSavedClosed( int iOrientation ) {
             return _rgSideInfo[(SideIdentify)iOrientation].SideSaved <= _rgMargin[ iOrientation ];
-		  //return( _rgSideSave[iOrientation] <= _rgMargin[ iOrientation ] );
 		}
 
         /// <summary>
