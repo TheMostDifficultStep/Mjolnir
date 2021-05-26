@@ -494,32 +494,39 @@ namespace Mjolnir {
             int iSpace = _rcFrame.Left - _rcFrame.Outer.Left;
             int iMenu  = 34;
 
-            _rgSideInfo[SideIdentify.Left  ].SetRect( LOCUS.UPPERLEFT,
-                                                  0,
-                                                  _rcFrame.Outer.Top,
-                                                  _rcFrame.Outer.Left,
-                                                  /* ClientRectangle.Height - _rcFrame.Outer.Top */ _rcFrame.Outer.Height - iSpace);
-            _rgSideInfo[SideIdentify.Top   ].SetRect( LOCUS.UPPERLEFT, 
-                                                  0,
-                                                  0,
-                                                  ClientRectangle.Width,
-                                                  _rcFrame.Outer.Top );
-            _rgSideInfo[SideIdentify.Right ].SetRect( LOCUS.UPPERLEFT,
-                                                  _rcFrame.Outer.Right,
-                                                  _rcFrame.Outer.Top,
-                                                  ClientRectangle.Right  - _rcFrame.Outer.Right,
-                                                  /* ClientRectangle.Height - _rcFrame.Outer.Top */ _rcFrame.Outer.Height - iSpace);
-            _rgSideInfo[SideIdentify.Bottom].SetRect( LOCUS.UPPERLEFT, 
-                                                  /* _rcFrame.Outer.Left */ 0, 
-                                                  _rcFrame.Outer.Bottom,
-                                                  /* _rcFrame.Outer.Width */ ClientRectangle.Width,
-                                                  ClientRectangle.Bottom - _rcFrame.Outer.Bottom );
-            _rgSideInfo[SideIdentify.Tabs  ].SetRect( LOCUS.UPPERLEFT,
-                                                   _rcFrame.Outer.Left,
-                                                   _rcFrame.Outer.Top,
-                                                   _rcFrame.Outer.Width,
-                                                   iMenu );
+            try {
+                _rgSideInfo[SideIdentify.Left  ].SetRect( LOCUS.UPPERLEFT,
+                                                      0,
+                                                      _rcFrame.Outer.Top,
+                                                      _rcFrame.Outer.Left,
+                                                      /* ClientRectangle.Height - _rcFrame.Outer.Top */ _rcFrame.Outer.Height - iSpace);
+                _rgSideInfo[SideIdentify.Top   ].SetRect( LOCUS.UPPERLEFT, 
+                                                      0,
+                                                      0,
+                                                      ClientRectangle.Width,
+                                                      _rcFrame.Outer.Top );
+                _rgSideInfo[SideIdentify.Right ].SetRect( LOCUS.UPPERLEFT,
+                                                      _rcFrame.Outer.Right,
+                                                      _rcFrame.Outer.Top,
+                                                      ClientRectangle.Right  - _rcFrame.Outer.Right,
+                                                      /* ClientRectangle.Height - _rcFrame.Outer.Top */ _rcFrame.Outer.Height - iSpace);
+                _rgSideInfo[SideIdentify.Bottom].SetRect( LOCUS.UPPERLEFT, 
+                                                      /* _rcFrame.Outer.Left */ 0, 
+                                                      _rcFrame.Outer.Bottom,
+                                                      /* _rcFrame.Outer.Width */ ClientRectangle.Width,
+                                                      ClientRectangle.Bottom - _rcFrame.Outer.Bottom );
+                _rgSideInfo[SideIdentify.Tabs  ].SetRect( LOCUS.UPPERLEFT,
+                                                       _rcFrame.Outer.Left,
+                                                       _rcFrame.Outer.Top,
+                                                       _rcFrame.Outer.Width,
+                                                       iMenu );
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( KeyNotFoundException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
 
+                LogError( null, "Mainwin Layout", "Problem accessing 'Side Info'" );
+            }
 			
 			// TODO: It doesn't look like the side boxes re-layout children if their
 			//       size changes. That might be a nice feature.
