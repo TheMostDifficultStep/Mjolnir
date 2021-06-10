@@ -109,6 +109,9 @@ namespace Play.Clock {
                     strMidDay = "pm";
                     iHour    -= 12;
                 }
+                if( iHour == 0 ) {
+                    iHour    += 12;
+                }
 
                 DocZones[6].Empty();
                 DocZones[6].TryAppend( iHour.ToString( "D2" ) + ":" + oDT.Minute.ToString( "D2" ) + strMidDay );

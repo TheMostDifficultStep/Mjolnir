@@ -58,14 +58,14 @@ namespace Play.MorsePractice {
 
                         if( oTarg.GetValue( "data" ) is MemoryState<char> oData  ) {
                             switch( strCmdID ) {
-                                case "01":
+                                case "01": // Send the mode data (transceive)
                                     string strMode   = GetStringBinding( _oStream, oData, "mode"   );
                                     string strFilter = GetStringBinding( _oStream, oData, "filter" );
                                     foreach( IPgCiVEvents oSink in _rgEvents ) {
                                         oSink.CiVModeChange( _rgModes[strMode],  "FIL" + strFilter );
                                     }
                                     break;
-                                case "00": {
+                                case "00": { // Send the frequency data (transceive)
                                     string[] rgDigits = { "1Hz", "10Hz", "100Hz", "1kHz", "10kHz", "100kHz", "1mHz", "10mHz", "100mHz", "1gHz" };
                                     int      iPow     = 1;
                                     int      iResult  = 0;
