@@ -65,6 +65,7 @@ namespace Play.MorsePractice {
                                         oSink.CiVModeChange( _rgModes[strMode],  "FIL" + strFilter );
                                     }
                                     break;
+                                case "03":
                                 case "00": { // Send the frequency data (transceive)
                                     string[] rgDigits = { "1Hz", "10Hz", "100Hz", "1kHz", "10kHz", "100kHz", "1mHz", "10mHz", "100mHz", "1gHz" };
                                     int      iPow     = 1;
@@ -115,7 +116,8 @@ namespace Play.MorsePractice {
         }
 
         public void OnParserError( ProdBase<char> p_oMemory, int p_iStart ) {
-            throw new ApplicationException( "Panic in datagram parser" );
+            //throw new ApplicationException( "Panic in datagram parser" );
+            // Arg... really need a pointer to the document to spew some errors.
         }
 
         public void Parse() {

@@ -364,16 +364,16 @@ namespace Play.MorsePractice {
                 _iOffset     = iOffs  * 1000;
 
                 Timeout     = iTime;
-                Info        = new TextLine( 0, strInfo );
-                Description = new TextLine( 0, strDesc );
+                Info        = strInfo;
+                Description = strDesc;
             }
 
             private readonly float _flFrequency;
             private readonly int   _iOffset;
 
-            public int  Timeout     { get; }
-            public Line Info        { get; }
-            public Line Description { get; }
+            public int    Timeout     { get; }
+            public string Info        { get; }
+            public string Description { get; }
 
             public float  Output => _flFrequency;
             public float  Input  => _flFrequency + _iOffset;
@@ -388,13 +388,18 @@ namespace Play.MorsePractice {
         /// <param name="iFrequency"></param>
         public void CiVFrequencyChange( int iFrequency ) {
             RepeaterDir oRepeater;
+            double      flFreqInMhz = (double)iFrequency / Math.Pow( 10, 6 );
+
+            Properties.UpdateValue( 2, flFreqInMhz.ToString() + " mHz" );
 
             if( _rgRepeatersIn.TryGetValue( iFrequency, out oRepeater ) ) {
                 Properties.UpdateValue( 0, "Timer start..." );
+                Properties.UpdateValue( 3, oRepeater.Info );
                 _oTaskTimer.Queue( ListenForTimout( oRepeater.Timeout ), 0 );
             } else {
                 if( _rgRepeatersOut.TryGetValue( iFrequency, out oRepeater ) ) {
                     Properties.UpdateValue( 0, "Timer stop..." );
+                    Properties.UpdateValue( 3, oRepeater.Info );
                 } else {
                     Properties.UpdateValue( 0, "Stopped." );
                 }
@@ -458,6 +463,8 @@ namespace Play.MorsePractice {
                 _oDataGram.TryAppend( strByte + " " );
             }
 
+            // SerialToList( rgMsg ); // Debug things..
+
             _oParse?.Parse();
         }
 
@@ -510,6 +517,28 @@ namespace Play.MorsePractice {
                     iIndex++;
                 }
             }
+        }
+
+        /// <summary>
+        /// This handles command 03 (read frequency), which requires no sub command or data.
+        /// Probably will work for 02 and 04 as well.
+        /// </summary>
+        /// <param name="bCmnd"></param>
+        /// <remarks>read: Controller asks for some value from the radio.
+        ///          send: Controller sets some value on the radio.</remarks>
+        protected void SendCommand( byte bCmnd ) {
+            List<byte> rgCommand = new List<byte>();
+            byte       bTxAddr   = 0xA4;
+            byte       bCtAddr   = 0xE0;
+
+            rgCommand.Add( 0xfe );
+            rgCommand.Add( 0xfe );
+            rgCommand.Add( bTxAddr );
+            rgCommand.Add( bCtAddr );
+            rgCommand.Add( bCmnd );
+            rgCommand.Add( 0xfd );
+
+            _oCiV.Write( rgCommand.ToArray(), 0, rgCommand.Count );
         }
 
         /// <summary>
@@ -580,6 +609,8 @@ namespace Play.MorsePractice {
         protected void InitProperties() {
             Properties.AddLabel( "Timer" );
             Properties.AddLabel( "Timer Enable" );
+            Properties.AddLabel( "Frequency" );
+            Properties.AddLabel( "Callsign" );
         }
 
         /// <summary>
@@ -938,8 +969,10 @@ namespace Play.MorsePractice {
                 try {
                     if( !_oCiV.IsOpen ) {
                         _oCiV.Open();
+                        SendCommand( 0x03 );
                         Properties.UpdateValue( 1, "On" );
                     } else {
+                        SendCommand( 0x03 );
                         Properties.UpdateValue( 1, "Already Opened" );
                     }
                 } catch( Exception oEx ) {
@@ -967,6 +1000,9 @@ namespace Play.MorsePractice {
                     LogError( "Morse", oEx.Message, fShow:false );
                 }
                 return true; // Handled, even if ended in error.
+            }
+            if( guidCmnd == GlobalCommands.Pause ) {
+                SendCommand( 0x03 );
             }
 
             return false;
