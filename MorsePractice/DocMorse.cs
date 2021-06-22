@@ -253,7 +253,8 @@ namespace Play.MorsePractice {
         public bool FlagScanCalls { get; set; } = true;  // Set up call back to buffer to parse calls.
         public bool FlagSComsOn   { get; set; } = false; // Turn on the com ports.
 
-        Dictionary <int, RepeaterDir> _rgRepeaters = new Dictionary<int, RepeaterDir>();
+        Dictionary <float, RepeaterDir> _rgRepeatersIn  = new Dictionary<float, RepeaterDir>();
+        Dictionary <float, RepeaterDir> _rgRepeatersOut = new Dictionary<float, RepeaterDir>();
 
 		protected static readonly HttpClient _oHttpClient = new HttpClient(); 
 
@@ -350,38 +351,53 @@ namespace Play.MorsePractice {
         }
 
         public struct RepeaterDir {
-            public RepeaterDir( int iFreq, int iOffs, int iTime, string strInfo = "", string strDesc = "" ) {
-                _iFrequency = iFreq;
-                _iOffset    = iOffs;
+            /// <summary>
+            /// 
+            /// </summary>
+            /// <param name="flFreq">Frequency in mHz</param>
+            /// <param name="iOffs">Offset in kHz</param>
+            /// <param name="iTime">Time in seconds</param>
+            /// <param name="strInfo">Repeater</param>
+            /// <param name="strDesc">Description</param>
+            public RepeaterDir( float flFreq, int iOffs, int iTime, string strInfo = "", string strDesc = "" ) {
+                _flFrequency = flFreq * (float)Math.Pow( 10, 6 );
+                _iOffset     = iOffs  * 1000;
 
                 Timeout     = iTime;
                 Info        = new TextLine( 0, strInfo );
                 Description = new TextLine( 0, strDesc );
             }
 
-            private readonly int  _iFrequency;
-            private readonly int  _iOffset;
+            private readonly float _flFrequency;
+            private readonly int   _iOffset;
 
             public int  Timeout     { get; }
             public Line Info        { get; }
             public Line Description { get; }
 
-            public int  Output => _iFrequency;
-            public int  Input  => _iFrequency + _iOffset;
+            public float  Output => _flFrequency;
+            public float  Input  => _flFrequency + _iOffset;
         }
 
         /// <summary>
         /// It is interesting that we only get notice of transmission by the change
-        /// of frequency from listening to TX freq. Only for (duplex) repeaters which is
-        /// the only time we probably care about timing out the repeater. Convenient!
+        /// of frequency from listening to TX freq. Only for (duplex) repeaters, which
+        /// is a little bit of a bummer since I can't tell how long I've been talking
+        /// on simplex. Tho' that's not as important.
         /// </summary>
         /// <param name="iFrequency"></param>
         public void CiVFrequencyChange( int iFrequency ) {
-            if( _rgRepeaters.TryGetValue( iFrequency, out RepeaterDir oRepeater ) ) {
-                Properties.UpdateValue( 0, "Timer triggered..." );
+            RepeaterDir oRepeater;
+
+            if( _rgRepeatersIn.TryGetValue( iFrequency, out oRepeater ) ) {
+                Properties.UpdateValue( 0, "Timer start..." );
                 _oTaskTimer.Queue( ListenForTimout( oRepeater.Timeout ), 0 );
             } else {
-                Properties.UpdateValue( 0, "Stopped." );
+                if( _rgRepeatersOut.TryGetValue( iFrequency, out oRepeater ) ) {
+                    Properties.UpdateValue( 0, "Timer stop..." );
+                } else {
+                    Properties.UpdateValue( 0, "Stopped." );
+                }
                 _oTaskTimer.Stop(); // stopped talking most likely.
             }
         }
@@ -544,13 +560,15 @@ namespace Play.MorsePractice {
         protected void InitRepeaters() {
             List< RepeaterDir > rgTemp = new List<RepeaterDir>();
 
-            rgTemp.Add( new RepeaterDir( 146960000,  -600000, 180 ));
-            rgTemp.Add( new RepeaterDir(  53170000, -1700000, 120 ));
-            rgTemp.Add( new RepeaterDir( 146820000,  -600000, 120 ));
-            rgTemp.Add( new RepeaterDir(  52870000, -1700000, 180 ));
+            rgTemp.Add( new RepeaterDir( 146.96f,  -600, 180, "ww7psr" )); 
+            rgTemp.Add( new RepeaterDir(  53.17f, -1700, 120, "k7lwh" )); 
+            rgTemp.Add( new RepeaterDir( 146.82f,  -600, 120, "k7led" ));
+            rgTemp.Add( new RepeaterDir(  52.87f, -1700, 180 ));
+            rgTemp.Add( new RepeaterDir( 145.49f,  -600, 120, "k7lwh" ));
 
             foreach( RepeaterDir oItem in rgTemp ) {
-                _rgRepeaters.Add( oItem.Input, oItem );
+                _rgRepeatersIn .Add( oItem.Input, oItem );
+                _rgRepeatersOut.Add( oItem.Output, oItem );
             }
         }
 
