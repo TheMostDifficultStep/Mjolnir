@@ -253,8 +253,10 @@ namespace Play.MorsePractice {
         public bool FlagScanCalls { get; set; } = true;  // Set up call back to buffer to parse calls.
         public bool FlagSComsOn   { get; set; } = false; // Turn on the com ports.
 
-        Dictionary <int, RepeaterDir> _rgRepeatersIn  = new Dictionary<int, RepeaterDir>();
-        Dictionary <int, RepeaterDir> _rgRepeatersOut = new Dictionary<int, RepeaterDir>();
+        readonly Dictionary <int, RepeaterDir>     _rgRepeatersIn   = new Dictionary<int, RepeaterDir>();
+        readonly Dictionary <int, RepeaterDir>     _rgRepeatersOut  = new Dictionary<int, RepeaterDir>();
+        readonly Dictionary <string, RepeaterInfo> _rgRepeatersInfo = new Dictionary<string, RepeaterInfo>();
+
 
 		protected static readonly HttpClient _oHttpClient = new HttpClient(); 
 
@@ -350,6 +352,18 @@ namespace Play.MorsePractice {
             LogError( "Ci-V", strError );
         }
 
+        public struct RepeaterInfo {
+            public RepeaterInfo( string strLocation, string strGroup ) {
+                Location = strLocation;
+                Group    = strGroup;
+                Grid     = string.Empty;
+            }
+
+            public string Location { get; }
+            public string Group    { get; }
+            public string Grid     { get; }
+        }
+
         public struct RepeaterDir {
             /// <summary>
             /// 
@@ -357,25 +371,23 @@ namespace Play.MorsePractice {
             /// <param name="flFreq">Frequency in mHz</param>
             /// <param name="iOffs">Offset in kHz</param>
             /// <param name="iTime">Time in seconds</param>
-            /// <param name="strInfo">Repeater</param>
+            /// <param name="strCall">Repeater</param>
             /// <param name="strDesc">Description</param>
             /// <remarks>Tried using float for the flFreq, but I'd get inexact values when mult by 10^6. Double
             /// seems to be free of the problem.</remarks>
-            public RepeaterDir( double flFreq, int iOffs, int iTime, string strInfo = "", string strDesc = "" ) {
+            public RepeaterDir( double flFreq, int iOffs, int iTime, string strCall = "" ) {
                 _iFrequency = (int)(flFreq * Math.Pow( 10, 6 ));
                 _iOffset    = iOffs  * 1000;
 
                 Timeout     = iTime;
-                Info        = strInfo;
-                Description = strDesc;
+                CallSign    = strCall;
             }
 
             private readonly int _iFrequency;
             private readonly int   _iOffset;
 
             public int    Timeout     { get; }
-            public string Info        { get; }
-            public string Description { get; }
+            public string CallSign    { get; }
 
             public int  Output => _iFrequency;
             public int  Input  => _iFrequency + _iOffset;
@@ -392,22 +404,30 @@ namespace Play.MorsePractice {
             RepeaterDir oRepeater;
             double      flFreqInMhz = (double)iFrequency / Math.Pow( 10, 6 );
 
+            Properties.UpdateValue( 0, "Stopped." );
             Properties.UpdateValue( 2, flFreqInMhz.ToString() + " mHz" );
             Properties.UpdateValue( 3, string.Empty ); // clear callsign.
-
+            Properties.UpdateValue( 4, string.Empty );
+            Properties.UpdateValue( 5, string.Empty );
 
             if( _rgRepeatersIn.TryGetValue( iFrequency, out oRepeater ) ) {
                 Properties.UpdateValue( 0, "Timer start..." );
-                Properties.UpdateValue( 3, oRepeater.Info );
+                Properties.UpdateValue( 3, oRepeater.CallSign );
                 _oTaskTimer.Queue( ListenForTimout( oRepeater.Timeout ), 0 );
             } else {
                 if( _rgRepeatersOut.TryGetValue( iFrequency, out oRepeater ) ) {
                     Properties.UpdateValue( 0, "Timer stop..." );
-                    Properties.UpdateValue( 3, oRepeater.Info );
-                } else {
-                    Properties.UpdateValue( 0, "Stopped." );
+                    Properties.UpdateValue( 3, oRepeater.CallSign );
                 }
                 _oTaskTimer.Stop(); // stopped talking most likely.
+            }
+
+            if( !string.IsNullOrEmpty( oRepeater.CallSign ) ) { 
+                RepeaterInfo oInfo;
+                if( _rgRepeatersInfo.TryGetValue( oRepeater.CallSign, out oInfo ) ) {
+                    Properties.UpdateValue( 4, oInfo.Location );
+                    Properties.UpdateValue( 5, oInfo.Group );
+                }
             }
         }
 
@@ -605,7 +625,7 @@ namespace Play.MorsePractice {
             rgTemp.Add( new RepeaterDir( 147.16,   +600, 120, "w7mir" ));
             rgTemp.Add( new RepeaterDir( 147.34,   +600, 120, "k6rfk" ));
             rgTemp.Add( new RepeaterDir( 147.08,   +600, 120, "w7wwi" ));
-            rgTemp.Add( new RepeaterDir( 146.4125, +600, 120, "k7lwh" ));
+            rgTemp.Add( new RepeaterDir( 146.4125, +600, 120, "k7lwh" )); // check this one...
             rgTemp.Add( new RepeaterDir( 444.6375, 5000, 120, "wa7hjr" ));
             rgTemp.Add( new RepeaterDir( 444.55,   5000, 120, "ww7sea" ));
             rgTemp.Add( new RepeaterDir( 441.075,  5000, 120, "k7lwh" ));
@@ -613,6 +633,14 @@ namespace Play.MorsePractice {
             rgTemp.Add( new RepeaterDir( 145.43,   -600, 120, "kd7wdg" ));
             rgTemp.Add( new RepeaterDir( 145.33,   -600, 120, "k7nws" ));
             rgTemp.Add( new RepeaterDir( 442.875,  5000, 120, "w7aux" ));
+
+            _rgRepeatersInfo.Add( "k7lwh", new RepeaterInfo( "Kirkland", "Lake Washington Ham Club" ));
+            _rgRepeatersInfo.Add( "ww7psr",new RepeaterInfo( "Seattle", "Puget Sound Repeater Group" ));
+            _rgRepeatersInfo.Add( "k7led", new RepeaterInfo( "Tiger Mountain East", "Mike & Key ARC" ));
+            _rgRepeatersInfo.Add( "wa7dem",new RepeaterInfo( "Granite Falls", "Snohomish Co. ACS/ARES" ));
+            _rgRepeatersInfo.Add( "w7mir", new RepeaterInfo( "Mercer island", "Mercer Island Radio Operators" ));
+            _rgRepeatersInfo.Add( "k6rfk", new RepeaterInfo( "Woodinville", "" ));
+            _rgRepeatersInfo.Add( "w7wwi", new RepeaterInfo( "Tiger Mtn East", "Sea-Tac Repeater Association" ));
 
             foreach( RepeaterDir oItem in rgTemp ) {
                 _rgRepeatersIn .Add( oItem.Input, oItem );
@@ -630,6 +658,8 @@ namespace Play.MorsePractice {
             Properties.AddLabel( "Timer Enable" );
             Properties.AddLabel( "Frequency" );
             Properties.AddLabel( "Callsign" );
+            Properties.AddLabel( "Location" );
+            Properties.AddLabel( "Group" );
         }
 
         /// <summary>
