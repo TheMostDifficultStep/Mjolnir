@@ -607,7 +607,7 @@ namespace Play.MorsePractice {
             rgTemp.Add( new RepeaterDir( 147.08,   +600, 120, "w7wwi" ));
             rgTemp.Add( new RepeaterDir( 146.4125, +600, 120, "k7lwh" ));
             rgTemp.Add( new RepeaterDir( 444.6375, 5000, 120, "wa7hjr" ));
-            rgTemp.Add( new RepeaterDir( 445.55,   5000, 120, "ww7sea" ));
+            rgTemp.Add( new RepeaterDir( 444.55,   5000, 120, "ww7sea" ));
             rgTemp.Add( new RepeaterDir( 441.075,  5000, 120, "k7lwh" ));
             rgTemp.Add( new RepeaterDir( 146.62,   -600, 120, "ww7ra" ));
             rgTemp.Add( new RepeaterDir( 145.43,   -600, 120, "kd7wdg" ));
