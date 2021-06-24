@@ -253,8 +253,8 @@ namespace Play.MorsePractice {
         public bool FlagScanCalls { get; set; } = true;  // Set up call back to buffer to parse calls.
         public bool FlagSComsOn   { get; set; } = false; // Turn on the com ports.
 
-        Dictionary <float, RepeaterDir> _rgRepeatersIn  = new Dictionary<float, RepeaterDir>();
-        Dictionary <float, RepeaterDir> _rgRepeatersOut = new Dictionary<float, RepeaterDir>();
+        Dictionary <int, RepeaterDir> _rgRepeatersIn  = new Dictionary<int, RepeaterDir>();
+        Dictionary <int, RepeaterDir> _rgRepeatersOut = new Dictionary<int, RepeaterDir>();
 
 		protected static readonly HttpClient _oHttpClient = new HttpClient(); 
 
@@ -359,24 +359,26 @@ namespace Play.MorsePractice {
             /// <param name="iTime">Time in seconds</param>
             /// <param name="strInfo">Repeater</param>
             /// <param name="strDesc">Description</param>
-            public RepeaterDir( float flFreq, int iOffs, int iTime, string strInfo = "", string strDesc = "" ) {
-                _flFrequency = flFreq * (float)Math.Pow( 10, 6 );
-                _iOffset     = iOffs  * 1000;
+            /// <remarks>Tried using float for the flFreq, but I'd get inexact values when mult by 10^6. Double
+            /// seems to be free of the problem.</remarks>
+            public RepeaterDir( double flFreq, int iOffs, int iTime, string strInfo = "", string strDesc = "" ) {
+                _iFrequency = (int)(flFreq * Math.Pow( 10, 6 ));
+                _iOffset    = iOffs  * 1000;
 
                 Timeout     = iTime;
                 Info        = strInfo;
                 Description = strDesc;
             }
 
-            private readonly float _flFrequency;
+            private readonly int _iFrequency;
             private readonly int   _iOffset;
 
             public int    Timeout     { get; }
             public string Info        { get; }
             public string Description { get; }
 
-            public float  Output => _flFrequency;
-            public float  Input  => _flFrequency + _iOffset;
+            public int  Output => _iFrequency;
+            public int  Input  => _iFrequency + _iOffset;
         }
 
         /// <summary>
@@ -391,6 +393,8 @@ namespace Play.MorsePractice {
             double      flFreqInMhz = (double)iFrequency / Math.Pow( 10, 6 );
 
             Properties.UpdateValue( 2, flFreqInMhz.ToString() + " mHz" );
+            Properties.UpdateValue( 3, string.Empty ); // clear callsign.
+
 
             if( _rgRepeatersIn.TryGetValue( iFrequency, out oRepeater ) ) {
                 Properties.UpdateValue( 0, "Timer start..." );
@@ -443,7 +447,10 @@ namespace Play.MorsePractice {
                 if( _oMsgQueue.TryDequeue( out byte[] rgMsg ) ) {
                     SerialToDatagram( rgMsg );
                 }
-                yield return 1000; // Return after 1000 ms.
+                if( _oMsgQueue.IsEmpty )
+                    yield return 1000; // Return after 1000 ms.
+                else 
+                    yield return 1; // Return right away.
             }
         }
 
@@ -555,7 +562,7 @@ namespace Play.MorsePractice {
 
             try {
                 _oCiV = new SerialPort("COM4");
-                _oCiV.BaudRate = 9600;
+                _oCiV.BaudRate =  115200;
                 _oCiV.Parity = Parity.None;
                 _oCiV.StopBits = StopBits.One;
                 _oCiV.DataBits = 8;
@@ -589,11 +596,23 @@ namespace Play.MorsePractice {
         protected void InitRepeaters() {
             List< RepeaterDir > rgTemp = new List<RepeaterDir>();
 
-            rgTemp.Add( new RepeaterDir( 146.96f,  -600, 180, "ww7psr" )); 
-            rgTemp.Add( new RepeaterDir(  53.17f, -1700, 120, "k7lwh" )); 
-            rgTemp.Add( new RepeaterDir( 146.82f,  -600, 120, "k7led" ));
-            rgTemp.Add( new RepeaterDir(  52.87f, -1700, 180 ));
-            rgTemp.Add( new RepeaterDir( 145.49f,  -600, 120, "k7lwh" ));
+            rgTemp.Add( new RepeaterDir(  53.17,  -1700, 120, "k7lwh" )); 
+            rgTemp.Add( new RepeaterDir(  52.87,  -1700, 180 ));
+            rgTemp.Add( new RepeaterDir( 146.96,   -600, 180, "ww7psr" )); 
+            rgTemp.Add( new RepeaterDir( 146.82,   -600, 120, "k7led" ));
+            rgTemp.Add( new RepeaterDir( 145.49,   -600, 120, "k7lwh" ));
+            rgTemp.Add( new RepeaterDir( 146.92,   -600, 120, "wa7dem" ));
+            rgTemp.Add( new RepeaterDir( 147.16,   +600, 120, "w7mir" ));
+            rgTemp.Add( new RepeaterDir( 147.34,   +600, 120, "k6rfk" ));
+            rgTemp.Add( new RepeaterDir( 147.08,   +600, 120, "w7wwi" ));
+            rgTemp.Add( new RepeaterDir( 146.4125, +600, 120, "k7lwh" ));
+            rgTemp.Add( new RepeaterDir( 444.6375, 5000, 120, "wa7hjr" ));
+            rgTemp.Add( new RepeaterDir( 445.55,   5000, 120, "ww7sea" ));
+            rgTemp.Add( new RepeaterDir( 441.075,  5000, 120, "k7lwh" ));
+            rgTemp.Add( new RepeaterDir( 146.62,   -600, 120, "ww7ra" ));
+            rgTemp.Add( new RepeaterDir( 145.43,   -600, 120, "kd7wdg" ));
+            rgTemp.Add( new RepeaterDir( 145.33,   -600, 120, "k7nws" ));
+            rgTemp.Add( new RepeaterDir( 442.875,  5000, 120, "w7aux" ));
 
             foreach( RepeaterDir oItem in rgTemp ) {
                 _rgRepeatersIn .Add( oItem.Input, oItem );
@@ -617,7 +636,7 @@ namespace Play.MorsePractice {
         /// This event comes in asynchronously on it's own thread. Queue up the message
         /// so that the foreground tread can pick it up.
         /// </summary>
-        /// <remarks>Would be nice if we could post a message to the forground so that
+        /// <remarks>TODO: Would be nice if we could post a message to the forground so that
         /// it spins up a task that can terminate once all the data has been pulled.</remarks>
         private void CiV_DataReceived( object sender, SerialDataReceivedEventArgs e ) {
             int iBytesWaiting = _oCiV.BytesToRead;
