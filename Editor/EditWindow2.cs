@@ -1110,11 +1110,14 @@ namespace Play.Edit {
             get { return new Point( _rctTextArea.Left, _rctTextArea.Top ); }
         }
 
+        /// <summary>
+        /// Remember we need to use the _rctTextArea which is setup by the layout engine,
+        /// do not simply subtract off the scroll bar from the window width!!
+        /// </summary>
         protected Size TextExtent {
             get {
                 Size sizeExtent = 
-                    new Size( this.Width     - _oScrollBarVirt.Width, 
-                              this.Height /* - _hScrollBar.Height */ );
+                    new Size( _rctTextArea.Width, _rctTextArea.Height );
                 return( sizeExtent );
             }
         }

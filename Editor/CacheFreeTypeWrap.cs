@@ -206,18 +206,24 @@ namespace Play.Edit {
 
         /// <summary>
         /// Just a dumb "I've got no formatting" word wrapper. Just wrap whenever hit an edge.
+        /// We special case the first cluster since we want to advance AFTER we've set it's 
+        /// first column valuse. Each column must have at least ONE character on it.
         /// </summary>
         protected void WrapSegmentNoWords( int iDisplayWidth ) {
             iDisplayWidth <<= 6;
             int iAdvance = 0;
             _iWrapCount  = 0;
 
-            for( int iCluster = 0; iCluster < _rgClusters.Count; ++iCluster ) {
-                iAdvance = _rgClusters[iCluster].Increment( iAdvance, _iWrapCount );
-                if( iAdvance > iDisplayWidth ) {
+            if( _rgClusters.Count > 0 ) {
+                iAdvance = _rgClusters[0].Increment( iAdvance, _iWrapCount );
+            }
+
+            for( int iCluster = 1; iCluster < _rgClusters.Count; ++iCluster ) {
+                if( iAdvance + _rgClusters[iCluster].AdvanceOffsEm > iDisplayWidth ) {
                     iAdvance = 0;
                     _iWrapCount++;
                 }
+                iAdvance = _rgClusters[iCluster].Increment( iAdvance, _iWrapCount );
             }
         }
 

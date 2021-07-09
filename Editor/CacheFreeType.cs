@@ -406,11 +406,22 @@ namespace Play.Edit {
         /// <param name="iDisplayWidth"></param>
         /// <seealso cref="Update"/>
         /// <seealso cref="OnChangeSize"/>
+        /// <seealso cref="FTCacheWrap.WrapSegmentNoWords(int)"/>
         public virtual void WrapSegments( int iDisplayWidth ) {
+            //iDisplayWidth <<= 6;
             int iAdvance = 0;
+            int _iWrapCount  = 0;
 
-            for( int iCluster = 0; iCluster < _rgClusters.Count; ++iCluster ) {
-                iAdvance = _rgClusters[iCluster].Increment( iAdvance, 0 );
+            if( _rgClusters.Count > 0 ) {
+                iAdvance = _rgClusters[0].Increment( iAdvance, _iWrapCount );
+            }
+
+            for( int iCluster = 1; iCluster < _rgClusters.Count; ++iCluster ) {
+                if(  iAdvance + _rgClusters[iCluster].AdvanceOffsEm > iDisplayWidth ) {
+                    iAdvance = 0;
+                    _iWrapCount++;
+                }
+                iAdvance = _rgClusters[iCluster].Increment( iAdvance, _iWrapCount );
             }
         }
 

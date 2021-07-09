@@ -402,10 +402,10 @@ namespace Play.MorsePractice {
         /// <param name="iFrequency"></param>
         public void CiVFrequencyChange( int iFrequency ) {
             RepeaterDir oRepeater;
-            double      flFreqInMhz = (double)iFrequency / Math.Pow( 10, 6 );
+            double      dblFreqInMhz = (double)iFrequency / Math.Pow( 10, 6 );
 
             Properties.UpdateValue( 0, "Stopped." );
-            Properties.UpdateValue( 2, flFreqInMhz.ToString() + " mHz" );
+            Properties.UpdateValue( 2, dblFreqInMhz.ToString() + " mHz" );
             Properties.UpdateValue( 3, string.Empty ); // clear callsign.
             Properties.UpdateValue( 4, string.Empty );
             Properties.UpdateValue( 5, string.Empty );
