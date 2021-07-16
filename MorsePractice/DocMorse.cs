@@ -256,7 +256,8 @@ namespace Play.MorsePractice {
         readonly Dictionary <int, RepeaterDir>     _rgRepeatersIn   = new Dictionary<int, RepeaterDir>();
         readonly Dictionary <int, RepeaterDir>     _rgRepeatersOut  = new Dictionary<int, RepeaterDir>();
         readonly Dictionary <string, RepeaterInfo> _rgRepeatersInfo = new Dictionary<string, RepeaterInfo>();
-        protected int _iFrequency = 0;
+        protected int    _iRadioFrequency = 0;
+        protected double _dblRadioTone    = 0;
 
 		protected static readonly HttpClient _oHttpClient = new HttpClient(); 
 
@@ -406,13 +407,14 @@ namespace Play.MorsePractice {
             RepeaterDir oRepeater;
             double      dblFreqInMhz = (double)iFrequency / Math.Pow( 10, 6 );
 
-            _iFrequency = iFrequency;
+            _iRadioFrequency = iFrequency;
 
             Properties.UpdateValue( 0, "Stopped." );
             Properties.UpdateValue( 2, dblFreqInMhz.ToString() + " mHz" );
             Properties.UpdateValue( 3, string.Empty ); // clear callsign.
             Properties.UpdateValue( 4, string.Empty );
             Properties.UpdateValue( 5, string.Empty );
+            Properties.UpdateValue( 6, string.Empty );
 
             if( _rgRepeatersIn.TryGetValue( iFrequency, out oRepeater ) ) {
                 Properties.UpdateValue( 0, "Timer start..." );
@@ -431,6 +433,7 @@ namespace Play.MorsePractice {
                 if( _rgRepeatersInfo.TryGetValue( oRepeater.CallSign, out oInfo ) ) {
                     Properties.UpdateValue( 4, oInfo.Location );
                     Properties.UpdateValue( 5, oInfo.Group );
+                    Properties.UpdateValue( 6, oRepeater.Tone );
                 }
             }
 
@@ -439,7 +442,7 @@ namespace Play.MorsePractice {
         }
 
         public void CiVRepeaterToneReport( double dblTone, ToneType eType ) {
-            Properties.UpdateValue( 6, dblTone.ToString() );
+            _dblRadioTone = dblTone;
         }
 
         /// <summary>
@@ -451,18 +454,23 @@ namespace Play.MorsePractice {
             Properties.UpdateValue( 7, fValue.ToString() );
 
             // this stuff we really only want to do as the result
-            // of processing a frequency change. Need some way to tell
-            // we want the below for that case only.
+            // of processing a frequency change, and we stop spinning
+            // the dial for a few seconds or so.
 
-            if( _rgRepeatersOut.TryGetValue( _iFrequency, out RepeaterDir oInfo ) ) {
-                if( !string.IsNullOrEmpty( oInfo.Tone ) && fValue == false ) {
-                    LogError( "Alert", "Repeater tone must be set", true );
-                    //if( string.Compare( oInfo.Tone, Properties[6].ToString() ) != 0 ) {
-                        // Set frequency.
-                    //}
-                    // Turn on the repeater tone squelch.
+            /*
+            if( _rgRepeatersOut.TryGetValue( _iRadioFrequency, out RepeaterDir oInfo ) ) {
+                if( !string.IsNullOrEmpty( oInfo.Tone ) ) {
+                    double.TryParse( Properties[6].ToString(), out double dblRptrTone );
+                    if( dblRptrTone != _dblRadioTone ) {
+                        LogError( "Alert", "Radio tone does not match repeater.", true );
+                    } else {
+                        if( fValue == false ) {
+                            LogError( "Alert", "Radio tone must be enabled!", true );
+                        }
+                    }
                 }
             }
+            */
         }
 
         public void CiVModeChange( string strMode, string strFilter ) {
