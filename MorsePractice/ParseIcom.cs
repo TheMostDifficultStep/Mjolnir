@@ -79,6 +79,29 @@ namespace Play.MorsePractice {
                                         oSink.CiVFrequencyChange( iResult );
                                     }
                                 } break;
+                                case "1B": { // Send the frequency data (transceive)
+                                    string[] rgDigits = { ".1Hz", "1Hz", "10Hz", "100Hz" };
+                                    int      iPow     = 1;
+                                    double   dblResult  = 0;
+                                    foreach( string strDigit in rgDigits ) {
+                                        string strValue = GetStringBinding( _oStream, oData, strDigit );
+                                        dblResult += int.Parse( strValue ) * iPow;
+                                        iPow *= 10;
+                                    }
+                                    dblResult /= 10;
+                                    foreach( IPgCiVEvents oSink in _rgEvents ) {
+                                        oSink.CiVRepeaterToneReport( dblResult, ToneType.Tone );
+                                    }
+                                } break;
+                                case "16": {
+                                    if( string.Compare( strCmdSub, "42" ) == 0 ) {
+                                        string strValue = GetStringBinding( _oStream, oData, "onoff" );
+                                        bool fValue = string.Compare( strValue, "01" ) == 0;
+                                        foreach( IPgCiVEvents oSink in _rgEvents ) {
+                                            oSink.CiVRepeaterToneEnable( fValue );
+                                        }
+                                    }
+                                } break;
                             }
                         }
                     }

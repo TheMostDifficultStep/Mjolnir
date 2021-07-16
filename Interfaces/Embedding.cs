@@ -648,10 +648,16 @@ namespace Play.Interfaces.Embedding {
 		}
     }
 
+    public enum ToneType {
+        Tone, TSQL, DTCS, CSQL
+    }
+
     public interface IPgCiVEvents {
-        void CiVError          ( string strError );
-        void CiVFrequencyChange( int iFrequency );
-        void CiVModeChange     ( string strMode, string strFilter );
+        void CiVError             ( string strError );
+        void CiVFrequencyChange   ( int iFrequency );
+        void CiVModeChange        ( string strMode, string strFilter );
+        void CiVRepeaterToneReport( double dblTone, ToneType eType );
+        void CiVRepeaterToneEnable( bool fValue );
     }
 
     public class ViewType : IPgViewType {
