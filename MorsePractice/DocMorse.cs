@@ -524,7 +524,7 @@ namespace Play.MorsePractice {
                 _oDataGram.TryAppend( strByte + " " );
             }
 
-            SerialToList( rgMsg ); // Debug things..
+            // SerialToList( rgMsg ); // Debug things..
 
             _oParse?.Parse();
         }
