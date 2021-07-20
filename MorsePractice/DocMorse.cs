@@ -266,10 +266,13 @@ namespace Play.MorsePractice {
                 Type[] rgErrors = { typeof( UnauthorizedAccessException ),
                                     typeof( IOException ),
                                     typeof( ArgumentOutOfRangeException ),
+                                    typeof( ArgumentNullException ),
                                     typeof( ArgumentException ),
                                     typeof( InvalidOperationException ),
                                     typeof( NullReferenceException ),
-                                    typeof( FileNotFoundException ) };
+                                    typeof( FileNotFoundException ),
+                                    typeof( TimeoutException ),
+                                    typeof( OperationCanceledException ) };
                 return rgErrors;
             }
         }
@@ -283,7 +286,7 @@ namespace Play.MorsePractice {
             _oScheduler = Services as IPgScheduler ?? throw new ArgumentException("Host requries IPgScheduler");
             _oTaskQrz   = _oScheduler.CreateWorkPlace() ?? throw new ApplicationException("No worksite for file downloader.");
             _oTaskCiv   = _oScheduler.CreateWorkPlace() ?? throw new ApplicationException("No worksite for Civ." );
-            _oTaskTimer = _oScheduler.CreateWorkPlace() ?? throw new ApplicationException("No worksite for Keydown timer." );
+            _oTaskTimer = _oScheduler.CreateWorkPlace() ?? throw new ApplicationException("No worksite for Frequency Change Listener." );
 
 			try {
 				_oCiVGrammar = (Grammer<char>)((IPgGrammers)Services).GetGrammer( "civ" );
@@ -607,7 +610,19 @@ namespace Play.MorsePractice {
             rgCommand.Add( bCmnd );
             rgCommand.Add( 0xfd );
 
-            _oCiV.Write( rgCommand.ToArray(), 0, rgCommand.Count );
+            try {
+                _oCiV.Write( rgCommand.ToArray(), 0, rgCommand.Count );
+            } catch( Exception oEx ) {
+                Type[] rgException = { typeof( ArgumentNullException ),
+                                       typeof( InvalidOperationException ),
+                                       typeof( ArgumentOutOfRangeException ),
+                                       typeof( ArgumentException ),
+                                       typeof( OperationCanceledException ) };
+                if( rgException.IsUnhandled( oEx ) )
+                    throw;
+
+                LogError( "CiV", "CiV Send Command Error" );
+            }
         }
 
         protected void SendCommand( byte bCmnd, Byte bSub ) {
@@ -623,7 +638,19 @@ namespace Play.MorsePractice {
             rgCommand.Add( bSub  );
             rgCommand.Add( 0xfd );
 
-            _oCiV.Write( rgCommand.ToArray(), 0, rgCommand.Count );
+            try {
+                _oCiV.Write( rgCommand.ToArray(), 0, rgCommand.Count );
+            } catch( Exception oEx ) {
+                Type[] rgException = { typeof( ArgumentNullException ),
+                                       typeof( InvalidOperationException ),
+                                       typeof( ArgumentOutOfRangeException ),
+                                       typeof( ArgumentException ),
+                                       typeof( OperationCanceledException ) };
+                if( rgException.IsUnhandled( oEx ) )
+                    throw;
+
+                LogError( "CiV", "CiV Send Command Error" );
+            }
         }
 
         /// <summary>
@@ -736,8 +763,14 @@ namespace Play.MorsePractice {
             if( iBytesWaiting > 0 ) {
                 byte[] rgMsg = new byte[iBytesWaiting];
 
-                _oCiV?.Read( rgMsg, 0, iBytesWaiting );
-                _oMsgQueue.Enqueue( rgMsg );
+                try {
+                    _oCiV?.Read( rgMsg, 0, iBytesWaiting );
+                    _oMsgQueue.Enqueue( rgMsg );
+                } catch( Exception oEx ) {
+                    if( CiVErrorList.IsUnhandled( oEx ) )
+                        throw;
+                    LogError( "CiV", "CiV Data Receive Error" );
+                }
             }
         }
 
