@@ -442,6 +442,7 @@ namespace Play.MorsePractice {
 
             SendCommand( 0x1B, 0x00 ); // request tone freq.
             SendCommand( 0x16, 0x42 ); // request repeter tone squelch.
+            SendCommand( 0x14, 0x0A ); // request power level.
         }
 
         public void CiVRepeaterToneReport( double dblTone, ToneType eType ) {
@@ -477,6 +478,11 @@ namespace Play.MorsePractice {
         }
 
         public void CiVModeChange( string strMode, string strFilter ) {
+        }
+
+        public void CiVPowerLevel( int iLevel ) {
+            float flPercent = ( iLevel ) / 255F;
+            Properties.UpdateValue( 8, flPercent.ToString( "P2" ) );
         }
 
         /// <summary>
@@ -535,7 +541,7 @@ namespace Play.MorsePractice {
                 _oDataGram.TryAppend( strByte + " " );
             }
 
-            // SerialToList( rgMsg ); // Debug things..
+            //SerialToList( rgMsg ); // Debug things..
 
             _oParse?.Parse();
         }
@@ -701,7 +707,7 @@ namespace Play.MorsePractice {
         protected void InitRepeaters() {
             List< RepeaterDir > rgTemp = new List<RepeaterDir>();
 
-            rgTemp.Add( new RepeaterDir(  53.17,  -1700, 120, "k7lwh",  "103.5" )); 
+            rgTemp.Add( new RepeaterDir(  53.17,  -1700, 120, "k7lwh",  "100.0" )); 
             rgTemp.Add( new RepeaterDir(  52.87,  -1700, 180 ));
             rgTemp.Add( new RepeaterDir( 146.96,   -600, 180, "ww7psr", "103.5" )); 
             rgTemp.Add( new RepeaterDir( 146.82,   -600, 120, "k7led",  "103.5" ));
@@ -750,6 +756,7 @@ namespace Play.MorsePractice {
             Properties.AddLabel( "Group" );
             Properties.AddLabel( "Repeater Tone" );
             Properties.AddLabel( "Rptr Tone Enable" );
+            Properties.AddLabel( "Power Level" );
         }
 
         /// <summary>

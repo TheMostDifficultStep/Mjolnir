@@ -658,6 +658,7 @@ namespace Play.Interfaces.Embedding {
         void CiVModeChange        ( string strMode, string strFilter );
         void CiVRepeaterToneReport( double dblTone, ToneType eType );
         void CiVRepeaterToneEnable( bool fValue );
+        void CiVPowerLevel        ( int iLevel ); // 0 - 255;
     }
 
     public class ViewType : IPgViewType {

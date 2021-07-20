@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Text;
 
 using Play.Interfaces.Embedding; 
 using Play.Edit;
@@ -99,6 +100,20 @@ namespace Play.MorsePractice {
                                         bool fValue = string.Compare( strValue, "01" ) == 0;
                                         foreach( IPgCiVEvents oSink in _rgEvents ) {
                                             oSink.CiVRepeaterToneEnable( fValue );
+                                        }
+                                    }
+                                } break;
+                                case "14": {
+                                    if( string.Compare( strCmdSub, "0A" ) == 0 ) {
+                                        string strValueMsb = GetStringBinding( _oStream, oData, "value-msb" );
+                                        string strValueLsb = GetStringBinding( _oStream, oData, "value-lsb" );
+                                        StringBuilder oSB = new StringBuilder();
+                                        oSB.Append( strValueMsb );
+                                        oSB.Append( strValueLsb );
+                                        int iLevel = int.Parse( oSB.ToString() );
+
+                                        foreach( IPgCiVEvents oSink in _rgEvents ) {
+                                            oSink.CiVPowerLevel( iLevel );
                                         }
                                     }
                                 } break;
