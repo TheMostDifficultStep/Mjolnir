@@ -131,8 +131,10 @@ namespace Play.Clock {
         IPgCommandView,
         IBufferEvents
     {
-        private   readonly string      _strViewIcon  = "Play.Clock.Content.icon_clock.gif";
-        protected readonly IPgViewSite _oViewSite;
+        private   readonly string         _strViewIcon  = "Play.Clock.Content.icon_clock.gif";
+        protected readonly IPgViewSite    _oViewSite;
+        protected readonly IPgStandardUI2 _oStdUI;
+
 
         public Guid      Catagory  => Guid.Empty; // Default view.
         public string    Banner    => "World Clock";
@@ -146,6 +148,7 @@ namespace Play.Clock {
         public ViewClock( IPgViewSite oViewSite, DocumentClock oDocClock ) : base( oViewSite, oDocClock.DocZones ) {
             Document   = oDocClock ?? throw new ArgumentNullException( "Clock document must not be null." );
             _oViewSite = oViewSite;
+ 			_oStdUI    = Services as IPgStandardUI2 ?? throw new ArgumentException( "Parent view must provide IPgStandardUI service" );
 
 			Iconic = ImageResourceHelper.GetImageResource( Assembly.GetExecutingAssembly(), _strViewIcon );
         }
@@ -196,7 +199,7 @@ namespace Play.Clock {
             CacheList.Add( oLayoutZone12h );
 
             foreach( LayoutSingleLine oCache in CacheList ) {
-                oCache.BgColor = SkiaSharp.SKColors.LightBlue;
+                oCache.BgColor = _oStdUI.ColorsStandardAt( StdUIColors.BGNoEditText );
             }
 
             Caret.Layout = oLayoutTimeUtc;
