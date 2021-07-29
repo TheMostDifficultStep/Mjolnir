@@ -140,7 +140,7 @@ namespace Mjolnir {
     }
 
 	/// <summary>
-	/// An editor for view sites. This is a bit of an experiment with my non mutible buffer
+	/// An editor for view sites. This is a bit of an experiment with my non mutiple buffer
 	/// version of the editor.
 	/// </summary>
     public class ViewsEditor : BaseEditor {
