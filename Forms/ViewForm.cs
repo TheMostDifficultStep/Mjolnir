@@ -33,8 +33,10 @@ namespace Play.Forms {
             SKPointI pntUL = this.GetPoint(LOCUS.UPPERLEFT);
             using SKPaint skPaint = new SKPaint() { Color = BgColor };
 
+            // Draw bg
             skCanvas.DrawRect( this.Left, this.Top, this.Width, this.Height, skPaint );
 
+            // Draw text.
             Cache.Render( skCanvas, oStdUI, new PointF( pntUL.X, pntUL.Y ), fFocused );
         }
 

@@ -78,7 +78,6 @@ namespace Play.Edit {
         int    _iLine             = -1;
         int    _iCumulativeLength = 0; // Num of chars infront of us.
         int    _iWordCount        = 0;
-	  //int    _iHilight          = -1;
 
         public Line( int iLine ) {
             _iLine = iLine;

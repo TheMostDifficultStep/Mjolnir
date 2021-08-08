@@ -5,6 +5,8 @@ using System.Windows.Forms;
 using System.Drawing;
 using System.Xml;
 
+using SkiaSharp;
+
 using Play.Interfaces.Embedding;
 using Play.Rectangles;
 using Play.Edit;
@@ -269,21 +271,25 @@ namespace Play.MorsePractice {
         protected DocProperties Document { get; }
 		protected readonly IPgStandardUI2 _oStdUI;
 
+		public SKColor BgColorDefault { get; protected set; }
+
         public ViewStandardProperties( IPgViewSite oSiteView, DocProperties oDocument ) : base( oSiteView, oDocument.Property_Values ) {
             Document = oDocument ?? throw new ArgumentNullException( "ViewStandardProperties's Document is null." );
  			_oStdUI  = oSiteView.Host.Services as IPgStandardUI2 ?? throw new ArgumentException( "Parent view must provide IPgStandardUI service" );
+
+			BgColorDefault = _oStdUI.ColorsStandardAt( StdUIColors.BG );
         }
 
-        public void PropertyInitRow( SmartTable oLayout, int iIndex, EditWindow2 oEditWin = null ) {
-            var oLayoutLabel = new LayoutSingleLine( new FTCacheWrap( Document.Property_Labels[iIndex]   ), LayoutRect.CSS.Flex );
+        public void PropertyInitRow( SmartTable oLayout, int iIndex, EditWindow2 oWinValue = null ) {
+            var oLayoutLabel = new LayoutSingleLine( new FTCacheWrap( Document.Property_Labels[iIndex] ), LayoutRect.CSS.Flex );
             LayoutRect oLayoutValue;
             
-            if( oEditWin == null ) {
+            if( oWinValue == null ) {
                 oLayoutValue = new LayoutSingleLine( new FTCacheWrap( Document.Property_Values[iIndex] ), LayoutRect.CSS.Flex );
-            } else {
-                oEditWin.InitNew();
-                oEditWin.Parent = this;
-                oLayoutValue = new LayoutControl( oEditWin, LayoutRect.CSS.Pixels, 100 );
+            } else { // If the value is a multi-line value make an editor.
+                oWinValue.InitNew();
+                oWinValue.Parent = this;
+                oLayoutValue = new LayoutControl( oWinValue, LayoutRect.CSS.Pixels, 100 );
             }
 
             oLayout.AddRow( new List<LayoutRect>() { oLayoutLabel, oLayoutValue } );
@@ -292,7 +298,12 @@ namespace Play.MorsePractice {
 
             CacheList.Add( oLayoutLabel );
             if( oLayoutValue is LayoutSingleLine oLayoutSingle ) {
-                oLayoutSingle.BgColor = _oStdUI.ColorsStandardAt( StdUIColors.BG );
+				SKColor skBgColor = BgColorDefault;
+
+				if( Document.ValueBgColor.TryGetValue( iIndex, out SKColor skBgColorOverride ) ) {
+					skBgColor = skBgColorOverride;
+				}
+                oLayoutSingle.BgColor = skBgColor;
                 CacheList.Add( oLayoutSingle );
             }
         }
