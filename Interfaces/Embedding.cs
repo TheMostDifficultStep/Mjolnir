@@ -655,7 +655,7 @@ namespace Play.Interfaces.Embedding {
 
     public interface IPgCiVEvents {
         void CiVError             ( string strError );
-        void CiVFrequencyChange   ( int iFrequency );
+        void CiVFrequencyChange   ( bool fRequest, int iFrequency );
         void CiVModeChange        ( string strMode, string strFilter );
         void CiVRepeaterToneReport( double dblTone, ToneType eType );
         void CiVRepeaterToneEnable( bool fValue );

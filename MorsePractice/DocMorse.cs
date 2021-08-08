@@ -484,7 +484,9 @@ namespace Play.MorsePractice {
         /// on simplex. Tho' that's not as important.
         /// </summary>
         /// <param name="iFrequency"></param>
-        public void CiVFrequencyChange( int iFrequency ) {
+        /// <param name="fRequest">If we sent a 03 freqency request, we'll have fRequest = true,
+        /// if the frequency change is just because we turned the dial or started transmitting fRequest = false.</param>
+        public void CiVFrequencyChange( bool fRequest, int iFrequency ) {
             RepeaterDir oRepeater;
             double      dblFreqInMhz = (double)iFrequency / Math.Pow( 10, 6 );
 
@@ -497,9 +499,11 @@ namespace Play.MorsePractice {
             Properties.ValueUpdate( RadioProperties.Names.Frequency, dblFreqInMhz.ToString() + " mHz" );
 
             if( _rgRepeatersIn.TryGetValue( iFrequency, out oRepeater ) ) {
-                Properties.ValueUpdate( RadioProperties.Names.Timer,   "Timer start..." );
-                Properties.ValueUpdate( RadioProperties.Names.Callsign, oRepeater.CallSign );
-                _oTaskTimer.Queue( ListenForTimout( oRepeater.Timeout ), 0 );
+                if( !fRequest ) {
+                    Properties.ValueUpdate( RadioProperties.Names.Timer,   "Timer start..." );
+                    Properties.ValueUpdate( RadioProperties.Names.Callsign, oRepeater.CallSign );
+                    _oTaskTimer.Queue( ListenForTimout( oRepeater.Timeout ), 0 );
+                }
             } else {
                 if( _rgRepeatersOut.TryGetValue( iFrequency, out oRepeater ) ) {
                     Properties.ValueUpdate( RadioProperties.Names.Timer,    "Timer stop..." );
@@ -1203,7 +1207,7 @@ namespace Play.MorsePractice {
                     } else {
                         // This will get cleared, but leave it for now. Need to have some
                         // properties that have a function that gets called on clear.
-                        Properties.ValueUpdate( 1, "Already Opened" ); 
+                        Properties.ValueUpdate( RadioProperties.Names.Timer, "Already Opened" ); 
                     }
                     SendCommand( 0x03 );       // Read Frequency.
                     SendCommand( 0x1B, 0x00 ); // Read tone.
@@ -1211,7 +1215,7 @@ namespace Play.MorsePractice {
                     if( CiVErrorList.IsUnhandled( oEx ) )
                         throw;
 
-                    Properties.ValueUpdate( 1, "Open Error" );
+                    Properties.ValueUpdate( RadioProperties.Names.Timer, "Open Error" );
                     LogError( "Morse", oEx.Message, fShow:false );
                 }
                 return true; // Handled, even if ended in error.
@@ -1220,9 +1224,9 @@ namespace Play.MorsePractice {
                 try {
                     if( _oCiV.IsOpen ) {
                         _oCiV.Close();
-                        Properties.ValueUpdate( 1, "Off" );
+                        Properties.ValueUpdate( RadioProperties.Names.Timer, "Off" );
                     } else {
-                        Properties.ValueUpdate( 1, "Already Closed" );
+                        Properties.ValueUpdate( RadioProperties.Names.Timer, "Already Closed" );
                     }
                 } catch( Exception oEx ) {
                     if( CiVErrorList.IsUnhandled( oEx ) )
@@ -1335,6 +1339,11 @@ namespace Play.MorsePractice {
         }
     }
 
+    /// <summary>
+    /// This subclass of the DocProperties let's us have static index values. This is advantageous because it
+    /// allows us to re-arrange property values without scrambling their meaning. But it also means you can't
+    /// use some kind of runtime forms generator since the indicies must have corresponding pre compiled enum's.
+    /// </summary>
     public class RadioProperties : DocProperties {
         public enum Names : int {
             Radio_Link,

@@ -76,8 +76,9 @@ namespace Play.MorsePractice {
                                         iResult += int.Parse( strValue ) * iPow;
                                         iPow *= 10;
                                     }
+                                    bool fRequest = string.Compare( strCmdID, "03" ) == 0 ? true : false; 
                                     foreach( IPgCiVEvents oSink in _rgEvents ) {
-                                        oSink.CiVFrequencyChange( iResult );
+                                        oSink.CiVFrequencyChange( fRequest, iResult );
                                     }
                                 } break;
                                 case "1B": { // Send the frequency data (transceive)
