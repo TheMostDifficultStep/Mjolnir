@@ -485,12 +485,11 @@ namespace Play.MorsePractice {
 
             _iRadioFrequency = iFrequency;
 
-            Properties.UpdateValue( 0, "Stopped." );
+            Properties.Clear();
+
+            Properties.UpdateValue( 0, "Stopped" );
+            Properties.UpdateValue( 1, "On" );
             Properties.UpdateValue( 2, dblFreqInMhz.ToString() + " mHz" );
-            Properties.UpdateValue( 3, string.Empty ); // clear callsign.
-            Properties.UpdateValue( 4, string.Empty );
-            Properties.UpdateValue( 5, string.Empty );
-            Properties.UpdateValue( 6, string.Empty );
 
             if( _rgRepeatersIn.TryGetValue( iFrequency, out oRepeater ) ) {
                 Properties.UpdateValue( 0, "Timer start..." );
@@ -1197,13 +1196,13 @@ namespace Play.MorsePractice {
                 try {
                     if( !_oCiV.IsOpen ) {
                         _oCiV.Open();
-                        SendCommand( 0x03 );
-                        SendCommand( 0x1B, 0x00 );
-                        Properties.UpdateValue( 1, "On" );
                     } else {
-                        SendCommand( 0x03 );
-                        Properties.UpdateValue( 1, "Already Opened" );
+                        // This will get cleared, but leave it for now. Need to have some
+                        // properties that have a function that gets called on clear.
+                        Properties.UpdateValue( 1, "Already Opened" ); 
                     }
+                    SendCommand( 0x03 );       // Read Frequency.
+                    SendCommand( 0x1B, 0x00 ); // Read tone.
                 } catch( Exception oEx ) {
                     if( CiVErrorList.IsUnhandled( oEx ) )
                         throw;
@@ -1297,6 +1296,15 @@ namespace Play.MorsePractice {
             get { 
                 return Property_Values[iIndex];
             }
+        }
+
+        public int Count => Property_Values.ElementCount; 
+
+        public void Clear() {
+            foreach( Line oLine in Property_Values ) {
+                oLine.Empty();
+            }
+            Property_Values.Raise_BufferEvent( BUFFEREVENTS.MULTILINE ); 
         }
 
         public void UpdateValue( int iIndex, string strValue ) {
