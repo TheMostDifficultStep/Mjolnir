@@ -191,7 +191,7 @@ namespace Play.Edit {
 
 		IPgAnonymousWorker    _oMorse;
 		readonly List<string> _rgTools = new List<string>();
-		int                   _iSelectedTool = 0;
+		protected int         _iSelectedTool = 0;
 
 		public IPgParent Parentage    => _oSiteView.Host;
         public object    DocumentText => _oDocument;

@@ -362,15 +362,17 @@ namespace Play.MorsePractice {
         }
 
         public struct RepeaterInfo {
-            public RepeaterInfo( string strLocation, string strGroup ) {
+            public RepeaterInfo( string strLocation, string strGroup, string strUrl = "" ) {
                 Location = strLocation;
                 Group    = strGroup;
                 Grid     = string.Empty;
+                URL      = strUrl;
             }
 
             public string Location { get; }
             public string Group    { get; }
             public string Grid     { get; }
+            public string URL      { get; }
         }
 
         public struct RepeaterDir {
@@ -429,27 +431,43 @@ namespace Play.MorsePractice {
             int _iColor = 1;
             int _iStart;
             int _iLength;
+            string _strAlternate;
 
-            public RepeaterHyperText( int iColor, int iStart, int iLength ) {
+            public RepeaterHyperText( int iColor, int iStart, int iLength, string strAlt = "Alternate" ) {
                 _iColor  = iColor;
                 _iStart  = iStart;
                 _iLength = iLength;
+                _strAlternate = strAlt;
             }
 
             public bool   IsWord     => true;
             public bool   IsTerm     => true;
-            public string StateName  => "Alternate";
+            public string StateName  => _strAlternate;
             public int    ColorIndex => _iColor;
 
             public int Offset { get => _iStart;  set => throw new NotImplementedException(); }
             public int Length { get => _iLength; set => throw new NotImplementedException(); }
         }
 
-        public void AlternatesPopulate( RepeaterDir oRepeater ) {
+        /// <summary>
+        /// Populate the URL property setting the URL value and it's formatting        /// </summary>
+        /// <remarks>. You know, I could probably just parse the properties document as a text (or 
+        /// modified text grammer) document and get all the formatting for free.
+        /// </remarks>
+        public void PopulateURL( RepeaterInfo oInfo ) {
+            Line oLine = Properties[(int)RadioProperties.Names.Repeater_URL];
+
+            oLine.Empty();
+            oLine.Formatting.Clear();
+
+            oLine.TryAppend( oInfo.URL );
+            oLine.Formatting.Add( new RepeaterHyperText( 1, 0, oInfo.URL.Length, "URL" ) );
+        }
+
+        public void PopulateAlternates( RepeaterDir oRepeater ) {
             List<RepeaterDir> rgRepeaters = RepeaterBandsFind( oRepeater );
 
-            Line oLine = Properties[9];
-
+            Line oLine = Properties[(int)RadioProperties.Names.Alternates];
 
             oLine.Empty();
             oLine.Formatting.Clear();
@@ -484,9 +502,9 @@ namespace Play.MorsePractice {
         /// on simplex. Tho' that's not as important.
         /// </summary>
         /// <param name="iFrequency"></param>
-        /// <param name="fRequest">If we sent a 03 freqency request, we'll have fRequest = true,
+        /// <param name="fRequested">If we sent a 03 freqency request, we'll have fRequest = true,
         /// if the frequency change is just because we turned the dial or started transmitting fRequest = false.</param>
-        public void CiVFrequencyChange( bool fRequest, int iFrequency ) {
+        public void CiVFrequencyChange( bool fRequested, int iFrequency ) {
             RepeaterDir oRepeater;
             double      dblFreqInMhz = (double)iFrequency / Math.Pow( 10, 6 );
 
@@ -499,7 +517,7 @@ namespace Play.MorsePractice {
             Properties.ValueUpdate( RadioProperties.Names.Frequency, dblFreqInMhz.ToString() + " mHz" );
 
             if( _rgRepeatersIn.TryGetValue( iFrequency, out oRepeater ) ) {
-                if( !fRequest ) {
+                if( !fRequested ) {
                     Properties.ValueUpdate( RadioProperties.Names.Timer,   "Timer start..." );
                     Properties.ValueUpdate( RadioProperties.Names.Callsign, oRepeater.CallSign );
                     _oTaskTimer.Queue( ListenForTimout( oRepeater.Timeout ), 0 );
@@ -518,8 +536,9 @@ namespace Play.MorsePractice {
                     Properties.ValueUpdate( RadioProperties.Names.Location,      oInfo.Location );
                     Properties.ValueUpdate( RadioProperties.Names.Group,         oInfo.Group );
                     Properties.ValueUpdate( RadioProperties.Names.Repeater_Tone, oRepeater.Tone );
+                    PopulateURL( oInfo );
                 }
-                AlternatesPopulate( oRepeater );
+                PopulateAlternates( oRepeater );
             }
 
             SendCommand( 0x1B, 0x00 ); // request tone freq.
@@ -823,19 +842,21 @@ namespace Play.MorsePractice {
             rgTemp.Add( new RepeaterDir( 146.900,  -600, 120, "w7srz",    "103.5" ));
             rgTemp.Add( new RepeaterDir( 147.240,  -600, 120, "k7sye",    "123" ));
             rgTemp.Add( new RepeaterDir( 444.6375, 5000, 120, "wa7hjr/b" ));
+            rgTemp.Add( new RepeaterDir( 444.650,  5000, 120, "wa7hjr/rm", "131.8" ));
             rgTemp.Add( new RepeaterDir( 444.55,   5000, 120, "ww7sea",   "141.3" ));
             rgTemp.Add( new RepeaterDir( 441.075,  5000, 120, "k7lwh",    "103.5" ));
             rgTemp.Add( new RepeaterDir( 442.875,  5000, 120, "w7aux",    "103.5" ));
             rgTemp.Add( new RepeaterDir( 149.995,  -600, 120, "w7rnk/c"  ));
 
-            _rgRepeatersInfo.Add( "k7lwh", new RepeaterInfo( "Kirkland", "Lake Washington Ham Club" ));
-            _rgRepeatersInfo.Add( "ww7psr",new RepeaterInfo( "Seattle", "Puget Sound Repeater Group" ));
-            _rgRepeatersInfo.Add( "k7led", new RepeaterInfo( "Tiger Mountain East", "Mike & Key ARC" ));
-            _rgRepeatersInfo.Add( "wa7dem",new RepeaterInfo( "Granite Falls", "Snohomish Co. ACS/ARES" ));
-            _rgRepeatersInfo.Add( "w7mir", new RepeaterInfo( "Mercer island", "Mercer Island Radio Operators" ));
-            _rgRepeatersInfo.Add( "k6rfk", new RepeaterInfo( "Woodinville", "" ));
-            _rgRepeatersInfo.Add( "w7wwi", new RepeaterInfo( "Tiger Mtn East", "Sea-Tac Repeater Association" ));
-            _rgRepeatersInfo.Add( "k7sye", new RepeaterInfo( "Auburn", "Auburn Valley Repeater Group" ));
+            _rgRepeatersInfo.Add( "k7lwh",  new RepeaterInfo( "Kirkland", "Lake Washington Ham Club", "http://www.lakewashingtonhamclub.org/" ));
+            _rgRepeatersInfo.Add( "ww7psr", new RepeaterInfo( "Seattle", "Puget Sound Repeater Group", "http://psrg.org/" ));
+            _rgRepeatersInfo.Add( "k7led",  new RepeaterInfo( "Tiger Mountain East", "Mike & Key ARC", "http://www.mikeandkey.org/index.php" ));
+            _rgRepeatersInfo.Add( "wa7dem", new RepeaterInfo( "Granite Falls", "Snohomish Co. ACS/ARES" ));
+            _rgRepeatersInfo.Add( "w7mir",  new RepeaterInfo( "Mercer island", "Mercer Island Radio Operators" ));
+            _rgRepeatersInfo.Add( "k6rfk",  new RepeaterInfo( "Woodinville", "" ));
+            _rgRepeatersInfo.Add( "w7wwi",  new RepeaterInfo( "Tiger Mtn East", "Sea-Tac Repeater Association" ));
+            _rgRepeatersInfo.Add( "k7sye",  new RepeaterInfo( "Auburn", "Auburn Valley Repeater Group" ));
+            _rgRepeatersInfo.Add( "wa7hjr", new RepeaterInfo( "Issaquah", "Tiger Mountain East", "http://wa7hjr.org/" ) );
 
             foreach( RepeaterDir oItem in rgTemp ) {
                 _rgRepeatersIn .Add( oItem.Input, oItem );
@@ -1354,6 +1375,7 @@ namespace Play.MorsePractice {
             Group,
             Repeater_Tone,
             Rptr_Tone_Enable,
+            Repeater_URL,
             Power_Level,
             Alternates,
             COM_Port,
@@ -1382,6 +1404,7 @@ namespace Play.MorsePractice {
             LabelSet( Names.Group,              "Group" );
             LabelSet( Names.Repeater_Tone,      "Repeater Tone" );
             LabelSet( Names.Rptr_Tone_Enable,   "Rptr Tone Enable" );
+            LabelSet( Names.Repeater_URL,       "Repeater URL" );
             LabelSet( Names.Power_Level,        "Power Level" );
             LabelSet( Names.Alternates,         "Alternates" );
             LabelSet( Names.COM_Port,           "COM Port" );
@@ -1421,6 +1444,7 @@ namespace Play.MorsePractice {
             Property_Values[(int)Names.Rptr_Tone_Enable].Empty();
             Property_Values[(int)Names.Power_Level     ].Empty();
             Property_Values[(int)Names.Alternates      ].Empty();
+            Property_Values[(int)Names.Repeater_URL    ].Empty();
 
             Property_Values.Raise_BufferEvent( BUFFEREVENTS.MULTILINE ); 
         }

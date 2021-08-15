@@ -46,7 +46,8 @@ namespace Play.MorsePractice {
     }
 
     /// <summary>
-    /// This is the editor that does not show the outline with the callsign tally.
+    /// This is the editor that does not show the outline with the callsign tally. This is used
+    /// by the "stdlog" file type.
     /// </summary>
     public class ViewSimple : EditWindow2 {
         public static readonly Guid _guidViewCategory = new Guid("{868D414A-5614-4D9D-8F7E-C46D85BCE294}");
@@ -58,7 +59,8 @@ namespace Play.MorsePractice {
         public ViewSimple(IPgViewSite oSiteView, DocNotes oDocument ) : 
             base( oSiteView, oDocument.Notes )
         {
-            _oDocNotes  = oDocument ?? throw new ArgumentNullException( "Document must not be null.");
+            _oDocNotes     = oDocument ?? throw new ArgumentNullException( "Document must not be null.");
+            _iSelectedTool = 1;
         }
 
         public override object Decorate( IPgViewSite oBaseSite, Guid sGuid ) {
@@ -108,6 +110,7 @@ namespace Play.MorsePractice {
         {
             _oDocMorse  = oDocument ?? throw new ArgumentNullException( "Document must not be null.");
             _oSiteShell = oSiteView as IPgShellSite ?? throw new ArgumentException("Parent view must provide IPgShellSite service");
+            _iSelectedTool = 1;
         }
 
         /// <summary>
