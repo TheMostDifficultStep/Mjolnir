@@ -334,7 +334,7 @@ namespace Play.Edit {
 			_oDocument.HilightEvent += OnHighLightChanged;
 			_oDocument.BufferEvent  += OnBufferEvent;
 
-            HyperLinks.Add( "url",      OnBrowserLink );
+            HyperLinks.Add( "url", OnBrowserLink );
             HyperLinks.Add( "callsign", OnCallSign );
 
             Invalidate();
@@ -388,7 +388,31 @@ namespace Play.Edit {
         }
         
         private void OnBrowserLink( Line oLine, IPgWordRange oRange ) {
-            BrowserLink( oLine.SubString( oRange.Offset, oRange.Length) );
+            try {
+                string strFile = oLine.SubString( oRange.Offset, oRange.Length);
+
+                if( oRange is MemoryState<char> oState ) {
+                    int iProtocol = oState.IndexOfBinding( "protocol" );
+                    if( iProtocol >= 0 && oState.Values[iProtocol] is MemoryElem<char> oProto ) {
+                        string strProto = oLine.SubString( oProto.Offset, oProto.Length );
+                        if( string.Compare( strProto, "file", ignoreCase:true ) == 0 ) {
+                            // Open in ourselves.
+                            if( Parentage.TopWindow is IPgMainWindow oMainWin ) {
+                                oMainWin.DocumentShow( strFile, Guid.Empty, fShow:true );
+                            }
+                            return;
+                        }
+                    }
+                }
+                BrowserLink( strFile );
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( IndexOutOfRangeException ),
+                                    typeof( NullReferenceException ),
+                                    typeof( ArgumentNullException ),
+                                    typeof( ArgumentException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
+            }
         }
 
         private void OnCallSign( Line oLine, IPgWordRange oRange ) {

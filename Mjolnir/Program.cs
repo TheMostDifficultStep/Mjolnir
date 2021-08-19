@@ -189,6 +189,7 @@ namespace Mjolnir {
 
 		public IPgParent Parentage => null;
 		public IPgParent Services  => this;
+        public IPgParent TopWindow => null; // Maybe change to MainWindow so there's at least one?
 
 		public ICollection<IDocSlot> DocSlots            => _rgDocSites;
         public IPgController2        PlainTextController { get; }

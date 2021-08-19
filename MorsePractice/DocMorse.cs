@@ -830,12 +830,12 @@ namespace Play.MorsePractice {
             rgTemp.Add( new RepeaterDir(  52.87,  -1700, 180 ));         
             rgTemp.Add( new RepeaterDir( 146.96,   -600, 180, "ww7psr",   "103.5" )); 
             rgTemp.Add( new RepeaterDir( 146.82,   -600, 120, "k7led",    "103.5" ));
-            rgTemp.Add( new RepeaterDir( 145.49,   -600, 120, "k7lwh",    "103.5" ));
+            rgTemp.Add( new RepeaterDir( 145.49,   -600, 180, "k7lwh",    "103.5" ));
             rgTemp.Add( new RepeaterDir( 146.92,   -600, 120, "wa7dem",   "123.0" ));
             rgTemp.Add( new RepeaterDir( 147.16,   +600, 120, "w7mir",    "146.2" ));
             rgTemp.Add( new RepeaterDir( 147.34,   +600, 120, "k6rfk",    "100.0" ));
             rgTemp.Add( new RepeaterDir( 147.08,   +600, 120, "w7wwi",    "110.9" ));
-            rgTemp.Add( new RepeaterDir( 146.4125, +600, 120, "k7lwh/c",  "103.5" )); // Dstar
+            rgTemp.Add( new RepeaterDir( 146.4125, +600, 180, "k7lwh/c",  "103.5" )); // Dstar
             rgTemp.Add( new RepeaterDir( 146.62,   -600, 120, "ww7ra",    "103.5" ));
             rgTemp.Add( new RepeaterDir( 145.43,   -600, 120, "kd7wdg",   "88.5" ));
             rgTemp.Add( new RepeaterDir( 145.33,   -600, 120, "k7nws",    "179.9" ));
@@ -844,7 +844,7 @@ namespace Play.MorsePractice {
             rgTemp.Add( new RepeaterDir( 444.6375, 5000, 120, "wa7hjr/b" ));
             rgTemp.Add( new RepeaterDir( 444.650,  5000, 120, "wa7hjr/rm", "131.8" ));
             rgTemp.Add( new RepeaterDir( 444.55,   5000, 120, "ww7sea",   "141.3" ));
-            rgTemp.Add( new RepeaterDir( 441.075,  5000, 120, "k7lwh",    "103.5" ));
+            rgTemp.Add( new RepeaterDir( 441.075,  5000, 180, "k7lwh",    "103.5" ));
             rgTemp.Add( new RepeaterDir( 442.875,  5000, 120, "w7aux",    "103.5" ));
             rgTemp.Add( new RepeaterDir( 149.995,  -600, 120, "w7rnk/c"  ));
 

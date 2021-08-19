@@ -35,7 +35,8 @@ namespace Mjolnir {
 		IPgParent,
         IPgLoad<XmlElement>,
         IPgSave<XmlDocumentFragment>,
-        IEnumerable<SmartHerderBase>
+        IEnumerable<SmartHerderBase>,
+		IPgMainWindow
     {
         public Font       DecorFont        { get; } = new Font( "Segoe UI Symbol", 12 ) ?? throw new InvalidOperationException("Main Window could not load Decor font."); 
 		public SolidBrush ToolsBrushActive { get; } = new SolidBrush( Color.FromArgb( 255, 112, 165, 234 ) ) ?? throw new InvalidOperationException("Main Window could not create tools color brush."); 
@@ -99,7 +100,8 @@ namespace Mjolnir {
         }
 
 		public IPgParent Parentage => Document;
-		public IPgParent Services  => Parentage.Services; // BUG: UUUhhh I think I should return =this=
+		public IPgParent Services  => Parentage.Services; // BUG: UUUhhh I think I should return =this=, but I'll break things if I change it now.
+        public IPgParent TopWindow => this; // Buck stops here!
 		public Program   Document { get; }
 		public SmartRect Frame    { get { return _rcFrame; } }
 
@@ -2092,8 +2094,25 @@ namespace Mjolnir {
         /// <param name="strFileName"></param>
         /// <param name="eShow"></param>
         /// <returns></returns>
-        public ViewSlot DocumentShow( string strFileName, EditorShowEnum eShow = EditorShowEnum.FOCUS ) 
-        {
+        /// <remarks>This function is only public because the main Program document calls us, 
+        /// having direct access to the MainWindow object. I should probably make this
+        /// "internal" so only the program has access to the ViewSlot. The other public variant
+        /// does not have this problem. And it is exposed externally as well.</remarks>
+        /// <seealso cref="DocumentShow"/>
+        public ViewSlot DocumentShow( string strFileName, EditorShowEnum eShow = EditorShowEnum.FOCUS ) {
+            return DocumentShow( strFileName, Guid.Empty, eShow );
+        }
+
+        public int DocumentShow( string strFileName, Guid guidViewType, bool fShow ) {
+            ViewSlot oViewSlot = DocumentShow( strFileName, guidViewType, fShow ? EditorShowEnum.FOCUS : EditorShowEnum.SILENT );
+            
+            if( oViewSlot != null )
+                return (int)oViewSlot.ID;
+
+            return -1; // the one reason uint's suck! Sigh.
+        }
+
+        protected ViewSlot DocumentShow( string strFileName, Guid guidViewType, EditorShowEnum eShow ) {
             string strExtn;
 
             try {
@@ -2115,8 +2134,9 @@ namespace Mjolnir {
 			if( oDocSlot == null )
 				return null;
 
-            return( ViewCreate( oDocSlot, Guid.Empty, eShow ) );
+            return ViewCreate( oDocSlot, Guid.Empty, eShow );
         }
+
 
         /// <summary>
         /// Request this window to show the documents in this list.

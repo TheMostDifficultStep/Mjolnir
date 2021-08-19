@@ -188,9 +188,14 @@ namespace Play.Interfaces.Embedding {
 
 	public interface IPgParent {
 		IPgParent Parentage   { get; }
-	    IPgParent Services    { get; }
+	    IPgParent Services    { get; } // App level services.
+        IPgParent TopWindow   { get => Parentage.TopWindow; }
 	  //string    Identifer   { get; } // something we can use for error messages.
 	}
+
+    public interface IPgMainWindow {
+        int DocumentShow( string strFileName, Guid guidViewType, bool fShow );
+    }
 
     /// <summary>
     /// Pretty much any complex object, such as a Document or a Window must have access to
