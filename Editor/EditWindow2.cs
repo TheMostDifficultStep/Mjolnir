@@ -336,6 +336,7 @@ namespace Play.Edit {
 
             HyperLinks.Add( "url", OnBrowserLink );
             HyperLinks.Add( "callsign", OnCallSign );
+            HyperLinks.Add( "localpath", OnLocalPath );
 
             Invalidate();
 
@@ -386,25 +387,41 @@ namespace Play.Edit {
                     throw;
             }
         }
+
+        private void OnLocalPath( Line oLine, IPgWordRange oRange ) {
+            string strFile = oLine.SubString( oRange.Offset, oRange.Length);
+
+            if( Parentage.TopWindow is IPgMainWindow oMainWin ) {
+                oMainWin.DocumentShow( strFile, Guid.Empty, fShow:true );
+            }
+        }
         
         private void OnBrowserLink( Line oLine, IPgWordRange oRange ) {
             try {
-                string strFile = oLine.SubString( oRange.Offset, oRange.Length);
-
                 if( oRange is MemoryState<char> oState ) {
                     int iProtocol = oState.IndexOfBinding( "protocol" );
                     if( iProtocol >= 0 && oState.Values[iProtocol] is MemoryElem<char> oProto ) {
                         string strProto = oLine.SubString( oProto.Offset, oProto.Length );
                         if( string.Compare( strProto, "file", ignoreCase:true ) == 0 ) {
-                            // Open in ourselves.
-                            if( Parentage.TopWindow is IPgMainWindow oMainWin ) {
-                                oMainWin.DocumentShow( strFile, Guid.Empty, fShow:true );
+                            int iPathPlus = oState.IndexOfBinding( "urlremaining" ); // skip protocol and domain.
+                            if( iPathPlus >=0 && oState.Values[iPathPlus] is MemoryElem<char> oPath ) {
+                                string strPath = oLine.SubString( oPath.Offset, oPath.Length);
+                                string strExtn = Path.GetExtension(strPath);
+
+                                if( string.Compare( strExtn, ".pdf", ignoreCase:true ) != 0 ) {
+                                    // Bug: if we can't handle type we shouldn't succeed. Opening, but
+                                    //      we do and end up with a blank bookmark. Need to work on DocumentShow.
+                                    if( Parentage.TopWindow is IPgMainWindow oMainWin ) {
+                                        oMainWin.DocumentShow( strPath, Guid.Empty, fShow:true ); // Open in ourselves.
+                                        return;
+                                    }
+                                }
                             }
-                            return;
                         }
                     }
                 }
-                BrowserLink( strFile );
+
+                BrowserLink( oLine.SubString( oRange.Offset, oRange.Length) );
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( IndexOutOfRangeException ),
                                     typeof( NullReferenceException ),

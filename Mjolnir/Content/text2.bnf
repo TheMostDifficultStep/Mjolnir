@@ -47,15 +47,15 @@
         <nont state="body" />
       </production>
       <production>
-        <nont state="url" />
+        <nont word="true" state="url" />
         <nont state="body" />
       </production>
       <production>
-        <nont state="localpath" />
+        <nont word="true" state="localpath" />
         <nont state="body" />
       </production>
       <production>
-        <nont state="unc" />
+        <nont word="true" state="unc" />
         <nont state="body" />
       </production>
       <production>
@@ -63,17 +63,32 @@
         <nont state="body" />
       </production>
       <production>
-        <nont state="email" />
+        <nont word="true" state="email" />
         <nont state="body" />
       </production>
       <production>
-        <nont state="date" />
+		<nont word="true" state="phone" />
+		<nont state="body" />
+      </production>
+      <production>
+        <nont state="date" word="true" />
+        <nont state="body" />
+      </production>
+      <production>
+        <nont state="callsign" word="true" />
         <nont state="body" />
       </production>
       <production>
         <nont state="sproc" />
         <nont state="body" />
       </production>
+		<!-- Capture stuff like 1) foo, 2) bar ... -->
+		<production lookahead="3" >
+        	<term class="mycr" />
+			<term class="myspace" occur="*" />
+			<nont state="numbered" />
+			<nont state="body" />
+		</production>
       <production>
         <nont state="checkbox" />
         <nont state="body" />
@@ -87,7 +102,16 @@
         <nont state="body" />
       </production>
       <production>
-        <nont state="text" />
+        <nont state="text" word="true" />
+        <nont state="body" />
+      </production>
+      <production>
+        <term class="myanyof" value="&amp;&apos;~!@$%^*`’?|[]{}~!()=+.,#;&#09;&gt;&lt;" maxmatch="1" />
+        <nont state="body" />
+      </production>
+      <!-- you would expect this in 'text' but, I've got some commentline rules that need this here -->
+      <production>
+        <term class="myspace" occur="+" />
         <nont state="body" />
       </production>
       <production>
@@ -105,6 +129,26 @@
          <term class="mynumber" id="dyear" />
       </production>
     </state>
+
+	<state name="phone">
+      <capture>
+        <binding id="areacode"    color="blue" />
+        <binding id="firstcode"   color="red" />
+        <binding id="secondcode"  color="purple" />
+      </capture>
+      <production lookahead = "5" >
+         <term class="mytoken" value="(" />
+		 <term class="myspace" occur="*" />
+         <term class="mynumber" id="areacode" minmatch="3" maxmatch="3"/>
+		 <term class="myspace" occur="*" />
+         <term class="mytoken" value=")" />
+		 <term class="myspace" occur="*" />
+         <term class="mynumber" id="firstcode" />
+		 <term class="mytoken" value="-" />
+         <term class="mynumber" id="secondcode" />
+      </production>
+
+	</state>
 
     <state name="date" >
       <capture>
@@ -125,6 +169,31 @@
          <term class="mynumber" id="dday" />
          <term class="myanyof" value="/-" />
          <nont state="year" id="dyear" />
+      </production>
+    </state>
+
+    <state name="callsign" >
+      <capture>
+        <binding id="prefix"     color="purple" />
+        <binding id="regioncode" color="red" />
+        <binding id="suffix"     color="blue" />
+      </capture>
+      <production lookahead = "3" >
+         <term class="myliteral"  maxmatch="2" id="prefix" />
+         <term class="mynumber"   maxmatch="2" id="regioncode" />
+         <term class="myliteral"  maxmatch="4" id="suffix" />
+      </production>
+      <production lookahead="3" >
+         <nont state="callsign-numprefix"    id="prefix" />
+         <term class="mynumber"   maxmatch="1" id="regioncode" />
+         <term class="myliteral"  maxmatch="3" id="suffix" />
+      </production>
+    </state>
+
+    <state name="callsign-numprefix" >
+      <production>
+         <term class="myanyof"   maxmatch="1" value="9" />
+         <term class="myliteral" maxmatch="2"  />
       </production>
     </state>
 
@@ -343,12 +412,16 @@
     <state name="url" >
       <capture>
         <binding id="url" color="blue" />
+        <binding id="protocol" color="blue" /> <!-- Need this here so hyperlinks can determine link type. -->
+        <binding id="domainname" color="purple" />
+        <binding id="urlremaining" />
       </capture>
       <production>
         <nont state="url.next" id="url" />
       </production>
     </state>
-
+    <!-- consider merging url.next into url, that'll fix our split protocol/uattribs... problem. traditionally in this
+    grammar the interesting bindings where held in the url.next for some reason. -->
     <state name="url.next" >
       <capture>
         <binding id="uattribs" color="darkred" />
@@ -356,24 +429,58 @@
         <binding id="urlseperator" color="red" />
       </capture>
       <production>
-        <term class="mytoken" value="file://" />
-        <nont state="domain" />
+        <term class="mytoken" value="file" id ="protocol" />
+        <term class="mytoken" value="://" />
+        <nont state="domainname" id="domainname" />
+        <nont state="domain" id="urlremaining"/>
       </production>
       <production>
-        <term class="mytoken" value="http://" />
-        <nont state="domain" />
+        <term class="mytoken" value="http" id ="protocol" />
+        <term class="mytoken" value="://" />
+        <nont state="domainname" id="domainname" />
+        <nont state="domain" id="urlremaining"/>
       </production>
       <production>
-        <term class="mytoken" value="vc://" />
-        <nont state="domain" />
+        <term class="mytoken" value="vc" id ="protocol" />
+        <term class="mytoken" value="://" />
+        <nont state="domainname" id="domainname" />
+        <nont state="domain" id="urlremaining"/>
       </production>
       <production>
-        <term class="mytoken" value="https://" />
-        <nont state="domain"  />
+        <term class="mytoken" value="https" id ="protocol" />
+        <term class="mytoken" value="://" />
+        <nont state="domainname" id="domainname" />
+        <nont state="domain" id="urlremaining"/>
       </production>
       <production>
+        <!-- If I allow domainname here, we think all text is a domain name, this is probably good enough in general. -->
         <term class="mytoken" value="www." />
         <nont state="domain"  />
+      </production>
+    </state>
+ 
+    <!-- Shouldn't start with a dot, but let's not worry for now -->
+    <state name="domainname" >
+      <production>
+        <term class="myliteral" />
+        <nont state="domainname" />
+      </production>
+      <production>
+        <term class="mynumber" />
+        <nont state="domainname" />
+      </production>
+      <production>
+        <term class="mytoken" value="." />
+        <nont state="domainname" />
+      </production>
+      <production>
+        <!-- not dealing with spaces but let's not worry -->
+        <term class="mytoken" value=":" />
+        <term class="mynumber" />
+        <term class="mytoken" value="/" />
+      </production>
+      <production>
+        <term class="mytoken" value="/" />
       </production>
     </state>
 
@@ -387,7 +494,8 @@
         <nont state="domain" />
       </production>
       <production>
-        <term class="myanyof" value="+./-:=_%(){}"/>
+        <!-- Hmmm... looks like a little too much... why not just the dot? -->
+        <term class="myanyof" value="$!+./-:=_%(){}~"/>
         <nont state="domain" />
       </production>
       <production>
@@ -429,7 +537,7 @@
         <term class="mytoken" value="&amp;amp;" />
       </production>
       <production>
-        <term class="myanyof" value="\/%-_.,:=+&apos;; " />
+        <term class="myanyof" value="\/%-_.,:=+&apos;;" />
       </production>
     </state>
 
@@ -461,7 +569,7 @@
         <term class="mynumber"  />
       </production>
       <production>
-        <term class="myanyof" value=":-" />
+        <term class="myanyof" value=":-_" />
       </production>
       <!-- Note: it's never a good idea to try to have myEmpty as a terminal in these style states -->
     </state>
@@ -573,7 +681,7 @@
          we'll pop out when hit the next backslash whereupon spaces are ok again -->
     <state name="alphanum.exnt" >
       <production>
-        <term class="myanyof" value=".-_*()&amp;"/>
+        <term class="myanyof" value="~.-_*()&amp;"/>
         <nont state="alphanum.exnt" />
       </production>
       <production>
@@ -593,7 +701,7 @@
       <production>
         <!-- Allow wildcards in the directory name, and spaces as long as not the first 
              thing after the backslash -->
-        <term class="myanyof" value=".-_*()&amp;"/>
+        <term class="myanyof" value="~.-_*()&amp;"/>
         <nont state="alphanum.exnt" />
       </production>
       <production>
@@ -653,27 +761,66 @@
       </production>
     </state>
 
+	<state name="numbered" >
+    	<capture>
+			<binding id="delim" color="blue" />
+			<binding id="ctext" color="darkred" />
+		</capture>
+		<production>
+			<term class="mynumber" id="delim" />
+			<term class="mytoken" value=")" id="ctext" />
+			<!-- We could potentially grab the text too.... -->
+		</production>
+	</state>
+
+    <state name="text.cont" >
+      <production>
+        <nont state="text" />
+      </production>
+      <production>
+        <term class="myanyof" value="_-#~$" />
+        <nont state="text.cont" />
+      </production>
+      <production>
+        <term class="myEmpty" />
+      </production>
+    </state>
+
     <state name="text">
       <production>
         <term class="myliteral" />
+        <nont state="text.cont" />
+      </production>
+      <production> <!-- grab things like inches -->
+        <term class="mynumber" />
+        <term class="mytoken" value="&quot;" />
+        <nont state="text.cont" />
+      </production>
+      <production> <!-- grab things like feet -->
+        <term class="mynumber" />
+        <term class="mytoken" value="&apos;" />
+        <nont state="text.cont" />
       </production>
       <production>
         <term class="mynumber" />
+        <nont state="text.cont" />
+      </production>
+      <production>
+        <!-- Need this production because text is used within comments and other productions -->
+        <term class="myanyof" value="_-" maxmatch="1" />
+        <nont state="text.cont" />
       </production>
       <production>
         <term class="mytoken" value="/" />
+        <nont state="text.cont" />
       </production>
       <production>
         <term class="mytoken" value="\" />
+        <nont state="text.cont" />
       </production>
       <production>
         <term class="mytoken" value=":" />
-      </production>
-      <production>
-        <term class="myanyof" value="&amp;&apos;~!@$%^*`’?|[]{}~!()_-=+.,;&#09;&gt;&lt;" maxmatch="1" />
-      </production>
-      <production>
-        <term class="myspace" />
+        <nont state="text.cont" />
       </production>
     </state>
 
@@ -706,20 +853,29 @@
         <binding id="delim" color="green" />
         <binding id="ctext" color="green" />
       </capture>
-      <production>
-        <term class="myspace" occur="*" /> <!-- need these to compete with the "flag" state -->
-        <term class="mytoken" value="--" id="delim" />
+      <!-- <production>
+		<term class="myspace" occur="*" />  need these to compete with the "flag" state 
+        <term class="mytoken" value="-" id="delim" /> CHECK IT two dash's in a row blows the xml parser.
+        <term class="mytoken" value="-" id="delim" />
         <nont state="commentline.in" id="ctext" />
-      </production>
+      </production> -->
       <production>
         <term class="myspace" occur="*" /> <!-- need these to compete with the "flag" state -->
         <term class="mytoken" value="//" id="delim" />
         <nont state="commentline.in" id="ctext" />
       </production>
+      <!-- Note these rules aren't quite like programs where you would expect # to start comment
+		   right away. Here I wan't C# to be ok in text but still have comment like structures at right. 
       <production>
+		<term class="myspace" occur="+" />
         <term class="mytoken" value="#" id="delim" />
         <nont state="commentline.in" id="ctext" />
       </production>
+      <production>
+		<term class="mycr" />
+        <term class="mytoken" value="#" id="delim" />
+        <nont state="commentline.in" id="ctext" />
+      </production> -->
     </state>
 
     <state name="commentline.in">
