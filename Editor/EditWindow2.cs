@@ -396,6 +396,11 @@ namespace Play.Edit {
             }
         }
         
+        /// <summary>
+        /// Capture the URL hyperlink. differientiats between the http(s) & file protocol. Hacks
+        /// the .pdf so that displays in the browser instead of our text editor trying to handle
+        /// the file .pdf case.
+        /// </summary>
         private void OnBrowserLink( Line oLine, IPgWordRange oRange ) {
             try {
                 if( oRange is MemoryState<char> oState ) {
@@ -1273,6 +1278,79 @@ namespace Play.Edit {
             }
         }
 
+        public static bool IsCtrlKey( Keys oKey ) => ( oKey & Keys.Control ) != 0;
+
+        /// <summary>
+        /// This is our basic cursor status updater. We need to check it in a number of situations,
+        /// so it's all here, instead of scattered around.
+        /// </summary>
+        /// <seealso cref="OnMouseMove"/>
+        /// <seealso cref="OnKeyUp"/>
+        /// <seealso cref="OnKeyDown" />
+        protected virtual void CursorUpdate( Point sLocation, MouseButtons eButton ) {
+            bool fProcessed = false;
+
+            switch( _iSelectedTool ) {
+                case 2:
+                    if( IsCtrlKey( ModifierKeys ) ) {
+                        Cursor = Cursors.IBeam;
+                    } else {
+                        Cursor oNewCursor = Cursors.Arrow;
+                        if( HyperLinkFind( new SKPointI( sLocation.X, sLocation.Y ), fDoJump:false ) )
+                            oNewCursor = Cursors.Hand;
+
+                        Cursor = oNewCursor;
+                    }
+                    Invalidate();
+                    fProcessed = true;
+                    break;
+                case 1: // Browse Mode. Left button defeats the hyperlink.
+                    if( !IsCtrlKey( ModifierKeys ) && ( eButton != MouseButtons.Left ) ) {
+                        Cursor oNewCursor = Cursors.IBeam;
+                        if( HyperLinkFind( new SKPointI( sLocation.X, sLocation.Y ), fDoJump:false ) )
+                            oNewCursor = Cursors.Hand;
+
+                        Cursor = oNewCursor;
+                        fProcessed = true;
+                    }
+                    break;
+                case 0: // Text Edit Mode. Left button defeats the hyperlink.
+                    if( IsCtrlKey( ModifierKeys ) && ( eButton != MouseButtons.Left ) ) {
+                        Cursor oNewCursor = Cursors.IBeam;
+                        if( HyperLinkFind( new SKPointI( sLocation.X, sLocation.Y ), fDoJump:false ) )
+                            oNewCursor = Cursors.Hand;
+
+                        Cursor = oNewCursor;
+                        fProcessed = true;
+                    }
+                    break;
+            }
+
+            if( !fProcessed ) {
+                if( _rctTextArea.IsInside( sLocation.X, sLocation.Y ) ) {
+                    if( Cursor != Cursors.IBeam )
+                        Cursor = Cursors.IBeam;
+                }
+                if( _rctCheques.IsInside( sLocation.X, sLocation.Y ) ) {
+                    if( Cursor != Cursors.Arrow )
+                        Cursor = Cursors.Arrow;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Call this function when you just want the state of affairs outside of any mouse event.
+        /// </summary>
+        /// <remarks>IMPORTANT! In OnKeyUp or OnKeyDown, are obviously only applied to the FOCUSED window!
+        /// So if the cursor is overing over a non selected window, the keystroke is sent to
+        /// the selected window and we won't see any cursor updates in the hovered window!! That can be
+        /// confusing, so don't be confused. Not sure how or if I want to fix... :-/
+        /// ALSO: If I can figure out a way to get the mouse button state I'll do that so
+        /// we have a true picture of the current state of affairs.</remarks>
+        protected void CursorUpdate() {
+            CursorUpdate( PointToClient( MousePosition ), MouseButtons.None );
+        }
+
         /// <summary>
         /// Begin the drag drop if the cursor moves outside the _rctDragging rect
         /// while the left button stays down.
@@ -1286,35 +1364,7 @@ namespace Play.Edit {
         protected override void OnMouseMove(MouseEventArgs e) {
             base.OnMouseMove( e );
 
-            if( _iSelectedTool == 2 ) {
-                if( ( ModifierKeys & Keys.Control ) != 0 ) {
-                    Cursor = Cursors.IBeam;
-                } else {
-                    Cursor oNewCursor = Cursors.Arrow;
-                    if( HyperLinkFind( new SKPointI( e.Location.X, e.Location.Y ), fDoJump:false ) )
-                        oNewCursor = Cursors.Hand;
-
-                    Cursor = oNewCursor;
-                }
-                Invalidate();
-            } else {
-                if( _iSelectedTool == 1 || ( ModifierKeys & Keys.Control ) != 0 ) {
-                    Cursor oNewCursor = Cursors.IBeam;
-                    if( HyperLinkFind( new SKPointI( e.Location.X, e.Location.Y ), fDoJump:false ) )
-                        oNewCursor = Cursors.Hand;
-
-                    Cursor = oNewCursor;
-                } else { 
-                    if( _rctTextArea.IsInside( e.Location.X, e.Location.Y ) ) {
-                        if( Cursor != Cursors.IBeam )
-                            Cursor = Cursors.IBeam;
-                    }
-                    if( _rctCheques.IsInside( e.Location.X, e.Location.Y ) ) {
-                        if( Cursor != Cursors.Arrow )
-                            Cursor = Cursors.Arrow;
-                    }
-                }
-            }
+            CursorUpdate( e.Location, e.Button );
 
             if( ( e.Button & MouseButtons.Left ) == MouseButtons.Left &&
                 e.Clicks == 0 ) 
@@ -1376,7 +1426,7 @@ namespace Play.Edit {
             } else {
                 if( ( e.Button == MouseButtons.Left &&
                       ( _iSelectedTool == 1) || ((ModifierKeys & Keys.Control) != 0) ) &&
-                    !TextSelector.IsSelected(Selections)
+                    !TextSelector.IsSelected(Selections) // This saves us from jumping if we had pressed the left mouse button.
                 ) {
                     HyperLinkFind( new SKPointI( e.Location.X, e.Location.Y ), fDoJump:true );
                 }
@@ -1971,20 +2021,7 @@ namespace Play.Edit {
                     break;
                 case Keys.ControlKey:
                     // Note: This comes in occasionally even if keep pressing ctrl.
-                    if( _iSelectedTool == 0 ) { 
-                        Cursor oNewCursor = Cursors.IBeam;
-                        Point  oLocation  = Cursor.Position;
-                        Point  oTemp      = PointToClient( oLocation );
-
-                        if( HyperLinkFind( new SKPointI( oTemp.X, oTemp.Y ), fDoJump:false ) )
-                            oNewCursor = Cursors.Hand;
-
-                        Cursor = oNewCursor;
-                    } else {
-                        if( _iSelectedTool == 2 ) {
-                            Cursor = Cursors.IBeam; // Ignore any hyperlinks.
-                        }
-                    }
+                    CursorUpdate();
                     break;
             }
         }
@@ -1998,8 +2035,7 @@ namespace Play.Edit {
 
             switch( e.KeyCode ) {
                 case Keys.ControlKey:
-                    if( _iSelectedTool == 0 )
-                        Cursor = Cursors.IBeam;
+                    CursorUpdate();
                     break;
             }
         }
