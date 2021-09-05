@@ -628,8 +628,8 @@ namespace Play.Sound {
 			base.Dispose();
 		}
 
-		public uint WordSpacing   { get; set; } = 8;
-		public uint LetterSpacing { get; set; } = 28;
+		public uint LetterSpacing { get; set; } = 3; // bump this up for slower words per minute, wpm
+		public uint WordSpacing   { get; set; } = 7;
 
 		public IEnumerable<char> Signal {
 			set {
