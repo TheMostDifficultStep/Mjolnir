@@ -4,7 +4,7 @@ using System.Linq;
 using System.Drawing;
 using System.Diagnostics;
 
-using Play.Parse.Impl;
+using Play.Parse;
 
 // This file contains our line wrapping logic and it works in conjunction with the editor.
 

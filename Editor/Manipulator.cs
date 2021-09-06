@@ -4,7 +4,7 @@ using System.Text;
 using System.IO;
 
 using Play.Interfaces.Embedding;
-using Play.Parse.Impl;
+using Play.Parse;
 
 namespace Play.Edit {
     public partial class BaseEditor {

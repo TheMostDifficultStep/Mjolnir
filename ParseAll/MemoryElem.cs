@@ -5,36 +5,6 @@ using Play.Interfaces.Embedding;
 
 namespace Play.Parse.Impl
 {
-	// BUG: Move this to "Play.Parse" namespace instead.
-    public interface IMemoryRange {
-        int Offset { get; set; }
-        int Length { get; set; }
-    }
-
-    /// <summary>
-    /// Little bit of explaination in order. Color is actually associated with
-    /// BINDINGS! States or Terms can be bound to a state instance. If a state is 
-    /// bound then that color (should) trickle down to that instance's terminals. 
-    /// The Colorizor colors only by terminals, and we only put terminals in the 
-    /// color formatter (not states). EXCEPT for words, which we also include in 
-    /// the formatter, at present, I'm thinking about this.
-    /// .ps also move thie to Play.Parse
-    /// </summary>
-    public interface IColorRange : IMemoryRange {
-        int ColorIndex { get; }
-    }
-
-    /// <summary>
-    /// We're slowly distilling the hyperlink stuff from the colorization stuff.
-    /// So I separate it out from the general IColorRange which everyone needs.
-    /// Move to Play.Parse
-    /// </summary>
-    public interface IPgWordRange : IColorRange {
-        bool   IsWord    { get; }
-        bool   IsTerm    { get; }
-        string StateName { get; }
-    }
-
     public delegate void OnParseFinish<T>( MemoryState<T> oStart, DataStream<T> oStream );
 
     // Base class for holding all positions in the buffer. This object aggregates the behavior

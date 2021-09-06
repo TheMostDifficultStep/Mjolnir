@@ -14,6 +14,7 @@ using System.Reflection;
 using Play.Interfaces.Embedding;
 using Play.Sound;
 using Play.Edit;
+using Play.Parse;
 using Play.Parse.Impl;
 using Play.Integration;
 using Play.ImageViewer;

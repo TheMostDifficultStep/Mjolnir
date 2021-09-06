@@ -5,7 +5,7 @@ using System.IO;
 using Play.Interfaces.Embedding;
 using Play.Edit;
 using Play.ImageViewer;
-using Play.Parse.Impl;
+using Play.Parse;
 using System.Drawing;
 
 namespace Play.SSTV {

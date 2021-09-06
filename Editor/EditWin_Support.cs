@@ -6,7 +6,7 @@ using System.Windows.Forms;
 //using System.Web.MimeMapping;  BCL in .NET Framework 4.5. Need to find this.
 
 using Play.Interfaces.Embedding;
-using Play.Parse.Impl;
+using Play.Parse;
 
 namespace Play.Edit {
 	[Obsolete( "You can use linq now." )]

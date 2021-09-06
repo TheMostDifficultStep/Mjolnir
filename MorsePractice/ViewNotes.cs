@@ -1,7 +1,7 @@
 ﻿using System;
 
 using Play.Interfaces.Embedding;
-using Play.Parse.Impl;
+using Play.Parse;
 using Play.Edit;
 
 namespace Play.MorsePractice {

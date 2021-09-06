@@ -2,11 +2,11 @@
 using System.Windows.Forms;
 using System.IO;
 using System.Collections.Generic;
+using System.Collections;
 
 using Play.Interfaces.Embedding;
 using Play.Edit;
-using Play.Parse.Impl;
-using System.Collections;
+using Play.Parse;
 
 // The view selector uses my subclassable type editor, while spiffy, it's
 // obsolete and I want to replace with a home view.

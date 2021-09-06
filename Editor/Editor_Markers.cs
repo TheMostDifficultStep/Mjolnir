@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-using Play.Parse.Impl;
+using Play.Parse;
 
 namespace Play.Edit
 {

@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
+using Play.Parse;
 using Play.Parse.Impl;
 using Play.Interfaces.Embedding;
 using System.Text;

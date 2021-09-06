@@ -9,7 +9,7 @@ using SkiaSharp.Views.Desktop;
 using Play.Interfaces.Embedding;
 using Play.Edit;
 using Play.Rectangles;
-using Play.Parse.Impl;
+using Play.Parse;
 
 namespace Play.Forms {
     /// <summary>
@@ -137,6 +137,8 @@ namespace Play.Forms {
         protected SimpleCacheCaret Caret    { get; }
         public    uint             StdText  { get; set; }
         protected IPgStandardUI2   StdUI    { get; }
+
+        public Dictionary<string, HyperLink> HyperLinks { get; } = new Dictionary<string, HyperLink>();
 
         readonly static Keys[] _rgHandledKeys = { Keys.PageDown, Keys.PageUp, Keys.Down,
                                                   Keys.Up, Keys.Right, Keys.Left, Keys.Back,
@@ -275,6 +277,9 @@ namespace Play.Forms {
             Invalidate();
         }
 
+        /// <summary>
+        /// Reposition the caret.
+        /// </summary>
         protected void CaretIconRefresh() {
             if( Focused != true )
                 return;
@@ -616,6 +621,22 @@ namespace Play.Forms {
                     throw;
             }
         }
+
+        protected bool HyperLinkFind( ILineRange oPosition, bool fDoJump ) {
+            IPgWordRange oRange = EditWindow2.FindFormattingUnderRange( oPosition );
+            if( oRange != null ) { 
+                foreach( KeyValuePair<string, HyperLink> oPair in HyperLinks ) { 
+                    if( oRange.StateName == oPair.Key ) {
+                        if( fDoJump )
+                            oPair.Value?.Invoke( Caret.Line, oRange );
+                        else
+                            return true;
+                    }
+                }
+            }
+            return false;
+        }
+
     }
 
 	public class ContextMenuTest : SKControl {

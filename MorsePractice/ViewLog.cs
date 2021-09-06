@@ -11,6 +11,7 @@ using Play.Interfaces.Embedding;
 using Play.Rectangles;
 using Play.Edit;
 using Play.Forms;
+using Play.Parse;
 
 namespace Play.MorsePractice {
 	public interface IPgTableEvents {
@@ -280,6 +281,19 @@ namespace Play.MorsePractice {
 			BgColorDefault = _oStdUI.ColorsStandardAt( StdUIColors.BG );
         }
 
+        private void OnFrequencyJump( Line oLine, IPgWordRange oRange ) {
+            try {
+                string strValue = oLine.SubString( oRange.Offset, oRange.Length );
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( IndexOutOfRangeException ),
+                                    typeof( NullReferenceException ),
+                                    typeof( ArgumentNullException ),
+                                    typeof( ArgumentException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
+            }
+        }
+
         public void PropertyInitRow( SmartTable oLayout, int iIndex, EditWindow2 oWinValue = null ) {
             var oLayoutLabel = new LayoutSingleLine( new FTCacheWrap( Document.Property_Labels[iIndex] ), LayoutRect.CSS.Flex );
             LayoutRect oLayoutValue;
@@ -321,6 +335,8 @@ namespace Play.MorsePractice {
             foreach( Line oLine in Document.Property_Labels ) {
                 PropertyInitRow( oLayout, oLine.At );
             }
+
+			HyperLinks.Add( "fjump", OnFrequencyJump );
 
             Caret.Layout = CacheList[0];
 

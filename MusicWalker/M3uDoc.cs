@@ -4,7 +4,7 @@ using System.IO;
 using System.Linq;
 
 using Play.Interfaces.Embedding;
-using Play.Parse.Impl;
+using Play.Parse;
 using Play.Edit;
 using Play.ImageViewer;
 

@@ -11,6 +11,7 @@ using SkiaSharp;
 using Play.Interfaces.Embedding;
 using Play.Rectangles;
 using Play.Edit;
+using Play.Parse;
 using Play.ImageViewer;
 
 namespace Play.SSTV {
@@ -402,7 +403,7 @@ namespace Play.SSTV {
 			HyperLinks.Add( "chooser", OnChooser );
 		}
 
-		public void OnChooser( Line oLine, Parse.Impl.IPgWordRange oRange ) {
+		public void OnChooser( Line oLine, IPgWordRange oRange ) {
 			try {
 				if( oLine is FileLine oFile ) {
 					if( oFile._fIsDirectory ) {

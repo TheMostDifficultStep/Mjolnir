@@ -4,9 +4,9 @@ using System.Text;
 using System.Drawing;
 using System.Runtime.InteropServices;
 using System.Diagnostics;
-
-using Play.Parse.Impl;
 using System.Collections;
+
+using Play.Parse;
 
 namespace Play.Edit {
     [StructLayout(LayoutKind.Sequential) ]

@@ -19,9 +19,9 @@ using System.Collections.Concurrent;
 using SkiaSharp;
 
 using Play.Interfaces.Embedding; 
-using Play.Rectangles;
 using Play.Edit;
 using Play.Integration;
+using Play.Parse;
 using Play.Parse.Impl;
 
 //using MySql.Data.MySqlClient;
