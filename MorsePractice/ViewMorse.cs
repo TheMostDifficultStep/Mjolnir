@@ -74,7 +74,7 @@ namespace Play.MorsePractice {
 
 		EditWindow2 ViewSource { get; }
 		EditWindow2 ViewNotes  { get; }
-		EditWindow2 ViewStats  { get; }
+		EditWindow2 ViewCode   { get; }
 
 		public ViewMorse( IPgViewSite oSiteView, MorseDoc oDocument ) {
 			_oSiteView = oSiteView ?? throw new ArgumentNullException();
@@ -82,15 +82,15 @@ namespace Play.MorsePractice {
 
 			ViewSource = new EditWindow2( new ViewMorseSlot     ( this ), _oDocMorse.Source ) { Parent = this };
 			ViewNotes  = new EditWindow2( new ViewMorseNotesSlot( this ), _oDocMorse.Notes  ) { Parent = this };
-			ViewStats  = new EditWindow2( new ViewMorseSlot     ( this ), _oDocMorse.Stats, fReadOnly:true ) { Parent = this };
+			ViewCode   = new EditWindow2( new ViewMorseSlot     ( this ), _oDocMorse.Morse, fReadOnly:true ) { Parent = this };
 
 			_rgLayout = new LayoutStackHorizontal( 15 ) {
 				new LayoutStackVertical( 15 ) {
 					new LayoutControl( ViewSource, LayoutRect.CSS.Percent, 40 ),
 					new LayoutControl( ViewNotes,  LayoutRect.CSS.Percent, 60 )
 				},
-				new LayoutStackVertical( 15, 150, .3F ) {
-					new LayoutControl( ViewStats, LayoutRect.CSS.Percent, 100 )
+				new LayoutStackVertical( 15, 350, .3F ) {
+					new LayoutControl( ViewCode, LayoutRect.CSS.Percent, 100 )
 				}
 			};
 		}
@@ -101,7 +101,7 @@ namespace Play.MorsePractice {
 			if( disposing && !_fDisposed ) {
 				ViewSource.Dispose();
 				ViewNotes .Dispose();
-				ViewStats .Dispose();
+				ViewCode .Dispose();
 
 				_fDisposed = true;
 			}
@@ -147,7 +147,7 @@ namespace Play.MorsePractice {
 				return false;
 			if( !ViewNotes.InitNew() )
 				return false;
-			if( !ViewStats.InitNew() )
+			if( !ViewCode.InitNew() )
 				return false;
 
 			return true;

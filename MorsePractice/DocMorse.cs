@@ -146,6 +146,7 @@ namespace Play.MorsePractice {
 									typeof( NotImplementedException ) };
 				if( rgErrors.IsUnhandled( oEx ) )
 					throw;
+                LogError( "Initialize Morse Table", "Couldn't load Morse table" );
 			}
 		}
 
