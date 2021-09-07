@@ -177,16 +177,14 @@ namespace Play.MorsePractice {
 		public bool Load(TextReader oStream) {
 			if( !Initialize() ) 
 				return false;
-			if( !Notes.Load( oStream ) )
+			if( !Source.Load( oStream ) )
 				return false;
 
 			return true;
 		}
 
 		public bool Save(TextWriter oStream) {
-            Notes.Save( oStream );
-
-            return true;
+            return Source.Save( oStream ); // Save the source not the notes. That's the practice sheet.
 		}
     }
 
