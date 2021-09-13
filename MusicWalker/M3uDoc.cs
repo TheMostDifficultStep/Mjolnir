@@ -239,6 +239,9 @@ namespace Play.MusicWalker {
 		}
 	}
 
+	/// <summary>
+	/// Gives us a document type for solo MP3 files. So at least we can start, pause, stop and restart playback.
+	/// </summary>
     public class MP3Document :
         IPgParent,
         IPgLoadURL,
