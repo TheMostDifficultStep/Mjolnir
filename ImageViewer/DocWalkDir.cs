@@ -397,6 +397,9 @@ namespace Play.ImageViewer {
                 else
                     strDirectory = strFilePath;
 
+                if( string.IsNullOrEmpty( strDirectory ) )
+                    strDirectory = Directory.GetCurrentDirectory();
+
                 oDirectory = new DirectoryInfo( strDirectory );
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( IOException ),
