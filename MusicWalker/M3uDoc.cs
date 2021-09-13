@@ -239,4 +239,101 @@ namespace Play.MusicWalker {
 		}
 	}
 
+    public class MP3Document :
+        IPgParent,
+        IPgLoadURL,
+		IPgSaveURL,
+		IDisposable
+    {
+		protected readonly IPgBaseSite  _oSiteBase;
+
+		protected readonly IPgScheduler      _oScheduler;
+		protected readonly IPgRoundRobinWork _oWorker;
+
+		protected string _strFileName = string.Empty;
+
+        public IPgParent Parentage  => _oSiteBase.Host;
+        public IPgParent Services   => Parentage.Services;
+        public string    CurrentURL => _strFileName;
+        public bool      IsDirty    => false;
+
+        public class SongWorker1 : SongWorker {
+			protected readonly MP3Document _oDocument;
+
+			public SongWorker1( MP3Document oDoc ) : base( oDoc._oSiteBase ) {
+				_oDocument = oDoc ?? throw new ArgumentNullException( nameof( oDoc ), "Must past a non null document" );
+
+				if( string.IsNullOrEmpty( oDoc._strFileName ) )
+					throw new ArgumentNullException( "Need a song to play." );
+
+				if( !GetNextSong() )
+					throw new ArgumentException( "Couldn't play the song." );
+			}
+
+			public override bool SongMoveNext() { 
+				return true; // Just play again.
+			}
+
+			public override string SongFileName() { 
+				return _oDocument._strFileName;
+			}
+		}
+
+        public MP3Document( IPgBaseSite oSite ) {
+            _oSiteBase  = oSite ?? throw new ArgumentNullException("Site for MP3Document must not be null.");
+			_oScheduler = Services as IPgScheduler ?? throw new ArgumentException( "Host must implement IPgScheduler" );
+			_oWorker    = _oScheduler.CreateWorkPlace() ?? throw new ApplicationException( "Couldn't create workplace." );
+		}
+
+        public bool InitNew() {
+            return true;
+        }
+
+        public bool LoadURL( string strLocation ) {
+			if( string.IsNullOrEmpty( strLocation ) )
+				return false;
+
+			_strFileName = strLocation;
+
+			return true;
+        }
+
+        public bool Save() {
+            return false; // Should never get called, but let's go with false for now.
+        }
+
+		public void Play() {
+			switch( _oWorker.Status ) {
+				case WorkerStatus.FREE:
+					try {
+						_oWorker.Queue( new SongWorker1( this ), 0 );
+					} catch( ArgumentException ) {
+						_oSiteBase.LogError( "sound", "Unable to queue up request." );
+					}
+					break;
+				case WorkerStatus.PAUSED:
+					_oWorker.Start( 0 );
+					break;
+				case WorkerStatus.BUSY:
+					_oSiteBase.LogError( "sound", "Sound is already playing" );
+					break;
+			}
+		}
+
+		public void Stop() {
+			_oWorker.Stop();
+		}
+
+		public void Pause() {
+			_oWorker.Pause();
+		}
+
+		/// <summary>
+		/// Getting a CA1816 error these days. Need to re-investigate Dispose.
+		/// </summary>
+        public void Dispose() {
+			_oWorker.Stop(); 
+        }
+    }
+
 }

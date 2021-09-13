@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Drawing;
 using System.Reflection;
+using System.Xml;
 
 using Play.Interfaces.Embedding;
 using Play.Edit;
@@ -175,4 +176,66 @@ namespace Play.MusicWalker {
 			return( base.Execute( sGuid ) );
 		}
 	}
+
+	/// <summary>
+	/// Standard window for playing a solo mp3 file. Maybe I'll add some property pane
+	/// like stuff that can be used by the m3u player too.
+	/// </summary>
+	public class WinSoloMP3 :
+		SKControl, 
+		IPgLoad<XmlElement>,
+		IPgSave<XmlDocumentFragment>,
+        IPgCommandView
+	{
+        public readonly static Guid _guidViewImage = Guid.Empty;
+		readonly string _strIconMusic = @"MusicWalker.Content.icon_album.gif";
+
+		readonly MP3Document _oDocument;
+
+        public bool IsDirty => false;
+
+        public Guid   Catagory => _guidViewImage;
+        public string Banner   => "Solo MP3 Player" + ( string.IsNullOrEmpty( _oDocument.CurrentURL ) ? string.Empty : " : " + _oDocument.CurrentURL );
+        public Image  Iconic   { get; }
+
+		public WinSoloMP3( IPgViewSite oBaseSite, MP3Document oDocument ) {
+			_oDocument = oDocument ?? throw new ArgumentNullException( "Music Image Win needs Music Document.");
+
+			Iconic = ImageResourceHelper.GetImageResource( Assembly.GetExecutingAssembly(), _strIconMusic ) ?? 
+				throw new ApplicationException("Could not find music image resource.");
+		}
+
+        public bool InitNew() {
+            return true;
+        }
+
+        public bool Load( XmlElement oStream ) {
+            return true;
+        }
+
+        public bool Save( XmlDocumentFragment oStream ) {
+            return true;
+        }
+
+        public object Decorate( IPgViewSite oBaseSite, Guid sGuid )  {
+            return null;
+        }
+
+        public bool Execute( Guid sGuid ) {
+            if( sGuid == GlobalCommands.Play ) {
+				_oDocument.Play();
+				return true;
+			}
+			if( sGuid == GlobalCommands.Stop ) {
+				_oDocument.Stop();
+				return true;
+			}
+			if( sGuid == GlobalCommands.Pause ) {
+				_oDocument.Pause();
+				return true;
+			}
+
+			return false;
+        }
+    }
 }

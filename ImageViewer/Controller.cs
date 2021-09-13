@@ -93,12 +93,12 @@ namespace Play.ImageViewer {
         /// <summary>
         /// Image viewers are less suitable than direct file editor for bitmaps
         /// so we'll return a lower priority. However they are high priority for
-        /// directories (null or empty extensions)
+        /// directories (NULL OR EMPTY extensions!)
         /// </summary>
         /// <param name="strExtension"></param>
         /// <returns></returns>
         public override PgDocumentDescriptor Suitability(string strExtension) {
-            byte bPriority = string.IsNullOrEmpty( strExtension ) ? (byte)255 : (byte)20;
+            byte bPriority = string.IsNullOrEmpty( strExtension ) ? (byte)255 : (byte)20; // See above fool!
 
             return new PgDocumentDescriptor( strExtension, 
                                              typeof( IPgLoadURL ), 

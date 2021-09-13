@@ -88,4 +88,55 @@ namespace Play.MusicWalker {
  	        yield return( new ViewType( "Playlist",  _guidViewText  ) );
         }
 	}
+
+	public class MP3Controller : Controller {
+		public MP3Controller() : base() {
+			_rgExtensions.Add( ".mp3" );
+		}
+
+        public override PgDocumentDescriptor Suitability(string strExtension) {
+            byte bPriority = (byte)0;
+
+			foreach( string strUs in _rgExtensions ) {
+				if( string.Compare( strUs, strExtension, ignoreCase:true ) == 0 )
+					bPriority = 255;
+			}
+
+            return new PgDocumentDescriptor( strExtension, 
+                                             typeof( IPgLoadURL ), 
+                                             bPriority, 
+                                             this );
+        }
+
+		public override IDisposable CreateDocument(IPgBaseSite oSite, string strExtn ) {
+			return new MP3Document( oSite );
+		}
+
+		public override IDisposable CreateView( IPgViewSite oBaseSite, object oDocument, Guid guidViewType ) {
+			if( oDocument is not MP3Document oDocM3u )
+				throw new ArgumentException("Argument must be an MP3Document");
+
+			try {
+				if( guidViewType == WinSoloMP3._guidViewImage )
+					return( new WinSoloMP3( oBaseSite, oDocM3u ) );
+
+				return( new WinSoloMP3( oBaseSite, oDocM3u ) );
+			} catch( Exception oEx ) {
+				Type[] rgErrors = { typeof( NullReferenceException ),
+									typeof( InvalidCastException ),
+									typeof( ArgumentNullException ),
+									typeof( ArgumentException ),
+									typeof( ApplicationException) };
+				if( rgErrors.IsUnhandled( oEx ) )
+					throw;
+
+				throw new InvalidOperationException( "Controller couldn't create new view for M3u document.", oEx );
+			}
+		}
+
+		public override IEnumerator<IPgViewType> GetEnumerator() {
+ 			yield return( new ViewType( "Player", WinSoloMP3._guidViewImage ) );
+		}
+	}
+
 }

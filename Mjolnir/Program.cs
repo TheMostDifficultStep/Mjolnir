@@ -1115,6 +1115,7 @@ namespace Mjolnir {
 			Controllers.Add( new Play.ImageViewer  .ImageBrowserDirController() );
 			Controllers.Add( new Play.MusicWalker  .MusicWalkerController() );
 			Controllers.Add( new Play.MusicWalker  .M3uController() );
+            Controllers.Add( new Play.MusicWalker  .MP3Controller() );
 			Controllers.Add( new Play.MorsePractice.MorseController() );
 			Controllers.Add( new Play.MorsePractice.MorseController2() );
 			Controllers.Add( new Play.MorsePractice.MorseController3() );
