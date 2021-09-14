@@ -860,7 +860,7 @@ namespace Play.SSTV {
             }
 
             // TODO: Make this a settings value.
-            if( !fReceivedFinishedMsg && oWorker.RxSSTV.PercentRxComplete > 60 )
+            if( !fReceivedFinishedMsg && oWorker.RxSSTV != null && oWorker.RxSSTV.PercentRxComplete > 60 )
                 DownloadFinished();
 
             // NOTE: bitmaps come from RxSSTV and that thread is about to DIE!!

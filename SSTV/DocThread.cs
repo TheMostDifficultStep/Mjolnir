@@ -95,7 +95,8 @@ namespace Play.SSTV
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( DirectoryNotFoundException ),
                                     typeof( NullReferenceException ),
-                                    typeof( ApplicationException ) };
+                                    typeof( ApplicationException ),
+                                    typeof( FileNotFoundException ) };
                 if( rgErrors.IsUnhandled( oEx ) )
                     throw;
 
