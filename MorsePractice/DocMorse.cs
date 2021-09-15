@@ -846,6 +846,7 @@ namespace Play.MorsePractice {
             rgTemp.Add( new RepeaterDir( 441.075,  5000, 180, "k7lwh",    "103.5" ));
             rgTemp.Add( new RepeaterDir( 442.875,  5000, 120, "w7aux",    "103.5" ));
             rgTemp.Add( new RepeaterDir( 149.995,  -600, 120, "w7rnk/c"  ));
+            rgTemp.Add( new RepeaterDir( 147.280,  +600, 120, "w7dk",     "103.5" ));
 
             _rgRepeatersInfo.Add( "k7lwh",  new RepeaterInfo( "Kirkland", "Lake Washington Ham Club", "http://www.lakewashingtonhamclub.org/" ));
             _rgRepeatersInfo.Add( "ww7psr", new RepeaterInfo( "Seattle", "Puget Sound Repeater Group", "http://psrg.org/" ));
@@ -856,6 +857,7 @@ namespace Play.MorsePractice {
             _rgRepeatersInfo.Add( "w7wwi",  new RepeaterInfo( "Tiger Mtn East", "Sea-Tac Repeater Association" ));
             _rgRepeatersInfo.Add( "k7sye",  new RepeaterInfo( "Auburn", "Auburn Valley Repeater Group" ));
             _rgRepeatersInfo.Add( "wa7hjr", new RepeaterInfo( "Issaquah", "Tiger Mountain East", "http://wa7hjr.org/" ) );
+            _rgRepeatersInfo.Add( "w7dk"  , new RepeaterInfo( "Tacoma", "Radio Club of Tacoma" ));
 
             foreach( RepeaterDir oItem in rgTemp ) {
                 _rgRepeatersIn .Add( oItem.Input, oItem );

@@ -261,6 +261,8 @@ namespace Play.MusicWalker {
         public bool      IsDirty    => false;
 
         public class SongWorker1 : SongWorker {
+			protected int    _iPlayed  = 0;
+			protected int    _iMaxPlay = 1;
 			protected readonly MP3Document _oDocument;
 
 			public SongWorker1( MP3Document oDoc ) : base( oDoc._oSiteBase ) {
@@ -274,7 +276,7 @@ namespace Play.MusicWalker {
 			}
 
 			public override bool SongMoveNext() { 
-				return true; // Just play again.
+				return _iPlayed++ < _iMaxPlay; // Just play again.
 			}
 
 			public override string SongFileName() { 
