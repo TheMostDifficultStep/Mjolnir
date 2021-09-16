@@ -211,8 +211,7 @@ namespace Play.SSTV {
     }
 
 	/// <summary>
-	/// This view shows the single image being downloaded from the audio stream. Haven't sorted
-	/// out how to switch between the microphone (usb in) and selecting an audio stream.
+	/// This view shows the single image being downloaded from the audio stream. 
 	/// </summary>
 	public class SSTVRxImage : 
 		ImageViewSingle, 
@@ -221,6 +220,12 @@ namespace Play.SSTV {
 		IPgLoad<XmlElement>,
 		IPgTools
 	{
+		public enum Tools : int {
+			FileAuto = 0,
+			FileFixed = 1,
+			Port = 2
+		}
+
 		public static Guid GUID { get; } = new Guid( "{5213847C-8B38-49D8-AAE2-C870F5E6FB51}" );
 		public static string _strIcon =  "Play.SSTV.icons8_tv.png";
 
@@ -231,10 +236,10 @@ namespace Play.SSTV {
 
         protected readonly IPgViewSite _oSiteView;
 
-		readonly List<string>   _rgToolBox = new List<string>() { "File", "File w/o VIS", "Port" };
-		protected int           _iToolSelected = 0;
-		protected static string _strBaseTitle = "MySSTV Receive";
-		protected string        _strBanner    = _strBaseTitle;
+		readonly List<string>   _rgToolBox     = new List<string>() { "File", "File w/o VIS", "Port" };
+		protected Tools         _eToolSelected = Tools.FileAuto;
+		protected static string _strBaseTitle  = "MySSTV Receive";
+		protected string        _strBanner     = _strBaseTitle;
 
         DocSSTV _oDocSSTV;
 
@@ -321,14 +326,22 @@ namespace Play.SSTV {
 
         public override bool Execute( Guid sGuid ) {
 			if( sGuid == GlobalCommands.Play ) {
-				switch( _iToolSelected ) {
-					case 0:
+				switch( _eToolSelected ) {
+					case Tools.FileAuto:
 						// TODO: Change our title to match what we're trying to show!!
 						_strBanner = _strBaseTitle + " : " + _oDocSSTV.Chooser.CurrentFullPath;
 						_oSiteView.Notify( ShellNotify.BannerChanged );
-						_oDocSSTV.RecordBeginFileRead2( _oDocSSTV.Chooser.CurrentFullPath );
+						// TODO: Sort out the file/port vs auto/fixed receive modes.
+						_oDocSSTV.RecordBeginFileRead2( _oDocSSTV.Chooser.CurrentFullPath, fFixedMode:false );
 						return true;
-					case 1:
+					case Tools.FileFixed:
+						// TODO: Change our title to match what we're trying to show!!
+						_strBanner = _strBaseTitle + " : " + _oDocSSTV.Chooser.CurrentFullPath;
+						_oSiteView.Notify( ShellNotify.BannerChanged );
+						// TODO: Sort out the file/port vs auto/fixed receive modes.
+						_oDocSSTV.RecordBeginFileRead2( _oDocSSTV.Chooser.CurrentFullPath, fFixedMode:true );
+						return true;
+					case Tools.Port:
 						LogError( "SSTV Command", "Audio Port not supported yet" );
 						return true;
 				}
@@ -374,9 +387,9 @@ namespace Play.SSTV {
         public int ToolCount => _rgToolBox.Count;
 
         public int ToolSelect { 
-			get => _iToolSelected; 
+			get => (int)_eToolSelected; 
 			set {
-				_iToolSelected = value;
+				_eToolSelected = (Tools)value;
 				_oSiteView.Notify( ShellNotify.ToolChanged );
 			}
 		}
@@ -399,7 +412,7 @@ namespace Play.SSTV {
 			_oDocSSTV = oSSTV ?? throw new ArgumentNullException();
 
 			_fCheckMarks = true;
-			ToolSelect = 2;
+			ToolSelect = 2; // BUG: change this to an enum in the future.
 			HyperLinks.Add( "chooser", OnChooser );
 		}
 

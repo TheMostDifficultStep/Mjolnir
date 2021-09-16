@@ -206,7 +206,7 @@ namespace Play.Sound {
 		{
 			Mode = tvFamily;
 			//m_SampFreq = sys.m_SampFreq; <-- this gets set in the constructor now.
-			m_fNarrow = CSSTVSET.IsNarrowMode( tvFamily );
+			m_fNarrow = IsNarrowMode( tvFamily );
 			SetSampFreq( tvFamily );
 		}
 
@@ -1465,19 +1465,20 @@ namespace Play.Sound {
 
 			InitAFC();
 			m_fqc.Clear();
-			m_SyncMode = -1; // Here and then...
-			m_Sync  = false;
+		  //m_SyncMode = -1; // Here and then...
+			// m_Sync  = false; Looks fishy and bogus. Let's try tossing it 9/15/2021.
 			m_Skip  = 0;
 			m_wBase = 0;
 			m_wCnt  = 0;
 			m_rBase = 0;
 		  //OpenCloseRxBuff();
-			m_Lost  = false;
-			m_SyncHit       = -1;
-			m_SyncLast		= 0;
+			m_Lost     = false;
+			m_SyncHit  = -1;
+			m_SyncLast = 0;
 
-			m_Sync     = true;
+			m_Sync     = true; // This is the only place we set to true!
 			m_SyncMode = 0; // Here? This kills me. Probably due to multi threaded stuff.
+
 			// However, this combo makes sense. We go back for looking for sync signals at the
 			// same time we're storing the image scan lines.
 			SetWidth(m_fNarrow);
@@ -1884,7 +1885,8 @@ namespace Play.Sound {
 		}
 
 		/// <summary>
-		/// Enumerate all the transmit modes we support.
+		/// Enumerate all the transmit modes we support. The generators come in three families.
+		/// Each family has various variants, all map to the legacy modes.
 		/// </summary>
         public IEnumerator<SSTVMode> GetEnumerator()
         {
@@ -1906,7 +1908,12 @@ namespace Play.Sound {
             return GetEnumerator();
         }
 
-		protected SSTVMode GetSSTVMode( AllModes eLegacy ) {
+		/// <summary>
+		/// Maps from the old legacy mode to the new SSTVMode. Basically we enum the families
+		/// and in those check the legacy value from within the family. In the future we might
+		/// be able to rid ourselves of the legacy states, but we'll see. 
+		/// </summary>
+		public SSTVMode GetSSTVMode( AllModes eLegacy ) {
 			foreach( SSTVMode tvMode in this ) {
 				if( tvMode.LegacyMode == eLegacy ) {
 					return tvMode;

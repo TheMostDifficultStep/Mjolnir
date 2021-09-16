@@ -21,14 +21,18 @@ namespace Play.SSTV
         readonly string _strFileName;
         readonly ConcurrentQueue<ESstvProperty> _oMsgQueue;
 
+        protected readonly SSTVMode _oFixedMode;
+
         public SSTVMode NextMode => RxSSTV.Mode;
         public TmmSSTV  RxSSTV   { get; protected set; }
 
         CSSTVDEM        _oSSTVDeModulator;
 
-        public ThreadWorker( ConcurrentQueue<ESstvProperty> oMsgQueue, string strFileName ) {
+        public ThreadWorker( ConcurrentQueue<ESstvProperty> oMsgQueue, string strFileName, SSTVMode oMode ) {
             _strFileName = strFileName ?? throw new ArgumentNullException( "Filename is null" );
             _oMsgQueue   = oMsgQueue   ?? throw new ArgumentNullException( "Queue is null" );
+
+            _oFixedMode = oMode; // Override the auto sense and just fix ourselves trying to receive a particular signal type.
         }
 
         public IEnumerator<int> GetReceiveFromFileTask( AudioFileReader oReader ) {
@@ -88,6 +92,11 @@ namespace Play.SSTV
 
                 oDemod.ShoutNextMode += Listen_NextRxMode;
                 RxSSTV.ShoutTvEvents += Listen_TvEvents;
+
+                if( _oFixedMode != null ) {
+                    // Hard code our decoding mode... After set the Shout's since this causes a call to the ShoutNextMode()
+                    _oSSTVDeModulator.Start( _oFixedMode );
+                }
 
                 for( IEnumerator<int> oIter = GetReceiveFromFileTask( oReader ); oIter.MoveNext(); ) {
                     RxSSTV.SSTVDraw();

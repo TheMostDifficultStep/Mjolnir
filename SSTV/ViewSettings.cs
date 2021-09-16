@@ -8,7 +8,6 @@ using Play.Forms;
 using Play.Interfaces.Embedding;
 using Play.Edit;
 using Play.Rectangles;
-using Play.Parse.Impl;
 
 namespace Play.SSTV {
     public class ViewSettings :

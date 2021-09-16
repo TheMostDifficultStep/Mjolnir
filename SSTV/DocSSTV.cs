@@ -868,18 +868,25 @@ namespace Play.SSTV {
         }
 
         /// <summary>
-        /// This is our true multithreading experiment! Looks like it works
+        /// This is our TRUE multithreading experiment! Looks like it works
         /// pretty well. The decoder and filters and all live in the bg thread.
         /// The foreground tread only polls the bitmap from time to time.
         /// </summary>
-        /// <param name="strFileName"></param>
-        public void RecordBeginFileRead2( string strFileName ) {
+        /// <param name="fFixedMode">Just set the decoder for a particular SSTV mode. This is usefull
+        /// if picking up the signal in the middle and you know the type a priori.</param>
+        public void RecordBeginFileRead2( string strFileName, bool fFixedMode = false ) {
             if( string.IsNullOrEmpty( strFileName ) ) {
                 LogError( "Invalid filename for SSTV image read" );
                 return;
             }
             if( _oThread == null ) {
-                ThreadWorker oWorker        = new ThreadWorker( _oMsgQueue, strFileName );
+                SSTVMode oModeFixed = null;
+
+                if( fFixedMode && ModeList.CheckedLine.Extra is SSTVMode oMode ) {
+                    oModeFixed = oMode;
+                }
+
+                ThreadWorker oWorker        = new ThreadWorker( _oMsgQueue, strFileName, oModeFixed );
                 ThreadStart  threadDelegate = new ThreadStart ( oWorker.DoWork );
 
                 _oThread = new Thread( threadDelegate );
