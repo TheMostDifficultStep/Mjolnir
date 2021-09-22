@@ -1381,7 +1381,7 @@ namespace Play.Sound {
 
 				int delay = m_bpftap;
 				CalcBPF();
-				if( m_Sync ){
+				if( m_Sync ) {
 					delay = (m_bpftap - delay) / 2;
 					m_Skip = delay;
 				}

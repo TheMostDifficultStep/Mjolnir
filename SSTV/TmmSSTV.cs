@@ -344,6 +344,10 @@ namespace Play.SSTV
 			}
 		}
 
+		/// <summary>
+		/// Working on a way to attempt to use a least squares fit to find
+		/// the slant and offset. Still incomplete.
+		/// </summary>
 		protected void ProcessBlock() {
 			//if( m_AY == 7 ) {
 			//    InitSlots( _dp.Mode.Resolution.Width, iOffs / dbScanWidth);
@@ -351,14 +355,14 @@ namespace Play.SSTV
 			//}
 			int	   wBase = _dp.m_wBase;
 			double dbScanWidth = ScanWidthInSamples;
-			int    i = 0; 
+			int    i = (int)_dp.m_rBase; 
 
 			while( i < wBase ) { 
-				int   iY = (int)Math.Round(i/dbScanWidth) * LineMultiplier; // PD needs us to use Round (.999 is 1)
-				int   iBlock = i;
+				int iY = (int)Math.Round(i/dbScanWidth) * LineMultiplier; // PD needs us to use Round (.999 is 1)
+				int iStart = i;
 
-				while( i < iBlock + dbScanWidth ) {
-					short sp = _dp.m_B12[i];
+				while( i < iStart + dbScanWidth ) {
+					short sp = _dp.m_B12[i]; // bogus access yet...
 					if( sp > _dp.m_SLvl ) {
 						m_SyncHit = i; // Save the absolute position of the sync.
 						_rgSyncDetect[iY] = sp;
