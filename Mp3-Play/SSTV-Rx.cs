@@ -1068,12 +1068,13 @@ namespace Play.Sound {
 		readonly CIIRTANK m_iir12;
 		readonly CIIRTANK m_iir13;
 		readonly CIIRTANK m_iir19;
-		readonly CIIRTANK m_iirfsk;
+	//  readonly CIIRTANK m_iirfsk;
 		readonly CIIR     m_lpf11;
 		readonly CIIR     m_lpf12;
 		readonly CIIR     m_lpf13;
 		readonly CIIR     m_lpf19;
-		readonly CIIR     m_lpffsk;
+	//  readonly CIIR     m_lpffsk;
+
 		readonly CLVL     m_lvl;
 		readonly CSLVL    m_SyncLvl = new CSLVL();
 
@@ -1210,13 +1211,13 @@ namespace Play.Sound {
 			m_iir12  = new CIIRTANK( iSampFreq );
 			m_iir13  = new CIIRTANK( iSampFreq );
 			m_iir19  = new CIIRTANK( iSampFreq );
-		  //m_iirfsk = new CIIRTANK( iSampFreq );
+		//  m_iirfsk = new CIIRTANK( iSampFreq );
 
 			m_lpf11  = new CIIR();
 			m_lpf12  = new CIIR();
 			m_lpf13  = new CIIR();
 			m_lpf19  = new CIIR();
-			m_lpffsk = new CIIR();
+		//  m_lpffsk = new CIIR();
 
 			m_iir11 .SetFreq(1080     + m_dblToneOffset, SampFreq,  80.0);
 			m_iir12 .SetFreq(1200     + m_dblToneOffset, SampFreq, 100.0);
@@ -1440,7 +1441,7 @@ namespace Play.Sound {
 				m_iir12.SetFreq(1200+dfq + m_dblToneOffset, SampFreq, 100.0);
 				m_iir13.SetFreq(1320+dfq + m_dblToneOffset, SampFreq, 80.0);
 				m_iir19.SetFreq(1900+dfq + m_dblToneOffset, SampFreq, 100.0);
-				m_iirfsk.SetFreq(FSKSPACE+dfq + m_dblToneOffset, SampFreq, 100.0);
+			//  m_iirfsk.SetFreq(FSKSPACE+dfq + m_dblToneOffset, SampFreq, 100.0);
 				m_AFCFQ = dfq;
 			}
 		}
@@ -1584,38 +1585,26 @@ namespace Play.Sound {
 			double d19; // narrow sync
 
 			d12 = m_iir12.Do(d);
-			if( d12 < 0.0 ) 
-				d12 = -d12;
-			d12 = m_lpf12.Do(d12);
+			d12 = m_lpf12.Do( Math.Abs( d12 ) );
 
 			d19 = m_iir19.Do(d);
-			if( d19 < 0.0 ) 
-				d19 = -d19;
-			d19 = m_lpf19.Do(d19);
+			d19 = m_lpf19.Do( Math.Abs( d19 ) );
+
+			// One of these days I'll figure out why we need both 19 & 12.
+			double dHSync = m_fNarrow ? d19 : d12;
 
 			//double dsp;
 			//dsp = m_iirfsk.Do(d);
-			//if( dsp < 0.0 ) 
-			//	dsp = -dsp;
-			//dsp = m_lpffsk.Do(dsp);
-
+			//dsp = m_lpffsk.Do( Math.Aps( dsp ));
 			// DecodeFSK( (int)d19, (int)dsp );
 
-			if( m_fNarrow ){
-				if( m_ScopeFlag ){
-					m_Scope[0].WriteData(d19);
-				}
-				if( m_LevelType ) 
-					m_SyncLvl.Do(d19);
-			} else {
-				if( m_ScopeFlag ){
-					m_Scope[0].WriteData(d12);
-				}
-				if( m_LevelType ) 
-					m_SyncLvl.Do(d12);
-			}
+			if( m_ScopeFlag )
+				m_Scope[0].WriteData( dHSync );
+			if( m_LevelType ) 
+				m_SyncLvl.Do( dHSync );
+
 			if( m_Tick != 0 ) {
-				pTick?.Write(d12);
+				pTick?.Write( d12 );
 				return;
 			}
 
@@ -1629,7 +1618,7 @@ namespace Play.Sound {
 				double d11;
 				double d13;
 
-				d11 = m_iir11.Do(d);
+				d11 = m_iir11.Do( d );
 				d11 = m_lpf11.Do( Math.Abs( d11 ));
 
 				switch(m_SyncMode){
@@ -1785,17 +1774,13 @@ namespace Play.Sound {
 					if( m_ScopeFlag ){
 						m_Scope[1].WriteData(d);
 					}
-					int n = m_wCnt;
-					m_Buf[n] = (short)-d;
-
-					if( d12 > m_SLvl ) {
+					if( dHSync > m_SLvl ) {
 						m_SyncHit = m_wBase;
 					}
-					if( m_fNarrow ){
-						m_B12[n] = (short)d19;
-					} else {
-						m_B12[n] = (short)d12;
-					}
+					int n = m_wCnt;
+					m_Buf[n] = (short)-d;
+					m_B12[n] = (short)dHSync;
+
 					WCntIncrement();
 				}
 			}
