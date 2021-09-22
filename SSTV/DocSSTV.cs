@@ -856,10 +856,10 @@ namespace Play.SSTV {
                             break;
                     }
                 }
-                yield return 250;
+                yield return 250; // wait 1/4 of a second.
             }
 
-            // TODO: Make this a settings value.
+            // TODO: Make this a settings value. Hard coded to 60% now.
             if( !fReceivedFinishedMsg && oWorker.RxSSTV != null && oWorker.RxSSTV.PercentRxComplete > 60 )
                 DownloadFinished();
 

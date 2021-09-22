@@ -1024,7 +1024,7 @@ namespace Play.Sound {
 	/// <summary>
 	/// So my SSTVMode object is a bit different than the CSSTVSET one. I have a different mode object per
 	/// TV format. CSSTVSET changes it's state depending on which format it is re-initialized to. Thus,
-	/// the Mode gets assigned every time a new image comes down.
+	/// the Mode gets assigned everytime a new image comes down.
 	/// </summary>
 	public class CSSTVDEM : IEnumerable<SSTVMode> {
 		public SYSSET   sys  { get; protected set; }
@@ -1210,7 +1210,7 @@ namespace Play.Sound {
 			m_iir12  = new CIIRTANK( iSampFreq );
 			m_iir13  = new CIIRTANK( iSampFreq );
 			m_iir19  = new CIIRTANK( iSampFreq );
-			m_iirfsk = new CIIRTANK( iSampFreq );
+		  //m_iirfsk = new CIIRTANK( iSampFreq );
 
 			m_lpf11  = new CIIR();
 			m_lpf12  = new CIIR();
@@ -1222,13 +1222,13 @@ namespace Play.Sound {
 			m_iir12 .SetFreq(1200     + m_dblToneOffset, SampFreq, 100.0);
 			m_iir13 .SetFreq(1320     + m_dblToneOffset, SampFreq,  80.0);
 			m_iir19 .SetFreq(1900     + m_dblToneOffset, SampFreq, 100.0);
-			m_iirfsk.SetFreq(FSKSPACE + m_dblToneOffset, SampFreq, 100.0);
+		//  m_iirfsk.SetFreq(FSKSPACE + m_dblToneOffset, SampFreq, 100.0);
 
 			m_lpf11 .MakeIIR(50, SampFreq, 2, 0, 0);
 			m_lpf12 .MakeIIR(50, SampFreq, 2, 0, 0);
 			m_lpf13 .MakeIIR(50, SampFreq, 2, 0, 0);
 			m_lpf19 .MakeIIR(50, SampFreq, 2, 0, 0);
-			m_lpffsk.MakeIIR(50, SampFreq, 2, 0, 0);
+		//  m_lpffsk.MakeIIR(50, SampFreq, 2, 0, 0);
 
 			m_wBase     = 0;
 			m_wCnt      = 0;
@@ -1579,11 +1579,9 @@ namespace Play.Sound {
 			if( d < -16384.0 ) 
 				d = -16384.0;
 
-			double d11;
-			double d12;
-			double d13;
-			double d19;
-			double dsp;
+			// These two go into the B12 buffer, depending on narrow or normal.
+			double d12; // normal sync.
+			double d19; // narrow sync
 
 			d12 = m_iir12.Do(d);
 			if( d12 < 0.0 ) 
@@ -1595,10 +1593,11 @@ namespace Play.Sound {
 				d19 = -d19;
 			d19 = m_lpf19.Do(d19);
 
-			dsp = m_iirfsk.Do(d);
-			if( dsp < 0.0 ) 
-				dsp = -dsp;
-			dsp = m_lpffsk.Do(dsp);
+			//double dsp;
+			//dsp = m_iirfsk.Do(d);
+			//if( dsp < 0.0 ) 
+			//	dsp = -dsp;
+			//dsp = m_lpffsk.Do(dsp);
 
 			// DecodeFSK( (int)d19, (int)dsp );
 
@@ -1615,8 +1614,8 @@ namespace Play.Sound {
 				if( m_LevelType ) 
 					m_SyncLvl.Do(d12);
 			}
-			if( m_Tick != 0 && (pTick != null) ){
-				pTick.Write(d12);
+			if( m_Tick != 0 ) {
+				pTick?.Write(d12);
 				return;
 			}
 
@@ -1627,6 +1626,9 @@ namespace Play.Sound {
 				//m_sint3.SyncInc();
 
 				// The only time we care about this one is in VIS.
+				double d11;
+				double d13;
+
 				d11 = m_iir11.Do(d);
 				d11 = m_lpf11.Do( Math.Abs( d11 ));
 
@@ -1871,8 +1873,7 @@ namespace Play.Sound {
 					}
 				}
 				m_AFCCount++;
-			}
-			else {
+			} else {
 				if( (m_AFCCount >= SstvSet.m_AFCB) && m_AFCGard != 0 ){
 					m_AFCGard--;
 					if( m_AFCGard == 0 ) 

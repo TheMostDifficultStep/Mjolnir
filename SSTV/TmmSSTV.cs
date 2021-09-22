@@ -32,7 +32,7 @@ namespace Play.SSTV
 	    protected int     m_SyncPos, m_SyncRPos; // RPos Also gets set in AutoStopJob() which we haven't implemented yet 
 	    protected int     m_SyncMax, m_SyncMin;
 		protected int     m_SyncHit, m_SyncLast;
-		readonly protected List<SKPointI> _rgSyncDetect = new List<SKPointI>(256);
+		readonly protected short[] _rgSyncDetect = new short[850];
 
 	    protected int     m_SyncAccuracy = 1;
 	    protected int     m_SyncAccuracyN;  // TODO: Gets used in TimerTimer, which isn't implemented yet.
@@ -274,6 +274,10 @@ namespace Play.SSTV
 			return true;
 		}
 
+		/// <remarks>
+		/// Unfortunately we don't presently know if we are in VIS detect mode
+		/// and thus where SSTVSync() should be called.
+		/// </remarks>
         public void Start() {
 			m_SyncRPos      = m_SyncPos = -1;
 			m_SyncAccuracyN = 0;
@@ -281,9 +285,10 @@ namespace Play.SSTV
 			m_AY			= -5;
 			m_SyncHit       = -1;
 			m_SyncLast		= 0;
-			_iSyncCheck     = 4;
-
-			_rgSyncDetect.Clear();
+			_iSyncCheck     = 4; // See SSTVSync()
+			
+			for( int i = 0; i< _rgSyncDetect.Length; ++i )
+				_rgSyncDetect[i] = -1;
 
 			ShoutTvEvents?.Invoke(ESstvProperty.SSTVMode );
 
@@ -327,7 +332,7 @@ namespace Play.SSTV
 				SSTVDrawNormal();
 				_dp.PageRIncrement( ScanWidthInSamples );
 
-				SSTVSync();
+				AlignHorizontal();
 
 				if( m_AY >= _dp.Mode.Resolution.Height ){ 
 					_dp.Stop();
@@ -335,6 +340,30 @@ namespace Play.SSTV
 					break;
 				} else {
 					ShoutTvEvents?.Invoke( ESstvProperty.DownLoadTime );
+				}
+			}
+		}
+
+		protected void ProcessBlock() {
+			//if( m_AY == 7 ) {
+			//    InitSlots( _dp.Mode.Resolution.Width, iOffs / dbScanWidth);
+			//    //_dp.m_rPage = m_SyncHit;
+			//}
+			int	   wBase = _dp.m_wBase;
+			double dbScanWidth = ScanWidthInSamples;
+			int    i = 0; 
+
+			while( i < wBase ) { 
+				int   iY = (int)Math.Round(i/dbScanWidth) * LineMultiplier; // PD needs us to use Round (.999 is 1)
+				int   iBlock = i;
+
+				while( i < iBlock + dbScanWidth ) {
+					short sp = _dp.m_B12[i];
+					if( sp > _dp.m_SLvl ) {
+						m_SyncHit = i; // Save the absolute position of the sync.
+						_rgSyncDetect[iY] = sp;
+					}
+					++i;
 				}
 			}
 		}
@@ -357,19 +386,14 @@ namespace Play.SSTV
 				m_SyncMin  = m_SyncMax = _dp.m_B12[idx1]; // Reset sync detect for next pass
 				m_SyncRPos = m_SyncPos;                   // Save the last detected sync.
 				if( m_SyncHit > -1 ) {
-					int iOffs = m_SyncHit - m_SyncLast;
-					_rgSyncDetect.Add( new SKPointI( m_SyncHit, iOffs ) );
-                    //if( m_AY == 7 ) {
-                    //    InitSlots( _dp.Mode.Resolution.Width, iOffs / dbScanWidth);
-					//    //_dp.m_rPage = m_SyncHit;
-					//}
+					_rgSyncDetect[m_AY] = (short)m_SyncHit;
                     m_SyncLast = m_SyncHit;
 					m_SyncHit  = -1;
 				}
 
 				for( int i = 0; i < iScanWidth; i++ ){ 
-					int    idx = ( rBase + i + _iSyncOffset ) % _dp.m_Buf.Length;
-					short  sp  = _dp.m_B12[idx];
+					int   idx = ( rBase + i + _iSyncOffset ) % _dp.m_Buf.Length;
+					short sp  = _dp.m_B12[idx];
 
 					#region D12
 					if( sp > _dp.m_SLvl ) {
@@ -410,18 +434,24 @@ namespace Play.SSTV
 			}
 		}
 
-		/// <summary>This call tries to determine the start the image data
-		/// after the VIS. Offset correction.</summary>
-		/// <remarks>I see two ways to correct slant. MMSSTV has the CSTVSET values static
+		/// I see two ways to correct slant. MMSSTV has the CSTVSET values static
 		/// so they must change the page width. Since they were using for the distance
 		/// along the scan line (ps = n%width) they then get corrected.
-		/// I'm going to change my parse values by updated a copy of the mode.</remarks>
-		public void SSTVSync() {
-            if( m_AY >= _iSyncCheck )  { // was >=
+		/// I'm going to change my parse values by updated a copy of the mode.
 
-				int   iSW       = (int)ScanWidthInSamples;
-                int[] bp        = new int[iSW]; // Array.Clear( bp, 0, bp.Length );
-				int   iOffsExpd = (int)_dp.Mode.Offset * _dp.SampFreq / 1000;
+		/// <summary>Horizontal Offset correction. Not slant, but try to
+		/// shift whole image left and right. Looking for the 1200hz tone,
+		/// and then seeing if it is where we expect it. Looks like we
+		/// sum over 4 lines of data in case we miss parts of the image.</summary>
+		/// <remarks>There's a bug here where we make an offset so large we
+		/// move out of the range of the input data. Trying to fix that.
+		/// Given a scenario where we just start randomly in the image
+		/// data, I'm not seeing how this works.</remarks>
+		public void AlignHorizontal() {
+            if( m_AY >= _iSyncCheck )  { // was >=
+				int   iSW           = (int)ScanWidthInSamples;
+                int[] bp            = new int[iSW]; // Array.Clear( bp, 0, bp.Length );
+				int   iOffsExpected = (int)_dp.Mode.Offset * _dp.SampFreq / 1000; // result in samples offset.
 
 				// sum into bp[] four scan lines of data.
                 for( int pg = 0; pg < _iSyncCheck; pg++ ){
@@ -439,7 +469,7 @@ namespace Play.SSTV
                 		iOffsFound   = i;
                 	}
                 }
-                iOffsFound -= iOffsExpd;  
+                iOffsFound -= iOffsExpected; // how much is too much?!
                 if( _dp.m_Type == FreqDetect.Hilbert ) 
                 	iOffsFound -= _dp.HillTaps/4; // BUG: Add instead of subtract?
 

@@ -3,7 +3,6 @@ using System.Collections.Generic;
 
 using Play.Interfaces.Embedding;
 using Play.Edit;
-using Play.ImageViewer;
 
 namespace Play.SSTV {
 	public class MySSTVController : Controller {

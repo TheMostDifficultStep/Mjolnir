@@ -40,7 +40,7 @@ namespace Play.SSTV
 
             int     iChannels = oReader.WaveFormat.Channels;
             int     iBits     = oReader.WaveFormat.BitsPerSample; 
-            float[] rgBuff    = new float[1500]; // BUG: Make this scan line sized in the future.
+            float[] rgBuff    = new float[1500]; // TODO: Make this scan line sized in the future.
             int     iRead     = 0;
 
             double From32to16( int i ) => rgBuff[i] * 32768;

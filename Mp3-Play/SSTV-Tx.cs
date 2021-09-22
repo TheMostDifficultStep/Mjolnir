@@ -282,7 +282,7 @@ namespace Play.Sound {
         /// <summary>
         /// This is the offset from the start of the scan line to the end
         /// of the horizontal sync signal in millseconds. Used for aligning
-        /// the offset of the image.
+        /// the horizontal offset of the image.
         /// </summary>
         /// <remarks>Not sure if adding the extra gap is really necessary.
         /// that bit of slop might be tap delay's or some such.</remarks>
