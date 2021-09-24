@@ -1096,7 +1096,6 @@ namespace Play.Sound {
 		AllModes      m_NextMode;
 
 		readonly protected List<SyncCoordinate> _rgSyncDetect = new List<SyncCoordinate>(256); // Dup of the one in TmmSSTV for a bit.
-		protected int     m_SyncHit, m_SyncLast;
 
 	  //         int m_wLine;                         // Only used by the old SyncSSTV call. Might remove later.
       //public   int  m_wPage { get; protected set; } // This determines WHEN we read into the Rx & R12 buffers. Where the writer is.
@@ -1125,7 +1124,6 @@ namespace Play.Sound {
 		int         m_TickFreq;
 
 		// More goodies that can probably live on their own class.
-		double      m_CurSig; // Not sure who uses this, or why it's there.
 		readonly CSmooz m_Avg    = new CSmooz();
 		readonly CSmooz m_AFCAVG = new CSmooz();
 		readonly bool   m_afc;
@@ -1474,8 +1472,6 @@ namespace Play.Sound {
 			m_rBase = 0;
 		  //OpenCloseRxBuff();
 			m_Lost     = false;
-			m_SyncHit  = -1;
-			m_SyncLast = 0;
 
 			m_Sync     = true; // This is the only place we set to true!
 			m_SyncMode = 0; // Here? This kills me. Probably due to multi threaded stuff.
@@ -1774,9 +1770,6 @@ namespace Play.Sound {
 					if( m_ScopeFlag ){
 						m_Scope[1].WriteData(d);
 					}
-					if( dHSync > m_SLvl ) {
-						m_SyncHit = m_wBase;
-					}
 					int n = m_wCnt;
 					m_Buf[n] = (short)-d;
 					m_B12[n] = (short)dHSync;
@@ -1786,6 +1779,8 @@ namespace Play.Sound {
 			}
 			else if( sys.m_TestDem ){
 				// This is used by the TOptionDlg::TimerTimer code for test.
+				double m_CurSig; // I removed the member variable since it was not being used elsewhere.
+
 				switch(m_Type){
 					case FreqDetect.PLL:
 						m_CurSig = m_Avg.Avg(m_pll.Do(m_lvl.m_Cur));
@@ -1824,8 +1819,6 @@ namespace Play.Sound {
 		/// <seealso cref="CSSTVMOD.Write(int, uint, double)"/>
 		public void PageRIncrement( double dbWidthInSamples ) {
 			m_rBase    += dbWidthInSamples;
-			m_SyncLast = m_SyncHit;
-			m_SyncHit  = -1;
 		}
 
 		public void PageRReset() {
@@ -1948,7 +1941,6 @@ namespace Play.Sound {
 					if( iFrequency < 1500 ) {
 						//if( Mode.Family == TVFamily.Martin ) // S/B zero when we're seeing the hsync. 
 						//	throw new ApplicationException("Buffer alignment problem.");
-						m_SyncHit = n;
 						m_B12[idx]  = (short)(m_SLvl + 1);
 					}
 				}

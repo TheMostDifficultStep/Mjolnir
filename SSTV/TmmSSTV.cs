@@ -24,15 +24,14 @@ namespace Play.SSTV
 		public SSTVMode Mode => _dp.Mode;
 
 #region variables
-        protected int     m_AX, m_AY;
+        protected int     m_AY;
 
 	    protected short[]  m_Y36 = new short[800];
 	    protected short[,] m_D36 = new short[2,800];
 
 	    protected int     m_SyncPos, m_SyncRPos; // RPos Also gets set in AutoStopJob() which we haven't implemented yet 
 	    protected int     m_SyncMax, m_SyncMin;
-		protected int     m_SyncHit, m_SyncLast;
-		readonly protected short[] _rgSyncDetect = new short[850];
+		readonly protected int[] _rgSyncDetect = new int[850];
 
 	    protected int     m_SyncAccuracy = 1;
 	    protected int     m_SyncAccuracyN;  // TODO: Gets used in TimerTimer, which isn't implemented yet.
@@ -98,7 +97,7 @@ namespace Play.SSTV
 		}
 
 		/// <summary>
-		/// Return the scan line width in samples, possibly corrected. Samples per Millisecond based.
+		/// Calculate the scan line width in samples, possibly corrected. Samples per Millisecond based.
 		/// </summary>
 		public double ScanWidthInSamples {
 			get {
@@ -281,10 +280,7 @@ namespace Play.SSTV
         public void Start() {
 			m_SyncRPos      = m_SyncPos = -1;
 			m_SyncAccuracyN = 0;
-			m_AX			= -1;
 			m_AY			= -5;
-			m_SyncHit       = -1;
-			m_SyncLast		= 0;
 			_iSyncCheck     = 4; // See SSTVSync()
 			
 			for( int i = 0; i< _rgSyncDetect.Length; ++i )
@@ -330,8 +326,13 @@ namespace Play.SSTV
 					AutoStopJob();
 				}
 				SSTVDrawNormal();
+
+				double slope     = 0;
+				double intercept = 0;
+
 				_dp.PageRIncrement( ScanWidthInSamples );
 
+				AlignLeastSquares( ref slope, ref intercept );
 				AlignHorizontal();
 
 				if( m_AY >= _dp.Mode.Resolution.Height ){ 
@@ -348,28 +349,57 @@ namespace Play.SSTV
 		/// Working on a way to attempt to use a least squares fit to find
 		/// the slant and offset. Still incomplete.
 		/// </summary>
-		protected void ProcessBlock() {
+		protected bool AlignLeastSquares( ref double slope, ref double intercept ) {
+			if( m_AY < 4 )
+				return false;
+
 			//if( m_AY == 7 ) {
 			//    InitSlots( _dp.Mode.Resolution.Width, iOffs / dbScanWidth);
 			//    //_dp.m_rPage = m_SyncHit;
 			//}
-			int	   wBase = _dp.m_wBase;
 			double dbScanWidth = ScanWidthInSamples;
-			int    i = (int)_dp.m_rBase; 
+			double meanx       = 0, meany = 0;
 
-			while( i < wBase ) { 
-				int iY = (int)Math.Round(i/dbScanWidth) * LineMultiplier; // PD needs us to use Round (.999 is 1)
-				int iStart = i;
-
-				while( i < iStart + dbScanWidth ) {
-					short sp = _dp.m_B12[i]; // bogus access yet...
-					if( sp > _dp.m_SLvl ) {
-						m_SyncHit = i; // Save the absolute position of the sync.
-						_rgSyncDetect[iY] = sp;
+			try {
+				for( int i = 0; i<m_AY; ++i ) {
+					if( _rgSyncDetect[i] > 0 ) {
+						meanx += i * dbScanWidth;
+						meany += _rgSyncDetect[i];
 					}
-					++i;
 				}
+				meanx /= (double)m_AY;
+				meany /= (double)m_AY;
+
+				double dxsq = 0;
+				double dxdy = 0;
+
+				for( int i =0; i < m_AY; ++i ) {
+					if( _rgSyncDetect[i] > 0 ) {
+						double dx = (double)i - meanx;
+						double dy = _rgSyncDetect[i] - meany;
+
+						dxdy += dx * dy;
+						dxsq += Math.Pow( dx, 2 );
+					}
+				}
+
+				if( dxsq == 0 )
+					return false;
+
+				slope     = dxdy / dxsq;
+				intercept = meany - slope * meanx;
+			} catch( Exception oEx ) {
+				Type[] rgErrors = { typeof( ArithmeticException ),
+									typeof( NullReferenceException ),
+									typeof( ArgumentOutOfRangeException ),
+									typeof( IndexOutOfRangeException ) };
+				if( rgErrors.IsUnhandled( oEx ) )
+					throw;
+
+				return false;
 			}
+
+			return true;
 		}
 
 		protected void SSTVDrawNormal() {
@@ -389,23 +419,18 @@ namespace Play.SSTV
 				int idx1 = rBase % _dp.m_Buf.Length;
 				m_SyncMin  = m_SyncMax = _dp.m_B12[idx1]; // Reset sync detect for next pass
 				m_SyncRPos = m_SyncPos;                   // Save the last detected sync.
-				if( m_SyncHit > -1 ) {
-					_rgSyncDetect[m_AY] = (short)m_SyncHit;
-                    m_SyncLast = m_SyncHit;
-					m_SyncHit  = -1;
-				}
 
 				for( int i = 0; i < iScanWidth; i++ ){ 
 					int   idx = ( rBase + i + _iSyncOffset ) % _dp.m_Buf.Length;
-					short sp  = _dp.m_B12[idx];
+					short d12 = _dp.m_B12[idx];
 
 					#region D12
-					if( sp > _dp.m_SLvl ) {
-						m_SyncHit = rBase + i + _iSyncOffset; // Save the absolute position of the sync.
+					if( d12 > _dp.m_SLvl ) {
+						_rgSyncDetect[m_AY] = rBase + i; // Save the absolute position of the sync.
 					}
 					int x = (int)( ( i + _iSyncOffset ) * dbD12XScale );
 					if( (x != dx) && (x >= 0) && (x < _pBitmapD12.Width)){
-						int d = Limit256((short)(sp * 256F / 4096F));
+						int d = Limit256((short)(d12 * 256F / 4096F));
 						_pBitmapD12.SetPixel( x, m_AY, new SKColor( (byte)d, (byte)d, (byte)d ) );
 						dx = x;
 					}
@@ -546,6 +571,14 @@ namespace Play.SSTV
 			_pBitmapRX.SetPixel( iX, m_AY+1,  new SKColor( (byte)R, (byte)G, (byte)B ) );
 		}
 
+		/// <summary>
+		/// Techically these init's for the video spec's should be on teh SSTVMode, 
+		/// so I know the scan width in general but the slots are used by TmmSSTV only.
+		/// I'll sort that out later.
+		/// </summary>
+		/// <param name="oMode"></param>
+		/// <param name="iSampFreq"></param>
+		/// <param name="dbCorrection"></param>
 		public void InitMartin( SSTVMode oMode, int iSampFreq, double dbCorrection ) {
 			if( oMode == null )
 				throw new ArgumentNullException( "Mode must not be null." );
@@ -554,9 +587,11 @@ namespace Play.SSTV
 
 			LineMultiplier = 1;
 
-			double dbClr = oMode.BlockWidthInMS * iSampFreq / 1000.0;
-			double dbSyc = 4.862 * iSampFreq / 1000.0;
-			double dbGap = 0.572 * iSampFreq / 1000.0;
+			double dSampPerMs = iSampFreq / 1000.0;
+
+			double dbClr = oMode.ColorWidthInMS * dSampPerMs;
+			double dbSyc = 4.862 * dSampPerMs;
+			double dbGap = 0.572 * dSampPerMs;
 
 			_rgSlots.Clear();
 
@@ -580,7 +615,7 @@ namespace Play.SSTV
 
 			LineMultiplier = 1;
 
-			double dbClr = oMode.BlockWidthInMS * iSampFreq / 1000.0;
+			double dbClr = oMode.ColorWidthInMS * iSampFreq / 1000.0;
 			double dbGap = 1.5 * iSampFreq / 1000.0;
 			double dbSyc = 9.0 * iSampFreq / 1000.0;
 
@@ -606,7 +641,7 @@ namespace Play.SSTV
 
 			LineMultiplier = 2;
 
-			double dbClr   = oMode.BlockWidthInMS * iSampFreq / 1000.0;
+			double dbClr   = oMode.ColorWidthInMS * iSampFreq / 1000.0;
 			double dbHSync = 20.0 * iSampFreq / 1000.0;
 			double dbGap   = 2.08 * iSampFreq / 1000.0;
 

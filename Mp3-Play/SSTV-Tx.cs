@@ -239,7 +239,7 @@ namespace Play.Sound {
     public class SSTVMode {
         readonly public  byte     VIS;
         readonly public  string   Name = string.Empty;
-        readonly public  double   BlockWidthInMS; // Time to relay all pixels of one color component.
+        readonly public  double   ColorWidthInMS; // Time to relay all pixels of one color component.
         readonly public  TVFamily Family;
         readonly private SKSizeI  RawRez;
         readonly public  bool     GreyCalibrate;
@@ -266,7 +266,7 @@ namespace Play.Sound {
         {
             VIS            = bVIS;
             Name           = strName;
-            BlockWidthInMS = dbTxWidth;
+            ColorWidthInMS = dbTxWidth;
             Family         = tvMode;
             RawRez         = skSize;
             LegacyMode     = eLegacy;
@@ -294,7 +294,7 @@ namespace Play.Sound {
                     case TVFamily.PD:
                         return 20; // + 2.08;
                     case TVFamily.Scottie:
-                        return ( 1.5 * 3 ) + ( BlockWidthInMS * 2 ) + 9;
+                        return ( 1.5 * 3 ) + ( ColorWidthInMS * 2 ) + 9;
                     default:
                         throw new NotImplementedException();
                 }
@@ -489,7 +489,7 @@ namespace Play.Sound {
         /// <remarks>I'm not sure how important it is to cache the line from the bitmap.
         /// The original code does this. Saves a multiply I would guess.</remarks>
         protected override void WriteLine( int iLine ) {
-	        double dbTimePerPixel = Mode.BlockWidthInMS / 320.0; // Note: hard coded.
+	        double dbTimePerPixel = Mode.ColorWidthInMS / 320.0; // Note: hard coded.
 
             if( iLine > Height )
                 return;
@@ -550,7 +550,7 @@ namespace Play.Sound {
         /// <remarks>I'm not sure how important it is to cache the line from the bitmap.
         /// The original code does this. Saves a multiply I would guess.</remarks>
         protected override void WriteLine( int iLine ) {
-	        double dbTimePerPixel = Mode.BlockWidthInMS / 320.0; // Note: hard coded.
+	        double dbTimePerPixel = Mode.ColorWidthInMS / 320.0; // Note: hard coded.
 
             if( iLine > Height )
                 return;
@@ -655,7 +655,7 @@ namespace Play.Sound {
         /// <remarks>Note that you MUST override the default Generator iterator since
         /// this WriteLine uses TWO lines!!</remarks>
         protected override void WriteLine( int iLine ) {
-	        double dbTimePerPixel = Mode.BlockWidthInMS / (double)Width;
+	        double dbTimePerPixel = Mode.ColorWidthInMS / (double)Width;
 
             if( iLine > Height )
                 return;

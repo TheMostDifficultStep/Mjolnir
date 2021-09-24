@@ -722,7 +722,7 @@ namespace Mjolnir {
 			oSide.Clear();
 			oSide.Load( rgSort );
 			oSide.PercentReset( fNormalize:true );
-			oSide.LayoutChildren();
+			oSide.LayoutChildren();  // BUG: If rail distance is zero, no layout happens!!
 		}
 
 		/// <remarks>This one is a little hacky since we're effectively looking for the tool bar
@@ -1029,8 +1029,6 @@ namespace Mjolnir {
 
             int iOrientation = oMenuItem.Shepard.Orientation;
 
-			LayoutLoadShepardsAt( (SideIdentify)iOrientation ); // A shepard is coming or going.
-
             // first set up the new decor or close the old decor.
             switch ( fNewState ) {
                 case OPEN:
@@ -1051,6 +1049,7 @@ namespace Mjolnir {
             }
 
             DecorSideShuffle( iOrientation );
+			LayoutLoadShepardsAt( (SideIdentify)iOrientation ); // A shepard is coming or going. Was above the switch...
 
             LayoutFrame();
 			Invalidate  ();
