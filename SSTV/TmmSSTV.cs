@@ -349,8 +349,10 @@ namespace Play.SSTV
 		/// Working on a way to attempt to use a least squares fit to find
 		/// the slant and offset. Still incomplete.
 		/// </summary>
+		/// <remarks>BUG: We're messing up on PD which has two TV scan lines per
+		/// sync signal....</remarks>
 		protected bool AlignLeastSquares( ref double slope, ref double intercept ) {
-			if( m_AY < 4 )
+			if( m_AY < 7 )
 				return false;
 
 			//if( m_AY == 7 ) {
@@ -359,23 +361,25 @@ namespace Play.SSTV
 			//}
 			double dbScanWidth = ScanWidthInSamples;
 			double meanx       = 0, meany = 0;
+			int    iCount      = 0;
 
 			try {
 				for( int i = 0; i<m_AY; ++i ) {
 					if( _rgSyncDetect[i] > 0 ) {
 						meanx += i * dbScanWidth;
 						meany += _rgSyncDetect[i];
+						++iCount;
 					}
 				}
-				meanx /= (double)m_AY;
-				meany /= (double)m_AY;
+				meanx /= (double)iCount;
+				meany /= (double)iCount;
 
 				double dxsq = 0;
 				double dxdy = 0;
 
 				for( int i =0; i < m_AY; ++i ) {
 					if( _rgSyncDetect[i] > 0 ) {
-						double dx = (double)i - meanx;
+						double dx = (double)(i*dbScanWidth) - meanx;
 						double dy = _rgSyncDetect[i] - meany;
 
 						dxdy += dx * dy;
@@ -480,7 +484,7 @@ namespace Play.SSTV
             if( m_AY >= _iSyncCheck )  { // was >=
 				int   iSW           = (int)ScanWidthInSamples;
                 int[] bp            = new int[iSW]; // Array.Clear( bp, 0, bp.Length );
-				int   iOffsExpected = (int)_dp.Mode.Offset * _dp.SampFreq / 1000; // result in samples offset.
+				int   iOffsExpected = (int)_dp.Mode.OffsetInMS * _dp.SampFreq / 1000; // result in samples offset.
 
 				// sum into bp[] four scan lines of data.
                 for( int pg = 0; pg < _iSyncCheck; pg++ ){
@@ -504,6 +508,7 @@ namespace Play.SSTV
 
 				_iSyncCheck  = int.MaxValue; // Stop from trying again.
 				_iSyncOffset = iOffsFound;
+				m_AY         = 0;
 				_dp.PageRReset();
                 //SstvSet.SetOFS( n );
 				//_dp.m_rBase = n;
@@ -590,8 +595,8 @@ namespace Play.SSTV
 			double dSampPerMs = iSampFreq / 1000.0;
 
 			double dbClr = oMode.ColorWidthInMS * dSampPerMs;
-			double dbSyc = 4.862 * dSampPerMs;
-			double dbGap = 0.572 * dSampPerMs;
+			double dbSyc = 4.862 * dSampPerMs; // 4.862 ms * samps per ms.
+			double dbGap = 0.572 * dSampPerMs; // 0.572 ms * samps per ms.
 
 			_rgSlots.Clear();
 

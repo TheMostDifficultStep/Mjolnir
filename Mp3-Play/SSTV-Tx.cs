@@ -286,7 +286,7 @@ namespace Play.Sound {
         /// </summary>
         /// <remarks>Not sure if adding the extra gap is really necessary.
         /// that bit of slop might be tap delay's or some such.</remarks>
-        public double Offset {
+        public double OffsetInMS {
             get {
                 switch( Family ) {
                     case TVFamily.Martin:
@@ -472,7 +472,7 @@ namespace Play.Sound {
         /// <summary>
         /// See line 7120 in main.cpp of the MMSSTV project. He adds this one time sync signal at the start.
         /// But it doesn't seem to make sense, as it throws off the horizontal alignment (not the slant) of
-        /// the recieved image in my system. All the modes work happily w/o this code as doesn MMSSTV. So punt.
+        /// the recieved image in my system. All the modes work happily w/o this code as does MMSSTV. So punt.
         /// </summary>
         /// <param name="uiVIS"></param>
         //public override void WriteVIS( ushort uiVIS ) {
