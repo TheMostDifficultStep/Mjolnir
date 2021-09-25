@@ -29,8 +29,6 @@ namespace Play.SSTV
 	    protected short[]  m_Y36 = new short[800];
 	    protected short[,] m_D36 = new short[2,800];
 
-	    protected int     m_SyncPos, m_SyncRPos; // RPos Also gets set in AutoStopJob() which we haven't implemented yet 
-	    protected int     m_SyncMax, m_SyncMin;
 		readonly protected int[] _rgSyncDetect = new int[850];
 
 	    protected int     m_SyncAccuracy = 1;
@@ -278,7 +276,6 @@ namespace Play.SSTV
 		/// and thus where SSTVSync() should be called.
 		/// </remarks>
         public void Start() {
-			m_SyncRPos      = m_SyncPos = -1;
 			m_SyncAccuracyN = 0;
 			m_AY			= -5;
 			_iSyncCheck     = 4; // See SSTVSync()
@@ -322,7 +319,7 @@ namespace Play.SSTV
 			while( _dp.m_Sync && (_dp.m_wBase >=_dp.m_rBase + ScanWidthInSamples + _iSyncOffset ) ){
                 //dp.StorePage();
 
-				if( (_dp.sys.m_AutoStop || _dp.sys.m_AutoSync ) && _dp.m_Sync && (m_SyncPos != -1) ) {
+				if( (_dp.sys.m_AutoStop || _dp.sys.m_AutoSync ) && _dp.m_Sync ) {
 					AutoStopJob();
 				}
 				SSTVDrawNormal();
@@ -352,9 +349,6 @@ namespace Play.SSTV
 		/// <remarks>BUG: We're messing up on PD which has two TV scan lines per
 		/// sync signal....</remarks>
 		protected bool AlignLeastSquares( ref double slope, ref double intercept ) {
-			if( m_AY < 7 )
-				return false;
-
 			//if( m_AY == 7 ) {
 			//    InitSlots( _dp.Mode.Resolution.Width, iOffs / dbScanWidth);
 			//    //_dp.m_rPage = m_SyncHit;
@@ -366,11 +360,14 @@ namespace Play.SSTV
 			try {
 				for( int i = 0; i<m_AY; ++i ) {
 					if( _rgSyncDetect[i] > 0 ) {
-						meanx += i * dbScanWidth;
+						meanx += i;
 						meany += _rgSyncDetect[i];
 						++iCount;
 					}
 				}
+				if( iCount < 7 )
+					return false;
+
 				meanx /= (double)iCount;
 				meany /= (double)iCount;
 
@@ -379,8 +376,8 @@ namespace Play.SSTV
 
 				for( int i =0; i < m_AY; ++i ) {
 					if( _rgSyncDetect[i] > 0 ) {
-						double dx = (double)(i*dbScanWidth) - meanx;
-						double dy = _rgSyncDetect[i] - meany;
+						double dx = (double)i - meanx;
+						double dy = (double)_rgSyncDetect[i] - meany;
 
 						dxdy += dx * dy;
 						dxsq += Math.Pow( dx, 2 );
@@ -414,22 +411,29 @@ namespace Play.SSTV
 			int    iScanWidth  = (int)Math.Round( dbScanWidth );
 			int    rBase       = (int)Math.Round( _dp.m_rBase );
 			double dbD12XScale = _pBitmapD12.Width / dbScanWidth;
+			int    iWindowSum  = 0;
+			double iWindowHit  = _dp.Mode.SyncWidthInMS * ( _dp.SampFreq / 1000 ) * .9;
+			int    iW          = 0;
+			Span<int> rgWindow = stackalloc int[100];
 
 			try { 
 				m_AY = (int)Math.Round(rBase/dbScanWidth) * LineMultiplier; // PD needs us to use Round (.999 is 1)
 				if( (m_AY < 0) || (m_AY >= _pBitmapRX.Height) || (m_AY >= _pBitmapD12.Height) )
 					return;
 
-				int idx1 = rBase % _dp.m_Buf.Length;
-				m_SyncMin  = m_SyncMax = _dp.m_B12[idx1]; // Reset sync detect for next pass
-				m_SyncRPos = m_SyncPos;                   // Save the last detected sync.
-
 				for( int i = 0; i < iScanWidth; i++ ){ 
 					int   idx = ( rBase + i + _iSyncOffset ) % _dp.m_Buf.Length;
 					short d12 = _dp.m_B12[idx];
 
 					#region D12
-					if( d12 > _dp.m_SLvl ) {
+					int iSig = d12 > _dp.m_SLvl ? 1 : 0;
+					iW = ++iW % rgWindow.Length;
+					iWindowSum   -= rgWindow[iW];
+					iWindowSum   += iSig;
+					rgWindow[iW]  = iSig;
+
+					//if( d12 > _dp.m_SLvl ) {
+					if( iWindowSum > iWindowHit ) {
 						_rgSyncDetect[m_AY] = rBase + i; // Save the absolute position of the sync.
 					}
 					int x = (int)( ( i + _iSyncOffset ) * dbD12XScale );

@@ -302,6 +302,24 @@ namespace Play.Sound {
         }
 
         /// <summary>
+        /// TODO: Make subclasses for each family.
+        /// </summary>
+        public double SyncWidthInMS {
+            get {
+                switch( Family ) {
+                    case TVFamily.Martin:
+                        return 4.862; 
+                    case TVFamily.PD:
+                        return 20;
+                    case TVFamily.Scottie:
+                        return 9;
+                    default:
+                        throw new NotImplementedException();
+                }
+            }
+        }
+
+        /// <summary>
         /// Basically we're either square resoution or 1 x 1.3 mode. (&Half height modes?)
         /// 11??: 320 x 240 
         /// 10??: 320 x 120 
