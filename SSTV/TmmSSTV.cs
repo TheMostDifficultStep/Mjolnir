@@ -21,15 +21,13 @@ namespace Play.SSTV
         protected readonly CSSTVDEM _dp;
 		protected          int      _iSyncOffset = 0; // 90 pd, 240 sc1, Use to correct image offset!!
 		protected		   int      _iSyncCheck  = 4;
+
 		public SSTVMode Mode => _dp.Mode;
 
 #region variables
-        protected int     m_AY;
-
+        protected int      m_AY;
 	    protected short[]  m_Y36 = new short[800];
 	    protected short[,] m_D36 = new short[2,800];
-
-		readonly protected int[] _rgSyncDetect = new int[850];
 
 	    protected int     m_SyncAccuracy = 1;
 	    protected int     m_SyncAccuracyN;  // TODO: Gets used in TimerTimer, which isn't implemented yet.
@@ -62,19 +60,21 @@ namespace Play.SSTV
 		public SKBitmap _pBitmapD12 { get; } = new SKBitmap( 800, 616, SKColorType.Rgb888x, SKAlphaType.Unknown );
 		// Looks like were only using grey scale on the D12. Look into turning into greyscale later.
 		// Need to look into the greyscale calibration height of bitmap issue. (+16 scan lines)
-		public int      ScanLine => m_AY;
 #endregion
 
 		public event SSTVPropertyChange ShoutTvEvents; // TODO: Since threaded version poles, we don't need this.
 
 		protected readonly List<ColorChannel> _rgSlots = new List<ColorChannel>(10);
 
+		protected SlidingWindow Slider { get; }
+
 		public TmmSSTV( CSSTVDEM p_dp ) {
 			_dp = p_dp ?? throw new ArgumentNullException( "CSSTVDEM" );
 
+			Slider = new( 3000, 30, p_dp.m_SLvl );
+
 		  //StartOption() ...
 		  //dp.sys.m_bCQ100 = FALSE;
-		  //g_dblToneOffset = 0.0;
 		}
 
 		/// <summary>
@@ -94,8 +94,49 @@ namespace Play.SSTV
 			}
 		}
 
+		/// <remarks>
+		/// Unfortunately we don't presently know if we are in VIS detect mode
+		/// and thus where SSTVSync() should be called.
+		/// </remarks>
+        public void Start() {
+			m_SyncAccuracyN = 0;
+			m_AY			= -5;
+			_iSyncCheck     = 4; // See SSTVSync()
+			
+			Slider.Reset( ScanWidthInSamples, (int)(Mode.SyncWidthInMS * _dp.SampFreq / 1000) );
+
+			ShoutTvEvents?.Invoke(ESstvProperty.SSTVMode );
+
+			if( _pBitmapRX == null ||
+				_dp.Mode.Resolution.Width  != _pBitmapRX.Width ||
+				_dp.Mode.Resolution.Height != _pBitmapRX.Height   )
+			{
+				// Don't dispose! The UI thread might be referencing the object for read. Instead
+				// We'll just drop it and let the UI do that when it catches up and let the GC
+				// clean up. Given we're not creating these like wild fire I think we won't have
+				// too much memory floating around.
+				//if( _pBitmapRX != null )
+				//	_pBitmapRX.Dispose(); // <--- BUG: Right here, UI thread will be in trouble if still reading...
+				_pBitmapRX = new SKBitmap( _dp.Mode.Resolution.Width, 
+										   _dp.Mode.Resolution.Height, 
+										   SKColorType.Rgb888x, 
+										   SKAlphaType.Opaque );
+
+				ShoutTvEvents?.Invoke(ESstvProperty.RXImageNew );
+			}
+
+			//::GetUTC(&m_StartTime);
+
+			// TODO: I'll probably need to call these if re-draw for slant correction.
+			InitAutoStop( _dp.SampBase );
+			m_AutoSyncCount = m_AutoSyncDis = 0;
+        }
+
 		/// <summary>
-		/// Calculate the scan line width in samples, possibly corrected. Samples per Millisecond based.
+		/// Calculate the scan line width in samples, possibly corrected. This is a floating point
+		/// number because the signal is time based and so might not exactly align with the descrete
+		/// time interval of the sample. By doing everything in floating point we won't slowly drift
+		/// off due to rounding errors.
 		/// </summary>
 		public double ScanWidthInSamples {
 			get {
@@ -271,45 +312,6 @@ namespace Play.SSTV
 			return true;
 		}
 
-		/// <remarks>
-		/// Unfortunately we don't presently know if we are in VIS detect mode
-		/// and thus where SSTVSync() should be called.
-		/// </remarks>
-        public void Start() {
-			m_SyncAccuracyN = 0;
-			m_AY			= -5;
-			_iSyncCheck     = 4; // See SSTVSync()
-			
-			for( int i = 0; i< _rgSyncDetect.Length; ++i )
-				_rgSyncDetect[i] = -1;
-
-			ShoutTvEvents?.Invoke(ESstvProperty.SSTVMode );
-
-			if( _pBitmapRX == null ||
-				_dp.Mode.Resolution.Width  != _pBitmapRX.Width ||
-				_dp.Mode.Resolution.Height != _pBitmapRX.Height   )
-			{
-				// Don't dispose! The UI thread might be referencing the object for read. Instead
-				// We'll just drop it and let the UI do that when it catches up and let the GC
-				// clean up. Given we're not creating these like wild fire I think we won't have
-				// too much memory floating around.
-				//if( _pBitmapRX != null )
-				//	_pBitmapRX.Dispose(); // <--- BUG: Right here, UI thread will be in trouble if still reading...
-				_pBitmapRX = new SKBitmap( _dp.Mode.Resolution.Width, 
-										   _dp.Mode.Resolution.Height, 
-										   SKColorType.Rgb888x, 
-										   SKAlphaType.Opaque );
-
-				ShoutTvEvents?.Invoke(ESstvProperty.RXImageNew );
-			}
-
-			//::GetUTC(&m_StartTime);
-
-			// TODO: I'll probably need to call these if re-draw for slant correction.
-			InitAutoStop( _dp.SampBase );
-			m_AutoSyncCount = m_AutoSyncDis = 0;
-        }
-
 		/// <summary>
 		/// Call this function periodically to collect the sstv scan lines.
 		/// </summary>
@@ -359,9 +361,9 @@ namespace Play.SSTV
 
 			try {
 				for( int i = 0; i<m_AY; ++i ) {
-					if( _rgSyncDetect[i] > 0 ) {
+					if( Slider[i] > 0 ) {
 						meanx += i;
-						meany += _rgSyncDetect[i];
+						meany += Slider[i];
 						++iCount;
 					}
 				}
@@ -375,9 +377,9 @@ namespace Play.SSTV
 				double dxdy = 0;
 
 				for( int i =0; i < m_AY; ++i ) {
-					if( _rgSyncDetect[i] > 0 ) {
+					if( Slider[i] > 0 ) {
 						double dx = (double)i - meanx;
-						double dy = (double)_rgSyncDetect[i] - meany;
+						double dy = (double)Slider[i] - meany;
 
 						dxdy += dx * dy;
 						dxsq += Math.Pow( dx, 2 );
@@ -411,10 +413,6 @@ namespace Play.SSTV
 			int    iScanWidth  = (int)Math.Round( dbScanWidth );
 			int    rBase       = (int)Math.Round( _dp.m_rBase );
 			double dbD12XScale = _pBitmapD12.Width / dbScanWidth;
-			int    iWindowSum  = 0;
-			double iWindowHit  = _dp.Mode.SyncWidthInMS * ( _dp.SampFreq / 1000 ) * .9;
-			int    iW          = 0;
-			Span<int> rgWindow = stackalloc int[100];
 
 			try { 
 				m_AY = (int)Math.Round(rBase/dbScanWidth) * LineMultiplier; // PD needs us to use Round (.999 is 1)
@@ -422,21 +420,13 @@ namespace Play.SSTV
 					return;
 
 				for( int i = 0; i < iScanWidth; i++ ){ 
-					int   idx = ( rBase + i + _iSyncOffset ) % _dp.m_Buf.Length;
-					short d12 = _dp.m_B12[idx];
+					int   idx = rBase + i + _iSyncOffset;
+					short d12 = _dp.SyncGet( idx );
 
 					#region D12
-					int iSig = d12 > _dp.m_SLvl ? 1 : 0;
-					iW = ++iW % rgWindow.Length;
-					iWindowSum   -= rgWindow[iW];
-					iWindowSum   += iSig;
-					rgWindow[iW]  = iSig;
+					Slider.LogSync( rBase + i, d12 );
 
-					//if( d12 > _dp.m_SLvl ) {
-					if( iWindowSum > iWindowHit ) {
-						_rgSyncDetect[m_AY] = rBase + i; // Save the absolute position of the sync.
-					}
-					int x = (int)( ( i + _iSyncOffset ) * dbD12XScale );
+					int x = (int)( i * dbD12XScale );
 					if( (x != dx) && (x >= 0) && (x < _pBitmapD12.Width)){
 						int d = Limit256((short)(d12 * 256F / 4096F));
 						_pBitmapD12.SetPixel( x, m_AY, new SKColor( (byte)d, (byte)d, (byte)d ) );
@@ -450,7 +440,7 @@ namespace Play.SSTV
 							if( oChannel.SetPixel != null ) {
 								x = (int)((i - oChannel.Min) * oChannel.Scaling );
 								if( (x != rx) && (x >= 0) && (x < _pBitmapRX.Width) ) {
-									rx = x; oChannel.SetPixel( x, _dp.m_Buf[idx] );
+									rx = x; oChannel.SetPixel( x, _dp.SignalGet( idx ) );
 								}
 							}
 							break;
@@ -494,7 +484,7 @@ namespace Play.SSTV
                 for( int pg = 0; pg < _iSyncCheck; pg++ ){
                 	int  ip = pg * iSW;
                 	for( int i = 0; i < iSW; i++ ){
-						bp[i] += _dp.m_B12[ip + i];
+						bp[i] += _dp.SyncGet(ip + i);
                 	}
                 }
 				// then go back and look for the cumulative max.
@@ -514,6 +504,7 @@ namespace Play.SSTV
 				_iSyncOffset = iOffsFound;
 				m_AY         = 0;
 				_dp.PageRReset();
+				Slider.Reset();
                 //SstvSet.SetOFS( n );
 				//_dp.m_rBase = n;
                 //m_wBgn  = 0; redraw.

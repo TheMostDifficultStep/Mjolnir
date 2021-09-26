@@ -19,6 +19,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Play.Sound {
 
@@ -1021,6 +1022,73 @@ namespace Play.Sound {
 		}
 	}
 
+	public class SlidingWindow {
+				 double _dblScanWidthInSamples = 0; // in samp/ms.
+		         int    _iWindowSum   = 0;
+		readonly double _iWindowHit;
+		         int    _iWindowSizeInSamples  = 0;
+		         int    _iW           = 0;
+		         int[]  _rgWindow     = new int[200];
+				 double _SLvl = 0;
+
+		readonly int[]  _rgSyncDetect = new int[850];
+
+		public SlidingWindow( double dblScanWidthInSamples, int iWindowSize, double dblSLvl ) {
+			if( iWindowSize > _rgWindow.Length )
+				throw new ArgumentException( "Window size is too large." );
+
+			_iWindowHit   = Math.Round( (double)iWindowSize * .9 );
+			_SLvl         = dblSLvl;
+
+			Reset( dblScanWidthInSamples, iWindowSize );
+		}
+
+		public void Reset( double dblScanWidthInSamples, int iWindowSizeInSamples ) {
+			_iWindowSizeInSamples  = iWindowSizeInSamples;
+			_dblScanWidthInSamples = dblScanWidthInSamples;
+
+			Reset();
+		}
+
+		public void Reset() {
+			for( int i = 0; i<_rgSyncDetect.Length; ++i ) 
+				_rgSyncDetect[i] = -1;
+
+			for( int i = 0; i<_rgWindow.Length; ++i )
+				_rgWindow[i] = 0;
+
+			_iWindowSum = 0;
+			_iW         = 0;
+		}
+
+		public int this [int iIndex ]  {
+			get { return _rgSyncDetect[iIndex]; }
+		}
+
+		public void LogSync( int iValue, double d12 ) {
+			int iSig = d12 > _SLvl ? 1 : 0;
+
+			try {
+				double dblX = (double)iValue / _dblScanWidthInSamples;
+
+				_iW            = ++_iW % _iWindowSizeInSamples; 
+				_iWindowSum   -= _rgWindow[_iW];
+				_iWindowSum   += iSig;
+				_rgWindow[_iW] = iSig;
+
+				if( _iWindowSum > _iWindowHit ) {
+					_rgSyncDetect[(int)dblX] = iValue; // Save the absolute position of the sync.
+				}
+			} catch( Exception oEx ) {
+				Type[] rgErrors = { typeof( NullReferenceException ),
+									typeof( IndexOutOfRangeException ),
+									typeof( ArithmeticException ) };
+				if( !rgErrors.Contains( oEx.GetType() ) )
+					throw;
+			}
+		}
+	}
+
 	/// <summary>
 	/// So my SSTVMode object is a bit different than the CSSTVSET one. I have a different mode object per
 	/// TV format. CSSTVSET changes it's state depending on which format it is re-initialized to. Thus,
@@ -1062,21 +1130,19 @@ namespace Play.Sound {
 
 		// looks like hilbert is broken. FQC & PLL seem to work fine!!
 		public readonly FreqDetect m_Type      = FreqDetect.PLL; // FreqDetect.FQC; // BUG: This s/b parameter.
-		readonly bool       m_LevelType = false; // TODO: Probably sb param too. If make true, you must implement CSLVL class.
+			   readonly bool       m_LevelType = false; // TODO: Probably sb param too. If make true, you must implement CSLVL class.
 
 		readonly CIIRTANK m_iir11;
 		readonly CIIRTANK m_iir12;
 		readonly CIIRTANK m_iir13;
 		readonly CIIRTANK m_iir19;
-	//  readonly CIIRTANK m_iirfsk;
 		readonly CIIR     m_lpf11;
 		readonly CIIR     m_lpf12;
 		readonly CIIR     m_lpf13;
 		readonly CIIR     m_lpf19;
-	//  readonly CIIR     m_lpffsk;
 
 		readonly CLVL     m_lvl;
-		readonly CSLVL    m_SyncLvl = new CSLVL();
+		readonly CSLVL    m_SyncLvl = new();
 
 		// These three should inherit from a common interface.
 		readonly CPLL	  m_pll;
@@ -1095,26 +1161,17 @@ namespace Play.Sound {
 		readonly int  m_SyncErr;
 		AllModes      m_NextMode;
 
-		readonly protected List<SyncCoordinate> _rgSyncDetect = new List<SyncCoordinate>(256); // Dup of the one in TmmSSTV for a bit.
-
-	  //         int m_wLine;                         // Only used by the old SyncSSTV call. Might remove later.
-      //public   int  m_wPage { get; protected set; } // This determines WHEN we read into the Rx & R12 buffers. Where the writer is.
-	  //public   int  m_rPage { get; protected set; } // this determines WHEN we read from the Rx & R12 buffers. Where the reader is.
-		protected int m_wCnt;                         // How far along on a the scan line we are receiving the image.
-
 		// Base pointer represent how far along in samples over the entire image we've gone. 
 		public    int    m_wBase { get; protected set; } // Write pos in samples stream. Moves forward by scanlinewidthinsamples chunks. Always < size of buffer.
 		public    double m_rBase { get; protected set; } // Read  pos in samples stream, Moves forward by scanlinewidthinsamples chunks. Entire image scanlines.
 
 		public bool  m_Lost     { get; protected set; }
 
-		public short[] m_Buf;
-		public short[] m_B12;
+		protected short[] m_Buf;
+		protected short[] m_B12;
 
-		readonly int  m_SenseLvl;
-		public double m_SLvl { get; protected set; }
-		double      m_SLvl2;
-		double      m_SLvl3;
+		public    double m_SLvl  { get; protected set; }
+		protected double m_SLvl2;
 
 		bool        m_ScopeFlag;
 		readonly CScope[]    m_Scope = new CScope[2];
@@ -1124,8 +1181,8 @@ namespace Play.Sound {
 		int         m_TickFreq;
 
 		// More goodies that can probably live on their own class.
-		readonly CSmooz m_Avg    = new CSmooz();
-		readonly CSmooz m_AFCAVG = new CSmooz();
+		readonly CSmooz m_Avg    = new ();
+		readonly CSmooz m_AFCAVG = new ();
 		readonly bool   m_afc;
 		int         m_AFCCount;
 		double      m_AFCData;
@@ -1141,13 +1198,6 @@ namespace Play.Sound {
 		double		m_AFC_HighVal;		// (Center - SyncHigh) * 16384 / BWH
 		double		m_AFC_SyncVal;		// (Center - Sync    ) * 16384 / BWH
 		double		m_AFC_BWH;			// BWH / 16384.0;
-
-		//double		m_AFC_OFFSET;		// 128
-
-	  //readonly bool       m_MSync;
-		//readonly CSYNCINT   m_sint1 = new CSYNCINT();
-		//readonly CSYNCINT   m_sint2 = new CSYNCINT();
-		//readonly CSYNCINT	m_sint3 = new CSYNCINT();
 
 		readonly static int FSKSPACE  = 2100;
 
@@ -1166,6 +1216,7 @@ namespace Play.Sound {
 		// that we can't handle it changing mid run. So now it's a readonly
 		// member variable.
 		readonly double m_dblToneOffset;
+		readonly double[] _rgSenseLevels = { 2400, 3500, 4800, 6000 };
 
 		public CSSTVDEM( CSSTVSET p_oSSTVSet, SYSSET p_sys, int iSampFreq, int iSampBase, double dbToneOffset ) {
 			sys     = p_sys      ?? throw new ArgumentNullException( "sys must not be null." );
@@ -1230,7 +1281,6 @@ namespace Play.Sound {
 		//  m_lpffsk.MakeIIR(50, SampFreq, 2, 0, 0);
 
 			m_wBase     = 0;
-			m_wCnt      = 0;
 			m_rBase     = 0;
 			m_Skip      = 0;
 			m_Sync      = false;
@@ -1255,13 +1305,85 @@ namespace Play.Sound {
 
 			m_SyncRestart = true;
 
-			m_SenseLvl = 1;
-			SetSenseLvl();
+			SetSenseLevel( 1 );
 		}
 
 		public void Dispose() {
 			m_B12 = null;
 			m_Buf = null;
+		}
+
+		/// <summary>
+		/// this method gets called when we are ready to rock and roll. In the original
+		/// system TmmSSTV would toss it's previous image and start a new one.
+		/// In the new system I'll try tossing TmmSSTV and create a new one.
+		/// </summary>
+		public void Start( SSTVMode tvMode ) {
+			Mode = tvMode;
+
+			SetWidth(CSSTVSET.IsNarrowMode( tvMode.Family ));
+			InitAFC();
+
+			m_fqc.Clear();
+			m_Skip     = 0;
+			m_wBase    = 0;
+			m_rBase    = 0;
+			m_Lost     = false;
+			m_Sync     = true; // This is the only place we set to true!
+			m_SyncMode = 0; 
+
+			// OpenCloseRxBuff();
+
+			// However, this combo makes sense. We go back for looking for sync signals at the
+			// same time we're storing the image scan lines.
+			SetWidth(m_fNarrow);
+
+			ShoutNextMode?.Invoke( tvMode );
+
+			// Don't support narrow band modes.
+			//if( m_fNarrow ) 
+			//	CalcNarrowBPF(HBPFN, m_bpftap, m_bpf, SSTVSET.m_Mode);
+		}
+
+		//void Start(SSTVMode tvMode, int f)	{
+		//	m_fqc.Clear();
+		//	m_sint1.Reset();
+		//	m_sint2.Reset();
+		//	m_sint3.Reset();
+		//	m_wBgn     = 0;
+		//	m_rBase    = 0;
+		//	m_SyncMode = 0;
+		//	SSTVSET.SetMode(tvMode);
+		//	m_Sync     = false;
+		//	SetWidth(CSSTVSET.IsNarrowMode(tvMode));
+
+		//	if( f != 0 ){
+		//		Start( tvMode );
+		//	} else {
+		//		m_SyncMode = -1;
+		//	}
+		//}
+
+		public void Stop()	{
+			if( m_AFCFQ != 0 ){
+				if( m_fskdecode ){
+					m_iir11.SetFreq(1080 + m_dblToneOffset, SampFreq,  80.0);
+					m_iir12.SetFreq(1200 + m_dblToneOffset, SampFreq, 100.0);
+					m_iir13.SetFreq(1320 + m_dblToneOffset, SampFreq,  80.0);
+				} else {
+					InitTone(0);
+				}
+			}
+			m_fqc  .Clear();
+			//m_sint1.Reset();
+			//m_sint2.Reset();
+			//m_sint3.Reset();
+
+			m_SyncMode = 512;
+			m_Sync     = false;
+
+			m_Skip = 0;
+			SetWidth( false );
 		}
 
 		/// <summary>
@@ -1444,8 +1566,14 @@ namespace Play.Sound {
 			}
 		}
 
-		void SetWidth( bool fNarrow) {
-			if( m_fNarrow != fNarrow ){
+		/// <remarks>
+		/// You know it's probably dumb to pas the bCQ100 since it never is
+		/// going to change for the lifetime of our object. If any system variables
+		/// change we'd probably just re-instatiate CSSTVDEM and TmmSSTV. Look
+		/// at this in the future. (Same goes for narrow too)
+		/// </remarks>
+		void SetWidth( bool fNarrow ) {
+			if( m_fNarrow != fNarrow ) {
 				m_fNarrow = fNarrow;
 				m_hill.SetWidth( sys.m_bCQ100, fNarrow);
     			m_fqc .SetWidth(fNarrow);
@@ -1454,102 +1582,17 @@ namespace Play.Sound {
 		}
 
 		/// <summary>
-		/// this method gets called when we are ready to rock and roll. In the original
-		/// system TmmSSTV would toss it's previous image and start a new one.
-		/// In the new system I'll try tossing TmmSSTV and create a new one.
+		/// At present this is only called in the constructor. Maybe when I get further
+		/// along I'll see about a dialog setting for this or something.
 		/// </summary>
-		public void Start( SSTVMode tvMode ) {
-			Mode = tvMode;
-			SetWidth(CSSTVSET.IsNarrowMode( tvMode.Family ));
-
-			InitAFC();
-			m_fqc.Clear();
-		  //m_SyncMode = -1; // Here and then...
-			// m_Sync  = false; Looks fishy and bogus. Let's try tossing it 9/15/2021.
-			m_Skip  = 0;
-			m_wBase = 0;
-			m_wCnt  = 0;
-			m_rBase = 0;
-		  //OpenCloseRxBuff();
-			m_Lost     = false;
-
-			m_Sync     = true; // This is the only place we set to true!
-			m_SyncMode = 0; // Here? This kills me. Probably due to multi threaded stuff.
-
-			// However, this combo makes sense. We go back for looking for sync signals at the
-			// same time we're storing the image scan lines.
-			SetWidth(m_fNarrow);
-
-			ShoutNextMode?.Invoke( tvMode );
-			// Don't support narrow band modes.
-			//if( m_fNarrow ) 
-			//	CalcNarrowBPF(HBPFN, m_bpftap, m_bpf, SSTVSET.m_Mode);
-		}
-
-		//void Start(SSTVMode tvMode, int f)	{
-		//	m_fqc.Clear();
-		//	m_sint1.Reset();
-		//	m_sint2.Reset();
-		//	m_sint3.Reset();
-		//	m_wBgn     = 0;
-		//	m_rBase    = 0;
-		//	m_SyncMode = 0;
-		//	SSTVSET.SetMode(tvMode);
-		//	m_Sync     = false;
-		//	SetWidth(CSSTVSET.IsNarrowMode(tvMode));
-
-		//	if( f != 0 ){
-		//		Start( tvMode );
-		//	} else {
-		//		m_SyncMode = -1;
-		//	}
-		//}
-
-		public void Stop()	{
-			if( m_AFCFQ != 0 ){
-				if( m_fskdecode ){
-					m_iir11.SetFreq(1080 + m_dblToneOffset, SampFreq,  80.0);
-					m_iir12.SetFreq(1200 + m_dblToneOffset, SampFreq, 100.0);
-					m_iir13.SetFreq(1320 + m_dblToneOffset, SampFreq,  80.0);
-				} else {
-					InitTone(0);
-				}
+		/// <param name="iSenseLvl">1, 2, or 3 with 0 the default for out of range.</param>
+		void SetSenseLevel( int iSenseLvl ) {
+			try {
+				m_SLvl = _rgSenseLevels[iSenseLvl];
+			} catch( IndexOutOfRangeException ) {
+				m_SLvl = _rgSenseLevels[0];
 			}
-			m_fqc  .Clear();
-			//m_sint1.Reset();
-			//m_sint2.Reset();
-			//m_sint3.Reset();
-
-			m_SyncMode = 512;
-			m_Sync     = false;
-
-			m_Skip = 0;
-			SetWidth( false );
-		}
-
-		void SetSenseLvl() {
-			switch(m_SenseLvl){
-				case 1:
-					m_SLvl = 3500;
-					m_SLvl2 = m_SLvl * 0.5;
-					m_SLvl3 = 5700;
-					break;
-				case 2:
-					m_SLvl = 4800;
-					m_SLvl2 = m_SLvl * 0.5;
-					m_SLvl3 = 6800;
-					break;
-				case 3:
-					m_SLvl = 6000;
-					m_SLvl2 = m_SLvl * 0.5;
-					m_SLvl3 = 8000;
-					break;
-				default:
-					m_SLvl = 2400;
-					m_SLvl2 = m_SLvl * 0.5;
-					m_SLvl3 = 5000;
-					break;
-			}
+			m_SLvl2 = m_SLvl * 0.5;
 		}
 
 		public void Do(double s) {
@@ -1760,21 +1803,14 @@ namespace Play.Sound {
 						m_Skip--;
 					} else {          // Pad the overshoot.
 						for( ; m_Skip != 0; m_Skip++ ){
-							int n = m_wBase + m_wCnt;
-							m_Buf[n] = (short)-d;
-							m_B12[n] = 0;
-							WCntIncrement();
+							SignalSet( -d, 0 );
 						}
 					}
 				} else {
 					if( m_ScopeFlag ){
-						m_Scope[1].WriteData(d);
+						m_Scope[1].WriteData( d );
 					}
-					int n = m_wCnt;
-					m_Buf[n] = (short)-d;
-					m_B12[n] = (short)dHSync;
-
-					WCntIncrement();
+					SignalSet( -d, dHSync );
 				}
 			}
 			else if( sys.m_TestDem ){
@@ -1797,19 +1833,6 @@ namespace Play.Sound {
 			}
 		}
 
-		/// <summary>Increment to next scan line. This is the scan line not including VIS and horiz sync.</summary>
-		/// <remarks>
-		/// My guess is that since we reset the m_wCnt when > m_WD we're not attempting to
-		/// resync on the horizontal sync signal. Might be a nice improvement if we ever get that far.
-		/// </remarks>
-		protected void WCntIncrement() {
-			m_wCnt ++;      // This is the only place we bump up the (x) position along the frequency scan line.
-			m_wBase++;
-			if( m_wCnt >= m_Buf.Length ){ 
-				m_wCnt = 0;
-			}
-		}
-
 		/// <summary>
 		/// Bump up our page read position.
 		/// </summary>
@@ -1823,6 +1846,40 @@ namespace Play.Sound {
 
 		public void PageRReset() {
 			m_rBase = 0;
+		}
+
+		/// <summary>
+		/// Get the value at the absolute offset.
+		/// </summary>
+		/// <param name="iIndex">absolute offset into the buffer</param>
+		/// <returns>value of the m_Buf buffer.</returns>
+		/// <exception cref="ArgumentOutOfRangeException" />
+		public short SignalGet( int iIndex ) {
+			if( iIndex >= m_wBase )
+				throw new ArgumentOutOfRangeException( "Index is above loaded buffer" );
+			if( m_wBase - iIndex >= m_Buf.Length )
+				throw new ArgumentOutOfRangeException( "Index is below loaded buffer" );
+
+			return m_Buf[ iIndex % m_Buf.Length ];
+		}
+
+		public short SyncGet( int iIndex ) {
+			if( iIndex >= m_wBase )
+				throw new ArgumentOutOfRangeException( "Index is above loaded buffer" );
+			if( m_wBase - iIndex >= m_Buf.Length )
+				throw new ArgumentOutOfRangeException( "Index is below loaded buffer" );
+
+			return m_B12[ iIndex % m_Buf.Length ];
+		}
+
+		protected void SignalSet( double dblSignal, double dblSync ) {
+			if( m_wBase - m_rBase > m_Buf.Length )
+				throw new InvalidOperationException( "Read position is too far behind" );
+
+			int iOffset = m_wBase++ % m_Buf.Length;
+
+			m_Buf[ iOffset ] = (short)dblSignal;
+			m_B12[ iOffset ] = (short)dblSync;
 		}
 
 		void SyncFreq(double d) {
