@@ -1023,7 +1023,7 @@ namespace Play.Sound {
 	}
 
 	public class SlidingWindow {
-				 double _dblScanWidthInSamples = 0; // in samp/ms.
+		public   double ScanWidthInSamples { get; protected set; } // in samp/ms.
 		         int    _iWindowSum   = 0;
 		readonly double _iWindowHit;
 		         int    _iWindowSizeInSamples  = 0;
@@ -1045,7 +1045,7 @@ namespace Play.Sound {
 
 		public void Reset( double dblScanWidthInSamples, int iWindowSizeInSamples ) {
 			_iWindowSizeInSamples  = iWindowSizeInSamples;
-			_dblScanWidthInSamples = dblScanWidthInSamples;
+			ScanWidthInSamples = dblScanWidthInSamples;
 
 			Reset();
 		}
@@ -1058,7 +1058,7 @@ namespace Play.Sound {
 				_rgWindow[i] = 0;
 
 			_iWindowSum = 0;
-			_iW         = 0;
+			_iW         = _iWindowSizeInSamples;
 		}
 
 		public int this [int iIndex ]  {
@@ -1069,14 +1069,15 @@ namespace Play.Sound {
 			int iSig = d12 > _SLvl ? 1 : 0;
 
 			try {
-				double dblX = (double)iValue / _dblScanWidthInSamples;
-
-				_iW            = ++_iW % _iWindowSizeInSamples; 
-				_iWindowSum   -= _rgWindow[_iW];
+				double dblX = (double)iValue / ScanWidthInSamples;
+				int   i2Xl  = _iWindowSizeInSamples * 2;
+				int   iLast = (_iW + _iWindowSizeInSamples) % ( i2Xl );
+				_iWindowSum   -= _rgWindow[iLast];
 				_iWindowSum   += iSig;
 				_rgWindow[_iW] = iSig;
+				_iW            = (_iW + 1) % i2Xl; 
 
-				if( _iWindowSum > _iWindowHit ) {
+				if( _iWindowSum >= _iWindowHit ) {
 					_rgSyncDetect[(int)dblX] = iValue; // Save the absolute position of the sync.
 				}
 			} catch( Exception oEx ) {
