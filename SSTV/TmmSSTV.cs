@@ -29,28 +29,7 @@ namespace Play.SSTV
 	    protected short[]  m_Y36 = new short[800];
 	    protected short[,] m_D36 = new short[2,800];
 
-	    protected int     m_SyncAccuracy = 1;
-	    protected int     m_SyncAccuracyN;  // TODO: Gets used in TimerTimer, which isn't implemented yet.
-
-        //Auto
-	    protected int     m_Mult;
-
-	    protected int     m_AutoStopPos;
-	    protected int[]   m_AutoStopAPos = new int[16];
-	    protected int     m_AutoStopCnt;
-	    protected int     m_AutoStopACnt;
-
-	    protected int     m_AutoSyncCount;
-	    protected int     m_AutoSyncPos;
-	    protected int     m_AutoSyncDis;
-	    protected int     m_AutoSyncDiff;
-
         //AutoSlant
-	    int       m_ASBgnPos;
-	    int       m_ASCurY;
-	    int       m_ASDis;
-	    int       m_ASBitMask;
-	    double[]  m_ASLmt = new double[7];
 	    int[]     m_ASPos = new int[4];
 	    CSmooz    m_ASAvg = new CSmooz();
 
@@ -99,7 +78,6 @@ namespace Play.SSTV
 		/// and thus where SSTVSync() should be called.
 		/// </remarks>
         public void Start() {
-			m_SyncAccuracyN =  0;
 			m_AY			= -5;
 			_iSyncCheck     =  4; // See SSTVSync()
 			
@@ -129,7 +107,6 @@ namespace Play.SSTV
 
 			// TODO: I'll probably need to call these if re-draw for slant correction.
 			InitAutoStop( _dp.SampBase );
-			m_AutoSyncCount = m_AutoSyncDis = 0;
         }
 
 		/// <summary>
@@ -244,19 +221,9 @@ namespace Play.SSTV
 		protected int LineMultiplier { get; set; }
 
 		/// <summary>
-		/// Note: if we retune the slot timing, we'll need to call this again.
+		/// Don't know what this is for. Slated for deletion.
 		/// </summary>
-        void InitAutoStop( double dbSampBase )
-        {
-            Array.Clear( m_AutoStopAPos, 0, m_AutoStopAPos.Length );
-
-	        m_AutoStopCnt  = 0;
-	        m_AutoStopACnt = 0;
-	        m_AutoStopPos  = 0;
-	        m_ASBgnPos     = 0x7fffffff;
-	        m_ASDis        = 0;
-	        m_ASBitMask    = 0;
-
+        void InitAutoStop( double dbSampBase ) {
 	        m_ASAvg.SetCount(16);
 
 	        m_ASPos[0] = 64;
@@ -307,14 +274,6 @@ namespace Play.SSTV
 			        m_ASPos[3] = 280;
 			        break;
 	        }
-	        m_AutoSyncPos  = 0x7fffffff;
-	        m_Mult         = (int)(ScanWidthInSamples / 320.0);
-	        m_AutoSyncDiff = m_Mult * 3;
-
-			// I would love to know why this requires SampBase!! instead of SampFreq!!
-            int iSomeMagic = (int)(45 * dbSampBase / 11025);
-	        if( m_AutoSyncDiff > iSomeMagic )
-                m_AutoSyncDiff = iSomeMagic;
         }
 
 		/// <summary>
@@ -336,13 +295,10 @@ namespace Play.SSTV
 
 				SSTVDrawNormal();
 
-				double slope     = 0;
-				double intercept = 0;
-
 				_dp.PageRIncrement( ScanWidthInSamples );
 
 				if( m_AY > 199 )
-					Slider.AlignLeastSquares( m_AY, ref slope, ref intercept );
+					Slider.AlignLeastSquares( m_AY, out double slope, out double intercept );
 
 				//if( Slider.AlignLeastSquares( m_AY, ref slope, ref intercept ) ) {
 				//	InitSlots( Mode.Resolution.Width, slope / SpecWidthInSamples );

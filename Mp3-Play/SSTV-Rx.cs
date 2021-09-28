@@ -1076,6 +1076,7 @@ namespace Play.Sound {
 				double dblX = (double)iValue / _dblScanWidthInSamples;
 				int   i2Xl  = _iWindowSizeInSamples * 2;
 				int   iLast = (_iW + _iWindowSizeInSamples) % ( i2Xl );
+
 				_iWindowSum   -= _rgWindow[iLast];
 				_iWindowSum   += iSig;
 				_rgWindow[_iW] = iSig;
@@ -1101,10 +1102,13 @@ namespace Play.Sound {
 		/// </summary>
 		/// <remarks>BUG: We're messing up on PD which has two TV scan lines per
 		/// sync signal....</remarks>
-		public bool AlignLeastSquares( int iY, ref double slope, ref double intercept ) {
+		public bool AlignLeastSquares( int iY, out double dblSlope, out double dblIntercept ) {
 			double dbScanWidth = _dblScanWidthInSamples;
 			double meanx       = 0, meany = 0;
 			int    iCount      = 0;
+
+			dblSlope     = 0;
+			dblIntercept = 0;
 
 			if( iY > _rgSyncDetect.Length )
 				iY = _rgSyncDetect.Length;
@@ -1139,8 +1143,8 @@ namespace Play.Sound {
 				if( dxsq == 0 )
 					return false;
 
-				slope     = dxdy / dxsq;
-				intercept = meany - slope * meanx;
+				dblSlope     = dxdy / dxsq;
+				dblIntercept = meany - dblSlope * meanx;
 			} catch( Exception oEx ) {
 				Type[] rgErrors = { typeof( ArithmeticException ),
 									typeof( NullReferenceException ),
