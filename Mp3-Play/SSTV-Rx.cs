@@ -1023,19 +1023,18 @@ namespace Play.Sound {
 	}
 
 	public class SlidingWindow {
-		         double _dblScanWidthInSamples;
-		         int    _iWindowSizeInSamples  = 0;
-		         int    _iWindowSum   = 0;
-		readonly double _iWindowHit; 
-		         int    _iW           = 0;
-				 double _SLvl         = 0;
-		         int[]  _rgWindow;
+		double _dblScanWidthInSamples;
+		int    _iWindowSizeInSamples  = 0;
+		int    _iWindowSum   = 0;
+		double _iWindowHit; 
+		int    _iW           = 0;
+		double _SLvl         = 0;
+		int[]  _rgWindow;
 
 		// this needs to be larger than the largest number of scan lines.
 		readonly int[]  _rgSyncDetect = new int[850];
 
 		public SlidingWindow( double dblScanWidthInSamples, int iWindowSizeInSamples, double dblSLvl ) {
-			_iWindowHit = Math.Round( (double)iWindowSizeInSamples * .95 );
 			_SLvl       = dblSLvl;
 			_rgWindow   = new int[iWindowSizeInSamples*2];
 
@@ -1063,13 +1062,14 @@ namespace Play.Sound {
 
 			_iWindowSum = 0;
 			_iW         = _iWindowSizeInSamples;
+			_iWindowHit = Math.Round( (double)_iWindowSizeInSamples );
 		}
 
 		public int this [int iIndex ]  {
 			get { return _rgSyncDetect[iIndex]; }
 		}
 
-		public void LogSync( int iValue, double d12 ) {
+		public bool LogSync( int iValue, double d12 ) {
 			int iSig = d12 > _SLvl ? 1 : 0;
 
 			try {
@@ -1084,6 +1084,7 @@ namespace Play.Sound {
 
 				if( _iWindowSum >= _iWindowHit ) {
 					_rgSyncDetect[(int)dblX] = iValue; // Save the absolute position of the sync.
+					return true;
 				}
 			} catch( Exception oEx ) {
 				Type[] rgErrors = { typeof( NullReferenceException ),
@@ -1094,6 +1095,8 @@ namespace Play.Sound {
 
 				// BUG: need to send an error message out.
 			}
+
+			return false;
 		}
 
 		/// <summary>
@@ -1121,7 +1124,7 @@ namespace Play.Sound {
 						++iCount;
 					}
 				}
-				if( iCount < 7 )
+				if( iCount < 3 )
 					return false;
 
 				meanx /= (double)iCount;
@@ -1915,8 +1918,8 @@ namespace Play.Sound {
 			m_rBase    += dbWidthInSamples;
 		}
 
-		public void PageRReset() {
-			m_rBase = 0;
+		public void PageRReset( double dblOffset = 0 ) {
+			m_rBase = dblOffset;
 		}
 
 		/// <summary>

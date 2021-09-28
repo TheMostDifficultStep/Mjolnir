@@ -39,6 +39,7 @@ namespace Play.SSTV
 		public SKBitmap _pBitmapD12 { get; } = new SKBitmap( 800, 616, SKColorType.Rgb888x, SKAlphaType.Unknown );
 		// Looks like were only using grey scale on the D12. Look into turning into greyscale later.
 		// Need to look into the greyscale calibration height of bitmap issue. (+16 scan lines)
+		// The D12 bitmap must always be >= to the RX bmp height.
 #endregion
 
 		public event SSTVPropertyChange ShoutTvEvents; // TODO: Since threaded version poles, we don't need this.
@@ -155,23 +156,6 @@ namespace Play.SSTV
 				d *= ( d >= 0 ) ? _dp.sys.m_DemWhite : _dp.sys.m_DemBlack;
 				return (short)d;
 			}
-		}
-
-		protected int GetPictureLevel( short ip, int i ) {
-			//if( dp.sys.m_UseRxBuff != 2 ) {
-			//	int   d;
-			//	short ip2 = dp.m_Buf[dp.m_rPage * dp.m_BWidth + i + SSTVSET.m_KSB ];
-
-			//	// I'm going to guess we're trying to get past some sync signal.
-			//	if( ip < ip2 ){
-			//		d = GetPixelLevel(ip2);
-			//	} else {
-			//		d = GetPixelLevel(ip);
-			//	}
-			//	return d;
-			//}
-
-			return GetPixelLevel(ip);
 		}
 
 		protected static void YCtoRGB( out short R, out short G, out short B, int Y, int RY, int BY)
@@ -297,9 +281,25 @@ namespace Play.SSTV
 
 				_dp.PageRIncrement( ScanWidthInSamples );
 
-				if( m_AY > 199 )
-					Slider.AlignLeastSquares( m_AY, out double slope, out double intercept );
+				if( _iSyncCheck < int.MaxValue && m_AY == 6 ) {
+					if( Slider.AlignLeastSquares( m_AY, out double slope, out double intercept ) ) {
+						InitSlots( Mode.Resolution.Width, slope / SpecWidthInSamples );
 
+						double dblSyncExpected = _dp.Mode.OffsetInMS * _dp.SampFreq / 1000;
+						double dblDiff         = intercept - dblSyncExpected;
+
+						if( dblDiff > 0 ) {
+							_dp.PageRReset( dblDiff );
+						} else {
+							_dp.PageRReset( dblDiff + ScanWidthInSamples );
+						}
+					}
+					_iSyncCheck = int.MaxValue;
+				}
+
+				if( m_AY == 200 ) {
+					if( Slider.AlignLeastSquares( m_AY, out double slope, out double intercept ) );
+				}
 				//if( Slider.AlignLeastSquares( m_AY, ref slope, ref intercept ) ) {
 				//	InitSlots( Mode.Resolution.Width, slope / SpecWidthInSamples );
 				//}
@@ -329,20 +329,23 @@ namespace Play.SSTV
 
 			try { 
 			    m_AY = (int)Math.Round(rBase/dbScanWidth) * LineMultiplier; // PD needs us to use Round (.999 is 1)
-				if( (m_AY < 0) || (m_AY >= _pBitmapRX.Height) || (m_AY >= _pBitmapD12.Height) )
+				if( (m_AY < 0) || (m_AY >= _pBitmapRX.Height) )
 					return;
 
 				for( int i = 0; i < iScanWidth; i++ ){ 
-					int   idx = rBase + i + _iSyncOffset;
+					int   idx = rBase + i;// + _iSyncOffset;
 					short d12 = _dp.SyncGet( idx );
 
 					#region D12
-					Slider.LogSync( rBase + i, d12 );
+					bool fHit = Slider.LogSync( rBase + i, d12 );
 
 					int x = (int)( i * dbD12XScale );
 					if( (x != dx) && (x >= 0) && (x < _pBitmapD12.Width)){
 						int d = Limit256((short)(d12 * 256F / 4096F));
-						_pBitmapD12.SetPixel( x, m_AY, new SKColor( (byte)d, (byte)d, (byte)d ) );
+						if( fHit )
+							_pBitmapD12.SetPixel( x, m_AY, SKColors.Red );
+						else
+							_pBitmapD12.SetPixel( x, m_AY, new SKColor( (byte)d, (byte)d, (byte)d ) );
 						dx = x;
 					}
 					#endregion

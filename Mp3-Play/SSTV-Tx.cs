@@ -403,7 +403,7 @@ namespace Play.Sound {
 			ChannelMap.Add( new ( WidthColorInMS,  ScanLineChannelType.Red   ) );
 		}
 
-        public override double OffsetInMS => ( 1.5 * 3 ) + ( WidthColorInMS * 2 ) + 9;
+        public override double OffsetInMS => ( WidthGapInMS * 2 ) + ( WidthColorInMS * 2 ) + WidthSyncInMS;
     }
 
     public class SSTVModePD : SSTVMode {
