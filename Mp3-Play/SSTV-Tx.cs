@@ -2,7 +2,6 @@
 using System.IO;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 
 using SkiaSharp;
 
@@ -236,15 +235,48 @@ namespace Play.Sound {
         PD
     }
 
-    public class SSTVMode {
+    public enum ScanLineChannelType {
+        Sync,
+        Gap,
+        Red,
+        Green,
+        Blue,
+        Y1,
+        Y2,
+        RY,
+        BY
+    }
+
+    public class ScanLineChannel {
+        public double              WidthInMs { get; }
+        public ScanLineChannelType Type      { get; }
+
+        public ScanLineChannel( double dblWidthInMs, ScanLineChannelType eType ) {
+            WidthInMs = dblWidthInMs;
+            Type      = eType;
+        }
+    }
+
+    public abstract class SSTVMode {
+                 public  double   WidthColorInMS { get; } // Time to relay all pixels of one color component.
+        abstract public  double   WidthSyncInMS  { get; }
+        abstract public  double   WidthGapInMS   { get; }
+                 public  double   WidthScanInMS  { get; }
+
+        virtual  public  int      ScanMultiplier { get; } = 1;
+
         readonly public  byte     VIS;
         readonly public  string   Name = string.Empty;
-        readonly public  double   ColorWidthInMS; // Time to relay all pixels of one color component.
+
         readonly public  TVFamily Family;
         readonly private SKSizeI  RawRez;
         readonly public  bool     GreyCalibrate;
         readonly public  int      ExtraScanLine;
         readonly public  AllModes LegacyMode;       // Legacy support.
+
+        readonly public  List<ScanLineChannel> ChannelMap = new();
+
+        protected abstract void Initialize();
 
         public enum Resolutions { 
             h128or160,
@@ -254,9 +286,8 @@ namespace Play.Sound {
         }
 
         /// <summary>
-        /// 
+        /// Base class for the image reception descriptor.
         /// </summary>
-        /// <param name="oOwner"></param>
         /// <param name="bVIS"></param>
         /// <param name="strName">Human readable name of mode.</param>
         /// <param name="dbTxWidth">Tx width of scan line in ms.</param>
@@ -266,13 +297,18 @@ namespace Play.Sound {
         {
             VIS            = bVIS;
             Name           = strName;
-            ColorWidthInMS = dbTxWidth;
+            WidthColorInMS = dbTxWidth;
             Family         = tvMode;
             RawRez         = skSize;
             LegacyMode     = eLegacy;
 
             ExtraScanLine = 16; // So far no mode I support is using the 8 scan line spec.
             GreyCalibrate = false;
+
+            Initialize();
+
+            foreach( ScanLineChannel oChannel in ChannelMap )
+                WidthScanInMS += oChannel.WidthInMs;
         }
 
         public override string ToString() {
@@ -286,38 +322,7 @@ namespace Play.Sound {
         /// </summary>
         /// <remarks>Not sure if adding the extra gap is really necessary.
         /// that bit of slop might be tap delay's or some such.</remarks>
-        public double OffsetInMS {
-            get {
-                switch( Family ) {
-                    case TVFamily.Martin:
-                        return 4.862; // + 0.572;
-                    case TVFamily.PD:
-                        return 20; // + 2.08;
-                    case TVFamily.Scottie:
-                        return ( 1.5 * 3 ) + ( ColorWidthInMS * 2 ) + 9;
-                    default:
-                        throw new NotImplementedException();
-                }
-            }
-        }
-
-        /// <summary>
-        /// TODO: Make subclasses for each family.
-        /// </summary>
-        public double SyncWidthInMS {
-            get {
-                switch( Family ) {
-                    case TVFamily.Martin:
-                        return 4.862; 
-                    case TVFamily.PD:
-                        return 20;
-                    case TVFamily.Scottie:
-                        return 9;
-                    default:
-                        throw new NotImplementedException();
-                }
-            }
-        }
+        public virtual double OffsetInMS => WidthSyncInMS;
 
         /// <summary>
         /// Basically we're either square resoution or 1 x 1.3 mode. (&Half height modes?)
@@ -351,7 +356,77 @@ namespace Play.Sound {
                 return RawRez;
             }
         }
+    }
 
+    public class SSTVModeMartin : SSTVMode {
+        public SSTVModeMartin( byte bVIS, string strName, double dbTxWidth, SKSizeI skSize, AllModes eLegacy = AllModes.smEND) : 
+            base( TVFamily.Martin, bVIS, strName, dbTxWidth, skSize, eLegacy ) 
+        {
+        }
+
+        public override double WidthSyncInMS => 4.862;
+        public override double WidthGapInMS  => 0.572;
+
+		protected override void Initialize() {
+			if( Family != TVFamily.Martin )
+				throw new InvalidProgramException( "Mode must be of Martin type" );
+
+			ChannelMap.Add( new( WidthSyncInMS,  ScanLineChannelType.Sync  ) );
+			ChannelMap.Add( new( WidthGapInMS,   ScanLineChannelType.Gap   ) );
+			ChannelMap.Add( new( WidthColorInMS, ScanLineChannelType.Green ) );
+			ChannelMap.Add( new( WidthGapInMS,   ScanLineChannelType.Gap   ) );
+			ChannelMap.Add( new( WidthColorInMS, ScanLineChannelType.Blue  ) );
+			ChannelMap.Add( new( WidthGapInMS,   ScanLineChannelType.Gap   ) );
+			ChannelMap.Add( new( WidthColorInMS, ScanLineChannelType.Red   ) );
+		}
+    }
+
+    public class SSTVModeScottie : SSTVMode {
+        public SSTVModeScottie( byte bVIS, string strName, double dbTxWidth, SKSizeI skSize, AllModes eLegacy = AllModes.smEND) : 
+            base( TVFamily.Scottie, bVIS, strName, dbTxWidth, skSize, eLegacy ) 
+        {
+        }
+
+        public override double WidthSyncInMS => 9.0;
+        public override double WidthGapInMS  => 1.5;
+
+		protected override void Initialize() {
+			if( Family != TVFamily.Scottie )
+				throw new ArgumentOutOfRangeException( "Mode must be of Scottie type" );
+
+			ChannelMap.Add( new ( WidthGapInMS,    ScanLineChannelType.Gap   ) );
+			ChannelMap.Add( new ( WidthColorInMS,  ScanLineChannelType.Green ) );
+			ChannelMap.Add( new ( WidthGapInMS,    ScanLineChannelType.Gap   ) );
+			ChannelMap.Add( new ( WidthColorInMS,  ScanLineChannelType.Blue  ) );
+			ChannelMap.Add( new ( WidthSyncInMS,   ScanLineChannelType.Sync  ) );
+			ChannelMap.Add( new ( WidthGapInMS,    ScanLineChannelType.Gap   ) );
+			ChannelMap.Add( new ( WidthColorInMS,  ScanLineChannelType.Red   ) );
+		}
+
+        public override double OffsetInMS => ( 1.5 * 3 ) + ( WidthColorInMS * 2 ) + 9;
+    }
+
+    public class SSTVModePD : SSTVMode {
+        public SSTVModePD( byte bVIS, string strName, double dbTxWidth, SKSizeI skSize, AllModes eLegacy = AllModes.smEND) : 
+            base( TVFamily.PD, bVIS, strName, dbTxWidth, skSize, eLegacy ) 
+        {
+        }
+
+        public override double WidthSyncInMS => 20.0;
+        public override double WidthGapInMS  => 2.08;
+        public override int    ScanMultiplier { get; } = 2;
+
+		protected override void Initialize() {
+			if( Family != TVFamily.PD )
+				throw new ArgumentOutOfRangeException( "Mode must be of PD type" );
+
+			ChannelMap.Add( new( WidthSyncInMS,  ScanLineChannelType.Sync ) );
+			ChannelMap.Add( new( WidthGapInMS,   ScanLineChannelType.Gap  ) );
+			ChannelMap.Add( new( WidthColorInMS, ScanLineChannelType.Y1   ) );
+			ChannelMap.Add( new( WidthColorInMS, ScanLineChannelType.RY   ) );
+			ChannelMap.Add( new( WidthColorInMS, ScanLineChannelType.BY   ) );
+			ChannelMap.Add( new( WidthColorInMS, ScanLineChannelType.Y2   ) );
+		}
     }
 
     /// <summary>
@@ -364,7 +439,7 @@ namespace Play.Sound {
 
         readonly private   SKBitmap      _oBitmap; // Do not dispose this, caller owns it.
         readonly private   IPgModulator  _oModulator;
-        readonly protected List<SKColor> _rgCache = new List<SKColor>( 800 );
+        readonly protected List<SKColor> _rgCache = new( 800 );
 
         /// <summary>
         /// 
@@ -382,7 +457,7 @@ namespace Play.Sound {
                 throw new ArgumentOutOfRangeException( "bitmap must be at least high enough for the mode." );
         }
 
-        protected short ColorToFreq( byte bIntensity ) {
+        protected static short ColorToFreq( byte bIntensity ) {
 	        int iIntensity = bIntensity * (2300 - 1500) / 256; // convert 0->256 to 0->800.
 	        return (short)( iIntensity + 1500 );               // offset  0->800 to 1500->2300.
         }
@@ -478,13 +553,13 @@ namespace Play.Sound {
         /// </summary>
         /// <returns></returns>
         public static IEnumerator<SSTVMode> GetModeEnumerator() {
- 	        yield return new SSTVMode( TVFamily.Scottie, 0x3c, "Scottie 1",  138.240, new SKSizeI( 320, 240 ), AllModes.smSCT1);
-            yield return new SSTVMode( TVFamily.Scottie, 0xb8, "Scottie 2",   88.064, new SKSizeI( 320, 240 ), AllModes.smSCT2);
-            yield return new SSTVMode( TVFamily.Scottie, 0xcc, "Scottie DX", 345.600, new SKSizeI( 320, 240 ), AllModes.smSCTDX);
+ 	        yield return new SSTVModeScottie( 0x3c, "Scottie 1",  138.240, new SKSizeI( 320, 240 ), AllModes.smSCT1  );
+            yield return new SSTVModeScottie( 0xb8, "Scottie 2",   88.064, new SKSizeI( 320, 240 ), AllModes.smSCT2  );
+            yield return new SSTVModeScottie( 0xcc, "Scottie DX", 345.600, new SKSizeI( 320, 240 ), AllModes.smSCTDX );
         }
 
         public static SSTVMode Default {
-            get { return new SSTVMode( TVFamily.Scottie, 0x3c, "Scottie  1", 138.240, new SKSizeI( 320, 240 ), AllModes.smSCT1); }
+            get { return new SSTVModeScottie( 0x3c, "Scottie  1", 138.240, new SKSizeI( 320, 240 ), AllModes.smSCT1); }
         }
 
         /// <summary>
@@ -507,7 +582,7 @@ namespace Play.Sound {
         /// <remarks>I'm not sure how important it is to cache the line from the bitmap.
         /// The original code does this. Saves a multiply I would guess.</remarks>
         protected override void WriteLine( int iLine ) {
-	        double dbTimePerPixel = Mode.ColorWidthInMS / 320.0; // Note: hard coded.
+	        double dbTimePerPixel = Mode.WidthColorInMS / 320.0; // Note: hard coded.
 
             if( iLine > Height )
                 return;
@@ -556,8 +631,8 @@ namespace Play.Sound {
         /// </summary>
         /// <returns></returns>
         public static IEnumerator<SSTVMode> GetModeEnumerator() {
- 	        yield return new SSTVMode( TVFamily.Martin, 0xac, "Martin 1",  146.432, new SKSizeI( 320, 240 ), AllModes.smMRT1 );
-            yield return new SSTVMode( TVFamily.Martin, 0x28, "Martin 2",   73.216, new SKSizeI( 320, 240 ), AllModes.smMRT2 );
+ 	        yield return new SSTVModeMartin( 0xac, "Martin 1",  146.432, new SKSizeI( 320, 240 ), AllModes.smMRT1 );
+            yield return new SSTVModeMartin( 0x28, "Martin 2",   73.216, new SKSizeI( 320, 240 ), AllModes.smMRT2 );
         }
 
         /// <summary>
@@ -568,7 +643,7 @@ namespace Play.Sound {
         /// <remarks>I'm not sure how important it is to cache the line from the bitmap.
         /// The original code does this. Saves a multiply I would guess.</remarks>
         protected override void WriteLine( int iLine ) {
-	        double dbTimePerPixel = Mode.ColorWidthInMS / 320.0; // Note: hard coded.
+	        double dbTimePerPixel = Mode.WidthColorInMS / 320.0; // Note: hard coded.
 
             if( iLine > Height )
                 return;
@@ -615,7 +690,7 @@ namespace Play.Sound {
             public byte BY;
         }
 
-        List<Chrominance8Bit> _rgChrome = new List<Chrominance8Bit>(800);
+        readonly List<Chrominance8Bit> _rgChrome = new(800);
 
         /// <exception cref="ArgumentOutOfRangeException" />
         public GeneratePD( SKBitmap oBitmap, IPgModulator oModulator, SSTVMode oMode ) : 
@@ -633,13 +708,13 @@ namespace Play.Sound {
         /// </summary> 
         public static IEnumerator<SSTVMode> GetModeEnumerator() {
             // these numbers come from https://www.classicsstv.com/pdmodes.php G4IJE the inventor.
- 	        yield return new SSTVMode( TVFamily.PD, 0xdd, "PD  50",   91.520, new SKSizeI( 320, 240 ), AllModes.smPD50 ); // see SSTV-Handbook.
-            yield return new SSTVMode( TVFamily.PD, 0x63, "PD  90",  170.240, new SKSizeI( 320, 240 ), AllModes.smPD90 ); // Only reliable one.
-            yield return new SSTVMode( TVFamily.PD, 0x5f, "PD 120",  121.600, new SKSizeI( 640, 480 ), AllModes.smPD120 ); 
-            yield return new SSTVMode( TVFamily.PD, 0xe2, "PD 160",  195.584, new SKSizeI( 512, 384 ), AllModes.smPD160 ); 
-            yield return new SSTVMode( TVFamily.PD, 0x60, "PD 180",  183.040, new SKSizeI( 640, 480 ), AllModes.smPD180 );
-            yield return new SSTVMode( TVFamily.PD, 0xe1, "PD 240",  244.480, new SKSizeI( 640, 480 ), AllModes.smPD240 ); 
-            yield return new SSTVMode( TVFamily.PD, 0xde, "PD 290",  228.800, new SKSizeI( 800, 600 ), AllModes.smPD290 ); // see SSTV-handbook.
+ 	        yield return new SSTVModePD( 0xdd, "PD  50",   91.520, new SKSizeI( 320, 240 ), AllModes.smPD50  ); // see SSTV-Handbook.
+            yield return new SSTVModePD( 0x63, "PD  90",  170.240, new SKSizeI( 320, 240 ), AllModes.smPD90  ); // Only reliable one.
+            yield return new SSTVModePD( 0x5f, "PD 120",  121.600, new SKSizeI( 640, 480 ), AllModes.smPD120 ); 
+            yield return new SSTVModePD( 0xe2, "PD 160",  195.584, new SKSizeI( 512, 384 ), AllModes.smPD160 ); 
+            yield return new SSTVModePD( 0x60, "PD 180",  183.040, new SKSizeI( 640, 480 ), AllModes.smPD180 );
+            yield return new SSTVModePD( 0xe1, "PD 240",  244.480, new SKSizeI( 640, 480 ), AllModes.smPD240 ); 
+            yield return new SSTVModePD( 0xde, "PD 290",  228.800, new SKSizeI( 800, 600 ), AllModes.smPD290 ); // see SSTV-handbook.
         }
 
         public byte Limit256( double d ) {
@@ -673,7 +748,7 @@ namespace Play.Sound {
         /// <remarks>Note that you MUST override the default Generator iterator since
         /// this WriteLine uses TWO lines!!</remarks>
         protected override void WriteLine( int iLine ) {
-	        double dbTimePerPixel = Mode.ColorWidthInMS / (double)Width;
+	        double dbTimePerPixel = Mode.WidthColorInMS / (double)Width;
 
             if( iLine > Height )
                 return;

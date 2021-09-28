@@ -191,7 +191,7 @@ namespace Play.Sound {
 
 			string       strFileName = args [0];
 			string       strExt      = string.Empty;
-			List<string> rgPlay      = new List<string>();
+			List<string> rgPlay      = new();
 
 			try {
 				strExt = Path.GetExtension( strFileName );
@@ -200,7 +200,7 @@ namespace Play.Sound {
 					                typeof( ArgumentNullException ) };
 
 				if( !rgErrors.Contains( oEx.GetType() ) ) {
-					throw oEx;
+					throw;
 				}
 				Console.WriteLine( "Problem with playlist or file path." );
 			}
@@ -219,7 +219,7 @@ namespace Play.Sound {
 				return;
 			}
 
-			using( Mpg123Factory oMpgFactory = new Mpg123Factory() ) {
+			using( Mpg123Factory oMpgFactory = new() ) {
 				PlaySongs( oMpgFactory, rgPlay );
 			}
 		}

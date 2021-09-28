@@ -99,11 +99,11 @@ namespace Play.SSTV
 		/// and thus where SSTVSync() should be called.
 		/// </remarks>
         public void Start() {
-			m_SyncAccuracyN = 0;
+			m_SyncAccuracyN =  0;
 			m_AY			= -5;
-			_iSyncCheck     = 4; // See SSTVSync()
+			_iSyncCheck     =  4; // See SSTVSync()
 			
-			Slider.Reset( ScanWidthInSamples, (int)(Mode.SyncWidthInMS * _dp.SampFreq / 1000) );
+			Slider.Reset( SpecWidthInSamples, (int)(Mode.WidthSyncInMS * _dp.SampFreq / 1000) );
 
 			ShoutTvEvents?.Invoke(ESstvProperty.SSTVMode );
 
@@ -133,17 +133,30 @@ namespace Play.SSTV
         }
 
 		/// <summary>
-		/// Calculate the scan line width in samples, possibly corrected. This is a floating point
-		/// number because the signal is time based and so might not exactly align with the descrete
-		/// time interval of the sample. By doing everything in floating point we won't slowly drift
-		/// off due to rounding errors.
+		/// Calculate the scan line width in samples, possibly corrected.
 		/// </summary>
+		/// <seealso cref="SpecWidthInSamples"/>
 		public double ScanWidthInSamples {
 			get {
-				if( _rgSlots.Count < 1 )
+				try {
+					return _rgSlots[_rgSlots.Count - 1 ].Min;
+				} catch( ArgumentOutOfRangeException ) {
 					return 0;
+				}
+			}
+		}
 
-				return _rgSlots[_rgSlots.Count - 1 ].Min;
+		/// <summary>
+		/// Sister to the ScanWidthInSamples property except this is the UNCORRECTED value.
+		/// The value returned by the spec. This is a floating point number because the 
+		/// signal is time based and so might not exactly align with the descrete
+		/// time interval of the sample. By doing everything in floating point we won't slowly
+		/// drift off due to rounding errors.
+		/// </summary>
+		/// <seealso cref="ScanWidthInSamples"/>
+		public double SpecWidthInSamples {
+			get {
+				return Mode.WidthScanInMS * _dp.SampFreq / 1000;
 			}
 		}
 
@@ -321,9 +334,6 @@ namespace Play.SSTV
 			while( _dp.m_Sync && (_dp.m_wBase >=_dp.m_rBase + ScanWidthInSamples + _iSyncOffset ) ){
                 //dp.StorePage();
 
-				if( (_dp.sys.m_AutoStop || _dp.sys.m_AutoSync ) && _dp.m_Sync ) {
-					AutoStopJob();
-				}
 				SSTVDrawNormal();
 
 				double slope     = 0;
@@ -331,8 +341,16 @@ namespace Play.SSTV
 
 				_dp.PageRIncrement( ScanWidthInSamples );
 
-				AlignLeastSquares( ref slope, ref intercept );
-				AlignHorizontal();
+				if( m_AY > 199 )
+					Slider.AlignLeastSquares( m_AY, ref slope, ref intercept );
+
+				//if( Slider.AlignLeastSquares( m_AY, ref slope, ref intercept ) ) {
+				//	InitSlots( Mode.Resolution.Width, slope / SpecWidthInSamples );
+				//}
+
+				// I'm going to disable this for awhile, it moves outside the buffer
+				// in some cases.
+				// AlignHorizontal();
 
 				if( m_AY >= _dp.Mode.Resolution.Height ){ 
 					_dp.Stop();
@@ -344,78 +362,17 @@ namespace Play.SSTV
 			}
 		}
 
-		/// <summary>
-		/// Working on a way to attempt to use a least squares fit to find
-		/// the slant and offset. Still incomplete.
-		/// </summary>
-		/// <remarks>BUG: We're messing up on PD which has two TV scan lines per
-		/// sync signal....</remarks>
-		protected bool AlignLeastSquares( ref double slope, ref double intercept ) {
-			//if( m_AY == 7 ) {
-			//    InitSlots( _dp.Mode.Resolution.Width, iOffs / dbScanWidth);
-			//    //_dp.m_rPage = m_SyncHit;
-			//}
-			double dbScanWidth = ScanWidthInSamples;
-			double meanx       = 0, meany = 0;
-			int    iCount      = 0;
-
-			try {
-				for( int i = 0; i<m_AY; ++i ) {
-					if( Slider[i] > 0 ) {
-						meanx += i;
-						meany += Slider[i];
-						++iCount;
-					}
-				}
-				if( iCount < 7 )
-					return false;
-
-				meanx /= (double)iCount;
-				meany /= (double)iCount;
-
-				double dxsq = 0;
-				double dxdy = 0;
-
-				for( int i =0; i < m_AY; ++i ) {
-					if( Slider[i] > 0 ) {
-						double dx = (double)i - meanx;
-						double dy = (double)Slider[i] - meany;
-
-						dxdy += dx * dy;
-						dxsq += Math.Pow( dx, 2 );
-					}
-				}
-
-				if( dxsq == 0 )
-					return false;
-
-				slope     = dxdy / dxsq;
-				intercept = meany - slope * meanx;
-			} catch( Exception oEx ) {
-				Type[] rgErrors = { typeof( ArithmeticException ),
-									typeof( NullReferenceException ),
-									typeof( ArgumentOutOfRangeException ),
-									typeof( IndexOutOfRangeException ) };
-				if( rgErrors.IsUnhandled( oEx ) )
-					throw;
-
-				return false;
-			}
-
-			return true;
-		}
-
 		protected void SSTVDrawNormal() {
 			int    dx          = -1;          // Saved X pos from the B12 buffer.
 			int    rx          = -1;          // Saved X pos from the Rx  buffer.
-			int    ch          = 0;           // current channel skimming the Rx buffer portion.
+			int    ch          =  0;          // current channel skimming the Rx buffer portion.
 			double dbScanWidth = ScanWidthInSamples;
 			int    iScanWidth  = (int)Math.Round( dbScanWidth );
 			int    rBase       = (int)Math.Round( _dp.m_rBase );
 			double dbD12XScale = _pBitmapD12.Width / dbScanWidth;
 
 			try { 
-				m_AY = (int)Math.Round(rBase/dbScanWidth) * LineMultiplier; // PD needs us to use Round (.999 is 1)
+			    m_AY = (int)Math.Round(rBase/dbScanWidth) * LineMultiplier; // PD needs us to use Round (.999 is 1)
 				if( (m_AY < 0) || (m_AY >= _pBitmapRX.Height) || (m_AY >= _pBitmapD12.Height) )
 					return;
 
@@ -571,122 +528,55 @@ namespace Play.SSTV
 			_pBitmapRX.SetPixel( iX, m_AY+1,  new SKColor( (byte)R, (byte)G, (byte)B ) );
 		}
 
-		/// <summary>
-		/// Techically these init's for the video spec's should be on teh SSTVMode, 
-		/// so I know the scan width in general but the slots are used by TmmSSTV only.
-		/// I'll sort that out later.
-		/// </summary>
-		/// <param name="oMode"></param>
-		/// <param name="iSampFreq"></param>
-		/// <param name="dbCorrection"></param>
-		public void InitMartin( SSTVMode oMode, int iSampFreq, double dbCorrection ) {
-			if( oMode == null )
-				throw new ArgumentNullException( "Mode must not be null." );
-			if( oMode.Family != TVFamily.Martin )
-				throw new ArgumentOutOfRangeException( "Mode must be of Martin type" );
-
-			LineMultiplier = 1;
-
-			double dSampPerMs = iSampFreq / 1000.0;
-
-			double dbClr = oMode.ColorWidthInMS * dSampPerMs;
-			double dbSyc = 4.862 * dSampPerMs; // 4.862 ms * samps per ms.
-			double dbGap = 0.572 * dSampPerMs; // 0.572 ms * samps per ms.
-
-			_rgSlots.Clear();
-
-			_rgSlots.Add( new ColorChannel( dbSyc, null ) );
-			_rgSlots.Add( new ColorChannel( dbGap, null ) );
-			_rgSlots.Add( new ColorChannel( dbClr, PixelSetGreen ) );
-			_rgSlots.Add( new ColorChannel( dbGap, null ) );
-			_rgSlots.Add( new ColorChannel( dbClr, PixelSetBlue ));
-			_rgSlots.Add( new ColorChannel( dbGap, null ) );
-			_rgSlots.Add( new ColorChannel( dbClr, PixelSetRed ));
-			_rgSlots.Add( new ColorChannel( double.MaxValue, null ) );
-
-			InitSlots( oMode.Resolution.Width, dbCorrection );
-		}
-
-		public void InitScottie( SSTVMode oMode, int iSampFreq, double dbCorrection ) {
-			if( oMode == null )
-				throw new ArgumentNullException( "Mode must not be null." );
-			if( oMode.Family != TVFamily.Scottie )
-				throw new ArgumentOutOfRangeException( "Mode must be of Scottie type" );
-
-			LineMultiplier = 1;
-
-			double dbClr = oMode.ColorWidthInMS * iSampFreq / 1000.0;
-			double dbGap = 1.5 * iSampFreq / 1000.0;
-			double dbSyc = 9.0 * iSampFreq / 1000.0;
-
-			_rgSlots.Clear();
-
-			_rgSlots.Add( new ColorChannel( dbGap,  null ) );
-			_rgSlots.Add( new ColorChannel( dbClr,  PixelSetGreen ) );
-			_rgSlots.Add( new ColorChannel( dbGap,  null ) );
-			_rgSlots.Add( new ColorChannel( dbClr,  PixelSetBlue ));
-			_rgSlots.Add( new ColorChannel( dbSyc,  null ) );
-			_rgSlots.Add( new ColorChannel( dbGap,  null ) );
-			_rgSlots.Add( new ColorChannel( dbClr,  PixelSetRed ));
-			_rgSlots.Add( new ColorChannel( double.MaxValue, null ) );
-
-			InitSlots( oMode.Resolution.Width, dbCorrection );
-		}
-
-		public void InitPD( SSTVMode oMode, int iSampFreq, double dbCorrection ) {
-			if( oMode == null )
-				throw new ArgumentNullException( "Mode must not be null." );
-			if( oMode.Family != TVFamily.PD )
-				throw new ArgumentOutOfRangeException( "Mode must be of PD type" );
-
-			LineMultiplier = 2;
-
-			double dbClr   = oMode.ColorWidthInMS * iSampFreq / 1000.0;
-			double dbHSync = 20.0 * iSampFreq / 1000.0;
-			double dbGap   = 2.08 * iSampFreq / 1000.0;
-
-			_rgSlots.Clear();
-
-			_rgSlots.Add( new ColorChannel( dbHSync, null ) );
-			_rgSlots.Add( new ColorChannel( dbGap,   null ) );
-			_rgSlots.Add( new ColorChannel( dbClr,   PixelSetY1 ) );
-			_rgSlots.Add( new ColorChannel( dbClr,   PixelSetRY ) );
-			_rgSlots.Add( new ColorChannel( dbClr,   PixelSetBY ) );
-			_rgSlots.Add( new ColorChannel( dbClr,   PixelSetY2 ) );
-			_rgSlots.Add( new ColorChannel( double.MaxValue,  null ) );
-
-			InitSlots( oMode.Resolution.Width, dbCorrection );
+		public setPixel ReturnColorFunction( ScanLineChannelType eDT ) {
+			switch( eDT ) {
+				case ScanLineChannelType.BY:          return PixelSetBY;
+				case ScanLineChannelType.RY:          return PixelSetRY;
+				case ScanLineChannelType.Y1:          return PixelSetY1;
+				case ScanLineChannelType.Y2:          return PixelSetY2;
+				case ScanLineChannelType.Blue  : return PixelSetBlue;
+				case ScanLineChannelType.Red   : return PixelSetRed;
+				case ScanLineChannelType.Green : return PixelSetGreen;
+				default : return null;
+			}
 		}
 
 		/// <summary>
 		/// Change the image parsing mode we are in. 
 		/// </summary>
-		/// <param name="tvMode"></param>
-		public void ModeTransition( SSTVMode tvMode ) {
-            switch( tvMode.Family ) {
-                case TVFamily.PD: 
-					InitPD     ( tvMode, _dp.SampFreq, 1 ); 
-					break;
-                case TVFamily.Martin: 
-					InitMartin ( tvMode, _dp.SampFreq, 1 ); 
-					break;
-                case TVFamily.Scottie: 
-					InitScottie( tvMode, _dp.SampFreq, 1 ); 
-					break;
+		/// <param name="oMode"></param>
+		public void ModeTransition( SSTVMode oMode ) {
+			try {
+				LineMultiplier = oMode.ScanMultiplier;
 
-                default: 
-					throw new ArgumentOutOfRangeException("Unrecognized Mode Type.");
-            }
+                _rgSlots.Clear();
 
-            Start(); // bitmap allocated in here.
+                foreach( ScanLineChannel oChannel in oMode.ChannelMap ) {
+                	_rgSlots.Add( new( oChannel.WidthInMs * _dp.SampFreq / 1000, ReturnColorFunction( oChannel.Type ) ) );
+                }
+                _rgSlots.Add( new() );
+
+                InitSlots( oMode.Resolution.Width, 1 );
+            } catch( Exception oEx ) {
+				Type[] rgErrors = { typeof( NullReferenceException ),
+									typeof( ArgumentOutOfRangeException ),
+									typeof( ArgumentNullException ),
+									typeof( ArgumentException ) };
+				if( rgErrors.IsUnhandled( oEx ) )
+					throw;
+
+				// Uh oh.
+			}
+
+			Start(); // bitmap allocated in here.
 		}
     } // End Class TmmSSTV
 
 	public delegate void setPixel( int iX, short sLevel );
 
 	public class ColorChannel {
-		public readonly double _dbScanWidth;           // The original specification.
-		public double          _dbScanWidthCorrected;  // Compensated value.
+		public double SpecWidthInSamples { get; }            // The original specification.
+		public double _dbScanWidthCorrected;  // Compensated value.
 
 		public double   Min      { get; set; }
 		public double   Max      { get; protected set; }
@@ -694,12 +584,17 @@ namespace Play.SSTV
 		public double   Scaling  { get; protected set; }
 
 		public ColorChannel( double dbWidthInSamples, setPixel fnSet ) {
-			_dbScanWidth = dbWidthInSamples;
-			SetPixel     = fnSet;
+			SpecWidthInSamples = dbWidthInSamples;
+			SetPixel           = fnSet;
+		}
+
+		public ColorChannel() {
+			SpecWidthInSamples = double.MaxValue;
+			SetPixel           = null;
 		}
 
 		public double Reset( int iBmpWidth, double dbStart, double dbCorrection ) {
-			_dbScanWidthCorrected = _dbScanWidth * dbCorrection;
+			_dbScanWidthCorrected = SpecWidthInSamples * dbCorrection;
 
 			Scaling = iBmpWidth / _dbScanWidthCorrected;
 

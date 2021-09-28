@@ -1024,21 +1024,23 @@ namespace Play.Sound {
 
 	public class SlidingWindow {
 		public   double ScanWidthInSamples { get; protected set; } // in samp/ms.
-		         int    _iWindowSum   = 0;
-		readonly double _iWindowHit;
 		         int    _iWindowSizeInSamples  = 0;
+		         int    _iWindowSum   = 0;
+		readonly double _iWindowHit; 
 		         int    _iW           = 0;
-		         int[]  _rgWindow     = new int[200];
-				 double _SLvl = 0;
+				 double _SLvl         = 0;
+		         int[]  _rgWindow;
 
+		// this needs to be larger than the largest number of scan lines.
 		readonly int[]  _rgSyncDetect = new int[850];
 
 		public SlidingWindow( double dblScanWidthInSamples, int iWindowSize, double dblSLvl ) {
 			if( iWindowSize > _rgWindow.Length )
 				throw new ArgumentException( "Window size is too large." );
 
-			_iWindowHit   = Math.Round( (double)iWindowSize * .9 );
+			_iWindowHit   = Math.Round( (double)iWindowSize * .95 );
 			_SLvl         = dblSLvl;
+			_rgWindow     = new int[iWindowSize*2];
 
 			Reset( dblScanWidthInSamples, iWindowSize );
 		}
@@ -1086,7 +1088,69 @@ namespace Play.Sound {
 									typeof( ArithmeticException ) };
 				if( !rgErrors.Contains( oEx.GetType() ) )
 					throw;
+
+				// BUG: need to send an error message out.
 			}
+		}
+
+		/// <summary>
+		/// Working on a way to attempt to use a least squares fit to find
+		/// the slant and offset. Still incomplete.
+		/// </summary>
+		/// <remarks>BUG: We're messing up on PD which has two TV scan lines per
+		/// sync signal....</remarks>
+		public bool AlignLeastSquares( int iY, ref double slope, ref double intercept ) {
+			double dbScanWidth = ScanWidthInSamples;
+			double meanx       = 0, meany = 0;
+			int    iCount      = 0;
+
+			if( iY > _rgSyncDetect.Length )
+				iY = _rgSyncDetect.Length;
+
+			try {
+				for( int i = 0; i<iY; ++i ) {
+					if( this[i] > 0 ) {
+						meanx += i;
+						meany += this[i];
+						++iCount;
+					}
+				}
+				if( iCount < 7 )
+					return false;
+
+				meanx /= (double)iCount;
+				meany /= (double)iCount;
+
+				double dxsq = 0;
+				double dxdy = 0;
+
+				for( int i =0; i < iY; ++i ) {
+					if( this[i] > 0 ) {
+						double dx = (double)i - meanx;
+						double dy = (double)this[i] - meany;
+
+						dxdy += dx * dy;
+						dxsq += Math.Pow( dx, 2 );
+					}
+				}
+
+				if( dxsq == 0 )
+					return false;
+
+				slope     = dxdy / dxsq;
+				intercept = meany - slope * meanx;
+			} catch( Exception oEx ) {
+				Type[] rgErrors = { typeof( ArithmeticException ),
+									typeof( NullReferenceException ),
+									typeof( ArgumentOutOfRangeException ),
+									typeof( IndexOutOfRangeException ) };
+				if( !rgErrors.Contains( oEx.GetType() ) )
+					throw;
+
+				return false;
+			}
+
+			return true;
 		}
 	}
 
