@@ -1023,7 +1023,7 @@ namespace Play.Sound {
 	}
 
 	public class SlidingWindow {
-		public   double ScanWidthInSamples { get; protected set; } // in samp/ms.
+		         double _dblScanWidthInSamples;
 		         int    _iWindowSizeInSamples  = 0;
 		         int    _iWindowSum   = 0;
 		readonly double _iWindowHit; 
@@ -1034,20 +1034,22 @@ namespace Play.Sound {
 		// this needs to be larger than the largest number of scan lines.
 		readonly int[]  _rgSyncDetect = new int[850];
 
-		public SlidingWindow( double dblScanWidthInSamples, int iWindowSize, double dblSLvl ) {
-			if( iWindowSize > _rgWindow.Length )
-				throw new ArgumentException( "Window size is too large." );
+		public SlidingWindow( double dblScanWidthInSamples, int iWindowSizeInSamples, double dblSLvl ) {
+			_iWindowHit = Math.Round( (double)iWindowSizeInSamples * .95 );
+			_SLvl       = dblSLvl;
+			_rgWindow   = new int[iWindowSizeInSamples*2];
 
-			_iWindowHit   = Math.Round( (double)iWindowSize * .95 );
-			_SLvl         = dblSLvl;
-			_rgWindow     = new int[iWindowSize*2];
-
-			Reset( dblScanWidthInSamples, iWindowSize );
+			Reset( dblScanWidthInSamples, iWindowSizeInSamples );
 		}
 
 		public void Reset( double dblScanWidthInSamples, int iWindowSizeInSamples ) {
 			_iWindowSizeInSamples  = iWindowSizeInSamples;
-			ScanWidthInSamples = dblScanWidthInSamples;
+			_dblScanWidthInSamples = dblScanWidthInSamples;
+
+			int iNewSize = iWindowSizeInSamples*2;
+
+			if( _rgWindow.Length < iNewSize )
+				_rgWindow = new int[iNewSize];
 
 			Reset();
 		}
@@ -1071,7 +1073,7 @@ namespace Play.Sound {
 			int iSig = d12 > _SLvl ? 1 : 0;
 
 			try {
-				double dblX = (double)iValue / ScanWidthInSamples;
+				double dblX = (double)iValue / _dblScanWidthInSamples;
 				int   i2Xl  = _iWindowSizeInSamples * 2;
 				int   iLast = (_iW + _iWindowSizeInSamples) % ( i2Xl );
 				_iWindowSum   -= _rgWindow[iLast];
@@ -1100,7 +1102,7 @@ namespace Play.Sound {
 		/// <remarks>BUG: We're messing up on PD which has two TV scan lines per
 		/// sync signal....</remarks>
 		public bool AlignLeastSquares( int iY, ref double slope, ref double intercept ) {
-			double dbScanWidth = ScanWidthInSamples;
+			double dbScanWidth = _dblScanWidthInSamples;
 			double meanx       = 0, meany = 0;
 			int    iCount      = 0;
 
