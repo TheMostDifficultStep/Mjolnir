@@ -101,6 +101,7 @@ namespace Play.SSTV
                 for( IEnumerator<int> oIter = GetReceiveFromFileTask( oReader ); oIter.MoveNext(); ) {
                     RxSSTV.SSTVDraw();
                 }
+                RxSSTV.Stop();
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( DirectoryNotFoundException ),
                                     typeof( NullReferenceException ),

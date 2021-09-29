@@ -80,15 +80,18 @@ namespace Play.SSTV {
 		public IPgParent Parentage => _oSiteView.Host;
 		public IPgParent Services  => Parentage.Services;
 		public bool      IsDirty   => false;
-		public string    Banner    => "Debug Receive Window : " + _oDocSSTV.TxImageList.CurrentDirectory;
+		public string    Banner    { get; protected set; }
 		public Image     Iconic    { get; }
 		public Guid      Catagory  => GUID;
+
+		protected readonly string _strBannerBase = "Debug Receive Window : ";
 
         public ViewRxAndSync( IPgViewSite oViewSite, DocSSTV oDocument ) {
 			_oSiteView = oViewSite ?? throw new ArgumentNullException( "View requires a view site." );
 			_oDocSSTV  = oDocument ?? throw new ArgumentNullException( "View requires a document." );
 
 			Iconic = ImageResourceHelper.GetImageResource( Assembly.GetExecutingAssembly(), _strIcon );
+			Banner = _strBannerBase + _oDocSSTV.TxImageList.CurrentDirectory;
 
 			_oViewRx        = new ImageViewSingle( new SSTVWinSlot( this ), _oDocSSTV.ReceiveImage );
 			_oViewSync      = new ImageViewSingle( new SSTVWinSlot( this ), _oDocSSTV.SyncImage );
@@ -174,7 +177,12 @@ namespace Play.SSTV {
 
 		public bool Execute(Guid sGuid) {
 			if( sGuid == GlobalCommands.Play ) {
-				_oDocSSTV.RecordBeginTest2( new SKRectI( 0, 0, 320, 256 ) );
+				Banner = _strBannerBase + _oDocSSTV.Chooser.CurrentFullPath;
+				_oSiteView.Notify( ShellNotify.BannerChanged );
+				// TODO: Sort out the file/port vs auto/fixed receive modes. You can see that
+				//       the VIS mode might be different on a per view basis with this system.
+				//       Should we try to sync tool bars, or do something different.
+				_oDocSSTV.RecordBeginFileRead2( _oDocSSTV.Chooser.CurrentFullPath, fFixedMode:false );
 				return true;
 			}
 			if( sGuid == GlobalCommands.Stop ) {
@@ -213,7 +221,7 @@ namespace Play.SSTV {
 	/// <summary>
 	/// This view shows the single image being downloaded from the audio stream. 
 	/// </summary>
-	public class SSTVRxImage : 
+	public class ViewRxImage : 
 		ImageViewSingle, 
 		IPgCommandView,
 		IPgSave<XmlDocumentFragment>,
@@ -247,9 +255,9 @@ namespace Play.SSTV {
 			IPgViewSite,
 			IPgShellSite
 		{
-			protected readonly SSTVRxImage _oHost;
+			protected readonly ViewRxImage _oHost;
 
-			public SSTVWinSlot( SSTVRxImage oHost ) {
+			public SSTVWinSlot( ViewRxImage oHost ) {
 				_oHost = oHost ?? throw new ArgumentNullException();
 			}
 
@@ -282,7 +290,7 @@ namespace Play.SSTV {
             public uint SiteID => throw new NotImplementedException();
         }
 
-		public SSTVRxImage( IPgViewSite oSiteBase, DocSSTV oDocSSTV ) : 
+		public ViewRxImage( IPgViewSite oSiteBase, DocSSTV oDocSSTV ) : 
 			base( oSiteBase, oDocSSTV.ReceiveImage ) 
 		{
 			_oSiteView = oSiteBase ?? throw new ArgumentNullException( "SiteBase must not be null." );
@@ -328,18 +336,12 @@ namespace Play.SSTV {
 			if( sGuid == GlobalCommands.Play ) {
 				switch( _eToolSelected ) {
 					case Tools.FileAuto:
-						// TODO: Change our title to match what we're trying to show!!
-						_strBanner = _strBaseTitle + " : " + _oDocSSTV.Chooser.CurrentFullPath;
-						_oSiteView.Notify( ShellNotify.BannerChanged );
-						// TODO: Sort out the file/port vs auto/fixed receive modes.
-						_oDocSSTV.RecordBeginFileRead2( _oDocSSTV.Chooser.CurrentFullPath, fFixedMode:false );
-						return true;
 					case Tools.FileFixed:
 						// TODO: Change our title to match what we're trying to show!!
 						_strBanner = _strBaseTitle + " : " + _oDocSSTV.Chooser.CurrentFullPath;
 						_oSiteView.Notify( ShellNotify.BannerChanged );
 						// TODO: Sort out the file/port vs auto/fixed receive modes.
-						_oDocSSTV.RecordBeginFileRead2( _oDocSSTV.Chooser.CurrentFullPath, fFixedMode:true );
+						_oDocSSTV.RecordBeginFileRead2( _oDocSSTV.Chooser.CurrentFullPath, fFixedMode: _eToolSelected == Tools.FileFixed );
 						return true;
 					case Tools.Port:
 						LogError( "SSTV Command", "Audio Port not supported yet" );

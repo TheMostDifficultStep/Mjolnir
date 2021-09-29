@@ -27,8 +27,8 @@ namespace Play.SSTV {
                     return new ViewRxAndSync(oBaseSite, oMySSTVDoc);
                 if( guidViewType == SSTVTxImage.GUID )
 					return new SSTVTxImage( oBaseSite, oMySSTVDoc );
-				if( guidViewType == SSTVRxImage.GUID )
-					return new SSTVRxImage( oBaseSite, oMySSTVDoc );
+				if( guidViewType == ViewRxImage.GUID )
+					return new ViewRxImage( oBaseSite, oMySSTVDoc );
 				if( guidViewType == ViewSettings.GUID )
 					return new ViewSettings( oBaseSite, oMySSTVDoc );
 				if( guidViewType == ViewTransmitModes ) {
@@ -37,7 +37,7 @@ namespace Play.SSTV {
 					return oView;
 				}
 
-				return new SSTVRxImage( oBaseSite, oMySSTVDoc );
+				return new ViewRxImage( oBaseSite, oMySSTVDoc );
             } catch( Exception oEx ) {
 				// TODO: Stuff errors collection into the base controller.
                 Type[] rgErrors = { typeof( NullReferenceException ),
@@ -53,7 +53,7 @@ namespace Play.SSTV {
 
 		public override IEnumerator<IPgViewType> GetEnumerator() {
 		  //yield return new ViewType( "Spectrum",             ViewFFT      .ViewType );
-			yield return new ViewType( "Receive Image",        SSTVRxImage  .GUID );
+			yield return new ViewType( "Receive Image",        ViewRxImage  .GUID );
 		    yield return new ViewType( "Receive Dual Screen",  ViewRxAndSync.GUID );
 		    yield return new ViewType( "Transmit Image",       SSTVTxImage  .GUID );
 			yield return new ViewType( "Transmit Mode Select", ViewTransmitModes );

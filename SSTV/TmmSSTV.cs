@@ -268,15 +268,33 @@ namespace Play.SSTV
 			return true;
 		}
 
+		public void Stop() {
+			if( _dp.m_Sync ) {
+				_dp.Stop();
+
+				if( Slider.AlignLeastSquares( m_AY, out double _, out double intercept ) ) {
+					SKCanvas skCanvas = new SKCanvas(_pBitmapD12);
+					SKPaint  skPaint  = new SKPaint () { Color = SKColors.Green, StrokeWidth = 2 };
+
+					double dbD12XScale     = _pBitmapD12.Width / ScanWidthInSamples;
+					double dblSyncExpected = _dp.Mode.OffsetInMS * _dp.SampFreq / 1000;
+					double dblDiff         = intercept - dblSyncExpected;
+					float  flX             = (float)(dblDiff * dbD12XScale);
+					
+					skCanvas.DrawLine( new SKPoint( flX, 0f ), new SKPoint( flX, _pBitmapD12.Height ), skPaint );
+
+					ShoutTvEvents?.Invoke( ESstvProperty.DownLoadFinished );
+				}
+			}
+		}
+
 		/// <summary>
 		/// Call this function periodically to collect the sstv scan lines.
 		/// </summary>
 		/// <remarks>This function will loop until the rPage catches up with the wPage. 
 		/// </remarks>
 		public void SSTVDraw() {
-			while( _dp.m_Sync && (_dp.m_wBase >=_dp.m_rBase + ScanWidthInSamples + _iSyncOffset ) ){
-                //dp.StorePage();
-
+			while( _dp.m_Sync && (_dp.m_wBase >=_dp.m_rBase + ScanWidthInSamples ) ){
 				SSTVDrawNormal();
 
 				_dp.PageRIncrement( ScanWidthInSamples );
@@ -298,19 +316,14 @@ namespace Play.SSTV
 				}
 
 				if( m_AY == 200 ) {
-					if( Slider.AlignLeastSquares( m_AY, out double slope, out double intercept ) );
+					Slider.AlignLeastSquares( m_AY, out double slope, out double intercept );
 				}
-				//if( Slider.AlignLeastSquares( m_AY, ref slope, ref intercept ) ) {
-				//	InitSlots( Mode.Resolution.Width, slope / SpecWidthInSamples );
-				//}
-
 				// I'm going to disable this for awhile, it moves outside the buffer
 				// in some cases.
 				// AlignHorizontal();
 
 				if( m_AY >= _dp.Mode.Resolution.Height ){ 
-					_dp.Stop();
-					ShoutTvEvents?.Invoke( ESstvProperty.DownLoadFinished );
+					Stop();
 					break;
 				} else {
 					ShoutTvEvents?.Invoke( ESstvProperty.DownLoadTime );
@@ -332,8 +345,8 @@ namespace Play.SSTV
 				if( (m_AY < 0) || (m_AY >= _pBitmapRX.Height) )
 					return;
 
-				for( int i = 0; i < iScanWidth; i++ ){ 
-					int   idx = rBase + i;// + _iSyncOffset;
+				for( int i = 0; i < iScanWidth; i++ ) { 
+					int   idx = rBase + i;
 					short d12 = _dp.SyncGet( idx );
 
 					#region D12
