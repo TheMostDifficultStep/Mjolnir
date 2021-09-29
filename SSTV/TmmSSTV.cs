@@ -268,6 +268,10 @@ namespace Play.SSTV
 			return true;
 		}
 
+		/// <summary>
+		/// Call this when reach end of file. This will also get called internally when we've
+		/// decoded the entire image.
+		/// </summary>
 		public void Stop() {
 			if( _dp.m_Sync ) {
 				_dp.Stop();
@@ -311,6 +315,7 @@ namespace Play.SSTV
 						} else {
 							_dp.PageRReset( dblDiff + ScanWidthInSamples );
 						}
+						Slider.Reset();
 					}
 					_iSyncCheck = int.MaxValue;
 				}
