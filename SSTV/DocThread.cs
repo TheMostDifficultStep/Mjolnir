@@ -94,12 +94,13 @@ namespace Play.SSTV
                 RxSSTV.ShoutTvEvents += Listen_TvEvents;
 
                 if( _oFixedMode != null ) {
-                    // Hard code our decoding mode... After set the Shout's since this causes a call to the ShoutNextMode()
+                    // Hard code our decoding mode... After set the callbacks
+                    // since this causes a call to the ShoutNextMode()
                     _oSSTVDeModulator.Start( _oFixedMode );
                 }
 
                 for( IEnumerator<int> oIter = GetReceiveFromFileTask( oReader ); oIter.MoveNext(); ) {
-                    RxSSTV.SSTVDraw();
+                    RxSSTV.DrawProcess();
                 }
                 RxSSTV.Stop();
             } catch( Exception oEx ) {

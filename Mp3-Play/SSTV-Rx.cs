@@ -1012,16 +1012,6 @@ namespace Play.Sound {
 
 	public delegate void NextMode( SSTVMode tvMode );
 
-	public struct SyncCoordinate {
-		public int Start { get; private set; }
-		public int Width { get; private set; }
-
-		public SyncCoordinate( int iStart, int iWidth ) {
-			Start = iStart;
-			Width = iWidth;
-		}
-	}
-
 	public class SlidingWindow {
 		double _dblScanWidthInSamples;
 		int    _iWindowSizeInSamples  = 0;
@@ -1069,11 +1059,26 @@ namespace Play.Sound {
 			get { return _rgSyncDetect[iIndex]; }
 		}
 
-		public bool LogSync( int iValue, double d12 ) {
+		/// <summary>
+		/// Log the sync channel. If the d12 signal is above the threshold we save
+		/// the offset, modulo, the scan line width. We save the first offset that
+		/// satisfies the window constraint. That way if we subtract the expected
+		/// sync width we are at the start of a scan line!
+		/// </summary>
+		/// <remarks>We save 2x the window samples so we can always go back to the
+		/// start of the window to subtract that contribution from the sum. This 
+		/// makes us O(n) operation instead of O(n^2), if we had to re-sum the
+		/// previous signals in the window. Techically we don't need to save
+		/// the values b/c we have the buffer. But I'm happy I figured out this
+		/// so I'm going to leave it for now.</remarks>
+		/// <param name="iOffset">Offset into the samples.</param>
+		/// <param name="d12">Hsync signal from the filter.</param>
+		/// <returns></returns>
+		public bool LogSync( int iOffset, double d12 ) {
 			int iSig = d12 > _SLvl ? 1 : 0;
 
 			try {
-				double dblX = (double)iValue / _dblScanWidthInSamples;
+				double dblX = (double)iOffset / _dblScanWidthInSamples;
 				int   i2Xl  = _iWindowSizeInSamples * 2;
 				int   iLast = (_iW + _iWindowSizeInSamples) % ( i2Xl );
 
@@ -1082,8 +1087,8 @@ namespace Play.Sound {
 				_rgWindow[_iW] = iSig;
 				_iW            = (_iW + 1) % i2Xl; 
 
-				if( _iWindowSum >= _iWindowHit ) {
-					_rgSyncDetect[(int)dblX] = iValue; // Save the absolute position of the sync.
+				if( _iWindowSum >= _iWindowHit && _rgSyncDetect[(int)dblX] == -1 ) {
+					_rgSyncDetect[(int)dblX] = iOffset; 
 					return true;
 				}
 			} catch( Exception oEx ) {
@@ -1300,15 +1305,18 @@ namespace Play.Sound {
 			SampBase        = iSampBase;
 			m_dblToneOffset = dbToneOffset;
 
+			double dblMaxBufferInMs = 0;
 			foreach( SSTVMode oMode in this ) {
 				ModeDictionary.Add( oMode.VIS, oMode );
+				double dblBufferInMs = oMode.ScanWidthInMS * ( oMode.Resolution.Width + 1 );
+				if( dblMaxBufferInMs < dblBufferInMs )
+					dblMaxBufferInMs = dblBufferInMs;
 			}
 
 			m_ad  = 0;
 
-			// Our buffer only holds SSTVDEMBUFMAX (24) lines. 
-			int iBufWidth = (int)(1400 * SampFreq / 1000.0 ); // samples width (MAX).
-			int iBufSize  = SSTVDEMBUFMAX * iBufWidth;
+			// SSTVDEMBUFMAX is (24) lines. 
+			int iBufSize = (int)(dblMaxBufferInMs * SampFreq / 1000.0 );
 			m_Buf = new short[iBufSize];
 			m_B12 = new short[iBufSize];
 

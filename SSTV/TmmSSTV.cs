@@ -111,7 +111,7 @@ namespace Play.SSTV
         }
 
 		/// <summary>
-		/// Calculate the scan line width in samples, possibly corrected.
+		/// Possibly corrected scan line width in samples.
 		/// </summary>
 		/// <seealso cref="SpecWidthInSamples"/>
 		public double ScanWidthInSamples {
@@ -125,8 +125,9 @@ namespace Play.SSTV
 		}
 
 		/// <summary>
-		/// Sister to the ScanWidthInSamples property except this is the UNCORRECTED value.
-		/// The value returned by the spec. This is a floating point number because the 
+		/// scan line width in samples returned by the spec. Sister to the 
+		/// ScanWidthInSamples property except this is the UNCORRECTED value.
+		/// This is a floating point number because the 
 		/// signal is time based and so might not exactly align with the descrete
 		/// time interval of the sample. By doing everything in floating point we won't slowly
 		/// drift off due to rounding errors.
@@ -134,7 +135,7 @@ namespace Play.SSTV
 		/// <seealso cref="ScanWidthInSamples"/>
 		public double SpecWidthInSamples {
 			get {
-				return Mode.WidthScanInMS * _dp.SampFreq / 1000;
+				return Mode.ScanWidthInMS * _dp.SampFreq / 1000;
 			}
 		}
 
@@ -195,10 +196,7 @@ namespace Play.SSTV
 
         public int PercentRxComplete { 
             get {
-				if( _pBitmapRX != null ) {
-					return ( m_AY * 100 / _pBitmapRX.Height ) ;
-				}
-                return 0;
+				return ( m_AY * 100 / Mode.Resolution.Height ) ;
             }
         }
 
@@ -276,14 +274,15 @@ namespace Play.SSTV
 			if( _dp.m_Sync ) {
 				_dp.Stop();
 
-				if( Slider.AlignLeastSquares( m_AY, out double _, out double intercept ) ) {
+				if( Slider.AlignLeastSquares( Mode.Resolution.Height, out double slope, out double intercept ) ) {
+					//InitSlots( Mode.Resolution.Width, slope / SpecWidthInSamples );
+
 					SKCanvas skCanvas = new SKCanvas(_pBitmapD12);
 					SKPaint  skPaint  = new SKPaint () { Color = SKColors.Green, StrokeWidth = 2 };
 
 					double dbD12XScale     = _pBitmapD12.Width / ScanWidthInSamples;
 					double dblSyncExpected = _dp.Mode.OffsetInMS * _dp.SampFreq / 1000;
-					double dblDiff         = intercept - dblSyncExpected;
-					float  flX             = (float)(dblDiff * dbD12XScale);
+					float  flX             = (float)(intercept * dbD12XScale);
 					
 					skCanvas.DrawLine( new SKPoint( flX, 0f ), new SKPoint( flX, _pBitmapD12.Height ), skPaint );
 
@@ -292,40 +291,39 @@ namespace Play.SSTV
 			}
 		}
 
+		protected bool Align() {
+			if( Slider.AlignLeastSquares( m_AY, out double slope, out double intercept ) ) {
+				InitSlots( Mode.Resolution.Width, slope / SpecWidthInSamples );
+
+				double dblSyncExpected = _dp.Mode.OffsetInMS * _dp.SampFreq / 1000;
+				double dblDiff         = intercept - dblSyncExpected;
+
+				if( dblDiff > 0 ) {
+					_dp.PageRReset( dblDiff );
+				} else {
+					_dp.PageRReset( dblDiff + ScanWidthInSamples );
+				}
+				Slider.Reset( /* slope, (int)(Mode.WidthSyncInMS * _dp.SampFreq / 1000) */ );
+				return true;
+			}
+			return false;
+		}
+
 		/// <summary>
 		/// Call this function periodically to collect the sstv scan lines.
 		/// </summary>
 		/// <remarks>This function will loop until the rPage catches up with the wPage. 
 		/// </remarks>
-		public void SSTVDraw() {
+		public void DrawProcess() {
 			while( _dp.m_Sync && (_dp.m_wBase >=_dp.m_rBase + ScanWidthInSamples ) ){
-				SSTVDrawNormal();
+				DrawScan();
 
 				_dp.PageRIncrement( ScanWidthInSamples );
 
-				if( _iSyncCheck < int.MaxValue && m_AY == 6 ) {
-					if( Slider.AlignLeastSquares( m_AY, out double slope, out double intercept ) ) {
-						InitSlots( Mode.Resolution.Width, slope / SpecWidthInSamples );
-
-						double dblSyncExpected = _dp.Mode.OffsetInMS * _dp.SampFreq / 1000;
-						double dblDiff         = intercept - dblSyncExpected;
-
-						if( dblDiff > 0 ) {
-							_dp.PageRReset( dblDiff );
-						} else {
-							_dp.PageRReset( dblDiff + ScanWidthInSamples );
-						}
-						Slider.Reset();
-					}
-					_iSyncCheck = int.MaxValue;
+				if( (int)(_dp.m_wBase / ScanWidthInSamples ) % 20 == 19 ) {
+					Align();
+					break;
 				}
-
-				if( m_AY == 200 ) {
-					Slider.AlignLeastSquares( m_AY, out double slope, out double intercept );
-				}
-				// I'm going to disable this for awhile, it moves outside the buffer
-				// in some cases.
-				// AlignHorizontal();
 
 				if( m_AY >= _dp.Mode.Resolution.Height ){ 
 					Stop();
@@ -336,17 +334,22 @@ namespace Play.SSTV
 			}
 		}
 
-		protected void SSTVDrawNormal() {
-			int    dx          = -1;          // Saved X pos from the B12 buffer.
-			int    rx          = -1;          // Saved X pos from the Rx  buffer.
-			int    ch          =  0;          // current channel skimming the Rx buffer portion.
+		protected void DrawScan() {
+			int    dx          = -1; // Saved X pos from the B12 buffer.
+			int    rx          = -1; // Saved X pos from the Rx  buffer.
+			int    ch          =  0; // current channel skimming the Rx buffer portion.
 			double dbScanWidth = ScanWidthInSamples;
 			int    iScanWidth  = (int)Math.Round( dbScanWidth );
 			int    rBase       = (int)Math.Round( _dp.m_rBase );
 			double dbD12XScale = _pBitmapD12.Width / dbScanWidth;
+			int    iSyncWidth  = (int)(Mode.WidthSyncInMS * _dp.SampFreq / 1000 );
 
 			try { 
-			    m_AY = (int)Math.Round(rBase/dbScanWidth) * LineMultiplier; // PD needs us to use Round (.999 is 1)
+				int iScanLine = (int)Math.Round(rBase/dbScanWidth);
+				//if( Slider[iScanLine] > -1 ) -- This can only work if we pre process
+				//	rBase = Slider[iScanLine]; -- the d12 first, then check this.
+
+			    m_AY = iScanLine * LineMultiplier; // PD needs us to use Round (.999 is 1)
 				if( (m_AY < 0) || (m_AY >= _pBitmapRX.Height) )
 					return;
 
@@ -355,14 +358,14 @@ namespace Play.SSTV
 					short d12 = _dp.SyncGet( idx );
 
 					#region D12
-					bool fHit = Slider.LogSync( rBase + i, d12 );
+					bool fHit = Slider.LogSync( idx, d12 );
 
 					int x = (int)( i * dbD12XScale );
 					if( (x != dx) && (x >= 0) && (x < _pBitmapD12.Width)){
 						int d = Limit256((short)(d12 * 256F / 4096F));
-						if( fHit )
+						if( fHit ) {
 							_pBitmapD12.SetPixel( x, m_AY, SKColors.Red );
-						else
+						} else
 							_pBitmapD12.SetPixel( x, m_AY, new SKColor( (byte)d, (byte)d, (byte)d ) );
 						dx = x;
 					}
@@ -395,11 +398,8 @@ namespace Play.SSTV
 			}
 		}
 
-		/// I see two ways to correct slant. MMSSTV has the CSTVSET values static
-		/// so they must change the page width. Since they were using for the distance
-		/// along the scan line (ps = n%width) they then get corrected.
-		/// I'm going to change my parse values by updated a copy of the mode.
-
+		// I'm going to disable this for awhile, it moves outside the buffer
+		// in some cases.
 		/// <summary>Horizontal Offset correction. Not slant, but try to
 		/// shift whole image left and right. Looking for the 1200hz tone,
 		/// and then seeing if it is where we expect it. Looks like we
@@ -440,23 +440,8 @@ namespace Play.SSTV
 				_dp.PageRReset();
 				Slider.Reset();
                 //SstvSet.SetOFS( n );
-				//_dp.m_rBase = n;
-                //m_wBgn  = 0; redraw.
             }
         }
-
-		/// <summary>
-		/// This goes back and finishes out the slots so their Min and Max
-		/// boundaries are assigned. Also set's the scale factor to align
-		/// the bitmap width with the slot width (color channel width).
-		/// </summary>
-		/// <seealso cref="DemodTest.Write(int, uint, double)"/>
-		protected void InitSlots( int iBmpWidth, double dbCorrection ) {
-			double dbIdx = 0;
-			for( int i = 0; i< _rgSlots.Count; ++i ) {
-				dbIdx = _rgSlots[i].Reset( iBmpWidth, dbIdx, dbCorrection );
-			}
-		}
 
 		protected void PixelSetGreen( int iX, short sValue ) {
 			sValue      = (short)( GetPixelLevel(sValue) + 128 );
@@ -497,12 +482,12 @@ namespace Play.SSTV
 			short R, G, B;
 
 			YCtoRGB( out R, out G, out B, m_Y36[iX], m_D36[1,iX], m_D36[0,iX]);
-			_pBitmapRX.SetPixel( iX, m_AY,    new SKColor( (byte)R, (byte)G, (byte)B ) );
+			_pBitmapRX.SetPixel( iX, m_AY,   new SKColor( (byte)R, (byte)G, (byte)B ) );
 
-			sValue    = (short)( GetPixelLevel(sValue) + 128 );
+			sValue = (short)( GetPixelLevel(sValue) + 128 );
 
 			YCtoRGB( out R, out G, out B, sValue,    m_D36[1,iX], m_D36[0,iX]);
-			_pBitmapRX.SetPixel( iX, m_AY+1,  new SKColor( (byte)R, (byte)G, (byte)B ) );
+			_pBitmapRX.SetPixel( iX, m_AY+1, new SKColor( (byte)R, (byte)G, (byte)B ) );
 		}
 
 		public setPixel ReturnColorFunction( ScanLineChannelType eDT ) {
@@ -547,13 +532,30 @@ namespace Play.SSTV
 
 			Start(); // bitmap allocated in here.
 		}
+
+		/// <summary>
+		/// This goes back and finishes out the slots so their Min and Max
+		/// boundaries are assigned. Also set's the scale factor to align
+		/// the bitmap width with the slot width (color channel width).
+		/// </summary>
+		/// <seealso cref="DemodTest.Write(int, uint, double)"/>
+		protected void InitSlots( int iBmpWidth, double dbCorrection ) {
+			double dbIdx = 0;
+			for( int i = 0; i< _rgSlots.Count; ++i ) {
+				dbIdx = _rgSlots[i].Reset( iBmpWidth, dbIdx, dbCorrection );
+			}
+		}
     } // End Class TmmSSTV
 
 	public delegate void setPixel( int iX, short sLevel );
 
+	/// <summary>
+	/// This object represents one portion of the video scan line. String these
+	/// together to create a complete scan line parse.
+	/// </summary>
 	public class ColorChannel {
-		public double SpecWidthInSamples { get; }            // The original specification.
-		public double _dbScanWidthCorrected;  // Compensated value.
+		public double SpecWidthInSamples { get; } // The original specification.
+		public double _dbScanWidthCorrected;      // Compensated value.
 
 		public double   Min      { get; set; }
 		public double   Max      { get; protected set; }
@@ -577,6 +579,7 @@ namespace Play.SSTV
 
 			Min = dbStart;
 			Max = dbStart + ( _dbScanWidthCorrected );
+
 			return Max;
 		}
 

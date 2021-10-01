@@ -969,7 +969,7 @@ namespace Play.SSTV {
                         _oSSTVDeModulator.Do( _oSSTVBuffer.ReadOneSample() );
                     }
 					if( _oRxSSTV != null ) {
-						_oRxSSTV.SSTVDraw();
+						_oRxSSTV.DrawProcess();
 					}
 				} catch( Exception oEx ) {
                     Type[] rgErrors = { typeof( NullReferenceException ),
@@ -1064,7 +1064,7 @@ namespace Play.SSTV {
 			_oSSTVDeModulator.Start( oMode );
 
             while( oIter.MoveNext() ) {
-				_oRxSSTV.SSTVDraw();
+				_oRxSSTV.DrawProcess();
 				yield return 1;
 			};
 			SaveRxImage();

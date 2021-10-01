@@ -261,7 +261,7 @@ namespace Play.Sound {
                  public  double   WidthColorInMS { get; } // Time to relay all pixels of one color component.
         abstract public  double   WidthSyncInMS  { get; }
         abstract public  double   WidthGapInMS   { get; }
-                 public  double   WidthScanInMS  { get; }
+                 public  double   ScanWidthInMS  { get; } // Time for complete scan line.
 
         virtual  public  int      ScanMultiplier { get; } = 1;
 
@@ -308,7 +308,7 @@ namespace Play.Sound {
             Initialize();
 
             foreach( ScanLineChannel oChannel in ChannelMap )
-                WidthScanInMS += oChannel.WidthInMs;
+                ScanWidthInMS += oChannel.WidthInMs;
         }
 
         public override string ToString() {
