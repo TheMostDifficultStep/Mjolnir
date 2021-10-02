@@ -1237,7 +1237,6 @@ namespace Play.Sound {
 		int           m_VisCnt;
 		int           m_Skip;
 		readonly bool m_SyncRestart;
-		readonly int  m_SyncErr;
 		AllModes      m_NextMode;
 
 		// Base pointer represent how far along in samples over the entire image we've gone. 
@@ -1278,15 +1277,9 @@ namespace Play.Sound {
 		double		m_AFC_SyncVal;		// (Center - Sync    ) * 16384 / BWH
 		double		m_AFC_BWH;			// BWH / 16384.0;
 
-		readonly static int FSKSPACE  = 2100;
-
 		readonly bool m_fskdecode = false; // A vestage of the fskDecode stuff.
 
 		bool        m_fNarrow = false;
-
-		//double  m_d;
-		//double  m_dd;
-		//int     m_n;
 
 		// BUG: See if I can get these from CSSTVSET
 		public int SampFreq { get; }

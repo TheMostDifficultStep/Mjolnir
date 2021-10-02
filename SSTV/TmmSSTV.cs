@@ -6,8 +6,7 @@ using SkiaSharp;
 using Play.Interfaces.Embedding;
 using Play.Sound;
 
-namespace Play.SSTV
-{
+namespace Play.SSTV {
 	/// <summary>
 	/// The demodulator converts the signal from the time to frequency domain. In the original
 	/// code. It looks like it lives on it's own thread. I'm going to put it with the demodulator
@@ -28,10 +27,6 @@ namespace Play.SSTV
         protected int      m_AY;
 	    protected short[]  m_Y36 = new short[800];
 	    protected short[,] m_D36 = new short[2,800];
-
-        //AutoSlant
-	    int[]     m_ASPos = new int[4];
-	    CSmooz    m_ASAvg = new CSmooz();
 
 		short[] _pCalibration = null; // Not strictly necessary yet.
 
@@ -105,9 +100,6 @@ namespace Play.SSTV
 			}
 
 			//::GetUTC(&m_StartTime);
-
-			// TODO: I'll probably need to call these if re-draw for slant correction.
-			InitAutoStop( _dp.SampBase );
         }
 
 		/// <summary>
@@ -201,62 +193,6 @@ namespace Play.SSTV
         }
 
 		protected int LineMultiplier { get; set; }
-
-		/// <summary>
-		/// Don't know what this is for. Slated for deletion.
-		/// </summary>
-        void InitAutoStop( double dbSampBase ) {
-	        m_ASAvg.SetCount(16);
-
-	        m_ASPos[0] = 64;
-	        m_ASPos[1] = 128;
-	        m_ASPos[2] = 160;
-	        m_ASPos[3] = (_dp.Mode.Resolution.Height - 36);
-
-	        switch(_dp.Mode.LegacyMode){
-		        case AllModes.smPD50:
-		        case AllModes.smPD90:            // Max 128
-		        case AllModes.smMP73:
-		        case AllModes.smMP115:
-		        case AllModes.smMP140:
-		        case AllModes.smMP175:
-		        case AllModes.smR24:
-		        case AllModes.smRM8:
-		        case AllModes.smRM12:
-                case AllModes.smMN73:
-                case AllModes.smMN110:
-                case AllModes.smMN140:
-			        m_ASPos[0] = 48;
-			        m_ASPos[1] = 64;
-			        m_ASPos[2] = 72;
-			        m_ASPos[3] = 110;
-			        break;
-		        case AllModes.smPD160:           // Max 200
-			        m_ASPos[0] = 48;
-			        m_ASPos[1] = 80;
-			        m_ASPos[2] = 126;
-			        m_ASPos[3] = 160;
-			        break;
-		        case AllModes.smPD290:           // Max 308 Limit 288
-			        m_ASPos[3] = 240;
-			        break;
-		        case AllModes.smP3:              // Max496
-			        m_ASPos[1] = 200;
-			        m_ASPos[2] = 360;
-			        m_ASPos[3] = 496-48;
-			        break;
-		        case AllModes.smP5:              // Max496 Limit 439
-			        m_ASPos[1] = 200;
-			        m_ASPos[2] = 300;
-			        m_ASPos[3] = 380;
-			        break;
-		        case AllModes.smP7:              // Max496 Limit 330
-			        m_ASPos[1] = 128;
-			        m_ASPos[2] = 220;
-			        m_ASPos[3] = 280;
-			        break;
-	        }
-        }
 
 		/// <summary>
 		/// This is a whole hot mess of stuff and I'm not going to port it for now.
