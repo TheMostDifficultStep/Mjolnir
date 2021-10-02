@@ -23,10 +23,11 @@ namespace Play.SSTV {
 
 		public SSTVMode Mode => _dp.Mode;
 
-#region variables
         protected int      m_AY;
 	    protected short[]  m_Y36 = new short[800];
 	    protected short[,] m_D36 = new short[2,800];
+
+		protected IPgStreamConsumer<short> _oStmSignal;
 
 		short[] _pCalibration = null; // Not strictly necessary yet.
 
@@ -35,7 +36,6 @@ namespace Play.SSTV {
 		// Looks like were only using grey scale on the D12. Look into turning into greyscale later.
 		// Need to look into the greyscale calibration height of bitmap issue. (+16 scan lines)
 		// The D12 bitmap must always be >= to the RX bmp height.
-#endregion
 
 		public event SSTVPropertyChange ShoutTvEvents; // TODO: Since threaded version poles, we don't need this.
 
@@ -44,7 +44,8 @@ namespace Play.SSTV {
 		protected SlidingWindow Slider { get; }
 
 		public TmmSSTV( CSSTVDEM p_dp ) {
-			_dp = p_dp ?? throw new ArgumentNullException( "CSSTVDEM" );
+			_dp         = p_dp ?? throw new ArgumentNullException( "CSSTVDEM" );
+			_oStmSignal = p_dp.CreateConsumer() ?? throw new InvalidProgramException( "Could not create stream consumer." );
 
 			Slider = new( 3000, 30, p_dp.m_SLvl );
 
@@ -227,6 +228,12 @@ namespace Play.SSTV {
 			}
 		}
 
+		/// <summary>
+		/// Call this to attempt a re-align of the image.
+		/// </summary>
+		/// <remarks>This is getting better, but it is still sensitive to spurious
+		/// hsync hits. I'm going to try to filter out points that don't fit
+		/// on the prevailing line.</remarks>
 		protected bool Align() {
 			if( Slider.AlignLeastSquares( m_AY, out double slope, out double intercept ) ) {
 				InitSlots( Mode.Resolution.Width, slope / SpecWidthInSamples );
@@ -270,6 +277,15 @@ namespace Play.SSTV {
 			}
 		}
 
+		/// <summary>
+		/// This code both tracks the hsync signal, drawing it to the B12 diagnositc
+		/// bitmap, AND pulls the RX signal, drawing that to the BRX bitmap.
+		/// </summary>
+		/// <remarks>
+		/// Turns out we end up redoing both that work every time we do a alignment
+		/// reset. That's unncessary. I'm going to make a new indexer so we can
+		/// track each separately. Only the BRX image needs to be reset since 
+		/// it benefits from the collection of sync data.</remarks>
 		protected void DrawScan() {
 			int    dx          = -1; // Saved X pos from the B12 buffer.
 			int    rx          = -1; // Saved X pos from the Rx  buffer.
@@ -313,7 +329,7 @@ namespace Play.SSTV {
 							if( oChannel.SetPixel != null ) {
 								x = (int)((i - oChannel.Min) * oChannel.Scaling );
 								if( (x != rx) && (x >= 0) && (x < _pBitmapRX.Width) ) {
-									rx = x; oChannel.SetPixel( x, _dp.SignalGet( idx ) );
+									rx = x; oChannel.SetPixel( x, _oStmSignal.Read( idx ) );
 								}
 							}
 							break;

@@ -20,6 +20,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices.ComTypes;
 
 namespace Play.Sound {
 
@@ -1168,6 +1169,32 @@ namespace Play.Sound {
 		}
 	}
 
+	public enum SeekPoint {
+		Start,
+		End,
+		Current
+	}
+
+	public struct StgStat {
+		public DateTime Time { get; private set; }
+		public int      Size { get; private set; }
+
+		public StgStat( DateTime sTime, int iSize ) {
+			Time = sTime;
+			Size = iSize;
+		}
+	}
+
+	public interface IPgStreamConsumer<T> {
+		T       Read();
+		T		Read( int iOffset );
+		int     Read( List<T> rgBuffer, int iLength );
+		bool    Seek( int iOffsset, SeekPoint ePoint );
+		StgStat Stat { get; }
+
+		IPgStreamConsumer<T> Clone();
+	}
+
 	/// <summary>
 	/// So my SSTVMode object is a bit different than the CSSTVSET one. I have a different mode object per
 	/// TV format. CSSTVSET changes it's state depending on which format it is re-initialized to. Thus,
@@ -1386,6 +1413,61 @@ namespace Play.Sound {
 		public void Dispose() {
 			m_B12 = null;
 			m_Buf = null;
+		}
+
+        protected class ShortConsumer : IPgStreamConsumer<short> {
+			protected CSSTVDEM _dp;
+			protected int      _rBase = 0;
+
+			public ShortConsumer( CSSTVDEM dp ) {
+				_dp = dp ?? throw new ArgumentNullException( "Demodulator must not be null" );
+			}
+
+			public ShortConsumer( CSSTVDEM dp, int dblBase ) {
+				_dp    = dp ?? throw new ArgumentNullException( "Demodulator must not be null" );
+				_rBase = dblBase;
+			}
+
+            public StgStat Stat => new( DateTime.Now, _dp.m_Buf.Length );
+
+            public IPgStreamConsumer<short> Clone() {
+                return new ShortConsumer( _dp, _rBase );
+            }
+
+            public short Read() {
+				return _dp.SignalGet( _rBase++ );
+            }
+
+			public short Read( int iOffset ) {
+				_rBase = iOffset;
+				return _dp.SignalGet( iOffset );
+			}
+
+            public int Read( List<short> rgBuffer, int iLength ) {
+                throw new NotImplementedException();
+            }
+
+            public bool Seek( int iOffset, SeekPoint ePoint ) {
+				switch( ePoint ) {
+					case SeekPoint.Current:
+						_rBase += iOffset;
+						return true;
+					case SeekPoint.Start:
+						_rBase = iOffset;
+						return true;
+					case SeekPoint.End:
+						_rBase += _dp.m_wBase;
+						return true;
+
+					default:
+						return false;
+				}
+                throw new NotImplementedException();
+            }
+        }
+
+        public IPgStreamConsumer<short> CreateConsumer() {
+			return new ShortConsumer( this );
 		}
 
 		/// <summary>
