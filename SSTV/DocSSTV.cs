@@ -943,7 +943,7 @@ namespace Play.SSTV {
         }
 
 		/// <summary>
-		/// Forward events coming from TmmSSTV
+		/// Forward events coming from SSTVDraw
 		/// </summary>
         private void ListenTvEvents( ESstvProperty eProp )
         {
@@ -958,7 +958,7 @@ namespace Play.SSTV {
 
 		/// <summary>
 		/// Note that we don't take the mode in this task since we want it
-		/// to be divined from the VIS by the CSSTVDEM object.
+		/// to be divined from the VIS by the SSTVDEM object.
 		/// </summary>
 		/// <returns>Time to wait until next call in ms.</returns>
         public IEnumerator<int> GetRecorderTask() {
@@ -1017,17 +1017,17 @@ namespace Play.SSTV {
 			            _oDocSnip.Load( Bitmap, skSelect, oMode.Resolution );
 					    if( GeneratorSetup( oMode, _oDocSnip.Bitmap ) ) {
 						    FFTControlValues oFFTMode  = FFTControlValues.FindMode( RxSpec.Rate ); 
-						    SYSSET           sys       = new SYSSET   ( oFFTMode.SampFreq );
-						    SSTVSET         oSetSSTV  = new SSTVSET ( oMode.Family, 0, oFFTMode.SampFreq, 0, sys.m_bCQ100 );
-						    SSTVDEM         oDemodTst = new SSTVDEM ( oSetSSTV,
+						    SYSSET           sys       = new SYSSET  ( oFFTMode.SampFreq );
+						    SSTVSET          oSetSSTV  = new SSTVSET ( oMode.Family, 0, oFFTMode.SampFreq, 0, sys.m_bCQ100 );
+						    SSTVDEM          oDemod    = new SSTVDEM ( oSetSSTV,
 																	    sys,
 																	    (int)oFFTMode.SampFreq, 
 																	    (int)oFFTMode.SampBase, 
 																	    0 );
-						    _oRxSSTV          = new SSTVDraw( oDemodTst );
+						    _oRxSSTV                = new SSTVDraw( oDemod );
 						    _oRxSSTV.ShoutTvEvents += ListenTvEvents;
 
-						    _oSSTVDeModulator = oDemodTst;
+						    _oSSTVDeModulator = oDemod;
 
 						    _oWorkPlace.Queue( GetRecorderTask(), 0 );
 					    }
