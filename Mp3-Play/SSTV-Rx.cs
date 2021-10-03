@@ -20,10 +20,13 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.InteropServices.ComTypes;
 
 namespace Play.Sound {
-
+	/// <summary>
+	/// This object represents system settings that can change while the 
+	/// SSTVDEM object is in use. Note, frequency is not one of the items.
+	/// If you change the frequency you must re-alloc the SSTVDEM object.
+	/// </summary>
 	public class SYSSET {
 		int     m_Priority = 0;
 
@@ -46,9 +49,7 @@ namespace Play.Sound {
 		public double m_DemOff   { get; } = 0;
 		public double m_DemWhite { get; } = 128.0/16384.0;
 		public double m_DemBlack { get; } = 128.0/16384.0;
-		public bool   m_DemCalibration { get; } = false; // see TmmSSTV.pCalibration
-
-		public double	m_SampFreq { get; protected set; } // used
+		public bool   m_DemCalibration { get; } = false; // see SSTVDraw.pCalibration
 
 		// UseRxBuff : can be CWaveStrage: 2 or m_StgBuf: 1 or off.
 		public int  m_UseRxBuff { get; protected set; } = 2; 
@@ -68,9 +69,7 @@ namespace Play.Sound {
 
 		public bool	m_bCQ100 { get; protected set; } = false;
 
-		public SYSSET( double dbSampFreq ) {
-			m_SampFreq = dbSampFreq;
-
+		public SYSSET() {
 			// See TMMSSTV::StartOption();
 			// Ver1.13 : Added an option that lowers the tone frequency by 1000Hz (use -i option on start)
 			//else if( as == "-i" ){
@@ -1015,12 +1014,12 @@ namespace Play.Sound {
 		readonly double m_dblToneOffset;
 		readonly double[] _rgSenseLevels = { 2400, 3500, 4800, 6000 };
 
-		public SSTVDEM( SYSSET p_sys, double dblSampFreq, int iSampBase, double dbToneOffset ) {
+		public SSTVDEM( SYSSET p_sys, double dblSampFreq, double dblSampBase, double dbToneOffset ) {
 			Sys     = p_sys ?? throw new ArgumentNullException( "sys must not be null." );
 			SstvSet = new( TVFamily.Martin, 0, dblSampFreq, 0 );
 
-			SampFreq        = (int)dblSampFreq;
-			SampBase        = iSampBase;
+			SampFreq        = dblSampFreq;
+			SampBase        = dblSampBase;
 			m_dblToneOffset = dbToneOffset;
 
 			double dblMaxBufferInMs = 0;
@@ -1499,7 +1498,7 @@ namespace Play.Sound {
 						// The first 1900hz has been seen, and now we're going down to 1200 for 15 ms. (s/b 10)
 						if( (d12 > d19) && (d12 > m_SLvl) && ((d12-d19) >= m_SLvl) ){
 							m_SyncMode++;
-							m_SyncTime = (int)(10 * Sys.m_SampFreq/1000); // this is probably the ~10 ms between each 1900hz tone.
+							m_SyncTime = (int)(10 * SampFreq/1000); // this is probably the ~10 ms between each 1900hz tone.
 							//if( !m_Sync /* && m_MSync */ ) 
 							//	m_sint1.SyncTrig( (int)d12);
 						}
@@ -1518,7 +1517,7 @@ namespace Play.Sound {
 							m_SyncTime--;
 							if( m_SyncTime == 0 ){
 								m_SyncMode++;
-								m_SyncTime = (int)(30 * Sys.m_SampFreq/1000); // Each bit is 30 ms!!
+								m_SyncTime = (int)(30 * SampFreq/1000); // Each bit is 30 ms!!
 								m_VisData  = 0; // Init value
 								m_VisCnt   = 8; // Start counting down the 8 bits, (after 30ms).
 							}
@@ -1537,7 +1536,7 @@ namespace Play.Sound {
 							if( ((d11 < d19) && (d13 < d19)) || (Math.Abs(d11-d13) < (m_SLvl2)) ) {
 								m_SyncMode = 0; // Start over?
 							} else {
-								m_SyncTime = (int)(30 * Sys.m_SampFreq/1000 ); // Get next bit.
+								m_SyncTime = (int)(30 * SampFreq/1000 ); // Get next bit.
 								m_VisData >>= 1;
 								if( d11 > d13 ) 
 									m_VisData |= 0x0080; // Set the 8th bit and we shift right for next.
@@ -1599,7 +1598,7 @@ namespace Play.Sound {
 						}
 						break;
 					case 512:               // 0.5sのウエイト : .5s wait.
-						m_SyncTime = (int)(Sys.m_SampFreq * 0.5);
+						m_SyncTime = (int)(SampFreq * 0.5);
 						m_SyncMode++;
 						break;
 					case 513:

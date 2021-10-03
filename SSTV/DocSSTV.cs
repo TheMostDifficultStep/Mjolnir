@@ -1016,12 +1016,12 @@ namespace Play.SSTV {
                     if( _oWorkPlace.Status == WorkerStatus.FREE ) {
 			            _oDocSnip.Load( Bitmap, skSelect, oMode.Resolution );
 					    if( GeneratorSetup( oMode, _oDocSnip.Bitmap ) ) {
-						    FFTControlValues oFFTMode  = FFTControlValues.FindMode( RxSpec.Rate ); 
-						    SYSSET           sys       = new SYSSET  ( oFFTMode.SampFreq );
-						    SSTVDEM          oDemod    = new SSTVDEM ( sys,
-																	   oFFTMode.SampFreq, 
-																	   (int)oFFTMode.SampBase, 
-																	   0 );
+						    FFTControlValues oFFTMode = FFTControlValues.FindMode( RxSpec.Rate ); 
+						    SYSSET           sys      = new();
+						    SSTVDEM          oDemod   = new SSTVDEM( sys,
+																	 oFFTMode.SampFreq, 
+																	 oFFTMode.SampBase, 
+																	 0 );
 						    _oRxSSTV                = new SSTVDraw( oDemod );
 						    _oRxSSTV.ShoutTvEvents += ListenTvEvents;
 
@@ -1088,7 +1088,7 @@ namespace Play.SSTV {
 			            _oDocSnip.Load( Bitmap, skSelect, oMode.Resolution );
 
 					    FFTControlValues oFFTMode  = FFTControlValues.FindMode( 8000 ); // RxSpec.Rate
-					    SYSSET           sys       = new SYSSET   ( oFFTMode.SampFreq );
+					    SYSSET           sys       = new ();
 					    DemodTest        oDemodTst = new DemodTest( sys,
 															        oFFTMode.SampFreq, 
 															        oFFTMode.SampBase, 
