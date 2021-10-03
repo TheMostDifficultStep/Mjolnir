@@ -23,7 +23,7 @@ namespace Play.Sound {
 		readonly double gain;
 		readonly double fc;
 
-		readonly double[] hp = new double[CSSTVDEM.TAPMAX+1];		/* 係数配列 : Coefficient array */
+		readonly double[] hp = new double[SSTVDEM.TAPMAX+1];		/* 係数配列 : Coefficient array */
 
 		public FIR( int tap, FirFilt type, double fs, double fcl, double fch, double att, double gain)
 		{
@@ -35,7 +35,7 @@ namespace Play.Sound {
 			this.att  = att;
 			this.gain = gain;
 
-			if( n > CSSTVDEM.TAPMAX )
+			if( n > SSTVDEM.TAPMAX )
 				throw new ArgumentOutOfRangeException( "Tap is too large" );
 
 			if( typ == FirFilt.ffHPF ){
@@ -696,9 +696,9 @@ namespace Play.Sound {
 		public void SetWidth( bool fNarrow)
 		{
 			if( fNarrow ){
-				m_Shift    = CSSTVDEM.NARROW_BW;
-				m_FreeFreq = CSSTVDEM.NARROW_CENTER;
-				SetFreeFreq( CSSTVDEM.NARROW_LOW, CSSTVDEM.NARROW_HIGH);
+				m_Shift    = SSTVDEM.NARROW_BW;
+				m_FreeFreq = SSTVDEM.NARROW_CENTER;
+				SetFreeFreq( SSTVDEM.NARROW_LOW, SSTVDEM.NARROW_HIGH);
 			} else {
 				m_Shift = 800.0;
 				m_FreeFreq = (1500 + 2300)*0.5;

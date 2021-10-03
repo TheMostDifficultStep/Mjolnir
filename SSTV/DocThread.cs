@@ -24,9 +24,9 @@ namespace Play.SSTV
         protected readonly SSTVMode _oFixedMode;
 
         public SSTVMode NextMode => RxSSTV.Mode;
-        public TmmSSTV  RxSSTV   { get; protected set; }
+        public SSTVDraw  RxSSTV   { get; protected set; }
 
-        CSSTVDEM        _oSSTVDeModulator;
+        SSTVDEM        _oSSTVDeModulator;
 
         public ThreadWorker( ConcurrentQueue<ESstvProperty> oMsgQueue, string strFileName, SSTVMode oMode ) {
             _strFileName = strFileName ?? throw new ArgumentNullException( "Filename is null" );
@@ -85,15 +85,15 @@ namespace Play.SSTV
 
 			    FFTControlValues oFFTMode  = FFTControlValues.FindMode( oReader.WaveFormat.SampleRate ); // RxSpec.Rate
 			    SYSSET           sys       = new SYSSET   ( oFFTMode.SampFreq );
-			    CSSTVSET         oSetSSTV  = new CSSTVSET ( TVFamily.Martin, 0, oFFTMode.SampFreq, 0, sys.m_bCQ100 );
-			    CSSTVDEM         oDemod    = new CSSTVDEM ( oSetSSTV,
+			    SSTVSET         oSetSSTV  = new SSTVSET ( TVFamily.Martin, 0, oFFTMode.SampFreq, 0, sys.m_bCQ100 );
+			    SSTVDEM         oDemod    = new SSTVDEM ( oSetSSTV,
 														    sys,
 														    (int)oFFTMode.SampFreq, 
 														    (int)oFFTMode.SampBase, 
 														    0 );
 
                 _oSSTVDeModulator = oDemod;
-			    RxSSTV            = new TmmSSTV( oDemod );
+			    RxSSTV            = new SSTVDraw( oDemod );
 
                 oDemod.ShoutNextMode += Listen_NextRxMode;
                 RxSSTV.ShoutTvEvents += Listen_TvEvents;

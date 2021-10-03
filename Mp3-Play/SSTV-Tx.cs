@@ -157,7 +157,7 @@ namespace Play.Sound {
         /// <remarks>It is hyper critical we mark samples in floating point since
         /// our time will invariably NOT be an integer multiple of sample frequency.
         /// We can correct over time if we summate in floating point.</remarks>
-        /// <seealso cref="CSSTVDEM.PageRIncrement"/>
+        /// <seealso cref="SSTVDEM.PageRIncrement"/>
         public int Write( int iFrequency, uint uiGain, double dbTimeMS ) {
 	        double dbSamples = (dbTimeMS * m_dblTxSampleFreq)/1000.0;
 

@@ -134,7 +134,7 @@ namespace Play.Sound {
 		VeryNarrow = 3
 	}
 
-	public class CSSTVSET {
+	public class SSTVSET {
 		public double   m_OFP    { get; protected set; } // Looks used to help correct slant.
 		public int      m_OFS    { get; protected set; }
 		public int		m_IOFS   { get; protected set; }
@@ -172,7 +172,7 @@ namespace Play.Sound {
 		/// Object to hold the state of our audio inputs.
 		/// </summary>
 		/// <param name="tvFamily">BUG: Work to get rid of this param. It gets overridden later.</param>
-		public CSSTVSET( TVFamily tvFamily, double dbToneOffset, double dbSampFreq, double dbTxSampOffs, bool bCQ100 )
+		public SSTVSET( TVFamily tvFamily, double dbToneOffset, double dbSampFreq, double dbTxSampOffs, bool bCQ100 )
 		{
 			// These used to be globals, I'll see how much they change and if I need
 			// to refactor initialization and such. Since SetSampFreq() get's called
@@ -436,8 +436,8 @@ namespace Play.Sound {
 		public void SetWidth( bool bCQ100, bool fNarrow )
 		{
 			if( fNarrow ){
-				m_OFF = (2 * Math.PI * (CSSTVDEM.NARROW_CENTER + ToneOffs)) / SampFreq;
-				m_OUT = 32768.0 * SampFreq / (2 * Math.PI * CSSTVDEM.NARROW_BW);
+				m_OFF = (2 * Math.PI * (SSTVDEM.NARROW_CENTER + ToneOffs)) / SampFreq;
+				m_OUT = 32768.0 * SampFreq / (2 * Math.PI * SSTVDEM.NARROW_BW);
 			} else {
 				m_OFF = (2 * Math.PI * (1900 + ToneOffs)) / SampFreq;
 				m_OUT = 32768.0 * SampFreq / (2 * Math.PI * 800);
@@ -575,10 +575,10 @@ namespace Play.Sound {
 		public void SetWidth(bool fNarrow)
 		{
 			if( fNarrow ){
-				m_BWH      = CSSTVDEM.NARROW_BWH;
-				m_CenterFQ = CSSTVDEM.NARROW_CENTER + ToneOffs;
+				m_BWH      = SSTVDEM.NARROW_BWH;
+				m_CenterFQ = SSTVDEM.NARROW_CENTER + ToneOffs;
 				m_HighFQ   = 2400.0 + ToneOffs;
-				m_LowFQ    = CSSTVDEM.NARROW_AFCLOW + ToneOffs;
+				m_LowFQ    = SSTVDEM.NARROW_AFCLOW + ToneOffs;
 			}
 			else {
 				m_BWH      = 400.0;
@@ -867,7 +867,7 @@ namespace Play.Sound {
 			m_SyncPhase   = 0;
 		}
 
-		bool SyncCheckSub( CSSTVSET SSTVSET, AllModes am)
+		bool SyncCheckSub( SSTVSET SSTVSET, AllModes am)
 		{
 			int i = MSYNCLINE-1;
 			int e;
@@ -939,7 +939,7 @@ namespace Play.Sound {
 		/// <remarks>This is seriously lame use of a return code. Either hack the enumeration
 		/// so that zero is not one of the valid modes, or make a return value and pass 
 		/// an out variable to return the mode.</remarks>
-		bool SyncCheck( CSSTVSET oTVSet, out AllModes oMode )
+		bool SyncCheck( SSTVSET oTVSet, out AllModes oMode )
 		{
 			UInt32 deff = (UInt32)(3 * oTVSet.m_SampFreq / 1000.0);
 			UInt32 w = m_MSyncList[MSYNCLINE-1];
@@ -985,7 +985,7 @@ namespace Play.Sound {
 		/// <remarks>Fix this to return a bool and have an out param for AllMode.</remarks>
 		/// <param name="oTVSettings"></param>
 		/// <returns></returns>
-		public bool SyncStart( CSSTVSET oTVSettings, out AllModes ss )
+		public bool SyncStart( SSTVSET oTVSettings, out AllModes ss )
 		{
 			if( m_MSyncIntMax != 0 ){
 				if( (m_MSyncIntPos - m_MSyncACnt) > oTVSettings.m_MSLL ){
@@ -1200,10 +1200,10 @@ namespace Play.Sound {
 	/// TV format. CSSTVSET changes it's state depending on which format it is re-initialized to. Thus,
 	/// the Mode gets assigned everytime a new image comes down.
 	/// </summary>
-	public class CSSTVDEM : IEnumerable<SSTVMode> {
+	public class SSTVDEM : IEnumerable<SSTVMode> {
 		public SYSSET   sys  { get; protected set; }
 		public SSTVMode Mode { get; protected set; } 
-		public CSSTVSET SstvSet { get; protected set; }
+		public SSTVSET  SstvSet { get; protected set; }
 
 		protected Dictionary<byte, SSTVMode > ModeDictionary { get; } = new Dictionary<byte, SSTVMode>();
 
@@ -1268,7 +1268,6 @@ namespace Play.Sound {
 
 		// Base pointer represent how far along in samples over the entire image we've gone. 
 		public    int    m_wBase { get; protected set; } // Write pos in samples stream. Moves forward by scanlinewidthinsamples chunks. Always < size of buffer.
-		public    double m_rBase { get; protected set; } // Read  pos in samples stream, Moves forward by scanlinewidthinsamples chunks. Entire image scanlines.
 
 		public bool  m_Lost     { get; protected set; }
 
@@ -1317,7 +1316,7 @@ namespace Play.Sound {
 		readonly double m_dblToneOffset;
 		readonly double[] _rgSenseLevels = { 2400, 3500, 4800, 6000 };
 
-		public CSSTVDEM( CSSTVSET p_oSSTVSet, SYSSET p_sys, int iSampFreq, int iSampBase, double dbToneOffset ) {
+		public SSTVDEM( SSTVSET p_oSSTVSet, SYSSET p_sys, int iSampFreq, int iSampBase, double dbToneOffset ) {
 			sys     = p_sys      ?? throw new ArgumentNullException( "sys must not be null." );
 			SstvSet = p_oSSTVSet ?? throw new ArgumentNullException( "CSSTVSSET must not be null" );
 
@@ -1383,7 +1382,6 @@ namespace Play.Sound {
 		//  m_lpffsk.MakeIIR(50, SampFreq, 2, 0, 0);
 
 			m_wBase     = 0;
-			m_rBase     = 0;
 			m_Skip      = 0;
 			m_Sync      = false;
 			m_SyncMode  = 0;
@@ -1416,14 +1414,14 @@ namespace Play.Sound {
 		}
 
         protected class ShortConsumer : IPgStreamConsumer<short> {
-			protected CSSTVDEM _dp;
+			protected SSTVDEM _dp;
 			protected int      _rBase = 0;
 
-			public ShortConsumer( CSSTVDEM dp ) {
+			public ShortConsumer( SSTVDEM dp ) {
 				_dp = dp ?? throw new ArgumentNullException( "Demodulator must not be null" );
 			}
 
-			public ShortConsumer( CSSTVDEM dp, int dblBase ) {
+			public ShortConsumer( SSTVDEM dp, int dblBase ) {
 				_dp    = dp ?? throw new ArgumentNullException( "Demodulator must not be null" );
 				_rBase = dblBase;
 			}
@@ -1478,13 +1476,12 @@ namespace Play.Sound {
 		public void Start( SSTVMode tvMode ) {
 			Mode = tvMode;
 
-			SetWidth(CSSTVSET.IsNarrowMode( tvMode.Family ));
+			SetWidth(SSTVSET.IsNarrowMode( tvMode.Family ));
 			InitAFC();
 
 			m_fqc.Clear();
 			m_Skip     = 0;
 			m_wBase    = 0;
-			m_rBase    = 0;
 			m_Lost     = false;
 			m_Sync     = true; // This is the only place we set to true!
 			m_SyncMode = 0; 
@@ -1991,21 +1988,6 @@ namespace Play.Sound {
 		}
 
 		/// <summary>
-		/// Bump up our page read position.
-		/// </summary>
-		/// <param name="dbWidthInSamples">read page increment by samples in double precision.</param>
-		/// <remarks>It is hyper critical that we count the samples in floating point!! Else as in 
-		/// all cases, the error per scan builds up and we begin to slant!!</remarks>
-		/// <seealso cref="CSSTVMOD.Write(int, uint, double)"/>
-		public void PageRIncrement( double dbWidthInSamples ) {
-			m_rBase    += dbWidthInSamples;
-		}
-
-		public void PageRReset( double dblOffset = 0 ) {
-			m_rBase = dblOffset;
-		}
-
-		/// <summary>
 		/// Get the value at the absolute offset.
 		/// </summary>
 		/// <param name="iIndex">absolute offset into the buffer</param>
@@ -2030,9 +2012,6 @@ namespace Play.Sound {
 		}
 
 		protected void SignalSet( double dblSignal, double dblSync ) {
-			if( m_wBase - m_rBase > m_Buf.Length )
-				throw new InvalidOperationException( "Read position is too far behind" );
-
 			int iOffset = m_wBase++ % m_Buf.Length;
 
 			m_Buf[ iOffset ] = (short)dblSignal;
@@ -2116,11 +2095,11 @@ namespace Play.Sound {
 		}
     }
 
-	public class DemodTest : CSSTVDEM, IPgModulator {
+	public class DemodTest : SSTVDEM, IPgModulator {
 		double m_dbWPos;
 
 		public DemodTest( 
-			CSSTVSET p_oSSTVSet, 
+			SSTVSET p_oSSTVSet, 
 			SYSSET   p_sys, 
 			int      iSampFreq, 
 			int      iSampBase, 

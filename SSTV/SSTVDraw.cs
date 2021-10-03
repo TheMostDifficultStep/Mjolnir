@@ -15,15 +15,16 @@ namespace Play.SSTV {
 	/// <remarks>I've removed the disposable on this class because I'm going to lean on the GC 
 	/// to clean up the unused bitmaps since they are shared with the UI thread. I'll see how 
 	/// bad of a problem this is and deal with it if necessary. Rust language, here I come...</remarks>
-    public class TmmSSTV {
-		private            bool     _fDisposed = false;
-        protected readonly CSSTVDEM _dp;
-		protected          int      _iSyncOffset = 0; // 90 pd, 240 sc1, Use to correct image offset!!
-		protected		   int      _iSyncCheck  = 4;
+    public class SSTVDraw {
+		private            bool    _fDisposed = false;
+        protected readonly SSTVDEM _dp;
+		protected          int     _iSyncOffset = 0; // 90 pd, 240 sc1, Use to correct image offset!!
+		protected		   int     _iSyncCheck  = 4;
 
 		public SSTVMode Mode => _dp.Mode;
 
-		protected double   _rBase = 0;
+		protected double   _dblReadBaseSync = 0;
+		protected double   _dblReadBaseSgnl = 0;
         protected int      m_AY;
 	    protected short[]  m_Y36 = new short[800];
 	    protected short[,] m_D36 = new short[2,800];
@@ -44,7 +45,7 @@ namespace Play.SSTV {
 
 		protected SlidingWindow Slider { get; }
 
-		public TmmSSTV( CSSTVDEM p_dp ) {
+		public SSTVDraw( SSTVDEM p_dp ) {
 			_dp         = p_dp ?? throw new ArgumentNullException( "CSSTVDEM" );
 			_oStmSignal = p_dp.CreateConsumer() ?? throw new InvalidProgramException( "Could not create stream consumer." );
 
@@ -76,9 +77,10 @@ namespace Play.SSTV {
 		/// and thus where SSTVSync() should be called.
 		/// </remarks>
         public void Start() {
-			_rBase          =  0;
-			m_AY			= -5;
-			_iSyncCheck     =  4; // See SSTVSync()
+			_dblReadBaseSync =  0;
+			_dblReadBaseSgnl =  0;
+			m_AY			 = -5;
+			_iSyncCheck      =  4; // See SSTVSync()
 			
 			Slider.Reset( SpecWidthInSamples, (int)(Mode.WidthSyncInMS * _dp.SampFreq / 1000) );
 
@@ -244,9 +246,9 @@ namespace Play.SSTV {
 				double dblDiff         = intercept - dblSyncExpected;
 
 				if( dblDiff > 0 ) {
-					_dp.PageRReset( dblDiff );
+					_dblReadBaseSgnl = dblDiff;
 				} else {
-					_dp.PageRReset( dblDiff + ScanWidthInSamples );
+					_dblReadBaseSgnl = dblDiff + ScanWidthInSamples;
 				}
 				//Slider.Reset( /* slope, (int)(Mode.WidthSyncInMS * _dp.SampFreq / 1000) */ );
 				return true;
@@ -270,7 +272,7 @@ namespace Play.SSTV {
 			int    ch          =  0; // current channel skimming the Rx buffer portion.
 			double dbScanWidth = ScanWidthInSamples;
 			int    iScanWidth  = (int)Math.Round( dbScanWidth );
-			int    rBase       = (int)Math.Round( _dp.m_rBase );
+			int    rBase       = (int)Math.Round( _dblReadBaseSgnl );
 			double dbD12XScale = _pBitmapD12.Width / dbScanWidth;
 			int    iSyncWidth  = (int)(Mode.WidthSyncInMS * _dp.SampFreq / 1000 );
 
@@ -335,10 +337,10 @@ namespace Play.SSTV {
 		/// <remarks>This function will loop until the rPage catches up with the wPage. 
 		/// </remarks>
 		public void DrawProcess() {
-			while( _dp.m_Sync && (_dp.m_wBase >=_dp.m_rBase + ScanWidthInSamples ) ){
+			while( _dp.m_Sync && (_dp.m_wBase >= _dblReadBaseSgnl + ScanWidthInSamples ) ){
 				DrawScan();
 
-				_dp.PageRIncrement( ScanWidthInSamples );
+				_dblReadBaseSgnl += ScanWidthInSamples;
 
 				if( (int)(_dp.m_wBase / ScanWidthInSamples ) % 20 == 19 ) {
 					Align( m_AY );
@@ -400,12 +402,12 @@ namespace Play.SSTV {
 			int    ch          =  0; // current channel skimming the Rx buffer portion.
 			double dbScanWidth = ScanWidthInSamples;
 			int    iScanWidth  = (int)Math.Round( dbScanWidth );
-			int    rBase       = (int)Math.Round( _dp.m_rBase );
+			int    rBase       = (int)Math.Round( _dblReadBaseSgnl );
 
 			try { 
 				int iScanLine = (int)Math.Round(rBase/dbScanWidth);
-				//if( Slider[iScanLine] > -1 ) -- This can only work if we pre process
-				//	rBase = Slider[iScanLine]; -- the d12 first, then check this.
+				//if( Slider[iScanLine] > -1 )   // This can only work if we pre process
+				//	rBase = Slider[iScanLine]; // the d12 first, then check this.
 
 			    m_AY = iScanLine * LineMultiplier; // PD needs us to use Round (.999 is 1)
 				if( (m_AY < 0) || (m_AY >= _pBitmapRX.Height) )
@@ -442,8 +444,8 @@ namespace Play.SSTV {
 		}
 
 		public void Process() {
-			while( _dp.m_Sync && (_dp.m_wBase > _rBase + SpecWidthInSamples ) ) {
-				_rBase = ProcessSync( _rBase );
+			while( _dp.m_Sync && (_dp.m_wBase > _dblReadBaseSync + SpecWidthInSamples ) ) {
+				_dblReadBaseSync = ProcessSync( _dblReadBaseSync );
 
 				int iScanLine = (int)(_dp.m_wBase / SpecWidthInSamples );
 				if( iScanLine % 20 == 19 ) {
@@ -451,10 +453,10 @@ namespace Play.SSTV {
 				}
 			}
 
-			while( _dp.m_Sync && (_dp.m_wBase > _dp.m_rBase + ScanWidthInSamples ) ) {
+			while( _dp.m_Sync && (_dp.m_wBase > _dblReadBaseSgnl + ScanWidthInSamples ) ) {
 				ProcessScan();
 
-				_dp.PageRIncrement( ScanWidthInSamples );
+				_dblReadBaseSgnl += ScanWidthInSamples;
 
 				if( m_AY >= _dp.Mode.Resolution.Height ){ 
 					Stop();
@@ -504,7 +506,7 @@ namespace Play.SSTV {
 				_iSyncCheck  = int.MaxValue; // Stop from trying again.
 				_iSyncOffset = iOffsFound;
 				m_AY         = 0;
-				_dp.PageRReset();
+				_dblReadBaseSgnl = 0;
 				Slider.Reset();
                 //SstvSet.SetOFS( n );
             }
