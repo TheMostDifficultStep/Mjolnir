@@ -29,8 +29,6 @@ namespace Play.SSTV {
 	    protected short[]  m_Y36 = new short[800];
 	    protected short[,] m_D36 = new short[2,800];
 
-		protected IPgStreamConsumer<short> _oStmSignal;
-
 		short[] _pCalibration = null; // Not strictly necessary yet.
 
 		public SKBitmap _pBitmapRX  { get; protected set; } 
@@ -45,9 +43,12 @@ namespace Play.SSTV {
 
 		protected SlidingWindow Slider { get; }
 
+		/// <remarks>
+		/// Techically we dont need all of the demodulator but only access to the signal
+		/// and sync buffer and some signal levels. I'll see about that in the future.
+		/// </remarks>
 		public SSTVDraw( SSTVDEM p_dp ) {
-			_dp         = p_dp ?? throw new ArgumentNullException( "CSSTVDEM" );
-			_oStmSignal = p_dp.CreateConsumer() ?? throw new InvalidProgramException( "Could not create stream consumer." );
+			_dp = p_dp ?? throw new ArgumentNullException( "CSSTVDEM" );
 
 			Slider = new( 3000, 30, p_dp.m_SLvl );
 		}
@@ -306,7 +307,7 @@ namespace Play.SSTV {
 							if( oChannel.SetPixel != null ) {
 								x = (int)((i - oChannel.Min) * oChannel.Scaling );
 								if( (x != rx) && (x >= 0) && (x < _pBitmapRX.Width) ) {
-									rx = x; oChannel.SetPixel( x, _oStmSignal.Read( idx ) );
+									rx = x; oChannel.SetPixel( x, _dp.SignalGet( idx ) );
 								}
 							}
 							break;
@@ -419,7 +420,7 @@ namespace Play.SSTV {
 							if( oChannel.SetPixel != null ) {
 								int x = (int)((i - oChannel.Min) * oChannel.Scaling );
 								if( (x != rx) && (x >= 0) && (x < _pBitmapRX.Width) ) {
-									rx = x; oChannel.SetPixel( x, _oStmSignal.Read( idx ) );
+									rx = x; oChannel.SetPixel( x, _dp.SignalGet( idx ) );
 								}
 							}
 							break;
