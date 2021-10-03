@@ -135,21 +135,17 @@ namespace Play.Sound {
 	}
 
 	public class SSTVSET {
-		public double  m_SampFreq { get; protected set; }
-
 		// I can probably get rid of these but I need to go
 		// back and look at SSTVDem.SyncFreq, if needed or not.
-		public int     m_AFCW { get; protected set; }
-		public int     m_AFCB { get; protected set; }
-		public int     m_AFCE { get; protected set; }
-
+		public int     m_AFCW    { get; protected set; }
+		public int     m_AFCB    { get; protected set; }
+		public int     m_AFCE    { get; protected set; }
 		public bool	   m_fNarrow { get; protected set; }
 
 		public readonly double g_dblToneOffset;
 		public readonly double m_dbTxSampOffs;
 
-		public double SampFreq => m_SampFreq;
-		public TVFamily Mode { get; protected set; }
+		protected readonly double m_SampFreq;
 
 		/// <summary>
 		/// Should we ever support: smMN73,smMN110,smMN140,smMC110,smMC140, or smMC180,
@@ -179,7 +175,6 @@ namespace Play.Sound {
 		/// <remarks>This gets called by the demodulator. Ick. This means
 		/// we can't make the members here readonly.</remarks>
 		public void SetMode( TVFamily tvFamily ) {
-			Mode      = tvFamily;
 			m_fNarrow = IsNarrowMode( tvFamily );
 
 			SetSampFreq( tvFamily );
@@ -188,12 +183,12 @@ namespace Play.Sound {
 		void SetSampFreq(TVFamily tvFamily ){
 			switch(tvFamily){
 				case TVFamily.Martin:
-					m_AFCW = (int)(2.0 * SampFreq / 1000.0);
-					m_AFCB = (int)(1.0 * SampFreq / 1000.0);
+					m_AFCW = (int)(2.0 * m_SampFreq / 1000.0);
+					m_AFCB = (int)(1.0 * m_SampFreq / 1000.0);
 					break;
 				default:
-					m_AFCW = (int)(3.0 * SampFreq / 1000.0);
-					m_AFCB = (int)(1.5 * SampFreq / 1000.0);
+					m_AFCW = (int)(3.0 * m_SampFreq / 1000.0);
+					m_AFCB = (int)(1.5 * m_SampFreq / 1000.0);
 					break;
 			}
 
