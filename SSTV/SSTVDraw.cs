@@ -50,9 +50,6 @@ namespace Play.SSTV {
 			_oStmSignal = p_dp.CreateConsumer() ?? throw new InvalidProgramException( "Could not create stream consumer." );
 
 			Slider = new( 3000, 30, p_dp.m_SLvl );
-
-		  //StartOption() ...
-		  //dp.sys.m_bCQ100 = FALSE;
 		}
 
 		/// <summary>
@@ -125,9 +122,9 @@ namespace Play.SSTV {
 		/// scan line width in samples returned by the spec. Sister to the 
 		/// ScanWidthInSamples property except this is the UNCORRECTED value.
 		/// This is a floating point number because the 
-		/// signal is time based and so might not exactly align with the descrete
-		/// time interval of the sample. By doing everything in floating point we won't slowly
-		/// drift off due to rounding errors.
+		/// signal is time based and so might not exactly align with the discrete
+		/// time interval of the sample. By doing everything in floating point we 
+		/// won't slowly drift off due to rounding errors.
 		/// </summary>
 		/// <seealso cref="ScanWidthInSamples"/>
 		public double SpecWidthInSamples {
@@ -218,8 +215,8 @@ namespace Play.SSTV {
 				if( Slider.AlignLeastSquares( Mode.Resolution.Height, out double slope, out double intercept ) ) {
 					//InitSlots( Mode.Resolution.Width, slope / SpecWidthInSamples );
 
-					SKCanvas skCanvas = new SKCanvas(_pBitmapD12);
-					SKPaint  skPaint  = new SKPaint () { Color = SKColors.Green, StrokeWidth = 2 };
+					SKCanvas skCanvas = new(_pBitmapD12);
+					SKPaint  skPaint  = new() { Color = SKColors.Green, StrokeWidth = 2 };
 
 					double dbD12XScale     = _pBitmapD12.Width / ScanWidthInSamples;
 					double dblSyncExpected = _dp.Mode.OffsetInMS * _dp.SampFreq / 1000;
@@ -266,7 +263,7 @@ namespace Play.SSTV {
 		/// reset. That's unncessary. I'm going to make a new indexer so we can
 		/// track each separately. Only the BRX image needs to be reset since 
 		/// it benefits from the collection of sync data.</remarks>
-		protected void DrawScan() {
+		[Obsolete]protected void DrawScan() {
 			int    dx          = -1; // Saved X pos from the B12 buffer.
 			int    rx          = -1; // Saved X pos from the Rx  buffer.
 			int    ch          =  0; // current channel skimming the Rx buffer portion.
@@ -336,7 +333,7 @@ namespace Play.SSTV {
 		/// </summary>
 		/// <remarks>This function will loop until the rPage catches up with the wPage. 
 		/// </remarks>
-		public void DrawProcess() {
+		[Obsolete]public void DrawProcess() {
 			while( _dp.m_Sync && (_dp.m_wBase >= _dblReadBaseSgnl + ScanWidthInSamples ) ){
 				DrawScan();
 
@@ -390,7 +387,7 @@ namespace Play.SSTV {
 
 		/// <summary>
 		/// This the new scan line processor. Unlike the ProcessSync() function
-		/// this one will be re-started from the beginning after a hanfull of
+		/// this one will be re-started from the beginning after a handfull of
 		/// sync lines are processed. The idea is that we slowly refine our 
 		/// measurement of the image and so need to redraw it. The signal buffer is
 		/// currently large enough to allow us to re-draw from the beginning.
@@ -451,6 +448,7 @@ namespace Play.SSTV {
 				if( iScanLine % 20 == 19 ) {
 					Align( iScanLine );
 				}
+				ShoutTvEvents?.Invoke( ESstvProperty.DownLoadTime );
 			}
 
 			while( _dp.m_Sync && (_dp.m_wBase > _dblReadBaseSgnl + ScanWidthInSamples ) ) {
@@ -458,11 +456,9 @@ namespace Play.SSTV {
 
 				_dblReadBaseSgnl += ScanWidthInSamples;
 
-				if( m_AY >= _dp.Mode.Resolution.Height ){ 
+				if( m_AY >= _dp.Mode.Resolution.Height ) { 
 					Stop();
 					break;
-				} else {
-					ShoutTvEvents?.Invoke( ESstvProperty.DownLoadTime );
 				}
 			}
 		}
