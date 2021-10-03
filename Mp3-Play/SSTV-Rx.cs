@@ -156,9 +156,12 @@ namespace Play.Sound {
 		}
 
 		/// <summary>
-		/// Object to hold the state of our audio inputs.
+		/// Object to hold the state of our audio inputs. SetMode() get's called when the
+		/// SSTV receive mode changes.
 		/// </summary>
 		/// <param name="tvFamily">BUG: Work to get rid of this param. It gets overridden later.</param>
+		/// <param name="dbTxSampOffs" >Not sure what this is for yet. Might delete it.</param>
+		/// <remarks>This could probably live inside the SSTVDraw function.</remarks>
 		public SSTVSET( TVFamily tvFamily, double dbToneOffset, double dbSampFreq, double dbTxSampOffs )
 		{
 			// These used to be globals, I'll see how much they change and if I need
@@ -892,13 +895,13 @@ namespace Play.Sound {
 	}
 
 	/// <summary>
-	/// So my SSTVMode object is a bit different than the SSTVSET one. I have a different mode object per
-	/// TV format. SSTVSET changes it's state depending on which format it is re-initialized to. Thus,
-	/// the Mode gets assigned everytime a new image comes down.
+	/// SSTVSET changes it's state depending on which format it is re-initialized to. Thus,
+	/// the Mode gets assigned everytime a new image comes down. You must make a new
+	/// SSTVDEM if the sample frequency changes.
 	/// </summary>
 	public class SSTVDEM : IEnumerable<SSTVMode> {
-		public SYSSET   sys  { get; protected set; }
-		public SSTVMode Mode { get; protected set; } 
+		public SYSSET   Sys     { get; protected set; }
+		public SSTVMode Mode    { get; protected set; } 
 		public SSTVSET  SstvSet { get; protected set; }
 
 		protected Dictionary<byte, SSTVMode > ModeDictionary { get; } = new Dictionary<byte, SSTVMode>();
@@ -1004,19 +1007,19 @@ namespace Play.Sound {
 		bool        m_fNarrow = false;
 
 		// BUG: See if I can get these from CSSTVSET
-		public int SampFreq { get; }
-		public int SampBase { get; }
+		public double SampFreq { get; }
+		public double SampBase { get; }
 		// This is a global in the original code, but it's pretty clear
 		// that we can't handle it changing mid run. So now it's a readonly
 		// member variable.
 		readonly double m_dblToneOffset;
 		readonly double[] _rgSenseLevels = { 2400, 3500, 4800, 6000 };
 
-		public SSTVDEM( SSTVSET p_oSSTVSet, SYSSET p_sys, int iSampFreq, int iSampBase, double dbToneOffset ) {
-			sys     = p_sys      ?? throw new ArgumentNullException( "sys must not be null." );
-			SstvSet = p_oSSTVSet ?? throw new ArgumentNullException( "CSSTVSSET must not be null" );
+		public SSTVDEM( SYSSET p_sys, double dblSampFreq, int iSampBase, double dbToneOffset ) {
+			Sys     = p_sys ?? throw new ArgumentNullException( "sys must not be null." );
+			SstvSet = new( TVFamily.Martin, 0, dblSampFreq, 0 );
 
-			SampFreq        = iSampFreq;
+			SampFreq        = (int)dblSampFreq;
 			SampBase        = iSampBase;
 			m_dblToneOffset = dbToneOffset;
 
@@ -1039,7 +1042,7 @@ namespace Play.Sound {
 		  //Array.Clear( m_B12, 0, m_Buf.Length );
 
 			m_fqc  = new CFQC( SampFreq, dbToneOffset );
-			m_hill = new CHILL( sys.m_bCQ100, SampFreq, SampBase, dbToneOffset );
+			m_hill = new CHILL( Sys.m_bCQ100, SampFreq, SampBase, dbToneOffset );
 
 			m_pll = new CPLL( SampFreq, dbToneOffset );
 			m_pll.SetVcoGain ( 1.0 );
@@ -1053,11 +1056,11 @@ namespace Play.Sound {
 			SetBPF( BandPass.Wide );
 			//CalcBPF();
 
-			m_iir11  = new CIIRTANK( iSampFreq );
-			m_iir12  = new CIIRTANK( iSampFreq );
-			m_iir13  = new CIIRTANK( iSampFreq );
-			m_iir19  = new CIIRTANK( iSampFreq );
-		//  m_iirfsk = new CIIRTANK( iSampFreq );
+			m_iir11  = new CIIRTANK( dblSampFreq );
+			m_iir12  = new CIIRTANK( dblSampFreq );
+			m_iir13  = new CIIRTANK( dblSampFreq );
+			m_iir19  = new CIIRTANK( dblSampFreq );
+		//  m_iirfsk = new CIIRTANK( dblSampFreq );
 
 			m_lpf11  = new CIIR();
 			m_lpf12  = new CIIR();
@@ -1084,7 +1087,7 @@ namespace Play.Sound {
 			m_ScopeFlag = false;
 			m_Lost      = false;
 
-			m_lvl = new CLVL( SampFreq, fAgcFast:true );
+			m_lvl = new CLVL( (int)SampFreq, fAgcFast:true );
 			m_afc = true;
 
 			m_Tick   = 0;
@@ -1194,25 +1197,6 @@ namespace Play.Sound {
 			//if( m_fNarrow ) 
 			//	CalcNarrowBPF(HBPFN, m_bpftap, m_bpf, SSTVSET.m_Mode);
 		}
-
-		//void Start(SSTVMode tvMode, int f)	{
-		//	m_fqc.Clear();
-		//	m_sint1.Reset();
-		//	m_sint2.Reset();
-		//	m_sint3.Reset();
-		//	m_wBgn     = 0;
-		//	m_rBase    = 0;
-		//	m_SyncMode = 0;
-		//	SSTVSET.SetMode(tvMode);
-		//	m_Sync     = false;
-		//	SetWidth(CSSTVSET.IsNarrowMode(tvMode));
-
-		//	if( f != 0 ){
-		//		Start( tvMode );
-		//	} else {
-		//		m_SyncMode = -1;
-		//	}
-		//}
 
 		public void Stop()	{
 			if( m_AFCFQ != 0 ){
@@ -1359,7 +1343,7 @@ namespace Play.Sound {
 		}
 
 		void Idle(double d)	{
-			if( !sys.m_TestDem ) 
+			if( !Sys.m_TestDem ) 
 				m_lvl.Do(d);
 		}
 
@@ -1389,7 +1373,7 @@ namespace Play.Sound {
 				m_AFC_HighVal = (NARROW_CENTER - NARROW_AFCHIGH) * 16384.0 / NARROW_BWH;	// (Center - SyncHigh) * 16384 / BWH
 				m_AFC_SyncVal = (NARROW_CENTER - NARROW_SYNC   ) * 16384.0 / NARROW_BWH;	// (Center - Sync) * 16384 / BWH
 				m_AFC_BWH = NARROW_BWH / 16384.0;											// BWH / 16384.0;
-				if( sys.m_bCQ100 ) {
+				if( Sys.m_bCQ100 ) {
 					m_AFC_LowVal  = (NARROW_CENTER - NARROW_SYNC - 50) * 16384.0 / NARROW_BWH;	// (Center - SyncLow) * 16384 / BWH
 					m_AFC_HighVal = (NARROW_CENTER - NARROW_SYNC + 50) * 16384.0 / NARROW_BWH;	// (Center - SyncHigh) * 16384 / BWH
 				}
@@ -1398,7 +1382,7 @@ namespace Play.Sound {
 				m_AFC_HighVal = (1900 - 1325) * 16384.0 / 400;	// (Center - SyncHigh) * 16384 / BWH
 				m_AFC_SyncVal = (1900 - 1200) * 16384.0 / 400;	// (Center - Sync    ) * 16384 / BWH
 				m_AFC_BWH = 400 / 16384.0;						// BWH / 16384.0;
-				if( sys.m_bCQ100 ) {
+				if( Sys.m_bCQ100 ) {
 					m_AFC_LowVal  = (1900 - 1200 - 50) * 16384.0 / 400;	// (Center - SyncLow) * 16384 / BWH
 					m_AFC_HighVal = (1900 - 1200 + 50) * 16384.0 / 400;	// (Center - SyncHigh) * 16384 / BWH
 				}
@@ -1425,7 +1409,7 @@ namespace Play.Sound {
 		void SetWidth( bool fNarrow ) {
 			if( m_fNarrow != fNarrow ) {
 				m_fNarrow = fNarrow;
-				m_hill.SetWidth( sys.m_bCQ100, fNarrow);
+				m_hill.SetWidth( Sys.m_bCQ100, fNarrow);
     			m_fqc .SetWidth(fNarrow);
 				m_pll .SetWidth(fNarrow);
 			}
@@ -1515,7 +1499,7 @@ namespace Play.Sound {
 						// The first 1900hz has been seen, and now we're going down to 1200 for 15 ms. (s/b 10)
 						if( (d12 > d19) && (d12 > m_SLvl) && ((d12-d19) >= m_SLvl) ){
 							m_SyncMode++;
-							m_SyncTime = (int)(10 * sys.m_SampFreq/1000); // this is probably the ~10 ms between each 1900hz tone.
+							m_SyncTime = (int)(10 * Sys.m_SampFreq/1000); // this is probably the ~10 ms between each 1900hz tone.
 							//if( !m_Sync /* && m_MSync */ ) 
 							//	m_sint1.SyncTrig( (int)d12);
 						}
@@ -1534,7 +1518,7 @@ namespace Play.Sound {
 							m_SyncTime--;
 							if( m_SyncTime == 0 ){
 								m_SyncMode++;
-								m_SyncTime = (int)(30 * sys.m_SampFreq/1000); // Each bit is 30 ms!!
+								m_SyncTime = (int)(30 * Sys.m_SampFreq/1000); // Each bit is 30 ms!!
 								m_VisData  = 0; // Init value
 								m_VisCnt   = 8; // Start counting down the 8 bits, (after 30ms).
 							}
@@ -1553,7 +1537,7 @@ namespace Play.Sound {
 							if( ((d11 < d19) && (d13 < d19)) || (Math.Abs(d11-d13) < (m_SLvl2)) ) {
 								m_SyncMode = 0; // Start over?
 							} else {
-								m_SyncTime = (int)(30 * sys.m_SampFreq/1000 ); // Get next bit.
+								m_SyncTime = (int)(30 * Sys.m_SampFreq/1000 ); // Get next bit.
 								m_VisData >>= 1;
 								if( d11 > d13 ) 
 									m_VisData |= 0x0080; // Set the 8th bit and we shift right for next.
@@ -1615,7 +1599,7 @@ namespace Play.Sound {
 						}
 						break;
 					case 512:               // 0.5sのウエイト : .5s wait.
-						m_SyncTime = (int)(sys.m_SampFreq * 0.5);
+						m_SyncTime = (int)(Sys.m_SampFreq * 0.5);
 						m_SyncMode++;
 						break;
 					case 513:
@@ -1663,7 +1647,7 @@ namespace Play.Sound {
 					SignalSet( -d, dHSync );
 				}
 			}
-			else if( sys.m_TestDem ){
+			else if( Sys.m_TestDem ){
 				// This is used by the TOptionDlg::TimerTimer code for test.
 				double m_CurSig; // I removed the member variable since it was not being used elsewhere.
 
@@ -1795,12 +1779,11 @@ namespace Play.Sound {
 		double m_dbWPos;
 
 		public DemodTest( 
-			SSTVSET p_oSSTVSet, 
 			SYSSET   p_sys, 
-			int      iSampFreq, 
-			int      iSampBase, 
+			double   dblSampFreq, 
+			double   dblSampBase, 
 			double   dbToneOffset ) : 
-			base( p_oSSTVSet, p_sys, iSampFreq, iSampBase, dbToneOffset )
+			base( p_sys, dblSampFreq, (int)dblSampBase, dbToneOffset )
 		{
 		}
 

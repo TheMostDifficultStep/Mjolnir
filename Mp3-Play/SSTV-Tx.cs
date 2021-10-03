@@ -90,7 +90,7 @@ namespace Play.Sound {
         int  Write( int iFrequency, uint uiGain, double dbTimeMS );
     }
 
-    public class CSSTVMOD : IPgModulator {
+    public class SSTVMOD : IPgModulator {
         readonly protected IPgBufferWriter<short> m_oWriter;
 	    readonly protected CVCO                   m_vco;
         readonly protected double                 m_dblTxSampleFreq;
@@ -119,7 +119,7 @@ namespace Play.Sound {
         /// Use this class to generate the tones necessary for an SSTV signal.
         /// </summary>
         /// <exception cref="ArgumentNullException" />
-        public CSSTVMOD( double dblToneOffset, double dblTxSampleFreq, IPgBufferWriter<short> oWriter ) {
+        public SSTVMOD( double dblToneOffset, double dblTxSampleFreq, IPgBufferWriter<short> oWriter ) {
             m_oWriter = oWriter ?? throw new ArgumentNullException( "data writer must not be null" );
             m_dblTxSampleFreq = dblTxSampleFreq;
 	        //m_bpf = 1;

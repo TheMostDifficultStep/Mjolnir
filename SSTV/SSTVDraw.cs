@@ -139,7 +139,7 @@ namespace Play.SSTV {
 		/// <param name="ip">frequency as a level value.</param>
 		/// <returns></returns>
 		protected short GetPixelLevel(short ip)	{
-			if( _dp.sys.m_DemCalibration && (_pCalibration != null) ){
+			if( _dp.Sys.m_DemCalibration && (_pCalibration != null) ){
 				int d = (ip / 8) + 2048;
 				if( d < 0 )
 					d = 0;
@@ -147,8 +147,8 @@ namespace Play.SSTV {
 					d = 4096;
 				return _pCalibration[d];
 			} else {
-				double d = ip - _dp.sys.m_DemOff;
-				d *= ( d >= 0 ) ? _dp.sys.m_DemWhite : _dp.sys.m_DemBlack;
+				double d = ip - _dp.Sys.m_DemOff;
+				d *= ( d >= 0 ) ? _dp.Sys.m_DemWhite : _dp.Sys.m_DemBlack;
 				return (short)d;
 			}
 		}
@@ -477,7 +477,7 @@ namespace Play.SSTV {
             if( m_AY >= _iSyncCheck )  { // was >=
 				int   iSW           = (int)ScanWidthInSamples;
                 int[] bp            = new int[iSW]; // Array.Clear( bp, 0, bp.Length );
-				int   iOffsExpected = (int)_dp.Mode.OffsetInMS * _dp.SampFreq / 1000; // result in samples offset.
+				int   iOffsExpected = (int)(_dp.Mode.OffsetInMS * _dp.SampFreq / 1000 ); // result in samples offset.
 
 				// sum into bp[] four scan lines of data.
                 for( int pg = 0; pg < _iSyncCheck; pg++ ){

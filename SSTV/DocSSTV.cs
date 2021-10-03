@@ -110,7 +110,7 @@ namespace Play.SSTV {
 
         protected Mpg123FFTSupport FileDecoder   { get; set; }
         protected BufferSSTV       _oSSTVBuffer;
-        protected CSSTVMOD         _oSSTVModulator;
+        protected SSTVMOD         _oSSTVModulator;
         protected SSTVDEM         _oSSTVDeModulator;
 		protected IPgPlayer        _oPlayer;
         protected SSTVGenerator    _oSSTVGenerator;
@@ -314,7 +314,7 @@ namespace Play.SSTV {
                     _oSSTVBuffer.Dispose();
 
                 _oSSTVBuffer    = new BufferSSTV( RxSpec );
-                _oSSTVModulator = new CSSTVMOD( 0, RxSpec.Rate, _oSSTVBuffer );
+                _oSSTVModulator = new SSTVMOD( 0, RxSpec.Rate, _oSSTVBuffer );
 
                 //_oDataTester = new DataTester( SSTVBuffer );
                 //SSTVBuffer.Pump = _oDataTester.GetEnumerator();
@@ -1018,12 +1018,10 @@ namespace Play.SSTV {
 					    if( GeneratorSetup( oMode, _oDocSnip.Bitmap ) ) {
 						    FFTControlValues oFFTMode  = FFTControlValues.FindMode( RxSpec.Rate ); 
 						    SYSSET           sys       = new SYSSET  ( oFFTMode.SampFreq );
-						    SSTVSET          oSetSSTV  = new SSTVSET ( oMode.Family, 0, oFFTMode.SampFreq, 0 );
-						    SSTVDEM          oDemod    = new SSTVDEM ( oSetSSTV,
-																	    sys,
-																	    (int)oFFTMode.SampFreq, 
-																	    (int)oFFTMode.SampBase, 
-																	    0 );
+						    SSTVDEM          oDemod    = new SSTVDEM ( sys,
+																	   oFFTMode.SampFreq, 
+																	   (int)oFFTMode.SampBase, 
+																	   0 );
 						    _oRxSSTV                = new SSTVDraw( oDemod );
 						    _oRxSSTV.ShoutTvEvents += ListenTvEvents;
 
@@ -1061,7 +1059,7 @@ namespace Play.SSTV {
 			IEnumerator<int> oIter = _oSSTVGenerator.GetEnumerator();
 
 			oIter            .MoveNext(); // skip the VIS for now.
-			_oSSTVDeModulator.SstvSet.SetMode( oMode.Family );
+			_oSSTVDeModulator.SstvSet.SetMode( oMode.Family ); // BUG: Move this into Start();
 			_oSSTVDeModulator.Start( oMode );
 
             while( oIter.MoveNext() ) {
@@ -1091,14 +1089,12 @@ namespace Play.SSTV {
 
 					    FFTControlValues oFFTMode  = FFTControlValues.FindMode( 8000 ); // RxSpec.Rate
 					    SYSSET           sys       = new SYSSET   ( oFFTMode.SampFreq );
-					    SSTVSET          oSetSSTV  = new SSTVSET  ( oMode.Family, 0, oFFTMode.SampFreq, 0 );
-					    DemodTest        oDemodTst = new DemodTest( oSetSSTV,
-															        sys,
-															        (int)oFFTMode.SampFreq, 
-															        (int)oFFTMode.SampBase, 
+					    DemodTest        oDemodTst = new DemodTest( sys,
+															        oFFTMode.SampFreq, 
+															        oFFTMode.SampBase, 
 															        0 );
 					    _oSSTVDeModulator = oDemodTst;
-					    _oSSTVModulator   = new CSSTVMOD( 0, oFFTMode.SampFreq, _oSSTVBuffer );
+					    _oSSTVModulator   = new SSTVMOD( 0, oFFTMode.SampFreq, _oSSTVBuffer );
 					    _oRxSSTV          = new SSTVDraw ( _oSSTVDeModulator );
 
 					    _oSSTVGenerator = oMode.Family switch {
