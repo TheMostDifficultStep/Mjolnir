@@ -74,6 +74,11 @@ namespace Play.SSTV
             } while( iRead == rgBuff.Length );
         }
 
+        /// <summary>
+        /// This is the entry point for our new thread. We load and use the decoder and 
+        /// converter from this thread. The UI thread looks at the RX and 12 bitmaps
+        /// from time to time. Errors are passed via message to the UI.
+        /// </summary>
         public void DoWork() {
             try {
                 using var oReader = new AudioFileReader(_strFileName); 
@@ -100,7 +105,7 @@ namespace Play.SSTV
                 }
 
                 for( IEnumerator<int> oIter = GetReceiveFromFileTask( oReader ); oIter.MoveNext(); ) {
-                    RxSSTV.DrawProcess();
+                    RxSSTV.Process();
                 }
                 RxSSTV.Stop();
             } catch( Exception oEx ) {

@@ -1189,7 +1189,7 @@ namespace Play.Sound {
 		T       Read();
 		T		Read( int iOffset );
 		int     Read( List<T> rgBuffer, int iLength );
-		bool    Seek( int iOffsset, SeekPoint ePoint );
+		int     Seek( int iOffsset, SeekPoint ePoint );
 		StgStat Stat { get; }
 
 		IPgStreamConsumer<T> Clone();
@@ -1447,20 +1447,20 @@ namespace Play.Sound {
                 throw new NotImplementedException();
             }
 
-            public bool Seek( int iOffset, SeekPoint ePoint ) {
+            public int Seek( int iOffset, SeekPoint ePoint ) {
 				switch( ePoint ) {
 					case SeekPoint.Current:
 						_rBase += iOffset;
-						return true;
+						return _rBase;
 					case SeekPoint.Start:
 						_rBase = iOffset;
-						return true;
+						return _rBase;
 					case SeekPoint.End:
 						_rBase += _dp.m_wBase;
-						return true;
+						return _rBase;
 
 					default:
-						return false;
+						return 0;
 				}
                 throw new NotImplementedException();
             }

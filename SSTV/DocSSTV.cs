@@ -994,7 +994,7 @@ namespace Play.SSTV {
             } while( _oSSTVBuffer.IsReading );
 
 			_oSSTVDeModulator.ShoutNextMode -= ListenNextRxMode;
-			ModeList.HighLight = null;
+			//ModeList.HighLight = null;
             // Set upload time to "finished" maybe even date/time!
         }
 
@@ -1051,7 +1051,8 @@ namespace Play.SSTV {
 		/// The CSSTVDEM object is not used in these tests. The transmit and recieve
 		/// are set from the given mode.
 		/// </summary>
-		/// <param name="oMode">User selected mode. Any should work.</param>
+		/// <param name="oMode">User selected mode. Any should work. Tho' only
+        /// one will decode properly of course.</param>
 		/// <returns>Time in ms before next call wanted.</returns>
         public IEnumerator<int> GetRecordTestTask( SSTVMode oMode ) {
 			if( oMode == null )
