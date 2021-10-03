@@ -84,9 +84,9 @@ namespace Play.SSTV
                 using var oReader = new AudioFileReader(_strFileName); 
 
 			    FFTControlValues oFFTMode  = FFTControlValues.FindMode( oReader.WaveFormat.SampleRate ); // RxSpec.Rate
-			    SYSSET           sys       = new SYSSET   ( oFFTMode.SampFreq );
-			    SSTVSET         oSetSSTV  = new SSTVSET ( TVFamily.Martin, 0, oFFTMode.SampFreq, 0, sys.m_bCQ100 );
-			    SSTVDEM         oDemod    = new SSTVDEM ( oSetSSTV,
+			    SYSSET           sys       = new SYSSET  ( oFFTMode.SampFreq );
+			    SSTVSET          oSetSSTV  = new SSTVSET ( TVFamily.Martin, 0, oFFTMode.SampFreq, 0 );
+			    SSTVDEM          oDemod    = new SSTVDEM ( oSetSSTV,
 														    sys,
 														    (int)oFFTMode.SampFreq, 
 														    (int)oFFTMode.SampBase, 

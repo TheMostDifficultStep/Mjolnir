@@ -135,29 +135,20 @@ namespace Play.Sound {
 	}
 
 	public class SSTVSET {
-		public double   m_OFP    { get; protected set; } // Looks used to help correct slant.
-		public int      m_OFS    { get; protected set; }
-		public int		m_IOFS   { get; protected set; }
-
 		public double  m_SampFreq { get; protected set; }
 
-		public readonly UInt32[] m_MS = new UInt32[(int)AllModes.smEND];
-		public UInt32   m_MSLL { get; protected set; }
-		public UInt32   m_MSL  { get; protected set; }
-		public UInt32   m_MSH  { get; protected set; }
-
+		// I can probably get rid of these but I need to go
+		// back and look at SSTVDem.SyncFreq, if needed or not.
 		public int     m_AFCW { get; protected set; }
 		public int     m_AFCB { get; protected set; }
 		public int     m_AFCE { get; protected set; }
 
-		public bool	m_fNarrow   { get; protected set; }
-	  //public bool	m_fTxNarrow { get; protected set; }
+		public bool	   m_fNarrow { get; protected set; }
 
 		public readonly double g_dblToneOffset;
 		public readonly double m_dbTxSampOffs;
 
 		public double SampFreq => m_SampFreq;
-		private readonly bool m_bCQ100;
 		public TVFamily Mode { get; protected set; }
 
 		/// <summary>
@@ -172,7 +163,7 @@ namespace Play.Sound {
 		/// Object to hold the state of our audio inputs.
 		/// </summary>
 		/// <param name="tvFamily">BUG: Work to get rid of this param. It gets overridden later.</param>
-		public SSTVSET( TVFamily tvFamily, double dbToneOffset, double dbSampFreq, double dbTxSampOffs, bool bCQ100 )
+		public SSTVSET( TVFamily tvFamily, double dbToneOffset, double dbSampFreq, double dbTxSampOffs )
 		{
 			// These used to be globals, I'll see how much they change and if I need
 			// to refactor initialization and such. Since SetSampFreq() get's called
@@ -180,40 +171,21 @@ namespace Play.Sound {
 			m_SampFreq      = dbSampFreq;
 			m_dbTxSampOffs  = dbTxSampOffs;
 			g_dblToneOffset = dbToneOffset;
-			m_bCQ100        = bCQ100;
 			m_fNarrow       = false;  // Recieve width.
 
 			SetMode( tvFamily ); 
-			InitIntervalPara();
-		}
-
-		public void InitIntervalPara()
-		{
-			for( int i = 0; i < (int)AllModes.smEND; i++ ){
-				m_MS[i] = (uint)(GetTiming((AllModes)i) * m_SampFreq / 1000.0 );
-			}
-			m_MS[2] = 0;                                 // AVT
-			m_MSLL = (uint)(50.0   *     m_SampFreq / 1000.0 );    // Lowest
-			m_MSL  = (uint)(63.0   *     m_SampFreq / 1000.0 );    // Lowest
-			m_MSH  = (uint)(1390.0 * 3 * m_SampFreq / 1000.0 );    // Highest
-		}
-
-		public void SetOFS( int iOFS ) {
-			m_IOFS = m_OFS = iOFS;
 		}
 
 		/// <remarks>This gets called by the demodulator. Ick. This means
 		/// we can't make the members here readonly.</remarks>
-		public void SetMode( TVFamily tvFamily )
-		{
-			Mode = tvFamily;
-			//m_SampFreq = sys.m_SampFreq; <-- this gets set in the constructor now.
+		public void SetMode( TVFamily tvFamily ) {
+			Mode      = tvFamily;
 			m_fNarrow = IsNarrowMode( tvFamily );
+
 			SetSampFreq( tvFamily );
 		}
 
 		void SetSampFreq(TVFamily tvFamily ){
-			//m_TW = GetTiming(m_Mode) * m_SampFreq / 1000.0;
 			switch(tvFamily){
 				case TVFamily.Martin:
 					m_AFCW = (int)(2.0 * SampFreq / 1000.0);
@@ -227,112 +199,12 @@ namespace Play.Sound {
 
 			// This is the "-i" option set in TMMSSTV::StartOption() if bCQ100 is
 			// true then the offset is -1000. Else the offset is 0!!
-			if( m_bCQ100 ) { // Used to be a global.
-    			double d = m_OFP * 1000.0 / SampFreq;
-				m_OFP = (d + (1100.0/g_dblToneOffset)) * SampFreq / 1000.0;
-			}
+			//if( m_bCQ100 ) { // Used to be a global.
+    		//	double d = m_OFP * 1000.0 / SampFreq;
+			//	m_OFP = (d + (1100.0/g_dblToneOffset)) * SampFreq / 1000.0;
+			//}
 			m_AFCE = m_AFCB + m_AFCW;
 		}
-
-		/// <summary>
-		/// this is the approximate time per scan line. The times seem a tiny bit off, I forget why but I don't use this presently.
-		/// </summary>
-		/// <remarks>This is used by SyncCheck and might be removable when I get my own synchronizer working.</remarks>
-		double GetTiming(AllModes mode) {
-			switch(mode){
-				case AllModes.smR36:
-					return 150.0;
-				case AllModes.smR72:
-					return 300.0;
-				case AllModes.smSCT2:
-					return 277.692;
-				case AllModes.smSCTDX:
-					return 1050.3;
-				case AllModes.smMRT1:
-					return 446.446;
-				case AllModes.smMRT2:
-					return 226.798;
-				case AllModes.smSC2_180:
-					return 711.0437;
-				case AllModes.smSC2_120:
-					return 475.52248;
-				case AllModes.smSC2_60:
-					return 240.3846;
-				case AllModes.smPD50:
-					return 388.160;
-				case AllModes.smPD90:
-					return 703.040;
-				case AllModes.smPD120:
-					return 508.480;
-				case AllModes.smPD160:
-					return 804.416;
-				case AllModes.smPD180:
-					return 754.24;
-				case AllModes.smPD240:
-					return 1000.00;
-				case AllModes.smPD290:
-					return 937.28;
-				case AllModes.smP3:
-					return 409.375;
-				case AllModes.smP5:
-					return 614.0625;
-				case AllModes.smP7:
-					return 818.75;
-				case AllModes.smMR73:
-					return 286.3;
-				case AllModes.smMR90:
-					return 352.3;
-				case AllModes.smMR115:
-					return 450.3;
-				case AllModes.smMR140:
-					return 548.3;   //269*2 + 10;
-				case AllModes.smMR175:
-					return 684.3;   //337*2 + 10;
-				case AllModes.smMP73:
-					return 570.0;
-				case AllModes.smMP115:
-					return 902.0;
-				case AllModes.smMP140:
-					return 1090.0;
-				case AllModes.smMP175:
-					return 1370.0;
-				case AllModes.smML180:
-					return 363.3;
-				case AllModes.smML240:
-					return 483.3;
-				case AllModes.smML280:
-					return 565.3;
-				case AllModes.smML320:
-					return 645.3;
-				case AllModes.smR24:
-					return 200.0;
-				case AllModes.smRM8:
-					return 66.89709;
-				case AllModes.smRM12:
-					return 100.0;
-				case AllModes.smMN73:
-					return 570.0;
-				case AllModes.smMN110:
-					return 858.0;
-				case AllModes.smMN140:
-					return 1090.0;
-				case AllModes.smMC110:
-					return 428.5;
-				case AllModes.smMC140:
-        			return 548.5;
-				case AllModes.smMC180:
-					return 704.5;
-				default:    // smSCT1
-					return 428.22;
-			}
-		}
-
-		//void SetTxSampFreq() {
-		//	int dm1, dm2, iTL;
-		//	GetPictureSize( out dm1, out dm2, out iTL, m_TxMode);
-		//	m_TL = iTL;
-		//	m_TTW = GetTiming(m_TxMode) * m_TxSampFreq / 1000.0;
-		//}
 	}
 
 	/// <summary>
@@ -1025,8 +897,8 @@ namespace Play.Sound {
 	}
 
 	/// <summary>
-	/// So my SSTVMode object is a bit different than the CSSTVSET one. I have a different mode object per
-	/// TV format. CSSTVSET changes it's state depending on which format it is re-initialized to. Thus,
+	/// So my SSTVMode object is a bit different than the SSTVSET one. I have a different mode object per
+	/// TV format. SSTVSET changes it's state depending on which format it is re-initialized to. Thus,
 	/// the Mode gets assigned everytime a new image comes down.
 	/// </summary>
 	public class SSTVDEM : IEnumerable<SSTVMode> {

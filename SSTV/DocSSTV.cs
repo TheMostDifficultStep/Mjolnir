@@ -1018,7 +1018,7 @@ namespace Play.SSTV {
 					    if( GeneratorSetup( oMode, _oDocSnip.Bitmap ) ) {
 						    FFTControlValues oFFTMode  = FFTControlValues.FindMode( RxSpec.Rate ); 
 						    SYSSET           sys       = new SYSSET  ( oFFTMode.SampFreq );
-						    SSTVSET          oSetSSTV  = new SSTVSET ( oMode.Family, 0, oFFTMode.SampFreq, 0, sys.m_bCQ100 );
+						    SSTVSET          oSetSSTV  = new SSTVSET ( oMode.Family, 0, oFFTMode.SampFreq, 0 );
 						    SSTVDEM          oDemod    = new SSTVDEM ( oSetSSTV,
 																	    sys,
 																	    (int)oFFTMode.SampFreq, 
@@ -1091,7 +1091,7 @@ namespace Play.SSTV {
 
 					    FFTControlValues oFFTMode  = FFTControlValues.FindMode( 8000 ); // RxSpec.Rate
 					    SYSSET           sys       = new SYSSET   ( oFFTMode.SampFreq );
-					    SSTVSET         oSetSSTV  = new SSTVSET ( oMode.Family, 0, oFFTMode.SampFreq, 0, sys.m_bCQ100 );
+					    SSTVSET          oSetSSTV  = new SSTVSET  ( oMode.Family, 0, oFFTMode.SampFreq, 0 );
 					    DemodTest        oDemodTst = new DemodTest( oSetSSTV,
 															        sys,
 															        (int)oFFTMode.SampFreq, 
