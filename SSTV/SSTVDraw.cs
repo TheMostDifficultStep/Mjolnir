@@ -31,6 +31,9 @@ namespace Play.SSTV {
 
 		short[] _pCalibration = null; // Not strictly necessary yet.
 
+		SKCanvas _skCanvas;
+		SKPaint  _skPaint;
+
 		public SKBitmap _pBitmapRX  { get; protected set; } 
 		public SKBitmap _pBitmapD12 { get; } = new SKBitmap( 800, 616, SKColorType.Rgb888x, SKAlphaType.Unknown );
 		// Looks like were only using grey scale on the D12. Look into turning into greyscale later.
@@ -51,6 +54,9 @@ namespace Play.SSTV {
 			_dp = p_dp ?? throw new ArgumentNullException( "SSTVDEM" );
 
 			Slider = new( 3000, 30, p_dp.m_SLvl );
+
+			_skCanvas = new( _pBitmapD12 );
+			_skPaint  = new() { Color = SKColors.Red, StrokeWidth = 2 };
 		}
 
 		/// <summary>
@@ -220,9 +226,6 @@ namespace Play.SSTV {
 				if( Slider.AlignLeastSquares( Mode.Resolution.Height, out double slope, out double intercept ) ) {
 					//InitSlots( Mode.Resolution.Width, slope / SpecWidthInSamples );
 
-					SKCanvas skCanvas = new(_pBitmapD12);
-					SKPaint  skPaint  = new() { Color = SKColors.Red, StrokeWidth = 2 };
-
 					double dbD12XScale     = _pBitmapD12.Width / SpecWidthInSamples;
 					double dblSyncExpected = _dp.Mode.OffsetInMS * _dp.SampFreq / 1000;
 					float  flX             = (float)( intercept * dbD12XScale );
@@ -232,7 +235,7 @@ namespace Play.SSTV {
 					SKPoint top = new( flX,  0 );
 					SKPoint bot = new( flX2, Mode.Resolution.Height - 1);
 					
-					skCanvas.DrawLine( top, bot, skPaint );
+					_skCanvas.DrawLine( top, bot, _skPaint );
 
 					ShoutTvEvents?.Invoke( ESstvProperty.DownLoadFinished );
 				}
@@ -374,22 +377,22 @@ namespace Play.SSTV {
 			int    iBase       = (int)Math.Round( dblBase );
 			int    iScanWidth  = (int)Math.Round( SpecWidthInSamples );
 			double dbD12XScale = _pBitmapD12.Width / SpecWidthInSamples;
+			int    iSyncWidth  = (int)( Mode.WidthSyncInMS * _dp.SampFreq / 1000 * dbD12XScale );
 			int    iScanLine   = (int)Math.Round( dblBase / SpecWidthInSamples );
-			int    dx          = -1; // Saved X pos from the B12 buffer.
+
 			for( int i = 0; i < iScanWidth; i++ ) { 
 				int   idx = iBase + i;
 				short d12 = _dp.SyncGet( idx );
 				bool fHit = Slider.LogSync( idx, d12 );
 
 				int x = (int)( i * dbD12XScale );
-				if( (x != dx) && (x >= 0) && (x < _pBitmapD12.Width)) {
+				if( (x >= 0) && (x < _pBitmapD12.Width)) {
 					int d = Limit256((short)(d12 * 256F / 4096F));
 					if( fHit ) {
-						_pBitmapD12.SetPixel( x, iScanLine, SKColors.Red );
+						_skCanvas.DrawLine( new SKPointI( x - iSyncWidth, iScanLine ), new SKPointI( x, iScanLine ), _skPaint);
 					} else {
 						_pBitmapD12.SetPixel( x, iScanLine, new SKColor( (byte)d, (byte)d, (byte)d ) );
 					}
-					dx = x;
 				}
 			}
 
