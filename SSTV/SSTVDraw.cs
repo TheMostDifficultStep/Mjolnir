@@ -48,7 +48,7 @@ namespace Play.SSTV {
 		/// and sync buffer and some signal levels. I'll see about that in the future.
 		/// </remarks>
 		public SSTVDraw( SSTVDEM p_dp ) {
-			_dp = p_dp ?? throw new ArgumentNullException( "CSSTVDEM" );
+			_dp = p_dp ?? throw new ArgumentNullException( "SSTVDEM" );
 
 			Slider = new( 3000, 30, p_dp.m_SLvl );
 		}
@@ -191,7 +191,11 @@ namespace Play.SSTV {
 
         public int PercentRxComplete { 
             get {
-				return ( m_AY * 100 / Mode.Resolution.Height ) ;
+				try {
+					return ( m_AY * 100 / Mode.Resolution.Height ) ;
+				} catch( NullReferenceException ) {
+					return 100;
+				}
             }
         }
 
@@ -217,13 +221,18 @@ namespace Play.SSTV {
 					//InitSlots( Mode.Resolution.Width, slope / SpecWidthInSamples );
 
 					SKCanvas skCanvas = new(_pBitmapD12);
-					SKPaint  skPaint  = new() { Color = SKColors.Green, StrokeWidth = 2 };
+					SKPaint  skPaint  = new() { Color = SKColors.Red, StrokeWidth = 2 };
 
-					double dbD12XScale     = _pBitmapD12.Width / ScanWidthInSamples;
+					double dbD12XScale     = _pBitmapD12.Width / SpecWidthInSamples;
 					double dblSyncExpected = _dp.Mode.OffsetInMS * _dp.SampFreq / 1000;
-					float  flX             = (float)(intercept * dbD12XScale);
+					float  flX             = (float)( intercept * dbD12XScale );
+					double dblOffset       = ( Mode.Resolution.Height - 1 ) * slope + intercept;
+					float  flX2            = (float)( dblOffset % SpecWidthInSamples * dbD12XScale );
+
+					SKPoint top = new( flX,  0 );
+					SKPoint bot = new( flX2, Mode.Resolution.Height - 1);
 					
-					skCanvas.DrawLine( new SKPoint( flX, 0f ), new SKPoint( flX, _pBitmapD12.Height ), skPaint );
+					skCanvas.DrawLine( top, bot, skPaint );
 
 					ShoutTvEvents?.Invoke( ESstvProperty.DownLoadFinished );
 				}
@@ -240,6 +249,7 @@ namespace Play.SSTV {
 			if( Slider.AlignLeastSquares( iScanLine, out double slope, out double intercept ) ) {
 				InitSlots( Mode.Resolution.Width, slope / SpecWidthInSamples );
 
+				// OffsetInMS is where scan data begins after the sync.
 				double dblSyncExpected = _dp.Mode.OffsetInMS * _dp.SampFreq / 1000;
 				double dblDiff         = intercept - dblSyncExpected;
 

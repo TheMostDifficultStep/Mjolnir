@@ -721,7 +721,8 @@ namespace Play.Sound {
 		int[]  _rgWindow;
 
 		// this needs to be larger than the largest number of scan lines.
-		readonly int[]  _rgSyncDetect = new int[850];
+		readonly int[] _rgSyncDetect = new int[850];
+		readonly int[] _rgThinner    = new int[850];
 
 		public SlidingWindow( double dblScanWidthInSamples, int iWindowSizeInSamples, double dblSLvl ) {
 			_SLvl       = dblSLvl;
@@ -803,13 +804,17 @@ namespace Play.Sound {
 			return false;
 		}
 
+		public bool AlignLeastSquares( int iY, out double dblSlope, out double dblIntercept ) {
+			return AlignLeastSquares( _rgSyncDetect, iY, out dblSlope, out dblIntercept );
+		}
+
 		/// <summary>
 		/// Working on a way to attempt to use a least squares fit to find
 		/// the slant and offset. Still incomplete.
 		/// </summary>
 		/// <remarks>BUG: We're messing up on PD which has two TV scan lines per
 		/// sync signal....</remarks>
-		public bool AlignLeastSquares( int iY, out double dblSlope, out double dblIntercept ) {
+		public bool AlignLeastSquares( int[] rgData, int iY, out double dblSlope, out double dblIntercept ) {
 			double dbScanWidth = _dblScanWidthInSamples;
 			double meanx       = 0, meany = 0;
 			int    iCount      = 0;
@@ -817,14 +822,14 @@ namespace Play.Sound {
 			dblSlope     = 0;
 			dblIntercept = 0;
 
-			if( iY > _rgSyncDetect.Length )
-				iY = _rgSyncDetect.Length;
+			if( iY > rgData.Length )
+				iY = rgData.Length;
 
 			try {
 				for( int i = 0; i<iY; ++i ) {
-					if( this[i] > 0 ) {
+					if( rgData[i] > 0 ) {
 						meanx += i;
-						meany += this[i];
+						meany += rgData[i];
 						++iCount;
 					}
 				}
@@ -840,7 +845,7 @@ namespace Play.Sound {
 				for( int i =0; i < iY; ++i ) {
 					if( this[i] > 0 ) {
 						double dx = (double)i - meanx;
-						double dy = (double)this[i] - meany;
+						double dy = (double)rgData[i] - meany;
 
 						dxdy += dx * dy;
 						dxsq += Math.Pow( dx, 2 );
@@ -864,6 +869,26 @@ namespace Play.Sound {
 			}
 
 			return true;
+		}
+
+		public bool WinnowData( int iY, out double dblSlope, out double dblIntercept ) {
+			if( AlignLeastSquares( _rgSyncDetect, iY, out dblSlope, out dblIntercept ) ) {
+				for( int i = 0; i<iY; ++i ) {
+					double dblExpected = i * dblSlope + dblIntercept;
+					double dblDelta    = .3 * _iWindowSizeInSamples;
+					double dblHigh     = dblExpected + dblDelta;
+					double dblLow      = dblExpected - dblDelta;
+					int    iValue      = _rgSyncDetect[i];
+
+					if( dblLow < iValue && iValue < dblHigh ) {
+						_rgThinner[i] = iValue;
+					} else {
+						_rgThinner[i] = -1;
+					}
+				}
+				return AlignLeastSquares( _rgThinner, iY, out dblSlope, out dblIntercept );
+			}
+			return false;
 		}
 	}
 
