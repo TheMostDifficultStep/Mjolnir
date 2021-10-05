@@ -56,7 +56,7 @@ namespace Play.SSTV {
 			Slider = new( 3000, 30, p_dp.m_SLvl );
 
 			_skCanvas = new( _pBitmapD12 );
-			_skPaint  = new() { Color = SKColors.Red, StrokeWidth = 2 };
+			_skPaint  = new() { Color = SKColors.Red, StrokeWidth = 1 };
 		}
 
 		/// <summary>
@@ -223,8 +223,14 @@ namespace Play.SSTV {
 			if( _dp.m_Sync ) {
 				_dp.Stop();
 
-				if( Slider.AlignLeastSquares( Mode.Resolution.Height, out double slope, out double intercept ) ) {
+				double slope     = 0;
+				double intercept = 0;
+
+				Slider.Shuffle( SpecWidthInSamples );
+
+				if( Slider.AlignLeastSquares( Mode.Resolution.Height, ref slope, ref intercept ) ) {
 					//InitSlots( Mode.Resolution.Width, slope / SpecWidthInSamples );
+					SKPaint skPaint = new() { Color = SKColors.Yellow, StrokeWidth = 2 };
 
 					double dbD12XScale     = _pBitmapD12.Width / SpecWidthInSamples;
 					double dblSyncExpected = _dp.Mode.OffsetInMS * _dp.SampFreq / 1000;
@@ -235,7 +241,7 @@ namespace Play.SSTV {
 					SKPoint top = new( flX,  0 );
 					SKPoint bot = new( flX2, Mode.Resolution.Height - 1);
 					
-					_skCanvas.DrawLine( top, bot, _skPaint );
+					_skCanvas.DrawLine( top, bot, skPaint );
 
 					ShoutTvEvents?.Invoke( ESstvProperty.DownLoadFinished );
 				}
@@ -249,19 +255,28 @@ namespace Play.SSTV {
 		/// hsync hits. I'm going to try to filter out points that don't fit
 		/// on the prevailing line.</remarks>
 		protected bool Align( int iScanLine ) {
-			if( Slider.AlignLeastSquares( iScanLine, out double slope, out double intercept ) ) {
+			double slope     = 0;
+			double intercept = 0;
+
+			Slider.Shuffle( SpecWidthInSamples );
+
+			if( Slider.AlignLeastSquares( iScanLine, ref slope, ref intercept ) ) {
 				InitSlots( Mode.Resolution.Width, slope / SpecWidthInSamples );
 
-				// OffsetInMS is where scan data begins after the sync.
-				double dblSyncExpected = _dp.Mode.OffsetInMS * _dp.SampFreq / 1000;
-				double dblDiff         = intercept - dblSyncExpected;
+				Slider.Shuffle( slope );
 
-				if( dblDiff > 0 ) {
-					_dblReadBaseSgnl = dblDiff;
-				} else {
-					_dblReadBaseSgnl = dblDiff + ScanWidthInSamples;
+				if( Slider.AlignLeastSquares( iScanLine, ref slope, ref intercept ) ) {
+					// OffsetInMS is where scan data begins after the sync.
+					double dblStart = _dp.Mode.OffsetInMS * _dp.SampFreq / 1000;
+					double dblDiff  = intercept - dblStart;
+
+					if( dblDiff > 0 ) {
+						_dblReadBaseSgnl = dblDiff;
+					} else {
+						_dblReadBaseSgnl = dblDiff + ScanWidthInSamples;
+					}
+					//Slider.Reset( /* slope, (int)(Mode.WidthSyncInMS * _dp.SampFreq / 1000) */ );
 				}
-				//Slider.Reset( /* slope, (int)(Mode.WidthSyncInMS * _dp.SampFreq / 1000) */ );
 				return true;
 			}
 			return false;
@@ -368,11 +383,12 @@ namespace Play.SSTV {
 		}
 
 		/// <summary>
-		/// Proces the Sync data buffer. We make only one pass the the buffer now.
+		/// Process the Sync data buffer. We make only one pass the the buffer now.
+		/// Draw on the D12 buffer sync diagnostics so we can see what we are doing.
 		/// </summary>
 		/// <param name="dblBase">Where to start reading from, this value
 		/// should be at less than the wBase + SpecLineWidthInSamples.</param>
-		/// <returns>The input base pluss the SpecLineWidthInSamples.</returns>
+		/// <returns>The input base plus the SpecLineWidthInSamples.</returns>
 		public double ProcessSync( double dblBase ) {
 			int    iBase       = (int)Math.Round( dblBase );
 			int    iScanWidth  = (int)Math.Round( SpecWidthInSamples );
@@ -454,25 +470,80 @@ namespace Play.SSTV {
 			}
 		}
 
+		protected void ProcessScan2( int iScanLine, int rBase ) {
+			int    rx          = -1; // Saved X pos from the Rx buffer.
+			int    ch          =  0; // current channel skimming the Rx buffer portion.
+			double dbScanWidth = ScanWidthInSamples;
+			int    iScanWidth  = (int)Math.Round( dbScanWidth );
+
+			try { 
+				//if( Slider[iScanLine] > -1 )   // This can only work if we pre process
+				//	rBase = Slider[iScanLine]; // the d12 first, then check this.
+
+			    m_AY = iScanLine * LineMultiplier; // PD needs us to use Round (.999 is 1)
+				if( (m_AY < 0) || (m_AY >= _pBitmapRX.Height) )
+					return;
+
+				for( int i = 0; i < iScanWidth; i++ ) { 
+					int idx = rBase + i;
+
+					do {
+						ColorChannel oChannel = _rgSlots[ch];
+						if( i < oChannel.Max ) {
+							if( oChannel.SetPixel != null ) {
+								int x = (int)((i - oChannel.Min) * oChannel.Scaling );
+								if( (x != rx) && (x >= 0) && (x < _pBitmapRX.Width) ) {
+									rx = x; oChannel.SetPixel( x, _dp.SignalGet( idx ) );
+								}
+							}
+							break;
+						}
+					} while( ++ch < _rgSlots.Count );
+					// We'll throw an exception before ever getting to the bottom.
+				} // End for
+			} catch( Exception oEx ) {
+				Type[] rgErrors = { typeof( ArgumentOutOfRangeException ),
+									typeof( IndexOutOfRangeException ),
+									typeof( NullReferenceException ),
+									typeof( DivideByZeroException )
+								  };
+				if( rgErrors.IsUnhandled( oEx ) )
+					throw;
+
+				ShoutTvEvents?.Invoke( ESstvProperty.ThreadDrawingException );
+			}
+		}
+
 		public void Process() {
 			while( _dp.m_Sync && (_dp.m_wBase > _dblReadBaseSync + SpecWidthInSamples ) ) {
 				_dblReadBaseSync = ProcessSync( _dblReadBaseSync );
 
-				int iScanLine = (int)(_dp.m_wBase / SpecWidthInSamples );
-				if( iScanLine % 20 == 19 ) {
-					Align( iScanLine );
-				}
+				//int iScanLine = (int)(_dp.m_wBase / SpecWidthInSamples );
+				//if( iScanLine % 20 == 19 ) {
+				//	Align( iScanLine );
+				//}
 				ShoutTvEvents?.Invoke( ESstvProperty.DownLoadTime );
 			}
 
-			while( _dp.m_Sync && (_dp.m_wBase > _dblReadBaseSgnl + ScanWidthInSamples ) ) {
-				ProcessScan();
+			//while( _dp.m_Sync && (_dp.m_wBase > _dblReadBaseSgnl + ScanWidthInSamples ) ) {
+			//	ProcessScan();
 
-				_dblReadBaseSgnl += ScanWidthInSamples;
+			//	_dblReadBaseSgnl += ScanWidthInSamples;
 
-				if( m_AY >= _dp.Mode.Resolution.Height ) { 
-					Stop();
-					break;
+			//	if( m_AY >= _dp.Mode.Resolution.Height ) { 
+			//		Stop();
+			//		break;
+			//	}
+			//}
+			if( _dp.m_Sync ) {
+				int iScanLine = (int)(_dp.m_wBase / SpecWidthInSamples );
+				int iOffset   = (int)(Mode.OffsetInMS * _dp.SampFreq / 1000);
+				if( iScanLine % 20 == 19 ) {
+					for( int i = 0; i<iScanLine; ++i ) {
+						int rBase = Slider[i];
+						if( rBase != -1 )
+							ProcessScan2( i, rBase - iOffset );
+					}
 				}
 			}
 		}

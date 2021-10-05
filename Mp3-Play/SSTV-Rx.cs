@@ -712,6 +712,15 @@ namespace Play.Sound {
 	public delegate void NextMode( SSTVMode tvMode );
 
 	public class SlidingWindow {
+		protected class MyDatum {
+			public MyDatum( double Bucket, int Offset ) {
+				this.Bucket = Bucket;
+				this.Offset = Offset;
+			}
+			public double Bucket { get; set; }
+			public int    Offset { get; }
+		}
+
 		double _dblScanWidthInSamples;
 		int    _iWindowSizeInSamples  = 0;
 		int    _iWindowSum   = 0;
@@ -723,6 +732,8 @@ namespace Play.Sound {
 		// this needs to be larger than the largest number of scan lines.
 		readonly int[] _rgSyncDetect = new int[850];
 		readonly int[] _rgThinner    = new int[850];
+
+		readonly List<MyDatum> _rgData = new(1000);
 
 		public SlidingWindow( double dblScanWidthInSamples, int iWindowSizeInSamples, double dblSLvl ) {
 			_SLvl       = dblSLvl;
@@ -749,6 +760,8 @@ namespace Play.Sound {
 
 			for( int i = 0; i<_rgWindow.Length; ++i )
 				_rgWindow[i] = 0;
+
+			_rgData.Clear();
 
 			_iWindowSum = 0;
 			_iW         = _iWindowSizeInSamples;
@@ -787,9 +800,12 @@ namespace Play.Sound {
 				_rgWindow[_iW] = iSig;
 				_iW            = (_iW + 1) % i2Xl; 
 
-				if( _iWindowSum >= _iWindowHit && _rgSyncDetect[(int)dblX] == -1 ) {
-					_rgSyncDetect[(int)dblX] = iOffset; 
-					return true;
+				if( _iWindowSum >= _iWindowHit ) {
+					if( _rgSyncDetect[(int)dblX] == -1 ) {
+						_rgSyncDetect[(int)dblX] = iOffset; 
+						_rgData.Add( new MyDatum( Bucket:dblX, Offset:iOffset ) );
+						return true;
+					}
 				}
 			} catch( Exception oEx ) {
 				Type[] rgErrors = { typeof( NullReferenceException ),
@@ -804,17 +820,16 @@ namespace Play.Sound {
 			return false;
 		}
 
-		public bool AlignLeastSquares( int iY, out double dblSlope, out double dblIntercept ) {
-			return AlignLeastSquares( _rgSyncDetect, iY, out dblSlope, out dblIntercept );
+		public bool AlignLeastSquares( int iY, ref double dblSlope, ref double dblIntercept ) {
+			return AlignLeastSquares( _rgSyncDetect, iY, ref dblSlope, ref dblIntercept );
 		}
 
 		/// <summary>
 		/// Working on a way to attempt to use a least squares fit to find
-		/// the slant and offset. Still incomplete.
+		/// the slant and offset. We seem to be having trouble when the tail
+		/// end of the sync signal crosses a bitmap edge of the spec scan width.
 		/// </summary>
-		/// <remarks>BUG: We're messing up on PD which has two TV scan lines per
-		/// sync signal....</remarks>
-		public bool AlignLeastSquares( int[] rgData, int iY, out double dblSlope, out double dblIntercept ) {
+		public bool AlignLeastSquares( int[] rgData, int iY, ref double dblSlope, ref double dblIntercept ) {
 			double dbScanWidth = _dblScanWidthInSamples;
 			double meanx       = 0, meany = 0;
 			int    iCount      = 0;
@@ -871,25 +886,37 @@ namespace Play.Sound {
 			return true;
 		}
 
-		public bool WinnowData( int iY, out double dblSlope, out double dblIntercept ) {
-			if( AlignLeastSquares( _rgSyncDetect, iY, out dblSlope, out dblIntercept ) ) {
-				for( int i = 0; i<iY; ++i ) {
-					double dblExpected = i * dblSlope + dblIntercept;
-					double dblDelta    = .3 * _iWindowSizeInSamples;
-					double dblHigh     = dblExpected + dblDelta;
-					double dblLow      = dblExpected - dblDelta;
-					int    iValue      = _rgSyncDetect[i];
+		public void Shuffle( double dblScanWidthInSamples ) {
+			for( int i=0; i<_rgSyncDetect.Length; ++i )
+				_rgSyncDetect[i] = -1;
 
-					if( dblLow < iValue && iValue < dblHigh ) {
-						_rgThinner[i] = iValue;
-					} else {
-						_rgThinner[i] = -1;
-					}
-				}
-				return AlignLeastSquares( _rgThinner, iY, out dblSlope, out dblIntercept );
+			foreach( MyDatum oDatum in _rgData ) {
+				oDatum.Bucket = oDatum.Offset / dblScanWidthInSamples;
+				int iBucket = (int)oDatum.Bucket;
+				if( _rgSyncDetect[ iBucket ] == -1 )
+					_rgSyncDetect[ iBucket ] = oDatum.Offset;
 			}
-			return false;
 		}
+
+		//public bool WinnowData( int iY, out double dblSlope, out double dblIntercept ) {
+		//	if( AlignLeastSquares( _rgSyncDetect, iY, out dblSlope, out dblIntercept ) ) {
+		//		for( int i = 0; i<iY; ++i ) {
+		//			double dblExpected = i * dblSlope + dblIntercept;
+		//			double dblDelta    = .3 * _iWindowSizeInSamples;
+		//			double dblHigh     = dblExpected + dblDelta;
+		//			double dblLow      = dblExpected - dblDelta;
+		//			int    iValue      = _rgSyncDetect[i];
+
+		//			if( dblLow < iValue && iValue < dblHigh ) {
+		//				_rgThinner[i] = iValue;
+		//			} else {
+		//				_rgThinner[i] = -1;
+		//			}
+		//		}
+		//		return AlignLeastSquares( _rgThinner, iY, out dblSlope, out dblIntercept );
+		//	}
+		//	return false;
+		//}
 	}
 
 	public enum SeekPoint {
