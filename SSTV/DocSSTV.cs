@@ -47,7 +47,7 @@ namespace Play.SSTV {
             LabelSet( Names.Mode,       "Mode" );
             LabelSet( Names.Resolution, "Resolution" );
             LabelSet( Names.Detect_Vis, "Detect VIS", new SKColor( red:0xff, green:0xbf, blue:0 ) );
-            LabelSet( Names.Progress,   "Recieved" );
+            LabelSet( Names.Progress,   "Received" );
 
             Clear();
 
@@ -164,10 +164,6 @@ namespace Play.SSTV {
         Thread       _oThread  = null;
         readonly ConcurrentQueue<ESstvProperty> _oMsgQueue = new ConcurrentQueue<ESstvProperty>(); // communique from bg thread to ui thread.
 
-        public Editor      Settings_Labels { get; }
-        public Editor      Settings_Values { get; }
-        public FileChooser Chooser { get; }
-
         /// <summary>
         /// This editor shows the list of modes we can modulate.
         /// </summary>
@@ -216,6 +212,10 @@ namespace Play.SSTV {
 
         public event SSTVPropertyChange PropertyChange;
 
+        public Editor      Settings_Labels { get; }
+        public Editor      Settings_Values { get; }
+        public FileChooser Chooser { get; }
+
         public Editor         PortTxList      { get; } 
         public Editor         PortRxList      { get; }
         public Editor         RxDirectory     { get; protected set; } // Files in the receive directory.
@@ -261,7 +261,7 @@ namespace Play.SSTV {
         }
 
         /// <summary>
-        /// Document type for SSTV transmit and recieve using audio i/o
+        /// Document type for SSTV transmit and receive using audio i/o
         /// </summary>
         /// <exception cref="ArgumentNullException" />
         /// <exception cref="ApplicationException" />
@@ -547,7 +547,6 @@ namespace Play.SSTV {
             Settings_Labels.LineAppend( "Image Save Quality",  fUndoable:false );
             Settings_Labels.LineAppend( "Load Directory",      fUndoable:false );
             Settings_Labels.LineAppend( "Save Directory",      fUndoable:false );
-            Settings_Labels.LineAppend( "Transmit Mode",       fUndoable:false );
 
             for( int i=0; i<Settings_Labels.ElementCount; ++i ) {
                 Settings_Values.LineAppend( string.Empty, fUndoable:false );
@@ -1118,7 +1117,7 @@ namespace Play.SSTV {
 
 		/// <summary>
 		/// In this 1'st test we skip the VIS and simply test video transmit and receive.
-		/// The CSSTVDEM object is not used in these tests. The transmit and recieve
+		/// The CSSTVDEM object is not used in these tests. The transmit and receive
 		/// are set from the given mode.
 		/// </summary>
 		/// <param name="oMode">User selected mode. Any should work. Tho' only

@@ -33,8 +33,7 @@ namespace Play.SSTV {
 					return new ViewSettings( oBaseSite, oMySSTVDoc );
 				if( guidViewType == ViewTransmitModes ) {
 					// Seealso ViewTransmit.Listen_ViewMode_LineChanged()
-					EditWindow2 oView = new CheckList( oBaseSite, oMySSTVDoc.ModeList );
-					return oView;
+					return new CheckList( oBaseSite, oMySSTVDoc.ModeList );
 				}
 
 				return new ViewRxImage( oBaseSite, oMySSTVDoc );
@@ -56,7 +55,7 @@ namespace Play.SSTV {
 			yield return new ViewType( "Receive Image",        ViewRxImage  .GUID );
 		    yield return new ViewType( "Receive Dual Screen",  ViewRxAndSync.GUID );
 		    yield return new ViewType( "Transmit Image",       ViewSimpleTxImage  .GUID );
-			yield return new ViewType( "Transmit Mode Select", ViewTransmitModes );
+			yield return new ViewType( "Mode Select",          ViewTransmitModes );
 			yield return new ViewType( "Settings",             ViewSettings .GUID );
 		}
 	}

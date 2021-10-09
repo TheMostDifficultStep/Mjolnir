@@ -10,6 +10,15 @@ using Play.Edit;
 using Play.Rectangles;
 
 namespace Play.SSTV {
+
+    /// <summary>
+    /// Implements a property page that can contain simple Line elements OR whole Editor's. 
+    /// It does this by keeping a flat Editor containing properties, but if you have a
+    /// multiline property, we don't use the Document.Settings_Values but create a cache
+    /// element pointing to an edit window, instead of a standard cache line.
+    /// </summary>
+    /// <remarks>TODO: I probably could use a DocProperties object and remove our direct 
+    /// DocSSTV dependency.</remarks>
     public class ViewSettings :
         FormsWindow,
         IPgLoad<XmlElement>,
@@ -112,7 +121,6 @@ namespace Play.SSTV {
             PropertyInitRow( oLayout, 2 );
             PropertyInitRow( oLayout, 3 );
             PropertyInitRow( oLayout, 4 );
-            PropertyInitRow( oLayout, 5, new CheckList( new WinSlot( this ), Document.ModeList ) );
 
             Caret.Layout = CacheList[0];
 
