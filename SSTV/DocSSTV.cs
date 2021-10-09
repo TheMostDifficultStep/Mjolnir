@@ -104,7 +104,8 @@ namespace Play.SSTV {
         public ImageWalkerDir TxImageList       { get; protected set; }
         public SKBitmap       Bitmap          => TxImageList.Bitmap;
         public SSTVMode       RxMode          { get; protected set; } = null; // Thread advisor polls this from work thread.
-		public PropDoc        Properties      { get; } // Container for properties to show for this window.
+		public PropDoc        Properties      { get; } // Container for properties to show for this document.
+        public RxProperties   RxProperties    { get; }
 
         protected readonly ImageSoloDoc  _oDocSnip;   // Clip the image.
 
@@ -161,6 +162,7 @@ namespace Play.SSTV {
             Properties      = new PropDoc( new DocSlot( this ) );
             Settings_Labels = new FormsEditor( new DocSlot( this ) );
             Settings_Values = new FormsEditor( new DocSlot( this ) );
+            RxProperties    = new RxProperties( new DocSlot( this ) );
             Chooser         = new FileChooser( new DocSlot( this ) );
 
             new ParseHandlerText( Settings_Values, "text" );
@@ -342,7 +344,7 @@ namespace Play.SSTV {
 			}
 		}
 
-        void Listen_ModeChanged( Line oLine ) {
+        void Listen_TxModeChanged( Line oLine ) {
             Raise_PropertiesUpdated( ESstvProperty.SSTVMode );
         }
 
@@ -371,6 +373,9 @@ namespace Play.SSTV {
                 return false;
             if( !Settings_Values  .InitNew() )
                 return false;
+            if( !RxProperties.InitNew() )
+                return false;
+
             PropertiesInit();
             SettingsInit();
 
@@ -388,7 +393,7 @@ namespace Play.SSTV {
 			}
             // Set this after TxImageList load since the CheckedLine call will 
             // call Listen_ModeChanged and that calls the properties update event.
-            ModeList.CheckedEvent += Listen_ModeChanged; // set checkmark AFTER load the modulators... ^_^;;
+            ModeList.CheckedEvent += Listen_TxModeChanged; // set checkmark AFTER load the modulators... ^_^;;
             ModeList.CheckedLine = ModeList[0];
 
             TxImageList.ImageUpdated += Listen_ImageUpdated;
@@ -835,6 +840,8 @@ namespace Play.SSTV {
                                 if( oLine.Extra is SSTVMode oLineMode ) {
                                     if( oLineMode.LegacyMode == oWorker.NextMode.LegacyMode )
                                         ModeList.HighLight = oLine;
+                                        RxProperties.ValueUpdate( RxProperties.Names.Mode,       oLineMode.Name );
+                                        RxProperties.ValueUpdate( RxProperties.Names.Resolution, oLineMode.Resolution.ToString() );
                                 }
                             }
                             break;
@@ -872,9 +879,10 @@ namespace Play.SSTV {
         /// pretty well. The decoder and filters and all live in the bg thread.
         /// The foreground tread only polls the bitmap from time to time.
         /// </summary>
-        /// <param name="fFixedMode">Just set the decoder for a particular SSTV mode. This is usefull
-        /// if picking up the signal in the middle and you know the type a priori.</param>
-        public void RecordBeginFileRead2( string strFileName, bool fFixedMode = false ) {
+        /// <param name="fDetectVIS">Just set the decoder for a particular SSTV mode. This is usefull
+        /// if picking up the signal in the middle and you know the type a priori. I should
+        /// just pass the mode if it's fixed, else autodetect.</param>
+        public void RecordBeginFileRead2( string strFileName, bool DetectVIS = true ) {
             if( string.IsNullOrEmpty( strFileName ) ) {
                 LogError( "Invalid filename for SSTV image read" );
                 return;
@@ -882,7 +890,8 @@ namespace Play.SSTV {
             if( _oThread == null ) {
                 SSTVMode oModeFixed = null;
 
-                if( fFixedMode && ModeList.CheckedLine.Extra is SSTVMode oMode ) {
+                // Note that this ModeList is the TX mode list. I think I want an RX list.
+                if( !DetectVIS && ModeList.CheckedLine.Extra is SSTVMode oMode ) {
                     oModeFixed = oMode;
                 }
 

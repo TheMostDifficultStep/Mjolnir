@@ -56,7 +56,7 @@ namespace Play.Edit {
 		}
 	}
 
-	public class PropDoc : 
+	[Obsolete ("Use DocProperties from the Forms project." )]public class PropDoc : 
 		IPgParent,
 		IEnumerable<PropertyItem>,
 		IPgLoad<TextReader>,

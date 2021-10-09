@@ -20,6 +20,7 @@ using SkiaSharp;
 
 using Play.Interfaces.Embedding; 
 using Play.Edit;
+using Play.Forms;
 using Play.Integration;
 using Play.Parse;
 using Play.Parse.Impl;
@@ -1265,100 +1266,6 @@ namespace Play.MorsePractice {
             }
 
             return false;
-        }
-    }
-
-    /// <summary>
-    /// Document for labels and values style form. Makes separating readable values
-    /// from readonly values. Probably move this over to forms project at some time.
-    /// </summary>
-    public class DocProperties : IPgParent, IPgLoad {
-        protected readonly IPgBaseSite _oSiteBase;
-
-        public IPgParent Parentage => _oSiteBase.Host;
-        public IPgParent Services  => Parentage.Services;
-        public void      LogError( string strMessage ) { _oSiteBase.LogError( "Property Page Client", strMessage ); }
-
-        public Editor Property_Labels { get; }
-        public Editor Property_Values { get; }
-
-        // This lets us override the standard color for a property.
-        public Dictionary<int, SkiaSharp.SKColor> ValueBgColor { get; } = new Dictionary<int, SkiaSharp.SKColor >();
-
-		protected class DocSlot :
-			IPgBaseSite
-		{
-			protected readonly DocProperties _oHost;
-
-			public DocSlot( DocProperties oHost ) {
-				_oHost = oHost ?? throw new ArgumentNullException( "Host" );
-			}
-
-			public IPgParent Host => _oHost;
-
-            public void LogError(string strMessage, string strDetails, bool fShow=true) {
-				_oHost.LogError( strDetails );
-			}
-
-			public void Notify( ShellNotify eEvent ) {
-				// Might want this value when we close to save the current playing list!!
-			}
-		}
-
-        public DocProperties( IPgBaseSite oSiteBase ) {
-            _oSiteBase = oSiteBase ?? throw new ArgumentNullException( "Site must not be null." );
-
-            Property_Labels = new Editor( new DocSlot( this ) );
-            Property_Values = new Editor( new DocSlot( this ) );
-        }
-
-        public virtual bool InitNew() {
-            if( !Property_Labels.InitNew() )
-                return false;
-            if( !Property_Values.InitNew() )
-                return false;
-
-            return true;
-        }
-
-        public void LabelAdd( string strLabel, string strValue = "", SKColor? skColor = null ) {
-            Property_Labels.LineAppend( strLabel, fUndoable:false );
-            Property_Values.LineAppend( strValue, fUndoable:false );
-
-            if( skColor.HasValue ) {
-                ValueBgColor.Add( Property_Values.ElementCount - 1, skColor.Value );
-            }
-        }
-
-        public Line this[int iIndex] { 
-            get { 
-                return Property_Values[iIndex];
-            }
-        }
-
-        public int Count => Property_Values.ElementCount; 
-
-        public virtual void Clear() {
-            foreach( Line oLine in Property_Values ) {
-                oLine.Empty();
-            }
-            Property_Values.Raise_BufferEvent( BUFFEREVENTS.MULTILINE ); 
-        }
-
-        public void ValueUpdate( int iIndex, string strValue ) {
-            Line oLine = Property_Values[iIndex];
-            oLine.Empty();
-            oLine.TryAppend( strValue );
-
-            // Need to look at this multi line call. s/b single line.
-            Property_Values.Raise_BufferEvent( BUFFEREVENTS.MULTILINE ); // single line probably depends on the caret.
-        }
-
-        /// <summary>
-        /// Use this when you've updated properties independently and want to finally notify the viewers.
-        /// </summary>
-        public void RaiseBufferEvent() {
-            Property_Values.Raise_BufferEvent( BUFFEREVENTS.MULTILINE ); 
         }
     }
 

@@ -882,7 +882,7 @@ namespace Mjolnir {
 			if( !string.IsNullOrEmpty(oDocSite.FileName) ) {
 				bool fFound = false;
                 foreach( Line oLine in _oDoc_Recents ) {
-                    if( oLine.Compare( oDocSite.FileName, fIgnoreCase:true ) == 0 ) {
+                    if( oLine.Compare( oDocSite.FileName, IgnoreCase:true ) == 0 ) {
                         fFound = true;
                         break;
                     }

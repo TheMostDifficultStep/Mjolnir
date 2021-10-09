@@ -154,23 +154,18 @@ namespace Play.Edit {
             return( _iLine - oOther.At );
         }
 
-        /// <summary>
-        /// TODO: Override this implementation if you don't want to burn a string in the text cast.
-        /// </summary>
-        /// <param name="other"></param>
-        /// <returns></returns>
         public int CompareTo( string other ) {
-            return( other.CompareTo( this.ToString() ) );
+           return other.CompareTo( this.ToString() );
         }
 
-        public int Compare(string strOther, bool fIgnoreCase = false ) {
+        public int Compare(string strOther, bool IgnoreCase = false ) {
             int iDiff = strOther.Length - this.ElementCount;
 
             if( iDiff != 0 )
                 return iDiff;
 
             for (int i = 0; i < strOther.Length; i++ ) {
-                if( fIgnoreCase )
+                if( IgnoreCase )
                     iDiff = char.ToLower( strOther[i] ) - char.ToLower( this[i] );
                 else
                     iDiff = strOther[i].CompareTo( this[i] );

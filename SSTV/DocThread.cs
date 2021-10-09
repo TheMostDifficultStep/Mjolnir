@@ -119,7 +119,7 @@ namespace Play.SSTV
         }
 
         /// <summary>
-        /// Listen to the TmmSSTV object. I can probably stop listening to the decoder
+        /// Listen to the SSTVDraw object. I can probably stop listening to the decoder
         /// and have it do that directly.
         /// </summary>
         /// <seealso cref="Listen_NextRxMode"/>

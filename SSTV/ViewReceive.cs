@@ -13,6 +13,7 @@ using Play.Rectangles;
 using Play.Edit;
 using Play.Parse;
 using Play.ImageViewer;
+using Play.Forms;
 
 namespace Play.SSTV {
 	/// <summary>
@@ -158,7 +159,7 @@ namespace Play.SSTV {
 		public object Decorate(IPgViewSite oBaseSite,Guid sGuid) {
 			try {
 				if( sGuid.Equals(GlobalDecorations.Properties) ) {
-					return new PropWin( oBaseSite, _oDocSSTV.Properties );
+					return new ViewStandardProperties2( oBaseSite, _oDocSSTV.RxProperties );
 				}
 				return false;
 			} catch ( Exception oEx ) {
@@ -179,10 +180,7 @@ namespace Play.SSTV {
 			if( sGuid == GlobalCommands.Play ) {
 				Banner = _strBannerBase + _oDocSSTV.Chooser.CurrentFullPath;
 				_oSiteView.Notify( ShellNotify.BannerChanged );
-				// TODO: Sort out the file/port vs auto/fixed receive modes. You can see that
-				//       the VIS mode might be different on a per view basis with this system.
-				//       Should we try to sync tool bars, or do something different.
-				_oDocSSTV.RecordBeginFileRead2( _oDocSSTV.Chooser.CurrentFullPath, fFixedMode:false );
+				_oDocSSTV.RecordBeginFileRead2( _oDocSSTV.Chooser.CurrentFullPath, DetectVIS:false );
 				return true;
 			}
 			if( sGuid == GlobalCommands.Stop ) {
@@ -218,6 +216,151 @@ namespace Play.SSTV {
         }
     }
 
+    /// <summary>
+    /// This subclass of the DocProperties let's us have static index values. This is advantageous because it
+    /// allows us to re-arrange property values without scrambling their meaning. But it also means you can't
+    /// use some kind of runtime forms generator since the indicies must have corresponding pre compiled enum's.
+    /// </summary>
+    public class RxProperties : DocProperties {
+        public enum Names : int {
+			Mode,
+            Resolution,
+            Detect_Vis,
+            MAX
+        }
+
+        public RxProperties( IPgBaseSite oSiteBase ) : base( oSiteBase ) {
+        }
+
+        public override bool InitNew() {
+            if( !base.InitNew() ) 
+                return false;
+
+            for( int i=0; i<(int)Names.MAX; ++i ) {
+                Property_Labels.LineAppend( string.Empty, fUndoable:false );
+                Property_Values.LineAppend( string.Empty, fUndoable:false );
+            }
+
+            LabelSet( Names.Mode,       "Mode" );
+            LabelSet( Names.Resolution, "Resolution" );
+            LabelSet( Names.Detect_Vis, "Detect VIS", new SKColor( red:0xff, green:0xbf, blue:0 ) );
+
+            ValueUpdate( Names.Mode,         "-"    ); 
+            ValueUpdate( Names.Resolution,   "-"    ); 
+            ValueUpdate( Names.Detect_Vis,   "True" );
+
+            return true;
+        }
+
+        public void LabelSet( Names eName, string strLabel, SKColor? skBgColor = null ) {
+            Property_Labels[(int)eName].TryAppend( strLabel );
+
+            if( skBgColor.HasValue ) {
+                ValueBgColor.Add( (int)eName, skBgColor.Value );
+            }
+        }
+
+        public void ValueUpdate( Names eName, string strValue ) {
+            ValueUpdate( (int)eName, strValue );
+        }
+
+        /// <summary>
+        /// Override the clear to only clear the specific repeater information. If you want to 
+        /// clear all values, call the base method.
+        /// </summary>
+        public override void Clear() {
+            Property_Values[(int)Names.Mode       ].Empty();
+            Property_Values[(int)Names.Resolution ].Empty();
+            Property_Values[(int)Names.Detect_Vis ].Empty();
+
+            Property_Values.Raise_BufferEvent( BUFFEREVENTS.MULTILINE ); 
+        }
+    }
+
+    /// <summary>
+    /// View the DocProperties object. This makes two columns, label on the left
+	/// and value on the right. It is capable of adding an editwindow for the values.
+	/// We'll turn that into optionally a dropdown in the future.
+    /// </summary>
+    /// <seealso cref="DocProperties"/>
+	/// <remarks>This would probably be a good one to stick into the forms package.
+	/// See also ViewStandardProperties in MorsePractice project.</remarks>
+	/// <seealso cref="ViewStandardProperties"/>
+    public class ViewStandardProperties2 : 
+        FormsWindow,
+        IBufferEvents,
+        IPgLoad
+     {
+        public static Guid GUID {get;} = new Guid("{80C855E0-C2F6-4641-9A7C-B6A8A53B3FDF}");
+
+        protected DocProperties Document { get; }
+		protected readonly IPgStandardUI2 _oStdUI;
+
+		public SKColor BgColorDefault { get; protected set; }
+
+        public ViewStandardProperties2( IPgViewSite oSiteView, DocProperties oDocument ) : base( oSiteView, oDocument.Property_Values ) {
+            Document = oDocument ?? throw new ArgumentNullException( "ViewStandardProperties's Document is null." );
+ 			_oStdUI  = oSiteView.Host.Services as IPgStandardUI2 ?? throw new ArgumentException( "Parent view must provide IPgStandardUI service" );
+
+			BgColorDefault = _oStdUI.ColorsStandardAt( StdUIColors.BG );
+        }
+
+        public void PropertyInitRow( SmartTable oLayout, int iIndex, EditWindow2 oWinValue = null ) {
+            var oLayoutLabel = new LayoutSingleLine( new FTCacheWrap( Document.Property_Labels[iIndex] ), LayoutRect.CSS.Flex );
+            LayoutRect oLayoutValue;
+            
+            if( oWinValue == null ) {
+                oLayoutValue = new LayoutSingleLine( new FTCacheWrap( Document.Property_Values[iIndex] ), LayoutRect.CSS.Flex );
+            } else { // If the value is a multi-line value make an editor.
+                oWinValue.InitNew();
+                oWinValue.Parent = this;
+                oLayoutValue = new LayoutControl( oWinValue, LayoutRect.CSS.Pixels, 100 );
+            }
+
+            oLayout.AddRow( new List<LayoutRect>() { oLayoutLabel, oLayoutValue } );
+
+            oLayoutLabel.BgColor = _oStdUI.ColorsStandardAt( StdUIColors.BGReadOnly );
+
+            CacheList.Add( oLayoutLabel );
+            if( oLayoutValue is LayoutSingleLine oLayoutSingle ) {
+				SKColor skBgColor = BgColorDefault;
+
+				if( Document.ValueBgColor.TryGetValue( iIndex, out SKColor skBgColorOverride ) ) {
+					skBgColor = skBgColorOverride;
+				}
+                oLayoutSingle.BgColor = skBgColor;
+                CacheList.Add( oLayoutSingle );
+            }
+        }
+
+        public override bool InitNew() {
+            if( !base.InitNew() ) 
+                return false;
+
+            SmartTable oLayout = new SmartTable( 5, LayoutRect.CSS.None );
+            Layout2 = oLayout;
+
+            oLayout.Add( new LayoutRect( LayoutRect.CSS.Flex, 30, 0 ) ); // Name.
+            oLayout.Add( new LayoutRect( LayoutRect.CSS.None, 70, 0 ) ); // Value.
+
+            foreach( Line oLine in Document.Property_Labels ) {
+                PropertyInitRow( oLayout, oLine.At );
+            }
+
+            Caret.Layout = CacheList[0];
+
+            OnDocumentEvent( BUFFEREVENTS.MULTILINE );
+            OnSizeChanged( new EventArgs() );
+
+            return true;
+        }
+
+        public void OnEvent( BUFFEREVENTS eEvent ) {
+            OnDocumentEvent( BUFFEREVENTS.MULTILINE );
+            Invalidate();
+        }
+    }
+
 	/// <summary>
 	/// This view shows the single image being downloaded from the audio stream. 
 	/// </summary>
@@ -229,9 +372,8 @@ namespace Play.SSTV {
 		IPgTools
 	{
 		public enum Tools : int {
-			FileAuto = 0,
-			FileFixed = 1,
-			Port = 2
+			File = 0,
+			Port = 1
 		}
 
 		public static Guid GUID { get; } = new Guid( "{5213847C-8B38-49D8-AAE2-C870F5E6FB51}" );
@@ -244,8 +386,8 @@ namespace Play.SSTV {
 
         protected readonly IPgViewSite _oSiteView;
 
-		readonly List<string>   _rgToolBox     = new List<string>() { "File", "File w/o VIS", "Port" };
-		protected Tools         _eToolSelected = Tools.FileAuto;
+		readonly  List<string>  _rgToolBox     = new() { "File", "Port" };
+		protected Tools         _eToolSelected = Tools.File;
 		protected static string _strBaseTitle  = "MySSTV Receive";
 		protected string        _strBanner     = _strBaseTitle;
 
@@ -335,14 +477,14 @@ namespace Play.SSTV {
         public override bool Execute( Guid sGuid ) {
 			if( sGuid == GlobalCommands.Play ) {
 				switch( _eToolSelected ) {
-					case Tools.FileAuto:
-					case Tools.FileFixed:
-						// TODO: Change our title to match what we're trying to show!!
+					case Tools.File: {
+						// BUG: This should have been updated as the user selects files in the options chooser.
 						_strBanner = _strBaseTitle + " : " + _oDocSSTV.Chooser.CurrentFullPath;
 						_oSiteView.Notify( ShellNotify.BannerChanged );
-						// TODO: Sort out the file/port vs auto/fixed receive modes.
-						_oDocSSTV.RecordBeginFileRead2( _oDocSSTV.Chooser.CurrentFullPath, fFixedMode: _eToolSelected == Tools.FileFixed );
+						bool fDetectVIS = _oDocSSTV.RxProperties[(int)RxProperties.Names.Detect_Vis].Compare( "true", IgnoreCase:true ) == 0;
+						_oDocSSTV.RecordBeginFileRead2( _oDocSSTV.Chooser.CurrentFullPath, DetectVIS:fDetectVIS );
 						return true;
+						}
 					case Tools.Port:
 						LogError( "SSTV Command", "Audio Port not supported yet" );
 						return true;
@@ -355,7 +497,7 @@ namespace Play.SSTV {
 		public object Decorate(IPgViewSite oBaseSite,Guid sGuid) {
 			try {
 				if( sGuid.Equals(GlobalDecorations.Properties) ) {
-					return new PropWin( oBaseSite, _oDocSSTV.Properties );
+					return new ViewStandardProperties2( oBaseSite, _oDocSSTV.RxProperties );
 				}
 				if( sGuid.Equals( GlobalDecorations.Options ) ) {
 					return new CheckList( oBaseSite, _oDocSSTV.ModeList );
@@ -392,6 +534,7 @@ namespace Play.SSTV {
 			get => (int)_eToolSelected; 
 			set {
 				_eToolSelected = (Tools)value;
+
 				_oSiteView.Notify( ShellNotify.ToolChanged );
 			}
 		}
