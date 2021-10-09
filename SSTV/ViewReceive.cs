@@ -217,67 +217,6 @@ namespace Play.SSTV {
     }
 
     /// <summary>
-    /// This subclass of the DocProperties let's us have static index values. This is advantageous because it
-    /// allows us to re-arrange property values without scrambling their meaning. But it also means you can't
-    /// use some kind of runtime forms generator since the indicies must have corresponding pre compiled enum's.
-    /// </summary>
-    public class RxProperties : DocProperties {
-        public enum Names : int {
-			Mode,
-            Resolution,
-            Detect_Vis,
-            MAX
-        }
-
-        public RxProperties( IPgBaseSite oSiteBase ) : base( oSiteBase ) {
-        }
-
-        public override bool InitNew() {
-            if( !base.InitNew() ) 
-                return false;
-
-            for( int i=0; i<(int)Names.MAX; ++i ) {
-                Property_Labels.LineAppend( string.Empty, fUndoable:false );
-                Property_Values.LineAppend( string.Empty, fUndoable:false );
-            }
-
-            LabelSet( Names.Mode,       "Mode" );
-            LabelSet( Names.Resolution, "Resolution" );
-            LabelSet( Names.Detect_Vis, "Detect VIS", new SKColor( red:0xff, green:0xbf, blue:0 ) );
-
-            ValueUpdate( Names.Mode,         "-"    ); 
-            ValueUpdate( Names.Resolution,   "-"    ); 
-            ValueUpdate( Names.Detect_Vis,   "True" );
-
-            return true;
-        }
-
-        public void LabelSet( Names eName, string strLabel, SKColor? skBgColor = null ) {
-            Property_Labels[(int)eName].TryAppend( strLabel );
-
-            if( skBgColor.HasValue ) {
-                ValueBgColor.Add( (int)eName, skBgColor.Value );
-            }
-        }
-
-        public void ValueUpdate( Names eName, string strValue ) {
-            ValueUpdate( (int)eName, strValue );
-        }
-
-        /// <summary>
-        /// Override the clear to only clear the specific repeater information. If you want to 
-        /// clear all values, call the base method.
-        /// </summary>
-        public override void Clear() {
-            Property_Values[(int)Names.Mode       ].Empty();
-            Property_Values[(int)Names.Resolution ].Empty();
-            Property_Values[(int)Names.Detect_Vis ].Empty();
-
-            Property_Values.Raise_BufferEvent( BUFFEREVENTS.MULTILINE ); 
-        }
-    }
-
-    /// <summary>
     /// View the DocProperties object. This makes two columns, label on the left
 	/// and value on the right. It is capable of adding an editwindow for the values.
 	/// We'll turn that into optionally a dropdown in the future.

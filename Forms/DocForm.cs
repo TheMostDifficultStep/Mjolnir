@@ -260,13 +260,15 @@ namespace Play.Forms {
         /// <summary>
         /// Sends an event to the views right away. Should make a manipulator for this.
         /// </summary>
-        public void ValueUpdate( int iIndex, string strValue ) {
+        public void ValueUpdate( int iIndex, string strValue, bool Broadcast = false ) {
             Line oLine = Property_Values[iIndex];
             oLine.Empty();
             oLine.TryAppend( strValue );
 
-            // Need to look at this multi line call. s/b single line.
-            Property_Values.Raise_BufferEvent( BUFFEREVENTS.MULTILINE ); // single line probably depends on the caret.
+            if( Broadcast ) {
+                // Need to look at this multi line call. s/b single line.
+                Property_Values.Raise_BufferEvent( BUFFEREVENTS.MULTILINE ); // single line probably depends on the caret.
+            }
         }
 
         /// <summary>

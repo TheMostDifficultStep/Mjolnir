@@ -94,7 +94,7 @@ namespace Play.Edit {
 		}
 	}
 
-	public class PropWin : SKControl,
+	[Obsolete("See the new Forms DocProperties/FormsWindow objects.")]public class PropWin : SKControl,
 		IPgLoad,
 		IPgPropertyChanges
 	{

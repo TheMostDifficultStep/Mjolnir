@@ -15,7 +15,7 @@ using Play.ImageViewer;
 namespace Play.SSTV {
 	/// <summary>
 	/// This is the older fancy transmit viewer where the outline was the mode selector and a secondary
-	/// view was the directory of images. I'm going to make this an all in one viewer soon.
+	/// view was the directory of images.
 	/// </summary>
 	public class ViewTransmit:
 		Control,
@@ -175,14 +175,9 @@ namespace Play.SSTV {
 		public object Decorate(IPgViewSite oBaseSite,Guid sGuid) {
 			try {
 				if( sGuid.Equals(GlobalDecorations.Properties) ) {
-					return new PropWin( oBaseSite, _oDocSSTV.Properties );
+					return new ViewStandardProperties2( oBaseSite, _oDocSSTV.TxProperties );
 				}
 				if( sGuid.Equals( GlobalDecorations.Outline ) ) {
-					//EditWindow2 oView = new EditWindow2( oBaseSite, _oDocSSTV.ModeList, true );
-
-					//oView.LineChanged += Listen_ViewMode_LineChanged;
-
-					//return oView;
 					return new ImageViewIcons( oBaseSite, _oDocSSTV.TxImageList );
 				}
 				return null;
@@ -276,7 +271,7 @@ namespace Play.SSTV {
 	/// <summary>
 	/// This is a new view so we can select a transmit image. Basically a slightly motified directory viewer.
 	/// </summary>
-	public class SSTVTxImage: 
+	public class ViewSimpleTxImage: 
 		ImageViewSolo 
 	{
 		public static Guid GUID { get; } = new Guid( "{5BC25D2B-3F4E-4339-935C-CFADC2650B35}" );
@@ -286,7 +281,7 @@ namespace Play.SSTV {
 
         DocSSTV _oDocSSTV;
 
-		public SSTVTxImage( IPgViewSite oSiteBase, DocSSTV oDocSSTV ) : base( oSiteBase, oDocSSTV.TxImageList ) {
+		public ViewSimpleTxImage( IPgViewSite oSiteBase, DocSSTV oDocSSTV ) : base( oSiteBase, oDocSSTV.TxImageList ) {
 			_oDocSSTV = oDocSSTV ?? throw new ArgumentNullException( "oDocSSTV must not be null." );
 		}
 
@@ -338,7 +333,7 @@ namespace Play.SSTV {
 
         public override object Decorate( IPgViewSite oBaseSite, Guid sGuid ) {
 			if( sGuid.Equals(GlobalDecorations.Properties) ) {
-				return new PropWin( oBaseSite, _oDocSSTV.Properties );
+				return new ViewStandardProperties2( oBaseSite, _oDocSSTV.TxProperties );
 			}
 			if( sGuid.Equals( GlobalDecorations.Outline ) ) {
 				return new ImageViewIcons( oBaseSite, _oDocSSTV.TxImageList );

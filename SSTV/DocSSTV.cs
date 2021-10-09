@@ -18,6 +18,126 @@ using Play.Forms;
 using Play.Integration;
 
 namespace Play.SSTV {
+    /// <summary>
+    /// This subclass of the DocProperties let's us have static index values. This is advantageous because it
+    /// allows us to re-arrange property values without scrambling their meaning. But it also means you can't
+    /// use some kind of runtime forms generator since the indicies must have corresponding pre compiled enum's.
+    /// </summary>
+    public class RxProperties : DocProperties {
+        public enum Names : int {
+			Mode,
+            Resolution,
+            Detect_Vis,
+            Progress,
+            MAX
+        }
+
+        public RxProperties( IPgBaseSite oSiteBase ) : base( oSiteBase ) {
+        }
+
+        public override bool InitNew() {
+            if( !base.InitNew() ) 
+                return false;
+
+            for( int i=0; i<(int)Names.MAX; ++i ) {
+                Property_Labels.LineAppend( string.Empty, fUndoable:false );
+                Property_Values.LineAppend( string.Empty, fUndoable:false );
+            }
+
+            LabelSet( Names.Mode,       "Mode" );
+            LabelSet( Names.Resolution, "Resolution" );
+            LabelSet( Names.Detect_Vis, "Detect VIS", new SKColor( red:0xff, green:0xbf, blue:0 ) );
+            LabelSet( Names.Progress,   "Recieved" );
+
+            Clear();
+
+            return true;
+        }
+
+        public void LabelSet( Names eName, string strLabel, SKColor? skBgColor = null ) {
+            Property_Labels[(int)eName].TryAppend( strLabel );
+
+            if( skBgColor.HasValue ) {
+                ValueBgColor.Add( (int)eName, skBgColor.Value );
+            }
+        }
+
+        public void ValueUpdate( Names eName, string strValue, bool Broadcast = false ) {
+            ValueUpdate( (int)eName, strValue, Broadcast );
+        }
+
+        /// <summary>
+        /// Override the clear to only clear the specific repeater information. If you want to 
+        /// clear all values, call the base method.
+        /// </summary>
+        public override void Clear() {
+            ValueUpdate( Names.Mode,         "-"    , Broadcast:false ); 
+            ValueUpdate( Names.Resolution,   "-"    , Broadcast:false );  
+            ValueUpdate( Names.Detect_Vis,   "True" , Broadcast:false ); 
+            ValueUpdate( Names.Progress,      "-"    , Broadcast:true ); 
+        }
+    }
+
+    /// <summary>
+    /// This subclass of the DocProperties let's us have static index values. This is advantageous because it
+    /// allows us to re-arrange property values without scrambling their meaning. But it also means you can't
+    /// use some kind of runtime forms generator since the indicies must have corresponding pre compiled enum's.
+    /// </summary>
+    public class TxProperties : DocProperties {
+        public enum Names : int {
+			Mode,
+            Resolution,
+            Progress,
+            FileName,
+            MAX
+        }
+
+        public TxProperties( IPgBaseSite oSiteBase ) : base( oSiteBase ) {
+        }
+
+        public override bool InitNew() {
+            if( !base.InitNew() ) 
+                return false;
+
+            for( int i=0; i<(int)Names.MAX; ++i ) {
+                Property_Labels.LineAppend( string.Empty, fUndoable:false );
+                Property_Values.LineAppend( string.Empty, fUndoable:false );
+            }
+
+            LabelSet( Names.Mode,       "Mode" );
+            LabelSet( Names.Resolution, "Resolution" );
+            LabelSet( Names.Progress,   "Sent" );
+            LabelSet( Names.FileName,   "FileName" );
+
+            Clear();
+
+            return true;
+        }
+
+        public void LabelSet( Names eName, string strLabel, SKColor? skBgColor = null ) {
+            Property_Labels[(int)eName].TryAppend( strLabel );
+
+            if( skBgColor.HasValue ) {
+                ValueBgColor.Add( (int)eName, skBgColor.Value );
+            }
+        }
+
+        public void ValueUpdate( Names eName, string strValue, bool Broadcast = false ) {
+            ValueUpdate( (int)eName, strValue );
+        }
+
+        /// <summary>
+        /// Override the clear to only clear the specific repeater information. If you want to 
+        /// clear all values, call the base method.
+        /// </summary>
+        public override void Clear() {
+            ValueUpdate( Names.Mode,         "-", Broadcast:false ); 
+            ValueUpdate( Names.Resolution,   "-", Broadcast:false ); 
+            ValueUpdate( Names.Progress,         "-", Broadcast:false );
+            ValueUpdate( Names.FileName,     "-", Broadcast:true );
+        }
+    }
+
     public enum ESstvProperty {
         ALL,
         UploadTime,
@@ -104,18 +224,18 @@ namespace Play.SSTV {
         public ImageWalkerDir TxImageList       { get; protected set; }
         public SKBitmap       Bitmap          => TxImageList.Bitmap;
         public SSTVMode       RxMode          { get; protected set; } = null; // Thread advisor polls this from work thread.
-		public PropDoc        Properties      { get; } // Container for properties to show for this document.
         public RxProperties   RxProperties    { get; }
+        public TxProperties   TxProperties    { get; }
 
         protected readonly ImageSoloDoc  _oDocSnip;   // Clip the image.
 
         protected Mpg123FFTSupport FileDecoder   { get; set; }
         protected BufferSSTV       _oSSTVBuffer;
-        protected SSTVMOD         _oSSTVModulator;
-        protected SSTVDEM         _oSSTVDeModulator;
+        protected SSTVMOD          _oSSTVModulator;
+        protected SSTVDEM          _oSSTVDeModulator;
 		protected IPgPlayer        _oPlayer;
         protected SSTVGenerator    _oSSTVGenerator;
-		protected SSTVDraw          _oRxSSTV;
+		protected SSTVDraw         _oRxSSTV;
 
 		public ImageSoloDoc ReceiveImage { get; protected set; }
 		public ImageSoloDoc SyncImage    { get; protected set; }
@@ -159,10 +279,10 @@ namespace Play.SSTV {
 			ReceiveImage = new ImageSoloDoc( new DocSlot( this ) );
 			SyncImage    = new ImageSoloDoc( new DocSlot( this ) );
 
-            Properties      = new PropDoc( new DocSlot( this ) );
             Settings_Labels = new FormsEditor( new DocSlot( this ) );
             Settings_Values = new FormsEditor( new DocSlot( this ) );
-            RxProperties    = new RxProperties( new DocSlot( this ) );
+            RxProperties    = new ( new DocSlot( this ) );
+            TxProperties    = new ( new DocSlot( this ) );
             Chooser         = new FileChooser( new DocSlot( this ) );
 
             new ParseHandlerText( Settings_Values, "text" );
@@ -344,7 +464,15 @@ namespace Play.SSTV {
 			}
 		}
 
+        /// <summary>
+        /// This is where we receive the event when the user selects a mode in the chooser. 
+        /// Don't be confused that we send the mode name to the 'Tx Property viewers', but
+        /// the 'Tx Viewers' use this event to update their aspect ratio for selection.
+        /// </summary>
+        /// <param name="oLine">The line in the modelist selected</param>
+        /// <seealso cref="ModeList"/>
         void Listen_TxModeChanged( Line oLine ) {
+            TxProperties.ValueUpdate( TxProperties.Names.Mode, oLine.ToString() ); 
             Raise_PropertiesUpdated( ESstvProperty.SSTVMode );
         }
 
@@ -367,16 +495,15 @@ namespace Play.SSTV {
             if( !PortRxList.InitNew() ) 
                 return false;
 
-            if( !Properties.InitNew() )
-                return false;
             if( !Settings_Labels  .InitNew() )
                 return false;
             if( !Settings_Values  .InitNew() )
                 return false;
+            if( !TxProperties.InitNew() )
+                return false;
             if( !RxProperties.InitNew() )
                 return false;
 
-            PropertiesInit();
             SettingsInit();
 
             // No reason to fail if the dir is unusable.
@@ -400,19 +527,6 @@ namespace Play.SSTV {
 
             return true;
         }
-
-		protected virtual void PropertiesInit() {
-			using( PropDoc.Manipulator oBulk = Properties.EditProperties ) {
-				oBulk.Add( "RxWidth" );
-				oBulk.Add( "RxHeight" );
-				oBulk.Add( "Encoding" );
-				oBulk.Add( "Received" );
-				oBulk.Add( "Name" );
-				oBulk.Add( "Sent" );
-                oBulk.Add( "TxWidth" );
-                oBulk.Add( "TxHeight" );
-			}
-		}
 
         protected void InitTxDeviceList() {
 			IEnumerator<string> iterOutput = MMHelpers.GetOutputDevices();
@@ -452,77 +566,29 @@ namespace Play.SSTV {
         }
 
         protected void PropertiesReLoad() {
-			using (PropDoc.Manipulator oBulk = Properties.EditProperties) {
-				string strWidth    = string.Empty;
-				string strHeight   = string.Empty;
-				string strTxWidth  = string.Empty;
-				string strTxHeight = string.Empty;
-				string strName     = Path.GetFileName( TxImageList.CurrentFileName );
-				string strMode     = "Unassigned";
+			string strFileName     = Path.GetFileName( TxImageList.CurrentFileName );
 
-				if( ReceiveImage.Bitmap != null ) {
-					strWidth  = ReceiveImage.Bitmap.Width .ToString();
-					strHeight = ReceiveImage.Bitmap.Height.ToString();
-				}
-                if( TxImageList.Bitmap != null ) {
-					strTxWidth  = TxImageList.Bitmap.Width .ToString();
-					strTxHeight = TxImageList.Bitmap.Height.ToString();
-                }
-                // BUG: Need to sort our send / receive modes.
-				if( RxMode != null ) {
-					strMode   = RxMode.Name;
-				}
-				if( TxMode != null ) {
-					strMode   = TxMode.Name;
-				}
-
-                oBulk.Set( 0, strWidth  );
-                oBulk.Set( 1, strHeight );
-                oBulk.Set( 2, strMode   );
-                oBulk.Set( 3, "0%" );
-				oBulk.Set( 4, strName   );
-                oBulk.Set( 5, "0%" );
-                oBulk.Set( 6, strTxWidth );
-                oBulk.Set( 7, strTxHeight );
+            if( TxImageList.Bitmap != null ) {
+                TxProperties.ValueUpdate( TxProperties.Names.Resolution, new SKSizeI( TxImageList.Bitmap.Width, TxImageList.Bitmap.Height ).ToString() );
+            } else {
+                TxProperties.ValueUpdate( TxProperties.Names.Resolution, "-" );
             }
+
+            string strTxMode = "-";
+
+            if( TxMode != null )
+                strTxMode = TxMode.Name;
+
+            TxProperties.ValueUpdate( TxProperties.Names.Mode,     strTxMode ); // BUG: CHeck how this gets updated...
+            TxProperties.ValueUpdate( TxProperties.Names.Progress,     "0%" );
+            TxProperties.ValueUpdate( TxProperties.Names.FileName, strFileName );
 		}
 
-        protected void PropertiesRxBitmap() {
-			using (PropDoc.Manipulator oBulk = Properties.EditProperties) {
-				string strWidth    = string.Empty;
-				string strHeight   = string.Empty;
-				string strMode     = "Unassigned";
-
-				if( ReceiveImage.Bitmap != null ) {
-					strWidth  = ReceiveImage.Bitmap.Width .ToString();
-					strHeight = ReceiveImage.Bitmap.Height.ToString();
-				}
-				if( RxMode != null ) {
-					strMode = RxMode.Name;
-				}
-
-                oBulk.Set( 0, strWidth  );
-                oBulk.Set( 1, strHeight );
-                oBulk.Set( 2, strMode   );
-                oBulk.Set( 3, "0%" );
-            }
-        }
-
-		protected void PropertiesLoadTime() {
-			using (PropDoc.Manipulator oBulk = Properties.EditProperties) {
-                oBulk.Set( 3, PercentRxComplete.ToString() + "%" );
-            }
-		}
-
-		protected void PropertiesLoadTime( int iPercent ) {
-			using (PropDoc.Manipulator oBulk = Properties.EditProperties) {
-                oBulk.Set( 3, iPercent.ToString() + "%" );
-            }
+		protected void PropertiesRxTime( int iPercent ) {
+            RxProperties.ValueUpdate( RxProperties.Names.Progress, iPercent.ToString() + "%" );
 		}
 		protected void PropertiesSendTime() {
-			using (PropDoc.Manipulator oBulk = Properties.EditProperties) {
-                oBulk.Set( 5, PercentTxComplete.ToString() + "%" );
-            }
+            TxProperties.ValueUpdate( TxProperties.Names.Progress, PercentTxComplete.ToString() + "%" );
 		}
 
         public bool Load( TextReader oStream ) {
@@ -639,10 +705,6 @@ namespace Play.SSTV {
         /// <param name="eProp"></param>
         protected void Raise_PropertiesUpdated( ESstvProperty eProp ) {
             switch( eProp ) {
-                case ESstvProperty.DownLoadTime:
-                case ESstvProperty.DownLoadFinished:
-                    PropertiesLoadTime();
-                    break;
                 case ESstvProperty.UploadTime:
                     PropertiesSendTime();
                     break;
@@ -832,7 +894,6 @@ namespace Play.SSTV {
 			                SyncImage   .Bitmap = oWorker.RxSSTV._pBitmapD12;
                             RxMode              = oWorker.NextMode;
 
-                            PropertiesRxBitmap();
                             PropertyChange?.Invoke( ESstvProperty.RXImageNew );
                             break;
                         case ESstvProperty.SSTVMode:
@@ -846,13 +907,13 @@ namespace Play.SSTV {
                                 }
                             }
                             break;
-                        case ESstvProperty.DownLoadTime:
-                            PropertiesLoadTime( oWorker.RxSSTV.PercentRxComplete );
+                        case ESstvProperty.DownLoadTime: // Might be nice to send the % as a number in the message.
+                            PropertiesRxTime( oWorker.RxSSTV.PercentRxComplete );
                             PropertyChange?.Invoke( ESstvProperty.DownLoadTime );
                             break;
                         case ESstvProperty.DownLoadFinished:
                             // NOTE: This might never come along!
-                            PropertiesLoadTime( oWorker.RxSSTV.PercentRxComplete );
+                            PropertiesRxTime( oWorker.RxSSTV.PercentRxComplete );
                             DownloadFinished();
                             fReceivedFinishedMsg = true;
                             break;

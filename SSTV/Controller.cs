@@ -25,8 +25,8 @@ namespace Play.SSTV {
 					return new ViewFFT( oBaseSite, oMySSTVDoc );
                 if( guidViewType == ViewRxAndSync.GUID )
                     return new ViewRxAndSync(oBaseSite, oMySSTVDoc);
-                if( guidViewType == SSTVTxImage.GUID )
-					return new SSTVTxImage( oBaseSite, oMySSTVDoc );
+                if( guidViewType == ViewSimpleTxImage.GUID )
+					return new ViewSimpleTxImage( oBaseSite, oMySSTVDoc );
 				if( guidViewType == ViewRxImage.GUID )
 					return new ViewRxImage( oBaseSite, oMySSTVDoc );
 				if( guidViewType == ViewSettings.GUID )
@@ -55,7 +55,7 @@ namespace Play.SSTV {
 		  //yield return new ViewType( "Spectrum",             ViewFFT      .ViewType );
 			yield return new ViewType( "Receive Image",        ViewRxImage  .GUID );
 		    yield return new ViewType( "Receive Dual Screen",  ViewRxAndSync.GUID );
-		    yield return new ViewType( "Transmit Image",       SSTVTxImage  .GUID );
+		    yield return new ViewType( "Transmit Image",       ViewSimpleTxImage  .GUID );
 			yield return new ViewType( "Transmit Mode Select", ViewTransmitModes );
 			yield return new ViewType( "Settings",             ViewSettings .GUID );
 		}
