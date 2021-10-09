@@ -123,7 +123,7 @@ namespace Play.SSTV {
         }
 
         public void ValueUpdate( Names eName, string strValue, bool Broadcast = false ) {
-            ValueUpdate( (int)eName, strValue );
+            ValueUpdate( (int)eName, strValue, Broadcast );
         }
 
         /// <summary>
@@ -283,7 +283,7 @@ namespace Play.SSTV {
             Settings_Values = new FormsEditor( new DocSlot( this ) );
             RxProperties    = new ( new DocSlot( this ) );
             TxProperties    = new ( new DocSlot( this ) );
-            Chooser         = new FileChooser( new DocSlot( this ) );
+            Chooser         = new ( new DocSlot( this ) );
 
             new ParseHandlerText( Settings_Values, "text" );
         }
@@ -472,7 +472,7 @@ namespace Play.SSTV {
         /// <param name="oLine">The line in the modelist selected</param>
         /// <seealso cref="ModeList"/>
         void Listen_TxModeChanged( Line oLine ) {
-            TxProperties.ValueUpdate( TxProperties.Names.Mode, oLine.ToString() ); 
+            TxProperties.ValueUpdate( TxProperties.Names.Mode, oLine.ToString(), Broadcast:true ); 
             Raise_PropertiesUpdated( ESstvProperty.SSTVMode );
         }
 
@@ -580,14 +580,14 @@ namespace Play.SSTV {
 
             TxProperties.ValueUpdate( TxProperties.Names.Mode,     strTxMode ); // BUG: CHeck how this gets updated...
             TxProperties.ValueUpdate( TxProperties.Names.Progress,     "0%" );
-            TxProperties.ValueUpdate( TxProperties.Names.FileName, strFileName );
+            TxProperties.ValueUpdate( TxProperties.Names.FileName, strFileName, Broadcast:true );
 		}
 
 		protected void PropertiesRxTime( int iPercent ) {
-            RxProperties.ValueUpdate( RxProperties.Names.Progress, iPercent.ToString() + "%" );
+            RxProperties.ValueUpdate( RxProperties.Names.Progress, iPercent.ToString() + "%", Broadcast:true );
 		}
 		protected void PropertiesSendTime() {
-            TxProperties.ValueUpdate( TxProperties.Names.Progress, PercentTxComplete.ToString() + "%" );
+            TxProperties.ValueUpdate( TxProperties.Names.Progress, PercentTxComplete.ToString() + "%", Broadcast:true );
 		}
 
         public bool Load( TextReader oStream ) {
@@ -901,7 +901,7 @@ namespace Play.SSTV {
                                     if( oLineMode.LegacyMode == oWorker.NextMode.LegacyMode ) {
                                         ModeList.HighLight = oLine;
                                         RxProperties.ValueUpdate( RxProperties.Names.Mode,       oLineMode.Name );
-                                        RxProperties.ValueUpdate( RxProperties.Names.Resolution, oLineMode.Resolution.ToString() );
+                                        RxProperties.ValueUpdate( RxProperties.Names.Resolution, oLineMode.Resolution.ToString(), Broadcast:true );
                                     }
                                 }
                             }
