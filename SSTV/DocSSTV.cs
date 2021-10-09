@@ -838,10 +838,11 @@ namespace Play.SSTV {
                         case ESstvProperty.SSTVMode:
                             foreach( Line oLine in ModeList ) {
                                 if( oLine.Extra is SSTVMode oLineMode ) {
-                                    if( oLineMode.LegacyMode == oWorker.NextMode.LegacyMode )
+                                    if( oLineMode.LegacyMode == oWorker.NextMode.LegacyMode ) {
                                         ModeList.HighLight = oLine;
                                         RxProperties.ValueUpdate( RxProperties.Names.Mode,       oLineMode.Name );
                                         RxProperties.ValueUpdate( RxProperties.Names.Resolution, oLineMode.Resolution.ToString() );
+                                    }
                                 }
                             }
                             break;
@@ -893,6 +894,7 @@ namespace Play.SSTV {
                 // Note that this ModeList is the TX mode list. I think I want an RX list.
                 if( !DetectVIS && ModeList.CheckedLine.Extra is SSTVMode oMode ) {
                     oModeFixed = oMode;
+                    // No need to update the RxProperties (Mode,Rez) b/c Demodulator parrots the fixed mode.
                 }
 
                 ThreadWorker oWorker        = new ThreadWorker( _oMsgQueue, strFileName, oModeFixed );
