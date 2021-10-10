@@ -133,7 +133,7 @@ namespace Play.SSTV {
         public override void Clear() {
             ValueUpdate( Names.Mode,         "-", Broadcast:false ); 
             ValueUpdate( Names.Resolution,   "-", Broadcast:false ); 
-            ValueUpdate( Names.Progress,         "-", Broadcast:false );
+            ValueUpdate( Names.Progress,     "-", Broadcast:false );
             ValueUpdate( Names.FileName,     "-", Broadcast:true );
         }
     }

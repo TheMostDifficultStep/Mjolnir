@@ -195,6 +195,11 @@ namespace Play.SSTV {
 			return (short)d;
 		}
 
+		/// <summary>
+		/// BUG: Since we jump around re-parsing the image, this isn't reliable. Switch
+		/// it back to Read pointer position. Need to calculate the size of data
+		/// depending on mode. I can use that elsewhere too.
+		/// </summary>
         public int PercentRxComplete { 
             get {
 				try {
@@ -228,7 +233,7 @@ namespace Play.SSTV {
 
 				Slider.Shuffle( SpecWidthInSamples );
 
-				if( Slider.AlignLeastSquares( Mode.Resolution.Height, ref slope, ref intercept ) ) {
+				if( Slider.AlignLeastSquares( ref slope, ref intercept ) ) {
 					//InitSlots( Mode.Resolution.Width, slope / SpecWidthInSamples );
 					SKPaint skPaint = new() { Color = SKColors.Yellow, StrokeWidth = 2 };
 
@@ -260,12 +265,12 @@ namespace Play.SSTV {
 
 			Slider.Shuffle( SpecWidthInSamples );
 
-			if( Slider.AlignLeastSquares( iScanLine, ref slope, ref intercept ) ) {
+			if( Slider.AlignLeastSquares( ref slope, ref intercept ) ) {
 				InitSlots( Mode.Resolution.Width, slope / SpecWidthInSamples );
 
 				Slider.Shuffle( slope );
 
-				if( Slider.AlignLeastSquares( iScanLine, ref slope, ref intercept ) ) {
+				if( Slider.AlignLeastSquares( ref slope, ref intercept ) ) {
 					// OffsetInMS is where scan data begins after the sync.
 					double dblStart = _dp.Mode.OffsetInMS * _dp.SampFreq / 1000;
 					double dblDiff  = intercept - dblStart;
@@ -536,14 +541,24 @@ namespace Play.SSTV {
 			//	}
 			//}
 			if( _dp.m_Sync ) {
-				int iScanLine = (int)(_dp.m_wBase / SpecWidthInSamples );
-				int iOffset   = (int)(Mode.OffsetInMS * _dp.SampFreq / 1000);
-				if( iScanLine % 20 == 19 ) {
-					for( int i = 0; i<iScanLine; ++i ) {
-						int rBase = Slider[i];
-						if( rBase != -1 )
-							ProcessScan2( i, rBase - iOffset );
+				try {
+					int iScanLine = (int)(_dp.m_wBase / SpecWidthInSamples );
+					int iOffset   = (int)(Mode.OffsetInMS * _dp.SampFreq / 1000);
+					if( iScanLine % 20 == 19 ) {
+						for( int i = 0; i<iScanLine; ++i ) {
+							int rBase = Slider[i];
+							if( rBase != -1 )
+								ProcessScan2( i, rBase - iOffset );
+						}
 					}
+				} catch( Exception oEx ) {
+					Type[] rgErrors = { typeof( NullReferenceException ),
+										typeof( InvalidProgramException ),
+										typeof( IndexOutOfRangeException ) };
+					if( rgErrors.IsUnhandled( oEx ) )
+						throw;
+
+					ShoutTvEvents?.Invoke( ESstvProperty.ThreadDrawingException );
 				}
 			}
 		}

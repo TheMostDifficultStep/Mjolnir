@@ -39,7 +39,7 @@ namespace Play.SSTV {
 		public IPgParent Parentage => _oSiteView.Host;
 		public IPgParent Services  => Parentage.Services;
 		public bool      IsDirty   => false;
-		public string    Banner    => "MySSTV Transmit Image : " + _oDocSSTV.TxImageList.CurrentDirectory;
+		public string    Banner    => "MySSTV Transmit : " + _oDocSSTV.TxImageList.CurrentDirectory;
 		public Image     Iconic    { get; }
 		public Guid      Catagory  => ViewType;
 
@@ -277,7 +277,7 @@ namespace Play.SSTV {
 		public static Guid GUID { get; } = new Guid( "{5BC25D2B-3F4E-4339-935C-CFADC2650B35}" );
 
         public override Guid   Catagory => GUID;
-        public override string Banner   => "MySSTV Transmit Image : " + _oDocSSTV.TxImageList.CurrentDirectory;
+        public override string Banner   => "MySSTV Transmit : " + _oDocSSTV.TxImageList.CurrentDirectory;
 
         DocSSTV _oDocSSTV;
 

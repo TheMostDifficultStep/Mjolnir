@@ -713,12 +713,27 @@ namespace Play.Sound {
 
 	public class SlidingWindow {
 		protected class MyDatum {
-			public MyDatum( double Bucket, int Offset ) {
-				this.Bucket = Bucket;
-				this.Offset = Offset;
+			public MyDatum( double Bucket, int Position ) {
+				this.Bucket   = Bucket;
+				this.Position = Position;
 			}
-			public double Bucket { get; set; }
-			public int    Offset { get; }
+			public double  Bucket { get; set; }
+			public int     Position { get; }
+			public MyDatum Next { get; set; }
+
+			public override string ToString() { return Position.ToString(); }
+		}
+
+		protected struct RasterEntry {
+			public RasterEntry( MyDatum oDatum, int iCount ) {
+				Datum = oDatum;
+				Count = iCount;
+			}
+
+			public MyDatum Datum { get; set; }
+			public int     Count { get; set; }
+
+			public override string ToString() { return Count.ToString(); }
 		}
 
 		double _dblScanWidthInSamples;
@@ -728,12 +743,10 @@ namespace Play.Sound {
 		int    _iW           = 0;
 		double _SLvl         = 0;
 		int[]  _rgWindow;
-
-		// this needs to be larger than the largest number of scan lines.
-		readonly int[] _rgSyncDetect = new int[850];
-		readonly int[] _rgThinner    = new int[850];
+		bool   _fLastTrigger = false;
 
 		readonly List<MyDatum> _rgData = new(1000);
+		readonly RasterEntry[] _rgRasters = new RasterEntry[850];
 
 		public SlidingWindow( double dblScanWidthInSamples, int iWindowSizeInSamples, double dblSLvl ) {
 			_SLvl       = dblSLvl;
@@ -755,11 +768,13 @@ namespace Play.Sound {
 		}
 
 		public void Reset() {
-			for( int i = 0; i<_rgSyncDetect.Length; ++i ) 
-				_rgSyncDetect[i] = -1;
+			//for( int i = 0; i<_rgWindow.Length; ++i )
+			//	_rgWindow[i] = 0;
 
-			for( int i = 0; i<_rgWindow.Length; ++i )
-				_rgWindow[i] = 0;
+			_fLastTrigger = false;
+
+			Array.Clear( _rgWindow,  0, _rgWindow .Length );
+			Array.Clear( _rgRasters, 0, _rgRasters.Length );
 
 			_rgData.Clear();
 
@@ -768,8 +783,15 @@ namespace Play.Sound {
 			_iWindowHit = Math.Round( (double)_iWindowSizeInSamples );
 		}
 
-		public int this [int iIndex ]  {
-			get { return _rgSyncDetect[iIndex]; }
+		protected void RasterAdd( int iBucket, MyDatum oDatum ) {
+			if( _rgRasters[iBucket].Datum == null ) {
+				_rgRasters[iBucket].Datum = oDatum;
+				_rgRasters[iBucket].Count = 1;
+			} else {
+				oDatum.Next = _rgRasters[iBucket].Datum;
+				_rgRasters[iBucket].Datum = oDatum;
+				_rgRasters[iBucket].Count++;
+			}
 		}
 
 		/// <summary>
@@ -791,21 +813,26 @@ namespace Play.Sound {
 			int iSig = d12 > _SLvl ? 1 : 0;
 
 			try {
-				double dblX = (double)iOffset / _dblScanWidthInSamples;
-				int   i2Xl  = _iWindowSizeInSamples * 2;
-				int   iLast = (_iW + _iWindowSizeInSamples) % ( i2Xl );
+				double dblBucket = Math.Round( (double)iOffset / _dblScanWidthInSamples );
+				int   i2Xl       = _iWindowSizeInSamples * 2;
+				int   iLast      = (_iW + _iWindowSizeInSamples) % ( i2Xl );
 
 				_iWindowSum   -= _rgWindow[iLast];
 				_iWindowSum   += iSig;
 				_rgWindow[_iW] = iSig;
 				_iW            = (_iW + 1) % i2Xl; 
 
+				// Only catch on a rising trigger.
 				if( _iWindowSum >= _iWindowHit ) {
-					if( _rgSyncDetect[(int)dblX] == -1 ) {
-						_rgSyncDetect[(int)dblX] = iOffset; 
-						_rgData.Add( new MyDatum( Bucket:dblX, Offset:iOffset ) );
+					if( _fLastTrigger == false ) {
+						_fLastTrigger = true;
+						MyDatum oDatum = new ( Bucket:dblBucket, Position:iOffset );
+						_rgData.Add( oDatum );
+						RasterAdd( (int)dblBucket, oDatum );
 						return true;
 					}
+				} else {
+					_fLastTrigger = false;
 				}
 			} catch( Exception oEx ) {
 				Type[] rgErrors = { typeof( NullReferenceException ),
@@ -820,31 +847,18 @@ namespace Play.Sound {
 			return false;
 		}
 
-		public bool AlignLeastSquares( int iY, ref double dblSlope, ref double dblIntercept ) {
-			return AlignLeastSquares( _rgSyncDetect, iY, ref dblSlope, ref dblIntercept );
-		}
-
-		/// <summary>
-		/// Working on a way to attempt to use a least squares fit to find
-		/// the slant and offset. We seem to be having trouble when the tail
-		/// end of the sync signal crosses a bitmap edge of the spec scan width.
-		/// </summary>
-		public bool AlignLeastSquares( int[] rgData, int iY, ref double dblSlope, ref double dblIntercept ) {
-			double dbScanWidth = _dblScanWidthInSamples;
-			double meanx       = 0, meany = 0;
-			int    iCount      = 0;
+		public bool AlignLeastSquares( ref double dblSlope, ref double dblIntercept ) {
+			double meanx  = 0, meany = 0;
+			int    iCount = 0;
 
 			dblSlope     = 0;
 			dblIntercept = 0;
 
-			if( iY > rgData.Length )
-				iY = rgData.Length;
-
 			try {
-				for( int i = 0; i<iY; ++i ) {
-					if( rgData[i] > 0 ) {
+				for( int i = 0; i<_rgRasters.Length; ++i ) {
+					if( _rgRasters[i].Count == 1 ) {
 						meanx += i;
-						meany += rgData[i];
+						meany += _rgRasters[i].Datum.Position;
 						++iCount;
 					}
 				}
@@ -857,10 +871,10 @@ namespace Play.Sound {
 				double dxsq = 0;
 				double dxdy = 0;
 
-				for( int i =0; i < iY; ++i ) {
-					if( this[i] > 0 ) {
+				for( int i =0; i < _rgRasters.Length; ++i ) {
+					if( _rgRasters[i].Count == 1 ) {
 						double dx = (double)i - meanx;
-						double dy = (double)rgData[i] - meany;
+						double dy = (double)_rgRasters[i].Datum.Position - meany;
 
 						dxdy += dx * dy;
 						dxsq += Math.Pow( dx, 2 );
@@ -872,6 +886,9 @@ namespace Play.Sound {
 
 				dblSlope     = dxdy / dxsq;
 				dblIntercept = meany - dblSlope * meanx;
+
+				if( dblIntercept < 0 )
+					dblIntercept += dblSlope;
 			} catch( Exception oEx ) {
 				Type[] rgErrors = { typeof( ArithmeticException ),
 									typeof( NullReferenceException ),
@@ -887,14 +904,25 @@ namespace Play.Sound {
 		}
 
 		public void Shuffle( double dblScanWidthInSamples ) {
-			for( int i=0; i<_rgSyncDetect.Length; ++i )
-				_rgSyncDetect[i] = -1;
-
+			for( int i=0; i<_rgRasters.Length; ++i ) {
+				_rgRasters[i].Datum = null;
+				_rgRasters[i].Count = 0;
+			}
 			foreach( MyDatum oDatum in _rgData ) {
-				oDatum.Bucket = oDatum.Offset / dblScanWidthInSamples;
-				int iBucket = (int)oDatum.Bucket;
-				if( _rgSyncDetect[ iBucket ] == -1 )
-					_rgSyncDetect[ iBucket ] = oDatum.Offset;
+				oDatum.Bucket = Math.Round( oDatum.Position / dblScanWidthInSamples );
+				RasterAdd( (int)oDatum.Bucket, oDatum );
+			}
+		}
+
+		public int this [ int iIndex ] { 
+			get { 
+				if( _rgRasters[iIndex].Datum == null )
+					return -1;
+
+				if( iIndex != _rgRasters[iIndex].Datum.Bucket )
+					throw new InvalidProgramException( "Bucket doesn't match raster index" );
+
+				return _rgRasters[iIndex].Datum.Position; 
 			}
 		}
 
