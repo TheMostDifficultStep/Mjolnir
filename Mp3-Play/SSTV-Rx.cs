@@ -716,6 +716,7 @@ namespace Play.Sound {
 			public MyDatum( double Bucket, int Position ) {
 				this.Bucket   = Bucket;
 				this.Position = Position;
+				this.Next     = null;
 			}
 			public double  Bucket { get; set; }
 			public int     Position { get; }
@@ -743,7 +744,7 @@ namespace Play.Sound {
 		int    _iW           = 0;
 		double _SLvl         = 0;
 		int[]  _rgWindow;
-		bool   _fLastTrigger = false;
+		bool   _fTriggered   = false;
 
 		readonly List<MyDatum> _rgData = new(1000);
 		readonly RasterEntry[] _rgRasters = new RasterEntry[850];
@@ -768,13 +769,13 @@ namespace Play.Sound {
 		}
 
 		public void Reset() {
-			//for( int i = 0; i<_rgWindow.Length; ++i )
-			//	_rgWindow[i] = 0;
+			_fTriggered = false;
 
-			_fLastTrigger = false;
-
-			Array.Clear( _rgWindow,  0, _rgWindow .Length );
-			Array.Clear( _rgRasters, 0, _rgRasters.Length );
+			Array.Clear( _rgWindow, 0, _rgWindow .Length );
+			for( int i=0; i<_rgRasters.Length; ++i ) {
+				_rgRasters[i].Count = -1;
+				_rgRasters[i].Datum = null;
+			}
 
 			_rgData.Clear();
 
@@ -822,17 +823,17 @@ namespace Play.Sound {
 				_rgWindow[_iW] = iSig;
 				_iW            = (_iW + 1) % i2Xl; 
 
-				// Only catch on a rising trigger.
 				if( _iWindowSum >= _iWindowHit ) {
-					if( _fLastTrigger == false ) {
-						_fLastTrigger = true;
+					// Only catch on a rising trigger.
+					if( _fTriggered == false ) {
+						_fTriggered = true;
 						MyDatum oDatum = new ( Bucket:dblBucket, Position:iOffset );
 						_rgData.Add( oDatum );
-						RasterAdd( (int)dblBucket, oDatum );
 						return true;
 					}
 				} else {
-					_fLastTrigger = false;
+					// When we finally exit the window re-set the trigger.
+					_fTriggered = false;
 				}
 			} catch( Exception oEx ) {
 				Type[] rgErrors = { typeof( NullReferenceException ),
@@ -903,14 +904,104 @@ namespace Play.Sound {
 			return true;
 		}
 
+		/// <summary>
+		/// Clear the rasters and reset the bucket on each datm
+		/// based on the new scan width parameter. Then reload
+		/// the rasters.
+		/// </summary>
+		/// <param name="dblScanWidthInSamples"></param>
 		public void Shuffle( double dblScanWidthInSamples ) {
-			for( int i=0; i<_rgRasters.Length; ++i ) {
-				_rgRasters[i].Datum = null;
-				_rgRasters[i].Count = 0;
+			try {
+				for( int i=0; i<_rgRasters.Length; ++i ) {
+					_rgRasters[i].Datum = null;
+					_rgRasters[i].Count = 0;
+				}
+				foreach( MyDatum oDatum in _rgData ) {
+					oDatum.Bucket = Math.Round( oDatum.Position / dblScanWidthInSamples );
+					RasterAdd( (int)oDatum.Bucket, oDatum );
+				}
+			} catch( Exception oEx ) {
+				Type[] rgErrors = { typeof( NullReferenceException ),
+									typeof( IndexOutOfRangeException ) };
+				if( !rgErrors.Contains( oEx.GetType() ) )
+					throw;
 			}
-			foreach( MyDatum oDatum in _rgData ) {
-				oDatum.Bucket = Math.Round( oDatum.Position / dblScanWidthInSamples );
-				RasterAdd( (int)oDatum.Bucket, oDatum );
+		}
+
+		/// <summary>
+		/// Call Shuffle() once and AlignLeastSquares() to get usable slope and 
+		/// itercept. This algorithm will fill in holes and try to choose the best
+		/// sync on a line with noisy data.
+		/// </summary>
+		/// <param name="dblSlope"></param>
+		/// <param name="dblIntercept"></param>
+		public void Interpolate( int iScanMax, double dblSlope, double dblIntercept ) {
+			try {
+				for( int i=0; i<iScanMax; ++i ) {
+					int iEstimatedOffset = (int)Math.Round( dblSlope * i + dblIntercept );
+
+					if( _rgRasters[i].Count > 1 ) {
+						int     iDelta  = int.MaxValue;
+						MyDatum oTest   = _rgRasters[i].Datum;
+						MyDatum oBest   = oTest;
+
+						for( int j=0; j<5; ++j ) {
+							if( oTest != null ) {
+								int iTestDelta = oBest.Position - iEstimatedOffset;
+								if( Math.Abs( iTestDelta ) < iDelta ) {
+									oBest = oTest;
+									iDelta = iTestDelta;
+								}
+								oTest = oTest.Next;
+							}
+						}
+						if( oTest != null ) {
+							// Looks like too many hits, just use the estimated value.
+							_rgRasters[i].Datum = new MyDatum( i, iEstimatedOffset );
+							_rgRasters[i].Count = 1;
+						} else {
+							// Promote the best node.
+							oTest = _rgRasters[i].Datum; 
+							_rgRasters[i].Datum = oBest;
+							oTest.Next = oBest.Next;
+							oBest.Next = oTest;
+							_rgRasters[i].Count = 1; // Don't re-calc.
+						}
+					} else {
+						if( _rgRasters[i].Count == 0 ) {
+							_rgRasters[i].Datum = new MyDatum( i, iEstimatedOffset );
+							_rgRasters[i].Count = 1;
+                        }
+                    }
+
+                }
+			} catch( Exception oEx ) {
+				Type[] rgErrors = { typeof( NullReferenceException ),
+									typeof( IndexOutOfRangeException ) };
+				if( !rgErrors.Contains( oEx.GetType() ) )
+					throw;
+			}
+		}
+
+		/// <summary>
+		/// Quick and dirty alignment based on the estimated scan width and start point.
+		/// </summary>
+		/// <param name="iScanMax">Maximum Scan Lines.</param>
+		/// <param name="rgRasters">Start point array.</param>
+		/// <param name="dblSlope">Scan line width in samples per ms.</param>
+		/// <param name="dblIntercept">First usable scan line stream point.</param>
+		public void Interpolate2( int iScanMax, int[] rgRasters, double dblSlope, double dblIntercept ) {
+			try {
+				for( int i=0; i<iScanMax; ++i ) {
+					int iEstimatedOffset = (int)Math.Round( dblSlope * i + dblIntercept );
+
+					rgRasters[i] = iEstimatedOffset;
+                }
+			} catch( Exception oEx ) {
+				Type[] rgErrors = { typeof( NullReferenceException ),
+									typeof( IndexOutOfRangeException ) };
+				if( !rgErrors.Contains( oEx.GetType() ) )
+					throw;
 			}
 		}
 
@@ -925,26 +1016,6 @@ namespace Play.Sound {
 				return _rgRasters[iIndex].Datum.Position; 
 			}
 		}
-
-		//public bool WinnowData( int iY, out double dblSlope, out double dblIntercept ) {
-		//	if( AlignLeastSquares( _rgSyncDetect, iY, out dblSlope, out dblIntercept ) ) {
-		//		for( int i = 0; i<iY; ++i ) {
-		//			double dblExpected = i * dblSlope + dblIntercept;
-		//			double dblDelta    = .3 * _iWindowSizeInSamples;
-		//			double dblHigh     = dblExpected + dblDelta;
-		//			double dblLow      = dblExpected - dblDelta;
-		//			int    iValue      = _rgSyncDetect[i];
-
-		//			if( dblLow < iValue && iValue < dblHigh ) {
-		//				_rgThinner[i] = iValue;
-		//			} else {
-		//				_rgThinner[i] = -1;
-		//			}
-		//		}
-		//		return AlignLeastSquares( _rgThinner, iY, out dblSlope, out dblIntercept );
-		//	}
-		//	return false;
-		//}
 	}
 
 	public enum SeekPoint {

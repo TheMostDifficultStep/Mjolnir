@@ -24,7 +24,7 @@ namespace Play.SSTV
         protected readonly SSTVMode _oFixedMode;
 
         public SSTVMode NextMode => RxSSTV.Mode;
-        public SSTVDraw  RxSSTV   { get; protected set; }
+        public SSTVDraw RxSSTV   { get; protected set; }
 
         SSTVDEM        _oSSTVDeModulator;
 

@@ -29,6 +29,9 @@ namespace Play.SSTV {
 	    protected short[]  m_Y36 = new short[800];
 	    protected short[,] m_D36 = new short[2,800];
 
+		protected int      _iLastAlign = -1;
+		protected int[]    _rgRasters = new int[800];
+
 		short[] _pCalibration = null; // Not strictly necessary yet.
 
 		SKCanvas _skCanvas;
@@ -85,6 +88,8 @@ namespace Play.SSTV {
 			_dblReadBaseSgnl =  0;
 			m_AY			 = -5;
 			_iSyncCheck      =  4; // See SSTVSync()
+
+			_iLastAlign = -1;
 			
 			Slider.Reset( SpecWidthInSamples, (int)(Mode.WidthSyncInMS * _dp.SampFreq / 1000) );
 
@@ -254,140 +259,6 @@ namespace Play.SSTV {
 		}
 
 		/// <summary>
-		/// Call this to attempt a re-align of the image.
-		/// </summary>
-		/// <remarks>This is getting better, but it is still sensitive to spurious
-		/// hsync hits. I'm going to try to filter out points that don't fit
-		/// on the prevailing line.</remarks>
-		protected bool Align( int iScanLine ) {
-			double slope     = 0;
-			double intercept = 0;
-
-			Slider.Shuffle( SpecWidthInSamples );
-
-			if( Slider.AlignLeastSquares( ref slope, ref intercept ) ) {
-				InitSlots( Mode.Resolution.Width, slope / SpecWidthInSamples );
-
-				Slider.Shuffle( slope );
-
-				if( Slider.AlignLeastSquares( ref slope, ref intercept ) ) {
-					// OffsetInMS is where scan data begins after the sync.
-					double dblStart = _dp.Mode.OffsetInMS * _dp.SampFreq / 1000;
-					double dblDiff  = intercept - dblStart;
-
-					if( dblDiff > 0 ) {
-						_dblReadBaseSgnl = dblDiff;
-					} else {
-						_dblReadBaseSgnl = dblDiff + ScanWidthInSamples;
-					}
-					//Slider.Reset( /* slope, (int)(Mode.WidthSyncInMS * _dp.SampFreq / 1000) */ );
-				}
-				return true;
-			}
-			return false;
-		}
-
-		/// <summary>
-		/// This code both tracks the hsync signal, drawing it to the B12 diagnositc
-		/// bitmap, AND pulls the RX signal, drawing that to the BRX bitmap.
-		/// This is the old way of doing it.
-		/// </summary>
-		/// <remarks>
-		/// Turns out we end up redoing both that work every time we do a alignment
-		/// reset. That's unncessary. I'm going to make a new indexer so we can
-		/// track each separately. Only the BRX image needs to be reset since 
-		/// it benefits from the collection of sync data.</remarks>
-		[Obsolete]protected void DrawScan() {
-			int    dx          = -1; // Saved X pos from the B12 buffer.
-			int    rx          = -1; // Saved X pos from the Rx  buffer.
-			int    ch          =  0; // current channel skimming the Rx buffer portion.
-			double dbScanWidth = ScanWidthInSamples;
-			int    iScanWidth  = (int)Math.Round( dbScanWidth );
-			int    rBase       = (int)Math.Round( _dblReadBaseSgnl );
-			double dbD12XScale = _pBitmapD12.Width / dbScanWidth;
-			int    iSyncWidth  = (int)(Mode.WidthSyncInMS * _dp.SampFreq / 1000 );
-
-			try { 
-				int iScanLine = (int)Math.Round(rBase/dbScanWidth);
-				//if( Slider[iScanLine] > -1 ) -- This can only work if we pre process
-				//	rBase = Slider[iScanLine]; -- the d12 first, then check this.
-
-			    m_AY = iScanLine * LineMultiplier; // PD needs us to use Round (.999 is 1)
-				if( (m_AY < 0) || (m_AY >= _pBitmapRX.Height) )
-					return;
-
-				for( int i = 0; i < iScanWidth; i++ ) { 
-					int   idx = rBase + i;
-					short d12 = _dp.SyncGet( idx );
-
-					#region D12
-					bool fHit = Slider.LogSync( idx, d12 );
-
-					int x = (int)( i * dbD12XScale );
-					if( (x != dx) && (x >= 0) && (x < _pBitmapD12.Width)){
-						int d = Limit256((short)(d12 * 256F / 4096F));
-						if( fHit ) {
-							_pBitmapD12.SetPixel( x, m_AY, SKColors.Red );
-						} else
-							_pBitmapD12.SetPixel( x, m_AY, new SKColor( (byte)d, (byte)d, (byte)d ) );
-						dx = x;
-					}
-					#endregion
-
-					do {
-						ColorChannel oChannel = _rgSlots[ch];
-						if( i < oChannel.Max ) {
-							if( oChannel.SetPixel != null ) {
-								x = (int)((i - oChannel.Min) * oChannel.Scaling );
-								if( (x != rx) && (x >= 0) && (x < _pBitmapRX.Width) ) {
-									rx = x; oChannel.SetPixel( x, _dp.SignalGet( idx ) );
-								}
-							}
-							break;
-						}
-					} while( ++ch < _rgSlots.Count );
-					// We'll throw an exception before ever getting to the bottom.
-				} // End for
-			} catch( Exception oEx ) {
-				Type[] rgErrors = { typeof( ArgumentOutOfRangeException ),
-									typeof( IndexOutOfRangeException ),
-									typeof( NullReferenceException ),
-									typeof( DivideByZeroException )
-								  };
-				if( rgErrors.IsUnhandled( oEx ) )
-					throw;
-
-				ShoutTvEvents?.Invoke( ESstvProperty.ThreadDrawingException );
-			}
-		}
-
-		/// <summary>
-		/// Call this function periodically to collect the sstv scan lines.
-		/// This is the old way of doing it.
-		/// </summary>
-		/// <remarks>This function will loop until the rPage catches up with the wPage. 
-		/// </remarks>
-		[Obsolete]public void DrawProcess() {
-			while( _dp.m_Sync && (_dp.m_wBase >= _dblReadBaseSgnl + ScanWidthInSamples ) ){
-				DrawScan();
-
-				_dblReadBaseSgnl += ScanWidthInSamples;
-
-				if( (int)(_dp.m_wBase / ScanWidthInSamples ) % 20 == 19 ) {
-					Align( m_AY );
-					break;
-				}
-
-				if( m_AY >= _dp.Mode.Resolution.Height ){ 
-					Stop();
-					break;
-				} else {
-					ShoutTvEvents?.Invoke( ESstvProperty.DownLoadTime );
-				}
-			}
-		}
-
-		/// <summary>
 		/// Process the Sync data buffer. We make only one pass the the buffer now.
 		/// Draw on the D12 buffer sync diagnostics so we can see what we are doing.
 		/// </summary>
@@ -396,32 +267,41 @@ namespace Play.SSTV {
 		/// <returns>The input base plus the SpecLineWidthInSamples.</returns>
 		public double ProcessSync( double dblBase ) {
 			int    iBase       = (int)Math.Round( dblBase );
-			int    iScanWidth  = (int)Math.Round( SpecWidthInSamples );
-			double dbD12XScale = _pBitmapD12.Width / SpecWidthInSamples;
+			int    iScanWidth  = (int)Math.Round( ScanWidthInSamples );
+			double dbD12XScale = _pBitmapD12.Width / ScanWidthInSamples;
 			int    iSyncWidth  = (int)( Mode.WidthSyncInMS * _dp.SampFreq / 1000 * dbD12XScale );
-			int    iScanLine   = (int)Math.Round( dblBase / SpecWidthInSamples );
+			int    iScanLine   = (int)Math.Round( dblBase / ScanWidthInSamples );
 
-			for( int i = 0; i < iScanWidth; i++ ) { 
-				int   idx = iBase + i;
-				short d12 = _dp.SyncGet( idx );
-				bool fHit = Slider.LogSync( idx, d12 );
+			try {
+				for( int i = 0; i < iScanWidth; i++ ) { 
+					int   idx = iBase + i;
+					short d12 = _dp.SyncGet( idx );
+					bool fHit = Slider.LogSync( idx, d12 );
 
-				int x = (int)( i * dbD12XScale );
-				if( (x >= 0) && (x < _pBitmapD12.Width)) {
-					int d = Limit256((short)(d12 * 256F / 4096F));
-					if( fHit ) {
-						_skCanvas.DrawLine( new SKPointI( x - iSyncWidth, iScanLine ), new SKPointI( x, iScanLine ), _skPaint);
-					} else {
-						_pBitmapD12.SetPixel( x, iScanLine, new SKColor( (byte)d, (byte)d, (byte)d ) );
+					int x = (int)( i * dbD12XScale );
+					if( (x >= 0) && (x < _pBitmapD12.Width)) {
+						int d = Limit256((short)(d12 * 256F / 4096F));
+						if( fHit ) {
+							_skCanvas.DrawLine( new SKPointI( x - iSyncWidth, iScanLine ), new SKPointI( x, iScanLine ), _skPaint);
+						} else {
+							_pBitmapD12.SetPixel( x, iScanLine, new SKColor( (byte)d, (byte)d, (byte)d ) );
+						}
 					}
 				}
+			} catch( Exception oEx ) {
+				Type[] rgErrors = { typeof( ArgumentOutOfRangeException ),
+									typeof( NullReferenceException ) };
+				if( rgErrors.IsUnhandled( oEx ) )
+					throw;
+
+				ShoutTvEvents?.Invoke( ESstvProperty.ThreadDrawingException );
 			}
 
-			return( dblBase + SpecWidthInSamples );
+			return( dblBase + ScanWidthInSamples );
 		}
 
 		/// <summary>
-		/// This the new scan line processor. Unlike the ProcessSync() function
+		/// This the second new scan line processor. Unlike the ProcessSync() function
 		/// this one will be re-started from the beginning after a handfull of
 		/// sync lines are processed. The idea is that we slowly refine our 
 		/// measurement of the image and so need to redraw it. The signal buffer is
@@ -429,63 +309,15 @@ namespace Play.SSTV {
 		/// I might cut it down in the future. But it makes sence that you really
 		/// can't draw the image properly until it has been received in it's entirety.
 		/// </summary>
-		protected void ProcessScan() {
+		protected void ProcessScan( int iScanLine ) {
 			int    rx          = -1; // Saved X pos from the Rx buffer.
 			int    ch          =  0; // current channel skimming the Rx buffer portion.
-			double dbScanWidth = ScanWidthInSamples;
-			int    iScanWidth  = (int)Math.Round( dbScanWidth );
-			int    rBase       = (int)Math.Round( _dblReadBaseSgnl );
+			int    iScanWidth  = (int)Math.Round( ScanWidthInSamples );
 
 			try { 
-				int iScanLine = (int)Math.Round(rBase/dbScanWidth);
-				//if( Slider[iScanLine] > -1 )   // This can only work if we pre process
-				//	rBase = Slider[iScanLine]; // the d12 first, then check this.
+				int rBase = _rgRasters[iScanLine];
 
-			    m_AY = iScanLine * LineMultiplier; // PD needs us to use Round (.999 is 1)
-				if( (m_AY < 0) || (m_AY >= _pBitmapRX.Height) )
-					return;
-
-				for( int i = 0; i < iScanWidth; i++ ) { 
-					int idx = rBase + i;
-
-					do {
-						ColorChannel oChannel = _rgSlots[ch];
-						if( i < oChannel.Max ) {
-							if( oChannel.SetPixel != null ) {
-								int x = (int)((i - oChannel.Min) * oChannel.Scaling );
-								if( (x != rx) && (x >= 0) && (x < _pBitmapRX.Width) ) {
-									rx = x; oChannel.SetPixel( x, _dp.SignalGet( idx ) );
-								}
-							}
-							break;
-						}
-					} while( ++ch < _rgSlots.Count );
-					// We'll throw an exception before ever getting to the bottom.
-				} // End for
-			} catch( Exception oEx ) {
-				Type[] rgErrors = { typeof( ArgumentOutOfRangeException ),
-									typeof( IndexOutOfRangeException ),
-									typeof( NullReferenceException ),
-									typeof( DivideByZeroException )
-								  };
-				if( rgErrors.IsUnhandled( oEx ) )
-					throw;
-
-				ShoutTvEvents?.Invoke( ESstvProperty.ThreadDrawingException );
-			}
-		}
-
-		protected void ProcessScan2( int iScanLine, int rBase ) {
-			int    rx          = -1; // Saved X pos from the Rx buffer.
-			int    ch          =  0; // current channel skimming the Rx buffer portion.
-			double dbScanWidth = ScanWidthInSamples;
-			int    iScanWidth  = (int)Math.Round( dbScanWidth );
-
-			try { 
-				//if( Slider[iScanLine] > -1 )   // This can only work if we pre process
-				//	rBase = Slider[iScanLine]; // the d12 first, then check this.
-
-			    m_AY = iScanLine * LineMultiplier; // PD needs us to use Round (.999 is 1)
+			    m_AY = iScanLine * LineMultiplier; 
 				if( (m_AY < 0) || (m_AY >= _pBitmapRX.Height) )
 					return;
 
@@ -523,32 +355,33 @@ namespace Play.SSTV {
 			while( _dp.m_Sync && (_dp.m_wBase > _dblReadBaseSync + SpecWidthInSamples ) ) {
 				_dblReadBaseSync = ProcessSync( _dblReadBaseSync );
 
-				//int iScanLine = (int)(_dp.m_wBase / SpecWidthInSamples );
-				//if( iScanLine % 20 == 19 ) {
-				//	Align( iScanLine );
-				//}
 				ShoutTvEvents?.Invoke( ESstvProperty.DownLoadTime );
 			}
 
-			//while( _dp.m_Sync && (_dp.m_wBase > _dblReadBaseSgnl + ScanWidthInSamples ) ) {
-			//	ProcessScan();
-
-			//	_dblReadBaseSgnl += ScanWidthInSamples;
-
-			//	if( m_AY >= _dp.Mode.Resolution.Height ) { 
-			//		Stop();
-			//		break;
-			//	}
-			//}
 			if( _dp.m_Sync ) {
 				try {
-					int iScanLine = (int)(_dp.m_wBase / SpecWidthInSamples );
-					int iOffset   = (int)(Mode.OffsetInMS * _dp.SampFreq / 1000);
+					int iScanLine = (int)(_dp.m_wBase / ScanWidthInSamples );
 					if( iScanLine % 20 == 19 ) {
-						for( int i = 0; i<iScanLine; ++i ) {
-							int rBase = Slider[i];
-							if( rBase != -1 )
-								ProcessScan2( i, rBase - iOffset );
+						double dblSlope     = 0;
+						double dblIntercept = 0;
+						int    iScanLines   = Mode.Resolution.Height / Mode.ScanMultiplier;
+
+						if( _iLastAlign < iScanLine) {
+							// Clear's the sync data and force re-read from the buffer.
+							Slider.Shuffle( ScanWidthInSamples );
+							if( Slider.AlignLeastSquares( ref dblSlope, ref dblIntercept ) ) {
+								int iSyncWidth = (int)(Mode.OffsetInMS * _dp.SampFreq / 1000);
+								dblIntercept -=iSyncWidth;
+								Slider.Interpolate2     ( iScanLines, _rgRasters, dblSlope, dblIntercept );
+								Slider.Reset            ( dblSlope,  (int)(Mode.WidthSyncInMS * _dp.SampFreq / 1000) );
+
+								InitSlots( Mode.Resolution.Width, dblSlope / SpecWidthInSamples );
+								_dblReadBaseSync = 0;
+								_iLastAlign      = iScanLine;
+							}
+							for( int i = 0; i<iScanLine; ++i ) {
+								ProcessScan( i );
+							}
 						}
 					}
 				} catch( Exception oEx ) {

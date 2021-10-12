@@ -1027,11 +1027,12 @@ namespace Play.SSTV {
             }
         }
 
-		/// <summary>
+		/// <summary> Another initial test run, before created the worker task.
 		/// Note that we don't take the mode in this task since we want it
 		/// to be divined from the VIS by the SSTVDEM object.
 		/// </summary>
 		/// <returns>Time to wait until next call in ms.</returns>
+        /// <remarks>Probably going to delete this eventually.</remarks>
         public IEnumerator<int> GetRecorderTask() {
             _oSSTVDeModulator.ShoutNextMode += ListenNextRxMode; // BUG: no need to do every time.
             do {
@@ -1040,7 +1041,7 @@ namespace Play.SSTV {
                         _oSSTVDeModulator.Do( _oSSTVBuffer.ReadOneSample() );
                     }
 					if( _oRxSSTV != null ) {
-						_oRxSSTV.DrawProcess();
+						_oRxSSTV.Process();
 					}
 				} catch( Exception oEx ) {
                     Type[] rgErrors = { typeof( NullReferenceException ),
@@ -1134,7 +1135,7 @@ namespace Play.SSTV {
 			_oSSTVDeModulator.Start( oMode );
 
             while( oIter.MoveNext() ) {
-				_oRxSSTV.DrawProcess();
+				_oRxSSTV.Process();
 				yield return 1;
 			};
 			SaveRxImage();
