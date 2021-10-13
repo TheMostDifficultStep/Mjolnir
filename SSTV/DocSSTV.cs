@@ -29,6 +29,7 @@ namespace Play.SSTV {
             Resolution,
             Detect_Vis,
             Progress,
+            SaveDir,
             MAX
         }
 
@@ -48,6 +49,7 @@ namespace Play.SSTV {
             LabelSet( Names.Resolution, "Resolution" );
             LabelSet( Names.Detect_Vis, "Detect VIS", new SKColor( red:0xff, green:0xbf, blue:0 ) );
             LabelSet( Names.Progress,   "Received" );
+            LabelSet( Names.SaveDir,    "Save Directory" );
 
             Clear();
 
@@ -562,9 +564,11 @@ namespace Play.SSTV {
                 oBulk.LineTextInsert( 3, 0, strLoadDir, 0, strLoadDir.Length );
                 oBulk.LineTextInsert( 4, 0, strSaveDir, 0, strSaveDir.Length );
             }
+
+            RxProperties.ValueUpdate( RxProperties.Names.SaveDir, strSaveDir );
         }
 
-        protected void PropertiesReLoad() {
+        protected void PropertiesTxReLoad() {
 			string strFileName = Path.GetFileName( TxImageList.CurrentFileName );
 
             if( TxImageList.Bitmap != null ) {
@@ -708,7 +712,7 @@ namespace Play.SSTV {
                     PropertiesSendTime();
                     break;
                 default:
-                    PropertiesReLoad();
+                    PropertiesTxReLoad();
                     break;
             }
             PropertyChange?.Invoke( eProp );
@@ -968,20 +972,29 @@ namespace Play.SSTV {
         }
 
 		private void SaveRxImage() {
-			if( ReceiveImage.Bitmap == null )
-				return;
+            try {
+			    if( ReceiveImage.Bitmap == null )
+				    return;
 
-			string strSave = Settings_Values[4].ToString();
+			    string strSave = Settings_Values[4].ToString();
                 
-            if( !int.TryParse( Settings_Values[3].ToString(), out int iQuality ) )
-                iQuality = 80;
+                if( !int.TryParse( Settings_Values[3].ToString(), out int iQuality ) )
+                    iQuality = 80;
 
-			using SKImage image  = SKImage.FromBitmap(ReceiveImage.Bitmap);
-			using var     data   = image.Encode( SKEncodedImageFormat.Png, iQuality );
-            using var     stream = File.OpenWrite( Path.Combine( strSave, "testmeh.png") );
+                string strSource = Path.GetFileNameWithoutExtension( Chooser.CurrentFullPath );
 
-            data.SaveTo(stream);
-            ModeList.HighLight = null;
+                //using SKImage image  = SKImage.FromBitmap(ReceiveImage.Bitmap);
+			    using SKData  data   = ReceiveImage.Bitmap.Encode( SKEncodedImageFormat.Png, iQuality );
+                using var     stream = File.OpenWrite( Path.Combine( strSave, strSource + ".png") );
+
+                data.SaveTo(stream);
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( NullReferenceException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
+
+                LogError( "Exception in Save" );
+            }
 		}
 
 		/// <summary>
@@ -1022,6 +1035,7 @@ namespace Play.SSTV {
 
             switch( eProp ) {
                 case ESstvProperty.DownLoadFinished:
+                    ModeList.HighLight = null;
                     SaveRxImage();
                     break;
             }

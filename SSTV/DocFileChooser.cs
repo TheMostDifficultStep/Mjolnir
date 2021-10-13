@@ -9,6 +9,8 @@ using Play.Parse;
 using System.Drawing;
 
 namespace Play.SSTV {
+    public delegate void DirectoryUpdated( string strDirectory );
+
     public class FileChooser : 
         IPgParent,
         IPgCommandBase,
@@ -30,6 +32,8 @@ namespace Play.SSTV {
 
         protected DirectoryInfo _oDirectory;
         public    FileEditor    FileList { get; }
+
+        public event DirectoryUpdated DirectoryChange;
 
         public class DirectoryHyperLink : IPgWordRange {
             readonly int _iLength;
@@ -84,6 +88,7 @@ namespace Play.SSTV {
         }
 
         public void Raise_TextLoaded() {
+            DirectoryChange?.Invoke( CurrentDirectory );
         }
 
         public string CurrentDirectory {
@@ -307,9 +312,6 @@ namespace Play.SSTV {
 				return false;
 			}
 
-            // this would be a good place to send a filelist loadeded event.
-            Raise_TextLoaded();
-
 			bool fNullOldDir = _oDirectory == null; // old dir is null first time around.
 				
 			if( !fNullOldDir )
@@ -317,6 +319,8 @@ namespace Play.SSTV {
 
 			_oDirectory = oDirectory;
             
+            Raise_TextLoaded();
+
             return true;
         }
 

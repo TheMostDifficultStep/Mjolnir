@@ -319,7 +319,7 @@ namespace Play.SSTV {
 		public static string _strIcon =  "Play.SSTV.icons8_tv.png";
 
         public Guid   Catagory => GUID;
-        public string Banner   => _strBanner;
+        public string Banner   => _strBaseTitle + _strDirectory;
         public Image  Iconic   { get; protected set; }
         public bool   IsDirty  => false;
 
@@ -328,7 +328,7 @@ namespace Play.SSTV {
 		readonly  List<string>  _rgToolBox     = new() { "File", "Port" };
 		protected Tools         _eToolSelected = Tools.File;
 		protected static string _strBaseTitle  = "MySSTV Receive";
-		protected string        _strBanner     = _strBaseTitle;
+		protected        string _strDirectory  = string.Empty;
 
         DocSSTV _oDocSSTV;
 
@@ -382,7 +382,8 @@ namespace Play.SSTV {
 
         protected override void Dispose( bool fDisposing ) {
 			if( fDisposing && !_fDisposed ) {
-				_oDocSSTV.PropertyChange -= ListenDoc_PropertyChange;
+				_oDocSSTV.PropertyChange          -= ListenDoc_PropertyChange;
+				_oDocSSTV.Chooser.DirectoryChange -= Chooser_OnDirectoryChange;
 			}
 			base.Dispose( fDisposing );
         }
@@ -391,9 +392,17 @@ namespace Play.SSTV {
             if( !base.InitNew() )
 				return false;
 
-            _oDocSSTV.PropertyChange += ListenDoc_PropertyChange;
+            _oDocSSTV.PropertyChange          += ListenDoc_PropertyChange;
+            _oDocSSTV.Chooser.DirectoryChange += Chooser_OnDirectoryChange;
 
+			// Of course we'll blow up the shell if try in the constructor...
+			Chooser_OnDirectoryChange( _oDocSSTV.Chooser.CurrentDirectory );
 			return true;
+        }
+
+        private void Chooser_OnDirectoryChange( string strDirectory ) {
+			_strDirectory = " : " + strDirectory;
+			_oSiteView.Notify( ShellNotify.BannerChanged );
         }
 
         /// <summary>
@@ -418,8 +427,6 @@ namespace Play.SSTV {
 				switch( _eToolSelected ) {
 					case Tools.File: {
 						// BUG: This should have been updated as the user selects files in the options chooser.
-						_strBanner = _strBaseTitle + " : " + _oDocSSTV.Chooser.CurrentFullPath;
-						_oSiteView.Notify( ShellNotify.BannerChanged );
 						bool fDetectVIS = _oDocSSTV.RxProperties[(int)RxProperties.Names.Detect_Vis].Compare( "true", IgnoreCase:true ) == 0;
 						_oDocSSTV.RecordBeginFileRead2( _oDocSSTV.Chooser.CurrentFullPath, DetectVIS:fDetectVIS );
 						return true;
