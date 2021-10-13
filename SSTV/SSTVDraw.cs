@@ -17,6 +17,7 @@ namespace Play.SSTV {
         protected readonly SSTVDEM _dp;
 
 		public SSTVMode Mode => _dp.Mode;
+		public DateTime StartTime { get; protected set; }
 
 		protected double   _dblReadBaseSync = 0;
 		protected double   _dblReadBaseSgnl = 0;
@@ -81,7 +82,7 @@ namespace Play.SSTV {
 			_iLastAlign      = -1;
 			_dblReadBaseSync =  0;
 			_dblReadBaseSgnl =  0;
-			_AY			 = -5;
+			_AY				 = -5;
 
 			Slider.Reset( SpecWidthInSamples, (int)(Mode.WidthSyncInMS * _dp.SampFreq / 1000) );
 
@@ -105,7 +106,7 @@ namespace Play.SSTV {
 				ShoutTvEvents?.Invoke(ESstvProperty.RXImageNew );
 			}
 
-			//::GetUTC(&m_StartTime);
+			StartTime = DateTime.Now;
         }
 
 		/// <summary>
@@ -138,8 +139,7 @@ namespace Play.SSTV {
 		}
 
 		/// <summary>
-		/// Size of the scan line width corrected image not including
-		/// VIS preamble.
+		/// Size of the scan line width corrected image not including VIS preamble.
 		/// </summary>
 		public double ImageSizeInSamples {
 			get {
@@ -167,8 +167,7 @@ namespace Play.SSTV {
 			}
 		}
 
-		protected static void YCtoRGB( out short R, out short G, out short B, int Y, int RY, int BY)
-		{
+		protected static void YCtoRGB( out short R, out short G, out short B, int Y, int RY, int BY ) {
 			Y -= 16;
 			R = (short)(1.164457*Y + 1.596128*RY );
 			G = (short)(1.164457*Y - 0.813022*RY - 0.391786*BY );
@@ -177,8 +176,7 @@ namespace Play.SSTV {
 			LimitRGB( ref R, ref G, ref B);
 		}
 
-		protected static void LimitRGB( ref short R, ref short G, ref short B)
-		{
+		protected static void LimitRGB( ref short R, ref short G, ref short B ) {
 			R = Limit256(R);
 			G = Limit256(G);
 			B = Limit256(B);
@@ -217,8 +215,6 @@ namespace Play.SSTV {
 				}
             }
         }
-
-		protected int LineMultiplier { get; set; }
 
 		/// <summary>
 		/// This is a whole hot mess of stuff and I'm not going to port it for now.
@@ -296,11 +292,15 @@ namespace Play.SSTV {
 		/// we can pick up corrections to the width. That way we can calculate the
 		/// intercept.</remarks>
 		public double ProcessSync( double dblBase ) {
-			int    iReadBase   = (int)Math.Round( dblBase );
-			int    iScanWidth  = (int)Math.Round( ScanWidthInSamples );
+			int    iReadBase   = (int)dblBase;
+			int    iScanWidth  = (int)ScanWidthInSamples; // Make sure this matches our controlling loop!!
 			double dbD12XScale = _pBitmapD12.Width / ScanWidthInSamples;
 			int    iSyncWidth  = (int)( Mode.WidthSyncInMS * _dp.SampFreq / 1000 * dbD12XScale );
 			int    iScanLine   = (int)Math.Round( dblBase / ScanWidthInSamples );
+
+			// If we can't advance we'll get stuck in an infinite loop on our caller.
+			if( iReadBase + iScanWidth >= _dp.m_wBase )
+				throw new InvalidProgramException( "Hit the rails on the ProcessSync" );
 
 			try {
 				for( int i = 0; i < iScanWidth; i++ ) { 
@@ -347,8 +347,11 @@ namespace Play.SSTV {
 			try { 
 				int rBase = _rgRasters[iScanLine];
 
-			    _AY = iScanLine * LineMultiplier; 
+			    _AY = iScanLine * Mode.ScanMultiplier; 
 				if( (_AY < 0) || (_AY >= _pBitmapRX.Height) )
+					return;
+				// Sometimes we bump the rails. Haven't figured it out yet.
+				if( rBase + iScanWidth >= _dp.m_wBase )
 					return;
 
 				for( int i = 0; i < iScanWidth; i++ ) { 
@@ -386,13 +389,23 @@ namespace Play.SSTV {
 		/// and we read it out here.
 		/// </summary>
 		public void Process() {
-			while( _dp.m_Sync && (_dp.m_wBase > _dblReadBaseSync + SpecWidthInSamples ) ) {
-				_dblReadBaseSync = ProcessSync( _dblReadBaseSync );
-
-				ShoutTvEvents?.Invoke( ESstvProperty.DownLoadTime );
-			}
-
 			if( _dp.m_Sync ) {
+				try {
+					while( _dp.m_wBase > _dblReadBaseSync + ScanWidthInSamples ) {
+						_dblReadBaseSync = ProcessSync( _dblReadBaseSync );
+
+						ShoutTvEvents?.Invoke( ESstvProperty.DownLoadTime );
+					}
+				} catch( Exception oEx ) {
+					Type[] rgErrors = { typeof( NullReferenceException ),
+										typeof( InvalidProgramException ),
+										typeof( IndexOutOfRangeException ) };
+					if( rgErrors.IsUnhandled( oEx ) )
+						throw;
+
+					ShoutTvEvents?.Invoke( ESstvProperty.ThreadDrawingException );
+				}
+
 				try {
 					int iScanLine = (int)(_dp.m_wBase / ScanWidthInSamples );
 					if( iScanLine % 20 == 19 ) {
@@ -406,10 +419,10 @@ namespace Play.SSTV {
 							if( Slider.AlignLeastSquares( ref dblSlope, ref dblIntercept ) ) {
 								int iSyncWidth = (int)(Mode.OffsetInMS * _dp.SampFreq / 1000);
 								dblIntercept -=iSyncWidth;
-								Slider.Reset            ( dblSlope,  (int)(Mode.WidthSyncInMS * _dp.SampFreq / 1000) );
+								Slider.Reset( dblSlope,  (int)(Mode.WidthSyncInMS * _dp.SampFreq / 1000) );
 
 								Interpolate( iScanLines, dblSlope, dblIntercept );
-								InitSlots  ( Mode.Resolution.Width, dblSlope / SpecWidthInSamples );
+								InitSlots  ( Mode.Resolution.Width, dblSlope / SpecWidthInSamples ); // updates the ScanWidthInSamples.
 								_dblReadBaseSync = 0;
 								_iLastAlign      = iScanLine;
 							}
@@ -496,8 +509,6 @@ namespace Play.SSTV {
 		/// <param name="oMode"></param>
 		public void ModeTransition( SSTVMode oMode ) {
 			try {
-				LineMultiplier = oMode.ScanMultiplier;
-
                 _rgSlots.Clear();
 
                 foreach( ScanLineChannel oChannel in oMode.ChannelMap ) {
