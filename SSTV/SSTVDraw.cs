@@ -143,7 +143,11 @@ namespace Play.SSTV {
 		/// </summary>
 		public double ImageSizeInSamples {
 			get {
-				return ScanWidthInSamples * Mode.Resolution.Height / Mode.ScanMultiplier;
+				try {
+					return ScanWidthInSamples * Mode.Resolution.Height / Mode.ScanMultiplier;
+				} catch( NullReferenceException ) {
+					return 1;
+				}
 			}
 		}
 

@@ -565,7 +565,7 @@ namespace Play.SSTV {
         }
 
         protected void PropertiesReLoad() {
-			string strFileName     = Path.GetFileName( TxImageList.CurrentFileName );
+			string strFileName = Path.GetFileName( TxImageList.CurrentFileName );
 
             if( TxImageList.Bitmap != null ) {
                 TxProperties.ValueUpdate( TxProperties.Names.Resolution, new SKSizeI( TxImageList.Bitmap.Width, TxImageList.Bitmap.Height ).ToString() );
@@ -579,7 +579,7 @@ namespace Play.SSTV {
                 strTxMode = TxMode.Name;
 
             TxProperties.ValueUpdate( TxProperties.Names.Mode,     strTxMode ); // BUG: CHeck how this gets updated...
-            TxProperties.ValueUpdate( TxProperties.Names.Progress,     "0%" );
+            TxProperties.ValueUpdate( TxProperties.Names.Progress, "0%" );
             TxProperties.ValueUpdate( TxProperties.Names.FileName, strFileName, Broadcast:true );
 		}
 
@@ -1071,7 +1071,7 @@ namespace Play.SSTV {
         }
 
         /// <summary>
-        /// This is my 2nd test where we generate video and encode it to a 
+        /// This is my 2nd NON threaded test where we generate video and encode it to a 
         /// time varying signal to be decoded by the CSSTVDEM object! Because we're
         /// not intercepting the signal before the VCO we can use the normal 
         /// GeneratorSetup call.
@@ -1095,7 +1095,7 @@ namespace Play.SSTV {
 																	 oFFTMode.SampBase, 
 																	 0 );
 						    _oRxSSTV                = new SSTVDraw( oDemod );
-						    _oRxSSTV.ShoutTvEvents += ListenTvEvents;
+						    _oRxSSTV.ShoutTvEvents += ListenTvEvents; // Since non-threaded, this is ok.
 
 						    _oSSTVDeModulator = oDemod;
 
