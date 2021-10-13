@@ -12,22 +12,17 @@ namespace Play.SSTV {
 	/// code. It looks like it lives on it's own thread. I'm going to put it with the demodulator
 	/// in the same thread. 
 	/// </summary>
-	/// <remarks>I've removed the disposable on this class because I'm going to lean on the GC 
-	/// to clean up the unused bitmaps since they are shared with the UI thread. I'll see how 
-	/// bad of a problem this is and deal with it if necessary. Rust language, here I come...</remarks>
     public class SSTVDraw {
 		private            bool    _fDisposed = false;
         protected readonly SSTVDEM _dp;
-		protected          int     _iSyncOffset = 0; // 90 pd, 240 sc1, Use to correct image offset!!
-		protected		   int     _iSyncCheck  = 4;
 
 		public SSTVMode Mode => _dp.Mode;
 
 		protected double   _dblReadBaseSync = 0;
 		protected double   _dblReadBaseSgnl = 0;
-        protected int      m_AY;
-	    protected short[]  m_Y36 = new short[800];
-	    protected short[,] m_D36 = new short[2,800];
+        protected int      _AY;
+	    protected short[]  _Y36 = new short[800];
+	    protected short[,] _D36 = new short[2,800];
 
 		protected int      _iLastAlign = -1;
 		protected int[]    _rgRasters = new int[800];
@@ -45,7 +40,7 @@ namespace Play.SSTV {
 
 		public event SSTVPropertyChange ShoutTvEvents; // TODO: Since threaded version poles, we don't need this.
 
-		protected readonly List<ColorChannel> _rgSlots = new List<ColorChannel>(10);
+		protected readonly List<ColorChannel> _rgSlots = new (10);
 
 		protected SlidingWindow Slider { get; }
 
@@ -54,17 +49,18 @@ namespace Play.SSTV {
 		/// and sync buffer and some signal levels. I'll see about that in the future.
 		/// </remarks>
 		public SSTVDraw( SSTVDEM p_dp ) {
-			_dp = p_dp ?? throw new ArgumentNullException( "SSTVDEM" );
+			_dp = p_dp ?? throw new ArgumentNullException( "Demodulator must not be null to SSTVDraw." );
 
-			Slider = new( 3000, 30, p_dp.m_SLvl );
+			Slider    = new( 3000, 30, p_dp.m_SLvl ); // Put some dummy values for now. Start() updates.
 
 			_skCanvas = new( _pBitmapD12 );
 			_skPaint  = new() { Color = SKColors.Red, StrokeWidth = 1 };
 		}
 
 		/// <summary>
-		/// Still tinkering with disposal methods. At present we don't call dispose and just
-		/// hope the GC will clean up fast enough.
+		/// Still tinkering with disposal methods. We're designed that we can re-use this 
+		/// object as long as the _dp object is valid for the current sampling frequency.
+		/// if the frequency changes, then the demodulator is no longer valid.
 		/// </summary>
 		/// <remarks>I read about this pattern for multithreaded objects and checking flags.
 		/// I wish I could recall the paper. ^_^;; The idea is that if we get prempted and
@@ -79,18 +75,14 @@ namespace Play.SSTV {
 			}
 		}
 
-		/// <remarks>
-		/// Unfortunately we don't presently know if we are in VIS detect mode
-		/// and thus where SSTVSync() should be called.
-		/// </remarks>
+		/// <summary>this method get's called to initiate the processing of
+		/// a new image.</summary>
         public void Start() {
+			_iLastAlign      = -1;
 			_dblReadBaseSync =  0;
 			_dblReadBaseSgnl =  0;
-			m_AY			 = -5;
-			_iSyncCheck      =  4; // See SSTVSync()
+			_AY			 = -5;
 
-			_iLastAlign = -1;
-			
 			Slider.Reset( SpecWidthInSamples, (int)(Mode.WidthSyncInMS * _dp.SampFreq / 1000) );
 
 			ShoutTvEvents?.Invoke(ESstvProperty.SSTVMode );
@@ -142,6 +134,16 @@ namespace Play.SSTV {
 		public double SpecWidthInSamples {
 			get {
 				return Mode.ScanWidthInMS * _dp.SampFreq / 1000;
+			}
+		}
+
+		/// <summary>
+		/// Size of the scan line width corrected image not including
+		/// VIS preamble.
+		/// </summary>
+		public double ImageSizeInSamples {
+			get {
+				return ScanWidthInSamples * Mode.Resolution.Height / Mode.ScanMultiplier;
 			}
 		}
 
@@ -201,14 +203,15 @@ namespace Play.SSTV {
 		}
 
 		/// <summary>
-		/// BUG: Since we jump around re-parsing the image, this isn't reliable. Switch
-		/// it back to Read pointer position. Need to calculate the size of data
-		/// depending on mode. I can use that elsewhere too.
+		/// Track how much data has been read into the buffer. Note that the
+		/// processor will backtrack and re-read the buffer, as it adjusts
+		/// for the slant, but this is how far the reception has proceeded.
 		/// </summary>
         public int PercentRxComplete { 
             get {
 				try {
-					return ( m_AY * 100 / Mode.Resolution.Height ) ;
+					double dblProgress = _dp.m_wBase * 100 / ImageSizeInSamples;
+					return (int)dblProgress;
 				} catch( NullReferenceException ) {
 					return 100;
 				}
@@ -226,6 +229,32 @@ namespace Play.SSTV {
 		}
 
 		/// <summary>
+		/// Quick and dirty alignment based on the estimated scan width and start point.
+		/// </summary>
+		/// <param name="iScanMax">Maximum Scan Lines.</param>
+		/// <param name="dblSlope">Scan line width in samples per ms.</param>
+		/// <param name="dblIntercept">First usable scan line stream point.</param>
+		/// <remarks>I moved this from the SlidingWindow class since doesn't used
+		/// anything but the slope/intercept and we might set it with user interface
+		/// int the future and this would easily accomodate that.</remarks>
+		public void Interpolate( int iScanMax, double dblSlope, double dblIntercept ) {
+			try {
+				for( int i=0; i<iScanMax; ++i ) {
+					int iEstimatedOffset = (int)Math.Round( dblSlope * i + dblIntercept );
+
+					_rgRasters[i] = iEstimatedOffset;
+                }
+			} catch( Exception oEx ) {
+				Type[] rgErrors = { typeof( NullReferenceException ),
+									typeof( IndexOutOfRangeException ) };
+				if( rgErrors.IsUnhandled( oEx ) )
+					throw;
+
+				ShoutTvEvents?.Invoke( ESstvProperty.ThreadDrawingException );
+			}
+		}
+
+		/// <summary>
 		/// Call this when reach end of file. This will also get called internally when we've
 		/// decoded the entire image.
 		/// </summary>
@@ -235,8 +264,6 @@ namespace Play.SSTV {
 
 				double slope     = 0;
 				double intercept = 0;
-
-				Slider.Shuffle( SpecWidthInSamples );
 
 				if( Slider.AlignLeastSquares( ref slope, ref intercept ) ) {
 					//InitSlots( Mode.Resolution.Width, slope / SpecWidthInSamples );
@@ -265,8 +292,11 @@ namespace Play.SSTV {
 		/// <param name="dblBase">Where to start reading from, this value
 		/// should be at less than the wBase + SpecLineWidthInSamples.</param>
 		/// <returns>The input base plus the SpecLineWidthInSamples.</returns>
+		/// <remarks>Usue the ScanWidthInSamples (versus SpecWidthInSamples) so
+		/// we can pick up corrections to the width. That way we can calculate the
+		/// intercept.</remarks>
 		public double ProcessSync( double dblBase ) {
-			int    iBase       = (int)Math.Round( dblBase );
+			int    iReadBase   = (int)Math.Round( dblBase );
 			int    iScanWidth  = (int)Math.Round( ScanWidthInSamples );
 			double dbD12XScale = _pBitmapD12.Width / ScanWidthInSamples;
 			int    iSyncWidth  = (int)( Mode.WidthSyncInMS * _dp.SampFreq / 1000 * dbD12XScale );
@@ -274,7 +304,7 @@ namespace Play.SSTV {
 
 			try {
 				for( int i = 0; i < iScanWidth; i++ ) { 
-					int   idx = iBase + i;
+					int   idx = iReadBase + i;
 					short d12 = _dp.SyncGet( idx );
 					bool fHit = Slider.LogSync( idx, d12 );
 
@@ -306,19 +336,19 @@ namespace Play.SSTV {
 		/// sync lines are processed. The idea is that we slowly refine our 
 		/// measurement of the image and so need to redraw it. The signal buffer is
 		/// currently large enough to allow us to re-draw from the beginning.
-		/// I might cut it down in the future. But it makes sence that you really
+		/// I might cut it down in the future. But it makes sense that you really
 		/// can't draw the image properly until it has been received in it's entirety.
 		/// </summary>
 		protected void ProcessScan( int iScanLine ) {
-			int    rx          = -1; // Saved X pos from the Rx buffer.
-			int    ch          =  0; // current channel skimming the Rx buffer portion.
-			int    iScanWidth  = (int)Math.Round( ScanWidthInSamples );
+			int rx         = -1; // Saved X pos from the Rx buffer.
+			int ch         =  0; // current channel skimming the Rx buffer portion.
+			int iScanWidth = (int)Math.Round( ScanWidthInSamples );
 
 			try { 
 				int rBase = _rgRasters[iScanLine];
 
-			    m_AY = iScanLine * LineMultiplier; 
-				if( (m_AY < 0) || (m_AY >= _pBitmapRX.Height) )
+			    _AY = iScanLine * LineMultiplier; 
+				if( (_AY < 0) || (_AY >= _pBitmapRX.Height) )
 					return;
 
 				for( int i = 0; i < iScanWidth; i++ ) { 
@@ -351,6 +381,10 @@ namespace Play.SSTV {
 			}
 		}
 
+		/// <summary>
+		/// This is our main processing entry point. The data is being loaded into the buffer
+		/// and we read it out here.
+		/// </summary>
 		public void Process() {
 			while( _dp.m_Sync && (_dp.m_wBase > _dblReadBaseSync + SpecWidthInSamples ) ) {
 				_dblReadBaseSync = ProcessSync( _dblReadBaseSync );
@@ -372,10 +406,10 @@ namespace Play.SSTV {
 							if( Slider.AlignLeastSquares( ref dblSlope, ref dblIntercept ) ) {
 								int iSyncWidth = (int)(Mode.OffsetInMS * _dp.SampFreq / 1000);
 								dblIntercept -=iSyncWidth;
-								Slider.Interpolate2     ( iScanLines, _rgRasters, dblSlope, dblIntercept );
 								Slider.Reset            ( dblSlope,  (int)(Mode.WidthSyncInMS * _dp.SampFreq / 1000) );
 
-								InitSlots( Mode.Resolution.Width, dblSlope / SpecWidthInSamples );
+								Interpolate( iScanLines, dblSlope, dblIntercept );
+								InitSlots  ( Mode.Resolution.Width, dblSlope / SpecWidthInSamples );
 								_dblReadBaseSync = 0;
 								_iLastAlign      = iScanLine;
 							}
@@ -396,59 +430,14 @@ namespace Play.SSTV {
 			}
 		}
 
-		// I'm going to disable this for awhile, it moves outside the buffer
-		// in some cases.
-		/// <summary>Horizontal Offset correction. Not slant, but try to
-		/// shift whole image left and right. Looking for the 1200hz tone,
-		/// and then seeing if it is where we expect it. Looks like we
-		/// sum over 4 lines of data in case we miss parts of the image.</summary>
-		/// <remarks>There's a bug here where we make an offset so large we
-		/// move out of the range of the input data. Trying to fix that.
-		/// Given a scenario where we just start randomly in the image
-		/// data, I'm not seeing how this works.</remarks>
-		public void AlignHorizontal() {
-            if( m_AY >= _iSyncCheck )  { // was >=
-				int   iSW           = (int)ScanWidthInSamples;
-                int[] bp            = new int[iSW]; // Array.Clear( bp, 0, bp.Length );
-				int   iOffsExpected = (int)(_dp.Mode.OffsetInMS * _dp.SampFreq / 1000 ); // result in samples offset.
-
-				// sum into bp[] four scan lines of data.
-                for( int pg = 0; pg < _iSyncCheck; pg++ ){
-                	int  ip = pg * iSW;
-                	for( int i = 0; i < iSW; i++ ){
-						bp[i] += _dp.SyncGet(ip + i);
-                	}
-                }
-				// then go back and look for the cumulative max.
-                int iOffsFound = 0;
-                int iSignalMax = 0;
-                for( int i = 0; i < bp.Length; i++ ){
-                	if( iSignalMax < bp[i] ){
-                		iSignalMax = bp[i];
-                		iOffsFound   = i;
-                	}
-                }
-                iOffsFound -= iOffsExpected; // how much is too much?!
-                if( _dp.m_Type == FreqDetect.Hilbert ) 
-                	iOffsFound -= _dp.HillTaps/4; // BUG: Add instead of subtract?
-
-				_iSyncCheck  = int.MaxValue; // Stop from trying again.
-				_iSyncOffset = iOffsFound;
-				m_AY         = 0;
-				_dblReadBaseSgnl = 0;
-				Slider.Reset();
-                //SstvSet.SetOFS( n );
-            }
-        }
-
 		protected void PixelSetGreen( int iX, short sValue ) {
 			sValue      = (short)( GetPixelLevel(sValue) + 128 );
-			m_D36[0,iX] = (short)Limit256(sValue);
+			_D36[0,iX] = (short)Limit256(sValue);
 		}
 
 		protected void PixelSetBlue( int iX, short sValue ) {
 			sValue      = (short)( GetPixelLevel(sValue) + 128 );
-			m_D36[1,iX] = (short)Limit256(sValue);
+			_D36[1,iX] = (short)Limit256(sValue);
 		}
 
 		/// <summary>
@@ -456,21 +445,21 @@ namespace Play.SSTV {
 		/// </summary>
 		protected void PixelSetRed( int iX, short sValue ) {
 			sValue = (short)( GetPixelLevel(sValue) + 128 );
-			_pBitmapRX.SetPixel( iX, m_AY,  new SKColor( (byte)Limit256(sValue), 
-				                                        (byte)m_D36[0,iX], 
-														(byte)m_D36[1,iX] ) );
+			_pBitmapRX.SetPixel( iX, _AY,  new SKColor( (byte)Limit256(sValue), 
+				                                        (byte)_D36[0,iX], 
+														(byte)_D36[1,iX] ) );
 		}
 
 		protected void PixelSetY1( int iX, short sValue ) {
-			m_Y36[iX] = (short)( GetPixelLevel(sValue) + 128 );
+			_Y36[iX] = (short)( GetPixelLevel(sValue) + 128 );
 		}
 
 		protected void PixelSetRY( int iX, short sValue ) {
-			m_D36[1,iX] = GetPixelLevel( sValue );
+			_D36[1,iX] = GetPixelLevel( sValue );
 		}
 
 		protected void PixelSetBY( int iX, short sValue ) {
-			m_D36[0,iX] = GetPixelLevel( sValue );
+			_D36[0,iX] = GetPixelLevel( sValue );
 		}
 
 		/// <summary>
@@ -479,13 +468,13 @@ namespace Play.SSTV {
 		protected void PixelSetY2( int iX, short sValue ) {
 			short R, G, B;
 
-			YCtoRGB( out R, out G, out B, m_Y36[iX], m_D36[1,iX], m_D36[0,iX]);
-			_pBitmapRX.SetPixel( iX, m_AY,   new SKColor( (byte)R, (byte)G, (byte)B ) );
+			YCtoRGB( out R, out G, out B, _Y36[iX], _D36[1,iX], _D36[0,iX]);
+			_pBitmapRX.SetPixel( iX, _AY,   new SKColor( (byte)R, (byte)G, (byte)B ) );
 
 			sValue = (short)( GetPixelLevel(sValue) + 128 );
 
-			YCtoRGB( out R, out G, out B, sValue,    m_D36[1,iX], m_D36[0,iX]);
-			_pBitmapRX.SetPixel( iX, m_AY+1, new SKColor( (byte)R, (byte)G, (byte)B ) );
+			YCtoRGB( out R, out G, out B, sValue,    _D36[1,iX], _D36[0,iX]);
+			_pBitmapRX.SetPixel( iX, _AY+1, new SKColor( (byte)R, (byte)G, (byte)B ) );
 		}
 
 		public setPixel ReturnColorFunction( ScanLineChannelType eDT ) {

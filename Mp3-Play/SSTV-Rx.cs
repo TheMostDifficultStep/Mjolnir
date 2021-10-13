@@ -784,6 +784,14 @@ namespace Play.Sound {
 			_iWindowHit = Math.Round( (double)_iWindowSizeInSamples );
 		}
 
+		/// <summary>
+		/// At present we save all sync signal hits. Honestly I'm not
+		/// how sure this is useful. Basically if there is more than one
+		/// hit I should probably just toss the line. As it is I ignore
+		/// lines with more than one hit.
+		/// </summary>
+		/// <param name="iBucket"></param>
+		/// <param name="oDatum"></param>
 		protected void RasterAdd( int iBucket, MyDatum oDatum ) {
 			if( _rgRasters[iBucket].Datum == null ) {
 				_rgRasters[iBucket].Datum = oDatum;
@@ -824,7 +832,7 @@ namespace Play.Sound {
 				_iW            = (_iW + 1) % i2Xl; 
 
 				if( _iWindowSum >= _iWindowHit ) {
-					// Only catch on a rising trigger.
+					// Only catch on a rising trigger!!
 					if( _fTriggered == false ) {
 						_fTriggered = true;
 						MyDatum oDatum = new ( Bucket:dblBucket, Position:iOffset );
@@ -848,6 +856,18 @@ namespace Play.Sound {
 			return false;
 		}
 
+		/// <summary>
+		/// Call Shuffle() before calling this function!
+		/// This is the beating heart of the slant correction code. Right now we use
+		/// the internal raster to compute the scan line width and start point.
+		/// This is NOT the same as the rasters used for displaying the data so we
+		/// don't corrupt the output drawing process. The two are operating in an
+		/// interleaved fashion.
+		/// </summary>
+		/// <param name="dblSlope">Estimated width in samples of scanline.</param>
+		/// <param name="dblIntercept">Estimated END of first sync signal.</param>
+		/// <returns>True if enough data to return a slope and intercept.</returns>
+		/// <seealso cref="Shuffle(double)"/>
 		public bool AlignLeastSquares( ref double dblSlope, ref double dblIntercept ) {
 			double meanx  = 0, meany = 0;
 			int    iCount = 0;
@@ -935,6 +955,8 @@ namespace Play.Sound {
 		/// </summary>
 		/// <param name="dblSlope"></param>
 		/// <param name="dblIntercept"></param>
+		/// <remarks>This is a fragment. And won't update the rasters used
+		/// by the SSTVDraw class. Need to look at that.</remarks>
 		public void Interpolate( int iScanMax, double dblSlope, double dblIntercept ) {
 			try {
 				for( int i=0; i<iScanMax; ++i ) {
@@ -980,40 +1002,6 @@ namespace Play.Sound {
 									typeof( IndexOutOfRangeException ) };
 				if( !rgErrors.Contains( oEx.GetType() ) )
 					throw;
-			}
-		}
-
-		/// <summary>
-		/// Quick and dirty alignment based on the estimated scan width and start point.
-		/// </summary>
-		/// <param name="iScanMax">Maximum Scan Lines.</param>
-		/// <param name="rgRasters">Start point array.</param>
-		/// <param name="dblSlope">Scan line width in samples per ms.</param>
-		/// <param name="dblIntercept">First usable scan line stream point.</param>
-		public void Interpolate2( int iScanMax, int[] rgRasters, double dblSlope, double dblIntercept ) {
-			try {
-				for( int i=0; i<iScanMax; ++i ) {
-					int iEstimatedOffset = (int)Math.Round( dblSlope * i + dblIntercept );
-
-					rgRasters[i] = iEstimatedOffset;
-                }
-			} catch( Exception oEx ) {
-				Type[] rgErrors = { typeof( NullReferenceException ),
-									typeof( IndexOutOfRangeException ) };
-				if( !rgErrors.Contains( oEx.GetType() ) )
-					throw;
-			}
-		}
-
-		public int this [ int iIndex ] { 
-			get { 
-				if( _rgRasters[iIndex].Datum == null )
-					return -1;
-
-				if( iIndex != _rgRasters[iIndex].Datum.Bucket )
-					throw new InvalidProgramException( "Bucket doesn't match raster index" );
-
-				return _rgRasters[iIndex].Datum.Position; 
 			}
 		}
 	}
@@ -1070,7 +1058,6 @@ namespace Play.Sound {
 		public readonly static int NARROW_AFCHIGH	= 1950;
 
 		public readonly static int TAPMAX = 512; // BUG: Move to Fir or Fir2 later.
-		readonly static int SSTVDEMBUFMAX = 24;
 
 		readonly double[]  HBPF  = new double[TAPMAX+1];
 		readonly double[]  HBPFS = new double[TAPMAX+1];
@@ -1116,9 +1103,10 @@ namespace Play.Sound {
 		AllModes      m_NextMode;
 
 		// Base pointer represent how far along in samples over the entire image we've gone. 
-		public    int    m_wBase { get; protected set; } // Write pos in samples stream. Moves forward by scanlinewidthinsamples chunks. Always < size of buffer.
-
-		public bool  m_Lost     { get; protected set; }
+		// Write pos in samples stream. Moves forward by scanlinewidthinsamples chunks.
+		// Always < size of buffer.Wraps around, see below for more details.
+		public  int  m_wBase { get; protected set; } 
+		public bool  m_Lost  { get; protected set; }
 
 		protected short[] m_Buf;
 		protected short[] m_B12;
@@ -1126,8 +1114,8 @@ namespace Play.Sound {
 		public    double m_SLvl  { get; protected set; }
 		protected double m_SLvl2;
 
-		bool        m_ScopeFlag;
-		readonly CScope[]    m_Scope = new CScope[2];
+		bool              m_ScopeFlag;
+		readonly CScope[] m_Scope = new CScope[2];
 
 		CTICK       pTick;
 		int         m_Tick;
