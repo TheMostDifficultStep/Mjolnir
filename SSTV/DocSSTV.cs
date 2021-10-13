@@ -940,7 +940,7 @@ namespace Play.SSTV {
         /// pretty well. The decoder and filters and all live in the bg thread.
         /// The foreground tread only polls the bitmap from time to time.
         /// </summary>
-        /// <param name="fDetectVIS">Just set the decoder for a particular SSTV mode. This is usefull
+        /// <param name="DetectVIS">Just set the decoder for a particular SSTV mode. This is usefull
         /// if picking up the signal in the middle and you know the type a priori. I should
         /// just pass the mode if it's fixed, else autodetect.</param>
         public void RecordBeginFileRead2( string strFileName, bool DetectVIS = true ) {

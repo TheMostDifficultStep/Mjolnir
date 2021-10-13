@@ -1239,7 +1239,7 @@ namespace Play.MorsePractice {
                     if( CiVErrorList.IsUnhandled( oEx ) )
                         throw;
 
-                    Properties.ValueUpdate( RadioProperties.Names.Timer, "Open Error" );
+                    Properties.ValueUpdate( RadioProperties.Names.Timer, "Open Error", Broadcast:true );
                     LogError( "Morse", oEx.Message, fShow:false );
                 }
                 return true; // Handled, even if ended in error.
@@ -1336,8 +1336,8 @@ namespace Play.MorsePractice {
             }
         }
 
-        public void ValueUpdate( Names eName, string strValue ) {
-            ValueUpdate( (int)eName, strValue );
+        public void ValueUpdate( Names eName, string strValue, bool Broadcast = true ) {
+            ValueUpdate( (int)eName, strValue, Broadcast );
         }
 
         /// <summary>
