@@ -69,9 +69,7 @@ namespace Play.Forms {
             oLayout.Add( new LayoutRect( LayoutRect.CSS.Flex, 30, 0 ) ); // Name.
             oLayout.Add( new LayoutRect( LayoutRect.CSS.None, 70, 0 ) ); // Value.
 
-            foreach( Line oLine in Document.Property_Labels ) {
-                PropertyInitRow( oLayout, oLine.At );
-            }
+            InitRows();
 
             Caret.Layout = CacheList[0];
 
@@ -79,6 +77,14 @@ namespace Play.Forms {
             OnSizeChanged( new EventArgs() );
 
             return true;
+        }
+
+        public virtual void InitRows() {
+            if( Layout2 is SmartTable oTable ) {
+                foreach( Line oLine in Document.Property_Labels ) {
+                    PropertyInitRow( oTable, oLine.At );
+                }
+            }
         }
 
         public void OnEvent( BUFFEREVENTS eEvent ) {

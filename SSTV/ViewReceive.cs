@@ -178,9 +178,9 @@ namespace Play.SSTV {
 
 		public bool Execute(Guid sGuid) {
 			if( sGuid == GlobalCommands.Play ) {
-				Banner = _strBannerBase + _oDocSSTV.Chooser.CurrentFullPath;
+				Banner = _strBannerBase + _oDocSSTV.RecChooser.CurrentFullPath;
 				_oSiteView.Notify( ShellNotify.BannerChanged );
-				_oDocSSTV.RecordBeginFileRead2( _oDocSSTV.Chooser.CurrentFullPath, DetectVIS:false );
+				_oDocSSTV.RecordBeginFileRead2( _oDocSSTV.RecChooser.CurrentFullPath, DetectVIS:false );
 				return true;
 			}
 			if( sGuid == GlobalCommands.Stop ) {
@@ -311,7 +311,7 @@ namespace Play.SSTV {
         protected override void Dispose( bool fDisposing ) {
 			if( fDisposing && !_fDisposed ) {
 				_oDocSSTV.PropertyChange          -= ListenDoc_PropertyChange;
-				_oDocSSTV.Chooser.DirectoryChange -= Chooser_OnDirectoryChange;
+				_oDocSSTV.RecChooser.DirectoryChange -= Chooser_OnDirectoryChange;
 			}
 			base.Dispose( fDisposing );
         }
@@ -321,10 +321,10 @@ namespace Play.SSTV {
 				return false;
 
             _oDocSSTV.PropertyChange          += ListenDoc_PropertyChange;
-            _oDocSSTV.Chooser.DirectoryChange += Chooser_OnDirectoryChange;
+            _oDocSSTV.RecChooser.DirectoryChange += Chooser_OnDirectoryChange;
 
 			// Of course we'll blow up the shell if try in the constructor...
-			Chooser_OnDirectoryChange( _oDocSSTV.Chooser.CurrentDirectory );
+			Chooser_OnDirectoryChange( _oDocSSTV.RecChooser.CurrentDirectory );
 			return true;
         }
 
@@ -356,7 +356,7 @@ namespace Play.SSTV {
 					case Tools.File: {
 						// BUG: This should have been updated as the user selects files in the options chooser.
 						bool fDetectVIS = _oDocSSTV.RxProperties[(int)RxProperties.Names.Detect_Vis].Compare( "true", IgnoreCase:true ) == 0;
-						_oDocSSTV.RecordBeginFileRead2( _oDocSSTV.Chooser.CurrentFullPath, DetectVIS:fDetectVIS );
+						_oDocSSTV.RecordBeginFileRead2( _oDocSSTV.RecChooser.CurrentFullPath, DetectVIS:fDetectVIS );
 						return true;
 						}
 					case Tools.Port:
@@ -426,7 +426,7 @@ namespace Play.SSTV {
 		protected readonly DocSSTV _oDocSSTV;
 
 		public TextDirView( IPgViewSite oSiteView, DocSSTV oSSTV ) :
-			base( oSiteView, oSSTV.Chooser?.FileList, fReadOnly:true ) 
+			base( oSiteView, oSSTV.RecChooser?.FileList, fReadOnly:true ) 
 		{
 			_oDocSSTV = oSSTV ?? throw new ArgumentNullException();
 
@@ -441,10 +441,10 @@ namespace Play.SSTV {
 					if( oFile._fIsDirectory ) {
 						string strName = oFile.SubString( 1, oFile.ElementCount - 2 );
 						if( !string.IsNullOrEmpty( strName ) ) {
-							_oDocSSTV.Chooser.LoadAgain( Path.Combine( _oDocSSTV.Chooser.CurrentDirectory, strName ) );
+							_oDocSSTV.RecChooser.LoadAgain( Path.Combine( _oDocSSTV.RecChooser.CurrentDirectory, strName ) );
 						}
 					} else {
-						_oDocSSTV.Chooser.FileList.CheckedLine = oLine;
+						_oDocSSTV.RecChooser.FileList.CheckedLine = oLine;
 					}
 				}
 			} catch( Exception oEx ) { 

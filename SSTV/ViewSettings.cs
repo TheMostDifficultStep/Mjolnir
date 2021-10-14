@@ -2,7 +2,6 @@
 using System.Drawing;
 using System.Xml;
 using System.Reflection;
-using System.Collections.Generic;
 
 using Play.Forms;
 using Play.Interfaces.Embedding;
@@ -10,17 +9,16 @@ using Play.Edit;
 using Play.Rectangles;
 
 namespace Play.SSTV {
-
     /// <summary>
     /// Implements a property page that can contain simple Line elements OR whole Editor's. 
     /// It does this by keeping a flat Editor containing properties, but if you have a
     /// multiline property, we don't use the Document.Settings_Values but create a cache
     /// element pointing to an edit window, instead of a standard cache line.
     /// </summary>
-    /// <remarks>TODO: I probably could use a DocProperties object and remove our direct 
+    /// <remarks>TODO: I probably inherit from a ViewStandardProperties object and remove our direct 
     /// DocSSTV dependency.</remarks>
     public class ViewSettings :
-        FormsWindow,
+        ViewStandardProperties,
         IPgLoad<XmlElement>,
         IPgSave<XmlDocumentFragment>,
         IPgParent,
@@ -29,9 +27,8 @@ namespace Play.SSTV {
     {
         public static Guid GUID {get;} = new Guid("{5B8AC3A1-A20C-431B-BA13-09314BA767FC}");
 
-        private   readonly string         _strViewIcon  = "Play.SSTV.icons8_settings.png";
-        protected readonly IPgViewSite    _oViewSite;
-		protected readonly IPgStandardUI2 _oStdUI;
+        private   readonly string      _strViewIcon  = "Play.SSTV.icons8_settings.png";
+        protected readonly IPgViewSite _oViewSite;
 
         public Guid      Catagory  => GUID; 
         public string    Banner    => "MySSTV Settings";
@@ -40,7 +37,7 @@ namespace Play.SSTV {
         public IPgParent Parentage => _oViewSite.Host;
         public IPgParent Services  => Parentage.Services;
 
-        protected DocSSTV Document   { get; }
+        public DocSSTV SSTVDocument { get; }
 
 		protected class WinSlot :
 			IPgViewSite
@@ -64,16 +61,12 @@ namespace Play.SSTV {
             public IPgViewNotify EventChain => _oHost._oSiteView.EventChain;
         }
 
-        public ViewSettings( IPgViewSite oViewSite, DocSSTV oDocSSTV ) :
-            // Note: Only the Settings_Values lines will send our base 
-            //       the labels can't participate in colorization events.
-            base( oViewSite, oDocSSTV.Settings_Values ) 
+        public ViewSettings( IPgViewSite oViewSite, DocSSTV oDocument ) :
+            base( oViewSite, oDocument.Properties ) 
         {
-            Document   = oDocSSTV ?? throw new ArgumentNullException( "Clock document must not be null." );
-            _oViewSite = oViewSite;
- 			_oStdUI    = oViewSite.Host.Services as IPgStandardUI2 ?? throw new ArgumentException( "Parent view must provide IPgStandardUI service" );
-
-			Iconic     = ImageResourceHelper.GetImageResource( Assembly.GetExecutingAssembly(), _strViewIcon );
+            SSTVDocument = oDocument; // Don't bother check for null, will have thrown by now see above...
+            _oViewSite   = oViewSite;
+			Iconic       = ImageResourceHelper.GetImageResource( Assembly.GetExecutingAssembly(), _strViewIcon );
         }
 
         protected override void Dispose( bool disposing ) {
@@ -83,60 +76,29 @@ namespace Play.SSTV {
             base.Dispose(disposing);
         }
 
-        public void PropertyInitRow( SmartTable oLayout, int iIndex, EditWindow2 oEditWin = null ) {
-            var oLayoutLabel = new LayoutSingleLine( new FTCacheWrap( Document.Settings_Labels[iIndex]   ), LayoutRect.CSS.Flex );
-            LayoutRect oLayoutValue;
-            
-            if( oEditWin == null ) {
-                oLayoutValue = new LayoutSingleLine( new FTCacheWrap( Document.Settings_Values[iIndex] ), LayoutRect.CSS.Flex );
-            } else {
-                oEditWin.InitNew();
-                oEditWin.Parent = this;
-                oLayoutValue = new LayoutControl( oEditWin, LayoutRect.CSS.Pixels, 100 );
-            }
-
-            oLayout.AddRow( new List<LayoutRect>() { oLayoutLabel, oLayoutValue } );
-
-            oLayoutLabel.BgColor = _oStdUI.ColorsStandardAt( StdUIColors.BGReadOnly );
-
-            CacheList.Add( oLayoutLabel );
-            if( oLayoutValue is LayoutSingleLine oLayoutSingle ) {
-                oLayoutSingle.BgColor = _oStdUI.ColorsStandardAt( StdUIColors.BG );
-                CacheList.Add( oLayoutSingle );
+        public override void InitRows() {
+            if( Layout2 is SmartTable oTable ) {
+                foreach( StdProperties.Names eName in Enum.GetValues(typeof(StdProperties.Names)) ) {
+                    switch( eName ) {
+                        case StdProperties.Names.TxPort:
+                            PropertyInitRow( oTable, (int)eName, new CheckList( new WinSlot( this ), SSTVDocument.PortTxList ) );
+                            break;
+                        case StdProperties.Names.RxPort:
+                            PropertyInitRow( oTable, (int)eName, new CheckList( new WinSlot( this ), SSTVDocument.PortRxList ) );
+                            break;
+                        default:
+                            PropertyInitRow( oTable, (int)eName );
+                            break;
+                    }
+                }
             }
         }
 
-        public override bool InitNew() {
-            if( !base.InitNew() ) 
-                return false;
-
-            SmartTable oLayout = new SmartTable( 5, LayoutRect.CSS.None );
-            Layout2 = oLayout;
-
-            oLayout.Add( new LayoutRect( LayoutRect.CSS.Flex, 30, 0 ) ); // Name.
-            oLayout.Add( new LayoutRect( LayoutRect.CSS.None, 70, 0 ) ); // Value.
-
-            PropertyInitRow( oLayout, 0, new CheckList( new WinSlot( this ), Document.PortTxList ) );
-            PropertyInitRow( oLayout, 1, new CheckList( new WinSlot( this ), Document.PortRxList ) );
-            PropertyInitRow( oLayout, 2 );
-            PropertyInitRow( oLayout, 3 );
-            PropertyInitRow( oLayout, 4 );
-
-            Caret.Layout = CacheList[0];
-
-            OnDocumentEvent( BUFFEREVENTS.MULTILINE );
-            OnSizeChanged( new EventArgs() );
-
+        public bool Load( XmlElement oStream ) {
             return true;
         }
 
-        public bool Load( XmlElement oStream )
-        {
-            return true;
-        }
-
-        public bool Save( XmlDocumentFragment oStream )
-        {
+        public bool Save( XmlDocumentFragment oStream ) {
             return true;
         }
 
@@ -146,11 +108,6 @@ namespace Play.SSTV {
 
         public bool Execute(Guid sGuid) {
             return false;
-        }
-
-        public void OnEvent(BUFFEREVENTS eEvent) {
-            OnDocumentEvent( BUFFEREVENTS.MULTILINE );
-            Invalidate();
         }
     }
 }

@@ -18,7 +18,7 @@ namespace Play.SSTV
     /// future I'll make a version of this which is reading from an audio input device.
     /// </summary>
     public class ThreadWorker {
-        readonly string _strFileName;
+        public readonly string _strFileName;
         readonly ConcurrentQueue<ESstvProperty> _oMsgQueue;
 
         protected readonly SSTVMode _oFixedMode;

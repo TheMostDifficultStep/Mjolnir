@@ -163,6 +163,13 @@ namespace Play.MusicWalker {
         public AlbumProperties( IPgBaseSite oSiteBase ) : base( oSiteBase ) {
         }
 
+		/// <summary>
+		/// Only load once. We can't clear elements at present. If you attempt
+		/// a clear, the cursor in the FormWindow will assert because it won't
+		/// understand the Line reset sent to it by the emptied document.
+		/// </summary>
+		/// <param name="oFileStream"></param>
+		/// <returns></returns>
 		public bool Load( TextReader oFileStream ) {
 			try {
 				while( true ) {

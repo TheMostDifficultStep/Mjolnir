@@ -140,6 +140,69 @@ namespace Play.SSTV {
         }
     }
 
+    public class StdProperties : DocProperties {
+        public enum Names : int {
+			TxPort,
+            RxPort,
+            Quality,
+            RecordingsDir,
+            SaveDir
+        }
+
+        public StdProperties( IPgBaseSite oSiteBase ) : base( oSiteBase ) {
+        }
+
+        public override bool InitNew() {
+            if( !base.InitNew() ) 
+                return false;
+            
+            foreach( StdProperties.Names eName in Enum.GetValues(typeof(StdProperties.Names)) ) {
+                Property_Labels.LineAppend( string.Empty, fUndoable:false );
+                Property_Values.LineAppend( string.Empty, fUndoable:false );
+            }
+
+            LabelSet( Names.TxPort,        "Transmit to Device" );
+            LabelSet( Names.RxPort,        "Receive from Device" );
+            LabelSet( Names.Quality,       "Image Save Quality" );
+            LabelSet( Names.RecordingsDir, "Recordings Directory" );
+            LabelSet( Names.SaveDir,       "Save Directory" );
+
+            InitValues();
+
+            return true;
+        }
+
+        /// <summary>
+        /// These are our default values. We'll look for them from a save file in the future.
+        /// </summary>
+        public void InitValues() {
+            string strMyPicDir = Environment.GetFolderPath( Environment.SpecialFolder.MyPictures );
+            string strMyDocDir = Environment.GetFolderPath( Environment.SpecialFolder.MyDocuments );
+
+            ValueUpdate( StdProperties.Names.Quality,              "80", false );
+            ValueUpdate( StdProperties.Names.RecordingsDir, strMyDocDir, false );
+            ValueUpdate( StdProperties.Names.SaveDir,       strMyPicDir, false );
+        }
+
+        public void LabelSet( Names eName, string strLabel, SKColor? skBgColor = null ) {
+            Property_Labels[(int)eName].TryAppend( strLabel );
+
+            if( skBgColor.HasValue ) {
+                ValueBgColor.Add( (int)eName, skBgColor.Value );
+            }
+        }
+
+        public void ValueUpdate( Names eName, string strValue, bool Broadcast = false ) {
+            ValueUpdate( (int)eName, strValue, Broadcast );
+        }
+
+        public string this[ Names eIndex ] {
+            get {
+                return Property_Values[(int)eIndex].ToString();
+            }
+        }
+    }
+
     public enum ESstvProperty {
         ALL,
         UploadTime,
@@ -214,9 +277,8 @@ namespace Play.SSTV {
 
         public event SSTVPropertyChange PropertyChange;
 
-        public Editor      Settings_Labels { get; }
-        public Editor      Settings_Values { get; }
-        public FileChooser Chooser { get; }
+        public StdProperties Properties { get; }
+        public FileChooser   RecChooser { get; } // Recorded wave files.
 
         public Editor         PortTxList      { get; } 
         public Editor         PortRxList      { get; }
@@ -271,23 +333,20 @@ namespace Play.SSTV {
             _oSiteBase  = oSite ?? throw new ArgumentNullException( "Site must not be null" );
             _oWorkPlace = ((IPgScheduler)Services).CreateWorkPlace() ?? throw new ApplicationException( "Couldn't create a worksite from scheduler.");
 
-            ModeList        = new GeneratorMode ( new DocSlot( this, "SSTV Tx Modes" ) );
-            TxImageList     = new ImageWalkerDir( new DocSlot( this ) );
-            _oDocSnip       = new ImageSoloDoc  ( new DocSlot( this ) );
-            RxDirectory     = new Editor        ( new DocSlot( this ) );
-            PortTxList      = new Editor        ( new DocSlot( this ) );
-            PortRxList      = new Editor        ( new DocSlot( this ) );
+            ModeList     = new GeneratorMode ( new DocSlot( this, "SSTV Tx Modes" ) );
+            TxImageList  = new ImageWalkerDir( new DocSlot( this ) );
+            _oDocSnip    = new ImageSoloDoc  ( new DocSlot( this ) );
+            RxDirectory  = new Editor        ( new DocSlot( this ) );
+            PortTxList   = new Editor        ( new DocSlot( this ) );
+            PortRxList   = new Editor        ( new DocSlot( this ) );
 
 			ReceiveImage = new ImageSoloDoc( new DocSlot( this ) );
 			SyncImage    = new ImageSoloDoc( new DocSlot( this ) );
 
-            Settings_Labels = new FormsEditor( new DocSlot( this ) );
-            Settings_Values = new FormsEditor( new DocSlot( this ) );
-            RxProperties    = new ( new DocSlot( this ) );
-            TxProperties    = new ( new DocSlot( this ) );
-            Chooser         = new ( new DocSlot( this ) );
-
-            new ParseHandlerText( Settings_Values, "text" );
+            RxProperties = new ( new DocSlot( this ) );
+            TxProperties = new ( new DocSlot( this ) );
+            Properties   = new ( new DocSlot( this ) );
+            RecChooser   = new ( new DocSlot( this ) );
         }
 
         #region Dispose
@@ -497,26 +556,25 @@ namespace Play.SSTV {
             if( !PortRxList.InitNew() ) 
                 return false;
 
-            if( !Settings_Labels  .InitNew() )
-                return false;
-            if( !Settings_Values  .InitNew() )
+            if( !Properties  .InitNew() )
                 return false;
             if( !TxProperties.InitNew() )
                 return false;
             if( !RxProperties.InitNew() )
                 return false;
+            
+            
+            new ParseHandlerText( Properties.Property_Values, "text" );
 
             SettingsInit();
 
-            // No reason to fail if the dir is unusable.
-            Chooser.LoadURL( Settings_Values[3].ToString() );
+            RecChooser.LoadURL( Properties[StdProperties.Names.RecordingsDir] );
 
             LoadModulators( GenerateMartin .GetModeEnumerator() );
             LoadModulators( GenerateScottie.GetModeEnumerator() );
             LoadModulators( GeneratePD     .GetModeEnumerator() );
 
-			string strPath = Environment.GetFolderPath( Environment.SpecialFolder.MyPictures );
-            if( !TxImageList.LoadURL( strPath ) ) {
+            if( !TxImageList.LoadURL( Properties[StdProperties.Names.RecordingsDir] ) ) {
 				LogError( "Couldn't find pictures directory for SSTV" );
                 return false;
 			}
@@ -544,28 +602,11 @@ namespace Play.SSTV {
         }
 
         protected virtual void SettingsInit() {
-            Settings_Labels.LineAppend( "Transmit to Device",  fUndoable:false );
-            Settings_Labels.LineAppend( "Receive from Device", fUndoable:false );
-            Settings_Labels.LineAppend( "Image Save Quality",  fUndoable:false );
-            Settings_Labels.LineAppend( "Load Directory",      fUndoable:false );
-            Settings_Labels.LineAppend( "Save Directory",      fUndoable:false );
-
-            for( int i=0; i<Settings_Labels.ElementCount; ++i ) {
-                Settings_Values.LineAppend( string.Empty, fUndoable:false );
-            }
-
             InitTxDeviceList();
 
             string strSaveDir = Environment.GetFolderPath( Environment.SpecialFolder.MyPictures );
             string strLoadDir = Environment.GetFolderPath( Environment.SpecialFolder.MyDocuments );
 
-            using( BaseEditor.Manipulator oBulk = Settings_Values.CreateManipulator() ) {
-                oBulk.LineTextInsert( 2, 0, "80", 0, 2 );
-                oBulk.LineTextInsert( 3, 0, strLoadDir, 0, strLoadDir.Length );
-                oBulk.LineTextInsert( 4, 0, strSaveDir, 0, strSaveDir.Length );
-            }
-
-            RxProperties.ValueUpdate( RxProperties.Names.SaveDir, strSaveDir );
         }
 
         protected void PropertiesTxReLoad() {
@@ -700,10 +741,8 @@ namespace Play.SSTV {
         }
 
         /// <summary>
-        /// This is a slightly different property page system than before. Instead
-        /// of each view managing it's own set of properties, I've got this global
-        /// store here. I'll try subclassing the decor view for the properties in the
-        /// future. But all the values will be here.
+        /// This is a mess. I need to sort out the messaging. Only the
+        /// thread based system has been tested recently.
         /// </summary>
         /// <param name="eProp"></param>
         protected void Raise_PropertiesUpdated( ESstvProperty eProp ) {
@@ -797,86 +836,10 @@ namespace Play.SSTV {
             }
         }
 
-   //     /// <summary>
-   //     /// New test, read from audio file. BUG, need to see if the stream is stereo.
-   //     /// </summary>
-   //     public IEnumerator<int> GetReceiveFromFileTask( AudioFileReader oReader ) {
-   //         _oSSTVDeModulator.ShoutNextMode += ListenNextRxMode; // BUG: no need to do every time.
-
-   //         var foo = new WaveToSampleProvider(oReader);
-
-   //         int     iChannels = oReader.WaveFormat.Channels;
-   //         int     iBits     = oReader.WaveFormat.BitsPerSample; 
-   //         float[] rgBuff    = new float[1500]; // BUG: Make this scan line sized in the future.
-   //         int     iRead     = 0;
-
-   //         double From32to16( int i ) => rgBuff[i] * 32768;
-   //         double From16to16( int i ) => rgBuff[i];
-
-   //         Func<int, double> ConvertInput = iBits == 16 ? From16to16 : (Func<int, double>)From32to16;
-
-   //         do {
-   //             try {
-   //                 iRead = foo.Read( rgBuff, 0, rgBuff.Length );
-   //                 for( int i = 0; i< iRead; ++i ) {
-   //                     _oSSTVDeModulator.Do( ConvertInput(i) );
-   //                 }
-			//		_oRxSSTV.SSTVDraw();
-			//	} catch( Exception oEx ) {
-   //                 Type[] rgErrors = { typeof( NullReferenceException ),
-   //                                     typeof( ArgumentNullException ),
-   //                                     typeof( MMSystemException ),
-   //                                     typeof( InvalidOperationException ),
-			//							typeof( ArithmeticException ),
-			//							typeof( IndexOutOfRangeException ) };
-   //                 if( rgErrors.IsUnhandled( oEx ) )
-   //                     throw;
-
-			//		if( oEx.GetType() != typeof( IndexOutOfRangeException ) ) {
-			//			LogError( "Trouble recordering in SSTV" );
-			//		}
-			//		// Don't call _oWorkPlace.Stop() b/c we're already in DoWork() which will
-			//		// try calling the _oWorker which will have been set to NULL!!
-   //                 break; // Drop down so we can unplug from our Demodulator.
-   //             }
-   //             yield return 1; // 44,100 hz is a lot to process, let's go as fast as possible. >_<;;
-   //         } while( iRead == rgBuff.Length );
-
-   //         oReader.Dispose();
-
-   //         ListenTvEvents( ESstvProperty.DownLoadFinished );
-
-			//_oSSTVDeModulator.ShoutNextMode -= ListenNextRxMode;
-			//ModeList.HighLight = null;
-   //     }
-
-   //     /// <summary>
-   //     /// This is a partialy successful thread that reads data from a wav file and loads the image.
-   //     /// Unfortunately it seems to have problems displaying the image as it goes because it is
-   //     /// hogging the main message queue, I think. I'm going to try true multi threading next.
-   //     /// </summary>
-   //     /// <param name="strFileName"></param>
-   //     public void RecordBeginFileRead( string strFileName ) {
-   //         var reader1 = new AudioFileReader(strFileName);
-
-			//FFTControlValues oFFTMode  = FFTControlValues.FindMode( reader1.WaveFormat.SampleRate ); // RxSpec.Rate
-			//SYSSET           sys       = new SYSSET   ( oFFTMode.SampFreq );
-			//CSSTVSET         oSetSSTV  = new CSSTVSET ( TVFamily.Martin, 0, oFFTMode.SampFreq, 0, sys.m_bCQ100 );
-			//CSSTVDEM         oDemod    = new CSSTVDEM ( oSetSSTV,
-			//											sys,
-			//											(int)oFFTMode.SampFreq, 
-			//											(int)oFFTMode.SampBase, // This might be our oscillator frequency.
-			//											0 );
-			//_oSSTVDeModulator = oDemod;
-			//_oRxSSTV          = new TmmSSTV ( _oSSTVDeModulator );
-
-			//_oWorkPlace.Queue( GetReceiveFromFileTask(reader1), 0 );
-   //     }
-
-        protected void DownloadFinished() {
+        protected void DownloadFinished( bool fFile ) {
             PropertyChange?.Invoke( ESstvProperty.DownLoadFinished );
             ModeList.HighLight = null;
-            SaveRxImage(); // Race condition possible, when image reused.
+            SaveRxImage( fFile ); // Race condition possible, when image reused.
         }
 
         /// <summary>
@@ -917,7 +880,7 @@ namespace Play.SSTV {
                         case ESstvProperty.DownLoadFinished:
                             // NOTE: This might never come along!
                             PropertiesRxTime( oWorker.RxSSTV.PercentRxComplete );
-                            DownloadFinished();
+                            DownloadFinished( !string.IsNullOrEmpty( oWorker._strFileName ) );
                             fReceivedFinishedMsg = true;
                             break;
                         case ESstvProperty.ThreadDrawingException:
@@ -933,7 +896,7 @@ namespace Play.SSTV {
 
             // TODO: Make this a settings value. Hard coded to 60% now.
             if( !fReceivedFinishedMsg && oWorker.RxSSTV != null && oWorker.RxSSTV.PercentRxComplete > 60 )
-                DownloadFinished();
+                DownloadFinished( !string.IsNullOrEmpty( oWorker._strFileName ) );
 
             // NOTE: bitmaps come from RxSSTV and that thread is about to DIE!!
             _oThread = null;
@@ -971,21 +934,28 @@ namespace Play.SSTV {
             }
         }
 
-		private void SaveRxImage() {
+		private void SaveRxImage( bool bFile ) {
             try {
 			    if( ReceiveImage.Bitmap == null )
 				    return;
 
-			    string strSave = Settings_Values[4].ToString();
+			    string strSaveDir = Properties[StdProperties.Names.SaveDir];
                 
-                if( !int.TryParse( Settings_Values[3].ToString(), out int iQuality ) )
+                if( !int.TryParse( Properties[StdProperties.Names.Quality], out int iQuality ) )
                     iQuality = 80;
 
-                string strSource = Path.GetFileNameWithoutExtension( Chooser.CurrentFullPath );
+                string strFileName = string.Empty;
+                
+                if( bFile )
+                    strFileName = Path.GetFileNameWithoutExtension( RecChooser.CurrentFullPath );
+                else
+                    strFileName = DateTime.Now.ToString();
+
+                string strFilePath = Path.Combine( strSaveDir, strFileName + ".png" );
 
                 //using SKImage image  = SKImage.FromBitmap(ReceiveImage.Bitmap);
 			    using SKData  data   = ReceiveImage.Bitmap.Encode( SKEncodedImageFormat.Png, iQuality );
-                using var     stream = File.OpenWrite( Path.Combine( strSave, strSource + ".png") );
+                using var     stream = File.OpenWrite( strFilePath );
 
                 data.SaveTo(stream);
             } catch( Exception oEx ) {
@@ -1027,7 +997,8 @@ namespace Play.SSTV {
         }
 
 		/// <summary>
-		/// Forward events coming from SSTVDraw
+		/// Forward events coming from SSTVDraw. I really need to sort out
+        /// the mess this has become.
 		/// </summary>
         private void ListenTvEvents( ESstvProperty eProp )
         {
@@ -1036,7 +1007,7 @@ namespace Play.SSTV {
             switch( eProp ) {
                 case ESstvProperty.DownLoadFinished:
                     ModeList.HighLight = null;
-                    SaveRxImage();
+                    SaveRxImage( false );
                     break;
             }
         }
@@ -1067,7 +1038,7 @@ namespace Play.SSTV {
                     if( rgErrors.IsUnhandled( oEx ) )
                         throw;
 
-					SaveRxImage();
+					SaveRxImage( true );
 
 					if( oEx.GetType() != typeof( IndexOutOfRangeException ) ) {
 						LogError( "Trouble recordering in SSTV" );
@@ -1152,7 +1123,7 @@ namespace Play.SSTV {
 				_oRxSSTV.Process();
 				yield return 1;
 			};
-			SaveRxImage();
+			SaveRxImage( true );
 		}
 
 		/// <summary>
