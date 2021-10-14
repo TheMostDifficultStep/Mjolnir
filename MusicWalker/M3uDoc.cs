@@ -163,13 +163,6 @@ namespace Play.MusicWalker {
         public AlbumProperties( IPgBaseSite oSiteBase ) : base( oSiteBase ) {
         }
 
-        public override bool InitNew() {
-            if( !base.InitNew() ) 
-                return false;
-
-            return true;
-        }
-
 		public bool Load( TextReader oFileStream ) {
 			try {
 				while( true ) {

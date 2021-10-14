@@ -2,8 +2,6 @@
 using System.IO;
 using System.Collections.Generic;
 
-using SkiaSharp;
-
 using Play.Interfaces.Embedding;
 using Play.Edit;
 
@@ -56,6 +54,12 @@ namespace Play.Forms {
             }
         }
 
+        /// <summary>
+        /// Caret's always point to a single line, set that line here. It's a little
+        /// weird that we're pointing to the property layout and not the cache element
+        /// directly. Might want to revisit that. Turns out we can get a line set
+        /// by a editor that has had all it's elements cleared. 
+        /// </summary>
         public LayoutSingleLine Layout {
             get { return _oLayout; }
             // If the line is read only on the FTCacheLine then it kind of makes sense to
