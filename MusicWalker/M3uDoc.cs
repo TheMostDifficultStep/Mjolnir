@@ -3,10 +3,13 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
+using SkiaSharp;
+
 using Play.Interfaces.Embedding;
 using Play.Parse;
 using Play.Edit;
 using Play.ImageViewer;
+using Play.Forms;
 
 namespace Play.MusicWalker {
 	// move this to a MusicSupport.cs module.
@@ -156,17 +159,55 @@ namespace Play.MusicWalker {
 		}
 	}
 
+    public class AlbumProperties : DocProperties {
+        public AlbumProperties( IPgBaseSite oSiteBase ) : base( oSiteBase ) {
+        }
+
+        public override bool InitNew() {
+            if( !base.InitNew() ) 
+                return false;
+
+            return true;
+        }
+
+		public bool Load( TextReader oFileStream ) {
+			try {
+				while( true ) {
+					string strLine = oFileStream.ReadLine();
+					if( string.IsNullOrEmpty( strLine ) ) 
+						break;
+					string[] rgColumns = strLine.Split( '\t' );
+					if( rgColumns == null )
+						continue;
+
+					Property_Labels.LineAppend( rgColumns[0], fUndoable:false );
+					Property_Values.LineAppend( rgColumns[1], fUndoable:false );
+				}
+			} catch( Exception oEx ) {
+				Type[] rgErrors = { typeof( NullReferenceException ),
+									typeof( IndexOutOfRangeException ),
+									typeof( ArgumentOutOfRangeException ) };
+				if( rgErrors.IsUnhandled( oEx ) )
+					throw;
+
+				Property_Labels.LineAppend( "Album", fUndoable:false );
+				Property_Values.LineAppend( "Error reading properties", fUndoable:false );
+			}
+			return true;
+		}
+    }
+
 	/// <summary>
 	/// Editor which supports album art.
 	/// </summary>
 	/// <remarks>Used to implement from EditorWithParser. Now untangled it still works but no colorization atm.</remarks>
 	public class M3UDocument : EditorWithMusic {
-		public ImageWalkerDir AlbumArt        { get; }
-		public PropDoc        AlbumProperties { get; }
+		public ImageWalkerDir  AlbumArt        { get; }
+		public AlbumProperties AlbumProperties { get; }
 
         public M3UDocument( IPgBaseSite oSite ) : base( oSite ) {
-			AlbumArt        = new ImageWalkerDir( new DocSlot( this ) ); // Note: ImageWalker needs a better IPgFileSite implementation.
-			AlbumProperties = new PropDoc       ( new DocSlot( this ) ); //       need to subclass this DocSlot.
+			AlbumArt        = new ImageWalkerDir ( new DocSlot( this ) ); // Note: ImageWalker needs a better IPgFileSite implementation.
+			AlbumProperties = new AlbumProperties( new DocSlot( this ) ); //       need to subclass this DocSlot.
         }
 
 		private void AlbumPropertiesLoad() {

@@ -6,6 +6,8 @@ using System.Xml;
 using Play.Interfaces.Embedding;
 using Play.Edit;
 using Play.ImageViewer;
+using Play.Forms;
+
 using SkiaSharp.Views.Desktop;
 
 namespace Play.MusicWalker {
@@ -60,7 +62,7 @@ namespace Play.MusicWalker {
                 return( new ImageViewSolo( oBaseSite, _oDocumentMusic.AlbumArt ) );
             }
             if( sGuid.Equals( GlobalDecorations.Properties ) ) {
-                return( new PropWin( oBaseSite, _oDocumentMusic.AlbumProperties ) );
+                return( new ViewStandardProperties( oBaseSite, _oDocumentMusic.AlbumProperties ) );
             }
 
             return( base.Decorate( oBaseSite, sGuid ) );
@@ -150,7 +152,7 @@ namespace Play.MusicWalker {
                 return( oWin );
             }
 			if( sGuid.Equals( GlobalDecorations.Properties ) ) {
-                return( new PropWin( oBaseSite, _oDocumentMusic.AlbumProperties ) );
+                return( new ViewStandardProperties( oBaseSite, _oDocumentMusic.AlbumProperties ) );
 			}
 
             return( base.Decorate( oBaseSite, sGuid ) );
