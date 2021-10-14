@@ -66,7 +66,7 @@ namespace Play.MorsePractice {
         public override object Decorate( IPgViewSite oBaseSite, Guid sGuid ) {
             try {
                 if( sGuid.Equals( GlobalDecorations.Properties ) ) {
-                    return new ViewStandardProperties( oBaseSite, _oDocNotes.Properties );
+                    return new ViewRadioProperties( oBaseSite, _oDocNotes.Properties );
                 }
                 return base.Decorate(oBaseSite, sGuid);
             } catch (Exception oEx) {
@@ -187,7 +187,7 @@ namespace Play.MorsePractice {
                     return new EditWindow2(oBaseSite, _oDocMorse.Calls, fReadOnly: true, fSingleLine: false);
                 }
                 if( sGuid.Equals( GlobalDecorations.Properties ) ) {
-                    return new ViewStandardProperties( oBaseSite, _oDocMorse.Properties );
+                    return new ViewRadioProperties( oBaseSite, _oDocMorse.Properties );
                 }
                 return base.Decorate(oBaseSite, sGuid);
             } catch (Exception oEx) {

@@ -1,0 +1,89 @@
+﻿using System;
+using System.Collections.Generic;
+
+using SkiaSharp;
+
+using Play.Rectangles;
+using Play.Interfaces.Embedding;
+using Play.Edit;
+
+namespace Play.Forms {
+    /// <summary>
+    /// View the DocProperties object. This makes two columns, label on the left
+	/// and value on the right. It is capable of adding an editwindow for the values.
+	/// We'll turn that into optionally a dropdown in the future.
+    /// </summary>
+    /// <seealso cref="DocProperties"/>
+    public class ViewStandardProperties : 
+        FormsWindow,
+        IBufferEvents,
+        IPgLoad
+     {
+        protected DocProperties Document { get; }
+		protected readonly IPgStandardUI2 _oStdUI;
+
+		public SKColor BgColorDefault { get; protected set; }
+
+        public ViewStandardProperties( IPgViewSite oSiteView, DocProperties oDocument ) : base( oSiteView, oDocument.Property_Values ) {
+            Document = oDocument ?? throw new ArgumentNullException( "ViewStandardProperties's Document is null." );
+ 			_oStdUI  = oSiteView.Host.Services as IPgStandardUI2 ?? throw new ArgumentException( "Parent view must provide IPgStandardUI service" );
+
+			BgColorDefault = _oStdUI.ColorsStandardAt( StdUIColors.BG );
+        }
+
+        public void PropertyInitRow( SmartTable oLayout, int iIndex, EditWindow2 oWinValue = null ) {
+            var oLayoutLabel = new LayoutSingleLine( new FTCacheWrap( Document.Property_Labels[iIndex] ), LayoutRect.CSS.Flex );
+            LayoutRect oLayoutValue;
+            
+            if( oWinValue == null ) {
+                oLayoutValue = new LayoutSingleLine( new FTCacheWrap( Document.Property_Values[iIndex] ), LayoutRect.CSS.Flex );
+            } else { // If the value is a multi-line value make an editor.
+                oWinValue.InitNew();
+                oWinValue.Parent = this;
+                oLayoutValue = new LayoutControl( oWinValue, LayoutRect.CSS.Pixels, 100 );
+            }
+
+            oLayout.AddRow( new List<LayoutRect>() { oLayoutLabel, oLayoutValue } );
+
+            oLayoutLabel.BgColor = _oStdUI.ColorsStandardAt( StdUIColors.BGReadOnly );
+
+            CacheList.Add( oLayoutLabel );
+            if( oLayoutValue is LayoutSingleLine oLayoutSingle ) {
+				SKColor skBgColor = BgColorDefault;
+
+				if( Document.ValueBgColor.TryGetValue( iIndex, out SKColor skBgColorOverride ) ) {
+					skBgColor = skBgColorOverride;
+				}
+                oLayoutSingle.BgColor = skBgColor;
+                CacheList.Add( oLayoutSingle );
+            }
+        }
+
+        public override bool InitNew() {
+            if( !base.InitNew() ) 
+                return false;
+
+            SmartTable oLayout = new SmartTable( 5, LayoutRect.CSS.None );
+            Layout2 = oLayout;
+
+            oLayout.Add( new LayoutRect( LayoutRect.CSS.Flex, 30, 0 ) ); // Name.
+            oLayout.Add( new LayoutRect( LayoutRect.CSS.None, 70, 0 ) ); // Value.
+
+            foreach( Line oLine in Document.Property_Labels ) {
+                PropertyInitRow( oLayout, oLine.At );
+            }
+
+            Caret.Layout = CacheList[0];
+
+            OnDocumentEvent( BUFFEREVENTS.MULTILINE );
+            OnSizeChanged( new EventArgs() );
+
+            return true;
+        }
+
+        public void OnEvent( BUFFEREVENTS eEvent ) {
+            OnDocumentEvent( BUFFEREVENTS.MULTILINE );
+            Invalidate();
+        }
+    }
+}
