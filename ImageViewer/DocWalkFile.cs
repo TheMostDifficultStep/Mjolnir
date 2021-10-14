@@ -16,6 +16,7 @@ using SkiaSharp;
 
 using Play.Interfaces.Embedding;
 using Play.Edit;
+using Play.Forms;
 using Play.Parse.Impl;
 using Play.Rectangles;
 using SkiaSharp.Views.Desktop;
@@ -534,8 +535,8 @@ namespace Play.ImageViewer {
         protected bool   _fDirtyThumbs     = false;
         protected Line   _oDisplayLine     = null;
 
-        internal PropDoc    Properties { get; }
-        internal FileEditor FileList   { get; }
+        internal ImageProperties Properties { get; }
+        internal FileEditor      FileList   { get; }
 
         static protected readonly Dictionary<PixelFormat, string> _rgPixelDescription = new Dictionary<PixelFormat,string>();
 
@@ -560,8 +561,85 @@ namespace Play.ImageViewer {
 			public void Dispose() {
 				_oDoc._iBlockFilesEvent--;
 			}
-
 		}
+
+        public class ImageProperties : DocProperties {
+            public enum Names : int {
+                Name,
+                Width,
+                Height,
+                Depth,
+                Modified,
+                Size,
+                MAX
+            }
+
+            public class Bulk :
+                IDisposable
+            {
+                ImageProperties _oHost;
+
+                public Bulk( ImageProperties oHost ) {
+                    _oHost = oHost ?? throw new ArgumentNullException( "Host must not be null" );
+                }
+
+                public void Dispose() {
+                    _oHost.RaiseBufferEvent();
+                }
+
+                public void Set( Names eName, string strValue ) {
+                    _oHost.ValueUpdate( eName, strValue, Broadcast:false );
+                }
+            }
+
+            public ImageProperties( IPgBaseSite oSiteBase ) : base( oSiteBase ) {
+            }
+
+            public override bool InitNew() {
+                if( !base.InitNew() ) 
+                    return false;
+
+                for( int i=0; i<(int)Names.MAX; ++i ) {
+                    Property_Labels.LineAppend( string.Empty, fUndoable:false );
+                    Property_Values.LineAppend( string.Empty, fUndoable:false );
+                }
+
+                LabelSet( Names.Name,     "Name", new SKColor( red:0xff, green:0xbf, blue:0 ) );
+                LabelSet( Names.Width,    "Width" );
+                LabelSet( Names.Height,   "Height" );
+                LabelSet( Names.Depth,    "Depth" );
+                LabelSet( Names.Modified, "Modified" );
+                LabelSet( Names.Size,     "Size" );
+
+                Clear();
+
+                return true;
+            }
+
+            public void LabelSet( Names eName, string strLabel, SKColor? skBgColor = null ) {
+                Property_Labels[(int)eName].TryAppend( strLabel );
+
+                if( skBgColor.HasValue ) {
+                    ValueBgColor.Add( (int)eName, skBgColor.Value );
+                }
+            }
+
+            public void ValueUpdate( Names eName, string strValue, bool Broadcast = false ) {
+                ValueUpdate( (int)eName, strValue, Broadcast );
+            }
+
+            /// <summary>
+            /// Override the clear to only clear the specific repeater information. If you want to 
+            /// clear all values, call the base method.
+            /// </summary>
+            public override void Clear() {
+                base.Clear();
+            }
+
+            public Bulk CreateManipulator() {
+                return new Bulk( this );
+            }
+        }
 
 		/// <summary>
 		/// This is for our editor instance we are hosting!!
@@ -628,8 +706,8 @@ namespace Play.ImageViewer {
             }
 
 			try {
-                FileList   = new FileEditor( new ImageWalkerDocSlot( this ) );
-                Properties = new PropDoc   ( new ImageWalkerDocSlot( this ) );
+                FileList   = new FileEditor     ( new ImageWalkerDocSlot( this ) );
+                Properties = new ImageProperties( new ImageWalkerDocSlot( this ) );
             } catch( InvalidCastException ) {
                 LogError( "DocWalker", "Couldn't host internal elements for ImageWalker.");
             }
@@ -685,7 +763,7 @@ namespace Play.ImageViewer {
 
 		public override bool Initialize() {
 			if( !base.Initialize() )
-				return( false );
+				return false;
 
             Assembly assembly = Assembly.GetExecutingAssembly();
 
@@ -695,14 +773,8 @@ namespace Play.ImageViewer {
                 _oSiteBase.LogError( "ImageWalkDoc", "Having problem finding folder bitmap resource." );
             }
 
-            using( PropDoc.Manipulator oBulk = Properties.EditProperties ) {
-                oBulk.Add( "Width" );
-                oBulk.Add( "Height" );
-                oBulk.Add( "Depth" );
-                oBulk.Add( "Modified" );
-                oBulk.Add( "Size" );
-                oBulk.Add( "Name" );
-			}
+            if( !Properties.InitNew() )
+                return false;
 
             //FileList.BufferEvent += OnFileList_BufferEvent;
 
@@ -1283,13 +1355,13 @@ namespace Play.ImageViewer {
                     throw;
             }
 
-            using( PropDoc.Manipulator oBulk = Properties.EditProperties ) {
-                oBulk.Set( 0, iWidth .ToString() );
-                oBulk.Set( 1, iHeight.ToString() );
-                oBulk.Set( 2, strDepth );
-                oBulk.Set( 3, dtModified.ToShortDateString() );
-                oBulk.Set( 4, lSize.ToString( "n0" ) + " Bytes" );
-                oBulk.Set( 5, Path.GetFileName( strName ) );
+            using( ImageProperties.Bulk oBulk = Properties.CreateManipulator() ) {
+                oBulk.Set( ImageProperties.Names.Width,    iWidth .ToString() );
+                oBulk.Set( ImageProperties.Names.Height,   iHeight.ToString() );
+                oBulk.Set( ImageProperties.Names.Depth,    strDepth );
+                oBulk.Set( ImageProperties.Names.Modified, dtModified.ToShortDateString() );
+                oBulk.Set( ImageProperties.Names.Size,     lSize.ToString( "n0" ) + " Bytes" );
+                oBulk.Set( ImageProperties.Names.Name,     Path.GetFileName( strName ) );
             }
         }
 

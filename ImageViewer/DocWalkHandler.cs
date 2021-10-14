@@ -150,26 +150,4 @@ namespace Play.ImageViewer {
             _oDocument.BufferEvent -= _oDocEvent;
         }
 	}
-
-	public class EditWinProperties : EditWin {
-		public EditWinProperties( IPgViewSite oBaseSite, BaseEditor p_oDocument,bool fReadOnly = false,bool fSingleLine = false) : 
-			base( oBaseSite, p_oDocument, fReadOnly, fSingleLine) 
-		{
-		}
-
-		/// <summary>
-		/// This is a poster child for the problem of needing to do a parse before you can 
-		/// really determine the widths of any columns! Probably need a max width but then
-		/// reset the column if things are narrower for that.
-		/// </summary>
-		/// <returns></returns>
-		protected override CacheManager CreateCacheManager() {
-			CacheManager oManager = base.CreateCacheManager();
-
-            oManager.Width = 150; // BUG: probably obsolete.
-
-			return (oManager);
-		}
-
-	}
 }

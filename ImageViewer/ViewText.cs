@@ -2,6 +2,7 @@
 
 using Play.Interfaces.Embedding;
 using Play.Edit;
+using Play.Forms;
 
 namespace Play.ImageViewer {
     /// <summary>
@@ -29,7 +30,7 @@ namespace Play.ImageViewer {
                 return( new ImageViewIcons( oBaseSite, _oDocumentWalker ) );
             }
             if( sGuid.Equals( GlobalDecorations.Properties ) ) {
-                return( new PropWin( oBaseSite, _oDocumentWalker.Properties ) );
+                return( new ViewStandardProperties( oBaseSite, _oDocumentWalker.Properties ) );
             }
 
             return( null );

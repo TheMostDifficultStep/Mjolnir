@@ -1,10 +1,7 @@
 using System;
-using System.Collections.Generic;
 using System.Text;
 
 using Play.Interfaces.Embedding;
-
-using Play.Parse;
 
 namespace Play.Edit {
     public partial class BaseEditor {

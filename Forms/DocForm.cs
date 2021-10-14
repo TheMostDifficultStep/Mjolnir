@@ -127,7 +127,7 @@ namespace Play.Forms {
     /// This implementation is a bit obsolete since I'm leaning towards a values/labels
     /// version which separates writable items.
     /// </summary>
-    public class FormsEditor : Editor {
+    [Obsolete("See the DocProperties object.")] public class FormsEditor : Editor {
         public FormsEditor( IPgBaseSite oSite ) : base( oSite ) {
         }
 
@@ -231,15 +231,6 @@ namespace Play.Forms {
                 return false;
 
             return true;
-        }
-
-        public void LabelAdd( string strLabel, string strValue = "", SKColor? skColor = null ) {
-            Property_Labels.LineAppend( strLabel, fUndoable:false );
-            Property_Values.LineAppend( strValue, fUndoable:false );
-
-            if( skColor.HasValue ) {
-                ValueBgColor.Add( Property_Values.ElementCount - 1, skColor.Value );
-            }
         }
 
         public Line this[int iIndex] { 

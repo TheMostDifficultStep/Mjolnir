@@ -34,6 +34,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Drawing\Drawing.csproj" />
     <ProjectReference Include="..\Editor\Editor.csproj" />
+    <ProjectReference Include="..\Forms\Forms.csproj" />
     <ProjectReference Include="..\Interfaces\Interfaces.csproj" />
     <ProjectReference Include="..\ParseAll\ParseAll.csproj" />
   </ItemGroup>

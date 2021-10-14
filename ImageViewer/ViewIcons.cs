@@ -9,6 +9,7 @@ using Play.Interfaces.Embedding;
 using Play.Rectangles;
 using Play.Edit;
 using Play.Controls;
+using Play.Forms;
 
 using SkiaSharp;
 using SkiaSharp.Views.Desktop;
@@ -715,7 +716,7 @@ namespace Play.ImageViewer {
 					return( new ImageViewSolo( oBaseSite, this._oDocument ) );
 				}
 				if( sGuid.Equals( GlobalDecorations.Properties ) ) {
-					return( new PropWin( oBaseSite, _oDocument.Properties ) );
+					return( new ViewStandardProperties( oBaseSite, _oDocument.Properties ) );
 				}
 			} catch ( Exception oEx ) {
 				Type[] rgErrors = { typeof( NotImplementedException ),

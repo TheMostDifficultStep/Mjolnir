@@ -7,6 +7,7 @@ using System.Xml;
 using Play.Interfaces.Embedding;
 using Play.Rectangles;
 using Play.Edit;
+using Play.Forms;
 
 using SkiaSharp.Views.Desktop;
 using SkiaSharp;
@@ -565,7 +566,7 @@ namespace Play.ImageViewer {
                 return new ImageViewIcons( oBaseSite, _oDocWalker );
             }
             if( sGuid.Equals( GlobalDecorations.Properties ) ) {
-                return new PropWin( oBaseSite, _oDocWalker.Properties );
+                return new ViewStandardProperties( oBaseSite, _oDocWalker.Properties );
             }
 			if( sGuid.Equals( GlobalDecorations.Options ) ) {
 				return new EditWin( oBaseSite, DragOptions );
