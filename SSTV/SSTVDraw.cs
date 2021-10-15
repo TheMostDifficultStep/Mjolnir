@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 
 using SkiaSharp;
 
@@ -7,6 +8,261 @@ using Play.Interfaces.Embedding;
 using Play.Sound;
 
 namespace Play.SSTV {
+	public class SlidingWindow {
+		protected class MyDatum {
+			public MyDatum( double Bucket, int Position ) {
+				this.Bucket   = Bucket;
+				this.Position = Position;
+				this.Next     = null;
+			}
+			public double  Bucket { get; set; }
+			public int     Position { get; }
+			public MyDatum Next { get; set; }
+
+			public override string ToString() { return Position.ToString(); }
+		}
+
+		protected struct RasterEntry {
+			public RasterEntry( MyDatum oDatum, int iCount ) {
+				Datum = oDatum;
+				Count = iCount;
+			}
+
+			public MyDatum Datum { get; set; }
+			public int     Count { get; set; }
+
+			public override string ToString() { return Count.ToString(); }
+		}
+
+		double _dblScanWidthInSamples;
+		int    _iWindowSizeInSamples  = 0;
+		int    _iWindowSum   = 0;
+		double _iWindowHit; 
+		int    _iW           = 0;
+		double _SLvl         = 0;
+		int[]  _rgWindow;
+		bool   _fTriggered   = false;
+
+		readonly List<MyDatum> _rgData = new(1000);
+		readonly RasterEntry[] _rgRasters = new RasterEntry[850];
+
+		public SlidingWindow( double dblScanWidthInSamples, int iWindowSizeInSamples, double dblSLvl ) {
+			_SLvl       = dblSLvl;
+			_rgWindow   = new int[iWindowSizeInSamples*2];
+
+			Reset( dblScanWidthInSamples, iWindowSizeInSamples );
+		}
+
+		public void Reset( double dblScanWidthInSamples, int iWindowSizeInSamples ) {
+			_iWindowSizeInSamples  = iWindowSizeInSamples;
+			_dblScanWidthInSamples = dblScanWidthInSamples;
+
+			int iNewSize = iWindowSizeInSamples*2;
+
+			if( _rgWindow.Length < iNewSize )
+				_rgWindow = new int[iNewSize];
+
+			Reset();
+		}
+
+		public void Reset() {
+			_fTriggered = false;
+
+			Array.Clear( _rgWindow, 0, _rgWindow .Length );
+			for( int i=0; i<_rgRasters.Length; ++i ) {
+				_rgRasters[i].Count = -1;
+				_rgRasters[i].Datum = null;
+			}
+
+			_rgData.Clear();
+
+			_iWindowSum = 0;
+			_iW         = _iWindowSizeInSamples;
+			_iWindowHit = Math.Round( (double)_iWindowSizeInSamples );
+		}
+
+		/// <summary>
+		/// At present we save all sync signal hits. Honestly I'm not
+		/// how sure this is useful. Basically if there is more than one
+		/// hit I should probably just toss the line. As it is I ignore
+		/// lines with more than one hit.
+		/// </summary>
+		/// <param name="iBucket"></param>
+		/// <param name="oDatum"></param>
+		protected void RasterAdd( int iBucket, MyDatum oDatum ) {
+			if( _rgRasters[iBucket].Datum == null ) {
+				_rgRasters[iBucket].Datum = oDatum;
+				_rgRasters[iBucket].Count = 1;
+			} else {
+				oDatum.Next = _rgRasters[iBucket].Datum;
+				_rgRasters[iBucket].Datum = oDatum;
+				_rgRasters[iBucket].Count++;
+			}
+		}
+
+		/// <summary>
+		/// Log the sync channel. If the d12 signal is above the threshold we save
+		/// the offset, modulo, the scan line width. We save the first offset that
+		/// satisfies the window constraint. That way if we subtract the expected
+		/// sync width we are at the start of a scan line!
+		/// </summary>
+		/// <remarks>We save 2x the window samples so we can always go back to the
+		/// start of the window to subtract that contribution from the sum. This 
+		/// makes us O(n) operation instead of O(n^2), if we had to re-sum the
+		/// previous signals in the window. Techically we don't need to save
+		/// the values b/c we have the buffer. But I'm happy I figured out this
+		/// so I'm going to leave it for now.</remarks>
+		/// <param name="iOffset">Offset into the samples.</param>
+		/// <param name="d12">Hsync signal from the filter.</param>
+		/// <returns></returns>
+		public bool LogSync( int iOffset, double d12 ) {
+			int iSig = d12 > _SLvl ? 1 : 0;
+
+			try {
+				double dblBucket = Math.Round( (double)iOffset / _dblScanWidthInSamples );
+				int   i2Xl       = _iWindowSizeInSamples * 2;
+				int   iLast      = (_iW + _iWindowSizeInSamples) % ( i2Xl );
+
+				_iWindowSum   -= _rgWindow[iLast];
+				_iWindowSum   += iSig;
+				_rgWindow[_iW] = iSig;
+				_iW            = (_iW + 1) % i2Xl; 
+
+				if( _iWindowSum >= _iWindowHit ) {
+					// Only catch on a rising trigger!!
+					if( _fTriggered == false ) {
+						_fTriggered = true;
+						MyDatum oDatum = new ( Bucket:dblBucket, Position:iOffset );
+						_rgData.Add( oDatum );
+						return true;
+					}
+				} else {
+					// When we finally exit the window re-set the trigger.
+					_fTriggered = false;
+				}
+			} catch( Exception oEx ) {
+				Type[] rgErrors = { typeof( NullReferenceException ),
+									typeof( IndexOutOfRangeException ),
+									typeof( ArithmeticException ) };
+				if( !rgErrors.Contains( oEx.GetType() ) )
+					throw;
+
+				// BUG: need to send an error message out.
+			}
+
+			return false;
+		}
+
+		/// <summary>
+		/// Call Shuffle() before calling this function!
+		/// This is the beating heart of the slant correction code. Right now we use
+		/// the internal raster to compute the scan line width and start point.
+		/// This is NOT the same as the rasters used for displaying the data so we
+		/// don't corrupt the output drawing process. The two are operating in an
+		/// interleaved fashion.
+		/// </summary>
+		/// <param name="dblSlope">Estimated width in samples of scanline.</param>
+		/// <param name="dblIntercept">Estimated END of first sync signal.</param>
+		/// <returns>True if enough data to return a slope and intercept.</returns>
+		/// <seealso cref="Shuffle(double)"/>
+		public bool AlignLeastSquares( ref double dblSlope, ref double dblIntercept ) {
+			double meanx  = 0, meany = 0;
+			int    iCount = 0;
+
+			dblSlope     = 0;
+			dblIntercept = 0;
+
+			try {
+				for( int i = 0; i<_rgRasters.Length; ++i ) {
+					if( _rgRasters[i].Count == 1 ) {
+						meanx += i;
+						meany += _rgRasters[i].Datum.Position;
+						++iCount;
+					}
+				}
+				if( iCount < 3 )
+					return false;
+
+				meanx /= (double)iCount;
+				meany /= (double)iCount;
+
+				double dxsq = 0;
+				double dxdy = 0;
+
+				for( int i =0; i < _rgRasters.Length; ++i ) {
+					if( _rgRasters[i].Count == 1 ) {
+						double dx = (double)i - meanx;
+						double dy = (double)_rgRasters[i].Datum.Position - meany;
+
+						dxdy += dx * dy;
+						dxsq += Math.Pow( dx, 2 );
+					}
+				}
+
+				if( dxsq == 0 )
+					return false;
+
+				dblSlope     = dxdy / dxsq;
+				dblIntercept = meany - dblSlope * meanx;
+
+				if( dblIntercept < 0 )
+					dblIntercept += dblSlope;
+			} catch( Exception oEx ) {
+				Type[] rgErrors = { typeof( ArithmeticException ),
+									typeof( NullReferenceException ),
+									typeof( ArgumentOutOfRangeException ),
+									typeof( IndexOutOfRangeException ) };
+				if( !rgErrors.Contains( oEx.GetType() ) )
+					throw;
+
+				return false;
+			}
+
+			return true;
+		}
+
+		/// <summary>
+		/// Clear the rasters and reset the bucket on each datm
+		/// based on the new scan width parameter. Then reload
+		/// the rasters. If it's the first try we just load based on the given
+		/// slope. After the first try we use the slope and intercept
+		/// to attempt to dump values that seem to off.
+		/// </summary>
+		/// <param name="fNextTry">true if we have a slope + intercept from a previous try.</param>
+		/// <param name="dblIntercept">Previously calculated intercept.</param>
+		/// <param name="dblSlope">Previously calculated slope (samples per scan line)</param>
+		/// <remarks>300 is just a magic number. Would be nice to make this set (by the user)
+		/// in some intellegent manner. I should do some calculations to make a better guess.
+		/// We used to attempt this interpolation action in a separate step. Collecting ALL
+		/// sync hits and the sifting through them. Might be a waste of time. Looks like keeping
+		/// a count of the hit's on the scan line is usefull, but pointing to all of them.
+		/// </remarks>
+		public void Shuffle( bool fNextTry, double dblSlope, double dblIntercept ) {
+			try {
+				for( int i=0; i<_rgRasters.Length; ++i ) {
+					_rgRasters[i].Datum = null;
+					_rgRasters[i].Count = 0;
+				}
+				foreach( MyDatum oDatum in _rgData ) {
+					oDatum.Bucket = (int)( oDatum.Position / dblSlope );
+					if( fNextTry ) {
+						double dblEstimatedPosition = dblSlope * oDatum.Bucket + dblIntercept;
+
+						if( Math.Abs(oDatum.Position - dblEstimatedPosition ) < 300 )
+							RasterAdd( (int)oDatum.Bucket, oDatum );
+					} else {
+						RasterAdd( (int)oDatum.Bucket, oDatum );
+					}
+				}
+			} catch( Exception oEx ) {
+				Type[] rgErrors = { typeof( NullReferenceException ),
+									typeof( IndexOutOfRangeException ) };
+				if( !rgErrors.Contains( oEx.GetType() ) )
+					throw;
+			}
+		}
+	}
+
 	/// <summary>
 	/// The demodulator converts the signal from the time to frequency domain. In the original
 	/// code. It looks like it lives on it's own thread. I'm going to put it with the demodulator
@@ -25,8 +281,10 @@ namespace Play.SSTV {
 	    protected short[]  _Y36 = new short[800];
 	    protected short[,] _D36 = new short[2,800];
 
-		protected int      _iLastAlign = -1;
-		protected int[]    _rgRasters = new int[800];
+		protected int      _iLastAlign   = -1;
+		protected int[]    _rgRasters    = new int[800];
+		protected double   _dblSlope     = 0;
+		protected double   _dblIntercept = 0;
 
 		short[] _pCalibration = null; // Not strictly necessary yet.
 
@@ -83,6 +341,9 @@ namespace Play.SSTV {
 			_dblReadBaseSync =  0;
 			_dblReadBaseSgnl =  0;
 			_AY				 = -5;
+
+			_dblSlope     = SpecWidthInSamples;
+			_dblIntercept = 0;
 
 			Slider.Reset( SpecWidthInSamples, (int)(Mode.WidthSyncInMS * _dp.SampFreq / 1000) );
 
@@ -413,20 +674,17 @@ namespace Play.SSTV {
 				try {
 					int iScanLine = (int)(_dp.m_wBase / ScanWidthInSamples );
 					if( iScanLine % 20 == 19 ) {
-						double dblSlope     = 0;
-						double dblIntercept = 0;
-						int    iScanLines   = Mode.Resolution.Height / Mode.ScanMultiplier;
+						int iScanLines = Mode.Resolution.Height / Mode.ScanMultiplier;
 
 						if( _iLastAlign < iScanLine) {
-							// Clear's the sync data and force re-read from the buffer.
-							Slider.Shuffle( ScanWidthInSamples );
-							if( Slider.AlignLeastSquares( ref dblSlope, ref dblIntercept ) ) {
+							Slider.Shuffle( _iLastAlign > 0, _dblSlope, _dblIntercept );
+							if( Slider.AlignLeastSquares( ref _dblSlope, ref _dblIntercept ) ) {
+								// Clear's the sync data and force re-read from the buffer.
 								int iSyncWidth = (int)(Mode.OffsetInMS * _dp.SampFreq / 1000);
-								dblIntercept -=iSyncWidth;
-								Slider.Reset( dblSlope,  (int)(Mode.WidthSyncInMS * _dp.SampFreq / 1000) );
+								Slider.Reset( _dblSlope,  (int)(Mode.WidthSyncInMS * _dp.SampFreq / 1000) );
 
-								Interpolate( iScanLines, dblSlope, dblIntercept );
-								InitSlots  ( Mode.Resolution.Width, dblSlope / SpecWidthInSamples ); // updates the ScanWidthInSamples.
+								Interpolate( iScanLines, _dblSlope, _dblIntercept - iSyncWidth );
+								InitSlots  ( Mode.Resolution.Width, _dblSlope / SpecWidthInSamples ); // updates the ScanWidthInSamples.
 								_dblReadBaseSync = 0;
 								_iLastAlign      = iScanLine;
 							}
