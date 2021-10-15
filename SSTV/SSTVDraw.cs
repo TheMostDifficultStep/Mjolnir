@@ -13,11 +13,9 @@ namespace Play.SSTV {
 			public MyDatum( double Bucket, int Position ) {
 				this.Bucket   = Bucket;
 				this.Position = Position;
-				this.Next     = null;
 			}
 			public double  Bucket { get; set; }
 			public int     Position { get; }
-			public MyDatum Next { get; set; }
 
 			public override string ToString() { return Position.ToString(); }
 		}
@@ -94,7 +92,6 @@ namespace Play.SSTV {
 				_rgRasters[iBucket].Datum = oDatum;
 				_rgRasters[iBucket].Count = 1;
 			} else {
-				oDatum.Next = _rgRasters[iBucket].Datum;
 				_rgRasters[iBucket].Datum = oDatum;
 				_rgRasters[iBucket].Count++;
 			}
