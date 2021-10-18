@@ -278,10 +278,11 @@ namespace Play.SSTV {
 	    protected short[]  _Y36 = new short[800];
 	    protected short[,] _D36 = new short[2,800];
 
-		protected int      _iLastAlign   = -1;
-		protected int[]    _rgRasters    = new int[800];
-		protected double   _dblSlope     = 0;
-		protected double   _dblIntercept = 0;
+		protected int      _iLastAlign     = -1;
+		protected int[]    _rgRasters      = new int[800];
+		protected double   _dblSlope       = 0;
+		protected double   _dblIntercept   = 0;
+		protected double   _dblMagicOffset = 3.5; // Our iir filters are slow picking up the sync. This compensates.
 
 		short[] _pCalibration = null; // Not strictly necessary yet.
 
@@ -309,12 +310,12 @@ namespace Play.SSTV {
 		/// and sync buffer and some signal levels. I'll see about that in the future.
 		/// </remarks>
 		public SSTVDraw( SSTVDEM p_dp ) {
-			_dp = p_dp ?? throw new ArgumentNullException( "Demodulator must not be null to SSTVDraw." );
-
-			Slider    = new( 3000, 30, p_dp.m_SLvl ); // Put some dummy values for now. Start() updates.
+			_dp       = p_dp ?? throw new ArgumentNullException( "Demodulator must not be null to SSTVDraw." );
 
 			_skCanvas = new( _pBitmapD12 );
 			_skPaint  = new() { Color = SKColors.Red, StrokeWidth = 1 };
+
+			Slider    = new( 3000, 30, p_dp.m_SLvl ); // Put some dummy values for now. Start() updates.
 		}
 
 		/// <summary>
@@ -607,11 +608,11 @@ namespace Play.SSTV {
 					int x = (int)( i * dbD12XScale );
 					if( (x >= 0) && (x < _pBitmapD12.Width)) {
 						int d = Limit256((short)(dRx * 256F / 4096F));
-						if( fHit ) {
-							_skCanvas.DrawLine( new SKPointI( x - iSyncWidth, iScanLine ), new SKPointI( x, iScanLine ), _skPaint);
-						} else {
+						//if( fHit ) {
+						//	_skCanvas.DrawLine( new SKPointI( x - iSyncWidth, iScanLine ), new SKPointI( x, iScanLine ), _skPaint);
+						//} else {
 							_pBitmapD12.SetPixel( x, iScanLine, new SKColor( (byte)d, (byte)d, (byte)d ) );
-						}
+						//}
 					}
 				}
 			} catch( Exception oEx ) {
@@ -712,6 +713,7 @@ namespace Play.SSTV {
 
 							// If can Align, clear the sync data and force re-read from the buffer
 							if( Slider.AlignLeastSquares( ref _dblSlope, ref _dblIntercept ) ) {
+								_dblIntercept -= _dblMagicOffset * _dp.SampFreq / 1000;
 								InitSlots   ( Mode.Resolution.Width, _dblSlope / SpecWidthInSamples ); // updates the ScanWidthInSamples.
 								Slider.Reset( _dblSlope, (int)CorrectedSyncWidthInSamples );
 								Interpolate ( iScanLines, _dblSlope, _dblIntercept - CorrectedSyncOffsetInSamples );
