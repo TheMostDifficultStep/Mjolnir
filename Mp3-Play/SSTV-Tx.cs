@@ -259,7 +259,7 @@ namespace Play.Sound {
 
     public abstract class SSTVMode {
                  public  double   WidthColorInMS { get; } // Time to relay all pixels of one color component.
-        abstract public  double   WidthSyncInMS  { get; }
+        abstract public  double   WidthSyncInMS  { get; } // BUG: Does this get corrected????
         abstract public  double   WidthGapInMS   { get; }
                  public  double   ScanWidthInMS  { get; } // Time for complete scan line.
 
@@ -627,12 +627,13 @@ namespace Play.Sound {
         }
 
         /// <summary>
-        /// Enumerate the modes we support. 
+        /// Enumerate the modes we support.  Note: there are 4 martins and my martin 2 was 320x240 and that's wrong.
+        /// Going to need to test them all...
         /// </summary>
         /// <returns></returns>
         public static IEnumerator<SSTVMode> GetModeEnumerator() {
  	        yield return new SSTVModeMartin( 0xac, "Martin 1",  146.432, new SKSizeI( 320, 240 ), AllModes.smMRT1 );
-            yield return new SSTVModeMartin( 0x28, "Martin 2",   73.216, new SKSizeI( 320, 240 ), AllModes.smMRT2 );
+            yield return new SSTVModeMartin( 0x28, "Martin 2",   73.216, new SKSizeI( 160, 240 ), AllModes.smMRT2 );
         }
 
         /// <summary>

@@ -866,6 +866,7 @@ namespace Play.Sound {
 			SampBase        = dblSampBase;
 			m_dblToneOffset = dbToneOffset;
 
+			// Find the biggest image type so our D12 image will be large enough.
 			double dblMaxBufferInMs = 0;
 			foreach( SSTVMode oMode in this ) {
 				ModeDictionary.Add( oMode.VIS, oMode );

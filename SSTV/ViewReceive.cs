@@ -34,7 +34,7 @@ namespace Play.SSTV {
 		protected readonly IPgViewSite   _oSiteView;
 		protected readonly DocSSTV       _oDocSSTV;
 
-		protected readonly ImageViewSingle _oViewRx;      // Show the currently selected image.
+		//protected readonly ImageViewSingle _oViewRx;      // Show the currently selected image.
 		protected readonly ImageViewSingle _oViewSync;    // The sync bitmap.
 
 		protected LayoutStack _oLayout = new LayoutStackVertical( 5 );
@@ -94,7 +94,7 @@ namespace Play.SSTV {
 			Iconic = ImageResourceHelper.GetImageResource( Assembly.GetExecutingAssembly(), _strIcon );
 			Banner = _strBannerBase + _oDocSSTV.TxImageList.CurrentDirectory;
 
-			_oViewRx        = new ImageViewSingle( new SSTVWinSlot( this ), _oDocSSTV.ReceiveImage );
+			//_oViewRx        = new ImageViewSingle( new SSTVWinSlot( this ), _oDocSSTV.ReceiveImage );
 			_oViewSync      = new ImageViewSingle( new SSTVWinSlot( this ), _oDocSSTV.SyncImage );
 		}
 
@@ -111,16 +111,16 @@ namespace Play.SSTV {
 		public bool InitNew() {
 			if( !_oViewSync.InitNew() )
 				return false;
-			if( !_oViewRx.InitNew() )
-				return false;
+			//if( !_oViewRx.InitNew() )
+			//	return false;
 
-			_oViewRx  .Parent = this;
+			//_oViewRx  .Parent = this;
 			_oViewSync.Parent = this;
 
             _oDocSSTV.PropertyChange += Listen_PropertyChange;
 
-            _oLayout.Add( new LayoutControl( _oViewRx,    LayoutRect.CSS.Percent, 60 ) );
-            _oLayout.Add( new LayoutControl( _oViewSync , LayoutRect.CSS.Percent, 40 ) );
+            //_oLayout.Add( new LayoutControl( _oViewRx,    LayoutRect.CSS.Percent, 60 ) );
+            _oLayout.Add( new LayoutControl( _oViewSync , LayoutRect.CSS.Percent, 100 ) );
 
             OnSizeChanged( new EventArgs() );
 
@@ -134,7 +134,7 @@ namespace Play.SSTV {
         /// specific property in the future. You know, a color coded property, 
         /// light red or yellow on change would be a cool feature.</remarks>
         private void Listen_PropertyChange( ESstvProperty eProp ) {
-			_oViewRx  .Refresh();
+			//_oViewRx  .Refresh();
 			_oViewSync.Refresh();
         }
 
@@ -253,10 +253,10 @@ namespace Play.SSTV {
 
         protected readonly IPgViewSite _oSiteView;
 
-		readonly  List<string>  _rgToolBox     = new() { "File", "Port" };
-		protected Tools         _eToolSelected = Tools.File;
-		protected static string _strBaseTitle  = "MySSTV Receive";
-		protected        string _strDirectory  = string.Empty;
+		readonly  List<string>           _rgToolBox     = new() { "File", "Port" };
+		protected Tools                  _eToolSelected = Tools.File;
+		protected static readonly string _strBaseTitle  = "MySSTV Receive";
+		protected        string          _strDirectory  = string.Empty;
 
         DocSSTV _oDocSSTV;
 

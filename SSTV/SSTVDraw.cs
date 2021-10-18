@@ -232,7 +232,7 @@ namespace Play.SSTV {
 		/// in some intellegent manner. I should do some calculations to make a better guess.
 		/// We used to attempt this interpolation action in a separate step. Collecting ALL
 		/// sync hits and the sifting through them. Might be a waste of time. Looks like keeping
-		/// a count of the hit's on the scan line is usefull, but pointing to all of them.
+		/// a count of the hit's on the scan line is useful, but pointing to all of them is a waste.
 		/// </remarks>
 		public void Shuffle( bool fNextTry, double dblSlope, double dblIntercept ) {
 			try {
@@ -297,6 +297,10 @@ namespace Play.SSTV {
 		public event SSTVPropertyChange ShoutTvEvents; // TODO: Since threaded version poles, we don't need this.
 
 		protected readonly List<ColorChannel> _rgSlots = new (10);
+		
+		public double CorrectedSyncWidthInSamples  { get; protected set; }
+		public double CorrectedSyncOffsetInSamples { get; protected set; }
+
 
 		protected SlidingWindow Slider { get; }
 
@@ -342,7 +346,10 @@ namespace Play.SSTV {
 			_dblSlope     = SpecWidthInSamples;
 			_dblIntercept = 0;
 
-			Slider.Reset( SpecWidthInSamples, (int)(Mode.WidthSyncInMS * _dp.SampFreq / 1000) );
+			CorrectedSyncWidthInSamples  = Mode.WidthSyncInMS * _dp.SampFreq / 1000;
+			CorrectedSyncOffsetInSamples = Mode.OffsetInMS    * _dp.SampFreq / 1000;
+
+			Slider.Reset( SpecWidthInSamples, (int)CorrectedSyncWidthInSamples );
 
 			ShoutTvEvents?.Invoke(ESstvProperty.SSTVMode );
 
@@ -520,26 +527,52 @@ namespace Play.SSTV {
 			if( _dp.m_Sync ) {
 				_dp.Stop();
 
-				double slope     = 0;
-				double intercept = 0;
+				SKPaint skPaint = new() { Color = SKColors.Yellow, StrokeWidth = 3 };
 
-				if( Slider.AlignLeastSquares( ref slope, ref intercept ) ) {
-					//InitSlots( Mode.Resolution.Width, slope / SpecWidthInSamples );
-					SKPaint skPaint = new() { Color = SKColors.Yellow, StrokeWidth = 2 };
+				double dbD12XScale       = _pBitmapD12.Width / _dblSlope;
+				double dblSyncExpected   = CorrectedSyncOffsetInSamples;
+				float  flScaledIntercept = (float)( _dblIntercept * dbD12XScale );
+				//double dblOffset       = ( Mode.Resolution.Height - 1 ) * _dblSlope + _dblIntercept;
+				//float  flX2            = (float)( dblOffset % _dblSlope * dbD12XScale );
 
-					double dbD12XScale     = _pBitmapD12.Width / SpecWidthInSamples;
-					double dblSyncExpected = _dp.Mode.OffsetInMS * _dp.SampFreq / 1000;
-					float  flX             = (float)( intercept * dbD12XScale );
-					double dblOffset       = ( Mode.Resolution.Height - 1 ) * slope + intercept;
-					float  flX2            = (float)( dblOffset % SpecWidthInSamples * dbD12XScale );
+				SKPoint top = new( flScaledIntercept, 0 );
+				SKPoint bot = new( flScaledIntercept, _pBitmapD12.Height );
+				_skCanvas.DrawLine( top, bot, skPaint );
 
-					SKPoint top = new( flX,  0 );
-					SKPoint bot = new( flX2, Mode.Resolution.Height - 1);
-					
-					_skCanvas.DrawLine( top, bot, skPaint );
+				foreach( ColorChannel oSlot in _rgSlots ) {
+					double dblXCh = ( _dblIntercept + oSlot.Min - dblSyncExpected ) * dbD12XScale;
+					dblXCh %= _pBitmapD12.Width;
 
-					ShoutTvEvents?.Invoke( ESstvProperty.DownLoadFinished );
+					switch( oSlot.ChannelType ) {
+						case ScanLineChannelType.Sync:
+							skPaint.Color = SKColors.White;
+							skPaint.StrokeWidth = 2;
+							break;
+						case ScanLineChannelType.Gap:
+							skPaint.Color = SKColors.Brown;
+							skPaint.StrokeWidth = 1;
+							break;
+						case ScanLineChannelType.Red:
+							skPaint.Color = SKColors.Red;
+							skPaint.StrokeWidth = 1;
+							break;
+						case ScanLineChannelType.Green:
+							skPaint.Color = SKColors.Green;
+							skPaint.StrokeWidth = 1;
+							break;
+						case ScanLineChannelType.Blue:
+							skPaint.Color = SKColors.Blue;
+							skPaint.StrokeWidth = 1;
+							break;
+					}
+
+					_skCanvas.DrawLine( new SKPoint( (int)dblXCh, 0 ), 
+						                new SKPoint( (int)dblXCh, _pBitmapD12.Height), 
+										skPaint );
 				}
+					
+
+				ShoutTvEvents?.Invoke( ESstvProperty.DownLoadFinished );
 			}
 		}
 
@@ -557,7 +590,7 @@ namespace Play.SSTV {
 			int    iReadBase   = (int)dblBase;
 			int    iScanWidth  = (int)ScanWidthInSamples; // Make sure this matches our controlling loop!!
 			double dbD12XScale = _pBitmapD12.Width / ScanWidthInSamples;
-			int    iSyncWidth  = (int)( Mode.WidthSyncInMS * _dp.SampFreq / 1000 * dbD12XScale );
+			int    iSyncWidth  = (int)( CorrectedSyncWidthInSamples * dbD12XScale );
 			int    iScanLine   = (int)Math.Round( dblBase / ScanWidthInSamples );
 
 			// If we can't advance we'll get stuck in an infinite loop on our caller.
@@ -569,10 +602,11 @@ namespace Play.SSTV {
 					int   idx = iReadBase + i;
 					short d12 = _dp.SyncGet( idx );
 					bool fHit = Slider.LogSync( idx, d12 );
+					short dRx = _dp.SignalGet( idx );
 
 					int x = (int)( i * dbD12XScale );
 					if( (x >= 0) && (x < _pBitmapD12.Width)) {
-						int d = Limit256((short)(d12 * 256F / 4096F));
+						int d = Limit256((short)(dRx * 256F / 4096F));
 						if( fHit ) {
 							_skCanvas.DrawLine( new SKPointI( x - iSyncWidth, iScanLine ), new SKPointI( x, iScanLine ), _skPaint);
 						} else {
@@ -675,13 +709,13 @@ namespace Play.SSTV {
 
 						if( _iLastAlign < iScanLine) {
 							Slider.Shuffle( _iLastAlign > 0, _dblSlope, _dblIntercept );
-							if( Slider.AlignLeastSquares( ref _dblSlope, ref _dblIntercept ) ) {
-								// Clear's the sync data and force re-read from the buffer.
-								int iSyncWidth = (int)(Mode.OffsetInMS * _dp.SampFreq / 1000);
-								Slider.Reset( _dblSlope,  (int)(Mode.WidthSyncInMS * _dp.SampFreq / 1000) );
 
-								Interpolate( iScanLines, _dblSlope, _dblIntercept - iSyncWidth );
-								InitSlots  ( Mode.Resolution.Width, _dblSlope / SpecWidthInSamples ); // updates the ScanWidthInSamples.
+							// If can Align, clear the sync data and force re-read from the buffer
+							if( Slider.AlignLeastSquares( ref _dblSlope, ref _dblIntercept ) ) {
+								InitSlots   ( Mode.Resolution.Width, _dblSlope / SpecWidthInSamples ); // updates the ScanWidthInSamples.
+								Slider.Reset( _dblSlope, (int)CorrectedSyncWidthInSamples );
+								Interpolate ( iScanLines, _dblSlope, _dblIntercept - CorrectedSyncOffsetInSamples );
+
 								_dblReadBaseSync = 0;
 								_iLastAlign      = iScanLine;
 							}
@@ -771,7 +805,7 @@ namespace Play.SSTV {
                 _rgSlots.Clear();
 
                 foreach( ScanLineChannel oChannel in oMode.ChannelMap ) {
-                	_rgSlots.Add( new( oChannel.WidthInMs * _dp.SampFreq / 1000, ReturnColorFunction( oChannel.Type ) ) );
+                	_rgSlots.Add( new( oChannel.WidthInMs * _dp.SampFreq / 1000, ReturnColorFunction( oChannel.Type ), oChannel.Type ) );
                 }
                 _rgSlots.Add( new() );
 
@@ -798,9 +832,14 @@ namespace Play.SSTV {
 		/// <seealso cref="DemodTest.Write(int, uint, double)"/>
 		protected void InitSlots( int iBmpWidth, double dbCorrection ) {
 			double dbIdx = 0;
-			for( int i = 0; i< _rgSlots.Count; ++i ) {
-				dbIdx = _rgSlots[i].Reset( iBmpWidth, dbIdx, dbCorrection );
+			foreach( ColorChannel oSlot in _rgSlots ) {
+				dbIdx = oSlot.Reset( iBmpWidth, dbIdx, dbCorrection );
 			}
+
+			double dblSamplesPerMs = _dp.SampFreq / 1000 * dbCorrection;
+
+			CorrectedSyncWidthInSamples  = ( Mode.WidthSyncInMS * dblSamplesPerMs );
+			CorrectedSyncOffsetInSamples = ( Mode.OffsetInMS    * dblSamplesPerMs );
 		}
     } // End Class TmmSSTV
 
@@ -814,14 +853,17 @@ namespace Play.SSTV {
 		public double SpecWidthInSamples { get; } // The original specification.
 		public double _dbScanWidthCorrected;      // Compensated value.
 
+		public ScanLineChannelType ChannelType { get; }
+
 		public double   Min      { get; set; }
 		public double   Max      { get; protected set; }
 		public setPixel SetPixel { get; protected set; }
 		public double   Scaling  { get; protected set; }
 
-		public ColorChannel( double dbWidthInSamples, setPixel fnSet ) {
+		public ColorChannel( double dbWidthInSamples, setPixel fnSet, ScanLineChannelType eType ) {
 			SpecWidthInSamples = dbWidthInSamples;
 			SetPixel           = fnSet;
+			ChannelType        = eType;
 		}
 
 		public ColorChannel() {
