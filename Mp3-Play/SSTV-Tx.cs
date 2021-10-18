@@ -633,7 +633,7 @@ namespace Play.Sound {
         /// <returns></returns>
         public static IEnumerator<SSTVMode> GetModeEnumerator() {
  	        yield return new SSTVModeMartin( 0xac, "Martin 1",  146.432, new SKSizeI( 320, 240 ), AllModes.smMRT1 );
-            yield return new SSTVModeMartin( 0x28, "Martin 2",   73.216, new SKSizeI( 160, 240 ), AllModes.smMRT2 );
+            yield return new SSTVModeMartin( 0x28, "Martin 2",   73.216, new SKSizeI( 320, 240 ), AllModes.smMRT2 );
         }
 
         /// <summary>
