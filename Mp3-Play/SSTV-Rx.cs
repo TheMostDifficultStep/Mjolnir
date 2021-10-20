@@ -942,10 +942,6 @@ namespace Play.Sound {
 			m_AFCInt = (int)(100 * SampFreq / 1000.0 );
 			m_AFCDis = 0;
 
-			//m_sint1.Reset();
-			//m_sint2.Reset();
-			//m_sint3.Reset( fNarrow:true);
-
 			m_SyncRestart = true;
 
 			SetSenseLevel( 1 );
@@ -1088,6 +1084,14 @@ namespace Play.Sound {
 			//}
 		}
 
+		/// <summary>
+		/// 
+		/// </summary>
+		/// <param name="H1"></param>
+		/// <param name="H2"></param>
+		/// <param name="H3">UNITIALIZED. It's for narrow modes which we don't support.</param>
+		/// <param name="bpftap"></param>
+		/// <param name="bpf"></param>
 		public void CalcBPF(double[] H1, double[] H2, double[] H3, ref int bpftap, BandPass bpf)
 		{
 			int lfq  = (int)((m_SyncRestart ? 1100 : 1200) + m_dblToneOffset );
@@ -1099,19 +1103,19 @@ namespace Play.Sound {
 					bpftap = (int)(24 * SampFreq / 11025.0 );
 					CFIR2.MakeFilter(H1, bpftap, FirFilt.ffBPF, SampFreq,  lfq, 2600 + m_dblToneOffset, 20, 1.0);
 					CFIR2.MakeFilter(H2, bpftap, FirFilt.ffBPF, SampFreq, lfq2, 2500 + m_dblToneOffset, 20, 1.0);
-		//			MakeFilter(H3, bpftap, ffBPF, SampFreq,  NARROW_BPFLOW-200, NARROW_BPFHIGH, 20, 1.0);
+		//			CFIR2.MakeFilter(H3, bpftap, ffBPF, SampFreq,  NARROW_BPFLOW-200, NARROW_BPFHIGH, 20, 1.0);
 					break;
 				case BandPass.Narrow:
 					bpftap = (int)(64 * SampFreq / 11025.0 );
 					CFIR2.MakeFilter(H1, bpftap, FirFilt.ffBPF, SampFreq,  lfq, 2500 + m_dblToneOffset, 40, 1.0);
 					CFIR2.MakeFilter(H2, bpftap, FirFilt.ffBPF, SampFreq, lfq2, 2500 + m_dblToneOffset, 20, 1.0);
-		//			MakeFilter(H3, bpftap, ffBPF, SampFreq, NARROW_BPFLOW-100, NARROW_BPFHIGH, 40, 1.0);
+		//			CFIR2.MakeFilter(H3, bpftap, ffBPF, SampFreq, NARROW_BPFLOW-100, NARROW_BPFHIGH, 40, 1.0);
 					break;
 				case BandPass.VeryNarrow: 
 					bpftap = (int)(96 * SampFreq / 11025.0 );
 					CFIR2.MakeFilter(H1, bpftap, FirFilt.ffBPF, SampFreq,  lfq, 2400 + m_dblToneOffset, 50, 1.0);
 					CFIR2.MakeFilter(H2, bpftap, FirFilt.ffBPF, SampFreq, lfq2, 2500 + m_dblToneOffset, 20, 1.0);
-		//			MakeFilter(H3, bpftap, ffBPF, SampFreq,  NARROW_BPFLOW, NARROW_BPFHIGH, 50, 1.0);
+		//			CFIR2.MakeFilter(H3, bpftap, ffBPF, SampFreq,  NARROW_BPFLOW, NARROW_BPFHIGH, 50, 1.0);
 					break;
 				default:
 					bpftap = 0;
@@ -1120,6 +1124,10 @@ namespace Play.Sound {
 		  //CalcNarrowBPF(H3, bpftap, bpf, SSTVSET.m_Mode); If I add those modes I'll figure this out.
 		}
 
+		/// <summary>
+		/// The MakeFilter( H3, ... in CalcBPF was always commented out with this code called at the bottom.
+		/// But since I don't support narrow modes, I don't call this function either.
+		/// </summary>
 		public void CalcNarrowBPF(double[] H3, int bpftap, BandPass bpf, AllModes mode) {
 			int low, high;
 			switch(mode){
@@ -1168,11 +1176,16 @@ namespace Play.Sound {
 		}
 
 		/// <summary>
-		/// This looks it can help with image offset issue but it only
-		/// looks like skip is only called via mouse operations or if this
-		/// function is called on setup.
+		/// This looks it compensates for a mid signal reception to changes between bandpass 
+		/// values. It looks like skip is only called if the user changes settings
+		/// while the image is being decoded else this function is called on setup.
+		/// NOTE that CalcNarrowBPF() normally gets called in Start() but I disabled that
+		/// since I don't support narrow modes. If I did, I'd probably seperate out the
+		/// sync == true side of this object into a set of subclasses for the narrowband
+		/// stuff.
 		/// </summary>
-		/// <param name="bpf">1:wide, 2:narrow, 3:very narrow</param>
+		/// <seealso cref="CalcNarrowBPF" />
+		/// <seealso cref="Start" />
 		void SetBPF(BandPass bpf) {
 			if( bpf != m_bpf ){
 				m_bpf = bpf;

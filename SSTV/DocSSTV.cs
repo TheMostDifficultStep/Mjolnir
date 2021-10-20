@@ -214,7 +214,8 @@ namespace Play.SSTV {
         DownLoadFinished,
         ThreadDrawingException,
         ThreadWorkerException,
-        ThreadReadException
+        ThreadReadException,
+        ThreadDiagnosticsException
     }
 
     public delegate void SSTVPropertyChange( ESstvProperty eProp );
@@ -882,6 +883,9 @@ namespace Play.SSTV {
                             PropertiesRxTime( oWorker.RxSSTV.PercentRxComplete );
                             DownloadFinished( !string.IsNullOrEmpty( oWorker._strFileName ) );
                             fReceivedFinishedMsg = true;
+                            break;
+                        case ESstvProperty.ThreadDiagnosticsException:
+                            LogError( "Worker thread Diagnostics Exception" );
                             break;
                         case ESstvProperty.ThreadDrawingException:
                             LogError( "Worker thread Drawing Exception" );

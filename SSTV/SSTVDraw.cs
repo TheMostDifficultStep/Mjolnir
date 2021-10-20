@@ -550,7 +550,7 @@ namespace Play.SSTV {
 				if( rgErrors.IsUnhandled( oEx ) )
 					throw;
 
-				ShoutTvEvents?.Invoke( ESstvProperty.ThreadDrawingException );
+				ShoutTvEvents?.Invoke( ESstvProperty.ThreadDiagnosticsException );
 			}
 		}
 
