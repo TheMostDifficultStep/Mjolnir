@@ -295,8 +295,18 @@ namespace Play.SSTV {
 		public double CorrectedSyncWidthInSamples  { get; protected set; }
 		public double CorrectedSyncOffsetInSamples { get; protected set; }
 
-
 		protected SlidingWindow Slider { get; }
+
+		struct DiagnosticPaint {
+			public SKColor Color;
+			public int     StrokeWidth;
+
+			public DiagnosticPaint( SKColor skColor, int iStrokeWidth ) {
+				Color       = skColor;
+				StrokeWidth = iStrokeWidth;
+			}
+		}
+		Dictionary<ScanLineChannelType, DiagnosticPaint> _rgDiagnosticColors = new();
 
 		/// <remarks>
 		/// Techically we dont need all of the demodulator but only access to the signal
@@ -309,6 +319,16 @@ namespace Play.SSTV {
 			_skPaint  = new() { Color = SKColors.Red, StrokeWidth = 1 };
 
 			Slider    = new( 30, p_dp.m_SLvl ); // Put some dummy values for now. Start() updates.
+
+			_rgDiagnosticColors.Add( ScanLineChannelType.Sync,  new( SKColors.White, 2 ) );
+			_rgDiagnosticColors.Add( ScanLineChannelType.Gap,   new( SKColors.Brown, 1 ) );
+			_rgDiagnosticColors.Add( ScanLineChannelType.Red,   new( SKColors.Red,   1 ) );
+			_rgDiagnosticColors.Add( ScanLineChannelType.Green, new( SKColors.Green, 1 ) );
+			_rgDiagnosticColors.Add( ScanLineChannelType.Blue,  new( SKColors.Blue,  1 ) );
+			_rgDiagnosticColors.Add( ScanLineChannelType.BY,    new( SKColors.Blue,  1 ) );
+			_rgDiagnosticColors.Add( ScanLineChannelType.RY,    new( SKColors.Red,   1 ) );
+			_rgDiagnosticColors.Add( ScanLineChannelType.Y1,    new( SKColors.Gray,  1 ) );
+			_rgDiagnosticColors.Add( ScanLineChannelType.Y2,    new( SKColors.Gray,  1 ) );
 		}
 
 		/// <summary>
@@ -492,55 +512,45 @@ namespace Play.SSTV {
 		/// decoded the entire image.
 		/// </summary>
 		public void Stop() {
-			if( _dp.m_Sync ) {
-				_dp.Stop();
+			try {
+				if( _dp.m_Sync ) {
+					_dp.Stop();
 
-				SKPaint skPaint = new() { Color = SKColors.Yellow, StrokeWidth = 3 };
+					SKPaint skPaint = new() { Color = SKColors.Yellow, StrokeWidth = 3 };
 
-				double dbD12XScale       = _pBitmapD12.Width / _dblSlope;
-				double dblSyncExpected   = CorrectedSyncOffsetInSamples;
-				float  flScaledIntercept = (float)( _dblIntercept * dbD12XScale );
-				//double dblOffset       = ( Mode.Resolution.Height - 1 ) * _dblSlope + _dblIntercept;
-				//float  flX2            = (float)( dblOffset % _dblSlope * dbD12XScale );
+					double dbD12XScale       = _pBitmapD12.Width / _dblSlope;
+					double dblSyncExpected   = CorrectedSyncOffsetInSamples;
+					float  flScaledIntercept = (float)( _dblIntercept * dbD12XScale );
+					//double dblOffset       = ( Mode.Resolution.Height - 1 ) * _dblSlope + _dblIntercept;
+					//float  flX2            = (float)( dblOffset % _dblSlope * dbD12XScale );
 
-				SKPoint top = new( flScaledIntercept, 0 );
-				SKPoint bot = new( flScaledIntercept, _pBitmapD12.Height );
-				_skCanvas.DrawLine( top, bot, skPaint );
+					SKPoint top = new( flScaledIntercept, 0 );
+					SKPoint bot = new( flScaledIntercept, _pBitmapD12.Height );
+					_skCanvas.DrawLine( top, bot, skPaint );
 
-				foreach( ColorChannel oSlot in _rgSlots ) {
-					double dblXCh = ( _dblIntercept + oSlot.Min - dblSyncExpected ) * dbD12XScale;
-					dblXCh %= _pBitmapD12.Width;
+					foreach( ColorChannel oSlot in _rgSlots ) {
+						double dblXCh = ( _dblIntercept + oSlot.Min - dblSyncExpected ) * dbD12XScale;
+						dblXCh %= _pBitmapD12.Width;
 
-					switch( oSlot.ChannelType ) {
-						case ScanLineChannelType.Sync:
-							skPaint.Color = SKColors.White;
-							skPaint.StrokeWidth = 2;
-							break;
-						case ScanLineChannelType.Gap:
-							skPaint.Color = SKColors.Brown;
-							skPaint.StrokeWidth = 1;
-							break;
-						case ScanLineChannelType.Red:
-							skPaint.Color = SKColors.Red;
-							skPaint.StrokeWidth = 1;
-							break;
-						case ScanLineChannelType.Green:
-							skPaint.Color = SKColors.Green;
-							skPaint.StrokeWidth = 1;
-							break;
-						case ScanLineChannelType.Blue:
-							skPaint.Color = SKColors.Blue;
-							skPaint.StrokeWidth = 1;
-							break;
+						DiagnosticPaint sPaint = _rgDiagnosticColors[oSlot.ChannelType];
+
+						skPaint.Color       = sPaint.Color;
+						skPaint.StrokeWidth = sPaint.StrokeWidth;
+
+						_skCanvas.DrawLine( new SKPoint( (int)dblXCh, 0 ), 
+											new SKPoint( (int)dblXCh, _pBitmapD12.Height), 
+											skPaint );
 					}
-
-					_skCanvas.DrawLine( new SKPoint( (int)dblXCh, 0 ), 
-						                new SKPoint( (int)dblXCh, _pBitmapD12.Height), 
-										skPaint );
-				}
 					
+					ShoutTvEvents?.Invoke( ESstvProperty.DownLoadFinished );
+				}
+			} catch( Exception oEx ) {
+				Type[] rgErrors = { typeof( NullReferenceException ),
+									typeof( KeyNotFoundException ) };
+				if( rgErrors.IsUnhandled( oEx ) )
+					throw;
 
-				ShoutTvEvents?.Invoke( ESstvProperty.DownLoadFinished );
+				ShoutTvEvents?.Invoke( ESstvProperty.ThreadDrawingException );
 			}
 		}
 
