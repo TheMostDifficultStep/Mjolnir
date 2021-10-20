@@ -23,8 +23,8 @@ namespace Play.SSTV {
 
 				if( guidViewType == ViewFFT.GUID )
 					return new ViewFFT( oBaseSite, oMySSTVDoc );
-                if( guidViewType == ViewRxAndSync.GUID )
-                    return new ViewRxAndSync(oBaseSite, oMySSTVDoc);
+                if( guidViewType == ViewDiagnostics.GUID )
+                    return new ViewDiagnostics(oBaseSite, oMySSTVDoc);
                 if( guidViewType == ViewSimpleTxImage.GUID )
 					return new ViewSimpleTxImage( oBaseSite, oMySSTVDoc );
 				if( guidViewType == ViewRxImage.GUID )
@@ -53,7 +53,7 @@ namespace Play.SSTV {
 		public override IEnumerator<IPgViewType> GetEnumerator() {
 		  //yield return new ViewType( "Spectrum",             ViewFFT      .ViewType );
 			yield return new ViewType( "Receive Image",        ViewRxImage      .GUID );
-		    yield return new ViewType( "Receive Diagnostics",  ViewRxAndSync    .GUID );
+		    yield return new ViewType( "Receive Diagnostics",  ViewDiagnostics    .GUID );
 		    yield return new ViewType( "Transmit Image",       ViewSimpleTxImage.GUID );
 			yield return new ViewType( "Settings",             ViewSettings     .GUID );
 		  //yield return new ViewType( "Mode Select",          ViewTransmitModes );

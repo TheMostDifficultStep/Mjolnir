@@ -17,10 +17,9 @@ using Play.Forms;
 
 namespace Play.SSTV {
 	/// <summary>
-	/// This view shows both the SSTV image and the sync image. But I don't think I want to use
-	/// this object.
+	/// This view shows the raw scan line with our slot identifiers. Invaluable to spot alignment issues.
 	/// </summary>
-	public class ViewRxAndSync:
+	public class ViewDiagnostics:
 		Control,
 		IPgParent,
 		IPgLoad<XmlElement>,
@@ -34,7 +33,7 @@ namespace Play.SSTV {
 		protected readonly IPgViewSite   _oSiteView;
 		protected readonly DocSSTV       _oDocSSTV;
 
-		//protected readonly ImageViewSingle _oViewRx;      // Show the currently selected image.
+	  //protected readonly ImageViewSingle _oViewRx;      // Show the currently selected image.
 		protected readonly ImageViewSingle _oViewSync;    // The sync bitmap.
 
 		protected LayoutStack _oLayout = new LayoutStackVertical( 5 );
@@ -43,9 +42,9 @@ namespace Play.SSTV {
 			IPgViewSite,
 			IPgShellSite
 		{
-			protected readonly ViewRxAndSync _oHost;
+			protected readonly ViewDiagnostics _oHost;
 
-			public SSTVWinSlot( ViewRxAndSync oHost ) {
+			public SSTVWinSlot( ViewDiagnostics oHost ) {
 				_oHost = oHost ?? throw new ArgumentNullException();
 			}
 
@@ -87,15 +86,15 @@ namespace Play.SSTV {
 
 		protected readonly string _strBannerBase = "Debug Receive Window : ";
 
-        public ViewRxAndSync( IPgViewSite oViewSite, DocSSTV oDocument ) {
+        public ViewDiagnostics( IPgViewSite oViewSite, DocSSTV oDocument ) {
 			_oSiteView = oViewSite ?? throw new ArgumentNullException( "View requires a view site." );
 			_oDocSSTV  = oDocument ?? throw new ArgumentNullException( "View requires a document." );
 
 			Iconic = ImageResourceHelper.GetImageResource( Assembly.GetExecutingAssembly(), _strIcon );
 			Banner = _strBannerBase + _oDocSSTV.TxImageList.CurrentDirectory;
 
-			//_oViewRx        = new ImageViewSingle( new SSTVWinSlot( this ), _oDocSSTV.ReceiveImage );
-			_oViewSync      = new ImageViewSingle( new SSTVWinSlot( this ), _oDocSSTV.SyncImage );
+		  //_oViewRx   = new ImageViewSingle( new SSTVWinSlot( this ), _oDocSSTV.ReceiveImage );
+			_oViewSync = new ImageViewSingle( new SSTVWinSlot( this ), _oDocSSTV.SyncImage );
 		}
 
 		protected override void Dispose( bool disposing ) {
@@ -356,7 +355,7 @@ namespace Play.SSTV {
 					case Tools.File: {
 						// BUG: This should have been updated as the user selects files in the options chooser.
 						bool fDetectVIS = _oDocSSTV.RxProperties[(int)RxProperties.Names.Detect_Vis].Compare( "true", IgnoreCase:true ) == 0;
-						_oDocSSTV.RecordBeginFileRead2( _oDocSSTV.RecChooser.CurrentFullPath, DetectVIS:fDetectVIS );
+						_oDocSSTV.RecordBeginFileRead2( _oDocSSTV.RecChooser.CurrentFullPath, fDetectVIS );
 						return true;
 						}
 					case Tools.Port:

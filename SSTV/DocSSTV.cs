@@ -29,8 +29,7 @@ namespace Play.SSTV {
             Resolution,
             Detect_Vis,
             Progress,
-            SaveDir,
-            MAX
+            SaveWData
         }
 
         public RxProperties( IPgBaseSite oSiteBase ) : base( oSiteBase ) {
@@ -40,7 +39,7 @@ namespace Play.SSTV {
             if( !base.InitNew() ) 
                 return false;
 
-            for( int i=0; i<(int)Names.MAX; ++i ) {
+            foreach( Names eName in Enum.GetValues(typeof(Names)) ) {
                 Property_Labels.LineAppend( string.Empty, fUndoable:false );
                 Property_Values.LineAppend( string.Empty, fUndoable:false );
             }
@@ -49,7 +48,7 @@ namespace Play.SSTV {
             LabelSet( Names.Resolution, "Resolution" );
             LabelSet( Names.Detect_Vis, "Detect VIS", new SKColor( red:0xff, green:0xbf, blue:0 ) );
             LabelSet( Names.Progress,   "Received" );
-            LabelSet( Names.SaveDir,    "Save Directory" );
+            LabelSet( Names.SaveWData,  "Save with Data" );
 
             Clear();
 
@@ -68,6 +67,15 @@ namespace Play.SSTV {
             ValueUpdate( (int)eName, strValue, Broadcast );
         }
 
+        public string this[ Names eIndex ] {
+            get {
+                return Property_Values[(int)eIndex].ToString();
+            }
+        }
+
+        public bool IsValueTrue( Names eIndex ) {
+            return string.Compare( Property_Values[(int)eIndex].ToString(), "true", ignoreCase:true ) == 0;
+        }
         /// <summary>
         /// Override the clear to only clear the specific repeater information. If you want to 
         /// clear all values, call the base method.
@@ -76,7 +84,8 @@ namespace Play.SSTV {
             ValueUpdate( Names.Mode,         "-"    , Broadcast:false ); 
             ValueUpdate( Names.Resolution,   "-"    , Broadcast:false );  
             ValueUpdate( Names.Detect_Vis,   "True" , Broadcast:false ); 
-            ValueUpdate( Names.Progress,      "-"    , Broadcast:true ); 
+            ValueUpdate( Names.Progress,     "-"    , Broadcast:false );
+            ValueUpdate( Names.SaveWData,    "True" , Broadcast:true ); 
         }
     }
 
@@ -90,8 +99,7 @@ namespace Play.SSTV {
 			Mode,
             Resolution,
             Progress,
-            FileName,
-            MAX
+            FileName
         }
 
         public TxProperties( IPgBaseSite oSiteBase ) : base( oSiteBase ) {
@@ -101,7 +109,7 @@ namespace Play.SSTV {
             if( !base.InitNew() ) 
                 return false;
 
-            for( int i=0; i<(int)Names.MAX; ++i ) {
+            foreach( Names eName in Enum.GetValues(typeof(Names)) ) {
                 Property_Labels.LineAppend( string.Empty, fUndoable:false );
                 Property_Values.LineAppend( string.Empty, fUndoable:false );
             }
@@ -156,7 +164,7 @@ namespace Play.SSTV {
             if( !base.InitNew() ) 
                 return false;
             
-            foreach( StdProperties.Names eName in Enum.GetValues(typeof(StdProperties.Names)) ) {
+            foreach( Names eName in Enum.GetValues(typeof(Names)) ) {
                 Property_Labels.LineAppend( string.Empty, fUndoable:false );
                 Property_Values.LineAppend( string.Empty, fUndoable:false );
             }
@@ -286,7 +294,7 @@ namespace Play.SSTV {
         public Editor         RxDirectory     { get; protected set; } // Files in the receive directory.
         public Specification  RxSpec          { get; protected set; } = new Specification( 44100, 1, 0, 16 );
         public GeneratorMode  ModeList        { get; protected set; }
-        public ImageWalkerDir TxImageList       { get; protected set; }
+        public ImageWalkerDir TxImageList     { get; protected set; }
         public SKBitmap       Bitmap          => TxImageList.Bitmap;
         public SSTVMode       RxMode          { get; protected set; } = null; // Thread advisor polls this from work thread.
         public RxProperties   RxProperties    { get; }
@@ -837,10 +845,10 @@ namespace Play.SSTV {
             }
         }
 
-        protected void DownloadFinished( bool fFile ) {
+        protected void DownloadFinished( string strFileName ) {
             PropertyChange?.Invoke( ESstvProperty.DownLoadFinished );
             ModeList.HighLight = null;
-            SaveRxImage( fFile ); // Race condition possible, when image reused.
+            SaveRxImage( strFileName ); // Race condition possible, when image reused.
         }
 
         /// <summary>
@@ -881,7 +889,7 @@ namespace Play.SSTV {
                         case ESstvProperty.DownLoadFinished:
                             // NOTE: This might never come along!
                             PropertiesRxTime( oWorker.RxSSTV.PercentRxComplete );
-                            DownloadFinished( !string.IsNullOrEmpty( oWorker._strFileName ) );
+                            DownloadFinished( oWorker._strFileName );
                             fReceivedFinishedMsg = true;
                             break;
                         case ESstvProperty.ThreadDiagnosticsException:
@@ -900,7 +908,7 @@ namespace Play.SSTV {
 
             // TODO: Make this a settings value. Hard coded to 60% now.
             if( !fReceivedFinishedMsg && oWorker.RxSSTV != null && oWorker.RxSSTV.PercentRxComplete > 60 )
-                DownloadFinished( !string.IsNullOrEmpty( oWorker._strFileName ) );
+                DownloadFinished( oWorker._strFileName );
 
             // NOTE: bitmaps come from RxSSTV and that thread is about to DIE!!
             _oThread = null;
@@ -938,22 +946,22 @@ namespace Play.SSTV {
             }
         }
 
-		private void SaveRxImage( bool bFile ) {
+		private void SaveRxImage( string strFileName ) {
             try {
 			    if( ReceiveImage.Bitmap == null )
 				    return;
 
-			    string strSaveDir = Properties[StdProperties.Names.SaveDir];
+                string strSaveDir = string.Empty;
+                if( RxProperties.IsValueTrue( RxProperties.Names.SaveWData ) && !string.IsNullOrEmpty( strFileName ) ) {
+                    strSaveDir  = Path.GetDirectoryName( strFileName );
+                    strFileName = Path.GetFileNameWithoutExtension( strFileName );
+                } else {
+			        strSaveDir  = Properties[StdProperties.Names.SaveDir];
+                    strFileName = DateTime.Now.ToString();
+                }
                 
                 if( !int.TryParse( Properties[StdProperties.Names.Quality], out int iQuality ) )
                     iQuality = 80;
-
-                string strFileName = string.Empty;
-                
-                if( bFile )
-                    strFileName = Path.GetFileNameWithoutExtension( RecChooser.CurrentFullPath );
-                else
-                    strFileName = DateTime.Now.ToString();
 
                 string strFilePath = Path.Combine( strSaveDir, strFileName + ".png" );
 
@@ -1011,7 +1019,7 @@ namespace Play.SSTV {
             switch( eProp ) {
                 case ESstvProperty.DownLoadFinished:
                     ModeList.HighLight = null;
-                    SaveRxImage( false );
+                    SaveRxImage( string.Empty );
                     break;
             }
         }
@@ -1042,7 +1050,7 @@ namespace Play.SSTV {
                     if( rgErrors.IsUnhandled( oEx ) )
                         throw;
 
-					SaveRxImage( true );
+					SaveRxImage( string.Empty );
 
 					if( oEx.GetType() != typeof( IndexOutOfRangeException ) ) {
 						LogError( "Trouble recordering in SSTV" );
@@ -1127,7 +1135,7 @@ namespace Play.SSTV {
 				_oRxSSTV.Process();
 				yield return 1;
 			};
-			SaveRxImage( true );
+			SaveRxImage( string.Empty );
 		}
 
 		/// <summary>

@@ -1179,7 +1179,9 @@ namespace Play.Sound {
 		/// This looks it compensates for a mid signal reception to changes between bandpass 
 		/// values. It looks like skip is only called if the user changes settings
 		/// while the image is being decoded else this function is called on setup.
-		/// NOTE that CalcNarrowBPF() normally gets called in Start() but I disabled that
+		/// NOTE: That happens when we miss the VIS and try manually overriding the mode
+		/// mid reception. We DEFINITELY need a rewrite in SSTVDraw to support that.
+		/// NOTE: CalcNarrowBPF() normally gets called in Start() but I disabled that
 		/// since I don't support narrow modes. If I did, I'd probably seperate out the
 		/// sync == true side of this object into a set of subclasses for the narrowband
 		/// stuff.
