@@ -32,7 +32,6 @@ namespace Play.SSTV {
 			public override string ToString() { return Count.ToString(); }
 		}
 
-		double _dblScanWidthInSamples;
 		int    _iWindowSizeInSamples  = 0;
 		int    _iWindowSum   = 0;
 		double _iWindowHit; 
@@ -44,16 +43,15 @@ namespace Play.SSTV {
 		readonly List<MyDatum> _rgData = new(1000);
 		readonly RasterEntry[] _rgRasters = new RasterEntry[850];
 
-		public SlidingWindow( double dblScanWidthInSamples, int iWindowSizeInSamples, double dblSLvl ) {
+		public SlidingWindow( int iWindowSizeInSamples, double dblSLvl ) {
 			_SLvl       = dblSLvl;
 			_rgWindow   = new int[iWindowSizeInSamples*2];
 
-			Reset( dblScanWidthInSamples, iWindowSizeInSamples );
+			Reset( iWindowSizeInSamples );
 		}
 
-		public void Reset( double dblScanWidthInSamples, int iWindowSizeInSamples ) {
-			_iWindowSizeInSamples  = iWindowSizeInSamples;
-			_dblScanWidthInSamples = dblScanWidthInSamples;
+		public void Reset( int iWindowSizeInSamples ) {
+			_iWindowSizeInSamples = iWindowSizeInSamples;
 
 			int iNewSize = iWindowSizeInSamples*2;
 
@@ -67,10 +65,6 @@ namespace Play.SSTV {
 			_fTriggered = false;
 
 			Array.Clear( _rgWindow, 0, _rgWindow .Length );
-			for( int i=0; i<_rgRasters.Length; ++i ) {
-				_rgRasters[i].Count = -1;
-				_rgRasters[i].Datum = null;
-			}
 
 			_rgData.Clear();
 
@@ -116,9 +110,8 @@ namespace Play.SSTV {
 			int iSig = d12 > _SLvl ? 1 : 0;
 
 			try {
-				double dblBucket = Math.Round( (double)iOffset / _dblScanWidthInSamples );
-				int   i2Xl       = _iWindowSizeInSamples * 2;
-				int   iLast      = (_iW + _iWindowSizeInSamples) % ( i2Xl );
+				int i2Xl  = _iWindowSizeInSamples * 2;
+				int iLast = (_iW + _iWindowSizeInSamples) % ( i2Xl );
 
 				_iWindowSum   -= _rgWindow[iLast];
 				_iWindowSum   += iSig;
@@ -129,7 +122,7 @@ namespace Play.SSTV {
 					// Only catch on a rising trigger!!
 					if( _fTriggered == false ) {
 						_fTriggered = true;
-						MyDatum oDatum = new ( Bucket:dblBucket, Position:iOffset );
+						MyDatum oDatum = new ( Bucket:0, Position:iOffset );
 						_rgData.Add( oDatum );
 						return true;
 					}
@@ -272,17 +265,17 @@ namespace Play.SSTV {
 		public SSTVMode Mode => _dp.Mode;
 		public DateTime StartTime { get; protected set; }
 
-		protected double   _dblReadBaseSync = 0;
-		protected double   _dblReadBaseSgnl = 0;
+		protected double   _dblReadBaseSync = 0; // Sync signal reader progress
+		protected double   _dblReadBaseSgnl = 0; // Image signal reader progress
         protected int      _AY;
 	    protected short[]  _Y36 = new short[800];
 	    protected short[,] _D36 = new short[2,800];
 
 		protected int      _iLastAlign     = -1;
-		protected int[]    _rgRasters      = new int[800];
 		protected double   _dblSlope       = 0;
 		protected double   _dblIntercept   = 0;
-		protected double   _dblMagicOffset = 3.5; // Our iir filters are slow picking up the sync. This compensates.
+		protected double   _dblMagicOffset = 3.5; // Our iir filters are slow picking up the sync vs Freq detect.
+		// I'll probably need to adjust this number depending on the "FreqDetect" filter (PLL, FQC, Hilbert)
 
 		short[] _pCalibration = null; // Not strictly necessary yet.
 
@@ -315,7 +308,7 @@ namespace Play.SSTV {
 			_skCanvas = new( _pBitmapD12 );
 			_skPaint  = new() { Color = SKColors.Red, StrokeWidth = 1 };
 
-			Slider    = new( 3000, 30, p_dp.m_SLvl ); // Put some dummy values for now. Start() updates.
+			Slider    = new( 30, p_dp.m_SLvl ); // Put some dummy values for now. Start() updates.
 		}
 
 		/// <summary>
@@ -350,7 +343,7 @@ namespace Play.SSTV {
 			CorrectedSyncWidthInSamples  = Mode.WidthSyncInMS * _dp.SampFreq / 1000;
 			CorrectedSyncOffsetInSamples = Mode.OffsetInMS    * _dp.SampFreq / 1000;
 
-			Slider.Reset( SpecWidthInSamples, (int)CorrectedSyncWidthInSamples );
+			Slider.Reset( (int)CorrectedSyncWidthInSamples );
 
 			ShoutTvEvents?.Invoke(ESstvProperty.SSTVMode );
 
@@ -495,32 +488,6 @@ namespace Play.SSTV {
 		}
 
 		/// <summary>
-		/// Quick and dirty alignment based on the estimated scan width and start point.
-		/// </summary>
-		/// <param name="iScanMax">Maximum Scan Lines.</param>
-		/// <param name="dblSlope">Scan line width in samples per ms.</param>
-		/// <param name="dblIntercept">First usable scan line stream point.</param>
-		/// <remarks>I moved this from the SlidingWindow class since doesn't used
-		/// anything but the slope/intercept and we might set it with user interface
-		/// int the future and this would easily accomodate that.</remarks>
-		public void Interpolate( int iScanMax, double dblSlope, double dblIntercept ) {
-			try {
-				for( int i=0; i<iScanMax; ++i ) {
-					int iEstimatedOffset = (int)Math.Round( dblSlope * i + dblIntercept );
-
-					_rgRasters[i] = iEstimatedOffset;
-                }
-			} catch( Exception oEx ) {
-				Type[] rgErrors = { typeof( NullReferenceException ),
-									typeof( IndexOutOfRangeException ) };
-				if( rgErrors.IsUnhandled( oEx ) )
-					throw;
-
-				ShoutTvEvents?.Invoke( ESstvProperty.ThreadDrawingException );
-			}
-		}
-
-		/// <summary>
 		/// Call this when reach end of file. This will also get called internally when we've
 		/// decoded the entire image.
 		/// </summary>
@@ -636,13 +603,15 @@ namespace Play.SSTV {
 		/// I might cut it down in the future. But it makes sense that you really
 		/// can't draw the image properly until it has been received in it's entirety.
 		/// </summary>
+		/// <remarks></remarks>
 		protected void ProcessScan( int iScanLine ) {
 			int rx         = -1; // Saved X pos from the Rx buffer.
 			int ch         =  0; // current channel skimming the Rx buffer portion.
 			int iScanWidth = (int)Math.Round( ScanWidthInSamples );
 
 			try { 
-				int rBase = _rgRasters[iScanLine];
+				// Used to try to track scan line start. This seems better see above.
+				int rBase = (int)Math.Round( _dblSlope * iScanLine + _dblIntercept - CorrectedSyncOffsetInSamples );
 
 			    _AY = iScanLine * Mode.ScanMultiplier; 
 				if( (_AY < 0) || (_AY >= _pBitmapRX.Height) )
@@ -715,8 +684,7 @@ namespace Play.SSTV {
 							if( Slider.AlignLeastSquares( ref _dblSlope, ref _dblIntercept ) ) {
 								_dblIntercept -= _dblMagicOffset * _dp.SampFreq / 1000;
 								InitSlots   ( Mode.Resolution.Width, _dblSlope / SpecWidthInSamples ); // updates the ScanWidthInSamples.
-								Slider.Reset( _dblSlope, (int)CorrectedSyncWidthInSamples );
-								Interpolate ( iScanLines, _dblSlope, _dblIntercept - CorrectedSyncOffsetInSamples );
+								Slider.Reset( (int)CorrectedSyncWidthInSamples );
 
 								_dblReadBaseSync = 0;
 								_iLastAlign      = iScanLine;

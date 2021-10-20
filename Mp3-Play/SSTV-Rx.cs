@@ -1325,7 +1325,7 @@ namespace Play.Sound {
 				return;
 			}
 
-			if( !m_Sync || m_SyncRestart ){
+			if( !m_Sync || m_SyncRestart ) {
 				SSTVMode tvMode;
 				//m_sint1.SyncInc();
 				//m_sint2.SyncInc();
