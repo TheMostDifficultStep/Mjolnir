@@ -49,8 +49,8 @@ namespace Play.SSTV {
             LabelSet( Names.Resolution, "Resolution" );
             LabelSet( Names.Detect_Vis, "Detect VIS", new SKColor( red:0xff, green:0xbf, blue:0 ) );
             LabelSet( Names.Progress,   "Received" );
-            LabelSet( Names.SaveWData,  "Save with File" );
-            LabelSet( Names.LoadFHere,  "File from Here" );
+            LabelSet( Names.SaveWData,  "Save local" );
+            LabelSet( Names.LoadFHere,  "Locality" );
 
             Clear();
 
@@ -83,11 +83,14 @@ namespace Play.SSTV {
         /// clear all values, call the base method.
         /// </summary>
         public override void Clear() {
-            ValueUpdate( Names.Mode,         "-"    , Broadcast:false ); 
-            ValueUpdate( Names.Resolution,   "-"    , Broadcast:false );  
-            ValueUpdate( Names.Detect_Vis,   "True" , Broadcast:false ); 
-            ValueUpdate( Names.Progress,     "-"    , Broadcast:false );
-            ValueUpdate( Names.SaveWData,    "True" , Broadcast:true ); 
+            string strMyDocDir = Environment.GetFolderPath( Environment.SpecialFolder.MyDocuments );
+
+            ValueUpdate( Names.Mode,       "-"    ,     Broadcast:false ); 
+            ValueUpdate( Names.Resolution, "-"    ,     Broadcast:false );  
+            ValueUpdate( Names.Detect_Vis, "True" ,     Broadcast:false ); 
+            ValueUpdate( Names.Progress,   "-"    ,     Broadcast:false );
+            ValueUpdate( Names.LoadFHere,  strMyDocDir, Broadcast:false );
+            ValueUpdate( Names.SaveWData,  "True" ,     Broadcast:true  ); 
         }
     }
 
@@ -155,7 +158,6 @@ namespace Play.SSTV {
 			TxPort,
             RxPort,
             Quality,
-            RecordingsDir,
             SaveDir
         }
 
@@ -174,7 +176,6 @@ namespace Play.SSTV {
             LabelSet( Names.TxPort,        "Transmit to Device" );
             LabelSet( Names.RxPort,        "Receive from Device" );
             LabelSet( Names.Quality,       "Image Save Quality" );
-            LabelSet( Names.RecordingsDir, "Recordings Directory" );
             LabelSet( Names.SaveDir,       "Save Directory" );
 
             InitValues();
@@ -187,11 +188,9 @@ namespace Play.SSTV {
         /// </summary>
         public void InitValues() {
             string strMyPicDir = Environment.GetFolderPath( Environment.SpecialFolder.MyPictures );
-            string strMyDocDir = Environment.GetFolderPath( Environment.SpecialFolder.MyDocuments );
 
-            ValueUpdate( StdProperties.Names.Quality,              "80", false );
-            ValueUpdate( StdProperties.Names.RecordingsDir, strMyDocDir, false );
-            ValueUpdate( StdProperties.Names.SaveDir,       strMyPicDir, false );
+            ValueUpdate( StdProperties.Names.Quality,        "80", false );
+            ValueUpdate( StdProperties.Names.SaveDir, strMyPicDir, false );
         }
 
         public void LabelSet( Names eName, string strLabel, SKColor? skBgColor = null ) {
@@ -579,16 +578,16 @@ namespace Play.SSTV {
 
             SettingsInit();
 
-            RecChooser.LoadURL( Properties[StdProperties.Names.RecordingsDir] );
+            string strMyDocs = Environment.GetFolderPath( Environment.SpecialFolder.MyDocuments );
+            if( !TxImageList.LoadURL( strMyDocs ) ) {
+				LogError( "Couldn't find pictures directory for SSTV" );
+                return false;
+			}
 
             LoadModulators( GenerateMartin .GetModeEnumerator() );
             LoadModulators( GenerateScottie.GetModeEnumerator() );
             LoadModulators( GeneratePD     .GetModeEnumerator() );
 
-            if( !TxImageList.LoadURL( Properties[StdProperties.Names.RecordingsDir] ) ) {
-				LogError( "Couldn't find pictures directory for SSTV" );
-                return false;
-			}
             // Set this after TxImageList load since the CheckedLine call will 
             // call Listen_ModeChanged and that calls the properties update event.
             ModeList.CheckedEvent += Listen_TxModeChanged; // set checkmark AFTER load the modulators... ^_^;;
@@ -615,9 +614,12 @@ namespace Play.SSTV {
         protected virtual void SettingsInit() {
             InitTxDeviceList();
 
-            string strSaveDir = Environment.GetFolderPath( Environment.SpecialFolder.MyPictures );
-            string strLoadDir = Environment.GetFolderPath( Environment.SpecialFolder.MyDocuments );
+            string strMyDocs = Environment.GetFolderPath( Environment.SpecialFolder.MyDocuments );
 
+            // In the future, setting this value will send an event that will get forwarded to the chooser.
+            RxProperties.ValueUpdate( RxProperties.Names.LoadFHere, strMyDocs );
+
+            RecChooser.LoadURL( strMyDocs );
         }
 
         protected void PropertiesTxReLoad() {

@@ -137,13 +137,16 @@ namespace Play.SSTV {
 			}
         }
 
+        /// <summary>
+        /// I want to load .jpg and .png but it clutters of the view and what
+        /// I really want is to know if there is a picture the same as a wave
+        /// file hanging about in the target directory. Going to need some updates
+        /// to the Chooser editor to make that work.
+        /// </summary>
+        /// <param name="strExtn"></param>
+        /// <returns></returns>
         protected bool IsFileExtensionUnderstood( string strExtn ) {
-            if( string.Equals( strExtn, ".wav" ) )
-                return true;
-            if( string.Equals( strExtn, ".png" ) )
-                return true;
-
-            return string.Equals( strExtn, ".jpg" );
+            return string.Equals( strExtn, ".wav" );
         }
 
         /// <summary>
