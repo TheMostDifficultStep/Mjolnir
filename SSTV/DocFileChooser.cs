@@ -138,7 +138,12 @@ namespace Play.SSTV {
         }
 
         protected bool IsFileExtensionUnderstood( string strExtn ) {
-            return string.Equals( strExtn, ".wav" );
+            if( string.Equals( strExtn, ".wav" ) )
+                return true;
+            if( string.Equals( strExtn, ".png" ) )
+                return true;
+
+            return string.Equals( strExtn, ".jpg" );
         }
 
         /// <summary>

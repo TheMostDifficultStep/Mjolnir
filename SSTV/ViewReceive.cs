@@ -457,6 +457,8 @@ namespace Play.SSTV {
 						string strName = oFile.SubString( 1, oFile.ElementCount - 2 );
 						if( !string.IsNullOrEmpty( strName ) ) {
 							_oDocSSTV.RecChooser.LoadAgain( Path.Combine( _oDocSSTV.RecChooser.CurrentDirectory, strName ) );
+							// BUG: Need to make the RxProp the one that gets changed and we catch an event to LoadAgain();
+							_oDocSSTV.RxProperties.ValueUpdate( RxProperties.Names.LoadFHere, _oDocSSTV.RecChooser.CurrentDirectory, Broadcast:true );
 						}
 					} else {
 						_oDocSSTV.RecChooser.FileList.CheckedLine = oLine;

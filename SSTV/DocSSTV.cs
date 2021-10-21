@@ -29,7 +29,8 @@ namespace Play.SSTV {
             Resolution,
             Detect_Vis,
             Progress,
-            SaveWData
+            SaveWData,
+            LoadFHere
         }
 
         public RxProperties( IPgBaseSite oSiteBase ) : base( oSiteBase ) {
@@ -48,7 +49,8 @@ namespace Play.SSTV {
             LabelSet( Names.Resolution, "Resolution" );
             LabelSet( Names.Detect_Vis, "Detect VIS", new SKColor( red:0xff, green:0xbf, blue:0 ) );
             LabelSet( Names.Progress,   "Received" );
-            LabelSet( Names.SaveWData,  "Save with Data" );
+            LabelSet( Names.SaveWData,  "Save with File" );
+            LabelSet( Names.LoadFHere,  "File from Here" );
 
             Clear();
 
