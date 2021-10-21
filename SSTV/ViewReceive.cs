@@ -349,6 +349,22 @@ namespace Play.SSTV {
 			}
         }
 
+        protected override void OnGotFocus(EventArgs e) {
+            base.OnGotFocus( e );
+
+            Invalidate();
+        }
+
+        protected override void OnLostFocus(EventArgs e) {
+            base.OnLostFocus(e);
+
+            Invalidate();
+        }
+        
+        protected override void OnMouseDown(MouseEventArgs e) {
+            this.Select();
+		}
+
         public override bool Execute( Guid sGuid ) {
 			if( sGuid == GlobalCommands.Play ) {
 				switch( _eToolSelected ) {
@@ -456,5 +472,13 @@ namespace Play.SSTV {
 				}
 			}
 		}
-	}
+
+        public override bool Execute( Guid sGuid ) {
+			if( sGuid == GlobalCommands.JumpParent ) {
+				return _oDocSSTV.RecChooser.Execute( sGuid );
+			}
+
+            return base.Execute(sGuid);
+        }
+    }
 }

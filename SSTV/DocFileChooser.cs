@@ -1,12 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Drawing;
 
 using Play.Interfaces.Embedding;
 using Play.Edit;
 using Play.ImageViewer;
 using Play.Parse;
-using System.Drawing;
 
 namespace Play.SSTV {
     public delegate void DirectoryUpdated( string strDirectory );
@@ -149,9 +149,9 @@ namespace Play.SSTV {
                 using( Editor.Manipulator oManip = FileList.CreateManipulator() ) {
                     // Need the gate AFTER the manipulator since it'll block the call back OnBufferChange()
                     // that gets called when the dispose on the manipulator get's called.
-					FileLine oLineNew = oManip.LineAppendNoUndo( "[..]" ) as FileLine;
-					oLineNew._fIsDirectory = true;
-                    oLineNew.Formatting.Add( new DirectoryHyperLink( 2, 1 ) );
+					FileLine oLine = oManip.LineAppendNoUndo( "[..]" ) as FileLine;
+					oLine._fIsDirectory = true;
+                    oLine.Formatting.Add( new DirectoryHyperLink( 2, 1 ) );
 
                     // 12/23/2015 : I could potentially put fileinfo's directly into my document. But 
 					// We're more 'document' compatible if we use string paths.
@@ -169,11 +169,11 @@ namespace Play.SSTV {
 
                     foreach( DirectoryInfo oDirChild in rgDirList ) {
 						if( !oDirChild.Attributes.HasFlag( FileAttributes.Hidden)) {
-							oLineNew = oManip.LineAppendNoUndo( "[" + oDirChild.Name + "]" ) as FileLine; // Don't load the path!!!
+							oLine = oManip.LineAppendNoUndo( "[" + oDirChild.Name + "]" ) as FileLine; // Don't load the path!!!
 
-							oLineNew._dtModifiedDate = oDirChild.LastWriteTime;
-							oLineNew._fIsDirectory   = true;
-                            oLineNew.Formatting.Add( new DirectoryHyperLink( oDirChild.Name.Length, 1 ) );
+							oLine._dtModifiedDate = oDirChild.LastWriteTime;
+							oLine._fIsDirectory   = true;
+                            oLine.Formatting.Add( new DirectoryHyperLink( oDirChild.Name.Length, 1 ) );
 						}
                     }
 
@@ -185,9 +185,9 @@ namespace Play.SSTV {
 						// Want to override what we load in the dialog box version of this control
 						// even tho' the thumbnails list will only load the understood file extensions.
                         if( IsFileExtensionUnderstood( oFile.Extension ) ) {
-                            oLineNew = oManip.LineAppendNoUndo( oFile.Name ) as FileLine; // Don't load the path!!!
+                            oLine = oManip.LineAppendNoUndo( oFile.Name ) as FileLine; // Don't load the path!!!
 
-                            oLineNew._dtModifiedDate = oFile.LastWriteTime;
+                            oLine._dtModifiedDate = oFile.LastWriteTime;
                         }
                     }
 
@@ -369,7 +369,10 @@ namespace Play.SSTV {
         }
 
         public bool Execute( Guid sGuid ) {
-            throw new NotImplementedException();
+			if( sGuid == GlobalCommands.JumpParent ) {
+				return LoadAgain( Path.Combine( CurrentDirectory, ".." ) );
+			}
+            return false;
         }
     }
 }
