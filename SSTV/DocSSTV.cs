@@ -75,7 +75,7 @@ namespace Play.SSTV {
             }
         }
 
-        public bool IsValueTrue( Names eIndex ) {
+        public bool ValueAsBool( Names eIndex ) {
             return string.Compare( Property_Values[(int)eIndex].ToString(), "true", ignoreCase:true ) == 0;
         }
         /// <summary>
@@ -209,6 +209,14 @@ namespace Play.SSTV {
             get {
                 return Property_Values[(int)eIndex].ToString();
             }
+        }
+
+        public bool ValueAsBool( Names eIndex ) {
+            return string.Compare( Property_Values[(int)eIndex].ToString(), "true", ignoreCase:true ) == 0;
+        }
+
+        public int ValueAsInt( Names eIndex ) {
+            return int.Parse( Property_Values[(int)eIndex].ToString() );
         }
     }
 
@@ -598,7 +606,7 @@ namespace Play.SSTV {
             return true;
         }
 
-        protected void InitTxDeviceList() {
+        protected void InitDeviceList() {
 			IEnumerator<string> iterOutput = MMHelpers.GetOutputDevices();
 
 			for( int iCount = -1; iterOutput.MoveNext(); ++iCount ) {
@@ -612,7 +620,7 @@ namespace Play.SSTV {
         }
 
         protected virtual void SettingsInit() {
-            InitTxDeviceList();
+            InitDeviceList();
 
             string strMyDocs = Environment.GetFolderPath( Environment.SpecialFolder.MyDocuments );
 
@@ -861,7 +869,7 @@ namespace Play.SSTV {
         /// for the file decode right now.
         /// </summary>
         /// <param name="oWorker"></param>
-        public IEnumerator<int> GetThreadAdviser( ThreadWorker oWorker ) {
+        public IEnumerator<int> GetThreadAdviser( ThreadWorkerBase oWorker ) {
             bool fReceivedFinishedMsg = false;
 
             // Note: The thread can finish but we haven't picked up all the messages!!
@@ -869,8 +877,8 @@ namespace Play.SSTV {
                 while( _oMsgQueue.TryDequeue( out ESstvProperty eResult ) ) {
                     switch( eResult ) {
                         case ESstvProperty.RXImageNew:
-			                ReceiveImage.Bitmap = oWorker.RxSSTV._pBitmapRX;
-			                SyncImage   .Bitmap = oWorker.RxSSTV._pBitmapD12;
+			                ReceiveImage.Bitmap = oWorker.SSTVDraw._pBitmapRX;
+			                SyncImage   .Bitmap = oWorker.SSTVDraw._pBitmapD12;
                             RxMode              = oWorker.NextMode;
 
                             PropertyChange?.Invoke( ESstvProperty.RXImageNew );
@@ -887,13 +895,13 @@ namespace Play.SSTV {
                             }
                             break;
                         case ESstvProperty.DownLoadTime: // Might be nice to send the % as a number in the message.
-                            PropertiesRxTime( oWorker.RxSSTV.PercentRxComplete );
+                            PropertiesRxTime( oWorker.SSTVDraw.PercentRxComplete );
                             PropertyChange?.Invoke( ESstvProperty.DownLoadTime );
                             break;
                         case ESstvProperty.DownLoadFinished:
                             // NOTE: This might never come along!
-                            PropertiesRxTime( oWorker.RxSSTV.PercentRxComplete );
-                            DownloadFinished( oWorker._strFileName );
+                            PropertiesRxTime( oWorker.SSTVDraw.PercentRxComplete );
+                            DownloadFinished( oWorker.SuggestedFileName );
                             fReceivedFinishedMsg = true;
                             break;
                         case ESstvProperty.ThreadDiagnosticsException:
@@ -911,8 +919,8 @@ namespace Play.SSTV {
             }
 
             // TODO: Make this a settings value. Hard coded to 60% now.
-            if( !fReceivedFinishedMsg && oWorker.RxSSTV != null && oWorker.RxSSTV.PercentRxComplete > 60 )
-                DownloadFinished( oWorker._strFileName );
+            if( !fReceivedFinishedMsg && oWorker.SSTVDraw != null && oWorker.SSTVDraw.PercentRxComplete > 60 )
+                DownloadFinished( oWorker.SuggestedFileName );
 
             // NOTE: bitmaps come from RxSSTV and that thread is about to DIE!!
             _oThread = null;
@@ -926,7 +934,7 @@ namespace Play.SSTV {
         /// <param name="DetectVIS">Just set the decoder for a particular SSTV mode. This is usefull
         /// if picking up the signal in the middle and you know the type a priori. I should
         /// just pass the mode if it's fixed, else autodetect.</param>
-        public void RecordBeginFileRead2( string strFileName, bool DetectVIS = true ) {
+        public void ReceiveBeginFileRead2( string strFileName, bool DetectVIS = true ) {
             if( string.IsNullOrEmpty( strFileName ) ) {
                 LogError( "Invalid filename for SSTV image read" );
                 return;
@@ -950,13 +958,50 @@ namespace Play.SSTV {
             }
         }
 
+        /// <summary>
+        /// This is our 2'nd threaded receive but straight from the device this time.
+        /// </summary>
+        /// <param name="iDevice"></param>
+        public void ReceiveBeginLive() {
+             if( _oThread == null ) {
+                try {
+                    SSTVMode oModeFixed = null;
+
+				    bool fDetectVIS = RxProperties.ValueAsBool( RxProperties.Names.Detect_Vis );
+                    int  iDevice    = 0; //Properties  .ValueAsInt ( StdProperties.Names.RxPort );
+
+                    // Note that this ModeList is the TX mode list. I think I want an RX list.
+                    if( !fDetectVIS && ModeList.CheckedLine.Extra is SSTVMode oMode ) {
+                        oModeFixed = oMode;
+                    }
+
+                    ThreadWorker2 oWorker        = new ThreadWorker2( _oMsgQueue, iDevice, oModeFixed );
+                    ThreadStart   threadDelegate = new ThreadStart  ( oWorker.DoWork );
+
+                    _oThread = new Thread( threadDelegate );
+                    _oThread.Start();
+
+                    _oWorkPlace.Queue( GetThreadAdviser( oWorker ), 1 );
+                } catch( Exception oEx ) {
+                    Type[] rgErrors = { typeof( NullReferenceException ),
+                                        typeof( ArgumentNullException ),
+                                        typeof( FormatException ),
+                                        typeof( OverflowException ) };
+                    if( rgErrors.IsUnhandled( oEx ) )
+                        throw;
+
+                    LogError( "Couldn't launch recording thread." );
+                }
+            }
+       }
+
 		private void SaveRxImage( string strFileName ) {
             try {
 			    if( ReceiveImage.Bitmap == null )
 				    return;
 
                 string strSaveDir = string.Empty;
-                if( RxProperties.IsValueTrue( RxProperties.Names.SaveWData ) && !string.IsNullOrEmpty( strFileName ) ) {
+                if( RxProperties.ValueAsBool( RxProperties.Names.SaveWData ) && !string.IsNullOrEmpty( strFileName ) ) {
                     strSaveDir  = Path.GetDirectoryName( strFileName );
                     strFileName = Path.GetFileNameWithoutExtension( strFileName );
                 } else {
@@ -1080,7 +1125,7 @@ namespace Play.SSTV {
         /// <param name="iModeIndex">TV Mode to use.</param>
         /// <param name="skSelect"></param>
         /// <remarks>Set CSSTVDEM::m_fFreeRun = true</remarks>
-        public void RecordBeginTest2( SKRectI skSelect ) {
+        public void ReceiveBeginTest2( SKRectI skSelect ) {
             try {
                 if( ModeList.CheckedLine == null )
                     ModeList.CheckedLine = ModeList[0];
@@ -1106,14 +1151,6 @@ namespace Play.SSTV {
                 }
             } catch( NullReferenceException ) {
                 LogError( "Probably Buggered twice in the ModeList." );
-            }
-        }
-
-        public void RecordBeginTest3() {
-            if( TxImageList.Bitmap != null ) {
-                RecordBeginTest2( new SKRectI( 0, 0, TxImageList.Bitmap.Width, TxImageList.Bitmap.Height ) );
-            } else {
-                LogError( "Please select a bitmap first" );
             }
         }
 
@@ -1154,7 +1191,7 @@ namespace Play.SSTV {
 		///          Set CSSTVDEM::m_fFreeRun to false!!</remarks>
 		/// <seealso cref="InitNew" />
 		/// <seealso cref="OutputStreamInit"/>
-        public void RecordBegin( SKRectI skSelect ) {
+        public void ReceiveBeginTest1( SKRectI skSelect ) {
             try {
                 if( ModeList.CheckedLine.Extra is SSTVMode oMode ) {
                     if( _oWorkPlace.Status == WorkerStatus.FREE ) {

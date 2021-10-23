@@ -1010,7 +1010,6 @@ namespace Play.Sound {
 		/// <summary>
 		/// this method gets called when we are ready to rock and roll. In the original
 		/// system TmmSSTV would toss it's previous image and start a new one.
-		/// In the new system I'll try tossing TmmSSTV and create a new one.
 		/// </summary>
 		public void Start( SSTVMode tvMode ) {
 			Mode = tvMode;
