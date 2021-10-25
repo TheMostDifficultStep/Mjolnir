@@ -245,7 +245,13 @@ namespace Play.SSTV {
     {
         private bool disposedValue;
         Thread       _oThread  = null;
-        readonly ConcurrentQueue<ESstvProperty> _oMsgQueue = new ConcurrentQueue<ESstvProperty>(); // communique from bg thread to ui thread.
+        readonly ConcurrentQueue<ESstvProperty> _oMsgQueue  = new ConcurrentQueue<ESstvProperty>(); // communique from bg thread to ui thread.
+        readonly ConcurrentQueue<double>        _oDataQueue = new ConcurrentQueue<double>();        // From foreground to background thread.
+        WaveIn       _oWaveIn  = null;
+        WaveOut      _oWaveOut = null;
+        BufferedWaveProvider _oWaveBuf = null;
+        BlockCopies          _oReader = null;
+
 
         /// <summary>
         /// This editor shows the list of modes we can modulate.
@@ -304,7 +310,7 @@ namespace Play.SSTV {
         public Specification  RxSpec          { get; protected set; } = new Specification( 44100, 1, 0, 16 );
         public GeneratorMode  ModeList        { get; protected set; }
         public ImageWalkerDir TxImageList     { get; protected set; }
-        public SKBitmap       Bitmap          => TxImageList.Bitmap;
+        public SKBitmap       TxBitmap        => TxImageList.Bitmap;
         public SSTVMode       RxMode          { get; protected set; } = null; // Thread advisor polls this from work thread.
         public RxProperties   RxProperties    { get; }
         public TxProperties   TxProperties    { get; }
@@ -830,7 +836,7 @@ namespace Play.SSTV {
 			        // The DocSnip object retains ownership of it's generated bitmap and frees it on next load.
                     // TODO: I should check if the selection == the whole bitmap == required dimension
                     //       and I could skip the snip stage.
-			        _oDocSnip.Load( Bitmap, skSelect, oMode.Resolution );
+			        _oDocSnip.Load( TxBitmap, skSelect, oMode.Resolution );
                     if( GeneratorSetup( oMode, _oDocSnip.Bitmap ) ) {
                         if( _oPlayer == null ) {
                             _oPlayer = new WmmPlayer(RxSpec, PortTxList.CheckedLine.At );
@@ -958,30 +964,73 @@ namespace Play.SSTV {
             }
         }
 
+        public void ReceiveLiveStop() {
+            if( _oWaveIn != null ) {
+                _oWaveIn.StopRecording();    
+            }
+            if( _oWaveOut != null ) {
+                _oWaveOut.Stop();
+            }
+            // Send a message to the tread to bail.
+        }
+
         /// <summary>
         /// This is our 2'nd threaded receive but straight from the device this time.
         /// </summary>
         /// <param name="iDevice"></param>
-        public void ReceiveBeginLive() {
-             if( _oThread == null ) {
+        public void ReceiveLiveBegin() {
+            if( _oThread == null ) {
                 try {
                     SSTVMode oModeFixed = null;
 
 				    bool fDetectVIS = RxProperties.ValueAsBool( RxProperties.Names.Detect_Vis );
-                    int  iDevice    = 0; //Properties  .ValueAsInt ( StdProperties.Names.RxPort );
+                    int  iDevice    = -1; 
+                    int  iSpeaker   = -1;
+
+                    if( PortRxList.CheckedLine != null ) {
+                        iDevice = PortRxList.CheckedLine.At;
+                    } else {
+                        LogError( "Please select an sound input device" );
+                        return;
+                    }
+                    if( PortTxList.CheckedLine != null ) {
+                        iSpeaker = PortTxList.CheckedLine.At;
+                    } else {
+                        LogError( "Please select an sound output device" );
+                        return;
+                    }
 
                     // Note that this ModeList is the TX mode list. I think I want an RX list.
                     if( !fDetectVIS && ModeList.CheckedLine.Extra is SSTVMode oMode ) {
                         oModeFixed = oMode;
                     }
 
-                    ThreadWorker2 oWorker        = new ThreadWorker2( _oMsgQueue, iDevice, oModeFixed );
+                    if( _oWaveIn == null ) {
+                        _oWaveIn = new WaveIn( WaveCallbackInfo.FunctionCallback() );
+
+                        _oWaveIn.BufferMilliseconds = 50;
+                        _oWaveIn.DeviceNumber       = iDevice;
+                        _oWaveIn.WaveFormat         = new WaveFormat( 8000, 16, 1 );
+                        _oWaveIn.DataAvailable += Input_OnDataAvailable;
+                    }
+                    if( _oWaveOut == null ) {
+                        _oWaveOut = new WaveOut();
+                        _oWaveOut.DeviceNumber  = iSpeaker;
+                        _oWaveBuf = new BufferedWaveProvider(_oWaveIn.WaveFormat);
+                        _oWaveOut.Init( _oWaveBuf );
+                    }
+                    _oReader = new BlockCopies( 1, 1, 0, _oWaveIn.WaveFormat.BitsPerSample );
+
+                    ThreadWorker2 oWorker        = new ThreadWorker2( _oWaveIn.WaveFormat, _oMsgQueue, _oDataQueue, oModeFixed );
                     ThreadStart   threadDelegate = new ThreadStart  ( oWorker.DoWork );
 
                     _oThread = new Thread( threadDelegate );
                     _oThread.Start();
 
                     _oWorkPlace.Queue( GetThreadAdviser( oWorker ), 1 );
+
+                    _oWaveIn.StartRecording();
+                    _oWaveOut.Play();
                 } catch( Exception oEx ) {
                     Type[] rgErrors = { typeof( NullReferenceException ),
                                         typeof( ArgumentNullException ),
@@ -993,7 +1042,16 @@ namespace Play.SSTV {
                     LogError( "Couldn't launch recording thread." );
                 }
             }
-       }
+        }
+
+        private void Input_OnDataAvailable( object sender, WaveInEventArgs e ) {
+            _oWaveBuf.AddSamples( e.Buffer, 0, e.BytesRecorded );
+
+            IEnumerator<double>oIter = _oReader.EnumAsSigned16Bit( e.Buffer, e.BytesRecorded );
+            while( oIter.MoveNext() ) {
+                _oDataQueue.Enqueue( oIter.Current );
+            }
+        }
 
 		private void SaveRxImage( string strFileName ) {
             try {
@@ -1132,7 +1190,7 @@ namespace Play.SSTV {
 
                 if( ModeList.CheckedLine.Extra is SSTVMode oMode ) {
                     if( _oWorkPlace.Status == WorkerStatus.FREE ) {
-			            _oDocSnip.Load( Bitmap, skSelect, oMode.Resolution );
+			            _oDocSnip.Load( TxBitmap, skSelect, oMode.Resolution );
 					    if( GeneratorSetup( oMode, _oDocSnip.Bitmap ) ) {
 						    FFTControlValues oFFTMode = FFTControlValues.FindMode( RxSpec.Rate ); 
 						    SYSSET           sys      = new();
@@ -1195,7 +1253,7 @@ namespace Play.SSTV {
             try {
                 if( ModeList.CheckedLine.Extra is SSTVMode oMode ) {
                     if( _oWorkPlace.Status == WorkerStatus.FREE ) {
-			            _oDocSnip.Load( Bitmap, skSelect, oMode.Resolution );
+			            _oDocSnip.Load( TxBitmap, skSelect, oMode.Resolution );
 
 					    FFTControlValues oFFTMode  = FFTControlValues.FindMode( 8000 ); // RxSpec.Rate
 					    SYSSET           sys       = new ();

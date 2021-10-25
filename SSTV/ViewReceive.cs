@@ -375,9 +375,12 @@ namespace Play.SSTV {
 						return true;
 						}
 					case Tools.Port:
-						_oDocSSTV.ReceiveBeginLive();
+						_oDocSSTV.ReceiveLiveBegin();
 						return true;
 				}
+			}
+			if( sGuid == GlobalCommands.Stop ) {
+				_oDocSSTV.ReceiveLiveStop();
 			}
 
             return base.Execute(sGuid);

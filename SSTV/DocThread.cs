@@ -154,11 +154,14 @@ namespace Play.SSTV
     }
 
     public class ThreadWorker2 : ThreadWorkerBase {
-        protected readonly int _iDevice; 
+        protected readonly ConcurrentQueue<double> _oDataQueue; 
+        protected readonly WaveFormat              _oDataFormat;
+
         public override string SuggestedFileName => DateTime.Now.ToString();
 
-        public ThreadWorker2( ConcurrentQueue<ESstvProperty> oMsgQueue, int iDevice, SSTVMode oMode ) : base( oMsgQueue, oMode ) {
-            _iDevice = iDevice;
+        public ThreadWorker2( WaveFormat oFormat, ConcurrentQueue<ESstvProperty> oMsgQueue, ConcurrentQueue<double> oDataQueue, SSTVMode oMode ) : base( oMsgQueue, oMode ) {
+            _oDataQueue  = oDataQueue ?? throw new ArgumentNullException( "oDataQueue" );
+            _oDataFormat = oFormat    ?? throw new ArgumentNullException( "oFormat" );
         }
 
         /// <summary>
@@ -179,14 +182,7 @@ namespace Play.SSTV
         /// </summary>
         public void DoWork() {
             try {
-                WaveIn oInput = new WaveIn();
-
-                oInput.BufferMilliseconds = 50;
-                oInput.DeviceNumber       = _iDevice;
-                oInput.WaveFormat         = new WaveFormat( 8000, 16, 1 );
-                oInput.DataAvailable += Input_OnDataAvailable;
-
-			    FFTControlValues oFFTMode = FFTControlValues.FindMode( oInput.WaveFormat.SampleRate ); // RxSpec.Rate
+			    FFTControlValues oFFTMode = FFTControlValues.FindMode( _oDataFormat.SampleRate ); // RxSpec.Rate
 			    SYSSET           oSys     = new ();
 
 			    SSTVDeModulator  = new SSTVDEM( oSys,
@@ -205,7 +201,15 @@ namespace Play.SSTV
 
                 do {
                     try {
-                        SSTVDraw.Process();
+                        if( !_oDataQueue.IsEmpty ) {
+                            do {
+                                if( _oDataQueue.TryDequeue( out double dblValue ) )
+                                    SSTVDeModulator.Do( dblValue );
+                                else
+                                    break; // I should send an exception to the ui. Let it go for now.
+                            } while( !_oDataQueue.IsEmpty );
+                            SSTVDraw.Process();
+                        }
                         Thread.Sleep( 25 );
 				    } catch( Exception oEx ) {
                         Type[] rgErrors = { typeof( NullReferenceException ),
@@ -220,7 +224,6 @@ namespace Play.SSTV
                         _oMsgQueue.Enqueue( ESstvProperty.ThreadReadException );
                     }
                 } while( true );
-
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( DirectoryNotFoundException ),
                                     typeof( NullReferenceException ),
@@ -232,18 +235,5 @@ namespace Play.SSTV
                 _oMsgQueue.Enqueue( ESstvProperty.ThreadWorkerException );
             }
         }
-
-        private void Input_OnDataAvailable( object sender, WaveInEventArgs e ) {
-            int    iBits = 16; // Just hack it for now.
-
-            double From32to16( int i ) => e.Buffer[i] * 32768;
-            double From16to16( int i ) => e.Buffer[i];
-
-            Func<int, double> ConvertInput = iBits == 16 ? From16to16 : From32to16;
-
-            for( int i = 0; i< e.BytesRecorded; ++i ) {
-                SSTVDeModulator.Do( ConvertInput(i) );
-            }
-       }
     }
 }

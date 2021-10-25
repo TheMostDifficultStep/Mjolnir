@@ -418,10 +418,12 @@ namespace Play.Sound {
 	/// one that copies short for other readers.
 	/// </summary>
 	public class BlockCopies {
-		readonly int _iDecimation = 0;
-		readonly int _iChannel    = 0;
-		readonly int _iChannels   = 2;
-		readonly uint _uiStep     = 1;
+		readonly int  _iDecimation	   = 0;
+		readonly int  _iChannel		   = 0;
+		readonly int  _iChannels	   = 2;
+		readonly uint _uiStep          = 1;
+		readonly int  _iBytesPerChannel = 0;
+		readonly int  _iBytesPerFrame  = 0;
 
 		/// <summary>
 		/// This is a bunch of block copy routines tailored to translating a byte buffer 
@@ -430,31 +432,49 @@ namespace Play.Sound {
 		/// <param name="iDecimation">Decimation value for the input 1, 2 or 4</param>
 		/// <param name="iChannels">Number of data channels in block</param>
 		/// <param name="iChannel">Which channel to copy to the output.</param>
-		public BlockCopies( int iDecimation, int iChannels, int iChannel ) {
+		public BlockCopies( int iDecimation, int iChannels, int iChannel, int iBits = 16  ) {
 			if( iDecimation <= 0 )
 				throw new ArgumentOutOfRangeException( "Decimation must be > 0" );
+			if( iBits != 16 && iBits != 32 )
+				throw new ArgumentOutOfRangeException( "Bits must be 16 or 32" );
 
-			_iDecimation = iDecimation;
-			_iChannels   = iChannels;
-			_iChannel    = iChannel;
+			_iDecimation	  = iDecimation;
+			_iChannels		  = iChannels;
+			_iChannel		  = iChannel;
+			_iBytesPerChannel = iBits / 8;
+			_iBytesPerFrame   = _iBytesPerChannel * iChannels;
 
 			_uiStep = (uint)( _iDecimation * _iChannels );
 		}
 
 		/// <summary>
-		/// This is the primary reader for the FFT. It is an example of why we need the buffers to be
-		/// array types, because we need to fix the buffer and walk it according to the data type.
-		/// It might be possible to do via a List(Byte) generic, but it seems a lot of hassle for little
-		/// payback.
+		/// This function ignores the decimation value. Need to fix that.
 		/// </summary>
-		/// <param name="rgTarget">Target FFT input.</param>
-		/// <param name="iTrg">Which index to start at.</param>
-		/// <param name="rgSource">Source byte stream.</param>
-		/// <param name="uiSrcLen">number of samples of buffered data. Ex: 16 bit stereo would be, 2, the number of bytes per channel.
-		///                        We rely on the buffer being filled in multiples of BLOCK size.</param>
-		/// <param name="uiSrc">Index into Sample location in source. Sample relative.</param>
-		/// <returns>Return true if the target buffer has been filled. False if not.</returns>
-		public bool ReadAsSigned16Bit( double[] rgTarget, ref int iTrg, Byte[] rgSource, uint uiSrcLen, ref uint uiSrc ) {
+		/// <param name="rgSource">Array of data in bytes</param>
+		/// <param name="iSrcLen">Length of data to read.</param>
+		/// <returns></returns>
+		public IEnumerator<double> EnumAsSigned16Bit( Byte[] rgSource, int iSrcLen ) {
+			int iChannelOffset = _iBytesPerChannel * _iChannel;
+
+			for( int iSrc = 0; iSrc < iSrcLen; iSrc += _iBytesPerFrame ) {
+				yield return (double)BitConverter.ToInt16( rgSource, iSrc+iChannelOffset );
+			}
+		}
+
+        /// <summary>
+        /// This is the primary reader for the FFT. It is an example of why we need the buffers to be
+        /// array types, because we need to fix the buffer and walk it according to the data type.
+        /// It might be possible to do via a List(Byte) generic, but it seems a lot of hassle for little
+        /// payback.
+        /// </summary>
+        /// <param name="rgTarget">Target FFT input.</param>
+        /// <param name="iTrg">Which index to start at.</param>
+        /// <param name="rgSource">Source byte stream.</param>
+        /// <param name="uiSrcLen">number of samples of buffered data. Ex: 16 bit stereo would be, 2, the number of bytes per channel.
+        ///                        We rely on the buffer being filled in multiples of BLOCK size.</param>
+        /// <param name="uiSrc">Index into Sample location in source. Sample relative.</param>
+        /// <returns>Return true if the target buffer has been filled. False if not.</returns>
+        public bool ReadAsSigned16Bit( double[] rgTarget, ref int iTrg, Byte[] rgSource, uint uiSrcLen, ref uint uiSrc ) {
 			try {
                 unsafe {
                     fixed( void * pSource = rgSource ) {
@@ -496,7 +516,7 @@ namespace Play.Sound {
 			}
 			return true;
 		}
-	}
+    }
 
 	/// <summary>
 	/// A "tapper" is a buffer sitting between a reader generating PCM data and it's player.
