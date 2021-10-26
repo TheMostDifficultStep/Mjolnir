@@ -1057,15 +1057,31 @@ namespace Play.SSTV {
 			    if( ReceiveImage.Bitmap == null )
 				    return;
 
+                // Figure out path and name of the file.
                 string strSaveDir = string.Empty;
-                if( RxProperties.ValueAsBool( RxProperties.Names.SaveWData ) && !string.IsNullOrEmpty( strFileName ) ) {
+                if( RxProperties.ValueAsBool( RxProperties.Names.SaveWData ) ) {
                     strSaveDir  = Path.GetDirectoryName( strFileName );
-                    strFileName = Path.GetFileNameWithoutExtension( strFileName );
                 } else {
 			        strSaveDir  = Properties[StdProperties.Names.SaveDir];
+                }
+                if( string.IsNullOrEmpty( strFileName ) ) {
                     strFileName = DateTime.Now.ToString();
+                } else {
+                    strFileName = Path.GetFileNameWithoutExtension( strFileName );
                 }
                 
+                // Clean up the file name.
+                TextLine oLine     = new( 0, strFileName );
+                string   strIllegal = @" []$%&{}<>*?/\!:;+|=~`" + "\"\'";
+                for( int i = 0; i< oLine.ElementCount; ++i ) {
+                    foreach( char cBadChar in strIllegal ) {
+                        if( oLine[i] == cBadChar )
+                            oLine.Buffer[i] = '_';
+                    }
+                }
+                strFileName = oLine.ToString();
+
+                // Get image quality.
                 if( !int.TryParse( Properties[StdProperties.Names.Quality], out int iQuality ) )
                     iQuality = 80;
 
@@ -1077,7 +1093,13 @@ namespace Play.SSTV {
 
                 data.SaveTo(stream);
             } catch( Exception oEx ) {
-                Type[] rgErrors = { typeof( NullReferenceException ) };
+                Type[] rgErrors = { typeof( NullReferenceException ),
+                                    typeof( IOException ),
+                                    typeof( ArgumentException ),
+                                    typeof( ArgumentNullException ),
+                                    typeof( PathTooLongException ),
+                                    typeof( DirectoryNotFoundException ), 
+                                    typeof( NotSupportedException ) };
                 if( rgErrors.IsUnhandled( oEx ) )
                     throw;
 
@@ -1198,7 +1220,7 @@ namespace Play.SSTV {
 																	 oFFTMode.SampBase, 
 																	 0 );
 						    _oRxSSTV                = new SSTVDraw( oDemod );
-						    _oRxSSTV.ShoutTvEvents += ListenTvEvents; // Since non-threaded, this is ok.
+						    _oRxSSTV.Post_TvEvents += ListenTvEvents; // Since non-threaded, this is ok.
 
 						    _oSSTVDeModulator = oDemod;
 

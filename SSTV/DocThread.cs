@@ -105,7 +105,7 @@ namespace Play.SSTV
 			    SSTVDraw        = new SSTVDraw( oDemod );
 
                 oDemod.ShoutNextMode += Listen_NextRxMode;
-                SSTVDraw.ShoutTvEvents += Listen_TvEvents;
+                SSTVDraw.Post_TvEvents += Listen_TvEvents;
 
                 if( _oFixedMode != null ) {
                     // Hard code our decoding mode... After set the callbacks
@@ -160,6 +160,14 @@ namespace Play.SSTV
 
         public override string SuggestedFileName => DateTime.Now.ToString();
 
+        // This is the errors we generally handle in our work function.
+        protected static Type[] _rgStdErrors = { typeof( NullReferenceException ),
+                                                 typeof( ArgumentNullException ),
+                                                 typeof( MMSystemException ),
+                                                 typeof( InvalidOperationException ),
+										         typeof( ArithmeticException ),
+										         typeof( IndexOutOfRangeException ) };
+
         public ThreadWorker2( WaveFormat oFormat, ConcurrentQueue<ESstvProperty> oMsgQueue, ConcurrentQueue<double> oDataQueue, SSTVMode oMode ) : base( oMsgQueue, oMode ) {
             _oDataQueue  = oDataQueue ?? throw new ArgumentNullException( "oDataQueue" );
             _oDataFormat = oFormat    ?? throw new ArgumentNullException( "oFormat" );
@@ -183,18 +191,15 @@ namespace Play.SSTV
         /// </summary>
         public void DoWork() {
             try {
-			    FFTControlValues oFFTMode = FFTControlValues.FindMode( _oDataFormat.SampleRate ); 
-			    SYSSET           oSys     = new ();
-
-			    SSTVDeModulator  = new SSTVDEM( oSys,
-										        oFFTMode.SampFreq, 
-										        oFFTMode.SampBase, 
+			    SSTVDeModulator  = new SSTVDEM( new SYSSET(),
+										        _oDataFormat.SampleRate, 
+										        _oDataFormat.SampleRate, 
 										        0 );
 			    SSTVDraw         = new SSTVDraw( SSTVDeModulator );
 
                 // Set the callbacks first since Start() will try to use the callback.
                 SSTVDeModulator.ShoutNextMode += new NextMode( SSTVDraw.ModeTransition );
-                SSTVDraw       .ShoutTvEvents += OnSSTVDrawEvent;
+                SSTVDraw       .Post_TvEvents += OnSSTVDrawEvent;
 
                 if( _oFixedMode != null ) {
                     SSTVDeModulator.Start( _oFixedMode );
@@ -209,13 +214,7 @@ namespace Play.SSTV
 
                         Thread.Sleep( 250 );
 				    } catch( Exception oEx ) {
-                        Type[] rgErrors = { typeof( NullReferenceException ),
-                                            typeof( ArgumentNullException ),
-                                            typeof( MMSystemException ),
-                                            typeof( InvalidOperationException ),
-										    typeof( ArithmeticException ),
-										    typeof( IndexOutOfRangeException ) };
-                        if( rgErrors.IsUnhandled( oEx ) )
+                        if( _rgStdErrors.IsUnhandled( oEx ) )
                             throw;
 
                         _oMsgQueue.Enqueue( ESstvProperty.ThreadReadException );

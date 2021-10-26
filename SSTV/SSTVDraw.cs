@@ -275,7 +275,7 @@ namespace Play.SSTV {
 		protected double   _dblSlope       = 0;
 		protected double   _dblIntercept   = 0;
 		protected double   _dblMagicOffset = 3.5; // Our iir filters are slow picking up the sync vs Freq detect.
-		// I'll probably need to adjust this number depending on the "FreqDetect" filter (PLL, FQC, Hilbert)
+		// BUG: I'll probably need to adjust this number depending on the "FreqDetect" filter (PLL, FQC, Hilbert)
 
 		short[] _pCalibration = null; // Not strictly necessary yet.
 
@@ -288,7 +288,7 @@ namespace Play.SSTV {
 		// Need to look into the greyscale calibration height of bitmap issue. (+16 scan lines)
 		// The D12 bitmap must always be >= to the RX bmp height.
 
-		public event SSTVPropertyChange ShoutTvEvents; // TODO: Since threaded version poles, we don't need this.
+		public event SSTVPropertyChange Post_TvEvents; // TODO: Since threaded version poles, we don't need this.
 
 		protected readonly List<ColorChannel> _rgSlots = new (10);
 		
@@ -365,7 +365,7 @@ namespace Play.SSTV {
 
 			Slider.Reset( (int)CorrectedSyncWidthInSamples );
 
-			ShoutTvEvents?.Invoke(ESstvProperty.SSTVMode );
+			Post_TvEvents?.Invoke(ESstvProperty.SSTVMode );
 
 			if( _pBitmapRX == null ||
 				_dp.Mode.Resolution.Width  != _pBitmapRX.Width ||
@@ -382,7 +382,7 @@ namespace Play.SSTV {
 										   SKColorType.Rgb888x, 
 										   SKAlphaType.Opaque );
 
-				ShoutTvEvents?.Invoke(ESstvProperty.RXImageNew );
+				Post_TvEvents?.Invoke(ESstvProperty.RXImageNew );
 			}
 
 			StartTime = DateTime.Now;
@@ -511,6 +511,8 @@ namespace Play.SSTV {
 		/// Call this when reach end of file. This will also get called internally when we've
 		/// decoded the entire image.
 		/// </summary>
+		/// <remarks>Right now I only -stop- if i'm in sync'd mode. Might just want to do
+		/// this whenever. We'll tinker a bit.</remarks>
 		public void Stop() {
 			try {
 				if( _dp.m_Sync ) {
@@ -542,7 +544,7 @@ namespace Play.SSTV {
 											skPaint );
 					}
 					
-					ShoutTvEvents?.Invoke( ESstvProperty.DownLoadFinished );
+					Post_TvEvents?.Invoke( ESstvProperty.DownLoadFinished );
 				}
 			} catch( Exception oEx ) {
 				Type[] rgErrors = { typeof( NullReferenceException ),
@@ -550,7 +552,7 @@ namespace Play.SSTV {
 				if( rgErrors.IsUnhandled( oEx ) )
 					throw;
 
-				ShoutTvEvents?.Invoke( ESstvProperty.ThreadDiagnosticsException );
+				Post_TvEvents?.Invoke( ESstvProperty.ThreadDiagnosticsException );
 			}
 		}
 
@@ -598,7 +600,7 @@ namespace Play.SSTV {
 				if( rgErrors.IsUnhandled( oEx ) )
 					throw;
 
-				ShoutTvEvents?.Invoke( ESstvProperty.ThreadDrawingException );
+				Post_TvEvents?.Invoke( ESstvProperty.ThreadDrawingException );
 			}
 
 			return( dblBase + ScanWidthInSamples );
@@ -656,7 +658,7 @@ namespace Play.SSTV {
 				if( rgErrors.IsUnhandled( oEx ) )
 					throw;
 
-				ShoutTvEvents?.Invoke( ESstvProperty.ThreadDrawingException );
+				Post_TvEvents?.Invoke( ESstvProperty.ThreadDrawingException );
 			}
 		}
 
@@ -670,7 +672,7 @@ namespace Play.SSTV {
 					while( _dp.m_wBase > _dblReadBaseSync + ScanWidthInSamples ) {
 						_dblReadBaseSync = ProcessSync( _dblReadBaseSync );
 
-						ShoutTvEvents?.Invoke( ESstvProperty.DownLoadTime );
+						Post_TvEvents?.Invoke( ESstvProperty.DownLoadTime );
 					}
 				} catch( Exception oEx ) {
 					Type[] rgErrors = { typeof( NullReferenceException ),
@@ -679,14 +681,13 @@ namespace Play.SSTV {
 					if( rgErrors.IsUnhandled( oEx ) )
 						throw;
 
-					ShoutTvEvents?.Invoke( ESstvProperty.ThreadDrawingException );
+					Post_TvEvents?.Invoke( ESstvProperty.ThreadDrawingException );
 				}
 
 				try {
 					int iScanLine = (int)(_dp.m_wBase / ScanWidthInSamples );
-					if( iScanLine % 20 == 19 ) {
-						int iScanLines = Mode.Resolution.Height / Mode.ScanMultiplier;
 
+					if( iScanLine % 20 == 19 ) {
 						if( _iLastAlign < iScanLine) {
 							Slider.Shuffle( _iLastAlign > 0, _dblSlope, _dblIntercept );
 
@@ -698,11 +699,16 @@ namespace Play.SSTV {
 
 								_dblReadBaseSync = 0;
 								_iLastAlign      = iScanLine;
+
 							}
 							for( int i = 0; i<iScanLine; ++i ) {
 								ProcessScan( i );
 							}
 						}
+					}
+					// We should also bail if we're not catching enough sync signals.
+					if( _AY > Mode.Resolution.Height ) {
+						Stop();
 					}
 				} catch( Exception oEx ) {
 					Type[] rgErrors = { typeof( NullReferenceException ),
@@ -711,7 +717,7 @@ namespace Play.SSTV {
 					if( rgErrors.IsUnhandled( oEx ) )
 						throw;
 
-					ShoutTvEvents?.Invoke( ESstvProperty.ThreadDrawingException );
+					Post_TvEvents?.Invoke( ESstvProperty.ThreadDrawingException );
 				}
 			}
 		}
