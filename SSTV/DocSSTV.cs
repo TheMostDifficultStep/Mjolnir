@@ -1058,11 +1058,12 @@ namespace Play.SSTV {
 				    return;
 
                 // Figure out path and name of the file.
-                string strSaveDir = string.Empty;
+                string strSaveDir = Path.GetDirectoryName( strFileName );
                 if( RxProperties.ValueAsBool( RxProperties.Names.SaveWData ) ) {
-                    strSaveDir  = Path.GetDirectoryName( strFileName );
+                    if( string.IsNullOrEmpty( strSaveDir ) )
+			            strSaveDir = Properties[StdProperties.Names.SaveDir];
                 } else {
-			        strSaveDir  = Properties[StdProperties.Names.SaveDir];
+			        strSaveDir = Properties[StdProperties.Names.SaveDir];
                 }
                 if( string.IsNullOrEmpty( strFileName ) ) {
                     strFileName = DateTime.Now.ToString();
@@ -1070,7 +1071,7 @@ namespace Play.SSTV {
                     strFileName = Path.GetFileNameWithoutExtension( strFileName );
                 }
                 
-                // Clean up the file name.
+                // Clean up the file name. Tacky, but better than nothing.
                 TextLine oLine     = new( 0, strFileName );
                 string   strIllegal = @" []$%&{}<>*?/\!:;+|=~`" + "\"\'";
                 for( int i = 0; i< oLine.ElementCount; ++i ) {
@@ -1159,7 +1160,7 @@ namespace Play.SSTV {
 		/// <returns>Time to wait until next call in ms.</returns>
         /// <remarks>Probably going to delete this eventually.</remarks>
         public IEnumerator<int> GetRecorderTask() {
-            _oSSTVDeModulator.ShoutNextMode += ListenNextRxMode; // BUG: no need to do every time.
+            _oSSTVDeModulator.Send_NextMode += ListenNextRxMode; // BUG: no need to do every time.
             do {
                 try {
                     for( int i = 0; i< 500; ++i ) {
@@ -1190,7 +1191,7 @@ namespace Play.SSTV {
                 yield return 0; // 44,100 hz is a lot to process, let's go as fast as possible. >_<;;
             } while( _oSSTVBuffer.IsReading );
 
-			_oSSTVDeModulator.ShoutNextMode -= ListenNextRxMode;
+			_oSSTVDeModulator.Send_NextMode -= ListenNextRxMode;
 			//ModeList.HighLight = null;
             // Set upload time to "finished" maybe even date/time!
         }
@@ -1220,7 +1221,7 @@ namespace Play.SSTV {
 																	 oFFTMode.SampBase, 
 																	 0 );
 						    _oRxSSTV                = new SSTVDraw( oDemod );
-						    _oRxSSTV.Post_TvEvents += ListenTvEvents; // Since non-threaded, this is ok.
+						    _oRxSSTV.Send_TvEvents += ListenTvEvents; // Since non-threaded, this is ok.
 
 						    _oSSTVDeModulator = oDemod;
 
@@ -1294,7 +1295,7 @@ namespace Play.SSTV {
 						    _ => throw new ArgumentOutOfRangeException("Unrecognized Mode Type."),
 					    };
 
-                        _oSSTVDeModulator.ShoutNextMode += ListenNextRxMode;
+                        _oSSTVDeModulator.Send_NextMode += ListenNextRxMode;
 
                         _oWorkPlace.Queue( GetRecordTestTask( oMode ), 0 );
                     }

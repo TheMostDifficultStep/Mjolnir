@@ -3,8 +3,8 @@ using System.IO;
 using System.Collections.Generic;
 using System.Collections.Concurrent;
 using System.Threading;
+using System.Text;
 
-using SkiaSharp;
 using NAudio.Wave;
 using NAudio.Wave.SampleProviders;
 
@@ -104,8 +104,8 @@ namespace Play.SSTV
                 SSTVDeModulator = oDemod;
 			    SSTVDraw        = new SSTVDraw( oDemod );
 
-                oDemod.ShoutNextMode += Listen_NextRxMode;
-                SSTVDraw.Post_TvEvents += Listen_TvEvents;
+                oDemod.Send_NextMode += Listen_NextRxMode;
+                SSTVDraw.Send_TvEvents += Listen_TvEvents;
 
                 if( _oFixedMode != null ) {
                     // Hard code our decoding mode... After set the callbacks
@@ -158,7 +158,24 @@ namespace Play.SSTV
         protected readonly ConcurrentQueue<double> _oDataQueue; 
         protected readonly WaveFormat              _oDataFormat;
 
-        public override string SuggestedFileName => DateTime.Now.ToString();
+        public override string SuggestedFileName {
+            get {
+                DateTime sNow = DateTime.Now;
+                StringBuilder sbName = new StringBuilder();
+
+                sbName.Append( sNow.Year  .ToString( "D4" ) );
+                sbName.Append( '-' );
+                sbName.Append( sNow.Month .ToString( "D2" ) );
+                sbName.Append( '-' );
+                sbName.Append( sNow.Day   .ToString( "D2" ) );
+                sbName.Append( '_' );
+                sbName.Append( sNow.Hour  .ToString( "D2" ) );
+                sbName.Append( sNow.Minute.ToString( "D2" ) );
+                sbName.Append( 'p' );
+               
+                return sbName.ToString();
+            }
+        }
 
         // This is the errors we generally handle in our work function.
         protected static Type[] _rgStdErrors = { typeof( NullReferenceException ),
@@ -182,8 +199,6 @@ namespace Play.SSTV
             _oMsgQueue.Enqueue( eProp );
         }
 
-        // https://markheath.net/post/how-to-record-and-play-audio-at-same
-
         /// <summary>
         /// This is the entry point for our new thread. We load and use the decoder and 
         /// converter from this thread. The UI thread looks at the RX and 12 bitmaps
@@ -198,8 +213,8 @@ namespace Play.SSTV
 			    SSTVDraw         = new SSTVDraw( SSTVDeModulator );
 
                 // Set the callbacks first since Start() will try to use the callback.
-                SSTVDeModulator.ShoutNextMode += new NextMode( SSTVDraw.ModeTransition );
-                SSTVDraw       .Post_TvEvents += OnSSTVDrawEvent;
+                SSTVDeModulator.Send_NextMode += new NextMode( SSTVDraw.ModeTransition );
+                SSTVDraw       .Send_TvEvents += OnSSTVDrawEvent;
 
                 if( _oFixedMode != null ) {
                     SSTVDeModulator.Start( _oFixedMode );

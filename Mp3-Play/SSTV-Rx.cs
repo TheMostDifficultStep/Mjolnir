@@ -749,7 +749,7 @@ namespace Play.Sound {
 
 		protected Dictionary<byte, SSTVMode > ModeDictionary { get; } = new Dictionary<byte, SSTVMode>();
 
-		public event NextMode ShoutNextMode; 
+		public event NextMode Send_NextMode; 
 
 		public readonly static int NARROW_SYNC		= 1900;
 		public readonly static int NARROW_LOW		= 2044;
@@ -1030,7 +1030,7 @@ namespace Play.Sound {
 			// same time we're storing the image scan lines.
 			SetWidth(m_fNarrow);
 
-			ShoutNextMode?.Invoke( tvMode );
+			Send_NextMode?.Invoke( tvMode );
 
 			// Don't support narrow band modes.
 			//if( m_fNarrow ) 

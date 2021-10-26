@@ -279,7 +279,7 @@ namespace Play.SSTV {
 
 		short[] _pCalibration = null; // Not strictly necessary yet.
 
-		SKCanvas _skCanvas;
+		SKCanvas _skD12Canvas;
 		SKPaint  _skPaint;
 
 		public SKBitmap _pBitmapRX  { get; protected set; } 
@@ -288,7 +288,7 @@ namespace Play.SSTV {
 		// Need to look into the greyscale calibration height of bitmap issue. (+16 scan lines)
 		// The D12 bitmap must always be >= to the RX bmp height.
 
-		public event SSTVPropertyChange Post_TvEvents; // TODO: Since threaded version poles, we don't need this.
+		public event SSTVPropertyChange Send_TvEvents; // TODO: Since threaded version poles, we don't need this.
 
 		protected readonly List<ColorChannel> _rgSlots = new (10);
 		
@@ -315,7 +315,7 @@ namespace Play.SSTV {
 		public SSTVDraw( SSTVDEM p_dp ) {
 			_dp       = p_dp ?? throw new ArgumentNullException( "Demodulator must not be null to SSTVDraw." );
 
-			_skCanvas = new( _pBitmapD12 );
+			_skD12Canvas = new( _pBitmapD12 );
 			_skPaint  = new() { Color = SKColors.Red, StrokeWidth = 1 };
 
 			Slider    = new( 30, p_dp.m_SLvl ); // Put some dummy values for now. Start() updates.
@@ -365,7 +365,7 @@ namespace Play.SSTV {
 
 			Slider.Reset( (int)CorrectedSyncWidthInSamples );
 
-			Post_TvEvents?.Invoke(ESstvProperty.SSTVMode );
+			Send_TvEvents?.Invoke(ESstvProperty.SSTVMode );
 
 			if( _pBitmapRX == null ||
 				_dp.Mode.Resolution.Width  != _pBitmapRX.Width ||
@@ -382,7 +382,7 @@ namespace Play.SSTV {
 										   SKColorType.Rgb888x, 
 										   SKAlphaType.Opaque );
 
-				Post_TvEvents?.Invoke(ESstvProperty.RXImageNew );
+				Send_TvEvents?.Invoke(ESstvProperty.RXImageNew );
 			}
 
 			StartTime = DateTime.Now;
@@ -487,11 +487,16 @@ namespace Play.SSTV {
 		/// Track how much data has been read into the buffer. Note that the
 		/// processor will backtrack and re-read the buffer, as it adjusts
 		/// for the slant, but this is how far the reception has proceeded.
+		/// Never returns more than 100%. Even if we've got a but and we're
+		/// looping forever. So just beware.
 		/// </summary>
         public int PercentRxComplete { 
             get {
 				try {
 					double dblProgress = _dp.m_wBase * 100 / ImageSizeInSamples;
+					if( dblProgress > 100 )
+						dblProgress = 100;
+
 					return (int)dblProgress;
 				} catch( NullReferenceException ) {
 					return 100;
@@ -528,7 +533,7 @@ namespace Play.SSTV {
 
 					SKPoint top = new( flScaledIntercept, 0 );
 					SKPoint bot = new( flScaledIntercept, _pBitmapD12.Height );
-					_skCanvas.DrawLine( top, bot, skPaint );
+					_skD12Canvas.DrawLine( top, bot, skPaint );
 
 					foreach( ColorChannel oSlot in _rgSlots ) {
 						double dblXCh = ( _dblIntercept + oSlot.Min - dblSyncExpected ) * dbD12XScale;
@@ -539,12 +544,12 @@ namespace Play.SSTV {
 						skPaint.Color       = sPaint.Color;
 						skPaint.StrokeWidth = sPaint.StrokeWidth;
 
-						_skCanvas.DrawLine( new SKPoint( (int)dblXCh, 0 ), 
+						_skD12Canvas.DrawLine( new SKPoint( (int)dblXCh, 0 ), 
 											new SKPoint( (int)dblXCh, _pBitmapD12.Height), 
 											skPaint );
 					}
 					
-					Post_TvEvents?.Invoke( ESstvProperty.DownLoadFinished );
+					Send_TvEvents?.Invoke( ESstvProperty.DownLoadFinished );
 				}
 			} catch( Exception oEx ) {
 				Type[] rgErrors = { typeof( NullReferenceException ),
@@ -552,7 +557,7 @@ namespace Play.SSTV {
 				if( rgErrors.IsUnhandled( oEx ) )
 					throw;
 
-				Post_TvEvents?.Invoke( ESstvProperty.ThreadDiagnosticsException );
+				Send_TvEvents?.Invoke( ESstvProperty.ThreadDiagnosticsException );
 			}
 		}
 
@@ -587,11 +592,11 @@ namespace Play.SSTV {
 					int x = (int)( i * dbD12XScale );
 					if( (x >= 0) && (x < _pBitmapD12.Width)) {
 						int d = Limit256((short)(dRx * 256F / 4096F));
-						//if( fHit ) {
-						//	_skCanvas.DrawLine( new SKPointI( x - iSyncWidth, iScanLine ), new SKPointI( x, iScanLine ), _skPaint);
-						//} else {
+						if( fHit ) {
+							_skD12Canvas.DrawLine( new SKPointI( x - iSyncWidth, iScanLine ), new SKPointI( x, iScanLine ), _skPaint);
+						} else {
 							_pBitmapD12.SetPixel( x, iScanLine, new SKColor( (byte)d, (byte)d, (byte)d ) );
-						//}
+						}
 					}
 				}
 			} catch( Exception oEx ) {
@@ -600,7 +605,7 @@ namespace Play.SSTV {
 				if( rgErrors.IsUnhandled( oEx ) )
 					throw;
 
-				Post_TvEvents?.Invoke( ESstvProperty.ThreadDrawingException );
+				Send_TvEvents?.Invoke( ESstvProperty.ThreadDrawingException );
 			}
 
 			return( dblBase + ScanWidthInSamples );
@@ -658,7 +663,7 @@ namespace Play.SSTV {
 				if( rgErrors.IsUnhandled( oEx ) )
 					throw;
 
-				Post_TvEvents?.Invoke( ESstvProperty.ThreadDrawingException );
+				Send_TvEvents?.Invoke( ESstvProperty.ThreadDrawingException );
 			}
 		}
 
@@ -672,7 +677,7 @@ namespace Play.SSTV {
 					while( _dp.m_wBase > _dblReadBaseSync + ScanWidthInSamples ) {
 						_dblReadBaseSync = ProcessSync( _dblReadBaseSync );
 
-						Post_TvEvents?.Invoke( ESstvProperty.DownLoadTime );
+						Send_TvEvents?.Invoke( ESstvProperty.DownLoadTime );
 					}
 				} catch( Exception oEx ) {
 					Type[] rgErrors = { typeof( NullReferenceException ),
@@ -681,7 +686,7 @@ namespace Play.SSTV {
 					if( rgErrors.IsUnhandled( oEx ) )
 						throw;
 
-					Post_TvEvents?.Invoke( ESstvProperty.ThreadDrawingException );
+					Send_TvEvents?.Invoke( ESstvProperty.ThreadDrawingException );
 				}
 
 				try {
@@ -717,7 +722,7 @@ namespace Play.SSTV {
 					if( rgErrors.IsUnhandled( oEx ) )
 						throw;
 
-					Post_TvEvents?.Invoke( ESstvProperty.ThreadDrawingException );
+					Send_TvEvents?.Invoke( ESstvProperty.ThreadDrawingException );
 				}
 			}
 		}
