@@ -11,6 +11,7 @@ using NAudio.Wave.SampleProviders;
 using Play.Interfaces.Embedding;
 using Play.Sound;
 using Play.Sound.FFT;
+using System.Collections;
 
 namespace Play.SSTV
 {
@@ -153,7 +154,7 @@ namespace Play.SSTV
         }
     }
 
-    public class ThreadWorker2 : ThreadWorkerBase {
+    public class ThreadWorker2 : ThreadWorkerBase, IEnumerable<double> {
         protected readonly ConcurrentQueue<double> _oDataQueue; 
         protected readonly WaveFormat              _oDataFormat;
 
@@ -182,7 +183,7 @@ namespace Play.SSTV
         /// </summary>
         public void DoWork() {
             try {
-			    FFTControlValues oFFTMode = FFTControlValues.FindMode( _oDataFormat.SampleRate ); // RxSpec.Rate
+			    FFTControlValues oFFTMode = FFTControlValues.FindMode( _oDataFormat.SampleRate ); 
 			    SYSSET           oSys     = new ();
 
 			    SSTVDeModulator  = new SSTVDEM( oSys,
@@ -201,16 +202,12 @@ namespace Play.SSTV
 
                 do {
                     try {
-                        if( !_oDataQueue.IsEmpty ) {
-                            do {
-                                if( _oDataQueue.TryDequeue( out double dblValue ) )
-                                    SSTVDeModulator.Do( dblValue );
-                                else
-                                    break; // I should send an exception to the ui. Let it go for now.
-                            } while( !_oDataQueue.IsEmpty );
-                            SSTVDraw.Process();
+                        foreach( double dblValue in this ) {
+                            SSTVDeModulator.Do( dblValue );
                         }
-                        Thread.Sleep( 25 );
+                        SSTVDraw.Process();
+
+                        Thread.Sleep( 250 );
 				    } catch( Exception oEx ) {
                         Type[] rgErrors = { typeof( NullReferenceException ),
                                             typeof( ArgumentNullException ),
@@ -234,6 +231,24 @@ namespace Play.SSTV
 
                 _oMsgQueue.Enqueue( ESstvProperty.ThreadWorkerException );
             }
+        }
+
+        public IEnumerator<double> GetEnumerator() {
+            if( _oDataQueue.IsEmpty )
+                yield break;
+
+            do {
+                if( _oDataQueue.TryDequeue( out double dblValue ) ) {
+                    yield return dblValue;
+                } else {
+                    _oMsgQueue.Enqueue( ESstvProperty.ThreadReadException );
+                    yield break;
+                }
+            } while( !_oDataQueue.IsEmpty );
+        }
+
+        IEnumerator IEnumerable.GetEnumerator() {
+            return GetEnumerator();
         }
     }
 }

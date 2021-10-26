@@ -414,8 +414,8 @@ namespace Play.Sound {
 
 	/// <summary>
 	/// This is a class we can use for the type of block copies we're interested in. Right now
-	/// it's taylored for the MMSSTV FFT with it's double input type. But later I'll make
-	/// one that copies short for other readers.
+	/// it's taylored for the MMSSTV FFT with it's double input type. Now also it 
+	/// copies short via the enumerator.
 	/// </summary>
 	public class BlockCopies {
 		readonly int  _iDecimation	   = 0;
@@ -448,7 +448,7 @@ namespace Play.Sound {
 		}
 
 		/// <summary>
-		/// This function ignores the decimation value. Need to fix that.
+		/// Reads the channel specified by the constructor of this object. 
 		/// </summary>
 		/// <param name="rgSource">Array of data in bytes</param>
 		/// <param name="iSrcLen">Length of data to read.</param>
@@ -456,8 +456,8 @@ namespace Play.Sound {
 		public IEnumerator<double> EnumAsSigned16Bit( Byte[] rgSource, int iSrcLen ) {
 			int iChannelOffset = _iBytesPerChannel * _iChannel;
 
-			for( int iSrc = 0; iSrc < iSrcLen; iSrc += _iBytesPerFrame ) {
-				yield return (double)BitConverter.ToInt16( rgSource, iSrc+iChannelOffset );
+			for( int iSrc = 0; iSrc < iSrcLen; iSrc += _iBytesPerFrame * _iDecimation ) {
+				yield return (double)BitConverter.ToInt16( rgSource, iSrc + iChannelOffset );
 			}
 		}
 

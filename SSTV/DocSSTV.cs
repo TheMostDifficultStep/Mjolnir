@@ -1047,8 +1047,7 @@ namespace Play.SSTV {
         private void Input_OnDataAvailable( object sender, WaveInEventArgs e ) {
             _oWaveBuf.AddSamples( e.Buffer, 0, e.BytesRecorded );
 
-            IEnumerator<double>oIter = _oReader.EnumAsSigned16Bit( e.Buffer, e.BytesRecorded );
-            while( oIter.MoveNext() ) {
+            for( IEnumerator<double>oIter = _oReader.EnumAsSigned16Bit( e.Buffer, e.BytesRecorded ); oIter.MoveNext(); ) {
                 _oDataQueue.Enqueue( oIter.Current );
             }
         }
