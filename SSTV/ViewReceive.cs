@@ -179,7 +179,7 @@ namespace Play.SSTV {
 			if( sGuid == GlobalCommands.Play ) {
 				Banner = _strBannerBase + _oDocSSTV.RecChooser.CurrentFullPath;
 				_oSiteView.Notify( ShellNotify.BannerChanged );
-				_oDocSSTV.ReceiveBeginFileRead2( _oDocSSTV.RecChooser.CurrentFullPath, DetectVIS:false );
+				_oDocSSTV.ReceiveFileRead2Begin( _oDocSSTV.RecChooser.CurrentFullPath, DetectVIS:false );
 				return true;
 			}
 			if( sGuid == GlobalCommands.Stop ) {
@@ -371,7 +371,7 @@ namespace Play.SSTV {
 					case Tools.File: {
 						// BUG: This should have been updated as the user selects files in the options chooser.
 						bool fDetectVIS = _oDocSSTV.RxProperties[(int)RxProperties.Names.Detect_Vis].Compare( "true", IgnoreCase:true ) == 0;
-						_oDocSSTV.ReceiveBeginFileRead2( _oDocSSTV.RecChooser.CurrentFullPath, fDetectVIS );
+						_oDocSSTV.ReceiveFileRead2Begin( _oDocSSTV.RecChooser.CurrentFullPath, fDetectVIS );
 						return true;
 						}
 					case Tools.Port:

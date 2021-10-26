@@ -155,8 +155,9 @@ namespace Play.SSTV
     }
 
     public class ThreadWorker2 : ThreadWorkerBase, IEnumerable<double> {
-        protected readonly ConcurrentQueue<double> _oDataQueue; 
-        protected readonly WaveFormat              _oDataFormat;
+        protected readonly ConcurrentQueue<double>    _oDataQueue; 
+        protected readonly WaveFormat                 _oDataFormat;
+        protected readonly ConcurrentQueue<TVMessage> _oOutQueue;
 
         public override string SuggestedFileName {
             get {
@@ -185,9 +186,15 @@ namespace Play.SSTV
 										         typeof( ArithmeticException ),
 										         typeof( IndexOutOfRangeException ) };
 
-        public ThreadWorker2( WaveFormat oFormat, ConcurrentQueue<ESstvProperty> oMsgQueue, ConcurrentQueue<double> oDataQueue, SSTVMode oMode ) : base( oMsgQueue, oMode ) {
+        public ThreadWorker2( WaveFormat oFormat, 
+                              ConcurrentQueue<ESstvProperty> oMsgQueue, 
+                              ConcurrentQueue<double> oDataQueue, 
+                              ConcurrentQueue<TVMessage> oOutQueue ) : 
+            base( oMsgQueue, null )
+        {
             _oDataQueue  = oDataQueue ?? throw new ArgumentNullException( "oDataQueue" );
             _oDataFormat = oFormat    ?? throw new ArgumentNullException( "oFormat" );
+            _oOutQueue   = oOutQueue  ?? throw new ArgumentNullException( "oOutQueue" );
         }
 
         /// <summary>
@@ -204,6 +211,7 @@ namespace Play.SSTV
         /// converter from this thread. The UI thread looks at the RX and 12 bitmaps
         /// from time to time. Errors are passed via message to the UI.
         /// </summary>
+        /// <remarks>I'll move this to the base class after I sort things out.</remarks>
         public void DoWork() {
             try {
 			    SSTVDeModulator  = new SSTVDEM( new SYSSET(),
@@ -216,12 +224,21 @@ namespace Play.SSTV
                 SSTVDeModulator.Send_NextMode += new NextMode( SSTVDraw.ModeTransition );
                 SSTVDraw       .Send_TvEvents += OnSSTVDrawEvent;
 
-                if( _oFixedMode != null ) {
-                    SSTVDeModulator.Start( _oFixedMode );
-                }
-
                 do {
                     try {
+                        if( _oOutQueue.TryDequeue( out TVMessage oMsg ) ) {
+                            switch( oMsg._eMsg ) {
+                                case TVMessage.Message.ExitWorkThread:
+                                    return;
+                                case TVMessage.Message.TryNewMode:
+                                    if( oMsg._oParam is SSTVMode oMode ) {
+                                        SSTVDeModulator.Start( oMode );
+                                    } else {
+                                        _oMsgQueue.Enqueue( ESstvProperty.ThreadReadException );
+                                    }
+                                    break;
+                            }
+                        }
                         foreach( double dblValue in this ) {
                             SSTVDeModulator.Do( dblValue );
                         }
@@ -248,10 +265,9 @@ namespace Play.SSTV
         }
 
         public IEnumerator<double> GetEnumerator() {
-            if( _oDataQueue.IsEmpty )
-                yield break;
-
             do {
+                // Basically there should always be data. If not
+                // then we're done.
                 if( _oDataQueue.TryDequeue( out double dblValue ) ) {
                     yield return dblValue;
                 } else {

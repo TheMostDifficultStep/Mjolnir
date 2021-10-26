@@ -237,6 +237,21 @@ namespace Play.SSTV {
 
     public delegate void SSTVPropertyChange( ESstvProperty eProp );
 
+    public class TVMessage {
+        public enum Message {
+            TryNewMode,
+            ExitWorkThread
+        }
+
+        public readonly Message _eMsg;
+        public readonly object  _oParam;
+
+        public TVMessage( Message eMsg, object oParam = null ) {
+            _eMsg   = eMsg;
+            _oParam = oParam;
+        }
+    }
+
     public class DocSSTV :
         IPgParent,
         IPgLoad<TextReader>,
@@ -244,20 +259,21 @@ namespace Play.SSTV {
         IDisposable
     {
         private bool disposedValue;
-        Thread       _oThread  = null;
-        readonly ConcurrentQueue<ESstvProperty> _oMsgQueue  = new ConcurrentQueue<ESstvProperty>(); // communique from bg thread to ui thread.
-        readonly ConcurrentQueue<double>        _oDataQueue = new ConcurrentQueue<double>();        // From foreground to background thread.
-        WaveIn       _oWaveIn  = null;
-        WaveOut      _oWaveOut = null;
-        BufferedWaveProvider _oWaveBuf = null;
-        BlockCopies          _oReader = null;
+        readonly ConcurrentQueue<ESstvProperty> _oBGtoUIQueue  = new ConcurrentQueue<ESstvProperty>(); // From BG thread to UI thread.
+        readonly ConcurrentQueue<double>        _oDataQueue    = new ConcurrentQueue<double>();        // From UI thread to BG thread.
+        readonly ConcurrentQueue<TVMessage>     _oUItoBGQueue  = new ConcurrentQueue<TVMessage>();
 
+        Thread               _oThread  = null;
+        WaveIn               _oWaveIn  = null;
+        WaveOut              _oWaveOut = null;
+        BufferedWaveProvider _oWaveBuf = null;
+        BlockCopies          _oReader  = null;
 
         /// <summary>
         /// This editor shows the list of modes we can modulate.
         /// </summary>
-		public class GeneratorMode : Editor {
-			public GeneratorMode(IPgBaseSite oSite) : base(oSite) {
+		public class GeneratorModeEditor : Editor {
+			public GeneratorModeEditor(IPgBaseSite oSite) : base(oSite) {
 				//new ParseHandlerText(this, "m3u");
 			}
 
@@ -304,35 +320,28 @@ namespace Play.SSTV {
         public StdProperties Properties { get; }
         public FileChooser   RecChooser { get; } // Recorded wave files.
 
-        public Editor         PortTxList      { get; } 
-        public Editor         PortRxList      { get; }
-        public Editor         RxDirectory     { get; protected set; } // Files in the receive directory.
-        public Specification  RxSpec          { get; protected set; } = new Specification( 44100, 1, 0, 16 );
-        public GeneratorMode  ModeList        { get; protected set; }
-        public ImageWalkerDir TxImageList     { get; protected set; }
-        public SKBitmap       TxBitmap        => TxImageList.Bitmap;
-        public SSTVMode       RxMode          { get; protected set; } = null; // Thread advisor polls this from work thread.
-        public RxProperties   RxProperties    { get; }
-        public TxProperties   TxProperties    { get; }
+        public Editor               PortTxList      { get; } 
+        public Editor               PortRxList      { get; }
+        public Editor               RxDirectory     { get; protected set; } // Files in the receive directory.
+        public Specification        RxSpec          { get; protected set; } = new Specification( 44100, 1, 0, 16 );
+        public GeneratorModeEditor  ModeList        { get; protected set; }
+        public ImageWalkerDir       TxImageList     { get; protected set; }
+        public SKBitmap             TxBitmap        => TxImageList.Bitmap;
+        public RxProperties         RxProperties    { get; }
+        public TxProperties         TxProperties    { get; }
 
         protected readonly ImageSoloDoc  _oDocSnip;   // Clip the image.
 
         protected Mpg123FFTSupport FileDecoder   { get; set; }
         protected BufferSSTV       _oSSTVBuffer;
         protected SSTVMOD          _oSSTVModulator;
-        protected SSTVDEM          _oSSTVDeModulator;
+        protected SSTVDEM          _oSSTVDeModulator; // Only used by test code.
 		protected IPgPlayer        _oPlayer;
         protected SSTVGenerator    _oSSTVGenerator;
-		protected SSTVDraw         _oRxSSTV;
+		protected SSTVDraw         _oRxSSTV; // Only used by test code.
 
 		public ImageSoloDoc ReceiveImage { get; protected set; }
 		public ImageSoloDoc SyncImage    { get; protected set; }
-
-        public int PercentRxComplete { 
-            get {
-                return _oRxSSTV.PercentRxComplete;
-            }
-        }
 
         private DataTester _oDataTester;
 
@@ -357,7 +366,7 @@ namespace Play.SSTV {
             _oSiteBase  = oSite ?? throw new ArgumentNullException( "Site must not be null" );
             _oWorkPlace = ((IPgScheduler)Services).CreateWorkPlace() ?? throw new ApplicationException( "Couldn't create a worksite from scheduler.");
 
-            ModeList     = new GeneratorMode ( new DocSlot( this, "SSTV Tx Modes" ) );
+            ModeList     = new GeneratorModeEditor ( new DocSlot( this, "SSTV Tx Modes" ) );
             TxImageList  = new ImageWalkerDir( new DocSlot( this ) );
             _oDocSnip    = new ImageSoloDoc  ( new DocSlot( this ) );
             RxDirectory  = new Editor        ( new DocSlot( this ) );
@@ -385,6 +394,8 @@ namespace Play.SSTV {
                         FileDecoder.Dispose();
                     if( _oPlayer != null )
                         _oPlayer.Dispose();
+
+                    ReceiveLiveStop();
                 }
 
                 // TODO: free unmanaged resources (unmanaged objects) and override finalizer
@@ -670,9 +681,6 @@ namespace Play.SSTV {
             return true;
         }
 
-        /// <summary>
-        /// Not used at present. I'll probably delete this later.
-        /// </summary>
         public int PercentTxComplete {
             get { 
                 if( _oSSTVGenerator != null ) 
@@ -879,13 +887,12 @@ namespace Play.SSTV {
             bool fReceivedFinishedMsg = false;
 
             // Note: The thread can finish but we haven't picked up all the messages!!
-            while( _oThread.IsAlive || _oMsgQueue.Count > 0 ) {
-                while( _oMsgQueue.TryDequeue( out ESstvProperty eResult ) ) {
+            while( _oThread.IsAlive || _oBGtoUIQueue.Count > 0 ) {
+                while( _oBGtoUIQueue.TryDequeue( out ESstvProperty eResult ) ) {
                     switch( eResult ) {
                         case ESstvProperty.RXImageNew:
 			                ReceiveImage.Bitmap = oWorker.SSTVDraw._pBitmapRX;
 			                SyncImage   .Bitmap = oWorker.SSTVDraw._pBitmapD12;
-                            RxMode              = oWorker.NextMode;
 
                             PropertyChange?.Invoke( ESstvProperty.RXImageNew );
                             break;
@@ -940,7 +947,7 @@ namespace Play.SSTV {
         /// <param name="DetectVIS">Just set the decoder for a particular SSTV mode. This is usefull
         /// if picking up the signal in the middle and you know the type a priori. I should
         /// just pass the mode if it's fixed, else autodetect.</param>
-        public void ReceiveBeginFileRead2( string strFileName, bool DetectVIS = true ) {
+        public void ReceiveFileRead2Begin( string strFileName, bool DetectVIS = true ) {
             if( string.IsNullOrEmpty( strFileName ) ) {
                 LogError( "Invalid filename for SSTV image read" );
                 return;
@@ -954,7 +961,7 @@ namespace Play.SSTV {
                     // No need to update the RxProperties (Mode,Rez) b/c Demodulator parrots the fixed mode.
                 }
 
-                ThreadWorker oWorker        = new ThreadWorker( _oMsgQueue, strFileName, oModeFixed );
+                ThreadWorker oWorker        = new ThreadWorker( _oBGtoUIQueue, strFileName, oModeFixed );
                 ThreadStart  threadDelegate = new ThreadStart ( oWorker.DoWork );
 
                 _oThread = new Thread( threadDelegate );
@@ -971,7 +978,7 @@ namespace Play.SSTV {
             if( _oWaveOut != null ) {
                 _oWaveOut.Stop();
             }
-            // Send a message to the tread to bail.
+            _oUItoBGQueue.Enqueue( new TVMessage( TVMessage.Message.ExitWorkThread ) );
         }
 
         /// <summary>
@@ -1000,11 +1007,6 @@ namespace Play.SSTV {
                         return;
                     }
 
-                    // Note that this ModeList is the TX mode list. I think I want an RX list.
-                    if( !fDetectVIS && ModeList.CheckedLine.Extra is SSTVMode oMode ) {
-                        oModeFixed = oMode;
-                    }
-
                     if( _oWaveIn == null ) {
                         _oWaveIn = new WaveIn( WaveCallbackInfo.FunctionCallback() );
 
@@ -1021,7 +1023,16 @@ namespace Play.SSTV {
                     }
                     _oReader = new BlockCopies( 1, 1, 0, _oWaveIn.WaveFormat.BitsPerSample );
 
-                    ThreadWorker2 oWorker        = new ThreadWorker2( _oWaveIn.WaveFormat, _oMsgQueue, _oDataQueue, oModeFixed );
+                    _oUItoBGQueue.Clear();
+                    _oDataQueue  .Clear();
+                    _oBGtoUIQueue.Clear();
+
+                    // Note that this ModeList is the TX mode list. I think I want an RX list.
+                    if( !fDetectVIS && ModeList.CheckedLine.Extra is SSTVMode oMode ) {
+                        _oUItoBGQueue.Enqueue( new TVMessage( TVMessage.Message.TryNewMode, oMode ) );
+                    }
+
+                    ThreadWorker2 oWorker        = new ThreadWorker2( _oWaveIn.WaveFormat, _oBGtoUIQueue, _oDataQueue, _oUItoBGQueue );
                     ThreadStart   threadDelegate = new ThreadStart  ( oWorker.DoWork );
 
                     _oThread = new Thread( threadDelegate );
@@ -1044,27 +1055,40 @@ namespace Play.SSTV {
             }
         }
 
+        /// <summary>
+        /// Looks like dispose is not being called on us. Or just incase it is not
+        /// we'll Stop live recording if this has a problem.
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void Input_OnDataAvailable( object sender, WaveInEventArgs e ) {
-            _oWaveBuf.AddSamples( e.Buffer, 0, e.BytesRecorded );
+            try {
+                _oWaveBuf.AddSamples( e.Buffer, 0, e.BytesRecorded );
 
-            for( IEnumerator<double>oIter = _oReader.EnumAsSigned16Bit( e.Buffer, e.BytesRecorded ); oIter.MoveNext(); ) {
-                _oDataQueue.Enqueue( oIter.Current );
+                for( IEnumerator<double>oIter = _oReader.EnumAsSigned16Bit( e.Buffer, e.BytesRecorded ); oIter.MoveNext(); ) {
+                    _oDataQueue.Enqueue( oIter.Current );
+                }
+            } catch( InvalidOperationException ) {
+                ReceiveLiveStop();
             }
         }
 
 		private void SaveRxImage( string strFileName ) {
             try {
-			    if( ReceiveImage.Bitmap == null )
+                SKBitmap skBitmap = ReceiveImage.Bitmap;
+			    if( skBitmap == null )
 				    return;
 
                 // Figure out path and name of the file.
-                string strSaveDir = Path.GetDirectoryName( strFileName );
+                string strSaveDir = null;
                 if( RxProperties.ValueAsBool( RxProperties.Names.SaveWData ) ) {
+                    strSaveDir = Path.GetDirectoryName( strFileName );
                     if( string.IsNullOrEmpty( strSaveDir ) )
 			            strSaveDir = Properties[StdProperties.Names.SaveDir];
                 } else {
 			        strSaveDir = Properties[StdProperties.Names.SaveDir];
                 }
+                // If Dir still null we should go straight to env variable.
                 if( string.IsNullOrEmpty( strFileName ) ) {
                     strFileName = DateTime.Now.ToString();
                 } else {
@@ -1088,8 +1112,8 @@ namespace Play.SSTV {
 
                 string strFilePath = Path.Combine( strSaveDir, strFileName + ".png" );
 
-                //using SKImage image  = SKImage.FromBitmap(ReceiveImage.Bitmap);
-			    using SKData  data   = ReceiveImage.Bitmap.Encode( SKEncodedImageFormat.Png, iQuality );
+                // Can't use JPEG yet, bug in the SKIA to .net interface.
+			    using SKData  data   = skBitmap.Encode( SKEncodedImageFormat.Png, iQuality );
                 using var     stream = File.OpenWrite( strFilePath );
 
                 data.SaveTo(stream);
@@ -1109,16 +1133,15 @@ namespace Play.SSTV {
 		}
 
 		/// <summary>
-		/// The decoder has determined the the incoming video mode. Set the 
-		/// TmmSSTV to match the given mode. This call comes from CSSTVDEM::Start() 
-		/// Start() resets the write buffer. More thread issues to
-		/// keep in mind.
+		/// This is used by the simple non-threaded test code. TODO: I can probably
+        /// roll this into ListenTvEvents below there...
 		/// </summary>
 		/// <remarks>
 		/// I switched to a TmmSSTV that understands all the modes and is switched
         /// between them on the fly. The benefit is that I don't need to set
         /// up the event hooks everytime a new image comes down in the case where I
         /// was alloc'ing TmmSSTV subclasses.</remarks>
+        /// <seealso cref="ListenTvEvents"/>
         private void ListenNextRxMode( SSTVMode tvMode ) {
 			ReceiveImage.Bitmap = null;
 			SyncImage   .Bitmap = null;
@@ -1139,7 +1162,8 @@ namespace Play.SSTV {
 
 		/// <summary>
 		/// Forward events coming from SSTVDraw. I really need to sort out
-        /// the mess this has become.
+        /// the mess this has become. BUT this is only used by the TEST
+        /// code. The new threaded code does not use this.
 		/// </summary>
         private void ListenTvEvents( ESstvProperty eProp )
         {
@@ -1159,7 +1183,7 @@ namespace Play.SSTV {
 		/// </summary>
 		/// <returns>Time to wait until next call in ms.</returns>
         /// <remarks>Probably going to delete this eventually.</remarks>
-        public IEnumerator<int> GetRecorderTask() {
+        public IEnumerator<int> GetRecorderTaskTest2() {
             _oSSTVDeModulator.Send_NextMode += ListenNextRxMode; // BUG: no need to do every time.
             do {
                 try {
@@ -1205,7 +1229,7 @@ namespace Play.SSTV {
         /// <param name="iModeIndex">TV Mode to use.</param>
         /// <param name="skSelect"></param>
         /// <remarks>Set CSSTVDEM::m_fFreeRun = true</remarks>
-        public void ReceiveBeginTest2( SKRectI skSelect ) {
+        public void ReceiveTest2Begin( SKRectI skSelect ) {
             try {
                 if( ModeList.CheckedLine == null )
                     ModeList.CheckedLine = ModeList[0];
@@ -1225,7 +1249,7 @@ namespace Play.SSTV {
 
 						    _oSSTVDeModulator = oDemod;
 
-						    _oWorkPlace.Queue( GetRecorderTask(), 0 );
+						    _oWorkPlace.Queue( GetRecorderTaskTest2(), 0 );
 					    }
                     }
                 }
@@ -1242,7 +1266,7 @@ namespace Play.SSTV {
 		/// <param name="oMode">User selected mode. Any should work. Tho' only
         /// one will decode properly of course.</param>
 		/// <returns>Time in ms before next call wanted.</returns>
-        public IEnumerator<int> GetRecordTestTask( SSTVMode oMode ) {
+        public IEnumerator<int> GetRecordTaskTest1( SSTVMode oMode ) {
 			if( oMode == null )
 				throw new ArgumentNullException( "Mode must not be Null." );
 
@@ -1263,7 +1287,8 @@ namespace Play.SSTV {
 		/// This 1'st test generates the the video signal but doesn't actually create audio
 		/// tone stream but a fake stream of frequency data. Thus skipping the A/D coverter code
 		/// we're just testing the video encode / decode. We do this by re-assigning
-		/// the _oSSTVModulator with a new one set to our test frequency.
+		/// the _oSSTVModulator with a new one set to our test frequency. It takes a snip of
+        /// the current TxBitmap and uses that to test with.
 		/// </summary>
 		/// <param name="iModeIndex">TV Format to use.</param>
 		/// <param name="skSelect">Portion of the image we want to transmit.</param>
@@ -1271,7 +1296,7 @@ namespace Play.SSTV {
 		///          Set CSSTVDEM::m_fFreeRun to false!!</remarks>
 		/// <seealso cref="InitNew" />
 		/// <seealso cref="OutputStreamInit"/>
-        public void ReceiveBeginTest1( SKRectI skSelect ) {
+        public void ReceiveTest1Begin( SKRectI skSelect ) {
             try {
                 if( ModeList.CheckedLine.Extra is SSTVMode oMode ) {
                     if( _oWorkPlace.Status == WorkerStatus.FREE ) {
@@ -1297,7 +1322,7 @@ namespace Play.SSTV {
 
                         _oSSTVDeModulator.Send_NextMode += ListenNextRxMode;
 
-                        _oWorkPlace.Queue( GetRecordTestTask( oMode ), 0 );
+                        _oWorkPlace.Queue( GetRecordTaskTest1( oMode ), 0 );
                     }
                 }
             } catch( NullReferenceException ) {
