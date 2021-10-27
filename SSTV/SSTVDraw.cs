@@ -527,7 +527,7 @@ namespace Play.SSTV {
 		public void Stop() {
 			try {
 				if( _dp.m_Sync ) {
-					_dp.Stop();
+					_dp.Reset();
 
 					SKPaint skPaint = new() { Color = SKColors.Yellow, StrokeWidth = 3 };
 
@@ -647,12 +647,12 @@ namespace Play.SSTV {
 				// See remarks: starting a scanline in the middle.
 				if( _dp.BoundsCompare( rBase ) != 0 )
 					return;
+				// Sometimes we bump the rails. Haven't figured it out yet.
+				if( _dp.BoundsCompare( rBase + iScanWidth ) != 0 )
+					return;
 
 			    _AY = iScanLine * Mode.ScanMultiplier; 
 				if( (_AY < 0) || (_AY >= _pBitmapRX.Height) )
-					return;
-				// Sometimes we bump the rails. Haven't figured it out yet.
-				if( rBase + iScanWidth >= _dp.m_wBase )
 					return;
 
 				for( int i = 0; i < iScanWidth; i++ ) { 

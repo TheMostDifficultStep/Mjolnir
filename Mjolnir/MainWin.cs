@@ -642,7 +642,7 @@ namespace Mjolnir {
             oEditMenu.DropDownItems.Add(new ToolStripMenuItem("Collect",    BitmapCreateFromChar( "\xE0e7" ), new EventHandler(this.OnCollect),  Keys.Control | Keys.L ));
             oEditMenu.DropDownItems.Add(new ToolStripMenuItem("Find",       BitmapCreateFromChar( "\xE1a3" ), new EventHandler(this.OnEditFind), Keys.Control | Keys.F));
 
-			_miToolsMenu = new ToolStripMenuItem( "State" );
+			_miToolsMenu = new ToolStripMenuItem( "Tool" );
 			_oTopMenu.Items.Add( _miToolsMenu );
 
             _miDecorMenu = new ToolStripMenuItem( "Dock" );

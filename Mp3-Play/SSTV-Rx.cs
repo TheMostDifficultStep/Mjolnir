@@ -1037,7 +1037,7 @@ namespace Play.Sound {
 			//	CalcNarrowBPF(HBPFN, m_bpftap, m_bpf, SSTVSET.m_Mode);
 		}
 
-		public void Stop()	{
+		public void Reset()	{
 			if( m_AFCFQ != 0 ){
 				if( m_fskdecode ){
 					m_iir11.SetFreq(1080 + m_dblToneOffset, SampFreq,  80.0);
@@ -1615,6 +1615,10 @@ namespace Play.Sound {
 		/// </summary>
         public IEnumerator<SSTVMode> GetEnumerator()
         {
+            return EnumModes();
+        }
+
+		public static IEnumerator<SSTVMode> EnumModes() {
             IEnumerator<SSTVMode> itrMode = GenerateMartin .GetModeEnumerator();
 			while( itrMode.MoveNext() ) 
 				yield return itrMode.Current;
@@ -1626,7 +1630,7 @@ namespace Play.Sound {
             itrMode = GeneratePD     .GetModeEnumerator();
 			while( itrMode.MoveNext() ) 
 				yield return itrMode.Current;
-        }
+		}
 
         IEnumerator IEnumerable.GetEnumerator()
         {

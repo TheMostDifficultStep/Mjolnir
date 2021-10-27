@@ -246,7 +246,10 @@ namespace Play.SSTV
                                 if( oMsg._oParam is SSTVMode oMode ) {
                                     SSTVDeModulator.Start( oMode );
                                 } else {
-                                    _oMsgQueue.Enqueue( SSTVEvents.ThreadReadException );
+                                    if( oMsg._oParam == null )
+                                        SSTVDeModulator.Reset();
+                                    else
+                                        _oMsgQueue.Enqueue( SSTVEvents.ThreadReadException );
                                 }
                                 break;
                         }

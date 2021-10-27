@@ -25,8 +25,8 @@ namespace Play.SSTV {
     public class RxProperties : DocProperties {
         public enum Names : int {
 			Mode,
-            Resolution,
-            Detect_Vis,
+            Width,
+            Height,
             Progress,
             SaveWData,
             LoadFHere
@@ -44,9 +44,9 @@ namespace Play.SSTV {
                 Property_Values.LineAppend( string.Empty, fUndoable:false );
             }
 
-            LabelSet( Names.Mode,       "Mode" );
-            LabelSet( Names.Resolution, "Resolution" );
-            LabelSet( Names.Detect_Vis, "Detect VIS", new SKColor( red:0xff, green:0xbf, blue:0 ) );
+            LabelSet( Names.Mode,       "Mode", new SKColor( red:0xff, green:0xbf, blue:0 ) );
+            LabelSet( Names.Width,      "Width" );
+            LabelSet( Names.Height,     "Height" );
             LabelSet( Names.Progress,   "Received" );
             LabelSet( Names.SaveWData,  "Save local" );
             LabelSet( Names.LoadFHere,  "Locality" );
@@ -85,8 +85,8 @@ namespace Play.SSTV {
             string strMyDocDir = Environment.GetFolderPath( Environment.SpecialFolder.MyDocuments );
 
             ValueUpdate( Names.Mode,       "-"    ,     Broadcast:false ); 
-            ValueUpdate( Names.Resolution, "-"    ,     Broadcast:false );  
-            ValueUpdate( Names.Detect_Vis, "True" ,     Broadcast:false ); 
+            ValueUpdate( Names.Width,      "-"    ,     Broadcast:false );  
+            ValueUpdate( Names.Height,     "-"    ,     Broadcast:false ); 
             ValueUpdate( Names.Progress,   "-"    ,     Broadcast:false );
             ValueUpdate( Names.LoadFHere,  strMyDocDir, Broadcast:false );
             ValueUpdate( Names.SaveWData,  "True" ,     Broadcast:true  ); 
@@ -268,13 +268,13 @@ namespace Play.SSTV {
         WaveIn               _oWaveIn  = null;
         WaveOut              _oWaveOut = null;
         BufferedWaveProvider _oWaveBuf = null;
-        BlockCopies          _oReader  = null;
+        BlockCopies          _oWaveReader  = null;
 
         /// <summary>
         /// This editor shows the list of modes we can modulate.
         /// </summary>
-		public class GeneratorModeEditor : Editor {
-			public GeneratorModeEditor(IPgBaseSite oSite) : base(oSite) {
+		public class ModeEditor : Editor {
+			public ModeEditor(IPgBaseSite oSite) : base(oSite) {
 				//new ParseHandlerText(this, "m3u");
 			}
 
@@ -325,7 +325,7 @@ namespace Play.SSTV {
         public Editor               PortRxList      { get; }
         public Editor               RxDirectory     { get; protected set; } // Files in the receive directory.
         public Specification        RxSpec          { get; protected set; } = new Specification( 44100, 1, 0, 16 );
-        public GeneratorModeEditor  ModeList        { get; protected set; }
+        public ModeEditor  ModeList        { get; protected set; }
         public ImageWalkerDir       TxImageList     { get; protected set; }
         public SKBitmap             TxBitmap        => TxImageList.Bitmap;
         public RxProperties         RxProperties    { get; }
@@ -367,7 +367,7 @@ namespace Play.SSTV {
             _oSiteBase  = oSite ?? throw new ArgumentNullException( "Site must not be null" );
             _oWorkPlace = ((IPgScheduler)Services).CreateWorkPlace() ?? throw new ApplicationException( "Couldn't create a worksite from scheduler.");
 
-            ModeList     = new GeneratorModeEditor ( new DocSlot( this, "SSTV Tx Modes" ) );
+            ModeList     = new ModeEditor    ( new DocSlot( this, "SSTV Tx Modes" ) );
             TxImageList  = new ImageWalkerDir( new DocSlot( this ) );
             _oDocSnip    = new ImageSoloDoc  ( new DocSlot( this ) );
             RxDirectory  = new Editor        ( new DocSlot( this ) );
@@ -449,6 +449,8 @@ namespace Play.SSTV {
         /// </summary>
         /// <param name="iterMode"></param>
         public void LoadModulators( IEnumerator<SSTVMode> iterMode) {
+            ModeList.LineAppend( "Auto", fUndoable:false );
+
             using BaseEditor.Manipulator oBulk = ModeList.CreateManipulator();
 
             while( iterMode.MoveNext() ) {
@@ -610,14 +612,12 @@ namespace Play.SSTV {
                 return false;
 			}
 
-            LoadModulators( GenerateMartin .GetModeEnumerator() );
-            LoadModulators( GenerateScottie.GetModeEnumerator() );
-            LoadModulators( GeneratePD     .GetModeEnumerator() );
+            LoadModulators( SSTVDEM.EnumModes() );
 
             // Set this after TxImageList load since the CheckedLine call will 
             // call Listen_ModeChanged and that calls the properties update event.
-            ModeList.CheckedEvent += Listen_TxModeChanged; // set checkmark AFTER load the modulators... ^_^;;
-            ModeList.CheckedLine = ModeList[0];
+            ModeList   .CheckedEvent += Listen_TxModeChanged; // set checkmark AFTER load the modulators... ^_^;;
+            ModeList   .CheckedLine   = ModeList[0];
 
             TxImageList.ImageUpdated += Listen_ImageUpdated;
 
@@ -905,17 +905,22 @@ namespace Play.SSTV {
 
                             PropertyChange?.Invoke( SSTVEvents.RXImageNew );
                             break;
-                        case SSTVEvents.SSTVMode:
-                            foreach( Line oLine in ModeList ) {
-                                if( oLine.Extra is SSTVMode oLineMode ) {
-                                    if( oLineMode.LegacyMode == oWorker.NextMode.LegacyMode ) {
-                                        ModeList.HighLight = oLine;
-                                        RxProperties.ValueUpdate( RxProperties.Names.Mode,       oLineMode.Name );
-                                        RxProperties.ValueUpdate( RxProperties.Names.Resolution, oLineMode.Resolution.ToString(), Broadcast:true );
+                        case SSTVEvents.SSTVMode: 
+                            {
+                                SSTVMode oWorkerMode = oWorker.NextMode;
+                                if( oWorkerMode == null )
+                                    break;
+                                foreach( Line oLine in ModeList ) {
+                                    if( oLine.Extra is SSTVMode oLineMode ) {
+                                        if( oLineMode.LegacyMode == oWorkerMode.LegacyMode ) {
+                                            ModeList.HighLight = oLine;
+                                            RxProperties.ValueUpdate( RxProperties.Names.Mode,   oLineMode.Name );
+                                            RxProperties.ValueUpdate( RxProperties.Names.Width,  oLineMode.Resolution.Width.ToString() );
+                                            RxProperties.ValueUpdate( RxProperties.Names.Height, oLineMode.Resolution.Height.ToString(), Broadcast:true );
+                                        }
                                     }
                                 }
-                            }
-                            break;
+                            } break;
                         case SSTVEvents.DownLoadTime: // Might be nice to send the % as a number in the message.
                             PropertiesRxTime( oWorker.SSTVDraw.PercentRxComplete );
                             PropertyChange?.Invoke( SSTVEvents.DownLoadTime );
@@ -956,7 +961,7 @@ namespace Play.SSTV {
         /// <param name="DetectVIS">Just set the decoder for a particular SSTV mode. This is usefull
         /// if picking up the signal in the middle and you know the type a priori. I should
         /// just pass the mode if it's fixed, else autodetect.</param>
-        public void ReceiveFileRead2Begin( string strFileName, bool DetectVIS = true ) {
+        public void ReceiveFileRead2Begin( string strFileName ) {
             if( string.IsNullOrEmpty( strFileName ) ) {
                 LogError( "Invalid filename for SSTV image read" );
                 return;
@@ -965,9 +970,8 @@ namespace Play.SSTV {
                 SSTVMode oModeFixed = null;
 
                 // Note that this ModeList is the TX mode list. I think I want an RX list.
-                if( !DetectVIS && ModeList.CheckedLine.Extra is SSTVMode oMode ) {
+                if( ModeList.CheckedLine.Extra is SSTVMode oMode ) {
                     oModeFixed = oMode;
-                    // No need to update the RxProperties (Mode,Rez) b/c Demodulator parrots the fixed mode.
                 }
 
                 ThreadWorker oWorker        = new ThreadWorker( _oBGtoUIQueue, strFileName, oModeFixed );
@@ -1001,9 +1005,6 @@ namespace Play.SSTV {
         public void ReceiveLiveBegin() {
             if( _oThread == null ) {
                 try {
-                    SSTVMode oModeFixed = null;
-
-				    bool fDetectVIS = RxProperties.ValueAsBool( RxProperties.Names.Detect_Vis );
                     int  iDevice    = -1; 
                     int  iSpeaker   = -1;
 
@@ -1034,14 +1035,14 @@ namespace Play.SSTV {
                         _oWaveBuf = new BufferedWaveProvider(_oWaveIn.WaveFormat);
                         _oWaveOut.Init( _oWaveBuf );
                     }
-                    _oReader = new BlockCopies( 1, 1, 0, _oWaveIn.WaveFormat.BitsPerSample );
+                    _oWaveReader = new BlockCopies( 1, 1, 0, _oWaveIn.WaveFormat.BitsPerSample );
 
                     _oUItoBGQueue.Clear();
                     _oDataQueue  .Clear();
                     _oBGtoUIQueue.Clear();
 
                     // Note that this ModeList is the TX mode list. I think I want an RX list.
-                    if( !fDetectVIS && ModeList.CheckedLine.Extra is SSTVMode oMode ) {
+                    if( ModeList.CheckedLine.Extra is SSTVMode oMode ) {
                         _oUItoBGQueue.Enqueue( new TVMessage( TVMessage.Message.TryNewMode, oMode ) );
                     }
 
@@ -1078,7 +1079,7 @@ namespace Play.SSTV {
             try {
                 _oWaveBuf.AddSamples( e.Buffer, 0, e.BytesRecorded );
 
-                for( IEnumerator<double>oIter = _oReader.EnumAsSigned16Bit( e.Buffer, e.BytesRecorded ); oIter.MoveNext(); ) {
+                for( IEnumerator<double>oIter = _oWaveReader.EnumAsSigned16Bit( e.Buffer, e.BytesRecorded ); oIter.MoveNext(); ) {
                     _oDataQueue.Enqueue( oIter.Current );
                 }
             } catch( InvalidOperationException ) {
