@@ -16,7 +16,7 @@ using System.Collections;
 namespace Play.SSTV
 {
     public class ThreadWorkerBase {
-        protected readonly ConcurrentQueue<ESstvProperty> _oMsgQueue;
+        protected readonly ConcurrentQueue<SSTVEvents> _oMsgQueue;
 
         protected readonly SSTVMode _oFixedMode;
 
@@ -27,7 +27,7 @@ namespace Play.SSTV
 
         public virtual string SuggestedFileName => string.Empty;
 
-        public ThreadWorkerBase( ConcurrentQueue<ESstvProperty> oMsgQueue, SSTVMode oMode ) {
+        public ThreadWorkerBase( ConcurrentQueue<SSTVEvents> oMsgQueue, SSTVMode oMode ) {
             _oMsgQueue  = oMsgQueue   ?? throw new ArgumentNullException( "Queue is null" );
 
             _oFixedMode = oMode; // Override the auto sense and just fix ourselves trying to receive a particular signal type.
@@ -42,7 +42,7 @@ namespace Play.SSTV
         public readonly string _strFileName;
         public override string SuggestedFileName => _strFileName;
 
-        public ThreadWorker( ConcurrentQueue<ESstvProperty> oMsgQueue, string strFileName, SSTVMode oMode ) : base( oMsgQueue, oMode ){
+        public ThreadWorker( ConcurrentQueue<SSTVEvents> oMsgQueue, string strFileName, SSTVMode oMode ) : base( oMsgQueue, oMode ){
             _strFileName = strFileName ?? throw new ArgumentNullException( "Filename is null" );
         }
 
@@ -75,7 +75,7 @@ namespace Play.SSTV
                     if( rgErrors.IsUnhandled( oEx ) )
                         throw;
 
-                    _oMsgQueue.Enqueue( ESstvProperty.ThreadReadException );
+                    _oMsgQueue.Enqueue( SSTVEvents.ThreadReadException );
 
 					// Don't call _oWorkPlace.Stop() b/c we're already in DoWork() which will
 					// try calling the _oWorker which will have been set to NULL!!
@@ -125,7 +125,7 @@ namespace Play.SSTV
                 if( rgErrors.IsUnhandled( oEx ) )
                     throw;
 
-                _oMsgQueue.Enqueue( ESstvProperty.ThreadWorkerException );
+                _oMsgQueue.Enqueue( SSTVEvents.ThreadWorkerException );
             }
         }
 
@@ -134,7 +134,7 @@ namespace Play.SSTV
         /// and have it do that directly.
         /// </summary>
         /// <seealso cref="Listen_NextRxMode"/>
-        private void Listen_TvEvents( ESstvProperty eProp ) {
+        private void Listen_TvEvents( SSTVEvents eProp ) {
             _oMsgQueue.Enqueue( eProp );
         }
 
@@ -185,9 +185,13 @@ namespace Play.SSTV
                                                  typeof( InvalidOperationException ),
 										         typeof( ArithmeticException ),
 										         typeof( IndexOutOfRangeException ) };
+        protected static Type[] _rgInitErrors = { typeof( DirectoryNotFoundException ),
+                                                typeof( NullReferenceException ),
+                                                typeof( ApplicationException ),
+                                                typeof( FileNotFoundException ) };
 
         public ThreadWorker2( WaveFormat oFormat, 
-                              ConcurrentQueue<ESstvProperty> oMsgQueue, 
+                              ConcurrentQueue<SSTVEvents> oMsgQueue, 
                               ConcurrentQueue<double> oDataQueue, 
                               ConcurrentQueue<TVMessage> oOutQueue ) : 
             base( oMsgQueue, null )
@@ -202,7 +206,7 @@ namespace Play.SSTV
         /// thread envelope.
         /// </summary>
         /// <seealso cref="Listen_NextRxMode"/>
-        private void OnSSTVDrawEvent( ESstvProperty eProp ) {
+        private void OnSSTVDrawEvent( SSTVEvents eProp ) {
             _oMsgQueue.Enqueue( eProp );
         }
 
@@ -223,55 +227,51 @@ namespace Play.SSTV
                 // Set the callbacks first since Start() will try to use the callback.
                 SSTVDeModulator.Send_NextMode += new NextMode( SSTVDraw.ModeTransition );
                 SSTVDraw       .Send_TvEvents += OnSSTVDrawEvent;
-
-                do {
-                    try {
-                        if( _oOutQueue.TryDequeue( out TVMessage oMsg ) ) {
-                            switch( oMsg._eMsg ) {
-                                case TVMessage.Message.ExitWorkThread:
-                                    return;
-                                case TVMessage.Message.TryNewMode:
-                                    if( oMsg._oParam is SSTVMode oMode ) {
-                                        SSTVDeModulator.Start( oMode );
-                                    } else {
-                                        _oMsgQueue.Enqueue( ESstvProperty.ThreadReadException );
-                                    }
-                                    break;
-                            }
-                        }
-                        foreach( double dblValue in this ) {
-                            SSTVDeModulator.Do( dblValue );
-                        }
-                        SSTVDraw.Process();
-
-                        Thread.Sleep( 250 );
-				    } catch( Exception oEx ) {
-                        if( _rgStdErrors.IsUnhandled( oEx ) )
-                            throw;
-
-                        _oMsgQueue.Enqueue( ESstvProperty.ThreadReadException );
-                    }
-                } while( true );
             } catch( Exception oEx ) {
-                Type[] rgErrors = { typeof( DirectoryNotFoundException ),
-                                    typeof( NullReferenceException ),
-                                    typeof( ApplicationException ),
-                                    typeof( FileNotFoundException ) };
-                if( rgErrors.IsUnhandled( oEx ) )
+                if( _rgInitErrors.IsUnhandled( oEx ) )
                     throw;
 
-                _oMsgQueue.Enqueue( ESstvProperty.ThreadWorkerException );
+                _oMsgQueue.Enqueue( SSTVEvents.ThreadAbort );
+                return;
             }
+
+            do {
+                try {
+                    if( _oOutQueue.TryDequeue( out TVMessage oMsg ) ) {
+                        switch( oMsg._eMsg ) {
+                            case TVMessage.Message.ExitWorkThread:
+                                _oMsgQueue.Enqueue( SSTVEvents.ThreadExit );
+                                return;
+                            case TVMessage.Message.TryNewMode:
+                                if( oMsg._oParam is SSTVMode oMode ) {
+                                    SSTVDeModulator.Start( oMode );
+                                } else {
+                                    _oMsgQueue.Enqueue( SSTVEvents.ThreadReadException );
+                                }
+                                break;
+                        }
+                    }
+                    foreach( double dblValue in this )
+                        SSTVDeModulator.Do( dblValue );
+
+                    SSTVDraw.Process();
+
+                    Thread.Sleep( 250 );
+				} catch( Exception oEx ) {
+                    if( _rgStdErrors.IsUnhandled( oEx ) )
+                        throw;
+
+                    _oMsgQueue.Enqueue( SSTVEvents.ThreadReadException );
+                }
+            } while( true );
         }
 
         public IEnumerator<double> GetEnumerator() {
             do {
-                // Basically there should always be data. If not
-                // then we're done.
+                // Basically there should always be data. If not then we're done.
                 if( _oDataQueue.TryDequeue( out double dblValue ) ) {
                     yield return dblValue;
                 } else {
-                    _oMsgQueue.Enqueue( ESstvProperty.ThreadReadException );
                     yield break;
                 }
             } while( !_oDataQueue.IsEmpty );

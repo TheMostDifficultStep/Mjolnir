@@ -14,6 +14,7 @@ using Play.Edit;
 using Play.Parse;
 using Play.ImageViewer;
 using Play.Forms;
+using Play.Sound;
 
 namespace Play.SSTV {
 	/// <summary>
@@ -132,7 +133,7 @@ namespace Play.SSTV {
         /// <remarks>Right now just update all, but we can just update the
         /// specific property in the future. You know, a color coded property, 
         /// light red or yellow on change would be a cool feature.</remarks>
-        private void Listen_PropertyChange( ESstvProperty eProp ) {
+        private void Listen_PropertyChange( SSTVEvents eProp ) {
 			//_oViewRx  .Refresh();
 			_oViewSync.Refresh();
         }
@@ -319,12 +320,19 @@ namespace Play.SSTV {
             if( !base.InitNew() )
 				return false;
 
-            _oDocSSTV.PropertyChange          += ListenDoc_PropertyChange;
+            _oDocSSTV.PropertyChange             += ListenDoc_PropertyChange;
             _oDocSSTV.RecChooser.DirectoryChange += Chooser_OnDirectoryChange;
+            _oDocSSTV.ModeList.CheckedEvent      += ModeList_OnCheckedEvent;
 
 			// Of course we'll blow up the shell if try in the constructor...
 			Chooser_OnDirectoryChange( _oDocSSTV.RecChooser.CurrentDirectory );
 			return true;
+        }
+
+        private void ModeList_OnCheckedEvent( Line oLineChecked ) {
+			if( oLineChecked.Extra is SSTVMode oMode ) {
+				_oDocSSTV.RequestModeChange( oMode );
+			}
         }
 
         private void Chooser_OnDirectoryChange( string strDirectory ) {
@@ -338,9 +346,9 @@ namespace Play.SSTV {
         /// <remarks>Right now just update all, but we can just update the
         /// specific property in the future. You know, a color coded property, 
         /// light red or yellow on change would be a cool feature.</remarks>
-        private void ListenDoc_PropertyChange( ESstvProperty eProp ) {
+        private void ListenDoc_PropertyChange( SSTVEvents eProp ) {
 			switch( eProp ) {
-				case ESstvProperty.DownLoadFinished:
+				case SSTVEvents.DownLoadFinished:
 					Refresh();
 					break;
 				default:
@@ -392,6 +400,7 @@ namespace Play.SSTV {
 					return new ViewSSTVProperties( oBaseSite, _oDocSSTV.RxProperties );
 				}
 				if( sGuid.Equals( GlobalDecorations.Options ) ) {
+					// Need to hook up event to chatch mode change.
 					return new CheckList( oBaseSite, _oDocSSTV.ModeList );
 				}
 				if( sGuid.Equals( GlobalDecorations.Outline ) ) {

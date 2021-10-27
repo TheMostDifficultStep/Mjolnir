@@ -1526,25 +1526,40 @@ namespace Play.Sound {
 		}
 
 		/// <summary>
+		/// Legal values for the index are 0 to less than the buffer length.
+		/// No negative numbers either. 
+		/// </summary>
+		/// <param name="iIndex">Check if this value is ok.</param>
+		/// <returns>-1, 0, 1, with 0 being in bounds.</returns>
+		public int BoundsCompare( int iIndex ) {
+			if( iIndex >= m_wBase )
+				return 1;
+			if( m_wBase - iIndex >= m_Buf.Length )
+				return -1;
+			if( iIndex < 0 )
+				return -1;
+
+			return 0;
+		}
+
+		/// <summary>
 		/// Get the value at the absolute offset.
 		/// </summary>
 		/// <param name="iIndex">absolute offset into the buffer</param>
 		/// <returns>value of the m_Buf buffer.</returns>
 		/// <exception cref="ArgumentOutOfRangeException" />
 		public short SignalGet( int iIndex ) {
-			if( iIndex >= m_wBase )
-				throw new ArgumentOutOfRangeException( "Index is above loaded buffer" );
-			if( m_wBase - iIndex >= m_Buf.Length )
-				throw new ArgumentOutOfRangeException( "Index is below loaded buffer" );
+			int iCompare = BoundsCompare( iIndex );
+			if( iCompare != 0 )
+				throw new ArgumentOutOfRangeException( "Index is out of bounds: " + ( iCompare > 0 ? "Above" : "Below" ) );
 
 			return m_Buf[ iIndex % m_Buf.Length ];
 		}
 
 		public short SyncGet( int iIndex ) {
-			if( iIndex >= m_wBase )
-				throw new ArgumentOutOfRangeException( "Index is above loaded buffer" );
-			if( m_wBase - iIndex >= m_Buf.Length )
-				throw new ArgumentOutOfRangeException( "Index is below loaded buffer" );
+			int iCompare = BoundsCompare( iIndex );
+			if( iCompare != 0 )
+				throw new ArgumentOutOfRangeException( "Index is out of bounds: " + ( iCompare > 0 ? "Above" : "Below" ) );
 
 			return m_B12[ iIndex % m_Buf.Length ];
 		}

@@ -7,7 +7,6 @@ using System.Threading;
 
 using SkiaSharp;
 using NAudio.Wave;
-using NAudio.Wave.SampleProviders;
 
 using Play.Interfaces.Embedding;
 using Play.Sound;
@@ -220,7 +219,7 @@ namespace Play.SSTV {
         }
     }
 
-    public enum ESstvProperty {
+    public enum SSTVEvents {
         ALL,
         UploadTime,
         SSTVMode,
@@ -232,10 +231,12 @@ namespace Play.SSTV {
         ThreadDrawingException,
         ThreadWorkerException,
         ThreadReadException,
-        ThreadDiagnosticsException
+        ThreadDiagnosticsException,
+        ThreadAbort,
+        ThreadExit
     }
 
-    public delegate void SSTVPropertyChange( ESstvProperty eProp );
+    public delegate void SSTVPropertyChange( SSTVEvents eProp );
 
     public class TVMessage {
         public enum Message {
@@ -259,9 +260,9 @@ namespace Play.SSTV {
         IDisposable
     {
         private bool disposedValue;
-        readonly ConcurrentQueue<ESstvProperty> _oBGtoUIQueue  = new ConcurrentQueue<ESstvProperty>(); // From BG thread to UI thread.
-        readonly ConcurrentQueue<double>        _oDataQueue    = new ConcurrentQueue<double>();        // From UI thread to BG thread.
-        readonly ConcurrentQueue<TVMessage>     _oUItoBGQueue  = new ConcurrentQueue<TVMessage>();
+        readonly ConcurrentQueue<SSTVEvents> _oBGtoUIQueue  = new ConcurrentQueue<SSTVEvents>(); // From BG thread to UI thread.
+        readonly ConcurrentQueue<double>     _oDataQueue    = new ConcurrentQueue<double>();        // From UI thread to BG thread.
+        readonly ConcurrentQueue<TVMessage>  _oUItoBGQueue  = new ConcurrentQueue<TVMessage>();
 
         Thread               _oThread  = null;
         WaveIn               _oWaveIn  = null;
@@ -569,7 +570,7 @@ namespace Play.SSTV {
         /// <seealso cref="ModeList"/>
         void Listen_TxModeChanged( Line oLine ) {
             TxProperties.ValueUpdate( TxProperties.Names.Mode, oLine.ToString(), Broadcast:true ); 
-            Raise_PropertiesUpdated( ESstvProperty.SSTVMode );
+            Raise_PropertiesUpdated( SSTVEvents.SSTVMode );
         }
 
         public bool InitNew() {
@@ -766,13 +767,13 @@ namespace Play.SSTV {
                 _oSSTVGenerator = null;
             }
 
-            Raise_PropertiesUpdated( ESstvProperty.ALL );
+            Raise_PropertiesUpdated( SSTVEvents.ALL );
 
             return _oSSTVGenerator != null;
         }
 
         private void Listen_ImageUpdated() {
-            Raise_PropertiesUpdated( ESstvProperty.TXImageChanged );
+            Raise_PropertiesUpdated( SSTVEvents.TXImageChanged );
         }
 
         /// <summary>
@@ -780,9 +781,9 @@ namespace Play.SSTV {
         /// thread based system has been tested recently.
         /// </summary>
         /// <param name="eProp"></param>
-        protected void Raise_PropertiesUpdated( ESstvProperty eProp ) {
+        protected void Raise_PropertiesUpdated( SSTVEvents eProp ) {
             switch( eProp ) {
-                case ESstvProperty.UploadTime:
+                case SSTVEvents.UploadTime:
                     PropertiesSendTime();
                     break;
                 default:
@@ -813,7 +814,7 @@ namespace Play.SSTV {
                     _oWorkPlace.Stop();
                     LogError( "Trouble playing in SSTV" );
                 }
-                Raise_PropertiesUpdated( ESstvProperty.UploadTime );
+                Raise_PropertiesUpdated( SSTVEvents.UploadTime );
                 yield return (int)uiWait;
             } while( _oSSTVBuffer.IsReading );
 
@@ -872,7 +873,7 @@ namespace Play.SSTV {
         }
 
         protected void DownloadFinished( string strFileName ) {
-            PropertyChange?.Invoke( ESstvProperty.DownLoadFinished );
+            PropertyChange?.Invoke( SSTVEvents.DownLoadFinished );
             ModeList.HighLight = null;
             SaveRxImage( strFileName ); // Race condition possible, when image reused.
         }
@@ -888,15 +889,23 @@ namespace Play.SSTV {
 
             // Note: The thread can finish but we haven't picked up all the messages!!
             while( _oThread.IsAlive || _oBGtoUIQueue.Count > 0 ) {
-                while( _oBGtoUIQueue.TryDequeue( out ESstvProperty eResult ) ) {
+                while( _oBGtoUIQueue.TryDequeue( out SSTVEvents eResult ) ) {
                     switch( eResult ) {
-                        case ESstvProperty.RXImageNew:
+                        case SSTVEvents.ThreadAbort:
+                            if( _oThread.IsAlive ) {
+                                LogError( "Image processing thread is a zombie!" );
+                            } else {
+                                _oThread = null;
+                                LogError( "Image processing thread aborted! Press start button to try again." );
+                            }
+                            break;
+                        case SSTVEvents.RXImageNew:
 			                ReceiveImage.Bitmap = oWorker.SSTVDraw._pBitmapRX;
 			                SyncImage   .Bitmap = oWorker.SSTVDraw._pBitmapD12;
 
-                            PropertyChange?.Invoke( ESstvProperty.RXImageNew );
+                            PropertyChange?.Invoke( SSTVEvents.RXImageNew );
                             break;
-                        case ESstvProperty.SSTVMode:
+                        case SSTVEvents.SSTVMode:
                             foreach( Line oLine in ModeList ) {
                                 if( oLine.Extra is SSTVMode oLineMode ) {
                                     if( oLineMode.LegacyMode == oWorker.NextMode.LegacyMode ) {
@@ -907,23 +916,23 @@ namespace Play.SSTV {
                                 }
                             }
                             break;
-                        case ESstvProperty.DownLoadTime: // Might be nice to send the % as a number in the message.
+                        case SSTVEvents.DownLoadTime: // Might be nice to send the % as a number in the message.
                             PropertiesRxTime( oWorker.SSTVDraw.PercentRxComplete );
-                            PropertyChange?.Invoke( ESstvProperty.DownLoadTime );
+                            PropertyChange?.Invoke( SSTVEvents.DownLoadTime );
                             break;
-                        case ESstvProperty.DownLoadFinished:
+                        case SSTVEvents.DownLoadFinished:
                             // NOTE: This might never come along!
                             PropertiesRxTime( oWorker.SSTVDraw.PercentRxComplete );
                             DownloadFinished( oWorker.SuggestedFileName );
                             fReceivedFinishedMsg = true;
                             break;
-                        case ESstvProperty.ThreadDiagnosticsException:
+                        case SSTVEvents.ThreadDiagnosticsException:
                             LogError( "Worker thread Diagnostics Exception" );
                             break;
-                        case ESstvProperty.ThreadDrawingException:
+                        case SSTVEvents.ThreadDrawingException:
                             LogError( "Worker thread Drawing Exception" );
                             break;
-                        case ESstvProperty.ThreadWorkerException:
+                        case SSTVEvents.ThreadWorkerException:
                             LogError( "Worker thread Exception" );
                             break;
                     }
@@ -971,14 +980,18 @@ namespace Play.SSTV {
             }
         }
 
+        public void RequestModeChange( SSTVMode oMode ) {
+            _oUItoBGQueue.Enqueue( new TVMessage( TVMessage.Message.TryNewMode, oMode ) );
+        }
+
         public void ReceiveLiveStop() {
-            if( _oWaveIn != null ) {
-                _oWaveIn.StopRecording();    
-            }
+            _oUItoBGQueue.Enqueue( new TVMessage( TVMessage.Message.ExitWorkThread ) );
             if( _oWaveOut != null ) {
                 _oWaveOut.Stop();
             }
-            _oUItoBGQueue.Enqueue( new TVMessage( TVMessage.Message.ExitWorkThread ) );
+            if( _oWaveIn != null ) {
+                _oWaveIn.StopRecording();    
+            }
         }
 
         /// <summary>
@@ -1069,7 +1082,7 @@ namespace Play.SSTV {
                     _oDataQueue.Enqueue( oIter.Current );
                 }
             } catch( InvalidOperationException ) {
-                ReceiveLiveStop();
+                ReceiveLiveStop(); // This doesn't seem to help.
             }
         }
 
@@ -1151,7 +1164,7 @@ namespace Play.SSTV {
 			ReceiveImage.Bitmap = _oRxSSTV._pBitmapRX;
 			SyncImage   .Bitmap = _oRxSSTV._pBitmapD12;
 
-			Raise_PropertiesUpdated( ESstvProperty.RXImageNew );
+			Raise_PropertiesUpdated( SSTVEvents.RXImageNew );
             foreach( Line oLine in ModeList ) {
                 if( oLine.Extra is SSTVMode oLineMode ) {
                     if( oLineMode.LegacyMode == tvMode.LegacyMode )
@@ -1165,12 +1178,12 @@ namespace Play.SSTV {
         /// the mess this has become. BUT this is only used by the TEST
         /// code. The new threaded code does not use this.
 		/// </summary>
-        private void ListenTvEvents( ESstvProperty eProp )
+        private void ListenTvEvents( SSTVEvents eProp )
         {
             Raise_PropertiesUpdated( eProp );
 
             switch( eProp ) {
-                case ESstvProperty.DownLoadFinished:
+                case SSTVEvents.DownLoadFinished:
                     ModeList.HighLight = null;
                     SaveRxImage( string.Empty );
                     break;
@@ -1347,7 +1360,7 @@ namespace Play.SSTV {
 
                 _oFFT.Calc( _rgFFTData, 10, 0, FFTResult );
 
-                Raise_PropertiesUpdated( ESstvProperty.FFT );
+                Raise_PropertiesUpdated( SSTVEvents.FFT );
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( NotImplementedException ),
                                     typeof( NullReferenceException ) };

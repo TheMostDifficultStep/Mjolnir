@@ -146,9 +146,9 @@ namespace Play.SSTV {
         /// <remarks>Right now just update all, but we can just update the
         /// specific property in the future. You know, a color coded property, 
         /// light red or yellow on change would be a cool feature.</remarks>
-        private void Listen_PropertyChange( ESstvProperty eProp ) {
+        private void Listen_PropertyChange( SSTVEvents eProp ) {
 			switch( eProp ) {
-				case ESstvProperty.SSTVMode:
+				case SSTVEvents.SSTVMode:
 					_oViewImage.Aspect = _oDocSSTV.Resolution;
 					break;
 			}
@@ -307,13 +307,13 @@ namespace Play.SSTV {
 			return true;
         }
 
-        private void ListenDoc_PropertyChange( ESstvProperty eProp )
+        private void ListenDoc_PropertyChange( SSTVEvents eProp )
         {
             switch( eProp ) {
-				case ESstvProperty.DownLoadTime:
+				case SSTVEvents.DownLoadTime:
 					Invalidate();
 					break;
-				case ESstvProperty.SSTVMode:
+				case SSTVEvents.SSTVMode:
 					Aspect = _oDocSSTV.Resolution;
 					break;
 			}

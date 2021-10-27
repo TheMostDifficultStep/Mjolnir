@@ -60,8 +60,8 @@ namespace Play.SSTV {
         /// <remarks>Right now just update all, but we can just update the
         /// specific property in the future. You know, a color coded property, 
         /// light red or yellow on change would be a cool feature.</remarks>
-        private void Listen_PropertyChange( ESstvProperty eProp ) {
-			if( eProp == ESstvProperty.FFT ) {
+        private void Listen_PropertyChange( SSTVEvents eProp ) {
+			if( eProp == SSTVEvents.FFT ) {
 				Invalidate();
 			}
         }

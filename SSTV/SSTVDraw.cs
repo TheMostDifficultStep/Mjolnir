@@ -365,7 +365,7 @@ namespace Play.SSTV {
 
 			Slider.Reset( (int)CorrectedSyncWidthInSamples );
 
-			Send_TvEvents?.Invoke(ESstvProperty.SSTVMode );
+			Send_TvEvents?.Invoke(SSTVEvents.SSTVMode );
 
 			if( _pBitmapRX == null ||
 				_dp.Mode.Resolution.Width  != _pBitmapRX.Width ||
@@ -382,7 +382,7 @@ namespace Play.SSTV {
 										   SKColorType.Rgb888x, 
 										   SKAlphaType.Opaque );
 
-				Send_TvEvents?.Invoke(ESstvProperty.RXImageNew );
+				Send_TvEvents?.Invoke(SSTVEvents.RXImageNew );
 			}
 
 			StartTime = DateTime.Now;
@@ -414,19 +414,6 @@ namespace Play.SSTV {
 		public double SpecWidthInSamples {
 			get {
 				return Mode.ScanWidthInMS * _dp.SampFreq / 1000;
-			}
-		}
-
-		/// <summary>
-		/// Size of the scan line width corrected image not including VIS preamble.
-		/// </summary>
-		public double ImageSizeInSamples {
-			get {
-				try {
-					return ScanWidthInSamples * Mode.Resolution.Height / Mode.ScanMultiplier;
-				} catch( NullReferenceException ) {
-					return 1;
-				}
 			}
 		}
 
@@ -481,6 +468,25 @@ namespace Play.SSTV {
 				d = 255;
 
 			return (short)d;
+		}
+
+		/// <summary>
+		/// Size of the scan line width corrected image not including VIS preamble.
+		/// This can get called on the UI thread. Because of PercentRxComplete
+		/// </summary>
+		/// <seealso cref="PercentRxComplete"/>
+		public double ImageSizeInSamples {
+			get {
+				try {
+					SSTVMode oMode = Mode;
+					if( oMode != null )
+						return ScanWidthInSamples * Mode.Resolution.Height / Mode.ScanMultiplier;
+					else
+						return 1;
+				} catch( NullReferenceException ) {
+					return 1;
+				}
+			}
 		}
 
 		/// <summary>
@@ -549,7 +555,7 @@ namespace Play.SSTV {
 											skPaint );
 					}
 					
-					Send_TvEvents?.Invoke( ESstvProperty.DownLoadFinished );
+					Send_TvEvents?.Invoke( SSTVEvents.DownLoadFinished );
 				}
 			} catch( Exception oEx ) {
 				Type[] rgErrors = { typeof( NullReferenceException ),
@@ -557,7 +563,7 @@ namespace Play.SSTV {
 				if( rgErrors.IsUnhandled( oEx ) )
 					throw;
 
-				Send_TvEvents?.Invoke( ESstvProperty.ThreadDiagnosticsException );
+				Send_TvEvents?.Invoke( SSTVEvents.ThreadDiagnosticsException );
 			}
 		}
 
@@ -582,6 +588,11 @@ namespace Play.SSTV {
 			if( iReadBase + iScanWidth >= _dp.m_wBase )
 				throw new InvalidProgramException( "Hit the rails on the ProcessSync" );
 
+			// This can happen when we start in the middle of an image. And we go
+			// back to the top of the picture trying to draw the first partial scan line.
+			if( _dp.BoundsCompare( iReadBase ) != 0 )
+				return( dblBase + ScanWidthInSamples ); // Just skip it.
+
 			try {
 				for( int i = 0; i < iScanWidth; i++ ) { 
 					int   idx = iReadBase + i;
@@ -605,7 +616,7 @@ namespace Play.SSTV {
 				if( rgErrors.IsUnhandled( oEx ) )
 					throw;
 
-				Send_TvEvents?.Invoke( ESstvProperty.ThreadDrawingException );
+				Send_TvEvents?.Invoke( SSTVEvents.ThreadDrawingException );
 			}
 
 			return( dblBase + ScanWidthInSamples );
@@ -613,14 +624,17 @@ namespace Play.SSTV {
 
 		/// <summary>
 		/// This the second new scan line processor. Unlike the ProcessSync() function
-		/// this one will be re-started from the beginning after a handfull of
+		/// this one will be re-started from the beginning after a handful of
 		/// sync lines are processed. The idea is that we slowly refine our 
 		/// measurement of the image and so need to redraw it. The signal buffer is
 		/// currently large enough to allow us to re-draw from the beginning.
 		/// I might cut it down in the future. But it makes sense that you really
 		/// can't draw the image properly until it has been received in it's entirety.
 		/// </summary>
-		/// <remarks></remarks>
+		/// <remarks>So it would be nice to capture a partial scan line, in the case
+		/// we just walk into a going signal, but that involves special casing the 
+		/// first scan line and right now I don't think it's worth all the effort.
+		/// </remarks>
 		protected void ProcessScan( int iScanLine ) {
 			int rx         = -1; // Saved X pos from the Rx buffer.
 			int ch         =  0; // current channel skimming the Rx buffer portion.
@@ -629,6 +643,10 @@ namespace Play.SSTV {
 			try { 
 				// Used to try to track scan line start. This seems better see above.
 				int rBase = (int)Math.Round( _dblSlope * iScanLine + _dblIntercept - CorrectedSyncOffsetInSamples );
+
+				// See remarks: starting a scanline in the middle.
+				if( _dp.BoundsCompare( rBase ) != 0 )
+					return;
 
 			    _AY = iScanLine * Mode.ScanMultiplier; 
 				if( (_AY < 0) || (_AY >= _pBitmapRX.Height) )
@@ -663,7 +681,7 @@ namespace Play.SSTV {
 				if( rgErrors.IsUnhandled( oEx ) )
 					throw;
 
-				Send_TvEvents?.Invoke( ESstvProperty.ThreadDrawingException );
+				Send_TvEvents?.Invoke( SSTVEvents.ThreadDrawingException );
 			}
 		}
 
@@ -677,7 +695,7 @@ namespace Play.SSTV {
 					while( _dp.m_wBase > _dblReadBaseSync + ScanWidthInSamples ) {
 						_dblReadBaseSync = ProcessSync( _dblReadBaseSync );
 
-						Send_TvEvents?.Invoke( ESstvProperty.DownLoadTime );
+						Send_TvEvents?.Invoke( SSTVEvents.DownLoadTime );
 					}
 				} catch( Exception oEx ) {
 					Type[] rgErrors = { typeof( NullReferenceException ),
@@ -686,7 +704,7 @@ namespace Play.SSTV {
 					if( rgErrors.IsUnhandled( oEx ) )
 						throw;
 
-					Send_TvEvents?.Invoke( ESstvProperty.ThreadDrawingException );
+					Send_TvEvents?.Invoke( SSTVEvents.ThreadDrawingException );
 				}
 
 				try {
@@ -722,7 +740,7 @@ namespace Play.SSTV {
 					if( rgErrors.IsUnhandled( oEx ) )
 						throw;
 
-					Send_TvEvents?.Invoke( ESstvProperty.ThreadDrawingException );
+					Send_TvEvents?.Invoke( SSTVEvents.ThreadDrawingException );
 				}
 			}
 		}
