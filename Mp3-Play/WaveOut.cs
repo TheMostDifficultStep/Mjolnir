@@ -251,7 +251,7 @@ namespace Play.Sound {
 										typeof( InvalidOperationException ) };
 					// If it's not something we can handle, just re-throw.
 					if( !rgErrors.Contains( oEx.GetType() ) ) {
-						throw oEx;
+						throw;
 					}
 					// BUG: Well, what I really need to do is report an error. I don't have a way to do that yet.
 					return( false );
