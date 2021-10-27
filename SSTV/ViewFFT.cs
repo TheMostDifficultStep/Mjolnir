@@ -156,7 +156,7 @@ namespace Play.SSTV {
 				return true;
 			}
 			if( sGuid == GlobalCommands.Stop ) {
-				_oDocSSTV.PlayStop();
+				_oDocSSTV.TransmitStop();
 				return true;
 			}
 

@@ -184,7 +184,7 @@ namespace Play.SSTV {
 				return true;
 			}
 			if( sGuid == GlobalCommands.Stop ) {
-				_oDocSSTV.PlayStop(); // Stop record or play.
+				_oDocSSTV.TransmitStop(); // Stop record or play.
 				return true;
 			}
 
@@ -322,7 +322,7 @@ namespace Play.SSTV {
 
             _oDocSSTV.PropertyChange             += ListenDoc_PropertyChange;
             _oDocSSTV.RecChooser.DirectoryChange += Chooser_OnDirectoryChange;
-            _oDocSSTV.ModeList.CheckedEvent      += ModeList_OnCheckedEvent;
+            _oDocSSTV.RxModeList.CheckedEvent      += ModeList_OnCheckedEvent;
 
 			// Of course we'll blow up the shell if try in the constructor...
 			Chooser_OnDirectoryChange( _oDocSSTV.RecChooser.CurrentDirectory );
@@ -399,7 +399,7 @@ namespace Play.SSTV {
 				}
 				if( sGuid.Equals( GlobalDecorations.Options ) ) {
 					// Need to hook up event to chatch mode change.
-					return new CheckList( oBaseSite, _oDocSSTV.ModeList );
+					return new CheckList( oBaseSite, _oDocSSTV.RxModeList );
 				}
 				if( sGuid.Equals( GlobalDecorations.Outline ) ) {
 					return new TextDirView( oBaseSite, _oDocSSTV );

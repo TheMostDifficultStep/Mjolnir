@@ -101,7 +101,8 @@ namespace Play.SSTV {
     public class TxProperties : DocProperties {
         public enum Names : int {
 			Mode,
-            Resolution,
+            Width,
+            Height,
             Progress,
             FileName
         }
@@ -118,10 +119,11 @@ namespace Play.SSTV {
                 Property_Values.LineAppend( string.Empty, fUndoable:false );
             }
 
-            LabelSet( Names.Mode,       "Mode" );
-            LabelSet( Names.Resolution, "Resolution" );
-            LabelSet( Names.Progress,   "Sent" );
-            LabelSet( Names.FileName,   "FileName" );
+            LabelSet( Names.Mode,     "Mode", new SKColor( red:0xff, green:0xbf, blue:0 ) );
+            LabelSet( Names.Width,    "Width" );
+            LabelSet( Names.Height,   "Height" );
+            LabelSet( Names.Progress, "Sent" );
+            LabelSet( Names.FileName, "FileName" );
 
             Clear();
 
@@ -145,10 +147,11 @@ namespace Play.SSTV {
         /// clear all values, call the base method.
         /// </summary>
         public override void Clear() {
-            ValueUpdate( Names.Mode,         "-", Broadcast:false ); 
-            ValueUpdate( Names.Resolution,   "-", Broadcast:false ); 
-            ValueUpdate( Names.Progress,     "-", Broadcast:false );
-            ValueUpdate( Names.FileName,     "-", Broadcast:true );
+            ValueUpdate( Names.Mode,     "-", Broadcast:false ); 
+            ValueUpdate( Names.Width,    "-", Broadcast:false ); 
+            ValueUpdate( Names.Height,   "-", Broadcast:false ); 
+            ValueUpdate( Names.Progress, "-", Broadcast:false );
+            ValueUpdate( Names.FileName, "-", Broadcast:true );
         }
     }
 
@@ -321,20 +324,21 @@ namespace Play.SSTV {
         public StdProperties Properties { get; }
         public FileChooser   RecChooser { get; } // Recorded wave files.
 
-        public Editor               PortTxList      { get; } 
-        public Editor               PortRxList      { get; }
-        public Editor               RxDirectory     { get; protected set; } // Files in the receive directory.
-        public Specification        RxSpec          { get; protected set; } = new Specification( 44100, 1, 0, 16 );
-        public ModeEditor  ModeList        { get; protected set; }
-        public ImageWalkerDir       TxImageList     { get; protected set; }
-        public SKBitmap             TxBitmap        => TxImageList.Bitmap;
-        public RxProperties         RxProperties    { get; }
-        public TxProperties         TxProperties    { get; }
+        public Editor              PortTxList    { get; } 
+        public Editor              PortRxList    { get; }
+        public Editor              RxDirectory   { get; } // Files in the receive directory.
+        public Specification       RxSpec        { get; protected set; } = new Specification( 44100, 1, 0, 16 ); // Syncronous rc test, tx image 
+        public ModeEditor          RxModeList    { get; }
+        public ModeEditor          TxModeList    { get; }
+        public ImageWalkerDir      TxImageList   { get; }
+        public RxProperties        RxProperties  { get; }
+        public TxProperties        TxProperties  { get; }
+        public SKBitmap            TxBitmap      => TxImageList.Bitmap;
 
         protected readonly ImageSoloDoc  _oDocSnip;   // Clip the image.
 
         protected Mpg123FFTSupport FileDecoder   { get; set; }
-        protected BufferSSTV       _oSSTVBuffer;
+        protected BufferSSTV       _oSSTVBuffer; // BUG: Can't find where initialized!!
         protected SSTVMOD          _oSSTVModulator;
         protected SSTVDEM          _oSSTVDeModulator; // Only used by test code.
 		protected IPgPlayer        _oPlayer;
@@ -367,7 +371,8 @@ namespace Play.SSTV {
             _oSiteBase  = oSite ?? throw new ArgumentNullException( "Site must not be null" );
             _oWorkPlace = ((IPgScheduler)Services).CreateWorkPlace() ?? throw new ApplicationException( "Couldn't create a worksite from scheduler.");
 
-            ModeList     = new ModeEditor    ( new DocSlot( this, "SSTV Tx Modes" ) );
+            RxModeList   = new ModeEditor    ( new DocSlot( this, "SSTV Rx Modes" ) );
+            TxModeList   = new ModeEditor    ( new DocSlot( this, "SSTV Tx Modes" ) );
             TxImageList  = new ImageWalkerDir( new DocSlot( this ) );
             _oDocSnip    = new ImageSoloDoc  ( new DocSlot( this ) );
             RxDirectory  = new Editor        ( new DocSlot( this ) );
@@ -448,10 +453,8 @@ namespace Play.SSTV {
         /// up the human readable names and maps to the associated mode.
         /// </summary>
         /// <param name="iterMode"></param>
-        public void LoadModulators( IEnumerator<SSTVMode> iterMode) {
-            ModeList.LineAppend( "Auto", fUndoable:false );
-
-            using BaseEditor.Manipulator oBulk = ModeList.CreateManipulator();
+        protected static void LoadModes( IEnumerator<SSTVMode> iterMode, Editor oEditor ) {
+            using BaseEditor.Manipulator oBulk = oEditor.CreateManipulator();
 
             while( iterMode.MoveNext() ) {
                 SSTVMode oMode    = iterMode.Current;
@@ -524,33 +527,6 @@ namespace Play.SSTV {
             return true;
         }
 
-        /// <summary>
-        /// Setup the output stream for transmit. This only needs to be set when the Spec 
-        /// (eg sample rate, or channels and etc) changes.
-        /// </summary>
-        public bool OutputStreamInit() {
-            try {
-                // Help the garbage collector telling the buffer to unlink the pump (via dispose)
-                if( _oSSTVBuffer != null )
-                    _oSSTVBuffer.Dispose();
-
-                _oSSTVBuffer    = new BufferSSTV( RxSpec );
-                _oSSTVModulator = new SSTVMOD( 0, RxSpec.Rate, _oSSTVBuffer );
-
-                //_oDataTester = new DataTester( SSTVBuffer );
-                //SSTVBuffer.Pump = _oDataTester.GetEnumerator();
-            } catch( Exception oEx ) {
-                Type[] rgErrors = { typeof( ArgumentOutOfRangeException ),
-                                    typeof( NullReferenceException ) };
-                if( rgErrors.IsUnhandled( oEx ) )
-                    throw;
-
-                return false;
-            }
-
-            return true;
-        }
-
 		public int MaxOutputDevice {
 			get {
 				IEnumerator<string> iterOutput = MMHelpers.GetOutputDevices();
@@ -569,16 +545,16 @@ namespace Play.SSTV {
         /// the 'Tx Viewers' use this event to update their aspect ratio for selection.
         /// </summary>
         /// <param name="oLine">The line in the modelist selected</param>
-        /// <seealso cref="ModeList"/>
+        /// <seealso cref="RxModeList"/>
         void Listen_TxModeChanged( Line oLine ) {
             TxProperties.ValueUpdate( TxProperties.Names.Mode, oLine.ToString(), Broadcast:true ); 
             Raise_PropertiesUpdated( SSTVEvents.SSTVMode );
         }
 
         public bool InitNew() {
-            if( !ModeList .InitNew() ) 
+            if( !RxModeList .InitNew() ) 
                 return false;
-            if( !OutputStreamInit() )  // Not really a cause for outright failure...
+            if( !TxModeList .InitNew() ) 
                 return false;
 			if( !_oDocSnip.InitNew() )
 				return false;
@@ -612,12 +588,14 @@ namespace Play.SSTV {
                 return false;
 			}
 
-            LoadModulators( SSTVDEM.EnumModes() );
+            RxModeList.LineAppend( "Auto", fUndoable:false );
+            LoadModes( SSTVDEM.EnumModes(), RxModeList );
+            LoadModes( SSTVDEM.EnumModes(), TxModeList );
 
             // Set this after TxImageList load since the CheckedLine call will 
             // call Listen_ModeChanged and that calls the properties update event.
-            ModeList   .CheckedEvent += Listen_TxModeChanged; // set checkmark AFTER load the modulators... ^_^;;
-            ModeList   .CheckedLine   = ModeList[0];
+            RxModeList   .CheckedEvent += Listen_TxModeChanged; // set checkmark AFTER load the modulators... ^_^;;
+            RxModeList   .CheckedLine   = RxModeList[0];
 
             TxImageList.ImageUpdated += Listen_ImageUpdated;
 
@@ -652,17 +630,14 @@ namespace Play.SSTV {
 			string strFileName = Path.GetFileName( TxImageList.CurrentFileName );
 
             if( TxImageList.Bitmap != null ) {
-                TxProperties.ValueUpdate( TxProperties.Names.Resolution, new SKSizeI( TxImageList.Bitmap.Width, TxImageList.Bitmap.Height ).ToString() );
+                TxProperties.ValueUpdate( TxProperties.Names.Width,  TxImageList.Bitmap.Width .ToString() );
+                TxProperties.ValueUpdate( TxProperties.Names.Height, TxImageList.Bitmap.Height.ToString() );
             } else {
-                TxProperties.ValueUpdate( TxProperties.Names.Resolution, "-" );
+                TxProperties.ValueUpdate( TxProperties.Names.Width,  "-" );
+                TxProperties.ValueUpdate( TxProperties.Names.Height, "-" );
             }
 
-            string strTxMode = "-";
-
-            if( TxMode != null )
-                strTxMode = TxMode.Name;
-
-            TxProperties.ValueUpdate( TxProperties.Names.Mode,     strTxMode ); // BUG: CHeck how this gets updated...
+            TxProperties.ValueUpdate( TxProperties.Names.Mode,     TxMode ); 
             TxProperties.ValueUpdate( TxProperties.Names.Progress, "0%" );
             TxProperties.ValueUpdate( TxProperties.Names.FileName, strFileName, Broadcast:true );
 		}
@@ -691,12 +666,12 @@ namespace Play.SSTV {
             } 
         }
 
-        public SSTVMode TxMode { 
+        public string TxMode { 
             get {
-                if( _oSSTVGenerator != null )
-                    return _oSSTVGenerator.Mode;
+                if( _oSSTVGenerator != null && _oSSTVGenerator.Mode != null )
+                    return _oSSTVGenerator.Mode.Name;
 
-                return null;
+                return "-";
             }
         }
 
@@ -707,7 +682,7 @@ namespace Play.SSTV {
         public SKPointI Resolution {
             get {
                 try {
-                    if( ModeList.CheckedLine.Extra is SSTVMode oMode )
+                    if( RxModeList.CheckedLine.Extra is SSTVMode oMode )
                         return new SKPointI( oMode.Resolution.Width, oMode.Resolution.Height );
                 } catch( NullReferenceException ) {
                     LogError( "Problem finding SSTVMode. Using default." );
@@ -818,7 +793,7 @@ namespace Play.SSTV {
                 yield return (int)uiWait;
             } while( _oSSTVBuffer.IsReading );
 
-            ModeList.HighLight = null;
+            TxModeList.HighLight = null;
             // Set upload time to "finished" maybe even date/time!
         }
 
@@ -826,7 +801,7 @@ namespace Play.SSTV {
         /// Begin transmitting the image.
         /// </summary>
         /// <param name="skSelect">clip region in source bitmap coordinates.</param>
-        public void TxBegin( SKRectI skSelect ) {
+        public void TransmitBegin( SKRectI skSelect ) {
             try {
                 if( _oWorkPlace.Status != WorkerStatus.FREE ) {
                     LogError( "Already sending, receiving or paused." );
@@ -838,26 +813,32 @@ namespace Play.SSTV {
                 }
                 if( PortTxList.CheckedLine == null )
                     PortTxList.CheckedLine = PortTxList[0];
-                if( ModeList.CheckedLine == null )
-                    ModeList.CheckedLine = ModeList[0];
 
-                if( ModeList.CheckedLine.Extra is SSTVMode oMode ) {
+                if( TxModeList.CheckedLine == null )
+                    TxModeList.CheckedLine = TxModeList[0];
+
+                if( TxModeList.CheckedLine.Extra is SSTVMode oMode ) {
 			        // The DocSnip object retains ownership of it's generated bitmap and frees it on next load.
-                    // TODO: I should check if the selection == the whole bitmap == required dimension
+                    // Note: I could check if the selection == the whole bitmap == required dimension
                     //       and I could skip the snip stage.
+                    Specification oTxSpec = new Specification( 11025, 1, 0, 16 );
 			        _oDocSnip.Load( TxBitmap, skSelect, oMode.Resolution );
+
+                    _oSSTVBuffer    = new BufferSSTV( oTxSpec );
+					_oSSTVModulator = new SSTVMOD( 0, oTxSpec.Rate, _oSSTVBuffer );
+
                     if( GeneratorSetup( oMode, _oDocSnip.Bitmap ) ) {
                         if( _oPlayer == null ) {
-                            _oPlayer = new WmmPlayer(RxSpec, PortTxList.CheckedLine.At );
+                            _oPlayer = new WmmPlayer(oTxSpec, PortTxList.CheckedLine.At );
                         } else {
                             if( _oPlayer.DeviceID != PortTxList.CheckedLine.At ) {
                                 _oPlayer.Dispose();
-                                _oPlayer = new WmmPlayer(RxSpec, PortTxList.CheckedLine.At ); 
+                                _oPlayer = new WmmPlayer(oTxSpec, PortTxList.CheckedLine.At ); 
                             }
                         }
 
                         _oWorkPlace.Queue( GetTxTask(), 0 );
-                        ModeList.HighLight = ModeList.CheckedLine;
+                        TxModeList.HighLight = TxModeList.CheckedLine;
                     }
                 }
                 //while ( _oDataTester.ConsumeData() < 350000 ) {
@@ -874,7 +855,7 @@ namespace Play.SSTV {
 
         protected void DownloadFinished( string strFileName ) {
             PropertyChange?.Invoke( SSTVEvents.DownLoadFinished );
-            ModeList.HighLight = null;
+            RxModeList.HighLight = null;
             SaveRxImage( strFileName ); // Race condition possible, when image reused.
         }
 
@@ -910,10 +891,10 @@ namespace Play.SSTV {
                                 SSTVMode oWorkerMode = oWorker.NextMode;
                                 if( oWorkerMode == null )
                                     break;
-                                foreach( Line oLine in ModeList ) {
+                                foreach( Line oLine in RxModeList ) {
                                     if( oLine.Extra is SSTVMode oLineMode ) {
                                         if( oLineMode.LegacyMode == oWorkerMode.LegacyMode ) {
-                                            ModeList.HighLight = oLine;
+                                            RxModeList.HighLight = oLine;
                                             RxProperties.ValueUpdate( RxProperties.Names.Mode,   oLineMode.Name );
                                             RxProperties.ValueUpdate( RxProperties.Names.Width,  oLineMode.Resolution.Width.ToString() );
                                             RxProperties.ValueUpdate( RxProperties.Names.Height, oLineMode.Resolution.Height.ToString(), Broadcast:true );
@@ -970,7 +951,7 @@ namespace Play.SSTV {
                 SSTVMode oModeFixed = null;
 
                 // Note that this ModeList is the TX mode list. I think I want an RX list.
-                if( ModeList.CheckedLine.Extra is SSTVMode oMode ) {
+                if( RxModeList.CheckedLine.Extra is SSTVMode oMode ) {
                     oModeFixed = oMode;
                 }
 
@@ -1042,7 +1023,7 @@ namespace Play.SSTV {
                     _oBGtoUIQueue.Clear();
 
                     // Note that this ModeList is the TX mode list. I think I want an RX list.
-                    if( ModeList.CheckedLine.Extra is SSTVMode oMode ) {
+                    if( RxModeList.CheckedLine.Extra is SSTVMode oMode ) {
                         _oUItoBGQueue.Enqueue( new TVMessage( TVMessage.Message.TryNewMode, oMode ) );
                     }
 
@@ -1166,10 +1147,10 @@ namespace Play.SSTV {
 			SyncImage   .Bitmap = _oRxSSTV._pBitmapD12;
 
 			Raise_PropertiesUpdated( SSTVEvents.RXImageNew );
-            foreach( Line oLine in ModeList ) {
+            foreach( Line oLine in RxModeList ) {
                 if( oLine.Extra is SSTVMode oLineMode ) {
                     if( oLineMode.LegacyMode == tvMode.LegacyMode )
-                        ModeList.HighLight = oLine;
+                        RxModeList.HighLight = oLine;
                 }
             }
         }
@@ -1185,7 +1166,7 @@ namespace Play.SSTV {
 
             switch( eProp ) {
                 case SSTVEvents.DownLoadFinished:
-                    ModeList.HighLight = null;
+                    RxModeList.HighLight = null;
                     SaveRxImage( string.Empty );
                     break;
             }
@@ -1245,10 +1226,10 @@ namespace Play.SSTV {
         /// <remarks>Set CSSTVDEM::m_fFreeRun = true</remarks>
         public void ReceiveTest2Begin( SKRectI skSelect ) {
             try {
-                if( ModeList.CheckedLine == null )
-                    ModeList.CheckedLine = ModeList[0];
+                if( RxModeList.CheckedLine == null )
+                    RxModeList.CheckedLine = RxModeList[0];
 
-                if( ModeList.CheckedLine.Extra is SSTVMode oMode ) {
+                if( RxModeList.CheckedLine.Extra is SSTVMode oMode ) {
                     if( _oWorkPlace.Status == WorkerStatus.FREE ) {
 			            _oDocSnip.Load( TxBitmap, skSelect, oMode.Resolution );
 					    if( GeneratorSetup( oMode, _oDocSnip.Bitmap ) ) {
@@ -1309,10 +1290,9 @@ namespace Play.SSTV {
 		/// <remarks>Use a low sample rate so it's easier to slog thru the data. 
 		///          Set CSSTVDEM::m_fFreeRun to false!!</remarks>
 		/// <seealso cref="InitNew" />
-		/// <seealso cref="OutputStreamInit"/>
         public void ReceiveTest1Begin( SKRectI skSelect ) {
             try {
-                if( ModeList.CheckedLine.Extra is SSTVMode oMode ) {
+                if( RxModeList.CheckedLine.Extra is SSTVMode oMode ) {
                     if( _oWorkPlace.Status == WorkerStatus.FREE ) {
 			            _oDocSnip.Load( TxBitmap, skSelect, oMode.Resolution );
 
@@ -1346,8 +1326,8 @@ namespace Play.SSTV {
 
 		public WorkerStatus PlayStatus => _oWorkPlace.Status;
 
-        public void PlayStop() {
-            ModeList.HighLight = null;
+        public void TransmitStop() {
+            TxModeList.HighLight = null;
 
             _oWorkPlace.Stop();
         }

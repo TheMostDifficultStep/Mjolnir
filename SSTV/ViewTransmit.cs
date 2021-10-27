@@ -197,11 +197,11 @@ namespace Play.SSTV {
 
 		public bool Execute(Guid sGuid) {
 			if( sGuid == GlobalCommands.Play ) {
-				_oDocSSTV.TxBegin( _oViewImage.Selection.SKRect );
+				_oDocSSTV.TransmitBegin( _oViewImage.Selection.SKRect );
 				return true;
 			}
 			if( sGuid == GlobalCommands.Stop ) {
-				_oDocSSTV.PlayStop();
+				_oDocSSTV.TransmitStop();
 				return true;
 			}
 
@@ -321,11 +321,10 @@ namespace Play.SSTV {
 
         public override bool Execute( Guid sGuid ) {
 			if( sGuid == GlobalCommands.Play ) {
-			    _oDocSSTV.TxBegin( this.Selection.SKRect );   // Normal tx button behavior.
-			  //_oDocSSTV.RecordBeginTest2( Selection.SKRect ); // Test reception button behavior.
+			    _oDocSSTV.TransmitBegin( this.Selection.SKRect ); 
 			}
 			if( sGuid == GlobalCommands.Stop ) {
-				_oDocSSTV.PlayStop();
+				_oDocSSTV.TransmitStop();
 			}
 
             return base.Execute( sGuid );
@@ -339,7 +338,7 @@ namespace Play.SSTV {
 				return new ImageViewIcons( oBaseSite, _oDocSSTV.TxImageList );
 			}
 			if( sGuid.Equals( GlobalDecorations.Options ) ) {
-				return new CheckList( oBaseSite, _oDocSSTV.ModeList );
+				return new CheckList( oBaseSite, _oDocSSTV.TxModeList );
 			}
             return base.Decorate( oBaseSite, sGuid );
         }
