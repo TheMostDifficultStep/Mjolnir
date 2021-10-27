@@ -161,7 +161,7 @@ namespace Play.SSTV
 
         public override string SuggestedFileName {
             get {
-                DateTime sNow = DateTime.Now;
+                DateTime sNow = DateTime.Now.ToUniversalTime();
                 StringBuilder sbName = new StringBuilder();
 
                 sbName.Append( sNow.Year  .ToString( "D4" ) );
@@ -172,7 +172,7 @@ namespace Play.SSTV
                 sbName.Append( '_' );
                 sbName.Append( sNow.Hour  .ToString( "D2" ) );
                 sbName.Append( sNow.Minute.ToString( "D2" ) );
-                sbName.Append( 'p' );
+                sbName.Append( 'z' );
                
                 return sbName.ToString();
             }
