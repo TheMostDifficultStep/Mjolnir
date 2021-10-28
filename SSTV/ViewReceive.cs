@@ -322,7 +322,7 @@ namespace Play.SSTV {
 
             _oDocSSTV.PropertyChange             += ListenDoc_PropertyChange;
             _oDocSSTV.RecChooser.DirectoryChange += Chooser_OnDirectoryChange;
-            _oDocSSTV.RxModeList.CheckedEvent      += ModeList_OnCheckedEvent;
+            _oDocSSTV.RxModeList.CheckedEvent    += ModeList_OnCheckedEvent;
 
 			// Of course we'll blow up the shell if try in the constructor...
 			Chooser_OnDirectoryChange( _oDocSSTV.RecChooser.CurrentDirectory );

@@ -382,7 +382,7 @@ namespace Play.SSTV {
 										   SKColorType.Rgb888x, 
 										   SKAlphaType.Opaque );
 
-				Send_TvEvents?.Invoke(SSTVEvents.RXImageNew );
+				Send_TvEvents?.Invoke( SSTVEvents.RXImageNew );
 			}
 
 			StartTime = DateTime.Now;

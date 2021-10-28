@@ -206,7 +206,7 @@ namespace Play.SSTV
         /// thread envelope.
         /// </summary>
         /// <seealso cref="Listen_NextRxMode"/>
-        private void OnSSTVDrawEvent( SSTVEvents eProp ) {
+        private void OnTvEvents_SSTVDraw( SSTVEvents eProp ) {
             _oMsgQueue.Enqueue( eProp );
         }
 
@@ -226,7 +226,7 @@ namespace Play.SSTV
 
                 // Set the callbacks first since Start() will try to use the callback.
                 SSTVDeModulator.Send_NextMode += new NextMode( SSTVDraw.ModeTransition );
-                SSTVDraw       .Send_TvEvents += OnSSTVDrawEvent;
+                SSTVDraw       .Send_TvEvents += OnTvEvents_SSTVDraw;
             } catch( Exception oEx ) {
                 if( _rgInitErrors.IsUnhandled( oEx ) )
                     throw;
