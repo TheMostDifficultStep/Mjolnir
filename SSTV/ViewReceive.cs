@@ -469,7 +469,7 @@ namespace Play.SSTV {
 						if( !string.IsNullOrEmpty( strName ) ) {
 							_oDocSSTV.RecChooser.LoadAgain( Path.Combine( _oDocSSTV.RecChooser.CurrentDirectory, strName ) );
 							// BUG: Need to make the RxProp the one that gets changed and we catch an event to LoadAgain();
-							_oDocSSTV.RxProperties.ValueUpdate( RxProperties.Names.SaveHere, _oDocSSTV.RecChooser.CurrentDirectory, Broadcast:true );
+							_oDocSSTV.RxProperties.ValueUpdate( RxProperties.Names.SaveDir, _oDocSSTV.RecChooser.CurrentDirectory, Broadcast:true );
 						}
 					} else {
 						_oDocSSTV.RecChooser.FileList.CheckedLine = oLine;

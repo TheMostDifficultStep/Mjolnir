@@ -28,7 +28,7 @@ namespace Play.SSTV {
             Width,
             Height,
             Progress,
-            SaveHere
+            SaveDir
         }
 
         public RxProperties( IPgBaseSite oSiteBase ) : base( oSiteBase ) {
@@ -47,7 +47,7 @@ namespace Play.SSTV {
             LabelSet( Names.Width,    "Width" );
             LabelSet( Names.Height,   "Height" );
             LabelSet( Names.Progress, "Received" );
-            LabelSet( Names.SaveHere, "Save At" );
+            LabelSet( Names.SaveDir,  "Save At" );
 
             Clear();
 
@@ -81,13 +81,13 @@ namespace Play.SSTV {
         /// </summary>
         public override void Clear() {
             string strSaveDir = Environment.GetFolderPath( Environment.SpecialFolder.MyPictures );
-            string strEmpty   = "_";
+            string strEmpty   = "-";
 
             ValueUpdate( Names.Mode,     strEmpty,   Broadcast:false ); 
             ValueUpdate( Names.Width,    strEmpty,   Broadcast:false );  
             ValueUpdate( Names.Height,   strEmpty,   Broadcast:false ); 
             ValueUpdate( Names.Progress, strEmpty,   Broadcast:false );
-            ValueUpdate( Names.SaveHere, strSaveDir, Broadcast:true );
+            ValueUpdate( Names.SaveDir,  strSaveDir, Broadcast:true );
         }
     }
 
@@ -158,7 +158,6 @@ namespace Play.SSTV {
 			TxPort,
             RxPort,
             Quality,
-            SaveDir
         }
 
         public StdProperties( IPgBaseSite oSiteBase ) : base( oSiteBase ) {
@@ -176,7 +175,6 @@ namespace Play.SSTV {
             LabelSet( Names.TxPort,        "Transmit to Device" );
             LabelSet( Names.RxPort,        "Receive from Device" );
             LabelSet( Names.Quality,       "Image Save Quality" );
-            LabelSet( Names.SaveDir,       "Save Directory" );
 
             InitValues();
 
@@ -187,10 +185,7 @@ namespace Play.SSTV {
         /// These are our default values. We'll look for them from a save file in the future.
         /// </summary>
         public void InitValues() {
-            string strMyPicDir = Environment.GetFolderPath( Environment.SpecialFolder.MyPictures );
-
-            ValueUpdate( StdProperties.Names.Quality,        "80", false );
-            ValueUpdate( StdProperties.Names.SaveDir, strMyPicDir, false );
+            ValueUpdate( StdProperties.Names.Quality, "80", true );
         }
 
         public void LabelSet( Names eName, string strLabel, SKColor? skBgColor = null ) {
@@ -625,10 +620,10 @@ namespace Play.SSTV {
         protected virtual void SettingsInit() {
             InitDeviceList();
 
-            string strMyDocs = Environment.GetFolderPath( Environment.SpecialFolder.MyDocuments );
+            string strMyDocs = Environment.GetFolderPath( Environment.SpecialFolder.MyPictures );
 
             // In the future, setting this value will send an event that will get forwarded to the chooser.
-            RxProperties.ValueUpdate( RxProperties.Names.SaveHere, strMyDocs );
+            RxProperties.ValueUpdate( RxProperties.Names.SaveDir, strMyDocs );
 
             RecChooser.LoadURL( strMyDocs );
         }
@@ -1081,7 +1076,7 @@ namespace Play.SSTV {
                 // Figure out path and name of the file.
                 string strSaveDir = Path.GetDirectoryName( strFileName );
                 if( string.IsNullOrEmpty( strSaveDir ) ) {
-			        strSaveDir = Properties[StdProperties.Names.SaveDir];
+			        strSaveDir = RxProperties[RxProperties.Names.SaveDir];
                 }
                 // If Dir still null we should go straight to env variable.
                 if( string.IsNullOrEmpty( strFileName ) ) {
