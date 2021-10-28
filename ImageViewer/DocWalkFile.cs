@@ -260,8 +260,7 @@ namespace Play.ImageViewer {
 	{
         protected readonly IPgBaseSite _oSiteBase;
         protected          Bitmap      _oBitmapUnknown; // An error bitmap.
-        protected          SKBitmap    _oSKBmpError;  // New error bitmap. >_<;;
-
+        protected          SKBitmap    _oSKBmpError;    // New error bitmap. >_<;;
 		protected readonly string      _strUnknownImage = @"ImageViewer.Content.icons8-error-48.png";
 
         public static readonly Type[] _rgBmpLoadErrs = { 
@@ -283,15 +282,22 @@ namespace Play.ImageViewer {
 
 		public IPgParent Parentage   => _oSiteBase.Host;
 		public IPgParent Services    => Parentage.Services;
+
+        /// <summary>
+        /// Set the bitmap to display. NOTE: Previous bitmap will be Disposed!!
+        /// (If it exists and is not the same bitmap as present)
+        /// </summary>
 		public SKBitmap  Bitmap      { 
             get { return _skBitmap; }
             set { 
+                if( value != _skBitmap ) {
                     if( _skBitmap != null ) {
                         _skBitmap.Dispose();
                     }
                     _skBitmap = value;
-                    Raise_ImageUpdated(); // Use the one that can be overloaded.
-		        }
+                    Raise_ImageUpdated(); 
+                }
+		    }
         }
         
         public Bitmap    ErrorBitmap => _oBitmapUnknown;

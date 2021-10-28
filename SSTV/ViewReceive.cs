@@ -333,9 +333,7 @@ namespace Play.SSTV {
         }
 
         private void ModeList_OnCheckedEvent( Line oLineChecked ) {
-			if( oLineChecked.Extra is SSTVMode oMode ) {
-				_oDocSSTV.RequestModeChange( oMode );
-			}
+			_oDocSSTV.RequestModeChange( oLineChecked.Extra as SSTVMode );
         }
 
         private void Chooser_OnDirectoryChange( string strDirectory ) {

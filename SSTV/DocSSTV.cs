@@ -877,8 +877,10 @@ namespace Play.SSTV {
                            _oThread = null;
                             yield break;
                         case SSTVEvents.RXImageNew:
+                            // Previous image is Disposed!!
 			                ReceiveImage.Bitmap = oWorker.SSTVDraw._pBitmapRX;
-			                //SyncImage   .Bitmap = oWorker.SSTVDraw._pBitmapD12;
+                            // Except this one since same image it is spared.
+			                SyncImage   .Bitmap = oWorker.SSTVDraw._pBitmapD12;
 
                             PropertyChange?.Invoke( SSTVEvents.RXImageNew );
                             break;
@@ -1016,7 +1018,7 @@ namespace Play.SSTV {
 
                     // Note that this ModeList is the TX mode list. I think I want an RX list.
                     if( RxModeList.CheckedLine.Extra is SSTVMode oMode ) {
-                        _rgUItoBGQueue.Enqueue( new TVMessage( TVMessage.Message.TryNewMode, oMode ) );
+                        _rgUItoBGQueue.Enqueue( new TVMessage( TVMessage.Message.TryNewMode, RxModeList.CheckedLine.Extra ) );
                     }
 
                     ThreadWorker2 oWorker        = new ThreadWorker2( _oWaveIn.WaveFormat, _rgBGtoUIQueue, _rgDataQueue, _rgUItoBGQueue );

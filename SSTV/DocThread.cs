@@ -210,6 +210,23 @@ namespace Play.SSTV
             _oMsgQueue.Enqueue( eProp );
         }
 
+        protected void CheckMessages() {
+            while( _oOutQueue.TryDequeue( out TVMessage oMsg ) ) {
+                switch( oMsg._eMsg ) {
+                    case TVMessage.Message.ExitWorkThread:
+                        _oMsgQueue.Enqueue( SSTVEvents.ThreadExit );
+                        return;
+                    case TVMessage.Message.TryNewMode:
+                        if( oMsg._oParam is SSTVMode oMode ) {
+                            SSTVDeModulator.Start( oMode );
+                        } else {
+                            SSTVDraw.Stop();
+                        }
+                        break;
+                }
+            }
+        }
+
         /// <summary>
         /// This is the entry point for our new thread. We load and use the decoder and 
         /// converter from this thread. The UI thread looks at the RX and 12 bitmaps
@@ -237,23 +254,8 @@ namespace Play.SSTV
 
             do {
                 try {
-                    if( _oOutQueue.TryDequeue( out TVMessage oMsg ) ) {
-                        switch( oMsg._eMsg ) {
-                            case TVMessage.Message.ExitWorkThread:
-                                _oMsgQueue.Enqueue( SSTVEvents.ThreadExit );
-                                return;
-                            case TVMessage.Message.TryNewMode:
-                                if( oMsg._oParam is SSTVMode oMode ) {
-                                    SSTVDeModulator.Start( oMode );
-                                } else {
-                                    if( oMsg._oParam == null )
-                                        SSTVDeModulator.Reset();
-                                    else
-                                        _oMsgQueue.Enqueue( SSTVEvents.ThreadReadException );
-                                }
-                                break;
-                        }
-                    }
+                    CheckMessages();
+
                     foreach( double dblValue in this )
                         SSTVDeModulator.Do( dblValue );
 
