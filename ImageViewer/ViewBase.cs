@@ -95,6 +95,12 @@ namespace Play.ImageViewer {
             Array.Sort<Keys>( _rgHandledKeys );
         }
 
+		/// <summary>
+		/// This does not invalidate the windows. you must do that
+		/// after calling this function. Id like this to be the case
+		/// for everything, but icons don't need boarders so I
+		/// can't have this on always.
+		/// </summary>
 		public void SetBorderOn() {
 			_sBorder = _sGrabBorder;
 		}
@@ -253,8 +259,6 @@ namespace Play.ImageViewer {
         protected readonly SmartRect _rctWorldPort   = new SmartRect( LOCUS.UPPERLEFT, 0, 0, 0, 0 );
 
 		public ImageSoloDoc Document { get; }
-	  //public IPgParent    Parentage => _oViewSite.Host;
-	  //public IPgParent    Services  => Document.Parentage.Services;
 
 		public ImageViewSingle( IPgViewSite oSiteBase, ImageSoloDoc oDocSolo ) : base( oSiteBase ) {
 			Document = oDocSolo ?? throw new ArgumentNullException( "Document must not be null." );

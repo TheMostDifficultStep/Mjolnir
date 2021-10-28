@@ -96,6 +96,7 @@ namespace Play.SSTV {
 
 		  //_oViewRx   = new ImageViewSingle( new SSTVWinSlot( this ), _oDocSSTV.ReceiveImage );
 			_oViewSync = new ImageViewSingle( new SSTVWinSlot( this ), _oDocSSTV.SyncImage );
+			_oViewSync.SetBorderOn();
 		}
 
 		protected override void Dispose( bool disposing ) {
@@ -306,6 +307,8 @@ namespace Play.SSTV {
 			_oDocSSTV  = oDocSSTV  ?? throw new ArgumentNullException( "DocSSTV must not be null." );
 
 			Iconic = ImageResourceHelper.GetImageResource( Assembly.GetExecutingAssembly(), _strIcon );
+
+			SetBorderOn();
 		}
 
         protected override void Dispose( bool fDisposing ) {
