@@ -313,8 +313,8 @@ namespace Play.SSTV {
 
         protected override void Dispose( bool fDisposing ) {
 			if( fDisposing && !_fDisposed ) {
-				_oDocSSTV.PropertyChange          -= ListenDoc_PropertyChange;
-				_oDocSSTV.RecChooser.DirectoryChange -= Chooser_OnDirectoryChange;
+				_oDocSSTV.PropertyChange          -= OnPropertyChange_DocSSTV;
+				_oDocSSTV.RecChooser.DirectoryChange -= OnDirectoryChange_Chooser;
 			}
 			base.Dispose( fDisposing );
         }
@@ -323,20 +323,20 @@ namespace Play.SSTV {
             if( !base.InitNew() )
 				return false;
 
-            _oDocSSTV.PropertyChange             += ListenDoc_PropertyChange;
-            _oDocSSTV.RecChooser.DirectoryChange += Chooser_OnDirectoryChange;
-            _oDocSSTV.RxModeList.CheckedEvent    += ModeList_OnCheckedEvent;
+            _oDocSSTV.PropertyChange             += OnPropertyChange_DocSSTV;
+            _oDocSSTV.RecChooser.DirectoryChange += OnDirectoryChange_Chooser;
+            _oDocSSTV.RxModeList.CheckedEvent    += OnCheckedEvent_ModeList;
 
 			// Of course we'll blow up the shell if try in the constructor...
-			Chooser_OnDirectoryChange( _oDocSSTV.RecChooser.CurrentDirectory );
+			OnDirectoryChange_Chooser( _oDocSSTV.RecChooser.CurrentDirectory );
 			return true;
         }
 
-        private void ModeList_OnCheckedEvent( Line oLineChecked ) {
+        private void OnCheckedEvent_ModeList( Line oLineChecked ) {
 			_oDocSSTV.RequestModeChange( oLineChecked.Extra as SSTVMode );
         }
 
-        private void Chooser_OnDirectoryChange( string strDirectory ) {
+        private void OnDirectoryChange_Chooser( string strDirectory ) {
 			_strDirectory = " : " + strDirectory;
 			_oSiteView.Notify( ShellNotify.BannerChanged );
         }
@@ -347,7 +347,7 @@ namespace Play.SSTV {
         /// <remarks>Right now just update all, but we can just update the
         /// specific property in the future. You know, a color coded property, 
         /// light red or yellow on change would be a cool feature.</remarks>
-        private void ListenDoc_PropertyChange( SSTVEvents eProp ) {
+        private void OnPropertyChange_DocSSTV( SSTVEvents eProp ) {
 			switch( eProp ) {
 				case SSTVEvents.DownLoadFinished:
 					Refresh();
