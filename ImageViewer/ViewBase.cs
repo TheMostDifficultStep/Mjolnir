@@ -304,7 +304,13 @@ namespace Play.ImageViewer {
 				} else {
 					_rctWorldPort.SetRect( LOCUS.UPPERLEFT, 0, 0, 0, 0 );
 				}
-            } catch( NullReferenceException ) {
+            } catch( Exception oEx ) {
+				Type[] rgErrors = { typeof( AccessViolationException ),
+									typeof( NullReferenceException ) };
+				if( rgErrors.IsUnhandled( oEx ) )
+					throw;
+
+				LogError( "bitmap", "Serious memory error in image." );
             }
             OnSizeChanged( null );
 

@@ -878,7 +878,7 @@ namespace Play.SSTV {
                             yield break;
                         case SSTVEvents.RXImageNew:
 			                ReceiveImage.Bitmap = oWorker.SSTVDraw._pBitmapRX;
-			                SyncImage   .Bitmap = oWorker.SSTVDraw._pBitmapD12;
+			                //SyncImage   .Bitmap = oWorker.SSTVDraw._pBitmapD12;
 
                             PropertyChange?.Invoke( SSTVEvents.RXImageNew );
                             break;

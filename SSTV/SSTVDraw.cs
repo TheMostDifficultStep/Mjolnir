@@ -578,6 +578,7 @@ namespace Play.SSTV {
 		/// we can pick up corrections to the width. That way we can calculate the
 		/// intercept.</remarks>
 		public double ProcessSync( double dblBase ) {
+			try {
 			int    iReadBase   = (int)dblBase;
 			int    iScanWidth  = (int)ScanWidthInSamples; // Make sure this matches our controlling loop!!
 			double dbD12XScale = _pBitmapD12.Width / ScanWidthInSamples;
@@ -593,7 +594,6 @@ namespace Play.SSTV {
 			if( _dp.BoundsCompare( iReadBase ) != 0 )
 				return( dblBase + ScanWidthInSamples ); // Just skip it.
 
-			try {
 				for( int i = 0; i < iScanWidth; i++ ) { 
 					int   idx = iReadBase + i;
 					short d12 = _dp.SyncGet( idx );
@@ -606,7 +606,8 @@ namespace Play.SSTV {
 						if( fHit ) {
 							_skD12Canvas.DrawLine( new SKPointI( x - iSyncWidth, iScanLine ), new SKPointI( x, iScanLine ), _skPaint);
 						} else {
-							_pBitmapD12.SetPixel( x, iScanLine, new SKColor( (byte)d, (byte)d, (byte)d ) );
+							_skD12Canvas.DrawPoint( x, iScanLine, new SKColor( (byte)d, (byte)d, (byte)d ) );
+							//_pBitmapD12.SetPixel( x, iScanLine, new SKColor( (byte)d, (byte)d, (byte)d ) );
 						}
 					}
 				}
