@@ -31,7 +31,7 @@ namespace Play.SSTV {
 
 		protected readonly IPgViewSite    _oSiteView;
 		protected readonly DocSSTV        _oDocSSTV;	 // Main document.
-		protected readonly ImageViewSolo  _oViewImage;   // Show the currently selected image.
+		protected readonly ImageWindowSolo  _oViewImage;   // Show the currently selected image.
 		protected readonly ImageViewIcons _oViewChoices; // Show the image choices.
 
 		protected LayoutStack _oLayout = new LayoutStackVertical( 5 );
@@ -88,14 +88,14 @@ namespace Play.SSTV {
 
 			Iconic = ImageResourceHelper.GetImageResource( Assembly.GetExecutingAssembly(), _strIcon );
 
-			_oViewImage     = new ImageViewSolo ( new SSTVWinSlot( this ), _oDocSSTV.TxImageList );
+			_oViewImage     = new ImageWindowSolo ( new SSTVWinSlot( this ), _oDocSSTV.TxImageList );
 			_oViewChoices   = new ImageViewIcons( new SSTVWinSlot( this ), _oDocSSTV.TxImageList );
 		}
 
 		/// <summary>
 		/// Used to use this for displaying the image at the top. 
 		/// </summary>
-		protected class ImageViewTx : ImageViewSolo {
+		protected class ImageViewTx : ImageWindowSolo {
 			public ImageViewTx( IPgViewSite oBaseSite, ImageWalkerDoc oDoc ) : base( oBaseSite, oDoc ) {
 			}
 
@@ -272,7 +272,7 @@ namespace Play.SSTV {
 	/// This is a new view so we can select a transmit image. Basically a slightly motified directory viewer.
 	/// </summary>
 	public class ViewSimpleTxImage: 
-		ImageViewSolo 
+		ImageWindowSolo 
 	{
 		public static Guid GUID { get; } = new Guid( "{5BC25D2B-3F4E-4339-935C-CFADC2650B35}" );
 

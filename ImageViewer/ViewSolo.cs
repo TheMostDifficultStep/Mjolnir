@@ -18,7 +18,7 @@ namespace Play.ImageViewer {
 		Navigate
 	}
 
-    public class ImageViewSolo : ImageViewSingle,
+    public class ImageWindowSolo : ImageViewSingle,
         IPgLoad<XmlElement>,
         IPgSave<XmlDocumentFragment>,
         IPgCommandView,
@@ -29,9 +29,9 @@ namespace Play.ImageViewer {
 		protected class DocSlot :
 			IPgBaseSite
 		{
-			protected readonly ImageViewSolo _oHost;
+			protected readonly ImageWindowSolo _oHost;
 
-			public DocSlot( ImageViewSolo oHost ) {
+			public DocSlot( ImageWindowSolo oHost ) {
 				_oHost = oHost ?? throw new ArgumentNullException();
 			}
 
@@ -46,7 +46,7 @@ namespace Play.ImageViewer {
 		} // End class
 
 		protected class ViewSlot : DocSlot, IPgViewSite {
-			public ViewSlot( ImageViewSolo oHost ) : base( oHost ) {
+			public ViewSlot( ImageWindowSolo oHost ) : base( oHost ) {
 			}
 
 			public IPgViewNotify EventChain => _oHost._oViewSite.EventChain;
@@ -68,7 +68,7 @@ namespace Play.ImageViewer {
 		private SKPointI _pntAspect = new SKPointI( 320, 240 );
 
 		/// <summary>
-		/// Aspect ratio needed for selection when enforced.
+		/// Set and get Aspect ratio needed for selection when enforced.
 		/// </summary>
 		public SKPointI Aspect { 
 			get { return _pntAspect; } 
@@ -125,7 +125,7 @@ namespace Play.ImageViewer {
 
 		protected SmartGrabDrag _oSmartDrag = null; // See the base class for the SmartGrab.
 
-        public ImageViewSolo( IPgViewSite oBaseSite, ImageWalkerDoc oDoc ) : base( oBaseSite, oDoc ) {
+        public ImageWindowSolo( IPgViewSite oBaseSite, ImageWalkerDoc oDoc ) : base( oBaseSite, oDoc ) {
 			_oDocWalker = oDoc ?? throw new ArgumentNullException( "Document must not be null." );
 			_oSiteShell = oBaseSite as IPgShellSite ?? throw new ArgumentException( "Site must support IPgShellSite" );
 
@@ -149,6 +149,8 @@ namespace Play.ImageViewer {
         public override bool InitNew() {
 			if( !base.InitNew() )
 				return false;
+
+			SetBorderOn(); // Want room for grab handles at all times.
 
 			ToolSelect = _rgTools.Count - 1;
 
@@ -483,7 +485,7 @@ namespace Play.ImageViewer {
 
 		protected void AlignBmpSelectionToViewSelection() {
 			SKPoint pntAspect = new SKPoint( Document.Bitmap.Width  / (float)_rctViewPort.Width,
-											    Document.Bitmap.Height / (float)_rctViewPort.Height );
+											 Document.Bitmap.Height / (float)_rctViewPort.Height );
 
 			Selection.SetPoint( SET.STRETCH, LOCUS.UPPERLEFT, 
 										(int)((_rcSelectionView.Left - _rctViewPort.Left ) * pntAspect.X ),
@@ -640,7 +642,7 @@ namespace Play.ImageViewer {
 				// BUG: need to send the shell an event.
 
 				_rcSelectionView.Show = SHOWSTATE.Focused;
-				_whBorder             = new Size( 14, 14 );
+			    _sBorder              = _sGrabBorder;  // Just in case not enough room.
 
 				Selection.SetRect( LOCUS.UPPERLEFT ,0, 0, Document.Bitmap.Width, Document.Bitmap.Height );
 

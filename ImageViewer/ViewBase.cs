@@ -71,7 +71,11 @@ namespace Play.ImageViewer {
         protected readonly IPgViewSite    _oViewSite;
         protected readonly IPgViewNotify  _oViewNotify;
 		protected readonly IPgStandardUI2 _oStdUI;
-		protected          Size           _whBorder = new Size( 0, 0 ); // 7 px all the way around X 2.
+
+		// If the border is zero at first we used to bump it up for select all.
+		// But now it seems I like it always on.
+		protected                 Size _sBorder     = new Size(  0,  0 ); 
+		protected readonly static Size _sGrabBorder = new Size( 14, 14 ); // 7 px all the way around X 2. match grab handles.
 
         readonly static Keys[] _rgHandledKeys = { Keys.PageDown, Keys.PageUp, Keys.Down,
                                                   Keys.Up, Keys.Right, Keys.Left, Keys.Back,
@@ -90,6 +94,10 @@ namespace Play.ImageViewer {
 
             Array.Sort<Keys>( _rgHandledKeys );
         }
+
+		public void SetBorderOn() {
+			_sBorder = _sGrabBorder;
+		}
 
         protected override bool IsInputKey(Keys keyData) {
             int iIndex = Array.BinarySearch<Keys>( _rgHandledKeys, keyData );
@@ -152,7 +160,7 @@ namespace Play.ImageViewer {
         protected virtual void ViewPortSizeMax( SmartRect rctBitmap, SmartRect rctViewPort ) 
         {
             // If we don't have a bitmap we can't do much about setting our viewport.
-			Size  whWinSize      = new Size( this.Width - _whBorder.Width, this.Height - _whBorder.Height );
+			Size  whWinSize      = new Size( this.Width - _sBorder.Width, this.Height - _sBorder.Height );
             float flImageAspect  = rctBitmap.Width / (float)rctBitmap.Height;
             float flWindowAspect = whWinSize.Width / (float)whWinSize.Height;
 
@@ -161,23 +169,23 @@ namespace Play.ImageViewer {
 
 			if ( flWindowAspect > flImageAspect ) {
                 // Window is wide and squat compared to bitmap.
-                if( pntBmpSize.Height > whWinSize.Height ) {
+                //if( pntBmpSize.Height > whWinSize.Height ) {
                     // image takes up entire height.
                     pntBmpSize.Height = whWinSize.Height;
                     pntBmpSize.Width  = (int)(whWinSize.Height * flImageAspect);
-                }
+                //}
             } else {
                 // Window is tall and narrow compared to bitmap.
-                if( pntBmpSize.Width > whWinSize.Width ) {
+                //if( pntBmpSize.Width > whWinSize.Width ) {
                     // image takes up entire width.
                     pntBmpSize.Width  = whWinSize.Width;
                     pntBmpSize.Height = (int)(whWinSize.Width / flImageAspect);
-                }
+                //}
             }
 
 			Point pntUpperLeft = new Point {
-				X = ((whWinSize.Width  - pntBmpSize.Width  + _whBorder.Width  ) / 2 ),
-				Y = ((whWinSize.Height - pntBmpSize.Height + _whBorder.Height ) / 2 )
+				X = ((whWinSize.Width  - pntBmpSize.Width  + _sBorder.Width  ) / 2 ),
+				Y = ((whWinSize.Height - pntBmpSize.Height + _sBorder.Height ) / 2 )
 			};
 
 			rctViewPort.SetRect( LOCUS.UPPERLEFT, pntUpperLeft.X, pntUpperLeft.Y, pntBmpSize.Width, pntBmpSize.Height );

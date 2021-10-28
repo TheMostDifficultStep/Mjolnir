@@ -448,7 +448,8 @@ namespace Play.Sound {
 		}
 
 		/// <summary>
-		/// Reads the channel specified by the constructor of this object. 
+		/// Reads the channel specified by the constructor of this object. Handy when
+		/// the data just comes from some random buffer.
 		/// </summary>
 		/// <param name="rgSource">Array of data in bytes</param>
 		/// <param name="iSrcLen">Length of data to read.</param>
