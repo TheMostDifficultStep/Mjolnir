@@ -28,8 +28,7 @@ namespace Play.SSTV {
             Width,
             Height,
             Progress,
-            SaveWData,
-            LoadFHere
+            SaveHere
         }
 
         public RxProperties( IPgBaseSite oSiteBase ) : base( oSiteBase ) {
@@ -44,12 +43,11 @@ namespace Play.SSTV {
                 Property_Values.LineAppend( string.Empty, fUndoable:false );
             }
 
-            LabelSet( Names.Mode,       "Mode", new SKColor( red:0xff, green:0xbf, blue:0 ) );
-            LabelSet( Names.Width,      "Width" );
-            LabelSet( Names.Height,     "Height" );
-            LabelSet( Names.Progress,   "Received" );
-            LabelSet( Names.SaveWData,  "Save local" );
-            LabelSet( Names.LoadFHere,  "Locality" );
+            LabelSet( Names.Mode,     "Mode", new SKColor( red:0xff, green:0xbf, blue:0 ) );
+            LabelSet( Names.Width,    "Width" );
+            LabelSet( Names.Height,   "Height" );
+            LabelSet( Names.Progress, "Received" );
+            LabelSet( Names.SaveHere, "Save At" );
 
             Clear();
 
@@ -82,14 +80,14 @@ namespace Play.SSTV {
         /// clear all values, call the base method.
         /// </summary>
         public override void Clear() {
-            string strMyDocDir = Environment.GetFolderPath( Environment.SpecialFolder.MyDocuments );
+            string strSaveDir = Environment.GetFolderPath( Environment.SpecialFolder.MyPictures );
+            string strEmpty   = "_";
 
-            ValueUpdate( Names.Mode,       "-"    ,     Broadcast:false ); 
-            ValueUpdate( Names.Width,      "-"    ,     Broadcast:false );  
-            ValueUpdate( Names.Height,     "-"    ,     Broadcast:false ); 
-            ValueUpdate( Names.Progress,   "-"    ,     Broadcast:false );
-            ValueUpdate( Names.LoadFHere,  strMyDocDir, Broadcast:false );
-            ValueUpdate( Names.SaveWData,  "True" ,     Broadcast:true  ); 
+            ValueUpdate( Names.Mode,     strEmpty,   Broadcast:false ); 
+            ValueUpdate( Names.Width,    strEmpty,   Broadcast:false );  
+            ValueUpdate( Names.Height,   strEmpty,   Broadcast:false ); 
+            ValueUpdate( Names.Progress, strEmpty,   Broadcast:false );
+            ValueUpdate( Names.SaveHere, strSaveDir, Broadcast:true );
         }
     }
 
@@ -453,13 +451,22 @@ namespace Play.SSTV {
         /// up the human readable names and maps to the associated mode.
         /// </summary>
         /// <param name="iterMode"></param>
-        protected static void LoadModes( IEnumerator<SSTVMode> iterMode, Editor oEditor ) {
+        protected static void LoadModes( IEnumerator<SSTVMode> iterMode, Editor oEditor, bool fAddResolution=true) {
             using BaseEditor.Manipulator oBulk = oEditor.CreateManipulator();
+            StringBuilder sbValue = new();
 
             while( iterMode.MoveNext() ) {
-                SSTVMode oMode    = iterMode.Current;
-                string   strValue = oMode.Name + " : " + oMode.Resolution.Width.ToString() + " x " + oMode.Resolution.Height.ToString();
-                Line     oLine    = oBulk.LineAppendNoUndo( strValue );
+                SSTVMode oMode = iterMode.Current;
+
+                sbValue.Clear();
+                sbValue.Append( oMode.Name );
+                if( fAddResolution ) {
+                    sbValue.Append( " : " );
+                    sbValue.Append( oMode.Resolution.Width.ToString() );
+                    sbValue.Append( " x " );
+                    sbValue.Append( oMode.Resolution.Height.ToString() );
+                }
+                Line oLine = oBulk.LineAppendNoUndo( sbValue.ToString() );
 
                 oLine.Extra = oMode;
             }
@@ -589,8 +596,8 @@ namespace Play.SSTV {
 			}
 
             RxModeList.LineAppend( "Auto", fUndoable:false );
-            LoadModes( SSTVDEM.EnumModes(), RxModeList );
-            LoadModes( SSTVDEM.EnumModes(), TxModeList );
+            LoadModes( SSTVDEM.EnumModes(), RxModeList, fAddResolution:false );
+            LoadModes( SSTVDEM.EnumModes(), TxModeList, fAddResolution:true  );
 
             // Set this after TxImageList load since the CheckedLine call will 
             // call Listen_ModeChanged and that calls the properties update event.
@@ -621,7 +628,7 @@ namespace Play.SSTV {
             string strMyDocs = Environment.GetFolderPath( Environment.SpecialFolder.MyDocuments );
 
             // In the future, setting this value will send an event that will get forwarded to the chooser.
-            RxProperties.ValueUpdate( RxProperties.Names.LoadFHere, strMyDocs );
+            RxProperties.ValueUpdate( RxProperties.Names.SaveHere, strMyDocs );
 
             RecChooser.LoadURL( strMyDocs );
         }
@@ -1072,12 +1079,8 @@ namespace Play.SSTV {
 				    return;
 
                 // Figure out path and name of the file.
-                string strSaveDir = null;
-                if( RxProperties.ValueAsBool( RxProperties.Names.SaveWData ) ) {
-                    strSaveDir = Path.GetDirectoryName( strFileName );
-                    if( string.IsNullOrEmpty( strSaveDir ) )
-			            strSaveDir = Properties[StdProperties.Names.SaveDir];
-                } else {
+                string strSaveDir = Path.GetDirectoryName( strFileName );
+                if( string.IsNullOrEmpty( strSaveDir ) ) {
 			        strSaveDir = Properties[StdProperties.Names.SaveDir];
                 }
                 // If Dir still null we should go straight to env variable.
@@ -1133,8 +1136,8 @@ namespace Play.SSTV {
         /// between them on the fly. The benefit is that I don't need to set
         /// up the event hooks everytime a new image comes down in the case where I
         /// was alloc'ing TmmSSTV subclasses.</remarks>
-        /// <seealso cref="ListenTvEvents"/>
-        private void ListenNextRxMode( SSTVMode tvMode ) {
+        /// <seealso cref="OnTvEvents_RxSSTV"/>
+        private void OnNextMode_SSTVDeMod( SSTVMode tvMode ) {
 			ReceiveImage.Bitmap = null;
 			SyncImage   .Bitmap = null;
 
@@ -1157,7 +1160,7 @@ namespace Play.SSTV {
         /// the mess this has become. BUT this is only used by the TEST
         /// code. The new threaded code does not use this.
 		/// </summary>
-        private void ListenTvEvents( SSTVEvents eProp )
+        private void OnTvEvents_RxSSTV( SSTVEvents eProp )
         {
             Raise_PropertiesUpdated( eProp );
 
@@ -1169,14 +1172,15 @@ namespace Play.SSTV {
             }
         }
 
-		/// <summary> Another initial test run, before created the worker task.
+		/// <summary> Another initial test run, on the UI THREAD before 
+        /// created the worker task.
 		/// Note that we don't take the mode in this task since we want it
 		/// to be divined from the VIS by the SSTVDEM object.
 		/// </summary>
 		/// <returns>Time to wait until next call in ms.</returns>
         /// <remarks>Probably going to delete this eventually.</remarks>
         public IEnumerator<int> GetTaskRecordTest2() {
-            _oSSTVDeModulator.Send_NextMode += ListenNextRxMode; // BUG: no need to do every time.
+            _oSSTVDeModulator.Send_NextMode += OnNextMode_SSTVDeMod; // BUG: no need to do every time.
             do {
                 try {
                     for( int i = 0; i< 500; ++i ) {
@@ -1195,8 +1199,6 @@ namespace Play.SSTV {
                     if( rgErrors.IsUnhandled( oEx ) )
                         throw;
 
-					SaveRxImage( string.Empty );
-
 					if( oEx.GetType() != typeof( IndexOutOfRangeException ) ) {
 						LogError( "Trouble recordering in SSTV" );
 					}
@@ -1204,12 +1206,10 @@ namespace Play.SSTV {
 					// try calling the _oWorker which will have been set to NULL!!
                     break; // Drop down so we can unplug from our Demodulator.
                 }
-                yield return 0; // 44,100 hz is a lot to process, let's go as fast as possible. >_<;;
+                yield return 0; // Let's go as fast as possible. >_<;;
             } while( _oSSTVBuffer.IsReading );
 
-			_oSSTVDeModulator.Send_NextMode -= ListenNextRxMode;
-			//ModeList.HighLight = null;
-            // Set upload time to "finished" maybe even date/time!
+			_oSSTVDeModulator.Send_NextMode -= OnNextMode_SSTVDeMod;
         }
 
         /// <summary>
@@ -1237,7 +1237,7 @@ namespace Play.SSTV {
 																	 oFFTMode.SampBase, 
 																	 0 );
 						    _oRxSSTV                = new SSTVDraw( oDemod );
-						    _oRxSSTV.Send_TvEvents += ListenTvEvents; // Since non-threaded, this is ok.
+						    _oRxSSTV.Send_TvEvents += OnTvEvents_RxSSTV; // Since non-threaded, this is ok.
 
 						    _oSSTVDeModulator = oDemod;
 
@@ -1272,7 +1272,6 @@ namespace Play.SSTV {
 				_oRxSSTV.Process();
 				yield return 1;
 			};
-			SaveRxImage( string.Empty );
 		}
 
 		/// <summary>
@@ -1311,7 +1310,7 @@ namespace Play.SSTV {
 						    _ => throw new ArgumentOutOfRangeException("Unrecognized Mode Type."),
 					    };
 
-                        _oSSTVDeModulator.Send_NextMode += ListenNextRxMode;
+                        _oSSTVDeModulator.Send_NextMode += OnNextMode_SSTVDeMod;
 
                         _oWorkPlace.Queue( GetTaskRecordTest1( oMode ), 0 );
                     }

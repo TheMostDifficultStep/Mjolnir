@@ -192,12 +192,12 @@ namespace Play.SSTV
 
         public ThreadWorker2( WaveFormat oFormat, 
                               ConcurrentQueue<SSTVEvents> oMsgQueue, 
-                              ConcurrentQueue<double> oDataQueue, 
-                              ConcurrentQueue<TVMessage> oOutQueue ) : 
+                              ConcurrentQueue<double>     oDataQueue, 
+                              ConcurrentQueue<TVMessage>  oOutQueue ) : 
             base( oMsgQueue, null )
         {
             _oDataQueue  = oDataQueue ?? throw new ArgumentNullException( "oDataQueue" );
-            _oDataFormat = oFormat    ?? throw new ArgumentNullException( "oFormat" );
+            _oDataFormat = oFormat    ?? throw new ArgumentNullException( "oDataFormat" );
             _oOutQueue   = oOutQueue  ?? throw new ArgumentNullException( "oOutQueue" );
         }
 
