@@ -338,16 +338,19 @@ namespace Play.SSTV {
 		/// </summary>
 		/// <remarks>I read about this pattern for multithreaded objects and checking flags.
 		/// I wish I could recall the paper. ^_^;; The idea is that if we get prempted and
-		/// the other thread gets dispose called we'll pick up on that when we enter.</remarks>
-		public void Dispose() {
-			if( !_fDisposed ) {
-				_fDisposed = true;
-				if( !_fDisposed ) {
-					_pBitmapD12?.Dispose();
-					_pBitmapRX ?.Dispose();
-				}
-			}
-		}
+		/// the other thread gets dispose called we'll pick up on that when we enter.
+		/// BUUUUT, if we dispose the images, the UI thread might choke. So just let 'em
+		/// go. As long as we're not generating a bunch of these quickly they'll get
+		/// cleaned up eventually anyway.</remarks>
+		//public void Dispose() {
+		//	if( !_fDisposed ) {
+		//		_fDisposed = true;
+		//		if( !_fDisposed ) {
+		//			_pBitmapD12?.Dispose();
+		//			_pBitmapRX ?.Dispose();
+		//		}
+		//	}
+		//}
 
 		/// <summary>this method get's called to initiate the processing of
 		/// a new image.</summary>
@@ -389,6 +392,31 @@ namespace Play.SSTV {
         }
 
 		/// <summary>
+		/// Call this when reach end of file. This will also get called internally when we've
+		/// decoded the entire image.
+		/// </summary>
+		/// <remarks>Right now I only -stop- if i'm in sync'd mode. Might just want to do
+		/// this whenever. We'll tinker a bit.</remarks>
+		public void Stop() {
+			try {
+				if( _dp.m_Sync ) {
+					_dp.Reset();
+
+					RenderDiagnosticsOverlay();
+					
+					Send_TvEvents?.Invoke( SSTVEvents.DownLoadFinished );
+				}
+			} catch( Exception oEx ) {
+				Type[] rgErrors = { typeof( NullReferenceException ),
+									typeof( KeyNotFoundException ) };
+				if( rgErrors.IsUnhandled( oEx ) )
+					throw;
+
+				Send_TvEvents?.Invoke( SSTVEvents.ThreadDiagnosticsException );
+			}
+		}
+
+		/// <summary>
 		/// Possibly corrected scan line width in samples.
 		/// </summary>
 		/// <seealso cref="SpecWidthInSamples"/>
@@ -414,6 +442,25 @@ namespace Play.SSTV {
 		public double SpecWidthInSamples {
 			get {
 				return Mode.ScanWidthInMS * _dp.SampFreq / 1000;
+			}
+		}
+
+		/// <summary>
+		/// Size of the scan line width corrected image not including VIS preamble.
+		/// This can get called on the UI thread. Because of PercentRxComplete
+		/// </summary>
+		/// <seealso cref="PercentRxComplete"/>
+		public double ImageSizeInSamples {
+			get {
+				try {
+					SSTVMode oMode = Mode;
+					if( oMode != null )
+						return ScanWidthInSamples * Mode.Resolution.Height / Mode.ScanMultiplier;
+					else
+						return 1;
+				} catch( NullReferenceException ) {
+					return 1;
+				}
 			}
 		}
 
@@ -471,25 +518,6 @@ namespace Play.SSTV {
 		}
 
 		/// <summary>
-		/// Size of the scan line width corrected image not including VIS preamble.
-		/// This can get called on the UI thread. Because of PercentRxComplete
-		/// </summary>
-		/// <seealso cref="PercentRxComplete"/>
-		public double ImageSizeInSamples {
-			get {
-				try {
-					SSTVMode oMode = Mode;
-					if( oMode != null )
-						return ScanWidthInSamples * Mode.Resolution.Height / Mode.ScanMultiplier;
-					else
-						return 1;
-				} catch( NullReferenceException ) {
-					return 1;
-				}
-			}
-		}
-
-		/// <summary>
 		/// Track how much data has been read into the buffer. Note that the
 		/// processor will backtrack and re-read the buffer, as it adjusts
 		/// for the slant, but this is how far the reception has proceeded.
@@ -518,52 +546,31 @@ namespace Play.SSTV {
 			return true;
 		}
 
-		/// <summary>
-		/// Call this when reach end of file. This will also get called internally when we've
-		/// decoded the entire image.
-		/// </summary>
-		/// <remarks>Right now I only -stop- if i'm in sync'd mode. Might just want to do
-		/// this whenever. We'll tinker a bit.</remarks>
-		public void Stop() {
-			try {
-				if( _dp.m_Sync ) {
-					_dp.Reset();
+		protected void RenderDiagnosticsOverlay() {
+			SKPaint skPaint = new() { Color = SKColors.Yellow, StrokeWidth = 3 };
 
-					SKPaint skPaint = new() { Color = SKColors.Yellow, StrokeWidth = 3 };
+			double dbD12XScale       = _pBitmapD12.Width / _dblSlope;
+			double dblSyncExpected   = CorrectedSyncOffsetInSamples;
+			float  flScaledIntercept = (float)( _dblIntercept * dbD12XScale );
+			//double dblOffset       = ( Mode.Resolution.Height - 1 ) * _dblSlope + _dblIntercept;
+			//float  flX2            = (float)( dblOffset % _dblSlope * dbD12XScale );
 
-					double dbD12XScale       = _pBitmapD12.Width / _dblSlope;
-					double dblSyncExpected   = CorrectedSyncOffsetInSamples;
-					float  flScaledIntercept = (float)( _dblIntercept * dbD12XScale );
-					//double dblOffset       = ( Mode.Resolution.Height - 1 ) * _dblSlope + _dblIntercept;
-					//float  flX2            = (float)( dblOffset % _dblSlope * dbD12XScale );
+			SKPoint top = new( flScaledIntercept, 0 );
+			SKPoint bot = new( flScaledIntercept, _pBitmapD12.Height );
+			_skD12Canvas.DrawLine( top, bot, skPaint );
 
-					SKPoint top = new( flScaledIntercept, 0 );
-					SKPoint bot = new( flScaledIntercept, _pBitmapD12.Height );
-					_skD12Canvas.DrawLine( top, bot, skPaint );
+			foreach( ColorChannel oSlot in _rgSlots ) {
+				double dblXCh = ( _dblIntercept + oSlot.Min - dblSyncExpected ) * dbD12XScale;
+				dblXCh %= _pBitmapD12.Width;
 
-					foreach( ColorChannel oSlot in _rgSlots ) {
-						double dblXCh = ( _dblIntercept + oSlot.Min - dblSyncExpected ) * dbD12XScale;
-						dblXCh %= _pBitmapD12.Width;
+				DiagnosticPaint sPaint = _rgDiagnosticColors[oSlot.ChannelType];
 
-						DiagnosticPaint sPaint = _rgDiagnosticColors[oSlot.ChannelType];
+				skPaint.Color       = sPaint.Color;
+				skPaint.StrokeWidth = sPaint.StrokeWidth;
 
-						skPaint.Color       = sPaint.Color;
-						skPaint.StrokeWidth = sPaint.StrokeWidth;
-
-						_skD12Canvas.DrawLine( new SKPoint( (int)dblXCh, 0 ), 
-											new SKPoint( (int)dblXCh, _pBitmapD12.Height), 
-											skPaint );
-					}
-					
-					Send_TvEvents?.Invoke( SSTVEvents.DownLoadFinished );
-				}
-			} catch( Exception oEx ) {
-				Type[] rgErrors = { typeof( NullReferenceException ),
-									typeof( KeyNotFoundException ) };
-				if( rgErrors.IsUnhandled( oEx ) )
-					throw;
-
-				Send_TvEvents?.Invoke( SSTVEvents.ThreadDiagnosticsException );
+				_skD12Canvas.DrawLine( new SKPoint( (int)dblXCh, 0 ), 
+									new SKPoint( (int)dblXCh, _pBitmapD12.Height), 
+									skPaint );
 			}
 		}
 

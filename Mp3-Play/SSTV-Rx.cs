@@ -858,13 +858,17 @@ namespace Play.Sound {
 		readonly double m_dblToneOffset;
 		readonly double[] _rgSenseLevels = { 2400, 3500, 4800, 6000 };
 
-		public SSTVDEM( SYSSET p_sys, double dblSampFreq, double dblSampBase, double dbToneOffset ) {
+		public SSTVDEM( SYSSET p_sys, double dblSampFreq, double dblSampBase = -1, double dbToneOffset=0 ) {
 			Sys     = p_sys ?? throw new ArgumentNullException( "sys must not be null." );
 			SstvSet = new( TVFamily.Martin, 0, dblSampFreq, 0 );
 
-			SampFreq        = dblSampFreq;
-			SampBase        = dblSampBase;
 			m_dblToneOffset = dbToneOffset;
+			SampFreq        = dblSampFreq;
+
+			if( dblSampBase == -1 )
+				SampBase	= dblSampFreq;
+			else
+				SampBase    = dblSampBase;
 
 			// Find the biggest image type so our D12 image will be large enough.
 			double dblMaxBufferInMs = 0;

@@ -179,16 +179,18 @@ namespace Play.SSTV
         }
 
         // This is the errors we generally handle in our work function.
-        protected static Type[] _rgStdErrors = { typeof( NullReferenceException ),
-                                                 typeof( ArgumentNullException ),
-                                                 typeof( MMSystemException ),
-                                                 typeof( InvalidOperationException ),
-										         typeof( ArithmeticException ),
-										         typeof( IndexOutOfRangeException ) };
+        protected static Type[] _rgLoopErrors = { typeof( NullReferenceException ),
+                                                  typeof( ArgumentNullException ),
+                                                  typeof( MMSystemException ),
+                                                  typeof( InvalidOperationException ),
+										          typeof( ArithmeticException ),
+										          typeof( IndexOutOfRangeException ),
+                                                  typeof( InvalidDataException ) };
+
         protected static Type[] _rgInitErrors = { typeof( DirectoryNotFoundException ),
-                                                typeof( NullReferenceException ),
-                                                typeof( ApplicationException ),
-                                                typeof( FileNotFoundException ) };
+                                                  typeof( NullReferenceException ),
+                                                  typeof( ApplicationException ),
+                                                  typeof( FileNotFoundException ) };
 
         public ThreadWorker2( WaveFormat oFormat, 
                               ConcurrentQueue<SSTVEvents> oMsgQueue, 
@@ -210,6 +212,26 @@ namespace Play.SSTV
             _oMsgQueue.Enqueue( eProp );
         }
 
+        /// <summary>
+        /// We actually see a "ran out of data" when the shell is closed and we don't get
+        /// a dispose event on the document which then would shut down this thread.
+        /// The thread is still running and then finds itself starved for data.
+        /// By sleeping the thread first, we give the system a chance to fill the
+        /// data buffer when we spin it up. And this thread stays alive until receiving a 
+        /// ExitWorkThread message, or if the thread becomes data starved.
+        /// </summary>
+        /// <returns></returns>
+        public IEnumerator<double> GetEnumerator() {
+            do {
+                // Basically there should always be data. If not then we're done.
+                if( _oDataQueue.TryDequeue( out double dblValue ) ) {
+                    yield return dblValue;
+                } else {
+                    throw new InvalidDataException( "Ran out of data" );
+                }
+            } while( !_oDataQueue.IsEmpty );
+        }
+
         protected void CheckMessages() {
             while( _oOutQueue.TryDequeue( out TVMessage oMsg ) ) {
                 switch( oMsg._eMsg ) {
@@ -220,7 +242,7 @@ namespace Play.SSTV
                         if( oMsg._oParam is SSTVMode oMode ) {
                             SSTVDeModulator.Start( oMode );
                         } else {
-                            SSTVDraw.Stop();
+                            SSTVDeModulator.Reset();
                         }
                         break;
                 }
@@ -235,10 +257,7 @@ namespace Play.SSTV
         /// <remarks>I'll move this to the base class after I sort things out.</remarks>
         public void DoWork() {
             try {
-			    SSTVDeModulator  = new SSTVDEM( new SYSSET(),
-										        _oDataFormat.SampleRate, 
-										        _oDataFormat.SampleRate, 
-										        0 );
+			    SSTVDeModulator  = new SSTVDEM ( new SYSSET(), _oDataFormat.SampleRate );
 			    SSTVDraw         = new SSTVDraw( SSTVDeModulator );
 
                 // Set the callbacks first since Start() will try to use the callback.
@@ -252,34 +271,23 @@ namespace Play.SSTV
                 return;
             }
 
-            do {
-                try {
+            try {
+                do {
+                    Thread.Sleep( 250 );
+
                     CheckMessages();
 
                     foreach( double dblValue in this )
                         SSTVDeModulator.Do( dblValue );
 
                     SSTVDraw.Process();
+                } while( true );
+			} catch( Exception oEx ) {
+                if( _rgLoopErrors.IsUnhandled( oEx ) )
+                    throw;
 
-                    Thread.Sleep( 250 );
-				} catch( Exception oEx ) {
-                    if( _rgStdErrors.IsUnhandled( oEx ) )
-                        throw;
-
-                    _oMsgQueue.Enqueue( SSTVEvents.ThreadReadException );
-                }
-            } while( true );
-        }
-
-        public IEnumerator<double> GetEnumerator() {
-            do {
-                // Basically there should always be data. If not then we're done.
-                if( _oDataQueue.TryDequeue( out double dblValue ) ) {
-                    yield return dblValue;
-                } else {
-                    yield break;
-                }
-            } while( !_oDataQueue.IsEmpty );
+                _oMsgQueue.Enqueue( SSTVEvents.ThreadAbort );
+            }
         }
 
         IEnumerator IEnumerable.GetEnumerator() {
