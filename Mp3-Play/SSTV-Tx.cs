@@ -638,8 +638,8 @@ namespace Play.Sound {
         /// <returns></returns>
         public static IEnumerator<SSTVMode> GetModeEnumerator() {
  	        yield return new SSTVModeMartin( 0xac, "Martin 1",  146.432, new SKSizeI( 320, 256 ), AllModes.smMRT1 );
-            yield return new SSTVModeMartin( 0x28, "Martin 2",   73.216, new SKSizeI( 160, 256 ), AllModes.smMRT2 );
- 	        yield return new SSTVModeMartin( 0x24, "Martin 3",  146.432, new SKSizeI( 320, 128 ), AllModes.smMRT3 );
+            yield return new SSTVModeMartin( 0x28, "Martin 2",   73.216, new SKSizeI( 320, 256 ), AllModes.smMRT2 );
+ 	        yield return new SSTVModeMartin( 0x24, "Martin 3",  146.432, new SKSizeI( 160, 128 ), AllModes.smMRT3 );
             yield return new SSTVModeMartin( 0xa0, "Martin 4",   73.216, new SKSizeI( 160, 128 ), AllModes.smMRT4 );
         }
 
@@ -716,12 +716,12 @@ namespace Play.Sound {
         /// </summary> 
         public static IEnumerator<SSTVMode> GetModeEnumerator() {
             // these numbers come from https://www.classicsstv.com/pdmodes.php G4IJE the inventor.
- 	        yield return new SSTVModePD( 0xdd, "PD  50",   91.520, new SKSizeI( 320, 240 ), AllModes.smPD50  ); // see SSTV-Handbook.
-            yield return new SSTVModePD( 0x63, "PD  90",  170.240, new SKSizeI( 320, 240 ), AllModes.smPD90  ); // Only reliable one.
-            yield return new SSTVModePD( 0x5f, "PD 120",  121.600, new SKSizeI( 640, 480 ), AllModes.smPD120 ); 
+ 	        yield return new SSTVModePD( 0xdd, "PD  50",   91.520, new SKSizeI( 320, 256 ), AllModes.smPD50  ); // see SSTV-Handbook.
+            yield return new SSTVModePD( 0x63, "PD  90",  170.240, new SKSizeI( 320, 256 ), AllModes.smPD90  ); // Only reliable one.
+            yield return new SSTVModePD( 0x5f, "PD 120",  121.600, new SKSizeI( 640, 496 ), AllModes.smPD120 ); 
             yield return new SSTVModePD( 0xe2, "PD 160",  195.584, new SKSizeI( 512, 384 ), AllModes.smPD160 ); 
-            yield return new SSTVModePD( 0x60, "PD 180",  183.040, new SKSizeI( 640, 480 ), AllModes.smPD180 );
-            yield return new SSTVModePD( 0xe1, "PD 240",  244.480, new SKSizeI( 640, 480 ), AllModes.smPD240 ); 
+            yield return new SSTVModePD( 0x60, "PD 180",  183.040, new SKSizeI( 640, 496 ), AllModes.smPD180 );
+            yield return new SSTVModePD( 0xe1, "PD 240",  244.480, new SKSizeI( 640, 496 ), AllModes.smPD240 ); 
             yield return new SSTVModePD( 0xde, "PD 290",  228.800, new SKSizeI( 800, 600 ), AllModes.smPD290 ); // see SSTV-handbook.
         }
 

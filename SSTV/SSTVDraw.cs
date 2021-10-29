@@ -738,7 +738,11 @@ namespace Play.SSTV {
 						}
 					}
 					// We should also bail if we're not catching enough sync signals.
-					if( iScanLine > Mode.Resolution.Height / Mode.ScanMultiplier ) {
+					int iScanMax =  Mode.Resolution.Height / Mode.ScanMultiplier;
+					if( iScanLine > iScanMax ) {
+						for( int i = 0; i<iScanMax; ++i ) {
+							ProcessScan( i );
+						}
 						Stop();
 					}
 				} catch( Exception oEx ) {
