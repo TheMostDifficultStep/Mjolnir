@@ -181,7 +181,7 @@ namespace Play.SSTV {
 			if( sGuid == GlobalCommands.Play ) {
 				Banner = _strBannerBase + _oDocSSTV.RecChooser.CurrentFullPath;
 				_oSiteView.Notify( ShellNotify.BannerChanged );
-				_oDocSSTV.ReceiveFileRead2Begin( _oDocSSTV.RecChooser.CurrentFullPath );
+				_oDocSSTV.ReceiveFileReadBgThreadBegin( _oDocSSTV.RecChooser.CurrentFullPath );
 				return true;
 			}
 			if( sGuid == GlobalCommands.Stop ) {
@@ -378,7 +378,7 @@ namespace Play.SSTV {
 			if( sGuid == GlobalCommands.Play ) {
 				switch( _eToolSelected ) {
 					case Tools.File: {
-						_oDocSSTV.ReceiveFileRead2Begin( _oDocSSTV.RecChooser.CurrentFullPath );
+						_oDocSSTV.ReceiveFileReadBgThreadBegin( _oDocSSTV.RecChooser.CurrentFullPath );
 						return true;
 						}
 					case Tools.Port:

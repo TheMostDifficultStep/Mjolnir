@@ -857,7 +857,11 @@ namespace Play.SSTV {
 
         protected void DownloadFinished( string strFileName ) {
             PropertyChange?.Invoke( SSTVEvents.DownLoadFinished );
-            RxModeList.HighLight = null;
+
+            RxProperties.ValueUpdate( RxProperties.Names.Progress, "Done", Broadcast:true );
+            RxModeList.HighLight   = null;
+            RxModeList.CheckedLine = RxModeList[0];
+
             SaveRxImage( strFileName ); // Race condition possible, when image reused.
         }
 
@@ -867,7 +871,16 @@ namespace Play.SSTV {
         /// for the file decode right now.
         /// </summary>
         public IEnumerator<int> GetTaskThreadListener( ThreadWorkerBase oWorker ) {
-            do {
+            while( _oThread != null ) {
+                if( !_oThread.IsAlive ) {
+                    // The file read thread terminates after file read. Catch that here.
+                    RxProperties.ValueUpdate( RxProperties.Names.Progress, "Bailed", Broadcast:true );
+                    RxModeList.HighLight   = null;
+                    RxModeList.CheckedLine = RxModeList[0];
+                    _oThread = null;
+                    yield break;
+                }
+
                 while( _rgBGtoUIQueue.TryDequeue( out SSTVEvents eResult ) ) {
                     switch( eResult ) {
                         case SSTVEvents.ThreadAbort:
@@ -879,10 +892,10 @@ namespace Play.SSTV {
                            _oThread = null;
                             yield break;
                         case SSTVEvents.RXImageNew:
-                            // Previous image is Disposed!!
-			                ReceiveImage.Bitmap = oWorker.SSTVDraw._pBitmapRX;
-                            // Except this one since same image it is spared.
-			                SyncImage   .Bitmap = oWorker.SSTVDraw._pBitmapD12;
+                            // The recievers of the images will dispose their previous contents
+                            // if the new bitmap does NOT match the current one held.
+			                ReceiveImage.Bitmap = oWorker.SSTVDraw._pBitmapRX; 
+			                SyncImage   .Bitmap = oWorker.SSTVDraw._pBitmapD12; 
 
                             PropertyChange?.Invoke( SSTVEvents.RXImageNew );
                             break;
@@ -909,7 +922,6 @@ namespace Play.SSTV {
                             break;
                         case SSTVEvents.DownLoadFinished:
                             // NOTE: This might never come along!
-                            PropertiesRxTime( oWorker.SSTVDraw.PercentRxComplete );
                             DownloadFinished( oWorker.SuggestedFileName );
                             break;
                         case SSTVEvents.ThreadDiagnosticsException:
@@ -924,7 +936,7 @@ namespace Play.SSTV {
                     }
                 }
                 yield return 250; // wait 1/4 of a second.
-            } while( true );
+            };
         }
 
         /// <summary>
@@ -935,7 +947,7 @@ namespace Play.SSTV {
         /// <param name="DetectVIS">Just set the decoder for a particular SSTV mode. This is usefull
         /// if picking up the signal in the middle and you know the type a priori. I should
         /// just pass the mode if it's fixed, else autodetect.</param>
-        public void ReceiveFileRead2Begin( string strFileName ) {
+        public void ReceiveFileReadBgThreadBegin( string strFileName ) {
             if( string.IsNullOrEmpty( strFileName ) ) {
                 LogError( "Invalid filename for SSTV image read" );
                 return;

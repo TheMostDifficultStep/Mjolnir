@@ -18,8 +18,6 @@ namespace Play.SSTV
     public class ThreadWorkerBase {
         protected readonly ConcurrentQueue<SSTVEvents> _oMsgQueue;
 
-        protected readonly SSTVMode _oFixedMode;
-
         public SSTVMode NextMode => SSTVDraw.Mode;
 
         public SSTVDraw SSTVDraw        { get; protected set; }
@@ -27,10 +25,8 @@ namespace Play.SSTV
 
         public virtual string SuggestedFileName => string.Empty;
 
-        public ThreadWorkerBase( ConcurrentQueue<SSTVEvents> oMsgQueue, SSTVMode oMode ) {
-            _oMsgQueue  = oMsgQueue   ?? throw new ArgumentNullException( "Queue is null" );
-
-            _oFixedMode = oMode; // Override the auto sense and just fix ourselves trying to receive a particular signal type.
+        public ThreadWorkerBase( ConcurrentQueue<SSTVEvents> oMsgQueue ) {
+            _oMsgQueue = oMsgQueue ?? throw new ArgumentNullException( "Queue is null" );
         }
     }
 
@@ -39,11 +35,14 @@ namespace Play.SSTV
     /// future I'll make a version of this which is reading from an audio input device.
     /// </summary>
     public class ThreadWorker : ThreadWorkerBase {
-        public readonly string _strFileName;
+        public readonly string   _strFileName;
+        public readonly SSTVMode _oStartMode;
+
         public override string SuggestedFileName => _strFileName;
 
-        public ThreadWorker( ConcurrentQueue<SSTVEvents> oMsgQueue, string strFileName, SSTVMode oMode ) : base( oMsgQueue, oMode ){
+        public ThreadWorker( ConcurrentQueue<SSTVEvents> oMsgQueue, string strFileName, SSTVMode oMode ) : base( oMsgQueue ){
             _strFileName = strFileName ?? throw new ArgumentNullException( "Filename is null" );
+            _oStartMode  = oMode;
         }
 
         public IEnumerator<int> GetReceiveFromFileTask( WaveStream oStream ) {
@@ -58,6 +57,10 @@ namespace Play.SSTV
             double From16to16( int i ) => rgBuff[i];
 
             Func<int, double> ConvertInput = iBits == 16 ? From16to16 : (Func<int, double>)From32to16;
+
+            if( _oStartMode != null ) {
+                SSTVDeModulator.Start( _oStartMode );
+            }
 
             do {
                 try {
@@ -95,23 +98,12 @@ namespace Play.SSTV
                 using var oStream = new AudioFileReader(_strFileName); 
 
 			    FFTControlValues oFFTMode  = FFTControlValues.FindMode( oStream.WaveFormat.SampleRate ); // RxSpec.Rate
-			    SYSSET  sys       = new ();
-			    SSTVDEM oDemod    = new SSTVDEM( sys,
-												 oFFTMode.SampFreq, 
-												 oFFTMode.SampBase, 
-												 0 );
 
-                SSTVDeModulator = oDemod;
-			    SSTVDraw        = new SSTVDraw( oDemod );
+                SSTVDeModulator = new SSTVDEM ( new SYSSET(), oFFTMode.SampFreq );;
+			    SSTVDraw        = new SSTVDraw( SSTVDeModulator );
 
-                oDemod.Send_NextMode += Listen_NextRxMode;
-                SSTVDraw.Send_TvEvents += Listen_TvEvents;
-
-                if( _oFixedMode != null ) {
-                    // Hard code our decoding mode... After set the callbacks
-                    // since this causes a call to the ShoutNextMode()
-                    SSTVDeModulator.Start( _oFixedMode );
-                }
+                SSTVDeModulator.Send_NextMode += Listen_NextRxMode;
+                SSTVDraw       .Send_TvEvents += Listen_TvEvents;
 
                 for( IEnumerator<int> oIter = GetReceiveFromFileTask( oStream ); oIter.MoveNext(); ) {
                     SSTVDraw.Process();
@@ -196,7 +188,7 @@ namespace Play.SSTV
                               ConcurrentQueue<SSTVEvents> oMsgQueue, 
                               ConcurrentQueue<double>     oDataQueue, 
                               ConcurrentQueue<TVMessage>  oOutQueue ) : 
-            base( oMsgQueue, null )
+            base( oMsgQueue )
         {
             _oDataQueue  = oDataQueue ?? throw new ArgumentNullException( "oDataQueue" );
             _oDataFormat = oFormat    ?? throw new ArgumentNullException( "oDataFormat" );

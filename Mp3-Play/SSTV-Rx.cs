@@ -123,6 +123,9 @@ namespace Play.Sound {
 		smMC110,
 		smMC140,
 		smMC180,
+
+		smMRT3,
+		smMRT4,
 		smEND,
 	}
 

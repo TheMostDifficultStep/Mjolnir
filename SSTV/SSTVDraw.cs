@@ -738,7 +738,7 @@ namespace Play.SSTV {
 						}
 					}
 					// We should also bail if we're not catching enough sync signals.
-					if( _AY > Mode.Resolution.Height ) {
+					if( iScanLine > Mode.Resolution.Height / Mode.ScanMultiplier ) {
 						Stop();
 					}
 				} catch( Exception oEx ) {

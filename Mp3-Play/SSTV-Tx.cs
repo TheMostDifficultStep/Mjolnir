@@ -286,8 +286,6 @@ namespace Play.Sound {
 
         readonly public  TVFamily Family;
         readonly private SKSizeI  RawRez;
-        readonly public  bool     GreyCalibrate;
-        readonly public  int      ExtraScanLine;
         readonly public  AllModes LegacyMode;       // Legacy support.
 
         readonly public  List<ScanLineChannel> ChannelMap = new();
@@ -317,9 +315,6 @@ namespace Play.Sound {
             Family         = tvMode;
             RawRez         = skSize;
             LegacyMode     = eLegacy;
-
-            ExtraScanLine = 16; // So far no mode I support is using the 8 scan line spec.
-            GreyCalibrate = false;
 
             Initialize();
 
@@ -364,9 +359,6 @@ namespace Play.Sound {
         /// </summary>
         public SKSizeI Resolution {
             get {
-                if( !GreyCalibrate ) {
-                    return new SKSizeI( RawRez.Width, RawRez.Height + ExtraScanLine );
-                }
                 return RawRez;
             }
         }
@@ -567,9 +559,9 @@ namespace Play.Sound {
         /// </summary>
         /// <returns></returns>
         public static IEnumerator<SSTVMode> GetModeEnumerator() {
- 	        yield return new SSTVModeScottie( 0x3c, "Scottie 1",  138.240, new SKSizeI( 320, 240 ), AllModes.smSCT1  );
-            yield return new SSTVModeScottie( 0xb8, "Scottie 2",   88.064, new SKSizeI( 320, 240 ), AllModes.smSCT2  );
-            yield return new SSTVModeScottie( 0xcc, "Scottie DX", 345.600, new SKSizeI( 320, 240 ), AllModes.smSCTDX );
+ 	        yield return new SSTVModeScottie( 0x3c, "Scottie 1",  138.240, new SKSizeI( 320, 256 ), AllModes.smSCT1  );
+            yield return new SSTVModeScottie( 0xb8, "Scottie 2",   88.064, new SKSizeI( 320, 256 ), AllModes.smSCT2  );
+            yield return new SSTVModeScottie( 0xcc, "Scottie DX", 345.600, new SKSizeI( 320, 256 ), AllModes.smSCTDX );
         }
 
         public static SSTVMode Default {
@@ -630,7 +622,7 @@ namespace Play.Sound {
     }
 
     /// <summary>
-    /// MRT1, Martin 1 & 2
+    /// MRT1, Martin 1, 2, 3, 4
     /// </summary>
     /// <remarks>Historical note. Martin was invented after Scottie.</remarks>
     public class GenerateMartin : SSTVGenerator {
@@ -641,13 +633,14 @@ namespace Play.Sound {
         }
 
         /// <summary>
-        /// Enumerate the modes we support.  Note: there are 4 martins and my martin 2 was 320x240 and that's wrong.
-        /// Going to need to test them all...
+        /// Enumerate the modes we support. Updated to handbook values.
         /// </summary>
         /// <returns></returns>
         public static IEnumerator<SSTVMode> GetModeEnumerator() {
- 	        yield return new SSTVModeMartin( 0xac, "Martin 1",  146.432, new SKSizeI( 320, 240 ), AllModes.smMRT1 );
-            yield return new SSTVModeMartin( 0x28, "Martin 2",   73.216, new SKSizeI( 320, 240 ), AllModes.smMRT2 );
+ 	        yield return new SSTVModeMartin( 0xac, "Martin 1",  146.432, new SKSizeI( 320, 256 ), AllModes.smMRT1 );
+            yield return new SSTVModeMartin( 0x28, "Martin 2",   73.216, new SKSizeI( 160, 256 ), AllModes.smMRT2 );
+ 	        yield return new SSTVModeMartin( 0x24, "Martin 3",  146.432, new SKSizeI( 320, 128 ), AllModes.smMRT3 );
+            yield return new SSTVModeMartin( 0xa0, "Martin 4",   73.216, new SKSizeI( 160, 128 ), AllModes.smMRT4 );
         }
 
         /// <summary>
