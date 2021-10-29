@@ -292,8 +292,8 @@ namespace Play.SSTV {
 
 		protected readonly List<ColorChannel> _rgSlots = new (10);
 		
-		public double CorrectedSyncWidthInSamples  { get; protected set; }
-		public double CorrectedSyncOffsetInSamples { get; protected set; }
+		public double SyncWidthInSamples  { get; protected set; } // These don't get updated like the channels.
+		public double SyncOffsetInSamples { get; protected set; } // The channel entries for these do get updated.
 
 		protected SlidingWindow Slider { get; }
 
@@ -363,10 +363,10 @@ namespace Play.SSTV {
 			_dblSlope     = SpecWidthInSamples;
 			_dblIntercept = 0;
 
-			CorrectedSyncWidthInSamples  = Mode.WidthSyncInMS * _dp.SampFreq / 1000;
-			CorrectedSyncOffsetInSamples = Mode.OffsetInMS    * _dp.SampFreq / 1000;
+			SyncWidthInSamples  = Mode.WidthSyncInMS * _dp.SampFreq / 1000;
+			SyncOffsetInSamples = Mode.OffsetInMS    * _dp.SampFreq / 1000;
 
-			Slider.Reset( (int)CorrectedSyncWidthInSamples );
+			Slider.Reset( (int)SyncWidthInSamples );
 
 			Send_TvEvents?.Invoke(SSTVEvents.SSTVMode );
 
@@ -550,7 +550,7 @@ namespace Play.SSTV {
 			SKPaint skPaint = new() { Color = SKColors.Yellow, StrokeWidth = 3 };
 
 			double dbD12XScale       = _pBitmapD12.Width / _dblSlope;
-			double dblSyncExpected   = CorrectedSyncOffsetInSamples;
+			double dblSyncExpected   = SyncOffsetInSamples;
 			float  flScaledIntercept = (float)( _dblIntercept * dbD12XScale );
 			//double dblOffset       = ( Mode.Resolution.Height - 1 ) * _dblSlope + _dblIntercept;
 			//float  flX2            = (float)( dblOffset % _dblSlope * dbD12XScale );
@@ -589,7 +589,7 @@ namespace Play.SSTV {
 			int    iReadBase   = (int)dblBase;
 			int    iScanWidth  = (int)ScanWidthInSamples; // Make sure this matches our controlling loop!!
 			double dbD12XScale = _pBitmapD12.Width / ScanWidthInSamples;
-			int    iSyncWidth  = (int)( CorrectedSyncWidthInSamples * dbD12XScale );
+			int    iSyncWidth  = (int)( SyncWidthInSamples * dbD12XScale );
 			int    iScanLine   = (int)Math.Round( dblBase / ScanWidthInSamples );
 
 			// If we can't advance we'll get stuck in an infinite loop on our caller.
@@ -650,7 +650,7 @@ namespace Play.SSTV {
 
 			try { 
 				// Used to try to track scan line start. This seems better see above.
-				int rBase = (int)Math.Round( _dblSlope * iScanLine + _dblIntercept - CorrectedSyncOffsetInSamples );
+				int rBase = (int)Math.Round( _dblSlope * iScanLine + _dblIntercept - SyncOffsetInSamples );
 
 				// See remarks: starting a scanline in the middle.
 				if( _dp.BoundsCompare( rBase ) != 0 )
@@ -726,7 +726,7 @@ namespace Play.SSTV {
 							if( Slider.AlignLeastSquares( ref _dblSlope, ref _dblIntercept ) ) {
 								_dblIntercept -= _dblMagicOffset * _dp.SampFreq / 1000;
 								InitSlots   ( Mode.Resolution.Width, _dblSlope / SpecWidthInSamples ); // updates the ScanWidthInSamples.
-								Slider.Reset( (int)CorrectedSyncWidthInSamples );
+								Slider.Reset( (int)SyncWidthInSamples );
 
 								_dblReadBaseSync = 0;
 								_iLastAlign      = iScanLine;
@@ -855,8 +855,8 @@ namespace Play.SSTV {
 
 			double dblSamplesPerMs = _dp.SampFreq / 1000 * dbCorrection;
 
-			CorrectedSyncWidthInSamples  = ( Mode.WidthSyncInMS * dblSamplesPerMs );
-			CorrectedSyncOffsetInSamples = ( Mode.OffsetInMS    * dblSamplesPerMs );
+			SyncWidthInSamples  = ( Mode.WidthSyncInMS * dblSamplesPerMs );
+			SyncOffsetInSamples = ( Mode.OffsetInMS    * dblSamplesPerMs );
 		}
     } // End Class TmmSSTV
 

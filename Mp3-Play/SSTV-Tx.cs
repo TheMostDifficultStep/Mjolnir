@@ -277,7 +277,7 @@ namespace Play.Sound {
                  public  double   WidthColorInMS { get; } // Time to relay all pixels of one color component.
         abstract public  double   WidthSyncInMS  { get; } // BUG: Does this get corrected????
         abstract public  double   WidthGapInMS   { get; }
-                 public  double   ScanWidthInMS  { get; } // Time for complete scan line.
+                 public  double   ScanWidthInMS  { get; } // Time for complete scan line as per specification.
 
         virtual  public  int      ScanMultiplier { get; } = 1;
 
