@@ -271,7 +271,7 @@ namespace Play.SSTV {
 	/// <summary>
 	/// This is a new view so we can select a transmit image. Basically a slightly motified directory viewer.
 	/// </summary>
-	public class ViewSimpleTxImage: 
+	public class ViewTransmitSolo: 
 		ImageWindowSolo 
 	{
 		public static Guid GUID { get; } = new Guid( "{5BC25D2B-3F4E-4339-935C-CFADC2650B35}" );
@@ -281,7 +281,7 @@ namespace Play.SSTV {
 
         DocSSTV _oDocSSTV;
 
-		public ViewSimpleTxImage( IPgViewSite oSiteBase, DocSSTV oDocSSTV ) : base( oSiteBase, oDocSSTV.TxImageList ) {
+		public ViewTransmitSolo( IPgViewSite oSiteBase, DocSSTV oDocSSTV ) : base( oSiteBase, oDocSSTV.TxImageList ) {
 			_oDocSSTV = oDocSSTV ?? throw new ArgumentNullException( "oDocSSTV must not be null." );
 		}
 
@@ -335,10 +335,10 @@ namespace Play.SSTV {
 				return new ViewSSTVProperties( oBaseSite, _oDocSSTV.TxProperties );
 			}
 			if( sGuid.Equals( GlobalDecorations.Outline ) ) {
-				return new ImageViewIcons( oBaseSite, _oDocSSTV.TxImageList );
+				return new CheckList( oBaseSite, _oDocSSTV.TxModeList );
 			}
 			if( sGuid.Equals( GlobalDecorations.Options ) ) {
-				return new CheckList( oBaseSite, _oDocSSTV.TxModeList );
+				return new ImageViewIcons( oBaseSite, _oDocSSTV.TxImageList );
 			}
             return base.Decorate( oBaseSite, sGuid );
         }
@@ -350,6 +350,7 @@ namespace Play.SSTV {
 	public class CheckList : EditWindow2 {
 		public CheckList( IPgViewSite oSite, Editor oEditor ) : base( oSite, oEditor, fReadOnly:true, fSingleLine:false ) {
 			_fCheckMarks = true;
+			ToolSelect = 2; // BUG: change this to an enum in the future.
 		}
 	}
 }

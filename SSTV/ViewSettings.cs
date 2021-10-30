@@ -39,28 +39,6 @@ namespace Play.SSTV {
 
         public DocSSTV SSTVDocument { get; }
 
-		protected class WinSlot :
-			IPgViewSite
-		{
-			protected readonly ViewSettings _oHost;
-
-			public WinSlot( ViewSettings oHost ) {
-				_oHost = oHost ?? throw new ArgumentNullException();
-			}
-
-			public IPgParent Host => _oHost;
-
-			public void LogError(string strMessage, string strDetails, bool fShow=true) {
-				_oHost._oSiteView.LogError( strMessage, strDetails );
-			}
-
-			public void Notify( ShellNotify eEvent ) {
-				_oHost._oSiteView.Notify( eEvent );
-			}
-
-            public IPgViewNotify EventChain => _oHost._oSiteView.EventChain;
-        }
-
         public ViewSettings( IPgViewSite oViewSite, DocSSTV oDocument ) :
             base( oViewSite, oDocument.Properties ) 
         {
@@ -87,7 +65,7 @@ namespace Play.SSTV {
                             PropertyInitRow( oTable, (int)eName, new CheckList( new WinSlot( this ), SSTVDocument.PortRxList ) );
                             break;
                         default:
-                            PropertyInitRow( oTable, (int)eName );
+                            PropertyInitRow( oTable, (int)eName ); // This creates a regular cacheline.
                             break;
                     }
                 }

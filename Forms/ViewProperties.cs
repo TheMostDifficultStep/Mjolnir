@@ -16,6 +16,7 @@ namespace Play.Forms {
     /// <seealso cref="DocProperties"/>
     public class ViewStandardProperties : 
         FormsWindow,
+        IPgParent,
         IBufferEvents,
         IPgLoad
      {
@@ -24,11 +25,36 @@ namespace Play.Forms {
 
 		public SKColor BgColorDefault { get; protected set; }
 
+        public IPgParent Parentage => _oSiteView.Host;
+        public IPgParent Services  => Parentage.Services;
+
         public ViewStandardProperties( IPgViewSite oSiteView, DocProperties oDocument ) : base( oSiteView, oDocument.Property_Values ) {
             Document = oDocument ?? throw new ArgumentNullException( "ViewStandardProperties's Document is null." );
  			_oStdUI  = oSiteView.Host.Services as IPgStandardUI2 ?? throw new ArgumentException( "Parent view must provide IPgStandardUI service" );
 
 			BgColorDefault = _oStdUI.ColorsStandardAt( StdUIColors.BG );
+        }
+
+		protected class WinSlot :
+			IPgViewSite
+		{
+			protected readonly ViewStandardProperties _oHost;
+
+			public WinSlot( ViewStandardProperties oHost ) {
+				_oHost = oHost ?? throw new ArgumentNullException();
+			}
+
+			public IPgParent Host => _oHost;
+
+			public void LogError(string strMessage, string strDetails, bool fShow=true) {
+				_oHost._oSiteView.LogError( strMessage, strDetails );
+			}
+
+			public void Notify( ShellNotify eEvent ) {
+				_oHost._oSiteView.Notify( eEvent );
+			}
+
+            public IPgViewNotify EventChain => _oHost._oSiteView.EventChain;
         }
 
         public void PropertyInitRow( SmartTable oLayout, int iIndex, EditWindow2 oWinValue = null ) {

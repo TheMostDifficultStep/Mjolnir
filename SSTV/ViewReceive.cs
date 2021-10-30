@@ -229,6 +229,34 @@ namespace Play.SSTV {
 		}
     }
 
+    /// <summary>
+	/// Little experiment for the property page of the receiver viewer.
+    /// </summary>
+    public class ViewRXProperties : 
+        ViewStandardProperties
+     {
+        public DocSSTV SSTVDocument { get; }
+
+		public ViewRXProperties( IPgViewSite oViewSite, DocSSTV docSSTV, DocProperties docProperties ) : base( oViewSite, docProperties ) {
+			SSTVDocument = docSSTV ?? throw new ArgumentNullException( "docSSTV" );
+		}
+
+        public override void InitRows()
+        {
+            if( Layout2 is SmartTable oTable ) {
+                foreach( RxProperties.Names eName in Enum.GetValues(typeof(RxProperties.Names)) ) {
+                    switch( eName ) {
+                        //case RxProperties.Names.RxPort:
+                        //    PropertyInitRow( oTable, (int)eName, new CheckList( new WinSlot( this ), SSTVDocument.PortRxList ) );
+                        //    break;
+                        default:
+                            PropertyInitRow( oTable, (int)eName ); // This creates a regular cacheline.
+                            break;
+                    }
+                }
+            }
+        }
+    }
 	/// <summary>
 	/// This view shows the single image being downloaded from the audio stream. 
 	/// </summary>
@@ -396,13 +424,12 @@ namespace Play.SSTV {
 		public object Decorate(IPgViewSite oBaseSite,Guid sGuid) {
 			try {
 				if( sGuid.Equals(GlobalDecorations.Properties) ) {
-					return new ViewSSTVProperties( oBaseSite, _oDocSSTV.RxProperties );
-				}
-				if( sGuid.Equals( GlobalDecorations.Options ) ) {
-					// Need to hook up event to chatch mode change.
-					return new CheckList( oBaseSite, _oDocSSTV.RxModeList );
+					return new ViewStandardProperties( oBaseSite, _oDocSSTV.RxProperties );
 				}
 				if( sGuid.Equals( GlobalDecorations.Outline ) ) {
+					return new CheckList( oBaseSite, _oDocSSTV.RxModeList );
+				}
+				if( sGuid.Equals( GlobalDecorations.Options ) ) {
 					return new TextDirView( oBaseSite, _oDocSSTV );
 				}
 				return false;
