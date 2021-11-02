@@ -224,7 +224,6 @@ namespace Play.SSTV {
         SSTVMode,
         FFT,
         TXImageChanged,
-		RXImageNew,
 		DownLoadTime,
         DownLoadFinished,
         ThreadDrawingException,
@@ -589,6 +588,9 @@ namespace Play.SSTV {
                 return false;
             
             
+		    SyncImage   .Bitmap = new SKBitmap( 800, 616, SKColorType.Rgb888x, SKAlphaType.Unknown );
+		    ReceiveImage.Bitmap = new SKBitmap( 800, 616, SKColorType.Rgb888x, SKAlphaType.Opaque  );
+
             new ParseHandlerText( Properties.Property_Values, "text" );
 
             SettingsInit();
@@ -904,19 +906,14 @@ namespace Play.SSTV {
                             RxModeList.CheckedLine = RxModeList[0];
                            _oThread = null;
                             yield break;
-                        case SSTVEvents.RXImageNew:
-                            // The recievers of the images will dispose their previous contents
-                            // if the new bitmap does NOT match the current one held.
-			                ReceiveImage.Bitmap = oWorker.SSTVDraw._pBitmapRX; 
-			                SyncImage   .Bitmap = oWorker.SSTVDraw._pBitmapD12; 
-
-                            PropertyChange?.Invoke( SSTVEvents.RXImageNew );
-                            break;
                         case SSTVEvents.SSTVMode: 
                             {
                                 SSTVMode oWorkerMode = oWorker.NextMode;
                                 if( oWorkerMode == null )
                                     break;
+
+			                    ReceiveImage.WorldDisplay = new SKRectI( 0, 0, oWorkerMode.Resolution.Width, oWorkerMode.Resolution.Height );
+
                                 foreach( Line oLine in RxModeList ) {
                                     if( oLine.Extra is SSTVMode oMode ) {
                                         if( oMode.LegacyMode == oWorkerMode.LegacyMode ) {
@@ -981,7 +978,7 @@ namespace Play.SSTV {
                 return;
             }
             if( _oThread == null && _oWorkPlace.Status == WorkerStatus.FREE ) {
-                ThreadWorker oWorker        = new ThreadWorker( _rgBGtoUIQueue, strFileName, ChosenMode );
+                ThreadWorker oWorker        = new ThreadWorker( _rgBGtoUIQueue, strFileName, ChosenMode, SyncImage.Bitmap, ReceiveImage.Bitmap );
                 ThreadStart  threadDelegate = new ThreadStart ( oWorker.DoWork );
 
                 _oThread = new Thread( threadDelegate );
@@ -1063,7 +1060,8 @@ namespace Play.SSTV {
                         _rgUItoBGQueue.Enqueue( new TVMessage( TVMessage.Message.TryNewMode, RxModeList.CheckedLine.Extra ) );
                     }
 
-                    ThreadWorker2 oWorker        = new ThreadWorker2( _oWaveIn.WaveFormat, _rgBGtoUIQueue, _rgDataQueue, _rgUItoBGQueue );
+                    ThreadWorker2 oWorker        = new ThreadWorker2( _oWaveIn.WaveFormat, _rgBGtoUIQueue, _rgDataQueue, 
+                                                                      _rgUItoBGQueue, SyncImage.Bitmap, ReceiveImage.Bitmap );
                     ThreadStart   threadDelegate = new ThreadStart  ( oWorker.DoWork );
 
                     _oThread = new Thread( threadDelegate );
@@ -1185,10 +1183,8 @@ namespace Play.SSTV {
 
             _oRxSSTV.OnModeTransition_SSTVMod( tvMode ); // bitmap allocated in here. (may throw exception...)
 
-			ReceiveImage.Bitmap = _oRxSSTV._pBitmapRX;
-			SyncImage   .Bitmap = _oRxSSTV._pBitmapD12;
+			ReceiveImage.WorldDisplay = new SKRectI( 0, 0, tvMode.Resolution.Width, tvMode.Resolution.Height );
 
-			Raise_PropertiesUpdated( SSTVEvents.RXImageNew );
             foreach( Line oLine in RxModeList ) {
                 if( oLine.Extra is SSTVMode oLineMode ) {
                     if( oLineMode.LegacyMode == tvMode.LegacyMode )
@@ -1278,7 +1274,7 @@ namespace Play.SSTV {
 																	 oFFTMode.SampFreq, 
 																	 oFFTMode.SampBase, 
 																	 0 );
-						    _oRxSSTV                = new SSTVDraw( oDemod );
+						    _oRxSSTV                = new SSTVDraw( oDemod, SyncImage.Bitmap, ReceiveImage.Bitmap );
 						    _oRxSSTV.Send_TvEvents += OnTvEvents_RxSSTV; // Since non-threaded, this is ok.
 
 						    _oSSTVDeModulator = oDemod;
@@ -1342,7 +1338,7 @@ namespace Play.SSTV {
 															        0 );
 					    _oSSTVDeModulator = oDemodTst;
 					    _oSSTVModulator   = new SSTVMOD( 0, oFFTMode.SampFreq, _oSSTVBuffer );
-					    _oRxSSTV          = new SSTVDraw ( _oSSTVDeModulator );
+					    _oRxSSTV          = new SSTVDraw ( _oSSTVDeModulator, SyncImage.Bitmap, ReceiveImage.Bitmap );
 
 					    _oSSTVGenerator = oMode.Family switch {
 						    TVFamily.PD      => new GeneratePD     ( _oDocSnip.Bitmap, oDemodTst, oMode ),

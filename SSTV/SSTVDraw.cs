@@ -282,8 +282,8 @@ namespace Play.SSTV {
 		SKCanvas _skD12Canvas;
 		SKPaint  _skPaint;
 
-		public SKBitmap _pBitmapRX  { get; protected set; } 
-		public SKBitmap _pBitmapD12 { get; } = new SKBitmap( 800, 616, SKColorType.Rgb888x, SKAlphaType.Unknown );
+		public SKBitmap _pBitmapRX  { get; } 
+		public SKBitmap _pBitmapD12 { get; }
 		// Looks like were only using grey scale on the D12. Look into turning into greyscale later.
 		// Need to look into the greyscale calibration height of bitmap issue. (+16 scan lines)
 		// The D12 bitmap must always be >= to the RX bmp height.
@@ -312,8 +312,10 @@ namespace Play.SSTV {
 		/// Techically we dont need all of the demodulator but only access to the signal
 		/// and sync buffer and some signal levels. I'll see about that in the future.
 		/// </remarks>
-		public SSTVDraw( SSTVDEM p_dp ) {
-			_dp       = p_dp ?? throw new ArgumentNullException( "Demodulator must not be null to SSTVDraw." );
+		public SSTVDraw( SSTVDEM p_dp, SKBitmap oD12, SKBitmap oRx ) {
+			_dp         = p_dp ?? throw new ArgumentNullException( "Demodulator must not be null to SSTVDraw." );
+			_pBitmapD12 = oD12 ?? throw new ArgumentNullException( "D12 bmp must not be null" );
+			_pBitmapRX  = oRx  ?? throw new ArgumentNullException( "D12 bmp must not be null" );
 
 			_skD12Canvas = new( _pBitmapD12 );
 			_skPaint  = new() { Color = SKColors.Red, StrokeWidth = 1 };
@@ -370,23 +372,6 @@ namespace Play.SSTV {
 
 			Send_TvEvents?.Invoke(SSTVEvents.SSTVMode );
 
-			if( _pBitmapRX == null ||
-				_dp.Mode.Resolution.Width  != _pBitmapRX.Width ||
-				_dp.Mode.Resolution.Height != _pBitmapRX.Height   )
-			{
-				// Don't dispose! The UI thread might be referencing the object for read. Instead
-				// We'll just drop it and let the UI do that when it catches up and let the GC
-				// clean up. Given we're not creating these like wild fire I think we won't have
-				// too much memory floating around.
-				//if( _pBitmapRX != null )
-				//	_pBitmapRX.Dispose(); // <--- BUG: Right here, UI thread will be in trouble if still reading...
-				_pBitmapRX = new SKBitmap( _dp.Mode.Resolution.Width, 
-										   _dp.Mode.Resolution.Height, 
-										   SKColorType.Rgb888x, 
-										   SKAlphaType.Opaque );
-
-				Send_TvEvents?.Invoke( SSTVEvents.RXImageNew );
-			}
             //using SKCanvas sKCanvas = new(_pBitmapRX);
             //sKCanvas.Clear(SKColors.Gray);
             _skD12Canvas.Clear();
