@@ -387,6 +387,9 @@ namespace Play.SSTV {
 
 				Send_TvEvents?.Invoke( SSTVEvents.RXImageNew );
 			}
+            //using SKCanvas sKCanvas = new(_pBitmapRX);
+            //sKCanvas.Clear(SKColors.Gray);
+            _skD12Canvas.Clear();
 
 			StartTime = DateTime.Now;
         }
@@ -818,10 +821,10 @@ namespace Play.SSTV {
 		}
 
 		/// <summary>
-		/// Change the image parsing mode we are in. 
+		/// Catch the mode change event from the SSTVModulator.
 		/// </summary>
 		/// <param name="oMode"></param>
-		public void ModeTransition( SSTVMode oMode ) {
+		public void OnModeTransition_SSTVMod( SSTVMode oMode ) {
 			try {
                 _rgSlots.Clear();
 

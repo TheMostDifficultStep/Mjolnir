@@ -24,6 +24,7 @@ namespace Play.SSTV
         public SSTVDEM  SSTVDeModulator { get; protected set; }
 
         public virtual string SuggestedFileName => string.Empty;
+        public virtual bool   IsForever         => false;
 
         public ThreadWorkerBase( ConcurrentQueue<SSTVEvents> oMsgQueue ) {
             _oMsgQueue = oMsgQueue ?? throw new ArgumentNullException( "Queue is null" );
@@ -140,7 +141,7 @@ namespace Play.SSTV
         /// separate out those events.</remarks>
         private void Listen_NextRxMode( SSTVMode tvMode ) {
             try {
-                SSTVDraw.ModeTransition( tvMode ); // bitmap allocated in here.
+                SSTVDraw.OnModeTransition_SSTVMod( tvMode ); // bitmap allocated in here.
             } catch( ArgumentOutOfRangeException ) {
             }
         }
@@ -150,6 +151,8 @@ namespace Play.SSTV
         protected readonly ConcurrentQueue<double>    _oDataQueue; 
         protected readonly WaveFormat                 _oDataFormat;
         protected readonly ConcurrentQueue<TVMessage> _oOutQueue;
+
+        public override bool IsForever => true;
 
         public override string SuggestedFileName {
             get {
@@ -253,7 +256,7 @@ namespace Play.SSTV
 			    SSTVDraw         = new SSTVDraw( SSTVDeModulator );
 
                 // Set the callbacks first since Start() will try to use the callback.
-                SSTVDeModulator.Send_NextMode += new NextMode( SSTVDraw.ModeTransition );
+                SSTVDeModulator.Send_NextMode += new NextMode( SSTVDraw.OnModeTransition_SSTVMod );
                 SSTVDraw       .Send_TvEvents += OnTvEvents_SSTVDraw;
             } catch( Exception oEx ) {
                 if( _rgInitErrors.IsUnhandled( oEx ) )

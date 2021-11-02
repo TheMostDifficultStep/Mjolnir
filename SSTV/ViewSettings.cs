@@ -61,6 +61,9 @@ namespace Play.SSTV {
                         case StdProperties.Names.TxPort:
                             PropertyInitRow( oTable, (int)eName, new CheckList( new WinSlot( this ), SSTVDocument.PortTxList ) );
                             break;
+                        case StdProperties.Names.MnPort:
+                            PropertyInitRow( oTable, (int)eName, new CheckList( new WinSlot( this ), SSTVDocument.MonitorList ) );
+                            break;
                         case StdProperties.Names.RxPort:
                             PropertyInitRow( oTable, (int)eName, new CheckList( new WinSlot( this ), SSTVDocument.PortRxList ) );
                             break;

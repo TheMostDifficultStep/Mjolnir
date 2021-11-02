@@ -155,6 +155,7 @@ namespace Play.SSTV {
 
     public class StdProperties : DocProperties {
         public enum Names : int {
+            MnPort,
 			TxPort,
             RxPort,
             Quality,
@@ -172,9 +173,11 @@ namespace Play.SSTV {
                 Property_Values.LineAppend( string.Empty, fUndoable:false );
             }
 
-            LabelSet( Names.TxPort,        "Transmit to Device" );
-            LabelSet( Names.RxPort,        "Receive from Device" );
-            LabelSet( Names.Quality,       "Image Save Quality" );
+            // TODO: Need a way to clear the monitor check if don't want.
+            LabelSet( Names.MnPort,  "Monitor with Device" );
+            LabelSet( Names.TxPort,  "Transmit  to Device" );
+            LabelSet( Names.RxPort,  "Receive from Device" );
+            LabelSet( Names.Quality, "Image Save Quality" );
 
             InitValues();
 
@@ -317,6 +320,7 @@ namespace Play.SSTV {
         public StdProperties Properties { get; }
         public FileChooser   RecChooser { get; } // Recorded wave files.
 
+        public Editor              MonitorList   { get; }
         public Editor              PortTxList    { get; } 
         public Editor              PortRxList    { get; }
         public Editor              RxDirectory   { get; } // Files in the receive directory.
@@ -369,8 +373,10 @@ namespace Play.SSTV {
             TxImageList  = new ImageWalkerDir( new DocSlot( this ) );
             _oDocSnip    = new ImageSoloDoc  ( new DocSlot( this ) );
             RxDirectory  = new Editor        ( new DocSlot( this ) );
+
             PortTxList   = new Editor        ( new DocSlot( this ) );
             PortRxList   = new Editor        ( new DocSlot( this ) );
+            MonitorList  = new Editor        ( new DocSlot( this ) );
 
 			ReceiveImage = new ImageSoloDoc( new DocSlot( this ) );
 			SyncImage    = new ImageSoloDoc( new DocSlot( this ) );
@@ -567,6 +573,9 @@ namespace Play.SSTV {
 				return false;
             if( !RxDirectory .InitNew() )
                 return false;
+
+            if( !MonitorList .InitNew() )
+                return false;
             if( !PortTxList.InitNew() )
                 return false;
             if( !PortRxList.InitNew() ) 
@@ -608,7 +617,8 @@ namespace Play.SSTV {
 			IEnumerator<string> iterOutput = MMHelpers.GetOutputDevices();
 
 			for( int iCount = -1; iterOutput.MoveNext(); ++iCount ) {
-                PortTxList.LineAppend( iterOutput.Current, fUndoable:false );
+                PortTxList .LineAppend( iterOutput.Current, fUndoable:false );
+                MonitorList.LineAppend( iterOutput.Current, fUndoable:false );
 			}
 
             IEnumerator<string> iterInput = MMHelpers.GetInputDevices();
@@ -872,8 +882,9 @@ namespace Play.SSTV {
         /// </summary>
         public IEnumerator<int> GetTaskThreadListener( ThreadWorkerBase oWorker ) {
             while( _oThread != null ) {
-                if( !_oThread.IsAlive ) {
-                    // The file read thread terminates after file read. Catch that here.
+                if( !_oThread.IsAlive && oWorker.IsForever) {
+                    // We don't expect forever threads, like listening to audio to suddenly die 
+                    // without some sort of notification to us. Might be a problem to inspect.
                     RxProperties.ValueUpdate( RxProperties.Names.Progress, "Bailed", Broadcast:true );
                     RxModeList.HighLight   = null;
                     RxModeList.CheckedLine = RxModeList[0];
@@ -889,6 +900,8 @@ namespace Play.SSTV {
                             } else { 
                                 LogError( "Image Thread Abort." );
                             }
+                            RxModeList.HighLight   = null;
+                            RxModeList.CheckedLine = RxModeList[0];
                            _oThread = null;
                             yield break;
                         case SSTVEvents.RXImageNew:
@@ -923,6 +936,8 @@ namespace Play.SSTV {
                         case SSTVEvents.DownLoadFinished:
                             // NOTE: This might never come along!
                             DownloadFinished( oWorker.SuggestedFileName );
+                            if( !oWorker.IsForever )
+                                _oThread = null;
                             break;
                         case SSTVEvents.ThreadDiagnosticsException:
                             LogError( "Worker thread Diagnostics Exception" );
@@ -940,6 +955,19 @@ namespace Play.SSTV {
         }
 
         /// <summary>
+        /// Just get's the extra on the current checked line in the RxModeList 
+        /// available, else return null.
+        /// </summary>
+        public SSTVMode ChosenMode {
+            get {
+                if( RxModeList?.CheckedLine.Extra is SSTVMode oMode ) {
+                    return oMode;
+                }
+                return null;
+            }
+        }
+
+        /// <summary>
         /// This is our TRUE multithreading experiment! Looks like it works
         /// pretty well. The decoder and filters and all live in the bg thread.
         /// The foreground tread only polls the bitmap from time to time.
@@ -952,15 +980,8 @@ namespace Play.SSTV {
                 LogError( "Invalid filename for SSTV image read" );
                 return;
             }
-            if( _oThread == null ) {
-                SSTVMode oModeFixed = null;
-
-                // Note that this ModeList is the TX mode list. I think I want an RX list.
-                if( RxModeList.CheckedLine.Extra is SSTVMode oMode ) {
-                    oModeFixed = oMode;
-                }
-
-                ThreadWorker oWorker        = new ThreadWorker( _rgBGtoUIQueue, strFileName, oModeFixed );
+            if( _oThread == null && _oWorkPlace.Status == WorkerStatus.FREE ) {
+                ThreadWorker oWorker        = new ThreadWorker( _rgBGtoUIQueue, strFileName, ChosenMode );
                 ThreadStart  threadDelegate = new ThreadStart ( oWorker.DoWork );
 
                 _oThread = new Thread( threadDelegate );
@@ -980,9 +1001,11 @@ namespace Play.SSTV {
             _rgUItoBGQueue.Enqueue( new TVMessage( TVMessage.Message.ExitWorkThread ) );
             if( _oWaveOut != null ) {
                 _oWaveOut.Stop();
+                _oWaveOut = null;
             }
             if( _oWaveIn != null ) {
-                _oWaveIn.StopRecording();    
+                _oWaveIn.StopRecording();   
+                _oWaveIn = null;
             }
             _oThread = null;
             _oWorkPlace.Stop();
@@ -992,10 +1015,10 @@ namespace Play.SSTV {
         /// This is our 2'nd threaded receive but straight from the device this time.
         /// </summary>
         public void ReceiveLiveBegin() {
-            if( _oThread == null ) {
+            if( _oThread == null || !_oThread.IsAlive ) {
                 try {
                     int  iMicrophone = -1; 
-                    int  iSpeaker    = -1;
+                    int  iMonitor    = -1;
 
                     if( PortRxList.CheckedLine != null ) {
                         iMicrophone = PortRxList.CheckedLine.At;
@@ -1003,11 +1026,8 @@ namespace Play.SSTV {
                         LogError( "Please select an sound input device" );
                         return;
                     }
-                    if( PortTxList.CheckedLine != null ) {
-                        iSpeaker = PortTxList.CheckedLine.At;
-                    } else {
-                        LogError( "Please select an sound output device" );
-                        return;
+                    if( MonitorList.CheckedLine != null ) {
+                        iMonitor = MonitorList.CheckedLine.At;
                     }
 
                     if( _oWaveIn == null ) {
@@ -1018,10 +1038,18 @@ namespace Play.SSTV {
                         _oWaveIn.WaveFormat         = new WaveFormat( 8000, 16, 1 );
                         _oWaveIn.DataAvailable += OnDataAvailable_WaveIn;
                     }
-                    if( _oWaveOut == null ) {
-                        _oWaveOut = new WaveOut();
-                        _oWaveOut.DeviceNumber = iSpeaker;
+                    if( _oWaveBuf == null ) {
                         _oWaveBuf = new BufferedWaveProvider(_oWaveIn.WaveFormat);
+                    }
+                    if( _oWaveOut != null && iMonitor < 0 ) {
+                        if( _oWaveOut.PlaybackState == PlaybackState.Playing )
+                            _oWaveOut.Stop();
+                        _oWaveOut = null;
+                    }
+
+                    if( _oWaveOut == null && iMonitor >= 0 ) {
+                        _oWaveOut = new WaveOut();
+                        _oWaveOut.DeviceNumber = iMonitor;
                         _oWaveOut.Init( _oWaveBuf );
                     }
                     _oWaveReader = new BlockCopies( 1, 1, 0, _oWaveIn.WaveFormat.BitsPerSample );
@@ -1043,8 +1071,15 @@ namespace Play.SSTV {
 
                     _oWorkPlace.Queue( GetTaskThreadListener( oWorker ), 1 );
 
-                    _oWaveOut.Play();
-                    _oWaveIn .StartRecording();
+                    _oWaveBuf?.ClearBuffer();
+                    if( _oWaveOut != null ) {
+                        if( _oWaveOut.PlaybackState != PlaybackState.Playing )
+                            _oWaveOut?.Play();
+                    }
+                    if( _oWaveIn != null ) {
+                        _oWaveIn.StopRecording();
+                        _oWaveIn.StartRecording();
+                    }
                 } catch( Exception oEx ) {
                     Type[] rgErrors = { typeof( NullReferenceException ),
                                         typeof( ArgumentNullException ),
@@ -1066,7 +1101,7 @@ namespace Play.SSTV {
         private void OnDataAvailable_WaveIn( object sender, WaveInEventArgs e ) {
             try {
                 // This is the one that can return InvalidOperationException
-                _oWaveBuf.AddSamples( e.Buffer, 0, e.BytesRecorded );
+                _oWaveBuf?.AddSamples( e.Buffer, 0, e.BytesRecorded );
 
                 // No use stuffing the data queue if there's no thread to pick it up.
                 if( _oThread != null ) {
@@ -1148,7 +1183,7 @@ namespace Play.SSTV {
 			ReceiveImage.Bitmap = null;
 			SyncImage   .Bitmap = null;
 
-            _oRxSSTV.ModeTransition( tvMode ); // bitmap allocated in here. (may throw exception...)
+            _oRxSSTV.OnModeTransition_SSTVMod( tvMode ); // bitmap allocated in here. (may throw exception...)
 
 			ReceiveImage.Bitmap = _oRxSSTV._pBitmapRX;
 			SyncImage   .Bitmap = _oRxSSTV._pBitmapD12;
