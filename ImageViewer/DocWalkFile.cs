@@ -294,15 +294,31 @@ namespace Play.ImageViewer {
                     if( _skBitmap != null ) {
                         _skBitmap.Dispose();
                     }
+
                     _skBitmap = value;
-                    WorldDisplay = new SKRectI( 0, 0, _skBitmap.Width, _skBitmap.Height );
+
+                    if( _skBitmap != null ) {
+                        WorldDisplay = new SKRectI( 0, 0, _skBitmap.Width, _skBitmap.Height );
+                    } else {
+                        WorldDisplay = new SKRectI( 0, 0, 0, 0 );
+                    }
                 }
 		    }
         }
 
+        /// <summary>
+        /// The portion of the bitmap we want to show.
+        /// </summary>
         public SKRectI WorldDisplay { 
             get { return _skWorldDisplay; } 
             set { _skWorldDisplay = value; Raise_ImageUpdated(); } 
+        }
+
+        /// <summary>
+        /// Size of the world display of the contained bitmap.
+        /// </summary>
+        public SKSizeI Size {
+            get { return _skWorldDisplay.Size; }
         }
         
         public Bitmap    ErrorBitmap => _oBitmapUnknown;

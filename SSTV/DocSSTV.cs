@@ -158,7 +158,7 @@ namespace Play.SSTV {
             MnPort,
 			TxPort,
             RxPort,
-            Quality,
+            ImgQuality,
         }
 
         public StdProperties( IPgBaseSite oSiteBase ) : base( oSiteBase ) {
@@ -177,7 +177,7 @@ namespace Play.SSTV {
             LabelSet( Names.MnPort,  "Monitor with Device" );
             LabelSet( Names.TxPort,  "Transmit  to Device" );
             LabelSet( Names.RxPort,  "Receive from Device" );
-            LabelSet( Names.Quality, "Image Save Quality" );
+            LabelSet( Names.ImgQuality, "Image Save Quality" );
 
             InitValues();
 
@@ -188,7 +188,7 @@ namespace Play.SSTV {
         /// These are our default values. We'll look for them from a save file in the future.
         /// </summary>
         public void InitValues() {
-            ValueUpdate( StdProperties.Names.Quality, "80", true );
+            ValueUpdate( StdProperties.Names.ImgQuality, "80", true );
         }
 
         public void LabelSet( Names eName, string strLabel, SKColor? skBgColor = null ) {
@@ -1114,9 +1114,10 @@ namespace Play.SSTV {
 
 		private void SaveRxImage( string strFileName ) {
             try {
-                SKBitmap skBitmap = ReceiveImage.Bitmap;
-			    if( skBitmap == null )
-				    return;
+                using ImageSoloDoc oSnipDoc = new( new DocSlot( this ) );
+
+                if( !oSnipDoc.Load( ReceiveImage.Bitmap, ReceiveImage.WorldDisplay, ReceiveImage.Size ) )
+                    return;
 
                 // Figure out path and name of the file.
                 string strSaveDir = Path.GetDirectoryName( strFileName );
@@ -1131,7 +1132,7 @@ namespace Play.SSTV {
                 }
                 
                 // Clean up the file name. Tacky, but better than nothing.
-                TextLine oLine     = new( 0, strFileName );
+                TextLine oLine      = new( 0, strFileName );
                 string   strIllegal = @" []$%&{}<>*?/\!:;+|=~`" + "\"\'";
                 for( int i = 0; i< oLine.ElementCount; ++i ) {
                     foreach( char cBadChar in strIllegal ) {
@@ -1141,17 +1142,13 @@ namespace Play.SSTV {
                 }
                 strFileName = oLine.ToString();
 
-                // Get image quality.
-                if( !int.TryParse( Properties[StdProperties.Names.Quality], out int iQuality ) )
+                if( !int.TryParse( Properties[StdProperties.Names.ImgQuality], out int iQuality ) )
                     iQuality = 80;
 
-                string strFilePath = Path.Combine( strSaveDir, strFileName + ".png" );
+                string strFilePath = Path.Combine( strSaveDir, strFileName + ".jpg" );
+                using var stream   = File.OpenWrite( strFilePath );
 
-                // Can't use JPEG yet, bug in the SKIA to .net interface.
-			    using SKData  data   = skBitmap.Encode( SKEncodedImageFormat.Png, iQuality );
-                using var     stream = File.OpenWrite( strFilePath );
-
-                data.SaveTo(stream);
+                oSnipDoc.Save( stream );
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( NullReferenceException ),
                                     typeof( IOException ),
