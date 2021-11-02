@@ -226,14 +226,14 @@ namespace Play.SSTV {
         /// </summary>
         /// <returns></returns>
         public IEnumerator<double> GetEnumerator() {
-            do {
+            while( !_oDataQueue.IsEmpty ) {
                 // Basically there should always be data. If not then we're done.
                 if( _oDataQueue.TryDequeue( out double dblValue ) ) {
                     yield return dblValue;
                 } else {
                     throw new InvalidDataException( "Ran out of data" );
                 }
-            } while( !_oDataQueue.IsEmpty );
+            }
         }
 
         protected void CheckMessages() {

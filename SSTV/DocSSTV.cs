@@ -883,16 +883,17 @@ namespace Play.SSTV {
         /// for the file decode right now.
         /// </summary>
         public IEnumerator<int> GetTaskThreadListener( ThreadWorkerBase oWorker ) {
-            while( _oThread != null ) {
-                if( !_oThread.IsAlive && oWorker.IsForever) {
-                    // We don't expect forever threads, like listening to audio to suddenly die 
-                    // without some sort of notification to us. Might be a problem to inspect.
-                    RxProperties.ValueUpdate( RxProperties.Names.Progress, "Bailed", Broadcast:true );
-                    RxModeList.HighLight   = null;
-                    RxModeList.CheckedLine = RxModeList[0];
-                    _oThread = null;
-                    yield break;
-                }
+            while( true ) {
+                //if( !_oThread.IsAlive && oWorker.IsForever) {
+                //    // We don't expect forever threads, like listening to audio to suddenly die 
+                //    // without some sort of notification to us. Might be a problem to inspect.
+                //    RxProperties.ValueUpdate( RxProperties.Names.Progress, "Bailed", Broadcast:true );
+                //    RxModeList.HighLight   = null;
+                //    RxModeList.CheckedLine = RxModeList[0];
+                //    _oThread = null;
+                //    // should I turn the monitor off?
+                //    // yield break;
+                //}
 
                 while( _rgBGtoUIQueue.TryDequeue( out SSTVEvents eResult ) ) {
                     switch( eResult ) {
@@ -909,18 +910,22 @@ namespace Play.SSTV {
                         case SSTVEvents.SSTVMode: 
                             {
                                 SSTVMode oWorkerMode = oWorker.NextMode;
-                                if( oWorkerMode == null )
+                                if( oWorkerMode == null ) {
+                                    // We catch a null we're going back to listen mode.
+                                    RxModeList.HighLight   = null;
                                     break;
+                                }
 
 			                    ReceiveImage.WorldDisplay = new SKRectI( 0, 0, oWorkerMode.Resolution.Width, oWorkerMode.Resolution.Height );
+
+                                RxProperties.ValueUpdate( RxProperties.Names.Mode,   oWorkerMode.Name );
+                                RxProperties.ValueUpdate( RxProperties.Names.Width,  oWorkerMode.Resolution.Width .ToString() );
+                                RxProperties.ValueUpdate( RxProperties.Names.Height, oWorkerMode.Resolution.Height.ToString(), Broadcast:true );
 
                                 foreach( Line oLine in RxModeList ) {
                                     if( oLine.Extra is SSTVMode oMode ) {
                                         if( oMode.LegacyMode == oWorkerMode.LegacyMode ) {
                                             RxModeList.HighLight = oLine;
-                                            RxProperties.ValueUpdate( RxProperties.Names.Mode,   oMode.Name );
-                                            RxProperties.ValueUpdate( RxProperties.Names.Width,  oMode.Resolution.Width .ToString() );
-                                            RxProperties.ValueUpdate( RxProperties.Names.Height, oMode.Resolution.Height.ToString(), Broadcast:true );
                                         }
                                     }
                                 }
@@ -1030,7 +1035,7 @@ namespace Play.SSTV {
                     if( _oWaveIn == null ) {
                         _oWaveIn = new WaveIn( WaveCallbackInfo.FunctionCallback() );
 
-                        _oWaveIn.BufferMilliseconds = 50;
+                        _oWaveIn.BufferMilliseconds = 250;
                         _oWaveIn.DeviceNumber       = iMicrophone;
                         _oWaveIn.WaveFormat         = new WaveFormat( 8000, 16, 1 );
                         _oWaveIn.DataAvailable += OnDataAvailable_WaveIn;
@@ -1109,6 +1114,7 @@ namespace Play.SSTV {
                 }
             } catch( InvalidOperationException ) {
                 // Looks like I can't call wavein.stop() from within the callback.
+                LogError( "Forground WaveIn DataAvailable failure." );
             }
         }
 
