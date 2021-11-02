@@ -349,20 +349,27 @@ namespace Play.Rectangles {
             Raise_OnSize(rctOld);
         }
 
-        public SmartRect Copy
-        {
-            get
-            {
+        public void CopyFrom( SKRectI rctSource ) {
+            SmartRect rctOld = new SmartRect(m_rgiCur);
+
+            m_rgiCur[(int)SIDE.LEFT]   = rctSource.Left;
+            m_rgiCur[(int)SIDE.TOP]    = rctSource.Top;
+            m_rgiCur[(int)SIDE.RIGHT]  = rctSource.Right;
+            m_rgiCur[(int)SIDE.BOTTOM] = rctSource.Bottom;
+
+            Raise_OnSize(rctOld);
+        }
+
+        public SmartRect Copy {
+            get {
                 return (new SmartRect(m_rgiCur));
             }
-            set
-            {
+            set {
                 // Save our old dimensions first...
                 SmartRect rctOld = new SmartRect(m_rgiCur);
 
                 // Copy into us.
-                for (int i = 0; i < 4; ++i)
-                {
+                for (int i = 0; i < 4; ++i) {
                     m_rgiCur[i] = value.m_rgiCur[i];
                 }
 

@@ -300,7 +300,7 @@ namespace Play.ImageViewer {
         protected virtual void OnImageUpdated() {
             try {
 				if( Document.Bitmap != null ) {
-					_rctWorldPort.SetRect( LOCUS.UPPERLEFT, 0, 0, Document.Bitmap.Width, Document.Bitmap.Height);
+					_rctWorldPort.CopyFrom( Document.WorldDisplay );
 				} else {
 					_rctWorldPort.SetRect( LOCUS.UPPERLEFT, 0, 0, 0, 0 );
 				}
