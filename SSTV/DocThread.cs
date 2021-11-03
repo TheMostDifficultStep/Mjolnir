@@ -236,12 +236,12 @@ namespace Play.SSTV {
             }
         }
 
-        protected void CheckMessages() {
+        protected bool CheckMessages() {
             while( _oOutQueue.TryDequeue( out TVMessage oMsg ) ) {
                 switch( oMsg._eMsg ) {
                     case TVMessage.Message.ExitWorkThread:
                         _oToUIQueue.Enqueue( SSTVEvents.ThreadExit );
-                        return;
+                        return false;
                     case TVMessage.Message.TryNewMode:
                         if( oMsg._oParam is SSTVMode oMode ) {
                             SSTVDeModulator.Start( oMode );
@@ -251,6 +251,7 @@ namespace Play.SSTV {
                         break;
                 }
             }
+            return true;
         }
 
         /// <summary>
@@ -276,16 +277,14 @@ namespace Play.SSTV {
             }
 
             try {
-                do {
-                    Thread.Sleep( 250 );
-
-                    CheckMessages();
-
+                while( CheckMessages() ) {
                     foreach( double dblValue in this )
                         SSTVDeModulator.Do( dblValue );
 
                     SSTVDraw.Process();
-                } while( true );
+
+                    Thread.Sleep( 250 );
+                };
 			} catch( Exception oEx ) {
                 if( _rgLoopErrors.IsUnhandled( oEx ) )
                     throw;
