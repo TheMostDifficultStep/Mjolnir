@@ -878,6 +878,10 @@ namespace Mjolnir {
 			// BUG: These belong in Dispose() method.
 			DecorFont       .Dispose();
             ToolsBrushActive.Dispose();
+
+            foreach( IDocSlot oSlot in Document.DocSlots ) {
+                oSlot.Dispose();
+            }
         }
 
         public string VersionInfo {
