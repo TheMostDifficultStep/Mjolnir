@@ -353,14 +353,14 @@ namespace Play.SSTV {
 
             _oDocSSTV.PropertyChange             += OnPropertyChange_DocSSTV;
             _oDocSSTV.RecChooser.DirectoryChange += OnDirectoryChange_Chooser;
-            _oDocSSTV.RxModeList.CheckedEvent    += OnCheckedEvent_ModeList;
+            _oDocSSTV.RxModeList.CheckedEvent    += OnCheckedEvent_RxModeList;
 
 			// Of course we'll blow up the shell if try in the constructor...
 			OnDirectoryChange_Chooser( _oDocSSTV.RecChooser.CurrentDirectory );
 			return true;
         }
 
-        private void OnCheckedEvent_ModeList( Line oLineChecked ) {
+        private void OnCheckedEvent_RxModeList( Line oLineChecked ) {
 			_oDocSSTV.RequestModeChange( oLineChecked.Extra as SSTVMode );
         }
 

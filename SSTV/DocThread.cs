@@ -110,8 +110,8 @@ namespace Play.SSTV {
                 SSTVDeModulator = new SSTVDEM ( new SYSSET(), oFFTMode.SampFreq );;
 			    SSTVDraw        = new SSTVDraw( SSTVDeModulator, _oD12Bmp, _oRxBmp );
 
-                SSTVDeModulator.Send_NextMode += Listen_NextRxMode;
-                SSTVDraw       .Send_TvEvents += Listen_TvEvents;
+                SSTVDeModulator.Send_NextMode += OnNextMode_SSTVDemo;
+                SSTVDraw       .Send_TvEvents += OnTVEvents_SSTVDraw;
 
                 for( IEnumerator<int> oIter = GetReceiveFromFileTask( oStream ); oIter.MoveNext(); ) {
                     SSTVDraw.Process();
@@ -133,8 +133,8 @@ namespace Play.SSTV {
         /// Listen to the SSTVDraw object. I can probably stop listening to the decoder
         /// and have it do that directly.
         /// </summary>
-        /// <seealso cref="Listen_NextRxMode"/>
-        private void Listen_TvEvents( SSTVEvents eProp ) {
+        /// <seealso cref="OnNextMode_SSTVDemo"/>
+        private void OnTVEvents_SSTVDraw( SSTVEvents eProp ) {
             _oToUIQueue.Enqueue( eProp );
         }
 
@@ -146,9 +146,9 @@ namespace Play.SSTV {
         /// <remarks>The bitmap only changes when the mode changes and
         /// the next image isn't necessarily a different mode. I need to
         /// separate out those events.</remarks>
-        private void Listen_NextRxMode( SSTVMode tvMode ) {
+        private void OnNextMode_SSTVDemo( SSTVMode tvMode ) {
             try {
-                SSTVDraw.OnModeTransition_SSTVMod( tvMode ); // bitmap allocated in here.
+                SSTVDraw.OnModeTransition_SSTVMod( tvMode ); 
             } catch( ArgumentOutOfRangeException ) {
             }
         }

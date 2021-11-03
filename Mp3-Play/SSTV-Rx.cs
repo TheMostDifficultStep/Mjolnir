@@ -1064,6 +1064,10 @@ namespace Play.Sound {
 
 			m_Skip = 0;
 			SetWidth( false );
+
+			Mode = null;
+
+			Send_NextMode?.Invoke( Mode );
 		}
 
 		/// <summary>

@@ -810,6 +810,12 @@ namespace Play.SSTV {
 		/// </summary>
 		/// <param name="oMode"></param>
 		public void OnModeTransition_SSTVMod( SSTVMode oMode ) {
+			if( oMode == null ) {
+				RenderDiagnosticsOverlay();
+				Send_TvEvents?.Invoke( SSTVEvents.SSTVMode );
+				return;
+			}
+
 			try {
                 _rgSlots.Clear();
 

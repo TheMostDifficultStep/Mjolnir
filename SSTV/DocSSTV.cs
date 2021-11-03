@@ -331,6 +331,8 @@ namespace Play.SSTV {
         public TxProperties        TxProperties  { get; }
         public SKBitmap            TxBitmap      => TxImageList.Bitmap;
 
+        protected WorkerStatus _eWorkStatus = WorkerStatus.FREE;
+
         protected readonly ImageSoloDoc  _oDocSnip;   // Clip the image.
 
         protected Mpg123FFTSupport FileDecoder   { get; set; }
@@ -659,7 +661,7 @@ namespace Play.SSTV {
 		protected void PropertiesRxTime( int iPercent ) {
             RxProperties.ValueUpdate( RxProperties.Names.Progress, iPercent.ToString() + "%", Broadcast:true );
 		}
-		protected void PropertiesSendTime() {
+		protected void PropertiesTxSendTime() {
             TxProperties.ValueUpdate( TxProperties.Names.Progress, PercentTxComplete.ToString() + "%", Broadcast:true );
 		}
 
@@ -773,7 +775,7 @@ namespace Play.SSTV {
         protected void Raise_PropertiesUpdated( SSTVEvents eProp ) {
             switch( eProp ) {
                 case SSTVEvents.UploadTime:
-                    PropertiesSendTime();
+                    PropertiesTxSendTime();
                     break;
                 default:
                     PropertiesTxReLoad();
@@ -905,14 +907,19 @@ namespace Play.SSTV {
                             }
                             RxModeList.HighLight   = null;
                             RxModeList.CheckedLine = RxModeList[0];
+                            _eWorkStatus = WorkerStatus.FREE;
                            _oThread = null;
                             yield break;
                         case SSTVEvents.SSTVMode: 
                             {
+                                // this is a little evil asking the worker the mode that might
+                                // be different by the time we process the event. Might want a
+                                // parameter on the message.
                                 SSTVMode oWorkerMode = oWorker.NextMode;
                                 if( oWorkerMode == null ) {
                                     // We catch a null we're going back to listen mode.
                                     RxModeList.HighLight   = null;
+                                    _eWorkStatus = WorkerStatus.FREE;
                                     break;
                                 }
 
@@ -921,6 +928,7 @@ namespace Play.SSTV {
                                 RxProperties.ValueUpdate( RxProperties.Names.Mode,   oWorkerMode.Name );
                                 RxProperties.ValueUpdate( RxProperties.Names.Width,  oWorkerMode.Resolution.Width .ToString() );
                                 RxProperties.ValueUpdate( RxProperties.Names.Height, oWorkerMode.Resolution.Height.ToString(), Broadcast:true );
+                                _eWorkStatus = WorkerStatus.BUSY;
 
                                 foreach( Line oLine in RxModeList ) {
                                     if( oLine.Extra is SSTVMode oMode ) {
@@ -933,22 +941,27 @@ namespace Play.SSTV {
                         case SSTVEvents.DownLoadTime: 
                             // Might be nice to send the % as a number in the message.
                             PropertiesRxTime( oWorker.SSTVDraw.PercentRxComplete );
+                            _eWorkStatus = WorkerStatus.BUSY;
                             PropertyChange?.Invoke( SSTVEvents.DownLoadTime );
                             break;
                         case SSTVEvents.DownLoadFinished:
                             // NOTE: This might never come along!
+                            _eWorkStatus = WorkerStatus.FREE;
                             DownloadFinished( oWorker.SuggestedFileName );
                             if( !oWorker.IsForever )
                                 _oThread = null;
                             break;
                         case SSTVEvents.ThreadDiagnosticsException:
                             LogError( "Worker thread Diagnostics Exception" );
+                            _eWorkStatus = WorkerStatus.BUSY;
                             break;
                         case SSTVEvents.ThreadDrawingException:
                             LogError( "Worker thread Drawing Exception" );
+                            _eWorkStatus = WorkerStatus.BUSY;
                             break;
                         case SSTVEvents.ThreadWorkerException:
                             LogError( "Worker thread Exception" );
+                            _eWorkStatus = WorkerStatus.BUSY;
                             break;
                     }
                 }
@@ -1062,7 +1075,7 @@ namespace Play.SSTV {
 
                     // Note that this ModeList is the TX mode list. I think I want an RX list.
                     if( RxModeList.CheckedLine.Extra is SSTVMode oMode ) {
-                        _rgUItoBGQueue.Enqueue( new TVMessage( TVMessage.Message.TryNewMode, RxModeList.CheckedLine.Extra ) );
+                        RequestModeChange( oMode );
                     }
 
                     ThreadWorker2 oWorker        = new ThreadWorker2( _oWaveIn.WaveFormat, _rgBGtoUIQueue, _rgDataQueue, 
@@ -1361,7 +1374,11 @@ namespace Play.SSTV {
             }
         }
 
-		public WorkerStatus PlayStatus => _oWorkPlace.Status;
+		public WorkerStatus PlayStatus {
+            get {
+                return _eWorkStatus;
+            }
+        }
 
         public void TransmitStop() {
             TxModeList.HighLight = null;
