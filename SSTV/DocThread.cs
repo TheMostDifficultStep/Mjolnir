@@ -203,7 +203,7 @@ namespace Play.SSTV {
             base( oMsgQueue, oD12, oRx )
         {
             _oDataQueue  = oDataQueue ?? throw new ArgumentNullException( "oDataQueue" );
-            _oDataFormat = oFormat    ?? throw new ArgumentNullException( "oDataFormat" );
+            _oDataFormat = oFormat    ?? throw new ArgumentNullException( "oFormat" );
             _oOutQueue   = oOutQueue  ?? throw new ArgumentNullException( "oOutQueue" );
         }
 
@@ -217,12 +217,8 @@ namespace Play.SSTV {
         }
 
         /// <summary>
-        /// We actually see a "ran out of data" when the shell is closed and we don't get
-        /// a dispose event on the document which then would shut down this thread.
-        /// The thread is still running and then finds itself starved for data.
-        /// By sleeping the thread first, we give the system a chance to fill the
-        /// data buffer when we spin it up. And this thread stays alive until receiving a 
-        /// ExitWorkThread message, or if the thread becomes data starved.
+        /// I'd like to leverage this sytle of action to merge the File reader with 
+        /// the device listener. But my first attempt was a disaster!
         /// </summary>
         /// <returns></returns>
         public IEnumerator<double> GetEnumerator() {
@@ -259,7 +255,7 @@ namespace Play.SSTV {
         /// converter from this thread. The UI thread looks at the RX and 12 bitmaps
         /// from time to time. Errors are passed via message to the UI.
         /// </summary>
-        /// <remarks>I'll move this to the base class after I sort things out.</remarks>
+        /// <remarks>Would love to merge the two threadworkers a bit more but punt for now.</remarks>
         public void DoWork() {
             try {
 			    SSTVDeModulator  = new SSTVDEM ( new SYSSET(), _oDataFormat.SampleRate );

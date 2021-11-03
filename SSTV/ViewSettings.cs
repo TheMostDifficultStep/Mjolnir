@@ -40,7 +40,7 @@ namespace Play.SSTV {
         public DocSSTV SSTVDocument { get; }
 
         public ViewSettings( IPgViewSite oViewSite, DocSSTV oDocument ) :
-            base( oViewSite, oDocument.Properties ) 
+            base( oViewSite, oDocument.StdProperties ) 
         {
             SSTVDocument = oDocument; // Don't bother check for null, will have thrown by now see above...
             _oViewSite   = oViewSite;

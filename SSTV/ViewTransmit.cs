@@ -4,6 +4,7 @@ using System.Xml;
 using System.Collections.Generic;
 using System.Windows.Forms;
 using System.Reflection;
+using System.Text;
 
 using SkiaSharp;
 
@@ -29,19 +30,33 @@ namespace Play.SSTV {
 		public static Guid   ViewType { get; }  = new Guid( "{CED824F5-2C17-418C-9559-84D6B4F571FC}" );
 		public static string _strIcon =  "Play.SSTV.icons8_camera.png";
 
-		protected readonly IPgViewSite    _oSiteView;
-		protected readonly DocSSTV        _oDocSSTV;	 // Main document.
-		protected readonly ImageWindowSolo  _oViewImage;   // Show the currently selected image.
-		protected readonly ImageViewIcons _oViewChoices; // Show the image choices.
+		protected readonly IPgViewSite     _oSiteView;
+		protected readonly DocSSTV         _oDocSSTV;	  // Main document.
+		protected readonly ImageWindowSolo _oViewImage;   // Show the currently selected image.
+		protected readonly ImageViewIcons  _oViewChoices; // Show the image choices.
+		protected readonly string          _strBaseTitle = "MySSTV Transmit";
 
 		protected LayoutStack _oLayout = new LayoutStackVertical( 5 );
 
 		public IPgParent Parentage => _oSiteView.Host;
 		public IPgParent Services  => Parentage.Services;
 		public bool      IsDirty   => false;
-		public string    Banner    => "MySSTV Transmit : " + _oDocSSTV.TxImageList.CurrentDirectory;
 		public Image     Iconic    { get; }
 		public Guid      Catagory  => ViewType;
+
+        public string Banner {
+			get { 
+				StringBuilder sbBanner = new StringBuilder();
+
+				sbBanner.Append( _strBaseTitle );
+				if( _oDocSSTV.PortTxList.CheckedLine is Line oLine ) {
+					sbBanner.Append( " : " );
+					sbBanner.Append( oLine.ToString() );
+				}
+
+				return sbBanner.ToString();
+			} 
+		}
 
 		protected class SSTVWinSlot :
 			IPgViewSite,
@@ -150,6 +165,11 @@ namespace Play.SSTV {
 			switch( eProp ) {
 				case SSTVEvents.SSTVMode:
 					_oViewImage.Aspect = _oDocSSTV.Resolution;
+					break;
+				case SSTVEvents.DownLoadTime:
+					break;
+				default:
+					_oSiteView.Notify( ShellNotify.BannerChanged );
 					break;
 			}
         }

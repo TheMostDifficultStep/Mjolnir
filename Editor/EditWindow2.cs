@@ -590,7 +590,12 @@ namespace Play.Edit {
         /// </summary>
         /// <remarks>I'm going to keep this so I can check in on this.</remarks>
         protected override void OnHandleCreated(EventArgs e) {
-            base.OnHandleCreated(e);
+            try {
+                base.OnHandleCreated(e);
+            } catch( InvalidOperationException ) {
+                // Seeing weird failure now and again. Could be a delegate bailing.
+                // Since I don't know of any delegates of my own. I'm going to punt.
+            }
         }
 
         /// <summary>

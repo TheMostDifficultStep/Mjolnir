@@ -316,8 +316,8 @@ namespace Play.SSTV {
 
         public event SSTVPropertyChange PropertyChange;
 
-        public StdProperties Properties { get; }
-        public FileChooser   RecChooser { get; } // Recorded wave files.
+        public StdProperties StdProperties { get; }
+        public FileChooser   RecChooser    { get; } // Recorded wave files.
 
         public Editor              MonitorList   { get; }
         public Editor              PortTxList    { get; } 
@@ -384,7 +384,7 @@ namespace Play.SSTV {
 
             RxProperties = new ( new DocSlot( this ) );
             TxProperties = new ( new DocSlot( this ) );
-            Properties   = new ( new DocSlot( this ) );
+            StdProperties   = new ( new DocSlot( this ) );
             RecChooser   = new ( new DocSlot( this ) );
         }
 
@@ -585,7 +585,7 @@ namespace Play.SSTV {
             if( !PortRxList.InitNew() ) 
                 return false;
 
-            if( !Properties  .InitNew() )
+            if( !StdProperties  .InitNew() )
                 return false;
             if( !TxProperties.InitNew() )
                 return false;
@@ -596,7 +596,7 @@ namespace Play.SSTV {
 		    SyncImage   .Bitmap = new SKBitmap( 800, 616, SKColorType.Rgb888x, SKAlphaType.Unknown );
 		    ReceiveImage.Bitmap = new SKBitmap( 800, 616, SKColorType.Rgb888x, SKAlphaType.Opaque  );
 
-            new ParseHandlerText( Properties.Property_Values, "text" );
+            new ParseHandlerText( StdProperties.Property_Values, "text" );
 
             SettingsInit();
 
@@ -1165,7 +1165,7 @@ namespace Play.SSTV {
                 }
                 strFileName = oLine.ToString();
 
-                if( !int.TryParse( Properties[StdProperties.Names.ImgQuality], out int iQuality ) )
+                if( !int.TryParse( StdProperties[StdProperties.Names.ImgQuality], out int iQuality ) )
                     iQuality = 80;
 
                 string strFilePath = Path.Combine( strSaveDir, strFileName + ".jpg" );

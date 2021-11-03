@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Windows.Forms;
 using System.IO;
 using System.Reflection;
+using System.Text;
 
 using SkiaSharp;
 
@@ -81,18 +82,29 @@ namespace Play.SSTV {
 		public IPgParent Parentage => _oSiteView.Host;
 		public IPgParent Services  => Parentage.Services;
 		public bool      IsDirty   => false;
-		public string    Banner    { get; protected set; }
 		public Image     Iconic    { get; }
 		public Guid      Catagory  => GUID;
 
-		protected readonly string _strBannerBase = "Debug Receive Window : ";
+        public string Banner {
+			get { 
+				StringBuilder sbBanner = new StringBuilder();
+
+				sbBanner.Append( _strBaseTitle );
+				if( _oDocSSTV.PortRxList.CheckedLine is Line oLine ) {
+					sbBanner.Append( " : " );
+					sbBanner.Append( oLine.ToString() );
+				}
+
+				return sbBanner.ToString();
+			} 
+		}
+		protected readonly string _strBaseTitle = "Diagnostics Window : ";
 
         public ViewDiagnostics( IPgViewSite oViewSite, DocSSTV oDocument ) {
 			_oSiteView = oViewSite ?? throw new ArgumentNullException( "View requires a view site." );
 			_oDocSSTV  = oDocument ?? throw new ArgumentNullException( "View requires a document." );
 
 			Iconic = ImageResourceHelper.GetImageResource( Assembly.GetExecutingAssembly(), _strIcon );
-			Banner = _strBannerBase + _oDocSSTV.TxImageList.CurrentDirectory;
 
 		  //_oViewRx   = new ImageViewSingle( new SSTVWinSlot( this ), _oDocSSTV.ReceiveImage );
 			_oViewSync = new ImageViewSingle( new SSTVWinSlot( this ), _oDocSSTV.SyncImage );
@@ -135,8 +147,16 @@ namespace Play.SSTV {
         /// specific property in the future. You know, a color coded property, 
         /// light red or yellow on change would be a cool feature.</remarks>
         private void Listen_PropertyChange( SSTVEvents eProp ) {
-			//_oViewRx  .Refresh();
-			_oViewSync.Refresh();
+			switch( eProp ) {
+				case SSTVEvents.DownLoadFinished:
+				  //_oViewRx  .Refresh();
+					_oViewSync.Refresh();
+					break;
+				default:
+					Invalidate();
+					_oSiteView.Notify( ShellNotify.BannerChanged );
+					break;
+			}
         }
 
         public bool Load(XmlElement oStream) {
@@ -179,7 +199,6 @@ namespace Play.SSTV {
 
 		public bool Execute(Guid sGuid) {
 			if( sGuid == GlobalCommands.Play ) {
-				Banner = _strBannerBase + _oDocSSTV.RecChooser.CurrentFullPath;
 				_oSiteView.Notify( ShellNotify.BannerChanged );
 				_oDocSSTV.ReceiveFileReadBgThreadBegin( _oDocSSTV.RecChooser.CurrentFullPath );
 				return true;
@@ -276,7 +295,6 @@ namespace Play.SSTV {
 		public static string _strIcon =  "Play.SSTV.icons8_tv.png";
 
         public Guid   Catagory => GUID;
-        public string Banner   => _strBaseTitle + _strDirectory;
         public Image  Iconic   { get; protected set; }
         public bool   IsDirty  => false;
 
@@ -285,7 +303,6 @@ namespace Play.SSTV {
 		readonly  List<string>           _rgToolBox     = new() { "File", "Port" };
 		protected Tools                  _eToolSelected = Tools.File;
 		protected static readonly string _strBaseTitle  = "MySSTV Receive";
-		protected        string          _strDirectory  = string.Empty;
 
         DocSSTV _oDocSSTV;
 
@@ -328,6 +345,20 @@ namespace Play.SSTV {
             public uint SiteID => throw new NotImplementedException();
         }
 
+        public string Banner {
+			get { 
+				StringBuilder sbBanner = new StringBuilder();
+
+				sbBanner.Append( _strBaseTitle );
+				if( _oDocSSTV.PortRxList.CheckedLine is Line oLine ) {
+					sbBanner.Append( " : " );
+					sbBanner.Append( oLine.ToString() );
+				}
+
+				return sbBanner.ToString();
+			} 
+		}
+
 		public ViewRxImage( IPgViewSite oSiteBase, DocSSTV oDocSSTV ) : 
 			base( oSiteBase, oDocSSTV.ReceiveImage ) 
 		{
@@ -365,8 +396,7 @@ namespace Play.SSTV {
         }
 
         private void OnDirectoryChange_Chooser( string strDirectory ) {
-			_strDirectory = " : " + strDirectory;
-			_oSiteView.Notify( ShellNotify.BannerChanged );
+			// Not using this for now.
         }
 
         /// <summary>
@@ -382,6 +412,7 @@ namespace Play.SSTV {
 					break;
 				default:
 					Invalidate();
+					_oSiteView.Notify( ShellNotify.BannerChanged );
 					break;
 			}
         }
