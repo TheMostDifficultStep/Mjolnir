@@ -318,6 +318,12 @@ namespace Play.ImageViewer {
             Invalidate();
         }
 
+        protected override void OnMouseDown(MouseEventArgs e) {
+            base.OnMouseDown(e);
+
+            this.Select();
+		}
+
 		protected override void OnGotFocus(EventArgs e) {
 			base.OnGotFocus(e);
 		}

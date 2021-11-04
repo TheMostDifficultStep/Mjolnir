@@ -27,8 +27,8 @@ namespace Play.SSTV {
                     return new ViewDiagnostics(oBaseSite, oMySSTVDoc);
                 if( guidViewType == ViewTransmitSolo.GUID )
 					return new ViewTransmitSolo( oBaseSite, oMySSTVDoc );
-				if( guidViewType == ViewRxImage.GUID )
-					return new ViewRxImage( oBaseSite, oMySSTVDoc );
+				if( guidViewType == WindowReceiver.GUID )
+					return new WindowReceiver( oBaseSite, oMySSTVDoc );
 				if( guidViewType == ViewSettings.GUID )
 					return new ViewSettings( oBaseSite, oMySSTVDoc );
 				if( guidViewType == ViewTransmitModes ) {
@@ -36,7 +36,7 @@ namespace Play.SSTV {
 					return new CheckList( oBaseSite, oMySSTVDoc.RxModeList );
 				}
 
-				return new ViewRxImage( oBaseSite, oMySSTVDoc );
+				return new WindowReceiver( oBaseSite, oMySSTVDoc );
             } catch( Exception oEx ) {
 				// TODO: Stuff errors collection into the base controller.
                 Type[] rgErrors = { typeof( NullReferenceException ),

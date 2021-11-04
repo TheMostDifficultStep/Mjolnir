@@ -322,11 +322,11 @@ namespace Play.SSTV {
         public Editor              MonitorList   { get; }
         public Editor              PortTxList    { get; } 
         public Editor              PortRxList    { get; }
-        public Editor              RxDirectory   { get; } // Files in the receive directory.
         public Specification       RxSpec        { get; protected set; } = new Specification( 44100, 1, 0, 16 ); // Syncronous rc test, tx image 
         public ModeEditor          RxModeList    { get; }
         public ModeEditor          TxModeList    { get; }
         public ImageWalkerDir      TxImageList   { get; }
+        public ImageWalkerDir      RxImageList   { get; }
         public RxProperties        RxProperties  { get; }
         public TxProperties        TxProperties  { get; }
         public SKBitmap            TxBitmap      => TxImageList.Bitmap;
@@ -369,23 +369,23 @@ namespace Play.SSTV {
             _oSiteBase  = oSite ?? throw new ArgumentNullException( "Site must not be null" );
             _oWorkPlace = ((IPgScheduler)Services).CreateWorkPlace() ?? throw new ApplicationException( "Couldn't create a worksite from scheduler.");
 
-            RxModeList   = new ModeEditor    ( new DocSlot( this, "SSTV Rx Modes" ) );
-            TxModeList   = new ModeEditor    ( new DocSlot( this, "SSTV Tx Modes" ) );
-            TxImageList  = new ImageWalkerDir( new DocSlot( this ) );
-            _oDocSnip    = new ImageSoloDoc  ( new DocSlot( this ) );
-            RxDirectory  = new Editor        ( new DocSlot( this ) );
-
-            PortTxList   = new Editor        ( new DocSlot( this ) );
-            PortRxList   = new Editor        ( new DocSlot( this ) );
-            MonitorList  = new Editor        ( new DocSlot( this ) );
-
-			ReceiveImage = new ImageSoloDoc( new DocSlot( this ) );
-			SyncImage    = new ImageSoloDoc( new DocSlot( this ) );
-
-            RxProperties = new ( new DocSlot( this ) );
-            TxProperties = new ( new DocSlot( this ) );
-            StdProperties   = new ( new DocSlot( this ) );
-            RecChooser   = new ( new DocSlot( this ) );
+            RxModeList    = new ModeEditor    ( new DocSlot( this, "SSTV Rx Modes" ) );
+            TxModeList    = new ModeEditor    ( new DocSlot( this, "SSTV Tx Modes" ) );
+            TxImageList   = new ImageWalkerDir( new DocSlot( this ) );
+            RxImageList   = new ImageWalkerDir( new DocSlot( this ) );
+            _oDocSnip     = new ImageSoloDoc  ( new DocSlot( this ) );
+                          
+            PortTxList    = new Editor        ( new DocSlot( this ) );
+            PortRxList    = new Editor        ( new DocSlot( this ) );
+            MonitorList   = new Editor        ( new DocSlot( this ) );
+                          
+			ReceiveImage  = new ImageSoloDoc( new DocSlot( this ) );
+			SyncImage     = new ImageSoloDoc( new DocSlot( this ) );
+                          
+            RxProperties  = new ( new DocSlot( this ) );
+            TxProperties  = new ( new DocSlot( this ) );
+            StdProperties = new ( new DocSlot( this ) );
+            RecChooser    = new ( new DocSlot( this ) );
         }
 
         #region Dispose
@@ -575,8 +575,6 @@ namespace Play.SSTV {
 				return false;
 			if( !SyncImage   .InitNew() )
 				return false;
-            if( !RxDirectory .InitNew() )
-                return false;
 
             if( !MonitorList .InitNew() )
                 return false;
@@ -585,11 +583,11 @@ namespace Play.SSTV {
             if( !PortRxList.InitNew() ) 
                 return false;
 
-            if( !StdProperties  .InitNew() )
+            if( !StdProperties.InitNew() )
                 return false;
-            if( !TxProperties.InitNew() )
+            if( !TxProperties .InitNew() )
                 return false;
-            if( !RxProperties.InitNew() )
+            if( !RxProperties .InitNew() )
                 return false;
             
             
@@ -602,9 +600,14 @@ namespace Play.SSTV {
 
             string strMyDocs = Environment.GetFolderPath( Environment.SpecialFolder.MyDocuments );
             if( !TxImageList.LoadURL( strMyDocs ) ) {
-				LogError( "Couldn't find pictures directory for SSTV" );
+				LogError( "Couldn't find pictures tx directory for SSTV" );
                 return false;
 			}
+            string strMyPics = RxProperties[RxProperties.Names.SaveDir].ToString();
+            if( !RxImageList.LoadURL( strMyPics ) ) {
+				LogError( "Couldn't find pictures history directory for SSTV" );
+                return false;
+            }
 
             RxModeList.LineAppend( "Auto", fUndoable:false );
             LoadModes( SSTVDEM.EnumModes(), RxModeList, fAddResolution:false );
@@ -880,6 +883,13 @@ namespace Play.SSTV {
             RxModeList.CheckedLine = RxModeList[0];
 
             SaveRxImage( strFileName ); // Race condition possible, when image reused.
+
+            // Might need to change this directory depending on listening to device
+            // or loading from some random file location.
+            // RxProperties[RxProperties.Names.SaveDir] vs
+            // RecChooser.CurrentFullPath
+
+            RxImageList.LoadAgain( RxImageList.CurrentDirectory );
         }
 
         /// <summary>
@@ -1016,6 +1026,8 @@ namespace Play.SSTV {
         public void ReceiveLiveStop() {
             RxModeList.HighLight = null;
 
+            RxProperties.ValueUpdate( RxProperties.Names.Progress, "Stopping...", true );
+
             _rgUItoBGQueue.Enqueue( new TVMessage( TVMessage.Message.ExitWorkThread ) );
             if( _oWaveOut != null ) {
                 _oWaveOut.Stop();
@@ -1025,8 +1037,12 @@ namespace Play.SSTV {
                 _oWaveIn.StopRecording();   
                 _oWaveIn = null;
             }
+
+            RxProperties.ValueUpdate( RxProperties.Names.Progress, "Stopped: wav i/o.", true );
             _oThread = null;
             _oWorkPlace.Stop();
+
+            RxProperties.ValueUpdate( RxProperties.Names.Progress, "Stopped: all.", true );
         }
 
         /// <summary>
