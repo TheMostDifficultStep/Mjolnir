@@ -1016,6 +1016,7 @@ namespace Play.SSTV {
                 _oThread.Start();
 
                 _oWorkPlace.Queue( GetTaskThreadListener( oWorker ), 1 );
+                RxProperties.ValueUpdate( RxProperties.Names.Progress, "Start: File Read...", true );
             }
         }
 
@@ -1038,11 +1039,11 @@ namespace Play.SSTV {
                 _oWaveIn = null;
             }
 
-            RxProperties.ValueUpdate( RxProperties.Names.Progress, "Stopped: wav i/o.", true );
+            RxProperties.ValueUpdate( RxProperties.Names.Progress, "Stopped: Wav I/O.", true );
             _oThread = null;
             _oWorkPlace.Stop();
 
-            RxProperties.ValueUpdate( RxProperties.Names.Progress, "Stopped: all.", true );
+            RxProperties.ValueUpdate( RxProperties.Names.Progress, "Stopped: All.", true );
         }
 
         /// <summary>
@@ -1116,6 +1117,8 @@ namespace Play.SSTV {
                         _oWaveIn.StopRecording();
                         _oWaveIn.StartRecording();
                     }
+
+                    RxProperties.ValueUpdate( RxProperties.Names.Progress, "Start: Live.", true );
                 } catch( Exception oEx ) {
                     Type[] rgErrors = { typeof( NullReferenceException ),
                                         typeof( ArgumentNullException ),
