@@ -1048,8 +1048,8 @@ namespace Mjolnir {
                     break;
             }
 
-            DecorSideShuffle( iOrientation );
 			LayoutLoadShepardsAt( (SideIdentify)iOrientation ); // A shepard is coming or going. Was above the switch...
+            DecorSideShuffle( iOrientation );
 
             LayoutFrame();
 			Invalidate  ();
