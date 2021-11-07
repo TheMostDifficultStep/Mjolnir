@@ -84,7 +84,7 @@ namespace Play.Rectangles {
 
 	public abstract class LayoutStack : ParentRect
 	{
-		protected List<LayoutRect> _rgLayout = new List<LayoutRect>();
+		protected readonly List<LayoutRect> _rgLayout = new List<LayoutRect>();
 
 		public TRACK Direction { get; set; }
 

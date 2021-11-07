@@ -13,12 +13,12 @@ using SkiaSharp.Views.Desktop;
 using SkiaSharp;
 
 namespace Play.ImageViewer {
-	public enum ImageSoloTools : int {
+	public enum WindowSoloImageTools : int {
 		Select = 0,
 		Navigate
 	}
 
-    public class ImageWindowSolo : ImageViewSingle,
+    public class WindowSoloImageNav : ImageViewSingle,
         IPgLoad<XmlElement>,
         IPgSave<XmlDocumentFragment>,
         IPgCommandView,
@@ -29,9 +29,9 @@ namespace Play.ImageViewer {
 		protected class DocSlot :
 			IPgBaseSite
 		{
-			protected readonly ImageWindowSolo _oHost;
+			protected readonly WindowSoloImageNav _oHost;
 
-			public DocSlot( ImageWindowSolo oHost ) {
+			public DocSlot( WindowSoloImageNav oHost ) {
 				_oHost = oHost ?? throw new ArgumentNullException();
 			}
 
@@ -46,7 +46,7 @@ namespace Play.ImageViewer {
 		} // End class
 
 		protected class ViewSlot : DocSlot, IPgViewSite {
-			public ViewSlot( ImageWindowSolo oHost ) : base( oHost ) {
+			public ViewSlot( WindowSoloImageNav oHost ) : base( oHost ) {
 			}
 
 			public IPgViewNotify EventChain => _oHost._oViewSite.EventChain;
@@ -57,8 +57,8 @@ namespace Play.ImageViewer {
 		readonly ImageWalkerDoc _oDocWalker;
 		readonly IPgShellSite   _oSiteShell;
 
-		protected ImageSoloTools _eToolCurrent = ImageSoloTools.Navigate;
-		readonly  List<string>   _rgTools      = new List<string>();
+		protected WindowSoloImageTools _eToolCurrent = WindowSoloImageTools.Navigate;
+		readonly  List<string>         _rgTools      = new List<string>();
 
         readonly static Keys[] _rgHandledKeys = { Keys.PageDown, Keys.PageUp, Keys.Down,
                                                   Keys.Up, Keys.Right, Keys.Left, Keys.Back,
@@ -125,7 +125,7 @@ namespace Play.ImageViewer {
 
 		protected SmartGrabDrag _oSmartDrag = null; // See the base class for the SmartGrab.
 
-        public ImageWindowSolo( IPgViewSite oBaseSite, ImageWalkerDoc oDoc ) : base( oBaseSite, oDoc ) {
+        public WindowSoloImageNav( IPgViewSite oBaseSite, ImageWalkerDoc oDoc ) : base( oBaseSite, oDoc ) {
 			_oDocWalker = oDoc ?? throw new ArgumentNullException( "Document must not be null." );
 			_oSiteShell = oBaseSite as IPgShellSite ?? throw new ArgumentException( "Site must support IPgShellSite" );
 
@@ -431,8 +431,8 @@ namespace Play.ImageViewer {
 				return;
 			}
 
-			switch( (ImageSoloTools)ToolSelect ) {
-				case ImageSoloTools.Select:
+			switch( (WindowSoloImageTools)ToolSelect ) {
+				case WindowSoloImageTools.Select:
 					if( !_rcSelectionView.Hidden &&
 						_rcSelectionView.IsInside( e.X, e.Y ) ) {
 						this.Cursor = _oCursorHand;
@@ -440,7 +440,7 @@ namespace Play.ImageViewer {
 						this.Cursor = Cursors.Default;
 					}
 					break;
-				case ImageSoloTools.Navigate:
+				case WindowSoloImageTools.Navigate:
 					Cursor[] rgCursors = { Cursors.Default, _oCursorLeft, _oCursorRight };
 					int      iCursor   = 0;
 
@@ -465,7 +465,7 @@ namespace Play.ImageViewer {
 
             this.Select();
 
-			if( _eToolCurrent == ImageSoloTools.Select ) {
+			if( _eToolCurrent == WindowSoloImageTools.Select ) {
 				_rcSelectionView.Mode = DragMode;
 
 				if( _rcSelectionView.Hidden ) {
@@ -507,7 +507,7 @@ namespace Play.ImageViewer {
 				return;
 			}
 
-			if( ToolSelect == (int)ImageSoloTools.Navigate ) {
+			if( ToolSelect == (int)WindowSoloImageTools.Navigate ) {
 				foreach( SmartRect rctHot in _rgLeft ) {
 					if( rctHot.IsInside( e.X, e.Y ) ) {
 						_oDocWalker.Next( -1 );
@@ -611,10 +611,10 @@ namespace Play.ImageViewer {
 		public int ToolSelect { 
 			get { return (int)_eToolCurrent; }
 			set {
-				ImageSoloTools eNextTool = (ImageSoloTools)value;
+				WindowSoloImageTools eNextTool = (WindowSoloImageTools)value;
 
 				if( _eToolCurrent != eNextTool && 
-					_eToolCurrent == ImageSoloTools.Select ) {
+					_eToolCurrent == WindowSoloImageTools.Select ) {
 					_rcSelectionView.Hidden = true;
 					Invalidate();
 				}
@@ -638,7 +638,7 @@ namespace Play.ImageViewer {
 
 		public void SelectAll() {
 			if( Document.Bitmap != null ) {
-				ToolSelect = (int)ImageSoloTools.Select;
+				ToolSelect = (int)WindowSoloImageTools.Select;
 				// BUG: need to send the shell an event.
 
 				_rcSelectionView.Show = SHOWSTATE.Focused;

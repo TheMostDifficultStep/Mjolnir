@@ -42,7 +42,7 @@ namespace Play.ImageViewer {
 
 			try {
 				if( guidViewType == _guidViewImage )
-					return( new ImageWindowSolo     ( oBaseSite, oDocImageBrowser ) );
+					return( new WindowSoloImageNav     ( oBaseSite, oDocImageBrowser ) );
 				if( guidViewType == ImageViewIconsMain.Guid )
 					return( new ImageViewIconsMain( oBaseSite, oDocImageBrowser ) );
 				if( guidViewType == ImageViewText.Guid )
@@ -50,7 +50,7 @@ namespace Play.ImageViewer {
 				if( guidViewType == ViewSnipDialog.Guid )
 					return( new ViewSnipDialog    ( oBaseSite, oDocImageBrowser ) );
 
-				return( new ImageWindowSolo( oBaseSite, oDocImageBrowser ) );
+				return( new WindowSoloImageNav( oBaseSite, oDocImageBrowser ) );
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( NullReferenceException ),
                                     typeof( InvalidCastException ),

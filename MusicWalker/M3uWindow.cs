@@ -59,7 +59,7 @@ namespace Play.MusicWalker {
 
 		public override object Decorate( IPgViewSite oBaseSite, Guid sGuid ) {
             if( sGuid.Equals( GlobalDecorations.Outline ) ) {
-                return( new ImageWindowSolo( oBaseSite, _oDocumentMusic.AlbumArt ) );
+                return( new WindowSoloImageNav( oBaseSite, _oDocumentMusic.AlbumArt ) );
             }
             if( sGuid.Equals( GlobalDecorations.Properties ) ) {
                 return( new ViewStandardProperties( oBaseSite, _oDocumentMusic.AlbumProperties ) );
@@ -95,7 +95,7 @@ namespace Play.MusicWalker {
 		}
 	}
 
-	public class WinMusicAlbum : ImageWindowSolo {
+	public class WinMusicAlbum : WindowSoloImageNav {
 		readonly M3UDocument _oDocumentMusic;
 
 		readonly string _strIconMusic = @"MusicWalker.Content.icon_album.gif";

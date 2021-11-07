@@ -875,6 +875,11 @@ namespace Play.SSTV {
             }
         }
 
+        /// <summary>
+        /// I should probably save the image in the background thread just so that
+        /// we don't have any race to see if the bg starts drawing on the image.
+        /// </summary>
+        /// <param name="strFileName"></param>
         protected void DownloadFinished( string strFileName ) {
             PropertyChange?.Invoke( SSTVEvents.DownLoadFinished );
 
@@ -1008,6 +1013,14 @@ namespace Play.SSTV {
                 LogError( "Invalid filename for SSTV image read" );
                 return;
             }
+            if( _oThread != null ) {
+                if( _oWorkPlace.Status == WorkerStatus.BUSY ) {
+                    // If we're in the middle of an image, this'll just flash by.
+                    RxProperties.ValueUpdate( RxProperties.Names.Progress, "Listening.", true );
+                } else {
+                    RxProperties.ValueUpdate( RxProperties.Names.Progress, "Not Listening... ^_^;", true );
+                }
+            }
             if( _oThread == null && _oWorkPlace.Status == WorkerStatus.FREE ) {
                 ThreadWorker oWorker        = new ThreadWorker( _rgBGtoUIQueue, strFileName, ChosenMode, SyncImage.Bitmap, ReceiveImage.Bitmap );
                 ThreadStart  threadDelegate = new ThreadStart ( oWorker.DoWork );
@@ -1134,8 +1147,9 @@ namespace Play.SSTV {
         }
 
         /// <summary>
-        /// Looks like dispose is not being called on us. But we're getting
-        /// messages here. Need to look at that.
+        /// Be sure to implement dispose on this object and make sure it get's
+        /// called b/c this method will get called if the still living bg thread
+        /// doesn't get an abort message.
         /// </summary>
         private void OnDataAvailable_WaveIn( object sender, WaveInEventArgs e ) {
             try {
@@ -1149,8 +1163,10 @@ namespace Play.SSTV {
                     }
                 }
             } catch( InvalidOperationException ) {
-                // Looks like I can't call wavein.stop() from within the callback.
-                LogError( "Forground WaveIn DataAvailable failure." );
+                // Looks like I can't call wavein.stop() from within the callback. AND
+                // it looks like NAudio is calling us from its non foreground thread!!!
+                // Safest way to handle this is post an event to ourselves.
+                _rgBGtoUIQueue.Enqueue( SSTVEvents.ThreadWorkerException );
             }
         }
 

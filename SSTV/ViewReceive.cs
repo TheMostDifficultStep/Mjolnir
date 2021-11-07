@@ -827,4 +827,38 @@ namespace Play.SSTV {
         }
     }
 
+	/// <summary>
+	/// Layout the rect's inside in a stagagared manner.
+	/// </summary>
+	/// <seealso cref="LayoutStack"/>
+	public class LayoutStaggared : ParentRect {
+		protected readonly List<LayoutRect> _rgLayout = new List<LayoutRect>();
+
+        public LayoutStaggared( uint uiMargin ) : base( uiMargin ) {
+        }
+
+        public LayoutStaggared( CSS eUnits, uint uiMargin, uint uiTrack, float flMaxPercent ) : 
+			base(eUnits, uiMargin, uiTrack, flMaxPercent)
+        {
+        }
+
+        public override int Count => _rgLayout.Count;
+
+        public override void Clear() {
+            _rgLayout.Clear();
+        }
+
+        public override IEnumerator<LayoutRect> GetEnumerator() {
+            return _rgLayout.GetEnumerator();
+        }
+
+        public override LayoutRect Item( int iIndex ) {
+            return _rgLayout[iIndex];
+        }
+
+		public override bool LayoutChildren() {
+			return true;
+		}
+
+    }
 }

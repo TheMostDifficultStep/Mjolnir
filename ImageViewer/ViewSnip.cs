@@ -293,7 +293,7 @@ namespace Play.ImageViewer {
             base.OnMouseUp(e);
 
             foreach( IPgCommandView oView in _oSiteShell.EnumerateSiblings ) {
-                if( oView is ImageWindowSolo oViewSolo && oViewSolo.ID == _uiReturnID ) {
+                if( oView is WindowSoloImageNav oViewSolo && oViewSolo.ID == _uiReturnID ) {
                     oViewSolo.FocusMe();
                 }
             }

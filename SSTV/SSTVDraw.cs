@@ -74,8 +74,7 @@ namespace Play.SSTV {
 		}
 
 		/// <summary>
-		/// At present we save all sync signal hits. Honestly I'm not
-		/// how sure this is useful. Basically if there is more than one
+		/// We used to save all sync hits but basically if there is more than one
 		/// hit I should probably just toss the line. As it is I ignore
 		/// lines with more than one hit.
 		/// </summary>
@@ -144,6 +143,37 @@ namespace Play.SSTV {
 		}
 
 		/// <summary>
+		/// Calculate the scan line start asynchronousely using the sync pulses.
+		/// This is useful if you have a signal source that pauses occassionally
+		/// but does not advance the data. Thus the only way to repair the damage
+		/// is to use the sync pulses to re-align.
+		/// Use the AlignLeastSquares method to get a guess at the slope intercept for a
+		/// a rough start, then this algorithm crawls the sync pulses to determine the
+		/// start for each scan line.</summary>
+		/// <param name="dblSlope">Width of the scan line in samples</param>
+		/// <param name="iIntercept">Start of the scan lines.</param>
+		/// <param name="iMaxScanLine">Stop at this scan line.</param>
+		/// <seealso cref="AlignLeastSquares" />
+		IEnumerator<int> EnumRasterStart( double dblSlope, double dblIntercept, int iMaxScanLine ) {
+			double dblLast = dblIntercept;
+			if( _rgRasters[0].Count == 1 ) {
+				dblLast = _rgRasters[0].Datum.Position;
+			}
+			yield return (int)dblLast;
+
+			int iCount = 1;              // count of scan lines since last sync seen.
+			for( int i=1; i<iMaxScanLine; ++i ) {
+				if( _rgRasters[i].Count == 1 ) {
+					dblLast = _rgRasters[i].Datum.Position;
+					iCount  = 1;
+					yield return (int)dblLast;
+				} else {
+					yield return (int)( dblLast + iCount++ * dblSlope );
+				}
+			}
+		}
+
+		/// <summary>
 		/// Call Shuffle() before calling this function!
 		/// This is the beating heart of the slant correction code. Right now we use
 		/// the internal raster to compute the scan line width and start point.
@@ -155,15 +185,16 @@ namespace Play.SSTV {
 		/// <param name="dblIntercept">Estimated END of first sync signal.</param>
 		/// <returns>True if enough data to return a slope and intercept.</returns>
 		/// <seealso cref="Shuffle(double)"/>
-		public bool AlignLeastSquares( ref double dblSlope, ref double dblIntercept ) {
+		public bool AlignLeastSquares( ref double dblSlope, ref double dblIntercept, int iMaxRaster = -1 ) {
 			double meanx  = 0, meany = 0;
 			int    iCount = 0;
+			int    iLength = iMaxRaster > 0 ? iMaxRaster : _rgRasters.Length;
 
 			dblSlope     = 0;
 			dblIntercept = 0;
 
 			try {
-				for( int i = 0; i<_rgRasters.Length; ++i ) {
+				for( int i = 0; i<iLength; ++i ) {
 					if( _rgRasters[i].Count == 1 ) {
 						meanx += i;
 						meany += _rgRasters[i].Datum.Position;
@@ -179,7 +210,7 @@ namespace Play.SSTV {
 				double dxsq = 0;
 				double dxdy = 0;
 
-				for( int i =0; i < _rgRasters.Length; ++i ) {
+				for( int i =0; i < iLength; ++i ) {
 					if( _rgRasters[i].Count == 1 ) {
 						double dx = (double)i - meanx;
 						double dy = (double)_rgRasters[i].Datum.Position - meany;
@@ -435,7 +466,7 @@ namespace Play.SSTV {
 
 		/// <summary>
 		/// Size of the scan line width corrected image not including VIS preamble.
-		/// This can get called on the UI thread. Because of PercentRxComplete
+		/// This will get called on the UI thread. Because of PercentRxComplete
 		/// </summary>
 		/// <seealso cref="PercentRxComplete"/>
 		public double ImageSizeInSamples {
