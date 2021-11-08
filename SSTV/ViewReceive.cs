@@ -559,7 +559,7 @@ namespace Play.SSTV {
     }
 
 	/// <summary>
-	/// Spiffy new window that shows the receive directory in icons.
+	/// Spiffy new window that shows the receive directory as icons.
 	/// </summary>
 	public class WindowReceiver : 
 		SKControl, 
@@ -759,6 +759,11 @@ namespace Play.SSTV {
 				// BUG: What if we're launched with one tool and then the tool is
 				//      changed midway and we hit stop. Need to sort that out.
 				_oDocSSTV.ReceiveLiveStop();
+				return true;
+			}
+			if( sGuid == GlobalCommands.Save ) {
+				_oDocSSTV.SaveRxImage();
+				return true; // make sure you return true or a docsstv.save gets called.
 			}
 
 			return false;

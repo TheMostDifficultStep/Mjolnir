@@ -158,27 +158,10 @@ namespace Play.SSTV {
         protected readonly ConcurrentQueue<double>    _oDataQueue; 
         protected readonly WaveFormat                 _oDataFormat;
         protected readonly ConcurrentQueue<TVMessage> _oOutQueue;
+        protected          string                     _strDateTimeStart = string.Empty;
 
-        public override bool IsForever => true;
-
-        public override string SuggestedFileName {
-            get {
-                DateTime sNow = DateTime.Now.ToUniversalTime();
-                StringBuilder sbName = new StringBuilder();
-
-                sbName.Append( sNow.Year  .ToString( "D4" ) );
-                sbName.Append( '-' );
-                sbName.Append( sNow.Month .ToString( "D2" ) );
-                sbName.Append( '-' );
-                sbName.Append( sNow.Day   .ToString( "D2" ) );
-                sbName.Append( '_' );
-                sbName.Append( sNow.Hour  .ToString( "D2" ) );
-                sbName.Append( sNow.Minute.ToString( "D2" ) );
-                sbName.Append( 'z' );
-               
-                return sbName.ToString();
-            }
-        }
+        public override bool   IsForever         => true;
+        public override string SuggestedFileName => _strDateTimeStart;
 
         // This is the errors we generally handle in our work function.
         protected static Type[] _rgLoopErrors = { typeof( NullReferenceException ),
@@ -213,6 +196,9 @@ namespace Play.SSTV {
         /// </summary>
         /// <seealso cref="Listen_NextRxMode"/>
         private void OnTvEvents_SSTVDraw( SSTVEvents eProp ) {
+            if( eProp == SSTVEvents.SSTVMode )
+                _strDateTimeStart = DocSSTV.GenerateFileName;
+
             _oToUIQueue.Enqueue( eProp );
         }
 

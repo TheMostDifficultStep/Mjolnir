@@ -28,7 +28,8 @@ namespace Play.SSTV {
             Width,
             Height,
             Progress,
-            SaveDir
+            SaveDir,
+            SaveName
         }
 
         public RxProperties( IPgBaseSite oSiteBase ) : base( oSiteBase ) {
@@ -48,6 +49,7 @@ namespace Play.SSTV {
             LabelSet( Names.Height,   "Height" );
             LabelSet( Names.Progress, "Received" );
             LabelSet( Names.SaveDir,  "Save At" );
+            LabelSet( Names.SaveName, "File Name" );
 
             Clear();
 
@@ -880,14 +882,13 @@ namespace Play.SSTV {
         /// we don't have any race to see if the bg starts drawing on the image.
         /// </summary>
         /// <param name="strFileName"></param>
-        protected void DownloadFinished( string strFileName ) {
-            PropertyChange?.Invoke( SSTVEvents.DownLoadFinished );
+        protected void DownloadFinished() {
+            SaveRxImage(); // Race condition possible, when image reused.
 
+            PropertyChange?.Invoke( SSTVEvents.DownLoadFinished );
             RxProperties.ValueUpdate( RxProperties.Names.Progress, "Done", Broadcast:true );
             RxModeList.HighLight   = null;
             RxModeList.CheckedLine = RxModeList[0];
-
-            SaveRxImage( strFileName ); // Race condition possible, when image reused.
 
             // Might need to change this directory depending on listening to device
             // or loading from some random file location.
@@ -936,17 +937,24 @@ namespace Play.SSTV {
                                 SSTVMode oWorkerMode = oWorker.NextMode;
                                 if( oWorkerMode == null ) {
                                     // We catch a null we're going back to listen mode.
-                                    RxModeList.HighLight   = null;
-                                    _eWorkStatus = WorkerStatus.FREE;
+                                    RxModeList.HighLight    = null;
+                                    RxModeList.CheckedReset = RxModeList[0]; 
+                                    RxProperties.ValueUpdate( RxProperties.Names.Mode,     "-" );
+                                    RxProperties.ValueUpdate( RxProperties.Names.Width,    "-" );
+                                    RxProperties.ValueUpdate( RxProperties.Names.Height,   "-" );
+                                    RxProperties.ValueUpdate( RxProperties.Names.SaveName, string.Empty, Broadcast:true );
+                                   _eWorkStatus = WorkerStatus.FREE;
                                     break;
                                 }
 
 			                    ReceiveImage.WorldDisplay = new SKRectI( 0, 0, oWorkerMode.Resolution.Width, oWorkerMode.Resolution.Height );
 
-                                RxProperties.ValueUpdate( RxProperties.Names.Mode,   oWorkerMode.Name );
-                                RxProperties.ValueUpdate( RxProperties.Names.Width,  oWorkerMode.Resolution.Width .ToString() );
-                                RxProperties.ValueUpdate( RxProperties.Names.Height, oWorkerMode.Resolution.Height.ToString(), Broadcast:true );
-                                _eWorkStatus = WorkerStatus.BUSY;
+                                RxProperties.ValueUpdate( RxProperties.Names.Mode,     oWorkerMode.Name );
+                                RxProperties.ValueUpdate( RxProperties.Names.Width,    oWorkerMode.Resolution.Width .ToString() );
+                                RxProperties.ValueUpdate( RxProperties.Names.Height,   oWorkerMode.Resolution.Height.ToString() );
+                                RxProperties.ValueUpdate( RxProperties.Names.SaveName, oWorker    .SuggestedFileName, Broadcast:true );
+
+                               _eWorkStatus = WorkerStatus.BUSY;
 
                                 foreach( Line oLine in RxModeList ) {
                                     if( oLine.Extra is SSTVMode oMode ) {
@@ -965,7 +973,7 @@ namespace Play.SSTV {
                         case SSTVEvents.DownLoadFinished:
                             // NOTE: This might never come along!
                             _eWorkStatus = WorkerStatus.FREE;
-                            DownloadFinished( oWorker.SuggestedFileName );
+                            DownloadFinished();
                             if( !oWorker.IsForever )
                                 _oThread = null;
                             break;
@@ -1170,8 +1178,29 @@ namespace Play.SSTV {
             }
         }
 
-		private void SaveRxImage( string strFileName ) {
+        public static string GenerateFileName  {
+            get {
+                DateTime      sNow   = DateTime.Now.ToUniversalTime();
+                StringBuilder sbName = new();
+
+                sbName.Append( sNow.Year  .ToString( "D4" ) );
+                sbName.Append( '-' );
+                sbName.Append( sNow.Month .ToString( "D2" ) );
+                sbName.Append( '-' );
+                sbName.Append( sNow.Day   .ToString( "D2" ) );
+                sbName.Append( '_' );
+                sbName.Append( sNow.Hour  .ToString( "D2" ) );
+                sbName.Append( sNow.Minute.ToString( "D2" ) );
+                sbName.Append( 'z' );
+               
+                return sbName.ToString();
+            }
+        }
+
+		public void SaveRxImage() {
             try {
+                string strFileName = RxProperties[ RxProperties.Names.SaveName ];
+
                 using ImageSoloDoc oSnipDoc = new( new DocSlot( this ) );
 
                 if( !oSnipDoc.Load( ReceiveImage.Bitmap, ReceiveImage.WorldDisplay, ReceiveImage.Size ) )
@@ -1180,11 +1209,11 @@ namespace Play.SSTV {
                 // Figure out path and name of the file.
                 string strSaveDir = Path.GetDirectoryName( strFileName );
                 if( string.IsNullOrEmpty( strSaveDir ) ) {
-			        strSaveDir = RxProperties[RxProperties.Names.SaveDir];
+			        strSaveDir = RxProperties[RxProperties.Names.SaveDir ];
                 }
                 // If Dir still null we should go straight to env variable.
                 if( string.IsNullOrEmpty( strFileName ) ) {
-                    strFileName = DateTime.Now.ToString();
+                    strFileName = GenerateFileName;
                 } else {
                     strFileName = Path.GetFileNameWithoutExtension( strFileName );
                 }
@@ -1260,7 +1289,7 @@ namespace Play.SSTV {
             switch( eProp ) {
                 case SSTVEvents.DownLoadFinished:
                     RxModeList.HighLight = null;
-                    SaveRxImage( string.Empty );
+                    SaveRxImage();
                     break;
             }
         }

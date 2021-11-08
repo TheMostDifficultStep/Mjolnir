@@ -190,9 +190,9 @@ namespace Play.SSTV {
 			int    iCount = 0;
 			int    iLength = iMaxRaster > 0 ? iMaxRaster : _rgRasters.Length;
 
-			dblSlope     = 0;
-			dblIntercept = 0;
-
+			// DO NOT UPDATE Slope and Intercept unless you've calculated the values
+			// if they are initialized to zero, the drawing code will have no
+			// scan line width to use calculate the scan line starts.
 			try {
 				for( int i = 0; i<iLength; ++i ) {
 					if( _rgRasters[i].Count == 1 ) {
@@ -419,11 +419,14 @@ namespace Play.SSTV {
 		public void Stop() {
 			try {
 				if( _dp.m_Sync ) {
+					// Send download finished before reset so we can save image
+					// before the SSTVEvents.SSTVMode comes and obliterates the
+					// past values (mode/filename etc).
+					Send_TvEvents?.Invoke( SSTVEvents.DownLoadFinished );
+
 					_dp.Reset();
 
 					RenderDiagnosticsOverlay();
-					
-					Send_TvEvents?.Invoke( SSTVEvents.DownLoadFinished );
 				}
 			} catch( Exception oEx ) {
 				Type[] rgErrors = { typeof( NullReferenceException ),

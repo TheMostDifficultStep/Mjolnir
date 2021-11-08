@@ -212,9 +212,21 @@ namespace Play.Edit {
 		Line      _oLineHighLight   = null;
         Line      _oCheckedLine     = null;
 
+        /// <summary>
+        /// Setting this value sends a CheckedEvent
+        /// </summary>
+        /// <seealso cref="CheckedReset"/>
         public Line CheckedLine { 
             get{ return _oCheckedLine; }
             set{ _oCheckedLine = value; CheckedEvent?.Invoke( value ); }
+        }
+
+        /// <summary>
+        /// Use this property to Reset the UI without sending a CheckedEvent.
+        /// </summary>
+        /// <seealso cref="CheckedEvent"/>
+        public Line CheckedReset {
+            set { _oCheckedLine = value; }
         }
 
         protected readonly IArray<Line>   _rgLines;
