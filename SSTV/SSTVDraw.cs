@@ -418,12 +418,14 @@ namespace Play.SSTV {
 		/// this whenever. We'll tinker a bit.</remarks>
 		public void Stop() {
 			try {
+				// Need to send regardless, but might get a bum image if not
+				// includes vis and we guess a wrong start state.
+				Send_TvEvents?.Invoke( SSTVEvents.DownLoadFinished );
+
 				if( _dp.m_Sync ) {
 					// Send download finished before reset so we can save image
 					// before the SSTVEvents.SSTVMode comes and obliterates the
 					// past values (mode/filename etc).
-					Send_TvEvents?.Invoke( SSTVEvents.DownLoadFinished );
-
 					_dp.Reset();
 
 					RenderDiagnosticsOverlay();

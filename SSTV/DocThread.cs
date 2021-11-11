@@ -93,7 +93,7 @@ namespace Play.SSTV {
                     break; // Drop down so we can unplug from our Demodulator.
                 }
                 yield return 0; 
-            } while( iRead == rgBuff.Length );
+            } while( iRead == rgBuff.Length && iRead > 0 );
         }
 
         /// <summary>
