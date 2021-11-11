@@ -333,8 +333,6 @@ namespace Play.SSTV {
         public TxProperties        TxProperties  { get; }
         public SKBitmap            TxBitmap      => TxImageList.Bitmap;
 
-        protected WorkerStatus _eWorkStatus = WorkerStatus.FREE;
-
         protected readonly ImageSoloDoc  _oDocSnip;   // Clip the image.
 
         protected Mpg123FFTSupport FileDecoder   { get; set; }
@@ -926,7 +924,6 @@ namespace Play.SSTV {
                             }
                             RxModeList.HighLight   = null;
                             RxModeList.CheckedLine = RxModeList[0];
-                            _eWorkStatus = WorkerStatus.FREE;
                            _oThread = null;
                             yield break;
                         case SSTVEvents.SSTVMode: 
@@ -943,7 +940,6 @@ namespace Play.SSTV {
                                     RxProperties.ValueUpdate( RxProperties.Names.Width,    "-" );
                                     RxProperties.ValueUpdate( RxProperties.Names.Height,   "-" );
                                     RxProperties.ValueUpdate( RxProperties.Names.SaveName, string.Empty, Broadcast:true );
-                                   _eWorkStatus = WorkerStatus.FREE;
                                     break;
                                 }
 
@@ -953,8 +949,6 @@ namespace Play.SSTV {
                                 RxProperties.ValueUpdate( RxProperties.Names.Width,    oWorkerMode.Resolution.Width .ToString() );
                                 RxProperties.ValueUpdate( RxProperties.Names.Height,   oWorkerMode.Resolution.Height.ToString() );
                                 RxProperties.ValueUpdate( RxProperties.Names.SaveName, oWorker    .SuggestedFileName, Broadcast:true );
-
-                               _eWorkStatus = WorkerStatus.BUSY;
 
                                 foreach( Line oLine in RxModeList ) {
                                     if( oLine.Extra is SSTVMode oMode ) {
@@ -967,27 +961,24 @@ namespace Play.SSTV {
                         case SSTVEvents.DownLoadTime: 
                             // Might be nice to send the % as a number in the message.
                             PropertiesRxTime( oWorker.SSTVDraw.PercentRxComplete );
-                            _eWorkStatus = WorkerStatus.BUSY;
                             PropertyChange?.Invoke( SSTVEvents.DownLoadTime );
                             break;
                         case SSTVEvents.DownLoadFinished:
                             // NOTE: This might never come along!
-                            _eWorkStatus = WorkerStatus.FREE;
                             DownloadFinished();
-                            if( !oWorker.IsForever )
+                            if( !oWorker.IsForever ) { 
                                 _oThread = null;
+                                yield break;
+                            }
                             break;
                         case SSTVEvents.ThreadDiagnosticsException:
                             LogError( "Worker thread Diagnostics Exception" );
-                            _eWorkStatus = WorkerStatus.BUSY;
                             break;
                         case SSTVEvents.ThreadDrawingException:
                             LogError( "Worker thread Drawing Exception" );
-                            _eWorkStatus = WorkerStatus.BUSY;
                             break;
                         case SSTVEvents.ThreadWorkerException:
                             LogError( "Worker thread Exception" );
-                            _eWorkStatus = WorkerStatus.BUSY;
                             break;
                     }
                 }
@@ -1024,9 +1015,9 @@ namespace Play.SSTV {
             if( _oThread != null ) {
                 if( _oWorkPlace.Status == WorkerStatus.BUSY ) {
                     // If we're in the middle of an image, this'll just flash by.
-                    RxProperties.ValueUpdate( RxProperties.Names.Progress, "Listening.", true );
+                    RxProperties.ValueUpdate( RxProperties.Names.Progress, "Busy.", true );
                 } else {
-                    RxProperties.ValueUpdate( RxProperties.Names.Progress, "Not Listening... ^_^;", true );
+                    RxProperties.ValueUpdate( RxProperties.Names.Progress, "Not Busy... ^_^;", true );
                 }
             }
             if( _oThread == null && _oWorkPlace.Status == WorkerStatus.FREE ) {
@@ -1444,7 +1435,7 @@ namespace Play.SSTV {
 
 		public WorkerStatus PlayStatus {
             get {
-                return _eWorkStatus;
+                return _oWorkPlace.Status;
             }
         }
 
