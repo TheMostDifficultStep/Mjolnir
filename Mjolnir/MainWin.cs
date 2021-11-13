@@ -623,6 +623,7 @@ namespace Mjolnir {
             };
 
             oEditMenu.DropDownItems.Add(new ToolStripMenuItem("Paste as",   BitmapCreateFromChar( "\xE16C" ), rgSubMenu2 ) );
+          //oEditMenu.DropDownItems.Add(new ToolStripMenuItem("Insert...",  BitmapCreateFromChar( "\xE16F" ), new EventHandler( this.OnEditInsert ) ));
             oEditMenu.DropDownItems.Add(new ToolStripSeparator() ); //---
 
             oEditMenu.DropDownItems.Add(new ToolStripMenuItem("Undo",       BitmapCreateFromChar( "\xE10e" ), new EventHandler(this.OnEditUndo),    Keys.Control | Keys.Z ));
@@ -1309,7 +1310,10 @@ namespace Mjolnir {
             if( _oSelectedWinSite != null )
                 _oSelectedWinSite.Execute( GlobalCommands.PasteAsText );
         }
-
+        protected void OnEditInsert( object sender, EventArgs e ) {
+            if( _oSelectedWinSite != null )
+                _oSelectedWinSite.Execute( GlobalCommands.Insert );
+        }
         protected void OnEditPasteAsBase64( object sender, EventArgs e ) {
             if( _oSelectedWinSite != null )
                 _oSelectedWinSite.Execute( GlobalCommands.PasteAsBase64 );

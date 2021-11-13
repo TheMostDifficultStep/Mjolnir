@@ -520,11 +520,12 @@ namespace Play.SSTV {
 			_oDocSSTV = oSSTV ?? throw new ArgumentNullException();
 
 			_fCheckMarks = true;
-			ToolSelect = 2; // BUG: change this to an enum in the future.
+			ToolSelect   = 2; // BUG: change this to an enum in the future.
+
 			HyperLinks.Add( "chooser", OnChooser );
 		}
 
-		public void OnChooser( Line oLine, IPgWordRange oRange ) {
+		protected void OnChooser( Line oLine, IPgWordRange _ ) { 
 			try {
 				if( oLine is FileLine oFile ) {
 					if( oFile._fIsDirectory ) {
@@ -534,8 +535,6 @@ namespace Play.SSTV {
 							// BUG: Need to make the RxProp the one that gets changed and we catch an event to LoadAgain();
 							_oDocSSTV.RxProperties.ValueUpdate( RxProperties.Names.SaveDir, _oDocSSTV.RecChooser.CurrentDirectory, Broadcast:true );
 						}
-					} else {
-						_oDocSSTV.RecChooser.FileList.CheckedLine = oLine;
 					}
 				}
 			} catch( Exception oEx ) { 
@@ -549,7 +548,13 @@ namespace Play.SSTV {
 			}
 		}
 
-        public override bool Execute( Guid sGuid ) {
+		protected override void TextAreaChecked( Line oLine ) {
+			if( oLine is FileLine oFileLine && !oFileLine._fIsDirectory ) { 
+				base.TextAreaChecked( oLine );
+			}
+		}
+
+		public override bool Execute( Guid sGuid ) {
 			if( sGuid == GlobalCommands.JumpParent ) {
 				return _oDocSSTV.RecChooser.Execute( sGuid );
 			}

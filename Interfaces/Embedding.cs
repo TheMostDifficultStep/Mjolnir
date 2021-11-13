@@ -289,8 +289,8 @@ namespace Play.Interfaces.Embedding {
         public static readonly Guid PasteAsImg    = new Guid( "{AC04A6FE-B564-483D-8E8D-C7D913B48934}" );
         public static readonly Guid PasteAsBase64 = new Guid( "{A284DCA5-94F6-4066-B480-9151B3AA6611}" );
 
-        // Like Clipboard copy, except take a URI and pop it in a session image browser bag.
-        public static readonly Guid Link          = new Guid( "{055098D7-B64E-400B-A1DA-D82BC0753370}" );
+        // Generic Edit insert file: link/embedding for the app to decide.
+        public static readonly Guid Insert        = new Guid( "{1D8E24B1-3496-4701-BB32-46E3F0E5DDD2}" );
 
         // Generic commands
         public static readonly Guid Undo          = new Guid( "{DF4F0393-493D-4226-8472-1B72ED4DD9DB}" );

@@ -559,6 +559,7 @@ namespace Play.SSTV {
         /// <param name="oLine">The line in the modelist selected</param>
         /// <seealso cref="RxModeList"/>
         void OnCheckedEvent_RxModeList( Line oLine ) {
+            // Should this be RxProperties?
             TxProperties.ValueUpdate( TxProperties.Names.Mode, oLine.ToString(), Broadcast:true ); 
             Raise_PropertiesUpdated( SSTVEvents.SSTVMode );
         }

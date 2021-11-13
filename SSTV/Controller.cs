@@ -51,12 +51,12 @@ namespace Play.SSTV {
 		}
 
 		public override IEnumerator<IPgViewType> GetEnumerator() {
-		  //yield return new ViewType( "Spectrum",             ViewFFT      .ViewType );
-			yield return new ViewType( "Receive Image",        ViewRxImage      .GUID );
-		    yield return new ViewType( "Receive Diagnostics",  ViewDiagnostics    .GUID );
-		    yield return new ViewType( "Transmit Image",       ViewTransmitSolo.GUID );
-			yield return new ViewType( "Settings",             ViewSettings     .GUID );
-		  //yield return new ViewType( "Mode Select",          ViewTransmitModes );
+		  //yield return new ViewType( "Spectrum",       ViewFFT      .ViewType );
+			yield return new ViewType( "Receive Image",  ViewRxImage     .GUID );
+		    yield return new ViewType( "Diagnostics",    ViewDiagnostics .GUID );
+		    yield return new ViewType( "Transmit Image", ViewTransmitSolo.GUID );
+			yield return new ViewType( "Settings",       ViewSettings    .GUID );
+		  //yield return new ViewType( "Mode Select",    ViewTransmitModes );
 		}
 	}
 

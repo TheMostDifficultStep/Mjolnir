@@ -334,6 +334,7 @@ namespace Play.Edit {
 
 			_oDocument.HilightEvent += OnHighLightChanged;
 			_oDocument.BufferEvent  += OnBufferEvent;
+            _oDocument.CheckedEvent += OnCheckedEvent;
 
             HyperLinks.Add( "url", OnBrowserLink );
             HyperLinks.Add( "callsign", OnCallSign );
@@ -508,6 +509,10 @@ namespace Play.Edit {
 			}
 		}
 
+        protected virtual void OnCheckedEvent( Line oLineChecked ) { 
+            Invalidate();
+        }
+
         public bool InitNew() {
 			if( !InitInternal( ))
 				return false;
@@ -632,8 +637,7 @@ namespace Play.Edit {
                     if( oRange.StateName == oPair.Key ) {
                         if( fDoJump )
                             oPair.Value?.Invoke( CaretPos.Line, oRange );
-                        else
-                            return true;
+                        return true;
                     }
                 }
             }
@@ -1307,7 +1311,7 @@ namespace Play.Edit {
 
                         Cursor = oNewCursor;
                     }
-                    Invalidate();
+                    //Invalidate();
                     fProcessed = true;
                     break;
                 case 1: // Browse Mode. Left button defeats the hyperlink.
@@ -1415,26 +1419,20 @@ namespace Play.Edit {
         protected override void OnMouseUp(MouseEventArgs e) {
             base.OnMouseUp( e );
 
+            bool fFoundHyperLink = false;
+
             if( _iSelectedTool == 2 ) {
                 if( ( e.Button == MouseButtons.Left &&
                       ((ModifierKeys & Keys.Control) == 0) ) 
                   ) {
-                    SKPointI pntWorld = ClientToWorld( new SKPointI( e.Location.X, e.Location.Y ) );
-                    FTCacheLine oElem = _oCacheMan.GlyphPointToRange( pntWorld, _oLastCursor );
-                    if( oElem != null ) { 
-                        foreach( KeyValuePair<string, HyperLink> oPair in HyperLinks ) { 
-                            if( "chooser" == oPair.Key ) { // Gonna be easy to forget this is here. ^_^;;
-                                oPair.Value?.Invoke( oElem.Line, new ChooserHyperLink() );
-                            }
-                        }
-                    }
+                    fFoundHyperLink = HyperLinkFind(new SKPointI(e.Location.X, e.Location.Y), fDoJump:true);
                 }
             } else {
                 if( ( e.Button == MouseButtons.Left &&
                       ( _iSelectedTool == 1) || ((ModifierKeys & Keys.Control) != 0) ) &&
                     !TextSelector.IsSelected(Selections) // This saves us from jumping if we had pressed the left mouse button.
                 ) {
-                    HyperLinkFind( new SKPointI( e.Location.X, e.Location.Y ), fDoJump:true );
+                    fFoundHyperLink = HyperLinkFind( new SKPointI( e.Location.X, e.Location.Y ), fDoJump:true );
                 }
             }
 
@@ -1445,10 +1443,28 @@ namespace Play.Edit {
             if( _rctCheques.IsInside( e.Location.X, e.Location.Y ) ) {
                 _oDocument.CheckedLine = CaretPos.Line;
                 Raise_SelectionChanged();
+                Invalidate();
+            }
+            if( _iSelectedTool == 2 &&
+                fFoundHyperLink == false &&
+                ((ModifierKeys & Keys.Control) == 0) &&
+                _rctTextArea.IsInside( e.Location.X, e.Location.Y ) ) 
+            {
+                TextAreaChecked( CaretPos.Line );
             }
 
             // We ONLY navigate on the MouseUp portion of the mouse messages.
             Raise_Navigated( NavigationSource.UI, CaretPos );
+        }
+
+        /// <summary>
+        /// When a possible check is comming to the text area of a line, 
+        /// this method provides an opportunity to override default behavior.
+        /// </summary>
+        protected virtual void TextAreaChecked( Line oLine ) {
+            _oDocument.CheckedLine = oLine;
+            Raise_SelectionChanged();
+            Invalidate();
         }
 
         static int LMOUSEBTN = 1;
