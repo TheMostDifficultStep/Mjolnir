@@ -932,7 +932,11 @@ namespace Play.SSTV {
                                 // this is a little evil asking the worker the mode that might
                                 // be different by the time we process the event. Might want a
                                 // parameter on the message.
-                                SSTVMode oWorkerMode = oWorker.NextMode;
+                                SSTVMode oWorkerMode = null;
+                                try { 
+                                    oWorkerMode = oWorker.NextMode;
+                                } catch( NullReferenceException oEx ) { 
+                                }
                                 if( oWorkerMode == null ) {
                                     // We catch a null we're going back to listen mode.
                                     RxModeList.HighLight    = null;
@@ -946,10 +950,14 @@ namespace Play.SSTV {
 
 			                    ReceiveImage.WorldDisplay = new SKRectI( 0, 0, oWorkerMode.Resolution.Width, oWorkerMode.Resolution.Height );
 
+                                string strFileName = Path.GetFileName     ( oWorker.SuggestedFileName );
+                                string strFilePath = Path.GetDirectoryName( oWorker.SuggestedFileName );
+
                                 RxProperties.ValueUpdate( RxProperties.Names.Mode,     oWorkerMode.Name );
                                 RxProperties.ValueUpdate( RxProperties.Names.Width,    oWorkerMode.Resolution.Width .ToString() );
                                 RxProperties.ValueUpdate( RxProperties.Names.Height,   oWorkerMode.Resolution.Height.ToString() );
-                                RxProperties.ValueUpdate( RxProperties.Names.SaveName, oWorker    .SuggestedFileName, Broadcast:true );
+                                RxProperties.ValueUpdate( RxProperties.Names.SaveDir,  strFilePath );
+                                RxProperties.ValueUpdate( RxProperties.Names.SaveName, strFileName, Broadcast:true );
 
                                 foreach( Line oLine in RxModeList ) {
                                     if( oLine.Extra is SSTVMode oMode ) {
@@ -1191,19 +1199,18 @@ namespace Play.SSTV {
 
 		public void SaveRxImage() {
             try {
-                string strFileName = RxProperties[ RxProperties.Names.SaveName ];
-
                 using ImageSoloDoc oSnipDoc = new( new DocSlot( this ) );
 
                 if( !oSnipDoc.Load( ReceiveImage.Bitmap, ReceiveImage.WorldDisplay, ReceiveImage.Size ) )
                     return;
 
                 // Figure out path and name of the file.
-                string strSaveDir = Path.GetDirectoryName( strFileName );
+                string strFileName = RxProperties[ RxProperties.Names.SaveName ];
+                string strSaveDir  = RxProperties[ RxProperties.Names.SaveDir  ];
+
                 if( string.IsNullOrEmpty( strSaveDir ) ) {
-			        strSaveDir = RxProperties[RxProperties.Names.SaveDir ];
+			        strSaveDir = Environment.GetFolderPath(Environment.SpecialFolder.MyPictures);
                 }
-                // If Dir still null we should go straight to env variable.
                 if( string.IsNullOrEmpty( strFileName ) ) {
                     strFileName = GenerateFileName;
                 } else {
@@ -1224,7 +1231,7 @@ namespace Play.SSTV {
                 if( !int.TryParse( StdProperties[StdProperties.Names.ImgQuality], out int iQuality ) )
                     iQuality = 80;
 
-                string strFilePath = Path.Combine( strSaveDir, strFileName + ".jpg" );
+                string strFilePath = Path.Combine  ( strSaveDir, strFileName + ".jpg" );
                 using var stream   = File.OpenWrite( strFilePath );
 
                 oSnipDoc.Save( stream );
