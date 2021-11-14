@@ -22,7 +22,7 @@ namespace Play.SSTV {
 	/// <summary>
 	/// This view shows the raw scan line with our slot identifiers. Invaluable to spot alignment issues.
 	/// </summary>
-	public class ViewDiagnostics:
+	public class WindowDiagnostics:
 		Control,
 		IPgParent,
 		IPgLoad<XmlElement>,
@@ -45,9 +45,9 @@ namespace Play.SSTV {
 			IPgViewSite,
 			IPgShellSite
 		{
-			protected readonly ViewDiagnostics _oHost;
+			protected readonly WindowDiagnostics _oHost;
 
-			public SSTVWinSlot( ViewDiagnostics oHost ) {
+			public SSTVWinSlot( WindowDiagnostics oHost ) {
 				_oHost = oHost ?? throw new ArgumentNullException();
 			}
 
@@ -101,7 +101,7 @@ namespace Play.SSTV {
 		}
 		protected readonly string _strBaseTitle = "Diagnostics Window : ";
 
-        public ViewDiagnostics( IPgViewSite oViewSite, DocSSTV oDocument ) {
+        public WindowDiagnostics( IPgViewSite oViewSite, DocSSTV oDocument ) {
 			_oSiteView = oViewSite ?? throw new ArgumentNullException( "View requires a view site." );
 			_oDocSSTV  = oDocument ?? throw new ArgumentNullException( "View requires a document." );
 
@@ -511,6 +511,9 @@ namespace Play.SSTV {
         }
     }
 
+	/// <summary>
+	/// This window is for the file chooser.
+	/// </summary>
 	public class WindowTextDir : EditWindow2 {
 		protected readonly DocSSTV _oDocSSTV;
 
@@ -564,15 +567,13 @@ namespace Play.SSTV {
     }
 
 	/// <summary>
-	/// Spiffy new window that shows the receive directory as icons.
+	/// Going to break the audio device and file receive windows into two different
+	/// objects.
 	/// </summary>
-	public class WindowReceiver : 
+	public abstract class WindowRxBase : 
 		SKControl, 
 		IPgParent,
-		IPgCommandView,
-		IPgSave<XmlDocumentFragment>,
-		IPgLoad<XmlElement>,
-		IPgTools
+		IPgCommandView
 	{
 		public enum Tools : int {
 			File = 0,
@@ -582,17 +583,15 @@ namespace Play.SSTV {
         protected readonly IPgViewSite _oSiteView;
 		protected          bool        _fDisposed;
 
-		public static Guid GUID { get; } = new Guid( "{955742A3-79D3-4789-B93B-B4225C641057}" );
-		protected static readonly string _strIcon       = "Play.SSTV.icons8_tv.png";
 		protected static readonly string _strBaseTitle  = "MySSTV Receive 2";
+		protected abstract string IconResource { get; }
 
         public IPgParent Parentage => _oSiteView.Host;
         public IPgParent Services  => Parentage.Services;
-        public Guid		 Catagory  => GUID;
+        public abstract Guid Catagory { get; }
         public Image	 Iconic    { get; protected set; }
         public bool		 IsDirty   => false;
 
-		readonly  List<string>    _rgToolBox     = new() { "File", "Port" };
 		protected Tools           _eToolSelected = Tools.File;
 
 		protected LayoutStack     _oLayout = new LayoutStackVertical( 5 );
@@ -604,9 +603,9 @@ namespace Play.SSTV {
 			IPgViewSite,
 			IPgShellSite
 		{
-			protected readonly WindowReceiver _oHost;
+			protected readonly WindowRxBase _oHost;
 
-			public SSTVWinSlot( WindowReceiver oHost ) {
+			public SSTVWinSlot(WindowRxBase oHost ) {
 				_oHost = oHost ?? throw new ArgumentNullException();
 			}
 
@@ -653,12 +652,104 @@ namespace Play.SSTV {
 			} 
 		}
 
-		public WindowReceiver( IPgViewSite oSiteBase, DocSSTV oDocSSTV ) {
+		public WindowRxBase( IPgViewSite oSiteBase, DocSSTV oDocSSTV ) {
 			_oSiteView = oSiteBase ?? throw new ArgumentNullException( "SiteBase must not be null." );
 			_oDocSSTV  = oDocSSTV  ?? throw new ArgumentNullException( "DocSSTV must not be null." );
 
-			Iconic = ImageResourceHelper.GetImageResource( Assembly.GetExecutingAssembly(), _strIcon );
+			Iconic = ImageResourceHelper.GetImageResource( Assembly.GetExecutingAssembly(), IconResource );
 
+			_oViewRxImg     = new( new SSTVWinSlot( this ), _oDocSSTV.ReceiveImage );
+			_oViewRxHistory = new( new SSTVWinSlot( this ), _oDocSSTV.RxImageList  ); 
+
+			_oViewRxImg    .Parent = this;
+			_oViewRxHistory.Parent = this;
+
+			_oViewRxImg.SetBorderOn();
+		}
+
+        protected override void Dispose( bool fDisposing ) {
+			if( fDisposing && !_fDisposed ) {
+				_oViewRxHistory.Dispose();
+				_oViewRxImg    .Dispose();
+
+				_fDisposed = true;
+			}
+			base.Dispose( fDisposing );
+        }
+
+        public void LogError( string strCatagory, string strDetails ) {
+            _oSiteView.LogError( strCatagory, strDetails );
+        }
+
+        protected override void OnGotFocus(EventArgs e) {
+            base.OnGotFocus( e );
+
+            Invalidate();
+        }
+
+        protected override void OnLostFocus(EventArgs e) {
+            base.OnLostFocus(e);
+
+            Invalidate();
+        }
+        
+        protected override void OnMouseDown(MouseEventArgs e) {
+            this.Select();
+		}
+
+		public abstract bool Execute( Guid _ );
+
+		public object Decorate(IPgViewSite oBaseSite,Guid sGuid) {
+			try {
+				if( sGuid.Equals(GlobalDecorations.Properties) ) {
+					return new ViewStandardProperties( oBaseSite, _oDocSSTV.RxProperties );
+				}
+				if( sGuid.Equals( GlobalDecorations.Outline ) ) {
+					return new CheckList( oBaseSite, _oDocSSTV.RxModeList );
+				}
+				if( sGuid.Equals( GlobalDecorations.Options ) ) {
+					return new WindowTextDir( oBaseSite, _oDocSSTV );
+				}
+				return false;
+			} catch ( Exception oEx ) {
+				Type[] rgErrors = { typeof( NotImplementedException ),
+									typeof( NullReferenceException ),
+									typeof( ArgumentException ),
+									typeof( ArgumentNullException ) };
+				if( rgErrors.IsUnhandled( oEx ) )
+					throw;
+
+				LogError( "SSTV", "Couldn't create SSTV decor: " + sGuid.ToString() );
+			}
+
+            return( null );
+		}
+
+		protected override void OnSizeChanged(EventArgs e) {
+			base.OnSizeChanged(e);
+
+			_oLayout.SetRect( 0, 0, Width, Height );
+			_oLayout.LayoutChildren();
+
+            Invalidate();
+		}
+    }
+
+	/// <summary>
+	/// Spiffy new window that shows the receive directory as icons.
+	/// </summary>
+	public class WindowReceiver : 
+		WindowRxBase,
+		IPgSave<XmlDocumentFragment>,
+		IPgLoad<XmlElement>
+	{
+		public    static          Guid   GUID { get; } = new Guid( "{955742A3-79D3-4789-B93B-B4225C641057}" );
+		protected static readonly string _strIcon = "Play.SSTV.icons8_tv.png";
+
+		public    override Guid   Catagory     => GUID;
+		protected override string IconResource => _strIcon;
+
+		public WindowReceiver( IPgViewSite oSiteBase, DocSSTV oDocSSTV ) : base( oSiteBase, oDocSSTV ) {
 			_oViewRxImg     = new( new SSTVWinSlot( this ), _oDocSSTV.ReceiveImage );
 			_oViewRxHistory = new( new SSTVWinSlot( this ), _oDocSSTV.RxImageList  ); 
 
@@ -702,10 +793,6 @@ namespace Play.SSTV {
 			return true;
         }
 
-        public void LogError( string strCatagory, string strDetails ) {
-            _oSiteView.LogError( strCatagory, strDetails );
-        }
-
         private void OnCheckedEvent_RxModeList( Line oLineChecked ) {
 			_oDocSSTV.RequestModeChange( oLineChecked.Extra as SSTVMode );
         }
@@ -732,33 +819,10 @@ namespace Play.SSTV {
 			}
         }
 
-        protected override void OnGotFocus(EventArgs e) {
-            base.OnGotFocus( e );
-
-            Invalidate();
-        }
-
-        protected override void OnLostFocus(EventArgs e) {
-            base.OnLostFocus(e);
-
-            Invalidate();
-        }
-        
-        protected override void OnMouseDown(MouseEventArgs e) {
-            this.Select();
-		}
-
-        public virtual bool Execute( Guid sGuid ) {
+        public override bool Execute( Guid sGuid ) {
 			if( sGuid == GlobalCommands.Play ) {
-				switch( _eToolSelected ) {
-					case Tools.File: {
-						_oDocSSTV.ReceiveFileReadBgThreadBegin( _oDocSSTV.RecChooser.CurrentFullPath );
-						return true;
-						}
-					case Tools.Port:
-						_oDocSSTV.ReceiveLiveBegin();
-						return true;
-				}
+				_oDocSSTV.ReceiveLiveBegin();
+				return true;
 			}
 			if( sGuid == GlobalCommands.Stop ) {
 				// BUG: What if we're launched with one tool and then the tool is
@@ -774,66 +838,12 @@ namespace Play.SSTV {
 			return false;
         }
 
-		public object Decorate(IPgViewSite oBaseSite,Guid sGuid) {
-			try {
-				if( sGuid.Equals(GlobalDecorations.Properties) ) {
-					return new ViewStandardProperties( oBaseSite, _oDocSSTV.RxProperties );
-				}
-				if( sGuid.Equals( GlobalDecorations.Outline ) ) {
-					return new CheckList( oBaseSite, _oDocSSTV.RxModeList );
-				}
-				if( sGuid.Equals( GlobalDecorations.Options ) ) {
-					return new WindowTextDir( oBaseSite, _oDocSSTV );
-				}
-				return false;
-			} catch ( Exception oEx ) {
-				Type[] rgErrors = { typeof( NotImplementedException ),
-									typeof( NullReferenceException ),
-									typeof( ArgumentException ),
-									typeof( ArgumentNullException ) };
-				if( rgErrors.IsUnhandled( oEx ) )
-					throw;
-
-				LogError( "SSTV", "Couldn't create SSTV decor: " + sGuid.ToString() );
-			}
-
-            return( null );
-		}
-
-		protected override void OnSizeChanged(EventArgs e) {
-			base.OnSizeChanged(e);
-
-			_oLayout.SetRect( 0, 0, Width, Height );
-			_oLayout.LayoutChildren();
-
-            Invalidate();
-		}
-
         public bool Save( XmlDocumentFragment oStream ) {
             return true;
         }
 
         public bool Load( XmlElement oStream ) {
             return InitNew();
-        }
-
-        public int ToolCount => _rgToolBox.Count;
-
-        public int ToolSelect { 
-			get => (int)_eToolSelected; 
-			set {
-				_eToolSelected = (Tools)value;
-
-				_oSiteView.Notify( ShellNotify.ToolChanged );
-			}
-		}
-
-        public string ToolName( int iTool ) {
-            return _rgToolBox[iTool];
-        }
-
-        public Image ToolIcon( int iTool ) {
-            return null;
         }
     }
 

@@ -23,18 +23,18 @@ namespace Play.SSTV {
 
 				if( guidViewType == ViewFFT.GUID )
 					return new ViewFFT( oBaseSite, oMySSTVDoc );
-                if( guidViewType == ViewDiagnostics.GUID )
-                    return new ViewDiagnostics(oBaseSite, oMySSTVDoc);
+
+                if( guidViewType == WindowDiagnostics.GUID )
+                    return new WindowDiagnostics(oBaseSite, oMySSTVDoc);
+
                 if( guidViewType == ViewTransmitSolo.GUID )
 					return new ViewTransmitSolo( oBaseSite, oMySSTVDoc );
+
 				if( guidViewType == WindowReceiver.GUID )
 					return new WindowReceiver( oBaseSite, oMySSTVDoc );
+
 				if( guidViewType == ViewSettings.GUID )
 					return new ViewSettings( oBaseSite, oMySSTVDoc );
-				if( guidViewType == ViewTransmitModes ) {
-					// Seealso ViewTransmit.Listen_ViewMode_LineChanged()
-					return new CheckList( oBaseSite, oMySSTVDoc.RxModeList );
-				}
 
 				return new WindowReceiver( oBaseSite, oMySSTVDoc );
             } catch( Exception oEx ) {
@@ -51,12 +51,11 @@ namespace Play.SSTV {
 		}
 
 		public override IEnumerator<IPgViewType> GetEnumerator() {
-		  //yield return new ViewType( "Spectrum",       ViewFFT      .ViewType );
-			yield return new ViewType( "Receive Image",  ViewRxImage     .GUID );
-		    yield return new ViewType( "Diagnostics",    ViewDiagnostics .GUID );
-		    yield return new ViewType( "Transmit Image", ViewTransmitSolo.GUID );
-			yield return new ViewType( "Settings",       ViewSettings    .GUID );
-		  //yield return new ViewType( "Mode Select",    ViewTransmitModes );
+		  //yield return new ViewType( "Spectrum",            ViewFFT      .ViewType );
+			yield return new ViewType( "Display from Device", WindowReceiver  .GUID );
+		    yield return new ViewType( "Diagnostics",         WindowDiagnostics .GUID );
+		    yield return new ViewType( "Transmit Image",      ViewTransmitSolo.GUID );
+			yield return new ViewType( "Settings",            ViewSettings    .GUID );
 		}
 	}
 
