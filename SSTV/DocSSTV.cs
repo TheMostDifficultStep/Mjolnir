@@ -279,6 +279,15 @@ namespace Play.SSTV {
 			}
 
 			public override WorkerStatus PlayStatus => ((DocSSTV)_oSiteBase.Host).PlayStatus;
+
+            public SSTVMode ChosenMode {
+                get {
+                    if( CheckedLine?.Extra is SSTVMode oMode ) {
+                        return oMode;
+                    }
+                    return null;
+                }
+            }
 		}
 
 		protected class DocSlot :
@@ -1011,19 +1020,6 @@ namespace Play.SSTV {
         }
 
         /// <summary>
-        /// Just get's the extra on the current checked line in the RxModeList 
-        /// available, else return null.
-        /// </summary>
-        public SSTVMode ChosenMode {
-            get {
-                if( RxModeList?.CheckedLine.Extra is SSTVMode oMode ) {
-                    return oMode;
-                }
-                return null;
-            }
-        }
-
-        /// <summary>
         /// This is our TRUE multithreading experiment! Looks like it works
         /// pretty well. The decoder and filters and all live in the bg thread.
         /// The foreground tread only polls the bitmap from time to time.
@@ -1031,7 +1027,7 @@ namespace Play.SSTV {
         /// <param name="DetectVIS">Just set the decoder for a particular SSTV mode. This is usefull
         /// if picking up the signal in the middle and you know the type a priori. I should
         /// just pass the mode if it's fixed, else autodetect.</param>
-        public void ReceiveFileReadBgThreadBegin( string strFileName ) {
+        public void ReceiveFileReadBgThreadBegin( string strFileName, SSTVMode oMode ) {
             if( string.IsNullOrEmpty( strFileName ) ) {
                 LogError( "Invalid filename for SSTV image read" );
                 return;
@@ -1045,7 +1041,7 @@ namespace Play.SSTV {
                 }
             }
             if( _oThread == null && _oWorkPlace.Status == WorkerStatus.FREE ) {
-                ThreadWorker oWorker        = new ThreadWorker( _rgBGtoUIQueue, strFileName, ChosenMode, SyncImage.Bitmap, ReceiveImage.Bitmap );
+                ThreadWorker oWorker        = new ThreadWorker( _rgBGtoUIQueue, strFileName, oMode, SyncImage.Bitmap, ReceiveImage.Bitmap );
                 ThreadStart  threadDelegate = new ThreadStart ( oWorker.DoWork );
 
                 _oThread = new Thread( threadDelegate );

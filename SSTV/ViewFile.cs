@@ -48,6 +48,15 @@ namespace Play.SSTV {
 					oLine.Extra = oMode;
 				}
 			}
+
+            public SSTVMode ChosenMode {
+                get {
+                    if( CheckedLine?.Extra is SSTVMode oMode ) {
+                        return oMode;
+                    }
+                    return null;
+                }
+            }
 		}
 
 		public WindowFileViewer( IPgViewSite oSiteBase, DocSSTV oDocSSTV ) : base( oSiteBase, oDocSSTV ) {
@@ -168,7 +177,7 @@ namespace Play.SSTV {
 		public override bool Execute( Guid sGuid ) {
 			if( sGuid == GlobalCommands.Play ) {
 				_oSiteView.Notify(ShellNotify.BannerChanged);
-				_oDocSSTV.ReceiveFileReadBgThreadBegin(_rgWavFileList.CurrentFullPath);
+				_oDocSSTV.ReceiveFileReadBgThreadBegin( _rgWavFileList.CurrentFullPath, _rgRxModeList.ChosenMode );
 				return true;
 			}
 			if ( sGuid == GlobalCommands.Stop ) {
