@@ -491,6 +491,8 @@ namespace Mjolnir {
 					if( iViewID > -1 ) {
                         sbTitle.Append( ", " );
                         sbTitle.Append( iViewID.ToString() );
+                        sbTitle.Append( " of " );
+                        sbTitle.Append( DocumentSite.Reference.ToString() );
 					}
 
 					return( sbTitle.ToString() );

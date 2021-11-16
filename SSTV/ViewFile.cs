@@ -19,6 +19,8 @@ namespace Play.SSTV {
 		public    static          Guid   GUID { get; } = new Guid("{C4521EB7-3F16-4576-80A0-24F5396C23F7}");
 		protected static readonly string _strIcon = "Play.SSTV.icons8_tv.png";
 
+		protected static readonly string _strBaseTitle2 = "MySSTV : File Viewer";
+		protected override string BaseTitle    => _strBaseTitle2;
 		public    override Guid   Catagory     => GUID;
 		protected override string IconResource => _strIcon;
 

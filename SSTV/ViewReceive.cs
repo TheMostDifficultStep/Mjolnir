@@ -566,7 +566,7 @@ namespace Play.SSTV {
         protected readonly IPgViewSite _oSiteView;
 		protected          bool        _fDisposed;
 
-		protected static readonly string _strBaseTitle  = "MySSTV Receive 2";
+		protected abstract string BaseTitle    { get; }
 		protected abstract string IconResource { get; }
 
         public IPgParent Parentage => _oSiteView.Host;
@@ -634,7 +634,7 @@ namespace Play.SSTV {
 			get { 
 				StringBuilder sbBanner = new StringBuilder();
 
-				sbBanner.Append( _strBaseTitle );
+				sbBanner.Append( BaseTitle );
 				if( _oDocSSTV.PortRxList.CheckedLine is Line oLine ) {
 					sbBanner.Append( " : " );
 					sbBanner.Append( oLine.ToString() );
@@ -733,8 +733,10 @@ namespace Play.SSTV {
 		IPgLoad<XmlElement>
 	{
 		public    static          Guid   GUID { get; } = new Guid( "{955742A3-79D3-4789-B93B-B4225C641057}" );
-		protected static readonly string _strIcon = "Play.SSTV.icons8_tv.png";
+		protected static readonly string _strIcon      = "Play.SSTV.icons8_tv.png";
+		protected static readonly string _strBaseTitle = "My SSTV : Device Receive";
 
+		protected override string BaseTitle    => _strBaseTitle;
 		public    override Guid   Catagory     => GUID;
 		protected override string IconResource => _strIcon;
 
