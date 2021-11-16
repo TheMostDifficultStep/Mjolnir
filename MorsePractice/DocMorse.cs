@@ -826,29 +826,31 @@ namespace Play.MorsePractice {
         protected void InitRepeaters() {
             List< RepeaterDir > rgTemp = new List<RepeaterDir>();
 
-            rgTemp.Add( new RepeaterDir(  53.17,  -1700, 120, "k7lwh",    "100.0" )); 
-            rgTemp.Add( new RepeaterDir(  52.87,  -1700, 180, "ww7psr",   "103.5" )); 
-
-            rgTemp.Add( new RepeaterDir( 146.96,   -600, 180, "ww7psr",   "103.5" )); 
-            rgTemp.Add( new RepeaterDir( 146.82,   -600, 120, "k7led",    "103.5" ));
-            rgTemp.Add( new RepeaterDir( 145.49,   -600, 180, "k7lwh",    "103.5" ));
-            rgTemp.Add( new RepeaterDir( 146.92,   -600, 120, "wa7dem",   "123.0" ));
-            rgTemp.Add( new RepeaterDir( 147.16,   +600, 120, "w7mir",    "146.2" ));
-            rgTemp.Add( new RepeaterDir( 147.34,   +600, 120, "k6rfk",    "100.0" ));
-            rgTemp.Add( new RepeaterDir( 147.08,   +600, 120, "w7wwi",    "110.9" ));
-            rgTemp.Add( new RepeaterDir( 146.4125, +600, 180, "k7lwh/c",  "103.5" )); // Dstar
-            rgTemp.Add( new RepeaterDir( 146.62,   -600, 120, "ww7ra",    "103.5" ));
-            rgTemp.Add( new RepeaterDir( 145.43,   -600, 120, "kd7wdg",   "88.5" ));
-            rgTemp.Add( new RepeaterDir( 145.33,   -600, 120, "k7nws",    "179.9" ));
-            rgTemp.Add( new RepeaterDir( 146.900,  -600, 120, "w7srz",    "103.5" ));
-            rgTemp.Add( new RepeaterDir( 147.240,  -600, 120, "k7sye",    "123" ));
-            rgTemp.Add( new RepeaterDir( 444.6375, 5000, 120, "wa7hjr/b" ));
+            rgTemp.Add( new RepeaterDir(  53.17,  -1700, 120, "k7lwh",     "100.0" )); 
+            rgTemp.Add( new RepeaterDir(  52.87,  -1700, 180, "ww7psr",    "103.5" )); 
+                                                                          
+            rgTemp.Add( new RepeaterDir( 146.96,   -600, 180, "ww7psr",    "103.5" )); 
+            rgTemp.Add( new RepeaterDir( 146.82,   -600, 120, "k7led",     "103.5" ));
+            rgTemp.Add( new RepeaterDir( 145.49,   -600, 180, "k7lwh",     "103.5" ));
+            rgTemp.Add( new RepeaterDir( 146.92,   -600, 120, "wa7dem",    "123.0" ));
+            rgTemp.Add( new RepeaterDir( 147.16,   +600, 120, "w7mir",     "146.2" ));
+            rgTemp.Add( new RepeaterDir( 147.34,   +600, 120, "k6rfk",     "100.0" ));
+            rgTemp.Add( new RepeaterDir( 147.08,   +600, 120, "w7wwi",     "110.9" ));
+            rgTemp.Add( new RepeaterDir( 146.4125, +600, 180, "k7lwh/c",   "103.5" )); // Dstar
+            rgTemp.Add( new RepeaterDir( 146.62,   -600, 120, "ww7ra",     "103.5" ));
+            rgTemp.Add( new RepeaterDir( 145.43,   -600, 120, "kd7wdg",    "88.5"  ));
+            rgTemp.Add( new RepeaterDir( 145.33,   -600, 120, "k7nws",     "179.9" ));
+            rgTemp.Add( new RepeaterDir( 146.900,  -600, 120, "w7srz",     "103.5" ));
+            rgTemp.Add( new RepeaterDir( 147.240,  -600, 120, "k7sye",     "123"   ));
+            rgTemp.Add( new RepeaterDir( 444.6375, 5000, 120, "wa7hjr/b"           ));
             rgTemp.Add( new RepeaterDir( 444.650,  5000, 120, "wa7hjr/rm", "131.8" ));
-            rgTemp.Add( new RepeaterDir( 444.55,   5000, 120, "ww7sea",   "141.3" ));
-            rgTemp.Add( new RepeaterDir( 441.075,  5000, 180, "k7lwh",    "103.5" ));
-            rgTemp.Add( new RepeaterDir( 442.875,  5000, 120, "w7aux",    "103.5" ));
-            rgTemp.Add( new RepeaterDir( 149.995,  -600, 120, "w7rnk/c"  ));
-            rgTemp.Add( new RepeaterDir( 147.280,  +600, 120, "w7dk",     "103.5" ));
+            rgTemp.Add( new RepeaterDir( 444.55,   5000, 120, "ww7sea",    "141.3" ));
+            rgTemp.Add( new RepeaterDir( 441.075,  5000, 180, "k7lwh",     "103.5" ));
+            rgTemp.Add( new RepeaterDir( 442.875,  5000, 120, "w7aux",     "103.5" ));
+            rgTemp.Add( new RepeaterDir( 149.995,  -600, 120, "w7rnk/c"            ));
+            rgTemp.Add( new RepeaterDir( 147.280,  +600, 120, "w7dk",      "103.5" ));
+            rgTemp.Add( new RepeaterDir( 147.180,  +600, 120, "wa7law",    "103.5" ));
+            rgTemp.Add( new RepeaterDir( 445.575,  5000, 120, "wa7law",    "103.5" ));
 
             _rgRepeatersInfo.Add( "k7lwh",  new RepeaterInfo( "Kirkland", "Lake Washington Ham Club", "http://www.lakewashingtonhamclub.org/" ));
             _rgRepeatersInfo.Add( "ww7psr", new RepeaterInfo( "Seattle", "Puget Sound Repeater Group", "http://psrg.org/" ));
@@ -860,8 +862,9 @@ namespace Play.MorsePractice {
             _rgRepeatersInfo.Add( "k7sye",  new RepeaterInfo( "Auburn", "Auburn Valley Repeater Group" ));
             _rgRepeatersInfo.Add( "wa7hjr", new RepeaterInfo( "Issaquah", "Tiger Mountain East", "http://wa7hjr.org/" ) );
             _rgRepeatersInfo.Add( "w7dk"  , new RepeaterInfo( "Tacoma", "Radio Club of Tacoma" ));
+            _rgRepeatersInfo.Add( "wa7law", new RepeaterInfo( "Everett", "Snohomish County Hams Club", "http://www.wa7law.org/" ));
 
-            foreach( RepeaterDir oItem in rgTemp ) {
+            foreach ( RepeaterDir oItem in rgTemp ) {
                 _rgRepeatersIn .Add( oItem.Input, oItem );
                 _rgRepeatersOut.Add( oItem.Output, oItem );
             }
