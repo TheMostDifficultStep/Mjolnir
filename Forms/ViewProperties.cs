@@ -14,7 +14,7 @@ namespace Play.Forms {
 	/// We'll turn that into optionally a dropdown in the future.
     /// </summary>
     /// <seealso cref="DocProperties"/>
-    public class ViewStandardProperties : 
+    public class WindowStandardProperties : 
         FormsWindow,
         IPgParent,
         IBufferEvents,
@@ -28,7 +28,7 @@ namespace Play.Forms {
         public IPgParent Parentage => _oSiteView.Host;
         public IPgParent Services  => Parentage.Services;
 
-        public ViewStandardProperties( IPgViewSite oSiteView, DocProperties oDocument ) : base( oSiteView, oDocument.Property_Values ) {
+        public WindowStandardProperties( IPgViewSite oSiteView, DocProperties oDocument ) : base( oSiteView, oDocument.Property_Values ) {
             Document = oDocument ?? throw new ArgumentNullException( "ViewStandardProperties's Document is null." );
  			_oStdUI  = oSiteView.Host.Services as IPgStandardUI2 ?? throw new ArgumentException( "Parent view must provide IPgStandardUI service" );
 
@@ -38,9 +38,9 @@ namespace Play.Forms {
 		protected class WinSlot :
 			IPgViewSite
 		{
-			protected readonly ViewStandardProperties _oHost;
+			protected readonly WindowStandardProperties _oHost;
 
-			public WinSlot( ViewStandardProperties oHost ) {
+			public WinSlot( WindowStandardProperties oHost ) {
 				_oHost = oHost ?? throw new ArgumentNullException();
 			}
 

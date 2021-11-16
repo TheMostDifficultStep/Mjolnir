@@ -568,7 +568,7 @@ namespace Play.ImageViewer {
                 return new ImageViewIcons( oBaseSite, _oDocWalker );
             }
             if( sGuid.Equals( GlobalDecorations.Properties ) ) {
-                return new ViewStandardProperties( oBaseSite, _oDocWalker.Properties );
+                return new WindowStandardProperties( oBaseSite, _oDocWalker.Properties );
             }
 			if( sGuid.Equals( GlobalDecorations.Options ) ) {
 				return new EditWin( oBaseSite, DragOptions );

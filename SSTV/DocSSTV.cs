@@ -319,7 +319,7 @@ namespace Play.SSTV {
         public event SSTVPropertyChange PropertyChange;
 
         public StdProperties StdProperties { get; }
-        public FileChooser   RecChooser    { get; } // Recorded wave files.
+      //public FileChooser   RecChooser    { get; } // Recorded wave files.
 
         public Editor              MonitorList   { get; }
         public Editor              PortTxList    { get; } 
@@ -385,7 +385,7 @@ namespace Play.SSTV {
             RxProperties  = new ( new DocSlot( this ) );
             TxProperties  = new ( new DocSlot( this ) );
             StdProperties = new ( new DocSlot( this ) );
-            RecChooser    = new ( new DocSlot( this ) );
+          //RecChooser    = new ( new DocSlot( this ) );
         }
 
         #region Dispose
@@ -402,6 +402,9 @@ namespace Play.SSTV {
                         _oPlayer.Dispose();
 
                     ReceiveLiveStop();
+
+                    RxImageList.ImageUpdated -= OnImageUpdated_RxImageList;
+                    TxImageList.ImageUpdated -= OnImageUpdated_TxImageList;
                 }
 
                 // TODO: free unmanaged resources (unmanaged objects) and override finalizer
@@ -419,6 +422,7 @@ namespace Play.SSTV {
 
         public void Dispose() {
             // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+
             Dispose(disposing: true);
             GC.SuppressFinalize(this);
         }
@@ -451,6 +455,7 @@ namespace Play.SSTV {
         /// <summary>
         /// Walk the iterator of SSTVModes and populate the ModeList. This sets
         /// up the human readable names and maps to the associated mode.
+        /// TODO: Move to the ModeEditor class.
         /// </summary>
         /// <param name="iterMode"></param>
         protected static void LoadModes( IEnumerator<SSTVMode> iterMode, Editor oEditor, bool fAddResolution=true) {
@@ -620,6 +625,7 @@ namespace Play.SSTV {
             RxModeList   .CheckedLine   = RxModeList[0];
 
             TxImageList.ImageUpdated += OnImageUpdated_TxImageList;
+            RxImageList.ImageUpdated += OnImageUpdated_RxImageList;
 
             return true;
         }
@@ -641,12 +647,12 @@ namespace Play.SSTV {
         protected virtual void SettingsInit() {
             InitDeviceList();
 
-            string strMyDocs = Environment.GetFolderPath( Environment.SpecialFolder.MyPictures );
+            string strMyPics = Environment.GetFolderPath( Environment.SpecialFolder.MyPictures );
 
             // In the future, setting this value will send an event that will get forwarded to the chooser.
-            RxProperties.ValueUpdate( RxProperties.Names.SaveDir, strMyDocs );
+            RxProperties.ValueUpdate( RxProperties.Names.SaveDir, strMyPics );
 
-            RecChooser.LoadURL( strMyDocs );
+            //RecChooser.LoadURL( strMyDocs );
         }
 
         protected void PropertiesTxReLoad() {
@@ -772,6 +778,15 @@ namespace Play.SSTV {
 
         private void OnImageUpdated_TxImageList() {
             Raise_PropertiesUpdated( SSTVEvents.TXImageChanged );
+        }
+
+        /// <summary>
+        /// Strictly speaking we're not getting the event we really need here. 
+        /// Look at this again later.
+        /// </summary>
+        private void OnImageUpdated_RxImageList() {
+            // BUG: Need to make the RxProp the one that gets changed and we catch an event to LoadAgain();
+			RxProperties.ValueUpdate(RxProperties.Names.SaveDir, RxImageList.CurrentDirectory, Broadcast:true );
         }
 
         /// <summary>

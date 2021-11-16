@@ -716,7 +716,7 @@ namespace Play.ImageViewer {
 					return( new WindowSoloImageNav( oBaseSite, this._oDocument ) );
 				}
 				if( sGuid.Equals( GlobalDecorations.Properties ) ) {
-					return( new ViewStandardProperties( oBaseSite, _oDocument.Properties ) );
+					return( new WindowStandardProperties( oBaseSite, _oDocument.Properties ) );
 				}
 			} catch ( Exception oEx ) {
 				Type[] rgErrors = { typeof( NotImplementedException ),

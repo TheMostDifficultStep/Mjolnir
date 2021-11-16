@@ -30,7 +30,7 @@ namespace Play.ImageViewer {
                 return( new ImageViewIcons( oBaseSite, _oDocumentWalker ) );
             }
             if( sGuid.Equals( GlobalDecorations.Properties ) ) {
-                return( new ViewStandardProperties( oBaseSite, _oDocumentWalker.Properties ) );
+                return( new WindowStandardProperties( oBaseSite, _oDocumentWalker.Properties ) );
             }
 
             return( null );

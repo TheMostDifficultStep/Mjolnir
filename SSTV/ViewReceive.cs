@@ -199,11 +199,6 @@ namespace Play.SSTV {
 		}
 
 		public bool Execute(Guid sGuid) {
-			if( sGuid == GlobalCommands.Play ) {
-				_oSiteView.Notify( ShellNotify.BannerChanged );
-				_oDocSSTV.ReceiveFileReadBgThreadBegin( _oDocSSTV.RecChooser.CurrentFullPath );
-				return true;
-			}
 			if( sGuid == GlobalCommands.Stop ) {
 				_oDocSSTV.TransmitStop(); // Stop record or play.
 				return true;
@@ -241,7 +236,7 @@ namespace Play.SSTV {
 	/// We'll turn that into optionally a dropdown in the future.
     /// </summary>
     public class ViewSSTVProperties : 
-        ViewStandardProperties
+        WindowStandardProperties
      {
         public static Guid GUID {get;} = new Guid("{80C855E0-C2F6-4641-9A7C-B6A8A53B3FDF}");
 
@@ -253,7 +248,7 @@ namespace Play.SSTV {
 	/// Little experiment for the property page of the receiver viewer.
     /// </summary>
     public class ViewRXProperties : 
-        ViewStandardProperties
+        WindowStandardProperties
      {
         public DocSSTV SSTVDocument { get; }
 
@@ -281,7 +276,7 @@ namespace Play.SSTV {
 	/// <summary>
 	/// This view shows the single image being downloaded from the audio stream. 
 	/// </summary>
-	public class ViewRxImage : 
+	public class WindowSoloRx : 
 		ImageViewSingle, 
 		IPgCommandView,
 		IPgSave<XmlDocumentFragment>,
@@ -312,9 +307,9 @@ namespace Play.SSTV {
 			IPgViewSite,
 			IPgShellSite
 		{
-			protected readonly ViewRxImage _oHost;
+			protected readonly WindowSoloRx _oHost;
 
-			public SSTVWinSlot( ViewRxImage oHost ) {
+			public SSTVWinSlot( WindowSoloRx oHost ) {
 				_oHost = oHost ?? throw new ArgumentNullException();
 			}
 
@@ -361,7 +356,7 @@ namespace Play.SSTV {
 			} 
 		}
 
-		public ViewRxImage( IPgViewSite oSiteBase, DocSSTV oDocSSTV ) : 
+		public WindowSoloRx( IPgViewSite oSiteBase, DocSSTV oDocSSTV ) : 
 			base( oSiteBase, oDocSSTV.ReceiveImage ) 
 		{
 			_oSiteView = oSiteBase ?? throw new ArgumentNullException( "SiteBase must not be null." );
@@ -375,7 +370,6 @@ namespace Play.SSTV {
         protected override void Dispose( bool fDisposing ) {
 			if( fDisposing && !_fDisposed ) {
 				_oDocSSTV.PropertyChange             -= OnPropertyChange_DocSSTV;
-				_oDocSSTV.RecChooser.DirectoryChange -= OnDirectoryChange_Chooser;
 				_oDocSSTV.RxModeList.CheckedEvent    -= OnCheckedEvent_RxModeList;
 			}
 			base.Dispose( fDisposing );
@@ -386,20 +380,13 @@ namespace Play.SSTV {
 				return false;
 
             _oDocSSTV.PropertyChange             += OnPropertyChange_DocSSTV;
-            _oDocSSTV.RecChooser.DirectoryChange += OnDirectoryChange_Chooser;
             _oDocSSTV.RxModeList.CheckedEvent    += OnCheckedEvent_RxModeList;
 
-			// Of course we'll blow up the shell if try in the constructor...
-			OnDirectoryChange_Chooser( _oDocSSTV.RecChooser.CurrentDirectory );
 			return true;
         }
 
         private void OnCheckedEvent_RxModeList( Line oLineChecked ) {
 			_oDocSSTV.RequestModeChange( oLineChecked.Extra as SSTVMode );
-        }
-
-        private void OnDirectoryChange_Chooser( string strDirectory ) {
-			// Not using this for now.
         }
 
         /// <summary>
@@ -440,7 +427,7 @@ namespace Play.SSTV {
 			if( sGuid == GlobalCommands.Play ) {
 				switch( _eToolSelected ) {
 					case Tools.File: {
-						_oDocSSTV.ReceiveFileReadBgThreadBegin( _oDocSSTV.RecChooser.CurrentFullPath );
+						//_oDocSSTV.ReceiveFileReadBgThreadBegin( _oDocSSTV.RecChooser.CurrentFullPath );
 						return true;
 						}
 					case Tools.Port:
@@ -460,13 +447,10 @@ namespace Play.SSTV {
 		public object Decorate(IPgViewSite oBaseSite,Guid sGuid) {
 			try {
 				if( sGuid.Equals(GlobalDecorations.Properties) ) {
-					return new ViewStandardProperties( oBaseSite, _oDocSSTV.RxProperties );
+					return new WindowStandardProperties( oBaseSite, _oDocSSTV.RxProperties );
 				}
 				if( sGuid.Equals( GlobalDecorations.Outline ) ) {
 					return new CheckList( oBaseSite, _oDocSSTV.RxModeList );
-				}
-				if( sGuid.Equals( GlobalDecorations.Options ) ) {
-					return new WindowTextDir( oBaseSite, _oDocSSTV );
 				}
 				return false;
 			} catch ( Exception oEx ) {
@@ -515,12 +499,13 @@ namespace Play.SSTV {
 	/// This window is for the file chooser.
 	/// </summary>
 	public class WindowTextDir : EditWindow2 {
-		protected readonly DocSSTV _oDocSSTV;
+		protected readonly FileChooser _rgFileList;
 
-		public WindowTextDir( IPgViewSite oSiteView, DocSSTV oSSTV ) :
-			base( oSiteView, oSSTV.RecChooser?.FileList, fReadOnly:true ) 
+		public WindowTextDir( IPgViewSite oSiteView, FileChooser rgFileList ) :
+			base( oSiteView, rgFileList?.FileList, fReadOnly:true ) 
 		{
-			_oDocSSTV = oSSTV ?? throw new ArgumentNullException();
+			_rgFileList = rgFileList ?? throw new ArgumentNullException();
+
 
 			_fCheckMarks = true;
 			ToolSelect   = 2; // BUG: change this to an enum in the future.
@@ -534,9 +519,7 @@ namespace Play.SSTV {
 					if( oFile._fIsDirectory ) {
 						string strName = oFile.SubString( 1, oFile.ElementCount - 2 );
 						if( !string.IsNullOrEmpty( strName ) ) {
-							_oDocSSTV.RecChooser.LoadAgain( Path.Combine( _oDocSSTV.RecChooser.CurrentDirectory, strName ) );
-							// BUG: Need to make the RxProp the one that gets changed and we catch an event to LoadAgain();
-							_oDocSSTV.RxProperties.ValueUpdate( RxProperties.Names.SaveDir, _oDocSSTV.RecChooser.CurrentDirectory, Broadcast:true );
+							_rgFileList.LoadAgain( Path.Combine(_rgFileList.CurrentDirectory, strName ) );
 						}
 					}
 				}
@@ -559,7 +542,7 @@ namespace Play.SSTV {
 
 		public override bool Execute( Guid sGuid ) {
 			if( sGuid == GlobalCommands.JumpParent ) {
-				return _oDocSSTV.RecChooser.Execute( sGuid );
+				return _rgFileList.Execute( sGuid );
 			}
 
             return base.Execute(sGuid);
@@ -600,6 +583,7 @@ namespace Play.SSTV {
 		protected ImageViewIcons  _oViewRxHistory;
 
 		protected class SSTVWinSlot :
+			IPgFileSite,
 			IPgViewSite,
 			IPgShellSite
 		{
@@ -636,6 +620,14 @@ namespace Play.SSTV {
             public IEnumerable<IPgCommandView> EnumerateSiblings => throw new NotImplementedException();
 
             public uint SiteID => throw new NotImplementedException();
+
+            public FILESTATS FileStatus => FILESTATS.UNKNOWN;
+
+            public Encoding FileEncoding => Encoding.Default;
+
+            public string FilePath => _oHost._oDocSSTV.RxProperties[RxProperties.Names.SaveDir].ToString();
+
+            public string FileBase => _oHost._oDocSSTV.RxProperties[RxProperties.Names.SaveName].ToString();
         }
 
         public string Banner {
@@ -699,16 +691,13 @@ namespace Play.SSTV {
 
 		public abstract bool Execute( Guid _ );
 
-		public object Decorate(IPgViewSite oBaseSite,Guid sGuid) {
+		public virtual object Decorate(IPgViewSite oBaseSite,Guid sGuid) {
 			try {
 				if( sGuid.Equals(GlobalDecorations.Properties) ) {
-					return new ViewStandardProperties( oBaseSite, _oDocSSTV.RxProperties );
+					return new WindowStandardProperties( oBaseSite, _oDocSSTV.RxProperties );
 				}
 				if( sGuid.Equals( GlobalDecorations.Outline ) ) {
 					return new CheckList( oBaseSite, _oDocSSTV.RxModeList );
-				}
-				if( sGuid.Equals( GlobalDecorations.Options ) ) {
-					return new WindowTextDir( oBaseSite, _oDocSSTV );
 				}
 				return false;
 			} catch ( Exception oEx ) {
@@ -762,7 +751,7 @@ namespace Play.SSTV {
         protected override void Dispose( bool fDisposing ) {
 			if( fDisposing && !_fDisposed ) {
 				_oDocSSTV.PropertyChange             -= OnPropertyChange_DocSSTV;
-				_oDocSSTV.RecChooser.DirectoryChange -= OnDirectoryChange_Chooser;
+			  //_oDocSSTV.RecChooser.DirectoryChange -= OnDirectoryChange_Chooser;
 				_oDocSSTV.RxModeList.CheckedEvent    -= OnCheckedEvent_RxModeList;
 
 				_oViewRxHistory.Dispose();
@@ -780,11 +769,11 @@ namespace Play.SSTV {
 				return false;
 
             _oDocSSTV.PropertyChange             += OnPropertyChange_DocSSTV;
-            _oDocSSTV.RecChooser.DirectoryChange += OnDirectoryChange_Chooser;
+          //_oDocSSTV.RecChooser.DirectoryChange += OnDirectoryChange_Chooser;
             _oDocSSTV.RxModeList.CheckedEvent    += OnCheckedEvent_RxModeList;
 
 			// Of course we'll blow up the shell if try in the constructor...
-			OnDirectoryChange_Chooser( _oDocSSTV.RecChooser.CurrentDirectory );
+		  //OnDirectoryChange_Chooser( _oDocSSTV.RecChooser.CurrentDirectory );
 
             _oLayout.Add( new LayoutControl( _oViewRxImg ,    LayoutRect.CSS.None ) );
             _oLayout.Add( new LayoutControl( _oViewRxHistory, LayoutRect.CSS.Pixels, 220 ) );
@@ -795,10 +784,6 @@ namespace Play.SSTV {
 
         private void OnCheckedEvent_RxModeList( Line oLineChecked ) {
 			_oDocSSTV.RequestModeChange( oLineChecked.Extra as SSTVMode );
-        }
-
-        private void OnDirectoryChange_Chooser( string strDirectory ) {
-			// Not using this for now.
         }
 
         /// <summary>

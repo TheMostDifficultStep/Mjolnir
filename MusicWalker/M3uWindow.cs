@@ -62,7 +62,7 @@ namespace Play.MusicWalker {
                 return( new WindowSoloImageNav( oBaseSite, _oDocumentMusic.AlbumArt ) );
             }
             if( sGuid.Equals( GlobalDecorations.Properties ) ) {
-                return( new ViewStandardProperties( oBaseSite, _oDocumentMusic.AlbumProperties ) );
+                return( new WindowStandardProperties( oBaseSite, _oDocumentMusic.AlbumProperties ) );
             }
 
             return( base.Decorate( oBaseSite, sGuid ) );
@@ -152,7 +152,7 @@ namespace Play.MusicWalker {
                 return( oWin );
             }
 			if( sGuid.Equals( GlobalDecorations.Properties ) ) {
-                return( new ViewStandardProperties( oBaseSite, _oDocumentMusic.AlbumProperties ) );
+                return( new WindowStandardProperties( oBaseSite, _oDocumentMusic.AlbumProperties ) );
 			}
 
             return( base.Decorate( oBaseSite, sGuid ) );

@@ -262,7 +262,7 @@ namespace Play.MorsePractice {
     /// </summary>
     /// <seealso cref="DocProperties"/>
     public class ViewRadioProperties : 
-        ViewStandardProperties
+        WindowStandardProperties
      {
         public static Guid GUID {get;} = new Guid("{80C855E0-C2F6-4641-9A7C-B6A8A53B3FDF}");
 

@@ -1044,7 +1044,7 @@ namespace Play.Sound {
 			//	CalcNarrowBPF(HBPFN, m_bpftap, m_bpf, SSTVSET.m_Mode);
 		}
 
-		public void Reset()	{
+		public virtual void Reset()	{
 			if( m_AFCFQ != 0 ){
 				if( m_fskdecode ){
 					m_iir11.SetFreq(1080 + m_dblToneOffset, SampFreq,  80.0);
@@ -1675,7 +1675,9 @@ namespace Play.Sound {
 		{
 		}
 
-		public void Reset() {
+		public override void Reset() {
+			base.Reset();
+
 			m_dbWPos = 0;
 		}
 

@@ -1312,7 +1312,7 @@ namespace Play.MorsePractice {
             LabelSet( Names.Location,           "Location" );
             LabelSet( Names.Group,              "Group" );
             LabelSet( Names.Repeater_Tone,      "Repeater Tone" );
-            LabelSet( Names.Rptr_Tone_Enable,   "Rptr Tone Enable" );
+            LabelSet( Names.Rptr_Tone_Enable,   "Tone Enable" );
             LabelSet( Names.Repeater_URL,       "Repeater URL" );
             LabelSet( Names.Power_Level,        "Power Level" );
             LabelSet( Names.Alternates,         "Alternates" );

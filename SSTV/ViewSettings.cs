@@ -18,7 +18,7 @@ namespace Play.SSTV {
     /// <remarks>TODO: I probably inherit from a ViewStandardProperties object and remove our direct 
     /// DocSSTV dependency.</remarks>
     public class ViewSettings :
-        ViewStandardProperties,
+        WindowStandardProperties,
         IPgLoad<XmlElement>,
         IPgSave<XmlDocumentFragment>,
         IPgParent,
