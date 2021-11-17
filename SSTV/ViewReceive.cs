@@ -722,7 +722,29 @@ namespace Play.SSTV {
 
             Invalidate();
 		}
-    }
+
+		protected override void OnPaintSurface( SKPaintSurfaceEventArgs e ) {
+			base.OnPaintSurface(e);
+
+            try {
+                SKSurface skSurface = e.Surface;
+                SKCanvas  skCanvas  = skSurface.Canvas;
+
+                using SKPaint skPaint = new ();
+				skPaint .Color = Focused ? SKColors.LightBlue : SKColors.LightGray;
+				skCanvas.DrawRect( 0, 0, Width, Height, skPaint );
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( NullReferenceException ),
+                                    typeof( ArgumentOutOfRangeException ),
+                                    typeof( ArgumentNullException ),
+                                    typeof( ArgumentException ),
+                                    typeof( InvalidOperationException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
+            }
+		}
+
+	}
 
 	/// <summary>
 	/// Spiffy new window that shows the receive directory as icons.
@@ -740,12 +762,18 @@ namespace Play.SSTV {
 		public    override Guid   Catagory     => GUID;
 		protected override string IconResource => _strIcon;
 
+		protected readonly LayoutStaggared    _rgSubLayout = new (5);
+		protected readonly WindowSoloImageNav _wnSoloImageNav;
+
+
 		public WindowReceiver( IPgViewSite oSiteBase, DocSSTV oDocSSTV ) : base( oSiteBase, oDocSSTV ) {
 			_oViewRxImg     = new( new SSTVWinSlot( this ), _oDocSSTV.ReceiveImage );
-			_oViewRxHistory = new( new SSTVWinSlot( this ), _oDocSSTV.RxImageList  ); 
+			_oViewRxHistory = new( new SSTVWinSlot( this ), _oDocSSTV.RxImageList  );
+			_wnSoloImageNav = new( new SSTVWinSlot( this ), _oDocSSTV.RxImageList  );
 
 			_oViewRxImg    .Parent = this;
 			_oViewRxHistory.Parent = this;
+			_wnSoloImageNav.Parent = this;
 
 			_oViewRxImg.SetBorderOn();
 		}
@@ -758,6 +786,7 @@ namespace Play.SSTV {
 
 				_oViewRxHistory.Dispose();
 				_oViewRxImg    .Dispose();
+				_wnSoloImageNav.Dispose();
 
 				_fDisposed = true;
 			}
@@ -769,15 +798,20 @@ namespace Play.SSTV {
 				return false;
 			if( !_oViewRxHistory.InitNew() )
 				return false;
+			if( !_wnSoloImageNav.InitNew() )
+				return false;
 
             _oDocSSTV.PropertyChange             += OnPropertyChange_DocSSTV;
           //_oDocSSTV.RecChooser.DirectoryChange += OnDirectoryChange_Chooser;
             _oDocSSTV.RxModeList.CheckedEvent    += OnCheckedEvent_RxModeList;
 
 			// Of course we'll blow up the shell if try in the constructor...
-		  //OnDirectoryChange_Chooser( _oDocSSTV.RecChooser.CurrentDirectory );
+			//OnDirectoryChange_Chooser( _oDocSSTV.RecChooser.CurrentDirectory );
 
-            _oLayout.Add( new LayoutControl( _oViewRxImg ,    LayoutRect.CSS.None ) );
+			_rgSubLayout.Add(new LayoutControl(_oViewRxImg,     LayoutRect.CSS.None) );
+			_rgSubLayout.Add(new LayoutControl(_wnSoloImageNav, LayoutRect.CSS.None) );
+
+			_oLayout.Add( _rgSubLayout );
             _oLayout.Add( new LayoutControl( _oViewRxHistory, LayoutRect.CSS.Pixels, 220 ) );
 
             OnSizeChanged( new EventArgs() );
@@ -863,9 +897,36 @@ namespace Play.SSTV {
             return _rgLayout[iIndex];
         }
 
-		public override bool LayoutChildren() {
-			return true;
+		public void Add( LayoutRect oRect ) {
+			_rgLayout.Add(oRect);
 		}
 
-    }
+		public override bool LayoutChildren() {
+			int			  iCount   = _rgLayout.Count;
+			int			  iStagger = 40;
+			SKPointI	  pntUL    = new SKPointI( Left, Top );
+			SKPointI	  pntLR    = new SKPointI( Right, Bottom );
+
+			for (int iNext = 0; iNext < iCount; iNext++) {
+				int iPrev = iCount - iNext - 1;
+
+				_rgLayout[iNext].SetRect( Left   + iNext * iStagger,
+										  Top    + iNext * iStagger,
+										  Right  - iPrev * iStagger,
+										  Bottom - iPrev * iStagger );
+			}
+
+			return true;
+		}
+		public override uint TrackDesired(TRACK eParentAxis, int uiRail) { 
+			switch( eParentAxis ) {
+				case TRACK.HORIZ:
+					return (uint)Width;
+				case TRACK.VERT:
+					return (uint)Height;
+				default:
+					throw new ArgumentOutOfRangeException();
+			}
+		}
+	}
 }
