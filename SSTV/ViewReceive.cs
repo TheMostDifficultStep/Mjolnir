@@ -676,7 +676,9 @@ namespace Play.SSTV {
         protected override void OnGotFocus(EventArgs e) {
             base.OnGotFocus( e );
 
-            Invalidate();
+			_oSiteView.EventChain.NotifyFocused(true);
+
+			Invalidate();
         }
 
         protected override void OnLostFocus(EventArgs e) {
