@@ -337,7 +337,7 @@ namespace Play.SSTV {
         public ModeEditor          RxModeList    { get; }
         public ModeEditor          TxModeList    { get; }
         public ImageWalkerDir      TxImageList   { get; }
-        public ImageWalkerDir      RxImageList   { get; }
+        public ImageWalkerDir      RxHistoryList { get; }
         public RxProperties        RxProperties  { get; }
         public TxProperties        TxProperties  { get; }
         public SKBitmap            TxBitmap      => TxImageList.Bitmap;
@@ -381,7 +381,7 @@ namespace Play.SSTV {
             RxModeList    = new ModeEditor    ( new DocSlot( this, "SSTV Rx Modes" ) );
             TxModeList    = new ModeEditor    ( new DocSlot( this, "SSTV Tx Modes" ) );
             TxImageList   = new ImageWalkerDir( new DocSlot( this ) );
-            RxImageList   = new ImageWalkerDir( new DocSlot( this ) );
+            RxHistoryList   = new ImageWalkerDir( new DocSlot( this ) );
             _oDocSnip     = new ImageSoloDoc  ( new DocSlot( this ) );
                           
             PortTxList    = new Editor        ( new DocSlot( this ) );
@@ -412,7 +412,7 @@ namespace Play.SSTV {
 
                     ReceiveLiveStop();
 
-                    RxImageList.ImageUpdated -= OnImageUpdated_RxImageList;
+                    RxHistoryList.ImageUpdated -= OnImageUpdated_RxImageList;
                     TxImageList.ImageUpdated -= OnImageUpdated_TxImageList;
                 }
 
@@ -619,7 +619,7 @@ namespace Play.SSTV {
                 return false;
 			}
             string strMyPics = RxProperties[RxProperties.Names.SaveDir].ToString();
-            if( !RxImageList.LoadURL( strMyPics ) ) {
+            if( !RxHistoryList.LoadURL( strMyPics ) ) {
 				LogError( "Couldn't find pictures history directory for SSTV" );
                 return false;
             }
@@ -634,7 +634,7 @@ namespace Play.SSTV {
             RxModeList   .CheckedLine   = RxModeList[0];
 
             TxImageList.ImageUpdated += OnImageUpdated_TxImageList;
-            RxImageList.ImageUpdated += OnImageUpdated_RxImageList;
+            RxHistoryList.ImageUpdated += OnImageUpdated_RxImageList;
 
             return true;
         }
@@ -795,7 +795,7 @@ namespace Play.SSTV {
         /// </summary>
         private void OnImageUpdated_RxImageList() {
             // BUG: Need to make the RxProp the one that gets changed and we catch an event to LoadAgain();
-			RxProperties.ValueUpdate(RxProperties.Names.SaveDir, RxImageList.CurrentDirectory, Broadcast:true );
+			RxProperties.ValueUpdate(RxProperties.Names.SaveDir, RxHistoryList.CurrentDirectory, Broadcast:true );
         }
 
         /// <summary>
@@ -918,7 +918,7 @@ namespace Play.SSTV {
             // RxProperties[RxProperties.Names.SaveDir] vs
             // RecChooser.CurrentFullPath
 
-            RxImageList.LoadAgain( RxImageList.CurrentDirectory );
+            RxHistoryList.LoadAgain( RxHistoryList.CurrentDirectory );
         }
 
         /// <summary>

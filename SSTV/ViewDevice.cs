@@ -674,8 +674,8 @@ namespace Play.SSTV {
 
 			Iconic = ImageResourceHelper.GetImageResource( Assembly.GetExecutingAssembly(), IconResource );
 
-			_oViewRxImg     = new( new SSTVWinSlot( this, ChildID.RxWindow      ), _oDocSSTV.ReceiveImage );
-			_oViewRxHistory = new( new SSTVWinSlot( this, ChildID.HistoryNavWindow ), _oDocSSTV.RxImageList  ); 
+			_oViewRxImg     = new( new SSTVWinSlot( this, ChildID.RxWindow      ),    _oDocSSTV.ReceiveImage );
+			_oViewRxHistory = new( new SSTVWinSlot( this, ChildID.HistoryNavWindow ), _oDocSSTV.RxHistoryList  ); 
 
 			_oViewRxImg    .Parent = this;
 			_oViewRxHistory.Parent = this;
@@ -802,8 +802,8 @@ namespace Play.SSTV {
 
 		public WindowDeviceViewer( IPgViewSite oSiteBase, DocSSTV oDocSSTV ) : base( oSiteBase, oDocSSTV ) {
 			_oViewRxImg     = new( new SSTVWinSlot( this, ChildID.RxWindow           ), _oDocSSTV.ReceiveImage );
-			_oViewRxHistory = new( new SSTVWinSlot( this, ChildID.HistoryIconsWindow ), _oDocSSTV.RxImageList  );
-			_wnSoloImageNav = new( new SSTVWinSlot( this, ChildID.HistoryNavWindow   ), _oDocSSTV.RxImageList  );
+			_oViewRxHistory = new( new SSTVWinSlot( this, ChildID.HistoryIconsWindow ), _oDocSSTV.RxHistoryList  );
+			_wnSoloImageNav = new( new SSTVWinSlot( this, ChildID.HistoryNavWindow   ), _oDocSSTV.RxHistoryList  );
 
 			_oViewRxImg    .Parent = this;
 			_oViewRxHistory.Parent = this;
@@ -814,7 +814,7 @@ namespace Play.SSTV {
 
         protected override void Dispose( bool fDisposing ) {
 			if( fDisposing && !_fDisposed ) {
-				_oDocSSTV.RxImageList.ImageUpdated   -= OnImageUpdated_RxImageList;
+				_oDocSSTV.RxHistoryList.ImageUpdated -= OnImageUpdated_RxImageList;
 				_oDocSSTV.PropertyChange             -= OnPropertyChange_DocSSTV;
 			  //_oDocSSTV.RecChooser.DirectoryChange -= OnDirectoryChange_Chooser;
 				_oDocSSTV.RxModeList.CheckedEvent    -= OnCheckedEvent_RxModeList;
@@ -836,7 +836,7 @@ namespace Play.SSTV {
 			if( !_wnSoloImageNav.InitNew() )
 				return false;
 
-            _oDocSSTV.RxImageList.ImageUpdated   += OnImageUpdated_RxImageList;
+            _oDocSSTV.RxHistoryList.ImageUpdated += OnImageUpdated_RxImageList;
             _oDocSSTV.PropertyChange             += OnPropertyChange_DocSSTV;
           //_oDocSSTV.RecChooser.DirectoryChange += OnDirectoryChange_Chooser;
             _oDocSSTV.RxModeList.CheckedEvent    += OnCheckedEvent_RxModeList;
@@ -912,7 +912,9 @@ namespace Play.SSTV {
 			}
 			if( sGuid == GlobalCommands.Save ) {
 				_oDocSSTV.SaveRxImage();
-				return true; // make sure you return true or a docsstv.save gets called.
+				_oDocSSTV.RxHistoryList.LoadAgain( _oDocSSTV.RxHistoryList.CurrentDirectory );
+				// make sure you return true or a docsstv.save gets called.
+				return true; 
 			}
 			if( sGuid == GlobalCommands.JumpPrev) { 
 				_oViewRxImg.BringToFront();
