@@ -18,7 +18,7 @@ namespace Play.SSTV {
     public class ThreadWorkerBase {
         protected readonly ConcurrentQueue<SSTVEvents> _oToUIQueue;
 
-        public SSTVMode NextMode => SSTVDraw.Mode;
+        public SSTVMode NextMode => SSTVDraw?.Mode;
 
         public SSTVDraw SSTVDraw        { get; protected set; }
         public SSTVDEM  SSTVDeModulator { get; protected set; }

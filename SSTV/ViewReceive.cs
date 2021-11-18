@@ -691,7 +691,7 @@ namespace Play.SSTV {
             this.Select();
 		}
 
-		public abstract bool Execute( Guid _ );
+		public abstract bool Execute( Guid e );
 
 		public virtual object Decorate(IPgViewSite oBaseSite,Guid sGuid) {
 			try {
@@ -782,6 +782,7 @@ namespace Play.SSTV {
 
         protected override void Dispose( bool fDisposing ) {
 			if( fDisposing && !_fDisposed ) {
+				_oDocSSTV.RxImageList.ImageUpdated   -= OnImageUpdated_RxImageList;
 				_oDocSSTV.PropertyChange             -= OnPropertyChange_DocSSTV;
 			  //_oDocSSTV.RecChooser.DirectoryChange -= OnDirectoryChange_Chooser;
 				_oDocSSTV.RxModeList.CheckedEvent    -= OnCheckedEvent_RxModeList;
@@ -803,6 +804,7 @@ namespace Play.SSTV {
 			if( !_wnSoloImageNav.InitNew() )
 				return false;
 
+            _oDocSSTV.RxImageList.ImageUpdated   += OnImageUpdated_RxImageList;
             _oDocSSTV.PropertyChange             += OnPropertyChange_DocSSTV;
           //_oDocSSTV.RecChooser.DirectoryChange += OnDirectoryChange_Chooser;
             _oDocSSTV.RxModeList.CheckedEvent    += OnCheckedEvent_RxModeList;
@@ -820,6 +822,10 @@ namespace Play.SSTV {
 			return true;
         }
 
+        private void OnImageUpdated_RxImageList() {
+			_wnSoloImageNav.BringToFront();
+        }
+
         private void OnCheckedEvent_RxModeList( Line oLineChecked ) {
 			_oDocSSTV.RequestModeChange( oLineChecked.Extra as SSTVMode );
         }
@@ -833,6 +839,7 @@ namespace Play.SSTV {
         private void OnPropertyChange_DocSSTV( SSTVEvents eProp ) {
 			switch( eProp ) {
 				case SSTVEvents.DownLoadFinished:
+					_oViewRxImg.BringToFront();
 					_oViewRxImg.Refresh();
 					break;
 				default:
@@ -856,6 +863,14 @@ namespace Play.SSTV {
 			if( sGuid == GlobalCommands.Save ) {
 				_oDocSSTV.SaveRxImage();
 				return true; // make sure you return true or a docsstv.save gets called.
+			}
+			if( sGuid == GlobalCommands.JumpPrev) { 
+				_oViewRxImg.BringToFront();
+				return true;
+			}
+			if( sGuid == GlobalCommands.JumpNext) {
+				_wnSoloImageNav.BringToFront();
+				return true;
 			}
 
 			return false;

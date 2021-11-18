@@ -950,17 +950,13 @@ namespace Play.SSTV {
                             RxModeList.HighLight   = null;
                             RxModeList.CheckedLine = RxModeList[0];
                            _oThread = null;
-                            yield break;
+                            yield break; // Bail out.
                         case SSTVEvents.SSTVMode: 
                             {
                                 // this is a little evil asking the worker the mode that might
                                 // be different by the time we process the event. Might want a
                                 // parameter on the message.
-                                SSTVMode oWorkerMode = null;
-                                try { 
-                                    oWorkerMode = oWorker.NextMode;
-                                } catch( NullReferenceException oEx ) { 
-                                }
+                                SSTVMode oWorkerMode = oWorker.NextMode;
                                 if( oWorkerMode == null ) {
                                     // We catch a null we're going back to listen mode.
                                     RxModeList.HighLight    = null;
@@ -1001,7 +997,7 @@ namespace Play.SSTV {
                             DownloadFinished();
                             if( !oWorker.IsForever ) { 
                                 _oThread = null;
-                                yield break;
+                                yield break; // Bail out of this worker.
                             }
                             break;
                         case SSTVEvents.ThreadDiagnosticsException:
