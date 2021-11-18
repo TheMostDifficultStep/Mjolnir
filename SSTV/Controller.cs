@@ -30,8 +30,8 @@ namespace Play.SSTV {
                 if( guidViewType == ViewTransmitSolo.GUID )
 					return new ViewTransmitSolo( oBaseSite, oMySSTVDoc );
 
-				if( guidViewType == WindowReceiver.GUID )
-					return new WindowReceiver( oBaseSite, oMySSTVDoc );
+				if( guidViewType == WindowDeviceViewer.GUID )
+					return new WindowDeviceViewer( oBaseSite, oMySSTVDoc );
 
 				if( guidViewType == WindowFileViewer.GUID )
 					return new WindowFileViewer( oBaseSite, oMySSTVDoc );
@@ -39,7 +39,7 @@ namespace Play.SSTV {
 				if( guidViewType == ViewSettings.GUID )
 					return new ViewSettings( oBaseSite, oMySSTVDoc );
 
-				return new WindowReceiver( oBaseSite, oMySSTVDoc );
+				return new WindowDeviceViewer( oBaseSite, oMySSTVDoc );
             } catch( Exception oEx ) {
 				// TODO: Stuff errors collection into the base controller.
                 Type[] rgErrors = { typeof( NullReferenceException ),
@@ -55,7 +55,7 @@ namespace Play.SSTV {
 
 		public override IEnumerator<IPgViewType> GetEnumerator() {
 		  //yield return new ViewType( "Spectrum",            ViewFFT      .ViewType );
-			yield return new ViewType( "Display from Device", WindowReceiver    .GUID );
+			yield return new ViewType( "Display from Device", WindowDeviceViewer    .GUID );
 			yield return new ViewType( "Display from File",   WindowFileViewer  .GUID );
 		    yield return new ViewType( "Diagnostics",         WindowDiagnostics .GUID );
 		    yield return new ViewType( "Transmit Image",      ViewTransmitSolo  .GUID );

@@ -581,16 +581,27 @@ namespace Play.SSTV {
         protected DocSSTV		  _oDocSSTV;
 		protected ImageViewSingle _oViewRxImg;
 		protected ImageViewIcons  _oViewRxHistory;
+		public enum ChildID
+		{
+			RxWindow,
+			HistoryNavWindow,
+			HistoryIconsWindow,
+			None
+		}
 
 		protected class SSTVWinSlot :
 			IPgFileSite,
 			IPgViewSite,
-			IPgShellSite
+			IPgShellSite,
+			IPgViewNotify
 		{
 			protected readonly WindowRxBase _oHost;
 
-			public SSTVWinSlot(WindowRxBase oHost ) {
+			public ChildID ID { get;}
+
+			public SSTVWinSlot(WindowRxBase oHost, ChildID eID ) {
 				_oHost = oHost ?? throw new ArgumentNullException();
+				ID     = eID;
 			}
 
 			public IPgParent Host => _oHost;
@@ -615,7 +626,20 @@ namespace Play.SSTV {
                 throw new NotImplementedException();
             }
 
-            public IPgViewNotify EventChain => _oHost._oSiteView.EventChain;
+            public void NotifyFocused(bool fSelect) {
+				_oHost.BringChildToFront( ID );
+                _oHost._oSiteView.EventChain.NotifyFocused( fSelect );
+            }
+
+            public bool IsCommandKey(CommandKey ckCommand, KeyBoardEnum kbModifier) {
+                return _oHost._oSiteView.EventChain.IsCommandKey( ckCommand, kbModifier );
+            }
+
+            public bool IsCommandPress(char cChar) {
+                return _oHost._oSiteView.EventChain.IsCommandPress( cChar );
+            }
+
+            public IPgViewNotify EventChain => this;
 
             public IEnumerable<IPgCommandView> EnumerateSiblings => throw new NotImplementedException();
 
@@ -650,8 +674,8 @@ namespace Play.SSTV {
 
 			Iconic = ImageResourceHelper.GetImageResource( Assembly.GetExecutingAssembly(), IconResource );
 
-			_oViewRxImg     = new( new SSTVWinSlot( this ), _oDocSSTV.ReceiveImage );
-			_oViewRxHistory = new( new SSTVWinSlot( this ), _oDocSSTV.RxImageList  ); 
+			_oViewRxImg     = new( new SSTVWinSlot( this, ChildID.RxWindow      ), _oDocSSTV.ReceiveImage );
+			_oViewRxHistory = new( new SSTVWinSlot( this, ChildID.HistoryNavWindow ), _oDocSSTV.RxImageList  ); 
 
 			_oViewRxImg    .Parent = this;
 			_oViewRxHistory.Parent = this;
@@ -672,6 +696,15 @@ namespace Play.SSTV {
         public void LogError( string strCatagory, string strDetails ) {
             _oSiteView.LogError( strCatagory, strDetails );
         }
+
+		protected virtual void BringChildToFront( ChildID eID ) {
+			switch( eID ) {
+				case ChildID.RxWindow:
+					_oViewRxImg.BringToFront();
+					break;
+			}
+		}
+
 
         protected override void OnGotFocus(EventArgs e) {
             base.OnGotFocus( e );
@@ -751,7 +784,7 @@ namespace Play.SSTV {
 	/// <summary>
 	/// Spiffy new window that shows the receive directory as icons.
 	/// </summary>
-	public class WindowReceiver : 
+	public class WindowDeviceViewer : 
 		WindowRxBase,
 		IPgSave<XmlDocumentFragment>,
 		IPgLoad<XmlElement>
@@ -768,10 +801,10 @@ namespace Play.SSTV {
 		protected readonly WindowSoloImageNav _wnSoloImageNav;
 
 
-		public WindowReceiver( IPgViewSite oSiteBase, DocSSTV oDocSSTV ) : base( oSiteBase, oDocSSTV ) {
-			_oViewRxImg     = new( new SSTVWinSlot( this ), _oDocSSTV.ReceiveImage );
-			_oViewRxHistory = new( new SSTVWinSlot( this ), _oDocSSTV.RxImageList  );
-			_wnSoloImageNav = new( new SSTVWinSlot( this ), _oDocSSTV.RxImageList  );
+		public WindowDeviceViewer( IPgViewSite oSiteBase, DocSSTV oDocSSTV ) : base( oSiteBase, oDocSSTV ) {
+			_oViewRxImg     = new( new SSTVWinSlot( this, ChildID.RxWindow      ), _oDocSSTV.ReceiveImage );
+			_oViewRxHistory = new( new SSTVWinSlot( this, ChildID.HistoryIconsWindow       ), _oDocSSTV.RxImageList  );
+			_wnSoloImageNav = new( new SSTVWinSlot( this, ChildID.HistoryNavWindow ), _oDocSSTV.RxImageList  );
 
 			_oViewRxImg    .Parent = this;
 			_oViewRxHistory.Parent = this;
@@ -822,8 +855,26 @@ namespace Play.SSTV {
 			return true;
         }
 
+		/// <summary>
+		/// Does what it sez.
+		/// </summary>
+		/// <remarks>This is the first time I've actually tried to devine which child is
+		/// speaking to me via a Slot that's not from the shell. And I see that the children
+		/// aren't required to set themselves on the site. I'll need to think about that,
+		/// but for now, sort 'em all out this way.</remarks>
+		protected override void BringChildToFront( ChildID eID ) {
+			switch( eID ) {
+				case ChildID.HistoryIconsWindow:
+				case ChildID.HistoryNavWindow:
+					_wnSoloImageNav.BringToFront();
+					break;
+				default:
+					base.BringChildToFront( eID );
+					break;
+			}
+		}
+
         private void OnImageUpdated_RxImageList() {
-			_wnSoloImageNav.BringToFront();
         }
 
         private void OnCheckedEvent_RxModeList( Line oLineChecked ) {

@@ -60,12 +60,12 @@ namespace Play.SSTV {
 		}
 
 		public WindowFileViewer( IPgViewSite oSiteBase, DocSSTV oDocSSTV ) : base( oSiteBase, oDocSSTV ) {
-			_rgWavFileList   = new( new SSTVWinSlot( this ) );
-			_rgDecodedImages = new( new SSTVWinSlot( this ) );
+			_rgWavFileList   = new( new SSTVWinSlot( this, ChildID.None ) );
+			_rgDecodedImages = new( new SSTVWinSlot( this, ChildID.None ) );
+			_rgRxModeList    = new( new SSTVWinSlot( this, ChildID.None     ) );
 
-			_oViewRxImg      = new( new SSTVWinSlot( this ), _oDocSSTV.ReceiveImage );
-			_oViewRxHistory  = new( new SSTVWinSlot( this ), _rgDecodedImages );
-			_rgRxModeList    = new( new SSTVWinSlot( this ) );
+			_oViewRxImg      = new( new SSTVWinSlot( this, ChildID.RxWindow ), _oDocSSTV.ReceiveImage );
+			_oViewRxHistory  = new( new SSTVWinSlot( this, ChildID.None     ), _rgDecodedImages );
 
 			_oViewRxImg    .Parent = this;
 			_oViewRxHistory.Parent = this;
