@@ -800,11 +800,10 @@ namespace Play.SSTV {
 		protected readonly LayoutStaggared    _rgSubLayout = new (5);
 		protected readonly WindowSoloImageNav _wnSoloImageNav;
 
-
 		public WindowDeviceViewer( IPgViewSite oSiteBase, DocSSTV oDocSSTV ) : base( oSiteBase, oDocSSTV ) {
-			_oViewRxImg     = new( new SSTVWinSlot( this, ChildID.RxWindow      ), _oDocSSTV.ReceiveImage );
-			_oViewRxHistory = new( new SSTVWinSlot( this, ChildID.HistoryIconsWindow       ), _oDocSSTV.RxImageList  );
-			_wnSoloImageNav = new( new SSTVWinSlot( this, ChildID.HistoryNavWindow ), _oDocSSTV.RxImageList  );
+			_oViewRxImg     = new( new SSTVWinSlot( this, ChildID.RxWindow           ), _oDocSSTV.ReceiveImage );
+			_oViewRxHistory = new( new SSTVWinSlot( this, ChildID.HistoryIconsWindow ), _oDocSSTV.RxImageList  );
+			_wnSoloImageNav = new( new SSTVWinSlot( this, ChildID.HistoryNavWindow   ), _oDocSSTV.RxImageList  );
 
 			_oViewRxImg    .Parent = this;
 			_oViewRxHistory.Parent = this;
