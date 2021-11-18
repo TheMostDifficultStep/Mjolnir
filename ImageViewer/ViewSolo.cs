@@ -105,6 +105,7 @@ namespace Play.ImageViewer {
 		public Editor DragOptions { get; }
 
 		protected readonly SmartSelect _rcSelectionView = new SmartSelect(); // selection in View coords.
+		protected bool _fSkipMouse = false;
 
         readonly SmartRect _rctLeft        = new SmartRect( LOCUS.UPPERLEFT, 0, 0, 0, 0 );
         readonly SmartRect _rctRight       = new SmartRect( LOCUS.UPPERLEFT, 0, 0, 0, 0 );
@@ -461,9 +462,13 @@ namespace Play.ImageViewer {
         }
 
         protected override void OnMouseDown(MouseEventArgs e) {
-            base.OnMouseDown(e);
+			if( !Focused ) { 
+				_fSkipMouse = true;
+				this.Select();
+				return;
+			}
 
-            this.Select();
+            base.OnMouseDown(e);
 
 			if( _eToolCurrent == WindowSoloImageTools.Select ) {
 				_rcSelectionView.Mode = DragMode;
@@ -496,6 +501,11 @@ namespace Play.ImageViewer {
 		}
 
         protected override void OnMouseUp(MouseEventArgs e) {
+			if( _fSkipMouse ) {
+				_fSkipMouse = false;
+				return;
+			}
+
             base.OnMouseUp(e);
 
 			if( _oSmartDrag != null && Document.Bitmap != null ) {
