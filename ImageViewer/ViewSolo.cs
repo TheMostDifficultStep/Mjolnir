@@ -244,16 +244,12 @@ namespace Play.ImageViewer {
             base.OnGotFocus( e );
 
 			_rcSelectionView.Show = SHOWSTATE.Focused;
-
-            Invalidate();
         }
 
         protected override void OnLostFocus(EventArgs e) {
             base.OnLostFocus(e);
 
 			_rcSelectionView.Show = SHOWSTATE.Active;
-
-            Invalidate();
         }
         
 		protected void SelectionSnip(object sender, EventArgs e) {

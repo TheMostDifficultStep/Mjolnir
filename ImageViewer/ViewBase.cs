@@ -326,7 +326,15 @@ namespace Play.ImageViewer {
 
 		protected override void OnGotFocus(EventArgs e) {
 			base.OnGotFocus(e);
+
+			Invalidate();
 		}
+
+        protected override void OnLostFocus(EventArgs e) {
+            base.OnLostFocus(e);
+
+			Invalidate();
+        }
 
         protected override void OnPaintSurface( SKPaintSurfaceEventArgs e ) {
             base.OnPaintSurface(e);
@@ -335,7 +343,11 @@ namespace Play.ImageViewer {
 			SKCanvas  skCanvas  = skSurface.Canvas;
 
 			using( SKPaint skPaint = new SKPaint() ) {
-				skPaint .Color = _oStdUI.ColorsStandardAt(StdUIColors.BGReadOnly);
+				if( Focused ) {
+					skPaint.Color = SKColors.LightBlue;
+				} else { 
+					skPaint.Color = _oStdUI.ColorsStandardAt(StdUIColors.BGReadOnly);
+				}
 				skCanvas.DrawRect( e.Info.Rect, skPaint );
 
                 try {
