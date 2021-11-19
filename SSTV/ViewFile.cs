@@ -2,6 +2,7 @@
 using System.Xml;
 using System.Collections.Generic;
 using System.Text;
+using System.IO;
 
 using Play.Interfaces.Embedding;
 using Play.Rectangles;
@@ -9,8 +10,63 @@ using Play.Edit;
 using Play.ImageViewer;
 using Play.Forms;
 using Play.Sound;
+using Play.Parse;
 
 namespace Play.SSTV {
+	/// <summary>
+	/// This window is for the file chooser.
+	/// </summary>
+	public class WindowTextDir : EditWindow2 {
+		protected readonly FileChooser _rgFileList;
+
+		public WindowTextDir( IPgViewSite oSiteView, FileChooser rgFileList ) :
+			base( oSiteView, rgFileList?.FileList, fReadOnly:true ) 
+		{
+			_rgFileList = rgFileList ?? throw new ArgumentNullException();
+
+
+			_fCheckMarks = true;
+			ToolSelect   = 2; // BUG: change this to an enum in the future.
+
+			HyperLinks.Add( "chooser", OnChooser );
+		}
+
+		protected void OnChooser( Line oLine, IPgWordRange _ ) { 
+			try {
+				if( oLine is FileLine oFile ) {
+					if( oFile._fIsDirectory ) {
+						string strName = oFile.SubString( 1, oFile.ElementCount - 2 );
+						if( !string.IsNullOrEmpty( strName ) ) {
+							_rgFileList.LoadAgain( Path.Combine(_rgFileList.CurrentDirectory, strName ) );
+						}
+					}
+				}
+			} catch( Exception oEx ) { 
+				Type[] rgErrors = { typeof( ArgumentOutOfRangeException ),
+									typeof( ArgumentNullException ),
+									typeof( ArgumentException ), 
+									typeof( NullReferenceException ) };
+				if( rgErrors.IsUnhandled( oEx ) ) {
+					throw;
+				}
+			}
+		}
+
+		protected override void TextAreaChecked( Line oLine ) {
+			if( oLine is FileLine oFileLine && !oFileLine._fIsDirectory ) { 
+				base.TextAreaChecked( oLine );
+			}
+		}
+
+		public override bool Execute( Guid sGuid ) {
+			if( sGuid == GlobalCommands.JumpParent ) {
+				return _rgFileList.Execute( sGuid );
+			}
+
+            return base.Execute(sGuid);
+        }
+    } // End class WindowTextDir
+
 	public class WindowFileViewer : 
 		WindowRxBase,
 		IPgSave<XmlDocumentFragment>,
