@@ -152,18 +152,19 @@ namespace Mjolnir {
 
             // New color table system.
             try {
-                _rgStdColors[ (int)StdUIColors.BGWithCursor]    = new SKColor( 225, 225, 225 ); // Unselected w/ cursor, para hilight. 
-			    _rgStdColors[ (int)StdUIColors.BGSelectedFocus] = new SKColor(  49, 106, 197 ); // Selected   w/ focus blue.
-			    _rgStdColors[ (int)StdUIColors.BGSelectedBlur]  = new SKColor( 130, 130, 130 ); // Selected   w/o focus grey.
-			    _rgStdColors[ (int)StdUIColors.BG]              = new SKColor( 255, 255, 255 ); // Regular text bg. (was 244)
-			    _rgStdColors[ (int)StdUIColors.BGReadOnly]      = new SKColor( 240, 240, 240 ); // Some kind of light grey.
-			    _rgStdColors[ (int)StdUIColors.Text]            = new SKColor(   0,   0,   0 ); // Black.
-			    _rgStdColors[ (int)StdUIColors.TextSelected]    = new SKColor( 255, 255, 255 ); // White.
-			    _rgStdColors[ (int)StdUIColors.MusicLine]       = new SKColor( 200, 255, 200 ); // Light green.
-			    _rgStdColors[ (int)StdUIColors.MusicLinePaused] = new SKColor( 255, 255, 150 ); // Light yellow.
-                _rgStdColors[ (int)StdUIColors.TitleBoxBlur]    = new SKColor( 211, 211, 211 ); // Un focused title bar and grab border.
-                _rgStdColors[ (int)StdUIColors.TitleBoxFocus]   = new SKColor( 112, 165, 234 ); // Focused title bar and grab border (blue)
-                _rgStdColors[ (int)StdUIColors.BGNoEditText]    = new SKColor( 220, 220, 220 ); // Text area can be selected, but not edited.
+                _rgStdColors[ (int)StdUIColors.BGWithCursor]         = new SKColor( 225, 225, 225 ); // Text Unselected w/ cursor, para hilight. 
+			    _rgStdColors[ (int)StdUIColors.BGSelectedFocus]      = new SKColor(  49, 106, 197 ); // Text Selected   w/ focus blue.
+			    _rgStdColors[ (int)StdUIColors.BGSelectedBlur]       = new SKColor( 130, 130, 130 ); // Text Selected   w/o focus grey.
+			    _rgStdColors[ (int)StdUIColors.BG]                   = new SKColor( 255, 255, 255 ); // Regular text bg. (was 244)
+			    _rgStdColors[ (int)StdUIColors.BGReadOnly]           = new SKColor( 240, 240, 240 ); // Some kind of light grey.
+			    _rgStdColors[ (int)StdUIColors.Text]                 = new SKColor(   0,   0,   0 ); // Black.
+			    _rgStdColors[ (int)StdUIColors.TextSelected]         = new SKColor( 255, 255, 255 ); // White.
+			    _rgStdColors[ (int)StdUIColors.MusicLine]            = new SKColor( 200, 255, 200 ); // Light green.
+			    _rgStdColors[ (int)StdUIColors.MusicLinePaused]      = new SKColor( 255, 255, 150 ); // Light yellow.
+                _rgStdColors[ (int)StdUIColors.TitleBoxBlur]         = new SKColor( 211, 211, 211 ); // Un focused title bar and grab border.
+                _rgStdColors[ (int)StdUIColors.TitleBoxFocus]        = new SKColor( 112, 165, 234 ); // Focused title bar and grab border (blue)
+                _rgStdColors[ (int)StdUIColors.BGNoEditText]         = new SKColor( 220, 220, 220 ); // Text area can be selected, but not edited.
+                _rgStdColors[ (int)StdUIColors.BGSelectedLightFocus] = new SKColor( 207, 234, 255 ); // Focused img background.
             } catch( IndexOutOfRangeException ) {
                 // BUG: I'd like to log it but nothing is ready to go at this point! I should probably make
                 //      an array to hold REALLY EARLY errors like this and then spew 'em when we're we're able.

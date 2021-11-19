@@ -765,8 +765,9 @@ namespace Play.SSTV {
                 SKSurface skSurface = e.Surface;
                 SKCanvas  skCanvas  = skSurface.Canvas;
 
-                using SKPaint skPaint = new ();
-				skPaint .Color = Focused ? SKColors.LightBlue : SKColors.LightGray;
+				// Need to get that StdUIColors.BGSelectedLightFocus from the StdUi at some point.
+				using SKPaint skPaint = new ();
+				skPaint .Color = Focused ? new SKColor(207, 234, 255) : SKColors.LightGray;
 				skCanvas.DrawRect( 0, 0, Width, Height, skPaint );
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( NullReferenceException ),

@@ -344,7 +344,7 @@ namespace Play.ImageViewer {
 
 			using( SKPaint skPaint = new SKPaint() ) {
 				if( Focused ) {
-					skPaint.Color = SKColors.LightBlue;
+					skPaint.Color = _oStdUI.ColorsStandardAt(StdUIColors.BGSelectedLightFocus);
 				} else { 
 					skPaint.Color = _oStdUI.ColorsStandardAt(StdUIColors.BGReadOnly);
 				}

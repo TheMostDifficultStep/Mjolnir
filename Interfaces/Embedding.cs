@@ -388,18 +388,19 @@ namespace Play.Interfaces.Embedding {
 	}
 
     public enum StdUIColors : int {
-        BGWithCursor = 0,   // Unselected text bg w/ cursor. (Light grey)
-        BGSelectedFocus,    // Text BG when selected and focused.
-        BGSelectedBlur,     // Text BG when selected and unfocused.
-        BG,                 // Text background. (White)
-		BGReadOnly,         // Text background readonly. Std bg color for all of window.
-        Text,               // Color of text elements.
-        TextSelected,       // Selected text color.
-		MusicLine,
-		MusicLinePaused,
-        TitleBoxBlur,       // Unfocusted title and grab bar.
-        TitleBoxFocus,      // Focused title and grab bar.
-        BGNoEditText,       // Slightely darker than std bg color.
+        BGWithCursor = 0,     // Unselected text bg w/ cursor. (Light grey)
+        BGSelectedFocus,      // Text BG when selected and focused.
+        BGSelectedBlur,       // Text BG when selected and unfocused.
+        BG,                   // Text background. (White)
+		BGReadOnly,           // Text background readonly. Std bg color for all of window.
+        Text,                 // Color of text elements.
+        TextSelected,         // Selected text color.
+		MusicLine,            
+		MusicLinePaused,      
+        TitleBoxBlur,         // Unfocusted title and grab bar.
+        TitleBoxFocus,        // Focused title and grab bar.
+        BGNoEditText,         // Slightely darker than std bg color.
+        BGSelectedLightFocus, // For image bg in focused center frame.
         Max
     };
 
