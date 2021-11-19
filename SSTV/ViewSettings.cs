@@ -76,6 +76,9 @@ namespace Play.SSTV {
         }
 
         public bool Load( XmlElement oStream ) {
+            if( !InitNew() )
+                return false;
+
             return true;
         }
 
