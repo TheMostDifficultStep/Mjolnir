@@ -15,8 +15,8 @@ namespace Play.SSTV {
     /// multiline property, we don't use the Document.Settings_Values but create a cache
     /// element pointing to an edit window, instead of a standard cache line.
     /// </summary>
-    /// <remarks>TODO: I probably inherit from a ViewStandardProperties object and remove our direct 
-    /// DocSSTV dependency.</remarks>
+    /// <remarks>TODO: I probably should inherit from a ViewStandardProperties object and
+    /// remove our direct DocSSTV dependency.</remarks>
     public class ViewSettings :
         WindowStandardProperties,
         IPgLoad<XmlElement>,

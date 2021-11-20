@@ -366,6 +366,17 @@ namespace Play.ImageViewer {
 			}
 		}
 
+		public virtual void Dispose() {
+            if( Bitmap != null ) {
+                Bitmap.Dispose();
+                Bitmap = null;
+            }
+			if( _oBitmapUnknown != null ) {
+				_oBitmapUnknown.Dispose();
+				_oBitmapUnknown = null;
+			}
+		}
+
 		public virtual bool Initialize() {
 			return true;
 		}
@@ -376,17 +387,6 @@ namespace Play.ImageViewer {
 
 		public virtual bool Execute( Guid sGuid ) {
 			return( false );
-		}
-
-		public virtual void Dispose() {
-            if( Bitmap != null ) {
-                Bitmap.Dispose();
-                Bitmap = null;
-            }
-			if( _oBitmapUnknown != null ) {
-				_oBitmapUnknown.Dispose();
-				_oBitmapUnknown = null;
-			}
 		}
 
 		public Bitmap GetResource( string strName ) {
@@ -447,6 +447,12 @@ namespace Play.ImageViewer {
 			return true;
 		}
 
+        /// <summary>
+        /// Load our bitmap from the given bitmap.
+        /// </summary>
+        /// <param name="srcImage">source image</param>
+        /// <param name="rcSourcePortion">portion of the source image.</param>
+        /// <param name="szDestSize">Size of destination bitmap to create.</param>
 		public bool Load(SKBitmap srcImage, SKRectI rcSourcePortion, SKSizeI szDestSize ) {
 			SmartRect rcDest = new SmartRect( LOCUS.UPPERLEFT, 0, 0, szDestSize.Width, szDestSize.Height );
 

@@ -60,7 +60,9 @@ namespace Play.SSTV {
     }
 
 	/// <summary>
-	/// This view shows the single image being downloaded from the audio stream. 
+	/// This view shows the single image being downloaded from the audio stream.
+	/// This is the original receiver window, but now I use the integrated 
+	/// rx/history window, WindowDeviceViewer
 	/// </summary>
 	public class WindowSoloRx : 
 		ImageViewSingle, 
@@ -283,7 +285,7 @@ namespace Play.SSTV {
 
 	/// <summary>
 	/// Going to break the audio device and file receive windows into two different
-	/// objects.
+	/// objects. This is the base class for these two windows.
 	/// </summary>
 	public abstract class WindowRxBase : 
 		SKControl, 
@@ -298,7 +300,6 @@ namespace Play.SSTV {
         protected readonly IPgViewSite _oSiteView;
 		protected          bool        _fDisposed;
 
-		protected abstract string BaseTitle    { get; }
 		protected abstract string IconResource { get; }
 
         public IPgParent Parentage => _oSiteView.Host;
@@ -386,19 +387,7 @@ namespace Play.SSTV {
             public string FileBase => _oHost._oDocSSTV.RxProperties[RxProperties.Names.SaveName].ToString();
         }
 
-        public string Banner {
-			get { 
-				StringBuilder sbBanner = new StringBuilder();
-
-				sbBanner.Append( BaseTitle );
-				if( _oDocSSTV.PortRxList.CheckedLine is Line oLine ) {
-					sbBanner.Append( " : " );
-					sbBanner.Append( oLine.ToString() );
-				}
-
-				return sbBanner.ToString();
-			} 
-		}
+        public abstract string Banner { get; }
 
 		public WindowRxBase( IPgViewSite oSiteBase, DocSSTV oDocSSTV ) {
 			_oSiteView = oSiteBase ?? throw new ArgumentNullException( "SiteBase must not be null." );
@@ -523,14 +512,26 @@ namespace Play.SSTV {
 	{
 		public    static          Guid   GUID { get; } = new Guid( "{955742A3-79D3-4789-B93B-B4225C641057}" );
 		protected static readonly string _strIcon      = "Play.SSTV.icons8_tv.png";
-		protected static readonly string _strBaseTitle = "My SSTV : Device Receive";
 
-		protected override string BaseTitle    => _strBaseTitle;
 		public    override Guid   Catagory     => GUID;
 		protected override string IconResource => _strIcon;
 
 		protected readonly LayoutStaggared    _rgSubLayout = new (5);
 		protected readonly WindowSoloImageNav _wnSoloImageNav;
+
+        public override string Banner {
+			get { 
+				StringBuilder sbBanner = new StringBuilder();
+
+				sbBanner.Append( "MySSTV Device Receive" );
+				if( _oDocSSTV.PortRxList.CheckedLine is Line oLine ) {
+					sbBanner.Append( " : " );
+					sbBanner.Append( oLine.ToString() );
+				}
+
+				return sbBanner.ToString();
+			} 
+		}
 
 		public WindowDeviceViewer( IPgViewSite oSiteBase, DocSSTV oDocSSTV ) : base( oSiteBase, oDocSSTV ) {
 			_oViewRxImg     = new( new SSTVWinSlot( this, ChildID.RxWindow           ), _oDocSSTV.ReceiveImage );

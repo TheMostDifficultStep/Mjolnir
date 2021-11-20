@@ -76,13 +76,16 @@ namespace Play.SSTV {
 		protected static readonly string _strIcon = "Play.SSTV.icons8_tv.png";
 
 		protected static readonly string _strBaseTitle2 = "MySSTV : File Viewer";
-		protected override string BaseTitle    => _strBaseTitle2;
 		public    override Guid   Catagory     => GUID;
 		protected override string IconResource => _strIcon;
 
 		protected readonly ModeEditor     _rgRxModeList;
 		protected readonly FileChooser    _rgWavFileList; // Recorded wave files.
 		protected readonly ImageWalkerDir _rgDecodedImages;
+
+        public override string Banner {
+			get { return "MySSTV File Reader"; } 
+		}
 
 		public class ModeEditor : Editor {
 			public ModeEditor(IPgBaseSite oSite) : base(oSite) {

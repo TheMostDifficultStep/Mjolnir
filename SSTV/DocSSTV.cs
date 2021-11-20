@@ -104,7 +104,8 @@ namespace Play.SSTV {
             Width,
             Height,
             Progress,
-            FileName
+            FileName,
+            Tx_Dir
         }
 
         public TxProperties( IPgBaseSite oSiteBase ) : base( oSiteBase ) {
@@ -124,6 +125,7 @@ namespace Play.SSTV {
             LabelSet( Names.Height,   "Height" );
             LabelSet( Names.Progress, "Sent" );
             LabelSet( Names.FileName, "FileName" );
+            LabelSet( Names.Tx_Dir,   "Img Dir");
 
             Clear();
 
@@ -147,10 +149,11 @@ namespace Play.SSTV {
         /// clear all values, call the base method.
         /// </summary>
         public override void Clear() {
-            ValueUpdate( Names.Mode,     "-", Broadcast:false ); 
-            ValueUpdate( Names.Width,    "-", Broadcast:false ); 
-            ValueUpdate( Names.Height,   "-", Broadcast:false ); 
-            ValueUpdate( Names.Progress, "-", Broadcast:false );
+            ValueUpdate( Names.Mode,     "-" ); 
+            ValueUpdate( Names.Width,    "-" ); 
+            ValueUpdate( Names.Height,   "-" ); 
+            ValueUpdate( Names.Progress, "-" );
+            ValueUpdate( Names.Tx_Dir,   "-" );
             ValueUpdate( Names.FileName, "-", Broadcast:true );
         }
     }
@@ -665,7 +668,8 @@ namespace Play.SSTV {
         }
 
         protected void PropertiesTxReLoad() {
-			string strFileName = Path.GetFileName( TxImageList.CurrentFileName );
+			string strFileName = TxImageList.CurrentFileName;
+            string strFilePath = TxImageList.CurrentDirectory;
 
             if( TxImageList.Bitmap != null ) {
                 TxProperties.ValueUpdate( TxProperties.Names.Width,  TxImageList.Bitmap.Width .ToString() );
@@ -677,6 +681,7 @@ namespace Play.SSTV {
 
             TxProperties.ValueUpdate( TxProperties.Names.Mode,     TxMode ); 
             TxProperties.ValueUpdate( TxProperties.Names.Progress, "0%" );
+            TxProperties.ValueUpdate( TxProperties.Names.Tx_Dir,   strFilePath );
             TxProperties.ValueUpdate( TxProperties.Names.FileName, strFileName, Broadcast:true );
 		}
 

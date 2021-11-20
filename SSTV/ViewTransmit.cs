@@ -15,8 +15,8 @@ using Play.ImageViewer;
 
 namespace Play.SSTV {
 	/// <summary>
-	/// This is the older fancy transmit viewer where the outline was the mode selector and a secondary
-	/// view was the directory of images.
+	/// This is the old transmit viewer which includes a secondary view was 
+	/// the directory of images.
 	/// </summary>
 	public class ViewTransmit:
 		Control,
@@ -30,11 +30,11 @@ namespace Play.SSTV {
 		public static Guid   ViewType { get; }  = new Guid( "{CED824F5-2C17-418C-9559-84D6B4F571FC}" );
 		public static string _strIcon =  "Play.SSTV.icons8_camera.png";
 
-		protected readonly IPgViewSite     _oSiteView;
-		protected readonly DocSSTV         _oDocSSTV;	  // Main document.
+		protected readonly IPgViewSite		  _oSiteView;
+		protected readonly DocSSTV			  _oDocSSTV;	  // Main document.
 		protected readonly WindowSoloImageNav _oViewImage;   // Show the currently selected image.
-		protected readonly ImageViewIcons  _oViewChoices; // Show the image choices.
-		protected readonly string          _strBaseTitle = "MySSTV Transmit";
+		protected readonly ImageViewIcons	  _oViewChoices; // Show the image choices.
+		protected readonly string			  _strBaseTitle = "MySSTV Transmit";
 
 		protected LayoutStack _oLayout = new LayoutStackVertical( 5 );
 
@@ -103,8 +103,8 @@ namespace Play.SSTV {
 
 			Iconic = ImageResourceHelper.GetImageResource( Assembly.GetExecutingAssembly(), _strIcon );
 
-			_oViewImage     = new WindowSoloImageNav ( new SSTVWinSlot( this ), _oDocSSTV.TxImageList );
-			_oViewChoices   = new ImageViewIcons( new SSTVWinSlot( this ), _oDocSSTV.TxImageList );
+			_oViewImage     = new WindowSoloImageNav( new SSTVWinSlot( this ), _oDocSSTV.TxImageList );
+			_oViewChoices   = new ImageViewIcons    ( new SSTVWinSlot( this ), _oDocSSTV.TxImageList );
 		}
 
 		/// <summary>
@@ -297,7 +297,20 @@ namespace Play.SSTV {
 		public static Guid GUID { get; } = new Guid( "{5BC25D2B-3F4E-4339-935C-CFADC2650B35}" );
 
         public override Guid   Catagory => GUID;
-        public override string Banner   => "MySSTV Transmit : " + _oDocSSTV.TxImageList.CurrentDirectory;
+
+        public override string Banner {
+			get { 
+				StringBuilder sbBanner = new StringBuilder();
+
+				sbBanner.Append("MySSTV Transmit");
+				if( _oDocSSTV.PortTxList.CheckedLine is Line oLine ) {
+					sbBanner.Append( " : " );
+					sbBanner.Append( oLine.ToString() );
+				}
+
+				return sbBanner.ToString();
+			} 
+		}
 
         DocSSTV _oDocSSTV;
 
