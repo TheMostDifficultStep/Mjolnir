@@ -6,12 +6,11 @@ using System.Windows.Forms;
 using System.Reflection;
 using System.Text;
 
-using SkiaSharp;
-
 using Play.Interfaces.Embedding;
 using Play.Rectangles;
 using Play.Edit;
 using Play.ImageViewer;
+using Play.Sound;
 
 namespace Play.SSTV {
 	/// <summary>
@@ -386,4 +385,134 @@ namespace Play.SSTV {
 			ToolSelect = 2; // BUG: change this to an enum in the future.
 		}
 	}
+
+	public class ViewTransmitDeluxe: 
+		WindowStaggardBase,
+		IPgSave<XmlDocumentFragment>,
+		IPgLoad<XmlElement>
+	{
+		public static Guid GUID { get; } = new Guid( "{3D6FF540-C03C-468F-84F9-86E3DE75F6C2}" );
+
+        public    override Guid   Catagory => GUID;
+        protected override string IconResource => "Play.SSTV.icons8_camera.png";
+
+		protected readonly WindowSoloImageNav _wmTxImageChoice;
+		protected readonly ImageViewSingle    _wmTxImageTemplated;
+		protected readonly ImageViewIcons     _wmTxViewChoices;
+
+        public override string Banner {
+			get { 
+				StringBuilder sbBanner = new StringBuilder();
+
+				sbBanner.Append("MySSTV Transmit");
+				if( _oDocSSTV.PortTxList.CheckedLine is Line oLine ) {
+					sbBanner.Append( " : " );
+					sbBanner.Append( oLine.ToString() );
+				}
+
+				return sbBanner.ToString();
+			} 
+		}
+
+        public ViewTransmitDeluxe( IPgViewSite oSiteBase, DocSSTV oDocSSTV ) : base( oSiteBase, oDocSSTV ) {
+			_wmTxImageChoice    = new WindowSoloImageNav( new SSTVWinSlot( this, ChildID.None ), oDocSSTV.TxImageList );
+			_wmTxViewChoices    = new ImageViewIcons    ( new SSTVWinSlot( this, ChildID.None ), oDocSSTV.TxImageList );
+			_wmTxImageTemplated = new ImageViewSingle   ( new SSTVWinSlot( this, ChildID.None ), oDocSSTV._oDocSnip );
+
+			_wmTxImageChoice   .Parent = this;
+			_wmTxViewChoices   .Parent = this;
+			_wmTxImageTemplated.Parent = this;
+
+			_wmTxImageChoice.SetBorderOn();
+		}
+
+        protected override void Dispose( bool fDisposing ) {
+			if( fDisposing && !_fDisposed ) {
+				_oDocSSTV.PropertyChange -= ListenDoc_PropertyChange;
+
+				_wmTxImageChoice.Dispose();
+				_wmTxViewChoices.Dispose();
+
+				_fDisposed = true;
+			}
+			base.Dispose( fDisposing );
+        }
+
+        public bool InitNew() {
+			if( !_wmTxImageChoice.InitNew() )
+				return false;
+			if( !_wmTxViewChoices.InitNew() )
+				return false;
+
+            _oDocSSTV.PropertyChange += ListenDoc_PropertyChange;
+
+			_wmTxImageChoice.ToolSelect = 0; 
+			_wmTxImageChoice.Aspect     = _oDocSSTV.Resolution;
+			_wmTxImageChoice.DragMode   = DragMode.FixedRatio;
+
+			_rgSubLayout.Add(new LayoutControl( _wmTxImageChoice,    LayoutRect.CSS.None) );
+			_rgSubLayout.Add(new LayoutControl( _wmTxImageTemplated, LayoutRect.CSS.None) );
+
+			_oLayout.Add( _rgSubLayout );
+            _oLayout.Add( new LayoutControl( _wmTxViewChoices, LayoutRect.CSS.Pixels, 220 ) );
+
+            OnSizeChanged( new EventArgs() );
+			return true;
+        }
+
+        private void ListenDoc_PropertyChange( SSTVEvents eProp ) {
+            switch( eProp ) {
+				case SSTVEvents.DownLoadTime:
+					_wmTxImageChoice.Invalidate();
+					break;
+				case SSTVEvents.SSTVMode:
+					_wmTxImageChoice.Aspect = _oDocSSTV.Resolution;
+					break;
+			}
+        }
+
+        public override bool Execute( Guid sGuid ) {
+			if( sGuid == GlobalCommands.Play ) {
+                if( _oDocSSTV.TxModeList.CheckedLine == null )
+                    _oDocSSTV.TxModeList.CheckedLine = _oDocSSTV.TxModeList[_oDocSSTV.RxModeList.CheckedLine.At];
+
+                if( _oDocSSTV.TxModeList.CheckedLine.Extra is SSTVMode oMode ) {
+					// need to move the snip to the templated bitmap and transmit the templated image.
+					_oDocSSTV._oDocSnip.Load( _oDocSSTV.TxBitmap, _wmTxImageChoice.Selection.SKRect, oMode.Resolution ); 
+					_oDocSSTV.TransmitBegin( _wmTxImageChoice.Selection.SKRect ); 
+				}
+				return true;
+			}
+			if( sGuid == GlobalCommands.Stop ) {
+				_oDocSSTV.TransmitStop();
+				return true;
+			}
+			return false;
+        }
+
+        public override object Decorate( IPgViewSite oBaseSite, Guid sGuid ) {
+			if( sGuid.Equals(GlobalDecorations.Properties) ) {
+				return new ViewSSTVProperties( oBaseSite, _oDocSSTV.TxProperties );
+			}
+			if( sGuid.Equals( GlobalDecorations.Outline ) ) {
+				return new CheckList( oBaseSite, _oDocSSTV.TxModeList );
+			}
+			if( sGuid.Equals( GlobalDecorations.Options ) ) {
+				return null;
+			}
+			return null;
+        }
+
+        public bool Load(XmlElement oStream) {
+            return true;
+        }
+
+        public bool Save(XmlDocumentFragment oStream) {
+            return true;
+        }
+
+        protected override void BringChildToFront(ChildID eID) {
+        }
+    }
+
 }

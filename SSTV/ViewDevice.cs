@@ -12,7 +12,6 @@ using SkiaSharp.Views.Desktop;
 using Play.Interfaces.Embedding;
 using Play.Rectangles;
 using Play.Edit;
-using Play.Parse;
 using Play.ImageViewer;
 using Play.Forms;
 using Play.Sound;
@@ -283,20 +282,12 @@ namespace Play.SSTV {
         }
     }
 
-	/// <summary>
-	/// Going to break the audio device and file receive windows into two different
-	/// objects. This is the base class for these two windows.
-	/// </summary>
-	public abstract class WindowRxBase : 
+	public abstract class WindowStaggardBase : 
 		SKControl, 
 		IPgParent,
 		IPgCommandView
 	{
-		public enum Tools : int {
-			File = 0,
-			Port = 1
-		}
-
+        protected readonly DocSSTV     _oDocSSTV;
         protected readonly IPgViewSite _oSiteView;
 		protected          bool        _fDisposed;
 
@@ -308,12 +299,8 @@ namespace Play.SSTV {
         public Image	 Iconic    { get; protected set; }
         public bool		 IsDirty   => false;
 
-		protected Tools           _eToolSelected = Tools.File;
-
-		protected LayoutStack     _oLayout = new LayoutStackVertical( 5 );
-        protected DocSSTV		  _oDocSSTV;
-		protected ImageViewSingle _oViewRxImg;
-		protected ImageViewIcons  _oViewRxHistory;
+		protected readonly LayoutStack     _oLayout = new LayoutStackVertical( 5 );
+		protected readonly LayoutStaggared _rgSubLayout = new (5);
 		public enum ChildID
 		{
 			RxWindow,
@@ -328,11 +315,11 @@ namespace Play.SSTV {
 			IPgShellSite,
 			IPgViewNotify
 		{
-			protected readonly WindowRxBase _oHost;
+			protected readonly WindowStaggardBase _oHost;
 
 			public ChildID ID { get;}
 
-			public SSTVWinSlot(WindowRxBase oHost, ChildID eID ) {
+			public SSTVWinSlot(WindowStaggardBase oHost, ChildID eID ) {
 				_oHost = oHost ?? throw new ArgumentNullException();
 				ID     = eID;
 			}
@@ -389,42 +376,18 @@ namespace Play.SSTV {
 
         public abstract string Banner { get; }
 
-		public WindowRxBase( IPgViewSite oSiteBase, DocSSTV oDocSSTV ) {
+		public WindowStaggardBase( IPgViewSite oSiteBase, DocSSTV oDocSSTV ) {
 			_oSiteView = oSiteBase ?? throw new ArgumentNullException( "SiteBase must not be null." );
 			_oDocSSTV  = oDocSSTV  ?? throw new ArgumentNullException( "DocSSTV must not be null." );
 
 			Iconic = ImageResourceHelper.GetImageResource( Assembly.GetExecutingAssembly(), IconResource );
-
-			_oViewRxImg     = new( new SSTVWinSlot( this, ChildID.RxWindow      ),    _oDocSSTV.ReceiveImage );
-			_oViewRxHistory = new( new SSTVWinSlot( this, ChildID.HistoryNavWindow ), _oDocSSTV.RxHistoryList  ); 
-
-			_oViewRxImg    .Parent = this;
-			_oViewRxHistory.Parent = this;
-
-			_oViewRxImg.SetBorderOn();
 		}
-
-        protected override void Dispose( bool fDisposing ) {
-			if( fDisposing && !_fDisposed ) {
-				_oViewRxHistory.Dispose();
-				_oViewRxImg    .Dispose();
-
-				_fDisposed = true;
-			}
-			base.Dispose( fDisposing );
-        }
 
         public void LogError( string strCatagory, string strDetails ) {
             _oSiteView.LogError( strCatagory, strDetails );
         }
 
-		protected virtual void BringChildToFront( ChildID eID ) {
-			switch( eID ) {
-				case ChildID.RxWindow:
-					_oViewRxImg.BringToFront();
-					break;
-			}
-		}
+		protected abstract void BringChildToFront( ChildID eID );
 
 
         protected override void OnGotFocus(EventArgs e) {
@@ -438,6 +401,8 @@ namespace Play.SSTV {
         protected override void OnLostFocus(EventArgs e) {
             base.OnLostFocus(e);
 
+			_oSiteView.EventChain.NotifyFocused(false);
+
             Invalidate();
         }
         
@@ -447,28 +412,7 @@ namespace Play.SSTV {
 
 		public abstract bool Execute( Guid e );
 
-		public virtual object Decorate(IPgViewSite oBaseSite,Guid sGuid) {
-			try {
-				if( sGuid.Equals(GlobalDecorations.Properties) ) {
-					return new WindowStandardProperties( oBaseSite, _oDocSSTV.RxProperties );
-				}
-				if( sGuid.Equals( GlobalDecorations.Outline ) ) {
-					return new CheckList( oBaseSite, _oDocSSTV.RxModeList );
-				}
-				return false;
-			} catch ( Exception oEx ) {
-				Type[] rgErrors = { typeof( NotImplementedException ),
-									typeof( NullReferenceException ),
-									typeof( ArgumentException ),
-									typeof( ArgumentNullException ) };
-				if( rgErrors.IsUnhandled( oEx ) )
-					throw;
-
-				LogError( "SSTV", "Couldn't create SSTV decor: " + sGuid.ToString() );
-			}
-
-            return( null );
-		}
+		public abstract object Decorate(IPgViewSite oBaseSite,Guid sGuid);
 
 		protected override void OnSizeChanged(EventArgs e) {
 			base.OnSizeChanged(e);
@@ -500,6 +444,69 @@ namespace Play.SSTV {
                     throw;
             }
 		}
+	} // End WindowStaggardBase
+
+	/// <summary>
+	/// The audio device and file receive windows are two different
+	/// windows now. This is the base class for these two windows.
+	/// </summary>
+	public abstract class WindowRxBase : WindowStaggardBase { 
+		protected ImageViewSingle _oViewRxImg;
+		protected ImageViewIcons  _oViewRxHistory;
+
+		public WindowRxBase( IPgViewSite oSiteBase, DocSSTV oDocSSTV ) : base( oSiteBase, oDocSSTV ) {
+			Iconic = ImageResourceHelper.GetImageResource( Assembly.GetExecutingAssembly(), IconResource );
+
+			_oViewRxImg     = new( new SSTVWinSlot( this, ChildID.RxWindow      ),    _oDocSSTV.ReceiveImage );
+			_oViewRxHistory = new( new SSTVWinSlot( this, ChildID.HistoryNavWindow ), _oDocSSTV.RxHistoryList  ); 
+
+			_oViewRxImg    .Parent = this;
+			_oViewRxHistory.Parent = this;
+
+			_oViewRxImg.SetBorderOn();
+		}
+
+        protected override void Dispose( bool fDisposing ) {
+			if( fDisposing && !_fDisposed ) {
+				_oViewRxHistory.Dispose();
+				_oViewRxImg    .Dispose();
+
+				_fDisposed = true;
+			}
+			base.Dispose( fDisposing );
+        }
+
+		protected override void BringChildToFront( ChildID eID ) {
+			switch( eID ) {
+				case ChildID.RxWindow:
+					_oViewRxImg.BringToFront();
+					break;
+			}
+		}
+
+
+		public override object Decorate(IPgViewSite oBaseSite,Guid sGuid) {
+			try {
+				if( sGuid.Equals(GlobalDecorations.Properties) ) {
+					return new WindowStandardProperties( oBaseSite, _oDocSSTV.RxProperties );
+				}
+				if( sGuid.Equals( GlobalDecorations.Outline ) ) {
+					return new CheckList( oBaseSite, _oDocSSTV.RxModeList );
+				}
+				return false;
+			} catch ( Exception oEx ) {
+				Type[] rgErrors = { typeof( NotImplementedException ),
+									typeof( NullReferenceException ),
+									typeof( ArgumentException ),
+									typeof( ArgumentNullException ) };
+				if( rgErrors.IsUnhandled( oEx ) )
+					throw;
+
+				LogError( "SSTV", "Couldn't create SSTV decor: " + sGuid.ToString() );
+			}
+
+            return( null );
+		}
 	} // End WindowRxBase
 
 	/// <summary>
@@ -516,7 +523,6 @@ namespace Play.SSTV {
 		public    override Guid   Catagory     => GUID;
 		protected override string IconResource => _strIcon;
 
-		protected readonly LayoutStaggared    _rgSubLayout = new (5);
 		protected readonly WindowSoloImageNav _wnSoloImageNav;
 
         public override string Banner {
@@ -549,14 +555,9 @@ namespace Play.SSTV {
 			if( fDisposing && !_fDisposed ) {
 				_oDocSSTV.RxHistoryList.ImageUpdated -= OnImageUpdated_RxImageList;
 				_oDocSSTV.PropertyChange             -= OnPropertyChange_DocSSTV;
-			  //_oDocSSTV.RecChooser.DirectoryChange -= OnDirectoryChange_Chooser;
 				_oDocSSTV.RxModeList.CheckedEvent    -= OnCheckedEvent_RxModeList;
 
-				_oViewRxHistory.Dispose();
-				_oViewRxImg    .Dispose();
 				_wnSoloImageNav.Dispose();
-
-				_fDisposed = true;
 			}
 			base.Dispose( fDisposing );
         }
@@ -571,11 +572,7 @@ namespace Play.SSTV {
 
             _oDocSSTV.RxHistoryList.ImageUpdated += OnImageUpdated_RxImageList;
             _oDocSSTV.PropertyChange             += OnPropertyChange_DocSSTV;
-          //_oDocSSTV.RecChooser.DirectoryChange += OnDirectoryChange_Chooser;
             _oDocSSTV.RxModeList.CheckedEvent    += OnCheckedEvent_RxModeList;
-
-			// Of course we'll blow up the shell if try in the constructor...
-			//OnDirectoryChange_Chooser( _oDocSSTV.RecChooser.CurrentDirectory );
 
 			_rgSubLayout.Add(new LayoutControl(_oViewRxImg,     LayoutRect.CSS.None) );
 			_rgSubLayout.Add(new LayoutControl(_wnSoloImageNav, LayoutRect.CSS.None) );

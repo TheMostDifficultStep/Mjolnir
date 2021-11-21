@@ -30,6 +30,9 @@ namespace Play.SSTV {
                 if( guidViewType == ViewTransmitSolo.GUID )
 					return new ViewTransmitSolo( oBaseSite, oMySSTVDoc );
 
+                if( guidViewType == ViewTransmitDeluxe.GUID )
+					return new ViewTransmitDeluxe( oBaseSite, oMySSTVDoc );
+
 				if( guidViewType == WindowDeviceViewer.GUID )
 					return new WindowDeviceViewer( oBaseSite, oMySSTVDoc );
 
@@ -55,10 +58,11 @@ namespace Play.SSTV {
 
 		public override IEnumerator<IPgViewType> GetEnumerator() {
 		  //yield return new ViewType( "Spectrum",            ViewFFT      .ViewType );
-			yield return new ViewType( "Display from Device", WindowDeviceViewer    .GUID );
+			yield return new ViewType( "Display from Device", WindowDeviceViewer.GUID );
 			yield return new ViewType( "Display from File",   WindowFileViewer  .GUID );
 		    yield return new ViewType( "Diagnostics",         WindowDiagnostics .GUID );
 		    yield return new ViewType( "Transmit Image",      ViewTransmitSolo  .GUID );
+		    yield return new ViewType( "Transmit Deluxe",     ViewTransmitDeluxe.GUID );
 			yield return new ViewType( "Settings",            ViewSettings      .GUID );
 		}
 	}

@@ -332,7 +332,7 @@ namespace Play.SSTV {
         public StdProperties       StdProperties { get; }
         public SKBitmap            TxBitmap      => TxImageList.Bitmap;
 
-        protected readonly ImageSoloDoc  _oDocSnip;   // Clip the image.
+        internal readonly ImageSoloDoc  _oDocSnip;   // Clip the image.
 
         protected Mpg123FFTSupport FileDecoder   { get; set; }
         protected BufferSSTV       _oSSTVBuffer;      // BUG: Can't find where initialized!!
@@ -955,7 +955,7 @@ namespace Play.SSTV {
                     // Note: I could check if the selection == the whole bitmap == required dimension
                     //       and I could skip the snip stage.
                     Specification oTxSpec = new Specification( 11025, 1, 0, 16 );
-			        _oDocSnip.Load( TxBitmap, skSelect, oMode.Resolution );
+			        //_oDocSnip.Load( TxBitmap, skSelect, oMode.Resolution ); See the transmitscreen.
 
                     _oSSTVBuffer    = new BufferSSTV( oTxSpec );
 					_oSSTVModulator = new SSTVMOD( 0, oTxSpec.Rate, _oSSTVBuffer );

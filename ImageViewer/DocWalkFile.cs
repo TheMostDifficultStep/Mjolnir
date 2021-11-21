@@ -662,14 +662,6 @@ namespace Play.ImageViewer {
                 ValueUpdate( (int)eName, strValue, Broadcast );
             }
 
-            /// <summary>
-            /// Override the clear to only clear the specific repeater information. If you want to 
-            /// clear all values, call the base method.
-            /// </summary>
-            public override void Clear() {
-                base.Clear();
-            }
-
             public Bulk CreateManipulator() {
                 return new Bulk( this );
             }
