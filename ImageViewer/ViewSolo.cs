@@ -102,8 +102,6 @@ namespace Play.ImageViewer {
         Cursor _oCursorLeft;
         Cursor _oCursorRight;
 
-		public Editor DragOptions { get; }
-
 		protected readonly SmartSelect _rcSelectionView = new SmartSelect(); // selection in View coords.
 		protected bool _fSkipMouse = false;
 
@@ -132,7 +130,6 @@ namespace Play.ImageViewer {
 
 			_oIcon = _oDocWalker.GetResource( "icon-portrait.png" );
 
-			DragOptions = new Editor( new ViewSlot( this ) );
 			_rcSelectionView.Hidden = true;
 
             _rgLeft.Add( _rctLeft );
@@ -154,8 +151,6 @@ namespace Play.ImageViewer {
 			SetBorderOn(); // Want room for grab handles at all times.
 
 			ToolSelect = _rgTools.Count - 1;
-
-			DragOptions.BufferEvent += OnOptionsChanged;
 
             _oCursorHand = Cursors.Hand;
 
@@ -194,7 +189,6 @@ namespace Play.ImageViewer {
 		protected override void Dispose( bool fDisposing ) {
 			if( fDisposing ) {
 				if( !_fDisposed ) {
-					DragOptions.BufferEvent -= OnOptionsChanged;
 				}
 
 				// BUG: Do I need to displode the ContextMenuStrip?
@@ -566,9 +560,6 @@ namespace Play.ImageViewer {
             }
         }
 
-		protected void OnOptionsChanged(BUFFEREVENTS eEvent) {
-		}
-
         public virtual object Decorate( IPgViewSite oBaseSite, Guid sGuid ) {
             if( sGuid == GlobalDecorations.Outline ) {
                 return new ImageViewIcons( oBaseSite, _oDocWalker );
@@ -576,9 +567,6 @@ namespace Play.ImageViewer {
             if( sGuid.Equals( GlobalDecorations.Properties ) ) {
                 return new WindowStandardProperties( oBaseSite, _oDocWalker.Properties );
             }
-			if( sGuid.Equals( GlobalDecorations.Options ) ) {
-				return new EditWin( oBaseSite, DragOptions );
-			}
 
             return( null );
         }
