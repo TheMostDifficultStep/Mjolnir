@@ -27,9 +27,6 @@ namespace Play.SSTV {
                 if( guidViewType == WindowDiagnostics.GUID )
                     return new WindowDiagnostics(oBaseSite, oMySSTVDoc);
 
-                if( guidViewType == ViewTransmitSolo.GUID )
-					return new ViewTransmitSolo( oBaseSite, oMySSTVDoc );
-
                 if( guidViewType == ViewTransmitDeluxe.GUID )
 					return new ViewTransmitDeluxe( oBaseSite, oMySSTVDoc );
 
@@ -61,7 +58,6 @@ namespace Play.SSTV {
 			yield return new ViewType( "Display from Device", WindowDeviceViewer.GUID );
 			yield return new ViewType( "Display from File",   WindowFileViewer  .GUID );
 		    yield return new ViewType( "Diagnostics",         WindowDiagnostics .GUID );
-		    yield return new ViewType( "Transmit Image",      ViewTransmitSolo  .GUID );
 		    yield return new ViewType( "Transmit Deluxe",     ViewTransmitDeluxe.GUID );
 			yield return new ViewType( "Settings",            ViewSettings      .GUID );
 		}
