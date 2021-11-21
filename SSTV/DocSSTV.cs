@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Collections.Concurrent;
 using System.Text;
 using System.Threading;
+using System.Xml;
 
 using SkiaSharp;
 using NAudio.Wave;
@@ -692,11 +693,105 @@ namespace Play.SSTV {
             TxProperties.ValueUpdate( TxProperties.Names.Progress, PercentTxComplete.ToString() + "%", Broadcast:true );
 		}
 
+        protected void PropertyLoadFromXml( Editor rgList, XmlNode oElem ) {
+            if( oElem == null )
+                throw new ArgumentNullException( "oElem" );
+
+            foreach( Line oLine in rgList ) {
+                if( oElem.InnerText != null && oLine.Compare( oElem.InnerText ) == 0 ) {
+                    rgList.CheckedLine = oLine;
+                    break;
+                }
+            }
+        }
         public bool Load( TextReader oStream ) {
-            return InitNew();
+            if( !InitNew() )
+                return false;
+
+            try {
+                XmlDocument oDoc = new();
+
+                oDoc.Load( oStream );
+
+                XmlNode oRoot = oDoc.DocumentElement;
+                foreach( XmlNode oNode in oRoot.ChildNodes ) { 
+                    switch( oNode.Name ) {
+                        case "RxDevice":
+                            PropertyLoadFromXml( PortRxList, oNode );
+                            break;
+                        case "TxDevice":
+                            PropertyLoadFromXml( PortTxList, oNode );
+                            break;
+                        case "MonitorDevice":
+                            PropertyLoadFromXml( MonitorList, oNode );
+                            break;
+                        case "ImageQuality":
+                            StdProperties.ValueUpdate( StdProperties.Names.ImgQuality, oNode.InnerText );
+                            break;
+                    }
+                }
+			} catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( NullReferenceException ),
+                                    typeof( ArgumentNullException ),
+                                    typeof( ArgumentException ),
+                                    typeof( InvalidOperationException ),
+                                    typeof( InvalidCastException ),
+                                    typeof( XmlException ) };
+                if( rgErrors.IsUnhandled( oEx ) ) 
+                    throw;
+
+				LogError( "Trouble loading MySSTV" );
+			}
+    
+            return true;
         }
 
         public bool Save( TextWriter oStream ) {
+			try {
+                XmlDocument oDoc  = new ();
+                XmlElement  oRoot = oDoc.CreateElement( "MySSTV" );
+                oDoc.AppendChild( oRoot );
+                {
+                    XmlElement oElem = oDoc.CreateElement( "RxDevice" );
+                    if( PortRxList.CheckedLine?.ToString() is string strRxName ) {
+                        oElem.InnerText = strRxName;
+                        oRoot.AppendChild( oElem );
+                    }
+                }
+                {
+                    XmlElement oElem = oDoc.CreateElement( "TxDevice" );
+                    if( PortTxList.CheckedLine?.ToString() is string strTxName ) {
+                        oElem.InnerText = strTxName;
+                        oRoot.AppendChild( oElem );
+                    }
+                }
+                {
+                    XmlElement oElem = oDoc.CreateElement( "MonitorDevice" );
+                    if( MonitorList.CheckedLine?.ToString() is string strMonName ) {
+                        oElem.InnerText = strMonName;
+                        oRoot.AppendChild( oElem );
+                    }
+                }
+                {
+                    XmlElement oElem = oDoc.CreateElement( "ImageQuality" );
+                    if( StdProperties[StdProperties.Names.ImgQuality].ToString() is string strQuality ) {
+                        oElem.InnerText = strQuality;
+                        oRoot.AppendChild( oElem );
+                    }
+                }
+                oDoc.Save( oStream );
+			} catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( NullReferenceException ),
+                                    typeof( ArgumentNullException ),
+                                    typeof( ArgumentException ),
+                                    typeof( InvalidOperationException ),
+                                    typeof( XmlException )  };
+                if( rgErrors.IsUnhandled( oEx ) ) 
+                    throw;
+
+				LogError( "Trouble saving MySSTV" );
+			}
+    
             return true;
         }
 

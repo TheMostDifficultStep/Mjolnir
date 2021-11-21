@@ -644,8 +644,10 @@ namespace Play.SSTV {
 				return true;
 			}
 			if( sGuid == GlobalCommands.Save ) {
-				_oDocSSTV.SaveRxImage();
-				_oDocSSTV.RxHistoryList.LoadAgain( _oDocSSTV.RxHistoryList.CurrentDirectory );
+				if( _oViewRxImg.Focused ) {
+					_oDocSSTV.SaveRxImage();
+					_oDocSSTV.RxHistoryList.LoadAgain( _oDocSSTV.RxHistoryList.CurrentDirectory );
+				}
 				// make sure you return true or a docsstv.save gets called.
 				return true; 
 			}

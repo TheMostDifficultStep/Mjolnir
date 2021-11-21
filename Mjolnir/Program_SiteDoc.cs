@@ -436,7 +436,8 @@ namespace Mjolnir {
 						typeof( UnauthorizedAccessException ),
 						typeof( PathTooLongException ),
 						typeof( SecurityException ),
-						typeof( NullReferenceException ) };
+						typeof( NullReferenceException ),
+                        typeof( InvalidOperationException ) };
 
 					if( rgErrors.IsUnhandled( oEx ) )
 						throw;
