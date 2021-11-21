@@ -15,7 +15,8 @@ using Play.Sound;
 namespace Play.SSTV {
 	/// <summary>
 	/// This is the old transmit viewer which includes a secondary view was 
-	/// the directory of images.
+	/// the directory of images. I'll delete this one in favor of the Deluxe
+	/// window soon.
 	/// </summary>
 	public class ViewTransmit:
 		Control,
@@ -216,7 +217,9 @@ namespace Play.SSTV {
 
 		public bool Execute(Guid sGuid) {
 			if( sGuid == GlobalCommands.Play ) {
-				_oDocSSTV.TransmitBegin( _oViewImage.Selection.SKRect );
+				throw new NotImplementedException();
+				// Need to update to new Deluxe window way of setting up the transmit.
+				_oDocSSTV.TransmitBegin( null );
 				return true;
 			}
 			if( sGuid == GlobalCommands.Stop ) {
@@ -353,7 +356,9 @@ namespace Play.SSTV {
 
         public override bool Execute( Guid sGuid ) {
 			if( sGuid == GlobalCommands.Play ) {
-			    _oDocSSTV.TransmitBegin( this.Selection.SKRect ); 
+				throw new NotImplementedException();
+				// Need to update to new Deluxe window way of setting up the transmit.
+			    _oDocSSTV.TransmitBegin( null ); 
 			}
 			if( sGuid == GlobalCommands.Stop ) {
 				_oDocSSTV.TransmitStop();
@@ -415,9 +420,9 @@ namespace Play.SSTV {
 		}
 
         public ViewTransmitDeluxe( IPgViewSite oSiteBase, DocSSTV oDocSSTV ) : base( oSiteBase, oDocSSTV ) {
-			_wmTxImageChoice    = new WindowSoloImageNav( new SSTVWinSlot( this, ChildID.None ), oDocSSTV.TxImageList );
-			_wmTxViewChoices    = new ImageViewIcons    ( new SSTVWinSlot( this, ChildID.None ), oDocSSTV.TxImageList );
-			_wmTxImageTemplated = new ImageViewSingle   ( new SSTVWinSlot( this, ChildID.None ), oDocSSTV._oDocSnip );
+			_wmTxImageChoice    = new WindowSoloImageNav( new SSTVWinSlot( this, ChildID.TxImage ),          oDocSSTV.TxImageList );
+			_wmTxViewChoices    = new ImageViewIcons    ( new SSTVWinSlot( this, ChildID.TxImageChoices ),   oDocSSTV.TxImageList );
+			_wmTxImageTemplated = new ImageViewSingle   ( new SSTVWinSlot( this, ChildID.TxImageTemplated ), oDocSSTV._oDocSnip );
 
 			_wmTxImageChoice   .Parent = this;
 			_wmTxViewChoices   .Parent = this;
@@ -430,8 +435,9 @@ namespace Play.SSTV {
 			if( fDisposing && !_fDisposed ) {
 				_oDocSSTV.PropertyChange -= ListenDoc_PropertyChange;
 
-				_wmTxImageChoice.Dispose();
-				_wmTxViewChoices.Dispose();
+				_wmTxImageChoice   .Dispose();
+				_wmTxViewChoices   .Dispose();
+				_wmTxImageTemplated.Dispose();
 
 				_fDisposed = true;
 			}
@@ -439,9 +445,11 @@ namespace Play.SSTV {
         }
 
         public bool InitNew() {
-			if( !_wmTxImageChoice.InitNew() )
+			if( !_wmTxImageChoice   .InitNew() )
 				return false;
-			if( !_wmTxViewChoices.InitNew() )
+			if( !_wmTxViewChoices   .InitNew() )
+				return false;
+			if( !_wmTxImageTemplated.InitNew() )
 				return false;
 
             _oDocSSTV.PropertyChange += ListenDoc_PropertyChange;
@@ -450,8 +458,8 @@ namespace Play.SSTV {
 			_wmTxImageChoice.Aspect     = _oDocSSTV.Resolution;
 			_wmTxImageChoice.DragMode   = DragMode.FixedRatio;
 
-			_rgSubLayout.Add(new LayoutControl( _wmTxImageChoice,    LayoutRect.CSS.None) );
 			_rgSubLayout.Add(new LayoutControl( _wmTxImageTemplated, LayoutRect.CSS.None) );
+			_rgSubLayout.Add(new LayoutControl( _wmTxImageChoice,    LayoutRect.CSS.None) );
 
 			_oLayout.Add( _rgSubLayout );
             _oLayout.Add( new LayoutControl( _wmTxViewChoices, LayoutRect.CSS.Pixels, 220 ) );
@@ -471,15 +479,23 @@ namespace Play.SSTV {
 			}
         }
 
-        public override bool Execute( Guid sGuid ) {
-			if( sGuid == GlobalCommands.Play ) {
+		protected SSTVMode SSTVModeSelection { 
+			get {
                 if( _oDocSSTV.TxModeList.CheckedLine == null )
                     _oDocSSTV.TxModeList.CheckedLine = _oDocSSTV.TxModeList[_oDocSSTV.RxModeList.CheckedLine.At];
 
-                if( _oDocSSTV.TxModeList.CheckedLine.Extra is SSTVMode oMode ) {
-					// need to move the snip to the templated bitmap and transmit the templated image.
+                if( _oDocSSTV.TxModeList.CheckedLine.Extra is SSTVMode oMode )
+					return oMode;
+
+				return null;
+			}
+		}
+
+        public override bool Execute( Guid sGuid ) {
+			if( sGuid == GlobalCommands.Play ) {
+                if( SSTVModeSelection is SSTVMode oMode ) {
 					_oDocSSTV._oDocSnip.Load( _oDocSSTV.TxBitmap, _wmTxImageChoice.Selection.SKRect, oMode.Resolution ); 
-					_oDocSSTV.TransmitBegin( _wmTxImageChoice.Selection.SKRect ); 
+					_oDocSSTV.TransmitBegin( oMode ); 
 				}
 				return true;
 			}
@@ -498,12 +514,15 @@ namespace Play.SSTV {
 				return new CheckList( oBaseSite, _oDocSSTV.TxModeList );
 			}
 			if( sGuid.Equals( GlobalDecorations.Options ) ) {
-				return null;
+				return new CheckList( oBaseSite, _oDocSSTV.TemplateList ) { ReadOnly = false };
 			}
 			return null;
         }
 
         public bool Load(XmlElement oStream) {
+			if( !InitNew() )
+				return false;
+
             return true;
         }
 
@@ -512,6 +531,25 @@ namespace Play.SSTV {
         }
 
         protected override void BringChildToFront(ChildID eID) {
+			switch( eID ) {
+				case ChildID.TxImageChoices:
+					_wmTxImageChoice.BringToFront();
+					_wmTxImageChoice.Select();
+					break;
+				case ChildID.TxImage:
+					_wmTxImageChoice.BringToFront();
+					break;
+				case ChildID.TxImageTemplated:
+					if( _oDocSSTV.Status == WorkerStatus.FREE ) {
+						if( SSTVModeSelection is SSTVMode oMode ) {
+							_oDocSSTV._oDocSnip.Load( _oDocSSTV.TxBitmap, _wmTxImageChoice.Selection.SKRect, oMode.Resolution ); 
+						} else {
+							_oDocSSTV._oDocSnip.BitmapClear(); // TODO: I'd really like to have the error image up.
+						}
+					}
+					_wmTxImageTemplated.BringToFront();
+					break;
+			}
         }
     }
 

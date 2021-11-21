@@ -306,6 +306,9 @@ namespace Play.SSTV {
 			RxWindow,
 			HistoryNavWindow,
 			HistoryIconsWindow,
+			TxImage,
+			TxImageChoices,
+			TxImageTemplated,
 			None
 		}
 
@@ -387,6 +390,10 @@ namespace Play.SSTV {
             _oSiteView.LogError( strCatagory, strDetails );
         }
 
+		/// <summary>
+		/// Use this function to bring one of the staggarded windows up to the front.
+		/// You can also select the windows as well, but that gets a little tricky at times.
+		/// </summary>
 		protected abstract void BringChildToFront( ChildID eID );
 
 
@@ -553,7 +560,7 @@ namespace Play.SSTV {
 
         protected override void Dispose( bool fDisposing ) {
 			if( fDisposing && !_fDisposed ) {
-				_oDocSSTV.RxHistoryList.ImageUpdated -= OnImageUpdated_RxImageList;
+			  //_oDocSSTV.RxHistoryList.ImageUpdated -= OnImageUpdated_RxImageList;
 				_oDocSSTV.PropertyChange             -= OnPropertyChange_DocSSTV;
 				_oDocSSTV.RxModeList.CheckedEvent    -= OnCheckedEvent_RxModeList;
 
@@ -563,14 +570,14 @@ namespace Play.SSTV {
         }
 
         public virtual bool InitNew() {
-			if( !_oViewRxImg.InitNew() )
+			if( !_oViewRxImg    .InitNew() )
 				return false;
 			if( !_oViewRxHistory.InitNew() )
 				return false;
 			if( !_wnSoloImageNav.InitNew() )
 				return false;
 
-            _oDocSSTV.RxHistoryList.ImageUpdated += OnImageUpdated_RxImageList;
+          //_oDocSSTV.RxHistoryList.ImageUpdated += OnImageUpdated_RxImageList;
             _oDocSSTV.PropertyChange             += OnPropertyChange_DocSSTV;
             _oDocSSTV.RxModeList.CheckedEvent    += OnCheckedEvent_RxModeList;
 
@@ -603,8 +610,8 @@ namespace Play.SSTV {
 			}
 		}
 
-        private void OnImageUpdated_RxImageList() {
-        }
+        //private void OnImageUpdated_RxImageList() {
+        //}
 
         private void OnCheckedEvent_RxModeList( Line oLineChecked ) {
 			_oDocSSTV.RequestModeChange( oLineChecked.Extra as SSTVMode );

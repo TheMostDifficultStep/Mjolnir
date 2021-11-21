@@ -319,6 +319,7 @@ namespace Play.SSTV {
 
       //public FileChooser   RecChooser    { get; } // Recorded wave files.
 
+        public Editor              TemplateList  { get; }
         public Editor              MonitorList   { get; }
         public Editor              PortTxList    { get; } 
         public Editor              PortRxList    { get; }
@@ -342,9 +343,11 @@ namespace Play.SSTV {
         protected SSTVGenerator    _oSSTVGenerator;
 		protected SSTVDraw         _oRxSSTV;          // Only used by test code.
 
+        // This is where our image and diagnostic image live.
 		public ImageSoloDoc ReceiveImage { get; protected set; }
 		public ImageSoloDoc SyncImage    { get; protected set; }
 
+        // Some test stuff. 
         private DataTester _oDataTester;
 
 		private double[] _rgFFTData; // Data input for FFT. Note: it get's destroyed in the process.
@@ -368,6 +371,7 @@ namespace Play.SSTV {
             _oSiteBase  = oSite ?? throw new ArgumentNullException( "Site must not be null" );
             _oWorkPlace = ((IPgScheduler)Services).CreateWorkPlace() ?? throw new ApplicationException( "Couldn't create a worksite from scheduler.");
 
+            TemplateList  = new Editor        ( new DocSlot( this ) );
             RxModeList    = new ModeEditor    ( new DocSlot( this, "SSTV Rx Modes" ) );
             TxModeList    = new ModeEditor    ( new DocSlot( this, "SSTV Tx Modes" ) );
             TxImageList   = new ImageWalkerDir( new DocSlot( this ) );
@@ -569,11 +573,13 @@ namespace Play.SSTV {
         }
 
         public bool InitNew() {
+            if( !TemplateList.InitNew() ) // Might need to init differently b/c of load.
+                return false;
             if( !RxModeList .InitNew() ) 
                 return false;
             if( !TxModeList .InitNew() ) 
                 return false;
-			if( !_oDocSnip.InitNew() )
+			if( !_oDocSnip  .InitNew() )
 				return false;
 
 			if( !ReceiveImage.InitNew() )
@@ -581,11 +587,11 @@ namespace Play.SSTV {
 			if( !SyncImage   .InitNew() )
 				return false;
 
-            if( !MonitorList .InitNew() )
+            if( !MonitorList.InitNew() )
                 return false;
-            if( !PortTxList.InitNew() )
+            if( !PortTxList .InitNew() )
                 return false;
-            if( !PortRxList.InitNew() ) 
+            if( !PortRxList .InitNew() ) 
                 return false;
 
             if( !StdProperties.InitNew() )
@@ -908,6 +914,7 @@ namespace Play.SSTV {
         /// </summary>
         /// <returns>Amount of time to wait until we want call again, in Milliseconds.</returns>
         public IEnumerator<int> GetTaskTransmiter() {
+            TxModeList.HighLight = TxModeList.CheckedLine;
             do {
                 uint uiWait = 60000; // Basically stop wasting time here on error.
                 try {
@@ -930,27 +937,26 @@ namespace Play.SSTV {
             // Set upload time to "finished" maybe even date/time!
         }
 
+        public WorkerStatus Status => _oWorkPlace.Status;
+
         /// <summary>
         /// Begin transmitting the image.
         /// </summary>
-        /// <param name="skSelect">clip region in source bitmap coordinates.</param>
-        public void TransmitBegin( SKRectI skSelect ) {
+        public void TransmitBegin( SSTVMode oMode ) {
             try {
-                if( _oWorkPlace.Status != WorkerStatus.FREE ) {
+                if( Status != WorkerStatus.FREE ) {
                     LogError( "Already sending, receiving or paused." );
                     return;
                 }
-                if( PortTxList.ElementCount <= 0 ) {
+                if( PortTxList.CheckedLine == null ) {
                     LogError( "No sound device to send to" );
                     return;
                 }
-                if( PortTxList.CheckedLine == null )
-                    PortTxList.CheckedLine = PortTxList[0];
-
-                if( TxModeList.CheckedLine == null )
-                    TxModeList.CheckedLine = TxModeList[0];
-
-                if( TxModeList.CheckedLine.Extra is SSTVMode oMode ) {
+                if( oMode == null || _oDocSnip.Bitmap == null ) {
+                    LogError( "Transmit mode or image is not set." );
+                    return;
+                }
+                {
 			        // The DocSnip object retains ownership of it's generated bitmap and frees it on next load.
                     // Note: I could check if the selection == the whole bitmap == required dimension
                     //       and I could skip the snip stage.
@@ -971,7 +977,6 @@ namespace Play.SSTV {
                         }
 
                         _oWorkPlace.Queue( GetTaskTransmiter(), 0 );
-                        TxModeList.HighLight = TxModeList.CheckedLine;
                     }
                 }
                 //while ( _oDataTester.ConsumeData() < 350000 ) {

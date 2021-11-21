@@ -411,7 +411,7 @@ namespace Play.ImageViewer {
 		public ImageSoloDoc( IPgBaseSite oSiteBase ) : base( oSiteBase ) {
 		}
 
-		protected void BitmapClear() {
+		public void BitmapClear() {
             if( Bitmap != null ) {
                 SKBitmap skTemp = Bitmap;
                 Bitmap = null; // This sends the event.

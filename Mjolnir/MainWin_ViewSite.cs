@@ -421,8 +421,14 @@ namespace Mjolnir {
         }
 
         public void UpdateTitle() {
-            _oMenuItem.Text = Title;
-            _strShortTitle  = Title;
+            // So it turns out on dispose, sometimes children getting un-focus events send
+            // them up and we'll bomb out. Plus, since dispose will set the menuitem to 
+            // null it's probably a good idea to check the item. I don't think an exception
+            // and error message is called for yet.
+            if( _oMenuItem != null ) {
+                _oMenuItem.Text = Title;
+                _strShortTitle  = Title;
+            }
 
             //CacheTitle.Invalidate();
         }
