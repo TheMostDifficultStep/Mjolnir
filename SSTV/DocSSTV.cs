@@ -29,8 +29,8 @@ namespace Play.SSTV {
             Width,
             Height,
             Progress,
-            SaveDir,
-            SaveName
+            SaveName,
+            SaveDir
         }
 
         public RxProperties( IPgBaseSite oSiteBase ) : base( oSiteBase ) {
@@ -49,8 +49,8 @@ namespace Play.SSTV {
             LabelSet( Names.Width,    "Width" );
             LabelSet( Names.Height,   "Height" );
             LabelSet( Names.Progress, "Received" );
-            LabelSet( Names.SaveDir,  "Save At" );
             LabelSet( Names.SaveName, "File Name" );
+            LabelSet( Names.SaveDir,  "Directory" );
 
             Clear();
 
@@ -77,20 +77,6 @@ namespace Play.SSTV {
 
         public bool ValueAsBool( Names eIndex ) {
             return string.Compare( Property_Values[(int)eIndex].ToString(), "true", ignoreCase:true ) == 0;
-        }
-        /// <summary>
-        /// Override the clear to only clear the specific repeater information. If you want to 
-        /// clear all values, call the base method.
-        /// </summary>
-        public override void Clear() {
-            string strSaveDir = Environment.GetFolderPath( Environment.SpecialFolder.MyPictures );
-            string strEmpty   = "-";
-
-            ValueUpdate( Names.Mode,     strEmpty,   Broadcast:false ); 
-            ValueUpdate( Names.Width,    strEmpty,   Broadcast:false );  
-            ValueUpdate( Names.Height,   strEmpty,   Broadcast:false ); 
-            ValueUpdate( Names.Progress, strEmpty,   Broadcast:false );
-            ValueUpdate( Names.SaveDir,  strSaveDir, Broadcast:true );
         }
     }
 
@@ -125,8 +111,8 @@ namespace Play.SSTV {
             LabelSet( Names.Width,    "Width" );
             LabelSet( Names.Height,   "Height" );
             LabelSet( Names.Progress, "Sent" );
-            LabelSet( Names.FileName, "FileName" );
-            LabelSet( Names.Tx_Dir,   "Img Dir");
+            LabelSet( Names.FileName, "File Name" );
+            LabelSet( Names.Tx_Dir,   "Directory");
 
             Clear();
 
@@ -164,7 +150,7 @@ namespace Play.SSTV {
             MnPort,
 			TxPort,
             RxPort,
-            ImgQuality,
+            ImgQuality
         }
 
         public StdProperties( IPgBaseSite oSiteBase ) : base( oSiteBase ) {
@@ -331,7 +317,6 @@ namespace Play.SSTV {
 
         public event SSTVPropertyChange PropertyChange;
 
-        public StdProperties StdProperties { get; }
       //public FileChooser   RecChooser    { get; } // Recorded wave files.
 
         public Editor              MonitorList   { get; }
@@ -344,17 +329,18 @@ namespace Play.SSTV {
         public ImageWalkerDir      RxHistoryList { get; }
         public RxProperties        RxProperties  { get; }
         public TxProperties        TxProperties  { get; }
+        public StdProperties       StdProperties { get; }
         public SKBitmap            TxBitmap      => TxImageList.Bitmap;
 
         protected readonly ImageSoloDoc  _oDocSnip;   // Clip the image.
 
         protected Mpg123FFTSupport FileDecoder   { get; set; }
-        protected BufferSSTV       _oSSTVBuffer; // BUG: Can't find where initialized!!
+        protected BufferSSTV       _oSSTVBuffer;      // BUG: Can't find where initialized!!
         protected SSTVMOD          _oSSTVModulator;
         protected SSTVDEM          _oSSTVDeModulator; // Only used by test code.
 		protected IPgPlayer        _oPlayer;
         protected SSTVGenerator    _oSSTVGenerator;
-		protected SSTVDraw         _oRxSSTV; // Only used by test code.
+		protected SSTVDraw         _oRxSSTV;          // Only used by test code.
 
 		public ImageSoloDoc ReceiveImage { get; protected set; }
 		public ImageSoloDoc SyncImage    { get; protected set; }
@@ -385,7 +371,7 @@ namespace Play.SSTV {
             RxModeList    = new ModeEditor    ( new DocSlot( this, "SSTV Rx Modes" ) );
             TxModeList    = new ModeEditor    ( new DocSlot( this, "SSTV Tx Modes" ) );
             TxImageList   = new ImageWalkerDir( new DocSlot( this ) );
-            RxHistoryList   = new ImageWalkerDir( new DocSlot( this ) );
+            RxHistoryList = new ImageWalkerDir( new DocSlot( this ) );
             _oDocSnip     = new ImageSoloDoc  ( new DocSlot( this ) );
                           
             PortTxList    = new Editor        ( new DocSlot( this ) );
