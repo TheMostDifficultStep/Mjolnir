@@ -274,11 +274,13 @@ namespace Mjolnir {
         }
 
         /// <summary>
-        /// Not quite sure why I called this function "AdornmentShow" since it's the
-        /// window we are hosting that we want to show...
+        /// Bring to front the adornment that matches the view at the site given.
         /// </summary>
-        /// <param name="oSite">The document who's tools we want to show.</param>
+        /// <param name="oSite">The site for the view who's decor we want to show.</param>
         public abstract bool AdornmentShuffle( object oSite );
+        /// <summary>
+        /// This hides all the adornments but does not set the hidden property.
+        /// </summary>
         public abstract void AdornmentHideAll();
 		public abstract void AdornmentCloseAll();
 
@@ -502,7 +504,6 @@ namespace Mjolnir {
 			return null;
 		}
 
-        /// <param name="oSite">The site for the document who's tools we want to show.</param>
         public override bool AdornmentShuffle( object oSite )
         {
             // Not sure if they ever could, but collections can't index via null object. Seems weird but 

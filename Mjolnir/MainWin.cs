@@ -44,7 +44,11 @@ namespace Mjolnir {
 
         readonly SmartGrab _rcFrame  = new SmartGrab( new SmartRect( LOCUS.UPPERLEFT, 50, 50, 300, 300 ),  5, true, SCALAR.ALL );
         readonly int[]     _rgMargin = new int[5] { 5, 5, 5, 5, 5 };  
-        readonly int[]     _rgSide   = new int[5];  // This defines the 1D distance from each edge of the app win to the inside rect.
+
+        // This defines the 1D distance from each edge of the app win to the inside rect.
+        // In the future I should probably sor this in tehe SideRect class. But I don't
+        // want to sort that out right now.
+        readonly int[]     _rgSide   = new int[5];  
 
         readonly Dictionary<SideIdentify, SideRect> _rgSideInfo = new Dictionary<SideIdentify, SideRect>(5);
 
@@ -1535,7 +1539,7 @@ namespace Mjolnir {
             // Update the remaining herders in the old orientation.
             if( iOldOrientation != oShepard.Orientation ) {
 				LayoutLoadShepardsAt( (SideIdentify)iOldOrientation );
-				DecorSideShuffle    ( iOldOrientation ); // close side if no other decor wants it.
+				DecorShuffleSide    ( iOldOrientation ); // close side if no other decor wants it.
 			}
 
             // Update the new target.

@@ -12,6 +12,9 @@ using Play.Edit;
 using System.Collections;
 
 namespace Mjolnir {
+    /// <summary>
+    /// This object holds all the adornments on one side, with spacers between elements.
+    /// </summary>
 	public class SideRect : 
 		LayoutStack,
 		IEnumerable<SmartHerderBase>
@@ -32,7 +35,8 @@ namespace Mjolnir {
 		IEnumerable<SmartBinder> Spacers => _rgSpacers;
 
         public int SideInit  { get; set; } = 0;
-        public int SideSaved { get; set; } = 0;
+        public int SideSaved { get; 
+            set; } = 0;
         public int Extent    { get { return GetExtent( Direction ); }                               }
 
 		public override void Paint(Graphics oGraphics) {
@@ -874,9 +878,7 @@ namespace Mjolnir {
         /// </summary>
         public void DecorShow() {
             _rcFrame.Hidden = false;
-            foreach( KeyValuePair<SideIdentify, SideRect> oPair in _rgSideInfo ) {
-                oPair.Value.SideSaved = oPair.Value.Extent;
-            }
+            // No need to save the sides extents b/c the DecorSideShuffle does that when needed.
 
  			if( _miDecorMenu.DropDownItems[0] is ToolStripMenuItem oItem ) {
 				oItem.Checked = true;
@@ -890,9 +892,7 @@ namespace Mjolnir {
         }
 
         public void DecorHide() {
-            foreach( KeyValuePair<SideIdentify, SideRect> oPair in _rgSideInfo ) {
-                oPair.Value.SideSaved = oPair.Value.Extent;
-            }
+            // No need to save the sides extents b/c the DecorSideShuffle does that when needed.
 
             foreach( SmartHerderBase oShepard in this ) {
                 if( oShepard.Name != "menu")
@@ -909,7 +909,6 @@ namespace Mjolnir {
 
             // No need to shuffle, since we we've disabled all the decor anyway!!
             LayoutFrame();
-            //LayoutSideBoxes();
         }
 
 		public void DecorToggle() {
@@ -925,10 +924,6 @@ namespace Mjolnir {
         protected bool IsSideOpen( int iOrientation ) {
             return( _rgSide[iOrientation] > _rgMargin[ iOrientation ] );
         }
-
-		protected bool IsSideSavedClosed( int iOrientation ) {
-            return _rgSideInfo[(SideIdentify)iOrientation].SideSaved <= _rgMargin[ iOrientation ];
-		}
 
         /// <summary>
         /// Find all the shepard's matching the given orientation and see how many of them 
@@ -951,27 +946,31 @@ namespace Mjolnir {
         }
 
 		/// <summary>
-		/// Check if the side needs to be opened. It might be available but prevously,
-		/// no decor, so currently hidden. 
+		/// When a decor is shown or hidden, call this method to open or close
+        /// the side containing those decor.
+        /// 1) If the side is closed, check if any side adornments are showing
+        ///    and if so open up the side.
+        /// 2) If the side is opened, check if any side adornments are showing
+        ///    and if NOT close up teh side.
 		/// </summary>
-        private void DecorSideShuffle( int iOrientation ) {
-            bool     fIsSideLoaded = IsAnyShepardReady ( iOrientation );
-            SCALAR   eSide         = SmartRect.ToScalar( iOrientation );
-            SideRect oSide         = _rgSideInfo[(SideIdentify)iOrientation];
+        private void DecorShuffleSide( int iOrientation ) {
+            SCALAR   eSide = SmartRect.ToScalar( iOrientation );
+            SideRect oSide = _rgSideInfo[(SideIdentify)iOrientation];
 
-            if( IsSideOpen( iOrientation) ) {
-                if( !fIsSideLoaded ) {
+            if( IsSideOpen( iOrientation ) ) {
+                if( !IsAnyShepardReady( iOrientation ) ) {
                     oSide.SideSaved = _rgSide[iOrientation];
                     _rgSide[iOrientation] = 0; // Close side.
 					Invalidate();
 				}
             } else {
-                if( fIsSideLoaded ) {
-					if( IsSideSavedClosed( iOrientation ) ) {
-                        oSide.SideSaved = oSide.SideInit; 
+                if( IsAnyShepardReady( iOrientation ) ) {
+                    if( oSide.SideSaved > _rgMargin[iOrientation] ) {
+                        _rgSide[iOrientation] = oSide.SideSaved;
+                    } else {
+                        _rgSide[iOrientation] = oSide.SideInit;
                     }
-                    _rgSide[iOrientation] = oSide.SideSaved;
-                    oSide.SetScalar( SET.STRETCH, eSide, oSide.SideSaved ); // Open side.
+                    oSide.SetScalar( SET.STRETCH, eSide, _rgSide[iOrientation] ); // Open side.
 					Invalidate();
                 }
             }
@@ -1001,7 +1000,7 @@ namespace Mjolnir {
             }
 
 			for (int iOrientation = 0;iOrientation < 4;++iOrientation) {
-				DecorSideShuffle(iOrientation);
+				DecorShuffleSide(iOrientation);
 			}
 
 			LayoutFrame();
@@ -1049,7 +1048,7 @@ namespace Mjolnir {
             }
 
 			LayoutLoadShepardsAt( (SideIdentify)iOrientation ); // A shepard is coming or going. Was above the switch...
-            DecorSideShuffle( iOrientation );
+            DecorShuffleSide( iOrientation );
 
             LayoutFrame();
 			Invalidate  ();
