@@ -473,11 +473,11 @@ namespace Play.SSTV {
                 if( fAddResolution ) {
                     sbValue.Append( " : " );
                     sbValue.Append( oMode.Resolution.Width.ToString() );
-                    sbValue.Append( " x " );
+                    sbValue.Append( "x" );
                     sbValue.Append( oMode.Resolution.Height.ToString() );
                     sbValue.Append( " @ " );
                     sbValue.Append( ( oMode.ScanWidthInMS * oMode.Resolution.Height / oMode.ScanMultiplier / 1000 ).ToString( "0." ) );
-                    sbValue.Append( " s" );
+                    sbValue.Append( "s" );
                 }
                 Line oLine = oBulk.LineAppendNoUndo( sbValue.ToString() );
 
