@@ -147,7 +147,7 @@ namespace Play.SSTV {
         public ViewTransmitDeluxe( IPgViewSite oSiteBase, DocSSTV oDocSSTV ) : base( oSiteBase, oDocSSTV ) {
 			_wmTxImageChoice    = new WindowSoloImageNav( new SSTVWinSlot( this, ChildID.TxImage ),          oDocSSTV.TxImageList );
 			_wmTxViewChoices    = new ImageViewIcons    ( new SSTVWinSlot( this, ChildID.TxImageChoices ),   oDocSSTV.TxImageList );
-			_wmTxImageTemplated = new ImageViewSingle   ( new SSTVWinSlot( this, ChildID.TxImageTemplated ), oDocSSTV._oDocSnip );
+			_wmTxImageTemplated = new ImageViewSingle   ( new SSTVWinSlot( this, ChildID.TxImageTemplated ), oDocSSTV.TxBitmapSnip );
 
 			_wmTxImageChoice   .Parent = this;
 			_wmTxViewChoices   .Parent = this;
@@ -219,7 +219,7 @@ namespace Play.SSTV {
         public override bool Execute( Guid sGuid ) {
 			if( sGuid == GlobalCommands.Play ) {
                 if( SSTVModeSelection is SSTVMode oMode ) {
-					_oDocSSTV._oDocSnip.Load( _oDocSSTV.TxBitmap, _wmTxImageChoice.Selection.SKRect, oMode.Resolution ); 
+					_oDocSSTV.TxBitmapSnip.Load( _oDocSSTV.TxBitmap, _wmTxImageChoice.Selection.SKRect, oMode.Resolution ); 
 					_oDocSSTV.TransmitBegin( oMode ); 
 				}
 				return true;
@@ -289,9 +289,9 @@ namespace Play.SSTV {
 					if( _oDocSSTV.Status == WorkerStatus.FREE ) {
 						// Might want to add an window selection changed event to cause this to update...
 						if( SSTVModeSelection is SSTVMode oMode ) {
-							_oDocSSTV._oDocSnip.Load( _oDocSSTV.TxBitmap, _wmTxImageChoice.Selection.SKRect, oMode.Resolution ); 
+							_oDocSSTV.TxBitmapSnip.Load( _oDocSSTV.TxBitmap, _wmTxImageChoice.Selection.SKRect, oMode.Resolution ); 
 						} else {
-							_oDocSSTV._oDocSnip.BitmapClear(); // TODO: I'd really like to have the error image up.
+							_oDocSSTV.TxBitmapSnip.BitmapDispose(); // TODO: I'd really like to have the error image up.
 						}
 					}
 					_wmTxImageTemplated.BringToFront();

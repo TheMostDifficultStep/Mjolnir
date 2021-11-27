@@ -405,7 +405,7 @@ namespace Play.MusicWalker {
 			public void Load( SongCredentials oSong ) {
 				try {
 					if( oSong == null ) {
-						_oGuest.Raise_Clear();
+						_oGuest.Raise_BitmapDispose();
 						AlbumIndex = -1;
 						return;
 					}

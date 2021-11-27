@@ -332,8 +332,7 @@ namespace Play.SSTV {
         public TxProperties        TxProperties  { get; }
         public StdProperties       StdProperties { get; }
         public SKBitmap            TxBitmap      => TxImageList.Bitmap;
-
-        internal readonly ImageSoloDoc  _oDocSnip;   // Clip the image.
+        internal ImageSoloDoc      TxBitmapSnip  { get; }  
 
         protected Mpg123FFTSupport FileDecoder   { get; set; }
         protected BufferSSTV       _oSSTVBuffer;      // BUG: Can't find where initialized!!
@@ -376,7 +375,7 @@ namespace Play.SSTV {
             TxModeList    = new ModeEditor    ( new DocSlot( this, "SSTV Tx Modes" ) );
             TxImageList   = new ImageWalkerDir( new DocSlot( this ) );
             RxHistoryList = new ImageWalkerDir( new DocSlot( this ) );
-            _oDocSnip     = new ImageSoloDoc  ( new DocSlot( this ) );
+            TxBitmapSnip     = new ImageSoloDoc  ( new DocSlot( this ) );
                           
             PortTxList    = new Editor        ( new DocSlot( this ) );
             PortRxList    = new Editor        ( new DocSlot( this ) );
@@ -395,8 +394,8 @@ namespace Play.SSTV {
         protected virtual void Dispose( bool disposing ) {
             if( !disposedValue ) {
                 if( disposing ) {
-                    if( _oDocSnip != null )
-			            _oDocSnip.Dispose(); 
+                    if( TxBitmapSnip != null )
+			            TxBitmapSnip.Dispose(); 
 
                     // If init new fails then this won't get created.
                     if( FileDecoder != null )
@@ -579,7 +578,7 @@ namespace Play.SSTV {
                 return false;
             if( !TxModeList .InitNew() ) 
                 return false;
-			if( !_oDocSnip  .InitNew() )
+			if( !TxBitmapSnip  .InitNew() )
 				return false;
 
 			if( !ReceiveImage.InitNew() )
@@ -952,7 +951,7 @@ namespace Play.SSTV {
                     LogError( "No sound device to send to" );
                     return;
                 }
-                if( oMode == null || _oDocSnip.Bitmap == null ) {
+                if( oMode == null || TxBitmapSnip.Bitmap == null ) {
                     LogError( "Transmit mode or image is not set." );
                     return;
                 }
@@ -966,7 +965,7 @@ namespace Play.SSTV {
                     _oSSTVBuffer    = new BufferSSTV( oTxSpec );
 					_oSSTVModulator = new SSTVMOD( 0, oTxSpec.Rate, _oSSTVBuffer );
 
-                    if( GeneratorSetup( oMode, _oDocSnip.Bitmap ) ) {
+                    if( GeneratorSetup( oMode, TxBitmapSnip.Bitmap ) ) {
                         if( _oPlayer == null ) {
                             _oPlayer = new WmmPlayer(oTxSpec, PortTxList.CheckedLine.At );
                         } else {
@@ -1447,8 +1446,8 @@ namespace Play.SSTV {
 
                 if( RxModeList.CheckedLine.Extra is SSTVMode oMode ) {
                     if( _oWorkPlace.Status == WorkerStatus.FREE ) {
-			            _oDocSnip.Load( TxBitmap, skSelect, oMode.Resolution );
-					    if( GeneratorSetup( oMode, _oDocSnip.Bitmap ) ) {
+			            TxBitmapSnip.Load( TxBitmap, skSelect, oMode.Resolution );
+					    if( GeneratorSetup( oMode, TxBitmapSnip.Bitmap ) ) {
 						    FFTControlValues oFFTMode = FFTControlValues.FindMode( RxSpec.Rate ); 
 						    SYSSET           sys      = new();
 						    SSTVDEM          oDemod   = new SSTVDEM( sys,
@@ -1509,7 +1508,7 @@ namespace Play.SSTV {
             try {
                 if( RxModeList.CheckedLine.Extra is SSTVMode oMode ) {
                     if( _oWorkPlace.Status == WorkerStatus.FREE ) {
-			            _oDocSnip.Load( TxBitmap, skSelect, oMode.Resolution );
+			            TxBitmapSnip.Load( TxBitmap, skSelect, oMode.Resolution );
 
 					    FFTControlValues oFFTMode  = FFTControlValues.FindMode( 8000 ); // RxSpec.Rate
 					    SYSSET           sys       = new ();
@@ -1522,9 +1521,9 @@ namespace Play.SSTV {
 					    _oRxSSTV          = new SSTVDraw ( _oSSTVDeModulator, SyncImage.Bitmap, ReceiveImage.Bitmap );
 
 					    _oSSTVGenerator = oMode.Family switch {
-						    TVFamily.PD      => new GeneratePD     ( _oDocSnip.Bitmap, oDemodTst, oMode ),
-						    TVFamily.Martin  => new GenerateMartin ( _oDocSnip.Bitmap, oDemodTst, oMode ),
-						    TVFamily.Scottie => new GenerateScottie( _oDocSnip.Bitmap, oDemodTst, oMode ),
+						    TVFamily.PD      => new GeneratePD     ( TxBitmapSnip.Bitmap, oDemodTst, oMode ),
+						    TVFamily.Martin  => new GenerateMartin ( TxBitmapSnip.Bitmap, oDemodTst, oMode ),
+						    TVFamily.Scottie => new GenerateScottie( TxBitmapSnip.Bitmap, oDemodTst, oMode ),
 
 						    _ => throw new ArgumentOutOfRangeException("Unrecognized Mode Type."),
 					    };

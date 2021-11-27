@@ -374,7 +374,7 @@ namespace Play.MusicWalker {
 				if( Document.ErrorsStandardFile.IsUnhandled( oEx ) )
 					throw;
 
-				AlbumArtCurrent.Raise_Clear();
+				AlbumArtCurrent.Raise_BitmapDispose();
 
 				_oSiteView.LogError( "internal", "Couldn't load album art : " + strArtPath, false );
 			}

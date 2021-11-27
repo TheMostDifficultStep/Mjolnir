@@ -411,7 +411,7 @@ namespace Play.ImageViewer {
 		public ImageSoloDoc( IPgBaseSite oSiteBase ) : base( oSiteBase ) {
 		}
 
-		public void BitmapClear() {
+		public void BitmapDispose() {
             if( Bitmap != null ) {
                 SKBitmap skTemp = Bitmap;
                 Bitmap = null; // This sends the event.
@@ -419,19 +419,19 @@ namespace Play.ImageViewer {
             }
 		}
 		
-		public void Raise_Clear() {
-			BitmapClear();
+		public void Raise_BitmapDispose() {
+			BitmapDispose();
 			//Raise_ImageUpdated();
 		}
 
 		public virtual bool InitNew() {
-			Raise_Clear();
+			Raise_BitmapDispose();
 
 			return true;
 		}
 
 		public bool Load(Stream oStream) {
-			BitmapClear();
+			BitmapDispose();
 
             try {
                 Bitmap = SKBitmap.Decode( oStream );
@@ -456,7 +456,7 @@ namespace Play.ImageViewer {
 		public bool Load(SKBitmap srcImage, SKRectI rcSourcePortion, SKSizeI szDestSize ) {
 			SmartRect rcDest = new SmartRect( LOCUS.UPPERLEFT, 0, 0, szDestSize.Width, szDestSize.Height );
 
-			BitmapClear();
+			BitmapDispose();
 
 			try {
 				Bitmap = new SKBitmap( szDestSize.Width, szDestSize.Height, SKColorType.Rgb888x, SKAlphaType.Opaque );
@@ -1145,7 +1145,7 @@ namespace Play.ImageViewer {
 			if( Line.IsNullOrEmpty( _oDisplayLine ) ||
                 !IsLineUnderstood( _oDisplayLine ) )
             {
-                BitmapClear();
+                BitmapDispose();
                 Raise_ImageUpdated();
                 return false;
             }
@@ -1253,7 +1253,7 @@ namespace Play.ImageViewer {
                 // If the linecount is zero, then oNext will have been deleted and invalid.
                 // But load index understands this and will reject it.
                 if( !ImageLoad( oNext ) ) {
-                    BitmapClear();
+                    BitmapDispose();
                 }
                 Raise_TextLoaded   ();
                 Raise_ImageUpdated ();
