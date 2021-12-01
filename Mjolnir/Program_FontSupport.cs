@@ -423,8 +423,8 @@ namespace Mjolnir {
             // Try find the font if it has already been cached.
             foreach( FaceRender oRenderTry in _rgRenders ) {
                 if( oRenderTry.Face.ID    == uiFace &&
-                    oRenderTry.Height     == oRenderTry.Height &&
-                    oRenderTry.Resolution == oRenderTry.Resolution )  
+                    oRenderTry.Height     == uiHeight &&
+                    oRenderTry.Resolution == skResolution )  
                 {
                     return oRenderTry.ID;
                 }

@@ -448,7 +448,8 @@ namespace Play.ImageViewer {
 		}
 
         /// <summary>
-        /// Load our bitmap from the given bitmap.
+        /// Load our bitmap from the given bitmap. Use an Rgba8888 image to be compatible
+        /// with my text printing system.
         /// </summary>
         /// <param name="srcImage">source image</param>
         /// <param name="rcSourcePortion">portion of the source image.</param>
@@ -459,7 +460,7 @@ namespace Play.ImageViewer {
 			BitmapDispose();
 
 			try {
-				Bitmap = new SKBitmap( szDestSize.Width, szDestSize.Height, SKColorType.Rgb888x, SKAlphaType.Opaque );
+				Bitmap = new SKBitmap( szDestSize.Width, szDestSize.Height, SKColorType.Rgba8888, SKAlphaType.Opaque );
                 using( SKCanvas skCanvas = new SKCanvas( Bitmap ) ) {
                     using( SKPaint skPaint = new SKPaint() ) {
                         skPaint .FilterQuality = SKFilterQuality.High;

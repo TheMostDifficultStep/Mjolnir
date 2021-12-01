@@ -308,7 +308,7 @@ namespace Play.SSTV {
 			HistoryIconsWindow,
 			TxImage,
 			TxImageChoices,
-			TxImageTemplated,
+			TxImageSnip,
 			None
 		}
 

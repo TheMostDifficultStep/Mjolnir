@@ -533,6 +533,15 @@ namespace Play.Edit {
             skCanvas.DrawRect(skRect, skPaint);
         }
 
+        /// <summary>
+        /// A cluster is a set of glyphs that make up a character. All of the 
+        /// glyphs are in the _rgGlyphs array and the cluster has an offset
+        /// into that array, and a length of how many to traverse to build that
+        /// one character.
+        /// </summary>
+        /// <remarks>At present we don't support more than one glyph in a cluster.
+        /// I'll probably want to change that when rendering emoji's, but now it
+        /// seems to work even for Japanese.</remarks>
         public virtual void Render(
             SKCanvas       skCanvas,
             IPgStandardUI2 oStdUI,
@@ -585,6 +594,52 @@ namespace Play.Edit {
                                                  pntLowerLeft.X + 100, pntEditAt.Y + Height), skPaint);
                     Debug.Fail( "Exception thrown in FTCacheLine.Render" );
                 }
+            }
+        } // end method
+
+        /// <summary>
+        /// This is a more general renderer where you can supply the paint object.
+        /// I expect to use this one more for rendering in paint programs versus
+        /// writing programs which the other render function is better suited for.
+        /// </summary>
+        public virtual void Render(
+            SKCanvas skCanvas,
+            SKPaint  skPaint,
+            PointF   pntEditAt )
+        {
+            if( _rgGlyphs.Count <= 0 )
+                return;
+
+            // Our new system paints UP from the baseline. It's nice because it's a bit more how
+            // we think of text but weird since the screen origin is top left and we print successive
+            // lines down. >_<;;
+            SKPoint pntLowerLeft = new SKPoint( pntEditAt.X, pntEditAt.Y + FontHeight );
+
+            skPaint.FilterQuality = SKFilterQuality.High;
+
+            try { // Draw all glyphs so whitespace is properly colored when selected.
+			    foreach( PgCluster oCluster in _rgClusters ) {
+                    int iYDiff = LineHeight * oCluster.Segment;
+
+                    float flX = pntLowerLeft.X + (float)(oCluster.AdvanceLeftEm >> 6); 
+                    float flY = pntLowerLeft.Y + iYDiff - oCluster.Coordinates.top;
+
+                    // Only draw if we need to override the last painted bg color.
+                    if( oCluster.ColorIndex < 0 ) {
+                        DrawGlyphBack( skCanvas, skPaint, flX, pntEditAt.Y + LineHeight + iYDiff, oCluster );
+                    }
+
+                    // Only draw first element of cluster. Haven't seen multi elem cluster yet.
+                    DrawGlyph( skCanvas, skPaint, flX, flY, _rgGlyphs[oCluster.Glyphs.Offset] );
+                } // end foreach
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( ArgumentOutOfRangeException ),
+                                    typeof( NullReferenceException ),
+                                    typeof( ArithmeticException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
+
+                Debug.Fail( "Exception thrown in FTCacheLine.Render" );
             }
         } // end method
 

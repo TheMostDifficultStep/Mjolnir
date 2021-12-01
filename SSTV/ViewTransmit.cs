@@ -1,10 +1,9 @@
 ﻿using System;
-using System.Drawing;
 using System.Xml;
 using System.Collections.Generic;
-using System.Windows.Forms;
-using System.Reflection;
 using System.Text;
+
+using SkiaSharp;
 
 using Play.Interfaces.Embedding;
 using Play.Rectangles;
@@ -127,7 +126,7 @@ namespace Play.SSTV {
         protected override string IconResource => "Play.SSTV.icons8_camera.png";
 
 		protected readonly WindowSoloImageNav _wmTxImageChoice;
-		protected readonly ImageViewSingle    _wmTxImageTemplated;
+		protected readonly ImageViewSingle    _wmTxImageComposite;
 		protected readonly ImageViewIcons     _wmTxViewChoices;
 
         public override string Banner {
@@ -145,13 +144,13 @@ namespace Play.SSTV {
 		}
 
         public ViewTransmitDeluxe( IPgViewSite oSiteBase, DocSSTV oDocSSTV ) : base( oSiteBase, oDocSSTV ) {
-			_wmTxImageChoice    = new WindowSoloImageNav( new SSTVWinSlot( this, ChildID.TxImage ),          oDocSSTV.TxImageList );
-			_wmTxViewChoices    = new ImageViewIcons    ( new SSTVWinSlot( this, ChildID.TxImageChoices ),   oDocSSTV.TxImageList );
-			_wmTxImageTemplated = new ImageViewSingle   ( new SSTVWinSlot( this, ChildID.TxImageTemplated ), oDocSSTV.TxBitmapSnip );
+			_wmTxImageChoice    = new WindowSoloImageNav( new SSTVWinSlot( this, ChildID.TxImage ),        oDocSSTV.TxImageList );
+			_wmTxViewChoices    = new ImageViewIcons    ( new SSTVWinSlot( this, ChildID.TxImageChoices ), oDocSSTV.TxImageList );
+			_wmTxImageComposite = new ImageViewSingle   ( new SSTVWinSlot( this, ChildID.TxImageSnip ),    oDocSSTV.TxBitmapComp );
 
 			_wmTxImageChoice   .Parent = this;
 			_wmTxViewChoices   .Parent = this;
-			_wmTxImageTemplated.Parent = this;
+			_wmTxImageComposite.Parent = this;
 
 			_wmTxImageChoice.SetBorderOn();
 		}
@@ -162,7 +161,7 @@ namespace Play.SSTV {
 
 				_wmTxImageChoice   .Dispose();
 				_wmTxViewChoices   .Dispose();
-				_wmTxImageTemplated.Dispose();
+				_wmTxImageComposite.Dispose();
 
 				_fDisposed = true;
 			}
@@ -174,7 +173,7 @@ namespace Play.SSTV {
 				return false;
 			if( !_wmTxViewChoices   .InitNew() )
 				return false;
-			if( !_wmTxImageTemplated.InitNew() )
+			if( !_wmTxImageComposite.InitNew() )
 				return false;
 
             _oDocSSTV.PropertyChange += ListenDoc_PropertyChange;
@@ -183,7 +182,7 @@ namespace Play.SSTV {
 			_wmTxImageChoice.Aspect     = _oDocSSTV.Resolution;
 			_wmTxImageChoice.DragMode   = DragMode.FixedRatio;
 
-			_rgSubLayout.Add(new LayoutControl( _wmTxImageTemplated, LayoutRect.CSS.None) );
+			_rgSubLayout.Add(new LayoutControl( _wmTxImageComposite, LayoutRect.CSS.None) );
 			_rgSubLayout.Add(new LayoutControl( _wmTxImageChoice,    LayoutRect.CSS.None) );
 
 			_oLayout.Add( _rgSubLayout );
@@ -219,7 +218,12 @@ namespace Play.SSTV {
         public override bool Execute( Guid sGuid ) {
 			if( sGuid == GlobalCommands.Play ) {
                 if( SSTVModeSelection is SSTVMode oMode ) {
-					_oDocSSTV.TxBitmapSnip.Load( _oDocSSTV.TxBitmap, _wmTxImageChoice.Selection.SKRect, oMode.Resolution ); 
+					SKRectI rcComp = new SKRectI( 0, 0, oMode.Resolution.Width, oMode.Resolution.Height);
+					SKSizeI ptComp = new SKSizeI( oMode.Resolution.Width, oMode.Resolution.Height );
+
+					_oDocSSTV.TxBitmapSnip.Load( _oDocSSTV.TxBitmap, _wmTxImageChoice.Selection.SKRect, oMode.Resolution );
+					_oDocSSTV.TxBitmapComp.Load( _oDocSSTV.TxBitmap, rcComp, ptComp );
+
 					_oDocSSTV.TransmitBegin( oMode ); 
 				}
 				return true;
@@ -285,16 +289,22 @@ namespace Play.SSTV {
 				case ChildID.TxImage:
 					_wmTxImageChoice.BringToFront();
 					break;
-				case ChildID.TxImageTemplated:
+				case ChildID.TxImageSnip:
 					if( _oDocSSTV.Status == WorkerStatus.FREE ) {
+
 						// Might want to add an window selection changed event to cause this to update...
 						if( SSTVModeSelection is SSTVMode oMode ) {
+							SKRectI rcComp = new SKRectI( 0, 0, oMode.Resolution.Width, oMode.Resolution.Height);
+							SKSizeI ptComp = new SKSizeI( oMode.Resolution.Width, oMode.Resolution.Height );
+
 							_oDocSSTV.TxBitmapSnip.Load( _oDocSSTV.TxBitmap, _wmTxImageChoice.Selection.SKRect, oMode.Resolution ); 
+							_oDocSSTV.TxBitmapComp.Load( _oDocSSTV.TxBitmap, rcComp, ptComp ); // Render needs this, for now.
+							_oDocSSTV.TxBitmapComp.RenderImage();
 						} else {
 							_oDocSSTV.TxBitmapSnip.BitmapDispose(); // TODO: I'd really like to have the error image up.
 						}
 					}
-					_wmTxImageTemplated.BringToFront();
+					_wmTxImageComposite.BringToFront();
 					break;
 			}
         }

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Windows.Forms;
 using System.Drawing;
+using System.Collections.Generic;
 
 using SkiaSharp;
 using SkiaSharp.Views.Desktop;
@@ -374,7 +375,8 @@ namespace Play.ImageViewer {
                     Type[] rgErrors = { typeof( ArgumentNullException ),
 										typeof( ArgumentException ),
 										typeof( NullReferenceException ),
-										typeof( OverflowException ) };
+										typeof( OverflowException ),
+										typeof( AccessViolationException ) };
                     if (rgErrors.IsUnhandled(oEx))
                         throw;
 
@@ -501,4 +503,37 @@ namespace Play.ImageViewer {
 				_oHostCommand.Execute( CommandWheelUp );
 		}
 	}
+
+    public class ImageViewTextCompositor : 
+		ImageViewSingle,
+		IPgTools
+	{
+		protected enum TCTools : int {
+						   EditText = 0,
+						   SizeText
+					   };
+		protected Dictionary< TCTools, string> _rgTools = new();
+		protected TCTools                      _eTool   = TCTools.EditText;
+        public ImageViewTextCompositor(IPgViewSite oSiteBase, ImageSoloDoc oDocSolo) : 
+			base(oSiteBase, oDocSolo) 
+		{
+			_rgTools.Add( TCTools.EditText, "Edit Text" );
+			_rgTools.Add( TCTools.SizeText, "Size Text" );
+        }
+
+        public int ToolCount => _rgTools.Count;
+
+        public int ToolSelect { 
+			get => (int)_eTool;
+			set => _eTool = (TCTools)value;
+		}
+
+        public Image ToolIcon(int iTool) {
+            return null;
+        }
+
+        public string ToolName(int iTool) {
+            return _rgTools[(TCTools)iTool];
+        }
+    }
 }

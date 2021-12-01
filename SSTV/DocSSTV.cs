@@ -9,6 +9,7 @@ using System.Xml;
 using SkiaSharp;
 using NAudio.Wave;
 
+using Play.Rectangles;
 using Play.Interfaces.Embedding;
 using Play.Sound;
 using Play.Sound.FFT;
@@ -333,6 +334,7 @@ namespace Play.SSTV {
         public StdProperties       StdProperties { get; }
         public SKBitmap            TxBitmap      => TxImageList.Bitmap;
         internal ImageSoloDoc      TxBitmapSnip  { get; }  
+        internal DocImageEdit      TxBitmapComp  { get; }
 
         protected Mpg123FFTSupport FileDecoder   { get; set; }
         protected BufferSSTV       _oSSTVBuffer;      // BUG: Can't find where initialized!!
@@ -375,7 +377,8 @@ namespace Play.SSTV {
             TxModeList    = new ModeEditor    ( new DocSlot( this, "SSTV Tx Modes" ) );
             TxImageList   = new ImageWalkerDir( new DocSlot( this ) );
             RxHistoryList = new ImageWalkerDir( new DocSlot( this ) );
-            TxBitmapSnip     = new ImageSoloDoc  ( new DocSlot( this ) );
+            TxBitmapSnip  = new ImageSoloDoc  ( new DocSlot( this ) );
+            TxBitmapComp  = new DocImageEdit  ( new DocSlot( this ) );
                           
             PortTxList    = new Editor        ( new DocSlot( this ) );
             PortRxList    = new Editor        ( new DocSlot( this ) );
@@ -578,8 +581,17 @@ namespace Play.SSTV {
                 return false;
             if( !TxModeList .InitNew() ) 
                 return false;
-			if( !TxBitmapSnip  .InitNew() )
+			if( !TxBitmapSnip.InitNew() )
 				return false;
+            if( !TxBitmapComp.InitNew() )
+                return false;
+
+            // Just an experiment.
+            try {
+                TxBitmapComp.AddImage( new SmartRect( 0, 0, 320, 256 ), TxBitmapSnip );
+                TxBitmapComp.AddText ( new SmartRect( 0, 0, 320, 150 ), "AG7YM" );
+            } catch( Exception ) {
+            }
 
 			if( !ReceiveImage.InitNew() )
 				return false;
@@ -628,7 +640,7 @@ namespace Play.SSTV {
             RxModeList   .CheckedEvent += OnCheckedEvent_RxModeList; // set checkmark AFTER load the modulators... ^_^;;
             RxModeList   .CheckedLine   = RxModeList[0];
 
-            TxImageList.ImageUpdated += OnImageUpdated_TxImageList;
+            TxImageList  .ImageUpdated += OnImageUpdated_TxImageList;
             RxHistoryList.ImageUpdated += OnImageUpdated_RxImageList;
 
             return true;
