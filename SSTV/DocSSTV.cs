@@ -88,12 +88,12 @@ namespace Play.SSTV {
     /// </summary>
     public class TxProperties : DocProperties {
         public enum Names : int {
-			Mode,
-            Width,
-            Height,
             Progress,
             FileName,
-            Tx_Dir
+            MyCall,
+            TheirCall,
+            RST,
+            Message,
         }
 
         public TxProperties( IPgBaseSite oSiteBase ) : base( oSiteBase ) {
@@ -108,12 +108,12 @@ namespace Play.SSTV {
                 Property_Values.LineAppend( string.Empty, fUndoable:false );
             }
 
-            LabelSet( Names.Mode,     "Mode", new SKColor( red:0xff, green:0xbf, blue:0 ) );
-            LabelSet( Names.Width,    "Width" );
-            LabelSet( Names.Height,   "Height" );
-            LabelSet( Names.Progress, "Sent" );
-            LabelSet( Names.FileName, "File Name" );
-            LabelSet( Names.Tx_Dir,   "Directory");
+            LabelSet( Names.MyCall,    "My Call" );
+            LabelSet( Names.TheirCall, "Their Call" );
+            LabelSet( Names.RST,       "RST" );
+            LabelSet( Names.Message,   "Message" );
+            LabelSet( Names.Progress,  "Sent %" );
+            LabelSet( Names.FileName,  "File Name" );
 
             Clear();
 
@@ -137,11 +137,8 @@ namespace Play.SSTV {
         /// clear all values, call the base method.
         /// </summary>
         public override void Clear() {
-            ValueUpdate( Names.Mode,     "-" ); 
-            ValueUpdate( Names.Width,    "-" ); 
-            ValueUpdate( Names.Height,   "-" ); 
+            ValueUpdate( Names.MyCall,   "ab6xy" );
             ValueUpdate( Names.Progress, "-" );
-            ValueUpdate( Names.Tx_Dir,   "-" );
             ValueUpdate( Names.FileName, "-", Broadcast:true );
         }
     }
@@ -570,7 +567,7 @@ namespace Play.SSTV {
         /// <seealso cref="RxModeList"/>
         void OnCheckedEvent_RxModeList( Line oLine ) {
             // Should this be RxProperties?
-            TxProperties.ValueUpdate( TxProperties.Names.Mode, oLine.ToString(), Broadcast:true ); 
+            //TxProperties.ValueUpdate( TxProperties.Names.Mode, oLine.ToString(), Broadcast:true ); 
             Raise_PropertiesUpdated( SSTVEvents.SSTVMode );
         }
 
@@ -585,13 +582,6 @@ namespace Play.SSTV {
 				return false;
             if( !TxBitmapComp.InitNew() )
                 return false;
-
-            // Just an experiment.
-            try {
-                TxBitmapComp.AddImage( new SmartRect( 0, 0, 320, 256 ), TxBitmapSnip );
-                TxBitmapComp.AddText ( new SmartRect( 0, 0, 320, 150 ), "AG7YM" );
-            } catch( Exception ) {
-            }
 
 			if( !ReceiveImage.InitNew() )
 				return false;
@@ -612,6 +602,13 @@ namespace Play.SSTV {
             if( !RxProperties .InitNew() )
                 return false;
             
+            // Just an experiment.
+            try {
+                TxBitmapComp.AddImage( new SmartRect( 0, 0, 320, 256 ), TxBitmapSnip );
+                TxBitmapComp.AddText ( new SmartRect( 0, 0, 320,  75 ), TxProperties[(int)TxProperties.Names.MyCall].ToString() );
+                TxBitmapComp.AddImage( new SmartRect( 0, 200, 56, 256 ), TxBitmapSnip );
+            } catch( Exception ) {
+            }
             
 		    SyncImage   .Bitmap = new SKBitmap( 800, 616, SKColorType.Rgb888x, SKAlphaType.Unknown );
 		    ReceiveImage.Bitmap = new SKBitmap( 800, 616, SKColorType.Rgb888x, SKAlphaType.Opaque  );
@@ -675,17 +672,8 @@ namespace Play.SSTV {
 			string strFileName = TxImageList.CurrentFileName;
             string strFilePath = TxImageList.CurrentDirectory;
 
-            if( TxImageList.Bitmap != null ) {
-                TxProperties.ValueUpdate( TxProperties.Names.Width,  TxImageList.Bitmap.Width .ToString() );
-                TxProperties.ValueUpdate( TxProperties.Names.Height, TxImageList.Bitmap.Height.ToString() );
-            } else {
-                TxProperties.ValueUpdate( TxProperties.Names.Width,  "-" );
-                TxProperties.ValueUpdate( TxProperties.Names.Height, "-" );
-            }
-
-            TxProperties.ValueUpdate( TxProperties.Names.Mode,     TxMode ); 
+            //TxProperties.ValueUpdate( TxProperties.Names.Mode,     TxMode ); 
             TxProperties.ValueUpdate( TxProperties.Names.Progress, "0%" );
-            TxProperties.ValueUpdate( TxProperties.Names.Tx_Dir,   strFilePath );
             TxProperties.ValueUpdate( TxProperties.Names.FileName, strFileName, Broadcast:true );
 		}
 
@@ -963,7 +951,7 @@ namespace Play.SSTV {
                     LogError( "No sound device to send to" );
                     return;
                 }
-                if( oMode == null || TxBitmapSnip.Bitmap == null ) {
+                if( oMode == null || TxBitmapComp.Bitmap == null ) {
                     LogError( "Transmit mode or image is not set." );
                     return;
                 }
@@ -972,12 +960,11 @@ namespace Play.SSTV {
                     // Note: I could check if the selection == the whole bitmap == required dimension
                     //       and I could skip the snip stage.
                     Specification oTxSpec = new Specification( 11025, 1, 0, 16 );
-			        //_oDocSnip.Load( TxBitmap, skSelect, oMode.Resolution ); See the transmitscreen.
 
                     _oSSTVBuffer    = new BufferSSTV( oTxSpec );
 					_oSSTVModulator = new SSTVMOD( 0, oTxSpec.Rate, _oSSTVBuffer );
 
-                    if( GeneratorSetup( oMode, TxBitmapSnip.Bitmap ) ) {
+                    if( GeneratorSetup( oMode, TxBitmapComp.Bitmap ) ) {
                         if( _oPlayer == null ) {
                             _oPlayer = new WmmPlayer(oTxSpec, PortTxList.CheckedLine.At );
                         } else {

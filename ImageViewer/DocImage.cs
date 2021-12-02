@@ -40,7 +40,7 @@ namespace Play.ImageViewer {
         public override void Paint( SKCanvas skCanvas ) {
             base.Paint(skCanvas);
 
-            using SKPaint skPaint = new() { BlendMode = SKBlendMode.SrcATop };
+            using SKPaint skPaint = new() { BlendMode = SKBlendMode.SrcATop, IsAntialias = true };
 
             try {
                 skCanvas.DrawBitmap( _oDocSoloImg.Bitmap,
@@ -169,7 +169,7 @@ namespace Play.ImageViewer {
         /// <exception cref="ArgumentOutOfRangeException" />
         /// <exception cref="NullReferenceException" />
         public TextBlock AddText( SmartRect oRect, ushort uFaceID, string strText = "" ) {
-            SKSize    sResolution = new SKSize(72, 72); // supposedly the std for dpi
+            SKSize    sResolution = new SKSize(114, 114); 
             uint      uiHeight    = (uint)(oRect.Height * .75 );
             uint      uFontID     = _oStdUI.FontCache( uFaceID, uiHeight, sResolution);
             TextBlock oNew        = new( _iID++ );

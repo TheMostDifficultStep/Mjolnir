@@ -218,13 +218,9 @@ namespace Play.SSTV {
         public override bool Execute( Guid sGuid ) {
 			if( sGuid == GlobalCommands.Play ) {
                 if( SSTVModeSelection is SSTVMode oMode ) {
-					SKRectI rcComp = new SKRectI( 0, 0, oMode.Resolution.Width, oMode.Resolution.Height);
-					SKSizeI ptComp = new SKSizeI( oMode.Resolution.Width, oMode.Resolution.Height );
-
-					_oDocSSTV.TxBitmapSnip.Load( _oDocSSTV.TxBitmap, _wmTxImageChoice.Selection.SKRect, oMode.Resolution );
-					_oDocSSTV.TxBitmapComp.Load( _oDocSSTV.TxBitmap, rcComp, ptComp );
-
-					_oDocSSTV.TransmitBegin( oMode ); 
+					if( RenderComposite() ) {
+						_oDocSSTV.TransmitBegin( oMode ); 
+					}
 				}
 				return true;
 			}
@@ -280,6 +276,25 @@ namespace Play.SSTV {
             return true;
         }
 
+		protected bool RenderComposite() {
+			// Might want to add an window selection changed event to cause this to update...
+			if( SSTVModeSelection is SSTVMode oMode ) {
+				SKRectI rcComp = new SKRectI( 0, 0, oMode.Resolution.Width, oMode.Resolution.Height);
+				SKSizeI ptComp = new SKSizeI( oMode.Resolution.Width, oMode.Resolution.Height );
+
+				_oDocSSTV.TxBitmapSnip.Load( _oDocSSTV.TxBitmap, _wmTxImageChoice.Selection.SKRect, oMode.Resolution ); 
+				_oDocSSTV.TxBitmapComp.Load( _oDocSSTV.TxBitmap, rcComp, ptComp ); // Render needs this, for now.
+				_oDocSSTV.TxBitmapComp.RenderImage();
+
+				return true;
+			} else {
+				_oDocSSTV.TxBitmapSnip.BitmapDispose(); // TODO: I'd really like to have the error image up.
+				LogError( "Transmit", "Problem prepping template for transmit." );
+			}
+
+			return false;
+		}
+
         protected override void BringChildToFront(ChildID eID) {
 			switch( eID ) {
 				case ChildID.TxImageChoices:
@@ -291,18 +306,7 @@ namespace Play.SSTV {
 					break;
 				case ChildID.TxImageSnip:
 					if( _oDocSSTV.Status == WorkerStatus.FREE ) {
-
-						// Might want to add an window selection changed event to cause this to update...
-						if( SSTVModeSelection is SSTVMode oMode ) {
-							SKRectI rcComp = new SKRectI( 0, 0, oMode.Resolution.Width, oMode.Resolution.Height);
-							SKSizeI ptComp = new SKSizeI( oMode.Resolution.Width, oMode.Resolution.Height );
-
-							_oDocSSTV.TxBitmapSnip.Load( _oDocSSTV.TxBitmap, _wmTxImageChoice.Selection.SKRect, oMode.Resolution ); 
-							_oDocSSTV.TxBitmapComp.Load( _oDocSSTV.TxBitmap, rcComp, ptComp ); // Render needs this, for now.
-							_oDocSSTV.TxBitmapComp.RenderImage();
-						} else {
-							_oDocSSTV.TxBitmapSnip.BitmapDispose(); // TODO: I'd really like to have the error image up.
-						}
+						RenderComposite();
 					}
 					_wmTxImageComposite.BringToFront();
 					break;
