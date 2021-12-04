@@ -655,6 +655,23 @@ namespace Play.Edit {
         }
 
         /// <summary>
+        /// A little back door for forms editors. Use at your own risk!
+        /// </summary>
+        public Line LineInsertNoUndo( int iLine, Line oLine ) {
+            if( oLine == null )
+                throw new ArgumentNullException( nameof( oLine ) );
+            if( iLine < 0 || iLine > _rgLines.ElementCount )
+                throw new ArgumentOutOfRangeException( nameof( iLine ) );
+
+            _rgLines.Insert( iLine, oLine );
+
+            SetDirty();
+            Raise_AfterInsertLine( oLine );
+
+            return( oLine );
+        }
+
+        /// <summary>
         /// Move the line. This is not an "undoable" action.
         /// </summary>
         /// <param name="iIndex">New location of the line. (After the element is removed)</param>

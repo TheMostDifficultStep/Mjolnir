@@ -287,7 +287,7 @@ namespace Play.ImageViewer {
         /// Set the bitmap to display. NOTE: Previous bitmap will be Disposed!!
         /// (If it exists and is not the same bitmap as present)
         /// </summary>
-		public SKBitmap  Bitmap      { 
+		public SKBitmap Bitmap { 
             get { return _skBitmap; }
             set { 
                 if( value != _skBitmap ) {
@@ -568,7 +568,13 @@ namespace Play.ImageViewer {
         protected int    _iBlockFilesEvent = 0;
         protected bool   _fDirtyDoc        = false;
         protected bool   _fDirtyThumbs     = false;
-        protected Line   _oDisplayLine     = null;
+        protected Line   _oDisplayLine;
+
+        /// <summary>
+        /// This will be the property you can use to show where you are. The
+        /// user can edit it and we can send that back to try to update.
+        /// </summary>
+        public Line CurrentShowPath { get; } = new TextLine( 0, string.Empty );
 
         internal ImageProperties Properties { get; }
         internal FileEditor      FileList   { get; }
@@ -607,24 +613,6 @@ namespace Play.ImageViewer {
                 Modified,
                 Size,
                 MAX
-            }
-
-            public class Bulk :
-                IDisposable
-            {
-                ImageProperties _oHost;
-
-                public Bulk( ImageProperties oHost ) {
-                    _oHost = oHost ?? throw new ArgumentNullException( "Host must not be null" );
-                }
-
-                public void Dispose() {
-                    _oHost.RaiseBufferEvent();
-                }
-
-                public void Set( Names eName, string strValue ) {
-                    _oHost.ValueUpdate( eName, strValue, Broadcast:false );
-                }
             }
 
             public ImageProperties( IPgBaseSite oSiteBase ) : base( oSiteBase ) {
@@ -668,10 +656,10 @@ namespace Play.ImageViewer {
             }
         }
 
-		/// <summary>
-		/// This is for our editor instance we are hosting!!
-		/// </summary>
-		public class ImageWalkerDocSlot : 
+        /// <summary>
+        /// This is for our editor instance we are hosting!!
+        /// </summary>
+        public class ImageWalkerDocSlot : 
 			IPgBaseSite,
 			IPgFileSite
 		{
@@ -1137,6 +1125,12 @@ namespace Play.ImageViewer {
             }
         }
 
+        /// <remarks>So I would love to just show the "_oDisplayLine" for the
+        /// "CurrentShowPath" but unfortunately the DisplayLine pointer changes 
+        /// all the time. Also, in the Directory walk case, it's a relative path.
+        /// But in the Document walker it's a list of URL's which can be
+        /// full path names or relative path. 
+        /// </remarks>
         public bool ImageLoad( Line oLine, bool fSendImageUpdate = false ) {
             // If a bum path got inserted, it's still our current index.
 			Line _oLineOld = _oDisplayLine;
@@ -1172,18 +1166,21 @@ namespace Play.ImageViewer {
             }
 
             try {
+                // Got to update this here, Bitmap assign sends the update event.
+                CurrentShowPath.Empty();
+                CurrentShowPath.TryAppend( Path.Combine( CurrentDirectory, CurrentFileName ) );
+
+                // But if this fails, we'll have an bad show path, oh well.
                 using( Stream oStream = File.OpenRead( FullPathFromLine( oLine ) ) ) {
-                    //BitmapClear();
                     Bitmap = SKBitmap.Decode( oStream );
                 }
-				//Raise_ImageUpdated();
 
 				return true;
 			} catch( Exception oEx ) {
-                _oSiteBase.LogError( "storage", "Couldn't read file..." + FullPathFromLine( oLine ) );
-
 				if( _rgBmpLoadErrs.IsUnhandled( oEx ) )
 					throw;
+
+                _oSiteBase.LogError( "storage", "Couldn't read file..." + FullPathFromLine( oLine ) );
 
                 return false;
 			}            
@@ -1383,12 +1380,12 @@ namespace Play.ImageViewer {
             }
 
             using( ImageProperties.Bulk oBulk = Properties.CreateManipulator() ) {
-                oBulk.Set( ImageProperties.Names.Width,    iWidth .ToString() );
-                oBulk.Set( ImageProperties.Names.Height,   iHeight.ToString() );
-                oBulk.Set( ImageProperties.Names.Depth,    strDepth );
-                oBulk.Set( ImageProperties.Names.Modified, dtModified.ToShortDateString() );
-                oBulk.Set( ImageProperties.Names.Size,     lSize.ToString( "n0" ) + " Bytes" );
-                oBulk.Set( ImageProperties.Names.Name,     Path.GetFileName( strName ) );
+                oBulk.Set( (int)ImageProperties.Names.Width,    iWidth .ToString() );
+                oBulk.Set( (int)ImageProperties.Names.Height,   iHeight.ToString() );
+                oBulk.Set( (int)ImageProperties.Names.Depth,    strDepth );
+                oBulk.Set( (int)ImageProperties.Names.Modified, dtModified.ToShortDateString() );
+                oBulk.Set( (int)ImageProperties.Names.Size,     lSize.ToString( "n0" ) + " Bytes" );
+                oBulk.Set( (int)ImageProperties.Names.Name,     Path.GetFileName( strName ) );
             }
         }
 

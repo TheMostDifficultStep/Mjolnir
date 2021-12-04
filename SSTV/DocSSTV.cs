@@ -105,7 +105,11 @@ namespace Play.SSTV {
 
             foreach( Names eName in Enum.GetValues(typeof(Names)) ) {
                 Property_Labels.LineAppend( string.Empty, fUndoable:false );
-                Property_Values.LineAppend( string.Empty, fUndoable:false );
+                if( eName == Names.FileName && _oSiteBase.Host is DocSSTV oSSTVDoc ) {
+                    Property_Values.LineInsertNoUndo( Property_Values.ElementCount, oSSTVDoc.TxImageList.CurrentShowPath );
+                } else {
+                    Property_Values.LineAppend( string.Empty, fUndoable:false );
+                }
             }
 
             LabelSet( Names.MyCall,    "My Call" );
@@ -139,7 +143,7 @@ namespace Play.SSTV {
         public override void Clear() {
             ValueUpdate( Names.MyCall,   "ab6xy" );
             ValueUpdate( Names.Progress, "-" );
-            ValueUpdate( Names.FileName, "-", Broadcast:true );
+            //ValueUpdate( Names.FileName, "-", Broadcast:true );
         }
     }
 
@@ -213,7 +217,6 @@ namespace Play.SSTV {
         UploadTime,
         SSTVMode,
         FFT,
-        TXImageChanged,
 		DownLoadTime,
         DownLoadFinished,
         ThreadDrawingException,
@@ -406,7 +409,7 @@ namespace Play.SSTV {
                     ReceiveLiveStop();
 
                     RxHistoryList.ImageUpdated -= OnImageUpdated_RxImageList;
-                    TxImageList.ImageUpdated -= OnImageUpdated_TxImageList;
+                    TxImageList  .ImageUpdated -= OnImageUpdated_TxImageList;
                 }
 
                 // TODO: free unmanaged resources (unmanaged objects) and override finalizer
@@ -674,7 +677,7 @@ namespace Play.SSTV {
 
             //TxProperties.ValueUpdate( TxProperties.Names.Mode,     TxMode ); 
             TxProperties.ValueUpdate( TxProperties.Names.Progress, "0%" );
-            TxProperties.ValueUpdate( TxProperties.Names.FileName, strFileName, Broadcast:true );
+            //TxProperties.ValueUpdate( TxProperties.Names.FileName, strFileName, Broadcast:true );
 		}
 
 		protected void PropertiesRxTime( int iPercent ) {
@@ -877,7 +880,7 @@ namespace Play.SSTV {
         }
 
         private void OnImageUpdated_TxImageList() {
-            Raise_PropertiesUpdated( SSTVEvents.TXImageChanged );
+            TxProperties.RaiseBufferEvent();
         }
 
         /// <summary>

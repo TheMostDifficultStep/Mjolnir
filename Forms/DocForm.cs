@@ -221,6 +221,24 @@ namespace Play.Forms {
 			}
 		}
 
+        public class Bulk :
+            IDisposable
+        {
+            DocProperties _oHost;
+
+            public Bulk( DocProperties oHost ) {
+                _oHost = oHost ?? throw new ArgumentNullException( nameof( oHost ) );
+            }
+
+            public void Dispose() {
+                _oHost.RaiseBufferEvent();
+            }
+
+            public void Set( int iIndex, string strValue ) {
+                _oHost.ValueUpdate( iIndex, strValue );
+            }
+        }
+
         public DocProperties( IPgBaseSite oSiteBase ) {
             _oSiteBase = oSiteBase ?? throw new ArgumentNullException( "Site must not be null." );
 
