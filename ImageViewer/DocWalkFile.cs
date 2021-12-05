@@ -575,6 +575,7 @@ namespace Play.ImageViewer {
         /// user can edit it and we can send that back to try to update.
         /// </summary>
         public Line CurrentShowPath { get; } = new TextLine( 0, string.Empty );
+        public Line CurrentShowFile { get; } = new TextLine( 1, string.Empty );
 
         internal ImageProperties Properties { get; }
         internal FileEditor      FileList   { get; }
@@ -1166,10 +1167,6 @@ namespace Play.ImageViewer {
             }
 
             try {
-                // Got to update this here, Bitmap assign sends the update event.
-                CurrentShowPath.Empty();
-                CurrentShowPath.TryAppend( Path.Combine( CurrentDirectory, CurrentFileName ) );
-
                 // But if this fails, we'll have an bad show path, oh well.
                 using( Stream oStream = File.OpenRead( FullPathFromLine( oLine ) ) ) {
                     Bitmap = SKBitmap.Decode( oStream );
@@ -1314,6 +1311,12 @@ namespace Play.ImageViewer {
 
         public override void Raise_ImageUpdated() {
             DecorNavigatorUpdate();
+
+            CurrentShowPath.Empty();
+            CurrentShowPath.TryAppend( CurrentDirectory );
+            CurrentShowFile.Empty();
+            CurrentShowFile.TryAppend( CurrentFileName );
+
             base.Raise_ImageUpdated();
         }
 

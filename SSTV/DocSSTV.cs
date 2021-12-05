@@ -30,8 +30,8 @@ namespace Play.SSTV {
             Width,
             Height,
             Progress,
-            SaveName,
-            SaveDir
+            SaveDir,
+            SaveName
         }
 
         public RxProperties( IPgBaseSite oSiteBase ) : base( oSiteBase ) {
@@ -50,8 +50,8 @@ namespace Play.SSTV {
             LabelSet( Names.Width,    "Width" );
             LabelSet( Names.Height,   "Height" );
             LabelSet( Names.Progress, "Received" );
-            LabelSet( Names.SaveName, "File Name" );
-            LabelSet( Names.SaveDir,  "Directory" );
+            LabelSet( Names.SaveName, "Filename" );
+            LabelSet( Names.SaveDir,  "Save Dir" );
 
             Clear();
 
@@ -89,11 +89,12 @@ namespace Play.SSTV {
     public class TxProperties : DocProperties {
         public enum Names : int {
             Progress,
-            FileName,
+            SrcDir,
+            SrcFile,
             MyCall,
             TheirCall,
             RST,
-            Message,
+            Message
         }
 
         public TxProperties( IPgBaseSite oSiteBase ) : base( oSiteBase ) {
@@ -102,13 +103,21 @@ namespace Play.SSTV {
         public override bool InitNew() {
             if( !base.InitNew() ) 
                 return false;
+            if( _oSiteBase.Host is not DocSSTV oSSTVDoc )
+                return false;
 
             foreach( Names eName in Enum.GetValues(typeof(Names)) ) {
                 Property_Labels.LineAppend( string.Empty, fUndoable:false );
-                if( eName == Names.FileName && _oSiteBase.Host is DocSSTV oSSTVDoc ) {
-                    Property_Values.LineInsertNoUndo( Property_Values.ElementCount, oSSTVDoc.TxImageList.CurrentShowPath );
-                } else {
-                    Property_Values.LineAppend( string.Empty, fUndoable:false );
+                switch( eName ) {
+                    case Names.SrcDir:
+                        Property_Values.LineInsertNoUndo( Property_Values.ElementCount, oSSTVDoc.TxImageList.CurrentShowPath );
+                        break;
+                    case Names.SrcFile:
+                        Property_Values.LineInsertNoUndo( Property_Values.ElementCount, oSSTVDoc.TxImageList.CurrentShowFile );
+                        break;
+                    default:
+                        Property_Values.LineAppend( string.Empty, fUndoable:false );
+                        break;
                 }
             }
 
@@ -117,7 +126,8 @@ namespace Play.SSTV {
             LabelSet( Names.RST,       "RST" );
             LabelSet( Names.Message,   "Message" );
             LabelSet( Names.Progress,  "Sent" );
-            LabelSet( Names.FileName,  "Filename" );
+            LabelSet( Names.SrcDir,    "Source Dir" );
+            LabelSet( Names.SrcFile,   "Filename" );
 
             Clear();
 
@@ -889,7 +899,7 @@ namespace Play.SSTV {
         /// </summary>
         private void OnImageUpdated_RxImageList() {
             // BUG: Need to make the RxProp the one that gets changed and we catch an event to LoadAgain();
-			RxProperties.ValueUpdate(RxProperties.Names.SaveDir, RxHistoryList.CurrentDirectory, Broadcast:true );
+			RxProperties.RaiseBufferEvent();
         }
 
         /// <summary>

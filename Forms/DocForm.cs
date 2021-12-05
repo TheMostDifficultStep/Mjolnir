@@ -239,6 +239,11 @@ namespace Play.Forms {
             }
         }
 
+        // Seems like we dont need this since the base form sends
+        // events but I've got to check why the property screens can't
+        // resize when the contents change.
+//      public event BufferEvent PropertyEvents;
+
         public DocProperties( IPgBaseSite oSiteBase ) {
             _oSiteBase = oSiteBase ?? throw new ArgumentNullException( "Site must not be null." );
 

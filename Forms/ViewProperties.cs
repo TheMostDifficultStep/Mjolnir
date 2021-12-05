@@ -17,7 +17,6 @@ namespace Play.Forms {
     public class WindowStandardProperties : 
         FormsWindow,
         IPgParent,
-        IBufferEvents,
         IPgLoad
      {
         protected DocProperties Document { get; }
@@ -56,6 +55,13 @@ namespace Play.Forms {
 
             public IPgViewNotify EventChain => _oHost._oSiteView.EventChain;
         }
+
+        //protected override void Dispose( bool disposing ) {
+        //    if( disposing && !_fDisposed ) {
+        //        Document.PropertyEvents -= OnPropertyEvent;
+        //    }
+        //    base.Dispose( disposing );
+        //}
 
         public void PropertyInitRow( SmartTable oLayout, int iIndex, EditWindow2 oWinValue = null ) {
             var oLayoutLabel = new LayoutSingleLine( new FTCacheWrap( Document.Property_Labels[iIndex] ), LayoutRect.CSS.Flex );
@@ -99,7 +105,9 @@ namespace Play.Forms {
 
             Caret.Layout = CacheList[0];
 
-            OnDocumentEvent( BUFFEREVENTS.MULTILINE );
+            //Document.PropertyEvents += OnPropertyEvent;
+
+            OnPropertyEvent( BUFFEREVENTS.MULTILINE );
             OnSizeChanged( new EventArgs() );
 
             return true;
@@ -113,9 +121,8 @@ namespace Play.Forms {
             }
         }
 
-        public void OnEvent( BUFFEREVENTS eEvent ) {
+        public void OnPropertyEvent( BUFFEREVENTS eEvent ) {
             OnDocumentEvent( BUFFEREVENTS.MULTILINE );
-            Invalidate();
         }
     }
 }

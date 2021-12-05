@@ -127,6 +127,8 @@ namespace Play.Forms {
     /// </summary>
     /// <seealso cref="LayoutRect"/>
     public class FormsWindow : SKControl {
+        protected bool _fDisposed { get; private set; }
+
 		protected readonly IPgViewSite   _oSiteView;
         protected readonly IPgViewNotify _oViewEvents; // Our site from the window manager (view interface).
 
@@ -160,9 +162,11 @@ namespace Play.Forms {
         /// Unplug events so we won't get any callbacks when we're dead.
         /// </summary>
         protected override void Dispose( bool disposing ) {
-            if( disposing ) {
+            if( disposing && !_fDisposed ) {
                 DocForms.BufferEvent -= OnDocumentEvent;
                 DocForms.CaretRemove( Caret );
+
+                _fDisposed = true;
             }
 
             base.Dispose(disposing);
@@ -223,6 +227,7 @@ namespace Play.Forms {
                         oCache.OnChangeFormatting();
                         oCache.Cache.OnChangeSize( oCache.Width );
                     }
+                  //OnSizeChanged( new EventArgs() );
                     Invalidate();
                     break;
             }
