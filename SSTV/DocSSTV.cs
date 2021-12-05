@@ -112,12 +112,12 @@ namespace Play.SSTV {
                 }
             }
 
-            LabelSet( Names.MyCall,    "My Call" );
+            LabelSet( Names.MyCall,    "My    Call" );
             LabelSet( Names.TheirCall, "Their Call" );
             LabelSet( Names.RST,       "RST" );
             LabelSet( Names.Message,   "Message" );
-            LabelSet( Names.Progress,  "Sent %" );
-            LabelSet( Names.FileName,  "File Name" );
+            LabelSet( Names.Progress,  "Sent" );
+            LabelSet( Names.FileName,  "Filename" );
 
             Clear();
 
