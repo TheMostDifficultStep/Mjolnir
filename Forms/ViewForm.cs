@@ -227,7 +227,7 @@ namespace Play.Forms {
                         oCache.OnChangeFormatting();
                         oCache.Cache.OnChangeSize( oCache.Width );
                     }
-                  //OnSizeChanged( new EventArgs() );
+                  //OnSizeChanged( new EventArgs() ); need to figure out why this doesn't work.
                     Invalidate();
                     break;
             }

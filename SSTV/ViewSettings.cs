@@ -5,7 +5,6 @@ using System.Reflection;
 
 using Play.Forms;
 using Play.Interfaces.Embedding;
-using Play.Edit;
 using Play.Rectangles;
 
 namespace Play.SSTV {
@@ -54,16 +53,21 @@ namespace Play.SSTV {
         }
 
         public override void InitRows() {
+            SSTVProperties.Names[] rgShow = { SSTVProperties.Names.Std_MnPort, 
+                                              SSTVProperties.Names.Std_TxPort, 
+                                              SSTVProperties.Names.Std_RxPort, 
+                                              SSTVProperties.Names.Std_ImgQuality };
+
             if( Layout2 is SmartTable oTable ) {
-                foreach( StdProperties.Names eName in Enum.GetValues(typeof(StdProperties.Names)) ) {
+                foreach( SSTVProperties.Names eName in rgShow ) {
                     switch( eName ) {
-                        case StdProperties.Names.TxPort:
+                        case SSTVProperties.Names.Std_TxPort:
                             PropertyInitRow( oTable, (int)eName, new CheckList( new WinSlot( this ), SSTVDocument.PortTxList ) );
                             break;
-                        case StdProperties.Names.MnPort:
+                        case SSTVProperties.Names.Std_MnPort:
                             PropertyInitRow( oTable, (int)eName, new CheckList( new WinSlot( this ), SSTVDocument.MonitorList ) );
                             break;
-                        case StdProperties.Names.RxPort:
+                        case SSTVProperties.Names.Std_RxPort:
                             PropertyInitRow( oTable, (int)eName, new CheckList( new WinSlot( this ), SSTVDocument.PortRxList ) );
                             break;
                         default:

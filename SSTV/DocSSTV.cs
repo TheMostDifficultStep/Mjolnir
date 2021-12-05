@@ -24,95 +24,46 @@ namespace Play.SSTV {
     /// allows us to re-arrange property values without scrambling their meaning. But it also means you can't
     /// use some kind of runtime forms generator since the indicies must have corresponding pre compiled enum's.
     /// </summary>
-    public class RxProperties : DocProperties {
+    public class SSTVProperties : DocProperties {
         public enum Names : int {
-			Mode,
-            Width,
-            Height,
-            Progress,
-            SaveDir,
-            SaveName
+			Rx_Mode,
+            Rx_Width,
+            Rx_Height,
+            Rx_Progress,
+            Rx_SaveDir,
+            Rx_SaveName,
+
+            Tx_Progress,
+            Tx_SrcDir,
+            Tx_SrcFile,
+            Tx_MyCall,
+            Tx_TheirCall,
+            Tx_RST,
+            Tx_Message,
+
+            Std_MnPort,
+			Std_TxPort,
+            Std_RxPort,
+            Std_ImgQuality
         }
 
-        public RxProperties( IPgBaseSite oSiteBase ) : base( oSiteBase ) {
+        public SSTVProperties( IPgBaseSite oSiteBase ) : base( oSiteBase ) {
         }
 
         public override bool InitNew() {
             if( !base.InitNew() ) 
                 return false;
-
-            foreach( Names eName in Enum.GetValues(typeof(Names)) ) {
-                Property_Labels.LineAppend( string.Empty, fUndoable:false );
-                Property_Values.LineAppend( string.Empty, fUndoable:false );
-            }
-
-            LabelSet( Names.Mode,     "Mode", new SKColor( red:0xff, green:0xbf, blue:0 ) );
-            LabelSet( Names.Width,    "Width" );
-            LabelSet( Names.Height,   "Height" );
-            LabelSet( Names.Progress, "Received" );
-            LabelSet( Names.SaveName, "Filename" );
-            LabelSet( Names.SaveDir,  "Save Dir" );
-
-            Clear();
-
-            return true;
-        }
-
-        public void LabelSet( Names eName, string strLabel, SKColor? skBgColor = null ) {
-            Property_Labels[(int)eName].TryAppend( strLabel );
-
-            if( skBgColor.HasValue ) {
-                ValueBgColor.Add( (int)eName, skBgColor.Value );
-            }
-        }
-
-        public void ValueUpdate( Names eName, string strValue, bool Broadcast = false ) {
-            ValueUpdate( (int)eName, strValue, Broadcast );
-        }
-
-        public string this[ Names eIndex ] {
-            get {
-                return Property_Values[(int)eIndex].ToString();
-            }
-        }
-
-        public bool ValueAsBool( Names eIndex ) {
-            return string.Compare( Property_Values[(int)eIndex].ToString(), "true", ignoreCase:true ) == 0;
-        }
-    }
-
-    /// <summary>
-    /// This subclass of the DocProperties let's us have static index values. This is advantageous because it
-    /// allows us to re-arrange property values without scrambling their meaning. But it also means you can't
-    /// use some kind of runtime forms generator since the indicies must have corresponding pre compiled enum's.
-    /// </summary>
-    public class TxProperties : DocProperties {
-        public enum Names : int {
-            Progress,
-            SrcDir,
-            SrcFile,
-            MyCall,
-            TheirCall,
-            RST,
-            Message
-        }
-
-        public TxProperties( IPgBaseSite oSiteBase ) : base( oSiteBase ) {
-        }
-
-        public override bool InitNew() {
-            if( !base.InitNew() ) 
-                return false;
+            
             if( _oSiteBase.Host is not DocSSTV oSSTVDoc )
                 return false;
 
             foreach( Names eName in Enum.GetValues(typeof(Names)) ) {
                 Property_Labels.LineAppend( string.Empty, fUndoable:false );
                 switch( eName ) {
-                    case Names.SrcDir:
+                    case Names.Tx_SrcDir:
                         Property_Values.LineInsertNoUndo( Property_Values.ElementCount, oSSTVDoc.TxImageList.CurrentShowPath );
                         break;
-                    case Names.SrcFile:
+                    case Names.Tx_SrcFile:
                         Property_Values.LineInsertNoUndo( Property_Values.ElementCount, oSSTVDoc.TxImageList.CurrentShowFile );
                         break;
                     default:
@@ -121,67 +72,26 @@ namespace Play.SSTV {
                 }
             }
 
-            LabelSet( Names.MyCall,    "My    Call" );
-            LabelSet( Names.TheirCall, "Their Call" );
-            LabelSet( Names.RST,       "RST" );
-            LabelSet( Names.Message,   "Message" );
-            LabelSet( Names.Progress,  "Sent" );
-            LabelSet( Names.SrcDir,    "Source Dir" );
-            LabelSet( Names.SrcFile,   "Filename" );
+            // TODO: Need a way to clear the monitor check if don't want to monitor.
+            LabelSet( Names.Std_MnPort,    "Monitor with Device" );
+            LabelSet( Names.Std_TxPort,    "Transmit  to Device" );
+            LabelSet( Names.Std_RxPort,    "Receive from Device" );
+            LabelSet( Names.Std_ImgQuality, "Image Save Quality" );
 
-            Clear();
+            LabelSet( Names.Tx_MyCall,    "My    Call" );
+            LabelSet( Names.Tx_TheirCall, "Their Call" );
+            LabelSet( Names.Tx_RST,       "RST" );
+            LabelSet( Names.Tx_Message,   "Message" );
+            LabelSet( Names.Tx_Progress,  "Sent" );
+            LabelSet( Names.Tx_SrcDir,    "Source Dir" );
+            LabelSet( Names.Tx_SrcFile,   "Filename" );
 
-            return true;
-        }
-
-        public void LabelSet( Names eName, string strLabel, SKColor? skBgColor = null ) {
-            Property_Labels[(int)eName].TryAppend( strLabel );
-
-            if( skBgColor.HasValue ) {
-                ValueBgColor.Add( (int)eName, skBgColor.Value );
-            }
-        }
-
-        public void ValueUpdate( Names eName, string strValue, bool Broadcast = false ) {
-            ValueUpdate( (int)eName, strValue, Broadcast );
-        }
-
-        /// <summary>
-        /// Override the clear to only clear the specific repeater information. If you want to 
-        /// clear all values, call the base method.
-        /// </summary>
-        public override void Clear() {
-            ValueUpdate( Names.MyCall,   "ab6xy" );
-            ValueUpdate( Names.Progress, "-" );
-            //ValueUpdate( Names.FileName, "-", Broadcast:true );
-        }
-    }
-
-    public class StdProperties : DocProperties {
-        public enum Names : int {
-            MnPort,
-			TxPort,
-            RxPort,
-            ImgQuality
-        }
-
-        public StdProperties( IPgBaseSite oSiteBase ) : base( oSiteBase ) {
-        }
-
-        public override bool InitNew() {
-            if( !base.InitNew() ) 
-                return false;
-            
-            foreach( Names eName in Enum.GetValues(typeof(Names)) ) {
-                Property_Labels.LineAppend( string.Empty, fUndoable:false );
-                Property_Values.LineAppend( string.Empty, fUndoable:false );
-            }
-
-            // TODO: Need a way to clear the monitor check if don't want.
-            LabelSet( Names.MnPort,  "Monitor with Device" );
-            LabelSet( Names.TxPort,  "Transmit  to Device" );
-            LabelSet( Names.RxPort,  "Receive from Device" );
-            LabelSet( Names.ImgQuality, "Image Save Quality" );
+            LabelSet( Names.Rx_Mode,     "Mode", new SKColor( red:0xff, green:0xbf, blue:0 ) );
+            LabelSet( Names.Rx_Width,    "Width" );
+            LabelSet( Names.Rx_Height,   "Height" );
+            LabelSet( Names.Rx_Progress, "Received" );
+            LabelSet( Names.Rx_SaveName, "Filename" );
+            LabelSet( Names.Rx_SaveDir,  "Save Dir" );
 
             InitValues();
 
@@ -192,7 +102,15 @@ namespace Play.SSTV {
         /// These are our default values. We'll look for them from a save file in the future.
         /// </summary>
         public void InitValues() {
-            ValueUpdate( StdProperties.Names.ImgQuality, "80", true );
+            ValueUpdate( Names.Std_ImgQuality, "80", true );
+            ValueUpdate( Names.Tx_MyCall,      "ab6xy" );
+            ValueUpdate( Names.Tx_Progress,    "-" );
+        }
+
+        /// <summary>
+        /// Let's not do any clearing for the moment.
+        /// </summary>
+        public override void Clear() {
         }
 
         public void LabelSet( Names eName, string strLabel, SKColor? skBgColor = null ) {
@@ -339,9 +257,7 @@ namespace Play.SSTV {
         public ModeEditor          TxModeList    { get; }
         public ImageWalkerDir      TxImageList   { get; }
         public ImageWalkerDir      RxHistoryList { get; }
-        public RxProperties        RxProperties  { get; }
-        public TxProperties        TxProperties  { get; }
-        public StdProperties       StdProperties { get; }
+        public SSTVProperties       StdProperties { get; }
         public SKBitmap            TxBitmap      => TxImageList.Bitmap;
         internal ImageSoloDoc      TxBitmapSnip  { get; }  
         internal DocImageEdit      TxBitmapComp  { get; }
@@ -397,8 +313,6 @@ namespace Play.SSTV {
 			ReceiveImage  = new ImageSoloDoc( new DocSlot( this ) );
 			SyncImage     = new ImageSoloDoc( new DocSlot( this ) );
                           
-            RxProperties  = new ( new DocSlot( this ) );
-            TxProperties  = new ( new DocSlot( this ) );
             StdProperties = new ( new DocSlot( this ) );
           //RecChooser    = new ( new DocSlot( this ) );
         }
@@ -610,15 +524,11 @@ namespace Play.SSTV {
 
             if( !StdProperties.InitNew() )
                 return false;
-            if( !TxProperties .InitNew() )
-                return false;
-            if( !RxProperties .InitNew() )
-                return false;
             
             // Just an experiment.
             try {
                 TxBitmapComp.AddImage( new SmartRect( 0, 0, 320, 256 ), TxBitmapSnip );
-                TxBitmapComp.AddText ( new SmartRect( 0, 0, 320,  75 ), TxProperties[(int)TxProperties.Names.MyCall].ToString() );
+                TxBitmapComp.AddText ( new SmartRect( 0, 0, 320,  75 ), StdProperties[(int)SSTVProperties.Names.Tx_MyCall].ToString() );
                 TxBitmapComp.AddImage( new SmartRect( 0, 200, 56, 256 ), TxBitmapSnip );
             } catch( Exception ) {
             }
@@ -635,7 +545,7 @@ namespace Play.SSTV {
 				LogError( "Couldn't find pictures tx directory for SSTV" );
                 return false;
 			}
-            string strMyPics = RxProperties[RxProperties.Names.SaveDir].ToString();
+            string strMyPics = StdProperties[SSTVProperties.Names.Rx_SaveDir].ToString();
             if( !RxHistoryList.LoadURL( strMyPics ) ) {
 				LogError( "Couldn't find pictures history directory for SSTV" );
                 return false;
@@ -676,7 +586,7 @@ namespace Play.SSTV {
             string strMyPics = Environment.GetFolderPath( Environment.SpecialFolder.MyPictures );
 
             // In the future, setting this value will send an event that will get forwarded to the chooser.
-            RxProperties.ValueUpdate( RxProperties.Names.SaveDir, strMyPics );
+            StdProperties.ValueUpdate( SSTVProperties.Names.Rx_SaveDir, strMyPics );
 
             //RecChooser.LoadURL( strMyDocs );
         }
@@ -686,15 +596,15 @@ namespace Play.SSTV {
             string strFilePath = TxImageList.CurrentDirectory;
 
             //TxProperties.ValueUpdate( TxProperties.Names.Mode,     TxMode ); 
-            TxProperties.ValueUpdate( TxProperties.Names.Progress, "0%" );
+            StdProperties.ValueUpdate( SSTVProperties.Names.Tx_Progress, "0%" );
             //TxProperties.ValueUpdate( TxProperties.Names.FileName, strFileName, Broadcast:true );
 		}
 
 		protected void PropertiesRxTime( int iPercent ) {
-            RxProperties.ValueUpdate( RxProperties.Names.Progress, iPercent.ToString() + "%", Broadcast:true );
+            StdProperties.ValueUpdate( SSTVProperties.Names.Rx_Progress, iPercent.ToString() + "%", Broadcast:true );
 		}
 		protected void PropertiesTxSendTime() {
-            TxProperties.ValueUpdate( TxProperties.Names.Progress, PercentTxComplete.ToString() + "%", Broadcast:true );
+            StdProperties.ValueUpdate( SSTVProperties.Names.Tx_Progress, PercentTxComplete.ToString() + "%", Broadcast:true );
 		}
 
         protected void PropertyLoadFromXml( Editor rgList, XmlNode oElem ) {
@@ -730,7 +640,7 @@ namespace Play.SSTV {
                             PropertyLoadFromXml( MonitorList, oNode );
                             break;
                         case "ImageQuality":
-                            StdProperties.ValueUpdate( StdProperties.Names.ImgQuality, oNode.InnerText );
+                            StdProperties.ValueUpdate( SSTVProperties.Names.Std_ImgQuality, oNode.InnerText );
                             break;
                     }
                 }
@@ -778,7 +688,7 @@ namespace Play.SSTV {
                 }
                 {
                     XmlElement oElem = oDoc.CreateElement( "ImageQuality" );
-                    if( StdProperties[StdProperties.Names.ImgQuality].ToString() is string strQuality ) {
+                    if( StdProperties[SSTVProperties.Names.Std_ImgQuality].ToString() is string strQuality ) {
                         oElem.InnerText = strQuality;
                         oRoot.AppendChild( oElem );
                     }
@@ -890,7 +800,7 @@ namespace Play.SSTV {
         }
 
         private void OnImageUpdated_TxImageList() {
-            TxProperties.RaiseBufferEvent();
+            StdProperties.RaiseBufferEvent();
         }
 
         /// <summary>
@@ -899,7 +809,7 @@ namespace Play.SSTV {
         /// </summary>
         private void OnImageUpdated_RxImageList() {
             // BUG: Need to make the RxProp the one that gets changed and we catch an event to LoadAgain();
-			RxProperties.RaiseBufferEvent();
+			StdProperties.RaiseBufferEvent();
         }
 
         /// <summary>
@@ -1011,7 +921,7 @@ namespace Play.SSTV {
             SaveRxImage(); // Race condition possible, when image reused.
 
             PropertyChange?.Invoke( SSTVEvents.DownLoadFinished );
-            RxProperties.ValueUpdate( RxProperties.Names.Progress, "Done", Broadcast:true );
+            StdProperties.ValueUpdate( SSTVProperties.Names.Rx_Progress, "Done", Broadcast:true );
             RxModeList.HighLight   = null;
             RxModeList.CheckedLine = RxModeList[0];
 
@@ -1063,10 +973,10 @@ namespace Play.SSTV {
                                     // We catch a null we're going back to listen mode.
                                     RxModeList.HighLight    = null;
                                     RxModeList.CheckedReset = RxModeList[0]; 
-                                    RxProperties.ValueUpdate( RxProperties.Names.Mode,     "-" );
-                                    RxProperties.ValueUpdate( RxProperties.Names.Width,    "-" );
-                                    RxProperties.ValueUpdate( RxProperties.Names.Height,   "-" );
-                                    RxProperties.ValueUpdate( RxProperties.Names.SaveName, string.Empty, Broadcast:true );
+                                    StdProperties.ValueUpdate( SSTVProperties.Names.Rx_Mode,     "-" );
+                                    StdProperties.ValueUpdate( SSTVProperties.Names.Rx_Width,    "-" );
+                                    StdProperties.ValueUpdate( SSTVProperties.Names.Rx_Height,   "-" );
+                                    StdProperties.ValueUpdate( SSTVProperties.Names.Rx_SaveName, string.Empty, Broadcast:true );
                                     break;
                                 }
 
@@ -1075,11 +985,11 @@ namespace Play.SSTV {
                                 string strFileName = Path.GetFileName     ( oWorker.SuggestedFileName );
                                 string strFilePath = Path.GetDirectoryName( oWorker.SuggestedFileName );
 
-                                RxProperties.ValueUpdate( RxProperties.Names.Mode,     oWorkerMode.Name );
-                                RxProperties.ValueUpdate( RxProperties.Names.Width,    oWorkerMode.Resolution.Width .ToString() );
-                                RxProperties.ValueUpdate( RxProperties.Names.Height,   oWorkerMode.Resolution.Height.ToString() );
-                                RxProperties.ValueUpdate( RxProperties.Names.SaveDir,  strFilePath );
-                                RxProperties.ValueUpdate( RxProperties.Names.SaveName, strFileName, Broadcast:true );
+                                StdProperties.ValueUpdate( SSTVProperties.Names.Rx_Mode,     oWorkerMode.Name );
+                                StdProperties.ValueUpdate( SSTVProperties.Names.Rx_Width,    oWorkerMode.Resolution.Width .ToString() );
+                                StdProperties.ValueUpdate( SSTVProperties.Names.Rx_Height,   oWorkerMode.Resolution.Height.ToString() );
+                                StdProperties.ValueUpdate( SSTVProperties.Names.Rx_SaveDir,  strFilePath );
+                                StdProperties.ValueUpdate( SSTVProperties.Names.Rx_SaveName, strFileName, Broadcast:true );
 
                                 foreach( Line oLine in RxModeList ) {
                                     if( oLine.Extra is SSTVMode oMode ) {
@@ -1133,9 +1043,9 @@ namespace Play.SSTV {
             if( _oThread != null ) {
                 if( _oWorkPlace.Status == WorkerStatus.BUSY ) {
                     // If we're in the middle of an image, this'll just flash by.
-                    RxProperties.ValueUpdate( RxProperties.Names.Progress, "Busy.", true );
+                    StdProperties.ValueUpdate( SSTVProperties.Names.Rx_Progress, "Busy.", true );
                 } else {
-                    RxProperties.ValueUpdate( RxProperties.Names.Progress, "Not Busy... ^_^;", true );
+                    StdProperties.ValueUpdate( SSTVProperties.Names.Rx_Progress, "Not Busy... ^_^;", true );
                 }
             }
             if( _oThread == null && _oWorkPlace.Status == WorkerStatus.FREE ) {
@@ -1146,7 +1056,7 @@ namespace Play.SSTV {
                 _oThread.Start();
 
                 _oWorkPlace.Queue( GetTaskThreadListener( oWorker ), 1 );
-                RxProperties.ValueUpdate( RxProperties.Names.Progress, "Start: File Read...", true );
+                StdProperties.ValueUpdate( SSTVProperties.Names.Rx_Progress, "Start: File Read...", true );
             }
         }
 
@@ -1157,7 +1067,7 @@ namespace Play.SSTV {
         public void ReceiveLiveStop() {
             RxModeList.HighLight = null;
 
-            RxProperties.ValueUpdate( RxProperties.Names.Progress, "Stopping...", true );
+            StdProperties.ValueUpdate( SSTVProperties.Names.Rx_Progress, "Stopping...", true );
 
             _rgUItoBGQueue.Enqueue( new TVMessage( TVMessage.Message.ExitWorkThread ) );
             if( _oWaveOut != null ) {
@@ -1169,11 +1079,11 @@ namespace Play.SSTV {
                 _oWaveIn = null;
             }
 
-            RxProperties.ValueUpdate( RxProperties.Names.Progress, "Stopped: Wav I/O.", true );
+            StdProperties.ValueUpdate( SSTVProperties.Names.Rx_Progress, "Stopped: Wav I/O.", true );
             _oThread = null;
             _oWorkPlace.Stop();
 
-            RxProperties.ValueUpdate( RxProperties.Names.Progress, "Stopped: All.", true );
+            StdProperties.ValueUpdate( SSTVProperties.Names.Rx_Progress, "Stopped: All.", true );
         }
 
         /// <summary>
@@ -1248,7 +1158,7 @@ namespace Play.SSTV {
                         _oWaveIn.StartRecording();
                     }
 
-                    RxProperties.ValueUpdate( RxProperties.Names.Progress, "Start: Live.", true );
+                    StdProperties.ValueUpdate( SSTVProperties.Names.Rx_Progress, "Start: Live.", true );
                 } catch( Exception oEx ) {
                     Type[] rgErrors = { typeof( NullReferenceException ),
                                         typeof( ArgumentNullException ),
@@ -1314,8 +1224,8 @@ namespace Play.SSTV {
                     return;
 
                 // Figure out path and name of the file.
-                string strFileName = RxProperties[ RxProperties.Names.SaveName ];
-                string strSaveDir  = RxProperties[ RxProperties.Names.SaveDir  ];
+                string strFileName = StdProperties[ SSTVProperties.Names.Rx_SaveName ];
+                string strSaveDir  = StdProperties[ SSTVProperties.Names.Rx_SaveDir  ];
 
                 if( string.IsNullOrEmpty( strSaveDir ) ) {
 			        strSaveDir = Environment.GetFolderPath(Environment.SpecialFolder.MyPictures);
@@ -1337,7 +1247,7 @@ namespace Play.SSTV {
                 }
                 strFileName = oLine.ToString();
 
-                if( !int.TryParse( StdProperties[StdProperties.Names.ImgQuality], out int iQuality ) )
+                if( !int.TryParse( StdProperties[SSTVProperties.Names.Std_ImgQuality], out int iQuality ) )
                     iQuality = 80;
 
                 string strFilePath = Path.Combine  ( strSaveDir, strFileName + ".jpg" );

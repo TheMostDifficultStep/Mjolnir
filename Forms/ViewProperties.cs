@@ -114,10 +114,34 @@ namespace Play.Forms {
         }
 
         public virtual void InitRows() {
-            if( Layout2 is SmartTable oTable ) {
-                foreach( Line oLine in Document.Property_Labels ) {
-                    PropertyInitRow( oTable, oLine.At );
+            if( Layout2 is not SmartTable oTable ) {
+                LogError( "Unexpected Layout for Property Page" );
+                return;
+            }
+
+            foreach( Line oLine in Document.Property_Labels ) {
+                PropertyInitRow( oTable, oLine.At );
+            }
+        }
+
+        public virtual void InitRows( int[] rgShow ) {
+            if( Layout2 is not SmartTable oTable ) {
+                LogError( "Unexpected Layout for Property Page" );
+                return;
+            }
+            try {
+                foreach( int iIndex in rgShow ) { 
+                    PropertyInitRow( oTable, iIndex );
                 }
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( IndexOutOfRangeException ),
+                                    typeof( ArgumentOutOfRangeException ),
+                                    typeof( NullReferenceException ),
+                                    typeof( ArgumentNullException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
+
+                LogError( "Bad property page index list" );
             }
         }
 

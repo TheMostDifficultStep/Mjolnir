@@ -210,7 +210,8 @@ namespace Play.SSTV {
 		public override object Decorate(IPgViewSite oBaseSite,Guid sGuid) {
 			try {
 				if( sGuid.Equals(GlobalDecorations.Properties) ) {
-					return new WindowStandardProperties( oBaseSite, _oDocSSTV.RxProperties );
+					// Just show all properties, but probably want to pare it down.
+					return new WindowStandardProperties( oBaseSite, _oDocSSTV.StdProperties );
 				}
 				if( sGuid.Equals( GlobalDecorations.Outline ) ) {
 					return new CheckList( oBaseSite, _rgRxModeList );

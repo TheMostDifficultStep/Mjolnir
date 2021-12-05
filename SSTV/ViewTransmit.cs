@@ -103,7 +103,7 @@ namespace Play.SSTV {
 
         public override object Decorate( IPgViewSite oBaseSite, Guid sGuid ) {
 			if( sGuid.Equals(GlobalDecorations.Properties) ) {
-				return new ViewSSTVProperties( oBaseSite, _oDocSSTV.TxProperties );
+				return new ViewTxProperties( oBaseSite, _oDocSSTV.StdProperties );
 			}
 			if( sGuid.Equals( GlobalDecorations.Outline ) ) {
 				return new CheckList( oBaseSite, _oDocSSTV.TxModeList );
@@ -254,7 +254,7 @@ namespace Play.SSTV {
 
         public override object Decorate( IPgViewSite oBaseSite, Guid sGuid ) {
 			if( sGuid.Equals(GlobalDecorations.Properties) ) {
-				return new ViewSSTVProperties( oBaseSite, _oDocSSTV.TxProperties );
+				return new ViewTxProperties( oBaseSite, _oDocSSTV.StdProperties );
 			}
 			if( sGuid.Equals( GlobalDecorations.Outline ) ) {
 				return new CheckList( oBaseSite, _oDocSSTV.TxModeList );

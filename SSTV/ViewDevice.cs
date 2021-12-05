@@ -20,41 +20,50 @@ namespace Play.SSTV {
     /// <summary>
 	/// We'll turn that into optionally a dropdown in the future.
     /// </summary>
-    public class ViewSSTVProperties : 
+    public class ViewTxProperties : 
         WindowStandardProperties
      {
         public static Guid GUID {get;} = new Guid("{80C855E0-C2F6-4641-9A7C-B6A8A53B3FDF}");
 
-		public ViewSSTVProperties( IPgViewSite oViewSite, DocProperties oDocument ) : base( oViewSite, oDocument ) {
+		public ViewTxProperties( IPgViewSite oViewSite, DocProperties oDocument ) : base( oViewSite, oDocument ) {
 		}
+
+        public override void InitRows() {
+			int[] rgShow = { 
+				(int)SSTVProperties.Names.Tx_Progress,
+				(int)SSTVProperties.Names.Tx_SrcDir,
+				(int)SSTVProperties.Names.Tx_SrcFile,
+				(int)SSTVProperties.Names.Tx_MyCall,
+				(int)SSTVProperties.Names.Tx_TheirCall,
+				(int)SSTVProperties.Names.Tx_RST,
+				(int)SSTVProperties.Names.Tx_Message };
+
+            base.InitRows(rgShow);
+        }
     }
 
     /// <summary>
 	/// Little experiment for the property page of the receiver viewer.
     /// </summary>
-    public class ViewRXProperties : 
+    public class ViewRxProperties : 
         WindowStandardProperties
      {
         public DocSSTV SSTVDocument { get; }
 
-		public ViewRXProperties( IPgViewSite oViewSite, DocSSTV docSSTV, DocProperties docProperties ) : base( oViewSite, docProperties ) {
-			SSTVDocument = docSSTV ?? throw new ArgumentNullException( "docSSTV" );
+		public ViewRxProperties( IPgViewSite oViewSite, DocSSTV docSSTV ) : base( oViewSite, docSSTV.StdProperties ) {
+			SSTVDocument = docSSTV ?? throw new ArgumentNullException( nameof( docSSTV ) );
 		}
 
-        public override void InitRows()
-        {
-            if( Layout2 is SmartTable oTable ) {
-                foreach( RxProperties.Names eName in Enum.GetValues(typeof(RxProperties.Names)) ) {
-                    switch( eName ) {
-                        //case RxProperties.Names.RxPort:
-                        //    PropertyInitRow( oTable, (int)eName, new CheckList( new WinSlot( this ), SSTVDocument.PortRxList ) );
-                        //    break;
-                        default:
-                            PropertyInitRow( oTable, (int)eName ); // This creates a regular cacheline.
-                            break;
-                    }
-                }
-            }
+        public override void InitRows() {
+			int[] rgShow = { 
+				(int)SSTVProperties.Names.Rx_Mode,
+				(int)SSTVProperties.Names.Rx_Width,
+				(int)SSTVProperties.Names.Rx_Height,
+				(int)SSTVProperties.Names.Rx_Progress,
+				(int)SSTVProperties.Names.Rx_SaveDir,
+				(int)SSTVProperties.Names.Rx_SaveName };
+
+			InitRows( rgShow );
         }
     }
 
@@ -234,7 +243,7 @@ namespace Play.SSTV {
 		public object Decorate(IPgViewSite oBaseSite,Guid sGuid) {
 			try {
 				if( sGuid.Equals(GlobalDecorations.Properties) ) {
-					return new WindowStandardProperties( oBaseSite, _oDocSSTV.RxProperties );
+					return new ViewRxProperties( oBaseSite, _oDocSSTV );
 				}
 				if( sGuid.Equals( GlobalDecorations.Outline ) ) {
 					return new CheckList( oBaseSite, _oDocSSTV.RxModeList );
@@ -372,9 +381,9 @@ namespace Play.SSTV {
 
             public Encoding FileEncoding => Encoding.Default;
 
-            public string FilePath => _oHost._oDocSSTV.RxProperties[RxProperties.Names.SaveDir].ToString();
+            public string FilePath => _oHost._oDocSSTV.StdProperties[SSTVProperties.Names.Rx_SaveDir].ToString();
 
-            public string FileBase => _oHost._oDocSSTV.RxProperties[RxProperties.Names.SaveName].ToString();
+            public string FileBase => _oHost._oDocSSTV.StdProperties[SSTVProperties.Names.Rx_SaveName].ToString();
         }
 
         public abstract string Banner { get; }
@@ -495,7 +504,7 @@ namespace Play.SSTV {
 		public override object Decorate(IPgViewSite oBaseSite,Guid sGuid) {
 			try {
 				if( sGuid.Equals(GlobalDecorations.Properties) ) {
-					return new WindowStandardProperties( oBaseSite, _oDocSSTV.RxProperties );
+					return new ViewRxProperties( oBaseSite, _oDocSSTV );
 				}
 				if( sGuid.Equals( GlobalDecorations.Outline ) ) {
 					return new CheckList( oBaseSite, _oDocSSTV.RxModeList );
