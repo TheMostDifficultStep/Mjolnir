@@ -180,7 +180,7 @@ namespace Play.SSTV {
     {
         private bool disposedValue;
         readonly ConcurrentQueue<SSTVEvents> _rgBGtoUIQueue  = new ConcurrentQueue<SSTVEvents>(); // From BG thread to UI thread.
-        readonly ConcurrentQueue<double>     _rgDataQueue    = new ConcurrentQueue<double>();        // From UI thread to BG thread.
+        readonly ConcurrentQueue<double>     _rgDataQueue    = new ConcurrentQueue<double>();     // From UI thread to BG thread.
         readonly ConcurrentQueue<TVMessage>  _rgUItoBGQueue  = new ConcurrentQueue<TVMessage>();
 
         Thread               _oThread  = null;

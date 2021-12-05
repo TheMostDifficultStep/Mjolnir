@@ -61,7 +61,9 @@ namespace Play.SSTV {
 				(int)SSTVProperties.Names.Rx_Height,
 				(int)SSTVProperties.Names.Rx_Progress,
 				(int)SSTVProperties.Names.Rx_SaveDir,
-				(int)SSTVProperties.Names.Rx_SaveName };
+				(int)SSTVProperties.Names.Rx_SaveName,
+				(int)SSTVProperties.Names.Tx_TheirCall
+			};
 
 			InitRows( rgShow );
         }
