@@ -193,23 +193,6 @@ namespace Play.SSTV {
 			return true;
         }
 
-        private void OnCheckedEvent_TemplateList(Line oLineChecked) {
-            SetTemplate();
-        }
-
-		protected void OnCheckedEvent_TxModeList( Line oLineChecked ) {
-			_wmTxImageChoice.Aspect = _oDocSSTV.TxResolution;
-			SetTemplate();
-		}
-
-        private void OnPropertyChange_SSTVDoc( SSTVEvents eProp ) {
-            switch( eProp ) {
-				case SSTVEvents.DownLoadTime:
-					_wmTxImageChoice.Invalidate();
-					break;
-			}
-        }
-
 		protected SSTVMode SSTVModeSelection { 
 			get {
                 if( _oDocSSTV.TxModeList.CheckedLine == null )
@@ -222,22 +205,28 @@ namespace Play.SSTV {
 			}
 		}
 
-		protected void SetTemplate() {
+        private void OnCheckedEvent_TemplateList(Line oLineChecked) {
+            _oDocSSTV.SetTemplate( oLineChecked.At );
+        }
+
+		protected void OnCheckedEvent_TxModeList( Line oLineChecked ) {
 			try {
-				_oDocSSTV.TxBitmapComp.Clear();
-				_oDocSSTV.TxBitmapComp.AddImage( new SmartRect( 0,   0, 320, 256 ), _oDocSSTV.TxBitmapSnip );
-				_oDocSSTV.TxBitmapComp.AddText ( new SmartRect( 0,   0, 320,  75 ), _oDocSSTV.StdProperties[(int)SSTVProperties.Names.Tx_MyCall].ToString() );
-				_oDocSSTV.TxBitmapComp.AddImage( new SmartRect( 0, 200,  56, 256 ), _oDocSSTV.TxBitmapSnip );
-			} catch( Exception oEx ) {
-				Type[] rgErrors = { typeof( NullReferenceException ),
-									typeof( ArgumentOutOfRangeException ) };
+				_wmTxImageChoice.Aspect = _oDocSSTV.TxResolution;
 
-				if( rgErrors.IsUnhandled( oEx ) ) 
-					throw;
-
-				LogError( "Transmit", "Could apply template" );
+				_oDocSSTV.SetTemplate( oLineChecked.At );
+			} catch( NullReferenceException ) {
+				LogError( "Transmit", "Problem setting aspect for template" );
 			}
 		}
+
+        private void OnPropertyChange_SSTVDoc( SSTVEvents eProp ) {
+            switch( eProp ) {
+				// BUG: This is probably bubkus. Check it and remove.
+				case SSTVEvents.DownLoadTime:
+					_wmTxImageChoice.Invalidate();
+					break;
+			}
+        }
 
         public override bool Execute( Guid sGuid ) {
 			if( sGuid == GlobalCommands.Play ) {
@@ -301,13 +290,16 @@ namespace Play.SSTV {
         }
 
 		protected bool RenderComposite() {
-			// Might want to add an window selection changed event to cause this to update...
 			if( SSTVModeSelection is SSTVMode oMode ) {
 				SKRectI rcComp = new SKRectI( 0, 0, oMode.Resolution.Width, oMode.Resolution.Height);
 				SKSizeI ptComp = new SKSizeI( oMode.Resolution.Width, oMode.Resolution.Height );
 
 				_oDocSSTV.TxBitmapSnip.Load( _oDocSSTV.TxBitmap, _wmTxImageChoice.Selection.SKRect, oMode.Resolution ); 
 				_oDocSSTV.TxBitmapComp.Load( _oDocSSTV.TxBitmap, rcComp, ptComp ); // Render needs this, for now.
+
+				int iTemplate = _oDocSSTV.TemplateList.CheckedLine is Line oChecked ? oChecked.At : 0;
+
+				_oDocSSTV.SetTemplate( iTemplate );
 				_oDocSSTV.TxBitmapComp.RenderImage();
 
 				return true;

@@ -20,6 +20,18 @@ using Play.Edit;
 namespace Play.ImageViewer {
 
     public abstract class Block : SmartRect {
+        public LOCUS    Locus  { get; }
+        public SKPointI Origin { get; }
+        public double   Scale  { get; }
+
+        public Block( LOCUS eOrigin, int iX, int iY, double dblScale ) {
+            if( dblScale < 0 || dblScale > 100 )
+                throw new ArgumentOutOfRangeException( "Values 0 through 100" );
+
+            Locus  = eOrigin;
+            Origin = new( iX, iY );
+            Scale  = dblScale / 100;
+        }
 
         /// <remarks>
         /// b/c we could potentially have multiple Fonts/Faces on a single
@@ -27,15 +39,25 @@ namespace Play.ImageViewer {
         /// whole font engine so you can do whatever you want.
         /// </remarks>
         /// <param name="oStdUI"></param>
-        public abstract void Update( IPgStandardUI2 oStdUI );
+        public abstract void Update( IPgStandardUI2 oStdUI, Size szExtent );
     }
 
     public class ImageBlock : Block {
         public readonly ImageSoloDoc _oDocSoloImg;
-        public ImageBlock( ImageSoloDoc oDocSoloImg ) {
+        public ImageBlock( LOCUS eOrigin, int iX, int iY, double dblScale, ImageSoloDoc oDocSoloImg ) : base( eOrigin, iX, iY, dblScale ) {
             _oDocSoloImg = oDocSoloImg ?? throw new ArgumentNullException( nameof( oDocSoloImg ) );
         }
-        public override void Update( IPgStandardUI2 oStdUI ) { }
+        public override void Update( IPgStandardUI2 oStdUI, Size szExtent ) {
+            SmartRect  rcScratch = new SmartRect( LOCUS.UPPERLEFT, 0, 0, szExtent.Width, szExtent.Height );
+            SKPointI   pnOrigin  = rcScratch.GetPoint( Locus );
+
+            pnOrigin.X += Origin.X;
+            pnOrigin.Y += Origin.Y;
+
+            rcScratch.SetRect( Locus, pnOrigin.X, pnOrigin.Y, (int)(szExtent.Width * Scale), (int)(szExtent.Height * Scale) );
+            
+            this.Copy = rcScratch;
+        }
 
         public override void Paint( SKCanvas skCanvas ) {
             base.Paint(skCanvas);
@@ -59,9 +81,11 @@ namespace Play.ImageViewer {
         }
     }
     public class TextBlock : Block {
-        public uint FontID { get; set; }
+        public uint   FontID { get; protected set; }
+        public ushort FaceID { get; set; }
         public FTCacheWrap   CacheElem  { get; }
-        public TextBlock( int iId ) : base() {
+
+        public TextBlock( LOCUS eOrigin, int iX, int iY, double dblScale, int iId ) : base( eOrigin, iX, iY, dblScale ) {
             CacheElem = new FTCacheWrap( new TextLine( iId, string.Empty ) );
         }
 
@@ -82,16 +106,31 @@ namespace Play.ImageViewer {
             return true;
         }
 
-        public void SetText( IPgStandardUI2 oStdUI, string strText ) {
-            CacheElem.Line.TryAppend( strText );
-            Update( oStdUI );
+        public string Text { 
+            set { CacheElem.Line.TryAppend( value ); }
         }
 
         /// <summary>
         /// Whenever the text changes, you need to call this function to
         /// re-measure the text elements.
         /// </summary>
-        public override void Update( IPgStandardUI2 oStdUI ) {
+        public override void Update( IPgStandardUI2 oStdUI, Size szExtent ) {
+            SmartRect  rcScratch = new SmartRect( LOCUS.UPPERLEFT, 0, 0, szExtent.Width, szExtent.Height );
+            SKPointI   pnOrigin  = rcScratch.GetPoint( Locus );
+
+            pnOrigin.X += Origin.X;
+            pnOrigin.Y += Origin.Y;
+
+            // BUG: We're not subtracting the origin offset from the width/height.
+            rcScratch.SetRect( Locus, pnOrigin.X, pnOrigin.Y, szExtent.Width, szExtent.Height );
+            
+            this.Copy = rcScratch;
+
+            SKSize    sResolution = new SKSize(72, 72); 
+            uint      uiHeight    = (uint)(szExtent.Height * Scale );
+
+            FontID = oStdUI.FontCache( FaceID, uiHeight, sResolution);
+
             CacheElem.Update( oStdUI.FontRendererAt( FontID ) );
             LayoutChildren();
         }
@@ -150,34 +189,15 @@ namespace Play.ImageViewer {
         /// </summary>
         /// <param name="oRectDest"></param>
         /// <param name="skBitmap"></param>
-        public void AddImage( SmartRect oRectDest, ImageSoloDoc oSoloBmp ) {
-            ImageBlock oBlock = new ImageBlock( oSoloBmp );
-            
-            oBlock.Copy = oRectDest;
+        public void AddImage( LOCUS eOrigin, int iX, int iY, double dblSize, ImageSoloDoc oSoloBmp ) {
+            ImageBlock oBlock = new ImageBlock( eOrigin, iX, iY, dblSize, oSoloBmp );
 
             _rgChildren.Add( oBlock );
         }
 
-        public TextBlock AddText( SmartRect oRect, string strText = "" ) {
-            return AddText( oRect, StdFace, strText );
-        }
-
-
-        /// <param name="oRect">Height of single text line. Width of wrapping text.</param>
-        /// <param name="uFaceID">Text Face family to use.</param>
-        /// <returns></returns>
-        /// <exception cref="ArgumentOutOfRangeException" />
-        /// <exception cref="NullReferenceException" />
-        public TextBlock AddText( SmartRect oRect, ushort uFaceID, string strText = "" ) {
-            SKSize    sResolution = new SKSize(114, 114); 
-            uint      uiHeight    = (uint)(oRect.Height * .75 );
-            uint      uFontID     = _oStdUI.FontCache( uFaceID, uiHeight, sResolution);
-            TextBlock oNew        = new( _iID++ );
+        public TextBlock AddText( LOCUS eOrigin, int iX, int iY, double dblSize, ushort uFaceID, string strText = "" ) {
+            TextBlock oNew = new( eOrigin, iX, iY, dblSize, _iID++ ) { Text = strText, FaceID = uFaceID };
             
-            oNew.Copy   = oRect;
-            oNew.FontID = uFontID;
-            oNew.SetText( _oStdUI, strText );
-
             _rgChildren.Add( oNew );
 
             return oNew;
@@ -213,8 +233,11 @@ namespace Play.ImageViewer {
             try {
                 // Note: My text renderer won't make visible text if the bg is transparent!!
                 skCanvas.DrawRect( new SKRect( 0, 0, Bitmap.Width, Bitmap.Height ), skPaint );
+
+                Size szExtent = new Size( Bitmap.Width, Bitmap.Height );
+
                 foreach( Block oBlock in _rgChildren ) {
-                    oBlock.Update( _oStdUI );
+                    oBlock.Update( _oStdUI, szExtent );
                     oBlock.Paint ( skCanvas );
                 }
             } catch( Exception oEx ) {

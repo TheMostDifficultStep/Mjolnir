@@ -804,6 +804,29 @@ namespace Play.SSTV {
             PropertyChange?.Invoke( eProp );
         }
 
+		public void SetTemplate( int iIndex ) {
+			try {
+				TxBitmapComp.Clear();
+
+				switch( iIndex ) {
+					case 0:
+						TxBitmapComp.AddImage( LOCUS.CENTER,    0,   0, 100.0, TxBitmapSnip );
+						TxBitmapComp.AddText ( LOCUS.UPPERLEFT, 10, 10,  25.0, TxBitmapComp.StdFace, StdProperties[(int)SSTVProperties.Names.Tx_MyCall].ToString() );
+						TxBitmapComp.AddImage( LOCUS.LOWERLEFT,-10, 10,  25.0, TxBitmapSnip );
+						break;
+				}
+			} catch( Exception oEx ) {
+				Type[] rgErrors = { typeof( NullReferenceException ),
+									typeof( ArgumentOutOfRangeException ) };
+
+				if( rgErrors.IsUnhandled( oEx ) ) 
+					throw;
+
+				LogError( "Could apply image template." );
+			}
+		}
+
+
         /// <summary>
         /// This is our work iterator we use to play the audio. It's my standandard player that
         /// queue's up a portion of sounds and then wait's half that time to return and top
