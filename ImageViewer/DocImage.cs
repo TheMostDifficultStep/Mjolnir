@@ -48,8 +48,11 @@ namespace Play.ImageViewer {
             _oDocSoloImg = oDocSoloImg ?? throw new ArgumentNullException( nameof( oDocSoloImg ) );
         }
         public override void Update( IPgStandardUI2 oStdUI, Size szExtent ) {
-            SmartRect  rcScratch = new SmartRect( LOCUS.UPPERLEFT, 0, 0, szExtent.Width, szExtent.Height );
-            SKPointI   pnOrigin  = rcScratch.GetPoint( Locus );
+            SmartRect rcCanvas = new SmartRect( 0, 0, szExtent.Width, szExtent.Height );
+            SKPointI  pnOrigin = rcCanvas.GetPoint( Locus );
+            SmartRect rcBitmap = new SmartRect( 0, 0, _oDocSoloImg.Bitmap.Width, _oDocSoloImg.Bitmap.Height );
+            Size      szTarget = new Size((int)(szExtent.Width * Scale), (int)(szExtent.Height * Scale) );
+            SmartRect rcViewPt = new();
 
             if( ( Locus & LOCUS.RIGHT ) != 0 )
                 pnOrigin.X -= Origin.X;
@@ -61,9 +64,12 @@ namespace Play.ImageViewer {
             else
                 pnOrigin.Y += Origin.Y;
 
-            rcScratch.SetRect( Locus, pnOrigin.X, pnOrigin.Y, (int)(szExtent.Width * Scale), (int)(szExtent.Height * Scale) );
+            ImageHelpers.ViewPortSizeMax( new Size( 0, 0 ), szTarget, rcBitmap, rcViewPt );
+
+            // Move the origin to the correct corner.
+            rcViewPt.SetRect( Locus, pnOrigin.X, pnOrigin.Y, rcViewPt.Width, rcViewPt.Height );
             
-            this.Copy = rcScratch;
+            this.Copy = rcViewPt;
         }
 
         public override void Paint( SKCanvas skCanvas ) {
