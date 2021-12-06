@@ -510,6 +510,9 @@ namespace Play.SSTV {
 
             if( !StdProperties.InitNew() )
                 return false;
+
+            TemplateList.LineAppend( "CQ" );
+            TemplateList.LineAppend( "PnP Reply" );
             
 		    SyncImage   .Bitmap = new SKBitmap( 800, 616, SKColorType.Rgb888x, SKAlphaType.Unknown );
 		    ReceiveImage.Bitmap = new SKBitmap( 800, 616, SKColorType.Rgb888x, SKAlphaType.Opaque  );
@@ -804,6 +807,8 @@ namespace Play.SSTV {
             PropertyChange?.Invoke( eProp );
         }
 
+        public string MyCall => StdProperties[(int)SSTVProperties.Names.Tx_MyCall].ToString();
+
 		public void SetTemplate( int iIndex ) {
 			try {
 				TxBitmapComp.Clear();
@@ -811,7 +816,11 @@ namespace Play.SSTV {
 				switch( iIndex ) {
 					case 0:
 						TxBitmapComp.AddImage( LOCUS.CENTER,      0,  0, 100.0, TxBitmapSnip );
-						TxBitmapComp.AddText ( LOCUS.UPPERLEFT,  10,  0,  25.0, TxBitmapComp.StdFace, StdProperties[(int)SSTVProperties.Names.Tx_MyCall].ToString() );
+						TxBitmapComp.AddText ( LOCUS.UPPERLEFT,   5,  0,  20.0, TxBitmapComp.StdFace, "CQ de " + MyCall );
+						break;
+					case 1:
+						TxBitmapComp.AddImage( LOCUS.CENTER,      0,  0, 100.0, TxBitmapSnip );
+						TxBitmapComp.AddText ( LOCUS.UPPERLEFT,   5,  0,  25.0, TxBitmapComp.StdFace, MyCall );
 						TxBitmapComp.AddImage( LOCUS.LOWERRIGHT, 10, 10,  30.0, RxHistoryList );
 						break;
 				}

@@ -207,6 +207,7 @@ namespace Play.SSTV {
 
         private void OnCheckedEvent_TemplateList(Line oLineChecked) {
             _oDocSSTV.SetTemplate( oLineChecked.At );
+			RenderComposite();
         }
 
 		protected void OnCheckedEvent_TxModeList( Line oLineChecked ) {
@@ -273,7 +274,7 @@ namespace Play.SSTV {
 				return new CheckList( oBaseSite, _oDocSSTV.TxModeList );
 			}
 			if( sGuid.Equals( GlobalDecorations.Options ) ) {
-				return new CheckList( oBaseSite, _oDocSSTV.TemplateList ) { ReadOnly = false };
+				return new CheckList( oBaseSite, _oDocSSTV.TemplateList ) { ReadOnly = true }; // We'll be read/write in the future.
 			}
 			return null;
         }
