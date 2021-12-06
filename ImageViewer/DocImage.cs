@@ -51,8 +51,15 @@ namespace Play.ImageViewer {
             SmartRect  rcScratch = new SmartRect( LOCUS.UPPERLEFT, 0, 0, szExtent.Width, szExtent.Height );
             SKPointI   pnOrigin  = rcScratch.GetPoint( Locus );
 
-            pnOrigin.X += Origin.X;
-            pnOrigin.Y += Origin.Y;
+            if( ( Locus & LOCUS.RIGHT ) != 0 )
+                pnOrigin.X -= Origin.X;
+            else
+                pnOrigin.X += Origin.X;
+
+            if( ( Locus & LOCUS.BOTTOM ) != 0 )
+                pnOrigin.Y -= Origin.Y;
+            else
+                pnOrigin.Y += Origin.Y;
 
             rcScratch.SetRect( Locus, pnOrigin.X, pnOrigin.Y, (int)(szExtent.Width * Scale), (int)(szExtent.Height * Scale) );
             

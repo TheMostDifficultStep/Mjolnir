@@ -810,9 +810,9 @@ namespace Play.SSTV {
 
 				switch( iIndex ) {
 					case 0:
-						TxBitmapComp.AddImage( LOCUS.CENTER,    0,   0, 100.0, TxBitmapSnip );
-						TxBitmapComp.AddText ( LOCUS.UPPERLEFT, 10, 10,  25.0, TxBitmapComp.StdFace, StdProperties[(int)SSTVProperties.Names.Tx_MyCall].ToString() );
-						TxBitmapComp.AddImage( LOCUS.LOWERLEFT,-10, 10,  25.0, TxBitmapSnip );
+						TxBitmapComp.AddImage( LOCUS.CENTER,      0,  0, 100.0, TxBitmapSnip );
+						TxBitmapComp.AddText ( LOCUS.UPPERLEFT,  10,  0,  25.0, TxBitmapComp.StdFace, StdProperties[(int)SSTVProperties.Names.Tx_MyCall].ToString() );
+						TxBitmapComp.AddImage( LOCUS.LOWERRIGHT, 10, 10,  30.0, RxHistoryList );
 						break;
 				}
 			} catch( Exception oEx ) {
