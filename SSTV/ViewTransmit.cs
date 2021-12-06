@@ -70,7 +70,7 @@ namespace Play.SSTV {
 			ToolSelect = 0; // Crude but should be sufficient to freeze Skywalker...
             _oDocSSTV.PropertyChange += ListenDoc_PropertyChange;
 
-			Aspect   = _oDocSSTV.Resolution;
+			Aspect   = _oDocSSTV.TxResolution;
 			DragMode = DragMode.FixedRatio;
 
 			return true;
@@ -81,9 +81,6 @@ namespace Play.SSTV {
             switch( eProp ) {
 				case SSTVEvents.DownLoadTime:
 					Invalidate();
-					break;
-				case SSTVEvents.SSTVMode:
-					Aspect = _oDocSSTV.Resolution;
 					break;
 			}
         }
@@ -157,7 +154,9 @@ namespace Play.SSTV {
 
         protected override void Dispose( bool fDisposing ) {
 			if( fDisposing && !_fDisposed ) {
-				_oDocSSTV.PropertyChange -= ListenDoc_PropertyChange;
+				_oDocSSTV.PropertyChange            -= OnPropertyChange_SSTVDoc;
+				_oDocSSTV.TemplateList.CheckedEvent -= OnCheckedEvent_TemplateList;
+				_oDocSSTV.TxModeList  .CheckedEvent -= OnCheckedEvent_TxModeList;
 
 				_wmTxImageChoice   .Dispose();
 				_wmTxViewChoices   .Dispose();
@@ -176,10 +175,12 @@ namespace Play.SSTV {
 			if( !_wmTxImageComposite.InitNew() )
 				return false;
 
-            _oDocSSTV.PropertyChange += ListenDoc_PropertyChange;
+            _oDocSSTV.PropertyChange            += OnPropertyChange_SSTVDoc;
+            _oDocSSTV.TemplateList.CheckedEvent += OnCheckedEvent_TemplateList;
+			_oDocSSTV.TxModeList  .CheckedEvent += OnCheckedEvent_TxModeList;
 
 			_wmTxImageChoice.ToolSelect = 0; 
-			_wmTxImageChoice.Aspect     = _oDocSSTV.Resolution;
+			_wmTxImageChoice.Aspect     = _oDocSSTV.TxResolution;
 			_wmTxImageChoice.DragMode   = DragMode.FixedRatio;
 
 			_rgSubLayout.Add(new LayoutControl( _wmTxImageComposite, LayoutRect.CSS.None) );
@@ -192,13 +193,19 @@ namespace Play.SSTV {
 			return true;
         }
 
-        private void ListenDoc_PropertyChange( SSTVEvents eProp ) {
+        private void OnCheckedEvent_TemplateList(Line oLineChecked) {
+            SetTemplate();
+        }
+
+		protected void OnCheckedEvent_TxModeList( Line oLineChecked ) {
+			_wmTxImageChoice.Aspect = _oDocSSTV.TxResolution;
+			SetTemplate();
+		}
+
+        private void OnPropertyChange_SSTVDoc( SSTVEvents eProp ) {
             switch( eProp ) {
 				case SSTVEvents.DownLoadTime:
 					_wmTxImageChoice.Invalidate();
-					break;
-				case SSTVEvents.SSTVMode:
-					_wmTxImageChoice.Aspect = _oDocSSTV.Resolution; // BUG, get this from my TxMode.
 					break;
 			}
         }
@@ -212,6 +219,23 @@ namespace Play.SSTV {
 					return oMode;
 
 				return null;
+			}
+		}
+
+		protected void SetTemplate() {
+			try {
+				_oDocSSTV.TxBitmapComp.Clear();
+				_oDocSSTV.TxBitmapComp.AddImage( new SmartRect( 0,   0, 320, 256 ), _oDocSSTV.TxBitmapSnip );
+				_oDocSSTV.TxBitmapComp.AddText ( new SmartRect( 0,   0, 320,  75 ), _oDocSSTV.StdProperties[(int)SSTVProperties.Names.Tx_MyCall].ToString() );
+				_oDocSSTV.TxBitmapComp.AddImage( new SmartRect( 0, 200,  56, 256 ), _oDocSSTV.TxBitmapSnip );
+			} catch( Exception oEx ) {
+				Type[] rgErrors = { typeof( NullReferenceException ),
+									typeof( ArgumentOutOfRangeException ) };
+
+				if( rgErrors.IsUnhandled( oEx ) ) 
+					throw;
+
+				LogError( "Transmit", "Could apply template" );
 			}
 		}
 

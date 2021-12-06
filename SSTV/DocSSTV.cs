@@ -141,7 +141,6 @@ namespace Play.SSTV {
     }
 
     public enum SSTVEvents {
-        ALL,
         UploadTime,
         SSTVMode,
         FFT,
@@ -485,19 +484,6 @@ namespace Play.SSTV {
 			}
 		}
 
-        /// <summary>
-        /// This is where we receive the event when the user selects a mode in the chooser. 
-        /// Don't be confused that we send the mode name to the 'Tx Property viewers', but
-        /// the 'Tx Viewers' use this event to update their aspect ratio for selection.
-        /// </summary>
-        /// <param name="oLine">The line in the modelist selected</param>
-        /// <seealso cref="RxModeList"/>
-        void OnCheckedEvent_RxModeList( Line oLine ) {
-            // Should this be RxProperties?
-            //TxProperties.ValueUpdate( TxProperties.Names.Mode, oLine.ToString(), Broadcast:true ); 
-            Raise_PropertiesUpdated( SSTVEvents.SSTVMode );
-        }
-
         public bool InitNew() {
             if( !TemplateList.InitNew() ) // Might need to init differently b/c of load.
                 return false;
@@ -525,14 +511,6 @@ namespace Play.SSTV {
             if( !StdProperties.InitNew() )
                 return false;
             
-            // Just an experiment.
-            try {
-                TxBitmapComp.AddImage( new SmartRect( 0, 0, 320, 256 ), TxBitmapSnip );
-                TxBitmapComp.AddText ( new SmartRect( 0, 0, 320,  75 ), StdProperties[(int)SSTVProperties.Names.Tx_MyCall].ToString() );
-                TxBitmapComp.AddImage( new SmartRect( 0, 200, 56, 256 ), TxBitmapSnip );
-            } catch( Exception ) {
-            }
-            
 		    SyncImage   .Bitmap = new SKBitmap( 800, 616, SKColorType.Rgb888x, SKAlphaType.Unknown );
 		    ReceiveImage.Bitmap = new SKBitmap( 800, 616, SKColorType.Rgb888x, SKAlphaType.Opaque  );
 
@@ -557,7 +535,6 @@ namespace Play.SSTV {
 
             // Set this after TxImageList load since the CheckedLine call will 
             // call Listen_ModeChanged and that calls the properties update event.
-            RxModeList   .CheckedEvent += OnCheckedEvent_RxModeList; // set checkmark AFTER load the modulators... ^_^;;
             RxModeList   .CheckedLine   = RxModeList[0];
 
             TxImageList  .ImageUpdated += OnImageUpdated_TxImageList;
@@ -729,12 +706,12 @@ namespace Play.SSTV {
 
         /// <summary>
         /// BUG: This is a bummer but, I use a point for the aspect ratio in my
-        /// SmartRect code. I'll fix that later.
+        /// SmartRect code. It should be a SKPointI too. I'll fix that later.
         /// </summary>
-        public SKPointI Resolution {
+        public SKPointI TxResolution {
             get {
                 try {
-                    if( RxModeList.CheckedLine.Extra is SSTVMode oMode )
+                    if( TxModeList.CheckedLine != null && TxModeList.CheckedLine.Extra is SSTVMode oMode )
                         return new SKPointI( oMode.Resolution.Width, oMode.Resolution.Height );
                 } catch( NullReferenceException ) {
                     LogError( "Problem finding SSTVMode. Using default." );
@@ -793,8 +770,6 @@ namespace Play.SSTV {
                 LogError( "Blew chunks trying to create Illudium Q-36 Video Modulator, Isn't that nice?" );
                 _oSSTVGenerator = null;
             }
-
-            Raise_PropertiesUpdated( SSTVEvents.ALL );
 
             return _oSSTVGenerator != null;
         }

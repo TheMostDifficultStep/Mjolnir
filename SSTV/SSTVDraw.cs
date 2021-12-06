@@ -387,6 +387,7 @@ namespace Play.SSTV {
 
 		/// <summary>this method get's called to initiate the processing of
 		/// a new image.</summary>
+		/// <seealso cref="OnModeTransition_SSTVMod"/>
         public void Start() {
 			_iLastAlign      = -1;
 			_dblReadBaseSync =  0;
@@ -845,6 +846,7 @@ namespace Play.SSTV {
 		/// Catch the mode change event from the SSTVModulator.
 		/// </summary>
 		/// <param name="oMode"></param>
+		/// <seealso cref="Start" />
 		public void OnModeTransition_SSTVMod( SSTVMode oMode ) {
 			if( oMode == null ) {
 				RenderDiagnosticsOverlay();
