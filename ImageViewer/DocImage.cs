@@ -225,8 +225,7 @@ namespace Play.ImageViewer {
     /// document.
     /// </summary>
     public class DocImageEdit : 
-        ImageSoloDoc,
-        IEnumerable<SmartRect>
+        ImageSoloDoc
     {
         protected          bool            _fDisposed  = false;
         protected readonly List<Block>     _rgChildren = new ();
@@ -355,22 +354,6 @@ namespace Play.ImageViewer {
         public void Clear() {
             _rgChildren.Clear();
             Text       .Clear();
-        }
-
-        public Block ItemAt( int iIndex ) {
-            return _rgChildren[ iIndex ];
-        }
-
-        public void RemoveAt( int iIndex ) {
-            _rgChildren.RemoveAt( iIndex );
-        }
-
-        public IEnumerator<SmartRect> GetEnumerator() {
-            return _rgChildren.GetEnumerator();
-        }
-
-        IEnumerator IEnumerable.GetEnumerator() {
-            return GetEnumerator();
         }
     }
 }
