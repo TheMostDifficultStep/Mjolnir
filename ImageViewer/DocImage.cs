@@ -220,8 +220,8 @@ namespace Play.ImageViewer {
     }
 
     /// <summary>
-    /// This is an image compositor object. You will add items to it's
-    /// collection and it will render them to the main image on this
+    /// This is an image compositor object. Add items to the
+    /// collection and it will render them to the main bitmap on this
     /// document.
     /// </summary>
     public class DocImageEdit : 
@@ -260,14 +260,13 @@ namespace Play.ImageViewer {
 
         public DocImageEdit(IPgBaseSite oSiteBase) : base(oSiteBase) {
             _oStdUI = (IPgStandardUI2)Services;
-            Text = new Editor( new DocSite( this ) );
+            Text    = new Editor( new DocSite( this ) );
         }
 
         public override bool Initialize() {
             if( !base.Initialize() )
                 return false;
 
-            //StdFace = _oStdUI.FaceCache(  @"C:\windows\fonts\consola.ttf" );
             StdFace = _oStdUI.FaceCache(  @"C:\windows\fonts\impact.ttf" );
 
             return true;
@@ -281,20 +280,11 @@ namespace Play.ImageViewer {
             base.Dispose();
         }
 
-        public int Count => _rgChildren.Count;
-
-        public bool IsReadOnly => false;
-
         public void LogError( string strMessage, string strDetails, bool fShow=true ) {
             _oSiteBase.LogError( strMessage, strDetails, fShow );
         }
 
 
-        /// <summary>
-        /// TODO: change the bitmap to a ImageSoloDoc.
-        /// </summary>
-        /// <param name="oRectDest"></param>
-        /// <param name="skBitmap"></param>
         public void AddImage( LOCUS eOrigin, int iX, int iY, double dblSize, ImageSoloDoc oSoloBmp ) {
             SoloImgBlock oBlock = new( eOrigin, iX, iY, dblSize, oSoloBmp );
 
@@ -307,13 +297,11 @@ namespace Play.ImageViewer {
             _rgChildren.Add( oBlock );
         }
 
-        public TextBlock AddText( LOCUS eOrigin, int iX, int iY, double dblSize, ushort uFaceID, string strText = "" ) {
-            Line      oLine = Text.LineAppend( strText, fUndoable:false );
-            TextBlock oNew  = new( eOrigin, iX, iY, dblSize, oLine ) { FaceID = uFaceID };
+        public void AddText( LOCUS eOrigin, int iX, int iY, double dblSize, ushort uFaceID, string strText = "" ) {
+            Line      oLine  = Text.LineAppend( strText, fUndoable:false );
+            TextBlock oBlock = new( eOrigin, iX, iY, dblSize, oLine ) { FaceID = uFaceID };
             
-            _rgChildren.Add( oNew );
-
-            return oNew;
+            _rgChildren.Add( oBlock );
         }
 
         /// <summary>
@@ -366,6 +354,7 @@ namespace Play.ImageViewer {
 
         public void Clear() {
             _rgChildren.Clear();
+            Text       .Clear();
         }
 
         public Block ItemAt( int iIndex ) {
