@@ -1,15 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.IO;
-using System.IO.Compression;
 using System.Drawing;
-using System.Drawing.Imaging;
-using System.Windows.Forms;
-using System.Reflection;
-using System.Linq;
-using System.Web;
-using System.Text;
 
 using SkiaSharp;
 
@@ -42,16 +34,15 @@ namespace Play.ImageViewer {
         public abstract void Update( IPgStandardUI2 oStdUI, Size szExtent );
     }
 
-    public class ImageBlock : Block {
-        public readonly ImageSoloDoc _oDocSoloImg;
-        public ImageBlock( LOCUS eOrigin, int iX, int iY, double dblScale, ImageSoloDoc oDocSoloImg ) : base( eOrigin, iX, iY, dblScale ) {
-            _oDocSoloImg = oDocSoloImg ?? throw new ArgumentNullException( nameof( oDocSoloImg ) );
+    public abstract class ImageBlock : Block {
+        public ImageBlock( LOCUS eOrigin, int iX, int iY, double dblScale ) : base( eOrigin, iX, iY, dblScale ) {
         }
-        public override void Update( IPgStandardUI2 oStdUI, Size szExtent ) {
-            SmartRect rcCanvas = new SmartRect( 0, 0, szExtent.Width, szExtent.Height );
+
+        public override void Update( IPgStandardUI2 oStdUI, Size szTrgExtent ) {
+            SmartRect rcCanvas = new SmartRect( 0, 0, szTrgExtent.Width, szTrgExtent.Height );
             SKPointI  pnOrigin = rcCanvas.GetPoint( Locus );
-            SmartRect rcBitmap = new SmartRect( 0, 0, _oDocSoloImg.Bitmap.Width, _oDocSoloImg.Bitmap.Height );
-            Size      szTarget = new Size((int)(szExtent.Width * Scale), (int)(szExtent.Height * Scale) );
+            SmartRect rcBitmap = new SmartRect( 0, 0, SrcExtent.Width, SrcExtent.Height );
+            Size      szTarget = new Size((int)(szTrgExtent.Width * Scale), (int)(szTrgExtent.Height * Scale) );
             SmartRect rcViewPt = new();
 
             if( ( Locus & LOCUS.RIGHT ) != 0 )
@@ -71,6 +62,17 @@ namespace Play.ImageViewer {
             
             this.Copy = rcViewPt;
         }
+
+        abstract protected Size SrcExtent { get; }
+    }
+
+    public class SoloImgBlock : ImageBlock {
+        public readonly ImageSoloDoc _oDocSoloImg;
+        public SoloImgBlock( LOCUS eOrigin, int iX, int iY, double dblScale, ImageSoloDoc oDocSoloImg ) : base( eOrigin, iX, iY, dblScale ) {
+            _oDocSoloImg = oDocSoloImg ?? throw new ArgumentNullException( nameof( oDocSoloImg ) );
+        }
+
+        protected override Size SrcExtent => new Size( _oDocSoloImg.Bitmap.Width, _oDocSoloImg.Bitmap.Height );
 
         public override void Paint( SKCanvas skCanvas ) {
             base.Paint(skCanvas);
@@ -93,13 +95,75 @@ namespace Play.ImageViewer {
             }
         }
     }
+
+    /// <summary>
+    /// Makes a bar of color on the left, right, top or bottom portion of the composited image.
+    /// </summary>
+    public class GradientBlock : Block {
+        SKColor[] _rgColors;
+        float  [] _rgPositions;
+
+        public GradientBlock( LOCUS eOrigin, double dblScale, SKColor clrFrom, SKColor clrTo ) : base( eOrigin, 0, 0, dblScale ) {
+            _rgColors    = new SKColor[] { clrFrom, clrTo };
+            _rgPositions = new float  [] { 0, 1 };
+        }
+
+        public override void Update(IPgStandardUI2 oStdUI, Size szCanvas) {
+            SmartRect rcCanvas = new SmartRect( 0, 0, szCanvas.Width, szCanvas.Height );
+            SKPointI  pnOrigin = rcCanvas.GetPoint( Locus );
+            Size      szTarget = new Size((int)(szCanvas.Width * Scale), (int)(szCanvas.Height * Scale) );
+            SmartRect rcViewPt = new();
+
+            switch( Locus ) {
+                case LOCUS.LEFT:
+                    rcViewPt.SetRect( LOCUS.LEFT  | LOCUS.TOP,    0, 0, szTarget.Width, szCanvas.Height );
+                    break;
+                case LOCUS.RIGHT:
+                    rcViewPt.SetRect( LOCUS.RIGHT | LOCUS.TOP,    szCanvas.Width, 0, szTarget.Width, szCanvas.Height );
+                    break;
+                case LOCUS.TOP:
+                    rcViewPt.SetRect( LOCUS.LEFT  | LOCUS.TOP,    0, 0, szCanvas.Width, szTarget.Height );
+                    break;
+                case LOCUS.BOTTOM:
+                    rcViewPt.SetRect( LOCUS.LEFT  | LOCUS.BOTTOM, 0, szCanvas.Height, szCanvas.Width, szTarget.Height );
+                    break;
+            }
+            
+            this.Copy = rcViewPt;
+        }
+
+        public override void Paint( SKCanvas skCanvas ) {
+            using SKPaint skPaint = new() { BlendMode = SKBlendMode.SrcATop, IsAntialias = true };
+
+            // Create linear gradient from left to Right
+            skPaint.Shader = SKShader.CreateLinearGradient(
+                                new SKPoint( Left,  Top),
+                                new SKPoint( Right, Bottom),
+                                _rgColors,
+                                _rgPositions,
+                                SKShaderTileMode.Repeat );
+
+            try {
+                skCanvas.DrawRect( Left, Top, Width, Height, skPaint );
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( ArgumentNullException ),
+									typeof( ArgumentException ),
+									typeof( NullReferenceException ),
+									typeof( OverflowException ),
+									typeof( AccessViolationException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
+            }
+        }
+    }
+
     public class TextBlock : Block {
         public uint   FontID { get; protected set; }
         public ushort FaceID { get; set; }
         public FTCacheWrap   CacheElem  { get; }
 
-        public TextBlock( LOCUS eOrigin, int iX, int iY, double dblScale, int iId ) : base( eOrigin, iX, iY, dblScale ) {
-            CacheElem = new FTCacheWrap( new TextLine( iId, string.Empty ) );
+        public TextBlock( LOCUS eOrigin, int iX, int iY, double dblScale, Line oLine ) : base( eOrigin, iX, iY, dblScale ) {
+            CacheElem = new FTCacheWrap( oLine );
         }
 
         protected override void OnSize() {
@@ -164,15 +228,39 @@ namespace Play.ImageViewer {
         ImageSoloDoc,
         IEnumerable<SmartRect>
     {
-        protected          bool            _fDisposed = false;
+        protected          bool            _fDisposed  = false;
         protected readonly List<Block>     _rgChildren = new ();
-        protected int                      _iID = 0;
         protected readonly IPgStandardUI2  _oStdUI;
         protected readonly SKPaint         _skPaint = new SKPaint();
         public ushort StdFace { get; protected set; }
 
+        public Editor Text { get; }
+
+        public class DocSite : 
+			IPgBaseSite
+		{
+			readonly DocImageEdit _oDoc;
+
+			/// <summary>
+			/// This is for our editor instance we are hosting!!
+			/// </summary>
+			public DocSite( DocImageEdit oDoc ) {
+				_oDoc = oDoc ?? throw new ArgumentNullException( "Image document must not be null." );
+			}
+
+			public void LogError( string strMessage, string strDetails, bool fShow=true ) {
+				_oDoc.LogError( strMessage, "ImageWalker : " + strDetails );
+			}
+
+			public void Notify( ShellNotify eEvent ) {
+			}
+
+			public IPgParent Host => _oDoc;
+		}
+
         public DocImageEdit(IPgBaseSite oSiteBase) : base(oSiteBase) {
             _oStdUI = (IPgStandardUI2)Services;
+            Text = new Editor( new DocSite( this ) );
         }
 
         public override bool Initialize() {
@@ -197,19 +285,31 @@ namespace Play.ImageViewer {
 
         public bool IsReadOnly => false;
 
+        public void LogError( string strMessage, string strDetails, bool fShow=true ) {
+            _oSiteBase.LogError( strMessage, strDetails, fShow );
+        }
+
+
         /// <summary>
         /// TODO: change the bitmap to a ImageSoloDoc.
         /// </summary>
         /// <param name="oRectDest"></param>
         /// <param name="skBitmap"></param>
         public void AddImage( LOCUS eOrigin, int iX, int iY, double dblSize, ImageSoloDoc oSoloBmp ) {
-            ImageBlock oBlock = new ImageBlock( eOrigin, iX, iY, dblSize, oSoloBmp );
+            SoloImgBlock oBlock = new( eOrigin, iX, iY, dblSize, oSoloBmp );
+
+            _rgChildren.Add( oBlock );
+        }
+
+        public void AddGradient( LOCUS eOrigin, double dblSize, SKColor clrFrom, SKColor clrTo ) {
+            GradientBlock oBlock = new( eOrigin, dblSize, clrFrom, clrTo );
 
             _rgChildren.Add( oBlock );
         }
 
         public TextBlock AddText( LOCUS eOrigin, int iX, int iY, double dblSize, ushort uFaceID, string strText = "" ) {
-            TextBlock oNew = new( eOrigin, iX, iY, dblSize, _iID++ ) { Text = strText, FaceID = uFaceID };
+            Line      oLine = Text.LineAppend( strText, fUndoable:false );
+            TextBlock oNew  = new( eOrigin, iX, iY, dblSize, oLine ) { FaceID = uFaceID };
             
             _rgChildren.Add( oNew );
 

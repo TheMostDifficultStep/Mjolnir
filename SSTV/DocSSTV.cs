@@ -95,6 +95,9 @@ namespace Play.SSTV {
 
             InitValues();
 
+            // Set up the parser so we get spiffy colorization on our text!!
+            new ParseHandlerText( Property_Values, "text" );
+
             return true;
         }
 
@@ -517,8 +520,6 @@ namespace Play.SSTV {
 		    SyncImage   .Bitmap = new SKBitmap( 800, 616, SKColorType.Rgb888x, SKAlphaType.Unknown );
 		    ReceiveImage.Bitmap = new SKBitmap( 800, 616, SKColorType.Rgb888x, SKAlphaType.Opaque  );
 
-            new ParseHandlerText( StdProperties.Property_Values, "text" );
-
             SettingsInit();
 
             string strMyDocs = Environment.GetFolderPath( Environment.SpecialFolder.MyDocuments );
@@ -815,8 +816,9 @@ namespace Play.SSTV {
 
 				switch( iIndex ) {
 					case 0:
-						TxBitmapComp.AddImage( LOCUS.CENTER,      0,  0, 100.0, TxBitmapSnip );
-						TxBitmapComp.AddText ( LOCUS.UPPERLEFT,   5,  0,  20.0, TxBitmapComp.StdFace, "CQ de " + MyCall );
+						TxBitmapComp.AddImage   ( LOCUS.CENTER,      0,  0, 100.0, TxBitmapSnip );
+                        TxBitmapComp.AddGradient( LOCUS.TOP,                 20.0, SKColors.Blue, SKColors.Green );
+						TxBitmapComp.AddText    ( LOCUS.UPPERLEFT,   5,  0,  20.0, TxBitmapComp.StdFace, "CQ de " + MyCall );
 						break;
 					case 1:
 						TxBitmapComp.AddImage( LOCUS.CENTER,      0,  0, 100.0, TxBitmapSnip );

@@ -638,9 +638,9 @@ namespace Play.Edit {
         /// <param name="strText">Insert this text as a new line.</param>
 		/// <remarks>BUG: I should parse the text looking for control characters. See the
 		/// clipboard copy version.</remarks>
-        public void LineAppend( string strText, bool fUndoable = true ) {
+        public Line LineAppend( string strText, bool fUndoable = true ) {
             using( Manipulator oBulk = this.CreateManipulator() ) {
-                oBulk.LineInsert( this.ElementCount, strText, fUndoable );
+                return oBulk.LineInsert( this.ElementCount, strText, fUndoable );
             }
         }
 
