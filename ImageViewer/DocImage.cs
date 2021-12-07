@@ -263,7 +263,7 @@ namespace Play.ImageViewer {
             Text    = new Editor( new DocSite( this ) );
         }
 
-        public override bool Initialize() {
+        protected override bool Initialize() {
             if( !base.Initialize() )
                 return false;
 
@@ -280,7 +280,7 @@ namespace Play.ImageViewer {
             base.Dispose();
         }
 
-        public void LogError( string strMessage, string strDetails, bool fShow=true ) {
+        protected void LogError( string strMessage, string strDetails, bool fShow=true ) {
             _oSiteBase.LogError( strMessage, strDetails, fShow );
         }
 
@@ -308,7 +308,7 @@ namespace Play.ImageViewer {
         /// If we were a view we would listen in on the ImageUpdated event.
         /// But since we're the owning object, I'll simply use the override.
         /// </summary>
-        public override void Raise_ImageUpdated() {
+        protected override void Raise_ImageUpdated() {
             LayoutChildren();
 
             base.Raise_ImageUpdated();

@@ -377,11 +377,11 @@ namespace Play.ImageViewer {
 			}
 		}
 
-		public virtual bool Initialize() {
+		protected virtual bool Initialize() {
 			return true;
 		}
 
-		public virtual void Raise_ImageUpdated() {
+		protected virtual void Raise_ImageUpdated() {
             ImageUpdated?.Invoke();
         }
 
@@ -777,7 +777,7 @@ namespace Play.ImageViewer {
 			base.Dispose();
         }
 
-		public override bool Initialize() {
+		protected override bool Initialize() {
 			if( !base.Initialize() )
 				return false;
 
@@ -1309,7 +1309,7 @@ namespace Play.ImageViewer {
             base.Raise_ImageUpdated();
         }
 
-        public override void Raise_ImageUpdated() {
+        protected override void Raise_ImageUpdated() {
             DecorNavigatorUpdate();
 
             CurrentShowPath.Empty();
