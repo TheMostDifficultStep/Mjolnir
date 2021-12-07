@@ -1302,7 +1302,7 @@ namespace Play.ImageViewer {
             }
         }
 
-        public virtual void Raise_DirtyDoc() {
+        protected virtual void Raise_DirtyDoc() {
             _fDirtyDoc = true;
             _oSiteBase.Notify( ShellNotify.DocumentDirty );
 
@@ -1320,16 +1320,16 @@ namespace Play.ImageViewer {
             base.Raise_ImageUpdated();
         }
 
-        public void Raise_UpdatedThumbs( bool DirtyThumbs = true ) {
+        protected void Raise_UpdatedThumbs( bool DirtyThumbs = true ) {
             _fDirtyThumbs = DirtyThumbs;
 			ThumbsUpdated?.Invoke();
         }
 
-        public void Raise_TextParsed() {
+        protected void Raise_TextParsed() {
             TextParsed?.Invoke();
         }
 
-        public void Raise_TextLoaded() {
+        protected void Raise_TextLoaded() {
             TextLoaded?.Invoke();
         }
 

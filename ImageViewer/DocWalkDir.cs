@@ -25,7 +25,7 @@ namespace Play.ImageViewer {
         }
 
         // At present we're never dirty in the directory case.
-        public override void Raise_DirtyDoc() {
+        protected override void Raise_DirtyDoc() {
             Raise_ImageUpdated();
         }
 
