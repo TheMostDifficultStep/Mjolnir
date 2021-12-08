@@ -18,7 +18,7 @@ using Play.Sound;
 
 namespace Play.SSTV {
     /// <summary>
-	/// We'll turn that into optionally a dropdown in the future.
+	/// Show a subset of the SSTV Properties. The Transmit one's only.
     /// </summary>
     public class ViewTxProperties : 
         WindowStandardProperties
@@ -43,7 +43,7 @@ namespace Play.SSTV {
     }
 
     /// <summary>
-	/// Little experiment for the property page of the receiver viewer.
+	/// This viewer shows a subset of all SSTV Properties. Those for the Receiver only.
     /// </summary>
     public class ViewRxProperties : 
         WindowStandardProperties

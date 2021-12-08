@@ -198,7 +198,6 @@ namespace Play.ImageViewer {
             pnOrigin.X += Origin.X;
             pnOrigin.Y += Origin.Y;
 
-            // BUG: We're not subtracting the origin offset from the width/height.
             rcScratch.SetRect( Locus, pnOrigin.X, pnOrigin.Y, szExtent.Width, szExtent.Height );
             
             this.Copy = rcScratch;
