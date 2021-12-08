@@ -538,10 +538,10 @@ namespace Play.Edit {
         /// </summary>
         /// <param name="eAxis">Horizontal or Vertical</param>
         /// <param name="iDir">How much to move by, usually +1 or -1.</param>
-        /// <param name="iAdvance">Distance from left to maintain when moving vertically. This value can be updated.</param>
+        /// <param name="flAdvance">Distance from left to maintain when moving vertically. This value can be updated.</param>
         /// <param name="oCaret">The caret to be updated.</param>
         /// <returns>Instructions on how to refresh the cache after this movement.</returns>
-        public CaretMove MoveCaret( Axis eAxis, int iDir, ref int iAdvance, ILineRange oCaret ) {
+        public CaretMove MoveCaret( Axis eAxis, int iDir, ref float flAdvance, ILineRange oCaret ) {
             if( oCaret == null ) {
                 _oSite.LogError( "view cache", "Caret pointer must not be null." );
                 return CaretMove.LOCAL;
@@ -557,7 +557,7 @@ namespace Play.Edit {
 
             if( iDir != 0 ) {
                 // First, see if we can navigate within the line we are currently at.
-                if( !oElem.Navigate( eAxis, iDir, ref iAdvance, ref iOffset ) ) {
+                if( !oElem.Navigate( eAxis, iDir, ref flAdvance, ref iOffset ) ) {
                     iDir = iDir < 0 ? -1 : 1; // Only allow move one line up or down.
 
 					// _rgLeft[_rgLeft.Count-1] = _oTextRect.GetScalar( SCALAR.WIDTH );
@@ -566,7 +566,7 @@ namespace Play.Edit {
                         FTCacheLine oNext = PreCache( oElem.At + iDir );
                         if( oNext != null ) {
                             // Find out where to place the cursor as it moves to the next line.
-                            iOffset = oNext.OffsetBound( eAxis, iDir * -1, iAdvance );
+                            iOffset = oNext.OffsetBound( eAxis, iDir * -1, flAdvance );
                             oElem   = oNext;
                         }
                     } catch( ArgumentOutOfRangeException ) {
@@ -830,12 +830,12 @@ namespace Play.Edit {
         /// </summary>
         /// <param name="pntWorld">World Coordinates.</param>
         /// <remarks>Advance is modulo in the wrapped text case.</remarks>
-        public void CaretAndAdvanceReset( SKPointI pntWorld, ILineRange oCaretPos, ref int iAdvance ) {
+        public void CaretAndAdvanceReset( SKPointI pntWorld, ILineRange oCaretPos, ref float flAdvance ) {
             FTCacheLine oCache = GlyphPointToRange( pntWorld, oCaretPos );
             if( oCache != null ) {
                 Point oNewLocation = oCache.GlyphOffsetToPoint( oCaretPos.Offset );
 
-                iAdvance = oNewLocation.X; 
+                flAdvance = oNewLocation.X; 
             }
         }
    } // end class

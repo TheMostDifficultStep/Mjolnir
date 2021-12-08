@@ -235,8 +235,8 @@ namespace Play.Forms {
 
         public void CaretMove( Axis eAxis, int iDir ) {
             try {
-                int iOffset  = Caret.Offset;
-                int iAdvance = Caret.Advance;
+                int   iOffset   = Caret.Offset;
+                float flAdvance = Caret.Advance;
 
                 Caret.Layout.Selection.Length = 0;
                 Caret.Layout.OnChangeFormatting();
@@ -246,19 +246,19 @@ namespace Play.Forms {
 
                 if( iDir != 0 ) {
                     // First, see if we can navigate within the line we are currently at.
-                    if( !oElem.Navigate( eAxis, iDir, ref iAdvance, ref iOffset ) ) {
+                    if( !oElem.Navigate( eAxis, iDir, ref flAdvance, ref iOffset ) ) {
                         iDir = iDir < 0 ? -1 : 1; // Only allow move one line up or down.
 
                         FTCacheLine oNext = null; // PreCache( oElem.At + iDir );
                         if( oNext != null ) {
-                            iOffset = oNext.OffsetBound( eAxis, iDir * -1, iAdvance );
+                            iOffset = oNext.OffsetBound( eAxis, iDir * -1, flAdvance );
                             oElem   = oNext;
                         }
                     }
                     // If going up or down ends up null, we won't be moving the caret.
                     //Caret.Cache   = oElem;
                     Caret.Offset  = iOffset;
-                    Caret.Advance = iAdvance;
+                    Caret.Advance = (int)flAdvance;
                 }
 
                 CaretLocal( oElem, iOffset );

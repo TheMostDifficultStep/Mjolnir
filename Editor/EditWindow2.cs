@@ -20,7 +20,6 @@ using Play.Rectangles;
 using Play.Controls;
 using Play.Parse;
 using Play.Parse.Impl;
-//using System.Runtime.InteropServices.ComTypes;
 
 namespace Play.Edit {
     // https://www.freetype.org/freetype2/docs/documentation.html
@@ -36,6 +35,20 @@ namespace Play.Edit {
         public short delta_lsb; // These two I haven't seen yet.
         public short delta_rsb;
     };
+
+    /// <summary>
+    /// This object is almost like the FTGlyphPos except, I'm going to convert the
+    /// TT_Pos freetype EM value into a float, so I don't need to shift bits 
+    /// everywhere outside of this module.
+    /// </summary>
+    public struct PgGlyphPos {
+        public short left;
+        public short top;
+        public float advance_x;
+        public float advance_y;
+        public float delta_lsb; // These two I haven't seen yet.
+        public float delta_rsb;
+    }
 
     /// <summary>
     /// I bounce around on whether there should be a code point on this structure. It 
@@ -56,7 +69,7 @@ namespace Play.Edit {
         UInt32     FaceIndex   { get; } // index to the face index from freetype.
         UInt32     Glyph       { get; }
         SKBitmap   Image       { get; }
-        FTGlyphPos Coordinates { get; }
+        PgGlyphPos Coordinates { get; }
         UInt32     CodePoint   { get; }
         int        CodeLength  { get; set; } // Encoded word length either utf16 or utf8 depending on implementation.
     }
@@ -155,7 +168,7 @@ namespace Play.Edit {
 		protected readonly IPgStandardUI2 _oStdUI;
 
         bool         _fWrap         = true;
-        int          _iAdvance      = 0; // Horizontal prefered position of cursor, world units.
+        float        _iAdvance      = 0; // Horizontal prefered position of cursor, world units.
         SmartRect    _rctDragBounds = null; // TODO: Move this into the selector.
         SizeF        _szScrollBars  = new SizeF( .1875F, .1875F );
 
@@ -318,7 +331,7 @@ namespace Play.Edit {
             using( Graphics oGraphics = this.CreateGraphics() ) {
                 int iWidth        = (int)(oGraphics.DpiX * _szScrollBars.Width);
                 var oLayoutSBVirt = new LayoutControl( _oScrollBarVirt, LayoutRect.CSS.Pixels, (uint)iWidth);
-                    _rctCheques   = new LayoutRect( LayoutRect.CSS.Pixels, (uint)(_oCheque.Coordinates.advance_em_x >> 6), 0 );
+                    _rctCheques   = new LayoutRect( LayoutRect.CSS.Pixels, (uint)_oCheque.Coordinates.advance_x, 0 );
 
                 _oLayout.Add( oLayoutSBVirt );   // Scrollbar
                 if( _fCheckMarks )                  // If I could turn off columns I wouldn't need to do this.
@@ -493,9 +506,9 @@ namespace Play.Edit {
 
 			foreach( FTCacheLine oCache in _oCacheMan ) {
 				if( oSize.Width < oCache.UnwrappedWidth )
-					oSize.Width = oCache.UnwrappedWidth;
+					oSize.Width = (int)oCache.UnwrappedWidth;
 				if( oSize.Height < oCache.Height )
-					oSize.Width = oCache.UnwrappedWidth;
+					oSize.Width = (int)oCache.UnwrappedWidth;
 			}
 
 			return oSize;
@@ -1025,7 +1038,7 @@ namespace Play.Edit {
         private void ScrollBarRefresh() {
             int iCharCount    = 0;
             int iStreamOffset = _oCacheMan.Count <= 0 ? 0 : int.MaxValue;
-            int iLocalWidth   = 0;
+          //int iLocalWidth   = 0;
             int iLocalHeight  = 1;
 
             foreach( FTCacheLine oCache in _oCacheMan ) {
@@ -1038,8 +1051,8 @@ namespace Play.Edit {
                     iStreamOffset = oCache.Line.CumulativeLength;
 
                 // In unwrapped mode we want the widest line.
-                if( iLocalWidth < oCache.UnwrappedWidth )
-                    iLocalWidth = oCache.UnwrappedWidth;
+              //if( iLocalWidth < oCache.UnwrappedWidth )
+              //    iLocalWidth = oCache.UnwrappedWidth;
             }
 
             // BUG: Hacky business for setting our scroll bar height. I can do better.
@@ -1930,7 +1943,7 @@ namespace Play.Edit {
 
             // Only care about the Y cooridnate. X we're going to override to the advance value.
             SKPointI pntWorld = _oCacheMan.TextRect.GetPoint(LOCUS.CENTER);
-            pntWorld.X = _iAdvance; 
+            pntWorld.X = (int)_iAdvance; 
 
 			_oCacheMan.GlyphPointToRange( pntWorld, CaretPos );
 

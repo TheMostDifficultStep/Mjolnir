@@ -64,23 +64,24 @@ namespace Play.Edit {
 
 		/// <summary>
 		/// I need to rethink the implementation of this.
+		/// BUG!! : The width can be floating point now!!
 		/// </summary>
 		/// <param name="eParentAxis"></param>
 		/// <param name="uiRail"></param>
 		public override uint TrackDesired(TRACK eParentAxis, int uiRail) {
-			int iValue = 0;
+			float flValue = 0;
             
             if( eParentAxis == TRACK.HORIZ ) {
-                iValue = Cache.UnwrappedWidth + 10; // BUG: need to add a bit, else it wraps.
+                flValue = Cache.UnwrappedWidth + 10; // BUG: need to add a bit, else it wraps.
 			} else {
  				Cache.OnChangeSize( uiRail );
-				iValue = Cache.Height;
+				flValue = Cache.Height;
 			}
 
-			if( iValue < 0 )
+			if( flValue < 0 )
 				return 0;
 
-			return (uint)iValue;
+			return (uint)flValue;
 		}
 
         public void Paint( SKCanvas skCanvas, IPgStandardUI2 oStdUI ) {

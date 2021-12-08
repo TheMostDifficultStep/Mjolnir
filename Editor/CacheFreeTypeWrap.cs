@@ -40,10 +40,10 @@ namespace Play.Edit {
         /// Move up or down based on the previous advance. 
         /// </summary>
         /// <param name="iIncrement">Direction of travel, positive is down, negative is up.</param>
-        /// <param name="iAdvance">Previous "pixel" offset on a given line. The wrapped value.</param>
+        /// <param name="flAdvance">Previous "pixel" offset on a given line. The wrapped value.</param>
         /// <param name="iOffset">Closest character we can find to the given offset on a line above or below.</param>
         /// <returns></returns>
-        protected override bool NavigateVertical( int iIncrement, int iAdvance, ref int iOffset ) {
+        protected override bool NavigateVertical( int iIncrement, float flAdvance, ref int iOffset ) {
             try {
                 // Any movement will put us out of this set of wrapped lines.
                 if( _rgClusters.Count < 1 )
@@ -56,7 +56,7 @@ namespace Play.Edit {
                 if( iWrapSegm + iIncrement > _iWrapCount )
                     return( false );
 
-                iOffset = FindNearestOffset( iWrapSegm + iIncrement, iAdvance );
+                iOffset = FindNearestOffset( iWrapSegm + iIncrement, flAdvance );
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( ArgumentOutOfRangeException ),
                                     typeof( NullReferenceException ) };
@@ -73,8 +73,8 @@ namespace Play.Edit {
         /// to the world coordinates. The maximim value is the screen width.
         /// </summary>
         /// <param name="iSegment">The particular segment we are interested in.</param>
-        /// <param name="iAdvance">The horizontal distance in "pixels" we are interested in.</param>
-        public int FindNearestOffset( int iSegment, int iAdvance ) {
+        /// <param name="flAdvance">The horizontal distance in "pixels" we are interested in.</param>
+        public int FindNearestOffset( int iSegment, float flAdvance ) {
             if( _rgClusters.Count < 1 )
                 return 0;
 
@@ -84,15 +84,15 @@ namespace Play.Edit {
                 iSegment = 0;
 
             try {
-                int iAdvanceLeftEm = iAdvance << 6;
+                float flAdvanceLeft = flAdvance;
                 int ClusterCompare( PgCluster oTry ) {
                     if( iSegment < oTry.Segment )
                         return -1;
                     if( iSegment > oTry.Segment )
                         return  1;
-                    if( iAdvanceLeftEm < oTry.AdvanceLeftEm )
+                    if( flAdvanceLeft < oTry.AdvanceLeft )
                         return -1;
-                    if( iAdvanceLeftEm >= oTry.AdvanceLeftEm + ( oTry.AdvanceOffsEm >> 1 ) )
+                    if( flAdvanceLeft >= oTry.AdvanceLeft + ( oTry.AdvanceOffs / 2 ) )
                         return 1;
                     return 0;
                 }
@@ -116,15 +116,15 @@ namespace Play.Edit {
         /// Find the nearest offset to the given advance at the top or bottom most wrapped line.
         /// </summary>
         /// <param name="iIncrement">-1, top most line. +1 bottom most line.</param>
-        /// <param name="iAdvance">Now many pixels to the right starting from left.</param>
+        /// <param name="flAdvance">Now many pixels to the right starting from left.</param>
         /// <param name="iOffset">Resulting glyph offset.</param>
-        protected override int OffsetVerticalBound( int iIncrement, int iAdvance ) {
+        protected override int OffsetVerticalBound( int iIncrement, float flAdvance ) {
             int iOffset = 0;
 
             if( iIncrement > 0 ) {
-                iOffset = FindNearestOffset( int.MaxValue, iAdvance );
+                iOffset = FindNearestOffset( int.MaxValue, flAdvance );
             } else {
-                iOffset = FindNearestOffset( int.MinValue, iAdvance );
+                iOffset = FindNearestOffset( int.MinValue, flAdvance );
             }
 
             return( iOffset );
@@ -190,7 +190,7 @@ namespace Play.Edit {
 			try {
                 PgCluster oCluster    = _rgClusters[_rgClusterMap[iOffset]];
                 int       iYOffset    = (int)base.Height * oCluster.Segment;
-				Point     pntLocation = new Point( oCluster.AdvanceLeftEm >> 6, iYOffset );
+				Point     pntLocation = new Point( (int)oCluster.AdvanceLeft, iYOffset );
                                              
 				return( pntLocation );
             } catch( Exception oEx ) {
@@ -210,20 +210,19 @@ namespace Play.Edit {
         /// first column valuse. Each column must have at least ONE character on it.
         /// </summary>
         protected void WrapSegmentNoWords( int iDisplayWidth ) {
-            iDisplayWidth <<= 6;
-            int iAdvance = 0;
+            float flAdvance = 0;
             _iWrapCount  = 0;
 
             if( _rgClusters.Count > 0 ) {
-                iAdvance = _rgClusters[0].Increment( iAdvance, _iWrapCount );
+                flAdvance = _rgClusters[0].Increment( flAdvance, _iWrapCount );
             }
 
             for( int iCluster = 1; iCluster < _rgClusters.Count; ++iCluster ) {
-                if( iAdvance + _rgClusters[iCluster].AdvanceOffsEm > iDisplayWidth ) {
-                    iAdvance = 0;
+                if( flAdvance + _rgClusters[iCluster].AdvanceOffs > iDisplayWidth ) {
+                    flAdvance = 0;
                     _iWrapCount++;
                 }
-                iAdvance = _rgClusters[iCluster].Increment( iAdvance, _iWrapCount );
+                flAdvance = _rgClusters[iCluster].Increment( flAdvance, _iWrapCount );
             }
         }
 
@@ -231,7 +230,7 @@ namespace Play.Edit {
         /// Load the current color range into the clusters list as much as possible.
         /// </summary>
         /// <remarks>Our formatting info can contain a fake EOL word that is outside the cluster limits.</remarks>
-        private bool LoadWord( IColorRange oWord, int iDisplayWidth, ref int iAdvance, ref int iIndex ) {
+        private bool LoadWord( IColorRange oWord, int iDisplayWidth, ref float flAdvance, ref int iIndex ) {
             while( iIndex < oWord.Offset + oWord.Length ) {
                 if( iIndex >= _rgClusters.Count )
                     return true;
@@ -239,10 +238,10 @@ namespace Play.Edit {
                 PgCluster oCluster = _rgClusters[iIndex];
 
                 // Put at least ONE character on a line. So advance MUST be > 0.
-                if( oCluster.IsVisible && iAdvance + oCluster.AdvanceOffsEm > iDisplayWidth && iAdvance > 0 )
+                if( oCluster.IsVisible && flAdvance + oCluster.AdvanceOffs > iDisplayWidth && flAdvance > 0 )
                     return false;
 
-                iAdvance = oCluster.Increment( iAdvance, _iWrapCount );
+                flAdvance = oCluster.Increment( flAdvance, _iWrapCount );
                 ++iIndex;
             }
             return true;
@@ -258,8 +257,7 @@ namespace Play.Edit {
                     return;
                 }
 
-                iDisplayWidth <<= 6;
-                int iAdvance  = 0;
+                float flAdvance  = 0;
                 _iWrapCount   = 0;
                 IEnumerator<IPgWordRange> oEnum = Words.GetEnumerator();
 
@@ -267,8 +265,8 @@ namespace Play.Edit {
                     int iIndex = oEnum.Current.Offset;
                     do {
                         // The first word on a line never get's a redo. Only it's tail will wrap.
-                        while( !LoadWord( oEnum.Current, iDisplayWidth, ref iAdvance, ref iIndex ) ) {
-                            iAdvance = 0;
+                        while( !LoadWord( oEnum.Current, iDisplayWidth, ref flAdvance, ref iIndex ) ) {
+                            flAdvance = 0;
                             _iWrapCount++;
                         }
                         if( !oEnum.MoveNext() )
@@ -276,16 +274,16 @@ namespace Play.Edit {
                         iIndex = oEnum.Current.Offset;
 
                         // There MUST be one word on line before try redo the next on the next line.
-                        if( !LoadWord( oEnum.Current, iDisplayWidth, ref iAdvance, ref iIndex ) ) {
-                            iAdvance = 0;
+                        if( !LoadWord( oEnum.Current, iDisplayWidth, ref flAdvance, ref iIndex ) ) {
+                            flAdvance = 0;
                             _iWrapCount++;                 // Advance the line/wrap
                             iIndex = oEnum.Current.Offset; // Redo the word on next line!
                         }
                     } while( true );
                 }
                 // Don't forget to patch up our trailing glyph that isn't in the source.
-                _rgClusters[_rgClusters.Count-1].AdvanceLeftEm = iAdvance;
-                _rgClusters[_rgClusters.Count-1].Segment       = _iWrapCount;
+                _rgClusters[_rgClusters.Count-1].AdvanceLeft = flAdvance;
+                _rgClusters[_rgClusters.Count-1].Segment     = _iWrapCount;
             } catch( Exception oEx ) {
                 Type[] rgError = { typeof( IndexOutOfRangeException ),
                                    typeof( ArgumentOutOfRangeException ),

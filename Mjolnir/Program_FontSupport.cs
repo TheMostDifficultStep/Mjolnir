@@ -68,18 +68,39 @@ namespace Mjolnir {
         public uint Glyph     { get; }
 
         public SKBitmap   Image       { get; }
-        public FTGlyphPos Coordinates { get; }
+        public PgGlyphPos Coordinates { get; }
         public UInt32     CodePoint   { get; }
         public int        CodeLength  { get; set; }
 
+        /// <summary>
+        /// Under FreeType, scaled pixel positions are all expressed in the 26.6 fixed 
+        /// float format (made of a 26-bit integer mantissa, and a 6-bit fractional part). 
+        /// In other words, all coordinates are MULTIPLIED by 64. The grid lines along 
+        /// the integer pixel positions, are multiples of 64, like (0,0), (64,0), (0,64), 
+        /// (128,128), etc., while the pixel centers lie at middle coordinates 
+        /// (32 modulo 64) like (32,32), (96,32), etc.   
+        /// I've seen references to EM's where are simple integers, but have not encountered
+        /// them so I don't know the context I might have to convert them. But it will happen
+        /// here somehow.
+        /// </summary>
         public GlyphInfo( uint uiFaceIndex, uint uiCodePoint, uint uiGlyph, SKBitmap skGlyphBmp, FTGlyphPos ftGlyphPos )
         {
             FaceIndex   = uiFaceIndex;
             Glyph       = uiGlyph;
             CodePoint   = uiCodePoint;
             Image       = skGlyphBmp;
-            Coordinates = ftGlyphPos;
             CodeLength  = 1; // default set UTF32 length. 1 32 bit value.
+
+            PgGlyphPos sTranslate;
+
+            sTranslate.left      = ftGlyphPos.left;
+            sTranslate.top       = ftGlyphPos.top;
+            sTranslate.advance_x = ftGlyphPos.advance_em_x / 64; // Convert the FT_Pos EM 26.6 to a float.
+            sTranslate.advance_y = ftGlyphPos.advance_em_y / 64;
+            sTranslate.delta_lsb = ftGlyphPos.delta_lsb    / 64;
+            sTranslate.delta_rsb = ftGlyphPos.delta_rsb    / 64;
+
+            Coordinates = sTranslate;
         }
     }
 
@@ -175,6 +196,10 @@ namespace Mjolnir {
                 throw new ApplicationException( "Couldn't generate the glyph from the given index: " + iError.ToString() );
         }
 
+        /// <summary>
+        /// First generate the glyph, then call this function to retrieve it.
+        /// </summary>
+        /// <exception cref="ApplicationException"></exception>
         protected SKBitmap GlyphCopyCurrent( out FTGlyphPos ftCoords ) {
             unsafe {
                 int iError = 0;

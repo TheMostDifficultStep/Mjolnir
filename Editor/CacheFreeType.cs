@@ -68,10 +68,10 @@ namespace Play.Edit {
     /// and the Glyph stream pos.
     /// </summary>
     public class PgCluster : IEnumerable<int> {
-        public FTGlyphPos Coordinates;
-        public int        AdvanceOffsEm { get => Coordinates.advance_em_x; 
-                                          set { Coordinates.advance_em_x = (short)value; } }
-        public int        AdvanceLeftEm { get; set; }
+        public PgGlyphPos Coordinates;
+        public float        AdvanceOffs { get => Coordinates.advance_x; 
+                                          set { Coordinates.advance_x = (short)value; } }
+        public float        AdvanceLeft { get; set; }
 
         public int ColorIndex { get; set; }
 
@@ -82,7 +82,7 @@ namespace Play.Edit {
         public bool IsVisible { get; set; } = true; // TODO: Map to Unicode data for this.
 
         public PgCluster( int iGlyphIndex ) {
-            Coordinates  = new FTGlyphPos();
+            Coordinates  = new PgGlyphPos();
 
             Glyphs.Offset = iGlyphIndex;
             Glyphs.Length = 0;
@@ -106,11 +106,11 @@ namespace Play.Edit {
             return GetEnumerator();
         }
 
-        public int Increment( int iAdvance, int iSegment ) {
-            Segment       = iSegment;
-            AdvanceLeftEm = iAdvance;
+        public float Increment( float fAdvance, int iSegment ) {
+            Segment     = iSegment;
+            AdvanceLeft = fAdvance;
 
-            return iAdvance + AdvanceOffsEm;
+            return fAdvance + AdvanceOffs;
         }
     }
 
@@ -173,11 +173,11 @@ namespace Play.Edit {
         /// Total width of the line UNWRAPPED. 
         /// BUG: Let's cache the max size at some point.
         /// </summary>
-        public int UnwrappedWidth { 
+        public float UnwrappedWidth { 
             get { 
                 if( _rgClusters.Count > 0 ) {
                     PgCluster oTop = _rgClusters[_rgClusters.Count - 1];
-                    return ( oTop.AdvanceLeftEm + oTop.AdvanceOffsEm ) >> 6;
+                    return oTop.AdvanceLeft + oTop.AdvanceOffs;
                 }
                 
                 return 0 ;
@@ -257,14 +257,14 @@ namespace Play.Edit {
             return 0;
         }
 
-        protected void Update_EndOfLine( IPgFontRender oFR, int iEmAdvanceAbs ) {
+        protected void Update_EndOfLine( IPgFontRender oFR, float fEmAdvanceAbs ) {
             PgCluster oCluster = new PgCluster(_rgGlyphs.Count);
             IPgGlyph  oGlyph   = oFR.GetGlyph(0x20);
 
-            oCluster.AdvanceLeftEm = iEmAdvanceAbs; // New left size advance.
-            oCluster.AdvanceOffsEm = oGlyph.Coordinates.advance_em_x;
-            oCluster.Coordinates   = oGlyph.Coordinates;
-            oCluster.IsVisible     = false;
+            oCluster.AdvanceLeft = fEmAdvanceAbs; // New left size advance.
+            oCluster.AdvanceOffs = oGlyph.Coordinates.advance_x;
+            oCluster.Coordinates = oGlyph.Coordinates;
+            oCluster.IsVisible   = false;
             oCluster.Glyphs.Length  = 1;
 
             _rgClusters.Add( oCluster );
@@ -408,20 +408,19 @@ namespace Play.Edit {
         /// <seealso cref="OnChangeSize"/>
         /// <seealso cref="FTCacheWrap.WrapSegmentNoWords(int)"/>
         public virtual void WrapSegments( int iDisplayWidth ) {
-            //iDisplayWidth <<= 6;
-            int iAdvance = 0;
-            int _iWrapCount  = 0;
+            float flAdvance  = 0;
+            int   iWrapCount = 0;
 
             if( _rgClusters.Count > 0 ) {
-                iAdvance = _rgClusters[0].Increment( iAdvance, _iWrapCount );
+                flAdvance = _rgClusters[0].Increment( flAdvance, iWrapCount );
             }
 
             for( int iCluster = 1; iCluster < _rgClusters.Count; ++iCluster ) {
-                if(  iAdvance + _rgClusters[iCluster].AdvanceOffsEm > iDisplayWidth ) {
-                    iAdvance = 0;
-                    _iWrapCount++;
+                if(  flAdvance + _rgClusters[iCluster].AdvanceOffs > iDisplayWidth ) {
+                    flAdvance = 0;
+                    iWrapCount++;
                 }
-                iAdvance = _rgClusters[iCluster].Increment( iAdvance, _iWrapCount );
+                flAdvance = _rgClusters[iCluster].Increment( flAdvance, iWrapCount );
             }
         }
 
@@ -526,7 +525,7 @@ namespace Play.Edit {
             PgCluster     oCluster )
         {
             SKRect skRect = new SKRect( flX, flY - LineHeight, // Wrestling with this. LineHeight or FontHeight isn't quite right.
-                                        flX + ( oCluster.AdvanceOffsEm >> 6 ), 
+                                        flX + ( oCluster.AdvanceOffs ), 
                                         flY );
 
             skPaint .BlendMode = SKBlendMode.Src;
@@ -563,7 +562,7 @@ namespace Play.Edit {
 			        foreach( PgCluster oCluster in _rgClusters ) {
                         int iYDiff = LineHeight * oCluster.Segment;
 
-                        float flX = pntLowerLeft.X + (float)(oCluster.AdvanceLeftEm >> 6); 
+                        float flX = pntLowerLeft.X + oCluster.AdvanceLeft; 
                         float flY = pntLowerLeft.Y + iYDiff - oCluster.Coordinates.top;
 
                         // Only draw if we need to override the last painted bg color.
@@ -621,7 +620,7 @@ namespace Play.Edit {
 			    foreach( PgCluster oCluster in _rgClusters ) {
                     int iYDiff = LineHeight * oCluster.Segment;
 
-                    float flX = pntLowerLeft.X + (float)(oCluster.AdvanceLeftEm >> 6); 
+                    float flX = pntLowerLeft.X + oCluster.AdvanceLeft; 
                     float flY = pntLowerLeft.Y + iYDiff - oCluster.Coordinates.top;
 
                     // Only draw if we need to override the last painted bg color.
@@ -700,12 +699,12 @@ namespace Play.Edit {
                 return 0;
 
             try {
-                int iWorldXEm = pntWorld.X << 6;
+                float flWorldXEm = pntWorld.X;
                 // -1 if the sought elem precedes the elem specified by the CompareTo method.
                 int ClusterCompare( PgCluster oTry ) {
-                    if( iWorldXEm < oTry.AdvanceLeftEm)
+                    if( flWorldXEm < oTry.AdvanceLeft)
                         return -1;
-                    if( iWorldXEm >= oTry.AdvanceLeftEm + oTry.AdvanceOffsEm >> 1 ) // divide by 2.
+                    if( flWorldXEm >= oTry.AdvanceLeft + oTry.AdvanceOffs / 2 ) // divide by 2.
                         return 1;
                     return 0;
                 }
@@ -745,7 +744,7 @@ namespace Play.Edit {
                 if( iOffset < 0 )
                     iOffset = 0;
 
-                return new Point( _rgClusters[_rgClusterMap[iOffset]].AdvanceLeftEm >> 6, 0 );
+                return new Point( (int)_rgClusters[_rgClusterMap[iOffset]].AdvanceLeft, 0 );
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( ArgumentOutOfRangeException ),
                                     typeof( NullReferenceException ) };
@@ -760,11 +759,11 @@ namespace Play.Edit {
         /// Move left or right on this line.
         /// </summary>
         /// <param name="iDir">+/- number of glyphs to move.</param>
-        /// <param name="iAdvance">Current graphics position on the line.</param>
+        /// <param name="flAdvance">Current graphics position on the line.</param>
         /// <param name="iOffset">Current logical position on the line.</param>
         /// <returns>True if able to move. False if positioning will move out of bounds.</returns>
         /// <remarks>TODO: In the future we must use the cluster info.</remarks>
-        protected virtual bool NavigateHorizontal( int iDir, ref int iAdvance, ref int iOffset ) {
+        protected virtual bool NavigateHorizontal( int iDir, ref float flAdvance, ref int iOffset ) {
             try {
                 int iNextCluster = _rgClusterMap[iOffset] + iDir;
                 
@@ -772,7 +771,7 @@ namespace Play.Edit {
                     PgCluster oNewCluster = _rgClusters[iNextCluster];
 
                     iOffset  = oNewCluster.Source.Offset;
-                    iAdvance = oNewCluster.AdvanceLeftEm >> 6;
+                    flAdvance = oNewCluster.AdvanceLeft;
                     return( true );
                 }
             } catch( Exception oEx ) {
@@ -793,17 +792,17 @@ namespace Play.Edit {
         /// <param name="iAdvance">Previous "pixel" offset on a given line. The wrapped value.</param>
         /// <param name="iOffset">Closest character we can find to the given offset on a line above or below.</param>
         /// <returns>false, always since one cannot navigate vertically on a non-wrapped line.</returns>
-        protected virtual bool NavigateVertical( int iDir, int iAdvance, ref int iOffset ) {
+        protected virtual bool NavigateVertical( int iDir, float flAdvance, ref int iOffset ) {
             return( false );
         }
 
-        public bool Navigate( Axis eAxis, int iDir, ref int iAdvance, ref int iOffset ) {
+        public bool Navigate( Axis eAxis, int iDir, ref float flAdvance, ref int iOffset ) {
             // See if we can navigate within the line we are currently at.
             switch( eAxis ) {
                 case Axis.Horizontal:
-                    return( NavigateHorizontal( iDir, ref iAdvance, ref iOffset ) );
+                    return( NavigateHorizontal( iDir, ref flAdvance, ref iOffset ) );
                 case Axis.Vertical:
-                    return( NavigateVertical( iDir, iAdvance, ref iOffset ) );
+                    return( NavigateVertical( iDir, flAdvance, ref iOffset ) );
             }
 
             throw new ArgumentOutOfRangeException( "expecting only horizontal or vertical" );
@@ -826,14 +825,14 @@ namespace Play.Edit {
         /// Find the nearest glyph offset to the given advance at the current line.
         /// </summary>
         /// <param name="iIncrement">Ignore the line wrap directive</param>
-        /// <param name="iAdvance">Now many pixels to the right starting from left.</param>
+        /// <param name="flAdvance">Now many pixels to the right starting from left.</param>
         /// <remarks>7/13/2020, in the new implementation, it looks like we're a little off
         /// but it seems to be related to spaces. Need to check their width.</remarks>
-        protected virtual int OffsetVerticalBound( int iIncrement, int iAdvance ) {
+        protected virtual int OffsetVerticalBound( int iIncrement, float flAdvance ) {
             int i = _rgClusters.Count - 1;
 
             try {
-                while( i > 0 && ( _rgClusters[i].AdvanceLeftEm >> 6 ) > iAdvance ) {
+                while( i > 0 && ( _rgClusters[i].AdvanceLeft ) > flAdvance ) {
                     --i;
                 }
             } catch( Exception oEx ) {
@@ -854,12 +853,12 @@ namespace Play.Edit {
         /// offset position for the carat on the new element.
         /// </summary>
         /// <returns>Offset position.</returns>
-        public int OffsetBound( Axis eAxis, int iIncrement, int iAdvance ) {
+        public int OffsetBound( Axis eAxis, int iIncrement, float flAdvance ) {
             switch( eAxis ) {
                 case Axis.Horizontal:
                     return OffsetHorizontalBound( iIncrement );
                 case Axis.Vertical:
-                    return OffsetVerticalBound( iIncrement, iAdvance );
+                    return OffsetVerticalBound( iIncrement, flAdvance );
             }
             throw new ArgumentOutOfRangeException( "Not horizontal or vertical axis" );
         }

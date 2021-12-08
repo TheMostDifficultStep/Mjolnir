@@ -49,6 +49,9 @@ extern "C" {
         unsigned char* bits;
     };
 
+    /// <summary>
+    /// Save the bitmap to a file.
+    /// </summary>
     FONTMANAGER_API bool PG_Save(FT_Bitmap oBmp, const char* strFile) {
         BITMAPFILEHEADER sBFH;
         BITMAPINFOHEADER sBIH;
