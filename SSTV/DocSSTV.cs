@@ -522,6 +522,7 @@ namespace Play.SSTV {
 
             TemplateList.LineAppend( "CQ" );
             TemplateList.LineAppend( "PnP Reply" );
+            TemplateList.LineAppend( "General Msg" );
             
 		    SyncImage   .Bitmap = new SKBitmap( 800, 616, SKColorType.Rgb888x, SKAlphaType.Unknown );
 		    ReceiveImage.Bitmap = new SKBitmap( 800, 616, SKColorType.Rgb888x, SKAlphaType.Opaque  );
@@ -811,7 +812,9 @@ namespace Play.SSTV {
             PropertyChange?.Invoke( eProp );
         }
 
-        public string MyCall => StdProperties[(int)SSTVProperties.Names.Tx_MyCall].ToString();
+        public string MyCall    => StdProperties[(int)SSTVProperties.Names.Tx_MyCall].ToString();
+        public string Message   => StdProperties[(int)SSTVProperties.Names.Tx_Message].ToString();
+        public string TheirCall => StdProperties[(int)SSTVProperties.Names.Tx_TheirCall].ToString();
 
 		public void SetTemplate( int iIndex ) {
 			try {
@@ -820,16 +823,21 @@ namespace Play.SSTV {
 				switch( iIndex ) {
 					case 0:
 						TxBitmapComp.AddImage   ( LOCUS.CENTER,      0,  0, 100.0, TxBitmapSnip );
-                        TxBitmapComp.AddGradient( LOCUS.TOP,                 20.0, SKColors.Blue, SKColors.Green );
-						TxBitmapComp.AddText    ( LOCUS.UPPERLEFT,   5,  0,  20.0, TxBitmapComp.StdFace, "CQ de " + MyCall );
+                        TxBitmapComp.AddGradient( LOCUS.TOP,                 23.0, SKColors.Blue, SKColors.Green );
+						TxBitmapComp.AddText    ( LOCUS.UPPERLEFT,   5,  5,  23.0, TxBitmapComp.StdFace, "CQ de " + MyCall );
 						break;
 					case 1:
 						TxBitmapComp.AddImage( LOCUS.CENTER,      0,  0, 100.0, TxBitmapSnip );
-						TxBitmapComp.AddText ( LOCUS.UPPERLEFT,   5,  0,  25.0, TxBitmapComp.StdFace, MyCall );
+						TxBitmapComp.AddText ( LOCUS.UPPERLEFT,   5,  5,  15.0, TxBitmapComp.StdFace, TheirCall + " de " + MyCall );
 						TxBitmapComp.AddImage( LOCUS.LOWERRIGHT, 10, 10,  30.0, RxHistoryList );
+						break;
+					case 2:
+						TxBitmapComp.AddImage( LOCUS.CENTER,      0,  0, 100.0, TxBitmapSnip );
+						TxBitmapComp.AddText ( LOCUS.UPPERLEFT,   5,  5,  20.0, TxBitmapComp.StdFace, Message );
 						break;
 				}
 
+                // Count so the stream object on the editor will seek correctly amoung the lines.
                 TxBitmapComp.Text.CharacterCount( 0 );
                 TxBitmapComp.Text.Raise_BufferEvent( BUFFEREVENTS.MULTILINE );
 			} catch( Exception oEx ) {
