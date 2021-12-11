@@ -344,7 +344,7 @@ namespace Play.Edit {
             for( int i=0; i<_rgLines.ElementCount; ++i ) {
                 _rgLines[i].Formatting.Clear();
             }
-            Raise_BufferEvent( BUFFEREVENTS.FORMATTED );  
+            Raise_BufferEvent( BUFFEREVENTS.CLEARFORMATTING );  
         }
 
         internal string FileEncoding {

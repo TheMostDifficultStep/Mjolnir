@@ -342,8 +342,8 @@ namespace Play.Edit {
 
             _rgClusters.Clear();
             PgCluster oCluster;
-            int       iEmAdvanceAbs = 0;
-            int       iGlyphIndex   = 0; // Keep track of where we are in our Glyphs.
+            float     flEmAdvanceAbs = 0; // BUG: this isn't being used, look into.
+            int       iGlyphIndex    = 0; // Keep track of where we are in our Glyphs.
 
             try {
                 while( iGlyphIndex < _rgGlyphs.Count ) {
@@ -381,7 +381,7 @@ namespace Play.Edit {
                     }
                 }
 
-                Update_EndOfLine ( oFR, iEmAdvanceAbs );
+                Update_EndOfLine ( oFR, flEmAdvanceAbs );
                 Update_ClusterMap();
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( NullReferenceException ),

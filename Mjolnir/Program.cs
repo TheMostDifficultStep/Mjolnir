@@ -452,7 +452,8 @@ namespace Mjolnir {
                                 typeof( OverflowException ),
                                 typeof( GrammerNotFoundException ),
                                 typeof( InvalidCastException ),
-                                typeof( ApplicationException ) };
+                                typeof( ApplicationException ),
+                                typeof( ArgumentOutOfRangeException ) };
             if (rgErrors.IsUnhandled(oEx))
                 throw oEx;
 

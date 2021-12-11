@@ -54,6 +54,11 @@ namespace Play.SSTV {
             if( !base.InitNew() ) 
                 return false;
             
+            // Set up the parser so we get spiffy colorization on our text!! HOWEVER,
+            // Some lines are not sending events to the Property_Values document and we
+            // need to trigger the parse seperately.
+            new ParseHandlerText( Property_Values, "text" );
+
             if( _oSiteBase.Host is not DocSSTV oSSTVDoc )
                 return false;
 
@@ -94,9 +99,6 @@ namespace Play.SSTV {
             LabelSet( Names.Rx_SaveDir,  "Save Dir" );
 
             InitValues();
-
-            // Set up the parser so we get spiffy colorization on our text!!
-            new ParseHandlerText( Property_Values, "text" );
 
             return true;
         }
@@ -514,6 +516,10 @@ namespace Play.SSTV {
             if( !StdProperties.InitNew() )
                 return false;
 
+            // Get these set up so our stdproperties get the updates.
+            TxImageList  .ImageUpdated += OnImageUpdated_TxImageList;
+            RxHistoryList.ImageUpdated += OnImageUpdated_RxImageList;
+
             TemplateList.LineAppend( "CQ" );
             TemplateList.LineAppend( "PnP Reply" );
             
@@ -539,10 +545,7 @@ namespace Play.SSTV {
 
             // Set this after TxImageList load since the CheckedLine call will 
             // call Listen_ModeChanged and that calls the properties update event.
-            RxModeList   .CheckedLine   = RxModeList[0];
-
-            TxImageList  .ImageUpdated += OnImageUpdated_TxImageList;
-            RxHistoryList.ImageUpdated += OnImageUpdated_RxImageList;
+            RxModeList.CheckedLine = RxModeList[0];
 
             return true;
         }
@@ -826,6 +829,9 @@ namespace Play.SSTV {
 						TxBitmapComp.AddImage( LOCUS.LOWERRIGHT, 10, 10,  30.0, RxHistoryList );
 						break;
 				}
+
+                TxBitmapComp.Text.CharacterCount( 0 );
+                TxBitmapComp.Text.Raise_BufferEvent( BUFFEREVENTS.MULTILINE );
 			} catch( Exception oEx ) {
 				Type[] rgErrors = { typeof( NullReferenceException ),
 									typeof( ArgumentOutOfRangeException ) };

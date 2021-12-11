@@ -293,6 +293,7 @@ namespace Play.Forms {
         /// Use this when you've updated properties independently and want to finally notify the viewers.
         /// </summary>
         public void RaiseBufferEvent() {
+            Property_Values.CharacterCount( 0 );
             Property_Values.Raise_BufferEvent( BUFFEREVENTS.MULTILINE ); 
         }
     }

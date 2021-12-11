@@ -8,6 +8,7 @@ using SkiaSharp;
 using Play.Interfaces.Embedding;
 using Play.Rectangles;
 using Play.Edit;
+using Play.Integration;
 
 namespace Play.ImageViewer {
 
@@ -265,9 +266,26 @@ namespace Play.ImageViewer {
             if( !base.Initialize() )
                 return false;
 
-            StdFace = _oStdUI.FaceCache(  @"C:\windows\fonts\impact.ttf" );
+            try {
+                StdFace = _oStdUI.FaceCache(  @"C:\windows\fonts\impact.ttf" );
+                new ParseHandlerText( Text, "text" );
+                Text.BufferEvent += OnBufferEvent_Text;
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( InvalidOperationException ),
+                                    typeof( NullReferenceException ),
+                                    typeof( ArgumentNullException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
+
+                LogError( "Image composite", "Could not init Text handlers." );
+                return false;
+            }
 
             return true;
+        }
+
+        public override bool InitNew() {
+            return base.InitNew();
         }
 
         public override void Dispose() {
@@ -282,6 +300,11 @@ namespace Play.ImageViewer {
             _oSiteBase.LogError( strMessage, strDetails, fShow );
         }
 
+        private void OnBufferEvent_Text(BUFFEREVENTS eEvent) {
+            if( eEvent == BUFFEREVENTS.FORMATTED ) {
+                RenderImage();
+            }
+        }
 
         public void AddImage( LOCUS eOrigin, int iX, int iY, double dblSize, ImageSoloDoc oSoloBmp ) {
             SoloImgBlock oBlock = new( eOrigin, iX, iY, dblSize, oSoloBmp );

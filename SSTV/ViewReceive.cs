@@ -67,6 +67,11 @@ namespace Play.SSTV {
 
 			InitRows( rgShow );
         }
+
+		// Use this for debugging if necessary.
+		//protected override void OnDocumentEvent( BUFFEREVENTS eEvent ) {
+		//	base.OnDocumentEvent( eEvent );
+		//}
     }
 
 	/// <summary>

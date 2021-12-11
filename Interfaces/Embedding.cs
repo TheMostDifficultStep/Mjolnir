@@ -139,11 +139,12 @@ namespace Play.Interfaces.Embedding {
     // Defining events in this manner, we can add to the list and not break everyone
     // versus adding new methods to our interface.
     public enum BUFFEREVENTS : int {
-        MULTILINE    = 1, // Multiple lines edited and/or inserts
-        SINGLELINE   = 2, // Basically character edit on a single line
-        FORMATTED    = 4,
-        WORDSUPDATED = 8,
-        LOADED		 = 16
+        MULTILINE       = 1, // Multiple lines edited and/or inserts
+        SINGLELINE      = 2, // Basically character edit on a single line
+        FORMATTED       = 4,
+        WORDSUPDATED    = 8,
+        LOADED		    = 16,
+        CLEARFORMATTING = 32
 		//, CLOSED (DISPOSED)
     }
 

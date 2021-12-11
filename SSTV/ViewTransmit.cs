@@ -215,6 +215,7 @@ namespace Play.SSTV {
 				_wmTxImageChoice.Aspect = _oDocSSTV.TxResolution;
 
 				_oDocSSTV.SetTemplate( oLineChecked.At );
+				// Why not render...
 			} catch( NullReferenceException ) {
 				LogError( "Transmit", "Problem setting aspect for template" );
 			}

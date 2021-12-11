@@ -217,7 +217,7 @@ namespace Play.Forms {
         /// <summary>
         /// Just update the entire cache. We'll get more selective in the future.
         /// </summary>
-        protected void OnDocumentEvent( BUFFEREVENTS eEvent ) {
+        protected virtual void OnDocumentEvent( BUFFEREVENTS eEvent ) {
             switch( eEvent ) {
                 case BUFFEREVENTS.FORMATTED:
                 case BUFFEREVENTS.SINGLELINE:

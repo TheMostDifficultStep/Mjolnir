@@ -281,7 +281,7 @@ namespace Play.Edit {
                         }
                     } while( true );
                 }
-                // Don't forget to patch up our trailing glyph that isn't in the source.
+                // Don't forget to patch up our trailing glyph that isn't in the source. See Update()
                 _rgClusters[_rgClusters.Count-1].AdvanceLeft = flAdvance;
                 _rgClusters[_rgClusters.Count-1].Segment     = _iWrapCount;
             } catch( Exception oEx ) {

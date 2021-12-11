@@ -177,6 +177,9 @@ namespace Play.Edit {
         protected readonly LayoutRect            _rctTextArea = new LayoutRect( LayoutRect.CSS.None );
         protected readonly LayoutStackHorizontal _oLayout     = new LayoutStackHorizontal( 5 );
 
+        // Possible to change if move window from one screen to another. Right now only init at start.
+        public SizeF DPI { get; protected set; }
+
         // see System.Collections.ReadOnlyCollectionBase for readonly collections.
         readonly static Keys[] _rgHandledKeys = { Keys.PageDown, Keys.PageUp, Keys.Down,
                                                   Keys.Up, Keys.Right, Keys.Left, Keys.Back,
@@ -329,12 +332,14 @@ namespace Play.Edit {
             CaretIconRefreshLocation();
 
             using( Graphics oGraphics = this.CreateGraphics() ) {
+                DPI = new SizeF( oGraphics.DpiX, oGraphics.DpiY );
+
                 int iWidth        = (int)(oGraphics.DpiX * _szScrollBars.Width);
                 var oLayoutSBVirt = new LayoutControl( _oScrollBarVirt, LayoutRect.CSS.Pixels, (uint)iWidth);
                     _rctCheques   = new LayoutRect( LayoutRect.CSS.Pixels, (uint)_oCheque.Coordinates.advance_x, 0 );
 
                 _oLayout.Add( oLayoutSBVirt );   // Scrollbar
-                if( _fCheckMarks )                  // If I could turn off columns I wouldn't need to do this.
+                if( _fCheckMarks )               // If I could turn off columns I wouldn't need to do this.
                     _oLayout.Add( _rctCheques ); // Whoooo! new select column!!
                 _oLayout.Add( _rctTextArea  );   // Main text area.
 

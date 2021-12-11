@@ -105,7 +105,8 @@ namespace Play.Forms {
 
             Caret.Layout = CacheList[0];
 
-            //Document.PropertyEvents += OnPropertyEvent;
+            // The base formwindow already gets these, see the constructor.
+            //Document.Property_Values.BufferEvent += OnBufferEvent_Doc_Property_Values;
 
             OnPropertyEvent( BUFFEREVENTS.MULTILINE );
             OnSizeChanged( new EventArgs() );

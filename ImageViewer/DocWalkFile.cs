@@ -425,6 +425,9 @@ namespace Play.ImageViewer {
 		}
 
 		public virtual bool InitNew() {
+            if( !Initialize() )
+                return false;
+
 			Raise_BitmapDispose();
 
 			return true;
@@ -798,7 +801,7 @@ namespace Play.ImageViewer {
         }
 
 		public override bool InitNew() {
-            if( !Initialize() ) 
+            if( !base.InitNew() ) 
                 return( false );
 
             if( !FileList.InitNew() )

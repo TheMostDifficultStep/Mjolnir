@@ -129,11 +129,15 @@ namespace Play.Integration {
 		/// Standard text parser. See the ParseTags.cs file for more on the HTML parser.
 		/// </summary>
 		/// <exception cref="InvalidOperationException" />
+        /// <exception cref="ArgumentOutOfRangeException" />
+        /// <exception cref="ArgumentNullException" />
         public ParseHandlerText( Editor oDocument, string strLangName ) {
 			_oDocument = oDocument ?? throw new ArgumentNullException( "Parser listener needs an editor to monitor" );
 
 			try {
 				_oTextGrammar = (Grammer<char>)((IPgGrammers)oDocument.Services).GetGrammer( strLangName );
+                if ( _oTextGrammar == null )
+                    throw new ArgumentOutOfRangeException();
 			} catch ( Exception oEx ) {
                 Type[] rgErrors = { typeof( NullReferenceException ),
                                     typeof( InvalidCastException ),
@@ -148,6 +152,8 @@ namespace Play.Integration {
             _oWorkPlace = ((IPgScheduler)_oDocument.Services).CreateWorkPlace() ?? throw new InvalidOperationException( "Need the scheduler service in order to work. ^_^;" );
             _oStream    = _oDocument.CreateStream() ?? throw new InvalidProgramException( "Parser Listener couldn't create a stream from the document" );
 
+            // BUG BUG!! This is kind of evil. Really should be in an InitNew() stage. But since last step
+            //           before exit we should be ok. And moving it now is a bear.
             _oDocument.BufferEvent += _oDocEvent = new BufferEvent(this.OnEvent);   
         }
 
@@ -198,7 +204,7 @@ namespace Play.Integration {
         }
 
         /// <summary>
-        /// Note tha the parser calls _Doc.Raise( BUFFEREVENTS.FORMATTED ) in OnFinished()
+        /// Note that the parser calls _Doc.Raise( BUFFEREVENTS.FORMATTED ) in OnFinished()
         /// we end up back here!! So be careful!! Note also, that we're not forwarding
         /// that FORMATTED event back out to the views here. Views only get the event
         /// via their IBufferEvents interface.
