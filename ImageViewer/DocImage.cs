@@ -268,8 +268,6 @@ namespace Play.ImageViewer {
 
             try {
                 StdFace = _oStdUI.FaceCache(  @"C:\windows\fonts\impact.ttf" );
-                new ParseHandlerText( Text, "text" );
-                Text.BufferEvent += OnBufferEvent_Text;
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( InvalidOperationException ),
                                     typeof( NullReferenceException ),
@@ -300,12 +298,6 @@ namespace Play.ImageViewer {
             _oSiteBase.LogError( strMessage, strDetails, fShow );
         }
 
-        private void OnBufferEvent_Text(BUFFEREVENTS eEvent) {
-            if( eEvent == BUFFEREVENTS.FORMATTED ) {
-                RenderImage();
-            }
-        }
-
         public void AddImage( LOCUS eOrigin, int iX, int iY, double dblSize, ImageSoloDoc oSoloBmp ) {
             SoloImgBlock oBlock = new( eOrigin, iX, iY, dblSize, oSoloBmp );
 
@@ -321,7 +313,7 @@ namespace Play.ImageViewer {
         public void AddText( LOCUS eOrigin, int iX, int iY, double dblSize, ushort uFaceID, string strText = "" ) {
             Line      oLine  = Text.LineAppend( strText, fUndoable:false );
             TextBlock oBlock = new( eOrigin, iX, iY, dblSize, oLine ) { FaceID = uFaceID };
-            
+
             _rgChildren.Add( oBlock );
         }
 
@@ -359,6 +351,9 @@ namespace Play.ImageViewer {
                 Size szExtent = new Size( Bitmap.Width, Bitmap.Height );
 
                 foreach( Block oBlock in _rgChildren ) {
+                    if( oBlock is TextBlock oTextBlock ) {
+                        Text.WordBreak( oTextBlock.CacheElem.Line, oTextBlock.CacheElem.Words); 
+                    }
                     oBlock.Update( _oStdUI, szExtent );
                     oBlock.Paint ( skCanvas );
                 }
