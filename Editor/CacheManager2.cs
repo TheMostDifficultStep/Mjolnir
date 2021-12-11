@@ -335,7 +335,9 @@ namespace Play.Edit {
         } // end method
 
 		/// <remarks>TODO: Work in progress. Clearly looking for formatting right after
-        /// an update might not be wise.</remarks>
+        /// an update might not be wise. NOTE: Word breaking is different than formatting,
+        /// I always forget this! If you are making your own text display you'll
+        /// need this WordBreak() call somewhere equivalently.</remarks>
         protected void ElemUpdate( FTCacheLine oElem ) {
 			try {
                 _oSite.WordBreak( oElem.Line, oElem.Words );

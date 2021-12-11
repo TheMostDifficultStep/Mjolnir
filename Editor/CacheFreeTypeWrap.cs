@@ -247,6 +247,19 @@ namespace Play.Edit {
             return true;
         }
 
+        /// <summary>
+        /// Wrap the segments to make intelligent word wrap on a line. Word wrapping
+        /// ONLY HAPPENS ON WINDOWED PAGE! This is because other views might have other
+        /// widths so we compute the wrapping for each window, but only for the portion
+        /// visible.
+        /// </summary>
+        /// <remarks>In the standard text editor case the window's cache manager
+        /// makes sure that the Words array is populated by running a word
+        /// breaker for each cached line. Outside of the EditWindow world you'll
+        /// have to see that word breaking is done in some other manner.</remarks>
+        /// <param name="iDisplayWidth">Width in pixels.</param>
+        /// <seealso cref="CacheManagerAbstractSite.WordBreak"/>
+        /// <seealso cref="CacheManager2.ElemUpdate"/>
         public override void WrapSegments( int iDisplayWidth ) {
             try {
                 if( _rgClusters.Count < 1 )
