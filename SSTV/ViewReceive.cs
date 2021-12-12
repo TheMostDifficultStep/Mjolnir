@@ -38,7 +38,8 @@ namespace Play.SSTV {
 				(int)SSTVProperties.Names.Rx_Progress,
 				(int)SSTVProperties.Names.Rx_SaveDir,
 				(int)SSTVProperties.Names.Rx_SaveName,
-				(int)SSTVProperties.Names.Tx_TheirCall
+				(int)SSTVProperties.Names.Tx_TheirCall,
+				(int)SSTVProperties.Names.Tx_RST
 			};
 
 			InitRows( rgShow );

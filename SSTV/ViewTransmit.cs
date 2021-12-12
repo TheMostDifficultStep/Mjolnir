@@ -233,7 +233,7 @@ namespace Play.SSTV {
 		}
 
         private void OnCheckedEvent_TemplateList(Line oLineChecked) {
-            _oDocSSTV.SetTemplate( oLineChecked.At );
+            _oDocSSTV.TemplateSet( oLineChecked.At );
 			RenderComposite();
         }
 
@@ -241,7 +241,7 @@ namespace Play.SSTV {
 			try {
 				_wmTxImageChoice.Aspect = _oDocSSTV.TxResolution;
 
-				_oDocSSTV.SetTemplate( oLineChecked.At );
+				_oDocSSTV.TemplateSet( oLineChecked.At );
 				// Why not render...
 			} catch( NullReferenceException ) {
 				LogError( "Transmit", "Problem setting aspect for template" );
@@ -342,7 +342,7 @@ namespace Play.SSTV {
 
 				int iTemplate = _oDocSSTV.TemplateList.CheckedLine is Line oChecked ? oChecked.At : 0;
 
-				_oDocSSTV.SetTemplate( iTemplate );
+				_oDocSSTV.TemplateSet( iTemplate );
 				_oDocSSTV.TxBitmapComp.RenderImage();
 
 				return true;

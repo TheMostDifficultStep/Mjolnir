@@ -756,23 +756,24 @@ namespace Play.SSTV {
             PropertyChange?.Invoke( eProp );
         }
 
-        public string MyCall    => StdProperties[(int)SSTVProperties.Names.Tx_MyCall].ToString();
+        public string MyCall    => StdProperties[(int)SSTVProperties.Names.Tx_MyCall].ToString().ToUpper();
         public string Message   => StdProperties[(int)SSTVProperties.Names.Tx_Message].ToString();
-        public string TheirCall => StdProperties[(int)SSTVProperties.Names.Tx_TheirCall].ToString();
+        public string TheirCall => StdProperties[(int)SSTVProperties.Names.Tx_TheirCall].ToString().ToUpper();
+        public string RST       => StdProperties[(int)SSTVProperties.Names.Tx_RST].ToString();
 
-		public void SetTemplate( int iIndex ) {
+		public void TemplateSet( int iIndex ) {
 			try {
 				TxBitmapComp.Clear();
 
 				switch( iIndex ) {
 					case 0:
 						TxBitmapComp.AddImage   ( LOCUS.CENTER,      0,  0, 100.0, TxBitmapSnip );
-                        TxBitmapComp.AddGradient( LOCUS.TOP,                 23.0, SKColors.Blue, SKColors.Green );
-						TxBitmapComp.AddText    ( LOCUS.UPPERLEFT,   5,  5,  23.0, TxBitmapComp.StdFace, "CQ de " + MyCall );
+                        TxBitmapComp.AddGradient( LOCUS.TOP,                 24.0, SKColors.Blue, SKColors.Green );
+						TxBitmapComp.AddText    ( LOCUS.UPPERLEFT,   5,  5,  24.0, TxBitmapComp.StdFace, "CQ de " + MyCall );
 						break;
 					case 1:
 						TxBitmapComp.AddImage( LOCUS.CENTER,      0,  0, 100.0, TxBitmapSnip );
-						TxBitmapComp.AddText ( LOCUS.UPPERLEFT,   5,  5,  15.0, TxBitmapComp.StdFace, TheirCall + " de " + MyCall );
+						TxBitmapComp.AddText ( LOCUS.UPPERLEFT,   5,  5,  15.0, TxBitmapComp.StdFace, TheirCall + " de " + MyCall + " " + RST );
 						TxBitmapComp.AddImage( LOCUS.LOWERRIGHT, 10, 10,  30.0, RxHistoryList );
 						break;
 					case 2:

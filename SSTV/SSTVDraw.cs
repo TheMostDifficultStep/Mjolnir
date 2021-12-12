@@ -405,8 +405,8 @@ namespace Play.SSTV {
 
 			Send_TvEvents?.Invoke(SSTVEvents.SSTVMode, (int)Mode.LegacyMode );
 
-            //using SKCanvas sKCanvas = new(_pBitmapRX);
-            //sKCanvas.Clear(SKColors.Gray);
+            using SKCanvas sKCanvas = new(_pBitmapRX);
+            sKCanvas.Clear(SKColors.Gray);
             _skD12Canvas.Clear();
 
 			StartTime = DateTime.Now;
