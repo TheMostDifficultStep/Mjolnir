@@ -645,6 +645,9 @@ namespace Play.SSTV {
                         case "MyCall":
                             StdProperties.ValueUpdate( SSTVProperties.Names.Tx_MyCall, oNode.InnerText );
                             break;
+                        case "Message":
+                            StdProperties.ValueUpdate( SSTVProperties.Names.Tx_Message, oNode.InnerText );
+                            break;
                     }
                 }
 			} catch( Exception oEx ) {
@@ -664,7 +667,6 @@ namespace Play.SSTV {
         }
 
         public bool Save( TextWriter oStream ) {
-
 			try {
                 XmlDocument oDoc  = new ();
                 XmlElement  oRoot = oDoc.CreateElement( "MySSTV" );
@@ -692,6 +694,7 @@ namespace Play.SSTV {
                 StringProperty( "ImageQuality",   SSTVProperties.Names.Std_ImgQuality );
                 StringProperty( "DigiOutputGain", SSTVProperties.Names.Std_MicGain );
                 StringProperty( "MyCall",         SSTVProperties.Names.Tx_MyCall );
+                StringProperty( "Message",        SSTVProperties.Names.Tx_Message );
 
                 oDoc.Save( oStream );
 			} catch( Exception oEx ) {

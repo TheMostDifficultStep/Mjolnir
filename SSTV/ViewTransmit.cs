@@ -296,6 +296,15 @@ namespace Play.SSTV {
 					_wmTxImageChoice.Execute( sGuid );
 				}
 			}
+			if( sGuid == GlobalCommands.Copy ) {
+				if( _wmTxImageChoice.Focused ) {
+					_wmTxImageChoice.Execute( sGuid );
+				}
+				//if( _wmTxImageComposite.Focused ) {
+				//	RenderComposite();
+				//	_oDocSSTV.TxBitmapComp.Execute( sGuid );
+				//}
+			}
 			return false;
         }
 

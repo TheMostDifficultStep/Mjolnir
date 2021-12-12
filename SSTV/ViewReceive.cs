@@ -663,7 +663,11 @@ namespace Play.SSTV {
 					_wnSoloImageNav.Execute( sGuid );
 				}
 			}
-
+			if( sGuid == GlobalCommands.Copy ) {
+				if( _wnSoloImageNav.Focused ) {
+					_wnSoloImageNav.Execute( sGuid );
+				}
+			}
 			return false;
         }
 
