@@ -851,7 +851,8 @@ namespace Play.SSTV {
 		public void OnModeTransition_SSTVMod( SSTVMode oMode ) {
 			if( oMode == null ) {
 				RenderDiagnosticsOverlay();
-				Send_TvEvents?.Invoke( SSTVEvents.SSTVMode, (int)oMode.LegacyMode );
+				int iLegacy = oMode != null ? (int)oMode.LegacyMode : -1;
+				Send_TvEvents?.Invoke( SSTVEvents.SSTVMode, iLegacy );
 				return;
 			}
 
