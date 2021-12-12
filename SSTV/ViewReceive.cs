@@ -18,31 +18,6 @@ using Play.Sound;
 
 namespace Play.SSTV {
     /// <summary>
-	/// Show a subset of the SSTV Properties. The Transmit one's only.
-    /// </summary>
-    public class ViewTxProperties : 
-        WindowStandardProperties
-     {
-        public static Guid GUID {get;} = new Guid("{80C855E0-C2F6-4641-9A7C-B6A8A53B3FDF}");
-
-		public ViewTxProperties( IPgViewSite oViewSite, DocProperties oDocument ) : base( oViewSite, oDocument ) {
-		}
-
-        public override void InitRows() {
-			int[] rgShow = { 
-				(int)SSTVProperties.Names.Tx_Progress,
-				(int)SSTVProperties.Names.Tx_SrcDir,
-				(int)SSTVProperties.Names.Tx_SrcFile,
-				(int)SSTVProperties.Names.Tx_MyCall,
-				(int)SSTVProperties.Names.Tx_TheirCall,
-				(int)SSTVProperties.Names.Tx_RST,
-				(int)SSTVProperties.Names.Tx_Message };
-
-            base.InitRows(rgShow);
-        }
-    }
-
-    /// <summary>
 	/// This viewer shows a subset of all SSTV Properties. Those for the Receiver only.
     /// </summary>
     public class ViewRxProperties : 
@@ -56,6 +31,7 @@ namespace Play.SSTV {
 
         public override void InitRows() {
 			int[] rgShow = { 
+				(int)SSTVProperties.Names.Std_Process,
 				(int)SSTVProperties.Names.Rx_Mode,
 				(int)SSTVProperties.Names.Rx_Width,
 				(int)SSTVProperties.Names.Rx_Height,
@@ -678,6 +654,14 @@ namespace Play.SSTV {
 			if( sGuid == GlobalCommands.JumpNext) {
 				_wnSoloImageNav.BringToFront();
 				return true;
+			}
+			if( sGuid == GlobalCommands.JumpParent ) {
+				_oDocSSTV.RxHistoryList.Execute( sGuid );
+			}
+			if( sGuid == GlobalCommands.Delete ) {
+				if( _wnSoloImageNav.Focused ) {
+					_wnSoloImageNav.Execute( sGuid );
+				}
 			}
 
 			return false;

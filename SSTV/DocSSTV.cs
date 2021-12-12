@@ -44,7 +44,9 @@ namespace Play.SSTV {
             Std_MnPort,
 			Std_TxPort,
             Std_RxPort,
-            Std_ImgQuality
+            Std_ImgQuality,
+            Std_Process,
+            Std_MicGain
         }
 
         public SSTVProperties( IPgBaseSite oSiteBase ) : base( oSiteBase ) {
@@ -78,10 +80,12 @@ namespace Play.SSTV {
             }
 
             // TODO: Need a way to clear the monitor check if don't want to monitor.
-            LabelSet( Names.Std_MnPort,    "Monitor with Device" );
-            LabelSet( Names.Std_TxPort,    "Transmit  to Device" );
-            LabelSet( Names.Std_RxPort,    "Receive from Device" );
+            LabelSet( Names.Std_MnPort,     "Monitor with Device" );
+            LabelSet( Names.Std_TxPort,     "Transmit  to Device" );
+            LabelSet( Names.Std_RxPort,     "Receive from Device" );
             LabelSet( Names.Std_ImgQuality, "Image Save Quality" );
+            LabelSet( Names.Std_Process,    "Task Status" );
+            LabelSet( Names.Std_MicGain,    "Output Gain < 30,000" );
 
             LabelSet( Names.Tx_MyCall,    "My    Call" );
             LabelSet( Names.Tx_TheirCall, "Their Call" );
@@ -110,6 +114,7 @@ namespace Play.SSTV {
             ValueUpdate( Names.Std_ImgQuality, "80", true );
             ValueUpdate( Names.Tx_MyCall,      "ab6xy" );
             ValueUpdate( Names.Tx_Progress,    "-" );
+            ValueUpdate( Names.Std_MicGain,    "10000" ); // Out of 30,000
         }
 
         /// <summary>
@@ -627,6 +632,9 @@ namespace Play.SSTV {
                         case "ImageQuality":
                             StdProperties.ValueUpdate( SSTVProperties.Names.Std_ImgQuality, oNode.InnerText );
                             break;
+                        case "DigiOutputGain":
+                            StdProperties.ValueUpdate( SSTVProperties.Names.Std_MicGain, oNode.InnerText );
+                            break;
                     }
                 }
 			} catch( Exception oEx ) {
@@ -675,6 +683,13 @@ namespace Play.SSTV {
                     XmlElement oElem = oDoc.CreateElement( "ImageQuality" );
                     if( StdProperties[SSTVProperties.Names.Std_ImgQuality].ToString() is string strQuality ) {
                         oElem.InnerText = strQuality;
+                        oRoot.AppendChild( oElem );
+                    }
+                }
+                {
+                    XmlElement oElem = oDoc.CreateElement( "DigiOutputGain" );
+                    if( StdProperties[SSTVProperties.Names.Std_MicGain].ToString() is string strMicGain ) {
+                        oElem.InnerText = strMicGain;
                         oRoot.AppendChild( oElem );
                     }
                 }
@@ -884,6 +899,8 @@ namespace Play.SSTV {
 
         public WorkerStatus Status => _oWorkPlace.Status;
 
+        protected int MicrophoneGain => StdProperties.ValueAsInt( SSTVProperties.Names.Std_MicGain );
+
         /// <summary>
         /// Begin transmitting the image.
         /// </summary>
@@ -908,7 +925,7 @@ namespace Play.SSTV {
                     Specification oTxSpec = new Specification( 11025, 1, 0, 16 );
 
                     _oSSTVBuffer    = new BufferSSTV( oTxSpec );
-					_oSSTVModulator = new SSTVMOD( 0, oTxSpec.Rate, _oSSTVBuffer );
+					_oSSTVModulator = new SSTVMOD( 0, oTxSpec.Rate, _oSSTVBuffer, MicrophoneGain );
 
                     if( GeneratorSetup( oMode, TxBitmapComp.Bitmap ) ) {
                         if( _oPlayer == null ) {
@@ -961,7 +978,7 @@ namespace Play.SSTV {
         /// Haven't set this up for continuous receive. This thread is just
         /// for the file decode right now.
         /// </summary>
-        public IEnumerator<int> GetTaskThreadListener( ThreadWorkerBase oWorker ) {
+        public IEnumerator<int> GetTaskReceiver( ThreadWorkerBase oWorker ) {
             while( true ) {
                 //if( !_oThread.IsAlive && oWorker.IsForever) {
                 //    // We don't expect forever threads, like listening to audio to suddenly die 
@@ -1078,7 +1095,7 @@ namespace Play.SSTV {
                 _oThread = new Thread( threadDelegate );
                 _oThread.Start();
 
-                _oWorkPlace.Queue( GetTaskThreadListener( oWorker ), 1 );
+                _oWorkPlace.Queue( GetTaskReceiver( oWorker ), 1 );
                 StdProperties.ValueUpdate( SSTVProperties.Names.Rx_Progress, "Start: File Read...", true );
             }
         }
@@ -1090,7 +1107,7 @@ namespace Play.SSTV {
         public void ReceiveLiveStop() {
             RxModeList.HighLight = null;
 
-            StdProperties.ValueUpdate( SSTVProperties.Names.Rx_Progress, "Stopping...", true );
+            StdProperties.ValueUpdate( SSTVProperties.Names.Std_Process, "Stopping...", true );
 
             _rgUItoBGQueue.Enqueue( new TVMessage( TVMessage.Message.ExitWorkThread ) );
             if( _oWaveOut != null ) {
@@ -1102,11 +1119,11 @@ namespace Play.SSTV {
                 _oWaveIn = null;
             }
 
-            StdProperties.ValueUpdate( SSTVProperties.Names.Rx_Progress, "Stopped: Wav I/O.", true );
+            StdProperties.ValueUpdate( SSTVProperties.Names.Std_Process, "Stopped: Wav I/O.", true );
             _oThread = null;
             _oWorkPlace.Stop();
 
-            StdProperties.ValueUpdate( SSTVProperties.Names.Rx_Progress, "Stopped: All.", true );
+            StdProperties.ValueUpdate( SSTVProperties.Names.Std_Process, "Stopped: All.", true );
         }
 
         /// <summary>
@@ -1169,7 +1186,7 @@ namespace Play.SSTV {
                     _oThread = new Thread( threadDelegate );
                     _oThread.Start(); // Can send out of memory exception!
 
-                    _oWorkPlace.Queue( GetTaskThreadListener( oWorker ), 1 );
+                    _oWorkPlace.Queue( GetTaskReceiver( oWorker ), 1 );
 
                     _oWaveBuf?.ClearBuffer();
                     if( _oWaveOut != null ) {
@@ -1181,7 +1198,7 @@ namespace Play.SSTV {
                         _oWaveIn.StartRecording();
                     }
 
-                    StdProperties.ValueUpdate( SSTVProperties.Names.Rx_Progress, "Start: Live.", true );
+                    StdProperties.ValueUpdate( SSTVProperties.Names.Std_Process, "Start: Live.", true );
                 } catch( Exception oEx ) {
                     Type[] rgErrors = { typeof( NullReferenceException ),
                                         typeof( ArgumentNullException ),
@@ -1191,6 +1208,7 @@ namespace Play.SSTV {
                     if( rgErrors.IsUnhandled( oEx ) )
                         throw;
 
+                    StdProperties.ValueUpdate( SSTVProperties.Names.Std_Process, "Start: Error.", true );
                     LogError( "Couldn't launch recording thread." );
                 }
             }

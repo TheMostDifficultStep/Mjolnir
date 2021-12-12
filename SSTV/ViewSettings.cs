@@ -56,7 +56,8 @@ namespace Play.SSTV {
             SSTVProperties.Names[] rgShow = { SSTVProperties.Names.Std_MnPort, 
                                               SSTVProperties.Names.Std_TxPort, 
                                               SSTVProperties.Names.Std_RxPort, 
-                                              SSTVProperties.Names.Std_ImgQuality };
+                                              SSTVProperties.Names.Std_ImgQuality,
+                                              SSTVProperties.Names.Std_MicGain };
 
             if( Layout2 is SmartTable oTable ) {
                 foreach( SSTVProperties.Names eName in rgShow ) {

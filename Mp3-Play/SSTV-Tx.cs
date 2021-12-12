@@ -119,7 +119,6 @@ namespace Play.Sound {
 	    //public int         m_lpf;
 	    //public double      m_lpffq;
 
-        public double[]    m_rgOutGain = new double[4];
 
 	    //public int         m_TuneFreq = 1750;
 	    //public int         m_tune     = 0;
@@ -128,14 +127,15 @@ namespace Play.Sound {
 	    //CFIR2		  m_BPF;
 	    //CSmooz      avgLPF; // BUG: probably should add this one back.
 
-	    public bool        m_VariOut = false;
+        public double[]    m_rgOutGain = new double[4];
+	    public bool        m_VariOut   = false;
         public UInt32[]    m_rgVariOut = new UInt32[4];
 
         /// <summary>
         /// Use this class to generate the tones necessary for an SSTV signal.
         /// </summary>
         /// <exception cref="ArgumentNullException" />
-        public SSTVMOD( double dblToneOffset, double dblTxSampleFreq, IPgBufferWriter<short> oWriter ) {
+        public SSTVMOD( double dblToneOffset, double dblTxSampleFreq, IPgBufferWriter<short> oWriter, int iGain=10000 ) {
             m_oWriter = oWriter ?? throw new ArgumentNullException( "data writer must not be null" );
             m_dblTxSampleFreq = dblTxSampleFreq;
 	        //m_bpf = 1;
@@ -156,7 +156,10 @@ namespace Play.Sound {
 	        m_rgVariOut[(int)GainIndx.G] = 588; // G
 	        m_rgVariOut[(int)GainIndx.B] = 110; // B
 
-	        m_rgOutGain[0] = 20000; // 24578.0; My gain seems high, I'll try turning it down a bit.
+            if( iGain > 30000 )
+                iGain = 30000;
+
+	        m_rgOutGain[0] = iGain; // 24578.0; My gain seems high, I'll try turning it down a bit.
 
 	        InitGain();
 

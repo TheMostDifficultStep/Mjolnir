@@ -339,7 +339,7 @@ namespace Mjolnir {
         public bool Focused {
             get { 
 				try {
-					return( _oViewControl.Focused ); 
+					return( _oViewControl.ContainsFocus ); 
 				} catch( NullReferenceException ) {
 					LogError( "windowing", "Guest is null!", false );
 					return( false );
