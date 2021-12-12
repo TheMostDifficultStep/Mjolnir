@@ -86,7 +86,7 @@ namespace Play.SSTV {
                     if( rgErrors.IsUnhandled( oEx ) )
                         throw;
 
-                    _oToUIQueue.Enqueue( new( SSTVEvents.ThreadReadException, 0 ) );
+                    _oToUIQueue.Enqueue( new( SSTVEvents.ThreadException, (int)TxThreadErrors.ReadException ) );
 
 					// Don't call _oWorkPlace.Stop() b/c we're already in DoWork() which will
 					// try calling the _oWorker which will have been set to NULL!!
@@ -125,7 +125,7 @@ namespace Play.SSTV {
                 if( rgErrors.IsUnhandled( oEx ) )
                     throw;
 
-                _oToUIQueue.Enqueue( new( SSTVEvents.ThreadWorkerException, 0 ) );
+                _oToUIQueue.Enqueue( new( SSTVEvents.ThreadException, (int)TxThreadErrors.WorkerException ) );
             }
         }
 
@@ -134,8 +134,8 @@ namespace Play.SSTV {
         /// and have it do that directly.
         /// </summary>
         /// <seealso cref="OnNextMode_SSTVDemo"/>
-        private void OnTVEvents_SSTVDraw( SSTVEvents eProp ) {
-            _oToUIQueue.Enqueue( new( eProp, 0 ) );
+        private void OnTVEvents_SSTVDraw( SSTVEvents eProp, int iParam ) {
+            _oToUIQueue.Enqueue( new( eProp, iParam ) );
         }
 
         /// <summary>
@@ -195,11 +195,11 @@ namespace Play.SSTV {
         /// thread envelope.
         /// </summary>
         /// <seealso cref="Listen_NextRxMode"/>
-        private void OnTvEvents_SSTVDraw( SSTVEvents eProp ) {
+        private void OnTvEvents_SSTVDraw( SSTVEvents eProp, int iParam ) {
             if( eProp == SSTVEvents.SSTVMode )
                 _strDateTimeStart = DocSSTV.GenerateFileName;
 
-            _oToUIQueue.Enqueue( new( eProp, 0 ) );
+            _oToUIQueue.Enqueue( new( eProp, iParam ) );
         }
 
         /// <summary>

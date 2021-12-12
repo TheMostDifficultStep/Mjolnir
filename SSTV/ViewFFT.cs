@@ -43,13 +43,13 @@ namespace Play.SSTV {
 		}
 
 		protected override void Dispose(  bool disposing ) {
-			_oDocSSTV.PropertyChange -= Listen_PropertyChange;
+			_oDocSSTV.PropertyChange -= OnPropertyChange_DocSSTV;
 
 			base.Dispose( disposing );
 		}
 
 		public bool InitNew() {
-            _oDocSSTV.PropertyChange += Listen_PropertyChange;
+            _oDocSSTV.PropertyChange += OnPropertyChange_DocSSTV;
 
 			return true;
 		}
@@ -60,7 +60,7 @@ namespace Play.SSTV {
         /// <remarks>Right now just update all, but we can just update the
         /// specific property in the future. You know, a color coded property, 
         /// light red or yellow on change would be a cool feature.</remarks>
-        private void Listen_PropertyChange( SSTVEvents eProp ) {
+        private void OnPropertyChange_DocSSTV( SSTVEvents eProp ) {
 			if( eProp == SSTVEvents.FFT ) {
 				Invalidate();
 			}

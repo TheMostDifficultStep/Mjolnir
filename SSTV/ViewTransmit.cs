@@ -84,7 +84,7 @@ namespace Play.SSTV {
         protected override void Dispose( bool fDisposing )
         {
 			if( fDisposing && !_fDisposed ) {
-				_oDocSSTV.PropertyChange -= ListenDoc_PropertyChange;
+				_oDocSSTV.PropertyChange -= OnPropertyChange_DocSSTV;
 			}
 			base.Dispose( fDisposing );
         }
@@ -95,7 +95,7 @@ namespace Play.SSTV {
 				return false;
 
 			ToolSelect = 0; // Crude but should be sufficient to freeze Skywalker...
-            _oDocSSTV.PropertyChange += ListenDoc_PropertyChange;
+            _oDocSSTV.PropertyChange += OnPropertyChange_DocSSTV;
 
 			Aspect   = _oDocSSTV.TxResolution;
 			DragMode = DragMode.FixedRatio;
@@ -103,7 +103,7 @@ namespace Play.SSTV {
 			return true;
         }
 
-        private void ListenDoc_PropertyChange( SSTVEvents eProp )
+        private void OnPropertyChange_DocSSTV( SSTVEvents eProp )
         {
             switch( eProp ) {
 				case SSTVEvents.DownLoadTime:
@@ -364,9 +364,7 @@ namespace Play.SSTV {
 					_wmTxImageChoice.BringToFront();
 					break;
 				case ChildID.TxImageSnip:
-					if( _oDocSSTV.Status == WorkerStatus.FREE ) {
-						RenderComposite();
-					}
+					RenderComposite();
 					_wmTxImageComposite.BringToFront();
 					break;
 			}

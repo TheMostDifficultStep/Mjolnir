@@ -150,21 +150,25 @@ namespace Play.SSTV {
         }
     }
 
+    public enum TxThreadErrors {
+        DrawingException,
+        WorkerException,
+        ReadException,
+        DiagnosticsException,
+    }
+
     public enum SSTVEvents {
         SSTVMode,
         FFT,
         UploadTime,
 		DownLoadTime,
         DownLoadFinished,
-        ThreadDrawingException,
-        ThreadWorkerException,
-        ThreadReadException,
-        ThreadDiagnosticsException,
+        ThreadException,
         ThreadAbort,
         ThreadExit
     }
 
-    public delegate void SSTVPropertyChange( SSTVEvents eProp );
+    public delegate void SSTVPropertyEvent( SSTVEvents eProp ); // Document properties change.
 
     public class TVMessage {
         public enum Message {
@@ -264,7 +268,7 @@ namespace Play.SSTV {
         public IPgParent Services  => Parentage;
         public bool      IsDirty   => false;
 
-        public event SSTVPropertyChange PropertyChange;
+        public event SSTVPropertyEvent PropertyChange;
 
         public Editor              TemplateList  { get; }
         public Editor              MonitorList   { get; }
@@ -832,7 +836,7 @@ namespace Play.SSTV {
                 _oBGtoFGQueue.Enqueue( new( SSTVEvents.UploadTime, iPercent ) );
             }
             protected void Raise_SendError() {
-                _oBGtoFGQueue.Enqueue( new( SSTVEvents.ThreadWorkerException, -1 ) );
+                _oBGtoFGQueue.Enqueue( new( SSTVEvents.ThreadException, (int)TxThreadErrors.WorkerException ) );
             }
 
             public IEnumerator<int> GetEnumerator() {
@@ -918,23 +922,12 @@ namespace Play.SSTV {
         }
 
         /// <summary>
-        /// Poll the receive thread showing progress on the image download.
-        /// Haven't set this up for continuous receive. This thread is just
-        /// for the file decode right now.
+        /// This is our task to poll the Background to UI Queue. It services both
+        /// the receive thread and the transmit thread. Technically they can run
+        /// concurrently with no problems.
         /// </summary>
         public IEnumerator<int> GetTaskReceiver( ThreadWorkerBase oWorker ) {
             while( true ) {
-                //if( !_oThread.IsAlive && oWorker.IsForever) {
-                //    // We don't expect forever threads, like listening to audio to suddenly die 
-                //    // without some sort of notification to us. Might be a problem to inspect.
-                //    RxProperties.ValueUpdate( RxProperties.Names.Progress, "Bailed", Broadcast:true );
-                //    RxModeList.HighLight   = null;
-                //    RxModeList.CheckedLine = RxModeList[0];
-                //    _oThread = null;
-                //    // should I turn the monitor off?
-                //    // yield break;
-                //}
-
                 while( _rgBGtoUIQueue.TryDequeue( out SSTVMessage sResult ) ) {
                     switch( sResult.Event ) {
                         case SSTVEvents.ThreadAbort:
@@ -985,7 +978,7 @@ namespace Play.SSTV {
                             } break;
                         case SSTVEvents.DownLoadTime: 
                             // Might be nice to send the % as a number in the message.
-                            PropertiesRxTime( oWorker.SSTVDraw.PercentRxComplete );
+                            PropertiesRxTime( sResult.Param );
                             PropertyChange?.Invoke( SSTVEvents.DownLoadTime );
                             break;
                         case SSTVEvents.UploadTime:
@@ -999,14 +992,18 @@ namespace Play.SSTV {
                                 yield break; // Bail out of this worker.
                             }
                             break;
-                        case SSTVEvents.ThreadDiagnosticsException:
-                            LogError( "Worker thread Diagnostics Exception" );
-                            break;
-                        case SSTVEvents.ThreadDrawingException:
-                            LogError( "Worker thread Drawing Exception" );
-                            break;
-                        case SSTVEvents.ThreadWorkerException:
-                            LogError( "Worker thread Exception" );
+                        case SSTVEvents.ThreadException:
+                            switch( (TxThreadErrors)sResult.Param ) {
+                                case TxThreadErrors.WorkerException:
+                                    LogError( "Worker thread Exception" );
+                                    break;
+                                case TxThreadErrors.DrawingException:
+                                    LogError( "Worker thread Drawing Exception" );
+                                    break;
+                                case TxThreadErrors.DiagnosticsException:
+                                    LogError( "Worker thread Diagnostics Exception" );
+                                    break;
+                            }
                             break;
                     }
                 }
@@ -1181,7 +1178,7 @@ namespace Play.SSTV {
                 // Looks like I can't call wavein.stop() from within the callback. AND
                 // it looks like NAudio is calling us from its non foreground thread!!!
                 // Safest way to handle this is post an event to ourselves.
-                _rgBGtoUIQueue.Enqueue( new( SSTVEvents.ThreadWorkerException, 0 ) );
+                _rgBGtoUIQueue.Enqueue( new( SSTVEvents.ThreadException, (int)TxThreadErrors.WorkerException ) );
             }
         }
 

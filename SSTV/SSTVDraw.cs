@@ -290,8 +290,9 @@ namespace Play.SSTV {
 	/// in the same thread. 
 	/// </summary>
     public class SSTVDraw {
-		private            bool    _fDisposed = false;
         protected readonly SSTVDEM _dp;
+
+		public delegate void SSTVDrawEvents( SSTVEvents eProp, int iParam );
 
 		public SSTVMode Mode => _dp.Mode;
 		public DateTime StartTime { get; protected set; }
@@ -319,7 +320,7 @@ namespace Play.SSTV {
 		// Need to look into the greyscale calibration height of bitmap issue. (+16 scan lines)
 		// The D12 bitmap must always be >= to the RX bmp height.
 
-		public event SSTVPropertyChange Send_TvEvents; // TODO: Since threaded version poles, we don't need this.
+		public event SSTVDrawEvents Send_TvEvents; // TODO: Since threaded version poles, we don't need this.
 
 		protected readonly List<ColorChannel> _rgSlots = new (10);
 		
@@ -402,7 +403,7 @@ namespace Play.SSTV {
 
 			Slider.Reset( (int)SyncWidthInSamples );
 
-			Send_TvEvents?.Invoke(SSTVEvents.SSTVMode );
+			Send_TvEvents?.Invoke(SSTVEvents.SSTVMode, (int)Mode.LegacyMode );
 
             //using SKCanvas sKCanvas = new(_pBitmapRX);
             //sKCanvas.Clear(SKColors.Gray);
@@ -421,7 +422,7 @@ namespace Play.SSTV {
 			try {
 				// Need to send regardless, but might get a bum image if not
 				// includes vis and we guess a wrong start state.
-				Send_TvEvents?.Invoke( SSTVEvents.DownLoadFinished );
+				Send_TvEvents?.Invoke( SSTVEvents.DownLoadFinished, PercentRxComplete );
 
 				if( _dp.m_Sync ) {
 					// Send download finished before reset so we can save image
@@ -437,7 +438,7 @@ namespace Play.SSTV {
 				if( rgErrors.IsUnhandled( oEx ) )
 					throw;
 
-				Send_TvEvents?.Invoke( SSTVEvents.ThreadDiagnosticsException );
+				Send_TvEvents?.Invoke( SSTVEvents.ThreadException, (int)TxThreadErrors.DiagnosticsException );
 			}
 		}
 
@@ -549,7 +550,7 @@ namespace Play.SSTV {
 		/// Never returns more than 100%. Even if we've got a but and we're
 		/// looping forever. So just beware.
 		/// </summary>
-        public int PercentRxComplete { 
+        protected int PercentRxComplete { 
             get {
 				try {
 					double dblProgress = _dp.m_wBase * 100 / ImageSizeInSamples;
@@ -609,7 +610,7 @@ namespace Play.SSTV {
 		/// <remarks>Usue the ScanWidthInSamples (versus SpecWidthInSamples) so
 		/// we can pick up corrections to the width. That way we can calculate the
 		/// intercept.</remarks>
-		public double ProcessSync( double dblBase ) {
+		protected double ProcessSync( double dblBase ) {
 			try {
 			int    iReadBase   = (int)dblBase;
 			int    iScanWidth  = (int)ScanWidthInSamples; // Make sure this matches our controlling loop!!
@@ -649,7 +650,7 @@ namespace Play.SSTV {
 				if( rgErrors.IsUnhandled( oEx ) )
 					throw;
 
-				Send_TvEvents?.Invoke( SSTVEvents.ThreadDrawingException );
+				Send_TvEvents?.Invoke( SSTVEvents.ThreadException, (int)TxThreadErrors.DrawingException );
 			}
 
 			return( dblBase + ScanWidthInSamples );
@@ -714,7 +715,7 @@ namespace Play.SSTV {
 				if( rgErrors.IsUnhandled( oEx ) )
 					throw;
 
-				Send_TvEvents?.Invoke( SSTVEvents.ThreadDrawingException );
+				Send_TvEvents?.Invoke( SSTVEvents.ThreadException, (int)TxThreadErrors.DrawingException );
 			}
 		}
 
@@ -728,7 +729,7 @@ namespace Play.SSTV {
 					while( _dp.m_wBase > _dblReadBaseSync + ScanWidthInSamples ) {
 						_dblReadBaseSync = ProcessSync( _dblReadBaseSync );
 
-						Send_TvEvents?.Invoke( SSTVEvents.DownLoadTime );
+						Send_TvEvents?.Invoke( SSTVEvents.DownLoadTime, PercentRxComplete );
 					}
 				} catch( Exception oEx ) {
 					Type[] rgErrors = { typeof( NullReferenceException ),
@@ -737,7 +738,7 @@ namespace Play.SSTV {
 					if( rgErrors.IsUnhandled( oEx ) )
 						throw;
 
-					Send_TvEvents?.Invoke( SSTVEvents.ThreadDrawingException );
+					Send_TvEvents?.Invoke( SSTVEvents.ThreadException, (int)TxThreadErrors.DrawingException );
 				}
 
 				try {
@@ -777,7 +778,7 @@ namespace Play.SSTV {
 					if( rgErrors.IsUnhandled( oEx ) )
 						throw;
 
-					Send_TvEvents?.Invoke( SSTVEvents.ThreadDrawingException );
+					Send_TvEvents?.Invoke( SSTVEvents.ThreadException, (int)TxThreadErrors.DrawingException );
 				}
 			}
 		}
@@ -850,7 +851,7 @@ namespace Play.SSTV {
 		public void OnModeTransition_SSTVMod( SSTVMode oMode ) {
 			if( oMode == null ) {
 				RenderDiagnosticsOverlay();
-				Send_TvEvents?.Invoke( SSTVEvents.SSTVMode );
+				Send_TvEvents?.Invoke( SSTVEvents.SSTVMode, (int)oMode.LegacyMode );
 				return;
 			}
 
