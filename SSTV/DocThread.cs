@@ -16,7 +16,7 @@ using System.Collections;
 
 namespace Play.SSTV {
     public class ThreadWorkerBase {
-        protected readonly ConcurrentQueue<SSTVEvents> _oToUIQueue;
+        protected readonly ConcurrentQueue<SSTVMessage> _oToUIQueue;
 
         public SSTVMode NextMode => SSTVDraw?.Mode;
 
@@ -29,7 +29,7 @@ namespace Play.SSTV {
         protected SKBitmap _oD12Bmp;
         protected SKBitmap _oRxBmp;
 
-        public ThreadWorkerBase( ConcurrentQueue<SSTVEvents> oToUIQueue, SKBitmap oD12Bmp, SKBitmap oRxBmp ) {
+        public ThreadWorkerBase( ConcurrentQueue<SSTVMessage> oToUIQueue, SKBitmap oD12Bmp, SKBitmap oRxBmp ) {
             _oToUIQueue = oToUIQueue ?? throw new ArgumentNullException( "Queue is null" );
             _oD12Bmp    = oD12Bmp    ?? throw new ArgumentNullException( "D12 Bmp is null" );
             _oRxBmp     = oRxBmp     ?? throw new ArgumentNullException( "Rx Bmp is null" );
@@ -46,7 +46,7 @@ namespace Play.SSTV {
 
         public override string SuggestedFileName => _strFileName;
 
-        public ThreadWorker( ConcurrentQueue<SSTVEvents> oMsgQueue, string strFileName, SSTVMode oMode, SKBitmap oD12, SKBitmap oRx ) : 
+        public ThreadWorker( ConcurrentQueue<SSTVMessage> oMsgQueue, string strFileName, SSTVMode oMode, SKBitmap oD12, SKBitmap oRx ) : 
             base( oMsgQueue, oD12, oRx )
         {
             _strFileName = strFileName ?? throw new ArgumentNullException( "Filename is null" );
@@ -86,7 +86,7 @@ namespace Play.SSTV {
                     if( rgErrors.IsUnhandled( oEx ) )
                         throw;
 
-                    _oToUIQueue.Enqueue( SSTVEvents.ThreadReadException );
+                    _oToUIQueue.Enqueue( new( SSTVEvents.ThreadReadException, 0 ) );
 
 					// Don't call _oWorkPlace.Stop() b/c we're already in DoWork() which will
 					// try calling the _oWorker which will have been set to NULL!!
@@ -125,7 +125,7 @@ namespace Play.SSTV {
                 if( rgErrors.IsUnhandled( oEx ) )
                     throw;
 
-                _oToUIQueue.Enqueue( SSTVEvents.ThreadWorkerException );
+                _oToUIQueue.Enqueue( new( SSTVEvents.ThreadWorkerException, 0 ) );
             }
         }
 
@@ -135,7 +135,7 @@ namespace Play.SSTV {
         /// </summary>
         /// <seealso cref="OnNextMode_SSTVDemo"/>
         private void OnTVEvents_SSTVDraw( SSTVEvents eProp ) {
-            _oToUIQueue.Enqueue( eProp );
+            _oToUIQueue.Enqueue( new( eProp, 0 ) );
         }
 
         /// <summary>
@@ -178,11 +178,11 @@ namespace Play.SSTV {
                                                   typeof( FileNotFoundException ) };
 
         public ThreadWorker2( WaveFormat oFormat, 
-                              ConcurrentQueue<SSTVEvents> oMsgQueue, 
-                              ConcurrentQueue<double>     oDataQueue, 
-                              ConcurrentQueue<TVMessage>  oOutQueue,
-                              SKBitmap                    oD12,
-                              SKBitmap                    oRx ) : 
+                              ConcurrentQueue<SSTVMessage> oMsgQueue, 
+                              ConcurrentQueue<double>      oDataQueue, 
+                              ConcurrentQueue<TVMessage>   oOutQueue,
+                              SKBitmap                     oD12,
+                              SKBitmap                     oRx ) : 
             base( oMsgQueue, oD12, oRx )
         {
             _oDataQueue  = oDataQueue ?? throw new ArgumentNullException( "oDataQueue" );
@@ -199,7 +199,7 @@ namespace Play.SSTV {
             if( eProp == SSTVEvents.SSTVMode )
                 _strDateTimeStart = DocSSTV.GenerateFileName;
 
-            _oToUIQueue.Enqueue( eProp );
+            _oToUIQueue.Enqueue( new( eProp, 0 ) );
         }
 
         /// <summary>
@@ -222,7 +222,7 @@ namespace Play.SSTV {
             while( _oOutQueue.TryDequeue( out TVMessage oMsg ) ) {
                 switch( oMsg._eMsg ) {
                     case TVMessage.Message.ExitWorkThread:
-                        _oToUIQueue.Enqueue( SSTVEvents.ThreadExit );
+                        _oToUIQueue.Enqueue( new( SSTVEvents.ThreadExit, 0 ) );
                         return false;
                     case TVMessage.Message.TryNewMode:
                         if( oMsg._oParam is SSTVMode oMode ) {
@@ -254,7 +254,7 @@ namespace Play.SSTV {
                 if( _rgInitErrors.IsUnhandled( oEx ) )
                     throw;
 
-                _oToUIQueue.Enqueue( SSTVEvents.ThreadAbort );
+                _oToUIQueue.Enqueue( new( SSTVEvents.ThreadAbort, 0 ) );
                 return;
             }
 
@@ -271,7 +271,7 @@ namespace Play.SSTV {
                 if( _rgLoopErrors.IsUnhandled( oEx ) )
                     throw;
 
-                _oToUIQueue.Enqueue( SSTVEvents.ThreadAbort );
+                _oToUIQueue.Enqueue( new( SSTVEvents.ThreadAbort, 0 ) );
             }
         }
 

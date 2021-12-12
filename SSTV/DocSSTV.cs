@@ -1,9 +1,11 @@
 ﻿using System;
 using System.IO;
+using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Concurrent;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Xml;
 
 using SkiaSharp;
@@ -149,9 +151,9 @@ namespace Play.SSTV {
     }
 
     public enum SSTVEvents {
-        UploadTime,
         SSTVMode,
         FFT,
+        UploadTime,
 		DownLoadTime,
         DownLoadFinished,
         ThreadDrawingException,
@@ -179,6 +181,16 @@ namespace Play.SSTV {
         }
     }
 
+    public struct SSTVMessage {
+        public SSTVMessage( SSTVEvents eEvent, int iParam ) {
+            Event = eEvent;
+            Param = iParam;
+        }
+
+        public SSTVEvents Event;
+        public int        Param;
+    }
+
     public class DocSSTV :
         IPgParent,
         IPgLoad<TextReader>,
@@ -186,9 +198,10 @@ namespace Play.SSTV {
         IDisposable
     {
         private bool disposedValue;
-        readonly ConcurrentQueue<SSTVEvents> _rgBGtoUIQueue  = new ConcurrentQueue<SSTVEvents>(); // From BG thread to UI thread.
-        readonly ConcurrentQueue<double>     _rgDataQueue    = new ConcurrentQueue<double>();     // From UI thread to BG thread.
-        readonly ConcurrentQueue<TVMessage>  _rgUItoBGQueue  = new ConcurrentQueue<TVMessage>();
+
+        readonly ConcurrentQueue<SSTVMessage> _rgBGtoUIQueue = new ConcurrentQueue<SSTVMessage>(); // From BG thread to UI thread.
+        readonly ConcurrentQueue<double>      _rgDataQueue   = new ConcurrentQueue<double>();     // From UI thread to BG thread.
+        readonly ConcurrentQueue<TVMessage>   _rgUItoBGQueue = new ConcurrentQueue<TVMessage>();
 
         Thread               _oThread  = null;
         WaveIn               _oWaveIn  = null;
@@ -253,8 +266,6 @@ namespace Play.SSTV {
 
         public event SSTVPropertyChange PropertyChange;
 
-      //public FileChooser   RecChooser    { get; } // Recorded wave files.
-
         public Editor              TemplateList  { get; }
         public Editor              MonitorList   { get; }
         public Editor              PortTxList    { get; } 
@@ -264,18 +275,12 @@ namespace Play.SSTV {
         public ModeEditor          TxModeList    { get; }
         public ImageWalkerDir      TxImageList   { get; }
         public ImageWalkerDir      RxHistoryList { get; }
-        public SSTVProperties       StdProperties { get; }
+        public SSTVProperties      StdProperties { get; }
         public SKBitmap            TxBitmap      => TxImageList.Bitmap;
         internal ImageSoloDoc      TxBitmapSnip  { get; }  
         internal DocImageEdit      TxBitmapComp  { get; }
 
         protected Mpg123FFTSupport FileDecoder   { get; set; }
-        protected BufferSSTV       _oSSTVBuffer;      // BUG: Can't find where initialized!!
-        protected SSTVMOD          _oSSTVModulator;
-        protected SSTVDEM          _oSSTVDeModulator; // Only used by test code.
-		protected IPgPlayer        _oPlayer;
-        protected SSTVGenerator    _oSSTVGenerator;
-		protected SSTVDraw         _oRxSSTV;          // Only used by test code.
 
         // This is where our image and diagnostic image live.
 		public ImageSoloDoc ReceiveImage { get; protected set; }
@@ -334,8 +339,6 @@ namespace Play.SSTV {
                     // If init new fails then this won't get created.
                     if( FileDecoder != null )
                         FileDecoder.Dispose();
-                    if( _oPlayer != null )
-                        _oPlayer.Dispose();
 
                     ReceiveLiveStop();
 
@@ -591,9 +594,6 @@ namespace Play.SSTV {
 		protected void PropertiesRxTime( int iPercent ) {
             StdProperties.ValueUpdate( SSTVProperties.Names.Rx_Progress, iPercent.ToString() + "%", Broadcast:true );
 		}
-		protected void PropertiesTxSendTime() {
-            StdProperties.ValueUpdate( SSTVProperties.Names.Tx_Progress, PercentTxComplete.ToString() + "%", Broadcast:true );
-		}
 
         protected void PropertyLoadFromXml( Editor rgList, XmlNode oElem ) {
             if( oElem == null )
@@ -712,24 +712,6 @@ namespace Play.SSTV {
             return true;
         }
 
-        public int PercentTxComplete {
-            get { 
-                if( _oSSTVGenerator != null ) 
-                    return _oSSTVGenerator.PercentTxComplete;
-
-                return 0;
-            } 
-        }
-
-        public string TxMode { 
-            get {
-                if( _oSSTVGenerator != null && _oSSTVGenerator.Mode != null )
-                    return _oSSTVGenerator.Mode.Name;
-
-                return "-";
-            }
-        }
-
         /// <summary>
         /// BUG: This is a bummer but, I use a point for the aspect ratio in my
         /// SmartRect code. It should be a SKPointI too. I'll fix that later.
@@ -744,60 +726,6 @@ namespace Play.SSTV {
                 }
                 return new SKPointI( 320, 240 );
             }
-        }
-
-        /// <summary>
-        /// This sets up our transmit buffer and modulator to send the given image.
-        /// </summary>
-        /// <param name="iModeIndex">Index of the generator mode to use.</param>
-        /// <param name="oTxImage">Image to display. It should match the generator mode requirements.</param>
-        /// <returns></returns>
-        public bool GeneratorSetup( SSTVMode oMode, SKBitmap oTxImage ) {
-            if( oMode == null || oTxImage == null ) {
-                LogError( "Mode or Image is null on Generator Setup." );
-                return false;
-            }
-            if( _oSSTVModulator == null ) {
-                LogError( "SSTV Modulator is not ready for Transmit." );
-                return false;
-            }
-            if( _oWorkPlace.Status == WorkerStatus.BUSY ||
-                _oWorkPlace.Status == WorkerStatus.PAUSED ) {
-                LogError( "Stop playing current image. Then begin the next." );
-                return false;
-            }
-
-            _oSSTVGenerator = null;
-
-            // Normally I'd use a guid to identify the class, but I thought I'd
-            // try something a little different this time.
-            try {
-				switch( oMode.Family ) {
-					case TVFamily.PD:
-						_oSSTVGenerator = new GeneratePD     ( oTxImage, _oSSTVModulator, oMode ); break;
-					case TVFamily.Martin:
-						_oSSTVGenerator = new GenerateMartin ( oTxImage, _oSSTVModulator, oMode ); break;
-					case TVFamily.Scottie:
-						_oSSTVGenerator = new GenerateScottie( oTxImage, _oSSTVModulator, oMode ); break;
-					default:
-						return false;
-				}
-
-                if( _oSSTVGenerator != null )
-                    _oSSTVBuffer.Pump = _oSSTVGenerator.GetEnumerator();
-            } catch( Exception oEx ) {
-                Type[] rgErrors = { typeof( ArgumentException ),
-                                    typeof( ArgumentNullException ),
-                                    typeof( ArgumentOutOfRangeException ),
-                                    typeof( NullReferenceException ) };
-                if( rgErrors.IsUnhandled( oEx ) )
-                    throw;
-
-                LogError( "Blew chunks trying to create Illudium Q-36 Video Modulator, Isn't that nice?" );
-                _oSSTVGenerator = null;
-            }
-
-            return _oSSTVGenerator != null;
         }
 
         private void OnImageUpdated_TxImageList() {
@@ -819,14 +747,8 @@ namespace Play.SSTV {
         /// </summary>
         /// <param name="eProp"></param>
         protected void Raise_PropertiesUpdated( SSTVEvents eProp ) {
-            switch( eProp ) {
-                case SSTVEvents.UploadTime:
-                    PropertiesTxSendTime();
-                    break;
-                default:
-                    PropertiesTxReLoad();
-                    break;
-            }
+            PropertiesTxReLoad();
+
             PropertyChange?.Invoke( eProp );
         }
 
@@ -869,35 +791,74 @@ namespace Play.SSTV {
 			}
 		}
 
+        protected class TxState : IEnumerable<int> {
+            protected BufferSSTV    _oSSTVBuffer;      
+            protected SSTVMOD       _oSSTVModulator;
+            protected SSTVGenerator _oSSTVGenerator;
+		    protected IPgPlayer     _oPlayer;
 
-        /// <summary>
-        /// This is our work iterator we use to play the audio. It's my standandard player that
-        /// queue's up a portion of sounds and then wait's half that time to return and top
-        /// off the buffers again.
-        /// </summary>
-        /// <returns>Amount of time to wait until we want call again, in Milliseconds.</returns>
-        public IEnumerator<int> GetTaskTransmiter() {
-            TxModeList.HighLight = TxModeList.CheckedLine;
-            do {
-                uint uiWait = 60000; // Basically stop wasting time here on error.
-                try {
-                    uiWait = ( _oPlayer.Play( _oSSTVBuffer ) >> 1 ) + 1;
-                } catch( Exception oEx ) {
-                    Type[] rgErrors = { typeof( NullReferenceException ),
-                                        typeof( ArgumentNullException ),
-                                        typeof( MMSystemException ) };
-                    if( rgErrors.IsUnhandled( oEx ) )
-                        throw;
+            protected ConcurrentQueue<SSTVMessage> _oBGtoFGQueue;
 
-                    _oWorkPlace.Stop();
-                    LogError( "Trouble playing in SSTV" );
-                }
-                Raise_PropertiesUpdated( SSTVEvents.UploadTime );
-                yield return (int)uiWait;
-            } while( _oSSTVBuffer.IsReading );
+            public TxState( SSTVMode oMode, int iGain, int iDevice, SKBitmap skBitmap, ConcurrentQueue<SSTVMessage> oBGtoFGQueue ) {
+                if( oMode == null )
+                    throw new ArgumentNullException( nameof( oMode ) );
+                if( skBitmap == null )
+                    throw new ArgumentNullException( nameof( skBitmap ) );
 
-            TxModeList.HighLight = null;
-            // Set upload time to "finished" maybe even date/time!
+                _oBGtoFGQueue = oBGtoFGQueue ?? throw new ArgumentNullException( nameof( oBGtoFGQueue ) );
+
+                Specification oTxSpec = new( 11025, 1, 0, 16 );
+
+                _oSSTVBuffer    = new BufferSSTV( oTxSpec );
+				_oSSTVModulator = new SSTVMOD( 0, oTxSpec.Rate, _oSSTVBuffer, iGain );
+
+				switch( oMode.Family ) {
+					case TVFamily.PD:
+						_oSSTVGenerator = new GeneratePD     ( skBitmap, _oSSTVModulator, oMode ); break;
+					case TVFamily.Martin:
+						_oSSTVGenerator = new GenerateMartin ( skBitmap, _oSSTVModulator, oMode ); break;
+					case TVFamily.Scottie:
+						_oSSTVGenerator = new GenerateScottie( skBitmap, _oSSTVModulator, oMode ); break;
+					default:
+						throw new ArgumentOutOfRangeException( nameof( oMode ) );
+				}
+
+                _oSSTVBuffer.Pump = _oSSTVGenerator.GetEnumerator();
+
+                _oPlayer = new WmmPlayer(oTxSpec, iDevice );
+            }
+
+            protected void Raise_UploadPercent( int iPercent ) {
+                _oBGtoFGQueue.Enqueue( new( SSTVEvents.UploadTime, iPercent ) );
+            }
+            protected void Raise_SendError() {
+                _oBGtoFGQueue.Enqueue( new( SSTVEvents.ThreadWorkerException, -1 ) );
+            }
+
+            public IEnumerator<int> GetEnumerator() {
+                do {
+                    uint uiWait;
+                    try {
+                        uiWait = ( _oPlayer.Play( _oSSTVBuffer ) >> 1 ) + 1;
+                    } catch( Exception oEx ) {
+                        Type[] rgErrors = { typeof( NullReferenceException ),
+                                            typeof( ArgumentNullException ),
+                                            typeof( MMSystemException ) };
+                        if( rgErrors.IsUnhandled( oEx ) )
+                            throw;
+
+                        Raise_SendError( );
+                        yield break;
+                    }
+                    Raise_UploadPercent( _oSSTVGenerator.PercentTxComplete );
+
+                    yield return (int)uiWait;
+                } while( _oSSTVBuffer.IsReading );
+            }
+
+            IEnumerator IEnumerable.GetEnumerator() {
+                return GetEnumerator();
+            }
         }
 
         public WorkerStatus Status => _oWorkPlace.Status;
@@ -907,52 +868,32 @@ namespace Play.SSTV {
         /// <summary>
         /// Begin transmitting the image.
         /// </summary>
-        public void TransmitBegin( SSTVMode oMode ) {
-            try {
-                if( Status != WorkerStatus.FREE ) {
-                    LogError( "Already sending, receiving or paused." );
-                    return;
-                }
-                if( PortTxList.CheckedLine == null ) {
-                    LogError( "No sound device to send to" );
-                    return;
-                }
-                if( oMode == null || TxBitmapComp.Bitmap == null ) {
-                    LogError( "Transmit mode or image is not set." );
-                    return;
-                }
-                {
-			        // The DocSnip object retains ownership of it's generated bitmap and frees it on next load.
-                    // Note: I could check if the selection == the whole bitmap == required dimension
-                    //       and I could skip the snip stage.
-                    Specification oTxSpec = new Specification( 11025, 1, 0, 16 );
-
-                    _oSSTVBuffer    = new BufferSSTV( oTxSpec );
-					_oSSTVModulator = new SSTVMOD( 0, oTxSpec.Rate, _oSSTVBuffer, MicrophoneGain );
-
-                    if( GeneratorSetup( oMode, TxBitmapComp.Bitmap ) ) {
-                        if( _oPlayer == null ) {
-                            _oPlayer = new WmmPlayer(oTxSpec, PortTxList.CheckedLine.At );
-                        } else {
-                            if( _oPlayer.DeviceID != PortTxList.CheckedLine.At ) {
-                                _oPlayer.Dispose();
-                                _oPlayer = new WmmPlayer(oTxSpec, PortTxList.CheckedLine.At ); 
-                            }
-                        }
-
-                        _oWorkPlace.Queue( GetTaskTransmiter(), 0 );
-                    }
-                }
-                //while ( _oDataTester.ConsumeData() < 350000 ) {
-                //}
-            } catch( Exception oEx ) {
-                Type[] rgErrors = { typeof( NullReferenceException ),
-                                    typeof( MMSystemException ) };
-                if( rgErrors.IsUnhandled( oEx ) )
-                    throw;
-
-                LogError( "Can't launch Transmit task!" );
+        public async void TransmitBegin( SSTVMode oMode ) {
+            if( PortTxList.CheckedLine == null ) {
+                LogError( "No sound device to send to" );
+                return;
             }
+            if( oMode == null || TxBitmapComp.Bitmap == null ) {
+                LogError( "Transmit mode or image is not set." );
+                return;
+            }
+
+            Action oTransmitAction = delegate () {
+                SKBitmap bmpCopy = TxBitmapComp.Bitmap.Copy();
+                TxState oState   = new TxState( oMode, MicrophoneGain, PortTxList.CheckedLine.At, 
+                                                bmpCopy, _rgBGtoUIQueue );
+                foreach( uint uiWait in oState ) {
+                    Thread.Sleep( (int)uiWait );
+                }
+                Thread.Sleep( 2000 ); // Let the buffer bleed out.
+                bmpCopy.Dispose();
+            };
+
+            Task oTask = new Task( oTransmitAction );
+
+            oTask.Start();
+
+            await oTask;
         }
 
         /// <summary>
@@ -994,8 +935,8 @@ namespace Play.SSTV {
                 //    // yield break;
                 //}
 
-                while( _rgBGtoUIQueue.TryDequeue( out SSTVEvents eResult ) ) {
-                    switch( eResult ) {
+                while( _rgBGtoUIQueue.TryDequeue( out SSTVMessage sResult ) ) {
+                    switch( sResult.Event ) {
                         case SSTVEvents.ThreadAbort:
                             if( _oThread == null ) {
                                 LogError( "Unexpected Image Thread Abort." );
@@ -1046,6 +987,9 @@ namespace Play.SSTV {
                             // Might be nice to send the % as a number in the message.
                             PropertiesRxTime( oWorker.SSTVDraw.PercentRxComplete );
                             PropertyChange?.Invoke( SSTVEvents.DownLoadTime );
+                            break;
+                        case SSTVEvents.UploadTime:
+                            StdProperties.ValueUpdate( SSTVProperties.Names.Tx_Progress, sResult.Param.ToString( "D2" ) + "%", true );
                             break;
                         case SSTVEvents.DownLoadFinished:
                             // NOTE: This might never come along!
@@ -1237,7 +1181,7 @@ namespace Play.SSTV {
                 // Looks like I can't call wavein.stop() from within the callback. AND
                 // it looks like NAudio is calling us from its non foreground thread!!!
                 // Safest way to handle this is post an event to ourselves.
-                _rgBGtoUIQueue.Enqueue( SSTVEvents.ThreadWorkerException );
+                _rgBGtoUIQueue.Enqueue( new( SSTVEvents.ThreadWorkerException, 0 ) );
             }
         }
 
@@ -1313,195 +1257,135 @@ namespace Play.SSTV {
             }
 		}
 
-		/// <summary>
-		/// This is used by the simple non-threaded test code. TODO: I can probably
-        /// roll this into ListenTvEvents below there...
-		/// </summary>
-		/// <remarks>
-		/// I switched to a TmmSSTV that understands all the modes and is switched
-        /// between them on the fly. The benefit is that I don't need to set
-        /// up the event hooks everytime a new image comes down in the case where I
-        /// was alloc'ing TmmSSTV subclasses.</remarks>
-        /// <seealso cref="OnTvEvents_RxSSTV"/>
-        private void OnNextMode_SSTVDeMod( SSTVMode tvMode ) {
-			ReceiveImage.Bitmap = null;
-			SyncImage   .Bitmap = null;
-
-            _oRxSSTV.OnModeTransition_SSTVMod( tvMode ); // bitmap allocated in here. (may throw exception...)
-
-			ReceiveImage.WorldDisplay = new SKRectI( 0, 0, tvMode.Resolution.Width, tvMode.Resolution.Height );
-
-            foreach( Line oLine in RxModeList ) {
-                if( oLine.Extra is SSTVMode oLineMode ) {
-                    if( oLineMode.LegacyMode == tvMode.LegacyMode )
-                        RxModeList.HighLight = oLine;
-                }
-            }
-        }
-
-		/// <summary>
-		/// Forward events coming from SSTVDraw. I really need to sort out
-        /// the mess this has become. BUT this is only used by the TEST
-        /// code. The new threaded code does not use this.
-		/// </summary>
-        private void OnTvEvents_RxSSTV( SSTVEvents eProp )
-        {
-            Raise_PropertiesUpdated( eProp );
-
-            switch( eProp ) {
-                case SSTVEvents.DownLoadFinished:
-                    RxModeList.HighLight = null;
-                    SaveRxImage();
-                    break;
-            }
-        }
-
-		/// <summary> Another initial test run, on the UI THREAD before 
-        /// created the worker task.
-		/// Note that we don't take the mode in this task since we want it
-		/// to be divined from the VIS by the SSTVDEM object.
-		/// </summary>
-		/// <returns>Time to wait until next call in ms.</returns>
-        /// <remarks>Probably going to delete this eventually.</remarks>
-        public IEnumerator<int> GetTaskRecordTest2() {
-            _oSSTVDeModulator.Send_NextMode += OnNextMode_SSTVDeMod; // BUG: no need to do every time.
-            do {
-                try {
-                    for( int i = 0; i< 500; ++i ) {
-                        _oSSTVDeModulator.Do( _oSSTVBuffer.ReadOneSample() );
-                    }
-					if( _oRxSSTV != null ) {
-						_oRxSSTV.Process();
-					}
-				} catch( Exception oEx ) {
-                    Type[] rgErrors = { typeof( NullReferenceException ),
-                                        typeof( ArgumentNullException ),
-                                        typeof( MMSystemException ),
-                                        typeof( InvalidOperationException ),
-										typeof( ArithmeticException ),
-										typeof( IndexOutOfRangeException ) };
-                    if( rgErrors.IsUnhandled( oEx ) )
-                        throw;
-
-					if( oEx.GetType() != typeof( IndexOutOfRangeException ) ) {
-						LogError( "Trouble recordering in SSTV" );
-					}
-					// Don't call _oWorkPlace.Stop() b/c we're already in DoWork() which will
-					// try calling the _oWorker which will have been set to NULL!!
-                    break; // Drop down so we can unplug from our Demodulator.
-                }
-                yield return 0; // Let's go as fast as possible. >_<;;
-            } while( _oSSTVBuffer.IsReading );
-
-			_oSSTVDeModulator.Send_NextMode -= OnNextMode_SSTVDeMod;
-        }
-
         /// <summary>
-        /// This is my 2nd NON threaded test where we generate video and encode it to a 
-        /// time varying signal to be decoded by the CSSTVDEM object! Because we're
-        /// not intercepting the signal before the VCO we can use the normal 
-        /// GeneratorSetup call.
+        /// This class contains the fragents of an early TV generation test. Because
+        /// I've moved the transmission components to the TxState object this code
+        /// was broken on the main DocSSTV object. I've moved it here to archive the
+        /// test. But it will need work to make function again.
         /// </summary>
-        /// <param name="iModeIndex">TV Mode to use.</param>
-        /// <param name="skSelect"></param>
-        /// <remarks>Set CSSTVDEM::m_fFreeRun = true</remarks>
-        public void ReceiveTest2Begin( SKRectI skSelect ) {
-            try {
-                if( RxModeList.CheckedLine == null )
-                    RxModeList.CheckedLine = RxModeList[0];
+        private class RxTest {
+            protected BufferSSTV _oSSTVBuffer;      
+		    protected SSTVDraw   _oRxSSTV;          // Only used by test code.
+            protected SSTVDEM    _oSSTVDeModulator; // Only used by test code.
+            protected SSTVMOD    _oSSTVModulator;
+            protected SSTVGenerator _oSSTVGenerator;
+            protected DocSSTV _oDoc;
 
-                if( RxModeList.CheckedLine.Extra is SSTVMode oMode ) {
-                    if( _oWorkPlace.Status == WorkerStatus.FREE ) {
-			            TxBitmapSnip.Load( TxBitmap, skSelect, oMode.Resolution );
-					    if( GeneratorSetup( oMode, TxBitmapSnip.Bitmap ) ) {
-						    FFTControlValues oFFTMode = FFTControlValues.FindMode( RxSpec.Rate ); 
-						    SYSSET           sys      = new();
-						    SSTVDEM          oDemod   = new SSTVDEM( sys,
-																	 oFFTMode.SampFreq, 
-																	 oFFTMode.SampBase, 
-																	 0 );
-						    _oRxSSTV                = new SSTVDraw( oDemod, SyncImage.Bitmap, ReceiveImage.Bitmap );
-						    _oRxSSTV.Send_TvEvents += OnTvEvents_RxSSTV; // Since non-threaded, this is ok.
+		    /// <summary>
+		    /// In this 1'st test we skip the VIS and simply test video transmit and receive.
+		    /// The CSSTVDEM object is not used in these tests. The transmit and receive
+		    /// are set from the given mode.
+		    /// </summary>
+		    /// <param name="oMode">User selected mode. Any should work. Tho' only
+            /// one will decode properly of course.</param>
+		    /// <returns>Time in ms before next call wanted.</returns>
+            public IEnumerator<int> GetTaskRecordTest1( SSTVMode oMode ) {
+			    if( oMode == null )
+				    throw new ArgumentNullException( "Mode must not be Null." );
 
-						    _oSSTVDeModulator = oDemod;
+			    IEnumerator<int> oIter = _oSSTVGenerator.GetEnumerator();
 
-						    _oWorkPlace.Queue( GetTaskRecordTest2(), 0 );
-					    }
-                    }
-                }
-            } catch( NullReferenceException ) {
-                LogError( "Probably Buggered twice in the ModeList." );
-            }
-        }
+			    oIter            .MoveNext(); // skip the VIS for now.
+			    _oSSTVDeModulator.SstvSet.SetMode( oMode.Family ); // BUG: Move this into Start();
+			    _oSSTVDeModulator.Start( oMode );
 
-		/// <summary>
-		/// In this 1'st test we skip the VIS and simply test video transmit and receive.
-		/// The CSSTVDEM object is not used in these tests. The transmit and receive
-		/// are set from the given mode.
-		/// </summary>
-		/// <param name="oMode">User selected mode. Any should work. Tho' only
-        /// one will decode properly of course.</param>
-		/// <returns>Time in ms before next call wanted.</returns>
-        public IEnumerator<int> GetTaskRecordTest1( SSTVMode oMode ) {
-			if( oMode == null )
-				throw new ArgumentNullException( "Mode must not be Null." );
+                while( oIter.MoveNext() ) {
+				    _oRxSSTV.Process();
+				    yield return 1;
+			    };
+		    }
 
-			IEnumerator<int> oIter = _oSSTVGenerator.GetEnumerator();
+		    /// <summary>
+		    /// This 1'st test generates the the video signal but doesn't actually create audio
+		    /// tone stream but a fake stream of frequency data. Thus skipping the A/D coverter code
+		    /// we're just testing the video encode / decode. We do this by re-assigning
+		    /// the _oSSTVModulator with a new one set to our test frequency. It takes a snip of
+            /// the current TxBitmap and uses that to test with.
+		    /// </summary>
+		    /// <remarks>Set CSSTVDEM::m_fFreeRun to false!!</remarks>
+            public void ReceiveTestBegin( SKRectI skSelect, SSTVMode oMode, DocSSTV oDoc, IPgRoundRobinWork oWorkPlace ) {
+                _oDoc = oDoc ?? throw new ArgumentNullException( nameof( oDoc ) );
 
-			oIter            .MoveNext(); // skip the VIS for now.
-			_oSSTVDeModulator.SstvSet.SetMode( oMode.Family ); // BUG: Move this into Start();
-			_oSSTVDeModulator.Start( oMode );
+                try {
+                    if( oWorkPlace.Status == WorkerStatus.FREE ) {
+			            oDoc.TxBitmapSnip.Load( oDoc.TxBitmap, skSelect, oMode.Resolution );
 
-            while( oIter.MoveNext() ) {
-				_oRxSSTV.Process();
-				yield return 1;
-			};
-		}
+                        // Use a low sample rate so it's easier to slog thru the data. 
+                        Specification oTxSpec = new( 8000, 1, 0, 16 );
 
-		/// <summary>
-		/// This 1'st test generates the the video signal but doesn't actually create audio
-		/// tone stream but a fake stream of frequency data. Thus skipping the A/D coverter code
-		/// we're just testing the video encode / decode. We do this by re-assigning
-		/// the _oSSTVModulator with a new one set to our test frequency. It takes a snip of
-        /// the current TxBitmap and uses that to test with.
-		/// </summary>
-		/// <param name="iModeIndex">TV Format to use.</param>
-		/// <param name="skSelect">Portion of the image we want to transmit.</param>
-		/// <remarks>Use a low sample rate so it's easier to slog thru the data. 
-		///          Set CSSTVDEM::m_fFreeRun to false!!</remarks>
-		/// <seealso cref="InitNew" />
-        public void ReceiveTest1Begin( SKRectI skSelect ) {
-            try {
-                if( RxModeList.CheckedLine.Extra is SSTVMode oMode ) {
-                    if( _oWorkPlace.Status == WorkerStatus.FREE ) {
-			            TxBitmapSnip.Load( TxBitmap, skSelect, oMode.Resolution );
-
-					    FFTControlValues oFFTMode  = FFTControlValues.FindMode( 8000 ); // RxSpec.Rate
+					    FFTControlValues oFFTMode  = FFTControlValues.FindMode( oTxSpec.Rate ); // RxSpec.Rate
 					    SYSSET           sys       = new ();
 					    DemodTest        oDemodTst = new DemodTest( sys,
 															        oFFTMode.SampFreq, 
 															        oFFTMode.SampBase, 
 															        0 );
+
+                        _oSSTVBuffer      = new BufferSSTV( oTxSpec );
 					    _oSSTVDeModulator = oDemodTst;
 					    _oSSTVModulator   = new SSTVMOD( 0, oFFTMode.SampFreq, _oSSTVBuffer );
-					    _oRxSSTV          = new SSTVDraw ( _oSSTVDeModulator, SyncImage.Bitmap, ReceiveImage.Bitmap );
+					    _oRxSSTV          = new SSTVDraw ( _oSSTVDeModulator, oDoc.SyncImage.Bitmap, oDoc.ReceiveImage.Bitmap );
 
 					    _oSSTVGenerator = oMode.Family switch {
-						    TVFamily.PD      => new GeneratePD     ( TxBitmapSnip.Bitmap, oDemodTst, oMode ),
-						    TVFamily.Martin  => new GenerateMartin ( TxBitmapSnip.Bitmap, oDemodTst, oMode ),
-						    TVFamily.Scottie => new GenerateScottie( TxBitmapSnip.Bitmap, oDemodTst, oMode ),
+						    TVFamily.PD      => new GeneratePD     ( oDoc.TxBitmapSnip.Bitmap, oDemodTst, oMode ),
+						    TVFamily.Martin  => new GenerateMartin ( oDoc.TxBitmapSnip.Bitmap, oDemodTst, oMode ),
+						    TVFamily.Scottie => new GenerateScottie( oDoc.TxBitmapSnip.Bitmap, oDemodTst, oMode ),
 
 						    _ => throw new ArgumentOutOfRangeException("Unrecognized Mode Type."),
 					    };
 
                         _oSSTVDeModulator.Send_NextMode += OnNextMode_SSTVDeMod;
 
-                        _oWorkPlace.Queue( GetTaskRecordTest1( oMode ), 0 );
+                        oWorkPlace.Queue( GetTaskRecordTest1( oMode ), 0 );
+                    }
+                } catch( NullReferenceException ) {
+                    LogError( "Ooops didn't pick up mode (I think)" );
+                }
+            }
+
+            void LogError( string strMessage ) {
+            }
+
+		    /// <summary>
+		    /// This is used by the simple non-threaded test code. TODO: I can probably
+            /// roll this into ListenTvEvents below there...
+		    /// </summary>
+		    /// <remarks>
+		    /// I switched to a TmmSSTV that understands all the modes and is switched
+            /// between them on the fly. The benefit is that I don't need to set
+            /// up the event hooks everytime a new image comes down in the case where I
+            /// was alloc'ing TmmSSTV subclasses.</remarks>
+            /// <seealso cref="OnTvEvents_RxSSTV"/>
+            private void OnNextMode_SSTVDeMod( SSTVMode tvMode ) {
+			    _oDoc.ReceiveImage.Bitmap = null;
+			    _oDoc.SyncImage   .Bitmap = null;
+
+                _oRxSSTV.OnModeTransition_SSTVMod( tvMode ); // bitmap allocated in here. (may throw exception...)
+
+			    _oDoc.ReceiveImage.WorldDisplay = new SKRectI( 0, 0, tvMode.Resolution.Width, tvMode.Resolution.Height );
+
+                foreach( Line oLine in _oDoc.RxModeList ) {
+                    if( oLine.Extra is SSTVMode oLineMode ) {
+                        if( oLineMode.LegacyMode == tvMode.LegacyMode )
+                            _oDoc.RxModeList.HighLight = oLine;
                     }
                 }
-            } catch( NullReferenceException ) {
-                LogError( "Ooops didn't pick up mode (I think)" );
             }
+	        /// <summary>
+	        /// Forward events coming from SSTVDraw. I really need to sort out
+            /// the mess this has become. BUT this is only used by the TEST
+            /// code. The new threaded code does not use this.
+	        /// </summary>
+            private void OnTvEvents_RxSSTV( SSTVEvents eProp ) {
+                _oDoc.Raise_PropertiesUpdated( eProp );
+
+                switch( eProp ) {
+                    case SSTVEvents.DownLoadFinished:
+                        _oDoc.RxModeList.HighLight = null;
+                        _oDoc.SaveRxImage();
+                        break;
+                }
+            }
+
         }
 
 		public WorkerStatus PlayStatus {
