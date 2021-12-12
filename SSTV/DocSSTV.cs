@@ -112,8 +112,6 @@ namespace Play.SSTV {
         /// </summary>
         public void InitValues() {
             ValueUpdate( Names.Std_ImgQuality, "80", true );
-            ValueUpdate( Names.Tx_MyCall,      "ab6xy" );
-            ValueUpdate( Names.Tx_Progress,    "-" );
             ValueUpdate( Names.Std_MicGain,    "10000" ); // Out of 30,000
         }
 
@@ -629,11 +627,23 @@ namespace Play.SSTV {
                         case "MonitorDevice":
                             PropertyLoadFromXml( MonitorList, oNode );
                             break;
+                        case "RxMode":
+                            PropertyLoadFromXml( RxModeList, oNode );
+                            break;
+                        case "TxMode":
+                            PropertyLoadFromXml( TxModeList, oNode );
+                            break;
+                        case "Template":
+                            PropertyLoadFromXml( TemplateList, oNode );
+                            break;
                         case "ImageQuality":
                             StdProperties.ValueUpdate( SSTVProperties.Names.Std_ImgQuality, oNode.InnerText );
                             break;
                         case "DigiOutputGain":
                             StdProperties.ValueUpdate( SSTVProperties.Names.Std_MicGain, oNode.InnerText );
+                            break;
+                        case "MyCall":
+                            StdProperties.ValueUpdate( SSTVProperties.Names.Tx_MyCall, oNode.InnerText );
                             break;
                     }
                 }
@@ -654,45 +664,35 @@ namespace Play.SSTV {
         }
 
         public bool Save( TextWriter oStream ) {
+
 			try {
                 XmlDocument oDoc  = new ();
                 XmlElement  oRoot = oDoc.CreateElement( "MySSTV" );
                 oDoc.AppendChild( oRoot );
-                {
-                    XmlElement oElem = oDoc.CreateElement( "RxDevice" );
-                    if( PortRxList.CheckedLine?.ToString() is string strRxName ) {
-                        oElem.InnerText = strRxName;
+
+                Action<string, SSTVProperties.Names> StringProperty = delegate ( string strName, SSTVProperties.Names eProperty ) { 
+                    XmlElement oElem = oDoc.CreateElement( strName );
+                    oElem.InnerText = StdProperties[(int)eProperty].ToString();
+                    oRoot.AppendChild( oElem ); 
+                };
+                Action<string, Editor> CheckProperty = delegate( string strName, Editor oEditor ) {
+                    XmlElement oElem = oDoc.CreateElement( strName );
+                    if( oEditor.CheckedLine != null ) {
+                        oElem.InnerText = oEditor.CheckedLine.ToString();
                         oRoot.AppendChild( oElem );
                     }
-                }
-                {
-                    XmlElement oElem = oDoc.CreateElement( "TxDevice" );
-                    if( PortTxList.CheckedLine?.ToString() is string strTxName ) {
-                        oElem.InnerText = strTxName;
-                        oRoot.AppendChild( oElem );
-                    }
-                }
-                {
-                    XmlElement oElem = oDoc.CreateElement( "MonitorDevice" );
-                    if( MonitorList.CheckedLine?.ToString() is string strMonName ) {
-                        oElem.InnerText = strMonName;
-                        oRoot.AppendChild( oElem );
-                    }
-                }
-                {
-                    XmlElement oElem = oDoc.CreateElement( "ImageQuality" );
-                    if( StdProperties[SSTVProperties.Names.Std_ImgQuality].ToString() is string strQuality ) {
-                        oElem.InnerText = strQuality;
-                        oRoot.AppendChild( oElem );
-                    }
-                }
-                {
-                    XmlElement oElem = oDoc.CreateElement( "DigiOutputGain" );
-                    if( StdProperties[SSTVProperties.Names.Std_MicGain].ToString() is string strMicGain ) {
-                        oElem.InnerText = strMicGain;
-                        oRoot.AppendChild( oElem );
-                    }
-                }
+                };
+
+                CheckProperty ( "RxDevice",       PortRxList );
+                CheckProperty ( "TxDevice",       PortTxList );
+                CheckProperty ( "MonitorDevice",  MonitorList );
+                CheckProperty ( "RxMode",         RxModeList );
+                CheckProperty ( "TxMode",         TxModeList );
+                CheckProperty ( "Template",       TemplateList );
+                StringProperty( "ImageQuality",   SSTVProperties.Names.Std_ImgQuality );
+                StringProperty( "DigiOutputGain", SSTVProperties.Names.Std_MicGain );
+                StringProperty( "MyCall",         SSTVProperties.Names.Tx_MyCall );
+
                 oDoc.Save( oStream );
 			} catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( NullReferenceException ),
