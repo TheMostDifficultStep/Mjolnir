@@ -75,6 +75,9 @@ namespace Play.SSTV {
                     case Names.Tx_SrcFile:
                         Property_Values.LineInsertNoUndo( Property_Values.ElementCount, oSSTVDoc.TxImageList.CurrentShowFile );
                         break;
+                    case Names.Rx_SaveDir:
+                        Property_Values.LineInsertNoUndo( Property_Values.ElementCount, oSSTVDoc.RxHistoryList.CurrentShowPath );
+                        break;
                     default:
                         Property_Values.LineAppend( string.Empty, fUndoable:false );
                         break;
@@ -966,7 +969,7 @@ namespace Play.SSTV {
                                 StdProperties.ValueUpdate( SSTVProperties.Names.Rx_Mode,     oWorkerMode.Name );
                                 StdProperties.ValueUpdate( SSTVProperties.Names.Rx_Width,    oWorkerMode.Resolution.Width .ToString() );
                                 StdProperties.ValueUpdate( SSTVProperties.Names.Rx_Height,   oWorkerMode.Resolution.Height.ToString() );
-                                StdProperties.ValueUpdate( SSTVProperties.Names.Rx_SaveDir,  strFilePath );
+                              //StdProperties.ValueUpdate( SSTVProperties.Names.Rx_SaveDir,  strFilePath );
                                 StdProperties.ValueUpdate( SSTVProperties.Names.Rx_SaveName, strFileName, Broadcast:true );
 
                                 foreach( Line oLine in RxModeList ) {
