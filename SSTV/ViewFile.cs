@@ -13,6 +13,29 @@ using Play.Sound;
 using Play.Parse;
 
 namespace Play.SSTV {
+    public class ViewFileProperties : 
+        WindowStandardProperties
+     {
+        public static Guid GUID {get;} = new Guid("{80C855E0-C2F6-4641-9A7C-B6A8A53B3FDF}");
+
+		public ViewFileProperties( IPgViewSite oViewSite, DocProperties oDocument ) : base( oViewSite, oDocument ) {
+		}
+
+        public override void InitRows() {
+			int[] rgShow = { 
+				(int)SSTVProperties.Names.Std_Process,
+				(int)SSTVProperties.Names.Rx_Mode,
+				(int)SSTVProperties.Names.Rx_Width,
+				(int)SSTVProperties.Names.Rx_Height,
+				(int)SSTVProperties.Names.Rx_Progress,
+				(int)SSTVProperties.Names.Rx_SaveDir,
+				(int)SSTVProperties.Names.Rx_SaveName,
+			};
+
+            base.InitRows(rgShow);
+        }
+    }
+
 	/// <summary>
 	/// This window is for the file chooser.
 	/// </summary>
@@ -210,8 +233,7 @@ namespace Play.SSTV {
 		public override object Decorate(IPgViewSite oBaseSite,Guid sGuid) {
 			try {
 				if( sGuid.Equals(GlobalDecorations.Properties) ) {
-					// Just show all properties, but probably want to pare it down.
-					return new WindowStandardProperties( oBaseSite, _oDocSSTV.StdProperties );
+					return new ViewFileProperties( oBaseSite, _oDocSSTV.StdProperties );
 				}
 				if( sGuid.Equals( GlobalDecorations.Outline ) ) {
 					return new CheckList( oBaseSite, _rgRxModeList );
