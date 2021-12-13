@@ -207,6 +207,8 @@ namespace Play.SSTV {
         }
 
         private void OnDirectoryChange_WaveFiles( string strDirectory ) {
+			// BUG: this will blass any loaded value when you open this window
+			//      on InitNew(). Probably should use a different file list.
 			_oDocSSTV.RxHistoryList.LoadAgain( strDirectory );
         }
 

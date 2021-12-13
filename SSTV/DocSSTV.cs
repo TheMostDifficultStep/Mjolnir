@@ -97,7 +97,7 @@ namespace Play.SSTV {
             LabelSet( Names.Tx_RST,       "RST" );
             LabelSet( Names.Tx_Message,   "Message" );
             LabelSet( Names.Tx_Progress,  "Sent" );
-            LabelSet( Names.Tx_SrcDir,    "Source Dir" );
+            LabelSet( Names.Tx_SrcDir,    "Tx Source Dir" );
             LabelSet( Names.Tx_SrcFile,   "Filename" );
 
             LabelSet( Names.Rx_Mode,     "Mode", new SKColor( red:0xff, green:0xbf, blue:0 ) );
@@ -655,6 +655,9 @@ namespace Play.SSTV {
                         case "Message":
                             StdProperties.ValueUpdate( SSTVProperties.Names.Tx_Message, oNode.InnerText );
                             break;
+                        case "TxSrcDir":
+                            TxImageList.LoadAgain( oNode.InnerText );
+                            break;
                     }
                 }
 			} catch( Exception oEx ) {
@@ -702,6 +705,7 @@ namespace Play.SSTV {
                 StringProperty( "DigiOutputGain", SSTVProperties.Names.Std_MicGain );
                 StringProperty( "MyCall",         SSTVProperties.Names.Tx_MyCall );
                 StringProperty( "Message",        SSTVProperties.Names.Tx_Message );
+                StringProperty( "TxSrcDir",       SSTVProperties.Names.Tx_SrcDir );
 
                 oDoc.Save( oStream );
 			} catch( Exception oEx ) {
@@ -925,6 +929,8 @@ namespace Play.SSTV {
             RxHistoryList.LoadAgain( RxHistoryList.CurrentDirectory );
         }
 
+        protected readonly string[] _rgThreadStrings = { "Drawing Exception", "WorkerException", "ReadException", "DiagnosticsException" };
+
         /// <summary>
         /// This is our task to poll the Background to UI Queue. It services both
         /// the receive thread and the transmit thread. Technically they can run
@@ -946,9 +952,9 @@ namespace Play.SSTV {
                             yield break; // Bail out.
                         case SSTVEvents.SSTVMode: 
                             {
-                                // this is a little evil asking the worker the mode that might
+                                // TODO: this is a little evil asking the worker the mode that might
                                 // be different by the time we process the event. Might want a
-                                // parameter on the message.
+                                // parameter on the message. Try using the sResult.Param
                                 SSTVMode oWorkerMode = oWorker.NextMode;
                                 if( oWorkerMode == null ) {
                                     // We catch a null we're going back to listen mode.
@@ -963,13 +969,11 @@ namespace Play.SSTV {
 
 			                    ReceiveImage.WorldDisplay = new SKRectI( 0, 0, oWorkerMode.Resolution.Width, oWorkerMode.Resolution.Height );
 
-                                string strFileName = Path.GetFileName     ( oWorker.SuggestedFileName );
-                                string strFilePath = Path.GetDirectoryName( oWorker.SuggestedFileName );
+                                string strFileName = Path.GetFileName( oWorker.SuggestedFileName );
 
                                 StdProperties.ValueUpdate( SSTVProperties.Names.Rx_Mode,     oWorkerMode.Name );
                                 StdProperties.ValueUpdate( SSTVProperties.Names.Rx_Width,    oWorkerMode.Resolution.Width .ToString() );
                                 StdProperties.ValueUpdate( SSTVProperties.Names.Rx_Height,   oWorkerMode.Resolution.Height.ToString() );
-                              //StdProperties.ValueUpdate( SSTVProperties.Names.Rx_SaveDir,  strFilePath );
                                 StdProperties.ValueUpdate( SSTVProperties.Names.Rx_SaveName, strFileName, Broadcast:true );
 
                                 foreach( Line oLine in RxModeList ) {
@@ -997,16 +1001,10 @@ namespace Play.SSTV {
                             }
                             break;
                         case SSTVEvents.ThreadException:
-                            switch( (TxThreadErrors)sResult.Param ) {
-                                case TxThreadErrors.WorkerException:
-                                    LogError( "Worker thread Exception" );
-                                    break;
-                                case TxThreadErrors.DrawingException:
-                                    LogError( "Worker thread Drawing Exception" );
-                                    break;
-                                case TxThreadErrors.DiagnosticsException:
-                                    LogError( "Worker thread Diagnostics Exception" );
-                                    break;
+                            try {
+                                LogError( _rgThreadStrings[sResult.Param] );
+                            } catch( IndexOutOfRangeException ) {
+                                LogError( "General Thread Exception " + sResult.Param.ToString() );
                             }
                             break;
                     }
