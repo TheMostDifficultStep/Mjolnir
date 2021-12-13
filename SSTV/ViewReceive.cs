@@ -451,35 +451,44 @@ namespace Play.SSTV {
 	/// windows now. This is the base class for these two windows.
 	/// </summary>
 	public abstract class WindowRxBase : WindowStaggardBase { 
-		protected ImageViewSingle _oViewRxImg;
-		protected ImageViewIcons  _oViewRxHistory;
+		protected ImageViewSingle _wmViewRxImg;
+		protected ImageViewIcons  _wmViewRxHistory;
 
 		public WindowRxBase( IPgViewSite oSiteBase, DocSSTV oDocSSTV ) : base( oSiteBase, oDocSSTV ) {
 			Iconic = ImageResourceHelper.GetImageResource( Assembly.GetExecutingAssembly(), IconResource );
 
-			_oViewRxImg     = new( new SSTVWinSlot( this, ChildID.RxWindow      ),    _oDocSSTV.ReceiveImage );
-			_oViewRxHistory = new( new SSTVWinSlot( this, ChildID.HistoryNavWindow ), _oDocSSTV.RxHistoryList  ); 
+			_wmViewRxImg     = new( new SSTVWinSlot( this, ChildID.RxWindow      ),    _oDocSSTV.ReceiveImage );
+			_wmViewRxHistory = new( new SSTVWinSlot( this, ChildID.HistoryNavWindow ), _oDocSSTV.RxHistoryList  ); 
 
-			_oViewRxImg    .Parent = this;
-			_oViewRxHistory.Parent = this;
+			_wmViewRxImg    .Parent = this;
+			_wmViewRxHistory.Parent = this;
 
-			_oViewRxImg.SetBorderOn();
+			_wmViewRxImg.SetBorderOn();
 		}
 
         protected override void Dispose( bool fDisposing ) {
 			if( fDisposing && !_fDisposed ) {
-				_oViewRxHistory.Dispose();
-				_oViewRxImg    .Dispose();
+				_wmViewRxHistory.Dispose();
+				_wmViewRxImg    .Dispose();
 
 				_fDisposed = true;
 			}
 			base.Dispose( fDisposing );
         }
 
+		public virtual bool InitNew() {
+			if( !_wmViewRxHistory.InitNew() )
+				return false;
+			if( !_wmViewRxImg.InitNew() )
+				return false;
+
+			return true;
+		}
+
 		protected override void BringChildToFront( ChildID eID ) {
 			switch( eID ) {
 				case ChildID.RxWindow:
-					_oViewRxImg.BringToFront();
+					_wmViewRxImg.BringToFront();
 					break;
 			}
 		}
@@ -540,15 +549,11 @@ namespace Play.SSTV {
 		}
 
 		public WindowDeviceViewer( IPgViewSite oSiteBase, DocSSTV oDocSSTV ) : base( oSiteBase, oDocSSTV ) {
-			_oViewRxImg     = new( new SSTVWinSlot( this, ChildID.RxWindow           ), _oDocSSTV.ReceiveImage );
-			_oViewRxHistory = new( new SSTVWinSlot( this, ChildID.HistoryIconsWindow ), _oDocSSTV.RxHistoryList  );
 			_wnSoloImageNav = new( new SSTVWinSlot( this, ChildID.HistoryNavWindow   ), _oDocSSTV.RxHistoryList  );
 
-			_oViewRxImg    .Parent = this;
-			_oViewRxHistory.Parent = this;
 			_wnSoloImageNav.Parent = this;
 
-			_oViewRxImg.SetBorderOn();
+			_wmViewRxImg.SetBorderOn();
 		}
 
         protected override void Dispose( bool fDisposing ) {
@@ -562,10 +567,8 @@ namespace Play.SSTV {
 			base.Dispose( fDisposing );
         }
 
-        public virtual bool InitNew() {
-			if( !_oViewRxImg    .InitNew() )
-				return false;
-			if( !_oViewRxHistory.InitNew() )
+        public override bool InitNew() {
+			if( !base           .InitNew() )
 				return false;
 			if( !_wnSoloImageNav.InitNew() )
 				return false;
@@ -574,11 +577,11 @@ namespace Play.SSTV {
             _oDocSSTV.PropertyChange             += OnPropertyChange_DocSSTV;
             _oDocSSTV.RxModeList.CheckedEvent    += OnCheckedEvent_RxModeList;
 
-			_rgSubLayout.Add(new LayoutControl(_oViewRxImg,     LayoutRect.CSS.None) );
+			_rgSubLayout.Add(new LayoutControl(_wmViewRxImg,     LayoutRect.CSS.None) );
 			_rgSubLayout.Add(new LayoutControl(_wnSoloImageNav, LayoutRect.CSS.None) );
 
 			_oLayout.Add( _rgSubLayout );
-            _oLayout.Add( new LayoutControl( _oViewRxHistory, LayoutRect.CSS.Pixels, 220 ) );
+            _oLayout.Add( new LayoutControl( _wmViewRxHistory, LayoutRect.CSS.Pixels, 220 ) );
 
             OnSizeChanged( new EventArgs() );
 			return true;
@@ -619,11 +622,11 @@ namespace Play.SSTV {
         private void OnPropertyChange_DocSSTV( SSTVEvents eProp ) {
 			switch( eProp ) {
 				case SSTVEvents.DownLoadFinished:
-					_oViewRxImg.BringToFront();
-					_oViewRxImg.Refresh();
+					_wmViewRxImg.BringToFront();
+					_wmViewRxImg.Refresh();
 					break;
 				default:
-					_oViewRxImg.Invalidate();
+					_wmViewRxImg.Invalidate();
 					_oSiteView .Notify( ShellNotify.BannerChanged );
 					break;
 			}
@@ -641,7 +644,7 @@ namespace Play.SSTV {
 				return true;
 			}
 			if( sGuid == GlobalCommands.Save ) {
-				if( _oViewRxImg.Focused ) {
+				if( _wmViewRxImg.Focused ) {
 					_oDocSSTV.SaveRxImage();
 					_oDocSSTV.RxHistoryList.LoadAgain( _oDocSSTV.RxHistoryList.CurrentDirectory );
 				}
@@ -649,7 +652,7 @@ namespace Play.SSTV {
 				return true; 
 			}
 			if( sGuid == GlobalCommands.JumpPrev) { 
-				_oViewRxImg.BringToFront();
+				_wmViewRxImg.BringToFront();
 				return true;
 			}
 			if( sGuid == GlobalCommands.JumpNext) {

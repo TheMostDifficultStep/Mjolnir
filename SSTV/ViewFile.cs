@@ -144,15 +144,15 @@ namespace Play.SSTV {
 		public WindowFileViewer( IPgViewSite oSiteBase, DocSSTV oDocSSTV ) : base( oSiteBase, oDocSSTV ) {
 			_rgWavFileList   = new( new SSTVWinSlot( this, ChildID.None ) );
 			_rgDecodedImages = new( new SSTVWinSlot( this, ChildID.None ) );
-			_rgRxModeList    = new( new SSTVWinSlot( this, ChildID.None     ) );
+			_rgRxModeList    = new( new SSTVWinSlot( this, ChildID.None ) );
 
-			_oViewRxImg      = new( new SSTVWinSlot( this, ChildID.RxWindow ), _oDocSSTV.ReceiveImage );
-			_oViewRxHistory  = new( new SSTVWinSlot( this, ChildID.None     ), _rgDecodedImages );
+			//_wmViewRxImg      = new( new SSTVWinSlot( this, ChildID.RxWindow ), _oDocSSTV.ReceiveImage );
+			//_wmViewRxHistory  = new( new SSTVWinSlot( this, ChildID.None     ), _rgDecodedImages );
 
-			_oViewRxImg    .Parent = this;
-			_oViewRxHistory.Parent = this;
+			//_wmViewRxImg    .Parent = this;
+			//_wmViewRxHistory.Parent = this;
 
-			_oViewRxImg.SetBorderOn();
+			_wmViewRxImg.SetBorderOn();
 		}
 
         protected override void Dispose( bool fDisposing ) {
@@ -160,16 +160,14 @@ namespace Play.SSTV {
 				_oDocSSTV     .PropertyChange  -= OnPropertyChange_DocSSTV;
 				_rgWavFileList.DirectoryChange -= OnDirectoryChange_WaveFiles;
 				_rgRxModeList .CheckedEvent    -= OnCheckedEvent_RxModeList;
-
-				_oViewRxHistory.Dispose();
-				_oViewRxImg    .Dispose();
-
-				_fDisposed = true;
 			}
 			base.Dispose( fDisposing );
         }
 
-        public virtual bool InitNew() {
+        public override bool InitNew() {
+			if( !base.InitNew() )
+				return false;
+
 			if( !_rgRxModeList.InitNew() )
 				return false;
 
@@ -185,9 +183,9 @@ namespace Play.SSTV {
 				return false;
 			}
 
-			if( !_oViewRxImg.InitNew() )
+			if( !_wmViewRxImg.InitNew() )
 				return false;
-			if( !_oViewRxHistory.InitNew() )
+			if( !_wmViewRxHistory.InitNew() )
 				return false;
 
 			_oDocSSTV     .PropertyChange  += OnPropertyChange_DocSSTV;
@@ -197,8 +195,8 @@ namespace Play.SSTV {
 			// Of course we'll blow up the shell if try in the constructor...
 			OnDirectoryChange_WaveFiles( _rgWavFileList.CurrentDirectory );
 
-            _oLayout.Add( new LayoutControl( _oViewRxImg,     LayoutRect.CSS.None ) );
-            _oLayout.Add( new LayoutControl( _oViewRxHistory, LayoutRect.CSS.Pixels, 220 ) );
+            _oLayout.Add( new LayoutControl( _wmViewRxImg,     LayoutRect.CSS.None ) );
+            _oLayout.Add( new LayoutControl( _wmViewRxHistory, LayoutRect.CSS.Pixels, 220 ) );
 
             OnSizeChanged( new EventArgs() );
 			return true;
@@ -209,7 +207,7 @@ namespace Play.SSTV {
         }
 
         private void OnDirectoryChange_WaveFiles( string strDirectory ) {
-			// Not using this for now.
+			_oDocSSTV.RxHistoryList.LoadAgain( strDirectory );
         }
 
         /// <summary>
@@ -221,10 +219,10 @@ namespace Play.SSTV {
         private void OnPropertyChange_DocSSTV( SSTVEvents eProp ) {
 			switch( eProp ) {
 				case SSTVEvents.DownLoadFinished:
-					_oViewRxImg.Refresh();
+					_wmViewRxImg.Refresh();
 					break;
 				default:
-					_oViewRxImg.Invalidate();
+					_wmViewRxImg.Invalidate();
 					_oSiteView .Notify( ShellNotify.BannerChanged );
 					break;
 			}
