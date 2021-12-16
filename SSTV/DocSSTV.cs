@@ -207,7 +207,7 @@ namespace Play.SSTV {
         private bool disposedValue;
 
         readonly ConcurrentQueue<SSTVMessage> _rgBGtoUIQueue = new ConcurrentQueue<SSTVMessage>(); // From BG thread to UI thread.
-        readonly ConcurrentQueue<double>      _rgDataQueue   = new ConcurrentQueue<double>();     // From UI thread to BG thread.
+        readonly ConcurrentQueue<double>      _rgDataQueue   = new ConcurrentQueue<double>();      // From UI thread to BG thread.
         readonly ConcurrentQueue<TVMessage>   _rgUItoBGQueue = new ConcurrentQueue<TVMessage>();
 
         Thread               _oThread  = null;
@@ -215,6 +215,8 @@ namespace Play.SSTV {
         WaveOut              _oWaveOut = null;
         BufferedWaveProvider _oWaveBuf = null;
         BlockCopies          _oWaveReader  = null;
+
+        protected bool _isTransmitting = false;
 
         /// <summary>
         /// This editor shows the list of modes we can modulate.
@@ -781,7 +783,7 @@ namespace Play.SSTV {
 					case 1:
 						TxBitmapComp.AddImage( LOCUS.CENTER,      0,  0, 100.0, TxBitmapSnip );
 						TxBitmapComp.AddText ( LOCUS.UPPERLEFT,   5,  5,  15.0, TxBitmapComp.StdFace, TheirCall + " de " + MyCall + " " + RST );
-						TxBitmapComp.AddImage( LOCUS.LOWERRIGHT, 10, 10,  30.0, RxHistoryList );
+						TxBitmapComp.AddImage( LOCUS.LOWERRIGHT, 10, 10,  40.0, RxHistoryList );
 						break;
 					case 2:
 						TxBitmapComp.AddImage( LOCUS.CENTER,      0,  0, 100.0, TxBitmapSnip );
@@ -878,17 +880,19 @@ namespace Play.SSTV {
         protected int MicrophoneGain => StdProperties.ValueAsInt( SSTVProperties.Names.Std_MicGain );
 
         /// <summary>
-        /// Begin transmitting the image.
+        /// Begin transmitting the image. At present, no way to stop!! >_<;;
         /// </summary>
         public async void TransmitBegin( SSTVMode oMode ) {
             if( PortTxList.CheckedLine == null ) {
-                LogError( "No sound device to send to" );
-                return;
+                LogError( "No sound device to send to" ); return;
             }
             if( oMode == null || TxBitmapComp.Bitmap == null ) {
-                LogError( "Transmit mode or image is not set." );
-                return;
+                LogError( "Transmit mode or image is not set." ); return;
             }
+            if( _isTransmitting ) {
+                LogError( "Already Transmitting" ); return;
+            }
+            _isTransmitting = true;
 
             Action oTransmitAction = delegate () {
                 SKBitmap bmpCopy = TxBitmapComp.Bitmap.Copy();
@@ -906,6 +910,7 @@ namespace Play.SSTV {
             oTask.Start();
 
             await oTask;
+            _isTransmitting = false;
         }
 
         /// <summary>
@@ -1394,9 +1399,7 @@ namespace Play.SSTV {
         }
 
         public void TransmitStop() {
-            TxModeList.HighLight = null;
-
-            _oWorkPlace.Stop();
+            //TxModeList.HighLight = null;
         }
 
         /// <summary>
