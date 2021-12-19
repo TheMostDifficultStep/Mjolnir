@@ -258,15 +258,12 @@ namespace Play.SSTV {
         
 		public override bool Execute( Guid sGuid ) {
 			if( sGuid == GlobalCommands.Play ) {
-				_oSiteView.Notify(ShellNotify.BannerChanged);
-				_oDocSSTV.ReceiveFileReadBgThreadBegin( _rgWavFileList.CurrentFullPath, _rgRxModeList.ChosenMode );
+				_oDocSSTV.ReceiveFileRead( _rgWavFileList.CurrentFullPath, _rgRxModeList.ChosenMode );
+				_oDocSSTV.RxHistoryList.LoadAgain( _rgWavFileList.CurrentFullPath );
 				return true;
 			}
-			if ( sGuid == GlobalCommands.Stop ) {
-				// BUG: What if we're launched with one tool and then the tool is
-				//      changed midway and we hit stop. Need to sort that out.
-				_oDocSSTV.ReceiveLiveStop();
-				return true;
+			if( sGuid == GlobalCommands.Stop ) {
+				// Might be a good place for a thread cancellation token here.
 			}
 			if( sGuid == GlobalCommands.Save ) {
 				_oDocSSTV.SaveRxImage();

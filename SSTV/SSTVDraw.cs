@@ -320,7 +320,7 @@ namespace Play.SSTV {
 		// Need to look into the greyscale calibration height of bitmap issue. (+16 scan lines)
 		// The D12 bitmap must always be >= to the RX bmp height.
 
-		public event SSTVDrawEvents Send_TvEvents; // TODO: Since threaded version poles, we don't need this.
+		public event SSTVDrawEvents Send_TvEvents;
 
 		protected readonly List<ColorChannel> _rgSlots = new (10);
 		
@@ -385,6 +385,14 @@ namespace Play.SSTV {
 		//		}
 		//	}
 		//}
+
+		public void Dispose() {
+			// I don't think this is strictly necessary since we're not supposed to
+			// being used anyway. But what the heck.
+			foreach( Delegate d in Send_TvEvents.GetInvocationList() ) {
+				Send_TvEvents -= (SSTVDrawEvents)d;
+			}
+		}
 
 		/// <summary>this method get's called to initiate the processing of
 		/// a new image.</summary>

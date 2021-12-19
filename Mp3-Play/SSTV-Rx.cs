@@ -744,7 +744,13 @@ namespace Play.Sound {
 	/// the Mode gets assigned everytime a new image comes down. You must make a new
 	/// SSTVDEM if the sample frequency changes.
 	/// </summary>
-	public class SSTVDEM : IEnumerable<SSTVMode> {
+	/// <remarks>This object used to be able to store the frequency converted stream,
+	/// to file, which is ok, but I'd rather have the original samples and stick that 
+	/// in a WAV file. I'm working towards that. So I've removed the StorePage() code.
+	/// </remarks>
+	public class SSTVDEM :
+		IEnumerable<SSTVMode> 
+	{
 		public SYSSET   Sys     { get; protected set; }
 		public SSTVMode Mode    { get; protected set; } 
 		public SSTVSET  SstvSet { get; protected set; }
@@ -956,6 +962,12 @@ namespace Play.Sound {
 		public void Dispose() {
 			m_B12 = null;
 			m_Buf = null;
+
+			// I don't think this is strictly necessary since we're not supposed to
+			// being used anyway. But what the heck.
+			foreach( Delegate d in Send_NextMode.GetInvocationList() ) {
+				Send_NextMode -= (NextMode)d;
+			}
 		}
 
         protected class ShortConsumer : IPgStreamConsumer<short> {
@@ -1067,30 +1079,6 @@ namespace Play.Sound {
 			Mode = null;
 
 			Send_NextMode?.Invoke( Mode );
-		}
-
-		/// <summary>
-		/// Moved from TmmSSTV. Note that ip == sp in the case of index offset and NOT short* to array.
-		/// </summary>
-		public void StorePage( int ip ) {
-			//short *ip = &m_Buf[m_rPage * m_BWidth];
-			//short *sp = &m_B12[m_rPage * m_BWidth];
-			//if( dp.m_StgBuf ){
-			//	if( ((dp.m_wStgLine + 1) * SSTVSET.m_WD) < dp.m_RxBufAllocSize ){
-			//		memcpy(&dp->m_StgBuf[dp->m_wStgLine * SSTVSET.m_WD], ip, SSTVSET.m_WD*sizeof(short));
-			//		memcpy(&dp->m_StgB12[dp->m_wStgLine * SSTVSET.m_WD], sp, SSTVSET.m_WD*sizeof(short));
-			//		dp.m_wStgLine++;
-			//		if( dp.m_wStgLine == 16 )
-            //            UpdateSBTO();
-			//	}
-			//}
-			//else if( WaveStg.IsOpen() ){
-			//	WaveStg.Write(ip, SSTVSET.m_WD*sizeof(short));
-			//	WaveStg.Write(sp, SSTVSET.m_WD*sizeof(short));
-			//	dp.m_wStgLine++;
-			//	if( dp->m_wStgLine == 16 )
-            //        UpdateSBTO();
-			//}
 		}
 
 		/// <summary>

@@ -137,7 +137,7 @@ namespace Play.SSTV {
 		}
 
 		public WindowSoloRx( IPgViewSite oSiteBase, DocSSTV oDocSSTV ) : 
-			base( oSiteBase, oDocSSTV.ReceiveImage ) 
+			base( oSiteBase, oDocSSTV.DisplayImage ) 
 		{
 			_oSiteView = oSiteBase ?? throw new ArgumentNullException( "SiteBase must not be null." );
 			_oDocSSTV  = oDocSSTV  ?? throw new ArgumentNullException( "DocSSTV must not be null." );
@@ -457,7 +457,7 @@ namespace Play.SSTV {
 		public WindowRxBase( IPgViewSite oSiteBase, DocSSTV oDocSSTV ) : base( oSiteBase, oDocSSTV ) {
 			Iconic = ImageResourceHelper.GetImageResource( Assembly.GetExecutingAssembly(), IconResource );
 
-			_wmViewRxImg     = new( new SSTVWinSlot( this, ChildID.RxWindow      ),    _oDocSSTV.ReceiveImage );
+			_wmViewRxImg     = new( new SSTVWinSlot( this, ChildID.RxWindow      ),    _oDocSSTV.DisplayImage );
 			_wmViewRxHistory = new( new SSTVWinSlot( this, ChildID.HistoryNavWindow ), _oDocSSTV.RxHistoryList  ); 
 
 			_wmViewRxImg    .Parent = this;
@@ -644,10 +644,9 @@ namespace Play.SSTV {
 				return true;
 			}
 			if( sGuid == GlobalCommands.Save ) {
-				if( _wmViewRxImg.Focused ) {
-					_oDocSSTV.SaveRxImage();
-					_oDocSSTV.RxHistoryList.LoadAgain( _oDocSSTV.RxHistoryList.CurrentDirectory );
-				}
+				// Override save behavior.
+				_oDocSSTV.SaveRxImage();
+				_oDocSSTV.RxHistoryList.LoadAgain( _oDocSSTV.RxHistoryList.CurrentDirectory );
 				// make sure you return true or a docsstv.save gets called.
 				return true; 
 			}

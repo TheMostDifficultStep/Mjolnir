@@ -26,7 +26,11 @@ namespace Mjolnir {
 
                 _oWorker = oWorker ?? throw new ArgumentNullException();
 
-                _iStartTick = DateTime.Now.AddMilliseconds( iWaitInMilliSecs ).Ticks;
+				if( iWaitInMilliSecs == Timeout.Infinite ) {
+					_iStartTick = Timeout.Infinite;
+				} else {
+					_iStartTick = DateTime.Now.AddMilliseconds( iWaitInMilliSecs ).Ticks;
+				}
 
                 _oHost.WorkerPlaceQue( this );
             }

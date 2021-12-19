@@ -15,49 +15,44 @@ using Play.Sound.FFT;
 using System.Collections;
 
 namespace Play.SSTV {
-    public class ThreadWorkerBase {
-        protected readonly ConcurrentQueue<SSTVMessage> _oToUIQueue;
-
-        public SSTVMode NextMode => SSTVDraw?.Mode;
-
-        public SSTVDraw SSTVDraw        { get; protected set; }
-        public SSTVDEM  SSTVDeModulator { get; protected set; }
-
-        public virtual string SuggestedFileName => string.Empty;
-        public virtual bool   IsForever         => false;
-
-        protected SKBitmap _oD12Bmp;
-        protected SKBitmap _oRxBmp;
-
-        public ThreadWorkerBase( ConcurrentQueue<SSTVMessage> oToUIQueue, SKBitmap oD12Bmp, SKBitmap oRxBmp ) {
-            _oToUIQueue = oToUIQueue ?? throw new ArgumentNullException( "Queue is null" );
-            _oD12Bmp    = oD12Bmp    ?? throw new ArgumentNullException( "D12 Bmp is null" );
-            _oRxBmp     = oRxBmp     ?? throw new ArgumentNullException( "Rx Bmp is null" );
-        }
-    }
-
     /// <summary>
     /// Encapsulate everything I need to decode a SSTV image from a WAV file. In the
     /// future I'll make a version of this which is reading from an audio input device.
     /// </summary>
-    public class ThreadWorker : ThreadWorkerBase {
-        public readonly string   _strFileName;
-        public readonly SSTVMode _oStartMode;
+    /// <remarks>The down side of separating the Device Listener and the file read state
+    /// objects is that the sound buffer is duplicated between the both of them.
+    /// It's not the end of the world, since you're not likely to do both file read
+    /// and device listen all at the same time. But it is a consideration.</remarks>
+    /// <seealso cref="DeviceListeningState"/>
+    public class FileReadingState : 
+        IEnumerable<int>
+    {
+        protected readonly ConcurrentQueue<SSTVMessage> _oToUIQueue;
 
-        public override string SuggestedFileName => _strFileName;
+        protected readonly SSTVDraw _oSSTVDraw;
+        protected readonly SSTVDEM  _oSSTVDeMo;
 
-        public ThreadWorker( ConcurrentQueue<SSTVMessage> oMsgQueue, string strFileName, SSTVMode oMode, SKBitmap oD12, SKBitmap oRx ) : 
-            base( oMsgQueue, oD12, oRx )
+        public    readonly string               _strFileName;
+        protected readonly WaveToSampleProvider _oProvider;
+        protected readonly AudioFileReader      _oReader;
+
+        public FileReadingState( ConcurrentQueue<SSTVMessage> oToUIQueue, string strFileName, SKBitmap oD12, SKBitmap oRx ) 
         {
-            _strFileName = strFileName ?? throw new ArgumentNullException( "Filename is null" );
-            _oStartMode  = oMode;
+            _oToUIQueue  = oToUIQueue  ?? throw new ArgumentNullException( nameof( oToUIQueue ) );
+            _strFileName = strFileName ?? throw new ArgumentNullException( nameof( strFileName ) );
+
+            _oReader     = new AudioFileReader     ( _strFileName ); 
+            _oProvider   = new WaveToSampleProvider( _oReader );
+
+			FFTControlValues oFFTMode  = FFTControlValues.FindMode( _oReader.WaveFormat.SampleRate );
+
+            _oSSTVDeMo = new SSTVDEM ( new SYSSET(), oFFTMode.SampFreq );;
+			_oSSTVDraw = new SSTVDraw( _oSSTVDeMo, oD12, oRx );
         }
 
-        public IEnumerator<int> GetReceiveFromFileTask( WaveStream oStream ) {
-            var oReader = new WaveToSampleProvider(oStream);
-
-            int     iChannels = oStream.WaveFormat.Channels;
-            int     iBits     = oStream.WaveFormat.BitsPerSample; 
+        public IEnumerator<int> GetEnumerator() {
+            int     iChannels = _oReader.WaveFormat.Channels;
+            int     iBits     = _oReader.WaveFormat.BitsPerSample; 
             float[] rgBuff    = new float[1500]; // TODO: Make this scan line sized in the future.
             int     iRead     = 0;
 
@@ -66,15 +61,11 @@ namespace Play.SSTV {
 
             Func<int, double> ConvertInput = iBits == 16 ? From16to16 : (Func<int, double>)From32to16;
 
-            if( _oStartMode != null ) {
-                SSTVDeModulator.Start( _oStartMode );
-            }
-
             do {
                 try {
-                    iRead = oReader.Read( rgBuff, 0, rgBuff.Length );
+                    iRead = _oProvider.Read( rgBuff, 0, rgBuff.Length );
                     for( int i = 0; i< iRead; ++i ) {
-                        SSTVDeModulator.Do( ConvertInput(i) );
+                        _oSSTVDeMo.Do( ConvertInput(i) );
                     }
 				} catch( Exception oEx ) {
                     Type[] rgErrors = { typeof( NullReferenceException ),
@@ -88,8 +79,6 @@ namespace Play.SSTV {
 
                     _oToUIQueue.Enqueue( new( SSTVEvents.ThreadException, (int)TxThreadErrors.ReadException ) );
 
-					// Don't call _oWorkPlace.Stop() b/c we're already in DoWork() which will
-					// try calling the _oWorker which will have been set to NULL!!
                     break; // Drop down so we can unplug from our Demodulator.
                 }
                 yield return 0; 
@@ -101,22 +90,20 @@ namespace Play.SSTV {
         /// converter from this thread. The UI thread looks at the RX and 12 bitmaps
         /// from time to time. Errors are passed via message to the UI.
         /// </summary>
-        public void DoWork() {
+        public void DoWork( SSTVMode oMode ) {
             try {
-                using var oStream = new AudioFileReader(_strFileName); 
+                // Note: SSTVDemodulator.Start() will try to use the callback.
+                _oSSTVDeMo.Send_NextMode += OnNextMode_SSTVDemo;
+                _oSSTVDraw.Send_TvEvents += OnTVEvents_SSTVDraw;
 
-			    FFTControlValues oFFTMode  = FFTControlValues.FindMode( oStream.WaveFormat.SampleRate ); // RxSpec.Rate
-
-                SSTVDeModulator = new SSTVDEM ( new SYSSET(), oFFTMode.SampFreq );;
-			    SSTVDraw        = new SSTVDraw( SSTVDeModulator, _oD12Bmp, _oRxBmp );
-
-                SSTVDeModulator.Send_NextMode += OnNextMode_SSTVDemo;
-                SSTVDraw       .Send_TvEvents += OnTVEvents_SSTVDraw;
-
-                for( IEnumerator<int> oIter = GetReceiveFromFileTask( oStream ); oIter.MoveNext(); ) {
-                    SSTVDraw.Process();
+                if( oMode != null ) {
+                    _oSSTVDeMo.Start( oMode );
                 }
-                SSTVDraw.Stop();
+
+                foreach( int i in this ) {
+                    _oSSTVDraw.Process();
+                }
+                _oSSTVDraw.Stop();
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( DirectoryNotFoundException ),
                                     typeof( NullReferenceException ),
@@ -125,6 +112,7 @@ namespace Play.SSTV {
                 if( rgErrors.IsUnhandled( oEx ) )
                     throw;
 
+                // Never send TxThreadErrors.ThreadAbort, that's for the Device thread only.
                 _oToUIQueue.Enqueue( new( SSTVEvents.ThreadException, (int)TxThreadErrors.WorkerException ) );
             }
         }
@@ -148,74 +136,62 @@ namespace Play.SSTV {
         /// separate out those events.</remarks>
         private void OnNextMode_SSTVDemo( SSTVMode tvMode ) {
             try {
-                SSTVDraw.OnModeTransition_SSTVMod( tvMode ); 
+                _oSSTVDraw.OnModeTransition_SSTVMod( tvMode ); 
             } catch( ArgumentOutOfRangeException ) {
             }
         }
+
+        IEnumerator IEnumerable.GetEnumerator() {
+            return GetEnumerator();
+        }
     }
 
-    public class ThreadWorker2 : ThreadWorkerBase, IEnumerable<double> {
-        protected readonly ConcurrentQueue<double>    _oDataQueue; 
-        protected readonly WaveFormat                 _oDataFormat;
-        protected readonly ConcurrentQueue<TVMessage> _oOutQueue;
-        protected          string                     _strDateTimeStart = string.Empty;
+    /// <summary>Use this object to hold the state of our device listening activities.</summary>
+    /// <seealso cref="FileReadingState"/>
+    public class DeviceListeningState 
+    {
+        protected readonly ConcurrentQueue<SSTVMessage> _oToUIQueue;
+        protected readonly ConcurrentQueue<double>      _oDataQueue; 
+        protected readonly WaveFormat                   _oDataFormat;
+        protected readonly ConcurrentQueue<TVMessage>   _oOutQueue;
 
-        public override bool   IsForever         => true;
-        public override string SuggestedFileName => _strDateTimeStart;
+        protected readonly SSTVDraw _oSSTVDraw;
+        protected readonly SSTVDEM  _oSSTVDeMo;
 
         // This is the errors we generally handle in our work function.
-        protected static Type[] _rgLoopErrors = { typeof( NullReferenceException ),
-                                                  typeof( ArgumentNullException ),
-                                                  typeof( MMSystemException ),
-                                                  typeof( InvalidOperationException ),
-										          typeof( ArithmeticException ),
-										          typeof( IndexOutOfRangeException ),
-                                                  typeof( InvalidDataException ) };
+        protected static readonly Type[] _rgLoopErrors = { typeof( NullReferenceException ),
+                                                           typeof( ArgumentNullException ),
+                                                           typeof( MMSystemException ),
+                                                           typeof( InvalidOperationException ),
+										                   typeof( ArithmeticException ),
+										                   typeof( IndexOutOfRangeException ),
+                                                           typeof( InvalidDataException ) };
 
-        protected static Type[] _rgInitErrors = { typeof( DirectoryNotFoundException ),
-                                                  typeof( NullReferenceException ),
-                                                  typeof( ApplicationException ),
-                                                  typeof( FileNotFoundException ) };
-
-        public ThreadWorker2( WaveFormat oFormat, 
-                              ConcurrentQueue<SSTVMessage> oMsgQueue, 
-                              ConcurrentQueue<double>      oDataQueue, 
-                              ConcurrentQueue<TVMessage>   oOutQueue,
-                              SKBitmap                     oD12,
-                              SKBitmap                     oRx ) : 
-            base( oMsgQueue, oD12, oRx )
+        public DeviceListeningState( int                          iSampleRate, 
+                                     ConcurrentQueue<SSTVMessage> oToUIQueue, 
+                                     ConcurrentQueue<double>      oDataQueue, 
+                                     ConcurrentQueue<TVMessage>   oOutQueue,
+                                     SKBitmap                     oD12,
+                                     SKBitmap                     oRx )
         {
-            _oDataQueue  = oDataQueue ?? throw new ArgumentNullException( "oDataQueue" );
-            _oDataFormat = oFormat    ?? throw new ArgumentNullException( "oFormat" );
-            _oOutQueue   = oOutQueue  ?? throw new ArgumentNullException( "oOutQueue" );
+            _oToUIQueue  = oToUIQueue ?? throw new ArgumentNullException( nameof( oToUIQueue ) );
+            _oDataQueue  = oDataQueue ?? throw new ArgumentNullException( nameof( oDataQueue ) );
+            _oOutQueue   = oOutQueue  ?? throw new ArgumentNullException( nameof( oOutQueue  ) );
+
+            if( oD12 == null )
+                throw new ArgumentNullException( nameof( oD12 ) );
+            if( oRx  == null )
+                throw new ArgumentNullException( nameof( oRx  ) );
+
+			_oSSTVDeMo = new SSTVDEM ( new SYSSET(), iSampleRate );
+			_oSSTVDraw = new SSTVDraw( _oSSTVDeMo, oD12, oRx );
         }
 
         /// <summary>
-        /// Listen to the SSTVDraw object. And forward those events outside our
-        /// thread envelope.
+        /// Listen to the SSTVDraw object. And forward those events outside our thread envelope.
         /// </summary>
-        /// <seealso cref="Listen_NextRxMode"/>
         private void OnTvEvents_SSTVDraw( SSTVEvents eProp, int iParam ) {
-            if( eProp == SSTVEvents.SSTVMode )
-                _strDateTimeStart = DocSSTV.GenerateFileName;
-
             _oToUIQueue.Enqueue( new( eProp, iParam ) );
-        }
-
-        /// <summary>
-        /// I'd like to leverage this sytle of action to merge the File reader with 
-        /// the device listener. But my first attempt was a disaster!
-        /// </summary>
-        /// <returns></returns>
-        public IEnumerator<double> GetEnumerator() {
-            while( !_oDataQueue.IsEmpty ) {
-                // Basically there should always be data. If not then we're done.
-                if( _oDataQueue.TryDequeue( out double dblValue ) ) {
-                    yield return dblValue;
-                } else {
-                    throw new InvalidDataException( "Ran out of data" );
-                }
-            }
         }
 
         protected bool CheckMessages() {
@@ -226,9 +202,9 @@ namespace Play.SSTV {
                         return false;
                     case TVMessage.Message.TryNewMode:
                         if( oMsg._oParam is SSTVMode oMode ) {
-                            SSTVDeModulator.Start( oMode );
+                            _oSSTVDeMo.Start( oMode );
                         } else {
-                            SSTVDeModulator.Reset();
+                            _oSSTVDeMo.Reset();
                         }
                         break;
                 }
@@ -237,21 +213,21 @@ namespace Play.SSTV {
         }
 
         /// <summary>
-        /// This is the entry point for our new thread. We load and use the decoder and 
-        /// converter from this thread. The UI thread looks at the RX and 12 bitmaps
-        /// from time to time. Errors are passed via message to the UI.
+        /// This is the entry point for our device listener thread.
+        /// Events within here are posted via message and are read in UI thread.
         /// </summary>
-        /// <remarks>Would love to merge the two threadworkers a bit more but punt for now.</remarks>
+        /// <remarks>At present we rely on NAudio to pick up the sound samples
+        /// in the UI thread. It sux but that's how it works. So that's whey
+        /// we need the DataQueu. In the future I'll write my own code to
+        /// read from the sound card and I'll be able to put that code.</remarks>
         public void DoWork() {
             try {
-			    SSTVDeModulator  = new SSTVDEM ( new SYSSET(), _oDataFormat.SampleRate );
-			    SSTVDraw         = new SSTVDraw( SSTVDeModulator, _oD12Bmp, _oRxBmp );
-
-                // Set the callbacks first since Start() will try to use the callback.
-                SSTVDeModulator.Send_NextMode += new NextMode( SSTVDraw.OnModeTransition_SSTVMod );
-                SSTVDraw       .Send_TvEvents += OnTvEvents_SSTVDraw;
+                _oSSTVDeMo.Send_NextMode += new NextMode( _oSSTVDraw.OnModeTransition_SSTVMod );
+                _oSSTVDraw.Send_TvEvents += OnTvEvents_SSTVDraw;
             } catch( Exception oEx ) {
-                if( _rgInitErrors.IsUnhandled( oEx ) )
+                Type[] rgErrors = { typeof( NullReferenceException ),
+                                    typeof( ApplicationException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
                     throw;
 
                 _oToUIQueue.Enqueue( new( SSTVEvents.ThreadAbort, 0 ) );
@@ -260,10 +236,15 @@ namespace Play.SSTV {
 
             try {
                 while( CheckMessages() ) {
-                    foreach( double dblValue in this )
-                        SSTVDeModulator.Do( dblValue );
+                    while( !_oDataQueue.IsEmpty ) {
+                        if( _oDataQueue.TryDequeue( out double dblValue ) ) {
+                            _oSSTVDeMo.Do( dblValue );
+                        } else {
+                            throw new InvalidDataException( "Can't Dequeue non empty Data Queue." );
+                        }
+                    }
 
-                    SSTVDraw.Process();
+                    _oSSTVDraw.Process();
 
                     Thread.Sleep( 250 );
                 };
@@ -273,10 +254,6 @@ namespace Play.SSTV {
 
                 _oToUIQueue.Enqueue( new( SSTVEvents.ThreadAbort, 0 ) );
             }
-        }
-
-        IEnumerator IEnumerable.GetEnumerator() {
-            return GetEnumerator();
         }
     }
 }

@@ -444,7 +444,7 @@ namespace Play.ImageViewer {
 				fNullOldDir = string.Compare( _oDirectory.FullName, oDirectory.FullName ) != 0;
 
 			_oDirectory = oDirectory;
-			ImageSearch( Path.GetFileName( strFilePath ), fNullOldDir );
+			ImageSearch( Path.GetFileName( strFilePath ), true /* fNullOldDir */ );
             
             return true;
         }

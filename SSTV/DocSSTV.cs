@@ -198,6 +198,9 @@ namespace Play.SSTV {
         public int        Param;
     }
 
+    /// <summary>
+    /// This is the main document object for my SSTV receiver.
+    /// </summary>
     public class DocSSTV :
         IPgParent,
         IPgLoad<TextReader>,
@@ -206,17 +209,24 @@ namespace Play.SSTV {
     {
         private bool disposedValue;
 
+        public enum DocSSTVMode {
+            Ready,
+            FileRead,
+            DeviceRead
+        }
+
         readonly ConcurrentQueue<SSTVMessage> _rgBGtoUIQueue = new ConcurrentQueue<SSTVMessage>(); // From BG thread to UI thread.
         readonly ConcurrentQueue<double>      _rgDataQueue   = new ConcurrentQueue<double>();      // From UI thread to BG thread.
         readonly ConcurrentQueue<TVMessage>   _rgUItoBGQueue = new ConcurrentQueue<TVMessage>();
 
         Thread               _oThread  = null;
         WaveIn               _oWaveIn  = null;
-        WaveOut              _oWaveOut = null;
+        WaveOut              _oWaveOut = null; // For monitor. Use my own in the future.
         BufferedWaveProvider _oWaveBuf = null;
         BlockCopies          _oWaveReader  = null;
 
-        protected bool _isTransmitting = false;
+        protected bool        _isTransmitting = false;
+        protected DocSSTVMode _isReceiving    = DocSSTVMode.Ready;
 
         /// <summary>
         /// This editor shows the list of modes we can modulate.
@@ -292,7 +302,7 @@ namespace Play.SSTV {
         protected Mpg123FFTSupport FileDecoder   { get; set; }
 
         // This is where our image and diagnostic image live.
-		public ImageSoloDoc ReceiveImage { get; protected set; }
+		public ImageSoloDoc DisplayImage { get; protected set; }
 		public ImageSoloDoc SyncImage    { get; protected set; }
 
         // Some test stuff. 
@@ -331,11 +341,10 @@ namespace Play.SSTV {
             PortRxList    = new Editor        ( new DocSlot( this ) );
             MonitorList   = new Editor        ( new DocSlot( this ) );
                           
-			ReceiveImage  = new ImageSoloDoc( new DocSlot( this ) );
+			DisplayImage  = new ImageSoloDoc( new DocSlot( this ) );
 			SyncImage     = new ImageSoloDoc( new DocSlot( this ) );
                           
             StdProperties = new ( new DocSlot( this ) );
-          //RecChooser    = new ( new DocSlot( this ) );
         }
 
         #region Dispose
@@ -516,7 +525,7 @@ namespace Play.SSTV {
             if( !TxBitmapComp.InitNew() )
                 return false;
 
-			if( !ReceiveImage.InitNew() )
+			if( !DisplayImage.InitNew() )
 				return false;
 			if( !SyncImage   .InitNew() )
 				return false;
@@ -540,7 +549,7 @@ namespace Play.SSTV {
             TemplateList.LineAppend( "General Msg" );
             
 		    SyncImage   .Bitmap = new SKBitmap( 800, 616, SKColorType.Rgb888x, SKAlphaType.Unknown );
-		    ReceiveImage.Bitmap = new SKBitmap( 800, 616, SKColorType.Rgb888x, SKAlphaType.Opaque  );
+		    DisplayImage.Bitmap = new SKBitmap( 800, 616, SKColorType.Rgb888x, SKAlphaType.Opaque  );
 
             SettingsInit();
 
@@ -562,6 +571,8 @@ namespace Play.SSTV {
             // Set this after TxImageList load since the CheckedLine call will 
             // call Listen_ModeChanged and that calls the properties update event.
             RxModeList.CheckedLine = RxModeList[0];
+
+            _oWorkPlace.Queue( GetTaskReceiver(), Timeout.Infinite );
 
             return true;
         }
@@ -598,10 +609,6 @@ namespace Play.SSTV {
             //TxProperties.ValueUpdate( TxProperties.Names.Mode,     TxMode ); 
             StdProperties.ValueUpdate( SSTVProperties.Names.Tx_Progress, "0%" );
             //TxProperties.ValueUpdate( TxProperties.Names.FileName, strFileName, Broadcast:true );
-		}
-
-		protected void PropertiesRxTime( int iPercent ) {
-            StdProperties.ValueUpdate( SSTVProperties.Names.Rx_Progress, iPercent.ToString() + "%", Broadcast:true );
 		}
 
         protected void PropertyLoadFromXml( Editor rgList, XmlNode oElem ) {
@@ -922,14 +929,9 @@ namespace Play.SSTV {
             SaveRxImage(); // Race condition possible, when image reused.
 
             PropertyChange?.Invoke( SSTVEvents.DownLoadFinished );
-            StdProperties.ValueUpdate( SSTVProperties.Names.Rx_Progress, "Done", Broadcast:true );
+
             RxModeList.HighLight   = null;
             RxModeList.CheckedLine = RxModeList[0];
-
-            // Might need to change this directory depending on listening to device
-            // or loading from some random file location.
-            // RxProperties[RxProperties.Names.SaveDir] vs
-            // RecChooser.CurrentFullPath
 
             RxHistoryList.LoadAgain( RxHistoryList.CurrentDirectory );
         }
@@ -938,13 +940,53 @@ namespace Play.SSTV {
 
         /// <summary>
         /// This is our task to poll the Background to UI Queue. It services both
-        /// the receive thread and the transmit thread. Technically they can run
+        /// the receive thread and the transmit thread. Technically TX and RX can run
         /// concurrently with no problems.
         /// </summary>
-        public IEnumerator<int> GetTaskReceiver( ThreadWorkerBase oWorker ) {
+        public IEnumerator<int> GetTaskReceiver() {
             while( true ) {
                 while( _rgBGtoUIQueue.TryDequeue( out SSTVMessage sResult ) ) {
                     switch( sResult.Event ) {
+                        case SSTVEvents.SSTVMode: {
+                            SSTVMode oMode = null;
+
+                            foreach( Line oLine in RxModeList ) {
+                                if( oLine.Extra is SSTVMode oTryMode ) {
+                                    if( oTryMode.LegacyMode == (AllModes)sResult.Param ) {
+                                        RxModeList.HighLight = oLine;
+                                        oMode = oTryMode;
+                                    }
+                                }
+                            }
+                            if( oMode == null ) {
+                                // We catch a null we're going back to listen mode. This is an error mode
+                                // in the file read case.
+                                RxModeList.HighLight    = null;
+                                RxModeList.CheckedReset = RxModeList[0]; 
+                                StdProperties.ValueUpdate( SSTVProperties.Names.Rx_Mode,     "-" );
+                                StdProperties.ValueUpdate( SSTVProperties.Names.Rx_Width,    "-" );
+                                StdProperties.ValueUpdate( SSTVProperties.Names.Rx_Height,   "-" );
+                                StdProperties.ValueUpdate( SSTVProperties.Names.Rx_SaveName, string.Empty, Broadcast:true );
+                            } else {
+			                    DisplayImage.WorldDisplay = new SKRectI( 0, 0, oMode.Resolution.Width, oMode.Resolution.Height );
+
+                                StdProperties.ValueUpdate( SSTVProperties.Names.Rx_Mode,   oMode.Name );
+                                StdProperties.ValueUpdate( SSTVProperties.Names.Rx_Width,  oMode.Resolution.Width .ToString() );
+                                StdProperties.ValueUpdate( SSTVProperties.Names.Rx_Height, oMode.Resolution.Height.ToString() );
+                                StdProperties.ValueUpdate( SSTVProperties.Names.Rx_SaveName, GenerateFileName, Broadcast:true );
+                            }
+                            } break;
+                        case SSTVEvents.UploadTime:
+                            StdProperties.ValueUpdate( SSTVProperties.Names.Tx_Progress, sResult.Param.ToString( "D2" ) + "%", Broadcast:true );
+                            break;
+                        case SSTVEvents.DownLoadTime: 
+                            StdProperties.ValueUpdate( SSTVProperties.Names.Rx_Progress, sResult.Param.ToString( "D2" ) + "%", Broadcast:true );
+                            PropertyChange?.Invoke( SSTVEvents.DownLoadTime );
+                            break;
+                        case SSTVEvents.DownLoadFinished: // NOTE: This might never come along!
+                            StdProperties.ValueUpdate( SSTVProperties.Names.Rx_Progress, "Done", Broadcast:true );
+                            DownloadFinished();
+                            break;
                         case SSTVEvents.ThreadAbort:
                             if( _oThread == null ) {
                                 LogError( "Unexpected Image Thread Abort." );
@@ -953,58 +995,8 @@ namespace Play.SSTV {
                             }
                             RxModeList.HighLight   = null;
                             RxModeList.CheckedLine = RxModeList[0];
-                           _oThread = null;
-                            yield break; // Bail out.
-                        case SSTVEvents.SSTVMode: 
-                            {
-                                // TODO: this is a little evil asking the worker the mode that might
-                                // be different by the time we process the event. Might want a
-                                // parameter on the message. Try using the sResult.Param
-                                SSTVMode oWorkerMode = oWorker.NextMode;
-                                if( oWorkerMode == null ) {
-                                    // We catch a null we're going back to listen mode.
-                                    RxModeList.HighLight    = null;
-                                    RxModeList.CheckedReset = RxModeList[0]; 
-                                    StdProperties.ValueUpdate( SSTVProperties.Names.Rx_Mode,     "-" );
-                                    StdProperties.ValueUpdate( SSTVProperties.Names.Rx_Width,    "-" );
-                                    StdProperties.ValueUpdate( SSTVProperties.Names.Rx_Height,   "-" );
-                                    StdProperties.ValueUpdate( SSTVProperties.Names.Rx_SaveName, string.Empty, Broadcast:true );
-                                    break;
-                                }
-
-			                    ReceiveImage.WorldDisplay = new SKRectI( 0, 0, oWorkerMode.Resolution.Width, oWorkerMode.Resolution.Height );
-
-                                string strFileName = Path.GetFileName( oWorker.SuggestedFileName );
-
-                                StdProperties.ValueUpdate( SSTVProperties.Names.Rx_Mode,     oWorkerMode.Name );
-                                StdProperties.ValueUpdate( SSTVProperties.Names.Rx_Width,    oWorkerMode.Resolution.Width .ToString() );
-                                StdProperties.ValueUpdate( SSTVProperties.Names.Rx_Height,   oWorkerMode.Resolution.Height.ToString() );
-                                StdProperties.ValueUpdate( SSTVProperties.Names.Rx_SaveName, strFileName, Broadcast:true );
-
-                                foreach( Line oLine in RxModeList ) {
-                                    if( oLine.Extra is SSTVMode oMode ) {
-                                        if( oMode.LegacyMode == oWorkerMode.LegacyMode ) {
-                                            RxModeList.HighLight = oLine;
-                                        }
-                                    }
-                                }
-                            } break;
-                        case SSTVEvents.DownLoadTime: 
-                            // Might be nice to send the % as a number in the message.
-                            PropertiesRxTime( sResult.Param );
-                            PropertyChange?.Invoke( SSTVEvents.DownLoadTime );
-                            break;
-                        case SSTVEvents.UploadTime:
-                            StdProperties.ValueUpdate( SSTVProperties.Names.Tx_Progress, sResult.Param.ToString( "D2" ) + "%", true );
-                            break;
-                        case SSTVEvents.DownLoadFinished:
-                            // NOTE: This might never come along!
-                            DownloadFinished();
-                            if( !oWorker.IsForever ) { 
-                                _oThread = null;
-                                yield break; // Bail out of this worker.
-                            }
-                            break;
+                            _oThread = null;
+                            break; 
                         case SSTVEvents.ThreadException:
                             try {
                                 LogError( _rgThreadStrings[sResult.Param] );
@@ -1019,36 +1011,51 @@ namespace Play.SSTV {
         }
 
         /// <summary>
-        /// This is our TRUE multithreading experiment! Looks like it works
-        /// pretty well. The decoder and filters and all live in the bg thread.
-        /// The foreground tread only polls the bitmap from time to time.
+        /// Read the file given. If the mode is not null use that as the starting mode for
+        /// the demodulator, in case you missed the VIS. You can actually run this while
+        /// transmitting. But that would be weird.
         /// </summary>
-        /// <param name="DetectVIS">Just set the decoder for a particular SSTV mode. This is usefull
-        /// if picking up the signal in the middle and you know the type a priori. I should
-        /// just pass the mode if it's fixed, else autodetect.</param>
-        public void ReceiveFileReadBgThreadBegin( string strFileName, SSTVMode oMode ) {
+        /// <remarks>This is our new thread pool version. No way to cancel, might look
+        /// into the thread cancellation token stuff.</remarks>
+        public async void ReceiveFileRead( string strFileName, SSTVMode oMode ) {
             if( string.IsNullOrEmpty( strFileName ) ) {
-                LogError( "Invalid filename for SSTV image read" );
+                LogError( "Invalid filename for SSTV image read." );
                 return;
             }
-            if( _oThread != null ) {
-                if( _oWorkPlace.Status == WorkerStatus.BUSY ) {
-                    // If we're in the middle of an image, this'll just flash by.
-                    StdProperties.ValueUpdate( SSTVProperties.Names.Rx_Progress, "Busy.", true );
-                } else {
-                    StdProperties.ValueUpdate( SSTVProperties.Names.Rx_Progress, "Not Busy... ^_^;", true );
-                }
+            if( _isReceiving != DocSSTVMode.Ready ) {
+                LogError( "Busy right now." );
+                return;
             }
-            if( _oThread == null && _oWorkPlace.Status == WorkerStatus.FREE ) {
-                ThreadWorker oWorker        = new ThreadWorker( _rgBGtoUIQueue, strFileName, oMode, SyncImage.Bitmap, ReceiveImage.Bitmap );
-                ThreadStart  threadDelegate = new ThreadStart ( oWorker.DoWork );
-
-                _oThread = new Thread( threadDelegate );
-                _oThread.Start();
-
-                _oWorkPlace.Queue( GetTaskReceiver( oWorker ), 1 );
-                StdProperties.ValueUpdate( SSTVProperties.Names.Rx_Progress, "Start: File Read...", true );
+            switch( _oWorkPlace.Status ) {
+                case WorkerStatus.NOTIMPLEMENTED:
+                    LogError( "File Read Listener error." );
+                    return;
+                case WorkerStatus.PAUSED:
+                case WorkerStatus.FREE:
+                    _oWorkPlace.Start( 1 );
+                    break;
             }
+
+            _isReceiving = DocSSTVMode.FileRead;
+
+            StdProperties.ValueUpdate( SSTVProperties.Names.Rx_Progress, "File Read Start.", true );
+            StdProperties.ValueUpdate( SSTVProperties.Names.Rx_SaveName, strFileName ); // BUG: Should be the image name not the wav file.
+
+            Action oFileReadAction = delegate () {
+                FileReadingState oWorker = new ( _rgBGtoUIQueue, strFileName, SyncImage.Bitmap, DisplayImage.Bitmap );
+                
+                oWorker.DoWork( oMode );
+            };
+
+            Task oTask = new( oFileReadAction );
+
+            oTask.Start();
+
+            await oTask;
+
+            _isReceiving = DocSSTVMode.Ready;
+            StdProperties.ValueUpdate( SSTVProperties.Names.Rx_Progress, "File Read Finished.", true );
+            _oWorkPlace.Pause();
         }
 
         public void RequestModeChange( SSTVMode oMode ) {
@@ -1061,6 +1068,8 @@ namespace Play.SSTV {
             StdProperties.ValueUpdate( SSTVProperties.Names.Std_Process, "Stopping...", true );
 
             _rgUItoBGQueue.Enqueue( new TVMessage( TVMessage.Message.ExitWorkThread ) );
+            _oThread = null;
+
             if( _oWaveOut != null ) {
                 _oWaveOut.Stop();
                 _oWaveOut = null;
@@ -1070,18 +1079,33 @@ namespace Play.SSTV {
                 _oWaveIn = null;
             }
 
-            StdProperties.ValueUpdate( SSTVProperties.Names.Std_Process, "Stopped: Wav I/O.", true );
-            _oThread = null;
-            _oWorkPlace.Stop();
-
             StdProperties.ValueUpdate( SSTVProperties.Names.Std_Process, "Stopped: All.", true );
+
+            _oWorkPlace.Pause(); // TODO: flush the message buffers? Probably should.
+            _isReceiving = DocSSTVMode.Ready;
         }
 
         /// <summary>
-        /// This is our 2'nd threaded receive but straight from the device this time.
+        /// 3'rd generation reader.
         /// </summary>
+        /// <remarks>3'rd generation reader. I'v separated the File read from the Device read
+        /// code. This lets me use the tread pool for the transient file read case and now
+        /// we have only one dedicated thread for reading from the device... forever! (until
+        /// you turn it off.)</remarks>
         public void ReceiveLiveBegin() {
-            if( _oThread == null || !_oThread.IsAlive ) {
+            if( _oThread != null ) {
+                if( _oThread.IsAlive ) {
+                    LogError( "Already Listening." );
+                } else {
+                    LogError( "Unexpected Listening state." );
+                }
+                return;
+            }
+            if( _isReceiving != DocSSTVMode.Ready ) {
+                LogError( "Busy right now." );
+                return;
+            }
+            if( _oThread == null ) {
                 try {
                     int  iMicrophone = -1; 
                     int  iMonitor    = -1;
@@ -1130,14 +1154,12 @@ namespace Play.SSTV {
                         RequestModeChange( oMode );
                     }
 
-                    ThreadWorker2 oWorker        = new ThreadWorker2( _oWaveIn.WaveFormat, _rgBGtoUIQueue, _rgDataQueue, 
-                                                                      _rgUItoBGQueue, SyncImage.Bitmap, ReceiveImage.Bitmap );
-                    ThreadStart   threadDelegate = new ThreadStart  ( oWorker.DoWork );
+                    DeviceListeningState oWorker = new DeviceListeningState( _oWaveIn.WaveFormat.SampleRate, _rgBGtoUIQueue, _rgDataQueue, 
+                                                                             _rgUItoBGQueue, SyncImage.Bitmap, DisplayImage.Bitmap );
+                    ThreadStart   threadDelegate = new ThreadStart( oWorker.DoWork );
 
                     _oThread = new Thread( threadDelegate );
                     _oThread.Start(); // Can send out of memory exception!
-
-                    _oWorkPlace.Queue( GetTaskReceiver( oWorker ), 1 );
 
                     _oWaveBuf?.ClearBuffer();
                     if( _oWaveOut != null ) {
@@ -1149,18 +1171,21 @@ namespace Play.SSTV {
                         _oWaveIn.StartRecording();
                     }
 
+                    _oWorkPlace.Start( 1 );
                     StdProperties.ValueUpdate( SSTVProperties.Names.Std_Process, "Start: Live.", true );
+                    _isReceiving = DocSSTVMode.DeviceRead;
                 } catch( Exception oEx ) {
                     Type[] rgErrors = { typeof( NullReferenceException ),
                                         typeof( ArgumentNullException ),
                                         typeof( FormatException ),
                                         typeof( OverflowException ),
-                                        typeof( ThreadStateException ) };
+                                        typeof( ThreadStateException ),
+                                        typeof( InsufficientMemoryException ) };
                     if( rgErrors.IsUnhandled( oEx ) )
                         throw;
 
                     StdProperties.ValueUpdate( SSTVProperties.Names.Std_Process, "Start: Error.", true );
-                    LogError( "Couldn't launch recording thread." );
+                    LogError( "Couldn't launch device listening thread." );
                 }
             }
         }
@@ -1212,15 +1237,17 @@ namespace Play.SSTV {
             try {
                 using ImageSoloDoc oSnipDoc = new( new DocSlot( this ) );
 
-                if( !oSnipDoc.Load( ReceiveImage.Bitmap, ReceiveImage.WorldDisplay, ReceiveImage.Size ) )
+                if( !oSnipDoc.Load( DisplayImage.Bitmap, DisplayImage.WorldDisplay, DisplayImage.Size ) )
                     return;
 
                 // Figure out path and name of the file.
                 string strFileName = StdProperties[ SSTVProperties.Names.Rx_SaveName ];
                 string strSaveDir  = StdProperties[ SSTVProperties.Names.Rx_SaveDir  ];
 
+                // Just note, if we do a file read, we might no longer be in the MyPictures path.
                 if( string.IsNullOrEmpty( strSaveDir ) ) {
 			        strSaveDir = Environment.GetFolderPath(Environment.SpecialFolder.MyPictures);
+                    StdProperties.ValueUpdate( SSTVProperties.Names.Rx_SaveDir, strSaveDir, Broadcast:true );
                 }
                 if( string.IsNullOrEmpty( strFileName ) ) {
                     strFileName = GenerateFileName;
@@ -1327,7 +1354,7 @@ namespace Play.SSTV {
                         _oSSTVBuffer      = new BufferSSTV( oTxSpec );
 					    _oSSTVDeModulator = oDemodTst;
 					    _oSSTVModulator   = new SSTVMOD( 0, oFFTMode.SampFreq, _oSSTVBuffer );
-					    _oRxSSTV          = new SSTVDraw ( _oSSTVDeModulator, oDoc.SyncImage.Bitmap, oDoc.ReceiveImage.Bitmap );
+					    _oRxSSTV          = new SSTVDraw ( _oSSTVDeModulator, oDoc.SyncImage.Bitmap, oDoc.DisplayImage.Bitmap );
 
 					    _oSSTVGenerator = oMode.Family switch {
 						    TVFamily.PD      => new GeneratePD     ( oDoc.TxBitmapSnip.Bitmap, oDemodTst, oMode ),
@@ -1360,12 +1387,12 @@ namespace Play.SSTV {
             /// was alloc'ing TmmSSTV subclasses.</remarks>
             /// <seealso cref="OnTvEvents_RxSSTV"/>
             private void OnNextMode_SSTVDeMod( SSTVMode tvMode ) {
-			    _oDoc.ReceiveImage.Bitmap = null;
+			    _oDoc.DisplayImage.Bitmap = null;
 			    _oDoc.SyncImage   .Bitmap = null;
 
                 _oRxSSTV.OnModeTransition_SSTVMod( tvMode ); // bitmap allocated in here. (may throw exception...)
 
-			    _oDoc.ReceiveImage.WorldDisplay = new SKRectI( 0, 0, tvMode.Resolution.Width, tvMode.Resolution.Height );
+			    _oDoc.DisplayImage.WorldDisplay = new SKRectI( 0, 0, tvMode.Resolution.Width, tvMode.Resolution.Height );
 
                 foreach( Line oLine in _oDoc.RxModeList ) {
                     if( oLine.Extra is SSTVMode oLineMode ) {
