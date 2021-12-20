@@ -402,6 +402,7 @@ namespace Play.ImageViewer {
 
 	/// <summary>
 	/// Loads a single image from a stream, no navigation, left or right or anything.
+    /// Don't confuse this with the DocWalker DirWalker objects and viewers.
 	/// </summary>
 	public class ImageSoloDoc : 
 		ImageBaseDoc,

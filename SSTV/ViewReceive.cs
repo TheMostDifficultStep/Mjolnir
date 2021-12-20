@@ -17,6 +17,79 @@ using Play.Forms;
 using Play.Sound;
 
 namespace Play.SSTV {
+	/// <summary>
+	/// This is a customized image dir/doc viewer that has the icons on the main 
+	/// view area instead of in the outline.
+	/// </summary>
+    public class WindowSSTVHistory :
+        Control,
+        IPgLoad<XmlElement>,
+        IPgSave<XmlDocumentFragment>,
+        IPgCommandView,
+        IDisposable 
+	{
+		protected IPgViewSite _oSiteView;
+		protected DocSSTV     _oDocSSTV;
+        public Guid Catagory => throw new NotImplementedException();
+
+        public string Banner => "View History";
+
+        public Image  Iconic => null;
+
+		protected ImageViewSingle _wmViewRxImg;
+		protected ImageViewIcons  _wmViewRxHistory;
+
+        bool IPgSave<XmlDocumentFragment>.IsDirty => false;
+
+		public WindowSSTVHistory( IPgViewSite oViewSite, DocSSTV oDocSSTV ) {
+			_oSiteView = oViewSite ?? throw new ArgumentNullException( nameof( oViewSite ) );
+			_oDocSSTV  = oDocSSTV  ?? throw new ArgumentNullException( nameof( oDocSSTV  ) );
+		}
+
+		protected void LogError( string strMessage, string strDetails ) {
+			_oSiteView.LogError( strMessage, strDetails );
+		}
+
+        public object Decorate(IPgViewSite oBaseSite, Guid sGuid) {
+			try {
+				if( sGuid.Equals(GlobalDecorations.Properties) ) {
+					return new ViewRxProperties( oBaseSite, _oDocSSTV );
+				}
+				return false;
+			} catch ( Exception oEx ) {
+				Type[] rgErrors = { typeof( NotImplementedException ),
+									typeof( NullReferenceException ),
+									typeof( ArgumentException ),
+									typeof( ArgumentNullException ) };
+				if( rgErrors.IsUnhandled( oEx ) )
+					throw;
+
+				LogError( "SSTV", "Couldn't create SSTV decor: " + sGuid.ToString() );
+			}
+
+            return( null );
+		}
+
+        public bool Execute(Guid sGuid) {
+            return false;
+        }
+
+        public bool InitNew() {
+            return true;
+        }
+
+        public bool Load(XmlElement oStream) {
+            if( !InitNew() )
+				return false;
+
+			return true;
+        }
+
+        public bool Save(XmlDocumentFragment oStream) {
+            return true;
+        }
+    }
+
     /// <summary>
 	/// This viewer shows a subset of all SSTV Properties. Those for the Receiver only.
     /// </summary>
@@ -645,7 +718,7 @@ namespace Play.SSTV {
 			}
 			if( sGuid == GlobalCommands.Save ) {
 				// Override save behavior.
-				_oDocSSTV.SaveRxImage();
+				_oDocSSTV.SaveDeviceReceived();
 				_oDocSSTV.RxHistoryList.LoadAgain( _oDocSSTV.RxHistoryList.CurrentDirectory );
 				// make sure you return true or a docsstv.save gets called.
 				return true; 

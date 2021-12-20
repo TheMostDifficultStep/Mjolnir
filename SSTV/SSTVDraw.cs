@@ -777,7 +777,7 @@ namespace Play.SSTV {
 						for( int i = 0; i<iScanMax; ++i ) {
 							ProcessScan( i );
 						}
-						Stop();
+						Stop(); // Note: Can get again in the file reader...
 					}
 				} catch( Exception oEx ) {
 					Type[] rgErrors = { typeof( NullReferenceException ),

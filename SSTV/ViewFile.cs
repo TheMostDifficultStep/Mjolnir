@@ -219,15 +219,8 @@ namespace Play.SSTV {
         /// specific property in the future. You know, a color coded property, 
         /// light red or yellow on change would be a cool feature.</remarks>
         private void OnPropertyChange_DocSSTV( SSTVEvents eProp ) {
-			switch( eProp ) {
-				case SSTVEvents.DownLoadFinished:
-					_wmViewRxImg.Refresh();
-					break;
-				default:
-					_wmViewRxImg.Invalidate();
-					_oSiteView .Notify( ShellNotify.BannerChanged );
-					break;
-			}
+			_wmViewRxImg.Invalidate();
+			_oSiteView  .Notify( ShellNotify.BannerChanged );
         }
 
 		public override object Decorate(IPgViewSite oBaseSite,Guid sGuid) {
@@ -259,14 +252,13 @@ namespace Play.SSTV {
 		public override bool Execute( Guid sGuid ) {
 			if( sGuid == GlobalCommands.Play ) {
 				_oDocSSTV.ReceiveFileRead( _rgWavFileList.CurrentFullPath, _rgRxModeList.ChosenMode );
-				_oDocSSTV.RxHistoryList.LoadAgain( _rgWavFileList.CurrentFullPath );
 				return true;
 			}
 			if( sGuid == GlobalCommands.Stop ) {
 				// Might be a good place for a thread cancellation token here.
 			}
 			if( sGuid == GlobalCommands.Save ) {
-				_oDocSSTV.SaveRxImage();
+				_oDocSSTV.SaveDeviceReceived();
 				return true; // make sure you return true or a docsstv.save gets called.
 			}
 

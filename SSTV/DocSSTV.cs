@@ -926,7 +926,19 @@ namespace Play.SSTV {
         /// </summary>
         /// <param name="strFileName"></param>
         protected void DownloadFinished() {
-            SaveRxImage(); // Race condition possible, when image reused.
+            switch( _isReceiving ) {
+                case DocSSTVMode.DeviceRead:
+                    SaveDeviceReceived(); 
+                    break;
+                case DocSSTVMode.FileRead:
+                    SaveFileDecode();
+                    _oWorkPlace.Pause();
+                    _isReceiving = DocSSTVMode.Ready;
+                    break;
+                default:
+                    LogError( "Unrecognized Download Finished Message" );
+                    break;
+            }
 
             PropertyChange?.Invoke( SSTVEvents.DownLoadFinished );
 
@@ -936,7 +948,7 @@ namespace Play.SSTV {
             RxHistoryList.LoadAgain( RxHistoryList.CurrentDirectory );
         }
 
-        protected readonly string[] _rgThreadStrings = { "Drawing Exception", "WorkerException", "ReadException", "DiagnosticsException" };
+        protected readonly string[] _rgThreadExStrings = { "Drawing Exception", "WorkerException", "ReadException", "DiagnosticsException" };
 
         /// <summary>
         /// This is our task to poll the Background to UI Queue. It services both
@@ -973,7 +985,17 @@ namespace Play.SSTV {
                                 StdProperties.ValueUpdate( SSTVProperties.Names.Rx_Mode,   oMode.Name );
                                 StdProperties.ValueUpdate( SSTVProperties.Names.Rx_Width,  oMode.Resolution.Width .ToString() );
                                 StdProperties.ValueUpdate( SSTVProperties.Names.Rx_Height, oMode.Resolution.Height.ToString() );
-                                StdProperties.ValueUpdate( SSTVProperties.Names.Rx_SaveName, GenerateFileName, Broadcast:true );
+                                switch( _isReceiving ) {
+                                    case DocSSTVMode.DeviceRead:
+                                        StdProperties.ValueUpdate( SSTVProperties.Names.Rx_SaveName, GenerateFileName, Broadcast:true );
+                                        break;
+                                    case DocSSTVMode.FileRead:
+                                        // Doh! I didn't think we can have more than one image in a recording!!! Need a fix here.
+                                        break;
+                                    default:
+                                        LogError( "Unexpected SSTVMode transition" );
+                                        break;
+                                }
                             }
                             } break;
                         case SSTVEvents.UploadTime:
@@ -983,8 +1005,8 @@ namespace Play.SSTV {
                             StdProperties.ValueUpdate( SSTVProperties.Names.Rx_Progress, sResult.Param.ToString( "D2" ) + "%", Broadcast:true );
                             PropertyChange?.Invoke( SSTVEvents.DownLoadTime );
                             break;
-                        case SSTVEvents.DownLoadFinished: // NOTE: This might never come along!
-                            StdProperties.ValueUpdate( SSTVProperties.Names.Rx_Progress, "Done", Broadcast:true );
+                        case SSTVEvents.DownLoadFinished: // NOTE: This comes along unreliably in the device streaming case.
+                            StdProperties.ValueUpdate( SSTVProperties.Names.Rx_Progress, sResult.Param.ToString( "D2" ) + "% - Complete", Broadcast:true );
                             DownloadFinished();
                             break;
                         case SSTVEvents.ThreadAbort:
@@ -999,7 +1021,7 @@ namespace Play.SSTV {
                             break; 
                         case SSTVEvents.ThreadException:
                             try {
-                                LogError( _rgThreadStrings[sResult.Param] );
+                                LogError( _rgThreadExStrings[sResult.Param] );
                             } catch( IndexOutOfRangeException ) {
                                 LogError( "General Thread Exception " + sResult.Param.ToString() );
                             }
@@ -1038,6 +1060,7 @@ namespace Play.SSTV {
 
             _isReceiving = DocSSTVMode.FileRead;
 
+			RxHistoryList.LoadAgain( strFileName );
             StdProperties.ValueUpdate( SSTVProperties.Names.Rx_Progress, "File Read Start.", true );
             StdProperties.ValueUpdate( SSTVProperties.Names.Rx_SaveName, strFileName ); // BUG: Should be the image name not the wav file.
 
@@ -1053,9 +1076,8 @@ namespace Play.SSTV {
 
             await oTask;
 
-            _isReceiving = DocSSTVMode.Ready;
-            StdProperties.ValueUpdate( SSTVProperties.Names.Rx_Progress, "File Read Finished.", true );
-            _oWorkPlace.Pause();
+            // So we might not have received the last message from our bg thread even
+            // though it is done. Need to pump the BgToUiThread queue.
         }
 
         public void RequestModeChange( SSTVMode oMode ) {
@@ -1233,7 +1255,46 @@ namespace Play.SSTV {
             }
         }
 
-		public void SaveRxImage() {
+        /// <summary>
+        /// Saving the file decode is a little different than the device stream 
+        /// case. We wish to respect the file path of the given file to decode.
+        /// </summary>
+        public void SaveFileDecode() {
+            try {
+                using ImageSoloDoc oSnipDoc = new( new DocSlot( this ) );
+
+                // Need to snip the image since we might not be using the entire display image.
+                if( !oSnipDoc.Load( DisplayImage.Bitmap, DisplayImage.WorldDisplay, DisplayImage.Size ) )
+                    return;
+
+                // Figure out path and name of the file.
+                string strFilePath = StdProperties[ SSTVProperties.Names.Rx_SaveDir  ];
+                string strFileName = StdProperties[ SSTVProperties.Names.Rx_SaveName ];
+
+                strFileName = Path.GetFileNameWithoutExtension( strFileName );
+
+                if( !int.TryParse( StdProperties[SSTVProperties.Names.Std_ImgQuality], out int iQuality ) )
+                    iQuality = 80;
+
+                string strSavePath = Path.Combine( strFilePath, strFileName + ".jpg" );
+                using var stream   = File.OpenWrite( strSavePath );
+
+                oSnipDoc.Save( stream );
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( NullReferenceException ),
+                                    typeof( IOException ),
+                                    typeof( ArgumentException ),
+                                    typeof( ArgumentNullException ),
+                                    typeof( PathTooLongException ),
+                                    typeof( DirectoryNotFoundException ), 
+                                    typeof( NotSupportedException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
+
+                LogError( "Exception in File Decode Save" );
+            }
+        }
+		public void SaveDeviceReceived() {
             try {
                 using ImageSoloDoc oSnipDoc = new( new DocSlot( this ) );
 
@@ -1284,7 +1345,7 @@ namespace Play.SSTV {
                 if( rgErrors.IsUnhandled( oEx ) )
                     throw;
 
-                LogError( "Exception in Save" );
+                LogError( "Exception in Device Image Save" );
             }
 		}
 
@@ -1412,7 +1473,7 @@ namespace Play.SSTV {
                 switch( eProp ) {
                     case SSTVEvents.DownLoadFinished:
                         _oDoc.RxModeList.HighLight = null;
-                        _oDoc.SaveRxImage();
+                        _oDoc.SaveDeviceReceived();
                         break;
                 }
             }

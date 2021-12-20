@@ -1078,7 +1078,7 @@ namespace Play.Sound {
 
 			Mode = null;
 
-			Send_NextMode?.Invoke( Mode );
+			//Send_NextMode?.Invoke( Mode );
 		}
 
 		/// <summary>
