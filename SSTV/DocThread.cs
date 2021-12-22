@@ -36,7 +36,6 @@ namespace Play.SSTV {
         protected readonly SSTVDEM  _oSSTVDeMo;
 
         protected          int                  _iDecodeCount = 0;
-        protected          SSTVMode             _tvMode;
         protected readonly string               _strFileName;
         protected readonly WaveToSampleProvider _oProvider;
         protected readonly AudioFileReader      _oReader;
@@ -132,10 +131,11 @@ namespace Play.SSTV {
         /// </summary>
         public void DoWork( SSTVMode oMode ) {
             try {
-                // Note: SSTVDemodulator.Start() will try to use the callback.
-                _oSSTVDeMo.Send_NextMode += OnNextMode_SSTVDemo;
-                _oSSTVDraw.Send_TvEvents += OnTVEvents_SSTVDraw;
+                _oSSTVDeMo.Send_NextMode  += _oSSTVDraw.OnModeTransition_SSTVDeMo;
+                _oSSTVDraw.Send_TvEvents  += OnTVEvents_SSTVDraw;
+                _oSSTVDraw.Send_SavePoint += SaveFileDecode;
 
+                // Note: SSTVDemodulator.Start() will try to use the callback(s) above.
                 if( oMode != null ) {
                     _oSSTVDeMo.Start( oMode );
                 }
@@ -147,7 +147,7 @@ namespace Play.SSTV {
                 // Check if there's any leftover and if so, save it. Don't call
                 // Stop()! That will happen automatically when the bitmap gets full.
                 if( _oSSTVDraw.PercentRxComplete > 25 ) {
-                    SaveFileDecode();
+                    SaveFileDecode( _oSSTVDraw.Mode );
                 }
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( DirectoryNotFoundException ),
@@ -163,55 +163,25 @@ namespace Play.SSTV {
         }
 
         /// <summary>
-        /// Listen to the decoder when it spots a new image. DO NOT 
-        /// enqueue ESstvProperty.SSTVMode to the UI msg queue. TmmSSTV
-        /// will Shout that as a TvEvent.
-        /// </summary>
-        /// <remarks>The bitmap only changes when the mode changes and
-        /// the next image isn't necessarily a different mode. I need to
-        /// separate out those events.</remarks>
-        private void OnNextMode_SSTVDemo( SSTVMode tvMode, int iPrevBase ) {
-            try {
-                double dblPrevSize = _oSSTVDraw.ImageSizeInSamples;
-
-                if( _tvMode != null && dblPrevSize != 0 ) {
-			        double dblProgress = iPrevBase * 100 / dblPrevSize;
-
-                    if( dblProgress > 25 )
-                        SaveFileDecode();
-                }
-                _oSSTVDraw.OnModeTransition_SSTVMod( tvMode, iPrevBase ); 
-                _tvMode = tvMode;
-            } catch( ArgumentOutOfRangeException ) {
-            }
-        }
-
-        /// <summary>
         /// Listen to the SSTVDraw object. I can probably stop listening to the decoder
         /// and have it do that directly.
         /// </summary>
         /// <seealso cref="OnNextMode_SSTVDemo"/>
         private void OnTVEvents_SSTVDraw( SSTVEvents eProp, int iParam ) {
             _oToUIQueue.Enqueue( new( eProp, iParam ) );
-
-            // It's hacky. but I need this here as well as in OnNexMode_SSTVDemo
-            // I'll need to straighten that out.
-            if( eProp == SSTVEvents.DownLoadFinished ) {
-                SaveFileDecode();
-            }
         }
 
         IEnumerator IEnumerable.GetEnumerator() {
             return GetEnumerator();
         }
 
-        public void SaveFileDecode() {
-            if( _tvMode == null )
+        public void SaveFileDecode( SSTVMode tvMode ) {
+            if( tvMode == null )
                 return;
 
             try {
                 using ImageSoloDoc oSnipDoc = new( new DocSlot( this ) );
-			    SKRectI rcWorldDisplay = new SKRectI( 0, 0, _tvMode.Resolution.Width, _tvMode.Resolution.Height );
+			    SKRectI rcWorldDisplay = new SKRectI( 0, 0, tvMode.Resolution.Width, tvMode.Resolution.Height );
 
                 // Need to snip the image since we might not be using the entire display image.
                 if( !oSnipDoc.Load( _oSSTVDraw._pBitmapRX, rcWorldDisplay, rcWorldDisplay.Size ) )
@@ -222,7 +192,7 @@ namespace Play.SSTV {
                 // Figure out path and name of the file.
                 string strFilePath = Path.GetDirectoryName( _strFileName );
                 string strFileName = Path.GetFileNameWithoutExtension( _strFileName );
-                string strNodeName = _tvMode.Name.Replace( " ", string.Empty );
+                string strNodeName = tvMode.Name.Replace( " ", string.Empty );
 
                 string strSavePath = Path.Combine( strFilePath, strFileName + "_" + strNodeName + "_" + _iDecodeCount.ToString() + ".jpg" );
                 using var stream   = File.OpenWrite( strSavePath );
@@ -321,7 +291,7 @@ namespace Play.SSTV {
         /// read from the sound card and I'll be able to put that code.</remarks>
         public void DoWork() {
             try {
-                _oSSTVDeMo.Send_NextMode += new NextMode( _oSSTVDraw.OnModeTransition_SSTVMod );
+                _oSSTVDeMo.Send_NextMode += _oSSTVDraw.OnModeTransition_SSTVDeMo;
                 _oSSTVDraw.Send_TvEvents += OnTvEvents_SSTVDraw;
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( NullReferenceException ),

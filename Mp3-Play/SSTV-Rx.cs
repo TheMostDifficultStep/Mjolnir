@@ -711,8 +711,6 @@ namespace Play.Sound {
 		Hilbert
 	}
 
-	public delegate void NextMode( SSTVMode tvMode, int iPrevPercent );
-
 	public enum SeekPoint {
 		Start,
 		End,
@@ -757,7 +755,7 @@ namespace Play.Sound {
 
 		protected Dictionary<byte, SSTVMode > ModeDictionary { get; } = new Dictionary<byte, SSTVMode>();
 
-		public event NextMode Send_NextMode; // This is just a single event, with no indexer.
+		public event Action< SSTVMode, SSTVMode, int > Send_NextMode; // This is just a single event, with no indexer.
 
 		public readonly static int NARROW_SYNC		= 1900;
 		public readonly static int NARROW_LOW		= 2044;
@@ -962,12 +960,6 @@ namespace Play.Sound {
 		public void Dispose() {
 			m_B12 = null;
 			m_Buf = null;
-
-			// I don't think this is strictly necessary since we're not supposed to
-			// being used anyway. But what the heck.
-			foreach( Delegate d in Send_NextMode.GetInvocationList() ) {
-				Send_NextMode -= (NextMode)d;
-			}
 		}
 
         protected class ShortConsumer : IPgStreamConsumer<short> {
@@ -1030,7 +1022,9 @@ namespace Play.Sound {
 		/// system TmmSSTV would toss it's previous image and start a new one.
 		/// </summary>
 		public void Start( SSTVMode tvMode ) {
-			int iPrevBase = m_wBase;
+			int      iPrevBase = m_wBase;
+			SSTVMode ePrevMode = Mode;
+
 			Mode = tvMode;
 
 			SetWidth(SSTVSET.IsNarrowMode( tvMode.Family ));
@@ -1049,7 +1043,7 @@ namespace Play.Sound {
 			// same time we're storing the image scan lines.
 			SetWidth(m_fNarrow);
 
-			Send_NextMode?.Invoke( tvMode, iPrevBase );
+			Send_NextMode?.Invoke( tvMode, ePrevMode, iPrevBase );
 
 			// Don't support narrow band modes.
 			//if( m_fNarrow ) 

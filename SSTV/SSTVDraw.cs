@@ -320,7 +320,8 @@ namespace Play.SSTV {
 		// Need to look into the greyscale calibration height of bitmap issue. (+16 scan lines)
 		// The D12 bitmap must always be >= to the RX bmp height.
 
-		public event SSTVDrawEvents Send_TvEvents;
+		public event SSTVDrawEvents   Send_TvEvents;
+		public event Action<SSTVMode> Send_SavePoint;
 
 		protected readonly List<ColorChannel> _rgSlots = new (10);
 		
@@ -396,7 +397,7 @@ namespace Play.SSTV {
 
 		/// <summary>this method get's called to initiate the processing of
 		/// a new image.</summary>
-		/// <seealso cref="OnModeTransition_SSTVMod"/>
+		/// <seealso cref="OnModeTransition_SSTVDeMo"/>
         public void Start() {
 			_iLastAlign      = -1;
 			_dblReadBaseSync =  0;
@@ -431,6 +432,7 @@ namespace Play.SSTV {
 				// Need to send regardless, but might get a bum image if not
 				// includes vis and we guess a wrong start state.
 				Send_TvEvents?.Invoke( SSTVEvents.DownLoadFinished, PercentRxComplete );
+				Send_SavePoint?.Invoke( Mode ); // _dp hasn't been reset yet! Wheeww!
 
 				if( _dp.Sync ) {
 					// Send download finished BEFORE reset so we can save image
@@ -491,9 +493,9 @@ namespace Play.SSTV {
 					if( oMode != null )
 						return ScanWidthInSamples * Mode.Resolution.Height / Mode.ScanMultiplier;
 					else
-						return 1;
+						return 0;
 				} catch( NullReferenceException ) {
-					return 1;
+					return 0;
 				}
 			}
 		}
@@ -852,27 +854,35 @@ namespace Play.SSTV {
 		}
 
 		/// <summary>
-		/// Catch the mode change event from the SSTVModulator.
+		/// Catch the mode change event from the SSTVDemodulator.
 		/// </summary>
-		/// <param name="oMode"></param>
 		/// <seealso cref="Start" />
-		public void OnModeTransition_SSTVMod( SSTVMode oMode, int iPrevBase ) {
-			if( oMode == null ) {
+		public void OnModeTransition_SSTVDeMo( SSTVMode oCurrMode, SSTVMode oPrevMode, int iPrevBase ) {
+			if( oCurrMode == null ) {
 				RenderDiagnosticsOverlay();
-				int iLegacy = oMode != null ? (int)oMode.LegacyMode : -1;
+				int iLegacy = oCurrMode != null ? (int)oCurrMode.LegacyMode : -1;
 				Send_TvEvents?.Invoke( SSTVEvents.SSTVMode, iLegacy );
 				return;
 			}
 
+			// Technically we shouldn't get a transition while in a given SSTVMode.
+			// if the demodulator has the mode, we'll save the image (fragment)
+            if( ImageSizeInSamples != 0 ) {
+			    double dblProgress = iPrevBase * 100 / ImageSizeInSamples;
+
+                if( dblProgress > 25 )
+                    Send_SavePoint?.Invoke( oPrevMode );
+            }
+
 			try {
                 _rgSlots.Clear();
 
-                foreach( ScanLineChannel oChannel in oMode.ChannelMap ) {
+                foreach( ScanLineChannel oChannel in oCurrMode.ChannelMap ) {
                 	_rgSlots.Add( new( oChannel.WidthInMs * _dp.SampFreq / 1000, ReturnColorFunction( oChannel.Type ), oChannel.Type ) );
                 }
                 _rgSlots.Add( new() );
 
-                InitSlots( oMode.Resolution.Width, 1 );
+                InitSlots( oCurrMode.Resolution.Width, 1 );
             } catch( Exception oEx ) {
 				Type[] rgErrors = { typeof( NullReferenceException ),
 									typeof( ArgumentOutOfRangeException ),
@@ -884,7 +894,7 @@ namespace Play.SSTV {
 				// Uh oh.
 			}
 
-			Start(); // bitmap allocated in here.
+			Start(); 
 		}
 
 		/// <summary>

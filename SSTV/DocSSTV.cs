@@ -926,13 +926,8 @@ namespace Play.SSTV {
         /// </summary>
         /// <param name="strFileName"></param>
         protected void DownloadFinished() {
-            switch( _isReceiving ) {
-                case DocSSTVMode.DeviceRead:
-                    SaveDeviceReceived(); 
-                    break;
-                default:
-                    LogError( "Unrecognized Download Finished Message" );
-                    break;
+            if( _isReceiving == DocSSTVMode.DeviceRead ) {
+                SaveDeviceReceived(); 
             }
 
             PropertyChange?.Invoke( SSTVEvents.DownLoadFinished );
@@ -983,6 +978,8 @@ namespace Play.SSTV {
                                 switch( _isReceiving ) {
                                     case DocSSTVMode.DeviceRead:
                                         StdProperties.ValueUpdate( SSTVProperties.Names.Rx_SaveName, GenerateFileName, Broadcast:true );
+                                        break;
+                                    case DocSSTVMode.FileRead:
                                         break;
                                     default:
                                         LogError( "Unexpected SSTVMode transition" );
@@ -1053,8 +1050,9 @@ namespace Play.SSTV {
             _isReceiving = DocSSTVMode.FileRead;
 
 			RxHistoryList.LoadAgain( strFileName );
-            StdProperties.ValueUpdate( SSTVProperties.Names.Rx_Progress, "File Read Start.", true );
-            StdProperties.ValueUpdate( SSTVProperties.Names.Rx_SaveName, strFileName ); // BUG: Should be the image name not the wav file.
+            StdProperties.ValueUpdate( SSTVProperties.Names.Std_Process, "File Read Started." );
+            StdProperties.ValueUpdate( SSTVProperties.Names.Rx_Progress, "0" );
+            StdProperties.ValueUpdate( SSTVProperties.Names.Rx_SaveName, strFileName, true ); // BUG: Should be the image name not the wav file.
 
             Action oFileReadAction = delegate () {
                 FileReadingState oWorker = new ( _rgBGtoUIQueue, strFileName, SyncImage.Bitmap, DisplayImage.Bitmap );
@@ -1068,9 +1066,21 @@ namespace Play.SSTV {
 
             await oTask;
 
+            StdProperties.ValueUpdate( SSTVProperties.Names.Std_Process, "File Read Complete.", true );
+
+            // Download finished is sort of changing it's meaning in the file read case.
+            // We really just mean invalidate your image windows. I should make a new event.
+            PropertyChange?.Invoke( SSTVEvents.DownLoadFinished );
+
+            // Let's just run these to positively clear the slate.
+            RxModeList.HighLight   = null;
+            RxModeList.CheckedLine = RxModeList[0];
+
+            RxHistoryList.LoadAgain( RxHistoryList.CurrentDirectory );
+
             // So we might not have received the last message from our bg thread even
-            // though it is done. Need to pump the BgToUiThread queue. But we will
-            // have received the image(s)
+            // though it is done. But we will have received the image(s). Should pump the
+            // BgToUiThread queue, but just clear it. 
             _oWorkPlace.Pause();
             _isReceiving = DocSSTVMode.Ready;
             _rgBGtoUIQueue.Clear();
@@ -1443,11 +1453,11 @@ namespace Play.SSTV {
             /// up the event hooks everytime a new image comes down in the case where I
             /// was alloc'ing TmmSSTV subclasses.</remarks>
             /// <seealso cref="OnTvEvents_RxSSTV"/>
-            private void OnNextMode_SSTVDeMod( SSTVMode tvMode, int iPrevBase ) {
+            private void OnNextMode_SSTVDeMod( SSTVMode tvMode, SSTVMode tvPrev, int iPrevBase ) {
 			    _oDoc.DisplayImage.Bitmap = null;
 			    _oDoc.SyncImage   .Bitmap = null;
 
-                _oRxSSTV.OnModeTransition_SSTVMod( tvMode, iPrevBase ); // bitmap allocated in here. (may throw exception...)
+                _oRxSSTV.OnModeTransition_SSTVDeMo( tvMode, tvPrev, iPrevBase ); // bitmap allocated in here. (may throw exception...)
 
 			    _oDoc.DisplayImage.WorldDisplay = new SKRectI( 0, 0, tvMode.Resolution.Width, tvMode.Resolution.Height );
 
