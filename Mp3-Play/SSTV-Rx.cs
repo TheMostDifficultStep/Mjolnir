@@ -711,7 +711,7 @@ namespace Play.Sound {
 		Hilbert
 	}
 
-	public delegate void NextMode( SSTVMode tvMode );
+	public delegate void NextMode( SSTVMode tvMode, int iPrevPercent );
 
 	public enum SeekPoint {
 		Start,
@@ -757,7 +757,7 @@ namespace Play.Sound {
 
 		protected Dictionary<byte, SSTVMode > ModeDictionary { get; } = new Dictionary<byte, SSTVMode>();
 
-		public event NextMode Send_NextMode; 
+		public event NextMode Send_NextMode; // This is just a single event, with no indexer.
 
 		public readonly static int NARROW_SYNC		= 1900;
 		public readonly static int NARROW_LOW		= 2044;
@@ -806,7 +806,7 @@ namespace Play.Sound {
 
 		public int HillTaps => m_hill.m_htap;
 
-		public bool   m_Sync { get; protected set; }
+		public bool   Sync { get; protected set; }
 		int           m_SyncMode;
 		int           m_SyncTime;
 		int           m_VisData;
@@ -938,7 +938,7 @@ namespace Play.Sound {
 
 			m_wBase     = 0;
 			m_Skip      = 0;
-			m_Sync      = false;
+			Sync      = false;
 			m_SyncMode  = 0;
 			m_ScopeFlag = false;
 			m_Lost      = false;
@@ -1030,6 +1030,7 @@ namespace Play.Sound {
 		/// system TmmSSTV would toss it's previous image and start a new one.
 		/// </summary>
 		public void Start( SSTVMode tvMode ) {
+			int iPrevBase = m_wBase;
 			Mode = tvMode;
 
 			SetWidth(SSTVSET.IsNarrowMode( tvMode.Family ));
@@ -1039,7 +1040,7 @@ namespace Play.Sound {
 			m_Skip     = 0;
 			m_wBase    = 0;
 			m_Lost     = false;
-			m_Sync     = true; // This is the only place we set to true!
+			Sync       = true; // This is the only place we set to true!
 			m_SyncMode = 0; 
 
 			// OpenCloseRxBuff();
@@ -1048,7 +1049,7 @@ namespace Play.Sound {
 			// same time we're storing the image scan lines.
 			SetWidth(m_fNarrow);
 
-			Send_NextMode?.Invoke( tvMode );
+			Send_NextMode?.Invoke( tvMode, iPrevBase );
 
 			// Don't support narrow band modes.
 			//if( m_fNarrow ) 
@@ -1071,9 +1072,10 @@ namespace Play.Sound {
 			//m_sint3.Reset();
 
 			m_SyncMode = 512;
-			m_Sync     = false;
+			Sync     = false;
 
-			m_Skip = 0;
+			m_wBase  = 0; // Just in case we ask again how far along decode.
+			m_Skip   = 0;
 			SetWidth( false );
 
 			Mode = null;
@@ -1191,7 +1193,7 @@ namespace Play.Sound {
 
 				int delay = m_bpftap;
 				CalcBPF();
-				if( m_Sync ) {
+				if( Sync ) {
 					delay = (m_bpftap - delay) / 2;
 					m_Skip = delay;
 				}
@@ -1292,7 +1294,7 @@ namespace Play.Sound {
 			double d = (s + m_ad) * 0.5;    // LPF
 			m_ad = s;
 			if( m_bpf != 0 ){
-				if( m_Sync || (m_SyncMode >= 3) ){
+				if( Sync || (m_SyncMode >= 3) ){
 					// BUG: Double check this _ stuff.
 					// We don't support narrow band modes.
 					d = m_BPF.Do( /* m_fNarrow ? HBPFN : */ HBPF, ref d, out _ );
@@ -1337,7 +1339,7 @@ namespace Play.Sound {
 				return;
 			}
 
-			if( !m_Sync || m_SyncRestart ) {
+			if( !Sync || m_SyncRestart ) {
 				SSTVMode tvMode;
 				//m_sint1.SyncInc();
 				//m_sint2.SyncInc();
@@ -1423,13 +1425,13 @@ namespace Play.Sound {
 						}
 						break;
 					case 3:                 // 1200Hz(30ms)‚のチェック : check. 30ms STOP bit.
-						if( !m_Sync ){
+						if( !Sync ){
 							m_pll.Do(ad);
 						}
 						m_SyncTime--;
 						if( m_SyncTime == 0 ){
 							if( (d12 > d19) && (d12 > m_SLvl) ){
-								if( m_Sync ){
+								if( Sync ){
 									// Looks like we request save when we're 65% the way thru an image,
 									// and then suddenly get a new image. I'd do this back when the 
 									// new mode was requested.
@@ -1466,7 +1468,7 @@ namespace Play.Sound {
 						break;
 				}
 			}
-			if( m_Sync ){
+			if( Sync ){
 				switch(m_Type){
 					case FreqDetect.PLL:		// PLL
 						if( m_afc && (m_lvl.m_CurMax > 16) )
@@ -1699,7 +1701,7 @@ namespace Play.Sound {
 				m_wBase  = (int)Math.Round( m_dbWPos );
 			}
 
-			if( m_Sync ) {
+			if( Sync ) {
 				//Martin way, using hsync signal.
 				//if( iFrequency >= 1500 ) {
 				//	// This is picture data...

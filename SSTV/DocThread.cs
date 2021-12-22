@@ -11,13 +11,15 @@ using SkiaSharp;
 
 using Play.Interfaces.Embedding;
 using Play.Sound;
+using Play.ImageViewer;
 using Play.Sound.FFT;
 using System.Collections;
 
 namespace Play.SSTV {
     /// <summary>
-    /// Encapsulate everything I need to decode a SSTV image from a WAV file. In the
-    /// future I'll make a version of this which is reading from an audio input device.
+    /// Encapsulate everything I need to decode a SSTV image from a WAV file. It's
+    /// different enough from the device read that it's a completely different
+    /// object.
     /// </summary>
     /// <remarks>The down side of separating the Device Listener and the file read state
     /// objects is that the sound buffer is duplicated between the both of them.
@@ -25,6 +27,7 @@ namespace Play.SSTV {
     /// and device listen all at the same time. But it is a consideration.</remarks>
     /// <seealso cref="DeviceListeningState"/>
     public class FileReadingState : 
+        IPgParent,
         IEnumerable<int>
     {
         protected readonly ConcurrentQueue<SSTVMessage> _oToUIQueue;
@@ -32,9 +35,42 @@ namespace Play.SSTV {
         protected readonly SSTVDraw _oSSTVDraw;
         protected readonly SSTVDEM  _oSSTVDeMo;
 
-        public    readonly string               _strFileName;
+        protected          int                  _iDecodeCount = 0;
+        protected          SSTVMode             _tvMode;
+        protected readonly string               _strFileName;
         protected readonly WaveToSampleProvider _oProvider;
         protected readonly AudioFileReader      _oReader;
+
+        public IPgParent Parentage => throw new NotImplementedException();
+
+        public IPgParent Services => throw new NotImplementedException();
+
+        protected class DocSlot :
+			IPgBaseSite//,
+            //IPgFileSite
+		{
+			protected readonly FileReadingState _oHost;
+
+			public DocSlot( FileReadingState oHost, string strFileBase = "Not Implemented" ) {
+				_oHost = oHost ?? throw new ArgumentNullException( "Host" );
+                //FileBase = strFileBase ?? throw new ArgumentNullException("File base string" );
+			}
+
+			public IPgParent Host => _oHost;
+
+            public void LogError(string strMessage, string strDetails, bool fShow=true) {
+				_oHost.LogError( strDetails );
+			}
+
+			public void Notify( ShellNotify eEvent ) {
+			}
+
+            //// Need these for the image viewer.
+            //public FILESTATS FileStatus   => FILESTATS.READONLY;
+            //public Encoding  FileEncoding => Encoding.Default;
+            //public string    FilePath     => "Not Implemented";
+            //public string    FileBase     { get; protected set; }
+		}
 
         public FileReadingState( ConcurrentQueue<SSTVMessage> oToUIQueue, string strFileName, SKBitmap oD12, SKBitmap oRx ) 
         {
@@ -48,6 +84,10 @@ namespace Play.SSTV {
 
             _oSSTVDeMo = new SSTVDEM ( new SYSSET(), oFFTMode.SampFreq );;
 			_oSSTVDraw = new SSTVDraw( _oSSTVDeMo, oD12, oRx );
+        }
+
+        public void LogError( string strMessag ) {
+            _oToUIQueue.Enqueue( new SSTVMessage(SSTVEvents.ThreadException, -1 ) );
         }
 
         public IEnumerator<int> GetEnumerator() {
@@ -103,7 +143,12 @@ namespace Play.SSTV {
                 foreach( int i in this ) {
                     _oSSTVDraw.Process();
                 }
-                _oSSTVDraw.Stop();
+
+                // Check if there's any leftover and if so, save it. Don't call
+                // Stop()! That will happen automatically when the bitmap gets full.
+                if( _oSSTVDraw.PercentRxComplete > 25 ) {
+                    SaveFileDecode();
+                }
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( DirectoryNotFoundException ),
                                     typeof( NullReferenceException ),
@@ -118,15 +163,6 @@ namespace Play.SSTV {
         }
 
         /// <summary>
-        /// Listen to the SSTVDraw object. I can probably stop listening to the decoder
-        /// and have it do that directly.
-        /// </summary>
-        /// <seealso cref="OnNextMode_SSTVDemo"/>
-        private void OnTVEvents_SSTVDraw( SSTVEvents eProp, int iParam ) {
-            _oToUIQueue.Enqueue( new( eProp, iParam ) );
-        }
-
-        /// <summary>
         /// Listen to the decoder when it spots a new image. DO NOT 
         /// enqueue ESstvProperty.SSTVMode to the UI msg queue. TmmSSTV
         /// will Shout that as a TvEvent.
@@ -134,15 +170,78 @@ namespace Play.SSTV {
         /// <remarks>The bitmap only changes when the mode changes and
         /// the next image isn't necessarily a different mode. I need to
         /// separate out those events.</remarks>
-        private void OnNextMode_SSTVDemo( SSTVMode tvMode ) {
+        private void OnNextMode_SSTVDemo( SSTVMode tvMode, int iPrevBase ) {
             try {
-                _oSSTVDraw.OnModeTransition_SSTVMod( tvMode ); 
+                double dblPrevSize = _oSSTVDraw.ImageSizeInSamples;
+
+                if( _tvMode != null && dblPrevSize != 0 ) {
+			        double dblProgress = iPrevBase * 100 / dblPrevSize;
+
+                    if( dblProgress > 25 )
+                        SaveFileDecode();
+                }
+                _oSSTVDraw.OnModeTransition_SSTVMod( tvMode, iPrevBase ); 
+                _tvMode = tvMode;
             } catch( ArgumentOutOfRangeException ) {
+            }
+        }
+
+        /// <summary>
+        /// Listen to the SSTVDraw object. I can probably stop listening to the decoder
+        /// and have it do that directly.
+        /// </summary>
+        /// <seealso cref="OnNextMode_SSTVDemo"/>
+        private void OnTVEvents_SSTVDraw( SSTVEvents eProp, int iParam ) {
+            _oToUIQueue.Enqueue( new( eProp, iParam ) );
+
+            // It's hacky. but I need this here as well as in OnNexMode_SSTVDemo
+            // I'll need to straighten that out.
+            if( eProp == SSTVEvents.DownLoadFinished ) {
+                SaveFileDecode();
             }
         }
 
         IEnumerator IEnumerable.GetEnumerator() {
             return GetEnumerator();
+        }
+
+        public void SaveFileDecode() {
+            if( _tvMode == null )
+                return;
+
+            try {
+                using ImageSoloDoc oSnipDoc = new( new DocSlot( this ) );
+			    SKRectI rcWorldDisplay = new SKRectI( 0, 0, _tvMode.Resolution.Width, _tvMode.Resolution.Height );
+
+                // Need to snip the image since we might not be using the entire display image.
+                if( !oSnipDoc.Load( _oSSTVDraw._pBitmapRX, rcWorldDisplay, rcWorldDisplay.Size ) )
+                    return;
+
+                _iDecodeCount++;
+
+                // Figure out path and name of the file.
+                string strFilePath = Path.GetDirectoryName( _strFileName );
+                string strFileName = Path.GetFileNameWithoutExtension( _strFileName );
+                string strNodeName = _tvMode.Name.Replace( " ", string.Empty );
+
+                string strSavePath = Path.Combine( strFilePath, strFileName + "_" + strNodeName + "_" + _iDecodeCount.ToString() + ".jpg" );
+                using var stream   = File.OpenWrite( strSavePath );
+
+                oSnipDoc.Save( stream );
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( NullReferenceException ),
+                                    typeof( IOException ),
+                                    typeof( ArgumentException ),
+                                    typeof( ArgumentNullException ),
+                                    typeof( PathTooLongException ),
+                                    typeof( DirectoryNotFoundException ), 
+                                    typeof( NotSupportedException ),
+                                    typeof( NullReferenceException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
+
+                LogError( "Exception in File Decode Save" );
+            }
         }
     }
 

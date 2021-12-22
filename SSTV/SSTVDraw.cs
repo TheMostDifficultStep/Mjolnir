@@ -421,8 +421,8 @@ namespace Play.SSTV {
         }
 
 		/// <summary>
-		/// Call this when reach end of file. This will also get called internally when we've
-		/// decoded the entire image.
+		/// Call this when we've filled the target bitmap. Technically the user could send
+		/// forever, we're done. ^_^;
 		/// </summary>
 		/// <remarks>Right now I only -stop- if i'm in sync'd mode. Might just want to do
 		/// this whenever. We'll tinker a bit.</remarks>
@@ -432,10 +432,10 @@ namespace Play.SSTV {
 				// includes vis and we guess a wrong start state.
 				Send_TvEvents?.Invoke( SSTVEvents.DownLoadFinished, PercentRxComplete );
 
-				if( _dp.m_Sync ) {
-					// Send download finished before reset so we can save image
+				if( _dp.Sync ) {
+					// Send download finished BEFORE reset so we can save image
 					// before the SSTVEvents.SSTVMode comes and obliterates the
-					// past values (mode/filename etc).
+					// past values (mode/filename/wBase etc).
 					_dp.Reset();
 
 					RenderDiagnosticsOverlay();
@@ -558,7 +558,7 @@ namespace Play.SSTV {
 		/// Never returns more than 100%. Even if we've got a but and we're
 		/// looping forever. So just beware.
 		/// </summary>
-        protected int PercentRxComplete { 
+        public int PercentRxComplete { 
             get {
 				try {
 					double dblProgress = _dp.m_wBase * 100 / ImageSizeInSamples;
@@ -732,7 +732,7 @@ namespace Play.SSTV {
 		/// and we read it out here.
 		/// </summary>
 		public void Process() {
-			if( _dp.m_Sync ) {
+			if( _dp.Sync ) {
 				try {
 					while( _dp.m_wBase > _dblReadBaseSync + ScanWidthInSamples ) {
 						_dblReadBaseSync = ProcessSync( _dblReadBaseSync );
@@ -777,7 +777,7 @@ namespace Play.SSTV {
 						for( int i = 0; i<iScanMax; ++i ) {
 							ProcessScan( i );
 						}
-						Stop(); // Note: Can get again in the file reader...
+						Stop();
 					}
 				} catch( Exception oEx ) {
 					Type[] rgErrors = { typeof( NullReferenceException ),
@@ -856,7 +856,7 @@ namespace Play.SSTV {
 		/// </summary>
 		/// <param name="oMode"></param>
 		/// <seealso cref="Start" />
-		public void OnModeTransition_SSTVMod( SSTVMode oMode ) {
+		public void OnModeTransition_SSTVMod( SSTVMode oMode, int iPrevBase ) {
 			if( oMode == null ) {
 				RenderDiagnosticsOverlay();
 				int iLegacy = oMode != null ? (int)oMode.LegacyMode : -1;

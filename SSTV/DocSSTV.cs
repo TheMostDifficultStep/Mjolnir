@@ -930,11 +930,6 @@ namespace Play.SSTV {
                 case DocSSTVMode.DeviceRead:
                     SaveDeviceReceived(); 
                     break;
-                case DocSSTVMode.FileRead:
-                    SaveFileDecode();
-                    _oWorkPlace.Pause();
-                    _isReceiving = DocSSTVMode.Ready;
-                    break;
                 default:
                     LogError( "Unrecognized Download Finished Message" );
                     break;
@@ -988,9 +983,6 @@ namespace Play.SSTV {
                                 switch( _isReceiving ) {
                                     case DocSSTVMode.DeviceRead:
                                         StdProperties.ValueUpdate( SSTVProperties.Names.Rx_SaveName, GenerateFileName, Broadcast:true );
-                                        break;
-                                    case DocSSTVMode.FileRead:
-                                        // Doh! I didn't think we can have more than one image in a recording!!! Need a fix here.
                                         break;
                                     default:
                                         LogError( "Unexpected SSTVMode transition" );
@@ -1077,8 +1069,12 @@ namespace Play.SSTV {
             await oTask;
 
             // So we might not have received the last message from our bg thread even
-            // though it is done. Need to pump the BgToUiThread queue.
-        }
+            // though it is done. Need to pump the BgToUiThread queue. But we will
+            // have received the image(s)
+            _oWorkPlace.Pause();
+            _isReceiving = DocSSTVMode.Ready;
+            _rgBGtoUIQueue.Clear();
+       }
 
         public void RequestModeChange( SSTVMode oMode ) {
             _rgUItoBGQueue.Enqueue( new TVMessage( TVMessage.Message.TryNewMode, oMode ) );
@@ -1447,11 +1443,11 @@ namespace Play.SSTV {
             /// up the event hooks everytime a new image comes down in the case where I
             /// was alloc'ing TmmSSTV subclasses.</remarks>
             /// <seealso cref="OnTvEvents_RxSSTV"/>
-            private void OnNextMode_SSTVDeMod( SSTVMode tvMode ) {
+            private void OnNextMode_SSTVDeMod( SSTVMode tvMode, int iPrevBase ) {
 			    _oDoc.DisplayImage.Bitmap = null;
 			    _oDoc.SyncImage   .Bitmap = null;
 
-                _oRxSSTV.OnModeTransition_SSTVMod( tvMode ); // bitmap allocated in here. (may throw exception...)
+                _oRxSSTV.OnModeTransition_SSTVMod( tvMode, iPrevBase ); // bitmap allocated in here. (may throw exception...)
 
 			    _oDoc.DisplayImage.WorldDisplay = new SKRectI( 0, 0, tvMode.Resolution.Width, tvMode.Resolution.Height );
 
