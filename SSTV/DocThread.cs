@@ -234,9 +234,9 @@ namespace Play.SSTV {
                 // Figure out path and name of the file.
                 string strFilePath = Path.GetDirectoryName( _strFileName );
                 string strFileName = Path.GetFileNameWithoutExtension( _strFileName );
-                string strNodeName = tvMode.Name.Replace( " ", string.Empty );
+                string strModeName = tvMode.Name.Replace( " ", string.Empty );
 
-                string strSavePath = Path.Combine( strFilePath, strFileName + "_" + strNodeName + "_" + _iDecodeCount.ToString() + ".jpg" );
+                string strSavePath = Path.Combine( strFilePath, strFileName + "_" + strModeName + "_" + _iDecodeCount.ToString() + ".jpg" );
                 using var stream   = File.OpenWrite( strSavePath );
 
                 oSnipDoc.Save( stream );

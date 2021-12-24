@@ -903,6 +903,13 @@ namespace Play.SSTV {
             if( _isTransmitting ) {
                 LogError( "Already Transmitting" ); return;
             }
+            if( _isReceiving != DocSSTVMode.DeviceRead ) {
+                // we need the receive listener polling to get updates for
+                // or tx progress. Starting the polling here mighte
+                // get us in a weird mode. This is easier for now.
+                LogError( "Start device receive first." );
+            }
+                
             _isTransmitting = true;
 
             Action oTransmitAction = delegate () {
@@ -921,6 +928,8 @@ namespace Play.SSTV {
             oTask.Start();
 
             await oTask;
+
+            oTask.Dispose(); // this is a little lengthy.
             _isTransmitting = false;
         }
 
@@ -930,12 +939,6 @@ namespace Play.SSTV {
         /// </summary>
         /// <param name="strFileName"></param>
         protected void DownloadFinished() {
-            PropertyChange?.Invoke( SSTVEvents.DownLoadFinished );
-
-            RxModeList.HighLight   = null;
-            RxModeList.CheckedLine = RxModeList[0];
-
-            RxHistoryList.LoadAgain( RxHistoryList.CurrentDirectory );
         }
 
         protected readonly string[] _rgThreadExStrings = { "Drawing Exception", "WorkerException", "ReadException", "DiagnosticsException" };
@@ -989,7 +992,12 @@ namespace Play.SSTV {
                             break;
                         case SSTVEvents.DownLoadFinished: // NOTE: This comes along unreliably in the device streaming case.
                             StdProperties.ValueUpdate( SSTVProperties.Names.Rx_Progress, sResult.Param.ToString( "D2" ) + "% - Complete", Broadcast:true );
-                            DownloadFinished();
+                            PropertyChange?.Invoke( SSTVEvents.DownLoadFinished );
+
+                            RxModeList.HighLight   = null;
+                            RxModeList.CheckedLine = RxModeList[0];
+
+                            RxHistoryList.LoadAgain( RxHistoryList.CurrentDirectory );
                             break;
                         case SSTVEvents.ThreadAbort:
                             if( _oThread == null ) {
@@ -1245,46 +1253,6 @@ namespace Play.SSTV {
                 // it looks like NAudio is calling us from its non foreground thread!!!
                 // Safest way to handle this is post an event to ourselves.
                 _rgBGtoUIQueue.Enqueue( new( SSTVEvents.ThreadException, (int)TxThreadErrors.WorkerException ) );
-            }
-        }
-
-        /// <summary>
-        /// Saving the file decode is a little different than the device stream 
-        /// case. We wish to respect the file path of the given file to decode.
-        /// </summary>
-        public void SaveFileDecode() {
-            try {
-                using ImageSoloDoc oSnipDoc = new( new DocSlot( this ) );
-
-                // Need to snip the image since we might not be using the entire display image.
-                if( !oSnipDoc.Load( DisplayImage.Bitmap, DisplayImage.WorldDisplay, DisplayImage.Size ) )
-                    return;
-
-                // Figure out path and name of the file.
-                string strFilePath = StdProperties[ SSTVProperties.Names.Rx_SaveDir  ];
-                string strFileName = StdProperties[ SSTVProperties.Names.Rx_SaveName ];
-
-                strFileName = Path.GetFileNameWithoutExtension( strFileName );
-
-                if( !int.TryParse( StdProperties[SSTVProperties.Names.Std_ImgQuality], out int iQuality ) )
-                    iQuality = 80;
-
-                string strSavePath = Path.Combine( strFilePath, strFileName + ".jpg" );
-                using var stream   = File.OpenWrite( strSavePath );
-
-                oSnipDoc.Save( stream );
-            } catch( Exception oEx ) {
-                Type[] rgErrors = { typeof( NullReferenceException ),
-                                    typeof( IOException ),
-                                    typeof( ArgumentException ),
-                                    typeof( ArgumentNullException ),
-                                    typeof( PathTooLongException ),
-                                    typeof( DirectoryNotFoundException ), 
-                                    typeof( NotSupportedException ) };
-                if( rgErrors.IsUnhandled( oEx ) )
-                    throw;
-
-                LogError( "Exception in File Decode Save" );
             }
         }
 
