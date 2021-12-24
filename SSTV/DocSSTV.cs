@@ -544,6 +544,7 @@ namespace Play.SSTV {
             // Get these set up so our stdproperties get the updates.
             TxImageList  .ImageUpdated += OnImageUpdated_TxImageList;
             RxHistoryList.ImageUpdated += OnImageUpdated_RxHistoryList;
+            RxModeList   .CheckedEvent += OnCheckedEvent_RxModeList;
 
             TemplateList.LineAppend( "CQ" );
             TemplateList.LineAppend( "PnP Reply" );
@@ -576,6 +577,10 @@ namespace Play.SSTV {
             _oWorkPlace.Queue( GetTaskReceiver(), Timeout.Infinite );
 
             return true;
+        }
+
+        private void OnCheckedEvent_RxModeList(Line oLineChecked) {
+            _rgUItoBGQueue.Enqueue( new TVMessage( TVMessage.Message.TryNewMode, oLineChecked.Extra ) );
         }
 
         protected void InitDeviceList() {
@@ -886,8 +891,6 @@ namespace Play.SSTV {
             }
         }
 
-        public WorkerStatus Status => _oWorkPlace.Status;
-
         protected int MicrophoneGain => StdProperties.ValueAsInt( SSTVProperties.Names.Std_MicGain );
 
         /// <summary>
@@ -982,7 +985,8 @@ namespace Play.SSTV {
                                     LogError( "Unexpected SSTVMode transition" );
                                 }
                             }
-                            } break;
+                            PropertyChange?.Invoke( SSTVEvents.SSTVMode );
+                        } break;
                         case SSTVEvents.UploadTime:
                             StdProperties.ValueUpdate( SSTVProperties.Names.Tx_Progress, sResult.Param.ToString( "D2" ) + "%", Broadcast:true );
                             break;
@@ -1086,10 +1090,6 @@ namespace Play.SSTV {
             _rgBGtoUIQueue.Clear();
        }
 
-        public void RequestModeChange( SSTVMode oMode ) {
-            _rgUItoBGQueue.Enqueue( new TVMessage( TVMessage.Message.TryNewMode, oMode ) );
-        }
-
         public void ReceiveLiveStop() {
             RxModeList.HighLight = null;
 
@@ -1178,7 +1178,7 @@ namespace Play.SSTV {
                     _rgDataQueue  .Clear();
 
                     if( RxModeList.CheckedLine.Extra is SSTVMode oMode ) {
-                        RequestModeChange( oMode );
+                        _rgUItoBGQueue.Enqueue( new TVMessage( TVMessage.Message.TryNewMode, oMode ) );
                     }
 
                     if( !int.TryParse( StdProperties[SSTVProperties.Names.Std_ImgQuality], out int iQuality ) )
@@ -1361,12 +1361,16 @@ namespace Play.SSTV {
 
 			    _oDoc.DisplayImage.WorldDisplay = new SKRectI( 0, 0, tvMode.Resolution.Width, tvMode.Resolution.Height );
 
+                // the mode objects in the list might be same spec but copied or something
+                // match them via their legacy modes. Set up equivanlance test later.
+                Line oFoundLine = null;
                 foreach( Line oLine in _oDoc.RxModeList ) {
                     if( oLine.Extra is SSTVMode oLineMode ) {
                         if( oLineMode.LegacyMode == tvMode.LegacyMode )
-                            _oDoc.RxModeList.HighLight = oLine;
+                            oFoundLine = oLine;
                     }
                 }
+                _oDoc.RxModeList.HighLight = oFoundLine;
             }
         }
 

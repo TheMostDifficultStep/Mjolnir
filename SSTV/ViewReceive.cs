@@ -223,7 +223,6 @@ namespace Play.SSTV {
         protected override void Dispose( bool fDisposing ) {
 			if( fDisposing && !_fDisposed ) {
 				_oDocSSTV.PropertyChange             -= OnPropertyChange_DocSSTV;
-				_oDocSSTV.RxModeList.CheckedEvent    -= OnCheckedEvent_RxModeList;
 			}
 			base.Dispose( fDisposing );
         }
@@ -233,13 +232,8 @@ namespace Play.SSTV {
 				return false;
 
             _oDocSSTV.PropertyChange             += OnPropertyChange_DocSSTV;
-            _oDocSSTV.RxModeList.CheckedEvent    += OnCheckedEvent_RxModeList;
 
 			return true;
-        }
-
-        private void OnCheckedEvent_RxModeList( Line oLineChecked ) {
-			_oDocSSTV.RequestModeChange( oLineChecked.Extra as SSTVMode );
         }
 
         /// <summary>
@@ -631,9 +625,7 @@ namespace Play.SSTV {
 
         protected override void Dispose( bool fDisposing ) {
 			if( fDisposing && !_fDisposed ) {
-			  //_oDocSSTV.RxHistoryList.ImageUpdated -= OnImageUpdated_RxImageList;
-				_oDocSSTV.PropertyChange             -= OnPropertyChange_DocSSTV;
-				_oDocSSTV.RxModeList.CheckedEvent    -= OnCheckedEvent_RxModeList;
+				_oDocSSTV.PropertyChange -= OnPropertyChange_DocSSTV;
 
 				_wnSoloImageNav.Dispose();
 			}
@@ -646,10 +638,9 @@ namespace Play.SSTV {
 			if( !_wnSoloImageNav.InitNew() )
 				return false;
 
-            _oDocSSTV.PropertyChange             += OnPropertyChange_DocSSTV;
-            _oDocSSTV.RxModeList.CheckedEvent    += OnCheckedEvent_RxModeList;
+            _oDocSSTV.PropertyChange += OnPropertyChange_DocSSTV;
 
-			_rgSubLayout.Add(new LayoutControl(_wmViewRxImg,     LayoutRect.CSS.None) );
+			_rgSubLayout.Add(new LayoutControl(_wmViewRxImg,    LayoutRect.CSS.None) );
 			_rgSubLayout.Add(new LayoutControl(_wnSoloImageNav, LayoutRect.CSS.None) );
 
 			_oLayout.Add( _rgSubLayout );
@@ -678,13 +669,6 @@ namespace Play.SSTV {
 			}
 		}
 
-        //private void OnImageUpdated_RxImageList() {
-        //}
-
-        private void OnCheckedEvent_RxModeList( Line oLineChecked ) {
-			_oDocSSTV.RequestModeChange( oLineChecked.Extra as SSTVMode );
-        }
-
         /// <summary>
         /// This is our event sink for property changes on the SSTV document.
         /// </summary>
@@ -694,14 +678,14 @@ namespace Play.SSTV {
         private void OnPropertyChange_DocSSTV( SSTVEvents eProp ) {
 			switch( eProp ) {
 				case SSTVEvents.DownLoadFinished:
+				case SSTVEvents.SSTVMode:
 					_wmViewRxImg.BringToFront();
-					_wmViewRxImg.Refresh();
 					break;
 				default:
-					_wmViewRxImg.Invalidate();
-					_oSiteView .Notify( ShellNotify.BannerChanged );
+					_oSiteView  .Notify( ShellNotify.BannerChanged );
 					break;
 			}
+			_wmViewRxImg.Invalidate();
         }
 
         public override bool Execute( Guid sGuid ) {

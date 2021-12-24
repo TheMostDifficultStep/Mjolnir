@@ -159,7 +159,6 @@ namespace Play.SSTV {
 			if( fDisposing && !_fDisposed ) {
 				_oDocSSTV     .PropertyChange  -= OnPropertyChange_DocSSTV;
 				_rgWavFileList.DirectoryChange -= OnDirectoryChange_WaveFiles;
-				_rgRxModeList .CheckedEvent    -= OnCheckedEvent_RxModeList;
 			}
 			base.Dispose( fDisposing );
         }
@@ -190,7 +189,6 @@ namespace Play.SSTV {
 
 			_oDocSSTV     .PropertyChange  += OnPropertyChange_DocSSTV;
 			_rgWavFileList.DirectoryChange += OnDirectoryChange_WaveFiles;
-			_rgRxModeList .CheckedEvent    += OnCheckedEvent_RxModeList;
 
 			// Of course we'll blow up the shell if try in the constructor...
 			OnDirectoryChange_WaveFiles( _rgWavFileList.CurrentDirectory );
@@ -200,10 +198,6 @@ namespace Play.SSTV {
 
             OnSizeChanged( new EventArgs() );
 			return true;
-        }
-
-        private void OnCheckedEvent_RxModeList( Line oLineChecked ) {
-			_oDocSSTV.RequestModeChange( oLineChecked.Extra as SSTVMode );
         }
 
         private void OnDirectoryChange_WaveFiles( string strDirectory ) {

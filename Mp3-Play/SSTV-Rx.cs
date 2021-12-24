@@ -1068,13 +1068,16 @@ namespace Play.Sound {
 			m_SyncMode = 512;
 			Sync     = false;
 
-			m_wBase  = 0; // Just in case we ask again how far along decode.
+			SSTVMode oPrevMode = Mode;
+			int      iPrevBase = m_wBase;
+
+			m_wBase  = 0;
 			m_Skip   = 0;
 			SetWidth( false );
 
 			Mode = null;
 
-			//Send_NextMode?.Invoke( Mode );
+			Send_NextMode?.Invoke( Mode, oPrevMode, iPrevBase );
 		}
 
 		/// <summary>
