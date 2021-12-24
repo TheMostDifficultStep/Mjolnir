@@ -398,6 +398,9 @@ namespace Play.SSTV {
             Action oSaveAction = delegate () {
                 // BE CAREFUL! We can only get away with this because the DocSlot only implements
                 // the LogError and that is thread safe.
+                // BUG: We're back in a race condition: If the bitmap get's blitzed right away by
+                // a new transmission we might not have snipped it yet. I could just have a dedicated
+                // SnipDoc to create the bitmap, then pass it to some custom save code. Let's see how it goes.
                 try {
                     using ImageSoloDoc oSnipDoc = new( new DocSlot( this ) );
 			        SKRectI rcWorldDisplay = new SKRectI( 0, 0, tvMode.Resolution.Width, tvMode.Resolution.Height );
@@ -428,11 +431,12 @@ namespace Play.SSTV {
                                         typeof( ArgumentNullException ),
                                         typeof( PathTooLongException ),
                                         typeof( DirectoryNotFoundException ), 
-                                        typeof( NotSupportedException ) };
+                                        typeof( NotSupportedException ),
+                                        typeof( NotImplementedException ) };
                     if( rgErrors.IsUnhandled( oEx ) )
                         throw;
 
-                    LogError( "Exception in Device Image Save Thread." );
+                    LogError( "Exception in Device Image Save Thread: " + oEx.Message );
                 }
             };
 
