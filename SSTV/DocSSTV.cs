@@ -226,8 +226,8 @@ namespace Play.SSTV {
         BufferedWaveProvider _oWaveBuf = null;
         BlockCopies          _oWaveReader  = null;
 
-        protected bool        _isTransmitting = false;
-        protected DocSSTVMode _isReceiving    = DocSSTVMode.Ready;
+        public bool        StateTx { get; protected set; }
+        public DocSSTVMode StateRx { get; protected set; }
 
         /// <summary>
         /// This editor shows the list of modes we can modulate.
@@ -346,6 +346,9 @@ namespace Play.SSTV {
 			SyncImage     = new ImageSoloDoc( new DocSlot( this ) );
                           
             StdProperties = new ( new DocSlot( this ) );
+
+            StateRx = DocSSTVMode.Ready;
+            StateTx = false;
         }
 
         #region Dispose
@@ -765,7 +768,7 @@ namespace Play.SSTV {
         private void OnImageUpdated_RxHistoryList() {
             // BUG: Need to make the RxProp the one that gets changed and we catch an event to LoadAgain();
 			StdProperties.RaiseBufferEvent();
-            if( _isReceiving == DocSSTVMode.DeviceRead ) {
+            if( StateRx == DocSSTVMode.DeviceRead ) {
                 _rgUItoBGQueue.Enqueue( new TVMessage( TVMessage.Message.ChangeDirectory, RxHistoryList.CurrentDirectory ) );
             }
         }
@@ -893,6 +896,18 @@ namespace Play.SSTV {
 
         protected int MicrophoneGain => StdProperties.ValueAsInt( SSTVProperties.Names.Std_MicGain );
 
+		public SSTVMode TransmitModeSelection { 
+			get {
+                if( TxModeList.CheckedLine == null )
+                    TxModeList.CheckedLine = TxModeList[RxModeList.CheckedLine.At];
+
+                if( TxModeList.CheckedLine.Extra is SSTVMode oMode )
+					return oMode;
+
+				return null;
+			}
+		}
+
         /// <summary>
         /// Begin transmitting the image. At present, no way to stop!! >_<;;
         /// </summary>
@@ -903,17 +918,17 @@ namespace Play.SSTV {
             if( oMode == null || TxBitmapComp.Bitmap == null ) {
                 LogError( "Transmit mode or image is not set." ); return;
             }
-            if( _isTransmitting ) {
+            if( StateTx ) {
                 LogError( "Already Transmitting" ); return;
             }
-            if( _isReceiving != DocSSTVMode.DeviceRead ) {
+            if( StateRx != DocSSTVMode.DeviceRead ) {
                 // we need the receive listener polling to get updates for
                 // or tx progress. Starting the polling here mighte
                 // get us in a weird mode. This is easier for now.
                 LogError( "Start device receive first." );
             }
                 
-            _isTransmitting = true;
+            StateTx = true;
 
             Action oTransmitAction = delegate () {
                 SKBitmap bmpCopy = TxBitmapComp.Bitmap.Copy();
@@ -933,7 +948,7 @@ namespace Play.SSTV {
             await oTask;
 
             oTask.Dispose(); // this is a little lengthy.
-            _isTransmitting = false;
+            StateTx = false;
         }
 
         /// <summary>
@@ -981,7 +996,7 @@ namespace Play.SSTV {
                                 StdProperties.ValueUpdate( SSTVProperties.Names.Rx_Mode,   oMode.Name );
                                 StdProperties.ValueUpdate( SSTVProperties.Names.Rx_Width,  oMode.Resolution.Width .ToString() );
                                 StdProperties.ValueUpdate( SSTVProperties.Names.Rx_Height, oMode.Resolution.Height.ToString() );
-                                if( _isReceiving == DocSSTVMode.Ready ) {
+                                if( StateRx == DocSSTVMode.Ready ) {
                                     LogError( "Unexpected SSTVMode transition" );
                                 }
                             }
@@ -1038,7 +1053,7 @@ namespace Play.SSTV {
                 LogError( "Invalid filename for SSTV image read." );
                 return;
             }
-            if( _isReceiving != DocSSTVMode.Ready ) {
+            if( StateRx != DocSSTVMode.Ready ) {
                 LogError( "Busy right now." );
                 return;
             }
@@ -1052,7 +1067,7 @@ namespace Play.SSTV {
                     break;
             }
 
-            _isReceiving = DocSSTVMode.FileRead;
+            StateRx = DocSSTVMode.FileRead;
 
 			RxHistoryList.LoadAgain( strFileName );
             StdProperties.ValueUpdate( SSTVProperties.Names.Std_Process, "File Read Started." );
@@ -1086,7 +1101,7 @@ namespace Play.SSTV {
             RxHistoryList.LoadAgain( RxHistoryList.CurrentDirectory );
 
             _oWorkPlace.Pause();
-            _isReceiving = DocSSTVMode.Ready;
+            StateRx = DocSSTVMode.Ready;
             _rgBGtoUIQueue.Clear();
        }
 
@@ -1110,7 +1125,7 @@ namespace Play.SSTV {
             StdProperties.ValueUpdate( SSTVProperties.Names.Std_Process, "Stopped: All.", true );
 
             _oWorkPlace.Pause(); // TODO: flush the message buffers? Probably should.
-            _isReceiving = DocSSTVMode.Ready;
+            StateRx = DocSSTVMode.Ready;
         }
 
         /// <summary>
@@ -1129,7 +1144,7 @@ namespace Play.SSTV {
                 }
                 return;
             }
-            if( _isReceiving != DocSSTVMode.Ready ) {
+            if( StateRx != DocSSTVMode.Ready ) {
                 LogError( "Busy right now." );
                 return;
             }
@@ -1215,7 +1230,7 @@ namespace Play.SSTV {
 
                     _oWorkPlace.Start( 1 );
                     StdProperties.ValueUpdate( SSTVProperties.Names.Std_Process, "Start: Live.", true );
-                    _isReceiving = DocSSTVMode.DeviceRead;
+                    StateRx = DocSSTVMode.DeviceRead;
                 } catch( Exception oEx ) {
                     Type[] rgErrors = { typeof( NullReferenceException ),
                                         typeof( ArgumentNullException ),

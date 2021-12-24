@@ -333,7 +333,12 @@ namespace Play.SSTV {
         }
 
 		protected bool RenderComposite() {
-			if( SSTVModeSelection is SSTVMode oMode ) {
+			// sometimes we get events while we're sending. Let's block render for now.
+			if( _oDocSSTV.StateTx )
+				return false;
+
+			SSTVMode oMode = _oDocSSTV.TransmitModeSelection;
+			if( oMode != null ) {
 				SKRectI rcComp = new SKRectI( 0, 0, oMode.Resolution.Width, oMode.Resolution.Height);
 				SKSizeI ptComp = new SKSizeI( oMode.Resolution.Width, oMode.Resolution.Height );
 
