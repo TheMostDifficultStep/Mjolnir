@@ -264,7 +264,7 @@ namespace Play.SSTV {
         protected readonly ConcurrentQueue<double>      _oDataQueue; 
         protected readonly WaveFormat                   _oDataFormat;
         protected readonly ConcurrentQueue<TVMessage>   _oOutQueue;
-        protected readonly string                       _strFilePath;   // path and img quality could potentially change
+        protected          string                       _strFilePath;   // path and img quality could potentially change
         protected readonly string                       _strFileName;
         protected readonly int                          _iImageQuality; // on the fly; yet doesn't seem mainline usage.
 
@@ -328,6 +328,9 @@ namespace Play.SSTV {
                         } else {
                             _oSSTVDeMo.Reset();
                         }
+                        break;
+                    case TVMessage.Message.ChangeDirectory:
+                        _strFilePath = oMsg._oParam as string;
                         break;
                 }
             }

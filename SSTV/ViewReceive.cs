@@ -646,7 +646,6 @@ namespace Play.SSTV {
 			if( !_wnSoloImageNav.InitNew() )
 				return false;
 
-          //_oDocSSTV.RxHistoryList.ImageUpdated += OnImageUpdated_RxImageList;
             _oDocSSTV.PropertyChange             += OnPropertyChange_DocSSTV;
             _oDocSSTV.RxModeList.CheckedEvent    += OnCheckedEvent_RxModeList;
 
@@ -660,14 +659,14 @@ namespace Play.SSTV {
 			return true;
         }
 
-		/// <summary>
-		/// Does what it sez.
-		/// </summary>
-		/// <remarks>This is the first time I've actually tried to devine which child is
-		/// speaking to me via a Slot that's not from the shell. And I see that the children
-		/// aren't required to set themselves on the site. I'll need to think about that,
-		/// but for now, sort 'em all out this way.</remarks>
-		protected override void BringChildToFront( ChildID eID ) {
+        /// <summary>
+        /// Does what it sez.
+        /// </summary>
+        /// <remarks>This is the first time I've actually tried to devine which child is
+        /// speaking to me via a Slot that's not from the shell. And I see that the children
+        /// aren't required to set themselves on the site. I'll need to think about that,
+        /// but for now, sort 'em all out this way.</remarks>
+        protected override void BringChildToFront( ChildID eID ) {
 			switch( eID ) {
 				case ChildID.HistoryIconsWindow:
 				case ChildID.HistoryNavWindow:

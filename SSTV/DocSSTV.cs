@@ -176,6 +176,7 @@ namespace Play.SSTV {
     public class TVMessage {
         public enum Message {
             TryNewMode,
+            ChangeDirectory,
             ExitWorkThread
         }
 
@@ -360,7 +361,7 @@ namespace Play.SSTV {
 
                     ReceiveLiveStop();
 
-                    RxHistoryList.ImageUpdated -= OnImageUpdated_RxImageList;
+                    RxHistoryList.ImageUpdated -= OnImageUpdated_RxHistoryList;
                     TxImageList  .ImageUpdated -= OnImageUpdated_TxImageList;
                 }
 
@@ -542,7 +543,7 @@ namespace Play.SSTV {
 
             // Get these set up so our stdproperties get the updates.
             TxImageList  .ImageUpdated += OnImageUpdated_TxImageList;
-            RxHistoryList.ImageUpdated += OnImageUpdated_RxImageList;
+            RxHistoryList.ImageUpdated += OnImageUpdated_RxHistoryList;
 
             TemplateList.LineAppend( "CQ" );
             TemplateList.LineAppend( "PnP Reply" );
@@ -756,9 +757,12 @@ namespace Play.SSTV {
         /// Strictly speaking we're not getting the event we really need here. 
         /// Look at this again later.
         /// </summary>
-        private void OnImageUpdated_RxImageList() {
+        private void OnImageUpdated_RxHistoryList() {
             // BUG: Need to make the RxProp the one that gets changed and we catch an event to LoadAgain();
 			StdProperties.RaiseBufferEvent();
+            if( _isReceiving == DocSSTVMode.DeviceRead ) {
+                _rgUItoBGQueue.Enqueue( new TVMessage( TVMessage.Message.ChangeDirectory, RxHistoryList.CurrentDirectory ) );
+            }
         }
 
         /// <summary>
