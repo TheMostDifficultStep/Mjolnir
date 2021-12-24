@@ -926,10 +926,6 @@ namespace Play.SSTV {
         /// </summary>
         /// <param name="strFileName"></param>
         protected void DownloadFinished() {
-            if( _isReceiving == DocSSTVMode.DeviceRead ) {
-                SaveDeviceReceived(); 
-            }
-
             PropertyChange?.Invoke( SSTVEvents.DownLoadFinished );
 
             RxModeList.HighLight   = null;
@@ -975,15 +971,8 @@ namespace Play.SSTV {
                                 StdProperties.ValueUpdate( SSTVProperties.Names.Rx_Mode,   oMode.Name );
                                 StdProperties.ValueUpdate( SSTVProperties.Names.Rx_Width,  oMode.Resolution.Width .ToString() );
                                 StdProperties.ValueUpdate( SSTVProperties.Names.Rx_Height, oMode.Resolution.Height.ToString() );
-                                switch( _isReceiving ) {
-                                    case DocSSTVMode.DeviceRead:
-                                        StdProperties.ValueUpdate( SSTVProperties.Names.Rx_SaveName, GenerateFileName, Broadcast:true );
-                                        break;
-                                    case DocSSTVMode.FileRead:
-                                        break;
-                                    default:
-                                        LogError( "Unexpected SSTVMode transition" );
-                                        break;
+                                if( _isReceiving == DocSSTVMode.Ready ) {
+                                    LogError( "Unexpected SSTVMode transition" );
                                 }
                             }
                             } break;
@@ -1066,10 +1055,12 @@ namespace Play.SSTV {
 
             await oTask;
 
+            // So we might not have received the last message from our bg thread even
+            // though it is done. But we will have received the image(s). Pumping the
+            // queue here is possibly re-entrant. Maybe some sort of ACK NACK is in order.
             StdProperties.ValueUpdate( SSTVProperties.Names.Std_Process, "File Read Complete.", true );
 
             // Download finished is sort of changing it's meaning in the file read case.
-            // We really just mean invalidate your image windows. I should make a new event.
             PropertyChange?.Invoke( SSTVEvents.DownLoadFinished );
 
             // Let's just run these to positively clear the slate.
@@ -1078,9 +1069,6 @@ namespace Play.SSTV {
 
             RxHistoryList.LoadAgain( RxHistoryList.CurrentDirectory );
 
-            // So we might not have received the last message from our bg thread even
-            // though it is done. But we will have received the image(s). Should pump the
-            // BgToUiThread queue, but just clear it. 
             _oWorkPlace.Pause();
             _isReceiving = DocSSTVMode.Ready;
             _rgBGtoUIQueue.Clear();
@@ -1177,13 +1165,27 @@ namespace Play.SSTV {
                     _rgBGtoUIQueue.Clear();
                     _rgDataQueue  .Clear();
 
-                    // Note that this ModeList is the TX mode list. I think I want an RX list.
                     if( RxModeList.CheckedLine.Extra is SSTVMode oMode ) {
                         RequestModeChange( oMode );
                     }
 
-                    DeviceListeningState oWorker = new DeviceListeningState( _oWaveIn.WaveFormat.SampleRate, _rgBGtoUIQueue, _rgDataQueue, 
-                                                                             _rgUItoBGQueue, SyncImage.Bitmap, DisplayImage.Bitmap );
+                    if( !int.TryParse( StdProperties[SSTVProperties.Names.Std_ImgQuality], out int iQuality ) )
+                        iQuality = 80;
+
+                    string strSaveDir  = StdProperties[ SSTVProperties.Names.Rx_SaveDir  ];
+                    string strFileName = StdProperties[ SSTVProperties.Names.Rx_SaveName ];
+
+                    // Just note, if we do a file read, we might no longer be in the MyPictures path.
+                    if( string.IsNullOrEmpty( strSaveDir ) ) {
+			            strSaveDir = Environment.GetFolderPath(Environment.SpecialFolder.MyPictures);
+                        StdProperties.ValueUpdate( SSTVProperties.Names.Rx_SaveDir, strSaveDir, Broadcast:true );
+                    }
+
+                    DeviceListeningState oWorker = new DeviceListeningState( 
+                        _oWaveIn.WaveFormat.SampleRate, 
+                        iQuality, strSaveDir, strFileName,
+                        _rgBGtoUIQueue, _rgDataQueue, 
+                        _rgUItoBGQueue, SyncImage.Bitmap, DisplayImage.Bitmap );
                     ThreadStart   threadDelegate = new ThreadStart( oWorker.DoWork );
 
                     _oThread = new Thread( threadDelegate );
@@ -1242,25 +1244,6 @@ namespace Play.SSTV {
             }
         }
 
-        public static string GenerateFileName  {
-            get {
-                DateTime      sNow   = DateTime.Now.ToUniversalTime();
-                StringBuilder sbName = new();
-
-                sbName.Append( sNow.Year  .ToString( "D4" ) );
-                sbName.Append( '-' );
-                sbName.Append( sNow.Month .ToString( "D2" ) );
-                sbName.Append( '-' );
-                sbName.Append( sNow.Day   .ToString( "D2" ) );
-                sbName.Append( '_' );
-                sbName.Append( sNow.Hour  .ToString( "D2" ) );
-                sbName.Append( sNow.Minute.ToString( "D2" ) );
-                sbName.Append( 'z' );
-               
-                return sbName.ToString();
-            }
-        }
-
         /// <summary>
         /// Saving the file decode is a little different than the device stream 
         /// case. We wish to respect the file path of the given file to decode.
@@ -1300,60 +1283,6 @@ namespace Play.SSTV {
                 LogError( "Exception in File Decode Save" );
             }
         }
-		public void SaveDeviceReceived() {
-            try {
-                using ImageSoloDoc oSnipDoc = new( new DocSlot( this ) );
-
-                if( !oSnipDoc.Load( DisplayImage.Bitmap, DisplayImage.WorldDisplay, DisplayImage.Size ) )
-                    return;
-
-                // Figure out path and name of the file.
-                string strFileName = StdProperties[ SSTVProperties.Names.Rx_SaveName ];
-                string strSaveDir  = StdProperties[ SSTVProperties.Names.Rx_SaveDir  ];
-
-                // Just note, if we do a file read, we might no longer be in the MyPictures path.
-                if( string.IsNullOrEmpty( strSaveDir ) ) {
-			        strSaveDir = Environment.GetFolderPath(Environment.SpecialFolder.MyPictures);
-                    StdProperties.ValueUpdate( SSTVProperties.Names.Rx_SaveDir, strSaveDir, Broadcast:true );
-                }
-                if( string.IsNullOrEmpty( strFileName ) ) {
-                    strFileName = GenerateFileName;
-                } else {
-                    strFileName = Path.GetFileNameWithoutExtension( strFileName );
-                }
-                
-                // Clean up the file name. Tacky, but better than nothing.
-                TextLine oLine      = new( 0, strFileName );
-                string   strIllegal = @" []$%&{}<>*?/\!:;+|=~`" + "\"\'";
-                for( int i = 0; i< oLine.ElementCount; ++i ) {
-                    foreach( char cBadChar in strIllegal ) {
-                        if( oLine[i] == cBadChar )
-                            oLine.Buffer[i] = '_';
-                    }
-                }
-                strFileName = oLine.ToString();
-
-                if( !int.TryParse( StdProperties[SSTVProperties.Names.Std_ImgQuality], out int iQuality ) )
-                    iQuality = 80;
-
-                string strFilePath = Path.Combine  ( strSaveDir, strFileName + ".jpg" );
-                using var stream   = File.OpenWrite( strFilePath );
-
-                oSnipDoc.Save( stream );
-            } catch( Exception oEx ) {
-                Type[] rgErrors = { typeof( NullReferenceException ),
-                                    typeof( IOException ),
-                                    typeof( ArgumentException ),
-                                    typeof( ArgumentNullException ),
-                                    typeof( PathTooLongException ),
-                                    typeof( DirectoryNotFoundException ), 
-                                    typeof( NotSupportedException ) };
-                if( rgErrors.IsUnhandled( oEx ) )
-                    throw;
-
-                LogError( "Exception in Device Image Save" );
-            }
-		}
 
         /// <summary>
         /// This class contains the fragents of an early TV generation test. Because
@@ -1452,7 +1381,6 @@ namespace Play.SSTV {
             /// between them on the fly. The benefit is that I don't need to set
             /// up the event hooks everytime a new image comes down in the case where I
             /// was alloc'ing TmmSSTV subclasses.</remarks>
-            /// <seealso cref="OnTvEvents_RxSSTV"/>
             private void OnNextMode_SSTVDeMod( SSTVMode tvMode, SSTVMode tvPrev, int iPrevBase ) {
 			    _oDoc.DisplayImage.Bitmap = null;
 			    _oDoc.SyncImage   .Bitmap = null;
@@ -1468,22 +1396,6 @@ namespace Play.SSTV {
                     }
                 }
             }
-	        /// <summary>
-	        /// Forward events coming from SSTVDraw. I really need to sort out
-            /// the mess this has become. BUT this is only used by the TEST
-            /// code. The new threaded code does not use this.
-	        /// </summary>
-            private void OnTvEvents_RxSSTV( SSTVEvents eProp ) {
-                _oDoc.Raise_PropertiesUpdated( eProp );
-
-                switch( eProp ) {
-                    case SSTVEvents.DownLoadFinished:
-                        _oDoc.RxModeList.HighLight = null;
-                        _oDoc.SaveDeviceReceived();
-                        break;
-                }
-            }
-
         }
 
 		public WorkerStatus PlayStatus {

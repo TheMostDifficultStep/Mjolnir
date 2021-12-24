@@ -711,17 +711,15 @@ namespace Play.SSTV {
 				return true;
 			}
 			if( sGuid == GlobalCommands.Stop ) {
-				// BUG: What if we're launched with one tool and then the tool is
-				//      changed midway and we hit stop. Need to sort that out.
 				_oDocSSTV.ReceiveLiveStop();
 				return true;
 			}
 			if( sGuid == GlobalCommands.Save ) {
-				// Override save behavior.
-				_oDocSSTV.SaveDeviceReceived();
-				_oDocSSTV.RxHistoryList.LoadAgain( _oDocSSTV.RxHistoryList.CurrentDirectory );
-				// make sure you return true or a docsstv.save gets called.
-				return true; 
+				// Override save behavior. Normally we would save settings, here we save the visible image.
+				throw new NotImplementedException( "Need to send that event to the bg thread!" );
+				// And have it send us an event of the save so we can update re-read received image list.
+				
+				return true; // make sure you return true or a docsstv.save (settings) gets called.
 			}
 			if( sGuid == GlobalCommands.JumpPrev) { 
 				_wmViewRxImg.BringToFront();

@@ -292,8 +292,6 @@ namespace Play.SSTV {
     public class SSTVDraw {
         protected readonly SSTVDEM _dp;
 
-		public delegate void SSTVDrawEvents( SSTVEvents eProp, int iParam );
-
 		public SSTVMode Mode => _dp.Mode;
 		public DateTime StartTime { get; protected set; }
 
@@ -316,12 +314,14 @@ namespace Play.SSTV {
 
 		public SKBitmap _pBitmapRX  { get; } 
 		public SKBitmap _pBitmapD12 { get; }
-		// Looks like were only using grey scale on the D12. Look into turning into greyscale later.
+		// Looks like we're only using grey scale on the D12. Look into turning into greyscale later.
 		// Need to look into the greyscale calibration height of bitmap issue. (+16 scan lines)
 		// The D12 bitmap must always be >= to the RX bmp height.
 
-		public event SSTVDrawEvents   Send_TvEvents;
-		public event Action<SSTVMode> Send_SavePoint;
+		// TODO: You know there's only one consumer of these events. I should just make them an 
+		// interface or a delegate onto the listener.
+		public event Action<SSTVEvents, int> Send_TvEvents;
+		public event Action<SSTVMode >       Send_SavePoint;
 
 		protected readonly List<ColorChannel> _rgSlots = new (10);
 		
@@ -386,14 +386,6 @@ namespace Play.SSTV {
 		//		}
 		//	}
 		//}
-
-		public void Dispose() {
-			// I don't think this is strictly necessary since we're not supposed to
-			// being used anyway. But what the heck.
-			foreach( Delegate d in Send_TvEvents.GetInvocationList() ) {
-				Send_TvEvents -= (SSTVDrawEvents)d;
-			}
-		}
 
 		/// <summary>this method get's called to initiate the processing of
 		/// a new image.</summary>

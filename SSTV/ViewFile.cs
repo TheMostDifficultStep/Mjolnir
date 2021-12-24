@@ -258,8 +258,9 @@ namespace Play.SSTV {
 				// Might be a good place for a thread cancellation token here.
 			}
 			if( sGuid == GlobalCommands.Save ) {
-				_oDocSSTV.SaveDeviceReceived();
-				return true; // make sure you return true or a docsstv.save gets called.
+				// We shouldn't need to do anything here, except I do override the behavior
+				// so we don't attempt to save the settings.
+				return true;
 			}
 
 			return false;
