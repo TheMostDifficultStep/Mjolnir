@@ -3,6 +3,7 @@ using System.IO;
 using System.Collections.Generic;
 using System.Collections.Concurrent;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Text;
 
 using NAudio.Wave;
@@ -388,48 +389,61 @@ namespace Play.SSTV {
         /// It should work ok, the input buffer might get larger for a bit.
         /// </summary>
         /// <param name="tvMode"></param>
-		public void SaveImage( SSTVMode tvMode ) {
+		public async void SaveImage( SSTVMode tvMode ) {
             if( tvMode == null ) {
                 LogError( "Odd the current SSTVMode is null." );
                 return;
             }
 
-            try {
-                using ImageSoloDoc oSnipDoc = new( new DocSlot( this ) );
-			    SKRectI rcWorldDisplay = new SKRectI( 0, 0, tvMode.Resolution.Width, tvMode.Resolution.Height );
+            Action oSaveAction = delegate () {
+                // BE CAREFUL! We can only get away with this because the DocSlot only implements
+                // the LogError and that is thread safe.
+                try {
+                    using ImageSoloDoc oSnipDoc = new( new DocSlot( this ) );
+			        SKRectI rcWorldDisplay = new SKRectI( 0, 0, tvMode.Resolution.Width, tvMode.Resolution.Height );
 
-                // Need to snip the image since we might not be using the entire display image.
-                if( !oSnipDoc.Load( _oSSTVDraw._pBitmapRX, rcWorldDisplay, rcWorldDisplay.Size ) )
-                    return;
+                    // Need to snip the image since we might not be using the entire display image.
+                    if( !oSnipDoc.Load( _oSSTVDraw._pBitmapRX, rcWorldDisplay, rcWorldDisplay.Size ) )
+                        return;
 
-                // Figure out path and name of the file.
-                string strFileName = Path.GetFileNameWithoutExtension( _strFileName );
+                    // Figure out path and name of the file.
+                    string strFileName = Path.GetFileNameWithoutExtension( _strFileName );
 
-                if( string.IsNullOrEmpty( strFileName ) ) {
-                    strFileName = FileNameGenerate;
-                } else {
-                    throw new NotImplementedException( "Need to count iterations" );
-                }
+                    if( string.IsNullOrEmpty( strFileName ) ) {
+                        strFileName = FileNameGenerate;
+                    } else {
+                        throw new NotImplementedException( "Need to count iterations" );
+                    }
                 
-                strFileName = FileNameCleanUp( strFileName );
+                    strFileName = FileNameCleanUp( strFileName );
 
-                string strFilePath = Path.Combine  ( _strFilePath, strFileName + ".jpg" );
-                using var stream   = File.OpenWrite( strFilePath );
+                    string strFilePath = Path.Combine  ( _strFilePath, strFileName + ".jpg" );
+                    using var stream   = File.OpenWrite( strFilePath );
 
-                oSnipDoc.Save( stream );
-            } catch( Exception oEx ) {
-                Type[] rgErrors = { typeof( NullReferenceException ),
-                                    typeof( IOException ),
-                                    typeof( ArgumentException ),
-                                    typeof( ArgumentNullException ),
-                                    typeof( PathTooLongException ),
-                                    typeof( DirectoryNotFoundException ), 
-                                    typeof( NotSupportedException ) };
-                if( rgErrors.IsUnhandled( oEx ) )
-                    throw;
+                    oSnipDoc.Save( stream );
+                } catch( Exception oEx ) {
+                    Type[] rgErrors = { typeof( NullReferenceException ),
+                                        typeof( IOException ),
+                                        typeof( ArgumentException ),
+                                        typeof( ArgumentNullException ),
+                                        typeof( PathTooLongException ),
+                                        typeof( DirectoryNotFoundException ), 
+                                        typeof( NotSupportedException ) };
+                    if( rgErrors.IsUnhandled( oEx ) )
+                        throw;
 
-                LogError( "Exception in Device Image Save" );
-            }
+                    LogError( "Exception in Device Image Save Thread." );
+                }
+            };
+
+            Task oTask = new Task( oSaveAction );
+
+            oTask.Start();
+
+            await oTask;
+
+            // Don't dispose task. It's a bit lengthy and we're not run
+            // frequently enough to put pressure on the GC.
 		}
 
     }
