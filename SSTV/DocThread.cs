@@ -88,6 +88,8 @@ namespace Play.SSTV {
             }
             return new string( rgLine ); // So rgLine.ToString() doesn't work b/c array is ref type.
         }
+
+        public abstract void SaveImage( SSTVMode tvMode );
     }
 
     /// <summary>
@@ -175,7 +177,7 @@ namespace Play.SSTV {
             try {
                 _oSSTVDeMo.Send_NextMode  += _oSSTVDraw.OnModeTransition_SSTVDeMo;
                 _oSSTVDraw.Send_TvEvents  += OnTVEvents_SSTVDraw;
-                _oSSTVDraw.Send_SavePoint += SaveFileDecode;
+                _oSSTVDraw.Send_SavePoint += SaveImage;
 
                 // Note: SSTVDemodulator.Start() will try to use the callback(s) above.
                 if( oMode != null ) {
@@ -189,7 +191,7 @@ namespace Play.SSTV {
                 // Check if there's any leftover and if so, save it. Don't call
                 // Stop()! That will happen automatically when the bitmap gets full.
                 if( _oSSTVDraw.PercentRxComplete > 25 ) {
-                    SaveFileDecode( _oSSTVDraw.Mode );
+                    SaveImage( _oSSTVDraw.Mode );
                 }
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( DirectoryNotFoundException ),
@@ -216,7 +218,7 @@ namespace Play.SSTV {
             return GetEnumerator();
         }
 
-        public void SaveFileDecode( SSTVMode tvMode ) {
+        public override void SaveImage( SSTVMode tvMode ) {
             if( tvMode == null ) {
                 LogError( "Odd the current SSTVMode is null." );
                 return;
@@ -333,6 +335,10 @@ namespace Play.SSTV {
                     case TVMessage.Message.ChangeDirectory:
                         _strFilePath = oMsg._oParam as string;
                         break;
+                    case TVMessage.Message.SaveNow:
+                        SaveImage( _oSSTVDeMo.Mode );
+                        _oToUIQueue.Enqueue( new( SSTVEvents.ImageSaved, 0 ) );
+                        break;
                 }
             }
             return true;
@@ -389,7 +395,7 @@ namespace Play.SSTV {
         /// It should work ok, the input buffer might get larger for a bit.
         /// </summary>
         /// <param name="tvMode"></param>
-		public async void SaveImage( SSTVMode tvMode ) {
+		public async override void SaveImage( SSTVMode tvMode ) {
             if( tvMode == null ) {
                 LogError( "Odd the current SSTVMode is null." );
                 return;
@@ -420,7 +426,8 @@ namespace Play.SSTV {
                 
                     strFileName = FileNameCleanUp( strFileName );
 
-                    string strFilePath = Path.Combine  ( _strFilePath, strFileName + ".jpg" );
+                    string strModeName = tvMode.Name.Replace( " ", string.Empty );
+                    string strFilePath = Path.Combine  ( _strFilePath, strFileName + "_" + strModeName + ".jpg" );
                     using var stream   = File.OpenWrite( strFilePath );
 
                     oSnipDoc.Save( stream );

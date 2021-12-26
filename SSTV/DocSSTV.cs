@@ -166,6 +166,7 @@ namespace Play.SSTV {
         UploadTime,
 		DownLoadTime,
         DownLoadFinished,
+        ImageSaved,
         ThreadException,
         ThreadAbort,
         ThreadExit
@@ -175,6 +176,7 @@ namespace Play.SSTV {
 
     public class TVMessage {
         public enum Message {
+            SaveNow,
             TryNewMode,
             ChangeDirectory,
             ExitWorkThread
@@ -1018,6 +1020,10 @@ namespace Play.SSTV {
 
                             RxHistoryList.LoadAgain( RxHistoryList.CurrentDirectory );
                             break;
+                        case SSTVEvents.ImageSaved: 
+                            PropertyChange?.Invoke( SSTVEvents.ImageSaved );
+                            RxHistoryList.LoadAgain( RxHistoryList.CurrentDirectory );
+                            break;
                         case SSTVEvents.ThreadAbort:
                             if( _oThread == null ) {
                                 LogError( "Unexpected Image Thread Abort." );
@@ -1039,6 +1045,10 @@ namespace Play.SSTV {
                 }
                 yield return 250; // wait 1/4 of a second.
             };
+        }
+
+        public void ReceiveSave() {
+			_rgUItoBGQueue.Enqueue( new TVMessage( TVMessage.Message.SaveNow ) );
         }
 
         /// <summary>
