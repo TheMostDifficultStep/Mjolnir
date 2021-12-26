@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <RootNamespace>Play.Clock</RootNamespace>
-    <TargetFramework>net5.0-windows</TargetFramework>
+    <TargetFramework>net6.0-windows</TargetFramework>
     <UseWindowsForms>true</UseWindowsForms>
     <AnalysisLevel>latest</AnalysisLevel>
   </PropertyGroup>
