@@ -271,6 +271,8 @@ namespace Play.SSTV {
         protected readonly string                       _strFileName;
         protected readonly int                          _iImageQuality; // on the fly; yet doesn't seem mainline usage.
 
+        protected          SSTVMode _oLastMode; // Help with image save.
+
         protected readonly SSTVDraw _oSSTVDraw;
         protected readonly SSTVDEM  _oSSTVDeMo;
 
@@ -316,6 +318,13 @@ namespace Play.SSTV {
         /// Listen to the SSTVDraw object. And forward those events outside our thread envelope.
         /// </summary>
         private void OnTvEvents_SSTVDraw( SSTVEvents eProp, int iParam ) {
+            if( eProp == SSTVEvents.SSTVMode ) {
+                foreach( SSTVMode oMode in _oSSTVDeMo ) {
+                    if( oMode.LegacyMode == (AllModes)iParam ) {
+                        _oLastMode = oMode;
+                    }
+                }
+            }
             _oToUIQueue.Enqueue( new( eProp, iParam ) );
         }
 
@@ -336,7 +345,7 @@ namespace Play.SSTV {
                         _strFilePath = oMsg._oParam as string;
                         break;
                     case TVMessage.Message.SaveNow:
-                        SaveImage( _oSSTVDeMo.Mode );
+                        SaveImage( _oLastMode );
                         _oToUIQueue.Enqueue( new( SSTVEvents.ImageSaved, 0 ) );
                         break;
                 }

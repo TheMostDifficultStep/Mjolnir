@@ -293,6 +293,7 @@ namespace Play.SSTV {
         protected readonly SSTVDEM _dp;
 
 		public SSTVMode Mode => _dp.Mode;
+
 		public DateTime StartTime { get; protected set; }
 
 		protected double   _dblReadBaseSync = 0; // Sync signal reader progress
@@ -852,8 +853,7 @@ namespace Play.SSTV {
 		public void OnModeTransition_SSTVDeMo( SSTVMode oCurrMode, SSTVMode oPrevMode, int iPrevBase ) {
 			if( oCurrMode == null ) {
 				RenderDiagnosticsOverlay();
-				int iLegacy = oCurrMode != null ? (int)oCurrMode.LegacyMode : -1;
-				Send_TvEvents?.Invoke( SSTVEvents.SSTVMode, iLegacy );
+				Send_TvEvents?.Invoke( SSTVEvents.SSTVMode, -1 );
 				return;
 			}
 
