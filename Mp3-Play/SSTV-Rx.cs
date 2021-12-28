@@ -247,13 +247,13 @@ namespace Play.Sound {
 		double SampBase { get; }
 		double ToneOffs { get; }
 
-		public CHILL( bool bCQ100, double dbSampFreq, double dbSampBase, double dbToneOffset )
+		public CHILL( bool bCQ100, double dbSampFreq, double dbSampBase, double dbToneOffset, FrequencyLookup rgFreqTable )
 		{
 			SampFreq = dbSampFreq;
 			SampBase = dbSampBase;
 			ToneOffs = dbToneOffset;
 
-			SetWidth( bCQ100, false);
+			SetWidth( bCQ100, rgFreqTable );
 
 		    m_htap = m_tap / 2;
 			MakeHilbert(H, m_tap, SampFreq, 100, SampFreq/2 - 100);
@@ -304,11 +304,11 @@ namespace Play.Sound {
 			}
 		}
 
-		public void SetWidth( bool bCQ100, bool fNarrow )
+		public void SetWidth( bool bCQ100, FrequencyLookup rgFrequency )
 		{
-			if( fNarrow ){
-				m_OFF = (2 * Math.PI * (SSTVDEM.NARROW_CENTER + ToneOffs)) / SampFreq;
-				m_OUT = 32768.0 * SampFreq / (2 * Math.PI * SSTVDEM.NARROW_BW);
+			if( rgFrequency != null ){
+				m_OFF = (2 * Math.PI * (rgFrequency.CENTER + ToneOffs)) / SampFreq;
+				m_OUT = 32768.0 * SampFreq / (2 * Math.PI * rgFrequency.BW);
 			} else {
 				m_OFF = (2 * Math.PI * (1900 + ToneOffs)) / SampFreq;
 				m_OUT = 32768.0 * SampFreq / (2 * Math.PI * 800);
@@ -384,7 +384,6 @@ namespace Play.Sound {
 	class CFQC {
 		protected static double ZEROFQ	= (-1900.0/400.0);
 
-		int     m_Mode;
 		int     m_Count;
 		double  m_ACount;
 		double  m_d;
@@ -416,10 +415,10 @@ namespace Play.Sound {
 		double SampFreq { get; }
 		double ToneOffs { get; }
 
-		public CFQC( double dbSampFreq, double dbToneOffs )
+		public CFQC( double dbSampFreq, double dbToneOffs, FrequencyLookup rgFrequency )
 		{
-			SampFreq = dbSampFreq;
-			ToneOffs = dbToneOffs;
+			SampFreq     = dbSampFreq;
+			ToneOffs     = dbToneOffs;
 
 			m_Type = 0;
 
@@ -439,19 +438,18 @@ namespace Play.Sound {
 			m_SampFreq = SampFreq;
 			m_Timer    = m_STimer = (int)SampFreq; // int(m_SampFreq);
 
-			SetWidth( false );
-			CalcLPF();
+			SetWidth( rgFrequency );
+			CalcLPF ();
 		}
 
-		public void SetWidth(bool fNarrow)
+		public void SetWidth( FrequencyLookup rgFrequency )
 		{
-			if( fNarrow ){
-				m_BWH      = SSTVDEM.NARROW_BWH;
-				m_CenterFQ = SSTVDEM.NARROW_CENTER + ToneOffs;
+			if( rgFrequency != null ) {
+				m_BWH      = rgFrequency.BWHalf;
+				m_CenterFQ = rgFrequency.CENTER + ToneOffs;
 				m_HighFQ   = 2400.0 + ToneOffs;
-				m_LowFQ    = SSTVDEM.NARROW_AFCLOW + ToneOffs;
-			}
-			else {
+				m_LowFQ    = rgFrequency.AFCLOW + ToneOffs;
+			} else {
 				m_BWH      = 400.0;
 				m_CenterFQ = 1900.0 + ToneOffs;
 				m_HighFQ   = 2400.0 + ToneOffs;
@@ -737,6 +735,57 @@ namespace Play.Sound {
 		IPgStreamConsumer<T> Clone();
 	}
 
+	public class FrequencyLookup {
+		public int SYNC	   { get; protected set; }
+		public int LOW	   { get; protected set; }
+		public int HIGH    { get; protected set; }
+	  //public int BPFLOW  { get; protected set; }
+	  //public int BPFHIGH { get; protected set; }
+		public int AFCLOW  { get; protected set; }
+		public int AFCHIGH { get; protected set; }
+		public int CENTER  { get; protected set; }
+		public int BW      { get; protected set; }
+		public int BWHalf     { get; protected set; }
+
+		public FrequencyLookup() {
+			InitNew();
+		}
+
+		public void InitNew() {
+			CENTER = (HIGH + LOW)/2;
+			BW	   =  HIGH - LOW;
+			BWHalf = BW/2;
+		}
+	}
+
+	public class LookupNarrow : FrequencyLookup {
+		public LookupNarrow() {
+			SYNC	= 1900;
+			LOW		= 2044;
+			HIGH	= 2300;
+		  //BPFLOW	= 1600;
+		  //BPFHIGH	= 2500;
+			AFCLOW	= 1800;
+			AFCHIGH	= 1950;
+
+			InitNew();
+		}
+	}
+
+	public class LookupNormal : FrequencyLookup {
+		public LookupNormal() {
+			SYNC	= 1200; // good
+			LOW		= 1500; // calculated!
+			HIGH	= 2300; // calculated!
+		  //BPFLOW	= 1600;
+		  //BPFHIGH	= 2500;
+			AFCLOW	= 1000; // good
+			AFCHIGH	= 1325; // good
+
+			InitNew();
+		}
+	}
+
 	/// <summary>
 	/// SSTVSET changes it's state depending on which format it is re-initialized to. Thus,
 	/// the Mode gets assigned everytime a new image comes down. You must make a new
@@ -756,17 +805,6 @@ namespace Play.Sound {
 		protected Dictionary<byte, SSTVMode > ModeDictionary { get; } = new Dictionary<byte, SSTVMode>();
 
 		public event Action< SSTVMode, SSTVMode, int > Send_NextMode; // This is just a single event, with no indexer.
-
-		public readonly static int NARROW_SYNC		= 1900;
-		public readonly static int NARROW_LOW		= 2044;
-		public readonly static int NARROW_HIGH		= 2300;
-		public readonly static int NARROW_CENTER	= ((NARROW_HIGH+NARROW_LOW)/2);
-		public readonly static int NARROW_BW		= (NARROW_HIGH - NARROW_LOW);
-		public readonly static int NARROW_BWH		= (NARROW_BW/2);
-		public readonly static int NARROW_BPFLOW	= 1600;
-		public readonly static int NARROW_BPFHIGH	= 2500;
-		public readonly static int NARROW_AFCLOW	= 1800;
-		public readonly static int NARROW_AFCHIGH	= 1950;
 
 		public readonly static int TAPMAX = 512; // BUG: Move to Fir or Fir2 later.
 
@@ -853,7 +891,9 @@ namespace Play.Sound {
 
 		readonly bool m_fskdecode = false; // A vestage of the fskDecode stuff.
 
-		bool        m_fNarrow = false;
+		bool                             _fNarrow     = false;
+		protected static FrequencyLookup _rgFreqTable = null; //new LookupNarrow();
+	  //#define FSKSPACE    2100
 
 		// BUG: See if I can get these from CSSTVSET
 		public double SampFreq { get; }
@@ -885,7 +925,7 @@ namespace Play.Sound {
 					dblMaxBufferInMs = dblBufferInMs;
 			}
 
-			m_ad  = 0;
+			m_ad  = 0; // For Low pass filter.
 
 			// SSTVDEMBUFMAX is (24) lines. 
 			int iBufSize = (int)(dblMaxBufferInMs * SampFreq / 1000.0 );
@@ -895,10 +935,10 @@ namespace Play.Sound {
 		  //Array.Clear( m_Buf, 0, m_Buf.Length );
 		  //Array.Clear( m_B12, 0, m_Buf.Length );
 
-			m_fqc  = new CFQC( SampFreq, dbToneOffset );
-			m_hill = new CHILL( Sys.m_bCQ100, SampFreq, SampBase, dbToneOffset );
+			m_fqc  = new CFQC( SampFreq, dbToneOffset, null ); // _rgFreqTable
+			m_hill = new CHILL( Sys.m_bCQ100, SampFreq, SampBase, dbToneOffset, null );
 
-			m_pll = new CPLL( SampFreq, dbToneOffset );
+			m_pll = new CPLL( SampFreq, dbToneOffset, null );
 			m_pll.SetVcoGain ( 1.0 );
 			m_pll.SetFreeFreq( 1500, 2300 );
 			m_pll.MakeLoopLPF( iLoopOrder:1, iLoopFreq:1500 );
@@ -1027,8 +1067,8 @@ namespace Play.Sound {
 
 			Mode = tvMode;
 
-			SetWidth(SSTVSET.IsNarrowMode( tvMode.Family ));
-			InitAFC();
+			SetWidth( SSTVSET.IsNarrowMode( tvMode.Family ));
+			InitAFC ();
 
 			m_fqc.Clear();
 			m_Skip     = 0;
@@ -1041,7 +1081,7 @@ namespace Play.Sound {
 
 			// However, this combo makes sense. We go back for looking for sync signals at the
 			// same time we're storing the image scan lines.
-			SetWidth(m_fNarrow);
+			SetWidth(_fNarrow);
 
 			Send_NextMode?.Invoke( tvMode, ePrevMode, iPrevBase );
 
@@ -1212,31 +1252,32 @@ namespace Play.Sound {
 
 		void InitAFC(){
 			m_AFCAVG.SetCount(m_AFCAVG.Max);
-			if( m_fNarrow ){
-				m_AFCData = m_AFCLock = (NARROW_CENTER-NARROW_SYNC)*16384/NARROW_BWH;
+			if( _fNarrow ){
+				m_AFCData = m_AFCLock = (_rgFreqTable.CENTER - _rgFreqTable.SYNC)*16384/_rgFreqTable.BWHalf;
 			} else {
 				m_AFCData = m_AFCLock = ((1900-1200)*16384)/400.0;
 			}
-			m_AFCFlag = 0;
-			m_AFCDiff = 0.0;
-			m_AFCGard = 10;
+			m_AFCFlag  = 0;
+			m_AFCDiff  = 0.0;
+			m_AFCGard  = 10;
 			m_AFCCount = 0;
-			m_AFCDis = 0;
+			m_AFCDis   = 0;
+
 			InitTone(0);
-			if( m_fNarrow ){
-				m_AFC_LowVal  = (NARROW_CENTER - NARROW_AFCLOW ) * 16384.0 / NARROW_BWH;	// (Center - SyncLow) * 16384 / BWH
-				m_AFC_HighVal = (NARROW_CENTER - NARROW_AFCHIGH) * 16384.0 / NARROW_BWH;	// (Center - SyncHigh) * 16384 / BWH
-				m_AFC_SyncVal = (NARROW_CENTER - NARROW_SYNC   ) * 16384.0 / NARROW_BWH;	// (Center - Sync) * 16384 / BWH
-				m_AFC_BWH = NARROW_BWH / 16384.0;											// BWH / 16384.0;
+			if( _fNarrow ){
+				m_AFC_LowVal  = (_rgFreqTable.CENTER - _rgFreqTable.AFCLOW ) * 16384.0 / _rgFreqTable.BWHalf;	// (Center - SyncLow) * 16384 / BWH
+				m_AFC_HighVal = (_rgFreqTable.CENTER - _rgFreqTable.AFCHIGH) * 16384.0 / _rgFreqTable.BWHalf;	// (Center - SyncHigh) * 16384 / BWH
+				m_AFC_SyncVal = (_rgFreqTable.CENTER - _rgFreqTable.SYNC   ) * 16384.0 / _rgFreqTable.BWHalf;
+				m_AFC_BWH     = _rgFreqTable.BWHalf / 16384.0;
 				if( Sys.m_bCQ100 ) {
-					m_AFC_LowVal  = (NARROW_CENTER - NARROW_SYNC - 50) * 16384.0 / NARROW_BWH;	// (Center - SyncLow) * 16384 / BWH
-					m_AFC_HighVal = (NARROW_CENTER - NARROW_SYNC + 50) * 16384.0 / NARROW_BWH;	// (Center - SyncHigh) * 16384 / BWH
+					m_AFC_LowVal  = (_rgFreqTable.CENTER - _rgFreqTable.SYNC - 50) * 16384.0 / _rgFreqTable.BWHalf;	// (Center - SyncLow) * 16384 / BWH
+					m_AFC_HighVal = (_rgFreqTable.CENTER - _rgFreqTable.SYNC + 50) * 16384.0 / _rgFreqTable.BWHalf;	// (Center - SyncHigh) * 16384 / BWH
 				}
 			} else {
 				m_AFC_LowVal  = (1900 - 1000) * 16384.0 / 400;	// (Center - SyncLow ) * 16384 / BWH
 				m_AFC_HighVal = (1900 - 1325) * 16384.0 / 400;	// (Center - SyncHigh) * 16384 / BWH
 				m_AFC_SyncVal = (1900 - 1200) * 16384.0 / 400;	// (Center - Sync    ) * 16384 / BWH
-				m_AFC_BWH = 400 / 16384.0;						// BWH / 16384.0;
+				m_AFC_BWH     = 400 / 16384.0;						// BWH / 16384.0;
 				if( Sys.m_bCQ100 ) {
 					m_AFC_LowVal  = (1900 - 1200 - 50) * 16384.0 / 400;	// (Center - SyncLow) * 16384 / BWH
 					m_AFC_HighVal = (1900 - 1200 + 50) * 16384.0 / 400;	// (Center - SyncHigh) * 16384 / BWH
@@ -1262,11 +1303,11 @@ namespace Play.Sound {
 		/// at this in the future. (Same goes for narrow too)
 		/// </remarks>
 		void SetWidth( bool fNarrow ) {
-			if( m_fNarrow != fNarrow ) {
-				m_fNarrow = fNarrow;
-				m_hill.SetWidth( Sys.m_bCQ100, fNarrow);
-    			m_fqc .SetWidth(fNarrow);
-				m_pll .SetWidth(fNarrow);
+			if( _fNarrow != fNarrow ) {
+				_fNarrow = fNarrow;
+				m_hill.SetWidth( Sys.m_bCQ100, _rgFreqTable );
+    			m_fqc .SetWidth( _rgFreqTable );
+				m_pll .SetWidth( _rgFreqTable );
 			}
 		}
 
@@ -1319,7 +1360,7 @@ namespace Play.Sound {
 			d19 = m_lpf19.Do( Math.Abs( d19 ) );
 
 			// One of these days I'll figure out why we need both 19 & 12.
-			double dHSync = m_fNarrow ? d19 : d12;
+			double dHSync = _fNarrow ? d19 : d12;
 
 			//double dsp;
 			//dsp = m_iirfsk.Do(d);

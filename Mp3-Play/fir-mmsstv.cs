@@ -675,7 +675,7 @@ namespace Play.Sound {
 		/// <summary>
 		/// If Sample frequency or ToneOffset changes we'll need to re-create this object
 		/// </summary>
-		public CPLL( double dbSampFreq, double dbToneOffset )
+		public CPLL( double dbSampFreq, double dbToneOffset, FrequencyLookup rgFreqTable )
 		{
 			vco = new CVCO( dbSampFreq, dbToneOffset );
 
@@ -687,7 +687,7 @@ namespace Play.Sound {
 			m_SampleFreq = dbSampFreq;
 			m_ToneOffset = dbToneOffset;
 
-			SetWidth     (false);
+			SetWidth     ( rgFreqTable );
 			SetSampleFreq(m_SampleFreq);
 
 			m_Max  = 1.0;
@@ -695,6 +695,20 @@ namespace Play.Sound {
 			m_d    = 0;
 			m_agc  = 1.0;
 			m_agca = 0.0;
+		}
+
+		public void SetWidth( FrequencyLookup rgFrequency )
+		{
+			if( rgFrequency != null ) {
+				m_Shift    = rgFrequency.BW;
+				m_FreeFreq = rgFrequency.CENTER;
+				SetFreeFreq( rgFrequency.LOW, rgFrequency.HIGH);
+			} else {
+				m_Shift = 800.0;
+				m_FreeFreq = (1500 + 2300)*0.5;
+				SetFreeFreq(1500, 2300);
+			}
+			SetVcoGain(m_vcogain);
 		}
 
 		void SetSampleFreq(double f)
@@ -705,20 +719,6 @@ namespace Play.Sound {
 			SetVcoGain(1.0);
 			MakeLoopLPF( 1, 1500 );
 			MakeOutLPF ( 3,  900 );
-		}
-
-		public void SetWidth( bool fNarrow)
-		{
-			if( fNarrow ){
-				m_Shift    = SSTVDEM.NARROW_BW;
-				m_FreeFreq = SSTVDEM.NARROW_CENTER;
-				SetFreeFreq( SSTVDEM.NARROW_LOW, SSTVDEM.NARROW_HIGH);
-			} else {
-				m_Shift = 800.0;
-				m_FreeFreq = (1500 + 2300)*0.5;
-				SetFreeFreq(1500, 2300);
-			}
-			SetVcoGain(m_vcogain);
 		}
 
 		public void SetVcoGain(double g)
