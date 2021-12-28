@@ -554,6 +554,7 @@ namespace Play.SSTV {
             TemplateList.LineAppend( "CQ" );
             TemplateList.LineAppend( "PnP Reply" );
             TemplateList.LineAppend( "General Msg" );
+            TemplateList.LineAppend( "General Pnp" );
             
 		    SyncImage   .Bitmap = new SKBitmap( 800, 616, SKColorType.Rgb888x, SKAlphaType.Unknown );
 		    DisplayImage.Bitmap = new SKBitmap( 800, 616, SKColorType.Rgb888x, SKAlphaType.Opaque  );
@@ -810,6 +811,11 @@ namespace Play.SSTV {
 						TxBitmapComp.AddImage( LOCUS.CENTER,      0,  0, 100.0, TxBitmapSnip );
 						TxBitmapComp.AddText ( LOCUS.UPPERLEFT,   5,  5,  20.0, TxBitmapComp.StdFace, Message );
 						break;
+                    case 3:
+						TxBitmapComp.AddImage( LOCUS.CENTER,      0,  0, 100.0, TxBitmapSnip );
+						TxBitmapComp.AddText ( LOCUS.UPPERLEFT,   5,  5,  15.0, TxBitmapComp.StdFace, Message );
+						TxBitmapComp.AddImage( LOCUS.LOWERRIGHT, 10, 10,  40.0, RxHistoryList );
+                        break;
 				}
 
                 // Count so the stream object on the editor will seek correctly amoung the lines.
@@ -998,9 +1004,6 @@ namespace Play.SSTV {
                                 StdProperties.ValueUpdate( SSTVProperties.Names.Rx_Mode,   oMode.Name );
                                 StdProperties.ValueUpdate( SSTVProperties.Names.Rx_Width,  oMode.Resolution.Width .ToString() );
                                 StdProperties.ValueUpdate( SSTVProperties.Names.Rx_Height, oMode.Resolution.Height.ToString() );
-                                if( StateRx == DocSSTVMode.Ready ) {
-                                    LogError( "Unexpected SSTVMode transition" );
-                                }
                             }
                             PropertyChange?.Invoke( SSTVEvents.SSTVMode );
                         } break;
@@ -1018,11 +1021,11 @@ namespace Play.SSTV {
                             RxModeList.HighLight   = null;
                             RxModeList.CheckedLine = RxModeList[0];
 
-                            RxHistoryList.LoadAgain( RxHistoryList.CurrentDirectory );
+                            RxHistoryList.Refresh();
                             break;
                         case SSTVEvents.ImageSaved: 
                             PropertyChange?.Invoke( SSTVEvents.ImageSaved );
-                            RxHistoryList.LoadAgain( RxHistoryList.CurrentDirectory );
+                            RxHistoryList.Refresh();
                             break;
                         case SSTVEvents.ThreadAbort:
                             if( _oThread == null ) {

@@ -155,7 +155,7 @@ namespace Play.ImageViewer {
                     // Need the gate AFTER the manipulator since it'll block the call back OnBufferChange()
                     // that gets called when the dispose on the manipulator get's called.
                     using( GateFilesEvent oGate = new GateFilesEvent( this ) ) {
-						FileLine oLineNew = oManip.LineAppendNoUndo( ".." ) as FileLine;
+						FileLine oLineNew      = oManip.LineAppendNoUndo( ".." ) as FileLine;
 						oLineNew._fIsDirectory = true;
 
                         // 12/23/2015 : I could potentially put fileinfo's directly into my document. But 
@@ -168,7 +168,7 @@ namespace Play.ImageViewer {
                         }
 
                         // Insert the directories first so they are at the top. Sort with NaturalCompare
-                        DirectoryInfo[] rgDir = oDir.GetDirectories( "*.*" );
+                        DirectoryInfo[]     rgDir     = oDir.GetDirectories( "*.*" );
                         List<DirectoryInfo> rgDirList = new List<DirectoryInfo>( rgDir );
                         rgDirList.Sort((x,y) => ( NaturalCompare( x.Name, y.Name ) ) );
 
@@ -446,6 +446,75 @@ namespace Play.ImageViewer {
 			_oDirectory = oDirectory;
 			ImageSearch( Path.GetFileName( strFilePath ), true /* fNullOldDir */ );
             
+            return true;
+        }
+
+        /// <summary>
+        /// Instead of LoadAgain which flushes everything. This method just updates the
+        /// the new element to show. Doesn't presently delete any old elements.
+        /// </summary>
+        /// <returns>True if there is a current directory to refresh.</returns>
+        public bool Refresh() {
+            if( _oDirectory == null )
+                return false;
+
+            List      <Line>     rgDelLines = new();
+            LinkedList<FileInfo> rgNewFiles = new();
+            // Load up the current state of the dir.
+            foreach( FileInfo oFile in _oDirectory.GetFiles( "*.*", SearchOption.TopDirectoryOnly ) ) {
+				if( !oFile.Attributes.HasFlag( FileAttributes.Hidden    )  &&
+                    !oFile.Attributes.HasFlag( FileAttributes.Directory )  &&
+                    IsFileExtensionUnderstood( oFile.Extension ) )
+                {
+					rgNewFiles.AddLast( oFile );
+				}
+            }
+
+            //Compare old read with newest read.
+            foreach( Line oLine in FileList ) {
+                if( oLine is FileLine oFileLine && !oFileLine._fIsDirectory ) {
+                    // CompareTo() on the Line object generates a string...
+                    bool fFound = false;
+                    foreach( FileInfo oInfo in rgNewFiles ) {
+                        if( oFileLine.CompareTo(oInfo.Name) == 0 ) {
+                            // Remove the file from the list if it's already there.
+                            rgNewFiles.Remove( oInfo );
+                            fFound = true;
+                            break;
+                        }
+                    }
+                    if( !fFound ) {
+                        rgDelLines.Add(oLine);
+                    }
+                }
+            }
+            if( rgDelLines.Count > 0 ) {
+                // Go backwards from bottom and remove the lines.
+                // Check if the deleted item was the display line.
+            }
+            // At this point only the files not in the old list are in the new files list.
+            if( rgNewFiles.Count > 0 ) {
+                // Could consider an insertion sort. Doing it lazy way right now.
+                using Editor.Manipulator oManip = FileList.CreateManipulator();
+                foreach( FileInfo oInfo in rgNewFiles ) {
+                    for( int iLine = 0; iLine < FileList.ElementCount; ++iLine ) {
+                        Line oLine = FileList[iLine];
+                        if( oLine is FileLine oFileLine && !oFileLine._fIsDirectory ) {
+                            if( oFileLine._dtModifiedDate < oInfo.LastWriteTime ) {
+                                if( oManip.LineInsert( oFileLine.At, oInfo.Name ) is FileLine oNew ) {
+                                    oNew._dtModifiedDate = oInfo.LastWriteTime;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+                FileList.CharacterCount( 0 );
+            }
+
+            _oSiteWorkThumb.Queue( ThumbsCreateEnum( new SKSize( 100, 100 ) ), 0 );
+            Raise_TextLoaded(); // Stupid but this is when we update the layout.
+
             return true;
         }
 

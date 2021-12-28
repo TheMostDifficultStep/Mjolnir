@@ -1045,12 +1045,11 @@ namespace Play.ImageViewer {
                         if( oTempBmp != null ) {
 						    oFileName.Extra = oTempRct.CreateReScaledImage( oTempBmp ); 
                         }
-                        ++iCount;
+                        if( ++iCount % 5 == 0 ) {
+                            Raise_UpdatedThumbs();
+                        }
 						yield return( 0 );
 					}
-                }
-                if( ++iCount % 5 == 0 ) {
-                    Raise_UpdatedThumbs();
                 }
             }
             if( iCount != 0 )
