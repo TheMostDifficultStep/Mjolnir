@@ -654,7 +654,7 @@ namespace Play.Sound {
         /// <remarks>I'm not sure how important it is to cache the line from the bitmap.
         /// The original code does this. Saves a multiply I would guess.</remarks>
         protected override void WriteLine( int iLine ) {
-	        double dbTimePerPixel = Mode.WidthColorInMS / 320.0; // Note: hard coded.
+	        double dbTimePerPixel = Mode.WidthColorInMS / Mode.Resolution.Width; 
 
             if( iLine > Height )
                 return;
@@ -665,18 +665,18 @@ namespace Play.Sound {
 	            Write( 1200, 4.862 );               // HSync on each line.
 
 	            Write( 1500, GainIndx.G, 0.572 );   // G gap
-	            for( int x = 0; x < 320; x++ ) {     
+	            for( int x = 0; x < Mode.Resolution.Width; x++ ) {     
                     _rgCache.Add( GetPixel( x, iLine ) );
 		            Write( ColorToFreq(_rgCache[x].Green), GainIndx.G, dbTimePerPixel );
 	            }
 
 	            Write( 1500, GainIndx.B, 0.572 );   // B gap
-	            for( int x = 0; x < 320; x++ ) {
+	            for( int x = 0; x < Mode.Resolution.Width; x++ ) {
 		            Write( ColorToFreq(_rgCache[x].Blue ), GainIndx.B, dbTimePerPixel );
 	            }
 
 	            Write( 1500, GainIndx.R, 0.572 );   // R gap
-	            for( int x = 0; x < 320; x++ ) {
+	            for( int x = 0; x < Mode.Resolution.Width; x++ ) {
 		            Write( ColorToFreq(_rgCache[x].Red  ), GainIndx.R, dbTimePerPixel );
 	            }
 	            Write( 1200, 0.0);                  // Just a check to see how many samples sent!
