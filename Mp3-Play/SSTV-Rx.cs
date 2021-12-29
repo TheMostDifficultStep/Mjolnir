@@ -1012,8 +1012,7 @@ namespace Play.Sound {
 
 			Mode = tvMode;
 
-			SetAFC  ();
-			SetWidth( false ); // SSTVSET.IsNarrowMode( tvMode.Family )
+			SetBandWidth( false ); // SSTVSET.IsNarrowMode( tvMode.Family )
 			InitAFC ();
 
 			m_fqc.Clear();
@@ -1030,33 +1029,6 @@ namespace Play.Sound {
 			//	CalcNarrowBPF(HBPFN, m_bpftap, m_bpf, SSTVSET.m_Mode);
 		}
 
-		/// <summary>
-		/// This used to live outboard in teh SSTVSET object and it seems
-		/// silly to be there when it can be with all it's friends.
-		/// </summary>
-		protected void SetAFC() {
-			int  m_AFCW;
-
-			switch( Mode.Family ){
-				case TVFamily.Martin:
-					m_AFCW = (int)(2.0 * SampFreq / 1000.0);
-					m_AFCB = (int)(1.0 * SampFreq / 1000.0);
-					break;
-				default:
-					m_AFCW = (int)(3.0 * SampFreq / 1000.0);
-					m_AFCB = (int)(1.5 * SampFreq / 1000.0);
-					break;
-			}
-
-			// This is the "-i" option set in TMMSSTV::StartOption() if bCQ100 is
-			// true then the offset is -1000. Else the offset is 0!!
-			//if( m_bCQ100 ) { // Used to be a global.
-    		//	double d = m_OFP * 1000.0 / SampFreq;
-			//	m_OFP = (d + (1100.0/g_dblToneOffset)) * SampFreq / 1000.0;
-			//}
-
-			m_AFCE = m_AFCB + m_AFCW;
-		}
 		public virtual void Reset()	{
 			if( m_AFCFQ != 0 ){
 				if( m_fskdecode ){
@@ -1080,7 +1052,7 @@ namespace Play.Sound {
 
 			m_wBase  = 0;
 			m_Skip   = 0;
-			SetWidth( false );
+		  //SetBandWidth( false ); Start always sets this try removing.
 
 			Mode = null;
 
@@ -1218,6 +1190,31 @@ namespace Play.Sound {
 		}
 
 		void InitAFC(){
+			// This used to live outboard in teh SSTVSET object and it seems
+			// silly to be there when it can be with all it's friends.
+			int  m_AFCW;
+
+			switch( Mode.Family ){
+				case TVFamily.Martin:
+					m_AFCW = (int)(2.0 * SampFreq / 1000.0);
+					m_AFCB = (int)(1.0 * SampFreq / 1000.0);
+					break;
+				default:
+					m_AFCW = (int)(3.0 * SampFreq / 1000.0);
+					m_AFCB = (int)(1.5 * SampFreq / 1000.0);
+					break;
+			}
+
+			// This is the "-i" option set in TMMSSTV::StartOption() if bCQ100 is
+			// true then the offset is -1000. Else the offset is 0!!
+			//if( m_bCQ100 ) { // Used to be a global.
+    		//	double d = m_OFP * 1000.0 / SampFreq;
+			//	m_OFP = (d + (1100.0/g_dblToneOffset)) * SampFreq / 1000.0;
+			//}
+
+			m_AFCE = m_AFCB + m_AFCW;
+
+			// Original InitAfc starts here.
 			m_AFCAVG.SetCount(m_AFCAVG.Max);
 
 			m_AFCData  = m_AFCLock = _rgFreqTable.AFC_SyncVal;
@@ -1247,12 +1244,10 @@ namespace Play.Sound {
 		}
 
 		/// <remarks>
-		/// You know it's probably dumb to pass the bCQ100 since it never is
-		/// going to change for the lifetime of our object. If any system variables
-		/// change we'd probably just re-instatiate CSSTVDEM and TmmSSTV. Look
-		/// at this in the future. (Same goes for narrow too)
+		/// Moved the bCQ100 into the FrequencyLookup class. If any system variables
+		/// change we just re-instatiate CSSTVDEM and SSTVDraw. 
 		/// </remarks>
-		void SetWidth( bool fNarrow ) {
+		void SetBandWidth( bool fNarrow ) {
 			// Only need to update if we're not already in the setup needed.
 			if( Sys.m_bCQ100 == _rgFreqTable.CQ100 ) {
 				if( _rgFreqTable is LookupNarrow && fNarrow )
