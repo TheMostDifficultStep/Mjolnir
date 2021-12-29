@@ -427,7 +427,7 @@ namespace Play.SSTV {
 				Send_TvEvents?.Invoke( SSTVEvents.DownLoadFinished, PercentRxComplete );
 				Send_SavePoint?.Invoke( Mode ); // _dp hasn't been reset yet! Wheeww!
 
-				if( _dp.Sync ) {
+				if( _dp.Synced ) {
 					// Send download finished BEFORE reset so we can save image
 					// before the SSTVEvents.SSTVMode comes and obliterates the
 					// past values (mode/filename/wBase etc).
@@ -727,7 +727,7 @@ namespace Play.SSTV {
 		/// and we read it out here.
 		/// </summary>
 		public void Process() {
-			if( _dp.Sync ) {
+			if( _dp.Synced ) {
 				try {
 					while( _dp.m_wBase > _dblReadBaseSync + ScanWidthInSamples ) {
 						_dblReadBaseSync = ProcessSync( _dblReadBaseSync );

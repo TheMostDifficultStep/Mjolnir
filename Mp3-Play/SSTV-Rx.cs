@@ -247,19 +247,46 @@ namespace Play.Sound {
 		double SampBase { get; }
 		double ToneOffs { get; }
 
-		public CHILL( bool bCQ100, double dbSampFreq, double dbSampBase, double dbToneOffset, FrequencyLookup rgFreqTable )
+		public CHILL(double dbSampFreq, double dbSampBase, double dbToneOffset, FrequencyLookup rgFreqTable )
 		{
 			SampFreq = dbSampFreq;
 			SampBase = dbSampBase;
 			ToneOffs = dbToneOffset;
 
-			SetWidth( bCQ100, rgFreqTable );
+			SetWidth( rgFreqTable );
 
 		    m_htap = m_tap / 2;
 			MakeHilbert(H, m_tap, SampFreq, 100, SampFreq/2 - 100);
 			m_A[0] = m_A[1] = m_A[2] = m_A[3] = 0;
 
 			m_iir.MakeIIR(1800, SampFreq, 3, 0, 0);
+		}
+
+		public void SetWidth( FrequencyLookup rgFreqTable )
+		{
+			if( rgFreqTable == null )
+				throw new ArgumentNullException( nameof( rgFreqTable ) );
+
+			m_OFF = (2 * Math.PI * (rgFreqTable.CENTER + ToneOffs)) / SampFreq;
+			m_OUT = 32768.0 * SampFreq / (2 * Math.PI * rgFreqTable.BW);
+
+			if( SampBase >= 40000 ){
+				m_OFF *= 4;
+				m_OUT *= 0.25;
+				m_tap = 48; //48
+				m_df  = 2;
+			} else if( SampBase >= 16000 ){
+				m_OFF *= 2;
+				m_OUT *= 0.5;
+				m_tap = 24; //24
+				m_df  = 1;
+			} else {
+				m_tap = 12; //12
+				m_df = 0;
+			}
+			if( rgFreqTable.CQ100 ){
+				m_tap *= 3;
+			}
 		}
 
 		//---------------------------------------------------------------------------
@@ -301,34 +328,6 @@ namespace Play.Sound {
 						H[n] *= w;
 					}
     			}
-			}
-		}
-
-		public void SetWidth( bool bCQ100, FrequencyLookup rgFrequency )
-		{
-			if( rgFrequency != null ){
-				m_OFF = (2 * Math.PI * (rgFrequency.CENTER + ToneOffs)) / SampFreq;
-				m_OUT = 32768.0 * SampFreq / (2 * Math.PI * rgFrequency.BW);
-			} else {
-				m_OFF = (2 * Math.PI * (1900 + ToneOffs)) / SampFreq;
-				m_OUT = 32768.0 * SampFreq / (2 * Math.PI * 800);
-			}
-			if( SampBase >= 40000 ){
-				m_OFF *= 4;
-				m_OUT *= 0.25;
-				m_tap = 48; //48
-				m_df  = 2;
-			} else if( SampBase >= 16000 ){
-				m_OFF *= 2;
-				m_OUT *= 0.5;
-				m_tap = 24; //24
-				m_df  = 1;
-			} else {
-				m_tap = 12; //12
-				m_df = 0;
-			}
-			if( bCQ100 ){
-				m_tap *= 3;
 			}
 		}
 
@@ -415,7 +414,7 @@ namespace Play.Sound {
 		double SampFreq { get; }
 		double ToneOffs { get; }
 
-		public CFQC( double dbSampFreq, double dbToneOffs, FrequencyLookup rgFrequency )
+		public CFQC( double dbSampFreq, double dbToneOffs, FrequencyLookup rgFreqTable )
 		{
 			SampFreq     = dbSampFreq;
 			ToneOffs     = dbToneOffs;
@@ -438,25 +437,22 @@ namespace Play.Sound {
 			m_SampFreq = SampFreq;
 			m_Timer    = m_STimer = (int)SampFreq; // int(m_SampFreq);
 
-			SetWidth( rgFrequency );
+			SetWidth( rgFreqTable );
 			CalcLPF ();
 		}
 
-		public void SetWidth( FrequencyLookup rgFrequency )
+		public void SetWidth( FrequencyLookup rgFreqTable )
 		{
-			if( rgFrequency != null ) {
-				m_BWH      = rgFrequency.BWHalf;
-				m_CenterFQ = rgFrequency.CENTER + ToneOffs;
-				m_HighFQ   = 2400.0 + ToneOffs;
-				m_LowFQ    = rgFrequency.AFCLOW + ToneOffs;
-			} else {
-				m_BWH      = 400.0;
-				m_CenterFQ = 1900.0 + ToneOffs;
-				m_HighFQ   = 2400.0 + ToneOffs;
-				m_LowFQ    = 1000.0 + ToneOffs;
-			}
-			m_HighVal = (m_HighFQ - m_CenterFQ) / m_BWH;
-			m_LowVal  = (m_LowFQ  - m_CenterFQ) / m_BWH;
+			if( rgFreqTable == null ) 
+				throw new ArgumentNullException( nameof( rgFreqTable ) );
+
+			m_BWH      = rgFreqTable.BWHalf;
+			m_CenterFQ = rgFreqTable.CENTER + ToneOffs;
+			m_HighFQ   = 2400.0 + ToneOffs;
+			m_LowFQ    = rgFreqTable.AFCLOW + ToneOffs;
+
+			m_HighVal  = (m_HighFQ - m_CenterFQ) / m_BWH;
+			m_LowVal   = (m_LowFQ  - m_CenterFQ) / m_BWH;
 		}
 
 		public void Clear()
@@ -743,12 +739,15 @@ namespace Play.Sound {
 	  //public int BPFHIGH { get; protected set; }
 		public int AFCLOW  { get; protected set; }
 		public int AFCHIGH { get; protected set; }
-		public int CENTER  { get; protected set; }
-		public int BW      { get; protected set; }
-		public int BWHalf     { get; protected set; }
+		public double CENTER  { get; protected set; } // Next three MUST be double precision.
+		public double BW      { get; protected set; } // we loose fidelity if not.
+		public double BWHalf  { get; protected set; }
 
-		public FrequencyLookup() {
-			InitNew();
+		private readonly double _dblQuarterSample = 16384.0;
+		public bool CQ100 { get; private set; }
+
+		public FrequencyLookup( bool bCQ100 ) {
+			CQ100 = bCQ100;
 		}
 
 		public void InitNew() {
@@ -756,31 +755,49 @@ namespace Play.Sound {
 			BW	   =  HIGH - LOW;
 			BWHalf = BW/2;
 		}
+
+		public double AFC_SyncVal => ( CENTER - SYNC ) * _dblQuarterSample / BWHalf;
+		public double AFC_BWH     => BWHalf / _dblQuarterSample;
+
+		public double AFC_LowVal { 
+			get {			
+				if( CQ100 ) {
+					return (CENTER - SYNC - 50) * _dblQuarterSample / BWHalf;
+				} else {
+					return (CENTER - AFCLOW   ) * _dblQuarterSample / BWHalf;
+				}
+			}
+		}
+		public double AFC_HighVal { 
+			get {			
+				if( CQ100 ) {
+					return (CENTER - SYNC + 50) * _dblQuarterSample / BWHalf;
+				} else {
+					return (CENTER - AFCHIGH  ) * _dblQuarterSample / BWHalf;
+				}
+			}
+		}
 	}
 
-	public class LookupNarrow : FrequencyLookup {
-		public LookupNarrow() {
-			SYNC	= 1900;
-			LOW		= 2044;
-			HIGH	= 2300;
-		  //BPFLOW	= 1600;
-		  //BPFHIGH	= 2500;
-			AFCLOW	= 1800;
-			AFCHIGH	= 1950;
+	public class LookupNormal : FrequencyLookup {
+		public LookupNormal( bool bCQ100 ) : base( bCQ100 ) {
+			SYNC	= 1200; 
+			LOW		= 1500; // Band pass of video info.
+			HIGH	= 2300; 
+			AFCLOW	= 1000; // Not sure about this one yet.
+			AFCHIGH	= 1325;
 
 			InitNew();
 		}
 	}
 
-	public class LookupNormal : FrequencyLookup {
-		public LookupNormal() {
-			SYNC	= 1200; // good
-			LOW		= 1500; // calculated!
-			HIGH	= 2300; // calculated!
-		  //BPFLOW	= 1600;
-		  //BPFHIGH	= 2500;
-			AFCLOW	= 1000; // good
-			AFCHIGH	= 1325; // good
+	public class LookupNarrow : FrequencyLookup {
+		public LookupNarrow( bool bCQ100 ) : base( bCQ100 ) {
+			SYNC	= 1900;
+			LOW		= 2044; 
+			HIGH	= 2300;
+			AFCLOW	= 1800; 
+			AFCHIGH	= 1950;
 
 			InitNew();
 		}
@@ -842,7 +859,7 @@ namespace Play.Sound {
 
 		public int HillTaps => m_hill.m_htap;
 
-		public bool   Sync { get; protected set; }
+		public bool   Synced { get; protected set; }
 		int           m_SyncMode;
 		int           m_SyncTime;
 		int           m_VisData;
@@ -891,8 +908,7 @@ namespace Play.Sound {
 
 		readonly bool m_fskdecode = false; // A vestage of the fskDecode stuff.
 
-		bool                             _fNarrow     = false;
-		protected static FrequencyLookup _rgFreqTable = null; //new LookupNarrow();
+		protected static FrequencyLookup _rgFreqTable;
 	  //#define FSKSPACE    2100
 
 		// BUG: See if I can get these from CSSTVSET
@@ -935,14 +951,15 @@ namespace Play.Sound {
 		  //Array.Clear( m_Buf, 0, m_Buf.Length );
 		  //Array.Clear( m_B12, 0, m_Buf.Length );
 
-			m_fqc  = new CFQC( SampFreq, dbToneOffset, null ); // _rgFreqTable
-			m_hill = new CHILL( Sys.m_bCQ100, SampFreq, SampBase, dbToneOffset, null );
+			_rgFreqTable = new LookupNormal( Sys.m_bCQ100 );
+			m_fqc  = new CFQC ( SampFreq, dbToneOffset, _rgFreqTable ); 
+			m_hill = new CHILL( SampFreq, SampBase, dbToneOffset, _rgFreqTable );
 
-			m_pll = new CPLL( SampFreq, dbToneOffset, null );
+			m_pll = new CPLL( SampFreq, dbToneOffset, _rgFreqTable );
 			m_pll.SetVcoGain ( 1.0 );
-			m_pll.SetFreeFreq( 1500, 2300 );
-			m_pll.MakeLoopLPF( iLoopOrder:1, iLoopFreq:1500 );
-			m_pll.MakeOutLPF ( iLoopOrder:3, iLoopFreq: 900 );
+			m_pll.SetFreeFreq( _rgFreqTable.LOW, _rgFreqTable.HIGH );
+			m_pll.MakeLoopLPF( iLoopOrder:1, iLoopFreq:_rgFreqTable.LOW );
+			m_pll.MakeOutLPF ( iLoopOrder:3, iLoopFreq: 900 ); // probably should be 800.
 
 			Array.Clear( HBPF,  0, HBPF .Length );
 			Array.Clear( HBPFS, 0, HBPFS.Length );
@@ -976,7 +993,7 @@ namespace Play.Sound {
 
 			m_wBase     = 0;
 			m_Skip      = 0;
-			Sync      = false;
+			Synced      = false;
 			m_SyncMode  = 0;
 			m_ScopeFlag = false;
 			m_Lost      = false;
@@ -1074,18 +1091,12 @@ namespace Play.Sound {
 			m_Skip     = 0;
 			m_wBase    = 0;
 			m_Lost     = false;
-			Sync       = true; // This is the only place we set to true!
+			Synced     = true; // This is the only place we set to true!
 			m_SyncMode = 0; 
-
-			// OpenCloseRxBuff();
-
-			// However, this combo makes sense. We go back for looking for sync signals at the
-			// same time we're storing the image scan lines.
-			SetWidth(_fNarrow);
 
 			Send_NextMode?.Invoke( tvMode, ePrevMode, iPrevBase );
 
-			// Don't support narrow band modes.
+			// Don't support narrow band modes. (yet ;-)
 			//if( m_fNarrow ) 
 			//	CalcNarrowBPF(HBPFN, m_bpftap, m_bpf, SSTVSET.m_Mode);
 		}
@@ -1106,7 +1117,7 @@ namespace Play.Sound {
 			//m_sint3.Reset();
 
 			m_SyncMode = 512;
-			Sync     = false;
+			Synced     = false;
 
 			SSTVMode oPrevMode = Mode;
 			int      iPrevBase = m_wBase;
@@ -1230,7 +1241,7 @@ namespace Play.Sound {
 
 				int delay = m_bpftap;
 				CalcBPF();
-				if( Sync ) {
+				if( Synced ) {
 					delay = (m_bpftap - delay) / 2;
 					m_Skip = delay;
 				}
@@ -1252,11 +1263,8 @@ namespace Play.Sound {
 
 		void InitAFC(){
 			m_AFCAVG.SetCount(m_AFCAVG.Max);
-			if( _fNarrow ){
-				m_AFCData = m_AFCLock = (_rgFreqTable.CENTER - _rgFreqTable.SYNC)*16384/_rgFreqTable.BWHalf;
-			} else {
-				m_AFCData = m_AFCLock = ((1900-1200)*16384)/400.0;
-			}
+
+			m_AFCData  = m_AFCLock = _rgFreqTable.AFC_SyncVal;
 			m_AFCFlag  = 0;
 			m_AFCDiff  = 0.0;
 			m_AFCGard  = 10;
@@ -1264,25 +1272,11 @@ namespace Play.Sound {
 			m_AFCDis   = 0;
 
 			InitTone(0);
-			if( _fNarrow ){
-				m_AFC_LowVal  = (_rgFreqTable.CENTER - _rgFreqTable.AFCLOW ) * 16384.0 / _rgFreqTable.BWHalf;	// (Center - SyncLow) * 16384 / BWH
-				m_AFC_HighVal = (_rgFreqTable.CENTER - _rgFreqTable.AFCHIGH) * 16384.0 / _rgFreqTable.BWHalf;	// (Center - SyncHigh) * 16384 / BWH
-				m_AFC_SyncVal = (_rgFreqTable.CENTER - _rgFreqTable.SYNC   ) * 16384.0 / _rgFreqTable.BWHalf;
-				m_AFC_BWH     = _rgFreqTable.BWHalf / 16384.0;
-				if( Sys.m_bCQ100 ) {
-					m_AFC_LowVal  = (_rgFreqTable.CENTER - _rgFreqTable.SYNC - 50) * 16384.0 / _rgFreqTable.BWHalf;	// (Center - SyncLow) * 16384 / BWH
-					m_AFC_HighVal = (_rgFreqTable.CENTER - _rgFreqTable.SYNC + 50) * 16384.0 / _rgFreqTable.BWHalf;	// (Center - SyncHigh) * 16384 / BWH
-				}
-			} else {
-				m_AFC_LowVal  = (1900 - 1000) * 16384.0 / 400;	// (Center - SyncLow ) * 16384 / BWH
-				m_AFC_HighVal = (1900 - 1325) * 16384.0 / 400;	// (Center - SyncHigh) * 16384 / BWH
-				m_AFC_SyncVal = (1900 - 1200) * 16384.0 / 400;	// (Center - Sync    ) * 16384 / BWH
-				m_AFC_BWH     = 400 / 16384.0;						// BWH / 16384.0;
-				if( Sys.m_bCQ100 ) {
-					m_AFC_LowVal  = (1900 - 1200 - 50) * 16384.0 / 400;	// (Center - SyncLow) * 16384 / BWH
-					m_AFC_HighVal = (1900 - 1200 + 50) * 16384.0 / 400;	// (Center - SyncHigh) * 16384 / BWH
-				}
-			}
+
+			m_AFC_LowVal  = _rgFreqTable.AFC_LowVal;
+			m_AFC_HighVal = _rgFreqTable.AFC_HighVal;
+			m_AFC_SyncVal = _rgFreqTable.AFC_SyncVal;
+			m_AFC_BWH     = _rgFreqTable.AFC_BWH;
 		}
 
 		void InitTone(int dfq) {
@@ -1297,18 +1291,26 @@ namespace Play.Sound {
 		}
 
 		/// <remarks>
-		/// You know it's probably dumb to pas the bCQ100 since it never is
+		/// You know it's probably dumb to pass the bCQ100 since it never is
 		/// going to change for the lifetime of our object. If any system variables
 		/// change we'd probably just re-instatiate CSSTVDEM and TmmSSTV. Look
 		/// at this in the future. (Same goes for narrow too)
 		/// </remarks>
 		void SetWidth( bool fNarrow ) {
-			if( _fNarrow != fNarrow ) {
-				_fNarrow = fNarrow;
-				m_hill.SetWidth( Sys.m_bCQ100, _rgFreqTable );
-    			m_fqc .SetWidth( _rgFreqTable );
-				m_pll .SetWidth( _rgFreqTable );
+			// Only need to update if we're not already in the setup needed.
+			if( Sys.m_bCQ100 == _rgFreqTable.CQ100 ) {
+				if( _rgFreqTable is LookupNarrow && fNarrow )
+					return;
+				if( _rgFreqTable is LookupNormal && !fNarrow )
+					return;
 			}
+
+			// Go ahead and make the changes.
+			_rgFreqTable = fNarrow ? new LookupNarrow(Sys.m_bCQ100) : new LookupNormal(Sys.m_bCQ100);
+
+			m_hill.SetWidth( _rgFreqTable );
+    		m_fqc .SetWidth( _rgFreqTable );
+			m_pll .SetWidth( _rgFreqTable );
 		}
 
 		/// <summary>
@@ -1332,7 +1334,7 @@ namespace Play.Sound {
 			double d = (s + m_ad) * 0.5;    // LPF
 			m_ad = s;
 			if( m_bpf != 0 ){
-				if( Sync || (m_SyncMode >= 3) ){
+				if( Synced || (m_SyncMode >= 3) ){
 					// BUG: Double check this _ stuff.
 					// We don't support narrow band modes.
 					d = m_BPF.Do( /* m_fNarrow ? HBPFN : */ HBPF, ref d, out _ );
@@ -1360,7 +1362,7 @@ namespace Play.Sound {
 			d19 = m_lpf19.Do( Math.Abs( d19 ) );
 
 			// One of these days I'll figure out why we need both 19 & 12.
-			double dHSync = _fNarrow ? d19 : d12;
+			double dHSync = _rgFreqTable is LookupNormal ? d12 : d19;
 
 			//double dsp;
 			//dsp = m_iirfsk.Do(d);
@@ -1377,7 +1379,7 @@ namespace Play.Sound {
 				return;
 			}
 
-			if( !Sync || m_SyncRestart ) {
+			if( !Synced || m_SyncRestart ) {
 				SSTVMode tvMode;
 				//m_sint1.SyncInc();
 				//m_sint2.SyncInc();
@@ -1463,20 +1465,12 @@ namespace Play.Sound {
 						}
 						break;
 					case 3:                 // 1200Hz(30ms)‚のチェック : check. 30ms STOP bit.
-						if( !Sync ){
+						if( !Synced ){
 							m_pll.Do(ad);
 						}
 						m_SyncTime--;
 						if( m_SyncTime == 0 ){
 							if( (d12 > d19) && (d12 > m_SLvl) ){
-								if( Sync ){
-									// Looks like we request save when we're 65% the way thru an image,
-									// and then suddenly get a new image. I'd do this back when the 
-									// new mode was requested.
-									//if( m_rBase >= (SstvSet.m_LM * 65/100.0) ){
-									//	m_ReqSave = true;
-									//}
-								}
 								tvMode = GetSSTVMode( m_NextMode );
 								if( tvMode != null ) {
 									SstvSet.SetMode( tvMode.Family ); 
@@ -1506,7 +1500,7 @@ namespace Play.Sound {
 						break;
 				}
 			}
-			if( Sync ){
+			if( Synced ){
 				switch(m_Type){
 					case FreqDetect.PLL:		// PLL
 						if( m_afc && (m_lvl.m_CurMax > 16) )
@@ -1739,7 +1733,7 @@ namespace Play.Sound {
 				m_wBase  = (int)Math.Round( m_dbWPos );
 			}
 
-			if( Sync ) {
+			if( Synced ) {
 				//Martin way, using hsync signal.
 				//if( iFrequency >= 1500 ) {
 				//	// This is picture data...

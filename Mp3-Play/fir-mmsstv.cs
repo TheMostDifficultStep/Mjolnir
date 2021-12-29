@@ -642,6 +642,9 @@ namespace Play.Sound {
 		}
 	}
 
+	/// <remarks>
+	/// TODO: This can probably be moved to the SSTV-Rx.cs file. Look at that later.
+	/// </remarks>
 	class CPLL {
 		CIIR	loopLPF = new CIIR();
 		CIIR	outLPF  = new CIIR();
@@ -699,15 +702,13 @@ namespace Play.Sound {
 
 		public void SetWidth( FrequencyLookup rgFrequency )
 		{
-			if( rgFrequency != null ) {
-				m_Shift    = rgFrequency.BW;
-				m_FreeFreq = rgFrequency.CENTER;
-				SetFreeFreq( rgFrequency.LOW, rgFrequency.HIGH);
-			} else {
-				m_Shift = 800.0;
-				m_FreeFreq = (1500 + 2300)*0.5;
-				SetFreeFreq(1500, 2300);
-			}
+			if( rgFrequency == null )
+				throw new ArgumentNullException( nameof( rgFrequency ) );
+
+			m_Shift    = rgFrequency.BW;
+			m_FreeFreq = rgFrequency.CENTER;
+			SetFreeFreq( rgFrequency.LOW, rgFrequency.HIGH);
+
 			SetVcoGain(m_vcogain);
 		}
 
