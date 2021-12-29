@@ -141,7 +141,6 @@ namespace Play.Sound {
 		public int     m_AFCW    { get; protected set; }
 		public int     m_AFCB    { get; protected set; }
 		public int     m_AFCE    { get; protected set; }
-		public bool	   m_fNarrow { get; protected set; }
 
 		public readonly double g_dblToneOffset;
 		public readonly double m_dbTxSampOffs;
@@ -150,7 +149,7 @@ namespace Play.Sound {
 
 		/// <summary>
 		/// Should we ever support: smMN73,smMN110,smMN140,smMC110,smMC140, or smMC180,
-		/// those are all narrow band.
+		/// those are all narrow band. Let's put this param on the SSTVMode object later.
 		/// </summary>
 		public static bool IsNarrowMode(TVFamily tvFamily)	{
 			return false;
@@ -171,7 +170,6 @@ namespace Play.Sound {
 			m_SampFreq      = dbSampFreq;
 			m_dbTxSampOffs  = dbTxSampOffs;
 			g_dblToneOffset = dbToneOffset;
-			m_fNarrow       = false;  // Recieve width.
 
 			SetMode( tvFamily ); 
 		}
@@ -179,8 +177,6 @@ namespace Play.Sound {
 		/// <remarks>This gets called by the demodulator. Ick. This means
 		/// we can't make the members here readonly.</remarks>
 		public void SetMode( TVFamily tvFamily ) {
-			m_fNarrow = IsNarrowMode( tvFamily );
-
 			SetSampFreq( tvFamily );
 		}
 
