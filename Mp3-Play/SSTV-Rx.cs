@@ -135,73 +135,6 @@ namespace Play.Sound {
 		VeryNarrow = 3
 	}
 
-	public class SSTVSET {
-		// I can probably get rid of these but I need to go
-		// back and look at SSTVDem.SyncFreq, if needed or not.
-		public int     m_AFCW    { get; protected set; }
-		public int     m_AFCB    { get; protected set; }
-		public int     m_AFCE    { get; protected set; }
-
-		public readonly double g_dblToneOffset;
-		public readonly double m_dbTxSampOffs;
-
-		protected readonly double m_SampFreq;
-
-		/// <summary>
-		/// Should we ever support: smMN73,smMN110,smMN140,smMC110,smMC140, or smMC180,
-		/// those are all narrow band. Let's put this param on the SSTVMode object later.
-		/// </summary>
-		public static bool IsNarrowMode(TVFamily tvFamily)	{
-			return false;
-		}
-
-		/// <summary>
-		/// Object to hold the state of our audio inputs. SetMode() get's called when the
-		/// SSTV receive mode changes.
-		/// </summary>
-		/// <param name="tvFamily">BUG: Work to get rid of this param. It gets overridden later.</param>
-		/// <param name="dbTxSampOffs" >Not sure what this is for yet. Might delete it.</param>
-		/// <remarks>This could probably live inside the SSTVDraw function.</remarks>
-		public SSTVSET( TVFamily tvFamily, double dbToneOffset, double dbSampFreq, double dbTxSampOffs )
-		{
-			// These used to be globals, I'll see how much they change and if I need
-			// to refactor initialization and such. Since SetSampFreq() get's called
-			// randomly, will have to re-visit these.
-			m_SampFreq      = dbSampFreq;
-			m_dbTxSampOffs  = dbTxSampOffs;
-			g_dblToneOffset = dbToneOffset;
-
-			SetMode( tvFamily ); 
-		}
-
-		/// <remarks>This gets called by the demodulator. Ick. This means
-		/// we can't make the members here readonly.</remarks>
-		public void SetMode( TVFamily tvFamily ) {
-			SetSampFreq( tvFamily );
-		}
-
-		void SetSampFreq(TVFamily tvFamily ){
-			switch(tvFamily){
-				case TVFamily.Martin:
-					m_AFCW = (int)(2.0 * m_SampFreq / 1000.0);
-					m_AFCB = (int)(1.0 * m_SampFreq / 1000.0);
-					break;
-				default:
-					m_AFCW = (int)(3.0 * m_SampFreq / 1000.0);
-					m_AFCB = (int)(1.5 * m_SampFreq / 1000.0);
-					break;
-			}
-
-			// This is the "-i" option set in TMMSSTV::StartOption() if bCQ100 is
-			// true then the offset is -1000. Else the offset is 0!!
-			//if( m_bCQ100 ) { // Used to be a global.
-    		//	double d = m_OFP * 1000.0 / SampFreq;
-			//	m_OFP = (d + (1100.0/g_dblToneOffset)) * SampFreq / 1000.0;
-			//}
-			m_AFCE = m_AFCB + m_AFCW;
-		}
-	}
-
 	/// <summary>
 	/// Just a dummy until I get more stuff running.
 	/// </summary>
@@ -813,7 +746,6 @@ namespace Play.Sound {
 	{
 		public SYSSET   Sys     { get; protected set; }
 		public SSTVMode Mode    { get; protected set; } 
-		public SSTVSET  SstvSet { get; protected set; }
 
 		protected Dictionary<byte, SSTVMode > ModeDictionary { get; } = new Dictionary<byte, SSTVMode>();
 
@@ -887,6 +819,8 @@ namespace Play.Sound {
 		readonly CSmooz m_Avg    = new ();
 		readonly CSmooz m_AFCAVG = new ();
 		readonly bool   m_afc;
+		int         m_AFCB; // Moved from the old SSTVSET object in MMSSTV
+		int         m_AFCE; // ditto..
 		int         m_AFCCount;
 		double      m_AFCData;
 		double      m_AFCLock;
@@ -907,18 +841,16 @@ namespace Play.Sound {
 		protected static FrequencyLookup _rgFreqTable;
 	  //#define FSKSPACE    2100
 
-		// BUG: See if I can get these from CSSTVSET
 		public double SampFreq { get; }
 		public double SampBase { get; }
 		// This is a global in the original code, but it's pretty clear
 		// that we can't handle it changing mid run. So now it's a readonly
 		// member variable.
-		readonly double m_dblToneOffset;
+		readonly double   m_dblToneOffset;
 		readonly double[] _rgSenseLevels = { 2400, 3500, 4800, 6000 };
 
 		public SSTVDEM( SYSSET p_sys, double dblSampFreq, double dblSampBase = -1, double dbToneOffset=0 ) {
-			Sys     = p_sys ?? throw new ArgumentNullException( "sys must not be null." );
-			SstvSet = new( TVFamily.Martin, 0, dblSampFreq, 0 );
+			Sys             = p_sys ?? throw new ArgumentNullException( "sys must not be null." );
 
 			m_dblToneOffset = dbToneOffset;
 			SampFreq        = dblSampFreq;
@@ -951,7 +883,7 @@ namespace Play.Sound {
 			m_fqc  = new CFQC ( SampFreq, dbToneOffset, _rgFreqTable ); 
 			m_hill = new CHILL( SampFreq, SampBase, dbToneOffset, _rgFreqTable );
 
-			m_pll = new CPLL( SampFreq, dbToneOffset, _rgFreqTable );
+			m_pll  = new CPLL( SampFreq, dbToneOffset, _rgFreqTable );
 			m_pll.SetVcoGain ( 1.0 );
 			m_pll.SetFreeFreq( _rgFreqTable.LOW, _rgFreqTable.HIGH );
 			m_pll.MakeLoopLPF( iLoopOrder:1, iLoopFreq:_rgFreqTable.LOW );
@@ -1080,7 +1012,8 @@ namespace Play.Sound {
 
 			Mode = tvMode;
 
-			SetWidth( SSTVSET.IsNarrowMode( tvMode.Family ));
+			SetAFC  ();
+			SetWidth( false ); // SSTVSET.IsNarrowMode( tvMode.Family )
 			InitAFC ();
 
 			m_fqc.Clear();
@@ -1097,6 +1030,33 @@ namespace Play.Sound {
 			//	CalcNarrowBPF(HBPFN, m_bpftap, m_bpf, SSTVSET.m_Mode);
 		}
 
+		/// <summary>
+		/// This used to live outboard in teh SSTVSET object and it seems
+		/// silly to be there when it can be with all it's friends.
+		/// </summary>
+		protected void SetAFC() {
+			int  m_AFCW;
+
+			switch( Mode.Family ){
+				case TVFamily.Martin:
+					m_AFCW = (int)(2.0 * SampFreq / 1000.0);
+					m_AFCB = (int)(1.0 * SampFreq / 1000.0);
+					break;
+				default:
+					m_AFCW = (int)(3.0 * SampFreq / 1000.0);
+					m_AFCB = (int)(1.5 * SampFreq / 1000.0);
+					break;
+			}
+
+			// This is the "-i" option set in TMMSSTV::StartOption() if bCQ100 is
+			// true then the offset is -1000. Else the offset is 0!!
+			//if( m_bCQ100 ) { // Used to be a global.
+    		//	double d = m_OFP * 1000.0 / SampFreq;
+			//	m_OFP = (d + (1100.0/g_dblToneOffset)) * SampFreq / 1000.0;
+			//}
+
+			m_AFCE = m_AFCB + m_AFCW;
+		}
 		public virtual void Reset()	{
 			if( m_AFCFQ != 0 ){
 				if( m_fskdecode ){
@@ -1469,7 +1429,6 @@ namespace Play.Sound {
 							if( (d12 > d19) && (d12 > m_SLvl) ){
 								tvMode = GetSSTVMode( m_NextMode );
 								if( tvMode != null ) {
-									SstvSet.SetMode( tvMode.Family ); 
 									Start( tvMode );
 								}
 							} else {
@@ -1480,7 +1439,6 @@ namespace Play.Sound {
 					case 256:                // 強制開始 : Forced start.
 						tvMode = GetSSTVMode( m_NextMode );
 						if( tvMode != null ) {
-							SstvSet.SetMode( tvMode.Family ); 
 							Start( tvMode );
 						}
 						break;
@@ -1609,9 +1567,9 @@ namespace Play.Sound {
 			d -= 128;
 
 			if( (d <= m_AFC_LowVal) && (d >= m_AFC_HighVal) ){
-				if( m_AFCDis == 0 && (m_AFCCount >= SstvSet.m_AFCB) && (m_AFCCount <= SstvSet.m_AFCE) ){
+				if( m_AFCDis == 0 && (m_AFCCount >= m_AFCB) && (m_AFCCount <= m_AFCE) ){
 					m_AFCData = m_Avg.Avg(d);
-					if( m_AFCCount == SstvSet.m_AFCE ){
+					if( m_AFCCount == m_AFCE ){
 						if( m_AFCGard != 0 ) {
 							m_AFCLock = m_AFCAVG.SetData(m_AFCData);
 							m_AFCGard = 0;
@@ -1626,7 +1584,7 @@ namespace Play.Sound {
 				}
 				m_AFCCount++;
 			} else {
-				if( (m_AFCCount >= SstvSet.m_AFCB) && m_AFCGard != 0 ){
+				if( (m_AFCCount >= m_AFCB) && m_AFCGard != 0 ){
 					m_AFCGard--;
 					if( m_AFCGard == 0 ) 
 						m_AFCAVG.SetData(m_AFCLock);

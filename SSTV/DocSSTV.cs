@@ -1313,7 +1313,6 @@ namespace Play.SSTV {
 			    IEnumerator<int> oIter = _oSSTVGenerator.GetEnumerator();
 
 			    oIter            .MoveNext(); // skip the VIS for now.
-			    _oSSTVDeModulator.SstvSet.SetMode( oMode.Family ); // BUG: Move this into Start();
 			    _oSSTVDeModulator.Start( oMode );
 
                 while( oIter.MoveNext() ) {
