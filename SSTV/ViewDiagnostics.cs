@@ -175,7 +175,7 @@ namespace Play.SSTV {
 		public object Decorate(IPgViewSite oBaseSite,Guid sGuid) {
 			try {
 				if( sGuid.Equals(GlobalDecorations.Properties) ) {
-					return new ViewRxProperties( oBaseSite, _oDocSSTV );
+					return new WindowRxProperties( oBaseSite, _oDocSSTV );
 				}
 				return false;
 			} catch ( Exception oEx ) {

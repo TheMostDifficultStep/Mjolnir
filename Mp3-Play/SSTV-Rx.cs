@@ -1013,7 +1013,7 @@ namespace Play.Sound {
 			Mode = tvMode;
 
 			SetBandWidth( false ); // SSTVSET.IsNarrowMode( tvMode.Family )
-			InitAFC ();
+			InitAFC     ();
 
 			m_fqc.Clear();
 			m_Skip     = 0;

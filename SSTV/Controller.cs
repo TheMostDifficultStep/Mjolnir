@@ -39,7 +39,14 @@ namespace Play.SSTV {
 				if( guidViewType == ViewSettings.GUID )
 					return new ViewSettings( oBaseSite, oMySSTVDoc );
 
-				return new WindowDeviceViewer( oBaseSite, oMySSTVDoc );
+				if( guidViewType == WindowSSTVHistory.GUID )
+					return new WindowSSTVHistory( oBaseSite, oMySSTVDoc );
+
+				if( guidViewType == WindowSoloRx.GUID )
+					return new WindowSoloRx( oBaseSite, oMySSTVDoc );
+
+
+				return new WindowSoloRx( oBaseSite, oMySSTVDoc );
             } catch( Exception oEx ) {
 				// TODO: Stuff errors collection into the base controller.
                 Type[] rgErrors = { typeof( NullReferenceException ),
@@ -59,6 +66,7 @@ namespace Play.SSTV {
 			yield return new ViewType( "Display from File",   WindowFileViewer  .GUID );
 		    yield return new ViewType( "Diagnostics",         WindowDiagnostics .GUID );
 		    yield return new ViewType( "Transmit Deluxe",     ViewTransmitDeluxe.GUID );
+			yield return new ViewType( "History",             WindowSSTVHistory .GUID );
 			yield return new ViewType( "Settings",            ViewSettings      .GUID );
 		}
 	}
