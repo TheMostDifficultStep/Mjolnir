@@ -937,7 +937,9 @@ namespace Play.Sound {
 			m_AFCInt = (int)(100 * SampFreq / 1000.0 );
 			m_AFCDis = 0;
 
-			m_SyncRestart = false;
+			// TODO: I'm starting to think this should be false... this will prevent a
+			// strong signal from resetting us, but will result in a double either way.
+			m_SyncRestart = false; 
 
 			SetSenseLevel( 1 );
 		}
@@ -1278,6 +1280,13 @@ namespace Play.Sound {
 			m_SLvl2 = m_SLvl * 0.5;
 		}
 
+		/// <summary>
+		/// Either cul the VIS from the signal or the image data. This method is the
+		/// final one to clean up. I've been leaving it as it is b/c of how convoluted
+		/// it is. But I will tackle this eventually.
+		/// </summary>
+		/// <param name="s">A single sample</param>
+		/// <exception cref="NotImplementedException">If the video decoder is unrecognized.</exception>
 		public void Do(double s) {
 			if( (s > 24578.0) || (s < -24578.0) ){
 				m_OverFlow = 1; // The grapher probably clears this.
@@ -1302,9 +1311,9 @@ namespace Play.Sound {
 			if( d < -16384.0 ) 
 				d = -16384.0;
 
-			// These two go into the B12 buffer, depending on narrow or normal.
-			double d12; // normal sync.
-			double d19; // narrow sync
+			// These two go into the B12 (sync signal) buffer, depending on narrow or normal.
+			double d12; // normal sync & Unused for narrow band.
+			double d19; // narrow sync & VIS pulse for normal bandwidth.
 
 			d12 = m_iir12.Do(d);
 			d12 = m_lpf12.Do( Math.Abs( d12 ) );
@@ -1312,7 +1321,6 @@ namespace Play.Sound {
 			d19 = m_iir19.Do(d);
 			d19 = m_lpf19.Do( Math.Abs( d19 ) );
 
-			// One of these days I'll figure out why we need both 19 & 12.
 			double dHSync = _rgFreqTable is LookupNormal ? d12 : d19;
 
 			//double dsp;
@@ -1336,10 +1344,12 @@ namespace Play.Sound {
 				//m_sint2.SyncInc();
 				//m_sint3.SyncInc();
 
-				// The only time we care about this one is in VIS.
+				// The only time we care about these is in VIS.
 				double d11;
 				double d13;
 
+				// I'm going to guess these need to be live so that they're picking up 
+				// single even before the value is actually used. Always lagging.
 				d11 = m_iir11.Do( d );
 				d11 = m_lpf11.Do( Math.Abs( d11 ));
 
@@ -1386,9 +1396,9 @@ namespace Play.Sound {
 								m_SyncMode = 0; // Start over?
 							} else {
 								m_SyncTime = (int)(30 * SampFreq/1000 ); // Get next bit.
-								m_VisData >>= 1;
+								m_VisData >>= 1; // we shift right to make room for next.
 								if( d11 > d13 ) 
-									m_VisData |= 0x0080; // Set the 8th bit and we shift right for next.
+									m_VisData |= 0x0080; // Set the 8th bit to 1.(else it's 0)
 								m_VisCnt--;
 								if( m_VisCnt == 0 ){
 									// Note: we've picked up the last bit to determine the VIS, but we need
@@ -1700,6 +1710,5 @@ namespace Play.Sound {
         }
 
     } // end Class
-
-
 }
+
