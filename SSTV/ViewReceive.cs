@@ -113,8 +113,8 @@ namespace Play.SSTV {
 			if( !_wmViewRxHistory.InitNew() ) 
 				return false;
 
-            _oLayout.Add( new LayoutControl( _wmViewRxHistorySelected,     LayoutRect.CSS.None ) );
-            _oLayout.Add( new LayoutControl( _wmViewRxHistory, LayoutRect.CSS.Pixels, 220 ) );
+            _oLayout.Add( new LayoutControl( _wmViewRxHistorySelected, LayoutRect.CSS.None ) );
+            _oLayout.Add( new LayoutControl( _wmViewRxHistory,         LayoutRect.CSS.Pixels, 230 ) );
 
             OnSizeChanged( new EventArgs() );
 
@@ -307,7 +307,7 @@ namespace Play.SSTV {
             if( !base.InitNew() )
 				return false;
 
-            _oDocSSTV.PropertyChange             += OnPropertyChange_DocSSTV;
+            _oDocSSTV.PropertyChange += OnPropertyChange_DocSSTV;
 
 			return true;
         }
@@ -348,20 +348,18 @@ namespace Play.SSTV {
 
         public override bool Execute( Guid sGuid ) {
 			if( sGuid == GlobalCommands.Play ) {
-				switch( _eToolSelected ) {
-					case Tools.File: {
-						//_oDocSSTV.ReceiveFileReadBgThreadBegin( _oDocSSTV.RecChooser.CurrentFullPath );
-						return true;
-						}
-					case Tools.Port:
-						_oDocSSTV.ReceiveLiveBegin();
-						return true;
-				}
+				_oDocSSTV.ReceiveLiveBegin();
+				return true;
 			}
 			if( sGuid == GlobalCommands.Stop ) {
 				// BUG: What if we're launched with one tool and then the tool is
 				//      changed midway and we hit stop. Need to sort that out.
 				_oDocSSTV.ReceiveLiveStop();
+			}
+
+			if( sGuid == GlobalCommands.Save ) {
+				_oDocSSTV.ReceiveSave();
+				return true; // make sure you return true or a docsstv.save (settings) gets called.
 			}
 
             return base.Execute(sGuid);

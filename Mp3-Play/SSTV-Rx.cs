@@ -937,7 +937,7 @@ namespace Play.Sound {
 			m_AFCInt = (int)(100 * SampFreq / 1000.0 );
 			m_AFCDis = 0;
 
-			m_SyncRestart = true;
+			m_SyncRestart = false;
 
 			SetSenseLevel( 1 );
 		}
@@ -1343,6 +1343,9 @@ namespace Play.Sound {
 				d11 = m_iir11.Do( d );
 				d11 = m_lpf11.Do( Math.Abs( d11 ));
 
+				d13 = m_iir13.Do(d);
+				d13 = m_lpf13.Do( Math.Abs( d13 ));
+
 				switch(m_SyncMode){
 					case 0:                 // 自動開始 : Start automatically
 						// The first 1900hz has been seen, and now we're going down to 1200 for 15 ms. (s/b 10)
@@ -1377,10 +1380,6 @@ namespace Play.Sound {
 						break;
 					case 2:                 // Vis decode
 					case 9:                 // Expanded VIS decode.
-						d13 = m_iir13.Do(d);
-						if( d13 < 0.0 ) 
-							d13 = -d13;
-						d13 = m_lpf13.Do(d13);
 						m_SyncTime--;
 						if( m_SyncTime == 0 ){
 							if( ((d11 < d19) && (d13 < d19)) || (Math.Abs(d11-d13) < (m_SLvl2)) ) {
