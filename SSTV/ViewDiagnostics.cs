@@ -79,21 +79,7 @@ namespace Play.SSTV {
 		public bool      IsDirty   => false;
 		public Image     Iconic    { get; }
 		public Guid      Catagory  => GUID;
-
-        public string Banner {
-			get { 
-				StringBuilder sbBanner = new StringBuilder();
-
-				sbBanner.Append( _strBaseTitle );
-				if( _oDocSSTV.PortRxList.CheckedLine is Line oLine ) {
-					sbBanner.Append( " : " );
-					sbBanner.Append( oLine.ToString() );
-				}
-
-				return sbBanner.ToString();
-			} 
-		}
-		protected readonly string _strBaseTitle = "Diagnostics Window : ";
+        public string    Banner => "MySSTV Diagnostics";
 
         public WindowDiagnostics( IPgViewSite oViewSite, DocSSTV oDocument ) {
 			_oSiteView = oViewSite ?? throw new ArgumentNullException( "View requires a view site." );
