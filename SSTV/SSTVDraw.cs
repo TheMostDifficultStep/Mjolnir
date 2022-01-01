@@ -365,6 +365,7 @@ namespace Play.SSTV {
 			_rgDiagnosticColors.Add( ScanLineChannelType.RY,    new( SKColors.Red,   1 ) );
 			_rgDiagnosticColors.Add( ScanLineChannelType.Y1,    new( SKColors.Gray,  1 ) );
 			_rgDiagnosticColors.Add( ScanLineChannelType.Y2,    new( SKColors.Gray,  1 ) );
+			_rgDiagnosticColors.Add( ScanLineChannelType.Y,     new( SKColors.Gray,  1 ) );
 		}
 
 		/// <summary>
@@ -833,15 +834,22 @@ namespace Play.SSTV {
 			_pBitmapRX.SetPixel( iX, _AY+1, new SKColor( (byte)R, (byte)G, (byte)B ) );
 		}
 
+		protected void PixelSetY( int iX, short sValue ) {
+			short iY = (short)( GetPixelLevel(sValue) + 128 );
+			_pBitmapRX.SetPixel( iX, _AY+1, new SKColor( (byte)iY, (byte)iY, (byte)iY ) );
+		}
+
+
 		public setPixel ReturnColorFunction( ScanLineChannelType eDT ) {
 			switch( eDT ) {
-				case ScanLineChannelType.BY:          return PixelSetBY;
-				case ScanLineChannelType.RY:          return PixelSetRY;
-				case ScanLineChannelType.Y1:          return PixelSetY1;
-				case ScanLineChannelType.Y2:          return PixelSetY2;
+				case ScanLineChannelType.BY    : return PixelSetBY;
+				case ScanLineChannelType.RY    : return PixelSetRY;
+				case ScanLineChannelType.Y1    : return PixelSetY1;
+				case ScanLineChannelType.Y2    : return PixelSetY2;
 				case ScanLineChannelType.Blue  : return PixelSetBlue;
 				case ScanLineChannelType.Red   : return PixelSetRed;
 				case ScanLineChannelType.Green : return PixelSetGreen;
+				case ScanLineChannelType.Y     : return PixelSetY;
 				default : return null;
 			}
 		}

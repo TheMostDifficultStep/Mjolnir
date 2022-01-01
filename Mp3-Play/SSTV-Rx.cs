@@ -1620,6 +1620,10 @@ namespace Play.Sound {
             itrMode = GeneratePD     .GetModeEnumerator();
 			while( itrMode.MoveNext() ) 
 				yield return itrMode.Current;
+
+			itrMode = GenerateBW     .GetModeEnumerator();
+			while( itrMode.MoveNext() )
+				yield return itrMode.Current;
 		}
 
         IEnumerator IEnumerable.GetEnumerator()

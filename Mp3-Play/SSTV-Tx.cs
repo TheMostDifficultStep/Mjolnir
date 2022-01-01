@@ -251,7 +251,8 @@ namespace Play.Sound {
         None = 0,
         Martin,
         Scottie,
-        PD
+        PD, 
+        BW // Robot?
     }
 
     public enum ScanLineChannelType {
@@ -263,7 +264,8 @@ namespace Play.Sound {
         Y1,
         Y2,
         RY,
-        BY
+        BY,
+        Y
     }
 
     public class ScanLineChannel {
@@ -438,9 +440,39 @@ namespace Play.Sound {
 		}
     }
 
+    public class SSTVModeBW : SSTVMode {
+        public SSTVModeBW( byte bVIS, string strName, double dbTxWidth, SKSizeI skSize, AllModes eLegacy = AllModes.smEND) : 
+            base( TVFamily.BW, bVIS, strName, dbTxWidth, skSize, eLegacy ) 
+        {
+        }
+
+        public override double WidthSyncInMS => 6;
+        public override double WidthGapInMS  => 2;
+
+		protected override void Initialize() {
+			if( Family != TVFamily.BW )
+				throw new InvalidProgramException( "Mode must be of BW type" );
+
+			ChannelMap.Add( new( WidthSyncInMS,  ScanLineChannelType.Sync  ) );
+			ChannelMap.Add( new( WidthGapInMS,   ScanLineChannelType.Gap   ) );
+			ChannelMap.Add( new( WidthColorInMS, ScanLineChannelType.Y ) );
+		}
+    }
+
+
     /// <summary>
-    /// See TMmsstv::ToTX to find out the line modulation needed for a subclass.
+    /// Generators are accessed by the main sstv document (DocSSTV) accessing the modulator.
+    /// See GetModeEnumerator on each SSTVGenerator subclass.
+    /// Unlike the Demodulator which can list the image types it supports. It makes
+    /// sense, for now, since the VIS decoder is in the demodulator and must understand
+    /// all the image types. Transmit types depend on the SSTVMode object and while the receive
+    /// solely needs th SSTVMode. Those types are enumerated via the generators.
     /// </summary>
+    /// <remarks>
+    /// See TMmsstv::ToTX() in the orginal code  to find out the line modulation 
+    /// needed for a subclass.
+    /// </remarks>
+    /// <seealso cref="super.GetModeEnumerator" />
     public abstract class SSTVGenerator :
         IEnumerable<int>
     {
@@ -691,16 +723,47 @@ namespace Play.Sound {
         }
     }
 
-    /// <summary>
-    /// This class generates the PD modes. Only the PD 90 modes works. >_<;;
-    /// </summary>
-    public class GeneratePD : SSTVGenerator {
-        struct Chrominance8Bit {
+    public abstract class SSTVCrCbYGenerator : SSTVGenerator {
+        protected struct Chrominance8Bit {
             public byte  Y;
             public byte RY;
             public byte BY;
         }
 
+        protected SSTVCrCbYGenerator(SKBitmap oBitmap, IPgModulator oModulator, SSTVMode oMode) : 
+            base(oBitmap, oModulator, oMode) 
+        {
+        }
+
+        public byte Limit256( double d ) {
+	        if( d < 0   ) d =   0;
+	        if( d > 255 ) d = 255;
+
+	        return (byte)d;
+        }
+
+        protected Chrominance8Bit GetRY( SKColor skColor ) {
+            Chrominance8Bit crColor;
+            /*
+            These are the values that make up the table below us. (Don't delete this comment!)
+
+	        Y  =  16.0 + (.003906 * (( 65.738 * R) + (129.057 * G) + ( 25.064 * B)));
+	        RY = 128.0 + (.003906 * ((112.439 * R) + (-94.154 * G) + (-18.285 * B)));
+	        BY = 128.0 + (.003906 * ((-37.945 * R) + (-74.494 * G) + (112.439 * B)));
+            */
+	        crColor.Y  = Limit256(  16.0 + ( 0.256773*skColor.Red + 0.504097*skColor.Green + 0.097900*skColor.Blue) );
+	        crColor.RY = Limit256( 128.0 + ( 0.439187*skColor.Red - 0.367766*skColor.Green - 0.071421*skColor.Blue) );
+	        crColor.BY = Limit256( 128.0 + (-0.148213*skColor.Red - 0.290974*skColor.Green + 0.439187*skColor.Blue) );
+
+            return crColor;
+        }
+
+    }
+
+    /// <summary>
+    /// This class generates the PD modes. Only the PD 90 modes works. >_<;;
+    /// </summary>
+    public class GeneratePD : SSTVCrCbYGenerator {
         readonly List<Chrominance8Bit> _rgChrome = new(800);
 
         /// <exception cref="ArgumentOutOfRangeException" />
@@ -726,29 +789,6 @@ namespace Play.Sound {
             yield return new SSTVModePD( 0x60, "PD 180",  183.040, new SKSizeI( 640, 496 ), AllModes.smPD180 );
             yield return new SSTVModePD( 0xe1, "PD 240",  244.480, new SKSizeI( 640, 496 ), AllModes.smPD240 ); 
             yield return new SSTVModePD( 0xde, "PD 290",  228.800, new SKSizeI( 800, 600 ), AllModes.smPD290 ); // see SSTV-handbook.
-        }
-
-        public byte Limit256( double d ) {
-	        if( d < 0   ) d =   0;
-	        if( d > 255 ) d = 255;
-
-	        return (byte)d;
-        }
-
-        Chrominance8Bit GetRY( SKColor skColor ) {
-            Chrominance8Bit crColor;
-            /*
-            These are the values that make up the table below us. (Don't delete this comment!)
-
-	        Y  =  16.0 + (.003906 * (( 65.738 * R) + (129.057 * G) + ( 25.064 * B)));
-	        RY = 128.0 + (.003906 * ((112.439 * R) + (-94.154 * G) + (-18.285 * B)));
-	        BY = 128.0 + (.003906 * ((-37.945 * R) + (-74.494 * G) + (112.439 * B)));
-            */
-	        crColor.Y  = Limit256(  16.0 + ( 0.256773*skColor.Red + 0.504097*skColor.Green + 0.097900*skColor.Blue) );
-	        crColor.RY = Limit256( 128.0 + ( 0.439187*skColor.Red - 0.367766*skColor.Green - 0.071421*skColor.Blue) );
-	        crColor.BY = Limit256( 128.0 + (-0.148213*skColor.Red - 0.290974*skColor.Green + 0.439187*skColor.Blue) );
-
-            return crColor;
         }
 
         /// <summary>
@@ -820,6 +860,32 @@ namespace Play.Sound {
             }
         }
     } 
+
+    public class GenerateBW : SSTVCrCbYGenerator {
+        public GenerateBW( SKBitmap oBitmap, IPgModulator oModulator, SSTVMode oMode ) : 
+            base( oBitmap, oModulator, oMode )
+        {
+        }
+
+        public static IEnumerator<SSTVMode> GetModeEnumerator() {
+ 	        yield return new SSTVModeBW( 0x82, "BW   8", 58.89709, new SKSizeI( 160, 120 ), AllModes.smRM8  ); 
+ 	        yield return new SSTVModeBW( 0x86, "BW  12",     92.0, new SKSizeI( 160, 120 ), AllModes.smRM12 ); 
+        }
+
+        protected override void WriteLine(int iLine) {
+	        double dbTimePerPixel = Mode.WidthColorInMS / Mode.Resolution.Width; 
+
+	        Write( 1200, Mode.WidthSyncInMS );
+	        Write( 1500, Mode.WidthSyncInMS / 3.0 );
+
+	        for( int x = 0; x < Mode.Resolution.Width; x++ ) { 
+                SKColor         skPixel = GetPixel( x, iLine );
+                Chrominance8Bit crPixel = GetRY   ( skPixel );
+
+		        Write( ColorToFreq( crPixel.Y ), dbTimePerPixel );
+	        }
+        }
+    }
 
     /// <summary>
     /// New experimental buffer implementation. I'll move this over to

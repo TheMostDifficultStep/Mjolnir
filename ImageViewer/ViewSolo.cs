@@ -60,11 +60,6 @@ namespace Play.ImageViewer {
 		protected WindowSoloImageTools _eToolCurrent = WindowSoloImageTools.Navigate;
 		readonly  List<string>         _rgTools      = new List<string>();
 
-        readonly static Keys[] _rgHandledKeys = { Keys.PageDown, Keys.PageUp, Keys.Down,
-                                                  Keys.Up, Keys.Right, Keys.Left, Keys.Back,
-                                                  Keys.Delete, Keys.Enter, Keys.Tab, 
-                                                  Keys.Control | Keys.A, Keys.Control | Keys.F };
-
 		private SKPointI _pntAspect = new SKPointI( 320, 240 );
 
 		/// <summary>

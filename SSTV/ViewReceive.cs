@@ -151,7 +151,7 @@ namespace Play.SSTV {
 		}
 
         public bool Execute(Guid sGuid) {
-            return false;
+            return _wmViewRxHistorySelected.Execute( sGuid );
         }
 
         public bool Load(XmlElement oStream) {
