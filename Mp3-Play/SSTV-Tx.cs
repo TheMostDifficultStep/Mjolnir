@@ -735,14 +735,14 @@ namespace Play.Sound {
         {
         }
 
-        public byte Limit256( double d ) {
+        public static byte Limit256( double d ) {
 	        if( d < 0   ) d =   0;
 	        if( d > 255 ) d = 255;
 
 	        return (byte)d;
         }
 
-        protected Chrominance8Bit GetRY( SKColor skColor ) {
+        protected static Chrominance8Bit GetRY( SKColor skColor ) {
             Chrominance8Bit crColor;
             /*
             These are the values that make up the table below us. (Don't delete this comment!)
@@ -876,7 +876,7 @@ namespace Play.Sound {
 	        double dbTimePerPixel = Mode.WidthColorInMS / Mode.Resolution.Width; 
 
 	        Write( 1200, Mode.WidthSyncInMS );
-	        Write( 1500, Mode.WidthSyncInMS / 3.0 );
+	        Write( 1500, Mode.WidthGapInMS  );
 
 	        for( int x = 0; x < Mode.Resolution.Width; x++ ) { 
                 SKColor         skPixel = GetPixel( x, iLine );
