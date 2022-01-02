@@ -166,7 +166,6 @@ namespace Play.Sound {
 
 		double	  m_OFF;
 		double	  m_OUT;
-	  //double[]  m_ph;
 	    public int m_htap { get; protected set; }
 		int		  m_df;
 		int		  m_tap;
@@ -274,7 +273,7 @@ namespace Play.Sound {
 
 		public double Do(double d)
 		{
-			DoFIR(H, Z, d, m_tap);
+			d = DoFIR(H, Z, d, m_tap);
 
 			double a = Z[m_htap]; // *m_ph;
 			if( a != 0 )
@@ -296,11 +295,11 @@ namespace Play.Sound {
 					m_A[0] = a;
 					break;
 			}
-			if( d >= Math.PI ){
-				d -= Math.PI*2;
+			if( d >= Math.PI ) {
+				d = d - Math.PI*2;
 			}
 			else if( d <= -Math.PI ){
-				d += Math.PI*2;
+				d = d + Math.PI*2;
 			}
 			d += m_OFF;
 			return m_iir.Do(d * m_OUT);
@@ -763,7 +762,7 @@ namespace Play.Sound {
 		int      m_bpftap;
 
 		// looks like hilbert is broken. FQC & PLL seem to work fine!!
-		public readonly FreqDetect m_Type      = FreqDetect.PLL; // FreqDetect.FQC; // BUG: This s/b parameter.
+		public readonly FreqDetect m_Type      = FreqDetect.Hilbert; // FreqDetect.FQC; // BUG: This s/b parameter.
 			   readonly bool       m_LevelType = false; // TODO: Probably sb param too. If make true, you must implement CSLVL class.
 
 		readonly CIIRTANK m_iir11;
