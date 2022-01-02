@@ -196,7 +196,7 @@ namespace Play.Sound {
 			if( rgFreqTable == null )
 				throw new ArgumentNullException( nameof( rgFreqTable ) );
 
-			m_OFF = (2 * Math.PI * (rgFreqTable.CENTER + ToneOffs)) / SampFreq;
+			m_OFF = 2 * Math.PI * (rgFreqTable.CENTER + ToneOffs) / SampFreq;
 			m_OUT = 32768.0 * SampFreq / (2 * Math.PI * rgFreqTable.BW);
 
 			if( SampBase >= 40000 ){
@@ -228,16 +228,14 @@ namespace Play.Sound {
 			double W1 = 2 * Math.PI * fc1;
 			double W2 = 2 * Math.PI * fc2;
 
-			double w;
-			int n;
-			double x1, x2;
-			for( n = 0; n <= N; n++ ){
+			double w, x1, x2;
+			for( int n = 0; n <= N; n++ ) {
 				if( n == L ){
 					x1 = x2 = 0.0;
-				} else if( (n - L) > 0 ){
-					x1 = ((n - L) * W1 * T);
+				} else if( (n - L) != 0 ){
+					x1 = (n - L) * W1 * T;
 					x1 = Math.Cos(x1) / x1;
-					x2 = ((n - L) * W2 * T);
+					x2 = (n - L) * W2 * T;
 					x2 = Math.Cos(x2) / x2;
 				} else {
 					x1 = x2 = 1.0;
@@ -246,14 +244,14 @@ namespace Play.Sound {
 				H[n] = -(2 * fc2 * T * x2 - 2 * fc1 * T * x1) * w;
 			}
 
-			if( N < 8 ){
+			if( N < 8 ) {
 				w = 0;
-    			for( n = 0; n <= N; n++ ){
+    			for( int n = 0; n <= N; n++ ){
 					w += Math.Abs(H[n]);
     			}
 				if( w != 0 ){
 					w = 1.0 / w;
-					for( n = 0; n <= N; n++ ){
+					for( int n = 0; n <= N; n++ ){
 						H[n] *= w;
 					}
     			}
@@ -265,7 +263,7 @@ namespace Play.Sound {
 		static double DoFIR(double []hp, double []zp, double d, int tap)
 		{
 			//memcpy(zp, &zp[1], sizeof(double)*tap);
-			Array.Copy( zp, 1, zp, 0, tap );
+			Array.Copy( zp, 1, zp, 0, tap ); // suspicious.
 			zp[tap] = d;
 			d = 0.0;
 			for( int i = 0; i <= tap; i++ ){
@@ -278,9 +276,9 @@ namespace Play.Sound {
 		{
 			DoFIR(H, Z, d, m_tap);
 
-			double a = 0; // *m_ph;
-			//if( a )
-			//	a = Math.Atan2(d, a);
+			double a = Z[m_htap]; // *m_ph;
+			if( a != 0 )
+				a = Math.Atan2(d, a);
 
 			d = a - m_A[0];
 			switch(m_df){

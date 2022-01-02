@@ -775,9 +775,7 @@ namespace Play.Sound {
         /// <summary>So the scottie and martin modes I'm pretty confident are simply 320 horizontal lines
         /// But I know the PD modes are meant to be higher res and I got all the info straight from
         /// the inventor's web site. Which btw does not mention PD50 and PD290 modes. Also not I'm NOT
-        /// presently generating the 16 scan line b/w scale. Note that all of them work. But only the
-        /// PD90 works reliable. The rest require manual sync, and even then, are wavy. This ripple is
-        /// probably what is causing the sync failure.
+        /// presently generating the 16 scan line b/w scale. Note that all of them work.
         /// See also:  Martin Bruchanov OK2MNM SSTV-Handbook.
         /// </summary> 
         public static IEnumerator<SSTVMode> GetModeEnumerator() {
