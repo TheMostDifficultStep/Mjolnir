@@ -261,8 +261,7 @@ namespace Play.Sound {
 		// ＦＩＲフィルタのたたき込み演算 : FIR filter tapping operation
 		static double DoFIR(double []hp, double []zp, double d, int tap)
 		{
-			//memcpy(zp, &zp[1], sizeof(double)*tap);
-			Array.Copy( zp, 1, zp, 0, tap ); // suspicious.
+			Array.Copy( zp, 1, zp, 0, tap ); 
 			zp[tap] = d;
 			d = 0.0;
 			for( int i = 0; i <= tap; i++ ){
@@ -275,7 +274,7 @@ namespace Play.Sound {
 		{
 			d = DoFIR(H, Z, d, m_tap);
 
-			double a = Z[m_htap]; // *m_ph;
+			double a = Z[m_htap]; 
 			if( a != 0 )
 				a = Math.Atan2(d, a);
 
@@ -296,10 +295,10 @@ namespace Play.Sound {
 					break;
 			}
 			if( d >= Math.PI ) {
-				d = d - Math.PI*2;
+				d -= Math.PI*2;
 			}
 			else if( d <= -Math.PI ){
-				d = d + Math.PI*2;
+				d += Math.PI*2;
 			}
 			d += m_OFF;
 			return m_iir.Do(d * m_OUT);
@@ -761,10 +760,6 @@ namespace Play.Sound {
 		BandPass m_bpf = BandPass.Undefined;
 		int      m_bpftap;
 
-		// looks like hilbert is broken. FQC & PLL seem to work fine!!
-		public readonly FreqDetect m_Type      = FreqDetect.Hilbert; // FreqDetect.FQC; // BUG: This s/b parameter.
-			   readonly bool       m_LevelType = false; // TODO: Probably sb param too. If make true, you must implement CSLVL class.
-
 		readonly CIIRTANK m_iir11;
 		readonly CIIRTANK m_iir12;
 		readonly CIIRTANK m_iir13;
@@ -776,6 +771,9 @@ namespace Play.Sound {
 
 		readonly CLVL     m_lvl;
 		readonly CSLVL    m_SyncLvl = new();
+
+		public readonly FreqDetect m_Type      = FreqDetect.Hilbert; // FreqDetect.FQC; // BUG: This s/b parameter.
+			   readonly bool       m_LevelType = false; // TODO: Probably sb param too. If make true, you must implement CSLVL class.
 
 		// These three should inherit from a common interface.
 		readonly CPLL	  m_pll;
