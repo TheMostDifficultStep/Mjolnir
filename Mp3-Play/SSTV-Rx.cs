@@ -525,8 +525,6 @@ namespace Play.Sound {
 
 	struct CLVL
 	{
-		public double m_Cur { get; private set; }
-
 		double m_PeakMax;
 		double m_PeakAGC;
 		double m_Peak;
@@ -546,7 +544,6 @@ namespace Play.Sound {
 			m_PeakMax = 0;
 			m_PeakAGC = 0;
 			m_Peak    = 0;
-			m_Cur     = 0;
 		    m_CurMax  = 0.0;
 			m_Max     = 0;
 			m_agc     = 1.0;
@@ -555,8 +552,6 @@ namespace Play.Sound {
 		}
 
 		public void Do(double d ){
-			m_Cur = d;
-
 			if( d < 0.0 ) 
 				d = -d;
 			if( m_Max < d ) 
@@ -819,7 +814,7 @@ namespace Play.Sound {
 		CSLVL    m_SyncLvl; // The program will compile but member variables won't update.
 		readonly LevelDisplay m_LevelType = LevelDisplay.Receipt; // see mmsstv menu: "View/Level indicator/(receipt | sync)"
 
-		public readonly FreqDetect m_Type      = FreqDetect.Hilbert; // FreqDetect.FQC; // BUG: This s/b parameter.
+		readonly FreqDetect   m_Type = FreqDetect.Hilbert; // Hilbert, PLL, FQC; // BUG: This s/b parameter.
 
 		// These three should inherit from a common interface.
 		readonly CPLL	  m_pll;
@@ -1348,6 +1343,7 @@ namespace Play.Sound {
 				}
 			}
 			m_Rcptlvl.Do(d);
+			double od = d; // Original value of d;
 			double ad = m_Rcptlvl.AGC(d);
 		    m_Rcptlvl.Fix(); // This was in TMmsstv::DrawLvl, no analog to that here yet...
 
@@ -1505,40 +1501,41 @@ namespace Play.Sound {
 				}
 			}
 			if( Synced ){
+				double freq;
 				switch(m_Type){
 					case FreqDetect.PLL:		// PLL
+						freq = m_pll.Do(od);
 						if( m_afc && (m_Rcptlvl.m_CurMax > 16) )
-							SyncFreq(m_fqc.Do(m_Rcptlvl.m_Cur));
-						d = m_pll.Do(m_Rcptlvl.m_Cur);
+							SyncFreq(m_fqc.Do(od)); // Look! PLL needs the FQC!!
 						break;
 					case FreqDetect.FQC:		// Zero-crossing
-						d = m_fqc.Do(m_Rcptlvl.m_Cur);
+						freq = m_fqc.Do(od);
 						if( m_afc && (m_Rcptlvl.m_CurMax > 16) )
-							SyncFreq(d);
+							SyncFreq(freq);
 						break;
 					case FreqDetect.Hilbert:	// Hilbert
-						d = m_hill.Do(m_Rcptlvl.m_Cur);
+						freq = m_hill.Do(od);
 						if( m_afc && (m_Rcptlvl.m_CurMax > 16) )
-							SyncFreq(d);
+							SyncFreq(freq);
 						break;
 					default:
 						throw new NotImplementedException( "Unrecognized Frequency Detector" );
 				}
 				if( m_afc ) 
-					d += m_AFCDiff;
+					freq += m_AFCDiff;
 				if( m_Skip != 0 ) {
 					if( m_Skip > 0 ){ // Ignore this data
 						m_Skip--;
 					} else {          // Pad the overshoot.
 						for( ; m_Skip != 0; m_Skip++ ){
-							SignalSet( -d, 0 );
+							SignalSet( -freq, 0 );
 						}
 					}
 				} else {
 					if( m_ScopeFlag ){
-						m_Scope[1].WriteData( d );
+						m_Scope[1].WriteData( freq );
 					}
-					SignalSet( -d, dHSync );
+					SignalSet( -freq, dHSync );
 				}
 			}
 			else if( Sys.m_TestDem ){
@@ -1547,13 +1544,13 @@ namespace Play.Sound {
 
 				switch(m_Type){
 					case FreqDetect.PLL:
-						m_CurSig = m_Avg.Avg(m_pll.Do(m_Rcptlvl.m_Cur));
+						m_CurSig = m_Avg.Avg(m_pll.Do( od ));
 						break;
 					case FreqDetect.FQC:
-						m_CurSig = m_Avg.Avg(m_fqc.Do(m_Rcptlvl.m_Cur));
+						m_CurSig = m_Avg.Avg(m_fqc.Do( od ));
 						break;
 					case FreqDetect.Hilbert:
-						m_CurSig = m_Avg.Avg(m_hill.Do(m_Rcptlvl.m_Cur));
+						m_CurSig = m_Avg.Avg(m_hill.Do( od ));
 						break;
 					default:
 						throw new NotImplementedException( "Unrecognized Frequency Detector" );

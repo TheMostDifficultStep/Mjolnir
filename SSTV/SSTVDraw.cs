@@ -193,8 +193,9 @@ namespace Play.SSTV {
 			// DO NOT UPDATE Slope and Intercept unless you've calculated the values
 			// if they are initialized to zero, the drawing code will have no
 			// scan line width to use calculate the scan line starts.
+			int iRaster = 1; // BUG: First line is always messed up. Ignore until figure out.
 			try {
-				for( int i = 0; i<iLength; ++i ) {
+				for( int i = iRaster; i<iLength; ++i ) {
 					if( _rgRasters[i].Count == 1 ) {
 						meanx += i;
 						meany += _rgRasters[i].Datum.Position;
@@ -210,7 +211,7 @@ namespace Play.SSTV {
 				double dxsq = 0;
 				double dxdy = 0;
 
-				for( int i =0; i < iLength; ++i ) {
+				for( int i = iRaster; i < iLength; ++i ) {
 					if( _rgRasters[i].Count == 1 ) {
 						double dx = (double)i - meanx;
 						double dy = (double)_rgRasters[i].Datum.Position - meany;
