@@ -156,10 +156,9 @@ namespace Play.Sound {
         double[] m_pH;
 
         int	m_W;
-        int	m_TapHalf;
 
         public CFIR2(){
-            m_W  = 0;
+            m_W   = 0;
             m_Tap = 0;
         }
 
@@ -172,8 +171,7 @@ namespace Play.Sound {
 		            m_W  = 0;
                 }
             }
-	        m_Tap     = tap;
-            m_TapHalf = tap/2;
+	        m_Tap = tap;
         }
 
         void Create(int tap, FirFilt type, double fs, double fcl, double fch, double att, double gain)
@@ -183,59 +181,16 @@ namespace Play.Sound {
 		        m_pH = new double[tap+1];
 		        m_W = 0;
             }
-	        m_Tap     = tap;
-            m_TapHalf = tap/2;
+	        m_Tap = tap;
 
 	        MakeFilter(m_pH, tap, type, fs, fcl, fch, att, gain);
         }
 
-        void Clear()
-        {
+        void Clear() {
 	        if( m_pZ != null )
                 Array.Clear( m_pZ, 0, m_pZ.Length );
         }
         
-        /* This is another dupe, but here we use our internal
-         * "m_hp" array. Just use our 3 param Do() and pass m_hp.
-         * see Do( double d ) below this one.
-        public double Do(double d)
-        {
-	        double *dp1 = &m_pZ[m_W+m_Tap+1];
-	        m_pZP = dp1;
-	        *dp1 = d;
-            m_pZ[m_W] = d;
-            d = 0;
-            double *hp = m_pH;
-            for( int i = 0; i <= m_Tap; i++ ){
-		        d += (*dp1--) * (*hp++);
-            }
-            m_W++;
-	        if( m_W > m_Tap ) m_W = 0;
-            return d;
-        }
-        */
-
-        /* This looks ike a dupe of the three param Do() which returns
-         * "j", I'm going to try to use the new "discards" feature of
-         * c 7.0 .
-         * 
-        double Do(double d, double *hp)
-        {
-	        double *dp1 = &m_pZ[m_W+m_Tap+1];
-	        m_pZP = dp1;
-	        *dp1 = d;
-            m_pZ[m_W] = d;
-            d = 0;
-            for( int i = 0; i <= m_Tap; i++ ){
-		        d += (*dp1--) * (*hp++);
-            }
-            m_W++;
-	        if( m_W > m_Tap ) 
-                m_W = 0;
-            return d;
-        }
-        */
-
         /// <summary>
         /// 
         /// </summary>
@@ -243,45 +198,29 @@ namespace Play.Sound {
         /// m_pZP being set to &m_pZ[m_W+m_Tap+1]. I've removed that.
         /// But it depends on m_W & m_Tap being unchanged in the interrum.
         /// Not clear if that's a safe assumption yet.</remarks>
-        double Do( double[] hp ) {
-            int    iZP = m_W + m_Tap + 1;
-            double d   = 0;
-
-            if( iZP > m_pZ.Length )
-                throw new InvalidOperationException();
-
-            for( int i = 0; i <= m_Tap; i++ ){
-		        d += m_pZ[iZP--] * hp[i];
-            }
-
-            return d;
+        double Do( double d ) {
+            return Do( m_pH, d );
         }
 
-        public double Do( double d ) {
-            return Do( m_pH, ref d, out _ );
-        }
-
-
-        public double Do( double[] hp, ref double d, out double j ) {
-            int    iZP = m_W + m_Tap + 1;
-            double dd  = 0;
+        public double Do( in double[] hp, in double d ) {
+            int iZP = m_W + m_Tap + 1;
 
             if( iZP > m_pZ.Length )
                 throw new InvalidOperationException();
 
 	        m_pZ[iZP] = d;
             m_pZ[m_W] = d;
-            for( int i = 0; i <= m_Tap; i++ ){
-		        dd += m_pZ[iZP--] * hp[i];
+
+            double r = 0;
+            for( int i = 0; i <= m_Tap; i++ ) {
+		        r += m_pZ[iZP--] * hp[i];
             }
-            j = dd;
-            d = m_pZ[m_W + m_TapHalf + 1];
 
             m_W++;
 	        if( m_W > m_Tap ) 
                 m_W = 0;
 
-            return dd;
+            return r;
         }
 
 		public static void MakeFilter( double[]HP, int tap, FirFilt type, 

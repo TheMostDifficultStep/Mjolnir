@@ -1327,24 +1327,23 @@ namespace Play.Sound {
 		/// </summary>
 		/// <param name="s">A single sample</param>
 		/// <exception cref="NotImplementedException">If the video decoder is unrecognized.</exception>
-		public void Do(double s) {
+		public void Do( in double s) {
 			if( (s > 24578.0) || (s < -24578.0) ){
 				m_OverFlow = 1; // The grapher probably clears this.
 			}
 			double d = (s + m_ad) * 0.5;    // LPF
 			m_ad = s;
-			if( m_bpf != 0 ){
+			if( m_bpf != BandPass.Undefined ) {
 				if( Synced || (m_SyncMode >= 3) ){
-					// BUG: Double check this _ stuff.
-					// We don't support narrow band modes.
-					d = m_BPF.Do( /* m_fNarrow ? HBPFN : */ HBPF, ref d, out _ );
+					// We don't support narrow band modes.... yet.
+					d = m_BPF.Do( /* m_fNarrow ? HBPFN : */ HBPF, d );
 				} else {
-					d = m_BPF.Do( HBPFS, ref d, out _ );
+					d = m_BPF.Do( HBPFS, d );
 				}
 			}
 			m_Rcptlvl.Do(d);
-			double od = d; // Original value of d;
-			double ad = m_Rcptlvl.AGC(d);
+			double od = d;                 // Original value of d;
+			double ad = m_Rcptlvl.AGC(d);  // Agc value of d;
 		    m_Rcptlvl.Fix(); // This was in TMmsstv::DrawLvl, no analog to that here yet...
 
 			d = ad * 32;
