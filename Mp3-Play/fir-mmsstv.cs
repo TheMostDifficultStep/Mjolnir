@@ -76,7 +76,6 @@ namespace Play.Sound {
 		}
 
 		public void MakeFilter( double [] HP ) {
-			int		j, m;
 			double	alpha, win, fm, w0, sum;
 			
 			if( HP == hp )
@@ -92,6 +91,7 @@ namespace Play.Sound {
 				alpha = 0.0;
 			}
 
+			int j;
 			sum = Math.PI*2.0*fc/fs;
 			if( att >= 21 ){ // インパルス応答と窓関数を計算 : Calculate impulse response and window function 
 				for( j = 0; j <= (n/2); j++ ){
@@ -104,13 +104,9 @@ namespace Play.Sound {
 					}
 				}
 			} else {		// インパルス応答のみ計算 : Calculate impulse response only 
-				for( j = 0; j <= (n/2); j++ ){
-					if( j == 0 ){
-						hp[j] = fc * 2.0/fs;
-					}
-					else {
-						hp[j] = (1.0/(Math.PI*(double)j))*Math.Sin((double)j*sum);
-					}
+				hp[0] = fc * 2.0/fs;
+				for( j = 1; j <= (n/2); j++ ){
+					hp[j] = (1.0/(Math.PI*(double)j))*Math.Sin((double)j*sum);
 				}
 			}
 			sum = hp[0];
@@ -140,17 +136,17 @@ namespace Play.Sound {
 						hp[j] *= -2.0*Math.Cos((double)j*w0);
 				}
 			}
-			int i;
-			for( i=0, m = n/2, j = m; j >= 0; j--, i++ ) {
-				HP[i] = hp[m] * gain;
+			int i, m = n/2;
+			for( i=0, j = m; j >= 0; j--, i++ ) {
+				HP[i] = hp[j] * gain;
 			}
 			for( i=0, j = 1; j <= (n/2); j++, i++ ) {
-				HP[i] = hp[j] * gain;
+				HP[j+m] = hp[j] * gain;
 			}
 		}
 	}
 
-	class CFIR2 {
+	public class CFIR2 {
 	    int		 m_Tap;
 	    double[] m_pZ;
         double[] m_pH;
@@ -198,7 +194,7 @@ namespace Play.Sound {
         /// m_pZP being set to &m_pZ[m_W+m_Tap+1]. I've removed that.
         /// But it depends on m_W & m_Tap being unchanged in the interrum.
         /// Not clear if that's a safe assumption yet.</remarks>
-        double Do( double d ) {
+        public double Do( double d ) {
             return Do( m_pH, d );
         }
 
