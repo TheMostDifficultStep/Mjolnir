@@ -152,6 +152,7 @@ namespace Play.SSTV {
 		protected readonly WindowSoloImageNav _wmTxImageChoice;
 		protected readonly ImageViewSingle    _wmTxImageComposite;
 		protected readonly ImageViewIcons     _wmTxViewChoices;
+		protected readonly ImageViewIcons     _wmRxViewChoices;
 
         public override string Banner {
 			get { 
@@ -171,10 +172,12 @@ namespace Play.SSTV {
 			_wmTxImageChoice    = new WindowSoloImageNav( new SSTVWinSlot( this, ChildID.TxImage ),        oDocSSTV.TxImageList );
 			_wmTxViewChoices    = new ImageViewIcons    ( new SSTVWinSlot( this, ChildID.TxImageChoices ), oDocSSTV.TxImageList );
 			_wmTxImageComposite = new ImageViewSingle   ( new SSTVWinSlot( this, ChildID.TxImageSnip ),    oDocSSTV.TxBitmapComp );
+			_wmRxViewChoices    = new ImageViewIcons    ( new SSTVWinSlot( this, ChildID.RxImageChoices ), oDocSSTV.RxHistoryList );
 
 			_wmTxImageChoice   .Parent = this;
 			_wmTxViewChoices   .Parent = this;
 			_wmTxImageComposite.Parent = this;
+			_wmRxViewChoices   .Parent = this;
 
 			_wmTxImageChoice.SetBorderOn();
 		}
@@ -188,6 +191,7 @@ namespace Play.SSTV {
 				_wmTxImageChoice   .Dispose();
 				_wmTxViewChoices   .Dispose();
 				_wmTxImageComposite.Dispose();
+				_wmRxViewChoices   .Dispose();
 
 				_fDisposed = true;
 			}
@@ -201,6 +205,8 @@ namespace Play.SSTV {
 				return false;
 			if( !_wmTxImageComposite.InitNew() )
 				return false;
+			if( !_wmRxViewChoices   .InitNew() )
+				return false;
 
             _oDocSSTV.PropertyChange            += OnPropertyChange_SSTVDoc;
             _oDocSSTV.TemplateList.CheckedEvent += OnCheckedEvent_TemplateList;
@@ -210,10 +216,11 @@ namespace Play.SSTV {
 			_wmTxImageChoice.Aspect     = _oDocSSTV.TxResolution;
 			_wmTxImageChoice.DragMode   = DragMode.FixedRatio;
 
-			_rgSubLayout.Add(new LayoutControl( _wmTxImageComposite, LayoutRect.CSS.None) );
-			_rgSubLayout.Add(new LayoutControl( _wmTxImageChoice,    LayoutRect.CSS.None) );
+			_rgStaggaredLayout.Add(new LayoutControl( _wmTxImageComposite, LayoutRect.CSS.None) );
+			_rgStaggaredLayout.Add(new LayoutControl( _wmTxImageChoice,    LayoutRect.CSS.None) );
+			_rgStaggaredLayout.Add(new LayoutControl( _wmRxViewChoices,    LayoutRect.CSS.None) );
 
-			_oLayout.Add( _rgSubLayout );
+			_oLayout.Add( _rgStaggaredLayout );
             _oLayout.Add( new LayoutControl( _wmTxViewChoices, LayoutRect.CSS.Pixels, 220 ) );
 
             OnSizeChanged( new EventArgs() );
@@ -371,6 +378,9 @@ namespace Play.SSTV {
 				case ChildID.TxImageSnip:
 					RenderComposite();
 					_wmTxImageComposite.BringToFront();
+					break;
+				case ChildID.RxImageChoices:
+					_wmRxViewChoices.BringToFront();
 					break;
 			}
         }

@@ -423,6 +423,7 @@ namespace Play.SSTV {
 		TxImage,
 		TxImageChoices,
 		TxImageSnip,
+		RxImageChoices,
 		None
 	}
 
@@ -444,7 +445,7 @@ namespace Play.SSTV {
         public bool		 IsDirty   => false;
 
 		protected readonly LayoutStack     _oLayout = new LayoutStackVertical( 5 );
-		protected readonly LayoutStaggared _rgSubLayout = new (5);
+		protected readonly LayoutStaggared _rgStaggaredLayout = new (5);
 
 		protected class SSTVWinSlot :
 			IPgFileSite,
@@ -714,10 +715,10 @@ namespace Play.SSTV {
 
             _oDocSSTV.PropertyChange += OnPropertyChange_DocSSTV;
 
-			_rgSubLayout.Add(new LayoutControl(_wmViewRxImg,    LayoutRect.CSS.None) );
-			_rgSubLayout.Add(new LayoutControl(_wnSoloImageNav, LayoutRect.CSS.None) );
+			_rgStaggaredLayout.Add(new LayoutControl(_wmViewRxImg,    LayoutRect.CSS.None) );
+			_rgStaggaredLayout.Add(new LayoutControl(_wnSoloImageNav, LayoutRect.CSS.None) );
 
-			_oLayout.Add( _rgSubLayout );
+			_oLayout.Add( _rgStaggaredLayout );
             _oLayout.Add( new LayoutControl( _wmViewRxHistory, LayoutRect.CSS.Pixels, 220 ) );
 
             OnSizeChanged( new EventArgs() );

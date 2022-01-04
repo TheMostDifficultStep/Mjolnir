@@ -150,10 +150,46 @@ namespace Play.Sound {
 	}
 
 	/// <summary>
-	/// Another dummy for now.
+	/// Ported over in preparation for the input level display. I might
+	/// turn this one back into a class so I can implement a dummy in the case
+	/// that the Level Display is showing the Receipt signals and not the Sync.
 	/// </summary>
-	class CSLVL {
-		public void Do( double d ) { }
+	struct CSLVL {
+		double  m_Max;
+		double  m_Min;
+		double  m_Lvl;
+
+		         int m_Cnt;
+		readonly int m_CntMax;
+
+		public CSLVL( double dblSampFreq ){
+			m_CntMax = (int)(dblSampFreq * 100 / 1000.0);
+
+			m_Max = 0;
+			m_Min = 16384;
+			m_Lvl = 0;
+			m_Cnt = 0;
+		}
+		public void Do(double d){
+			if( m_Max < d ) 
+				m_Max = d;
+			if( m_Min > d ) 
+				m_Min = d;
+
+			m_Cnt++;
+		}
+		public void Fix() {
+			if( m_Cnt < m_CntMax ) 
+				return;	// did not store yet
+			m_Cnt = 0;
+			m_Lvl = m_Max - m_Min;
+			m_Max = 0;
+			m_Min = 16384;
+		}
+
+		double GetLvl(){
+			return m_Lvl;
+		}
 	}
 
 	public class CHILL
@@ -482,14 +518,19 @@ namespace Play.Sound {
 		}
 	}
 
-	class CLVL
+	public enum LevelDisplay {
+		Receipt,
+		Sync
+	}
+
+	struct CLVL
 	{
-		public double m_Cur { get; protected set; }
+		public double m_Cur { get; private set; }
 
 		double m_PeakMax;
 		double m_PeakAGC;
 		double m_Peak;
-		public double m_CurMax { get; protected set; }
+		public double m_CurMax { get; private set; }
 		double m_Max;
 		double m_agc;
 		int    m_CntPeak;
@@ -500,35 +541,40 @@ namespace Play.Sound {
 
 		public CLVL( int iSampFreq, bool fAgcFast = false ){
 			m_agcfast = fAgcFast;
-			m_CntMax = (int)(iSampFreq * 100 / 1000.0);
-			Init();
-		}
+			m_CntMax  = (int)(iSampFreq * 100 / 1000.0);
 
-		void Init(){
 			m_PeakMax = 0;
 			m_PeakAGC = 0;
-			m_Peak = 0;
-			m_Cur = 0;
-			m_CurMax = 0.0;
-			m_Max = 0;
-			m_agc = 1.0;
+			m_Peak    = 0;
+			m_Cur     = 0;
+		    m_CurMax  = 0.0;
+			m_Max     = 0;
+			m_agc     = 1.0;
 			m_CntPeak = 0;
-			m_Cnt = 0;
+			m_Cnt     = 0;
 		}
 
 		public void Do(double d ){
 			m_Cur = d;
-			if( d < 0.0 ) d = -d;
-			if( m_Max < d ) m_Max = d;
+
+			if( d < 0.0 ) 
+				d = -d;
+			if( m_Max < d ) 
+				m_Max = d;
+
 			m_Cnt++;
 		}
 
-		void Fix(){
-			if( m_Cnt < m_CntMax ) return;	// did not store yet
+		public void Fix(){
+			if( m_Cnt < m_CntMax ) 
+				return;	// did not store yet
+
 			m_Cnt = 0;
 			m_CntPeak++;
-			if( m_Peak < m_Max ) m_Peak = m_Max;
-			if( m_CntPeak >= 5 ){
+			if( m_Peak < m_Max ) 
+				m_Peak = m_Max;
+
+			if( m_CntPeak >= 5 ) {
 				m_CntPeak = 0;
 				m_PeakMax = m_Max;
 				m_PeakAGC = (m_PeakAGC + m_Max) * 0.5;
@@ -769,11 +815,11 @@ namespace Play.Sound {
 		readonly CIIR     m_lpf13;
 		readonly CIIR     m_lpf19;
 
-		readonly CLVL     m_lvl;
-		readonly CSLVL    m_SyncLvl = new();
+		CLVL     m_Rcptlvl; // if you make this readonly struct, demodulation doesn't work!
+		CSLVL    m_SyncLvl; // The program will compile but member variables won't update.
+		readonly LevelDisplay m_LevelType = LevelDisplay.Receipt; // see mmsstv menu: "View/Level indicator/(receipt | sync)"
 
 		public readonly FreqDetect m_Type      = FreqDetect.Hilbert; // FreqDetect.FQC; // BUG: This s/b parameter.
-			   readonly bool       m_LevelType = false; // TODO: Probably sb param too. If make true, you must implement CSLVL class.
 
 		// These three should inherit from a common interface.
 		readonly CPLL	  m_pll;
@@ -801,7 +847,7 @@ namespace Play.Sound {
 		protected short[] m_B12;
 
 		public    double m_SLvl  { get; protected set; }
-		protected double m_SLvl2;
+		protected double m_SLvlHalf;
 
 		bool              m_ScopeFlag;
 		readonly CScope[] m_Scope = new CScope[2];
@@ -845,7 +891,7 @@ namespace Play.Sound {
 		readonly double[] _rgSenseLevels = { 2400, 3500, 4800, 6000 };
 
 		public SSTVDEM( SYSSET p_sys, double dblSampFreq, double dblSampBase = -1, double dbToneOffset=0 ) {
-			Sys             = p_sys ?? throw new ArgumentNullException( "sys must not be null." );
+			Sys             = p_sys ?? throw new ArgumentNullException( nameof( p_sys ) );
 
 			m_dblToneOffset = dbToneOffset;
 			SampFreq        = dblSampFreq;
@@ -871,9 +917,6 @@ namespace Play.Sound {
 			m_Buf = new short[iBufSize];
 			m_B12 = new short[iBufSize];
 
-		  //Array.Clear( m_Buf, 0, m_Buf.Length );
-		  //Array.Clear( m_B12, 0, m_Buf.Length );
-
 			_rgFreqTable = new LookupNormal( Sys.m_bCQ100 );
 			m_fqc  = new CFQC ( SampFreq, dbToneOffset, _rgFreqTable ); 
 			m_hill = new CHILL( SampFreq, SampBase, dbToneOffset, _rgFreqTable );
@@ -888,7 +931,7 @@ namespace Play.Sound {
 			Array.Clear( HBPFS, 0, HBPFS.Length );
 			Array.Clear( HBPFN, 0, HBPFN.Length );
 			SetBPF( BandPass.Wide );
-			//CalcBPF();
+		//  SetBPF calls CalcBPF() so no need to call twice.
 
 			m_iir11  = new CIIRTANK( dblSampFreq );
 			m_iir12  = new CIIRTANK( dblSampFreq );
@@ -921,7 +964,9 @@ namespace Play.Sound {
 			m_ScopeFlag = false;
 			m_Lost      = false;
 
-			m_lvl = new CLVL( (int)SampFreq, fAgcFast:true );
+			m_Rcptlvl     = new CLVL ( (int)SampFreq, fAgcFast:true );
+			m_SyncLvl = new CSLVL( SampFreq );
+
 			m_afc = true;
 
 			m_Tick   = 0;
@@ -1064,7 +1109,7 @@ namespace Play.Sound {
 		/// <param name="H3">UNITIALIZED. It's for narrow modes which we don't support.</param>
 		/// <param name="bpftap"></param>
 		/// <param name="bpf"></param>
-		public void CalcBPF(double[] H1, double[] H2, double[] H3, ref int bpftap, BandPass bpf)
+		protected void CalcBPF(double[] H1, double[] H2, double[] H3, ref int bpftap, BandPass bpf)
 		{
 			int lfq  = (int)((m_SyncRestart ? 1100 : 1200) + m_dblToneOffset );
 			int lfq2 = (int)(400 + m_dblToneOffset );
@@ -1127,6 +1172,7 @@ namespace Play.Sound {
 			}
 			low  += (int)m_dblToneOffset;
 			high += (int)m_dblToneOffset;
+
 			switch(bpf){
 				case BandPass.Wide:
 					CFIR2.MakeFilter(H3, bpftap, FirFilt.ffBPF, SampFreq,  low-200, high, 20, 1.0);
@@ -1140,11 +1186,6 @@ namespace Play.Sound {
 				default:
 					break;
 			}
-		}
-
-		public void CalcBPF() {
-			CalcBPF(HBPF, HBPFS, HBPFN, ref m_bpftap, m_bpf );
-			m_BPF.Create(m_bpftap);
 		}
 
 		/// <summary>
@@ -1165,7 +1206,7 @@ namespace Play.Sound {
 				m_bpf = bpf;
 
 				int delay = m_bpftap;
-				CalcBPF();
+				CalcBPF(); // m_bpftap gets changed as a side effect in here.
 				if( Synced ) {
 					delay = (m_bpftap - delay) / 2;
 					m_Skip = delay;
@@ -1173,9 +1214,14 @@ namespace Play.Sound {
 			}
 		}
 
+		public void CalcBPF() {
+			CalcBPF(HBPF, HBPFS, HBPFN, ref m_bpftap, m_bpf );
+			m_BPF.Create(m_bpftap);
+		}
+
 		void Idle(double d)	{
 			if( !Sys.m_TestDem ) 
-				m_lvl.Do(d);
+				m_Rcptlvl.Do(d);
 		}
 
 		void SetTickFreq(int f)	{
@@ -1264,15 +1310,19 @@ namespace Play.Sound {
 		/// <summary>
 		/// At present this is only called in the constructor. Maybe when I get further
 		/// along I'll see about a dialog setting for this or something.
+		/// 0 - Lowest
+		/// 1 - Lower
+		/// 2 - Highter
+		/// 3 - Highest
 		/// </summary>
-		/// <param name="iSenseLvl">1, 2, or 3 with 0 the default for out of range.</param>
-		void SetSenseLevel( int iSenseLvl ) {
+		/// <param name="iSquelchLvl">0, 1, 2, or 3 with 0 the default for out of range.</param>
+		void SetSenseLevel( int iSquelchLvl ) {
 			try {
-				m_SLvl = _rgSenseLevels[iSenseLvl];
+				m_SLvl = _rgSenseLevels[iSquelchLvl];
 			} catch( IndexOutOfRangeException ) {
 				m_SLvl = _rgSenseLevels[0];
 			}
-			m_SLvl2 = m_SLvl * 0.5;
+			m_SLvlHalf = m_SLvl * 0.5;
 		}
 
 		/// <summary>
@@ -1297,8 +1347,9 @@ namespace Play.Sound {
 					d = m_BPF.Do( HBPFS, ref d, out _ );
 				}
 			}
-			m_lvl.Do(d);
-			double ad = m_lvl.AGC(d);
+			m_Rcptlvl.Do(d);
+			double ad = m_Rcptlvl.AGC(d);
+		    m_Rcptlvl.Fix(); // This was in TMmsstv::DrawLvl, no analog to that here yet...
 
 			d = ad * 32;
 			if( d >  16384.0 ) 
@@ -1325,7 +1376,7 @@ namespace Play.Sound {
 
 			if( m_ScopeFlag )
 				m_Scope[0].WriteData( dHSync );
-			if( m_LevelType ) 
+			if( m_LevelType == LevelDisplay.Sync ) 
 				m_SyncLvl.Do( dHSync );
 
 			if( m_Tick != 0 ) {
@@ -1387,7 +1438,7 @@ namespace Play.Sound {
 					case 9:                 // Expanded VIS decode.
 						m_SyncTime--;
 						if( m_SyncTime == 0 ){
-							if( ((d11 < d19) && (d13 < d19)) || (Math.Abs(d11-d13) < (m_SLvl2)) ) {
+							if( ((d11 < d19) && (d13 < d19)) || (Math.Abs(d11-d13) < (m_SLvlHalf)) ) {
 								m_SyncMode = 0; // Start over?
 							} else {
 								m_SyncTime = (int)(30 * SampFreq/1000 ); // Get next bit.
@@ -1456,18 +1507,18 @@ namespace Play.Sound {
 			if( Synced ){
 				switch(m_Type){
 					case FreqDetect.PLL:		// PLL
-						if( m_afc && (m_lvl.m_CurMax > 16) )
-							SyncFreq(m_fqc.Do(m_lvl.m_Cur));
-						d = m_pll.Do(m_lvl.m_Cur);
+						if( m_afc && (m_Rcptlvl.m_CurMax > 16) )
+							SyncFreq(m_fqc.Do(m_Rcptlvl.m_Cur));
+						d = m_pll.Do(m_Rcptlvl.m_Cur);
 						break;
 					case FreqDetect.FQC:		// Zero-crossing
-						d = m_fqc.Do(m_lvl.m_Cur);
-						if( m_afc && (m_lvl.m_CurMax > 16) )
+						d = m_fqc.Do(m_Rcptlvl.m_Cur);
+						if( m_afc && (m_Rcptlvl.m_CurMax > 16) )
 							SyncFreq(d);
 						break;
 					case FreqDetect.Hilbert:	// Hilbert
-						d = m_hill.Do(m_lvl.m_Cur);
-						if( m_afc && (m_lvl.m_CurMax > 16) )
+						d = m_hill.Do(m_Rcptlvl.m_Cur);
+						if( m_afc && (m_Rcptlvl.m_CurMax > 16) )
 							SyncFreq(d);
 						break;
 					default:
@@ -1496,13 +1547,13 @@ namespace Play.Sound {
 
 				switch(m_Type){
 					case FreqDetect.PLL:
-						m_CurSig = m_Avg.Avg(m_pll.Do(m_lvl.m_Cur));
+						m_CurSig = m_Avg.Avg(m_pll.Do(m_Rcptlvl.m_Cur));
 						break;
 					case FreqDetect.FQC:
-						m_CurSig = m_Avg.Avg(m_fqc.Do(m_lvl.m_Cur));
+						m_CurSig = m_Avg.Avg(m_fqc.Do(m_Rcptlvl.m_Cur));
 						break;
 					case FreqDetect.Hilbert:
-						m_CurSig = m_Avg.Avg(m_hill.Do(m_lvl.m_Cur));
+						m_CurSig = m_Avg.Avg(m_hill.Do(m_Rcptlvl.m_Cur));
 						break;
 					default:
 						throw new NotImplementedException( "Unrecognized Frequency Detector" );

@@ -1183,7 +1183,7 @@ namespace Play.SSTV {
 
                         _oWaveIn.BufferMilliseconds = 250;
                         _oWaveIn.DeviceNumber       = iMicrophone;
-                        _oWaveIn.WaveFormat         = new WaveFormat( 8000, 16, 1 );
+                        _oWaveIn.WaveFormat         = new WaveFormat( 11028, 16, 1 );
                         _oWaveIn.NumberOfBuffers    = 2;
                         _oWaveIn.DataAvailable += OnDataAvailable_WaveIn;
                     }
