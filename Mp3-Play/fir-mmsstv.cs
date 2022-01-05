@@ -37,7 +37,7 @@ namespace Play.Sound {
 		readonly double gain;
 		readonly double fc;
 
-		readonly double[] hp = new double[SSTVDEM.TAPMAX+1];		/* 係数配列 : Coefficient array */
+		readonly double[] hp = new double[SSTVDEM.TAPMAX+1]; /* 係数配列 : Coefficient array */
 
 		public FIR( int tap, FirFilt type, double fs, double fcl, double fch, double att, double gain)
 		{
@@ -61,19 +61,21 @@ namespace Play.Sound {
 			}
 		}
 
-		static double I0( double x ) {
+		static double I0( in double x ) {
 			double sum = 1.0;
 			double xj  = 1.0;
-			int    j   = 1;
-			while(true){
-				xj *= ((0.5 * x) / (double)j);
-				sum += (xj*xj);
-				j++;
-				if( ((0.00000001 * sum) - (xj*xj)) > 0 ) 
-					break;
-			}
+			double j   = 1;
+			double dblXJ2;
+
+			do {
+				xj     *= 0.5 * x / j++;
+				dblXJ2 = xj*xj;
+				sum    += dblXJ2;
+			} while( ((0.00000001 * sum) - dblXJ2) <= 0 );
+
 			return sum;
 		}
+
 
 		public void MakeFilter( double [] HP ) {
 			double	alpha, win, fm, w0, sum;
@@ -149,7 +151,7 @@ namespace Play.Sound {
 	public class CFIR2 {
 	    int		 m_Tap;
 	    double[] m_pZ;
-        double[] m_pH;
+        double[] m_pH; // I might split this off to a sub-class, after I add the Level Display.
 
         int	m_W;
 
@@ -187,13 +189,6 @@ namespace Play.Sound {
                 Array.Clear( m_pZ, 0, m_pZ.Length );
         }
         
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <remarks>This looks like used to depend on side effect of
-        /// m_pZP being set to &m_pZ[m_W+m_Tap+1]. I've removed that.
-        /// But it depends on m_W & m_Tap being unchanged in the interrum.
-        /// Not clear if that's a safe assumption yet.</remarks>
         public double Do( double d ) {
             return Do( m_pH, d );
         }
@@ -220,8 +215,8 @@ namespace Play.Sound {
         }
 
 		public static void MakeFilter( double[]HP, int tap, FirFilt type, 
-			                    double fs,  double fcl, double fch, 
-								double att, double gain )
+									   double fs,  double fcl, double fch, 
+									   double att, double gain )
 		{
 			FIR	fir = new FIR( tap, type, fs, fcl, fch, att, gain );
 
