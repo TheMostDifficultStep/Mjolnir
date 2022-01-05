@@ -169,9 +169,9 @@ namespace Play.SSTV {
 		}
 
         public ViewTransmitDeluxe( IPgViewSite oSiteBase, DocSSTV oDocSSTV ) : base( oSiteBase, oDocSSTV ) {
-			_wmTxImageChoice    = new WindowSoloImageNav( new SSTVWinSlot( this, ChildID.TxImage ),        oDocSSTV.TxImageList );
+			_wmTxImageChoice    = new WindowSoloImageNav( new SSTVWinSlot( this, ChildID.TxImageChoice ),        oDocSSTV.TxImageList );
 			_wmTxViewChoices    = new ImageViewIcons    ( new SSTVWinSlot( this, ChildID.TxImageChoices ), oDocSSTV.TxImageList );
-			_wmTxImageComposite = new ImageViewSingle   ( new SSTVWinSlot( this, ChildID.TxImageSnip ),    oDocSSTV.TxBitmapComp );
+			_wmTxImageComposite = new ImageViewSingle   ( new SSTVWinSlot( this, ChildID.TxImageComposite ),    oDocSSTV.TxBitmapComp );
 			_wmRxViewChoices    = new ImageViewIcons    ( new SSTVWinSlot( this, ChildID.RxImageChoices ), oDocSSTV.RxHistoryList );
 
 			_wmTxImageChoice   .Parent = this;
@@ -208,9 +208,11 @@ namespace Play.SSTV {
 			if( !_wmRxViewChoices   .InitNew() )
 				return false;
 
-            _oDocSSTV.PropertyChange            += OnPropertyChange_SSTVDoc;
-            _oDocSSTV.TemplateList.CheckedEvent += OnCheckedEvent_TemplateList;
-			_oDocSSTV.TxModeList  .CheckedEvent += OnCheckedEvent_TxModeList;
+            _oDocSSTV.PropertyChange             += OnPropertyChange_SSTVDoc;
+            _oDocSSTV.TemplateList .CheckedEvent += OnCheckedEvent_TemplateList;
+			_oDocSSTV.TxModeList   .CheckedEvent += OnCheckedEvent_TxModeList;
+            _oDocSSTV.RxHistoryList.ImageUpdated += OnImageUpdated_RxHistoryList;
+			_oDocSSTV.TxImageList  .ImageUpdated += OnImageUpdated_TxImageList;
 
 			_wmTxImageChoice.ToolSelect = 0; 
 			_wmTxImageChoice.Aspect     = _oDocSSTV.TxResolution;
@@ -231,7 +233,15 @@ namespace Play.SSTV {
 			return true;
         }
 
-		protected SSTVMode SSTVModeSelection { 
+        private void OnImageUpdated_RxHistoryList() {
+            RenderComposite();
+        }
+
+        private void OnImageUpdated_TxImageList() {
+			_wmTxImageChoice.SelectAll();
+            RenderComposite();
+        }
+        protected SSTVMode SSTVModeSelection { 
 			get {
                 if( _oDocSSTV.TxModeList.CheckedLine == null )
                     _oDocSSTV.TxModeList.CheckedLine = _oDocSSTV.TxModeList[_oDocSSTV.RxModeList.CheckedLine.At];
@@ -253,7 +263,7 @@ namespace Play.SSTV {
 				_wmTxImageChoice.Aspect = _oDocSSTV.TxResolution;
 
 				_oDocSSTV.TemplateSet( oLineChecked.At );
-				// Why not render...
+				RenderComposite();
 			} catch( NullReferenceException ) {
 				LogError( "Transmit", "Problem setting aspect for template" );
 			}
@@ -372,19 +382,12 @@ namespace Play.SSTV {
 
         protected override void BringChildToFront(ChildID eID) {
 			switch( eID ) {
-				case ChildID.TxImageChoices:
-					_wmTxImageChoice.BringToFront();
-					_wmTxImageChoice.Select();
-					break;
-				case ChildID.TxImage:
-					_wmTxImageChoice.BringToFront();
-					break;
-				case ChildID.TxImageSnip:
+				case ChildID.TxImageComposite:
 					RenderComposite();
 					_wmTxImageComposite.BringToFront();
 					break;
-				case ChildID.RxImageChoices:
-					_wmRxViewChoices.BringToFront();
+				case ChildID.TxImageChoice:
+					_wmTxImageChoice.BringToFront();
 					break;
 			}
         }

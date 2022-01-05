@@ -420,9 +420,9 @@ namespace Play.SSTV {
 		RxWindow,
 		HistoryNavWindow,
 		HistoryIconsWindow,
-		TxImage,
+		TxImageChoice,
 		TxImageChoices,
-		TxImageSnip,
+		TxImageComposite,
 		RxImageChoices,
 		None
 	}
