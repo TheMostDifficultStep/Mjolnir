@@ -840,7 +840,7 @@ namespace Play.SSTV {
 
             protected ConcurrentQueue<SSTVMessage> _oBGtoFGQueue;
 
-            public TxState( SSTVMode oMode, int iGain, int iDevice, SKBitmap skBitmap, ConcurrentQueue<SSTVMessage> oBGtoFGQueue ) {
+            public TxState( SSTVMode oMode, double dblSampFreq, int iGain, int iDevice, SKBitmap skBitmap, ConcurrentQueue<SSTVMessage> oBGtoFGQueue ) {
                 if( oMode == null )
                     throw new ArgumentNullException( nameof( oMode ) );
                 if( skBitmap == null )
@@ -848,10 +848,11 @@ namespace Play.SSTV {
 
                 _oBGtoFGQueue = oBGtoFGQueue ?? throw new ArgumentNullException( nameof( oBGtoFGQueue ) );
 
-                Specification oTxSpec = new( 11025, 1, 0, 16 );
+                // TODO: change sample frequency in spec object to be a double precision?
+                Specification oTxSpec = new( (long)dblSampFreq, 1, 0, 16 );
 
                 _oSSTVBuffer    = new BufferSSTV( oTxSpec );
-				_oSSTVModulator = new SSTVMOD( 0, oTxSpec.Rate, _oSSTVBuffer, iGain );
+				_oSSTVModulator = new SSTVMOD( 0, dblSampFreq, _oSSTVBuffer, iGain );
 
 				switch( oMode.Family ) {
 					case TVFamily.PD:
@@ -941,8 +942,10 @@ namespace Play.SSTV {
             StateTx = true;
 
             Action oTransmitAction = delegate () {
+                // Use WWV to find the precise sample frequency of sound card. 
+                // TODO: Port the tuner from MMSSTV and make it a property.
                 SKBitmap bmpCopy = TxBitmapComp.Bitmap.Copy();
-                TxState oState   = new TxState( oMode, MicrophoneGain, PortTxList.CheckedLine.At, 
+                TxState oState   = new TxState( oMode, 11023.72, MicrophoneGain, PortTxList.CheckedLine.At, 
                                                 bmpCopy, _rgBGtoUIQueue );
                 foreach( uint uiWait in oState ) {
                     Thread.Sleep( (int)uiWait );
@@ -1181,6 +1184,7 @@ namespace Play.SSTV {
                     if( _oWaveIn == null ) {
                         _oWaveIn = new WaveIn( WaveCallbackInfo.FunctionCallback() );
 
+                        // System works best if frequency here is not the calibrated value.
                         _oWaveIn.BufferMilliseconds = 250;
                         _oWaveIn.DeviceNumber       = iMicrophone;
                         _oWaveIn.WaveFormat         = new WaveFormat( 11028, 16, 1 );
