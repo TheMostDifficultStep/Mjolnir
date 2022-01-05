@@ -64,8 +64,8 @@ namespace Play.SSTV {
 		  //yield return new ViewType( "Spectrum",            ViewFFT      .ViewType );
 			yield return new ViewType( "Display from Device", WindowDeviceViewer.GUID );
 			yield return new ViewType( "Display from File",   WindowFileViewer  .GUID );
+		    yield return new ViewType( "Transmit",            ViewTransmitDeluxe.GUID );
 		    yield return new ViewType( "Diagnostics",         WindowDiagnostics .GUID );
-		    yield return new ViewType( "Transmit Deluxe",     ViewTransmitDeluxe.GUID );
 			yield return new ViewType( "History",             WindowSSTVHistory .GUID );
 			yield return new ViewType( "Settings",            ViewSettings      .GUID );
 		}

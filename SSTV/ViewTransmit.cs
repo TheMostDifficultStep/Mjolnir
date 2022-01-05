@@ -218,10 +218,14 @@ namespace Play.SSTV {
 
 			_rgStaggaredLayout.Add(new LayoutControl( _wmTxImageComposite, LayoutRect.CSS.None) );
 			_rgStaggaredLayout.Add(new LayoutControl( _wmTxImageChoice,    LayoutRect.CSS.None) );
-			_rgStaggaredLayout.Add(new LayoutControl( _wmRxViewChoices,    LayoutRect.CSS.None) );
+
+			LayoutStack oHBLayout = new LayoutStackHorizontal( 5, 220, 30 );
+
+			oHBLayout.Add( new LayoutControl( _wmTxViewChoices, LayoutRect.CSS.Percent, 50 ) );
+			oHBLayout.Add( new LayoutControl( _wmRxViewChoices, LayoutRect.CSS.Percent, 50 ) );
 
 			_oLayout.Add( _rgStaggaredLayout );
-            _oLayout.Add( new LayoutControl( _wmTxViewChoices, LayoutRect.CSS.Pixels, 220 ) );
+            _oLayout.Add( oHBLayout );
 
             OnSizeChanged( new EventArgs() );
 			return true;
