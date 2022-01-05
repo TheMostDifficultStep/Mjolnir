@@ -184,9 +184,11 @@ namespace Play.SSTV {
 
         protected override void Dispose( bool fDisposing ) {
 			if( fDisposing && !_fDisposed ) {
-				_oDocSSTV.PropertyChange            -= OnPropertyChange_SSTVDoc;
-				_oDocSSTV.TemplateList.CheckedEvent -= OnCheckedEvent_TemplateList;
-				_oDocSSTV.TxModeList  .CheckedEvent -= OnCheckedEvent_TxModeList;
+				_oDocSSTV.PropertyChange             -= OnPropertyChange_SSTVDoc;
+				_oDocSSTV.TemplateList .CheckedEvent -= OnCheckedEvent_TemplateList;
+				_oDocSSTV.TxModeList   .CheckedEvent -= OnCheckedEvent_TxModeList;
+				_oDocSSTV.RxHistoryList.ImageUpdated -= OnImageUpdated_RxHistoryList;
+				_oDocSSTV.TxImageList  .ImageUpdated -= OnImageUpdated_TxImageList;
 
 				_wmTxImageChoice   .Dispose();
 				_wmTxViewChoices   .Dispose();
