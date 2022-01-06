@@ -252,7 +252,8 @@ namespace Play.Sound {
         Martin,
         Scottie,
         PD, 
-        BW // Robot?
+        BW, // Robot?
+        WWV
     }
 
     public enum ScanLineChannelType {
@@ -309,14 +310,14 @@ namespace Play.Sound {
         /// </summary>
         /// <param name="bVIS"></param>
         /// <param name="strName">Human readable name of mode.</param>
-        /// <param name="dbTxWidth">Tx width of scan line in ms.</param>
+        /// <param name="dbTxWidthInMS">Tx width of scan line in ms.</param>
         /// <param name="skSize">Do NOT include the top 16 scan line grey scale in the height value.</param>
         public SSTVMode( TVFamily tvMode, byte bVIS, string strName, 
-                         double dbTxWidth, SKSizeI skSize, AllModes eLegacy = AllModes.smEND ) 
+                         double dbTxWidthInMS, SKSizeI skSize, AllModes eLegacy = AllModes.smEND ) 
         {
             VIS            = bVIS;
             Name           = strName;
-            WidthColorInMS = dbTxWidth;
+            WidthColorInMS = dbTxWidthInMS;
             Family         = tvMode;
             RawRez         = skSize;
             LegacyMode     = eLegacy;
@@ -455,6 +456,24 @@ namespace Play.Sound {
 
 			ChannelMap.Add( new( WidthSyncInMS,  ScanLineChannelType.Sync  ) );
 			ChannelMap.Add( new( WidthGapInMS,   ScanLineChannelType.Gap   ) );
+			ChannelMap.Add( new( WidthColorInMS, ScanLineChannelType.Y ) );
+		}
+    }
+
+    public class SSTVModeWWV : SSTVMode {
+        public SSTVModeWWV( byte bVIS, string strName, double dbTxWidth, SKSizeI skSize, AllModes eLegacy = AllModes.smEND) : 
+            base( TVFamily.WWV, bVIS, strName, dbTxWidth, skSize, eLegacy ) 
+        {
+        }
+
+        public override double WidthSyncInMS => 6;
+        public override double WidthGapInMS  => 2;
+
+		protected override void Initialize() {
+			if( Family != TVFamily.WWV )
+				throw new InvalidProgramException( "Mode must be of WWV type" );
+
+			ChannelMap.Add( new( WidthSyncInMS,  ScanLineChannelType.Sync  ) );
 			ChannelMap.Add( new( WidthColorInMS, ScanLineChannelType.Y ) );
 		}
     }
@@ -882,6 +901,21 @@ namespace Play.Sound {
 
 		        Write( ColorToFreq( crPixel.Y ), dbTimePerPixel );
 	        }
+        }
+    }
+
+    public class GenerateWWV : SSTVGenerator {
+        public GenerateWWV( SKBitmap oBitmap, IPgModulator oModulator, SSTVMode oMode ) : 
+            base( oBitmap, oModulator, oMode )
+        {
+        }
+
+        public static IEnumerator<SSTVMode> GetModeEnumerator() {
+ 	        yield return new SSTVModeBW( 0x00, "WWV", 1000, new SKSizeI( 320, 320 ), AllModes.smWWV ); 
+        }
+
+        protected override void WriteLine(int iLine) {
+	        throw new NotImplementedException();
         }
     }
 

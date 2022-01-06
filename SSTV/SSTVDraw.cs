@@ -288,7 +288,7 @@ namespace Play.SSTV {
 	/// <summary>
 	/// The demodulator converts the signal from the time to frequency domain. In the original
 	/// code. It looks like it lives on it's own thread. I'm going to put it with the demodulator
-	/// in the same thread. 
+	/// in the same thread. The actual audio retrival can still live in another thread if we want.
 	/// </summary>
     public class SSTVDraw {
         protected readonly SSTVDEM _dp;
@@ -645,7 +645,6 @@ namespace Play.SSTV {
 							_skD12Canvas.DrawLine( new SKPointI( x - iSyncWidth, iScanLine ), new SKPointI( x, iScanLine ), _skPaint);
 						} else {
 							_skD12Canvas.DrawPoint( x, iScanLine, new SKColor( (byte)d, (byte)d, (byte)d ) );
-							//_pBitmapD12.SetPixel( x, iScanLine, new SKColor( (byte)d, (byte)d, (byte)d ) );
 						}
 					}
 				}

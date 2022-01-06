@@ -126,6 +126,7 @@ namespace Play.Sound {
 		smMRT3,
 		smMRT4,
 		smEND,
+		smWWV
 	}
 
 	public enum BandPass {
@@ -1227,18 +1228,22 @@ namespace Play.Sound {
 			m_TickFreq = f;
 		}
 
+		/// <summary>
+		/// This probaby Adaptive Forward Cancellation. As opposed to 
+		/// Least Mean Squares (LMS) for periodic disturbance cancellation.
+		/// </summary>
 		void InitAFC(){
 			// This used to live outboard in teh SSTVSET object and it seems
 			// silly to be there when it can be with all it's friends.
-			int  m_AFCW;
+			int  iAFCW;
 
 			switch( Mode.Family ){
 				case TVFamily.Martin:
-					m_AFCW = (int)(2.0 * SampFreq / 1000.0);
+					iAFCW = (int)(2.0 * SampFreq / 1000.0);
 					m_AFCB = (int)(1.0 * SampFreq / 1000.0);
 					break;
 				default:
-					m_AFCW = (int)(3.0 * SampFreq / 1000.0);
+					iAFCW = (int)(3.0 * SampFreq / 1000.0);
 					m_AFCB = (int)(1.5 * SampFreq / 1000.0);
 					break;
 			}
@@ -1250,7 +1255,7 @@ namespace Play.Sound {
 			//	m_OFP = (d + (1100.0/g_dblToneOffset)) * SampFreq / 1000.0;
 			//}
 
-			m_AFCE = m_AFCB + m_AFCW;
+			m_AFCE = m_AFCB + iAFCW;
 
 			// Original InitAfc starts here.
 			m_AFCAVG.SetCount(m_AFCAVG.Max);
