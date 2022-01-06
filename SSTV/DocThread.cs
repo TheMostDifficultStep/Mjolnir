@@ -293,7 +293,7 @@ namespace Play.SSTV {
         /// outboard. Then we don't need to pass in the sample rate here and we can
         /// init the DeMo and Draw objects in the base!! (maybe -_-)</remarks>
         /// <exception cref="ArgumentNullException"></exception>
-        public DeviceListeningState( int                          iSampleRate,
+        public DeviceListeningState( double                       dblSampleRate,
                                      int                          iImageQuality,
                                      string                       strFilePath,
                                      string                       strFileName,
@@ -310,7 +310,7 @@ namespace Play.SSTV {
             _iImageQuality = iImageQuality;
             _strFileName   = strFileName;
 
-            _oSSTVDeMo = new SSTVDEM ( new SYSSET(), iSampleRate );
+            _oSSTVDeMo = new SSTVDEM ( new SYSSET(), dblSampleRate );
 			_oSSTVDraw = new SSTVDraw( _oSSTVDeMo, oD12, oRx );
         }
 

@@ -1228,7 +1228,7 @@ namespace Play.SSTV {
                     }
 
                     DeviceListeningState oWorker = new DeviceListeningState( 
-                        _oWaveIn.WaveFormat.SampleRate, 
+                        11023.72, 
                         iQuality, strSaveDir, strFileName,
                         _rgBGtoUIQueue, _rgDataQueue, 
                         _rgUItoBGQueue, SyncImage.Bitmap, DisplayImage.Bitmap );
