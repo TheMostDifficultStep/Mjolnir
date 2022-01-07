@@ -127,7 +127,7 @@ namespace Play.SSTV {
 
         public override object Decorate( IPgViewSite oBaseSite, Guid sGuid ) {
 			if( sGuid.Equals(GlobalDecorations.Properties) ) {
-				return new ViewTxProperties( oBaseSite, _oDocSSTV.StdProperties );
+				return new ViewTxProperties( oBaseSite, _oDocSSTV.Properties );
 			}
 			if( sGuid.Equals( GlobalDecorations.Outline ) ) {
 				return new CheckList( oBaseSite, _oDocSSTV.TxModeList );
@@ -169,10 +169,10 @@ namespace Play.SSTV {
 		}
 
         public ViewTransmitDeluxe( IPgViewSite oSiteBase, DocSSTV oDocSSTV ) : base( oSiteBase, oDocSSTV ) {
-			_wmTxImageChoice    = new WindowSoloImageNav( new SSTVWinSlot( this, ChildID.TxImageChoice ),        oDocSSTV.TxImageList );
-			_wmTxViewChoices    = new ImageViewIcons    ( new SSTVWinSlot( this, ChildID.TxImageChoices ), oDocSSTV.TxImageList );
-			_wmTxImageComposite = new ImageViewSingle   ( new SSTVWinSlot( this, ChildID.TxImageComposite ),    oDocSSTV.TxBitmapComp );
-			_wmRxViewChoices    = new ImageViewIcons    ( new SSTVWinSlot( this, ChildID.RxImageChoices ), oDocSSTV.RxHistoryList );
+			_wmTxImageChoice    = new WindowSoloImageNav( new SSTVWinSlot( this, ChildID.TxImageChoice ),    oDocSSTV.TxImageList );
+			_wmTxViewChoices    = new ImageViewIcons    ( new SSTVWinSlot( this, ChildID.TxImageChoices ),   oDocSSTV.TxImageList );
+			_wmTxImageComposite = new ImageViewSingle   ( new SSTVWinSlot( this, ChildID.TxImageComposite ), oDocSSTV.TxBitmapComp );
+			_wmRxViewChoices    = new ImageViewIcons    ( new SSTVWinSlot( this, ChildID.RxImageChoices ),   oDocSSTV.RxHistoryList );
 
 			_wmTxImageChoice   .Parent = this;
 			_wmTxViewChoices   .Parent = this;
@@ -333,7 +333,7 @@ namespace Play.SSTV {
 
         public override object Decorate( IPgViewSite oBaseSite, Guid sGuid ) {
 			if( sGuid.Equals(GlobalDecorations.Properties) ) {
-				return new ViewTxProperties( oBaseSite, _oDocSSTV.StdProperties );
+				return new ViewTxProperties( oBaseSite, _oDocSSTV.Properties );
 			}
 			if( sGuid.Equals( GlobalDecorations.Outline ) ) {
 				return new CheckList( oBaseSite, _oDocSSTV.TxModeList );

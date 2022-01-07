@@ -44,13 +44,17 @@ namespace Play.ImageViewer {
 		/// This is a special case draw for scrolling content. This way we don't need
 		/// to update every element's position just because a scroll happened. Also
         /// includes the Text Colors so the call can be the same as the DirectoryRect's.
+        /// TODO: Maybe I should pass a SKPaint object as well... hmmm.
 		/// </summary>
 		/// <param name="oTopLeft"></param>
         public override void Paint( SKCanvas skCanvas, IPgStandardUI2 oStdUI, SKPoint oTopLeft ) {
-			PaintBackground( skCanvas, oTopLeft );
-
             if( Icon == null )
                 return;
+
+            // Used to paint bg even if Icon is null, but I was getting weird paint errors
+            // white rectangles over the normal working thumbs. Perhaps those where thumbs
+            // not genderated yet and thus not layed out? So only paint anything if all is ready.
+			PaintBackground( skCanvas, oTopLeft );
 
             World = new SKRectI( 0, 0, Icon.Width, Icon.Height );
             ViewPortSizeMax( ViewPort ); // TODO: Need to look at placement of this call...

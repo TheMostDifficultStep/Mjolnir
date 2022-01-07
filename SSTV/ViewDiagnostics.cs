@@ -4,11 +4,9 @@ using System.Xml;
 using System.Collections.Generic;
 using System.Windows.Forms;
 using System.Reflection;
-using System.Text;
 
 using Play.Interfaces.Embedding;
 using Play.Rectangles;
-using Play.Edit;
 using Play.ImageViewer;
 
 namespace Play.SSTV {
@@ -24,9 +22,9 @@ namespace Play.SSTV {
 		IPgCommandView,
 		IDisposable
 	{
-		public static Guid   GUID { get; }  = new Guid( "{A7F75A46-1800-4605-87EC-2D8B960D1599}" );
-		public static string _strIcon =  "Play.SSTV.icons8_tv.png";
+		public static Guid GUID { get; } = new Guid( "{A7F75A46-1800-4605-87EC-2D8B960D1599}" );
 
+		protected static readonly string _strIcon =  "Play.SSTV.icons8_tv.png";
 		protected readonly IPgViewSite   _oSiteView;
 		protected readonly DocSSTV       _oDocSSTV;
 
@@ -42,7 +40,7 @@ namespace Play.SSTV {
 			protected readonly WindowDiagnostics _oHost;
 
 			public SSTVWinSlot( WindowDiagnostics oHost ) {
-				_oHost = oHost ?? throw new ArgumentNullException();
+				_oHost = oHost ?? throw new ArgumentNullException( nameof( oHost ) );
 			}
 
 			public IPgParent Host => _oHost;

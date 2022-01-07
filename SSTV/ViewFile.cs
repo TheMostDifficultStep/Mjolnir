@@ -220,7 +220,7 @@ namespace Play.SSTV {
 		public override object Decorate(IPgViewSite oBaseSite,Guid sGuid) {
 			try {
 				if( sGuid.Equals(GlobalDecorations.Properties) ) {
-					return new ViewFileProperties( oBaseSite, _oDocSSTV.StdProperties );
+					return new ViewFileProperties( oBaseSite, _oDocSSTV.Properties );
 				}
 				if( sGuid.Equals( GlobalDecorations.Outline ) ) {
 					return new CheckList( oBaseSite, _rgRxModeList );

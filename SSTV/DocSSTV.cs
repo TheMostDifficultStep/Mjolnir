@@ -48,7 +48,8 @@ namespace Play.SSTV {
             Std_RxPort,
             Std_ImgQuality,
             Std_Process,
-            Std_MicGain
+            Std_MicGain,
+            Std_Clock
         }
 
         public SSTVProperties( IPgBaseSite oSiteBase ) : base( oSiteBase ) {
@@ -91,6 +92,7 @@ namespace Play.SSTV {
             LabelSet( Names.Std_ImgQuality, "Image Save Quality" );
             LabelSet( Names.Std_Process,    "Task Status" );
             LabelSet( Names.Std_MicGain,    "Output Gain < 30,000" );
+            LabelSet( Names.Std_Clock,      "Clock" ); // Give it yellow if calibrated value different than base.
 
             LabelSet( Names.Tx_MyCall,    "My    Call" );
             LabelSet( Names.Tx_TheirCall, "Their Call" );
@@ -107,17 +109,12 @@ namespace Play.SSTV {
             LabelSet( Names.Rx_SaveName, "Filename" );
             LabelSet( Names.Rx_SaveDir,  "Save Dir" );
 
-            InitValues();
+            // Initialize these to reasonable values, the user can update and save.
+            ValueUpdate( Names.Std_ImgQuality, "80" );
+            ValueUpdate( Names.Std_MicGain,    "10000" ); // Out of 30,000
+            ValueUpdate( Names.Std_Clock,      "11028" ); // Calibrated value. 11023.72 for me ^_^.
 
             return true;
-        }
-
-        /// <summary>
-        /// These are our default values. We'll look for them from a save file in the future.
-        /// </summary>
-        public void InitValues() {
-            ValueUpdate( Names.Std_ImgQuality, "80", true );
-            ValueUpdate( Names.Std_MicGain,    "10000" ); // Out of 30,000
         }
 
         /// <summary>
@@ -144,12 +141,36 @@ namespace Play.SSTV {
             }
         }
 
-        public bool ValueAsBool( Names eIndex ) {
+        public bool GetValueAsBool( Names eIndex ) {
             return string.Compare( Property_Values[(int)eIndex].ToString(), "true", ignoreCase:true ) == 0;
         }
 
-        public int ValueAsInt( Names eIndex ) {
+        public int GetValueAsInt( Names eIndex, int? iDefault = null ) {
+            if( iDefault.HasValue ) {
+                if( !int.TryParse( Property_Values[(int)eIndex].ToString(), out int iValue ) ) {
+                    iValue = iDefault.Value;
+                    ValueBgColor.Add( (int)eIndex, SKColors.LightPink ); // Sigh...Need some way to go back ^_^;
+                }
+
+                return iValue;
+            }
+
             return int.Parse( Property_Values[(int)eIndex].ToString() );
+        }
+
+        public double GetValueAsDbl( Names eIndex, double? dblDefault = null ) {
+            Line oProperty = Property_Values[(int)eIndex];
+
+            if( dblDefault.HasValue ) {
+                if( !double.TryParse( oProperty.ToString(), out double dblValue ) ) {
+                    dblValue = dblDefault.Value;
+                    ValueBgColor.Add( (int)eIndex, SKColors.LightPink ); 
+                }
+
+                return dblValue;
+            }
+
+            return double.Parse( oProperty.ToString() );
         }
     }
 
@@ -297,7 +318,7 @@ namespace Play.SSTV {
         public ModeEditor          TxModeList    { get; }
         public ImageWalkerDir      TxImageList   { get; }
         public ImageWalkerDir      RxHistoryList { get; }
-        public SSTVProperties      StdProperties { get; }
+        public SSTVProperties      Properties    { get; }
         public SKBitmap            TxBitmap      => TxImageList.Bitmap;
         internal ImageSoloDoc      TxBitmapSnip  { get; }  
         internal DocImageEdit      TxBitmapComp  { get; }
@@ -347,7 +368,7 @@ namespace Play.SSTV {
 			DisplayImage  = new ImageSoloDoc( new DocSlot( this ) );
 			SyncImage     = new ImageSoloDoc( new DocSlot( this ) );
                           
-            StdProperties = new ( new DocSlot( this ) );
+            Properties = new ( new DocSlot( this ) );
 
             StateRx = DocSSTVMode.Ready;
             StateTx = false;
@@ -543,7 +564,7 @@ namespace Play.SSTV {
             if( !PortRxList .InitNew() ) 
                 return false;
 
-            if( !StdProperties.InitNew() )
+            if( !Properties.InitNew() )
                 return false;
 
             // Get these set up so our stdproperties get the updates.
@@ -566,7 +587,7 @@ namespace Play.SSTV {
 				LogError( "Couldn't find pictures tx directory for SSTV" );
                 return false;
 			}
-            string strMyPics = StdProperties[SSTVProperties.Names.Rx_SaveDir].ToString();
+            string strMyPics = Properties[SSTVProperties.Names.Rx_SaveDir].ToString();
             if( !RxHistoryList.LoadURL( strMyPics ) ) {
 				LogError( "Couldn't find pictures history directory for SSTV" );
                 return false;
@@ -580,7 +601,7 @@ namespace Play.SSTV {
             // call Listen_ModeChanged and that calls the properties update event.
             RxModeList.CheckedLine = RxModeList[0];
 
-            _oWorkPlace.Queue( GetTaskReceiver(), Timeout.Infinite );
+            _oWorkPlace.Queue( CreateTaskReceiver(), Timeout.Infinite );
 
             return true;
         }
@@ -609,7 +630,7 @@ namespace Play.SSTV {
             string strMyPics = Environment.GetFolderPath( Environment.SpecialFolder.MyPictures );
 
             // In the future, setting this value will send an event that will get forwarded to the chooser.
-            StdProperties.ValueUpdate( SSTVProperties.Names.Rx_SaveDir, strMyPics );
+            Properties.ValueUpdate( SSTVProperties.Names.Rx_SaveDir, strMyPics );
 
             //RecChooser.LoadURL( strMyDocs );
         }
@@ -619,7 +640,7 @@ namespace Play.SSTV {
             string strFilePath = TxImageList.CurrentDirectory;
 
             //TxProperties.ValueUpdate( TxProperties.Names.Mode,     TxMode ); 
-            StdProperties.ValueUpdate( SSTVProperties.Names.Tx_Progress, "0%" );
+            Properties.ValueUpdate( SSTVProperties.Names.Tx_Progress, "0%" );
             //TxProperties.ValueUpdate( TxProperties.Names.FileName, strFileName, Broadcast:true );
 		}
 
@@ -665,19 +686,22 @@ namespace Play.SSTV {
                             PropertyLoadFromXml( TemplateList, oNode );
                             break;
                         case "ImageQuality":
-                            StdProperties.ValueUpdate( SSTVProperties.Names.Std_ImgQuality, oNode.InnerText );
+                            Properties.ValueUpdate( SSTVProperties.Names.Std_ImgQuality, oNode.InnerText );
                             break;
                         case "DigiOutputGain":
-                            StdProperties.ValueUpdate( SSTVProperties.Names.Std_MicGain, oNode.InnerText );
+                            Properties.ValueUpdate( SSTVProperties.Names.Std_MicGain, oNode.InnerText );
                             break;
                         case "MyCall":
-                            StdProperties.ValueUpdate( SSTVProperties.Names.Tx_MyCall, oNode.InnerText );
+                            Properties.ValueUpdate( SSTVProperties.Names.Tx_MyCall, oNode.InnerText );
                             break;
                         case "Message":
-                            StdProperties.ValueUpdate( SSTVProperties.Names.Tx_Message, oNode.InnerText );
+                            Properties.ValueUpdate( SSTVProperties.Names.Tx_Message, oNode.InnerText );
                             break;
                         case "TxSrcDir":
                             TxImageList.LoadAgain( oNode.InnerText );
+                            break;
+                        case "Clock":
+                            Properties.ValueUpdate( SSTVProperties.Names.Std_Clock, oNode.InnerText );
                             break;
                     }
                 }
@@ -705,7 +729,7 @@ namespace Play.SSTV {
 
                 Action<string, SSTVProperties.Names> StringProperty = delegate ( string strName, SSTVProperties.Names eProperty ) { 
                     XmlElement oElem = oDoc.CreateElement( strName );
-                    oElem.InnerText = StdProperties[(int)eProperty].ToString();
+                    oElem.InnerText = Properties[(int)eProperty].ToString();
                     oRoot.AppendChild( oElem ); 
                 };
                 Action<string, Editor> CheckProperty = delegate( string strName, Editor oEditor ) {
@@ -727,6 +751,7 @@ namespace Play.SSTV {
                 StringProperty( "MyCall",         SSTVProperties.Names.Tx_MyCall );
                 StringProperty( "Message",        SSTVProperties.Names.Tx_Message );
                 StringProperty( "TxSrcDir",       SSTVProperties.Names.Tx_SrcDir );
+                StringProperty( "Clock",          SSTVProperties.Names.Std_Clock );
 
                 oDoc.Save( oStream );
 			} catch( Exception oEx ) {
@@ -761,7 +786,7 @@ namespace Play.SSTV {
         }
 
         private void OnImageUpdated_TxImageList() {
-            StdProperties.RaiseBufferEvent();
+            Properties.RaiseBufferEvent();
         }
 
         /// <summary>
@@ -770,7 +795,7 @@ namespace Play.SSTV {
         /// </summary>
         private void OnImageUpdated_RxHistoryList() {
             // BUG: Need to make the RxProp the one that gets changed and we catch an event to LoadAgain();
-			StdProperties.RaiseBufferEvent();
+			Properties.RaiseBufferEvent();
             if( StateRx == DocSSTVMode.DeviceRead ) {
                 _rgUItoBGQueue.Enqueue( new TVMessage( TVMessage.Message.ChangeDirectory, RxHistoryList.CurrentDirectory ) );
             }
@@ -787,10 +812,10 @@ namespace Play.SSTV {
             PropertyChange?.Invoke( eProp );
         }
 
-        public string MyCall    => StdProperties[(int)SSTVProperties.Names.Tx_MyCall].ToString().ToUpper();
-        public string Message   => StdProperties[(int)SSTVProperties.Names.Tx_Message].ToString();
-        public string TheirCall => StdProperties[(int)SSTVProperties.Names.Tx_TheirCall].ToString().ToUpper();
-        public string RST       => StdProperties[(int)SSTVProperties.Names.Tx_RST].ToString();
+        public string MyCall    => Properties[(int)SSTVProperties.Names.Tx_MyCall].ToString().ToUpper();
+        public string Message   => Properties[(int)SSTVProperties.Names.Tx_Message].ToString();
+        public string TheirCall => Properties[(int)SSTVProperties.Names.Tx_TheirCall].ToString().ToUpper();
+        public string RST       => Properties[(int)SSTVProperties.Names.Tx_RST].ToString();
 
 		public void TemplateSet( int iIndex ) {
 			try {
@@ -905,7 +930,7 @@ namespace Play.SSTV {
             }
         }
 
-        protected int MicrophoneGain => StdProperties.ValueAsInt( SSTVProperties.Names.Std_MicGain );
+        protected int MicrophoneGain => Properties.GetValueAsInt( SSTVProperties.Names.Std_MicGain );
 
 		public SSTVMode TransmitModeSelection { 
 			get {
@@ -945,11 +970,14 @@ namespace Play.SSTV {
                 // Use WWV to find the precise sample frequency of sound card. 
                 // TODO: Port the tuner from MMSSTV and make it a property.
                 SKBitmap bmpCopy = TxBitmapComp.Bitmap.Copy();
-                TxState oState   = new TxState( oMode, 11023.72, MicrophoneGain, PortTxList.CheckedLine.At, 
+                double   dblFreq = Properties.GetValueAsDbl( SSTVProperties.Names.Std_Clock );
+                TxState   oState = new TxState( oMode, dblFreq, MicrophoneGain, 
+                                                PortTxList.CheckedLine.At, 
                                                 bmpCopy, _rgBGtoUIQueue );
                 foreach( uint uiWait in oState ) {
                     Thread.Sleep( (int)uiWait );
                 }
+
                 Thread.Sleep( 2000 ); // Let the buffer bleed out.
                 bmpCopy.Dispose();
             };
@@ -979,7 +1007,7 @@ namespace Play.SSTV {
         /// the receive thread and the transmit thread. Technically TX and RX can run
         /// concurrently with no problems.
         /// </summary>
-        public IEnumerator<int> GetTaskReceiver() {
+        public IEnumerator<int> CreateTaskReceiver() {
             while( true ) {
                 while( _rgBGtoUIQueue.TryDequeue( out SSTVMessage sResult ) ) {
                     switch( sResult.Event ) {
@@ -999,28 +1027,25 @@ namespace Play.SSTV {
                                 // in the file read case.
                                 RxModeList.HighLight    = null;
                                 RxModeList.CheckedReset = RxModeList[0]; 
-                                StdProperties.ValueUpdate( SSTVProperties.Names.Rx_Mode,     "-" );
-                                StdProperties.ValueUpdate( SSTVProperties.Names.Rx_Width,    "-" );
-                                StdProperties.ValueUpdate( SSTVProperties.Names.Rx_Height,   "-" );
-                                StdProperties.ValueUpdate( SSTVProperties.Names.Rx_SaveName, string.Empty, Broadcast:true );
+                                // Let's not clear the Mode, Width, Height, SaveName. Nice to have them around.
                             } else {
 			                    DisplayImage.WorldDisplay = new SKRectI( 0, 0, oMode.Resolution.Width, oMode.Resolution.Height );
 
-                                StdProperties.ValueUpdate( SSTVProperties.Names.Rx_Mode,   oMode.Name );
-                                StdProperties.ValueUpdate( SSTVProperties.Names.Rx_Width,  oMode.Resolution.Width .ToString() );
-                                StdProperties.ValueUpdate( SSTVProperties.Names.Rx_Height, oMode.Resolution.Height.ToString() );
+                                Properties.ValueUpdate( SSTVProperties.Names.Rx_Mode,   oMode.Name );
+                                Properties.ValueUpdate( SSTVProperties.Names.Rx_Width,  oMode.Resolution.Width .ToString() );
+                                Properties.ValueUpdate( SSTVProperties.Names.Rx_Height, oMode.Resolution.Height.ToString() );
                             }
                             PropertyChange?.Invoke( SSTVEvents.SSTVMode );
                         } break;
                         case SSTVEvents.UploadTime:
-                            StdProperties.ValueUpdate( SSTVProperties.Names.Tx_Progress, sResult.Param.ToString( "D2" ) + "%", Broadcast:true );
+                            Properties.ValueUpdate( SSTVProperties.Names.Tx_Progress, sResult.Param.ToString( "D2" ) + "%", Broadcast:true );
                             break;
                         case SSTVEvents.DownLoadTime: 
-                            StdProperties.ValueUpdate( SSTVProperties.Names.Rx_Progress, sResult.Param.ToString( "D2" ) + "%", Broadcast:true );
+                            Properties.ValueUpdate( SSTVProperties.Names.Rx_Progress, sResult.Param.ToString( "D2" ) + "%", Broadcast:true );
                             PropertyChange?.Invoke( SSTVEvents.DownLoadTime );
                             break;
                         case SSTVEvents.DownLoadFinished: // NOTE: This comes along unreliably in the device streaming case.
-                            StdProperties.ValueUpdate( SSTVProperties.Names.Rx_Progress, sResult.Param.ToString( "D2" ) + "% - Complete", Broadcast:true );
+                            Properties.ValueUpdate( SSTVProperties.Names.Rx_Progress, sResult.Param.ToString( "D2" ) + "% - Complete", Broadcast:true );
                             PropertyChange?.Invoke( SSTVEvents.DownLoadFinished );
 
                             RxModeList.HighLight   = null;
@@ -1088,9 +1113,9 @@ namespace Play.SSTV {
             StateRx = DocSSTVMode.FileRead;
 
 			RxHistoryList.LoadAgain( strFileName );
-            StdProperties.ValueUpdate( SSTVProperties.Names.Std_Process, "File Read Started." );
-            StdProperties.ValueUpdate( SSTVProperties.Names.Rx_Progress, "0" );
-            StdProperties.ValueUpdate( SSTVProperties.Names.Rx_SaveName, strFileName, true ); // BUG: Should be the image name not the wav file.
+            Properties.ValueUpdate( SSTVProperties.Names.Std_Process, "File Read Started." );
+            Properties.ValueUpdate( SSTVProperties.Names.Rx_Progress, "0" );
+            Properties.ValueUpdate( SSTVProperties.Names.Rx_SaveName, strFileName, true ); // BUG: Should be the image name not the wav file.
 
             Action oFileReadAction = delegate () {
                 FileReadingState oWorker = new ( _rgBGtoUIQueue, strFileName, SyncImage.Bitmap, DisplayImage.Bitmap );
@@ -1107,7 +1132,7 @@ namespace Play.SSTV {
             // So we might not have received the last message from our bg thread even
             // though it is done. But we will have received the image(s). Pumping the
             // queue here is possibly re-entrant. Maybe some sort of ACK NACK is in order.
-            StdProperties.ValueUpdate( SSTVProperties.Names.Std_Process, "File Read Complete.", true );
+            Properties.ValueUpdate( SSTVProperties.Names.Std_Process, "File Read Complete.", true );
 
             // Download finished is sort of changing it's meaning in the file read case.
             PropertyChange?.Invoke( SSTVEvents.DownLoadFinished );
@@ -1126,7 +1151,7 @@ namespace Play.SSTV {
         public void ReceiveLiveStop() {
             RxModeList.HighLight = null;
 
-            StdProperties.ValueUpdate( SSTVProperties.Names.Std_Process, "Stopping...", true );
+            Properties.ValueUpdate( SSTVProperties.Names.Std_Process, "Stopping...", true );
 
             _rgUItoBGQueue.Enqueue( new TVMessage( TVMessage.Message.ExitWorkThread ) );
             _oThread = null;
@@ -1140,7 +1165,7 @@ namespace Play.SSTV {
                 _oWaveIn = null;
             }
 
-            StdProperties.ValueUpdate( SSTVProperties.Names.Std_Process, "Stopped: All.", true );
+            Properties.ValueUpdate( SSTVProperties.Names.Std_Process, "Stopped: All.", true );
 
             _oWorkPlace.Pause(); // TODO: flush the message buffers? Probably should.
             StateRx = DocSSTVMode.Ready;
@@ -1184,7 +1209,9 @@ namespace Play.SSTV {
                     if( _oWaveIn == null ) {
                         _oWaveIn = new WaveIn( WaveCallbackInfo.FunctionCallback() );
 
-                        // System works best if frequency here is not the calibrated value.
+                        // System works best if frequency here is not the calibrated (clock) value.
+                        // Makes sense since it's not calibrated! But need to coordinate with desired
+                        // (clock) frequency some how. TODO... ^_^;;
                         _oWaveIn.BufferMilliseconds = 250;
                         _oWaveIn.DeviceNumber       = iMicrophone;
                         _oWaveIn.WaveFormat         = new WaveFormat( 11028, 16, 1 );
@@ -1215,20 +1242,19 @@ namespace Play.SSTV {
                         _rgUItoBGQueue.Enqueue( new TVMessage( TVMessage.Message.TryNewMode, oMode ) );
                     }
 
-                    if( !int.TryParse( StdProperties[SSTVProperties.Names.Std_ImgQuality], out int iQuality ) )
-                        iQuality = 80;
-
-                    string strSaveDir  = StdProperties[ SSTVProperties.Names.Rx_SaveDir  ];
-                    string strFileName = StdProperties[ SSTVProperties.Names.Rx_SaveName ];
+                    int    iQuality    = Properties.GetValueAsInt( SSTVProperties.Names.Std_ImgQuality, 80 );
+                    double dblFreq     = Properties.GetValueAsDbl( SSTVProperties.Names.Std_Clock,   11028 );
+                    string strSaveDir  = Properties[ SSTVProperties.Names.Rx_SaveDir  ];
+                    string strFileName = Properties[ SSTVProperties.Names.Rx_SaveName ];
 
                     // Just note, if we do a file read, we might no longer be in the MyPictures path.
                     if( string.IsNullOrEmpty( strSaveDir ) ) {
 			            strSaveDir = Environment.GetFolderPath(Environment.SpecialFolder.MyPictures);
-                        StdProperties.ValueUpdate( SSTVProperties.Names.Rx_SaveDir, strSaveDir, Broadcast:true );
+                        Properties.ValueUpdate( SSTVProperties.Names.Rx_SaveDir, strSaveDir, Broadcast:true );
                     }
 
                     DeviceListeningState oWorker = new DeviceListeningState( 
-                        11023.72, 
+                        dblFreq, 
                         iQuality, strSaveDir, strFileName,
                         _rgBGtoUIQueue, _rgDataQueue, 
                         _rgUItoBGQueue, SyncImage.Bitmap, DisplayImage.Bitmap );
@@ -1248,7 +1274,7 @@ namespace Play.SSTV {
                     }
 
                     _oWorkPlace.Start( 1 );
-                    StdProperties.ValueUpdate( SSTVProperties.Names.Std_Process, "Start: Live.", true );
+                    Properties.ValueUpdate( SSTVProperties.Names.Std_Process, "Start: Live.", true );
                     StateRx = DocSSTVMode.DeviceRead;
                 } catch( Exception oEx ) {
                     Type[] rgErrors = { typeof( NullReferenceException ),
@@ -1260,7 +1286,7 @@ namespace Play.SSTV {
                     if( rgErrors.IsUnhandled( oEx ) )
                         throw;
 
-                    StdProperties.ValueUpdate( SSTVProperties.Names.Std_Process, "Start: Error.", true );
+                    Properties.ValueUpdate( SSTVProperties.Names.Std_Process, "Start: Error.", true );
                     LogError( "Couldn't launch device listening thread." );
                 }
             }

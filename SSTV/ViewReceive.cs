@@ -174,7 +174,7 @@ namespace Play.SSTV {
      {
         public DocSSTV SSTVDocument { get; }
 
-		public WindowRxProperties( IPgViewSite oViewSite, DocSSTV docSSTV ) : base( oViewSite, docSSTV.StdProperties ) {
+		public WindowRxProperties( IPgViewSite oViewSite, DocSSTV docSSTV ) : base( oViewSite, docSSTV.Properties ) {
 			SSTVDocument = docSSTV ?? throw new ArgumentNullException( nameof( docSSTV ) );
 		}
 
@@ -507,9 +507,9 @@ namespace Play.SSTV {
 
             public Encoding FileEncoding => Encoding.Default;
 
-            public string FilePath => _oHost._oDocSSTV.StdProperties[SSTVProperties.Names.Rx_SaveDir].ToString();
+            public string FilePath => _oHost._oDocSSTV.Properties[SSTVProperties.Names.Rx_SaveDir].ToString();
 
-            public string FileBase => _oHost._oDocSSTV.StdProperties[SSTVProperties.Names.Rx_SaveName].ToString();
+            public string FileBase => _oHost._oDocSSTV.Properties[SSTVProperties.Names.Rx_SaveName].ToString();
         }
 
         public abstract string Banner { get; }

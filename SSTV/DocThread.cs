@@ -126,7 +126,10 @@ namespace Play.SSTV {
 
             _oReader     = new AudioFileReader     ( _strFileName ); 
             _oProvider   = new WaveToSampleProvider( _oReader );
-
+            
+            // No need for calibrated clock rate since reading data from a file.
+            // TODO: this might be a way for me to coordinated the calibrated
+            // value with the specified value for the Device tx and rx...
 			FFTControlValues oFFTMode  = FFTControlValues.FindMode( _oReader.WaveFormat.SampleRate );
 
             _oSSTVDeMo = new SSTVDEM ( new SYSSET(), oFFTMode.SampFreq );

@@ -199,6 +199,7 @@ namespace Play.Forms {
         public Editor Property_Values { get; }
 
         // This lets us override the standard color for a property.
+        // TODO: Give it two slots. Normal override and Error color...
         public Dictionary<int, SkiaSharp.SKColor> ValueBgColor { get; } = new Dictionary<int, SkiaSharp.SKColor >();
 
 		protected class DocSlot :

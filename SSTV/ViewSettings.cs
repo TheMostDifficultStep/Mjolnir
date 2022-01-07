@@ -38,7 +38,7 @@ namespace Play.SSTV {
         public DocSSTV SSTVDocument { get; }
 
         public ViewSettings( IPgViewSite oViewSite, DocSSTV oDocument ) :
-            base( oViewSite, oDocument.StdProperties ) 
+            base( oViewSite, oDocument.Properties ) 
         {
             SSTVDocument = oDocument; // Don't bother check for null, will have thrown by now see above...
             _oViewSite   = oViewSite;
@@ -57,7 +57,8 @@ namespace Play.SSTV {
                                               SSTVProperties.Names.Std_TxPort, 
                                               SSTVProperties.Names.Std_RxPort, 
                                               SSTVProperties.Names.Std_ImgQuality,
-                                              SSTVProperties.Names.Std_MicGain };
+                                              SSTVProperties.Names.Std_MicGain,
+                                              SSTVProperties.Names.Std_Clock };
 
             if( Layout2 is SmartTable oTable ) {
                 foreach( SSTVProperties.Names eName in rgShow ) {
