@@ -53,7 +53,6 @@ namespace Play.SSTV {
 		protected readonly IPgViewSite   _oSiteView;
 		protected readonly DocSSTV       _oDocSSTV;
 
-	  //protected readonly ImageViewSingle _oViewRx;      // Show the currently selected image.
 		protected readonly ImageViewSingle _oViewSync;    // The sync bitmap.
 
 		protected LayoutStack _oLayout = new LayoutStackVertical( 5 );

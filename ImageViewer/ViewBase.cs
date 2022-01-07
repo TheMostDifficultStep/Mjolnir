@@ -75,7 +75,7 @@ namespace Play.ImageViewer {
 		/// <param name="szBorder">A border to add to the image.</param>
 		/// <param name="szWindow">Size of presentation space.</param>
 		/// <param name="rctBitmap">Portion of the bitmap to show.</param>
-		/// <param name="rctViewPort">Computed rectangle to place the image in the target window.</param>
+		/// <param name="rctViewPort">Computed rectangle to place the image in the target window. (side effect)</param>
         public static void ViewPortSizeMax( Size szBorder, Size szWindow, SmartRect rctBitmap, SmartRect rctViewPort ) 
         {
             // If we don't have a bitmap we can't do much about setting our viewport.
