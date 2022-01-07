@@ -8,8 +8,33 @@ using System.Reflection;
 using Play.Interfaces.Embedding;
 using Play.Rectangles;
 using Play.ImageViewer;
+using Play.Forms;
 
 namespace Play.SSTV {
+    /// <summary>
+	/// This viewer shows a subset of all SSTV Properties. Those for the Diagnostics window only.
+    /// </summary>
+    public class WindowDiagnosticProperties : 
+        WindowStandardProperties
+     {
+        public DocSSTV SSTVDocument { get; }
+
+		public WindowDiagnosticProperties( IPgViewSite oViewSite, DocSSTV docSSTV ) : base( oViewSite, docSSTV.Properties ) {
+			SSTVDocument = docSSTV ?? throw new ArgumentNullException( nameof( docSSTV ) );
+		}
+
+        public override void InitRows() {
+			int[] rgShow = { 
+				(int)SSTVProperties.Names.Std_Process,
+				(int)SSTVProperties.Names.Rx_Mode,
+				(int)SSTVProperties.Names.Rx_Progress,
+			};
+
+			InitRows( rgShow );
+        }
+    }
+
+
 	/// <summary>
 	/// This view shows the raw scan line with our slot identifiers. Invaluable to spot alignment issues.
 	/// </summary>
@@ -24,7 +49,7 @@ namespace Play.SSTV {
 	{
 		public static Guid GUID { get; } = new Guid( "{A7F75A46-1800-4605-87EC-2D8B960D1599}" );
 
-		protected static readonly string _strIcon =  "Play.SSTV.icons8_tv.png";
+		protected static readonly string _strIcon =  "Play.SSTV.Content.icons8-system-diagnostic-48.png";
 		protected readonly IPgViewSite   _oSiteView;
 		protected readonly DocSSTV       _oDocSSTV;
 
@@ -83,9 +108,9 @@ namespace Play.SSTV {
 			_oSiteView = oViewSite ?? throw new ArgumentNullException( "View requires a view site." );
 			_oDocSSTV  = oDocument ?? throw new ArgumentNullException( "View requires a document." );
 
-			Iconic = ImageResourceHelper.GetImageResource( Assembly.GetExecutingAssembly(), _strIcon );
+			Iconic = oDocument.CreateIconic( _strIcon );
+ 
 
-		  //_oViewRx   = new ImageViewSingle( new SSTVWinSlot( this ), _oDocSSTV.ReceiveImage );
 			_oViewSync = new ImageViewSingle( new SSTVWinSlot( this ), _oDocSSTV.SyncImage );
 			_oViewSync.SetBorderOn();
 		}
@@ -103,15 +128,13 @@ namespace Play.SSTV {
 		public bool InitNew() {
 			if( !_oViewSync.InitNew() )
 				return false;
-			//if( !_oViewRx.InitNew() )
-			//	return false;
 
-			//_oViewRx  .Parent = this;
 			_oViewSync.Parent = this;
 
             _oDocSSTV.PropertyChange += Listen_PropertyChange;
 
-            //_oLayout.Add( new LayoutControl( _oViewRx,    LayoutRect.CSS.Percent, 60 ) );
+			// I'm going to leave the layout object since I might add more
+			// to the diagnostics screen later.
             _oLayout.Add( new LayoutControl( _oViewSync , LayoutRect.CSS.Percent, 100 ) );
 
             OnSizeChanged( new EventArgs() );
@@ -128,7 +151,6 @@ namespace Play.SSTV {
         private void Listen_PropertyChange( SSTVEvents eProp ) {
 			switch( eProp ) {
 				case SSTVEvents.DownLoadFinished:
-				  //_oViewRx  .Refresh();
 					_oViewSync.Refresh();
 					break;
 				default:
@@ -159,7 +181,7 @@ namespace Play.SSTV {
 		public object Decorate(IPgViewSite oBaseSite,Guid sGuid) {
 			try {
 				if( sGuid.Equals(GlobalDecorations.Properties) ) {
-					return new WindowRxProperties( oBaseSite, _oDocSSTV );
+					return new WindowDiagnosticProperties( oBaseSite, _oDocSSTV );
 				}
 				return false;
 			} catch ( Exception oEx ) {

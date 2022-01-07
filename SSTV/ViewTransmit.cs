@@ -147,7 +147,7 @@ namespace Play.SSTV {
 		public static Guid GUID { get; } = new Guid( "{3D6FF540-C03C-468F-84F9-86E3DE75F6C2}" );
 
         public    override Guid   Catagory => GUID;
-        protected override string IconResource => "Play.SSTV.icons8_camera.png";
+        protected override string IconResource => "Play.SSTV.Content.icons8_camera.png";
 
 		protected readonly WindowSoloImageNav _wmTxImageChoice;
 		protected readonly ImageViewSingle    _wmTxImageComposite;

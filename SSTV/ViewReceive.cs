@@ -30,13 +30,14 @@ namespace Play.SSTV {
         IDisposable 
 	{
 		public static Guid GUID { get; } = new Guid( "{B746A6D3-B628-4AA8-BD82-BAC860B7BEEA}" );
+		protected static string _strIconResource = "Play.SSTV.Content.icons8-file-folder-48.png";
 
 		protected IPgViewSite _oSiteView;
 		protected DocSSTV     _oDocSSTV;
 
         public Guid   Catagory => GUID;
         public string Banner   => "MySSTV History";
-        public Image  Iconic   => null;
+        public Image  Iconic { get; }
         public bool   IsDirty  => false;
 
         public IPgParent Parentage => _oSiteView.Host;
@@ -105,6 +106,8 @@ namespace Play.SSTV {
 			_wmViewRxHistory.Parent = this;
 
 			_wmViewRxHistorySelected.SetBorderOn();
+
+			Iconic = oDocSSTV.CreateIconic( _strIconResource );
 		}
 
 		public bool InitNew() {
@@ -218,7 +221,7 @@ namespace Play.SSTV {
 		}
 
 		public static Guid GUID { get; } = new Guid( "{5213847C-8B38-49D8-AAE2-C870F5E6FB51}" );
-		public static string _strIcon =  "Play.SSTV.icons8_tv.png";
+		public static string _strIcon =  "Play.SSTV.Content.icons8_tv.png";
 
         public Guid   Catagory => GUID;
         public Image  Iconic   { get; protected set; }
@@ -518,7 +521,7 @@ namespace Play.SSTV {
 			_oSiteView = oSiteBase ?? throw new ArgumentNullException( "SiteBase must not be null." );
 			_oDocSSTV  = oDocSSTV  ?? throw new ArgumentNullException( "DocSSTV must not be null." );
 
-			Iconic = ImageResourceHelper.GetImageResource( Assembly.GetExecutingAssembly(), IconResource );
+			Iconic = oDocSSTV.CreateIconic( IconResource );
 		}
 
         public void LogError( string strCatagory, string strDetails ) {
@@ -596,9 +599,9 @@ namespace Play.SSTV {
 		protected ImageViewSingle _wmViewRxImg;
 		protected ImageViewIcons  _wmViewRxHistory;
 
-		public WindowRxBase( IPgViewSite oSiteBase, DocSSTV oDocSSTV ) : base( oSiteBase, oDocSSTV ) {
-			Iconic = ImageResourceHelper.GetImageResource( Assembly.GetExecutingAssembly(), IconResource );
-
+		public WindowRxBase( IPgViewSite oSiteBase, DocSSTV oDocSSTV ) : 
+			base( oSiteBase, oDocSSTV ) 
+		{
 			_wmViewRxImg     = new( new SSTVWinSlot( this, ChildID.RxWindow      ),    _oDocSSTV.DisplayImage );
 			_wmViewRxHistory = new( new SSTVWinSlot( this, ChildID.HistoryNavWindow ), _oDocSSTV.RxHistoryList  ); 
 
@@ -669,10 +672,9 @@ namespace Play.SSTV {
 		IPgLoad<XmlElement>
 	{
 		public    static          Guid   GUID { get; } = new Guid( "{955742A3-79D3-4789-B93B-B4225C641057}" );
-		protected static readonly string _strIcon      = "Play.SSTV.icons8_tv.png";
 
 		public    override Guid   Catagory     => GUID;
-		protected override string IconResource => _strIcon;
+		protected override string IconResource => "Play.SSTV.Content.icons8_tv.png";
 
 		protected readonly WindowSoloImageNav _wnSoloImageNav;
 

@@ -25,7 +25,7 @@ namespace Play.SSTV {
     {
         public static Guid GUID {get;} = new Guid("{5B8AC3A1-A20C-431B-BA13-09314BA767FC}");
 
-        private   readonly string      _strViewIcon  = "Play.SSTV.icons8_settings.png";
+        private   readonly string      _strViewIcon  = "Play.SSTV.Content.icons8_settings.png";
         protected readonly IPgViewSite _oViewSite;
 
         public Guid      Catagory  => GUID; 
@@ -42,7 +42,7 @@ namespace Play.SSTV {
         {
             SSTVDocument = oDocument; // Don't bother check for null, will have thrown by now see above...
             _oViewSite   = oViewSite;
-			Iconic       = ImageResourceHelper.GetImageResource( Assembly.GetExecutingAssembly(), _strViewIcon );
+			Iconic       = oDocument.CreateIconic( _strViewIcon );
         }
 
         protected override void Dispose( bool disposing ) {

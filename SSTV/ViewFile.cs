@@ -96,11 +96,10 @@ namespace Play.SSTV {
 		IPgLoad<XmlElement>
 	{
 		public    static          Guid   GUID { get; } = new Guid("{C4521EB7-3F16-4576-80A0-24F5396C23F7}");
-		protected static readonly string _strIcon = "Play.SSTV.icons8_tv.png";
 
 		protected static readonly string _strBaseTitle2 = "MySSTV : File Viewer";
 		public    override Guid   Catagory     => GUID;
-		protected override string IconResource => _strIcon;
+		protected override string IconResource => "Play.SSTV.Content.icons8_tv.png";
 
 		protected readonly ModeEditor     _rgRxModeList;
 		protected readonly FileChooser    _rgWavFileList; // Recorded wave files.

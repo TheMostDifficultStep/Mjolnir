@@ -7,6 +7,8 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Xml;
+using System.Drawing;
+using System.Reflection;
 
 using SkiaSharp;
 using NAudio.Wave;
@@ -1459,6 +1461,10 @@ namespace Play.SSTV {
                 if( rgErrors.IsUnhandled( oEx ) )
                     throw;
             }
+        }
+
+        public Image CreateIconic( string strResource ) {
+            return ImageResourceHelper.GetImageResource( Assembly.GetExecutingAssembly(), strResource );
         }
     } // End class
 }

@@ -898,10 +898,11 @@ namespace Mjolnir {
         /// <summary>
         /// Open up a new .txt document and fill it with the Version Info of this program.
         /// </summary>
-        /// <remarks>TODO: Set the path to the last used path. TODO: Create a new document and use the controller
-        /// to create the view!!</remarks>
+        /// <remarks>TODO: Set the path to the last used path. Do not give the file extention a name
+        /// or the system will attempt to load that file from the documents directory. ".txt" will
+        /// simply create a text document and call InitNew() on it.</remarks>
         public void OnHelpAbout( object sender, EventArgs e ) {
-			if (EditorInitNewShow("about.txt") is Editor oDocAbout) {
+			if (EditorInitNewShow(".txt") is Editor oDocAbout) {
 				using (Editor.Manipulator oManip = oDocAbout.CreateManipulator()) {
 					using (TextReader oReader = new StringReader(VersionInfo)) {
 						for (string strLine = string.Empty; strLine != null; strLine = oReader.ReadLine()) {
@@ -910,6 +911,7 @@ namespace Mjolnir {
 								oManip.LineInsert(oDocAbout.ElementCount, strLine);
 						}
 					}
+                    oManip.LineInsert( oDocAbout.ElementCount, "Icons courtesy of... https://icons8.com/" );
 				}
 			}
 		}
@@ -1875,6 +1877,7 @@ namespace Mjolnir {
 				LayoutViews();
 
 				_oSelectedWinSite.BringToFront();
+             // this.Icon = _oSelectedWinSite.Icon; This seems to happen automagically.
 
                 if( fFocus )
                     _oSelectedWinSite.SetFocus();
