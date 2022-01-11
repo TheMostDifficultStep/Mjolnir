@@ -1040,7 +1040,7 @@ namespace Play.ImageViewer {
 					{
 						// This is very slow. That's why we're using a worker to load and scale all of these!
 						LayoutImageBase oTempRct = new LayoutImageBase( skSize );
-						using SKBitmap  oTempBmp = ImageRect.LoadImage( Path.Combine( CurrentDirectory, oFileName.ToString() ) );
+						using SKBitmap  oTempBmp = ImageLineRect.LoadImage( Path.Combine( CurrentDirectory, oFileName.ToString() ) );
 
                         if( oTempBmp != null ) {
 						    oFileName.Extra = oTempRct.CreateReScaledImage( oTempBmp ); 

@@ -15,9 +15,9 @@ using SkiaSharp;
 using SkiaSharp.Views.Desktop;
 
 namespace Play.ImageViewer {
-    public abstract class ImageBase : LayoutImageBase {
+    public abstract class ImageLineBase : LayoutImageBase {
         public Line Source { get; }
-        public ImageBase( Line oSource, SKSize szSize ) : base( szSize ) {
+        public ImageLineBase( Line oSource, SKSize szSize ) : base( szSize ) {
             Source = oSource ?? throw new ArgumentNullException( "Source must not be null" );
         }
 
@@ -28,13 +28,13 @@ namespace Play.ImageViewer {
     /// that needs to be the job of the document, since many views might be sharing
     /// the thumbnail!!
     /// </summary>
-    public class ImageRect : ImageBase
+    public class ImageLineRect : ImageLineBase
     {
         public override SKBitmap Icon => (SKBitmap)Source.Extra;
 
         /// <exception cref="ArgumentNullException" />
         /// <exception cref="InvalidCastException" />
-        public ImageRect( Line oSource, SKSize skSize ) : base( oSource, skSize ) {
+        public ImageLineRect( Line oSource, SKSize skSize ) : base( oSource, skSize ) {
             World = new SKRectI( 0, 0, 0, 0 );
 
             this.SetRect( LOCUS.UPPERLEFT, 0, 0, (int)skSize.Width, (int)skSize.Height );
@@ -46,7 +46,7 @@ namespace Play.ImageViewer {
         /// includes the Text Colors so the call can be the same as the DirectoryRect's.
         /// TODO: Maybe I should pass a SKPaint object as well... hmmm.
 		/// </summary>
-		/// <param name="oTopLeft"></param>
+		/// <param name="oTopLeft">Allows us to scroll.</param>
         public override void Paint( SKCanvas skCanvas, IPgStandardUI2 oStdUI, SKPoint oTopLeft ) {
             if( Icon == null ) {
                 // Used to paint bg even if Icon is null, but I was getting weird paint errors
@@ -76,7 +76,7 @@ namespace Play.ImageViewer {
         }
     }
 
-    public class DirectoryRect : ImageBase {
+    public class DirectoryRect : ImageLineBase {
         public  FTCacheLine Text { get; }
 		private readonly SKColor _oFolderColor;
 
@@ -114,7 +114,7 @@ namespace Play.ImageViewer {
         protected readonly CacheBase2      _oTextCache     = new CacheBase2();
         protected readonly SmartRect       _oTextRect      = new SmartRect();
         protected readonly ScrollBar2      _oScrollBarVirt;
-        protected readonly List<ImageBase> _rgThumbs       = new List<ImageBase>();
+        protected readonly List<ImageLineBase> _rgThumbs       = new List<ImageLineBase>();
         protected          uint            _uiStdText      = 0;
 
         protected       int  _iImgHeight   = 100;
@@ -215,7 +215,7 @@ namespace Play.ImageViewer {
 			// BUG: Note we call this same type of code on decor direction. Make
 			//      sure we're not battling to update the image.
             try {
-                foreach( ImageBase oImage in _rgThumbs ) {
+                foreach( ImageLineBase oImage in _rgThumbs ) {
                     if( oImage.Source == _oDocument.CurrentElement ) {
                         SmartRect oTarget = new SmartRect( oImage );
 
@@ -310,8 +310,8 @@ namespace Play.ImageViewer {
             base.OnMouseUp(e);
 
             if( e.Button == System.Windows.Forms.MouseButtons.Left ) {
-				ImageBase oFound = null;
-                foreach( ImageBase oThumb in _rgThumbs ) {
+				ImageLineBase oFound = null;
+                foreach( ImageLineBase oThumb in _rgThumbs ) {
                     if( oThumb.IsInside( e.X, e.Y + _oTextRect.Top ) ) {
 						oFound = oThumb;
                     }
@@ -514,7 +514,7 @@ namespace Play.ImageViewer {
             skPaint .Color = _oStdUI.ColorsStandardAt( StdUIColors.BGReadOnly );
             skCanvas.DrawRect( e.Info.Rect, skPaint );
 
-            foreach( ImageBase oImage in _rgThumbs ) {
+            foreach( ImageLineBase oImage in _rgThumbs ) {
                 if( oImage.IsIntersecting( _oTextRect ) ) {
                     try {
                         if( oImage.Source == _oDocument.CurrentElement ) { // If image is selected...draw contrasting background.
@@ -554,7 +554,7 @@ namespace Play.ImageViewer {
             float flFirst   = -1;
             try {
                 for( int i=0; i<_rgThumbs.Count; ++i ) {
-                    ImageBase oImage = _rgThumbs[i];
+                    ImageLineBase oImage = _rgThumbs[i];
                     if( oImage.IsIntersecting( _oTextRect ) ) {
                         ++flVisible;
                         if( flFirst < 0 )
@@ -600,8 +600,8 @@ namespace Play.ImageViewer {
         /// </summary>
         protected void ThumbsPopulate() {
             // Dump bitmap views that are no longer needed.
-            ImageBase[] rgSortedThumb = new ImageBase[_oDocument.ElementCount];
-            foreach( ImageBase oThumb in _rgThumbs ) {
+            ImageLineBase[] rgSortedThumb = new ImageLineBase[_oDocument.ElementCount];
+            foreach( ImageLineBase oThumb in _rgThumbs ) {
                 if( oThumb.Source.At > -1 )
                     rgSortedThumb[ oThumb.Source.At] = oThumb;
             }
@@ -613,12 +613,12 @@ namespace Play.ImageViewer {
             for( int i=0; i < _oDocument.ElementCount; ++i ) {
                 Line oLine = _oDocument[i];
                 if( rgSortedThumb[i] == null && oLine is FileLine oFileLine ) {
-                    ImageBase oNewItem = null;
+                    ImageLineBase oNewItem = null;
                     if( oFileLine._fIsDirectory ) {
                         oNewItem = new DirectoryRect( new FTCacheWrap( oLine ), rcSize, _clrFolder );
                     } else {
 						if( _oDocument.IsLineUnderstood( oLine ) ) {
-							oNewItem = new ImageRect( oLine, rcSize );
+							oNewItem = new ImageLineRect( oLine, rcSize );
 						}
                     }
                     if( oNewItem != null ) // We need to create a unrecognized type too.
@@ -627,7 +627,7 @@ namespace Play.ImageViewer {
             }
 
             // Put our results back up in the working caches.
-            foreach( ImageBase oThumb in rgSortedThumb ) {
+            foreach( ImageLineBase oThumb in rgSortedThumb ) {
                 _rgThumbs.Add( oThumb );
 				if (oThumb is DirectoryRect oRect) {
 					_oTextCache.Add(oRect.Text);
@@ -659,7 +659,7 @@ namespace Play.ImageViewer {
             // thumb is exactly the same width.
             try {
                 for( int i = 0; i < _rgThumbs.Count; ) {
-                    ImageBase oThumb = _rgThumbs[i];
+                    ImageLineBase oThumb = _rgThumbs[i];
 
                     iLeft += _iMarginLeft;
 
