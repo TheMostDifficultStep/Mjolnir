@@ -168,7 +168,7 @@ namespace Play.Clock {
             Document.ClockEvent += OnEvent;
 
             SmartTable oLayout = new SmartTable( 5, LayoutRect.CSS.None );
-            Layout2 = oLayout;
+            Layout = oLayout;
 
             oLayout.Add( new LayoutRect( LayoutRect.CSS.Percent, 30, 0 ) ); // time
             oLayout.Add( new LayoutRect( LayoutRect.CSS.Percent, 45, 0 ) ); // date

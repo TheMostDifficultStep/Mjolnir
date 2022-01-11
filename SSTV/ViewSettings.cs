@@ -60,7 +60,7 @@ namespace Play.SSTV {
                                               SSTVProperties.Names.Std_MicGain,
                                               SSTVProperties.Names.Std_Clock };
 
-            if( Layout2 is SmartTable oTable ) {
+            if( Layout is SmartTable oTable ) {
                 foreach( SSTVProperties.Names eName in rgShow ) {
                     switch( eName ) {
                         case SSTVProperties.Names.Std_TxPort:

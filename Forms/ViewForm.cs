@@ -133,8 +133,8 @@ namespace Play.Forms {
 		protected readonly IPgViewSite   _oSiteView;
         protected readonly IPgViewNotify _oViewEvents; // Our site from the window manager (view interface).
 
+        protected new ParentRect         Layout    { get; set; } = new LayoutStackHorizontal( 5 );
         protected List<LayoutSingleLine> CacheList { get; }      = new List<LayoutSingleLine>();
-        protected ParentRect             Layout2   { get; set; } = new LayoutStackHorizontal( 5 );
 
         protected Editor           DocForms { get; }
         protected SimpleCacheCaret Caret    { get; }
@@ -389,8 +389,8 @@ namespace Play.Forms {
         }
 
         protected override void OnSizeChanged( EventArgs e ) {
-			Layout2.SetRect( 0, 0, Width, Height );
-			Layout2.LayoutChildren();
+			Layout.SetRect( 0, 0, Width, Height );
+			Layout.LayoutChildren();
 
             CaretIconRefresh();
 

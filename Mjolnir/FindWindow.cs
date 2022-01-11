@@ -91,7 +91,7 @@ namespace Mjolnir {
             CacheList.Add( oLayoutSearchKey );
 
             SmartTable oTable = new SmartTable( 5, LayoutRect.CSS.None );
-            Layout2 = oTable;
+            Layout = oTable;
 
 			oTable.Add( new LayoutRect( LayoutRect.CSS.Pixels, 50, .25f ) );
 			oTable.Add( new LayoutRect( LayoutRect.CSS.Pixels, 50, .25f ) );

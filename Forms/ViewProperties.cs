@@ -96,7 +96,7 @@ namespace Play.Forms {
                 return false;
 
             SmartTable oLayout = new SmartTable( 5, LayoutRect.CSS.None );
-            Layout2 = oLayout;
+            Layout = oLayout;
 
             oLayout.Add( new LayoutRect( LayoutRect.CSS.Flex, 30, 0 ) ); // Name.
             oLayout.Add( new LayoutRect( LayoutRect.CSS.None, 70, 0 ) ); // Value.
@@ -115,7 +115,7 @@ namespace Play.Forms {
         }
 
         public virtual void InitRows() {
-            if( Layout2 is not SmartTable oTable ) {
+            if( Layout is not SmartTable oTable ) {
                 LogError( "Unexpected Layout for Property Page" );
                 return;
             }
@@ -126,7 +126,7 @@ namespace Play.Forms {
         }
 
         public virtual void InitRows( int[] rgShow ) {
-            if( Layout2 is not SmartTable oTable ) {
+            if( Layout is not SmartTable oTable ) {
                 LogError( "Unexpected Layout for Property Page" );
                 return;
             }

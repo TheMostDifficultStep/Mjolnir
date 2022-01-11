@@ -29,14 +29,14 @@ namespace Mjolnir {
     /// Experimental class for my tabs.
     /// </summary>
     /// <seealso cref="LayoutFlowSquare"/>
-    public class LayoutFlowSquare_Flow : LayoutFlowSquare {
+    public class LayoutFlowSquare_Fixed : LayoutFlowSquare {
 		readonly List<LayoutRect> _rgLayout = new List<LayoutRect>();
 
-		public LayoutFlowSquare_Flow( Size szSize, uint uiMargin ) : base( szSize, uiMargin ) {
-			ItemSize = new Size( 300, 50 );
+		public LayoutFlowSquare_Fixed( Size szSize, uint uiMargin ) : base( szSize, uiMargin ) {
+			ItemSize = szSize;
 		}
 
-		public LayoutFlowSquare_Flow( CSS eUnits, uint uiMargin ) : base( eUnits, uiMargin ) {
+		public LayoutFlowSquare_Fixed( CSS eUnits, uint uiMargin ) : base( eUnits, uiMargin ) {
 		}
 
 		public override void                    Clear()          => _rgLayout.Clear();
@@ -101,8 +101,7 @@ namespace Mjolnir {
         public MainWin_Tabs(IPgViewSite oSiteView, Editor oPropEd ) : 
             base(oSiteView, oPropEd) 
         {
- 			_oStdUI = oSiteView.Host.Services as IPgStandardUI2 ?? throw new ArgumentException( "Parent view must provide IPgStandardUI service" );
-
+ 			_oStdUI        = oSiteView.Host.Services as IPgStandardUI2 ?? throw new ArgumentException( "Parent view must provide IPgStandardUI service" );
 			BgColorDefault = _oStdUI.ColorsStandardAt( StdUIColors.BG );
         }
 
@@ -110,8 +109,8 @@ namespace Mjolnir {
             if( !base.InitNew() ) 
                 return false;
 
-            LayoutFlowSquare_Flow oLayout = new ( new Size( 300, 50 ), 5 );
-            Layout2 = oLayout;
+            LayoutFlowSquare_Fixed oLayout = new( new Size( 300, 50 ), 5 );
+            Layout = oLayout;
 
             InitTabs( oLayout );
 
@@ -120,9 +119,6 @@ namespace Mjolnir {
             DocForms.BufferEvent += OnBufferEvent_ViewsEditor;
 
             OnBufferEvent_ViewsEditor( BUFFEREVENTS.MULTILINE );
-            //OnSizeChanged( new EventArgs() );
-			Layout2.SetRect( 0, 0, 800, 500 );
-			Layout2.LayoutChildren();
 
             return true;
         }
@@ -131,7 +127,7 @@ namespace Mjolnir {
             OnDocumentEvent( BUFFEREVENTS.MULTILINE );
         }
 
-		protected void InitTabs( LayoutFlowSquare_Flow oLayout ) {
+		protected void InitTabs( LayoutFlowSquare_Fixed oLayout ) {
 			using SKPaint oPaint = new SKPaint() { Color = SKColors.Red };
 
 			foreach( Line oViewLine in DocForms ) {
@@ -158,7 +154,7 @@ namespace Mjolnir {
 
             SKPaint skPaint = new SKPaint() { Color = SKColors.Aqua };
 
-			foreach( LayoutRect oRect in Layout2 ) {
+			foreach( LayoutRect oRect in Layout ) {
                 //SKRectI skRect = oRect.SKRect;
                 //skRect.Bottom += 10;
                 //e.Surface.Canvas.DrawRect( skRect, skPaint );
