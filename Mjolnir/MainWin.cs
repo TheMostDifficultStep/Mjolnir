@@ -1748,7 +1748,7 @@ namespace Mjolnir {
 
             oViewSite.Guest.Parent = this;           // When called, the view gets an OnHandleCreated() call!
             oViewSite.Guest.Bounds = _rcFrame.Rect; // When called, the view gets an OnSizeChanged() call!
-            oViewSite.Guest.Text = "Phree Bee - " + oViewSite.Title; // We never see this, but... ^_^;
+            oViewSite.Guest.Text = "Mjolnir - " + oViewSite.Title; // We never see this, but... ^_^;
 
             this.Controls.Add( oViewSite.Guest );
 

@@ -48,13 +48,14 @@ namespace Play.ImageViewer {
 		/// </summary>
 		/// <param name="oTopLeft"></param>
         public override void Paint( SKCanvas skCanvas, IPgStandardUI2 oStdUI, SKPoint oTopLeft ) {
-            if( Icon == null )
-                return;
+            if( Icon == null ) {
+                // Used to paint bg even if Icon is null, but I was getting weird paint errors
+                // white rectangles over the normal working thumbs. Perhaps those where thumbs
+                // not genderated yet and thus not layed out? 
+			    PaintBackground( skCanvas, oTopLeft );
 
-            // Used to paint bg even if Icon is null, but I was getting weird paint errors
-            // white rectangles over the normal working thumbs. Perhaps those where thumbs
-            // not genderated yet and thus not layed out? So only paint anything if all is ready.
-			PaintBackground( skCanvas, oTopLeft );
+                return;
+            }
 
             World = new SKRectI( 0, 0, Icon.Width, Icon.Height );
             ViewPortSizeMax( ViewPort ); // TODO: Need to look at placement of this call...

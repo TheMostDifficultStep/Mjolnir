@@ -16,6 +16,7 @@ namespace Play.Forms {
     /// This is slightly a misnomer in that a single Line can be wrapped. What
     /// we mean is a solitary Line. This object will be part of my new Forms object.
     /// </summary>
+    /// <seealso cref="LayoutText"/>
     public class LayoutSingleLine : LayoutRect {
         public FTCacheLine Cache { get; }
         public SimpleRange Selection { get; } = new SimpleRange(0);

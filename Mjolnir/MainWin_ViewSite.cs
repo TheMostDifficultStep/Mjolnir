@@ -2,7 +2,6 @@
 using System.Text;
 using System.Windows.Forms;
 using System.Drawing;
-using System.IO;
 using System.Xml;
 using System.Collections.Generic;
 
@@ -27,6 +26,10 @@ namespace Mjolnir {
 		}
 	}
     
+    /// <summary>
+    /// 1/20/2022: This is a very old object, it should probably inherit from Text line and then
+    /// it would be a more natural fit to the view selectory.
+    /// </summary>
     public class ViewSlot : 
         IPgViewSite,
         IPgViewNotify,

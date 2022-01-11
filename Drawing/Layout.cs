@@ -524,53 +524,17 @@ namespace Play.Rectangles {
 			ItemSize = new Size( 0, 0 );
 		}
 
-
-        /// <summery>Try to figure out how many thumbs will fit on all rows if the
-		/// objects are all the same width.</summery>
-		/// <remarks>It's a little weird that I look at the items in the columns,
-		/// when I assume they're all the same size!! This algorithm will be good
-		/// for variable sized objects. I'll sort this out later.</remarks>
-		protected void FindColumns( out Point pntShim, List<int> rgColumns ) {
-			pntShim  = new Point( Left, 0 );
-
-            foreach( LayoutRect oThumb in this ) {
-                int iLeft = pntShim.X;
-				
-				pntShim.X += Margin.Left;
-                pntShim.X += ItemSize.Width;
-                pntShim.X += Margin.Right;
-
-                if( pntShim.X > Right ) 
-                    break;
-
-				rgColumns.Add( iLeft + Margin.Left );
-
-				// Bug: For varying height items use TrackDesired. 
-				if( ItemSize.Height > pntShim.Y )
-					pntShim.Y = ItemSize.Height;
-            };
-
-            if( rgColumns.Count == 0 )
-				rgColumns.Add( Left + Margin.Left );
-
-            // This this makes the columns spring loaded.
-            float fDiff = Right - rgColumns.Last() - ItemSize.Width;
-            int   iIncr = (int)(fDiff/(rgColumns.Count+1));
-            int   iAcum = iIncr;
-
-            for( int iCol = 0; iCol<rgColumns.Count; ++iCol ) { 
-                rgColumns[iCol] += iAcum;
-				if( Springy )
-					iAcum += iIncr;
-            }
-		}
-
-		public virtual void ItemSizeFromCount() {
+		/// <summary>
+		/// Assuming the items are square, figure out how many can fit in
+		/// the area of the parent. Elements will be shrunk to fit as long
+		/// as the resulting layout is close to n rows by n columns.
+		/// </summary>
+		public virtual void ItemSizeCalculate() {
 			double dRoot     = Math.Sqrt( Count );
 			double dCeiling  = Math.Ceiling( dRoot );
 			double dSquare   = dCeiling * dCeiling;
 			Point  pntExtent = new Point( (int)dCeiling, (int)dCeiling );
-			SizeF  szSize    = new SizeF( Width, Height );
+			SizeF  szSize    = new SizeF( Width, Height ); // Space we are filling.
 
 			// If we don't use all the rows, stretch the Height by one row.
 			if( Count <= dSquare - dCeiling )
@@ -598,11 +562,53 @@ namespace Play.Rectangles {
 			ItemSize = new Size( (int)szSize.Width, (int)szSize.Height );
 		}
 
-		public override bool LayoutChildren() {
-            List<int> rgColumns = new List<int>();
+        /// <summery>Try to figure out how many thumbs will fit on all rows if the
+		/// objects are all the same width, given by the ItemSize member.</summery>
+		/// <seealso cref="ItemSize"/>
+		protected int FindDimensions( List<int> rgColumns ) {
+			int iRight  = Left;
+			int iHeight = 0;
+			int iCount  = 0;
 
-			ItemSizeFromCount();
-			FindColumns      ( out Point pntShim, rgColumns );
+            foreach( LayoutRect oRect in this ) {
+				int iRun = iRight;
+
+				iRun += Margin.Left;
+                iRun += ItemSize.Width;
+                iRun += Margin.Right;
+
+				// Allow the first one in all cases.
+                if( iRun > Right && iCount > 0 ) 
+                    break;
+
+				rgColumns.Add( iRight + Margin.Left );
+				iRight = iRun;
+				// Bug: For varying height items use TrackDesired. 
+				if( ItemSize.Height > iHeight )
+					iHeight = ItemSize.Height;
+				++iCount;
+            };
+
+            // This this makes the columns spring loaded.
+            float fDiff = Right - iRight;
+			if( fDiff > 0 ) {
+				int iIncr = (int)(fDiff/(rgColumns.Count+1));
+				int iAcum = iIncr;
+
+				for( int iCol = 0; iCol<rgColumns.Count; ++iCol ) { 
+					rgColumns[iCol] += iAcum;
+					if( Springy )
+						iAcum += iIncr;
+				}
+			}
+			return iHeight; // Height of each row. No margin calc included.
+		}
+
+		public override bool LayoutChildren() {
+			ItemSizeCalculate();
+
+            List<int> rgColumns = new List<int>();
+			int       iHeight   = FindDimensions( rgColumns );
 
             for( int i = 0, iTop = Top + Margin.Top; i < Count;  ) {
                 foreach( int iStart in rgColumns ) {
@@ -616,7 +622,7 @@ namespace Play.Rectangles {
                     if( ++i >= Count )
                         break;
                 }
-                iTop += ( pntShim.Y + Margin.Bottom + Margin.Top );
+                iTop += ( iHeight + Margin.Bottom + Margin.Top );
             };
 
 			return true;

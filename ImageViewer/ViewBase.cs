@@ -66,7 +66,8 @@ namespace Play.ImageViewer {
 		private void OnSizeEvent(SmartRect o) {
 			_oView.Bounds = this.Rect;
 		}
-	}
+
+    }
 
 	public class ImageHelpers {
 		/// <summary>
