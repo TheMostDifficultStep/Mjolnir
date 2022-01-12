@@ -96,8 +96,8 @@ namespace Play.SSTV {
             LabelSet( Names.Std_MicGain,    "Output Gain < 30,000" );
             LabelSet( Names.Std_Clock,      "Clock" ); // Give it yellow if calibrated value different than base.
 
-            LabelSet( Names.Tx_MyCall,    "My    Call" );
-            LabelSet( Names.Tx_TheirCall, "Their Call" );
+            LabelSet( Names.Tx_MyCall,    "My Call" );
+            LabelSet( Names.Tx_TheirCall, "Rx Call" );
             LabelSet( Names.Tx_RST,       "RST" );
             LabelSet( Names.Tx_Message,   "Message" );
             LabelSet( Names.Tx_Progress,  "Sent" );
