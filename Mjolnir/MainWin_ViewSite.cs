@@ -27,8 +27,9 @@ namespace Mjolnir {
 	}
     
     /// <summary>
-    /// 1/20/2022: This is a very old object, it should probably inherit from Text line and then
-    /// it would be a more natural fit to the view selectory.
+    /// Finally inherit from TextLine. The up side is the view's banner text is stored
+    /// as a mutable buffer, the down side is most people want a string. So I save a copy
+    /// as string anyway. This object goes straight into the ViewSelector document.
     /// </summary>
     public class ViewSlot : 
         TextLine,
@@ -46,13 +47,9 @@ namespace Mjolnir {
 		protected IPgCommandView               _oViewCommand;
 				  IPgTools                     _oViewTools;
 
-        readonly ColorRange  _oRangeText = new ColorRange( 0, 0, 0 );
-        //public CacheWrapped  CacheTitle { get; }
-
         static   UInt32 _iIDCount;
         readonly UInt32 _iID;
 
-        Icon                      _oIcon   = null;
         ToolStripMenuItem         _oMenuItem; // This is our entry in the list of windows the shell is showing.
 		protected LayoutRect      _oLayout;   // Put our new Framelet here.
 
@@ -129,7 +126,7 @@ namespace Mjolnir {
 		/// <summary>
 		/// Might want to reinvestigate the dispose pattern for this one.
 		/// </summary>
-        public virtual void Dispose() {
+        public override void Dispose() {
 			if( _oViewControl != null ) {
 				_oViewControl.Hide();
 				_oViewControl.Site = null;
@@ -147,21 +144,11 @@ namespace Mjolnir {
 
 			// TODO: Should probably check if we've been disposed of to be safe. ^_^;;
             DocumentReferenceIncrement( -1 );
+            base.Dispose();
         }
 
         public virtual void DocumentReferenceIncrement( int i ) {
             _oDocSite.Reference += i;
-        }
-
-        /// <summary>
-        /// Little helper function.
-        /// </summary>
-        public bool Wrap {
-            set {
-                if( _oViewControl is EditWin oGuestEdit ) {
-                    oGuestEdit.Wrap = value;
-                }
-            }
         }
 
         public string LastPath {
@@ -172,6 +159,9 @@ namespace Mjolnir {
             get { return( _iID ); }
         }
         
+        public Icon Icon { get; protected set; }
+        internal Image Iconic { get { return _oViewCommand.Iconic; } }
+
         /// <summary>
         /// Go to the guest view and ask for it's bitmap to be used as the icon.
         /// But here's the rub. You can create an icon handle from a bitmap then
@@ -187,7 +177,7 @@ namespace Mjolnir {
 				if( oBitmap != null ) {
 					ipHIcon = oBitmap.GetHicon();
 					using( Icon oIcon = Icon.FromHandle( ipHIcon ) ) {
-						_oIcon = (Icon)oIcon.Clone();
+						Icon = (Icon)oIcon.Clone();
 					}
 				}
             } catch( InvalidCastException ) {
@@ -505,14 +495,6 @@ namespace Mjolnir {
 
             _oHost.UpdateAllTitlesFor( _oDocSite );
         }
-
-        public Icon Icon {
-            get {
-                return( _oIcon ); 
-            }
-        }
-
-        internal Image Iconic { get { return _oViewCommand.Iconic; } }
 
         public bool Execute( Guid sCommand ) {
 			try {
