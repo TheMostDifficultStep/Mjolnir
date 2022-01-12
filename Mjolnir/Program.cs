@@ -455,7 +455,7 @@ namespace Mjolnir {
                                 typeof( ApplicationException ),
                                 typeof( ArgumentOutOfRangeException ) };
             if (rgErrors.IsUnhandled(oEx))
-                throw oEx;
+                throw new ApplicationException( "Xml read error.", oEx );
 
             this.LogError("program session", strMessage);
         }

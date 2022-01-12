@@ -31,6 +31,7 @@ namespace Mjolnir {
     /// it would be a more natural fit to the view selectory.
     /// </summary>
     public class ViewSlot : 
+        TextLine,
         IPgViewSite,
         IPgViewNotify,
 		IPgShellSite,
@@ -47,7 +48,6 @@ namespace Mjolnir {
 
         readonly ColorRange  _oRangeText = new ColorRange( 0, 0, 0 );
         //public CacheWrapped  CacheTitle { get; }
-        public Line          ShortTitle { get; } = new TextLine( 0, string.Empty );
 
         static   UInt32 _iIDCount;
         readonly UInt32 _iID;
@@ -55,7 +55,6 @@ namespace Mjolnir {
         Icon                      _oIcon   = null;
         ToolStripMenuItem         _oMenuItem; // This is our entry in the list of windows the shell is showing.
 		protected LayoutRect      _oLayout;   // Put our new Framelet here.
-        string                    _strShortTitle = string.Empty; // cached string for main title bar.
 
 		private List<MenuItemWithID> ToolBox { get; }
 		public  virtual LayoutRect   Layout  { get { return _oLayout; } }
@@ -63,7 +62,9 @@ namespace Mjolnir {
 		public Guid ViewType { get; private set; }
 
 		///<exception cref="ArgumentNullException" />
-        internal ViewSlot( MainWin oHost, IDocSlot oDocSite, Guid guidViewType ) {
+        internal ViewSlot( MainWin oHost, IDocSlot oDocSite, Guid guidViewType ) :
+            base( 0, string.Empty ) 
+        {
             _iID       = _iIDCount;
             _iIDCount += 1;
 
@@ -108,7 +109,7 @@ namespace Mjolnir {
 		/// <exception cref="ArgumentNullException" />
 		/// <exception cref="ArgumentException" />
 		protected virtual void GuestAssign( Control oGuest ) {
-            _oViewControl        = oGuest ?? throw new ArgumentNullException( "View site needs a guest to be valid." );
+            _oViewControl = oGuest ?? throw new ArgumentNullException( "View site needs a guest to be valid." );
             _oViewCommand = oGuest as IPgCommandView ?? throw new ArgumentException( "view needs IPgCommand." );
 			_oViewSaveXml = oGuest as IPgSave<XmlDocumentFragment> ?? throw new ArgumentException( "view needs IPgSave<XmlDocumentFragment>" );
 			_oViewLoadXml = oGuest as IPgLoad<XmlElement> ?? throw new ArgumentException( "view needs IPgLoad<XmlElement>." );
@@ -423,17 +424,37 @@ namespace Mjolnir {
             return( false );
         }
 
+        /// <summary>
+        /// This is a cache of the title so we don't keep generating it whenever we switch
+        /// views and the main window asks for this value over and over.
+        /// </summary>
+        public string Title { get; protected set; }
+
         public void UpdateTitle() {
-            // So it turns out on dispose, sometimes children getting un-focus events send
-            // them up and we'll bomb out. Plus, since dispose will set the menuitem to 
-            // null it's probably a good idea to check the item. I don't think an exception
+            // So it turns out on dispose, sometimes children getting un-focus 
+            // events send them up and we'll bomb out. I don't think an exception
             // and error message is called for yet.
+			try {
+				int iViewID = _oHost.ViewTitleID( this );
+
+                Empty();
+				TryAppend( _oViewCommand.Banner );
+
+				if( iViewID > -1 ) {
+                    TryAppend( ", " );
+                    TryAppend( iViewID.ToString() );
+                    TryAppend( " of " );
+                    TryAppend( DocumentSite.Reference.ToString() );
+				}
+			} catch ( NullReferenceException ) {
+				TryAppend( "View" );
+			}
+
+            Title = ToString();
+            // Dispose will set the menuitem to null it's a good idea to check it.
             if( _oMenuItem != null ) {
                 _oMenuItem.Text = Title;
-                _strShortTitle  = Title;
             }
-
-            //CacheTitle.Invalidate();
         }
 
         public bool IsTextInvalid {  get { return false; /* CacheTitle.IsInvalid; */ } }
@@ -483,40 +504,6 @@ namespace Mjolnir {
             _oDocSite.Save(fAtNewLocation);
 
             _oHost.UpdateAllTitlesFor( _oDocSite );
-        }
-
-        /// <summary>
-        /// This get's called by the drop down menu item and by proxy the WindowsList. By using
-        /// ViewIDTitle we can tell the difference between our views!
-        /// </summary>
-        public string Title {
-            get {
-				try {
-					StringBuilder sbTitle = new StringBuilder();
-					int iViewID = _oHost.ViewTitleID( this );
-
-					sbTitle.Append( _oViewCommand.Banner );
-
-					if( iViewID > -1 ) {
-                        sbTitle.Append( ", " );
-                        sbTitle.Append( iViewID.ToString() );
-                        sbTitle.Append( " of " );
-                        sbTitle.Append( DocumentSite.Reference.ToString() );
-					}
-
-					return( sbTitle.ToString() );
-				} catch ( NullReferenceException ) {
-					return( "View" );
-				}
-            }
-        }
-
-        /// <summary>
-        /// Our view site get's tossed into the WindowsList. And ToString() get's called to spew the text.
-        /// so I want the short title. You can select it to see the path in the window title bar.
-        /// </summary>
-        public override string ToString() {
-            return( _strShortTitle );
         }
 
         public Icon Icon {
@@ -739,9 +726,9 @@ namespace Mjolnir {
 
         private void OnHost_ViewChanged( object oView ) {
             try {
-                foreach( ViewsLine oViewLine in _oDoc_Views ) {
+                foreach( ViewSlot oViewLine in _oDoc_Views ) {
                     // Just want to see if the objects are the same.
-                    if( oViewLine.ViewSite.Guest == oView )
+                    if( oViewLine.Guest == oView )
                         _oDoc_Views.HighLight = oViewLine;
                 }
             } catch( NullReferenceException ) {
@@ -766,7 +753,7 @@ namespace Mjolnir {
 
         protected void GotoView( bool fFocus ) {
 			try {
-                _oHost.ViewSelect( _oDoc_Views[_oViewText.Caret.Line].ViewSite, fFocus );
+                _oHost.ViewSelect( _oDoc_Views[_oViewText.Caret.Line], fFocus );
 			} catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( NullReferenceException ),
                                     typeof( IndexOutOfRangeException ),
@@ -784,7 +771,7 @@ namespace Mjolnir {
 
         protected void MenuCloseViewCommand( object s, EventArgs e ) {
 			try {
-				_oHost.ViewClose( _oDoc_Views[_oViewText.Caret.Line].ViewSite );
+				_oHost.ViewClose( _oDoc_Views[_oViewText.Caret.Line] );
 			} catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( NullReferenceException ),
                                     typeof( IndexOutOfRangeException ),

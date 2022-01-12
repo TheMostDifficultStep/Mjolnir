@@ -307,7 +307,7 @@ namespace Play.SSTV {
 
         public IPgParent Parentage => _oSiteBase.Host;
         public IPgParent Services  => Parentage;
-        public bool      IsDirty   => false;
+        public bool      IsDirty   => false; // BUG: Time to implement this.
 
         public event SSTVPropertyEvent PropertyChange;
 

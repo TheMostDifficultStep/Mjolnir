@@ -133,6 +133,7 @@ namespace Play.Forms {
 		protected readonly IPgViewSite   _oSiteView;
         protected readonly IPgViewNotify _oViewEvents; // Our site from the window manager (view interface).
 
+        // Just blast the old forms Layout member with my prefered implementation.
         protected new ParentRect         Layout    { get; set; } = new LayoutStackHorizontal( 5 );
         protected List<LayoutSingleLine> CacheList { get; }      = new List<LayoutSingleLine>();
 

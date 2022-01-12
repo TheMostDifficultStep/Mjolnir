@@ -55,7 +55,7 @@ namespace Mjolnir {
 			public override void       Clear() { }
 			public override LayoutRect Item(int iIndex) {
 				try {
-					return _oControl._oDoc_ViewSelector[iIndex].ViewSite.Layout;
+					return _oControl._oDoc_ViewSelector[iIndex].Layout;
 				} catch( Exception oEx ) {
 					Type[] rgErrors = { typeof( NullReferenceException ),
 										typeof( IndexOutOfRangeException ),
@@ -70,8 +70,8 @@ namespace Mjolnir {
 			}
 
 			public override IEnumerator<LayoutRect> GetEnumerator() {
-				foreach( ViewsLine oLine in _oControl._oDoc_ViewSelector ) {
-					yield return oLine.ViewSite.Layout;
+				foreach( ViewSlot oLine in _oControl._oDoc_ViewSelector ) {
+					yield return oLine.Layout;
 				}
 			}
 		} // End class

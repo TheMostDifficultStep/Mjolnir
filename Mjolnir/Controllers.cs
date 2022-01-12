@@ -83,7 +83,7 @@ namespace Mjolnir {
 
         public override IDisposable CreateView( IPgViewSite oBaseSite, object oDocument, Guid guidViewType ) {
             try {
-                return( new EditWin( oBaseSite, (Editor)oDocument ) );
+                return( new EditWindow2( oBaseSite, (Editor)oDocument ) );
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( NullReferenceException ),
                                     typeof( InvalidCastException ),

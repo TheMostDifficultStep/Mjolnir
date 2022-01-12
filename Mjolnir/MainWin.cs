@@ -177,8 +177,8 @@ namespace Mjolnir {
             /// </summary>
             private void OnHyperViewSwitch( Line oLine, IPgWordRange oRange ) {
                 try { 
-                    if( oLine is ViewsLine oViewLine ) {
-                        _oMainWin.ViewSelect( oViewLine.ViewSite, fFocus:true );
+                    if( oLine is ViewSlot oViewLine ) {
+                        _oMainWin.ViewSelect( oViewLine, fFocus:true );
                     }
                 } catch( NullReferenceException ) {
                 }
@@ -875,8 +875,8 @@ namespace Mjolnir {
         protected override void OnFormClosed( FormClosedEventArgs e ) {
             base.OnFormClosed(e);
 
-            foreach( ViewsLine oLine in _oDoc_ViewSelector ) {
-                oLine.ViewSite.Dispose();
+            foreach( ViewSlot oLine in _oDoc_ViewSelector ) {
+                oLine.Dispose();
             }
             _oDoc_ViewSelector.Clear();
 
@@ -1112,10 +1112,10 @@ namespace Mjolnir {
         /// <param name="oDocSite"></param>
         public void UpdateAllTitlesFor( IDocSlot oDocSite )
         {
-            foreach( ViewsLine oSiblingLine in _oDoc_ViewSelector ) {
+            foreach( ViewSlot oSiblingLine in _oDoc_ViewSelector ) {
                 try {
-                    if( oSiblingLine.ViewSite.DocumentSite == oDocSite ) {
-                        oSiblingLine.ViewSite.UpdateTitle();
+                    if( oSiblingLine.DocumentSite == oDocSite ) {
+                        oSiblingLine.UpdateTitle();
                         _oDoc_ViewSelector.Raise_AfterLineUpdate( oSiblingLine, 0, 0, 0 );
                     }
                 } catch( NullReferenceException ) {
@@ -1359,8 +1359,8 @@ namespace Mjolnir {
                         // element count is always greater than zero.
                         iLine = _oDoc_ViewSelector.ElementCount - 1;
                     }
-                    ViewsLine oLine = _oDoc_ViewSelector[iLine];
-                    ViewSelect( oLine.ViewSite, true );
+                    ViewSlot oLine = _oDoc_ViewSelector[iLine];
+                    ViewSelect( oLine, true );
                 }
             } catch( NullReferenceException ) {
                 LogError( null, "shell", "Unexpected null reference while focusing previous view" );
@@ -1373,11 +1373,11 @@ namespace Mjolnir {
                     // Find the next view on the same document.
                     for( int iView = 0; iView<_oDoc_ViewSelector.ElementCount; ++iView ) {
                         iLine = ++iLine % _oDoc_ViewSelector.ElementCount;
-                        ViewsLine oLine = _oDoc_ViewSelector[iLine];
-                        if( oLine.ViewSite.DocumentSite == _oSelectedDocSite ||
+                        ViewSlot oLine = _oDoc_ViewSelector[iLine];
+                        if( oLine.DocumentSite == _oSelectedDocSite ||
                             Keyboard.IsKeyDown( Keys.LShiftKey ) ||
                             Keyboard.IsKeyDown( Keys.RShiftKey ) ) { 
-                            ViewSelect( oLine.ViewSite, true );
+                            ViewSelect( oLine, true );
                             break;
                         }
                     }
@@ -1391,8 +1391,8 @@ namespace Mjolnir {
             try {
                 if( _oDoc_ViewSelector.Find( _oSelectedWinSite, out int iLine ) ) {
                     iLine = ++iLine % _oDoc_ViewSelector.ElementCount;
-                    ViewsLine oLine = _oDoc_ViewSelector[iLine];
-                    ViewSelect( oLine.ViewSite, true );
+                    ViewSlot oLine = _oDoc_ViewSelector[iLine];
+                    ViewSelect( oLine, true );
                 }
             } catch( NullReferenceException ) {
                 LogError( null, "shell", "Unexpected null reference while focusing next view" );
@@ -1785,26 +1785,26 @@ namespace Mjolnir {
                 oHerder.AdornmentRemove( oViewSiteToClose );
             }
 
-            _oDoc_ViewSelector.Remove( oViewSiteToClose );
-
-            ViewSlot oViewNext = null;
-            if( _oDoc_ViewSelector.ElementCount != 0 && this.ViewSiteSelected.ID == oViewSiteToClose.ID ) {
-                // Just get the top one in the list. It would be nicer if it was based on some sort of MRU.
-                oViewNext = _oDoc_ViewSelector[0].ViewSite;
-            }
-
-            ViewSelect( oViewNext, true );
-
             // Save the related doc site so we can see if any other views are open.
-            IDocSlot oDocSite  = oViewSiteToClose.DocumentSite;
+            IDocSlot oDocSite = oViewSiteToClose.DocumentSite;
 
             // Clean up any addornments before the view gets disposed!!
             foreach( SmartHerderBase oHerder in this ) {
                 oHerder.AdornmentRemove( oDocSite );
             }
 
-            oViewSiteToClose.Dispose(); // this will release any references on the document site it might have.
+            // This disposes of the ViewSite!! And it's contents.
+            _oDoc_ViewSelector.Remove( oViewSiteToClose );
 
+            ViewSlot oViewNext = null;
+            if( _oDoc_ViewSelector.ElementCount != 0 && this.ViewSiteSelected.ID == oViewSiteToClose.ID ) {
+                // Just get the top one in the list. It would be nicer if it was based on some sort of MRU.
+                oViewNext = _oDoc_ViewSelector[0];
+            }
+
+            ViewSelect( oViewNext, true );
+
+            // If the ref count on the docsite is zero it will be disposed of as well.
             Document.DocumentsClean( oDocSite );
 
             SessionDirtySet( true );
@@ -2195,9 +2195,9 @@ namespace Mjolnir {
             }
 
             set {
-                foreach( ViewsLine oLine in _oDoc_ViewSelector ) {
-                    if( oLine.ViewSite.Guest == value ) {
-                        ViewSelect( oLine.ViewSite, true );
+                foreach( ViewSlot oLine in _oDoc_ViewSelector ) {
+                    if( oLine.Guest == value ) {
+                        ViewSelect( oLine, true );
                     }
                 }
             }
@@ -2240,11 +2240,9 @@ namespace Mjolnir {
         }
 
         private IEnumerator<IPgCommandView> GetViewsEnumerator( IDocSlot oSiteDoc ) {
-            foreach( Line oLine in _oDoc_ViewSelector ) {
-                ViewsLine oVSLine = oLine as ViewsLine;
-                if( oVSLine.ViewSite.DocumentSite == oSiteDoc ) {
-
-					if (oVSLine.ViewSite.Guest is IPgCommandView oViewSibling)
+            foreach( ViewSlot oLine in _oDoc_ViewSelector ) {
+                if( oLine.DocumentSite == oSiteDoc ) {
+					if (oLine.Guest is IPgCommandView oViewSibling)
 						yield return (oViewSibling);
 				}
             }
@@ -2299,11 +2297,11 @@ namespace Mjolnir {
             int iID    = -1;
             int iCount = 0;
 
-            foreach( ViewsLine oLine in _oDoc_ViewSelector ) {
+            foreach( ViewSlot oLine in _oDoc_ViewSelector ) {
                 try {
-                    if( oLine.ViewSite.DocumentSite == oViewSite.DocumentSite )
+                    if( oLine.DocumentSite == oViewSite.DocumentSite )
                         iCount++;
-                    if( oLine.ViewSite == oViewSite )
+                    if( oLine == oViewSite )
                         iID = iCount;
                 } catch( NullReferenceException ) {
                 }
@@ -2525,7 +2523,7 @@ namespace Mjolnir {
 
             if( oFocusedWinSite == null ) {
                 if( _oDoc_ViewSelector.ElementCount > 0 )
-                    oFocusedWinSite = _oDoc_ViewSelector[0].ViewSite;
+                    oFocusedWinSite = _oDoc_ViewSelector[0];
             }
 
 			ViewSelect( oFocusedWinSite, true );
@@ -2566,9 +2564,9 @@ namespace Mjolnir {
 				LogError( oEx, "Couldn't create views subcollection" );
 			}
 
-            foreach( ViewsLine oLine in _oDoc_ViewSelector ) {
+            foreach( ViewSlot oLine in _oDoc_ViewSelector ) {
 				try {
-					ViewSlot   oViewSlot = oLine.ViewSite;
+					ViewSlot   oViewSlot = oLine;
 					XmlElement xmlView   = xmlOurRoot.OwnerDocument.CreateElement( "View" );
 
 					xmlView.SetAttribute( "docid",  oViewSlot.DocumentSite.ID.ToString() );
@@ -2615,8 +2613,8 @@ namespace Mjolnir {
         }
 
 		public IEnumerator<ViewSlot> ViewEnumerator() {
-			foreach( ViewsLine oLine in _oDoc_ViewSelector ) {
-				yield return oLine.ViewSite;
+			foreach( ViewSlot oLine in _oDoc_ViewSelector ) {
+				yield return oLine;
 			}
 		}
 	}

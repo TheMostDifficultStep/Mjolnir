@@ -109,18 +109,22 @@ namespace Mjolnir {
             if( !base.InitNew() ) 
                 return false;
 
-            LayoutFlowSquare_Fixed oLayout = new( new Size( 300, 50 ), 5 );
-            Layout = oLayout;
+            try {
+                LayoutFlowSquare_Fixed oLayout = new( new Size( 300, 50 ), 5 );
+                Layout = oLayout;
 
-            InitTabs( oLayout );
+                InitTabs( oLayout );
 
-            Caret.Layout = CacheList[0];
+                Caret.Layout = CacheList[0];
 
-            DocForms.BufferEvent += OnBufferEvent_ViewsEditor;
+                DocForms.BufferEvent += OnBufferEvent_ViewsEditor;
 
-            OnBufferEvent_ViewsEditor( BUFFEREVENTS.MULTILINE );
+                OnBufferEvent_ViewsEditor( BUFFEREVENTS.MULTILINE );
 
-            return true;
+                return true;
+            } catch( ArgumentOutOfRangeException ) {
+                return false;
+            }
         }
 
         public void OnBufferEvent_ViewsEditor( BUFFEREVENTS eEvent ) {
