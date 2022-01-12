@@ -147,7 +147,7 @@ namespace Mjolnir {
             base.Dispose();
         }
 
-        public virtual void DocumentReferenceIncrement( int i ) {
+        protected virtual void DocumentReferenceIncrement( int i ) {
             _oDocSite.Reference += i;
         }
 
@@ -170,7 +170,7 @@ namespace Mjolnir {
         /// to the given icon, meaning unless you clear the form icon first you 
         /// can't destroy the handle you're stuck with. Sooooo....
         /// </summary>
-        internal void CreateIcon() {
+        protected void CreateIcon() {
             IntPtr ipHIcon = IntPtr.Zero;
             try {
                 Bitmap oBitmap = (Bitmap)_oViewCommand.Iconic;
@@ -574,7 +574,7 @@ namespace Mjolnir {
 		/// </remarks>
 		/// <param name="oGuest"></param>
 		protected override void GuestAssign( Control oGuest ) {
-            _oViewControl        = oGuest ?? throw new ArgumentNullException( "Decor view site needs a guest to be valid." );
+            _oViewControl = oGuest ?? throw new ArgumentNullException( "Decor view site needs a guest to be valid." );
 			_oViewCommand = oGuest as IPgCommandView ?? throw new ArgumentException( "view must support IPgCommand" );
 		}
 
@@ -606,7 +606,7 @@ namespace Mjolnir {
 		}
 
         /// <summery> Ignore any ref counting.</summery>
-        public override void DocumentReferenceIncrement( int i ) {
+        protected override void DocumentReferenceIncrement( int i ) {
         }
 	}
 
