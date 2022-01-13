@@ -6,7 +6,30 @@ using SkiaSharp;
 using Play.Interfaces.Embedding;
 
 namespace Play.Rectangles {
-	public class LayoutImageBase : LayoutRect {
+    public class LayoutPattern : LayoutRect {
+        Func< int, SKColor> _fnStatus;
+        int                 _iID;
+        public LayoutPattern(CSS eLayout, int iTrack, int iID, Func<int, SKColor> fnStatus ) : base(eLayout) {
+            _iID      = iID;
+            _fnStatus = fnStatus ?? throw new ArgumentNullException(nameof(fnStatus));
+            if( iTrack < 0 )
+                throw new ArgumentOutOfRangeException( nameof( iTrack ) );
+
+            Track = (uint)iTrack;
+        }
+
+        public override void Paint(SKCanvas skCanvas) {
+            base.Paint(skCanvas);
+
+            SKColor clrStat = _fnStatus( _iID );
+            if( clrStat != SKColors.Transparent ) {
+                using SKPaint skPaint = new SKPaint() { Color = clrStat };
+                skCanvas.DrawRect( this.Left, this.Top, this.Width, this.Height, skPaint );
+            }
+        }
+    }
+
+    public class LayoutImageBase : LayoutRect {
 		public    virtual SKBitmap  Icon     { get; }
 		public            SmartRect ViewPort { get; }
 		protected         SKRectI   World;

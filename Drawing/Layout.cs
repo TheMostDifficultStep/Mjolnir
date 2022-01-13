@@ -86,7 +86,9 @@ namespace Play.Rectangles {
 	{
 		protected readonly List<LayoutRect> _rgLayout = new List<LayoutRect>();
 
-		public TRACK Direction { get; set; }
+		public Func< int, SKColor > BackgroundColor = null;
+		public TRACK                Direction { get; set; }
+		public int					ID { get; set; } = 0;
 
 		public LayoutStack( TRACK eAxis, uint uiMargin ) : 
 			base( uiMargin ) 
@@ -271,7 +273,15 @@ namespace Play.Rectangles {
 				oClient.SetRect( pntTrack.Start, pntRails.Start, pntTrack.Stop, pntRails.Stop );
 			}
 		}
-	}
+
+        public override void Paint(SKCanvas skCanvas) {
+			if( BackgroundColor != null ) {
+				SKPaint skPaint  = new SKPaint() { Color = BackgroundColor( ID ) };
+				skCanvas.DrawRect( this.SKRect, skPaint );
+			}
+            base.Paint(skCanvas);
+        }
+    }
 
 	public class LayoutStackVertical : LayoutStack {
 		public LayoutStackVertical( uint uiMargin ) : base( TRACK.VERT, uiMargin ) {

@@ -14,6 +14,7 @@ using Play.Interfaces.Embedding;
 
 namespace Mjolnir {
     public interface IPgViewSummery {
+        bool    IsFocused { get; }
         Line    Banner { get; }
         SKImage Icon   { get; }
         bool    Execute( Guid gCmd );
@@ -54,6 +55,7 @@ namespace Mjolnir {
 
     /// <summary>
     /// We don't inherit from FormsWindow b/c there is no need for the tab text to be editable.
+    /// This is a test view for the new tabs control I'm working on.
     /// </summary>
     public class MainWin_Tabs : 
 		SKControl,
@@ -125,7 +127,9 @@ namespace Mjolnir {
 
                 _uiStdFont = _oStdUI.FontCache(_oStdUI.FaceCache(@"C:\windows\fonts\consola.ttf"), 10, sResolution);
 
-                InitTabs();
+			    foreach( Line oLine in Document ) {
+				    Layout.Add( CreateTab( oLine ) );
+			    }
 
                 OnBufferEvent_ViewsEditor( BUFFEREVENTS.MULTILINE );
 
@@ -135,33 +139,61 @@ namespace Mjolnir {
             }
         }
 
- 		protected void InitTabs( ) {
-			using SKPaint oPaint = new SKPaint() { Color = SKColors.Red };
+        /// <summary>
+        /// This gets called whenever the tab needs to be drawn.
+        /// </summary>
+        /// <param name="iID">Id of the tab to return the requested info.</param>
+        /// <returns>Focus status</returns>
+        public virtual SKColor TabStatus( int iID ) {
+            return iID == 1 ? SKColors.Blue : SKColors.Gray;
+        }
 
-			foreach( Line oViewLine in Document ) {
-				LayoutIcon oIconLayout = new( new SKBitmap( 30, 30, SKColorType.Rgb888x, SKAlphaType.Opaque ),
-                                              LayoutRect.CSS.Flex );
-				using SKCanvas oCanvas = new SKCanvas( oIconLayout.Icon );
+        /// <summary>
+        /// This gets called whenever the tab needs to be drawn.
+        /// </summary>
+        /// <param name="iID">Id of the tab to return the requested info.</param>
+        /// <returns>Focus status</returns>
+        public virtual SKColor TabBackground( int iID ) {
+            return iID == 1 ? SKColors.LightCyan : SKColors.WhiteSmoke;
+        }
 
-				oCanvas.DrawRect( 0, 0, oIconLayout.Icon.Width, oIconLayout.Icon.Height, oPaint );
+        /// <summary>
+        /// This gets called when a Tab is being created.
+        /// </summary>
+        /// <param name="iID"></param>
+        /// <returns>Return a bitmap</returns>
+        public virtual SKBitmap TabIcon( int iID ) {
+            SKBitmap skIcon = new( 30, 30, SKColorType.Rgb888x, SKAlphaType.Opaque );
 
-                // I could add bgcolor to this object so it would paint that if not transparent,
-                // instead of painting the bg in our main paint routine, which is a bit hacky.
-				LayoutStackHorizontal oTab = new ( 5 );
+            using SKPaint  oPaint  = new () { Color = SKColors.Red };
+			using SKCanvas oCanvas = new ( skIcon );
+
+			oCanvas.DrawRect( 0, 0, skIcon.Width, skIcon.Height, oPaint );
+
+            return skIcon;
+        }
+
+        protected virtual ParentRect CreateTab( Line oViewLine ) {
+			LayoutIcon       oTabIcon = new( TabIcon( oViewLine.At ), LayoutRect.CSS.Flex );
+
+			LayoutSingleLine oTabText = new LayoutSingleLine( new FTCacheWrap( oViewLine ), 
+                                                              LayoutRect.CSS.None ) 
+                                            { BgColor = SKColors.Transparent };
+			_rgTextCache.Add(oTabText);
+
+            LayoutPattern oTabStatus = new( LayoutRect.CSS.Pixels, 7, oViewLine.At, TabStatus );
+
+            // Round up all the layouts into our tab object here.
+			LayoutStackHorizontal oTab = new ( 5 ) { BackgroundColor = TabBackground, ID = oViewLine.At };
 				
-				LayoutSingleLine oSingle = new LayoutSingleLine( new FTCacheWrap( oViewLine ), 
-                                                                 LayoutRect.CSS.None ) 
-                                               { BgColor = SKColors.Transparent };
-				_rgTextCache.Add(oSingle);
+            oTab.Add( oTabStatus );
+			oTab.Add( oTabIcon );
+			oTab.Add( oTabText );
 
-				oTab.Add( oIconLayout );
-				oTab.Add( oSingle );
+            return oTab;
+        }
 
-				Layout.Add( oTab );
-			}
-		}
-
-       public void OnBufferEvent_ViewsEditor( BUFFEREVENTS eEvent ) {
+        public void OnBufferEvent_ViewsEditor( BUFFEREVENTS eEvent ) {
             switch( eEvent ) {
                 case BUFFEREVENTS.FORMATTED:
                 case BUFFEREVENTS.SINGLELINE:
@@ -179,14 +211,10 @@ namespace Mjolnir {
         protected override void OnPaintSurface(SKPaintSurfaceEventArgs e) {
             base.OnPaintSurface(e);
 
-            SKPaint  skPaint  = new SKPaint() { Color = SKColors.LightGreen };
             SKCanvas skCanvas = e.Surface.Canvas;
 
-			foreach( LayoutRect oRect in Layout ) {
-                SKRectI skRect = oRect.SKRect;
-                //skRect.Bottom += 10;
-                skCanvas.DrawRect( skRect, skPaint );
-				oRect   .Paint( skCanvas );
+			foreach( LayoutRect oTab in Layout ) {
+				oTab.Paint( skCanvas );
 			}
 
             foreach( LayoutSingleLine oCache in _rgTextCache ) {
