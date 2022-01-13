@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Drawing;
 using System.Xml;
-using System.Text;
 
 using SkiaSharp;
 using SkiaSharp.Views.Desktop;
@@ -13,21 +12,6 @@ using Play.Forms;
 using Play.Interfaces.Embedding;
 
 namespace Mjolnir {
-    public interface IPgViewSummery {
-        bool    IsFocused { get; }
-        Line    Banner { get; }
-        SKImage Icon   { get; }
-        bool    Execute( Guid gCmd );
-    }
-
-    class LayoutIcon : LayoutImageBase {
-		public override SKBitmap Icon { get; }
-        public LayoutIcon( SKBitmap skBmp, CSS eLayout = CSS.None) : 
-            base(new SKSize( skBmp.Width, skBmp.Height), eLayout) 
-        {
-            Icon = skBmp;
-        }
-    }
     /// <summary>
     /// Experimental class for my tabs.
     /// </summary>

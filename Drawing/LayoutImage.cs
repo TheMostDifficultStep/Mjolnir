@@ -24,7 +24,12 @@ namespace Play.Rectangles {
             SKColor clrStat = _fnStatus( _iID );
             if( clrStat != SKColors.Transparent ) {
                 using SKPaint skPaint = new SKPaint() { Color = clrStat };
-                skCanvas.DrawRect( this.Left, this.Top, this.Width, this.Height, skPaint );
+
+                // Little experiment for span of pattern.
+                int iRail = 30;
+                int iTop  = Top + Height / 2 - iRail / 2;
+
+                skCanvas.DrawRect( this.Left, iTop, this.Width, iRail, skPaint );
             }
         }
     }
@@ -187,6 +192,15 @@ namespace Play.Rectangles {
             }
 		}
     } // End Class
+
+    public class LayoutIcon : LayoutImageBase {
+		public override SKBitmap Icon { get; }
+        public LayoutIcon( SKBitmap skBmp, CSS eLayout = CSS.None) : 
+            base(new SKSize( skBmp.Width, skBmp.Height), eLayout) 
+        {
+            Icon = skBmp;
+        }
+    }
 
 	public class LayoutImage : LayoutImageBase, IDisposable {
 		public override SKBitmap Icon { get; }
