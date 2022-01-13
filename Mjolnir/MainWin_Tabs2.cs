@@ -108,11 +108,7 @@ namespace Mjolnir {
 
         public virtual bool InitNew() {
             try {
-                InitTabs();
-
                 Document.BufferEvent += OnBufferEvent_ViewsEditor;
-
-                OnBufferEvent_ViewsEditor( BUFFEREVENTS.MULTILINE );
 
                 // See also GetSystemMetricsForDpi() per monitor dpi aware
                 SKSize sResolution = new SKSize(96, 96);
@@ -121,7 +117,11 @@ namespace Mjolnir {
                     sResolution.Height = oGraphics.DpiY;
                 }
 
-                _uiStdFont = _oStdUI.FontCache(_oStdUI.FaceCache(@"C:\windows\fonts\consola.ttf"), 8, sResolution);
+                _uiStdFont = _oStdUI.FontCache(_oStdUI.FaceCache(@"C:\windows\fonts\consola.ttf"), 10, sResolution);
+
+                InitTabs();
+
+                OnBufferEvent_ViewsEditor( BUFFEREVENTS.MULTILINE );
 
                 return true;
             } catch( ArgumentOutOfRangeException ) {
@@ -129,22 +129,7 @@ namespace Mjolnir {
             }
         }
 
-        public void OnBufferEvent_ViewsEditor( BUFFEREVENTS eEvent ) {
-            switch( eEvent ) {
-                case BUFFEREVENTS.FORMATTED:
-                case BUFFEREVENTS.SINGLELINE:
-                case BUFFEREVENTS.MULTILINE:
-                    foreach( LayoutSingleLine oCache in _rgTextCache ) {
-                        oCache.Cache.Update( _oStdUI.FontRendererAt( _uiStdFont ) );
-                        oCache.OnChangeFormatting();
-                        oCache.Cache.OnChangeSize( oCache.Width );
-                    }
-                    Invalidate();
-                    break;
-            }
-        }
-
-		protected void InitTabs( ) {
+ 		protected void InitTabs( ) {
 			using SKPaint oPaint = new SKPaint() { Color = SKColors.Red };
 
 			foreach( Line oViewLine in Document ) {
@@ -165,6 +150,21 @@ namespace Mjolnir {
 				Layout.Add( oTab );
 			}
 		}
+
+       public void OnBufferEvent_ViewsEditor( BUFFEREVENTS eEvent ) {
+            switch( eEvent ) {
+                case BUFFEREVENTS.FORMATTED:
+                case BUFFEREVENTS.SINGLELINE:
+                case BUFFEREVENTS.MULTILINE:
+                    foreach( LayoutSingleLine oCache in _rgTextCache ) {
+                        oCache.Cache.Update( _oStdUI.FontRendererAt( _uiStdFont ) );
+                        oCache.OnChangeFormatting();
+                        oCache.Cache.OnChangeSize( oCache.Width );
+                    }
+                    Invalidate();
+                    break;
+            }
+        }
 
         protected override void OnPaintSurface(SKPaintSurfaceEventArgs e) {
             base.OnPaintSurface(e);
