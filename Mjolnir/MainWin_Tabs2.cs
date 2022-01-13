@@ -30,6 +30,7 @@ namespace Mjolnir {
 		public override LayoutRect              Item(int iIndex) => _rgLayout[iIndex];
 		public override IEnumerator<LayoutRect> GetEnumerator()  => _rgLayout.GetEnumerator();
 		public override int                     Count            => _rgLayout.Count;
+        public virtual  void                    Remove( int i )  => _rgLayout.RemoveAt( i );
 
 		public void Add( LayoutRect oItem ) => _rgLayout.Add( oItem );
         public override void ItemSizeCalculate() {
@@ -239,8 +240,28 @@ namespace Mjolnir {
             OnSizeChanged( new EventArgs() );
         }
 
+        /// <summary>
+        /// Need to check if the Line.At is constant or not. If not
+        /// we'll need to update our ID's on the sub elements of
+        /// the tab.
+        /// </summary>
+        /// <param name="oLine"></param>
         public void OnLineDelete(Line oLine) {
-            // find the tab and remove it.
+            for( int i=0; i<Layout.Count; ++i ) {
+                LayoutRect oChild = Layout.Item(i);
+                if( oChild is LayoutStackHorizontal oTab ) {
+                    // find the tab and remove it.
+                    if( oTab.ID == oLine.At ) {
+                        Layout.Remove( i );
+                    }
+                }
+            }
+            for( int i=0; i<_rgTextCache.Count; ++i ) {
+                if( _rgTextCache[i].Cache.Line == oLine ) {
+                    _rgTextCache.RemoveAt( i );
+                }
+            }
+            OnSizeChanged( new EventArgs() );
         }
 
         public void OnLineUpdated(Line oLine, int iOffset, int iOldLen, int iNewLen) {
