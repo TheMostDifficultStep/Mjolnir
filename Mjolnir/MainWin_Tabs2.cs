@@ -50,7 +50,7 @@ namespace Mjolnir {
 
 	} // End class
     public class MainWin_Tabs : 
-		FormsWindow,
+		SKControl,
 		IPgParent,
 		IPgCommandView,
 		IPgLoad<XmlElement>,
@@ -58,24 +58,23 @@ namespace Mjolnir {
 	{
         public static readonly Guid ViewType = new Guid( "{18C24090-7BD4-401F-9B89-644CD9C14687}" );
         
-		protected Editor TitleEditor { get; } // Need this dummy for now.
-
+        protected readonly IPgViewSite    _oSiteView;
 		protected readonly IPgStandardUI2 _oStdUI;
+        protected          uint           _uiStdFont;
 
-		public SKColor BgColorDefault { get; protected set; }
-
-        // TODO: Look into moving to base class.
+        protected Editor  Document { get; }
+		protected SKColor BgColorDefault { get; set; }
+        
         public IPgParent Parentage => _oSiteView.Host;
         public IPgParent Services  => Parentage.Services;
+        public bool      IsDirty   => false;
+        public Guid      Catagory  => ViewType;
+        public string    Banner    => "Test Meh";
+        public Image     Iconic    => null;
 
-        public bool  IsDirty => false;
+        protected readonly List<LayoutSingleLine> _rgTextCache = new List<LayoutSingleLine>();
 
-        public Guid Catagory => ViewType;
-
-        public string Banner => "Test Meh";
-
-        public Image  Iconic => null;
-
+        public new LayoutFlowSquare_Fixed Layout { get; }
         protected class WinSlot :
 			IPgViewSite
 		{
@@ -98,28 +97,31 @@ namespace Mjolnir {
             public IPgViewNotify EventChain => _oHost._oSiteView.EventChain;
         }
 
-        public MainWin_Tabs(IPgViewSite oSiteView, Editor oPropEd ) : 
-            base(oSiteView, oPropEd) 
+        public MainWin_Tabs(IPgViewSite oSiteView, Editor oDoc ) 
         {
  			_oStdUI        = oSiteView.Host.Services as IPgStandardUI2 ?? throw new ArgumentException( "Parent view must provide IPgStandardUI service" );
+            Document       = oDoc ?? throw new ArgumentNullException( nameof( oDoc ) );
+
 			BgColorDefault = _oStdUI.ColorsStandardAt( StdUIColors.BG );
+            Layout         = new LayoutFlowSquare_Fixed( new Size( 300, 40 ), 5 );
         }
 
-        public override bool InitNew() {
-            if( !base.InitNew() ) 
-                return false;
-
+        public virtual bool InitNew() {
             try {
-                LayoutFlowSquare_Fixed oLayout = new( new Size( 300, 50 ), 5 );
-                Layout = oLayout;
+                InitTabs();
 
-                InitTabs( oLayout );
-
-                Caret.Layout = CacheList[0];
-
-                DocForms.BufferEvent += OnBufferEvent_ViewsEditor;
+                Document.BufferEvent += OnBufferEvent_ViewsEditor;
 
                 OnBufferEvent_ViewsEditor( BUFFEREVENTS.MULTILINE );
+
+                // See also GetSystemMetricsForDpi() per monitor dpi aware
+                SKSize sResolution = new SKSize(96, 96);
+                using (Graphics oGraphics = this.CreateGraphics()) {
+                    sResolution.Width  = oGraphics.DpiX;
+                    sResolution.Height = oGraphics.DpiY;
+                }
+
+                _uiStdFont = _oStdUI.FontCache(_oStdUI.FaceCache(@"C:\windows\fonts\consola.ttf"), 8, sResolution);
 
                 return true;
             } catch( ArgumentOutOfRangeException ) {
@@ -128,43 +130,71 @@ namespace Mjolnir {
         }
 
         public void OnBufferEvent_ViewsEditor( BUFFEREVENTS eEvent ) {
-            OnDocumentEvent( BUFFEREVENTS.MULTILINE );
+            switch( eEvent ) {
+                case BUFFEREVENTS.FORMATTED:
+                case BUFFEREVENTS.SINGLELINE:
+                case BUFFEREVENTS.MULTILINE:
+                    foreach( LayoutSingleLine oCache in _rgTextCache ) {
+                        oCache.Cache.Update( _oStdUI.FontRendererAt( _uiStdFont ) );
+                        oCache.OnChangeFormatting();
+                        oCache.Cache.OnChangeSize( oCache.Width );
+                    }
+                    Invalidate();
+                    break;
+            }
         }
 
-		protected void InitTabs( LayoutFlowSquare_Fixed oLayout ) {
+		protected void InitTabs( ) {
 			using SKPaint oPaint = new SKPaint() { Color = SKColors.Red };
 
-			foreach( Line oViewLine in DocForms ) {
+			foreach( Line oViewLine in Document ) {
 				LayoutIcon oIconLayout = new( new SKBitmap( 50, 50, SKColorType.Rgb888x, SKAlphaType.Opaque ),
                                               LayoutRect.CSS.Flex );
 				using SKCanvas oCanvas = new SKCanvas( oIconLayout.Icon );
 
 				oCanvas.DrawRect( 0, 0, oIconLayout.Icon.Width, oIconLayout.Icon.Height, oPaint );
 
-				LayoutStackHorizontal oTab = new ( 5, 300, 100 );
+				LayoutStackHorizontal oTab = new ( 5 );
 				
 				LayoutSingleLine oSingle = new LayoutSingleLine( new FTCacheWrap( oViewLine ), LayoutRect.CSS.None );
-				CacheList.Add(oSingle);
+				_rgTextCache.Add(oSingle);
 
 				oTab.Add( oIconLayout );
 				oTab.Add( oSingle );
 
-				oLayout.Add( oTab );
+				Layout.Add( oTab );
 			}
 		}
 
         protected override void OnPaintSurface(SKPaintSurfaceEventArgs e) {
             base.OnPaintSurface(e);
 
-            SKPaint skPaint = new SKPaint() { Color = SKColors.Aqua };
+          //SKPaint  skPaint  = new SKPaint() { Color = SKColors.Aqua };
+            SKCanvas skCanvas = e.Surface.Canvas;
 
 			foreach( LayoutRect oRect in Layout ) {
                 //SKRectI skRect = oRect.SKRect;
                 //skRect.Bottom += 10;
                 //e.Surface.Canvas.DrawRect( skRect, skPaint );
-				oRect.Paint( e.Surface.Canvas );
+				oRect.Paint( skCanvas );
 			}
+
+            foreach( LayoutSingleLine oCache in _rgTextCache ) {
+                skCanvas.Save();
+                skCanvas.ClipRect( new SKRect(oCache.Left, oCache.Top, oCache.Right, oCache.Bottom ), SKClipOperation.Intersect);
+                oCache  .Paint( e.Surface.Canvas, _oStdUI, this.Focused );
+                skCanvas.Restore();
+            }
 		}
+
+        protected override void OnSizeChanged(EventArgs e) {
+            base.OnSizeChanged(e);
+
+			Layout.SetRect( 0, 0, Width, Height );
+			Layout.LayoutChildren();
+
+            Invalidate();
+        }
 
         public bool Save(XmlDocumentFragment oStream) {
             return true;
