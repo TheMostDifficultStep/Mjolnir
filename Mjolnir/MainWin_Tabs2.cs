@@ -46,7 +46,9 @@ namespace Mjolnir {
 		IPgParent,
 		IPgCommandView,
 		IPgLoad<XmlElement>,
-		IPgSave<XmlDocumentFragment>
+		IPgSave<XmlDocumentFragment>,
+        ILineEvents,
+        IDisposable
 	{
         public static readonly Guid ViewType = new Guid( "{18C24090-7BD4-401F-9B89-644CD9C14687}" );
         
@@ -100,7 +102,7 @@ namespace Mjolnir {
 
         public virtual bool InitNew() {
             try {
-                Document.BufferEvent += OnBufferEvent_ViewsEditor;
+                Document.ListenerAdd( this );
 
                 // See also GetSystemMetricsForDpi() per monitor dpi aware
                 SKSize sResolution = new SKSize(96, 96);
@@ -115,12 +117,20 @@ namespace Mjolnir {
 				    Layout.Add( CreateTab( oLine ) );
 			    }
 
-                OnBufferEvent_ViewsEditor( BUFFEREVENTS.MULTILINE );
+                OnEvent( BUFFEREVENTS.MULTILINE );
 
                 return true;
             } catch( ArgumentOutOfRangeException ) {
                 return false;
             }
+        }
+
+        protected override void Dispose( bool disposing ) {
+            if( disposing ) {
+                Document.ListenerRemove( this );
+            }
+
+            base.Dispose( disposing );
         }
 
         /// <summary>
@@ -129,7 +139,7 @@ namespace Mjolnir {
         /// <param name="iID">Id of the tab to return the requested info.</param>
         /// <returns>Focus status</returns>
         public virtual SKColor TabStatus( int iID ) {
-            return iID == 1 ? SKColors.Blue : SKColors.Gray;
+            return iID == 1 ? SKColors.Blue : TabBackground( iID );
         }
 
         /// <summary>
@@ -177,25 +187,14 @@ namespace Mjolnir {
             return oTab;
         }
 
-        public void OnBufferEvent_ViewsEditor( BUFFEREVENTS eEvent ) {
-            switch( eEvent ) {
-                case BUFFEREVENTS.FORMATTED:
-                case BUFFEREVENTS.SINGLELINE:
-                case BUFFEREVENTS.MULTILINE:
-                    foreach( LayoutSingleLine oCache in _rgTextCache ) {
-                        oCache.Cache.Update( _oStdUI.FontRendererAt( _uiStdFont ) );
-                        oCache.OnChangeFormatting();
-                        oCache.Cache.OnChangeSize( oCache.Width );
-                    }
-                    Invalidate();
-                    break;
-            }
-        }
-
         protected override void OnPaintSurface(SKPaintSurfaceEventArgs e) {
             base.OnPaintSurface(e);
 
             SKCanvas skCanvas = e.Surface.Canvas;
+
+            using SKPaint skPaint = new SKPaint() { Color = _oStdUI.ColorsStandardAt( StdUIColors.BGReadOnly ) };
+
+            skCanvas.DrawRect( 0, 0, Width, Height, skPaint );
 
 			foreach( LayoutRect oTab in Layout ) {
 				oTab.Paint( skCanvas );
@@ -234,5 +233,32 @@ namespace Mjolnir {
             return false;
         }
 
+        public void OnLineNew(Line oLine) {
+            Layout.Add( CreateTab( oLine ) );
+
+            OnSizeChanged( new EventArgs() );
+        }
+
+        public void OnLineDelete(Line oLine) {
+            // find the tab and remove it.
+        }
+
+        public void OnLineUpdated(Line oLine, int iOffset, int iOldLen, int iNewLen) {
+        }
+
+        public void OnEvent(BUFFEREVENTS eEvent) {
+            switch( eEvent ) {
+                case BUFFEREVENTS.FORMATTED:
+                case BUFFEREVENTS.SINGLELINE:
+                case BUFFEREVENTS.MULTILINE:
+                    foreach( LayoutSingleLine oCache in _rgTextCache ) {
+                        oCache.Cache.Update( _oStdUI.FontRendererAt( _uiStdFont ) );
+                        oCache.OnChangeFormatting();
+                        oCache.Cache.OnChangeSize( oCache.Width );
+                    }
+                    Invalidate();
+                    break;
+            }
+        }
     }
 }
