@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Drawing;
 using System.Xml;
+using System.Text;
 
 using SkiaSharp;
 using SkiaSharp.Views.Desktop;
@@ -10,13 +11,14 @@ using Play.Rectangles;
 using Play.Edit;
 using Play.Forms;
 using Play.Interfaces.Embedding;
-using Play.ImageViewer;
 
 namespace Mjolnir {
-    /// <summary>
-    /// I should probably rename all the layout objects in the image walker b/c they
-    /// are customized to work on the line objects of that one.
-    /// </summary>
+    public interface IPgViewSummery {
+        Line    Banner { get; }
+        SKImage Icon   { get; }
+        bool    Execute( Guid gCmd );
+    }
+
     class LayoutIcon : LayoutImageBase {
 		public override SKBitmap Icon { get; }
         public LayoutIcon( SKBitmap skBmp, CSS eLayout = CSS.None) : 
@@ -49,6 +51,10 @@ namespace Mjolnir {
         }
 
 	} // End class
+
+    /// <summary>
+    /// We don't inherit from FormsWindow b/c there is no need for the tab text to be editable.
+    /// </summary>
     public class MainWin_Tabs : 
 		SKControl,
 		IPgParent,
@@ -133,15 +139,19 @@ namespace Mjolnir {
 			using SKPaint oPaint = new SKPaint() { Color = SKColors.Red };
 
 			foreach( Line oViewLine in Document ) {
-				LayoutIcon oIconLayout = new( new SKBitmap( 50, 50, SKColorType.Rgb888x, SKAlphaType.Opaque ),
+				LayoutIcon oIconLayout = new( new SKBitmap( 30, 30, SKColorType.Rgb888x, SKAlphaType.Opaque ),
                                               LayoutRect.CSS.Flex );
 				using SKCanvas oCanvas = new SKCanvas( oIconLayout.Icon );
 
 				oCanvas.DrawRect( 0, 0, oIconLayout.Icon.Width, oIconLayout.Icon.Height, oPaint );
 
+                // I could add bgcolor to this object so it would paint that if not transparent,
+                // instead of painting the bg in our main paint routine, which is a bit hacky.
 				LayoutStackHorizontal oTab = new ( 5 );
 				
-				LayoutSingleLine oSingle = new LayoutSingleLine( new FTCacheWrap( oViewLine ), LayoutRect.CSS.None );
+				LayoutSingleLine oSingle = new LayoutSingleLine( new FTCacheWrap( oViewLine ), 
+                                                                 LayoutRect.CSS.None ) 
+                                               { BgColor = SKColors.Transparent };
 				_rgTextCache.Add(oSingle);
 
 				oTab.Add( oIconLayout );
@@ -169,14 +179,14 @@ namespace Mjolnir {
         protected override void OnPaintSurface(SKPaintSurfaceEventArgs e) {
             base.OnPaintSurface(e);
 
-          //SKPaint  skPaint  = new SKPaint() { Color = SKColors.Aqua };
+            SKPaint  skPaint  = new SKPaint() { Color = SKColors.LightGreen };
             SKCanvas skCanvas = e.Surface.Canvas;
 
 			foreach( LayoutRect oRect in Layout ) {
-                //SKRectI skRect = oRect.SKRect;
+                SKRectI skRect = oRect.SKRect;
                 //skRect.Bottom += 10;
-                //e.Surface.Canvas.DrawRect( skRect, skPaint );
-				oRect.Paint( skCanvas );
+                skCanvas.DrawRect( skRect, skPaint );
+				oRect   .Paint( skCanvas );
 			}
 
             foreach( LayoutSingleLine oCache in _rgTextCache ) {

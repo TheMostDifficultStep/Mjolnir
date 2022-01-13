@@ -32,14 +32,16 @@ namespace Play.Forms {
 
         public void Paint( SKCanvas skCanvas, IPgStandardUI2 oStdUI, bool fFocused ) {
             SKPointI pntUL = this.GetPoint(LOCUS.UPPERLEFT);
-            using SKPaint skPaint = new SKPaint() { Color = BgColor };
 
             if( Cache.Height < Height ) {
                 pntUL.Y = pntUL.Y + Height / 2 - Cache.Height / 2;
             }
 
             // Draw bg
-            skCanvas.DrawRect( this.Left, this.Top, this.Width, this.Height, skPaint );
+            if( BgColor != SKColors.Transparent ) {
+                using SKPaint skPaint = new SKPaint() { Color = BgColor };
+                skCanvas.DrawRect( this.Left, this.Top, this.Width, this.Height, skPaint );
+            }
 
             // Draw text.
             Cache.Render( skCanvas, oStdUI, new PointF( pntUL.X, pntUL.Y ), fFocused );
