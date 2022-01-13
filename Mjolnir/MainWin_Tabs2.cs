@@ -139,8 +139,12 @@ namespace Mjolnir {
         /// </summary>
         /// <param name="iID">Id of the tab to return the requested info.</param>
         /// <returns>Focus status</returns>
-        public virtual SKColor TabStatus( int iID ) {
-            return iID == 1 ? SKColors.Blue : TabBackground( iID );
+        public virtual SKColor TabStatus( object oID ) {
+            if( oID is Line oLine ) {
+                return oLine.At == 1 ? SKColors.Blue : TabBackground( oLine.At );
+            }
+            
+            return SKColors.White;
         }
 
         /// <summary>
@@ -148,8 +152,13 @@ namespace Mjolnir {
         /// </summary>
         /// <param name="iID">Id of the tab to return the requested info.</param>
         /// <returns>Focus status</returns>
-        public virtual SKColor TabBackground( int iID ) {
-            return iID == 1 ? SKColors.LightCyan : SKColors.WhiteSmoke;
+        public virtual SKColor TabBackground( object oID ) {
+            SKColor skBG = _oStdUI.ColorsStandardAt( StdUIColors.BGReadOnly );
+
+            if( oID is Line oLine ) {
+                return oLine.At == 1 ? SKColors.LightCyan : skBG;
+            }
+            return skBG;
         }
 
         /// <summary>
@@ -176,10 +185,10 @@ namespace Mjolnir {
                                             { BgColor = SKColors.Transparent };
 			_rgTextCache.Add(oTabText);
 
-            LayoutPattern oTabStatus = new( LayoutRect.CSS.Pixels, 7, oViewLine.At, TabStatus );
+            LayoutPattern oTabStatus = new( LayoutRect.CSS.Pixels, 7, oViewLine, TabStatus );
 
             // Round up all the layouts into our tab object here.
-			LayoutStackHorizontal oTab = new ( 5 ) { BackgroundColor = TabBackground, ID = oViewLine.At };
+			LayoutStackHorizontal oTab = new ( 5 ) { BackgroundColor = TabBackground, ID = oViewLine };
 				
             oTab.Add( oTabStatus );
 			oTab.Add( oTabIcon );
@@ -251,7 +260,7 @@ namespace Mjolnir {
                 LayoutRect oChild = Layout.Item(i);
                 if( oChild is LayoutStackHorizontal oTab ) {
                     // find the tab and remove it.
-                    if( oTab.ID == oLine.At ) {
+                    if( oTab.ID == oLine ) {
                         Layout.Remove( i );
                     }
                 }

@@ -86,9 +86,9 @@ namespace Play.Rectangles {
 	{
 		protected readonly List<LayoutRect> _rgLayout = new List<LayoutRect>();
 
-		public Func< int, SKColor > BackgroundColor = null;
-		public TRACK                Direction { get; set; }
-		public int					ID { get; set; } = 0;
+		public Func< object, SKColor > BackgroundColor = null;
+		public TRACK                   Direction { get; set; }
+		public object			       ID { get; set; } = null;
 
 		public LayoutStack( TRACK eAxis, uint uiMargin ) : 
 			base( uiMargin ) 

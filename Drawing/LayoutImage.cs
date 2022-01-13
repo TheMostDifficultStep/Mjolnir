@@ -7,10 +7,10 @@ using Play.Interfaces.Embedding;
 
 namespace Play.Rectangles {
     public class LayoutPattern : LayoutRect {
-        Func< int, SKColor> _fnStatus;
-        int                 _iID;
-        public LayoutPattern(CSS eLayout, int iTrack, int iID, Func<int, SKColor> fnStatus ) : base(eLayout) {
-            _iID      = iID;
+        Func< object, SKColor> _fnStatus;
+        object                 _oID;
+        public LayoutPattern(CSS eLayout, int iTrack, object oID, Func<object, SKColor> fnStatus ) : base(eLayout) {
+            _oID      = oID;
             _fnStatus = fnStatus ?? throw new ArgumentNullException(nameof(fnStatus));
             if( iTrack < 0 )
                 throw new ArgumentOutOfRangeException( nameof( iTrack ) );
@@ -21,7 +21,7 @@ namespace Play.Rectangles {
         public override void Paint(SKCanvas skCanvas) {
             base.Paint(skCanvas);
 
-            SKColor clrStat = _fnStatus( _iID );
+            SKColor clrStat = _fnStatus( _oID );
             if( clrStat != SKColors.Transparent ) {
                 using SKPaint skPaint = new SKPaint() { Color = clrStat };
 
