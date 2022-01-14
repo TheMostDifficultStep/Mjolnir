@@ -42,63 +42,28 @@ namespace Mjolnir {
     /// We don't inherit from FormsWindow b/c there is no need for the tab text to be editable.
     /// This is a test view for the new tabs control I'm working on.
     /// </summary>
-    public class MainWin_Tabs : 
+    public abstract class TabControl : 
 		SKControl,
-		IPgParent,
-		IPgCommandView,
-		IPgLoad<XmlElement>,
-		IPgSave<XmlDocumentFragment>,
+		IPgLoad,
         ILineEvents,
         IDisposable
 	{
-        public static readonly Guid ViewType = new Guid( "{18C24090-7BD4-401F-9B89-644CD9C14687}" );
-        
         protected readonly IPgViewSite    _oSiteView;
 		protected readonly IPgStandardUI2 _oStdUI;
-        protected          uint           _uiStdFont;
+        protected          uint           _uStdFont;
 
-        protected Editor  Document { get; }
-		protected SKColor BgColorDefault { get; set; }
+        protected BaseEditor Document { get; }
         
-        public IPgParent Parentage => _oSiteView.Host;
-        public IPgParent Services  => Parentage.Services;
-        public bool      IsDirty   => false;
-        public Guid      Catagory  => ViewType;
-        public string    Banner    => "Test Meh";
-        public Image     Iconic    => null;
-
         protected readonly List<LayoutSingleLine> _rgTextCache = new List<LayoutSingleLine>();
 
         public new LayoutFlowSquare_Fixed Layout { get; }
-        protected class WinSlot :
-			IPgViewSite
-		{
-			protected readonly MainWin_Tabs _oHost;
 
-			public WinSlot( MainWin_Tabs oHost ) {
-				_oHost = oHost ?? throw new ArgumentNullException();
-			}
-
-			public IPgParent Host => _oHost;
-
-			public void LogError(string strMessage, string strDetails, bool fShow=true) {
-				_oHost._oSiteView.LogError( strMessage, strDetails );
-			}
-
-			public void Notify( ShellNotify eEvent ) {
-				_oHost._oSiteView.Notify( eEvent );
-			}
-
-            public IPgViewNotify EventChain => _oHost._oSiteView.EventChain;
-        }
-
-        public MainWin_Tabs(IPgViewSite oSiteView, Editor oDoc ) 
+        public TabControl(IPgViewSite oSiteView, BaseEditor oDoc ) 
         {
- 			_oStdUI        = oSiteView.Host.Services as IPgStandardUI2 ?? throw new ArgumentException( "Parent view must provide IPgStandardUI service" );
-            Document       = oDoc ?? throw new ArgumentNullException( nameof( oDoc ) );
+ 			_oStdUI  = oSiteView.Host.Services as IPgStandardUI2 ?? throw new ArgumentException( "Parent view must provide IPgStandardUI service" );
+            Document = oDoc ?? throw new ArgumentNullException( nameof( oDoc ) );
 
-			BgColorDefault = _oStdUI.ColorsStandardAt( StdUIColors.BG );
-            Layout         = new LayoutFlowSquare_Fixed( new Size( 300, 40 ), 5 );
+            Layout   = new LayoutFlowSquare_Fixed( new Size( 300, 40 ), 5 );
         }
 
         public virtual bool InitNew() {
@@ -112,7 +77,7 @@ namespace Mjolnir {
                     sResolution.Height = oGraphics.DpiY;
                 }
 
-                _uiStdFont = _oStdUI.FontCache(_oStdUI.FaceCache(@"C:\windows\fonts\consola.ttf"), 10, sResolution);
+                _uStdFont = _oStdUI.FontCache(_oStdUI.FaceCache(@"C:\windows\fonts\consola.ttf"), 10, sResolution);
 
 			    foreach( Line oLine in Document ) {
 				    Layout.Add( CreateTab( oLine ) );
@@ -140,10 +105,6 @@ namespace Mjolnir {
         /// <param name="iID">Id of the tab to return the requested info.</param>
         /// <returns>Focus status</returns>
         public virtual SKColor TabStatus( object oID ) {
-            if( oID is Line oLine ) {
-                return oLine.At == 1 ? SKColors.Blue : TabBackground( oLine.At );
-            }
-            
             return SKColors.White;
         }
 
@@ -153,12 +114,7 @@ namespace Mjolnir {
         /// <param name="iID">Id of the tab to return the requested info.</param>
         /// <returns>Focus status</returns>
         public virtual SKColor TabBackground( object oID ) {
-            SKColor skBG = _oStdUI.ColorsStandardAt( StdUIColors.BGReadOnly );
-
-            if( oID is Line oLine ) {
-                return oLine.At == 1 ? SKColors.LightCyan : skBG;
-            }
-            return skBG;
+            return _oStdUI.ColorsStandardAt( StdUIColors.BGReadOnly );
         }
 
         /// <summary>
@@ -166,19 +122,10 @@ namespace Mjolnir {
         /// </summary>
         /// <param name="iID"></param>
         /// <returns>Return a bitmap</returns>
-        public virtual SKBitmap TabIcon( int iID ) {
-            SKBitmap skIcon = new( 30, 30, SKColorType.Rgb888x, SKAlphaType.Opaque );
-
-            using SKPaint  oPaint  = new () { Color = SKColors.Red };
-			using SKCanvas oCanvas = new ( skIcon );
-
-			oCanvas.DrawRect( 0, 0, skIcon.Width, skIcon.Height, oPaint );
-
-            return skIcon;
-        }
+        public abstract SKBitmap TabIcon( object oID );
 
         protected virtual ParentRect CreateTab( Line oViewLine ) {
-			LayoutIcon       oTabIcon = new( TabIcon( oViewLine.At ), LayoutRect.CSS.Flex );
+			LayoutIcon       oTabIcon = new( TabIcon( oViewLine ), LayoutRect.CSS.Flex );
 
 			LayoutSingleLine oTabText = new LayoutSingleLine( new FTCacheWrap( oViewLine ), 
                                                               LayoutRect.CSS.None ) 
@@ -227,22 +174,6 @@ namespace Mjolnir {
             Invalidate();
         }
 
-        public bool Save(XmlDocumentFragment oStream) {
-            return true;
-        }
-
-        public bool Load(XmlElement oStream) {
-            return true;
-        }
-
-        public object Decorate(IPgViewSite oBaseSite, Guid sGuid) {
-            return null;
-        }
-
-        public bool Execute(Guid sGuid) {
-            return false;
-        }
-
         public void OnLineNew(Line oLine) {
             Layout.Add( CreateTab( oLine ) );
 
@@ -254,17 +185,17 @@ namespace Mjolnir {
         /// we'll need to update our ID's on the sub elements of
         /// the tab.
         /// </summary>
-        /// <param name="oLine"></param>
         public void OnLineDelete(Line oLine) {
+            // find the tab and remove it.
             for( int i=0; i<Layout.Count; ++i ) {
                 LayoutRect oChild = Layout.Item(i);
                 if( oChild is LayoutStackHorizontal oTab ) {
-                    // find the tab and remove it.
                     if( oTab.ID == oLine ) {
                         Layout.Remove( i );
                     }
                 }
             }
+            // Find the text cache and remove it.
             for( int i=0; i<_rgTextCache.Count; ++i ) {
                 if( _rgTextCache[i].Cache.Line == oLine ) {
                     _rgTextCache.RemoveAt( i );
@@ -282,7 +213,7 @@ namespace Mjolnir {
                 case BUFFEREVENTS.SINGLELINE:
                 case BUFFEREVENTS.MULTILINE:
                     foreach( LayoutSingleLine oCache in _rgTextCache ) {
-                        oCache.Cache.Update( _oStdUI.FontRendererAt( _uiStdFont ) );
+                        oCache.Cache.Update( _oStdUI.FontRendererAt( _uStdFont ) );
                         oCache.OnChangeFormatting();
                         oCache.Cache.OnChangeSize( oCache.Width );
                     }
@@ -290,5 +221,85 @@ namespace Mjolnir {
                     break;
             }
         }
+    }
+    public class MainWin_Tabs : 
+		TabControl,
+		IPgParent,
+		IPgCommandView,
+		IPgLoad<XmlElement>,
+		IPgSave<XmlDocumentFragment>
+	{
+        public static readonly Guid ViewType = new Guid( "{18C24090-7BD4-401F-9B89-644CD9C14687}" );
+
+        public Guid      Catagory  => ViewType;
+        public string    Banner    => "Test Meh";
+        public Image     Iconic    => null;
+        public bool      IsDirty   => false;
+
+        public IPgParent Parentage => _oSiteView.Host;
+        public IPgParent Services  => Parentage.Services;
+
+        public MainWin_Tabs(IPgViewSite oSiteView, Editor oDoc) : base(oSiteView, oDoc) {
+        }
+
+        /// <summary>
+        /// This gets called whenever the tab needs to be drawn.
+        /// </summary>
+        /// <param name="iID">Id of the tab to return the requested info.</param>
+        /// <returns>Focus status</returns>
+        public override SKColor TabStatus( object oID ) {
+            if( oID is Line oLine ) {
+                return oLine.At == 1 ? SKColors.Blue : TabBackground( oLine.At );
+            }
+            
+            return SKColors.White;
+        }
+
+        /// <summary>
+        /// This gets called whenever the tab needs to be drawn.
+        /// </summary>
+        /// <param name="iID">Id of the tab to return the requested info.</param>
+        /// <returns>Focus status</returns>
+        public override SKColor TabBackground( object oID ) {
+            SKColor skBG = _oStdUI.ColorsStandardAt( StdUIColors.BGReadOnly );
+
+            if( oID is Line oLine ) {
+                return oLine.At == 1 ? SKColors.LightCyan : skBG;
+            }
+            return skBG;
+        }
+
+        /// <summary>
+        /// This gets called when a Tab is being created.
+        /// </summary>
+        /// <param name="iID"></param>
+        /// <returns>Return a bitmap</returns>
+        public override SKBitmap TabIcon( object oID ) {
+            SKBitmap skIcon = new( 30, 30, SKColorType.Rgb888x, SKAlphaType.Opaque );
+
+            using SKPaint  oPaint  = new () { Color = SKColors.Red };
+			using SKCanvas oCanvas = new ( skIcon );
+
+			oCanvas.DrawRect( 0, 0, skIcon.Width, skIcon.Height, oPaint );
+
+            return skIcon;
+        }
+
+        public bool Save(XmlDocumentFragment oStream) {
+            return true;
+        }
+
+        public bool Load(XmlElement oStream) {
+            return true;
+        }
+
+        public object Decorate(IPgViewSite oBaseSite, Guid sGuid) {
+            return null;
+        }
+
+        public bool Execute(Guid sGuid) {
+            return false;
+        }
+
     }
 }
