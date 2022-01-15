@@ -4,12 +4,16 @@ using System.Xml;
 
 using SkiaSharp;
 
+using Play.Interfaces.Embedding;
 using Play.Edit;
 using Play.Forms;
-using Play.Interfaces.Embedding;
 
 namespace Mjolnir {
-    public class MainWin_Tabs : 
+
+    /// <summary>
+    /// MainWindow usage TabControl. Shows tabs for the views, 
+    /// </summary>
+    public class WindowTextTabs : 
 		TabControl,
 		IPgParent,
 		IPgCommandView,
@@ -26,7 +30,7 @@ namespace Mjolnir {
         public IPgParent Parentage => _oSiteView.Host;
         public IPgParent Services  => Parentage.Services;
 
-        public MainWin_Tabs(IPgViewSite oSiteView, Editor oDoc) : base(oSiteView, oDoc) {
+        public WindowTextTabs(IPgViewSite oSiteView, Editor oDoc) : base(oSiteView, oDoc) {
         }
 
         /// <summary>
@@ -89,4 +93,60 @@ namespace Mjolnir {
         }
 
     }
+
+    public class MainWin_Tabs : 
+		TabControl,
+		IPgParent
+	{
+        public IPgParent Parentage => _oSiteView.Host;
+        public IPgParent Services  => Parentage.Services;
+
+        public MainWin_Tabs(IPgViewSite oSiteView, BaseEditor oDoc) : base(oSiteView, oDoc) {
+        }
+
+        /// <summary>
+        /// This gets called whenever the tab needs to be drawn.
+        /// </summary>
+        /// <param name="iID">Id of the tab to return the requested info.</param>
+        /// <returns>Focus status</returns>
+        public override SKColor TabStatus( object oID ) {
+            if( oID is ViewSlot oLine ) {
+                return oLine.Focused ? SKColors.Blue : TabBackground( oLine.At );
+            }
+            
+            return SKColors.White;
+        }
+
+        /// <summary>
+        /// This gets called whenever the tab needs to be drawn.
+        /// </summary>
+        /// <param name="iID">Id of the tab to return the requested info.</param>
+        /// <returns>Focus status</returns>
+        public override SKColor TabBackground( object oID ) {
+            SKColor skBG = _oStdUI.ColorsStandardAt( StdUIColors.BGReadOnly );
+
+            if( oID is ViewSlot oLine ) {
+                return oLine.Focused ? SKColors.LightCyan : skBG;
+            }
+            return skBG;
+        }
+
+        /// <summary>
+        /// Ack! The bitmap on the view, is a windows bitmap and not an SKBitmap.
+        /// I'll fix that later.
+        /// </summary>
+        /// <returns>Return a bitmap</returns>
+        public override SKBitmap TabIcon( object oID ) {
+            SKBitmap skIcon = new( 30, 30, SKColorType.Rgb888x, SKAlphaType.Opaque );
+
+            using SKPaint  oPaint  = new () { Color = SKColors.Red };
+			using SKCanvas oCanvas = new ( skIcon );
+
+			oCanvas.DrawRect( 0, 0, skIcon.Width, skIcon.Height, oPaint );
+
+            return skIcon;
+        }
+
+    }
+
 }

@@ -56,7 +56,7 @@ namespace Play.SSTV {
                 if( rgErrors.IsUnhandled( oEx ) )
                     throw;
 
-				throw new InvalidOperationException( "Controller couldn't create view for Music Collection document.", oEx );
+				throw new InvalidOperationException( "Controller couldn't create view for MySSTV document.", oEx );
             }
 		}
 

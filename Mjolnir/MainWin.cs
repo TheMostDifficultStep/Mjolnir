@@ -46,7 +46,7 @@ namespace Mjolnir {
         readonly int[]     _rgMargin = new int[5] { 5, 5, 5, 5, 5 };  
 
         // This defines the 1D distance from each edge of the app win to the inside rect.
-        // In the future I should probably sor this in tehe SideRect class. But I don't
+        // In the future I should probably store this in the SideRect class. But I don't
         // want to sort that out right now.
         readonly int[]     _rgSide   = new int[5];  
 
@@ -69,8 +69,8 @@ namespace Mjolnir {
         readonly Dictionary<string, SmartHerderBase> _rgShepards  = new Dictionary<string, SmartHerderBase>(); 
       //readonly Dictionary<string, EDGE>            _rgSideNames = new Dictionary<string, EDGE>();
 
-		readonly ParentRect _oLayout2;
-		readonly ParentRect _oLayout1;
+		readonly ParentRect          _oLayout2;
+		readonly LayoutStackVertical _oLayout1;
   
 		ViewSlot _oSelectedWinSite = null;
         IDocSlot _oSelectedDocSite = null;
@@ -88,16 +88,44 @@ namespace Mjolnir {
 			Multi
 		}
 
+        /// <summary>
+        /// New ViewSite implementation for sub views of this window that are not part
+        /// of the main document system. This is for degenerate tools of the main window.
+        /// </summary>
+		protected class WinSlot :
+			IPgViewSite, 
+            IPgViewNotify
+		{
+			protected readonly MainWin _oHost;
+
+			public WinSlot( MainWin oHost ) {
+				_oHost = oHost ?? throw new ArgumentNullException();
+			}
+
+			public IPgParent Host => _oHost;
+
+			public void LogError(string strMessage, string strDetails, bool fShow=true) {
+				_oHost.LogError( this, strMessage, strDetails, fShow );
+			}
+
+			public void Notify( ShellNotify eEvent ) {
+			}
+
+            public IPgViewNotify EventChain => this;
+
+            public void NotifyFocused  ( bool fSelect ) { }
+            public bool IsCommandKey   ( CommandKey ckCommand, KeyBoardEnum kbModifier ) { return false; }
+            public bool IsCommandPress ( char cChar ) { return false; }
+        }
+        /// <remarks>1/14/2022, Normally I would initialize layouts in the InitNew() but I'll
+        /// leave this for now.</remarks>
 		/// <exception cref="ArgumentNullException" />
         public MainWin( Program oDocument ) {
-            Document = oDocument ?? throw new ArgumentNullException( "Main window document is null." );
+            Document = oDocument ?? throw new ArgumentNullException(  nameof( oDocument ) );
 
-			LayoutStackVertical oStackVirt = new LayoutStackVertical( 5, 10, 100 );
-			oStackVirt.Add( new LayoutRect( LayoutRect.CSS.Pixels, 0, 10 ) { Hidden = true } ); // Folder tabs.
-			oStackVirt.Add( new LayoutSelectedView( this ) );
-			oStackVirt.Add( new LayoutRect( LayoutRect.CSS.Pixels, 0, 10 ) { Hidden = true } ); // Footer.
-
-			_oLayout1 = oStackVirt;
+            // This could be in the initialize/initnew() steps, but it's nice to have
+            // these as readonly variables. I'll leave it for now.
+			_oLayout1 = new LayoutStackVertical( 5, 10, 100 );
 			_oLayout2 = new LayoutFlowSquare_MainWin( this, 5 );
 
             _oDecorEnum = new MainWinDecorEnum( this );
@@ -204,13 +232,14 @@ namespace Mjolnir {
         /// instance to the ViewSelector and can sort it all out later. The main complexity is that
         /// decor views want access to an IDocSlot on the document. That sux and we need to work on that.
         /// </summary>
-        protected class MainWinDocSlot : IPgBaseSite, IDocSlot  {
+        /// <remarks>1/14/2022 : Might be a bit of over kill with a controller. </remarks>
+        protected class DocSlot : IPgBaseSite, IDocSlot  {
             MainWin                 _oHost;
             ControllerForMainWindow _oController;
             IDisposable             _oGuest;
             IPgLoad                 _oGuestLoad;
 
-            public MainWinDocSlot( MainWin oMainWin ) {
+            public DocSlot( MainWin oMainWin ) {
                 _oHost = oMainWin ?? throw new ArgumentNullException( "Main window reference must not be null" );
                 _oController = new ControllerForMainWindow( _oHost );
             }
@@ -287,9 +316,20 @@ namespace Mjolnir {
             InitializeShepards( xmlConfig );
 
             // Looking this over, all of this stuff below should probably be in InitNew()/Load()...
-            MainWinDocSlot oViewSitesSlot = new MainWinDocSlot(this);
+            // Seems a bit clunky with a controller here. I migh pull that apart...
+            DocSlot oViewSitesSlot = new DocSlot(this);
             oViewSitesSlot.InitNew();
             _oDoc_ViewSelector = (ViewsEditor)oViewSitesSlot.Document;
+
+            // This needs to follow the view selector document setting.
+            //MainWin_Tabs oTabs = new( new WinSlot( this ), _oDoc_ViewSelector );
+            //oTabs.Parent = this;
+
+            //oTabs.InitNew();
+
+			//_oLayout1.Add( new LayoutControl( oTabs, LayoutRect.CSS.Pixels, 50 ) { Hidden = false } ); // View tabs.
+			_oLayout1.Add( new LayoutSelectedView( this ) );
+			_oLayout1.Add( new LayoutRect( LayoutRect.CSS.Pixels, 0, 10 ) { Hidden = true } ); // Footer.
 
             DecorMenuReload();
         }
@@ -306,10 +346,6 @@ namespace Mjolnir {
 
         //    base.Dispose(disposing);
         //}
-
-        public Program.LangSlot GetMappedGrammerSite( string strLang ) {
-            return( Document.GetMappedGrammerSite( strLang ));
-        }
 
         // This old style drag drop was an attempt to support the feature but it's
         // recommended that OLE drag drop is used. http://msdn2.microsoft.com/en-us/library/bb776904(VS.85).aspx

@@ -35,9 +35,8 @@ namespace Mjolnir {
 		IEnumerable<SmartBinder> Spacers => _rgSpacers;
 
         public int SideInit  { get; set; } = 0;
-        public int SideSaved { get; 
-            set; } = 0;
-        public int Extent    { get { return GetExtent( Direction ); }                               }
+        public int SideSaved { get; set; } = 0;
+        public int Extent    { get { return GetExtent( Direction ); } }
 
 		public override void Paint(Graphics oGraphics) {
 			foreach( SmartRect rcChild in _rgLayout ) {
