@@ -3,12 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Drawing;
 using System.Collections;
+
 using SkiaSharp;
 
 namespace Play.Rectangles {
-	/// <summary>
-	/// Parent determines layout direction.
-	/// </summary>
 	public class LayoutRect : SmartRect {
 		protected CSS _eLayout;
 

@@ -1050,7 +1050,7 @@ namespace Mjolnir {
             DecorShuffleSide( iOrientation );
 
             LayoutFrame();
-			Invalidate  ();
+			Invalidate ();
         }
 
         internal SmartHerderBase DecorOpen( string strName, bool fOpen ) {
