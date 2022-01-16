@@ -71,6 +71,7 @@ namespace Mjolnir {
 
 		readonly ParentRect          _oLayout2;
 		readonly LayoutStackVertical _oLayout1;
+        readonly LayoutStackVertical _oLayoutPrimary;
   
 		ViewSlot _oSelectedWinSite = null;
         IDocSlot _oSelectedDocSite = null;
@@ -117,6 +118,7 @@ namespace Mjolnir {
             public bool IsCommandKey   ( CommandKey ckCommand, KeyBoardEnum kbModifier ) { return false; }
             public bool IsCommandPress ( char cChar ) { return false; }
         }
+
         /// <remarks>1/14/2022, Normally I would initialize layouts in the InitNew() but I'll
         /// leave this for now.</remarks>
 		/// <exception cref="ArgumentNullException" />
@@ -127,6 +129,7 @@ namespace Mjolnir {
             // these as readonly variables. I'll leave it for now.
 			_oLayout1 = new LayoutStackVertical( 5, 10, 100 );
 			_oLayout2 = new LayoutFlowSquare_MainWin( this, 5 );
+            _oLayoutPrimary = new LayoutStackVertical( 5 );
 
             _oDecorEnum = new MainWinDecorEnum( this );
         }
@@ -232,15 +235,15 @@ namespace Mjolnir {
         /// instance to the ViewSelector and can sort it all out later. The main complexity is that
         /// decor views want access to an IDocSlot on the document. That sux and we need to work on that.
         /// </summary>
-        /// <remarks>1/14/2022 : Might be a bit of over kill with a controller. </remarks>
+        /// <remarks>1/14/2022 : Might be a bit of overkill with a controller. </remarks>
         protected class DocSlot : IPgBaseSite, IDocSlot  {
-            MainWin                 _oHost;
-            ControllerForMainWindow _oController;
-            IDisposable             _oGuest;
-            IPgLoad                 _oGuestLoad;
+            readonly MainWin                 _oHost;
+            readonly ControllerForMainWindow _oController;
+                     IDisposable             _oGuest;
+                     IPgLoad                 _oGuestLoad;
 
             public DocSlot( MainWin oMainWin ) {
-                _oHost = oMainWin ?? throw new ArgumentNullException( "Main window reference must not be null" );
+                _oHost       = oMainWin ?? throw new ArgumentNullException( "Main window reference must not be null" );
                 _oController = new ControllerForMainWindow( _oHost );
             }
 
@@ -316,7 +319,7 @@ namespace Mjolnir {
             InitializeShepards( xmlConfig );
 
             // Looking this over, all of this stuff below should probably be in InitNew()/Load()...
-            // Seems a bit clunky with a controller here. I migh pull that apart...
+            // Seems a bit clunky with a controller here. I might pull that apart...
             DocSlot oViewSitesSlot = new DocSlot(this);
             oViewSitesSlot.InitNew();
             _oDoc_ViewSelector = (ViewsEditor)oViewSitesSlot.Document;
@@ -330,6 +333,17 @@ namespace Mjolnir {
 			//_oLayout1.Add( new LayoutControl( oTabs, LayoutRect.CSS.Pixels, 50 ) { Hidden = false } ); // View tabs.
 			_oLayout1.Add( new LayoutSelectedView( this ) );
 			_oLayout1.Add( new LayoutRect( LayoutRect.CSS.Pixels, 0, 10 ) { Hidden = true } ); // Footer.
+
+            //LayoutStackHorizontal oCenter = new ( 5 ); // { CSS = None }
+
+            //oCenter.Add( new LayoutRect( LayoutRect.CSS.Pixels, 0, 100 ) ); // Left
+            //oCenter.Add( new LayoutRect( LayoutRect.CSS.Pixels, 0, 30 ) ); // frame _rcFrame
+            //oCenter.Add( new LayoutRect( LayoutRect.CSS.Pixels, 0, 100 ) ); // right
+
+            //_oLayoutPrimary.Add( new LayoutRect( LayoutRect.CSS.Pixels, 30, 30 ) ); // Menu
+            //_oLayoutPrimary.Add( new LayoutControl( oTabs, LayoutRect.CSS.Pixels, 50 ) ); // Tabs
+            //_oLayoutPrimary.Add( oCenter ); // Center
+            //_oLayoutPrimary.Add( new LayoutRect( LayoutRect.CSS.Pixels, 100, 30 ) ); // Bottom
 
             DecorMenuReload();
         }
