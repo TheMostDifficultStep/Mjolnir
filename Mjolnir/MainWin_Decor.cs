@@ -544,16 +544,24 @@ namespace Mjolnir {
 		protected void LayoutViews() {
 			try {
 				switch( _eLayout ) {
-					case TOPLAYOUT.Solo:
-                        if( _oSelectedWinSite != null )
-                            _oSelectedWinSite.SetLayout( _eLayout );
+                    case TOPLAYOUT.Primary:
+                    case TOPLAYOUT.Solo:
+                        _oLayoutPrimary.SetRect( 0, 0, ClientRectangle.Width, ClientRectangle.Height );
+                        _oLayoutPrimary.LayoutChildren();
 
-						_oLayout1.Copy = _rcFrame; // When called, the view gets an OnSizeChanged() call!
-						_oLayout1.LayoutChildren();
-
-                        if( _oSelectedWinSite != null )
+                        if( _oSelectedWinSite != null ) {
+                            _oSelectedWinSite.Guest.Bounds = _rcFrame.Rect;
 						    _oSelectedWinSite.Guest.Show();
-						break;
+                        }
+                        break;
+
+					//case TOPLAYOUT.Solo:
+					//	_oLayout1.Copy = _rcFrame; // When called, the view gets an OnSizeChanged() call!
+					//	_oLayout1.LayoutChildren();
+
+     //                   if( _oSelectedWinSite != null )
+					//	    _oSelectedWinSite.Guest.Show();
+					//	break;
 					case TOPLAYOUT.Multi:
 						using( IEnumerator<ViewSlot> oEnum = ViewEnumerator() ) {
 							while( oEnum.MoveNext() ) {
@@ -602,6 +610,9 @@ namespace Mjolnir {
                 }
             }
             switch( _eLayout ) { 
+                case TOPLAYOUT.Primary:
+                    _oLayoutPrimary.Paint( oG );
+                    break;
                 case TOPLAYOUT.Solo:
                     _oLayout1.Paint( oG );
                     break;
@@ -617,18 +628,18 @@ namespace Mjolnir {
         /// </summary>
 		/// <seealso cref="OnInsideAdjusted"/>
         protected void LayoutFrame() {
-            Point ulPoint = new Point( _rgSide[(int)SideIdentify.Left], LayoutSizeTop() + ( _rcFrame.Hidden ? 0 : 5 ) );
-            Point lrPoint = new Point( ClientRectangle.Right  - _rgSide[(int)SideIdentify.Right],
-                                       ClientRectangle.Bottom - _rgSide[(int)SideIdentify.Bottom]);
-			SmartRect rcTemp = new SmartRect();
+   //         Point ulPoint = new Point( _rgSide[(int)SideIdentify.Left], LayoutSizeTop() + ( _rcFrame.Hidden ? 0 : 5 ) );
+   //         Point lrPoint = new Point( ClientRectangle.Right  - _rgSide[(int)SideIdentify.Right],
+   //                                    ClientRectangle.Bottom - _rgSide[(int)SideIdentify.Bottom]);
+			//SmartRect rcTemp = new SmartRect();
 
-            rcTemp.SetPoint(SET.STRETCH, LOCUS.UPPERLEFT,  ulPoint.X, ulPoint.Y);
-            rcTemp.SetPoint(SET.STRETCH, LOCUS.LOWERRIGHT, lrPoint.X, lrPoint.Y);
+   //         rcTemp.SetPoint(SET.STRETCH, LOCUS.UPPERLEFT,  ulPoint.X, ulPoint.Y);
+   //         rcTemp.SetPoint(SET.STRETCH, LOCUS.LOWERRIGHT, lrPoint.X, lrPoint.Y);
 			
-            LayoutFrameValidate( rcTemp );
+   //         LayoutFrameValidate( rcTemp );
 
-			_rcFrame.Copy = rcTemp;
-            _rcFrame.UpdateHandles();
+			//_rcFrame.Copy = rcTemp;
+   //         _rcFrame.UpdateHandles();
 
 			LayoutViews();
 
@@ -767,6 +778,7 @@ namespace Mjolnir {
         /// when we switch from viewing adorments to off and back. It's
         /// not called when the main window is resized.
         /// </summary>
+        /// <param name="rcTest">Modifies the values to make sure "inside" is in bounds.</param>
         protected uint LayoutFrameValidate( SmartRect rcTest ) {
             Rectangle rcTemp   = this.ClientRectangle;
             SmartRect rcClient = new SmartRect( rcTemp.Left, rcTemp.Top, rcTemp.Right, rcTemp.Bottom );
@@ -921,7 +933,7 @@ namespace Mjolnir {
         /// the inner rectangle. _rcMargin represents what we look like in the "no decor" mode.
         /// Basically space for the top menu with zero along the remaining sides.</remarks>
         protected bool IsSideOpen( int iOrientation ) {
-            return( _rgSide[iOrientation] > _rgMargin[ iOrientation ] );
+            return _rgSide[iOrientation] > _rgMargin[ iOrientation ];
         }
 
         /// <summary>
@@ -956,10 +968,11 @@ namespace Mjolnir {
             SCALAR   eSide = SmartRect.ToScalar( iOrientation );
             SideRect oSide = _rgSideInfo[(SideIdentify)iOrientation];
 
-            if( IsSideOpen( iOrientation ) ) {
+            if( IsSideOpen( iOrientation ) && !oSide.Hidden ) {
                 if( !IsAnyShepardReady( iOrientation ) ) {
                     oSide.SideSaved = _rgSide[iOrientation];
                     _rgSide[iOrientation] = 0; // Close side.
+                    oSide.Hidden = true;
 					Invalidate();
 				}
             } else {
@@ -970,6 +983,8 @@ namespace Mjolnir {
                         _rgSide[iOrientation] = oSide.SideInit;
                     }
                     oSide.SetScalar( SET.STRETCH, eSide, _rgSide[iOrientation] ); // Open side.
+                    oSide.Hidden = false;
+
 					Invalidate();
                 }
             }

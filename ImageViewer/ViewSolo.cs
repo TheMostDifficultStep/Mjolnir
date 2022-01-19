@@ -6,7 +6,6 @@ using System.Xml;
 
 using Play.Interfaces.Embedding;
 using Play.Rectangles;
-using Play.Edit;
 using Play.Forms;
 
 using SkiaSharp.Views.Desktop;
@@ -52,7 +51,6 @@ namespace Play.ImageViewer {
 			public IPgViewNotify EventChain => _oHost._oViewSite.EventChain;
 		}
 
-		readonly Image          _oIcon;
 				 float          _flZoom = 1;
 		readonly ImageWalkerDoc _oDocWalker;
 		readonly IPgShellSite   _oSiteShell;
@@ -112,18 +110,21 @@ namespace Play.ImageViewer {
 
         public virtual Guid      Catagory	  => Guid.Empty;
         public virtual string    Banner		  => _oDocWalker.Banner;
-		public virtual Image     Iconic		  => _oIcon;
+		public         SKBitmap  Icon         { get; }
+		public         Image     Iconic => null;
         public         object    DocumentText => _oDocWalker;
 
         public         uint      ID { get { return _oSiteShell.SiteID; } }
 
 		protected SmartGrabDrag _oSmartDrag = null; // See the base class for the SmartGrab.
 
+		protected virtual string IconResource => "icons8-portrait.png";
+
         public WindowSoloImageNav( IPgViewSite oBaseSite, ImageWalkerDoc oDoc ) : base( oBaseSite, oDoc ) {
 			_oDocWalker = oDoc ?? throw new ArgumentNullException( "Document must not be null." );
 			_oSiteShell = oBaseSite as IPgShellSite ?? throw new ArgumentException( "Site must support IPgShellSite" );
 
-			_oIcon = _oDocWalker.GetResource( "icon-portrait.png" );
+			Icon = _oDocWalker.GetResource( IconResource );
 
 			_rcSelectionView.Hidden = true;
 
@@ -191,8 +192,8 @@ namespace Play.ImageViewer {
 				//	ContextMenu.Dispose();
 				//	ContextMenu = null;
 				//}
-				if( _oIcon != null )
-					_oIcon.Dispose();
+				if( Icon != null && Icon is IDisposable oDisp )
+					oDisp.Dispose();
 
 				if( _oCursorLeft != null )
 					_oCursorLeft.Dispose();

@@ -28,7 +28,7 @@ namespace Play.Rectangles
         protected int         m_iHalfWidth   = 3;
         protected bool        m_fHovering    = false;
         protected SmartRect   m_rctGuest     = null;
-        protected RectSize    m_oMyHandler   = null;
+      //protected RectSize    m_oMyHandler   = null;
         protected SmartRect   m_rcOuter      = new SmartRect();
         protected bool        m_fLiveDrag    = true;
         protected SHOWSTATE   m_eShowState   = SHOWSTATE.Inactive;
@@ -48,6 +48,7 @@ namespace Play.Rectangles
         }
 
         public bool Hidden { get; set; }
+        public int  BorderWidth { get { return m_iBorderWidth; } }
 
         public SmartGrab(SmartRect p_rctGuest, int p_iBorder, bool fLiveDrag, SCALAR eMoveable ) :
             base(p_rctGuest) // copy coords to inner rect of ourselves.
@@ -68,8 +69,8 @@ namespace Play.Rectangles
             }
 
             // Listen to our guest's resizing events.
-            m_oMyHandler = new RectSize(OnGuestUpdate);
-            m_rctGuest.SizeEvent += m_oMyHandler;
+          //m_oMyHandler = new RectSize(OnGuestUpdate);
+          //m_rctGuest.SizeEvent += m_oMyHandler;
 
             // Create all the smart rect's
             for (int i = 0; i < m_rgoHandles.Length; ++i)
@@ -167,6 +168,11 @@ namespace Play.Rectangles
             base.OnSize();
         }
 
+        public override bool LayoutChildren() {
+
+            return true;
+        }
+
         public override void Raise_OnSize(SmartRect p_rctOld)
         {
             base.Raise_OnSize(p_rctOld);
@@ -184,12 +190,12 @@ namespace Play.Rectangles
             set
             {
 				// If we have an old event sink, remove it.
-				m_rctGuest.SizeEvent -= m_oMyHandler;
+				//m_rctGuest.SizeEvent -= m_oMyHandler;
 
                 m_rctGuest = value ?? throw new ArgumentNullException("The guest must not be null"); // Take a pointer to the Guest.
 
                 // Set our handler onto our new guest to listen for size events.
-                m_rctGuest.SizeEvent += m_oMyHandler;
+                //m_rctGuest.SizeEvent += m_oMyHandler;
 
                 Copy = m_rctGuest;  // Copy the coordinates of it to ourselves.
                 UpdateHandles();

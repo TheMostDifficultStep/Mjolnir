@@ -14,6 +14,7 @@ using System.Text;
 
 using SkiaSharp;
 
+using Play.Drawing;
 using Play.Interfaces.Embedding;
 using Play.Edit;
 using Play.Forms;
@@ -389,14 +390,14 @@ namespace Play.ImageViewer {
 			return( false );
 		}
 
-		public Bitmap GetResource( string strName ) {
-			Assembly oAsm = Assembly.GetExecutingAssembly();
+		public SKBitmap GetResource( string strName ) {
+			Assembly oAsm   = Assembly.GetExecutingAssembly();
+            string   strRes = oAsm.GetName().Name + ".Content." + strName;
 
             // NOTE: .net core has new behavior for embedded resources. It is not the
             //       namespace name, but the assembly name (at last)
-			return new Bitmap( ImageResourceHelper.GetImageResource( 
-							   oAsm,
-							   oAsm.GetName().Name + ".Content." + strName ) );
+
+			return SKImageResourceHelper.GetImageResource( oAsm, strRes );
 		}
 	}
 

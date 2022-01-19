@@ -132,7 +132,7 @@ namespace Play.Forms {
                                             { BgColor = SKColors.Transparent };
 			_rgTextCache.Add(oTabText);
 
-            LayoutPattern oTabStatus = new( LayoutRect.CSS.Pixels, 7, oViewLine, TabStatus );
+            LayoutPattern oTabStatus = new( LayoutRect.CSS.Pixels, 5, oViewLine, TabStatus );
 
             // Round up all the layouts into our tab object here.
 			LayoutStackHorizontal oTab = new ( 5 ) { BackgroundColor = TabBackground, ID = oViewLine };

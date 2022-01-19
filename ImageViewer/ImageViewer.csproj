@@ -11,19 +11,19 @@
 
   <ItemGroup>
     <None Remove="Content\icon-folder.png" />
-    <None Remove="Content\icon-portrait.png" />
     <None Remove="Content\icons8-cardboard-box-48.png" />
     <None Remove="Content\icons8-cut-40.png" />
     <None Remove="Content\icons8-error-48.png" />
+    <None Remove="Content\icons8-portrait.png" />
     <None Remove="Content\icons8-search-more-48.png" />
   </ItemGroup>
 
   <ItemGroup>
     <EmbeddedResource Include="Content\icon-folder.png" />
-    <EmbeddedResource Include="Content\icon-portrait.png" />
     <EmbeddedResource Include="Content\icons8-cardboard-box-48.png" />
     <EmbeddedResource Include="Content\icons8-cut-40.png" />
     <EmbeddedResource Include="Content\icons8-error-48.png" />
+    <EmbeddedResource Include="Content\icons8-portrait.png" />
     <EmbeddedResource Include="Content\icons8-search-more-48.png" />
   </ItemGroup>
 

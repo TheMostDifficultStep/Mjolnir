@@ -35,12 +35,13 @@ namespace Play.Rectangles {
 		public float TrackMaxPercent { get; } // TODO : Use minmax object.
 		public int   Span  { get; set; } = 0; // CSS span value minus 1. Bummer here but shared with SmartTable.
 		public bool  Hidden = false;
+		public CSS   Layout { get => _eLayout; set { _eLayout = value; } }
 
 		public virtual uint TrackDesired( TRACK eParentAxis, int uiRail ) { return Track; }
 		public virtual void Invalidate() { }
 	}
 
-	public abstract class ParentRect : 
+    public abstract class ParentRect : 
 		LayoutRect,
 		IEnumerable<LayoutRect>
 	{
@@ -80,7 +81,124 @@ namespace Play.Rectangles {
 		}
 	}
 
-	public abstract class LayoutStack : ParentRect
+    public class LayoutSingle : ParentRect {
+		SmartRect _oSolo;
+        public LayoutSingle(CSS eLayout, SmartRect oSolo ) : base(0) {
+			_oSolo = oSolo ?? throw new ArgumentNullException( nameof( oSolo ) );
+        }
+
+        public override int Count => 0;
+
+        public override void Clear() {
+        }
+
+        public override IEnumerator<LayoutRect> GetEnumerator() {
+			yield break;
+        }
+
+        public override LayoutRect Item(int iIndex) {
+            throw new ArgumentOutOfRangeException();
+        }
+
+		public override bool LayoutChildren() {
+			_oSolo.Copy = this;
+			_oSolo.LayoutChildren();
+
+			return true;
+		}
+    }
+
+	/// <summary>
+	/// Simple wrapper so we can get a solo object inside of a layout.
+	/// </summary>
+    public class LayoutGrab : ParentRect {
+		SmartGrab _oSolo;
+		SmartRect _oTemp = new SmartRect();
+        public LayoutGrab(CSS eLayout, SmartGrab oSolo ) : base(0) {
+			_oSolo = oSolo ?? throw new ArgumentNullException( nameof( oSolo ) );
+        }
+
+        public override int Count => 0;
+
+        public override void Clear() {
+        }
+
+        public override IEnumerator<LayoutRect> GetEnumerator() {
+			yield break;
+        }
+
+        public override LayoutRect Item(int iIndex) {
+            throw new ArgumentOutOfRangeException();
+        }
+
+		public override bool LayoutChildren() {
+			_oTemp.Copy = this;
+			_oTemp.Inflate( -1, _oSolo.BorderWidth );
+
+			_oSolo.Copy = _oTemp;
+			_oSolo.LayoutChildren();
+
+			return true;
+		}
+    }
+
+	/// <summary>
+	/// Expermental drag object for layout objects.
+	/// </summary>
+    public class SmartDragLayout : SmartGrabDrag {
+		LOCUS      _eEdgeOppo;
+		LayoutRect _oLayout;
+		TRACK      _eDir;
+		Action< bool, SKPointI> _oCallback;
+        public SmartDragLayout( Action< bool, SKPointI> oCallback, LayoutRect oGuest, TRACK eDir, LOCUS p_eEdges, int p_iX, int p_iY) : 
+			base( null, oGuest, SET.STRETCH, p_eEdges, p_iX, p_iY)
+		{
+			_oCallback = oCallback ?? throw new ArgumentNullException( nameof( oCallback ) );
+			_eEdgeOppo = SmartRect.GetInvert( p_eEdges );
+			_oLayout   = oGuest;
+			_eDir      = eDir;
+        }
+
+        public override void Dispose() {
+			_oCallback( false, new SKPointI( 0, 0 ) );
+		}
+
+		protected static int HighPass( int iValue ) {
+			if( iValue < 0 )
+				return 0;
+
+			return iValue;
+		}
+
+        protected override void SetPoint(int p_iX, int p_iY) {
+			SKPointI pntOppo  = Guest.GetPoint( _eEdgeOppo );
+
+			if( _eDir == TRACK.HORIZ ) {
+				if( ( _eEdgeOppo & LOCUS.LEFT ) > 0 )
+					_oLayout.Track = (uint)HighPass( p_iX - pntOppo.X );
+				else
+					_oLayout.Track = (uint)HighPass( pntOppo.X - p_iX );
+			}
+			if( _eDir == TRACK.VERT ) {
+				if( ( _eEdgeOppo & LOCUS.TOP ) > 0 )
+					_oLayout.Track = (uint)HighPass( p_iY - pntOppo.Y );
+				else
+					_oLayout.Track = (uint)HighPass( pntOppo.Y - p_iY );
+			}
+
+			bool fHide = _oLayout.Track == 0 ? true : false;
+
+			if( _oLayout.Hidden != fHide )
+				_oLayout.Hidden = fHide;
+        }
+
+        public override void Move(int iX, int iY) {
+            base.Move(iX, iY);
+			_oCallback( true, new SKPointI( iX, iY ) );
+        }
+    }
+
+    public abstract class LayoutStack : ParentRect
 	{
 		protected readonly List<LayoutRect> _rgLayout = new List<LayoutRect>();
 
@@ -149,7 +267,7 @@ namespace Play.Rectangles {
 					return false;
 
 				Extent extTrack        = GetTrack( Direction );
-				uint   uiRailsDistance = (uint)extRail .Distance; 
+				uint   uiRailsDistance = (uint)extRail.Distance; 
 				long   iTrackAvailable = extTrack.Distance - Gaps; // This is how much available track.
 				long   iTrackRemaining = iTrackAvailable;
 				uint   uiCssNoneCount  = 0; // Count of the number of layout "none" objects.

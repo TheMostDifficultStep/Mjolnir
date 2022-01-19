@@ -98,34 +98,20 @@ namespace Play.MusicWalker {
 	public class WinMusicAlbum : WindowSoloImageNav {
 		readonly M3UDocument _oDocumentMusic;
 
-		readonly string _strIconMusic = @"MusicWalker.Content.icon_album.gif";
-		readonly Bitmap _oIconMusic   = null;
+		protected override string IconResource => @"MusicWalker.Content.icon_album.gif";
 
 		string _strBanner  = string.Empty;
 		int    _iCaratLine = 0;
 
 		public override string Banner => _strBanner;
-		public override Image  Iconic => _oIconMusic;
 
 		public WinMusicAlbum( IPgViewSite oBaseSite, M3UDocument oDocument ) : base( oBaseSite, oDocument.AlbumArt ) {
 			_oDocumentMusic = oDocument ?? throw new ArgumentNullException( "Music Image Win needs Music Document.");
-
-			_oIconMusic = ImageResourceHelper.GetImageResource( Assembly.GetExecutingAssembly(), _strIconMusic ) ?? 
-				throw new ApplicationException("Could not find music image resource.");
 
 			_oDocumentMusic.HilightEvent += OnHighLightChanged;
 			_strBanner = _oDocumentMusic[_iCaratLine].ToString();
 		}
 
-		protected override void Dispose( bool fDisposing ) {
-			if( fDisposing ) {
-				if( _oIconMusic != null ) {
-					_oIconMusic.Dispose();
-				}
-			}
-
-			base.Dispose( fDisposing );
-		}
 		protected virtual void OnHighLightChanged() {
 			Line oSong = _oDocumentMusic.HighLight;
 

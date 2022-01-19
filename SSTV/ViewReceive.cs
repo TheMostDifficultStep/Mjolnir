@@ -9,12 +9,12 @@ using System.Text;
 using SkiaSharp;
 using SkiaSharp.Views.Desktop;
 
+using Play.Drawing;
 using Play.Interfaces.Embedding;
 using Play.Rectangles;
 using Play.Edit;
 using Play.ImageViewer;
 using Play.Forms;
-using Play.Sound;
 
 namespace Play.SSTV {
 	/// <summary>
@@ -38,6 +38,7 @@ namespace Play.SSTV {
         public Guid   Catagory => GUID;
         public string Banner   => "MySSTV History";
         public Image  Iconic { get; }
+		public SKBitmap Icon { get; }
         public bool   IsDirty  => false;
 
         public IPgParent Parentage => _oSiteView.Host;
@@ -107,7 +108,7 @@ namespace Play.SSTV {
 
 			_wmViewRxHistorySelected.SetBorderOn();
 
-			Iconic = oDocSSTV.CreateIconic( _strIconResource );
+			Icon = oDocSSTV.CreateIconic( _strIconResource );
 		}
 
 		public bool InitNew() {
@@ -224,7 +225,8 @@ namespace Play.SSTV {
 		public static string _strIcon =  "Play.SSTV.Content.icons8_tv.png";
 
         public Guid   Catagory => GUID;
-        public Image  Iconic   { get; protected set; }
+		public SKBitmap Icon { get; }
+		public Image Iconic => null;
         public bool   IsDirty  => false;
 
         protected readonly IPgViewSite _oSiteView;
@@ -294,7 +296,7 @@ namespace Play.SSTV {
 			_oSiteView = oSiteBase ?? throw new ArgumentNullException( "SiteBase must not be null." );
 			_oDocSSTV  = oDocSSTV  ?? throw new ArgumentNullException( "DocSSTV must not be null." );
 
-			Iconic = ImageResourceHelper.GetImageResource( Assembly.GetExecutingAssembly(), _strIcon );
+			Icon = SKImageResourceHelper.GetImageResource( Assembly.GetExecutingAssembly(), _strIcon );
 
 			SetBorderOn();
 		}
@@ -444,7 +446,8 @@ namespace Play.SSTV {
         public IPgParent Parentage => _oSiteView.Host;
         public IPgParent Services  => Parentage.Services;
         public abstract Guid Catagory { get; }
-        public Image	 Iconic    { get; protected set; }
+        public SKBitmap	 Icon    { get; protected set; }
+		public Image Iconic => null;
         public bool		 IsDirty   => false;
 
 		protected readonly LayoutStack     _oLayout = new LayoutStackVertical( 5 );
@@ -521,7 +524,7 @@ namespace Play.SSTV {
 			_oSiteView = oSiteBase ?? throw new ArgumentNullException( "SiteBase must not be null." );
 			_oDocSSTV  = oDocSSTV  ?? throw new ArgumentNullException( "DocSSTV must not be null." );
 
-			Iconic = oDocSSTV.CreateIconic( IconResource );
+			Icon = oDocSSTV.CreateIconic( IconResource );
 		}
 
         public void LogError( string strCatagory, string strDetails ) {
@@ -637,7 +640,6 @@ namespace Play.SSTV {
 					break;
 			}
 		}
-
 
 		public override object Decorate(IPgViewSite oBaseSite,Guid sGuid) {
 			try {

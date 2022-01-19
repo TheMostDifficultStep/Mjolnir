@@ -113,7 +113,6 @@ namespace Play.ImageViewer {
 		protected readonly IPgViewSite               _oSiteBase;
         protected readonly IPgShellSite              _oSiteShell;
         protected readonly IPgViewNotify             _oViewEvents; // From our site, window manager (view interface).
-		protected readonly Bitmap                    _oIcon;
 		protected readonly Dictionary<Labels, Input> _rgProperty = new Dictionary<Labels, Input>();
 
         readonly LayoutStackVertical _rgVertStack = new LayoutStackVertical( 5 );
@@ -132,7 +131,7 @@ namespace Play.ImageViewer {
             _oSiteShell  = oSiteView as IPgShellSite ?? throw new ArgumentException( "View Site must support IPgShellSite" );
 			_oViewEvents = oSiteView.EventChain ?? throw new ArgumentException( "Site.EventChain must support IPgViewSiteEvents" );
 			_oDocument   = oDoc ?? throw new ArgumentNullException( "Document must not be null." );
-			_oIcon       = _oDocument.GetResource( "icons8-cut-40.png" );
+			Icon         = _oDocument.GetResource( "icons8-cut-40.png" );
 
             uint uiHeight = (uint)(Font.Height * 1.5);
             _rgProperty.Add( Labels.Format,   new Input( Labels.Format,   "Format",   "jpg",   uiHeight ));
@@ -151,7 +150,8 @@ namespace Play.ImageViewer {
 
 		public Guid      Catagory  => Guid;
 		public string    Banner    => _oDocument.CurrentFileName + " : Snippet";
-		public Image     Iconic    => _oIcon;
+		public Image     Iconic    => null;
+		public SKBitmap  Icon      { get; }
 		public IPgParent Parentage => _oSiteBase.Host;
 		public IPgParent Services  => Parentage.Services;
 
@@ -263,7 +263,8 @@ namespace Play.ImageViewer {
 
 		protected override void Dispose( bool fDisposing ) {
 			if( fDisposing && !_fDisposed ) {
-				_oIcon.Dispose();
+				if( Icon != null && Icon is IDisposable oDisp )
+					oDisp.Dispose();
 
 				// TODO: Call dispose on the properties and such. Or check
 				//       that they are disposing.

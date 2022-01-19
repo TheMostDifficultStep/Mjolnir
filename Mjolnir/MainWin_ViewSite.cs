@@ -1,9 +1,9 @@
 ﻿using System;
-using System.Text;
 using System.Windows.Forms;
-using System.Drawing;
 using System.Xml;
 using System.Collections.Generic;
+
+using SkiaSharp;
 
 using Play.Interfaces.Embedding;
 using Play.Edit;
@@ -159,8 +159,7 @@ namespace Mjolnir {
             get { return( _iID ); }
         }
         
-        public Icon Icon { get; protected set; }
-        internal Image Iconic { get { return _oViewCommand.Iconic; } }
+        internal SKBitmap Icon { get { return _oViewCommand.Icon; } }
 
         /// <summary>
         /// Go to the guest view and ask for it's bitmap to be used as the icon.
@@ -170,24 +169,24 @@ namespace Mjolnir {
         /// to the given icon, meaning unless you clear the form icon first you 
         /// can't destroy the handle you're stuck with. Sooooo....
         /// </summary>
-        protected void CreateIcon() {
-            IntPtr ipHIcon = IntPtr.Zero;
-            try {
-                Bitmap oBitmap = (Bitmap)_oViewCommand.Iconic;
-				if( oBitmap != null ) {
-					ipHIcon = oBitmap.GetHicon();
-					using( Icon oIcon = Icon.FromHandle( ipHIcon ) ) {
-						Icon = (Icon)oIcon.Clone();
-					}
-				}
-            } catch( InvalidCastException ) {
-				// this is kinda cool. If our image is something super modern and cool, I'll have
-				// to create the icon differently. ^_^;
-            } finally {
-                if( ipHIcon != IntPtr.Zero )
-                    MyExtensions.DestroyIcon( ipHIcon );
-            }
-        }
+    //    protected void CreateIcon() {
+    //        IntPtr ipHIcon = IntPtr.Zero;
+    //        try {
+    //            Bitmap oBitmap = (Bitmap)_oViewCommand.Iconic;
+				//if( oBitmap != null ) {
+				//	ipHIcon = oBitmap.GetHicon();
+				//	using( Icon oIcon = Icon.FromHandle( ipHIcon ) ) {
+				//		Icon = (Icon)oIcon.Clone();
+				//	}
+				//}
+    //        } catch( InvalidCastException ) {
+				//// this is kinda cool. If our image is something super modern and cool, I'll have
+				//// to create the icon differently. ^_^;
+    //        } finally {
+    //            if( ipHIcon != IntPtr.Zero )
+    //                MyExtensions.DestroyIcon( ipHIcon );
+    //        }
+    //    }
 
 		/// <summary>
 		/// Got to the view and ask it for all the tools.
@@ -239,7 +238,7 @@ namespace Mjolnir {
 				return( false );
 			}
 
-            CreateIcon();
+            //CreateIcon();
 
             // This keeps us from tabbing into our document and then blasting a bunch
             // of spaces into the document because we tabbed our way into it. The document 
@@ -270,7 +269,7 @@ namespace Mjolnir {
 				return( false );
 			}
 
-            CreateIcon();
+            //CreateIcon();
 
             _oViewControl.TabStop = false;
 

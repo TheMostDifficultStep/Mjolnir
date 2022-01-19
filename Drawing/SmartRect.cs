@@ -768,8 +768,7 @@ namespace Play.Rectangles {
         public virtual void Inflate( int p_iMultiplyer, SmartRect p_oIncr ) {
             int[] rgiSides = { -1, -1, 1, 1 }; // Coordinate system dependent.
 
-            for (int i = 0; i < 4; ++i)
-            {
+            for( int i = 0; i < 4; ++i ) {
                 m_rgiCur[i] += p_iMultiplyer * rgiSides[i] * p_oIncr.m_rgiCur[i];
             }
         }
@@ -777,7 +776,7 @@ namespace Play.Rectangles {
         public void Inflate( int p_iMultiplyer, int[] rgIncr ) {
             int[] rgiSides = { -1, -1, 1, 1 }; // Coordinate system dependent.
 
-            for (int i = 0; i < 4; ++i) {
+            for( int i = 0; i < 4; ++i ) {
                 m_rgiCur[i] += p_iMultiplyer * rgiSides[i] * rgIncr[i];
             }
         }

@@ -8,6 +8,8 @@ using System.Runtime.InteropServices;
 using System.Reflection;
 using System.Linq;
 
+using SkiaSharp;
+
 namespace Play.Interfaces.Embedding {
     public delegate int FindPredicate<T>(T obj); // Crazy magic!! ^_^
 
@@ -89,7 +91,6 @@ namespace Play.Interfaces.Embedding {
 				throw new InvalidOperationException( "Could not retrieve given image resource : " + strResourceName );
 			}
 		}
-
 	}
 
     /// <summary>
@@ -211,7 +212,7 @@ namespace Play.Interfaces.Embedding {
     /// <summary>
     /// 1/19/2016, Turns out this is a real problem. Making an object Load via StreamReader
     /// makes it totally difficult to use for anything but file operations because
-    /// of the CurrentEncoding member is not available on StringReader for one. 
+    /// of the CurrentEncoding member is not available on StringReader for oiconne. 
     /// For example: embedding in XML file is a pain of reading the string into a
     /// MemoryStream via a StreamWriter then handing a StreamReader to the document 
     /// to load from. So instead just I implement this interface for the document 
@@ -365,7 +366,8 @@ namespace Play.Interfaces.Embedding {
     /// </summary>
     public interface IPgCommandBase {
         string Banner   { get; } 
-        Image  Iconic   { get; }
+        [Obsolete]Image  Iconic  { get; }
+        SKBitmap Icon    => null;
         bool   Execute ( Guid sGuid );
     }
 

@@ -78,7 +78,7 @@ namespace Mjolnir {
 
         protected ViewsEditor _oDoc_ViewSelector;
         protected bool        _fIsClosing = false;
-		internal  TOPLAYOUT   _eLayout    = TOPLAYOUT.Solo; // Once layout 1&2 are normalized I won't need this.
+		internal  TOPLAYOUT   _eLayout    = TOPLAYOUT.Primary; // Once layout 1&2 are normalized I won't need this.
 
         protected SCRIPT_FONTPROPERTIES _sDefFontProps = new SCRIPT_FONTPROPERTIES();
         protected IntPtr                _hScriptCache  = IntPtr.Zero;
@@ -86,7 +86,8 @@ namespace Mjolnir {
 
 		public enum TOPLAYOUT {
 			Solo,
-			Multi
+			Multi,
+            Primary
 		}
 
         /// <summary>
@@ -301,8 +302,8 @@ namespace Mjolnir {
 		/// which is loaded via a standard InitNew/Load API.
         /// </summary>
         /// <remarks>
-        /// 12/3/2018 : It would be nice if the window was at least minimally functional if any of this
-		/// fails, but we're not quite there yet.
+        /// 12/3/2018 : It would be nice if the window was at least minimally functional if any
+        /// of the XML reads fail, but we're not quite there yet.
         ///</remarks>
 		///<exception cref="ArgumentNullException" />
 		///<seealso cref="Program.InitNew"
@@ -324,26 +325,25 @@ namespace Mjolnir {
             oViewSitesSlot.InitNew();
             _oDoc_ViewSelector = (ViewsEditor)oViewSitesSlot.Document;
 
-            // This needs to follow the view selector document setting.
-            //MainWin_Tabs oTabs = new( new WinSlot( this ), _oDoc_ViewSelector );
-            //oTabs.Parent = this;
+            // This needs to follow the view selector document assignment.
+            MainWin_Tabs oTabs = new(new WinSlot(this), _oDoc_ViewSelector);
+            oTabs.Parent = this;
+            oTabs.InitNew();
 
-            //oTabs.InitNew();
-
-			//_oLayout1.Add( new LayoutControl( oTabs, LayoutRect.CSS.Pixels, 50 ) { Hidden = false } ); // View tabs.
-			_oLayout1.Add( new LayoutSelectedView( this ) );
+            _oLayout1.Add( new LayoutRect( LayoutRect.CSS.Pixels, 0, 10 ) { Hidden = true } ); // Header.
+            _oLayout1.Add( new LayoutSelectedView( this ) );
 			_oLayout1.Add( new LayoutRect( LayoutRect.CSS.Pixels, 0, 10 ) { Hidden = true } ); // Footer.
 
-            //LayoutStackHorizontal oCenter = new ( 5 ); // { CSS = None }
+            LayoutStackHorizontal oCenter = new(5); // { CSS = None }
 
-            //oCenter.Add( new LayoutRect( LayoutRect.CSS.Pixels, 0, 100 ) ); // Left
-            //oCenter.Add( new LayoutRect( LayoutRect.CSS.Pixels, 0, 30 ) ); // frame _rcFrame
-            //oCenter.Add( new LayoutRect( LayoutRect.CSS.Pixels, 0, 100 ) ); // right
+            oCenter.Add( _rgSideInfo[SideIdentify.Left] );
+            oCenter.Add( new LayoutGrab( LayoutRect.CSS.None, _rcFrame ) ); 
+            oCenter.Add( _rgSideInfo[SideIdentify.Right] ); 
 
-            //_oLayoutPrimary.Add( new LayoutRect( LayoutRect.CSS.Pixels, 30, 30 ) ); // Menu
-            //_oLayoutPrimary.Add( new LayoutControl( oTabs, LayoutRect.CSS.Pixels, 50 ) ); // Tabs
-            //_oLayoutPrimary.Add( oCenter ); // Center
-            //_oLayoutPrimary.Add( new LayoutRect( LayoutRect.CSS.Pixels, 100, 30 ) ); // Bottom
+            _oLayoutPrimary.Add( _rgSideInfo[SideIdentify.Top] ); 
+            _oLayoutPrimary.Add( new LayoutControl(oTabs, LayoutRect.CSS.Pixels, 40)); 
+            _oLayoutPrimary.Add( oCenter); 
+            _oLayoutPrimary.Add( _rgSideInfo[SideIdentify.Bottom] );
 
             DecorMenuReload();
         }
@@ -512,7 +512,9 @@ namespace Mjolnir {
                         string strSide = eSide.ToString().ToLower();
                         if( int.TryParse( xmlElem.GetAttribute( strSide ), out int iValue ) ) {
                             SideStuff sStuff  = _rgDim[strSide];
-							_rgSideInfo.Add(eSide, new SideRect( sStuff.eTrack, 5 ) { SideSaved = iValue, SideInit = sStuff.iInit } );
+							_rgSideInfo.Add(eSide, new SideRect( sStuff.eTrack, 5 ) { 
+                                SideSaved = iValue, SideInit = sStuff.iInit, 
+                                Track = (uint)sStuff.iInit, Layout = LayoutRect.CSS.Pixels } );
                             if( (int)eSide < 4 )
 							    _rgSide[(int)eSide] = iValue;
 						} else {
@@ -542,7 +544,7 @@ namespace Mjolnir {
 
             _rcFrame.Hidden     = false;
             _rcFrame.Show       = SHOWSTATE.Inactive;
-            _rcFrame.SizeEvent += new RectSize(this.OnInsideAdjusted);
+          //_rcFrame.SizeEvent += new RectSize(this.OnInsideAdjusted);
 
 		    //LayoutFrame(); Can't call now because center view is null on init.
         }
@@ -1236,7 +1238,7 @@ namespace Mjolnir {
                 sbTitle.Append( " | " );
                 sbTitle.Append( _oSelectedWinSite.Title );
 
-                this.Icon = _oSelectedWinSite.Icon;
+                //this.Icon = _oSelectedWinSite.Icon;
             }
 
 			// Followed by session name. If I've got one.
@@ -1618,9 +1620,28 @@ namespace Mjolnir {
                             oMenuItem.Shepard.Hidden = true;
                         }
                     }
+                    _rgSideInfo[(SideIdentify)i].Hidden = true;
+                } else {
+                    _rgSideInfo[(SideIdentify)i].Hidden = false;
                 }
                 uiScalar = uiScalar << 1;
             }
+        }
+
+        protected void CenterDrag( bool fDragging, SKPointI pntLast ) {
+            if( !fDragging ) {
+                foreach( SideIdentify eID in Enum.GetValues( typeof( SideIdentify ) ) ) {
+                    if( _rgSideInfo[eID].Hidden ) {
+                        foreach( IPgMenuVisibility oMenuItem in DecorSettings ) {
+                            if (oMenuItem.Shepard.Orientation == (int)eID ) {
+                                oMenuItem.Checked        = false;
+                                oMenuItem.Shepard.Hidden = true;
+                            }
+                        }
+                    }
+                }
+            }
+            OnSizeChanged( new EventArgs() );
         }
 
         protected override void OnPaint( PaintEventArgs oArgs )
@@ -1658,13 +1679,36 @@ namespace Mjolnir {
             
             ISmartDrag    oDrag     = null;
 			SKPointI      pntCenter = _rctDragBounds.GetPoint( LOCUS.CENTER );
-            LOCUS         l_uiEdges = 0;
-            SmartGrab.HIT l_eHitAt  = _rcFrame.IsHit(pntCenter.X, pntCenter.Y, out l_uiEdges);
+            SmartGrab.HIT eHitAt    = _rcFrame.IsHit(pntCenter.X, pntCenter.Y, out LOCUS uiHitEdges);
 
-            if (l_eHitAt == SmartGrab.HIT.EDGE ||
-                l_eHitAt == SmartGrab.HIT.MIDPOINT ||
-                l_eHitAt == SmartGrab.HIT.CORNER) {
-                oDrag = new SmartGrabDrag( new DragFinished( FinishBorderDrag ), _rcFrame, SET.STRETCH, l_uiEdges, pntCenter.X, pntCenter.Y);
+            if (eHitAt == SmartGrab.HIT.EDGE ||
+                eHitAt == SmartGrab.HIT.MIDPOINT ||
+                eHitAt == SmartGrab.HIT.CORNER) 
+            {
+                LayoutRect oGuest   = null;
+                LOCUS      eNewEdge = LOCUS.EMPTY;
+                TRACK      eDir     = TRACK.VERT;
+
+                if( ( uiHitEdges & LOCUS.LEFT ) != 0 ) {
+                    oGuest   = _rgSideInfo[ SideIdentify.Left ];
+                    eNewEdge = LOCUS.RIGHT;
+                    eDir     = TRACK.HORIZ;
+                }
+                if( ( uiHitEdges & LOCUS.RIGHT ) != 0 ) {
+                    oGuest   = _rgSideInfo[ SideIdentify.Right ];
+                    eNewEdge = LOCUS.LEFT;
+                    eDir     = TRACK.HORIZ;
+                }
+                if( ( uiHitEdges & LOCUS.BOTTOM ) != 0 ) {
+                    oGuest   = _rgSideInfo[ SideIdentify.Bottom ];
+                    eNewEdge = LOCUS.TOP;
+                    eDir     = TRACK.VERT;
+                }
+
+                if( oGuest == null )
+                    return null;
+
+                oDrag = new SmartDragLayout( CenterDrag, oGuest, eDir, eNewEdge, pntCenter.X, pntCenter.Y);
             } else {
 				foreach( SideRect oSide in _rgSideInfo.Values ) {
 					oDrag = oSide.SpacerDragTry( pntCenter.X, pntCenter.Y );
@@ -1685,10 +1729,12 @@ namespace Mjolnir {
             return (oDrag);
         }
 
-        /// <summary>
+        /// <summary>We don't actually begin the drag until the mouse
+        /// has moved a short distance from this start position.</summary>
+        /// <remarks>
         /// Currently we only select herder's (adornment) windows. Want to 
         /// drag and drop them too.
-        /// </summary>
+        /// </remarks>
         /// <param name="e"></param>
         protected override void OnMouseDown(MouseEventArgs e) {
             base.OnMouseDown(e);
@@ -1734,6 +1780,7 @@ namespace Mjolnir {
 
             this.Cursor = Cursors.Default;
             
+            // If exit the drag bounds then we're actually moving something.
             if( e.Button == MouseButtons.Left && !_rctDragBounds.IsInside( e.X, e.Y ) ) {
 				_oDrag = TryDrag();
 			}
@@ -1958,6 +2005,8 @@ namespace Mjolnir {
 			foreach( SmartHerderBase oHerder in this ) {
 				oHerder.OnBlurred();
 			}
+            // Formatted is losely what happened. Might want to revisit.
+            _oDoc_ViewSelector.Raise_BufferEvent( BUFFEREVENTS.FORMATTED );
 
             Invalidate();
         }
@@ -1973,28 +2022,9 @@ namespace Mjolnir {
         /// when a view looses focus to a tool bar.</remarks>
         public void OnViewBlurred( ViewSlot oViewSite ) {
             InsideShow = SHOWSTATE.Inactive;
+            _oDoc_ViewSelector.Raise_BufferEvent( BUFFEREVENTS.FORMATTED );
             Invalidate();
         }
-
-        /// <summary>
-        /// 1/11/2016 : Main window is dependent on having a drag object set whenever sizing the
-        /// inside adornments border. Need to untangle that restraint if we want to randomly set the
-        /// inside rect w/o this monster.
-        /// </summary>
-        private class DumbGrabDrag : 
-            ISmartDrag
-        {
-            public SmartRect Guest {
-                get { return (null); }
-            }
-
-            public SmartRect Outer {
-                get { return (null); }
-            }
-
-            public virtual void Move(int p_iX, int p_iY) { }
-            public virtual void Dispose() { }
-        } // class SmartDrag
 
         /// <summary>
         /// For the selected view, go to the document and find the view types it can create.

@@ -101,7 +101,10 @@ namespace Mjolnir {
         public IPgParent Parentage => _oSiteView.Host;
         public IPgParent Services  => Parentage.Services;
 
+        MainWin _oHost;
+
         public MainWin_Tabs(IPgViewSite oSiteView, BaseEditor oDoc) : base(oSiteView, oDoc) {
+            _oHost = (MainWin)oSiteView.Host;
         }
 
         /// <summary>
@@ -111,7 +114,13 @@ namespace Mjolnir {
         /// <returns>Focus status</returns>
         public override SKColor TabStatus( object oID ) {
             if( oID is ViewSlot oLine ) {
-                return oLine.Focused ? SKColors.Blue : TabBackground( oLine.At );
+                if( oLine.Focused )
+                    return _oStdUI.ColorsStandardAt( StdUIColors.BGSelectedFocus );
+
+                if( _oHost.ViewSiteSelected == oLine ) 
+                    return SKColors.Gray;
+
+                return TabBackground( oLine.At );
             }
             
             return SKColors.White;
@@ -126,7 +135,11 @@ namespace Mjolnir {
             SKColor skBG = _oStdUI.ColorsStandardAt( StdUIColors.BGReadOnly );
 
             if( oID is ViewSlot oLine ) {
-                return oLine.Focused ? SKColors.LightCyan : skBG;
+                if( oLine.Focused )
+                    return SKColors.LightCyan;
+                
+                if( _oHost.ViewSiteSelected == oLine )
+                    return SKColors.LightGray;
             }
             return skBG;
         }
@@ -137,6 +150,11 @@ namespace Mjolnir {
         /// </summary>
         /// <returns>Return a bitmap</returns>
         public override SKBitmap TabIcon( object oID ) {
+            if( oID is ViewSlot oSlot ) {
+                if( oSlot.Icon != null )
+                    return oSlot.Icon;
+            }
+
             SKBitmap skIcon = new( 30, 30, SKColorType.Rgb888x, SKAlphaType.Opaque );
 
             using SKPaint  oPaint  = new () { Color = SKColors.Red };

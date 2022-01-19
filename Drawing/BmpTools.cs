@@ -2,9 +2,43 @@ using System;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.Collections.Generic;
+using System.Reflection;
+using System.IO;
+using System.Linq;
 
-namespace Play.Drawing
-{
+using SkiaSharp;
+
+namespace Play.Drawing {
+	public class SKImageResourceHelper {
+		/// <summary>
+		/// Get the specified resource from the currently executing assembly.
+		/// </summary>
+		/// <exception cref="InvalidOperationException" />
+        /// <remarks>Consider changing the exception to ApplicationException</remarks>
+		public static SKBitmap GetImageResource( Assembly oAssembly, string strResourceName ) {
+			try {
+                // Let's you peep in on all of them! ^_^
+                // string[] rgStuff = oAssembly.GetManifestResourceNames();
+
+				using( Stream oStream = oAssembly.GetManifestResourceStream( strResourceName )) {
+					return SKBitmap.Decode( oStream );
+				}
+			} catch( Exception oEx ) {
+				Type[] rgErrors = { typeof( NullReferenceException ), 
+									typeof( ArgumentNullException ),
+									typeof( ArgumentException ),
+									typeof( FileLoadException ),
+									typeof( BadImageFormatException ),
+									typeof( NotImplementedException ) };
+				if( !rgErrors.Contains( oEx.GetType() ) )
+					throw;
+
+				throw new InvalidOperationException( "Could not retrieve given image resource : " + strResourceName );
+			}
+		}
+
+	}
+
     //FloodFill oFlood = new FloodFill(oView.Document.Bitmap);
 
     //oFlood.OldColor = Color.White;

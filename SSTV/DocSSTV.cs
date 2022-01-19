@@ -7,12 +7,12 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Xml;
-using System.Drawing;
 using System.Reflection;
 
 using SkiaSharp;
 using NAudio.Wave;
 
+using Play.Drawing;
 using Play.Rectangles;
 using Play.Interfaces.Embedding;
 using Play.Sound;
@@ -1463,8 +1463,8 @@ namespace Play.SSTV {
             }
         }
 
-        public Image CreateIconic( string strResource ) {
-            return ImageResourceHelper.GetImageResource( Assembly.GetExecutingAssembly(), strResource );
+        public SKBitmap CreateIconic( string strResource ) {
+            return SKImageResourceHelper.GetImageResource( Assembly.GetExecutingAssembly(), strResource );
         }
     } // End class
 }

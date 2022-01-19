@@ -3,7 +3,8 @@ using System.Drawing;
 using System.Xml;
 using System.Collections.Generic;
 using System.Windows.Forms;
-using System.Reflection;
+
+using SkiaSharp;
 
 using Play.Interfaces.Embedding;
 using Play.Rectangles;
@@ -48,6 +49,8 @@ namespace Play.SSTV {
 		IDisposable
 	{
 		public static Guid GUID { get; } = new Guid( "{A7F75A46-1800-4605-87EC-2D8B960D1599}" );
+
+		public SKBitmap Icon { get; }
 
 		protected static readonly string _strIcon =  "Play.SSTV.Content.icons8-system-diagnostic-48.png";
 		protected readonly IPgViewSite   _oSiteView;
@@ -107,7 +110,7 @@ namespace Play.SSTV {
 			_oSiteView = oViewSite ?? throw new ArgumentNullException( "View requires a view site." );
 			_oDocSSTV  = oDocument ?? throw new ArgumentNullException( "View requires a document." );
 
-			Iconic = oDocument.CreateIconic( _strIcon );
+			Icon = oDocument.CreateIconic( _strIcon );
  
 
 			_oViewSync = new ImageViewSingle( new SSTVWinSlot( this ), _oDocSSTV.SyncImage );

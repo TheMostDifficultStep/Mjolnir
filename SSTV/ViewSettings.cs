@@ -1,7 +1,8 @@
 ﻿using System;
-using System.Drawing;
 using System.Xml;
-using System.Reflection;
+using System.Drawing;
+
+using SkiaSharp;
 
 using Play.Forms;
 using Play.Interfaces.Embedding;
@@ -30,7 +31,8 @@ namespace Play.SSTV {
 
         public Guid      Catagory  => GUID; 
         public string    Banner    => "MySSTV Settings";
-        public Image     Iconic    { get; }
+        public SKBitmap  Icon    { get; }
+        public Image     Iconic => null;
         public bool      IsDirty   => false;
         public IPgParent Parentage => _oViewSite.Host;
         public IPgParent Services  => Parentage.Services;
@@ -42,7 +44,7 @@ namespace Play.SSTV {
         {
             SSTVDocument = oDocument; // Don't bother check for null, will have thrown by now see above...
             _oViewSite   = oViewSite;
-			Iconic       = oDocument.CreateIconic( _strViewIcon );
+			Icon         = oDocument.CreateIconic( _strViewIcon );
         }
 
         protected override void Dispose( bool disposing ) {
