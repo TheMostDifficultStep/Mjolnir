@@ -34,7 +34,7 @@ namespace Play.Rectangles {
 		public uint  Track { get; set; } // TODO: Make this a float.
 		public float TrackMaxPercent { get; } // TODO : Use minmax object.
 		public int   Span  { get; set; } = 0; // CSS span value minus 1. Bummer here but shared with SmartTable.
-		public bool  Hidden = false;
+		public virtual bool  Hidden { get; set; } = false;
 		public CSS   Layout { get => _eLayout; set { _eLayout = value; } }
 
 		public virtual uint TrackDesired( TRACK eParentAxis, int uiRail ) { return Track; }
@@ -81,23 +81,10 @@ namespace Play.Rectangles {
 		}
 	}
 
-    public class LayoutSingle : ParentRect {
+    public class LayoutSingle : LayoutRect {
 		SmartRect _oSolo;
-        public LayoutSingle(CSS eLayout, SmartRect oSolo ) : base(0) {
+        public LayoutSingle(CSS eLayout, SmartRect oSolo ) : base( eLayout ) {
 			_oSolo = oSolo ?? throw new ArgumentNullException( nameof( oSolo ) );
-        }
-
-        public override int Count => 0;
-
-        public override void Clear() {
-        }
-
-        public override IEnumerator<LayoutRect> GetEnumerator() {
-			yield break;
-        }
-
-        public override LayoutRect Item(int iIndex) {
-            throw new ArgumentOutOfRangeException();
         }
 
 		public override bool LayoutChildren() {
@@ -106,29 +93,19 @@ namespace Play.Rectangles {
 
 			return true;
 		}
+        public override void Paint(Graphics p_oGraphics) {
+            _oSolo.Paint(p_oGraphics);
+        }
     }
 
 	/// <summary>
-	/// Simple wrapper so we can get a solo object inside of a layout.
+	/// Simple wrapper so we can get grab handle inside of a layout.
 	/// </summary>
-    public class LayoutGrab : ParentRect {
+    public class LayoutGrab : LayoutRect {
 		SmartGrab _oSolo;
 		SmartRect _oTemp = new SmartRect();
-        public LayoutGrab(CSS eLayout, SmartGrab oSolo ) : base(0) {
+        public LayoutGrab(CSS eLayout, SmartGrab oSolo ) : base( eLayout ) {
 			_oSolo = oSolo ?? throw new ArgumentNullException( nameof( oSolo ) );
-        }
-
-        public override int Count => 0;
-
-        public override void Clear() {
-        }
-
-        public override IEnumerator<LayoutRect> GetEnumerator() {
-			yield break;
-        }
-
-        public override LayoutRect Item(int iIndex) {
-            throw new ArgumentOutOfRangeException();
         }
 
 		public override bool LayoutChildren() {
@@ -139,6 +116,15 @@ namespace Play.Rectangles {
 			_oSolo.LayoutChildren();
 
 			return true;
+		}
+
+        public override void Paint(Graphics p_oGraphics) {
+            _oSolo.Paint(p_oGraphics);
+        }
+
+        public override bool Hidden { 
+			get => _oSolo.Hidden;
+			set => _oSolo.Hidden = value; 
 		}
     }
 
@@ -363,10 +349,7 @@ namespace Play.Rectangles {
 					extCarriageTrack.Stop = extCarriageTrack.Start + (int)_rgTrack[i];
 
 					SetRect( extRail, extCarriageTrack, Item(i) );
-					// TODO: There might be other layout managers in the future. But this will do for now.
-					if( Item(i) is ParentRect oStacker ) {
-						oStacker.LayoutChildren();
-					}
+					Item(i).LayoutChildren();
 
 					extCarriageTrack.Start = extCarriageTrack.Stop + ( Item(i).Hidden ? 0 : (int)_uiMargin );
 				}
@@ -739,11 +722,7 @@ namespace Play.Rectangles {
             for( int i = 0, iTop = Top + Margin.Top; i < Count;  ) {
                 foreach( int iStart in rgColumns ) {
                     Item(i).SetRect( LOCUS.UPPERLEFT, iStart, iTop, ItemSize.Width, ItemSize.Height );
-
-                    // TODO: This is still a bit hacky. Might be best to add LayoutChildren() to any LayoutRect?
-					if( Item(i) is ParentRect oStacker ) {
-						oStacker.LayoutChildren();
-					}
+					Item(i).LayoutChildren();
 
                     if( ++i >= Count )
                         break;

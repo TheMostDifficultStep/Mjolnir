@@ -538,10 +538,30 @@ namespace Mjolnir {
 			}
         }
 
-        /// <remarks>
-        /// Remember, we might not have any view loaded!! Got to check if the SelectedWinSite is null!
-        /// </remarks>
-		protected void LayoutViews() {
+        /// <summary>
+        /// TODO: 2/10/2020, Need to rework the frame layout for the viewslots. There's a bug
+        ///       where if the slot doesn't have a icon then the layout gp faults.
+        /// </summary>
+        /// <param name="oG"></param>
+        protected void LayoutPaint( Graphics oG ) {
+            switch( _eLayout ) { 
+                case TOPLAYOUT.Primary:
+                    _oLayoutPrimary.Paint( oG );
+                    break;
+                case TOPLAYOUT.Solo:
+                    _oLayout1.Paint( oG );
+                    break;
+                case TOPLAYOUT.Multi:
+                    _oLayout2.Paint( oG );
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// When our outside window changes size or any of our sides change extent,
+        /// we need to adjust the inside rectangle.
+        /// </summary>
+        protected void LayoutFrame() {
 			try {
 				switch( _eLayout ) {
                     case TOPLAYOUT.Primary:
@@ -549,19 +569,13 @@ namespace Mjolnir {
                         _oLayoutPrimary.SetRect( 0, 0, ClientRectangle.Width, ClientRectangle.Height );
                         _oLayoutPrimary.LayoutChildren();
 
+                        // Might have no view loaded, need to check it.
                         if( _oSelectedWinSite != null ) {
                             _oSelectedWinSite.Guest.Bounds = _rcFrame.Rect;
 						    _oSelectedWinSite.Guest.Show();
                         }
                         break;
 
-					//case TOPLAYOUT.Solo:
-					//	_oLayout1.Copy = _rcFrame; // When called, the view gets an OnSizeChanged() call!
-					//	_oLayout1.LayoutChildren();
-
-     //                   if( _oSelectedWinSite != null )
-					//	    _oSelectedWinSite.Guest.Show();
-					//	break;
 					case TOPLAYOUT.Multi:
 						using( IEnumerator<ViewSlot> oEnum = ViewEnumerator() ) {
 							while( oEnum.MoveNext() ) {
@@ -582,90 +596,8 @@ namespace Mjolnir {
 			} catch( NullReferenceException ) {
                 LogError( null, "Main Window", "Couldn't resize guest because viewsite is null" );
 			}
-		}
-
-        /// <summary>
-        /// TODO: 2/10/2020, Need to rework the frame layout for the viewslots. There's a bug
-        ///       where if the slot doesn't have a icon then the layout gp faults.
-        /// </summary>
-        /// <param name="oG"></param>
-        protected void LayoutPaint( Graphics oG ) {
-			using( GraphicsContext oDC = new GraphicsContext( oG ) ) {
-				using( new ItemContext( oDC.Handle, ToolsFont.ToHfont() ) ) {
-                    // I initialize the script cache in the OnHandleCreate(). This means I don't 
-                    // need to be checking if the script cache has been initialized. HOWEVER, if I want
-                    // to change the font. I'm gonna have to free the _hScriptCache and reload the _sDefFontProps.
-			        //if( _hScriptCache == IntPtr.Zero )
-				       // _sDefFontProps.Load( oDC.Handle, ref _hScriptCache );
-
-                    //foreach( ViewsLine oLine in _oDoc_ViewSelector ) {
-                    //    if( oLine.ViewSite.IsTextInvalid ) {
-                    //        oLine.ViewSite.UpdateText( oDC.Handle, ref _hScriptCache, ToolsFont.Height, _sDefFontProps );
-                    //    }
-                    //    //if( _eLayout == TOPLAYOUT.Multi )
-                    //    //    oLine.ViewSite.Layout.Render( oDC.Handle, _hScriptCache );
-                    //}
-                    //if( _eLayout == TOPLAYOUT.Solo && _oSelectedWinSite != null )
-                    //    _oSelectedWinSite.Layout.Render( oDC.Handle, _hScriptCache );
-                }
-            }
-            switch( _eLayout ) { 
-                case TOPLAYOUT.Primary:
-                    _oLayoutPrimary.Paint( oG );
-                    break;
-                case TOPLAYOUT.Solo:
-                    _oLayout1.Paint( oG );
-                    break;
-                case TOPLAYOUT.Multi:
-                    _oLayout2.Paint( oG );
-                    break;
-            }
-        }
-
-        /// <summary>
-        /// When our outside window changes size or any of our sides change extent,
-        /// we need to adjust the inside rectangle.
-        /// </summary>
-		/// <seealso cref="OnInsideAdjusted"/>
-        protected void LayoutFrame() {
-   //         Point ulPoint = new Point( _rgSide[(int)SideIdentify.Left], LayoutSizeTop() + ( _rcFrame.Hidden ? 0 : 5 ) );
-   //         Point lrPoint = new Point( ClientRectangle.Right  - _rgSide[(int)SideIdentify.Right],
-   //                                    ClientRectangle.Bottom - _rgSide[(int)SideIdentify.Bottom]);
-			//SmartRect rcTemp = new SmartRect();
-
-   //         rcTemp.SetPoint(SET.STRETCH, LOCUS.UPPERLEFT,  ulPoint.X, ulPoint.Y);
-   //         rcTemp.SetPoint(SET.STRETCH, LOCUS.LOWERRIGHT, lrPoint.X, lrPoint.Y);
-			
-   //         LayoutFrameValidate( rcTemp );
-
-			//_rcFrame.Copy = rcTemp;
-   //         _rcFrame.UpdateHandles();
-
-			LayoutViews();
 
             Invalidate();
-        }
-
-        /// <summary>
-        /// When the size/position of the inside window is changed, we need
-        /// to retrieve the new edge distances. We only change the edge when
-        /// the inside is being dragged. If the user sizes the host/app window
-        /// then we are causing the re-size and don't want to update the edges.
-        /// </summary>
-		/// <seealso cref="LayoutFrame"/>
-        protected void OnInsideAdjusted( SmartRect oInside ) {
-            if( _oDrag != null ) {
-                Rectangle rctClient = this.ClientRectangle; // The host window size.
-
-				// BUG: I can probably better set this with one call.
-                _rgSide[(int)SideIdentify.Left  ] = _rcFrame.Left;
-                _rgSide[(int)SideIdentify.Top   ] = _rcFrame.Top;
-                _rgSide[(int)SideIdentify.Right ] = rctClient.Right  - _rcFrame.Right;
-                _rgSide[(int)SideIdentify.Bottom] = rctClient.Bottom - _rcFrame.Bottom;
-            }
-
-			LayoutViews    ();
-            LayoutSideBoxes();
         }
 
         class CompareVertical : IComparer<SmartRect>

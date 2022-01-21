@@ -778,7 +778,7 @@ namespace Mjolnir {
 		/// <seealso cref="ViewSlot.OnMenuSelectView"/>
 		private void OnViewAll(object sender,EventArgs e) {
 			_eLayout = TOPLAYOUT.Multi;
-			LayoutViews();
+			LayoutFrame();
 		}
 
 		private void OnDropDown_MouseLeave(object sender, EventArgs e) {
@@ -1601,33 +1601,6 @@ namespace Mjolnir {
             LayoutFrame();
         }
         
-        /// <summary>
-        /// If we close any side(s) then we must disable the menu items for each decor
-        /// sheparded by that side. Else, it'll auto reopen at next view switch.
-        /// </summary>
-        protected void FinishBorderDrag( object oBorder, SKPointI pntLast ) {
-			SmartRect rcTemp        = new SmartRect( _rcFrame );
-            uint      uiClosedEdges = LayoutFrameValidate( rcTemp );
-            uint      uiScalar      = 1;
-
-			_rcFrame.Copy = rcTemp;
-
-            for( int i = 0; i < 4; ++i) {
-                if(( uiClosedEdges & uiScalar) > 0) {
-                    foreach( IPgMenuVisibility oMenuItem in DecorSettings ) {
-                        if (oMenuItem.Shepard.Orientation == i) {
-                            oMenuItem.Checked        = false;
-                            oMenuItem.Shepard.Hidden = true;
-                        }
-                    }
-                    _rgSideInfo[(SideIdentify)i].Hidden = true;
-                } else {
-                    _rgSideInfo[(SideIdentify)i].Hidden = false;
-                }
-                uiScalar = uiScalar << 1;
-            }
-        }
-
         protected void CenterDrag( bool fDragging, SKPointI pntLast ) {
             if( !fDragging ) {
                 foreach( SideIdentify eID in Enum.GetValues( typeof( SideIdentify ) ) ) {
@@ -1644,6 +1617,12 @@ namespace Mjolnir {
             OnSizeChanged( new EventArgs() );
         }
 
+        /// <summary>
+        /// 1/19/2022: Still called by the system. I'd love to convert to a Skia OnPaint version
+        /// but can't yet. Maybe I can just use a control instead of a form. That's the
+        /// next step!
+        /// </summary>
+        /// <param name="oArgs"></param>
         protected override void OnPaint( PaintEventArgs oArgs )
         {
             try {
@@ -1671,8 +1650,10 @@ namespace Mjolnir {
         /// Do a hit test of the mouse position to see if it is on any
         /// edge, midpoint or corner of the inside grab handle object.
         /// </summary>
-        /// <param name="e"></param>
-        /// <returns></returns>
+        /// <remarks>This is a little clunky. I really should have the
+        /// layouts themselves do the adjustments. That way if you change
+        /// layout's it'll just work. But I'm going to stick with
+        /// this one for awhile.</remarks>
         protected ISmartDrag TryDrag() {
 			if( _oDrag != null )
 				return( _oDrag );
@@ -1971,7 +1952,7 @@ namespace Mjolnir {
 					oEnum.Current.Guest.Hide();
 				}
 				
-				LayoutViews();
+				LayoutFrame();
 
 				_oSelectedWinSite.BringToFront();
              // this.Icon = _oSelectedWinSite.Icon; This seems to happen automagically.

@@ -98,9 +98,9 @@ namespace Mjolnir {
         /// BUG: This doesn't match how I'm using GuestSet (on doc slots) now a days.
         /// Plus, I'd rather this object is a IPgParent and not CONTROL!.
         /// </summary>
-        [Obsolete]internal Control Guest {
+        internal Control Guest {
             get { return (_oViewControl); }
-			set { GuestAssign( value ); }
+			[Obsolete]set { GuestAssign( value ); }
         }
 
 		/// <exception cref="ArgumentNullException" />
