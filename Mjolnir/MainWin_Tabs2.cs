@@ -92,6 +92,8 @@ namespace Mjolnir {
             return false;
         }
 
+        protected override void OnTabLeftClicked( object oID ) {
+        }
     }
 
     /// <summary>
@@ -120,6 +122,9 @@ namespace Mjolnir {
                 if( oLine.Focused )
                     return _oStdUI.ColorsStandardAt( StdUIColors.BGSelectedFocus );
 
+                if( oLine == HoverTab?.ID ) 
+                    return SKColors.LightYellow;
+
                 if( _oHost.ViewSiteSelected == oLine ) 
                     return SKColors.Gray;
 
@@ -138,6 +143,9 @@ namespace Mjolnir {
             SKColor skBG = _oStdUI.ColorsStandardAt( StdUIColors.BGReadOnly );
 
             if( oID is ViewSlot oLine ) {
+                if( oLine == HoverTab?.ID ) 
+                    return SKColors.LightYellow;
+
                 if( oLine.Focused )
                     return SKColors.LightCyan;
                 
@@ -168,6 +176,11 @@ namespace Mjolnir {
             return skIcon;
         }
 
+        protected override void OnTabLeftClicked( object oID ) {
+            if( oID is ViewSlot oSlot ) {
+                _oHost.ViewSelect( oSlot, fFocus:true );
+            }
+        }
     }
 
 }

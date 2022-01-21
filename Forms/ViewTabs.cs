@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Windows.Forms;
 
 using SkiaSharp;
 using SkiaSharp.Views.Desktop;
@@ -51,6 +52,8 @@ namespace Play.Forms {
         protected readonly IPgViewSite    _oSiteView;
 		protected readonly IPgStandardUI2 _oStdUI;
         protected          uint           _uStdFont;
+
+        protected          LayoutStack    HoverTab { get; set; }
 
         protected BaseEditor Document { get; }
         
@@ -221,6 +224,57 @@ namespace Play.Forms {
                     break;
             }
         }
+
+        protected override void OnMouseMove(MouseEventArgs e) {
+            base.OnMouseMove(e);
+            
+            LayoutStack oHover = null;
+
+            foreach( LayoutRect oRect in Layout ) {
+                if( oRect.IsInside( e.X, e.Y ) ) {
+                    if( oRect is LayoutStack oTab ) {
+                        oHover = oTab;
+                        break;
+                    }
+                }
+            }
+
+            if( oHover != HoverTab ) {
+                Invalidate();
+            }
+            HoverTab = oHover;
+        }
+
+        protected override void OnMouseDown(MouseEventArgs e) {
+            base.OnMouseDown(e);
+            
+            LayoutStack oHover = null;
+
+            if( e.Button == MouseButtons.Left ) {
+                foreach( LayoutRect oRect in Layout ) {
+                    if( oRect.IsInside( e.X, e.Y ) ) {
+                        if( oRect is LayoutStack oTab ) {
+                            oHover = oTab;
+                            OnTabLeftClicked( oTab.ID );
+                            break;
+                        }
+                    }
+                }
+            }
+
+            if( oHover != HoverTab ) {
+                Invalidate();
+            }
+            HoverTab = oHover;
+        }
+
+        protected override void OnMouseLeave(EventArgs e) {
+            base.OnMouseLeave(e);
+            HoverTab = null;
+            Invalidate();
+        }
+
+        protected abstract void OnTabLeftClicked( object ID );
     }
 
 }

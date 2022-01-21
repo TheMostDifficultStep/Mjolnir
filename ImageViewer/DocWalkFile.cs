@@ -732,7 +732,7 @@ namespace Play.ImageViewer {
             }
 
             try {
-				Icon = SKImageResourceHelper.GetImageResource(  Assembly.GetExecutingAssembly(), _strIcon );
+				Icon = SKImageResourceHelper.GetImageResource( Assembly.GetExecutingAssembly(), _strIcon );
             } catch( InvalidOperationException ) {
                 LogError( "ImageWalkDoc", "Having problem finding folder bitmap resource." );
             }
