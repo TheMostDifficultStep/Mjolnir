@@ -126,6 +126,9 @@ namespace Play.ImageViewer {
 		protected    SKColor _clrFile   = new SKColor( 182, 255, 237 ); // We'll actually make an icon in the future.
 
         public ImageWalkerDoc Document { get { return _oDocument; }  }
+        public override string Banner => "[" + _oDocument.Banner + "]";
+        public virtual SKBitmap Icon { get; } = null;
+
 
 	    protected class DocSlot :
 		    IPgBaseSite
@@ -208,8 +211,6 @@ namespace Play.ImageViewer {
         public bool Save( XmlDocumentFragment xmlRoot ) {
             return( true );
         }
-
-        public override string Banner => "[" + _oDocument.Banner + "]";
 
 		protected void ScrollActiveVisible() {
 			// BUG: Note we call this same type of code on decor direction. Make

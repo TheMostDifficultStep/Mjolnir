@@ -1,12 +1,14 @@
 ﻿using System;
 using System.Reflection;
-using System.Drawing;
 using System.Windows.Forms;
 using System.IO;
 using System.Xml;
 using System.Xml.XPath;
 using System.Runtime.InteropServices;
 
+using SkiaSharp;
+
+using Play.Drawing;
 using Play.Interfaces.Embedding;
 using Play.Rectangles;
 using Play.Edit;
@@ -43,7 +45,7 @@ namespace Play.MusicWalker {
 		ImageViewSingle ViewSettings{ get; }
 	  //ComboBox        ViewRecievers{ get; }
 
-		public Image     Iconic   { get; }
+		public SKBitmap  Icon     { get; }
 		public string    Banner   => Document.FileBase;
 		public Guid      Catagory => Guid.Empty;
 
@@ -145,7 +147,7 @@ namespace Play.MusicWalker {
 			_oSiteView   = oBaseSite ?? throw new ArgumentNullException( "ViewSite must not be null for Music Window" );
 			_oViewEvents = oBaseSite.EventChain ?? throw new ArgumentException( "Site must support EventChain" );
 
-			Iconic = ImageResourceHelper.GetImageResource( Assembly.GetExecutingAssembly(), _strMusicIcon );
+			Icon = SKImageResourceHelper.GetImageResource( Assembly.GetExecutingAssembly(), _strMusicIcon );
 
 			AlbumArtCurrent = new ImageSoloDoc( new MusicWinSlot( this ));
 			AlbumCurrent    = new CurrentAlbum( new MusicWinSlot( this ));
@@ -200,7 +202,7 @@ namespace Play.MusicWalker {
 				ViewLibrary.LineChanged   -= ViewLibrary_LineChanged;
 				Document.SongEvent -= OnSongEvent; 
 
-				Iconic         .Dispose();
+				Icon           .Dispose();
 				ViewLibrary    .Dispose();
 				AlbumProperties.Dispose();
 

@@ -35,7 +35,7 @@ namespace Play.SSTV {
 		public IPgParent Services  => Parentage.Services;
 		public bool      IsDirty   => false;
 		public string    Banner    => "Frequency Space";
-		public Image     Iconic    => null;
+		public SKBitmap  Icon      => null;
 		public Guid      Catagory  => GUID;
 
 		public void LogError( string strMessage ) {

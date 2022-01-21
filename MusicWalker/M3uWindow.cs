@@ -3,11 +3,13 @@ using System.Drawing;
 using System.Reflection;
 using System.Xml;
 
+using Play.Drawing;
 using Play.Interfaces.Embedding;
 using Play.Edit;
 using Play.ImageViewer;
 using Play.Forms;
 
+using SkiaSharp;
 using SkiaSharp.Views.Desktop;
 
 namespace Play.MusicWalker {
@@ -20,39 +22,37 @@ namespace Play.MusicWalker {
 		readonly M3UDocument _oDocumentMusic;
 		readonly string      _strMusicIcon = @"MusicWalker.Content.icons8-music-24.png";
 
-		Bitmap _oAlbumArtIcon = null;
+		SKBitmap _oAlbumArtIcon = null;
 
         public WinMusicText( IPgViewSite oBaseSite, M3UDocument p_oDocument, bool fReadOnly = false, bool fSingleLine = false ) : 
 			base( oBaseSite, p_oDocument, fReadOnly, fSingleLine ) 
 		{
 			_oDocumentMusic = p_oDocument ?? throw new ArgumentNullException( "Music Edit Win needs Music Document." );
-			_oAlbumArtIcon  = ImageResourceHelper.GetImageResource( Assembly.GetExecutingAssembly(), _strMusicIcon );
+			_oAlbumArtIcon  = SKImageResourceHelper.GetImageResource( Assembly.GetExecutingAssembly(), _strMusicIcon );
 		}
 
 		protected override bool InitInternal() {
 			if( !base.InitInternal() )
 				return( false );
 
-			try {
-				if( _oDocumentMusic.AlbumArt.Bitmap != null ) {
-					// BUG: Temporary holdover until we convert 'em all.
-					using( Bitmap oBmpCover = _oDocumentMusic.AlbumArt.Bitmap.ToBitmap() ) {
-						Bitmap oNewCover = new Bitmap( oBmpCover, new Size( 16, 16 ) );
+			//try {
+			//	if( _oDocumentMusic.AlbumArt.Bitmap != null ) {
+			//		// BUG: Temporary holdover until we convert 'em all.
+			//		SKBitmap oNewCover = new SKBitmap( 16, 16, true );
 
-						_oAlbumArtIcon.Dispose();
-						_oAlbumArtIcon = oNewCover;
-					}
-				}
-			} catch( Exception oEx ) {
-				Type[] rgErrors = { typeof( NullReferenceException ),
-								    typeof( ArgumentException ),
-									typeof( ArgumentNullException ),
-									typeof( Exception ) };
-				if( rgErrors.IsUnhandled( oEx ) )
-					throw;
+			//		_oAlbumArtIcon.Dispose();
+			//		_oAlbumArtIcon = oNewCover;
+			//	}
+			//} catch( Exception oEx ) {
+			//	Type[] rgErrors = { typeof( NullReferenceException ),
+			//					    typeof( ArgumentException ),
+			//						typeof( ArgumentNullException ),
+			//						typeof( Exception ) };
+			//	if( rgErrors.IsUnhandled( oEx ) )
+			//		throw;
 
-				_oSiteView.LogError( "embedding", "problem initializing album art icon." );
-			}
+			//	_oSiteView.LogError( "embedding", "problem initializing album art icon." );
+			//}
 
 			return( true );
 		}
@@ -68,7 +68,7 @@ namespace Play.MusicWalker {
             return( base.Decorate( oBaseSite, sGuid ) );
         }
 
-		public override Image Iconic => _oAlbumArtIcon;
+		public override SKBitmap Icon => _oAlbumArtIcon;
 
 		public override bool Execute(Guid sGuid) {
 			if (sGuid == GlobalCommands.Play) {
@@ -184,12 +184,12 @@ namespace Play.MusicWalker {
 
         public Guid   Catagory => _guidViewImage;
         public string Banner   => "Solo MP3 Player" + ( string.IsNullOrEmpty( _oDocument.CurrentURL ) ? string.Empty : " : " + _oDocument.CurrentURL );
-        public Image  Iconic   { get; }
+        public SKBitmap  Icon   { get; }
 
 		public WinSoloMP3( IPgViewSite oBaseSite, MP3Document oDocument ) {
 			_oDocument = oDocument ?? throw new ArgumentNullException( "Music Image Win needs Music Document.");
 
-			Iconic = ImageResourceHelper.GetImageResource( Assembly.GetExecutingAssembly(), _strIconMusic ) ?? 
+			Icon = SKImageResourceHelper.GetImageResource( Assembly.GetExecutingAssembly(), _strIconMusic ) ?? 
 				throw new ApplicationException("Could not find music image resource.");
 		}
 

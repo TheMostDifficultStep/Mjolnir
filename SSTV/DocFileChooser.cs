@@ -1,7 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Drawing;
+
+using SkiaSharp;
 
 using Play.Interfaces.Embedding;
 using Play.Edit;
@@ -23,7 +24,7 @@ namespace Play.SSTV {
         readonly static string _strIcon = @"ImageViewer.Content.icon-folder.png";
 
         public bool       IsDirty   => false;
-        public Image      Iconic    => null;
+        public SKBitmap   Icon      => null;
         public IPgParent  Parentage => _oSiteBase.Host;
         public IPgParent  Services  => Parentage.Services;
         public string     Banner    => "Hello!";

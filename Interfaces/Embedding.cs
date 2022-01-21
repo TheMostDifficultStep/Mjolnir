@@ -365,10 +365,9 @@ namespace Play.Interfaces.Embedding {
     /// Split this out from the IPgCommandView so we can attach this interface to documents. Super handy!!
     /// </summary>
     public interface IPgCommandBase {
-        string Banner   { get; } 
-        [Obsolete]Image  Iconic  { get; }
-        SKBitmap Icon    => null;
-        bool   Execute ( Guid sGuid );
+        string   Banner{ get; } 
+        SKBitmap Icon  { get; }
+        bool     Execute ( Guid sGuid );
     }
 
     /// <summary date="12/18/2015" >

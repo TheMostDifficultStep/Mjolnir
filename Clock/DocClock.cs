@@ -4,9 +4,11 @@ using System.IO;
 using System.Xml;
 using System.Reflection;
 
+using SkiaSharp;
+
+using Play.Drawing;
 using Play.Interfaces.Embedding;
 using Play.Rectangles;
-using System.Drawing;
 using Play.Edit;
 using Play.Forms;
 
@@ -138,7 +140,7 @@ namespace Play.Clock {
 
         public Guid      Catagory  => Guid.Empty; // Default view.
         public string    Banner    => "World Clock";
-        public Image     Iconic    { get; }
+        public SKBitmap  Icon    { get; }
         public bool      IsDirty   => false;
         public IPgParent Parentage => _oViewSite.Host;
         public IPgParent Services  => Parentage.Services;
@@ -150,7 +152,7 @@ namespace Play.Clock {
             _oViewSite = oViewSite;
  			_oStdUI    = Services as IPgStandardUI2 ?? throw new ArgumentException( "Parent view must provide IPgStandardUI service" );
 
-			Iconic = ImageResourceHelper.GetImageResource( Assembly.GetExecutingAssembly(), _strViewIcon );
+			Icon       = SKImageResourceHelper.GetImageResource( Assembly.GetExecutingAssembly(), _strViewIcon );
         }
 
         protected override void Dispose( bool disposing ) {

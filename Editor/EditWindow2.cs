@@ -15,6 +15,7 @@ using System.Windows.Forms;
 using SkiaSharp;
 using SkiaSharp.Views.Desktop;
 
+using Play.Drawing;
 using Play.Interfaces.Embedding;
 using Play.Rectangles;
 using Play.Controls;
@@ -191,7 +192,6 @@ namespace Play.Edit {
         protected readonly LineRange _oLastCursor = new LineRange(); // A spare for use with the hyperlink stuff.
         protected      CacheManager2 _oCacheMan;
         protected          bool      _fReadOnly;
-        protected readonly Bitmap    _oIcon;
         protected readonly bool      _fSingleLine; // Little hack until I make single line editors.
         protected          bool      _fCheckMarks = false; // Right now subclass and reset this to use checkmarks.
 
@@ -276,7 +276,7 @@ namespace Play.Edit {
             _fSingleLine   = fSingleLine;
 
 			// https://icons8.com/
-			_oIcon = ImageResourceHelper.GetImageResource( Assembly.GetExecutingAssembly(), @"Editor.Content.icon8-doc.png" );
+			Icon = SKImageResourceHelper.GetImageResource( Assembly.GetExecutingAssembly(), @"Editor.Content.icon8-doc.png" );
 
             Array.Sort<Keys>( _rgHandledKeys );
 
@@ -361,6 +361,51 @@ namespace Play.Edit {
             Invalidate();
 
             return ( true );
+        }
+
+        public virtual SKBitmap Icon { get; }
+
+        public string Banner {
+            get { 
+                try {
+                    // Find first non blank character.
+                    Line oLine  = CaretPos.Line;
+                    int  iStart = 0;
+
+                    while( iStart < oLine.ElementCount ) {
+                        if( !char.IsWhiteSpace( oLine[iStart] ) )
+                            break;
+                        ++iStart;
+                    }
+
+                    StringBuilder sbBanner = new StringBuilder();
+
+                    if( string.IsNullOrEmpty( _oDocument.FileBase ) ) {
+                        sbBanner.Append( "<Unsaved Text File>" );
+                    } else {
+                        sbBanner.Append( _oDocument.FileBase );
+                    }
+
+                    string strCurrentLine = oLine.SubString( iStart, 25 );
+
+                    sbBanner.Append( " @ " );
+
+                    if( string.IsNullOrEmpty( strCurrentLine ) ) {
+                        sbBanner.Append( "<Empty Line>" );
+                    } else {
+                        foreach( char oChar in strCurrentLine ) {
+                            if( oChar == '\t' )
+                                sbBanner.Append( " " );
+                            else
+                                sbBanner.Append( oChar );
+                        }
+                    }
+
+                    return sbBanner.ToString() ;
+                } catch( NullReferenceException ) {
+                    return( string.Empty );
+                }
+            }
         }
 
         /// <summary>
@@ -2403,53 +2448,6 @@ namespace Play.Edit {
                 }
             } // end for
             return( false );
-        }
-
-        public virtual Image Iconic {
-            get { return( _oIcon ); }
-        }
-
-        public string Banner {
-            get { 
-                try {
-                    // Find first non blank character.
-                    Line oLine  = CaretPos.Line;
-                    int  iStart = 0;
-
-                    while( iStart < oLine.ElementCount ) {
-                        if( !char.IsWhiteSpace( oLine[iStart] ) )
-                            break;
-                        ++iStart;
-                    }
-
-                    StringBuilder sbBanner = new StringBuilder();
-
-                    if( string.IsNullOrEmpty( _oDocument.FileBase ) ) {
-                        sbBanner.Append( "<Unsaved Text File>" );
-                    } else {
-                        sbBanner.Append( _oDocument.FileBase );
-                    }
-
-                    string strCurrentLine = oLine.SubString( iStart, 25 );
-
-                    sbBanner.Append( " @ " );
-
-                    if( string.IsNullOrEmpty( strCurrentLine ) ) {
-                        sbBanner.Append( "<Empty Line>" );
-                    } else {
-                        foreach( char oChar in strCurrentLine ) {
-                            if( oChar == '\t' )
-                                sbBanner.Append( " " );
-                            else
-                                sbBanner.Append( oChar );
-                        }
-                    }
-
-                    return sbBanner.ToString() ;
-                } catch( NullReferenceException ) {
-                    return( string.Empty );
-                }
-            }
         }
 
         public virtual bool Execute(Guid sGuid) {

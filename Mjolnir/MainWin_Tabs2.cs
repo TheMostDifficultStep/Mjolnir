@@ -11,7 +11,7 @@ using Play.Forms;
 namespace Mjolnir {
 
     /// <summary>
-    /// MainWindow usage TabControl. Shows tabs for the views, 
+    /// Test class for the Tab control. I've tacked this onto the text window.
     /// </summary>
     public class WindowTextTabs : 
 		TabControl,
@@ -24,7 +24,7 @@ namespace Mjolnir {
 
         public Guid      Catagory  => ViewType;
         public string    Banner    => "Test Meh";
-        public Image     Iconic    => null;
+        public SKBitmap  Icon      => null;
         public bool      IsDirty   => false;
 
         public IPgParent Parentage => _oSiteView.Host;
@@ -94,6 +94,9 @@ namespace Mjolnir {
 
     }
 
+    /// <summary>
+    /// MainWindow usage TabControl. Shows tabs for the views, 
+    /// </summary>
     public class MainWin_Tabs : 
 		TabControl,
 		IPgParent

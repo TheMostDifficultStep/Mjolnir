@@ -4,6 +4,8 @@ using System.Windows.Forms;
 using System.Xml;
 using System.Collections.Generic;
 
+using SkiaSharp;
+
 using Play.Interfaces.Embedding;
 using Play.Sound;
 using Play.Sound.FFT;
@@ -75,7 +77,7 @@ namespace Play.MusicWalker {
 		public IPgParent Services  => Parentage.Services;
 		public bool      IsDirty   => false;
 		public string    Banner    => "Frequency Space";
-		public Image     Iconic    => null;
+		public SKBitmap  Icon      => null;
 		public Guid      Catagory  => _gViewType;
 
         protected static void LoadData( FFTControlValues oCtrl, List<double> rgData ) {

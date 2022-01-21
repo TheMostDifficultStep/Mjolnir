@@ -1,7 +1,8 @@
 ﻿using System;
 using System.Xml;
 using System.Windows.Forms;
-using System.Drawing;
+
+using SkiaSharp;
 
 using Play.Rectangles;
 using Play.Interfaces.Embedding;
@@ -115,7 +116,7 @@ namespace Play.MorsePractice {
 		public bool         IsDirty      => _oDocMorse.Source.IsDirty || _oDocMorse.Notes.IsDirty;
 		public Guid         Catagory     => _guidViewCategory;
 		public string       Banner       => "Practice Morse Code";
-		public Image        Iconic       => null;
+		public SKBitmap     Icon         => null;
 
 		public TextPosition Caret        => throw new NotImplementedException();
 

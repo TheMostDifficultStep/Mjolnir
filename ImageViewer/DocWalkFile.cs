@@ -560,7 +560,6 @@ namespace Play.ImageViewer {
         IPgSave<TextWriter>,
         IReadableBag<Line>, 
         IEnumerable<Line>,
-        IPgCommandBase,
         IDisposable
     {
         protected readonly IPgFileSite       _oSiteFile;
@@ -569,7 +568,6 @@ namespace Play.ImageViewer {
         protected readonly Grammer<char>     _oGrammar;
 
         protected string _strIcon = @"ImageViewer.Content.icons8-cardboard-box-48.png"; // Can get overridden by subclass.
-        protected Bitmap _oIcon;
         protected int    _iBlockFilesEvent = 0;
         protected bool   _fDirtyDoc        = false;
         protected bool   _fDirtyThumbs     = false;
@@ -733,6 +731,12 @@ namespace Play.ImageViewer {
                 LogError( "DocWalker", "Couldn't host internal elements for ImageWalker.");
             }
 
+            try {
+				Icon = SKImageResourceHelper.GetImageResource(  Assembly.GetExecutingAssembly(), _strIcon );
+            } catch( InvalidOperationException ) {
+                LogError( "ImageWalkDoc", "Having problem finding folder bitmap resource." );
+            }
+
         }
 
         /// <summary>
@@ -759,7 +763,7 @@ namespace Play.ImageViewer {
 
                 return sbBuilder.ToString();
         }   }
-        public         Image  Iconic => _oIcon;
+        public         SKBitmap  Icon { get; }
 
         internal void LogError( string strCatagory, string strMessage ) {
             _oSiteBase.LogError( strCatagory, strMessage );
@@ -770,9 +774,8 @@ namespace Play.ImageViewer {
 
             ThumbsDispose();
 
-            if( _oIcon != null ) {
-                _oIcon.Dispose();
-                _oIcon = null;
+            if( Icon != null ) {
+                Icon.Dispose();
             }
             if( _oBitmapUnknown != null ) {
                 _oBitmapUnknown.Dispose();
@@ -785,14 +788,6 @@ namespace Play.ImageViewer {
 		protected override bool Initialize() {
 			if( !base.Initialize() )
 				return false;
-
-            Assembly assembly = Assembly.GetExecutingAssembly();
-
-            try {
-				_oIcon = ImageResourceHelper.GetImageResource( assembly, _strIcon );
-            } catch( InvalidOperationException ) {
-                _oSiteBase.LogError( "ImageWalkDoc", "Having problem finding folder bitmap resource." );
-            }
 
             if( !Properties.InitNew() )
                 return false;

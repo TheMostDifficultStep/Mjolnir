@@ -21,8 +21,8 @@ namespace Play.Edit {
 
 				if( _oMorse != null )
 					_oMorse.Stop();
-				if( _oIcon != null )
-					_oIcon.Dispose();
+				if( Icon != null )
+					Icon.Dispose();
 				if( components != null )
 					components.Dispose();
 			}

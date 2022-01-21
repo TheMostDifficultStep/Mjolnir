@@ -1,7 +1,8 @@
 ﻿using System;
 using System.Xml;
 using System.Windows.Forms;
-using System.Drawing;
+
+using SkiaSharp;
 
 using Play.Rectangles;
 using Play.Interfaces.Embedding;
@@ -79,7 +80,7 @@ namespace Play.MorsePractice {
         public IPgParent Services  => Parentage.Services;
 		public Guid      Catagory  => _guidViewCategory;
 		public string    Banner    => "View Qrz";
-		public Image     Iconic    => null;
+		public SKBitmap     Icon    => null;
 
 		public Editor CallSign       { get { return _oDocMorse.CallSign; } }
         public Editor CallSignBio    { get { return _oDocMorse.CallSignBio; } }

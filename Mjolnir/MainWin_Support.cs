@@ -9,9 +9,9 @@ using System.IO;
 
 using SkiaSharp;
 
+using Play.Drawing;
 using Play.Interfaces.Embedding;
 using Play.Rectangles;
-using SkiaSharp.Views.Desktop;
 
 namespace Mjolnir {
     public partial class MainWin {
@@ -296,10 +296,9 @@ namespace Mjolnir {
 			_oViewSite = oViewSite ?? throw new ArgumentNullException();
 			// TODO: Could move this to the program so we don't duplicate loads.
 
-			SKBitmap skBitmap = ResourceLoader.GetImageResource( Assembly.GetExecutingAssembly(), 
-				                                                 "Mjolnir.Content.icons8-bookmark-book-512.png" );
-			Iconic     = skBitmap.ToBitmap();
-			Bookmark   = new LayoutImage( skBitmap );
+			Icon = ResourceLoader.GetImageResource( Assembly.GetExecutingAssembly(), 
+				                                    "Mjolnir.Content.icons8-bookmark-book-512.png" );
+			Bookmark   = new LayoutImage( Icon );
 		}
 
         protected override void Dispose( bool disposing ) {
@@ -314,7 +313,7 @@ namespace Mjolnir {
 		public string    Banner    => "Bookmark";
 		public Guid      Catagory  => _oCatagory;
 		public bool      IsDirty   => false; // Never can get dirty.
-		public Image     Iconic    { get; }
+		public SKBitmap  Icon      { get; }
 
 		protected override void OnPaint(PaintEventArgs e) {
 			base.OnPaint(e);
@@ -374,7 +373,7 @@ namespace Mjolnir {
 		public ViewEverything( IPgViewSite oViewSite ) {
 			_oViewSite = oViewSite ?? throw new ArgumentNullException();
 			// TODO: Could move this variable to the program so we don't duplicate loads.
-			Iconic     = ImageResourceHelper.GetImageResource( Assembly.GetExecutingAssembly(), 
+			Icon       = SKImageResourceHelper.GetImageResource( Assembly.GetExecutingAssembly(), 
 				                                               "Mjolnir.Content.icons8-house-96.png" );
 			_oHost     = _oViewSite.Host as MainWin ?? throw new InvalidOperationException( "must be hosted by MainWin" );
 		}
@@ -384,7 +383,7 @@ namespace Mjolnir {
 		public string    Banner    => "Overview";
 		public Guid      Catagory  => _oCatagory;
 		public bool      IsDirty   => false; // Never can get dirty.
-		public Image     Iconic    { get; }
+		public SKBitmap  Icon    { get; }
 
 		protected string[] IconNames {
 			get {

@@ -11,6 +11,7 @@ using System.Security;
 using System.Reflection;
 using System.Linq;
 
+using Play.Drawing;
 using Play.Interfaces.Embedding;
 using Play.Rectangles;
 using Play.Controls;
@@ -105,7 +106,6 @@ namespace Play.Edit {
         protected readonly LineRange _oLastCursor = new LineRange();
         protected CacheManager       _oCacheMan;
         protected bool               _fReadOnly;
-        protected readonly Bitmap    _oIcon; // TODO: I should stick this on the document...
         protected readonly bool      _fSingleLine; // Little hack until I make single line editors.
 
         public Dictionary<string, HyperLink> HyperLinks { get; } = new Dictionary<string, HyperLink>();
@@ -173,7 +173,7 @@ namespace Play.Edit {
 			_eBgColor = fReadOnly ? StdUIColors.BGReadOnly : StdUIColors.BG;
 
 			// https://icons8.com/
-			_oIcon = ImageResourceHelper.GetImageResource( Assembly.GetExecutingAssembly(), @"Editor.Content.icon8-doc.png" );
+			Icon = SKImageResourceHelper.GetImageResource( Assembly.GetExecutingAssembly(), @"Editor.Content.icon8-doc.png" );
 
             Array.Sort<Keys>( _rgHandledKeys );
             
@@ -202,6 +202,28 @@ namespace Play.Edit {
 		public IPgParent Parentage => _oSiteView.Host;
         public object    DocumentText  => _oDocument;
 		public IPgParent Services  => Parentage.Services;
+
+        public virtual SKBitmap Icon { get; }
+
+        public string Banner {
+            get { 
+                try {
+                    // Find first non blank character.
+                    Line oLine  = _oCaretPos.Line;
+                    int  iStart = 0;
+
+                    while( iStart < oLine.ElementCount ) {
+                        if( !char.IsWhiteSpace( oLine[iStart] ) )
+                            break;
+                        ++iStart;
+                    }
+
+                    return( oLine.SubString( iStart, 25 ) );
+                } catch( NullReferenceException ) {
+                    return( string.Empty );
+                }
+            }
+        }
 
 		public virtual WorkerStatus PlayStatus {
 			get { return _oDocument.PlayStatus; }
@@ -2144,30 +2166,6 @@ namespace Play.Edit {
                 }
             } // end for
             return( false );
-        }
-
-        public virtual Image Iconic {
-            get { return( _oIcon ); }
-        }
-
-        public string Banner {
-            get { 
-                try {
-                    // Find first non blank character.
-                    Line oLine  = _oCaretPos.Line;
-                    int  iStart = 0;
-
-                    while( iStart < oLine.ElementCount ) {
-                        if( !char.IsWhiteSpace( oLine[iStart] ) )
-                            break;
-                        ++iStart;
-                    }
-
-                    return( oLine.SubString( iStart, 25 ) );
-                } catch( NullReferenceException ) {
-                    return( string.Empty );
-                }
-            }
         }
 
         public virtual bool Execute(Guid sGuid) {

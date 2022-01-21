@@ -42,7 +42,7 @@ namespace Play.MorsePractice {
 
 		public Guid   Catagory => ViewLogger;
 		public string Banner   => "Log Viewer";
-		public Image  Iconic   => new Bitmap( 15, 15 );
+		public SKBitmap Icon   => null;
 		public bool   IsDirty  => false;
 
 		readonly IPgViewSite      _oSiteView;
