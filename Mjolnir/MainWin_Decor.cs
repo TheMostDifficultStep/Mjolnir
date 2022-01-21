@@ -487,58 +487,6 @@ namespace Mjolnir {
         }
 
         /// <summary>
-        /// After the frame rect is sized, calculate the sizes of the docking areas on the perimeter.
-		/// We size relative to the height of the top.
-        /// </summary>
-        protected void LayoutSideBoxes() {
-			if( _rcFrame.Hidden )
-				return;
-
-            int iSpace = _rcFrame.Left - _rcFrame.Outer.Left;
-            int iMenu  = 34;
-
-            try {
-                _rgSideInfo[SideIdentify.Left  ].SetRect( LOCUS.UPPERLEFT,
-                                                      0,
-                                                      _rcFrame.Outer.Top,
-                                                      _rcFrame.Outer.Left,
-                                                      /* ClientRectangle.Height - _rcFrame.Outer.Top */ _rcFrame.Outer.Height - iSpace);
-                _rgSideInfo[SideIdentify.Top   ].SetRect( LOCUS.UPPERLEFT, 
-                                                      0,
-                                                      0,
-                                                      ClientRectangle.Width,
-                                                      _rcFrame.Outer.Top );
-                _rgSideInfo[SideIdentify.Right ].SetRect( LOCUS.UPPERLEFT,
-                                                      _rcFrame.Outer.Right,
-                                                      _rcFrame.Outer.Top,
-                                                      ClientRectangle.Right  - _rcFrame.Outer.Right,
-                                                      /* ClientRectangle.Height - _rcFrame.Outer.Top */ _rcFrame.Outer.Height - iSpace);
-                _rgSideInfo[SideIdentify.Bottom].SetRect( LOCUS.UPPERLEFT, 
-                                                      /* _rcFrame.Outer.Left */ 0, 
-                                                      _rcFrame.Outer.Bottom,
-                                                      /* _rcFrame.Outer.Width */ ClientRectangle.Width,
-                                                      ClientRectangle.Bottom - _rcFrame.Outer.Bottom );
-                _rgSideInfo[SideIdentify.Tabs  ].SetRect( LOCUS.UPPERLEFT,
-                                                       _rcFrame.Outer.Left,
-                                                       _rcFrame.Outer.Top,
-                                                       _rcFrame.Outer.Width,
-                                                       iMenu );
-            } catch( Exception oEx ) {
-                Type[] rgErrors = { typeof( KeyNotFoundException ) };
-                if( rgErrors.IsUnhandled( oEx ) )
-                    throw;
-
-                LogError( null, "Mainwin Layout", "Problem accessing 'Side Info'" );
-            }
-			
-			// TODO: It doesn't look like the side boxes re-layout children if their
-			//       size changes. That might be a nice feature.
-			foreach( SideRect oSide in _rgSideInfo.Values ) {
-				oSide.LayoutChildren();
-			}
-        }
-
-        /// <summary>
         /// TODO: 2/10/2020, Need to rework the frame layout for the viewslots. There's a bug
         ///       where if the slot doesn't have a icon then the layout gp faults.
         /// </summary>
@@ -704,41 +652,6 @@ namespace Mjolnir {
         }
 
         /// <summary>
-        /// A little bit of non-linear behavior. If the user drags the box beyond
-        /// the main window frame. We resize to just inside the frame. This is a
-        /// simple gesture to open and close the corner windows! Also get's called
-        /// when we switch from viewing adorments to off and back. It's
-        /// not called when the main window is resized.
-        /// </summary>
-        /// <param name="rcTest">Modifies the values to make sure "inside" is in bounds.</param>
-        protected uint LayoutFrameValidate( SmartRect rcTest ) {
-            Rectangle rcTemp   = this.ClientRectangle;
-            SmartRect rcClient = new SmartRect( rcTemp.Left, rcTemp.Top, rcTemp.Right, rcTemp.Bottom );
-            int[]     rgiMultiplier = { 1, 1, -1, -1 };
-            uint      uiEdge   = 1;
-            uint      uiReturn = 0;
-
-            if( !_rcFrame.Hidden )
-                rcClient.Inflate(-1, _rgMargin ); // -1 means deflate.
-
-            for( int i = 0; i < 4; ++i ) {
-                int iDifference = rcTest.GetSide(i) - rcClient.GetSide(i);
-
-                // Check that the "inside" is in bounds.
-                if( iDifference * rgiMultiplier[i] < 0 ) {
-                    rcTest .SetScalar(SET.STRETCH, (SCALAR)uiEdge,  rcClient.GetSide(i));
-                    _rgSide[i] = _rcFrame.Hidden ? 0 : _rgMargin[i];
-
-                    uiReturn |= uiEdge; // Return which edge(s) are now closed.
-                }
-                uiEdge = uiEdge << 1;
-            }
-
-			return uiReturn;
-        }
-
-
-        /// <summary>
         /// This is a test function to draw a diagonal where the decor
         /// boxes are. Use it in the OnPaint() function for diagnostics.
         /// </summary>
@@ -835,18 +748,25 @@ namespace Mjolnir {
         }
 
         public void DecorHide() {
-            // No need to save the sides extents b/c the DecorSideShuffle does that when needed.
+            // NO NEED to save the sides extents b/c the DecorSideShuffle does that when needed.
 
             foreach( SmartHerderBase oShepard in this ) {
                 if( oShepard.Name != "menu")
                     oShepard.Hidden = true;
+            }
+            foreach( KeyValuePair<SideIdentify, SideRect> oKey in _rgSideInfo ) {
+                if( oKey.Key != SideIdentify.Top ) {
+                    oKey.Value.Hidden = true;
+                }
             }
 
 			if( _miDecorMenu.DropDownItems[0] is ToolStripMenuItem oItem ) {
 				oItem.Checked = false;
 			}
 
-            _rcFrame.Hidden = true; // The view housed inside is still visible.
+            // Ach! We can't do this anymore since the frame marshals the layout.
+            //_rcFrame.Hidden = true; 
+
             _rgSide.Clear();
             _rgSide[(int)SideIdentify.Top] = LayoutSizeTop();
 

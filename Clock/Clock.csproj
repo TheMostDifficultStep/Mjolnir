@@ -8,10 +8,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="Content\icons8-solar-system-64.png" />
     <None Remove="Content\icon_clock.gif" />
   </ItemGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="Content\icons8-solar-system-64.png" />
     <EmbeddedResource Include="Content\icon_clock.gif" />
   </ItemGroup>
 

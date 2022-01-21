@@ -16,7 +16,6 @@ using Play.Parse.Impl;
 using Play.Edit;
 using Play.Sound;
 using Play.Integration; // tag grammer used here... Hmmmm.. check this out. Probably move to Play.Parse.Impl
-using Play.SSTV;
 
 namespace Mjolnir {
     public delegate void UpdateAllTitlesFor( IDocSlot oSlot );

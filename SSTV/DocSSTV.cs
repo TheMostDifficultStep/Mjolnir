@@ -646,14 +646,24 @@ namespace Play.SSTV {
             //TxProperties.ValueUpdate( TxProperties.Names.FileName, strFileName, Broadcast:true );
 		}
 
-        protected void PropertyLoadFromXml( Editor rgList, XmlNode oElem ) {
+        protected void PropertyLoadFromXml( Editor rgList, XmlNode oElem, bool fLoadMissing = false ) {
             if( oElem == null )
                 throw new ArgumentNullException( "oElem" );
 
-            foreach( Line oLine in rgList ) {
-                if( oElem.InnerText != null && oLine.Compare( oElem.InnerText ) == 0 ) {
-                    rgList.CheckedLine = oLine;
-                    break;
+            if( oElem.InnerText != null ) {
+                bool fFound = !fLoadMissing;
+                foreach( Line oLine in rgList ) {
+                    if( oLine.Compare( oElem.InnerText ) == 0 ) {
+                        rgList.CheckedLine = oLine;
+                        fFound = true;
+                        break;
+                    }
+                }
+                if( !fFound ) {
+                    // this will be an invalid device, but in the list.
+                    // be nice if I could make it not selectable. Or an X
+                    // in the check box area?
+                    Line oNew = rgList.LineAppend( oElem.InnerText, false );
                 }
             }
         }
@@ -670,13 +680,13 @@ namespace Play.SSTV {
                 foreach( XmlNode oNode in oRoot.ChildNodes ) { 
                     switch( oNode.Name ) {
                         case "RxDevice":
-                            PropertyLoadFromXml( PortRxList, oNode );
+                            PropertyLoadFromXml( PortRxList, oNode, fLoadMissing:true );
                             break;
                         case "TxDevice":
-                            PropertyLoadFromXml( PortTxList, oNode );
+                            PropertyLoadFromXml( PortTxList, oNode, fLoadMissing:true );
                             break;
                         case "MonitorDevice":
-                            PropertyLoadFromXml( MonitorList, oNode );
+                            PropertyLoadFromXml( MonitorList, oNode, fLoadMissing:true );
                             break;
                         case "RxMode":
                             PropertyLoadFromXml( RxModeList, oNode );

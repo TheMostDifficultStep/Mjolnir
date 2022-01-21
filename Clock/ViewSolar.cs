@@ -1,11 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Xml;
-using System.Drawing; // BUG: Needed for IPgCommandView, going to have to fix that.
+using System.Reflection;
 
 using SkiaSharp;
 using SkiaSharp.Views.Desktop;
 
+using Play.Drawing;
 using Play.Interfaces.Embedding;
 using Play.Rectangles;
 using Play.ImageViewer;
@@ -36,7 +37,7 @@ namespace Play.Clock {
 
         public Guid   Catagory => _guidViewCatagory;
         public string Banner   => "Solar Weather";
-        public SKBitmap  Icon   => null;
+        public SKBitmap  Icon   { get; }
 
         protected class ViewSolarSlot :
 			IPgBaseSite, IPgViewSite
@@ -66,6 +67,9 @@ namespace Play.Clock {
 
 			ViewSolarVhf = new ImageViewSingle( new ViewSolarSlot(this), oDocSolar.SolarVhf );
 			ViewSolarMap = new ImageViewSingle( new ViewSolarSlot(this), oDocSolar.SolarMap );
+
+            // NOTE: Not currently disposed...
+            Icon = SKImageResourceHelper.GetImageResource( Assembly.GetExecutingAssembly(),"Play.Clock.Content.icons8-solar-system-64.png" );
         }
 
         public bool Load( XmlElement oStream ) {

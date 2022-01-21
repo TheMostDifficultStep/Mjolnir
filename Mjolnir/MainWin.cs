@@ -19,12 +19,15 @@ using Play.Edit;
 using Play.Parse;
 
 namespace Mjolnir {
+    /// <summary>
+    /// This identifies the sides that contain herders. However there are other parts
+    /// of the layouts that do NOT have hearders in them. Namely the new Tabs window.
+    /// </summary>
     public enum SideIdentify {
         Left,
         Top,
         Right,
-        Bottom,
-        Tabs
+        Bottom
     }
 
     /// <summary>
@@ -2225,7 +2228,9 @@ namespace Mjolnir {
 				string[] rgExts = { ".gif", ".png", ".jpg", ".scraps", ".bmp" };
 
 				// If the last command line doc loaded is a image, hide the decor/frame
-				if( rgExts.Contains( Path.GetExtension( rgArgsClean.Last<string>() ) ) ) {
+                string strExtn = Path.GetExtension( rgArgsClean.Last<string>() );
+                strExtn = strExtn?.ToLower();
+				if( rgExts.Contains( strExtn ) ) {
 					DecorHide();
 				}
 
