@@ -201,7 +201,7 @@ namespace Mjolnir {
         } 
         /// <summary>
         /// Do this after all the tools, solo, and document adornments are added.
-        /// TODO: The only way to open tools is via the menu. That means I need to get to the
+        /// TODO: The only way to open dockings is via the menu. That means I need to get to the
         ///       Find window menu item to open via CTRL-F from the editor. Need to fix that!
         /// </summary>
         protected void DecorMenuReload() {
@@ -616,34 +616,6 @@ namespace Mjolnir {
 			oSide.LayoutChildren();  // BUG: If rail distance is zero, no layout happens!!
 		}
 
-        /// <summary>I'm going to remove the menu from the shepards system sinc I never
-        /// move anything up in the menu area.</summary>
-		/// <remarks>This one is a little hacky since we're effectively looking for the tool bar
-		/// and then asking it for its prefered size. We'll replace using vertical stack, then create
-		/// a layoutrect subclass to get the preference for track.</remarks>
-		[Obsolete]protected int LayoutSizeTop() {
-			int iHeight = 0;
-
-            foreach( SmartHerderBase oShepard in this ) {
-                if( oShepard.Orientation == 1 &&
-					oShepard.Hidden      == false ) 
-				{
-					if( oShepard is SmartHerderSolo oSolo ) {
-						try {
-							Size oPreference = oSolo.Adornment.GetPreferredSize( new Size( Width, Height ) );
-							oShepard.SetRect( 0, 0, Width, oPreference.Height );
-							iHeight += oPreference.Height;
-						} catch( NullReferenceException ) {
-							LogError( null, "Shepards", "Null Adornment", false );
-							iHeight += 14;
-						}
-					}
-                }
-			}
-
-			return( iHeight );
-		}
-
         protected void LayoutLoadShepards() {
             foreach( SideIdentify eSide in _rgSideInfo.Keys ) {
                 LayoutLoadShepardsAt(eSide);
@@ -767,7 +739,6 @@ namespace Mjolnir {
             //_rcFrame.Hidden = true; 
 
             _rgSide.Clear();
-            _rgSide[(int)SideIdentify.Top] = LayoutSizeTop();
 
             // No need to shuffle, since we we've disabled all the decor anyway!!
             LayoutFrame();

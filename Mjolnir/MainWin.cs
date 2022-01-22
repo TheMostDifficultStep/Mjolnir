@@ -339,7 +339,7 @@ namespace Mjolnir {
             oCenter.Add( new LayoutGrab( LayoutRect.CSS.None, _rcFrame ) ); 
             oCenter.Add( _rgSideInfo[SideIdentify.Right] ); 
 
-            _oLayoutPrimary.Add( _rgSideInfo[SideIdentify.Top] ); 
+            _oLayoutPrimary.Add( new LayoutControl( _oTopMenu, LayoutRect.CSS.Flex, 34 ) ); 
             _oLayoutPrimary.Add( new LayoutControl(oTabs, LayoutRect.CSS.Pixels, 40)); 
             _oLayoutPrimary.Add( oCenter); 
             _oLayoutPrimary.Add( _rgSideInfo[SideIdentify.Bottom] );
@@ -494,7 +494,7 @@ namespace Mjolnir {
             Dictionary<string, SideStuff> _rgDim = new Dictionary<string, SideStuff>();
 
 			_rgDim.Add( "left",   new SideStuff( TRACK.VERT,  250 ) );
-			_rgDim.Add( "top",    new SideStuff( TRACK.VERT,   34 ) );
+			_rgDim.Add( "top",    new SideStuff( TRACK.VERT,   34 ) ); // Needs to stay for legacy.
 			_rgDim.Add( "right",  new SideStuff( TRACK.VERT,  250 ) );
 			_rgDim.Add( "bottom", new SideStuff( TRACK.HORIZ, 100 ) );
 
@@ -2395,8 +2395,9 @@ namespace Mjolnir {
 					_oTopMenu.AutoSize    = false;
 					_oTopMenu.LayoutStyle = ToolStripLayoutStyle.Flow;
 					_oTopMenu.CanOverflow = false;
+                    _oTopMenu.Parent      = this;
 
-					DecorAdd( "menu", _oTopMenu );
+					//DecorAdd( "menu", _oTopMenu );
 				} else {
 					LogError( null, "Main Window", "Top menu was not created!" );
 				}
