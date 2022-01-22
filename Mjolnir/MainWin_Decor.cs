@@ -496,9 +496,6 @@ namespace Mjolnir {
                 case TOPLAYOUT.Primary:
                     _oLayoutPrimary.Paint( oG );
                     break;
-                case TOPLAYOUT.Solo:
-                    _oLayout1.Paint( oG );
-                    break;
                 case TOPLAYOUT.Multi:
                     _oLayout2.Paint( oG );
                     break;
@@ -619,10 +616,12 @@ namespace Mjolnir {
 			oSide.LayoutChildren();  // BUG: If rail distance is zero, no layout happens!!
 		}
 
+        /// <summary>I'm going to remove the menu from the shepards system sinc I never
+        /// move anything up in the menu area.</summary>
 		/// <remarks>This one is a little hacky since we're effectively looking for the tool bar
 		/// and then asking it for its prefered size. We'll replace using vertical stack, then create
 		/// a layoutrect subclass to get the preference for track.</remarks>
-		protected int LayoutSizeTop() {
+		[Obsolete]protected int LayoutSizeTop() {
 			int iHeight = 0;
 
             foreach( SmartHerderBase oShepard in this ) {

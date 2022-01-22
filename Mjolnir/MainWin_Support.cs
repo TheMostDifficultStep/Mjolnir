@@ -15,31 +15,6 @@ using Play.Rectangles;
 
 namespace Mjolnir {
     public partial class MainWin {
-		public class LayoutSelectedView : LayoutRect {
-			readonly MainWin _oControl;
-
-			public LayoutSelectedView( MainWin oView ) : base( CSS.None, 0, 0 ) {
-				_oControl = oView ?? throw new ArgumentNullException();
-
-				this.SizeEvent += OnSizeEvent;
-			}
-
-			private void OnSizeEvent(SmartRect o) {
-				ViewSlot oSelectedSlot = _oControl.ViewSiteSelected;
-				if( oSelectedSlot != null ) {
-					oSelectedSlot.Layout.Copy = this; // When called, the view gets an OnSizeChanged() call!
-					oSelectedSlot.Layout.LayoutChildren();
-				}
-			}
-
-            public override void Paint(Graphics oGraphics) {
-				ViewSlot oSelectedSlot = _oControl.ViewSiteSelected;
-				if( oSelectedSlot != null && !oSelectedSlot.Layout.Hidden ) {
-                    oSelectedSlot.Layout.Paint( oGraphics );
-                }
-            }
-        } // End Class
-
 		/// <summary>
 		/// Implementation for the LayoutFlowSqure abstract class.
 		/// </summary>

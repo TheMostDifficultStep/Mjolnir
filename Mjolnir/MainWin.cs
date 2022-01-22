@@ -73,8 +73,7 @@ namespace Mjolnir {
       //readonly Dictionary<string, EDGE>            _rgSideNames = new Dictionary<string, EDGE>();
 
 		readonly ParentRect          _oLayout2;
-		readonly LayoutStackVertical _oLayout1;
-        readonly LayoutStackVertical _oLayoutPrimary;
+        readonly LayoutStackVertical _oLayoutPrimary; // New general layout.
   
 		ViewSlot _oSelectedWinSite = null;
         IDocSlot _oSelectedDocSite = null;
@@ -131,9 +130,10 @@ namespace Mjolnir {
 
             // This could be in the initialize/initnew() steps, but it's nice to have
             // these as readonly variables. I'll leave it for now.
-			_oLayout1 = new LayoutStackVertical( 5, 10, 100 );
-			_oLayout2 = new LayoutFlowSquare_MainWin( this, 5 );
             _oLayoutPrimary = new LayoutStackVertical( 5 );
+            // This one probably won't work anymore. And we'll certainly lose all the
+            // docking windows b/c those are docked by the layout now.
+			_oLayout2       = new LayoutFlowSquare_MainWin( this, 5 );
 
             _oDecorEnum = new MainWinDecorEnum( this );
         }
@@ -333,10 +333,6 @@ namespace Mjolnir {
             oTabs.Parent = this;
             oTabs.InitNew();
 
-            _oLayout1.Add( new LayoutRect( LayoutRect.CSS.Pixels, 0, 10 ) { Hidden = true } ); // Header.
-            _oLayout1.Add( new LayoutSelectedView( this ) );
-			_oLayout1.Add( new LayoutRect( LayoutRect.CSS.Pixels, 0, 10 ) { Hidden = true } ); // Footer.
-
             LayoutStackHorizontal oCenter = new(5); // { CSS = None }
 
             oCenter.Add( _rgSideInfo[SideIdentify.Left] );
@@ -501,7 +497,6 @@ namespace Mjolnir {
 			_rgDim.Add( "top",    new SideStuff( TRACK.VERT,   34 ) );
 			_rgDim.Add( "right",  new SideStuff( TRACK.VERT,  250 ) );
 			_rgDim.Add( "bottom", new SideStuff( TRACK.HORIZ, 100 ) );
-            _rgDim.Add( "tabs",   new SideStuff( TRACK.HORIZ,  34 ) );
 
             // 8/15/2016 TODO : Need to get organized about edges and margins w/r to menu docked at top.
             // PreferedSize returns utter nonsense for the Width/Height of the TopMenu!!
@@ -518,8 +513,7 @@ namespace Mjolnir {
 							_rgSideInfo.Add(eSide, new SideRect( sStuff.eTrack, 5 ) { 
                                 SideSaved = iValue, SideInit = sStuff.iInit, 
                                 Track = (uint)sStuff.iInit, Layout = LayoutRect.CSS.Pixels } );
-                            if( (int)eSide < 4 )
-							    _rgSide[(int)eSide] = iValue;
+							_rgSide[(int)eSide] = iValue;
 						} else {
 							LogError( null, "initialization", "Couldn't read margins from config." );
 						}
@@ -548,8 +542,6 @@ namespace Mjolnir {
             _rcFrame.Hidden     = false;
             _rcFrame.Show       = SHOWSTATE.Inactive;
           //_rcFrame.SizeEvent += new RectSize(this.OnInsideAdjusted);
-
-		    //LayoutFrame(); Can't call now because center view is null on init.
         }
 
         /// <summary>
