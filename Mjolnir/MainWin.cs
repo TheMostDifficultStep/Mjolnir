@@ -48,11 +48,6 @@ namespace Mjolnir {
         readonly SmartGrab _rcFrame  = new SmartGrab( new SmartRect( LOCUS.UPPERLEFT, 50, 50, 300, 300 ),  5, true, SCALAR.ALL );
         readonly int[]     _rgMargin = new int[5] { 5, 5, 5, 5, 5 };  
 
-        // This defines the 1D distance from each edge of the app win to the inside rect.
-        // In the future I should probably store this in the SideRect class. But I don't
-        // want to sort that out right now.
-        readonly int[]     _rgSide   = new int[5];  
-
         readonly Dictionary<SideIdentify, SideRect> _rgSideInfo = new Dictionary<SideIdentify, SideRect>(5);
 
         readonly SmartRect _rctDragBounds     = new SmartRect( LOCUS.CENTER, 0, 0, 0, 0 ); // Might want to subclass a smartrect with ISmartDrag methods...
@@ -506,9 +501,10 @@ namespace Mjolnir {
                         if( int.TryParse( xmlElem.GetAttribute( strSide ), out int iValue ) ) {
                             SideStuff sStuff  = _rgDim[strSide];
 							_rgSideInfo.Add(eSide, new SideRect( sStuff.eTrack, 5 ) { 
-                                SideSaved = iValue, SideInit = sStuff.iInit, 
-                                Track = (uint)sStuff.iInit, Layout = LayoutRect.CSS.Pixels } );
-							_rgSide[(int)eSide] = iValue;
+                                SideInit = sStuff.iInit,
+                                Track    = (uint)iValue,
+                                Layout   = LayoutRect.CSS.Pixels 
+                            } );;
 						} else {
 							LogError( null, "initialization", "Couldn't read margins from config." );
 						}
@@ -521,14 +517,11 @@ namespace Mjolnir {
                 if(rgError.IsUnhandled( oE ) )
                     throw;
 
-                // Just set all margins to zero on error.
-                for( int i=0; i<_rgSide.Length; ++i ) {
-                    _rgSide[i] = 0;
-                }
                 foreach( SideIdentify eSide in Enum.GetValues( typeof( SideIdentify ) ) ) {
                     string    strSide = eSide.ToString().ToLower();
                     SideStuff sStuff  = _rgDim[strSide];
-                    _rgSideInfo.Add( eSide, new SideRect( sStuff.eTrack, 5 ) { SideInit = sStuff.iInit } );
+                    _rgSideInfo.Add( eSide, new SideRect( sStuff.eTrack, 5 ) { 
+                        SideInit = sStuff.iInit, Track = (uint)sStuff.iInit } );
                 }
             }
 
@@ -1613,15 +1606,15 @@ namespace Mjolnir {
         protected override void OnPaint( PaintEventArgs oArgs )
         {
             try {
-                _rcFrame.Paint( oArgs.Graphics );
+                //_rcFrame.Paint( oArgs.Graphics );
 
-                foreach( KeyValuePair<SideIdentify, SideRect> oPair in _rgSideInfo ) {
-			  //for( int i = 0; i < _rgSideBox.Count; ++i ) {
-					SmartRect oBox = oPair.Value;
-					if( IsSideOpen( (int)oPair.Key ) ) {
-						oBox.Paint( oArgs.Graphics );
-					}
-				}
+    //            foreach( KeyValuePair<SideIdentify, SideRect> oPair in _rgSideInfo ) {
+			 // //for( int i = 0; i < _rgSideBox.Count; ++i ) {
+				//	SmartRect oBox = oPair.Value;
+				//	if( IsSideOpen( (int)oPair.Key ) ) {
+				//		oBox.Paint( oArgs.Graphics );
+				//	}
+				//}
                 LayoutPaint( oArgs.Graphics );
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( ExternalException ),

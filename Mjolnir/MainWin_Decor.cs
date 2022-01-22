@@ -35,8 +35,6 @@ namespace Mjolnir {
 		IEnumerable<SmartBinder> Spacers => _rgSpacers;
 
         public int SideInit  { get; set; } = 0;
-        public int SideSaved { get; set; } = 0;
-        public int Extent    { get { return GetExtent( Direction ); } }
 
 		public override void Paint(Graphics oGraphics) {
 			foreach( SmartRect rcChild in _rgLayout ) {
@@ -714,19 +712,25 @@ namespace Mjolnir {
 			foreach( IPgMenuVisibility oMenu in DecorSettings ) {
 				oMenu.Shepard.Hidden = !oMenu.Checked;
             }
+            foreach( KeyValuePair<SideIdentify, SideRect> oPair in _rgSideInfo ) {
+                SideRect oSide = oPair.Value;
+
+                if( oSide.Track > _rgMargin[(int)oPair.Key] )
+                    oSide.Hidden = false;
+            }
 
             DecorShuffle();
         }
 
+        /// <summary>
+        /// Hide all the dacor on the sides.
+        /// </summary>
         public void DecorHide() {
-            // NO NEED to save the sides extents b/c the DecorSideShuffle does that when needed.
-
             foreach( SmartHerderBase oShepard in this ) {
-                if( oShepard.Name != "menu")
-                    oShepard.Hidden = true;
+                oShepard.Hidden = true;
             }
             foreach( KeyValuePair<SideIdentify, SideRect> oKey in _rgSideInfo ) {
-                    oKey.Value.Hidden = true;
+                oKey.Value.Hidden = true;
             }
 
 			if( _miDecorMenu.DropDownItems[0] is ToolStripMenuItem oItem ) {
@@ -736,25 +740,23 @@ namespace Mjolnir {
             // Ach! We can't do this anymore since the frame marshals the layout.
             //_rcFrame.Hidden = true; 
 
-            _rgSide.Clear();
-
             // No need to shuffle, since we we've disabled all the decor anyway!!
             LayoutFrame();
         }
 
+        /// <summary>
+        /// Check the state of the Decor visible menu item and toggle.
+        /// </summary>
 		public void DecorToggle() {
-			if( _rcFrame.Hidden == true )
-				DecorShow();
-			else
-				DecorHide();
-		}
+			if( _miDecorMenu.DropDownItems[0] is ToolStripMenuItem oItem ) {
+				oItem.Checked = !oItem.Checked;
 
-        /// <remarks>The _rcSide rectangle is used to store the current margin settings around
-        /// the inner rectangle. _rcMargin represents what we look like in the "no decor" mode.
-        /// Basically space for the top menu with zero along the remaining sides.</remarks>
-        protected bool IsSideOpen( int iOrientation ) {
-            return _rgSide[iOrientation] > _rgMargin[ iOrientation ];
-        }
+		        if( oItem.Checked )
+			        DecorShow();
+		        else
+			        DecorHide();
+			}
+		}
 
         /// <summary>
         /// Find all the shepard's matching the given orientation and see how many of them 
@@ -785,29 +787,21 @@ namespace Mjolnir {
         ///    and if NOT close up teh side.
 		/// </summary>
         private void DecorShuffleSide( int iOrientation ) {
-            SCALAR   eSide = SmartRect.ToScalar( iOrientation );
             SideRect oSide = _rgSideInfo[(SideIdentify)iOrientation];
 
-            if( IsSideOpen( iOrientation ) && !oSide.Hidden ) {
+            if( !oSide.Hidden ) { // currently open
                 if( !IsAnyShepardReady( iOrientation ) ) {
-                    oSide.SideSaved = _rgSide[iOrientation];
-                    _rgSide[iOrientation] = 0; // Close side.
                     oSide.Hidden = true;
-					Invalidate();
 				}
-            } else {
+            } else {              // currently closed
                 if( IsAnyShepardReady( iOrientation ) ) {
-                    if( oSide.SideSaved > _rgMargin[iOrientation] ) {
-                        _rgSide[iOrientation] = oSide.SideSaved;
-                    } else {
-                        _rgSide[iOrientation] = oSide.SideInit;
+                    if( oSide.Track < _rgMargin[iOrientation] ) {
+                        oSide.Track = (uint)oSide.SideInit;
                     }
-                    oSide.SetScalar( SET.STRETCH, eSide, _rgSide[iOrientation] ); // Open side.
                     oSide.Hidden = false;
-
-					Invalidate();
                 }
             }
+            OnSizeChanged( new EventArgs() );
         }
 
         /// <summary>
@@ -819,10 +813,6 @@ namespace Mjolnir {
             // view site can be null if no documents are open in the editor.
             if( _oSelectedWinSite == null )
                 return;
-
-			// If all decor is hidden, then don't do anything.
-			if( _rcFrame.Hidden )
-				return;
 
             foreach( IPgMenuVisibility oMenuItem in DecorSettings ) {
                 if( oMenuItem.Checked ) {
@@ -850,6 +840,7 @@ namespace Mjolnir {
         {
             if( oMenuItem == null )
                 return;
+            // Technically this can't happen anymore, but leave it for now.
 			if( _rcFrame.Hidden )
 				DecorShow();
 
