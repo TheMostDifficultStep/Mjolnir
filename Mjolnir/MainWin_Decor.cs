@@ -726,9 +726,7 @@ namespace Mjolnir {
                     oShepard.Hidden = true;
             }
             foreach( KeyValuePair<SideIdentify, SideRect> oKey in _rgSideInfo ) {
-                if( oKey.Key != SideIdentify.Top ) {
                     oKey.Value.Hidden = true;
-                }
             }
 
 			if( _miDecorMenu.DropDownItems[0] is ToolStripMenuItem oItem ) {

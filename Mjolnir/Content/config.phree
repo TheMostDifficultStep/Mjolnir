@@ -85,7 +85,6 @@
       <dock tool="matches"     visible="false" edge="bottom" solo="true"  icon="icon_match.gif"       display="Results" />
       <dock tool="outline"     visible="true"  edge="left"   solo="false" icon="icon_outline.gif"     display="Outline"     decor="{64EC31FE-F28E-49A6-A12A-9194214DD0D6}" />
       <dock tool="properties"  visible="false" edge="left"   solo="false" icon="icon_navigate.gif"    display="Properties"  decor="{1509A246-5CB0-41B1-A6D2-572D38EEC9C5}" />
-      <dock tool="menu"        visible="true"  edge="top"    solo="true"  icon="icon_menu.gif"        display="Menu" />
       <dock tool="views"       visible="false" edge="bottom" solo="true"  icon="icon_windows.gif"     display="Views" />
       <dock tool="alerts"      visible="false" edge="bottom" solo="true"  icon="icon_output.gif"      display="Alerts" />
       <dock tool="productions" visible="false" edge="left"   solo="false" icon="icon_productions.gif" display="Productions" decor="{266BE614-5336-4B45-A132-43640E659F69}" />

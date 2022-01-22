@@ -25,7 +25,7 @@ namespace Mjolnir {
     /// </summary>
     public enum SideIdentify {
         Left,
-        Top,
+        Top, // 1/21/2022: s/b unused now, no layout for it. But reserved for the future.
         Right,
         Bottom
     }
@@ -498,11 +498,6 @@ namespace Mjolnir {
 			_rgDim.Add( "right",  new SideStuff( TRACK.VERT,  250 ) );
 			_rgDim.Add( "bottom", new SideStuff( TRACK.HORIZ, 100 ) );
 
-            // 8/15/2016 TODO : Need to get organized about edges and margins w/r to menu docked at top.
-            // PreferedSize returns utter nonsense for the Width/Height of the TopMenu!!
-            int iMenu = Document.FontStandard.Height + 14; // NOTE: Need "Invertable" rect rule b/c margin rect's aren't normal rect usage.
-            _rgMargin[(int)SideIdentify.Top] = Document.FontStandard.Height + 14; // NOTE: Need "Invertable" rect rule b/c margin rect's aren't normal rect usage.
-
             // Read in all the edge values.
             try {
                 if( xmlElem != null ) {
@@ -533,15 +528,12 @@ namespace Mjolnir {
                 foreach( SideIdentify eSide in Enum.GetValues( typeof( SideIdentify ) ) ) {
                     string    strSide = eSide.ToString().ToLower();
                     SideStuff sStuff  = _rgDim[strSide];
-                    _rgSideInfo.Add( eSide, new SideRect( sStuff.eTrack, 5 ) { SideSaved = iMenu, SideInit = sStuff.iInit } );
+                    _rgSideInfo.Add( eSide, new SideRect( sStuff.eTrack, 5 ) { SideInit = sStuff.iInit } );
                 }
             }
 
-            _rgSideInfo[SideIdentify.Top].SideSaved = _rgMargin[(int)SideIdentify.Top];
-
             _rcFrame.Hidden     = false;
             _rcFrame.Show       = SHOWSTATE.Inactive;
-          //_rcFrame.SizeEvent += new RectSize(this.OnInsideAdjusted);
         }
 
         /// <summary>
