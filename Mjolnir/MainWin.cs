@@ -507,7 +507,7 @@ namespace Mjolnir {
                                     Layout   = LayoutRect.CSS.Pixels 
                                 } );;
 						    } else {
-							    LogError( null, "initialization", "Couldn't read margins from config." );
+							    LogError( null, "initialization", "Couldn't read margin from config: " + strSide );
 						    }
                         }
                     }
@@ -518,6 +518,8 @@ namespace Mjolnir {
 
                 if(rgError.IsUnhandled( oE ) )
                     throw;
+
+                _rgSideInfo.Clear();
 
                 foreach( SideIdentify eSide in Enum.GetValues( typeof( SideIdentify ) ) ) {
                     string    strSide = eSide.ToString().ToLower();
