@@ -25,7 +25,6 @@ namespace Mjolnir {
     /// </summary>
     public enum SideIdentify {
         Left,
-        Top, // 1/21/2022: s/b unused now, no layout for it. But reserved for the future.
         Right,
         Bottom
     }
@@ -488,8 +487,8 @@ namespace Mjolnir {
 
             Dictionary<string, SideStuff> _rgDim = new Dictionary<string, SideStuff>();
 
+            // These need to match the SideIdentify items in the config. 
 			_rgDim.Add( "left",   new SideStuff( TRACK.VERT,  250 ) );
-			_rgDim.Add( "top",    new SideStuff( TRACK.VERT,   34 ) ); // Needs to stay for legacy.
 			_rgDim.Add( "right",  new SideStuff( TRACK.VERT,  250 ) );
 			_rgDim.Add( "bottom", new SideStuff( TRACK.HORIZ, 100 ) );
 
@@ -498,16 +497,19 @@ namespace Mjolnir {
                 if( xmlElem != null ) {
                     foreach( SideIdentify eSide in Enum.GetValues( typeof( SideIdentify ) ) ) {
                         string strSide = eSide.ToString().ToLower();
-                        if( int.TryParse( xmlElem.GetAttribute( strSide ), out int iValue ) ) {
-                            SideStuff sStuff  = _rgDim[strSide];
-							_rgSideInfo.Add(eSide, new SideRect( sStuff.eTrack, 5 ) { 
-                                SideInit = sStuff.iInit,
-                                Track    = (uint)iValue,
-                                Layout   = LayoutRect.CSS.Pixels 
-                            } );;
-						} else {
-							LogError( null, "initialization", "Couldn't read margins from config." );
-						}
+                        string strSize = xmlElem.GetAttribute( strSide );
+                        if( !string.IsNullOrEmpty( strSize ) ) { 
+                            if( int.TryParse( xmlElem.GetAttribute( strSide ), out int iValue ) ) {
+                                SideStuff sStuff  = _rgDim[strSide];
+							    _rgSideInfo.Add(eSide, new SideRect( sStuff.eTrack, 5 ) { 
+                                    SideInit = sStuff.iInit,
+                                    Track    = (uint)iValue,
+                                    Layout   = LayoutRect.CSS.Pixels 
+                                } );;
+						    } else {
+							    LogError( null, "initialization", "Couldn't read margins from config." );
+						    }
+                        }
                     }
                 }
             } catch( Exception oE ) {
@@ -521,7 +523,9 @@ namespace Mjolnir {
                     string    strSide = eSide.ToString().ToLower();
                     SideStuff sStuff  = _rgDim[strSide];
                     _rgSideInfo.Add( eSide, new SideRect( sStuff.eTrack, 5 ) { 
-                        SideInit = sStuff.iInit, Track = (uint)sStuff.iInit } );
+                        SideInit = sStuff.iInit, 
+                        Track    = (uint)sStuff.iInit, 
+                        Layout   = LayoutRect.CSS.Pixels } );
                 }
             }
 

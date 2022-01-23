@@ -787,21 +787,29 @@ namespace Mjolnir {
         ///    and if NOT close up teh side.
 		/// </summary>
         private void DecorShuffleSide( int iOrientation ) {
-            SideRect oSide = _rgSideInfo[(SideIdentify)iOrientation];
+            // Top isn't in the sideinfo anymore. Guard against that.
+            try {
+                SideRect oSide = _rgSideInfo[(SideIdentify)iOrientation];
 
-            if( !oSide.Hidden ) { // currently open
-                if( !IsAnyShepardReady( iOrientation ) ) {
-                    oSide.Hidden = true;
-				}
-            } else {              // currently closed
-                if( IsAnyShepardReady( iOrientation ) ) {
-                    if( oSide.Track < _rgMargin[iOrientation] ) {
-                        oSide.Track = (uint)oSide.SideInit;
+                if( !oSide.Hidden ) { // currently open
+                    if( !IsAnyShepardReady( iOrientation ) ) {
+                        oSide.Hidden = true;
+				    }
+                } else {              // currently closed
+                    if( IsAnyShepardReady( iOrientation ) ) {
+                        if( oSide.Track < _rgMargin[iOrientation] ) {
+                            oSide.Track = (uint)oSide.SideInit;
+                        }
+                        oSide.Hidden = false;
                     }
-                    oSide.Hidden = false;
                 }
+                OnSizeChanged( new EventArgs() );
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( KeyNotFoundException ),
+                                    typeof( NullReferenceException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
             }
-            OnSizeChanged( new EventArgs() );
         }
 
         /// <summary>
@@ -823,8 +831,8 @@ namespace Mjolnir {
                 }
             }
 
-			for (int iOrientation = 0;iOrientation < 4;++iOrientation) {
-				DecorShuffleSide(iOrientation);
+            foreach( SideIdentify eSide in Enum.GetValues( typeof( SideIdentify ) ) ) {
+				DecorShuffleSide( (int)eSide);
 			}
 
 			LayoutFrame();
