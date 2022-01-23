@@ -1937,6 +1937,16 @@ namespace Mjolnir {
 				_oSelectedWinSite.ToolsMenuLoad( _miToolsMenu );
                 ViewTypesMenuLoad( _oSelectedWinSite );
 
+                // First put our new window to front and set the focus
+                // This keeps forms from takking focus from old window that had the focus
+                // and assigning it to any of it's children when parent gets hidden...
+				_oSelectedWinSite.BringToFront();
+
+                if( fFocus )
+                    _oSelectedWinSite.SetFocus();
+
+                // Now with the focus on the new client go ahead and hide everyone
+                // else for good measure.
 				for( IEnumerator<ViewSlot> oEnum = ViewEnumerator(); oEnum.MoveNext(); ) {
                     if( oEnum.Current.Guest != oViewSite.Guest ) {
 					    oEnum.Current.Guest.Visible = false;
@@ -1944,12 +1954,6 @@ namespace Mjolnir {
 				}
 				
 				LayoutFrame();
-
-				_oSelectedWinSite.BringToFront();
-             // this.Icon = _oSelectedWinSite.Icon; This seems to happen automagically.
-
-                if( fFocus )
-                    _oSelectedWinSite.SetFocus();
 
                 DecorShuffle();
 			} catch( Exception oEx ) {

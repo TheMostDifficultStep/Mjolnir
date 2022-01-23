@@ -555,7 +555,7 @@ namespace Play.SSTV {
 
             Invalidate();
         }
-        
+
         protected override void OnMouseDown(MouseEventArgs e) {
             this.Select();
 		}
