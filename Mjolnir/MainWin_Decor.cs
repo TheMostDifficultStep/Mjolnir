@@ -491,7 +491,6 @@ namespace Mjolnir {
         /// <param name="oG"></param>
         protected void LayoutPaint( Graphics oG ) {
             switch( _eLayout ) { 
-                case TOPLAYOUT.Primary:
                 case TOPLAYOUT.Solo:
                     _oLayoutPrimary.Paint( oG );
                     break;
@@ -508,7 +507,6 @@ namespace Mjolnir {
         protected void LayoutFrame() {
 			try {
 				switch( _eLayout ) {
-                    case TOPLAYOUT.Primary:
                     case TOPLAYOUT.Solo:
                         _oLayoutPrimary.SetRect( 0, 0, ClientRectangle.Width, ClientRectangle.Height );
                         _oLayoutPrimary.LayoutChildren();

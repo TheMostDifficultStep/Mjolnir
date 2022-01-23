@@ -74,7 +74,7 @@ namespace Mjolnir {
 
         protected ViewsEditor _oDoc_ViewSelector;
         protected bool        _fIsClosing = false;
-		internal  TOPLAYOUT   _eLayout    = TOPLAYOUT.Primary; // Once layout 1&2 are normalized I won't need this.
+		internal  TOPLAYOUT   _eLayout    = TOPLAYOUT.Solo; // Once layout 1&2 are normalized I won't need this.
 
         protected SCRIPT_FONTPROPERTIES _sDefFontProps = new SCRIPT_FONTPROPERTIES();
         protected IntPtr                _hScriptCache  = IntPtr.Zero;
@@ -82,8 +82,7 @@ namespace Mjolnir {
 
 		public enum TOPLAYOUT {
 			Solo,
-			Multi,
-            Primary
+			Multi
 		}
 
         /// <summary>
