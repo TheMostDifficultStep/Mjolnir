@@ -492,6 +492,7 @@ namespace Mjolnir {
         protected void LayoutPaint( Graphics oG ) {
             switch( _eLayout ) { 
                 case TOPLAYOUT.Primary:
+                case TOPLAYOUT.Solo:
                     _oLayoutPrimary.Paint( oG );
                     break;
                 case TOPLAYOUT.Multi:
