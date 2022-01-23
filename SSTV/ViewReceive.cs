@@ -491,8 +491,10 @@ namespace Play.SSTV {
             }
 
             public void NotifyFocused(bool fSelect) {
-				_oHost.BringChildToFront( ID );
-                _oHost._oSiteView.EventChain.NotifyFocused( fSelect );
+				if( fSelect == true ) {
+					_oHost.BringChildToFront( ID );
+					_oHost._oSiteView.EventChain.NotifyFocused( fSelect );
+				}
             }
 
             public bool IsCommandKey(CommandKey ckCommand, KeyBoardEnum kbModifier) {

@@ -513,11 +513,14 @@ namespace Mjolnir {
                     }
                 }
             } catch( Exception oE ) {
-                Type[] rgError = { typeof( ArgumentException ),
+                Type[] rgError = { typeof( KeyNotFoundException ),
+                                   typeof( ArgumentException ),
                                    typeof( FormatException ) };
 
                 if(rgError.IsUnhandled( oE ) )
                     throw;
+
+				LogError( null, "initialization", "General Edge init error. Check margins in config." );
 
                 _rgSideInfo.Clear();
 
@@ -1935,7 +1938,9 @@ namespace Mjolnir {
                 ViewTypesMenuLoad( _oSelectedWinSite );
 
 				for( IEnumerator<ViewSlot> oEnum = ViewEnumerator(); oEnum.MoveNext(); ) {
-					oEnum.Current.Guest.Hide();
+                    if( oEnum.Current.Guest != oViewSite.Guest ) {
+					    oEnum.Current.Guest.Visible = false;
+                    }
 				}
 				
 				LayoutFrame();
