@@ -12,7 +12,7 @@ namespace Mjolnir {
     public interface IPgMenuVisibility {
         bool Checked { get; set; }
         SmartHerderBase Shepard { get; }
-        int  Orientation { get; }
+        SideIdentify  Orientation { get; }
     }
 
 	public class MenuItemHerder : 
@@ -42,7 +42,7 @@ namespace Mjolnir {
             }
         }
 
-        public int Orientation {
+        public SideIdentify Orientation {
             get { return( _oShepard.Orientation ); }
         }
 	}
@@ -68,7 +68,6 @@ namespace Mjolnir {
                   string    _strTitle;
                   Bitmap    _bmpIcon;
                   SHOWSTATE _eViewState = SHOWSTATE.Inactive;
-                  int       _iOrientation = 0; // I need to make an enum for this.
                   bool      _fHideTitle = false;
 
         readonly  string    _strName;
@@ -116,7 +115,7 @@ namespace Mjolnir {
         // Debug helper.
         public override string ToString()
         {
-            return _strName + "@" + _iOrientation.ToString();
+            return _strName + "@" + Orientation.ToString();
         }
 
         public bool DesiresVisiblity {
@@ -137,11 +136,7 @@ namespace Mjolnir {
         /// <summary>
         /// Essentially which side we are in. Probably should use the SideIdentifier enumeration at some point.
         /// </summary>
-        public int Orientation
-        {
-            get{ return( _iOrientation ); }
-            set{ _iOrientation = value; }
-        }
+        public SideIdentify Orientation { get; set; }
 
         // XFORM     _oXForm = new XFORM();
 
@@ -206,7 +201,7 @@ namespace Mjolnir {
         System.Security.Permissions.SecurityPermissionFlag.UnmanagedCode)]
         protected void PaintTitle( Graphics p_oGraphics )
         {
-            if( this.Rect.Width <= 0 || this.Rect.Height <= 0 || _iOrientation == 1 || _fHideTitle )
+            if( this.Rect.Width <= 0 || this.Rect.Height <= 0 /* || Orientation == Top */ || _fHideTitle )
                 return; // Nothing to do.
 
             // Need this to clip the bitmap.
@@ -248,16 +243,17 @@ namespace Mjolnir {
 
                 int   iFontHeight = _oHost.DecorFont.Height;
                 Point pntTemp     = new Point( iBoxWidth, iBoxWidth );
-                switch( _iOrientation ) {
-                    case 0: // left
-                    case 2: // right
+                switch( Orientation ) {
+                    case SideIdentify.Left:
+                    case SideIdentify.Right: 
                         pntTemp.Y = pntTemp.Y / 2 - iFontHeight / 2;
                         break;
-                    case 1: // top
-                    case 3: // bottom
+                    case SideIdentify.Bottom: 
+                    default:
                         p_oGraphics.RotateTransform( 90 );
                         pntTemp = new Point( pntTemp.X, - ( iFontHeight + (int)( (float)( iBoxWidth - iFontHeight ) / 2 ) ) );
                         break;
+
                 }
 
                 p_oGraphics.DrawString( _strTitle, _oHost.DecorFont, Brushes.Black, pntTemp );
@@ -370,9 +366,9 @@ namespace Mjolnir {
             //    iIconMargin = 0;
             //}
 
-            switch( _iOrientation ) {
-                case 0: // left
-                case 2: // right
+            switch( Orientation ) {
+                case SideIdentify.Left:
+                case SideIdentify.Right:
                     oPoint = this.GetPoint(LOCUS.LOWERLEFT);
                     _rcInner.SetRect(LOCUS.LOWERLEFT, 
                                     oPoint.X, 
@@ -386,7 +382,7 @@ namespace Mjolnir {
                                     this.GetScalar(SCALAR.WIDTH),
                                     iIconMargin);
                     break;
-                case 1: // top
+                default: // top
                     oPoint = this.GetPoint(LOCUS.UPPERRIGHT);
                     _rcInner.SetRect(LOCUS.UPPERRIGHT,
                                     oPoint.X,
@@ -400,7 +396,7 @@ namespace Mjolnir {
                                     0,
                                     0);
                     break;
-                case 3: // bottom
+                case SideIdentify.Bottom: 
                     oPoint = this.GetPoint(LOCUS.UPPERRIGHT);
                     _rcInner.SetRect(LOCUS.UPPERRIGHT,
                                     oPoint.X,

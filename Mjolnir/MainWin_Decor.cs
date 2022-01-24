@@ -242,9 +242,9 @@ namespace Mjolnir {
                 string strToolIcon = xeType.GetAttribute("icon");
                 string strToolGuid = xeType.GetAttribute("decor" );
 
-                int    iEdge    = 0;
-                Bitmap oBitmap  = null;
-                Guid   guidTool = Guid.Empty;
+                SideIdentify eEdge    = SideIdentify.Bottom;
+                Bitmap       oBitmap  = null;
+                Guid         guidTool = Guid.Empty;
 
                 rgToolResx.Add(strToolName, strToolIcon );
 
@@ -260,7 +260,7 @@ namespace Mjolnir {
                 }
                 foreach( SideIdentify eSide in _rgSideInfo.Keys ) {
                     if( string.Compare( strToolEdge, eSide.ToString().ToLower() ) == 0 ) {
-                        iEdge = (int)eSide;
+                        eEdge = eSide;
                         break;
                     }
                 }
@@ -288,7 +288,7 @@ namespace Mjolnir {
                 // Unfortunately the corner boxes won't be set until we've got our window size.
                 // so just set some arbitray size for now.
                 oShepard.SetRect(LOCUS.UPPERLEFT, ptOrigin.X, ptOrigin.Y, 30, 30 );
-                oShepard.Orientation = iEdge;
+                oShepard.Orientation = eEdge;
                 oShepard.Sizing      = SMARTSIZE.Normal;
 				if( strToolVis.ToLower() == "true" )
 					oShepard.Show = SHOWSTATE.Active;
@@ -573,11 +573,11 @@ namespace Mjolnir {
 		/// between loads. Won't ensure the shepard is loaded with an eligible
 		/// decor.
 		/// </summary>
-        protected void LayoutLoadShepardsAt( SideIdentify iSide ) {
+        protected void LayoutLoadShepardsAt( SideIdentify eSide ) {
 			SideRect oSide = null;
 			
 			try {
-				oSide = _rgSideInfo[iSide];
+				oSide = _rgSideInfo[eSide];
 			} catch( ArgumentOutOfRangeException ) {
 				LogError( null, "Decor", "Attempting to layout a non existing side! ^_^;" );
 				return;
@@ -590,7 +590,7 @@ namespace Mjolnir {
 
 			// Load visible shepard even if empty.
 			foreach( SmartHerderBase oShepard in this ) {
-				if( oShepard.Orientation == (int)iSide &&
+				if( oShepard.Orientation == eSide &&
 					oShepard.Hidden      == false )
 				{
 					rgSort.Add( oShepard );
@@ -765,10 +765,10 @@ namespace Mjolnir {
         /// </summary>
         /// <remarks>This method has a side effect of shuffling the decor. Turns off the
 		/// decor not from the current view.</remarks>
-        protected bool IsAnyShepardReady( int iOrientation ) {
+        protected bool IsAnyShepardReady( SideIdentify eOrientation ) {
             bool fAnyReady = false;
 
-			foreach( SmartHerderBase oShepard in _rgSideInfo[(SideIdentify)iOrientation] ) {
+			foreach( SmartHerderBase oShepard in _rgSideInfo[eOrientation] ) {
                 if( oShepard.AdornmentShuffle( _oSelectedWinSite ) ) {
                     fAnyReady = true; // Don't break on first true, so we'll shuffle the rest.
                 }
@@ -785,18 +785,18 @@ namespace Mjolnir {
         /// 2) If the side is opened, check if any side adornments are showing
         ///    and if NOT close up teh side.
 		/// </summary>
-        private void DecorShuffleSide( int iOrientation ) {
+        private void DecorShuffleSide( SideIdentify eOrientation ) {
             // Top isn't in the sideinfo anymore. Guard against that.
             try {
-                SideRect oSide = _rgSideInfo[(SideIdentify)iOrientation];
+                SideRect oSide = _rgSideInfo[eOrientation];
 
                 if( !oSide.Hidden ) { // currently open
-                    if( !IsAnyShepardReady( iOrientation ) ) {
+                    if( !IsAnyShepardReady( eOrientation ) ) {
                         oSide.Hidden = true;
 				    }
                 } else {              // currently closed
-                    if( IsAnyShepardReady( iOrientation ) ) {
-                        if( oSide.Track < _rgMargin[iOrientation] ) {
+                    if( IsAnyShepardReady( eOrientation ) ) {
+                        if( oSide.Track < _rgMargin[(int)eOrientation] ) {
                             oSide.Track = (uint)oSide.SideInit;
                         }
                         oSide.Hidden = false;
@@ -831,7 +831,7 @@ namespace Mjolnir {
             }
 
             foreach( SideIdentify eSide in Enum.GetValues( typeof( SideIdentify ) ) ) {
-				DecorShuffleSide( (int)eSide);
+				DecorShuffleSide( eSide);
 			}
 
 			LayoutFrame();
@@ -858,7 +858,7 @@ namespace Mjolnir {
 				oMenuItem.Shepard.Hidden = true;
 			}
 
-            int iOrientation = oMenuItem.Shepard.Orientation;
+            SideIdentify eOrientation = oMenuItem.Shepard.Orientation;
 
             // first set up the new decor or close the old decor.
             switch ( fNewState ) {
@@ -879,8 +879,8 @@ namespace Mjolnir {
                     break;
             }
 
-			LayoutLoadShepardsAt( (SideIdentify)iOrientation ); // A shepard is coming or going. Was above the switch...
-            DecorShuffleSide( iOrientation );
+			LayoutLoadShepardsAt( eOrientation ); // A shepard is coming or going. Was above the switch...
+            DecorShuffleSide    ( eOrientation );
 
             LayoutFrame();
 			Invalidate ();

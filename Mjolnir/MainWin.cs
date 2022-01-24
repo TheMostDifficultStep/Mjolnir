@@ -1565,23 +1565,22 @@ namespace Mjolnir {
         protected void FinishedShepardDrag( object oGuest, SKPointI pntLast )
         {
             SmartHerderBase oShepard        = (SmartHerderBase)oGuest;
-            int             iOldOrientation = oShepard.Orientation;
+            SideIdentify    eOldOrientation = oShepard.Orientation;
 
             // Look in our side boxes to see where the drag ended.
             foreach( KeyValuePair<SideIdentify, SideRect> oPair in _rgSideInfo ) {
-          //for( int i=0; i<_rgSideBox.Count; ++i ) {
                 SmartRect oRect = oPair.Value;
 
                 if( oRect.IsInside( pntLast.X, pntLast.Y ) ) {
-                    oShepard.Orientation = (int)oPair.Key;
+                    oShepard.Orientation = oPair.Key;
                     break;
                 }
             }
 
             // Update the remaining herders in the old orientation.
-            if( iOldOrientation != oShepard.Orientation ) {
-				LayoutLoadShepardsAt( (SideIdentify)iOldOrientation );
-				DecorShuffleSide    ( iOldOrientation ); // close side if no other decor wants it.
+            if( eOldOrientation != oShepard.Orientation ) {
+				LayoutLoadShepardsAt( (SideIdentify)eOldOrientation );
+				DecorShuffleSide    ( eOldOrientation ); // close side if no other decor wants it.
 			}
 
             // Update the new target.
@@ -1594,7 +1593,7 @@ namespace Mjolnir {
                 foreach( SideIdentify eID in Enum.GetValues( typeof( SideIdentify ) ) ) {
                     if( _rgSideInfo[eID].Hidden ) {
                         foreach( IPgMenuVisibility oMenuItem in DecorSettings ) {
-                            if (oMenuItem.Shepard.Orientation == (int)eID ) {
+                            if (oMenuItem.Shepard.Orientation == eID ) {
                                 oMenuItem.Checked        = false;
                                 oMenuItem.Shepard.Hidden = true;
                             }
