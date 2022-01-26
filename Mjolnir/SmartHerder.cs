@@ -75,8 +75,6 @@ namespace Mjolnir {
 
         IPgMenuVisibility _oMenuVis = null; // pointer to shell menu entry.
 
-		public virtual bool Hidden { get; set; }
-
         public SmartHerderBase(MainWin oMainWin, Bitmap oBitmap, string strName, string strTitle, Guid guidDecor ) :
 			base( CSS.Percent )
         {
@@ -196,9 +194,6 @@ namespace Mjolnir {
         /// that can't stay.
         /// </summary>
         /// <param name="p_oGraphics"></param>
-        [System.Security.Permissions.SecurityPermission(
-        System.Security.Permissions.SecurityAction.LinkDemand, Flags = 
-        System.Security.Permissions.SecurityPermissionFlag.UnmanagedCode)]
         protected void PaintTitle( Graphics p_oGraphics )
         {
             if( this.Rect.Width <= 0 || this.Rect.Height <= 0 /* || Orientation == Top */ || _fHideTitle )

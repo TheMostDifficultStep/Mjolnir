@@ -84,7 +84,7 @@ namespace Play.Sound {
 											typeof( InvalidOperationException ),
 											typeof( NullReferenceException ) };
 						if( !rgErrors.Contains( oEx.GetType() ) ) {
-							throw oEx;
+							throw;
 						}
 						Console.Write( "Couldn't find file, or play, or continue to play format of : \"" );
 						Console.Write( strSong );
@@ -120,7 +120,7 @@ namespace Play.Sound {
 									typeof( MMSystemException ),
 									typeof( InvalidOperationException ) };
 				if( !rgErrors.Contains( oEx.GetType() ) ) {
-					throw oEx;
+					throw;
 				}
 				Console.Write( "Couldn't find file, or play, or continue to play format of : \"" );
 				Console.Write( strFileName );
@@ -161,7 +161,7 @@ namespace Play.Sound {
 									typeof( ArgumentException ),
 									typeof( NullReferenceException ) };
 				if( !rgErrors.Contains( oEx.GetType() ) ) {
-					throw oEx;
+					throw;
 				}
 				throw new InvalidProgramException( "Something weird going on during m3u read", oEx );
 			}
