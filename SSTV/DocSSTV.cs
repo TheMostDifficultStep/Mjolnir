@@ -254,6 +254,8 @@ namespace Play.SSTV {
         public bool        StateTx { get; protected set; }
         public DocSSTVMode StateRx { get; protected set; }
 
+        public event Action<SKPointI> Send_TxImageAspect;
+
         /// <summary>
         /// This editor shows the list of modes we can modulate.
         /// </summary>
@@ -578,6 +580,7 @@ namespace Play.SSTV {
             TemplateList.LineAppend( "PnP Reply" );
             TemplateList.LineAppend( "General Msg" );
             TemplateList.LineAppend( "General Pnp" );
+            TemplateList.LineAppend( "Layout Test" );
             
 		    SyncImage   .Bitmap = new SKBitmap( 800, 616, SKColorType.Rgb888x, SKAlphaType.Unknown );
 		    DisplayImage.Bitmap = new SKBitmap( 800, 616, SKColorType.Rgb888x, SKAlphaType.Opaque  );
@@ -830,6 +833,12 @@ namespace Play.SSTV {
         public string RST       => Properties[(int)SSTVProperties.Names.Tx_RST].ToString();
 
 		public void TemplateSet( int iIndex ) {
+            SSTVMode oMode = TransmitModeSelection;
+			if( oMode == null ) {
+                LogError( "Set a transmit mode first." );
+                return;
+            } 
+
 			try {
 				TxBitmapComp.Clear();
 
@@ -838,20 +847,53 @@ namespace Play.SSTV {
 						TxBitmapComp.AddImage   ( LOCUS.CENTER,      0,  0, 100.0, TxBitmapSnip );
                         TxBitmapComp.AddGradient( LOCUS.TOP,                 24.0, SKColors.Blue, SKColors.Green );
 						TxBitmapComp.AddText    ( LOCUS.UPPERLEFT,   5,  5,  24.0, TxBitmapComp.StdFace, "CQ de " + MyCall );
+                        Send_TxImageAspect?.Invoke( new SKPointI( oMode.Resolution.Width, oMode.Resolution.Height ) );
 						break;
 					case 1:
 						TxBitmapComp.AddImage( LOCUS.CENTER,      0,  0, 100.0, TxBitmapSnip );
 						TxBitmapComp.AddText ( LOCUS.UPPERLEFT,   5,  5,  15.0, TxBitmapComp.StdFace, TheirCall + " de " + MyCall + " " + RST );
 						TxBitmapComp.AddImage( LOCUS.LOWERRIGHT, 10, 10,  40.0, RxHistoryList );
+                        Send_TxImageAspect?.Invoke( new SKPointI( oMode.Resolution.Width, oMode.Resolution.Height ) );
 						break;
 					case 2:
 						TxBitmapComp.AddImage( LOCUS.CENTER,      0,  0, 100.0, TxBitmapSnip );
 						TxBitmapComp.AddText ( LOCUS.UPPERLEFT,   5,  5,  20.0, TxBitmapComp.StdFace, Message );
+                        Send_TxImageAspect?.Invoke( new SKPointI( oMode.Resolution.Width, oMode.Resolution.Height ) );
 						break;
                     case 3:
 						TxBitmapComp.AddImage( LOCUS.CENTER,      0,  0, 100.0, TxBitmapSnip );
 						TxBitmapComp.AddText ( LOCUS.UPPERLEFT,   5,  5,  15.0, TxBitmapComp.StdFace, Message );
 						TxBitmapComp.AddImage( LOCUS.LOWERRIGHT, 10, 10,  40.0, RxHistoryList );
+
+                        Send_TxImageAspect?.Invoke( new SKPointI( oMode.Resolution.Width, oMode.Resolution.Height ) );
+                        break;
+                    case 4:
+                        { 
+                            LayoutStackVertical oStack = new( 5 );
+
+                            IPgStandardUI2 oStdUI = (IPgStandardUI2)Services ?? throw new ApplicationException( "Couldn't get StdUI2" );
+
+                            Line               oLine = TxBitmapComp.Text.LineAppend( "Hello", fUndoable:false );
+                            LayoutSingleLine oSingle = new( new FTCacheWrap( oLine ), LayoutRect.CSS.Percent ) { Track = 20 };
+                            uint            uiHeight = (uint)(oMode.Resolution.Height * oSingle.Track / 100 );
+
+                            uint uiFontID = oStdUI.FontCache( TxBitmapComp.StdFace, uiHeight, new SKSize(72, 72) );
+
+                            oSingle.Cache.Update( oStdUI.FontRendererAt( uiFontID ) );
+
+                            oStack.Add( oSingle );
+
+                            LayoutImage oImage = new LayoutImage( TxBitmapSnip.Bitmap, LayoutRect.CSS.Percent ) { Track = 80 };
+                            if( TxBitmapSnip.Bitmap != null ) {
+                                oStack.Add( oImage );
+                            }
+                            oStack.SetRect( 0, 0, oMode.Resolution.Width, oMode.Resolution.Height );
+                            oStack.LayoutChildren();
+
+                            TxBitmapComp.AddLayout( oStack );
+
+                            Send_TxImageAspect?.Invoke( new SKPointI( oImage.Width, oImage.Height ) );
+                        }
                         break;
 				}
 

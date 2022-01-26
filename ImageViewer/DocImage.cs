@@ -39,6 +39,11 @@ namespace Play.ImageViewer {
         public ImageBlock( LOCUS eOrigin, int iX, int iY, double dblScale ) : base( eOrigin, iX, iY, dblScale ) {
         }
 
+        /// <summary>
+        /// Set our rectangle to be located in one of the corners of the canvas.
+        /// </summary>
+        /// <param name="oStdUI"></param>
+        /// <param name="szTrgExtent"></param>
         public override void Update( IPgStandardUI2 oStdUI, Size szTrgExtent ) {
             SmartRect rcCanvas = new SmartRect( 0, 0, szTrgExtent.Width, szTrgExtent.Height );
             SKPointI  pnOrigin = rcCanvas.GetPoint( Locus );
@@ -83,7 +88,7 @@ namespace Play.ImageViewer {
             try {
                 skCanvas.DrawBitmap( _oDocSoloImg.Bitmap,
 									 new SKRect( 0, 0, _oDocSoloImg.Bitmap.Width, _oDocSoloImg.Bitmap.Height ),
-									 SKRect,
+									 SKRect, // Dest, our whole rect.
 									 skPaint );
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( ArgumentNullException ),
@@ -178,11 +183,11 @@ namespace Play.ImageViewer {
         /// Not really needed if the text does not wrap. But most text does.
         /// </summary>
         /// <returns></returns>
-        public override bool LayoutChildren() {
-            CacheElem.WrapSegments( Width );
+        //public override bool LayoutChildren() {
+        //    CacheElem.WrapSegments( Width );
 
-            return true;
-        }
+        //    return true;
+        //}
 
         public string Text { 
             set { CacheElem.Line.TryAppend( value ); }
@@ -209,7 +214,7 @@ namespace Play.ImageViewer {
             FontID = oStdUI.FontCache( FaceID, uiHeight, sResolution);
 
             CacheElem.Update( oStdUI.FontRendererAt( FontID ) );
-            LayoutChildren();
+            OnSize();
         }
 
         public override void Paint( SKCanvas skCanvas ) {
@@ -227,10 +232,10 @@ namespace Play.ImageViewer {
     public class DocImageEdit : 
         ImageSoloDoc
     {
-        protected          bool            _fDisposed  = false;
-        protected readonly List<Block>     _rgChildren = new ();
-        protected readonly IPgStandardUI2  _oStdUI;
-        protected readonly SKPaint         _skPaint = new SKPaint();
+        protected          bool             _fDisposed  = false;
+        protected readonly List<SmartRect>  _rgChildren = new ();
+        protected readonly IPgStandardUI2   _oStdUI;
+        protected readonly SKPaint          _skPaint = new SKPaint();
         public ushort StdFace { get; protected set; }
 
         public Editor Text { get; }
@@ -258,7 +263,7 @@ namespace Play.ImageViewer {
 		}
 
         public DocImageEdit(IPgBaseSite oSiteBase) : base(oSiteBase) {
-            _oStdUI = (IPgStandardUI2)Services;
+            _oStdUI = (IPgStandardUI2)Services ?? throw new ApplicationException( "Couldn't get StdUI2" );
             Text    = new Editor( new DocSite( this ) );
         }
 
@@ -317,20 +322,20 @@ namespace Play.ImageViewer {
             _rgChildren.Add( oBlock );
         }
 
+        public void AddLayout( LayoutRect oLayout ) {
+            _rgChildren.Add( oLayout );
+        }
+
         /// <summary>
         /// If we were a view we would listen in on the ImageUpdated event.
         /// But since we're the owning object, I'll simply use the override.
         /// </summary>
         protected override void Raise_ImageUpdated() {
-            LayoutChildren();
+            foreach( SmartRect oRect in _rgChildren ) {
+                oRect.LayoutChildren();
+            }
 
             base.Raise_ImageUpdated();
-        }
-
-        public void LayoutChildren() {
-            foreach( Block oBlock in _rgChildren ) {
-                oBlock.LayoutChildren();
-            }
         }
 
         /// <summary>
@@ -350,12 +355,21 @@ namespace Play.ImageViewer {
 
                 Size szExtent = new Size( Bitmap.Width, Bitmap.Height );
 
-                foreach( Block oBlock in _rgChildren ) {
-                    if( oBlock is TextBlock oTextBlock ) {
-                        Text.WordBreak( oTextBlock.CacheElem.Line, oTextBlock.CacheElem.Words); 
+                // Clunky but we won't have a lot of objects in here.
+                foreach( SmartRect oRect in _rgChildren ) {
+                    if( oRect is TextBlock oTextBlock ) {
+                        Text.WordBreak( oTextBlock.CacheElem.Line, oTextBlock.CacheElem.Words ); 
                     }
-                    oBlock.Update( _oStdUI, szExtent );
-                    oBlock.Paint ( skCanvas );
+                    if( oRect is Block oBlock ) {
+                        oBlock.Update( _oStdUI, szExtent );
+                    } else {
+                        oRect.SetRect( 0, 0, szExtent.Width, szExtent.Height );
+                    }
+                    oRect.LayoutChildren();
+                }
+
+                foreach( SmartRect oRect in _rgChildren ) {
+                    oRect.Paint ( skCanvas );
                 }
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( ArgumentNullException ),

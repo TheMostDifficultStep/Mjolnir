@@ -33,6 +33,7 @@ namespace Play.Forms {
         public void Paint( SKCanvas skCanvas, IPgStandardUI2 oStdUI, bool fFocused ) {
             SKPointI pntUL = this.GetPoint(LOCUS.UPPERLEFT);
 
+            // Center the text if our rect is bigger than the cache height.
             if( Cache.Height < Height ) {
                 pntUL.Y = pntUL.Y + Height / 2 - Cache.Height / 2;
             }
@@ -45,6 +46,27 @@ namespace Play.Forms {
 
             // Draw text.
             Cache.Render( skCanvas, oStdUI, new PointF( pntUL.X, pntUL.Y ), fFocused );
+        }
+
+        public override void Paint( SKCanvas skCanvas ) {
+            using SKPaint skPaint = new SKPaint();
+            SKPointI pntUL = this.GetPoint(LOCUS.UPPERLEFT);
+
+            // Center the text if our rect is bigger than the cache height.
+            if( Cache.Height < Height ) {
+                pntUL.Y = pntUL.Y + Height / 2 - Cache.Height / 2;
+            }
+
+            // Draw bg
+            if( BgColor != SKColors.Transparent ) {
+                skPaint .Color = BgColor;
+                skCanvas.DrawRect( this.Left, this.Top, this.Width, this.Height, skPaint );
+            }
+
+            skPaint.Color = SKColors.Red;
+
+            // Draw text.
+            Cache.Render( skCanvas, skPaint, new PointF( pntUL.X, pntUL.Y ) );
         }
 
         /// <seealso cref="FTCacheLine.Update"/>
@@ -61,11 +83,8 @@ namespace Play.Forms {
             }
         }
 
-        /// <summary>
-        /// Need to sort out the OnSize vs Raise_OnSize conundrum.
-        /// </summary>
-        public override void Raise_OnSize(SmartRect p_rctOld) {
-            base.Raise_OnSize(p_rctOld);
+        protected override void OnSize() {
+            base.OnSize();
             Cache.OnChangeSize( Width );
         }
 

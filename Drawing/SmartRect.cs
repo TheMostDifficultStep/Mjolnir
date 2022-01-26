@@ -87,8 +87,7 @@ namespace Play.Rectangles {
     public class SmartRect {
         protected int[] m_rgiCur = new int[4];
 
-        protected SMARTSIZE _eSizing      = SMARTSIZE.Normal;
-		protected bool      _fBlockEvents = false;
+        protected SMARTSIZE _eSizing = SMARTSIZE.Normal;
 
         public bool Invertable { get; set; } = true; // Allow inverted rects.
 
@@ -180,7 +179,7 @@ namespace Play.Rectangles {
 			SKPointI pntThisSide = GetPoint( eThisEdge );
 			SKPointI pntThatSide = GetPoint( GetInvert( eThisEdge ) );
 			SKPointI pntRatio    = new SKPointI( pntThisSide.X - pntThatSide.X, pntThisSide.Y - pntThatSide.Y );
-			float flSlope     = pntRatio.Y / (float)pntRatio.X;
+			float    flSlope     = pntRatio.Y / (float)pntRatio.X;
 
 			return( flSlope );
 		}
@@ -197,26 +196,19 @@ namespace Play.Rectangles {
             set { _eSizing = value; }
         }
 
-		public bool BlockEvents {
-			get { return( _fBlockEvents ); }
-			set { _fBlockEvents = value; }
-		}
-
-		/// <remarks>This looks serioiusly messed up. But if I change the
-		/// size event to be here and on size not to invoke, it breaks things!
-		/// Need to work it out.</remarks>
+		/// <remarks>I've been slowly tweaking the behaver from it's
+        /// cruddy first implentation to a better design. At last
+        /// OnSize does NOT initiate the event invoke. </remarks>
         public virtual void Raise_OnSize(SmartRect p_rctOld)
         {
-			if( !_fBlockEvents ) {
-				OnSize();
-			}
+			OnSize();
+            SizeEvent?.Invoke(this);
         }
 
         public event RectSize SizeEvent;
 
         protected virtual void OnSize()
         {
-            SizeEvent?.Invoke(this);
 		}
 
         [Obsolete]public virtual void Paint( Graphics p_oGraphics )

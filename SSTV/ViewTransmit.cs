@@ -95,7 +95,8 @@ namespace Play.SSTV {
 				return false;
 
 			ToolSelect = 0; // Crude but should be sufficient to freeze Skywalker...
-            _oDocSSTV.PropertyChange += OnPropertyChange_DocSSTV;
+            _oDocSSTV.PropertyChange     += OnPropertyChange_DocSSTV;
+			_oDocSSTV.Send_TxImageAspect += OnTxImgAspect_DocSSTV;
 
 			Aspect   = _oDocSSTV.TxResolution;
 			DragMode = DragMode.FixedRatio;
@@ -111,6 +112,10 @@ namespace Play.SSTV {
 					break;
 			}
         }
+
+		private void OnTxImgAspect_DocSSTV( SKPointI skAspect ) {
+			Aspect = _oDocSSTV.TxResolution;
+		}
 
         public override bool Execute( Guid sGuid ) {
 			if( sGuid == GlobalCommands.Play ) {
@@ -189,6 +194,7 @@ namespace Play.SSTV {
 				_oDocSSTV.TxModeList   .CheckedEvent -= OnCheckedEvent_TxModeList;
 				_oDocSSTV.RxHistoryList.ImageUpdated -= OnImageUpdated_RxHistoryList;
 				_oDocSSTV.TxImageList  .ImageUpdated -= OnImageUpdated_TxImageList;
+				_oDocSSTV.Send_TxImageAspect         -= OnTxImageAspect_SSTVDoc;
 
 				_wmTxImageChoice   .Dispose();
 				_wmTxViewChoices   .Dispose();
@@ -215,6 +221,7 @@ namespace Play.SSTV {
 			_oDocSSTV.TxModeList   .CheckedEvent += OnCheckedEvent_TxModeList;
             _oDocSSTV.RxHistoryList.ImageUpdated += OnImageUpdated_RxHistoryList;
 			_oDocSSTV.TxImageList  .ImageUpdated += OnImageUpdated_TxImageList;
+            _oDocSSTV.Send_TxImageAspect         += OnTxImageAspect_SSTVDoc;
 
 			_wmTxImageChoice.ToolSelect = 0; 
 			_wmTxImageChoice.Aspect     = _oDocSSTV.TxResolution;
@@ -233,6 +240,10 @@ namespace Play.SSTV {
 
             OnSizeChanged( new EventArgs() );
 			return true;
+        }
+
+        private void OnTxImageAspect_SSTVDoc(SKPointI skAspect ) {
+            _wmTxImageChoice.Aspect = skAspect;
         }
 
         private void OnImageUpdated_RxHistoryList() {
@@ -364,8 +375,9 @@ namespace Play.SSTV {
 			if( oMode != null ) {
 				SKRectI rcComp = new SKRectI( 0, 0, oMode.Resolution.Width, oMode.Resolution.Height);
 				SKSizeI ptComp = new SKSizeI( oMode.Resolution.Width, oMode.Resolution.Height );
+				SKSizeI szDest = new SKSizeI( _wmTxImageChoice.Aspect.X, _wmTxImageChoice.Aspect.Y );
 
-				_oDocSSTV.TxBitmapSnip.Load( _oDocSSTV.TxBitmap, _wmTxImageChoice.Selection.SKRect, oMode.Resolution ); 
+				_oDocSSTV.TxBitmapSnip.Load( _oDocSSTV.TxBitmap, _wmTxImageChoice.Selection.SKRect, szDest ); 
 				_oDocSSTV.TxBitmapComp.Load( _oDocSSTV.TxBitmap, rcComp, ptComp ); // Render needs this, for now.
 
 				int iTemplate = _oDocSSTV.TemplateList.CheckedLine is Line oChecked ? oChecked.At : 0;

@@ -309,7 +309,7 @@ namespace Play.Rectangles {
 				uint uiRemainingExtent = (uint)iTrackRemaining;
 
 				// We can't have both Percent and None objects, so if we have ANY "none"
-				// objects, we just punt on the percent objects.
+				// objects, we just punt on the percent objects. TODO: New strategy maybe?
 				if( uiCssNoneCount == 0 ) {
 					// Percent objects take up the remaining space.
 					for( int i = 0; i<Count; ++i ) {
