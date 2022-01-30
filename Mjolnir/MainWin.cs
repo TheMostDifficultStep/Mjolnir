@@ -1588,6 +1588,14 @@ namespace Mjolnir {
             LayoutFrame();
         }
         
+        /// <summary>
+        /// New call back for center dragging. This one is called constantly as the
+        /// layout needs to be signaled for refresh. Even tho we basically call
+        /// OnSizeChanged() for ever mouse move. I think it's nice to put the update
+        /// control here versus just doing it every time in the OnMouseMove()
+        /// </summary>
+        /// <param name="fDragging">true if dragging, false if finished.</param>
+        /// <param name="pntLast"></param>
         protected void CenterDrag( bool fDragging, SKPointI pntLast ) {
             if( !fDragging ) {
                 foreach( SideIdentify eID in Enum.GetValues( typeof( SideIdentify ) ) ) {
@@ -1613,15 +1621,6 @@ namespace Mjolnir {
         protected override void OnPaint( PaintEventArgs oArgs )
         {
             try {
-                //_rcFrame.Paint( oArgs.Graphics );
-
-    //            foreach( KeyValuePair<SideIdentify, SideRect> oPair in _rgSideInfo ) {
-			 // //for( int i = 0; i < _rgSideBox.Count; ++i ) {
-				//	SmartRect oBox = oPair.Value;
-				//	if( IsSideOpen( (int)oPair.Key ) ) {
-				//		oBox.Paint( oArgs.Graphics );
-				//	}
-				//}
                 LayoutPaint( oArgs.Graphics );
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( ExternalException ),

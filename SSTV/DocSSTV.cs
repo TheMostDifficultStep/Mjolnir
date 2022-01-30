@@ -873,7 +873,7 @@ namespace Play.SSTV {
 
                             IPgStandardUI2 oStdUI = (IPgStandardUI2)Services ?? throw new ApplicationException( "Couldn't get StdUI2" );
 
-                            Line               oLine = TxBitmapComp.Text.LineAppend( "Hello", fUndoable:false );
+                            Line               oLine = TxBitmapComp.Text.LineAppend( "CQ de " + MyCall, fUndoable:false );
                             LayoutSingleLine oSingle = new( new FTCacheWrap( oLine ), LayoutRect.CSS.Percent ) { Track = 20 };
                             uint            uiHeight = (uint)(oMode.Resolution.Height * oSingle.Track / 100 );
 
@@ -889,10 +889,12 @@ namespace Play.SSTV {
                             }
                             oStack.SetRect( 0, 0, oMode.Resolution.Width, oMode.Resolution.Height );
                             oStack.LayoutChildren();
+                            
+                            // This must occur after layout... of course. ^_^;
+                            Send_TxImageAspect?.Invoke( new SKPointI( oImage.Width, oImage.Height ) );
 
                             TxBitmapComp.AddLayout( oStack );
 
-                            Send_TxImageAspect?.Invoke( new SKPointI( oImage.Width, oImage.Height ) );
                         }
                         break;
 				}

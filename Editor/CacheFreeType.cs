@@ -337,7 +337,7 @@ namespace Play.Edit {
                 throw new ArgumentNullException();
 
             FontHeight = (int)oFR.FontHeight;
-            LineHeight = (int)(FontHeight * 1.5); // Height of our box. BUG, don't guess.
+            LineHeight = (int)(FontHeight * 1.2 ); // Make this a intra line property in the future.
             LoadCodePoints( oFR );
 
             _rgClusters.Clear();

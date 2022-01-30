@@ -184,7 +184,7 @@ namespace Mjolnir {
             }
         }
 
-        protected void GlyphGenerate( FT_Render_Mode uiMode, uint uiGlyphIndex ) {
+        public void GlyphGenerate( FT_Render_Mode uiMode, uint uiGlyphIndex ) {
             int iError = 0;
             try {
                 iError = FreeType2API.PG_Face_GenerateGlyph( Handle, uiMode, uiGlyphIndex );
@@ -196,6 +196,23 @@ namespace Mjolnir {
                 throw new ApplicationException( "Couldn't generate the glyph from the given index: " + iError.ToString() );
         }
 
+        public bool GlyphSampleCurrent( ref FTGlyphPos ftCoords, ref SKSizeI skBmpSize ) {
+            unsafe {
+                int iError = 0;
+                try {
+                    FTGlyphBmp ftBitmap;
+                    fixed( FTGlyphPos * pCoords = &ftCoords ) {
+                        iError = FreeType2API.PG_Face_CurrentGlyphMapData( Handle, pCoords, &ftBitmap );
+                        skBmpSize = new SKSizeI( ftBitmap.width, ftBitmap.rows );
+                    }
+                    return true;
+                } catch( Exception oEx ) {
+                    if( rgErrors.IsUnhandled( oEx ) )
+                        throw;
+                    return false;
+                }
+            }
+        }
         /// <summary>
         /// First generate the glyph, then call this function to retrieve it.
         /// </summary>
@@ -268,8 +285,12 @@ namespace Mjolnir {
         /// <seealso cref="SetSize" />
         /// <remarks>I'm hacking the tab character here. If I allowed the glyph coordinates to be 
         /// modified I might be able to get around that, but I like them readonly.</remarks>
+        /// <param name="iDescender">This is a slightly hacky way for us to align the free type font
+        /// with the containing box in my simple system which does not deal with ascenders and
+        /// descenders. We'll just push the top of the gliph up by our best calculation of the
+        /// descender for the font (face @ particular size) in question.</param>
         /// <exception cref="ApplicationException" />
-        public IPgGlyph GlyphLoad( uint uiCode ) {
+        public IPgGlyph GlyphLoad( uint uiCode, short iDescender ) {
             if( CurrentHeight == 0 )
                 throw new ArgumentException( "Glyph height has not be set." );
 
@@ -282,6 +303,8 @@ namespace Mjolnir {
                 if( uiCode == 9 )
                     oGlyphCoords.advance_em_x *= 4;
 
+                oGlyphCoords.top += iDescender;
+
                 return new GlyphInfo( (uint)ID, uiCode, uiGlyph, skGlyphBitmap, oGlyphCoords );
             } catch( Exception oEx ) {
                 if( rgErrors.IsUnhandled( oEx ) )
@@ -292,37 +315,71 @@ namespace Mjolnir {
         }
     }
 
-    public class FaceRender {
+    /// <summary>
+    /// Render a font at the given height from the given face.
+    /// </summary>
+    public class FontRender {
         public FTFace Face       { get; }
         public SKSize Resolution { get; }
-        public uint   Height     { get; }
         public uint   ID         { get; }
+        public uint   Height     { get; protected set; }
+        public uint   HeightUnmagnified { get; } // Raw height from the request.
+
+        public short Ascender  { get; protected set; } = 0;
+        public short Descender { get; protected set; } = 0;
 
         readonly protected List<IPgGlyph> _rgRendered = new List<IPgGlyph>( 50 );
-        readonly protected uint           _uiUnMagnifiedHeight;
+        readonly protected double         _dblScale;
 
-        public FaceRender( FTFace oFace, SKSize sResolution, uint uiHeight, uint uiID ) {
-            Face       = oFace ?? throw new ArgumentNullException( "Font face must not be null." );
+        public FontRender( FTFace oFace, SKSize sResolution, uint uiHeight, uint uiID ) {
+            Face = oFace ?? throw new ArgumentNullException( "Font face must not be null." );
 
-            _uiUnMagnifiedHeight = uiHeight;
-            double dblScale = sResolution.Height / 96.0;
+            HeightUnmagnified = uiHeight;
+            _dblScale         = sResolution.Height / 96.0;
 
             Resolution = sResolution;
-            Height     = (uint)(_uiUnMagnifiedHeight * dblScale );
+            Height     = (uint)( HeightUnmagnified * _dblScale );
             ID         = uiID;
 
             oFace.SetSize( uiHeight, sResolution);
         }
 
+        /// <summary>Call this function to get a better guestimate of the actual
+        /// height of the font. This will help us center the line better.</summary>
+        /// <exception cref="ApplicationException"
+        public void InitNew() {
+            string  strRef   = "aghijklpqrxyzAQRST10,/[]{}";
+            SKSizeI skSize   = new SKSizeI();
+
+            foreach( char c in strRef ) {
+                uint uiGlyph = Face.GlyphFromCodePoint( c );
+                FTGlyphPos ftCoords = new FTGlyphPos();
+
+                Face.GlyphGenerate( FT_Render_Mode.FT_RENDER_MODE_NORMAL, uiGlyph );
+
+                if( Face.GlyphSampleCurrent( ref ftCoords, ref skSize ) ) {
+                    int iDesc = skSize.Height - ftCoords.top;
+                    int iAsc  = ftCoords.top;
+
+                    if( iDesc > Descender )
+                        Descender = (short)iDesc;
+                    if( iAsc > Ascender )
+                        Ascender = (short)iAsc;
+                }
+            }
+
+            Height = (uint)( ( Ascender + Descender ) * _dblScale );
+        }
+
         public void SetSize() {
-            Face.SetSize( _uiUnMagnifiedHeight, Resolution );
+            Face.SetSize( HeightUnmagnified, Resolution );
         }
 
         public uint RendererID { get => ID; }
 
         /// <summary>
         /// False return simply means the box character is being returned. If the element has been
-        /// generated all ready we return that glyph. So any other instances will have the same
+        /// generated already, we return that glyph. So any other instances will have the same
         /// coordinate information. But of course a shaper might want different coordinates set
         /// for that glyph depending on it's neighbors. You'll have to cache those coordinates elsewhere.
         /// </summary>
@@ -338,7 +395,9 @@ namespace Mjolnir {
                 }
             }
 
-            oGlyph = Face.GlyphLoad( uiCode );
+            SetSize();
+
+            oGlyph = Face.GlyphLoad( uiCode, Descender );
 
             _rgRendered.Add( oGlyph );
 
@@ -355,25 +414,25 @@ namespace Mjolnir {
 
         private   bool                      _fDisposedValue;
         protected readonly List<FTFace>     _rgFace    = new List<FTFace>();
-        protected readonly List<FaceRender> _rgRenders = new List<FaceRender>();
+        protected readonly List<FontRender> _rgRenders = new List<FontRender>();
 		public    IntPtr                    Handle { get; } // Main handle from the FreeType Init.
 
         /// <summary>BUG: This is probably pointless, unless i only allow one of these objects
         ///  to be created at a time. Else we have to check the size on every GlyphLoad()
         ///  call anyway (for any particular face at least).</summary> 
         public class FaceRenderStub : IPgFontRender, IDisposable {
-            public FaceRender FaceRender { get; }
+            public FontRender FontRender { get; }
             public FTManager  Manager    { get; }
-            public uint       FontHeight { get { return FaceRender.Height; } }
+            public uint       FontHeight { get { return FontRender.Height; } }
 
-            public FaceRenderStub( FTManager oManage, FaceRender oRender ) {
-                FaceRender = oRender ?? throw new ArgumentNullException( "Face Render must not be null" );
+            public FaceRenderStub( FTManager oManage, FontRender oRender ) {
+                FontRender = oRender ?? throw new ArgumentNullException( "Face Render must not be null" );
                 Manager    = oManage ?? throw new ArgumentNullException( "Manager must not be null" );
 
-                FaceRender.SetSize();
+                FontRender.SetSize();
             }
 
-            public uint RendererID => FaceRender.ID;
+            public uint RendererID => FontRender.ID;
 
             public void Dispose() {
                 // in the future we'll note which FaceRender is in operation and 
@@ -385,7 +444,7 @@ namespace Mjolnir {
             /// the code point. But I'll leave it for now.
             /// </summary>
             public IPgGlyph GetGlyph( uint uiCodePoint ) {
-                return Manager.GlyphFrom( FaceRender, uiCodePoint );
+                return Manager.GlyphFrom( FontRender, uiCodePoint );
             }
         }
 
@@ -446,17 +505,18 @@ namespace Mjolnir {
         /// <exception cref="ArgumentOutOfRangeException" />
         public uint FaceCacheSize( ushort uiFace, uint uiHeight, SKSize skResolution ) {
             // Try find the font if it has already been cached.
-            foreach( FaceRender oRenderTry in _rgRenders ) {
-                if( oRenderTry.Face.ID    == uiFace &&
-                    oRenderTry.Height     == uiHeight &&
-                    oRenderTry.Resolution == skResolution )  
+            foreach( FontRender oRenderTry in _rgRenders ) {
+                if( oRenderTry.Face.ID           == uiFace &&
+                    oRenderTry.HeightUnmagnified == uiHeight &&
+                    oRenderTry.Resolution        == skResolution )  
                 {
                     return oRenderTry.ID;
                 }
             }
 
             // Didn't find it so create a renderer for the new size/resolution.
-            FaceRender oRender = new FaceRender( _rgFace[uiFace], skResolution, uiHeight, (uint)_rgRenders.Count );
+            FontRender oRender = new FontRender( _rgFace[uiFace], skResolution, uiHeight, (uint)_rgRenders.Count );
+            oRender.InitNew();
 
             _rgRenders.Add( oRender );
 
@@ -507,7 +567,7 @@ namespace Mjolnir {
         /// </summary>
         /// <exception cref="ArgumentOutOfRangeException" />
         public IPgFontRender GetFontRenderer( uint uiFaceRenderID ) {
-            foreach( FaceRender oRender in _rgRenders ) {
+            foreach( FontRender oRender in _rgRenders ) {
                 if( oRender.ID == uiFaceRenderID ) {
                     return new FaceRenderStub( this, oRender );
                 }
@@ -525,7 +585,7 @@ namespace Mjolnir {
         /// </summary>
         /// <remarks>This function is called by the implementation of IPgFontRender</remarks>
         /// <seealso cref="FaceRenderStub" />
-        protected IPgGlyph GlyphFrom( FaceRender oRender, UInt32 uiCode ) {
+        protected IPgGlyph GlyphFrom( FontRender oRender, UInt32 uiCode ) {
             if( oRender == null )
                 throw new ArgumentOutOfRangeException( "Bad Face Renderer" );
 
@@ -533,10 +593,10 @@ namespace Mjolnir {
             // default empty glyph, but try the others for a better fit!!
             IPgGlyph oGlyphBest;
             if( !oRender.GlyphLoad( uiCode, out oGlyphBest ) ) {
-                foreach( FaceRender oRenderFallback in _rgRenders ) {
-                    if( oRenderFallback.ID         != oRender.ID &&
-                        oRenderFallback.Height     == oRender.Height &&
-                        oRenderFallback.Resolution == oRender.Resolution ) 
+                foreach( FontRender oRenderFallback in _rgRenders ) {
+                    if( oRenderFallback.ID                != oRender.ID &&
+                        oRenderFallback.HeightUnmagnified == oRender.HeightUnmagnified &&
+                        oRenderFallback.Resolution        == oRender.Resolution ) 
                     {
                         oRenderFallback.SetSize();
                         if( oRenderFallback.GlyphLoad( uiCode, out IPgGlyph oGlyphTry ) ) {
@@ -547,7 +607,8 @@ namespace Mjolnir {
                 foreach( FTFace oFaceFallback in _rgFace ) {
                     if( oFaceFallback.ID != oRender.Face.ID ) {
                         if( oFaceFallback.GlyphFromCodePoint( uiCode ) != 0 ) {
-                            FaceRender oRenderNew = new FaceRender( oFaceFallback, oRender.Resolution, oRender.Height, (uint)_rgRenders.Count );
+                            FontRender oRenderNew = new FontRender( oFaceFallback, oRender.Resolution, oRender.Height, (uint)_rgRenders.Count );
+                            oRenderNew.InitNew();
                             oRenderNew.GlyphLoad( uiCode, out IPgGlyph oGlyphTry );
                             _rgRenders.Add( oRenderNew );
                             return oGlyphTry;
