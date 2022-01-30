@@ -339,6 +339,8 @@ namespace Mjolnir {
             _oLayoutPrimary.Add( oCenter); 
             _oLayoutPrimary.Add( _rgSideInfo[SideIdentify.Bottom] );
 
+            _oLayoutPrimary.Padding.Bottom = 5;
+
             DecorMenuReload();
         }
 
