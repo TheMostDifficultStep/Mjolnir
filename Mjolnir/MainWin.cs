@@ -328,6 +328,8 @@ namespace Mjolnir {
 
             LayoutStackHorizontal oCenter = new(5); // { CSS = None }
 
+            oCenter.Padding.SetRect( 5, 0, 5, 0 );
+
             oCenter.Add( _rgSideInfo[SideIdentify.Left] );
             oCenter.Add( new LayoutGrab( LayoutRect.CSS.None, _rcFrame ) ); 
             oCenter.Add( _rgSideInfo[SideIdentify.Right] ); 

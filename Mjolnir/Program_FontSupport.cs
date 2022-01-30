@@ -420,6 +420,9 @@ namespace Mjolnir {
         /// <summary>BUG: This is probably pointless, unless i only allow one of these objects
         ///  to be created at a time. Else we have to check the size on every GlyphLoad()
         ///  call anyway (for any particular face at least).</summary> 
+        ///  <remarks>1/30/2022...which I seem to be doing anyway. I might not really need this stub
+        ///  since I now check the size on every Glyph Load. Honestly, it's not so bad
+        ///  since SetSize() is not needed once the glyph is cached.</remarks>
         public class FaceRenderStub : IPgFontRender, IDisposable {
             public FontRender FontRender { get; }
             public FTManager  Manager    { get; }

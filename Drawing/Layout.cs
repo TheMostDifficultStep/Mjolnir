@@ -9,6 +9,7 @@ using SkiaSharp;
 namespace Play.Rectangles {
 	public class LayoutRect : SmartRect {
 		protected CSS _eLayout;
+		public    SmartRect Padding { get; } = new SmartRect();
 
 		public enum CSS {
 			Percent,
@@ -236,6 +237,35 @@ namespace Play.Rectangles {
 			return (uint)GetTrack( eParentAxis ).Distance; // BUG: Revisit this.
 		}
 
+		/// <summary>
+		/// Subtract the padding from the track.
+		/// </summary>
+		public Extent GetTrackPadded {
+			get {
+				int iStart = 0; 
+				int iEnd   = 0;
+
+				if( Direction == TRACK.HORIZ ) {
+					iStart = Left; 
+					iEnd   = Right;
+					if( Padding[SCALAR.LEFT] > 0 )
+						iStart += Padding[SCALAR.LEFT];
+					if( Padding[SCALAR.RIGHT] > 0 )
+						iEnd -= Padding[SCALAR.RIGHT];
+				}
+				if( Direction == TRACK.VERT ) {
+					iStart = Top; 
+					iEnd   = Bottom;
+					if( Padding[SCALAR.TOP] > 0 )
+						iStart += Padding[SCALAR.TOP];
+					if( Padding[SCALAR.BOTTOM] > 0 )
+						iEnd -= Padding[SCALAR.BOTTOM];
+				}
+
+				return new Extent( iStart, iEnd );
+			}
+		}
+
 		/// <remarks>
 		/// TODO: The only place we use the margins, is between the objects. I'd like to have a finer
 		/// degree of control. Left, top etc margin. 
@@ -252,7 +282,8 @@ namespace Play.Rectangles {
 				if( extRail.Distance <= 0 )
 					return false;
 
-				Extent extTrack        = GetTrack( Direction );
+				// We're padding track but not rail at present. :-/
+				Extent extTrack        = GetTrackPadded;
 				uint   uiRailsDistance = (uint)extRail.Distance; 
 				long   iTrackAvailable = extTrack.Distance - Gaps; // This is how much available track.
 				long   iTrackRemaining = iTrackAvailable;
