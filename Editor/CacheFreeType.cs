@@ -617,6 +617,7 @@ namespace Play.Edit {
             skPaint.FilterQuality = SKFilterQuality.High;
 
             try { // Draw all glyphs so whitespace is properly colored when selected.
+                //skCanvas.DrawLine( pntLowerLeft, new SKPoint( pntLowerLeft.X + 300, pntLowerLeft.Y ), skPaint );
 			    foreach( PgCluster oCluster in _rgClusters ) {
                     int iYDiff = LineHeight * oCluster.Segment;
 

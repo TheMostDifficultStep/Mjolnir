@@ -199,15 +199,12 @@ namespace Play.ImageViewer {
         /// </summary>
         public override void Update( IPgStandardUI2 oStdUI, Size szExtent ) {
             SmartRect  rcScratch = new SmartRect( LOCUS.UPPERLEFT, 0, 0, szExtent.Width, szExtent.Height );
-            SKPointI   pnOrigin  = rcScratch.GetPoint( Locus );
 
-            pnOrigin.X += Origin.X;
-            pnOrigin.Y += Origin.Y;
-
-            rcScratch.SetRect( Locus, pnOrigin.X, pnOrigin.Y, szExtent.Width, szExtent.Height );
+            rcScratch.SetPoint( SET.STRETCH, Locus, Origin.X, Origin.Y );
             
             this.Copy = rcScratch;
 
+            // The height of the text is about the height of the box.
             SKSize    sResolution = new SKSize( 96, 96 ); 
             uint      uiHeight    = (uint)(szExtent.Height * Scale );
 

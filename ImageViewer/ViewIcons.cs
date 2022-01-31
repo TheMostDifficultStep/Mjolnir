@@ -187,7 +187,7 @@ namespace Play.ImageViewer {
                 oInfo = oMainWin.MainDisplayInfo;
             }
 
-            SKSize sRez = new SKSize( oInfo.pntDpi.X, oInfo.pntSize.Y );
+            SKSize sRez = new SKSize( oInfo.pntDpi.X, oInfo.pntDpi.Y );
 
             _uiStdText = _oStdUI.FontCache( _oStdUI.FaceCache( @"C:\windows\fonts\consola.ttf" ), 12, sRez );
             _oStdUI.FaceCache(@"C:\Windows\Fonts\UDDigiKyokashoN-R.ttc"); // BUG: Let's add this at program level for fallback.

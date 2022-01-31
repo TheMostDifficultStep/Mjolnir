@@ -846,7 +846,7 @@ namespace Play.SSTV {
 					case 0:
 						TxBitmapComp.AddImage   ( LOCUS.CENTER,      0,  0, 100.0, TxBitmapSnip );
                         TxBitmapComp.AddGradient( LOCUS.TOP,                 24.0, SKColors.Blue, SKColors.Green );
-						TxBitmapComp.AddText    ( LOCUS.UPPERLEFT,   5,  5,  24.0, TxBitmapComp.StdFace, "CQ de " + MyCall );
+						TxBitmapComp.AddText    ( LOCUS.UPPERLEFT,   0,  0,  24.0, TxBitmapComp.StdFace, "CQ de " + MyCall );
                         Send_TxImageAspect?.Invoke( new SKPointI( oMode.Resolution.Width, oMode.Resolution.Height ) );
 						break;
 					case 1:
@@ -875,11 +875,6 @@ namespace Play.SSTV {
 
                             Line               oLine = TxBitmapComp.Text.LineAppend( "CQ de " + MyCall, fUndoable:false );
                             LayoutSingleLine oSingle = new( new FTCacheWrap( oLine ), LayoutRect.CSS.Percent ) { Track = 20 };
-                            uint            uiHeight = (uint)(oMode.Resolution.Height * oSingle.Track / 100 );
-
-                            uint uiFontID = oStdUI.FontCache( TxBitmapComp.StdFace, uiHeight, new SKSize(72, 72) );
-
-                            oSingle.Cache.Update( oStdUI.FontRendererAt( uiFontID ) );
 
                             oStack.Add( oSingle );
 
@@ -890,6 +885,12 @@ namespace Play.SSTV {
                             oStack.SetRect( 0, 0, oMode.Resolution.Width, oMode.Resolution.Height );
                             oStack.LayoutChildren();
                             
+                            uint uiHeight = (uint)( oSingle.Height );
+                            uint uiPoints = (uint)( uiHeight * 72 / 96 );
+                            uint uiFontID = oStdUI.FontCache( TxBitmapComp.StdFace, uiPoints, new SKSize(96, 96) );
+
+                            oSingle.Cache.Update( oStdUI.FontRendererAt( uiFontID ) );
+
                             // This must occur after layout... of course. ^_^;
                             Send_TxImageAspect?.Invoke( new SKPointI( oImage.Width, oImage.Height ) );
 
