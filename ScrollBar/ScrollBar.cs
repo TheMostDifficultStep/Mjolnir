@@ -28,7 +28,7 @@ namespace Play.Controls {
         /// SKContro doesn't seem to have anything so hard coded for now but we 
         /// can still get from the window if we want.
         /// </summary>
-        public SKPoint Dpi {
+        [Obsolete]public SKPoint Dpi {
             get {
                 return new SKPoint( 96, 96 );
             }
@@ -451,7 +451,12 @@ namespace Play.Controls {
             base.OnPaintSurface(e);
 
             try {
-                SetSizes( new SKPoint( 96, 96 ) ); // BUG: Can't get this from SK stuff.
+                IPgMainWindow.PgDisplayInfo oInfo = new IPgMainWindow.PgDisplayInfo();
+                if( _oSite.Host.TopWindow is IPgMainWindow oMainWin ) {
+                    oInfo = oMainWin.MainDisplayInfo;
+                }
+
+                SetSizes( new SKPoint( oInfo.pntDpi.X, oInfo.pntDpi.Y ) ); 
 
                 SKColor   clrBase = new SKColor( 235, 235, 240 );
                 SmartRect rcWhole = new SmartRect( LOCUS.UPPERLEFT, 0, 0, this.Width, this.Height );

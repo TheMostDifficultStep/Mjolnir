@@ -63,24 +63,25 @@ namespace Play.Forms {
 
         public TabControl(IPgViewSite oSiteView, BaseEditor oDoc ) 
         {
- 			_oStdUI  = oSiteView.Host.Services as IPgStandardUI2 ?? throw new ArgumentException( "Parent view must provide IPgStandardUI service" );
-            Document = oDoc ?? throw new ArgumentNullException( nameof( oDoc ) );
+            _oSiteView = oSiteView ?? throw new ArgumentNullException( nameof( oSiteView ) );
+ 			_oStdUI    = oSiteView.Host.Services as IPgStandardUI2 ?? throw new ArgumentException( "Parent view must provide IPgStandardUI service" );
+            Document   = oDoc ?? throw new ArgumentNullException( nameof( oDoc ) );
 
-            Layout   = new LayoutFlowSquare_Fixed( new Size( 200, 40 ), 5 );
+            Layout = new LayoutFlowSquare_Fixed( new Size( 200, 40 ), 5 );
         }
 
         public virtual bool InitNew() {
             try {
                 Document.ListenerAdd( this );
 
-                // See also GetSystemMetricsForDpi() per monitor dpi aware
-                SKSize sResolution = new SKSize(96, 96);
-                using (Graphics oGraphics = this.CreateGraphics()) {
-                    sResolution.Width  = oGraphics.DpiX;
-                    sResolution.Height = oGraphics.DpiY;
+                IPgMainWindow.PgDisplayInfo oInfo = new IPgMainWindow.PgDisplayInfo();
+                if( _oSiteView.Host.TopWindow is IPgMainWindow oMainWin ) {
+                    oInfo = oMainWin.MainDisplayInfo;
                 }
 
-                _uStdFont = _oStdUI.FontCache(_oStdUI.FaceCache(@"C:\windows\fonts\consola.ttf"), 10, sResolution);
+                SKSize sRez = new SKSize( oInfo.pntDpi.X, oInfo.pntDpi.Y );
+
+                _uStdFont = _oStdUI.FontCache(_oStdUI.FaceCache(@"C:\windows\fonts\consola.ttf"), 10, sRez);
 
 			    foreach( Line oLine in Document ) {
 				    Layout.Add( CreateTab( oLine ) );

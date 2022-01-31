@@ -123,12 +123,14 @@ namespace Play.Edit {
 		}
 
 		public bool InitNew() {
-            SKSize sResolution = new SKSize( 96, 96 ); // 106, 106
-            using( Graphics oGraphics = this.CreateGraphics() ) {
-                sResolution.Width  = oGraphics.DpiX;
-                sResolution.Height = oGraphics.DpiY;
+            IPgMainWindow.PgDisplayInfo oInfo = new IPgMainWindow.PgDisplayInfo();
+            if( _oSiteView.Host.TopWindow is IPgMainWindow oMainWin ) {
+                oInfo = oMainWin.MainDisplayInfo;
             }
-            StdFontID = _oStdUI.FontCache( _oStdUI.FaceCache( @"C:\windows\fonts\consola.ttf" ), 12, sResolution );
+
+            SKSize sRez = new SKSize( oInfo.pntDpi.X, oInfo.pntDpi.Y );
+
+            StdFontID = _oStdUI.FontCache( _oStdUI.FaceCache( @"C:\windows\fonts\consola.ttf" ), 12, sRez );
 
 			_oTable.Add( new LayoutRect( LayoutRect.CSS.Flex, 0, 40 ) );
 			_oTable.Add( new LayoutRect( LayoutRect.CSS.Flex, 0, 10 ) );

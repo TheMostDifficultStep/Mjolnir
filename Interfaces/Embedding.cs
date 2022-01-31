@@ -195,8 +195,20 @@ namespace Play.Interfaces.Embedding {
 	  //string    Identifer   { get; } // something we can use for error messages.
 	}
 
+
     public interface IPgMainWindow {
+        public struct PgDisplayInfo {
+            public SKPointI pntSize;
+            public SKPoint  pntDpi;
+
+            public PgDisplayInfo() {
+                pntSize = new SKPointI( 1920, 1080 );
+                pntDpi  = new SKPoint ( 96, 96 );
+            }
+        }
+
         int DocumentShow( string strFileName, Guid guidViewType, bool fShow );
+        PgDisplayInfo MainDisplayInfo { get; }
     }
 
     /// <summary>

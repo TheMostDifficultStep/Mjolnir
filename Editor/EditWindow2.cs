@@ -409,18 +409,20 @@ namespace Play.Edit {
         }
 
         /// <summary>
-        /// See https://docs.microsoft.com/en-us/xamarin/essentials/?context=xamarin/android for other
-        /// ways to get device resolution.
+        /// Not super relevent but see https://devblogs.microsoft.com/xamarin/styling-for-multiple-device-resolutions/ for 
+        /// other ways to get device resolution.
         /// </summary>
 		protected virtual CacheManager2 CreateCacheManager() {
-            SKSize sResolution = new SKSize( 96, 96 );
-            using( Graphics oGraphics = this.CreateGraphics() ) {
-                sResolution.Width  = oGraphics.DpiX;
-                sResolution.Height = oGraphics.DpiY;
+            IPgMainWindow.PgDisplayInfo oInfo = new IPgMainWindow.PgDisplayInfo();
+            if( _oSiteView.Host.TopWindow is IPgMainWindow oMainWin ) {
+                oInfo = oMainWin.MainDisplayInfo;
             }
+
+            SKSize sRez = new SKSize( oInfo.pntDpi.X, oInfo.pntDpi.Y );
+
             // cour.ttf, consola.ttf
-            uint uiStdText = _oStdUI.FontCache( _oStdUI.FaceCache( @"C:\windows\fonts\consola.ttf"  ), 12, sResolution );
-            uint uiStdUI   = _oStdUI.FontCache( _oStdUI.FaceCache( @"C:\windows\fonts\seguisym.ttf" ), 12, sResolution );
+            uint uiStdText = _oStdUI.FontCache( _oStdUI.FaceCache( @"C:\windows\fonts\consola.ttf"  ), 12, sRez );
+            uint uiStdUI   = _oStdUI.FontCache( _oStdUI.FaceCache( @"C:\windows\fonts\seguisym.ttf" ), 12, sRez );
           //uint uiEmojID  = _oStdUI.FontCache( _oStdUI.FaceCache( @"C:\Users\Frodo\AppData\Local\Microsoft\Windows\Fonts\NotoEmoji-Regular.ttf" ), 12, sResolution );
 
             IPgFontRender oRender = _oStdUI.FontRendererAt( uiStdUI );

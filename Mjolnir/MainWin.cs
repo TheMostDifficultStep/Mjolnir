@@ -2157,6 +2157,7 @@ namespace Mjolnir {
             return( oViewSite );
         }
 
+        #region IPgMainWindow
         /// <summary>
         /// Note the "filename" my be either an actual file name OR a directory. If it is
         /// a file name we want to create a normal file reading site for it. But if it
@@ -2174,6 +2175,22 @@ namespace Mjolnir {
         public ViewSlot DocumentShow( string strFileName, EditorShowEnum eShow = EditorShowEnum.FOCUS ) {
             return DocumentShow( strFileName, Guid.Empty, eShow );
         }
+
+        public IPgMainWindow.PgDisplayInfo MainDisplayInfo {
+            get {
+                IPgMainWindow.PgDisplayInfo oInfo = new IPgMainWindow.PgDisplayInfo();
+
+                using( Graphics oGraphics = this.CreateGraphics() ) {
+                    oInfo.pntDpi.X = oGraphics.DpiX;
+                    oInfo.pntDpi.Y = oGraphics.DpiY;
+                }
+                oInfo.pntSize.X = Screen.PrimaryScreen.Bounds.Width;
+                oInfo.pntSize.Y = Screen.PrimaryScreen.Bounds.Height;
+
+                return oInfo;
+            }
+        }
+        #endregion
 
         public int DocumentShow( string strFileName, Guid guidViewType, bool fShow ) {
             ViewSlot oViewSlot = DocumentShow( strFileName, guidViewType, fShow ? EditorShowEnum.FOCUS : EditorShowEnum.SILENT );

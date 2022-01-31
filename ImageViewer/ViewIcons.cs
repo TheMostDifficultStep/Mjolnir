@@ -182,11 +182,12 @@ namespace Play.ImageViewer {
             _oDocument.TextLoaded    += OnTextLoaded;
 			_oScrollBarVirt.Scroll   += OnScrollBar;
 
-            SKSize sRez = new SKSize( 96, 96 ); 
-            using( Graphics oGraphics = this.CreateGraphics() ) {
-                sRez.Width  = oGraphics.DpiX;
-                sRez.Height = oGraphics.DpiY;
+            IPgMainWindow.PgDisplayInfo oInfo = new IPgMainWindow.PgDisplayInfo();
+            if( _oViewSite.Host.TopWindow is IPgMainWindow oMainWin ) {
+                oInfo = oMainWin.MainDisplayInfo;
             }
+
+            SKSize sRez = new SKSize( oInfo.pntDpi.X, oInfo.pntSize.Y );
 
             _uiStdText = _oStdUI.FontCache( _oStdUI.FaceCache( @"C:\windows\fonts\consola.ttf" ), 12, sRez );
             _oStdUI.FaceCache(@"C:\Windows\Fonts\UDDigiKyokashoN-R.ttc"); // BUG: Let's add this at program level for fallback.

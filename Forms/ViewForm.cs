@@ -216,12 +216,12 @@ namespace Play.Forms {
             DocForms.BufferEvent += OnDocumentEvent;
             DocForms.CaretAdd( Caret ); // Document moves our caret and keeps it in sync.
 
-            // See also GetSystemMetricsForDpi() per monitor dpi aware
-            SKSize sResolution = new SKSize(96, 96);
-            using (Graphics oGraphics = this.CreateGraphics()) {
-                sResolution.Width  = oGraphics.DpiX;
-                sResolution.Height = oGraphics.DpiY;
+            IPgMainWindow.PgDisplayInfo oInfo = new IPgMainWindow.PgDisplayInfo();
+            if( _oSiteView.Host.TopWindow is IPgMainWindow oMainWin ) {
+                oInfo = oMainWin.MainDisplayInfo;
             }
+
+            SKSize sResolution = new SKSize( oInfo.pntDpi.X, oInfo.pntDpi.Y );
 
             StdText = StdUI.FontCache(StdUI.FaceCache(@"C:\windows\fonts\consola.ttf"), 12, sResolution);
 
