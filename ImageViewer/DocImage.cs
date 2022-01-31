@@ -208,7 +208,7 @@ namespace Play.ImageViewer {
             
             this.Copy = rcScratch;
 
-            SKSize    sResolution = new SKSize(72, 72); 
+            SKSize    sResolution = new SKSize( 96, 96 ); 
             uint      uiHeight    = (uint)(szExtent.Height * Scale );
 
             FontID = oStdUI.FontCache( FaceID, uiHeight, sResolution);

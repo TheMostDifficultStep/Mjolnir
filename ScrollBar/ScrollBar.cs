@@ -25,8 +25,7 @@ namespace Play.Controls {
 
         /// <summary>
         /// Bug: We used to be able to get this on the Graphics pointer in GDI32 on paint.
-        /// SKContro doesn't seem to have anything so hard coded for now but we 
-        /// can still get from the window if we want.
+        /// SKControl doesn't seem to have anything so hard coded for now.
         /// </summary>
         [Obsolete]public SKPoint Dpi {
             get {
