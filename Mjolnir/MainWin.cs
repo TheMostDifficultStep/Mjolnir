@@ -504,11 +504,12 @@ namespace Mjolnir {
                         if( !string.IsNullOrEmpty( strSize ) ) { 
                             if( int.TryParse( xmlElem.GetAttribute( strSide ), out int iValue ) ) {
                                 SideStuff sStuff  = _rgDim[strSide];
-							    _rgSideInfo.Add(eSide, new SideRect( sStuff.eTrack, 5 ) { 
+							    _rgSideInfo.Add(eSide, new SideRect( sStuff.eTrack ) { 
+                                    Spacing  = 5,
                                     SideInit = sStuff.iInit,
                                     Track    = (uint)iValue,
                                     Layout   = LayoutRect.CSS.Pixels 
-                                } );;
+                                } );
 						    } else {
 							    LogError( null, "initialization", "Couldn't read margin from config: " + strSide );
 						    }
@@ -530,7 +531,8 @@ namespace Mjolnir {
                 foreach( SideIdentify eSide in Enum.GetValues( typeof( SideIdentify ) ) ) {
                     string    strSide = eSide.ToString().ToLower();
                     SideStuff sStuff  = _rgDim[strSide];
-                    _rgSideInfo.Add( eSide, new SideRect( sStuff.eTrack, 5 ) { 
+                    _rgSideInfo.Add( eSide, new SideRect( sStuff.eTrack ) { 
+                        Spacing  = 5,
                         SideInit = sStuff.iInit, 
                         Track    = (uint)sStuff.iInit, 
                         Layout   = LayoutRect.CSS.Pixels } );

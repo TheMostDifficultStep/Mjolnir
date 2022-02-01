@@ -20,16 +20,13 @@ namespace Mjolnir {
 		IEnumerable<SmartHerderBase>
 	{
 		readonly List<SmartBinder> _rgSpacers = new List<SmartBinder>();
-				 uint              _uiSpacer; // BUG: Use the Spacing property.
 
-		public SideRect( TRACK eDir, uint uiSpacer ) : base( eDir, 0 ) {
-			_uiSpacer = uiSpacer;
+		public SideRect( TRACK eDir ) : base( eDir, 0 ) {
 		}
 
-		public SideRect( TRACK eDir, uint uiSpacer, uint uiTrack, float flMaxPercent ) : 
+		public SideRect( TRACK eDir, uint uiTrack, float flMaxPercent ) : 
 			base( eDir, uiTrack, flMaxPercent ) 
 		{
-			_uiSpacer = uiSpacer;
 		}
 
 		IEnumerable<SmartBinder> Spacers => _rgSpacers;
@@ -67,7 +64,7 @@ namespace Mjolnir {
 				throw new ArgumentNullException();
 
 			if( Count > 0 ) {
-				SmartBinder oSpacer = new SmartSpacer( Direction, Last, oNext, (int)_uiSpacer );
+				SmartBinder oSpacer = new SmartSpacer( Direction, Last, oNext, (int)Spacing );
 
 				_rgSpacers.Add( oSpacer );
 				base      .Add( oSpacer );

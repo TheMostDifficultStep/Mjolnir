@@ -322,7 +322,7 @@ namespace Mjolnir {
         public FTFace  Face       { get; }
         public SKPoint Resolution { get; }
         public uint    ID         { get; }
-        public uint    Height     { get; protected set; }
+        public uint    Height     { get; protected set; } // In points.
         public uint    HeightUnmagnified { get; } // Raw height from the request.
 
         public short Ascender  { get; protected set; } = 0;
@@ -506,11 +506,11 @@ namespace Mjolnir {
 
         /// <summary>For the given face, cache a font for the given height and resolution.</summary>
         /// <exception cref="ArgumentOutOfRangeException" />
-        public uint FaceCacheSize( ushort uiFace, uint uiHeight, SKPoint skResolution ) {
+        public uint FaceCacheSize( ushort uiFace, uint uiHeightInPoints, SKPoint skResolution ) {
             // Try find the font if it has already been cached.
             foreach( FontRender oRenderTry in _rgRenders ) {
                 if( oRenderTry.Face.ID           == uiFace &&
-                    oRenderTry.HeightUnmagnified == uiHeight &&
+                    oRenderTry.HeightUnmagnified == uiHeightInPoints &&
                     oRenderTry.Resolution        == skResolution )  
                 {
                     return oRenderTry.ID;
@@ -518,7 +518,7 @@ namespace Mjolnir {
             }
 
             // Didn't find it so create a renderer for the new size/resolution.
-            FontRender oRender = new FontRender( _rgFace[uiFace], skResolution, uiHeight, (uint)_rgRenders.Count );
+            FontRender oRender = new FontRender( _rgFace[uiFace], skResolution, uiHeightInPoints, (uint)_rgRenders.Count );
             oRender.InitNew();
 
             _rgRenders.Add( oRender );
