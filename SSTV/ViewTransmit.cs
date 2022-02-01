@@ -377,6 +377,10 @@ namespace Play.SSTV {
 				SKSizeI ptComp = new SKSizeI( oMode.Resolution.Width, oMode.Resolution.Height );
 				SKSizeI szDest = new SKSizeI( _wmTxImageChoice.Aspect.X, _wmTxImageChoice.Aspect.Y );
 
+				if( _wmTxImageChoice.Selection.IsEmpty() ) {
+					_wmTxImageChoice.Execute( GlobalCommands.SelectAll );
+				}
+
 				_oDocSSTV.TxBitmapSnip.Load( _oDocSSTV.TxBitmap, _wmTxImageChoice.Selection.SKRect, szDest ); 
 				_oDocSSTV.TxBitmapComp.Load( _oDocSSTV.TxBitmap, rcComp, ptComp ); // Render needs this, for now.
 

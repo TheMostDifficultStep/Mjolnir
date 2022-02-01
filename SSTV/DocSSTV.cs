@@ -869,8 +869,8 @@ namespace Play.SSTV {
                         break;
                     case 4:
                         { 
-                            LayoutStackVertical   oStack = new();
-                            LayoutStackColorBg oHoriz = new( TRACK.HORIZ) { 
+                            LayoutStackVertical oStack = new();
+                            LayoutStackColorBg  oHoriz = new( TRACK.HORIZ) { 
                                 Layout = LayoutRect.CSS.Pixels, Track = 60, Colors = { SKColors.Green, SKColors.Blue }
                             };
 
@@ -879,8 +879,10 @@ namespace Play.SSTV {
                             Line               oLine = TxBitmapComp.Text.LineAppend( "CQ de " + MyCall, fUndoable:false );
                             LayoutSingleLine oSingle = new( new FTCacheLine( oLine ), LayoutRect.CSS.Flex ) { BgColor = SKColors.Transparent };
 
+                            // Since we flex, do all this before layout children.
                             uint uiPoints = (uint)( 60 * 72 / 96 );
                             uint uiFontID = oStdUI.FontCache( TxBitmapComp.StdFace, uiPoints, new SKSize(96, 96) );
+                            oSingle.Cache.Update( oStdUI.FontRendererAt( uiFontID ) );
 
                             oHoriz.Add( new LayoutRect( LayoutRect.CSS.None) );
                             oHoriz.Add( oSingle );
@@ -889,19 +891,16 @@ namespace Play.SSTV {
                             oStack.Add( oHoriz );
 
                             LayoutImage oImage = new LayoutImage( TxBitmapSnip.Bitmap, LayoutRect.CSS.None );
+                            // We'll blow chunks if the snip bmp is null. So got to check.
                             if( TxBitmapSnip.Bitmap != null ) {
                                 oStack.Add( oImage );
                             }
+
+                            // Need this to calc image aspect to bubbleup.
                             oStack.SetRect( 0, 0, oMode.Resolution.Width, oMode.Resolution.Height );
                             oStack.LayoutChildren();
                             
-                            //uint uiHeight = (uint)( oSingle.Height );
-                            //uint uiPoints = (uint)( uiHeight * 72 / 96 );
-                            //uint uiFontID = oStdUI.FontCache( TxBitmapComp.StdFace, uiPoints, new SKSize(96, 96) );
-
-                            oSingle.Cache.Update( oStdUI.FontRendererAt( uiFontID ) );
-
-                            // This must occur after layout... of course. ^_^;
+                            // After the layout send the aspect out to the listeners.
                             Send_TxImageAspect?.Invoke( new SKPointI( oImage.Width, oImage.Height ) );
 
                             TxBitmapComp.AddLayout( oStack );
