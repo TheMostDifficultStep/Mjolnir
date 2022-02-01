@@ -123,7 +123,7 @@ namespace Mjolnir {
 
             // This could be in the initialize/initnew() steps, but it's nice to have
             // these as readonly variables. I'll leave it for now.
-            _oLayoutPrimary = new LayoutStackVertical() { Margin = 5 };
+            _oLayoutPrimary = new LayoutStackVertical() { Spacing = 5 };
             // This one probably won't work anymore. And we'll certainly lose all the
             // docking windows b/c those are docked by the layout now.
 			_oLayout2       = new LayoutFlowSquare_MainWin( this, 5 );
@@ -326,7 +326,7 @@ namespace Mjolnir {
             oTabs.Parent = this;
             oTabs.InitNew();
 
-            LayoutStackHorizontal oCenter = new() { Margin = 5 }; // { CSS = None }
+            LayoutStackHorizontal oCenter = new() { Spacing = 5 }; // { CSS = None }
 
             oCenter.Padding.SetRect( 5, 0, 5, 0 );
 

@@ -103,10 +103,10 @@ namespace Play.MorsePractice {
             ViewBiograph = new ViewBio( new ViewQrzSlot       ( this ), oDocument ) { Parent = this };
 
             _rgLayout = new LayoutStackVertical() {
-                Margin   = 15,
+                Spacing   = 15,
                 Children = {
                     new LayoutStackHorizontal( 19, .1f ) {
-                        Margin = 15,
+                        Spacing = 15,
                         Children = {
                         new LayoutControl( ViewCallSign, LayoutRect.CSS.Pixels, 100 ),
                         new LayoutRect( LayoutRect.CSS.None )

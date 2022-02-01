@@ -341,8 +341,8 @@ namespace Mjolnir {
 		public static readonly Guid  _oCatagory  = new Guid("{b2765000-58f3-48fa-8d1f-3bcbcee361e4}");
 
 		readonly IPgViewSite _oViewSite;
-		readonly LayoutStack _oLayoutBot = new LayoutStackHorizontal( 50, 10 ) { Margin = 5 };
-		readonly LayoutStack _oLayout    = new LayoutStackVertical( ) { Margin = 5 };
+		readonly LayoutStack _oLayoutBot = new LayoutStackHorizontal( 50, 10 ) { Spacing = 5 };
+		readonly LayoutStack _oLayout    = new LayoutStackVertical( ) { Spacing = 5 };
 		readonly MainWin     _oHost;
 
 		public ViewEverything( IPgViewSite oViewSite ) {

@@ -47,7 +47,7 @@ namespace Play.Rectangles {
 		LayoutRect,
 		IEnumerable<LayoutRect>
 	{
-		public uint Margin { get; set; } = 0;
+		public uint Spacing { get; set; } = 0; 
 
 		public ParentRect( ) : base( CSS.None ) {
 		}
@@ -228,7 +228,7 @@ namespace Play.Rectangles {
 						iCount--;
 				}
 				if( iCount > 0 )
-					return (uint)iCount * Margin;
+					return (uint)iCount * Spacing;
 
 				return 0;
 			}
@@ -383,7 +383,7 @@ namespace Play.Rectangles {
 					SetRect( extRail, extCarriageTrack, Item(i) );
 					Item(i).LayoutChildren();
 
-					extCarriageTrack.Start = extCarriageTrack.Stop + ( Item(i).Hidden ? 0 : (int)Margin );
+					extCarriageTrack.Start = extCarriageTrack.Stop + ( Item(i).Hidden ? 0 : (int)Spacing );
 				}
 				return true;
 			} catch( Exception oEx ) {
@@ -493,8 +493,8 @@ namespace Play.Rectangles {
         readonly LayoutStack _oColStack;
 
 		public SmartTable( uint uiMargin, CSS eUnits ) : base( eUnits, 0, 100 ) {
-            _oRowStack = new LayoutStackVertical  ( ) { Margin = this.Margin };
-            _oColStack = new LayoutStackHorizontal( ) { Margin = this.Margin };
+            _oRowStack = new LayoutStackVertical  ( ) { Spacing = this.Spacing };
+            _oColStack = new LayoutStackHorizontal( ) { Spacing = this.Spacing };
         }
 
         public override int Count => _oRowStack.Count;
@@ -524,7 +524,7 @@ namespace Play.Rectangles {
 		}
 
 		public void AddRow( List<LayoutRect> rgRow ) {
-            LayoutStack oNewRowRect = new LayoutStackHorizontal() { Margin = this.Margin };
+            LayoutStack oNewRowRect = new LayoutStackHorizontal() { Spacing = this.Spacing };
 
             foreach( LayoutRect oCell in rgRow ) {
                 oNewRowRect.Add( oCell );
@@ -603,7 +603,7 @@ namespace Play.Rectangles {
 							oRow.Track = uiTrack;
                         iColumn += oCell.Span + 1; // Make sure we skip over the spanned cell!!
 					}
-                    _oRowStack.Track += oRow.Track + Margin; // BUG: Margins are all messed up.
+                    _oRowStack.Track += oRow.Track + Spacing; // BUG: Margins are all messed up.
                 }
             } catch ( Exception oEx ) {
 				Type[] rgErrors = { 
@@ -731,8 +731,8 @@ namespace Play.Rectangles {
 				szSize.Width  -= Margins.Left + Margins.Right;
 				szSize.Height -= Margins.Top  + Margins.Bottom;
 
-				szSize.Width  -= (int)Margin * pntGaps.X;
-				szSize.Height -= (int)Margin * pntGaps.Y;
+				szSize.Width  -= (int)Spacing * pntGaps.X;
+				szSize.Height -= (int)Spacing * pntGaps.Y;
 
 				szSize.Width  /= pntExtent.X;
 				szSize.Height /= pntExtent.Y;

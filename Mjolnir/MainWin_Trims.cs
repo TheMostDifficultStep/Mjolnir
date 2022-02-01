@@ -23,7 +23,7 @@ namespace Mjolnir
 
             _oLayoutText = new LayoutText2( new FTCacheLine( new TextLine( 0, "Arrgh" ) ), CSS.None, 0, 0 );
 
-            _rgLayoutTitleBar = new LayoutStackHorizontal() { Margin = 3, Units = CSS.Pixels, Track = uiTitleHeight, Hidden = false };
+            _rgLayoutTitleBar = new LayoutStackHorizontal() { Spacing = 3, Units = CSS.Pixels, Track = uiTitleHeight, Hidden = false };
 
             // BUG: This bombs out if the Slot doesn't have an Iconic image. Convert to SKBitmap.
          // _rgLayoutTitleBar.Add( new LayoutImage( oGuestSlot.Iconic, CSS.Flex ) { Track = uiTitleHeight } );

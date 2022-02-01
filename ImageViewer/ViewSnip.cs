@@ -115,7 +115,7 @@ namespace Play.ImageViewer {
         protected readonly IPgViewNotify             _oViewEvents; // From our site, window manager (view interface).
 		protected readonly Dictionary<Labels, Input> _rgProperty = new Dictionary<Labels, Input>();
 
-        readonly LayoutStackVertical _rgVertStack = new LayoutStackVertical() { Margin = 5 };
+        readonly LayoutStackVertical _rgVertStack = new LayoutStackVertical() { Spacing = 5 };
 		readonly SmartTable          _rgTable     = new SmartTable( 5, LayoutRect.CSS.Flex );
 
 		protected ImageSoloDoc    SnipDoc { get; }

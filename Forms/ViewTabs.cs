@@ -139,7 +139,7 @@ namespace Play.Forms {
             LayoutPattern oTabStatus = new( LayoutRect.CSS.Pixels, 5, oViewLine, TabStatus );
 
             // Round up all the layouts into our tab object here.
-			LayoutStackHorizontal oTab = new () { Margin = 5, BackgroundColor = TabBackground, ID = oViewLine };
+			LayoutStackHorizontal oTab = new () { Spacing = 5, BackgroundColor = TabBackground, ID = oViewLine };
 				
             oTab.Add( oTabStatus );
 			oTab.Add( oTabIcon );

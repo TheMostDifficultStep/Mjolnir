@@ -48,7 +48,7 @@ namespace Play.SSTV {
         protected WindowSoloImageNav _wmViewRxHistorySelected;
 		protected ImageViewIcons     _wmViewRxHistory;
 
-		protected readonly LayoutStack _oLayout = new LayoutStackVertical() { Margin = 5 };
+		protected readonly LayoutStack _oLayout = new LayoutStackVertical() { Spacing = 5 };
 
 		protected class SSTVWinSlot :
 			IPgViewSite,
@@ -450,8 +450,8 @@ namespace Play.SSTV {
 		public Image Iconic => null;
         public bool		 IsDirty   => false;
 
-		protected readonly LayoutStack     _oLayout = new LayoutStackVertical() { Margin = 5 };
-		protected readonly LayoutStaggared _rgStaggaredLayout = new () { Margin = 5 };
+		protected readonly LayoutStack     _oLayout = new LayoutStackVertical() { Spacing = 5 };
+		protected readonly LayoutStaggared _rgStaggaredLayout = new () { Spacing = 5 };
 
 		protected class SSTVWinSlot :
 			IPgFileSite,

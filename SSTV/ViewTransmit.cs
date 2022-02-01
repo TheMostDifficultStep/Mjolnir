@@ -230,7 +230,7 @@ namespace Play.SSTV {
 			_rgStaggaredLayout.Add(new LayoutControl( _wmTxImageComposite, LayoutRect.CSS.None) );
 			_rgStaggaredLayout.Add(new LayoutControl( _wmTxImageChoice,    LayoutRect.CSS.None) );
 
-			LayoutStack oHBLayout = new LayoutStackHorizontal( 220, 30 ) { Margin = 5 };
+			LayoutStack oHBLayout = new LayoutStackHorizontal( 220, 30 ) { Spacing = 5 };
 
 			oHBLayout.Add( new LayoutControl( _wmTxViewChoices, LayoutRect.CSS.Percent, 50 ) );
 			oHBLayout.Add( new LayoutControl( _wmRxViewChoices, LayoutRect.CSS.Percent, 50 ) );

@@ -176,7 +176,7 @@ namespace Play.Edit {
         protected          IPgGlyph              _oCheque     = null;
         protected          LayoutRect            _rctCheques;
         protected readonly LayoutRect            _rctTextArea = new LayoutRect( LayoutRect.CSS.None );
-        protected readonly LayoutStackHorizontal _oLayout     = new LayoutStackHorizontal() { Margin = 5 };
+        protected readonly LayoutStackHorizontal _oLayout     = new LayoutStackHorizontal() { Spacing = 5 };
 
         // Possible to change if move window from one screen to another. Right now only init at start.
         public SizeF DPI { get; protected set; }

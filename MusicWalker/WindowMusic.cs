@@ -29,8 +29,8 @@ namespace Play.MusicWalker {
 		readonly IPgViewSite     _oSiteView;
         readonly IPgViewNotify   _oViewEvents;
 
-		readonly LayoutStackVertical   _rgLayoutTop   = new LayoutStackVertical() { Margin = 5 };
-		readonly LayoutStackHorizontal _rgLayoutTools = new LayoutStackHorizontal( 30, 1 ) { Margin = 5 };
+		readonly LayoutStackVertical   _rgLayoutTop   = new LayoutStackVertical() { Spacing = 5 };
+		readonly LayoutStackHorizontal _rgLayoutTools = new LayoutStackHorizontal( 30, 1 ) { Spacing = 5 };
 
 		int _iStartSong = 0;
 

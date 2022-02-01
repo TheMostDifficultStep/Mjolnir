@@ -86,22 +86,22 @@ namespace Play.MorsePractice {
 			ViewCode   = new EditWindow2( new ViewMorseSlot     ( this ), _oDocMorse.Morse, fReadOnly:true ) { Parent = this };
 
 			_rgLayout = new LayoutStackHorizontal() {
-				Margin = 15,
+				Spacing = 15,
 				Children = {
 					new LayoutStackVertical( ) {
-						Margin = 15,
+						Spacing = 15,
 						Children = {
 						new LayoutControl( ViewSource, LayoutRect.CSS.Percent, 40 ),
 						new LayoutControl( ViewNotes,  LayoutRect.CSS.Percent, 60 )
 						}
 					},
 					new LayoutStackVertical( 350, .3F ) {
-						Margin = 15,
+						Spacing = 15,
 						Children = {
 						new LayoutControl( ViewCode, LayoutRect.CSS.Percent, 100 )
 				}	}	}
 			};
-			_rgLayout.Margin = 5;
+			_rgLayout.Spacing = 5;
 		}
 
 		bool _fDisposed = false;
