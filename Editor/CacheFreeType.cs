@@ -257,14 +257,18 @@ namespace Play.Edit {
             return 0;
         }
 
-        protected void Update_EndOfLine( IPgFontRender oFR, float fEmAdvanceAbs ) {
+        /// <summary>
+        /// Still be needed for selection. Which makes sense as the carat
+        /// is always to the left of the current cluster. But make sure
+        /// the width is zero, that way it won't affect any line width measurements!
+        /// </summary>
+        /// <param name="oFR"></param>
+        protected void Update_EndOfLine( IPgFontRender oFR ) {
             PgCluster oCluster = new PgCluster(_rgGlyphs.Count);
             IPgGlyph  oGlyph   = oFR.GetGlyph(0x20);
 
-            oCluster.AdvanceLeft = fEmAdvanceAbs; // New left size advance.
-            oCluster.AdvanceOffs = oGlyph.Coordinates.advance_x;
-            oCluster.Coordinates = oGlyph.Coordinates;
-            oCluster.IsVisible   = false;
+          //oCluster.Coordinates    = oGlyph.Coordinates; DO NOT SET!
+            oCluster.IsVisible      = false;
             oCluster.Glyphs.Length  = 1;
 
             _rgClusters.Add( oCluster );
@@ -329,8 +333,7 @@ namespace Play.Edit {
         /// 0x2695 staff of aesculapius. (cp 0x2695)
         /// 0xfe0f variation selector-16 (cp 0xfe0f) emoji with color.
         /// </summary>
-        /// <remarks>After 30 years it occurs to me that I'm setting advance offsets here,
-        /// AND in WrapSegmentsCreate() I need to resolve that!!</remarks>
+        /// <remarks>Do NOT set the cluster AdvanceLeft, that will be set in WrapSegments() </remarks>
         /// <seealso cref="FTCacheWrap.WrapSegments"/>
         public void Update( IPgFontRender oFR ) {
             if( oFR == null )
@@ -342,8 +345,7 @@ namespace Play.Edit {
 
             _rgClusters.Clear();
             PgCluster oCluster;
-            float     flEmAdvanceAbs = 0; // BUG: this isn't being used, look into.
-            int       iGlyphIndex    = 0; // Keep track of where we are in our Glyphs.
+            int       iGlyphIndex = 0; // Keep track of where we are in our Glyphs.
 
             try {
                 while( iGlyphIndex < _rgGlyphs.Count ) {
@@ -353,8 +355,6 @@ namespace Play.Edit {
                     oCluster.Glyphs.Length++; 
                     oCluster.Coordinates   = _rgGlyphs[iGlyphIndex].Coordinates;
                     oCluster.IsVisible     = !Rune.IsWhiteSpace( (Rune)_rgGlyphs[iGlyphIndex].CodePoint );
-                    //oCluster.AdvanceLeftEm = iEmAdvanceAbs; 
-                    //iEmAdvanceAbs += oCluster.AdvanceOffsEm;
 
                     if( ++iGlyphIndex >= _rgGlyphs.Count )
                         break;
@@ -381,7 +381,7 @@ namespace Play.Edit {
                     }
                 }
 
-                Update_EndOfLine ( oFR, flEmAdvanceAbs );
+                Update_EndOfLine ( oFR );
                 Update_ClusterMap();
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( NullReferenceException ),
