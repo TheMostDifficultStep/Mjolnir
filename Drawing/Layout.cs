@@ -406,11 +406,15 @@ namespace Play.Rectangles {
 		}
 
         public override void Paint(SKCanvas skCanvas) {
+			PaintBackground( skCanvas );
+            base.Paint(skCanvas);
+        }
+
+        public override void PaintBackground(SKCanvas skCanvas) {
 			if( BackgroundColor != null ) {
 				SKPaint skPaint  = new SKPaint() { Color = BackgroundColor( ID ) };
 				skCanvas.DrawRect( this.SKRect, skPaint );
 			}
-            base.Paint(skCanvas);
         }
     }
 

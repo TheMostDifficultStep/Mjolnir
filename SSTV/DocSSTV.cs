@@ -870,12 +870,14 @@ namespace Play.SSTV {
                     case 4:
                         { 
                             LayoutStackVertical   oStack = new();
-                            LayoutStackHorizontal oHoriz = new() { Layout = LayoutRect.CSS.Pixels, Track = 60 };
+                            LayoutStackColorBg oHoriz = new( TRACK.HORIZ) { 
+                                Layout = LayoutRect.CSS.Pixels, Track = 60, Colors = { SKColors.Green, SKColors.Blue }
+                            };
 
                             IPgStandardUI2 oStdUI = (IPgStandardUI2)Services ?? throw new ApplicationException( "Couldn't get StdUI2" );
 
                             Line               oLine = TxBitmapComp.Text.LineAppend( "CQ de " + MyCall, fUndoable:false );
-                            LayoutColorBgLine oSingle = new( new FTCacheLine( oLine ), LayoutRect.CSS.Flex );
+                            LayoutSingleLine oSingle = new( new FTCacheLine( oLine ), LayoutRect.CSS.Flex ) { BgColor = SKColors.Transparent };
 
                             uint uiPoints = (uint)( 60 * 72 / 96 );
                             uint uiFontID = oStdUI.FontCache( TxBitmapComp.StdFace, uiPoints, new SKSize(96, 96) );
@@ -898,8 +900,6 @@ namespace Play.SSTV {
                             //uint uiFontID = oStdUI.FontCache( TxBitmapComp.StdFace, uiPoints, new SKSize(96, 96) );
 
                             oSingle.Cache.Update( oStdUI.FontRendererAt( uiFontID ) );
-                            oSingle.Colors.Add( SKColors.Green );
-                            oSingle.Colors.Add( SKColors.Blue );
 
                             // This must occur after layout... of course. ^_^;
                             Send_TxImageAspect?.Invoke( new SKPointI( oImage.Width, oImage.Height ) );
