@@ -205,10 +205,10 @@ namespace Play.ImageViewer {
             this.Copy = rcScratch;
 
             // The height of the text is about the height of the box.
-            SKSize    sResolution = new SKSize( 96, 96 ); 
-            uint      uiHeight    = (uint)(szExtent.Height * Scale );
+            SKPoint sRez     = new SKPoint( 96, 96 ); 
+            uint    uiHeight = (uint)(szExtent.Height / sRez.Y * 72 * Scale );
 
-            FontID = oStdUI.FontCache( FaceID, uiHeight, sResolution);
+            FontID = oStdUI.FontCache( FaceID, uiHeight, sRez );
 
             CacheElem.Update( oStdUI.FontRendererAt( FontID ) );
             OnSize();

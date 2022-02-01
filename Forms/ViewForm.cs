@@ -266,9 +266,7 @@ namespace Play.Forms {
                 oInfo = oMainWin.MainDisplayInfo;
             }
 
-            SKSize sResolution = new SKSize( oInfo.pntDpi.X, oInfo.pntDpi.Y );
-
-            StdText = StdUI.FontCache(StdUI.FaceCache(@"C:\windows\fonts\consola.ttf"), 12, sResolution);
+            StdText = StdUI.FontCache(StdUI.FaceCache(@"C:\windows\fonts\consola.ttf"), 12, oInfo.pntDpi);
 
             return true;
         }
@@ -728,7 +726,7 @@ namespace Play.Forms {
 			PgSite = oSiteBase ?? throw new ArgumentNullException( "Site for form control must not be null" );
 
  			StdUI      = PgSite.Host.Services as IPgStandardUI2 ?? throw new ArgumentException( "Parent view must provide IPgStandardUI service" );
-            _uiStdText = StdUI.FontCache( StdUI.FaceCache( @"C:\windows\fonts\consola.ttf" ), 12, new SKSize( 96, 96 ) );
+            _uiStdText = StdUI.FontCache( StdUI.FaceCache( @"C:\windows\fonts\consola.ttf" ), 12, new SKPoint( 96, 96 ) );
 
 			Cache = new FTCacheLine( new TextLine( 0, "hello" ) );
 			Cache.Update( StdUI.FontRendererAt( _uiStdText ) );

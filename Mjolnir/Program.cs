@@ -1469,8 +1469,8 @@ namespace Mjolnir {
             return _oFTManager.FaceCache( strFontFace );
         }
 
-        public uint FontCache( ushort uiFace, uint uiHeight, SKSize skResolution ) {
-            return _oFTManager.FaceCacheSize( uiFace, uiHeight, skResolution );
+        public uint FontCache( ushort uiFace, uint uiHeightInPoints, SKPoint skResolution ) {
+            return _oFTManager.FaceCacheSize( uiFace, uiHeightInPoints, skResolution );
         }
 
         public IPgFontRender FontRendererAt( uint uiRenderID ) {

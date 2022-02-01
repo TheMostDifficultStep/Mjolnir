@@ -870,8 +870,8 @@ namespace Play.SSTV {
                     case 4:
                         { 
                             LayoutStackVertical oStack = new();
-                            LayoutStackColorBg  oHoriz = new( TRACK.HORIZ) { 
-                                Layout = LayoutRect.CSS.Pixels, Track = 60, Colors = { SKColors.Green, SKColors.Blue }
+                            LayoutStackBgGradient  oHoriz = new( TRACK.HORIZ) { 
+                                Layout = LayoutRect.CSS.Pixels, Track = 60, Colors = { SKColors.Green, SKColors.Yellow, SKColors.Blue }
                             };
 
                             IPgStandardUI2 oStdUI = (IPgStandardUI2)Services ?? throw new ApplicationException( "Couldn't get StdUI2" );
@@ -880,8 +880,10 @@ namespace Play.SSTV {
                             LayoutSingleLine oSingle = new( new FTCacheLine( oLine ), LayoutRect.CSS.Flex ) { BgColor = SKColors.Transparent };
 
                             // Since we flex, do all this before layout children.
-                            uint uiPoints = (uint)( 60 * 72 / 96 );
-                            uint uiFontID = oStdUI.FontCache( TxBitmapComp.StdFace, uiPoints, new SKSize(96, 96) );
+                            SKPoint      skRez = new SKPoint(96, 96);
+                            int iPointsPerInch = 72;
+                            uint      uiPoints = (uint)( 60 * iPointsPerInch / skRez.Y );
+                            uint      uiFontID = oStdUI.FontCache( TxBitmapComp.StdFace, uiPoints, skRez );
                             oSingle.Cache.Update( oStdUI.FontRendererAt( uiFontID ) );
 
                             oHoriz.Add( new LayoutRect( LayoutRect.CSS.None) );

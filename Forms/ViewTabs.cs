@@ -79,9 +79,7 @@ namespace Play.Forms {
                     oInfo = oMainWin.MainDisplayInfo;
                 }
 
-                SKSize sRez = new SKSize( oInfo.pntDpi.X, oInfo.pntDpi.Y );
-
-                _uStdFont = _oStdUI.FontCache(_oStdUI.FaceCache(@"C:\windows\fonts\consola.ttf"), 10, sRez);
+                _uStdFont = _oStdUI.FontCache(_oStdUI.FaceCache(@"C:\windows\fonts\consola.ttf"), 10, oInfo.pntDpi );
 
 			    foreach( Line oLine in Document ) {
 				    Layout.Add( CreateTab( oLine ) );

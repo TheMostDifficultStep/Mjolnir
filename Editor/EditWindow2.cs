@@ -83,7 +83,7 @@ namespace Play.Edit {
 
     public interface IPgStandardUI2 : IPgStandardUI {
         ushort        FaceCache       ( string strFilePath ); // Enter the requested face
-        uint          FontCache       ( ushort uiFaceID, uint uiHeightInPoints, SKSize skResolution );
+        uint          FontCache       ( ushort uiFaceID, uint uiHeightInPoints, SKPoint skResolution );
         IPgFontRender FontRendererAt  ( uint uiRenderID );
         IPgFontRender FontStandardAt  ( string strName, SKSize skResolution );
         SKColor       ColorsStandardAt( StdUIColors eColor );
@@ -418,11 +418,9 @@ namespace Play.Edit {
                 oInfo = oMainWin.MainDisplayInfo;
             }
 
-            SKSize sRez = new SKSize( oInfo.pntDpi.X, oInfo.pntDpi.Y );
-
             // cour.ttf, consola.ttf
-            uint uiStdText = _oStdUI.FontCache( _oStdUI.FaceCache( @"C:\windows\fonts\consola.ttf"  ), 12, sRez );
-            uint uiStdUI   = _oStdUI.FontCache( _oStdUI.FaceCache( @"C:\windows\fonts\seguisym.ttf" ), 12, sRez );
+            uint uiStdText = _oStdUI.FontCache( _oStdUI.FaceCache( @"C:\windows\fonts\consola.ttf"  ), 12, oInfo.pntDpi );
+            uint uiStdUI   = _oStdUI.FontCache( _oStdUI.FaceCache( @"C:\windows\fonts\seguisym.ttf" ), 12, oInfo.pntDpi );
           //uint uiEmojID  = _oStdUI.FontCache( _oStdUI.FaceCache( @"C:\Users\Frodo\AppData\Local\Microsoft\Windows\Fonts\NotoEmoji-Regular.ttf" ), 12, sResolution );
 
             IPgFontRender oRender = _oStdUI.FontRendererAt( uiStdUI );

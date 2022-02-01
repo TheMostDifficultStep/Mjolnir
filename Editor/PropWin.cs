@@ -128,9 +128,7 @@ namespace Play.Edit {
                 oInfo = oMainWin.MainDisplayInfo;
             }
 
-            SKSize sRez = new SKSize( oInfo.pntDpi.X, oInfo.pntDpi.Y );
-
-            StdFontID = _oStdUI.FontCache( _oStdUI.FaceCache( @"C:\windows\fonts\consola.ttf" ), 12, sRez );
+            StdFontID = _oStdUI.FontCache( _oStdUI.FaceCache( @"C:\windows\fonts\consola.ttf" ), 12, oInfo.pntDpi );
 
 			_oTable.Add( new LayoutRect( LayoutRect.CSS.Flex, 0, 40 ) );
 			_oTable.Add( new LayoutRect( LayoutRect.CSS.Flex, 0, 10 ) );

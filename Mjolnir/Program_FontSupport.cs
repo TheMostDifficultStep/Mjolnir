@@ -154,16 +154,16 @@ namespace Mjolnir {
             return result;
         }
 
-        public void SetSize( uint uiSize, SKSize szDeviceRes ) { 
+        public void SetSize( uint uiSizeInPoints, SKPoint szDeviceRes ) { 
             int iError = 0;
             try {
-                uint uiEmSizeY = uiSize * 64;
+                uint uiEmSizeY = uiSizeInPoints * 64;
                 iError = FreeType2API.PG_Face_SetCharSize(
                     Handle,
-                    0, /* char_width  in 1/64th of points */
+                    0,         /* char_width  in 1/64th of points. Zero means square */
                     uiEmSizeY, /* char_height in 1/64th of points. 26.6 fractional points. */
-                    (uint)szDeviceRes.Width,
-                    (uint)szDeviceRes.Height);
+                    (uint)szDeviceRes.X,
+                    (uint)szDeviceRes.Y);
                 // iError = FreeType2API.PG_Set_Pixel_Sizes( Handle, 0, uiSize );
             } catch( Exception oEx ) {
                 if( rgErrors.IsUnhandled( oEx ) )
@@ -171,7 +171,7 @@ namespace Mjolnir {
             }
             if( iError != 0 )
                 throw new ApplicationException( "Couldn't set FontFace Size" );
-            CurrentHeight = uiSize;
+            CurrentHeight = uiSizeInPoints;
         }
 
         public uint GlyphFromCodePoint( uint uiCodePoint ) {
@@ -319,11 +319,11 @@ namespace Mjolnir {
     /// Render a font at the given height from the given face.
     /// </summary>
     public class FontRender {
-        public FTFace Face       { get; }
-        public SKSize Resolution { get; }
-        public uint   ID         { get; }
-        public uint   Height     { get; protected set; }
-        public uint   HeightUnmagnified { get; } // Raw height from the request.
+        public FTFace  Face       { get; }
+        public SKPoint Resolution { get; }
+        public uint    ID         { get; }
+        public uint    Height     { get; protected set; }
+        public uint    HeightUnmagnified { get; } // Raw height from the request.
 
         public short Ascender  { get; protected set; } = 0;
         public short Descender { get; protected set; } = 0;
@@ -331,11 +331,11 @@ namespace Mjolnir {
         readonly protected List<IPgGlyph> _rgRendered = new List<IPgGlyph>( 50 );
         readonly protected double         _dblScale;
 
-        public FontRender( FTFace oFace, SKSize sResolution, uint uiHeight, uint uiID ) {
+        public FontRender( FTFace oFace, SKPoint sResolution, uint uiHeight, uint uiID ) {
             Face = oFace ?? throw new ArgumentNullException( "Font face must not be null." );
 
             HeightUnmagnified = uiHeight;
-            _dblScale         = sResolution.Height / 96.0;
+            _dblScale         = sResolution.Y / 96.0;
 
             Resolution = sResolution;
             Height     = (uint)( HeightUnmagnified * _dblScale );
@@ -506,7 +506,7 @@ namespace Mjolnir {
 
         /// <summary>For the given face, cache a font for the given height and resolution.</summary>
         /// <exception cref="ArgumentOutOfRangeException" />
-        public uint FaceCacheSize( ushort uiFace, uint uiHeight, SKSize skResolution ) {
+        public uint FaceCacheSize( ushort uiFace, uint uiHeight, SKPoint skResolution ) {
             // Try find the font if it has already been cached.
             foreach( FontRender oRenderTry in _rgRenders ) {
                 if( oRenderTry.Face.ID           == uiFace &&

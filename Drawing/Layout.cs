@@ -446,10 +446,10 @@ namespace Play.Rectangles {
 		}
 	}
 
-    public class LayoutStackColorBg : LayoutStack {
+    public class LayoutStackBgGradient : LayoutStack {
         public List<SKColor> Colors { get; } = new List<SKColor>();
         public List<float>   Points { get; } = new List<float>();
-        public LayoutStackColorBg( TRACK eTrack ) : base( eTrack ) {
+        public LayoutStackBgGradient( TRACK eTrack ) : base( eTrack ) {
         }
 
         public override void PaintBackground(SKCanvas skCanvas) {
@@ -460,9 +460,11 @@ namespace Play.Rectangles {
 
             using SKPaint skPaint = new() { BlendMode = SKBlendMode.SrcATop, IsAntialias = true };
 
-            if( Points.Count <= 0 ) {
+            if( Points.Count <= 0 || Points.Count != Colors.Count ) {
+				float flDivisor = Colors.Count - 1;
+				Points.Clear();
                 for( int i = 0; i < Colors.Count; ++i ) {
-                    float flPoint = i / ( Colors.Count - 1 );
+                    float flPoint = i / flDivisor;
                     Points.Add( flPoint );
                 }
             }
