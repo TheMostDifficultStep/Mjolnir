@@ -48,7 +48,7 @@ namespace Play.SSTV {
         protected WindowSoloImageNav _wmViewRxHistorySelected;
 		protected ImageViewIcons     _wmViewRxHistory;
 
-		protected readonly LayoutStack _oLayout = new LayoutStackVertical( 5 );
+		protected readonly LayoutStack _oLayout = new LayoutStackVertical() { Margin = 5 };
 
 		protected class SSTVWinSlot :
 			IPgViewSite,
@@ -450,8 +450,8 @@ namespace Play.SSTV {
 		public Image Iconic => null;
         public bool		 IsDirty   => false;
 
-		protected readonly LayoutStack     _oLayout = new LayoutStackVertical( 5 );
-		protected readonly LayoutStaggared _rgStaggaredLayout = new (5);
+		protected readonly LayoutStack     _oLayout = new LayoutStackVertical() { Margin = 5 };
+		protected readonly LayoutStaggared _rgStaggaredLayout = new () { Margin = 5 };
 
 		protected class SSTVWinSlot :
 			IPgFileSite,
@@ -823,11 +823,11 @@ namespace Play.SSTV {
 	public class LayoutStaggared : ParentRect {
 		protected readonly List<LayoutRect> _rgLayout = new List<LayoutRect>();
 
-        public LayoutStaggared( uint uiMargin ) : base( uiMargin ) {
+        public LayoutStaggared() : base() {
         }
 
-        public LayoutStaggared( CSS eUnits, uint uiMargin, uint uiTrack, float flMaxPercent ) : 
-			base(eUnits, uiMargin, uiTrack, flMaxPercent)
+        public LayoutStaggared( CSS eUnits, uint uiTrack, float flMaxPercent ) : 
+			base(eUnits, uiTrack, flMaxPercent)
         {
         }
 

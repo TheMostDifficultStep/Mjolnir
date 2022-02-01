@@ -16,7 +16,7 @@ namespace Play.MusicWalker {
 		IPgParent,
 		IPgLoad<XmlElement>
 	{
-		protected LayoutStackVertical _rgLayout = new LayoutStackVertical( 5 );
+		protected LayoutStackVertical _rgLayout = new LayoutStackVertical() { Margin = 5 };
 
 		readonly MusicWin      _oHost;
 		readonly IPgViewSite   _oViewSite;

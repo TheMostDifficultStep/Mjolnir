@@ -85,15 +85,23 @@ namespace Play.MorsePractice {
 			ViewNotes  = new EditWindow2( new ViewMorseNotesSlot( this ), _oDocMorse.Notes  ) { Parent = this };
 			ViewCode   = new EditWindow2( new ViewMorseSlot     ( this ), _oDocMorse.Morse, fReadOnly:true ) { Parent = this };
 
-			_rgLayout = new LayoutStackHorizontal( 15 ) {
-				new LayoutStackVertical( 15 ) {
-					new LayoutControl( ViewSource, LayoutRect.CSS.Percent, 40 ),
-					new LayoutControl( ViewNotes,  LayoutRect.CSS.Percent, 60 )
-				},
-				new LayoutStackVertical( 15, 350, .3F ) {
-					new LayoutControl( ViewCode, LayoutRect.CSS.Percent, 100 )
-				}
+			_rgLayout = new LayoutStackHorizontal() {
+				Margin = 15,
+				Children = {
+					new LayoutStackVertical( ) {
+						Margin = 15,
+						Children = {
+						new LayoutControl( ViewSource, LayoutRect.CSS.Percent, 40 ),
+						new LayoutControl( ViewNotes,  LayoutRect.CSS.Percent, 60 )
+						}
+					},
+					new LayoutStackVertical( 350, .3F ) {
+						Margin = 15,
+						Children = {
+						new LayoutControl( ViewCode, LayoutRect.CSS.Percent, 100 )
+				}	}	}
 			};
+			_rgLayout.Margin = 5;
 		}
 
 		bool _fDisposed = false;

@@ -869,27 +869,37 @@ namespace Play.SSTV {
                         break;
                     case 4:
                         { 
-                            LayoutStackVertical oStack = new( 5 );
+                            LayoutStackVertical   oStack = new();
+                            LayoutStackHorizontal oHoriz = new() { Layout = LayoutRect.CSS.Pixels, Track = 60 };
 
                             IPgStandardUI2 oStdUI = (IPgStandardUI2)Services ?? throw new ApplicationException( "Couldn't get StdUI2" );
 
                             Line               oLine = TxBitmapComp.Text.LineAppend( "CQ de " + MyCall, fUndoable:false );
-                            LayoutSingleLine oSingle = new( new FTCacheWrap( oLine ), LayoutRect.CSS.Percent ) { Track = 20 };
+                            LayoutColorBgLine oSingle = new( new FTCacheLine( oLine ), LayoutRect.CSS.Flex );
 
-                            oStack.Add( oSingle );
+                            uint uiPoints = (uint)( 60 * 72 / 96 );
+                            uint uiFontID = oStdUI.FontCache( TxBitmapComp.StdFace, uiPoints, new SKSize(96, 96) );
 
-                            LayoutImage oImage = new LayoutImage( TxBitmapSnip.Bitmap, LayoutRect.CSS.Percent ) { Track = 80 };
+                            oHoriz.Add( new LayoutRect( LayoutRect.CSS.None) );
+                            oHoriz.Add( oSingle );
+                            oHoriz.Add( new LayoutRect( LayoutRect.CSS.None) );
+
+                            oStack.Add( oHoriz );
+
+                            LayoutImage oImage = new LayoutImage( TxBitmapSnip.Bitmap, LayoutRect.CSS.None );
                             if( TxBitmapSnip.Bitmap != null ) {
                                 oStack.Add( oImage );
                             }
                             oStack.SetRect( 0, 0, oMode.Resolution.Width, oMode.Resolution.Height );
                             oStack.LayoutChildren();
                             
-                            uint uiHeight = (uint)( oSingle.Height );
-                            uint uiPoints = (uint)( uiHeight * 72 / 96 );
-                            uint uiFontID = oStdUI.FontCache( TxBitmapComp.StdFace, uiPoints, new SKSize(96, 96) );
+                            //uint uiHeight = (uint)( oSingle.Height );
+                            //uint uiPoints = (uint)( uiHeight * 72 / 96 );
+                            //uint uiFontID = oStdUI.FontCache( TxBitmapComp.StdFace, uiPoints, new SKSize(96, 96) );
 
                             oSingle.Cache.Update( oStdUI.FontRendererAt( uiFontID ) );
+                            oSingle.Colors.Add( SKColors.Green );
+                            oSingle.Colors.Add( SKColors.Blue );
 
                             // This must occur after layout... of course. ^_^;
                             Send_TxImageAspect?.Invoke( new SKPointI( oImage.Width, oImage.Height ) );

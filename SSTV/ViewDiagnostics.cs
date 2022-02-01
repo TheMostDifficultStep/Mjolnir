@@ -58,7 +58,7 @@ namespace Play.SSTV {
 
 		protected readonly ImageViewSingle _oViewSync;    // The sync bitmap.
 
-		protected LayoutStack _oLayout = new LayoutStackVertical( 5 );
+		protected LayoutStack _oLayout = new LayoutStackVertical() { Margin = 5 };
 
 		protected class SSTVWinSlot :
 			IPgViewSite,

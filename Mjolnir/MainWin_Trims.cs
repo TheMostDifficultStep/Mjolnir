@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Drawing;
-using System.Collections.Generic;
 
 using Play.Rectangles;
 using Play.Edit;
@@ -19,13 +17,13 @@ namespace Mjolnir
         readonly LayoutStackHorizontal _rgLayoutTitleBar;
         readonly LayoutText2           _oLayoutText;
 
-        public FrameletForView( ViewSlot oGuestSlot, uint uiTitleHeight ) : base(0) {
+        public FrameletForView( ViewSlot oGuestSlot, uint uiTitleHeight ) : base() {
             if( oGuestSlot == null )
                 throw new ArgumentNullException();
 
             _oLayoutText = new LayoutText2( new FTCacheLine( new TextLine( 0, "Arrgh" ) ), CSS.None, 0, 0 );
 
-            _rgLayoutTitleBar = new LayoutStackHorizontal( 3 ) { Units = CSS.Pixels, Track = uiTitleHeight, Hidden = false };
+            _rgLayoutTitleBar = new LayoutStackHorizontal() { Margin = 3, Units = CSS.Pixels, Track = uiTitleHeight, Hidden = false };
 
             // BUG: This bombs out if the Slot doesn't have an Iconic image. Convert to SKBitmap.
          // _rgLayoutTitleBar.Add( new LayoutImage( oGuestSlot.Iconic, CSS.Flex ) { Track = uiTitleHeight } );

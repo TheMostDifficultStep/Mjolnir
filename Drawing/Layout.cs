@@ -40,22 +40,21 @@ namespace Play.Rectangles {
 
 		public virtual uint TrackDesired( TRACK eParentAxis, int uiRail ) { return Track; }
 		public virtual void Invalidate() { }
+        public virtual void PaintBackground( SKCanvas skCanvas ) { }
 	}
 
     public abstract class ParentRect : 
 		LayoutRect,
 		IEnumerable<LayoutRect>
 	{
-		protected readonly uint _uiMargin = 0;
+		public uint Margin { get; set; } = 0;
 
-		public ParentRect( uint uiMargin ) : base( CSS.None ) {
-			_uiMargin = uiMargin;
+		public ParentRect( ) : base( CSS.None ) {
 		}
 
-		protected ParentRect( CSS eUnits, uint uiMargin, uint uiTrack, float flMaxPercent ) : 
+		protected ParentRect( CSS eUnits, uint uiTrack, float flMaxPercent ) : 
 			base( eUnits, uiTrack, flMaxPercent ) 
 		{
-			_uiMargin = uiMargin;
 		}
 
 		public abstract void                    Clear();
@@ -193,19 +192,19 @@ namespace Play.Rectangles {
 		public TRACK                   Direction { get; set; }
 		public object			       ID { get; set; } = null;
 
-		public LayoutStack( TRACK eAxis, uint uiMargin ) : 
-			base( uiMargin ) 
+		public LayoutStack( TRACK eAxis ) : 
+			base( ) 
 		{
 			Direction = eAxis;
 		}
-        public LayoutStack(TRACK eAxis, CSS eUnits, uint uiMargin) :
-            base(eUnits, uiMargin, 0, 0 )
+        public LayoutStack(TRACK eAxis, CSS eUnits) :
+            base(eUnits, 0, 0 )
         {
             Direction = eAxis;
         }
         
-        protected LayoutStack( TRACK eAxis, uint uiMargin, uint uiTrackFromParent, float flMaxPercent ) : 
-			base( CSS.Pixels, uiMargin, uiTrackFromParent, flMaxPercent ) 
+        protected LayoutStack( TRACK eAxis, uint uiTrackFromParent, float flMaxPercent ) : 
+			base( CSS.Pixels, uiTrackFromParent, flMaxPercent ) 
 		{
 			Direction = eAxis;
 		}
@@ -215,6 +214,8 @@ namespace Play.Rectangles {
 		public override IEnumerator<LayoutRect> GetEnumerator()  => _rgLayout.GetEnumerator();
 		/// <exception cref="ArgumentOutOfRangeException" />
 		public override LayoutRect              Item(int iIndex) => _rgLayout[iIndex];
+
+		public List<LayoutRect> Children => _rgLayout;
 
 		public virtual void Add( LayoutRect oNew ) => _rgLayout.Add( oNew );
 
@@ -227,7 +228,7 @@ namespace Play.Rectangles {
 						iCount--;
 				}
 				if( iCount > 0 )
-					return (uint)iCount * _uiMargin;
+					return (uint)iCount * Margin;
 
 				return 0;
 			}
@@ -382,7 +383,7 @@ namespace Play.Rectangles {
 					SetRect( extRail, extCarriageTrack, Item(i) );
 					Item(i).LayoutChildren();
 
-					extCarriageTrack.Start = extCarriageTrack.Stop + ( Item(i).Hidden ? 0 : (int)_uiMargin );
+					extCarriageTrack.Start = extCarriageTrack.Stop + ( Item(i).Hidden ? 0 : (int)Margin );
 				}
 				return true;
 			} catch( Exception oEx ) {
@@ -414,11 +415,11 @@ namespace Play.Rectangles {
     }
 
 	public class LayoutStackVertical : LayoutStack {
-		public LayoutStackVertical( uint uiMargin ) : base( TRACK.VERT, uiMargin ) {
+		public LayoutStackVertical( ) : base( TRACK.VERT ) {
 		}
 
-		public LayoutStackVertical( uint uiMargin, uint uiTrack, float flMaxPercent ) : 
-			base( TRACK.VERT, uiMargin, uiTrack, flMaxPercent ) 
+		public LayoutStackVertical( uint uiTrack, float flMaxPercent ) : 
+			base( TRACK.VERT, uiTrack, flMaxPercent ) 
 		{
 		}
 
@@ -428,11 +429,11 @@ namespace Play.Rectangles {
 	}
 
 	public class LayoutStackHorizontal : LayoutStack {
-		public LayoutStackHorizontal( uint uiMargin ) : base( TRACK.HORIZ, uiMargin ) {
+		public LayoutStackHorizontal( ) : base( TRACK.HORIZ ) {
 		}
 
-		public LayoutStackHorizontal( uint uiMargin, uint uiTrack, float flMaxPercent ) : 
-			base( TRACK.HORIZ, uiMargin, uiTrack, flMaxPercent ) 
+		public LayoutStackHorizontal( uint uiTrack, float flMaxPercent ) : 
+			base( TRACK.HORIZ, uiTrack, flMaxPercent ) 
 		{
 		}
 
@@ -441,6 +442,49 @@ namespace Play.Rectangles {
 		}
 	}
 
+    public class LayoutStackColorBg : LayoutStack {
+        public List<SKColor> Colors { get; } = new List<SKColor>();
+        public List<float>   Points { get; } = new List<float>();
+        public LayoutStackColorBg( TRACK eTrack ) : base( eTrack ) {
+        }
+
+        public override void PaintBackground(SKCanvas skCanvas) {
+            if( Colors.Count <= 0 ) {
+                base.PaintBackground( skCanvas );
+                return;
+            }
+
+            using SKPaint skPaint = new() { BlendMode = SKBlendMode.SrcATop, IsAntialias = true };
+
+            if( Points.Count <= 0 ) {
+                for( int i = 0; i < Colors.Count; ++i ) {
+                    float flPoint = i / ( Colors.Count - 1 );
+                    Points.Add( flPoint );
+                }
+            }
+
+            // Create linear gradient from left to Right
+            skPaint.Shader = SKShader.CreateLinearGradient(
+                                new SKPoint( Left,  Top),
+                                new SKPoint( Right, Bottom),
+                                Colors.ToArray(),
+                                Points.ToArray(),
+                                SKShaderTileMode.Repeat );
+
+            try {
+                skCanvas.DrawRect( Left, Top, Width, Height, skPaint );
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( ArgumentNullException ),
+									typeof( ArgumentException ),
+									typeof( NullReferenceException ),
+									typeof( OverflowException ),
+									typeof( AccessViolationException ) };
+                if( !rgErrors.Contains( oEx.GetType() ) )
+                    throw;
+            }
+        }
+    }
+
 	/// <summary>
 	/// A table object computes row rail size as the max track needed by a given cell on that row.
 	/// </summary>
@@ -448,9 +492,9 @@ namespace Play.Rectangles {
         readonly LayoutStack _oRowStack;
         readonly LayoutStack _oColStack;
 
-		public SmartTable( uint uiMargin, CSS eUnits ) : base( eUnits, uiMargin, 0, 100 ) {
-            _oRowStack = new LayoutStackVertical  ( uiMargin );
-            _oColStack = new LayoutStackHorizontal( uiMargin );
+		public SmartTable( uint uiMargin, CSS eUnits ) : base( eUnits, 0, 100 ) {
+            _oRowStack = new LayoutStackVertical  ( ) { Margin = this.Margin };
+            _oColStack = new LayoutStackHorizontal( ) { Margin = this.Margin };
         }
 
         public override int Count => _oRowStack.Count;
@@ -480,7 +524,7 @@ namespace Play.Rectangles {
 		}
 
 		public void AddRow( List<LayoutRect> rgRow ) {
-            LayoutStack oNewRowRect = new LayoutStackHorizontal(_uiMargin);
+            LayoutStack oNewRowRect = new LayoutStackHorizontal() { Margin = this.Margin };
 
             foreach( LayoutRect oCell in rgRow ) {
                 oNewRowRect.Add( oCell );
@@ -559,7 +603,7 @@ namespace Play.Rectangles {
 							oRow.Track = uiTrack;
                         iColumn += oCell.Span + 1; // Make sure we skip over the spanned cell!!
 					}
-                    _oRowStack.Track += oRow.Track + _uiMargin; // BUG: Margins are all messed up.
+                    _oRowStack.Track += oRow.Track + Margin; // BUG: Margins are all messed up.
                 }
             } catch ( Exception oEx ) {
 				Type[] rgErrors = { 
@@ -648,18 +692,18 @@ namespace Play.Rectangles {
     } // End class.
 
 	public abstract class LayoutFlowSquare : ParentRect {
-		public readonly SmartRect Margin = new SmartRect();
+		public readonly SmartRect Margins = new SmartRect();
 		public Size ItemSize;
 		public bool Springy = true;
 
 		public LayoutFlowSquare( Size szSize, uint uiMargin ) : 
-			base( CSS.Pixels, uiMargin, 0, 1f ) 
+			base( CSS.Pixels, 0, 1f ) 
 		{
 			ItemSize = szSize;
 		}
 
 		public LayoutFlowSquare( CSS eUnits, uint uiMargin ) :
-			base( eUnits, uiMargin, 0, 1f ) 
+			base( eUnits, 0, 1f ) 
 		{
 			ItemSize = new Size( 0, 0 );
 		}
@@ -684,11 +728,11 @@ namespace Play.Rectangles {
 										  pntExtent.Y > 0 ? pntExtent.Y - 1 : 0 );
 
 			if( Count > 1 ) {
-				szSize.Width  -= Margin.Left + Margin.Right;
-				szSize.Height -= Margin.Top  + Margin.Bottom;
+				szSize.Width  -= Margins.Left + Margins.Right;
+				szSize.Height -= Margins.Top  + Margins.Bottom;
 
-				szSize.Width  -= _uiMargin * pntGaps.X;
-				szSize.Height -= _uiMargin * pntGaps.Y;
+				szSize.Width  -= (int)Margin * pntGaps.X;
+				szSize.Height -= (int)Margin * pntGaps.Y;
 
 				szSize.Width  /= pntExtent.X;
 				szSize.Height /= pntExtent.Y;
@@ -713,15 +757,15 @@ namespace Play.Rectangles {
             foreach( LayoutRect oRect in this ) {
 				int iRun = iRight;
 
-				iRun += Margin.Left;
+				iRun += Margins.Left;
                 iRun += ItemSize.Width;
-                iRun += Margin.Right;
+                iRun += Margins.Right;
 
 				// Allow the first one in all cases.
                 if( iRun > Right && iCount > 0 ) 
                     break;
 
-				rgColumns.Add( iRight + Margin.Left );
+				rgColumns.Add( iRight + Margins.Left );
 				iRight = iRun;
 				// Bug: For varying height items use TrackDesired. 
 				if( ItemSize.Height > iHeight )
@@ -750,7 +794,7 @@ namespace Play.Rectangles {
             List<int> rgColumns = new List<int>();
 			int       iHeight   = FindDimensions( rgColumns );
 
-            for( int i = 0, iTop = Top + Margin.Top; i < Count;  ) {
+            for( int i = 0, iTop = Top + Margins.Top; i < Count;  ) {
                 foreach( int iStart in rgColumns ) {
                     Item(i).SetRect( LOCUS.UPPERLEFT, iStart, iTop, ItemSize.Width, ItemSize.Height );
 					Item(i).LayoutChildren();
@@ -758,7 +802,7 @@ namespace Play.Rectangles {
                     if( ++i >= Count )
                         break;
                 }
-                iTop += ( iHeight + Margin.Bottom + Margin.Top );
+                iTop += ( iHeight + Margins.Bottom + Margins.Top );
             };
 
 			return true;

@@ -28,7 +28,7 @@ namespace Play.Clock {
 		public IPgParent Services  => Parentage.Services;
 
         protected List<LayoutRect>      CacheList { get; }      = new List<LayoutRect>();
-        protected LayoutStackHorizontal Layout2   { get; set; } = new LayoutStackHorizontal( 5 );
+        protected LayoutStackHorizontal Layout2   { get; set; } = new LayoutStackHorizontal() { Margin = 5 };
 
         ImageViewSingle ViewSolarVhf { get; }
         ImageViewSingle ViewSolarMap { get; }
@@ -85,7 +85,10 @@ namespace Play.Clock {
             ViewSolarMap.InitNew();
 
             Layout2.Add( new LayoutRect( LayoutRect.CSS.None ) );
-            Layout2.Add( new LayoutStackVertical( 5, 450, 1F ) { new LayoutImageView(ViewSolarMap, .5F ), new LayoutImageView(ViewSolarVhf, .5F) } );
+            Layout2.Add( new LayoutStackVertical( 450, 1F ) { 
+                Margin = 5,
+                Children = { new LayoutImageView(ViewSolarMap, .5F ), new LayoutImageView(ViewSolarVhf, .5F) } 
+                } );
             Layout2.Add( new LayoutRect( LayoutRect.CSS.None ) );
 
             OnSizeChanged( null );

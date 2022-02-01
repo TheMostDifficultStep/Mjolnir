@@ -38,14 +38,20 @@ namespace Play.Forms {
                 pntUL.Y = pntUL.Y + Height / 2 - Cache.Height / 2;
             }
 
-            // Draw bg
+            PaintBackground( skCanvas );
+
+            // Draw text.
+            Cache.Render( skCanvas, oStdUI, new PointF( pntUL.X, pntUL.Y ), fFocused );
+        }
+
+        /// <summary>
+        /// Allow you to override the default background paint.
+        /// </summary>
+        public override void PaintBackground( SKCanvas skCanvas ) {
             if( BgColor != SKColors.Transparent ) {
                 using SKPaint skPaint = new SKPaint() { Color = BgColor };
                 skCanvas.DrawRect( this.Left, this.Top, this.Width, this.Height, skPaint );
             }
-
-            // Draw text.
-            Cache.Render( skCanvas, oStdUI, new PointF( pntUL.X, pntUL.Y ), fFocused );
         }
 
         public override void Paint( SKCanvas skCanvas ) {
@@ -57,11 +63,7 @@ namespace Play.Forms {
                 pntUL.Y = pntUL.Y + Height / 2 - Cache.Height / 2;
             }
 
-            // Draw bg
-            if( BgColor != SKColors.Transparent ) {
-                skPaint .Color = BgColor;
-                skCanvas.DrawRect( this.Left, this.Top, this.Width, this.Height, skPaint );
-            }
+            PaintBackground( skCanvas );
 
             skPaint.Color = SKColors.Red;
 
@@ -146,6 +148,49 @@ namespace Play.Forms {
         }
     }
 
+    public class LayoutColorBgLine : LayoutSingleLine {
+        public List<SKColor> Colors { get; } = new List<SKColor>();
+        public List<float>   Points { get; } = new List<float>();
+        public LayoutColorBgLine( FTCacheLine oCache, CSS eCSS ) : base( oCache, eCSS ) {
+        }
+
+        public override void PaintBackground(SKCanvas skCanvas) {
+            if( Colors.Count <= 0 ) {
+                base.PaintBackground( skCanvas );
+                return;
+            }
+
+            using SKPaint skPaint = new() { BlendMode = SKBlendMode.SrcATop, IsAntialias = true };
+
+            if( Points.Count <= 0 ) {
+                for( int i = 0; i < Colors.Count; ++i ) {
+                    float flPoint = i / ( Colors.Count - 1 );
+                    Points.Add( flPoint );
+                }
+            }
+
+            // Create linear gradient from left to Right
+            skPaint.Shader = SKShader.CreateLinearGradient(
+                                new SKPoint( Left,  Top),
+                                new SKPoint( Right, Bottom),
+                                Colors.ToArray(),
+                                Points.ToArray(),
+                                SKShaderTileMode.Repeat );
+
+            try {
+                skCanvas.DrawRect( Left, Top, Width, Height, skPaint );
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( ArgumentNullException ),
+									typeof( ArgumentException ),
+									typeof( NullReferenceException ),
+									typeof( OverflowException ),
+									typeof( AccessViolationException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
+            }
+        }
+    }
+
     /// <summary>
     /// This forms window gives us text without having to have numerous sub
     /// text windows to do that job. Text is held in single line cache elements.
@@ -159,7 +204,7 @@ namespace Play.Forms {
         protected readonly IPgViewNotify _oViewEvents; // Our site from the window manager (view interface).
 
         // Just blast the old forms Layout member with my prefered implementation.
-        protected new ParentRect         Layout    { get; set; } = new LayoutStackHorizontal( 5 );
+        protected new ParentRect         Layout    { get; set; } = new LayoutStackHorizontal() { Margin = 5 };
         protected List<LayoutSingleLine> CacheList { get; }      = new List<LayoutSingleLine>();
 
         protected Editor           DocForms { get; }

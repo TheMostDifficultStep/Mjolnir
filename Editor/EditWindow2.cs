@@ -83,7 +83,7 @@ namespace Play.Edit {
 
     public interface IPgStandardUI2 : IPgStandardUI {
         ushort        FaceCache       ( string strFilePath ); // Enter the requested face
-        uint          FontCache       ( ushort uiFaceID, uint uiHeight, SKSize skResolution );
+        uint          FontCache       ( ushort uiFaceID, uint uiHeightInPoints, SKSize skResolution );
         IPgFontRender FontRendererAt  ( uint uiRenderID );
         IPgFontRender FontStandardAt  ( string strName, SKSize skResolution );
         SKColor       ColorsStandardAt( StdUIColors eColor );
@@ -176,7 +176,7 @@ namespace Play.Edit {
         protected          IPgGlyph              _oCheque     = null;
         protected          LayoutRect            _rctCheques;
         protected readonly LayoutRect            _rctTextArea = new LayoutRect( LayoutRect.CSS.None );
-        protected readonly LayoutStackHorizontal _oLayout     = new LayoutStackHorizontal( 5 );
+        protected readonly LayoutStackHorizontal _oLayout     = new LayoutStackHorizontal() { Margin = 5 };
 
         // Possible to change if move window from one screen to another. Right now only init at start.
         public SizeF DPI { get; protected set; }

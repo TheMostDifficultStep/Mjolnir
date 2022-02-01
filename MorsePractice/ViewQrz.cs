@@ -102,12 +102,17 @@ namespace Play.MorsePractice {
 			ViewCallSign = new EditWin( new ViewQrzCommandSlot( this ), CallSign, false, fSingleLine:true ) { Parent = this };
             ViewBiograph = new ViewBio( new ViewQrzSlot       ( this ), oDocument ) { Parent = this };
 
-            _rgLayout = new LayoutStackVertical(15) {
-                    new LayoutStackHorizontal( 15, 19, .1f ) {
+            _rgLayout = new LayoutStackVertical() {
+                Margin   = 15,
+                Children = {
+                    new LayoutStackHorizontal( 19, .1f ) {
+                        Margin = 15,
+                        Children = {
                         new LayoutControl( ViewCallSign, LayoutRect.CSS.Pixels, 100 ),
                         new LayoutRect( LayoutRect.CSS.None )
-                    },
-                    new LayoutControl( ViewBiograph,   LayoutRect.CSS.None,   100 )
+                    }   },
+                    new LayoutControl( ViewBiograph, LayoutRect.CSS.None,   100 )
+                }
             };
         }
 

@@ -27,7 +27,7 @@ namespace Mjolnir {
 		}
 
 		public SideRect( TRACK eDir, uint uiSpacer, uint uiTrack, float flMaxPercent ) : 
-			base( eDir, 0, uiTrack, flMaxPercent ) 
+			base( eDir, uiTrack, flMaxPercent ) 
 		{
 			_uiSpacer = uiSpacer;
 		}
