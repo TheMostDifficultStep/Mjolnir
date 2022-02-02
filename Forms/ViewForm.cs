@@ -448,6 +448,9 @@ namespace Play.Forms {
 
             SKCanvas skCanvas = e.Surface.Canvas;
 
+            using SKPaint skPaint = new SKPaint() { Color = StdUI.ColorsStandardAt(StdUIColors.BGReadOnly)};
+            skCanvas.DrawRect( new SKRect( 0, 0, Width, Height ), skPaint );
+
             foreach( LayoutSingleLine oCache in CacheList ) {
                 skCanvas.Save();
                 skCanvas.ClipRect(new SKRect(oCache.Left, oCache.Top, oCache.Right, oCache.Bottom), SKClipOperation.Intersect);

@@ -689,6 +689,8 @@ namespace Play.Rectangles {
         }
 
         public override void Paint( SKCanvas skCanvas ) {
+			PaintBackground( skCanvas );
+
 			int i=0;
 			using SKPaint skPaint = new SKPaint();
             foreach( SmartRect oColumn in _oColStack ) {
