@@ -498,7 +498,9 @@ namespace Play.Rectangles {
         readonly LayoutStack _oRowStack;
         readonly LayoutStack _oColStack;
 
-		public SmartTable( uint uiMargin, CSS eUnits ) : base( eUnits, 0, 100 ) {
+		public SmartTable( uint uiSpacing, CSS eUnits ) : base( eUnits, 0, 100 ) {
+			Spacing    = uiSpacing;
+
             _oRowStack = new LayoutStackVertical  ( ) { Spacing = this.Spacing };
             _oColStack = new LayoutStackHorizontal( ) { Spacing = this.Spacing };
         }
