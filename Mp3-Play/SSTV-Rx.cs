@@ -1053,9 +1053,11 @@ namespace Play.Sound {
 			SetBandWidth( false ); // SSTVSET.IsNarrowMode( tvMode.Family )
 			InitAFC     ();
 
-			m_fqc.Clear();
-			m_Skip     = 0;
-			m_wBase    = 0;
+			if( ePrevMode == null ) {
+				m_fqc.Clear();
+				m_Skip     = 0;
+				m_wBase    = 0;
+			}
 			m_Lost     = false;
 			Synced     = true; // This is the only place we set to true!
 			m_SyncMode = 0; 
