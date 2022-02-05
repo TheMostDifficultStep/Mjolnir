@@ -279,6 +279,10 @@ namespace Play.SSTV {
         protected readonly SSTVDraw _oSSTVDraw;
         protected readonly SSTVDEM  _oSSTVDeMo;
 
+        readonly BufferSSTV _oPlayBuffer;
+
+        readonly WmmPlayer  _oPlayer;
+
         // This is the errors we generally handle in our work function.
         protected static readonly Type[] _rgLoopErrors = { typeof( NullReferenceException ),
                                                            typeof( ArgumentNullException ),
@@ -315,6 +319,10 @@ namespace Play.SSTV {
 
             _oSSTVDeMo = new SSTVDEM ( new SYSSET(), dblSampleRate );
 			_oSSTVDraw = new SSTVDraw( _oSSTVDeMo, oD12, oRx );
+
+            Specification oMonSpec = new( (long)dblSampleRate, 1, 0, 16 );
+            _oPlayBuffer = new BufferSSTV( oMonSpec );
+            _oPlayer     = new WmmPlayer ( oMonSpec, 0 );
         }
 
         /// <summary>
@@ -384,11 +392,13 @@ namespace Play.SSTV {
                     while( !_oDataQueue.IsEmpty ) {
                         if( _oDataQueue.TryDequeue( out double dblValue ) ) {
                             _oSSTVDeMo.Do( dblValue );
+                            _oPlayBuffer.Write( (short)dblValue );
                         } else {
                             throw new InvalidDataException( "Can't Dequeue non empty Data Queue." );
                         }
                     }
 
+                    _oPlayer.Play( _oPlayBuffer );
                     _oSSTVDraw.Process();
 
                     Thread.Sleep( 200 );
@@ -399,6 +409,7 @@ namespace Play.SSTV {
 
                 _oToUIQueue.Enqueue( new( SSTVEvents.ThreadAbort, 0 ) );
             }
+            _oPlayer.Dispose();
         }
 
         /// <summary>

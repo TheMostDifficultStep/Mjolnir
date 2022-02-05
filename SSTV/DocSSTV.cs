@@ -247,8 +247,6 @@ namespace Play.SSTV {
 
         Thread               _oThread  = null;
         WaveIn               _oWaveIn  = null;
-        WaveOut              _oWaveOut = null; // For monitor. Use my own in the future.
-        BufferedWaveProvider _oWaveBuf = null;
         BlockCopies          _oWaveReader  = null;
 
         public bool        StateTx { get; protected set; }
@@ -1224,10 +1222,6 @@ namespace Play.SSTV {
             _rgUItoBGQueue.Enqueue( new TVMessage( TVMessage.Message.ExitWorkThread ) );
             _oThread = null;
 
-            if( _oWaveOut != null ) {
-                _oWaveOut.Stop();
-                _oWaveOut = null;
-            }
             if( _oWaveIn != null ) {
                 _oWaveIn.StopRecording();   
                 _oWaveIn = null;
@@ -1286,20 +1280,6 @@ namespace Play.SSTV {
                         _oWaveIn.NumberOfBuffers    = 2;
                         _oWaveIn.DataAvailable += OnDataAvailable_WaveIn;
                     }
-                    if( _oWaveBuf == null ) {
-                        _oWaveBuf = new BufferedWaveProvider(_oWaveIn.WaveFormat);
-                    }
-                    if( _oWaveOut != null && iMonitor < 0 ) {
-                        if( _oWaveOut.PlaybackState == PlaybackState.Playing )
-                            _oWaveOut.Stop();
-                        _oWaveOut = null;
-                    }
-
-                    if( _oWaveOut == null && iMonitor >= 0 ) {
-                        _oWaveOut = new WaveOut();
-                        _oWaveOut.DeviceNumber = iMonitor;
-                        _oWaveOut.Init( _oWaveBuf );
-                    }
                     _oWaveReader = new BlockCopies( 1, 1, 0, _oWaveIn.WaveFormat.BitsPerSample );
 
                     _rgUItoBGQueue.Clear();
@@ -1331,11 +1311,6 @@ namespace Play.SSTV {
                     _oThread = new Thread( threadDelegate );
                     _oThread.Start(); // Can send out of memory exception!
 
-                    _oWaveBuf?.ClearBuffer();
-                    if( _oWaveOut != null ) {
-                        if( _oWaveOut.PlaybackState != PlaybackState.Playing )
-                            _oWaveOut?.Play();
-                    }
                     if( _oWaveIn != null ) {
                         _oWaveIn.StopRecording();
                         _oWaveIn.StartRecording();
@@ -1365,21 +1340,20 @@ namespace Play.SSTV {
         /// called b/c this method will get called if the still living bg thread
         /// doesn't get an abort message.
         /// </summary>
+        /// <remarks>Looks like I can't call wavein.stop() from within the callback. AND
+        /// it looks like NAudio is calling us from its non foreground thread!!!</remarks>
         private void OnDataAvailable_WaveIn( object sender, WaveInEventArgs e ) {
             try {
-                // This is the one that can return InvalidOperationException
-                _oWaveBuf?.AddSamples( e.Buffer, 0, e.BytesRecorded );
-
                 // No use stuffing the data queue if there's no thread to pick it up.
                 if( _oThread != null ) {
                     for( IEnumerator<double>oIter = _oWaveReader.EnumAsSigned16Bit( e.Buffer, e.BytesRecorded ); oIter.MoveNext(); ) {
                         _rgDataQueue.Enqueue( oIter.Current );
                     }
                 }
-            } catch( InvalidOperationException ) {
-                // Looks like I can't call wavein.stop() from within the callback. AND
-                // it looks like NAudio is calling us from its non foreground thread!!!
-                // Safest way to handle this is post an event to ourselves.
+            } catch( NullReferenceException ) {
+                // Used to catch an InvalidOperationException from an NAudio buffer I was using here.
+                // I'm not using hat any more, but I'll keep the try block for now.
+                // Safest way to report this is post an event to ourselves.
                 _rgBGtoUIQueue.Enqueue( new( SSTVEvents.ThreadException, (int)TxThreadErrors.WorkerException ) );
             }
         }
