@@ -334,8 +334,11 @@ namespace Mjolnir {
         public FontRender( FTFace oFace, SKPoint sResolution, uint uiHeight, uint uiID ) {
             Face = oFace ?? throw new ArgumentNullException( "Font face must not be null." );
 
+            //int iPointsPerInch = 72;
+            //uint      uiPoints = (uint)( uiHeight * iPointsPerInch / sResolution.Y );
+
             HeightUnmagnified = uiHeight;
-            _dblScale         = sResolution.Y / 96.0;
+            _dblScale         = 1; // sResolution.Y / 96.0;
 
             Resolution = sResolution;
             Height     = (uint)( HeightUnmagnified * _dblScale );
