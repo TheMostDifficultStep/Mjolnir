@@ -960,8 +960,8 @@ namespace Play.Sound {
 			m_ScopeFlag = false;
 			m_Lost      = false;
 
-			m_Rcptlvl     = new CLVL ( (int)SampFreq, fAgcFast:true );
-			m_SyncLvl = new CSLVL( SampFreq );
+			m_Rcptlvl   = new CLVL ( (int)SampFreq, fAgcFast:true );
+			m_SyncLvl   = new CSLVL( SampFreq );
 
 			m_afc = true;
 
@@ -987,7 +987,7 @@ namespace Play.Sound {
 
         protected class ShortConsumer : IPgStreamConsumer<short> {
 			protected SSTVDEM _dp;
-			protected int      _rBase = 0;
+			protected int     _rBase = 0;
 
 			public ShortConsumer( SSTVDEM dp ) {
 				_dp = dp ?? throw new ArgumentNullException( "Demodulator must not be null" );
@@ -1050,23 +1050,26 @@ namespace Play.Sound {
 
 			Mode = tvMode;
 
-			SetBandWidth( false ); // SSTVSET.IsNarrowMode( tvMode.Family )
-			InitAFC     ();
-
+			// System/user is trying to guess the image mode. So keep the buffer
+			// so we can re-render from the beginning.
 			if( ePrevMode == null ) {
+				SetBandWidth( false ); // SSTVSET.IsNarrowMode( tvMode.Family )
+				InitAFC     ();
+
 				m_fqc.Clear();
 				m_Skip     = 0;
 				m_wBase    = 0;
+				m_Lost     = false;
 			}
-			m_Lost     = false;
+
 			Synced     = true; // This is the only place we set to true!
 			m_SyncMode = 0; 
-
-			Send_NextMode?.Invoke( tvMode, ePrevMode, iPrevBase );
 
 			// Don't support narrow band modes. (yet ;-)
 			//if( m_fNarrow ) 
 			//	CalcNarrowBPF(HBPFN, m_bpftap, m_bpf, SSTVSET.m_Mode);
+
+			Send_NextMode?.Invoke( tvMode, ePrevMode, iPrevBase );
 		}
 
 		public virtual void Reset()	{

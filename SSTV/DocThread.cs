@@ -348,6 +348,7 @@ namespace Play.SSTV {
                     case TVMessage.Message.TryNewMode:
                         if( oMsg._oParam is SSTVMode oMode ) {
                             _oSSTVDeMo.Start( oMode );
+                            _oSSTVDraw.ProcessProgress();
                         } else {
                             _oSSTVDeMo.Reset();
                         }

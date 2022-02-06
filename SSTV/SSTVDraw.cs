@@ -787,6 +787,18 @@ namespace Play.SSTV {
 			}
 		}
 
+		/// <summary>
+		/// When we switch modes, but don't clear the buffer, want to see what
+		/// we've got and this will do it.
+		/// </summary>
+		public void ProcessProgress() {
+			int iScanLine = (int)(_dp.m_wBase / ScanWidthInSamples );
+
+			for( int i = 0; i<iScanLine; ++i ) {
+				ProcessScan( i );
+			}
+		}
+
 		protected void PixelSetGreen( int iX, short sValue ) {
 			sValue      = (short)( GetPixelLevel(sValue) + 128 );
 			_D36[0,iX] = (short)Limit256(sValue);
