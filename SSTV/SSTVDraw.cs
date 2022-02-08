@@ -298,7 +298,6 @@ namespace Play.SSTV {
 		public DateTime StartTime { get; protected set; }
 
 		protected double   _dblReadBaseSync = 0; // Sync signal reader progress
-		protected double   _dblReadBaseSgnl = 0; // Image signal reader progress
         protected int      _AY;
 	    protected short[]  _Y36 = new short[800];
 	    protected short[,] _D36 = new short[2,800];
@@ -396,7 +395,6 @@ namespace Play.SSTV {
         public void Start() {
 			_iLastAlign      = -1;
 			_dblReadBaseSync =  0;
-			_dblReadBaseSgnl =  0;
 			_AY				 = -5;
 
 			_dblSlope     = SpecWidthInSamples;
