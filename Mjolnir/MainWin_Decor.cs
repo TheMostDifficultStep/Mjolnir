@@ -711,7 +711,7 @@ namespace Mjolnir {
             foreach( KeyValuePair<SideIdentify, SideRect> oPair in _rgSideInfo ) {
                 SideRect oSide = oPair.Value;
 
-                if( oSide.Track > _rgMargin[(int)oPair.Key] )
+                if( oSide.Track > _iMargin )
                     oSide.Hidden = false;
             }
 
@@ -793,7 +793,7 @@ namespace Mjolnir {
 				    }
                 } else {              // currently closed
                     if( IsAnyShepardReady( eOrientation ) ) {
-                        if( oSide.Track < _rgMargin[(int)eOrientation] ) {
+                        if( oSide.Track < _iMargin ) {
                             oSide.Track = (uint)oSide.SideInit;
                         }
                         oSide.Hidden = false;
