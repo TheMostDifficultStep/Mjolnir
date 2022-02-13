@@ -191,6 +191,8 @@ namespace Play.SSTV {
                     _oSSTVDraw.Process();
                 }
 
+		        _oSSTVDraw.ProcessProgress();
+
                 // Check if there's any leftover and if so, save it. Don't call
                 // Stop()! That will happen automatically when the bitmap gets full.
                 if( _oSSTVDraw.PercentRxComplete > 25 ) {
