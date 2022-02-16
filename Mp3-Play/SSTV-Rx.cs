@@ -1651,6 +1651,28 @@ namespace Play.Sound {
 			}
 		}
 
+		public static IEnumerator<SSTVMode> EnumModes() {
+            IEnumerator<SSTVMode> itrMode = SSTVModeMartin.EnumAllModes();
+			while( itrMode.MoveNext() ) 
+				yield return itrMode.Current;
+			
+            itrMode = SSTVModeScottie.EnumAllModes();
+			while( itrMode.MoveNext() ) 
+				yield return itrMode.Current;
+
+            itrMode = SSTVModePD     .EnumAllModes();
+			while( itrMode.MoveNext() ) 
+				yield return itrMode.Current;
+
+			itrMode = SSTVModeBW     .EnumAllModes();
+			while( itrMode.MoveNext() )
+				yield return itrMode.Current;
+
+			itrMode = SSTVModePasokon.EnumAllModes();
+			while( itrMode.MoveNext() )
+				yield return itrMode.Current;
+		}
+
 		/// <summary>
 		/// Enumerate all the transmit modes we support. The generators come in four families.
 		/// Each family has various variants, all map to the legacy modes.
@@ -1659,28 +1681,6 @@ namespace Play.Sound {
         {
             return EnumModes();
         }
-
-		public static IEnumerator<SSTVMode> EnumModes() {
-            IEnumerator<SSTVMode> itrMode = GenerateMartin .GetModeEnumerator();
-			while( itrMode.MoveNext() ) 
-				yield return itrMode.Current;
-			
-            itrMode = GenerateScottie.GetModeEnumerator();
-			while( itrMode.MoveNext() ) 
-				yield return itrMode.Current;
-
-            itrMode = GeneratePD     .GetModeEnumerator();
-			while( itrMode.MoveNext() ) 
-				yield return itrMode.Current;
-
-			itrMode = GenerateBW     .GetModeEnumerator();
-			while( itrMode.MoveNext() )
-				yield return itrMode.Current;
-
-			itrMode = GeneratePasokon.GetModeEnumerator();
-			while( itrMode.MoveNext() )
-				yield return itrMode.Current;
-		}
 
         IEnumerator IEnumerable.GetEnumerator()
         {

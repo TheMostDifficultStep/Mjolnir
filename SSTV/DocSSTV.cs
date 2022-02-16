@@ -954,7 +954,7 @@ namespace Play.SSTV {
 						_oSSTVGenerator = new GenerateScottie( skBitmap, _oSSTVModulator, oMode ); break;
 					case TVFamily.BW:
 						_oSSTVGenerator = new GenerateBW     ( skBitmap, _oSSTVModulator, oMode ); break;
-                    case TVFamily.P:
+                    case TVFamily.Pasokon:
                         _oSSTVGenerator = new GeneratePasokon( skBitmap, _oSSTVModulator, oMode ); break;
 					default:
 						throw new ArgumentOutOfRangeException( nameof( oMode ) );

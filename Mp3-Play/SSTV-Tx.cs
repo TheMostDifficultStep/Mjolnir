@@ -253,7 +253,7 @@ namespace Play.Sound {
         Scottie,
         PD, 
         BW,
-        P,
+        Pasokon,
         WWV
     }
 
@@ -267,7 +267,8 @@ namespace Play.Sound {
         Y2,
         RY,
         BY,
-        Y
+        Y,
+        END
     }
 
     public class ScanLineChannel {
@@ -284,7 +285,7 @@ namespace Play.Sound {
                  public  double   WidthColorInMS { get; } // Time to relay all pixels of one color component.
         abstract public  double   WidthSyncInMS  { get; } // BUG: Does this get corrected????
         abstract public  double   WidthGapInMS   { get; }
-                 public  double   ScanWidthInMS  { get; } // Time for complete scan line as per specification.
+                 public  double   ScanWidthInMS  { get; protected set; } // Time for complete scan line as per specification.
 
         virtual  public  int      ScanMultiplier { get; } = 1;
 
@@ -298,6 +299,11 @@ namespace Play.Sound {
         readonly public  List<ScanLineChannel> ChannelMap = new();
 
         protected abstract void Initialize();
+        protected virtual void SetScanWidth() 
+        {
+            foreach( ScanLineChannel oChannel in ChannelMap )
+                ScanWidthInMS += oChannel.WidthInMs;
+        }
 
         public enum Resolutions { 
             h128or160,
@@ -311,7 +317,7 @@ namespace Play.Sound {
         /// </summary>
         /// <param name="bVIS"></param>
         /// <param name="strName">Human readable name of mode.</param>
-        /// <param name="dbColorWidthInMS">Tx width of scan line in ms.</param>
+        /// <param name="dbColorWidthInMS">Tx width of one color block in the scan line in ms.</param>
         /// <param name="skSize">Do NOT include the top 16 scan line grey scale in the height value.</param>
         public SSTVMode( TVFamily tvMode, byte bVIS, string strName, 
                          double dbColorWidthInMS, SKSizeI skSize, AllModes eLegacy = AllModes.smEND ) 
@@ -322,11 +328,6 @@ namespace Play.Sound {
             Family         = tvMode;
             RawRez         = skSize;
             LegacyMode     = eLegacy;
-
-            Initialize();
-
-            foreach( ScanLineChannel oChannel in ChannelMap )
-                ScanWidthInMS += oChannel.WidthInMs;
         }
 
         public override string ToString() {
@@ -373,7 +374,7 @@ namespace Play.Sound {
 
     public class SSTVModePasokon : SSTVMode {
         public SSTVModePasokon( byte bVIS, string strName, double dblSync, double dblGap, double dblClrWidth, SKSizeI skSize, AllModes eLegacy = AllModes.smEND) : 
-            base( TVFamily.P, bVIS, strName, dblClrWidth, skSize, eLegacy ) 
+            base( TVFamily.Pasokon, bVIS, strName, dblClrWidth, skSize, eLegacy ) 
         {
             WidthSyncInMS = dblSync;
             WidthGapInMS  = dblGap;
@@ -384,8 +385,10 @@ namespace Play.Sound {
 
 
 		protected override void Initialize() {
-			if( Family != TVFamily.P )
+			if( Family != TVFamily.Pasokon )
 				throw new InvalidProgramException( "Mode must be of P type" );
+
+            ChannelMap.Clear(); // Just in case we get called again.
 
 			ChannelMap.Add( new( WidthSyncInMS,  ScanLineChannelType.Sync  ) );
 			ChannelMap.Add( new( WidthGapInMS,   ScanLineChannelType.Gap   ) );
@@ -395,7 +398,27 @@ namespace Play.Sound {
 			ChannelMap.Add( new( WidthGapInMS,   ScanLineChannelType.Gap   ) );
 			ChannelMap.Add( new( WidthColorInMS, ScanLineChannelType.Blue  ) );
             ChannelMap.Add( new( WidthGapInMS,   ScanLineChannelType.Gap   ) );
+
+            SetScanWidth();
 		}
+
+        ///<remarks>sstv-handbook has P3 as 320 wide bitmap, but mmsstv uses 640.
+        /// Also the sstv-handbook sez the sync signal is "20 units" wide,
+        /// with 1 pixel being a unit. But 133.333/640 is .2083... and
+        /// 5.208 => 4.167 + 1.042, which is a sync + a gap. I think it's a bug
+        /// in MMSSTV</remarks> 
+        public static IEnumerator<SSTVMode> EnumAllModes() {
+            List<SSTVModePasokon> rgModes = new();
+
+ 	        rgModes.Add( new SSTVModePasokon( 0x71, "P3",   5.208, 1.042,    133.333, new SKSizeI( 640, 496 ), AllModes.smP3 ) );
+            rgModes.Add( new SSTVModePasokon( 0x72, "P5",   7.813, 1.562375, 200.000, new SKSizeI( 640, 496 ), AllModes.smP5 ) );
+ 	        rgModes.Add( new SSTVModePasokon( 0xf3, "P7",  10.417, 2.083,    146.432, new SKSizeI( 640, 496 ), AllModes.smP7 ) );
+
+            foreach( SSTVModePasokon oMode in rgModes ) {
+                oMode.Initialize();
+                yield return oMode;
+            }
+        }
     }
 
     public class SSTVModeMartin : SSTVMode {
@@ -418,7 +441,27 @@ namespace Play.Sound {
 			ChannelMap.Add( new( WidthColorInMS, ScanLineChannelType.Blue  ) );
 			ChannelMap.Add( new( WidthGapInMS,   ScanLineChannelType.Gap   ) );
 			ChannelMap.Add( new( WidthColorInMS, ScanLineChannelType.Red   ) );
-		}
+
+            SetScanWidth();
+        }
+
+        /// <summary>
+        /// Enumerate the modes we support. Updated to handbook values.
+        /// </summary>
+        /// <returns></returns>
+        public static IEnumerator<SSTVMode> EnumAllModes() {
+            List<SSTVModeMartin> rgModes = new();
+
+ 	        rgModes.Add( new SSTVModeMartin( 0xac, "Martin 1",  146.432, new SKSizeI( 320, 256 ), AllModes.smMRT1 ) );
+            rgModes.Add( new SSTVModeMartin( 0x28, "Martin 2",   73.216, new SKSizeI( 320, 256 ), AllModes.smMRT2 ) );
+ 	        rgModes.Add( new SSTVModeMartin( 0x24, "Martin 3",  146.432, new SKSizeI( 160, 128 ), AllModes.smMRT3 ) );
+            rgModes.Add( new SSTVModeMartin( 0xa0, "Martin 4",   73.216, new SKSizeI( 160, 128 ), AllModes.smMRT4 ) );
+
+            foreach( SSTVModeMartin oMode in rgModes ) {
+                oMode.Initialize();
+                yield return oMode;
+            }
+        }
     }
 
     public class SSTVModeScottie : SSTVMode {
@@ -441,9 +484,33 @@ namespace Play.Sound {
 			ChannelMap.Add( new ( WidthSyncInMS,   ScanLineChannelType.Sync  ) );
 			ChannelMap.Add( new ( WidthGapInMS,    ScanLineChannelType.Gap   ) );
 			ChannelMap.Add( new ( WidthColorInMS,  ScanLineChannelType.Red   ) );
+
+            SetScanWidth();
 		}
 
         public override double OffsetInMS => ( WidthGapInMS * 2 ) + ( WidthColorInMS * 2 ) + WidthSyncInMS;
+
+        /// <summary>
+        /// Enumerate the modes we support. Note that only Scotty 1 VIS code matches that
+        /// from OK2MNM; Scottie S2 : 0x38 (vs b8=10111000), and Scottie DX : 0x4C (vs cc=11001100).
+        /// This is because the MMSSTV number has the parity bit (pre)set accordingly.
+        /// Note that the video resolution number doesn't seem to make sense for scottie 2.
+        /// if you use OK2MNM's VIS table.
+        /// </summary>
+        /// <returns></returns>
+        public static IEnumerator<SSTVMode> EnumAllModes() {
+            List<SSTVModeScottie> rgModes = new();
+
+ 	        rgModes.Add( new SSTVModeScottie( 0x3c, "Scottie 1",  138.240, new SKSizeI( 320, 256 ), AllModes.smSCT1  ) );
+            rgModes.Add( new SSTVModeScottie( 0xb8, "Scottie 2",   88.064, new SKSizeI( 320, 256 ), AllModes.smSCT2  ) );
+            rgModes.Add( new SSTVModeScottie( 0xcc, "Scottie DX", 345.600, new SKSizeI( 320, 256 ), AllModes.smSCTDX ) );
+
+            foreach( SSTVModeScottie oMode in rgModes ) {
+                oMode.Initialize();
+                yield return oMode;
+            }
+        }
+
     }
 
     public class SSTVModePD : SSTVMode {
@@ -466,7 +533,33 @@ namespace Play.Sound {
 			ChannelMap.Add( new( WidthColorInMS, ScanLineChannelType.RY   ) );
 			ChannelMap.Add( new( WidthColorInMS, ScanLineChannelType.BY   ) );
 			ChannelMap.Add( new( WidthColorInMS, ScanLineChannelType.Y2   ) );
+
+            SetScanWidth();
 		}
+        /// <summary>So the scottie and martin modes I'm pretty confident are simply 320 horizontal lines
+        /// But I know the PD modes are meant to be higher res and I got all the info straight from
+        /// the inventor's web site. Which btw does not mention PD50 and PD290 modes. Also not I'm NOT
+        /// presently generating the 16 scan line b/w scale. Note that all of them work.
+        /// See also:  Martin Bruchanov OK2MNM SSTV-Handbook.
+        /// </summary> 
+        public static IEnumerator<SSTVMode> EnumAllModes() {
+            List<SSTVModePD> rgModes = new();
+
+            // these numbers come from https://www.classicsstv.com/pdmodes.php G4IJE the inventor.
+ 	        rgModes.Add( new SSTVModePD( 0xdd, "PD  50",   91.520, new SKSizeI( 320, 256 ), AllModes.smPD50  )); // see SSTV-Handbook.
+            rgModes.Add( new SSTVModePD( 0x63, "PD  90",  170.240, new SKSizeI( 320, 256 ), AllModes.smPD90  )); // Only reliable one.
+            rgModes.Add( new SSTVModePD( 0x5f, "PD 120",  121.600, new SKSizeI( 640, 496 ), AllModes.smPD120 )); 
+            rgModes.Add( new SSTVModePD( 0xe2, "PD 160",  195.584, new SKSizeI( 512, 384 ), AllModes.smPD160 )); 
+            rgModes.Add( new SSTVModePD( 0x60, "PD 180",  183.040, new SKSizeI( 640, 496 ), AllModes.smPD180 ));
+            rgModes.Add( new SSTVModePD( 0xe1, "PD 240",  244.480, new SKSizeI( 640, 496 ), AllModes.smPD240 )); 
+            rgModes.Add( new SSTVModePD( 0xde, "PD 290",  228.800, new SKSizeI( 800, 600 ), AllModes.smPD290 )); // see SSTV-handbook.
+
+            foreach( SSTVModePD oMode in rgModes ) {
+                oMode.Initialize();
+                yield return oMode;
+            }
+        }
+
     }
 
     public class SSTVModeBW : SSTVMode {
@@ -485,7 +578,20 @@ namespace Play.Sound {
 			ChannelMap.Add( new( WidthSyncInMS,  ScanLineChannelType.Sync  ) );
 			ChannelMap.Add( new( WidthGapInMS,   ScanLineChannelType.Gap   ) );
 			ChannelMap.Add( new( WidthColorInMS, ScanLineChannelType.Y ) );
+
+            SetScanWidth();
 		}
+        public static IEnumerator<SSTVMode> EnumAllModes() {
+            List<SSTVModeBW> rgModes = new();
+
+ 	        rgModes.Add( new SSTVModeBW( 0x82, "BW   8", 58.89709, new SKSizeI( 160, 120 ), AllModes.smRM8  ) ); 
+ 	        rgModes.Add( new SSTVModeBW( 0x86, "BW  12",     92.0, new SKSizeI( 160, 120 ), AllModes.smRM12 ) ); 
+
+            foreach( SSTVModeBW oMode in rgModes ) {
+                oMode.Initialize();
+                yield return oMode;
+            }
+        }
     }
 
     public class SSTVModeWWV : SSTVMode {
@@ -503,6 +609,8 @@ namespace Play.Sound {
 
 			ChannelMap.Add( new( WidthSyncInMS,  ScanLineChannelType.Sync  ) );
 			ChannelMap.Add( new( WidthColorInMS, ScanLineChannelType.Y ) );
+
+            SetScanWidth();
 		}
     }
 
@@ -633,24 +741,6 @@ namespace Play.Sound {
         }
 
         /// <summary>
-        /// Enumerate the modes we support. Note that only Scotty 1 VIS code matches that
-        /// from OK2MNM; Scottie S2 : 0x38 (vs b8=10111000), and Scottie DX : 0x4C (vs cc=11001100).
-        /// This is because the MMSSTV number has the parity bit (pre)set accordingly.
-        /// Note that the video resolution number doesn't seem to make sense for scottie 2.
-        /// if you use OK2MNM's VIS table.
-        /// </summary>
-        /// <returns></returns>
-        public static IEnumerator<SSTVMode> GetModeEnumerator() {
- 	        yield return new SSTVModeScottie( 0x3c, "Scottie 1",  138.240, new SKSizeI( 320, 256 ), AllModes.smSCT1  );
-            yield return new SSTVModeScottie( 0xb8, "Scottie 2",   88.064, new SKSizeI( 320, 256 ), AllModes.smSCT2  );
-            yield return new SSTVModeScottie( 0xcc, "Scottie DX", 345.600, new SKSizeI( 320, 256 ), AllModes.smSCTDX );
-        }
-
-        public static SSTVMode Default {
-            get { return new SSTVModeScottie( 0x3c, "Scottie  1", 138.240, new SKSizeI( 320, 240 ), AllModes.smSCT1); }
-        }
-
-        /// <summary>
         /// See line 7120 in main.cpp of the MMSSTV project. He adds this one time sync signal at the start.
         /// But it doesn't seem to make sense, as it throws off the horizontal alignment (not the slant) of
         /// the recieved image in my system. All the modes work happily w/o this code as does MMSSTV. So punt.
@@ -710,13 +800,6 @@ namespace Play.Sound {
         {
         }
 
-        public static IEnumerator<SSTVMode> GetModeEnumerator() {
-            // sstv-handbook has P3 as 320 wide bitmap, but mmsstv uses 640.
- 	        yield return new SSTVModePasokon( 0x71, "P3",   5.208, 1.042,    133.333, new SKSizeI( 640, 496 ), AllModes.smP3 );
-            yield return new SSTVModePasokon( 0x72, "P5",   7.813, 1.562375, 200.000, new SKSizeI( 640, 496 ), AllModes.smP5 );
- 	        yield return new SSTVModePasokon( 0xf3, "P7",  10.417, 2.083,    146.432, new SKSizeI( 640, 496 ), AllModes.smP7 );
-        }
-
         protected override void WriteLine( int iLine ) {
 	        double dbTimePerPixel = Mode.WidthColorInMS / Mode.Resolution.Width; 
 
@@ -766,17 +849,6 @@ namespace Play.Sound {
         public GenerateMartin( SKBitmap oBitmap, IPgModulator oModulator, SSTVMode oMode ) : 
             base( oBitmap, oModulator, oMode )
         {
-        }
-
-        /// <summary>
-        /// Enumerate the modes we support. Updated to handbook values.
-        /// </summary>
-        /// <returns></returns>
-        public static IEnumerator<SSTVMode> GetModeEnumerator() {
- 	        yield return new SSTVModeMartin( 0xac, "Martin 1",  146.432, new SKSizeI( 320, 256 ), AllModes.smMRT1 );
-            yield return new SSTVModeMartin( 0x28, "Martin 2",   73.216, new SKSizeI( 320, 256 ), AllModes.smMRT2 );
- 	        yield return new SSTVModeMartin( 0x24, "Martin 3",  146.432, new SKSizeI( 160, 128 ), AllModes.smMRT3 );
-            yield return new SSTVModeMartin( 0xa0, "Martin 4",   73.216, new SKSizeI( 160, 128 ), AllModes.smMRT4 );
         }
 
         /// <summary>
@@ -873,23 +945,6 @@ namespace Play.Sound {
         {
         }
 
-        /// <summary>So the scottie and martin modes I'm pretty confident are simply 320 horizontal lines
-        /// But I know the PD modes are meant to be higher res and I got all the info straight from
-        /// the inventor's web site. Which btw does not mention PD50 and PD290 modes. Also not I'm NOT
-        /// presently generating the 16 scan line b/w scale. Note that all of them work.
-        /// See also:  Martin Bruchanov OK2MNM SSTV-Handbook.
-        /// </summary> 
-        public static IEnumerator<SSTVMode> GetModeEnumerator() {
-            // these numbers come from https://www.classicsstv.com/pdmodes.php G4IJE the inventor.
- 	        yield return new SSTVModePD( 0xdd, "PD  50",   91.520, new SKSizeI( 320, 256 ), AllModes.smPD50  ); // see SSTV-Handbook.
-            yield return new SSTVModePD( 0x63, "PD  90",  170.240, new SKSizeI( 320, 256 ), AllModes.smPD90  ); // Only reliable one.
-            yield return new SSTVModePD( 0x5f, "PD 120",  121.600, new SKSizeI( 640, 496 ), AllModes.smPD120 ); 
-            yield return new SSTVModePD( 0xe2, "PD 160",  195.584, new SKSizeI( 512, 384 ), AllModes.smPD160 ); 
-            yield return new SSTVModePD( 0x60, "PD 180",  183.040, new SKSizeI( 640, 496 ), AllModes.smPD180 );
-            yield return new SSTVModePD( 0xe1, "PD 240",  244.480, new SKSizeI( 640, 496 ), AllModes.smPD240 ); 
-            yield return new SSTVModePD( 0xde, "PD 290",  228.800, new SKSizeI( 800, 600 ), AllModes.smPD290 ); // see SSTV-handbook.
-        }
-
         /// <summary>
         /// TMmsstv::LinePD, derived.
         /// </summary>
@@ -964,11 +1019,6 @@ namespace Play.Sound {
         public GenerateBW( SKBitmap oBitmap, IPgModulator oModulator, SSTVMode oMode ) : 
             base( oBitmap, oModulator, oMode )
         {
-        }
-
-        public static IEnumerator<SSTVMode> GetModeEnumerator() {
- 	        yield return new SSTVModeBW( 0x82, "BW   8", 58.89709, new SKSizeI( 160, 120 ), AllModes.smRM8  ); 
- 	        yield return new SSTVModeBW( 0x86, "BW  12",     92.0, new SKSizeI( 160, 120 ), AllModes.smRM12 ); 
         }
 
         protected override void WriteLine(int iLine) {

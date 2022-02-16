@@ -391,6 +391,7 @@ namespace Play.SSTV {
 			_rgDiagnosticColors.Add( ScanLineChannelType.Y1,    new( SKColors.Gray,  1 ) );
 			_rgDiagnosticColors.Add( ScanLineChannelType.Y2,    new( SKColors.Gray,  1 ) );
 			_rgDiagnosticColors.Add( ScanLineChannelType.Y,     new( SKColors.Gray,  1 ) );
+			_rgDiagnosticColors.Add( ScanLineChannelType.END,   new( SKColors.Aquamarine, 3 ) );
 		}
 
 		/// <summary>
@@ -460,7 +461,7 @@ namespace Play.SSTV {
 					// past values (mode/filename/wBase etc).
 					_dp.Reset();
 
-					RenderDiagnosticsOverlay();
+					DiagnosticsOverlay();
 				}
 			} catch( Exception oEx ) {
 				Type[] rgErrors = { typeof( NullReferenceException ),
@@ -503,7 +504,6 @@ namespace Play.SSTV {
 
 		/// <summary>
 		/// Size of the scan line width corrected image not including VIS preamble.
-		/// This will get called on the UI thread. Because of PercentRxComplete
 		/// </summary>
 		/// <seealso cref="PercentRxComplete"/>
 		public double ImageSizeInSamples {
@@ -511,7 +511,7 @@ namespace Play.SSTV {
 				try {
 					SSTVMode oMode = Mode;
 					if( oMode != null )
-						return ScanWidthInSamples * Mode.Resolution.Height / Mode.ScanMultiplier;
+						return ScanWidthInSamples * Mode.Resolution.Height / (double)Mode.ScanMultiplier;
 					else
 						return 0;
 				} catch( NullReferenceException ) {
@@ -602,7 +602,7 @@ namespace Play.SSTV {
 			return true;
 		}
 
-		protected void RenderDiagnosticsOverlay() {
+		protected void DiagnosticsOverlay() {
 			SKPaint skPaint = new() { Color = SKColors.Yellow, StrokeWidth = 3 };
 
 			double dbD12XScale       = _pBitmapD12.Width / _dblSlope;
@@ -615,6 +615,8 @@ namespace Play.SSTV {
 			SKPoint bot = new( flScaledIntercept, _pBitmapD12.Height );
 			_skD12Canvas.DrawLine( top, bot, skPaint );
 
+			float[] intervals = { 2f, 5f };
+
 			foreach( ColorChannel oSlot in _rgSlots ) {
 				double dblXCh = ( _dblIntercept + oSlot.Min - dblSyncExpected ) * dbD12XScale;
 				dblXCh %= _pBitmapD12.Width;
@@ -624,9 +626,15 @@ namespace Play.SSTV {
 				skPaint.Color       = sPaint.Color;
 				skPaint.StrokeWidth = sPaint.StrokeWidth;
 
+				if( oSlot.ChannelType == ScanLineChannelType.Gap ) {
+					skPaint.PathEffect  = SKPathEffect.CreateDash( intervals, 0 );
+				} else {
+					skPaint.PathEffect = null;
+				}
+
 				_skD12Canvas.DrawLine( new SKPoint( (int)dblXCh, 0 ), 
-									new SKPoint( (int)dblXCh, _pBitmapD12.Height), 
-									skPaint );
+									   new SKPoint( (int)dblXCh, _pBitmapD12.Height), 
+									   skPaint );
 			}
 		}
 
@@ -642,20 +650,20 @@ namespace Play.SSTV {
 		/// intercept.</remarks>
 		protected double ProcessSync( double dblBase ) {
 			try {
-			int    iReadBase   = (int)dblBase;
-			int    iScanWidth  = (int)ScanWidthInSamples; // Make sure this matches our controlling loop!!
-			double dbD12XScale = _pBitmapD12.Width / ScanWidthInSamples;
-			int    iSyncWidth  = (int)( SyncWidthInSamples * dbD12XScale );
-			int    iScanLine   = (int)Math.Round( dblBase / ScanWidthInSamples );
+				int    iReadBase   = (int)dblBase;
+				int    iScanWidth  = (int)ScanWidthInSamples; // Make sure this matches our controlling loop!!
+				double dbD12XScale = _pBitmapD12.Width / ScanWidthInSamples;
+				int    iSyncWidth  = (int)( SyncWidthInSamples * dbD12XScale );
+				int    iScanLine   = (int)Math.Round( dblBase / ScanWidthInSamples );
 
-			// If we can't advance we'll get stuck in an infinite loop on our caller.
-			if( iReadBase + iScanWidth >= _dp.m_wBase )
-				throw new InvalidProgramException( "Hit the rails on the ProcessSync" );
+				// If we can't advance we'll get stuck in an infinite loop on our caller.
+				if( iReadBase + iScanWidth >= _dp.m_wBase )
+					throw new InvalidProgramException( "Hit the rails on the ProcessSync" );
 
-			// This can happen when we start in the middle of an image. And we go
-			// back to the top of the picture trying to draw the first partial scan line.
-			if( _dp.BoundsCompare( iReadBase ) != 0 )
-				return( dblBase + ScanWidthInSamples ); // Just skip it.
+				// This can happen when we start in the middle of an image. And we go
+				// back to the top of the picture trying to draw the first partial scan line.
+				if( _dp.BoundsCompare( iReadBase ) != 0 )
+					return( dblBase + ScanWidthInSamples ); // Just skip it.
 
 				for( int i = 0; i < iScanWidth; i++ ) { 
 					int   idx = iReadBase + i;
@@ -771,7 +779,7 @@ namespace Play.SSTV {
 				}
 
 				try {
-					int iScanLine = (int)(_dp.m_wBase / ScanWidthInSamples );
+					int iScanLine = (int)(_dp.m_wBase / ScanWidthInSamples * Mode.ScanMultiplier );
 
 					if( iScanLine >= ( _rgSlopeBuckets.Count + 1 ) * 20 ) {
 						Slider.Shuffle( false, _dblSlope, _dblIntercept );
@@ -784,14 +792,15 @@ namespace Play.SSTV {
 							// Don't reset the slider. While it makes sense in extreme cases
 							// doesn't seem to really matter most of the time.
 							if( _fNoIntercept ) {
-								_dblIntercept = dblIntercept;
-								_fNoIntercept = false;
+								_dblIntercept    = dblIntercept;
+								_fNoIntercept    = false;
+								_dblReadBaseSync = 0;
 							}
 						}
 
 						_rgSlopeBuckets.Add( _dblSlope );
 
-						ProcessTop( iStart, iScanLine-1 );
+						ProcessTop( iStart, iScanLine );
 					}
 					// Bail on current image when we've processed expected image size.
 					if( _dp.m_wBase > ImageSizeInSamples ) {
@@ -946,7 +955,7 @@ namespace Play.SSTV {
 		/// <seealso cref="Start" />
 		public void OnModeTransition_SSTVDeMo( SSTVMode oCurrMode, SSTVMode oPrevMode, int iPrevBase ) {
 			if( oCurrMode == null ) {
-				RenderDiagnosticsOverlay();
+				DiagnosticsOverlay();
 				Send_TvEvents?.Invoke( SSTVEvents.SSTVMode, -1 );
 				return;
 			}
@@ -1029,6 +1038,7 @@ namespace Play.SSTV {
 		public ColorChannel() {
 			SpecWidthInSamples = double.MaxValue;
 			SetPixel           = null;
+			ChannelType        = ScanLineChannelType.END;
 		}
 
 		public double Reset( int iBmpWidth, double dbStart, double dbCorrection ) {

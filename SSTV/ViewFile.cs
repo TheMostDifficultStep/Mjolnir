@@ -101,7 +101,6 @@ namespace Play.SSTV {
 		public    override Guid   Catagory     => GUID;
 		protected override string IconResource => "Play.SSTV.Content.icons8_tv.png";
 
-		protected readonly ModeEditor     _rgRxModeList;
 		protected readonly FileChooser    _rgWavFileList; // Recorded wave files.
 		protected readonly ImageWalkerDir _rgDecodedImages;
 
@@ -143,7 +142,6 @@ namespace Play.SSTV {
 		public WindowFileViewer( IPgViewSite oSiteBase, DocSSTV oDocSSTV ) : base( oSiteBase, oDocSSTV ) {
 			_rgWavFileList   = new( new SSTVWinSlot( this, ChildID.None ) );
 			_rgDecodedImages = new( new SSTVWinSlot( this, ChildID.None ) );
-			_rgRxModeList    = new( new SSTVWinSlot( this, ChildID.None ) );
 
 			//_wmViewRxImg      = new( new SSTVWinSlot( this, ChildID.RxWindow ), _oDocSSTV.ReceiveImage );
 			//_wmViewRxHistory  = new( new SSTVWinSlot( this, ChildID.None     ), _rgDecodedImages );
@@ -165,11 +163,6 @@ namespace Play.SSTV {
         public override bool InitNew() {
 			if( !base.InitNew() )
 				return false;
-
-			if( !_rgRxModeList.InitNew() )
-				return false;
-
-			_rgRxModeList.LoadModes( SSTVDEM.EnumModes() );
 
 			string strMyDocs = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments );
 
@@ -222,7 +215,7 @@ namespace Play.SSTV {
 					return new ViewFileProperties( oBaseSite, _oDocSSTV.Properties );
 				}
 				if( sGuid.Equals( GlobalDecorations.Outline ) ) {
-					return new CheckList( oBaseSite, _rgRxModeList );
+					return new CheckList( oBaseSite, _oDocSSTV.RxModeList );
 				}
 				if( sGuid.Equals( GlobalDecorations.Options ) ) {
 					return new WindowTextDir( oBaseSite, _rgWavFileList );
@@ -244,7 +237,7 @@ namespace Play.SSTV {
         
 		public override bool Execute( Guid sGuid ) {
 			if( sGuid == GlobalCommands.Play ) {
-				_oDocSSTV.ReceiveFileRead( _rgWavFileList.CurrentFullPath, _rgRxModeList.ChosenMode );
+				_oDocSSTV.ReceiveFileRead( _rgWavFileList.CurrentFullPath, _oDocSSTV.RxModeList.ChosenMode );
 				return true;
 			}
 			if( sGuid == GlobalCommands.Stop ) {
