@@ -762,8 +762,10 @@ namespace Play.SSTV {
 				case SSTVEvents.SSTVMode:
 					_wmViewRxImg.BringToFront();
 					break;
+				case SSTVEvents.DownLoadTime:
+					break;
 				default:
-					_oSiteView  .Notify( ShellNotify.BannerChanged );
+					_oSiteView.Notify( ShellNotify.BannerChanged );
 					break;
 			}
 			_wmViewRxImg.Invalidate();

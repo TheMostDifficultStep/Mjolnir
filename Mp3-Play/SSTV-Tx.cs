@@ -252,7 +252,8 @@ namespace Play.Sound {
         Martin,
         Scottie,
         PD, 
-        BW, // Robot?
+        BW,
+        P,
         WWV
     }
 
@@ -310,14 +311,14 @@ namespace Play.Sound {
         /// </summary>
         /// <param name="bVIS"></param>
         /// <param name="strName">Human readable name of mode.</param>
-        /// <param name="dbTxWidthInMS">Tx width of scan line in ms.</param>
+        /// <param name="dbColorWidthInMS">Tx width of scan line in ms.</param>
         /// <param name="skSize">Do NOT include the top 16 scan line grey scale in the height value.</param>
         public SSTVMode( TVFamily tvMode, byte bVIS, string strName, 
-                         double dbTxWidthInMS, SKSizeI skSize, AllModes eLegacy = AllModes.smEND ) 
+                         double dbColorWidthInMS, SKSizeI skSize, AllModes eLegacy = AllModes.smEND ) 
         {
             VIS            = bVIS;
             Name           = strName;
-            WidthColorInMS = dbTxWidthInMS;
+            WidthColorInMS = dbColorWidthInMS;
             Family         = tvMode;
             RawRez         = skSize;
             LegacyMode     = eLegacy;
@@ -368,6 +369,33 @@ namespace Play.Sound {
                 return RawRez;
             }
         }
+    }
+
+    public class SSTVModePasokon : SSTVMode {
+        public SSTVModePasokon( byte bVIS, string strName, double dblSync, double dblGap, double dblClrWidth, SKSizeI skSize, AllModes eLegacy = AllModes.smEND) : 
+            base( TVFamily.P, bVIS, strName, dblClrWidth, skSize, eLegacy ) 
+        {
+            WidthSyncInMS = dblSync;
+            WidthGapInMS  = dblGap;
+        }
+
+        public override double WidthSyncInMS { get; }
+        public override double WidthGapInMS  { get; }
+
+
+		protected override void Initialize() {
+			if( Family != TVFamily.P )
+				throw new InvalidProgramException( "Mode must be of P type" );
+
+			ChannelMap.Add( new( WidthSyncInMS,  ScanLineChannelType.Sync  ) );
+			ChannelMap.Add( new( WidthGapInMS,   ScanLineChannelType.Gap   ) );
+			ChannelMap.Add( new( WidthColorInMS, ScanLineChannelType.Red   ) );
+			ChannelMap.Add( new( WidthGapInMS,   ScanLineChannelType.Gap   ) );
+			ChannelMap.Add( new( WidthColorInMS, ScanLineChannelType.Green ) );
+			ChannelMap.Add( new( WidthGapInMS,   ScanLineChannelType.Gap   ) );
+			ChannelMap.Add( new( WidthColorInMS, ScanLineChannelType.Blue  ) );
+            ChannelMap.Add( new( WidthGapInMS,   ScanLineChannelType.Gap   ) );
+		}
     }
 
     public class SSTVModeMartin : SSTVMode {
@@ -667,6 +695,60 @@ namespace Play.Sound {
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( AccessViolationException ),
                                     typeof( NullReferenceException ) };
+                if( !rgErrors.Contains( oEx.GetType() ) )
+                    throw;
+
+                // This would be a good place to return an error.
+            }
+        }
+    }
+
+    public class GeneratePasokon : SSTVGenerator {
+
+        public GeneratePasokon( SKBitmap oBitmap, IPgModulator oModulator, SSTVMode oMode ) : 
+            base( oBitmap, oModulator, oMode )
+        {
+        }
+
+        public static IEnumerator<SSTVMode> GetModeEnumerator() {
+            // sstv-handbook has P3 as 320 wide bitmap, but mmsstv uses 640.
+ 	        yield return new SSTVModePasokon( 0x71, "P3",   5.208, 1.042,    133.333, new SKSizeI( 640, 496 ), AllModes.smP3 );
+            yield return new SSTVModePasokon( 0x72, "P5",   7.813, 1.562375, 200.000, new SKSizeI( 640, 496 ), AllModes.smP5 );
+ 	        yield return new SSTVModePasokon( 0xf3, "P7",  10.417, 2.083,    146.432, new SKSizeI( 640, 496 ), AllModes.smP7 );
+        }
+
+        protected override void WriteLine( int iLine ) {
+	        double dbTimePerPixel = Mode.WidthColorInMS / Mode.Resolution.Width; 
+
+            if( iLine > Height )
+                return;
+
+            try {
+                _rgCache.Clear();
+
+	            Write( 1200, Mode.WidthSyncInMS );
+
+	            Write( 1500, GainIndx.R, Mode.WidthGapInMS );   // R gap
+	            for( int x = 0; x < Mode.Resolution.Width; x++ ) {
+                    _rgCache.Add( GetPixel( x, iLine ) );       // Don't forget to add the cache line!!
+		            Write( ColorToFreq(_rgCache[x].Red  ), GainIndx.R, dbTimePerPixel );
+	            }
+
+	            Write( 1500, GainIndx.G, Mode.WidthGapInMS );   // G gap
+	            for( int x = 0; x < Mode.Resolution.Width; x++ ) {     
+		            Write( ColorToFreq(_rgCache[x].Green), GainIndx.G, dbTimePerPixel );
+	            }
+
+	            Write( 1500, GainIndx.B, Mode.WidthGapInMS );   // B gap
+	            for( int x = 0; x < Mode.Resolution.Width; x++ ) {
+		            Write( ColorToFreq(_rgCache[x].Blue ), GainIndx.B, dbTimePerPixel );
+	            }
+
+	            Write( 1500, Mode.WidthGapInMS );
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( AccessViolationException ),
+                                    typeof( NullReferenceException ),
+                                    typeof( ArgumentOutOfRangeException ) };
                 if( !rgErrors.Contains( oEx.GetType() ) )
                     throw;
 

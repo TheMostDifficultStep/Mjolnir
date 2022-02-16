@@ -1652,7 +1652,7 @@ namespace Play.Sound {
 		}
 
 		/// <summary>
-		/// Enumerate all the transmit modes we support. The generators come in three families.
+		/// Enumerate all the transmit modes we support. The generators come in four families.
 		/// Each family has various variants, all map to the legacy modes.
 		/// </summary>
         public IEnumerator<SSTVMode> GetEnumerator()
@@ -1674,6 +1674,10 @@ namespace Play.Sound {
 				yield return itrMode.Current;
 
 			itrMode = GenerateBW     .GetModeEnumerator();
+			while( itrMode.MoveNext() )
+				yield return itrMode.Current;
+
+			itrMode = GeneratePasokon.GetModeEnumerator();
 			while( itrMode.MoveNext() )
 				yield return itrMode.Current;
 		}
