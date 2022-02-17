@@ -947,15 +947,17 @@ namespace Play.SSTV {
 
 				switch( oMode.Family ) {
 					case TVFamily.PD:
-						_oSSTVGenerator = new GeneratePD     ( skBitmap, _oSSTVModulator, oMode ); break;
+						_oSSTVGenerator = new GeneratePD      ( skBitmap, _oSSTVModulator, oMode ); break;
 					case TVFamily.Martin:
-						_oSSTVGenerator = new GenerateMartin ( skBitmap, _oSSTVModulator, oMode ); break;
+						_oSSTVGenerator = new GenerateMartin  ( skBitmap, _oSSTVModulator, oMode ); break;
 					case TVFamily.Scottie:
-						_oSSTVGenerator = new GenerateScottie( skBitmap, _oSSTVModulator, oMode ); break;
+						_oSSTVGenerator = new GenerateScottie ( skBitmap, _oSSTVModulator, oMode ); break;
 					case TVFamily.BW:
-						_oSSTVGenerator = new GenerateBW     ( skBitmap, _oSSTVModulator, oMode ); break;
+						_oSSTVGenerator = new GenerateBW      ( skBitmap, _oSSTVModulator, oMode ); break;
                     case TVFamily.Pasokon:
-                        _oSSTVGenerator = new GeneratePasokon( skBitmap, _oSSTVModulator, oMode ); break;
+                        _oSSTVGenerator = new GeneratePasokon ( skBitmap, _oSSTVModulator, oMode ); break;
+                    case TVFamily.Robot:
+                        _oSSTVGenerator = new GenerateRobot422( skBitmap, _oSSTVModulator, oMode ); break;
 					default:
 						throw new ArgumentOutOfRangeException( nameof( oMode ) );
 				}

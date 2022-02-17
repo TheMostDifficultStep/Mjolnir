@@ -254,6 +254,7 @@ namespace Play.Sound {
         PD, 
         BW,
         Pasokon,
+        Robot,
         WWV
     }
 
@@ -293,14 +294,12 @@ namespace Play.Sound {
         readonly public  string   Name = string.Empty;
 
         readonly public  TVFamily Family;
-        readonly private SKSizeI  RawRez;
         readonly public  AllModes LegacyMode;       // Legacy support.
 
         readonly public  List<ScanLineChannel> ChannelMap = new();
 
         protected abstract void Initialize();
-        protected virtual void SetScanWidth() 
-        {
+        protected virtual void SetScanWidth() {
             foreach( ScanLineChannel oChannel in ChannelMap )
                 ScanWidthInMS += oChannel.WidthInMs;
         }
@@ -326,7 +325,7 @@ namespace Play.Sound {
             Name           = strName;
             WidthColorInMS = dbColorWidthInMS;
             Family         = tvMode;
-            RawRez         = skSize;
+            Resolution     = skSize;
             LegacyMode     = eLegacy;
         }
 
@@ -365,11 +364,114 @@ namespace Play.Sound {
         /// of a grey scale calibration added to the output, HOWEVER, I don't see the code to send 
         /// that in MMSSTV. It looks like they use that area for image.
         /// </summary>
-        public SKSizeI Resolution {
-            get {
-                return RawRez;
+        public SKSizeI Resolution { get; protected set; }
+    }
+
+    /// <summary>
+    /// Almost functional. Looks like I need to write some new ScanLineChannelType's
+    /// and or rejigger them to share with the PD modes. Basically, I need a quiet
+    /// Channel type that'll sweep up the Y, BY, BX buffers at the end and spit
+    /// out the multiple bitmap lines.
+    /// </summary>
+    public class SSTVModeRobot422 : SSTVMode {
+        public SSTVModeRobot422( byte bVIS, string strName, double dblSync, double dblGap, double dblClrWidth, SKSizeI skSize, AllModes eLegacy = AllModes.smEND) : 
+            base( TVFamily.Robot, bVIS, strName, dblClrWidth, skSize, eLegacy ) 
+        {
+            WidthSyncInMS = dblSync;
+            WidthGapInMS  = dblGap;
+        }
+
+        public override double WidthSyncInMS { get; }
+        public override double WidthGapInMS  { get; }
+
+        public override int ScanMultiplier => 2;
+
+        /// <summary>
+        /// Looks like I need to create two bitmap lines for every scan line
+        /// right now I step two scan lines, but leave one of them blank.
+        /// Plus, I'm not picking up the color since in PD Y2 fills the top
+        /// and bottom bitmap line at the end of the scan line. But Y here is 
+        /// at the start, and we don't have the smarts to pull out the buffered
+        /// RY and BY.
+        /// </summary>
+        /// <exception cref="InvalidProgramException"></exception>
+		protected override void Initialize() {
+			if( Family != TVFamily.Robot )
+				throw new InvalidProgramException( "Mode must be of Robot type" );
+
+            ChannelMap.Clear(); // Just in case we get called again.
+
+			ChannelMap.Add( new( WidthSyncInMS,    ScanLineChannelType.Sync ) );
+			ChannelMap.Add( new( WidthGapInMS,     ScanLineChannelType.Gap  ) );
+			ChannelMap.Add( new( WidthColorInMS,   ScanLineChannelType.Y    ) );
+
+            ChannelMap.Add( new( WidthSyncInMS /2, ScanLineChannelType.Gap  ) );
+			ChannelMap.Add( new( WidthGapInMS  /2, ScanLineChannelType.Gap  ) );
+			ChannelMap.Add( new( WidthColorInMS/2, ScanLineChannelType.RY   ) );
+
+			ChannelMap.Add( new( WidthSyncInMS /2, ScanLineChannelType.Gap  ) );
+            ChannelMap.Add( new( WidthGapInMS  /2, ScanLineChannelType.Gap  ) );
+			ChannelMap.Add( new( WidthColorInMS/2, ScanLineChannelType.BY   ) );
+
+            SetScanWidth();
+		}
+
+        public static IEnumerator<SSTVMode> EnumAllModes() {
+            List<SSTVModeRobot422> rgModes = new();
+
+ 	      //rgModes.Add( new SSTVModeRobot420( 0x00, "Robot 12", 7, 3,  60, new SKSizeI( 160, 120 ), AllModes.smR12 ) );
+ 	        rgModes.Add( new SSTVModeRobot422( 0x84, "Robot 24", 6, 2,  92, new SKSizeI( 320, 240 ), AllModes.smR24 ) );
+          //rgModes.Add( new SSTVModeRobot420( 0x88, "Robot 36", 9, 3,  88, new SKSizeI( 320, 240 ), AllModes.smR36 ) );
+ 	        rgModes.Add( new SSTVModeRobot422( 0x0c, "Robot 72", 9, 3, 138, new SKSizeI( 320, 240 ), AllModes.smR72 ) );
+
+            foreach( SSTVModeRobot422 oMode in rgModes ) {
+                oMode.Initialize();
+                yield return oMode;
             }
         }
+    }
+
+    /// <summary>
+    /// This class doesn't work yet. Just the start of my thinking. If I go back and
+    /// redo how the PD modes cache their values, I think I can share that code
+    /// with this. But it going to be fiddly and I don't want to deal with it yet.
+    /// </summary>
+    public class SSTVModeRobot420 : SSTVModeRobot422 {
+        public SSTVModeRobot420( byte bVIS, string strName, double dblSync, double dblGap, double dblClrWidth, SKSizeI skSize, AllModes eLegacy = AllModes.smEND) : 
+            base( bVIS, strName, dblSync, dblGap, dblClrWidth, skSize, eLegacy ) 
+        {
+        }
+
+        public override int ScanMultiplier => 2;
+
+        /// <summary>
+        /// 420 mode is going to be difficult since you need to start on an even scan line.
+        /// </summary>
+        /// <exception cref="InvalidProgramException"></exception>
+		protected override void Initialize() {
+			if( Family != TVFamily.Robot )
+				throw new InvalidProgramException( "Mode must be of Robot type" );
+
+            ChannelMap.Clear(); // Just in case we get called again.
+
+			ChannelMap.Add( new( WidthSyncInMS,    ScanLineChannelType.Sync ) );
+			ChannelMap.Add( new( WidthGapInMS,     ScanLineChannelType.Gap  ) );
+			ChannelMap.Add( new( WidthColorInMS,   ScanLineChannelType.Y    ) );
+
+			ChannelMap.Add( new( WidthSyncInMS /2, ScanLineChannelType.Gap  ) );
+            ChannelMap.Add( new( WidthGapInMS  /2, ScanLineChannelType.Gap  ) );
+			ChannelMap.Add( new( WidthColorInMS/2, ScanLineChannelType.BY   ) );
+
+			ChannelMap.Add( new( WidthSyncInMS,    ScanLineChannelType.Sync ) );
+			ChannelMap.Add( new( WidthGapInMS,     ScanLineChannelType.Gap  ) );
+			ChannelMap.Add( new( WidthColorInMS,   ScanLineChannelType.Y    ) );
+
+            ChannelMap.Add( new( WidthSyncInMS /2, ScanLineChannelType.Gap  ) );
+			ChannelMap.Add( new( WidthGapInMS  /2, ScanLineChannelType.Gap  ) );
+			ChannelMap.Add( new( WidthColorInMS/2, ScanLineChannelType.RY   ) );
+
+            SetScanWidth();
+		}
     }
 
     public class SSTVModePasokon : SSTVMode {
@@ -386,7 +488,7 @@ namespace Play.Sound {
 
 		protected override void Initialize() {
 			if( Family != TVFamily.Pasokon )
-				throw new InvalidProgramException( "Mode must be of P type" );
+				throw new InvalidProgramException( "Mode must be of Pasokon type" );
 
             ChannelMap.Clear(); // Just in case we get called again.
 
@@ -404,15 +506,15 @@ namespace Play.Sound {
 
         ///<remarks>sstv-handbook has P3 as 320 wide bitmap, but mmsstv uses 640.
         /// Also the sstv-handbook sez the sync signal is "20 units" wide,
-        /// with 1 pixel being a unit. But 133.333/640 is .2083... and
-        /// 5.208 => 4.167 + 1.042, which is a sync + a gap. I think it's a bug
-        /// in MMSSTV</remarks> 
+        /// and a gap is "5 units" wide with 1 pixel being a unit. But 
+        /// 133.333/640 is .2083... and 5.208 => 4.167 + 1.042, which is a 
+        /// sync + a gap. I think it's a bug in MMSSTV</remarks> 
         public static IEnumerator<SSTVMode> EnumAllModes() {
             List<SSTVModePasokon> rgModes = new();
 
- 	        rgModes.Add( new SSTVModePasokon( 0x71, "P3",   5.208, 1.042,    133.333, new SKSizeI( 640, 496 ), AllModes.smP3 ) );
-            rgModes.Add( new SSTVModePasokon( 0x72, "P5",   7.813, 1.562375, 200.000, new SKSizeI( 640, 496 ), AllModes.smP5 ) );
- 	        rgModes.Add( new SSTVModePasokon( 0xf3, "P7",  10.417, 2.083,    146.432, new SKSizeI( 640, 496 ), AllModes.smP7 ) );
+ 	        rgModes.Add( new SSTVModePasokon( 0x71, "Pasokon 3",   5.208, 1.042,    133.333, new SKSizeI( 640, 496 ), AllModes.smP3 ) );
+            rgModes.Add( new SSTVModePasokon( 0x72, "Pasokon 5",   7.813, 1.562375, 200.000, new SKSizeI( 640, 496 ), AllModes.smP5 ) );
+ 	        rgModes.Add( new SSTVModePasokon( 0xf3, "Pasokon 7",  10.417, 2.083,    146.432, new SKSizeI( 640, 496 ), AllModes.smP7 ) );
 
             foreach( SSTVModePasokon oMode in rgModes ) {
                 oMode.Initialize();
@@ -513,6 +615,10 @@ namespace Play.Sound {
 
     }
 
+    /// <summary>
+    /// Note that PD is 420 sub sampling. Still haven't got 422 sorted, but hopefully
+    /// Robot can share with this one. I'm still working on that: 2/16/2022.
+    /// </summary>
     public class SSTVModePD : SSTVMode {
         public SSTVModePD( byte bVIS, string strName, double dbTxWidth, SKSizeI skSize, AllModes eLegacy = AllModes.smEND) : 
             base( TVFamily.PD, bVIS, strName, dbTxWidth, skSize, eLegacy ) 
@@ -828,6 +934,63 @@ namespace Play.Sound {
 	            }
 
 	            Write( 1500, Mode.WidthGapInMS );
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( AccessViolationException ),
+                                    typeof( NullReferenceException ),
+                                    typeof( ArgumentOutOfRangeException ) };
+                if( !rgErrors.Contains( oEx.GetType() ) )
+                    throw;
+
+                // This would be a good place to return an error.
+            }
+        }
+    }
+
+    public class GenerateRobot422 : SSTVCrCbYGenerator {
+        readonly List<Chrominance8Bit> _rgChrome = new(800);
+
+        /// <summary>
+        /// Unfortunately for Robot, I'll have to choose between a 422 generator and a 420
+        /// generator. That's a bummer, since it trashes up a pretty clean system heretofore.
+        /// I've implemented the 422, that's easier, and I'll implement the 420 later.
+        /// </summary>
+        public GenerateRobot422( SKBitmap oBitmap, IPgModulator oModulator, SSTVMode oMode ) : 
+            base( oBitmap, oModulator, oMode )
+        {
+        }
+
+        protected override void WriteLine( int iLine ) {
+	        double dbTimePerPixel = Mode.WidthColorInMS / Mode.Resolution.Width; 
+
+            if( iLine > Height )
+                return;
+
+            try {
+                _rgCache.Clear();
+
+	            Write( 1200, Mode.WidthSyncInMS );
+                Write( 1500, Mode.WidthGapInMS  );
+
+	            for( int x = 0; x < Width; x++ ) {     // Y(odd)
+                    SKColor         skPixel = GetPixel( x, iLine );
+                    Chrominance8Bit crPixel = GetRY   ( skPixel );
+
+                    _rgChrome.Add( crPixel );
+
+		            Write( ColorToFreq( crPixel.Y       ), dbTimePerPixel );
+	            }
+
+	            Write( 1500, Mode.WidthSyncInMS/2 );   // gap
+                Write( 1900, Mode.WidthGapInMS /2 );
+	            for( int x = 0; x < Width; x++ ) {     // R-Y
+		            Write( ColorToFreq( _rgChrome[x].RY ), dbTimePerPixel );
+	            }
+
+	            Write( 2300, Mode.WidthSyncInMS/2 );   // gap
+                Write( 1900, Mode.WidthGapInMS /2 );
+	            for( int x = 0; x < Width; x++ ) {     // B-Y
+		            Write( ColorToFreq( _rgChrome[x].BY ), dbTimePerPixel );
+	            }
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( AccessViolationException ),
                                     typeof( NullReferenceException ),

@@ -795,6 +795,7 @@ namespace Play.SSTV {
 								_dblIntercept    = dblIntercept;
 								_fNoIntercept    = false;
 								_dblReadBaseSync = 0;
+								_rgSlopeBuckets.Clear();
 							}
 						}
 
@@ -869,6 +870,9 @@ namespace Play.SSTV {
 		public IEnumerator< SSTVPosition > GetEnumerator () {
             double dblIndex  = _dblIntercept - SyncOffsetInSamples - ( _dblMagicOffset * _dp.SampFreq / 1000 );
 			int    iScanLine = 0;
+
+			if( Mode == null )
+				yield break;
 
 			InitSlots( Mode.Resolution.Width, _dblSlope / SpecWidthInSamples ); 
 

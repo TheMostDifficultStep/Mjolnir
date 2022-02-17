@@ -1671,6 +1671,10 @@ namespace Play.Sound {
 			itrMode = SSTVModePasokon.EnumAllModes();
 			while( itrMode.MoveNext() )
 				yield return itrMode.Current;
+
+			itrMode = SSTVModeRobot422.EnumAllModes();
+			while( itrMode.MoveNext() )
+				yield return itrMode.Current;
 		}
 
 		/// <summary>
