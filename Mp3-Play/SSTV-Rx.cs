@@ -1428,8 +1428,7 @@ namespace Play.Sound {
 							//if( !m_Sync /* && m_MSync */ ){
 							//	m_sint1.SyncMax( (int)d12);
 							//}
-							m_SyncTime--;
-							if( m_SyncTime == 0 ){
+							if( --m_SyncTime == 0 ){
 								m_SyncMode++;
 								m_SyncTime = (int)(30 * SampFreq/1000); // Each bit is 30 ms!!
 								m_VisData  = 0; // Init value
@@ -1441,8 +1440,7 @@ namespace Play.Sound {
 						break;
 					case 2:                 // Vis decode
 					case 9:                 // Expanded VIS decode.
-						m_SyncTime--;
-						if( m_SyncTime == 0 ){
+						if( --m_SyncTime == 0 ){
 							if( ((d11 < d19) && (d13 < d19)) || (Math.Abs(d11-d13) < (m_SLvlHalf)) ) {
 								m_SyncMode = 0; // Start over?
 							} else {
@@ -1479,8 +1477,7 @@ namespace Play.Sound {
 						if( !Synced ){
 							m_pll.Do(ad);
 						}
-						m_SyncTime--;
-						if( m_SyncTime == 0 ){
+						if( --m_SyncTime == 0 ){
 							if( (d12 > d19) && (d12 > m_SLvl) ){
 								tvMode = GetSSTVMode( m_NextMode );
 								if( tvMode != null ) {
@@ -1502,8 +1499,7 @@ namespace Play.Sound {
 						m_SyncMode++;
 						break;
 					case 513:
-						m_SyncTime--;
-						if( m_SyncTime <= 0 ){
+						if( --m_SyncTime <= 0 ){
 							m_SyncMode = 0;
 						}
 						break;
@@ -1651,6 +1647,11 @@ namespace Play.Sound {
 			}
 		}
 
+		/// <summary>
+		/// Enumerate all the transmit modes we support. The generators come in a
+		/// variety of families. Each family has various variants, all map to
+		/// the legacy modes.
+		/// </summary>
 		public static IEnumerator<SSTVMode> EnumModes() {
             IEnumerator<SSTVMode> itrMode = SSTVModeMartin.EnumAllModes();
 			while( itrMode.MoveNext() ) 
@@ -1677,10 +1678,6 @@ namespace Play.Sound {
 				yield return itrMode.Current;
 		}
 
-		/// <summary>
-		/// Enumerate all the transmit modes we support. The generators come in four families.
-		/// Each family has various variants, all map to the legacy modes.
-		/// </summary>
         public IEnumerator<SSTVMode> GetEnumerator()
         {
             return EnumModes();

@@ -786,7 +786,7 @@ namespace Play.SSTV {
 
 						// Re-reading is the best thing to do, but it is expensive and
 						// only helps at first, and is less effective after that.
-						int    iStart       = _rgSlopeBuckets.Count == 0 ? 0 : iScanLine - 20;
+						int    iStart       = _rgSlopeBuckets.Count == 0 ? 0 : iScanLine - 20 - 1;
 						double dblIntercept = 0;
 						if( Slider.AlignLeastSquares( 0, iScanLine, ref _dblSlope, ref dblIntercept ) ) {
 							// Don't reset the slider. While it makes sense in extreme cases
