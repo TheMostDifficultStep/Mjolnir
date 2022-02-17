@@ -460,8 +460,6 @@ namespace Play.SSTV {
 					// before the SSTVEvents.SSTVMode comes and obliterates the
 					// past values (mode/filename/wBase etc).
 					_dp.Reset();
-
-					DiagnosticsOverlay();
 				}
 			} catch( Exception oEx ) {
 				Type[] rgErrors = { typeof( NullReferenceException ),
@@ -606,8 +604,8 @@ namespace Play.SSTV {
 			SKPaint skPaint = new() { Color = SKColors.Yellow, StrokeWidth = 3 };
 
 			double dbD12XScale       = _pBitmapD12.Width / _dblSlope;
-			double dblSyncExpected   = SyncOffsetInSamples;
-			float  flScaledIntercept = (float)( _dblIntercept * dbD12XScale );
+			double dblStartIndex     = StartIndex;
+			float  flScaledIntercept = (float)( dblStartIndex * dbD12XScale );
 			//double dblOffset       = ( Mode.Resolution.Height - 1 ) * _dblSlope + _dblIntercept;
 			//float  flX2            = (float)( dblOffset % _dblSlope * dbD12XScale );
 
@@ -615,10 +613,11 @@ namespace Play.SSTV {
 			SKPoint bot = new( flScaledIntercept, _pBitmapD12.Height );
 			_skD12Canvas.DrawLine( top, bot, skPaint );
 
-			float[] intervals = { 2f, 5f };
+			float[] rgIntervals = { 2f, 5f };
+			using SKPathEffect skDash = SKPathEffect.CreateDash( rgIntervals, 0 );
 
 			foreach( ColorChannel oSlot in _rgSlots ) {
-				double dblXCh = ( _dblIntercept + oSlot.Min - dblSyncExpected ) * dbD12XScale;
+				double dblXCh = ( dblStartIndex + oSlot.Min ) * dbD12XScale;
 				dblXCh %= _pBitmapD12.Width;
 
 				DiagnosticPaint sPaint = _rgDiagnosticColors[oSlot.ChannelType];
@@ -626,8 +625,9 @@ namespace Play.SSTV {
 				skPaint.Color       = sPaint.Color;
 				skPaint.StrokeWidth = sPaint.StrokeWidth;
 
-				if( oSlot.ChannelType == ScanLineChannelType.Gap ) {
-					skPaint.PathEffect  = SKPathEffect.CreateDash( intervals, 0 );
+				if( oSlot.ChannelType == ScanLineChannelType.Gap ||
+					oSlot.ChannelType == ScanLineChannelType.END ) {
+					skPaint.PathEffect = skDash;
 				} else {
 					skPaint.PathEffect = null;
 				}
@@ -758,7 +758,7 @@ namespace Play.SSTV {
 
 		/// <summary>
 		/// This is our main processing entry point. The data is being loaded into the buffer
-		/// and we read it out here.
+		/// and we read it out here. _dp.Mode might be null after exit of this call.
 		/// </summary>
 		public void Process() {
 			if( _dp.Synced ) {
@@ -828,6 +828,9 @@ namespace Play.SSTV {
 			foreach( SSTVPosition sSample in this ) {
 				ProcessScan2( sSample.Position, sSample.ScanLine );
 			}
+			if( _dp.Synced ) {
+				DiagnosticsOverlay();
+			}
 		}
 
 		/// <summary>
@@ -864,11 +867,16 @@ namespace Play.SSTV {
 		}
 
 		/// <summary>
+		/// This is the starting position for the unprocessed scan data that makes up the image. 
+		/// </summary>
+		public double StartIndex => _dblIntercept - SyncOffsetInSamples - ( _dblMagicOffset * _dp.SampFreq / 1000 );
+
+		/// <summary>
 		/// This is the old implementation. It enumerates all the scan lines using a single
 		/// slope value.
 		/// </summary>
 		public IEnumerator< SSTVPosition > GetEnumerator () {
-            double dblIndex  = _dblIntercept - SyncOffsetInSamples - ( _dblMagicOffset * _dp.SampFreq / 1000 );
+            double dblIndex  = StartIndex;
 			int    iScanLine = 0;
 
 			if( Mode == null )
