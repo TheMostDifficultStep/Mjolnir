@@ -325,6 +325,8 @@ namespace Play.SSTV {
 	    protected short[]  _Y36 = new short[800];
 	    protected short[,] _D36 = new short[2,800];
 
+		protected readonly int _iBucketSize = 10;
+
 		protected bool     _fNoIntercept   = true;
 		protected double   _dblSlope       = 0;
 		protected double   _dblIntercept   = 0;
@@ -773,12 +775,12 @@ namespace Play.SSTV {
 					// BUG: this s/b encoded scan line and not the bitmap y value.
 					int iScanLine = (int)( dblReadSignalStart / ScanWidthInSamples * Mode.ScanMultiplier );
 
-					if( iScanLine >= ( _rgSlopeBuckets.Count + 1 ) * 20 ) {
+					if( iScanLine >= ( _rgSlopeBuckets.Count + 1 ) * _iBucketSize ) {
 						Slider.Shuffle( false, _dblSlope, _dblIntercept );
 
 						// Re-reading is the best thing to do, but it is expensive and
 						// only helps at first, and is less effective after that.
-						int  iStart   = _rgSlopeBuckets.Count == 0 ? 0 : iScanLine - 20 - 1;
+						int  iStart   = _rgSlopeBuckets.Count == 0 ? 0 : iScanLine - _iBucketSize - 1;
 						bool fAligned = Slider.AlignLeastSquares( 0, iScanLine, ref _dblSlope, ref _dblIntercept );
 
 						// Don't reset the slider. While it makes sense in extreme cases
@@ -856,7 +858,7 @@ namespace Play.SSTV {
 
 			foreach( double dblSlope in _rgSlopeBuckets ) {
 				InitSlots( Mode.Resolution.Width, dblSlope / SpecWidthInSamples ); 
-				for( int i = 0; i<20; ++i ) {
+				for( int i = 0; i<_iBucketSize; ++i ) {
 					yield return new SSTVPosition() { Position=dblIndex, ScanLine=iScanLine };
 					dblIndex  += dblSlope;
 					iScanLine += Mode.ScanMultiplier;
