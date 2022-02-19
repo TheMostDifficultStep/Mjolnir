@@ -759,7 +759,7 @@ namespace Play.SSTV {
         private void OnPropertyChange_DocSSTV( SSTVEvents eProp ) {
 			switch( eProp ) {
 				case SSTVEvents.DownLoadFinished:
-				case SSTVEvents.SSTVMode:
+				case SSTVEvents.ModeChanged:
 					_wmViewRxImg.BringToFront();
 					break;
 				case SSTVEvents.DownLoadTime:

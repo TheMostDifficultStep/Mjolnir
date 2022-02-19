@@ -1505,7 +1505,7 @@ namespace Play.Sound {
 						break;
 				}
 			}
-			if( Synced ){
+			if( Synced ) {
 				double freq;
 				switch(m_Type){
 					case FreqDetect.PLL:		// PLL

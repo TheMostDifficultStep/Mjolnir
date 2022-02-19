@@ -271,7 +271,7 @@ namespace Play.SSTV {
     {
         protected readonly ConcurrentQueue<double>      _oDataQueue; 
         protected readonly WaveFormat                   _oDataFormat;
-        protected readonly ConcurrentQueue<TVMessage>   _oOutQueue;
+        protected readonly ConcurrentQueue<TVMessage>   _oInputQueue;
         protected          string                       _strFilePath;   // path and img quality could potentially change
         protected readonly string                       _strFileName;
         protected readonly int                          _iImageQuality; // on the fly; yet doesn't seem mainline usage.
@@ -308,13 +308,13 @@ namespace Play.SSTV {
                                      string                       strFileName,
                                      ConcurrentQueue<SSTVMessage> oToUIQueue, 
                                      ConcurrentQueue<double>      oDataQueue, 
-                                     ConcurrentQueue<TVMessage>   oOutQueue,
+                                     ConcurrentQueue<TVMessage>   oInputQueue,
                                      SKBitmap                     oD12,
                                      SKBitmap                     oRx ) :
             base( oToUIQueue )
         {
             _oDataQueue    = oDataQueue  ?? throw new ArgumentNullException( nameof( oDataQueue  ) );
-            _oOutQueue     = oOutQueue   ?? throw new ArgumentNullException( nameof( oOutQueue   ) );
+            _oInputQueue   = oInputQueue ?? throw new ArgumentNullException( nameof( oInputQueue   ) );
             _strFilePath   = strFilePath ?? throw new ArgumentNullException( nameof( strFilePath ) );
             _iImageQuality = iImageQuality;
             _strFileName   = strFileName;
@@ -331,7 +331,7 @@ namespace Play.SSTV {
         /// Listen to the SSTVDraw object. And forward those events outside our thread envelope.
         /// </summary>
         private void OnTvEvents_SSTVDraw( SSTVEvents eProp, int iParam ) {
-            if( eProp == SSTVEvents.SSTVMode ) {
+            if( eProp == SSTVEvents.ModeChanged ) {
                 foreach( SSTVMode oMode in _oSSTVDeMo ) {
                     if( oMode.LegacyMode == (AllModes)iParam ) {
                         _oLastMode = oMode;
@@ -342,7 +342,7 @@ namespace Play.SSTV {
         }
 
         protected bool CheckMessages() {
-            while( _oOutQueue.TryDequeue( out TVMessage oMsg ) ) {
+            while( _oInputQueue.TryDequeue( out TVMessage oMsg ) ) {
                 switch( oMsg._eMsg ) {
                     case TVMessage.Message.ExitWorkThread:
                         _oToUIQueue.Enqueue( new( SSTVEvents.ThreadExit, 0 ) );
@@ -361,6 +361,12 @@ namespace Play.SSTV {
                     case TVMessage.Message.SaveNow:
                         SaveImage( _oLastMode );
                         _oToUIQueue.Enqueue( new( SSTVEvents.ImageSaved, 0 ) );
+                        break;
+                    case TVMessage.Message.FrequencyDown:
+                        _oSSTVDraw.SlopeAdjust( -1 );
+                        break;
+                    case TVMessage.Message.FrequencyUp:
+                        _oSSTVDraw.SlopeAdjust( 1 );
                         break;
                 }
             }

@@ -189,7 +189,7 @@ namespace Play.SSTV {
 		public bool AlignLeastSquares( int iStart, int iEnd, ref double dblSlope, ref double dblIntercept ) {
 			double meanx  = 0, meany = 0;
 			int    iCount = 0;
-			
+
 			if( iStart <= 0 )
 				iStart = 1; // BUG: First line is always messed up. Ignore until figure out.
 			if( iEnd > _rgRasters.Length )
@@ -433,7 +433,7 @@ namespace Play.SSTV {
 
 			Slider.Reset( (int)SyncWidthInSamples );
 
-			Send_TvEvents?.Invoke(SSTVEvents.SSTVMode, (int)Mode.LegacyMode );
+			Send_TvEvents?.Invoke(SSTVEvents.ModeChanged, (int)Mode.LegacyMode );
 
             using SKCanvas sKCanvas = new(_pBitmapRX);
             sKCanvas.Clear(SKColors.Gray);
@@ -656,14 +656,14 @@ namespace Play.SSTV {
 				int    iSyncWidth  = (int)( SyncWidthInSamples * dbD12XScale );
 				int    iScanLine   = (int)Math.Round( dblBase / ScanWidthInSamples );
 
-				// If we can't advance we'll get stuck in an infinite loop on our caller.
-				if( iReadBase + iScanWidth >= _dp.m_wBase )
-					throw new InvalidProgramException( "Hit the rails on the ProcessSync" );
-
 				// This can happen when we start in the middle of an image. And we go
 				// back to the top of the picture trying to draw the first partial scan line.
 				if( _dp.BoundsCompare( iReadBase ) != 0 )
 					return( dblBase + ScanWidthInSamples ); // Just skip it.
+
+				// If we can't advance we'll get stuck in an infinite loop on our caller.
+				if( iReadBase + iScanWidth >= _dp.m_wBase )
+					throw new InvalidProgramException( "Hit the rails on the ProcessSync" );
 
 				for( int i = 0; i < iScanWidth; i++ ) { 
 					int   idx = iReadBase + i;
@@ -768,38 +768,29 @@ namespace Play.SSTV {
 
 						Send_TvEvents?.Invoke( SSTVEvents.DownLoadTime, PercentRxComplete );
 					}
-				} catch( Exception oEx ) {
-					Type[] rgErrors = { typeof( NullReferenceException ),
-										typeof( InvalidProgramException ),
-										typeof( IndexOutOfRangeException ) };
-					if( rgErrors.IsUnhandled( oEx ) )
-						throw;
 
-					Send_TvEvents?.Invoke( SSTVEvents.ThreadException, (int)TxThreadErrors.DrawingException );
-				}
-
-				try {
-					int iScanLine = (int)(_dp.m_wBase / ScanWidthInSamples * Mode.ScanMultiplier );
+					double dblReadSignalStart = _dblReadBaseSync - StartIndex;
+					// BUG: this s/b encoded scan line and not the bitmap y value.
+					int iScanLine = (int)( dblReadSignalStart / ScanWidthInSamples * Mode.ScanMultiplier );
 
 					if( iScanLine >= ( _rgSlopeBuckets.Count + 1 ) * 20 ) {
 						Slider.Shuffle( false, _dblSlope, _dblIntercept );
 
 						// Re-reading is the best thing to do, but it is expensive and
 						// only helps at first, and is less effective after that.
-						int    iStart       = _rgSlopeBuckets.Count == 0 ? 0 : iScanLine - 20 - 1;
-						double dblIntercept = 0;
-						if( Slider.AlignLeastSquares( 0, iScanLine, ref _dblSlope, ref dblIntercept ) ) {
-							// Don't reset the slider. While it makes sense in extreme cases
-							// doesn't seem to really matter most of the time.
-							if( _fNoIntercept ) {
-								_dblIntercept    = dblIntercept;
-								_fNoIntercept    = false;
-								_dblReadBaseSync = 0;
-								_rgSlopeBuckets.Clear();
-							}
-						}
+						int  iStart   = _rgSlopeBuckets.Count == 0 ? 0 : iScanLine - 20 - 1;
+						bool fAligned = Slider.AlignLeastSquares( 0, iScanLine, ref _dblSlope, ref _dblIntercept );
 
-						_rgSlopeBuckets.Add( _dblSlope );
+						// Don't reset the slider. While it makes sense in extreme cases
+						// doesn't seem to really matter most of the time.
+						//if( _fNoIntercept && fAligned ) {
+						//	_dblIntercept    = dblIntercept;
+						//	_fNoIntercept    = false;
+						//	_dblReadBaseSync = 0;
+						//	_rgSlopeBuckets.Clear();
+						//} else {
+							_rgSlopeBuckets.Add( _dblSlope );
+						//}
 
 						ProcessTop( iStart, iScanLine );
 					}
@@ -820,9 +811,15 @@ namespace Play.SSTV {
 			}
 		}
 
+		public void SlopeAdjust( double dblDir ) {
+			_dblSlope += dblDir;
+
+			ProcessProgress();
+		}
+
 		/// <summary>
 		/// When we switch modes, but don't clear the buffer, want to see what
-		/// we've got and this will do it.
+		/// we've got. This will re-read the entire buffer.
 		/// </summary>
 		public void ProcessProgress() {
 			foreach( SSTVPosition sSample in this ) {
@@ -831,6 +828,7 @@ namespace Play.SSTV {
 			if( _dp.Synced ) {
 				DiagnosticsOverlay();
 			}
+			Send_TvEvents?.Invoke( SSTVEvents.DownLoadTime, 100 );
 		}
 
 		/// <summary>
@@ -968,7 +966,7 @@ namespace Play.SSTV {
 		public void OnModeTransition_SSTVDeMo( SSTVMode oCurrMode, SSTVMode oPrevMode, int iPrevBase ) {
 			if( oCurrMode == null ) {
 				DiagnosticsOverlay();
-				Send_TvEvents?.Invoke( SSTVEvents.SSTVMode, -1 );
+				Send_TvEvents?.Invoke( SSTVEvents.ModeChanged, -1 );
 				return;
 			}
 

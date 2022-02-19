@@ -56,7 +56,7 @@ namespace Play.SSTV {
 		protected readonly IPgViewSite   _oSiteView;
 		protected readonly DocSSTV       _oDocSSTV;
 
-		protected readonly ImageViewSingle _oViewSync;    // The sync bitmap.
+		protected readonly ImageViewSingle _wmViewSync;    // The sync bitmap.
 
 		protected LayoutStack _oLayout = new LayoutStackVertical() { Spacing = 5 };
 
@@ -113,8 +113,8 @@ namespace Play.SSTV {
 			Icon = oDocument.CreateIconic( _strIcon );
  
 
-			_oViewSync = new ImageViewSingle( new SSTVWinSlot( this ), _oDocSSTV.SyncImage );
-			_oViewSync.SetBorderOn();
+			_wmViewSync = new ImageViewSingle( new SSTVWinSlot( this ), _oDocSSTV.SyncImage );
+			_wmViewSync.SetBorderOn();
 		}
 
 		protected override void Dispose( bool disposing ) {
@@ -128,16 +128,16 @@ namespace Play.SSTV {
 		}
 
 		public bool InitNew() {
-			if( !_oViewSync.InitNew() )
+			if( !_wmViewSync.InitNew() )
 				return false;
 
-			_oViewSync.Parent = this;
+			_wmViewSync.Parent = this;
 
             _oDocSSTV.PropertyChange += Listen_PropertyChange;
 
 			// I'm going to leave the layout object since I might add more
 			// to the diagnostics screen later.
-            _oLayout.Add( new LayoutControl( _oViewSync , LayoutRect.CSS.Percent, 100 ) );
+            _oLayout.Add( new LayoutControl( _wmViewSync , LayoutRect.CSS.Percent, 100 ) );
 
             OnSizeChanged( new EventArgs() );
 
@@ -153,11 +153,12 @@ namespace Play.SSTV {
         private void Listen_PropertyChange( SSTVEvents eProp ) {
 			switch( eProp ) {
 				case SSTVEvents.DownLoadFinished:
-					_oViewSync.Refresh();
+					_wmViewSync.Refresh();
 					break;
 				default:
 					Invalidate();
 					_oSiteView.Notify( ShellNotify.BannerChanged );
+					_wmViewSync.Invalidate();
 					break;
 			}
         }
@@ -231,6 +232,16 @@ namespace Play.SSTV {
                 case Keys.Enter:
                     break;
             }
+        }
+
+        protected override void OnMouseWheel(MouseEventArgs e) {
+            base.OnMouseWheel(e);
+
+			TVMessage.Message eMsg = e.Delta > 0 ? 
+				TVMessage.Message.FrequencyUp :
+				TVMessage.Message.FrequencyDown;
+
+			_oDocSSTV.PostBGMessage( eMsg );
         }
     }
 

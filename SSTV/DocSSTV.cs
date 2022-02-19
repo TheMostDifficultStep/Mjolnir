@@ -184,7 +184,7 @@ namespace Play.SSTV {
     }
 
     public enum SSTVEvents {
-        SSTVMode,
+        ModeChanged,
         FFT,
         UploadTime,
 		DownLoadTime,
@@ -202,7 +202,9 @@ namespace Play.SSTV {
             SaveNow,
             TryNewMode,
             ChangeDirectory,
-            ExitWorkThread
+            ExitWorkThread,
+            FrequencyUp,
+            FrequencyDown,
         }
 
         public readonly Message _eMsg;
@@ -611,6 +613,10 @@ namespace Play.SSTV {
 
         private void OnCheckedEvent_RxModeList(Line oLineChecked) {
             _rgUItoBGQueue.Enqueue( new TVMessage( TVMessage.Message.TryNewMode, oLineChecked.Extra ) );
+        }
+
+        public void PostBGMessage( TVMessage.Message msg ) {
+            _rgUItoBGQueue.Enqueue( new TVMessage( msg, null ) );
         }
 
         protected void InitDeviceList() {
@@ -1081,7 +1087,7 @@ namespace Play.SSTV {
             while( true ) {
                 while( _rgBGtoUIQueue.TryDequeue( out SSTVMessage sResult ) ) {
                     switch( sResult.Event ) {
-                        case SSTVEvents.SSTVMode: {
+                        case SSTVEvents.ModeChanged: {
                             SSTVMode oMode = null;
 
                             foreach( Line oLine in RxModeList ) {
@@ -1105,7 +1111,7 @@ namespace Play.SSTV {
                                 Properties.ValueUpdate( SSTVProperties.Names.Rx_Width,  oMode.Resolution.Width .ToString() );
                                 Properties.ValueUpdate( SSTVProperties.Names.Rx_Height, oMode.Resolution.Height.ToString() );
                             }
-                            PropertyChange?.Invoke( SSTVEvents.SSTVMode );
+                            PropertyChange?.Invoke( SSTVEvents.ModeChanged );
                         } break;
                         case SSTVEvents.UploadTime:
                             Properties.ValueUpdate( SSTVProperties.Names.Tx_Progress, sResult.Param.ToString( "D2" ) + "%", Broadcast:true );
