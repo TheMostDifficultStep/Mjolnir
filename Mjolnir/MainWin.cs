@@ -509,8 +509,11 @@ namespace Mjolnir {
                                     Spacing  = 5,
                                     SideInit = sStuff.iInit,
                                     Track    = (uint)iValue,
-                                    Layout   = LayoutRect.CSS.Pixels 
+                                    Layout   = LayoutRect.CSS.Pixels
                                 } );
+                                if( eSide == SideIdentify.Bottom ) {
+                                    _rgSideInfo[SideIdentify.Bottom].Padding.SetRect( 5, 0, 5, 0 );
+                                }
 						    } else {
 							    LogError( null, "initialization", "Couldn't read margin from config: " + strSide );
 						    }
