@@ -944,7 +944,7 @@ namespace Play.SSTV {
 			if( _dp.Synced ) {
 				try {
 					// BUG: this s/b encoded scan line and not the bitmap y value.
-					int iScanLine = (int)( ( _dp.m_wBase - StartIndex )/ ScanWidthInSamples );
+					int iScanLine = (int)( ( _dp.m_wBase - StartIndex ) / ScanWidthInSamples );
 
 					if( iScanLine >= ( _rgSlopeBuckets.Count + 1 ) * _iBucketSize ) {
 						// SyncSSTV( iScanLine ); not ready yet.
@@ -967,12 +967,11 @@ namespace Play.SSTV {
 							_fNoIntercept    = false;
 							_dblReadBaseSync = 0;
 							Slider.Reset();
-							//	_rgSlopeBuckets.Clear();
 						}
 							_rgSlopeBuckets.Add( _dblSlope );
 						//}
 
-						ProcessTop( iStart * Mode.ScanMultiplier, iScanLine * Mode.ScanMultiplier );
+						ProcessTop( iStart, iScanLine );
 					}
 					// Bail on current image when we've processed expected image size.
 					if( _dp.m_wBase > ImageSizeInSamples ) {
