@@ -815,14 +815,14 @@ namespace Play.Sound {
 		CSLVL    m_SyncLvl; // The program will compile but member variables won't update.
 		readonly LevelDisplay m_LevelType = LevelDisplay.Receipt; // see mmsstv menu: "View/Level indicator/(receipt | sync)"
 
-		readonly FreqDetect   m_Type = FreqDetect.Hilbert; // Hilbert, PLL, FQC; // BUG: This s/b parameter.
+		public readonly FreqDetect FilterType = FreqDetect.Hilbert; // Hilbert, PLL, FQC; // BUG: This s/b parameter.
 
 		// These three should inherit from a common interface.
 		readonly CPLL	  m_pll;
 		readonly CFQC     m_fqc;
 		readonly CHILL    m_hill;
 
-		public int HillTaps => m_hill.m_htap;
+		public int HilbertTaps => m_hill.m_htap;
 
 		public bool   Synced { get; protected set; }
 		int           m_SyncMode;
@@ -1507,7 +1507,7 @@ namespace Play.Sound {
 			}
 			if( Synced ) {
 				double freq;
-				switch(m_Type){
+				switch(FilterType){
 					case FreqDetect.PLL:		// PLL
 						freq = m_pll.Do(od);
 						if( m_afc && (m_Rcptlvl.m_CurMax > 16) )
@@ -1547,7 +1547,7 @@ namespace Play.Sound {
 				// This is used by the TOptionDlg::TimerTimer code for test.
 				double m_CurSig; // I removed the member variable since it was not being used elsewhere.
 
-				switch(m_Type){
+				switch(FilterType){
 					case FreqDetect.PLL:
 						m_CurSig = m_Avg.Avg(m_pll.Do( od ));
 						break;
