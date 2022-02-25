@@ -178,7 +178,7 @@ namespace Play.SSTV {
         /// </summary>
         public void DoWork( SSTVMode oMode ) {
             try {
-                _oSSTVDeMo.Send_NextMode  += _oSSTVDraw.OnModeTransition_SSTVDeMo;
+                _oSSTVDeMo.Send_NextMode   = _oSSTVDraw.OnModeTransition_SSTVDeMo;
                 _oSSTVDraw.Send_TvEvents  += OnTVEvents_SSTVDraw;
                 _oSSTVDraw.Send_SavePoint += SaveImage;
 
@@ -363,10 +363,10 @@ namespace Play.SSTV {
                         _oToUIQueue.Enqueue( new( SSTVEvents.ImageSaved, 0 ) );
                         break;
                     case TVMessage.Message.FrequencyDown:
-                        _oSSTVDraw.SlopeAdjust( -0.5 );
+                        _oSSTVDraw.SlopeAdjust( -0.3 );
                         break;
                     case TVMessage.Message.FrequencyUp:
-                        _oSSTVDraw.SlopeAdjust( +0.5 );
+                        _oSSTVDraw.SlopeAdjust( +0.3 );
                         break;
                 }
             }
@@ -383,7 +383,7 @@ namespace Play.SSTV {
         /// read from the sound card and I'll be able to punt that code.</remarks>
         public void DoWork() {
             try {
-                _oSSTVDeMo.Send_NextMode  += _oSSTVDraw.OnModeTransition_SSTVDeMo;
+                _oSSTVDeMo.Send_NextMode   = _oSSTVDraw.OnModeTransition_SSTVDeMo;
                 _oSSTVDraw.Send_TvEvents  += OnTvEvents_SSTVDraw;
                 _oSSTVDraw.Send_SavePoint += SaveImage;
             } catch( Exception oEx ) {

@@ -787,7 +787,7 @@ namespace Play.Sound {
 
 		protected Dictionary<byte, SSTVMode > ModeDictionary { get; } = new Dictionary<byte, SSTVMode>();
 
-		public event Action< SSTVMode, SSTVMode, int > Send_NextMode; // This is just a single event, with no indexer.
+		public Action< SSTVMode, SSTVMode, int > Send_NextMode; // This is just a single event, with no indexer.
 
 		public readonly static int TAPMAX = 512; // BUG: Move to Fir or Fir2 later.
 
