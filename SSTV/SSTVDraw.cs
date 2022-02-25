@@ -327,6 +327,7 @@ namespace Play.SSTV {
 
 		protected readonly int _iBucketSize = 20;
 
+		protected bool     _fAuto          = false;
 		protected bool     _fNoIntercept   = true;
 		protected double   _dblSlope       = 0;
 		protected double   _dblIntercept   = 0;
@@ -423,7 +424,8 @@ namespace Play.SSTV {
         public void Start() {
 			_dblReadBaseSync =  0;
 			_AY				 = -5;
-
+			
+			_fAuto        = true;
 			_dblSlope     = SpecWidthInSamples;
 			_dblIntercept = 0;
 			_fNoIntercept = true;
@@ -954,22 +956,23 @@ namespace Play.SSTV {
 						}
 						Send_TvEvents?.Invoke( SSTVEvents.DownLoadTime, PercentRxComplete );
 
-						Slider.Shuffle( false, _dblSlope, _dblIntercept );
+						int iStart = _rgSlopeBuckets.Count == 0 ? 0 : iScanLine - _iBucketSize - 1;
+						if( _fAuto ) {
+							Slider.Shuffle( false, _dblSlope, _dblIntercept );
 
-						// Re-reading is the best thing to do, but it is expensive and
-						// mostly helps at first, and is less effective after that.
-						int  iStart   = _rgSlopeBuckets.Count == 0 ? 0 : iScanLine - _iBucketSize - 1;
-						bool fAligned = Slider.AlignLeastSquares( 0, iScanLine, ref _dblSlope, ref _dblIntercept );
+							// Re-reading is the best thing to do, but it is expensive and
+							// mostly helps at first, and is less effective after that.
+							bool fAligned = Slider.AlignLeastSquares( 0, iScanLine, ref _dblSlope, ref _dblIntercept );
 
-						// Don't reset the slider. While it makes sense in extreme cases
-						// doesn't seem to really matter most of the time.
-						if( fAligned && _fNoIntercept ) {
-							_fNoIntercept    = false;
-							_dblReadBaseSync = 0;
-							Slider.Reset();
+							// Don't reset the slider. While it makes sense in extreme cases
+							// doesn't seem to really matter most of the time.
+							if( fAligned && _fNoIntercept ) {
+								_fNoIntercept    = false;
+								_dblReadBaseSync = 0;
+								Slider.Reset();
+							}
 						}
-							_rgSlopeBuckets.Add( _dblSlope );
-						//}
+						_rgSlopeBuckets.Add( _dblSlope );
 
 						ProcessTop( iStart, iScanLine );
 					}
@@ -991,6 +994,7 @@ namespace Play.SSTV {
 		}
 
 		public void SlopeAdjust( double dblDir ) {
+			_fAuto = true;
 			_dblSlope += dblDir;
 
 			ProcessProgress();

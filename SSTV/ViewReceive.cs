@@ -351,6 +351,16 @@ namespace Play.SSTV {
             this.Select();
 		}
 
+        protected override void OnMouseWheel(MouseEventArgs e) {
+            base.OnMouseWheel(e);
+
+			TVMessage.Message eMsg = e.Delta > 0 ? 
+				TVMessage.Message.FrequencyUp :
+				TVMessage.Message.FrequencyDown;
+
+			_oDocSSTV.PostBGMessage( eMsg );
+        }
+
         public override bool Execute( Guid sGuid ) {
 			if( sGuid == GlobalCommands.Play ) {
 				_oDocSSTV.ReceiveLiveBegin();

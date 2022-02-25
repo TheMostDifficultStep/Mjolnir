@@ -363,10 +363,10 @@ namespace Play.SSTV {
                         _oToUIQueue.Enqueue( new( SSTVEvents.ImageSaved, 0 ) );
                         break;
                     case TVMessage.Message.FrequencyDown:
-                        _oSSTVDraw.SlopeAdjust( -1 );
+                        _oSSTVDraw.SlopeAdjust( -0.5 );
                         break;
                     case TVMessage.Message.FrequencyUp:
-                        _oSSTVDraw.SlopeAdjust( 1 );
+                        _oSSTVDraw.SlopeAdjust( +0.5 );
                         break;
                 }
             }
