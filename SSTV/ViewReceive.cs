@@ -30,7 +30,7 @@ namespace Play.SSTV {
         IDisposable 
 	{
 		public static Guid GUID { get; } = new Guid( "{B746A6D3-B628-4AA8-BD82-BAC860B7BEEA}" );
-		protected static string _strIconResource = "Play.SSTV.Content.icons8-file-folder-48.png";
+		protected static string _strIconResource = "Play.SSTV.Content.icons8-history-64.png";
 
 		protected IPgViewSite _oSiteView;
 		protected DocSSTV     _oDocSSTV;
