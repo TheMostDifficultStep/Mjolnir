@@ -1213,9 +1213,8 @@ namespace Play.SSTV {
             // Download finished is sort of changing it's meaning in the file read case.
             PropertyChange?.Invoke( SSTVEvents.DownLoadFinished );
 
-            // Let's just run these to positively clear the slate.
             RxModeList.HighLight   = null;
-            RxModeList.CheckedLine = RxModeList[0];
+            //RxModeList.CheckedLine = RxModeList[0]; see ReceiveLiveBegin. 
 
             RxHistoryList.LoadAgain( RxHistoryList.CurrentDirectory );
 
@@ -1296,9 +1295,15 @@ namespace Play.SSTV {
                     _rgBGtoUIQueue.Clear();
                     _rgDataQueue  .Clear();
 
-                    if( RxModeList.CheckedLine.Extra is SSTVMode oMode ) {
-                        _rgUItoBGQueue.Enqueue( new TVMessage( TVMessage.Message.TryNewMode, oMode ) );
-                    }
+                    // File reader used to clear this value on each run but I like keeping that
+                    // value for similar reads. So Reset the mode on Device read begin. No events
+                    // or our task will be getting an event we don't want.
+                    RxModeList.CheckedReset = RxModeList[0];
+
+                    // See CheckedReset above.
+                    //if( RxModeList.CheckedLine.Extra is SSTVMode oMode ) {
+                    //    _rgUItoBGQueue.Enqueue( new TVMessage( TVMessage.Message.TryNewMode, oMode ) );
+                    //}
 
                     int    iQuality    = Properties.GetValueAsInt( SSTVProperties.Names.Std_ImgQuality, 80 );
                     double dblFreq     = Properties.GetValueAsDbl( SSTVProperties.Names.Std_Clock,   11028 );
