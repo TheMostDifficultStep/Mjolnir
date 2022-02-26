@@ -178,9 +178,9 @@ namespace Play.SSTV {
         /// </summary>
         public void DoWork( SSTVMode oMode ) {
             try {
-                _oSSTVDeMo.Send_NextMode   = _oSSTVDraw.OnModeTransition_SSTVDeMo;
-                _oSSTVDraw.Send_TvEvents  += OnTVEvents_SSTVDraw;
-                _oSSTVDraw.Send_SavePoint += SaveImage;
+                _oSSTVDeMo.Send_NextMode  = _oSSTVDraw.OnModeTransition_SSTVDeMo;
+                _oSSTVDraw.Send_TvEvents  = OnTVEvents_SSTVDraw;
+                _oSSTVDraw.Send_SavePoint = SaveImage;
 
                 // Note: SSTVDemodulator.Start() will try to use the callback(s) above.
                 if( oMode != null ) {
@@ -383,9 +383,9 @@ namespace Play.SSTV {
         /// read from the sound card and I'll be able to punt that code.</remarks>
         public void DoWork() {
             try {
-                _oSSTVDeMo.Send_NextMode   = _oSSTVDraw.OnModeTransition_SSTVDeMo;
-                _oSSTVDraw.Send_TvEvents  += OnTvEvents_SSTVDraw;
-                _oSSTVDraw.Send_SavePoint += SaveImage;
+                _oSSTVDeMo.Send_NextMode  = _oSSTVDraw.OnModeTransition_SSTVDeMo;
+                _oSSTVDraw.Send_TvEvents  = OnTvEvents_SSTVDraw;
+                _oSSTVDraw.Send_SavePoint = SaveImage;
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( NullReferenceException ),
                                     typeof( ApplicationException ) };

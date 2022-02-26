@@ -349,8 +349,8 @@ namespace Play.SSTV {
 
 		// TODO: You know there's only one consumer of these events. I should just make them an 
 		// interface or a delegate onto the listener.
-		public event Action<SSTVEvents, int> Send_TvEvents;
-		public event Action<SSTVMode >       Send_SavePoint;
+		public Action<SSTVEvents, int> Send_TvEvents;
+		public Action<SSTVMode >       Send_SavePoint;
 
 		protected readonly List<ColorChannel> _rgSlots = new (10);
 		
