@@ -97,7 +97,7 @@ namespace Play.Forms {
         public SKPointI CaretWorldPosition( ILineRange oCaret ) {
             // Check that the line matches.
             Point oWorldLoc = Cache.GlyphOffsetToPoint( oCaret.Offset );
-            return new SKPointI( oWorldLoc.X, oWorldLoc.Y );
+            return new SKPointI( Left + oWorldLoc.X, Top + oWorldLoc.Y );
         }
 
         public SKPointI ClientToWorld( SKPointI pntClientMouse ) {
@@ -361,10 +361,8 @@ namespace Play.Forms {
 
             if( Caret.Layout != null ) {
                 SKPointI pntCaretWorldLoc  = Caret.Layout.CaretWorldPosition( Caret ); 
-                SKPointI pntCaretScreenLoc = new SKPointI( pntCaretWorldLoc.X + Caret.Layout.Left, 
-                                                           pntCaretWorldLoc.Y + Caret.Layout.Top );
                 if( Caret.Layout.IsInside( pntCaretWorldLoc.X, pntCaretWorldLoc.Y ) ) {
-                    User32.SetCaretPos(pntCaretScreenLoc.X, pntCaretScreenLoc.Y);
+                    User32.SetCaretPos(pntCaretWorldLoc.X, pntCaretWorldLoc.Y);
                 } else {
                     User32.SetCaretPos( -10, -10 ); // Park it off screen.
                 }
@@ -475,9 +473,9 @@ namespace Play.Forms {
             _oSiteView.EventChain.NotifyFocused(true);
 
             // Not perfect but getting better...
-            int iLineHeight = (int)(StdUI.FontRendererAt( StdText ).FontHeight * 1.5 );
+            int iCaratHeight = (int)(StdUI.FontRendererAt( StdText ).FontHeight );
 
-            User32.CreateCaret( this.Handle, IntPtr.Zero, 2, iLineHeight );
+            User32.CreateCaret( this.Handle, IntPtr.Zero, 2, iCaratHeight );
             CaretIconRefresh(); 
             User32.ShowCaret  ( this.Handle );
 
