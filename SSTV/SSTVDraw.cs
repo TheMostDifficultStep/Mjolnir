@@ -962,13 +962,15 @@ namespace Play.SSTV {
 
 							// Re-reading is the best thing to do, but it is expensive and
 							// mostly helps at first, and is less effective after that.
-							bool fAligned = Slider.AlignLeastSquares( 0, iScanLine, ref _dblSlope, ref _dblIntercept );
+							double dblIntercept = 0;
+							bool fAligned = Slider.AlignLeastSquares( 0, iScanLine, ref _dblSlope, ref dblIntercept );
 
 							// Don't reset the slider. While it makes sense in extreme cases
 							// doesn't seem to really matter most of the time.
 							if( fAligned && _fNoIntercept ) {
 								_fNoIntercept    = false;
 								_dblReadBaseSync = 0;
+								_dblIntercept    = dblIntercept;
 								Slider.Reset();
 							}
 						}
@@ -994,7 +996,7 @@ namespace Play.SSTV {
 		}
 
 		public void SlopeAdjust( double dblDir ) {
-			_fAuto = true;
+			_fAuto     = false;
 			_dblSlope += dblDir;
 
 			ProcessProgress();
