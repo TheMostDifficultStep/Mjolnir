@@ -945,15 +945,15 @@ namespace Play.SSTV {
 		public void Process() {
 			if( _dp.Synced ) {
 				try {
+					while( _dp.m_wBase > _dblReadBaseSync + ScanWidthInSamples ) {
+						_dblReadBaseSync = ProcessSync( _dblReadBaseSync );
+					}
 					// BUG: this s/b encoded scan line and not the bitmap y value.
 					int iScanLine = (int)( ( _dp.m_wBase - StartIndex ) / ScanWidthInSamples );
 
 					if( iScanLine >= ( _rgSlopeBuckets.Count + 1 ) * _iBucketSize ) {
 						// SyncSSTV( iScanLine ); not ready yet.
 
-						while( _dp.m_wBase > _dblReadBaseSync + ScanWidthInSamples ) {
-							_dblReadBaseSync = ProcessSync( _dblReadBaseSync );
-						}
 						Send_TvEvents?.Invoke( SSTVEvents.DownLoadTime, PercentRxComplete );
 
 						int iStart = _rgSlopeBuckets.Count == 0 ? 0 : iScanLine - _iBucketSize - 1;
