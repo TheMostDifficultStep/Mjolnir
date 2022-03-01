@@ -287,7 +287,7 @@ namespace Play.MorsePractice {
             if( !base.InitNew() ) 
                 return false;
 
-			HyperLinks.Add( "fjump", OnFrequencyJump );
+			Links.Add( "fjump", OnFrequencyJump );
             return true;
         }
     }

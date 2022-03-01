@@ -6,6 +6,7 @@ using SkiaSharp;
 using Play.Rectangles;
 using Play.Interfaces.Embedding;
 using Play.Edit;
+using Play.Parse;
 
 namespace Play.Forms {
     /// <summary>
@@ -111,6 +112,10 @@ namespace Play.Forms {
             OnPropertyEvent( BUFFEREVENTS.MULTILINE );
             OnSizeChanged( new EventArgs() );
 
+            // This certainly does not belong on the base form, but here
+            // it is a little more reasonable.
+            Links.Add( "callsign", OnCallSign );
+
             return true;
         }
 
@@ -145,6 +150,11 @@ namespace Play.Forms {
                 LogError( "Bad property page index list" );
             }
         }
+
+        protected void OnCallSign( Line oLine, IPgWordRange oRange ) {
+            BrowserLink( "http://www.qrz.com/db/" +  oLine.SubString( oRange.Offset, oRange.Length) );
+        }
+
 
         public void OnPropertyEvent( BUFFEREVENTS eEvent ) {
             OnDocumentEvent( BUFFEREVENTS.MULTILINE );

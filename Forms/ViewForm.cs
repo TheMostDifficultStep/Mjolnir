@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Windows.Forms;
 using System.Drawing;
+using System.Diagnostics;
+using System.IO;
 
 using SkiaSharp;
 using SkiaSharp.Views.Desktop;
@@ -191,6 +193,64 @@ namespace Play.Forms {
         }
     }
 
+    public class HyperlinkCollection {
+        public Dictionary<string, HyperLink> HyperLinks { get; } = new Dictionary<string, HyperLink>();
+
+        public void Add( string strName, HyperLink oLink ) {
+            HyperLinks.Add( strName, oLink );
+        }
+        /// <summary>
+        /// Stolen from EditWindow2, we'll port this back soon.
+        /// </summary>
+        /// <exception cref="ArgumentOutOfRangeException"></exception>
+        public static IPgWordRange FindFormattingUnderRange( Line oLine, int iOffset ) {
+            if( oLine == null )
+                return( null );
+            if( iOffset < 0 )
+                throw new ArgumentOutOfRangeException( nameof( iOffset ) );
+
+            IPgWordRange oTerminal = null;
+
+            try { 
+                foreach(IPgWordRange oTry in oLine.Formatting ) {
+                    if( oTry is IPgWordRange oRange &&
+                        iOffset >= oRange.Offset &&
+                        iOffset  < oRange.Offset + oRange.Length )
+                    {
+						// The first word we find is the best choice.
+						if( oRange.IsWord ) {
+							return oRange;
+						}
+						// The term under the carat is OK, But keep trying for better...
+						if( oRange.IsTerm ) {
+							oTerminal = oRange;
+						}
+                    }
+                }
+            } catch( Exception oEx ) { 
+                Type[] rgErrors = { typeof( NullReferenceException ), 
+                                    typeof( InvalidCastException )};
+                if( rgErrors.IsUnhandled( oEx ))
+                    throw;
+            }
+            return( oTerminal );
+        }
+
+        public bool Find( Line oLine, int iPosition, bool fDoJump ) {
+            IPgWordRange oRange = FindFormattingUnderRange( oLine, iPosition );
+            if( oRange != null ) { 
+                foreach( KeyValuePair<string, HyperLink> oPair in HyperLinks ) { 
+                    if( oRange.StateName == oPair.Key ) {
+                        if( fDoJump )
+                            oPair.Value?.Invoke( oLine, oRange );
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+    }
+
     /// <summary>
     /// This forms window gives us text without having to have numerous sub
     /// text windows to do that job. Text is held in single line cache elements.
@@ -212,7 +272,7 @@ namespace Play.Forms {
         public    uint             StdText  { get; set; }
         protected IPgStandardUI2   StdUI    { get; }
 
-        public Dictionary<string, HyperLink> HyperLinks { get; } = new Dictionary<string, HyperLink>();
+        public HyperlinkCollection Links { get; } = new ();
 
         readonly static Keys[] _rgHandledKeys = { Keys.PageDown, Keys.PageUp, Keys.Down,
                                                   Keys.Up, Keys.Right, Keys.Left, Keys.Back,
@@ -269,6 +329,23 @@ namespace Play.Forms {
             StdText = StdUI.FontCache(StdUI.FaceCache(@"C:\windows\fonts\consola.ttf"), 12, oInfo.pntDpi);
 
             return true;
+        }
+
+        protected void BrowserLink( string strUrl ) {
+            try {
+                ProcessStartInfo psi = new ProcessStartInfo {
+                    FileName        = strUrl,
+                    UseShellExecute = true
+                };
+                Process.Start( psi );
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( ObjectDisposedException ), 
+                                    typeof( FileNotFoundException ),
+                                    typeof( NullReferenceException ),
+                                    typeof( System.ComponentModel.Win32Exception ) };
+                if( rgErrors.IsUnhandled( oEx ) ) 
+                    throw;
+            }
         }
 
         public virtual void Submit() {
@@ -578,6 +655,7 @@ namespace Play.Forms {
                         Caret.Layout = oCache;
 
                         oCache.SelectHead( Caret, e.Location, ModifierKeys == Keys.Shift );
+                        Links.Find( Caret.Line, Caret.Offset, true );
                     }
                 }
             }
@@ -589,14 +667,22 @@ namespace Play.Forms {
         protected override void OnMouseMove(MouseEventArgs e) {
             base.OnMouseMove(e);
 
-            foreach( LayoutSingleLine oCache in CacheList ) {
-                if( oCache.IsInside( e.X, e.Y ) ) {
-                    Cursor = Cursors.IBeam;
+            Cursor oCursor = Cursors.Arrow;
+
+            foreach( LayoutSingleLine oLayout in CacheList ) {
+                if( oLayout.IsInside( e.X, e.Y ) ) {
+                    SKPointI pntWorld = new SKPointI( e.X - oLayout.Left,
+                                                      e.Y - oLayout.Top);
+                    int iEdge = oLayout.Cache.GlyphPointToOffset( pntWorld );
+                    if( Links.Find( oLayout.Cache.Line, iEdge, false ) ) {
+                        oCursor = Cursors.Hand;
+                    } else {
+                        oCursor = Cursors.IBeam;
+                    }
                     break;
-                } else {
-                    Cursor = Cursors.Arrow;
                 }
             }
+            Cursor = oCursor;
 
             if ((e.Button & MouseButtons.Left) == MouseButtons.Left && e.Clicks == 0 ) {
                 if( Caret.Layout != null ) {
@@ -698,20 +784,6 @@ namespace Play.Forms {
             }
         }
 
-        protected bool HyperLinkFind( ILineRange oPosition, bool fDoJump ) {
-            IPgWordRange oRange = EditWindow2.FindFormattingUnderRange( oPosition );
-            if( oRange != null ) { 
-                foreach( KeyValuePair<string, HyperLink> oPair in HyperLinks ) { 
-                    if( oRange.StateName == oPair.Key ) {
-                        if( fDoJump )
-                            oPair.Value?.Invoke( Caret.Line, oRange );
-                        else
-                            return true;
-                    }
-                }
-            }
-            return false;
-        }
 
     }
 
