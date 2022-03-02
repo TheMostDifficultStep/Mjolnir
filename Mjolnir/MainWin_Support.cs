@@ -22,7 +22,7 @@ namespace Mjolnir {
 		public class LayoutFlowSquare_MainWin : LayoutFlowSquare {
 			readonly MainWin _oControl;
 
-			public LayoutFlowSquare_MainWin( MainWin oControl, uint uiMargin ) : base( CSS.None, uiMargin ) {
+			public LayoutFlowSquare_MainWin( MainWin oControl ) : base( CSS.None ) {
 				_oControl = oControl ?? throw new ArgumentNullException();
 			}
 

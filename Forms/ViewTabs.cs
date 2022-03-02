@@ -15,23 +15,14 @@ namespace Play.Forms {
     /// Experimental class for my tabs.
     /// </summary>
     /// <seealso cref="LayoutFlowSquare"/>
-    public class LayoutFlowSquare_Fixed : LayoutFlowSquare {
-		readonly List<LayoutRect> _rgLayout = new List<LayoutRect>();
-
-		public LayoutFlowSquare_Fixed( Size szSize, uint uiMargin ) : base( szSize, uiMargin ) {
+    public class LayoutFlowSquare_Fixed : LayoutFlowSquare_LayoutRect {
+		public LayoutFlowSquare_Fixed( Size szSize ) : base( szSize ) {
 			ItemSize = szSize;
 		}
 
-		public LayoutFlowSquare_Fixed( CSS eUnits, uint uiMargin ) : base( eUnits, uiMargin ) {
-		}
-
-		public override void                    Clear()          => _rgLayout.Clear();
-		public override LayoutRect              Item(int iIndex) => _rgLayout[iIndex];
-		public override IEnumerator<LayoutRect> GetEnumerator()  => _rgLayout.GetEnumerator();
-		public override int                     Count            => _rgLayout.Count;
-        public virtual  void                    Remove( int i )  => _rgLayout.RemoveAt( i );
-
-		public void Add( LayoutRect oItem ) => _rgLayout.Add( oItem );
+        /// <summary>
+        /// Override this so we just use the given object dimesions.
+        /// </summary>
         public override void ItemSizeCalculate() {
         }
 
@@ -67,7 +58,8 @@ namespace Play.Forms {
  			_oStdUI    = oSiteView.Host.Services as IPgStandardUI2 ?? throw new ArgumentException( "Parent view must provide IPgStandardUI service" );
             Document   = oDoc ?? throw new ArgumentNullException( nameof( oDoc ) );
 
-            Layout = new LayoutFlowSquare_Fixed( new Size( 200, 40 ), 5 );
+            Layout = new LayoutFlowSquare_Fixed( new Size( 200, 40 ) );
+            Layout.Spacing = 5;
         }
 
         public virtual bool InitNew() {
@@ -167,6 +159,11 @@ namespace Play.Forms {
             }
 		}
 
+        public override Size GetPreferredSize( Size oSize ) {
+            uint uiTrack = Layout.TrackDesired( TRACK.VERT, oSize.Width );
+            return new Size( oSize.Width, (int)uiTrack );
+        }
+
         protected override void OnSizeChanged(EventArgs e) {
             base.OnSizeChanged(e);
 
@@ -193,7 +190,7 @@ namespace Play.Forms {
                 LayoutRect oChild = Layout.Item(i);
                 if( oChild is LayoutStackHorizontal oTab ) {
                     if( oTab.ID == oLine ) {
-                        Layout.Remove( i );
+                        Layout.RemoveAt( i );
                     }
                 }
             }

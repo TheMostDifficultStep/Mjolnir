@@ -125,7 +125,7 @@ namespace Mjolnir {
             _oLayoutPrimary = new LayoutStackVertical() { Spacing = 5 };
             // This one probably won't work anymore. And we'll certainly lose all the
             // docking windows b/c those are docked by the layout now.
-			_oLayout2       = new LayoutFlowSquare_MainWin( this, 5 );
+			_oLayout2       = new LayoutFlowSquare_MainWin( this ) { Spacing = 5 };
 
             _oDecorEnum = new MainWinDecorEnum( this );
         }
@@ -334,7 +334,7 @@ namespace Mjolnir {
             oCenter.Add( new LayoutGrab( LayoutRect.CSS.None, _rcFrame ) ); 
             oCenter.Add( _rgSideInfo[SideIdentify.Right] ); 
 
-            _oLayoutPrimary.Add( new LayoutControl(oTabs, LayoutRect.CSS.Pixels, 40)); 
+            _oLayoutPrimary.Add( new LayoutControl(oTabs, LayoutRect.CSS.Flex, 40) ); 
             _oLayoutPrimary.Add( new LayoutControl( _oTopMenu, LayoutRect.CSS.Flex, 34 ) ); 
             _oLayoutPrimary.Add( oCenter); 
             _oLayoutPrimary.Add( _rgSideInfo[SideIdentify.Bottom] );

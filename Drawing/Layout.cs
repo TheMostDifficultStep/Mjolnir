@@ -702,17 +702,18 @@ namespace Play.Rectangles {
     } // End class.
 
 	public abstract class LayoutFlowSquare : ParentRect {
+        protected List<int> _rgColumns = new List<int>();
 		public readonly SmartRect Margins = new SmartRect();
 		public Size ItemSize;
 		public bool Springy = true;
 
-		public LayoutFlowSquare( Size szSize, uint uiMargin ) : 
+		public LayoutFlowSquare( Size szSize ) : 
 			base( CSS.Pixels, 0, 1f ) 
 		{
 			ItemSize = szSize;
 		}
 
-		public LayoutFlowSquare( CSS eUnits, uint uiMargin ) :
+		public LayoutFlowSquare( CSS eUnits ) :
 			base( eUnits, 0, 1f ) 
 		{
 			ItemSize = new Size( 0, 0 );
@@ -759,10 +760,12 @@ namespace Play.Rectangles {
         /// <summery>Try to figure out how many thumbs will fit on all rows if the
 		/// objects are all the same width, given by the ItemSize member.</summery>
 		/// <seealso cref="ItemSize"/>
-		protected int FindDimensions( List<int> rgColumns ) {
+		protected int FindDimensions() {
 			int iRight  = Left;
 			int iHeight = 0;
 			int iCount  = 0;
+
+            _rgColumns.Clear();
 
             foreach( LayoutRect oRect in this ) {
 				int iRun = iRight;
@@ -775,7 +778,7 @@ namespace Play.Rectangles {
                 if( iRun > Right && iCount > 0 ) 
                     break;
 
-				rgColumns.Add( iRight + Margins.Left );
+				_rgColumns.Add( iRight + Margins.Left );
 				iRight = iRun;
 				// Bug: For varying height items use TrackDesired. 
 				if( ItemSize.Height > iHeight )
@@ -786,11 +789,11 @@ namespace Play.Rectangles {
             // This this makes the columns spring loaded.
             float fDiff = Right - iRight;
 			if( fDiff > 0 ) {
-				int iIncr = (int)(fDiff/(rgColumns.Count+1));
+				int iIncr = (int)(fDiff/(_rgColumns.Count+1));
 				int iAcum = iIncr;
 
-				for( int iCol = 0; iCol<rgColumns.Count; ++iCol ) { 
-					rgColumns[iCol] += iAcum;
+				for( int iCol = 0; iCol<_rgColumns.Count; ++iCol ) { 
+					_rgColumns[iCol] += iAcum;
 					if( Springy )
 						iAcum += iIncr;
 				}
@@ -801,23 +804,31 @@ namespace Play.Rectangles {
 		public override bool LayoutChildren() {
 			ItemSizeCalculate();
 
-            List<int> rgColumns = new List<int>();
-			int       iHeight   = FindDimensions( rgColumns );
+			int iHeight = FindDimensions();
 
             for( int i = 0, iTop = Top + Margins.Top; i < Count;  ) {
-                foreach( int iStart in rgColumns ) {
+                foreach( int iStart in _rgColumns ) {
                     Item(i).SetRect( LOCUS.UPPERLEFT, iStart, iTop, ItemSize.Width, ItemSize.Height );
 					Item(i).LayoutChildren();
 
                     if( ++i >= Count )
                         break;
                 }
-                iTop += ( iHeight + Margins.Bottom + Margins.Top );
+                iTop += iHeight + (int)Spacing;
             };
 
 			return true;
 		}
-	} // End class
+
+        public override uint TrackDesired(TRACK eParentAxis, int uiRail) {
+			int    iHeight = FindDimensions();
+			double dblRows = Math.Ceiling( Count / (double)_rgColumns.Count );
+
+			uint uiSpace = dblRows > 1.0 ? (uint)(dblRows - 1) * Spacing : 0;
+
+            return (uint)( dblRows * iHeight + uiSpace + Margins.Bottom + Margins.Top );
+        }
+    } // End class
 
 	/// <summary>
 	/// Implementation for the LayoutFlowSqure abstract class.
@@ -826,16 +837,18 @@ namespace Play.Rectangles {
 	public class LayoutFlowSquare_LayoutRect : LayoutFlowSquare {
 		readonly List<LayoutRect> _rgLayout = new List<LayoutRect>();
 
-		public LayoutFlowSquare_LayoutRect( Size szSize, uint uiMargin ) : base( szSize, uiMargin ) {
+		public LayoutFlowSquare_LayoutRect( Size szSize ) : base( szSize ) {
 		}
 
-		public LayoutFlowSquare_LayoutRect( CSS eUnits, uint uiMargin ) : base( eUnits, uiMargin ) {
+		public LayoutFlowSquare_LayoutRect( CSS eUnits ) : base( eUnits ) {
 		}
 
 		public override void                    Clear()          => _rgLayout.Clear();
 		public override LayoutRect              Item(int iIndex) => _rgLayout[iIndex];
 		public override IEnumerator<LayoutRect> GetEnumerator()  => _rgLayout.GetEnumerator();
 		public override int                     Count            => _rgLayout.Count;
+
+		public virtual void RemoveAt( int i ) => _rgLayout.RemoveAt( i );
 
 		public void Add( LayoutRect oItem ) => _rgLayout.Add( oItem );
 	} // End class
