@@ -56,6 +56,9 @@ namespace Play.Forms {
             }
         }
 
+        /// <summary>
+        /// Mostly test code. The color of the text is just red.
+        /// </summary>
         public override void Paint( SKCanvas skCanvas ) {
             using SKPaint skPaint = new SKPaint();
             SKPointI pntUL = this.GetPoint(LOCUS.UPPERLEFT);

@@ -147,17 +147,30 @@ namespace Play.Forms {
 
             skCanvas.DrawRect( 0, 0, Width, Height, skPaint );
 
+            // BUG: Unfortunately this also draws the text with the test
+            // red color. Make sure it's clipped and we'll redraw on
+            // next pass for now.
 			foreach( LayoutRect oTab in Layout ) {
-				oTab.Paint( skCanvas );
+                SKRect skClip = new SKRect( oTab.Left,  oTab.Top, 
+                                            oTab.Right, oTab.Bottom );
+
+                skCanvas.Save();
+                skCanvas.ClipRect( skClip, SKClipOperation.Intersect );
+				oTab    .Paint( skCanvas );
+                skCanvas.Restore();
 			}
 
+            // This draws with the stdui. Need to block the above text some how.
             foreach( LayoutSingleLine oCache in _rgTextCache ) {
+                SKRect skClip = new SKRect( oCache.Left,  oCache.Top,
+                                            oCache.Right, oCache.Top + Layout.ItemSize.Height);
+
                 skCanvas.Save();
-                skCanvas.ClipRect( new SKRect(oCache.Left, oCache.Top, oCache.Right, oCache.Bottom ), SKClipOperation.Intersect);
-                oCache  .Paint( e.Surface.Canvas, _oStdUI, this.Focused );
+                skCanvas.ClipRect(skClip, SKClipOperation.Intersect);
+                oCache  .Paint(skCanvas, _oStdUI, this.Focused);
                 skCanvas.Restore();
             }
-		}
+        }
 
         public override Size GetPreferredSize( Size oSize ) {
             uint uiTrack = Layout.TrackDesired( TRACK.VERT, oSize.Width );
