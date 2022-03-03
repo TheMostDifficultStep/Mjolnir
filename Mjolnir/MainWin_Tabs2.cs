@@ -122,13 +122,11 @@ namespace Mjolnir {
                 if( oLine.Focused )
                     return _oStdUI.ColorsStandardAt( StdUIColors.BGSelectedFocus );
 
-                if( oLine == HoverTab?.ID ) 
-                    return SKColors.LightYellow;
-
+                // Always draw the status if selected. (center view focused or not)
                 if( _oHost.ViewSiteSelected == oLine ) 
                     return SKColors.Gray;
 
-                return TabBackground( oLine.At );
+                return TabBackground( oID );
             }
             
             return SKColors.White;

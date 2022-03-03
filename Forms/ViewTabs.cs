@@ -58,6 +58,7 @@ namespace Play.Forms {
  			_oStdUI    = oSiteView.Host.Services as IPgStandardUI2 ?? throw new ArgumentException( "Parent view must provide IPgStandardUI service" );
             Document   = oDoc ?? throw new ArgumentNullException( nameof( oDoc ) );
 
+            // Would be nice if height was a function of the text size. Someday!
             Layout = new LayoutFlowSquare_Fixed( new Size( 200, 44 ) );
             Layout.Spacing = 5;
         }
