@@ -58,7 +58,7 @@ namespace Play.Forms {
  			_oStdUI    = oSiteView.Host.Services as IPgStandardUI2 ?? throw new ArgumentException( "Parent view must provide IPgStandardUI service" );
             Document   = oDoc ?? throw new ArgumentNullException( nameof( oDoc ) );
 
-            Layout = new LayoutFlowSquare_Fixed( new Size( 200, 40 ) );
+            Layout = new LayoutFlowSquare_Fixed( new Size( 200, 44 ) );
             Layout.Spacing = 5;
         }
 
