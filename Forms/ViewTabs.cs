@@ -266,6 +266,7 @@ namespace Play.Forms {
                         if( oRect is LayoutStack oTab ) {
                             oHover = oTab;
                             OnTabLeftClicked( oTab.ID );
+                            Invalidate(); // Focus might change, need a re-paint.
                             break;
                         }
                     }
