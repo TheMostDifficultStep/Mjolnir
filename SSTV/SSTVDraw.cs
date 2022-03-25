@@ -643,137 +643,6 @@ namespace Play.SSTV {
 		}
 
 		/// <summary>
-		/// Some magic I seem to need.
-		/// </summary>
-		double NormalSampFreq(double d, double m) {
-			d = (double)((int)((d * m) + 0.5)/m);
-			return d;
-		}
-
-		double CorrectSlant( ) {
-			double StartSamp = _dp.SampFreq;
-			double TempSamp  = StartSamp;
-			double dTW       = ScanWidthInSamples;
-			int    iWD       = (int)dTW;
-			int    iLW       = (int)(iWD * 0.1);   // 10% の 揺れを許容, Allows shaking
-			int [] bp        = new int[ 2 * iWD ]; // Was inside, let's try out here.
-
-			for( int z = 0; z < 5; z++ ) {
-				#region refpos
-				// 基準位置を探す, Find a reference position
-				// BUG: I've already got this code need be able to call it...
-				for( int i = 0, iSample = 0; _dp.BoundsCompare( i * iWD ) <= 0; i++ ) {
-					for( int j = 0; j < iWD; j++ ) {
-						bp[iSample] += _dp.SyncGet( i * iWD + j);
-						iSample++;
-						if( iSample >= iWD ) 
-							iSample = 0;
-					}
-				}
-				double bpos = 0; // The value we want for tilt adjust.
-				for( int i = 0, iTop = 0; i < iWD; i++ ){
-					if( iTop < bp[i] ){
-						iTop = bp[i];
-						bpos = i;
-					}
-				}
-				Array.Clear( bp );
-                #endregion
-
-                #region tiltadjust
-                // 傾き調整, Tilt adjustment
-                int iBase = 0, yy, y = 0, m = 0;
-				int n   = 0, max = 0;
-				int min = 16384;
-				double xx, ps = 0, T = 0, L = 0, TT = 0, TL = 0;
-				for( int i = 0; _dp.BoundsCompare( i * iWD ) <= 0; i++ ){
-					for( int j = 0; j < iWD; j++, iBase++ ){
-						yy = (int)(iBase / dTW );
-						xx = iBase % dTW;
-						if( yy != y ){
-							if( bpos < 0 ){
-								if( ps >= ( dTW/4 ) ) {         // 左方向への周りこみ, Around to the left
-									ps -= dTW;
-								} else if( ps >= (dTW/8) ){
-									break;
-								}
-							}
-							else if( bpos >= dTW ){        // 右方向への周りこみ, Around to the right
-								if( ps < (dTW * 3/4) ){
-									ps += dTW;
-								} else if( ps < (dTW*7/8) ){
-									break;
-								}
-							}
-							else if( bpos >= (dTW*3/4) ){  // 右側, Right side
-								if( (ps < dTW/4) ){
-									ps += dTW;
-								}
-							}
-							else if( bpos <= (dTW/4) ){    // 左側, left side.
-								if( ps >= (dTW*3/4) ){
-									ps -= dTW;
-								}
-							}
-							if( (y >= 0) && ((max - min) >= 4800) && (Math.Abs(ps - bpos) <= iLW) ){
-								bpos = ps;
-								if( n >= 2 ){
-									T  += y;
-									L  += ps;
-									TT += y * y;
-									TL += y * ps;
-									m++;
-								}
-								n++;
-							}
-							y   = yy;
-							max = 0;
-							min = 16384;
-							ps  = 0;
-						}
-						int sp = _dp.SyncGet( i * iWD + j);
-						if( max < sp ){
-							max = sp;
-							ps  = xx;
-						} else {
-							if( min > sp ){
-								min = sp;
-							}
-						}
-					}
-				}
-                #endregion
-
-                double fq = _dp.SampFreq;
-				if( m >= 6 ){
-					double k0 = (m * TL - L * T) / (m * TT - T*T);
-					fq = TempSamp + (k0 * TempSamp / ScanWidthInSamples );
-
-					//char bf[64];
-					//sprintf(bf, "%lf, %lf", fq, k0 );
-					//EditNote->Text = bf;
-
-					fq = NormalSampFreq(fq, 100);
-				}
-				if( Math.Abs(fq - TempSamp) < (0.1/11025.0 * TempSamp ) ){
-					TempSamp = fq;
-					// CSSTVSET::SetSampFreq also sets some AFC variables.
-					InitSlots( Mode.Resolution.Width * Mode.ScanMultiplier, fq / TempSamp );
-					break;
-				}
-				TempSamp = fq;
-				InitSlots( Mode.Resolution.Width * Mode.ScanMultiplier, fq / TempSamp );
-				iLW = iLW >> 1; // divide by 2. 
-			}
-			if( TempSamp != StartSamp ) {
-				TempSamp = StartSamp;
-				InitSlots( Mode.Resolution.Width * Mode.ScanMultiplier, TempSamp / StartSamp );
-			}
-
-			return TempSamp;
-		}
-
-		/// <summary>
 		/// OK I still don't understand this function. But I've ported it from MMSSTV
 		/// and "n" is freakishly close to my "intercept" values (negated). If I can just figure out
 		/// how MMSSTV gets the Scanline Width (slant correct), I'd be golden.
@@ -958,22 +827,22 @@ namespace Play.SSTV {
 
 						int iStart = _rgSlopeBuckets.Count == 0 ? 0 : iScanLine - _iBucketSize - 1;
 						if( _fAuto ) {
-							Slider.Shuffle( false, _dblSlope, _dblIntercept );
+                            Slider.Shuffle( false, _dblSlope, _dblIntercept );
 
-							// Re-reading is the best thing to do, but it is expensive and
-							// mostly helps at first, and is less effective after that.
-							double dblIntercept = 0;
-							bool fAligned = Slider.AlignLeastSquares( 0, iScanLine, ref _dblSlope, ref dblIntercept );
+                            // Re-reading is the best thing to do, but it is expensive and
+                            // mostly helps at first, and is less effective after that.
+                            double dblIntercept = 0;
+                            bool fAligned = Slider.AlignLeastSquares( 0, iScanLine, ref _dblSlope, ref dblIntercept );
 
-							// Don't reset the slider. While it makes sense in extreme cases
-							// doesn't seem to really matter most of the time.
-							if( fAligned && _fNoIntercept ) {
-								_fNoIntercept    = false;
-								_dblReadBaseSync = 0;
-								_dblIntercept    = dblIntercept;
-								Slider.Reset();
-							}
-						}
+                            // Don't reset the slider. While it makes sense in extreme cases
+                            // doesn't seem to really matter most of the time.
+                            if( fAligned && _fNoIntercept ) {
+                                _fNoIntercept    = false;
+                                _dblReadBaseSync = 0;
+                                _dblIntercept    = dblIntercept;
+                                Slider.Reset();
+                            }
+                        }
 						_rgSlopeBuckets.Add( _dblSlope );
 
 						ProcessTop( iStart, iScanLine );

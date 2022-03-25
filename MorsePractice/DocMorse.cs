@@ -826,7 +826,7 @@ namespace Play.MorsePractice {
         protected void InitRepeaters() {
             List< RepeaterDir > rgTemp = new List<RepeaterDir>();
 
-            rgTemp.Add( new RepeaterDir(  53.17,  -1700, 120, "k7lwh",     "100.0" )); 
+            rgTemp.Add( new RepeaterDir(  53.17,  -1700, 180, "k7lwh",     "100.0" )); 
             rgTemp.Add( new RepeaterDir(  52.87,  -1700, 180, "ww7psr",    "103.5" )); 
                                                                           
             rgTemp.Add( new RepeaterDir( 146.96,   -600, 180, "ww7psr",    "103.5" )); 
