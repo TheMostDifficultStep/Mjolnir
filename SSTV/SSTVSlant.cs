@@ -1,14 +1,29 @@
 ﻿using System;
 
+using Play.Sound;
+
+
 namespace Play.SSTV {
-	public class FrequencySetting {
+	public interface ISstvAdjust {
+		public void SetSampFreq( double dblSampFreq );
+		public double SampFreq { get; }
+		public double TW { get; }
+		public int    WD { get; }
+
+	}
+
+	/// <summary>
+	/// Class to use to test the slant correction.
+	/// </summary>
+	public class FrequencySetting : ISstvAdjust {
 		double m_SampFreq;
-		readonly int m_iOffset;
-		readonly int m_iTuning;
+
+		readonly int    m_iOffset;
+		readonly int    m_iTuning;
 		readonly double m_dblOrigTW;
 
-		public double TW { get; protected set; }
-		public int    WD { get; protected set; }
+		public double TW { get; protected set; } // Width of scan line in ms.
+		public int    WD { get; protected set; } // int version of TW.
 
 		FrequencySetting( int iOffset, int iTuning ) {
 			m_iOffset = iOffset;
@@ -61,72 +76,24 @@ namespace Play.SSTV {
 	}
 
 	public class SSTVSlant {
-		FrequencySetting _oSetting;
+		readonly ISstvAdjust _oSetting;
+		readonly SSTVDEM     _dp;
 
-		int      m_wStgLine;
-		short[]  m_StgB12;
-		int      m_RxBufAllocSize;
-		int  []  _bp;
+		int m_wStgLine;
+		int[] _bp;
 
-		public SSTVSlant( ref FrequencySetting settings )  {
-			m_RxBufAllocSize = 0;
-			m_wStgLine = 0;
-			m_StgB12   = null;
+		public SSTVSlant( SSTVDEM dp, ISstvAdjust oSettings )  {
+			_dp       = dp        ?? throw new ArgumentNullException( nameof( dp ) );
+			_oSetting = oSettings ?? throw new ArgumentNullException( nameof( oSettings ) );
+
+			m_wStgLine = _dp.m_wBase / _oSetting.WD;
+			m_wStgLine -= 1;
+
+			if( m_wStgLine < 0 )
+				m_wStgLine = 0;
 
 			int wd = (int)(_oSetting.TW * 1.5);
 			_bp = new int[wd];
-		}
-
-		void AllocRxBuff( ) {
-			// 1100 ms per line max is my guess,
-			// 257  lines in your standard image.
-
-			if (m_StgB12 == null ) {
-				int n = 257 * 1100 * (int)_oSetting.SampFreq / 1000; // 1100 ms * 257
-				m_StgB12 = new short[n];
-				Array.Clear( m_StgB12 );
-
-				m_RxBufAllocSize = n;
-				m_wStgLine = 0;
-			}
-		}
-
-		/// <summary>
-		/// Fill one scan line worth of data.
-		/// </summary>
-		protected int FillLine(int iStart) {
-			const int iSenseLvl = 16384 + 5000;
-			int iColm     = 0; 
-
-			for (; iColm < _oSetting.TestWD() && (iStart + iColm < m_RxBufAllocSize); ++iColm) {
-				if (iColm < 50)
-					m_StgB12[iStart + iColm] = iSenseLvl;
-				else
-					m_StgB12[iStart + iColm] = 0;
-			}
-
-			return iStart + iColm;
-		}
-
-		/// <summary>
-		/// Fill the entire buffer with test data.
-		/// </summary>
-		public void FillBuff() {
-			if (m_StgB12 != null) {
-				int iIndex = 0;
-
-				// Add some dead air...
-				while( iIndex < _oSetting.TestWD() * 2 + _oSetting.TestOffset() ) {
-					m_StgB12[iIndex++] = 0;
-				}
-
-				// Start generating a signal...
-				while( iIndex < m_RxBufAllocSize ) {
-					iIndex = FillLine(iIndex);
-				}
-
-				m_wStgLine = 20; // Ignoring the above but it's ok for now.
-			}
 		}
 
 		/// <summary>
@@ -149,7 +116,7 @@ namespace Play.SSTV {
 			int n = 0;
 			for (int i = 0; i < m_wStgLine && (i < 32); i++) {
 				for (int j = 0; j < _oSetting.WD; j++) {
-					_bp[n] += m_StgB12[i * _oSetting.WD + j];
+					_bp[n] += _dp.SyncGet(i * _oSetting.WD + j);
 					n++;
 					if (n >= wd) 
 						n = 0;
@@ -190,7 +157,7 @@ namespace Play.SSTV {
 				N++;
 			}
 
-			public bool Done( FrequencySetting oSetting ) {
+			public bool Done( ISstvAdjust oSetting ) {
 				double fq = oSetting.SampFreq;
 
 				if( _m >= 6 ) {
@@ -244,9 +211,9 @@ namespace Play.SSTV {
 			double ps    = 0;
 			NX     nx    = new NX();
 
-			for (int i = 0; i < m_wStgLine; i++) {
-				for (int j = 0; j < _oSetting.WD; j++, iBase++) {
-					short sp = m_StgB12[i * _oSetting.WD + j];
+			for( int i = 0; i < m_wStgLine; i++) {
+				for( int j = 0; j < _oSetting.WD; j++, iBase++) {
+					short sp = _dp.SyncGet(i * _oSetting.WD + j);
 					int   yy = (int)( iBase / _oSetting.TW );
 
 					if (yy != y) {
@@ -315,23 +282,17 @@ namespace Play.SSTV {
 		/// This is why SetSampFreq() has to be called so that TW gets updated as it guesses the frequency.
 		/// </summary>
 		/// <seealso cref="BasePosition"/>
-		public int CorrectSlant()
-		{
-			int bpos = 0;
-			if (m_wStgLine >= 16 ) {
-				if ( ((m_wStgLine + 1) * _oSetting.WD) >= m_RxBufAllocSize) {
-					return 0;
-				}
-				double LW = _oSetting.TW * 0.1; // 10% の 揺れを許容, Allows shaking
+		public int CorrectSlant() {
+			int    bpos = 0;
+			double LW   = _oSetting.TW * 0.1; // 10% の 揺れを許容, Allows shaking
 
-				for( int z = 0; z < 5; z++) {
-					bpos = BasePosition();
+			for( int z = 0; z < 5; z++) {
+				bpos = BasePosition();
 
-					if (CorrectInner( ref LW, bpos ))
-						break;
-				}
-
+				if( CorrectInner( ref LW, bpos ) )
+					break;
 			}
+
 			return bpos;
 		}
 	}

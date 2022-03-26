@@ -202,7 +202,8 @@ namespace Play.SSTV {
                 Type[] rgErrors = { typeof( DirectoryNotFoundException ),
                                     typeof( NullReferenceException ),
                                     typeof( ApplicationException ),
-                                    typeof( FileNotFoundException ) };
+                                    typeof( FileNotFoundException ),
+                                    typeof( ArgumentOutOfRangeException ) };
                 if( rgErrors.IsUnhandled( oEx ) )
                     throw;
 
@@ -243,8 +244,9 @@ namespace Play.SSTV {
                 string strFilePath = Path.GetDirectoryName( _strFileName );
                 string strFileName = Path.GetFileNameWithoutExtension( _strFileName );
                 string strModeName = tvMode.Name.Replace( " ", string.Empty );
-
                 string strSavePath = Path.Combine( strFilePath, strFileName + "_" + strModeName + "_" + _iDecodeCount.ToString() + ".jpg" );
+
+                // Overrite any existing file!!
                 using var stream   = File.OpenWrite( strSavePath );
 
                 oSnipDoc.Save( stream );
@@ -282,7 +284,6 @@ namespace Play.SSTV {
         protected readonly SSTVDEM  _oSSTVDeMo;
 
         readonly BufferSSTV _oPlayBuffer;
-
         readonly WmmPlayer  _oPlayer;
 
         // This is the errors we generally handle in our work function.
@@ -363,10 +364,10 @@ namespace Play.SSTV {
                         _oToUIQueue.Enqueue( new( SSTVEvents.ImageSaved, 0 ) );
                         break;
                     case TVMessage.Message.FrequencyDown:
-                        _oSSTVDraw.SlopeAdjust( -0.3 );
+                        _oSSTVDraw.ManualSlopeAdjust( -0.3 );
                         break;
                     case TVMessage.Message.FrequencyUp:
-                        _oSSTVDraw.SlopeAdjust( +0.3 );
+                        _oSSTVDraw.ManualSlopeAdjust( +0.3 );
                         break;
                 }
             }
@@ -422,11 +423,8 @@ namespace Play.SSTV {
         }
 
         /// <summary>
-        /// I've just ported this directly over from DocSSTV, but I'd like
-        /// to make this multi threaded too! ^_^;; Let's take that on later.
-        /// It should work ok, the input buffer might get larger for a bit.
+        /// Save the image. 
         /// </summary>
-        /// <param name="tvMode"></param>
 		public async override void SaveImage( SSTVMode tvMode ) {
             if( tvMode == null ) {
                 LogError( "Odd the current SSTVMode is null." );
@@ -447,17 +445,13 @@ namespace Play.SSTV {
                     if( !oSnipDoc.Load( _oSSTVDraw._pBitmapRX, rcWorldDisplay, rcWorldDisplay.Size ) )
                         return;
 
-                    // Figure out path and name of the file.
-                    string strFileName = Path.GetFileNameWithoutExtension( _strFileName );
-
-                    if( string.IsNullOrEmpty( strFileName ) ) {
-                        strFileName = FileNameGenerate;
-                    } else {
-                        throw new NotImplementedException( "Need to count iterations" );
-                    }
+                    // I could get the name of the file from the settings, HOWEVER then I have to deal
+                    // with the file name possibly existing, and figure out all name overlap issues.
+                    // So I'm going to punt for now and ignore the passed in file name. We still might
+                    // collide but it's less likely.
+                    // Path.GetFileNameWithoutExtension( _strFileName )
                 
-                    strFileName = FileNameCleanUp( strFileName );
-
+                    string strFileName = FileNameCleanUp( FileNameGenerate );
                     string strModeName = tvMode.Name.Replace( " ", string.Empty );
                     string strFilePath = Path.Combine  ( _strFilePath, strFileName + "_" + strModeName + ".jpg" );
                     using var stream   = File.OpenWrite( strFilePath );

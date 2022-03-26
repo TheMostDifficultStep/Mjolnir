@@ -190,7 +190,6 @@ namespace Play.SSTV {
 				(int)SSTVProperties.Names.Rx_Height,
 				(int)SSTVProperties.Names.Rx_Progress,
 				(int)SSTVProperties.Names.Rx_SaveDir,
-				(int)SSTVProperties.Names.Rx_SaveName,
 				(int)SSTVProperties.Names.Tx_TheirCall,
 				(int)SSTVProperties.Names.Tx_RST
 			};
@@ -527,7 +526,7 @@ namespace Play.SSTV {
 
             public string FilePath => _oHost._oDocSSTV.Properties[SSTVProperties.Names.Rx_SaveDir].ToString();
 
-            public string FileBase => _oHost._oDocSSTV.Properties[SSTVProperties.Names.Rx_SaveName].ToString();
+            public string FileBase => String.Empty;
         }
 
         public abstract string Banner { get; }

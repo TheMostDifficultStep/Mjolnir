@@ -1,306 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
+using System.Collections;
 
 using SkiaSharp;
 
 using Play.Interfaces.Embedding;
 using Play.Sound;
-using System.Collections;
 
 namespace Play.SSTV {
-	public class SlidingWindow {
-		protected class MyDatum {
-			public MyDatum( double Bucket, int Position ) {
-				this.Bucket   = Bucket;
-				this.Position = Position;
-			}
-			public double  Bucket { get; set; }
-			public int     Position { get; }
-
-			public override string ToString() { return Position.ToString(); }
-		}
-
-		protected struct RasterEntry {
-			public RasterEntry( MyDatum oDatum, int iCount ) {
-				Datum = oDatum;
-				Count = iCount;
-			}
-
-			public MyDatum Datum { get; set; }
-			public int     Count { get; set; }
-
-			public override string ToString() { return Count.ToString(); }
-		}
-
-		int    _iWindowSizeInSamples  = 0;
-		int    _iWindowSum   = 0;
-		double _iWindowHit; 
-		int    _iW           = 0;
-		double _SLvl         = 0;
-		int[]  _rgWindow;
-		bool   _fTriggered   = false;
-
-		readonly List<MyDatum> _rgData = new(1000);
-		readonly RasterEntry[] _rgRasters = new RasterEntry[850];
-
-		public SlidingWindow( int iWindowSizeInSamples, double dblSLvl ) {
-			_SLvl       = dblSLvl;
-			_rgWindow   = new int[iWindowSizeInSamples*2];
-
-			Reset( iWindowSizeInSamples );
-		}
-
-		public void Reset( int iWindowSizeInSamples ) {
-			_iWindowSizeInSamples = iWindowSizeInSamples;
-
-			int iNewSize = iWindowSizeInSamples*2;
-
-			if( _rgWindow.Length < iNewSize )
-				_rgWindow = new int[iNewSize];
-
-			Reset();
-		}
-
-		public void Reset() {
-			_fTriggered = false;
-
-			Array.Clear( _rgWindow, 0, _rgWindow .Length );
-
-			_rgData.Clear();
-
-			_iWindowSum = 0;
-			_iW         = _iWindowSizeInSamples;
-			_iWindowHit = Math.Round( (double)_iWindowSizeInSamples );
-		}
-
-		/// <summary>
-		/// We used to save all sync hits but basically if there is more than one
-		/// hit I should probably just toss the line. As it is I ignore
-		/// lines with more than one hit.
-		/// </summary>
-		/// <param name="iBucket"></param>
-		/// <param name="oDatum"></param>
-		protected void RasterAdd( int iBucket, MyDatum oDatum ) {
-			if( _rgRasters[iBucket].Datum == null ) {
-				_rgRasters[iBucket].Datum = oDatum;
-				_rgRasters[iBucket].Count = 1;
-			} else {
-				_rgRasters[iBucket].Datum = oDatum;
-				_rgRasters[iBucket].Count++;
-			}
-		}
-
-		/// <summary>
-		/// Log the sync channel. If the d12 signal is above the threshold we save
-		/// the offset, modulo, the scan line width. We save the first offset that
-		/// satisfies the window constraint. That way if we subtract the expected
-		/// sync width we are at the start of a scan line!
-		/// </summary>
-		/// <remarks>We save 2x the window samples so we can always go back to the
-		/// start of the window to subtract that contribution from the sum. This 
-		/// makes us O(n) operation instead of O(n^2), if we had to re-sum the
-		/// previous signals in the window. Techically we don't need to save
-		/// the values b/c we have the buffer. But I'm happy I figured out this
-		/// so I'm going to leave it for now.</remarks>
-		/// <param name="iOffset">Offset into the samples.</param>
-		/// <param name="d12">Hsync signal from the filter.</param>
-		/// <returns></returns>
-		public bool LogSync( int iOffset, double d12 ) {
-			int iSig = d12 > _SLvl ? 1 : 0;
-
-			try {
-				int i2Xl  = _iWindowSizeInSamples * 2;
-				int iLast = (_iW + _iWindowSizeInSamples) % ( i2Xl );
-
-				_iWindowSum   -= _rgWindow[iLast];
-				_iWindowSum   += iSig;
-				_rgWindow[_iW] = iSig;
-				_iW            = (_iW + 1) % i2Xl; 
-
-				if( _iWindowSum >= _iWindowHit ) {
-					// Only catch on a rising trigger!!
-					if( _fTriggered == false ) {
-						_fTriggered = true;
-						MyDatum oDatum = new ( Bucket:0, Position:iOffset );
-						_rgData.Add( oDatum );
-						return true;
-					}
-				} else {
-					// When we finally exit the window re-set the trigger.
-					_fTriggered = false;
-				}
-			} catch( Exception oEx ) {
-				Type[] rgErrors = { typeof( NullReferenceException ),
-									typeof( IndexOutOfRangeException ),
-									typeof( ArithmeticException ) };
-				if( !rgErrors.Contains( oEx.GetType() ) )
-					throw;
-
-				// BUG: need to send an error message out.
-			}
-
-			return false;
-		}
-
-		/// <summary>
-		/// Calculate the scan line start asynchronousely using the sync pulses.
-		/// This is useful if you have a signal source that pauses occassionally
-		/// but does not advance the data. Thus the only way to repair the damage
-		/// is to use the sync pulses to re-align.
-		/// Use the AlignLeastSquares method to get a guess at the slope intercept for a
-		/// a rough start, then this algorithm crawls the sync pulses to determine the
-		/// start for each scan line.</summary>
-		/// <param name="dblSlope">Width of the scan line in samples</param>
-		/// <param name="iIntercept">Start of the scan lines.</param>
-		/// <param name="iMaxScanLine">Stop at this scan line.</param>
-		/// <seealso cref="AlignLeastSquares" />
-		IEnumerator<int> EnumRasterStart( double dblSlope, double dblIntercept, int iMaxScanLine ) {
-			double dblLast = dblIntercept;
-			if( _rgRasters[0].Count == 1 ) {
-				dblLast = _rgRasters[0].Datum.Position;
-			}
-			yield return (int)dblLast;
-
-			int iCount = 1;              // count of scan lines since last sync seen.
-			for( int i=1; i<iMaxScanLine; ++i ) {
-				if( _rgRasters[i].Count == 1 ) {
-					dblLast = _rgRasters[i].Datum.Position;
-					iCount  = 1;
-					yield return (int)dblLast;
-				} else {
-					yield return (int)( dblLast + iCount++ * dblSlope );
-				}
-			}
-		}
-
-		/// <summary>
-		/// Call Shuffle() before calling this function!
-		/// This is the beating heart of the slant correction code. Right now we use
-		/// the internal raster to compute the scan line width and start point.
-		/// This is NOT the same as the rasters used for displaying the data so we
-		/// don't corrupt the output drawing process. The two are operating in an
-		/// interleaved fashion.
-		/// </summary>
-		/// <param name="dblSlope">Estimated width in samples of scanline.</param>
-		/// <param name="dblIntercept">Estimated END of first sync signal.</param>
-		/// <returns>True if enough data to return a slope and intercept.</returns>
-		/// <seealso cref="Shuffle(double)"/>
-		public bool AlignLeastSquares( int iStart, int iEnd, ref double dblSlope, ref double dblIntercept ) {
-			double meanx  = 0, meany = 0;
-			int    iCount = 0;
-
-			if( iStart <= 0 )
-				iStart = 1; // BUG: First line is always messed up. Ignore until figure out.
-			if( iEnd > _rgRasters.Length )
-				iEnd = _rgRasters.Length;
-
-			// DO NOT UPDATE Slope and Intercept unless you've calculated the values
-			// if they are initialized to zero, the drawing code will have no
-			// scan line width to use calculate the scan line starts.
-			try {
-				for( int i = iStart; i<iEnd; ++i ) {
-					if( _rgRasters[i].Count == 1 ) {
-						meanx += i;
-						meany += _rgRasters[i].Datum.Position;
-						++iCount;
-					}
-				}
-				if( iCount < 3 ) {
-					return false;
-				}
-
-				meanx /= (double)iCount;
-				meany /= (double)iCount;
-
-				double dxsq = 0;
-				double dxdy = 0;
-
-				for( int i = iStart; i < iEnd; ++i ) {
-					if( _rgRasters[i].Count == 1 ) {
-						double dx = (double)i - meanx;
-						double dy = (double)_rgRasters[i].Datum.Position - meany;
-
-						dxdy += dx * dy;
-						dxsq += Math.Pow( dx, 2 );
-					}
-				}
-
-				if( dxsq == 0 ) {
-					return false;
-				}
-
-				dblSlope     = dxdy / dxsq;
-				dblIntercept = meany - dblSlope * meanx;
-
-				if( dblIntercept < 0 )
-					dblIntercept += dblSlope;
-			} catch( Exception oEx ) {
-				Type[] rgErrors = { typeof( ArithmeticException ),
-									typeof( NullReferenceException ),
-									typeof( ArgumentOutOfRangeException ),
-									typeof( IndexOutOfRangeException ) };
-				if( !rgErrors.Contains( oEx.GetType() ) )
-					throw;
-
-				return false;
-			}
-
-			return true;
-		}
-
-		/// <summary>
-		/// Clear the rasters and reset the bucket on each datm
-		/// based on the new scan width parameter. Then reload
-		/// the rasters. If it's the first try we just load based on the given
-		/// slope. After the first try we use the slope and intercept
-		/// to attempt to dump values that seem to off.
-		/// </summary>
-		/// <param name="fNextTry">true if we have a slope + intercept from a previous try.</param>
-		/// <param name="dblIntercept">Previously calculated intercept.</param>
-		/// <param name="dblSlope">Previously calculated slope (samples per scan line)</param>
-		/// <remarks>300 is just a magic number. Would be nice to make this set (by the user)
-		/// in some intellegent manner. I should do some calculations to make a better guess.
-		/// We used to attempt this interpolation action in a separate step. Collecting ALL
-		/// sync hits and the sifting through them. Might be a waste of time. Looks like keeping
-		/// a count of the hit's on the scan line is useful, but pointing to all of them is a waste.
-		/// </remarks>
-		public void Shuffle( bool fNextTry, double dblSlope, double dblIntercept ) {
-			try {
-				for( int i=0; i<_rgRasters.Length; ++i ) {
-					_rgRasters[i].Datum = null;
-					_rgRasters[i].Count = 0;
-				}
-				foreach( MyDatum oDatum in _rgData ) {
-					oDatum.Bucket = (int)( oDatum.Position / dblSlope );
-					if( fNextTry ) {
-						double dblEstimatedPosition = dblSlope * oDatum.Bucket + dblIntercept;
-
-						if( Math.Abs(oDatum.Position - dblEstimatedPosition ) < 300 )
-							RasterAdd( (int)oDatum.Bucket, oDatum );
-					} else {
-						RasterAdd( (int)oDatum.Bucket, oDatum );
-					}
-				}
-			} catch( Exception oEx ) {
-				Type[] rgErrors = { typeof( NullReferenceException ),
-									typeof( IndexOutOfRangeException ) };
-				if( !rgErrors.Contains( oEx.GetType() ) )
-					throw;
-			}
-		}
-	}
-
-	public class SlopeBucket {
-		public SlopeBucket( double dblSlope, double dblPosition ) {
-			Intercept = dblPosition;
-			Slope     = dblSlope;
-		}
-
-		public double Intercept { get; init; }
-		public double Slope     { get; init; }
-	}
-
 	public struct SSTVPosition {
 		public double Position { get; init; }
 		public int    ScanLine { get; init; }
@@ -314,7 +21,7 @@ namespace Play.SSTV {
     public class SSTVDraw : 
 		IEnumerable<SSTVPosition>
 	{
-        protected readonly SSTVDEM _dp;
+        protected readonly SSTVDEM   _dp;
 
 		public SSTVMode Mode => _dp.Mode;
 
@@ -357,8 +64,6 @@ namespace Play.SSTV {
 		public double SyncWidthInSamples  { get; protected set; } // These don't get updated like the channels.
 		public double SyncOffsetInSamples { get; protected set; } // The channel entries for these do get updated.
 
-		protected SlidingWindow Slider { get; }
-
 		struct DiagnosticPaint {
 			public SKColor Color;
 			public int     StrokeWidth;
@@ -381,8 +86,6 @@ namespace Play.SSTV {
 
 			_skD12Canvas = new( _pBitmapD12 );
 			_skPaint  = new() { Color = SKColors.Red, StrokeWidth = 1 };
-
-			Slider    = new( 30, p_dp.m_SLvl ); // Put some dummy values for now. Start() updates.
 
 			_rgDiagnosticColors.Add( ScanLineChannelType.Sync,  new( SKColors.White, 2 ) );
 			_rgDiagnosticColors.Add( ScanLineChannelType.Gap,   new( SKColors.Brown, 1 ) );
@@ -434,8 +137,6 @@ namespace Play.SSTV {
 
 			SyncWidthInSamples  = Mode.WidthSyncInMS * _dp.SampFreq / 1000;
 			SyncOffsetInSamples = Mode.OffsetInMS    * _dp.SampFreq / 1000;
-
-			Slider.Reset( (int)SyncWidthInSamples );
 
 			Send_TvEvents?.Invoke(SSTVEvents.ModeChanged, (int)Mode.LegacyMode );
 
@@ -604,6 +305,9 @@ namespace Play.SSTV {
 			return true;
 		}
 
+		/// <summary>
+		/// BUG: 3/25/2022, This is probably broken with the new slant correction implementation.
+		/// </summary>
 		protected void DiagnosticsOverlay() {
 			SKPaint skPaint = new() { Color = SKColors.Yellow, StrokeWidth = 3 };
 
@@ -643,108 +347,6 @@ namespace Play.SSTV {
 		}
 
 		/// <summary>
-		/// OK I still don't understand this function. But I've ported it from MMSSTV
-		/// and "n" is freakishly close to my "intercept" values (negated). If I can just figure out
-		/// how MMSSTV gets the Scanline Width (slant correct), I'd be golden.
-		/// </summary>
-		/// <remarks>See: TMmsstv::CorrectSlant() in main.cpp, turns out they reset the
-		/// sampling frequency. Normally I'd reset my slots, but thinking about it
-		/// by changing the expected sampling frequency, you'd get the expected tones
-		/// right on. But that depends on the IIR's being "sloppy" in the first place...
-		/// Hmmm...</remarks>
-		protected bool SyncSSTV( int iScanLine ) {
-			const int e = 4;
-
-			if( iScanLine >= e ) {
-				int   n  = 0;
-				int   sw = (int)SpecWidthInSamples;
-				int   wd = sw + 2;
-				int[] bp = new int[wd];
-
-				for( int pg = 0; pg < e; pg++ ){
-					for( int i = 0; i < sw; i++ ){
-						int x = n % sw;
-						bp[x] += _dp.SyncGet( pg * sw + i );
-						n++;
-					}
-				}
-				n = 0;
-				int max = 0;
-				for( int i = 0; i < wd; i++ ){
-					if( max < bp[i] ){
-						max = bp[i];
-						n   = i;
-					}
-				}
-				n -= (int)Mode.WidthSyncInMS;
-				n = -n;
-
-				if( _dp.FilterType == FreqDetect.Hilbert ) 
-					n -= _dp.HilbertTaps/4;
-
-				//SSTVSET.m_IOFS = SSTVSET.m_OFS = _dp->m_rBase = n;
-
-				//dp->m_wBgn = 0;
-				return true;
-			}
-			return false;
-		}
-		/// <summary>
-		/// Process the Sync data buffer. We make only one pass the the buffer now.
-		/// Draw on the D12 buffer sync diagnostics so we can see what we are doing.
-		/// </summary>
-		/// <param name="dblBase">Where to start reading from, this value
-		/// should be at less than the wBase + SpecLineWidthInSamples.</param>
-		/// <returns>The input base plus the SpecLineWidthInSamples.</returns>
-		/// <remarks>Usue the ScanWidthInSamples (versus SpecWidthInSamples) so
-		/// we can pick up corrections to the width. That way we can calculate the
-		/// intercept.</remarks>
-		protected double ProcessSync( double dblBase ) {
-			try {
-				int    iReadBase   = (int)dblBase;
-				int    iScanWidth  = (int)ScanWidthInSamples; // Make sure this matches our controlling loop!!
-				double dbD12XScale = _pBitmapD12.Width / ScanWidthInSamples;
-				int    iSyncWidth  = (int)( SyncWidthInSamples * dbD12XScale );
-				int    iScanLine   = (int)Math.Round( dblBase / ScanWidthInSamples );
-
-				// This can happen when we start in the middle of an image. And we go
-				// back to the top of the picture trying to draw the first partial scan line.
-				if( _dp.BoundsCompare( iReadBase ) != 0 )
-					return( dblBase + ScanWidthInSamples ); // Just skip it.
-
-				// If we can't advance we'll get stuck in an infinite loop on our caller.
-				if( iReadBase + iScanWidth >= _dp.m_wBase )
-					throw new InvalidProgramException( "Hit the rails on the ProcessSync" );
-
-				for( int i = 0; i < iScanWidth; i++ ) { 
-					int   idx = iReadBase + i;
-					short d12 = _dp.SyncGet( idx );
-					bool fHit = Slider.LogSync( idx, d12 );
-					short dRx = _dp.SignalGet( idx );
-
-					int x = (int)( i * dbD12XScale );
-					if( (x >= 0) && (x < _pBitmapD12.Width)) {
-						int d = Limit256((short)(dRx * 256F / 4096F));
-						if( fHit ) {
-							_skD12Canvas.DrawLine( new SKPointI( x - iSyncWidth, iScanLine ), new SKPointI( x, iScanLine ), _skPaint);
-						} else {
-							_skD12Canvas.DrawPoint( x, iScanLine, new SKColor( (byte)d, (byte)d, (byte)d ) );
-						}
-					}
-				}
-			} catch( Exception oEx ) {
-				Type[] rgErrors = { typeof( ArgumentOutOfRangeException ),
-									typeof( NullReferenceException ) };
-				if( rgErrors.IsUnhandled( oEx ) )
-					throw;
-
-				Send_TvEvents?.Invoke( SSTVEvents.ThreadException, (int)TxThreadErrors.DrawingException );
-			}
-
-			return( dblBase + ScanWidthInSamples );
-		}
-
-		/// <summary>
 		/// This the second new scan line processor. Unlike the ProcessSync() function
 		/// this one will be re-started from the beginning after a handful of
 		/// sync lines are processed. The idea is that we slowly refine our 
@@ -757,10 +359,11 @@ namespace Play.SSTV {
 		/// we just walk into a going signal, but that involves special casing the 
 		/// first scan line and right now I don't think it's worth all the effort.
 		/// </remarks>
-		protected void ProcessScan2( double dblBase, int iScanLine ) {
-			int rx         = -1; // Saved X pos from the Rx buffer.
-			int ch         =  0; // current channel skimming the Rx buffer portion.
-			int iScanWidth = (int)Math.Round( ScanWidthInSamples );
+		protected void ProcessScan( double dblBase, int iScanLine ) {
+			int    rx          = -1; // Saved X pos from the Rx buffer.
+			int    ch          =  0; // current channel skimming the Rx buffer portion.
+			int    iScanWidth  = (int)Math.Round( ScanWidthInSamples );
+			double dbD12XScale = _pBitmapD12.Width / ScanWidthInSamples;
 
 			try { 
 				// Used to try to track scan line start. This seems better see above.
@@ -778,7 +381,13 @@ namespace Play.SSTV {
 					return;
 
 				for( int i = 0; i < iScanWidth; i++ ) { 
-					int idx = rBase + i;
+					int   iSx = rBase + i;                // Offset into the data @ _dp
+					int iD12x = (int)( i * dbD12XScale ); // Offset onto the D12 (sync) bitmamp
+
+					if( iD12x < _pBitmapD12.Width) {
+						int d = Limit256((short)(_dp.SyncGet( iSx ) * 256F / 4096F));
+						_skD12Canvas.DrawPoint( iD12x, iScanLine, new SKColor( (byte)d, (byte)d, (byte)d ) );
+					}
 
 					do {
 						ColorChannel oChannel = _rgSlots[ch];
@@ -786,7 +395,7 @@ namespace Play.SSTV {
 							if( oChannel.SetPixel != null ) {
 								int x = (int)((i - oChannel.Min) * oChannel.Scaling );
 								if( (x != rx) && (x >= 0) && (x < _pBitmapRX.Width) ) {
-									rx = x; oChannel.SetPixel( x, _dp.SignalGet( idx ) );
+									rx = x; oChannel.SetPixel( x, _dp.SignalGet( iSx ) );
 								}
 							}
 							break;
@@ -807,6 +416,38 @@ namespace Play.SSTV {
 			}
 		}
 
+		public class Adjuster : ISstvAdjust {
+			double m_SampFreq;
+			readonly double m_dblScanWidthInMS;
+
+			public double TW { get; protected set; } // Width of scan line in samples.
+			public int    WD { get; protected set; } // int version of TW.
+
+			public Adjuster( double dblSampFreq, double dblScanLineInMS ) {
+				m_dblScanWidthInMS = dblScanLineInMS;
+
+				SetSampFreq( dblSampFreq );
+			}
+
+			/// <summary>
+			/// So in the original code you can update the sample frequency,
+			/// and that of course will affect the width of a scan line (in samples).
+			/// So we need a function to update both.
+			/// </summary>
+			/// <param name="dblSampFreq"></param>
+			public void SetSampFreq( double dblSampFreq ) {
+				const double dblMsPerSecond = 1000;
+
+				m_SampFreq = dblSampFreq;
+				TW         = m_SampFreq / dblMsPerSecond * m_dblScanWidthInMS;
+				WD         = (int)Math.Round( TW );
+
+				//std::cout << "freq: " << m_SampFreq << " wd" << m_TW << "\n";
+			}
+
+			public double SampFreq { get { return m_SampFreq; } }
+		}
+
 		/// <summary>
 		/// This is our main processing entry point. The data is being loaded into the buffer
 		/// and we read it out here. _dp.Mode might be null after exit of this call.
@@ -814,38 +455,31 @@ namespace Play.SSTV {
 		public void Process() {
 			if( _dp.Synced ) {
 				try {
-					while( _dp.m_wBase > _dblReadBaseSync + ScanWidthInSamples ) {
-						_dblReadBaseSync = ProcessSync( _dblReadBaseSync );
-					}
-					// BUG: this s/b encoded scan line and not the bitmap y value.
-					int iScanLine = (int)( ( _dp.m_wBase - StartIndex ) / ScanWidthInSamples );
+                    // BUG: this s/b encoded scan line and not the bitmap y value.
+                    int iScanLine = (int)( ( _dp.m_wBase - StartIndex ) / ScanWidthInSamples );
 
 					if( iScanLine >= ( _rgSlopeBuckets.Count + 1 ) * _iBucketSize ) {
-						// SyncSSTV( iScanLine ); not ready yet.
-
 						Send_TvEvents?.Invoke( SSTVEvents.DownLoadTime, PercentRxComplete );
 
-						int iStart = _rgSlopeBuckets.Count == 0 ? 0 : iScanLine - _iBucketSize - 1;
+						int iStartLine = _rgSlopeBuckets.Count == 0 ? 0 : iScanLine - _iBucketSize - 1;
 						if( _fAuto ) {
-                            Slider.Shuffle( false, _dblSlope, _dblIntercept );
+							Adjuster  oAdjust = new Adjuster( _dp.SampFreq, Mode.ScanWidthInMS );
+							SSTVSlant oSlant  = new SSTVSlant( _dp, oAdjust );
 
-                            // Re-reading is the best thing to do, but it is expensive and
-                            // mostly helps at first, and is less effective after that.
-                            double dblIntercept = 0;
-                            bool fAligned = Slider.AlignLeastSquares( 0, iScanLine, ref _dblSlope, ref dblIntercept );
+							int n = oSlant.CorrectSlant();
 
-                            // Don't reset the slider. While it makes sense in extreme cases
-                            // doesn't seem to really matter most of the time.
-                            if( fAligned && _fNoIntercept ) {
-                                _fNoIntercept    = false;
-                                _dblReadBaseSync = 0;
-                                _dblIntercept    = dblIntercept;
-                                Slider.Reset();
-                            }
+                            if( _dp.FilterType == FreqDetect.Hilbert ) {
+								double dblHill  = _dp.HilbertTaps / 4.0;
+                                double dblMagic = dblHill* oAdjust.SampFreq / 1000;
+								n -= (int)dblMagic;
+							}
+
+                            _dblIntercept = n;
+							_dblSlope     = oAdjust.TW;
                         }
 						_rgSlopeBuckets.Add( _dblSlope );
 
-						ProcessTop( iStart, iScanLine );
+						ProcessTop( iStartLine, iScanLine );
 					}
 					// Bail on current image when we've processed expected image size.
 					if( _dp.m_wBase > ImageSizeInSamples ) {
@@ -864,7 +498,7 @@ namespace Play.SSTV {
 			}
 		}
 
-		public void SlopeAdjust( double dblDir ) {
+		public void ManualSlopeAdjust( double dblDir ) {
 			_fAuto     = false;
 			_dblSlope += dblDir;
 
@@ -877,7 +511,7 @@ namespace Play.SSTV {
 		/// </summary>
 		public void ProcessProgress() {
 			foreach( SSTVPosition sSample in this ) {
-				ProcessScan2( sSample.Position, sSample.ScanLine );
+				ProcessScan( sSample.Position, sSample.ScanLine );
 			}
 			if( _dp.Synced ) {
 				DiagnosticsOverlay();
@@ -892,7 +526,7 @@ namespace Play.SSTV {
 		public void ProcessTop( int iStartScan, int iEndScan ) {
 			foreach( SSTVPosition sSample in this ) {
 				if( sSample.ScanLine >= iStartScan && sSample.ScanLine <= iEndScan ) {
-					ProcessScan2( sSample.Position, sSample.ScanLine );
+					ProcessScan( sSample.Position, sSample.ScanLine );
 				}
 			}
 		}
@@ -921,7 +555,7 @@ namespace Play.SSTV {
 		/// <summary>
 		/// This is the starting position for the unprocessed scan data that makes up the image. 
 		/// </summary>
-		public double StartIndex => _dblIntercept - SyncOffsetInSamples - ( _dblMagicOffset * _dp.SampFreq / 1000 );
+		public double StartIndex => _dblIntercept - SyncOffsetInSamples;
 
 		/// <summary>
 		/// This is the old implementation. It enumerates all the scan lines using a single

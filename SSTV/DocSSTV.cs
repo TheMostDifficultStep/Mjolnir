@@ -35,7 +35,6 @@ namespace Play.SSTV {
             Rx_Height,
             Rx_Progress,
             Rx_SaveDir,
-            Rx_SaveName,
 
             Tx_Progress,
             Tx_SrcDir,
@@ -108,7 +107,6 @@ namespace Play.SSTV {
             LabelSet( Names.Rx_Width,    "Width" );
             LabelSet( Names.Rx_Height,   "Height" );
             LabelSet( Names.Rx_Progress, "Received" );
-            LabelSet( Names.Rx_SaveName, "Filename" );
             LabelSet( Names.Rx_SaveDir,  "Save Dir" );
 
             // Initialize these to reasonable values, the user can update and save.
@@ -1191,7 +1189,9 @@ namespace Play.SSTV {
 			RxHistoryList.LoadAgain( strFileName );
             Properties.ValueUpdate( SSTVProperties.Names.Std_Process, "File Read Started." );
             Properties.ValueUpdate( SSTVProperties.Names.Rx_Progress, "0" );
-            Properties.ValueUpdate( SSTVProperties.Names.Rx_SaveName, strFileName, true ); // BUG: Should be the image name not the wav file.
+
+            // this causes problems when we switch between device receive and file decode. 
+          //Properties.ValueUpdate( SSTVProperties.Names.Rx_SaveName, strFileName, true ); // BUG: Should be the image name not the wav file.
 
             Action oFileReadAction = delegate () {
                 FileReadingState oWorker = new ( _rgBGtoUIQueue, strFileName, SyncImage.Bitmap, DisplayImage.Bitmap );
@@ -1308,7 +1308,6 @@ namespace Play.SSTV {
                     int    iQuality    = Properties.GetValueAsInt( SSTVProperties.Names.Std_ImgQuality, 80 );
                     double dblFreq     = Properties.GetValueAsDbl( SSTVProperties.Names.Std_Clock,   11028 );
                     string strSaveDir  = Properties[ SSTVProperties.Names.Rx_SaveDir  ];
-                    string strFileName = Properties[ SSTVProperties.Names.Rx_SaveName ];
 
                     // Just note, if we do a file read, we might no longer be in the MyPictures path.
                     if( string.IsNullOrEmpty( strSaveDir ) ) {
@@ -1318,7 +1317,7 @@ namespace Play.SSTV {
 
                     DeviceListeningState oWorker = new DeviceListeningState( 
                         dblFreq, 
-                        iQuality, strSaveDir, strFileName,
+                        iQuality, strSaveDir, String.Empty,
                         _rgBGtoUIQueue, _rgDataQueue, 
                         _rgUItoBGQueue, SyncImage.Bitmap, DisplayImage.Bitmap );
                     ThreadStart   threadDelegate = new ThreadStart( oWorker.DoWork );
