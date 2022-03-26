@@ -27,7 +27,6 @@ namespace Play.SSTV {
 
 		public DateTime StartTime { get; protected set; }
 
-		protected double   _dblReadBaseSync = 0; // Sync signal reader progress
         protected int      _AY;
 	    protected short[]  _Y36 = new short[800];
 	    protected short[,] _D36 = new short[2,800];
@@ -35,10 +34,8 @@ namespace Play.SSTV {
 		protected readonly int _iBucketSize = 20;
 
 		protected bool     _fAuto          = false;
-		protected bool     _fNoIntercept   = true;
 		protected double   _dblSlope       = 0;
 		protected double   _dblIntercept   = 0;
-		// BUG: I'll probably need to adjust this number depending on the "FreqDetect" filter (PLL, FQC, Hilbert)
 
 		protected List<double> _rgSlopeBuckets = new List<double>();
 
@@ -60,7 +57,7 @@ namespace Play.SSTV {
 
 		protected readonly List<ColorChannel> _rgSlots = new (10);
 		
-		public double SyncWidthInSamples  { get; protected set; } // These don't get updated like the channels.
+		// This let's us offset our start point if the sync is NOT the first bit of scanline data. ie Scotty.
 		public double SyncOffsetInSamples { get; protected set; } // The channel entries for these do get updated.
 
 		struct DiagnosticPaint {
@@ -84,7 +81,7 @@ namespace Play.SSTV {
 			_pBitmapRX  = oRx  ?? throw new ArgumentNullException( "D12 bmp must not be null" );
 
 			_skD12Canvas = new( _pBitmapD12 );
-			_skPaint  = new() { Color = SKColors.Red, StrokeWidth = 1 };
+			_skPaint     = new() { Color = SKColors.Red, StrokeWidth = 1 };
 
 			_rgDiagnosticColors.Add( ScanLineChannelType.Sync,  new( SKColors.White, 2 ) );
 			_rgDiagnosticColors.Add( ScanLineChannelType.Gap,   new( SKColors.Brown, 1 ) );
@@ -99,46 +96,24 @@ namespace Play.SSTV {
 			_rgDiagnosticColors.Add( ScanLineChannelType.END,   new( SKColors.Aquamarine, 3 ) );
 		}
 
-		/// <summary>
-		/// Still tinkering with disposal methods. We're designed that we can re-use this 
-		/// object as long as the _dp object is valid for the current sampling frequency.
-		/// if the frequency changes, then the demodulator is no longer valid.
-		/// </summary>
-		/// <remarks>I read about this pattern for multithreaded objects and checking flags.
-		/// I wish I could recall the paper. ^_^;; The idea is that if we get prempted and
-		/// the other thread gets dispose called we'll pick up on that when we enter.
-		/// BUUUUT, if we dispose the images, the UI thread might choke. So just let 'em
-		/// go. As long as we're not generating a bunch of these quickly they'll get
-		/// cleaned up eventually anyway.</remarks>
-		//public void Dispose() {
-		//	if( !_fDisposed ) {
-		//		_fDisposed = true;
-		//		if( !_fDisposed ) {
-		//			_pBitmapD12?.Dispose();
-		//			_pBitmapRX ?.Dispose();
-		//		}
-		//	}
-		//}
-
 		/// <summary>this method get's called to initiate the processing of
 		/// a new image.</summary>
 		/// <seealso cref="OnModeTransition_SSTVDeMo"/>
         public void Start() {
-			_dblReadBaseSync =  0;
-			_AY				 = -5;
+			_AY			  = -5;
 			
 			_fAuto        = true;
 			_dblSlope     = SpecWidthInSamples;
 			_dblIntercept = 0;
-			_fNoIntercept = true;
 
 			_rgSlopeBuckets.Clear();
 
-			SyncWidthInSamples  = Mode.WidthSyncInMS * _dp.SampFreq / 1000;
-			SyncOffsetInSamples = Mode.OffsetInMS    * _dp.SampFreq / 1000;
+			SyncOffsetInSamples = Mode.OffsetInMS * _dp.SampFreq / 1000;
 
 			Send_TvEvents?.Invoke(SSTVEvents.ModeChanged, (int)Mode.LegacyMode );
 
+			// This is a little dangerous. But since the main thread never messes with the
+			// bitmap we'll probably be ok.
             using SKCanvas sKCanvas = new(_pBitmapRX);
             sKCanvas.Clear(SKColors.Gray);
             _skD12Canvas.Clear();
@@ -156,7 +131,7 @@ namespace Play.SSTV {
 			try {
 				// Need to send regardless, but might get a bum image if not
 				// includes vis and we guess a wrong start state.
-				Send_TvEvents?.Invoke( SSTVEvents.DownLoadFinished, PercentRxComplete );
+				Send_TvEvents ?.Invoke( SSTVEvents.DownLoadFinished, PercentRxComplete );
 				Send_SavePoint?.Invoke( Mode ); // _dp hasn't been reset yet! Wheeww!
 
 				if( _dp.Synced ) {
@@ -703,8 +678,7 @@ namespace Play.SSTV {
 
 			double dblSamplesPerMs = _dp.SampFreq / 1000 * dbCorrection;
 
-			SyncWidthInSamples  = ( Mode.WidthSyncInMS * dblSamplesPerMs );
-			SyncOffsetInSamples = ( Mode.OffsetInMS    * dblSamplesPerMs );
+			SyncOffsetInSamples = ( Mode.OffsetInMS * dblSamplesPerMs );
 		}
 
     } // End Class TmmSSTV
