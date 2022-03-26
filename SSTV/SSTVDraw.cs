@@ -38,7 +38,6 @@ namespace Play.SSTV {
 		protected bool     _fNoIntercept   = true;
 		protected double   _dblSlope       = 0;
 		protected double   _dblIntercept   = 0;
-		protected double   _dblMagicOffset = 3.5; // Our iir filters are slow picking up the sync vs Freq detect.
 		// BUG: I'll probably need to adjust this number depending on the "FreqDetect" filter (PLL, FQC, Hilbert)
 
 		protected List<double> _rgSlopeBuckets = new List<double>();
@@ -539,7 +538,7 @@ namespace Play.SSTV {
 		/// where upon we go to the next bucket.
 		/// </summary>
 		public IEnumerator< SSTVPosition > foo () {
-            double dblIndex  = _dblIntercept - SyncOffsetInSamples - ( _dblMagicOffset * _dp.SampFreq / 1000 );
+            double dblIndex  = _dblIntercept - SyncOffsetInSamples;
 			int    iScanLine = 0;
 
 			foreach( double dblSlope in _rgSlopeBuckets ) {
