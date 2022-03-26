@@ -110,7 +110,8 @@ namespace Play.SSTV {
 
 			SyncOffsetInSamples = Mode.OffsetInMS * _dp.SampFreq / 1000;
 
-			Send_TvEvents?.Invoke(SSTVEvents.ModeChanged, (int)Mode.LegacyMode );
+			Send_TvEvents?.Invoke( SSTVEvents.ModeChanged, (int)Mode.LegacyMode );
+			Send_TvEvents?.Invoke( SSTVEvents.DownLoadTime, 0 );
 
 			// This is a little dangerous. But since the main thread never messes with the
 			// bitmap we'll probably be ok.
@@ -123,7 +124,7 @@ namespace Play.SSTV {
 
 		/// <summary>
 		/// Call this when we've filled the target bitmap. Technically the user could send
-		/// forever, we're done. ^_^;
+		/// forever, but we're done once we fill our bitmap. ^_^;
 		/// </summary>
 		/// <remarks>Right now I only -stop- if i'm in sync'd mode. Might just want to do
 		/// this whenever. We'll tinker a bit.</remarks>
