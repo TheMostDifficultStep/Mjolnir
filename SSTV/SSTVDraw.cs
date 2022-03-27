@@ -351,7 +351,8 @@ namespace Play.SSTV {
 				if( _dp.BoundsCompare( rBase + iScanWidth ) != 0 )
 					return;
 
-			    _AY = iScanLine;
+				// Convert from scan line to bitmap offset.
+			    _AY = iScanLine * Mode.ScanMultiplier;
 				if( (_AY < 0) || (_AY >= _pBitmapRX.Height) )
 					return;
 
@@ -433,8 +434,8 @@ namespace Play.SSTV {
                     // BUG: this s/b encoded scan line and not the bitmap y value.
                     int iScanLine = (int)( ( _dp.m_wBase - StartIndex ) / ScanWidthInSamples );
 
+					Send_TvEvents?.Invoke( SSTVEvents.DownLoadTime, PercentRxComplete );
 					if( iScanLine >= ( _rgSlopeBuckets.Count + 1 ) * _iBucketSize ) {
-						Send_TvEvents?.Invoke( SSTVEvents.DownLoadTime, PercentRxComplete );
 
 						int iStartLine = _rgSlopeBuckets.Count == 0 ? 0 : iScanLine - _iBucketSize - 1;
 						if( _fAuto ) {
@@ -446,7 +447,8 @@ namespace Play.SSTV {
                             if( _dp.FilterType == FreqDetect.Hilbert ) {
 								double dblHill  = _dp.HilbertTaps / 4.0;
                                 double dblMagic = dblHill* oAdjust.SampFreq / 1000;
-								n -= (int)dblMagic;
+								double dblExtra = 10; // Ah! This might be due to the ALC at the orig freq.
+								n -= (int)( dblMagic + dblExtra );
 							}
 
                             _dblIntercept = n;
@@ -522,7 +524,7 @@ namespace Play.SSTV {
 				for( int i = 0; i<_iBucketSize; ++i ) {
 					yield return new SSTVPosition() { Position=dblIndex, ScanLine=iScanLine };
 					dblIndex  += dblSlope;
-					iScanLine += Mode.ScanMultiplier;
+					iScanLine += 1;
 				}
 			}
 		}
@@ -548,7 +550,7 @@ namespace Play.SSTV {
 			while( dblIndex < ImageSizeInSamples ) {
 				yield return new SSTVPosition() { Position=dblIndex, ScanLine=iScanLine };
 				dblIndex  += _dblSlope;
-				iScanLine += Mode.ScanMultiplier;
+				iScanLine += 1;
 			}
 		}
         IEnumerator IEnumerable.GetEnumerator() {

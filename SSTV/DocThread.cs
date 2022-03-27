@@ -124,7 +124,7 @@ namespace Play.SSTV {
             if( oRx  == null )
                 throw new ArgumentNullException( nameof( oRx  ) );
 
-            _oReader     = new AudioFileReader     ( _strFileName ); 
+            _oReader     = new AudioFileReader     ( _strFileName ); // BUG: throws if not find file.
             _oProvider   = new WaveToSampleProvider( _oReader );
             
             // No need for calibrated clock rate since reading data from a file.
