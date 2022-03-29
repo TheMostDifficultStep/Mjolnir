@@ -276,10 +276,13 @@ namespace Play.SSTV {
 		/// Ok I know a little more about this bugger. bpos is sync signal "base position" as you
 		/// might expect. It assumes the signal starts at time zero. So even if you're not
 		/// giving it a signal, it will adjust the base as if there was signal back
-		/// at the beginning of time. Unfortunately, it isn't the EXACT offset. 
+		/// at the beginning of time (zero in the buffer).  
 		/// Now the TW (scan line width in samples) is co dependent on the Sample Frequency. 
 		/// This algoritm is attempting to adjust both the TW and the SampFreq to be syncronized. 
 		/// This is why SetSampFreq() has to be called so that TW gets updated as it guesses the frequency.
+		/// NOTE: The base position is turning out slightly off. I think this is because unlike MMSSTV I'm not
+		/// reseting my filters and AFC data structures in the demodulator like MMSSTV does. So I'm slightly off.
+		/// I'll look into that more in the future.
 		/// </summary>
 		/// <seealso cref="BasePosition"/>
 		public int CorrectSlant() {

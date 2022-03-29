@@ -118,11 +118,10 @@ namespace Play.SSTV {
 		}
 
         public override bool Execute( Guid sGuid ) {
-			if( sGuid == GlobalCommands.Play ) {
-				throw new NotImplementedException();
-				// Need to update to new Deluxe window way of setting up the transmit.
-			    _oDocSSTV.TransmitBegin( null ); 
-			}
+			//if( sGuid == GlobalCommands.Play ) {
+			//	// Need to update to new Deluxe window way of setting up the transmit.
+			//    _oDocSSTV.TransmitBegin( null ); 
+			//}
 			if( sGuid == GlobalCommands.Stop ) {
 				_oDocSSTV.TransmitStop();
 			}

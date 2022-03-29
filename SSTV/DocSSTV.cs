@@ -97,7 +97,7 @@ namespace Play.SSTV {
 
             LabelSet( Names.Tx_MyCall,    "My Call" );
             LabelSet( Names.Tx_TheirCall, "Rx Call" );
-            LabelSet( Names.Tx_RST,       "RST" );
+            LabelSet( Names.Tx_RST,       "RSV" ); // Readibility, strength, video
             LabelSet( Names.Tx_Message,   "Message" );
             LabelSet( Names.Tx_Progress,  "Sent" );
             LabelSet( Names.Tx_SrcDir,    "Tx Source Dir" );
@@ -578,8 +578,9 @@ namespace Play.SSTV {
             TemplateList.LineAppend( "PnP Reply" );
             TemplateList.LineAppend( "General Msg" );
             TemplateList.LineAppend( "General Pnp" );
-            TemplateList.LineAppend( "Layout Test" );
+            TemplateList.LineAppend( "CQ Layout" );
             
+            // Largest bitmap needed by any of the types I can decode.
 		    SyncImage   .Bitmap = new SKBitmap( 800, 616, SKColorType.Rgb888x, SKAlphaType.Unknown );
 		    DisplayImage.Bitmap = new SKBitmap( 800, 616, SKColorType.Rgb888x, SKAlphaType.Opaque  );
 

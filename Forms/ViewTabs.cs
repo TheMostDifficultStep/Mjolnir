@@ -59,9 +59,11 @@ namespace Play.Forms {
             Document   = oDoc ?? throw new ArgumentNullException( nameof( oDoc ) );
 
             // Would be nice if height was a function of the text size. Someday!
-            Layout = new LayoutFlowSquare_Fixed( new Size( 200, 44 ) );
+            Layout = new LayoutFlowSquare_Fixed( TabSize );
             Layout.Spacing = 5;
         }
+
+        public virtual Size TabSize { get { return new Size( 200, 44 ); } }
 
         public virtual bool InitNew() {
             try {
@@ -119,7 +121,17 @@ namespace Play.Forms {
         /// <returns>Return a bitmap</returns>
         public abstract SKBitmap TabIcon( object oID );
 
-        protected virtual ParentRect CreateTab( Line oViewLine ) {
+        /// <summary>
+        /// So we need some way to associate the view's tab with some thing
+        /// it is referencing. In the normal case, a line in the text editor.
+        /// Normally, I would have a site that I can put any ancillary info 
+        /// like that. Here I kind of took a shortcut and just stuck the ID
+        /// on the LayoutStack object, since layouts point to layouts
+        /// recursively. 
+        /// </summary>
+        /// <param name="oViewLine"></param>
+        /// <returns></returns>
+        protected virtual LayoutRect CreateTab( Line oViewLine ) {
 			LayoutIcon       oTabIcon = new( TabIcon( oViewLine ), LayoutRect.CSS.Flex );
 
 			LayoutSingleLine oTabText = new LayoutSingleLine( new FTCacheWrap( oViewLine ), 
@@ -193,16 +205,11 @@ namespace Play.Forms {
             OnSizeChanged( new EventArgs() );
         }
 
-        /// <summary>
-        /// Need to check if the Line.At is constant or not. If not
-        /// we'll need to update our ID's on the sub elements of
-        /// the tab.
-        /// </summary>
         public void OnLineDelete(Line oLine) {
             // find the tab and remove it.
             for( int i=0; i<Layout.Count; ++i ) {
                 LayoutRect oChild = Layout.Item(i);
-                if( oChild is LayoutStackHorizontal oTab ) {
+                if( oChild is LayoutStack oTab ) {
                     if( oTab.ID == oLine ) {
                         Layout.RemoveAt( i );
                     }
@@ -286,6 +293,51 @@ namespace Play.Forms {
         }
 
         protected abstract void OnTabLeftClicked( object ID );
+    }
+
+    public abstract class ButtonBar : TabControl {
+        IPgTools _oCmd;
+
+        public ButtonBar(IPgViewSite oSiteView, BaseEditor oDoc, IPgTools oCmd ) : base( oSiteView, oDoc ) {
+            _oCmd = oCmd ?? throw new ArgumentNullException( nameof( oCmd ) );
+        }
+
+        public override Size TabSize => new Size( 30, 30 );
+
+        protected override LayoutRect CreateTab( Line oLine ) {
+            LayoutIcon oTabIcon = new LayoutIcon( TabIcon( oLine ) );
+
+			LayoutStackHorizontal oTab = new () { Spacing = 5, BackgroundColor = TabBackground, ID = oLine };
+				
+			oTab.Add( oTabIcon );
+
+            return oTab;
+        }
+
+        public override SKBitmap TabIcon( object ob) {
+            if( ob is Line oLine ) {
+                return (SKBitmap)oLine.Extra;
+            }
+
+            throw new ArgumentException( "Argument must be of type : Line" );
+        }
+
+        public override SKColor TabBackground( object oID ) {
+            SKColor skBG = _oStdUI.ColorsStandardAt( StdUIColors.BGReadOnly );
+
+            if( oID is Line oLine ) {
+                if( oLine == HoverTab?.ID ) 
+                    return SKColors.LightYellow;
+
+                if( _oCmd.ToolSelect == oLine.At )
+                    return SKColors.LightCyan;
+
+                // Need to distinguish between our window being part of the focus
+                // chain or not.
+            }
+            return skBG;
+        }
+
     }
 
 }
