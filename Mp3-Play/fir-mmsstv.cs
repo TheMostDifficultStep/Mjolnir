@@ -408,10 +408,10 @@ namespace Play.Sound {
 	/// generally of low order (N ≤ 16), while the FIRs are usually of high order (N ≥ 16).
 	/// </remarks>
 	public class CIIRTANK {
-		double	z1, z2;  // past 1 or 2 ago values
+		double	_z1, _z2;  // past 1 or 2 ago values
 
-		double	a0;      // Coefficients for the filter.
-		double	b1, b2;
+		double	_a0;      // Coefficients for the filter.
+		double	_b1, _b2;
 
 		/// <summary>
 		/// Sample frequency comes from the global value.
@@ -419,7 +419,7 @@ namespace Play.Sound {
 		/// </summary>
 		public CIIRTANK( double p_dbSampFreq )
 		{
-			b1 = b2 = a0 = z1 = z2 = 0;
+			_b1 = _b2 = _a0 = _z1 = _z2 = 0;
 			SetFreq(2000.0, p_dbSampFreq, 50.0); // dummy values.
 		}
 
@@ -445,18 +445,20 @@ namespace Play.Sound {
 			} else {
 				la0 = Math.Sin(2 * Math.PI * f/smp);
 			}
-			b1 = lb1; b2 = lb2; a0 = la0;
+			_b1 = lb1; 
+			_b2 = lb2; 
+			_a0 = la0;
 		}
 
 		public double Do(double d)
 		{
-			d *= a0;
-			d += (z1 * b1);
-			d += (z2 * b2);
-			z2 = z1;
+			d *= _a0;
+			d += (_z1 * _b1);
+			d += (_z2 * _b2);
+			_z2 = _z1;
 			if( Math.Abs(d) < 1e-37 ) 
 				d = 0.0;
-			z1 = d;
+			_z1 = d;
 			return d;
 		}
 	}

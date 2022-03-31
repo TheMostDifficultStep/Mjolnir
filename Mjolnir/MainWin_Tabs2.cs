@@ -118,12 +118,12 @@ namespace Mjolnir {
         /// <param name="iID">Id of the tab to return the requested info.</param>
         /// <returns>Focus status</returns>
         public override SKColor TabStatus( object oID ) {
-            if( oID is ViewSlot oLine ) {
-                if( oLine.Focused )
+            if( oID is ViewSlot oSlot ) {
+                if( oSlot.Focused )
                     return _oStdUI.ColorsStandardAt( StdUIColors.BGSelectedFocus );
 
                 // Always draw the status if selected. (center view focused or not)
-                if( _oHost.ViewSiteSelected == oLine ) 
+                if( _oHost.ViewSiteSelected == oSlot ) 
                     return SKColors.Gray;
 
                 return TabBackground( oID );

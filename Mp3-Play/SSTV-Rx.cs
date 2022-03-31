@@ -941,11 +941,8 @@ namespace Play.Sound {
 			m_lpf19  = new CIIR();
 		//  m_lpffsk = new CIIR();
 
-			m_iir11 .SetFreq(1080     + m_dblToneOffset, SampFreq,  80.0);
-			m_iir12 .SetFreq(1200     + m_dblToneOffset, SampFreq, 100.0);
-			m_iir13 .SetFreq(1320     + m_dblToneOffset, SampFreq,  80.0);
-			m_iir19 .SetFreq(1900     + m_dblToneOffset, SampFreq, 100.0);
-		//  m_iirfsk.SetFreq(FSKSPACE + m_dblToneOffset, SampFreq, 100.0);
+			m_AFCFQ  = -1;
+			InitTone( 0 );
 
 			m_lpf11 .MakeIIR(50, SampFreq, 2, 0, 0);
 			m_lpf12 .MakeIIR(50, SampFreq, 2, 0, 0);
@@ -969,7 +966,6 @@ namespace Play.Sound {
 			pTick    = null;
 			m_Avg   .SetCount( (int)( 2.5*SampFreq/1000.0 ));
 			m_AFCAVG.SetCount(15);
-			m_AFCFQ  = 0;
 			m_AFCInt = (int)(100 * SampFreq / 1000.0 );
 			m_AFCDis = 0;
 
@@ -1050,8 +1046,8 @@ namespace Play.Sound {
 
 			Mode = tvMode;
 
-			// System/user is trying to guess the image mode. So keep the buffer
-			// so we can re-render from the beginning.
+			// If PrevMode is non null, the System/user is trying to guess the image mode.
+			// So keep the buffer so we can re-render from the beginning.
 			if( ePrevMode == null ) {
 				SetBandWidth( false ); // SSTVSET.IsNarrowMode( tvMode.Family )
 				InitAFC     ();
@@ -1207,17 +1203,14 @@ namespace Play.Sound {
 				m_bpf = bpf;
 
 				int delay = m_bpftap;
-				CalcBPF(); // m_bpftap gets changed as a side effect in here.
+				CalcBPF(HBPF, HBPFS, HBPFN, ref m_bpftap, m_bpf );
+				m_BPF.Create(m_bpftap);
+
 				if( Synced ) {
 					delay = (m_bpftap - delay) / 2;
 					m_Skip = delay;
 				}
 			}
-		}
-
-		public void CalcBPF() {
-			CalcBPF(HBPF, HBPFS, HBPFN, ref m_bpftap, m_bpf );
-			m_BPF.Create(m_bpftap);
 		}
 
 		void Idle(double d)	{
@@ -1236,6 +1229,8 @@ namespace Play.Sound {
 		/// <summary>
 		/// This probaby Adaptive Forward Cancellation. As opposed to 
 		/// Least Mean Squares (LMS) for periodic disturbance cancellation.
+		/// Call this at the start of each image decoding run. Might make
+		/// sence to call after each slant correct too.
 		/// </summary>
 		void InitAFC(){
 			// This used to live outboard in teh SSTVSET object and it seems
@@ -1244,11 +1239,11 @@ namespace Play.Sound {
 
 			switch( Mode.Family ){
 				case TVFamily.Martin:
-					iAFCW = (int)(2.0 * SampFreq / 1000.0);
+					iAFCW  = (int)(2.0 * SampFreq / 1000.0);
 					m_AFCB = (int)(1.0 * SampFreq / 1000.0);
 					break;
 				default:
-					iAFCW = (int)(3.0 * SampFreq / 1000.0);
+					iAFCW  = (int)(3.0 * SampFreq / 1000.0);
 					m_AFCB = (int)(1.5 * SampFreq / 1000.0);
 					break;
 			}

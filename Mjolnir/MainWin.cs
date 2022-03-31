@@ -26,7 +26,8 @@ namespace Mjolnir {
     public enum SideIdentify {
         Left,
         Right,
-        Bottom
+        Bottom,
+        Tools
     }
 
     /// <summary>
@@ -331,10 +332,11 @@ namespace Mjolnir {
             oCenter.Padding.SetRect( 5, 0, 5, 0 );
 
             oCenter.Add( _rgSideInfo[SideIdentify.Left] );
+            oCenter.Add( _rgSideInfo[SideIdentify.Tools] );
             oCenter.Add( new LayoutGrab( LayoutRect.CSS.None, _rcFrame ) ); 
             oCenter.Add( _rgSideInfo[SideIdentify.Right] ); 
 
-            _oLayoutPrimary.Add( new LayoutControl(oTabs, LayoutRect.CSS.Flex, 40) ); 
+            _oLayoutPrimary.Add( new LayoutControl( oTabs,     LayoutRect.CSS.Flex, 40) ); 
             _oLayoutPrimary.Add( new LayoutControl( _oTopMenu, LayoutRect.CSS.Flex, 34 ) ); 
             _oLayoutPrimary.Add( oCenter); 
             _oLayoutPrimary.Add( _rgSideInfo[SideIdentify.Bottom] );
@@ -495,6 +497,7 @@ namespace Mjolnir {
 			_rgDim.Add( "left",   new SideStuff( TRACK.VERT,  250 ) );
 			_rgDim.Add( "right",  new SideStuff( TRACK.VERT,  250 ) );
 			_rgDim.Add( "bottom", new SideStuff( TRACK.HORIZ, 100 ) );
+            _rgDim.Add( "tools",  new SideStuff( TRACK.VERT,   40 ) );
 
             // Read in all the edge values.
             try {
@@ -507,7 +510,7 @@ namespace Mjolnir {
                                 SideStuff sStuff  = _rgDim[strSide];
 							    _rgSideInfo.Add(eSide, new SideRect( sStuff.eTrack ) { 
                                     Spacing  = 5,
-                                    SideInit = sStuff.iInit,
+                                    SideInit = sStuff.iInit, // size when opened for the first time.
                                     Track    = (uint)iValue,
                                     Layout   = LayoutRect.CSS.Pixels
                                 } );

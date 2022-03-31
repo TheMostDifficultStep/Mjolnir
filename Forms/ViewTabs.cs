@@ -304,6 +304,13 @@ namespace Play.Forms {
 
         public override Size TabSize => new Size( 30, 30 );
 
+        /// <summary>
+        /// Unfortunately, we're kind of locked into the LayoutStack because it has the ID
+        /// associated with it. The list implementation is too transparent to the use
+        /// of this object right now.
+        /// </summary>
+        /// <param name="oLine"></param>
+        /// <returns></returns>
         protected override LayoutRect CreateTab( Line oLine ) {
             LayoutIcon oTabIcon = new LayoutIcon( TabIcon( oLine ) );
 
