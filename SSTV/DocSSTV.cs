@@ -179,6 +179,7 @@ namespace Play.SSTV {
         WorkerException,
         ReadException,
         DiagnosticsException,
+        DataOverflow
     }
 
     public enum SSTVEvents {
@@ -513,7 +514,7 @@ namespace Play.SSTV {
 									typeof( NullReferenceException ),
                                     typeof( InvalidOperationException ) };
 				if( rgErrors.IsUnhandled( oEx ) ) {
-					throw oEx;
+					throw;
 				}
 				LogError( "Couldn't find file, or play, or continue to play format of : \"" );
 				LogError( strSong );
@@ -1145,6 +1146,11 @@ namespace Play.SSTV {
                         case SSTVEvents.ThreadException:
                             try {
                                 LogError( _rgThreadExStrings[sResult.Param] );
+
+                                if( sResult.Param == (int)TxThreadErrors.DataOverflow ) {
+                                    LogError( "Data Overflow, halting device read" );
+                                    ReceiveLiveStop(); 
+                                }
                             } catch( IndexOutOfRangeException ) {
                                 LogError( "General Thread Exception " + sResult.Param.ToString() );
                             }
@@ -1359,10 +1365,14 @@ namespace Play.SSTV {
         /// it looks like NAudio is calling us from its non foreground thread!!!</remarks>
         private void OnDataAvailable_WaveIn( object sender, WaveInEventArgs e ) {
             try {
-                // No use stuffing the data queue if there's no thread to pick it up.
-                if( _oThread != null ) {
-                    for( IEnumerator<double>oIter = _oWaveReader.EnumAsSigned16Bit( e.Buffer, e.BytesRecorded ); oIter.MoveNext(); ) {
-                        _rgDataQueue.Enqueue( oIter.Current );
+                if( _rgDataQueue.Count > 1e6 ) {
+                    _rgBGtoUIQueue.Enqueue( new( SSTVEvents.ThreadException, (int)TxThreadErrors.DataOverflow ) );
+                } else {
+                    // No use stuffing the data queue if there's no thread to pick it up.
+                    if( _oThread != null ) {
+                        for( IEnumerator<double>oIter = _oWaveReader.EnumAsSigned16Bit( e.Buffer, e.BytesRecorded ); oIter.MoveNext(); ) {
+                            _rgDataQueue.Enqueue( oIter.Current );
+                        }
                     }
                 }
             } catch( NullReferenceException ) {

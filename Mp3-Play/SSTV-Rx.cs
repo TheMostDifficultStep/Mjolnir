@@ -770,6 +770,159 @@ namespace Play.Sound {
 		}
 	}
 
+	public struct AFCStuff {
+		readonly CSmooz m_AFCAVG = new ();
+
+		int         m_AFCB; // Moved from the old SSTVSET object in MMSSTV
+		int         m_AFCE; // ditto..
+		int         m_AFCCount;
+		double      m_AFCData;
+		double      m_AFCLock;
+		public double m_AFCDiff { private set; get; }
+		public int    m_AFCFQ   { private set; get; }
+
+		int          m_AFCFlag;
+		int          m_AFCGard;
+		int          m_AFCDis;
+		readonly int m_AFCInt;
+
+		double		m_AFC_LowVal;		// (Center - SyncLow ) * 16384 / BWH
+		double		m_AFC_HighVal;		// (Center - SyncHigh) * 16384 / BWH
+		double		m_AFC_SyncVal;		// (Center - Sync    ) * 16384 / BWH
+		double		m_AFC_BWH;			// BWH / 16384.0;
+
+		readonly CSmooz m_Avg = new ();
+
+		public AFCStuff( double dblInitSampFreq ) {
+			m_Avg   .SetCount( (int)( 2.5*dblInitSampFreq/1000.0 ));
+			m_AFCAVG.SetCount(15);
+
+			m_AFCInt = (int)(100 * dblInitSampFreq / 1000.0 );
+			m_AFCDis = 0;
+			m_AFCFQ  = -1;
+
+			m_AFCE = 0;
+			m_AFCB = 0;
+
+			m_AFCAVG.SetCount(m_AFCAVG.Max);
+
+			m_AFCData  = m_AFCLock = 0;
+			m_AFCFlag  = 0;
+			m_AFCDiff  = 0.0;
+			m_AFCGard  = 10;
+			m_AFCCount = 0;
+			m_AFCDis   = 0;
+
+			m_AFC_LowVal  = 0;
+			m_AFC_HighVal = 0;
+			m_AFC_SyncVal = 0;
+			m_AFC_BWH     = 0;
+		}
+
+		public bool SetAFCFQ( int dfq ) {
+			if( m_AFCFQ != dfq ){
+				m_AFCFQ = dfq;
+				return true;
+			}
+
+			return false;
+		}
+
+		/// <summary>
+		/// This probaby Adaptive Forward Cancellation. As opposed to 
+		/// Least Mean Squares (LMS) for periodic disturbance cancellation.
+		/// Call this at the start of each image decoding run. Might make
+		/// sence to call after each slant correct too.
+		/// </summary>
+		public void InitAFC( TVFamily eFamily, double dblSampFreq, FrequencyLookup rgFreqTable ) {
+			// This used to live outboard in teh SSTVSET object and it seems
+			// silly to be there when it can be with all it's friends.
+			int  iAFCW;
+
+			switch( eFamily ){
+				case TVFamily.Martin:
+					iAFCW  = (int)(2.0 * dblSampFreq / 1000.0);
+					m_AFCB = (int)(1.0 * dblSampFreq / 1000.0);
+					break;
+				default:
+					iAFCW  = (int)(3.0 * dblSampFreq / 1000.0);
+					m_AFCB = (int)(1.5 * dblSampFreq / 1000.0);
+					break;
+			}
+
+			// This is the "-i" option set in TMMSSTV::StartOption() if bCQ100 is
+			// true then the offset is -1000. Else the offset is 0!!
+			//if( m_bCQ100 ) { // Used to be a global.
+    		//	double d = m_OFP * 1000.0 / SampFreq;
+			//	m_OFP = (d + (1100.0/g_dblToneOffset)) * SampFreq / 1000.0;
+			//}
+
+			m_AFCE = m_AFCB + iAFCW;
+
+			// Original InitAfc starts here.
+			m_AFCAVG.SetCount(m_AFCAVG.Max);
+
+			m_AFCData  = m_AFCLock = rgFreqTable.AFC_SyncVal;
+			m_AFCFlag  = 0;
+			m_AFCDiff  = 0.0;
+			m_AFCGard  = 10;
+			m_AFCCount = 0;
+			m_AFCDis   = 0;
+
+			m_AFC_LowVal  = rgFreqTable.AFC_LowVal;
+			m_AFC_HighVal = rgFreqTable.AFC_HighVal;
+			m_AFC_SyncVal = rgFreqTable.AFC_SyncVal;
+			m_AFC_BWH     = rgFreqTable.AFC_BWH;
+
+		}
+
+		public double Avg( double d ) {
+			return m_Avg.Avg( d );
+		}
+
+		public int Tone => (int)( m_AFCDiff * m_AFC_BWH );
+
+		public bool SyncFreq(double d) {
+		/*
+			double		m_AFC_LowVal;	// (Center - SyncLow ) * 16384 / BWH
+			double		m_AFC_HighVal;	// (Center - SyncHigh) * 16384 / BWH
+			double		m_AFC_SyncVal;	// (Center - Sync    ) * 16384 / BWH
+			double		m_AFC_BWH;		// BWH / 16384.0;
+		*/
+			d -= 128;
+
+			if( (d <= m_AFC_LowVal) && (d >= m_AFC_HighVal) ){
+				if( m_AFCDis == 0 && (m_AFCCount >= m_AFCB) && (m_AFCCount <= m_AFCE) ){
+					m_AFCData = m_Avg.Avg(d);
+					if( m_AFCCount == m_AFCE ){
+						if( m_AFCGard != 0 ) {
+							m_AFCLock = m_AFCAVG.SetData(m_AFCData);
+							m_AFCGard = 0;
+						} else {
+							m_AFCLock = m_AFCAVG.Avg(m_AFCData);
+						}
+						m_AFCDiff = m_AFC_SyncVal - m_AFCLock;
+						m_AFCFlag = 15;
+						m_AFCDis  = m_AFCInt;
+						return true;
+					}
+				}
+				m_AFCCount++;
+			} else {
+				if( (m_AFCCount >= m_AFCB) && m_AFCGard != 0 ){
+					m_AFCGard--;
+					if( m_AFCGard == 0 ) 
+						m_AFCAVG.SetData(m_AFCLock);
+				}
+				m_AFCCount = 0;
+				if( m_AFCDis != 0 )
+					m_AFCDis--;
+			}
+
+			return false;
+		}
+	}
+
 	/// <summary>
 	/// SSTVSET changes it's state depending on which format it is re-initialized to. Thus,
 	/// the Mode gets assigned everytime a new image comes down. You must make a new
@@ -782,6 +935,7 @@ namespace Play.Sound {
 	public class SSTVDEM :
 		IEnumerable<SSTVMode> 
 	{
+		protected AFCStuff _AFC;
 		public SYSSET   Sys     { get; protected set; }
 		public SSTVMode Mode    { get; protected set; } 
 
@@ -852,28 +1006,8 @@ namespace Play.Sound {
 		int         m_Tick;
 		int         m_TickFreq;
 
-		// More goodies that can probably live on their own class.
-		readonly CSmooz m_Avg    = new ();
-		readonly CSmooz m_AFCAVG = new ();
-		readonly bool   m_afc;
-		int         m_AFCB; // Moved from the old SSTVSET object in MMSSTV
-		int         m_AFCE; // ditto..
-		int         m_AFCCount;
-		double      m_AFCData;
-		double      m_AFCLock;
-		double      m_AFCDiff;
-		int         m_AFCFQ;
-		int         m_AFCFlag;
-		int         m_AFCGard;
-		int         m_AFCDis;
-		readonly int m_AFCInt;
-
-		double		m_AFC_LowVal;		// (Center - SyncLow ) * 16384 / BWH
-		double		m_AFC_HighVal;		// (Center - SyncHigh) * 16384 / BWH
-		double		m_AFC_SyncVal;		// (Center - Sync    ) * 16384 / BWH
-		double		m_AFC_BWH;			// BWH / 16384.0;
-
 		readonly bool m_fskdecode = false; // A vestage of the fskDecode stuff.
+		readonly bool   m_afc;
 
 		protected static FrequencyLookup _rgFreqTable;
 	  //#define FSKSPACE    2100
@@ -896,6 +1030,8 @@ namespace Play.Sound {
 				SampBase	= dblSampFreq;
 			else
 				SampBase    = dblSampBase;
+
+			_AFC = new AFCStuff( dblSampFreq );
 
 			// Find the biggest image type so our D12 image will be large enough.
 			double dblMaxBufferInMs = 0;
@@ -941,8 +1077,10 @@ namespace Play.Sound {
 			m_lpf19  = new CIIR();
 		//  m_lpffsk = new CIIR();
 
-			m_AFCFQ  = -1;
-			InitTone( 0 );
+			m_afc = true;
+
+			_AFC.InitAFC( TVFamily.None, SampFreq, _rgFreqTable );
+			InitTone(0);
 
 			m_lpf11 .MakeIIR(50, SampFreq, 2, 0, 0);
 			m_lpf12 .MakeIIR(50, SampFreq, 2, 0, 0);
@@ -960,14 +1098,8 @@ namespace Play.Sound {
 			m_Rcptlvl   = new CLVL ( (int)SampFreq, fAgcFast:true );
 			m_SyncLvl   = new CSLVL( SampFreq );
 
-			m_afc = true;
-
 			m_Tick   = 0;
 			pTick    = null;
-			m_Avg   .SetCount( (int)( 2.5*SampFreq/1000.0 ));
-			m_AFCAVG.SetCount(15);
-			m_AFCInt = (int)(100 * SampFreq / 1000.0 );
-			m_AFCDis = 0;
 
 			// TODO: I'm starting to think this should be false... this will prevent a
 			// strong signal from resetting us, but will result in a double either way.
@@ -1050,7 +1182,8 @@ namespace Play.Sound {
 			// So keep the buffer so we can re-render from the beginning.
 			if( ePrevMode == null ) {
 				SetBandWidth( false ); // SSTVSET.IsNarrowMode( tvMode.Family )
-				InitAFC     ();
+				_AFC.InitAFC( tvMode.Family, SampFreq, _rgFreqTable );
+				InitTone(0);
 
 				m_fqc.Clear();
 				m_Skip     = 0;
@@ -1069,7 +1202,7 @@ namespace Play.Sound {
 		}
 
 		public virtual void Reset()	{
-			if( m_AFCFQ != 0 ){
+			if( _AFC.m_AFCFQ != 0 ){
 				if( m_fskdecode ){
 					m_iir11.SetFreq(1080 + m_dblToneOffset, SampFreq,  80.0);
 					m_iir12.SetFreq(1200 + m_dblToneOffset, SampFreq, 100.0);
@@ -1226,63 +1359,13 @@ namespace Play.Sound {
 			m_TickFreq = f;
 		}
 
-		/// <summary>
-		/// This probaby Adaptive Forward Cancellation. As opposed to 
-		/// Least Mean Squares (LMS) for periodic disturbance cancellation.
-		/// Call this at the start of each image decoding run. Might make
-		/// sence to call after each slant correct too.
-		/// </summary>
-		void InitAFC(){
-			// This used to live outboard in teh SSTVSET object and it seems
-			// silly to be there when it can be with all it's friends.
-			int  iAFCW;
-
-			switch( Mode.Family ){
-				case TVFamily.Martin:
-					iAFCW  = (int)(2.0 * SampFreq / 1000.0);
-					m_AFCB = (int)(1.0 * SampFreq / 1000.0);
-					break;
-				default:
-					iAFCW  = (int)(3.0 * SampFreq / 1000.0);
-					m_AFCB = (int)(1.5 * SampFreq / 1000.0);
-					break;
-			}
-
-			// This is the "-i" option set in TMMSSTV::StartOption() if bCQ100 is
-			// true then the offset is -1000. Else the offset is 0!!
-			//if( m_bCQ100 ) { // Used to be a global.
-    		//	double d = m_OFP * 1000.0 / SampFreq;
-			//	m_OFP = (d + (1100.0/g_dblToneOffset)) * SampFreq / 1000.0;
-			//}
-
-			m_AFCE = m_AFCB + iAFCW;
-
-			// Original InitAfc starts here.
-			m_AFCAVG.SetCount(m_AFCAVG.Max);
-
-			m_AFCData  = m_AFCLock = _rgFreqTable.AFC_SyncVal;
-			m_AFCFlag  = 0;
-			m_AFCDiff  = 0.0;
-			m_AFCGard  = 10;
-			m_AFCCount = 0;
-			m_AFCDis   = 0;
-
-			InitTone(0);
-
-			m_AFC_LowVal  = _rgFreqTable.AFC_LowVal;
-			m_AFC_HighVal = _rgFreqTable.AFC_HighVal;
-			m_AFC_SyncVal = _rgFreqTable.AFC_SyncVal;
-			m_AFC_BWH     = _rgFreqTable.AFC_BWH;
-		}
-
 		void InitTone(int dfq) {
-			if( m_AFCFQ != dfq ){
+			if( _AFC.SetAFCFQ( dfq ) ) {
 				m_iir11.SetFreq(1080+dfq + m_dblToneOffset, SampFreq, 80.0);
 				m_iir12.SetFreq(1200+dfq + m_dblToneOffset, SampFreq, 100.0);
 				m_iir13.SetFreq(1320+dfq + m_dblToneOffset, SampFreq, 80.0);
 				m_iir19.SetFreq(1900+dfq + m_dblToneOffset, SampFreq, 100.0);
 			//  m_iirfsk.SetFreq(FSKSPACE+dfq + m_dblToneOffset, SampFreq, 100.0);
-				m_AFCFQ = dfq;
 			}
 		}
 
@@ -1506,23 +1589,26 @@ namespace Play.Sound {
 					case FreqDetect.PLL:		// PLL
 						freq = m_pll.Do(od);
 						if( m_afc && (m_Rcptlvl.m_CurMax > 16) )
-							SyncFreq(m_fqc.Do(od)); // Look! PLL needs the FQC!!
+							if( _AFC.SyncFreq(m_fqc.Do(od)) )
+								InitTone( _AFC.Tone ); // Look! PLL needs the FQC!!
 						break;
 					case FreqDetect.FQC:		// Zero-crossing
 						freq = m_fqc.Do(od);
 						if( m_afc && (m_Rcptlvl.m_CurMax > 16) )
-							SyncFreq(freq);
+							if( _AFC.SyncFreq(freq) )
+								InitTone( _AFC.Tone );
 						break;
 					case FreqDetect.Hilbert:	// Hilbert
 						freq = m_hill.Do(od);
 						if( m_afc && (m_Rcptlvl.m_CurMax > 16) )
-							SyncFreq(freq);
+							if( _AFC.SyncFreq(freq) )
+								InitTone( _AFC.Tone );
 						break;
 					default:
 						throw new NotImplementedException( "Unrecognized Frequency Detector" );
 				}
 				if( m_afc ) 
-					freq += m_AFCDiff;
+					freq += _AFC.m_AFCDiff;
 				if( m_Skip != 0 ) {
 					if( m_Skip > 0 ){ // Ignore this data
 						m_Skip--;
@@ -1544,13 +1630,13 @@ namespace Play.Sound {
 
 				switch(FilterType){
 					case FreqDetect.PLL:
-						m_CurSig = m_Avg.Avg(m_pll.Do( od ));
+						m_CurSig = _AFC.Avg(m_pll.Do( od ));
 						break;
 					case FreqDetect.FQC:
-						m_CurSig = m_Avg.Avg(m_fqc.Do( od ));
+						m_CurSig = _AFC.Avg(m_fqc.Do( od ));
 						break;
 					case FreqDetect.Hilbert:
-						m_CurSig = m_Avg.Avg(m_hill.Do( od ));
+						m_CurSig = _AFC.Avg(m_hill.Do( od ));
 						break;
 					default:
 						throw new NotImplementedException( "Unrecognized Frequency Detector" );
@@ -1602,44 +1688,6 @@ namespace Play.Sound {
 
 			m_Buf[ iOffset ] = (short)dblSignal;
 			m_B12[ iOffset ] = (short)dblSync;
-		}
-
-		void SyncFreq(double d) {
-		/*
-			double		m_AFC_LowVal;	// (Center - SyncLow ) * 16384 / BWH
-			double		m_AFC_HighVal;	// (Center - SyncHigh) * 16384 / BWH
-			double		m_AFC_SyncVal;	// (Center - Sync    ) * 16384 / BWH
-			double		m_AFC_BWH;		// BWH / 16384.0;
-		*/
-			d -= 128;
-
-			if( (d <= m_AFC_LowVal) && (d >= m_AFC_HighVal) ){
-				if( m_AFCDis == 0 && (m_AFCCount >= m_AFCB) && (m_AFCCount <= m_AFCE) ){
-					m_AFCData = m_Avg.Avg(d);
-					if( m_AFCCount == m_AFCE ){
-						if( m_AFCGard != 0 ) {
-							m_AFCLock = m_AFCAVG.SetData(m_AFCData);
-							m_AFCGard = 0;
-						} else {
-							m_AFCLock = m_AFCAVG.Avg(m_AFCData);
-						}
-						m_AFCDiff = m_AFC_SyncVal - m_AFCLock;
-						m_AFCFlag = 15;
-						InitTone((int)(m_AFCDiff * m_AFC_BWH));
-						m_AFCDis = m_AFCInt;
-					}
-				}
-				m_AFCCount++;
-			} else {
-				if( (m_AFCCount >= m_AFCB) && m_AFCGard != 0 ){
-					m_AFCGard--;
-					if( m_AFCGard == 0 ) 
-						m_AFCAVG.SetData(m_AFCLock);
-				}
-				m_AFCCount = 0;
-				if( m_AFCDis != 0 )
-					m_AFCDis--;
-			}
 		}
 
 		/// <summary>
