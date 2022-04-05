@@ -11,6 +11,7 @@ using Play.Edit;
 using Play.ImageViewer;
 using Play.Sound;
 using Play.Forms;
+using System.Drawing;
 
 namespace Play.SSTV {
     /// <summary>
@@ -143,10 +144,39 @@ namespace Play.SSTV {
         }
     }
 
-	public class ViewTransmitDeluxe: 
+    public class WinTransmitTools : ButtonBar {
+		IPgTools _oTools;
+		public WinTransmitTools( IPgViewSite oSite, Editor oDoc, IPgTools oTools ) : base( oSite, oDoc ) {
+			_oTools = oTools ?? throw new ArgumentException( nameof( oTools ) );
+		}
+        protected override void OnTabLeftClicked(object ID) {
+            if( ID is Line oLine ) {
+				_oTools.ToolSelect = oLine.At;
+			}
+        }
+        public override SKColor TabBackground( object oID ) {
+            SKColor skBG = _oStdUI.ColorsStandardAt( StdUIColors.BGReadOnly );
+
+            if( oID is Line oLine ) {
+                if( oLine == HoverTab?.ID ) 
+                    return SKColors.LightYellow;
+
+                if( _oTools.ToolSelect == oLine.At )
+                    return SKColors.LightCyan;
+
+                // Need to distinguish between our window being part of the focus
+                // chain or not.
+            }
+            return skBG;
+        }
+
+    }
+
+    public class ViewTransmitDeluxe: 
 		WindowStaggardBase,
 		IPgSave<XmlDocumentFragment>,
-		IPgLoad<XmlElement>
+		IPgLoad<XmlElement>,
+		IPgTools
 	{
 		public static Guid GUID { get; } = new Guid( "{3D6FF540-C03C-468F-84F9-86E3DE75F6C2}" );
 
@@ -157,6 +187,9 @@ namespace Play.SSTV {
 		protected readonly ImageViewSingle    _wmTxImageComposite;
 		protected readonly ImageViewIcons     _wmTxViewChoices;
 		protected readonly ImageViewIcons     _wmRxViewChoices;
+
+		protected readonly Editor _rgToolIcons;
+		protected          int    _iToolSelected = -1;
 
         public override string Banner {
 			get { 
@@ -182,6 +215,8 @@ namespace Play.SSTV {
 			_wmTxViewChoices   .Parent = this;
 			_wmTxImageComposite.Parent = this;
 			_wmRxViewChoices   .Parent = this;
+
+			_rgToolIcons = new Editor( new SSTVWinSlot( this, ChildID.None ) );
 
 			_wmTxImageChoice.SetBorderOn();
 		}
@@ -226,6 +261,8 @@ namespace Play.SSTV {
 			_wmTxImageChoice.Aspect     = _oDocSSTV.TxResolution;
 			_wmTxImageChoice.DragMode   = DragMode.FixedRatio;
 
+			InitTools();
+
 			_rgStaggaredLayout.Add(new LayoutControl( _wmTxImageComposite, LayoutRect.CSS.None) );
 			_rgStaggaredLayout.Add(new LayoutControl( _wmTxImageChoice,    LayoutRect.CSS.None) );
 
@@ -238,8 +275,25 @@ namespace Play.SSTV {
             _oLayout.Add( oHBLayout );
 
             OnSizeChanged( new EventArgs() );
+
 			return true;
         }
+
+		public void InitTools() {
+			Dictionary< string, string > _rgIcons = new Dictionary<string, string>();
+
+			_rgIcons.Add( "Color",   "icons8-color-wheel-2-48.png" );
+			_rgIcons.Add( "Move",    "icons8-move-48.png" );
+			_rgIcons.Add( "Text",    "icons8-text-64.png" );
+			_rgIcons.Add( "Gallery", "icons8-gallery-64.png" );
+			_rgIcons.Add( "PnP",     "icons8-download-64.png" );
+			_rgIcons.Add( "Mode",    "icons8-audio-wave-48.png" );
+
+			foreach( KeyValuePair<string,string> oPair in _rgIcons ) {
+				Line oLine = _rgToolIcons.LineAppend( oPair.Key, false );
+				oLine.Extra = _oDocSSTV.CreateIconic( "Play.SSTV.Content.TxWin." + oPair.Value );
+			}
+		}
 
         private void OnTxImageAspect_SSTVDoc(SKPointI skAspect ) {
             _wmTxImageChoice.Aspect = skAspect;
@@ -265,6 +319,30 @@ namespace Play.SSTV {
 			}
 		}
 
+        public int ToolCount => _rgToolIcons.ElementCount;
+
+        public int ToolSelect { 
+			get => _iToolSelected; 
+			set {
+				if( value < 0 || value > _rgToolIcons.ElementCount )
+					throw new ArgumentOutOfRangeException(); 
+
+				// BUG: Need a backdoor so we know the difference between programmatic
+				// tool change and UI tool change.
+				_iToolSelected = value;
+			}
+		}
+
+        public string ToolName(int iTool) {
+            return _rgToolIcons[iTool].ToString();
+        }
+
+		/// <summary>
+		/// Can't implement this yet since my tools are SKImage types.
+		/// </summary>
+        public Image ToolIcon(int iTool) {
+            return null;
+        }
         private void OnCheckedEvent_TemplateList(Line oLineChecked) {
             _oDocSSTV.TemplateSet( oLineChecked.At );
 			RenderComposite();
@@ -351,6 +429,9 @@ namespace Play.SSTV {
 			if( sGuid.Equals( GlobalDecorations.Options ) ) {
 				return new CheckList( oBaseSite, _oDocSSTV.TemplateList ) { ReadOnly = true }; // We'll be read/write in the future.
 			}
+			if( sGuid.Equals( GlobalDecorations.ToolIcons ) ) {
+				return new WinTransmitTools( oBaseSite, _rgToolIcons, this );
+			}
 			return null;
         }
 
@@ -367,8 +448,10 @@ namespace Play.SSTV {
 
 		protected bool RenderComposite() {
 			// sometimes we get events while we're sending. Let's block render for now.
-			if( _oDocSSTV.StateTx )
+			if( _oDocSSTV.StateTx ) {
+				LogError( "Transmit", "Already Playing" );
 				return false;
+			}
 
 			SSTVMode oMode = _oDocSSTV.TransmitModeSelection;
 			if( oMode != null ) {

@@ -497,7 +497,7 @@ namespace Mjolnir {
 			_rgDim.Add( "left",   new SideStuff( TRACK.VERT,  250 ) );
 			_rgDim.Add( "right",  new SideStuff( TRACK.VERT,  250 ) );
 			_rgDim.Add( "bottom", new SideStuff( TRACK.HORIZ, 100 ) );
-            _rgDim.Add( "tools",  new SideStuff( TRACK.VERT,   40 ) );
+            _rgDim.Add( "tools",  new SideStuff( TRACK.VERT,   50 ) );
 
             // Read in all the edge values.
             try {

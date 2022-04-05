@@ -14,6 +14,13 @@
     <None Remove="Content\icons8-file-folder-48.png" />
     <None Remove="Content\icons8-history-64.png" />
     <None Remove="Content\icons8-system-diagnostic-48.png" />
+    <None Remove="Content\TxWin\icons8-audio-wave-48.png" />
+    <None Remove="Content\TxWin\icons8-color-wheel-2-48.png" />
+    <None Remove="Content\TxWin\icons8-download-64.png" />
+    <None Remove="Content\TxWin\icons8-gallery-64.png" />
+    <None Remove="Content\TxWin\icons8-move-48.png" />
+    <None Remove="Content\TxWin\icons8-selection-60.png" />
+    <None Remove="Content\TxWin\icons8-text-64.png" />
     <None Remove="icons8_camera.png" />
     <None Remove="icons8_settings.png" />
     <None Remove="icons8_tv.png" />
@@ -26,6 +33,13 @@
     <EmbeddedResource Include="Content\icons8_camera.png" />
     <EmbeddedResource Include="Content\icons8_settings.png" />
     <EmbeddedResource Include="Content\icons8_tv.png" />
+    <EmbeddedResource Include="Content\TxWin\icons8-audio-wave-48.png" />
+    <EmbeddedResource Include="Content\TxWin\icons8-color-wheel-2-48.png" />
+    <EmbeddedResource Include="Content\TxWin\icons8-download-64.png" />
+    <EmbeddedResource Include="Content\TxWin\icons8-gallery-64.png" />
+    <EmbeddedResource Include="Content\TxWin\icons8-move-48.png" />
+    <EmbeddedResource Include="Content\TxWin\icons8-selection-60.png" />
+    <EmbeddedResource Include="Content\TxWin\icons8-text-64.png" />
   </ItemGroup>
   
   <ItemGroup>

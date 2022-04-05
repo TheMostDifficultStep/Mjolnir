@@ -296,13 +296,10 @@ namespace Play.Forms {
     }
 
     public abstract class ButtonBar : TabControl {
-        IPgTools _oCmd;
-
-        public ButtonBar(IPgViewSite oSiteView, BaseEditor oDoc, IPgTools oCmd ) : base( oSiteView, oDoc ) {
-            _oCmd = oCmd ?? throw new ArgumentNullException( nameof( oCmd ) );
+        public ButtonBar(IPgViewSite oSiteView, BaseEditor oDoc ) : base( oSiteView, oDoc ) {
         }
 
-        public override Size TabSize => new Size( 30, 30 );
+        public override Size TabSize => new Size( 40, 40 );
 
         /// <summary>
         /// Unfortunately, we're kind of locked into the LayoutStack because it has the ID
@@ -315,7 +312,8 @@ namespace Play.Forms {
             LayoutIcon oTabIcon = new LayoutIcon( TabIcon( oLine ) );
 
 			LayoutStackHorizontal oTab = new () { Spacing = 5, BackgroundColor = TabBackground, ID = oLine };
-				
+			
+            oTab.Padding.SetRect( 5, 5, 5, 5 );
 			oTab.Add( oTabIcon );
 
             return oTab;
@@ -327,22 +325,6 @@ namespace Play.Forms {
             }
 
             throw new ArgumentException( "Argument must be of type : Line" );
-        }
-
-        public override SKColor TabBackground( object oID ) {
-            SKColor skBG = _oStdUI.ColorsStandardAt( StdUIColors.BGReadOnly );
-
-            if( oID is Line oLine ) {
-                if( oLine == HoverTab?.ID ) 
-                    return SKColors.LightYellow;
-
-                if( _oCmd.ToolSelect == oLine.At )
-                    return SKColors.LightCyan;
-
-                // Need to distinguish between our window being part of the focus
-                // chain or not.
-            }
-            return skBG;
         }
 
     }

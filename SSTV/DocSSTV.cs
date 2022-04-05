@@ -1020,6 +1020,11 @@ namespace Play.SSTV {
 			}
 		}
 
+        public void TransmitStop() {
+            StateTx              = false;
+            TxModeList.HighLight = null;
+        }
+
         /// <summary>
         /// Begin transmitting the image. At present, no way to stop!! >_<;;
         /// </summary>
@@ -1051,10 +1056,13 @@ namespace Play.SSTV {
                                                 PortTxList.CheckedLine.At, 
                                                 bmpCopy, _rgBGtoUIQueue );
                 foreach( uint uiWait in oState ) {
+                    if( StateTx == false )
+                        break;
                     Thread.Sleep( (int)uiWait );
                 }
+                if( StateTx == true )
+                    Thread.Sleep( 2000 ); // Let the buffer bleed out.
 
-                Thread.Sleep( 2000 ); // Let the buffer bleed out.
                 bmpCopy.Dispose();
             };
 
@@ -1504,10 +1512,6 @@ namespace Play.SSTV {
             get {
                 return _oWorkPlace.Status;
             }
-        }
-
-        public void TransmitStop() {
-            //TxModeList.HighLight = null;
         }
 
         /// <summary>

@@ -371,6 +371,7 @@ namespace Play.Interfaces.Embedding {
         public static Guid Productions = new Guid( "{266BE614-5336-4B45-A132-43640E659F69}" );
         public static Guid Outline     = new Guid( "{64EC31FE-F28E-49A6-A12A-9194214DD0D6}" );
 		public static Guid Options     = new Guid( "{6AECF17A-D91B-452F-9B67-840144446DDB}" );
+        public static Guid ToolIcons   = new Guid( "{83F0CB89-16BC-4DA8-8A79-A6F13DF57DA9}" );
     }
 
     /// <summary>
