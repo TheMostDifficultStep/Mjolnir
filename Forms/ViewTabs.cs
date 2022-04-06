@@ -318,15 +318,6 @@ namespace Play.Forms {
 
             return oTab;
         }
-
-        public override SKBitmap TabIcon( object ob) {
-            if( ob is Line oLine ) {
-                return (SKBitmap)oLine.Extra;
-            }
-
-            throw new ArgumentException( "Argument must be of type : Line" );
-        }
-
     }
 
 }

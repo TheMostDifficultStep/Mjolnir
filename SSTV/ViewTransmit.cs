@@ -2,6 +2,9 @@
 using System.Xml;
 using System.Collections.Generic;
 using System.Text;
+using System.Windows.Forms;
+using System.Threading;
+using System.Threading.Tasks;
 
 using SkiaSharp;
 
@@ -144,7 +147,29 @@ namespace Play.SSTV {
         }
     }
 
-    public class WinTransmitTools : ButtonBar {
+	public class ToolInfo {
+		public ToolInfo( string strLabel, Guid guidID ) {
+			_strToolName = strLabel;
+			_guidID   = guidID;
+		}
+
+		readonly public string   _strToolName;
+		readonly public Guid     _guidID;
+
+		public SKBitmap Icon { get; set; }
+	}
+
+    public static class TransmitCommands {
+        // Clipboard functions
+        public static readonly Guid Color   = new Guid( "{B3198F66-7698-4DFB-8B31-9643372B2B3E}" );
+        public static readonly Guid Move    = new Guid( "{179898AD-1823-4F0E-BF27-11456C1EA8C8}" );
+        public static readonly Guid Text    = new Guid( "{C7F1DADB-A0A4-479C-B193-B38AFAEE5AB6}" );
+        public static readonly Guid Gallary = new Guid( "{94975898-5AC1-427C-85CD-9E516646115D}" );
+        public static readonly Guid PnP     = new Guid( "{A1BB369C-4E73-4248-A6E1-07C5466C818C}" );
+        public static readonly Guid Mode    = new Guid( "{56797520-C603-417C-858A-EF532E0652D2}" );
+	}
+	
+	public class WinTransmitTools : ButtonBar {
 		IPgTools _oTools;
 		public WinTransmitTools( IPgViewSite oSite, Editor oDoc, IPgTools oTools ) : base( oSite, oDoc ) {
 			_oTools = oTools ?? throw new ArgumentException( nameof( oTools ) );
@@ -154,6 +179,15 @@ namespace Play.SSTV {
 				_oTools.ToolSelect = oLine.At;
 			}
         }
+
+        public override SKBitmap TabIcon( object ob) {
+            if( ob is Line oLine ) {
+                return ((ToolInfo)oLine.Extra).Icon;
+            }
+
+            throw new ArgumentException( "Argument must be of type : Line" );
+        }
+
         public override SKColor TabBackground( object oID ) {
             SKColor skBG = _oStdUI.ColorsStandardAt( StdUIColors.BGReadOnly );
 
@@ -190,6 +224,8 @@ namespace Play.SSTV {
 
 		protected readonly Editor _rgToolIcons;
 		protected          int    _iToolSelected = -1;
+
+		protected bool     _fColorDialogUp = false;
 
         public override string Banner {
 			get { 
@@ -280,18 +316,21 @@ namespace Play.SSTV {
         }
 
 		public void InitTools() {
-			Dictionary< string, string > _rgIcons = new Dictionary<string, string>();
+			Dictionary< string, ToolInfo > _rgIcons = new Dictionary<string, ToolInfo>();
 
-			_rgIcons.Add( "Color",   "icons8-color-wheel-2-48.png" );
-			_rgIcons.Add( "Move",    "icons8-move-48.png" );
-			_rgIcons.Add( "Text",    "icons8-text-64.png" );
-			_rgIcons.Add( "Gallery", "icons8-gallery-64.png" );
-			_rgIcons.Add( "PnP",     "icons8-download-64.png" );
-			_rgIcons.Add( "Mode",    "icons8-audio-wave-48.png" );
+			_rgIcons.Add( "Color",   new ToolInfo( "icons8-color-wheel-2-48.png", TransmitCommands.Color   ));
+			_rgIcons.Add( "Move",    new ToolInfo( "icons8-move-48.png",		  TransmitCommands.Move    ));
+			_rgIcons.Add( "Text",    new ToolInfo( "icons8-text-64.png",		  TransmitCommands.Text    ));
+			_rgIcons.Add( "Gallery", new ToolInfo( "icons8-gallery-64.png",		  TransmitCommands.Gallary ));
+			_rgIcons.Add( "PnP",     new ToolInfo( "icons8-download-64.png",	  TransmitCommands.PnP     ));
+			_rgIcons.Add( "Mode",    new ToolInfo( "icons8-audio-wave-48.png",    TransmitCommands.Mode    ));
 
-			foreach( KeyValuePair<string,string> oPair in _rgIcons ) {
-				Line oLine = _rgToolIcons.LineAppend( oPair.Key, false );
-				oLine.Extra = _oDocSSTV.CreateIconic( "Play.SSTV.Content.TxWin." + oPair.Value );
+			foreach( KeyValuePair<string,ToolInfo> oPair in _rgIcons ) {
+				Line     oLine = _rgToolIcons.LineAppend( oPair.Key, false );
+				ToolInfo oInfo = oPair.Value;
+
+				oInfo.Icon = _oDocSSTV.CreateIconic( "Play.SSTV.Content.TxWin." + oInfo._strToolName );
+				oLine.Extra = oInfo;
 			}
 		}
 
@@ -330,6 +369,10 @@ namespace Play.SSTV {
 				// BUG: Need a backdoor so we know the difference between programmatic
 				// tool change and UI tool change.
 				_iToolSelected = value;
+
+				if( _rgToolIcons[value].Extra is ToolInfo oToolInfo ) {
+					Execute( oToolInfo._guidID );
+				}
 			}
 		}
 
@@ -368,7 +411,7 @@ namespace Play.SSTV {
 			}
         }
 
-        public override bool Execute( Guid sGuid ) {
+        public  override bool Execute( Guid sGuid ) {
 			if( sGuid == GlobalCommands.Play ) {
                 if( SSTVModeSelection is SSTVMode oMode ) {
 					if( RenderComposite() ) {
@@ -416,8 +459,76 @@ namespace Play.SSTV {
 				//	_oDocSSTV.TxBitmapComp.Execute( sGuid );
 				//}
 			}
+			// This is super cool but blocking.
+			if( sGuid == TransmitCommands.Color ) {
+				ShowColorDialog();
+ 			}
 			return false;
         }
+
+		/// <summary>
+		/// This helps get the dialog to come up on top. It's still possible to get it to
+		/// fall behind the main window b/c we're running in a different thread than the window
+		/// we launched in, so we can't set the owner. The Dialog will go behind if you press
+		/// the color button again when the warning that the dialog is already open comes up.
+		/// That causes the dialog to fall to the back and get lost. 
+		/// </summary>
+		/// <remarks>The best solution will be to make a non blocking async dialog.</remarks>
+		protected class MyColorDialog : ColorDialog {
+			const int WM_INITDIALOG = 0x0110;
+
+            protected override IntPtr HookProc(IntPtr hWnd, int msg, IntPtr wparam, IntPtr lparam) {
+				switch(msg)	{
+					case WM_INITDIALOG:
+						Edit.User32.SetForegroundWindow( hWnd );
+						break;
+				}
+                return base.HookProc(hWnd, msg, wparam, lparam);
+            }
+        }
+
+		/// <summary>
+		/// Hacky way to get a color dialog up. I'll have to make a custom one in the future.
+		/// ShowDialog() blocks, so we run it in a seperate thread.
+		/// </summary>
+		public async void ShowColorDialog() {
+			if( _fColorDialogUp ) {
+				LogError( "Dialog", "Color Dialog is already open" );
+				return;
+			}
+
+			_fColorDialogUp = true;
+
+			SKColor skResult = SKColors.Red;
+			bool    fResult  = false;
+
+			Action oTransmitAction = delegate () {
+				ColorDialog colorDlg = new MyColorDialog();  
+				colorDlg.AllowFullOpen  = true; 
+				colorDlg.FullOpen       = true;
+				colorDlg.AnyColor       = true;  
+				colorDlg.SolidColorOnly = false;  
+				colorDlg.Color          = Color.Red;
+  
+				fResult = colorDlg.ShowDialog() == DialogResult.OK;
+
+				if( fResult ) {  
+					skResult = new SKColor( colorDlg.Color.R, colorDlg.Color.G, colorDlg.Color.B, colorDlg.Color.A );
+				}
+			};
+
+			Task oTask = new Task( oTransmitAction );
+
+			oTask.Start();
+
+			await oTask;
+
+			if(fResult == true ) {
+				_oDocSSTV.ForeColor = skResult;
+				RenderComposite();
+			}
+			_fColorDialogUp = false;
+		}
 
         public override object Decorate( IPgViewSite oBaseSite, Guid sGuid ) {
 			if( sGuid.Equals(GlobalDecorations.Properties) ) {

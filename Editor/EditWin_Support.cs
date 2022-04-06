@@ -163,6 +163,12 @@ namespace Play.Edit {
                                                   Int32 iTabPosns, [In]Int32[] lpTabs, Int32 iTabOrigin );
         [DllImport("User32.DLL", EntryPoint = "PostMessage", SetLastError = true)]
         public static extern bool PostMessage( IntPtr hWnd, uint uiMsg, IntPtr lParam, IntPtr WParam );
+
+        [DllImport("User32.DLL", EntryPoint = "SetForegroundWindow", SetLastError = true)]
+        public static extern bool SetForegroundWindow( IntPtr hWnd );
+
+        [DllImport("User32.DLL", EntryPoint = "SetFocus", SetLastError = true)]
+        public static extern IntPtr SetFocus( IntPtr hWnd );
     }
 
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]

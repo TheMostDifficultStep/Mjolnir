@@ -836,6 +836,8 @@ namespace Play.SSTV {
         public string TheirCall => Properties[(int)SSTVProperties.Names.Tx_TheirCall].ToString().ToUpper();
         public string RST       => Properties[(int)SSTVProperties.Names.Tx_RST].ToString();
 
+        public SKColor ForeColor { get; set; }
+
 		public void TemplateSet( int iIndex ) {
             SSTVMode oMode = TransmitModeSelection;
 			if( oMode == null ) {
@@ -873,15 +875,19 @@ namespace Play.SSTV {
                         break;
                     case 4:
                         { 
-                            LayoutStackVertical oStack = new();
-                            LayoutStackBgGradient  oHoriz = new( TRACK.HORIZ) { 
+                            // This happens if we don't start the receive but press a template option list item.
+                            if( TxBitmapSnip.Bitmap == null )
+                                break;
+
+                            LayoutStackVertical   oStack = new();
+                            LayoutStackBgGradient oHoriz = new( TRACK.HORIZ) { 
                                 Layout = LayoutRect.CSS.Pixels, Track = 60, Colors = { SKColors.Green, SKColors.Yellow, SKColors.Blue }
                             };
 
                             IPgStandardUI2 oStdUI = (IPgStandardUI2)Services ?? throw new ApplicationException( "Couldn't get StdUI2" );
 
                             Line               oLine = TxBitmapComp.Text.LineAppend( "CQ de " + MyCall, fUndoable:false );
-                            LayoutSingleLine oSingle = new( new FTCacheLine( oLine ), LayoutRect.CSS.Flex ) { BgColor = SKColors.Transparent };
+                            LayoutSingleLine oSingle = new( new FTCacheLine( oLine ), LayoutRect.CSS.Flex ) { BgColor = SKColors.Transparent, FgColor = ForeColor };
 
                             // Since we flex, do all this before layout children.
                             SKPoint      skRez = new SKPoint(96, 96);

@@ -23,6 +23,7 @@ namespace Play.Forms {
         public FTCacheLine Cache { get; }
         public SimpleRange Selection { get; } = new SimpleRange(0);
         public SKColor     BgColor { get; set; } = SKColors.LightGray;
+        public SKColor     FgColor { get; set; } = SKColors.Red;
 
         // Normally selection lives on the view, but I'll put it here for forms for now.
         protected ILineSelection[] _rgSelections = new ILineSelection[1];
@@ -57,7 +58,7 @@ namespace Play.Forms {
         }
 
         /// <summary>
-        /// Mostly test code. The color of the text is just red.
+        /// Mostly test code. The color of the text is just the foreground color.
         /// </summary>
         public override void Paint( SKCanvas skCanvas ) {
             using SKPaint skPaint = new SKPaint();
@@ -70,7 +71,7 @@ namespace Play.Forms {
 
             PaintBackground( skCanvas );
 
-            skPaint.Color = SKColors.Red;
+            skPaint.Color = FgColor;
 
             // Draw text.
             Cache.Render( skCanvas, skPaint, new PointF( pntUL.X, pntUL.Y ) );
