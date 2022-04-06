@@ -166,9 +166,6 @@ namespace Play.Edit {
 
         [DllImport("User32.DLL", EntryPoint = "SetForegroundWindow", SetLastError = true)]
         public static extern bool SetForegroundWindow( IntPtr hWnd );
-
-        [DllImport("User32.DLL", EntryPoint = "SetFocus", SetLastError = true)]
-        public static extern IntPtr SetFocus( IntPtr hWnd );
     }
 
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
