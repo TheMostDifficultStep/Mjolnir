@@ -54,9 +54,10 @@ namespace Play.Forms {
 
         public TabControl(IPgViewSite oSiteView, BaseEditor oDoc ) 
         {
-            _oSiteView = oSiteView ?? throw new ArgumentNullException( nameof( oSiteView ) );
- 			_oStdUI    = oSiteView.Host.Services as IPgStandardUI2 ?? throw new ArgumentException( "Parent view must provide IPgStandardUI service" );
-            Document   = oDoc ?? throw new ArgumentNullException( nameof( oDoc ) );
+            _oSiteView   = oSiteView ?? throw new ArgumentNullException( nameof( oSiteView ) );
+ 			_oStdUI      = oSiteView.Host.Services as IPgStandardUI2 ?? throw new ArgumentException( "Parent view must provide IPgStandardUI service" );
+
+            Document     = oDoc ?? throw new ArgumentNullException( nameof( oDoc ) );
 
             // Would be nice if height was a function of the text size. Someday!
             Layout = new LayoutFlowSquare_Fixed( TabSize );
@@ -96,6 +97,17 @@ namespace Play.Forms {
             base.Dispose( disposing );
         }
 
+        //protected override void OnGotFocus(EventArgs e) {
+        //    base.OnGotFocus( e );
+
+        //    Invalidate();
+        //}
+
+        //protected override void OnLostFocus(EventArgs e) {
+        //    base.OnLostFocus(e);
+
+        //}
+        
         /// <summary>
         /// This gets called whenever the tab needs to be drawn.
         /// </summary>
@@ -151,14 +163,20 @@ namespace Play.Forms {
             return oTab;
         }
 
+        protected virtual void OnPaintBG(  SKCanvas skCanvas, SKPaint skPaint ) {
+            skPaint.Color = _oStdUI.ColorsStandardAt( StdUIColors.BGReadOnly );
+
+            skCanvas.DrawRect( 0, 0, Width, Height, skPaint );
+        }
+
         protected override void OnPaintSurface(SKPaintSurfaceEventArgs e) {
             base.OnPaintSurface(e);
 
             SKCanvas skCanvas = e.Surface.Canvas;
 
-            using SKPaint skPaint = new SKPaint() { Color = _oStdUI.ColorsStandardAt( StdUIColors.BGReadOnly ) };
+            using SKPaint skPaint = new SKPaint();
 
-            skCanvas.DrawRect( 0, 0, Width, Height, skPaint );
+            OnPaintBG( skCanvas, skPaint );
 
             // BUG: Unfortunately this also draws the text with the test
             // red color. Make sure it's clipped and we'll redraw on
@@ -318,6 +336,18 @@ namespace Play.Forms {
 
             return oTab;
         }
+
+        /// <summary>
+        /// Make the background the title box colors. Might move this to the tab control too.
+        /// </summary>
+        /// <param name="skCanvas"></param>
+        /// <param name="skPaint"></param>
+        protected override void OnPaintBG(  SKCanvas skCanvas, SKPaint skPaint ) {
+            skPaint.Color = _oStdUI.ColorsStandardAt( Focused ? StdUIColors.TitleBoxFocus : StdUIColors.TitleBoxBlur );
+
+            skCanvas.DrawRect( 0, 0, Width, Height, skPaint );
+        }
+
     }
 
 }
