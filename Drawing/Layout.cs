@@ -703,7 +703,6 @@ namespace Play.Rectangles {
 
 	public abstract class LayoutFlowSquare : ParentRect {
         protected List<int> _rgColumns = new List<int>();
-		public readonly SmartRect Margins = new SmartRect();
 		public Size ItemSize;
 		public bool Springy = true;
 
@@ -739,8 +738,8 @@ namespace Play.Rectangles {
 										  pntExtent.Y > 0 ? pntExtent.Y - 1 : 0 );
 
 			if( Count > 1 ) {
-				szSize.Width  -= Margins.Left + Margins.Right;
-				szSize.Height -= Margins.Top  + Margins.Bottom;
+				szSize.Width  -= Padding.Left + Padding.Right;
+				szSize.Height -= Padding.Top  + Padding.Bottom;
 
 				szSize.Width  -= (int)Spacing * pntGaps.X;
 				szSize.Height -= (int)Spacing * pntGaps.Y;
@@ -770,15 +769,15 @@ namespace Play.Rectangles {
             foreach( LayoutRect oRect in this ) {
 				int iRun = iRight;
 
-				iRun += Margins.Left;
+				iRun += Padding.Left;
                 iRun += ItemSize.Width;
-                iRun += Margins.Right;
+                iRun += Padding.Right;
 
 				// Allow the first one in all cases.
                 if( iRun > Right && iCount > 0 ) 
                     break;
 
-				_rgColumns.Add( iRight + Margins.Left );
+				_rgColumns.Add( iRight + Padding.Left );
 				iRight = iRun;
 				// Bug: For varying height items use TrackDesired. 
 				if( ItemSize.Height > iHeight )
@@ -806,7 +805,7 @@ namespace Play.Rectangles {
 
 			int iHeight = FindDimensions();
 
-            for( int i = 0, iTop = Top + Margins.Top; i < Count;  ) {
+            for( int i = 0, iTop = Top + Padding.Top; i < Count;  ) {
                 foreach( int iStart in _rgColumns ) {
                     Item(i).SetRect( LOCUS.UPPERLEFT, iStart, iTop, ItemSize.Width, ItemSize.Height );
 					Item(i).LayoutChildren();
@@ -826,7 +825,7 @@ namespace Play.Rectangles {
 
 			uint uiSpace = dblRows > 1.0 ? (uint)(dblRows - 1) * Spacing : 0;
 
-            return (uint)( dblRows * iHeight + uiSpace + Margins.Bottom + Margins.Top );
+            return (uint)( dblRows * iHeight + uiSpace + Padding.Bottom + Padding.Top );
         }
     } // End class
 

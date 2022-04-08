@@ -62,6 +62,7 @@ namespace Play.Forms {
             // Would be nice if height was a function of the text size. Someday!
             Layout = new LayoutFlowSquare_Fixed( TabSize );
             Layout.Spacing = 5;
+            Layout.Padding.SetRect( 5, 5, 5, 5 );
         }
 
         public virtual Size TabSize { get { return new Size( 200, 44 ); } }
@@ -331,7 +332,7 @@ namespace Play.Forms {
 
 			LayoutStackHorizontal oTab = new () { Spacing = 5, BackgroundColor = TabBackground, ID = oLine };
 			
-            oTab.Padding.SetRect( 5, 5, 5, 5 );
+            //oTab.Padding.SetRect( 5, 5, 5, 5 );
 			oTab.Add( oTabIcon );
 
             return oTab;
