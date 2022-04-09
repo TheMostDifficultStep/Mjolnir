@@ -851,8 +851,21 @@ namespace Play.SSTV {
 
 				switch( iIndex ) {
 					case 0:
+                        StringBuilder sbText       = new StringBuilder();
+                        string        strTheirCall = TheirCall;
+                        string        strRST       = RST;
+
+                        if( !string.IsNullOrEmpty( strTheirCall ) ) {
+                            sbText.Append( strTheirCall );
+                            sbText.Append( " de " );
+                        }
+                        sbText.Append( MyCall );
+                        if( !string.IsNullOrEmpty( strRST ) ) {
+                            sbText.Append( " " );
+                            sbText.Append( strRST );
+                        }
 						TxBitmapComp.AddImage( LOCUS.CENTER,      0,  0, 100.0, TxBitmapSnip );
-						TxBitmapComp.AddText ( LOCUS.UPPERLEFT,   5,  5,  15.0, TxBitmapComp.StdFace, TheirCall + " de " + MyCall + " " + RST );
+						TxBitmapComp.AddText ( LOCUS.UPPERLEFT,   5,  5,  15.0, TxBitmapComp.StdFace, sbText.ToString() );
 						TxBitmapComp.AddImage( LOCUS.LOWERRIGHT, 10, 10,  40.0, RxHistoryList );
                         Send_TxImageAspect?.Invoke( new SKPointI( oMode.Resolution.Width, oMode.Resolution.Height ) );
 						break;
