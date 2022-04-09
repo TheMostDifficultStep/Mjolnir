@@ -419,6 +419,13 @@ namespace Play.SSTV {
             _oSiteBase.LogError( "SSTV", strMessage );
         }
 
+        public string MyCall    => Properties[(int)SSTVProperties.Names.Tx_MyCall].ToString().ToUpper();
+        public string Message   => Properties[(int)SSTVProperties.Names.Tx_Message].ToString();
+        public string TheirCall => Properties[(int)SSTVProperties.Names.Tx_TheirCall].ToString().ToUpper();
+        public string RST       => Properties[(int)SSTVProperties.Names.Tx_RST].ToString();
+
+        public SKColor ForeColor { get; set; } = SKColors.Red;
+
         /// <summary>
         /// Set up a sample signal for the FFT. This is for test purposes. I should use
         /// one of my DSP-Goodies functions but I'm still sorting that all out.
@@ -575,11 +582,12 @@ namespace Play.SSTV {
             RxHistoryList.ImageUpdated += OnImageUpdated_RxHistoryList;
             RxModeList   .CheckedEvent += OnCheckedEvent_RxModeList;
 
-            TemplateList.LineAppend( "CQ" );
             TemplateList.LineAppend( "PnP Reply" );
             TemplateList.LineAppend( "General Msg" );
-            TemplateList.LineAppend( "General Pnp" );
-            TemplateList.LineAppend( "CQ Layout" );
+            TemplateList.LineAppend( "General Msg Pnp" );
+            TemplateList.LineAppend( "CQ Color Gradient" );
+            TemplateList.LineAppend( "High Def Message" );
+            TemplateList.LineAppend( "High Def CQ" );
             
             // Largest bitmap needed by any of the types I can decode.
 		    SyncImage   .Bitmap = new SKBitmap( 800, 616, SKColorType.Rgb888x, SKAlphaType.Unknown );
@@ -831,13 +839,6 @@ namespace Play.SSTV {
             PropertyChange?.Invoke( eProp );
         }
 
-        public string MyCall    => Properties[(int)SSTVProperties.Names.Tx_MyCall].ToString().ToUpper();
-        public string Message   => Properties[(int)SSTVProperties.Names.Tx_Message].ToString();
-        public string TheirCall => Properties[(int)SSTVProperties.Names.Tx_TheirCall].ToString().ToUpper();
-        public string RST       => Properties[(int)SSTVProperties.Names.Tx_RST].ToString();
-
-        public SKColor ForeColor { get; set; }
-
 		public void TemplateSet( int iIndex ) {
             SSTVMode oMode = TransmitModeSelection;
 			if( oMode == null ) {
@@ -850,74 +851,31 @@ namespace Play.SSTV {
 
 				switch( iIndex ) {
 					case 0:
-						TxBitmapComp.AddImage   ( LOCUS.CENTER,      0,  0, 100.0, TxBitmapSnip );
-                        TxBitmapComp.AddGradient( LOCUS.TOP,                 24.0, SKColors.Blue, SKColors.Green );
-						TxBitmapComp.AddText    ( LOCUS.UPPERLEFT,   0,  0,  24.0, TxBitmapComp.StdFace, "CQ de " + MyCall );
-                        Send_TxImageAspect?.Invoke( new SKPointI( oMode.Resolution.Width, oMode.Resolution.Height ) );
-						break;
-					case 1:
 						TxBitmapComp.AddImage( LOCUS.CENTER,      0,  0, 100.0, TxBitmapSnip );
 						TxBitmapComp.AddText ( LOCUS.UPPERLEFT,   5,  5,  15.0, TxBitmapComp.StdFace, TheirCall + " de " + MyCall + " " + RST );
 						TxBitmapComp.AddImage( LOCUS.LOWERRIGHT, 10, 10,  40.0, RxHistoryList );
                         Send_TxImageAspect?.Invoke( new SKPointI( oMode.Resolution.Width, oMode.Resolution.Height ) );
 						break;
-					case 2:
+					case 1:
 						TxBitmapComp.AddImage( LOCUS.CENTER,      0,  0, 100.0, TxBitmapSnip );
 						TxBitmapComp.AddText ( LOCUS.UPPERLEFT,   5,  5,  20.0, TxBitmapComp.StdFace, Message );
                         Send_TxImageAspect?.Invoke( new SKPointI( oMode.Resolution.Width, oMode.Resolution.Height ) );
 						break;
-                    case 3:
+                    case 2:
 						TxBitmapComp.AddImage( LOCUS.CENTER,      0,  0, 100.0, TxBitmapSnip );
 						TxBitmapComp.AddText ( LOCUS.UPPERLEFT,   5,  5,  15.0, TxBitmapComp.StdFace, Message );
 						TxBitmapComp.AddImage( LOCUS.LOWERRIGHT, 10, 10,  40.0, RxHistoryList );
 
                         Send_TxImageAspect?.Invoke( new SKPointI( oMode.Resolution.Width, oMode.Resolution.Height ) );
                         break;
+                    case 3:
+                        TemplateSetCQLayout( oMode, false );
+                        break;
                     case 4:
-                        { 
-                            // This happens if we don't start the receive but press a template option list item.
-                            if( TxBitmapSnip.Bitmap == null )
-                                break;
-
-                            LayoutStackVertical   oStack = new();
-                            LayoutStackBgGradient oHoriz = new( TRACK.HORIZ) { 
-                                Layout = LayoutRect.CSS.Pixels, Track = 60, Colors = { SKColors.Green, SKColors.Yellow, SKColors.Blue }
-                            };
-
-                            IPgStandardUI2 oStdUI = (IPgStandardUI2)Services ?? throw new ApplicationException( "Couldn't get StdUI2" );
-
-                            Line               oLine = TxBitmapComp.Text.LineAppend( "CQ de " + MyCall, fUndoable:false );
-                            LayoutSingleLine oSingle = new( new FTCacheLine( oLine ), LayoutRect.CSS.Flex ) { BgColor = SKColors.Transparent, FgColor = ForeColor };
-
-                            // Since we flex, do all this before layout children.
-                            SKPoint      skRez = new SKPoint(96, 96);
-                            int iPointsPerInch = 72;
-                            uint      uiPoints = (uint)( 60 * iPointsPerInch / skRez.Y );
-                            uint      uiFontID = oStdUI.FontCache( TxBitmapComp.StdFace, uiPoints, skRez );
-                            oSingle.Cache.Update( oStdUI.FontRendererAt( uiFontID ) );
-
-                            oHoriz.Add( new LayoutRect( LayoutRect.CSS.None) );
-                            oHoriz.Add( oSingle );
-                            oHoriz.Add( new LayoutRect( LayoutRect.CSS.None) );
-
-                            oStack.Add( oHoriz );
-
-                            LayoutImage oImage = new LayoutImage( TxBitmapSnip.Bitmap, LayoutRect.CSS.None );
-                            // We'll blow chunks if the snip bmp is null. So got to check.
-                            if( TxBitmapSnip.Bitmap != null ) {
-                                oStack.Add( oImage );
-                            }
-
-                            // Need this to calc image aspect to bubbleup.
-                            oStack.SetRect( 0, 0, oMode.Resolution.Width, oMode.Resolution.Height );
-                            oStack.LayoutChildren();
-                            
-                            // After the layout send the aspect out to the listeners.
-                            Send_TxImageAspect?.Invoke( new SKPointI( oImage.Width, oImage.Height ) );
-
-                            TxBitmapComp.AddLayout( oStack );
-
-                        }
+                        TemplateHiDefMessage( oMode );
+                        break;
+                    case 5:
+                        TemplateSetCQLayout( oMode, true );
                         break;
 				}
 
@@ -934,6 +892,108 @@ namespace Play.SSTV {
 				LogError( "Could apply image template." );
 			}
 		}
+
+        protected void TemplateSetCQLayout( SSTVMode oMode, bool fHighDefn ) {
+            // This happens if we don't start the receive but press a template option list item.
+            if( TxBitmapSnip.Bitmap == null ) {
+                LogError( "Select an Image to Send" );
+                return;
+            }
+
+            LayoutStackVertical oStack = new();
+            LayoutStack oHoriz;
+            
+            if( !fHighDefn ) { 
+                oHoriz = new LayoutStackBgGradient( TRACK.HORIZ) { 
+                        Layout = LayoutRect.CSS.Pixels, 
+                        Track  = 60,
+                        Colors = { SKColors.Green, SKColors.Yellow, SKColors.Blue } 
+                };
+            } else {
+                Func< object, SKColor > oFunc = delegate( object x )  { return SKColors.Black; };
+
+                oHoriz = new LayoutStackHorizontal() { Layout = LayoutRect.CSS.Pixels, Track = 55, BackgroundColor = oFunc };
+            }
+
+
+
+            IPgStandardUI2 oStdUI = (IPgStandardUI2)Services ?? throw new ApplicationException( "Couldn't get StdUI2" );
+
+            Line               oLine = TxBitmapComp.Text.LineAppend( "CQ de " + MyCall, fUndoable:false );
+            LayoutSingleLine oSingle = new( new FTCacheLine( oLine ), LayoutRect.CSS.Flex ) 
+                                         { BgColor = SKColors.Transparent, FgColor = fHighDefn ? SKColors.White : ForeColor };
+
+            // Since we flex, do all this before layout children.
+            SKPoint     skRezPerInch = new SKPoint(96, 96);
+            const int iPointsPerInch = 72;
+            uint      uiPoints = (uint)( 60 * iPointsPerInch / skRezPerInch.Y );
+            uint      uiFontID = oStdUI.FontCache( TxBitmapComp.StdFace, uiPoints, skRezPerInch );
+            oSingle.Cache.Update( oStdUI.FontRendererAt( uiFontID ) );
+
+            // Put the text in the middle. Poor man's layout.
+            oHoriz.Add( new LayoutRect( LayoutRect.CSS.None) );
+            oHoriz.Add( oSingle );
+            oHoriz.Add( new LayoutRect( LayoutRect.CSS.None) );
+
+            oStack.Add( oHoriz );
+
+            LayoutImage oImage = new LayoutImage( TxBitmapSnip.Bitmap, LayoutRect.CSS.None );
+            oStack.Add( oImage );
+
+            // Need this to calc image aspect to bubbleup.
+            oStack.SetRect( 0, 0, oMode.Resolution.Width, oMode.Resolution.Height );
+            oStack.LayoutChildren();
+                            
+            // After the layout send the aspect out to the listeners. In case we want to re-select.
+            Send_TxImageAspect?.Invoke( new SKPointI( oImage.Width, oImage.Height ) );
+
+            TxBitmapComp.AddLayout( oStack );
+        }
+
+        protected void TemplateHiDefMessage( SSTVMode oMode ) {
+            // This happens if we don't start the receive but press a template option list item.
+            if( TxBitmapSnip.Bitmap == null ) {
+                LogError( "Select an Image to Send" );
+                return;
+            }
+
+            Func< object, SKColor > oFunc = delegate( object x )  { return SKColors.Black; };
+
+            LayoutStackVertical   oStack = new();
+            LayoutStackHorizontal oHoriz = new() { Layout = LayoutRect.CSS.Pixels, Track = 55, BackgroundColor = oFunc };
+
+            IPgStandardUI2 oStdUI = (IPgStandardUI2)Services ?? throw new ApplicationException( "Couldn't get StdUI2" );
+
+            Line               oLine = TxBitmapComp.Text.LineAppend( Message, fUndoable:false );
+            LayoutSingleLine oSingle = new( new FTCacheLine( oLine ), LayoutRect.CSS.Flex ) 
+                                         { BgColor = SKColors.Black, FgColor = SKColors.White };
+
+            // Since we flex, do all this before layout children.
+            SKPoint     skRezPerInch = new SKPoint(96, 96);
+            const int iPointsPerInch = 72;
+            uint      uiPoints = (uint)( 55 * iPointsPerInch / skRezPerInch.Y );
+            uint      uiFontID = oStdUI.FontCache( TxBitmapComp.StdFace, uiPoints, skRezPerInch );
+            oSingle.Cache.Update( oStdUI.FontRendererAt( uiFontID ) );
+
+            oHoriz.Add( new LayoutRect( LayoutRect.CSS.None) );
+            oHoriz.Add( oSingle );
+            oHoriz.Add( new LayoutRect( LayoutRect.CSS.None) );
+
+            LayoutImage oImage = new LayoutImage( TxBitmapSnip.Bitmap, LayoutRect.CSS.None );
+
+            oStack.Add( oImage );
+            oStack.Add( oHoriz );
+
+            // Need this to calc image aspect to bubbleup.
+            oStack.SetRect( 0, 0, oMode.Resolution.Width, oMode.Resolution.Height );
+            oStack.LayoutChildren();
+                            
+            // After the layout send the aspect out to the listeners. In case we want to re-select.
+            Send_TxImageAspect?.Invoke( new SKPointI( oImage.Width, oImage.Height ) );
+
+            TxBitmapComp.AddLayout( oStack );
+
+        }
 
         protected class TxState : IEnumerable<int> {
             protected BufferSSTV    _oSSTVBuffer;      
