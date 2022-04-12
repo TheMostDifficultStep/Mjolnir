@@ -324,6 +324,7 @@ namespace Mjolnir {
             // This needs to follow the view selector document assignment.
             MainWin_Tabs oTabs = new(new WinSlot(this), _oDoc_ViewSelector);
             oTabs.Parent = this;
+            oTabs.Layout.Padding.SetRect( 5, 5, 5, 0 );
             oTabs.InitNew();
 
             // Set up our primary layout here...
