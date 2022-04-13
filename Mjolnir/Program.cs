@@ -126,9 +126,15 @@ namespace Mjolnir {
 			    try {
 				    oProgram.SessionLoad( rgArgs, xmlConfig );
                 } catch ( Exception oEx ) {
-                    oProgram.TryLogXmlError( oEx, "Couldn't configure Main window." );
+                    if( oProgram.TryLogXmlError( oEx, "Couldn't configure Main window." ) ) {
 
-                    return;
+ 					    oProgram.LogError( "internal", oEx.Message );
+                        oProgram.BombOut( oEx );
+					    // BUG: This would be a great place for use to write out the alerts
+					    //      and this last error to a file somewhere. ^_^;;
+					    Console.WriteLine( oEx.Message );
+                        return;
+                    }
 			    }
 
 				try {
@@ -440,7 +446,8 @@ namespace Mjolnir {
         /// Basically all the errors that can happen while we're trying to load
         /// up or configuration xml file and our session xlm file.
         /// </summary>
-		void TryLogXmlError(Exception oEx, string strMessage)
+        /// <returns>True if recommend exit.</returns>
+		bool TryLogXmlError(Exception oEx, string strMessage)
         {
             Type[] rgErrors = { typeof( XPathException ),
                                 typeof( XmlException ),
@@ -454,9 +461,10 @@ namespace Mjolnir {
                                 typeof( ApplicationException ),
                                 typeof( ArgumentOutOfRangeException ) };
             if (rgErrors.IsUnhandled(oEx))
-                throw new ApplicationException( "Xml read error.", oEx );
+               return true;
 
             this.LogError("program session", strMessage);
+            return false;
         }
 
         /// <summary>
