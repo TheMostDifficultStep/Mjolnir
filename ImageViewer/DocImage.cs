@@ -17,6 +17,8 @@ namespace Play.ImageViewer {
         public SKPointI Origin { get; }
         public double   Scale  { get; }
 
+        public SKColor  Color  { get; set; }
+
         public Block( LOCUS eOrigin, int iX, int iY, double dblScale ) {
             if( dblScale < 0 || dblScale > 100 )
                 throw new ArgumentOutOfRangeException( "Values 0 through 100" );
@@ -215,7 +217,7 @@ namespace Play.ImageViewer {
         }
 
         public override void Paint( SKCanvas skCanvas ) {
-            using SKPaint skPaint = new SKPaint() { Color = SKColors.Red };
+            using SKPaint skPaint = new SKPaint() { Color = this.Color };
 
             CacheElem.Render( skCanvas, skPaint, new PointF( Left, Top ) );
         }
@@ -312,9 +314,9 @@ namespace Play.ImageViewer {
             _rgChildren.Add( oBlock );
         }
 
-        public void AddText( LOCUS eOrigin, int iX, int iY, double dblSize, ushort uFaceID, string strText = "" ) {
+        public void AddText( LOCUS eOrigin, int iX, int iY, double dblSize, ushort uFaceID, SKColor skColor, string strText = "" ) {
             Line      oLine  = Text.LineAppend( strText, fUndoable:false );
-            TextBlock oBlock = new( eOrigin, iX, iY, dblSize, oLine ) { FaceID = uFaceID };
+            TextBlock oBlock = new( eOrigin, iX, iY, dblSize, oLine ) { FaceID = uFaceID, Color = skColor };
 
             _rgChildren.Add( oBlock );
         }

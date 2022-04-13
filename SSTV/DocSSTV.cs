@@ -305,6 +305,7 @@ namespace Play.SSTV {
 
         protected readonly IPgBaseSite       _oSiteBase;
 		protected readonly IPgRoundRobinWork _oWorkPlace;
+        protected readonly IPgStandardUI2    _oStdUI;
 
         public IPgParent Parentage => _oSiteBase.Host;
         public IPgParent Services  => Parentage;
@@ -352,9 +353,11 @@ namespace Play.SSTV {
         /// </summary>
         /// <exception cref="ArgumentNullException" />
         /// <exception cref="ApplicationException" />
+        /// <exception cref="InvalidCastException" />
         public DocSSTV( IPgBaseSite oSite ) {
             _oSiteBase  = oSite ?? throw new ArgumentNullException( "Site must not be null" );
             _oWorkPlace = ((IPgScheduler)Services).CreateWorkPlace() ?? throw new ApplicationException( "Couldn't create a worksite from scheduler.");
+            _oStdUI     = (IPgStandardUI2)Services;
 
             TemplateList  = new Editor        ( new DocSlot( this ) );
             RxModeList    = new ModeEditor    ( new DocSlot( this, "SSTV Rx Modes" ) );
@@ -839,6 +842,29 @@ namespace Play.SSTV {
             PropertyChange?.Invoke( eProp );
         }
 
+        protected string TemplateTextFromProps() {
+            StringBuilder sbText       = new StringBuilder();
+            string        strTheirCall = TheirCall;
+            string        strRST       = RST;
+            string        strMessage   = Message;
+
+            if( !string.IsNullOrEmpty( strTheirCall ) ) {
+                sbText.Append( strTheirCall );
+                sbText.Append( " de " );
+            }
+            sbText.Append( MyCall );
+            if( !string.IsNullOrEmpty( strRST ) ) {
+                sbText.Append( " " );
+                sbText.Append( strRST );
+            }
+            if( !string.IsNullOrEmpty( strMessage ) ) {
+                sbText.Append( " : " );
+                sbText.Append( strMessage );
+            }
+
+            return sbText.ToString();
+        }
+
 		public void TemplateSet( int iIndex ) {
             SSTVMode oMode = TransmitModeSelection;
 			if( oMode == null ) {
@@ -850,33 +876,22 @@ namespace Play.SSTV {
 				TxBitmapComp.Clear();
 
 				switch( iIndex ) {
-					case 0:
-                        StringBuilder sbText       = new StringBuilder();
-                        string        strTheirCall = TheirCall;
-                        string        strRST       = RST;
+					case 0: // PnP reply.
+                        string strMessage = TemplateTextFromProps();
 
-                        if( !string.IsNullOrEmpty( strTheirCall ) ) {
-                            sbText.Append( strTheirCall );
-                            sbText.Append( " de " );
-                        }
-                        sbText.Append( MyCall );
-                        if( !string.IsNullOrEmpty( strRST ) ) {
-                            sbText.Append( " " );
-                            sbText.Append( strRST );
-                        }
 						TxBitmapComp.AddImage( LOCUS.CENTER,      0,  0, 100.0, TxBitmapSnip );
-						TxBitmapComp.AddText ( LOCUS.UPPERLEFT,   5,  5,  15.0, TxBitmapComp.StdFace, sbText.ToString() );
+						TxBitmapComp.AddText ( LOCUS.UPPERLEFT,   5,  5,  17.0, TxBitmapComp.StdFace, ForeColor, strMessage );
 						TxBitmapComp.AddImage( LOCUS.LOWERRIGHT, 10, 10,  40.0, RxHistoryList );
                         Send_TxImageAspect?.Invoke( new SKPointI( oMode.Resolution.Width, oMode.Resolution.Height ) );
 						break;
-					case 1:
+					case 1: // General Message
 						TxBitmapComp.AddImage( LOCUS.CENTER,      0,  0, 100.0, TxBitmapSnip );
-						TxBitmapComp.AddText ( LOCUS.UPPERLEFT,   5,  5,  20.0, TxBitmapComp.StdFace, Message );
+						TxBitmapComp.AddText ( LOCUS.UPPERLEFT,   5,  5,  20.0, TxBitmapComp.StdFace, ForeColor, Message );
                         Send_TxImageAspect?.Invoke( new SKPointI( oMode.Resolution.Width, oMode.Resolution.Height ) );
 						break;
-                    case 2:
+                    case 2: // General Message PnP
 						TxBitmapComp.AddImage( LOCUS.CENTER,      0,  0, 100.0, TxBitmapSnip );
-						TxBitmapComp.AddText ( LOCUS.UPPERLEFT,   5,  5,  15.0, TxBitmapComp.StdFace, Message );
+						TxBitmapComp.AddText ( LOCUS.UPPERLEFT,   5,  5,  15.0, TxBitmapComp.StdFace, ForeColor, Message );
 						TxBitmapComp.AddImage( LOCUS.LOWERRIGHT, 10, 10,  40.0, RxHistoryList );
 
                         Send_TxImageAspect?.Invoke( new SKPointI( oMode.Resolution.Width, oMode.Resolution.Height ) );
@@ -906,7 +921,15 @@ namespace Play.SSTV {
 			}
 		}
 
-        protected void TemplateSetCQLayout( SSTVMode oMode, bool fHighDefn ) {
+        /// <summary>
+        /// Sort of an experimental layout system. Normal layout assumes everything is relative to
+        /// the entire image size. But this allows us to break that up and layout relative to the
+        /// children. It's cool but more difficult to represent with screen userinterface, which
+        /// hasn't been written yet.
+        /// </summary>
+        /// <param name="oMode">SSTV mode we are sending in.</param>
+        /// <param name="fHighContrast">if false, use color. if true using BW.</param>
+        protected void TemplateSetCQLayout( SSTVMode oMode, bool fHighContrast ) {
             // This happens if we don't start the receive but press a template option list item.
             if( TxBitmapSnip.Bitmap == null ) {
                 LogError( "Select an Image to Send" );
@@ -915,33 +938,33 @@ namespace Play.SSTV {
 
             LayoutStackVertical oStack = new();
             LayoutStack oHoriz;
+            const double      dblFractionalHeight = 20 / 100.0;
+
+            SKPoint        skEMsPerInch = new( 96, 96 ); 
+            const int iScreenPixPerInch = 72;
+            uint            uiPixHeight = (uint)((double)oMode.Resolution.Height * dblFractionalHeight );
             
-            if( !fHighDefn ) { 
+            if( !fHighContrast ) { 
                 oHoriz = new LayoutStackBgGradient( TRACK.HORIZ) { 
                         Layout = LayoutRect.CSS.Pixels, 
-                        Track  = 60,
+                        Track  = uiPixHeight,
                         Colors = { SKColors.Green, SKColors.Yellow, SKColors.Blue } 
                 };
             } else {
                 Func< object, SKColor > oFunc = delegate( object x )  { return SKColors.Black; };
 
-                oHoriz = new LayoutStackHorizontal() { Layout = LayoutRect.CSS.Pixels, Track = 55, BackgroundColor = oFunc };
+                oHoriz = new LayoutStackHorizontal() { Layout = LayoutRect.CSS.Pixels, Track = uiPixHeight, BackgroundColor = oFunc };
             }
 
 
-
-            IPgStandardUI2 oStdUI = (IPgStandardUI2)Services ?? throw new ApplicationException( "Couldn't get StdUI2" );
-
             Line               oLine = TxBitmapComp.Text.LineAppend( "CQ de " + MyCall, fUndoable:false );
             LayoutSingleLine oSingle = new( new FTCacheLine( oLine ), LayoutRect.CSS.Flex ) 
-                                         { BgColor = SKColors.Transparent, FgColor = fHighDefn ? SKColors.White : ForeColor };
+                                         { BgColor = SKColors.Transparent, FgColor = fHighContrast ? SKColors.White : ForeColor };
 
             // Since we flex, do all this before layout children.
-            SKPoint     skRezPerInch = new SKPoint(96, 96);
-            const int iPointsPerInch = 72;
-            uint      uiPoints = (uint)( 60 * iPointsPerInch / skRezPerInch.Y );
-            uint      uiFontID = oStdUI.FontCache( TxBitmapComp.StdFace, uiPoints, skRezPerInch );
-            oSingle.Cache.Update( oStdUI.FontRendererAt( uiFontID ) );
+            uint      uiPoints = (uint)( uiPixHeight * iScreenPixPerInch / skEMsPerInch.Y );
+            uint      uiFontID = _oStdUI.FontCache( TxBitmapComp.StdFace, uiPoints, skEMsPerInch );
+            oSingle.Cache.Update( _oStdUI.FontRendererAt( uiFontID ) );
 
             // Put the text in the middle. Poor man's layout.
             oHoriz.Add( new LayoutRect( LayoutRect.CSS.None) );
@@ -953,7 +976,7 @@ namespace Play.SSTV {
             LayoutImage oImage = new LayoutImage( TxBitmapSnip.Bitmap, LayoutRect.CSS.None );
             oStack.Add( oImage );
 
-            // Need this to calc image aspect to bubbleup.
+            // Need this to calc image aspect to bubble up.
             oStack.SetRect( 0, 0, oMode.Resolution.Width, oMode.Resolution.Height );
             oStack.LayoutChildren();
                             
