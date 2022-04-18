@@ -384,7 +384,26 @@ namespace Play.Forms {
             }
         }
 
-        public void CaretMove( Axis eAxis, int iDir ) {
+        protected FTCacheLine ElemNext( FTCacheLine oElem, int iDir ) {
+            if( oElem.Line.At + iDir < 0 ||
+                oElem.Line.At >= DocForms.ElementCount ) {
+                return null;
+            }
+            Line oNext = DocForms[ oElem.Line.At + iDir ];
+
+            foreach( LayoutSingleLine oLayout in CacheList ) {
+                if( oLayout.Cache.Line == oNext ) {
+                    Caret.Layout = oLayout;
+
+                    //oLayout.SelectHead( Caret, e.Location, ModifierKeys == Keys.Shift );
+                    // select all.
+                    return oLayout.Cache;
+                }
+            }
+            return null;
+        }
+
+        public void CaretMove( Axis eAxis, int iDir, bool fJumpLine = false ) {
             try {
                 int   iOffset   = Caret.Offset;
                 float flAdvance = Caret.Advance;
@@ -397,13 +416,14 @@ namespace Play.Forms {
 
                 if( iDir != 0 ) {
                     // First, see if we can navigate within the line we are currently at.
-                    if( !oElem.Navigate( eAxis, iDir, ref flAdvance, ref iOffset ) ) {
+                    if( !oElem.Navigate( eAxis, iDir, ref flAdvance, ref iOffset ) || fJumpLine ) {
                         iDir = iDir < 0 ? -1 : 1; // Only allow move one line up or down.
 
-                        FTCacheLine oNext = null; // PreCache( oElem.At + iDir );
+                        FTCacheLine oNext = ElemNext( oElem, iDir );
                         if( oNext != null ) {
                             iOffset = oNext.OffsetBound( eAxis, iDir * -1, flAdvance );
                             oElem   = oNext;
+                            // set the advance...
                         }
                     }
                     // If going up or down ends up null, we won't be moving the caret.
@@ -496,10 +516,15 @@ namespace Play.Forms {
                 // Ask the shell if this character is a command of some sort. Like when we're used in a dialog.
                 // Tab is a bummer: for example g and G are two different characters, we don't need to know
                 // the state of the shift key! But tab doesn't have that luxury. Sometimes computers suck!
-                if( _oViewEvents.IsCommandPress( e.KeyChar ) )
+                if( _oViewEvents.IsCommandPress( e.KeyChar ) ) {
                     return;
+                }
+                if( e.KeyChar == 0x0009 ) {
+                    CaretMove( Axis.Vertical, 1, fJumpLine:true );
+                    return;
+                }
 
-                if( !char.IsControl( e.KeyChar ) || e.KeyChar == 0x0009 ) { 
+                if( !char.IsControl( e.KeyChar )  ) { 
                     if( IsSelection ) {
                         using( Editor.Manipulator oBulk = DocForms.CreateManipulator() ) {
                             oBulk.LineTextDelete( Caret.At, Caret.Layout.Selection );
@@ -603,11 +628,11 @@ namespace Play.Forms {
                     OnKey_Delete( e.KeyCode == Keys.Back );
                     break;
 
+                case Keys.Tab:
+                    break;
+
                 case Keys.Enter:
                     Submit();
-                    break;
-                case Keys.Tab:
-                    //_oViewEvents.IsCommandKey( CommandKey.Tab, (KeyBoardEnum)e.Modifiers );
                     break;
             }
             CaretIconRefresh();
