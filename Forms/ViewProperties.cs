@@ -125,9 +125,12 @@ namespace Play.Forms {
                 return;
             }
 
+            List<int> rgTabOrder = new List<int>();
             foreach( Line oLine in Document.Property_Labels ) {
                 PropertyInitRow( oTable, oLine.At );
+                rgTabOrder.Add( oLine.At );
             }
+            TabOrder = rgTabOrder.ToArray();
         }
 
         public virtual void InitRows( int[] rgShow ) {
@@ -139,6 +142,7 @@ namespace Play.Forms {
                 foreach( int iIndex in rgShow ) { 
                     PropertyInitRow( oTable, iIndex );
                 }
+                TabOrder = rgShow;
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( IndexOutOfRangeException ),
                                     typeof( ArgumentOutOfRangeException ),

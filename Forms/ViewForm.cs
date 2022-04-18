@@ -277,10 +277,11 @@ namespace Play.Forms {
         protected IPgStandardUI2   StdUI    { get; }
 
         public HyperlinkCollection Links { get; } = new ();
+        public int[]               TabOrder { get; set; } = null;
 
         readonly static Keys[] _rgHandledKeys = { Keys.PageDown, Keys.PageUp, Keys.Down,
                                                   Keys.Up, Keys.Right, Keys.Left, Keys.Back,
-                                                  Keys.Delete, Keys.Enter, Keys.Tab,
+                                                  Keys.Delete, Keys.Enter, Keys.Tab, Keys.Tab | Keys.Shift,
                                                   Keys.Control | Keys.A, Keys.Control | Keys.F };
 
         public FormsWindow( IPgViewSite oSiteView, Editor oDocForms ) {
@@ -385,11 +386,28 @@ namespace Play.Forms {
         }
 
         protected FTCacheLine ElemNext( FTCacheLine oElem, int iDir ) {
-            if( oElem.Line.At + iDir < 0 ||
-                oElem.Line.At >= DocForms.ElementCount ) {
+            //if( oElem.Line.At + iDir < 0 ||
+            //    oElem.Line.At >= DocForms.ElementCount ) {
+            //    return null;
+            //}
+            if( TabOrder == null )
                 return null;
+
+            int iNext = -2;
+            for( int iTab = 0; iTab < TabOrder.Length; ++iTab ) {
+                if( TabOrder[iTab] == oElem.At ) {
+                    iNext = iTab + iDir;
+                }
             }
-            Line oNext = DocForms[ oElem.Line.At + iDir ];
+            if( iNext < 0 ) {
+                iNext = 0;
+            } else {
+                if( iNext >= TabOrder.Length ) {
+                    iNext = TabOrder.Length - 1;
+                }
+            }
+
+            Line oNext = DocForms[ TabOrder[iNext] ];
 
             foreach( LayoutSingleLine oLayout in CacheList ) {
                 if( oLayout.Cache.Line == oNext ) {
@@ -520,7 +538,7 @@ namespace Play.Forms {
                     return;
                 }
                 if( e.KeyChar == 0x0009 ) {
-                    CaretMove( Axis.Vertical, 1, fJumpLine:true );
+                    // We handle this in OnKeyDown now...
                     return;
                 }
 
@@ -629,6 +647,8 @@ namespace Play.Forms {
                     break;
 
                 case Keys.Tab:
+                    int iDir = e.Modifiers == Keys.Shift ? -1 : 1; 
+                    CaretMove( Axis.Vertical, iDir, fJumpLine:true );
                     break;
 
                 case Keys.Enter:
