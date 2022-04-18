@@ -385,11 +385,16 @@ namespace Play.Forms {
             }
         }
 
+        /// <summary>
+        /// Walk around in our new tab order array based on whether we are tabbing forward
+        /// or backward. We need this chicanery since we make property dialogs that are subsets
+        /// of the entire property set on a document (or the Property Values Document to be exact.)
+        /// This subset is stored in the TabOrder array.
+        /// </summary>
+        /// <param name="oElem">The cache element we are currently at.</param>
+        /// <param name="iDir">The direction to go.</param>
+        /// <returns>The next cache element to move the cursor to.</returns>
         protected FTCacheLine ElemNext( FTCacheLine oElem, int iDir ) {
-            //if( oElem.Line.At + iDir < 0 ||
-            //    oElem.Line.At >= DocForms.ElementCount ) {
-            //    return null;
-            //}
             if( TabOrder == null )
                 return null;
 
@@ -414,7 +419,7 @@ namespace Play.Forms {
                     Caret.Layout = oLayout;
 
                     //oLayout.SelectHead( Caret, e.Location, ModifierKeys == Keys.Shift );
-                    // select all.
+                    //TODO: Select All.
                     return oLayout.Cache;
                 }
             }
@@ -441,7 +446,7 @@ namespace Play.Forms {
                         if( oNext != null ) {
                             iOffset = oNext.OffsetBound( eAxis, iDir * -1, flAdvance );
                             oElem   = oNext;
-                            // set the advance...
+                            // TODO: Set the advance...maybe?
                         }
                     }
                     // If going up or down ends up null, we won't be moving the caret.
