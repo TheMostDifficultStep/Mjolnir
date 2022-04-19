@@ -152,6 +152,22 @@ namespace Play.Forms {
 
             Cache.OnChangeFormatting( _rgSelections );
         }
+
+        public void SelectAll( IPgCacheCaret oCaret ) {
+            Point pntWorld = Cache.GlyphOffsetToPoint( oCaret.Line.ElementCount );
+
+            oCaret.Offset  = 0;
+
+            Selection.Start  = 0;
+            Selection.Length = oCaret.Line.ElementCount;
+
+            Cache.OnChangeFormatting( _rgSelections );
+        }
+
+        public void SelectClear() {
+            Selection.Length = 0;
+            Cache.OnChangeFormatting( _rgSelections );
+        }
     }
 
     public class LayoutColorBgLine : LayoutSingleLine {
@@ -447,6 +463,7 @@ namespace Play.Forms {
                             iOffset = oNext.OffsetBound( eAxis, iDir * -1, flAdvance );
                             oElem   = oNext;
                             // TODO: Set the advance...maybe?
+                            Caret.Layout.SelectAll( Caret );
                         }
                     }
                     // If going up or down ends up null, we won't be moving the caret.
@@ -654,6 +671,13 @@ namespace Play.Forms {
                 case Keys.Tab:
                     int iDir = e.Modifiers == Keys.Shift ? -1 : 1; 
                     CaretMove( Axis.Vertical, iDir, fJumpLine:true );
+                    break;
+                case Keys.Escape:
+                    try {
+                        Caret.Layout.SelectClear();
+                        Invalidate();
+                    } catch {
+                    }
                     break;
 
                 case Keys.Enter:
