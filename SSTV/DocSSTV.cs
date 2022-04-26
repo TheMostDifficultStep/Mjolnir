@@ -50,7 +50,8 @@ namespace Play.SSTV {
             Std_ImgQuality,
             Std_Process,
             Std_MicGain,
-            Std_Frequency
+            Std_Frequency,
+            Std_Time
         }
 
         public SSTVProperties( IPgBaseSite oSiteBase ) : base( oSiteBase ) {
@@ -94,6 +95,7 @@ namespace Play.SSTV {
             LabelSet( Names.Std_Process,    "Task Status" );
             LabelSet( Names.Std_MicGain,    "Output Gain < 30,000" );
             LabelSet( Names.Std_Frequency,  "Frequency" ); // TODO: Give it yellow if calibrated value different than base.
+            LabelSet( Names.Std_Time,       "Zulu Time" );
 
             LabelSet( Names.Tx_MyCall,    "My Call" );
             LabelSet( Names.Tx_TheirCall, "Rx Call" );
@@ -306,6 +308,7 @@ namespace Play.SSTV {
         protected readonly IPgBaseSite       _oSiteBase;
 		protected readonly IPgRoundRobinWork _oWorkPlace;
         protected readonly IPgStandardUI2    _oStdUI;
+        protected          DateTime          _dtLastTime;
 
         public IPgParent Parentage => _oSiteBase.Host;
         public IPgParent Services  => Parentage;
@@ -378,6 +381,8 @@ namespace Play.SSTV {
 
             StateRx = DocSSTVMode.Ready;
             StateTx = false;
+
+            _dtLastTime = DateTime.UtcNow.AddMinutes( -1.0 );
         }
 
         #region Dispose
@@ -1267,6 +1272,13 @@ namespace Play.SSTV {
                             break;
                     }
                 }
+                DateTime dtNow = DateTime.UtcNow;
+                if( _dtLastTime.AddMinutes( 1.0 ) < dtNow ) {
+                    Properties.ValueUpdate( SSTVProperties.Names.Std_Time, dtNow.ToString( "g" ), Broadcast:true );
+                    // This gets it so we're closer to the actual H:M:0 second mark.
+                    _dtLastTime = dtNow.AddSeconds( -dtNow.Second );
+                }
+
                 yield return 250; // wait 1/4 of a second.
             };
         }
