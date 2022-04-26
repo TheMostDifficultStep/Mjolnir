@@ -30,7 +30,6 @@ namespace Play.SSTV {
 
         public override void InitRows() {
 			int[] rgShow = { 
-				(int)SSTVProperties.Names.Std_Process,
 				(int)SSTVProperties.Names.Tx_Progress,
 				(int)SSTVProperties.Names.Tx_SrcDir,
 				(int)SSTVProperties.Names.Tx_SrcFile,

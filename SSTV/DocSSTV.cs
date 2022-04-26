@@ -99,7 +99,7 @@ namespace Play.SSTV {
             LabelSet( Names.Tx_TheirCall, "Rx Call" );
             LabelSet( Names.Tx_RST,       "RSV" ); // Readibility, strength, video
             LabelSet( Names.Tx_Message,   "Message" );
-            LabelSet( Names.Tx_Progress,  "Sent" );
+            LabelSet( Names.Tx_Progress,  "Sent", new SKColor( red:0xff, green:0xbf, blue:0 ) );
             LabelSet( Names.Tx_SrcDir,    "Tx Source Dir" );
             LabelSet( Names.Tx_SrcFile,   "Filename" );
 
