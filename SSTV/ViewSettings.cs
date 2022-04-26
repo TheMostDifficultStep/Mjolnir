@@ -61,7 +61,7 @@ namespace Play.SSTV {
                                               SSTVProperties.Names.Tx_MyCall,
                                               SSTVProperties.Names.Std_ImgQuality,
                                               SSTVProperties.Names.Std_MicGain,
-                                              SSTVProperties.Names.Std_Clock };
+                                              SSTVProperties.Names.Std_Frequency };
 
             if( Layout is SmartTable oTable ) {
                 foreach( SSTVProperties.Names eName in rgShow ) {

@@ -50,7 +50,7 @@ namespace Play.SSTV {
             Std_ImgQuality,
             Std_Process,
             Std_MicGain,
-            Std_Clock
+            Std_Frequency
         }
 
         public SSTVProperties( IPgBaseSite oSiteBase ) : base( oSiteBase ) {
@@ -93,7 +93,7 @@ namespace Play.SSTV {
             LabelSet( Names.Std_ImgQuality, "Image Save Quality" );
             LabelSet( Names.Std_Process,    "Task Status" );
             LabelSet( Names.Std_MicGain,    "Output Gain < 30,000" );
-            LabelSet( Names.Std_Clock,      "Clock" ); // Give it yellow if calibrated value different than base.
+            LabelSet( Names.Std_Frequency,  "Frequency" ); // TODO: Give it yellow if calibrated value different than base.
 
             LabelSet( Names.Tx_MyCall,    "My Call" );
             LabelSet( Names.Tx_TheirCall, "Rx Call" );
@@ -112,7 +112,7 @@ namespace Play.SSTV {
             // Initialize these to reasonable values, the user can update and save.
             ValueUpdate( Names.Std_ImgQuality, "80" );
             ValueUpdate( Names.Std_MicGain,    "10000" ); // Out of 30,000
-            ValueUpdate( Names.Std_Clock,      "11028" ); // Calibrated value. 11023.72 for me ^_^.
+            ValueUpdate( Names.Std_Frequency,  "11028" ); // Calibrated value. 11023.72 for me ^_^.
 
             return true;
         }
@@ -731,7 +731,7 @@ namespace Play.SSTV {
                             TxImageList.LoadAgain( oNode.InnerText );
                             break;
                         case "Clock":
-                            Properties.ValueUpdate( SSTVProperties.Names.Std_Clock, oNode.InnerText );
+                            Properties.ValueUpdate( SSTVProperties.Names.Std_Frequency, oNode.InnerText );
                             break;
                     }
                 }
@@ -781,7 +781,7 @@ namespace Play.SSTV {
                 StringProperty( "MyCall",         SSTVProperties.Names.Tx_MyCall );
                 StringProperty( "Message",        SSTVProperties.Names.Tx_Message );
                 StringProperty( "TxSrcDir",       SSTVProperties.Names.Tx_SrcDir );
-                StringProperty( "Clock",          SSTVProperties.Names.Std_Clock );
+                StringProperty( "Clock",          SSTVProperties.Names.Std_Frequency );
 
                 oDoc.Save( oStream );
 			} catch( Exception oEx ) {
@@ -1153,7 +1153,7 @@ namespace Play.SSTV {
                 // Use WWV to find the precise sample frequency of sound card. 
                 // TODO: Port the tuner from MMSSTV and make it a property.
                 SKBitmap bmpCopy = TxBitmapComp.Bitmap.Copy();
-                double   dblFreq = Properties.GetValueAsDbl( SSTVProperties.Names.Std_Clock );
+                double   dblFreq = Properties.GetValueAsDbl( SSTVProperties.Names.Std_Frequency );
                 TxState   oState = new TxState( oMode, dblFreq, MicrophoneGain, 
                                                 PortTxList.CheckedLine.At, 
                                                 bmpCopy, _rgBGtoUIQueue );
@@ -1423,7 +1423,7 @@ namespace Play.SSTV {
                     //}
 
                     int    iQuality    = Properties.GetValueAsInt( SSTVProperties.Names.Std_ImgQuality, 80 );
-                    double dblFreq     = Properties.GetValueAsDbl( SSTVProperties.Names.Std_Clock,   11028 );
+                    double dblFreq     = Properties.GetValueAsDbl( SSTVProperties.Names.Std_Frequency,   11028 );
                     string strSaveDir  = Properties[ SSTVProperties.Names.Rx_SaveDir  ];
 
                     // Just note, if we do a file read, we might no longer be in the MyPictures path.
