@@ -168,6 +168,7 @@ namespace Play.SSTV {
         public static readonly Guid PnP     = new Guid( "{A1BB369C-4E73-4248-A6E1-07C5466C818C}" );
 		public static readonly Guid Main    = new Guid( "{FE683CA1-1068-4BA0-A84E-CFE35900A06E}" );
         public static readonly Guid Mode    = new Guid( "{56797520-C603-417C-858A-EF532E0652D2}" );
+		public static readonly Guid Resize  = new Guid( "{84F921E1-BFB5-4BD7-9814-C53D48C90D1E}" );
 	}
 	
 	public class WinTransmitTools : ButtonBar {
@@ -326,6 +327,7 @@ namespace Play.SSTV {
 			rgIcons.Add( "PnP",     new ToolInfo( "icons8-download-64.png",	     TransmitCommands.PnP     ));
 			rgIcons.Add( "Main",    new ToolInfo( "icons8-measure-64.png",       TransmitCommands.Main    ));
 			rgIcons.Add( "Mode",    new ToolInfo( "icons8-audio-wave-48.png",    TransmitCommands.Mode    ));
+			rgIcons.Add( "Resize",  new ToolInfo( "icons8-resize-100.png",       TransmitCommands.Resize  ));
 
 			foreach( KeyValuePair<string,ToolInfo> oPair in rgIcons ) {
 				Line     oLine = _rgToolIcons.LineAppend( oPair.Key, false );
@@ -473,6 +475,11 @@ namespace Play.SSTV {
 			if( sGuid == TransmitCommands.Color ) {
 				ShowColorDialog();
  			}
+			if( sGuid == TransmitCommands.Resize ) {
+				WindowImageResize oDialog = new ( new SSTVWinSlot( this, ChildID.RxWindow ) );
+				oDialog.InitNew();
+				oDialog.Show();
+			}
 			return false;
         }
 

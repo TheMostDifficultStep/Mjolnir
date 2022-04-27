@@ -20,6 +20,7 @@
     <None Remove="Content\TxWin\icons8-gallery-64.png" />
     <None Remove="Content\TxWin\icons8-measure-64.png" />
     <None Remove="Content\TxWin\icons8-move-48.png" />
+    <None Remove="Content\TxWin\icons8-resize-100.png" />
     <None Remove="Content\TxWin\icons8-selection-60.png" />
     <None Remove="Content\TxWin\icons8-text-64.png" />
     <None Remove="icons8_camera.png" />
@@ -40,6 +41,7 @@
     <EmbeddedResource Include="Content\TxWin\icons8-gallery-64.png" />
     <EmbeddedResource Include="Content\TxWin\icons8-measure-64.png" />
     <EmbeddedResource Include="Content\TxWin\icons8-move-48.png" />
+    <EmbeddedResource Include="Content\TxWin\icons8-resize-100.png" />
     <EmbeddedResource Include="Content\TxWin\icons8-selection-60.png" />
     <EmbeddedResource Include="Content\TxWin\icons8-text-64.png" />
   </ItemGroup>
