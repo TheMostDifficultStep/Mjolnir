@@ -551,6 +551,7 @@ namespace Play.SSTV {
 				WindowImageResize oDialog = new ( new SSTVWinSlot( this, ChildID.RxWindow ), _oDocSSTV );
 				oDialog.InitNew();
 				oDialog.Show();
+				return true;
 			}
 			return false;
         }

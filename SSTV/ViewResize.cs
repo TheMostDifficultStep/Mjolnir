@@ -113,7 +113,7 @@ namespace Play.SSTV {
 			MyLayout.SetRect( 0, 0, ClientSize.Width, ClientSize.Height );
 			MyLayout.LayoutChildren();
 
-            Invalidate();
+            //Invalidate();
 		}
 
         protected override void OnShown(EventArgs e) {

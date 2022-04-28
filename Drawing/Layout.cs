@@ -81,6 +81,12 @@ namespace Play.Rectangles {
 		}
 	}
 
+	/// <summary>
+	/// So it turns out you can stick a LayoutControl directly as the top level
+	/// layout and get it to size properly. Even tho the LayoutChildren() event
+	/// on that object is not implemented. This is because the LayoutControl
+	/// uses the SizeEvent on the SmartRect to re-size itself.
+	/// </summary>
     [Obsolete]public class LayoutSingle : LayoutRect {
 		SmartRect _oSolo;
         public LayoutSingle(CSS eLayout, SmartRect oSolo ) : base( eLayout ) {
