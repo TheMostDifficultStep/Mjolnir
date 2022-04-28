@@ -81,7 +81,7 @@ namespace Play.Rectangles {
 		}
 	}
 
-    public class LayoutSingle : LayoutRect {
+    [Obsolete]public class LayoutSingle : LayoutRect {
 		SmartRect _oSolo;
         public LayoutSingle(CSS eLayout, SmartRect oSolo ) : base( eLayout ) {
 			_oSolo = oSolo ?? throw new ArgumentNullException( nameof( oSolo ) );

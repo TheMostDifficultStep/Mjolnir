@@ -1127,6 +1127,34 @@ namespace Play.SSTV {
 			}
 		}
 
+		public bool RenderComposite( SKRectI rctSrcSelection ) {
+			// sometimes we get events while we're sending. Let's block render for now.
+			if( StateTx ) {
+				LogError( "Already Playing" );
+				return false;
+			}
+
+			SSTVMode oMode = TransmitModeSelection;
+			if( oMode != null ) {
+				SKRectI rcComp = new SKRectI( 0, 0, oMode.Resolution.Width, oMode.Resolution.Height);
+				SKSizeI ptComp = new SKSizeI( oMode.Resolution.Width, oMode.Resolution.Height );
+
+				TxBitmapSnip.Load( TxBitmap, rctSrcSelection, ptComp ); 
+				TxBitmapComp.Load( TxBitmap, rcComp, ptComp ); // Render needs this, for now.
+
+				int iTemplate = TemplateList.CheckedLine is Line oChecked ? oChecked.At : 0;
+
+				TemplateSet( iTemplate );
+				TxBitmapComp.RenderImage();
+
+				return true;
+			} else {
+				TxBitmapSnip.BitmapDispose(); // TODO: I'd really like to have the error image up.
+				LogError( "Problem prepping template for transmit." );
+			}
+
+			return false;
+		}
         public void TransmitStop() {
             StateTx              = false;
             TxModeList.HighLight = null;

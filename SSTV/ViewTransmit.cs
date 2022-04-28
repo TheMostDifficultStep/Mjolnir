@@ -3,10 +3,11 @@ using System.Xml;
 using System.Collections.Generic;
 using System.Text;
 using System.Windows.Forms;
-using System.Threading;
 using System.Threading.Tasks;
 
 using SkiaSharp;
+using SkiaSharp.Views.Desktop;
+
 
 using Play.Interfaces.Embedding;
 using Play.Rectangles;
@@ -208,18 +209,30 @@ namespace Play.SSTV {
 
     }
 
-    public class ViewTransmitDeluxe: 
-		WindowStaggardBase,
+    public class ViewTransmitDeluxe : 
+		SKControl,
+		IPgParent,
+		IPgCommandView,
 		IPgSave<XmlDocumentFragment>,
 		IPgLoad<XmlElement>,
 		IPgTools
 	{
 		public static Guid GUID { get; } = new Guid( "{3D6FF540-C03C-468F-84F9-86E3DE75F6C2}" );
 
-        public    override Guid   Catagory => GUID;
-        protected override string IconResource => "Play.SSTV.Content.icons8_camera.png";
+        protected readonly DocSSTV     _oDocSSTV;
+        protected readonly IPgViewSite _oSiteView;
+		protected          bool        _fDisposed;
+		protected readonly LayoutStack _oLayout = new LayoutStackVertical() { Spacing = 5 };
 
-		protected readonly WindowSoloImageNav _wmTxImageChoice;
+        public IPgParent Parentage => _oSiteView.Host;
+        public IPgParent Services  => Parentage.Services;
+        public SKBitmap	 Icon    { get; protected set; }
+		public Image Iconic => null;
+        public bool		 IsDirty   => false;
+
+        public    Guid   Catagory => GUID;
+        protected string IconResource => "Play.SSTV.Content.icons8_camera.png";
+
 		protected readonly ImageViewSingle    _wmTxImageComposite;
 		protected readonly ImageViewIcons     _wmTxViewChoices;
 		protected readonly ImageViewIcons     _wmRxViewChoices;
@@ -228,8 +241,9 @@ namespace Play.SSTV {
 		protected          int    _iToolSelected = -1;
 
 		protected bool     _fColorDialogUp = false;
+		public SmartRect Selection { get; } = new SmartRect();
 
-        public override string Banner {
+        public string Banner {
 			get { 
 				StringBuilder sbBanner = new StringBuilder();
 
@@ -243,32 +257,95 @@ namespace Play.SSTV {
 			} 
 		}
 
-        public ViewTransmitDeluxe( IPgViewSite oSiteBase, DocSSTV oDocSSTV ) : base( oSiteBase, oDocSSTV ) {
-			_wmTxImageChoice    = new WindowSoloImageNav( new SSTVWinSlot( this, ChildID.TxImageChoice ),    oDocSSTV.TxImageList );
+		protected class SSTVWinSlot :
+			IPgFileSite,
+			IPgViewSite,
+			IPgShellSite,
+			IPgViewNotify
+		{
+			protected readonly ViewTransmitDeluxe _oHost;
+
+			public ChildID ID { get;}
+
+			public SSTVWinSlot(ViewTransmitDeluxe oHost, ChildID eID ) {
+				_oHost = oHost ?? throw new ArgumentNullException();
+				ID     = eID;
+			}
+
+			public IPgParent Host => _oHost;
+
+			public void LogError(string strMessage, string strDetails, bool fShow=true) {
+				_oHost._oSiteView.LogError( strMessage, strDetails, fShow );
+			}
+
+			public void Notify( ShellNotify eEvent ) {
+				_oHost._oSiteView.Notify( eEvent );
+			}
+
+            public object AddView( Guid guidViewType, bool fFocus ) {
+                return null;
+            }
+
+            public void FocusMe() {
+                throw new NotImplementedException();
+            }
+
+            public void FocusCenterView() {
+                throw new NotImplementedException();
+            }
+
+            public void NotifyFocused(bool fSelect) {
+				if( fSelect == true ) {
+					_oHost._oSiteView.EventChain.NotifyFocused( fSelect );
+				}
+            }
+
+            public bool IsCommandKey(CommandKey ckCommand, KeyBoardEnum kbModifier) {
+                return _oHost._oSiteView.EventChain.IsCommandKey( ckCommand, kbModifier );
+            }
+
+            public bool IsCommandPress(char cChar) {
+                return _oHost._oSiteView.EventChain.IsCommandPress( cChar );
+            }
+
+            public IPgViewNotify EventChain => this;
+
+            public IEnumerable<IPgCommandView> EnumerateSiblings => throw new NotImplementedException();
+
+            public uint SiteID => throw new NotImplementedException();
+
+            public FILESTATS FileStatus => FILESTATS.UNKNOWN;
+
+            public Encoding FileEncoding => Encoding.Default;
+
+            public string FilePath => _oHost._oDocSSTV.Properties[SSTVProperties.Names.Rx_SaveDir].ToString();
+
+            public string FileBase => String.Empty;
+        }
+
+        public ViewTransmitDeluxe( IPgViewSite oSiteView, DocSSTV oDocSSTV )  {
+			_oSiteView = oSiteView ?? throw new ArgumentNullException( nameof( oSiteView ) );
+			_oDocSSTV  = oDocSSTV  ?? throw new ArgumentNullException( nameof( oDocSSTV  ) );
+
 			_wmTxViewChoices    = new ImageViewIcons    ( new SSTVWinSlot( this, ChildID.TxImageChoices ),   oDocSSTV.TxImageList );
 			_wmTxImageComposite = new ImageViewSingle   ( new SSTVWinSlot( this, ChildID.TxImageComposite ), oDocSSTV.TxBitmapComp );
 			_wmRxViewChoices    = new ImageViewIcons    ( new SSTVWinSlot( this, ChildID.RxImageChoices ),   oDocSSTV.RxHistoryList );
 
-			_wmTxImageChoice   .Parent = this;
 			_wmTxViewChoices   .Parent = this;
 			_wmTxImageComposite.Parent = this;
 			_wmRxViewChoices   .Parent = this;
 
 			_rgToolIcons = new Editor( new SSTVWinSlot( this, ChildID.None ) );
 
-			_wmTxImageChoice.SetBorderOn();
 		}
 
         protected override void Dispose( bool fDisposing ) {
 			if( fDisposing && !_fDisposed ) {
-				_oDocSSTV.PropertyChange             -= OnPropertyChange_SSTVDoc;
 				_oDocSSTV.TemplateList .CheckedEvent -= OnCheckedEvent_TemplateList;
 				_oDocSSTV.TxModeList   .CheckedEvent -= OnCheckedEvent_TxModeList;
 				_oDocSSTV.RxHistoryList.ImageUpdated -= OnImageUpdated_RxHistoryList;
 				_oDocSSTV.TxImageList  .ImageUpdated -= OnImageUpdated_TxImageList;
-				_oDocSSTV.Send_TxImageAspect         -= OnTxImageAspect_SSTVDoc;
 
-				_wmTxImageChoice   .Dispose();
 				_wmTxViewChoices   .Dispose();
 				_wmTxImageComposite.Dispose();
 				_wmRxViewChoices   .Dispose();
@@ -279,8 +356,6 @@ namespace Play.SSTV {
         }
 
         public bool InitNew() {
-			if( !_wmTxImageChoice   .InitNew() )
-				return false;
 			if( !_wmTxViewChoices   .InitNew() )
 				return false;
 			if( !_wmTxImageComposite.InitNew() )
@@ -288,28 +363,19 @@ namespace Play.SSTV {
 			if( !_wmRxViewChoices   .InitNew() )
 				return false;
 
-            _oDocSSTV.PropertyChange             += OnPropertyChange_SSTVDoc;
             _oDocSSTV.TemplateList .CheckedEvent += OnCheckedEvent_TemplateList;
 			_oDocSSTV.TxModeList   .CheckedEvent += OnCheckedEvent_TxModeList;
             _oDocSSTV.RxHistoryList.ImageUpdated += OnImageUpdated_RxHistoryList;
 			_oDocSSTV.TxImageList  .ImageUpdated += OnImageUpdated_TxImageList;
-            _oDocSSTV.Send_TxImageAspect         += OnTxImageAspect_SSTVDoc;
-
-			_wmTxImageChoice.ToolSelect = 0; 
-			_wmTxImageChoice.Aspect     = _oDocSSTV.TxResolution;
-			_wmTxImageChoice.DragMode   = DragMode.FixedRatio;
 
 			InitTools();
-
-			_rgStaggaredLayout.Add(new LayoutControl( _wmTxImageComposite, LayoutRect.CSS.None) );
-			_rgStaggaredLayout.Add(new LayoutControl( _wmTxImageChoice,    LayoutRect.CSS.None) );
 
 			LayoutStack oHBLayout = new LayoutStackHorizontal( 220, 30 ) { Spacing = 5 };
 
 			oHBLayout.Add( new LayoutControl( _wmTxViewChoices, LayoutRect.CSS.Percent, 50 ) );
 			oHBLayout.Add( new LayoutControl( _wmRxViewChoices, LayoutRect.CSS.Percent, 50 ) );
 
-			_oLayout.Add( _rgStaggaredLayout );
+			_oLayout.Add( new LayoutControl( _wmTxImageComposite, LayoutRect.CSS.None) );
             _oLayout.Add( oHBLayout );
 
             OnSizeChanged( new EventArgs() );
@@ -317,7 +383,16 @@ namespace Play.SSTV {
 			return true;
         }
 
-		public void InitTools() {
+		protected override void OnSizeChanged(EventArgs e) {
+			base.OnSizeChanged(e);
+
+			_oLayout.SetRect( 0, 0, Width, Height );
+			_oLayout.LayoutChildren();
+
+            Invalidate();
+		}
+
+        public void InitTools() {
 			Dictionary< string, ToolInfo > rgIcons = new Dictionary<string, ToolInfo>();
 
 			rgIcons.Add( "Color",   new ToolInfo( "icons8-color-wheel-2-48.png", TransmitCommands.Color   ));
@@ -342,17 +417,35 @@ namespace Play.SSTV {
 			}
 		}
 
-        private void OnTxImageAspect_SSTVDoc(SKPointI skAspect ) {
-            _wmTxImageChoice.Aspect = skAspect;
-        }
+		protected void LogError( string strMsg ) {
+			_oSiteView.LogError( "Transmit Image", strMsg );
+		}
+
+		public bool RenderComposite() {
+			try {
+				if( Selection.IsEmpty() ) {
+					Selection.SetRect( LOCUS.UPPERLEFT, 0, 0,
+									   _oDocSSTV.TxImageList.Bitmap.Width,
+									   _oDocSSTV.TxImageList.Bitmap.Height );
+				}
+
+				return _oDocSSTV.RenderComposite( Selection.SKRect );
+			} catch( NullReferenceException ) {
+				LogError( "Try selecting an image first" );
+			}
+			return false;
+		}
 
         private void OnImageUpdated_RxHistoryList() {
             RenderComposite();
         }
 
         private void OnImageUpdated_TxImageList() {
-			_wmTxImageChoice.SelectAll();
-            RenderComposite();
+			try {
+				Selection.SetRect( 0, 0, _oDocSSTV.TxImageList.Bitmap.Width, _oDocSSTV.TxImageList.Bitmap.Height );
+				RenderComposite();
+			} catch ( NullReferenceException ) { 
+			}
         }
         protected SSTVMode SSTVModeSelection { 
 			get {
@@ -399,31 +492,19 @@ namespace Play.SSTV {
             return null;
         }
         private void OnCheckedEvent_TemplateList(Line oLineChecked) {
-            _oDocSSTV.TemplateSet( oLineChecked.At );
 			RenderComposite();
         }
 
 		protected void OnCheckedEvent_TxModeList( Line oLineChecked ) {
 			try {
-				_wmTxImageChoice.Aspect = _oDocSSTV.TxResolution;
-
 				_oDocSSTV.TemplateSet( oLineChecked.At );
 				RenderComposite();
 			} catch( NullReferenceException ) {
-				LogError( "Transmit", "Problem setting aspect for template" );
+				LogError( "Problem setting aspect for template" );
 			}
 		}
 
-        private void OnPropertyChange_SSTVDoc( SSTVEvents eProp ) {
-            switch( eProp ) {
-				// BUG: This is probably bubkus. Check it and remove.
-				case SSTVEvents.DownLoadTime:
-					_wmTxImageChoice.Invalidate();
-					break;
-			}
-        }
-
-        public  override bool Execute( Guid sGuid ) {
+        public bool Execute( Guid sGuid ) {
 			if( sGuid == GlobalCommands.Play ) {
                 if( SSTVModeSelection is SSTVMode oMode ) {
 					if( RenderComposite() ) {
@@ -457,26 +538,12 @@ namespace Play.SSTV {
                 _oDocSSTV.TxImageList.DirectoryNext( +1 );
                 return( true );
             }
-			if( sGuid == GlobalCommands.Delete ) {
-				if( _wmTxImageChoice.Focused ) {
-					_wmTxImageChoice.Execute( sGuid );
-				}
-			}
-			if( sGuid == GlobalCommands.Copy ) {
-				if( _wmTxImageChoice.Focused ) {
-					_wmTxImageChoice.Execute( sGuid );
-				}
-				//if( _wmTxImageComposite.Focused ) {
-				//	RenderComposite();
-				//	_oDocSSTV.TxBitmapComp.Execute( sGuid );
-				//}
-			}
 			// This is super cool but clunky.
 			if( sGuid == TransmitCommands.Color ) {
 				ShowColorDialog();
  			}
 			if( sGuid == TransmitCommands.Resize ) {
-				WindowImageResize oDialog = new ( new SSTVWinSlot( this, ChildID.RxWindow ) );
+				WindowImageResize oDialog = new ( new SSTVWinSlot( this, ChildID.RxWindow ), _oDocSSTV );
 				oDialog.InitNew();
 				oDialog.Show();
 			}
@@ -510,7 +577,7 @@ namespace Play.SSTV {
 		/// </summary>
 		public async void ShowColorDialog() {
 			if( _fColorDialogUp ) {
-				LogError( "Dialog", "Color Dialog is already open" );
+				LogError( "Color Dialog is already open" );
 				return;
 			}
 
@@ -547,7 +614,7 @@ namespace Play.SSTV {
 			_fColorDialogUp = false;
 		}
 
-        public override object Decorate( IPgViewSite oBaseSite, Guid sGuid ) {
+        public object Decorate( IPgViewSite oBaseSite, Guid sGuid ) {
 			if( sGuid.Equals(GlobalDecorations.Properties) ) {
 				return new ViewTxProperties( oBaseSite, _oDocSSTV.Properties );
 			}
@@ -572,52 +639,6 @@ namespace Play.SSTV {
 
         public bool Save(XmlDocumentFragment oStream) {
             return true;
-        }
-
-		protected bool RenderComposite() {
-			// sometimes we get events while we're sending. Let's block render for now.
-			if( _oDocSSTV.StateTx ) {
-				LogError( "Transmit", "Already Playing" );
-				return false;
-			}
-
-			SSTVMode oMode = _oDocSSTV.TransmitModeSelection;
-			if( oMode != null ) {
-				SKRectI rcComp = new SKRectI( 0, 0, oMode.Resolution.Width, oMode.Resolution.Height);
-				SKSizeI ptComp = new SKSizeI( oMode.Resolution.Width, oMode.Resolution.Height );
-				SKSizeI szDest = new SKSizeI( _wmTxImageChoice.Aspect.X, _wmTxImageChoice.Aspect.Y );
-
-				if( _wmTxImageChoice.Selection.IsEmpty() ) {
-					_wmTxImageChoice.Execute( GlobalCommands.SelectAll );
-				}
-
-				_oDocSSTV.TxBitmapSnip.Load( _oDocSSTV.TxBitmap, _wmTxImageChoice.Selection.SKRect, szDest ); 
-				_oDocSSTV.TxBitmapComp.Load( _oDocSSTV.TxBitmap, rcComp, ptComp ); // Render needs this, for now.
-
-				int iTemplate = _oDocSSTV.TemplateList.CheckedLine is Line oChecked ? oChecked.At : 0;
-
-				_oDocSSTV.TemplateSet( iTemplate );
-				_oDocSSTV.TxBitmapComp.RenderImage();
-
-				return true;
-			} else {
-				_oDocSSTV.TxBitmapSnip.BitmapDispose(); // TODO: I'd really like to have the error image up.
-				LogError( "Transmit", "Problem prepping template for transmit." );
-			}
-
-			return false;
-		}
-
-        protected override void BringChildToFront(ChildID eID) {
-			switch( eID ) {
-				case ChildID.TxImageComposite:
-					RenderComposite();
-					_wmTxImageComposite.BringToFront();
-					break;
-				case ChildID.TxImageChoice:
-					_wmTxImageChoice.BringToFront();
-					break;
-			}
         }
     }
 
