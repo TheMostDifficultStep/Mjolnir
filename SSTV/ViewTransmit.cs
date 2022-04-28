@@ -246,6 +246,7 @@ namespace Play.SSTV {
 
 		protected bool     _fColorDialogUp = false;
 		public SmartRect Selection { get; } = new SmartRect();
+		public SKSizeI   Destination { get; set; } = new SKSizeI();
 
         public string Banner {
 			get { 
@@ -402,12 +403,12 @@ namespace Play.SSTV {
 
 			rgIcons.Add( "Color",   new ToolInfo( "icons8-color-wheel-2-48.png", TransmitCommands.Color   ));
 			rgIcons.Add( "Move",    new ToolInfo( "icons8-move-48.png",		     TransmitCommands.Move    ));
+			rgIcons.Add( "Resize",  new ToolInfo( "icons8-resize-100.png",       TransmitCommands.Resize  ));
 			rgIcons.Add( "Text",    new ToolInfo( "icons8-text-64.png",		     TransmitCommands.Text    ));
 			rgIcons.Add( "Gallery", new ToolInfo( "icons8-gallery-64.png",		 TransmitCommands.Gallary ));
 			rgIcons.Add( "PnP",     new ToolInfo( "icons8-download-64.png",	     TransmitCommands.PnP     ));
 			rgIcons.Add( "Main",    new ToolInfo( "icons8-measure-64.png",       TransmitCommands.Main    ));
 			rgIcons.Add( "Mode",    new ToolInfo( "icons8-audio-wave-48.png",    TransmitCommands.Mode    ));
-			rgIcons.Add( "Resize",  new ToolInfo( "icons8-resize-100.png",       TransmitCommands.Resize  ));
 
 			foreach( KeyValuePair<string,ToolInfo> oPair in rgIcons ) {
 				Line     oLine = _rgToolIcons.LineAppend( oPair.Key, false );
@@ -428,13 +429,7 @@ namespace Play.SSTV {
 
 		public bool RenderComposite() {
 			try {
-				if( Selection.IsEmpty() ) {
-					Selection.SetRect( LOCUS.UPPERLEFT, 0, 0,
-									   _oDocSSTV.TxImageList.Bitmap.Width,
-									   _oDocSSTV.TxImageList.Bitmap.Height );
-				}
-
-				return _oDocSSTV.RenderComposite( Selection.SKRect );
+				return _oDocSSTV.RenderComposite( Destination, Selection.SKRect );
 			} catch( NullReferenceException ) {
 				LogError( "Try selecting an image first" );
 			}
@@ -548,6 +543,9 @@ namespace Play.SSTV {
 				ShowColorDialog();
  			}
 			if( sGuid == TransmitCommands.Resize ) {
+				// This doesn't prevent us from opening another, but it's not a big deal
+				// and I think I can live with it for now. TODO: Check if close ok even if
+				// the dialog is open.
 				WindowImageResize oDialog = new ( new SSTVWinSlot( this, ChildID.RxWindow ), _oDocSSTV );
 				oDialog.InitNew();
 				oDialog.Show();

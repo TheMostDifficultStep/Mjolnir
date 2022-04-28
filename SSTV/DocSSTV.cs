@@ -1127,7 +1127,7 @@ namespace Play.SSTV {
 			}
 		}
 
-		public bool RenderComposite( SKRectI rctSrcSelection ) {
+		public bool RenderComposite( SKSizeI skDest, SKRectI rctSrcSelection ) {
 			// sometimes we get events while we're sending. Let's block render for now.
 			if( StateTx ) {
 				LogError( "Already Playing" );
@@ -1136,11 +1136,20 @@ namespace Play.SSTV {
 
 			SSTVMode oMode = TransmitModeSelection;
 			if( oMode != null ) {
-				SKRectI rcComp = new SKRectI( 0, 0, oMode.Resolution.Width, oMode.Resolution.Height);
-				SKSizeI ptComp = new SKSizeI( oMode.Resolution.Width, oMode.Resolution.Height );
+				SKRectI rcComposition = new SKRectI( 0, 0, oMode.Resolution.Width, oMode.Resolution.Height);
+				SKSizeI szComposition = new SKSizeI( oMode.Resolution.Width, oMode.Resolution.Height );
 
-				TxBitmapSnip.Load( TxBitmap, rctSrcSelection, ptComp ); 
-				TxBitmapComp.Load( TxBitmap, rcComp, ptComp ); // Render needs this, for now.
+			    if( rctSrcSelection.IsEmpty ) {
+				    rctSrcSelection = new SKRectI( 0, 0,
+									               TxImageList.Bitmap.Width,
+									               TxImageList.Bitmap.Height );
+			    }
+			    if( skDest.IsEmpty ) {
+				    skDest = szComposition;
+			    }
+
+				TxBitmapSnip.Load( TxBitmap, rctSrcSelection, skDest ); 
+				TxBitmapComp.Load( TxBitmap, rcComposition, szComposition ); // Render needs this, for now.
 
 				int iTemplate = TemplateList.CheckedLine is Line oChecked ? oChecked.At : 0;
 
