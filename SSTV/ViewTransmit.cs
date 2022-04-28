@@ -209,6 +209,11 @@ namespace Play.SSTV {
 
     }
 
+	/// <summary>
+	/// This window supports a popup image selector, to select the portion of an
+	/// image you wish to show. If you don't use it just the current image filling
+	/// the screen is shown.
+	/// </summary>
     public class ViewTransmitDeluxe : 
 		SKControl,
 		IPgParent,
@@ -227,10 +232,9 @@ namespace Play.SSTV {
         public IPgParent Parentage => _oSiteView.Host;
         public IPgParent Services  => Parentage.Services;
         public SKBitmap	 Icon    { get; protected set; }
-		public Image Iconic => null;
+		public Image     Iconic    => null;
         public bool		 IsDirty   => false;
-
-        public    Guid   Catagory => GUID;
+        public    Guid   Catagory  => GUID;
         protected string IconResource => "Play.SSTV.Content.icons8_camera.png";
 
 		protected readonly ImageViewSingle    _wmTxImageComposite;
@@ -336,7 +340,6 @@ namespace Play.SSTV {
 			_wmRxViewChoices   .Parent = this;
 
 			_rgToolIcons = new Editor( new SSTVWinSlot( this, ChildID.None ) );
-
 		}
 
         protected override void Dispose( bool fDisposing ) {
@@ -375,8 +378,10 @@ namespace Play.SSTV {
 			oHBLayout.Add( new LayoutControl( _wmTxViewChoices, LayoutRect.CSS.Percent, 50 ) );
 			oHBLayout.Add( new LayoutControl( _wmRxViewChoices, LayoutRect.CSS.Percent, 50 ) );
 
-			_oLayout.Add( new LayoutControl( _wmTxImageComposite, LayoutRect.CSS.None) );
-            _oLayout.Add( oHBLayout );
+			_oLayout .Add( new LayoutControl( _wmTxImageComposite, LayoutRect.CSS.None) );
+            _oLayout .Add( oHBLayout );
+
+			RenderComposite();
 
             OnSizeChanged( new EventArgs() );
 
@@ -389,7 +394,7 @@ namespace Play.SSTV {
 			_oLayout.SetRect( 0, 0, Width, Height );
 			_oLayout.LayoutChildren();
 
-            Invalidate();
+            //Invalidate();
 		}
 
         public void InitTools() {
