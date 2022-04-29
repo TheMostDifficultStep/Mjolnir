@@ -237,7 +237,7 @@ namespace Play.SSTV {
         public    Guid   Catagory  => GUID;
         protected string IconResource => "Play.SSTV.Content.icons8_camera.png";
 
-		protected readonly ImageViewSingle    _wmTxImageComposite;
+		protected readonly ImageViewSingle    _wmTxImageComposite; 
 		protected readonly ImageViewIcons     _wmTxViewChoices;
 		protected readonly ImageViewIcons     _wmRxViewChoices;
 
@@ -245,9 +245,6 @@ namespace Play.SSTV {
 		protected          int    _iToolSelected = -1;
 
 		protected bool     _fColorDialogUp = false;
-		public SmartRect Selection { get; } = new SmartRect();
-		public SKSizeI   Destination { get; set; } = new SKSizeI();
-
         public string Banner {
 			get { 
 				StringBuilder sbBanner = new StringBuilder();
@@ -345,11 +342,6 @@ namespace Play.SSTV {
 
         protected override void Dispose( bool fDisposing ) {
 			if( fDisposing && !_fDisposed ) {
-				_oDocSSTV.TemplateList .CheckedEvent -= OnCheckedEvent_TemplateList;
-				_oDocSSTV.TxModeList   .CheckedEvent -= OnCheckedEvent_TxModeList;
-				_oDocSSTV.RxHistoryList.ImageUpdated -= OnImageUpdated_RxHistoryList;
-				_oDocSSTV.TxImageList  .ImageUpdated -= OnImageUpdated_TxImageList;
-
 				_wmTxViewChoices   .Dispose();
 				_wmTxImageComposite.Dispose();
 				_wmRxViewChoices   .Dispose();
@@ -367,11 +359,6 @@ namespace Play.SSTV {
 			if( !_wmRxViewChoices   .InitNew() )
 				return false;
 
-            _oDocSSTV.TemplateList .CheckedEvent += OnCheckedEvent_TemplateList;
-			_oDocSSTV.TxModeList   .CheckedEvent += OnCheckedEvent_TxModeList;
-            _oDocSSTV.RxHistoryList.ImageUpdated += OnImageUpdated_RxHistoryList;
-			_oDocSSTV.TxImageList  .ImageUpdated += OnImageUpdated_TxImageList;
-
 			InitTools();
 
 			LayoutStack oHBLayout = new LayoutStackHorizontal( 220, 30 ) { Spacing = 5 };
@@ -382,14 +369,12 @@ namespace Play.SSTV {
 			_oLayout .Add( new LayoutControl( _wmTxImageComposite, LayoutRect.CSS.None) );
             _oLayout .Add( oHBLayout );
 
-			RenderComposite();
-
             OnSizeChanged( new EventArgs() );
 
 			return true;
         }
 
-		protected override void OnSizeChanged(EventArgs e) {
+        protected override void OnSizeChanged(EventArgs e) {
 			base.OnSizeChanged(e);
 
 			_oLayout.SetRect( 0, 0, Width, Height );
@@ -427,26 +412,6 @@ namespace Play.SSTV {
 			_oSiteView.LogError( "Transmit Image", strMsg );
 		}
 
-		public bool RenderComposite() {
-			try {
-				return _oDocSSTV.RenderComposite( Destination, Selection.SKRect );
-			} catch( NullReferenceException ) {
-				LogError( "Try selecting an image first" );
-			}
-			return false;
-		}
-
-        private void OnImageUpdated_RxHistoryList() {
-            RenderComposite();
-        }
-
-        private void OnImageUpdated_TxImageList() {
-			try {
-				Selection.SetRect( 0, 0, _oDocSSTV.TxImageList.Bitmap.Width, _oDocSSTV.TxImageList.Bitmap.Height );
-				RenderComposite();
-			} catch ( NullReferenceException ) { 
-			}
-        }
         protected SSTVMode SSTVModeSelection { 
 			get {
                 if( _oDocSSTV.TxModeList.CheckedLine == null )
@@ -491,23 +456,11 @@ namespace Play.SSTV {
         public Image ToolIcon(int iTool) {
             return null;
         }
-        private void OnCheckedEvent_TemplateList(Line oLineChecked) {
-			RenderComposite();
-        }
-
-		protected void OnCheckedEvent_TxModeList( Line oLineChecked ) {
-			try {
-				_oDocSSTV.TemplateSet( oLineChecked.At );
-				RenderComposite();
-			} catch( NullReferenceException ) {
-				LogError( "Problem setting aspect for template" );
-			}
-		}
 
         public bool Execute( Guid sGuid ) {
 			if( sGuid == GlobalCommands.Play ) {
                 if( SSTVModeSelection is SSTVMode oMode ) {
-					if( RenderComposite() ) {
+					if( _oDocSSTV.RenderComposite() ) {
 						_oDocSSTV.TransmitBegin( oMode ); 
 					}
 				}
@@ -613,7 +566,7 @@ namespace Play.SSTV {
 
 			if(fResult == true ) {
 				_oDocSSTV.ForeColor = skResult;
-				RenderComposite();
+				_oDocSSTV.RenderComposite();
 			}
 			_fColorDialogUp = false;
 		}

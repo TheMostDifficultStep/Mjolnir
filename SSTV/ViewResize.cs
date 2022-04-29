@@ -153,10 +153,9 @@ namespace Play.SSTV {
 				_wnTxImageChoice.Execute( GlobalCommands.SelectAll );
 			}
 
-            _oParent.Selection.Copy = _wnTxImageChoice.Selection;
-            _oParent.Destination    = new SKSizeI( _wnTxImageChoice.Aspect.X, _wnTxImageChoice.Aspect.Y );
+            _oDocSSTV.Selection.Copy = _wnTxImageChoice.Selection;
 
-            _oParent.RenderComposite();
+            _oDocSSTV.RenderComposite();
 
 			_oDocSSTV.TxModeList.CheckedEvent -= OnCheckedEvent_TxModeList;
             _oDocSSTV.Send_TxImageAspect      -= OnTxImageAspect_SSTVDoc;
@@ -190,6 +189,10 @@ namespace Play.SSTV {
 
         private void OnTxImageAspect_SSTVDoc( SKPointI skAspect ) {
             _wnTxImageChoice.Aspect = skAspect;
+
+			if( _wnTxImageChoice.Selection.IsEmpty() ) {
+				_wnTxImageChoice.Execute( GlobalCommands.SelectAll );
+			}
         }
 
 		protected void OnCheckedEvent_TxModeList( Line oLineChecked ) {
@@ -200,8 +203,9 @@ namespace Play.SSTV {
 				    _wnTxImageChoice.Execute( GlobalCommands.SelectAll );
 			    }
 
-                SKSizeI skSize = new SKSizeI( _wnTxImageChoice.Aspect.X, _wnTxImageChoice.Aspect.Y );
-			    _oDocSSTV.RenderComposite( skSize, _wnTxImageChoice.Selection.SKRect );
+                _oDocSSTV.Selection.Copy = _wnTxImageChoice.Selection;
+
+			    _oDocSSTV.RenderComposite();
             } catch( NullReferenceException ) {
             }
 		}

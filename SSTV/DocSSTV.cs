@@ -256,6 +256,8 @@ namespace Play.SSTV {
         public DocSSTVMode StateRx { get; protected set; }
 
         public event Action<SKPointI> Send_TxImageAspect;
+        protected SKSizeI Destination { get; set; } = new SKSizeI();
+
 
         /// <summary>
         /// This editor shows the list of modes we can modulate.
@@ -309,6 +311,8 @@ namespace Play.SSTV {
 		protected readonly IPgRoundRobinWork _oWorkPlace;
         protected readonly IPgStandardUI2    _oStdUI;
         protected          DateTime          _dtLastTime;
+        public SmartRect Selection { get; } = new SmartRect();
+
 
         public IPgParent Parentage => _oSiteBase.Host;
         public IPgParent Services  => Parentage;
@@ -400,6 +404,9 @@ namespace Play.SSTV {
 
                     RxHistoryList.ImageUpdated -= OnImageUpdated_RxHistoryList;
                     TxImageList  .ImageUpdated -= OnImageUpdated_TxImageList;
+                    RxModeList   .CheckedEvent -= OnCheckedEvent_RxModeList;
+                    TxModeList   .CheckedEvent -= OnCheckedEvent_TxModeList;
+                    TemplateList .CheckedEvent -= OnCheckedEvent_TemplateList;
                 }
 
                 // TODO: free unmanaged resources (unmanaged objects) and override finalizer
@@ -585,11 +592,6 @@ namespace Play.SSTV {
             if( !Properties.InitNew() )
                 return false;
 
-            // Get these set up so our stdproperties get the updates.
-            TxImageList  .ImageUpdated += OnImageUpdated_TxImageList;
-            RxHistoryList.ImageUpdated += OnImageUpdated_RxHistoryList;
-            RxModeList   .CheckedEvent += OnCheckedEvent_RxModeList;
-
             TemplateList.LineAppend( "PnP Reply" );
             TemplateList.LineAppend( "General Msg" );
             TemplateList.LineAppend( "General Msg Pnp" );
@@ -622,13 +624,18 @@ namespace Play.SSTV {
             // call Listen_ModeChanged and that calls the properties update event.
             RxModeList.CheckedLine = RxModeList[0];
 
+            // Get these set up so our stdproperties get the updates.
+            TxImageList  .ImageUpdated += OnImageUpdated_TxImageList;
+            RxHistoryList.ImageUpdated += OnImageUpdated_RxHistoryList;
+            RxModeList   .CheckedEvent += OnCheckedEvent_RxModeList;
+            TxModeList   .CheckedEvent += OnCheckedEvent_TxModeList;
+            TemplateList .CheckedEvent += OnCheckedEvent_TemplateList;
+
+            RenderComposite();
+
             _oWorkPlace.Queue( CreateTaskReceiver(), Timeout.Infinite );
 
             return true;
-        }
-
-        private void OnCheckedEvent_RxModeList(Line oLineChecked) {
-            _rgUItoBGQueue.Enqueue( new TVMessage( TVMessage.Message.TryNewMode, oLineChecked.Extra ) );
         }
 
         public void PostBGMessage( TVMessage.Message msg ) {
@@ -806,8 +813,12 @@ namespace Play.SSTV {
 
         /// <summary>
         /// BUG: This is a bummer but, I use a point for the aspect ratio in my
-        /// SmartRect code. It should be a SKPointI too. I'll fix that later.
+        /// SmartRect code. It should be a SKSizeI too. I'll fix that later.
         /// </summary>
+        /// <remarks>Aspect for the main image is related to layout. So this isn't
+        /// really right when a layout carves up the image space. Need to work on that.
+        /// I'm having a chicken and egg problem with the layout needing the bitmap
+        /// but I can't create the bitmap until I have the layout! -_-;; </remarks>
         public SKPointI TxResolution {
             get {
                 try {
@@ -816,12 +827,23 @@ namespace Play.SSTV {
                 } catch( NullReferenceException ) {
                     LogError( "Problem finding SSTVMode. Using default." );
                 }
-                return new SKPointI( 320, 240 );
+                return new SKPointI( 320, 256 );
             }
         }
 
         private void OnImageUpdated_TxImageList() {
+			Selection.SetRect( 0, 0, TxImageList.Bitmap.Width, TxImageList.Bitmap.Height );
+            RenderComposite();
             Properties.RaiseBufferEvent();
+        }
+
+        private void OnCheckedEvent_TxModeList(Line oLineChecked) {
+            Destination = new SKSizeI( TxResolution.X, TxResolution.Y );
+            RenderComposite();
+        }
+
+        private void OnCheckedEvent_TemplateList(Line oLineChecked) {
+            RenderComposite();
         }
 
         /// <summary>
@@ -834,6 +856,11 @@ namespace Play.SSTV {
             if( StateRx == DocSSTVMode.DeviceRead ) {
                 _rgUItoBGQueue.Enqueue( new TVMessage( TVMessage.Message.ChangeDirectory, RxHistoryList.CurrentDirectory ) );
             }
+            RenderComposite();
+        }
+
+        private void OnCheckedEvent_RxModeList(Line oLineChecked) {
+            _rgUItoBGQueue.Enqueue( new TVMessage( TVMessage.Message.TryNewMode, oLineChecked.Extra ) );
         }
 
         /// <summary>
@@ -887,11 +914,15 @@ namespace Play.SSTV {
 						TxBitmapComp.AddImage( LOCUS.CENTER,      0,  0, 100.0, TxBitmapSnip );
 						TxBitmapComp.AddText ( LOCUS.UPPERLEFT,   5,  5,  17.0, TxBitmapComp.StdFace, ForeColor, strMessage );
 						TxBitmapComp.AddImage( LOCUS.LOWERRIGHT, 10, 10,  40.0, RxHistoryList );
+
+                        Destination = new SKSizeI( oMode.Resolution.Width, oMode.Resolution.Height );
                         Send_TxImageAspect?.Invoke( new SKPointI( oMode.Resolution.Width, oMode.Resolution.Height ) );
 						break;
 					case 1: // General Message
 						TxBitmapComp.AddImage( LOCUS.CENTER,      0,  0, 100.0, TxBitmapSnip );
 						TxBitmapComp.AddText ( LOCUS.UPPERLEFT,   5,  5,  20.0, TxBitmapComp.StdFace, ForeColor, Message );
+
+                        Destination = new SKSizeI( oMode.Resolution.Width, oMode.Resolution.Height );
                         Send_TxImageAspect?.Invoke( new SKPointI( oMode.Resolution.Width, oMode.Resolution.Height ) );
 						break;
                     case 2: // General Message PnP
@@ -899,6 +930,7 @@ namespace Play.SSTV {
 						TxBitmapComp.AddText ( LOCUS.UPPERLEFT,   5,  5,  15.0, TxBitmapComp.StdFace, ForeColor, Message );
 						TxBitmapComp.AddImage( LOCUS.LOWERRIGHT, 10, 10,  40.0, RxHistoryList );
 
+                        Destination = new SKSizeI( oMode.Resolution.Width, oMode.Resolution.Height );
                         Send_TxImageAspect?.Invoke( new SKPointI( oMode.Resolution.Width, oMode.Resolution.Height ) );
                         break;
                     case 3:
@@ -978,15 +1010,16 @@ namespace Play.SSTV {
 
             oStack.Add( oHoriz );
 
-            LayoutImage oImage = new LayoutImage( TxBitmapSnip.Bitmap, LayoutRect.CSS.None );
-            oStack.Add( oImage );
+            LayoutImage lyImage = new LayoutImage( TxBitmapSnip.Bitmap, LayoutRect.CSS.None );
+            oStack.Add( lyImage );
 
             // Need this to calc image aspect to bubble up.
             oStack.SetRect( 0, 0, oMode.Resolution.Width, oMode.Resolution.Height );
             oStack.LayoutChildren();
                             
             // After the layout send the aspect out to the listeners. In case we want to re-select.
-            Send_TxImageAspect?.Invoke( new SKPointI( oImage.Width, oImage.Height ) );
+            Destination = new SKSizeI( lyImage.Width, lyImage.Height );
+            Send_TxImageAspect?.Invoke( new SKPointI( lyImage.Width, lyImage.Height ) );
 
             TxBitmapComp.AddLayout( oStack );
         }
@@ -1030,6 +1063,7 @@ namespace Play.SSTV {
             oStack.LayoutChildren();
                             
             // After the layout send the aspect out to the listeners. In case we want to re-select.
+            Destination = new SKSizeI( oImage.Width, oImage.Height );
             Send_TxImageAspect?.Invoke( new SKPointI( oImage.Width, oImage.Height ) );
 
             TxBitmapComp.AddLayout( oStack );
@@ -1117,8 +1151,12 @@ namespace Play.SSTV {
 
 		public SSTVMode TransmitModeSelection { 
 			get {
-                if( TxModeList.CheckedLine == null )
-                    TxModeList.CheckedLine = TxModeList[RxModeList.CheckedLine.At];
+                if( TxModeList.CheckedLine == null ) {
+                    if( RxModeList.CheckedLine == null )
+                        TxModeList.CheckedLine = TxModeList[0];
+                    else
+                        TxModeList.CheckedLine = TxModeList[RxModeList.CheckedLine.At];
+                }
 
                 if( TxModeList.CheckedLine.Extra is SSTVMode oMode )
 					return oMode;
@@ -1127,7 +1165,7 @@ namespace Play.SSTV {
 			}
 		}
 
-		public bool RenderComposite( SKSizeI skDest, SKRectI rctSrcSelection ) {
+		public bool RenderComposite() {
 			// sometimes we get events while we're sending. Let's block render for now.
 			if( StateTx ) {
 				LogError( "Already Playing" );
@@ -1139,16 +1177,17 @@ namespace Play.SSTV {
 				SKRectI rcComposition = new SKRectI( 0, 0, oMode.Resolution.Width, oMode.Resolution.Height);
 				SKSizeI szComposition = new SKSizeI( oMode.Resolution.Width, oMode.Resolution.Height );
 
-			    if( rctSrcSelection.IsEmpty ) {
-				    rctSrcSelection = new SKRectI( 0, 0,
+			    if( Selection.IsEmpty() ) {
+				    Selection.SetRect ( 0, 0,
 									               TxImageList.Bitmap.Width,
 									               TxImageList.Bitmap.Height );
 			    }
-			    if( skDest.IsEmpty ) {
-				    skDest = szComposition;
+			    if( Destination.IsEmpty ) {
+				    Destination = new SKSizeI( Selection.Width,
+									           Selection.Height );
 			    }
 
-				TxBitmapSnip.Load( TxBitmap, rctSrcSelection, skDest ); 
+				TxBitmapSnip.Load( TxBitmap, Selection.SKRect, Destination ); 
 				TxBitmapComp.Load( TxBitmap, rcComposition, szComposition ); // Render needs this, for now.
 
 				int iTemplate = TemplateList.CheckedLine is Line oChecked ? oChecked.At : 0;
