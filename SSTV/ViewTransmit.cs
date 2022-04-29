@@ -4,6 +4,8 @@ using System.Collections.Generic;
 using System.Text;
 using System.Windows.Forms;
 using System.Threading.Tasks;
+using System.Drawing;
+using System.Reflection;
 
 using SkiaSharp;
 using SkiaSharp.Views.Desktop;
@@ -15,7 +17,7 @@ using Play.Edit;
 using Play.ImageViewer;
 using Play.Sound;
 using Play.Forms;
-using System.Drawing;
+using Play.Drawing;
 
 namespace Play.SSTV {
     /// <summary>
@@ -338,6 +340,7 @@ namespace Play.SSTV {
 			_wmRxViewChoices   .Parent = this;
 
 			_rgToolIcons = new Editor( new SSTVWinSlot( this, ChildID.None ) );
+			Icon = SKImageResourceHelper.GetImageResource( Assembly.GetExecutingAssembly(), IconResource );
 		}
 
         protected override void Dispose( bool fDisposing ) {
