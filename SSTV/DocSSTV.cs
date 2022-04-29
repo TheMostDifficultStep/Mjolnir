@@ -256,8 +256,11 @@ namespace Play.SSTV {
         public DocSSTVMode StateRx { get; protected set; }
 
         public event Action<SKPointI> Send_TxImageAspect;
+        // Cheat for special layouts. Still working on this.
         protected SKSizeI Destination { get; set; } = new SKSizeI();
-
+        // Shared selection. Last view to change it wins but I
+        // expect only the resize view to attempt to change this.
+        public SmartRect Selection { get; } = new SmartRect();
 
         /// <summary>
         /// This editor shows the list of modes we can modulate.
@@ -311,7 +314,7 @@ namespace Play.SSTV {
 		protected readonly IPgRoundRobinWork _oWorkPlace;
         protected readonly IPgStandardUI2    _oStdUI;
         protected          DateTime          _dtLastTime;
-        public SmartRect Selection { get; } = new SmartRect();
+
 
 
         public IPgParent Parentage => _oSiteBase.Host;

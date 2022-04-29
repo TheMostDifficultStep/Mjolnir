@@ -205,6 +205,9 @@ namespace Play.SSTV {
 
                 _oDocSSTV.Selection.Copy = _wnTxImageChoice.Selection;
 
+                // We don't know when the form will get it's OnCheckedEvent
+                // But if it get's it before us and Renders's we want it to
+                // do so again since we're changing the selection.
 			    _oDocSSTV.RenderComposite();
             } catch( NullReferenceException ) {
             }
