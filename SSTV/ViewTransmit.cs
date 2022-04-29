@@ -366,8 +366,8 @@ namespace Play.SSTV {
 
 			LayoutStack oHBLayout = new LayoutStackHorizontal( 220, 30 ) { Spacing = 5 };
 
-			oHBLayout.Add( new LayoutControl( _wmTxViewChoices, LayoutRect.CSS.Percent, 50 ) );
-			oHBLayout.Add( new LayoutControl( _wmRxViewChoices, LayoutRect.CSS.Percent, 50 ) );
+			oHBLayout.Add( new LayoutControl( _wmTxViewChoices, LayoutRect.CSS.Percent, 70 ) );
+			oHBLayout.Add( new LayoutControl( _wmRxViewChoices, LayoutRect.CSS.Percent, 30 ) );
 
 			_oLayout .Add( new LayoutControl( _wmTxImageComposite, LayoutRect.CSS.None) );
             _oLayout .Add( oHBLayout );
