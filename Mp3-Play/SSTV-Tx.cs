@@ -654,10 +654,10 @@ namespace Play.Sound {
             // these numbers come from https://www.classicsstv.com/pdmodes.php G4IJE the inventor.
  	        rgModes.Add( new SSTVModePD( 0xdd, "PD  50",   91.520, new SKSizeI( 320, 256 ), AllModes.smPD50  )); // see SSTV-Handbook.
             rgModes.Add( new SSTVModePD( 0x63, "PD  90",  170.240, new SKSizeI( 320, 256 ), AllModes.smPD90  )); // Only reliable one.
-            rgModes.Add( new SSTVModePD( 0x5f, "PD 120",  121.600, new SKSizeI( 640, 496 ), AllModes.smPD120 )); 
+            rgModes.Add( new SSTVModePD( 0x5f, "PD 120",  121.600, new SKSizeI( 640, 512 ), AllModes.smPD120 )); 
             rgModes.Add( new SSTVModePD( 0xe2, "PD 160",  195.584, new SKSizeI( 512, 384 ), AllModes.smPD160 )); 
-            rgModes.Add( new SSTVModePD( 0x60, "PD 180",  183.040, new SKSizeI( 640, 496 ), AllModes.smPD180 ));
-            rgModes.Add( new SSTVModePD( 0xe1, "PD 240",  244.480, new SKSizeI( 640, 496 ), AllModes.smPD240 )); 
+            rgModes.Add( new SSTVModePD( 0x60, "PD 180",  183.040, new SKSizeI( 640, 512 ), AllModes.smPD180 ));
+            rgModes.Add( new SSTVModePD( 0xe1, "PD 240",  244.480, new SKSizeI( 640, 512 ), AllModes.smPD240 )); 
             rgModes.Add( new SSTVModePD( 0xde, "PD 290",  228.800, new SKSizeI( 800, 600 ), AllModes.smPD290 )); // see SSTV-handbook.
 
             foreach( SSTVModePD oMode in rgModes ) {
