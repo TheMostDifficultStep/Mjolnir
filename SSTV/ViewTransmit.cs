@@ -58,8 +58,7 @@ namespace Play.SSTV {
 
 	/// <summary>
 	/// This is a old view so we can select a transmit image. Basically a slightly
-	/// motified directory viewer. I'm going to leave it, in case I need a simplified
-	/// veiwer for some reason.
+	/// motified directory viewer. 
 	/// </summary>
 	public class ViewTransmitSolo: 
 		WindowSoloImageNav 
@@ -164,16 +163,19 @@ namespace Play.SSTV {
 
     public static class TransmitCommands {
         // Clipboard functions
-        public static readonly Guid Color   = new Guid( "{B3198F66-7698-4DFB-8B31-9643372B2B3E}" );
-        public static readonly Guid Move    = new Guid( "{179898AD-1823-4F0E-BF27-11456C1EA8C8}" );
-        public static readonly Guid Text    = new Guid( "{C7F1DADB-A0A4-479C-B193-B38AFAEE5AB6}" );
-        public static readonly Guid Gallary = new Guid( "{94975898-5AC1-427C-85CD-9E516646115D}" );
-        public static readonly Guid PnP     = new Guid( "{A1BB369C-4E73-4248-A6E1-07C5466C818C}" );
-	  //public static readonly Guid Main    = new Guid( "{FE683CA1-1068-4BA0-A84E-CFE35900A06E}" );
-        public static readonly Guid Mode    = new Guid( "{56797520-C603-417C-858A-EF532E0652D2}" );
-		public static readonly Guid Resize  = new Guid( "{84F921E1-BFB5-4BD7-9814-C53D48C90D1E}" );
+        public static readonly Guid Color     = new Guid( "{B3198F66-7698-4DFB-8B31-9643372B2B3E}" );
+        public static readonly Guid Move      = new Guid( "{179898AD-1823-4F0E-BF27-11456C1EA8C8}" );
+        public static readonly Guid Text      = new Guid( "{C7F1DADB-A0A4-479C-B193-B38AFAEE5AB6}" );
+        public static readonly Guid Gallary   = new Guid( "{94975898-5AC1-427C-85CD-9E516646115D}" );
+        public static readonly Guid PnP       = new Guid( "{A1BB369C-4E73-4248-A6E1-07C5466C818C}" );
+	    public static readonly Guid Templates = new Guid( "{FE683CA1-1068-4BA0-A84E-CFE35900A06E}" );
+        public static readonly Guid Mode      = new Guid( "{56797520-C603-417C-858A-EF532E0652D2}" );
+		public static readonly Guid Resize    = new Guid( "{84F921E1-BFB5-4BD7-9814-C53D48C90D1E}" );
 	}
 	
+	/// <summary>
+	/// This is the Toolbar adornment.
+	/// </summary>
 	public class WinTransmitTools : ButtonBar {
 		IPgTools _oTools;
 		public WinTransmitTools( IPgViewSite oSite, Editor oDoc, IPgTools oTools ) : base( oSite, oDoc ) {
@@ -389,14 +391,14 @@ namespace Play.SSTV {
         public void InitTools() {
 			Dictionary< string, ToolInfo > rgIcons = new Dictionary<string, ToolInfo>();
 
-			rgIcons.Add( "Color",   new ToolInfo( "icons8-color-wheel-2-48.png", TransmitCommands.Color   ));
-			rgIcons.Add( "Move",    new ToolInfo( "icons8-move-48.png",		     TransmitCommands.Move    ));
-			rgIcons.Add( "Resize",  new ToolInfo( "icons8-resize-100.png",       TransmitCommands.Resize  ));
-			rgIcons.Add( "Text",    new ToolInfo( "icons8-text-64.png",		     TransmitCommands.Text    ));
-			rgIcons.Add( "Gallery", new ToolInfo( "icons8-gallery-64.png",		 TransmitCommands.Gallary ));
-			rgIcons.Add( "PnP",     new ToolInfo( "icons8-download-64.png",	     TransmitCommands.PnP     ));
-		  //rgIcons.Add( "Main",    new ToolInfo( "icons8-measure-64.png",       TransmitCommands.Main    ));
-			rgIcons.Add( "Mode",    new ToolInfo( "icons8-audio-wave-48.png",    TransmitCommands.Mode    ));
+			rgIcons.Add( "Color",     new ToolInfo( "icons8-color-wheel-2-48.png", TransmitCommands.Color   ));
+			rgIcons.Add( "Move",      new ToolInfo( "icons8-move-48.png",		   TransmitCommands.Move    ));
+			rgIcons.Add( "Resize",    new ToolInfo( "icons8-resize-100.png",       TransmitCommands.Resize  ));
+			rgIcons.Add( "Text",      new ToolInfo( "icons8-text-64.png",		   TransmitCommands.Text    ));
+			rgIcons.Add( "Gallery",   new ToolInfo( "icons8-gallery-64.png",	   TransmitCommands.Gallary ));
+			rgIcons.Add( "PnP",       new ToolInfo( "icons8-download-64.png",	   TransmitCommands.PnP     ));
+		    rgIcons.Add( "Templates", new ToolInfo( "icons8-measure-64.png",       TransmitCommands.Templates ));
+			rgIcons.Add( "Mode",      new ToolInfo( "icons8-audio-wave-48.png",    TransmitCommands.Mode    ));
 
 			foreach( KeyValuePair<string,ToolInfo> oPair in rgIcons ) {
 				Line     oLine = _rgToolIcons.LineAppend( oPair.Key, false );
@@ -583,6 +585,7 @@ namespace Play.SSTV {
 			}
 			if( sGuid.Equals( GlobalDecorations.Options ) ) {
 				return new CheckList( oBaseSite, _oDocSSTV.TemplateList ) { ReadOnly = true }; // We'll be read/write in the future.
+				//return new ToolWins( oBaseSite, this );
 			}
 			if( sGuid.Equals( GlobalDecorations.ToolIcons ) ) {
 				return new WinTransmitTools( oBaseSite, _rgToolIcons, this );

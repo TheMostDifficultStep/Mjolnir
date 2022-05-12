@@ -27,7 +27,8 @@ namespace Mjolnir {
         Left,
         Right,
         Bottom,
-        Tools
+        Tools,
+        Options, // Tool Options, I'll probably depricate the old options decor.
     }
 
     /// <summary>
@@ -328,13 +329,17 @@ namespace Mjolnir {
             oTabs.InitNew();
 
             // Set up our primary layout here...
+            LayoutStackVertical   oInner  = new() { Spacing = 5 };
             LayoutStackHorizontal oCenter = new() { Spacing = 5 }; // { CSS = None }
+
+            oInner.Add( _rgSideInfo[SideIdentify.Options] ); 
+            oInner.Add( new LayoutGrab( LayoutRect.CSS.None, _rcFrame ) ); 
 
             oCenter.Padding.SetRect( 5, 0, 5, 0 );
 
             oCenter.Add( _rgSideInfo[SideIdentify.Left] );
             oCenter.Add( _rgSideInfo[SideIdentify.Tools] );
-            oCenter.Add( new LayoutGrab( LayoutRect.CSS.None, _rcFrame ) ); 
+            oCenter.Add( oInner ); 
             oCenter.Add( _rgSideInfo[SideIdentify.Right] ); 
 
             _oLayoutPrimary.Add( new LayoutControl( oTabs,     LayoutRect.CSS.Flex, 40) ); 
@@ -494,10 +499,12 @@ namespace Mjolnir {
             Dictionary<string, SideStuff> _rgDim = new Dictionary<string, SideStuff>();
 
             // These need to match the SideIdentify items in the config. 
-			_rgDim.Add( "left",   new SideStuff( TRACK.VERT,  250 ) );
-			_rgDim.Add( "right",  new SideStuff( TRACK.VERT,  250 ) );
-			_rgDim.Add( "bottom", new SideStuff( TRACK.HORIZ, 100 ) );
-            _rgDim.Add( "tools",  new SideStuff( TRACK.VERT,   50 ) );
+            // BUG: Fix so we won't fail of the xml in "margin" is empty.
+			_rgDim.Add( "left",    new SideStuff( TRACK.VERT,  250 ) );
+			_rgDim.Add( "right",   new SideStuff( TRACK.VERT,  250 ) );
+			_rgDim.Add( "bottom",  new SideStuff( TRACK.HORIZ, 100 ) );
+            _rgDim.Add( "tools",   new SideStuff( TRACK.VERT,   50 ) );
+            _rgDim.Add( "options", new SideStuff( TRACK.HORIZ,  30 ) );
 
             // Read in all the edge values.
             try {
