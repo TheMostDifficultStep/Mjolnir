@@ -80,7 +80,15 @@ namespace Play.ImageViewer {
             _oDocSoloImg = oDocSoloImg ?? throw new ArgumentNullException( nameof( oDocSoloImg ) );
         }
 
-        protected override Size SrcExtent => new Size( _oDocSoloImg.Bitmap.Width, _oDocSoloImg.Bitmap.Height );
+        protected override Size SrcExtent {
+            get {
+                // This can happen if we go to a directory with no images.
+                if( _oDocSoloImg.Bitmap == null )
+                    return new Size( 0, 0 );
+                    
+                return new Size( _oDocSoloImg.Bitmap.Width, _oDocSoloImg.Bitmap.Height );
+            }
+        }
 
         public override void Paint( SKCanvas skCanvas ) {
             base.Paint(skCanvas);
@@ -88,10 +96,13 @@ namespace Play.ImageViewer {
             using SKPaint skPaint = new() { BlendMode = SKBlendMode.SrcATop, IsAntialias = true };
 
             try {
-                skCanvas.DrawBitmap( _oDocSoloImg.Bitmap,
-									 new SKRect( 0, 0, _oDocSoloImg.Bitmap.Width, _oDocSoloImg.Bitmap.Height ),
-									 SKRect, // Dest, our whole rect.
-									 skPaint );
+                if( _oDocSoloImg.Bitmap != null ) {
+                    skCanvas.DrawBitmap( _oDocSoloImg.Bitmap,
+									     new SKRect( 0, 0, _oDocSoloImg.Bitmap.Width, _oDocSoloImg.Bitmap.Height ),
+									     SKRect, // Dest, our whole rect.
+									     skPaint );
+                }
+                // else draw an error image.
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( ArgumentNullException ),
 									typeof( ArgumentException ),

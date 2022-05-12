@@ -169,7 +169,7 @@ namespace Play.SSTV {
         public static readonly Guid Text    = new Guid( "{C7F1DADB-A0A4-479C-B193-B38AFAEE5AB6}" );
         public static readonly Guid Gallary = new Guid( "{94975898-5AC1-427C-85CD-9E516646115D}" );
         public static readonly Guid PnP     = new Guid( "{A1BB369C-4E73-4248-A6E1-07C5466C818C}" );
-		public static readonly Guid Main    = new Guid( "{FE683CA1-1068-4BA0-A84E-CFE35900A06E}" );
+	  //public static readonly Guid Main    = new Guid( "{FE683CA1-1068-4BA0-A84E-CFE35900A06E}" );
         public static readonly Guid Mode    = new Guid( "{56797520-C603-417C-858A-EF532E0652D2}" );
 		public static readonly Guid Resize  = new Guid( "{84F921E1-BFB5-4BD7-9814-C53D48C90D1E}" );
 	}
@@ -395,7 +395,7 @@ namespace Play.SSTV {
 			rgIcons.Add( "Text",    new ToolInfo( "icons8-text-64.png",		     TransmitCommands.Text    ));
 			rgIcons.Add( "Gallery", new ToolInfo( "icons8-gallery-64.png",		 TransmitCommands.Gallary ));
 			rgIcons.Add( "PnP",     new ToolInfo( "icons8-download-64.png",	     TransmitCommands.PnP     ));
-			rgIcons.Add( "Main",    new ToolInfo( "icons8-measure-64.png",       TransmitCommands.Main    ));
+		  //rgIcons.Add( "Main",    new ToolInfo( "icons8-measure-64.png",       TransmitCommands.Main    ));
 			rgIcons.Add( "Mode",    new ToolInfo( "icons8-audio-wave-48.png",    TransmitCommands.Mode    ));
 
 			foreach( KeyValuePair<string,ToolInfo> oPair in rgIcons ) {
@@ -405,7 +405,7 @@ namespace Play.SSTV {
 				oInfo.Icon = _oDocSSTV.CreateIconic( "Play.SSTV.Content.TxWin." + oInfo._strToolName );
 				oLine.Extra = oInfo;
 
-				if( oInfo._guidID == TransmitCommands.Main ) {
+				if( oInfo._guidID == TransmitCommands.Resize ) {
 					_iToolSelected = oLine.At;
 				}
 			}
