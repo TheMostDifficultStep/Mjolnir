@@ -79,6 +79,16 @@ namespace Play.Rectangles {
 				}
 			}
 		}
+
+		public override bool Hidden { 
+			set {
+				base.Hidden = value;
+				foreach( LayoutRect oRect in this ) {
+					oRect.Hidden = value;
+				}
+			}
+		}
+
 	}
 
 	/// <summary>

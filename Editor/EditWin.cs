@@ -58,8 +58,22 @@ namespace Play.Rectangles {
 		public Control Guest {
 			get { return _oControl; }
 		}
-	}
-	
+
+        public override bool Hidden {
+            // Hmmm... I'd like to use the Control value, but if I do, everything
+            // is hidden. But if I used the Layout's value all is well. So stick
+            // with that for now.
+            //get { return _oControl.Visible; }
+            set {
+                if( value ) {
+                    _oControl.Hide();
+                } else {
+                    _oControl.Show();
+                }
+            }
+        }
+    }
+
 }
 
 namespace Play.Edit {

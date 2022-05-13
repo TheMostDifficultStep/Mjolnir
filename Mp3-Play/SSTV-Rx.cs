@@ -1721,6 +1721,27 @@ namespace Play.Sound {
 				yield return itrMode.Current;
 		}
 
+		public class ModeDescription {
+			public ModeDescription( string strName, Type typClass ) {
+				_strName = strName;
+				_typClass = typClass;
+			}
+			public readonly string _strName;
+			public readonly Type   _typClass;
+
+            public override string ToString() {
+                return _strName;
+            }
+        }
+
+		public static IEnumerator<ModeDescription> EnumFamilies () {
+			yield return new ModeDescription( "Martin",  typeof( SSTVModeMartin ) );
+			yield return new ModeDescription( "Scottie", typeof( SSTVModeScottie ) );
+			yield return new ModeDescription( "PD",      typeof( SSTVModePD ) );
+			yield return new ModeDescription( "BW",      typeof( SSTVModeBW ) );
+			yield return new ModeDescription( "Pasokon", typeof( SSTVModePasokon ) );
+		}
+
         public IEnumerator<SSTVMode> GetEnumerator()
         {
             return EnumModes();

@@ -3,6 +3,7 @@ using System.IO;
 using System.Collections.Generic;
 using System.Collections;
 using System.Linq;
+using System.Text;
 
 using SkiaSharp;
 
@@ -291,10 +292,11 @@ namespace Play.Sound {
         virtual  public  int      ScanMultiplier { get; } = 1;
 
         readonly public  byte     VIS;
-        readonly public  string   Name = string.Empty;
+        readonly public  string   Version = string.Empty;
 
         readonly public  TVFamily Family;
         readonly public  AllModes LegacyMode;       // Legacy support.
+        abstract public  string   FamilyName { get; }
 
         readonly public  List<ScanLineChannel> ChannelMap = new();
 
@@ -322,15 +324,31 @@ namespace Play.Sound {
                          double dbColorWidthInMS, SKSizeI skSize, AllModes eLegacy = AllModes.smEND ) 
         {
             VIS            = bVIS;
-            Name           = strName;
+            Version        = strName;
             WidthColorInMS = dbColorWidthInMS;
             Family         = tvMode;
             Resolution     = skSize;
             LegacyMode     = eLegacy;
         }
 
+        /// <summary>
+        /// Doesn't include family name since this is more for the submode
+        /// dropdown.
+        /// </summary>
         public override string ToString() {
-            return Name;
+            StringBuilder sbValue = new();
+
+            sbValue.Append( Version );
+
+            sbValue.Append( " : " );
+            sbValue.Append( Resolution.Width.ToString() );
+            sbValue.Append( "x" );
+            sbValue.Append( Resolution.Height.ToString() );
+            sbValue.Append( " @ " );
+            sbValue.Append( ( ScanWidthInMS * Resolution.Height / ScanMultiplier / 1000 ).ToString( "0." ) );
+            sbValue.Append( "s" );
+
+            return sbValue.ToString();
         }
 
         /// <summary>
@@ -381,6 +399,8 @@ namespace Play.Sound {
             WidthGapInMS  = dblGap;
         }
 
+        public override string FamilyName => "Robot";
+
         public override double WidthSyncInMS { get; }
         public override double WidthGapInMS  { get; }
 
@@ -419,10 +439,10 @@ namespace Play.Sound {
         public static IEnumerator<SSTVMode> EnumAllModes() {
             List<SSTVModeRobot422> rgModes = new();
 
- 	      //rgModes.Add( new SSTVModeRobot420( 0x00, "Robot 12", 7, 3,  60, new SKSizeI( 160, 120 ), AllModes.smR12 ) );
- 	        rgModes.Add( new SSTVModeRobot422( 0x84, "Robot 24", 6, 2,  92, new SKSizeI( 320, 240 ), AllModes.smR24 ) );
-          //rgModes.Add( new SSTVModeRobot420( 0x88, "Robot 36", 9, 3,  88, new SKSizeI( 320, 240 ), AllModes.smR36 ) );
- 	        rgModes.Add( new SSTVModeRobot422( 0x0c, "Robot 72", 9, 3, 138, new SKSizeI( 320, 240 ), AllModes.smR72 ) );
+ 	      //rgModes.Add( new SSTVModeRobot420( 0x00, "12", 7, 3,  60, new SKSizeI( 160, 120 ), AllModes.smR12 ) );
+ 	        rgModes.Add( new SSTVModeRobot422( 0x84, "24", 6, 2,  92, new SKSizeI( 320, 240 ), AllModes.smR24 ) );
+          //rgModes.Add( new SSTVModeRobot420( 0x88, "36", 9, 3,  88, new SKSizeI( 320, 240 ), AllModes.smR36 ) );
+ 	        rgModes.Add( new SSTVModeRobot422( 0x0c, "72", 9, 3, 138, new SKSizeI( 320, 240 ), AllModes.smR72 ) );
 
             foreach( SSTVModeRobot422 oMode in rgModes ) {
                 oMode.Initialize();
@@ -485,6 +505,7 @@ namespace Play.Sound {
         public override double WidthSyncInMS { get; }
         public override double WidthGapInMS  { get; }
 
+        public override string FamilyName => "Pasokon";
 
 		protected override void Initialize() {
 			if( Family != TVFamily.Pasokon )
@@ -512,9 +533,9 @@ namespace Play.Sound {
         public static IEnumerator<SSTVMode> EnumAllModes() {
             List<SSTVModePasokon> rgModes = new();
 
- 	        rgModes.Add( new SSTVModePasokon( 0x71, "Pasokon 3",   5.208, 1.042,    133.333, new SKSizeI( 640, 496 ), AllModes.smP3 ) );
-            rgModes.Add( new SSTVModePasokon( 0x72, "Pasokon 5",   7.813, 1.562375, 200.000, new SKSizeI( 640, 496 ), AllModes.smP5 ) );
- 	        rgModes.Add( new SSTVModePasokon( 0xf3, "Pasokon 7",  10.417, 2.083,    146.432, new SKSizeI( 640, 496 ), AllModes.smP7 ) );
+ 	        rgModes.Add( new SSTVModePasokon( 0x71, "3",   5.208, 1.042,    133.333, new SKSizeI( 640, 496 ), AllModes.smP3 ) );
+            rgModes.Add( new SSTVModePasokon( 0x72, "5",   7.813, 1.562375, 200.000, new SKSizeI( 640, 496 ), AllModes.smP5 ) );
+ 	        rgModes.Add( new SSTVModePasokon( 0xf3, "7",  10.417, 2.083,    146.432, new SKSizeI( 640, 496 ), AllModes.smP7 ) );
 
             foreach( SSTVModePasokon oMode in rgModes ) {
                 oMode.Initialize();
@@ -532,6 +553,7 @@ namespace Play.Sound {
         public override double WidthSyncInMS => 4.862;
         public override double WidthGapInMS  => 0.572;
 
+        public override string FamilyName => "Martin";
 		protected override void Initialize() {
 			if( Family != TVFamily.Martin )
 				throw new InvalidProgramException( "Mode must be of Martin type" );
@@ -554,10 +576,10 @@ namespace Play.Sound {
         public static IEnumerator<SSTVMode> EnumAllModes() {
             List<SSTVModeMartin> rgModes = new();
 
- 	        rgModes.Add( new SSTVModeMartin( 0xac, "Martin 1",  146.432, new SKSizeI( 320, 256 ), AllModes.smMRT1 ) );
-            rgModes.Add( new SSTVModeMartin( 0x28, "Martin 2",   73.216, new SKSizeI( 320, 256 ), AllModes.smMRT2 ) );
- 	        rgModes.Add( new SSTVModeMartin( 0x24, "Martin 3",  146.432, new SKSizeI( 160, 128 ), AllModes.smMRT3 ) );
-            rgModes.Add( new SSTVModeMartin( 0xa0, "Martin 4",   73.216, new SKSizeI( 160, 128 ), AllModes.smMRT4 ) );
+ 	        rgModes.Add( new SSTVModeMartin( 0xac, "1",  146.432, new SKSizeI( 320, 256 ), AllModes.smMRT1 ) );
+            rgModes.Add( new SSTVModeMartin( 0x28, "2",   73.216, new SKSizeI( 320, 256 ), AllModes.smMRT2 ) );
+ 	        rgModes.Add( new SSTVModeMartin( 0x24, "3",  146.432, new SKSizeI( 160, 128 ), AllModes.smMRT3 ) );
+            rgModes.Add( new SSTVModeMartin( 0xa0, "4",   73.216, new SKSizeI( 160, 128 ), AllModes.smMRT4 ) );
 
             foreach( SSTVModeMartin oMode in rgModes ) {
                 oMode.Initialize();
@@ -574,6 +596,8 @@ namespace Play.Sound {
 
         public override double WidthSyncInMS => 9.0;
         public override double WidthGapInMS  => 1.5;
+
+        public override string FamilyName => "Scottie";
 
 		protected override void Initialize() {
 			if( Family != TVFamily.Scottie )
@@ -603,9 +627,9 @@ namespace Play.Sound {
         public static IEnumerator<SSTVMode> EnumAllModes() {
             List<SSTVModeScottie> rgModes = new();
 
- 	        rgModes.Add( new SSTVModeScottie( 0x3c, "Scottie 1",  138.240, new SKSizeI( 320, 256 ), AllModes.smSCT1  ) );
-            rgModes.Add( new SSTVModeScottie( 0xb8, "Scottie 2",   88.064, new SKSizeI( 320, 256 ), AllModes.smSCT2  ) );
-            rgModes.Add( new SSTVModeScottie( 0xcc, "Scottie DX", 345.600, new SKSizeI( 320, 256 ), AllModes.smSCTDX ) );
+ 	        rgModes.Add( new SSTVModeScottie( 0x3c, "1",  138.240, new SKSizeI( 320, 256 ), AllModes.smSCT1  ) );
+            rgModes.Add( new SSTVModeScottie( 0xb8, "2",   88.064, new SKSizeI( 320, 256 ), AllModes.smSCT2  ) );
+            rgModes.Add( new SSTVModeScottie( 0xcc, "DX", 345.600, new SKSizeI( 320, 256 ), AllModes.smSCTDX ) );
 
             foreach( SSTVModeScottie oMode in rgModes ) {
                 oMode.Initialize();
@@ -628,6 +652,9 @@ namespace Play.Sound {
         public override double WidthSyncInMS => 20.0;
         public override double WidthGapInMS  => 2.08;
         public override int    ScanMultiplier { get; } = 2;
+
+        public override string FamilyName => "PD";
+
 
 		protected override void Initialize() {
 			if( Family != TVFamily.PD )
@@ -652,13 +679,13 @@ namespace Play.Sound {
             List<SSTVModePD> rgModes = new();
 
             // these numbers come from https://www.classicsstv.com/pdmodes.php G4IJE the inventor.
- 	        rgModes.Add( new SSTVModePD( 0xdd, "PD  50",   91.520, new SKSizeI( 320, 256 ), AllModes.smPD50  )); // see SSTV-Handbook.
-            rgModes.Add( new SSTVModePD( 0x63, "PD  90",  170.240, new SKSizeI( 320, 256 ), AllModes.smPD90  )); // Only reliable one.
-            rgModes.Add( new SSTVModePD( 0x5f, "PD 120",  121.600, new SKSizeI( 640, 512 ), AllModes.smPD120 )); 
-            rgModes.Add( new SSTVModePD( 0xe2, "PD 160",  195.584, new SKSizeI( 512, 384 ), AllModes.smPD160 )); 
-            rgModes.Add( new SSTVModePD( 0x60, "PD 180",  183.040, new SKSizeI( 640, 512 ), AllModes.smPD180 ));
-            rgModes.Add( new SSTVModePD( 0xe1, "PD 240",  244.480, new SKSizeI( 640, 512 ), AllModes.smPD240 )); 
-            rgModes.Add( new SSTVModePD( 0xde, "PD 290",  228.800, new SKSizeI( 800, 600 ), AllModes.smPD290 )); // see SSTV-handbook.
+ 	        rgModes.Add( new SSTVModePD( 0xdd, " 50",   91.520, new SKSizeI( 320, 256 ), AllModes.smPD50  )); // see SSTV-Handbook.
+            rgModes.Add( new SSTVModePD( 0x63, " 90",  170.240, new SKSizeI( 320, 256 ), AllModes.smPD90  )); // Only reliable one.
+            rgModes.Add( new SSTVModePD( 0x5f, "120",  121.600, new SKSizeI( 640, 512 ), AllModes.smPD120 )); 
+            rgModes.Add( new SSTVModePD( 0xe2, "160",  195.584, new SKSizeI( 512, 384 ), AllModes.smPD160 )); 
+            rgModes.Add( new SSTVModePD( 0x60, "180",  183.040, new SKSizeI( 640, 512 ), AllModes.smPD180 ));
+            rgModes.Add( new SSTVModePD( 0xe1, "240",  244.480, new SKSizeI( 640, 512 ), AllModes.smPD240 )); 
+            rgModes.Add( new SSTVModePD( 0xde, "290",  228.800, new SKSizeI( 800, 600 ), AllModes.smPD290 )); // see SSTV-handbook.
 
             foreach( SSTVModePD oMode in rgModes ) {
                 oMode.Initialize();
@@ -677,6 +704,8 @@ namespace Play.Sound {
         public override double WidthSyncInMS => 6;
         public override double WidthGapInMS  => 2;
 
+        public override string FamilyName => "BW";
+
 		protected override void Initialize() {
 			if( Family != TVFamily.BW )
 				throw new InvalidProgramException( "Mode must be of BW type" );
@@ -690,8 +719,8 @@ namespace Play.Sound {
         public static IEnumerator<SSTVMode> EnumAllModes() {
             List<SSTVModeBW> rgModes = new();
 
- 	        rgModes.Add( new SSTVModeBW( 0x82, "BW   8", 58.89709, new SKSizeI( 160, 120 ), AllModes.smRM8  ) ); 
- 	        rgModes.Add( new SSTVModeBW( 0x86, "BW  12",     92.0, new SKSizeI( 160, 120 ), AllModes.smRM12 ) ); 
+ 	        rgModes.Add( new SSTVModeBW( 0x82, " 8", 58.89709, new SKSizeI( 160, 120 ), AllModes.smRM8  ) ); 
+ 	        rgModes.Add( new SSTVModeBW( 0x86, "12",     92.0, new SKSizeI( 160, 120 ), AllModes.smRM12 ) ); 
 
             foreach( SSTVModeBW oMode in rgModes ) {
                 oMode.Initialize();
@@ -708,6 +737,9 @@ namespace Play.Sound {
 
         public override double WidthSyncInMS => 6;
         public override double WidthGapInMS  => 2;
+
+        public override string FamilyName => "WWV";
+
 
 		protected override void Initialize() {
 			if( Family != TVFamily.WWV )

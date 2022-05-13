@@ -10,7 +10,6 @@ using System.Reflection;
 using SkiaSharp;
 using SkiaSharp.Views.Desktop;
 
-
 using Play.Interfaces.Embedding;
 using Play.Rectangles;
 using Play.Edit;
@@ -244,6 +243,7 @@ namespace Play.SSTV {
 		protected readonly ImageViewSingle    _wmTxImageComposite; 
 		protected readonly ImageViewIcons     _wmTxViewChoices;
 		protected readonly ImageViewIcons     _wmRxViewChoices;
+		protected          ToolWins           _wmToolOptions;
 
 		protected readonly Editor _rgToolIcons;
 		protected          int    _iToolSelected = -1;
@@ -262,6 +262,8 @@ namespace Play.SSTV {
 				return sbBanner.ToString();
 			} 
 		}
+
+		public DocSSTV Document => _oDocSSTV;
 
 		protected class SSTVWinSlot :
 			IPgFileSite,
@@ -341,6 +343,7 @@ namespace Play.SSTV {
 			_wmTxImageComposite.Parent = this;
 			_wmRxViewChoices   .Parent = this;
 
+
 			_rgToolIcons = new Editor( new SSTVWinSlot( this, ChildID.None ) );
 			Icon = SKImageResourceHelper.GetImageResource( Assembly.GetExecutingAssembly(), IconResource );
 		}
@@ -419,11 +422,13 @@ namespace Play.SSTV {
 
         protected SSTVMode SSTVModeSelection { 
 			get {
-                if( _oDocSSTV.TxModeList.CheckedLine == null )
-                    _oDocSSTV.TxModeList.CheckedLine = _oDocSSTV.TxModeList[_oDocSSTV.RxModeList.CheckedLine.At];
+     //           if( _oDocSSTV.TxModeList.CheckedLine == null )
+     //               _oDocSSTV.TxModeList.CheckedLine = _oDocSSTV.TxModeList[_oDocSSTV.RxModeList.CheckedLine.At];
 
-                if( _oDocSSTV.TxModeList.CheckedLine.Extra is SSTVMode oMode )
-					return oMode;
+     //           if( _oDocSSTV.TxModeList.CheckedLine.Extra is SSTVMode oMode )
+					//return oMode;
+				if( _wmToolOptions != null )
+					return _wmToolOptions.CurrentMode;
 
 				return null;
 			}
@@ -443,6 +448,9 @@ namespace Play.SSTV {
 
 				if( _rgToolIcons[value].Extra is ToolInfo oToolInfo ) {
 					Execute( oToolInfo._guidID );
+					// BUG: Hack experiment.
+					if( _wmToolOptions != null )
+						_wmToolOptions.Execute( oToolInfo._guidID  );
 				}
 			}
 		}
@@ -581,11 +589,15 @@ namespace Play.SSTV {
 				return new ViewTxProperties( oBaseSite, _oDocSSTV.Properties );
 			}
 			if( sGuid.Equals( GlobalDecorations.Outline ) ) {
-				return new CheckList( oBaseSite, _oDocSSTV.TxModeList );
+				//return new CheckList( oBaseSite, _oDocSSTV.TxModeList );
+				return new CheckList( oBaseSite, _oDocSSTV.TemplateList ) { ReadOnly = true }; // We'll be read/write in the future.
 			}
 			if( sGuid.Equals( GlobalDecorations.Options ) ) {
-				return new CheckList( oBaseSite, _oDocSSTV.TemplateList ) { ReadOnly = true }; // We'll be read/write in the future.
-				//return new ToolWins( oBaseSite, this );
+				//return new CheckList( oBaseSite, _oDocSSTV.TemplateList ) { ReadOnly = true }; // We'll be read/write in the future.
+				// BUG: This is super hacky, but just try for now. Since the addornment
+				//      is handled by the shell, it can be closed and we have a zombie.
+				_wmToolOptions = new ToolWins( oBaseSite, this );
+				return _wmToolOptions;
 			}
 			if( sGuid.Equals( GlobalDecorations.ToolIcons ) ) {
 				return new WinTransmitTools( oBaseSite, _rgToolIcons, this );

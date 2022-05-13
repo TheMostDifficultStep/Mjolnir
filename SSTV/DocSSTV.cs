@@ -478,15 +478,17 @@ namespace Play.SSTV {
                 SSTVMode oMode = iterMode.Current;
 
                 sbValue.Clear();
-                sbValue.Append( oMode.Name );
+                sbValue.Append( oMode.FamilyName );
+                sbValue.Append( ' ' );
+                sbValue.Append( oMode.Version );
                 if( fAddResolution ) {
                     sbValue.Append( " : " );
                     sbValue.Append( oMode.Resolution.Width.ToString() );
-                    sbValue.Append( "x" );
+                    sbValue.Append( 'x' );
                     sbValue.Append( oMode.Resolution.Height.ToString() );
                     sbValue.Append( " @ " );
                     sbValue.Append( ( oMode.ScanWidthInMS * oMode.Resolution.Height / oMode.ScanMultiplier / 1000 ).ToString( "0." ) );
-                    sbValue.Append( "s" );
+                    sbValue.Append( 's' );
                 }
                 Line oLine = oBulk.LineAppendNoUndo( sbValue.ToString() );
 
@@ -1301,7 +1303,7 @@ namespace Play.SSTV {
                             } else {
 			                    DisplayImage.WorldDisplay = new SKRectI( 0, 0, oMode.Resolution.Width, oMode.Resolution.Height );
 
-                                Properties.ValueUpdate( SSTVProperties.Names.Rx_Mode,   oMode.Name );
+                                Properties.ValueUpdate( SSTVProperties.Names.Rx_Mode,   oMode.Version );
                                 Properties.ValueUpdate( SSTVProperties.Names.Rx_Width,  oMode.Resolution.Width .ToString() );
                                 Properties.ValueUpdate( SSTVProperties.Names.Rx_Height, oMode.Resolution.Height.ToString() );
                             }

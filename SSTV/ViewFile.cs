@@ -121,7 +121,7 @@ namespace Play.SSTV {
 					SSTVMode oMode = iterMode.Current;
 
 					sbValue.Clear();
-					sbValue.Append( oMode.Name );
+					sbValue.Append( oMode.Version );
 					Line oLine = oBulk.LineAppendNoUndo( sbValue.ToString() );
 
 					oLine.Extra = oMode;
