@@ -89,6 +89,7 @@ namespace Play.SSTV {
                 _oDocSSTV.TemplateList.CheckedLine =
                     _oDocSSTV.TemplateList[ ddTemplates.SelectedIndex ];
             }
+		    _oDocSSTV.RenderComposite();
         }
 
         private void OnCheckedEvent_TemplateList(Line oLineChecked) {
@@ -129,9 +130,16 @@ namespace Play.SSTV {
             _gSelected = TransmitCommands.Templates;
         }
 
+        /// <summary>
+        /// TODO: If there are multiple TX windows open, they might get out of
+        /// sync with the combosition. Still need to sort that all out.
+        /// </summary>
         private void OnSelectedModeChanged(object sender, EventArgs e) {
             if( sender is ComboBox oMain ) {
                 PopulateSubModes( oMain, _ddModeSub );
+            }
+            if( _ddModeSub.SelectedItem is SSTVMode oMode ) {
+		        _oDocSSTV.RenderComposite( oMode );
             }
         }
 

@@ -1154,6 +1154,10 @@ namespace Play.SSTV {
 
         protected int MicrophoneGain => Properties.GetValueAsInt( SSTVProperties.Names.Std_MicGain );
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <seealso cref="ViewTransmitDeluxe.SSTVModeSelection"/>
 		public SSTVMode TransmitModeSelection { 
 			get {
                 if( TxModeList.CheckedLine == null ) {
@@ -1177,7 +1181,15 @@ namespace Play.SSTV {
 				return false;
 			}
 
-			SSTVMode oMode = TransmitModeSelection;
+            return RenderComposite( TransmitModeSelection );
+		}
+		public bool RenderComposite(SSTVMode oMode) {
+			// sometimes we get events while we're sending. Let's block render for now.
+			if( StateTx ) {
+				LogError( "Already Playing" );
+				return false;
+			}
+
 			if( oMode != null ) {
 				SKRectI rcComposition = new SKRectI( 0, 0, oMode.Resolution.Width, oMode.Resolution.Height);
 				SKSizeI szComposition = new SKSizeI( oMode.Resolution.Width, oMode.Resolution.Height );
@@ -1208,6 +1220,7 @@ namespace Play.SSTV {
 
 			return false;
 		}
+
         public void TransmitStop() {
             StateTx              = false;
             TxModeList.HighLight = null;

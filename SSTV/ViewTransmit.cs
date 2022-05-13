@@ -473,7 +473,7 @@ namespace Play.SSTV {
         public bool Execute( Guid sGuid ) {
 			if( sGuid == GlobalCommands.Play ) {
                 if( SSTVModeSelection is SSTVMode oMode ) {
-					if( _oDocSSTV.RenderComposite() ) {
+					if( _oDocSSTV.RenderComposite( oMode ) ) {
 						_oDocSSTV.TransmitBegin( oMode ); 
 					}
 				}
