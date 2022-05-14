@@ -12,7 +12,7 @@ using Play.Edit;
 namespace Play.SSTV {
     /// <summary>
     /// This window is like a herder, but no ability to make a title like the
-    /// normal Mjolnir herder. Also, all the tools are sort of globbed together.
+    /// normal Mjolnir herder. But here, all the tools are sort of globbed together.
     /// Let's see how it goes and perhaps I'll break them apart.
     /// </summary>
     public class ToolWins : 
@@ -132,7 +132,7 @@ namespace Play.SSTV {
 
         /// <summary>
         /// TODO: If there are multiple TX windows open, they might get out of
-        /// sync with the combosition. Still need to sort that all out.
+        /// sync with the composition. Still need to sort that all out.
         /// </summary>
         private void OnSelectedModeChanged(object sender, EventArgs e) {
             if( sender is ComboBox oMain ) {

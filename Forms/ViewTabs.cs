@@ -318,7 +318,7 @@ namespace Play.Forms {
         public ButtonBar(IPgViewSite oSiteView, BaseEditor oDoc ) : base( oSiteView, oDoc ) {
         }
 
-        public override Size TabSize => new Size( 40, 40 );
+        public override Size TabSize => new Size( 55, 40 );
 
         /// <summary>
         /// Unfortunately, we're kind of locked into the LayoutStack because it has the ID
@@ -328,11 +328,11 @@ namespace Play.Forms {
         /// <param name="oLine"></param>
         /// <returns></returns>
         protected override LayoutRect CreateTab( Line oLine ) {
-            LayoutIcon oTabIcon = new LayoutIcon( TabIcon( oLine ) );
-
-			LayoutStackHorizontal oTab = new () { Spacing = 5, BackgroundColor = TabBackground, ID = oLine };
-			
-            //oTab.Padding.SetRect( 5, 5, 5, 5 );
+			LayoutIcon            oTabIcon   = new( TabIcon( oLine ), LayoutRect.CSS.Flex );
+            LayoutPattern         oTabStatus = new( LayoutRect.CSS.Pixels, 5, oLine, TabStatus );
+			LayoutStackHorizontal oTab       = new () { Spacing = 5, BackgroundColor = TabBackground, ID = oLine };
+				
+            oTab.Add( oTabStatus );
 			oTab.Add( oTabIcon );
 
             return oTab;

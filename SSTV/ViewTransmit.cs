@@ -210,6 +210,16 @@ namespace Play.SSTV {
             return skBG;
         }
 
+        public override SKColor TabStatus( object oID ) {
+            if( oID is Line oLine ) {
+                if( _oTools.ToolSelect == oLine.At )
+                    return SKColors.Blue;
+                return TabBackground( oLine.At );
+            }
+            
+            return SKColors.White;
+        }
+
     }
 
 	/// <summary>
