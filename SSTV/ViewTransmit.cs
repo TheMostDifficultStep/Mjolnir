@@ -480,6 +480,7 @@ namespace Play.SSTV {
 						_wmToolOptions.Execute( oToolInfo._guidID  );
 				}
 
+				_oSiteView.Notify( ShellNotify.ToolChanged );
 				ToolSelectChanged?.Invoke( this, value );
 			}
 		}

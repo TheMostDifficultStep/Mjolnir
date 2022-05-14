@@ -211,13 +211,16 @@ namespace Mjolnir {
 			}
 		}
 
+        /// <summary>
+        /// Our callback for when a tool menu item is clicked, the view calls
+        /// Notify() on it's view.
+        /// </summary>
+        /// <seealso cref="Notify"/>
 		protected void OnToolClicked(object sender, EventArgs e) {
 			try {
 				if (sender is MenuItemWithID oItem) {
 					_oViewTools.ToolSelect = oItem.ID;
-				    foreach( MenuItemWithID oCheck in ToolBox ) {
-					    oCheck.Checked = oCheck.ID == _oViewTools.ToolSelect;
-				    }
+                    Notify( ShellNotify.ToolChanged );
 				}
 			} catch( NullReferenceException )  {
 			}
