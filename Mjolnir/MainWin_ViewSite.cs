@@ -215,6 +215,9 @@ namespace Mjolnir {
 			try {
 				if (sender is MenuItemWithID oItem) {
 					_oViewTools.ToolSelect = oItem.ID;
+				    foreach( MenuItemWithID oCheck in ToolBox ) {
+					    oCheck.Checked = oCheck.ID == _oViewTools.ToolSelect;
+				    }
 				}
 			} catch( NullReferenceException )  {
 			}
