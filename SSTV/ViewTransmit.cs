@@ -184,6 +184,7 @@ namespace Play.SSTV {
             if( ID is Line oLine ) {
 				_oTools.ToolSelect = oLine.At;
 			}
+			Invalidate();
         }
 
         public override SKBitmap TabIcon( object ob) {
