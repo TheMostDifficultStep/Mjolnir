@@ -176,15 +176,28 @@ namespace Play.SSTV {
 	/// This is the Toolbar adornment.
 	/// </summary>
 	public class WinTransmitTools : ButtonBar {
-		IPgTools _oTools;
-		public WinTransmitTools( IPgViewSite oSite, Editor oDoc, IPgTools oTools ) : base( oSite, oDoc ) {
+		IPgTools2 _oTools;
+		public WinTransmitTools( IPgViewSite oSite, Editor oDoc, IPgTools2 oTools ) : base( oSite, oDoc ) {
 			_oTools = oTools ?? throw new ArgumentException( nameof( oTools ) );
 		}
+
+        public override bool InitNew() {
+            if( !base.InitNew() )
+				return false;
+
+            _oTools.ToolSelectChanged += OnToolSelectChanged;
+
+			return true;
+        }
+
+        private void OnToolSelectChanged(object sender, int iIndex) {
+            Invalidate();
+        }
+
         protected override void OnTabLeftClicked(object ID) {
             if( ID is Line oLine ) {
 				_oTools.ToolSelect = oLine.At;
 			}
-			Invalidate();
         }
 
         public override SKBitmap TabIcon( object ob) {
@@ -234,7 +247,7 @@ namespace Play.SSTV {
 		IPgCommandView,
 		IPgSave<XmlDocumentFragment>,
 		IPgLoad<XmlElement>,
-		IPgTools
+		IPgTools2
 	{
 		public static Guid GUID { get; } = new Guid( "{3D6FF540-C03C-468F-84F9-86E3DE75F6C2}" );
 
@@ -260,6 +273,9 @@ namespace Play.SSTV {
 		protected          int    _iToolSelected = -1;
 
 		protected bool     _fColorDialogUp = false;
+
+        public event ToolEvent ToolSelectChanged; // Implements IPgTool2
+
         public string Banner {
 			get { 
 				StringBuilder sbBanner = new StringBuilder();
@@ -463,6 +479,8 @@ namespace Play.SSTV {
 					if( _wmToolOptions != null )
 						_wmToolOptions.Execute( oToolInfo._guidID  );
 				}
+
+				ToolSelectChanged?.Invoke( this, value );
 			}
 		}
 

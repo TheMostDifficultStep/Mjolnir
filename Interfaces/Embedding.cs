@@ -402,6 +402,12 @@ namespace Play.Interfaces.Embedding {
 		int    ToolSelect { get; set; }
 	}
 
+    public delegate void ToolEvent( object sender, int iIndex );
+
+    public interface IPgTools2 : IPgTools {
+        event ToolEvent ToolSelectChanged;
+    }
+
     public enum StdUIColors : int {
         BGWithCursor = 0,     // Unselected text bg w/ cursor. (Light grey)
         BGSelectedFocus,      // Text BG when selected and focused.
