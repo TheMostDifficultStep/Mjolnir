@@ -503,7 +503,7 @@ namespace Mjolnir {
 			_rgDim.Add( "left",    new SideStuff( TRACK.VERT,  250 ) );
 			_rgDim.Add( "right",   new SideStuff( TRACK.VERT,  250 ) );
 			_rgDim.Add( "bottom",  new SideStuff( TRACK.HORIZ, 100 ) );
-            _rgDim.Add( "tools",   new SideStuff( TRACK.VERT,   60 ) );
+            _rgDim.Add( "tools",   new SideStuff( TRACK.VERT,   65 ) );
             _rgDim.Add( "options", new SideStuff( TRACK.HORIZ,  30 ) );
 
             // Read in all the edge values.
