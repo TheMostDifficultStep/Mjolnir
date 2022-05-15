@@ -212,15 +212,18 @@ namespace Mjolnir {
 		}
 
         /// <summary>
-        /// Our callback for when a tool menu item is clicked, the view calls
-        /// Notify() on it's view.
+        /// Our callback for when a tool menu item is clicked, we turn around
+        /// and call the view to tell it which tool was selected.
         /// </summary>
         /// <seealso cref="Notify"/>
+        /// <remarks>If the tool menu is not being updated, it's because the
+        /// window impleenting the IPgTool interface is not sending the
+        /// ShellNotify.ToolChanged event to the view site.</remarks>
 		protected void OnToolClicked(object sender, EventArgs e) {
 			try {
 				if (sender is MenuItemWithID oItem) {
 					_oViewTools.ToolSelect = oItem.ID;
-                    Notify( ShellNotify.ToolChanged );
+                    //Notify( ShellNotify.ToolChanged );
 				}
 			} catch( NullReferenceException )  {
 			}
