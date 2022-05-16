@@ -934,10 +934,8 @@ namespace Play.SSTV {
 
 				switch( iIndex ) {
 					case 0: // PnP reply.
-                        string strMessage = TemplateReplyFromProps();
-
 						TxBitmapComp.AddImage( LOCUS.CENTER,      0,  0, 100.0, TxBitmap, Selection );
-						TxBitmapComp.AddText ( LOCUS.UPPERLEFT,   5,  5,  17.0, TxBitmapComp.StdFace, ForeColor, strMessage );
+						TxBitmapComp.AddText ( LOCUS.UPPERLEFT,   5,  5,  17.0, TxBitmapComp.StdFace, ForeColor, TemplateReplyFromProps() );
 						TxBitmapComp.AddImage( LOCUS.LOWERRIGHT, 10, 10,  40.0, RxHistoryList.Bitmap, null );
 
                         Send_TxImageAspect?.Invoke( new SKPointI( oMode.Resolution.Width, oMode.Resolution.Height ) );
@@ -982,7 +980,7 @@ namespace Play.SSTV {
 				if( rgErrors.IsUnhandled( oEx ) ) 
 					throw;
 
-				LogError( "Could apply image template." );
+				LogError( "Could not apply image template." );
 			}
 		}
 
