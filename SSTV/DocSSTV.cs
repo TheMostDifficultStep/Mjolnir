@@ -965,6 +965,25 @@ namespace Play.SSTV {
 		}
 
         /// <summary>
+        /// Adjust the selection to match the given Layout Aspect (if different)
+        /// </summary>
+        /// <param name="lyImage">The layout after LayoutChild() has been called.</param>
+        protected void SelectionAdjust( LayoutImageReference lyImage ) {
+			float flOldSlope = Selection.Width / (float)Selection.Height;
+			float flNewSlope = lyImage.Width   / (float)lyImage.Height;
+
+			if( flOldSlope != flNewSlope  ) {
+			    SKPointI      pntCorner  = Selection.GetPoint( LOCUS.LOWERRIGHT );
+			    SmartGrabDrag oSmartDrag = Selection.BeginAspectDrag( null, SET.STRETCH, SmartGrab.HIT.CORNER, 
+																	  LOCUS.LOWERRIGHT, pntCorner.X, pntCorner.Y, 
+                                                                      new SKPointI( lyImage.Width, lyImage.Height ) );
+			    oSmartDrag.Move( pntCorner.X, pntCorner.Y );
+
+                lyImage.World.Copy = Selection;
+            }
+        }
+
+        /// <summary>
         /// Sort of an experimental layout system. Normal layout assumes everything is relative to
         /// the entire image size. But this allows us to break that up and layout relative to the
         /// children. It's cool but more difficult to represent with screen userinterface, which
@@ -1025,32 +1044,7 @@ namespace Play.SSTV {
             TxBitmapComp.AddLayout( oStack );
         }
 
-        /// <summary>
-        /// Adjust the selection to match the given Layout Aspect (if different)
-        /// </summary>
-        /// <param name="lyImage">The layout after LayoutChild() has been called.</param>
-        protected void SelectionAdjust( LayoutImageReference lyImage ) {
-			float flOldSlope = Selection.Width / (float)Selection.Height;
-			float flNewSlope = lyImage.Width   / (float)lyImage.Height;
-
-			if( flOldSlope != flNewSlope  ) {
-			    SKPointI      pntCorner  = Selection.GetPoint( LOCUS.LOWERRIGHT );
-			    SmartGrabDrag oSmartDrag = Selection.BeginAspectDrag( null, SET.STRETCH, SmartGrab.HIT.CORNER, 
-																	  LOCUS.LOWERRIGHT, pntCorner.X, pntCorner.Y, 
-                                                                      new SKPointI( lyImage.Width, lyImage.Height ) );
-			    oSmartDrag.Move( pntCorner.X, pntCorner.Y );
-
-                lyImage.World.Copy = Selection;
-            }
-        }
-
         protected void TemplateHiDefMessage( SSTVMode oMode ) {
-            // This happens if we don't start the receive but press a template option list item.
-            if( TxBitmapSnip.Bitmap == null ) {
-                LogError( "Select an Image to Send" );
-                return;
-            }
-
             Func< object, SKColor > oFunc = delegate( object x )  { return SKColors.Black; };
 
             LayoutStackVertical   oStack = new();
@@ -1073,7 +1067,7 @@ namespace Play.SSTV {
             oHoriz.Add( oSingle );
             oHoriz.Add( new LayoutRect( LayoutRect.CSS.None) );
 
-            LayoutImage oImage = new LayoutImage( TxBitmapSnip.Bitmap, LayoutRect.CSS.None );
+            LayoutImage oImage = new LayoutImage( TxBitmap, LayoutRect.CSS.None ) { Stretch = true };
 
             oStack.Add( oImage );
             oStack.Add( oHoriz );
@@ -1085,6 +1079,8 @@ namespace Play.SSTV {
             // After the layout send the aspect out to the listeners. In case we want to re-select.
             Destination = new SKSizeI( oImage.Width, oImage.Height );
             Send_TxImageAspect?.Invoke( new SKPointI( oImage.Width, oImage.Height ) );
+
+            SelectionAdjust( oImage );
 
             TxBitmapComp.AddLayout( oStack );
 
