@@ -1065,7 +1065,6 @@ namespace Play.SSTV {
 
         protected void TemplateSetHiDefReply( SSTVMode oMode ) {
             LayoutStackVertical oVertiMain;
-            LayoutStack         oHorizText;
             LayoutStack         oHorizImgs;
             const double        dblFractionalHeight = 18 / 100.0;
 
@@ -1075,35 +1074,28 @@ namespace Play.SSTV {
             
             Func< object, SKColor > oFunc = delegate( object x )  { return SKColors.Black; };
 
-            //oHorizText = new LayoutStackHorizontal() { Layout = LayoutRect.CSS.Percent, Track = 60, BackgroundColor = oFunc };
-            oHorizImgs = new LayoutStackHorizontal() { Layout = LayoutRect.CSS.Percent, Track = 40, BackgroundColor = oFunc };
+            oHorizImgs = new LayoutStackHorizontal() { Layout = LayoutRect.CSS.None, BackgroundColor = oFunc, Spacing = 5 };
             oVertiMain = new LayoutStackVertical  () { Layout = LayoutRect.CSS.None, BackgroundColor = oFunc };
 
             Editor             oEdit = TxBitmapComp.Text;
             Line               oLine = oEdit.LineAppend( TemplateReplyFromProps(), fUndoable:false );
             FTCacheWrap        oWrap = new FTCacheWrap( oLine );
-            LayoutSingleLine oSingle = new( oWrap, LayoutRect.CSS.Percent ) 
-                                         { Track = 60, BgColor = SKColors.Transparent, FgColor = ForeColor };
+            LayoutSingleLine oSingle = new( oWrap, LayoutRect.CSS.Flex ) 
+                                         { Track = 60, BgColor = SKColors.Transparent, FgColor = SKColors.White };
 
             // Since we flex, do all this before layout children.
             uint      uiPoints = (uint)( uiPixHeight * iScreenPixPerInch / skEMsPerInch.Y );
             uint      uiFontID = _oStdUI.FontCache( TxBitmapComp.StdFace, uiPoints, skEMsPerInch );
             oSingle.Cache.Update( _oStdUI.FontRendererAt( uiFontID ) );
-
-            // Put the text in the middle. Poor man's layout.
-            //oHorizText.Add( new LayoutRect( LayoutRect.CSS.None) );
-            //oHorizText.Add( oSingle );
-            //oHorizText.Add( new LayoutRect( LayoutRect.CSS.None) );
+            oSingle.Padding.SetRect( 5, 0, 5, 0 ); // BUG: Doesn't seem to work for text.
 
             oVertiMain.Add( oSingle );
 
-            oHorizImgs.Add( new LayoutRect( LayoutRect.CSS.None) );
-            LayoutImageReference oImage1 = new LayoutIcon( TxImageList.Bitmap, LayoutRect.CSS.Flex ) { Stretch = true };
+            LayoutImageReference oImage1 = new LayoutIcon( TxImageList.Bitmap,   LayoutRect.CSS.None ) { Stretch = true };
             oHorizImgs.Add( oImage1 );
-            oHorizImgs.Add( new LayoutRect( LayoutRect.CSS.None) );
-            LayoutImageReference oImage2 = new LayoutIcon( RxHistoryList.Bitmap, LayoutRect.CSS.Flex ) { Stretch = true };
+            LayoutImageReference oImage2 = new LayoutIcon( RxHistoryList.Bitmap, LayoutRect.CSS.None ) { Stretch = true };
             oHorizImgs.Add( oImage2 );
-            oHorizImgs.Add( new LayoutRect( LayoutRect.CSS.None) );
+            oHorizImgs.Padding.SetRect( 5, 5, 5, 5 );
 
             oVertiMain.Add( oHorizImgs );
 
