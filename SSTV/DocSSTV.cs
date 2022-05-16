@@ -566,6 +566,23 @@ namespace Play.SSTV {
 			}
 		}
 
+        /// <summary>
+        /// Not a true load since we already initialized the Template List.
+        /// But I wanted it separated out so it's easier to find.
+        /// </summary>
+        /// <returns></returns>
+        public bool TemplateLoad() {
+            TemplateList.LineAppend( "Reply PnP" );
+            TemplateList.LineAppend( "General Msg" );
+            TemplateList.LineAppend( "General Msg Pnp" );
+            TemplateList.LineAppend( "CQ Color Gradient" );
+            TemplateList.LineAppend( "High Def Message" );
+            TemplateList.LineAppend( "High Def CQ" );
+            TemplateList.LineAppend( "High Def From Me" );
+            
+            return true;
+        }
+
         public bool InitNew() {
             if( !TemplateList.InitNew() ) // Might need to init differently b/c of load.
                 return false;
@@ -591,14 +608,8 @@ namespace Play.SSTV {
             if( !Properties.InitNew() )
                 return false;
 
-            TemplateList.LineAppend( "PnP Reply" );
-            TemplateList.LineAppend( "General Msg" );
-            TemplateList.LineAppend( "General Msg Pnp" );
-            TemplateList.LineAppend( "CQ Color Gradient" );
-            TemplateList.LineAppend( "High Def Message" );
-            TemplateList.LineAppend( "High Def CQ" );
-            TemplateList.LineAppend( "High Def From Me" );
-            
+            TemplateLoad();
+
             // Largest bitmap needed by any of the types I can decode.
 		    SyncImage   .Bitmap = new SKBitmap( 800, 616, SKColorType.Rgb888x, SKAlphaType.Unknown );
 		    DisplayImage.Bitmap = new SKBitmap( 800, 616, SKColorType.Rgb888x, SKAlphaType.Opaque  );
