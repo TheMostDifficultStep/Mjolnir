@@ -579,6 +579,7 @@ namespace Play.SSTV {
             TemplateList.LineAppend( "High Def Message" );
             TemplateList.LineAppend( "High Def CQ" );
             TemplateList.LineAppend( "High Def From Me" );
+            TemplateList.LineAppend( "High Def Reply" );
             
             return true;
         }
@@ -890,7 +891,7 @@ namespace Play.SSTV {
             PropertyChange?.Invoke( eProp );
         }
 
-        protected string TemplateTextFromProps() {
+        protected string TemplateReplyFromProps() {
             StringBuilder sbText       = new StringBuilder();
             string        strTheirCall = TheirCall;
             string        strRST       = RST;
@@ -929,7 +930,7 @@ namespace Play.SSTV {
 
 				switch( iIndex ) {
 					case 0: // PnP reply.
-                        string strMessage = TemplateTextFromProps();
+                        string strMessage = TemplateReplyFromProps();
 
 						TxBitmapComp.AddImage( LOCUS.CENTER,      0,  0, 100.0, TxBitmap, Selection );
 						TxBitmapComp.AddText ( LOCUS.UPPERLEFT,   5,  5,  17.0, TxBitmapComp.StdFace, ForeColor, strMessage );
@@ -961,6 +962,9 @@ namespace Play.SSTV {
                         break;
                     case 6:
                         TemplateHiDefMessage( oMode, "from " + MyCall );
+                        break;
+                    case 7:
+                        TemplateSetHiDefReply( oMode );
                         break;
 				}
 
@@ -1014,16 +1018,16 @@ namespace Play.SSTV {
             const int iScreenPixPerInch = 72;
             uint            uiPixHeight = (uint)((double)oMode.Resolution.Height * dblFractionalHeight );
             
-            if( !fHighContrast ) { 
+            if( fHighContrast ) { 
+                Func< object, SKColor > oFunc = delegate( object x )  { return SKColors.Black; };
+
+                oHoriz = new LayoutStackHorizontal() { Layout = LayoutRect.CSS.Pixels, Track = uiPixHeight, BackgroundColor = oFunc };
+            } else {
                 oHoriz = new LayoutStackBgGradient( TRACK.HORIZ) { 
                         Layout = LayoutRect.CSS.Pixels, 
                         Track  = uiPixHeight,
                         Colors = { SKColors.Green, SKColors.Yellow, SKColors.Blue } 
                 };
-            } else {
-                Func< object, SKColor > oFunc = delegate( object x )  { return SKColors.Black; };
-
-                oHoriz = new LayoutStackHorizontal() { Layout = LayoutRect.CSS.Pixels, Track = uiPixHeight, BackgroundColor = oFunc };
             }
 
             Line               oLine = TxBitmapComp.Text.LineAppend( "CQ de " + MyCall, fUndoable:false );
@@ -1055,6 +1059,65 @@ namespace Play.SSTV {
             SelectionAdjust( lyImage );
 
             TxBitmapComp.AddLayout( oStack );
+        }
+
+        protected void TemplateSetHiDefReply( SSTVMode oMode ) {
+            LayoutStackVertical oVertiMain;
+            LayoutStack         oHorizText;
+            LayoutStack         oHorizImgs;
+            const double        dblFractionalHeight = 18 / 100.0;
+
+            SKPoint        skEMsPerInch = new( 96, 96 ); 
+            const int iScreenPixPerInch = 72;
+            uint            uiPixHeight = (uint)((double)oMode.Resolution.Height * dblFractionalHeight );
+            
+            Func< object, SKColor > oFunc = delegate( object x )  { return SKColors.Black; };
+
+            //oHorizText = new LayoutStackHorizontal() { Layout = LayoutRect.CSS.Percent, Track = 60, BackgroundColor = oFunc };
+            oHorizImgs = new LayoutStackHorizontal() { Layout = LayoutRect.CSS.Percent, Track = 40, BackgroundColor = oFunc };
+            oVertiMain = new LayoutStackVertical  () { Layout = LayoutRect.CSS.None, BackgroundColor = oFunc };
+
+            Line               oLine = TxBitmapComp.Text.LineAppend( TemplateReplyFromProps(), fUndoable:false );
+            FTCacheWrap        oWrap = new FTCacheWrap( oLine );
+            LayoutSingleLine oSingle = new( oWrap, LayoutRect.CSS.Percent ) 
+                                         { Track = 60, BgColor = SKColors.Transparent, FgColor = ForeColor };
+
+            // Since we flex, do all this before layout children.
+            uint      uiPoints = (uint)( uiPixHeight * iScreenPixPerInch / skEMsPerInch.Y );
+            uint      uiFontID = _oStdUI.FontCache( TxBitmapComp.StdFace, uiPoints, skEMsPerInch );
+            oSingle.Cache.Update( _oStdUI.FontRendererAt( uiFontID ) );
+
+            // Put the text in the middle. Poor man's layout.
+            //oHorizText.Add( new LayoutRect( LayoutRect.CSS.None) );
+            //oHorizText.Add( oSingle );
+            //oHorizText.Add( new LayoutRect( LayoutRect.CSS.None) );
+
+            oVertiMain.Add( oSingle );
+
+            oHorizImgs.Add( new LayoutRect( LayoutRect.CSS.None) );
+            LayoutImageReference oImage1 = new LayoutIcon( TxImageList.Bitmap, LayoutRect.CSS.Flex ) { Stretch = true };
+            oHorizImgs.Add( oImage1 );
+            oHorizImgs.Add( new LayoutRect( LayoutRect.CSS.None) );
+            LayoutImageReference oImage2 = new LayoutIcon( RxHistoryList.Bitmap, LayoutRect.CSS.Flex ) { Stretch = true };
+            oHorizImgs.Add( oImage2 );
+            oHorizImgs.Add( new LayoutRect( LayoutRect.CSS.None) );
+
+            oVertiMain.Add( oHorizImgs );
+
+            // Need this to calc image aspect to bubble up.
+            oVertiMain.SetRect( 0, 0, oMode.Resolution.Width, oMode.Resolution.Height );
+            oVertiMain.LayoutChildren();
+
+            // After the layout send the aspect out to the listeners. In case we want to re-select.
+            Send_TxImageAspect?.Invoke( new SKPointI( oImage1.Width, oImage1.Height ) );
+
+            TxBitmapComp.Text.WordBreak( oWrap.Line, oWrap.Words ); 
+            oWrap.Update( _oStdUI.FontRendererAt( uiFontID ) );
+            oWrap.WrapSegments( oSingle.Width );
+
+            SelectionAdjust( oImage1 );
+
+            TxBitmapComp.AddLayout( oVertiMain );
         }
 
         protected void TemplateHiDefMessage( SSTVMode oMode, string strMessage ) {
