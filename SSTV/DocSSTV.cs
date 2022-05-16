@@ -597,6 +597,7 @@ namespace Play.SSTV {
             TemplateList.LineAppend( "CQ Color Gradient" );
             TemplateList.LineAppend( "High Def Message" );
             TemplateList.LineAppend( "High Def CQ" );
+            TemplateList.LineAppend( "High Def From Me" );
             
             // Largest bitmap needed by any of the types I can decode.
 		    SyncImage   .Bitmap = new SKBitmap( 800, 616, SKColorType.Rgb888x, SKAlphaType.Unknown );
@@ -903,8 +904,12 @@ namespace Play.SSTV {
 
 		public void TemplateSet( int iIndex ) {
             SSTVMode oMode = TransmitModeSelection;
-			if( oMode == null || TxImageList.Bitmap == null ) {
+			if( oMode == null ) {
                 LogError( "Set a transmit mode first." );
+                return;
+            } 
+			if( TxImageList.Bitmap == null ) {
+                LogError( "No Images Here." );
                 return;
             } 
 
@@ -938,10 +943,13 @@ namespace Play.SSTV {
                         TemplateSetCQLayout( oMode, false );
                         break;
                     case 4:
-                        TemplateHiDefMessage( oMode );
+                        TemplateHiDefMessage( oMode, Message );
                         break;
                     case 5:
                         TemplateSetCQLayout( oMode, true );
+                        break;
+                    case 6:
+                        TemplateHiDefMessage( oMode, "from " + MyCall );
                         break;
 				}
 
@@ -1038,15 +1046,13 @@ namespace Play.SSTV {
             TxBitmapComp.AddLayout( oStack );
         }
 
-        protected void TemplateHiDefMessage( SSTVMode oMode ) {
+        protected void TemplateHiDefMessage( SSTVMode oMode, string strMessage ) {
             Func< object, SKColor > oFunc = delegate( object x )  { return SKColors.Black; };
 
             LayoutStackVertical   oStack = new();
             LayoutStackHorizontal oHoriz = new() { Layout = LayoutRect.CSS.Pixels, Track = 55, BackgroundColor = oFunc };
 
-            IPgStandardUI2 oStdUI = (IPgStandardUI2)Services ?? throw new ApplicationException( "Couldn't get StdUI2" );
-
-            Line               oLine = TxBitmapComp.Text.LineAppend( Message, fUndoable:false );
+            Line               oLine = TxBitmapComp.Text.LineAppend( strMessage, fUndoable:false );
             LayoutSingleLine oSingle = new( new FTCacheLine( oLine ), LayoutRect.CSS.Flex ) 
                                          { BgColor = SKColors.Black, FgColor = SKColors.White };
 
@@ -1054,8 +1060,8 @@ namespace Play.SSTV {
             SKPoint     skRezPerInch = new SKPoint(96, 96);
             const int iPointsPerInch = 72;
             uint      uiPoints = (uint)( 55 * iPointsPerInch / skRezPerInch.Y );
-            uint      uiFontID = oStdUI.FontCache( TxBitmapComp.StdFace, uiPoints, skRezPerInch );
-            oSingle.Cache.Update( oStdUI.FontRendererAt( uiFontID ) );
+            uint      uiFontID = _oStdUI.FontCache( TxBitmapComp.StdFace, uiPoints, skRezPerInch );
+            oSingle.Cache.Update( _oStdUI.FontRendererAt( uiFontID ) );
 
             oHoriz.Add( new LayoutRect( LayoutRect.CSS.None) );
             oHoriz.Add( oSingle );
