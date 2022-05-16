@@ -831,7 +831,12 @@ namespace Play.SSTV {
         }
 
         private void OnImageUpdated_TxImageList() {
-			Selection.SetRect( 0, 0, TxImageList.Bitmap.Width, TxImageList.Bitmap.Height );
+            if( TxImageList.Bitmap != null ) {
+			    Selection.SetRect( 0, 0, TxImageList.Bitmap.Width, TxImageList.Bitmap.Height );
+            } else {
+                Selection.SetRect( 0, 0, 0, 0 );
+            }
+            TxBitmapComp.Clear(); // We have references to TxImageList.Bitmap we must clear;
             RenderComposite();
             Properties.RaiseBufferEvent();
         }
@@ -854,6 +859,7 @@ namespace Play.SSTV {
             if( StateRx == DocSSTVMode.DeviceRead ) {
                 _rgUItoBGQueue.Enqueue( new TVMessage( TVMessage.Message.ChangeDirectory, RxHistoryList.CurrentDirectory ) );
             }
+            TxBitmapComp.Clear(); // We have references to RxHistoryList.Bitmap we must clear;
             RenderComposite();
         }
 
@@ -1189,16 +1195,13 @@ namespace Play.SSTV {
 			}
 
 			if( oMode != null ) {
-				SKRectI rcComposition = new SKRectI( 0, 0, oMode.Resolution.Width, oMode.Resolution.Height);
-				SKSizeI szComposition = new SKSizeI( oMode.Resolution.Width, oMode.Resolution.Height );
-
-			    if( Selection.IsEmpty() ) {
+			    if( Selection.IsEmpty() && TxImageList.Bitmap != null ) {
 				    Selection.SetRect ( 0, 0,
-									               TxImageList.Bitmap.Width,
-									               TxImageList.Bitmap.Height );
+									    TxImageList.Bitmap.Width,
+									    TxImageList.Bitmap.Height );
 			    }
 
-				TxBitmapComp.Load( TxBitmap, rcComposition, szComposition ); // Render needs this, for now.
+				TxBitmapComp.Load( oMode.Resolution ); 
 
 				int iTemplate = TemplateList.CheckedLine is Line oChecked ? oChecked.At : 0;
 

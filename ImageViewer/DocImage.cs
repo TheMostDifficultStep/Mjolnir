@@ -104,6 +104,8 @@ namespace Play.ImageViewer {
             using SKPaint skPaint = new() { BlendMode = SKBlendMode.SrcATop, IsAntialias = true };
 
             try {
+                // Would be nice if we could tell if the image was disposed too.
+                // We're holding references to external bitmaps.
                 if( _oSoloImg != null ) {
                     skCanvas.DrawBitmap( _oSoloImg,
 									     _rcWorld,
@@ -316,6 +318,38 @@ namespace Play.ImageViewer {
             }
             base.Dispose();
         }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="szDestSize"></param>
+        /// <returns></returns>
+		public bool Load( SKSizeI szDestSize ) {
+            if( Bitmap != null && Bitmap.Width == szDestSize.Width && Bitmap.Height == szDestSize.Height ) {
+                // Kind of weird I need to do this since I always render after the bitmap
+                // is loaded. Take another look at this some time.
+				Raise_ImageUpdated();
+                return true;
+            }
+
+			BitmapDispose();
+
+			try {
+				Bitmap = new SKBitmap( szDestSize.Width, szDestSize.Height, SKColorType.Rgba8888, SKAlphaType.Opaque );
+			} catch( Exception oEx ) {
+				Type[] rgErrors = { typeof( ArgumentException ),
+									typeof( ArgumentNullException ),
+									typeof( NullReferenceException ) };
+				if( rgErrors.IsUnhandled( oEx ) )
+					throw;
+
+				return false;
+			} finally {
+				Raise_ImageUpdated();
+			}
+
+			return true;
+		}
 
         protected void LogError( string strMessage, string strDetails, bool fShow=true ) {
             _oSiteBase.LogError( strMessage, strDetails, fShow );
