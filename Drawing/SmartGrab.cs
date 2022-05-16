@@ -288,7 +288,7 @@ namespace Play.Rectangles
             LOCUS         p_eEdges,
             int           p_iX, 
             int           p_iY,
-            SKPointI      p_pntAspect
+            SKPoint       p_pntAspect
 		) {
 			return new SmartGrabDrag( p_oFinished, this, p_eStretch, p_eEdges, p_iX, p_iY );
 		}
@@ -429,7 +429,7 @@ namespace Play.Rectangles
             LOCUS         p_eEdges,
             int           p_iX, 
             int           p_iY,
-            SKPointI      p_pntAspect
+            SKPoint       p_pntAspect
 		) {
             switch( p_eHit ) {
                 case HIT.CORNER:
@@ -597,7 +597,7 @@ namespace Play.Rectangles
             LOCUS         p_eEdges,
             int           p_iX, 
             int           p_iY,
-            SKPointI      p_pntAspect = new SKPointI()
+            SKPoint       p_pntAspect = new SKPoint()
             ) : base( p_oFinished, p_oGuest, p_eStretch, p_eEdges, p_iX, p_iY )
         {
 		    SKPointI pntAnchorSide = new SKPointI( p_iX, p_iY ); // Shouldn't, need this default. But compiler is whining.

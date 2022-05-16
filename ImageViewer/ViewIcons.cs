@@ -15,7 +15,7 @@ using SkiaSharp;
 using SkiaSharp.Views.Desktop;
 
 namespace Play.ImageViewer {
-    public abstract class ImageLineBase : LayoutImageBase {
+    public abstract class ImageLineBase : LayoutImageReference {
         public Line Source { get; }
         public ImageLineBase( Line oSource, SKSize szSize ) : base( szSize ) {
             Source = oSource ?? throw new ArgumentNullException( "Source must not be null" );
@@ -30,12 +30,12 @@ namespace Play.ImageViewer {
     /// </summary>
     public class ImageLineRect : ImageLineBase
     {
-        public override SKBitmap Icon => (SKBitmap)Source.Extra;
+        public override SKBitmap Picture => (SKBitmap)Source.Extra;
 
         /// <exception cref="ArgumentNullException" />
         /// <exception cref="InvalidCastException" />
         public ImageLineRect( Line oSource, SKSize skSize ) : base( oSource, skSize ) {
-            World = new SKRectI( 0, 0, 0, 0 );
+            World.SetRect( 0, 0, 0, 0 );
 
             this.SetRect( LOCUS.UPPERLEFT, 0, 0, (int)skSize.Width, (int)skSize.Height );
         }
@@ -48,7 +48,7 @@ namespace Play.ImageViewer {
 		/// </summary>
 		/// <param name="oTopLeft">Allows us to scroll.</param>
         public override void Paint( SKCanvas skCanvas, IPgStandardUI2 oStdUI, SKPoint oTopLeft ) {
-            if( Icon == null ) {
+            if( Picture == null ) {
                 // Used to paint bg even if Icon is null, but I was getting weird paint errors
                 // white rectangles over the normal working thumbs. Perhaps those where thumbs
                 // not genderated yet and thus not layed out? 
@@ -57,7 +57,7 @@ namespace Play.ImageViewer {
                 return;
             }
 
-            World = new SKRectI( 0, 0, Icon.Width, Icon.Height );
+            World.SetRect( 0, 0, Picture.Width, Picture.Height );
             ViewPortSizeMax( ViewPort ); // TODO: Need to look at placement of this call...
 
             try {
@@ -68,7 +68,7 @@ namespace Play.ImageViewer {
                                    ViewPort.Width, 
                                    ViewPort.Height );
 
-				skCanvas.DrawBitmap( Icon, 
+				skCanvas.DrawBitmap( Picture, 
 									 new SKRect( 0, 0, World.Width, World.Height ),
 									 new SKRect( ViewPort.Left, ViewPort.Top - oTopLeft.Y, ViewPort.Right, ViewPort.Bottom - oTopLeft.Y ) );
             } catch( NullReferenceException ) {

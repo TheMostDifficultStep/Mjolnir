@@ -474,6 +474,10 @@ namespace Play.ImageViewer {
 			}
         }
 
+		/// <summary>
+		/// This assigns a Selection in bmp (world) coordinages that matches the current
+		/// view selection and aspect.
+		/// </summary>
 		protected void AlignBmpSelectionToViewSelection() {
 			SKPoint pntAspect = new SKPoint( Document.Bitmap.Width  / (float)_rctViewPort.Width,
 											 Document.Bitmap.Height / (float)_rctViewPort.Height );

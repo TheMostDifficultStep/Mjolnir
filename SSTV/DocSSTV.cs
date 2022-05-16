@@ -260,7 +260,8 @@ namespace Play.SSTV {
         protected SKSizeI Destination { get; set; } = new SKSizeI();
         // Shared selection. Last view to change it wins but I
         // expect only the resize view to attempt to change this.
-        public SmartRect Selection { get; } = new SmartRect();
+        // These are in the bitmap's world coordinates.
+        public SmartSelect Selection { get; } = new SmartSelect();
 
         /// <summary>
         /// This editor shows the list of modes we can modulate.
@@ -904,7 +905,7 @@ namespace Play.SSTV {
 
 		public void TemplateSet( int iIndex ) {
             SSTVMode oMode = TransmitModeSelection;
-			if( oMode == null ) {
+			if( oMode == null || TxImageList.Bitmap == null ) {
                 LogError( "Set a transmit mode first." );
                 return;
             } 
@@ -972,15 +973,9 @@ namespace Play.SSTV {
         /// <param name="oMode">SSTV mode we are sending in.</param>
         /// <param name="fHighContrast">if false, use color. if true using BW.</param>
         protected void TemplateSetCQLayout( SSTVMode oMode, bool fHighContrast ) {
-            // This happens if we don't start the receive but press a template option list item.
-            if( TxBitmapSnip.Bitmap == null ) {
-                LogError( "Select an Image to Send" );
-                return;
-            }
-
             LayoutStackVertical oStack = new();
-            LayoutStack oHoriz;
-            const double      dblFractionalHeight = 20 / 100.0;
+            LayoutStack         oHoriz;
+            const double        dblFractionalHeight = 20 / 100.0;
 
             SKPoint        skEMsPerInch = new( 96, 96 ); 
             const int iScreenPixPerInch = 72;
@@ -998,7 +993,6 @@ namespace Play.SSTV {
                 oHoriz = new LayoutStackHorizontal() { Layout = LayoutRect.CSS.Pixels, Track = uiPixHeight, BackgroundColor = oFunc };
             }
 
-
             Line               oLine = TxBitmapComp.Text.LineAppend( "CQ de " + MyCall, fUndoable:false );
             LayoutSingleLine oSingle = new( new FTCacheLine( oLine ), LayoutRect.CSS.Flex ) 
                                          { BgColor = SKColors.Transparent, FgColor = fHighContrast ? SKColors.White : ForeColor };
@@ -1015,18 +1009,39 @@ namespace Play.SSTV {
 
             oStack.Add( oHoriz );
 
-            LayoutImage lyImage = new LayoutImage( TxBitmapSnip.Bitmap, LayoutRect.CSS.None );
+            LayoutImageReference lyImage = new LayoutIcon( TxImageList.Bitmap, LayoutRect.CSS.None ) { Stretch = true };
             oStack.Add( lyImage );
 
             // Need this to calc image aspect to bubble up.
             oStack.SetRect( 0, 0, oMode.Resolution.Width, oMode.Resolution.Height );
             oStack.LayoutChildren();
-                            
+
             // After the layout send the aspect out to the listeners. In case we want to re-select.
             Destination = new SKSizeI( lyImage.Width, lyImage.Height );
             Send_TxImageAspect?.Invoke( new SKPointI( lyImage.Width, lyImage.Height ) );
 
+            SelectionAdjust( lyImage );
+
             TxBitmapComp.AddLayout( oStack );
+        }
+
+        /// <summary>
+        /// Adjust the selection to match the given Layout Aspect (if different)
+        /// </summary>
+        /// <param name="lyImage">The layout after LayoutChild() has been called.</param>
+        protected void SelectionAdjust( LayoutImageReference lyImage ) {
+			float flOldSlope = Selection.Width / (float)Selection.Height;
+			float flNewSlope = lyImage.Width   / (float)lyImage.Height;
+
+			if( flOldSlope != flNewSlope  ) {
+			    SKPointI      pntCorner  = Selection.GetPoint( LOCUS.LOWERRIGHT );
+			    SmartGrabDrag oSmartDrag = Selection.BeginAspectDrag( null, SET.STRETCH, SmartGrab.HIT.CORNER, 
+																	  LOCUS.LOWERRIGHT, pntCorner.X, pntCorner.Y, 
+                                                                      new SKPointI( lyImage.Width, lyImage.Height ) );
+			    oSmartDrag.Move( pntCorner.X, pntCorner.Y );
+
+                lyImage.World.Copy = Selection;
+            }
         }
 
         protected void TemplateHiDefMessage( SSTVMode oMode ) {

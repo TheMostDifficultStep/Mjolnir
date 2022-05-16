@@ -34,17 +34,18 @@ namespace Play.Rectangles {
         }
     }
 
-    public class LayoutImageBase : LayoutRect {
-		public    virtual SKBitmap  Icon     { get; }
-		public            SmartRect ViewPort { get; }
-		protected         SKRectI   World;
+    /// <summary>
+    /// Split this behavior out, since I need a dynamic image layout. This
+    /// class gives you basic image aspect management.
+    /// </summary>
+    public class LayoutImageAbstract : LayoutRect {
+        public LayoutImageAbstract( LayoutRect.CSS eLayout ) : base(eLayout) {
+        }
 
-		public LayoutImageBase( SKSize szSize, CSS eLayout = CSS.None ) : base( eLayout ) {
-			ViewPort = new SmartRect();
-			World    = new SKRectI( 0, 0, (int)szSize.Width, (int)szSize.Height );
-
-            this.SetRect( LOCUS.UPPERLEFT, 0, 0, (int)szSize.Width, (int)szSize.Height );
-		}
+        // Where to show the image in our layout.
+		public SmartRect ViewPort { get; } = new SmartRect();
+        // What part of the image to show.
+		public SmartRect World    { get; } = new SmartRect();
 
         public override uint TrackDesired( TRACK eParentAxis, int iRail ) {
             float flImageAspect  = World.Width / (float)World.Height;
@@ -123,6 +124,23 @@ namespace Play.Rectangles {
                 return null;
             }
         }
+    }
+
+    /// <summary>
+    /// Use this for static images. That is the image you want to display is
+    /// allocated and you just want to show a portion of it. This class has
+    /// members to create the image you want to display.
+    /// </summary>
+    public class LayoutImageReference : LayoutImageAbstract {
+		public virtual SKBitmap  Picture { get; }
+
+        public bool Stretch { get; set; } = false;
+
+		public LayoutImageReference( SKSize szSize, CSS eLayout = CSS.None ) : base( eLayout ) {
+			World.SetRect( 0, 0, (int)szSize.Width, (int)szSize.Height );
+
+            this.SetRect( LOCUS.UPPERLEFT, 0, 0, (int)szSize.Width, (int)szSize.Height );
+		}
 
         /// <summary>
         /// Create a rescaled image based on this object's dimensions, preserving
@@ -133,7 +151,7 @@ namespace Play.Rectangles {
                 return null;
 
             try {
-                World = new SKRectI( 0, 0, bmpSource.Width, bmpSource.Height );
+                World.SetRect( 0, 0, bmpSource.Width, bmpSource.Height );
 
                 ViewPortSizeMax( ViewPort );
 
@@ -174,54 +192,57 @@ namespace Play.Rectangles {
 		/// </summary>
 		/// <param name="skCanvas"></param>
 		public override void Paint( SKCanvas skCanvas ) {
-            if( Icon == null )
+            if( Picture == null )
                 return;
 
-            ViewPortSizeMax( ViewPort ); // TODO: Need to look at placement of this call...
+            if( !Stretch ) {
+                ViewPortSizeMax( ViewPort ); // TODO: Need to look at placement of this call...
+            } else {
+                ViewPort.Copy = this;
+            }
 
             try {
-                SmartRect oTarget = 
-                    new SmartRect( LOCUS.UPPERLEFT, 
-                                   ViewPort.Left,  ViewPort.Top,
-                                   ViewPort.Width, ViewPort.Height );
-
-				skCanvas.DrawBitmap( Icon, 
-									 new SKRect( 0, 0, World.Width, World.Height ),
+				skCanvas.DrawBitmap( Picture, 
+									 new SKRect(    World.Left,    World.Top,    World.Right,    World.Bottom ),
 									 new SKRect( ViewPort.Left, ViewPort.Top, ViewPort.Right, ViewPort.Bottom ) );
             } catch( NullReferenceException ) {
             }
 		}
     } // End Class
 
-    public class LayoutIcon : LayoutImageBase {
-		public override SKBitmap Icon { get; }
+    /// <summary>
+    /// Use this where the bitmap is owned by another object. We
+    /// don't attempt to delete the bitmap when we are "disposed"
+    /// </summary>
+    public class LayoutIcon : LayoutImageReference {
+		public override SKBitmap Picture { get; }
         public LayoutIcon( SKBitmap skBmp, CSS eLayout = CSS.None) : 
             base(new SKSize( skBmp.Width, skBmp.Height), eLayout) 
         {
-            Icon = skBmp;
+            Picture = skBmp;
         }
     }
 
-	public class LayoutImage : LayoutImageBase, IDisposable {
-		public override SKBitmap Icon { get; }
+	public class LayoutImage : LayoutImageReference, IDisposable {
+		public override SKBitmap Picture { get; }
 
         private bool disposedValue;
 
         public LayoutImage( SKBitmap oImage, CSS eLayout = CSS.None ) : base( new SKSize( oImage.Width, oImage.Height ), eLayout )
 		{
-		    Icon  = oImage ?? throw new ArgumentNullException(); // DirectoryRect doesn't have an image.
-			World = new SKRectI( 0, 0, (int)oImage.Width, (int)oImage.Height );
+		    Picture  = oImage ?? throw new ArgumentNullException(); // DirectoryRect doesn't have an image.
+			World.SetRect( 0, 0, (int)oImage.Width, (int)oImage.Height );
 		}
 
 		public LayoutImage( SKSize szSize ) : base( szSize ) {
-			World = new SKRectI( 0, 0, (int)szSize.Width, (int)szSize.Height );
+			World.SetRect( 0, 0, (int)szSize.Width, (int)szSize.Height );
 		}
 
         protected virtual void Dispose( bool disposing ) {
             if (!disposedValue) {
                 if (disposing) {
-					if( Icon != null )
-						Icon.Dispose();
+					if( Picture != null )
+						Picture.Dispose();
                 }
 
                 // TODO: free unmanaged resources (unmanaged objects) and override finalizer

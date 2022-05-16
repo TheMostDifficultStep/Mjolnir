@@ -1035,7 +1035,7 @@ namespace Play.ImageViewer {
 						ImageWalkerDoc.IsFileExtensionUnderstood( strFileExtn ) )
 					{
 						// This is very slow. That's why we're using a worker to load and scale all of these!
-						LayoutImageBase oTempRct = new LayoutImageBase( skSize );
+						LayoutImageReference oTempRct = new LayoutImageReference( skSize );
 						using SKBitmap  oTempBmp = ImageLineRect.LoadImage( Path.Combine( CurrentDirectory, oFileName.ToString() ) );
 
                         if( oTempBmp != null ) {
