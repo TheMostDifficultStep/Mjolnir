@@ -837,7 +837,6 @@ namespace Play.SSTV {
         }
 
         private void OnCheckedEvent_TxModeList(Line oLineChecked) {
-            Destination = new SKSizeI( TxResolution.X, TxResolution.Y );
             RenderComposite();
         }
 
@@ -914,14 +913,12 @@ namespace Play.SSTV {
 						TxBitmapComp.AddText ( LOCUS.UPPERLEFT,   5,  5,  17.0, TxBitmapComp.StdFace, ForeColor, strMessage );
 						TxBitmapComp.AddImage( LOCUS.LOWERRIGHT, 10, 10,  40.0, RxHistoryList.Bitmap, null );
 
-                        Destination = new SKSizeI( oMode.Resolution.Width, oMode.Resolution.Height );
                         Send_TxImageAspect?.Invoke( new SKPointI( oMode.Resolution.Width, oMode.Resolution.Height ) );
 						break;
 					case 1: // General Message
 						TxBitmapComp.AddImage( LOCUS.CENTER,      0,  0, 100.0, TxBitmap, Selection );
 						TxBitmapComp.AddText ( LOCUS.UPPERLEFT,   5,  5,  20.0, TxBitmapComp.StdFace, ForeColor, Message );
 
-                        Destination = new SKSizeI( oMode.Resolution.Width, oMode.Resolution.Height );
                         Send_TxImageAspect?.Invoke( new SKPointI( oMode.Resolution.Width, oMode.Resolution.Height ) );
 						break;
                     case 2: // General Message PnP
@@ -929,7 +926,6 @@ namespace Play.SSTV {
 						TxBitmapComp.AddText ( LOCUS.UPPERLEFT,   5,  5,  15.0, TxBitmapComp.StdFace, ForeColor, Message );
 						TxBitmapComp.AddImage( LOCUS.LOWERRIGHT, 10, 10,  40.0, RxHistoryList.Bitmap, null );
 
-                        Destination = new SKSizeI( oMode.Resolution.Width, oMode.Resolution.Height );
                         Send_TxImageAspect?.Invoke( new SKPointI( oMode.Resolution.Width, oMode.Resolution.Height ) );
                         break;
                     case 3:
@@ -1029,7 +1025,6 @@ namespace Play.SSTV {
             oStack.LayoutChildren();
 
             // After the layout send the aspect out to the listeners. In case we want to re-select.
-            Destination = new SKSizeI( lyImage.Width, lyImage.Height );
             Send_TxImageAspect?.Invoke( new SKPointI( lyImage.Width, lyImage.Height ) );
 
             SelectionAdjust( lyImage );
@@ -1070,7 +1065,6 @@ namespace Play.SSTV {
             oStack.LayoutChildren();
                             
             // After the layout send the aspect out to the listeners. In case we want to re-select.
-            Destination = new SKSizeI( oImage.Width, oImage.Height );
             Send_TxImageAspect?.Invoke( new SKPointI( oImage.Width, oImage.Height ) );
 
             SelectionAdjust( oImage );
@@ -1202,10 +1196,6 @@ namespace Play.SSTV {
 				    Selection.SetRect ( 0, 0,
 									               TxImageList.Bitmap.Width,
 									               TxImageList.Bitmap.Height );
-			    }
-			    if( Destination.IsEmpty ) {
-				    Destination = new SKSizeI( Selection.Width,
-									           Selection.Height );
 			    }
 
 				TxBitmapComp.Load( TxBitmap, rcComposition, szComposition ); // Render needs this, for now.
