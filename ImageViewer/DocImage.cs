@@ -43,13 +43,18 @@ namespace Play.ImageViewer {
 
         /// <summary>
         /// Set our rectangle to be located in one of the corners of the canvas.
+        /// This is the target ouf our blit operation.
         /// </summary>
-        /// <param name="oStdUI"></param>
-        /// <param name="szTrgExtent"></param>
+        /// <remarks>Note, we no nolonger use the ViewPortSizeMax in an attempt
+        /// to preserve the aspect ratio of the original image. It's best to
+        /// just squash it in, and the use the image selector in order to
+        /// select the source for the bitmap blit.</remarks>
+        /// <param name="oStdUI">Baggage for this call, just ignore.</param>
+        /// <param name="szTrgExtent">The size of the composite image</param>
+        /// <seealso cref="LayoutImageReference.ViewPortSizeMax"/>
         public override void Update( IPgStandardUI2 oStdUI, Size szTrgExtent ) {
             SmartRect rcCanvas = new SmartRect( 0, 0, szTrgExtent.Width, szTrgExtent.Height );
             SKPointI  pnOrigin = rcCanvas.GetPoint( Locus );
-            SmartRect rcBitmap = new SmartRect( 0, 0, SrcExtent.Width, SrcExtent.Height );
             Size      szTarget = new Size((int)(szTrgExtent.Width * Scale), (int)(szTrgExtent.Height * Scale) );
             SmartRect rcViewPt = new();
 
@@ -63,10 +68,8 @@ namespace Play.ImageViewer {
             else
                 pnOrigin.Y += Origin.Y;
 
-            ImageHelpers.ViewPortSizeMax( new Size( 0, 0 ), szTarget, rcBitmap, rcViewPt );
-
             // Move the origin to the correct corner.
-            rcViewPt.SetRect( Locus, pnOrigin.X, pnOrigin.Y, rcViewPt.Width, rcViewPt.Height );
+            rcViewPt.SetRect( Locus, pnOrigin.X, pnOrigin.Y, szTarget.Width, szTarget.Height );
             
             this.Copy = rcViewPt;
         }
@@ -75,18 +78,23 @@ namespace Play.ImageViewer {
     }
 
     public class SoloImgBlock : ImageBlock {
-        public readonly ImageSoloDoc _oDocSoloImg;
-        public SoloImgBlock( LOCUS eOrigin, int iX, int iY, double dblScale, ImageSoloDoc oDocSoloImg ) : base( eOrigin, iX, iY, dblScale ) {
-            _oDocSoloImg = oDocSoloImg ?? throw new ArgumentNullException( nameof( oDocSoloImg ) );
+        public readonly SKBitmap _oSoloImg;
+        public readonly SKRectI  _rcWorld;
+        public SoloImgBlock( LOCUS eOrigin, int iX, int iY, double dblScale, 
+                             SKBitmap oSoloImg, SmartRect rcWorldSelection ) : 
+            base( eOrigin, iX, iY, dblScale ) 
+        {
+            _oSoloImg = oSoloImg; // We check for null
+            _rcWorld  = rcWorldSelection.SKRect;
         }
 
         protected override Size SrcExtent {
             get {
                 // This can happen if we go to a directory with no images.
-                if( _oDocSoloImg.Bitmap == null )
+                if( _oSoloImg == null )
                     return new Size( 0, 0 );
                     
-                return new Size( _oDocSoloImg.Bitmap.Width, _oDocSoloImg.Bitmap.Height );
+                return new Size( _rcWorld.Width, _rcWorld.Height );
             }
         }
 
@@ -96,10 +104,10 @@ namespace Play.ImageViewer {
             using SKPaint skPaint = new() { BlendMode = SKBlendMode.SrcATop, IsAntialias = true };
 
             try {
-                if( _oDocSoloImg.Bitmap != null ) {
-                    skCanvas.DrawBitmap( _oDocSoloImg.Bitmap,
-									     new SKRect( 0, 0, _oDocSoloImg.Bitmap.Width, _oDocSoloImg.Bitmap.Height ),
-									     SKRect, // Dest, our whole rect.
+                if( _oSoloImg != null ) {
+                    skCanvas.DrawBitmap( _oSoloImg,
+									     _rcWorld,
+									     SKRect, 
 									     skPaint );
                 }
                 // else draw an error image.
@@ -313,8 +321,13 @@ namespace Play.ImageViewer {
             _oSiteBase.LogError( strMessage, strDetails, fShow );
         }
 
-        public void AddImage( LOCUS eOrigin, int iX, int iY, double dblSize, ImageSoloDoc oSoloBmp ) {
-            SoloImgBlock oBlock = new( eOrigin, iX, iY, dblSize, oSoloBmp );
+        public void AddImage( LOCUS eOrigin, int iX, int iY, double dblSize, SKBitmap oSoloBmp, 
+            SmartRect rcWorldSelect
+        ) {
+            if( rcWorldSelect == null )
+                rcWorldSelect = new SmartRect( 0, 0, oSoloBmp.Width, oSoloBmp.Height );
+
+            SoloImgBlock oBlock = new( eOrigin, iX, iY, dblSize, oSoloBmp, rcWorldSelect );
 
             _rgChildren.Add( oBlock );
         }

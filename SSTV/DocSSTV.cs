@@ -335,7 +335,6 @@ namespace Play.SSTV {
         public ImageWalkerDir      RxHistoryList { get; }
         public SSTVProperties      Properties    { get; }
         public SKBitmap            TxBitmap      => TxImageList.Bitmap;
-        internal ImageSoloDoc      TxBitmapSnip  { get; }  
         internal DocImageEdit      TxBitmapComp  { get; }
 
         protected Mpg123FFTSupport FileDecoder   { get; set; }
@@ -375,7 +374,6 @@ namespace Play.SSTV {
             TxModeList    = new ModeEditor    ( new DocSlot( this, "SSTV Tx Modes" ) );
             TxImageList   = new ImageWalkerDir( new DocSlot( this ) );
             RxHistoryList = new ImageWalkerDir( new DocSlot( this ) );
-            TxBitmapSnip  = new ImageSoloDoc  ( new DocSlot( this ) );
             TxBitmapComp  = new DocImageEdit  ( new DocSlot( this ) );
                           
             PortTxList    = new Editor        ( new DocSlot( this ) );
@@ -397,9 +395,6 @@ namespace Play.SSTV {
         protected virtual void Dispose( bool disposing ) {
             if( !disposedValue ) {
                 if( disposing ) {
-                    if( TxBitmapSnip != null )
-			            TxBitmapSnip.Dispose(); 
-
                     // If init new fails then this won't get created.
                     if( FileDecoder != null )
                         FileDecoder.Dispose();
@@ -578,8 +573,6 @@ namespace Play.SSTV {
                 return false;
             if( !TxModeList .InitNew() ) 
                 return false;
-			if( !TxBitmapSnip.InitNew() )
-				return false;
             if( !TxBitmapComp.InitNew() )
                 return false;
 
@@ -917,24 +910,24 @@ namespace Play.SSTV {
 					case 0: // PnP reply.
                         string strMessage = TemplateTextFromProps();
 
-						TxBitmapComp.AddImage( LOCUS.CENTER,      0,  0, 100.0, TxBitmapSnip );
+						TxBitmapComp.AddImage( LOCUS.CENTER,      0,  0, 100.0, TxBitmap, Selection );
 						TxBitmapComp.AddText ( LOCUS.UPPERLEFT,   5,  5,  17.0, TxBitmapComp.StdFace, ForeColor, strMessage );
-						TxBitmapComp.AddImage( LOCUS.LOWERRIGHT, 10, 10,  40.0, RxHistoryList );
+						TxBitmapComp.AddImage( LOCUS.LOWERRIGHT, 10, 10,  40.0, RxHistoryList.Bitmap, null );
 
                         Destination = new SKSizeI( oMode.Resolution.Width, oMode.Resolution.Height );
                         Send_TxImageAspect?.Invoke( new SKPointI( oMode.Resolution.Width, oMode.Resolution.Height ) );
 						break;
 					case 1: // General Message
-						TxBitmapComp.AddImage( LOCUS.CENTER,      0,  0, 100.0, TxBitmapSnip );
+						TxBitmapComp.AddImage( LOCUS.CENTER,      0,  0, 100.0, TxBitmap, Selection );
 						TxBitmapComp.AddText ( LOCUS.UPPERLEFT,   5,  5,  20.0, TxBitmapComp.StdFace, ForeColor, Message );
 
                         Destination = new SKSizeI( oMode.Resolution.Width, oMode.Resolution.Height );
                         Send_TxImageAspect?.Invoke( new SKPointI( oMode.Resolution.Width, oMode.Resolution.Height ) );
 						break;
                     case 2: // General Message PnP
-						TxBitmapComp.AddImage( LOCUS.CENTER,      0,  0, 100.0, TxBitmapSnip );
+						TxBitmapComp.AddImage( LOCUS.CENTER,      0,  0, 100.0, TxBitmap, Selection );
 						TxBitmapComp.AddText ( LOCUS.UPPERLEFT,   5,  5,  15.0, TxBitmapComp.StdFace, ForeColor, Message );
-						TxBitmapComp.AddImage( LOCUS.LOWERRIGHT, 10, 10,  40.0, RxHistoryList );
+						TxBitmapComp.AddImage( LOCUS.LOWERRIGHT, 10, 10,  40.0, RxHistoryList.Bitmap, null );
 
                         Destination = new SKSizeI( oMode.Resolution.Width, oMode.Resolution.Height );
                         Send_TxImageAspect?.Invoke( new SKPointI( oMode.Resolution.Width, oMode.Resolution.Height ) );
@@ -1215,7 +1208,6 @@ namespace Play.SSTV {
 									           Selection.Height );
 			    }
 
-				TxBitmapSnip.Load( TxBitmap, Selection.SKRect, Destination ); 
 				TxBitmapComp.Load( TxBitmap, rcComposition, szComposition ); // Render needs this, for now.
 
 				int iTemplate = TemplateList.CheckedLine is Line oChecked ? oChecked.At : 0;
@@ -1225,7 +1217,6 @@ namespace Play.SSTV {
 
 				return true;
 			} else {
-				TxBitmapSnip.BitmapDispose(); // TODO: I'd really like to have the error image up.
 				LogError( "Problem prepping template for transmit." );
 			}
 
@@ -1660,7 +1651,8 @@ namespace Play.SSTV {
 
                 try {
                     if( oWorkPlace.Status == WorkerStatus.FREE ) {
-			            oDoc.TxBitmapSnip.Load( oDoc.TxBitmap, skSelect, oMode.Resolution );
+                        // borrow the Composite Bitmap for this test.
+			            oDoc.TxBitmapComp.Load( oDoc.TxBitmap, skSelect, oMode.Resolution );
 
                         // Use a low sample rate so it's easier to slog thru the data. 
                         Specification oTxSpec = new( 8000, 1, 0, 16 );
@@ -1678,9 +1670,9 @@ namespace Play.SSTV {
 					    _oRxSSTV          = new SSTVDraw ( _oSSTVDeModulator, oDoc.SyncImage.Bitmap, oDoc.DisplayImage.Bitmap );
 
 					    _oSSTVGenerator = oMode.Family switch {
-						    TVFamily.PD      => new GeneratePD     ( oDoc.TxBitmapSnip.Bitmap, oDemodTst, oMode ),
-						    TVFamily.Martin  => new GenerateMartin ( oDoc.TxBitmapSnip.Bitmap, oDemodTst, oMode ),
-						    TVFamily.Scottie => new GenerateScottie( oDoc.TxBitmapSnip.Bitmap, oDemodTst, oMode ),
+						    TVFamily.PD      => new GeneratePD     ( oDoc.TxBitmapComp.Bitmap, oDemodTst, oMode ),
+						    TVFamily.Martin  => new GenerateMartin ( oDoc.TxBitmapComp.Bitmap, oDemodTst, oMode ),
+						    TVFamily.Scottie => new GenerateScottie( oDoc.TxBitmapComp.Bitmap, oDemodTst, oMode ),
 
 						    _ => throw new ArgumentOutOfRangeException("Unrecognized Mode Type."),
 					    };
