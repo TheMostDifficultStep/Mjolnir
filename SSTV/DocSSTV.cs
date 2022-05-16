@@ -921,7 +921,11 @@ namespace Play.SSTV {
                 return;
             } 
 			if( TxImageList.Bitmap == null ) {
-                LogError( "No Images Here." );
+                LogError( "No Tx Images Here." );
+                return;
+            } 
+			if( RxHistoryList.Bitmap == null ) {
+                LogError( "No Rx Images Here." );
                 return;
             } 
 
@@ -1077,7 +1081,8 @@ namespace Play.SSTV {
             oHorizImgs = new LayoutStackHorizontal() { Layout = LayoutRect.CSS.Percent, Track = 40, BackgroundColor = oFunc };
             oVertiMain = new LayoutStackVertical  () { Layout = LayoutRect.CSS.None, BackgroundColor = oFunc };
 
-            Line               oLine = TxBitmapComp.Text.LineAppend( TemplateReplyFromProps(), fUndoable:false );
+            Editor             oEdit = TxBitmapComp.Text;
+            Line               oLine = oEdit.LineAppend( TemplateReplyFromProps(), fUndoable:false );
             FTCacheWrap        oWrap = new FTCacheWrap( oLine );
             LayoutSingleLine oSingle = new( oWrap, LayoutRect.CSS.Percent ) 
                                          { Track = 60, BgColor = SKColors.Transparent, FgColor = ForeColor };
@@ -1111,7 +1116,8 @@ namespace Play.SSTV {
             // After the layout send the aspect out to the listeners. In case we want to re-select.
             Send_TxImageAspect?.Invoke( new SKPointI( oImage1.Width, oImage1.Height ) );
 
-            TxBitmapComp.Text.WordBreak( oWrap.Line, oWrap.Words ); 
+            // After the layout now we can word wrap the text.
+            oEdit.WordBreak( oWrap.Line, oWrap.Words ); 
             oWrap.Update( _oStdUI.FontRendererAt( uiFontID ) );
             oWrap.WrapSegments( oSingle.Width );
 
