@@ -985,10 +985,10 @@ namespace Play.SSTV {
                         TemplateSetHiDefMessage( oMode, "from " + MyCall );
                         break;
                     case 7:
-                        TemplateSetHiDefMessage( oMode, TheirCall + " de " + MyCall );
+                        TemplateSetHiDefMessage( oMode, TemplateReplyFromProps() );
                         break;
                     case 8:
-                        TemplateSetHiDefReply( oMode );
+                        TemplateSetHiDefReplyPnP( oMode );
                         break;
 				}
 
@@ -1132,7 +1132,7 @@ namespace Play.SSTV {
 
         }
 
-        protected void TemplateSetHiDefReply( SSTVMode oMode ) {
+        protected void TemplateSetHiDefReplyPnP( SSTVMode oMode ) {
             Func< object, SKColor > oFunc = delegate( object x )  { return SKColors.Black; };
 
             LayoutStackVertical oVertiMain;
