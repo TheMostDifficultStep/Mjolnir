@@ -144,6 +144,8 @@ namespace Play.SSTV {
 			_wnTxImageChoice.Parent = this;
 			_wnTxImageChoice.SetBorderOn();
             _wnTxImageChoice.ToolSelect = 1;
+            _wnTxImageChoice.Aspect     = _oDocSSTV.TxImgLayoutAspect;
+			_wnTxImageChoice.DragMode   = DragMode.FixedRatio;
 
             _lyTxImageChoice = new LayoutControl( _wnTxImageChoice, LayoutRect.CSS.Percent, 100 );
         }
@@ -175,8 +177,6 @@ namespace Play.SSTV {
             _oDocSSTV.Send_TxImageAspect       += OnTxImageAspect_SSTVDoc;
 
 			_wnTxImageChoice.ToolSelect = 0; 
-			_wnTxImageChoice.Aspect     = _oDocSSTV.TxResolution;
-			_wnTxImageChoice.DragMode   = DragMode.FixedRatio;
 
             OnSizeChanged( new EventArgs() );
 

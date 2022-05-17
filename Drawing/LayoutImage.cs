@@ -195,16 +195,17 @@ namespace Play.Rectangles {
             if( Picture == null )
                 return;
 
-            if( !Stretch ) {
-                ViewPortSizeMax( ViewPort ); // TODO: Need to look at placement of this call...
-            } else {
+            if( Stretch ) {
                 ViewPort.Copy = this;
+            } else {
+                ViewPortSizeMax( ViewPort ); // TODO: Need to look at placement of this call...
             }
 
             try {
 				skCanvas.DrawBitmap( Picture, 
 									 new SKRect(    World.Left,    World.Top,    World.Right,    World.Bottom ),
-									 new SKRect( ViewPort.Left, ViewPort.Top, ViewPort.Right, ViewPort.Bottom ) );
+									 new SKRect( ViewPort.Left, ViewPort.Top, ViewPort.Right, ViewPort.Bottom )
+                                   );
             } catch( NullReferenceException ) {
             }
 		}

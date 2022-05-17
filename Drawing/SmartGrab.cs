@@ -635,7 +635,11 @@ namespace Play.Rectangles
             p_iY += _pntOffset.Y;
 
             // Rememeber: our graphics is in quadrant IV (4) so we're upside down.
-            p_iY = (int)( _flSlope * p_iX + _flIntercept );
+            // If our drag, pulls us past the bottom of the object, switch approach.
+            if( p_iY > Bottom )
+                p_iY = (int)( _flSlope * p_iX + _flIntercept );
+            else
+                p_iX = (int)( (p_iY - _flIntercept ) / _flSlope );
 
             SetPoint( p_iX, p_iY );
         }

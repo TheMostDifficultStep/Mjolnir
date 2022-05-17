@@ -109,7 +109,7 @@ namespace Play.SSTV {
             LabelSet( Names.Rx_Width,    "Width" );
             LabelSet( Names.Rx_Height,   "Height" );
             LabelSet( Names.Rx_Progress, "Received" );
-            LabelSet( Names.Rx_SaveDir,  "Save Dir" );
+            LabelSet( Names.Rx_SaveDir,  "Rx Save Dir" );
 
             // Initialize these to reasonable values, the user can update and save.
             ValueUpdate( Names.Std_ImgQuality, "80" );
@@ -261,7 +261,7 @@ namespace Play.SSTV {
         // Shared selection. Last view to change it wins but I
         // expect only the resize view to attempt to change this.
         // These are in the bitmap's world coordinates.
-        public SmartSelect Selection { get; } = new SmartSelect();
+        public SmartSelect Selection { get; } = new SmartSelect() { Mode = DragMode.FixedRatio };
 
         /// <summary>
         /// This editor shows the list of modes we can modulate.
@@ -336,6 +336,11 @@ namespace Play.SSTV {
         public SSTVProperties      Properties    { get; }
         public SKBitmap            TxBitmap      => TxImageList.Bitmap;
         internal DocImageEdit      TxBitmapComp  { get; }
+
+        /// <summary>
+        /// Used by the Resize dialog to make sure the selection matches the latest layout.
+        /// </summary>
+        public SKPointI TxImgLayoutAspect { get; protected set; } = new ( 1, 1 );
 
         protected Mpg123FFTSupport FileDecoder   { get; set; }
 
@@ -939,12 +944,14 @@ namespace Play.SSTV {
 						TxBitmapComp.AddImage( LOCUS.LOWERRIGHT, 10, 10,  40.0, RxHistoryList.Bitmap, null );
 
                         Send_TxImageAspect?.Invoke( new SKPointI( oMode.Resolution.Width, oMode.Resolution.Height ) );
+                        TxImgLayoutAspect = new ( oMode.Resolution.Width, oMode.Resolution.Height );
 						break;
 					case 1: // General Message
 						TxBitmapComp.AddImage( LOCUS.CENTER,      0,  0, 100.0, TxBitmap, Selection );
 						TxBitmapComp.AddText ( LOCUS.UPPERLEFT,   5,  5,  20.0, TxBitmapComp.StdFace, ForeColor, Message );
 
                         Send_TxImageAspect?.Invoke( new SKPointI( oMode.Resolution.Width, oMode.Resolution.Height ) );
+                        TxImgLayoutAspect = new ( oMode.Resolution.Width, oMode.Resolution.Height );
 						break;
                     case 2: // General Message PnP
 						TxBitmapComp.AddImage( LOCUS.CENTER,      0,  0, 100.0, TxBitmap, Selection );
@@ -952,18 +959,19 @@ namespace Play.SSTV {
 						TxBitmapComp.AddImage( LOCUS.LOWERRIGHT, 10, 10,  40.0, RxHistoryList.Bitmap, null );
 
                         Send_TxImageAspect?.Invoke( new SKPointI( oMode.Resolution.Width, oMode.Resolution.Height ) );
+                        TxImgLayoutAspect = new ( oMode.Resolution.Width, oMode.Resolution.Height );
                         break;
                     case 3:
                         TemplateSetCQLayout( oMode, false );
                         break;
                     case 4:
-                        TemplateHiDefMessage( oMode, Message );
+                        TemplateSetHiDefMessage( oMode, Message );
                         break;
                     case 5:
                         TemplateSetCQLayout( oMode, true );
                         break;
                     case 6:
-                        TemplateHiDefMessage( oMode, "from " + MyCall );
+                        TemplateSetHiDefMessage( oMode, "from " + MyCall );
                         break;
                     case 7:
                         TemplateSetHiDefReply( oMode );
@@ -990,7 +998,7 @@ namespace Play.SSTV {
         /// <param name="lyImage">The layout after LayoutChild() has been called.</param>
         protected void SelectionAdjust( LayoutImageReference lyImage ) {
 			float flOldSlope = Selection.Width / (float)Selection.Height;
-			float flNewSlope = lyImage.Width   / (float)lyImage.Height;
+			float flNewSlope = lyImage  .Width / (float)lyImage  .Height;
 
 			if( flOldSlope != flNewSlope  ) {
 			    SKPointI      pntCorner  = Selection.GetPoint( LOCUS.LOWERRIGHT );
@@ -1048,19 +1056,62 @@ namespace Play.SSTV {
 
             oStack.Add( oHoriz );
 
-            LayoutImageReference lyImage = new LayoutIcon( TxImageList.Bitmap, LayoutRect.CSS.None ) { Stretch = true };
-            oStack.Add( lyImage );
+            LayoutImageReference oImage = new LayoutIcon( TxImageList.Bitmap, LayoutRect.CSS.None ) { Stretch = true };
+            oImage.World.Copy = Selection;
+            oStack.Add( oImage );
 
             // Need this to calc image aspect to bubble up.
             oStack.SetRect( 0, 0, oMode.Resolution.Width, oMode.Resolution.Height );
             oStack.LayoutChildren();
 
             // After the layout send the aspect out to the listeners. In case we want to re-select.
-            Send_TxImageAspect?.Invoke( new SKPointI( lyImage.Width, lyImage.Height ) );
+            Send_TxImageAspect?.Invoke( new SKPointI( oImage.Width, oImage.Height ) );
 
-            SelectionAdjust( lyImage );
+            //SelectionAdjust( lyImage );
+            TxImgLayoutAspect = new ( oImage.Width, oImage.Height );
 
             TxBitmapComp.AddLayout( oStack );
+        }
+
+        protected void TemplateSetHiDefMessage( SSTVMode oMode, string strMessage ) {
+            Func< object, SKColor > oFunc = delegate( object x )  { return SKColors.Black; };
+
+            LayoutStackVertical   oStack = new();
+            LayoutStackHorizontal oHoriz = new() { Layout = LayoutRect.CSS.Pixels, Track = 55, BackgroundColor = oFunc };
+
+            Line               oLine = TxBitmapComp.Text.LineAppend( strMessage, fUndoable:false );
+            LayoutSingleLine oSingle = new( new FTCacheLine( oLine ), LayoutRect.CSS.Flex ) 
+                                         { BgColor = SKColors.Black, FgColor = SKColors.White };
+
+            // Since we flex, do all this before layout children.
+            SKPoint     skRezPerInch = new SKPoint(96, 96);
+            const int iPointsPerInch = 72;
+            uint      uiPoints = (uint)( 55 * iPointsPerInch / skRezPerInch.Y );
+            uint      uiFontID = _oStdUI.FontCache( TxBitmapComp.StdFace, uiPoints, skRezPerInch );
+            oSingle.Cache.Update( _oStdUI.FontRendererAt( uiFontID ) );
+
+            oHoriz.Add( new LayoutRect( LayoutRect.CSS.None) );
+            oHoriz.Add( oSingle );
+            oHoriz.Add( new LayoutRect( LayoutRect.CSS.None) );
+
+            LayoutImage oImage = new LayoutImage( TxBitmap, LayoutRect.CSS.None ) { Stretch = true };
+            oImage.World.Copy = Selection;
+
+            oStack.Add( oImage );
+            oStack.Add( oHoriz );
+
+            // Need this to calc image aspect to bubbleup.
+            oStack.SetRect( 0, 0, oMode.Resolution.Width, oMode.Resolution.Height );
+            oStack.LayoutChildren();
+                            
+            // After the layout send the aspect out to the listeners. In case we want to re-select.
+            Send_TxImageAspect?.Invoke( new SKPointI( oImage.Width, oImage.Height ) );
+
+            //SelectionAdjust( oImage );
+            TxImgLayoutAspect = new ( oSingle.Width, oSingle.Height );
+
+            TxBitmapComp.AddLayout( oStack );
+
         }
 
         protected void TemplateSetHiDefReply( SSTVMode oMode ) {
@@ -1091,13 +1142,15 @@ namespace Play.SSTV {
 
             oVertiMain.Add( oSingle );
 
-            LayoutImageReference oImage1 = new LayoutIcon( TxImageList.Bitmap,   LayoutRect.CSS.None ) { Stretch = true };
-            oHorizImgs.Add( oImage1 );
+            LayoutImageReference oImage1 = new LayoutIcon( TxImageList  .Bitmap, LayoutRect.CSS.None ) { Stretch = true };
+            oImage1.World.Copy = Selection;
+
             LayoutImageReference oImage2 = new LayoutIcon( RxHistoryList.Bitmap, LayoutRect.CSS.None ) { Stretch = true };
+            oHorizImgs.Add( oImage1 );
             oHorizImgs.Add( oImage2 );
-            oHorizImgs.Padding.SetRect( 5, 5, 5, 5 );
 
             oVertiMain.Add( oHorizImgs );
+            oVertiMain.Padding.SetRect( 5, 5, 5, 5 );
 
             // Need this to calc image aspect to bubble up.
             oVertiMain.SetRect( 0, 0, oMode.Resolution.Width, oMode.Resolution.Height );
@@ -1111,48 +1164,10 @@ namespace Play.SSTV {
             oWrap.Update( _oStdUI.FontRendererAt( uiFontID ) );
             oWrap.WrapSegments( oSingle.Width );
 
-            SelectionAdjust( oImage1 );
+            //SelectionAdjust( oImage1 );
+            TxImgLayoutAspect = new ( oImage1.Width, oImage1.Height );
 
             TxBitmapComp.AddLayout( oVertiMain );
-        }
-
-        protected void TemplateHiDefMessage( SSTVMode oMode, string strMessage ) {
-            Func< object, SKColor > oFunc = delegate( object x )  { return SKColors.Black; };
-
-            LayoutStackVertical   oStack = new();
-            LayoutStackHorizontal oHoriz = new() { Layout = LayoutRect.CSS.Pixels, Track = 55, BackgroundColor = oFunc };
-
-            Line               oLine = TxBitmapComp.Text.LineAppend( strMessage, fUndoable:false );
-            LayoutSingleLine oSingle = new( new FTCacheLine( oLine ), LayoutRect.CSS.Flex ) 
-                                         { BgColor = SKColors.Black, FgColor = SKColors.White };
-
-            // Since we flex, do all this before layout children.
-            SKPoint     skRezPerInch = new SKPoint(96, 96);
-            const int iPointsPerInch = 72;
-            uint      uiPoints = (uint)( 55 * iPointsPerInch / skRezPerInch.Y );
-            uint      uiFontID = _oStdUI.FontCache( TxBitmapComp.StdFace, uiPoints, skRezPerInch );
-            oSingle.Cache.Update( _oStdUI.FontRendererAt( uiFontID ) );
-
-            oHoriz.Add( new LayoutRect( LayoutRect.CSS.None) );
-            oHoriz.Add( oSingle );
-            oHoriz.Add( new LayoutRect( LayoutRect.CSS.None) );
-
-            LayoutImage oImage = new LayoutImage( TxBitmap, LayoutRect.CSS.None ) { Stretch = true };
-
-            oStack.Add( oImage );
-            oStack.Add( oHoriz );
-
-            // Need this to calc image aspect to bubbleup.
-            oStack.SetRect( 0, 0, oMode.Resolution.Width, oMode.Resolution.Height );
-            oStack.LayoutChildren();
-                            
-            // After the layout send the aspect out to the listeners. In case we want to re-select.
-            Send_TxImageAspect?.Invoke( new SKPointI( oImage.Width, oImage.Height ) );
-
-            SelectionAdjust( oImage );
-
-            TxBitmapComp.AddLayout( oStack );
-
         }
 
         protected class TxState : IEnumerable<int> {

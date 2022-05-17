@@ -102,15 +102,11 @@ namespace Play.ImageViewer {
             base.Paint(skCanvas);
 
             using SKPaint skPaint = new() { BlendMode = SKBlendMode.SrcATop, IsAntialias = true };
-
             try {
-                // Would be nice if we could tell if the image was disposed too.
-                // We're holding references to external bitmaps.
+                // Would be nice if we could tell if the image was disposed too,
+                // we're holding references to external bitmaps.
                 if( _oSoloImg != null ) {
-                    skCanvas.DrawBitmap( _oSoloImg,
-									     _rcWorld,
-									     SKRect, 
-									     skPaint );
+                    skCanvas.DrawBitmap( _oSoloImg, _rcWorld, SKRect, skPaint );
                 }
                 // else draw an error image.
             } catch( Exception oEx ) {

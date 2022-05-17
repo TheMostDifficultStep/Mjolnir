@@ -34,6 +34,7 @@ namespace Play.SSTV {
 			int[] rgShow = { 
 				(int)SSTVProperties.Names.Tx_Progress,
 				(int)SSTVProperties.Names.Tx_SrcDir,
+				(int)SSTVProperties.Names.Rx_SaveDir,
 				(int)SSTVProperties.Names.Tx_SrcFile,
 				(int)SSTVProperties.Names.Std_Time,
 				(int)SSTVProperties.Names.Tx_MyCall,
