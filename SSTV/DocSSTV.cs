@@ -585,6 +585,7 @@ namespace Play.SSTV {
             TemplateList.LineAppend( "High Def CQ" );
             TemplateList.LineAppend( "High Def From Me" );
             TemplateList.LineAppend( "High Def Reply" );
+            TemplateList.LineAppend( "High Def Reply Pnp" );
             
             return true;
         }
@@ -984,6 +985,9 @@ namespace Play.SSTV {
                         TemplateSetHiDefMessage( oMode, "from " + MyCall );
                         break;
                     case 7:
+                        TemplateSetHiDefMessage( oMode, TheirCall + " de " + MyCall );
+                        break;
+                    case 8:
                         TemplateSetHiDefReply( oMode );
                         break;
 				}
@@ -1086,29 +1090,28 @@ namespace Play.SSTV {
         protected void TemplateSetHiDefMessage( SSTVMode oMode, string strMessage ) {
             Func< object, SKColor > oFunc = delegate( object x )  { return SKColors.Black; };
 
-            LayoutStackVertical   oStack = new();
-            LayoutStackHorizontal oHoriz = new() { Layout = LayoutRect.CSS.Pixels, Track = 55, BackgroundColor = oFunc };
-
-            Line               oLine = TxBitmapComp.Text.LineAppend( strMessage, fUndoable:false );
-            LayoutSingleLine oSingle = new( new FTCacheLine( oLine ), LayoutRect.CSS.Flex ) 
+            LayoutStackVertical oStack = new();
+            Editor               oEdit = TxBitmapComp.Text;
+            Line                 oLine = oEdit.LineAppend( strMessage, fUndoable:false );
+            FTCacheWrap          oElem = new( oLine );
+            LayoutSingleLine   oSingle = new( oElem, LayoutRect.CSS.Flex ) 
                                          { BgColor = SKColors.Black, FgColor = SKColors.White };
 
             // Since we flex, do all this before layout children.
-            SKPoint     skRezPerInch = new SKPoint(96, 96);
-            const int iPointsPerInch = 72;
-            uint      uiPoints = (uint)( 55 * iPointsPerInch / skRezPerInch.Y );
-            uint      uiFontID = _oStdUI.FontCache( TxBitmapComp.StdFace, uiPoints, skRezPerInch );
-            oSingle.Cache.Update( _oStdUI.FontRendererAt( uiFontID ) );
+            const double        dblFractionalHeight = 18 / 100.0;
+            SKPoint     skEMsPerInch    = new SKPoint(96, 96);
+            const int iScreenPixPerInch = 72;
+            uint            uiPixHeight = (uint)((double)oMode.Resolution.Height * dblFractionalHeight );
 
-            oHoriz.Add( new LayoutRect( LayoutRect.CSS.None) );
-            oHoriz.Add( oSingle );
-            oHoriz.Add( new LayoutRect( LayoutRect.CSS.None) );
+            uint      uiPoints = (uint)( uiPixHeight * iScreenPixPerInch / skEMsPerInch.Y );
+            uint      uiFontID = _oStdUI.FontCache( TxBitmapComp.StdFace, uiPoints, skEMsPerInch );
+            oSingle.Cache.Update( _oStdUI.FontRendererAt( uiFontID ) );
 
             LayoutImage oImage = new LayoutImage( TxBitmap, LayoutRect.CSS.None ) { Stretch = true };
             oImage.World.Copy = Selection;
 
             oStack.Add( oImage );
-            oStack.Add( oHoriz );
+            oStack.Add( oSingle );
 
             // Need this to calc image aspect to bubbleup.
             oStack.SetRect( 0, 0, oMode.Resolution.Width, oMode.Resolution.Height );
@@ -1116,6 +1119,11 @@ namespace Play.SSTV {
                             
             // After the layout send the aspect out to the listeners. In case we want to re-select.
             Send_TxImageAspect?.Invoke( new SKPointI( oImage.Width, oImage.Height ) );
+
+            // After the layout now we can word wrap the text.
+            oEdit.WordBreak( oElem.Line, oElem.Words ); 
+            oElem.Update( _oStdUI.FontRendererAt( uiFontID ) );
+            oElem.WrapSegments( oImage.Width );
 
             //SelectionAdjust( oImage );
             TxImgLayoutAspect = new ( oSingle.Width, oSingle.Height );
@@ -1125,6 +1133,8 @@ namespace Play.SSTV {
         }
 
         protected void TemplateSetHiDefReply( SSTVMode oMode ) {
+            Func< object, SKColor > oFunc = delegate( object x )  { return SKColors.Black; };
+
             LayoutStackVertical oVertiMain;
             LayoutStack         oHorizImgs;
             const double        dblFractionalHeight = 18 / 100.0;
@@ -1133,8 +1143,6 @@ namespace Play.SSTV {
             const int iScreenPixPerInch = 72;
             uint            uiPixHeight = (uint)((double)oMode.Resolution.Height * dblFractionalHeight );
             
-            Func< object, SKColor > oFunc = delegate( object x )  { return SKColors.Black; };
-
             oHorizImgs = new LayoutStackHorizontal() { Layout = LayoutRect.CSS.None, BackgroundColor = oFunc, Spacing = 5 };
             oVertiMain = new LayoutStackVertical  () { Layout = LayoutRect.CSS.None, BackgroundColor = oFunc };
 
