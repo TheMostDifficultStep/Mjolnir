@@ -1094,7 +1094,7 @@ namespace Play.SSTV {
             Editor               oEdit = TxBitmapComp.Text;
             Line                 oLine = oEdit.LineAppend( strMessage, fUndoable:false );
             FTCacheWrap          oElem = new( oLine );
-            LayoutSingleLine   oSingle = new( oElem, LayoutRect.CSS.Flex ) 
+            LayoutSingleLine     oText = new( oElem, LayoutRect.CSS.Flex ) 
                                          { BgColor = SKColors.Black, FgColor = SKColors.White };
 
             // Since we flex, do all this before layout children.
@@ -1105,13 +1105,13 @@ namespace Play.SSTV {
 
             uint      uiPoints = (uint)( uiPixHeight * iScreenPixPerInch / skEMsPerInch.Y );
             uint      uiFontID = _oStdUI.FontCache( TxBitmapComp.StdFace, uiPoints, skEMsPerInch );
-            oSingle.Cache.Update( _oStdUI.FontRendererAt( uiFontID ) );
+            oText.Cache.Update( _oStdUI.FontRendererAt( uiFontID ) );
 
             LayoutImage oImage = new LayoutImage( TxBitmap, LayoutRect.CSS.None ) { Stretch = true };
             oImage.World.Copy = Selection;
 
             oStack.Add( oImage );
-            oStack.Add( oSingle );
+            oStack.Add( oText );
 
             // Need this to calc image aspect to bubbleup.
             oStack.SetRect( 0, 0, oMode.Resolution.Width, oMode.Resolution.Height );
@@ -1126,7 +1126,7 @@ namespace Play.SSTV {
             oElem.WrapSegments( oImage.Width );
 
             //SelectionAdjust( oImage );
-            TxImgLayoutAspect = new ( oSingle.Width, oSingle.Height );
+            TxImgLayoutAspect = new ( oImage.Width, oImage.Height );
 
             TxBitmapComp.AddLayout( oStack );
 
