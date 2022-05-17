@@ -908,17 +908,27 @@ namespace Play.SSTV {
             }
             sbText.Append( MyCall );
             if( !string.IsNullOrEmpty( strRST ) ) {
-                sbText.Append( " " );
+                sbText.Append( ' ' );
                 sbText.Append( strRST );
             }
             if( !string.IsNullOrEmpty( strMessage ) ) {
-                sbText.Append( " : " );
+                if( !string.IsNullOrEmpty( strRST ) )
+                    sbText.Append( " : " );
+                else
+                    sbText.Append( ' ' );
                 sbText.Append( strMessage );
             }
 
             return sbText.ToString();
         }
 
+        /// <summary>
+        /// The world selection is always the entire image so it stretches to
+        /// the given layout. Then when you resize, the aspect of the layout
+        /// for the main image is applied to the world selection (on the main image)
+        /// so that the aspects are the same.
+        /// </summary>
+        /// <param name="iIndex"></param>
 		public void TemplateSet( int iIndex ) {
             SSTVMode oMode = TransmitModeSelection;
 			if( oMode == null ) {
