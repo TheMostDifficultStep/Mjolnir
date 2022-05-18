@@ -1047,7 +1047,7 @@ namespace Play.SSTV {
 
                 oHoriz = new LayoutStackHorizontal() { Layout = LayoutRect.CSS.Pixels, Track = uiPixHeight, BackgroundColor = oFunc };
             } else {
-                oHoriz = new LayoutStackBgGradient( TRACK.HORIZ) { 
+                oHoriz = new LayoutStackBgGradient( TRACK.HORIZ ) { 
                         Layout = LayoutRect.CSS.Pixels, 
                         Track  = uiPixHeight,
                         Colors = { SKColors.Green, SKColors.Yellow, SKColors.Blue } 
@@ -1055,18 +1055,16 @@ namespace Play.SSTV {
             }
 
             Line               oLine = TxBitmapComp.Text.LineAppend( "CQ de " + MyCall, fUndoable:false );
-            LayoutSingleLine oSingle = new( new FTCacheLine( oLine ), LayoutRect.CSS.Flex ) 
-                                         { BgColor = SKColors.Transparent, FgColor = fHighContrast ? SKColors.White : ForeColor };
+            LayoutSingleLine oSingle = new( new FTCacheLine( oLine ) { Justify = FTCacheLine.Align.Center }, LayoutRect.CSS.None ) 
+                                         { BgColor = SKColors.Transparent, 
+                                           FgColor = fHighContrast ? SKColors.White : ForeColor };
 
             // Since we flex, do all this before layout children.
             uint      uiPoints = (uint)( uiPixHeight * iScreenPixPerInch / skEMsPerInch.Y );
             uint      uiFontID = _oStdUI.FontCache( TxBitmapComp.StdFace, uiPoints, skEMsPerInch );
             oSingle.Cache.Update( _oStdUI.FontRendererAt( uiFontID ) );
 
-            // Put the text in the middle. Poor man's layout.
-            oHoriz.Add( new LayoutRect( LayoutRect.CSS.None) );
             oHoriz.Add( oSingle );
-            oHoriz.Add( new LayoutRect( LayoutRect.CSS.None) );
 
             oStack.Add( oHoriz );
 
@@ -1093,7 +1091,7 @@ namespace Play.SSTV {
             LayoutStackVertical oStack = new();
             Editor               oEdit = TxBitmapComp.Text;
             Line                 oLine = oEdit.LineAppend( strMessage, fUndoable:false );
-            FTCacheWrap          oElem = new( oLine );
+            FTCacheLine          oElem = new( oLine ) { Justify = FTCacheLine.Align.Center };
             LayoutSingleLine     oText = new( oElem, LayoutRect.CSS.Flex ) 
                                          { BgColor = SKColors.Black, FgColor = SKColors.White };
 

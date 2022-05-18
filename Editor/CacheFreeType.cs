@@ -117,6 +117,12 @@ namespace Play.Edit {
     public class FTCacheLine : 
 		IEnumerable<IColorRange>
     {
+        public enum Align {
+            Left,
+            Center,
+            Right
+        }
+
         public         Line Line      { get; }
         public         int  At        { get { return Line.At; } }
         public         int  Top       { get; set; }
@@ -124,6 +130,7 @@ namespace Play.Edit {
         public         bool IsInvalid { get; protected set; } = true;
         public         int  LineHeight{ protected set; get; }
         public         int  FontHeight{ protected set; get; }
+        public       Align  Justify   { set; get; } = Align.Left;
 
         protected readonly List<IPgGlyph>  _rgGlyphs     = new List<IPgGlyph >(100); // Glyphs that construct characters.
         protected readonly List<PgCluster> _rgClusters   = new List<PgCluster>(100); // Single unit representing a character.
@@ -396,9 +403,9 @@ namespace Play.Edit {
         } // end method
 
         /// <summary>
-        /// In the no word wrap case, the segment is 0 for all characters. This
-        /// just needs to be called around the Update time, and is not needed
-        /// for resize.
+        /// In the no word wrap case. Just wrap the moment a character will
+        /// hang over the edge. This just needs to be called after the Update 
+        /// time, and is not needed for resize.
         /// </summary>
         /// <remarks>We don't need to set the last EOL character since when
         /// enumerating the clusters we get it unlike when we use the
@@ -410,6 +417,7 @@ namespace Play.Edit {
         public virtual void WrapSegments( int iDisplayWidth ) {
             float flAdvance  = 0;
             int   iWrapCount = 0;
+            Span<float> rgStart = stackalloc float[10];
 
             if( _rgClusters.Count > 0 ) {
                 flAdvance = _rgClusters[0].Increment( flAdvance, iWrapCount );
@@ -417,11 +425,44 @@ namespace Play.Edit {
 
             for( int iCluster = 1; iCluster < _rgClusters.Count; ++iCluster ) {
                 if(  flAdvance + _rgClusters[iCluster].AdvanceOffs > iDisplayWidth ) {
+                    JustifyLine( rgStart, iWrapCount, iDisplayWidth, flAdvance );
                     flAdvance = 0;
                     iWrapCount++;
                 }
                 flAdvance = _rgClusters[iCluster].Increment( flAdvance, iWrapCount );
             }
+            JustifyLine( rgStart, iWrapCount, iDisplayWidth, flAdvance );
+
+            foreach( PgCluster oCluster in _rgClusters ) {
+                if( oCluster.Segment >= rgStart.Length )
+                    break;
+                if( rgStart[oCluster.Segment] > 0 ) {
+                    oCluster.AdvanceLeft += rgStart[oCluster.Segment];
+                }
+            }
+        }
+
+        protected void JustifyLine( Span<float> rgStart, int iSegment, 
+                                    int iDisplayWidth, float flAdvance ) 
+        {
+            if( iSegment >= rgStart.Length )
+                return;
+
+            float flOffset = 0;
+
+            switch( Justify ) {
+                case Align.Right:
+                    flOffset = iDisplayWidth - flAdvance ;
+                    break;
+                case Align.Center:
+                    flOffset = ( iDisplayWidth - flAdvance ) / 2F;
+                    break;
+            }
+
+            if( flOffset < 0 )
+                flOffset = 0;
+
+            rgStart[iSegment] = flOffset;
         }
 
         /// <summary>
@@ -429,7 +470,7 @@ namespace Play.Edit {
         /// </summary>
         /// <param name="iDisplayWidth">Width in "pixels" of the view</param>
         public virtual void OnChangeSize( int iWidth ) {
-            WrapSegments( int.MaxValue );
+            WrapSegments( iWidth );
         }
 
         /// <summary>
