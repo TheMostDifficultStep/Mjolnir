@@ -30,19 +30,20 @@ namespace Play.SSTV {
 		public ViewTxProperties( IPgViewSite oViewSite, DocProperties oDocument ) : base( oViewSite, oDocument ) {
 		}
 
-        public override void InitRows() {
-			int[] rgShow = { 
-				(int)SSTVProperties.Names.Tx_Progress,
-				(int)SSTVProperties.Names.Tx_SrcDir,
-				(int)SSTVProperties.Names.Rx_SaveDir,
-				(int)SSTVProperties.Names.Tx_SrcFile,
-				(int)SSTVProperties.Names.Std_Time,
-				(int)SSTVProperties.Names.Tx_MyCall,
-				(int)SSTVProperties.Names.Tx_TheirCall,
-				(int)SSTVProperties.Names.Tx_RST,
-				(int)SSTVProperties.Names.Tx_Message };
+		public readonly static int[] Subset = new int[] { 
+			(int)SSTVProperties.Names.Tx_Progress,
+			(int)SSTVProperties.Names.Tx_SrcDir,
+			(int)SSTVProperties.Names.Rx_SaveDir,
+			(int)SSTVProperties.Names.Tx_SrcFile,
+			(int)SSTVProperties.Names.Std_Time,
+			(int)SSTVProperties.Names.Tx_MyCall,
+			(int)SSTVProperties.Names.Tx_TheirCall,
+			(int)SSTVProperties.Names.Tx_RST,
+			(int)SSTVProperties.Names.Tx_Message 
+		};
 
-            base.InitRows(rgShow);
+        public override void InitRows() {
+            base.InitRows(Subset);
         }
     }
 
@@ -381,6 +382,7 @@ namespace Play.SSTV {
 				_wmTxViewChoices   .Dispose();
 				_wmTxImageComposite.Dispose();
 				_wmRxViewChoices   .Dispose();
+				_oDocSSTV.Properties.Property_Values.SubmitEvent -= OnSubmitEvent_SSTVProperties;
 
 				_fDisposed = true;
 			}
@@ -406,8 +408,31 @@ namespace Play.SSTV {
             _oLayout .Add( oHBLayout );
 
             OnSizeChanged( new EventArgs() );
+            _oDocSSTV.Properties.Property_Values.SubmitEvent += OnSubmitEvent_SSTVProperties;
 
 			return true;
+        }
+
+        private void OnSubmitEvent_SSTVProperties(int[] obj) {
+			int[] rgReCompose = {			
+				(int)SSTVProperties.Names.Tx_MyCall,
+				(int)SSTVProperties.Names.Tx_TheirCall,
+				(int)SSTVProperties.Names.Tx_RST,
+				(int)SSTVProperties.Names.Tx_Message 
+			};
+
+			int iRecompose = 0;
+			foreach( int iProperty in rgReCompose ) {
+				foreach( int i in ViewTxProperties.Subset ) {
+					if( iProperty == i ) {
+						++iRecompose;
+					}
+				}
+			}
+
+			if( iRecompose > 0 ) {
+				_oDocSSTV.RenderComposite( SSTVModeSelection );
+			}
         }
 
         protected override void OnSizeChanged(EventArgs e) {

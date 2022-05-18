@@ -79,6 +79,9 @@ namespace Play.Edit {
         int    _iCumulativeLength = 0; // Num of chars infront of us.
         int    _iWordCount        = 0;
 
+        public bool IsDirty { get; protected set; }
+        public void ClearDirty() { IsDirty = false; }
+
         public Line( int iLine ) {
             _iLine = iLine;
         }
@@ -292,6 +295,7 @@ namespace Play.Edit {
 
             if( fReturn ) {
                 FormattingShiftInsert( iDestOffset, iSrcLength );
+                IsDirty = true;
             }
             return( fReturn );
         }
@@ -307,16 +311,25 @@ namespace Play.Edit {
 
             if( fReturn ) {
                 FormattingShiftInsert( iIndex, 1 );
+                IsDirty = true;
             }
 
             return( fReturn );
         }
 
         public override bool TryDelete( int iIndex, int iLength, out string strRemoved ) {
-            return( _sbBuffer.TryDelete( iIndex, iLength, out strRemoved ) );
+            if( _sbBuffer.TryDelete( iIndex, iLength, out strRemoved ) ) {
+                IsDirty = true;
+                return true;
+            }
+
+            return false;
         }
 
 		public override void Empty() {
+            if( _sbBuffer.Length > 0 )
+                IsDirty = true;
+
 			_sbBuffer.Empty();
 		}
 

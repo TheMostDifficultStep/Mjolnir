@@ -122,6 +122,10 @@ namespace Play.Edit {
         TextLine IReadableBag<TextLine>.this[int iIndex] { get{ return( _rgLines[iIndex] ); } }
     }
 
+    /// <summary>
+    /// You know, I think this would be cooler if these functions were an interface that
+    /// you plug into the side of the BaseEditor! Need to think about that...
+    /// </summary>
     public class Editor : BaseEditor
     {
         public Editor( IPgBaseSite oSite ) : base( oSite ) {
@@ -236,9 +240,10 @@ namespace Play.Edit {
 
 		readonly WordBreakerHandler _oParseWords; // A basic word breaker/counter for wrapped views.
         
-        public event BufferEvent  BufferEvent;
-		public event HilightEvent HilightEvent;
-        public event CheckedEvent CheckedEvent;
+        public event BufferEvent   BufferEvent;
+		public event HilightEvent  HilightEvent;
+        public event CheckedEvent  CheckedEvent;
+        public event Action<int[]> SubmitEvent;
 
         public BaseEditor( IPgBaseSite oSite ) {
             _oSiteBase = oSite;                // Ok if this is null.
@@ -289,6 +294,28 @@ namespace Play.Edit {
 		public void HighLight_Raise() {
 			HilightEvent?.Invoke();
 		}
+
+        /// <summary>
+        /// This is a little different than the IsDirty on the main editor object.
+        /// IsDirty can happen when lines are moved and deleted as well as lines
+        /// typed into.
+        /// Individual lines marked dirty do not contribute to the IsDirty state
+        /// of the document. Line.IsDirty is used to identified changed lines when
+        /// the submit on a form is pressed (Enter Key).
+        /// The two concepts are similiar but I don't want to attempt to combine them yet.
+        /// </summary>
+        public void Submit_Raise() {
+            List<int> rgDirty = new List<int>();
+
+            foreach( Line oLine in this ) {
+                if( oLine.IsDirty ) {
+                    rgDirty.Add( oLine.At );
+                }
+                oLine.ClearDirty();
+            }
+            SubmitEvent?.Invoke( rgDirty.ToArray() );
+        }
+
 
         /// <summary>
         /// 7/29/09 : Right now the shell loads all the grammers because for the most part they are
@@ -1118,6 +1145,12 @@ namespace Play.Edit {
 
             while( ++iIndex < _rgLines.ElementCount ) {
                 yield return( _rgLines[iIndex] );
+            }
+        }
+
+        public void LineDirtyClear() {
+            foreach( Line oLine in this ) {
+                oLine.ClearDirty();
             }
         }
     }

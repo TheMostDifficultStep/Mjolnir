@@ -370,6 +370,7 @@ namespace Play.Forms {
         }
 
         public virtual void Submit() {
+            DocForms.Submit_Raise();
         }
 
         // Let Forms know what keys we want sent our way.
@@ -563,7 +564,6 @@ namespace Play.Forms {
                     // We handle this in OnKeyDown now...
                     return;
                 }
-
                 if( !char.IsControl( e.KeyChar )  ) { 
                     if( IsSelection ) {
                         using( Editor.Manipulator oBulk = DocForms.CreateManipulator() ) {

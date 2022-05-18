@@ -195,10 +195,13 @@ namespace Play.Rectangles {
             if( Picture == null )
                 return;
 
+            // TODO: Need to look at placement of this call. Also note
+            // the viewport isn't the same as the LayoutRect bounds we
+            // derive from. Might want to investigate that.
             if( Stretch ) {
                 ViewPort.Copy = this;
             } else {
-                ViewPortSizeMax( ViewPort ); // TODO: Need to look at placement of this call...
+                ViewPortSizeMax( ViewPort ); 
             }
 
             try {
