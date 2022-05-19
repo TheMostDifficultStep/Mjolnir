@@ -1091,7 +1091,7 @@ namespace Play.SSTV {
             LayoutStackVertical oStack = new();
             Editor               oEdit = TxBitmapComp.Text;
             Line                 oLine = oEdit.LineAppend( strMessage, fUndoable:false );
-            FTCacheLine          oElem = new( oLine ) { Justify = FTCacheLine.Align.Center };
+            FTCacheWrap          oElem = new( oLine ) { Justify = FTCacheLine.Align.Center };
             LayoutSingleLine     oText = new( oElem, LayoutRect.CSS.Flex ) 
                                          { BgColor = SKColors.Black, FgColor = SKColors.White };
 

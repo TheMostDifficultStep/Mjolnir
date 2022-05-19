@@ -81,6 +81,10 @@ namespace Play.Edit {
         public int  Segment   { get; set; }
         public bool IsVisible { get; set; } = true; // TODO: Map to Unicode data for this.
 
+        public override string ToString() {
+            return Coordinates.ToString();
+        }
+
         public PgCluster( int iGlyphIndex ) {
             Coordinates  = new PgGlyphPos();
 
@@ -406,10 +410,12 @@ namespace Play.Edit {
         /// In the no word wrap case. Just wrap the moment a character will
         /// hang over the edge. This just needs to be called after the Update 
         /// time, and is not needed for resize.
+        /// Supports justify upto 10 lines.
         /// </summary>
         /// <remarks>We don't need to set the last EOL character since when
         /// enumerating the clusters we get it unlike when we use the
-        /// parser.</remarks>
+        /// parser.
+        /// Not good at detecting trailing white space. So justify will be offcenter.</remarks>
         /// <param name="iDisplayWidth"></param>
         /// <seealso cref="Update"/>
         /// <seealso cref="OnChangeSize"/>
@@ -424,15 +430,19 @@ namespace Play.Edit {
             }
 
             for( int iCluster = 1; iCluster < _rgClusters.Count; ++iCluster ) {
-                if(  flAdvance + _rgClusters[iCluster].AdvanceOffs > iDisplayWidth ) {
+                if( flAdvance + _rgClusters[iCluster].AdvanceOffs > iDisplayWidth ) {
                     JustifyLine( rgStart, iWrapCount, iDisplayWidth, flAdvance );
                     flAdvance = 0;
                     iWrapCount++;
                 }
                 flAdvance = _rgClusters[iCluster].Increment( flAdvance, iWrapCount );
             }
-            JustifyLine( rgStart, iWrapCount, iDisplayWidth, flAdvance );
 
+            JustifyLine( rgStart, iWrapCount, iDisplayWidth, flAdvance );
+            JustifyDone( rgStart );
+        }
+
+        protected void JustifyDone( Span<float> rgStart ) {
             foreach( PgCluster oCluster in _rgClusters ) {
                 if( oCluster.Segment >= rgStart.Length )
                     break;

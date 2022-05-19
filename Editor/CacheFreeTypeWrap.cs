@@ -209,7 +209,7 @@ namespace Play.Edit {
         /// We special case the first cluster since we want to advance AFTER we've set it's 
         /// first column valuse. Each column must have at least ONE character on it.
         /// </summary>
-        protected void WrapSegmentNoWords( int iDisplayWidth ) {
+        [Obsolete]protected void WrapSegmentNoWords( int iDisplayWidth ) {
             float flAdvance = 0;
             _iWrapCount  = 0;
 
@@ -266,12 +266,14 @@ namespace Play.Edit {
                     return;
 
                 if( Words.Count == 0 ) {
-                    WrapSegmentNoWords( iDisplayWidth );
+                    base.WrapSegments( iDisplayWidth );
+                    //WrapSegmentNoWords( iDisplayWidth );
                     return;
                 }
 
                 float flAdvance  = 0;
-                _iWrapCount   = 0;
+                _iWrapCount      = 0;
+                Span<float> rgStart = stackalloc float[10];
                 IEnumerator<IPgWordRange> oEnum = Words.GetEnumerator();
 
 				while( oEnum.MoveNext() ) {
@@ -279,6 +281,7 @@ namespace Play.Edit {
                     do {
                         // The first word on a line never get's a redo. Only it's tail will wrap.
                         while( !LoadWord( oEnum.Current, iDisplayWidth, ref flAdvance, ref iIndex ) ) {
+                            JustifyLine( rgStart, _iWrapCount, iDisplayWidth, flAdvance );
                             flAdvance = 0;
                             _iWrapCount++;
                         }
@@ -288,6 +291,7 @@ namespace Play.Edit {
 
                         // There MUST be one word on line before try redo the next on the next line.
                         if( !LoadWord( oEnum.Current, iDisplayWidth, ref flAdvance, ref iIndex ) ) {
+                            JustifyLine( rgStart, _iWrapCount, iDisplayWidth, flAdvance );
                             flAdvance = 0;
                             _iWrapCount++;                 // Advance the line/wrap
                             iIndex = oEnum.Current.Offset; // Redo the word on next line!
@@ -297,6 +301,9 @@ namespace Play.Edit {
                 // Don't forget to patch up our trailing EOL glyph that isn't in the source. See Update()
                 _rgClusters[_rgClusters.Count-1].AdvanceLeft = flAdvance;
                 _rgClusters[_rgClusters.Count-1].Segment     = _iWrapCount;
+
+                JustifyLine( rgStart, _iWrapCount, iDisplayWidth, flAdvance );
+                JustifyDone( rgStart );
             } catch( Exception oEx ) {
                 Type[] rgError = { typeof( IndexOutOfRangeException ),
                                    typeof( ArgumentOutOfRangeException ),

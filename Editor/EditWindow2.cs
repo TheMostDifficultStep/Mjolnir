@@ -49,6 +49,10 @@ namespace Play.Edit {
         public float advance_y;
         public float delta_lsb; // These two I haven't seen yet.
         public float delta_rsb;
+
+        public override string ToString() { 
+            return "left: " + left.ToString() + " adv_x: " + advance_x.ToString();
+        }
     }
 
     /// <summary>
