@@ -315,5 +315,205 @@ namespace Play.Edit {
                 base.WrapSegments( iDisplayWidth );
             }
         }
+
+        private void WordTally( IColorRange oWord, float flAdvance, 
+                                out float flWidth, out bool fVisible
+        ) {
+            flWidth  = 0;
+
+            if( oWord.Length <= 0 ) {
+                fVisible = false;
+                return;
+            }
+
+            fVisible = true;
+
+            for( int iIndex = oWord.Offset; iIndex < oWord.Offset + oWord.Length; ++iIndex ) {
+                PgCluster oCluster = _rgClusters[iIndex];
+
+                oCluster.AdvanceLeft = flAdvance;
+                oCluster.Segment     = _iWrapCount;
+
+                flWidth   += oCluster.AdvanceOffs;
+                flAdvance += oCluster.AdvanceOffs;
+                fVisible  &= oCluster.IsVisible;
+            }
+        }
+
+        /// <summary>
+        /// Was trying a new word wrapper, It's nice but consecutive words will
+        /// get broken and that's not quite the behavior I want. So I think I'm
+        /// going to abandon this word based approach.
+        /// </summary>
+        /// <param name="iDisplayWidth"></param>
+        public void WrapSegmentsTest( int iDisplayWidth ) {
+            try {
+                _iWrapCount = 0;
+
+                if( _rgClusters.Count < 1 )
+                    return;
+
+                if( Words.Count == 0 ) {
+                    //WrapSegments( iDisplayWidth ); This should work.
+                    WrapSegmentNoWords( iDisplayWidth );
+                    return;
+                }
+
+                float       flAdvance = 0;
+                float       flLastVis = 0;
+                Span<float> rgStart   = stackalloc float[10];
+
+                for( int iWord = 0; iWord < Words.Count; ) {
+                    bool  fVisible = true;
+                    float flExtent = 0;
+                    do {
+                        WordTally( Words[iWord], flAdvance, out flExtent, out fVisible );
+                    } while( !fVisible );
+
+                    if( fVisible ) {
+                        flAdvance += flExtent;
+                        flLastVis = flAdvance;
+                    }
+                    ++iWord;
+
+                    while( iWord < Words.Count ) {
+                        int iVisibleWord = iWord;
+                        do {
+                            WordTally( Words[iVisibleWord], flAdvance, out flExtent, out fVisible );
+
+                            if( flAdvance + flExtent > iDisplayWidth ) {
+                                JustifyLine( rgStart, _iWrapCount, iDisplayWidth, flLastVis );
+                                _iWrapCount++;
+                                flAdvance = 0;
+                                flLastVis = 0;
+                                break;
+                            }
+                            flAdvance += flExtent;
+                            if( fVisible )
+                                flLastVis = flAdvance;
+                        } while( fVisible );
+                        ++iWord;
+                    }
+                }
+
+                // Don't forget to patch up our trailing EOL glyph that isn't in the source. See Update()
+                _rgClusters[_rgClusters.Count-1].AdvanceLeft = flAdvance;
+                _rgClusters[_rgClusters.Count-1].Segment     = _iWrapCount;
+
+                JustifyLine( rgStart, _iWrapCount, iDisplayWidth, flLastVis );
+                JustifyDone( rgStart );
+            } catch( Exception oEx ) {
+                Type[] rgError = { typeof( IndexOutOfRangeException ),
+                                   typeof( ArgumentOutOfRangeException ),
+                                   typeof( NullReferenceException ),
+                                   typeof( ArgumentOutOfRangeException ) };
+                if( rgError.IsUnhandled(oEx) )
+                    throw;
+
+                base.WrapSegments( iDisplayWidth );
+            }
+        }
+
+        /// <summary>
+        /// Start reading a cluster run, keep at it as long as the
+        /// visibility remains the same.
+        /// </summary>
+        /// <returns>Length of the run.</returns>
+        private int WordBuilder( int iStart, float flAdvance, 
+                                 out float flWidth, out bool fVisible
+        ) {
+            flWidth = 0;
+
+            try {
+                fVisible = _rgClusters[iStart].IsVisible;
+
+                int iIndex = iStart;
+                while( iIndex < _rgClusters.Count ) {
+                    PgCluster oCluster = _rgClusters[iIndex];
+
+                    if( fVisible != oCluster.IsVisible )
+                        break;
+
+                    oCluster.AdvanceLeft = flAdvance;
+                    oCluster.Segment     = _iWrapCount;
+
+                    flWidth   += oCluster.AdvanceOffs;
+                    flAdvance += oCluster.AdvanceOffs;
+                    fVisible  &= oCluster.IsVisible;
+
+                    iIndex++;
+                }
+
+                return iIndex - iStart;
+            } catch( NullReferenceException ) {
+                fVisible = false;
+                flWidth  = 0;
+                return 0;
+            }
+        }
+
+        /// <summary>
+        /// Nice new Wrapper, works wihout my text parser! Unfortunately doesn't wrap
+        /// long words on first line correctly. I want to think about that.
+        /// but I'm going to check this code in so I don't loose it!!
+        /// </summary>
+        /// <param name="iDisplayWidth"></param>
+        public  void WrapSegmentsNew( int iDisplayWidth ) {
+            try {
+                _iWrapCount = 0;
+
+                if( _rgClusters.Count < 1 )
+                    return;
+
+                float       flAdvance = 0;
+                float       flLastVis = 0;
+                Span<float> rgStart   = stackalloc float[10];
+
+                for( int iIndex = 0; iIndex < _rgClusters.Count;  ) {
+                    bool  fVisible = true;
+                    float flExtent = 0;
+
+                    int iRun = WordBuilder( iIndex, flAdvance, out flExtent, out fVisible );
+
+                    if( fVisible ) {
+                        flAdvance += flExtent;
+                        flLastVis = flAdvance;
+                    }
+                    iIndex += iRun;
+
+                    while( iIndex < _rgClusters.Count ) {
+                        iRun = WordBuilder( iIndex, flAdvance, out flExtent, out fVisible );
+
+                        if( flAdvance + flExtent > iDisplayWidth ) {
+                            JustifyLine( rgStart, _iWrapCount, iDisplayWidth, flLastVis );
+                            _iWrapCount++;
+                            flAdvance = 0;
+                            flLastVis = 0;
+                            break;
+                        }
+                        flAdvance += flExtent;
+                        if( fVisible )
+                            flLastVis = flAdvance;
+
+                        iIndex += iRun;
+                    }
+                }
+                // Don't forget to patch up our trailing EOL glyph that isn't in the source. See Update()
+                _rgClusters[_rgClusters.Count-1].AdvanceLeft = flAdvance;
+                _rgClusters[_rgClusters.Count-1].Segment     = _iWrapCount;
+
+                JustifyLine( rgStart, _iWrapCount, iDisplayWidth, flLastVis );
+                JustifyDone( rgStart );
+            } catch( Exception oEx ) {
+                Type[] rgError = { typeof( IndexOutOfRangeException ),
+                                   typeof( ArgumentOutOfRangeException ),
+                                   typeof( NullReferenceException ),
+                                   typeof( ArgumentOutOfRangeException ) };
+                if( rgError.IsUnhandled(oEx) )
+                    throw;
+
+                base.WrapSegments( iDisplayWidth );
+            }
+        }
     } // end class
 }
