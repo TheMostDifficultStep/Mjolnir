@@ -78,8 +78,9 @@ namespace Play.Edit {
         public MemoryRange Glyphs; // This points to the glyphs array start/length of the glyphs in this cluster.
         public MemoryRange Source; // 
 
-        public int  Segment   { get; set; }
-        public bool IsVisible { get; set; } = true; // TODO: Map to Unicode data for this.
+        public int  Segment       { get; set; }
+        public bool IsVisible     { get; set; } = true; 
+        public bool IsPunctuation { get; set; } = false;
 
         public override string ToString() {
             return Coordinates.ToString();
@@ -366,6 +367,7 @@ namespace Play.Edit {
                     oCluster.Glyphs.Length++; 
                     oCluster.Coordinates   = _rgGlyphs[iGlyphIndex].Coordinates;
                     oCluster.IsVisible     = !Rune.IsWhiteSpace( (Rune)_rgGlyphs[iGlyphIndex].CodePoint );
+                    oCluster.IsPunctuation = Rune.IsPunctuation( (Rune)_rgGlyphs[iGlyphIndex].CodePoint );
 
                     if( ++iGlyphIndex >= _rgGlyphs.Count )
                         break;

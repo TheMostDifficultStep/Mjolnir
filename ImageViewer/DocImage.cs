@@ -410,9 +410,9 @@ namespace Play.ImageViewer {
 
                 // Clunky but we won't have a lot of objects in here.
                 foreach( SmartRect oRect in _rgChildren ) {
-                    if( oRect is TextBlock oTextBlock ) {
-                        Text.WordBreak( oTextBlock.CacheElem.Line, oTextBlock.CacheElem.Words ); 
-                    }
+                    //if( oRect is TextBlock oTextBlock ) {
+                    //    Text.WordBreak( oTextBlock.CacheElem.Line, oTextBlock.CacheElem.Words ); 
+                    //}
                     if( oRect is Block oBlock ) {
                         oBlock.Update( _oStdUI, szExtent );
                     } else {

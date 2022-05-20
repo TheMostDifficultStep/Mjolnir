@@ -638,7 +638,7 @@ namespace Play.ImageViewer {
         protected void ThumbsTextUpdate() {
             using( IPgFontRender oFR = _oStdUI.FontRendererAt( _uiStdText ) ) {
                 foreach( FTCacheLine oCache in _oTextCache ) {
-                    Document.FileList.WordBreak(oCache.Line, oCache.Words); // BUG: Need to see why not see text on first boot.
+                    //Document.FileList.WordBreak(oCache.Line, oCache.Words); // BUG: Need to see why not see text on first boot.
 
                     oCache.Update( oFR );
                     oCache.OnChangeFormatting( null );

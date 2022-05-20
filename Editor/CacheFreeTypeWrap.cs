@@ -248,10 +248,7 @@ namespace Play.Edit {
         }
 
         /// <summary>
-        /// Wrap the segments to make intelligent word wrap on a line. Word wrapping
-        /// ONLY HAPPENS ON WINDOWED PAGE! This is because other views might have other
-        /// widths so we compute the wrapping for each window, but only for the portion
-        /// visible.
+        /// Wrap the segments to make intelligent word wrap on a line. 
         /// </summary>
         /// <remarks>In the standard text editor case the window's cache manager
         /// makes sure that the Words array is populated by running a word
@@ -260,7 +257,7 @@ namespace Play.Edit {
         /// <param name="iDisplayWidth">Width in pixels.</param>
         /// <seealso cref="CacheManagerAbstractSite.WordBreak"/>
         /// <seealso cref="CacheManager2.ElemUpdate"/>
-        public override void WrapSegments( int iDisplayWidth ) {
+        public  void WrapSegmentsOld( int iDisplayWidth ) {
             try {
                 if( _rgClusters.Count < 1 )
                     return;
@@ -316,20 +313,32 @@ namespace Play.Edit {
             }
         }
 
-        private void WordTally( IColorRange oWord, float flAdvance, 
-                                out float flWidth, out bool fVisible
+        /// <summary>
+        /// Start reading a cluster run, keep at it as long as the visibility remains the same
+        /// and the text width is less than the DisplayWidth.
+        /// </summary>
+        /// <remarks>No matter you slice it, you have to read ahead and discard some
+        /// results at times. The world builder helps acccomplish that.</remarks>
+        /// <returns>Length of the run.</returns>
+        private int WordBuilder( int iStart, float flAdvance, int iDisplayWidth, int iPush,
+                                 out float flWidth, out bool fVisible
         ) {
-            flWidth  = 0;
+            flWidth = 0;
+            fVisible = _rgClusters[iStart].IsVisible;
 
-            if( oWord.Length <= 0 ) {
-                fVisible = false;
-                return;
-            }
-
-            fVisible = true;
-
-            for( int iIndex = oWord.Offset; iIndex < oWord.Offset + oWord.Length; ++iIndex ) {
+            int iIndex = iStart;
+            while( iIndex < _rgClusters.Count ) {
                 PgCluster oCluster = _rgClusters[iIndex];
+
+                if( fVisible != oCluster.IsVisible )
+                    break;
+
+                // Allow one character when in 0th column of wrap.
+                if( flAdvance + oCluster.AdvanceOffs > iDisplayWidth && iIndex - iStart > iPush )
+                    break;
+                // If we've got more than one character, break on punctuation.
+                if( oCluster.IsPunctuation && iIndex - iStart > 1 )
+                    break;
 
                 oCluster.AdvanceLeft = flAdvance;
                 oCluster.Segment     = _iWrapCount;
@@ -337,128 +346,30 @@ namespace Play.Edit {
                 flWidth   += oCluster.AdvanceOffs;
                 flAdvance += oCluster.AdvanceOffs;
                 fVisible  &= oCluster.IsVisible;
+
+                iIndex++;
+
+                // Punctuation is always a single "word", run is 1.
+                if( oCluster.IsPunctuation )
+                    break;
             }
+
+            return iIndex - iStart;
         }
 
         /// <summary>
-        /// Was trying a new word wrapper, It's nice but consecutive words will
-        /// get broken and that's not quite the behavior I want. So I think I'm
-        /// going to abandon this word based approach.
+        /// Nice new Wrapper, works without my text parser! Also can justify
+        /// upto 10 logical rows of wrapped text per physical line. Ignores
+        /// trailing white space. Not having to set up a line parser is a
+        /// big deal, so I'm going with this.
         /// </summary>
+        /// <remarks> ">=" is an example of a punctuation that I would like to
+        /// keep together upto the point where the display width is on character
+        /// wide. Even my parser at present, does not recognize greater than or
+        /// equal as a single unit.
+        /// </remarks>
         /// <param name="iDisplayWidth"></param>
-        public void WrapSegmentsTest( int iDisplayWidth ) {
-            try {
-                _iWrapCount = 0;
-
-                if( _rgClusters.Count < 1 )
-                    return;
-
-                if( Words.Count == 0 ) {
-                    //WrapSegments( iDisplayWidth ); This should work.
-                    WrapSegmentNoWords( iDisplayWidth );
-                    return;
-                }
-
-                float       flAdvance = 0;
-                float       flLastVis = 0;
-                Span<float> rgStart   = stackalloc float[10];
-
-                for( int iWord = 0; iWord < Words.Count; ) {
-                    bool  fVisible = true;
-                    float flExtent = 0;
-                    do {
-                        WordTally( Words[iWord], flAdvance, out flExtent, out fVisible );
-                    } while( !fVisible );
-
-                    if( fVisible ) {
-                        flAdvance += flExtent;
-                        flLastVis = flAdvance;
-                    }
-                    ++iWord;
-
-                    while( iWord < Words.Count ) {
-                        int iVisibleWord = iWord;
-                        do {
-                            WordTally( Words[iVisibleWord], flAdvance, out flExtent, out fVisible );
-
-                            if( flAdvance + flExtent > iDisplayWidth ) {
-                                JustifyLine( rgStart, _iWrapCount, iDisplayWidth, flLastVis );
-                                _iWrapCount++;
-                                flAdvance = 0;
-                                flLastVis = 0;
-                                break;
-                            }
-                            flAdvance += flExtent;
-                            if( fVisible )
-                                flLastVis = flAdvance;
-                        } while( fVisible );
-                        ++iWord;
-                    }
-                }
-
-                // Don't forget to patch up our trailing EOL glyph that isn't in the source. See Update()
-                _rgClusters[_rgClusters.Count-1].AdvanceLeft = flAdvance;
-                _rgClusters[_rgClusters.Count-1].Segment     = _iWrapCount;
-
-                JustifyLine( rgStart, _iWrapCount, iDisplayWidth, flLastVis );
-                JustifyDone( rgStart );
-            } catch( Exception oEx ) {
-                Type[] rgError = { typeof( IndexOutOfRangeException ),
-                                   typeof( ArgumentOutOfRangeException ),
-                                   typeof( NullReferenceException ),
-                                   typeof( ArgumentOutOfRangeException ) };
-                if( rgError.IsUnhandled(oEx) )
-                    throw;
-
-                base.WrapSegments( iDisplayWidth );
-            }
-        }
-
-        /// <summary>
-        /// Start reading a cluster run, keep at it as long as the
-        /// visibility remains the same.
-        /// </summary>
-        /// <returns>Length of the run.</returns>
-        private int WordBuilder( int iStart, float flAdvance, 
-                                 out float flWidth, out bool fVisible
-        ) {
-            flWidth = 0;
-
-            try {
-                fVisible = _rgClusters[iStart].IsVisible;
-
-                int iIndex = iStart;
-                while( iIndex < _rgClusters.Count ) {
-                    PgCluster oCluster = _rgClusters[iIndex];
-
-                    if( fVisible != oCluster.IsVisible )
-                        break;
-
-                    oCluster.AdvanceLeft = flAdvance;
-                    oCluster.Segment     = _iWrapCount;
-
-                    flWidth   += oCluster.AdvanceOffs;
-                    flAdvance += oCluster.AdvanceOffs;
-                    fVisible  &= oCluster.IsVisible;
-
-                    iIndex++;
-                }
-
-                return iIndex - iStart;
-            } catch( NullReferenceException ) {
-                fVisible = false;
-                flWidth  = 0;
-                return 0;
-            }
-        }
-
-        /// <summary>
-        /// Nice new Wrapper, works wihout my text parser! Unfortunately doesn't wrap
-        /// long words on first line correctly. I want to think about that.
-        /// but I'm going to check this code in so I don't loose it!!
-        /// </summary>
-        /// <param name="iDisplayWidth"></param>
-        public  void WrapSegmentsNew( int iDisplayWidth ) {
+        public override void WrapSegments( int iDisplayWidth ) {
             try {
                 _iWrapCount = 0;
 
@@ -473,7 +384,10 @@ namespace Play.Edit {
                     bool  fVisible = true;
                     float flExtent = 0;
 
-                    int iRun = WordBuilder( iIndex, flAdvance, out flExtent, out fVisible );
+                    // There must be at least one char in the first column of the wrapped text.
+                    // The world builder won't pass back a "word" wider than the display width.
+                    // It will break and pass what will fit.
+                    int iRun = WordBuilder( iIndex, flAdvance, iDisplayWidth, 0, out flExtent, out fVisible );
 
                     if( fVisible ) {
                         flAdvance += flExtent;
@@ -481,8 +395,10 @@ namespace Play.Edit {
                     }
                     iIndex += iRun;
 
+                    // From here on out, grab the rest. If it won't fit we'll bail from this loop.
+                    // And try again in the first column of the next wrapped row.
                     while( iIndex < _rgClusters.Count ) {
-                        iRun = WordBuilder( iIndex, flAdvance, out flExtent, out fVisible );
+                        iRun = WordBuilder( iIndex, flAdvance, iDisplayWidth, int.MaxValue, out flExtent, out fVisible );
 
                         if( flAdvance + flExtent > iDisplayWidth ) {
                             JustifyLine( rgStart, _iWrapCount, iDisplayWidth, flLastVis );

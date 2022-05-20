@@ -1119,7 +1119,7 @@ namespace Play.SSTV {
             Send_TxImageAspect?.Invoke( new SKPointI( oImage.Width, oImage.Height ) );
 
             // After the layout now we can word wrap the text.
-            oEdit.WordBreak( oElem.Line, oElem.Words ); 
+            //oEdit.WordBreak( oElem.Line, oElem.Words ); 
             oElem.Update( _oStdUI.FontRendererAt( uiFontID ) );
             oElem.WrapSegments( oImage.Width );
 
@@ -1176,7 +1176,7 @@ namespace Play.SSTV {
             Send_TxImageAspect?.Invoke( new SKPointI( oImage1.Width, oImage1.Height ) );
 
             // After the layout now we can word wrap the text.
-            oEdit.WordBreak( oWrap.Line, oWrap.Words ); 
+            //oEdit.WordBreak( oWrap.Line, oWrap.Words ); 
             oWrap.Update( _oStdUI.FontRendererAt( uiFontID ) );
             oWrap.WrapSegments( oSingle.Width );
 
