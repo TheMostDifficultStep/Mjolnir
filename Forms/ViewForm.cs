@@ -384,7 +384,8 @@ namespace Play.Forms {
         }
 
         /// <summary>
-        /// Just update the entire cache. We'll get more selective in the future.
+        /// Just update the entire cache. TODO: Just update the items that
+        /// have changed.
         /// </summary>
         protected virtual void OnDocumentEvent( BUFFEREVENTS eEvent ) {
             switch( eEvent ) {
@@ -396,8 +397,9 @@ namespace Play.Forms {
                         oCache.OnChangeFormatting();
                         oCache.Cache.OnChangeSize( oCache.Width );
                     }
-                  //OnSizeChanged( new EventArgs() ); need to figure out why this doesn't work.
-                    Invalidate();
+                    // No need to parse anything for word wrapping since I
+                    // have implemented new word wrap code in the editor code.
+                    OnSizeChanged( new EventArgs() ); 
                     break;
             }
         }
