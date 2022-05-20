@@ -1419,7 +1419,7 @@ namespace Play.SSTV {
                             } else {
 			                    DisplayImage.WorldDisplay = new SKRectI( 0, 0, oMode.Resolution.Width, oMode.Resolution.Height );
 
-                                Properties.ValueUpdate( SSTVProperties.Names.Rx_Mode,   oMode.Version );
+                                Properties.ValueUpdate( SSTVProperties.Names.Rx_Mode,   oMode.FamilyName + ' ' + oMode.Version );
                                 Properties.ValueUpdate( SSTVProperties.Names.Rx_Width,  oMode.Resolution.Width .ToString() );
                                 Properties.ValueUpdate( SSTVProperties.Names.Rx_Height, oMode.Resolution.Height.ToString() );
                             }

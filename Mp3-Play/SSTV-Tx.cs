@@ -338,6 +338,8 @@ namespace Play.Sound {
         public override string ToString() {
             StringBuilder sbValue = new();
 
+            sbValue.Append( FamilyName );
+            sbValue.Append( ' ' );
             sbValue.Append( Version );
 
             sbValue.Append( " : " );
