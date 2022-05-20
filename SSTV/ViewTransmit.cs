@@ -475,15 +475,21 @@ namespace Play.SSTV {
 
         protected SSTVMode SSTVModeSelection { 
 			get {
-     //           if( _oDocSSTV.TxModeList.CheckedLine == null )
-     //               _oDocSSTV.TxModeList.CheckedLine = _oDocSSTV.TxModeList[_oDocSSTV.RxModeList.CheckedLine.At];
-
-     //           if( _oDocSSTV.TxModeList.CheckedLine.Extra is SSTVMode oMode )
-					//return oMode;
+				// The TxModeList and the tool options current mode aren't
+				// currently kept in sink, so we want our view tool options first.
 				if( _wmToolOptions != null )
 					return _wmToolOptions.CurrentMode;
 
-				return null;
+				// We can get here if we close the tool options window.
+				// BUG: I have some sort of current mode property on the SSTVDoc
+				//      but I can't find it.
+                if( _oDocSSTV.TxModeList.CheckedLine == null )
+                    _oDocSSTV.TxModeList.CheckedLine = _oDocSSTV.TxModeList[_oDocSSTV.RxModeList.CheckedLine.At];
+
+                if( _oDocSSTV.TxModeList.CheckedLine.Extra is SSTVMode oMode )
+					return oMode;
+
+                return null;
 			}
 		}
 
