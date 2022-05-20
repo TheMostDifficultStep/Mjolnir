@@ -1146,9 +1146,10 @@ namespace Play.SSTV {
 
             Editor             oEdit = TxBitmapComp.Text;
             Line               oLine = oEdit.LineAppend( TemplateReplyFromProps(), fUndoable:false );
-            FTCacheWrap        oWrap = new FTCacheWrap( oLine );
+            FTCacheWrap        oWrap = new FTCacheWrap( oLine ) { Justify = FTCacheLine.Align.Center };
             LayoutSingleLine oSingle = new( oWrap, LayoutRect.CSS.Flex ) 
-                                         { Track = 60, BgColor = SKColors.Transparent, FgColor = SKColors.White };
+                                         { Track = 60, BgColor = SKColors.Transparent, 
+                                           FgColor = SKColors.White };
 
             // Since we flex, do all this before layout children.
             uint      uiPoints = (uint)( uiPixHeight * iScreenPixPerInch / skEMsPerInch.Y );
