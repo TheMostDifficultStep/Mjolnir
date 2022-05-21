@@ -96,7 +96,7 @@ namespace Play.ImageViewer {
         Cursor _oCursorRight;
 
 		protected readonly SmartSelect _rcSelectionView = new SmartSelect(); // selection in View coords.
-		protected bool _fSkipMouse = false;
+	  //protected bool _fSkipMouse = false; Helped with staggard view, but don't use now.
 
         readonly SmartRect _rctLeft        = new SmartRect( LOCUS.UPPERLEFT, 0, 0, 0, 0 );
         readonly SmartRect _rctRight       = new SmartRect( LOCUS.UPPERLEFT, 0, 0, 0, 0 );
@@ -449,7 +449,7 @@ namespace Play.ImageViewer {
 
         protected override void OnMouseDown(MouseEventArgs e) {
 			if( !Focused ) { 
-				_fSkipMouse = true;
+				//_fSkipMouse = true;
 				this.Select();
 				return;
 			}
@@ -491,10 +491,10 @@ namespace Play.ImageViewer {
 		}
 
         protected override void OnMouseUp(MouseEventArgs e) {
-			if( _fSkipMouse ) {
-				_fSkipMouse = false;
-				return;
-			}
+			//if( _fSkipMouse ) {
+			//	_fSkipMouse = false;
+			//	return;
+			//}
 
             base.OnMouseUp(e);
 
