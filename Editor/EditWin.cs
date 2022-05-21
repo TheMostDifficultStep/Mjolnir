@@ -26,7 +26,7 @@ namespace Play.Rectangles {
     /// But since anyone doing anything is going to include the "Editor" project. It's OK.
 	/// </summary>
 	public class LayoutControl : LayoutRect {
-		Control _oControl;
+		protected Control _oControl;
 
 		public LayoutControl( Control oView, LayoutRect.CSS eUnits, uint uiTrack ) : base( eUnits, uiTrack, 0 ) {
 			_oControl = oView ?? throw new ArgumentNullException();
@@ -40,7 +40,7 @@ namespace Play.Rectangles {
 			this.SizeEvent += OnSizeEvent;
 		}
 
-		private void OnSizeEvent(SmartRect o) {
+		protected virtual void OnSizeEvent(SmartRect o) {
 			_oControl.Bounds = this.Rect;
 		}
 
@@ -51,7 +51,7 @@ namespace Play.Rectangles {
 			Size szProposed = eParentAxis == TRACK.HORIZ ? new Size( Width, uiRail ) : new Size( uiRail, Height );
 			Size szPrefered = _oControl.GetPreferredSize( szProposed );
 			int  iTrack     = eParentAxis == TRACK.HORIZ ? szPrefered.Width : szPrefered.Height;
-
+            
 			return (uint)iTrack;
 		}
 
