@@ -112,6 +112,13 @@ namespace Mjolnir {
             _oHost = (MainWin)oSiteView.Host;
         }
 
+        public override Size GetPreferredSize( Size oSize ) {
+            if( Layout.Count < 2 ) {
+                return new Size( oSize.Width, 0 );
+            }
+            return base.GetPreferredSize( oSize );
+        }
+
         /// <summary>
         /// This gets called whenever the tab needs to be drawn.
         /// </summary>
