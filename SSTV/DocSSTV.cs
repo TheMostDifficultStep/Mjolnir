@@ -1055,7 +1055,7 @@ namespace Play.SSTV {
             }
 
             Line               oLine = TxBitmapComp.Text.LineAppend( "CQ de " + MyCall, fUndoable:false );
-            LayoutSingleLine oSingle = new( new FTCacheLine( oLine ) { Justify = FTCacheLine.Align.Center }, LayoutRect.CSS.None ) 
+            LayoutSingleLine oSingle = new( new FTCacheWrap( oLine ) { Justify = FTCacheLine.Align.Center }, LayoutRect.CSS.None ) 
                                          { BgColor = SKColors.Transparent, 
                                            FgColor = fHighContrast ? SKColors.White : ForeColor };
 
