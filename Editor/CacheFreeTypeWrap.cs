@@ -205,11 +205,12 @@ namespace Play.Edit {
         } // end method
 
         /// <summary>
-        /// Just a dumb "I've got no formatting" word wrapper. Just wrap whenever hit an edge.
+        /// Just a dumb wrap when any character overshoots the display
+        /// visible or not word wrapper. Just wrap whenever hit an edge.
         /// We special case the first cluster since we want to advance AFTER we've set it's 
         /// first column valuse. Each column must have at least ONE character on it.
         /// </summary>
-        [Obsolete]protected void WrapSegmentNoWords( int iDisplayWidth ) {
+        [Obsolete]protected void WrapSegmentSimple( int iDisplayWidth ) {
             float flAdvance = 0;
             _iWrapCount  = 0;
 
@@ -224,6 +225,39 @@ namespace Play.Edit {
                 }
                 flAdvance = _rgClusters[iCluster].Increment( flAdvance, _iWrapCount );
             }
+        }
+
+        protected void JustifyDone( Span<float> rgStart ) {
+            foreach( PgCluster oCluster in _rgClusters ) {
+                if( oCluster.Segment >= rgStart.Length )
+                    break;
+                if( rgStart[oCluster.Segment] > 0 ) {
+                    oCluster.AdvanceLeft += rgStart[oCluster.Segment];
+                }
+            }
+        }
+
+        protected void JustifyLine( Span<float> rgStart, int iSegment, 
+                                    int iDisplayWidth, float flAdvance ) 
+        {
+            if( iSegment >= rgStart.Length )
+                return;
+
+            float flOffset = 0;
+
+            switch( Justify ) {
+                case Align.Right:
+                    flOffset = iDisplayWidth - flAdvance ;
+                    break;
+                case Align.Center:
+                    flOffset = ( iDisplayWidth - flAdvance ) / 2F;
+                    break;
+            }
+
+            if( flOffset < 0 )
+                flOffset = 0;
+
+            rgStart[iSegment] = flOffset;
         }
 
         /// <summary>
@@ -248,7 +282,10 @@ namespace Play.Edit {
         }
 
         /// <summary>
-        /// Wrap the segments to make intelligent word wrap on a line. 
+        /// Wrap the segments to make intelligent word wrap on a line. Turns out
+        /// with the given line breaker, this wrapper isn't any more powerful than
+        /// the new WrapSegments call which needs no (complicated) parser to
+        /// support it's use.
         /// </summary>
         /// <remarks>In the standard text editor case the window's cache manager
         /// makes sure that the Words array is populated by running a word
@@ -263,8 +300,7 @@ namespace Play.Edit {
                     return;
 
                 if( Words.Count == 0 ) {
-                    base.WrapSegments( iDisplayWidth );
-                    //WrapSegmentNoWords( iDisplayWidth );
+                    WrapSegmentSimple( iDisplayWidth );
                     return;
                 }
 
@@ -360,13 +396,13 @@ namespace Play.Edit {
         /// <summary>
         /// Nice new Wrapper, works without my text parser! Also can justify
         /// upto 10 logical rows of wrapped text per physical line. Ignores
-        /// trailing white space. Not having to set up a line parser is a
+        /// trailing white space. Not having to set up a (complex) parser is a
         /// big deal, so I'm going with this.
         /// </summary>
         /// <remarks> ">=" is an example of a punctuation that I would like to
         /// keep together upto the point where the display width is on character
-        /// wide. Even my parser at present, does not recognize greater than or
-        /// equal as a single unit.
+        /// wide. Even my (complex) parser at present, does not recognize 
+        /// greater than or equal as a single unit, so it's a wash.
         /// </remarks>
         /// <param name="iDisplayWidth"></param>
         public override void WrapSegments( int iDisplayWidth ) {

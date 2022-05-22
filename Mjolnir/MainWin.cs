@@ -294,6 +294,10 @@ namespace Mjolnir {
             }
         }
 
+        /// <summary>
+        /// This could actually go in our general layout library. But I'm sort
+        /// of testing it out for now.
+        /// </summary>
         private class LayoutMenu : LayoutControl {
             int     _iPreferedRail = -1;
 
