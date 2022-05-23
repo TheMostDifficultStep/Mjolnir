@@ -54,10 +54,10 @@ namespace Play.Forms {
 
         public TabControl(IPgViewSite oSiteView, BaseEditor oDoc ) 
         {
-            _oSiteView   = oSiteView ?? throw new ArgumentNullException( nameof( oSiteView ) );
- 			_oStdUI      = oSiteView.Host.Services as IPgStandardUI2 ?? throw new ArgumentException( "Parent view must provide IPgStandardUI service" );
+            _oSiteView = oSiteView ?? throw new ArgumentNullException( nameof( oSiteView ) );
+ 			_oStdUI    = oSiteView.Host.Services as IPgStandardUI2 ?? throw new ArgumentException( "Parent view must provide IPgStandardUI service" );
 
-            Document     = oDoc ?? throw new ArgumentNullException( nameof( oDoc ) );
+            Document   = oDoc ?? throw new ArgumentNullException( nameof( oDoc ) );
 
             // Would be nice if height was a function of the text size. Someday!
             Layout = new LayoutFlowSquare_Fixed( TabSize );
@@ -157,9 +157,9 @@ namespace Play.Forms {
             // Round up all the layouts into our tab object here.
 			LayoutStackHorizontal oTab = new () { Spacing = 5, BackgroundColor = TabBackground, ID = oViewLine };
 				
-            oTab.Add( oTabStatus );
-			oTab.Add( oTabIcon );
-			oTab.Add( oTabText );
+            oTab.Add( oTabStatus ); // Bar to the left.
+			oTab.Add( oTabIcon );   // Icon for the tab.
+			oTab.Add( oTabText );   // Text for the tab.
 
             return oTab;
         }
@@ -182,6 +182,8 @@ namespace Play.Forms {
             // BUG: Unfortunately this also draws the text with the test
             // red color. Make sure it's clipped and we'll redraw on
             // next pass for now.
+            // Note: The BG for the tab will be whatever the master layout
+            //       object does before rendering it's children.
 			foreach( LayoutRect oTab in Layout ) {
                 SKRect skClip = new SKRect( oTab.Left,  oTab.Top, 
                                             oTab.Right, oTab.Bottom );
