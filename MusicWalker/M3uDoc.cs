@@ -152,6 +152,7 @@ namespace Play.MusicWalker {
 					_oSiteBase.LogError( "sound", "Sound is already playing" );
 					break;
 			}
+			_oSiteBase.Notify( ShellNotify.MediaStatusChanged );
 		}
 
 		public override void Dispose() {

@@ -54,6 +54,8 @@ namespace Mjolnir {
         readonly SmartRect _rctDragBounds     = new SmartRect( LOCUS.CENTER, 0, 0, 0, 0 ); // Might want to subclass a smartrect with ISmartDrag methods...
         ISmartDrag         _oDrag             = null; // This is our standard drag drop object.
 
+        public MainWin_Tabs Tabs { get; protected set; } // would be nice if private...
+
         MenuStrip         _oTopMenu           = null;
         ToolStripMenuItem _miRecentsMenu      = null;
         ToolStripMenuItem _miViewListMenu     = null;
@@ -352,17 +354,17 @@ namespace Mjolnir {
             InitializeLocation( xmlConfig );
             InitializeShepards( xmlConfig );
 
-            // Looking this over, all of this stuff below should probably be in InitNew()/Load()...
-            // Seems a bit clunky with a controller here. I might pull that apart...
+            // Looking this over, all of this stuff below could probably
+            // be right in the constructor.
             DocSlot oViewSitesSlot = new DocSlot(this);
             oViewSitesSlot.InitNew();
             _oDoc_ViewSelector = (ViewsEditor)oViewSitesSlot.Document;
 
             // This needs to follow the view selector document assignment.
-            MainWin_Tabs oTabs = new(new WinSlot(this), _oDoc_ViewSelector);
-            oTabs.Parent = this;
-            oTabs.Layout.Padding.SetRect( 5, 5, 5, 0 );
-            oTabs.InitNew();
+            Tabs = new(new WinSlot(this), _oDoc_ViewSelector);
+            Tabs.Parent = this;
+            Tabs.Layout.Padding.SetRect( 5, 5, 5, 0 );
+            Tabs.InitNew();
 
             // Set up our primary layout here...
             LayoutStackVertical   oInner  = new() { Spacing = 5 };
@@ -378,7 +380,7 @@ namespace Mjolnir {
             oCenter.Add( oInner ); 
             oCenter.Add( _rgSideInfo[SideIdentify.Right] ); 
 
-            _oLayoutPrimary.Add( new LayoutControl( oTabs,     LayoutRect.CSS.Flex, 40) ); 
+            _oLayoutPrimary.Add( new LayoutControl( Tabs,  LayoutRect.CSS.Flex, 40) ); 
             _oLayoutPrimary.Add( new LayoutMenu( _oTopMenu, LayoutRect.CSS.Flex, 34) ); 
             _oLayoutPrimary.Add( oCenter); 
             _oLayoutPrimary.Add( _rgSideInfo[SideIdentify.Bottom] );

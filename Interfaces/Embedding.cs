@@ -388,8 +388,16 @@ namespace Play.Interfaces.Embedding {
     /// for view objects responding to user input.
 	/// </summary>
     public interface IPgCommandView : IPgCommandBase {
-        Guid   Catagory { get; } // This is the View Type guid. Only used in one place. See if I can factor this out.
-        object Decorate( IPgViewSite oBaseSite, Guid sGuid );
+        Guid    Catagory { get; } // This is the View Type guid. Only used in one place. See if I can factor this out.
+        object  Decorate( IPgViewSite oBaseSite, Guid sGuid );
+    }
+
+    public interface IPgPlayStatus {
+        bool    IsPlaying        { get; }
+        SKColor BusyLight        { get; }
+
+        int     PercentCompleted { get; }
+
     }
 
 	/// <summary date="4/14/2019" >
@@ -466,7 +474,8 @@ namespace Play.Interfaces.Embedding {
 		DocumentDirty,
 		BannerChanged,
 		ToolChanged,
-		ToolCollectionChanged
+		ToolCollectionChanged,
+        MediaStatusChanged
 	}
 
 	public interface IPgViewSite : IPgBaseSite {

@@ -120,7 +120,8 @@ namespace Mjolnir {
         }
 
         /// <summary>
-        /// This gets called whenever the tab needs to be drawn.
+        /// This gets called whenever the tab needs to be drawn. Usually
+        /// used for the status bar on the left of the icon.
         /// </summary>
         /// <param name="iID">Id of the tab to return the requested info.</param>
         /// <returns>Focus status</returns>
@@ -140,16 +141,22 @@ namespace Mjolnir {
         }
 
         /// <summary>
-        /// This gets called whenever the tab needs to be drawn.
+        /// This gets called whenever the tab needs to be drawn. If you want
+        /// the bg status to be anything more interesting you need to override
+        /// the primary layout class of the tab (LayoutStack) for what it
+        /// paints before painting the children.
         /// </summary>
         /// <param name="iID">Id of the tab to return the requested info.</param>
         /// <returns>Focus status</returns>
         public override SKColor TabBackground( object oID ) {
-            SKColor skBG = _oStdUI.ColorsStandardAt( StdUIColors.BGReadOnly );
+            SKColor clrBG = _oStdUI.ColorsStandardAt( StdUIColors.BGReadOnly );
 
             if( oID is ViewSlot oLine ) {
                 if( oLine == HoverTab?.ID ) 
                     return SKColors.LightYellow;
+
+                if( oLine.IsPlaying )
+                    return oLine.BusyLight;
 
                 if( oLine.Focused )
                     return SKColors.LightCyan;
@@ -157,7 +164,7 @@ namespace Mjolnir {
                 if( _oHost.ViewSiteSelected == oLine )
                     return SKColors.LightGray;
             }
-            return skBG;
+            return clrBG;
         }
 
         /// <summary>

@@ -22,7 +22,8 @@ namespace Play.MusicWalker {
 		IPgTextView,
 		IPgLoad<XmlElement>,
 		IPgSave<XmlDocumentFragment>,
-		IPgCommandView
+		IPgCommandView,
+		IPgPlayStatus
 	{
         readonly string          _strMusicIcon  = "MusicWalker.Content.icons8-music-24.png";
 		readonly string          _strVolumeIcon = "MusicWalker.Content.volume.cur";
@@ -55,6 +56,7 @@ namespace Play.MusicWalker {
 		public bool IsDirty => ViewLibrary.IsDirty;
 
 		public int CurrentAlbumIndex => ViewLibrary.Caret.Line;
+
 
 		protected class MusicWinSlot :
 			IPgBaseSite
@@ -417,6 +419,10 @@ namespace Play.MusicWalker {
         [DllImport("user32.dll")]
         public static extern IntPtr SendMessageW( IntPtr hWnd, int Msg, IntPtr wParam, IntPtr lParam );
 
+		/// <remarks>Play command delegates exposed to the view seems a little weird.
+		/// Make sure to implement the shell notify media event on the local and remote
+		/// delegate implmentation. Since the remote stuff doesn't work, I'm not
+		/// going to worry about it for now. 5/22/2022.</remarks>
 		public virtual bool Execute( Guid sGuid ) {
 			if( sGuid == GlobalCommands.Play ) {
 				try {
@@ -467,7 +473,29 @@ namespace Play.MusicWalker {
 		public TextPosition Caret    => ViewLibrary.Caret;
 		public object       DocumentText => Document.Albums;
 
-		public void ScrollTo(EDGE eEdge) {
+        public bool IsPlaying { get { 
+			switch( Document.PlayStatus ) {
+				case WorkerStatus.BUSY:
+					return true;
+				case WorkerStatus.PAUSED:
+					return true;
+			}
+			return false;
+		} }
+
+        public SKColor BusyLight { get {
+			switch( Document.PlayStatus ) {
+				case WorkerStatus.BUSY:
+					return SKColors.LightGreen;
+				case WorkerStatus.PAUSED:
+					return SKColors.Yellow;
+			}
+			return SKColors.Empty;
+		} }
+
+        public int PercentCompleted => throw new NotImplementedException();
+
+        public void ScrollTo(EDGE eEdge) {
 			ViewLibrary.ScrollTo( eEdge );
 		}
 

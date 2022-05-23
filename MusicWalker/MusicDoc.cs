@@ -920,6 +920,7 @@ namespace Play.MusicWalker {
 
 			if( oCurrent != null )
 				SongStopped?.Invoke( oCurrent.AlbumIndex, oCurrent.SongIndex );
+			_oSiteBase.Notify( ShellNotify.MediaStatusChanged );
 		}
 
 		public void PlayPause() {
@@ -927,6 +928,7 @@ namespace Play.MusicWalker {
 
 			Albums.HighLight_Raise();
 			SongCurrent_Raise();
+			_oSiteBase.Notify( ShellNotify.MediaStatusChanged );
 		}
 
 		public bool PlayPlay( string strAlbum, int iStartSong ) {
@@ -935,6 +937,7 @@ namespace Play.MusicWalker {
 				PlayQueue( strAlbum, iStartSong );
 			}
 			PlayStart();
+			_oSiteBase.Notify( ShellNotify.MediaStatusChanged );
 			return true;
 		}
 		
@@ -966,6 +969,7 @@ namespace Play.MusicWalker {
 					_oSiteBase.LogError( "player", "Sound is already playing" );
 					break;
 			}
+			_oSiteBase.Notify( ShellNotify.MediaStatusChanged );
 		}
 
 		public bool IsReusable => true;

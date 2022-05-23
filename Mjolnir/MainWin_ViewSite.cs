@@ -31,6 +31,8 @@ namespace Mjolnir {
     /// as a mutable buffer, the down side is most people want a string. So I save a copy
     /// as string anyway. This object goes straight into the ViewSelector document.
     /// </summary>
+    /// <remarks>I think it would be cool to make this within the MainWin class
+    /// so I could make more things private... 5/22/2022</remarks>
     public class ViewSlot : 
         TextLine,
         IPgViewSite,
@@ -46,6 +48,7 @@ namespace Mjolnir {
 		protected IPgLoad<XmlElement>          _oViewLoadXml;
 		protected IPgCommandView               _oViewCommand;
 				  IPgTools                     _oViewTools;
+                  IPgPlayStatus                _oViewPlay;
 
         static   UInt32 _iIDCount;
         readonly UInt32 _iID;
@@ -111,6 +114,7 @@ namespace Mjolnir {
 			_oViewSaveXml = oGuest as IPgSave<XmlDocumentFragment> ?? throw new ArgumentException( "view needs IPgSave<XmlDocumentFragment>" );
 			_oViewLoadXml = oGuest as IPgLoad<XmlElement> ?? throw new ArgumentException( "view needs IPgLoad<XmlElement>." );
 			_oViewTools   = oGuest as IPgTools; // Ok to be null.
+            _oViewPlay    = oGuest as IPgPlayStatus; // Ok to be null
 
             try { 
               // TODO: Need to merge this value to what I'm using for long/short names
@@ -349,6 +353,9 @@ namespace Mjolnir {
 			}
         }
 
+        public SKColor BusyLight => _oViewPlay != null ? _oViewPlay.BusyLight : SKColor.Empty;
+        public bool    IsPlaying => _oViewPlay != null ? _oViewPlay.IsPlaying : false;
+
 		/// <summary>
 		/// When the user selects a view from the menu, we switch back to solo view if not in solo view.
 		/// </summary>
@@ -485,6 +492,10 @@ namespace Mjolnir {
 						oTool.Checked = oTool.ID == _oViewTools.ToolSelect;
 					}
 					break;
+                case ShellNotify.MediaStatusChanged:
+                    // BUG: Invalidate the tab window.
+                    _oHost.Tabs.Invalidate();
+                    break;
 			}
 		}
 
