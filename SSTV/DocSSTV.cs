@@ -1373,11 +1373,13 @@ namespace Play.SSTV {
             Task oTask = new Task( oTransmitAction );
 
             oTask.Start();
+            _oSiteBase.Notify( ShellNotify.MediaStatusChanged );
 
             await oTask;
 
             oTask.Dispose(); // this is a little lengthy.
             StateTx = false;
+            _oSiteBase.Notify( ShellNotify.MediaStatusChanged );
         }
 
         /// <summary>
@@ -1566,6 +1568,7 @@ namespace Play.SSTV {
 
             _oWorkPlace.Pause(); // TODO: flush the message buffers? Probably should.
             StateRx = DocSSTVMode.Ready;
+            _oSiteBase.Notify( ShellNotify.MediaStatusChanged );
         }
 
         /// <summary>
@@ -1672,6 +1675,8 @@ namespace Play.SSTV {
                     Properties.ValueUpdate( SSTVProperties.Names.Std_Process, "Start: Error.", true );
                     LogError( "Couldn't launch device listening thread." );
                 }
+
+                _oSiteBase.Notify( ShellNotify.MediaStatusChanged );
             }
         }
 
@@ -1820,6 +1825,9 @@ namespace Play.SSTV {
             }
         }
 
+        /// <summary>
+        /// The workplace is used for the receive operations.
+        /// </summary>
 		public WorkerStatus PlayStatus {
             get {
                 return _oWorkPlace.Status;

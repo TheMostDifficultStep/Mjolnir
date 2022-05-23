@@ -1220,6 +1220,7 @@ namespace Mjolnir {
                 }
             }
             SetTitle();
+            Tabs.Invalidate();
 
             _oDoc_ViewSelector.Raise_MultiFinished();
         }

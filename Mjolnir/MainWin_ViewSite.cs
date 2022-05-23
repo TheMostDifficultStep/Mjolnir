@@ -481,6 +481,7 @@ namespace Mjolnir {
 					UpdateTitle();
                     // This updates all the view banners in the view list and calls SetTitle()
                     _oHost.UpdateAllTitlesFor( this._oDocSite ); 
+                    _oHost.Tabs.Invalidate();
 					break;
 
 				case ShellNotify.DocumentDirty:
@@ -493,7 +494,6 @@ namespace Mjolnir {
 					}
 					break;
                 case ShellNotify.MediaStatusChanged:
-                    // BUG: Invalidate the tab window.
                     _oHost.Tabs.Invalidate();
                     break;
 			}

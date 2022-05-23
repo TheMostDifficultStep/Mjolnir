@@ -249,7 +249,8 @@ namespace Play.SSTV {
 		IPgCommandView,
 		IPgSave<XmlDocumentFragment>,
 		IPgLoad<XmlElement>,
-		IPgTools2
+		IPgTools2,
+		IPgPlayStatus
 	{
 		public static Guid GUID { get; } = new Guid( "{3D6FF540-C03C-468F-84F9-86E3DE75F6C2}" );
 
@@ -667,12 +668,25 @@ namespace Play.SSTV {
 			return null;
         }
 
+        public bool IsPlaying { get { 
+			return  _oDocSSTV.StateTx;
+		} }
+
+        public SKColor BusyLight { get {
+			if( _oDocSSTV.StateTx  ) {
+				return SKColors.OrangeRed;
+			}
+			return SKColors.Empty;
+		} }
+
         public bool Load(XmlElement oStream) {
 			if( !InitNew() )
 				return false;
 
             return true;
         }
+
+		public int PercentCompleted => throw new NotImplementedException();
 
         public bool Save(XmlDocumentFragment oStream) {
             return true;

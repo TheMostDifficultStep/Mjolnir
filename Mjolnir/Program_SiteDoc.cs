@@ -589,6 +589,7 @@ namespace Mjolnir {
 
             public override void Notify( ShellNotify eEvent ) {
 				switch( eEvent ) {
+                    case ShellNotify.MediaStatusChanged:
 					case ShellNotify.DocumentDirty:
 						_oHost.Raise_UpdateTitles( this );
 						break;

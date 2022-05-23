@@ -214,25 +214,19 @@ namespace Play.SSTV {
 		IPgCommandView,
 		IPgSave<XmlDocumentFragment>,
 		IPgLoad<XmlElement>,
-		IPgTools
+		IPgPlayStatus
 	{
-		public enum Tools : int {
-			File = 0,
-			Port = 1
-		}
-
 		public static Guid GUID { get; } = new Guid( "{5213847C-8B38-49D8-AAE2-C870F5E6FB51}" );
 		public static string _strIcon =  "Play.SSTV.Content.icons8_tv.png";
 
-        public Guid   Catagory => GUID;
+        public Guid     Catagory => GUID;
 		public SKBitmap Icon { get; }
-		public Image Iconic => null;
-        public bool   IsDirty  => false;
+		public Image    Iconic  => null;
+        public bool     IsDirty => false;
 
         protected readonly IPgViewSite _oSiteView;
 
 		readonly  List<string>           _rgToolBox     = new() { "File", "Port" };
-		protected Tools                  _eToolSelected = Tools.File;
 		protected static readonly string _strBaseTitle  = "MySSTV Receive";
 
         DocSSTV _oDocSSTV;
@@ -290,7 +284,7 @@ namespace Play.SSTV {
 			} 
 		}
 
-		public WindowSoloRx( IPgViewSite oSiteBase, DocSSTV oDocSSTV ) : 
+        public WindowSoloRx( IPgViewSite oSiteBase, DocSSTV oDocSSTV ) : 
 			base( oSiteBase, oDocSSTV.DisplayImage ) 
 		{
 			_oSiteView = oSiteBase ?? throw new ArgumentNullException( "SiteBase must not be null." );
@@ -316,6 +310,28 @@ namespace Play.SSTV {
 
 			return true;
         }
+
+        public bool IsPlaying { get { 
+			switch( _oDocSSTV.StateRx  ) {
+				case DocSSTV.DocSSTVMode.DeviceRead:
+				case DocSSTV.DocSSTVMode.FileRead:
+					return true;
+			}
+			return false;
+		} }
+
+        public SKColor BusyLight { get {
+			switch( _oDocSSTV.StateRx  ) {
+				case DocSSTV.DocSSTVMode.DeviceRead:
+					return SKColors.LightGreen;
+				case DocSSTV.DocSSTVMode.FileRead:
+					return SKColors.LightSalmon;
+			}
+			return SKColors.Empty;
+		} }
+
+
+        public int PercentCompleted => throw new NotImplementedException();
 
         /// <summary>
         /// This is our event sink for property changes on the SSTV document.
@@ -410,26 +426,8 @@ namespace Play.SSTV {
         public bool Load( XmlElement oStream ) {
             return InitNew();
         }
-
-        public int ToolCount => _rgToolBox.Count;
-
-        public int ToolSelect { 
-			get => (int)_eToolSelected; 
-			set {
-				_eToolSelected = (Tools)value;
-
-				_oSiteView.Notify( ShellNotify.ToolChanged );
-			}
-		}
-
-        public string ToolName( int iTool ) {
-            return _rgToolBox[iTool];
-        }
-
-        public Image ToolIcon( int iTool ) {
-            return null;
-        }
     }
+
 	public enum ChildID
 	{
 		RxWindow,
