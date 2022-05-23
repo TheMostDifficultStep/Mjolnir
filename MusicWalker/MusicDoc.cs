@@ -438,6 +438,7 @@ namespace Play.MusicWalker {
 					_oHost.Albums.HighLight   = null;
 					_oHost.SongCurrent        = null;
 					_oHost.PlayList.HighLight = null;
+					//Notify( ShellNotify.MediaStatusChanged ); not a good spot for this.
 				} catch( NullReferenceException ) {
 					LogError( "player", "Trouble logging finished songs", true );
 				}
@@ -450,11 +451,12 @@ namespace Play.MusicWalker {
 					_oHost.Albums.HighLight   = _oHost.Albums[oSong.AlbumIndex];
 					_oHost.SongCurrent        = oSong;
 					_oHost.PlayList.HighLight = oLine;
+					//Notify( ShellNotify.MediaStatusChanged ); not a good spot for this.
 				} catch( Exception oEx ) {
 					Type[] rgErrors = { typeof( NullReferenceException ), 
 										typeof( InvalidCastException ) };
 					if( rgErrors.IsUnhandled( oEx ) )
-						throw oEx;
+						throw;
 
 					LogError( "player", "Trouble logging playing songs", true );
 				}
@@ -569,7 +571,7 @@ namespace Play.MusicWalker {
 
 				_oArtSlot.Load( value );
 
-				SongEvent?.Invoke();
+				SongCurrent_Raise();
 			}
 		}
 
@@ -578,6 +580,7 @@ namespace Play.MusicWalker {
 		/// </summary>
 		public void SongCurrent_Raise() {
 			SongEvent?.Invoke();
+			_oSiteBase.Notify( ShellNotify.MediaStatusChanged );
 		}
 
 		public bool IsPlayListEmpty {
@@ -622,7 +625,7 @@ namespace Play.MusicWalker {
 									typeof( ArgumentOutOfRangeException ),
 									typeof( ArgumentException ) };
 				if( rgErrors.IsUnhandled( oEx ) )
-					throw oEx;
+					throw;
 
 				_oSiteBase.LogError( "musiccollection", "Couldn't read base music directory." );
 				return( false );
@@ -920,7 +923,6 @@ namespace Play.MusicWalker {
 
 			if( oCurrent != null )
 				SongStopped?.Invoke( oCurrent.AlbumIndex, oCurrent.SongIndex );
-			_oSiteBase.Notify( ShellNotify.MediaStatusChanged );
 		}
 
 		public void PlayPause() {
@@ -928,7 +930,6 @@ namespace Play.MusicWalker {
 
 			Albums.HighLight_Raise();
 			SongCurrent_Raise();
-			_oSiteBase.Notify( ShellNotify.MediaStatusChanged );
 		}
 
 		public bool PlayPlay( string strAlbum, int iStartSong ) {
@@ -937,7 +938,6 @@ namespace Play.MusicWalker {
 				PlayQueue( strAlbum, iStartSong );
 			}
 			PlayStart();
-			_oSiteBase.Notify( ShellNotify.MediaStatusChanged );
 			return true;
 		}
 		
@@ -969,7 +969,6 @@ namespace Play.MusicWalker {
 					_oSiteBase.LogError( "player", "Sound is already playing" );
 					break;
 			}
-			_oSiteBase.Notify( ShellNotify.MediaStatusChanged );
 		}
 
 		public bool IsReusable => true;
