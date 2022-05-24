@@ -930,8 +930,7 @@ namespace Play.SSTV {
         /// so that the aspects are the same.
         /// </summary>
         /// <param name="iIndex"></param>
-		public void TemplateSet( int iIndex ) {
-            SSTVMode oMode = TransmitModeSelection;
+		public void TemplateSet( SSTVMode oMode, int iIndex ) {
 			if( oMode == null ) {
                 LogError( "Set a transmit mode first." );
                 return;
@@ -1096,12 +1095,12 @@ namespace Play.SSTV {
                                          { BgColor = SKColors.Black, FgColor = SKColors.White };
 
             // Since we flex, do all this before layout children.
-            const double        dblFractionalHeight = 18 / 100.0;
-            SKPoint     skEMsPerInch    = new SKPoint(96, 96);
-            const int iScreenPixPerInch = 72;
-            uint            uiPixHeight = (uint)((double)oMode.Resolution.Height * dblFractionalHeight );
+            const double dblFractionalHeight = 18 / 100.0;
+            SKPoint          skEMsPerInch    = new SKPoint(96, 96);
+            const int      iScreenPixPerInch = 72;
+            uint                 uiMsgHeight = (uint)((double)oMode.Resolution.Height * dblFractionalHeight );
 
-            uint      uiPoints = (uint)( uiPixHeight * iScreenPixPerInch / skEMsPerInch.Y );
+            uint      uiPoints = (uint)( uiMsgHeight * iScreenPixPerInch / skEMsPerInch.Y );
             uint      uiFontID = _oStdUI.FontCache( TxBitmapComp.StdFace, uiPoints, skEMsPerInch );
             oText.Cache.Update( _oStdUI.FontRendererAt( uiFontID ) );
 
@@ -1267,7 +1266,7 @@ namespace Play.SSTV {
         protected int MicrophoneGain => Properties.GetValueAsInt( SSTVProperties.Names.Std_MicGain );
 
         /// <summary>
-        /// 
+        /// Get the currently checked line in the TxModeList or set it to the first item.
         /// </summary>
         /// <seealso cref="ViewTransmitDeluxe.SSTVModeSelection"/>
 		public SSTVMode TransmitModeSelection { 
@@ -1287,15 +1286,7 @@ namespace Play.SSTV {
 		}
 
 		public bool RenderComposite() {
-			// sometimes we get events while we're sending. Let's block render for now.
-			if( StateTx ) {
-				LogError( "Already Playing" );
-				return false;
-			}
-
-            return RenderComposite( TransmitModeSelection );
-		}
-		public bool RenderComposite(SSTVMode oMode) {
+            SSTVMode oMode = TransmitModeSelection;
 			// sometimes we get events while we're sending. Let's block render for now.
 			if( StateTx ) {
 				LogError( "Already Playing" );
@@ -1313,7 +1304,7 @@ namespace Play.SSTV {
 
 				int iTemplate = TemplateList.CheckedLine is Line oChecked ? oChecked.At : 0;
 
-				TemplateSet( iTemplate );
+				TemplateSet( oMode, iTemplate );
 				TxBitmapComp.RenderImage();
 
 				return true;
@@ -1330,14 +1321,17 @@ namespace Play.SSTV {
         }
 
         /// <summary>
-        /// Begin transmitting the image. At present, no way to stop!! >_<;;
+        /// Begin transmitting the image. We can stop but only after the 
+        /// buffered transmission bleeds out.
         /// </summary>
-        public async void TransmitBegin( SSTVMode oMode ) {
-            if( PortTxList.CheckedLine == null ) {
-                LogError( "No sound device to send to" ); return;
-            }
+        public async void TransmitBegin() {
+			SSTVMode oMode = TransmitModeSelection;
+
             if( oMode == null || TxBitmapComp.Bitmap == null ) {
                 LogError( "Transmit mode or image is not set." ); return;
+            }
+            if( PortTxList.CheckedLine == null ) {
+                LogError( "No sound device to send to" ); return;
             }
             if( StateTx ) {
                 LogError( "Already Transmitting" ); return;

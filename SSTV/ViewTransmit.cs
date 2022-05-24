@@ -432,7 +432,7 @@ namespace Play.SSTV {
 			}
 
 			if( iRecompose > 0 ) {
-				_oDocSSTV.RenderComposite( SSTVModeSelection );
+				_oDocSSTV.RenderComposite();
 			}
         }
 
@@ -472,26 +472,6 @@ namespace Play.SSTV {
 
 		protected void LogError( string strMsg ) {
 			_oSiteView.LogError( "Transmit Image", strMsg );
-		}
-
-        protected SSTVMode SSTVModeSelection { 
-			get {
-				// The TxModeList and the tool options current mode aren't
-				// currently kept in sink, so we want our view tool options first.
-				if( _wmToolOptions != null )
-					return _wmToolOptions.CurrentMode;
-
-				// We can get here if we close the tool options window.
-				// BUG: I have some sort of current mode property on the SSTVDoc
-				//      but I can't find it.
-                if( _oDocSSTV.TxModeList.CheckedLine == null )
-                    _oDocSSTV.TxModeList.CheckedLine = _oDocSSTV.TxModeList[_oDocSSTV.RxModeList.CheckedLine.At];
-
-                if( _oDocSSTV.TxModeList.CheckedLine.Extra is SSTVMode oMode )
-					return oMode;
-
-                return null;
-			}
 		}
 
         public int ToolCount => _rgToolIcons.ElementCount;
@@ -535,10 +515,8 @@ namespace Play.SSTV {
 
         public bool Execute( Guid sGuid ) {
 			if( sGuid == GlobalCommands.Play ) {
-                if( SSTVModeSelection is SSTVMode oMode ) {
-					if( _oDocSSTV.RenderComposite( oMode ) ) {
-						_oDocSSTV.TransmitBegin( oMode ); 
-					}
+				if( _oDocSSTV.RenderComposite() ) {
+					_oDocSSTV.TransmitBegin(); 
 				}
 				return true;
 			}

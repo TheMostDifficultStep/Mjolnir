@@ -331,10 +331,6 @@ namespace Play.Sound {
             LegacyMode     = eLegacy;
         }
 
-        /// <summary>
-        /// Doesn't include family name since this is more for the submode
-        /// dropdown.
-        /// </summary>
         public override string ToString() {
             StringBuilder sbValue = new();
 
