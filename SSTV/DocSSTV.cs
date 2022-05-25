@@ -1662,7 +1662,8 @@ namespace Play.SSTV {
                                         typeof( FormatException ),
                                         typeof( OverflowException ),
                                         typeof( ThreadStateException ),
-                                        typeof( InsufficientMemoryException ) };
+                                        typeof( InsufficientMemoryException ),
+                                        typeof( BadDeviceIdException ) };
                     if( rgErrors.IsUnhandled( oEx ) )
                         throw;
 

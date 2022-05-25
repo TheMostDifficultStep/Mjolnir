@@ -450,11 +450,11 @@ namespace Play.SSTV {
 
 			rgIcons.Add( "Color",     new ToolInfo( "icons8-color-wheel-2-48.png", TransmitCommands.Color   ));
 			rgIcons.Add( "Move",      new ToolInfo( "icons8-move-48.png",		   TransmitCommands.Move    ));
-			rgIcons.Add( "Resize",    new ToolInfo( "icons8-resize-100.png",       TransmitCommands.Resize  ));
+			rgIcons.Add( "Resize",    new ToolInfo( "icons8-selection-60.png",     TransmitCommands.Resize  ));
 			rgIcons.Add( "Text",      new ToolInfo( "icons8-text-64.png",		   TransmitCommands.Text    ));
-			rgIcons.Add( "Gallery",   new ToolInfo( "icons8-gallery-64.png",	   TransmitCommands.Gallary ));
+			rgIcons.Add( "Gallery",   new ToolInfo( "icons8-gallery-64.png",	   TransmitCommands.Templates ));
 			rgIcons.Add( "PnP",       new ToolInfo( "icons8-download-64.png",	   TransmitCommands.PnP     ));
-		    rgIcons.Add( "Templates", new ToolInfo( "icons8-measure-64.png",       TransmitCommands.Templates ));
+		    rgIcons.Add( "Templates", new ToolInfo( "icons8-upload-64.png",        TransmitCommands.Gallary ));
 			rgIcons.Add( "Mode",      new ToolInfo( "icons8-audio-wave-48.png",    TransmitCommands.Mode    ));
 
 			foreach( KeyValuePair<string,ToolInfo> oPair in rgIcons ) {

@@ -23,6 +23,7 @@
     <None Remove="Content\TxWin\icons8-resize-100.png" />
     <None Remove="Content\TxWin\icons8-selection-60.png" />
     <None Remove="Content\TxWin\icons8-text-64.png" />
+    <None Remove="Content\TxWin\icons8-upload-64.png" />
     <None Remove="icons8_camera.png" />
     <None Remove="icons8_settings.png" />
     <None Remove="icons8_tv.png" />
@@ -44,6 +45,7 @@
     <EmbeddedResource Include="Content\TxWin\icons8-resize-100.png" />
     <EmbeddedResource Include="Content\TxWin\icons8-selection-60.png" />
     <EmbeddedResource Include="Content\TxWin\icons8-text-64.png" />
+    <EmbeddedResource Include="Content\TxWin\icons8-upload-64.png" />
   </ItemGroup>
   
   <ItemGroup>
