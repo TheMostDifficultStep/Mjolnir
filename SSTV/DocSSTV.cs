@@ -949,24 +949,24 @@ namespace Play.SSTV {
 
 				switch( iIndex ) {
 					case 0: // PnP reply.
-						TxBitmapComp.AddImage( LOCUS.CENTER,      0,  0, 100.0, TxBitmap, Selection );
-						TxBitmapComp.AddText ( LOCUS.UPPERLEFT,   5,  5,  17.0, TxBitmapComp.StdFace, ForeColor, TemplateReplyFromProps() );
 						TxBitmapComp.AddImage( LOCUS.LOWERRIGHT, 10, 10,  40.0, RxHistoryList.Bitmap, null );
+						TxBitmapComp.AddText ( LOCUS.UPPERLEFT,   5,  5,  17.0, TxBitmapComp.StdFace, ForeColor, TemplateReplyFromProps() );
+						TxBitmapComp.AddImage( LOCUS.CENTER,      0,  0, 100.0, TxBitmap, Selection );
 
                         Send_TxImageAspect?.Invoke( new SKPointI( oMode.Resolution.Width, oMode.Resolution.Height ) );
                         TxImgLayoutAspect = new ( oMode.Resolution.Width, oMode.Resolution.Height );
 						break;
 					case 1: // General Message
-						TxBitmapComp.AddImage( LOCUS.CENTER,      0,  0, 100.0, TxBitmap, Selection );
 						TxBitmapComp.AddText ( LOCUS.UPPERLEFT,   5,  5,  20.0, TxBitmapComp.StdFace, ForeColor, Message );
+						TxBitmapComp.AddImage( LOCUS.CENTER,      0,  0, 100.0, TxBitmap, Selection );
 
                         Send_TxImageAspect?.Invoke( new SKPointI( oMode.Resolution.Width, oMode.Resolution.Height ) );
                         TxImgLayoutAspect = new ( oMode.Resolution.Width, oMode.Resolution.Height );
 						break;
                     case 2: // General Message PnP
-						TxBitmapComp.AddImage( LOCUS.CENTER,      0,  0, 100.0, TxBitmap, Selection );
-						TxBitmapComp.AddText ( LOCUS.UPPERLEFT,   5,  5,  15.0, TxBitmapComp.StdFace, ForeColor, Message );
 						TxBitmapComp.AddImage( LOCUS.LOWERRIGHT, 10, 10,  40.0, RxHistoryList.Bitmap, null );
+						TxBitmapComp.AddText ( LOCUS.UPPERLEFT,   5,  5,  15.0, TxBitmapComp.StdFace, ForeColor, Message );
+						TxBitmapComp.AddImage( LOCUS.CENTER,      0,  0, 100.0, TxBitmap, Selection );
 
                         Send_TxImageAspect?.Invoke( new SKPointI( oMode.Resolution.Width, oMode.Resolution.Height ) );
                         TxImgLayoutAspect = new ( oMode.Resolution.Width, oMode.Resolution.Height );
@@ -992,6 +992,8 @@ namespace Play.SSTV {
 				}
 
                 // Count so the stream object on the editor will seek correctly amoung the lines.
+                TxBitmapComp.Layers.CharacterCount( 0 );
+                TxBitmapComp.Layers.Raise_BufferEvent( BUFFEREVENTS.MULTILINE );
                 TxBitmapComp.Text.CharacterCount( 0 );
                 TxBitmapComp.Text.Raise_BufferEvent( BUFFEREVENTS.MULTILINE );
 			} catch( Exception oEx ) {

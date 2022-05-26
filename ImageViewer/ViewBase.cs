@@ -270,9 +270,9 @@ namespace Play.ImageViewer {
         protected readonly SmartRect _rctViewPort    = new SmartRect( LOCUS.UPPERLEFT, 0, 0, 0, 0 );
         protected readonly SmartRect _rctWorldPort   = new SmartRect( LOCUS.UPPERLEFT, 0, 0, 0, 0 );
 
-		public ImageSoloDoc Document { get; }
+		public ImageBaseDoc Document { get; }
 
-		public ImageViewSingle( IPgViewSite oSiteBase, ImageSoloDoc oDocSolo ) : base( oSiteBase ) {
+		public ImageViewSingle( IPgViewSite oSiteBase, ImageBaseDoc oDocSolo ) : base( oSiteBase ) {
 			Document = oDocSolo ?? throw new ArgumentNullException( "Document must not be null." );
 		}
 

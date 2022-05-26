@@ -246,15 +246,16 @@ namespace Play.ImageViewer {
     /// document.
     /// </summary>
     public class DocImageEdit : 
-        ImageSoloDoc
+        ImageSoloDoc,
+        IEnumerable<SmartRect>
     {
-        protected          bool             _fDisposed  = false;
-        protected readonly List<SmartRect>  _rgChildren = new ();
-        protected readonly IPgStandardUI2   _oStdUI;
-        protected readonly SKPaint          _skPaint = new SKPaint();
+        protected          bool           _fDisposed = false;
+        protected readonly IPgStandardUI2 _oStdUI;
+        protected readonly SKPaint        _skPaint   = new SKPaint();
         public ushort StdFace { get; protected set; }
 
-        public Editor Text { get; }
+        public Editor Text   { get; } // Keep this for the external Templates.
+        public Editor Layers { get; }
 
         public class DocSite : 
 			IPgBaseSite
@@ -281,10 +282,16 @@ namespace Play.ImageViewer {
         public DocImageEdit(IPgBaseSite oSiteBase) : base(oSiteBase) {
             _oStdUI = (IPgStandardUI2)Services ?? throw new ApplicationException( "Couldn't get StdUI2" );
             Text    = new Editor( new DocSite( this ) );
+            Layers  = new Editor( new DocSite( this ) );
         }
 
         protected override bool Initialize() {
             if( !base.Initialize() )
+                return false;
+
+            if( !Text.InitNew() )
+                return false;
+            if( !Layers.InitNew() )
                 return false;
 
             try {
@@ -358,25 +365,28 @@ namespace Play.ImageViewer {
                 rcWorldSelect = new SmartRect( 0, 0, oSoloBmp.Width, oSoloBmp.Height );
 
             SoloImgBlock oBlock = new( eOrigin, iX, iY, dblSize, oSoloBmp, rcWorldSelect );
+            Line         oLayer = Layers.LineAppend( "Image" );
 
-            _rgChildren.Add( oBlock );
+            oLayer.Extra = oBlock;
         }
 
         public void AddGradient( LOCUS eOrigin, double dblSize, SKColor clrFrom, SKColor clrTo ) {
             GradientBlock oBlock = new( eOrigin, dblSize, clrFrom, clrTo );
+            Line          oLayer = Layers.LineAppend( "Gradient" );
 
-            _rgChildren.Add( oBlock );
+            oLayer.Extra = oBlock;
         }
 
         public void AddText( LOCUS eOrigin, int iX, int iY, double dblSize, ushort uFaceID, SKColor skColor, string strText = "" ) {
-            Line      oLine  = Text.LineAppend( strText, fUndoable:false );
-            TextBlock oBlock = new( eOrigin, iX, iY, dblSize, oLine ) { FaceID = uFaceID, Color = skColor };
+            Line      oLayer = Layers.LineAppend( strText );
+            TextBlock oBlock = new( eOrigin, iX, iY, dblSize, oLayer ) { FaceID = uFaceID, Color = skColor };
 
-            _rgChildren.Add( oBlock );
+            oLayer.Extra = oBlock; // Circular ref, we'll see how the mem man handles this.
         }
 
         public void AddLayout( LayoutRect oLayout ) {
-            _rgChildren.Add( oLayout );
+            Line oLayer = Layers.LineAppend( "Layout" );
+            oLayer.Extra = oLayout;
         }
 
         /// <summary>
@@ -384,7 +394,7 @@ namespace Play.ImageViewer {
         /// But since we're the owning object, I'll simply use the override.
         /// </summary>
         protected override void Raise_ImageUpdated() {
-            foreach( SmartRect oRect in _rgChildren ) {
+            foreach( SmartRect oRect in this ) {
                 oRect.LayoutChildren();
             }
 
@@ -409,7 +419,7 @@ namespace Play.ImageViewer {
                 Size szExtent = new Size( Bitmap.Width, Bitmap.Height );
 
                 // Clunky but we won't have a lot of objects in here.
-                foreach( SmartRect oRect in _rgChildren ) {
+                foreach( SmartRect oRect in this ) {
                     //if( oRect is TextBlock oTextBlock ) {
                     //    Text.WordBreak( oTextBlock.CacheElem.Line, oTextBlock.CacheElem.Words ); 
                     //}
@@ -421,7 +431,7 @@ namespace Play.ImageViewer {
                     oRect.LayoutChildren();
                 }
 
-                foreach( SmartRect oRect in _rgChildren ) {
+                foreach( SmartRect oRect in this ) {
                     oRect.Paint ( skCanvas );
                 }
             } catch( Exception oEx ) {
@@ -429,15 +439,41 @@ namespace Play.ImageViewer {
 									typeof( ArgumentException ),
 									typeof( NullReferenceException ),
 									typeof( OverflowException ),
-									typeof( AccessViolationException ) };
+									typeof( AccessViolationException ),
+                                    typeof( InvalidCastException ) };
                 if( rgErrors.IsUnhandled( oEx ) )
                     throw;
             }
         }
 
         public void Clear() {
-            _rgChildren.Clear();
-            Text       .Clear();
+            Layers.Clear();
+            Text  .Clear();
+        }
+
+        /// <summary>
+        /// Return the layers in reverse order of the Editor EditWin
+        /// display. This iterator is basically for the use of the composite
+        /// compiler.
+        /// </summary>
+        /// <returns></returns>
+        /// <exception cref="InvalidCastException">Something in the collection is not
+        /// derived from Block class.</exception>
+        public IEnumerator<SmartRect> GetEnumerator() {
+            Line[] _rgLines = new Line[Layers.ElementCount];
+
+            // Make a copy just in case somebody monkies with the Layers mid pass.
+            int iLength = _rgLines.Length;
+            for( int i = 0; i < iLength; i++ ) {
+                _rgLines[iLength-i-1] = Layers[i];
+            }
+            for( int i = 0; i < _rgLines.Length; i++ ) {
+                yield return (SmartRect)_rgLines[i].Extra;
+            }
+        }
+
+        IEnumerator IEnumerable.GetEnumerator() {
+            return GetEnumerator();
         }
     }
 }

@@ -631,7 +631,8 @@ namespace Play.SSTV {
 			}
 			if( sGuid.Equals( GlobalDecorations.Outline ) ) {
 				//return new CheckList( oBaseSite, _oDocSSTV.TxModeList );
-				return new CheckList( oBaseSite, _oDocSSTV.TemplateList ) { ReadOnly = true }; // We'll be read/write in the future.
+				//return new CheckList( oBaseSite, _oDocSSTV.TemplateList ) { ReadOnly = true }; // We'll be read/write in the future.
+				return new EditWindow2( oBaseSite, _oDocSSTV.TxBitmapComp.Layers ) { ReadOnly = true };
 			}
 			if( sGuid.Equals( GlobalDecorations.Options ) ) {
 				//return new CheckList( oBaseSite, _oDocSSTV.TemplateList ) { ReadOnly = true }; // We'll be read/write in the future.
