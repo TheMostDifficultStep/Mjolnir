@@ -212,7 +212,12 @@ namespace Play.SSTV {
 			NX     nx    = new NX();
 
 			for( int i = 0; i < m_wStgLine; i++) {
+				// Add this bit to circumvent below bug for now.
+				if( _dp.BoundsCompare( i * ( _oSetting.WD + 1 ) ) != 0 )
+					break;
+
 				for( int j = 0; j < _oSetting.WD; j++, iBase++) {
+					// BUG!! SyncGet is going out of bounds from time to time!!
 					short sp = _dp.SyncGet(i * _oSetting.WD + j);
 					int   yy = (int)( iBase / _oSetting.TW );
 

@@ -293,7 +293,8 @@ namespace Play.SSTV {
                                                            typeof( InvalidOperationException ),
 										                   typeof( ArithmeticException ),
 										                   typeof( IndexOutOfRangeException ),
-                                                           typeof( InvalidDataException ) };
+                                                           typeof( InvalidDataException ),
+                                                           typeof( ArgumentOutOfRangeException ) };
 
         /// <summary>
         /// Support the bg thread for the device listener.

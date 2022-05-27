@@ -466,7 +466,8 @@ namespace Play.SSTV {
 				} catch( Exception oEx ) {
 					Type[] rgErrors = { typeof( NullReferenceException ),
 										typeof( InvalidProgramException ),
-										typeof( IndexOutOfRangeException ) };
+										typeof( IndexOutOfRangeException ),
+										typeof( ArgumentOutOfRangeException ) };
 					if( rgErrors.IsUnhandled( oEx ) )
 						throw;
 
