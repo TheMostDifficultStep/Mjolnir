@@ -134,26 +134,31 @@ namespace Play.SSTV {
         }
 
         /// <summary>
-        /// TODO: If there are multiple TX windows open, they might get out of
-        /// sync with the composition. Still need to sort that all out.
-        /// But we're close.
+        /// Normally, we want to get the document message that the checked
+        /// line changed. But since the dropdown selectes itself we need
+        /// to ignore the checked event later, else we get in an infinite
+        /// loop.
         /// </summary>
         /// <seealso cref="PopulateSubModes"/>
         private void OnSelectedModeChanged(object sender, EventArgs e) {
-            if( sender is ComboBox oMain ) { 
-                PopulateSubModes( oMain, _ddModeSub );
-            }
-            if( _ddModeSub.SelectedItem is SSTVMode oDDListMode ) {
-                foreach( Line oLine in _oDocSSTV.TxModeList ) {
-                    if( oLine.Extra is SSTVMode oTxListMode &&
-                        oTxListMode.LegacyMode == oDDListMode.LegacyMode ) 
-                    {
-                        _oDocSSTV.TxModeList.CheckedLine = oLine;
+            if( !_bProcessCheckModeList ) {
+                _bProcessCheckModeList = true;
+                if( sender is ComboBox oMain ) { 
+                    PopulateSubModes( oMain, _ddModeSub );
+                }
+                if( _ddModeSub.SelectedItem is SSTVMode oDDListMode ) {
+                    foreach( Line oLine in _oDocSSTV.TxModeList ) {
+                        if( oLine.Extra is SSTVMode oTxListMode &&
+                            oTxListMode.LegacyMode == oDDListMode.LegacyMode ) 
+                        {
+                            _oDocSSTV.TxModeList.CheckedLine = oLine;
+                        }
                     }
                 }
+                // Setting the hilight will send an event that DocSSTV will
+                // pick up and cause a RenderComposite on that one.
+                _bProcessCheckModeList = false;
             }
-            // Setting the hilight will send an event that DocSSTV will
-            // pick up and cause a RenderComposite on that one.
         }
 
         /// <summary>
@@ -213,9 +218,9 @@ namespace Play.SSTV {
                         }
                     }
                 }
+                _bProcessCheckModeList = false;
             }
 
-            _bProcessCheckModeList = false;
         }
 
         /// <summary>
@@ -248,7 +253,7 @@ namespace Play.SSTV {
             LayoutStack oLayout = new LayoutStackHorizontal() { Spacing = 5 };
             oLayout.Add( new LayoutRect( LayoutRect.CSS.None ) );
             oLayout.Add( new LayoutControl( _ddModeMain, LayoutRect.CSS.Pixels, 150 ) );
-            oLayout.Add( new LayoutControl( _ddModeSub,  LayoutRect.CSS.Pixels, 200 ) );
+            oLayout.Add( new LayoutControl( _ddModeSub,  LayoutRect.CSS.Pixels, 250 ) );
             oLayout.Add( new LayoutRect( LayoutRect.CSS.None ) );
 
             _rgFlock.Add( TransmitCommands.Mode, oLayout );
@@ -328,15 +333,6 @@ namespace Play.SSTV {
             return false;
         }
 
-        public SSTVMode CurrentMode {
-            get {
-                if( _ddModeSub.SelectedItem == null )
-                    return _ddModeSub.Items[0] as SSTVMode;
-
-                return _ddModeSub.SelectedItem as SSTVMode;
-            }
-        }
-
         /// <summary>
         /// TODO: If there are multiple TX windows open, they might get out of
         /// sync with the composition. Still need to sort that all out.
@@ -360,8 +356,6 @@ namespace Play.SSTV {
                 }
                 _bProcessCheckModeList = false;
             }
-            // Setting the hilight will send an event that DocSSTV will
-            // pick up and cause a RenderComposite on that one.
         }
 
         /// <summary>
