@@ -334,7 +334,6 @@ namespace Play.SSTV {
         public ImageWalkerDir      TxImageList   { get; }
         public ImageWalkerDir      RxHistoryList { get; }
         public SSTVProperties      Properties    { get; }
-        public SKBitmap            TxBitmap      => TxImageList.Bitmap;
         internal DocImageEdit      TxBitmapComp  { get; }
 
         /// <summary>
@@ -951,14 +950,14 @@ namespace Play.SSTV {
 					case 0: // PnP reply.
 						TxBitmapComp.AddImage( LOCUS.LOWERRIGHT, 10, 10,  40.0, RxHistoryList.Bitmap, null );
 						TxBitmapComp.AddText ( LOCUS.UPPERLEFT,   5,  5,  17.0, TxBitmapComp.StdFace, ForeColor, TemplateReplyFromProps() );
-						TxBitmapComp.AddImage( LOCUS.CENTER,      0,  0, 100.0, TxBitmap, Selection );
+						TxBitmapComp.AddImage( LOCUS.CENTER,      0,  0, 100.0, TxImageList.Bitmap, Selection );
 
                         Send_TxImageAspect?.Invoke( new SKPointI( oMode.Resolution.Width, oMode.Resolution.Height ) );
                         TxImgLayoutAspect = new ( oMode.Resolution.Width, oMode.Resolution.Height );
 						break;
 					case 1: // General Message
 						TxBitmapComp.AddText ( LOCUS.UPPERLEFT,   5,  5,  20.0, TxBitmapComp.StdFace, ForeColor, Message );
-						TxBitmapComp.AddImage( LOCUS.CENTER,      0,  0, 100.0, TxBitmap, Selection );
+						TxBitmapComp.AddImage( LOCUS.CENTER,      0,  0, 100.0, TxImageList.Bitmap, Selection );
 
                         Send_TxImageAspect?.Invoke( new SKPointI( oMode.Resolution.Width, oMode.Resolution.Height ) );
                         TxImgLayoutAspect = new ( oMode.Resolution.Width, oMode.Resolution.Height );
@@ -966,7 +965,7 @@ namespace Play.SSTV {
                     case 2: // General Message PnP
 						TxBitmapComp.AddImage( LOCUS.LOWERRIGHT, 10, 10,  40.0, RxHistoryList.Bitmap, null );
 						TxBitmapComp.AddText ( LOCUS.UPPERLEFT,   5,  5,  15.0, TxBitmapComp.StdFace, ForeColor, Message );
-						TxBitmapComp.AddImage( LOCUS.CENTER,      0,  0, 100.0, TxBitmap, Selection );
+						TxBitmapComp.AddImage( LOCUS.CENTER,      0,  0, 100.0, TxImageList.Bitmap, Selection );
 
                         Send_TxImageAspect?.Invoke( new SKPointI( oMode.Resolution.Width, oMode.Resolution.Height ) );
                         TxImgLayoutAspect = new ( oMode.Resolution.Width, oMode.Resolution.Height );
@@ -1106,7 +1105,7 @@ namespace Play.SSTV {
             uint      uiFontID = _oStdUI.FontCache( TxBitmapComp.StdFace, uiPoints, skEMsPerInch );
             oText.Cache.Update( _oStdUI.FontRendererAt( uiFontID ) );
 
-            LayoutImage oImage = new LayoutImage( TxBitmap, LayoutRect.CSS.None ) { Stretch = true };
+            LayoutImage oImage = new LayoutImage( TxImageList.Bitmap, LayoutRect.CSS.None ) { Stretch = true };
             oImage.World.Copy = Selection;
 
             oStack.Add( oImage );
@@ -1755,7 +1754,7 @@ namespace Play.SSTV {
                 try {
                     if( oWorkPlace.Status == WorkerStatus.FREE ) {
                         // borrow the Composite Bitmap for this test.
-			            oDoc.TxBitmapComp.Load( oDoc.TxBitmap, skSelect, oMode.Resolution );
+			            oDoc.TxBitmapComp.Load( oDoc.TxImageList.Bitmap, skSelect, oMode.Resolution );
 
                         // Use a low sample rate so it's easier to slog thru the data. 
                         Specification oTxSpec = new( 8000, 1, 0, 16 );

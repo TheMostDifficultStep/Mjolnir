@@ -243,7 +243,7 @@ namespace Play.SSTV {
                 // Figure out path and name of the file.
                 string strFilePath = Path.GetDirectoryName( _strFileName );
                 string strFileName = Path.GetFileNameWithoutExtension( _strFileName );
-                string strModeName = tvMode.FamilyName + '_' + tvMode.Version.Replace( " ", string.Empty );
+                string strModeName = tvMode.FamilyName + tvMode.Version.Replace( " ", string.Empty );
                 string strSavePath = Path.Combine( strFilePath, strFileName + "_" + strModeName + "_" + _iDecodeCount.ToString() + ".jpg" );
 
                 // Overrite any existing file!!
@@ -453,7 +453,7 @@ namespace Play.SSTV {
                     // Path.GetFileNameWithoutExtension( _strFileName )
                 
                     string strFileName = FileNameCleanUp( FileNameGenerate );
-                    string strModeName = tvMode.FamilyName + '_' + tvMode.Version.Replace( " ", string.Empty );
+                    string strModeName = tvMode.FamilyName + tvMode.Version.Replace( " ", string.Empty );
                     string strFilePath = Path.Combine  ( _strFilePath, strFileName + "_" + strModeName + ".jpg" );
                     using var stream   = File.OpenWrite( strFilePath );
 

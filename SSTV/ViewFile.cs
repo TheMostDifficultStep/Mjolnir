@@ -107,37 +107,6 @@ namespace Play.SSTV {
 			get { return "MySSTV File Reader"; } 
 		}
 
-		public class ModeEditor : Editor {
-			public ModeEditor(IPgBaseSite oSite) : base(oSite) {
-			}
-
-			public override WorkerStatus PlayStatus => ((DocSSTV)_oSiteBase.Host).PlayStatus;
-
-			public void LoadModes( IEnumerator<SSTVMode> iterMode, bool fAddResolution=true) {
-				using BaseEditor.Manipulator oBulk = CreateManipulator();
-				StringBuilder sbValue = new();
-
-				while( iterMode.MoveNext() ) {
-					SSTVMode oMode = iterMode.Current;
-
-					sbValue.Clear();
-					sbValue.Append( oMode.FamilyName + ' ' + oMode.Version );
-					Line oLine = oBulk.LineAppendNoUndo( sbValue.ToString() );
-
-					oLine.Extra = oMode;
-				}
-			}
-
-            public SSTVMode ChosenMode {
-                get {
-                    if( CheckedLine?.Extra is SSTVMode oMode ) {
-                        return oMode;
-                    }
-                    return null;
-                }
-            }
-		}
-
 		public WindowFileViewer( IPgViewSite oSiteBase, DocSSTV oDocSSTV ) : base( oSiteBase, oDocSSTV ) {
 			_rgWavFileList   = new( new SSTVWinSlot( this, ChildID.None ) );
 			_rgDecodedImages = new( new SSTVWinSlot( this, ChildID.None ) );
