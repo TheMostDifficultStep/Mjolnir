@@ -214,10 +214,11 @@ namespace Play.SSTV {
 					return new ViewFileProperties( oBaseSite, _oDocSSTV.Properties );
 				}
 				if( sGuid.Equals( GlobalDecorations.Outline ) ) {
-					return new CheckList( oBaseSite, _oDocSSTV.RxModeList );
+					return new WindowTextDir( oBaseSite, _rgWavFileList );
 				}
 				if( sGuid.Equals( GlobalDecorations.Options ) ) {
-					return new WindowTextDir( oBaseSite, _rgWavFileList );
+				  //return new CheckList( oBaseSite, _oDocSSTV.RxModeList );
+					return new WindowFileTools( oBaseSite, _oDocSSTV );
 				}
 				return base.Decorate( oBaseSite, sGuid );
 			} catch ( Exception oEx ) {

@@ -163,7 +163,6 @@ namespace Play.SSTV {
 	}
 
     public static class TransmitCommands {
-        // Clipboard functions
         public static readonly Guid Color     = new Guid( "{B3198F66-7698-4DFB-8B31-9643372B2B3E}" );
         public static readonly Guid Move      = new Guid( "{179898AD-1823-4F0E-BF27-11456C1EA8C8}" );
         public static readonly Guid Text      = new Guid( "{C7F1DADB-A0A4-479C-B193-B38AFAEE5AB6}" );
@@ -172,6 +171,10 @@ namespace Play.SSTV {
 	    public static readonly Guid Templates = new Guid( "{FE683CA1-1068-4BA0-A84E-CFE35900A06E}" );
         public static readonly Guid Mode      = new Guid( "{56797520-C603-417C-858A-EF532E0652D2}" );
 		public static readonly Guid Resize    = new Guid( "{84F921E1-BFB5-4BD7-9814-C53D48C90D1E}" );
+	}
+
+	public static class ReceiveCommands {
+        public static readonly Guid Mode      = new Guid( "{37BC4B62-5141-410A-B420-2C16983E3859}" );
 	}
 	
 	/// <summary>
@@ -267,10 +270,10 @@ namespace Play.SSTV {
         public    Guid   Catagory  => GUID;
         protected string IconResource => "Play.SSTV.Content.icons8_camera.png";
 
-		protected readonly ImageViewSingle    _wmTxImageComposite; 
-		protected readonly ImageViewIcons     _wmTxViewChoices;
-		protected readonly ImageViewIcons     _wmRxViewChoices;
-		protected          ToolWins           _wmToolOptions;
+		protected readonly ImageViewSingle _wmTxImageComposite; 
+		protected readonly ImageViewIcons  _wmTxViewChoices;
+		protected readonly ImageViewIcons  _wmRxViewChoices;
+		protected          WindowTxTools   _wmToolOptions;
 
 		protected readonly Editor _rgToolIcons;
 		protected          int    _iToolSelected = -1;
@@ -638,7 +641,7 @@ namespace Play.SSTV {
 				//return new CheckList( oBaseSite, _oDocSSTV.TemplateList ) { ReadOnly = true }; // We'll be read/write in the future.
 				// BUG: This is super hacky, but just try for now. Since the addornment
 				//      is handled by the shell, it can be closed and we have a zombie.
-				_wmToolOptions = new ToolWins( oBaseSite, this );
+				_wmToolOptions = new WindowTxTools( oBaseSite, _oDocSSTV );
 				return _wmToolOptions;
 			}
 			if( sGuid.Equals( GlobalDecorations.ToolIcons ) ) {
