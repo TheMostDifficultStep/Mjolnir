@@ -36,7 +36,6 @@ namespace Play.SSTV {
 			(int)SSTVProperties.Names.Rx_SaveDir,
 			(int)SSTVProperties.Names.Tx_SrcFile,
 			(int)SSTVProperties.Names.Std_Time,
-			(int)SSTVProperties.Names.Tx_MyCall,
 			(int)SSTVProperties.Names.Tx_TheirCall,
 			(int)SSTVProperties.Names.Tx_RST,
 			(int)SSTVProperties.Names.Tx_Message 
