@@ -297,6 +297,22 @@ namespace Play.Forms {
             Property_Values.CharacterCount( 0 );
             Property_Values.Raise_BufferEvent( BUFFEREVENTS.MULTILINE ); 
         }
+
+        /// <summary>
+        /// Add a property on the fly. But use a line allocated elsewhere.
+        /// </summary>
+        /// <param name="strLabel">Label for this property.</param>
+        /// <param name="oLine">A line possible from another editor instance.</param>
+        /// <returns></returns>
+        public int PropertyAppend( string strLabel, Line oLine ) {
+            if( Property_Values.ElementCount != Property_Labels.ElementCount ) {
+                _oSiteBase.LogError( "Properties", "Mismatched label/value in document properties." );
+            }
+            Property_Labels.LineAppend      ( strLabel, fUndoable:false );
+            Property_Values.LineInsertNoUndo( Property_Values.ElementCount, oLine );
+
+            return Property_Values.ElementCount - 1;
+        }
     }
 
 }
