@@ -636,10 +636,10 @@ namespace Play.SSTV {
             // into the RxHistorList's set of properties. Note: if those properties are
             // saved somehow, this injected property will get saved in, but the host
             // might not recognize the parasite property on subsequent load.
-            RxHistoryList.Properties.PropertyAppend( 
-                "Rx Call",
-                Properties.Property_Values[(int)SSTVProperties.Names.Tx_TheirCall]
-            );
+            //RxHistoryList.Properties.PropertyAppend( 
+            //    "Rx Call",
+            //    Properties.Property_Values[(int)SSTVProperties.Names.Tx_TheirCall]
+            //);
 
             RxModeList.LineAppend( "Auto", fUndoable:false );
             LoadModes( SSTVDEM.EnumModes(), RxModeList, fAddResolution:false );

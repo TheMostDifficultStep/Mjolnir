@@ -299,11 +299,13 @@ namespace Play.Forms {
         }
 
         /// <summary>
-        /// Add a property on the fly. But use a line allocated elsewhere.
+        /// This isn't going to work so I'm going to yank it for now. Need to update
+        /// my properties system so that I can merge multi document properties
         /// </summary>
         /// <param name="strLabel">Label for this property.</param>
         /// <param name="oLine">A line possible from another editor instance.</param>
         /// <returns></returns>
+        /*
         public int PropertyAppend( string strLabel, Line oLine ) {
             if( Property_Values.ElementCount != Property_Labels.ElementCount ) {
                 _oSiteBase.LogError( "Properties", "Mismatched label/value in document properties." );
@@ -313,6 +315,7 @@ namespace Play.Forms {
 
             return Property_Values.ElementCount - 1;
         }
+        */
     }
 
 }

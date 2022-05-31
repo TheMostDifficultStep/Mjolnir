@@ -580,7 +580,7 @@ namespace Play.ImageViewer {
         public Line CurrentShowPath { get; } = new TextLine( 0, string.Empty );
         public Line CurrentShowFile { get; } = new TextLine( 1, string.Empty );
 
-        public ImageProperties Properties { get; }
+        internal ImageProperties Properties { get; }
         internal FileEditor      FileList   { get; }
 
         static protected readonly Dictionary<PixelFormat, string> _rgPixelDescription = new Dictionary<PixelFormat,string>();
