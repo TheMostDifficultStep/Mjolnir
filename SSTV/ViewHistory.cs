@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Windows.Forms;
 
 using SkiaSharp;
+using SkiaSharp.Views.Desktop;
 
 using Play.Interfaces.Embedding;
 using Play.Rectangles;
@@ -28,6 +29,7 @@ namespace Play.SSTV {
         public override void InitRows() {
 			int[] rgShow = { 
 				(int)SSTVProperties.Names.Rx_SaveDir,
+                (int)SSTVProperties.Names.Tx_SrcDir,
 				(int)SSTVProperties.Names.Rx_HistoryFile,
 				(int)SSTVProperties.Names.Tx_TheirCall,
 				(int)SSTVProperties.Names.Tx_RST
@@ -41,6 +43,77 @@ namespace Play.SSTV {
 		//	base.OnDocumentEvent( eEvent );
 		//}
     }
+
+    public class WindowChooserTools : 
+        SKControl,
+		IPgLoad
+    {
+        private readonly IPgViewSite       _oViewSite;
+        private readonly WindowSSTVHistory _wnViewHist;
+
+        private readonly LayoutStack _oLayout    = new LayoutStackHorizontal() { Spacing = 5 };
+        private readonly ComboBox    _ddModeMain = new ComboBox();
+
+        private bool _bProcessCheckModeList = false;
+
+        public WindowChooserTools( IPgViewSite oViewSite, WindowSSTVHistory wnViewHist ) { 
+            _oViewSite  = oViewSite  ?? throw new ArgumentNullException( nameof( oViewSite ) );
+            _wnViewHist = wnViewHist ?? throw new InvalidProgramException( "Can't find document for view" );
+
+            Parent = (Control)_oViewSite.Host;
+        }
+
+        public bool InitNew() {
+            InitModes();
+
+            OnSizeChanged( new EventArgs() );
+
+            return true;
+        }
+
+        /// <summary>
+        /// Set up the dual dropdowns for the SSTV node tool options.
+        /// </summary>
+        private void InitModes() {
+            _ddModeMain.Items.Add( "Rx Choices" );
+            _ddModeMain.Items.Add( "Tx Choices" );
+
+            _ddModeMain.SelectedIndexChanged += OnSelectedModeChanged;
+            _ddModeMain.AutoSize      = true;
+            _ddModeMain.Name          = "Image Chooser Select";
+            _ddModeMain.TabIndex      = 0;
+            _ddModeMain.SelectedIndex = 0;
+            _ddModeMain.DropDownStyle = ComboBoxStyle.DropDownList;
+            _ddModeMain.Parent        = this;
+
+            _oLayout.Add( new LayoutRect( LayoutRect.CSS.None ) );
+            _oLayout.Add( new LayoutControl( _ddModeMain, LayoutRect.CSS.Pixels, 150 ) );
+            _oLayout.Add( new LayoutRect( LayoutRect.CSS.None ) );
+        }
+
+        /// <summary>
+        /// TODO: If there are multiple TX windows open, they might get out of
+        /// sync with the composition. Still need to sort that all out.
+        /// But we're close.
+        /// </summary>
+        /// <seealso cref="PopulateSubModes"/>
+        private void OnSelectedModeChanged(object sender, EventArgs e) {
+            if( !_bProcessCheckModeList ) {
+                _bProcessCheckModeList = true;
+                if( _ddModeMain.SelectedIndex == 0 ) {
+                }
+                if( _ddModeMain.SelectedIndex == 1 ) {
+                }
+                _bProcessCheckModeList = false;
+            }
+        }
+
+        protected override void OnSizeChanged( EventArgs e ) { 
+            _oLayout.SetRect( 0, 0, Width, Height );
+            _oLayout.LayoutChildren();
+        }
+    }
+
 	/// <summary>
 	/// This is a customized image dir/doc viewer that has the icons on the main 
 	/// view area instead of in the outline. Fits in better with the SSTV system.
@@ -60,7 +133,7 @@ namespace Play.SSTV {
 		protected DocSSTV     _oDocSSTV;
 
         public Guid   Catagory => GUID;
-        public string Banner   => "MySSTV History";
+        public string Banner   => "MySSTV Images";
         public Image  Iconic { get; }
 		public SKBitmap Icon { get; }
         public bool   IsDirty  => false;
@@ -69,7 +142,7 @@ namespace Play.SSTV {
 
         public IPgParent Services  => Parentage.Services;
 
-        protected WindowSoloImageNav _wmViewRxHistorySelected;
+        //protected WindowSoloImageNav _wmViewRxHistorySelected;
 		protected ImageViewIcons     _wmViewRxHistory;
 
 		protected readonly LayoutStack _oLayout = new LayoutStackVertical() { Spacing = 5 };
@@ -124,25 +197,25 @@ namespace Play.SSTV {
 			_oSiteView = oViewSite ?? throw new ArgumentNullException( nameof( oViewSite ) );
 			_oDocSSTV  = oDocSSTV  ?? throw new ArgumentNullException( nameof( oDocSSTV  ) );
 
-			_wmViewRxHistorySelected     = new( new SSTVWinSlot( this, ChildID.HistoryNavWindow ), _oDocSSTV.RxHistoryList );
+			//_wmViewRxHistorySelected     = new( new SSTVWinSlot( this, ChildID.HistoryNavWindow ), _oDocSSTV.RxHistoryList );
 			_wmViewRxHistory = new( new SSTVWinSlot( this, ChildID.HistoryIconsWindow ), _oDocSSTV.RxHistoryList ); 
 
-			_wmViewRxHistorySelected    .Parent = this;
+			//_wmViewRxHistorySelected    .Parent = this;
 			_wmViewRxHistory.Parent = this;
 
-			_wmViewRxHistorySelected.SetBorderOn();
+			//_wmViewRxHistorySelected.SetBorderOn();
 
 			Icon = oDocSSTV.CreateIconic( _strIconResource );
 		}
 
 		public bool InitNew() {
-			if( !_wmViewRxHistorySelected.InitNew() )
-				return false;
+			//if( !_wmViewRxHistorySelected.InitNew() )
+			//	return false;
 			if( !_wmViewRxHistory.InitNew() ) 
 				return false;
 
-            _oLayout.Add( new LayoutControl( _wmViewRxHistorySelected, LayoutRect.CSS.None ) );
-            _oLayout.Add( new LayoutControl( _wmViewRxHistory,         LayoutRect.CSS.Pixels, 230 ) );
+            //_oLayout.Add( new LayoutControl( _wmViewRxHistorySelected, LayoutRect.CSS.None ) );
+            _oLayout.Add( new LayoutControl( _wmViewRxHistory,         LayoutRect.CSS.None ) );
 
             OnSizeChanged( new EventArgs() );
 
@@ -160,10 +233,15 @@ namespace Play.SSTV {
 
         public object Decorate(IPgViewSite oBaseSite, Guid sGuid) {
 			try {
+                if( sGuid.Equals(GlobalDecorations.Options ) ) {
+                    return new WindowChooserTools( oBaseSite, this );
+                }
 				if( sGuid.Equals(GlobalDecorations.Properties) ) {
 					return new WindowHistoryProperties( oBaseSite, _oDocSSTV );
-				  //return _wmViewRxHistorySelected.Decorate( oBaseSite, sGuid );
 				}
+                if( sGuid.Equals(GlobalDecorations.Outline ) ) {
+                    return new WindowSoloImageNav( oBaseSite, _oDocSSTV.RxHistoryList );
+                }
 				return false;
 			} catch ( Exception oEx ) {
 				Type[] rgErrors = { typeof( NotImplementedException ),
@@ -180,7 +258,8 @@ namespace Play.SSTV {
 		}
 
         public bool Execute(Guid sGuid) {
-            return _wmViewRxHistorySelected.Execute( sGuid );
+            //return _wmViewRxHistorySelected.Execute( sGuid );
+            return false;
         }
 
         public bool Load(XmlElement oStream) {
