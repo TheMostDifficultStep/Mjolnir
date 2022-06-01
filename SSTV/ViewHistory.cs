@@ -127,7 +127,7 @@ namespace Play.SSTV {
         IDisposable 
 	{
 		public static Guid GUID { get; } = new Guid( "{B746A6D3-B628-4AA8-BD82-BAC860B7BEEA}" );
-		protected static string _strIconResource = "Play.SSTV.Content.icons8-history-64.png";
+		protected static string _strIconResource = "Play.SSTV.Content.icons8-file-folder-48.png";
 
 		protected IPgViewSite _oSiteView;
 		protected DocSSTV     _oDocSSTV;
@@ -144,8 +144,9 @@ namespace Play.SSTV {
 
         //protected WindowSoloImageNav _wmViewRxHistorySelected;
 		protected ImageViewIcons     _wmViewRxHistory;
+        protected ImageViewIcons     _wnViewTxImages;
 
-		protected readonly LayoutStack _oLayout = new LayoutStackVertical() { Spacing = 5 };
+		protected readonly LayoutStack _oLayout = new LayoutStackHorizontal() { Spacing = 5 };
 
 		protected class SSTVWinSlot :
 			IPgViewSite,
@@ -199,9 +200,11 @@ namespace Play.SSTV {
 
 			//_wmViewRxHistorySelected     = new( new SSTVWinSlot( this, ChildID.HistoryNavWindow ), _oDocSSTV.RxHistoryList );
 			_wmViewRxHistory = new( new SSTVWinSlot( this, ChildID.HistoryIconsWindow ), _oDocSSTV.RxHistoryList ); 
+            _wnViewTxImages  = new( new SSTVWinSlot( this, ChildID.TxImageChoices     ), _oDocSSTV.TxImageList   );
 
 			//_wmViewRxHistorySelected    .Parent = this;
 			_wmViewRxHistory.Parent = this;
+            _wnViewTxImages .Parent = this;
 
 			//_wmViewRxHistorySelected.SetBorderOn();
 
@@ -213,9 +216,12 @@ namespace Play.SSTV {
 			//	return false;
 			if( !_wmViewRxHistory.InitNew() ) 
 				return false;
+            if( !_wnViewTxImages.InitNew() )
+                return false;
 
             //_oLayout.Add( new LayoutControl( _wmViewRxHistorySelected, LayoutRect.CSS.None ) );
-            _oLayout.Add( new LayoutControl( _wmViewRxHistory,         LayoutRect.CSS.None ) );
+            _oLayout.Add( new LayoutControl( _wnViewTxImages,  LayoutRect.CSS.None ) );
+            _oLayout.Add( new LayoutControl( _wmViewRxHistory, LayoutRect.CSS.None ) );
 
             OnSizeChanged( new EventArgs() );
 
