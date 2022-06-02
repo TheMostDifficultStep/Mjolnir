@@ -79,10 +79,10 @@ namespace Play.SSTV {
         public class WindowSSTVHistoryOutline :
             Control,
             IPgParent,
-            IPgLoad,
-            IDisposable 
+            IPgLoad
         {
 		    protected IPgViewSite _oSiteView;
+            WindowSSTVHistory _wnHistory;
 
             public IPgParent Parentage => _oSiteView.Host;
             public IPgParent Services  => Parentage.Services;
@@ -120,11 +120,12 @@ namespace Play.SSTV {
                 public IPgViewNotify EventChain => _oHost._oSiteView.EventChain;
             }
 
-            public WindowSSTVHistoryOutline( IPgViewSite oViewSite, WindowSSTVHistory _wnHistory ) {
+            public WindowSSTVHistoryOutline( IPgViewSite oViewSite, WindowSSTVHistory wnHistory ) {
                 _oSiteView = oViewSite ?? throw new ArgumentNullException( nameof( oViewSite ) );
+                _wnHistory = wnHistory ?? throw new ArgumentNullException( nameof( wnHistory ) );
 
-			    _wnViewRxHistorySelected = new( new WinSlot( this ), _wnHistory._oDocSSTV.RxHistoryList ); 
-                _wnViewTxImageSelected   = new( new WinSlot( this ), _wnHistory._oDocSSTV.TxImageList   );
+			    _wnViewRxHistorySelected = new( new WinSlot( this ), wnHistory._oDocSSTV.RxHistoryList ); 
+                _wnViewTxImageSelected   = new( new WinSlot( this ), wnHistory._oDocSSTV.TxImageList   );
 
 			    _wnViewRxHistorySelected.Parent = this;
                 _wnViewTxImageSelected  .Parent = this;
@@ -150,9 +151,32 @@ namespace Play.SSTV {
                 OnSelectedIndexChanged_RxTx( null, new EventArgs() );
 
                 _ddModeMain.SelectedIndexChanged += OnSelectedIndexChanged_RxTx;
+                _wnHistory._oDocSSTV.RxHistoryList.ImageUpdated += OnImageUpdated_RxHistoryList;
+                _wnHistory._oDocSSTV.TxImageList  .ImageUpdated += OnImageUpdated_TxImageList;
+                this.Disposed += OnDisposed_This;
 
                 return true;
             }
+
+            /// <summary>
+            /// I don't recall EVER having to do this, usually I can simply override
+            /// the dispose. Maybe this is a side effect of declaring the class within
+            /// the WinSSTVHistory? I don't know.
+            /// </summary>
+            private void OnDisposed_This(object sender, EventArgs e) {
+                _wnHistory._oDocSSTV.RxHistoryList.ImageUpdated -= OnImageUpdated_RxHistoryList;
+                _wnHistory._oDocSSTV.TxImageList  .ImageUpdated -= OnImageUpdated_TxImageList;
+                this.Disposed -= OnDisposed_This;
+            }
+
+            private void OnImageUpdated_RxHistoryList() {
+                _ddModeMain.SelectedIndex = 0;
+            }
+
+            private void OnImageUpdated_TxImageList() {
+                _ddModeMain.SelectedIndex = 1;
+            }
+
             private bool InitModes() {
                 _ddModeMain.Items.Add( "Rx Choices" );
                 _ddModeMain.Items.Add( "Tx Choices" );
