@@ -170,11 +170,13 @@ namespace Play.SSTV {
             }
 
             private void OnImageUpdated_RxHistoryList() {
-                _ddModeMain.SelectedIndex = 0;
+                if( _ddModeMain.SelectedIndex != 0 )
+                    _ddModeMain.SelectedIndex = 0;
             }
 
             private void OnImageUpdated_TxImageList() {
-                _ddModeMain.SelectedIndex = 1;
+                if( _ddModeMain.SelectedIndex != 1 )
+                    _ddModeMain.SelectedIndex = 1;
             }
 
             private bool InitModes() {
