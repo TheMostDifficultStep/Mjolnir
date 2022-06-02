@@ -212,6 +212,7 @@ namespace Play.SSTV {
 				    (int)SSTVProperties.Names.Rx_SaveDir,
                     (int)SSTVProperties.Names.Tx_SrcDir,
 				    (int)SSTVProperties.Names.Rx_HistoryFile,
+                    (int)SSTVProperties.Names.Tx_SrcFile,
 				    (int)SSTVProperties.Names.Tx_TheirCall,
 				    (int)SSTVProperties.Names.Tx_RST
 			    };
