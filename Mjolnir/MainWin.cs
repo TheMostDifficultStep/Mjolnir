@@ -17,6 +17,7 @@ using Play.Interfaces.Embedding;
 using Play.Rectangles;
 using Play.Edit;
 using Play.Parse;
+using Play.Forms;
 
 namespace Mjolnir {
     /// <summary>
@@ -297,42 +298,6 @@ namespace Mjolnir {
         }
 
         /// <summary>
-        /// This could actually go in our general layout library. But I'm sort
-        /// of testing it out for now.
-        /// </summary>
-        private class LayoutMenu : LayoutControl {
-            int     _iPreferedRail = -1;
-
-		public LayoutMenu( Control oView, LayoutRect.CSS eUnits, uint uiTrack ) : base( oView, eUnits, uiTrack ) {
-		}
-		protected override void OnSizeEvent(SmartRect o) {
-            if( _iPreferedRail > 0 && this.Width > _iPreferedRail ) {
-                int iLeft = this.Left  + ( Width - _iPreferedRail ) / 2;
-
-                Rectangle rcRect = new Rectangle( iLeft, this.Top, _iPreferedRail, this.Height );
-
-                _oControl.Bounds = rcRect;
-                return;
-            }
-
-			_oControl.Bounds = this.Rect;
-		}
-
-		public override uint TrackDesired(TRACK eParentAxis, int uiRail) {
-            if( Units == CSS.Pixels ) // Go with the set track size.
-                return Track;
-
-			Size szProposed = eParentAxis == TRACK.HORIZ ? new Size( Width, uiRail ) : new Size( uiRail, Height );
-			Size szPrefered = _oControl.GetPreferredSize( szProposed );
-			int  iTrack     = eParentAxis == TRACK.HORIZ ? szPrefered.Width : szPrefered.Height;
-            
-             _iPreferedRail = eParentAxis == TRACK.VERT ? szPrefered.Width : szPrefered.Height;
-
-			return (uint)iTrack;
-		}
-        }
-
-        /// <summary>
         /// Load our global configuration. This is different than per instance session state
 		/// which is loaded via a standard InitNew/Load API.
         /// </summary>
@@ -381,7 +346,7 @@ namespace Mjolnir {
             oCenter.Add( _rgSideInfo[SideIdentify.Right] ); 
 
             _oLayoutPrimary.Add( new LayoutControl( Tabs,  LayoutRect.CSS.Flex, 40) ); 
-            _oLayoutPrimary.Add( new LayoutMenu( _oTopMenu, LayoutRect.CSS.Flex, 34) ); 
+            _oLayoutPrimary.Add( new LayoutCenter( _oTopMenu, LayoutRect.CSS.Flex, 34) ); 
             _oLayoutPrimary.Add( oCenter); 
             _oLayoutPrimary.Add( _rgSideInfo[SideIdentify.Bottom] );
 

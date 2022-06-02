@@ -107,14 +107,14 @@ namespace Play.SSTV {
             LabelSet( Names.Tx_Message,   "Message" );
             LabelSet( Names.Tx_Progress,  "Sent", new SKColor( red:0xff, green:0xbf, blue:0 ) );
             LabelSet( Names.Tx_SrcDir,    "Tx Source Dir" );
-            LabelSet( Names.Tx_SrcFile,   "Filename" );
+            LabelSet( Names.Tx_SrcFile,   "Tx Filename" );
 
             LabelSet( Names.Rx_Mode,        "Mode", new SKColor( red:0xff, green:0xbf, blue:0 ) );
             LabelSet( Names.Rx_Width,       "Width" );
             LabelSet( Names.Rx_Height,      "Height" );
             LabelSet( Names.Rx_Progress,    "Received" );
             LabelSet( Names.Rx_SaveDir,     "Rx Save Dir" );
-            LabelSet( Names.Rx_HistoryFile, "Filename" );
+            LabelSet( Names.Rx_HistoryFile, "Rx Filename" );
 
             // Initialize these to reasonable values, the user can update and save.
             ValueUpdate( Names.Std_ImgQuality, "80" );

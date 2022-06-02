@@ -122,7 +122,7 @@ namespace Play.ImageViewer {
 
         public WindowSoloImageNav( IPgViewSite oBaseSite, ImageWalkerDoc oDoc ) : base( oBaseSite, oDoc ) {
 			_oDocWalker = oDoc ?? throw new ArgumentNullException( "Document must not be null." );
-			_oSiteShell = oBaseSite as IPgShellSite ?? throw new ArgumentException( "Site must support IPgShellSite" );
+			_oSiteShell = oBaseSite as IPgShellSite; // not required to exist.
 
 			Icon = _oDocWalker.GetResource( IconResource );
 
@@ -245,10 +245,11 @@ namespace Play.ImageViewer {
 		protected void SelectionSnip(object sender, EventArgs e) {
 			if( !_rcSelectionView.Hidden ) {
 				try {
-					ViewSnipDialog oView = (ViewSnipDialog)_oSiteShell.AddView( ViewSnipDialog.Guid, fFocus:true );
-
-					if( oView != null )
-						oView.SnipMake(Selection, uiReturnID:ID );
+					if( _oSiteShell != null ) {
+						ViewSnipDialog oView = (ViewSnipDialog)_oSiteShell.AddView( ViewSnipDialog.Guid, fFocus:true );
+						if( oView != null )
+							oView.SnipMake(Selection, uiReturnID:ID );
+					}
 				} catch( Exception oEx ) {
 					Type[] rgErrors = { typeof( InvalidCastException ),
 										typeof( NullReferenceException ) };
@@ -261,7 +262,9 @@ namespace Play.ImageViewer {
 		}
 
         public void FocusMe() {
-            _oSiteShell.FocusMe();
+			if( _oSiteShell != null ) {
+				_oSiteShell.FocusMe();
+			}
         }
 		
 		/// <remarks>This represents an interesting cunundrom. The old OLE stuff looks like

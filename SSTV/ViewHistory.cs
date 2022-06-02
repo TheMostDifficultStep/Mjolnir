@@ -114,10 +114,10 @@ namespace Play.SSTV {
         }
     }
 
-	/// <summary>
-	/// This is a customized image dir/doc viewer that has the icons on the main 
-	/// view area instead of in the outline. Fits in better with the SSTV system.
-	/// </summary>
+    /// <summary>
+    /// This is a customized image dir/doc viewer that has the icons on the main 
+    /// view area instead of in the outline. Fits in better with the SSTV system.
+    /// </summary>
     public class WindowSSTVHistory :
         Control,
 		IPgParent,
@@ -134,9 +134,9 @@ namespace Play.SSTV {
 
         public Guid   Catagory => GUID;
         public string Banner   => "MySSTV Images";
+        public bool   IsDirty  => false;
         public Image  Iconic { get; }
 		public SKBitmap Icon { get; }
-        public bool   IsDirty  => false;
 
         public IPgParent Parentage => _oSiteView.Host;
 
@@ -149,14 +149,11 @@ namespace Play.SSTV {
 		protected readonly LayoutStack _oLayout = new LayoutStackHorizontal() { Spacing = 5 };
 
 		protected class SSTVWinSlot :
-			IPgViewSite,
-			IPgShellSite
+			IPgViewSite
 		{
 			protected readonly WindowSSTVHistory _oHost;
 
-			public ChildID ID { get; }
-
-			public SSTVWinSlot( WindowSSTVHistory oHost, ChildID eID  ) {
+			public SSTVWinSlot( WindowSSTVHistory oHost ) {
 				_oHost = oHost ?? throw new ArgumentNullException();
 			}
 
@@ -171,24 +168,131 @@ namespace Play.SSTV {
 			}
 
             public IPgViewNotify EventChain => _oHost._oSiteView.EventChain;
-
-            public object AddView(Guid guidViewType, bool fFocus) {
-                throw new NotImplementedException();
-            }
-
-            public void FocusMe() {
-                throw new NotImplementedException();
-            }
-
-            public void FocusCenterView() {
-                throw new NotImplementedException();
-            }
-
-            public IEnumerable<IPgCommandView> EnumerateSiblings => throw new NotImplementedException();
-
-            public uint SiteID => throw new NotImplementedException();
         }
 
+        /// <summary>
+        /// This is the first time I've put an outline window inside it's originating view.
+        /// It's nice b/c I can access my owner's internal variables, but a pain in that
+        /// it takes so much space up in the host class!
+        /// </summary>
+        public class WindowSSTVHistoryOutline :
+            Control,
+            IPgParent,
+            IPgLoad,
+            IDisposable 
+        {
+		    protected IPgViewSite _oSiteView;
+
+            public IPgParent Parentage => _oSiteView.Host;
+            public IPgParent Services  => Parentage.Services;
+
+            protected readonly LayoutStack  _oLayout = new LayoutStackVertical();
+            protected readonly LayoutRect[] _rgFlock = new LayoutRect[2];
+
+
+            protected WindowSoloImageNav _wnViewRxHistorySelected;
+            protected WindowSoloImageNav _wnViewTxImageSelected;
+            private readonly ComboBox    _ddModeMain = new ComboBox();
+
+
+		    protected class WinSlot :
+			    IPgViewSite
+		    {
+			    protected readonly WindowSSTVHistoryOutline _oHost;
+
+			    public ChildID ID { get; }
+
+			    public WinSlot( WindowSSTVHistoryOutline oHost ) {
+				    _oHost = oHost ?? throw new ArgumentNullException();
+			    }
+
+			    public IPgParent Host => _oHost;
+
+			    public void LogError(string strMessage, string strDetails, bool fShow=true) {
+				    _oHost._oSiteView.LogError( strMessage, strDetails, fShow );
+			    }
+
+			    public void Notify( ShellNotify eEvent ) {
+				    _oHost._oSiteView.Notify( eEvent );
+			    }
+
+                public IPgViewNotify EventChain => _oHost._oSiteView.EventChain;
+            }
+
+            public WindowSSTVHistoryOutline( IPgViewSite oViewSite, WindowSSTVHistory _wnHistory ) {
+                _oSiteView = oViewSite ?? throw new ArgumentNullException( nameof( oViewSite ) );
+
+			    _wnViewRxHistorySelected = new( new WinSlot( this ), _wnHistory._oDocSSTV.RxHistoryList ); 
+                _wnViewTxImageSelected   = new( new WinSlot( this ), _wnHistory._oDocSSTV.TxImageList   );
+
+			    _wnViewRxHistorySelected.Parent = this;
+                _wnViewTxImageSelected  .Parent = this;
+                _ddModeMain             .Parent = this;
+            }
+
+            public bool InitNew() {
+                if( !_wnViewRxHistorySelected.InitNew() )
+                    return false;
+                if( !_wnViewTxImageSelected.InitNew() )
+                    return false;
+                if( !InitModes() )
+                    return false;
+
+                _rgFlock[0] = new LayoutControl( _wnViewRxHistorySelected, LayoutRect.CSS.None );
+                _rgFlock[1] = new LayoutControl( _wnViewTxImageSelected,   LayoutRect.CSS.None );
+
+                _oLayout.Add( new LayoutCenter ( _ddModeMain, LayoutRect.CSS.Pixels, 50 ) );
+                _oLayout.Add( _rgFlock[0] );
+                _oLayout.Add( _rgFlock[1] );
+
+                // This sets our display up and then calls OnSizeChanged()...
+                OnSelectedIndexChanged_RxTx( null, new EventArgs() );
+
+                _ddModeMain.SelectedIndexChanged += OnSelectedIndexChanged_RxTx;
+
+                return true;
+            }
+            private bool InitModes() {
+                _ddModeMain.Items.Add( "Rx Choices" );
+                _ddModeMain.Items.Add( "Tx Choices" );
+
+                _ddModeMain.AutoSize      = true;
+                _ddModeMain.Name          = "Image Chooser Select";
+                _ddModeMain.TabIndex      = 0;
+                _ddModeMain.SelectedIndex = 0;
+                _ddModeMain.DropDownStyle = ComboBoxStyle.DropDownList;
+                _ddModeMain.Parent        = this;
+
+                return true;
+            }
+            protected void OptionHideAll() {
+                foreach( LayoutRect oRect in _rgFlock ) {
+                    oRect.Hidden = true;
+                }
+            }
+
+            private void OnSelectedIndexChanged_RxTx( object sender, EventArgs e ) {
+                OptionHideAll();
+
+                try {
+                    _rgFlock[_ddModeMain.SelectedIndex].Hidden = false;
+                } catch( IndexOutOfRangeException ) {
+                    _oSiteView.LogError( "Outline Selector", "More options than views." );
+                }
+
+                OnSizeChanged( new EventArgs() );
+            }
+
+		    protected override void OnSizeChanged(EventArgs e) {
+			    base.OnSizeChanged(e);
+
+			    _oLayout.SetRect( 0, 0, Width, Height );
+			    _oLayout.LayoutChildren();
+
+                Invalidate();
+		    }
+
+        } // End Outline implementation.
 
 		protected void LogError( string strMessage, string strDetails ) {
 			_oSiteView.LogError( strMessage, strDetails );
@@ -199,8 +303,8 @@ namespace Play.SSTV {
 			_oDocSSTV  = oDocSSTV  ?? throw new ArgumentNullException( nameof( oDocSSTV  ) );
 
 			//_wmViewRxHistorySelected     = new( new SSTVWinSlot( this, ChildID.HistoryNavWindow ), _oDocSSTV.RxHistoryList );
-			_wmViewRxHistory = new( new SSTVWinSlot( this, ChildID.HistoryIconsWindow ), _oDocSSTV.RxHistoryList ); 
-            _wnViewTxImages  = new( new SSTVWinSlot( this, ChildID.TxImageChoices     ), _oDocSSTV.TxImageList   );
+			_wmViewRxHistory = new( new SSTVWinSlot( this ), _oDocSSTV.RxHistoryList ); 
+            _wnViewTxImages  = new( new SSTVWinSlot( this ), _oDocSSTV.TxImageList   );
 
 			//_wmViewRxHistorySelected    .Parent = this;
 			_wmViewRxHistory.Parent = this;
@@ -246,7 +350,8 @@ namespace Play.SSTV {
 					return new WindowHistoryProperties( oBaseSite, _oDocSSTV );
 				}
                 if( sGuid.Equals(GlobalDecorations.Outline ) ) {
-                    return new WindowSoloImageNav( oBaseSite, _oDocSSTV.RxHistoryList );
+                    return new WindowSSTVHistoryOutline( oBaseSite, this );
+                    //return new WindowSoloImageNav( oBaseSite, _oDocSSTV.RxHistoryList );
                 }
 				return false;
 			} catch ( Exception oEx ) {

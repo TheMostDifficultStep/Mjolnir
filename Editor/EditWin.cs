@@ -25,6 +25,7 @@ namespace Play.Rectangles {
     /// where I tried including System.Windows.Forms. However, here it works? Don't know why
     /// But since anyone doing anything is going to include the "Editor" project. It's OK.
 	/// </summary>
+    /// <remarks>Probably could move this to the forms project</remarks>
 	public class LayoutControl : LayoutRect {
 		protected Control _oControl;
 
@@ -70,6 +71,9 @@ namespace Play.Rectangles {
                 } else {
                     _oControl.Show();
                 }
+            }
+            get {
+                return !_oControl.Visible;
             }
         }
     }

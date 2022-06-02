@@ -51,7 +51,7 @@ namespace Play.SSTV {
             return true;
         }
 
-        public void OptionHideAll() {
+        protected void OptionHideAll() {
             foreach( KeyValuePair<Guid, ParentRect> oPair in _rgFlock ) {
                 oPair.Value.Hidden = true;
             }
