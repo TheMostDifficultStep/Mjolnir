@@ -15,106 +15,6 @@ using Play.Forms;
 
 namespace Play.SSTV {
     /// <summary>
-	/// This viewer shows a subset of all SSTV Properties. Those for the Receiver only.
-    /// </summary>
-    public class WindowHistoryProperties : 
-        WindowStandardProperties
-     {
-        public DocSSTV SSTVDocument { get; }
-
-		public WindowHistoryProperties( IPgViewSite oViewSite, DocSSTV docSSTV ) : base( oViewSite, docSSTV.Properties ) {
-			SSTVDocument = docSSTV ?? throw new ArgumentNullException( nameof( docSSTV ) );
-		}
-
-        public override void InitRows() {
-			int[] rgShow = { 
-				(int)SSTVProperties.Names.Rx_SaveDir,
-                (int)SSTVProperties.Names.Tx_SrcDir,
-				(int)SSTVProperties.Names.Rx_HistoryFile,
-				(int)SSTVProperties.Names.Tx_TheirCall,
-				(int)SSTVProperties.Names.Tx_RST
-			};
-
-			InitRows( rgShow );
-        }
-
-		// Use this for debugging if necessary.
-		//protected override void OnDocumentEvent( BUFFEREVENTS eEvent ) {
-		//	base.OnDocumentEvent( eEvent );
-		//}
-    }
-
-    public class WindowChooserTools : 
-        SKControl,
-		IPgLoad
-    {
-        private readonly IPgViewSite       _oViewSite;
-        private readonly WindowSSTVHistory _wnViewHist;
-
-        private readonly LayoutStack _oLayout    = new LayoutStackHorizontal() { Spacing = 5 };
-        private readonly ComboBox    _ddModeMain = new ComboBox();
-
-        private bool _bProcessCheckModeList = false;
-
-        public WindowChooserTools( IPgViewSite oViewSite, WindowSSTVHistory wnViewHist ) { 
-            _oViewSite  = oViewSite  ?? throw new ArgumentNullException( nameof( oViewSite ) );
-            _wnViewHist = wnViewHist ?? throw new InvalidProgramException( "Can't find document for view" );
-
-            Parent = (Control)_oViewSite.Host;
-        }
-
-        public bool InitNew() {
-            InitModes();
-
-            OnSizeChanged( new EventArgs() );
-
-            return true;
-        }
-
-        /// <summary>
-        /// Set up the dual dropdowns for the SSTV node tool options.
-        /// </summary>
-        private void InitModes() {
-            _ddModeMain.Items.Add( "Rx Choices" );
-            _ddModeMain.Items.Add( "Tx Choices" );
-
-            _ddModeMain.SelectedIndexChanged += OnSelectedModeChanged;
-            _ddModeMain.AutoSize      = true;
-            _ddModeMain.Name          = "Image Chooser Select";
-            _ddModeMain.TabIndex      = 0;
-            _ddModeMain.SelectedIndex = 0;
-            _ddModeMain.DropDownStyle = ComboBoxStyle.DropDownList;
-            _ddModeMain.Parent        = this;
-
-            _oLayout.Add( new LayoutRect( LayoutRect.CSS.None ) );
-            _oLayout.Add( new LayoutControl( _ddModeMain, LayoutRect.CSS.Pixels, 150 ) );
-            _oLayout.Add( new LayoutRect( LayoutRect.CSS.None ) );
-        }
-
-        /// <summary>
-        /// TODO: If there are multiple TX windows open, they might get out of
-        /// sync with the composition. Still need to sort that all out.
-        /// But we're close.
-        /// </summary>
-        /// <seealso cref="PopulateSubModes"/>
-        private void OnSelectedModeChanged(object sender, EventArgs e) {
-            if( !_bProcessCheckModeList ) {
-                _bProcessCheckModeList = true;
-                if( _ddModeMain.SelectedIndex == 0 ) {
-                }
-                if( _ddModeMain.SelectedIndex == 1 ) {
-                }
-                _bProcessCheckModeList = false;
-            }
-        }
-
-        protected override void OnSizeChanged( EventArgs e ) { 
-            _oLayout.SetRect( 0, 0, Width, Height );
-            _oLayout.LayoutChildren();
-        }
-    }
-
-    /// <summary>
     /// This is a customized image dir/doc viewer that has the icons on the main 
     /// view area instead of in the outline. Fits in better with the SSTV system.
     /// </summary>
@@ -148,12 +48,12 @@ namespace Play.SSTV {
 
 		protected readonly LayoutStack _oLayout = new LayoutStackHorizontal() { Spacing = 5 };
 
-		protected class SSTVWinSlot :
+		protected class WinSlot :
 			IPgViewSite
 		{
 			protected readonly WindowSSTVHistory _oHost;
 
-			public SSTVWinSlot( WindowSSTVHistory oHost ) {
+			public WinSlot( WindowSSTVHistory oHost ) {
 				_oHost = oHost ?? throw new ArgumentNullException();
 			}
 
@@ -173,7 +73,8 @@ namespace Play.SSTV {
         /// <summary>
         /// This is the first time I've put an outline window inside it's originating view.
         /// It's nice b/c I can access my owner's internal variables, but a pain in that
-        /// it takes so much space up in the host class!
+        /// it takes so much space up in the host class! Also, who knows if it's subclassable
+        /// in any manner?
         /// </summary>
         public class WindowSSTVHistoryOutline :
             Control,
@@ -294,6 +195,36 @@ namespace Play.SSTV {
 
         } // End Outline implementation.
 
+        /// <summary>
+	    /// This viewer shows a subset of all SSTV Properties. Those for the Receiver only.
+        /// </summary>
+        public class WindowHistoryProperties : 
+            WindowStandardProperties
+         {
+            public DocSSTV SSTVDocument { get; }
+
+		    public WindowHistoryProperties( IPgViewSite oViewSite, DocSSTV docSSTV ) : base( oViewSite, docSSTV.Properties ) {
+			    SSTVDocument = docSSTV ?? throw new ArgumentNullException( nameof( docSSTV ) );
+		    }
+
+            public override void InitRows() {
+			    int[] rgShow = { 
+				    (int)SSTVProperties.Names.Rx_SaveDir,
+                    (int)SSTVProperties.Names.Tx_SrcDir,
+				    (int)SSTVProperties.Names.Rx_HistoryFile,
+				    (int)SSTVProperties.Names.Tx_TheirCall,
+				    (int)SSTVProperties.Names.Tx_RST
+			    };
+
+			    InitRows( rgShow );
+            }
+
+		    // Use this for debugging if necessary.
+		    //protected override void OnDocumentEvent( BUFFEREVENTS eEvent ) {
+		    //	base.OnDocumentEvent( eEvent );
+		    //}
+        } // End Properties implementation
+
 		protected void LogError( string strMessage, string strDetails ) {
 			_oSiteView.LogError( strMessage, strDetails );
 		}
@@ -303,8 +234,8 @@ namespace Play.SSTV {
 			_oDocSSTV  = oDocSSTV  ?? throw new ArgumentNullException( nameof( oDocSSTV  ) );
 
 			//_wmViewRxHistorySelected     = new( new SSTVWinSlot( this, ChildID.HistoryNavWindow ), _oDocSSTV.RxHistoryList );
-			_wmViewRxHistory = new( new SSTVWinSlot( this ), _oDocSSTV.RxHistoryList ); 
-            _wnViewTxImages  = new( new SSTVWinSlot( this ), _oDocSSTV.TxImageList   );
+			_wmViewRxHistory = new( new WinSlot( this ), _oDocSSTV.RxHistoryList ); 
+            _wnViewTxImages  = new( new WinSlot( this ), _oDocSSTV.TxImageList   );
 
 			//_wmViewRxHistorySelected    .Parent = this;
 			_wmViewRxHistory.Parent = this;
@@ -343,9 +274,6 @@ namespace Play.SSTV {
 
         public object Decorate(IPgViewSite oBaseSite, Guid sGuid) {
 			try {
-                if( sGuid.Equals(GlobalDecorations.Options ) ) {
-                    return new WindowChooserTools( oBaseSite, this );
-                }
 				if( sGuid.Equals(GlobalDecorations.Properties) ) {
 					return new WindowHistoryProperties( oBaseSite, _oDocSSTV );
 				}
