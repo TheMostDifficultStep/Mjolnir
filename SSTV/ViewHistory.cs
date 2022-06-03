@@ -15,10 +15,9 @@ using Play.Forms;
 
 namespace Play.SSTV {
     /// <summary>
-    /// This is a customized image dir/doc viewer that has the icons on the main 
-    /// view area instead of in the outline. Fits in better with the SSTV system.
+    /// This view gives us both the RX and the TX directory for choosing images.
     /// </summary>
-    public class WindowSSTVHistory :
+    public class WindowSSTVChooser :
         Control,
 		IPgParent,
         IPgLoad<XmlElement>,
@@ -33,7 +32,7 @@ namespace Play.SSTV {
 		protected DocSSTV     _oDocSSTV;
 
         public Guid   Catagory => GUID;
-        public string Banner   => "MySSTV Images";
+        public string Banner   => "MySSTV Chooser";
         public bool   IsDirty  => false;
         public Image  Iconic { get; }
 		public SKBitmap Icon { get; }
@@ -51,9 +50,9 @@ namespace Play.SSTV {
 		protected class WinSlot :
 			IPgViewSite
 		{
-			protected readonly WindowSSTVHistory _oHost;
+			protected readonly WindowSSTVChooser _oHost;
 
-			public WinSlot( WindowSSTVHistory oHost ) {
+			public WinSlot( WindowSSTVChooser oHost ) {
 				_oHost = oHost ?? throw new ArgumentNullException();
 			}
 
@@ -82,7 +81,7 @@ namespace Play.SSTV {
             IPgLoad
         {
 		    protected IPgViewSite _oSiteView;
-            WindowSSTVHistory _wnHistory;
+            WindowSSTVChooser _wnHistory;
 
             public IPgParent Parentage => _oSiteView.Host;
             public IPgParent Services  => Parentage.Services;
@@ -120,7 +119,7 @@ namespace Play.SSTV {
                 public IPgViewNotify EventChain => _oHost._oSiteView.EventChain;
             }
 
-            public WindowSSTVHistoryOutline( IPgViewSite oViewSite, WindowSSTVHistory wnHistory ) {
+            public WindowSSTVHistoryOutline( IPgViewSite oViewSite, WindowSSTVChooser wnHistory ) {
                 _oSiteView = oViewSite ?? throw new ArgumentNullException( nameof( oViewSite ) );
                 _wnHistory = wnHistory ?? throw new ArgumentNullException( nameof( wnHistory ) );
 
@@ -256,7 +255,7 @@ namespace Play.SSTV {
 			_oSiteView.LogError( strMessage, strDetails );
 		}
 
-		public WindowSSTVHistory( IPgViewSite oViewSite, DocSSTV oDocSSTV ) {
+		public WindowSSTVChooser( IPgViewSite oViewSite, DocSSTV oDocSSTV ) {
 			_oSiteView = oViewSite ?? throw new ArgumentNullException( nameof( oViewSite ) );
 			_oDocSSTV  = oDocSSTV  ?? throw new ArgumentNullException( nameof( oDocSSTV  ) );
 
@@ -340,4 +339,155 @@ namespace Play.SSTV {
         }
     }
 
+    /// <summary>
+    /// This view gives us only the RX images in the largest display possible.
+    /// </summary>
+    public class WindowSSTVHistory :
+        Control,
+		IPgParent,
+        IPgLoad<XmlElement>,
+        IPgSave<XmlDocumentFragment>,
+        IPgCommandView,
+        IDisposable 
+	{
+		public static Guid GUID { get; } = new Guid( "{8050E760-7FFE-49C2-BE14-3659954A8F69}" );
+		protected static string _strIconResource = "Play.SSTV.Content.icons8-history-64.png";
+
+		protected IPgViewSite _oSiteView;
+		protected DocSSTV     _oDocSSTV;
+
+        public Guid   Catagory => GUID;
+        public string Banner   => "MySSTV Rx Files";
+        public bool   IsDirty  => false;
+        public Image  Iconic { get; }
+		public SKBitmap Icon { get; }
+
+        public IPgParent Parentage => _oSiteView.Host;
+
+        public IPgParent Services  => Parentage.Services;
+
+        protected WindowSoloImageNav _wmViewRxHistorySelected;
+
+		protected class WinSlot :
+			IPgViewSite
+		{
+			protected readonly WindowSSTVHistory _oHost;
+
+			public WinSlot( WindowSSTVHistory oHost ) {
+				_oHost = oHost ?? throw new ArgumentNullException();
+			}
+
+			public IPgParent Host => _oHost;
+
+			public void LogError(string strMessage, string strDetails, bool fShow=true) {
+				_oHost._oSiteView.LogError( strMessage, strDetails, fShow );
+			}
+
+			public void Notify( ShellNotify eEvent ) {
+				_oHost._oSiteView.Notify( eEvent );
+			}
+
+            public IPgViewNotify EventChain => _oHost._oSiteView.EventChain;
+        }
+
+        /// <summary>
+	    /// This viewer shows a subset of all SSTV Properties. Those for the Receiver only.
+        /// </summary>
+        public class WindowHistoryProperties : 
+            WindowStandardProperties
+         {
+            public DocSSTV SSTVDocument { get; }
+
+		    public WindowHistoryProperties( IPgViewSite oViewSite, DocSSTV docSSTV ) : base( oViewSite, docSSTV.Properties ) {
+			    SSTVDocument = docSSTV ?? throw new ArgumentNullException( nameof( docSSTV ) );
+		    }
+
+            public override void InitRows() {
+			    int[] rgShow = { 
+				    (int)SSTVProperties.Names.Rx_SaveDir,
+				    (int)SSTVProperties.Names.Rx_HistoryFile,
+				    (int)SSTVProperties.Names.Tx_TheirCall,
+				    (int)SSTVProperties.Names.Tx_RST
+			    };
+
+			    InitRows( rgShow );
+            }
+
+		    // Use this for debugging if necessary.
+		    //protected override void OnDocumentEvent( BUFFEREVENTS eEvent ) {
+		    //	base.OnDocumentEvent( eEvent );
+		    //}
+        } // End Properties implementation
+
+		protected void LogError( string strMessage, string strDetails ) {
+			_oSiteView.LogError( strMessage, strDetails );
+		}
+
+		public WindowSSTVHistory( IPgViewSite oViewSite, DocSSTV oDocSSTV ) {
+			_oSiteView = oViewSite ?? throw new ArgumentNullException( nameof( oViewSite ) );
+			_oDocSSTV  = oDocSSTV  ?? throw new ArgumentNullException( nameof( oDocSSTV  ) );
+
+			_wmViewRxHistorySelected     = new( new WinSlot( this ), _oDocSSTV.RxHistoryList );
+
+			_wmViewRxHistorySelected    .Parent = this;
+
+			//_wmViewRxHistorySelected.SetBorderOn();
+
+			Icon = oDocSSTV.CreateIconic( _strIconResource );
+		}
+
+		public bool InitNew() {
+            if( !_wmViewRxHistorySelected.InitNew() )
+                return false;
+
+            OnSizeChanged( new EventArgs() );
+
+			return true;
+		}
+
+		protected override void OnSizeChanged(EventArgs e) {
+			base.OnSizeChanged(e);
+
+            _wmViewRxHistorySelected.Bounds = this.ClientRectangle;
+		}
+
+        public object Decorate(IPgViewSite oBaseSite, Guid sGuid) {
+			try {
+				if( sGuid.Equals(GlobalDecorations.Properties) ) {
+					return new WindowHistoryProperties( oBaseSite, _oDocSSTV );
+				}
+                if( sGuid.Equals(GlobalDecorations.Outline ) ) {
+                    return _wmViewRxHistorySelected.Decorate( oBaseSite, sGuid );
+                }
+				return false;
+			} catch ( Exception oEx ) {
+				Type[] rgErrors = { typeof( NotImplementedException ),
+									typeof( NullReferenceException ),
+									typeof( ArgumentException ),
+									typeof( ArgumentNullException ) };
+				if( rgErrors.IsUnhandled( oEx ) )
+					throw;
+
+				LogError( "SSTV", "Couldn't create SSTV decor: " + sGuid.ToString() );
+			}
+
+            return( null );
+		}
+
+        public bool Execute(Guid sGuid) {
+            //return _wmViewRxHistorySelected.Execute( sGuid );
+            return false;
+        }
+
+        public bool Load(XmlElement oStream) {
+            if( !InitNew() )
+				return false;
+
+			return true;
+        }
+
+        public bool Save(XmlDocumentFragment oStream) {
+            return true;
+        }
+    }
 }

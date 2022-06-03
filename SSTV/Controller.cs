@@ -39,11 +39,14 @@ namespace Play.SSTV {
 				if( guidViewType == ViewSettings.GUID )
 					return new ViewSettings( oBaseSite, oMySSTVDoc );
 
-				if( guidViewType == WindowSSTVHistory.GUID )
-					return new WindowSSTVHistory( oBaseSite, oMySSTVDoc );
+				if( guidViewType == WindowSSTVChooser.GUID )
+					return new WindowSSTVChooser( oBaseSite, oMySSTVDoc );
 
 				if( guidViewType == WindowSoloRx.GUID )
 					return new WindowSoloRx( oBaseSite, oMySSTVDoc );
+
+				if( guidViewType == WindowSSTVHistory.GUID )
+					return new WindowSSTVHistory( oBaseSite, oMySSTVDoc );
 
 
 				return new WindowSoloRx( oBaseSite, oMySSTVDoc );
@@ -66,7 +69,8 @@ namespace Play.SSTV {
 			yield return new ViewType( "Display from File",   WindowFileViewer  .GUID );
 		    yield return new ViewType( "Transmit",            ViewTransmitDeluxe.GUID );
 		    yield return new ViewType( "Diagnostics",         WindowDiagnostics .GUID );
-			yield return new ViewType( "History",             WindowSSTVHistory .GUID );
+			yield return new ViewType( "Chooser",             WindowSSTVChooser .GUID );
+			yield return new ViewType( "History",			  WindowSSTVHistory.GUID );
 			yield return new ViewType( "Settings",            ViewSettings      .GUID );
 		}
 	}
