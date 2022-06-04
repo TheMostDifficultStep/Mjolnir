@@ -1619,8 +1619,28 @@ namespace Mjolnir {
         /// control here versus just doing it every time in the OnMouseMove()
         /// </summary>
         /// <param name="fDragging">true if dragging, false if finished.</param>
-        /// <param name="pntLast"></param>
+        /// <remarks>This might be a better representative of how to do a 
+        /// DacorShuffleSide than the other proc.</remarks>
+        /// <seealso cref="DecorShuffleSide" />
         protected void CenterDrag( bool fDragging, SKPointI pntLast ) {
+            if( !fDragging ) {
+                // Check to see if we dragged far enough to force a close/open on a side.
+                foreach( SideIdentify eID in Enum.GetValues( typeof( SideIdentify ) ) ) {
+                    if( eID != SideIdentify.Tools &&
+                        eID != SideIdentify.Options  ) 
+                    {
+                        bool fClosed = _rgSideInfo[eID].IsEmpty();
+                        foreach( IPgMenuVisibility oMenuItem in DecorSettings ) {
+                            SmartHerderBase oShepard = oMenuItem.Shepard;
+                            if( oShepard.Orientation == eID ) {
+                                oMenuItem.Checked = !fClosed;
+                                oShepard .Hidden  = fClosed;
+                                oShepard .AdornmentShuffle( _oSelectedWinSite );
+                            }
+                        }
+                    }
+                }
+            }
             OnSizeChanged( new EventArgs() );
         }
 

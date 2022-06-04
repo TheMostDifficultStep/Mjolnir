@@ -789,6 +789,7 @@ namespace Mjolnir {
         /// 2) If the side is opened, check if any side adornments are showing
         ///    and if NOT close up teh side.
 		/// </summary>
+        /// <seealso cref="CenterDrag"/>
         private void DecorShuffleSide( SideIdentify eOrientation ) {
             // Top isn't in the sideinfo anymore. Guard against that.
             try {
