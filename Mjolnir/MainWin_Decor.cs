@@ -764,12 +764,19 @@ namespace Mjolnir {
 		/// decor not from the current view.</remarks>
         protected bool IsAnyShepardReady( SideIdentify eOrientation ) {
             bool fAnyReady = false;
-
-			foreach( SmartHerderBase oShepard in _rgSideInfo[eOrientation] ) {
-                if( oShepard.AdornmentShuffle( _oSelectedWinSite ) ) {
-                    fAnyReady = true; // Don't break on first true, so we'll shuffle the rest.
+            // This was a nasty bug. Wasn't doing at all what it should have
+            // been doing. 
+			//foreach( SmartHerderBase oSide in _rgSideInfo[eOrientation] ) {
+            //    if( oSide.AdornmentShuffle( _oSelectedWinSite ) ) {
+            //        fAnyReady = true;
+            //    }
+			//}
+            foreach( KeyValuePair<string, SmartHerderBase> oPair in _rgShepards ) {
+                SmartHerderBase oHerder = oPair.Value;
+                if( oHerder.Orientation == eOrientation ) {
+                    fAnyReady |= oHerder.AdornmentShuffle( _oSelectedWinSite );
                 }
-			}
+            }
 
             return( fAnyReady );
         }

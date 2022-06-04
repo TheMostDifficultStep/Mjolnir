@@ -507,7 +507,7 @@ namespace Mjolnir {
             // Go thru and hide anything that's not the key. Only show the key
             // value if we're not being hidden.
 			foreach( KeyValuePair<object, Control> oPair in _rgFlock ) {
-			    if( oSite == oPair.Key && !Hidden ) {
+			    if( oSite == oPair.Key && DesiresVisiblity ) {
 					oPair.Value.Show();
 					oPair.Value.BringToFront();
                     fFound = true;

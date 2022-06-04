@@ -1621,18 +1621,6 @@ namespace Mjolnir {
         /// <param name="fDragging">true if dragging, false if finished.</param>
         /// <param name="pntLast"></param>
         protected void CenterDrag( bool fDragging, SKPointI pntLast ) {
-            if( !fDragging ) {
-                foreach( SideIdentify eID in Enum.GetValues( typeof( SideIdentify ) ) ) {
-                    if( _rgSideInfo[eID].Hidden ) {
-                        foreach( IPgMenuVisibility oMenuItem in DecorSettings ) {
-                            if (oMenuItem.Shepard.Orientation == eID ) {
-                                oMenuItem.Checked        = false;
-                                oMenuItem.Shepard.Hidden = true;
-                            }
-                        }
-                    }
-                }
-            }
             OnSizeChanged( new EventArgs() );
         }
 
