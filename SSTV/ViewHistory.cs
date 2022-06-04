@@ -357,7 +357,7 @@ namespace Play.SSTV {
 		protected DocSSTV     _oDocSSTV;
 
         public Guid   Catagory => GUID;
-        public string Banner   => "MySSTV Rx Files";
+        public string Banner   => "MySSTV Rx History";
         public bool   IsDirty  => false;
         public Image  Iconic { get; }
 		public SKBitmap Icon { get; }
@@ -474,9 +474,12 @@ namespace Play.SSTV {
             return( null );
 		}
 
+        /// <summary>
+        /// The shell intercepts some keys, like DEL for example, it then sends
+        /// a global command. We need to forward that.
+        /// </summary>
         public bool Execute(Guid sGuid) {
-            //return _wmViewRxHistorySelected.Execute( sGuid );
-            return false;
+            return _wmViewRxHistorySelected.Execute( sGuid );
         }
 
         public bool Load(XmlElement oStream) {
