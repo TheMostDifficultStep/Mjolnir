@@ -1932,7 +1932,7 @@ namespace Mjolnir {
                 if( oViewSite == null ) {
                     _oSelectedWinSite = null;
                     _oSelectedDocSite = null;
-                    base.Text = "Phree Bee";
+                    base.Text = "Mjolnir";
                     Icon = null;
                     InsideShow = SHOWSTATE.Inactive;
 					SetTitle();
@@ -1970,6 +1970,7 @@ namespace Mjolnir {
                 // This keeps forms from takking focus from old window that had the focus
                 // and assigning it to any of it's children when parent gets hidden...
 				_oSelectedWinSite.BringToFront();
+                _oSelectedWinSite.Guest.Visible = true;
 
                 if( fFocus )
                     _oSelectedWinSite.SetFocus();
