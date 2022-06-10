@@ -32,6 +32,7 @@ namespace Play.SSTV {
 
 		public readonly static int[] Subset = new int[] { 
 			(int)SSTVProperties.Names.Tx_Progress,
+			(int)SSTVProperties.Names.Tx_Mode,
 			(int)SSTVProperties.Names.Tx_SrcDir,
 			(int)SSTVProperties.Names.Rx_SaveDir,
 			(int)SSTVProperties.Names.Tx_SrcFile,

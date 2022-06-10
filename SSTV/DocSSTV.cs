@@ -44,6 +44,7 @@ namespace Play.SSTV {
             Tx_TheirCall,
             Tx_RST,
             Tx_Message,
+            Tx_Mode,
 
             Std_MnPort,
 			Std_TxPort,
@@ -108,6 +109,7 @@ namespace Play.SSTV {
             LabelSet( Names.Tx_Progress,  "Sent", new SKColor( red:0xff, green:0xbf, blue:0 ) );
             LabelSet( Names.Tx_SrcDir,    "Tx Source Dir" );
             LabelSet( Names.Tx_SrcFile,   "Tx Filename" );
+            LabelSet( Names.Tx_Mode,      "Tx Mode Sent", SKColors.LightYellow );
 
             LabelSet( Names.Rx_Mode,        "Mode", new SKColor( red:0xff, green:0xbf, blue:0 ) );
             LabelSet( Names.Rx_Width,       "Width" );
@@ -1356,6 +1358,8 @@ namespace Play.SSTV {
                 // get us in a weird mode. This is easier for now.
                 LogError( "Start device receive first." );
             }
+
+            Properties.ValueUpdate( (int)SSTVProperties.Names.Tx_Mode, oMode.ToString(), Broadcast:true );
                 
             StateTx = true;
 

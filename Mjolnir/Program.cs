@@ -475,6 +475,13 @@ namespace Mjolnir {
 			List<string> rgArgsClean = new List<string>(5);
 			int          iPvs        = -1;
 
+			Type[] rgErrors = { typeof( NullReferenceException ),
+								typeof( ArgumentException ),
+								typeof( ArgumentNullException ),
+								typeof( InvalidOperationException ),
+								typeof( IndexOutOfRangeException ),
+                                typeof( ArgumentOutOfRangeException ) };
+
 			try {
 				for( int i=0; i<rgArgs.Length; ++i ) {
 					// Just lowercase a copy of the extension don't mess with the
@@ -488,9 +495,6 @@ namespace Mjolnir {
 					}
 				}
 			} catch( Exception oEx ) {
-				Type[] rgErrors = { typeof( NullReferenceException ),
-									typeof( ArgumentException ),
-									typeof( ArgumentNullException ) };
 				if( rgErrors.IsUnhandled( oEx ) )
 					throw;
 			}
@@ -499,8 +503,16 @@ namespace Mjolnir {
 			_oDocSite_Session = new Program.SessonSlot( this );
 
             // BUG: In the future, we'll move this into the program initnew/load.
-            MainWindow = new MainWin(this);
-            MainWindow.Initialize(xmlConfig);
+            //      Even better. At least show a window with the error.
+            try {
+                MainWindow = new MainWin(this);
+                MainWindow.Initialize(xmlConfig);
+            } catch( Exception oEx ) {
+				if( rgErrors.IsUnhandled( oEx ) )
+					throw;
+
+                LogError( "Session", "Session Mainwindow Init Error" );
+            }
 
             try {
 				if( iPvs < 0 ) {
@@ -509,11 +521,6 @@ namespace Mjolnir {
 					_oDocSite_Session.Load( rgArgs[iPvs] );
 				}
 			} catch( Exception oEx ) {
-				Type[] rgErrors = { typeof( NullReferenceException ),
-									typeof( ArgumentException ),
-									typeof( ArgumentNullException ),
-									typeof( InvalidOperationException ),
-									typeof( IndexOutOfRangeException ) };
 				if( rgErrors.IsUnhandled( oEx ) )
 					throw;
 
