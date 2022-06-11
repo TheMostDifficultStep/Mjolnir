@@ -78,13 +78,13 @@ namespace Play.SSTV {
 
         DocSSTV _oDocSSTV;
 
-		protected class SSTVWinSlot :
+		protected class WinSlot :
 			IPgViewSite,
 			IPgShellSite
 		{
 			protected readonly WindowSoloRx _oHost;
 
-			public SSTVWinSlot( WindowSoloRx oHost ) {
+			public WinSlot( WindowSoloRx oHost ) {
 				_oHost = oHost ?? throw new ArgumentNullException();
 			}
 
@@ -308,7 +308,7 @@ namespace Play.SSTV {
 		protected readonly LayoutStack     _oLayout = new LayoutStackVertical() { Spacing = 5 };
 		protected readonly LayoutStaggared _rgStaggaredLayout = new () { Spacing = 5 };
 
-		protected class SSTVWinSlot :
+		protected class WinSlot :
 			IPgFileSite,
 			IPgViewSite,
 			IPgShellSite,
@@ -318,7 +318,7 @@ namespace Play.SSTV {
 
 			public ChildID ID { get;}
 
-			public SSTVWinSlot(WindowStaggardBase oHost, ChildID eID ) {
+			public WinSlot(WindowStaggardBase oHost, ChildID eID ) {
 				_oHost = oHost ?? throw new ArgumentNullException();
 				ID     = eID;
 			}
@@ -462,8 +462,8 @@ namespace Play.SSTV {
 		public WindowRxBase( IPgViewSite oSiteBase, DocSSTV oDocSSTV ) : 
 			base( oSiteBase, oDocSSTV ) 
 		{
-			_wmViewRxImg     = new( new SSTVWinSlot( this, ChildID.RxWindow      ),    _oDocSSTV.DisplayImage );
-			_wmViewRxHistory = new( new SSTVWinSlot( this, ChildID.HistoryNavWindow ), _oDocSSTV.RxHistoryList  ); 
+			_wmViewRxImg     = new( new WinSlot( this, ChildID.RxWindow      ),    _oDocSSTV.DisplayImage );
+			_wmViewRxHistory = new( new WinSlot( this, ChildID.HistoryNavWindow ), _oDocSSTV.RxHistoryList  ); 
 
 			_wmViewRxImg    .Parent = this;
 			_wmViewRxHistory.Parent = this;
@@ -552,7 +552,7 @@ namespace Play.SSTV {
 		}
 
 		public WindowDeviceViewer( IPgViewSite oSiteBase, DocSSTV oDocSSTV ) : base( oSiteBase, oDocSSTV ) {
-			_wnSoloImageNav = new( new SSTVWinSlot( this, ChildID.HistoryNavWindow   ), _oDocSSTV.RxHistoryList  );
+			_wnSoloImageNav = new( new WinSlot( this, ChildID.HistoryNavWindow   ), _oDocSSTV.RxHistoryList  );
 
 			_wnSoloImageNav.Parent = this;
 

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 
 using SkiaSharp;
+using SkiaSharp.Views.Desktop;
 
 using Play.Rectangles;
 using Play.Interfaces.Embedding;
@@ -64,14 +65,16 @@ namespace Play.Forms {
         //    base.Dispose( disposing );
         //}
 
-        public void PropertyInitRow( SmartTable oLayout, int iIndex, EditWindow2 oWinValue = null ) {
+        public void PropertyInitRow( SmartTable oLayout, int iIndex, SKControl oWinValue = null ) {
             var oLayoutLabel = new LayoutSingleLine( new FTCacheWrap( Document.Property_Labels[iIndex] ), LayoutRect.CSS.Flex );
             LayoutRect oLayoutValue;
             
             if( oWinValue == null ) {
                 oLayoutValue = new LayoutSingleLine( new FTCacheWrap( Document.Property_Values[iIndex] ), LayoutRect.CSS.Flex );
             } else { // If the value is a multi-line value make an editor.
-                oWinValue.InitNew();
+                if( oWinValue is IPgLoad oWinLoad ) {
+                    oWinLoad.InitNew();
+                }
                 oWinValue.Parent = this;
                 oLayoutValue = new LayoutControl( oWinValue, LayoutRect.CSS.Pixels, 100 );
             }

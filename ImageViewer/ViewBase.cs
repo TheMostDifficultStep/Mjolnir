@@ -262,7 +262,7 @@ namespace Play.ImageViewer {
 	/// There is no navigation control. In the future we would like inherit to from SmartRect.
 	/// But that might not be possible for a variety of reasons.
 	/// </summary>
-	public class ImageViewSingle : ImageViewBase, IPgParent {
+	public class ImageViewSingle : ImageViewBase, IPgParent, IPgLoad {
 		public bool _fDisposed { get; private set; } = false;
 
 		public SmartRect Selection { get; } = new SmartRect();   // selection in Bmp coordinates.

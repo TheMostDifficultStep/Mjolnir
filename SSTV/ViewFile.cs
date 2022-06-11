@@ -108,8 +108,8 @@ namespace Play.SSTV {
 		}
 
 		public WindowFileViewer( IPgViewSite oSiteBase, DocSSTV oDocSSTV ) : base( oSiteBase, oDocSSTV ) {
-			_rgWavFileList   = new( new SSTVWinSlot( this, ChildID.None ) );
-			_rgDecodedImages = new( new SSTVWinSlot( this, ChildID.None ) );
+			_rgWavFileList   = new( new WinSlot( this, ChildID.None ) );
+			_rgDecodedImages = new( new WinSlot( this, ChildID.None ) );
 
 			//_wmViewRxImg      = new( new SSTVWinSlot( this, ChildID.RxWindow ), _oDocSSTV.ReceiveImage );
 			//_wmViewRxHistory  = new( new SSTVWinSlot( this, ChildID.None     ), _rgDecodedImages );

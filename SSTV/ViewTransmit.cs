@@ -26,15 +26,17 @@ namespace Play.SSTV {
         WindowStandardProperties
      {
         public static Guid GUID {get;} = new Guid("{80C855E0-C2F6-4641-9A7C-B6A8A53B3FDF}");
+		protected readonly DocSSTV _oDocSSTV;
 
-		public ViewTxProperties( IPgViewSite oViewSite, DocProperties oDocument ) : base( oViewSite, oDocument ) {
+		public ViewTxProperties( IPgViewSite oViewSite, DocSSTV oDocSSTV ) : base( oViewSite, oDocSSTV.Properties )
+		{
+			_oDocSSTV = oDocSSTV; // No use throwing since base will throw nullrefexception first.
 		}
 
 		public readonly static int[] Subset = new int[] { 
 			(int)SSTVProperties.Names.Tx_Progress,
 			(int)SSTVProperties.Names.Tx_Mode,
 			(int)SSTVProperties.Names.Tx_SrcDir,
-			(int)SSTVProperties.Names.Rx_SaveDir,
 			(int)SSTVProperties.Names.Tx_SrcFile,
 			(int)SSTVProperties.Names.Std_Time,
 			(int)SSTVProperties.Names.Tx_TheirCall,
@@ -42,8 +44,17 @@ namespace Play.SSTV {
 			(int)SSTVProperties.Names.Tx_Message 
 		};
 
+		/// <summary>
+		/// Might want to keep an eye on the Image property. It probably will behave itself as
+		/// well as any editwindow would but, it is new as of 6/10/2022 and not fully vetted.
+		/// Else, consider dealing with it in dispose. But I really dont think that'll be necessary.
+		/// </summary>
         public override void InitRows() {
             base.InitRows(Subset);
+
+			PropertyInitRow( Layout as SmartTable, 
+				             (int)SSTVProperties.Names.Rx_Window, 
+							 new ImageViewSingle( new WinSlot( this ), _oDocSSTV.DisplayImage ) );
         }
     }
 
@@ -138,7 +149,7 @@ namespace Play.SSTV {
 
         public override object Decorate( IPgViewSite oBaseSite, Guid sGuid ) {
 			if( sGuid.Equals(GlobalDecorations.Properties) ) {
-				return new ViewTxProperties( oBaseSite, _oDocSSTV.Properties );
+				return new ViewTxProperties( oBaseSite, _oDocSSTV );
 			}
 			if( sGuid.Equals( GlobalDecorations.Outline ) ) {
 				return new CheckList( oBaseSite, _oDocSSTV.TxModeList );
@@ -630,7 +641,7 @@ namespace Play.SSTV {
 
         public object Decorate( IPgViewSite oBaseSite, Guid sGuid ) {
 			if( sGuid.Equals(GlobalDecorations.Properties) ) {
-				return new ViewTxProperties( oBaseSite, _oDocSSTV.Properties );
+				return new ViewTxProperties( oBaseSite, _oDocSSTV );
 			}
 			if( sGuid.Equals( GlobalDecorations.Outline ) ) {
 				//return new CheckList( oBaseSite, _oDocSSTV.TxModeList );

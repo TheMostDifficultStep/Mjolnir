@@ -36,6 +36,7 @@ namespace Play.SSTV {
             Rx_Progress,
             Rx_SaveDir,
             Rx_HistoryFile,
+            Rx_Window,
 
             Tx_Progress,
             Tx_SrcDir,
@@ -117,6 +118,7 @@ namespace Play.SSTV {
             LabelSet( Names.Rx_Progress,    "Received" );
             LabelSet( Names.Rx_SaveDir,     "Rx Save Dir" );
             LabelSet( Names.Rx_HistoryFile, "Rx Filename" );
+            LabelSet( Names.Rx_Window,      "Rx Window" );
 
             // Initialize these to reasonable values, the user can update and save.
             ValueUpdate( Names.Std_ImgQuality, "80" );
