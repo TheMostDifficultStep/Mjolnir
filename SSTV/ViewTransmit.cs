@@ -52,6 +52,8 @@ namespace Play.SSTV {
         public override void InitRows() {
             base.InitRows(Subset);
 
+			// BUG. Looks like it's not repainting as it gets image events. Might be a double buffer
+			// problem with parent.
 			PropertyInitRow( Layout as SmartTable, 
 				             (int)SSTVProperties.Names.Rx_Window, 
 							 new ImageViewSingle( new WinSlot( this ), _oDocSSTV.DisplayImage ) );

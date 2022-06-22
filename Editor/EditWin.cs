@@ -2325,7 +2325,7 @@ namespace Play.Edit {
 	/// container of the productions in a child document.
 	/// SO be careful when accessing _oDocument!!!
 	/// </summary>
-	public class EditWinProductions : EditWin {
+	public class EditWinProductions : EditWindow2 {
 		readonly BaseEditor _oDocumentOverride;
 
 		public EditWinProductions( IPgViewSite oBaseSite, BaseEditor oDocument ) : 

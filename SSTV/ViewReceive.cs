@@ -73,7 +73,6 @@ namespace Play.SSTV {
 
         protected readonly IPgViewSite _oSiteView;
 
-		readonly  List<string>           _rgToolBox     = new() { "File", "Port" };
 		protected static readonly string _strBaseTitle  = "MySSTV Receive";
 
         DocSSTV _oDocSSTV;
