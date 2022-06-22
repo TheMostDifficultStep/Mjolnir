@@ -21,10 +21,9 @@ namespace Play.ImageViewer {
 		ImageViewSingle _oView;
 
 		/// <summary>
-		/// Uses the flex option on the image. Image will only ask for as much track preserving
-		/// aspect, as the rails will allow.
+		/// You can set Track using a constructor initializers, so this is a better constructor.
 		/// </summary>
-		public LayoutImageView( ImageViewSingle oView, float flMaxFraction ) : base( LayoutRect.CSS.Flex, 0, flMaxFraction ) {
+		public LayoutImageView( ImageViewSingle oView, LayoutRect.CSS eCSS ) : base( eCSS, 0, 1 ) {
 			_oView = oView ?? throw new ArgumentNullException();
 
 			this.SizeEvent += OnSizeEvent;

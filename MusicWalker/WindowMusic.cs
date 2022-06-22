@@ -181,9 +181,9 @@ namespace Play.MusicWalker {
 		    _rgLayoutTop.Add( _rgLayoutTools );
 
 			_rgLayoutTools.Add( new LayoutRect( LayoutRect.CSS.None ) );
-			_rgLayoutTools.Add( new LayoutImageView( ViewAlbumArt, .3f ) );
-			_rgLayoutTools.Add( new LayoutImageView( ViewSpeaker,  .3f ) );
-			_rgLayoutTools.Add( new LayoutImageView( ViewSettings, .3f ) );
+			_rgLayoutTools.Add( new LayoutImageView( ViewAlbumArt, LayoutRect.CSS.Flex ) { Track = 33 } );
+			_rgLayoutTools.Add( new LayoutImageView( ViewSpeaker,  LayoutRect.CSS.Flex ) { Track = 33 } );
+			_rgLayoutTools.Add( new LayoutImageView( ViewSettings, LayoutRect.CSS.Flex ) { Track = 33 } );
 			_rgLayoutTools.Add( new LayoutRect( LayoutRect.CSS.None ) );
 		}
 

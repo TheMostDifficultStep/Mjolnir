@@ -28,7 +28,7 @@ namespace Play.Clock {
 		public IPgParent Services  => Parentage.Services;
 
         protected List<LayoutRect>      CacheList { get; }      = new List<LayoutRect>();
-        protected LayoutStackHorizontal Layout2   { get; set; } = new LayoutStackHorizontal() { Spacing = 5 };
+        protected new LayoutStack       Layout    { get; set; } = new LayoutStackVertical() { Spacing = 5 };
 
         ImageViewSingle ViewSolarVhf { get; }
         ImageViewSingle ViewSolarMap { get; }
@@ -84,12 +84,8 @@ namespace Play.Clock {
             ViewSolarVhf.InitNew();
             ViewSolarMap.InitNew();
 
-            Layout2.Add( new LayoutRect( LayoutRect.CSS.None ) );
-            Layout2.Add( new LayoutStackVertical( 450, 1F ) { 
-                Spacing = 5,
-                Children = { new LayoutImageView(ViewSolarMap, .5F ), new LayoutImageView(ViewSolarVhf, .5F) } 
-                } );
-            Layout2.Add( new LayoutRect( LayoutRect.CSS.None ) );
+            Layout.Add( new LayoutImageView( ViewSolarMap, LayoutRect.CSS.Percent ) { Track = 61 } );
+            Layout.Add( new LayoutImageView( ViewSolarVhf, LayoutRect.CSS.Percent ) { Track = 39 } );
 
             OnSizeChanged( null );
 
@@ -113,8 +109,8 @@ namespace Play.Clock {
         }
 
         protected override void OnSizeChanged( EventArgs e ) {
-			Layout2.SetRect( 0, 0, Width, Height );
-			Layout2.LayoutChildren();
+			Layout.SetRect( 0, 0, Width, Height );
+			Layout.LayoutChildren();
 
             Invalidate();
         }
@@ -127,7 +123,7 @@ namespace Play.Clock {
             foreach( LayoutRect oCache in CacheList ) {
                 oCache.Paint( skCanvas );
             }
-            Layout2.Paint( e.Surface.Canvas ); //Use this to see what the columns look like.
+            Layout.Paint( e.Surface.Canvas ); //Use this to see what the columns look like.
         }
 
         object IPgCommandView.Decorate( IPgViewSite oBaseSite, Guid sGuid ) {

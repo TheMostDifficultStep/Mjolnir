@@ -2336,6 +2336,9 @@ namespace Play.Edit {
 			try {
 				oDocument.ProductionsTrace = true;
 			} catch( NotImplementedException oEx ) {
+                // BUG: This might be too severe of a responce in a hetrogeneous documents open
+                //      situation. Some windows might support this and some might not and we
+                //      get annoying mssages.
 				throw new ArgumentException( "Document must support productions to use this window!", oEx );
 			}
 		}

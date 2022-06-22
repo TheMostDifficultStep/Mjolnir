@@ -60,8 +60,8 @@ namespace Play.MusicWalker {
 			ViewAlbumArt  .Parent = this;
 
 			_rgLayout.SetPoint( SET.STRETCH, LOCUS.UPPERLEFT, 0, 0 );
-			_rgLayout.Add(new LayoutImageView( ViewAlbumArt  , 0.5f ));
-			_rgLayout.Add(new LayoutControl  ( ViewAlbumSongs, LayoutRect.CSS.None ));
+			_rgLayout.Add(new LayoutImageView( ViewAlbumArt  , LayoutRect.CSS.Percent ) { Track = 50 } );
+			_rgLayout.Add(new LayoutControl  ( ViewAlbumSongs, LayoutRect.CSS.Percent ) { Track = 50 });
 		}
 
 		protected override void Dispose(bool disposing) {
