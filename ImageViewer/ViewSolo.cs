@@ -23,6 +23,7 @@ namespace Play.ImageViewer {
         IPgCommandView,
 		IPgTools,
         IPgTextView,
+		IPgPlayStatus,
         IDisposable 
     {
 		protected class DocSlot :
@@ -168,7 +169,13 @@ namespace Play.ImageViewer {
             oMenu.Opened += new EventHandler(this.ContextMenuShowing);
             this.ContextMenuStrip = oMenu;
 
+            _oDocWalker.MediaEvent += OnMediaEvent_DocWalker;
+
             return true;
+        }
+
+        private void OnMediaEvent_DocWalker(ShellNotify eEvent ) {
+            _oViewSite.Notify( eEvent );
         }
 
         public bool Load( XmlElement xmlRoot ) {
@@ -199,6 +206,8 @@ namespace Play.ImageViewer {
 					_oCursorLeft.Dispose();
 				if( _oCursorRight != null )
 					_oCursorRight.Dispose();
+
+				_oDocWalker.MediaEvent -= OnMediaEvent_DocWalker;
 
 			}
             base.Dispose( fDisposing );
@@ -583,6 +592,20 @@ namespace Play.ImageViewer {
 				SelectOff();
 				return true;
 			}
+			if( sGuid == GlobalCommands.Play ) {
+				_oDocWalker.PlayStart();
+                _oViewSite.Notify( ShellNotify.MediaStatusChanged );
+				return true;
+			}
+			if( sGuid == GlobalCommands.Pause ) {
+				_oDocWalker.PlayPause();
+				return true;
+			}
+			if( sGuid == GlobalCommands.Stop ) {
+				_oDocWalker.PlayStop();
+				return true;
+			}
+
 
             return( base.Execute( sGuid ) );
         }
@@ -621,7 +644,29 @@ namespace Play.ImageViewer {
 			}
 		}
 
-		public string ToolName(int iTool) {
+        public bool IsPlaying { get { 
+			switch( _oDocWalker.PlayStatus ) {
+				case WorkerStatus.BUSY:
+					return true;
+				case WorkerStatus.PAUSED:
+					return true;
+			}
+			return false;
+		} }
+
+        public SKColor BusyLight { get {
+			switch( _oDocWalker.PlayStatus ) {
+				case WorkerStatus.BUSY:
+					return SKColors.LightGreen;
+				case WorkerStatus.PAUSED:
+					return SKColors.Yellow;
+			}
+			return SKColors.Empty;
+		} }
+
+        public int PercentCompleted => throw new NotImplementedException();
+
+        public string ToolName(int iTool) {
 			try {
 				return _rgTools[iTool];
 			} catch ( ArgumentOutOfRangeException ) {

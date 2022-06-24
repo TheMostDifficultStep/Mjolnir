@@ -16,6 +16,7 @@ using SkiaSharp;
 
 using Play.Drawing;
 using Play.Interfaces.Embedding;
+using Play.Sound;
 using Play.Edit;
 using Play.Forms;
 using Play.Parse.Impl;
@@ -565,6 +566,7 @@ namespace Play.ImageViewer {
         protected readonly IPgFileSite       _oSiteFile;
         protected readonly IPgRoundRobinWork _oSiteWorkThumb;
         protected readonly IPgRoundRobinWork _oSiteWorkParse;
+		protected readonly IPgRoundRobinWork _oWorkPlace;
         protected readonly Grammer<char>     _oGrammar;
 
         protected string _strIcon = @"ImageViewer.Content.icons8-cardboard-box-48.png"; // Can get overridden by subclass.
@@ -697,9 +699,10 @@ namespace Play.ImageViewer {
         // NOTE: 8/7/2020, Probably can handle bmp latency with the new ThumbsPopulateEnum...
         public static readonly string[] _rgFileExts = { ".jpeg", ".jpg", ".gif", ".png", ".webp" };
 
-        public event ImagesUpdatedEvent ThumbsUpdated;
-        public event TextParsedEvent    TextParsed;
-        public event TextLoadedEvent    TextLoaded;
+        public event ImagesUpdatedEvent  ThumbsUpdated;
+        public event TextParsedEvent     TextParsed;
+        public event TextLoadedEvent     TextLoaded;
+        public event Action<ShellNotify> MediaEvent;
 
         public ImageWalkerDoc( IPgBaseSite oSiteBase ) : base( oSiteBase ) {
             _oSiteFile = (IPgFileSite)oSiteBase ?? throw new ArgumentNullException();
@@ -708,6 +711,7 @@ namespace Play.ImageViewer {
 
             _oSiteWorkParse = oScheduler.CreateWorkPlace() ?? throw new InvalidProgramException  ( "Could not create a worksite1 from scheduler.");
 			_oSiteWorkThumb = oScheduler.CreateWorkPlace() ?? throw new InvalidOperationException( "Could not create a worksite2 from scheduler." );
+            _oWorkPlace     = oScheduler.CreateWorkPlace() ?? throw new InvalidOperationException( "Could not create a worksite from scheduler." );
 
             if( Services is IPgGrammers oGrammars ) {
 				_oGrammar = oGrammars.GetGrammer( "directory" ) as Grammer<char>; 
@@ -1533,6 +1537,192 @@ namespace Play.ImageViewer {
 			return( false );
 		}
 
+	    public class SongWorker : IEnumerator<int> {
+		    protected readonly IPgBaseSite    _oSiteBase;
+
+				      readonly IPgSound  _oSound;
+		    protected          IPgPlayer _oPlayer;
+		    protected          IPgReader _oDecoder;
+            string                       _strFileName;
+
+		    uint _uiWait = 0;
+
+		    public SongWorker( IPgBaseSite oSiteBase, string strFileName ) {
+                _strFileName = strFileName ?? throw new ArgumentNullException();
+
+			    _oSiteBase = oSiteBase ??  throw new ArgumentNullException( "Need a site with hilight." );
+			    _oSound    = oSiteBase.Host.Services as IPgSound ?? throw new ArgumentNullException( "Host requires IPgSound." );
+
+                try {
+				    _oDecoder = GetReader( _strFileName );
+                } catch( Exception oEx ) {
+                    Type[] rgErrors = { typeof( FormatException ),
+						                typeof( FileNotFoundException ),
+									    typeof( InvalidOperationException ),
+									    typeof( NullReferenceException ) };
+                    if( rgErrors.IsUnhandled( oEx ) )
+                        throw;
+                    throw new ArgumentException( "Bad format or file not found " );
+                }
+			    _oPlayer = GetPlayer( _oPlayer, _oDecoder.Spec );
+
+			    if( _oPlayer == null )
+				    throw new NullReferenceException();
+		    }
+
+		    /// <summary>
+		    /// Returns the recommended time in milliseconds to "sleep", or do something else.
+		    /// </summary>
+		    int IEnumerator<int>.Current {
+			    get{ return (int)_uiWait; }
+		    }
+
+		    object IEnumerator.Current => throw new NotImplementedException();
+
+		    bool IEnumerator.MoveNext() {
+                if( _oPlayer == null )
+                    return false;
+
+				try {
+					_uiWait = ( _oPlayer.Play( _oDecoder ) >> 1 ) + 1;
+					if( _oDecoder.IsReading )
+						return true;
+					// If decoder is done, move on to the next song!
+				} catch( Exception oEx ) {
+					Type[] rgErrors = { typeof( NullReferenceException ),
+										typeof( ArgumentNullException ),
+										typeof( MMSystemException ) };
+					if( rgErrors.IsUnhandled( oEx ) )
+						throw;
+
+					_oSiteBase.LogError( "player", "Problem with current song: " + _strFileName );
+				}
+
+                if( _oSiteBase.Host is ImageWalkerDoc oDoc ) {
+                    oDoc.NotifyMediaStatusChanged();
+                }
+
+			    return( false );
+		    }
+
+		    void IEnumerator.Reset() {
+			    throw new NotImplementedException();
+		    }
+
+		    public IPgPlayer GetPlayer( IPgPlayer oPlayer, Specification oSpec ) {
+			    try {
+				    if (oPlayer == null)
+					    oPlayer = _oSound.CreateSoundPlayer( oSpec );
+				    else {
+					    if (!oPlayer.Spec.CompareTo(oSpec)) {
+						    oPlayer.Dispose();
+						    oPlayer = _oSound.CreateSoundPlayer( oSpec );
+					    }
+				    }
+				    return( oPlayer );
+			    } catch( Exception oEx ) {
+				    Type[] rgErrors = { typeof( ArgumentException ),
+									    typeof( ArgumentNullException ),
+									    typeof( BadDeviceIdException ),
+									    typeof( InvalidHandleException ),
+									    typeof( MMSystemException ) };
+				    if( rgErrors.IsUnhandled( oEx ) )
+					    throw;
+
+				    _oSiteBase.LogError( "sound", "Couldn't handle sound spec" );
+
+				    // TODO: In the future I'll make a fake player just so the system can move on.
+			    }
+			    return( null );
+		    }
+
+		    protected IPgReader GetReader( string strFileName ) {
+				return( _oSound.CreateSoundDecoder( strFileName ) );
+		    }
+
+		    #region IDisposable Support
+		    private bool _iRedundantDispose = false; // To detect redundant calls
+
+		    /// <summary>
+		    /// So this is all fine and good unless the managed dispose DOESN'T get called.
+		    /// Because you can't call any methods on other objects in the finalizer since they
+		    /// might be dead already! Since our player is a managed object wrapping an unmanaged
+		    /// object, it creates a connundrum for us. ^_^;;
+		    /// </summary>
+		    /// <param name="fManagedDispose">true if NOT being called from the finalizer.</param>
+		    protected virtual void Dispose(bool fManagedDispose) {
+			    if( _iRedundantDispose )
+				    return;
+
+			    if( fManagedDispose ) {
+				    if( _oPlayer != null )
+					    _oPlayer.Dispose();
+				    if( _oDecoder != null )
+					    _oDecoder.Dispose();
+			    }
+
+			    // TODO: free unmanaged resources (unmanaged objects) and override a finalizer below.
+			    // TODO: set large fields to null.
+			    _iRedundantDispose = true;
+		    }
+
+		    // TODO: override a finalizer only if Dispose(bool disposing) above has code to free unmanaged resources.
+		    // ~SongWorker() {
+		    //   // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
+		    //   Dispose(false);
+		    // }
+
+		    // This code added to correctly implement the disposable pattern.
+		    void IDisposable.Dispose() {
+			    // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
+			    Dispose(true);
+			    // TODO: uncomment the following line if the finalizer is overridden above.
+			    // GC.SuppressFinalize(this);
+		    }
+		    #endregion
+	    }
+		public void PlayStart() {
+			switch( _oWorkPlace.Status ) {
+				case WorkerStatus.FREE:
+					try {
+                        string strFileName = Path.Combine( CurrentDirectory, 
+                                                           Path.GetFileNameWithoutExtension( CurrentFileName ) ) + ".mp3";
+
+						_oWorkPlace.Queue( new SongWorker( new ImageWalkerDocSlot( this ), strFileName ), 0 );
+					} catch( Exception oEx ) {
+						Type[] _rgErrors = { typeof( ArgumentException ),
+										     typeof( ArgumentNullException ),
+											 typeof( InvalidOperationException ) };
+						if( _rgErrors.IsUnhandled( oEx ) )
+							throw;
+
+						_oSiteBase.LogError( "player", "Unable to play current request." );
+						//Albums.HighLight = null;
+					}
+					break;
+				case WorkerStatus.PAUSED:
+					_oWorkPlace.Start( 0 );
+					break;
+				case WorkerStatus.BUSY:
+					_oSiteBase.LogError( "player", "Sound is already playing" );
+					break;
+			}
+		}
+
+        public void PlayPause() {
+            _oWorkPlace.Pause();
+        }
+
+        public void PlayStop() {
+            _oWorkPlace.Stop();
+        }
+
+        public void NotifyMediaStatusChanged() {
+            MediaEvent?.Invoke( ShellNotify.MediaStatusChanged );
+        }
+
+		public WorkerStatus PlayStatus => _oWorkPlace.Status;
+
         public override bool Execute( Guid sGuid ) {
             if( sGuid == GlobalCommands.StepLeft ) {
                 Next( -1 );
@@ -1564,6 +1754,10 @@ namespace Play.ImageViewer {
             }
             if( sGuid == GlobalCommands.Delete ) {
                 CurrentFileDelete();
+                return( true );
+            }
+            if( sGuid == GlobalCommands.Play ) {
+                PlayStart();
                 return( true );
             }
 
