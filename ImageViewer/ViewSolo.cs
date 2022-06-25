@@ -560,6 +560,13 @@ namespace Play.ImageViewer {
                     _oDocWalker.Next( +1 ); 
                     break;
 
+				case Keys.Return:
+					_oDocWalker.PlayStart();
+					break;
+				case Keys.Escape:
+					_oDocWalker.PlayStop();
+					break;
+
                 default:
                     e.Handled = false;
                     break;
