@@ -82,7 +82,13 @@ namespace Play.Clock
 
 				SolarVhf.Load( oStreamVhf );
 				SolarMap.Load( oStreamMap );
-			} catch( TargetInvocationException ) {
+			} catch( Exception oEx ) {
+				Type[] rgErrors = { typeof( TargetInvocationException ),
+									typeof( System.Net.Sockets.SocketException ),
+									typeof( NullReferenceException ) };
+				if( rgErrors.IsUnhandled( oEx ) )
+					throw;
+				LogError( "Net IO", "Problem handling http request" );
 			}
         }
 
