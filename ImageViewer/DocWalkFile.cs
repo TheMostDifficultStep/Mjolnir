@@ -557,6 +557,7 @@ namespace Play.ImageViewer {
 	/// between the given images, always loading a single image at a time.
 	/// </summary>
 	public class ImageWalkerDoc : ImageSoloDoc,
+        IPgCommandBase,
         IPgLoad<TextReader>,
         IPgSave<TextWriter>,
         IReadableBag<Line>, 

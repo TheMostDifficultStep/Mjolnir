@@ -956,7 +956,7 @@ namespace Play.SSTV {
                 return;
             } 
 			if( RxHistoryList.Bitmap == null ) {
-                LogError( "No Rx Images Here." );
+             // LogError( "No Rx Images Here." );
                 return;
             } 
 

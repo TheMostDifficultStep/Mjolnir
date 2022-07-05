@@ -378,8 +378,6 @@ namespace Play.Interfaces.Embedding {
     /// Split this out from the IPgCommandView so we can attach this interface to documents. Super handy!!
     /// </summary>
     public interface IPgCommandBase {
-        string   Banner{ get; } 
-        SKBitmap Icon  { get; }
         bool     Execute ( Guid sGuid );
     }
 
@@ -388,6 +386,8 @@ namespace Play.Interfaces.Embedding {
     /// for view objects responding to user input.
 	/// </summary>
     public interface IPgCommandView : IPgCommandBase {
+        string   Banner{ get; } 
+        SKBitmap Icon  { get; }
         Guid    Catagory { get; } // This is the View Type guid. Only used in one place. See if I can factor this out.
         object  Decorate( IPgViewSite oBaseSite, Guid sGuid );
     }

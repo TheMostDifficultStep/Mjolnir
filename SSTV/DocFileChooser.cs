@@ -24,10 +24,8 @@ namespace Play.SSTV {
         readonly static string _strIcon = @"ImageViewer.Content.icon-folder.png";
 
         public bool       IsDirty   => false;
-        public SKBitmap   Icon      => null;
         public IPgParent  Parentage => _oSiteBase.Host;
         public IPgParent  Services  => Parentage.Services;
-        public string     Banner    => "Hello!";
 
         protected readonly IPgStandardUI2 _oStdUI;
 
