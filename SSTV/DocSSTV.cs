@@ -1365,14 +1365,31 @@ namespace Play.SSTV {
                 
             StateTx = true;
 
+            SKBitmap bmpCopy = TxBitmapComp.Bitmap.Copy();
+            double   dblFreq = Properties.GetValueAsDbl( SSTVProperties.Names.Std_Frequency );
+            TxState   oState = null;
+            try {
+                oState = new TxState( oMode, dblFreq, MicrophoneGain, 
+                                        PortTxList.CheckedLine.At, 
+                                        bmpCopy, _rgBGtoUIQueue );
+            } catch( Exception oEx ) {
+                // BUG: sometimes the device list needs updating.
+                Type[] rgErrors = { typeof( BadDeviceIdException ),
+                                    typeof( NullReferenceException ),
+                                    typeof( ArgumentException ),
+                                    typeof( ArgumentNullException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
+
+                LogError( "Problem talking to device." );
+
+                return;
+            }
+
             Action oTransmitAction = delegate () {
                 // Use WWV to find the precise sample frequency of sound card. 
                 // TODO: Port the tuner from MMSSTV and make it a property.
-                SKBitmap bmpCopy = TxBitmapComp.Bitmap.Copy();
-                double   dblFreq = Properties.GetValueAsDbl( SSTVProperties.Names.Std_Frequency );
-                TxState   oState = new TxState( oMode, dblFreq, MicrophoneGain, 
-                                                PortTxList.CheckedLine.At, 
-                                                bmpCopy, _rgBGtoUIQueue );
+
                 foreach( uint uiWait in oState ) {
                     if( StateTx == false )
                         break;

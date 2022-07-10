@@ -19,6 +19,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 
 namespace Play.Sound {
 	/// <summary>
@@ -767,6 +768,204 @@ namespace Play.Sound {
 			AFCHIGH	= 1950;
 
 			InitNew();
+		}
+	}
+
+	public class SYNCINT {
+		readonly ReadOnlyCollection<uint> m_MS;
+
+		readonly uint m_MSLL;
+		readonly uint m_MSL;
+		readonly uint m_MSH;
+
+		readonly uint[] m_MSyncList = new uint[8];
+
+		uint   m_MSyncCnt;
+		uint   m_MSyncACnt;
+		uint   m_MSyncIntPos;
+		uint   m_MSyncIntMax;
+		bool   m_fNarrow;
+
+		readonly double m_SampFreq;
+
+		/// <summary>
+		/// This is the first port of the CSYNCINT class from C++. This helps us
+		/// determine the image type in the case we miss the VIS. Haven't integrated
+		/// it or tried running it yet.
+		/// </summary>
+		/// <remarks>
+		/// So the MS array which has the scan line timing information used to
+		/// live on the CSSTVSET object. I think it belongs here where it is used.
+		/// Also, when you think about it, it seems that value are not something 
+		/// that would change... We can't calculate slant until we've seen enough 
+		/// of the signal. But slant detection only happens after VIS OR the SYNCINT 
+		/// code executes. That makes me think we only need to update this object 
+		/// if you change your sampling frequency. Hence the readonly array.
+		/// </remarks>
+		public SYNCINT( SSTVDEM oDemod ){
+			m_fNarrow  = false;
+			m_SampFreq = oDemod.SampFreq;
+
+			uint[] rgMS = new uint[(int)AllModes.smEND];
+
+			Reset( false );
+
+			// From CSSTVSET::InitIntervalPara() see remarks above...
+			foreach( SSTVMode oMode in oDemod ) {
+				rgMS[ (int)oMode.LegacyMode ] = (uint)oMode.ScanWidthInMS;
+			}
+			rgMS[(int)AllModes.smAVT_obsolete] = 0;
+
+			m_MS = Array.AsReadOnly<uint>( rgMS );
+
+			double dblSampPerMs = m_SampFreq / 1000;
+
+		//  m_MSLL = 100.0 * m_SampFreq / 1000.0;          // Lowest
+		//  m_MSL  = 147.0 * m_SampFreq / 1000.0;          // Lowest
+		//  m_MSH  = 1050.0 * 3 * m_SampFreq / 1000.0;     // Highest
+			m_MSLL = (uint)(50.0 *       dblSampPerMs);    // Lowest
+			m_MSL  = (uint)(63.0 *       dblSampPerMs);    // Lowest
+			m_MSH  = (uint)(1390.0 * 3 * dblSampPerMs);    // Highest
+			// End CSSTVSET::InitIntervalPara()
+		}
+
+		void Reset( bool fNarrow ){
+			Array.Clear( m_MSyncList );
+
+			m_fNarrow     = fNarrow;
+			m_MSyncACnt   = 0;
+			m_MSyncCnt    = 0;
+			m_MSyncIntMax = 0;
+			m_MSyncIntPos = 0;
+		}
+
+		bool SyncCheckSub(AllModes am) {
+			int iSyncCount = m_MSyncList.Length;
+			int i          = iSyncCount-1;
+
+			int e;
+			switch(am){
+				case AllModes.smSC2_60:
+				case AllModes.smSC2_120:
+					return false;
+				case AllModes.smR24:
+				case AllModes.smR36:
+				case AllModes.smMRT2:
+				case AllModes.smPD50:
+				case AllModes.smPD240:
+					if( m_fNarrow ) 
+						return false;
+					e = iSyncCount - 4;
+					break;
+				case AllModes.smRM8:
+				case AllModes.smRM12:
+					if( m_fNarrow ) 
+						return false;
+					e = 0;
+					break;
+				case AllModes.smMN73:
+				case AllModes.smMN110:
+				case AllModes.smMN140:
+				case AllModes.smMC110:
+				case AllModes.smMC140:
+				case AllModes.smMC180:
+					if( !m_fNarrow ) 
+						return false;
+					e = iSyncCount - 5;
+        			break;
+				default:
+					if( m_fNarrow ) 
+						return false;
+					e = iSyncCount - 3;
+					break;
+			}
+			long deff = (long)(3 * m_SampFreq) / 1000;
+
+			long cmh = m_MS[(int)am] + deff;
+			long cml = m_MS[(int)am] - deff;
+
+			for( i--; i >= e; i-- ){
+				long w = m_MSyncList[i];
+				bool f = false;
+				if( w > m_MSL ){
+					int km = m_fNarrow ? 2 : 3;
+					for( int k = 1; k <= km; k++ ){
+						long ww = w / k;
+						if( (ww > cml) && (ww < cmh) )
+							f = true;
+					}
+				}
+				if( !f ) 
+					return false;
+			}
+			return true;
+		}
+
+		bool SyncCheck( out AllModes eModeReturned ) {
+			uint deff = (uint)((3 * m_SampFreq) / 1000);
+
+			uint w = m_MSyncList[m_MSyncList.Length -1];
+			for( int k = 1; k <= 3; k++ ){
+				uint ww = (uint)(w / k);
+
+				if( (ww > m_MSL) && (ww < m_MSH) ){
+					foreach( AllModes eMode in Enum.GetValues(typeof(AllModes) ) ) {
+					//for( int i = 0; i < (int)AllModes.smEND; i++ ){
+						if( m_MS[(int)eMode] > 0 && 
+							(ww > (m_MS[(int)eMode]-deff)) && 
+							(ww < (m_MS[(int)eMode]+deff)) )
+						{
+							if( SyncCheckSub(eMode) ){
+								eModeReturned = eMode;
+								return true;
+							}
+						}
+					}
+				} else {
+					break;
+				}
+			}
+			eModeReturned = AllModes.smEND;
+			return false;
+		}
+
+		void SyncInc() {
+			m_MSyncCnt++;
+		}
+
+		void SyncTrig( uint d) {
+			m_MSyncIntMax = d;
+			m_MSyncIntPos = m_MSyncCnt;
+		}
+
+		void SyncMax( uint d) {
+			if( m_MSyncIntMax < d ){
+				m_MSyncIntMax = d;
+				m_MSyncIntPos = m_MSyncCnt;
+			}
+		}
+
+		bool SyncStart( out AllModes ss ) {
+			bool fResult = false;
+			ss = AllModes.smEND;
+
+			if( m_MSyncIntMax != 0 ) {
+				if( (m_MSyncIntPos - m_MSyncACnt) > m_MSLL ){
+					m_MSyncACnt = m_MSyncIntPos - m_MSyncACnt;
+					//memcpy( dest, src, size );
+					//memcpy(m_MSyncList, &m_MSyncList[1], sizeof(int) * (m_MSyncList.Length - 1));
+					// Shift everything left one. Circular linked list might be nicer...
+					Array.Copy( m_MSyncList, 1, m_MSyncList, 0, m_MSyncList.Length - 1 );
+					m_MSyncList[m_MSyncList.Length - 1] = m_MSyncACnt;
+					if( m_MSyncACnt > m_MSL ){
+						fResult = SyncCheck( out ss );
+					}
+					m_MSyncACnt = m_MSyncIntPos;
+				}
+				m_MSyncIntMax = 0;
+			}
+
+			return fResult;
 		}
 	}
 
