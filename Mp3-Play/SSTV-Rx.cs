@@ -786,7 +786,7 @@ namespace Play.Sound {
 		uint   m_MSyncIntMax;
 		bool   m_fNarrow;
 
-		readonly double m_SampFreq;
+		readonly double m_SampPerMs;
 
 		/// <summary>
 		/// This is the first port of the CSYNCINT class from C++. This helps us
@@ -794,9 +794,9 @@ namespace Play.Sound {
 		/// it or tried running it yet.
 		/// </summary>
 		/// <remarks>
-		/// So the MS array which has the scan line timing information used to
+		/// So the MS array which has the scan line timing information, used to
 		/// live on the CSSTVSET object. I think it belongs here where it is used.
-		/// Also, when you think about it, it seems that value are not something 
+		/// Also, when you think about it, it seems that values are not something 
 		/// that would change... We can't calculate slant until we've seen enough 
 		/// of the signal. But slant detection only happens after VIS OR the SYNCINT 
 		/// code executes. That makes me think we only need to update this object 
@@ -804,7 +804,7 @@ namespace Play.Sound {
 		/// </remarks>
 		public SYNCINT( SSTVDEM oDemod ){
 			m_fNarrow  = false;
-			m_SampFreq = oDemod.SampFreq;
+			m_SampPerMs = oDemod.SampFreq / 1000;
 
 			uint[] rgMS = new uint[(int)AllModes.smEND];
 
@@ -814,18 +814,15 @@ namespace Play.Sound {
 			foreach( SSTVMode oMode in oDemod ) {
 				rgMS[ (int)oMode.LegacyMode ] = (uint)oMode.ScanWidthInMS;
 			}
-			rgMS[(int)AllModes.smAVT_obsolete] = 0;
 
 			m_MS = Array.AsReadOnly<uint>( rgMS );
 
-			double dblSampPerMs = m_SampFreq / 1000;
-
-		//  m_MSLL = 100.0 * m_SampFreq / 1000.0;          // Lowest
-		//  m_MSL  = 147.0 * m_SampFreq / 1000.0;          // Lowest
-		//  m_MSH  = 1050.0 * 3 * m_SampFreq / 1000.0;     // Highest
-			m_MSLL = (uint)(50.0 *       dblSampPerMs);    // Lowest
-			m_MSL  = (uint)(63.0 *       dblSampPerMs);    // Lowest
-			m_MSH  = (uint)(1390.0 * 3 * dblSampPerMs);    // Highest
+		//  m_MSLL = 100.0 * m_SampFreq / 1000.0;         // Lowest
+		//  m_MSL  = 147.0 * m_SampFreq / 1000.0;         // Lowest
+		//  m_MSH  = 1050.0 * 3 * m_SampFreq / 1000.0;    // Highest
+			m_MSLL = (uint)(50.0 *       m_SampPerMs);    // Lowest
+			m_MSL  = (uint)(63.0 *       m_SampPerMs);    // Lowest
+			m_MSH  = (uint)(1390.0 * 3 * m_SampPerMs);    // Highest
 			// End CSSTVSET::InitIntervalPara()
 		}
 
@@ -879,7 +876,7 @@ namespace Play.Sound {
 					e = iSyncCount - 3;
 					break;
 			}
-			long deff = (long)(3 * m_SampFreq) / 1000;
+			long deff = (long)(3 * m_SampPerMs) ;
 
 			long cmh = m_MS[(int)am] + deff;
 			long cml = m_MS[(int)am] - deff;
@@ -902,13 +899,13 @@ namespace Play.Sound {
 		}
 
 		bool SyncCheck( out AllModes eModeReturned ) {
-			uint deff = (uint)((3 * m_SampFreq) / 1000);
+			uint deff = (uint)(3 * m_SampPerMs );
 
 			uint w = m_MSyncList[m_MSyncList.Length -1];
 			for( int k = 1; k <= 3; k++ ){
 				uint ww = (uint)(w / k);
 
-				if( (ww > m_MSL) && (ww < m_MSH) ){
+				if( (ww > m_MSL) && (ww < m_MSH) ) {
 					foreach( AllModes eMode in Enum.GetValues(typeof(AllModes) ) ) {
 					//for( int i = 0; i < (int)AllModes.smEND; i++ ){
 						if( m_MS[(int)eMode] > 0 && 
@@ -933,15 +930,19 @@ namespace Play.Sound {
 			m_MSyncCnt++;
 		}
 
-		void SyncTrig( uint d) {
-			m_MSyncIntMax = d;
-			m_MSyncIntPos = m_MSyncCnt;
+		public uint SyncTrig {
+			set {
+				m_MSyncIntMax = value;
+				m_MSyncIntPos = m_MSyncCnt;
+			}
 		}
 
-		void SyncMax( uint d) {
-			if( m_MSyncIntMax < d ){
-				m_MSyncIntMax = d;
-				m_MSyncIntPos = m_MSyncCnt;
+		public uint SyncMax {
+			set {
+				if( m_MSyncIntMax < value ){
+					m_MSyncIntMax = value;
+					m_MSyncIntPos = m_MSyncCnt;
+				}
 			}
 		}
 
@@ -967,7 +968,7 @@ namespace Play.Sound {
 
 			return fResult;
 		}
-	}
+	} // end class.
 
 	public struct AFCStuff {
 		readonly CSmooz m_AFCAVG = new ();
