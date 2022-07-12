@@ -107,7 +107,10 @@ namespace Play.Forms {
 
             InitRows();
 
-            Caret.Layout = CacheList[0];
+            // BUG: This is happening when there is no album art.
+            if( CacheList.Count > 0 ) {
+                Caret.Layout = CacheList[0];
+            }
 
             // The base formwindow already gets these, see the constructor.
             //Document.Property_Values.BufferEvent += OnBufferEvent_Doc_Property_Values;

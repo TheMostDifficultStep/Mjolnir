@@ -125,7 +125,12 @@ namespace Play.ImageViewer {
 			_oDocWalker = oDoc ?? throw new ArgumentNullException( "Document must not be null." );
 			_oSiteShell = oBaseSite as IPgShellSite; // not required to exist.
 
-			Icon = _oDocWalker.GetResource( IconResource );
+			// BUG : This throws when a subclass in a DIFFERENT ASSEMBLY tries to
+			//       load it's resourse. What a pain in the a$$.
+			try {
+				Icon = _oDocWalker.GetResource( IconResource );
+			} catch( InvalidOperationException ) {
+			}
 
 			_rcSelectionView.Hidden = true;
 
