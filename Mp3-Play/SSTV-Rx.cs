@@ -772,26 +772,86 @@ namespace Play.Sound {
 	}
 
 	public class SYNCINT {
-		readonly ReadOnlyCollection<uint> m_MS;
+		class ScanInfo {
+			public ScanInfo( SSTVMode oMode ) {
+				LegacyMode = oMode.LegacyMode;
+				SyncWidth  = (uint)oMode.ScanWidthInMS;
+				e          = 0;
+				BailOut    = true;
+			}
+
+			public readonly AllModes LegacyMode;
+			public readonly uint     SyncWidth;
+			public          int      e;
+			public          bool     BailOut; // Don't check this one.
+
+			/// <summary>
+			/// So MMSSTV used to walk this everytime a sample comes through.
+			/// Turns out it only needs to be initialized once and then only
+			/// changed if we go into narrow modes.
+			/// </summary>
+			/// <param name="iSyncCount">m_rgMSyncList.Length</param>
+			public void ResetE( bool fNarrow, int iSyncCount ) {
+				BailOut = false;
+				switch( LegacyMode ){
+					case AllModes.smSC2_60:
+					case AllModes.smSC2_120:
+						BailOut = true;
+						break;
+					case AllModes.smR24:
+					case AllModes.smR36:
+					case AllModes.smMRT2:
+					case AllModes.smPD50:
+					case AllModes.smPD240:
+						if( fNarrow ) 
+							BailOut = true;
+						e = iSyncCount - 4;
+						break;
+					case AllModes.smRM8:
+					case AllModes.smRM12:
+						if( fNarrow ) 
+							BailOut = true;
+						e = 0;
+						break;
+					case AllModes.smMN73:
+					case AllModes.smMN110:
+					case AllModes.smMN140:
+					case AllModes.smMC110:
+					case AllModes.smMC140:
+					case AllModes.smMC180:
+						if( !fNarrow ) 
+							BailOut = true;
+						e = iSyncCount - 5;
+        				break;
+					default:
+						if( fNarrow ) 
+							BailOut = true;
+						e = iSyncCount - 3;
+						break;
+				}
+			}
+		}
+
+		readonly List<ScanInfo> m_MScanInfo;
 
 		readonly uint m_MSLL;
 		readonly uint m_MSL;
 		readonly uint m_MSH;
+		readonly long m_lDeff;
 
-		readonly uint[] m_MSyncList = new uint[8];
+		readonly uint[] m_rgMSyncList = new uint[8];
 
-		uint   m_MSyncCnt;
-		uint   m_MSyncACnt;
-		uint   m_MSyncIntPos;
-		uint   m_MSyncIntMax;
-		bool   m_fNarrow;
+		uint m_MSyncCnt;
+		uint m_MSyncACnt;
+		uint m_MSyncIntPos;
+		uint m_MSyncIntMax;
+		bool m_fNarrow;
 
 		readonly double m_SampPerMs;
 
 		/// <summary>
-		/// This is the first port of the CSYNCINT class from C++. This helps us
-		/// determine the image type in the case we miss the VIS. Haven't integrated
-		/// it or tried running it yet.
+		/// This is the port of the CSYNCINT class from C++. This code helps us
+		/// determine the image type in the case we miss the VIS. 
 		/// </summary>
 		/// <remarks>
 		/// So the MS array which has the scan line timing information, used to
@@ -803,19 +863,21 @@ namespace Play.Sound {
 		/// if you change your sampling frequency. Hence the readonly array.
 		/// </remarks>
 		public SYNCINT( SSTVDEM oDemod ){
-			m_fNarrow  = false;
+			m_fNarrow   = false;
 			m_SampPerMs = oDemod.SampFreq / 1000;
-
-			uint[] rgMS = new uint[(int)AllModes.smEND];
+			m_lDeff     = (long)(3 * m_SampPerMs);
+			m_MScanInfo = new List<ScanInfo>( (int)AllModes.smEND );
 
 			Reset( false );
 
 			// From CSSTVSET::InitIntervalPara() see remarks above...
 			foreach( SSTVMode oMode in oDemod ) {
-				rgMS[ (int)oMode.LegacyMode ] = (uint)oMode.ScanWidthInMS;
-			}
+				ScanInfo sInfo = new ScanInfo( oMode );
 
-			m_MS = Array.AsReadOnly<uint>( rgMS );
+				sInfo.ResetE( m_fNarrow, m_rgMSyncList.Length );
+
+				m_MScanInfo.Add( sInfo );
+			}
 
 		//  m_MSLL = 100.0 * m_SampFreq / 1000.0;         // Lowest
 		//  m_MSL  = 147.0 * m_SampFreq / 1000.0;         // Lowest
@@ -826,8 +888,14 @@ namespace Play.Sound {
 			// End CSSTVSET::InitIntervalPara()
 		}
 
-		void Reset( bool fNarrow ){
-			Array.Clear( m_MSyncList );
+		public void Reset( bool fNarrow ){
+			Array.Clear( m_rgMSyncList );
+
+			if( fNarrow != m_fNarrow ) {
+				foreach( ScanInfo sInfo in m_MScanInfo ) {
+					sInfo.ResetE( fNarrow, m_rgMSyncList.Length );
+				}
+			}
 
 			m_fNarrow     = fNarrow;
 			m_MSyncACnt   = 0;
@@ -836,55 +904,15 @@ namespace Play.Sound {
 			m_MSyncIntPos = 0;
 		}
 
-		bool SyncCheckSub(AllModes am) {
-			int iSyncCount = m_MSyncList.Length;
-			int i          = iSyncCount-1;
+		private bool CheckSub( ScanInfo sInfo ) {
+			int    i = m_rgMSyncList.Length - 1;
+			long cmh = sInfo.SyncWidth + m_lDeff;
+			long cml = sInfo.SyncWidth - m_lDeff;
 
-			int e;
-			switch(am){
-				case AllModes.smSC2_60:
-				case AllModes.smSC2_120:
-					return false;
-				case AllModes.smR24:
-				case AllModes.smR36:
-				case AllModes.smMRT2:
-				case AllModes.smPD50:
-				case AllModes.smPD240:
-					if( m_fNarrow ) 
-						return false;
-					e = iSyncCount - 4;
-					break;
-				case AllModes.smRM8:
-				case AllModes.smRM12:
-					if( m_fNarrow ) 
-						return false;
-					e = 0;
-					break;
-				case AllModes.smMN73:
-				case AllModes.smMN110:
-				case AllModes.smMN140:
-				case AllModes.smMC110:
-				case AllModes.smMC140:
-				case AllModes.smMC180:
-					if( !m_fNarrow ) 
-						return false;
-					e = iSyncCount - 5;
-        			break;
-				default:
-					if( m_fNarrow ) 
-						return false;
-					e = iSyncCount - 3;
-					break;
-			}
-			long deff = (long)(3 * m_SampPerMs) ;
-
-			long cmh = m_MS[(int)am] + deff;
-			long cml = m_MS[(int)am] - deff;
-
-			for( i--; i >= e; i-- ){
-				long w = m_MSyncList[i];
+			for( i--; i >= sInfo.e; i-- ){
+				long w = m_rgMSyncList[i];
 				bool f = false;
-				if( w > m_MSL ){
+				if( w > m_MSL ) {
 					int km = m_fNarrow ? 2 : 3;
 					for( int k = 1; k <= km; k++ ){
 						long ww = w / k;
@@ -898,22 +926,19 @@ namespace Play.Sound {
 			return true;
 		}
 
-		bool SyncCheck( out AllModes eModeReturned ) {
-			uint deff = (uint)(3 * m_SampPerMs );
-
-			uint w = m_MSyncList[m_MSyncList.Length -1];
+		public bool Check( out AllModes eModeReturned ) {
+			uint w = m_rgMSyncList[m_rgMSyncList.Length -1];
 			for( int k = 1; k <= 3; k++ ){
 				uint ww = (uint)(w / k);
 
 				if( (ww > m_MSL) && (ww < m_MSH) ) {
-					foreach( AllModes eMode in Enum.GetValues(typeof(AllModes) ) ) {
-					//for( int i = 0; i < (int)AllModes.smEND; i++ ){
-						if( m_MS[(int)eMode] > 0 && 
-							(ww > (m_MS[(int)eMode]-deff)) && 
-							(ww < (m_MS[(int)eMode]+deff)) )
+					foreach( ScanInfo sInfo in m_MScanInfo ) {
+						if( sInfo.SyncWidth > 0 && sInfo.BailOut != true &&
+							(ww > (sInfo.SyncWidth-m_lDeff)) && 
+							(ww < (sInfo.SyncWidth+m_lDeff)) )
 						{
-							if( SyncCheckSub(eMode) ){
-								eModeReturned = eMode;
+							if( CheckSub( sInfo ) ) {
+								eModeReturned = sInfo.LegacyMode;
 								return true;
 							}
 						}
@@ -926,18 +951,18 @@ namespace Play.Sound {
 			return false;
 		}
 
-		void SyncInc() {
+		public void Inc() {
 			m_MSyncCnt++;
 		}
 
-		public uint SyncTrig {
+		public uint Trig {
 			set {
 				m_MSyncIntMax = value;
 				m_MSyncIntPos = m_MSyncCnt;
 			}
 		}
 
-		public uint SyncMax {
+		public uint Max {
 			set {
 				if( m_MSyncIntMax < value ){
 					m_MSyncIntMax = value;
@@ -946,7 +971,7 @@ namespace Play.Sound {
 			}
 		}
 
-		bool SyncStart( out AllModes ss ) {
+		public bool Start( out AllModes ss ) {
 			bool fResult = false;
 			ss = AllModes.smEND;
 
@@ -956,10 +981,10 @@ namespace Play.Sound {
 					//memcpy( dest, src, size );
 					//memcpy(m_MSyncList, &m_MSyncList[1], sizeof(int) * (m_MSyncList.Length - 1));
 					// Shift everything left one. Circular linked list might be nicer...
-					Array.Copy( m_MSyncList, 1, m_MSyncList, 0, m_MSyncList.Length - 1 );
-					m_MSyncList[m_MSyncList.Length - 1] = m_MSyncACnt;
+					Array.Copy( m_rgMSyncList, 1, m_rgMSyncList, 0, m_rgMSyncList.Length - 1 );
+					m_rgMSyncList[m_rgMSyncList.Length - 1] = m_MSyncACnt;
 					if( m_MSyncACnt > m_MSL ){
-						fResult = SyncCheck( out ss );
+						fResult = Check( out ss );
 					}
 					m_MSyncACnt = m_MSyncIntPos;
 				}
@@ -1145,9 +1170,9 @@ namespace Play.Sound {
 
 		public readonly static int TAPMAX = 512; // BUG: Move to Fir or Fir2 later.
 
-		readonly double[]  HBPF  = new double[TAPMAX+1];
-		readonly double[]  HBPFS = new double[TAPMAX+1];
-		readonly double[]  HBPFN = new double[TAPMAX+1];
+		readonly double[] HBPF  = new double[TAPMAX+1];
+		readonly double[] HBPFS = new double[TAPMAX+1];
+		readonly double[] HBPFN = new double[TAPMAX+1];
 
 		readonly CFIR2 m_BPF = new CFIR2();
 
@@ -1202,12 +1227,12 @@ namespace Play.Sound {
 		bool              m_ScopeFlag;
 		readonly CScope[] m_Scope = new CScope[2];
 
-		CTICK       pTick;
-		int         m_Tick;
+		CTICK       _oTick;
+		int         _iTick;
 		int         m_TickFreq;
 
 		readonly bool m_fskdecode = false; // A vestage of the fskDecode stuff.
-		readonly bool   m_afc;
+		readonly bool m_afc;
 
 		protected static FrequencyLookup _rgFreqTable;
 	  //#define FSKSPACE    2100
@@ -1219,6 +1244,8 @@ namespace Play.Sound {
 		// member variable.
 		readonly double   m_dblToneOffset;
 		readonly double[] _rgSenseLevels = { 2400, 3500, 4800, 6000 };
+
+		readonly SYNCINT m_sint1;
 
 		public SSTVDEM( SYSSET p_sys, double dblSampFreq, double dblSampBase = -1, double dbToneOffset=0 ) {
 			Sys             = p_sys ?? throw new ArgumentNullException( nameof( p_sys ) );
@@ -1298,14 +1325,18 @@ namespace Play.Sound {
 			m_Rcptlvl   = new CLVL ( (int)SampFreq, fAgcFast:true );
 			m_SyncLvl   = new CSLVL( SampFreq );
 
-			m_Tick   = 0;
-			pTick    = null;
+			_iTick = 0;
+			_oTick = null;
 
 			// TODO: I'm starting to think this should be false... this will prevent a
 			// strong signal from resetting us, but will result in a double either way.
 			m_SyncRestart = false; 
 
 			SetSenseLevel( 1 );
+
+			// A little evil doing this here. But needs to enum the modes. Look
+			// into perhaps separating out the modes enumeration from the decoder.
+		    m_sint1 = new SYNCINT( this );
 		}
 
 		public void Dispose() {
@@ -1372,20 +1403,21 @@ namespace Play.Sound {
 		/// this method gets called when we are ready to rock and roll. In the original
 		/// system TmmSSTV would toss it's previous image and start a new one.
 		/// </summary>
-		public void Start( SSTVMode tvMode ) {
+		public void Start( SSTVMode oMode ) {
 			int      iPrevBase = m_wBase;
 			SSTVMode ePrevMode = Mode;
 
-			Mode = tvMode;
+			Mode = oMode;
 
 			// If PrevMode is non null, the System/user is trying to guess the image mode.
 			// So keep the buffer so we can re-render from the beginning.
 			if( ePrevMode == null ) {
 				SetBandWidth( false ); // SSTVSET.IsNarrowMode( tvMode.Family )
-				_AFC.InitAFC( tvMode.Family, SampFreq, _rgFreqTable );
+				_AFC.InitAFC( oMode.Family, SampFreq, _rgFreqTable );
 				InitTone(0);
 
-				m_fqc.Clear();
+				m_fqc  .Clear();
+				//m_sint1.Reset( false );
 				m_Skip     = 0;
 				m_wBase    = 0;
 				m_Lost     = false;
@@ -1398,7 +1430,7 @@ namespace Play.Sound {
 			//if( m_fNarrow ) 
 			//	CalcNarrowBPF(HBPFN, m_bpftap, m_bpf, SSTVSET.m_Mode);
 
-			Send_NextMode?.Invoke( tvMode, ePrevMode, iPrevBase );
+			Send_NextMode?.Invoke( oMode, ePrevMode, iPrevBase );
 		}
 
 		public virtual void Reset()	{
@@ -1412,7 +1444,7 @@ namespace Play.Sound {
 				}
 			}
 			m_fqc  .Clear();
-			//m_sint1.Reset();
+			//m_sint1.Reset( false );
 			//m_sint2.Reset();
 			//m_sint3.Reset();
 
@@ -1662,14 +1694,14 @@ namespace Play.Sound {
 			if( m_LevelType == LevelDisplay.Sync ) 
 				m_SyncLvl.Do( dHSync );
 
-			if( m_Tick != 0 ) {
-				pTick?.Write( d12 );
+			if( _iTick != 0 ) {
+				_oTick?.Write( d12 );
 				return;
 			}
 
 			if( !Synced || m_SyncRestart ) {
 				SSTVMode tvMode;
-				//m_sint1.SyncInc();
+				//m_sint1.Inc();
 				//m_sint2.SyncInc();
 				//m_sint3.SyncInc();
 
@@ -1687,12 +1719,21 @@ namespace Play.Sound {
 
 				switch(m_SyncMode){
 					case 0:                 // 自動開始 : Start automatically
-						// The first 1900hz has been seen, and now we're going down to 1200 for 15 ms. (s/b 10)
-						if( (d12 > d19) && (d12 > m_SLvl) && ((d12-d19) >= m_SLvl) ){
-							m_SyncMode++;
-							m_SyncTime = (int)(10 * SampFreq/1000); // this is probably the ~10 ms between each 1900hz tone.
-							//if( !m_Sync /* && m_MSync */ ) 
-							//	m_sint1.SyncTrig( (int)d12);
+						{
+							//if( m_sint1.Start( out m_NextMode ) ){
+							//	tvMode = GetSSTVMode( m_NextMode );
+							//	if( tvMode != null ) {
+							//		Start( tvMode );
+							//		break;
+							//	}
+							//}
+							// The first 1900hz has been seen, and now we're going down to 1200 for 15 ms. (s/b 10)
+							if( (d12 > d19) && (d12 > m_SLvl) && ((d12-d19) >= m_SLvl) ){
+								m_SyncMode++;
+								m_SyncTime = (int)(10 * SampFreq/1000); // this is probably the ~10 ms between each 1900hz tone.
+								// m_sint2.SyncMax = d12;
+								//m_sint1.Trig = (uint)d12;
+							}
 						}
 						break;
 					case 1:                 // 1200Hz(30ms)‚ の継続チェック: continuous check.
@@ -1704,7 +1745,7 @@ namespace Play.Sound {
 						// the second 1900hz has been seen now down to 1200hz again for 30ms.
 						if( (d12 > d19) && (d12 > m_SLvl) && ((d12-d19) >= m_SLvl) ){
 							//if( !m_Sync /* && m_MSync */ ){
-							//	m_sint1.SyncMax( (int)d12);
+							//m_sint1.Max = (uint)d12;
 							//}
 							if( --m_SyncTime == 0 ){
 								m_SyncMode++;

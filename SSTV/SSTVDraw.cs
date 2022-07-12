@@ -682,7 +682,7 @@ namespace Play.SSTV {
 
 			double dblSamplesPerMs = _dp.SampFreq / 1000 * dbCorrection;
 
-			SyncOffsetInSamples = ( Mode.OffsetInMS * dblSamplesPerMs );
+			SyncOffsetInSamples = Mode.OffsetInMS * dblSamplesPerMs;
 		}
 
     } // End Class TmmSSTV

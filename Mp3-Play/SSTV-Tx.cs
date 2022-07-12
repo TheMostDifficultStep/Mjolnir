@@ -653,8 +653,10 @@ namespace Play.Sound {
 
         public override string FamilyName => "PD";
 
+        public override double OffsetInMS => WidthSyncInMS - 2.08; // This fixes it... why?
 
-		protected override void Initialize() {
+
+        protected override void Initialize() {
 			if( Family != TVFamily.PD )
 				throw new ArgumentOutOfRangeException( "Mode must be of PD type" );
 
@@ -849,8 +851,8 @@ namespace Play.Sound {
         }
 
         public virtual IEnumerator<int> GetEnumerator() {
-            WriteVIS( Mode.VIS );
-            yield return 0;
+            //WriteVIS( Mode.VIS );
+            //yield return 0;
 
             // Might need to add the 16 scan line grey scale bar.
             // All the doc's mention it, but I didn't see MMSSTV code for it.
