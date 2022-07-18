@@ -3,7 +3,7 @@
 	<fonts>
 		<font system="text">C:\windows\fonts\consola.ttf</font>
 		<font system="menu">C:\windows\fonts\seguisym.ttf</font>
-		<font >C:\Windows\Fonts\UDDigiKyokashoN-R.ttc</font>
+		<font              >C:\windows\fonts\UDDigiKyokashoN-R.ttc</font>
 	</fonts>
 	<addons>
 	</addons>
@@ -82,7 +82,6 @@
 	<mainwindow>
 
 		<favorites>
-			<fav src="C:\users\frodo\documents" />
 		</favorites>
 		<location left="120" top="20" width="1000" height="800" />
 		<margin left="345" right="0" bottom="100" tools="0" options="0" />
@@ -95,7 +94,7 @@
 			<dock tool="views"       visible="false" edge="bottom" solo="true"  icon="icon_windows.gif"     display="Views" />
 			<dock tool="alerts"      visible="false" edge="bottom" solo="true"  icon="icon_output.gif"      display="Alerts" />
 			<dock tool="productions" visible="false" edge="left"   solo="false" icon="icon_productions.gif" display="Productions" decor="{266BE614-5336-4B45-A132-43640E659F69}" />
-			<dock tool="options"     visible="false" edge="options" solo="false" icon="icon_productions.gif" display="Options" decor="{6AECF17A-D91B-452F-9B67-840144446DDB}" />
+			<dock tool="options"     visible="false" edge="options"  solo="false" icon="icon_productions.gif" display="Options" decor="{6AECF17A-D91B-452F-9B67-840144446DDB}" />
 			<dock tool="tools"       visible="false" edge="tools"  solo="false" icon="icon_productions.gif" display="Tools" decor="{83F0CB89-16BC-4DA8-8A79-A6F13DF57DA9}" />
 		</docking>
 		<documents bgcolor="white">
