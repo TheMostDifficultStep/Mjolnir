@@ -396,6 +396,12 @@ namespace Mjolnir {
 				Color sColor = Color.FromName( oMap._strValue );
                 _rgTxtColors.Add( new SKColor( sColor.R, sColor.G, sColor.B ) );
 			}
+            if( _rgTxtColors.Count <= 0 ) {
+                LogError( "Grammars", "No text colors. Adding a default Black" );
+                // TODO: See the program constructor for the shell colors. Black might not
+                // work if we have a std bg color of black instead of the usual white.
+                _rgTxtColors.Add( SKColors.Black );
+            }
 
             InitializePlugins    ( xmlConfig );
             InitializeControllers();
@@ -1191,12 +1197,15 @@ namespace Mjolnir {
                 GrammerMap oMapText = new GrammerMap( "text", "text", strAsmName + ".Content.text2.bnf" );
                 _rgGrammarMap.Remove( "text" );
                 _rgGrammarMap.Add( oMapText.Name, oMapText );
+                // Do this so the grammar actually loads from it's bnf file.
+                if( GetMappedGrammerSite( "text" ) == null )
+                    LogError( "Grammars", "Couldn't load internal text grammar." );
             }
-            if( GetMappedGrammerSite( "line_breaker" ) == null ) {
-                GrammerMap oMapText = new GrammerMap( "line_breaker", "words", strAsmName + ".Content.linebreaker.bnf" );
-                _rgGrammarMap.Remove( "line_breaker" );
-                _rgGrammarMap.Add( oMapText.Name, oMapText );
-            }
+            //if( GetMappedGrammerSite( "line_breaker" ) == null ) {
+            //    GrammerMap oMapText = new GrammerMap( "line_breaker", "words", strAsmName + ".Content.linebreaker.bnf" );
+            //    _rgGrammarMap.Remove( "line_breaker" );
+            //    _rgGrammarMap.Add( oMapText.Name, oMapText );
+            //}
 
             XmlNodeList lstMaps;
 			try {

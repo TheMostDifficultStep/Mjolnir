@@ -232,7 +232,7 @@ namespace Play.Edit {
 				foreach( LayoutText2 oCell in _rgCache ) {
 					// BUG: Got to figure out where I can init the static items once.
 					if( oCell.Cache.IsInvalid ) {
-						_oDocument.WordBreak( oCell.Cache.Line, oCell.Cache.Words );
+						//_oDocument.WordBreak( oCell.Cache.Line, oCell.Cache.Words );
 						oCell.Cache.Update( oFR );
 						oCell.Cache.OnChangeSize( int.MaxValue >> 6 ); // BUG: Ugly hack alert!!
 					}

@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" ?>
 <bnfstuff>
   <metadata>
-    <colortable>
+    <colortable> 
       <color name="black"     value="black" />
       <color name="blue"      value="blue" />
       <color name="red"       value="red"  />

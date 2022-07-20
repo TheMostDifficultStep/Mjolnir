@@ -182,15 +182,15 @@ namespace Play.Edit {
 		public IPgParent Parentage => _oSiteBase.Host;
 		public IPgParent Services  => Parentage.Services;
 
-		public WordBreakerHandler ParseWords { get; } // A basic word breaker/counter for wrapped views.
+	  //public WordBreakerHandler ParseWords { get; } // A basic word breaker/counter for wrapped views.
 
 		public PropDoc( IPgBaseSite oSiteBase ) {
 			_oSiteBase = oSiteBase ?? throw new ArgumentNullException();
 
-			Grammer<char> oLineBreakerGrammar = LineBreakerGrammar;
-			if( oLineBreakerGrammar != null ) {
-				ParseWords = new WordBreakerHandler( LineBreakerGrammar );
-			}
+			//Grammer<char> oLineBreakerGrammar = LineBreakerGrammar;
+			//if( oLineBreakerGrammar != null ) {
+			//	ParseWords = new WordBreakerHandler( LineBreakerGrammar );
+			//}
 			
 			try {
 				_oTextGrammar = (Grammer<char>)((IPgGrammers)Services).GetGrammer( "text" );
@@ -243,11 +243,11 @@ namespace Play.Edit {
             }
         }
 
-		public void WordBreak( Line oLine, ICollection<IPgWordRange> rgWords ) {
-            if( ParseWords != null )
-			    ParseWords.Parse( oLine.GetStream(), rgWords );
-			oLine.WordCount = rgWords.Count;
-		}
+		//public void WordBreak( Line oLine, ICollection<IPgWordRange> rgWords ) {
+        //    if( ParseWords != null )
+		//	    ParseWords.Parse( oLine.GetStream(), rgWords );
+		//	oLine.WordCount = rgWords.Count;
+		//}
 
 		/// <summary>
 		/// While it parses, the formatting isn't making it into the Words 
