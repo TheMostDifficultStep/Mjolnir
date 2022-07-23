@@ -673,7 +673,7 @@ namespace Mjolnir {
 
             oFileMenu.DropDownItems.Add(new ToolStripSeparator() ); //---
 
-            oFileMenu.DropDownItems.Add(new ToolStripMenuItem("Close",  BitmapCreateFromChar( "\xe10a" ), new EventHandler(this.OnFileClose))); // s/b file close, close all views and file!
+            oFileMenu.DropDownItems.Add(new ToolStripMenuItem("Close",  BitmapCreateFromChar( "\xe10a" ), new EventHandler(this.OnFileClose), Keys.Control | Keys.W)); // s/b file close, close all views and file!
 
             // Edit Menu.
             ToolStripMenuItem oEditMenu = new ToolStripMenuItem("Edit");
