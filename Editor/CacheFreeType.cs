@@ -137,6 +137,9 @@ namespace Play.Edit {
         public         int  FontHeight{ protected set; get; }
         public       Align  Justify   { set; get; } = Align.Left;
 
+        protected const int InvisibleEOL = 0; // use this if I put the "<" at the end of selected lines.
+                                              // this marks places where I used to fix up for that.
+
         protected readonly List<IPgGlyph>  _rgGlyphs     = new List<IPgGlyph >(100); // Glyphs that construct characters.
         protected readonly List<PgCluster> _rgClusters   = new List<PgCluster>(100); // Single unit representing a character.
         protected readonly List<int>       _rgClusterMap = new List<int      >(100); // Cluster map from UTF to Cluster.
@@ -825,8 +828,9 @@ namespace Play.Edit {
         /// <returns></returns>
         /// <remarks>This depends on how we set up the EOL marker!!</remarks>
         protected int OffsetHorizontalBound( int iIncrement ) {
-            if( iIncrement >= 0 && _rgClusters.Count > 1 ) {
-                return(  _rgClusters[_rgClusters.Count-2].Source.Offset ); 
+            int iMin = (1+InvisibleEOL);
+            if( iIncrement >= 0 && _rgClusters.Count > iMin ) {
+                return(  _rgClusters[_rgClusters.Count-iMin].Source.Offset ); 
             }
 
             return( 0 );

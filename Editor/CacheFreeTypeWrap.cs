@@ -425,7 +425,7 @@ namespace Play.Edit {
                     // It will break and pass what will fit.
                     int iRun = WordBuilder( iIndex, flAdvance, iDisplayWidth, 0, out flExtent, out fVisible );
 
-                    if( fVisible ) {
+                    if( fVisible || iIndex == 0 ) {
                         flAdvance += flExtent;
                         flLastVis = flAdvance;
                     }
