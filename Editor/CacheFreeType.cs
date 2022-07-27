@@ -828,7 +828,7 @@ namespace Play.Edit {
         /// <returns></returns>
         /// <remarks>This depends on how we set up the EOL marker!!</remarks>
         protected int OffsetHorizontalBound( int iIncrement ) {
-            int iMin = (1+InvisibleEOL);
+            const int iMin = 1 + InvisibleEOL;
             try {
                 if( iIncrement >= 0 && _rgClusters.Count > iMin ) {
                     return(  _rgClusters[_rgClusters.Count-iMin].Source.Offset ); 
