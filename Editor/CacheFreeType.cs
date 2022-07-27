@@ -829,8 +829,18 @@ namespace Play.Edit {
         /// <remarks>This depends on how we set up the EOL marker!!</remarks>
         protected int OffsetHorizontalBound( int iIncrement ) {
             int iMin = (1+InvisibleEOL);
-            if( iIncrement >= 0 && _rgClusters.Count > iMin ) {
-                return(  _rgClusters[_rgClusters.Count-iMin].Source.Offset ); 
+            try {
+                if( iIncrement >= 0 && _rgClusters.Count > iMin ) {
+                    return(  _rgClusters[_rgClusters.Count-iMin].Source.Offset ); 
+                }
+            }  catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( ArgumentOutOfRangeException ),
+                                    typeof( NullReferenceException ),
+                                    typeof( IndexOutOfRangeException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
+
+                // Argh, I'd like to log an error but no back pointer to the shell.
             }
 
             return( 0 );
