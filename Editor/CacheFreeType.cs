@@ -585,8 +585,18 @@ namespace Play.Edit {
                         }
 
                         // Negative numbers can be hyper links too, need to work that out. 
-                        skPaint.Color = oCluster.ColorIndex < 0 ? oStdUI.ColorsStandardAt( StdUIColors.TextSelected ) : 
-                                                                  oStdUI.ColorsText[ oCluster.ColorIndex ];
+                        try {
+                            skPaint.Color = oCluster.ColorIndex < 0 ? oStdUI.ColorsStandardAt( StdUIColors.TextSelected ) : 
+                                                                      oStdUI.ColorsText[ oCluster.ColorIndex ];
+                        } catch( Exception oEx ) {
+                            Type[] rgErrors = { typeof( ArgumentOutOfRangeException ),
+                                                typeof( IndexOutOfRangeException ) };
+                            if( rgErrors.IsUnhandled( oEx ) )
+                                throw;
+
+                            // Slower but should only be in the error recovery case.
+                            skPaint.Color = SKColors.Black;
+                        }
 
                         //foreach( int iGlyph in oCluster ) {
                             DrawGlyph( skCanvas, skPaint, flX, flY, _rgGlyphs[oCluster.Glyphs.Offset] );

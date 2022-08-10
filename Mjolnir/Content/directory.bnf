@@ -1,0 +1,149 @@
+﻿<?xml version="1.0" ?>
+<bnfstuff>
+  <metadata>
+    <colortable>
+        <color name="black"   value="black" />
+        <color name="blue"    value="blue" />
+        <color name="red"     value="red"  />
+        <color name="darkred" value="darkred"  />
+        <color name="green"   value="green"  />
+        <color name="grey"    value="gray" />
+        <color name="gray"    value="gray" />
+        <color name="purple"  value="purple" />
+    </colortable>
+    <terminals>
+      <term name="mytoken"   class="TextTermToken" />
+      <term name="myliteral" class="TextTermLiteral" />
+      <term name="mynumber"  class="TextTermNumber" />
+      <term name="myspace"   class="TextTermSpace" />
+      <term name="mycr"      class="TextTermCR" />
+      <!-- Must follow casing or we don't read this element in the reader
+	       need to fix that bug in the grammer reader -->
+      <term name="myEmpty"   class="TextTermEmpty" />
+      <term name="myanyof"   class="TextTermAnyOf" />
+    </terminals>
+  </metadata>
+    <bnftable>
+        <state name="start">
+            <production>
+                <nont state="dir*" />
+            </production>
+        </state>
+
+        <state name="dir*">
+			<capture>
+				<binding id="tumblr"   color="green" />
+			</capture>
+			<!--<production lookahead="2">
+				<term class="mytoken" value="tumblr" id="tumblr" />
+				<term class="mytoken" value="_" />
+				<nont state="textonly*" />
+				<nont state="dir*" />
+			</production>-->
+			<production>
+                <nont state="music" />
+                <nont state="dir*" />
+            </production>
+			<production>
+				<nont state="text" />
+				<nont state="dir*" />
+			</production>
+			<production>
+				<term class="mycr" />
+				<nont state="dir*" />
+			</production>
+			<production>
+                <term class="myEmpty" />
+            </production>
+        </state>
+
+		<state name="track.cont" >
+			<production>
+				<term class="myspace" occur="*" />
+				<term class="mytoken" value="-" id="subtrack" />
+				<term class="myspace" occur="*" />
+                <term class="mynumber" id="number2" />
+			</production>
+            <production>
+                <term class="myEmpty" />
+            </production>
+		</state>
+
+        <state name="track" >
+            <production>
+                <term class="mynumber" id="number" />
+				<nont state="track.cont" />
+            </production>
+            <production>
+                <term class="myEmpty" />
+            </production>
+        </state>
+
+        <state name="music" >
+            <capture>
+                <binding id="number"   color="red" />
+                <binding id="subtrack" color="red" />
+                <binding id="number2"  color="red" />
+                <binding id="name"     color="blue" />
+                <binding id="extn"     color="darkred" />
+            </capture>
+            <!-- TODO: when we fail we don't get an error at which n/terminal fails
+                 only the whole production. Need to fix parser. For example, remove '
+                 from the "text" state and read a file name with that element. -->
+            <production lookahead ="3">
+                <nont state="track" />
+                <nont state="textonly*" id="name"/>
+                <term class="mycr" />
+            </production>
+        </state >
+
+        <state name="space">
+            <production lookahead="2">
+                <term class="myspace" />
+                <nont state="space" />
+            </production>
+            <production lookahead="2">
+                <term class="mycr" />
+                <nont state="space" />
+            </production>
+            <production>
+                <term class="myEmpty" />
+            </production>
+        </state>
+
+        <state name="text">
+            <production>
+                <term class="myanyof" value="!_-'()[]&amp;,\" />
+            </production>
+            <production>
+                <!-- myanyof will consume this and we won't find "mp3"! -->
+                <term class="mytoken" value="." />
+            </production>
+            <production>
+                <term class="myliteral" />
+            </production>
+            <production>
+                <term class="mynumber" />
+            </production>
+            <production>
+                <term class="myspace" />
+            </production>
+        </state>
+
+        <state name="textonly*" >
+            <production>
+                <term class="mytoken" value="."  />
+                <nont state="text" id="extn" />
+				<nont state="textonly*" /> <!--  this let's us handle multible ".blah.blah" stuff  -->
+            </production>
+            <production>
+                <nont state="text" />
+                <nont state="textonly*" />
+            </production>
+            <production>
+                <term class="myEmpty" />
+            </production>
+        </state>
+
+    </bnftable>
+</bnfstuff>

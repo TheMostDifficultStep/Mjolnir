@@ -1,0 +1,155 @@
+﻿<?xml version="1.0" ?>
+<bnfstuff>
+  <metadata>
+    <colortable>
+        <color name="black"   value="black" />
+        <color name="blue"    value="blue" />
+        <color name="red"     value="red"  />
+        <color name="darkred" value="darkred"  />
+        <color name="green"   value="green"  />
+        <color name="grey"    value="gray" />
+        <color name="gray"    value="gray" />
+        <color name="purple"  value="purple" />
+    </colortable>
+    <terminals>
+      <term name="mytoken"   class="TextTermToken" />
+      <term name="myliteral" class="TextTermLiteral" />
+      <term name="mynumber"  class="TextTermNumber" />
+      <term name="myspace"   class="TextTermSpace" />
+      <term name="mycr"      class="TextTermCR" />
+      <!-- Must follow casing or we don't read this element in the reader
+	       need to fix that bug in the grammer reader -->
+      <term name="myEmpty"   class="TextTermEmpty" />
+      <term name="myanyof"   class="TextTermAnyOf" />
+    </terminals>
+  </metadata>
+    <bnftable>
+        <state name="start">
+            <capture>
+                <binding id="song" array="true" />
+            </capture>
+            <production>
+                <nont state="m3u" />
+            </production>
+        </state>
+
+        <state name="m3u">
+            <production lookahead="2">
+                <term class="myspace" occur="*" />
+                <nont state="single" id="song"  word="true" />
+                <nont state="m3u.next" />
+            </production>
+			<production lookahead="3">
+				<term class="myspace" occur="*" />
+				<term class="mytoken" value="#" id="comment" />
+                <nont state="textonly" id="comment" />
+                <term class="myspace" occur="*" />
+                <nont state="m3u.next" />
+			</production>
+			<!-- Since the -single- must not be empty, we write -textonly- so that
+                  it MUST load at least one text element. But that means we've got
+				  to look for the empty comment seperately -->
+			<production lookahead="2">
+				<term class="myspace" occur="*" />
+				<term class="mytoken" value="#" id="comment" />
+                <nont state="m3u.next" />
+			</production>
+        </state>
+
+		<state name="m3u.next">
+            <capture>
+                <binding id="comment" color="green" />
+            </capture>
+			<production lookahead="2">
+				<term class="mycr" occur="*" />
+				<nont state="m3u" />
+			</production>
+			<production>
+				<term class="myEmpty" />
+			</production>
+		</state>
+
+      <state name="single" >
+            <capture>
+                <binding id="number"   color="red" />
+                <binding id="subtrack" color="red" />
+                <binding id="number2"  color="red" />
+                <binding id="name"     color="blue" />
+                <binding id="extn"     color="darkred" />
+            </capture>
+            <!-- Note: it's pretty heavy handed, but we need to seek into the
+			           text to know if we really have another song since the
+					   preamble might be empty! -->
+            <production lookahead="2">
+                <nont state="preamble" />
+                <nont state="textonly" id="name"/>
+                <term class="myspace" occur="*" />
+            </production>
+        </state >
+
+		<state name="preamble" >
+			<production>
+				<term class="mynumber" id="number" />
+				<nont state="preamble.cont" />
+			</production>
+			<production>
+				<term class="myEmpty" />
+			</production>
+		</state>
+
+		<state name="preamble.cont" >
+			<production lookahead="4">
+				<term class="myspace" occur="*" />
+				<term class="mytoken" value="-" id="subtrack" />
+				<term class="myspace" occur="*" />
+				<term class="mynumber" id="number2" />
+			</production>
+			<production lookahead="3">
+				<term class="myspace" occur="*" />
+				<term class="mytoken" value="-" id="subtrack" />
+				<term class="myspace" occur="*" />
+			</production>
+			<production>
+				<term class="myEmpty" />
+			</production>
+		</state>
+
+        <state name="text">
+            <production>
+                <term class="myanyof" value="+\{}()[]!_-,:;&apos;&amp;" />
+            </production>
+			<production>
+				<term class="mytoken" value="."  />
+			</production>
+            <production>
+                <term class="myliteral" />
+            </production>
+            <production>
+                <term class="mynumber" />
+            </production>
+            <production>
+                <term class="myspace" />
+            </production>
+        </state>
+
+        <state name="textonly" >
+            <production>
+                <nont state="text" />
+                <nont state="textnext" />
+            </production>
+        </state>
+
+        <state name="textnext" >
+            <production>
+                <nont state="textonly" />
+            </production>
+			<production lookahead="2">
+				<term class="mytoken" value="."  />
+				<term class="mytoken" value="mp3" id="extn" />
+			</production>
+			<production>
+				<term class="myEmpty" />
+			</production>
+        </state>
+    </bnftable>
+</bnfstuff>

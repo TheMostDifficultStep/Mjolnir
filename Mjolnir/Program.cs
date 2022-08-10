@@ -117,7 +117,9 @@ namespace Mjolnir {
                 try {
 			        oProgram.Initialize( xmlConfig );
                 } catch( Exception oEx ) {
-                    oProgram.TryLogXmlError( oEx, "Couldn't read global config." );
+                    string strError = "Couldn't read global config.";
+                    oProgram.TryLogXmlError( oEx, strError );
+                    oProgram.BombOut( oEx, strError );
 				    return;
                 }
                 // It's tempting to put the main window stuff in the initialize procedure, 
@@ -126,13 +128,10 @@ namespace Mjolnir {
 			    try {
 				    oProgram.SessionLoad( rgArgs, xmlConfig );
                 } catch ( Exception oEx ) {
-                    if( oProgram.TryLogXmlError( oEx, "Couldn't configure Main window." ) ) {
-
+                    string strError2 = "Couldn't configure Main window.";
+                    if( oProgram.TryLogXmlError( oEx, strError2 ) ) {
  					    oProgram.LogError( "internal", oEx.Message );
-                        oProgram.BombOut( oEx );
-					    // BUG: This would be a great place for use to write out the alerts
-					    //      and this last error to a file somewhere. ^_^;;
-					    Console.WriteLine( oEx.Message );
+                        oProgram.BombOut( oEx, strError2 );
                         return;
                     }
 			    }
@@ -183,7 +182,11 @@ namespace Mjolnir {
 			//foreach( IPgRoundRobinWork oWorker in _rgWorkers ) {
 			//}
 
-			MainWindow  .Dispose(); // BUG: Opps, this might be redundant. Check it.
+            // It has happened that we bail on startup and don't get the window created.
+            if( MainWindow != null ) {
+			    MainWindow.Dispose(); 
+            }
+
 			_oMp3Factory.Dispose();
 			FontStandard.Dispose();
 			FontMenu    .Dispose();
@@ -217,12 +220,17 @@ namespace Mjolnir {
 			}
 		}
 
-        public void BombOut( Exception oOutGoingEx ) {
+        public void BombOut( Exception oOutGoingEx, string strText = "" ) {
             try {
                 string strFile = Path.Combine(AppDataPath, "crashout.txt" );
                 using ( Stream oStream = new FileStream( strFile, FileMode.Create, FileAccess.Write ) ) {
                     using( StreamWriter oWrite = new StreamWriter( oStream ) ) {
-                        oWrite.Write( oOutGoingEx.StackTrace );
+                        if( !string.IsNullOrEmpty( strText ) ) {
+                            oWrite.WriteLine( strText );
+                        }
+                        if( oOutGoingEx != null ) {
+                            oWrite.WriteLine( oOutGoingEx.StackTrace );
+                        }
                     }
                 }
             } catch( Exception oEx ) {
@@ -1145,6 +1153,15 @@ namespace Mjolnir {
             Controllers.Add( new Play.SSTV         .MySSTVController() );
         }
 
+        protected class EmbeddedGrammars {
+            public EmbeddedGrammars( string strName, string strPlace ) {
+                _strName  = strName;
+                _strPlace = strPlace;
+            }
+            public readonly string _strName;
+            public readonly string _strPlace;
+        }
+
         /// <summary>
         /// Read in the grammars and the mappings to the file types.
         /// </summary>
@@ -1191,16 +1208,28 @@ namespace Mjolnir {
 			Assembly oAsm       = Assembly.GetExecutingAssembly();
 			string   strAsmName = oAsm.GetName().Name;
 
-            // BUG: Grammar is lazy read. If file is wrong, we lost our chance to fix it!!!
-            // Here I Force read the one's I absolutely require.
-            if( GetMappedGrammerSite( "text" ) == null ) {
-                GrammerMap oMapText = new GrammerMap( "text", "text", strAsmName + ".Content.text2.bnf" );
-                _rgGrammarMap.Remove( "text" );
-                _rgGrammarMap.Add( oMapText.Name, oMapText );
-                // Do this so the grammar actually loads from it's bnf file.
-                if( GetMappedGrammerSite( "text" ) == null )
-                    LogError( "Grammars", "Couldn't load internal text grammar." );
+            List<EmbeddedGrammars> rgPreLoad = new();
+
+            // These are text "type" grammars. line_breaker (word "type") is not needed at present.
+            rgPreLoad.Add( new EmbeddedGrammars( "text",      "text2.bnf"     ) );
+            rgPreLoad.Add( new EmbeddedGrammars( "directory", "directory.bnf" ) );
+            rgPreLoad.Add( new EmbeddedGrammars( "m3u",       "m3u.bnf"       ) );
+
+            // Force read the grammars I'd really like. BUG: Add a flag to quiet the warnings...
+            foreach( EmbeddedGrammars oEmbed in rgPreLoad ) {
+                if( GetMappedGrammerSite( oEmbed._strName ) == null ) {
+                    LogError( "Grammars", "Trying embedded : " + oEmbed._strPlace );
+                    GrammerMap oMapText = new GrammerMap( oEmbed._strName, "text", strAsmName + ".Content." + oEmbed._strPlace );
+                    _rgGrammarMap.Remove( oEmbed._strName );
+                    _rgGrammarMap.Add( oMapText.Name, oMapText );
+                    // Do this so the grammar actually loads from it's bnf file.
+                    if( GetMappedGrammerSite( oEmbed._strName ) == null )
+                        LogError( "Grammars", "Couldn't load internal text grammar." );
+                    else
+                        LogError( "Grammars", "Successful load of embedded grammar : " + oEmbed._strPlace );
+                }
             }
+            // I'd have to do more work for this one but we don't need the line breaker anymore.
             //if( GetMappedGrammerSite( "line_breaker" ) == null ) {
             //    GrammerMap oMapText = new GrammerMap( "line_breaker", "words", strAsmName + ".Content.linebreaker.bnf" );
             //    _rgGrammarMap.Remove( "line_breaker" );
