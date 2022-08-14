@@ -393,7 +393,7 @@ namespace Play.ImageViewer {
         /// If we were a view we would listen in on the ImageUpdated event.
         /// But since we're the owning object, I'll simply use the override.
         /// </summary>
-        protected override void Raise_ImageUpdated() {
+        public override void Raise_ImageUpdated() {
             foreach( SmartRect oRect in this ) {
                 oRect.LayoutChildren();
             }

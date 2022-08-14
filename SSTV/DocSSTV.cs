@@ -1464,6 +1464,8 @@ namespace Play.SSTV {
                         case SSTVEvents.DownLoadTime: 
                             Properties.ValueUpdate( SSTVProperties.Names.Rx_Progress, sResult.Param.ToString( "D2" ) + "%", Broadcast:true );
                             PropertyChange?.Invoke( SSTVEvents.DownLoadTime );
+                            // A little bit skanky. First place we need public access to this...
+                            DisplayImage.Raise_ImageUpdated();
                             break;
                         case SSTVEvents.DownLoadFinished: // NOTE: This comes along unreliably in the device streaming case.
                             Properties.ValueUpdate( SSTVProperties.Names.Rx_Progress, sResult.Param.ToString( "D2" ) + "% - Complete", Broadcast:true );

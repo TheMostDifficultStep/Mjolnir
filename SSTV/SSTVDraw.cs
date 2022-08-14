@@ -74,6 +74,11 @@ namespace Play.SSTV {
 		/// <remarks>
 		/// Techically we dont need all of the demodulator but only access to the signal
 		/// and sync buffer and some signal levels. I'll see about that in the future.
+		/// Also note, 8/14/2012: We're sending the D12 and Rx bitmaps in here, we write to them.
+		/// But the documents they live in don't know they've updated and so won't send
+		/// messages to any listening views!! Grrr.. How best to fix this? I'm going to make
+		/// the Raise_ImageUpdated() event public. We raise the SSTVEvents here and the
+		/// receiver of those events will call the image document Raise event.
 		/// </remarks>
 		public SSTVDraw( SSTVDEM p_dp, SKBitmap oD12, SKBitmap oRx ) {
 			_dp         = p_dp ?? throw new ArgumentNullException( "Demodulator must not be null to SSTVDraw." );

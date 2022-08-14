@@ -383,7 +383,7 @@ namespace Play.ImageViewer {
 			return true;
 		}
 
-		protected virtual void Raise_ImageUpdated() {
+		public virtual void Raise_ImageUpdated() {
             ImageUpdated?.Invoke();
         }
 
@@ -1313,7 +1313,7 @@ namespace Play.ImageViewer {
             base.Raise_ImageUpdated();
         }
 
-        protected override void Raise_ImageUpdated() {
+        public override void Raise_ImageUpdated() {
             DecorNavigatorUpdate();
 
             CurrentShowPath.Empty();
