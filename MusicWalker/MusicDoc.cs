@@ -602,7 +602,8 @@ namespace Play.MusicWalker {
 			typeof( IOException ),
 			typeof( BadImageFormatException ),
 			typeof( NotImplementedException ),
-			typeof( InvalidCastException )
+			typeof( InvalidCastException ),
+			typeof( UnauthorizedAccessException )
 		};
 
 		public Type[] ErrorsStandardFile => _rgFileErrors;
