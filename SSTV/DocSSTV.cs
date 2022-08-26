@@ -1702,7 +1702,8 @@ namespace Play.SSTV {
                                         typeof( OverflowException ),
                                         typeof( ThreadStateException ),
                                         typeof( InsufficientMemoryException ),
-                                        typeof( BadDeviceIdException ) };
+                                        typeof( BadDeviceIdException ),
+                                        typeof( NAudio.MmException ) };
                     if( rgErrors.IsUnhandled( oEx ) )
                         throw;
 

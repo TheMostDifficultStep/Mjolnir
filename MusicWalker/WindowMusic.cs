@@ -371,9 +371,11 @@ namespace Play.MusicWalker {
 			}
 
 			try {
-				using( Stream oReader = new FileStream( strArtPath, FileMode.Open ) ) {
-					AlbumArtCurrent.Load( oReader );
-				}
+				using Stream oReader2 = File.OpenRead( strArtPath );
+				// BUG! FileStream fails to read the UNC Path to my server \\hefty3\....
+				// BUT File.OpenRead.. has no problem.
+				//using Stream oReader = new FileStream( strArtPath, FileMode.Open );
+				AlbumArtCurrent.Load( oReader2 );
 			} catch( Exception oEx ) {
 				if( Document.ErrorsStandardFile.IsUnhandled( oEx ) )
 					throw;
