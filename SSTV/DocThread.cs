@@ -304,7 +304,8 @@ namespace Play.SSTV {
         /// outboard. Then we don't need to pass in the sample rate here and we can
         /// init the DeMo and Draw objects in the base!! (maybe -_-)</remarks>
         /// <exception cref="ArgumentNullException"></exception>
-        public DeviceListeningState( double                       dblSampleRate,
+        public DeviceListeningState( int                          iDevice,
+                                     double                       dblSampleRate,
                                      int                          iImageQuality,
                                      string                       strFilePath,
                                      string                       strFileName,
@@ -326,7 +327,7 @@ namespace Play.SSTV {
 
             Specification oMonSpec = new( (long)dblSampleRate, 1, 0, 16 );
             _oPlayBuffer = new BufferSSTV( oMonSpec );
-            _oPlayer     = new WmmPlayer ( oMonSpec, 0 );
+            _oPlayer     = new WmmPlayer ( oMonSpec, iDevice );
         }
 
         /// <summary>

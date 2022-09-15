@@ -1351,6 +1351,11 @@ namespace Play.SSTV {
             if( PortTxList.CheckedLine == null ) {
                 LogError( "No sound device to send to" ); return;
             }
+            if( MonitorList.CheckedLine != null &&
+                MonitorList.CheckedLine.At ==
+                PortTxList .CheckedLine.At ) {
+                LogError( "Transmit and Monitor sound devices must not be the same!!" ); return;
+            }
             if( StateTx ) {
                 LogError( "Already Transmitting" ); return;
             }
@@ -1626,17 +1631,22 @@ namespace Play.SSTV {
             }
             if( _oThread == null ) {
                 try {
-                    int  iMicrophone = -1; 
-                    int  iMonitor    = -1;
+                    int iMicrophone = -1; 
+                    int iMonitor    = -1;
 
+                    // Technically this is optional, but I've got to sort that out.
+                    // BUG: Monitor and TX device should not be the same.
+                    if( MonitorList.CheckedLine != null ) {
+                        iMonitor = MonitorList.CheckedLine.At;
+                    } else {
+                        LogError( "Please select an sound monitor device" );
+                        return;
+                    }
                     if( PortRxList.CheckedLine != null ) {
                         iMicrophone = PortRxList.CheckedLine.At;
                     } else {
                         LogError( "Please select an sound input device" );
                         return;
-                    }
-                    if( MonitorList.CheckedLine != null ) {
-                        iMonitor = MonitorList.CheckedLine.At;
                     }
 
                     if( _oWaveIn == null ) {
@@ -1678,6 +1688,7 @@ namespace Play.SSTV {
                     }
 
                     DeviceListeningState oWorker = new DeviceListeningState( 
+                        iMonitor,
                         dblFreq, 
                         iQuality, strSaveDir, String.Empty,
                         _rgBGtoUIQueue, _rgDataQueue, 
