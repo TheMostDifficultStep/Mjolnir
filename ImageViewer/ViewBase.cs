@@ -78,32 +78,56 @@ namespace Play.ImageViewer {
 		/// <param name="rctViewPort">Computed rectangle to place the image in the target window. (side effect)</param>
         public static void ViewPortSizeMax( Size szBorder, Size szWindow, SmartRect rctBitmap, SmartRect rctViewPort ) 
         {
-            // If we don't have a bitmap we can't do much about setting our viewport.
-			Size  whWinSize      = new Size( szWindow.Width - szBorder.Width, szWindow.Height - szBorder.Height );
+			Size  szWinSize      = new Size( szWindow.Width - szBorder.Width, szWindow.Height - szBorder.Height );
             float flImageAspect  = rctBitmap.Width / (float)rctBitmap.Height;
-            float flWindowAspect = whWinSize.Width / (float)whWinSize.Height;
+            float flWindowAspect = szWinSize.Width / (float)szWinSize.Height;
 
 			// Calculate the new image viewport.
-			Size pntBmpSize = new Size( rctBitmap.Width, rctBitmap.Height );
+			Size pntViewSize = new Size( rctBitmap.Width, rctBitmap.Height );
 
 			if ( flWindowAspect > flImageAspect ) {
                 // Window is wide and squat compared to bitmap.
                 // image takes up entire height.
-                pntBmpSize.Height = whWinSize.Height;
-                pntBmpSize.Width  = (int)(whWinSize.Height * flImageAspect);
+                pntViewSize.Height = szWinSize.Height;
+                pntViewSize.Width  = (int)(szWinSize.Height * flImageAspect);
             } else {
                 // Window is tall and narrow compared to bitmap.
                 // image takes up entire width.
-                pntBmpSize.Width  = whWinSize.Width;
-                pntBmpSize.Height = (int)(whWinSize.Width / flImageAspect);
+                pntViewSize.Width  = szWinSize.Width;
+                pntViewSize.Height = (int)(szWinSize.Width / flImageAspect);
             }
 
 			Point pntUpperLeft = new Point {
-				X = ((whWinSize.Width  - pntBmpSize.Width  + szBorder.Width  ) / 2 ),
-				Y = ((whWinSize.Height - pntBmpSize.Height + szBorder.Height ) / 2 )
+				X = ((szWinSize.Width  - pntViewSize.Width  + szBorder.Width  ) / 2 ),
+				Y = ((szWinSize.Height - pntViewSize.Height + szBorder.Height ) / 2 )
 			};
 
-			rctViewPort.SetRect( LOCUS.UPPERLEFT, pntUpperLeft.X, pntUpperLeft.Y, pntBmpSize.Width, pntBmpSize.Height );
+			rctViewPort.SetRect( LOCUS.UPPERLEFT, pntUpperLeft.X, pntUpperLeft.Y, pntViewSize.Width, pntViewSize.Height );
+        }
+
+		/// <summary>
+		/// Given a particular width. Use this to calculate the viewport height honoring
+		/// the bitmap aspect ratio.
+		/// </summary>
+		/// <param name="szBorder">Any border around the image.</param>
+		/// <param name="iWinWidth">Available width for the view.</param>
+		/// <param name="rctBitmap">The bitmap world view.</param>
+		/// <param name="rctViewPort">Resulting viewport.</param>
+        public static void ViewPortFitWidth( Size szBorder, int iWinWidth, SmartRect rctBitmap, SmartRect rctViewPort ) 
+        {
+			int   iWidth         = iWinWidth - szBorder.Width;
+            float flImageAspect  = rctBitmap.Width / (float)rctBitmap.Height;
+
+			// Calculate the new image viewport.
+			Size pntViewSize = new Size( rctBitmap.Width, rctBitmap.Height );
+
+            // Take whatever the width is and find the matching height.
+            pntViewSize.Width  = iWinWidth - 2* szBorder.Width;
+            pntViewSize.Height = (int)(pntViewSize.Width / flImageAspect) + 2 * szBorder.Height;
+
+			Point pntUpperLeft = new Point( szBorder.Width, szBorder.Height );
+
+			rctViewPort.SetRect( LOCUS.UPPERLEFT, pntUpperLeft.X, pntUpperLeft.Y, pntViewSize.Width, pntViewSize.Height );
         }
 	}
 
