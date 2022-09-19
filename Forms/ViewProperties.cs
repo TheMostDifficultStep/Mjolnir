@@ -76,7 +76,7 @@ namespace Play.Forms {
                     oWinLoad.InitNew();
                 }
                 oWinValue.Parent = this;
-                oLayoutValue = new LayoutControl( oWinValue, LayoutRect.CSS.Pixels, 100 );
+                oLayoutValue = new LayoutControl( oWinValue, LayoutRect.CSS.Flex, 100 );
             }
 
             oLayout.AddRow( new List<LayoutRect>() { oLayoutLabel, oLayoutValue } );

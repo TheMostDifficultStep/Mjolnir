@@ -21,7 +21,7 @@ using SkiaSharp;
 
 namespace Play.Rectangles {
 	/// <summary>
-	/// It's a little bit wierd, but I can't seem to get this to work in the "Drawing" project, 
+	/// It's a little bit weird, but I can't seem to get this to work in the "Drawing" project, 
     /// where I tried including System.Windows.Forms. However, here it works? Don't know why
     /// But since anyone doing anything is going to include the "Editor" project. It's OK.
 	/// </summary>
@@ -49,7 +49,7 @@ namespace Play.Rectangles {
             if( Units == CSS.Pixels ) // Go with the set track size.
                 return Track;
 
-			Size szProposed = eParentAxis == TRACK.HORIZ ? new Size( Width, uiRail ) : new Size( uiRail, Height );
+			Size szProposed = eParentAxis == TRACK.HORIZ ? new Size( (int)Track, uiRail ) : new Size( uiRail, (int)Track );
 			Size szPrefered = _oControl.GetPreferredSize( szProposed );
 			int  iTrack     = eParentAxis == TRACK.HORIZ ? szPrefered.Width : szPrefered.Height;
             
@@ -288,19 +288,19 @@ namespace Play.Edit {
 		/// Of course this isn't valid if the cache elements haven't been measured yet.
 		/// Still experimental.
 		/// </summary>
-		public override Size GetPreferredSize( Size oProposed ) {
-			Size oSize = new Size( Width, Height );
+		public override Size GetPreferredSize( Size sProposed ) {
+			Size sSize = sProposed;
 
 			CacheRefresh( RefreshType.COMPLEX, RefreshNeighborhood.SCROLL );
 
 			foreach( UniscribeCache oCache in _oCacheMan ) {
-				if( oSize.Width < oCache.Width )
-					oSize.Width = oCache.Width;
-				if( oSize.Height < oCache.Height )
-					oSize.Width = oCache.Width;
+				if( sSize.Width < oCache.Width )
+					sSize.Width = oCache.Width;
+				if( sSize.Height < oCache.Height )
+					sSize.Width = oCache.Width;
 			}
 
-			return oSize;
+			return sSize;
 		}
 			
 		protected virtual void DecorNavPropsInit() {

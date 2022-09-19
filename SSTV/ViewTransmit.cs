@@ -56,7 +56,7 @@ namespace Play.SSTV {
 			// problem with parent.
 			PropertyInitRow( Layout as SmartTable, 
 				             (int)SSTVProperties.Names.Rx_Window, 
-							 new ImageViewSingle( new WinSlot( this ), _oDocSSTV.DisplayImage ) );
+							 new ImageViewSingle( new WinSlot( this ), _oDocSSTV.DisplayImage )  );
         }
     }
 

@@ -616,13 +616,14 @@ namespace Play.Rectangles {
 
                 foreach ( LayoutStack oRow in _oRowStack ) {
                     // Find the max cell height for the row.
-                    int iColumn = 0;
+                    int iColumn = 0; // which cell on the row we're looking at.
                     oRow.Track  = 0;
                     foreach( LayoutRect oCell in oRow ) {
                         int  iLeft   = _oColStack.Item(iColumn             ).Left;
                         int  iRight  = _oColStack.Item(iColumn + oCell.Span).Right;
-                        uint uiTrack = oCell.TrackDesired( TRACK.VERT, iRight - iLeft );
-
+						int  iSpan   = iRight - iLeft;
+                        uint uiTrack = oCell.TrackDesired( TRACK.VERT, iSpan );
+						// Update the row track size if cell is bigger.
 						if( uiTrack > oRow.Track )
 							oRow.Track = uiTrack;
                         iColumn += oCell.Span + 1; // Make sure we skip over the spanned cell!!

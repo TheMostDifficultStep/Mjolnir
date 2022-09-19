@@ -122,7 +122,7 @@ namespace Play.ImageViewer {
 			Size pntViewSize = new Size( rctBitmap.Width, rctBitmap.Height );
 
             // Take whatever the width is and find the matching height.
-            pntViewSize.Width  = iWinWidth - 2* szBorder.Width;
+            pntViewSize.Width  = iWinWidth - 2 * szBorder.Width;
             pntViewSize.Height = (int)(pntViewSize.Width / flImageAspect) + 2 * szBorder.Height;
 
 			Point pntUpperLeft = new Point( szBorder.Width, szBorder.Height );
@@ -506,6 +506,18 @@ namespace Play.ImageViewer {
         public virtual bool Execute( Guid sGuid ) {
             return( Document.Execute( sGuid ) );
         }
+
+        public override Size GetPreferredSize(Size proposedSize) {
+			SmartRect rctViewPort = new SmartRect();
+
+			ImageHelpers.ViewPortFitWidth( new Size( 0, 0 ), 
+										   proposedSize.Width, 
+										   _rctWorldPort, 
+										   rctViewPort );
+
+            return new Size( rctViewPort.Width, rctViewPort.Height );
+        }
+
 	}
 
 	public class ImageViewButton : ImageViewSingle {

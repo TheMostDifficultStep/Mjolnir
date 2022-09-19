@@ -553,19 +553,19 @@ namespace Play.Edit {
 		/// Of course this isn't valid if the cache elements haven't been measured yet.
 		/// Still experimental.
 		/// </summary>
-		public override Size GetPreferredSize( Size oProposed ) {
-			Size oSize = new Size( Width, Height );
+		public override Size GetPreferredSize( Size sProposed ) {
+			Size sSize = sProposed;
 
 			CacheRefresh( RefreshType.COMPLEX, RefreshNeighborhood.SCROLL );
 
 			foreach( FTCacheLine oCache in _oCacheMan ) {
-				if( oSize.Width < oCache.UnwrappedWidth )
-					oSize.Width = (int)oCache.UnwrappedWidth;
-				if( oSize.Height < oCache.Height )
-					oSize.Width = (int)oCache.UnwrappedWidth;
+				//if( sSize.Width < oCache.UnwrappedWidth )
+				//	sSize.Width = (int)oCache.UnwrappedWidth;
+				if( sSize.Height < oCache.Height )
+					sSize.Height = (int)oCache.Height;
 			}
 
-			return oSize;
+			return sSize;
 		}
 			
 		private void OnBufferEvent(BUFFEREVENTS eEvent) {
