@@ -1204,7 +1204,7 @@ namespace Play.SSTV {
             TxBitmapComp.AddLayout( oVertiMain );
         }
 
-        protected class TxState : IEnumerable<int> {
+        protected class TxState : IEnumerable<int>, IDisposable {
             protected BufferSSTV    _oSSTVBuffer;      
             protected SSTVMOD       _oSSTVModulator;
             protected SSTVGenerator _oSSTVGenerator;
@@ -1278,6 +1278,10 @@ namespace Play.SSTV {
 
             IEnumerator IEnumerable.GetEnumerator() {
                 return GetEnumerator();
+            }
+
+            public void Dispose() {
+                _oPlayer.Dispose();
             }
         }
 
@@ -1413,7 +1417,8 @@ namespace Play.SSTV {
 
             await oTask;
 
-            oTask.Dispose(); // this is a little lengthy.
+            oTask .Dispose(); // this is a little lengthy.
+            oState.Dispose();
             StateTx = false;
             _oSiteBase.Notify( ShellNotify.MediaStatusChanged );
         }
