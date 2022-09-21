@@ -488,6 +488,7 @@ namespace Play.Sound {
 
     /// <summary>
     /// Used with the <see cref="NativeMethods.waveOutOpen"/> command.
+    /// Probably from winmm.h
     /// </summary>
     [Flags]
     public enum WaveOpenFlags
@@ -517,6 +518,8 @@ namespace Play.Sound {
         /// The dwCallback parameter is a callback procedure address.
         /// </summary>
         CALLBACK_FUNCTION = 0x30000,
+
+        CALLBACK_EVENT = 0x50000,
 
         /// <summary>
         /// If this flag is specified, <see cref="NativeMethods.waveOutOpen"/> queries the device to determine if it supports the given format, but the device is not actually opened.

@@ -190,21 +190,23 @@ namespace Play.Sound {
 			/// <exception cref="BadDeviceIdException" ></exception>
 			/// <exception cref="InvalidHandleException"></exception>
 			/// <exception cref="MMSystemException"></exception>
+			/// <remarks>Basically copy my managed wave header into the unmanaged
+			/// _ipUnManagedHeader to set it. </remarks>
 			public void Prepare( IntPtr hWave ) {
+				// copy my managed wave header into the unmanaged _ipUnManagedHeader to set it
 				Marshal.StructureToPtr( _oHeader, _ipUnManagedHeader, false);
 
 				MMSYSERROR error = MMSYSERROR.MMSYSERR_NOERROR;
 
-				// Since all I want back is the dwFlags on the header, I'm just going to
-				// pin my managed header copy for a moment.
-				fixed( void * pHeader = &_oHeader ) {
-					error = waveOutPrepareHeader(hWave, pHeader, Marshal.SizeOf(typeof(WAVEHDR) ));
-				}
+				error = waveOutPrepareHeader(hWave, _ipUnManagedHeader, Marshal.SizeOf(typeof(WAVEHDR) ));
 
-				if( !( _oHeader.dwFlags == WaveHeaderFlags.Prepared ) )
+				WAVEHDR oHeader = (WAVEHDR)Marshal.PtrToStructure( _ipUnManagedHeader, typeof( WAVEHDR ) );
+
+				if( !( oHeader.dwFlags == WaveHeaderFlags.Prepared ) )
 					error = MMSYSERROR.WAVERR_UNPREPARED;
 
 				MMHelpers.ThrowOnError( error, ErrorSource.WaveOut );
+				_oHeader = oHeader; // Copy the stuff back to ourself. 
 			}
 
 			public void UnPrepare( IntPtr hWave ) {
@@ -271,7 +273,7 @@ namespace Play.Sound {
         [DllImport("winmm.dll", SetLastError = true, CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Winapi)]
 			public static extern MMSYSERROR waveOutClose( IntPtr hHandle );
         [DllImport("winmm.dll", SetLastError = true, CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Winapi)]
-			public static extern MMSYSERROR waveOutPrepareHeader(IntPtr hwo, [In, Out] void * pHeader, int cbwh);
+			public static extern MMSYSERROR waveOutPrepareHeader(IntPtr hwo, IntPtr ipHeader, int cbwh);
         [DllImport("winmm.dll", SetLastError = true, CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Winapi)]
 			public static extern MMSYSERROR waveOutUnprepareHeader(IntPtr hwo, IntPtr ipHeader, int cbwh);
         [DllImport("winmm.dll", SetLastError = true, CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Winapi)]
@@ -299,6 +301,7 @@ namespace Play.Sound {
 		/// <exception cref="BadDeviceIdException" />
 		/// <exception cref="InvalidHandleException" />
 		/// <exception cref="MMSystemException" />
+		/// <seealso>https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-createeventa</seealso>/>
 		public WmmPlayer( Specification oSpec, int iDeviceID ) {
 			_oCallback = new WaveOutProc(this.InternalCallback);
 			_oSpec     = oSpec ?? throw new ArgumentNullException();
