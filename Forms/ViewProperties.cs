@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Windows.Forms;
 
 using SkiaSharp;
 using SkiaSharp.Views.Desktop;
@@ -65,7 +66,7 @@ namespace Play.Forms {
         //    base.Dispose( disposing );
         //}
 
-        public void PropertyInitRow( SmartTable oLayout, int iIndex, SKControl oWinValue = null ) {
+        public void PropertyInitRow( SmartTable oLayout, int iIndex, Control oWinValue = null ) {
             var oLayoutLabel = new LayoutSingleLine( new FTCacheWrap( Document.Property_Labels[iIndex] ), LayoutRect.CSS.Flex );
             LayoutRect oLayoutValue;
             

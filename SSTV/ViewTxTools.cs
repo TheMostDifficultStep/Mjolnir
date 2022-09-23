@@ -15,19 +15,25 @@ namespace Play.SSTV {
     /// normal Mjolnir herder. But here, all the tools are sort of globbed together.
     /// Let's see how it goes and perhaps I'll break them apart.
     /// </summary>
+    /// <remarks>Not using this anymore. It turns out, it is a lot nicer to have
+    /// the family/mode and galleries settings simply in the property page window
+    /// so you can see them all the time instead of switching between.
+    /// UI LESSON! We might bring this back since it'll be great for Photoshop like drawing
+    /// commands where we really just need a TOOL at that moment.</remarks>
     public class WindowTxTools : 
         SKControl,
 		IPgLoad
     {
         private readonly IPgViewSite        _oViewSite;
         private readonly DocSSTV            _oDocSSTV;
-        private readonly object[]           _rgNullParams = new object[]{};
 
+        // This is a list of all the menu layouts, one gets selected
+        // to be shown the rest get turned off.
         Dictionary<Guid, ParentRect > _rgFlock = new (); 
         Guid                          _gSelected = Guid.Empty;
 
-        private readonly ComboBox _ddModeSub  = new ComboBox();
-        private readonly ComboBox _ddModeMain = new ComboBox();
+        public readonly ComboBox _ddModeSub  = new ComboBox();
+        public readonly ComboBox _ddModeMain = new ComboBox();
 
         private bool _bProcessCheckModeList = false;
 
@@ -43,7 +49,7 @@ namespace Play.SSTV {
             InitTemplates();
             InitModes    ();
 
-            Execute( TransmitCommands.Mode );
+            Execute( TransmitCommands.Resize );
 
             OnSizeChanged( new EventArgs() );
             //_oDocSSTV.TxModeList.CheckedEvent += OnCheckedEvent_TxModeList;
@@ -83,10 +89,11 @@ namespace Play.SSTV {
             }
         }
 
-        /// <summary>
-        /// Still need to sort out the messaging so we can keep all the
-        /// selected items in sync.
-        /// </summary>
+        /// <remarks>
+        /// This is a nice hybrid of my model/view where the template list is
+        /// a standard editor window, but we sync with the dropdowns.
+        /// The Famile/Mode pair of dropdowns is more complicated and not sorted yet.
+        /// </remarks>
         private void OnSelectedIndexChanged_TemplateDD(object sender, EventArgs e) {
             if( sender is ComboBox ddTemplates ) {
                 _oDocSSTV.TemplateList.CheckedLine =
@@ -129,8 +136,8 @@ namespace Play.SSTV {
             oLayout.Add( new LayoutControl( wnDDTemplates, LayoutRect.CSS.Pixels, 200 ) );
             oLayout.Add( new LayoutRect( LayoutRect.CSS.None ) );
 
-            _rgFlock.Add( TransmitCommands.Templates, oLayout );
-            _gSelected = TransmitCommands.Templates;
+            //_rgFlock.Add( TransmitCommands.Templates, oLayout );
+            //_gSelected = TransmitCommands.Templates;
         }
 
         /// <summary>
@@ -168,11 +175,11 @@ namespace Play.SSTV {
         /// since the way to set Mode selection is via the dual drop downs and 
         /// not a straight TxModeList editor.
         /// </summary>
-        private void PopulateSubModes( ComboBox ddModeMain, ComboBox ddModeSub, SSTVMode oSelectMode = null ) {
-            if( ddModeMain.SelectedItem is SSTVDEM.ModeDescription oDesc ) {
+        public void PopulateSubModes( ComboBox ddModeMain, ComboBox ddModeSub, SSTVMode oSelectMode = null ) {
+            if( ddModeMain.SelectedItem is SSTVDEM.SSTVFamily oDesc ) {
                 ddModeSub.Items.Clear();
 
-                if( oDesc._typClass.GetMethod( "EnumAllModes" ).Invoke( null, _rgNullParams ) is IEnumerator<SSTVMode> itrSubMode ) {
+                if( oDesc._typClass.GetMethod( "EnumAllModes" ).Invoke( null, Array.Empty<object>() ) is IEnumerator<SSTVMode> itrSubMode ) {
                     while( itrSubMode.MoveNext() ) {
                         int iIndex = ddModeSub.Items.Count;
                         ddModeSub.Items.Add( itrSubMode.Current );
@@ -199,6 +206,7 @@ namespace Play.SSTV {
         /// multiview world. We'll ignore the checked event
         /// if it's coming from ourselves syncing the drop down item
         /// </summary>
+        /// <remarks>Not currently used.</remarks>
         /// <param name="oLineChecked">TxModeList line checked.</param>
         private void OnCheckedEvent_TxModeList(Line oLineChecked) {
             if( !_bProcessCheckModeList ) {
@@ -207,7 +215,7 @@ namespace Play.SSTV {
 
                 for( int iIndex = 0; iIndex < _ddModeMain.Items.Count; ++iIndex ) {
                     object oItem = _ddModeMain.Items[iIndex];
-                    if( oItem is SSTVDEM.ModeDescription oDesc &&
+                    if( oItem is SSTVDEM.SSTVFamily oDesc &&
                         oDesc._eFamily == oNewMode.Family ) {
                         _ddModeMain.SelectedIndex = iIndex;
 
@@ -220,14 +228,13 @@ namespace Play.SSTV {
                 }
                 _bProcessCheckModeList = false;
             }
-
         }
 
         /// <summary>
         /// Set up the dual dropdowns for the SSTV node tool options.
         /// </summary>
         private void InitModes() {
-            IEnumerator<SSTVDEM.ModeDescription> itrFamily = SSTVDEM.EnumFamilies();
+            IEnumerator<SSTVDEM.SSTVFamily> itrFamily = SSTVDEM.EnumFamilies();
             while( itrFamily.MoveNext() ) {
                 _ddModeMain.Items.Add( itrFamily.Current );
             }
@@ -256,7 +263,7 @@ namespace Play.SSTV {
             oLayout.Add( new LayoutControl( _ddModeSub,  LayoutRect.CSS.Pixels, 250 ) );
             oLayout.Add( new LayoutRect( LayoutRect.CSS.None ) );
 
-            _rgFlock.Add( TransmitCommands.Mode, oLayout );
+          //_rgFlock.Add( TransmitCommands.Mode, oLayout );
         }
 
         protected override void OnSizeChanged( EventArgs e ) { 
@@ -366,7 +373,7 @@ namespace Play.SSTV {
         /// not a straight TxModeList editor.
         /// </summary>
         private void PopulateSubModes( ComboBox ddModeMain, ComboBox ddModeSub, SSTVMode oSelectMode = null ) {
-            if( ddModeMain.SelectedItem is SSTVDEM.ModeDescription oDesc ) {
+            if( ddModeMain.SelectedItem is SSTVDEM.SSTVFamily oDesc ) {
                 ddModeSub.Items.Clear();
 
                 if( oDesc._typClass.GetMethod( "EnumAllModes" ).Invoke( null, _rgNullParams ) is IEnumerator<SSTVMode> itrSubMode ) {
@@ -402,7 +409,7 @@ namespace Play.SSTV {
                 if( _oDocSSTV.RxModeList.CheckedLine.Extra is SSTVMode oNewMode ) {
                     for( int iIndex = 0; iIndex < _ddModeMain.Items.Count; ++iIndex ) {
                         object oItem = _ddModeMain.Items[iIndex];
-                        if( oItem is SSTVDEM.ModeDescription oDesc &&
+                        if( oItem is SSTVDEM.SSTVFamily oDesc &&
                             oDesc._eFamily == oNewMode.Family ) {
                             _ddModeMain.SelectedIndex = iIndex;
 
@@ -421,7 +428,7 @@ namespace Play.SSTV {
         /// Set up the dual dropdowns for the SSTV node tool options.
         /// </summary>
         private void InitModes() {
-            IEnumerator<SSTVDEM.ModeDescription> itrFamily = SSTVDEM.EnumFamilies();
+            IEnumerator<SSTVDEM.SSTVFamily> itrFamily = SSTVDEM.EnumFamilies();
             while( itrFamily.MoveNext() ) {
                 _ddModeMain.Items.Add( itrFamily.Current );
             }

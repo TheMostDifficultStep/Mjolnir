@@ -54,7 +54,7 @@ namespace Play.ImageViewer {
 				Type[] rgErrors = { typeof( NullReferenceException ),
 									typeof( DivideByZeroException ) };
 				if( rgErrors.IsUnhandled( oEx ) )
-					throw oEx;
+					throw;
 
 				_oView.LogError( "math", "Could not compute ExtentDesired for this image view." );
 

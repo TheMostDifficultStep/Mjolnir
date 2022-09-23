@@ -1962,8 +1962,8 @@ namespace Play.Sound {
 				yield return itrMode.Current;
 		}
 
-		public class ModeDescription {
-			public ModeDescription( TVFamily eFamily, string strName, Type typClass ) {
+		public class SSTVFamily {
+			public SSTVFamily( TVFamily eFamily, string strName, Type typClass ) {
 				_eFamily  = eFamily;
 				_strName  = strName;
 				_typClass = typClass;
@@ -1977,12 +1977,12 @@ namespace Play.Sound {
             }
         }
 
-		public static IEnumerator<ModeDescription> EnumFamilies () {
-			yield return new ModeDescription( TVFamily.Martin,  "Martin",  typeof( SSTVModeMartin ) );
-			yield return new ModeDescription( TVFamily.Scottie, "Scottie", typeof( SSTVModeScottie ) );
-			yield return new ModeDescription( TVFamily.PD,      "PD",      typeof( SSTVModePD ) );
-			yield return new ModeDescription( TVFamily.BW,      "BW",      typeof( SSTVModeBW ) );
-			yield return new ModeDescription( TVFamily.Pasokon, "Pasokon", typeof( SSTVModePasokon ) );
+		public static IEnumerator<SSTVFamily> EnumFamilies () {
+			yield return new SSTVFamily( TVFamily.Martin,  "Martin",  typeof( SSTVModeMartin ) );
+			yield return new SSTVFamily( TVFamily.Scottie, "Scottie", typeof( SSTVModeScottie ) );
+			yield return new SSTVFamily( TVFamily.PD,      "PD",      typeof( SSTVModePD ) );
+			yield return new SSTVFamily( TVFamily.BW,      "BW",      typeof( SSTVModeBW ) );
+			yield return new SSTVFamily( TVFamily.Pasokon, "Pasokon", typeof( SSTVModePasokon ) );
 		}
 
         public IEnumerator<SSTVMode> GetEnumerator()

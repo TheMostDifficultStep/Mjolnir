@@ -26,16 +26,26 @@ namespace Play.SSTV {
         WindowStandardProperties
      {
         public static Guid GUID {get;} = new Guid("{80C855E0-C2F6-4641-9A7C-B6A8A53B3FDF}");
-		protected readonly DocSSTV _oDocSSTV;
+		protected readonly DocSSTV            _oDocSSTV;
+		protected readonly ViewTransmitDeluxe _oTxView;
+
+        public readonly ComboBox _ddSSTVMode   = new ComboBox();
+        public readonly ComboBox _ddSSTVFamily = new ComboBox();
+		public readonly ComboBox _ddTemplates    = new ComboBox();
 
 		public ViewTxProperties( IPgViewSite oViewSite, DocSSTV oDocSSTV ) : base( oViewSite, oDocSSTV.Properties )
 		{
 			_oDocSSTV = oDocSSTV; // No use throwing since base will throw nullrefexception first.
 		}
 
+		public ViewTxProperties( IPgViewSite oViewSite, ViewTransmitDeluxe oWindow, DocSSTV oDocSSTV ) : base( oViewSite, oDocSSTV.Properties )
+		{
+			_oDocSSTV = oDocSSTV; // No use throwing since base will throw nullrefexception first.
+			_oTxView  = oWindow ?? throw new ArgumentNullException( "Owning Tx window must not be null" );
+		}
+
 		public readonly static int[] Subset = new int[] { 
 			(int)SSTVProperties.Names.Tx_Progress,
-			(int)SSTVProperties.Names.Tx_Mode,
 			(int)SSTVProperties.Names.Tx_SrcDir,
 			(int)SSTVProperties.Names.Tx_SrcFile,
 			(int)SSTVProperties.Names.Std_Time,
@@ -52,12 +62,117 @@ namespace Play.SSTV {
         public override void InitRows() {
             base.InitRows(Subset);
 
-			// BUG. Looks like it's not repainting as it gets image events. Might be a double buffer
-			// problem with parent.
+			if( _oTxView != null ) {
+				try {
+					// Call this once to set up the mode families.
+					IEnumerator<SSTVDEM.SSTVFamily> itrFamily = SSTVDEM.EnumFamilies();
+					SSTVDEM.SSTVFamily oPD = null;
+					while( itrFamily.MoveNext() ) {
+						int iMainIndex = _ddSSTVFamily.Items.Add( itrFamily.Current );
+						if( itrFamily.Current._eFamily == TVFamily.PD ) {
+							oPD = itrFamily.Current;
+							_ddSSTVFamily.SelectedIndex = iMainIndex;
+						}
+					}
+					if( oPD == null && _ddSSTVFamily.Items[0] is SSTVDEM.SSTVFamily oDefault ) {
+						oPD = oDefault;
+						_ddSSTVFamily.SelectedIndex = 0;
+					}
+
+					_ddSSTVFamily.SelectedIndexChanged += OnSelectedFamilyChanged;
+					_ddSSTVFamily.AutoSize      = true;
+					_ddSSTVFamily.Name          = "Mode Select";
+					_ddSSTVFamily.TabIndex      = 0;
+					_ddSSTVFamily.DropDownStyle = ComboBoxStyle.DropDownList;
+					PropertyInitRow( Layout as SmartTable, 
+									 (int)SSTVProperties.Names.Tx_FamilySelect, 
+									 _ddSSTVFamily );
+
+					_ddSSTVMode.SelectedIndexChanged += OnSelectedIndexChanged_ModeDropDown;
+					_ddSSTVMode.AutoSize      = true;
+					_ddSSTVMode.Name          = "Mode Sub Select";
+					_ddSSTVMode.TabIndex      = 1;
+					_ddSSTVMode.DropDownStyle = ComboBoxStyle.DropDownList;
+
+					PropertyInitRow( Layout as SmartTable, 
+									 (int)SSTVProperties.Names.Tx_ModeSelect, 
+									 _ddSSTVMode );
+
+					_oTxView.PopulateSubModes( oPD );
+
+					foreach( Line oLine in _oDocSSTV.TemplateList ) {
+						_ddTemplates.Items.Add( oLine );
+					}
+					_ddTemplates.SelectedIndexChanged += OnSelectedIndexChanged_TemplateDD;
+					_ddTemplates.SelectedIndex = 0;
+					_ddTemplates.AutoSize      = true;
+					_ddTemplates.Name          = "Mode Sub Select";
+					_ddTemplates.TabIndex      = 2;
+					_ddTemplates.DropDownStyle = ComboBoxStyle.DropDownList;
+
+				  //_oDocSSTV.TemplateList.CheckedEvent += OnCheckedEvent_TemplateList;
+				  //desirable but we loop forever responding to SelectedIndexChanged
+				  //events. Need to sort that out.
+
+					PropertyInitRow( Layout as SmartTable, 
+									 (int)SSTVProperties.Names.Tx_LayoutSelect, 
+									 _ddTemplates );
+				} catch ( Exception oEx ) {
+					Type[] rgErrors = { typeof( NullReferenceException ),
+										typeof( ArgumentOutOfRangeException ) };
+					if( rgErrors.IsUnhandled( oEx ) )
+						throw;
+					LogError( "Unable to set up transmission modes selectors" );
+				}
+			}
+
 			PropertyInitRow( Layout as SmartTable, 
 				             (int)SSTVProperties.Names.Rx_Window, 
 							 new ImageViewSingle( new WinSlot( this ), _oDocSSTV.DisplayImage )  );
+
         }
+
+        /// <summary>
+        /// Normally, we want to get the document message that the checked
+        /// line changed. But since the dropdown selectes itself we need
+        /// to ignore the checked event later, else we get in an infinite
+        /// loop.
+        /// </summary>
+        /// <seealso cref="PopulateSubModes"/>
+        private void OnSelectedFamilyChanged(object sender, EventArgs e) {
+            if( sender is ComboBox oFamilyCombo ) { 
+				if( _ddSSTVMode.SelectedItem is SSTVMode oDDListMode ) {
+					foreach( Line oLine in _oDocSSTV.TxModeList ) {
+						if( oLine.Extra is SSTVMode oTxListMode &&
+							oTxListMode.LegacyMode == oDDListMode.LegacyMode ) 
+						{
+							_oDocSSTV.TxModeList.CheckedLine = oLine;
+						}
+					}
+				}
+				_oTxView.PopulateSubModes( oFamilyCombo.SelectedItem as SSTVDEM.SSTVFamily );
+            }
+        }
+
+        private void OnSelectedIndexChanged_ModeDropDown(object sender, EventArgs e) {
+			if( _ddSSTVMode.SelectedItem is SSTVMode oNewMode ) {
+				_oDocSSTV.TransmitModeSelection = oNewMode;
+				_oDocSSTV.RenderComposite();
+			}
+        }
+
+        /// <summary>
+        /// Still need to sort out the messaging so we can keep all the
+        /// selected items in sync.
+        /// </summary>
+        private void OnSelectedIndexChanged_TemplateDD(object sender, EventArgs e) {
+            if( sender is ComboBox ddTemplates ) {
+                _oDocSSTV.TemplateList.CheckedLine =
+                    _oDocSSTV.TemplateList[ ddTemplates.SelectedIndex ];
+            }
+		    _oDocSSTV.RenderComposite();
+        }
+
     }
 
 	/// <summary>
@@ -178,12 +293,12 @@ namespace Play.SSTV {
     public static class TransmitCommands {
         public static readonly Guid Color     = new Guid( "{B3198F66-7698-4DFB-8B31-9643372B2B3E}" );
         public static readonly Guid Move      = new Guid( "{179898AD-1823-4F0E-BF27-11456C1EA8C8}" );
-        public static readonly Guid Text      = new Guid( "{C7F1DADB-A0A4-479C-B193-B38AFAEE5AB6}" );
-        public static readonly Guid Gallary   = new Guid( "{94975898-5AC1-427C-85CD-9E516646115D}" );
-        public static readonly Guid PnP       = new Guid( "{A1BB369C-4E73-4248-A6E1-07C5466C818C}" );
-	    public static readonly Guid Templates = new Guid( "{FE683CA1-1068-4BA0-A84E-CFE35900A06E}" );
-        public static readonly Guid Mode      = new Guid( "{56797520-C603-417C-858A-EF532E0652D2}" );
 		public static readonly Guid Resize    = new Guid( "{84F921E1-BFB5-4BD7-9814-C53D48C90D1E}" );
+        public static readonly Guid Text      = new Guid( "{C7F1DADB-A0A4-479C-B193-B38AFAEE5AB6}" );
+      //public static readonly Guid Gallary   = new Guid( "{94975898-5AC1-427C-85CD-9E516646115D}" );
+      //public static readonly Guid PnP       = new Guid( "{A1BB369C-4E73-4248-A6E1-07C5466C818C}" );
+	  //public static readonly Guid Templates = new Guid( "{FE683CA1-1068-4BA0-A84E-CFE35900A06E}" );
+      //public static readonly Guid Mode      = new Guid( "{56797520-C603-417C-858A-EF532E0652D2}" );
 	}
 
 	public static class ReceiveCommands {
@@ -191,7 +306,7 @@ namespace Play.SSTV {
 	}
 	
 	/// <summary>
-	/// This is the Toolbar adornment.
+	/// This is the Toolbar adornment. The Tools buttons.
 	/// </summary>
 	public class WinTransmitTools : ButtonBar {
 		IPgTools2 _oTools;
@@ -283,10 +398,11 @@ namespace Play.SSTV {
         public    Guid   Catagory  => GUID;
         protected string IconResource => "Play.SSTV.Content.icons8_camera.png";
 
-		protected readonly ImageViewSingle _wmTxImageComposite; 
-		protected readonly ImageViewIcons  _wmTxViewChoices;
-		protected readonly ImageViewIcons  _wmRxViewChoices;
-		protected          WindowTxTools   _wmToolOptions;
+		protected readonly ImageViewSingle  _wmTxImageComposite; 
+		protected readonly ImageViewIcons   _wmTxViewChoices;
+		protected readonly ImageViewIcons   _wmRxViewChoices;
+		protected          WindowTxTools    _wmToolOptions;
+		protected          ViewTxProperties _wmTxProperties;
 
 		protected readonly Editor _rgToolIcons;
 		protected          int    _iToolSelected = -1;
@@ -468,10 +584,10 @@ namespace Play.SSTV {
 			rgIcons.Add( "Move",      new ToolInfo( "icons8-move-48.png",		   TransmitCommands.Move    ));
 			rgIcons.Add( "Resize",    new ToolInfo( "icons8-selection-60.png",     TransmitCommands.Resize  ));
 			rgIcons.Add( "Text",      new ToolInfo( "icons8-text-64.png",		   TransmitCommands.Text    ));
-			rgIcons.Add( "Gallery",   new ToolInfo( "icons8-gallery-64.png",	   TransmitCommands.Templates ));
-			rgIcons.Add( "PnP",       new ToolInfo( "icons8-download-64.png",	   TransmitCommands.PnP     ));
-		    rgIcons.Add( "Templates", new ToolInfo( "icons8-upload-64.png",        TransmitCommands.Gallary ));
-			rgIcons.Add( "Mode",      new ToolInfo( "icons8-audio-wave-48.png",    TransmitCommands.Mode    ));
+		  //rgIcons.Add( "Gallery",   new ToolInfo( "icons8-gallery-64.png",	   TransmitCommands.Templates ));
+		  //rgIcons.Add( "PnP",       new ToolInfo( "icons8-download-64.png",	   TransmitCommands.PnP     ));
+		  //rgIcons.Add( "Templates", new ToolInfo( "icons8-upload-64.png",        TransmitCommands.Gallary ));
+		  //rgIcons.Add( "Mode",      new ToolInfo( "icons8-audio-wave-48.png",    TransmitCommands.Mode    ));
 
 			foreach( KeyValuePair<string,ToolInfo> oPair in rgIcons ) {
 				Line     oLine = _rgToolIcons.LineAppend( oPair.Key, false );
@@ -532,7 +648,7 @@ namespace Play.SSTV {
         public bool Execute( Guid sGuid ) {
 			if( sGuid == GlobalCommands.Play ) {
 				if( _oDocSSTV.RenderComposite() ) {
-					_oDocSSTV.TransmitBegin(); 
+					_oDocSSTV.TransmitBegin( _wmTxProperties._ddSSTVMode.SelectedItem as SSTVMode ); 
 				}
 				return true;
 			}
@@ -643,20 +759,21 @@ namespace Play.SSTV {
 
         public object Decorate( IPgViewSite oBaseSite, Guid sGuid ) {
 			if( sGuid.Equals(GlobalDecorations.Properties) ) {
-				return new ViewTxProperties( oBaseSite, _oDocSSTV );
+				_wmTxProperties = new ViewTxProperties( oBaseSite, this, _oDocSSTV );
+				return _wmTxProperties;
 			}
 			if( sGuid.Equals( GlobalDecorations.Outline ) ) {
 				//return new CheckList( oBaseSite, _oDocSSTV.TxModeList );
 				//return new CheckList( oBaseSite, _oDocSSTV.TemplateList ) { ReadOnly = true }; // We'll be read/write in the future.
 				return new EditWindow2( oBaseSite, _oDocSSTV.TxBitmapComp.Layers ) { ReadOnly = true };
 			}
-			if( sGuid.Equals( GlobalDecorations.Options ) ) {
-				//return new CheckList( oBaseSite, _oDocSSTV.TemplateList ) { ReadOnly = true }; // We'll be read/write in the future.
-				// BUG: This is super hacky, but just try for now. Since the addornment
-				//      is handled by the shell, it can be closed and we have a zombie.
-				_wmToolOptions = new WindowTxTools( oBaseSite, _oDocSSTV );
-				return _wmToolOptions;
-			}
+			//if( sGuid.Equals( GlobalDecorations.Options ) ) {
+			//	//return new CheckList( oBaseSite, _oDocSSTV.TemplateList ) { ReadOnly = true }; // We'll be read/write in the future.
+			//	// BUG: This is super hacky, but just try for now. Since the addornment
+			//	//      is handled by the shell, it can be closed and we have a zombie.
+			//	_wmToolOptions = new WindowTxTools( oBaseSite, _oDocSSTV );
+			//	return _wmToolOptions;
+			//}
 			if( sGuid.Equals( GlobalDecorations.ToolIcons ) ) {
 				return new WinTransmitTools( oBaseSite, _rgToolIcons, this );
 			}
@@ -685,6 +802,32 @@ namespace Play.SSTV {
 
         public bool Save(XmlDocumentFragment oStream) {
             return true;
+        }
+
+		/// <results>
+		/// Not sure if I want this on the main view or on the properties window. It makes
+		/// more sense here since I'm more likely to have instances I need to connect to
+		/// instead of this static class reflection stuff I'm doing now.
+		/// </results>
+		/// <param name="oDesc"></param>
+		/// <param name="oMode"></param>
+        public void PopulateSubModes( SSTVDEM.SSTVFamily oDesc, SSTVMode oMode = null ) {
+            if( oDesc._typClass.GetMethod( "EnumAllModes" ).Invoke( null, Array.Empty<object>() ) is IEnumerator<SSTVMode> itrModes ) {
+                _wmTxProperties._ddSSTVMode.Items.Clear();
+
+                while( itrModes.MoveNext() ) {
+                    int iIndex = _wmTxProperties._ddSSTVMode.Items.Add( itrModes.Current );
+
+                    if( oMode != null && 
+                        itrModes.Current.LegacyMode == oMode.LegacyMode ) 
+                    {
+                        _wmTxProperties._ddSSTVMode.SelectedIndex = iIndex;
+                    }
+                }
+                if( oMode == null ) {
+                    _wmTxProperties._ddSSTVMode.SelectedIndex = 0;
+                }
+            }
         }
     }
 

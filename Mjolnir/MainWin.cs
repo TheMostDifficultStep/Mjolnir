@@ -339,7 +339,6 @@ namespace Mjolnir {
             oInner.Add( new LayoutGrab( LayoutRect.CSS.None, _rcFrame ) ); 
 
             oCenter.Padding.SetRect( 5, 0, 5, 0 );
-
             oCenter.Add( _rgSideInfo[SideIdentify.Left] );
             oCenter.Add( _rgSideInfo[SideIdentify.Tools] );
             oCenter.Add( oInner ); 

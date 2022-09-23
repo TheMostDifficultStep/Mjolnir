@@ -45,7 +45,10 @@ namespace Play.SSTV {
             Tx_TheirCall,
             Tx_RST,
             Tx_Message,
-            Tx_Mode,
+            Tx_ModeSent,
+            Tx_FamilySelect,
+            Tx_ModeSelect,
+            Tx_LayoutSelect,
 
             Std_MnPort,
 			Std_TxPort,
@@ -103,14 +106,16 @@ namespace Play.SSTV {
             LabelSet( Names.Std_Frequency,  "Frequency" ); // TODO: Give it yellow if calibrated value different than base.
             LabelSet( Names.Std_Time,       "Zulu Time" );
 
-            LabelSet( Names.Tx_MyCall,    "My Call" );
-            LabelSet( Names.Tx_TheirCall, "Rx Call" );
-            LabelSet( Names.Tx_RST,       "RSV" ); // Readibility, strength, video
-            LabelSet( Names.Tx_Message,   "Message" );
-            LabelSet( Names.Tx_Progress,  "Sent", new SKColor( red:0xff, green:0xbf, blue:0 ) );
-            LabelSet( Names.Tx_SrcDir,    "Tx Source Dir" );
-            LabelSet( Names.Tx_SrcFile,   "Tx Filename" );
-            LabelSet( Names.Tx_Mode,      "Tx Mode Sent", SKColors.LightYellow );
+            LabelSet( Names.Tx_MyCall,       "My Call" );
+            LabelSet( Names.Tx_TheirCall,    "Rx Call" );
+            LabelSet( Names.Tx_RST,          "RSV" ); // Readibility, strength, video
+            LabelSet( Names.Tx_Message,      "Message" );
+            LabelSet( Names.Tx_Progress,     "Sent", new SKColor( red:0xff, green:0xbf, blue:0 ) );
+            LabelSet( Names.Tx_SrcDir,       "Tx Source Dir" );
+            LabelSet( Names.Tx_SrcFile,      "Tx Filename" );
+            LabelSet( Names.Tx_FamilySelect, "Tx Family" );
+            LabelSet( Names.Tx_ModeSelect,   "Tx Mode" );
+            LabelSet( Names.Tx_LayoutSelect, "Layout" );
 
             LabelSet( Names.Rx_Mode,        "Mode", new SKColor( red:0xff, green:0xbf, blue:0 ) );
             LabelSet( Names.Rx_Width,       "Width" );
@@ -257,9 +262,9 @@ namespace Play.SSTV {
         readonly ConcurrentQueue<double>      _rgDataQueue   = new ConcurrentQueue<double>();      // From UI thread to BG thread.
         readonly ConcurrentQueue<TVMessage>   _rgUItoBGQueue = new ConcurrentQueue<TVMessage>();
 
-        Thread               _oThread  = null;
-        WaveIn               _oWaveIn  = null;
-        BlockCopies          _oWaveReader  = null;
+        Thread      _oThread     = null;
+        WaveIn      _oWaveIn     = null;
+        BlockCopies _oWaveReader = null;
 
         public bool        StateTx { get; protected set; }
         public DocSSTVMode StateRx { get; protected set; }
@@ -271,6 +276,7 @@ namespace Play.SSTV {
         // expect only the resize view to attempt to change this.
         // These are in the bitmap's world coordinates.
         public SmartSelect Selection { get; } = new SmartSelect() { Mode = DragMode.FixedRatio };
+		public SSTVMode    TransmitModeSelection { get; set; }
 
         /// <summary>
         /// This editor shows the list of modes we can modulate.
@@ -324,8 +330,6 @@ namespace Play.SSTV {
 		protected readonly IPgRoundRobinWork _oWorkPlace;
         protected readonly IPgStandardUI2    _oStdUI;
         protected          DateTime          _dtLastTime;
-
-
 
         public IPgParent Parentage => _oSiteBase.Host;
         public IPgParent Services  => Parentage;
@@ -1287,26 +1291,6 @@ namespace Play.SSTV {
 
         protected int MicrophoneGain => Properties.GetValueAsInt( SSTVProperties.Names.Std_MicGain );
 
-        /// <summary>
-        /// Get the currently checked line in the TxModeList or set it to the first item.
-        /// </summary>
-        /// <seealso cref="ViewTransmitDeluxe.SSTVModeSelection"/>
-		public SSTVMode TransmitModeSelection { 
-			get {
-                if( TxModeList.CheckedLine == null ) {
-                    if( RxModeList.CheckedLine == null )
-                        TxModeList.CheckedLine = TxModeList[0];
-                    else
-                        TxModeList.CheckedLine = TxModeList[RxModeList.CheckedLine.At];
-                }
-
-                if( TxModeList.CheckedLine.Extra is SSTVMode oMode )
-					return oMode;
-
-				return null;
-			}
-		}
-
 		public bool RenderComposite() {
             SSTVMode oMode = TransmitModeSelection;
 			// sometimes we get events while we're sending. Let's block render for now.
@@ -1315,26 +1299,25 @@ namespace Play.SSTV {
 				return false;
 			}
 
-			if( oMode != null ) {
-			    if( Selection.IsEmpty() && TxImageList.Bitmap != null ) {
-				    Selection.SetRect ( 0, 0,
-									    TxImageList.Bitmap.Width,
-									    TxImageList.Bitmap.Height );
-			    }
-
-				TxBitmapComp.Load( oMode.Resolution ); 
-
-				int iTemplate = TemplateList.CheckedLine is Line oChecked ? oChecked.At : 0;
-
-				TemplateSet( oMode, iTemplate );
-				TxBitmapComp.RenderImage();
-
-				return true;
-			} else {
-				LogError( "Problem prepping template for transmit." );
+			if( oMode == null ) {
+			    //LogError( "Problem prepping template for transmit." );
+			    return false;
 			}
 
-			return false;
+			if( Selection.IsEmpty() && TxImageList.Bitmap != null ) {
+				Selection.SetRect ( 0, 0,
+									TxImageList.Bitmap.Width,
+									TxImageList.Bitmap.Height );
+			}
+
+			TxBitmapComp.Load( oMode.Resolution ); 
+
+			int iTemplate = TemplateList.CheckedLine is Line oChecked ? oChecked.At : 0;
+
+			TemplateSet( oMode, iTemplate );
+			TxBitmapComp.RenderImage();
+
+			return true;
 		}
 
         public void TransmitStop() {
@@ -1346,9 +1329,7 @@ namespace Play.SSTV {
         /// Begin transmitting the image. We can stop but only after the 
         /// buffered transmission bleeds out.
         /// </summary>
-        public async void TransmitBegin() {
-			SSTVMode oMode = TransmitModeSelection;
-
+        public async void TransmitBegin( SSTVMode oMode ) {
             if( oMode == null || TxBitmapComp.Bitmap == null ) {
                 LogError( "Transmit mode or image is not set." ); return;
             }
@@ -1370,8 +1351,6 @@ namespace Play.SSTV {
                 LogError( "Start device receive first." );
             }
 
-            Properties.ValueUpdate( (int)SSTVProperties.Names.Tx_Mode, oMode.ToString(), Broadcast:true );
-                
             StateTx = true;
 
             SKBitmap bmpCopy = TxBitmapComp.Bitmap.Copy();
@@ -1407,7 +1386,7 @@ namespace Play.SSTV {
                 if( StateTx == true )
                     Thread.Sleep( 2000 ); // Let the buffer bleed out.
 
-                bmpCopy.Dispose();
+                bmpCopy.Dispose(); // TODO: Maybe put this after the await?
             };
 
             Task oTask = new Task( oTransmitAction );
@@ -1906,5 +1885,6 @@ namespace Play.SSTV {
         public SKBitmap CreateIconic( string strResource ) {
             return SKImageResourceHelper.GetImageResource( Assembly.GetExecutingAssembly(), strResource );
         }
+
     } // End class
 }
