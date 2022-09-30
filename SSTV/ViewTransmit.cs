@@ -31,7 +31,7 @@ namespace Play.SSTV {
 
         public readonly ComboBox _ddSSTVMode   = new ComboBox();
         public readonly ComboBox _ddSSTVFamily = new ComboBox();
-		public readonly ComboBox _ddTemplates    = new ComboBox();
+		public readonly ComboBox _ddTemplates  = new ComboBox();
 
 		public ViewTxProperties( IPgViewSite oViewSite, DocSSTV oDocSSTV ) : base( oViewSite, oDocSSTV.Properties )
 		{
@@ -81,7 +81,6 @@ namespace Play.SSTV {
 
 					_ddSSTVFamily.SelectedIndexChanged += OnSelectedFamilyChanged;
 					_ddSSTVFamily.AutoSize      = true;
-					_ddSSTVFamily.Name          = "Mode Select";
 					_ddSSTVFamily.TabIndex      = 0;
 					_ddSSTVFamily.DropDownStyle = ComboBoxStyle.DropDownList;
 					PropertyInitRow( Layout as SmartTable, 
@@ -90,7 +89,6 @@ namespace Play.SSTV {
 
 					_ddSSTVMode.SelectedIndexChanged += OnSelectedIndexChanged_ModeDropDown;
 					_ddSSTVMode.AutoSize      = true;
-					_ddSSTVMode.Name          = "Mode Sub Select";
 					_ddSSTVMode.TabIndex      = 1;
 					_ddSSTVMode.DropDownStyle = ComboBoxStyle.DropDownList;
 

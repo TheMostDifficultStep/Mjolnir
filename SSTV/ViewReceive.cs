@@ -15,6 +15,7 @@ using Play.Rectangles;
 using Play.Edit;
 using Play.ImageViewer;
 using Play.Forms;
+using Play.Sound;
 
 namespace Play.SSTV {
     /// <summary>
@@ -24,6 +25,11 @@ namespace Play.SSTV {
         WindowStandardProperties
      {
         public DocSSTV SSTVDocument { get; }
+
+        public readonly ComboBox _ddSSTVMode   = new ComboBox();
+        public readonly ComboBox _ddSSTVFamily = new ComboBox();
+
+		protected readonly Dictionary<TVFamily, int > _rgFamilyLookup = new ();
 
 		public WindowRxProperties( IPgViewSite oViewSite, DocSSTV docSSTV ) : base( oViewSite, docSSTV.Properties ) {
 			SSTVDocument = docSSTV ?? throw new ArgumentNullException( nameof( docSSTV ) );
@@ -42,13 +48,121 @@ namespace Play.SSTV {
 				(int)SSTVProperties.Names.Tx_RST
 			};
 
-			InitRows( rgShow );
+			base.InitRows( rgShow );
+
+			try {
+                SSTVDocument.RxModeList.CheckedEvent += OnCheckedEvent_RxModeList;
+				// Call this once to set up the populate the (mode) families.
+				IEnumerator<SSTVDEM.SSTVFamily> itrFamily = SSTVDEM.EnumFamilies();
+				_ddSSTVFamily.Items.Add( "Auto" );
+				_rgFamilyLookup.Add( TVFamily.None, 0 );
+				while( itrFamily.MoveNext() ) {
+					int iMainIndex = _ddSSTVFamily.Items.Add( itrFamily.Current );
+					_rgFamilyLookup.Add( itrFamily.Current._eFamily, iMainIndex );
+				}
+				_ddSSTVFamily.SelectedIndex = 0;
+				
+				PopulateRxModes();
+
+				_ddSSTVFamily.SelectionChangeCommitted += OnSelectionChangeCommitted_Family;
+				_ddSSTVFamily.AutoSize      = true;
+				_ddSSTVFamily.TabIndex      = 0;
+				_ddSSTVFamily.DropDownStyle = ComboBoxStyle.DropDownList;
+				PropertyInitRow( Layout as SmartTable, 
+								 (int)SSTVProperties.Names.Rx_FamilySelect, 
+								 _ddSSTVFamily );
+
+                _ddSSTVMode.SelectionChangeCommitted += OnSelectionChangeCommitted_Mode;
+				_ddSSTVMode.AutoSize      = true;
+				_ddSSTVMode.TabIndex      = 1;
+				_ddSSTVMode.DropDownStyle = ComboBoxStyle.DropDownList;
+
+				PropertyInitRow( Layout as SmartTable, 
+								 (int)SSTVProperties.Names.Rx_ModeSelect, 
+								 _ddSSTVMode );
+			} catch ( Exception oEx ) {
+				Type[] rgErrors = { typeof( NullReferenceException ),
+									typeof( ArgumentOutOfRangeException ) };
+				if( rgErrors.IsUnhandled( oEx ) )
+					throw;
+				LogError( "Unable to set up receive mode selectors" );
+			}
         }
 
-		// Use this for debugging if necessary.
-		//protected override void OnDocumentEvent( BUFFEREVENTS eEvent ) {
-		//	base.OnDocumentEvent( eEvent );
-		//}
+		private void ChangeModeAtList( SSTVMode oMode ) {
+			foreach( Line oLine in SSTVDocument.RxModeList ) {
+				if( oLine.Extra is SSTVMode oLineMode && 
+					oLineMode.LegacyMode == oMode.LegacyMode )
+				{
+					SSTVDocument.RxModeList.CheckedLine = oLine;
+				}
+			}
+		}
+
+        private void OnCheckedEvent_RxModeList(Line oLineChecked) {
+			PopulateRxModes(oLineChecked.Extra as SSTVMode );
+        }
+
+		/// <summary>
+		/// Process user event. This will generate a returning OnCheckedEvent_RxModeList
+		/// event. Which should also cause the SSTVDocument to listen for the given mode.
+		/// </summary>
+        private void OnSelectionChangeCommitted_Mode(object sender, EventArgs e) {
+			if( _ddSSTVMode.SelectedItem is SSTVMode oNewMode ) {
+				ChangeModeAtList( oNewMode );
+			}
+		}
+
+        /// <summary>
+        /// This is the event we want. If the UI changes then I want to do 
+        /// something about it. Else we'll use the document events to
+        /// change our selected index.
+        /// </summary>
+        /// <seealso cref="PopulateSubModes"/>
+        private void OnSelectionChangeCommitted_Family(object sender, EventArgs e) {
+			if( _ddSSTVFamily.SelectedItem is SSTVDEM.SSTVFamily oNewFamily ) {
+				foreach( Line oLine in SSTVDocument.RxModeList ) {
+					if( oLine.Extra is SSTVMode oMode ) {
+						if( oMode.Family == oNewFamily._eFamily ) {
+							ChangeModeAtList( oMode );
+							return;
+						}
+					}
+				}
+			} else {
+				SSTVDocument.RxModeList.CheckedLine = SSTVDocument.RxModeList[0];
+			}
+        }
+
+        public void PopulateRxModes( SSTVMode oModeSelect = null ) {
+			_ddSSTVMode.Items.Clear();
+
+			// If I've got a new mode, select the family from that, regardless
+			// if the family is already properly selected. This is ok since we
+			// won't get any additional events from doing this.
+			if( oModeSelect != null ) { 
+				if( _rgFamilyLookup.TryGetValue( oModeSelect.Family, out int iIndex ) ) {
+					_ddSSTVFamily.SelectedIndex = iIndex;
+				}
+			}
+			// By this point we should have a family, now populate the modes.
+			if( _ddSSTVFamily.SelectedItem is SSTVDEM.SSTVFamily oNewFamily ) {
+				foreach( Line oLine in SSTVDocument.RxModeList ) {
+					if( oLine.Extra is SSTVMode oMode ) {
+						if( oMode.Family == oNewFamily._eFamily ) {
+							int iIndex = _ddSSTVMode.Items.Add( /*oLine*/ oMode );
+							if( oModeSelect != null && oMode.LegacyMode == oModeSelect.LegacyMode )
+								_ddSSTVMode.SelectedIndex = iIndex;
+						}
+					}
+				}
+			} else {
+				_ddSSTVFamily.SelectedIndex = 0;
+			}
+            if( _ddSSTVMode.SelectedIndex == -1 && _ddSSTVMode.Items.Count > 0 ) {
+                _ddSSTVMode.SelectedIndex = 0;
+            }
+        }
     }
 
 	/// <summary>

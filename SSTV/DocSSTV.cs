@@ -37,6 +37,8 @@ namespace Play.SSTV {
             Rx_SaveDir,
             Rx_HistoryFile,
             Rx_Window,
+            Rx_FamilySelect,
+            Rx_ModeSelect,
 
             Tx_Progress,
             Tx_SrcDir,
@@ -117,13 +119,15 @@ namespace Play.SSTV {
             LabelSet( Names.Tx_ModeSelect,   "Tx Mode" );
             LabelSet( Names.Tx_LayoutSelect, "Layout" );
 
-            LabelSet( Names.Rx_Mode,        "Mode", new SKColor( red:0xff, green:0xbf, blue:0 ) );
-            LabelSet( Names.Rx_Width,       "Width" );
-            LabelSet( Names.Rx_Height,      "Height" );
-            LabelSet( Names.Rx_Progress,    "Received" );
-            LabelSet( Names.Rx_SaveDir,     "Rx Save Dir" );
-            LabelSet( Names.Rx_HistoryFile, "Rx Filename" );
-            LabelSet( Names.Rx_Window,      "Rx Window" );
+            LabelSet( Names.Rx_Mode,         "Mode", new SKColor( red:0xff, green:0xbf, blue:0 ) );
+            LabelSet( Names.Rx_Width,        "Width" );
+            LabelSet( Names.Rx_Height,       "Height" );
+            LabelSet( Names.Rx_Progress,     "Received" );
+            LabelSet( Names.Rx_SaveDir,      "Rx Save Dir" );
+            LabelSet( Names.Rx_HistoryFile,  "Rx Filename" );
+            LabelSet( Names.Rx_Window,       "Rx Window" );
+            LabelSet( Names.Rx_FamilySelect, "Rx Family" );
+            LabelSet( Names.Rx_ModeSelect,   "Rx Mode" );
 
             // Initialize these to reasonable values, the user can update and save.
             ValueUpdate( Names.Std_ImgQuality, "80" );
@@ -1540,9 +1544,6 @@ namespace Play.SSTV {
             Properties.ValueUpdate( SSTVProperties.Names.Std_Process, "File Read Started." );
             Properties.ValueUpdate( SSTVProperties.Names.Rx_Progress, "0" );
 
-            // this causes problems when we switch between device receive and file decode. 
-          //Properties.ValueUpdate( SSTVProperties.Names.Rx_SaveName, strFileName, true ); // BUG: Should be the image name not the wav file.
-
             Action oFileReadAction = delegate () {
                 FileReadingState oWorker = new ( _rgBGtoUIQueue, strFileName, SyncImage.Bitmap, DisplayImage.Bitmap );
                 
@@ -1572,26 +1573,6 @@ namespace Play.SSTV {
             StateRx = DocSSTVMode.Ready;
             _rgBGtoUIQueue.Clear();
        }
-
-        public void ReceiveLiveStop() {
-            RxModeList.HighLight = null;
-
-            Properties.ValueUpdate( SSTVProperties.Names.Std_Process, "Stopping...", true );
-
-            _rgUItoBGQueue.Enqueue( new TVMessage( TVMessage.Message.ExitWorkThread ) );
-            _oThread = null;
-
-            if( _oWaveIn != null ) {
-                _oWaveIn.StopRecording();   
-                _oWaveIn = null;
-            }
-
-            Properties.ValueUpdate( SSTVProperties.Names.Std_Process, "Stopped: All.", true );
-
-            _oWorkPlace.Pause(); // TODO: flush the message buffers? Probably should.
-            StateRx = DocSSTVMode.Ready;
-            _oSiteBase.Notify( ShellNotify.MediaStatusChanged );
-        }
 
         /// <summary>
         /// 3'rd generation reader.
@@ -1708,6 +1689,26 @@ namespace Play.SSTV {
 
                 _oSiteBase.Notify( ShellNotify.MediaStatusChanged );
             }
+        }
+
+        public void ReceiveLiveStop() {
+            RxModeList.HighLight = null;
+
+            Properties.ValueUpdate( SSTVProperties.Names.Std_Process, "Stopping...", true );
+
+            _rgUItoBGQueue.Enqueue( new TVMessage( TVMessage.Message.ExitWorkThread ) );
+            _oThread = null;
+
+            if( _oWaveIn != null ) {
+                _oWaveIn.StopRecording();   
+                _oWaveIn = null;
+            }
+
+            Properties.ValueUpdate( SSTVProperties.Names.Std_Process, "Stopped: All.", true );
+
+            _oWorkPlace.Pause(); // TODO: flush the message buffers? Probably should.
+            StateRx = DocSSTVMode.Ready;
+            _oSiteBase.Notify( ShellNotify.MediaStatusChanged );
         }
 
         /// <summary>
