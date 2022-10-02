@@ -10,6 +10,7 @@ using Play.Interfaces.Embedding;
 using Play.Rectangles;
 using Play.Edit;
 using System.Collections;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 
 namespace Mjolnir {
     /// <summary>
@@ -762,6 +763,7 @@ namespace Mjolnir {
         /// </summary>
         /// <remarks>This method has a side effect of shuffling the decor. Turns off the
 		/// decor not from the current view.</remarks>
+        /// <seealso cref="DecorShuffle"/>
         protected bool IsAnyShepardReady( SideIdentify eOrientation ) {
             bool fAnyReady = false;
             // This was a nasty bug. Wasn't doing at all what it should have
@@ -771,10 +773,21 @@ namespace Mjolnir {
             //        fAnyReady = true;
             //    }
 			//}
-            foreach( KeyValuePair<string, SmartHerderBase> oPair in _rgShepards ) {
-                SmartHerderBase oHerder = oPair.Value;
-                if( oHerder.Orientation == eOrientation ) {
-                    fAnyReady |= oHerder.AdornmentShuffle( _oSelectedWinSite );
+            // This is STILL nasty bug. We can't rely on the Herder for the show hide
+            // state that we need the on that side. 
+            //foreach( KeyValuePair<string, SmartHerderBase> oPair in _rgShepards ) {
+            //    SmartHerderBase oHerder = oPair.Value;
+            //    if( oHerder.Orientation == eOrientation ) {
+            //        fAnyReady |= oHerder.AdornmentShuffle( _oSelectedWinSite );
+            //    }
+            //}
+            // The MENU get's the final say!!
+            foreach( IPgMenuVisibility oCurrentMenuItem in DecorSettings ) {
+                if( oCurrentMenuItem.Orientation == eOrientation &&
+                    oCurrentMenuItem.Checked && 
+                    oCurrentMenuItem.Shepard.AdornmentShuffle( _oSelectedWinSite )  ) 
+                {
+                    fAnyReady = true;
                 }
             }
 
@@ -821,6 +834,7 @@ namespace Mjolnir {
         /// gets deleted. Or when the inside is dragged around.
         /// </summary>
         /// <seealso cref="DecorSetState"/>
+        /// <seealso cref="IsAnyShepardReady(SideIdentify)"/>
         protected void DecorShuffle() {
             // view site can be null if no documents are open in the editor.
             if( _oSelectedWinSite == null )
@@ -829,9 +843,10 @@ namespace Mjolnir {
             foreach( IPgMenuVisibility oMenuItem in DecorSettings ) {
                 if( oMenuItem.Checked ) {
                     // Lazy create the requested decor associated with current view.
-					// If site doesn't support the decor, or all decor is hidden then hide it.
-                    if( DecorCreate( _oSelectedWinSite, oMenuItem.Shepard ) )
-						oMenuItem.Shepard.Hidden = false;
+					// If site doesn't support the decor, remember, other's might!!
+                    DecorCreate( _oSelectedWinSite, oMenuItem.Shepard );
+                } else {
+					oMenuItem.Shepard.Hidden = true;
                 }
             }
 
@@ -846,8 +861,10 @@ namespace Mjolnir {
         const bool CLOSE = false;
 
         /// <summary>
-        /// Open or close a tool window. Which also might mean opening or closing the corresponding side.
+        /// Open or close a single tool window. Which also might mean opening or 
+        /// closing the corresponding side and opening up other tools.
         /// </summary>
+        /// <seealso cref="DecorShuffle"/>
         protected void DecorSetState( IPgMenuVisibility oMenuItem, bool fNewState ) 
         {
             if( oMenuItem == null )
@@ -857,24 +874,26 @@ namespace Mjolnir {
 				DecorShow();
 
             oMenuItem.Checked = fNewState; // this won't call back, because I sink OnClick() and not OnCheckedChanged().
-			if( oMenuItem.Checked ) {
-				oMenuItem.Shepard.Show = SHOWSTATE.Active;
-			} else {
-				oMenuItem.Shepard.Hidden = true;
-			}
 
             SideIdentify eOrientation = oMenuItem.Shepard.Orientation;
 
-            // first set up the new decor or close the old decor.
+            // First set up the new decor or close the old decor. 
             switch ( fNewState ) {
                 case OPEN:
-                    foreach( IPgMenuVisibility oCurrentMenuItem in DecorSettings ) {
-                        if( _oSelectedWinSite != null && oCurrentMenuItem.Checked ) {
-                            // Lazy create the requested decor associated with current view
-                            if( DecorCreate( _oSelectedWinSite, oCurrentMenuItem.Shepard ) )
-								oCurrentMenuItem.Shepard.Show = SHOWSTATE.Active;
-							else
-								oCurrentMenuItem.Shepard.Hidden = true;
+                    if( _oSelectedWinSite != null ) {
+                        // Check with the menu for final say on state.
+                        foreach( IPgMenuVisibility oCurrentMenuItem in DecorSettings ) {
+                            if( oCurrentMenuItem.Orientation == eOrientation ) {
+                                if( oCurrentMenuItem.Checked ) {
+                                    // Lazy create the requested decor associated with current view
+                                    // Definitely active if created. But hidden only if menu sez so.
+                                    if( DecorCreate( _oSelectedWinSite, oCurrentMenuItem.Shepard ) ) {
+                                        oMenuItem.Shepard.Show = SHOWSTATE.Active;
+                                    }
+                                } else {
+                                    oCurrentMenuItem.Shepard.Hidden = true;
+                                } 
+                            }
                         }
                     }
                     break;
@@ -924,9 +943,7 @@ namespace Mjolnir {
         /// Toggle current check state.
         /// </summary>
 		protected void OnDecorMenuClick( object oTarget, EventArgs oArgs ) {
-			MenuItemHerder oMenuItem = oTarget as MenuItemHerder;
-
-			if( oMenuItem != null ) {
+			if( oTarget is MenuItemHerder oMenuItem ) {
 				DecorSetState( oMenuItem, !oMenuItem.Checked );
 			}
 		}
