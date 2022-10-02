@@ -80,6 +80,10 @@ namespace Play.SSTV {
 				PropertyInitRow( Layout as SmartTable, 
 								 (int)SSTVProperties.Names.Rx_ModeSelect, 
 								 _ddSSTVMode );
+
+				PropertyInitRow( Layout as SmartTable, 
+								 (int)SSTVProperties.Names.Rx_Diagnostic, 
+								 new ImageViewSingle( new WinSlot( this ), SSTVDocument.SyncImage )  );
 			} catch ( Exception oEx ) {
 				Type[] rgErrors = { typeof( NullReferenceException ),
 									typeof( ArgumentOutOfRangeException ) };

@@ -39,6 +39,7 @@ namespace Play.SSTV {
             Rx_Window,
             Rx_FamilySelect,
             Rx_ModeSelect,
+            Rx_Diagnostic,
 
             Tx_Progress,
             Tx_SrcDir,
@@ -128,6 +129,7 @@ namespace Play.SSTV {
             LabelSet( Names.Rx_Window,       "Rx Window" );
             LabelSet( Names.Rx_FamilySelect, "Rx Family" );
             LabelSet( Names.Rx_ModeSelect,   "Rx Mode" );
+            LabelSet( Names.Rx_Diagnostic,   "Diagnostics" );
 
             // Initialize these to reasonable values, the user can update and save.
             ValueUpdate( Names.Std_ImgQuality, "80" );
@@ -1459,6 +1461,7 @@ namespace Play.SSTV {
                             PropertyChange?.Invoke( SSTVEvents.DownLoadTime );
                             // A little bit skanky. First place we need public access to this...
                             DisplayImage.Raise_ImageUpdated();
+                            SyncImage   .Raise_ImageUpdated();
                             break;
                         case SSTVEvents.DownLoadFinished: // NOTE: This comes along unreliably in the device streaming case.
                             Properties.ValueUpdate( SSTVProperties.Names.Rx_Progress, sResult.Param.ToString( "D2" ) + "% - Complete", Broadcast:true );
