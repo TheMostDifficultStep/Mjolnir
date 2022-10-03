@@ -73,8 +73,8 @@ namespace Mjolnir {
 
             // Whenever the search results tool window is navigated, I need to know.
             // TODO: We've got the PlayHilights line which would be perfect for this.
-			if( _oWinMain.DecorSoloSearch( "matches" ) is EditWindow2 oEditWin ) {
-				oEditWin.LineChanged += new Navigation( OnMatchNavigation );
+			if( _oWinMain.DecorSoloSearch( "matches" ) is EditWindow2 oEditMatchesWin ) {
+				oEditMatchesWin.LineChanged += new Navigation( OnMatchNavigation );
 			}
 
 			// Accessing the SearchType dropdown, so it needs to be initialized, see above.
@@ -113,6 +113,7 @@ namespace Mjolnir {
 			    new LayoutControl( button2,  LayoutRect.CSS.Flex ),
             } );
 
+            //DocForms.BufferEvent += FindStringChanges;
             OnDocumentEvent( BUFFEREVENTS.MULTILINE );
             OnSizeChanged( new EventArgs() );
 
@@ -140,11 +141,18 @@ namespace Mjolnir {
             } catch( NullReferenceException ) {
             }
         }
-        // This is the case when we're using and instance of my editor for the find string.
-        // If we are in "line" mode, we'll just jump to the line as soon as the user types.
-        // BUG: if the string stays the same and the cursor get's moved we don't 
-        // update the iterator's start position in the ALL case.
-        void FindStringChanges( BUFFEREVENTS eEvent ) {
+        /// <summary>
+        /// SOMETHING on the form changed, but we don't know what. It seems to
+        /// be good enough to simply reset the search. We can use more specific
+        /// events from the document if we find this isn't good enough.
+        /// </summary>
+        /// <remarks>
+        /// If we are in "line" mode, we'll just jump to the line as soon as the user types.
+        /// BUG: If the string stays the same and the cursor get's moved we don't 
+        /// update the iterator's start position in the ALL case.
+        /// </remarks>
+        override protected void OnDocumentEvent( BUFFEREVENTS eEvent ) {
+            base.OnDocumentEvent( eEvent );
             Reset();
 
             if( oSearchType.SelectedItem.ToString() == "Line" ) {
