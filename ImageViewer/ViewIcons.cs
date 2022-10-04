@@ -376,6 +376,10 @@ namespace Play.ImageViewer {
             e.Handled = true;
 
             switch( e.KeyCode ) {
+                case Keys.Delete:
+                    // The solo viewer deletes on key down. So do the same here.
+                    _oDocument.CurrentFileDelete();
+                    break;
                 case Keys.Left:
                     //if( e.Control )
                     //    _oViewSite.OnCommandKey( CommandKey.Left, KeyBoardEnum.Control );
