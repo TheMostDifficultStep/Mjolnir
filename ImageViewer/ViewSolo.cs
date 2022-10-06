@@ -571,6 +571,10 @@ namespace Play.ImageViewer {
 				case Keys.Escape:
 					_oDocWalker.PlayStop();
 					break;
+                case Keys.Delete:
+                    // The solo viewer deletes on key down. So do the same here.
+                    _oDocWalker.CurrentFileDelete();
+                    break;
 
                 default:
                     e.Handled = false;
