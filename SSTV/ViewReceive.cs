@@ -138,6 +138,12 @@ namespace Play.SSTV {
 			}
         }
 
+		/// <summary>
+		/// Populate the Rx mode / family dropdowns.
+		/// </summary>
+		/// <param name="oModeSelect">The only time this parameter is deliberatly
+		/// null is during initialization. After that it's either a mode
+		/// or we want to be in "auto" detect mode.</param>
         public void PopulateRxModes( SSTVMode oModeSelect = null ) {
 			_ddSSTVMode.Items.Clear();
 
@@ -148,6 +154,9 @@ namespace Play.SSTV {
 				if( _rgFamilyLookup.TryGetValue( oModeSelect.Family, out int iIndex ) ) {
 					_ddSSTVFamily.SelectedIndex = iIndex;
 				}
+			} else {
+				_ddSSTVFamily.SelectedIndex = 0; // back to auto.
+				_ddSSTVMode  .SelectedIndex = -1;
 			}
 			// By this point we should have a family, now populate the modes.
 			if( _ddSSTVFamily.SelectedItem is SSTVDEM.SSTVFamily oNewFamily ) {
@@ -160,8 +169,6 @@ namespace Play.SSTV {
 						}
 					}
 				}
-			} else {
-				_ddSSTVFamily.SelectedIndex = 0;
 			}
             if( _ddSSTVMode.SelectedIndex == -1 && _ddSSTVMode.Items.Count > 0 ) {
                 _ddSSTVMode.SelectedIndex = 0;
