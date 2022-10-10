@@ -3,14 +3,12 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Windows.Forms;
 using System.Xml;
+using System.Collections;
 
 using SkiaSharp;
 
 using Play.Interfaces.Embedding;
 using Play.Rectangles;
-using Play.Edit;
-using System.Collections;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 
 namespace Mjolnir {
     /// <summary>
@@ -571,6 +569,7 @@ namespace Mjolnir {
 		/// between loads. Won't ensure the shepard is loaded with an eligible
 		/// decor.
 		/// </summary>
+        /// <seealso cref="DecorSetState"/>
         protected void LayoutLoadShepardsAt( SideIdentify eSide ) {
 			SideRect oSide = null;
 			
@@ -586,14 +585,19 @@ namespace Mjolnir {
 
 			List<SmartHerderBase> rgSort = new List<SmartHerderBase>( oSide.Count );
 
-			// Load visible shepard even if empty.
-			foreach( SmartHerderBase oShepard in this ) {
-				if( oShepard.Orientation == eSide &&
-					oShepard.Hidden      == false )
-				{
-					rgSort.Add( oShepard );
-				}
-			}
+            // Got to check the menu setting NOT the shepard.hidden. The
+            // later isn't as reliable indicator of intention.
+            foreach( IPgMenuVisibility oCurrentMenuItem in DecorSettings ) {
+                if( oCurrentMenuItem.Orientation == eSide ) {
+                    if( oCurrentMenuItem.Checked == true ) {
+                        rgSort.Add( oCurrentMenuItem.Shepard );
+                    } else {
+                        // This shouldn't need messing with. But we work
+                        // better if we clear it.
+                        oCurrentMenuItem.Shepard.Hidden = true;
+                    }
+                }
+            }
 
 			// Sort 'em so they'll insert somewhere near where dragged.
             switch( oSide.Direction ){
@@ -605,9 +609,9 @@ namespace Mjolnir {
 					break;
 			}
 
-			oSide.Clear();
-			oSide.Load( rgSort );
-			oSide.PercentReset( fNormalize:true );
+			oSide.Clear         ();
+			oSide.Load          ( rgSort );
+			oSide.PercentReset  ( fNormalize:true );
 			oSide.LayoutChildren();  // BUG: If rail distance is zero, no layout happens!!
 		}
 
@@ -878,29 +882,28 @@ namespace Mjolnir {
             SideIdentify eOrientation = oMenuItem.Shepard.Orientation;
 
             // First set up the new decor or close the old decor. 
-            switch ( fNewState ) {
-                case OPEN:
-                    if( _oSelectedWinSite != null ) {
-                        // Check with the menu for final say on state.
-                        foreach( IPgMenuVisibility oCurrentMenuItem in DecorSettings ) {
-                            if( oCurrentMenuItem.Orientation == eOrientation ) {
-                                if( oCurrentMenuItem.Checked ) {
-                                    // Lazy create the requested decor associated with current view
-                                    // Definitely active if created. But hidden only if menu sez so.
-                                    if( DecorCreate( _oSelectedWinSite, oCurrentMenuItem.Shepard ) ) {
-                                        oMenuItem.Shepard.Show = SHOWSTATE.Active;
-                                    }
-                                } else {
-                                    oCurrentMenuItem.Shepard.Hidden = true;
-                                } 
-                            }
+            if( fNewState ) {
+                if( _oSelectedWinSite != null ) {
+                    // Check with the menu for final say on state.
+                    foreach( IPgMenuVisibility oCurrentMenuItem in DecorSettings ) {
+                        if( oCurrentMenuItem.Orientation == eOrientation ) {
+                            if( oCurrentMenuItem.Checked ) {
+                                // Lazy create the requested decor associated with current view
+                                // Definitely active if created. But hidden only if menu sez so.
+                                if( DecorCreate( _oSelectedWinSite, oCurrentMenuItem.Shepard ) ) {
+                                    oMenuItem.Shepard.Show = SHOWSTATE.Active;
+                                }
+                            } else {
+                                // This shouldn't need messing with. But we work
+                                // better if we clear it.
+                                oCurrentMenuItem.Shepard.Hidden = true;
+                            } 
                         }
                     }
-                    break;
-                case CLOSE:
-                    oMenuItem.Shepard.AdornmentCloseAll();
-                    oMenuItem.Shepard.Hidden = true;
-                    break;
+                }
+            } else {
+                oMenuItem.Shepard.AdornmentCloseAll();
+                oMenuItem.Shepard.Hidden = true;
             }
 
 			LayoutLoadShepardsAt( eOrientation ); // A shepard is coming or going. Was above the switch...
