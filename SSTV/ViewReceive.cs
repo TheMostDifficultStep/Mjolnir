@@ -38,7 +38,7 @@ namespace Play.SSTV {
         protected override void Dispose(bool disposing) {
 			if( disposing ) {
                 SSTVDocument.RxModeList.CheckedEvent -= OnCheckedEvent_RxModeList;
-                SSTVDocument.PropertyChange          -= OnPropertyChange_SSTVDocument;
+                //SSTVDocument.PropertyChange          -= OnPropertyChange_SSTVDocument;
 			}
             base.Dispose(disposing);
         }
