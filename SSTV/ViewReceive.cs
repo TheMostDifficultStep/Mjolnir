@@ -35,6 +35,14 @@ namespace Play.SSTV {
 			SSTVDocument = docSSTV ?? throw new ArgumentNullException( nameof( docSSTV ) );
 		}
 
+        protected override void Dispose(bool disposing) {
+			if( disposing ) {
+                SSTVDocument.RxModeList.CheckedEvent -= OnCheckedEvent_RxModeList;
+                SSTVDocument.PropertyChange          -= OnPropertyChange_SSTVDocument;
+			}
+            base.Dispose(disposing);
+        }
+
         public override void InitRows() {
 			int[] rgShow = { 
 				(int)SSTVProperties.Names.Std_Process,
@@ -52,6 +60,8 @@ namespace Play.SSTV {
 
 			try {
                 SSTVDocument.RxModeList.CheckedEvent += OnCheckedEvent_RxModeList;
+                //SSTVDocument.PropertyChange          += OnPropertyChange_SSTVDocument;
+
 				// Call this once to set up the populate the (mode) families.
 				IEnumerator<SSTVDEM.SSTVFamily> itrFamily = SSTVDEM.EnumFamilies();
 				_ddSSTVFamily.Items.Add( "Auto" );
@@ -93,7 +103,20 @@ namespace Play.SSTV {
 			}
         }
 
-		private void ChangeModeAtList( SSTVMode oMode ) {
+   //     private void OnPropertyChange_SSTVDocument(SSTVEvents eProp) {
+			//try { 
+			//	Line oHighlight = SSTVDocument.RxModeList.HighLight;
+			//	if( oHighlight != null && oHighlight.Extra is SSTVMode oMode ) {
+			//		PopulateRxModes( oMode );
+			//	}
+			//} catch ( NullReferenceException ) {
+			//}
+   //     }
+
+        /// <summary>
+        /// This gets called whenever one of the dropdowns gets COMMITED by the user here.
+        /// </summary>
+        private void ChangeModeAtList( SSTVMode oMode ) {
 			foreach( Line oLine in SSTVDocument.RxModeList ) {
 				if( oLine.Extra is SSTVMode oLineMode && 
 					oLineMode.LegacyMode == oMode.LegacyMode )

@@ -1419,7 +1419,7 @@ namespace Play.SSTV {
         protected readonly string[] _rgThreadExStrings = { "Drawing Exception", "WorkerException", "ReadException", "DiagnosticsException" };
 
         /// <summary>
-        /// This is our task to poll the Background to UI Queue. It services both
+        /// This is our task to poll the Background to UI Queue. It serves both
         /// the receive thread and the transmit thread. Technically TX and RX can run
         /// concurrently with no problems.
         /// </summary>

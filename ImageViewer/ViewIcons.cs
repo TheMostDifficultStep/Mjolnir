@@ -376,10 +376,6 @@ namespace Play.ImageViewer {
             e.Handled = true;
 
             switch( e.KeyCode ) {
-                case Keys.Delete:
-                    // The solo viewer deletes on key down. So do the same here.
-                    _oDocument.CurrentFileDelete();
-                    break;
                 case Keys.Left:
                     //if( e.Control )
                     //    _oViewSite.OnCommandKey( CommandKey.Left, KeyBoardEnum.Control );
@@ -399,8 +395,9 @@ namespace Play.ImageViewer {
                     e.Handled = false;
                     break;
             }
-       }
+        }
 
+        /// <seealso cref="WindowSoloImageNav.OnKeyDown"/>
         protected override void OnKeyUp(KeyEventArgs e) {
             if( this.IsDisposed )
                 return;
@@ -408,6 +405,11 @@ namespace Play.ImageViewer {
             e.Handled = true;
 
             switch( e.KeyCode ) {
+                case Keys.Delete:
+                    // We don't get this event on OnKeyUp when this window is an adornment
+                    // for some reason. It DOES work here! It's a bummer but I can live with this.
+                    _oDocument.CurrentFileDelete();
+                    break;
                 case Keys.Enter:
 					if( _oDocument.CurrentElement is FileLine oFile ) {
 						if( oFile._fIsDirectory ) {

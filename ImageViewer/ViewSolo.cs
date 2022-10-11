@@ -541,6 +541,7 @@ namespace Play.ImageViewer {
 			}
         }
 
+		/// <seealso cref="ImageViewIcons.OnKeyUp"
         protected override void OnKeyDown(KeyEventArgs e) {
             if( this.IsDisposed )
                 return;
@@ -572,7 +573,8 @@ namespace Play.ImageViewer {
 					_oDocWalker.PlayStop();
 					break;
                 case Keys.Delete:
-                    // The solo viewer deletes on key down. So do the same here.
+                    // We processon key UP in ImageViewIcons. It won't receive this message
+					// when it is an adornment.
                     _oDocWalker.CurrentFileDelete();
                     break;
 
