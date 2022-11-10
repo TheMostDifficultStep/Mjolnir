@@ -1151,6 +1151,7 @@ namespace Mjolnir {
 			Controllers.Add( new Play.MorsePractice.MorseController3() );
             Controllers.Add( new Play.Clock        .SolarController() );
             Controllers.Add( new Play.SSTV         .MySSTVController() );
+            Controllers.Add( new Monitor           .MonitorController() );
         }
 
         protected class EmbeddedGrammars {

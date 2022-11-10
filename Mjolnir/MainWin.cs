@@ -633,6 +633,7 @@ namespace Mjolnir {
             rgSubMenu.Add( new ToolStripMenuItem("Net Log", BitmapCreateFromChar( "\xE113" ), new EventHandler(this.OnDocNewNetLogger)));
             rgSubMenu.Add( new ToolStripMenuItem("Std Log", BitmapCreateFromChar( "\xE113" ), new EventHandler(this.OnDocNewStdLogger)));
             rgSubMenu.Add( new ToolStripMenuItem("SSTV",    BitmapCreateFromChar( "\xE114" ), new EventHandler(this.OnDocNewSSTV  )));
+            rgSubMenu.Add( new ToolStripMenuItem("Monitor", BitmapCreateFromChar( "\xE114" ), new EventHandler(this.OnDocNewMonitor )));
 
             oFileMenu.DropDownItems.Add(new ToolStripMenuItem("New",      BitmapCreateFromChar( "\xE295" ), rgSubMenu.ToArray() ) );
             oFileMenu.DropDownItems.Add(new ToolStripMenuItem( "Open...", BitmapCreateFromChar( "\xE132" ), new EventHandler(this.OnDocOpen), Keys.Control | Keys.O ));
@@ -1053,6 +1054,9 @@ namespace Mjolnir {
 
         public void OnDocNewSSTV( object sender, EventArgs e ) {
             EditorInitNewShow( ".mysstv" );
+        }
+        public void OnDocNewMonitor( object sender, EventArgs e ) {
+            EditorInitNewShow( ".fourbit" );
         }
 
         public void OnDocOpen( object sender, EventArgs e ) {
