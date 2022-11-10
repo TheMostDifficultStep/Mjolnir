@@ -53,6 +53,9 @@ namespace Monitor {
 
         public Editor        TextCommands { get; }
         public DocProperties FrontDisplay { get; }
+        public Editor        AddrEdit     { get; }
+        public Editor        DataEdit     { get; }
+        public Editor        LablEdit     { get; }
 
         public class DocSlot :
             IPgBaseSite
@@ -78,6 +81,9 @@ namespace Monitor {
 
             TextCommands = new Editor       ( new DocSlot( this ) );
             FrontDisplay = new DocProperties( new DocSlot( this ) );
+            LablEdit     = new Editor       ( new DocSlot( this ) );
+            AddrEdit     = new Editor       ( new DocSlot( this ) );
+            DataEdit     = new Editor       ( new DocSlot( this ) );
         }
 
         // See ca 1816 warning.
@@ -87,8 +93,14 @@ namespace Monitor {
         public bool InitNew() {
             if( !TextCommands.InitNew() )
                 return false;
-
             if( !FrontDisplay.InitNew() )
+                return false;
+
+            if( !AddrEdit.InitNew() )
+                return false;
+            if( !DataEdit.InitNew() )
+                return false;
+            if( !LablEdit.InitNew() )
                 return false;
 
             TextCommands.LineAppend( "Hello" );
@@ -96,10 +108,18 @@ namespace Monitor {
 
             Editor PropValues = FrontDisplay.Property_Values;
             for( int i = 0; i<4; ++i ) {
-                PropValues.LineAppend( "0", fUndoable:false );
+                AddrEdit.LineAppend( "0", fUndoable:false );
+            }
+            for( int i = 0; i<8; ++i ) {
+                DataEdit.LineAppend( "0", fUndoable:false );
             }
 
-            FrontDisplay.Property_Labels.LineAppend( "Data", fUndoable:false );
+            LablEdit.LineAppend( "Data",    fUndoable:false );
+            LablEdit.LineAppend( "...",     fUndoable:false );
+            LablEdit.LineAppend( "Address", fUndoable:false );
+            LablEdit.LineAppend( "",        fUndoable:false );
+            LablEdit.LineAppend( "High",    fUndoable:false );
+            LablEdit.LineAppend( "Low",     fUndoable:false );
 
             return true;
         }

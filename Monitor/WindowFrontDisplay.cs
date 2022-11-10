@@ -57,6 +57,12 @@ namespace Monitor {
 			public IPgViewNotify EventChain => _oHost._oSiteView.EventChain;
 		}
 
+        /// <remarks>So this is an interesting case for our forms object. I would like the
+        /// data and address lines to be two seperate text editors. The form which we 
+        /// derive from really only understands one editor of editable elements. It comes
+        /// down to who gets edit events. And how would undo work. It seems pretty
+        /// special case and so I'll probably split the FormsWindow object for this.</remarks>
+        /// <exception cref="ArgumentNullException"></exception>
         public WindowFrontPanel( IPgViewSite oViewSite, MonitorDocument oMonitorDoc ) : 
             base( oViewSite, oMonitorDoc.FrontDisplay.Property_Values ) 
         {
@@ -82,26 +88,58 @@ namespace Monitor {
 			Blinken.Add( new LayoutRect( LayoutRect.CSS.Pixels, 50, .25f ) );
 			Blinken.Add( new LayoutRect( LayoutRect.CSS.Pixels, 50, .25f ) );
 			Blinken.Add( new LayoutRect( LayoutRect.CSS.Pixels, 50, .25f ) );
+			Blinken.Add( new LayoutRect( LayoutRect.CSS.Pixels, 50, .25f ) );
+			Blinken.Add( new LayoutRect( LayoutRect.CSS.Pixels, 50, .25f ) );
+			Blinken.Add( new LayoutRect( LayoutRect.CSS.Pixels, 50, .25f ) );
+			Blinken.Add( new LayoutRect( LayoutRect.CSS.Pixels, 50, .25f ) );
 
-            Editor           oValues = MonitorDoc.FrontDisplay.Property_Values;
-            Editor           oLables = MonitorDoc.FrontDisplay.Property_Labels;
-            List<LayoutRect> rgLayouts  = new();
+            Editor oLabels = MonitorDoc.LablEdit;
 
-            // Lable for the blinken lights.
-            rgLayouts.Add( new LayoutSingleLine( new FTCacheLine( oLables[0] ), LayoutRect.CSS.Flex ) );
-            // This is the lights.
-            for( int i=0; i<4; ++i ) {
-                rgLayouts.Add( new LayoutSingleLine( new FTCacheLine( oValues[i] ), LayoutRect.CSS.Flex ) );
-            }
+            // Top row lables for the columns.
+            List<LayoutRect> rgLablLayout = new ();
+            rgLablLayout.Add( new LayoutSingleLine( new FTCacheLine( oLabels[3] ), LayoutRect.CSS.Flex ) );
+            rgLablLayout.Add( new LayoutSingleLine( new FTCacheLine( oLabels[4] ), LayoutRect.CSS.Flex ) {Span=3 });
+            rgLablLayout.Add( new LayoutSingleLine( new FTCacheLine( oLabels[5] ), LayoutRect.CSS.Flex ) {Span=3 });
             // contravarience vs covariance. Have to load cachelist one by one
             // instead of using addrange. Darn.
-            foreach( LayoutRect oRect in rgLayouts ) {
+            foreach( LayoutRect oRect in rgLablLayout ) {
                 if( oRect is LayoutSingleLine oSingle ) {
                     CacheList.Add( oSingle );
                 }
             }
 
-			Blinken.AddRow( rgLayouts );
+            List<LayoutRect> rgDataLayout = new();
+            // Labels for the data blinken lights.
+            rgDataLayout.Add( new LayoutSingleLine( new FTCacheLine( oLabels[0] ), LayoutRect.CSS.Flex ) );
+            rgDataLayout.Add( new LayoutSingleLine( new FTCacheLine( oLabels[1] ), LayoutRect.CSS.Flex ) {Span=3 });
+
+            // This is the data lights.
+            for( int i=0; i<4; ++i ) {
+                rgDataLayout.Add( new LayoutSingleLine( new FTCacheLine( MonitorDoc.DataEdit[i] ), LayoutRect.CSS.Flex ) );
+            }
+            foreach( LayoutRect oRect in rgDataLayout ) {
+                if( oRect is LayoutSingleLine oSingle ) {
+                    CacheList.Add( oSingle );
+                }
+            }
+
+            List<LayoutRect> rgAddrLayout = new();
+            // Label for the address blinken lights.
+            rgAddrLayout.Add( new LayoutSingleLine( new FTCacheLine( oLabels[2] ), LayoutRect.CSS.Flex ) );
+
+            // This is the address lights
+            for( int i=0; i<8; ++i ) {
+                rgAddrLayout.Add( new LayoutSingleLine( new FTCacheLine( MonitorDoc.DataEdit[i] ), LayoutRect.CSS.Flex ) );
+            }
+            foreach( LayoutRect oRect in rgAddrLayout ) {
+                if( oRect is LayoutSingleLine oSingle ) {
+                    CacheList.Add( oSingle );
+                }
+            }
+
+            Blinken.AddRow( rgLablLayout );
+			Blinken.AddRow( rgDataLayout );
+            Blinken.AddRow( rgAddrLayout );
 
             // complete final layout of table and command window.
             VertStack.Add( Blinken );
