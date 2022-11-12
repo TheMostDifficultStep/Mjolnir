@@ -59,6 +59,7 @@ namespace Play.MorsePractice {
 
                         if( oTarg.GetValue( "data" ) is MemoryState<char> oData  ) {
                             switch( strCmdID ) {
+                                case "04":
                                 case "01": // Send the mode data (transceive)
                                     string strMode   = GetStringBinding( _oStream, oData, "mode"   );
                                     string strFilter = GetStringBinding( _oStream, oData, "filter" );

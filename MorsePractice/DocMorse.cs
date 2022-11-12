@@ -579,6 +579,7 @@ namespace Play.MorsePractice {
         }
 
         public void CiVModeChange( string strMode, string strFilter ) {
+            Properties.ValueUpdate( RadioProperties.Names.Mode, strMode );
         }
 
         public void CiVPowerLevel( int iLevel ) {
@@ -1231,21 +1232,26 @@ namespace Play.MorsePractice {
         /// spins the dial. So all we need to do is grab the property and 
         /// add to the notes.
         /// </summary>
+        /// <remarks>It's a little bit of a bummer that the properties are the
+        /// human readable values. So if we change things like units on the
+        /// power or frequency, it might become inconsistant with this function.</remarks>
         public void InsertFreqDateTime() {
             try {
                 StringBuilder sbLine = new StringBuilder();
-                DateTime      dtNow  = DateTime.UtcNow;
-                string       strFreq = Properties[ (int)RadioProperties.Names.Frequency ].ToString();
-                string      strPower = Properties[ (int)RadioProperties.Names.Power_Level ].ToString();
+                DateTime   dtNow  = DateTime.UtcNow;
+                string    strFreq = Properties[ (int)RadioProperties.Names.Frequency ].ToString();
+                string   strPower = Properties[ (int)RadioProperties.Names.Power_Level ].ToString();
+                string    strMode = Properties[ (int)RadioProperties.Names.Mode ].ToString();
 
                 sbLine.Append( String.IsNullOrEmpty( strFreq ) ? "?mHz" : strFreq );
                 sbLine.Append( '\t' ); // tab
                 sbLine.Append( dtNow.ToString("HH:mm") );
                 sbLine.Append( "z\t" ); // tab
                 sbLine.Append( dtNow.ToShortDateString() );
-                sbLine.Append( "\t" ); // tab
-                sbLine.Append( String.IsNullOrEmpty( strPower ) ? "%" : strPower );
-                sbLine.Append( "w" );
+                sbLine.Append( '\t' ); // tab
+                sbLine.Append( String.IsNullOrEmpty( strPower ) ? "?%" : strPower );
+                sbLine.Append( "w " );
+                sbLine.Append( String.IsNullOrEmpty( strMode ) ? "?Mode" : strMode );
 
                 Notes.LineAppend( sbLine.ToString() );
             } catch( Exception oEx ) {
@@ -1268,6 +1274,7 @@ namespace Play.MorsePractice {
                     }
                     SendCommand( 0x03 );       // Read Frequency.
                     SendCommand( 0x1B, 0x00 ); // Read tone.
+                    SendCommand( 0x04 );       // Read Mode.
                 } catch( Exception oEx ) {
                     if( CiVErrorList.IsUnhandled( oEx ) )
                         throw;
@@ -1323,6 +1330,7 @@ namespace Play.MorsePractice {
             COM_Port,
             Address_Radio,
             Address_Controller,
+            Mode,
             MAX
         }
 
@@ -1352,6 +1360,7 @@ namespace Play.MorsePractice {
             LabelSet( Names.COM_Port,           "COM Port" );
             LabelSet( Names.Address_Radio,      "Radio Addr" );
             LabelSet( Names.Address_Controller, "Controller Addr" );
+            LabelSet( Names.Mode,               "Mode" ); // Rx or Tx??
 
             // We'll actually initialize the serial port with these values! but they're not changable after that yet.
             ValueUpdate( Names.COM_Port,           "4" );    // While a property,
