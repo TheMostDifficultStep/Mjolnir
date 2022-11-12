@@ -94,6 +94,7 @@ namespace Play.MorsePractice {
         protected override void OnKeyDown(KeyEventArgs e) {
             if( e.KeyCode == Keys.T && e.Control == true ) {
                 _oDocNotes.InsertFreqDateTime();
+                ScrollTo(EDGE.BOTTOM);
             }
             base.OnKeyDown(e);
         }
