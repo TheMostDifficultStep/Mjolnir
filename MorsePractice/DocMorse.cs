@@ -247,7 +247,7 @@ namespace Play.MorsePractice {
         public Editor CallSignPageHtml{ get; } // This is the main page returned by qrz.
 
                  SerialPort              _oCiV; // Good cantidate for "init once"
-        readonly ConcurrentQueue<byte[]> _oMsgQueue = new ConcurrentQueue<byte[]>();
+        readonly ConcurrentQueue<byte[]> _oMsgQueue = new ConcurrentQueue<byte[]>(); // events to our forground thread.
         readonly Line                    _oDataGram = new TextLine( 0, string.Empty );
         readonly Grammer<char>           _oCiVGrammar;
         readonly DatagramParser          _oParse;
@@ -1224,6 +1224,36 @@ namespace Play.MorsePractice {
         }
 
         public void TableListenerRemove(IPgTableEvents oEvent) {
+        }
+
+        /// <summary>
+        /// In the StdLog mode we're retrieving the frequency whenever the user
+        /// spins the dial. So all we need to do is grab the property and 
+        /// add to the notes.
+        /// </summary>
+        public void InsertFreqDateTime() {
+            try {
+                StringBuilder sbLine = new StringBuilder();
+                DateTime      dtNow  = DateTime.UtcNow;
+                string       strFreq = Properties[ (int)RadioProperties.Names.Frequency ].ToString();
+                string      strPower = Properties[ (int)RadioProperties.Names.Power_Level ].ToString();
+
+                sbLine.Append( String.IsNullOrEmpty( strFreq ) ? "?mHz" : strFreq );
+                sbLine.Append( '\t' ); // tab
+                sbLine.Append( dtNow.ToString("HH:mm") );
+                sbLine.Append( "z\t" ); // tab
+                sbLine.Append( dtNow.ToShortDateString() );
+                sbLine.Append( "\t" ); // tab
+                sbLine.Append( String.IsNullOrEmpty( strPower ) ? "%" : strPower );
+                sbLine.Append( "w" );
+
+                Notes.LineAppend( sbLine.ToString() );
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( ArgumentOutOfRangeException ),
+                                    typeof( NullReferenceException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
+            }
         }
 
         public bool Execute( Guid guidCmnd ) {
