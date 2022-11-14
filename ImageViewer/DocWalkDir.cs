@@ -37,7 +37,10 @@ namespace Play.ImageViewer {
         public override string CurrentDirectory {
             get { 
 				try {
-					return( _oDirectory.FullName );
+                    // The directory can be null when we're loading up a net address
+                    // that isn't available. Like when my lappie is not at home! >_<;;
+                    if( _oDirectory != null )
+					    return( _oDirectory.FullName );
 				} catch( Exception oEx ) {
 					Type[] rgError = { typeof( NullReferenceException ),
 									   typeof( PathTooLongException ),
@@ -45,8 +48,8 @@ namespace Play.ImageViewer {
 					if( rgError.IsUnhandled( oEx ) )
 						throw;
 
-					return( string.Empty );
 				}
+				return( string.Empty );
             }
         }
 

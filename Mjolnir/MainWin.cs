@@ -2267,27 +2267,50 @@ namespace Mjolnir {
 
 
         /// <summary>
-        /// Request this window to show the documents in this list.
+        /// Request this window to show the documents in this list. Nominally I expect this
+        /// to be a command line load of files but not a pvs load. The main window will have
+        /// gone through an InitNew() sequence. The window will not be aware of these
+        /// arguments and this call happens AFTER the InitNew();
         /// </summary>
         public void DocumentShowAll( List<string> rgArgsClean ) {
 			try {
 				if( rgArgsClean.Count <= 0 )
 					return;
 
+				for( int i = 0; i<rgArgsClean.Count; ++i ) {
+					EditorShowEnum eShow = i == rgArgsClean.Count - 1 ? EditorShowEnum.FOCUS : EditorShowEnum.SILENT;
+
+					DocumentShow( rgArgsClean[i], eShow );
+				}
+
 				string[] rgExts = { ".gif", ".png", ".jpg", ".scraps", ".bmp" };
+                List<SideIdentify> rgOrient = new List<SideIdentify>();
+
+                // When we load from a sesson we load up the shepards from
+                // the one's saved. This call is in the window InitNew() path
+                // so we get the same result based on the current decor menu settings.
+                foreach( IPgMenuVisibility oDecorVis in _oDecorEnum ) {
+                    if( oDecorVis.Checked == true ) {
+						oDecorVis.Shepard.Hidden = false;
+			            rgOrient.Add( (SideIdentify)oDecorVis.Shepard.Orientation );
+                    }
+                }
+                if( rgOrient.Count > 0 ) {
+                    DecorMenuReload();
+                    foreach( SideIdentify eOrientation in rgOrient ) {
+			            LayoutLoadShepardsAt( eOrientation );
+                    }
+                }
 
 				// If the last command line doc loaded is a image, hide the decor/frame
                 string strExtn = Path.GetExtension( rgArgsClean.Last<string>() );
                 strExtn = strExtn?.ToLower();
 				if( rgExts.Contains( strExtn ) ) {
 					DecorHide();
-				}
-
-				for( int i = 0; i<rgArgsClean.Count; ++i ) {
-					EditorShowEnum eShow = i == rgArgsClean.Count - 1 ? EditorShowEnum.FOCUS : EditorShowEnum.SILENT;
-
-					DocumentShow( rgArgsClean[i], eShow );
-				}
+				} else {
+                    DecorShow();
+                }
+                
 			} catch( Exception oEx ) {
 				Type[] rgErrors = { typeof( NullReferenceException ),
 									typeof( ArgumentException ),

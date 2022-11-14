@@ -483,7 +483,8 @@ namespace Mjolnir {
 
         /// <summary>
         /// Self hosting ourselves! Look for the first session in the command line. 
-        /// If found, Load() from it. Else, InitNew(). 
+        /// If found, Load() from it. Else, InitNew(). Here "load" is a misnomer because
+        /// there is no "SessionInit" so be aware.
         /// </summary>
         protected void SessionLoad( string[] rgArgs, XmlDocument xmlConfig ) {
 			List<string> rgArgsClean = new List<string>(5);

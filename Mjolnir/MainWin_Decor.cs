@@ -667,7 +667,6 @@ namespace Mjolnir {
         public void DecorLoad( XmlElement xmlRoot ) {
             try {
 				XmlNodeList        rgXmlViews = xmlRoot.SelectNodes( "Decors/Decor");
-                bool               fAnyCheck  = false;
                 List<SideIdentify> rgOrient = new List<SideIdentify>();
 
 				foreach( XmlElement xmlView in rgXmlViews ) {
@@ -677,11 +676,10 @@ namespace Mjolnir {
                             oDecorVis.Checked = true;
 						    oDecorVis.Shepard.Hidden = false;
 			                rgOrient.Add( (SideIdentify)oDecorVis.Shepard.Orientation );
-                            fAnyCheck = true;
                         }
                     }
                 }
-                if( fAnyCheck ) {
+                if( rgOrient.Count > 0 ) {
                     DecorMenuReload();
                     foreach( SideIdentify eOrientation in rgOrient ) {
 			            LayoutLoadShepardsAt( eOrientation );
