@@ -353,6 +353,9 @@ namespace Play.Edit {
                         return;
                     }
 
+                    if( oRange == null )
+                        oRange = new ColorRange( 0, _rgLines[iLine].ElementCount );
+
                     if( oRange.Length <= 0 ) 
                         return;
 

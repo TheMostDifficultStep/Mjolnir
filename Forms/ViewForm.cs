@@ -486,6 +486,9 @@ namespace Play.Forms {
                 int   iOffset   = Caret.Offset;
                 float flAdvance = Caret.Advance;
 
+                if( Caret.Layout == null )
+                    return;
+
                 Caret.Layout.Selection.Length = 0;
                 Caret.Layout.OnChangeFormatting();
 

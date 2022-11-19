@@ -41,9 +41,6 @@ namespace Monitor {
         }
     }
 
-    public enum CPU_Instructions {
-        load, save, add
-    }
     public class MonitorDocument :
         IPgParent,
 		IDisposable,
@@ -86,6 +83,9 @@ namespace Monitor {
             }
         }
 
+        public enum CPU_Instructions {
+            load_Imm, load_abs, save, add, halt
+        }
         public MonitorDocument( IPgBaseSite oSite ) {
             _oBaseSite = oSite ?? throw new ArgumentNullException( "Site to document must not be null." );
 
@@ -97,9 +97,11 @@ namespace Monitor {
                 Registers.Add( new List<Line>() );
             }
 
-            _dctInstructions.Add( "load", CPU_Instructions.load );
-            _dctInstructions.Add( "add", CPU_Instructions.add );
-            _dctInstructions.Add( "save", CPU_Instructions.save );
+            _dctInstructions.Add( "load-imm", CPU_Instructions.load_Imm );
+            _dctInstructions.Add( "load-abs", CPU_Instructions.load_abs );
+            _dctInstructions.Add( "add",      CPU_Instructions.add );
+            _dctInstructions.Add( "save",     CPU_Instructions.save );
+            _dctInstructions.Add( "halt",     CPU_Instructions.halt );
         }
 
         // See ca 1816 warning.
@@ -121,15 +123,23 @@ namespace Monitor {
             //    TextCommands.LineAppend( i.ToString() );
             //}
 
-            TextCommands.LineAppend( "load" );
+            TextCommands.LineAppend( "load-imm" ); // 0
             TextCommands.LineAppend( "0" );
             TextCommands.LineAppend( "5" );
 
-            TextCommands.LineAppend( "load" );
+            TextCommands.LineAppend( "load-abs" ); // 3
             TextCommands.LineAppend( "1" );
-            TextCommands.LineAppend( "3");
+            TextCommands.LineAppend( "11");
 
-            TextCommands.LineAppend( "add");
+            TextCommands.LineAppend( "add"); // 6
+
+            TextCommands.LineAppend( "save" );
+            TextCommands.LineAppend( "2" );
+            TextCommands.LineAppend( "12" );  // 9
+
+            TextCommands.LineAppend( "halt" );
+            TextCommands.LineAppend( "3" );
+            TextCommands.LineAppend( "" ); // 12
 
             Editor PropValues = FrontDisplay.Property_Values;
             for( int i = 0; i<4; ++i ) {
@@ -215,13 +225,13 @@ namespace Monitor {
                     }
 
                     switch( eInst ) {
-                        case CPU_Instructions.load:
+                        case CPU_Instructions.load_Imm: {
                             int    iRegister = int.Parse( TextCommands[++_iCurrent].ToString() );
                             string strData   = TextCommands[++_iCurrent].ToString();
 
                             RegisterLoad( iRegister, strData );
                             RefreshScreen(0);
-                            break;
+                        } break;
                         case CPU_Instructions.add:
                             int iA   = RegisterRead( 0 );
                             int iB   = RegisterRead( 1 );
@@ -230,6 +240,29 @@ namespace Monitor {
                             RegisterLoad( 2, iSum.ToString() );
                             RefreshScreen(0);
                             break;
+                        case CPU_Instructions.load_abs: {
+                            int    iRegister = int.Parse( TextCommands[++_iCurrent].ToString() );
+                            string strAddr   = TextCommands[++_iCurrent].ToString();
+                            if( int.TryParse( strAddr, out int iAddr ) ) {
+                                string strData = TextCommands[iAddr].ToString();
+                                RegisterLoad( iRegister, strData );
+                            }
+                            RefreshScreen(0);
+                        } break;
+                        case CPU_Instructions.halt:
+                            _iCurrent = TextCommands.ElementCount;
+                            break;
+                        case CPU_Instructions.save: {
+                            int iRegister = int.Parse( TextCommands[++_iCurrent].ToString() );
+                            int iAddress  = int.Parse( TextCommands[++_iCurrent].ToString() );
+                            int iData     = RegisterRead( iRegister );
+                            using( Editor.Manipulator oBulk = TextCommands.CreateManipulator() ) {
+                                string strData = iData.ToString();
+                                oBulk.LineTextDelete( iAddress, null );
+                                oBulk.LineTextInsert( iAddress, 0, strData, 0, strData.Length );
+                            }
+                            RefreshScreen(0);
+                        } break;
                     }
                 } while( ++_iCurrent < TextCommands.ElementCount && fNotStep );
             } catch( Exception oEx ) {
