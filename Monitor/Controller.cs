@@ -86,10 +86,27 @@ namespace Monitor {
         public enum CPU_Instructions {
             load_Imm, load_abs, save, add, halt
         }
+
+        public class ProgramFile : Editor {
+            public ProgramFile( IPgBaseSite oBaseSite ) : base( oBaseSite ) { }
+
+            public override WorkerStatus PlayStatus => ( _oSiteBase.Host as MonitorDocument ).PlayStatus;
+        }
+
+        public WorkerStatus PlayStatus { 
+            get { 
+                if( _iCurrent == 0 )
+                    return WorkerStatus.FREE; 
+                if( _iCurrent < TextCommands.ElementCount )
+                    return WorkerStatus.BUSY; 
+
+                return WorkerStatus.PAUSED;
+            } 
+        }
         public MonitorDocument( IPgBaseSite oSite ) {
             _oBaseSite = oSite ?? throw new ArgumentNullException( "Site to document must not be null." );
 
-            TextCommands = new Editor       ( new DocSlot( this ) );
+            TextCommands = new ProgramFile  ( new DocSlot( this ) );
             FrontDisplay = new DocProperties( new DocSlot( this ) );
             LablEdit     = new Editor       ( new DocSlot( this ) );
 
@@ -208,6 +225,7 @@ namespace Monitor {
 
         public void ProgramReset() {
             _iCurrent = 0;
+            TextCommands.Raise_BufferEvent( BUFFEREVENTS.FORMATTED );
         }
 
         public void ProgramRun( bool fNotStep = true ) {
@@ -223,6 +241,8 @@ namespace Monitor {
                         _oBaseSite.LogError( "Execution", "Illegal instruction" );
                         return;
                     }
+
+                    TextCommands.HighLight = TextCommands[_iCurrent];
 
                     switch( eInst ) {
                         case CPU_Instructions.load_Imm: {
