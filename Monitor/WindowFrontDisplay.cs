@@ -84,14 +84,14 @@ namespace Monitor {
 
             // First, add the columns to our table.
 			Blinken.Add( new LayoutRect( LayoutRect.CSS.None ) );
-			Blinken.Add( new LayoutRect( LayoutRect.CSS.Pixels, 50, .25f ) );
-			Blinken.Add( new LayoutRect( LayoutRect.CSS.Pixels, 50, .25f ) );
-			Blinken.Add( new LayoutRect( LayoutRect.CSS.Pixels, 50, .25f ) );
-			Blinken.Add( new LayoutRect( LayoutRect.CSS.Pixels, 50, .25f ) );
-			Blinken.Add( new LayoutRect( LayoutRect.CSS.Pixels, 50, .25f ) );
-			Blinken.Add( new LayoutRect( LayoutRect.CSS.Pixels, 50, .25f ) );
-			Blinken.Add( new LayoutRect( LayoutRect.CSS.Pixels, 50, .25f ) );
-			Blinken.Add( new LayoutRect( LayoutRect.CSS.Pixels, 50, .25f ) );
+			Blinken.Add( new LayoutRect( LayoutRect.CSS.Pixels, 55, .25f ) );
+			Blinken.Add( new LayoutRect( LayoutRect.CSS.Pixels, 55, .25f ) );
+			Blinken.Add( new LayoutRect( LayoutRect.CSS.Pixels, 55, .25f ) );
+			Blinken.Add( new LayoutRect( LayoutRect.CSS.Pixels, 55, .25f ) );
+			Blinken.Add( new LayoutRect( LayoutRect.CSS.Pixels, 55, .25f ) );
+			Blinken.Add( new LayoutRect( LayoutRect.CSS.Pixels, 55, .25f ) );
+			Blinken.Add( new LayoutRect( LayoutRect.CSS.Pixels, 55, .25f ) );
+			Blinken.Add( new LayoutRect( LayoutRect.CSS.Pixels, 55, .25f ) );
 
             Editor oLabels = MonitorDoc.LablEdit;
 
@@ -115,7 +115,7 @@ namespace Monitor {
 
             // This is the data lights.
             for( int i=0; i<4; ++i ) {
-                rgDataLayout.Add( new LayoutSingleLine( new FTCacheLine( MonitorDoc.DataEdit[i] ), LayoutRect.CSS.Flex ) );
+                rgDataLayout.Add( new LayoutSingleLine( new FTCacheLine( MonitorDoc.DataLine[i] ), LayoutRect.CSS.Flex ) );
             }
             foreach( LayoutRect oRect in rgDataLayout ) {
                 if( oRect is LayoutSingleLine oSingle ) {
@@ -129,7 +129,7 @@ namespace Monitor {
 
             // This is the address lights
             for( int i=0; i<8; ++i ) {
-                rgAddrLayout.Add( new LayoutSingleLine( new FTCacheLine( MonitorDoc.DataEdit[i] ), LayoutRect.CSS.Flex ) );
+                rgAddrLayout.Add( new LayoutSingleLine( new FTCacheLine( MonitorDoc.AddrLine[i] ), LayoutRect.CSS.Flex ) );
             }
             foreach( LayoutRect oRect in rgAddrLayout ) {
                 if( oRect is LayoutSingleLine oSingle ) {
@@ -141,6 +141,28 @@ namespace Monitor {
 			Blinken.AddRow( rgDataLayout );
             Blinken.AddRow( rgAddrLayout );
 
+            // Stuff the registers onto the same amount of blinken lines.
+            for( int i=0; i< MonitorDoc.Registers.Count; ++i ) {
+                List<LayoutRect> rgLayout   = new();
+                List<Line>       rgRegister = MonitorDoc.Registers[i];
+                Line             oLabel     = MonitorDoc.LablEdit[i+6]; // I forgot why I'm not using the property page labels.
+
+                LayoutSingleLine oLayName = new LayoutSingleLine( new FTCacheLine( oLabel ), LayoutRect.CSS.Flex );
+                rgLayout .Add( oLayName );
+                CacheList.Add( oLayName );
+
+                LayoutSingleLine oLayBlnk = new LayoutSingleLine( new FTCacheLine( MonitorDoc.LablEdit[3] ), LayoutRect.CSS.Flex ) { Span=3 };
+                rgLayout .Add( oLayBlnk );
+                CacheList.Add( oLayBlnk );
+
+                foreach( Line oBit in rgRegister ) {
+                    LayoutSingleLine oLayLine = new LayoutSingleLine( new FTCacheLine( oBit ), LayoutRect.CSS.Flex );
+                    rgLayout .Add( oLayLine );
+                    CacheList.Add( oLayLine );
+                }
+                Blinken.AddRow( rgLayout );
+            }
+
             // complete final layout of table and command window.
             VertStack.Add( Blinken );
             VertStack.Add( new LayoutControl( WinCommand, LayoutRect.CSS.Percent ) { Track = 60 } );
@@ -148,11 +170,35 @@ namespace Monitor {
             OnDocumentEvent( BUFFEREVENTS.MULTILINE );
             OnSizeChanged( new EventArgs() );
 
+            MonitorDoc.RefreshScreen += OnRefreshScreen_MonDoc;
             return true;
         }
 
+        protected override void Dispose(bool disposing) {
+            if( disposing ) {
+                MonitorDoc.RefreshScreen -= OnRefreshScreen_MonDoc;
+            }
+            base.Dispose(disposing);
+        }
+        private void OnRefreshScreen_MonDoc(int obj) {
+            OnDocumentEvent(BUFFEREVENTS.MULTILINE );
+            Invalidate();
+        }
+
         public bool Execute(Guid sGuid) {
-            throw new NotImplementedException();
+            if( sGuid == GlobalCommands.Play ) {
+                MonitorDoc.ProgramRun();
+                return true;
+            }
+            if( sGuid == GlobalCommands.JumpNext ) {
+                MonitorDoc.ProgramRun( fNotStep:false );
+                return true;
+            }
+            if( sGuid == GlobalCommands.JumpParent ) {
+                MonitorDoc.ProgramReset();
+                return true;
+            }
+            return false;
         }
 
         public object Decorate(IPgViewSite oBaseSite, Guid sGuid) {
