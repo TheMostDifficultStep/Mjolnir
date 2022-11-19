@@ -41,6 +41,9 @@ namespace Monitor {
         }
     }
 
+    public enum CPU_Instructions {
+        load, save, add
+    }
     public class MonitorDocument :
         IPgParent,
 		IDisposable,
@@ -49,6 +52,7 @@ namespace Monitor {
     {
         protected readonly IPgBaseSite _oBaseSite;
         protected int _iCurrent = 0; // We'll juse the program counter in the future.
+        protected Dictionary< string, CPU_Instructions> _dctInstructions = new();
         public bool IsDirty => false;
 
         public IPgParent Parentage => _oBaseSite.Host;
@@ -92,6 +96,10 @@ namespace Monitor {
             for( int i=0; i<4; ++i ) {
                 Registers.Add( new List<Line>() );
             }
+
+            _dctInstructions.Add( "load", CPU_Instructions.load );
+            _dctInstructions.Add( "add", CPU_Instructions.add );
+            _dctInstructions.Add( "save", CPU_Instructions.save );
         }
 
         // See ca 1816 warning.
@@ -201,20 +209,27 @@ namespace Monitor {
 
                 do {
                     Line oInst = TextCommands[_iCurrent];
-                    if( oInst.CompareTo( "load" ) == 0 ) {
-                        int    iRegister = int.Parse( TextCommands[++_iCurrent].ToString() );
-                        string strData   = TextCommands[++_iCurrent].ToString();
+                    if( !_dctInstructions.TryGetValue( oInst.ToString(), out CPU_Instructions eInst ) ) {
+                        _oBaseSite.LogError( "Execution", "Illegal instruction" );
+                        return;
+                    }
 
-                        RegisterLoad( iRegister, strData );
-                        RefreshScreen(0);
-                    } else
-                    if( oInst.CompareTo( "add" ) == 0 ) {
-                        int iA   = RegisterRead( 0 );
-                        int iB   = RegisterRead( 1 );
-                        int iSum = iA + iB;
+                    switch( eInst ) {
+                        case CPU_Instructions.load:
+                            int    iRegister = int.Parse( TextCommands[++_iCurrent].ToString() );
+                            string strData   = TextCommands[++_iCurrent].ToString();
 
-                        RegisterLoad( 2, iSum.ToString() );
-                        RefreshScreen(0);
+                            RegisterLoad( iRegister, strData );
+                            RefreshScreen(0);
+                            break;
+                        case CPU_Instructions.add:
+                            int iA   = RegisterRead( 0 );
+                            int iB   = RegisterRead( 1 );
+                            int iSum = iA + iB;
+
+                            RegisterLoad( 2, iSum.ToString() );
+                            RefreshScreen(0);
+                            break;
                     }
                 } while( ++_iCurrent < TextCommands.ElementCount && fNotStep );
             } catch( Exception oEx ) {
