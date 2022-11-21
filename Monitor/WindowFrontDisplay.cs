@@ -175,6 +175,10 @@ namespace Monitor {
             return true;
         }
 
+        public bool Load(XmlElement oStream) {
+            return InitNew();
+        }
+
         protected override void Dispose(bool disposing) {
             if( disposing ) {
                 MonitorDoc.RefreshScreen -= OnRefreshScreen_MonDoc;
@@ -204,10 +208,6 @@ namespace Monitor {
 
         public object Decorate(IPgViewSite oBaseSite, Guid sGuid) {
             return null;
-        }
-
-        public bool Load(XmlElement oStream) {
-            return true;
         }
 
         public bool Save(XmlDocumentFragment oStream) {

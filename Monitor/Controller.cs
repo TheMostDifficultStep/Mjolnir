@@ -4,13 +4,11 @@ using System.Collections.Generic;
 using Play.Interfaces.Embedding;
 using Play.Edit; 
 using Play.Forms;
-using System.Runtime.CompilerServices;
-using SkiaSharp;
 
 namespace Monitor {
     public class MonitorController : Controller {
         public MonitorController() {
-            _rgExtensions.Add( ".fourbit" );
+            _rgExtensions.Add( ".nibble" );
         }
         public override IDisposable CreateDocument(IPgBaseSite oSite, string strExtension) {
             return new MonitorDocument( oSite );
@@ -121,38 +119,12 @@ namespace Monitor {
         public void Dispose() {
         }
 
-        public bool InitNew() {
-            if( !TextCommands.InitNew() )
-                return false;
+        public bool Initialize() {
             if( !FrontDisplay.InitNew() )
                 return false;
 
             if( !LablEdit.InitNew() )
                 return false;
-
-            //for( int i=0; i<16; ++i ) {
-            //    TextCommands.LineAppend( "load" );
-            //    TextCommands.LineAppend( "0" );
-            //    TextCommands.LineAppend( i.ToString() );
-            //}
-
-            TextCommands.LineAppend( "load-imm" ); // 0
-            TextCommands.LineAppend( "0" );
-            TextCommands.LineAppend( "5" );
-
-            TextCommands.LineAppend( "load-abs" ); // 3
-            TextCommands.LineAppend( "1" );
-            TextCommands.LineAppend( "11");
-
-            TextCommands.LineAppend( "add"); // 6
-
-            TextCommands.LineAppend( "save" );
-            TextCommands.LineAppend( "2" );
-            TextCommands.LineAppend( "12" );  // 9
-
-            TextCommands.LineAppend( "halt" );
-            TextCommands.LineAppend( "3" );
-            TextCommands.LineAppend( "" ); // 12
 
             Editor PropValues = FrontDisplay.Property_Values;
             for( int i = 0; i<4; ++i ) {
@@ -180,12 +152,28 @@ namespace Monitor {
             return true;
         }
 
-        public bool Save(TextWriter oStream) {
+        public bool InitNew() {
+            if( !TextCommands.InitNew() )
+                return false;
+
+            if( !Initialize() ) 
+                return false;
+
             return true;
         }
 
+        public bool Save(TextWriter oStream) {
+            return TextCommands.Save( oStream );
+        }
+
         public bool Load(TextReader oStream) {
-            throw new NotImplementedException();
+            if( !TextCommands.Load( oStream ) )
+                return false;
+
+            if( !Initialize() ) 
+                return false;
+
+            return true;
         }
 
         protected void RegisterLoad( int iRegister, string strData ) {
