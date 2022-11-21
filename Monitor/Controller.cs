@@ -133,8 +133,8 @@ namespace Monitor {
             for( int i = 0; i<8; ++i ) {
                 AddrLine.Add( PropValues.LineAppend( "0", fUndoable:false ) );
             }
-            for( int iRegister = 0; iRegister < Registers.Count; ++iRegister ) {
-                Registers[iRegister] = PropValues.LineAppend( "0", fUndoable:false );
+            for( int iRegister = 0; iRegister < 4; ++iRegister ) {
+                Registers.Add( PropValues.LineAppend( "0", fUndoable:false ) );
             }
 
             LablEdit.LineAppend( "Data",    fUndoable:false ); // 0

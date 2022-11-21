@@ -142,9 +142,7 @@ namespace Monitor {
             Blinken.AddRow( rgAddrLayout );
 
             // Stuff the registers onto the same amount of blinken lines.
-            for( int i=0; i< 4; ++i ) {
-                MonitorDoc.Registers.Add( MonitorDoc.FrontDisplay.Property_Values.LineAppend( "0", false ) );
-
+            for( int i=0; i< MonitorDoc.Registers.Count; ++i ) {
                 List<LayoutRect> rgLayout  = new();
                 Line             oRegister = MonitorDoc.Registers[i];
                 Line             oLabel    = MonitorDoc.LablEdit[i+6]; // I forgot why I'm not using the property page labels.
