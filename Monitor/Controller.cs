@@ -60,7 +60,7 @@ namespace Monitor {
         public List<Line>    AddrLine     { get; } = new();
         public List<Line>    DataLine     { get; } = new();
         public Editor        LablEdit     { get; }
-        public List<List<Line>>    Registers    { get; } = new();
+        public List<Line>    Registers    { get; } = new();
 
         public event Action<int> RefreshScreen;
 
@@ -109,10 +109,6 @@ namespace Monitor {
             TextCommands = new ProgramFile  ( new DocSlot( this ) );
             FrontDisplay = new DocProperties( new DocSlot( this ) );
             LablEdit     = new Editor       ( new DocSlot( this ) );
-
-            for( int i=0; i<4; ++i ) {
-                Registers.Add( new List<Line>() );
-            }
 
             _dctInstructions.Add( "load-imm", CPU_Instructions.load_Imm );
             _dctInstructions.Add( "load-abs", CPU_Instructions.load_abs );
@@ -166,9 +162,7 @@ namespace Monitor {
                 AddrLine.Add( PropValues.LineAppend( "0", fUndoable:false ) );
             }
             for( int iRegister = 0; iRegister < Registers.Count; ++iRegister ) {
-                for( int i = 0; i<4; ++i ) {
-                    Registers[iRegister].Add( PropValues.LineAppend( "0", fUndoable:false ) );
-                }
+                Registers[iRegister] = PropValues.LineAppend( "0", fUndoable:false );
             }
 
             LablEdit.LineAppend( "Data",    fUndoable:false ); // 0
@@ -195,7 +189,30 @@ namespace Monitor {
         }
 
         protected void RegisterLoad( int iRegister, string strData ) {
-            List<Line> oRegister = Registers[iRegister];
+            Line oRegister = Registers[iRegister];
+            if( int.TryParse( strData, out int iData ) ) {
+                oRegister.Empty();
+                oRegister.TryAppend( strData );
+                return;
+            }
+            _oBaseSite.LogError( "Program", "Attempted load of Illegal value to register" );
+            throw new InvalidOperationException();
+        }
+
+        protected int RegisterRead( int iRegister ) {
+            Line oRegister = Registers[iRegister];
+
+            if( int.TryParse( oRegister.ToString(), out int iData ) ) {
+                return iData;
+            }
+
+            _oBaseSite.LogError( "Program", "Illegal value in register" );
+            throw new InvalidOperationException();
+        }
+
+        // this won't run, just keeping it for reference.
+        protected void Old_RegisterLoad( int iRegister, string strData ) {
+            List<Line> oRegister = new(); // = Registers[iRegister];
             if( int.TryParse( strData, out int iData ) ) {
                 for( int i=0; i<4; ++i ) {
                     Line oBit = oRegister[i];
@@ -211,9 +228,10 @@ namespace Monitor {
             }
         }
 
-        protected int RegisterRead( int iRegister ) {
+        // this won't run, just keeping it for reference.
+        protected int Old_RegisterRead( int iRegister ) {
             int        iData     = 0;
-            List<Line> oRegister = Registers[iRegister];
+            List<Line> oRegister = new(); // Registers[iRegister];
 
             for( int i =0; i<oRegister.Count; ++i ) {
                 if( oRegister[i].CompareTo( "True" ) == 0 )
@@ -222,7 +240,6 @@ namespace Monitor {
 
             return iData;
         }
-
         public void ProgramReset() {
             _iCurrent = 0;
             TextCommands.Raise_BufferEvent( BUFFEREVENTS.FORMATTED );
@@ -289,7 +306,8 @@ namespace Monitor {
                 Type[] rgErrors = { typeof( NullReferenceException ),
                                     typeof( ArgumentNullException ), 
                                     typeof( FormatException ), 
-                                    typeof( OverflowException ) };
+                                    typeof( OverflowException ),
+                                    typeof( InvalidOperationException ) };
                 if( rgErrors.IsUnhandled( oEx ) )
                     throw;
             }

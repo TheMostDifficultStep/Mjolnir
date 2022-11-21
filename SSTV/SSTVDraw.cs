@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections;
+using System.Threading.Tasks;
 
 using SkiaSharp;
 
@@ -104,6 +105,7 @@ namespace Play.SSTV {
 		/// <summary>this method get's called to initiate the processing of
 		/// a new image.</summary>
 		/// <seealso cref="OnModeTransition_SSTVDeMo"/>
+		/// <seealso cref="InitSlots"/>
         public void Start() {
 			_AY			  = -5;
 			
@@ -113,6 +115,8 @@ namespace Play.SSTV {
 
 			_rgSlopeBuckets.Clear();
 
+			// BUG: This might need futzing based on slope correction. ie if the
+			//      sender is miscalibrated! See InitSlots()
 			SyncOffsetInSamples = Mode.OffsetInMS * _dp.SampFreq / 1000;
 
 			Send_TvEvents?.Invoke( SSTVEvents.ModeChanged, (int)Mode.LegacyMode );
@@ -493,9 +497,14 @@ namespace Play.SSTV {
 		/// we've got. This will re-read the entire buffer.
 		/// </summary>
 		public void ProcessProgress() {
-			foreach( SSTVPosition sSample in this ) {
+			//foreach( SSTVPosition sSample in this ) {
+			//	ProcessScan( sSample.Position, sSample.ScanLine );
+			//}
+            Parallel.ForEach(this, sSample =>
+            {
 				ProcessScan( sSample.Position, sSample.ScanLine );
-			}
+            });
+
 			if( _dp.Synced ) {
 				DiagnosticsOverlay();
 			}
@@ -679,6 +688,7 @@ namespace Play.SSTV {
 		/// the bitmap width with the slot width (color channel width).
 		/// </summary>
 		/// <seealso cref="DemodTest.Write(int, uint, double)"/>
+		/// <seealso cref="Start"/>
 		protected void InitSlots( int iBmpWidth, double dbCorrection ) {
 			double dbIdx = 0;
 			foreach( ColorChannel oSlot in _rgSlots ) {

@@ -84,14 +84,14 @@ namespace Monitor {
 
             // First, add the columns to our table.
 			Blinken.Add( new LayoutRect( LayoutRect.CSS.None ) );
-			Blinken.Add( new LayoutRect( LayoutRect.CSS.Pixels, 55, .25f ) );
-			Blinken.Add( new LayoutRect( LayoutRect.CSS.Pixels, 55, .25f ) );
-			Blinken.Add( new LayoutRect( LayoutRect.CSS.Pixels, 55, .25f ) );
-			Blinken.Add( new LayoutRect( LayoutRect.CSS.Pixels, 55, .25f ) );
-			Blinken.Add( new LayoutRect( LayoutRect.CSS.Pixels, 55, .25f ) );
-			Blinken.Add( new LayoutRect( LayoutRect.CSS.Pixels, 55, .25f ) );
-			Blinken.Add( new LayoutRect( LayoutRect.CSS.Pixels, 55, .25f ) );
-			Blinken.Add( new LayoutRect( LayoutRect.CSS.Pixels, 55, .25f ) );
+			Blinken.Add( new LayoutRect( LayoutRect.CSS.Pixels, 60, .10f ) );
+			Blinken.Add( new LayoutRect( LayoutRect.CSS.Pixels, 60, .10f ) );
+			Blinken.Add( new LayoutRect( LayoutRect.CSS.Pixels, 60, .10f ) );
+			Blinken.Add( new LayoutRect( LayoutRect.CSS.Pixels, 60, .10f ) );
+			Blinken.Add( new LayoutRect( LayoutRect.CSS.Pixels, 60, .10f ) );
+			Blinken.Add( new LayoutRect( LayoutRect.CSS.Pixels, 60, .10f ) );
+			Blinken.Add( new LayoutRect( LayoutRect.CSS.Pixels, 60, .10f ) );
+			Blinken.Add( new LayoutRect( LayoutRect.CSS.Pixels, 60, .10f ) );
 
             Editor oLabels = MonitorDoc.LablEdit;
 
@@ -142,10 +142,12 @@ namespace Monitor {
             Blinken.AddRow( rgAddrLayout );
 
             // Stuff the registers onto the same amount of blinken lines.
-            for( int i=0; i< MonitorDoc.Registers.Count; ++i ) {
-                List<LayoutRect> rgLayout   = new();
-                List<Line>       rgRegister = MonitorDoc.Registers[i];
-                Line             oLabel     = MonitorDoc.LablEdit[i+6]; // I forgot why I'm not using the property page labels.
+            for( int i=0; i< 4; ++i ) {
+                MonitorDoc.Registers.Add( MonitorDoc.FrontDisplay.Property_Values.LineAppend( "0", false ) );
+
+                List<LayoutRect> rgLayout  = new();
+                Line             oRegister = MonitorDoc.Registers[i];
+                Line             oLabel    = MonitorDoc.LablEdit[i+6]; // I forgot why I'm not using the property page labels.
 
                 LayoutSingleLine oLayName = new LayoutSingleLine( new FTCacheLine( oLabel ), LayoutRect.CSS.Flex );
                 rgLayout .Add( oLayName );
@@ -155,11 +157,10 @@ namespace Monitor {
                 rgLayout .Add( oLayBlnk );
                 CacheList.Add( oLayBlnk );
 
-                foreach( Line oBit in rgRegister ) {
-                    LayoutSingleLine oLayLine = new LayoutSingleLine( new FTCacheLine( oBit ), LayoutRect.CSS.Flex );
-                    rgLayout .Add( oLayLine );
-                    CacheList.Add( oLayLine );
-                }
+                LayoutSingleLine oLayLine = new LayoutSingleLine( new FTCacheLine( oRegister ), LayoutRect.CSS.Flex );
+                rgLayout .Add( oLayLine );
+                CacheList.Add( oLayLine );
+
                 Blinken.AddRow( rgLayout );
             }
 
