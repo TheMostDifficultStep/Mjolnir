@@ -497,15 +497,15 @@ namespace Play.SSTV {
 		/// we've got. This will re-read the entire buffer.
 		/// </summary>
 		public void ProcessProgress() {
-			//foreach( SSTVPosition sSample in this ) {
-			//	ProcessScan( sSample.Position, sSample.ScanLine );
-			//}
-            Parallel.ForEach(this, sSample =>
-            {
-				ProcessScan( sSample.Position, sSample.ScanLine );
-            });
+            foreach( SSTVPosition sSample in this ) {
+                ProcessScan(sSample.Position, sSample.ScanLine);
+            }
+            //        Parallel.ForEach(this, sSample =>
+            //        {
+            //ProcessScan( sSample.Position, sSample.ScanLine );
+            //        });
 
-			if( _dp.Synced ) {
+            if( _dp.Synced ) {
 				DiagnosticsOverlay();
 			}
 			Send_TvEvents?.Invoke( SSTVEvents.DownLoadTime, 100 );
