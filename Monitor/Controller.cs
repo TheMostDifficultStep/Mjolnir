@@ -46,7 +46,6 @@ namespace Monitor {
         IPgSave<TextWriter>
     {
         protected readonly IPgBaseSite _oBaseSite;
-        protected int _iCurrent = 0; // We'll juse the program counter in the future.
         protected Dictionary< string, CPU_Instructions> _dctInstructions = new();
         public bool IsDirty => false;
 
@@ -93,12 +92,12 @@ namespace Monitor {
 
         public WorkerStatus PlayStatus { 
             get { 
-                if( _iCurrent == 0 )
-                    return WorkerStatus.FREE; 
-                if( _iCurrent < TextCommands.ElementCount )
+                //if( _iCurrent == 0 )
+                //    return WorkerStatus.FREE; 
+                //if( _iCurrent < TextCommands.ElementCount )
                     return WorkerStatus.BUSY; 
 
-                return WorkerStatus.PAUSED;
+                // return WorkerStatus.PAUSED;
             } 
         }
         public MonitorDocument( IPgBaseSite oSite ) {
@@ -133,9 +132,6 @@ namespace Monitor {
             for( int i = 0; i<8; ++i ) {
                 AddrLine.Add( PropValues.LineAppend( "0", fUndoable:false ) );
             }
-            for( int iRegister = 0; iRegister < 4; ++iRegister ) {
-                Registers.Add( PropValues.LineAppend( "0", fUndoable:false ) );
-            }
 
             LablEdit.LineAppend( "Data",    fUndoable:false ); // 0
             LablEdit.LineAppend( "...",     fUndoable:false );
@@ -144,11 +140,20 @@ namespace Monitor {
             LablEdit.LineAppend( "High",    fUndoable:false );
             LablEdit.LineAppend( "Low",     fUndoable:false );
 
-            LablEdit.LineAppend( "Register 0", fUndoable:false ); // 6
-            LablEdit.LineAppend( "Register 1", fUndoable:false );
-            LablEdit.LineAppend( "Register 2", fUndoable:false );
-            LablEdit.LineAppend( "Register 3", fUndoable:false );
-
+            for( int iRegister = 0; iRegister < 6; ++iRegister ) {
+                Registers.Add( PropValues.LineAppend( "0", fUndoable:false ) );
+                switch( iRegister ) {
+                    case 4:
+                        LablEdit.LineAppend( "Stack   (" + iRegister.ToString() + ")", fUndoable:false );
+                        break;
+                    case 5:
+                        LablEdit.LineAppend( "Program (" + iRegister.ToString() + ")", fUndoable:false );
+                        break;
+                    default:
+                        LablEdit.LineAppend( "Register" + iRegister.ToString(), fUndoable:false );
+                        break;
+                }
+            }
             return true;
         }
 
@@ -229,33 +234,37 @@ namespace Monitor {
             return iData;
         }
         public void ProgramReset() {
-            _iCurrent = 0;
-            TextCommands.Raise_BufferEvent( BUFFEREVENTS.FORMATTED );
+            PC = 0;
+        }
+
+        public int PC { 
+            get { return RegisterRead( 5 ); } 
+            set { 
+                RegisterLoad( 5, value.ToString() ); 
+                TextCommands.Raise_BufferEvent( BUFFEREVENTS.FORMATTED );
+            } 
         }
 
         public void ProgramRun( bool fNotStep = true ) {
             try {
-                if( _iCurrent >= TextCommands.ElementCount ) {
-                    _oBaseSite.LogError( "Execution", "Program finished" );
-                    return;
-                }
+                //if( _iCurrent >= TextCommands.ElementCount ) {
+                //    _oBaseSite.LogError( "Execution", "Program finished" );
+                //    return;
+                //}
 
                 do {
-                    Line oInst = TextCommands[_iCurrent];
+                    Line oInst = TextCommands[PC];
                     if( !_dctInstructions.TryGetValue( oInst.ToString(), out CPU_Instructions eInst ) ) {
                         _oBaseSite.LogError( "Execution", "Illegal instruction" );
                         return;
                     }
 
-                    TextCommands.HighLight = TextCommands[_iCurrent];
-
                     switch( eInst ) {
                         case CPU_Instructions.load_Imm: {
-                            int    iRegister = int.Parse( TextCommands[++_iCurrent].ToString() );
-                            string strData   = TextCommands[++_iCurrent].ToString();
+                            int    iRegister = int.Parse( TextCommands[++PC].ToString() );
+                            string strData   = TextCommands[++PC].ToString();
 
                             RegisterLoad( iRegister, strData );
-                            RefreshScreen(0);
                         } break;
                         case CPU_Instructions.add:
                             int iA   = RegisterRead( 0 );
@@ -263,33 +272,34 @@ namespace Monitor {
                             int iSum = iA + iB;
 
                             RegisterLoad( 2, iSum.ToString() );
-                            RefreshScreen(0);
                             break;
                         case CPU_Instructions.load_abs: {
-                            int    iRegister = int.Parse( TextCommands[++_iCurrent].ToString() );
-                            string strAddr   = TextCommands[++_iCurrent].ToString();
+                            int    iRegister = int.Parse( TextCommands[++PC].ToString() );
+                            string strAddr   = TextCommands[++PC].ToString();
                             if( int.TryParse( strAddr, out int iAddr ) ) {
                                 string strData = TextCommands[iAddr].ToString();
                                 RegisterLoad( iRegister, strData );
                             }
-                            RefreshScreen(0);
                         } break;
                         case CPU_Instructions.halt:
-                            _iCurrent = TextCommands.ElementCount;
+                            PC = TextCommands.ElementCount;
                             break;
                         case CPU_Instructions.save: {
-                            int iRegister = int.Parse( TextCommands[++_iCurrent].ToString() );
-                            int iAddress  = int.Parse( TextCommands[++_iCurrent].ToString() );
+                            int iRegister = int.Parse( TextCommands[++PC].ToString() );
+                            int iAddress  = int.Parse( TextCommands[++PC].ToString() );
                             int iData     = RegisterRead( iRegister );
                             using( Editor.Manipulator oBulk = TextCommands.CreateManipulator() ) {
                                 string strData = iData.ToString();
                                 oBulk.LineTextDelete( iAddress, null );
                                 oBulk.LineTextInsert( iAddress, 0, strData, 0, strData.Length );
                             }
-                            RefreshScreen(0);
                         } break;
                     }
-                } while( ++_iCurrent < TextCommands.ElementCount && fNotStep );
+
+                    TextCommands.HighLight = TextCommands[++PC];
+                    RefreshScreen(0);
+
+                } while( PC < TextCommands.ElementCount && fNotStep );
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( NullReferenceException ),
                                     typeof( ArgumentNullException ), 
