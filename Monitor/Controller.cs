@@ -81,7 +81,7 @@ namespace Monitor {
         }
 
         public enum CPU_Instructions {
-            load_Imm, load_abs, save, add, halt
+            load_imm, load_abs, save, add, halt, jump_imm
         }
 
         public class ProgramFile : Editor {
@@ -107,11 +107,12 @@ namespace Monitor {
             FrontDisplay = new DocProperties( new DocSlot( this ) );
             LablEdit     = new Editor       ( new DocSlot( this ) );
 
-            _dctInstructions.Add( "load-imm", CPU_Instructions.load_Imm );
+            _dctInstructions.Add( "load-imm", CPU_Instructions.load_imm );
             _dctInstructions.Add( "load-abs", CPU_Instructions.load_abs );
             _dctInstructions.Add( "add",      CPU_Instructions.add );
             _dctInstructions.Add( "save",     CPU_Instructions.save );
             _dctInstructions.Add( "halt",     CPU_Instructions.halt );
+            _dctInstructions.Add( "jump-imm", CPU_Instructions.jump_imm );
         }
 
         // See ca 1816 warning.
@@ -260,11 +261,12 @@ namespace Monitor {
                     }
 
                     switch( eInst ) {
-                        case CPU_Instructions.load_Imm: {
+                        case CPU_Instructions.load_imm: {
                             int    iRegister = int.Parse( TextCommands[++PC].ToString() );
                             string strData   = TextCommands[++PC].ToString();
 
                             RegisterLoad( iRegister, strData );
+                            ++PC;
                         } break;
                         case CPU_Instructions.add:
                             int iA   = RegisterRead( 0 );
@@ -272,6 +274,7 @@ namespace Monitor {
                             int iSum = iA + iB;
 
                             RegisterLoad( 2, iSum.ToString() );
+                            ++PC;
                             break;
                         case CPU_Instructions.load_abs: {
                             int    iRegister = int.Parse( TextCommands[++PC].ToString() );
@@ -280,6 +283,7 @@ namespace Monitor {
                                 string strData = TextCommands[iAddr].ToString();
                                 RegisterLoad( iRegister, strData );
                             }
+                            ++PC;
                         } break;
                         case CPU_Instructions.halt:
                             PC = TextCommands.ElementCount;
@@ -293,10 +297,14 @@ namespace Monitor {
                                 oBulk.LineTextDelete( iAddress, null );
                                 oBulk.LineTextInsert( iAddress, 0, strData, 0, strData.Length );
                             }
+                            ++PC;
+                        } break;
+                        case CPU_Instructions.jump_imm: {
+                            PC = int.Parse( TextCommands[++PC].ToString() );
                         } break;
                     }
 
-                    TextCommands.HighLight = TextCommands[++PC];
+                    TextCommands.HighLight = TextCommands[PC];
                     RefreshScreen(0);
 
                 } while( PC < TextCommands.ElementCount && fNotStep );
