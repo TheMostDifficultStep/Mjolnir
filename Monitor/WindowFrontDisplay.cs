@@ -83,63 +83,56 @@ namespace Monitor {
                 return false;
 
             // First, add the columns to our table.
-			Blinken.Add( new LayoutRect( LayoutRect.CSS.None ) );
-			Blinken.Add( new LayoutRect( LayoutRect.CSS.Pixels, 60, .10f ) );
-			Blinken.Add( new LayoutRect( LayoutRect.CSS.Pixels, 60, .10f ) );
-			Blinken.Add( new LayoutRect( LayoutRect.CSS.Pixels, 60, .10f ) );
-			Blinken.Add( new LayoutRect( LayoutRect.CSS.Pixels, 60, .10f ) );
-			Blinken.Add( new LayoutRect( LayoutRect.CSS.Pixels, 60, .10f ) );
-			Blinken.Add( new LayoutRect( LayoutRect.CSS.Pixels, 60, .10f ) );
-			Blinken.Add( new LayoutRect( LayoutRect.CSS.Pixels, 60, .10f ) );
-			Blinken.Add( new LayoutRect( LayoutRect.CSS.Pixels, 60, .10f ) );
+			Blinken.Add( new LayoutRect( LayoutRect.CSS.Flex ) );
+			Blinken.Add( new LayoutRect( LayoutRect.CSS.Pixels, 60, .20f ) );
+			Blinken.Add( new LayoutRect( LayoutRect.CSS.Pixels, 60, .20f ) );
+			Blinken.Add( new LayoutRect( LayoutRect.CSS.Pixels, 60, .20f ) );
+			Blinken.Add( new LayoutRect( LayoutRect.CSS.Pixels, 60, .20f ) );
+			//Blinken.Add( new LayoutRect( LayoutRect.CSS.None ) );
 
             Editor oLabels = MonitorDoc.LablEdit;
 
-            // Top row lables for the columns.
-            List<LayoutRect> rgLablLayout = new ();
-            rgLablLayout.Add( new LayoutSingleLine( new FTCacheLine( oLabels[3] ), LayoutRect.CSS.Flex ) );
-            rgLablLayout.Add( new LayoutSingleLine( new FTCacheLine( oLabels[4] ), LayoutRect.CSS.Flex ) {Span=3 });
-            rgLablLayout.Add( new LayoutSingleLine( new FTCacheLine( oLabels[5] ), LayoutRect.CSS.Flex ) {Span=3 });
-            // contravarience vs covariance. Have to load cachelist one by one
-            // instead of using addrange. Darn.
-            foreach( LayoutRect oRect in rgLablLayout ) {
+            // Status lights top labels...
+            List<LayoutRect> rgStatusLabel = new();
+            rgStatusLabel.Add( new LayoutSingleLine( new FTCacheLine( oLabels[3] ), LayoutRect.CSS.Flex ) /* { Span = 4 } */ );
+
+            rgStatusLabel.Add( new LayoutSingleLine( new FTCacheLine( oLabels[15] ), LayoutRect.CSS.Flex ) );
+            rgStatusLabel.Add( new LayoutSingleLine( new FTCacheLine( oLabels[14] ), LayoutRect.CSS.Flex ) );
+            rgStatusLabel.Add( new LayoutSingleLine( new FTCacheLine( oLabels[13] ), LayoutRect.CSS.Flex ) );
+            rgStatusLabel.Add( new LayoutSingleLine( new FTCacheLine( oLabels[12] ), LayoutRect.CSS.Flex ) ); // N
+            foreach( LayoutRect oRect in rgStatusLabel ) {
                 if( oRect is LayoutSingleLine oSingle ) {
                     CacheList.Add( oSingle );
                 }
             }
 
-            List<LayoutRect> rgDataLayout = new();
-            // Labels for the data blinken lights.
-            rgDataLayout.Add( new LayoutSingleLine( new FTCacheLine( oLabels[0] ), LayoutRect.CSS.Flex ) );
-            rgDataLayout.Add( new LayoutSingleLine( new FTCacheLine( oLabels[1] ), LayoutRect.CSS.Flex ) {Span=3 });
+            // Status Label for the blinken lights row.
+            List<LayoutRect> rgStatusLayout = new();
+            rgStatusLayout.Add( new LayoutSingleLine( new FTCacheLine( oLabels[2] ), LayoutRect.CSS.Flex )  );
 
-            // This is the data lights.
+            //rgStatusLayout.Add( new LayoutSingleLine( new FTCacheLine( oLabels[3] ), LayoutRect.CSS.Flex ) { Span = 3 } );
+            // Status Values blinken lights.
             for( int i=0; i<4; ++i ) {
-                rgDataLayout.Add( new LayoutSingleLine( new FTCacheLine( MonitorDoc.DataLine[i] ), LayoutRect.CSS.Flex ) );
+                rgStatusLayout.Add( new LayoutSingleLine( new FTCacheLine( MonitorDoc.StatusLine[i] ), LayoutRect.CSS.Flex ) );
             }
-            foreach( LayoutRect oRect in rgDataLayout ) {
+            foreach( LayoutRect oRect in rgStatusLayout ) {
                 if( oRect is LayoutSingleLine oSingle ) {
                     CacheList.Add( oSingle );
                 }
             }
 
-            List<LayoutRect> rgAddrLayout = new();
-            // Label for the address blinken lights.
-            rgAddrLayout.Add( new LayoutSingleLine( new FTCacheLine( oLabels[2] ), LayoutRect.CSS.Flex ) );
+            Blinken.AddRow( rgStatusLabel );
+            Blinken.AddRow( rgStatusLayout );
 
-            // This is the address lights
-            for( int i=0; i<8; ++i ) {
-                rgAddrLayout.Add( new LayoutSingleLine( new FTCacheLine( MonitorDoc.AddrLine[i] ), LayoutRect.CSS.Flex ) );
-            }
-            foreach( LayoutRect oRect in rgAddrLayout ) {
+            List<LayoutRect> rgBlankLine = new();
+            rgBlankLine.Add( new LayoutSingleLine( new FTCacheLine( oLabels[3] ), LayoutRect.CSS.Flex )  );
+            foreach( LayoutRect oRect in rgBlankLine ) {
                 if( oRect is LayoutSingleLine oSingle ) {
                     CacheList.Add( oSingle );
                 }
             }
 
-            Blinken.AddRow( rgLablLayout );
-			Blinken.AddRow( rgDataLayout );
-            Blinken.AddRow( rgAddrLayout );
+            Blinken.AddRow( rgBlankLine );
 
             // Stuff the registers onto the same amount of blinken lines.
             for( int i=0; i< MonitorDoc.Registers.Count; ++i ) {
@@ -150,10 +143,6 @@ namespace Monitor {
                 LayoutSingleLine oLayName = new LayoutSingleLine( new FTCacheLine( oLabel ), LayoutRect.CSS.Flex );
                 rgLayout .Add( oLayName );
                 CacheList.Add( oLayName );
-
-                LayoutSingleLine oLayBlnk = new LayoutSingleLine( new FTCacheLine( MonitorDoc.LablEdit[3] ), LayoutRect.CSS.Flex ) { Span=3 };
-                rgLayout .Add( oLayBlnk );
-                CacheList.Add( oLayBlnk );
 
                 LayoutSingleLine oLayLine = new LayoutSingleLine( new FTCacheLine( oRegister ), LayoutRect.CSS.Flex );
                 rgLayout .Add( oLayLine );

@@ -39,6 +39,13 @@ namespace Monitor {
         }
     }
 
+    public enum StatusReg : int {
+        Negative,
+        Zero,
+        Carry,
+        Overflow
+    }
+
     public class MonitorDocument :
         IPgParent,
 		IDisposable,
@@ -54,8 +61,7 @@ namespace Monitor {
 
         public Editor        TextCommands { get; }
         public DocProperties FrontDisplay { get; }
-        public List<Line>    AddrLine     { get; } = new();
-        public List<Line>    DataLine     { get; } = new();
+        public List<Line>    StatusLine   { get; } = new();
         public Editor        LablEdit     { get; }
         public List<Line>    Registers    { get; } = new();
 
@@ -90,6 +96,9 @@ namespace Monitor {
             public override WorkerStatus PlayStatus => ( _oSiteBase.Host as MonitorDocument ).PlayStatus;
         }
 
+        /// <summary>
+        /// This would really benefit from having a HALT flag on the cpu.
+        /// </summary>
         public WorkerStatus PlayStatus { 
             get { 
                 //if( _iCurrent == 0 )
@@ -127,19 +136,17 @@ namespace Monitor {
                 return false;
 
             Editor PropValues = FrontDisplay.Property_Values;
-            for( int i = 0; i<4; ++i ) {
-                DataLine.Add( PropValues.LineAppend( "0", fUndoable:false ) );
-            }
             for( int i = 0; i<8; ++i ) {
-                AddrLine.Add( PropValues.LineAppend( "0", fUndoable:false ) );
+                StatusLine.Add( PropValues.LineAppend( "0", fUndoable:false ) );
             }
 
             LablEdit.LineAppend( "Data",    fUndoable:false ); // 0
             LablEdit.LineAppend( "...",     fUndoable:false );
-            LablEdit.LineAppend( "Address", fUndoable:false );
-            LablEdit.LineAppend( "",        fUndoable:false );
+            LablEdit.LineAppend( "Status",  fUndoable:false );
+            LablEdit.LineAppend( "",        fUndoable:false ); // 3
             LablEdit.LineAppend( "High",    fUndoable:false );
             LablEdit.LineAppend( "Low",     fUndoable:false );
+
 
             for( int iRegister = 0; iRegister < 6; ++iRegister ) {
                 Registers.Add( PropValues.LineAppend( "0", fUndoable:false ) );
@@ -155,6 +162,12 @@ namespace Monitor {
                         break;
                 }
             }
+
+            LablEdit.LineAppend( "Negative", false ); // 12
+            LablEdit.LineAppend( "Zero",     false );
+            LablEdit.LineAppend( "Carry",    false );
+            LablEdit.LineAppend( "Overflow", false );
+
             return true;
         }
 
@@ -295,11 +308,6 @@ namespace Monitor {
 
         public void ProgramRun( bool fNotStep = true ) {
             try {
-                //if( _iCurrent >= TextCommands.ElementCount ) {
-                //    _oBaseSite.LogError( "Execution", "Program finished" );
-                //    return;
-                //}
-
                 do {
                     Line oInst = TextCommands[PC];
                     if( !_dctInstructions.TryGetValue( oInst.ToString(), out Action delInstruction ) ) {
@@ -320,6 +328,8 @@ namespace Monitor {
                                     typeof( InvalidOperationException ) };
                 if( rgErrors.IsUnhandled( oEx ) )
                     throw;
+
+                _oBaseSite.LogError( "Execution", "Problem in instruction decoder" );
             }
         }
 
