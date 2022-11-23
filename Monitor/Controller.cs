@@ -46,7 +46,7 @@ namespace Monitor {
         IPgSave<TextWriter>
     {
         protected readonly IPgBaseSite _oBaseSite;
-        protected Dictionary< string, CPU_Instructions> _dctInstructions = new();
+        protected Dictionary< string, Action> _dctInstructions = new();
         public bool IsDirty => false;
 
         public IPgParent Parentage => _oBaseSite.Host;
@@ -107,12 +107,12 @@ namespace Monitor {
             FrontDisplay = new DocProperties( new DocSlot( this ) );
             LablEdit     = new Editor       ( new DocSlot( this ) );
 
-            _dctInstructions.Add( "load-imm", CPU_Instructions.load_imm );
-            _dctInstructions.Add( "load-abs", CPU_Instructions.load_abs );
-            _dctInstructions.Add( "add",      CPU_Instructions.add );
-            _dctInstructions.Add( "save",     CPU_Instructions.save );
-            _dctInstructions.Add( "halt",     CPU_Instructions.halt );
-            _dctInstructions.Add( "jump-imm", CPU_Instructions.jump_imm );
+            _dctInstructions.Add( "load-imm", Inst_LoadImm );
+            _dctInstructions.Add( "load-abs", Inst_LoadAbs );
+            _dctInstructions.Add( "add",      Inst_Add );
+            _dctInstructions.Add( "save",     Inst_Save );
+            _dctInstructions.Add( "halt",     Inst_Halt );
+            _dctInstructions.Add( "jump-imm", Inst_JumpImm );
         }
 
         // See ca 1816 warning.
@@ -246,6 +246,53 @@ namespace Monitor {
             } 
         }
 
+        public void Inst_LoadImm() {
+            int    iRegister = int.Parse( TextCommands[++PC].ToString() );
+            string strData   = TextCommands[++PC].ToString();
+
+            RegisterLoad( iRegister, strData );
+            ++PC;
+        }
+
+        public void Inst_Add() {
+            int iA   = RegisterRead( 0 );
+            int iB   = RegisterRead( 1 );
+            int iSum = iA + iB;
+
+            RegisterLoad( 2, iSum.ToString() );
+            ++PC;
+        }
+
+        public void Inst_LoadAbs() {
+            int    iRegister = int.Parse( TextCommands[++PC].ToString() );
+            string strAddr   = TextCommands[++PC].ToString();
+            if( int.TryParse( strAddr, out int iAddr ) ) {
+                string strData = TextCommands[iAddr].ToString();
+                RegisterLoad( iRegister, strData );
+            }
+            ++PC;
+        }
+
+        public void Inst_Save() {
+            int iRegister = int.Parse( TextCommands[++PC].ToString() );
+            int iAddress  = int.Parse( TextCommands[++PC].ToString() );
+            int iData     = RegisterRead( iRegister );
+            using( Editor.Manipulator oBulk = TextCommands.CreateManipulator() ) {
+                string strData = iData.ToString();
+                oBulk.LineTextDelete( iAddress, null );
+                oBulk.LineTextInsert( iAddress, 0, strData, 0, strData.Length );
+            }
+            ++PC;
+        }
+
+        public void Inst_JumpImm() {
+            PC = int.Parse( TextCommands[++PC].ToString() );
+        }
+
+        public void Inst_Halt() {
+            PC = TextCommands.ElementCount;
+        }
+
         public void ProgramRun( bool fNotStep = true ) {
             try {
                 //if( _iCurrent >= TextCommands.ElementCount ) {
@@ -255,58 +302,15 @@ namespace Monitor {
 
                 do {
                     Line oInst = TextCommands[PC];
-                    if( !_dctInstructions.TryGetValue( oInst.ToString(), out CPU_Instructions eInst ) ) {
+                    if( !_dctInstructions.TryGetValue( oInst.ToString(), out Action delInstruction ) ) {
                         _oBaseSite.LogError( "Execution", "Illegal instruction" );
                         return;
                     }
 
-                    switch( eInst ) {
-                        case CPU_Instructions.load_imm: {
-                            int    iRegister = int.Parse( TextCommands[++PC].ToString() );
-                            string strData   = TextCommands[++PC].ToString();
-
-                            RegisterLoad( iRegister, strData );
-                            ++PC;
-                        } break;
-                        case CPU_Instructions.add:
-                            int iA   = RegisterRead( 0 );
-                            int iB   = RegisterRead( 1 );
-                            int iSum = iA + iB;
-
-                            RegisterLoad( 2, iSum.ToString() );
-                            ++PC;
-                            break;
-                        case CPU_Instructions.load_abs: {
-                            int    iRegister = int.Parse( TextCommands[++PC].ToString() );
-                            string strAddr   = TextCommands[++PC].ToString();
-                            if( int.TryParse( strAddr, out int iAddr ) ) {
-                                string strData = TextCommands[iAddr].ToString();
-                                RegisterLoad( iRegister, strData );
-                            }
-                            ++PC;
-                        } break;
-                        case CPU_Instructions.halt:
-                            PC = TextCommands.ElementCount;
-                            break;
-                        case CPU_Instructions.save: {
-                            int iRegister = int.Parse( TextCommands[++PC].ToString() );
-                            int iAddress  = int.Parse( TextCommands[++PC].ToString() );
-                            int iData     = RegisterRead( iRegister );
-                            using( Editor.Manipulator oBulk = TextCommands.CreateManipulator() ) {
-                                string strData = iData.ToString();
-                                oBulk.LineTextDelete( iAddress, null );
-                                oBulk.LineTextInsert( iAddress, 0, strData, 0, strData.Length );
-                            }
-                            ++PC;
-                        } break;
-                        case CPU_Instructions.jump_imm: {
-                            PC = int.Parse( TextCommands[++PC].ToString() );
-                        } break;
-                    }
+                    delInstruction();
 
                     TextCommands.HighLight = TextCommands[PC];
                     RefreshScreen(0);
-
                 } while( PC < TextCommands.ElementCount && fNotStep );
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( NullReferenceException ),
