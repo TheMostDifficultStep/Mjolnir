@@ -28,9 +28,14 @@ namespace Play.SSTV {
 
 		public DateTime StartTime { get; protected set; }
 
+		// Wah! These make us thread UN-SAFE!!
         protected int      _AY;
 	    protected short[]  _Y36 = new short[800];
-	    protected short[,] _D36 = new short[2,800];
+		protected short[]  _CRy = new short[800]; // D36[1,iX]
+		protected short[]  _CBy = new short[800]; // D36[0,iX]
+	  //protected short[,] _D36 = new short[2,800];
+		protected readonly List<ColorChannel> _rgSlots = new (10); // thread unsafe, see buffers.
+		
 
 		protected readonly int _iBucketSize = 20;
 
@@ -56,8 +61,6 @@ namespace Play.SSTV {
 		public Action<SSTVEvents, int> Send_TvEvents;
 		public Action<SSTVMode >       Send_SavePoint;
 
-		protected readonly List<ColorChannel> _rgSlots = new (10);
-		
 		// This let's us offset our start point if the sync is NOT the first bit of scanline data. ie Scotty.
 		public double SyncOffsetInSamples { get; protected set; } // The channel entries for these do get updated.
 
@@ -500,6 +503,7 @@ namespace Play.SSTV {
             foreach( SSTVPosition sSample in this ) {
                 ProcessScan(sSample.Position, sSample.ScanLine);
             }
+			// this won't work b/c of the shared Y, Ry, By buffers!!!
             //        Parallel.ForEach(this, sSample =>
             //        {
             //ProcessScan( sSample.Position, sSample.ScanLine );
@@ -573,13 +577,13 @@ namespace Play.SSTV {
         }
 
 		protected void PixelSetGreen( int iX, short sValue ) {
-			sValue     = (short)( GetPixelLevel(sValue) + 128 );
-			_D36[0,iX] = Limit256(sValue);
+			sValue   = (short)( GetPixelLevel(sValue) + 128 );
+			_CBy[iX] = Limit256(sValue);
 		}
 
 		protected void PixelSetBlue( int iX, short sValue ) {
-			sValue     = (short)( GetPixelLevel(sValue) + 128 );
-			_D36[1,iX] = Limit256(sValue);
+			sValue   = (short)( GetPixelLevel(sValue) + 128 );
+			_CRy[iX] = Limit256(sValue);
 		}
 
 		/// <summary>
@@ -588,8 +592,8 @@ namespace Play.SSTV {
 		protected void PixelSetRed( int iX, short sValue ) {
 			sValue = (short)( GetPixelLevel(sValue) + 128 );
 			_pBitmapRX.SetPixel( iX, _AY,  new SKColor( (byte)Limit256(sValue), 
-				                                        (byte)_D36[0,iX], 
-														(byte)_D36[1,iX] ) );
+				                                        (byte)_CBy[iX], 
+														(byte)_CRy[iX] ) );
 		}
 
 		protected void PixelSetY1( int iX, short sValue ) {
@@ -597,11 +601,11 @@ namespace Play.SSTV {
 		}
 
 		protected void PixelSetRY( int iX, short sValue ) {
-			_D36[1,iX] = GetPixelLevel( sValue );
+			_CRy[iX] = GetPixelLevel( sValue );
 		}
 
 		protected void PixelSetBY( int iX, short sValue ) {
-			_D36[0,iX] = GetPixelLevel( sValue );
+			_CBy[iX] = GetPixelLevel( sValue );
 		}
 
 		/// <summary>
@@ -610,12 +614,12 @@ namespace Play.SSTV {
 		protected void PixelSetY2( int iX, short sValue ) {
 			short R, G, B;
 
-			YCtoRGB( out R, out G, out B, _Y36[iX], _D36[1,iX], _D36[0,iX]);
+			YCtoRGB( out R, out G, out B, _Y36[iX], _CRy[iX], _CBy[iX]);
 			_pBitmapRX.SetPixel( iX, _AY,   new SKColor( (byte)R, (byte)G, (byte)B ) );
 
 			sValue = (short)( GetPixelLevel(sValue) + 128 );
 
-			YCtoRGB( out R, out G, out B, sValue,    _D36[1,iX], _D36[0,iX]);
+			YCtoRGB( out R, out G, out B, sValue,   _CRy[iX], _CBy[iX]);
 			_pBitmapRX.SetPixel( iX, _AY+1, new SKColor( (byte)R, (byte)G, (byte)B ) );
 		}
 
