@@ -23,13 +23,11 @@ namespace Play.SSTV {
 		IEnumerable<SSTVPosition>
 	{
 		/// <summary>
-		/// This will allow us to ProcessScan() multithreaded!! Alas the performance
-		/// boost is quite minimal.
+		/// This will allow us to ProcessScan() parallel processed. But with my
+		/// 6 core machine performance bogs at anything higher than 3 tasks.
 		/// </summary>
 		/// <seealso cref="ProcessScan(ScanBuffers, double, int)"/>
 		protected class ScanBuffers {
-			protected SSTVDraw _oHost;
-
 			protected int      _AY;
 			protected short[]  _Y36 = new short[800];
 			protected short[]  _CRy = new short[800]; // D36[1,iX]
@@ -38,7 +36,10 @@ namespace Play.SSTV {
 			public setPixel[] Writers { get; }
 
 			public ScanBuffers( SSTVDraw oHost ) {
-				_oHost = oHost ?? throw new ArgumentNullException( nameof( oHost ) );
+				if( oHost == null )
+					throw new ArgumentNullException( nameof( oHost ) );
+				if( oHost._pBitmapRX == null )
+					throw new InvalidProgramException( "SSTV Target bitmap is null!" );
 
 				_pBitmapRX = oHost._pBitmapRX;
 
@@ -62,12 +63,10 @@ namespace Play.SSTV {
 				return true;
 			}
 			protected void PixelSetGreen( int iX, short sValue ) {
-				sValue   = (short)( _oHost.GetPixelLevel(sValue) + 128 );
 				_CBy[iX] = Limit256(sValue);
 			}
 
 			protected void PixelSetBlue( int iX, short sValue ) {
-				sValue   = (short)( _oHost.GetPixelLevel(sValue) + 128 );
 				_CRy[iX] = Limit256(sValue);
 			}
 
@@ -75,22 +74,26 @@ namespace Play.SSTV {
 			/// Cache the Green and Blue values first and finish with this call.
 			/// </summary>
 			protected void PixelSetRed( int iX, short sValue ) {
-				sValue = (short)( _oHost.GetPixelLevel(sValue) + 128 );
 				_pBitmapRX.SetPixel( iX, _AY,  new SKColor( (byte)Limit256(sValue), 
 															(byte)_CBy[iX], 
 															(byte)_CRy[iX] ) );
 			}
 
+			/// <summary>
+			/// Notice the value doesn't have Limit256() called on it. That will get
+			/// called when the YRyBy value get's converted to RGB in YCtoRGB()
+			/// </summary>
+			/// <seealso cref="YCtoRGB"/>
 			protected void PixelSetY1( int iX, short sValue ) {
-				_Y36[iX] = (short)( _oHost.GetPixelLevel(sValue) + 128 );
+				_Y36[iX] = sValue;
 			}
 
 			protected void PixelSetRY( int iX, short sValue ) {
-				_CRy[iX] = _oHost.GetPixelLevel( sValue );
+				_CRy[iX] = sValue;
 			}
 
 			protected void PixelSetBY( int iX, short sValue ) {
-				_CBy[iX] = _oHost.GetPixelLevel( sValue );
+				_CBy[iX] = sValue;
 			}
 
 			/// <summary>
@@ -102,15 +105,12 @@ namespace Play.SSTV {
 				YCtoRGB( out R, out G, out B, _Y36[iX], _CRy[iX], _CBy[iX]);
 				_pBitmapRX.SetPixel( iX, _AY,   new SKColor( (byte)R, (byte)G, (byte)B ) );
 
-				sValue = (short)( _oHost.GetPixelLevel(sValue) + 128 );
-
 				YCtoRGB( out R, out G, out B, sValue,   _CRy[iX], _CBy[iX]);
 				_pBitmapRX.SetPixel( iX, _AY+1, new SKColor( (byte)R, (byte)G, (byte)B ) );
 			}
 
 			protected void PixelSetY( int iX, short sValue ) {
-				short iY = (short)( _oHost.GetPixelLevel(sValue) + 128 );
-				_pBitmapRX.SetPixel( iX, _AY+1, new SKColor( (byte)iY, (byte)iY, (byte)iY ) );
+				_pBitmapRX.SetPixel( iX, _AY+1, new SKColor( (byte)sValue, (byte)sValue, (byte)sValue ) );
 			}
 
 			public setPixel ReturnColorFunction( ScanLineChannelType eDT ) {
@@ -490,7 +490,7 @@ namespace Play.SSTV {
 							if( oWriter != null ) {
 								int x = (int)((i - oChannel.Min) * oChannel.Scaling );
 								if( (x != rx) && (x >= 0) && (x < _pBitmapRX.Width) ) {
-									rx = x; oWriter( x, _dp.SignalGet( iSx ) );
+									rx = x; oWriter( x, (short)(GetPixelLevel( _dp.SignalGet( iSx ) ) + 128 ) );
 								}
 							} // else null and just do-nothing/skip this data value.
 							break;
