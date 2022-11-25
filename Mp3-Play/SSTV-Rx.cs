@@ -1761,7 +1761,7 @@ namespace Play.Sound {
 					case 9:                 // Expanded VIS decode.
 						if( --m_SyncTime == 0 ){
 							if( ((d11 < d19) && (d13 < d19)) || (Math.Abs(d11-d13) < (m_SLvlHalf)) ) {
-								m_SyncMode = 0; // Start over?
+								m_SyncMode = 0; // Start over? this is happening at the end of ve5kc test files.
 							} else {
 								m_SyncTime = (int)(30 * SampFreq/1000 ); // Get next bit.
 								m_VisData >>= 1; // we shift right to make room for next.

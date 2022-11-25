@@ -259,8 +259,8 @@ namespace Play.Sound {
         WWV
     }
 
-    public enum ScanLineChannelType {
-        Sync,
+    public enum ScanLineChannelType : int {
+        Sync = 0,
         Gap,
         Red,
         Green,

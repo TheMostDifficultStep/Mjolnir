@@ -22,18 +22,121 @@ namespace Play.SSTV {
     public class SSTVDraw : 
 		IEnumerable<SSTVPosition>
 	{
+		/// <summary>
+		/// This will allow us to ProcessScan() multithreaded!! Alas the performance
+		/// boost is quite minimal.
+		/// </summary>
+		/// <seealso cref="ProcessScan(ScanBuffers, double, int)"/>
+		protected class ScanBuffers {
+			protected SSTVDraw _oHost;
+
+			protected int      _AY;
+			protected short[]  _Y36 = new short[800];
+			protected short[]  _CRy = new short[800]; // D36[1,iX]
+			protected short[]  _CBy = new short[800]; // D36[0,iX]
+
+			public setPixel[] Writers;
+
+			public ScanBuffers( SSTVDraw oHost ) {
+				_oHost = oHost ?? throw new ArgumentNullException( nameof( oHost ) );
+
+				_pBitmapRX = oHost._pBitmapRX;
+
+				var rgWriterEnum = typeof( ScanLineChannelType ).GetEnumValues();
+
+				Writers = new setPixel[rgWriterEnum.Length];
+
+				// We can do better than this if we fix up the channel accessor in ProcessScan
+				// But let's try going with this for now.
+				foreach( ScanLineChannelType eType in rgWriterEnum ) {
+					Writers[(int)eType ] = ReturnColorFunction( eType );
+				}
+			}
+
+			protected readonly SKBitmap _pBitmapRX;
+
+			public bool Reset( int iRasterLine ) {
+			    _AY = iRasterLine;
+
+				if( (_AY < 0) || (_AY >= _pBitmapRX.Height) )
+					return false;
+
+				return true;
+			}
+			protected void PixelSetGreen( int iX, short sValue ) {
+				sValue   = (short)( _oHost.GetPixelLevel(sValue) + 128 );
+				_CBy[iX] = Limit256(sValue);
+			}
+
+			protected void PixelSetBlue( int iX, short sValue ) {
+				sValue   = (short)( _oHost.GetPixelLevel(sValue) + 128 );
+				_CRy[iX] = Limit256(sValue);
+			}
+
+			/// <summary>
+			/// Cache the Green and Blue values first and finish with this call.
+			/// </summary>
+			protected void PixelSetRed( int iX, short sValue ) {
+				sValue = (short)( _oHost.GetPixelLevel(sValue) + 128 );
+				_pBitmapRX.SetPixel( iX, _AY,  new SKColor( (byte)Limit256(sValue), 
+															(byte)_CBy[iX], 
+															(byte)_CRy[iX] ) );
+			}
+
+			protected void PixelSetY1( int iX, short sValue ) {
+				_Y36[iX] = (short)( _oHost.GetPixelLevel(sValue) + 128 );
+			}
+
+			protected void PixelSetRY( int iX, short sValue ) {
+				_CRy[iX] = _oHost.GetPixelLevel( sValue );
+			}
+
+			protected void PixelSetBY( int iX, short sValue ) {
+				_CBy[iX] = _oHost.GetPixelLevel( sValue );
+			}
+
+			/// <summary>
+			/// Cache the RY and BY values first and finish with this call.
+			/// </summary>
+			protected void PixelSetY2( int iX, short sValue ) {
+				short R, G, B;
+
+				YCtoRGB( out R, out G, out B, _Y36[iX], _CRy[iX], _CBy[iX]);
+				_pBitmapRX.SetPixel( iX, _AY,   new SKColor( (byte)R, (byte)G, (byte)B ) );
+
+				sValue = (short)( _oHost.GetPixelLevel(sValue) + 128 );
+
+				YCtoRGB( out R, out G, out B, sValue,   _CRy[iX], _CBy[iX]);
+				_pBitmapRX.SetPixel( iX, _AY+1, new SKColor( (byte)R, (byte)G, (byte)B ) );
+			}
+
+			protected void PixelSetY( int iX, short sValue ) {
+				short iY = (short)( _oHost.GetPixelLevel(sValue) + 128 );
+				_pBitmapRX.SetPixel( iX, _AY+1, new SKColor( (byte)iY, (byte)iY, (byte)iY ) );
+			}
+
+			public setPixel ReturnColorFunction( ScanLineChannelType eDT ) {
+				switch( eDT ) {
+					case ScanLineChannelType.BY    : return PixelSetBY;
+					case ScanLineChannelType.RY    : return PixelSetRY;
+					case ScanLineChannelType.Y1    : return PixelSetY1;
+					case ScanLineChannelType.Y2    : return PixelSetY2;
+					case ScanLineChannelType.Blue  : return PixelSetBlue;
+					case ScanLineChannelType.Red   : return PixelSetRed;
+					case ScanLineChannelType.Green : return PixelSetGreen;
+					case ScanLineChannelType.Y     : return PixelSetY;
+					default : return null;
+				}
+			}
+
+		}
+
         protected readonly SSTVDEM   _dp;
 
 		public SSTVMode Mode => _dp.Mode;
 
 		public DateTime StartTime { get; protected set; }
 
-		// Wah! These make us thread UN-SAFE!!
-        protected int      _AY;
-	    protected short[]  _Y36 = new short[800];
-		protected short[]  _CRy = new short[800]; // D36[1,iX]
-		protected short[]  _CBy = new short[800]; // D36[0,iX]
-	  //protected short[,] _D36 = new short[2,800];
 		protected readonly List<ColorChannel> _rgSlots = new (10); // thread unsafe, see buffers.
 		
 
@@ -110,8 +213,7 @@ namespace Play.SSTV {
 		/// <seealso cref="OnModeTransition_SSTVDeMo"/>
 		/// <seealso cref="InitSlots"/>
         public void Start() {
-			_AY			  = -5;
-			
+		//	_AY			  = -5;
 			_fAuto        = true;
 			_dblSlope     = SpecWidthInSamples;
 			_dblIntercept = 0;
@@ -346,7 +448,7 @@ namespace Play.SSTV {
 		/// we just walk into a going signal, but that involves special casing the 
 		/// first scan line and right now I don't think it's worth all the effort.
 		/// </remarks>
-		protected void ProcessScan( double dblBase, int iScanLine ) {
+		protected void ProcessScan( ScanBuffers oBuff, double dblBase, int iScanLine ) {
 			int    rx          = -1; // Saved X pos from the Rx buffer.
 			int    ch          =  0; // current channel skimming the Rx buffer portion.
 			int    iScanWidth  = (int)Math.Round( ScanWidthInSamples );
@@ -364,9 +466,11 @@ namespace Play.SSTV {
 					return;
 
 				// Convert from scan line to bitmap offset.
-			    _AY = iScanLine * Mode.ScanMultiplier;
-				if( (_AY < 0) || (_AY >= _pBitmapRX.Height) )
+				if( !oBuff.Reset( iScanLine * Mode.ScanMultiplier ) )
 					return;
+			    //_AY = iScanLine * Mode.ScanMultiplier;
+				//if( (_AY < 0) || (_AY >= _pBitmapRX.Height) )
+				//	return;
 
 				for( int i = 0; i < iScanWidth; i++ ) { 
 					int   iSx = rBase + i;                // Offset into the data @ _dp
@@ -379,13 +483,14 @@ namespace Play.SSTV {
 
 					do {
 						ColorChannel oChannel = _rgSlots[ch];
+						setPixel     oWriter  = oBuff.Writers[(int)oChannel.ChannelType];
 						if( i < oChannel.Max ) {
-							if( oChannel.SetPixel != null ) {
+							if( oWriter != null ) {
 								int x = (int)((i - oChannel.Min) * oChannel.Scaling );
 								if( (x != rx) && (x >= 0) && (x < _pBitmapRX.Width) ) {
-									rx = x; oChannel.SetPixel( x, _dp.SignalGet( iSx ) );
+									rx = x; oWriter( x, _dp.SignalGet( iSx ) );
 								}
-							}
+							} // else null and just do-nothing/skip this data value.
 							break;
 						}
 					} while( ++ch < _rgSlots.Count );
@@ -500,14 +605,16 @@ namespace Play.SSTV {
 		/// we've got. This will re-read the entire buffer.
 		/// </summary>
 		public void ProcessProgress() {
-            foreach( SSTVPosition sSample in this ) {
-                ProcessScan(sSample.Position, sSample.ScanLine);
-            }
-			// this won't work b/c of the shared Y, Ry, By buffers!!!
-            //        Parallel.ForEach(this, sSample =>
-            //        {
-            //ProcessScan( sSample.Position, sSample.ScanLine );
-            //        });
+			//ScanBuffers oBuffer = new ScanBuffers( this );
+
+            //foreach( SSTVPosition sSample in this ) {
+            //    ProcessScan( oBuffer, sSample.Position, sSample.ScanLine);
+            //}
+            Parallel.ForEach(this, 
+				new ParallelOptions { MaxDegreeOfParallelism = 3 }, 
+				sSample => {
+                ProcessScan( new ScanBuffers( this ), sSample.Position, sSample.ScanLine);
+            });
 
             if( _dp.Synced ) {
 				DiagnosticsOverlay();
@@ -520,12 +627,41 @@ namespace Play.SSTV {
 		/// scan lines are processed. So only process the new bucket.
 		/// </summary>
 		public void ProcessTop( int iStartScan, int iEndScan ) {
-			foreach( SSTVPosition sSample in this ) {
-				if( sSample.ScanLine >= iStartScan && sSample.ScanLine <= iEndScan ) {
-					ProcessScan( sSample.Position, sSample.ScanLine );
-				}
-			}
-		}
+            ScanBuffers oBuffer = new ScanBuffers(this);
+
+            foreach( SSTVPosition sSample in this ) {
+                if( sSample.ScanLine >= iStartScan && sSample.ScanLine <= iEndScan ) {
+                    ProcessScan(oBuffer, sSample.Position, sSample.ScanLine);
+                }
+            }
+
+            //List<Task> rgTasks = new();
+            //IEnumerator<SSTVPosition> itrPos      = this.GetEnumerator();
+            //List<ScanBuffers>         rgBuffers   = new();
+            //const int                 iMaxBuffers = 3;
+
+            //for( int i = 0; i<iMaxBuffers; ++i ) {
+            //	rgBuffers.Add( new ScanBuffers( this ) );
+            //}
+            //while( true ) {
+            //	while( rgTasks.Count < iMaxBuffers && itrPos.MoveNext() ) {
+            //		if( itrPos.Current.ScanLine >= iStartScan && itrPos.Current.ScanLine <= iEndScan ) {
+            //			// Make copies outside of the delegate so iterator doesn't change while in thread!!!
+            //			double dblPosition  = itrPos.Current.Position;
+            //			int	   iScanline    = itrPos.Current.ScanLine;
+            //			int    iBufferIndex = rgTasks.Count;
+
+            //			rgTasks.Add( Task.Factory.StartNew( () => {
+            //				ProcessScan( rgBuffers[iBufferIndex], dblPosition, iScanline ); } ) );
+            //		}
+            //	}
+            //	if( rgTasks.Count <= 0 )
+            //		break;
+            //	Task.WaitAll(rgTasks.ToArray());
+            //	rgTasks.Clear();
+            //}
+
+        }
 
 		/// <summary>
 		/// New approach in enumerating the scan lines. This will allow me to have
@@ -576,73 +712,6 @@ namespace Play.SSTV {
 			return GetEnumerator();
         }
 
-		protected void PixelSetGreen( int iX, short sValue ) {
-			sValue   = (short)( GetPixelLevel(sValue) + 128 );
-			_CBy[iX] = Limit256(sValue);
-		}
-
-		protected void PixelSetBlue( int iX, short sValue ) {
-			sValue   = (short)( GetPixelLevel(sValue) + 128 );
-			_CRy[iX] = Limit256(sValue);
-		}
-
-		/// <summary>
-		/// Cache the Green and Blue values first and finish with this call.
-		/// </summary>
-		protected void PixelSetRed( int iX, short sValue ) {
-			sValue = (short)( GetPixelLevel(sValue) + 128 );
-			_pBitmapRX.SetPixel( iX, _AY,  new SKColor( (byte)Limit256(sValue), 
-				                                        (byte)_CBy[iX], 
-														(byte)_CRy[iX] ) );
-		}
-
-		protected void PixelSetY1( int iX, short sValue ) {
-			_Y36[iX] = (short)( GetPixelLevel(sValue) + 128 );
-		}
-
-		protected void PixelSetRY( int iX, short sValue ) {
-			_CRy[iX] = GetPixelLevel( sValue );
-		}
-
-		protected void PixelSetBY( int iX, short sValue ) {
-			_CBy[iX] = GetPixelLevel( sValue );
-		}
-
-		/// <summary>
-		/// Cache the RY and BY values first and finish with this call.
-		/// </summary>
-		protected void PixelSetY2( int iX, short sValue ) {
-			short R, G, B;
-
-			YCtoRGB( out R, out G, out B, _Y36[iX], _CRy[iX], _CBy[iX]);
-			_pBitmapRX.SetPixel( iX, _AY,   new SKColor( (byte)R, (byte)G, (byte)B ) );
-
-			sValue = (short)( GetPixelLevel(sValue) + 128 );
-
-			YCtoRGB( out R, out G, out B, sValue,   _CRy[iX], _CBy[iX]);
-			_pBitmapRX.SetPixel( iX, _AY+1, new SKColor( (byte)R, (byte)G, (byte)B ) );
-		}
-
-		protected void PixelSetY( int iX, short sValue ) {
-			short iY = (short)( GetPixelLevel(sValue) + 128 );
-			_pBitmapRX.SetPixel( iX, _AY+1, new SKColor( (byte)iY, (byte)iY, (byte)iY ) );
-		}
-
-
-		public setPixel ReturnColorFunction( ScanLineChannelType eDT ) {
-			switch( eDT ) {
-				case ScanLineChannelType.BY    : return PixelSetBY;
-				case ScanLineChannelType.RY    : return PixelSetRY;
-				case ScanLineChannelType.Y1    : return PixelSetY1;
-				case ScanLineChannelType.Y2    : return PixelSetY2;
-				case ScanLineChannelType.Blue  : return PixelSetBlue;
-				case ScanLineChannelType.Red   : return PixelSetRed;
-				case ScanLineChannelType.Green : return PixelSetGreen;
-				case ScanLineChannelType.Y     : return PixelSetY;
-				default : return null;
-			}
-		}
-
 		/// <summary>
 		/// Catch the mode change event from the SSTVDemodulator.
 		/// </summary>
@@ -667,7 +736,7 @@ namespace Play.SSTV {
                 _rgSlots.Clear();
 
                 foreach( ScanLineChannel oChannel in oCurrMode.ChannelMap ) {
-                	_rgSlots.Add( new( oChannel.WidthInMs * _dp.SampFreq / 1000, ReturnColorFunction( oChannel.Type ), oChannel.Type ) );
+                	_rgSlots.Add( new( oChannel.WidthInMs * _dp.SampFreq / 1000, oChannel.Type ) );
                 }
                 _rgSlots.Add( new() );
 
@@ -712,26 +781,27 @@ namespace Play.SSTV {
 	/// This object represents one portion of the video scan line. String these
 	/// together to create a complete scan line parse.
 	/// </summary>
+	/// <remarks>We could simplify the ProcessScan() call by ensuring that
+	/// the SetPixel delegate is non-null but then we'll end up wasting time
+	/// calculating and measuring the x position for no reason during horizontal
+	/// scan values on the scan line.</remarks>
 	public class ColorChannel {
 		public double SpecWidthInSamples { get; } // The original specification.
 		public double _dbScanWidthCorrected;      // Compensated value.
 
 		public ScanLineChannelType ChannelType { get; }
 
-		public double   Min      { get; set; }
+		public double   Min      { get; protected set; }
 		public double   Max      { get; protected set; }
-		public setPixel SetPixel { get; protected set; }
 		public double   Scaling  { get; protected set; }
 
-		public ColorChannel( double dbWidthInSamples, setPixel fnSet, ScanLineChannelType eType ) {
+		public ColorChannel( double dbWidthInSamples, ScanLineChannelType eType ) {
 			SpecWidthInSamples = dbWidthInSamples;
-			SetPixel           = fnSet;
 			ChannelType        = eType;
 		}
 
 		public ColorChannel() {
 			SpecWidthInSamples = double.MaxValue;
-			SetPixel           = null;
 			ChannelType        = ScanLineChannelType.END;
 		}
 
@@ -747,8 +817,7 @@ namespace Play.SSTV {
 		}
 
         public override string ToString() {
-			string strType = SetPixel != null ? SetPixel.GetType().ToString() : string.Empty;
-            return Max.ToString() + " " + strType;
+            return Max.ToString() + " " + ChannelType.ToString();
         }
     }
 
