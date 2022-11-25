@@ -466,13 +466,9 @@ namespace Play.SSTV {
 				// Sometimes we bump the rails. Haven't figured it out yet.
 				if( _dp.BoundsCompare( rBase + iScanWidth ) != 0 )
 					return;
-
 				// Convert from scan line to bitmap offset.
 				if( !oBuff.Reset( iScanLine * Mode.ScanMultiplier ) )
 					return;
-			    //_AY = iScanLine * Mode.ScanMultiplier;
-				//if( (_AY < 0) || (_AY >= _pBitmapRX.Height) )
-				//	return;
 
 				for( int i = 0; i < iScanWidth; i++ ) { 
 					int   iSx = rBase + i;                // Offset into the data @ _dp
