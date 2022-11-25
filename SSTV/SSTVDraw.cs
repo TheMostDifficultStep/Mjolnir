@@ -63,18 +63,18 @@ namespace Play.SSTV {
 				return true;
 			}
 			protected void PixelSetGreen( int iX, short sValue ) {
-				_CBy[iX] = Limit256(sValue);
+				_CBy[iX] = Limit256(sValue + 128 );
 			}
 
 			protected void PixelSetBlue( int iX, short sValue ) {
-				_CRy[iX] = Limit256(sValue);
+				_CRy[iX] = Limit256(sValue + 128 );
 			}
 
 			/// <summary>
 			/// Cache the Green and Blue values first and finish with this call.
 			/// </summary>
 			protected void PixelSetRed( int iX, short sValue ) {
-				_pBitmapRX.SetPixel( iX, _AY,  new SKColor( (byte)Limit256(sValue), 
+				_pBitmapRX.SetPixel( iX, _AY,  new SKColor( (byte)Limit256(sValue + 128 ), 
 															(byte)_CBy[iX], 
 															(byte)_CRy[iX] ) );
 			}
@@ -85,7 +85,7 @@ namespace Play.SSTV {
 			/// </summary>
 			/// <seealso cref="YCtoRGB"/>
 			protected void PixelSetY1( int iX, short sValue ) {
-				_Y36[iX] = sValue;
+				_Y36[iX] = (short)(sValue + 128);
 			}
 
 			protected void PixelSetRY( int iX, short sValue ) {
@@ -105,7 +105,7 @@ namespace Play.SSTV {
 				YCtoRGB( out R, out G, out B, _Y36[iX], _CRy[iX], _CBy[iX]);
 				_pBitmapRX.SetPixel( iX, _AY,   new SKColor( (byte)R, (byte)G, (byte)B ) );
 
-				YCtoRGB( out R, out G, out B, sValue,   _CRy[iX], _CBy[iX]);
+				YCtoRGB( out R, out G, out B, sValue + 128,   _CRy[iX], _CBy[iX]);
 				_pBitmapRX.SetPixel( iX, _AY+1, new SKColor( (byte)R, (byte)G, (byte)B ) );
 			}
 
@@ -486,7 +486,7 @@ namespace Play.SSTV {
 							if( oWriter != null ) {
 								int x = (int)((i - oChannel.Min) * oChannel.Scaling );
 								if( (x != rx) && (x >= 0) && (x < _pBitmapRX.Width) ) {
-									rx = x; oWriter( x, (short)(GetPixelLevel( _dp.SignalGet( iSx ) ) + 128 ) );
+									rx = x; oWriter( x, (short)(GetPixelLevel( _dp.SignalGet( iSx ) ) ) );
 								}
 							} // else null and just do-nothing/skip this data value.
 							break;
