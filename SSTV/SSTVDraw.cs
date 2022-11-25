@@ -35,7 +35,7 @@ namespace Play.SSTV {
 			protected short[]  _CRy = new short[800]; // D36[1,iX]
 			protected short[]  _CBy = new short[800]; // D36[0,iX]
 
-			public setPixel[] Writers;
+			public setPixel[] Writers { get; }
 
 			public ScanBuffers( SSTVDraw oHost ) {
 				_oHost = oHost ?? throw new ArgumentNullException( nameof( oHost ) );
@@ -46,8 +46,6 @@ namespace Play.SSTV {
 
 				Writers = new setPixel[rgWriterEnum.Length];
 
-				// We can do better than this if we fix up the channel accessor in ProcessScan
-				// But let's try going with this for now.
 				foreach( ScanLineChannelType eType in rgWriterEnum ) {
 					Writers[(int)eType ] = ReturnColorFunction( eType );
 				}
@@ -131,13 +129,14 @@ namespace Play.SSTV {
 
 		}
 
-        protected readonly SSTVDEM   _dp;
+        protected readonly SSTVDEM _dp;
 
 		public SSTVMode Mode => _dp.Mode;
 
 		public DateTime StartTime { get; protected set; }
 
-		protected readonly List<ColorChannel> _rgSlots = new (10); // thread unsafe, see buffers.
+		protected readonly List<ColorChannel> _rgSlots   = new(10); // thread unsafe, see buffers.
+        protected readonly List<ScanBuffers>  _rgBuffers = new();
 		
 
 		protected readonly int _iBucketSize = 20;
@@ -195,7 +194,11 @@ namespace Play.SSTV {
 			_skD12Canvas = new( _pBitmapD12 );
 			_skPaint     = new() { Color = SKColors.Red, StrokeWidth = 1 };
 
-			_rgDiagnosticColors.Add( ScanLineChannelType.Sync,  new( SKColors.White, 2 ) );
+            for( int i = 0; i < 3; ++i ) {
+                _rgBuffers.Add(new ScanBuffers(this));
+            }
+
+            _rgDiagnosticColors.Add( ScanLineChannelType.Sync,  new( SKColors.White, 2 ) );
 			_rgDiagnosticColors.Add( ScanLineChannelType.Gap,   new( SKColors.Brown, 1 ) );
 			_rgDiagnosticColors.Add( ScanLineChannelType.Red,   new( SKColors.Red,   1 ) );
 			_rgDiagnosticColors.Add( ScanLineChannelType.Green, new( SKColors.Green, 1 ) );
@@ -213,7 +216,6 @@ namespace Play.SSTV {
 		/// <seealso cref="OnModeTransition_SSTVDeMo"/>
 		/// <seealso cref="InitSlots"/>
         public void Start() {
-		//	_AY			  = -5;
 			_fAuto        = true;
 			_dblSlope     = SpecWidthInSamples;
 			_dblIntercept = 0;
@@ -605,16 +607,16 @@ namespace Play.SSTV {
 		/// we've got. This will re-read the entire buffer.
 		/// </summary>
 		public void ProcessProgress() {
-			//ScanBuffers oBuffer = new ScanBuffers( this );
+            //ScanBuffers oBuffer = new ScanBuffers( this );
 
             //foreach( SSTVPosition sSample in this ) {
             //    ProcessScan( oBuffer, sSample.Position, sSample.ScanLine);
             //}
-            Parallel.ForEach(this, 
-				new ParallelOptions { MaxDegreeOfParallelism = 3 }, 
-				sSample => {
-                ProcessScan( new ScanBuffers( this ), sSample.Position, sSample.ScanLine);
-            });
+            Parallel.ForEach(this,
+                new ParallelOptions { MaxDegreeOfParallelism = 3 },
+                sSample => {
+                    ProcessScan(new ScanBuffers(this), sSample.Position, sSample.ScanLine);
+                });
 
             if( _dp.Synced ) {
 				DiagnosticsOverlay();
@@ -623,43 +625,37 @@ namespace Play.SSTV {
 		}
 
 		/// <summary>
-		/// So there's no need to reprocess the imagery when the next block of
-		/// scan lines are processed. So only process the new bucket.
+		/// Only process the scan lines between the given extents. We use the iterator
+		/// so we can deal with frequency drift when listening via kfs websdr. That is
+		/// we can't have : Scanline = func( SamplePosition ). 
 		/// </summary>
 		public void ProcessTop( int iStartScan, int iEndScan ) {
-            ScanBuffers oBuffer = new ScanBuffers(this);
+            //foreach( SSTVPosition sSample in this ) {
+            //    if( sSample.ScanLine >= iStartScan && sSample.ScanLine <= iEndScan ) {
+            //        ProcessScan( _rgBuffers[0], sSample.Position, sSample.ScanLine);
+            //    }
+            //}
 
-            foreach( SSTVPosition sSample in this ) {
-                if( sSample.ScanLine >= iStartScan && sSample.ScanLine <= iEndScan ) {
-                    ProcessScan(oBuffer, sSample.Position, sSample.ScanLine);
+            List<Task> rgTasks = new();
+            IEnumerator<SSTVPosition> itrPos = this.GetEnumerator();
+            while( true ) {
+                while( rgTasks.Count < _rgBuffers.Count && itrPos.MoveNext() ) {
+                    if( itrPos.Current.ScanLine >= iStartScan && itrPos.Current.ScanLine <= iEndScan ) {
+                        // Make copies outside of the delegate so iterator doesn't change while in thread!!!
+                        double dblPosition  = itrPos.Current.Position;
+                        int    iScanline    = itrPos.Current.ScanLine;
+                        int    iBufferIndex = rgTasks.Count;
+
+                        rgTasks.Add(Task.Factory.StartNew(() => {
+                            ProcessScan(_rgBuffers[iBufferIndex], dblPosition, iScanline);
+                        }));
+                    }
                 }
+                if( rgTasks.Count <= 0 )
+                    break;
+                Task.WaitAll(rgTasks.ToArray());
+                rgTasks.Clear();
             }
-
-            //List<Task> rgTasks = new();
-            //IEnumerator<SSTVPosition> itrPos      = this.GetEnumerator();
-            //List<ScanBuffers>         rgBuffers   = new();
-            //const int                 iMaxBuffers = 3;
-
-            //for( int i = 0; i<iMaxBuffers; ++i ) {
-            //	rgBuffers.Add( new ScanBuffers( this ) );
-            //}
-            //while( true ) {
-            //	while( rgTasks.Count < iMaxBuffers && itrPos.MoveNext() ) {
-            //		if( itrPos.Current.ScanLine >= iStartScan && itrPos.Current.ScanLine <= iEndScan ) {
-            //			// Make copies outside of the delegate so iterator doesn't change while in thread!!!
-            //			double dblPosition  = itrPos.Current.Position;
-            //			int	   iScanline    = itrPos.Current.ScanLine;
-            //			int    iBufferIndex = rgTasks.Count;
-
-            //			rgTasks.Add( Task.Factory.StartNew( () => {
-            //				ProcessScan( rgBuffers[iBufferIndex], dblPosition, iScanline ); } ) );
-            //		}
-            //	}
-            //	if( rgTasks.Count <= 0 )
-            //		break;
-            //	Task.WaitAll(rgTasks.ToArray());
-            //	rgTasks.Clear();
-            //}
 
         }
 
