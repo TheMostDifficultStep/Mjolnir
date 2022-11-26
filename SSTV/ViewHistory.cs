@@ -368,28 +368,6 @@ namespace Play.SSTV {
 
         protected WindowSoloImageNav _wmViewRxHistorySelected;
 
-		protected class WinSlot :
-			IPgViewSite
-		{
-			protected readonly WindowSSTVHistory _oHost;
-
-			public WinSlot( WindowSSTVHistory oHost ) {
-				_oHost = oHost ?? throw new ArgumentNullException();
-			}
-
-			public IPgParent Host => _oHost;
-
-			public void LogError(string strMessage, string strDetails, bool fShow=true) {
-				_oHost._oSiteView.LogError( strMessage, strDetails, fShow );
-			}
-
-			public void Notify( ShellNotify eEvent ) {
-				_oHost._oSiteView.Notify( eEvent );
-			}
-
-            public IPgViewNotify EventChain => _oHost._oSiteView.EventChain;
-        }
-
         /// <summary>
 	    /// This viewer shows a subset of all SSTV Properties. Those for the Receiver only.
         /// </summary>
@@ -411,6 +389,10 @@ namespace Play.SSTV {
 			    };
 
 			    InitRows( rgShow );
+
+			    PropertyInitRow( Layout as SmartTable, 
+				                 (int)SSTVProperties.Names.Rx_Window, 
+							     new ImageViewSingle( new WinSlot( this ), SSTVDocument.DisplayImage )  );
             }
 
 		    // Use this for debugging if necessary.
@@ -418,6 +400,28 @@ namespace Play.SSTV {
 		    //	base.OnDocumentEvent( eEvent );
 		    //}
         } // End Properties implementation
+
+		protected class WinSlot :
+			IPgViewSite
+		{
+			protected readonly WindowSSTVHistory _oHost;
+
+			public WinSlot( WindowSSTVHistory oHost ) {
+				_oHost = oHost ?? throw new ArgumentNullException();
+			}
+
+			public IPgParent Host => _oHost;
+
+			public void LogError(string strMessage, string strDetails, bool fShow=true) {
+				_oHost._oSiteView.LogError( strMessage, strDetails, fShow );
+			}
+
+			public void Notify( ShellNotify eEvent ) {
+				_oHost._oSiteView.Notify( eEvent );
+			}
+
+            public IPgViewNotify EventChain => _oHost._oSiteView.EventChain;
+        }
 
 		protected void LogError( string strMessage, string strDetails ) {
 			_oSiteView.LogError( strMessage, strDetails );
