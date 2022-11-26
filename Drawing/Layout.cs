@@ -663,8 +663,7 @@ namespace Play.Rectangles {
                 foreach (LayoutStack oRow in _oRowStack) {
                     // Go and set all the cell dimensions, now that we know row height.
                     iColumn = 0;
-                    foreach (LayoutRect oCell in oRow)
-                    {
+                    foreach (LayoutRect oCell in oRow) {
                         int iLeft       = _oColStack.Item(iColumn).Left;
                         int iRight      = _oColStack.Item(iColumn + oCell.Span).Right;
                         int iTop        = iRowStart;
