@@ -110,6 +110,7 @@ namespace Play.SSTV {
 			}
 
 			protected void PixelSetY( int iX, short sValue ) {
+				sValue += 128;
 				_pBitmapRX.SetPixel( iX, _AY, new SKColor( (byte)sValue, (byte)sValue, (byte)sValue ) );
 			}
 
