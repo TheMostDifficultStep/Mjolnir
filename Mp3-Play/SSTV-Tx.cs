@@ -851,8 +851,8 @@ namespace Play.Sound {
         }
 
         public virtual IEnumerator<int> GetEnumerator() {
-            //WriteVIS( Mode.VIS );
-            //yield return 0;
+            WriteVIS( Mode.VIS );
+            yield return 0;
 
             // Might need to add the 16 scan line grey scale bar.
             // All the doc's mention it, but I didn't see MMSSTV code for it.

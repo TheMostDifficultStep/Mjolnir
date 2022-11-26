@@ -110,7 +110,7 @@ namespace Play.SSTV {
 			}
 
 			protected void PixelSetY( int iX, short sValue ) {
-				_pBitmapRX.SetPixel( iX, _AY+1, new SKColor( (byte)sValue, (byte)sValue, (byte)sValue ) );
+				_pBitmapRX.SetPixel( iX, _AY, new SKColor( (byte)sValue, (byte)sValue, (byte)sValue ) );
 			}
 
 			public setPixel ReturnColorFunction( ScanLineChannelType eDT ) {
