@@ -22,6 +22,24 @@ namespace Play.SSTV {
     public class SSTVDraw : 
 		IEnumerable<SSTVPosition>
 	{
+		protected struct ScanLineEnumerable : IEnumerable<SSTVPosition>{
+			int      _iStart, _iEnd;
+			SSTVDraw _oDraw;
+
+			public ScanLineEnumerable( SSTVDraw oDraw, int iStart, int iEnd) {
+				_oDraw  = oDraw ?? throw new ArgumentNullException(nameof (oDraw));
+				_iStart = iStart;
+				_iEnd   = iEnd;
+			}
+
+			public IEnumerator<SSTVPosition> GetEnumerator() {
+				return _oDraw.GetEnumerator(_iStart, _iEnd);
+			}
+
+			IEnumerator IEnumerable.GetEnumerator() {
+				return GetEnumerator();
+			}
+		}
 		/// <summary>
 		/// This will allow us to ProcessScan() parallel processed. But with my
 		/// 6 core machine performance bogs at anything higher than 3 tasks.
@@ -634,26 +652,22 @@ namespace Play.SSTV {
             //}
 
             List<Task> rgTasks = new();
-            IEnumerator<SSTVPosition> itrPos = this.GetEnumerator();
-            while( true ) {
-                while( rgTasks.Count < _rgBuffers.Count && itrPos.MoveNext() ) {
-                    if( itrPos.Current.ScanLine >= iStartScan && itrPos.Current.ScanLine <= iEndScan ) {
-                        // Make copies outside of the delegate so iterator doesn't change while in thread!!!
-                        double dblPosition  = itrPos.Current.Position;
-                        int    iScanline    = itrPos.Current.ScanLine;
-                        int    iBufferIndex = rgTasks.Count;
+			foreach( SSTVPosition oIndex in new ScanLineEnumerable( this, iStartScan, iEndScan ) ) {
+                // Make copies outside of the delegate so iterator doesn't change while in thread!!!
+                double dblPosition  = oIndex.Position;
+                int    iScanline    = oIndex.ScanLine;
+                int    iBufferIndex = rgTasks.Count;
 
-                        rgTasks.Add(Task.Factory.StartNew(() => {
-                            ProcessScan(_rgBuffers[iBufferIndex], dblPosition, iScanline);
-                        }));
-                    }
-                }
-                if( rgTasks.Count <= 0 )
-                    break;
-                Task.WaitAll(rgTasks.ToArray());
-                rgTasks.Clear();
-            }
+                rgTasks.Add(Task.Factory.StartNew(() => {
+                    ProcessScan(_rgBuffers[iBufferIndex], dblPosition, iScanline);
+                }));
 
+				if( rgTasks.Count >= 3 ) {
+					Task.WaitAll(rgTasks.ToArray());
+					rgTasks.Clear();
+				}
+			}
+			Task.WaitAll(rgTasks.ToArray());
         }
 
 		/// <summary>
@@ -701,6 +715,31 @@ namespace Play.SSTV {
 				iScanLine += 1;
 			}
 		}
+
+		/// <summary>
+		/// This is the non non-linear scan line enumerator. This is not using the frequency
+		/// drift buckets system I'm working on for the websdr's. These are scan lines and not
+		/// raster lines so just be aware! 
+		/// </summary>
+		/// <param name="iStart">Starting scan line</param>
+		/// <param name="iEnd">End scan line inclusive.</param>
+		/// <returns></returns>
+		public IEnumerator< SSTVPosition> GetEnumerator( int iStart, int iEnd ) {
+			if( Mode == null )
+				yield break;
+
+			InitSlots( Mode.Resolution.Width, _dblSlope / SpecWidthInSamples ); 
+
+			double dblPosition = _dblSlope * iStart + StartIndex;
+
+			for( int iScanLine = iStart; 
+				 iScanLine <= iEnd && dblPosition < ImageSizeInSamples; 
+				 ++iScanLine, dblPosition += _dblSlope) 
+			{
+				 yield return new SSTVPosition() { Position=dblPosition, ScanLine=iScanLine };
+			}
+		}
+
         IEnumerator IEnumerable.GetEnumerator() {
 			return GetEnumerator();
         }
