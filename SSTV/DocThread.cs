@@ -191,7 +191,7 @@ namespace Play.SSTV {
                     _oSSTVDraw.Process();
                 }
 
-		        _oSSTVDraw.ProcessProgress();
+		        _oSSTVDraw.ProcessAll();
 
                 // Check if there's any leftover and if so, save it. Don't call
                 // Stop()! That will happen automatically when the bitmap gets full.
@@ -353,7 +353,7 @@ namespace Play.SSTV {
                     case TVMessage.Message.TryNewMode:
                         if( oMsg._oParam is SSTVMode oMode ) {
                             _oSSTVDeMo.Start( oMode );
-                            _oSSTVDraw.ProcessProgress();
+                            _oSSTVDraw.ProcessAll();
                         } else {
                             _oSSTVDeMo.Reset();
                         }

@@ -156,7 +156,8 @@ namespace Play.SSTV {
 
 		protected readonly List<ColorChannel> _rgSlots   = new(10); // thread unsafe, see buffers.
         protected readonly List<ScanBuffers>  _rgBuffers = new();
-		
+		private   readonly List<Task>         _rgTasks   = new();
+
 
 		protected readonly int _iBucketSize = 20;
 
@@ -590,11 +591,11 @@ namespace Play.SSTV {
                         }
 						_rgSlopeBuckets.Add( _dblSlope );
 
-						ProcessTop( iStartLine, iScanLine );
+						ProcessSegment( iStartLine, iScanLine );
 					}
 					// Bail on current image when we've processed expected image size.
 					if( _dp.m_wBase > ImageSizeInSamples ) {
-						ProcessProgress();
+						ProcessAll();
 						Stop();
 					}
 				} catch( Exception oEx ) {
@@ -614,14 +615,13 @@ namespace Play.SSTV {
 			_fAuto     = false;
 			_dblSlope += dblDir;
 
-			ProcessProgress();
+			ProcessAll();
 		}
 
 		/// <summary>
-		/// When we switch modes, but don't clear the buffer, want to see what
-		/// we've got. This will re-read the entire buffer.
+		/// This will re-read/render the entire buffer.
 		/// </summary>
-		public void ProcessProgress() {
+		public void ProcessAll() {
             //ScanBuffers oBuffer = new ScanBuffers( this );
 
             //foreach( SSTVPosition sSample in this ) {
@@ -644,30 +644,31 @@ namespace Play.SSTV {
 		/// so we can deal with frequency drift when listening via kfs websdr. That is
 		/// we can't have : Scanline = func( SamplePosition ). 
 		/// </summary>
-		public void ProcessTop( int iStartScan, int iEndScan ) {
+		public void ProcessSegment( int iStartScan, int iEndScan ) {
             //foreach( SSTVPosition sSample in this ) {
             //    if( sSample.ScanLine >= iStartScan && sSample.ScanLine <= iEndScan ) {
             //        ProcessScan( _rgBuffers[0], sSample.Position, sSample.ScanLine);
             //    }
             //}
-
-            List<Task> rgTasks = new();
+			
+			_rgTasks.Clear();
 			foreach( SSTVPosition oIndex in new ScanLineEnumerable( this, iStartScan, iEndScan ) ) {
                 // Make copies outside of the delegate so iterator doesn't change while in thread!!!
                 double dblPosition  = oIndex.Position;
                 int    iScanline    = oIndex.ScanLine;
-                int    iBufferIndex = rgTasks.Count;
+                int    iBufferIndex = _rgTasks.Count;
 
-                rgTasks.Add(Task.Factory.StartNew(() => {
+                _rgTasks.Add(Task.Factory.StartNew(() => {
                     ProcessScan(_rgBuffers[iBufferIndex], dblPosition, iScanline);
                 }));
 
-				if( rgTasks.Count >= 3 ) {
-					Task.WaitAll(rgTasks.ToArray());
-					rgTasks.Clear();
+				if( _rgTasks.Count >= 3 ) {
+					Task.WaitAll(_rgTasks.ToArray());
+					_rgTasks.Clear();
 				}
 			}
-			Task.WaitAll(rgTasks.ToArray());
+			Task.WaitAll(_rgTasks.ToArray());
+			_rgTasks.Clear();
         }
 
 		/// <summary>
