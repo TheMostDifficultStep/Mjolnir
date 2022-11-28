@@ -201,6 +201,8 @@ namespace Play.SSTV {
         WorkerException,
         ReadException,
         DiagnosticsException,
+        StartException,
+        StopException,
         DataOverflow
     }
 

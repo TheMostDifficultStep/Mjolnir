@@ -22,6 +22,11 @@ namespace Play.SSTV {
     public class SSTVDraw : 
 		IEnumerable<SSTVPosition>
 	{
+		/// <summary>
+		/// So this is super cool. I can make an enumerator from this object but 
+		/// there is no need to use the heap to point to this object!!
+		/// Now I can pass all or some of the collection to the Scan Line processor.
+		/// </summary>
 		protected struct ScanLineEnumerable : IEnumerable<SSTVPosition>{
 			int      _iStart, _iEnd;
 			SSTVDraw _oDraw;
@@ -43,9 +48,10 @@ namespace Play.SSTV {
 		/// <summary>
 		/// This will allow us to ProcessScanLine() parallel processed. But with my
 		/// 6 core machine performance bogs at anything higher than 3 tasks.
+		/// That number should probably be something that can be controlled by the user.
 		/// </summary>
 		/// <seealso cref="ProcessScanLine(ScanBuffers, double, int)"/>
-		protected class ScanBuffers {
+		class ScanBuffers {
 			protected int      _AY;
 			protected short[]  _Y36 = new short[800];
 			protected short[]  _CRy = new short[800]; // D36[1,iX]
@@ -148,27 +154,24 @@ namespace Play.SSTV {
 
 		}
 
-        protected readonly SSTVDEM _dp;
+        readonly SSTVDEM _dp;
 
 		public SSTVMode Mode => _dp.Mode;
-
 		public DateTime StartTime { get; protected set; }
+		// This let's us offset our start point if the sync is NOT the first bit of scanline data. ie Scotty.
+		public double   SyncOffsetInSamples { get; protected set; } // The channel entries for these do get updated.
 
-		protected readonly List<ColorChannel> _rgSlots   = new(10); // thread unsafe, see buffers.
-        protected readonly List<ScanBuffers>  _rgBuffers = new();
-		private   readonly List<Task>         _rgTasks   = new();
+		readonly List<ColorChannel> _rgSlots        = new(10); // see also scan line buffers.
+        readonly List<ScanBuffers>  _rgBuffers      = new();
+		readonly List<Task>         _rgTasks        = new();
+		const    int                _iBucketSize    = 20;
+		readonly List<double>       _rgSlopeBuckets = new();
 
+		bool     _fAuto          = false;
+		double   _dblSlope       = 0;
+		double   _dblIntercept   = 0;
 
-		protected readonly int _iBucketSize = 20;
-
-		protected bool     _fAuto          = false;
-		protected double   _dblSlope       = 0;
-		protected double   _dblIntercept   = 0;
-
-		protected List<double> _rgSlopeBuckets = new List<double>();
-
-		short[] _pCalibration = null; // Not strictly necessary yet.
-
+		short[]  _pCalibration = null; // Not strictly necessary yet.
 		SKCanvas _skD12Canvas;
 
 		public SKBitmap _pBitmapRX  { get; } 
@@ -177,13 +180,10 @@ namespace Play.SSTV {
 		// Need to look into the greyscale calibration height of bitmap issue. (+16 scan lines)
 		// The D12 bitmap must always be >= to the RX bmp height.
 
-		// TODO: You know there's only one consumer of these events. I should just make them an 
-		// interface or a delegate onto the listener.
+		// There's only one consumer of these events so these are just a delegate
+		// onto the listener.
 		public Action<SSTVEvents, int> Send_TvEvents;
 		public Action<SSTVMode >       Send_SavePoint;
-
-		// This let's us offset our start point if the sync is NOT the first bit of scanline data. ie Scotty.
-		public double SyncOffsetInSamples { get; protected set; } // The channel entries for these do get updated.
 
 		struct DiagnosticPaint {
 			public SKColor Color;
@@ -234,26 +234,31 @@ namespace Play.SSTV {
 		/// <seealso cref="OnModeTransition_SSTVDeMo"/>
 		/// <seealso cref="InitSlots"/>
         public void Start() {
-			_fAuto        = true;
-			_dblSlope     = SpecWidthInSamples;
-			_dblIntercept = 0;
+			try {
+				_fAuto        = true;
+				_dblSlope     = SpecWidthInSamples;
+				_dblIntercept = 0;
 
-			_rgSlopeBuckets.Clear();
+				_rgSlopeBuckets.Clear();
 
-			// BUG: This might need futzing based on slope correction. ie if the
-			//      sender is miscalibrated! See InitSlots()
-			SyncOffsetInSamples = Mode.OffsetInMS * _dp.SampFreq / 1000;
+				// BUG: This might need futzing based on slope correction. ie if the
+				//      sender is miscalibrated! See InitSlots()
+				SyncOffsetInSamples = Mode.OffsetInMS * _dp.SampFreq / 1000;
 
-			Send_TvEvents?.Invoke( SSTVEvents.ModeChanged, (int)Mode.LegacyMode );
-			Send_TvEvents?.Invoke( SSTVEvents.DownLoadTime, 0 );
+				// If the delegate is null, no way to send the error up!!
+				Send_TvEvents( SSTVEvents.ModeChanged, (int)Mode.LegacyMode );
+				Send_TvEvents( SSTVEvents.DownLoadTime, 0 );
 
-			// This is a little dangerous. But since the main thread never messes with the
-			// bitmap we'll probably be ok.
-            using SKCanvas sKCanvas = new(_pBitmapRX);
-            sKCanvas.Clear(SKColors.Gray);
-            _skD12Canvas.Clear();
+				// This is a little dangerous. But since the main thread never messes with the
+				// bitmap we'll probably be ok.
+				using SKCanvas sKCanvas = new(_pBitmapRX);
+				sKCanvas.Clear(SKColors.Gray);
+				_skD12Canvas.Clear();
 
-			StartTime = DateTime.Now;
+				StartTime = DateTime.Now;
+			} catch( NullReferenceException ) {
+				Send_TvEvents?.Invoke( SSTVEvents.ThreadException, (int)TxThreadErrors.StartException );
+			}
         }
 
 		/// <summary>
@@ -266,8 +271,8 @@ namespace Play.SSTV {
 			try {
 				// Need to send regardless, but might get a bum image if not
 				// includes vis and we guess a wrong start state.
-				Send_TvEvents ?.Invoke( SSTVEvents.DownLoadFinished, PercentRxComplete );
-				Send_SavePoint?.Invoke( Mode ); // _dp hasn't been reset yet! Wheeww!
+				Send_TvEvents ( SSTVEvents.DownLoadFinished, PercentRxComplete );
+				Send_SavePoint( Mode ); // _dp hasn't been reset yet! Wheeww!
 
 				if( _dp.Synced ) {
 					// Send download finished BEFORE reset so we can save image
@@ -281,7 +286,7 @@ namespace Play.SSTV {
 				if( rgErrors.IsUnhandled( oEx ) )
 					throw;
 
-				Send_TvEvents?.Invoke( SSTVEvents.ThreadException, (int)TxThreadErrors.DiagnosticsException );
+				Send_TvEvents?.Invoke( SSTVEvents.ThreadException, (int)TxThreadErrors.StopException );
 			}
 		}
 
@@ -292,7 +297,7 @@ namespace Play.SSTV {
 		public double ScanWidthInSamples {
 			get {
 				try {
-					return _rgSlots[_rgSlots.Count - 1 ].Min;
+					return _rgSlots[_rgSlots.Count - 1].Min;
 				} catch( ArgumentOutOfRangeException ) {
 					return 0;
 				}
@@ -468,7 +473,7 @@ namespace Play.SSTV {
 		/// we just walk into a going signal, but that involves special casing the 
 		/// first scan line and right now I don't think it's worth all the effort.
 		/// </remarks>
-		protected void ProcessScanLine( ScanBuffers oBuff, double dblBase, int iScanLine ) {
+		void ProcessScanLine( ScanBuffers oBuff, double dblBase, int iScanLine ) {
 			int    rx          = -1; // Saved X pos from the Rx buffer.
 			int    ch          =  0; // current channel skimming the Rx buffer portion.
 			int    iScanWidth  = (int)Math.Round( ScanWidthInSamples );
@@ -634,7 +639,14 @@ namespace Play.SSTV {
 			Send_TvEvents?.Invoke( SSTVEvents.DownLoadTime, 100 );
 		}
 
-		public void ProcessCollection( IEnumerable<SSTVPosition> oClxn ) {
+		/// <summary>
+		/// OMG I can use the same processor for all or part of the scanlines! 
+		/// </summary>
+		/// <remarks>I've seen entries that StartNew() is a heavy duty thing and
+		/// Task.Run() is the preferable way to go. I can probably fix that easily.
+		/// </remarks>
+		/// <seealso cref="ScanLineEnumerable"/>
+		protected void ProcessCollection( IEnumerable<SSTVPosition> oClxn ) {
 			_rgTasks.Clear();
 			foreach( SSTVPosition oIndex in oClxn ) {
                 // Make copies outside of the delegate so iterator doesn't change while in thread!!!
