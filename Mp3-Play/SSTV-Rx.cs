@@ -1174,6 +1174,15 @@ namespace Play.Sound {
 		readonly double[] HBPFS = new double[TAPMAX+1];
 		readonly double[] HBPFN = new double[TAPMAX+1];
 
+		double ad;  // agc value of d
+		// These two go into the B12 (sync signal) buffer, depending on narrow or normal.
+		double d12; // normal sync & Unused for narrow band.
+		double d19; // narrow sync & VIS pulse for normal bandwidth.
+				
+		double d11; // The only time we care about these is in VIS.
+		double d13;
+
+
 		readonly CFIR2 m_BPF = new CFIR2();
 
 		double   m_ad;
@@ -1204,7 +1213,8 @@ namespace Play.Sound {
 		public int HilbertTaps => m_hill.m_htap;
 
 		public bool   Synced { get; protected set; }
-		int           m_SyncMode;
+		Action        _SyncState;
+		//int           m_SyncMode;
 		int           m_SyncTime;
 		int           m_VisData;
 		int           m_VisCnt;
@@ -1318,9 +1328,10 @@ namespace Play.Sound {
 			m_wBase     = 0;
 			m_Skip      = 0;
 			Synced      = false;
-			m_SyncMode  = 0;
+			_SyncState  = StateAutoStart;
 			m_ScopeFlag = false;
 			m_Lost      = false;
+			_SyncState   = StateAutoStart;
 
 			m_Rcptlvl   = new CLVL ( (int)SampFreq, fAgcFast:true );
 			m_SyncLvl   = new CSLVL( SampFreq );
@@ -1424,7 +1435,7 @@ namespace Play.Sound {
 			}
 
 			Synced     = true; // This is the only place we set to true!
-			m_SyncMode = 0; 
+			_SyncState = StateAutoStart; 
 
 			// Don't support narrow band modes. (yet ;-)
 			//if( m_fNarrow ) 
@@ -1448,7 +1459,8 @@ namespace Play.Sound {
 			//m_sint2.Reset();
 			//m_sint3.Reset();
 
-			m_SyncMode = 512;
+			m_SyncTime = (int)(SampFreq * 0.5);
+			_SyncState = StateWaitReset; // Wait for the above time.
 			Synced     = false;
 
 			SSTVMode oPrevMode = Mode;
@@ -1640,6 +1652,106 @@ namespace Play.Sound {
 			m_SLvlHalf = m_SLvl * 0.5;
 		}
 
+		void StateAutoStart() {
+			//if( m_sint1.Start( out m_NextMode ) ){
+			//	tvMode = GetSSTVMode( m_NextMode );
+			//	if( tvMode != null ) {
+			//		Start( tvMode );
+			//		break;
+			//	}
+			//}
+			// The first 1900hz has been seen, and now we're going down to 1200 for 15 ms. (s/b 10)
+			if( (d12 > d19) && (d12 > m_SLvl) && ((d12-d19) >= m_SLvl) ){
+				_SyncState = StateContinuousChk;
+				m_SyncTime = (int)(10 * SampFreq/1000); // this is probably the ~10 ms between each 1900hz tone.
+				// m_sint2.SyncMax = d12;
+				//m_sint1.Trig = (uint)d12;
+			}
+		}
+
+		void StateContinuousChk() {
+			//if( !m_Sync /* && m_MSync */ ){
+			//	if( (d12 > d19) && (d12 > m_SLvl2) && ((d12-d19) >= m_SLvl2) ){
+			//		m_sint2.SyncMax( (int)d12);
+			//	}
+			//}
+			// the second 1900hz has been seen now down to 1200hz again for 30ms.
+			if( (d12 > d19) && (d12 > m_SLvl) && ((d12-d19) >= m_SLvl) ){
+				//if( !m_Sync /* && m_MSync */ ){
+				//m_sint1.Max = (uint)d12;
+				//}
+				if( --m_SyncTime == 0 ){
+					_SyncState  = StateVisDecode;
+					m_SyncTime = (int)(30 * SampFreq/1000); // Each bit is 30 ms!!
+					m_VisData  = 0; // Init value
+					m_VisCnt   = 8; // Start counting down the 8 bits, (after 30ms).
+				}
+			} else {
+				_SyncState = StateAutoStart;
+			}
+		}
+
+		public void StateVisDecode() {
+			if( --m_SyncTime == 0 ){
+				if( ((d11 < d19) && (d13 < d19)) || (Math.Abs(d11-d13) < m_SLvlHalf) ) {
+					// Start over? this is happening at the end of ve5kc test files.
+					_SyncState = StateAutoStart; 
+				} else {
+					m_SyncTime = (int)(30 * SampFreq/1000 ); // Get next bit.
+					m_VisData >>= 1; // we shift right to make room for next.
+					if( d11 > d13 ) 
+						m_VisData |= 0x0080; // Set the 8th bit to 1.(else it's 0)
+					m_VisCnt--;
+					if( m_VisCnt == 0 ){
+						// Note: we've picked up the last bit to determine the VIS, but we need
+						//       to walk over the 30ms STOP bit.
+						if( _SyncState == StateVisDecode ) {
+							_SyncState = StateStopBit;
+
+							if( ModeDictionary.TryGetValue((byte)m_VisData, out SSTVMode tvModeFound ) ) {
+								m_NextMode = tvModeFound.LegacyMode;
+							} else {
+								if( m_VisData == 0x23 ) {      // MM 拡張 VIS : Expanded (16bit) VIS!!
+								//	m_SyncMode = 9;
+								//	m_VisData  = 0;
+								//	m_VisCnt   = 8;
+								//} else {
+									_SyncState = StateAutoStart;
+								}
+							}
+						} else {          // 拡張 VIS : Vis Expansion not supported.
+							_SyncState = StateAutoStart;
+						}
+					}
+				}
+			}
+		}
+
+		void StateStopBit() {
+			if( !Synced ){
+				m_pll.Do(ad);
+			}
+			if( --m_SyncTime == 0 ){
+				if( (d12 > d19) && (d12 > m_SLvl) ){
+					SSTVMode tvMode = GetSSTVMode( m_NextMode );
+					if( tvMode != null ) {
+						Start( tvMode );
+					}
+				} else {
+					_SyncState = StateAutoStart;
+				}
+			}
+		}
+
+		/// <summary>
+		/// Make sure you set the SyncTime before moving to this state.
+		/// </summary>
+		void StateWaitReset() {
+			if( --m_SyncTime <= 0 ){
+				_SyncState = StateAutoStart;
+			}
+		}
+
 		/// <summary>
 		/// Either cul the VIS from the signal or the image data. This method is the
 		/// final one to clean up. I've been leaving it as it is b/c of how convoluted
@@ -1654,7 +1766,7 @@ namespace Play.Sound {
 			double d = (s + m_ad) * 0.5;    // LPF
 			m_ad = s;
 			if( m_bpf != BandPass.Undefined ) {
-				if( Synced || (m_SyncMode >= 3) ){
+				if( Synced /*||  (m_SyncMode >= 3) */ ){
 					// We don't support narrow band modes.... yet.
 					d = m_BPF.Do( /* m_fNarrow ? HBPFN : */ HBPF, d );
 				} else {
@@ -1663,7 +1775,7 @@ namespace Play.Sound {
 			}
 			m_Rcptlvl.Do(d);
 			double od = d;                 // Original value of d;
-			double ad = m_Rcptlvl.AGC(d);  // Agc value of d;
+			ad = m_Rcptlvl.AGC(d);  // Agc value of d;
 		    m_Rcptlvl.Fix(); // This was in TMmsstv::DrawLvl, no analog to that here yet...
 
 			d = ad * 32;
@@ -1671,10 +1783,6 @@ namespace Play.Sound {
 				d =  16384.0;
 			if( d < -16384.0 ) 
 				d = -16384.0;
-
-			// These two go into the B12 (sync signal) buffer, depending on narrow or normal.
-			double d12; // normal sync & Unused for narrow band.
-			double d19; // narrow sync & VIS pulse for normal bandwidth.
 
 			d12 = m_iir12.Do(d);
 			d12 = m_lpf12.Do( Math.Abs( d12 ) );
@@ -1700,14 +1808,10 @@ namespace Play.Sound {
 			}
 
 			if( !Synced || m_SyncRestart ) {
-				SSTVMode tvMode;
+				//SSTVMode tvMode;
 				//m_sint1.Inc();
 				//m_sint2.SyncInc();
 				//m_sint3.SyncInc();
-
-				// The only time we care about these is in VIS.
-				double d11;
-				double d13;
 
 				// I'm going to guess these need to be live so that they're picking up 
 				// single even before the value is actually used. Always lagging.
@@ -1717,112 +1821,7 @@ namespace Play.Sound {
 				d13 = m_iir13.Do(d);
 				d13 = m_lpf13.Do( Math.Abs( d13 ));
 
-				switch(m_SyncMode){
-					case 0:                 // 自動開始 : Start automatically
-						{
-							//if( m_sint1.Start( out m_NextMode ) ){
-							//	tvMode = GetSSTVMode( m_NextMode );
-							//	if( tvMode != null ) {
-							//		Start( tvMode );
-							//		break;
-							//	}
-							//}
-							// The first 1900hz has been seen, and now we're going down to 1200 for 15 ms. (s/b 10)
-							if( (d12 > d19) && (d12 > m_SLvl) && ((d12-d19) >= m_SLvl) ){
-								m_SyncMode++;
-								m_SyncTime = (int)(10 * SampFreq/1000); // this is probably the ~10 ms between each 1900hz tone.
-								// m_sint2.SyncMax = d12;
-								//m_sint1.Trig = (uint)d12;
-							}
-						}
-						break;
-					case 1:                 // 1200Hz(30ms)‚ の継続チェック: continuous check.
-						//if( !m_Sync /* && m_MSync */ ){
-						//	if( (d12 > d19) && (d12 > m_SLvl2) && ((d12-d19) >= m_SLvl2) ){
-						//		m_sint2.SyncMax( (int)d12);
-						//	}
-						//}
-						// the second 1900hz has been seen now down to 1200hz again for 30ms.
-						if( (d12 > d19) && (d12 > m_SLvl) && ((d12-d19) >= m_SLvl) ){
-							//if( !m_Sync /* && m_MSync */ ){
-							//m_sint1.Max = (uint)d12;
-							//}
-							if( --m_SyncTime == 0 ){
-								m_SyncMode++;
-								m_SyncTime = (int)(30 * SampFreq/1000); // Each bit is 30 ms!!
-								m_VisData  = 0; // Init value
-								m_VisCnt   = 8; // Start counting down the 8 bits, (after 30ms).
-							}
-						} else {
-							m_SyncMode = 0;
-						}
-						break;
-					case 2:                 // Vis decode
-					case 9:                 // Expanded VIS decode.
-						if( --m_SyncTime == 0 ){
-							if( ((d11 < d19) && (d13 < d19)) || (Math.Abs(d11-d13) < m_SLvlHalf) ) {
-								m_SyncMode = 0; // Start over? this is happening at the end of ve5kc test files.
-							} else {
-								m_SyncTime = (int)(30 * SampFreq/1000 ); // Get next bit.
-								m_VisData >>= 1; // we shift right to make room for next.
-								if( d11 > d13 ) 
-									m_VisData |= 0x0080; // Set the 8th bit to 1.(else it's 0)
-								m_VisCnt--;
-								if( m_VisCnt == 0 ){
-									// Note: we've picked up the last bit to determine the VIS, but we need
-									//       to walk over the 30ms STOP bit.
-									if( m_SyncMode == 2 ){
-										m_SyncMode++;
-
-										if( ModeDictionary.TryGetValue((byte)m_VisData, out SSTVMode tvModeFound ) ) {
-											m_NextMode = tvModeFound.LegacyMode;
-										} else {
-											if( m_VisData == 0x23 ) {      // MM 拡張 VIS : Expanded (16bit) VIS!!
-											//	m_SyncMode = 9;
-											//	m_VisData  = 0;
-											//	m_VisCnt   = 8;
-											//} else {
-												m_SyncMode = 0;
-											}
-										}
-									} else {          // 拡張 VIS : Vis Expansion not supported.
-										m_SyncMode = 0;
-									}
-								}
-							}
-						}
-						break;
-					case 3:                 // 1200Hz(30ms)‚のチェック : check. 30ms STOP bit.
-						if( !Synced ){
-							m_pll.Do(ad);
-						}
-						if( --m_SyncTime == 0 ){
-							if( (d12 > d19) && (d12 > m_SLvl) ){
-								tvMode = GetSSTVMode( m_NextMode );
-								if( tvMode != null ) {
-									Start( tvMode );
-								}
-							} else {
-								m_SyncMode = 0;
-							}
-						}
-						break;
-					case 256:                // 強制開始 : Forced start.
-						tvMode = GetSSTVMode( m_NextMode );
-						if( tvMode != null ) {
-							Start( tvMode );
-						}
-						break;
-					case 512:               // 0.5sのウエイト : .5s wait.
-						m_SyncTime = (int)(SampFreq * 0.5);
-						m_SyncMode++;
-						break;
-					case 513:
-						if( --m_SyncTime <= 0 ){
-							m_SyncMode = 0;
-						}
-						break;
-				}
+				_SyncState();
 			}
 			if( Synced ) {
 				double freq;
@@ -1867,17 +1866,17 @@ namespace Play.Sound {
 			}
 			else if( Sys.m_TestDem ){
 				// This is used by the TOptionDlg::TimerTimer code for test.
-				double m_CurSig; // I removed the member variable since it was not being used elsewhere.
+				double dblCurSig; // I removed the member variable since it was not being used elsewhere.
 
 				switch(FilterType){
 					case FreqDetect.PLL:
-						m_CurSig = _AFC.Avg(m_pll.Do( od ));
+						dblCurSig = _AFC.Avg(m_pll.Do( od ));
 						break;
 					case FreqDetect.FQC:
-						m_CurSig = _AFC.Avg(m_fqc.Do( od ));
+						dblCurSig = _AFC.Avg(m_fqc.Do( od ));
 						break;
 					case FreqDetect.Hilbert:
-						m_CurSig = _AFC.Avg(m_hill.Do( od ));
+						dblCurSig = _AFC.Avg(m_hill.Do( od ));
 						break;
 					default:
 						throw new NotImplementedException( "Unrecognized Frequency Detector" );
