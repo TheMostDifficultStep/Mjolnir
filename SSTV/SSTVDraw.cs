@@ -44,7 +44,7 @@ namespace Play.SSTV {
 		/// This will allow us to ProcessScan() parallel processed. But with my
 		/// 6 core machine performance bogs at anything higher than 3 tasks.
 		/// </summary>
-		/// <seealso cref="ProcessScan(ScanBuffers, double, int)"/>
+		/// <seealso cref="ProcessScanLine(ScanBuffers, double, int)"/>
 		protected class ScanBuffers {
 			protected int      _AY;
 			protected short[]  _Y36 = new short[800];
@@ -470,7 +470,7 @@ namespace Play.SSTV {
 		/// we just walk into a going signal, but that involves special casing the 
 		/// first scan line and right now I don't think it's worth all the effort.
 		/// </remarks>
-		protected void ProcessScan( ScanBuffers oBuff, double dblBase, int iScanLine ) {
+		protected void ProcessScanLine( ScanBuffers oBuff, double dblBase, int iScanLine ) {
 			int    rx          = -1; // Saved X pos from the Rx buffer.
 			int    ch          =  0; // current channel skimming the Rx buffer portion.
 			int    iScanWidth  = (int)Math.Round( ScanWidthInSamples );
@@ -528,7 +528,7 @@ namespace Play.SSTV {
 		}
 
 		public class Adjuster : ISstvAdjust {
-			double m_SampFreq;
+					 double m_SampFreq;
 			readonly double m_dblScanWidthInMS;
 
 			public double TW { get; protected set; } // Width of scan line in samples.
@@ -630,7 +630,7 @@ namespace Play.SSTV {
             Parallel.ForEach(this,
                 new ParallelOptions { MaxDegreeOfParallelism = 3 },
                 sSample => {
-                    ProcessScan(new ScanBuffers(this), sSample.Position, sSample.ScanLine);
+                    ProcessScanLine(new ScanBuffers(this), sSample.Position, sSample.ScanLine);
                 });
 
             if( _dp.Synced ) {
@@ -659,7 +659,7 @@ namespace Play.SSTV {
                 int    iBufferIndex = _rgTasks.Count;
 
                 _rgTasks.Add(Task.Factory.StartNew(() => {
-                    ProcessScan(_rgBuffers[iBufferIndex], dblPosition, iScanline);
+                    ProcessScanLine(_rgBuffers[iBufferIndex], dblPosition, iScanline);
                 }));
 
 				if( _rgTasks.Count >= 3 ) {
