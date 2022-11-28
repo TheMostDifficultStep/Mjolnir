@@ -41,7 +41,7 @@ namespace Play.SSTV {
 			}
 		}
 		/// <summary>
-		/// This will allow us to ProcessScan() parallel processed. But with my
+		/// This will allow us to ProcessScanLine() parallel processed. But with my
 		/// 6 core machine performance bogs at anything higher than 3 tasks.
 		/// </summary>
 		/// <seealso cref="ProcessScanLine(ScanBuffers, double, int)"/>
@@ -170,7 +170,6 @@ namespace Play.SSTV {
 		short[] _pCalibration = null; // Not strictly necessary yet.
 
 		SKCanvas _skD12Canvas;
-		SKPaint  _skPaint;
 
 		public SKBitmap _pBitmapRX  { get; } 
 		public SKBitmap _pBitmapD12 { get; }
@@ -212,7 +211,6 @@ namespace Play.SSTV {
 			_pBitmapRX  = oRx  ?? throw new ArgumentNullException( "D12 bmp must not be null" );
 
 			_skD12Canvas = new( _pBitmapD12 );
-			_skPaint     = new() { Color = SKColors.Red, StrokeWidth = 1 };
 
             for( int i = 0; i < 3; ++i ) {
                 _rgBuffers.Add(new ScanBuffers(this));
@@ -591,7 +589,7 @@ namespace Play.SSTV {
                         }
 						_rgSlopeBuckets.Add( _dblSlope );
 
-						ProcessSegment( iStartLine, iScanLine );
+						ProcessCollection( new ScanLineEnumerable( this, iStartLine, iScanLine ) );
 					}
 					// Bail on current image when we've processed expected image size.
 					if( _dp.m_wBase > ImageSizeInSamples ) {
@@ -627,11 +625,8 @@ namespace Play.SSTV {
             //foreach( SSTVPosition sSample in this ) {
             //    ProcessScan( oBuffer, sSample.Position, sSample.ScanLine);
             //}
-            Parallel.ForEach(this,
-                new ParallelOptions { MaxDegreeOfParallelism = 3 },
-                sSample => {
-                    ProcessScanLine(new ScanBuffers(this), sSample.Position, sSample.ScanLine);
-                });
+
+			ProcessCollection( this );
 
             if( _dp.Synced ) {
 				DiagnosticsOverlay();
@@ -639,20 +634,9 @@ namespace Play.SSTV {
 			Send_TvEvents?.Invoke( SSTVEvents.DownLoadTime, 100 );
 		}
 
-		/// <summary>
-		/// Only process the scan lines between the given extents. We use the iterator
-		/// so we can deal with frequency drift when listening via kfs websdr. That is
-		/// we can't have : Scanline = func( SamplePosition ). 
-		/// </summary>
-		public void ProcessSegment( int iStartScan, int iEndScan ) {
-            //foreach( SSTVPosition sSample in this ) {
-            //    if( sSample.ScanLine >= iStartScan && sSample.ScanLine <= iEndScan ) {
-            //        ProcessScan( _rgBuffers[0], sSample.Position, sSample.ScanLine);
-            //    }
-            //}
-			
+		public void ProcessCollection( IEnumerable<SSTVPosition> oClxn ) {
 			_rgTasks.Clear();
-			foreach( SSTVPosition oIndex in new ScanLineEnumerable( this, iStartScan, iEndScan ) ) {
+			foreach( SSTVPosition oIndex in oClxn ) {
                 // Make copies outside of the delegate so iterator doesn't change while in thread!!!
                 double dblPosition  = oIndex.Position;
                 int    iScanline    = oIndex.ScanLine;
@@ -669,7 +653,7 @@ namespace Play.SSTV {
 			}
 			Task.WaitAll(_rgTasks.ToArray());
 			_rgTasks.Clear();
-        }
+		}
 
 		/// <summary>
 		/// New approach in enumerating the scan lines. This will allow me to have
