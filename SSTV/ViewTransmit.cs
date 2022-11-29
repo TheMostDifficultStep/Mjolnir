@@ -64,6 +64,10 @@ namespace Play.SSTV {
 
 			if( _oTxView != null ) {
 				try {
+					PropertyInitRow( Layout as SmartTable, 
+									 (int)SSTVProperties.Names.Tx_LayoutSelect, 
+									 _ddTemplates );
+
 					// Call this once to set up the mode families.
 					IEnumerator<SSTVDEM.SSTVFamily> itrFamily = SSTVDEM.EnumFamilies();
 					SSTVDEM.SSTVFamily oPD = null;
@@ -111,10 +115,6 @@ namespace Play.SSTV {
 				  //_oDocSSTV.TemplateList.CheckedEvent += OnCheckedEvent_TemplateList;
 				  //desirable but we loop forever responding to SelectedIndexChanged
 				  //events. Need to sort that out.
-
-					PropertyInitRow( Layout as SmartTable, 
-									 (int)SSTVProperties.Names.Tx_LayoutSelect, 
-									 _ddTemplates );
 				} catch ( Exception oEx ) {
 					Type[] rgErrors = { typeof( NullReferenceException ),
 										typeof( ArgumentOutOfRangeException ) };

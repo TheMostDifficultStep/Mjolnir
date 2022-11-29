@@ -1181,7 +1181,7 @@ namespace Play.Sound {
 				
 		double d11; // The only time we care about these is in VIS.
 		double d13;
-
+		bool   _fVisExtended;
 
 		readonly CFIR2 m_BPF = new CFIR2();
 
@@ -1213,14 +1213,13 @@ namespace Play.Sound {
 		public int HilbertTaps => m_hill.m_htap;
 
 		public bool   Synced { get; protected set; }
-		Action        _SyncState;
-		//int           m_SyncMode;
-		int           m_SyncTime;
-		int           m_VisData;
-		int           m_VisCnt;
+		Action        _oSyncState;
+		int           _iSyncTime;
+		int           _iVisData;
+		int           _iVisCnt;
 		int           m_Skip;
 		readonly bool m_SyncRestart;
-		AllModes      m_NextMode;
+		SSTVMode      _tvNextMode;
 
 		// Base pointer represent how far along in samples over the entire image we've gone. 
 		// Write pos in samples stream. Moves forward by scanlinewidthinsamples chunks.
@@ -1328,10 +1327,9 @@ namespace Play.Sound {
 			m_wBase     = 0;
 			m_Skip      = 0;
 			Synced      = false;
-			_SyncState  = StateAutoStart;
 			m_ScopeFlag = false;
 			m_Lost      = false;
-			_SyncState   = StateAutoStart;
+			_oSyncState = StateAutoStart;
 
 			m_Rcptlvl   = new CLVL ( (int)SampFreq, fAgcFast:true );
 			m_SyncLvl   = new CSLVL( SampFreq );
@@ -1411,8 +1409,7 @@ namespace Play.Sound {
 		}
 
 		/// <summary>
-		/// this method gets called when we are ready to rock and roll. In the original
-		/// system TmmSSTV would toss it's previous image and start a new one.
+		/// this method gets called after VIS received get ready to receive image.
 		/// </summary>
 		public void Start( SSTVMode oMode ) {
 			int      iPrevBase = m_wBase;
@@ -1434,8 +1431,8 @@ namespace Play.Sound {
 				m_Lost     = false;
 			}
 
-			Synced     = true; // This is the only place we set to true!
-			_SyncState = StateAutoStart; 
+			Synced      = true; // This is the only place we set to true!
+			_oSyncState = StateAutoStart; 
 
 			// Don't support narrow band modes. (yet ;-)
 			//if( m_fNarrow ) 
@@ -1459,8 +1456,8 @@ namespace Play.Sound {
 			//m_sint2.Reset();
 			//m_sint3.Reset();
 
-			m_SyncTime = (int)(SampFreq * 0.5);
-			_SyncState = StateWaitReset; // Wait for the above time.
+			_iSyncTime  = (int)(SampFreq * 0.5);
+			_oSyncState = StateWaitReset; // Wait for the above time.
 			Synced     = false;
 
 			SSTVMode oPrevMode = Mode;
@@ -1662,8 +1659,8 @@ namespace Play.Sound {
 			//}
 			// The first 1900hz has been seen, and now we're going down to 1200 for 15 ms. (s/b 10)
 			if( (d12 > d19) && (d12 > m_SLvl) && ((d12-d19) >= m_SLvl) ){
-				_SyncState = StateContinuousChk;
-				m_SyncTime = (int)(10 * SampFreq/1000); // this is probably the ~10 ms between each 1900hz tone.
+				_oSyncState = StateContinuousChk;
+				_iSyncTime = (int)(10 * SampFreq/1000); // this is probably the ~10 ms between each 1900hz tone.
 				// m_sint2.SyncMax = d12;
 				//m_sint1.Trig = (uint)d12;
 			}
@@ -1680,47 +1677,52 @@ namespace Play.Sound {
 				//if( !m_Sync /* && m_MSync */ ){
 				//m_sint1.Max = (uint)d12;
 				//}
-				if( --m_SyncTime == 0 ){
-					_SyncState  = StateVisDecode;
-					m_SyncTime = (int)(30 * SampFreq/1000); // Each bit is 30 ms!!
-					m_VisData  = 0; // Init value
-					m_VisCnt   = 8; // Start counting down the 8 bits, (after 30ms).
+				if( --_iSyncTime == 0 ){
+					_oSyncState   = StateVisDecode;
+					_iSyncTime    = (int)(30 * SampFreq/1000); // Each bit is 30 ms!!
+					_iVisData     = 0; // Init value
+					_iVisCnt      = 8; // Start counting down the 8 bits, (after 30ms).
+					_tvNextMode   = null; // just to be sure.
+					_fVisExtended = false;
 				}
 			} else {
-				_SyncState = StateAutoStart;
+				_oSyncState = StateAutoStart;
 			}
 		}
 
 		public void StateVisDecode() {
-			if( --m_SyncTime == 0 ){
+			if( --_iSyncTime <= 0 ) {
 				if( ((d11 < d19) && (d13 < d19)) || (Math.Abs(d11-d13) < m_SLvlHalf) ) {
 					// Start over? this is happening at the end of ve5kc test files.
-					_SyncState = StateAutoStart; 
+					_oSyncState = StateAutoStart; 
 				} else {
-					m_SyncTime = (int)(30 * SampFreq/1000 ); // Get next bit.
-					m_VisData >>= 1; // we shift right to make room for next.
+					_iSyncTime = (int)(30 * SampFreq/1000 ); // Get next bit.
+					_iVisData >>= 1; // we shift right to make room for next.
 					if( d11 > d13 ) 
-						m_VisData |= 0x0080; // Set the 8th bit to 1.(else it's 0)
-					m_VisCnt--;
-					if( m_VisCnt == 0 ){
+						_iVisData |= 0x0080; // Set the 8th bit to 1.(else it's 0)
+					if( --_iVisCnt == 0 ){
 						// Note: we've picked up the last bit to determine the VIS, but we need
 						//       to walk over the 30ms STOP bit.
-						if( _SyncState == StateVisDecode ) {
-							_SyncState = StateStopBit;
-
-							if( ModeDictionary.TryGetValue((byte)m_VisData, out SSTVMode tvModeFound ) ) {
-								m_NextMode = tvModeFound.LegacyMode;
-							} else {
-								if( m_VisData == 0x23 ) {      // MM 拡張 VIS : Expanded (16bit) VIS!!
-								//	m_SyncMode = 9;
-								//	m_VisData  = 0;
-								//	m_VisCnt   = 8;
-								//} else {
-									_SyncState = StateAutoStart;
+						_oSyncState = StateStopBit;
+						if( _fVisExtended == false ) { // change to a bit, extend or not.
+							if( !ModeDictionary.TryGetValue((byte)_iVisData, out _tvNextMode ) ) {
+								if( _iVisData == 0x23 ) {      // MM 拡張 VIS : Expanded (16bit) VIS!!
+									_fVisExtended = true;
+									_iVisData     = 0;
+									_iVisCnt      = 8;
+									_oSyncState   = StateVisDecode;
+								} else {
+									_oSyncState = StateAutoStart;
 								}
 							}
-						} else {          // 拡張 VIS : Vis Expansion not supported.
-							_SyncState = StateAutoStart;
+						} else {          
+							// 拡張 VIS : Vis Expansion. This is all the narrow mode stuff
+							//           we don't support anyway.
+							//if( ModeDictionary.TryGetValue((byte)_iVisData, out SSTVMode tvModeFound ) ) {
+							//	_tvNextMode = tvModeFound.LegacyMode;
+							//} else {
+								_oSyncState = StateAutoStart;
+							//}
 						}
 					}
 				}
@@ -1731,15 +1733,13 @@ namespace Play.Sound {
 			if( !Synced ){
 				m_pll.Do(ad);
 			}
-			if( --m_SyncTime == 0 ){
+			if( --_iSyncTime == 0 ){
 				if( (d12 > d19) && (d12 > m_SLvl) ){
-					SSTVMode tvMode = GetSSTVMode( m_NextMode );
-					if( tvMode != null ) {
-						Start( tvMode );
+					if( _tvNextMode != null ) {
+						Start( _tvNextMode );
 					}
-				} else {
-					_SyncState = StateAutoStart;
 				}
+				_oSyncState = StateAutoStart; // Start() also puts in back to StateAutoStart.
 			}
 		}
 
@@ -1747,8 +1747,8 @@ namespace Play.Sound {
 		/// Make sure you set the SyncTime before moving to this state.
 		/// </summary>
 		void StateWaitReset() {
-			if( --m_SyncTime <= 0 ){
-				_SyncState = StateAutoStart;
+			if( --_iSyncTime <= 0 ){
+				_oSyncState = StateAutoStart;
 			}
 		}
 
@@ -1821,7 +1821,7 @@ namespace Play.Sound {
 				d13 = m_iir13.Do(d);
 				d13 = m_lpf13.Do( Math.Abs( d13 ));
 
-				_SyncState();
+				_oSyncState();
 			}
 			if( Synced ) {
 				double freq;
