@@ -152,4 +152,11 @@ namespace Play.Sound {
 		uint		  Busy { get; }
 		int           DeviceID { get; }
 	}
+	public interface IFrequencyConverter {
+		double Do( double s );
+		double DoWarmUp( double s ) { return 0; } // only needed by the pll filter.
+		void   Clear();
+		void   SetWidth( FrequencyLookup look );
+		double OffsetCorrect( double dblAdjustedFrequency );
+	}
 } // End namespace
