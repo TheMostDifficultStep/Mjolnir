@@ -20,6 +20,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Runtime.Intrinsics.Arm;
 
 namespace Play.Sound {
 	/// <summary>
@@ -194,7 +195,7 @@ namespace Play.Sound {
 		}
 	}
 
-	public class CHILL
+	public class CHILL : IFrequencyConverter 
 	{
 		public static int HILLTAP = 48;
 
@@ -208,10 +209,16 @@ namespace Play.Sound {
 		int		  m_df;
 		int		  m_tap;
 		readonly CIIR m_iir = new CIIR();
-
+		public void Clear() { }
 		double SampFreq { get; }
 		double SampBase { get; }
 		double ToneOffs { get; }
+		public double OffsetCorrect( double dblSampFreq ) {
+			double dblHill  = m_htap / 4.0;
+            double dblMagic = dblHill* dblSampFreq / 1000;
+
+			return dblMagic + 10;
+		}
 
 		public CHILL(double dbSampFreq, double dbSampBase, double dbToneOffset, FrequencyLookup rgFreqTable )
 		{
@@ -343,7 +350,7 @@ namespace Play.Sound {
 		}
 	}
 
-	class CFQC {
+	class CFQC : IFrequencyConverter {
 		protected static double ZEROFQ	= (-1900.0/400.0);
 
 		int     m_Count;
@@ -376,6 +383,7 @@ namespace Play.Sound {
 
 		double SampFreq { get; }
 		double ToneOffs { get; }
+		public double OffsetCorrect( double dblAdjustedFrequency ) { return 0; }
 
 		public CFQC( double dbSampFreq, double dbToneOffs, FrequencyLookup rgFreqTable )
 		{
@@ -525,8 +533,7 @@ namespace Play.Sound {
 		Sync
 	}
 
-	struct CLVL
-	{
+	struct CLVL	{
 		double m_PeakMax;
 		double m_PeakAGC;
 		double m_Peak;
@@ -1206,11 +1213,15 @@ namespace Play.Sound {
 		public readonly FreqDetect FilterType = FreqDetect.Hilbert; // Hilbert, PLL, FQC; // BUG: This s/b parameter.
 
 		// These three should inherit from a common interface.
-		readonly CPLL	  m_pll;
-		readonly CFQC     m_fqc;
-		readonly CHILL    m_hill;
+		//readonly CPLL	  m_pll;
+		//readonly CFQC     m_fqc;
+		//readonly CHILL    m_hill;
+		// And here it is!!
+		readonly IFrequencyConverter _oConverter;
 
-		public int HilbertTaps => m_hill.m_htap;
+		public double OffsetCorrect( double dblAdjFreq ) {
+			return _oConverter.OffsetCorrect( dblAdjFreq );
+		}
 
 		public bool   Synced { get; protected set; }
 		Action        _oSyncState;
@@ -1286,14 +1297,30 @@ namespace Play.Sound {
 			m_B12 = new short[iBufSize];
 
 			_rgFreqTable = new LookupNormal( Sys.m_bCQ100 );
-			m_fqc  = new CFQC ( SampFreq, dbToneOffset, _rgFreqTable ); 
-			m_hill = new CHILL( SampFreq, SampBase, dbToneOffset, _rgFreqTable );
 
-			m_pll  = new CPLL( SampFreq, dbToneOffset, _rgFreqTable );
-			m_pll.SetVcoGain ( 1.0 );
-			m_pll.SetFreeFreq( _rgFreqTable.LOW, _rgFreqTable.HIGH );
-			m_pll.MakeLoopLPF( iLoopOrder:1, iLoopFreq:_rgFreqTable.LOW );
-			m_pll.MakeOutLPF ( iLoopOrder:3, iLoopFreq: 900 ); // probably should be 800.
+			CFQC  fqc  = new CFQC ( SampFreq, dbToneOffset, _rgFreqTable ); 
+			CHILL hill = new CHILL( SampFreq, SampBase, dbToneOffset, _rgFreqTable );
+
+			CPLL pll  = new CPLL( SampFreq, dbToneOffset, _rgFreqTable );
+			pll.SetVcoGain ( 1.0 );
+			pll.SetFreeFreq( _rgFreqTable.LOW, _rgFreqTable.HIGH );
+			pll.MakeLoopLPF( iLoopOrder:1, iLoopFreq:_rgFreqTable.LOW );
+			pll.MakeOutLPF ( iLoopOrder:3, iLoopFreq: 900 ); // probably should be 800.
+
+			// TODO: Should be an input parameter. But leave it for now.
+			switch( FilterType ) { 
+				case FreqDetect.FQC:
+					_oConverter = fqc;
+					break;
+				case FreqDetect.PLL:
+					_oConverter = pll;
+					break;
+				case FreqDetect.Hilbert:
+					_oConverter = hill;
+					break;
+				default:
+					throw new InvalidProgramException();
+			}
 
 			Array.Clear( HBPF,  0, HBPF .Length );
 			Array.Clear( HBPFS, 0, HBPFS.Length );
@@ -1419,12 +1446,16 @@ namespace Play.Sound {
 
 			// If PrevMode is non null, the System/user is trying to guess the image mode.
 			// So keep the buffer so we can re-render from the beginning.
+			// TODO: You know, it looks like you need to preselect if you are in
+			//       narrow mode, so you'll pickup the right VIS and the bandbass will
+			//       be in the right mode.
 			if( ePrevMode == null ) {
 				SetBandWidth( false ); // SSTVSET.IsNarrowMode( tvMode.Family )
 				_AFC.InitAFC( oMode.Family, SampFreq, _rgFreqTable );
 				InitTone(0);
 
-				m_fqc  .Clear();
+				_oConverter.Clear();
+
 				//m_sint1.Reset( false );
 				m_Skip     = 0;
 				m_wBase    = 0;
@@ -1451,7 +1482,8 @@ namespace Play.Sound {
 					InitTone(0);
 				}
 			}
-			m_fqc  .Clear();
+			_oConverter.Clear();
+
 			//m_sint1.Reset( false );
 			//m_sint2.Reset();
 			//m_sint3.Reset();
@@ -1626,9 +1658,10 @@ namespace Play.Sound {
 			// Go ahead and make the changes.
 			_rgFreqTable = fNarrow ? new LookupNarrow(Sys.m_bCQ100) : new LookupNormal(Sys.m_bCQ100);
 
-			m_hill.SetWidth( _rgFreqTable );
-    		m_fqc .SetWidth( _rgFreqTable );
-			m_pll .SetWidth( _rgFreqTable );
+			_oConverter.SetWidth( _rgFreqTable );
+			//m_hill.SetWidth( _rgFreqTable );
+   // 		m_fqc .SetWidth( _rgFreqTable );
+			//m_pll .SetWidth( _rgFreqTable );
 		}
 
 		/// <summary>
@@ -1731,7 +1764,7 @@ namespace Play.Sound {
 
 		void StateStopBit() {
 			if( !Synced ){
-				m_pll.Do(ad);
+				_oConverter.DoWarmUp(ad); // This is for the pll filter.
 			}
 			if( --_iSyncTime == 0 ){
 				if( (d12 > d19) && (d12 > m_SLvl) ){
@@ -1774,7 +1807,7 @@ namespace Play.Sound {
 				}
 			}
 			m_Rcptlvl.Do(d);
-			double od = d;                 // Original value of d;
+			double od = d;          // Original value of d;
 			ad = m_Rcptlvl.AGC(d);  // Agc value of d;
 		    m_Rcptlvl.Fix(); // This was in TMmsstv::DrawLvl, no analog to that here yet...
 
@@ -1825,28 +1858,33 @@ namespace Play.Sound {
 			}
 			if( Synced ) {
 				double freq;
-				switch(FilterType){
-					case FreqDetect.PLL:		// PLL
-						freq = m_pll.Do(od);
-						if( m_afc && (m_Rcptlvl.m_CurMax > 16) )
-							if( _AFC.SyncFreq(m_fqc.Do(od)) )
-								InitTone( _AFC.Tone ); // Look! PLL needs the FQC!!
-						break;
-					case FreqDetect.FQC:		// Zero-crossing
-						freq = m_fqc.Do(od);
-						if( m_afc && (m_Rcptlvl.m_CurMax > 16) )
-							if( _AFC.SyncFreq(freq) )
-								InitTone( _AFC.Tone );
-						break;
-					case FreqDetect.Hilbert:	// Hilbert
-						freq = m_hill.Do(od);
-						if( m_afc && (m_Rcptlvl.m_CurMax > 16) )
-							if( _AFC.SyncFreq(freq) )
-								InitTone( _AFC.Tone );
-						break;
-					default:
-						throw new NotImplementedException( "Unrecognized Frequency Detector" );
-				}
+				freq = _oConverter.Do(od);
+				if( m_afc && ( m_Rcptlvl.m_CurMax > 16 ) )
+					if( _AFC.SyncFreq(freq) )
+						InitTone(_AFC.Tone);
+
+				//switch(FilterType){
+				//	case FreqDetect.PLL:		// PLL
+				//		freq = m_pll.Do(od);
+				//		if( m_afc && (m_Rcptlvl.m_CurMax > 16) )
+				//			if( _AFC.SyncFreq(m_fqc.Do(od)) )
+				//				InitTone( _AFC.Tone ); // Look! PLL needs the FQC!!
+				//		break;
+				//	case FreqDetect.FQC:		// Zero-crossing
+				//		freq = m_fqc.Do(od);
+				//		if( m_afc && (m_Rcptlvl.m_CurMax > 16) )
+				//			if( _AFC.SyncFreq(freq) )
+				//				InitTone( _AFC.Tone );
+				//		break;
+				//	case FreqDetect.Hilbert:	// Hilbert
+				//		freq = m_hill.Do(od);
+				//		if( m_afc && (m_Rcptlvl.m_CurMax > 16) )
+				//			if( _AFC.SyncFreq(freq) )
+				//				InitTone( _AFC.Tone );
+				//		break;
+				//	default:
+				//		throw new NotImplementedException( "Unrecognized Frequency Detector" );
+				//}
 				if( m_afc ) 
 					freq += _AFC.m_AFCDiff;
 				if( m_Skip != 0 ) {
@@ -1868,19 +1906,7 @@ namespace Play.Sound {
 				// This is used by the TOptionDlg::TimerTimer code for test.
 				double dblCurSig; // I removed the member variable since it was not being used elsewhere.
 
-				switch(FilterType){
-					case FreqDetect.PLL:
-						dblCurSig = _AFC.Avg(m_pll.Do( od ));
-						break;
-					case FreqDetect.FQC:
-						dblCurSig = _AFC.Avg(m_fqc.Do( od ));
-						break;
-					case FreqDetect.Hilbert:
-						dblCurSig = _AFC.Avg(m_hill.Do( od ));
-						break;
-					default:
-						throw new NotImplementedException( "Unrecognized Frequency Detector" );
-				}
+				dblCurSig = _AFC.Avg(_oConverter.Do( od ));
 			}
 		}
 

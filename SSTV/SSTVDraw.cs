@@ -582,12 +582,8 @@ namespace Play.SSTV {
 
 							int n = oSlant.CorrectSlant();
 
-                            if( _dp.FilterType == FreqDetect.Hilbert ) {
-								double dblHill  = _dp.HilbertTaps / 4.0;
-                                double dblMagic = dblHill* oAdjust.SampFreq / 1000;
-								double dblExtra = 10; // Ah! This might be due to the ALC at the orig freq.
-								n -= (int)( dblMagic + dblExtra );
-							}
+							// BUG: A little bit of hackery.
+							n -= (int)_dp.OffsetCorrect( oAdjust.SampFreq );
 
                             _dblIntercept = n;
 							_dblSlope     = oAdjust.TW;

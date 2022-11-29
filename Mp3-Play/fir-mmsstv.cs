@@ -17,6 +17,13 @@
 // <http://www.gnu.org/licenses/>.
 //-----------------------------------------------------------------------------------------------------------------------------------------------
 namespace Play.Sound {
+	public interface IFrequencyConverter {
+		double Do( double s );
+		double DoWarmUp( double s ) { return 0; } // only needed by the pll filter.
+		void   Clear();
+		void   SetWidth( FrequencyLookup look );
+		double OffsetCorrect( double dblAdjustedFrequency );
+	}
 	public enum FirFilt {
 		ffLPF,
 		ffHPF,
@@ -577,7 +584,7 @@ namespace Play.Sound {
 	/// <remarks>
 	/// TODO: This can probably be moved to the SSTV-Rx.cs file. Look at that later.
 	/// </remarks>
-	class CPLL {
+	class CPLL : IFrequencyConverter {
 		CIIR	loopLPF = new CIIR();
 		CIIR	outLPF  = new CIIR();
 
@@ -606,6 +613,9 @@ namespace Play.Sound {
 		public double GetErr(){return m_err*32768;}	// Phase Det
 		public double GetOut(){return m_out*32768;}	// Phase Det
 		public double GetVco(){return m_vcoout;}
+		public void   Clear() { }
+		public double OffsetCorrect( double dblAdjustedFrequency ) { return 0; }
+		public double DoWarmUp( double s ) { return Do( s ); }
 
 		/// <summary>
 		/// If Sample frequency or ToneOffset changes we'll need to re-create this object

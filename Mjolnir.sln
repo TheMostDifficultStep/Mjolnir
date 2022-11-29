@@ -41,7 +41,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Forms", "Forms\Forms.csproj
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SSTV", "SSTV\SSTV.csproj", "{B3AADF59-1138-4197-8212-B179AAA0C9B0}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Monitor", "Monitor\Monitor.csproj", "{6DE25E4C-CC4E-4E0F-A979-946EAD1302B3}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Monitor", "Monitor\Monitor.csproj", "{6DE25E4C-CC4E-4E0F-A979-946EAD1302B3}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -180,6 +180,7 @@ Global
 		{D7F74723-500F-4369-AD42-9DDD0AF45D8C}.Debug|x86.ActiveCfg = Debug|Win32
 		{D7F74723-500F-4369-AD42-9DDD0AF45D8C}.Debug|x86.Build.0 = Debug|Win32
 		{D7F74723-500F-4369-AD42-9DDD0AF45D8C}.Release|Any CPU.ActiveCfg = Release|Win32
+		{D7F74723-500F-4369-AD42-9DDD0AF45D8C}.Release|Any CPU.Build.0 = Release|Win32
 		{D7F74723-500F-4369-AD42-9DDD0AF45D8C}.Release|x64.ActiveCfg = Release|x64
 		{D7F74723-500F-4369-AD42-9DDD0AF45D8C}.Release|x64.Build.0 = Release|x64
 		{D7F74723-500F-4369-AD42-9DDD0AF45D8C}.Release|x86.ActiveCfg = Release|Win32
