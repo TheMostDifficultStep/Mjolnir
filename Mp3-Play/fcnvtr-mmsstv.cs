@@ -519,3 +519,4 @@ namespace Play.Sound {
 			_pll.SetWidth( look );
 		}
 	}
+}

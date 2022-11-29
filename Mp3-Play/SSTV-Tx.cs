@@ -719,8 +719,8 @@ namespace Play.Sound {
         public static IEnumerator<SSTVMode> EnumAllModes() {
             List<SSTVModeBW> rgModes = new();
 
- 	        rgModes.Add( new SSTVModeBW( 0x82, " 8", 58.89709, new SKSizeI( 160, 120 ), AllModes.smRM8  ) ); 
  	        rgModes.Add( new SSTVModeBW( 0x86, "12",     92.0, new SKSizeI( 160, 120 ), AllModes.smRM12 ) ); 
+ 	        rgModes.Add( new SSTVModeBW( 0x82, " 8", 58.89709, new SKSizeI( 160, 120 ), AllModes.smRM8  ) ); 
 
             foreach( SSTVModeBW oMode in rgModes ) {
                 oMode.Initialize();

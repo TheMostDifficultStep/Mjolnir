@@ -833,14 +833,14 @@ namespace Play.Sound {
 		IEnumerable<SSTVMode> 
 	{
 		protected AFCStuff _AFC;
-		public SYSSET   Sys     { get; protected set; }
-		public SSTVMode Mode    { get; protected set; } 
+		public SYSSET   Sys { get; protected set; }
+		public SSTVMode Mode{ get; protected set; } 
 
 		protected Dictionary<byte, SSTVMode > ModeDictionary { get; } = new Dictionary<byte, SSTVMode>();
 
 		public Action< SSTVMode, SSTVMode, int > Send_NextMode; // This is just a single event, with no indexer.
 
-		public readonly static int TAPMAX = 512; // BUG: Move to Fir or Fir2 later.
+		public const int TAPMAX = 512; // BUG: Move to Fir or Fir2 later.
 
 		readonly double[] HBPF  = new double[TAPMAX+1];
 		readonly double[] HBPFS = new double[TAPMAX+1];
@@ -877,11 +877,6 @@ namespace Play.Sound {
 
 		public readonly FreqDetect FilterType = FreqDetect.Hilbert; // Hilbert, PLL, FQC; // BUG: This s/b parameter.
 
-		// These three should inherit from a common interface.
-		//readonly CPLL	  m_pll;
-		//readonly CFQC     m_fqc;
-		//readonly CHILL    m_hill;
-		// And here it is!!
 		readonly IFrequencyConverter _oConverter;
 
 		public double OffsetCorrect( double dblAdjFreq ) {
@@ -927,7 +922,7 @@ namespace Play.Sound {
 		// This is a global in the original code, but it's pretty clear
 		// that we can't handle it changing mid run. So now it's a readonly
 		// member variable.
-		readonly double   m_dblToneOffset;
+		readonly double   _dblToneOffset;
 		readonly double[] _rgSenseLevels = { 2400, 3500, 4800, 6000 };
 
 		readonly SYNCINT m_sint1;
@@ -935,7 +930,7 @@ namespace Play.Sound {
 		public SSTVDEM( SYSSET p_sys, double dblSampFreq, double dblSampBase = -1, double dbToneOffset=0 ) {
 			Sys             = p_sys ?? throw new ArgumentNullException( nameof( p_sys ) );
 
-			m_dblToneOffset = dbToneOffset;
+			_dblToneOffset  = dbToneOffset;
 			SampFreq        = dblSampFreq;
 
 			if( dblSampBase == -1 )
@@ -1138,9 +1133,9 @@ namespace Play.Sound {
 		public virtual void Reset()	{
 			if( _AFC.m_AFCFQ != 0 ){
 				if( m_fskdecode ){
-					m_iir11.SetFreq(1080 + m_dblToneOffset, SampFreq,  80.0);
-					m_iir12.SetFreq(1200 + m_dblToneOffset, SampFreq, 100.0);
-					m_iir13.SetFreq(1320 + m_dblToneOffset, SampFreq,  80.0);
+					m_iir11.SetFreq(1080 + _dblToneOffset, SampFreq,  80.0);
+					m_iir12.SetFreq(1200 + _dblToneOffset, SampFreq, 100.0);
+					m_iir13.SetFreq(1320 + _dblToneOffset, SampFreq,  80.0);
 				} else {
 					InitTone(0);
 				}
@@ -1177,27 +1172,27 @@ namespace Play.Sound {
 		/// <param name="bpf"></param>
 		protected void CalcBPF(double[] H1, double[] H2, double[] H3, ref int bpftap, BandPass bpf)
 		{
-			int lfq  = (int)((m_SyncRestart ? 1100 : 1200) + m_dblToneOffset );
-			int lfq2 = (int)(400 + m_dblToneOffset );
+			int lfq  = (int)((m_SyncRestart ? 1100 : 1200) + _dblToneOffset );
+			int lfq2 = (int)(400 + _dblToneOffset );
 			if( lfq2 < 50 ) 
 				lfq2 = 50;
 			switch(bpf){
 				case BandPass.Wide:
 					bpftap = (int)(24 * SampFreq / 11025.0 );
-					CFIR2.MakeFilter(H1, bpftap, FirFilt.ffBPF, SampFreq,  lfq, 2600 + m_dblToneOffset, 20, 1.0);
-					CFIR2.MakeFilter(H2, bpftap, FirFilt.ffBPF, SampFreq, lfq2, 2500 + m_dblToneOffset, 20, 1.0);
+					CFIR2.MakeFilter(H1, bpftap, FirFilt.ffBPF, SampFreq,  lfq, 2600 + _dblToneOffset, 20, 1.0);
+					CFIR2.MakeFilter(H2, bpftap, FirFilt.ffBPF, SampFreq, lfq2, 2500 + _dblToneOffset, 20, 1.0);
 		//			CFIR2.MakeFilter(H3, bpftap, ffBPF, SampFreq,  NARROW_BPFLOW-200, NARROW_BPFHIGH, 20, 1.0);
 					break;
 				case BandPass.Narrow:
 					bpftap = (int)(64 * SampFreq / 11025.0 );
-					CFIR2.MakeFilter(H1, bpftap, FirFilt.ffBPF, SampFreq,  lfq, 2500 + m_dblToneOffset, 40, 1.0);
-					CFIR2.MakeFilter(H2, bpftap, FirFilt.ffBPF, SampFreq, lfq2, 2500 + m_dblToneOffset, 20, 1.0);
+					CFIR2.MakeFilter(H1, bpftap, FirFilt.ffBPF, SampFreq,  lfq, 2500 + _dblToneOffset, 40, 1.0);
+					CFIR2.MakeFilter(H2, bpftap, FirFilt.ffBPF, SampFreq, lfq2, 2500 + _dblToneOffset, 20, 1.0);
 		//			CFIR2.MakeFilter(H3, bpftap, ffBPF, SampFreq, NARROW_BPFLOW-100, NARROW_BPFHIGH, 40, 1.0);
 					break;
 				case BandPass.VeryNarrow: 
 					bpftap = (int)(96 * SampFreq / 11025.0 );
-					CFIR2.MakeFilter(H1, bpftap, FirFilt.ffBPF, SampFreq,  lfq, 2400 + m_dblToneOffset, 50, 1.0);
-					CFIR2.MakeFilter(H2, bpftap, FirFilt.ffBPF, SampFreq, lfq2, 2500 + m_dblToneOffset, 20, 1.0);
+					CFIR2.MakeFilter(H1, bpftap, FirFilt.ffBPF, SampFreq,  lfq, 2400 + _dblToneOffset, 50, 1.0);
+					CFIR2.MakeFilter(H2, bpftap, FirFilt.ffBPF, SampFreq, lfq2, 2500 + _dblToneOffset, 20, 1.0);
 		//			CFIR2.MakeFilter(H3, bpftap, ffBPF, SampFreq,  NARROW_BPFLOW, NARROW_BPFHIGH, 50, 1.0);
 					break;
 				default:
@@ -1236,8 +1231,8 @@ namespace Play.Sound {
 					low = 1600; high = 2500;
         			break;
 			}
-			low  += (int)m_dblToneOffset;
-			high += (int)m_dblToneOffset;
+			low  += (int)_dblToneOffset;
+			high += (int)_dblToneOffset;
 
 			switch(bpf){
 				case BandPass.Wide:
@@ -1291,16 +1286,16 @@ namespace Play.Sound {
 			if( f == 0 ) 
 				f = 1200;
 
-			m_iir12.SetFreq(f + m_dblToneOffset, SampFreq, 100.0);
+			m_iir12.SetFreq(f + _dblToneOffset, SampFreq, 100.0);
 			m_TickFreq = f;
 		}
 
 		void InitTone(int dfq) {
 			if( _AFC.SetAFCFQ( dfq ) ) {
-				m_iir11.SetFreq(1080+dfq + m_dblToneOffset, SampFreq, 80.0);
-				m_iir12.SetFreq(1200+dfq + m_dblToneOffset, SampFreq, 100.0);
-				m_iir13.SetFreq(1320+dfq + m_dblToneOffset, SampFreq, 80.0);
-				m_iir19.SetFreq(1900+dfq + m_dblToneOffset, SampFreq, 100.0);
+				m_iir11.SetFreq(1080+dfq + _dblToneOffset, SampFreq, 80.0);
+				m_iir12.SetFreq(1200+dfq + _dblToneOffset, SampFreq, 100.0);
+				m_iir13.SetFreq(1320+dfq + _dblToneOffset, SampFreq, 80.0);
+				m_iir19.SetFreq(1900+dfq + _dblToneOffset, SampFreq, 100.0);
 			//  m_iirfsk.SetFreq(FSKSPACE+dfq + m_dblToneOffset, SampFreq, 100.0);
 			}
 		}
