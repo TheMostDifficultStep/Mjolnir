@@ -956,33 +956,30 @@ namespace Play.Sound {
 
 			m_ad  = 0; // For Low pass filter.
 
-			// SSTVDEMBUFMAX is (24) lines. 
 			int iBufSize = (int)(dblMaxBufferInMs * SampFreq / 1000.0 );
 			m_Buf = new short[iBufSize];
 			m_B12 = new short[iBufSize];
 
 			_rgFreqTable = new LookupNormal( Sys.m_bCQ100 );
 
-			CHILL hill = new CHILL( SampFreq, SampBase, dbToneOffset, _rgFreqTable );
-			CFQC  fqc  = new CFQC ( SampFreq, dbToneOffset, _rgFreqTable ); 
-			CPLL  pll  = new CPLL ( SampFreq, dbToneOffset, _rgFreqTable );
-			pll.SetVcoGain ( 1.0 );
-			pll.SetFreeFreq( _rgFreqTable.LOW, _rgFreqTable.HIGH );
-			pll.MakeLoopLPF( iLoopOrder:1, iLoopFreq:_rgFreqTable.LOW );
-			pll.MakeOutLPF ( iLoopOrder:3, iLoopFreq: 900 ); // probably should be 800.
-
-			// TODO: Should be an input parameter. But leave it for now.
+			// TODO: FilterType Should be an input parameter. But leave it for now.
 			switch( FilterType ) { 
 				case FreqDetect.FQC:
-					_oConverter = fqc;
+					_oConverter = new CFQC( SampFreq, dbToneOffset, _rgFreqTable );
 					break;
-				// This one won't work until make a combined PLL/FQC converter.
-				// B/c PLL called the fqc at certain points in the old code.
-				case FreqDetect.PLL:
-					_oConverter = pll;
-					break;
+				case FreqDetect.PLL: {
+					CFQC fqc = new CFQC( SampFreq, dbToneOffset, _rgFreqTable ); 
+					CPLL pll = new CPLL( SampFreq, dbToneOffset, _rgFreqTable );
+
+					pll.SetVcoGain ( 1.0 );
+					pll.SetFreeFreq( _rgFreqTable.LOW, _rgFreqTable.HIGH );
+					pll.MakeLoopLPF( iLoopOrder:1, iLoopFreq: _rgFreqTable.LOW );
+					pll.MakeOutLPF ( iLoopOrder:3, iLoopFreq: 900 ); // probably should be 800.
+
+					_oConverter = new PhaseCombo( pll, fqc );
+					} break;
 				case FreqDetect.Hilbert:
-					_oConverter = hill;
+					_oConverter = new CHILL( SampFreq, SampBase, dbToneOffset, _rgFreqTable );
 					break;
 				default:
 					throw new InvalidProgramException();

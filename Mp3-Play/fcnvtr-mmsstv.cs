@@ -493,4 +493,29 @@ namespace Play.Sound {
 			return outLPF.Do(m_out) * m_outgain;
 		}
 	}
-}
+
+	class PhaseCombo : IFrequencyConverter {
+		CPLL _pll;
+		CFQC _fqc;
+		public PhaseCombo( CPLL pll, CFQC fqc ) {
+			_pll = pll ?? throw new ArgumentNullException( nameof( pll ) );
+			_fqc = fqc ?? throw new ArgumentNullException( nameof( fqc ) );
+		}
+
+		public void Clear() {
+			_fqc.Clear();
+		}
+
+		public double Do(double s) {
+			return _pll.Do( _fqc.Do( s ) );
+		}
+
+		public double OffsetCorrect(double dblAdjustedFrequency) {
+			return 0;
+		}
+
+		public void SetWidth(FrequencyLookup look) {
+			_fqc.SetWidth( look );
+			_pll.SetWidth( look );
+		}
+	}
