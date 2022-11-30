@@ -44,7 +44,7 @@ namespace Play.Sound {
 		int		m_TimeOffsetMin;
 		int		m_LogLink;
 
-		public bool   m_TestDem  { get; protected set; } = false; // used
+	  //public bool   m_TestDem  { get; protected set; } = false; // used
 		public double m_DemOff   { get; } = 0;
 		public double m_DemWhite { get; } = 128.0/16384.0;
 		public double m_DemBlack { get; } = 128.0/16384.0;
@@ -1317,9 +1317,6 @@ namespace Play.Sound {
 			_rgFreqTable = fNarrow ? new LookupNarrow(Sys.m_bCQ100) : new LookupNormal(Sys.m_bCQ100);
 
 			_oConverter.SetWidth( _rgFreqTable );
-			//m_hill.SetWidth( _rgFreqTable );
-   // 		m_fqc .SetWidth( _rgFreqTable );
-			//m_pll .SetWidth( _rgFreqTable );
 		}
 
 		/// <summary>
@@ -1444,9 +1441,7 @@ namespace Play.Sound {
 		}
 
 		/// <summary>
-		/// Either cul the VIS from the signal or the image data. This method is the
-		/// final one to clean up. I've been leaving it as it is b/c of how convoluted
-		/// it is. But I will tackle this eventually.
+		/// Either cul the VIS from the signal or the image data.
 		/// </summary>
 		/// <param name="s">A single sample</param>
 		/// <exception cref="NotImplementedException">If the video decoder is unrecognized.</exception>
@@ -1454,7 +1449,7 @@ namespace Play.Sound {
 			if( (s > 24578.0) || (s < -24578.0) ){
 				m_OverFlow = 1; // The grapher probably clears this.
 			}
-			double d = (s + m_ad) * 0.5;    // LPF
+			double d = (s + m_ad) * 0.5; // LPF
 			m_ad = s;
 			if( m_bpf != BandPass.Undefined ) {
 				if( Synced /*||  (m_SyncMode >= 3) */ ){
@@ -1486,7 +1481,7 @@ namespace Play.Sound {
 			//double dsp;
 			//dsp = m_iirfsk.Do(d);
 			//dsp = m_lpffsk.Do( Math.Aps( dsp ));
-			// DecodeFSK( (int)d19, (int)dsp );
+			//DecodeFSK( (int)d19, (int)dsp );
 
 			if( m_ScopeFlag )
 				m_Scope[0].WriteData( dHSync );
@@ -1499,7 +1494,6 @@ namespace Play.Sound {
 			}
 
 			if( !Synced || m_SyncRestart ) {
-				//SSTVMode tvMode;
 				//m_sint1.Inc();
 				//m_sint2.SyncInc();
 				//m_sint3.SyncInc();
@@ -1513,38 +1507,23 @@ namespace Play.Sound {
 				d13 = m_lpf13.Do( Math.Abs( d13 ));
 
 				_oSyncState();
+
+			//  Comment this out if you ever want to run this test. Disable SyncRestart
+			//	if( Sys.m_TestDem ) {
+			//		// This is used by the TOptionDlg::TimerTimer code for test.
+			//		double dblCurSig = _AFC.Avg(_oConverter.Do( od ));
+			//	}
 			}
 			if( Synced ) {
-				double freq;
-				freq = _oConverter.Do(od);
-				if( m_afc && ( m_Rcptlvl.m_CurMax > 16 ) )
-					if( _AFC.SyncFreq(freq) )
-						InitTone(_AFC.Tone);
-
-				//switch(FilterType){
-				//	case FreqDetect.PLL:		// PLL
-				//		freq = m_pll.Do(od);
-				//		if( m_afc && (m_Rcptlvl.m_CurMax > 16) )
-				//			if( _AFC.SyncFreq(m_fqc.Do(od)) )
-				//				InitTone( _AFC.Tone ); // Look! PLL needs the FQC!!
-				//		break;
-				//	case FreqDetect.FQC:		// Zero-crossing
-				//		freq = m_fqc.Do(od);
-				//		if( m_afc && (m_Rcptlvl.m_CurMax > 16) )
-				//			if( _AFC.SyncFreq(freq) )
-				//				InitTone( _AFC.Tone );
-				//		break;
-				//	case FreqDetect.Hilbert:	// Hilbert
-				//		freq = m_hill.Do(od);
-				//		if( m_afc && (m_Rcptlvl.m_CurMax > 16) )
-				//			if( _AFC.SyncFreq(freq) )
-				//				InitTone( _AFC.Tone );
-				//		break;
-				//	default:
-				//		throw new NotImplementedException( "Unrecognized Frequency Detector" );
-				//}
-				if( m_afc ) 
+				double freq = _oConverter.Do(od);
+				if( m_afc ) {
+					if( m_Rcptlvl.m_CurMax > 16 ) {
+						if( _AFC.SyncFreq(freq) )
+							InitTone(_AFC.Tone);
+					}
 					freq += _AFC.m_AFCDiff;
+				}
+
 				if( m_Skip != 0 ) {
 					if( m_Skip > 0 ){ // Ignore this data
 						m_Skip--;
@@ -1559,12 +1538,6 @@ namespace Play.Sound {
 					}
 					SignalSet( -freq, dHSync );
 				}
-			}
-			else if( Sys.m_TestDem ){
-				// This is used by the TOptionDlg::TimerTimer code for test.
-				double dblCurSig; // I removed the member variable since it was not being used elsewhere.
-
-				dblCurSig = _AFC.Avg(_oConverter.Do( od ));
 			}
 		}
 
