@@ -40,6 +40,7 @@ namespace Play.SSTV {
             Rx_FamilySelect,
             Rx_ModeSelect,
             Rx_Diagnostic,
+            Rx_HistoryIcons,
 
             Tx_Progress,
             Tx_SrcDir,
@@ -130,6 +131,7 @@ namespace Play.SSTV {
             LabelSet( Names.Rx_FamilySelect, "Rx Family" );
             LabelSet( Names.Rx_ModeSelect,   "Rx Mode" );
             LabelSet( Names.Rx_Diagnostic,   "Diagnostics" );
+            LabelSet( Names.Rx_HistoryIcons, "History" );
 
             // Initialize these to reasonable values, the user can update and save.
             ValueUpdate( Names.Std_ImgQuality, "80" );

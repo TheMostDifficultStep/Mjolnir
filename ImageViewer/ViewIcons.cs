@@ -159,6 +159,12 @@ namespace Play.ImageViewer {
             Controls.Add(_oScrollBarVirt);            
         }
 
+        /// <seealso cref="ImageViewSingle.GetPreferredSize(Size)"/>
+        public override Size GetPreferredSize(Size proposedSize) {
+            proposedSize.Height = 200;
+            return proposedSize;
+        }
+
 		/// <remarks>Sadly, if we don't get disposed properly we won't dispose at all. Check out the new dispose pattern.
         /// Although, we're pretty good about disposing views from the main window.</remarks>
         protected override void Dispose(bool disposing) {

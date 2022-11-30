@@ -1278,7 +1278,7 @@ namespace Play.Sound {
 		}
 
 		void Idle(double d)	{
-			if( !Sys.m_TestDem ) 
+			//if( !Sys.m_TestDem ) 
 				m_Rcptlvl.Do(d);
 		}
 
