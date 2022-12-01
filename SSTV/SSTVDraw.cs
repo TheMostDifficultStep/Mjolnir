@@ -199,7 +199,7 @@ namespace Play.SSTV {
 		/// <remarks>
 		/// Techically we dont need all of the demodulator but only access to the signal
 		/// and sync buffer and some signal levels. I'll see about that in the future.
-		/// Also note, 8/14/2012: We're sending the D12 and Rx bitmaps in here, we write to them.
+		/// Also note, 8/14/2021: We're sending the D12 and Rx bitmaps in here, we write to them.
 		/// But the documents they live in don't know they've updated and so won't send
 		/// messages to any listening views!! Grrr.. How best to fix this? I'm going to make
 		/// the Raise_ImageUpdated() event public. We raise the SSTVEvents here and the
@@ -212,6 +212,7 @@ namespace Play.SSTV {
 
 			_skD12Canvas = new( _pBitmapD12 );
 
+			// Need to make this variable depending on the processor.
             for( int i = 0; i < 3; ++i ) {
                 _rgBuffers.Add(new ScanBuffers(this));
             }
@@ -326,8 +327,7 @@ namespace Play.SSTV {
 		public double ImageSizeInSamples {
 			get {
 				try {
-					SSTVMode oMode = Mode;
-					if( oMode != null )
+					if( Mode != null )
 						return ScanWidthInSamples * Mode.Resolution.Height / (double)Mode.ScanMultiplier;
 					else
 						return 0;
@@ -654,7 +654,7 @@ namespace Play.SSTV {
                     ProcessScanLine(_rgBuffers[iBufferIndex], dblPosition, iScanline);
                 }));
 
-				if( _rgTasks.Count >= 3 ) {
+				if( _rgTasks.Count >= _rgBuffers.Count ) {
 					Task.WaitAll(_rgTasks.ToArray());
 					_rgTasks.Clear();
 				}

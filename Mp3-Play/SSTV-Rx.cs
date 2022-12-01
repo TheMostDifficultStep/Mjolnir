@@ -846,7 +846,7 @@ namespace Play.Sound {
 		readonly double[] HBPFS = new double[TAPMAX+1];
 		readonly double[] HBPFN = new double[TAPMAX+1];
 
-		double ad;  // agc value of d
+		double _AgcD;  // agc value of d
 		// These two go into the B12 (sync signal) buffer, depending on narrow or normal.
 		double d12; // normal sync & Unused for narrow band.
 		double d19; // narrow sync & VIS pulse for normal bandwidth.
@@ -857,7 +857,7 @@ namespace Play.Sound {
 
 		readonly CFIR2 m_BPF = new CFIR2();
 
-		double   m_ad;
+		double   _LpfS;
 		int      m_OverFlow;
 		BandPass m_bpf = BandPass.Undefined;
 		int      m_bpftap;
@@ -949,7 +949,7 @@ namespace Play.Sound {
 					dblMaxBufferInMs = dblBufferInMs;
 			}
 
-			m_ad  = 0; // For Low pass filter.
+			_LpfS  = 0; // For Low pass filter.
 
 			int iBufSize = (int)(dblMaxBufferInMs * SampFreq / 1000.0 );
 			m_Buf = new short[iBufSize];
@@ -1419,7 +1419,7 @@ namespace Play.Sound {
 
 		void StateStopBit() {
 			if( !Synced ){
-				_oConverter.DoWarmUp(ad); // This is for the pll filter.
+				_oConverter.DoWarmUp(_AgcD); // This is for the pll filter.
 			}
 			if( --_iSyncTime == 0 ){
 				if( (d12 > d19) && (d12 > m_SLvl) ){
@@ -1449,8 +1449,8 @@ namespace Play.Sound {
 			if( (s > 24578.0) || (s < -24578.0) ){
 				m_OverFlow = 1; // The grapher probably clears this.
 			}
-			double d = (s + m_ad) * 0.5; // LPF
-			m_ad = s;
+			double d = (s + _LpfS) * 0.5; // LPF
+			_LpfS = s;
 			if( m_bpf != BandPass.Undefined ) {
 				if( Synced /*||  (m_SyncMode >= 3) */ ){
 					// We don't support narrow band modes.... yet.
@@ -1461,10 +1461,10 @@ namespace Play.Sound {
 			}
 			m_Rcptlvl.Do(d);
 			double od = d;          // Original value of d;
-			ad = m_Rcptlvl.AGC(d);  // Agc value of d;
+			_AgcD = m_Rcptlvl.AGC(d);  // Agc value of d;
 		    m_Rcptlvl.Fix(); // This was in TMmsstv::DrawLvl, no analog to that here yet...
 
-			d = ad * 32;
+			d = _AgcD * 32;
 			if( d >  16384.0 ) 
 				d =  16384.0;
 			if( d < -16384.0 ) 
