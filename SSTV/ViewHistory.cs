@@ -356,6 +356,7 @@ namespace Play.SSTV {
 		protected IPgViewSite _oSiteView;
 		protected DocSSTV     _oDocSSTV;
 
+        protected LayoutStackVertical _oLayout = new();
         public Guid   Catagory => GUID;
         public string Banner   => "MySSTV Rx History";
         public bool   IsDirty  => false;
@@ -367,6 +368,7 @@ namespace Play.SSTV {
         public IPgParent Services  => Parentage.Services;
 
         protected WindowSoloImageNav _wmViewRxHistorySelected;
+        protected ImageViewIcons     _wmViewRxHistoryClxn;
 
         /// <summary>
 	    /// This viewer shows a subset of all SSTV Properties. Those for the Receiver only.
@@ -394,9 +396,9 @@ namespace Play.SSTV {
 				                 (int)SSTVProperties.Names.Rx_Window, 
 							     new ImageViewSingle( new WinSlot( this ), SSTVDocument.DisplayImage )  );
 
-				PropertyInitRow( Layout as SmartTable, 
-								 (int)SSTVProperties.Names.Rx_HistoryIcons, 
-								 new ImageViewIcons( new WinSlot( this ), SSTVDocument.RxHistoryList )  );
+				//PropertyInitRow( Layout as SmartTable, 
+				//				 (int)SSTVProperties.Names.Rx_HistoryIcons, 
+				//				 new ImageViewIcons( new WinSlot( this ), SSTVDocument.RxHistoryList )  );
             }
 
 		    // Use this for debugging if necessary.
@@ -435,9 +437,12 @@ namespace Play.SSTV {
 			_oSiteView = oViewSite ?? throw new ArgumentNullException( nameof( oViewSite ) );
 			_oDocSSTV  = oDocSSTV  ?? throw new ArgumentNullException( nameof( oDocSSTV  ) );
 
-			_wmViewRxHistorySelected     = new( new WinSlot( this ), _oDocSSTV.RxHistoryList );
+			_wmViewRxHistorySelected = new( new WinSlot( this ), _oDocSSTV.RxHistoryList );
 
-			_wmViewRxHistorySelected    .Parent = this;
+			_wmViewRxHistorySelected.Parent = this;
+
+            _wmViewRxHistoryClxn     = new( new WinSlot( this ), _oDocSSTV.RxHistoryList );
+            _wmViewRxHistoryClxn    .Parent = this;
 
 			//_wmViewRxHistorySelected.SetBorderOn();
 
@@ -447,8 +452,11 @@ namespace Play.SSTV {
 		public bool InitNew() {
             if( !_wmViewRxHistorySelected.InitNew() )
                 return false;
+            if( !_wmViewRxHistoryClxn.InitNew() )
+                return false;
 
-            OnSizeChanged( new EventArgs() );
+            _oLayout.Add( new LayoutControl( _wmViewRxHistorySelected, LayoutRect.CSS.Percent, 70 ) );
+            _oLayout.Add( new LayoutControl( _wmViewRxHistoryClxn ,    LayoutRect.CSS.Percent, 30 ) );
 
 			return true;
 		}
@@ -456,7 +464,9 @@ namespace Play.SSTV {
 		protected override void OnSizeChanged(EventArgs e) {
 			base.OnSizeChanged(e);
 
-            _wmViewRxHistorySelected.Bounds = this.ClientRectangle;
+            // _wmViewRxHistorySelected.Bounds = this.ClientRectangle;
+            _oLayout.SetRect( 0, 0, Width, Height );
+            _oLayout.LayoutChildren();
 		}
 
         public object Decorate(IPgViewSite oBaseSite, Guid sGuid) {

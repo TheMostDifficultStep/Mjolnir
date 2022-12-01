@@ -159,6 +159,8 @@ namespace Play.ImageViewer {
             Controls.Add(_oScrollBarVirt);            
         }
 
+        /// <remarks>This is just a bit of hackery to get this control to work
+        /// in my table layout object.</remarks>
         /// <seealso cref="ImageViewSingle.GetPreferredSize(Size)"/>
         public override Size GetPreferredSize(Size proposedSize) {
             proposedSize.Height = 200;
