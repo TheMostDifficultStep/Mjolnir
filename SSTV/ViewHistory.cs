@@ -75,7 +75,7 @@ namespace Play.SSTV {
         /// it takes so much space up in the host class! Also, who knows if it's subclassable
         /// in any manner?
         /// </summary>
-        public class WindowSSTVHistoryOutline :
+        public class WindowChooserOutline :
             Control,
             IPgParent,
             IPgLoad
@@ -98,11 +98,11 @@ namespace Play.SSTV {
 		    protected class WinSlot :
 			    IPgViewSite
 		    {
-			    protected readonly WindowSSTVHistoryOutline _oHost;
+			    protected readonly WindowChooserOutline _oHost;
 
 			    public ChildID ID { get; }
 
-			    public WinSlot( WindowSSTVHistoryOutline oHost ) {
+			    public WinSlot( WindowChooserOutline oHost ) {
 				    _oHost = oHost ?? throw new ArgumentNullException();
 			    }
 
@@ -119,7 +119,7 @@ namespace Play.SSTV {
                 public IPgViewNotify EventChain => _oHost._oSiteView.EventChain;
             }
 
-            public WindowSSTVHistoryOutline( IPgViewSite oViewSite, WindowSSTVChooser wnHistory ) {
+            public WindowChooserOutline( IPgViewSite oViewSite, WindowSSTVChooser wnHistory ) {
                 _oSiteView = oViewSite ?? throw new ArgumentNullException( nameof( oViewSite ) );
                 _wnHistory = wnHistory ?? throw new ArgumentNullException( nameof( wnHistory ) );
 
@@ -223,12 +223,12 @@ namespace Play.SSTV {
         /// <summary>
 	    /// This viewer shows a subset of all SSTV Properties. Those for the Receiver only.
         /// </summary>
-        public class WindowHistoryProperties : 
+        public class WindowChooserProperties : 
             WindowStandardProperties
          {
             public DocSSTV SSTVDocument { get; }
 
-		    public WindowHistoryProperties( IPgViewSite oViewSite, DocSSTV docSSTV ) : base( oViewSite, docSSTV.Properties ) {
+		    public WindowChooserProperties( IPgViewSite oViewSite, DocSSTV docSSTV ) : base( oViewSite, docSSTV.Properties ) {
 			    SSTVDocument = docSSTV ?? throw new ArgumentNullException( nameof( docSSTV ) );
 		    }
 
@@ -301,10 +301,10 @@ namespace Play.SSTV {
         public object Decorate(IPgViewSite oBaseSite, Guid sGuid) {
 			try {
 				if( sGuid.Equals(GlobalDecorations.Properties) ) {
-					return new WindowHistoryProperties( oBaseSite, _oDocSSTV );
+					return new WindowChooserProperties( oBaseSite, _oDocSSTV );
 				}
                 if( sGuid.Equals(GlobalDecorations.Outline ) ) {
-                    return new WindowSSTVHistoryOutline( oBaseSite, this );
+                    return new WindowChooserOutline( oBaseSite, this );
                     //return new WindowSoloImageNav( oBaseSite, _oDocSSTV.RxHistoryList );
                 }
 				return false;
