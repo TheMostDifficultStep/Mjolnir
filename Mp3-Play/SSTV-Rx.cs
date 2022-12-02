@@ -1259,8 +1259,8 @@ namespace Play.Sound {
 		}
 
 		/// <summary>
-		/// This compensates for a mid VIS signal reception to changes between bandpass 
-		/// values. Skip is only called if the user changes settings
+		/// This compensates for a mid image signal reception to changes between 
+		/// bandpass values. Skip is only called if the user changes settings
 		/// while the image is in the middle of VIS decoding.
 		/// </summary>
 		/// <remarks>So originally the code could change this value at any time.
@@ -1279,8 +1279,7 @@ namespace Play.Sound {
 				m_BPF.Create(m_bpftap);
 
 				if( Synced ) {
-					delay = (m_bpftap - delay) / 2;
-					m_Skip = delay;
+					m_Skip = (m_bpftap - delay) / 2;;
 				}
 			}
 		}
@@ -1435,7 +1434,8 @@ namespace Play.Sound {
 						Start( _tvNextMode );
 					}
 				}
-				_oSyncState = StateAutoStart; // Start() also puts in back to StateAutoStart.
+				_oSyncState = StateAutoStart; 
+				// Start() also puts in back to StateAutoStart.
 			}
 		}
 
@@ -1452,7 +1452,8 @@ namespace Play.Sound {
 		/// Either cul the VIS from the signal or the image data.
 		/// </summary>
 		/// <param name="s">A single sample</param>
-		/// <exception cref="NotImplementedException">If the video decoder is unrecognized.</exception>
+		/// <exception cref="NullReferenceException">most likely we get in a problem with
+		/// our finite state automata.</exception>
 		public void Do( in double s) {
 			if( (s > 24578.0) || (s < -24578.0) ){
 				m_OverFlow = 1; // The grapher probably clears this.
@@ -1468,8 +1469,8 @@ namespace Play.Sound {
 				}
 			}
 			m_Rcptlvl.Do(d);
-			double od = d;          // Original value of d;
-			_AgcD = m_Rcptlvl.AGC(d);  // Agc value of d;
+			double od = d;            // Original value of d, for the converter.
+			_AgcD = m_Rcptlvl.AGC(d); // Agc value of d;
 		    m_Rcptlvl.Fix(); // This was in TMmsstv::DrawLvl, no analog to that here yet...
 
 			d = _AgcD * 32;
@@ -1480,7 +1481,6 @@ namespace Play.Sound {
 
 			d12 = m_iir12.Do(d);
 			d12 = m_lpf12.Do( Math.Abs( d12 ) );
-
 			d19 = m_iir19.Do(d);
 			d19 = m_lpf19.Do( Math.Abs( d19 ) );
 
@@ -1491,7 +1491,8 @@ namespace Play.Sound {
 			//dsp = m_lpffsk.Do( Math.Aps( dsp ));
 			//DecodeFSK( (int)d19, (int)dsp );
 
-			if( m_ScopeFlag )
+			// Seems to me, this section belongs in the Synced area.
+			if( m_ScopeFlag ) 
 				m_Scope[0].WriteData( dHSync );
 			if( m_LevelType == LevelDisplay.Sync ) 
 				m_SyncLvl.Do( dHSync );
@@ -1531,21 +1532,38 @@ namespace Play.Sound {
 					}
 					freq += _AFC.m_AFCDiff;
 				}
+				// Skip() was here, scope flag stuff inside.
+				if( m_ScopeFlag ){
+					m_Scope[1].WriteData( freq );
+				}
+				SignalSet( -freq, dHSync );
+			}
 
-				//if( m_Skip != 0 ) {
-				//	if( m_Skip > 0 ){ // Ignore this data
-				//		m_Skip--;
-				//	} else {          // Pad the overshoot.
-				//		for( ; m_Skip != 0; m_Skip++ ){
-				//			SignalSet( -freq, 0 );
-				//		}
-				//	}
-				//} else {
-					if( m_ScopeFlag ){
-						m_Scope[1].WriteData( freq );
+		}
+
+		/// <summary>
+		/// This code used to be after the _AFC portion of code
+		/// in the synced portion of Do(). There's no need for this
+		/// because at present you can't change the bandwidth while 
+		/// the demodulator is operating.
+		/// </summary>
+		/// <param name="freq">converted frequency value.</param>
+		/// <param name="dHSync">horizontal sync from chosen iir filter.</param>
+		/// <see cref="SetBPF"/>
+		void Skip( double freq, double dHSync ) {
+			if( m_Skip != 0 ) {
+				if( m_Skip > 0 ) { // Ignore this data
+					m_Skip--;
+				} else {          // Pad the overshoot.
+					for( ; m_Skip != 0; m_Skip++ ) {
+						SignalSet(-freq, 0);
 					}
-					SignalSet( -freq, dHSync );
-				//}
+				}
+			} else {
+				if( m_ScopeFlag ) {
+					m_Scope[1].WriteData(freq);
+				}
+				SignalSet(-freq, dHSync);
 			}
 		}
 
