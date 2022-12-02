@@ -1176,12 +1176,13 @@ namespace Play.Sound {
 		/// <param name="H3">UNITIALIZED. It's for narrow modes which we don't support.</param>
 		/// <param name="bpftap"></param>
 		/// <param name="bpf"></param>
-		protected void CalcBPF(double[] H1, double[] H2, double[] H3, ref int bpftap, BandPass bpf)
+		protected int CalcBPF(double[] H1, double[] H2, double[] H3, BandPass bpf)
 		{
 			int lfq  = (int)((m_SyncRestart ? 1100 : 1200) + _dblToneOffset );
 			int lfq2 = (int)(400 + _dblToneOffset );
 			if( lfq2 < 50 ) 
 				lfq2 = 50;
+			int bpftap = 0;
 			switch(bpf){
 				case BandPass.Wide:
 					bpftap = (int)(24 * SampFreq / 11025.0 );
@@ -1205,7 +1206,9 @@ namespace Play.Sound {
 					bpftap = 0;
 					break;
 			}
+
 		  //CalcNarrowBPF(H3, bpftap, bpf, SSTVSET.m_Mode); If I add those modes I'll figure this out.
+			return bpftap;
 		}
 
 		/// <summary>
@@ -1256,24 +1259,23 @@ namespace Play.Sound {
 		}
 
 		/// <summary>
-		/// This looks it compensates for a mid signal reception to changes between bandpass 
-		/// values. It looks like skip is only called if the user changes settings
-		/// while the image is being decoded else this function is called on setup.
-		/// NOTE: That happens when we miss the VIS and try manually overriding the mode
-		/// mid reception. We DEFINITELY need a rewrite in SSTVDraw to support that.
-		/// NOTE: CalcNarrowBPF() normally gets called in Start() but I disabled that
-		/// since I don't support narrow modes. If I did, I'd probably seperate out the
-		/// sync == true side of this object into a set of subclasses for the narrowband
-		/// stuff.
+		/// This compensates for a mid VIS signal reception to changes between bandpass 
+		/// values. Skip is only called if the user changes settings
+		/// while the image is in the middle of VIS decoding.
 		/// </summary>
+		/// <remarks>So originally the code could change this value at any time.
+		/// thus it has this m_Skip rigamarole. But since I don't allow you to
+		/// change the filter bandwidth while the demodulator is running all that
+		/// code is obviated! Huh, I might remove that later...</remarks>
 		/// <seealso cref="CalcNarrowBPF" />
 		/// <seealso cref="Start" />
 		void SetBPF(BandPass bpf) {
 			if( bpf != m_bpf ){
-				m_bpf = bpf;
+				int delay = m_bpftap; // save original value;
 
-				int delay = m_bpftap;
-				CalcBPF(HBPF, HBPFS, HBPFN, ref m_bpftap, m_bpf );
+				m_bpf    = bpf;
+				m_bpftap = CalcBPF(HBPF, HBPFS, HBPFN, m_bpf );
+
 				m_BPF.Create(m_bpftap);
 
 				if( Synced ) {
@@ -1530,20 +1532,20 @@ namespace Play.Sound {
 					freq += _AFC.m_AFCDiff;
 				}
 
-				if( m_Skip != 0 ) {
-					if( m_Skip > 0 ){ // Ignore this data
-						m_Skip--;
-					} else {          // Pad the overshoot.
-						for( ; m_Skip != 0; m_Skip++ ){
-							SignalSet( -freq, 0 );
-						}
-					}
-				} else {
+				//if( m_Skip != 0 ) {
+				//	if( m_Skip > 0 ){ // Ignore this data
+				//		m_Skip--;
+				//	} else {          // Pad the overshoot.
+				//		for( ; m_Skip != 0; m_Skip++ ){
+				//			SignalSet( -freq, 0 );
+				//		}
+				//	}
+				//} else {
 					if( m_ScopeFlag ){
 						m_Scope[1].WriteData( freq );
 					}
 					SignalSet( -freq, dHSync );
-				}
+				//}
 			}
 		}
 

@@ -16,6 +16,15 @@
 // You should have received a copy of the GNU Lesser General Public License along with MMTTY.  If not, see 
 // <http://www.gnu.org/licenses/>.
 //-----------------------------------------------------------------------------------------------------------------------------------------------
+
+/*
+The number of taps (N) is the amount of the memory needed to 
+implement the filter. More taps mean higher frequency
+resolution, which in turn means narrower filters and/or 
+steeper roll‐offs.
+
+Frequency resolution = fs / N.
+*/
 namespace Play.Sound {
 	public enum FirFilt {
 		ffLPF,
