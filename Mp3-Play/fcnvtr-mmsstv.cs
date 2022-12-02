@@ -54,7 +54,7 @@ namespace Play.Sound {
 			MakeHilbert(H, m_tap, SampFreq, 100, SampFreq/2 - 100);
 			m_A[0] = m_A[1] = m_A[2] = m_A[3] = 0;
 
-			m_iir.MakeIIR(1800, SampFreq, 3, 0, 0);
+			m_iir.MakeIIR(1800, SampFreq, 3, CIIR.FilterType.Butterworth, 0);
 		}
 
 		public void SetWidth( FrequencyLookup rgFreqTable )
@@ -268,7 +268,7 @@ namespace Play.Sound {
 
 		void CalcLPF()
 		{
-			m_iir.MakeIIR(m_outFC, m_SampFreq, m_outOrder, 0, 0);
+			m_iir.MakeIIR(m_outFC, m_SampFreq, m_outOrder, CIIR.FilterType.Butterworth, 0);
 			if( m_SmoozFq < 500 ) 
 				m_SmoozFq = 500.0;
 			m_fir.SetCount( (int)(SampFreq/m_SmoozFq) );
@@ -446,7 +446,7 @@ namespace Play.Sound {
 			m_loopOrder = iLoopOrder;
 			m_loopFC    = iLoopFreq;
 
-			loopLPF.MakeIIR(m_loopFC, m_SampleFreq, m_loopOrder, 0, 0);
+			loopLPF.MakeIIR(m_loopFC, m_SampleFreq, m_loopOrder, CIIR.FilterType.Butterworth, 0);
 		}
 
 		public void MakeOutLPF( int iLoopOrder, int iLoopFreq )
@@ -454,7 +454,7 @@ namespace Play.Sound {
 			m_outOrder = iLoopOrder;
 			m_outFC    = iLoopFreq;
 
-			outLPF.MakeIIR(m_outFC, m_SampleFreq, m_outOrder, 0, 0);
+			outLPF.MakeIIR(m_outFC, m_SampleFreq, m_outOrder, CIIR.FilterType.Butterworth, 0);
 		}
 
 		public void SetFreeFreq(double f1, double f2)

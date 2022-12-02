@@ -1003,11 +1003,11 @@ namespace Play.Sound {
 			_AFC.InitAFC( TVFamily.None, SampFreq, _rgFreqTable );
 			InitTone(0);
 
-			m_lpf11 .MakeIIR(50, SampFreq, 2, 0, 0);
-			m_lpf12 .MakeIIR(50, SampFreq, 2, 0, 0);
-			m_lpf13 .MakeIIR(50, SampFreq, 2, 0, 0);
-			m_lpf19 .MakeIIR(50, SampFreq, 2, 0, 0);
-		//  m_lpffsk.MakeIIR(50, SampFreq, 2, 0, 0);
+			m_lpf11 .MakeIIR(50, SampFreq, 2, CIIR.FilterType.Butterworth, 0);
+			m_lpf12 .MakeIIR(50, SampFreq, 2, CIIR.FilterType.Butterworth, 0);
+			m_lpf13 .MakeIIR(50, SampFreq, 2, CIIR.FilterType.Butterworth, 0);
+			m_lpf19 .MakeIIR(50, SampFreq, 2, CIIR.FilterType.Butterworth, 0);
+		//  m_lpffsk.MakeIIR(50, SampFreq, 2, CIIR.FilterType.Butterworth, 0);
 
 			m_wBase     = 0;
 			m_Skip      = 0;
@@ -1458,7 +1458,7 @@ namespace Play.Sound {
 			if( (s > 24578.0) || (s < -24578.0) ){
 				m_OverFlow = 1; // The grapher probably clears this.
 			}
-			double d = (s + _LpfS) * 0.5; // LPF
+			double d = (s + _LpfS) * 0.5; // LPF, weird considering BPF below?!
 			_LpfS = s;
 			if( m_bpf != BandPass.Undefined ) {
 				if( Synced /*||  (m_SyncMode >= 3) */ ){
@@ -1538,7 +1538,6 @@ namespace Play.Sound {
 				}
 				SignalSet( -freq, dHSync );
 			}
-
 		}
 
 		/// <summary>

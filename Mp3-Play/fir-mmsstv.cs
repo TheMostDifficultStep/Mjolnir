@@ -476,14 +476,18 @@ namespace Play.Sound {
 	/// This one is the most complicated port of the bunch. Probably should give it extra attention.
 	/// </remarks>
 	public class CIIR {
+		public enum FilterType {
+			Butterworth, 
+			Chebyshev
+		}
 		protected static int IIRMAX = 16;
 
 		readonly double[] Z = new double[IIRMAX*2];
 		readonly double[] A = new double[IIRMAX*3];
 		readonly double[] B = new double[IIRMAX*2];
-		int		 m_order = 0;
-		int		 m_bc;
-		double	 m_rp;
+		int			m_order = 0;
+		FilterType	m_bc;
+		double		m_rp;
 
 		public CIIR() {
 		}
@@ -493,7 +497,7 @@ namespace Play.Sound {
 			Array.Clear( Z, 0, Z.Length );
 		}
 
-		public void MakeIIR(double fc, double fs, int order, int bc, double rp)
+		public void MakeIIR(double fc, double fs, int order, FilterType bc, double rp)
 		{
 			m_order = order;
 			m_bc = bc;
@@ -501,14 +505,14 @@ namespace Play.Sound {
 			MakeIIR(A, B, fc, fs, order, bc, rp);
 		}
 
-		// bc : 0-バターワース, 1-チェビシフ : 0-Butterworth, 1-Chevisif
+		// bc : 0-バターワース, 1-チェビシフ : 0-Butterworth, 1-Chebyshev
 		// rp : 通過域のリップル : Ripple in the pass area
-		public static void MakeIIR(double []A, double[]B, double fc, double fs, int order, int bc, double rp)
+		public static void MakeIIR(double []A, double[]B, double fc, double fs, int order, FilterType bc, double rp)
 		{
 			double	w0, wa, u=0, zt, x;
 			int		j, n;
 
-			if( bc != 0 ){		// チェビシフ
+			if( bc == FilterType.Chebyshev ) {		// チェビシフ : Chebyshev
 				u = 1.0/(double)((order) * Math.Asinh(1.0/Math.Sqrt(Math.Pow(10.0,0.1*rp)-1.0)));
 			}
 			wa = Math.Tan(Math.PI*fc/fs);
@@ -518,7 +522,7 @@ namespace Play.Sound {
 			int pB = 0;
 			double d1, d2;
 			for( j = 1; j <= order/2; j++, pA+=3, pB+=2 ){
-				if( bc != 0 ){	// チェビシフ
+				if( bc == FilterType.Chebyshev ){	// チェビシフ
 					d1 = Math.Sinh(u)*Math.Cos(n*Math.PI/(2*order));
 					d2 = Math.Cosh(u)*Math.Sin(n*Math.PI/(2*order));
 					w0 = Math.Sqrt(d1 * d1 + d2 * d2);
@@ -535,7 +539,7 @@ namespace Play.Sound {
 				B[pB+1] = 2*B[pB];
 				n += 2;
 			}
-			if( bc != 0 && (order & 1) == 0 ){
+			if( bc == FilterType.Chebyshev && (order & 1) == 0 ) {
 				x = Math.Pow( 1.0/Math.Pow(10.0,rp/20.0), 1/(double)(order/2) );
 				pB = 0;
 				for( j = 1; j <= order/2; j++, pB+=2 ){
