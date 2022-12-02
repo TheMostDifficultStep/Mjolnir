@@ -569,7 +569,7 @@ namespace Play.SSTV {
 		public void Process() {
 			if( _dp.Synced ) {
 				try {
-                    // BUG: this s/b encoded scan line and not the bitmap y value.
+                    // Will need to update this if go back to the non-linear slant corrector.
                     int iScanLine = (int)( ( _dp.m_wBase - StartIndex ) / ScanWidthInSamples );
 
 					Send_TvEvents?.Invoke( SSTVEvents.DownLoadTime, PercentRxComplete );

@@ -1094,7 +1094,7 @@ namespace Play.Sound {
 		}
 
 		/// <summary>
-		/// this method gets called after VIS received get ready to receive image.
+		/// this method gets called after VIS received. Get ready to receive image.
 		/// </summary>
 		public void Start( SSTVMode oMode ) {
 			int      iPrevBase = m_wBase;
@@ -1108,6 +1108,7 @@ namespace Play.Sound {
 			//       narrow mode, so you'll pickup the right VIS and the bandbass will
 			//       be in the right mode.
 			if( ePrevMode == null ) {
+				// We don't support narrow, so always false. But might change in the future.
 				SetBandWidth( false ); // SSTVSET.IsNarrowMode( tvMode.Family )
 				_AFC.InitAFC( oMode.Family, SampFreq, _rgFreqTable );
 				InitTone(0);
@@ -1130,6 +1131,10 @@ namespace Play.Sound {
 			Send_NextMode?.Invoke( oMode, ePrevMode, iPrevBase );
 		}
 
+		/// <summary>
+		/// Call this when we are going from a Synced mode back to listening
+		/// for the VIS.
+		/// </summary>
 		public virtual void Reset()	{
 			if( _AFC.m_AFCFQ != 0 ){
 				if( m_fskdecode ){
@@ -1148,16 +1153,17 @@ namespace Play.Sound {
 
 			_iSyncTime  = (int)(SampFreq * 0.5);
 			_oSyncState = StateWaitReset; // Wait for the above time.
-			Synced     = false;
+			Synced      = false;
 
 			SSTVMode oPrevMode = Mode;
 			int      iPrevBase = m_wBase;
 
+			Mode     = null;
 			m_wBase  = 0;
 			m_Skip   = 0;
-		  //SetBandWidth( false ); Start always sets this try removing.
 
-			Mode = null;
+			// Go back to standard bandwidth so can listen for VIS.
+		    SetBandWidth( false );
 
 			Send_NextMode?.Invoke( Mode, oPrevMode, iPrevBase );
 		}
