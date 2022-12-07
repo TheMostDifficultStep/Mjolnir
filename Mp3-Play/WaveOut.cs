@@ -130,10 +130,17 @@ namespace Play.Sound {
 	
 	unsafe public class WmmPlayer : IPgPlayer 
 	{
+		/* flags for dwFlags field of WAVEHDR */
+		const int WHDR_DONE      = 0x00000001;  /* done bit */
+		const int WHDR_PREPARED  = 0x00000002;  /* set if this header has been prepared */
+		const int WHDR_BEGINLOOP = 0x00000004;  /* loop start block */
+		const int WHDR_ENDLOOP   = 0x00000008;  /* loop end block */
+		const int WHDR_INQUEUE   = 0x00000010;  /* reserved for driver */
+
 		private class ManagedHeader {
-			WAVEHDR       _oHeader                 = new WAVEHDR();
-			IntPtr        _ipUnManagedHeader       = IntPtr.Zero; 
-			readonly uint _uiBufferCapacityInBytes = 0;
+			WAVEHDR          _oWaveHeader             = new WAVEHDR();
+			readonly IntPtr  _ipUnManagedHeader       = IntPtr.Zero; 
+			readonly uint    _uiBufferCapacityInBytes = 0;
 
 			/// <exception cref="ArgumentException"></exception>
 			/// <exception cref="ArgumentOutOfRangeException"></exception>
@@ -156,27 +163,44 @@ namespace Play.Sound {
 					throw new OutOfMemoryException( "Couldn't allocate unmanaged header and buffer." );
 				}
 
-				_oHeader.dwBufferLength = 0;
-				_oHeader.dwUser         = (IntPtr)uiID;
-				_oHeader.dwFlags        = 0;
-				_oHeader.lpData         = _ipUnManagedHeader + Marshal.SizeOf(typeof(WAVEHDR) );
-				_oHeader.lpNext         = IntPtr.Zero;
-				_oHeader.dwLoops        = 0;
-				_oHeader.reserved       = 0;
+				_oWaveHeader.dwBufferLength = 0;
+				_oWaveHeader.dwUser         = (IntPtr)uiID;
+				_oWaveHeader.dwFlags        = 0;
+				_oWaveHeader.lpData         = _ipUnManagedHeader + Marshal.SizeOf(typeof(WAVEHDR) );
+				_oWaveHeader.lpNext         = IntPtr.Zero;
+				_oWaveHeader.dwLoops        = 0;
+				_oWaveHeader.reserved       = 0;
+			}
+
+			public void CopyUnmanagedValue( out WAVEHDR sWaveHeader ) {
+				sWaveHeader = (WAVEHDR)Marshal.PtrToStructure( _ipUnManagedHeader, typeof( WAVEHDR ) );
 			}
 
 			/// <summary>
 			/// Is this header currently queued up for playing.
 			/// </summary>
 			public bool IsUsable {
-				get { return( _oHeader.dwBufferLength == 0 ); }
+				get {
+					if( ( _oWaveHeader.dwFlags & WHDR_INQUEUE ) != 0 )
+						return false;
+
+					if( ( _oWaveHeader.dwFlags & WHDR_DONE ) != 0 )
+						return true;
+
+					return true; // Both are false so we can use it.
+				}
 			}
 
 			/// <summary>
-			/// Mark this header usable for queueing music.
+			/// Mark this header usable for queueing music. Set all flags to zero.
+			/// Set buffered loaded length to zero.
 			/// </summary>
 			public void Recycle() {
-				_oHeader.dwBufferLength = 0;
+				// Just clear the bits in question. Don't set all flags to 
+				// zero else you'll get an UNPREPARED error at the very least.
+				_oWaveHeader.dwFlags        &= ~WHDR_DONE;    // Clear the bit.
+				_oWaveHeader.dwFlags        &= ~WHDR_INQUEUE; // Clear the bit.
+				_oWaveHeader.dwBufferLength  = 0;
 			}
 
 			/// <summary>
@@ -191,41 +215,45 @@ namespace Play.Sound {
 			/// <exception cref="InvalidHandleException"></exception>
 			/// <exception cref="MMSystemException"></exception>
 			/// <remarks>Basically copy my managed wave header into the unmanaged
-			/// _ipUnManagedHeader to set it. </remarks>
+			/// _ipUnManagedHeader to set it. Also set the WHDR_DONE flag on all
+			/// buffers so my Play() program knows the buffer is ready to go.</remarks>
 			public void Prepare( IntPtr hWave ) {
 				// copy my managed wave header into the unmanaged _ipUnManagedHeader to set it
-				Marshal.StructureToPtr( _oHeader, _ipUnManagedHeader, false);
+				Marshal.StructureToPtr( _oWaveHeader, _ipUnManagedHeader, false);
 
 				MMSYSERROR error = MMSYSERROR.MMSYSERR_NOERROR;
 
 				error = waveOutPrepareHeader(hWave, _ipUnManagedHeader, Marshal.SizeOf(typeof(WAVEHDR) ));
 
-				WAVEHDR oHeader = (WAVEHDR)Marshal.PtrToStructure( _ipUnManagedHeader, typeof( WAVEHDR ) );
+				CopyUnmanagedValue( out WAVEHDR oWaveHeader );
 
-				if( !( oHeader.dwFlags == WaveHeaderFlags.Prepared ) )
+				if( ( oWaveHeader.dwFlags & WHDR_PREPARED ) == 0 )
 					error = MMSYSERROR.WAVERR_UNPREPARED;
 
 				MMHelpers.ThrowOnError( error, ErrorSource.WaveOut );
-				_oHeader = oHeader; // Copy the stuff back to ourself. 
+
+				_oWaveHeader = oWaveHeader; // Copy the stuff back to ourself. 
 			}
 
 			public void UnPrepare( IntPtr hWave ) {
 				MMSYSERROR eError =	MMSYSERROR.MMSYSERR_NOERROR;
 
-				if( _oHeader.dwFlags == WaveHeaderFlags.Prepared && _ipUnManagedHeader != IntPtr.Zero ) {
+				if( (( _oWaveHeader.dwFlags & WHDR_PREPARED ) != 0 ) && 
+					_ipUnManagedHeader != IntPtr.Zero 
+				) {
 					eError = waveOutUnprepareHeader( hWave, _ipUnManagedHeader, Marshal.SizeOf(typeof(WAVEHDR) ));
 				}
 				MMHelpers.ThrowOnError( eError, ErrorSource.WaveOut );
 
-				WAVEHDR oHeader = (WAVEHDR)Marshal.PtrToStructure( _ipUnManagedHeader, typeof( WAVEHDR ) );
-				_oHeader.dwFlags = oHeader.dwFlags;
+				CopyUnmanagedValue( out WAVEHDR oHeader );
+				_oWaveHeader.dwFlags = oHeader.dwFlags;
 			}
 
 			public void Dispose() {
 				if( _ipUnManagedHeader != IntPtr.Zero ) {
 					Marshal.FreeHGlobal( _ipUnManagedHeader );
-					_ipUnManagedHeader = IntPtr.Zero;
-					_oHeader.lpData    = IntPtr.Zero;
+				  //_ipUnManagedHeader = IntPtr.Zero;
+					_oWaveHeader.lpData    = IntPtr.Zero;
 				}
 			}
 
@@ -243,10 +271,10 @@ namespace Play.Sound {
 			public bool Write( IntPtr hWave, IPgReader oBuffer ) {
 				try {
 					// We might have less data than our capacity.
-					_oHeader.dwBufferLength = (int)oBuffer.Read( _oHeader.lpData, _uiBufferCapacityInBytes ); 
+					_oWaveHeader.dwBufferLength = (int)oBuffer.Read( _oWaveHeader.lpData, _uiBufferCapacityInBytes ); 
 
 					// Copy our managed structure to the unmanaged header.
-					Marshal.StructureToPtr( _oHeader, _ipUnManagedHeader, false);
+					Marshal.StructureToPtr( _oWaveHeader, _ipUnManagedHeader, false);
 				} catch( Exception oEx ) {
 					Type[] rgErrors = {	typeof( ArgumentException ),
 										typeof( NullReferenceException ),
@@ -259,12 +287,12 @@ namespace Play.Sound {
 					return( false );
 				}
 
-				if( _oHeader.dwBufferLength <= 0 )
+				if( _oWaveHeader.dwBufferLength <= 0 )
 					return( false ); // We're done!
 
 				MMHelpers.ThrowOnError( waveOutWrite( hWave, _ipUnManagedHeader, Marshal.SizeOf(typeof(WAVEHDR) )), ErrorSource.WaveOut );
 
-				return( _oHeader.dwBufferLength == _uiBufferCapacityInBytes );
+				return( _oWaveHeader.dwBufferLength == _uiBufferCapacityInBytes );
 			}
 		}
 
@@ -286,7 +314,7 @@ namespace Play.Sound {
 		readonly int        _iBlockCapacity    = 42;   // Bigger, longer play between interruptions, but longer bleed out.
 		readonly uint       _uiSamplesPerBlock = 1024; // Was 42/512.
 		List<ManagedHeader> _rgHeaders         = new List<ManagedHeader>();
-        WaveOutProc         _oCallback;
+      //WaveOutProc         _oCallback;
 		uint				_uiWaitInMs; // Bleed time.
 
 		public int DeviceID { get; protected set; }
@@ -303,7 +331,7 @@ namespace Play.Sound {
 		/// <exception cref="MMSystemException" />
 		/// <seealso>https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-createeventa</seealso>/>
 		public WmmPlayer( Specification oSpec, int iDeviceID ) {
-			_oCallback = new WaveOutProc(this.InternalCallback);
+		  //_oCallback = new WaveOutProc(this.InternalCallback);
 			_oSpec     = oSpec ?? throw new ArgumentNullException();
 
 			DeviceID = iDeviceID;
@@ -319,7 +347,7 @@ namespace Play.Sound {
 			MMSYSERROR eError = MMSYSERROR.MMSYSERR_NOERROR;
 
 			try {
-				eError = waveOutOpen(ref _hWave, iDeviceID, ref _oFormat, _oCallback, IntPtr.Zero, WaveOpenFlags.CALLBACK_FUNCTION);
+				eError = waveOutOpen(ref _hWave, iDeviceID, ref _oFormat, null, IntPtr.Zero, WaveOpenFlags.CALLBACK_NULL );
 			} catch (Exception oEx) {
 				Type[] rgErrors = { typeof( EntryPointNotFoundException ),
 									typeof( MissingMethodException ),
@@ -407,6 +435,7 @@ namespace Play.Sound {
 		/// That value being the callback instance param of the waveOutOpen() call. But since we magically end 
 		/// up back here as a delegate we're OK. Kinda magic. ^_^;;
 		/// </summary>
+		/// <remarks>This no longer used. I've read the callback can crash in certain instances of thread usage.</remarks>
 		protected virtual void InternalCallback(IntPtr waveOutHandle, WaveOutMessage eMessage, IntPtr ipInstance, IntPtr ipWaveHeader, IntPtr dwReserved )
         {
             if( eMessage == WaveOutMessage.WriteDone) {
@@ -439,21 +468,29 @@ namespace Play.Sound {
 		/// <param name="oBuffer">Buffer containing sound data.</param>
 		/// <param name="uiWaitInMs" >Returns the estimated maximum play time buffered.</param>
 		/// <returns>The amount of time expected to play the consumed samples.</returns>
+		/// <remarks>
+		/// If we ever have the ability to resize the number of headers, we would NOT want to try that
+		/// WHILE the system is playing. We would have to re-visit this implementation.
+		/// </remarks>
 		/// <exception cref="InvalidOperationException"/>
 		/// <exception cref="ArgumentNullException" />
 		public uint Play( IPgReader oBuffer ) {
 			_uiWaitInMs = 0;
 
 			try {
-				bool fWritable = true;
 				// When we've finished, all our write buffers will be full, or the song is
-				// done and we just need for the write buffers to be emptied.
-				// Make sure you sum ALL headers, even when writing is finished.
-				foreach( ManagedHeader oHeader in _rgHeaders ) {
-					if( oHeader.IsUsable && fWritable ) {
-						fWritable = oHeader.Write( _hWave, oBuffer );
-					}
-					if( oHeader.IsUsable == false ) {
+				// done and we just need wait for the write buffers to be emptied.
+				foreach( ManagedHeader oManagedHdr in _rgHeaders ) {
+					oManagedHdr.CopyUnmanagedValue( out WAVEHDR oWaveHdr );
+
+					// Make sure you sum time from ALL headers.
+					if( ( oWaveHdr.dwFlags & WHDR_INQUEUE ) != 0 ) {
+						_uiWaitInMs += MilliSecPerBlock;
+					} else {
+						if( ( oWaveHdr.dwFlags & WHDR_DONE ) != 0 ) {
+							oManagedHdr.Recycle();
+						}
+						oManagedHdr.Write( _hWave, oBuffer );
 						_uiWaitInMs += MilliSecPerBlock;
 					}
 				}
@@ -462,7 +499,8 @@ namespace Play.Sound {
 									typeof( BadDeviceIdException ),
 									typeof( InvalidHandleException ),
 									typeof( MMSystemException ),
-									typeof( NullReferenceException ) };
+									typeof( NullReferenceException ),
+									typeof( ArgumentOutOfRangeException ) };
 				if( !rgErrors.Contains( oEx.GetType() ) ) 
 					throw;
 

@@ -347,7 +347,7 @@ namespace Play.Sound {
         /// <summary>
         /// Flags supplying information about the buffer. The following values are defined:
         /// </summary>
-        public WaveHeaderFlags dwFlags;
+        public int dwFlags;
 
         /// <summary>
         /// Number of times to play the loop. This member is used only with output buffers.
