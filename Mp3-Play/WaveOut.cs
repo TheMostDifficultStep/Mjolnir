@@ -550,23 +550,25 @@ namespace Play.Sound {
 		public void Dispose() {
 			MMSYSERROR eError = MMSYSERROR.MMSYSERR_NOERROR;
 
-			eError = waveOutReset( _hWave );
-			// I Want to log the error. I'll need a site to do that.
+			if( _hWave != IntPtr.Zero ) {
+				eError = waveOutReset( _hWave );
+				// I Want to log the error. I'll need a site to do that.
 
-			foreach( ManagedHeader oHeader in _rgHeaders ) {
-				oHeader.UnPrepare( _hWave );
-			}
+				foreach( ManagedHeader oHeader in _rgHeaders ) {
+					oHeader.UnPrepare( _hWave );
+				}
 
-			eError = waveOutClose( _hWave );
+				eError = waveOutClose( _hWave );
 
-			foreach( ManagedHeader oHeader in _rgHeaders ) {
-				oHeader.Dispose();
-			}
+				foreach( ManagedHeader oHeader in _rgHeaders ) {
+					oHeader.Dispose();
+				}
 
-			_hWave = IntPtr.Zero;
+				_hWave = IntPtr.Zero;
 			
-			// Better late than never!!
-			MMHelpers.ThrowOnError( eError, ErrorSource.WaveOut );
+				// Better late than never!!
+				MMHelpers.ThrowOnError( eError, ErrorSource.WaveOut );
+			}
 		}
 	} // end class
 } // end namespace
