@@ -85,7 +85,10 @@ namespace Play.Clock
 			} catch( Exception oEx ) {
 				Type[] rgErrors = { typeof( TargetInvocationException ),
 									typeof( System.Net.Sockets.SocketException ),
-									typeof( NullReferenceException ) };
+									typeof( NullReferenceException ),
+									typeof( HttpRequestException ),
+									typeof( InvalidOperationException ),
+									typeof( System.Threading.Tasks.TaskCanceledException ) };
 				if( rgErrors.IsUnhandled( oEx ) )
 					throw;
 				LogError( "Net IO", "Problem handling http request" );
