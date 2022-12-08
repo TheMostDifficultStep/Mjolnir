@@ -943,10 +943,6 @@ namespace Mjolnir {
             }
             _oDoc_ViewSelector.Clear();
 
-			// BUG: These belong in Dispose() method.
-			DecorFont       .Dispose();
-            ToolsBrushActive.Dispose();
-
             foreach( IDocSlot oSlot in Document.DocSlots ) {
                 oSlot.Dispose();
             }

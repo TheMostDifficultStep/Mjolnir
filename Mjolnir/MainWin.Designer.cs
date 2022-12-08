@@ -18,6 +18,8 @@ namespace Mjolnir {
                 if(components != null) {
                     components.Dispose();
                 }
+			    DecorFont       .Dispose();
+                ToolsBrushActive.Dispose();
             }
 
             if( _hScriptCache != IntPtr.Zero ) {

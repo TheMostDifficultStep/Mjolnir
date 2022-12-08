@@ -196,7 +196,8 @@ namespace Mjolnir {
         /// <param name="p_oGraphics"></param>
         protected void PaintTitle( Graphics p_oGraphics )
         {
-            if( this.Rect.Width <= 0 || this.Rect.Height <= 0 /* || Orientation == Top */ || _fHideTitle )
+            if( this.Rect.Width <= 0 || this.Rect.Height <= 0 /* || Orientation == Top */ 
+                || _fHideTitle || _oHost.DecorFont == null )
                 return; // Nothing to do.
 
             // Need this to clip the bitmap.
