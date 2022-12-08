@@ -1330,12 +1330,18 @@ namespace Play.SSTV {
 			return true;
 		}
 
+        /// <summary>
+        /// Clears the Transmit task which will cause any bg TX task to exit.
+        /// Wait until it's done and return. 
+        /// </summary>
         public void TransmitStop() {
             Task oTxTask = _oTxTask;
-            _oTxTask = null; // this is the signal to the bg task to abort.
+            _oTxTask = null;         // this is the signal to the background task to abort.
 
-            oTxTask.Wait();
-            oTxTask.Dispose();
+            if( oTxTask != null ) {
+                oTxTask.Wait();      // shouldn't take more than 2 seconds or so.
+                oTxTask.Dispose();
+            }
 
             TxModeList.HighLight = null;
         }
