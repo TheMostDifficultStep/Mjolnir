@@ -50,7 +50,6 @@ namespace Play.SSTV {
 				(int)SSTVProperties.Names.Rx_Width,
 				(int)SSTVProperties.Names.Rx_Height,
 				(int)SSTVProperties.Names.Rx_Progress,
-				(int)SSTVProperties.Names.Std_Time,
 				(int)SSTVProperties.Names.Rx_SaveDir,
 				(int)SSTVProperties.Names.Tx_TheirCall,
 				(int)SSTVProperties.Names.Tx_RST

@@ -60,8 +60,7 @@ namespace Play.SSTV {
             Std_ImgQuality,
             Std_Process,
             Std_MicGain,
-            Std_Frequency,
-            Std_Time
+            Std_Frequency
         }
 
         public SSTVProperties( IPgBaseSite oSiteBase ) : base( oSiteBase ) {
@@ -108,10 +107,9 @@ namespace Play.SSTV {
             LabelSet( Names.Std_Process,    "Task Status" );
             LabelSet( Names.Std_MicGain,    "Output Gain < 30,000" );
             LabelSet( Names.Std_Frequency,  "Frequency" ); // TODO: Give it yellow if calibrated value different than base.
-            LabelSet( Names.Std_Time,       "Zulu Time" );
 
             LabelSet( Names.Tx_MyCall,       "My Call" );
-            LabelSet( Names.Tx_TheirCall,    "Rx Call" );
+            LabelSet( Names.Tx_TheirCall,    "Rx Call", SKColors.LightGreen );
             LabelSet( Names.Tx_RST,          "RSV" ); // Readibility, strength, video
             LabelSet( Names.Tx_Message,      "Message" );
             LabelSet( Names.Tx_Progress,     "Sent", new SKColor( red:0xff, green:0xbf, blue:0 ) );
@@ -340,7 +338,6 @@ namespace Play.SSTV {
         protected readonly IPgBaseSite       _oSiteBase;
 		protected readonly IPgRoundRobinWork _oWorkPlace;
         protected readonly IPgStandardUI2    _oStdUI;
-        protected          DateTime          _dtLastTime;
 
         public IPgParent Parentage => _oSiteBase.Host;
         public IPgParent Services  => Parentage;
@@ -413,8 +410,6 @@ namespace Play.SSTV {
                           
             Properties = new ( new DocSlot( this ) );
             StateRx    = DocSSTVMode.Ready;
-
-            _dtLastTime = DateTime.UtcNow.AddMinutes( -1.0 );
         }
 
         #region Dispose
@@ -1415,7 +1410,7 @@ namespace Play.SSTV {
                     Thread.Sleep((int)uiWait);
                 }
                 if( StateTx == true )
-                    Thread.Sleep(2000); // Let the buffer bleed out.
+                    Thread.Sleep(1000); // Let the buffer bleed out a little.
 
                 bmpCopy.Dispose();
             }
@@ -1509,12 +1504,6 @@ namespace Play.SSTV {
                             }
                             break;
                     }
-                }
-                DateTime dtNow = DateTime.UtcNow;
-                if( _dtLastTime.AddMinutes( 1.0 ) < dtNow ) {
-                    Properties.ValueUpdate( SSTVProperties.Names.Std_Time, dtNow.ToString( "g" ), Broadcast:true );
-                    // This gets it so we're closer to the actual H:M:0 second mark.
-                    _dtLastTime = dtNow.AddSeconds( -dtNow.Second );
                 }
 
                 if( _oTxTask != null && _oTxTask.IsCompleted ) {

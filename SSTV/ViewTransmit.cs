@@ -48,7 +48,6 @@ namespace Play.SSTV {
 			(int)SSTVProperties.Names.Tx_Progress,
 			(int)SSTVProperties.Names.Tx_SrcDir,
 			(int)SSTVProperties.Names.Tx_SrcFile,
-			(int)SSTVProperties.Names.Std_Time,
 			(int)SSTVProperties.Names.Tx_TheirCall,
 			(int)SSTVProperties.Names.Tx_RST,
 			(int)SSTVProperties.Names.Tx_Message 
