@@ -425,7 +425,7 @@ namespace Play.SSTV {
                     if( FileDecoder != null )
                         FileDecoder.Dispose();
 
-                    TransmitStop();
+                    TransmitStop( true );
                     ReceiveLiveStop();
 
                     RxHistoryList.ImageUpdated -= OnImageUpdated_RxHistoryList;
@@ -1334,7 +1334,9 @@ namespace Play.SSTV {
         /// Clears the Transmit task which will cause any bg TX task to exit.
         /// Wait until it's done and return. 
         /// </summary>
-        public void TransmitStop() {
+        /// <param name="fInExit">True if we are in the dispose and we don't
+        /// want to generate any events.</param>
+        public void TransmitStop( bool fInExit = false ) {
             Task oTxTask = _oTxTask;
             _oTxTask = null;         // this is the signal to the background task to abort.
 
@@ -1343,7 +1345,10 @@ namespace Play.SSTV {
                 oTxTask.Dispose();
             }
 
-            TxModeList.HighLight = null;
+            if( !fInExit ) {
+                TxModeList.HighLight = null;
+                _oSiteBase.Notify( ShellNotify.MediaStatusChanged );
+            }
         }
 
         /// <summary>
@@ -1513,6 +1518,7 @@ namespace Play.SSTV {
                 }
 
                 if( _oTxTask != null && _oTxTask.IsCompleted ) {
+                    _oSiteBase.Notify( ShellNotify.MediaStatusChanged );
                     _oTxTask.Dispose();
                     _oTxTask = null;
                 }
