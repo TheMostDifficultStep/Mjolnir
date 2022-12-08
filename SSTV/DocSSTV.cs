@@ -275,8 +275,9 @@ namespace Play.SSTV {
         Thread      _oThread     = null;
         WaveIn      _oWaveIn     = null;
         BlockCopies _oWaveReader = null;
+        Task        _oTxTask     = null;
 
-        public bool        StateTx { get; protected set; }
+        public bool        StateTx => _oTxTask != null;
         public DocSSTVMode StateRx { get; protected set; }
 
         public event Action<SKPointI> Send_TxImageAspect;
@@ -411,9 +412,7 @@ namespace Play.SSTV {
 			SyncImage     = new ImageSoloDoc( new DocSlot( this ) );
                           
             Properties = new ( new DocSlot( this ) );
-
-            StateRx = DocSSTVMode.Ready;
-            StateTx = false;
+            StateRx    = DocSSTVMode.Ready;
 
             _dtLastTime = DateTime.UtcNow.AddMinutes( -1.0 );
         }
@@ -426,6 +425,7 @@ namespace Play.SSTV {
                     if( FileDecoder != null )
                         FileDecoder.Dispose();
 
+                    TransmitStop();
                     ReceiveLiveStop();
 
                     RxHistoryList.ImageUpdated -= OnImageUpdated_RxHistoryList;
@@ -1331,7 +1331,12 @@ namespace Play.SSTV {
 		}
 
         public void TransmitStop() {
-            StateTx              = false;
+            Task oTxTask = _oTxTask;
+            _oTxTask = null; // this is the signal to the bg task to abort.
+
+            oTxTask.Wait();
+            oTxTask.Dispose();
+
             TxModeList.HighLight = null;
         }
 
@@ -1339,85 +1344,75 @@ namespace Play.SSTV {
         /// Begin transmitting the image. We can stop but only after the 
         /// buffered transmission bleeds out.
         /// </summary>
-        public async void TransmitBegin( SSTVMode oMode ) {
+        public void TransmitBegin( SSTVMode oMode ) {
+            if( StateTx ) {
+                LogError( "Already Transmitting" ); 
+                return;
+            }
             if( oMode == null || TxBitmapComp.Bitmap == null ) {
-                LogError( "Transmit mode or image is not set." ); return;
+                LogError( "Transmit mode or image is not set." ); 
+                return;
             }
             if( PortTxList.CheckedLine == null ) {
-                LogError( "No sound device to send to" ); return;
+                LogError( "No sound device to send to" ); 
+                return;
             }
             if( MonitorList.CheckedLine != null &&
                 MonitorList.CheckedLine.At ==
                 PortTxList .CheckedLine.At ) {
-                LogError( "Transmit and Monitor sound devices must not be the same!!" ); return;
-            }
-            if( StateTx ) {
-                LogError( "Already Transmitting" ); return;
+                LogError( "Transmit and Monitor sound devices must not be the same!!" ); 
+                return;
             }
             if( StateRx != DocSSTVMode.DeviceRead ) {
                 // we need the receive listener polling to get updates for
                 // or tx progress. Starting the polling here mighte
                 // get us in a weird mode. This is easier for now.
                 LogError( "Start device receive first." );
-            }
-
-            StateTx = true;
-
-            SKBitmap bmpCopy = TxBitmapComp.Bitmap.Copy();
-            double   dblFreq = Properties.GetValueAsDbl( SSTVProperties.Names.Std_Frequency );
-            TxState   oState = null;
-            try {
-                oState = new TxState( oMode, dblFreq, MicrophoneGain, 
-                                        PortTxList.CheckedLine.At, 
-                                        bmpCopy, _rgBGtoUIQueue );
-            } catch( Exception oEx ) {
-                // BUG: sometimes the device list needs updating.
-                Type[] rgErrors = { typeof( BadDeviceIdException ),
-                                    typeof( NullReferenceException ),
-                                    typeof( ArgumentException ),
-                                    typeof( ArgumentNullException ) };
-                if( rgErrors.IsUnhandled( oEx ) )
-                    throw;
-
-                LogError( "Problem talking to device." );
-
                 return;
             }
 
-            Action oTransmitAction = delegate () {
+            void oTransmitAction() {
+                SKBitmap bmpCopy = TxBitmapComp.Bitmap.Copy();
+                double   dblFreq = Properties.GetValueAsDbl(SSTVProperties.Names.Std_Frequency);
+                TxState   oState = null;
+                try {
+                    oState = new TxState(oMode, dblFreq, MicrophoneGain,
+                                            PortTxList.CheckedLine.At,
+                                            bmpCopy, _rgBGtoUIQueue);
+                } catch( Exception oEx ) {
+                    // BUG: sometimes the device list needs updating.
+                    Type[] rgErrors = { typeof( BadDeviceIdException ),
+                                        typeof( NullReferenceException ),
+                                        typeof( ArgumentException ),
+                                        typeof( ArgumentNullException ) };
+                    if( rgErrors.IsUnhandled(oEx) )
+                        throw;
+
+                    //LogError( "Problem talking to device." );
+                    //Need to send a message.
+                    bmpCopy.Dispose();
+
+                    return;
+                }
+
                 // Use WWV to find the precise sample frequency of sound card. 
                 // TODO: Port the tuner from MMSSTV and make it a property.
 
                 foreach( uint uiWait in oState ) {
                     if( StateTx == false )
                         break;
-                    Thread.Sleep( (int)uiWait );
+                    Thread.Sleep((int)uiWait);
                 }
                 if( StateTx == true )
-                    Thread.Sleep( 2000 ); // Let the buffer bleed out.
+                    Thread.Sleep(2000); // Let the buffer bleed out.
 
-                bmpCopy.Dispose(); // TODO: Maybe put this after the await?
-            };
+                bmpCopy.Dispose();
+            }
 
-            Task oTask = new Task( oTransmitAction );
+            _oTxTask = new Task( oTransmitAction );
 
-            oTask.Start();
+            _oTxTask.Start();
             _oSiteBase.Notify( ShellNotify.MediaStatusChanged );
-
-            await oTask;
-
-            oTask .Dispose(); // this is a little lengthy.
-            oState.Dispose();
-            StateTx = false;
-            _oSiteBase.Notify( ShellNotify.MediaStatusChanged );
-        }
-
-        /// <summary>
-        /// I should probably save the image in the background thread just so that
-        /// we don't have any race to see if the bg starts drawing on the image.
-        /// </summary>
-        /// <param name="strFileName"></param>
-        protected void DownloadFinished() {
         }
 
         protected readonly string[] _rgThreadExStrings = { "Drawing Exception", "WorkerException", "ReadException", "DiagnosticsException" };
@@ -1509,6 +1504,11 @@ namespace Play.SSTV {
                     Properties.ValueUpdate( SSTVProperties.Names.Std_Time, dtNow.ToString( "g" ), Broadcast:true );
                     // This gets it so we're closer to the actual H:M:0 second mark.
                     _dtLastTime = dtNow.AddSeconds( -dtNow.Second );
+                }
+
+                if( _oTxTask != null && _oTxTask.IsCompleted ) {
+                    _oTxTask.Dispose();
+                    _oTxTask = null;
                 }
 
                 yield return 250; // wait 1/4 of a second.
