@@ -83,6 +83,15 @@ namespace Play.SSTV {
             }
         }
 
+        public override bool InitNew() {
+            if( ! base.InitNew() )
+                return false;
+
+            Layout.Padding.SetRect( 5, 0, 5, 0 ); // Table's don't respond to this yet.
+
+            return true;
+        }
+
         public bool Load( XmlElement oStream ) {
             if( !InitNew() )
                 return false;

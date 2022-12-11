@@ -309,7 +309,8 @@ namespace Play.ImageViewer {
             }
             Document.ImageUpdated += OnImageUpdated;
 
-			OnSizeChanged( new EventArgs() );
+			//OnSizeChanged( new EventArgs() );
+			OnImageUpdated();
 
 			return( true );
 		}

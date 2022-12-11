@@ -676,7 +676,7 @@ namespace Play.SSTV {
 		IPgSave<XmlDocumentFragment>,
 		IPgLoad<XmlElement>
 	{
-		public    static          Guid   GUID { get; } = new Guid( "{955742A3-79D3-4789-B93B-B4225C641057}" );
+		public    static   Guid   GUID { get; } = new Guid( "{955742A3-79D3-4789-B93B-B4225C641057}" );
 
 		public    override Guid   Catagory     => GUID;
 		protected override string IconResource => "Play.SSTV.Content.icons8_tv.png";
