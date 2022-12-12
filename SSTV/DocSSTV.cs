@@ -635,8 +635,13 @@ namespace Play.SSTV {
             TemplateLoad();
 
             // Largest bitmap needed by any of the types I can decode.
-		    SyncImage   .Bitmap = new SKBitmap( 800, 616, SKColorType.Rgb888x, SKAlphaType.Unknown );
-		    DisplayImage.Bitmap = new SKBitmap( 800, 616, SKColorType.Rgb888x, SKAlphaType.Opaque  );
+            SKSizeI szMax = new( 800, 616 );
+		    SyncImage   .Bitmap = new SKBitmap( szMax.Width, szMax.Height, SKColorType.Rgb888x, SKAlphaType.Unknown );
+		    DisplayImage.Bitmap = new SKBitmap( szMax.Width, szMax.Height, SKColorType.Rgb888x, SKAlphaType.Opaque  );
+
+            // Just set it up so it looks ok to start. Gets updated for each image downloaded.
+			DisplayImage.WorldDisplay = new SKRectI( 0, 0, 320,         256 );
+            SyncImage   .WorldDisplay = new SKRectI( 0, 0, szMax.Width, 256 );
 
             SettingsInit();
 
