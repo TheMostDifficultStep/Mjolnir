@@ -1451,6 +1451,7 @@ namespace Play.SSTV {
                                 // Let's not clear the Mode, Width, Height, SaveName. Nice to have them around.
                             } else {
 			                    DisplayImage.WorldDisplay = new SKRectI( 0, 0, oMode.Resolution.Width, oMode.Resolution.Height );
+                                SyncImage   .WorldDisplay = new SKRectI( 0, 0, SyncImage.Bitmap.Width, oMode.Resolution.Height / oMode.ScanMultiplier );
 
                                 Properties.ValueUpdate( SSTVProperties.Names.Rx_Mode,   oMode.FamilyName + ' ' + oMode.Version );
                                 Properties.ValueUpdate( SSTVProperties.Names.Rx_Width,  oMode.Resolution.Width .ToString() );
