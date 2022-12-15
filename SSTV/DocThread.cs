@@ -410,11 +410,13 @@ namespace Play.SSTV {
                         }
                     }
 
-                    _oPlayer.Play( _oPlayBuffer );
+                    _oPlayer  .Play( _oPlayBuffer );
                     _oSSTVDraw.Process();
 
+                    // Bug: This should be based on sample frequency and buffer size.
+                    //      and/or if we are completing all the work on time.
                     Thread.Sleep( 200 );
-                };
+                }
 			} catch( Exception oEx ) {
                 if( _rgLoopErrors.IsUnhandled( oEx ) )
                     throw;
