@@ -8,7 +8,7 @@ using Play.Forms;
 namespace Monitor {
     public class MonitorController : Controller {
         public MonitorController() {
-            _rgExtensions.Add( ".nibble" );
+            _rgExtensions.Add( ".fourbit" );
         }
         public override IDisposable CreateDocument(IPgBaseSite oSite, string strExtension) {
             return new MonitorDocument( oSite );
@@ -65,6 +65,17 @@ namespace Monitor {
         public Editor        LablEdit     { get; }
         public List<Line>    Registers    { get; } = new();
 
+        public enum StatusBits : int {
+            Overflow = 0, 
+            Carry,
+            Zero,
+            Negative,
+            s4,
+            s5,
+            s6,
+            s7
+        }
+
         public event Action<int> RefreshScreen;
 
         public class DocSlot :
@@ -84,10 +95,6 @@ namespace Monitor {
             public void Notify(ShellNotify eEvent) {
                 _oHost._oBaseSite.Notify( eEvent );
             }
-        }
-
-        public enum CPU_Instructions {
-            load_imm, load_abs, save, add, halt, jump_imm
         }
 
         public class ProgramFile : Editor {
@@ -116,12 +123,13 @@ namespace Monitor {
             FrontDisplay = new DocProperties( new DocSlot( this ) );
             LablEdit     = new Editor       ( new DocSlot( this ) );
 
-            _dctInstructions.Add( "load-imm", Inst_LoadImm );
-            _dctInstructions.Add( "load-abs", Inst_LoadAbs );
+            _dctInstructions.Add( "load-imm", Inst_LoadImm ); // load, reg, data (lda, ldx, ldy)
+            _dctInstructions.Add( "load-abs", Inst_LoadAbs ); // load, reg, addr of data.
             _dctInstructions.Add( "add",      Inst_Add );
-            _dctInstructions.Add( "save",     Inst_Save );
+            _dctInstructions.Add( "save",     Inst_Save ); // save, reg, address to save to. (sta, stx, sty)
             _dctInstructions.Add( "halt",     Inst_Halt );
-            _dctInstructions.Add( "jump-imm", Inst_JumpImm );
+            _dctInstructions.Add( "jump-imm", Inst_JumpImm ); // unconditional jump.
+            _dctInstructions.Add( "comp-abs", Inst_CompAbs ); // (cmp {a}, cpx, cpy)
         }
 
         // See ca 1816 warning.
@@ -304,6 +312,52 @@ namespace Monitor {
 
         public void Inst_Halt() {
             PC = TextCommands.ElementCount;
+        }
+
+        public void SetStatusBits( char cNegative, char cZero, char cCarry ) {
+            StatusLine[(int)StatusBits.Negative].Empty();
+            StatusLine[(int)StatusBits.Negative].TryInsert( 0, cNegative );
+            StatusLine[(int)StatusBits.Zero    ].Empty();
+            StatusLine[(int)StatusBits.Zero    ].TryInsert( 0, cZero);
+            StatusLine[(int)StatusBits.Carry   ].Empty();
+            StatusLine[(int)StatusBits.Carry   ].TryInsert( 0, cCarry );
+
+            FrontDisplay.Property_Values.Raise_BufferEvent( BUFFEREVENTS.FORMATTED );
+        }
+
+        /// <summary>
+        ///Condition 	        N 	Z 	C
+        ///Register < Memory 	1 	0 	0
+        ///Register = Memory 	0 	1 	1
+        ///Register > Memory 	0 	0 	1         
+        ///</summary>
+        public void Inst_CompAbs() {
+            int    iRegister = int.Parse( TextCommands[++PC].ToString() );
+            string strAddr   = TextCommands[++PC].ToString();
+
+            ++PC;
+
+            if( int.TryParse( strAddr, out int iAddr ) ) {
+                string strData = TextCommands[iAddr].ToString();
+
+                // I suppose we could allow letters there so it's easier
+                // to read than for example 65 instead of 'a'. But numbers
+                // for now.
+                if( int.TryParse( strData, out int iMemoryData ) ) {
+                    int iRegisterData = RegisterRead( iRegister );
+                    if( iRegisterData < iMemoryData ) {
+                        SetStatusBits( '1', '0', '0' );
+                    } else {
+                        if( iRegisterData > iMemoryData ) {
+                            SetStatusBits( '0', '0', '1' );
+                        } else {
+                            SetStatusBits( '0', '1', '1' ); // eq.
+                        }
+                    }
+                    return;
+                }
+            }
+            _oBaseSite.LogError( "Invalid Op", "Bad address or data at address" );
         }
 
         public void ProgramRun( bool fNotStep = true ) {
