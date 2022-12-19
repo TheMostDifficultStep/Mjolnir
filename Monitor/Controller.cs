@@ -54,6 +54,8 @@ namespace Monitor {
     {
         protected readonly IPgBaseSite _oBaseSite;
         protected Dictionary< string, Action> _dctInstructions = new();
+        protected Dictionary< string, int >   _dctStatusNames  = new();
+        protected Dictionary< int, int >      _dctPowerOfTwo   = new();
         public bool IsDirty => false;
 
         public IPgParent Parentage => _oBaseSite.Host;
@@ -130,6 +132,23 @@ namespace Monitor {
             _dctInstructions.Add( "halt",     Inst_Halt );
             _dctInstructions.Add( "jump-imm", Inst_JumpImm ); // unconditional jump.
             _dctInstructions.Add( "comp-abs", Inst_CompAbs ); // (cmp {a}, cpx, cpy)
+            _dctInstructions.Add( "brat-imm", Inst_BranchTrueImm ); // branch true, flag, addr;
+            _dctInstructions.Add( "incr",     Inst_Increment );
+            _dctInstructions.Add( "decr",     Inst_Decrement );
+
+            _dctStatusNames.Add( "zero",  (int)StatusBits.Zero );
+            _dctStatusNames.Add( "carry", (int)StatusBits.Carry );
+            _dctStatusNames.Add( "neg",   (int)StatusBits.Negative );
+
+            // This is 6502 flag positions, Don't presently mach my status lines.
+            _dctPowerOfTwo.Add(   1, 0 ); // carry
+            _dctPowerOfTwo.Add(   2, 1 ); // zero
+            _dctPowerOfTwo.Add(   4, 2 ); // int disable
+            _dctPowerOfTwo.Add(   8, 3 ); // decimal
+            _dctPowerOfTwo.Add(  16, 4 ); // break was triggered
+            _dctPowerOfTwo.Add(  32, 5 ); // unused.
+            _dctPowerOfTwo.Add(  64, 6 ); // overflow
+            _dctPowerOfTwo.Add( 128, 7 ); // negative.
         }
 
         // See ca 1816 warning.
@@ -203,7 +222,7 @@ namespace Monitor {
             return true;
         }
 
-        protected void RegisterLoad( int iRegister, string strData ) {
+        protected void RegisterWrite( int iRegister, string strData ) {
             Line oRegister = Registers[iRegister];
             if( int.TryParse( strData, out int iData ) ) {
                 oRegister.Empty();
@@ -212,6 +231,12 @@ namespace Monitor {
             }
             _oBaseSite.LogError( "Program", "Attempted load of Illegal value to register" );
             throw new InvalidOperationException();
+        }
+
+        protected void RegisterWrite( int iRegister, int iData ) {
+            Line oRegister = Registers[iRegister];
+            oRegister.Empty();
+            oRegister.TryAppend( iData.ToString() );
         }
 
         protected int RegisterRead( int iRegister ) {
@@ -262,7 +287,7 @@ namespace Monitor {
         public int PC { 
             get { return RegisterRead( 5 ); } 
             set { 
-                RegisterLoad( 5, value.ToString() ); 
+                RegisterWrite( 5, value.ToString() ); 
                 TextCommands.Raise_BufferEvent( BUFFEREVENTS.FORMATTED );
             } 
         }
@@ -271,7 +296,7 @@ namespace Monitor {
             int    iRegister = int.Parse( TextCommands[++PC].ToString() );
             string strData   = TextCommands[++PC].ToString();
 
-            RegisterLoad( iRegister, strData );
+            RegisterWrite( iRegister, strData );
             ++PC;
         }
 
@@ -280,7 +305,7 @@ namespace Monitor {
             int iB   = RegisterRead( 1 );
             int iSum = iA + iB;
 
-            RegisterLoad( 2, iSum.ToString() );
+            RegisterWrite( 2, iSum.ToString() );
             ++PC;
         }
 
@@ -289,7 +314,7 @@ namespace Monitor {
             string strAddr   = TextCommands[++PC].ToString();
             if( int.TryParse( strAddr, out int iAddr ) ) {
                 string strData = TextCommands[iAddr].ToString();
-                RegisterLoad( iRegister, strData );
+                RegisterWrite( iRegister, strData );
             }
             ++PC;
         }
@@ -351,7 +376,7 @@ namespace Monitor {
                         if( iRegisterData > iMemoryData ) {
                             SetStatusBits( '0', '0', '1' );
                         } else {
-                            SetStatusBits( '0', '1', '1' ); // eq.
+                            SetStatusBits( '0', '1', '0' ); // eq. carry s/b 1 but use 0 for now.
                         }
                     }
                     return;
@@ -360,6 +385,58 @@ namespace Monitor {
             _oBaseSite.LogError( "Invalid Op", "Bad address or data at address" );
         }
 
+        /// <summary>
+        /// Branch if the value of the given flag is true.
+        /// </summary>
+        /// <exception cref="InvalidOperationException"></exception>
+        public void Inst_BranchTrueImm() {
+            string strFlag = TextCommands[++PC].ToString(); // Which flag to use.
+            string strAddr = TextCommands[++PC].ToString();
+
+            ++PC;
+
+            if( int.TryParse( strAddr, out int iBranchAddr ) ) {
+                // First look for a flag label.
+                int iStatusLine = -1;
+                if( !_dctStatusNames.TryGetValue( strFlag, out iStatusLine ) ) {
+                    // Next look for a bit flag, as a base 10 number.
+                    // TODO: Add binary parse ... 00010000 for example.
+                    if( !int.TryParse( strFlag, out int iStatusBit ) ) {
+                        throw new InvalidOperationException();
+                    }
+                    // Convert the number to which status flag line.
+                    if( !_dctPowerOfTwo.TryGetValue( iStatusBit, out iStatusLine ) ) {
+                        throw new InvalidOperationException();
+                    }
+                }
+                // Get the value of the requested status flag. 0 or 1.
+                if( !int.TryParse( StatusLine[iStatusLine].ToString(), out int iFlagValue ) ) {
+                    throw new InvalidOperationException();
+                }
+                if( iFlagValue != 0 ) 
+                    PC = iBranchAddr;
+                return;
+            }
+            throw new InvalidOperationException();
+        }
+
+        public void Inst_Increment() {
+            int iRegister = int.Parse( TextCommands[++PC].ToString() );
+
+            ++PC;
+
+            int iRegisterData = RegisterRead( iRegister );
+            RegisterWrite( iRegister, ++iRegisterData );
+        }
+
+        public void Inst_Decrement() {
+            int iRegister = int.Parse( TextCommands[++PC].ToString() );
+
+            ++PC;
+
+            int iRegisterData = RegisterRead( iRegister );
+            RegisterWrite( iRegister, --iRegisterData );
+        }
         public void ProgramRun( bool fNotStep = true ) {
             try {
                 do {

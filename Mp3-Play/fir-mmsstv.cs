@@ -418,8 +418,7 @@ namespace Play.Sound {
 	/// </remarks>
 	public class CIIRTANK {
 		double	_z1, _z2;  // past 1 or 2 ago values
-
-		double	_a0;      // Coefficients for the filter.
+		double	_a0;       // Coefficients for the filter.
 		double	_b1, _b2;
 
 		/// <summary>
@@ -492,11 +491,19 @@ namespace Play.Sound {
 		public CIIR() {
 		}
 
-		void Clear()
-		{
+		void Clear() {
 			Array.Clear( Z, 0, Z.Length );
 		}
 
+
+		/// <summary>
+		/// 
+		/// </summary>
+		/// <param name="fc">Center frequency</param>
+		/// <param name="fs">Sample frequency</param>
+		/// <param name="order"></param>
+		/// <param name="bc">Butterworth or Chebyshev</param>
+		/// <param name="rp">Ripple in the pass area</param>
 		public void MakeIIR(double fc, double fs, int order, FilterType bc, double rp)
 		{
 			m_order = order;
@@ -507,6 +514,11 @@ namespace Play.Sound {
 
 		// bc : 0-バターワース, 1-チェビシフ : 0-Butterworth, 1-Chebyshev
 		// rp : 通過域のリップル : Ripple in the pass area
+		/// <param name="fc">Center frequency</param>
+		/// <param name="fs">Sample frequency</param>
+		/// <param name="order"></param>
+		/// <param name="bc">Butterworth or Chebyshev</param>
+		/// <param name="rp">Ripple in the pass area</param>
 		public static void MakeIIR(double []A, double[]B, double fc, double fs, int order, FilterType bc, double rp)
 		{
 			double	w0, wa, u=0, zt, x;
@@ -517,18 +529,17 @@ namespace Play.Sound {
 			}
 			wa = Math.Tan(Math.PI*fc/fs);
 			w0 = 1.0;
-			n = (order & 1) + 1;
+			n = (order & 1) + 1; // Make n even?
 			int pA = 0;
 			int pB = 0;
 			double d1, d2;
-			for( j = 1; j <= order/2; j++, pA+=3, pB+=2 ){
+			for( j = 1; j <= order/2; j++, pA+=3, pB+=2 ) {
 				if( bc == FilterType.Chebyshev ){	// チェビシフ
 					d1 = Math.Sinh(u)*Math.Cos(n*Math.PI/(2*order));
 					d2 = Math.Cosh(u)*Math.Sin(n*Math.PI/(2*order));
 					w0 = Math.Sqrt(d1 * d1 + d2 * d2);
 					zt = Math.Sinh(u)*Math.Cos(n*Math.PI/(2*order))/w0;
-				}
-				else {		// バターワース
+				} else {		// バターワース
 					w0 = 1.0;
 					zt = Math.Cos(n*Math.PI/(2*order));
 				}
@@ -543,19 +554,19 @@ namespace Play.Sound {
 				x = Math.Pow( 1.0/Math.Pow(10.0,rp/20.0), 1/(double)(order/2) );
 				pB = 0;
 				for( j = 1; j <= order/2; j++, pB+=2 ){
-					B[pB] *= x;
+					B[pB  ] *= x;
 					B[pB+1] *= x;
 				}
 			}
-			if( ( order & 1 ) != 0 ){
-				if( bc != 0 ) 
+			if( ( order & 1 ) != 0 ){ // odd values.
+				if( bc == FilterType.Chebyshev ) 
 					w0 = Math.Sinh(u);
 				j = (order / 2);
 				pA = j*3;
 				pB = j*2;
-				A[pA] = 1 + wa*w0;
+				A[pA  ] = 1 + wa*w0;
 				A[pA+1] = -(wa*w0 - 1)/A[pA];
-				B[pB] = wa*w0/A[pA];
+				B[pB  ] = wa*w0/A[pA];
 				B[pB+1] = B[pB];
 			}
 		}
