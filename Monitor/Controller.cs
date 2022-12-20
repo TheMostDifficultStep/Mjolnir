@@ -133,6 +133,7 @@ namespace Monitor {
             _dctInstructions.Add( "jump-imm", Inst_JumpImm ); // unconditional jump.
             _dctInstructions.Add( "comp-abs", Inst_CompAbs ); // (cmp {a}, cpx, cpy)
             _dctInstructions.Add( "brat-imm", Inst_BranchTrueImm ); // branch true, flag, addr;
+            _dctInstructions.Add( "braf-imm", Inst_BranchFalseImm ); // branch false, flag, addr;
             _dctInstructions.Add( "incr",     Inst_Increment );
             _dctInstructions.Add( "decr",     Inst_Decrement );
 
@@ -376,7 +377,7 @@ namespace Monitor {
                         if( iRegisterData > iMemoryData ) {
                             SetStatusBits( '0', '0', '1' );
                         } else {
-                            SetStatusBits( '0', '1', '0' ); // eq. carry s/b 1 but use 0 for now.
+                            SetStatusBits( '0', '1', '1' ); // eq. carry s/b 1 but use 0 for now.
                         }
                     }
                     return;
@@ -390,6 +391,13 @@ namespace Monitor {
         /// </summary>
         /// <exception cref="InvalidOperationException"></exception>
         public void Inst_BranchTrueImm() {
+            Inst_Branch_Imm( true );
+        }
+
+        public void Inst_BranchFalseImm() {
+            Inst_Branch_Imm( false );
+        }
+        public void Inst_Branch_Imm( bool fOnTrue ) {
             string strFlag = TextCommands[++PC].ToString(); // Which flag to use.
             string strAddr = TextCommands[++PC].ToString();
 
@@ -413,7 +421,8 @@ namespace Monitor {
                 if( !int.TryParse( StatusLine[iStatusLine].ToString(), out int iFlagValue ) ) {
                     throw new InvalidOperationException();
                 }
-                if( iFlagValue != 0 ) 
+                bool fResult = fOnTrue ? iFlagValue != 0 : iFlagValue == 0;
+                if( fResult ) 
                     PC = iBranchAddr;
                 return;
             }
