@@ -136,6 +136,7 @@ namespace Monitor {
             _dctInstructions.Add( "braf-imm", Inst_BranchFalseImm ); // branch false, flag, addr;
             _dctInstructions.Add( "incr",     Inst_Increment );
             _dctInstructions.Add( "decr",     Inst_Decrement );
+            _dctInstructions.Add( "mult",     Inst_Multiply );
 
             _dctStatusNames.Add( "zero",  (int)StatusBits.Zero );
             _dctStatusNames.Add( "carry", (int)StatusBits.Carry );
@@ -301,6 +302,9 @@ namespace Monitor {
             ++PC;
         }
 
+        /// <summary>
+        /// integer add doesn't set flags or anything.
+        /// </summary>
         public void Inst_Add() {
             int iA   = RegisterRead( 0 );
             int iB   = RegisterRead( 1 );
@@ -310,6 +314,17 @@ namespace Monitor {
             ++PC;
         }
 
+        /// <summary>
+        /// integer multiply doesn't set flags or anything.
+        /// </summary>
+        public void Inst_Multiply() {
+            int iA   = RegisterRead( 0 );
+            int iB   = RegisterRead( 1 );
+            int iResult = iA * iB;
+
+            RegisterWrite( 2, iResult.ToString() );
+            ++PC;
+        }
         public void Inst_LoadAbs() {
             int    iRegister = int.Parse( TextCommands[++PC].ToString() );
             string strAddr   = TextCommands[++PC].ToString();
@@ -446,6 +461,8 @@ namespace Monitor {
             int iRegisterData = RegisterRead( iRegister );
             RegisterWrite( iRegister, --iRegisterData );
         }
+
+
         public void ProgramRun( bool fNotStep = true ) {
             try {
                 do {
