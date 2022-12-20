@@ -78,6 +78,13 @@ namespace Monitor {
             s7
         }
 
+        public enum Arithmetic {
+            Add,
+            Mult,
+            Sub,
+            Div
+        }
+
         public event Action<int> RefreshScreen;
 
         public class DocSlot :
@@ -127,7 +134,6 @@ namespace Monitor {
 
             _dctInstructions.Add( "load-imm", Inst_LoadImm ); // load, reg, data (lda, ldx, ldy)
             _dctInstructions.Add( "load-abs", Inst_LoadAbs ); // load, reg, addr of data.
-            _dctInstructions.Add( "add",      Inst_Add );
             _dctInstructions.Add( "save",     Inst_Save ); // save, reg, address to save to. (sta, stx, sty)
             _dctInstructions.Add( "halt",     Inst_Halt );
             _dctInstructions.Add( "jump-imm", Inst_JumpImm ); // unconditional jump.
@@ -136,7 +142,10 @@ namespace Monitor {
             _dctInstructions.Add( "braf-imm", Inst_BranchFalseImm ); // branch false, flag, addr;
             _dctInstructions.Add( "incr",     Inst_Increment );
             _dctInstructions.Add( "decr",     Inst_Decrement );
-            _dctInstructions.Add( "mult",     Inst_Multiply );
+            _dctInstructions.Add( "addi",     Inst_Add );
+            _dctInstructions.Add( "addf",     Inst_AddFloat );
+            _dctInstructions.Add( "muli",     Inst_Multiply );
+            _dctInstructions.Add( "mulf",     Inst_MultiplyFloat );
 
             _dctStatusNames.Add( "zero",  (int)StatusBits.Zero );
             _dctStatusNames.Add( "carry", (int)StatusBits.Carry );
@@ -224,15 +233,17 @@ namespace Monitor {
             return true;
         }
 
+        /// <summary>
+        /// Need to think thru representations. Since now I have "floating point"
+        /// numbers. Probably should just write whatever string is given.
+        /// </summary>
+        /// <param name="iRegister"></param>
+        /// <param name="strData"></param>
+        /// <exception cref="InvalidOperationException"></exception>
         protected void RegisterWrite( int iRegister, string strData ) {
             Line oRegister = Registers[iRegister];
-            if( int.TryParse( strData, out int iData ) ) {
-                oRegister.Empty();
-                oRegister.TryAppend( strData );
-                return;
-            }
-            _oBaseSite.LogError( "Program", "Attempted load of Illegal value to register" );
-            throw new InvalidOperationException();
+            oRegister.Empty();
+            oRegister.TryAppend( strData );
         }
 
         protected void RegisterWrite( int iRegister, int iData ) {
@@ -250,6 +261,23 @@ namespace Monitor {
 
             _oBaseSite.LogError( "Program", "Illegal value in register" );
             throw new InvalidOperationException();
+        }
+
+        protected float RegisterReadFloat( int iRegister ) {
+            Line oRegister = Registers[iRegister];
+
+            if( float.TryParse( oRegister.ToString(), out float flData ) ) {
+                return flData;
+            }
+
+            _oBaseSite.LogError( "Program", "Illegal value in register" );
+            throw new InvalidOperationException();
+        }
+
+        protected void RegisterWriteFloat( int iRegister, float flData ) {
+            Line oRegister = Registers[iRegister];
+            oRegister.Empty();
+            oRegister.TryAppend( flData.ToString() );
         }
 
         // this won't run, just keeping it for reference.
@@ -302,29 +330,87 @@ namespace Monitor {
             ++PC;
         }
 
-        /// <summary>
-        /// integer add doesn't set flags or anything.
-        /// </summary>
         public void Inst_Add() {
-            int iA   = RegisterRead( 0 );
-            int iB   = RegisterRead( 1 );
-            int iSum = iA + iB;
-
-            RegisterWrite( 2, iSum.ToString() );
-            ++PC;
+            ArithmeticInteger( Arithmetic.Add );
         }
-
-        /// <summary>
-        /// integer multiply doesn't set flags or anything.
-        /// </summary>
         public void Inst_Multiply() {
-            int iA   = RegisterRead( 0 );
-            int iB   = RegisterRead( 1 );
-            int iResult = iA * iB;
+            ArithmeticInteger( Arithmetic.Mult );
+        }
+        public void Inst_Subtract() {
+            ArithmeticInteger( Arithmetic.Sub);
+        }
+        public void Inst_Divide() {
+            ArithmeticInteger( Arithmetic.Div );
+        }
+       /// <summary>
+        /// doesn't set flags or anything.
+        /// </summary>
+        private void ArithmeticInteger( Arithmetic eOperand ) {
+            int iA      = RegisterRead( 0 );
+            int iB      = RegisterRead( 1 );
+            int iResult = 0;
+            
+            switch( eOperand ) {
+                case Arithmetic.Mult: 
+                    iResult = iA * iB;
+                    break;
+                case Arithmetic.Add: 
+                    iResult = iA + iB;
+                    break;
+                case Arithmetic.Sub: 
+                    iResult = iA - iB;
+                    break;
+                case Arithmetic.Div: 
+                    iResult = iA / iB;
+                    break;
+                default:
+                    throw new InvalidOperationException( "bad floating point operation" );
+            }
 
             RegisterWrite( 2, iResult.ToString() );
             ++PC;
         }
+
+        public void Inst_MultiplyFloat() {
+            ArithmeticFloat( Arithmetic.Mult );
+        }
+        public void Inst_AddFloat() {
+            ArithmeticFloat( Arithmetic.Add );
+        }
+        public void Inst_SubtractFloat() {
+            ArithmeticFloat( Arithmetic.Sub );
+        }
+        public void Inst_DivideFloat() {
+            ArithmeticFloat( Arithmetic.Div );
+        }
+        private void ArithmeticFloat( Arithmetic eOperand ) {
+            float flA      = RegisterReadFloat( 0 );
+            float flB      = RegisterReadFloat( 1 );
+            float flResult = 0;
+            
+            switch( eOperand ) {
+                case Arithmetic.Mult: 
+                    flResult = flA * flB;
+                    break;
+                case Arithmetic.Add: 
+                    flResult = flA + flB;
+                    break;
+                case Arithmetic.Sub: 
+                    flResult = flA - flB;
+                    break;
+                case Arithmetic.Div: 
+                    flResult = flA / flB;
+                    break;
+                default:
+                    throw new InvalidOperationException( "bad floating point operation" );
+            }
+
+            RegisterWrite( 2, flResult.ToString( ) );
+            ++PC;
+        }
+        /// <summary>
+        /// Need to revisit this for floating point.
+        /// </summary>
         public void Inst_LoadAbs() {
             int    iRegister = int.Parse( TextCommands[++PC].ToString() );
             string strAddr   = TextCommands[++PC].ToString();
