@@ -34,8 +34,6 @@ namespace Play.SSTV {
         public SKBitmap  Icon    { get; }
         public Image     Iconic => null;
         public bool      IsDirty   => false;
-        public IPgParent Parentage => _oViewSite.Host;
-        public IPgParent Services  => Parentage.Services;
 
         public DocSSTV SSTVDocument { get; }
 
