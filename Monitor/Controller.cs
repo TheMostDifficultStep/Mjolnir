@@ -138,6 +138,7 @@ namespace Monitor {
             _dctInstructions.Add( "halt",     Inst_Halt );
             _dctInstructions.Add( "jump-imm", Inst_JumpImm ); // unconditional jump.
             _dctInstructions.Add( "comp-abs", Inst_CompAbs ); // (cmp {a}, cpx, cpy)
+            _dctInstructions.Add( "comp-imm", Inst_CompImm); // (cmp {a}, cpx, cpy)
             _dctInstructions.Add( "brat-imm", Inst_BranchTrueImm ); // branch true, flag, addr;
             _dctInstructions.Add( "braf-imm", Inst_BranchFalseImm ); // branch false, flag, addr;
             _dctInstructions.Add( "incr",     Inst_Increment );
@@ -146,6 +147,11 @@ namespace Monitor {
             _dctInstructions.Add( "addf",     Inst_AddFloat );
             _dctInstructions.Add( "muli",     Inst_Multiply );
             _dctInstructions.Add( "mulf",     Inst_MultiplyFloat );
+            _dctInstructions.Add( "subi",     Inst_Subtract );
+            _dctInstructions.Add( "subf",     Inst_SubtractFloat );
+            _dctInstructions.Add( "divi",     Inst_Divide );
+            _dctInstructions.Add( "divf",     Inst_DivideFloat );
+            _dctInstructions.Add( "move",     Inst_MoveReg );
 
             _dctStatusNames.Add( "zero",  (int)StatusBits.Zero );
             _dctStatusNames.Add( "carry", (int)StatusBits.Carry );
@@ -343,11 +349,13 @@ namespace Monitor {
             ArithmeticInteger( Arithmetic.Div );
         }
        /// <summary>
-        /// doesn't set flags or anything.
+        /// doesn't set flags or anything. Annnd not using flags
+        /// either. But I'm thinking about it.
         /// </summary>
         private void ArithmeticInteger( Arithmetic eOperand ) {
             int iA      = RegisterRead( 0 );
             int iB      = RegisterRead( 1 );
+            int iC      = GetStatusBit( StatusBits.Carry );
             int iResult = 0;
             
             switch( eOperand ) {
@@ -355,10 +363,11 @@ namespace Monitor {
                     iResult = iA * iB;
                     break;
                 case Arithmetic.Add: 
-                    iResult = iA + iB;
+                    iResult = iA + iB;// + iC;
                     break;
                 case Arithmetic.Sub: 
-                    iResult = iA - iB;
+                    //int iNotC = iC != 0 ? 0 : 1;
+                    iResult = iA - iB;// - iNotC;
                     break;
                 case Arithmetic.Div: 
                     iResult = iA / iB;
@@ -367,7 +376,7 @@ namespace Monitor {
                     throw new InvalidOperationException( "bad floating point operation" );
             }
 
-            RegisterWrite( 2, iResult.ToString() );
+            RegisterWrite( 0, iResult.ToString() );
             ++PC;
         }
 
@@ -405,7 +414,7 @@ namespace Monitor {
                     throw new InvalidOperationException( "bad floating point operation" );
             }
 
-            RegisterWrite( 2, flResult.ToString( ) );
+            RegisterWrite( 0, flResult.ToString( ) );
             ++PC;
         }
         /// <summary>
@@ -437,8 +446,24 @@ namespace Monitor {
             PC = int.Parse( TextCommands[++PC].ToString() );
         }
 
+        public void Inst_MoveReg() {
+            int iSource = int.Parse( TextCommands[++PC].ToString() );
+            int iTarget = int.Parse( TextCommands[++PC].ToString() );
+
+            ++PC;
+
+            RegisterWrite( iTarget, RegisterRead( iSource ) );
+        }
+
         public void Inst_Halt() {
             PC = TextCommands.ElementCount;
+        }
+
+        public int GetStatusBit( StatusBits eWhichBit ) {
+            if( !int.TryParse( StatusLine[(int)eWhichBit].ToString(), out int iFlagValue ) ) {
+                throw new InvalidOperationException();
+            }
+            return iFlagValue;
         }
 
         public void SetStatusBits( char cNegative, char cZero, char cCarry ) {
@@ -483,6 +508,28 @@ namespace Monitor {
                     }
                     return;
                 }
+            }
+            _oBaseSite.LogError( "Invalid Op", "Bad address or data at address" );
+        }
+
+        public void Inst_CompImm() {
+            int    iRegister = int.Parse( TextCommands[++PC].ToString() );
+            string strData   = TextCommands[++PC].ToString();
+
+            ++PC;
+
+            if( int.TryParse( strData, out int iData ) ) {
+                int iRegisterData = RegisterRead( iRegister );
+                if( iRegisterData < iData ) {
+                    SetStatusBits( '1', '0', '0' );
+                } else {
+                    if( iRegisterData > iData ) {
+                        SetStatusBits( '0', '0', '1' );
+                    } else {
+                        SetStatusBits( '0', '1', '1' ); // eq. carry s/b 1 but use 0 for now.
+                    }
+                }
+                return;
             }
             _oBaseSite.LogError( "Invalid Op", "Bad address or data at address" );
         }
