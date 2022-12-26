@@ -772,7 +772,7 @@ namespace Play.Sound {
 
         readonly private   SKBitmap      _oBitmap; // Do not dispose this, caller owns it.
         readonly private   IPgModulator  _oModulator;
-        readonly protected List<SKColor> _rgCache = new( 800 );
+        readonly protected List<SKColor> _rgRGBCache = new( 800 ); // Might be better to use an array.
 
         /// <summary>
         /// 
@@ -903,21 +903,21 @@ namespace Play.Sound {
                 return;
 
             try {
-                _rgCache.Clear();
+                _rgRGBCache.Clear(); // MUST clear this else keeps using first line data!!
             
 	            Write( 1500, GainIndx.G, 1.5 );      // gap (porch?)
 	            for( int x = 0; x < 320; x++ ) {     // G
-                    _rgCache.Add( GetPixel( x, iLine ) );
-		            Write( ColorToFreq( _rgCache[x].Green ), GainIndx.G, dbTimePerPixel );
+                    _rgRGBCache.Add( GetPixel( x, iLine ) );
+		            Write( ColorToFreq( _rgRGBCache[x].Green ), GainIndx.G, dbTimePerPixel );
 	            }
 	            Write( 1500, GainIndx.B, 1.5 );
 	            for( int x = 0; x < 320; x++ ) {     // B
-		            Write( ColorToFreq( _rgCache[x].Blue  ), GainIndx.B, dbTimePerPixel );
+		            Write( ColorToFreq( _rgRGBCache[x].Blue  ), GainIndx.B, dbTimePerPixel );
 	            }
 	            Write( 1200, 9 );                    // HSync in second half!!
 	            Write( 1500, GainIndx.R, 1.5 );
 	            for( int x = 0; x < 320; x++ ) {     // R
-		            Write( ColorToFreq( _rgCache[x].Red   ), GainIndx.R, dbTimePerPixel );
+		            Write( ColorToFreq( _rgRGBCache[x].Red   ), GainIndx.R, dbTimePerPixel );
 	            }
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( AccessViolationException ),
@@ -944,84 +944,27 @@ namespace Play.Sound {
                 return;
 
             try {
-                _rgCache.Clear();
+                _rgRGBCache.Clear();
 
 	            Write( 1200, Mode.WidthSyncInMS );
 
 	            Write( 1500, GainIndx.R, Mode.WidthGapInMS );   // R gap
 	            for( int x = 0; x < Mode.Resolution.Width; x++ ) {
-                    _rgCache.Add( GetPixel( x, iLine ) );       // Don't forget to add the cache line!!
-		            Write( ColorToFreq(_rgCache[x].Red  ), GainIndx.R, dbTimePerPixel );
+                    _rgRGBCache.Add( GetPixel( x, iLine ) );       // Don't forget to add the cache line!!
+		            Write( ColorToFreq(_rgRGBCache[x].Red  ), GainIndx.R, dbTimePerPixel );
 	            }
 
 	            Write( 1500, GainIndx.G, Mode.WidthGapInMS );   // G gap
 	            for( int x = 0; x < Mode.Resolution.Width; x++ ) {     
-		            Write( ColorToFreq(_rgCache[x].Green), GainIndx.G, dbTimePerPixel );
+		            Write( ColorToFreq(_rgRGBCache[x].Green), GainIndx.G, dbTimePerPixel );
 	            }
 
 	            Write( 1500, GainIndx.B, Mode.WidthGapInMS );   // B gap
 	            for( int x = 0; x < Mode.Resolution.Width; x++ ) {
-		            Write( ColorToFreq(_rgCache[x].Blue ), GainIndx.B, dbTimePerPixel );
+		            Write( ColorToFreq(_rgRGBCache[x].Blue ), GainIndx.B, dbTimePerPixel );
 	            }
 
 	            Write( 1500, Mode.WidthGapInMS );
-            } catch( Exception oEx ) {
-                Type[] rgErrors = { typeof( AccessViolationException ),
-                                    typeof( NullReferenceException ),
-                                    typeof( ArgumentOutOfRangeException ) };
-                if( !rgErrors.Contains( oEx.GetType() ) )
-                    throw;
-
-                // This would be a good place to return an error.
-            }
-        }
-    }
-
-    public class GenerateRobot422 : SSTVCrCbYGenerator {
-        readonly List<Chrominance8Bit> _rgChrome = new(800);
-
-        /// <summary>
-        /// Unfortunately for Robot, I'll have to choose between a 422 generator and a 420
-        /// generator. That's a bummer, since it trashes up a pretty clean system heretofore.
-        /// I've implemented the 422, that's easier, and I'll implement the 420 later.
-        /// </summary>
-        public GenerateRobot422( SKBitmap oBitmap, IPgModulator oModulator, SSTVMode oMode ) : 
-            base( oBitmap, oModulator, oMode )
-        {
-        }
-
-        protected override void WriteLine( int iLine ) {
-	        double dbTimePerPixel = Mode.WidthColorInMS / Mode.Resolution.Width; 
-
-            if( iLine > Height )
-                return;
-
-            try {
-                _rgCache.Clear();
-
-	            Write( 1200, Mode.WidthSyncInMS );
-                Write( 1500, Mode.WidthGapInMS  );
-
-	            for( int x = 0; x < Width; x++ ) {      // Y(odd)
-                    SKColor         skPixel = GetPixel( x, iLine );
-                    Chrominance8Bit crPixel = GetRY   ( skPixel );
-
-                    _rgChrome.Add( crPixel );
-
-		            Write( ColorToFreq( crPixel.Y       ), dbTimePerPixel );
-	            }
-
-	            Write( 1500, Mode.WidthSyncInMS/2 );    // sync
-                Write( 1500, Mode.WidthGapInMS /2 );    // gap
-	            for( int x = 0; x < Width; x += 2 ) {   // R-Y
-		            Write( ColorToFreq( _rgChrome[x].RY ), dbTimePerPixel );
-	            }
-
-	            Write( 2300, Mode.WidthSyncInMS/2 );    // sync
-                Write( 1500, Mode.WidthGapInMS /2 );    // gap
-	            for( int x = 0; x < Width; x += 2 ) {   // B-Y
-		            Write( ColorToFreq( _rgChrome[x].BY ), dbTimePerPixel );
-	            }
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( AccessViolationException ),
                                     typeof( NullReferenceException ),
@@ -1059,24 +1002,24 @@ namespace Play.Sound {
                 return;
 
             try {
-                _rgCache.Clear();
+                _rgRGBCache.Clear();
 
 	            Write( 1200, 4.862 );               // HSync on each line.
 
 	            Write( 1500, GainIndx.G, 0.572 );   // G gap
 	            for( int x = 0; x < Mode.Resolution.Width; x++ ) {     
-                    _rgCache.Add( GetPixel( x, iLine ) );
-		            Write( ColorToFreq(_rgCache[x].Green), GainIndx.G, dbTimePerPixel );
+                    _rgRGBCache.Add( GetPixel( x, iLine ) );
+		            Write( ColorToFreq(_rgRGBCache[x].Green), GainIndx.G, dbTimePerPixel );
 	            }
 
 	            Write( 1500, GainIndx.B, 0.572 );   // B gap
 	            for( int x = 0; x < Mode.Resolution.Width; x++ ) {
-		            Write( ColorToFreq(_rgCache[x].Blue ), GainIndx.B, dbTimePerPixel );
+		            Write( ColorToFreq(_rgRGBCache[x].Blue ), GainIndx.B, dbTimePerPixel );
 	            }
 
 	            Write( 1500, GainIndx.R, 0.572 );   // R gap
 	            for( int x = 0; x < Mode.Resolution.Width; x++ ) {
-		            Write( ColorToFreq(_rgCache[x].Red  ), GainIndx.R, dbTimePerPixel );
+		            Write( ColorToFreq(_rgRGBCache[x].Red  ), GainIndx.R, dbTimePerPixel );
 	            }
 	            Write( 1200, 0.0);                  // Just a check to see how many samples sent!
             } catch( Exception oEx ) {
@@ -1127,8 +1070,69 @@ namespace Play.Sound {
 
     }
 
+    public class GenerateRobot422 : SSTVCrCbYGenerator {
+        readonly List<Chrominance8Bit> _rgChrome = new(800);
+
+        /// <summary>
+        /// Unfortunately for Robot, I'll have to choose between a 422 generator and a 420
+        /// generator. That's a bummer, since it trashes up a pretty clean system heretofore.
+        /// I've implemented the 422, that's easier, and I'll implement the 420 later.
+        /// </summary>
+        public GenerateRobot422( SKBitmap oBitmap, IPgModulator oModulator, SSTVMode oMode ) : 
+            base( oBitmap, oModulator, oMode )
+        {
+        }
+
+        /// <summary>
+        /// This one just can't seem to generate reds. And it's almost exactly the
+        /// same as PD for all intensive purposes. Not sure what's wrong.
+        /// </summary>
+        protected override void WriteLine( int iLine ) {
+	        double dbTimePerPixel = Mode.WidthColorInMS / Mode.Resolution.Width; 
+
+            if( iLine > Height )
+                return;
+
+            try {
+                _rgChrome.Clear();
+
+	            Write( 1200, Mode.WidthSyncInMS );
+                Write( 1500, Mode.WidthGapInMS  );
+
+	            for( int x = 0; x < Width; x++ ) {      // Y(odd)
+                    SKColor         skPixel = GetPixel( x, iLine );
+                    Chrominance8Bit crPixel = GetRY   ( skPixel );
+
+                    _rgChrome.Add( crPixel );
+
+		            Write( ColorToFreq( crPixel.Y       ), dbTimePerPixel );
+	            }
+
+	            Write( 1500, Mode.WidthSyncInMS/2 );    // sync
+                Write( 1900, Mode.WidthGapInMS /2 );    // gap
+	            for( int x = 0; x < Width; x += 2 ) {   // R-Y
+		            Write( ColorToFreq( _rgChrome[x].RY ), dbTimePerPixel );
+	            }
+
+	            Write( 2300, Mode.WidthSyncInMS/2 );    // sync
+                Write( 1900, Mode.WidthGapInMS /2 );    // gap
+	            for( int x = 0; x < Width; x += 2 ) {   // B-Y
+		            Write( ColorToFreq( _rgChrome[x].BY ), dbTimePerPixel );
+	            }
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( AccessViolationException ),
+                                    typeof( NullReferenceException ),
+                                    typeof( ArgumentOutOfRangeException ) };
+                if( !rgErrors.Contains( oEx.GetType() ) )
+                    throw;
+
+                // This would be a good place to return an error.
+            }
+        }
+    }
+
     /// <summary>
-    /// This class generates the PD modes. Only the PD 90 modes works. >_<;;
+    /// This class generates the PD modes. 
     /// </summary>
     public class GeneratePD : SSTVCrCbYGenerator {
         readonly List<Chrominance8Bit> _rgChrome = new(800);
