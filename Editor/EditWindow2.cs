@@ -427,6 +427,8 @@ namespace Play.Edit {
             uint uiStdUI   = _oStdUI.FontCache( _oStdUI.FaceCache( @"C:\windows\fonts\seguisym.ttf" ), 12, oInfo.pntDpi );
           //uint uiEmojID  = _oStdUI.FontCache( _oStdUI.FaceCache( @"C:\Users\Frodo\AppData\Local\Microsoft\Windows\Fonts\NotoEmoji-Regular.ttf" ), 12, sResolution );
 
+            // BUG: Sort of weird I do this here. You would think it would be in the
+            // constructor or in the InitInternal() call. :-/
             IPgFontRender oRender = _oStdUI.FontRendererAt( uiStdUI );
             
             _oCheque = oRender.GetGlyph(0x2714); // TODO: Make overridable.

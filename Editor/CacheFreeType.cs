@@ -140,6 +140,11 @@ namespace Play.Edit {
         protected const int InvisibleEOL = 0; // use this if I put the "<" at the end of selected lines.
                                               // this marks places where I used to fix up for that.
 
+        public int Bottom {
+            get { return Top + Height; }
+            set { Top = value - Height; }
+        }
+
         protected readonly List<IPgGlyph>  _rgGlyphs     = new List<IPgGlyph >(100); // Glyphs that construct characters.
         protected readonly List<PgCluster> _rgClusters   = new List<PgCluster>(100); // Single unit representing a character.
         protected readonly List<int>       _rgClusterMap = new List<int      >(100); // Cluster map from UTF to Cluster.
@@ -166,22 +171,6 @@ namespace Play.Edit {
             sbBuild.Append( Line.ToString(), 0, Line.ElementCount > 50 ? 50 : Line.ElementCount );
 
             return( sbBuild.ToString() );
-        }
-
-        public void SetEdge( CACHEEDGE eSide, int iValue ) {
-            switch( eSide ) {
-                case CACHEEDGE.TOP:
-                    this.Top = iValue;
-                    break;
-                case CACHEEDGE.BOTTOM:
-                    this.Bottom = iValue;
-                    break;
-            }
-        }
-
-        public int Bottom {
-            get { return Top + Height; }
-            set { Top = value - Height; }
         }
 
         /// <summary>

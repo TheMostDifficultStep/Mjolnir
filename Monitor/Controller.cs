@@ -8,7 +8,7 @@ using Play.Forms;
 namespace Monitor {
     public class MonitorController : Controller {
         public MonitorController() {
-            _rgExtensions.Add( ".nibble" );
+            _rgExtensions.Add( ".fourbit" );
         }
         public override IDisposable CreateDocument(IPgBaseSite oSite, string strExtension) {
             return new MonitorDocument( oSite );
@@ -54,6 +54,8 @@ namespace Monitor {
     {
         protected readonly IPgBaseSite _oBaseSite;
         protected Dictionary< string, Action> _dctInstructions = new();
+        protected Dictionary< string, int >   _dctStatusNames  = new();
+        protected Dictionary< int, int >      _dctPowerOfTwo   = new();
         public bool IsDirty => false;
 
         public IPgParent Parentage => _oBaseSite.Host;
@@ -64,6 +66,24 @@ namespace Monitor {
         public List<Line>    StatusLine   { get; } = new();
         public Editor        LablEdit     { get; }
         public List<Line>    Registers    { get; } = new();
+
+        public enum StatusBits : int {
+            Overflow = 0, 
+            Carry,
+            Zero,
+            Negative,
+            s4,
+            s5,
+            s6,
+            s7
+        }
+
+        public enum Arithmetic {
+            Add,
+            Mult,
+            Sub,
+            Div
+        }
 
         public event Action<int> RefreshScreen;
 
@@ -84,10 +104,6 @@ namespace Monitor {
             public void Notify(ShellNotify eEvent) {
                 _oHost._oBaseSite.Notify( eEvent );
             }
-        }
-
-        public enum CPU_Instructions {
-            load_imm, load_abs, save, add, halt, jump_imm
         }
 
         public class ProgramFile : Editor {
@@ -116,12 +132,40 @@ namespace Monitor {
             FrontDisplay = new DocProperties( new DocSlot( this ) );
             LablEdit     = new Editor       ( new DocSlot( this ) );
 
-            _dctInstructions.Add( "load-imm", Inst_LoadImm );
-            _dctInstructions.Add( "load-abs", Inst_LoadAbs );
-            _dctInstructions.Add( "add",      Inst_Add );
-            _dctInstructions.Add( "save",     Inst_Save );
+            _dctInstructions.Add( "load-imm", Inst_LoadImm ); // load, reg, data (lda, ldx, ldy)
+            _dctInstructions.Add( "load-abs", Inst_LoadAbs ); // load, reg, addr of data.
+            _dctInstructions.Add( "save",     Inst_Save ); // save, reg, address to save to. (sta, stx, sty)
             _dctInstructions.Add( "halt",     Inst_Halt );
-            _dctInstructions.Add( "jump-imm", Inst_JumpImm );
+            _dctInstructions.Add( "jump-imm", Inst_JumpImm ); // unconditional jump.
+            _dctInstructions.Add( "comp-abs", Inst_CompAbs ); // (cmp {a}, cpx, cpy)
+            _dctInstructions.Add( "comp-imm", Inst_CompImm); // (cmp {a}, cpx, cpy)
+            _dctInstructions.Add( "brat-imm", Inst_BranchTrueImm ); // branch true, flag, addr;
+            _dctInstructions.Add( "braf-imm", Inst_BranchFalseImm ); // branch false, flag, addr;
+            _dctInstructions.Add( "incr",     Inst_Increment );
+            _dctInstructions.Add( "decr",     Inst_Decrement );
+            _dctInstructions.Add( "addi",     Inst_Add );
+            _dctInstructions.Add( "addf",     Inst_AddFloat );
+            _dctInstructions.Add( "muli",     Inst_Multiply );
+            _dctInstructions.Add( "mulf",     Inst_MultiplyFloat );
+            _dctInstructions.Add( "subi",     Inst_Subtract );
+            _dctInstructions.Add( "subf",     Inst_SubtractFloat );
+            _dctInstructions.Add( "divi",     Inst_Divide );
+            _dctInstructions.Add( "divf",     Inst_DivideFloat );
+            _dctInstructions.Add( "move",     Inst_MoveReg );
+
+            _dctStatusNames.Add( "zero",  (int)StatusBits.Zero );
+            _dctStatusNames.Add( "carry", (int)StatusBits.Carry );
+            _dctStatusNames.Add( "neg",   (int)StatusBits.Negative );
+
+            // This is 6502 flag positions, Don't presently mach my status lines.
+            _dctPowerOfTwo.Add(   1, 0 ); // carry
+            _dctPowerOfTwo.Add(   2, 1 ); // zero
+            _dctPowerOfTwo.Add(   4, 2 ); // int disable
+            _dctPowerOfTwo.Add(   8, 3 ); // decimal
+            _dctPowerOfTwo.Add(  16, 4 ); // break was triggered
+            _dctPowerOfTwo.Add(  32, 5 ); // unused.
+            _dctPowerOfTwo.Add(  64, 6 ); // overflow
+            _dctPowerOfTwo.Add( 128, 7 ); // negative.
         }
 
         // See ca 1816 warning.
@@ -195,15 +239,23 @@ namespace Monitor {
             return true;
         }
 
-        protected void RegisterLoad( int iRegister, string strData ) {
+        /// <summary>
+        /// Need to think thru representations. Since now I have "floating point"
+        /// numbers. Probably should just write whatever string is given.
+        /// </summary>
+        /// <param name="iRegister"></param>
+        /// <param name="strData"></param>
+        /// <exception cref="InvalidOperationException"></exception>
+        protected void RegisterWrite( int iRegister, string strData ) {
             Line oRegister = Registers[iRegister];
-            if( int.TryParse( strData, out int iData ) ) {
-                oRegister.Empty();
-                oRegister.TryAppend( strData );
-                return;
-            }
-            _oBaseSite.LogError( "Program", "Attempted load of Illegal value to register" );
-            throw new InvalidOperationException();
+            oRegister.Empty();
+            oRegister.TryAppend( strData );
+        }
+
+        protected void RegisterWrite( int iRegister, int iData ) {
+            Line oRegister = Registers[iRegister];
+            oRegister.Empty();
+            oRegister.TryAppend( iData.ToString() );
         }
 
         protected int RegisterRead( int iRegister ) {
@@ -215,6 +267,23 @@ namespace Monitor {
 
             _oBaseSite.LogError( "Program", "Illegal value in register" );
             throw new InvalidOperationException();
+        }
+
+        protected float RegisterReadFloat( int iRegister ) {
+            Line oRegister = Registers[iRegister];
+
+            if( float.TryParse( oRegister.ToString(), out float flData ) ) {
+                return flData;
+            }
+
+            _oBaseSite.LogError( "Program", "Illegal value in register" );
+            throw new InvalidOperationException();
+        }
+
+        protected void RegisterWriteFloat( int iRegister, float flData ) {
+            Line oRegister = Registers[iRegister];
+            oRegister.Empty();
+            oRegister.TryAppend( flData.ToString() );
         }
 
         // this won't run, just keeping it for reference.
@@ -254,7 +323,7 @@ namespace Monitor {
         public int PC { 
             get { return RegisterRead( 5 ); } 
             set { 
-                RegisterLoad( 5, value.ToString() ); 
+                RegisterWrite( 5, value.ToString() ); 
                 TextCommands.Raise_BufferEvent( BUFFEREVENTS.FORMATTED );
             } 
         }
@@ -263,25 +332,100 @@ namespace Monitor {
             int    iRegister = int.Parse( TextCommands[++PC].ToString() );
             string strData   = TextCommands[++PC].ToString();
 
-            RegisterLoad( iRegister, strData );
+            RegisterWrite( iRegister, strData );
             ++PC;
         }
 
         public void Inst_Add() {
-            int iA   = RegisterRead( 0 );
-            int iB   = RegisterRead( 1 );
-            int iSum = iA + iB;
+            ArithmeticInteger( Arithmetic.Add );
+        }
+        public void Inst_Multiply() {
+            ArithmeticInteger( Arithmetic.Mult );
+        }
+        public void Inst_Subtract() {
+            ArithmeticInteger( Arithmetic.Sub);
+        }
+        public void Inst_Divide() {
+            ArithmeticInteger( Arithmetic.Div );
+        }
+       /// <summary>
+        /// doesn't set flags or anything. Annnd not using flags
+        /// either. But I'm thinking about it.
+        /// </summary>
+        private void ArithmeticInteger( Arithmetic eOperand ) {
+            int iA      = RegisterRead( 0 );
+            int iB      = RegisterRead( 1 );
+            int iC      = GetStatusBit( StatusBits.Carry );
+            int iResult = 0;
+            
+            switch( eOperand ) {
+                case Arithmetic.Mult: 
+                    iResult = iA * iB;
+                    break;
+                case Arithmetic.Add: 
+                    iResult = iA + iB;// + iC;
+                    break;
+                case Arithmetic.Sub: 
+                    //int iNotC = iC != 0 ? 0 : 1;
+                    iResult = iA - iB;// - iNotC;
+                    break;
+                case Arithmetic.Div: 
+                    iResult = iA / iB;
+                    break;
+                default:
+                    throw new InvalidOperationException( "bad floating point operation" );
+            }
 
-            RegisterLoad( 2, iSum.ToString() );
+            RegisterWrite( 0, iResult.ToString() );
             ++PC;
         }
 
+        public void Inst_MultiplyFloat() {
+            ArithmeticFloat( Arithmetic.Mult );
+        }
+        public void Inst_AddFloat() {
+            ArithmeticFloat( Arithmetic.Add );
+        }
+        public void Inst_SubtractFloat() {
+            ArithmeticFloat( Arithmetic.Sub );
+        }
+        public void Inst_DivideFloat() {
+            ArithmeticFloat( Arithmetic.Div );
+        }
+        private void ArithmeticFloat( Arithmetic eOperand ) {
+            float flA      = RegisterReadFloat( 0 );
+            float flB      = RegisterReadFloat( 1 );
+            float flResult = 0;
+            
+            switch( eOperand ) {
+                case Arithmetic.Mult: 
+                    flResult = flA * flB;
+                    break;
+                case Arithmetic.Add: 
+                    flResult = flA + flB;
+                    break;
+                case Arithmetic.Sub: 
+                    flResult = flA - flB;
+                    break;
+                case Arithmetic.Div: 
+                    flResult = flA / flB;
+                    break;
+                default:
+                    throw new InvalidOperationException( "bad floating point operation" );
+            }
+
+            RegisterWrite( 0, flResult.ToString( ) );
+            ++PC;
+        }
+        /// <summary>
+        /// Need to revisit this for floating point.
+        /// </summary>
         public void Inst_LoadAbs() {
             int    iRegister = int.Parse( TextCommands[++PC].ToString() );
             string strAddr   = TextCommands[++PC].ToString();
             if( int.TryParse( strAddr, out int iAddr ) ) {
                 string strData = TextCommands[iAddr].ToString();
-                RegisterLoad( iRegister, strData );
+                RegisterWrite( iRegister, strData );
             }
             ++PC;
         }
@@ -302,9 +446,155 @@ namespace Monitor {
             PC = int.Parse( TextCommands[++PC].ToString() );
         }
 
+        public void Inst_MoveReg() {
+            int iSource = int.Parse( TextCommands[++PC].ToString() );
+            int iTarget = int.Parse( TextCommands[++PC].ToString() );
+
+            ++PC;
+
+            RegisterWrite( iTarget, RegisterRead( iSource ) );
+        }
+
         public void Inst_Halt() {
             PC = TextCommands.ElementCount;
         }
+
+        public int GetStatusBit( StatusBits eWhichBit ) {
+            if( !int.TryParse( StatusLine[(int)eWhichBit].ToString(), out int iFlagValue ) ) {
+                throw new InvalidOperationException();
+            }
+            return iFlagValue;
+        }
+
+        public void SetStatusBits( char cNegative, char cZero, char cCarry ) {
+            StatusLine[(int)StatusBits.Negative].Empty();
+            StatusLine[(int)StatusBits.Negative].TryInsert( 0, cNegative );
+            StatusLine[(int)StatusBits.Zero    ].Empty();
+            StatusLine[(int)StatusBits.Zero    ].TryInsert( 0, cZero);
+            StatusLine[(int)StatusBits.Carry   ].Empty();
+            StatusLine[(int)StatusBits.Carry   ].TryInsert( 0, cCarry );
+
+            FrontDisplay.Property_Values.Raise_BufferEvent( BUFFEREVENTS.FORMATTED );
+        }
+
+        /// <summary>
+        ///Condition 	        N 	Z 	C
+        ///Register < Memory 	1 	0 	0
+        ///Register = Memory 	0 	1 	1
+        ///Register > Memory 	0 	0 	1         
+        ///</summary>
+        public void Inst_CompAbs() {
+            int    iRegister = int.Parse( TextCommands[++PC].ToString() );
+            string strAddr   = TextCommands[++PC].ToString();
+
+            ++PC;
+
+            if( int.TryParse( strAddr, out int iAddr ) ) {
+                string strData = TextCommands[iAddr].ToString();
+
+                // I suppose we could allow letters there so it's easier
+                // to read than for example 65 instead of 'a'. But numbers
+                // for now.
+                if( int.TryParse( strData, out int iMemoryData ) ) {
+                    int iRegisterData = RegisterRead( iRegister );
+                    if( iRegisterData < iMemoryData ) {
+                        SetStatusBits( '1', '0', '0' );
+                    } else {
+                        if( iRegisterData > iMemoryData ) {
+                            SetStatusBits( '0', '0', '1' );
+                        } else {
+                            SetStatusBits( '0', '1', '1' ); // eq. carry s/b 1 but use 0 for now.
+                        }
+                    }
+                    return;
+                }
+            }
+            _oBaseSite.LogError( "Invalid Op", "Bad address or data at address" );
+        }
+
+        public void Inst_CompImm() {
+            int    iRegister = int.Parse( TextCommands[++PC].ToString() );
+            string strData   = TextCommands[++PC].ToString();
+
+            ++PC;
+
+            if( int.TryParse( strData, out int iData ) ) {
+                int iRegisterData = RegisterRead( iRegister );
+                if( iRegisterData < iData ) {
+                    SetStatusBits( '1', '0', '0' );
+                } else {
+                    if( iRegisterData > iData ) {
+                        SetStatusBits( '0', '0', '1' );
+                    } else {
+                        SetStatusBits( '0', '1', '1' ); // eq. carry s/b 1 but use 0 for now.
+                    }
+                }
+                return;
+            }
+            _oBaseSite.LogError( "Invalid Op", "Bad address or data at address" );
+        }
+
+        /// <summary>
+        /// Branch if the value of the given flag is true.
+        /// </summary>
+        /// <exception cref="InvalidOperationException"></exception>
+        public void Inst_BranchTrueImm() {
+            Inst_Branch_Imm( true );
+        }
+
+        public void Inst_BranchFalseImm() {
+            Inst_Branch_Imm( false );
+        }
+        public void Inst_Branch_Imm( bool fOnTrue ) {
+            string strFlag = TextCommands[++PC].ToString(); // Which flag to use.
+            string strAddr = TextCommands[++PC].ToString();
+
+            ++PC;
+
+            if( int.TryParse( strAddr, out int iBranchAddr ) ) {
+                // First look for a flag label.
+                int iStatusLine = -1;
+                if( !_dctStatusNames.TryGetValue( strFlag, out iStatusLine ) ) {
+                    // Next look for a bit flag, as a base 10 number.
+                    // TODO: Add binary parse ... 00010000 for example.
+                    if( !int.TryParse( strFlag, out int iStatusBit ) ) {
+                        throw new InvalidOperationException();
+                    }
+                    // Convert the number to which status flag line.
+                    if( !_dctPowerOfTwo.TryGetValue( iStatusBit, out iStatusLine ) ) {
+                        throw new InvalidOperationException();
+                    }
+                }
+                // Get the value of the requested status flag. 0 or 1.
+                if( !int.TryParse( StatusLine[iStatusLine].ToString(), out int iFlagValue ) ) {
+                    throw new InvalidOperationException();
+                }
+                bool fResult = fOnTrue ? iFlagValue != 0 : iFlagValue == 0;
+                if( fResult ) 
+                    PC = iBranchAddr;
+                return;
+            }
+            throw new InvalidOperationException();
+        }
+
+        public void Inst_Increment() {
+            int iRegister = int.Parse( TextCommands[++PC].ToString() );
+
+            ++PC;
+
+            int iRegisterData = RegisterRead( iRegister );
+            RegisterWrite( iRegister, ++iRegisterData );
+        }
+
+        public void Inst_Decrement() {
+            int iRegister = int.Parse( TextCommands[++PC].ToString() );
+
+            ++PC;
+
+            int iRegisterData = RegisterRead( iRegister );
+            RegisterWrite( iRegister, --iRegisterData );
+        }
+
 
         public void ProgramRun( bool fNotStep = true ) {
             try {

@@ -511,11 +511,6 @@ namespace Play.Edit {
         }
     } // end class
 
-    public enum CACHEEDGE : int {
-        TOP    = 0,
-        BOTTOM = 1
-    }
-    
     /// <summary>
     /// This is a single line of cached data.
     /// </summary>
@@ -583,17 +578,6 @@ namespace Play.Edit {
 
         virtual public int Height {
             get { return( (int)( _flFontHeight ) ); }
-        }
-
-        public void SetEdge( CACHEEDGE eSide, int iValue ) {
-            switch( eSide ) {
-                case CACHEEDGE.TOP:
-                    this.Top = iValue;
-                    break;
-                case CACHEEDGE.BOTTOM:
-                    this.Bottom = iValue;
-                    break;
-            }
         }
 
         public int Top {
