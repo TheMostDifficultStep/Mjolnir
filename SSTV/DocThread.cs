@@ -294,7 +294,8 @@ namespace Play.SSTV {
 										                   typeof( ArithmeticException ),
 										                   typeof( IndexOutOfRangeException ),
                                                            typeof( InvalidDataException ),
-                                                           typeof( ArgumentOutOfRangeException ) };
+                                                           typeof( ArgumentOutOfRangeException ),
+                                                           typeof( KeyNotFoundException ) };
 
         /// <summary>
         /// Support the bg thread for the device listener.

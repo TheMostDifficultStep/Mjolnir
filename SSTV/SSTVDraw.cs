@@ -112,14 +112,6 @@ namespace Play.SSTV {
 				_Y36[iX] = (short)(sValue + 128);
 			}
 
-			protected void PixelSetRY( int iX, short sValue ) {
-				_CRy[iX] = sValue;
-			}
-
-			protected void PixelSetBY( int iX, short sValue ) {
-				_CBy[iX] = sValue;
-			}
-
 			/// <summary>
 			/// Cache the RY and BY values first and finish with this call.
 			/// </summary>
@@ -133,8 +125,40 @@ namespace Play.SSTV {
 				_pBitmapRX.SetPixel( iX, _AY+1, new SKColor( (byte)R, (byte)G, (byte)B ) );
 			}
 
+			protected void PixelSetRY( int iX, short sValue ) {
+				_CRy[iX] = sValue;
+			}
+
+			protected void PixelSetBY( int iX, short sValue ) {
+				_CBy[iX] = sValue;
+			}
+
+			protected void PixelSetRYx2( int iX, short sValue ) {
+				iX = iX * 2;
+				_CRy[iX  ] = sValue;
+				_CRy[iX+1] = sValue;
+			}
+
+			protected void PixelSetBYx2( int iX, short sValue ) {
+				int iX2 = iX * 2;
+				_CBy[iX2  ] = sValue;
+				_CBy[iX2+1] = sValue;
+
+				YCtoRGB( out short R, out short G, out short B, _Y36[iX], _CRy[iX2], _CBy[iX2]);
+				_pBitmapRX.SetPixel( iX, _AY,   new SKColor( (byte)R, (byte)G, (byte)B ) );
+
+				YCtoRGB( out R, out G, out B, _Y36[iX], _CRy[iX2+1], _CBy[iX2+1]);
+				_pBitmapRX.SetPixel( iX, _AY,   new SKColor( (byte)R, (byte)G, (byte)B ) );
+			}
+
+			/// <summary>
+			/// I'm using this function as double duty for the B/W and the Robot images.
+			/// Technically I need set the Y36 or Pixel in one case or the other. I'll 
+			/// sort it out later.
+			/// </summary>
 			protected void PixelSetY( int iX, short sValue ) {
 				sValue += 128;
+				_Y36[iX] = sValue;
 				_pBitmapRX.SetPixel( iX, _AY, new SKColor( (byte)sValue, (byte)sValue, (byte)sValue ) );
 			}
 
@@ -142,6 +166,8 @@ namespace Play.SSTV {
 				switch( eDT ) {
 					case ScanLineChannelType.BY    : return PixelSetBY;
 					case ScanLineChannelType.RY    : return PixelSetRY;
+					case ScanLineChannelType.BYx2  : return PixelSetBYx2;
+					case ScanLineChannelType.RYx2  : return PixelSetRYx2;
 					case ScanLineChannelType.Y1    : return PixelSetY1;
 					case ScanLineChannelType.Y2    : return PixelSetY2;
 					case ScanLineChannelType.Blue  : return PixelSetBlue;
@@ -224,6 +250,8 @@ namespace Play.SSTV {
 			_rgDiagnosticColors.Add( ScanLineChannelType.Blue,  new( SKColors.Blue,  1 ) );
 			_rgDiagnosticColors.Add( ScanLineChannelType.BY,    new( SKColors.Blue,  1 ) );
 			_rgDiagnosticColors.Add( ScanLineChannelType.RY,    new( SKColors.Red,   1 ) );
+			_rgDiagnosticColors.Add( ScanLineChannelType.BYx2,  new( SKColors.Blue,  1 ) );
+			_rgDiagnosticColors.Add( ScanLineChannelType.RYx2,  new( SKColors.Red,   1 ) );
 			_rgDiagnosticColors.Add( ScanLineChannelType.Y1,    new( SKColors.Gray,  1 ) );
 			_rgDiagnosticColors.Add( ScanLineChannelType.Y2,    new( SKColors.Gray,  1 ) );
 			_rgDiagnosticColors.Add( ScanLineChannelType.Y,     new( SKColors.Gray,  1 ) );

@@ -270,6 +270,8 @@ namespace Play.Sound {
         RY,
         BY,
         Y,
+        RYx2,
+        BYx2,
         END
     }
 
@@ -402,11 +404,8 @@ namespace Play.Sound {
         public override double WidthSyncInMS { get; }
         public override double WidthGapInMS  { get; }
 
-        public override int ScanMultiplier => 2;
-
         /// <summary>
-        /// Looks like I need to create two bitmap lines for every scan line
-        /// right now I step two scan lines, but leave one of them blank.
+        /// Looks like I need to create two horizontal pixels for RY & BY
         /// Plus, I'm not picking up the color since in PD Y2 fills the top
         /// and bottom bitmap line at the end of the scan line. But Y here is 
         /// at the start, and we don't have the smarts to pull out the buffered
@@ -425,11 +424,11 @@ namespace Play.Sound {
 
             ChannelMap.Add( new( WidthSyncInMS /2, ScanLineChannelType.Gap  ) );
 			ChannelMap.Add( new( WidthGapInMS  /2, ScanLineChannelType.Gap  ) );
-			ChannelMap.Add( new( WidthColorInMS/2, ScanLineChannelType.RY   ) );
+			ChannelMap.Add( new( WidthColorInMS/2, ScanLineChannelType.RYx2 ) );
 
 			ChannelMap.Add( new( WidthSyncInMS /2, ScanLineChannelType.Gap  ) );
             ChannelMap.Add( new( WidthGapInMS  /2, ScanLineChannelType.Gap  ) );
-			ChannelMap.Add( new( WidthColorInMS/2, ScanLineChannelType.BY   ) );
+			ChannelMap.Add( new( WidthColorInMS/2, ScanLineChannelType.BYx2 ) );
 
             SetScanWidth();
 		}
@@ -438,7 +437,7 @@ namespace Play.Sound {
             List<SSTVModeRobot422> rgModes = new();
 
  	      //rgModes.Add( new SSTVModeRobot420( 0x00, "12", 7, 3,  60, new SKSizeI( 160, 120 ), AllModes.smR12 ) );
- 	        rgModes.Add( new SSTVModeRobot422( 0x84, "24", 6, 2,  92, new SKSizeI( 320, 240 ), AllModes.smR24 ) );
+ 	        rgModes.Add( new SSTVModeRobot422( 0x84, "24", 6, 2,  92, new SKSizeI( 160, 120 ), AllModes.smR24 ) );
           //rgModes.Add( new SSTVModeRobot420( 0x88, "36", 9, 3,  88, new SKSizeI( 320, 240 ), AllModes.smR36 ) );
  	        rgModes.Add( new SSTVModeRobot422( 0x0c, "72", 9, 3, 138, new SKSizeI( 320, 240 ), AllModes.smR72 ) );
 
@@ -478,7 +477,7 @@ namespace Play.Sound {
 
 			ChannelMap.Add( new( WidthSyncInMS /2, ScanLineChannelType.Gap  ) );
             ChannelMap.Add( new( WidthGapInMS  /2, ScanLineChannelType.Gap  ) );
-			ChannelMap.Add( new( WidthColorInMS/2, ScanLineChannelType.BY   ) );
+			ChannelMap.Add( new( WidthColorInMS/2, ScanLineChannelType.BYx2 ) );
 
 			ChannelMap.Add( new( WidthSyncInMS,    ScanLineChannelType.Sync ) );
 			ChannelMap.Add( new( WidthGapInMS,     ScanLineChannelType.Gap  ) );
@@ -486,7 +485,7 @@ namespace Play.Sound {
 
             ChannelMap.Add( new( WidthSyncInMS /2, ScanLineChannelType.Gap  ) );
 			ChannelMap.Add( new( WidthGapInMS  /2, ScanLineChannelType.Gap  ) );
-			ChannelMap.Add( new( WidthColorInMS/2, ScanLineChannelType.RY   ) );
+			ChannelMap.Add( new( WidthColorInMS/2, ScanLineChannelType.RYx2 ) );
 
             SetScanWidth();
 		}
@@ -1003,7 +1002,7 @@ namespace Play.Sound {
 	            Write( 1200, Mode.WidthSyncInMS );
                 Write( 1500, Mode.WidthGapInMS  );
 
-	            for( int x = 0; x < Width; x++ ) {     // Y(odd)
+	            for( int x = 0; x < Width; x++ ) {      // Y(odd)
                     SKColor         skPixel = GetPixel( x, iLine );
                     Chrominance8Bit crPixel = GetRY   ( skPixel );
 
@@ -1012,15 +1011,15 @@ namespace Play.Sound {
 		            Write( ColorToFreq( crPixel.Y       ), dbTimePerPixel );
 	            }
 
-	            Write( 1500, Mode.WidthSyncInMS/2 );   // gap
-                Write( 1900, Mode.WidthGapInMS /2 );
-	            for( int x = 0; x < Width; x++ ) {     // R-Y
+	            Write( 1500, Mode.WidthSyncInMS/2 );    // sync
+                Write( 1500, Mode.WidthGapInMS /2 );    // gap
+	            for( int x = 0; x < Width; x += 2 ) {   // R-Y
 		            Write( ColorToFreq( _rgChrome[x].RY ), dbTimePerPixel );
 	            }
 
-	            Write( 2300, Mode.WidthSyncInMS/2 );   // gap
-                Write( 1900, Mode.WidthGapInMS /2 );
-	            for( int x = 0; x < Width; x++ ) {     // B-Y
+	            Write( 2300, Mode.WidthSyncInMS/2 );    // sync
+                Write( 1500, Mode.WidthGapInMS /2 );    // gap
+	            for( int x = 0; x < Width; x += 2 ) {   // B-Y
 		            Write( ColorToFreq( _rgChrome[x].BY ), dbTimePerPixel );
 	            }
             } catch( Exception oEx ) {

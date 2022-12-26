@@ -1664,6 +1664,8 @@ namespace Play.Sound {
 			yield return new SSTVFamily( TVFamily.PD,      "PD",      typeof( SSTVModePD ) );
 			yield return new SSTVFamily( TVFamily.BW,      "BW",      typeof( SSTVModeBW ) );
 			yield return new SSTVFamily( TVFamily.Pasokon, "Pasokon", typeof( SSTVModePasokon ) );
+		    yield return new SSTVFamily( TVFamily.Robot,   "Robot",   typeof( SSTVModeRobot422 ) );
+		  //I seem to have two robot decoders. Need to look at that.
 		}
 
         public IEnumerator<SSTVMode> GetEnumerator()
