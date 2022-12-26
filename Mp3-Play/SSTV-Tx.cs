@@ -1034,6 +1034,8 @@ namespace Play.Sound {
     }
 
     public abstract class SSTVCrCbYGenerator : SSTVGenerator {
+        protected readonly List<Chrominance8Bit> _rgChromaCache = new(800);
+
         protected struct Chrominance8Bit {
             public byte  Y;
             public byte RY;
@@ -1071,8 +1073,6 @@ namespace Play.Sound {
     }
 
     public class GenerateRobot422 : SSTVCrCbYGenerator {
-        readonly List<Chrominance8Bit> _rgChromaCache = new(800);
-
         /// <summary>
         /// Unfortunately for Robot, I'll have to choose between a 422 generator and a 420
         /// generator. That's a bummer, since it trashes up a pretty clean system heretofore.
@@ -1131,8 +1131,6 @@ namespace Play.Sound {
     /// This class generates the PD modes. 
     /// </summary>
     public class GeneratePD : SSTVCrCbYGenerator {
-        readonly List<Chrominance8Bit> _rgChrome = new(800);
-
         /// <exception cref="ArgumentOutOfRangeException" />
         public GeneratePD( SKBitmap oBitmap, IPgModulator oModulator, SSTVMode oMode ) : 
             base( oBitmap, oModulator, oMode )
@@ -1153,7 +1151,7 @@ namespace Play.Sound {
                 return;
 
             try {
-                _rgChrome.Clear(); // Clear this one not the RGB cache.
+                _rgChromaCache.Clear(); // Clear this one not the RGB cache.
             
                 Write( 1200, 20.000 ); // Sync
 	            Write( 1500,  2.080 ); // Porch
@@ -1162,15 +1160,15 @@ namespace Play.Sound {
                     SKColor         skPixel = GetPixel( x, iLine );
                     Chrominance8Bit crPixel = GetRY   ( skPixel );
 
-                    _rgChrome.Add( crPixel );
+                    _rgChromaCache.Add( crPixel );
 
 		            Write( ColorToFreq( crPixel.Y       ), dbTimePerPixel );
 	            }
 	            for( int x = 0; x < Width; x++ ) {     // R-Y
-		            Write( ColorToFreq( _rgChrome[x].RY ), dbTimePerPixel );
+		            Write( ColorToFreq( _rgChromaCache[x].RY ), dbTimePerPixel );
 	            }
 	            for( int x = 0; x < Width; x++ ) {     // B-Y
-                    Write( ColorToFreq( _rgChrome[x].BY ), dbTimePerPixel );
+                    Write( ColorToFreq( _rgChromaCache[x].BY ), dbTimePerPixel );
 	            }
             
                 ++iLine;
