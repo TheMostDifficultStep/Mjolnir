@@ -1071,7 +1071,7 @@ namespace Play.Sound {
     }
 
     public class GenerateRobot422 : SSTVCrCbYGenerator {
-        readonly List<Chrominance8Bit> _rgChrome = new(800);
+        readonly List<Chrominance8Bit> _rgChromaCache = new(800);
 
         /// <summary>
         /// Unfortunately for Robot, I'll have to choose between a 422 generator and a 420
@@ -1083,10 +1083,6 @@ namespace Play.Sound {
         {
         }
 
-        /// <summary>
-        /// This one just can't seem to generate reds. And it's almost exactly the
-        /// same as PD for all intensive purposes. Not sure what's wrong.
-        /// </summary>
         protected override void WriteLine( int iLine ) {
 	        double dbTimePerPixel = Mode.WidthColorInMS / Mode.Resolution.Width; 
 
@@ -1094,7 +1090,7 @@ namespace Play.Sound {
                 return;
 
             try {
-                _rgChrome.Clear();
+                _rgChromaCache.Clear(); // Clear the chromance line cache not the RGB one!!
 
 	            Write( 1200, Mode.WidthSyncInMS );
                 Write( 1500, Mode.WidthGapInMS  );
@@ -1103,7 +1099,7 @@ namespace Play.Sound {
                     SKColor         skPixel = GetPixel( x, iLine );
                     Chrominance8Bit crPixel = GetRY   ( skPixel );
 
-                    _rgChrome.Add( crPixel );
+                    _rgChromaCache.Add( crPixel );
 
 		            Write( ColorToFreq( crPixel.Y       ), dbTimePerPixel );
 	            }
@@ -1111,13 +1107,13 @@ namespace Play.Sound {
 	            Write( 1500, Mode.WidthSyncInMS/2 );    // sync
                 Write( 1900, Mode.WidthGapInMS /2 );    // gap
 	            for( int x = 0; x < Width; x += 2 ) {   // R-Y
-		            Write( ColorToFreq( _rgChrome[x].RY ), dbTimePerPixel );
+		            Write( ColorToFreq( _rgChromaCache[x].RY ), dbTimePerPixel );
 	            }
 
 	            Write( 2300, Mode.WidthSyncInMS/2 );    // sync
                 Write( 1900, Mode.WidthGapInMS /2 );    // gap
 	            for( int x = 0; x < Width; x += 2 ) {   // B-Y
-		            Write( ColorToFreq( _rgChrome[x].BY ), dbTimePerPixel );
+		            Write( ColorToFreq( _rgChromaCache[x].BY ), dbTimePerPixel );
 	            }
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( AccessViolationException ),
@@ -1157,7 +1153,7 @@ namespace Play.Sound {
                 return;
 
             try {
-                _rgChrome.Clear();
+                _rgChrome.Clear(); // Clear this one not the RGB cache.
             
                 Write( 1200, 20.000 ); // Sync
 	            Write( 1500,  2.080 ); // Porch
