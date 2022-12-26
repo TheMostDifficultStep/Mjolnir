@@ -107,6 +107,7 @@ namespace Play.SSTV {
 			/// Notice the value doesn't have Limit256() called on it. That will get
 			/// called when the YRyBy value get's converted to RGB in YCtoRGB()
 			/// </summary>
+			/// <remarks>In PD we haven't seen the chroma values yet.</remarks>
 			/// <seealso cref="YCtoRGB"/>
 			protected void PixelSetY1( int iX, short sValue ) {
 				_Y36[iX] = (short)(sValue + 128);
@@ -133,6 +134,9 @@ namespace Play.SSTV {
 				_CBy[iX] = sValue;
 			}
 
+			/// <summary>
+			/// Expand the half sized color sample so it covers two pixels.
+			/// </summary>
 			protected void PixelSetRYx2( int iX, short sValue ) {
 				iX = iX * 2;
 				_CRy[iX  ] = sValue;

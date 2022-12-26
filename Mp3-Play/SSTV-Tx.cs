@@ -385,12 +385,6 @@ namespace Play.Sound {
         public SKSizeI Resolution { get; protected set; }
     }
 
-    /// <summary>
-    /// Almost functional. Looks like I need to write some new ScanLineChannelType's
-    /// and or rejigger them to share with the PD modes. Basically, I need a quiet
-    /// Channel type that'll sweep up the Y, BY, BX buffers at the end and spit
-    /// out the multiple bitmap lines.
-    /// </summary>
     public class SSTVModeRobot422 : SSTVMode {
         public SSTVModeRobot422( byte bVIS, string strName, double dblSync, double dblGap, double dblClrWidth, SKSizeI skSize, AllModes eLegacy = AllModes.smEND) : 
             base( TVFamily.Robot, bVIS, strName, dblClrWidth, skSize, eLegacy ) 
@@ -405,11 +399,7 @@ namespace Play.Sound {
         public override double WidthGapInMS  { get; }
 
         /// <summary>
-        /// Looks like I need to create two horizontal pixels for RY & BY
-        /// Plus, I'm not picking up the color since in PD Y2 fills the top
-        /// and bottom bitmap line at the end of the scan line. But Y here is 
-        /// at the start, and we don't have the smarts to pull out the buffered
-        /// RY and BY.
+        /// Uses two horizontal pixels for one RY & BY value.
         /// </summary>
         /// <exception cref="InvalidProgramException"></exception>
 		protected override void Initialize() {
@@ -438,7 +428,7 @@ namespace Play.Sound {
 
  	      //rgModes.Add( new SSTVModeRobot420( 0x00, "12", 7, 3,  60, new SKSizeI( 160, 120 ), AllModes.smR12 ) );
  	        rgModes.Add( new SSTVModeRobot422( 0x84, "24", 6, 2,  92, new SKSizeI( 160, 120 ), AllModes.smR24 ) );
-          //rgModes.Add( new SSTVModeRobot420( 0x88, "36", 9, 3,  88, new SKSizeI( 320, 240 ), AllModes.smR36 ) );
+            rgModes.Add( new SSTVModeRobot420( 0x88, "36", 9, 3,  88, new SKSizeI( 320, 240 ), AllModes.smR36 ) );
  	        rgModes.Add( new SSTVModeRobot422( 0x0c, "72", 9, 3, 138, new SKSizeI( 320, 240 ), AllModes.smR72 ) );
 
             foreach( SSTVModeRobot422 oMode in rgModes ) {
@@ -473,19 +463,19 @@ namespace Play.Sound {
 
 			ChannelMap.Add( new( WidthSyncInMS,    ScanLineChannelType.Sync ) );
 			ChannelMap.Add( new( WidthGapInMS,     ScanLineChannelType.Gap  ) );
-			ChannelMap.Add( new( WidthColorInMS,   ScanLineChannelType.Y    ) );
-
-			ChannelMap.Add( new( WidthSyncInMS /2, ScanLineChannelType.Gap  ) );
-            ChannelMap.Add( new( WidthGapInMS  /2, ScanLineChannelType.Gap  ) );
-			ChannelMap.Add( new( WidthColorInMS/2, ScanLineChannelType.BYx2 ) );
-
-			ChannelMap.Add( new( WidthSyncInMS,    ScanLineChannelType.Sync ) );
-			ChannelMap.Add( new( WidthGapInMS,     ScanLineChannelType.Gap  ) );
-			ChannelMap.Add( new( WidthColorInMS,   ScanLineChannelType.Y    ) );
+			ChannelMap.Add( new( WidthColorInMS,   ScanLineChannelType.Y1   ) );
 
             ChannelMap.Add( new( WidthSyncInMS /2, ScanLineChannelType.Gap  ) );
 			ChannelMap.Add( new( WidthGapInMS  /2, ScanLineChannelType.Gap  ) );
 			ChannelMap.Add( new( WidthColorInMS/2, ScanLineChannelType.RYx2 ) );
+
+			ChannelMap.Add( new( WidthSyncInMS,    ScanLineChannelType.Sync ) );
+			ChannelMap.Add( new( WidthGapInMS,     ScanLineChannelType.Gap  ) );
+			ChannelMap.Add( new( WidthColorInMS,   ScanLineChannelType.Y2   ) );
+
+			ChannelMap.Add( new( WidthSyncInMS /2, ScanLineChannelType.Gap  ) );
+            ChannelMap.Add( new( WidthGapInMS  /2, ScanLineChannelType.Gap  ) );
+			ChannelMap.Add( new( WidthColorInMS/2, ScanLineChannelType.BYx2 ) );
 
             SetScanWidth();
 		}
@@ -1083,6 +1073,12 @@ namespace Play.Sound {
         {
         }
 
+        /// <summary>
+        /// I can't figure out MMSSTV's implementation of Robot 24 it thinks the
+        /// image is 320 wide. BUT it actually sends/receives a 160 x 120 image.
+        /// So we'll go with this implementation.
+        /// </summary>
+        /// <param name="iLine"></param>
         protected override void WriteLine( int iLine ) {
 	        double dbTimePerPixel = Mode.WidthColorInMS / Mode.Resolution.Width; 
 
