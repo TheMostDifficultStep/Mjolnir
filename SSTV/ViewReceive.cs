@@ -116,12 +116,21 @@ namespace Play.SSTV {
         /// This gets called whenever one of the dropdowns gets COMMITED by the user here.
         /// </summary>
         private void ChangeModeAtList( SSTVMode oMode ) {
-			foreach( Line oLine in SSTVDocument.RxModeList ) {
-				if( oLine.Extra is SSTVMode oLineMode && 
-					oLineMode.LegacyMode == oMode.LegacyMode )
-				{
-					SSTVDocument.RxModeList.CheckedLine = oLine;
+			try {
+				foreach( Line oLine in SSTVDocument.RxModeList ) {
+					if( oLine.Extra is SSTVMode oLineMode && 
+						oLineMode.LegacyMode == oMode.LegacyMode )
+					{
+						SSTVDocument.RxModeList.CheckedLine = oLine;
+					}
 				}
+			} catch( Exception oEx ) {
+				Type[] rgErrors = { typeof( NullReferenceException ),
+									typeof( ArgumentOutOfRangeException ) };
+				if( rgErrors.IsUnhandled( oEx ) )
+					throw;
+
+				LogError( "RXProperties ChangeModeAtList unexpected." );
 			}
 		}
 
@@ -134,8 +143,17 @@ namespace Play.SSTV {
 		/// event. Which should also cause the SSTVDocument to listen for the given mode.
 		/// </summary>
         private void OnSelectionChangeCommitted_Mode(object sender, EventArgs e) {
-			if( _ddSSTVMode.SelectedItem is SSTVMode oNewMode ) {
-				ChangeModeAtList( oNewMode );
+			try {
+				if( _ddSSTVMode.SelectedItem is SSTVMode oNewMode ) {
+					ChangeModeAtList( oNewMode );
+				}
+			} catch( Exception oEx ) {
+				Type[] rgErrors = { typeof( NullReferenceException ),
+									typeof( ArgumentOutOfRangeException ) };
+				if( rgErrors.IsUnhandled( oEx ) )
+					throw;
+
+				LogError( "RXProperties OnSelectionChangeCommitted_Mode unexpected." );
 			}
 		}
 
@@ -146,17 +164,26 @@ namespace Play.SSTV {
         /// </summary>
         /// <seealso cref="PopulateSubModes"/>
         private void OnSelectionChangeCommitted_Family(object sender, EventArgs e) {
-			if( _ddSSTVFamily.SelectedItem is SSTVDEM.SSTVFamily oNewFamily ) {
-				foreach( Line oLine in SSTVDocument.RxModeList ) {
-					if( oLine.Extra is SSTVMode oMode ) {
-						if( oMode.Family == oNewFamily._eFamily ) {
-							ChangeModeAtList( oMode );
-							return;
+			try {
+				if( _ddSSTVFamily.SelectedItem is SSTVDEM.SSTVFamily oNewFamily ) {
+					foreach( Line oLine in SSTVDocument.RxModeList ) {
+						if( oLine.Extra is SSTVMode oMode ) {
+							if( oMode.Family == oNewFamily._eFamily ) {
+								ChangeModeAtList( oMode );
+								return;
+							}
 						}
 					}
+				} else {
+					SSTVDocument.RxModeList.CheckedLine = SSTVDocument.RxModeList[0];
 				}
-			} else {
-				SSTVDocument.RxModeList.CheckedLine = SSTVDocument.RxModeList[0];
+			} catch( Exception oEx ) {
+				Type[] rgErrors = { typeof( NullReferenceException ),
+									typeof( ArgumentOutOfRangeException ) };
+				if( rgErrors.IsUnhandled( oEx ) )
+					throw;
+
+				LogError( "RXProperties OnSelectionChangeCommitted_Family unexpected." );
 			}
         }
 
