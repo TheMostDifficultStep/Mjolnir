@@ -1252,7 +1252,17 @@ namespace Play.SSTV {
                     case TVFamily.Pasokon:
                         _oSSTVGenerator = new GeneratePasokon ( skBitmap, _oSSTVModulator, oMode ); break;
                     case TVFamily.Robot:
-                        _oSSTVGenerator = new GenerateRobot422( skBitmap, _oSSTVModulator, oMode ); break;
+                        switch( oMode.LegacyMode ) {
+                            case AllModes.smR72:
+                            case AllModes.smR24:
+                                _oSSTVGenerator = new GenerateRobot422( skBitmap, _oSSTVModulator, oMode ); 
+                                break;
+                            case AllModes.smR36:
+                                _oSSTVGenerator = new GenerateRobot420( skBitmap, _oSSTVModulator, oMode );
+                                break;
+                            default:
+						        throw new ArgumentOutOfRangeException( nameof( oMode ) );
+                        } break;
 					default:
 						throw new ArgumentOutOfRangeException( nameof( oMode ) );
 				}

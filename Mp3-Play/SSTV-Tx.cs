@@ -272,6 +272,9 @@ namespace Play.Sound {
         Y,
         RYx2,
         BYx2,
+        R36Y2,
+        R36By,
+        R36Cln,
         END
     }
 
@@ -448,11 +451,12 @@ namespace Play.Sound {
             base( bVIS, strName, dblSync, dblGap, dblClrWidth, skSize, eLegacy ) 
         {
         }
-
-        public override int ScanMultiplier => 2;
+        public override int ScanMultiplier { get; } = 2;
 
         /// <summary>
-        /// 420 mode is going to be difficult since you need to start on an even scan line.
+        /// 420 mode is going to be pecular since you need know if you are on 
+        /// an even or odd scan line. If we catch the VIS we're ok. Else if
+        /// guessing in the middle we might be off by one.
         /// </summary>
         /// <exception cref="InvalidProgramException"></exception>
 		protected override void Initialize() {
@@ -461,21 +465,21 @@ namespace Play.Sound {
 
             ChannelMap.Clear(); // Just in case we get called again.
 
-			ChannelMap.Add( new( WidthSyncInMS,    ScanLineChannelType.Sync ) );
-			ChannelMap.Add( new( WidthGapInMS,     ScanLineChannelType.Gap  ) );
-			ChannelMap.Add( new( WidthColorInMS,   ScanLineChannelType.Y1   ) );
+			ChannelMap.Add( new( WidthSyncInMS,    ScanLineChannelType.Sync   ) );
+			ChannelMap.Add( new( WidthGapInMS,     ScanLineChannelType.Gap    ) );
+			ChannelMap.Add( new( WidthColorInMS,   ScanLineChannelType.Y1     ) );
+                                                                              
+			ChannelMap.Add( new( WidthSyncInMS /2, ScanLineChannelType.Gap    ) );
+            ChannelMap.Add( new( WidthGapInMS  /2, ScanLineChannelType.Gap    ) );
+			ChannelMap.Add( new( WidthColorInMS/2, ScanLineChannelType.R36By  ) );
 
-            ChannelMap.Add( new( WidthSyncInMS /2, ScanLineChannelType.Gap  ) );
-			ChannelMap.Add( new( WidthGapInMS  /2, ScanLineChannelType.Gap  ) );
-			ChannelMap.Add( new( WidthColorInMS/2, ScanLineChannelType.RYx2 ) );
-
-			ChannelMap.Add( new( WidthSyncInMS,    ScanLineChannelType.Sync ) );
-			ChannelMap.Add( new( WidthGapInMS,     ScanLineChannelType.Gap  ) );
-			ChannelMap.Add( new( WidthColorInMS,   ScanLineChannelType.Y2   ) );
-
-			ChannelMap.Add( new( WidthSyncInMS /2, ScanLineChannelType.Gap  ) );
-            ChannelMap.Add( new( WidthGapInMS  /2, ScanLineChannelType.Gap  ) );
-			ChannelMap.Add( new( WidthColorInMS/2, ScanLineChannelType.BYx2 ) );
+			ChannelMap.Add( new( WidthSyncInMS,    ScanLineChannelType.Sync   ) );
+			ChannelMap.Add( new( WidthGapInMS,     ScanLineChannelType.Gap    ) );
+			ChannelMap.Add( new( WidthColorInMS,   ScanLineChannelType.R36Y2  ) );
+                                                                              
+			ChannelMap.Add( new( WidthSyncInMS /2, ScanLineChannelType.Gap    ) );
+            ChannelMap.Add( new( WidthGapInMS  /2, ScanLineChannelType.Gap    ) );
+			ChannelMap.Add( new( WidthColorInMS/2, ScanLineChannelType.R36Cln ) );
 
             SetScanWidth();
 		}
@@ -627,8 +631,7 @@ namespace Play.Sound {
     }
 
     /// <summary>
-    /// Note that PD is 420 sub sampling. Still haven't got 422 sorted, but hopefully
-    /// Robot can share with this one. I'm still working on that: 2/16/2022.
+    /// Note that PD is 420 sub sampling. 
     /// </summary>
     public class SSTVModePD : SSTVMode {
         public SSTVModePD( byte bVIS, string strName, double dbTxWidth, SKSizeI skSize, AllModes eLegacy = AllModes.smEND) : 
@@ -1064,9 +1067,8 @@ namespace Play.Sound {
 
     public class GenerateRobot422 : SSTVCrCbYGenerator {
         /// <summary>
-        /// Unfortunately for Robot, I'll have to choose between a 422 generator and a 420
-        /// generator. That's a bummer, since it trashes up a pretty clean system heretofore.
-        /// I've implemented the 422, that's easier, and I'll implement the 420 later.
+        /// 422 generator (I think). One horzontal luminance for one horzontal pixel,
+        /// Two pixels shared per color horzontal. 1/2 color rez.
         /// </summary>
         public GenerateRobot422( SKBitmap oBitmap, IPgModulator oModulator, SSTVMode oMode ) : 
             base( oBitmap, oModulator, oMode )
@@ -1111,6 +1113,69 @@ namespace Play.Sound {
 	            for( int x = 0; x < Width; x += 2 ) {   // B-Y
 		            Write( ColorToFreq( _rgChromaCache[x].BY ), dbTimePerPixel );
 	            }
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( AccessViolationException ),
+                                    typeof( NullReferenceException ),
+                                    typeof( ArgumentOutOfRangeException ) };
+                if( !rgErrors.Contains( oEx.GetType() ) )
+                    throw;
+
+                // This would be a good place to return an error.
+            }
+        }
+    }
+
+    public class GenerateRobot420 : SSTVCrCbYGenerator {
+        /// <summary>
+        /// 420 generator (sorta). One horzontal luminance for one horzontal pixel,
+        /// Two pixels shared per color horzontal. 1/2 color rez. AND two pixels shared
+        /// per vertical!
+        /// </summary>
+        public GenerateRobot420( SKBitmap oBitmap, IPgModulator oModulator, SSTVMode oMode ) : 
+            base( oBitmap, oModulator, oMode )
+        {
+        }
+
+        /// <summary>
+        /// I can't figure out MMSSTV's implementation of Robot 24 it thinks the
+        /// image is 320 wide. BUT it actually sends/receives a 160 x 120 image.
+        /// So we'll go with this implementation.
+        /// </summary>
+        /// <param name="iLine"></param>
+        protected override void WriteLine( int iLine ) {
+	        double dbTimePerPixel = Mode.WidthColorInMS / Mode.Resolution.Width; 
+
+            if( iLine > Height )
+                return;
+
+            try {
+                _rgChromaCache.Clear(); // Clear the chromance line cache not the RGB one!!
+
+	            Write( 1200, Mode.WidthSyncInMS );
+                Write( 1500, Mode.WidthGapInMS  );
+
+	            for( int x = 0; x < Width; x++ ) {      // Y(odd)
+                    SKColor         skPixel = GetPixel( x, iLine );
+                    Chrominance8Bit crPixel = GetRY   ( skPixel );
+
+                    _rgChromaCache.Add( crPixel );
+
+		            Write( ColorToFreq( crPixel.Y       ), dbTimePerPixel );
+	            }
+
+                if( (iLine & 1 ) == 1 ) { // Odd  lines R-Y
+	                Write( 1500, Mode.WidthSyncInMS/2 );    // sync
+                    Write( 1900, Mode.WidthGapInMS /2 );    // gap
+	                for( int x = 0; x < Width; x += 2 ) {   // R-Y
+		                Write( ColorToFreq( _rgChromaCache[x].RY ), dbTimePerPixel );
+	                }
+                } else {                  // Even lines B-Y
+	                Write( 2300, Mode.WidthSyncInMS/2 );    // sync
+                    Write( 1900, Mode.WidthGapInMS /2 );    // gap
+	                for( int x = 0; x < Width; x += 2 ) {   // B-Y
+		                Write( ColorToFreq( _rgChromaCache[x].BY ), dbTimePerPixel );
+	                }
+                }
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( AccessViolationException ),
                                     typeof( NullReferenceException ),

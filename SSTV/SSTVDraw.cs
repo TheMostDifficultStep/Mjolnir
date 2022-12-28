@@ -52,10 +52,11 @@ namespace Play.SSTV {
 		/// </summary>
 		/// <seealso cref="ProcessScanLine(ScanBuffers, double, int)"/>
 		class ScanBuffers {
+			protected readonly short[]  _Y1  = new short[800];
+			protected readonly short[]  _Y2  = new short[800];
+			protected readonly short[]  _CRy = new short[800]; 
+			protected readonly short[]  _CBy = new short[800]; 
 			protected int      _AY;
-			protected short[]  _Y36 = new short[800];
-			protected short[]  _CRy = new short[800]; // D36[1,iX]
-			protected short[]  _CBy = new short[800]; // D36[0,iX]
 
 			public setPixel[] Writers { get; }
 
@@ -79,7 +80,7 @@ namespace Play.SSTV {
 			protected readonly SKBitmap _pBitmapRX;
 
 			public bool Reset( int iRasterLine ) {
-			    _AY = iRasterLine;
+			    _AY    = iRasterLine;
 
 				if( (_AY < 0) || (_AY >= _pBitmapRX.Height) )
 					return false;
@@ -107,19 +108,20 @@ namespace Play.SSTV {
 			/// Notice the value doesn't have Limit256() called on it. That will get
 			/// called when the YRyBy value get's converted to RGB in YCtoRGB()
 			/// </summary>
-			/// <remarks>In PD we haven't seen the chroma values yet.</remarks>
+			/// <remarks>In PD we haven't seen the chroma values yet.
+			/// We have Y1, RY, BY, Y2</remarks>
 			/// <seealso cref="YCtoRGB"/>
 			protected void PixelSetY1( int iX, short sValue ) {
-				_Y36[iX] = (short)(sValue + 128);
+				_Y1[iX] = (short)(sValue + 128);
 			}
 
 			/// <summary>
-			/// Cache the RY and BY values first and finish with this call.
+			/// for PD.  Cached the Y1, RY and BY values first and finish with this call.
 			/// </summary>
 			protected void PixelSetY2( int iX, short sValue ) {
 				short R, G, B;
 
-				YCtoRGB( out R, out G, out B, _Y36[iX], _CRy[iX], _CBy[iX]);
+				YCtoRGB( out R, out G, out B, _Y1[iX], _CRy[iX], _CBy[iX]);
 				_pBitmapRX.SetPixel( iX, _AY,   new SKColor( (byte)R, (byte)G, (byte)B ) );
 
 				YCtoRGB( out R, out G, out B, sValue + 128,   _CRy[iX], _CBy[iX]);
@@ -134,35 +136,60 @@ namespace Play.SSTV {
 				_CBy[iX] = sValue;
 			}
 
-			/// <summary>
-			/// Expand the half sized color sample so it covers two pixels.
-			/// </summary>
 			protected void PixelSetRYx2( int iX, short sValue ) {
-				iX = iX * 2;
-				_CRy[iX  ] = sValue;
-				_CRy[iX+1] = sValue;
+				int iX2 = iX * 2;
+				_CRy[iX2  ] = sValue;
+				_CRy[iX2+1] = sValue;
 			}
 
+			/// <summary>
+			/// Robot 24 & 72 is Y1 Ry By.
+			/// </summary>
+			/// <param name="iX"></param>
+			/// <param name="sValue"></param>
 			protected void PixelSetBYx2( int iX, short sValue ) {
 				int iX2 = iX * 2;
 				_CBy[iX2  ] = sValue;
 				_CBy[iX2+1] = sValue;
 
-				YCtoRGB( out short R, out short G, out short B, _Y36[iX], _CRy[iX2], _CBy[iX2]);
+				YCtoRGB( out short R, out short G, out short B, _Y1[iX], _CRy[iX2], _CBy[iX2]);
 				_pBitmapRX.SetPixel( iX, _AY,   new SKColor( (byte)R, (byte)G, (byte)B ) );
 
-				YCtoRGB( out R, out G, out B, _Y36[iX], _CRy[iX2+1], _CBy[iX2+1]);
-				_pBitmapRX.SetPixel( iX, _AY,   new SKColor( (byte)R, (byte)G, (byte)B ) );
+				YCtoRGB( out R, out G, out B, _Y1[iX], _CRy[iX2+1], _CBy[iX2+1]);
+				_pBitmapRX.SetPixel( iX+1, _AY,   new SKColor( (byte)R, (byte)G, (byte)B ) );
+			}
+
+			protected void PixelSetR36By( int iX, short sValue ) {
+				_CBy[iX] = sValue;
+			}
+
+			protected void PixelSetR36Y2( int iX, short sValue ) {
+				_Y2[iX] = (short)(sValue + 128);
+			}
+
+			/// <summary>
+			/// Robot 36 is Y1 By, followed by
+			///             Y2 Ry.
+			/// </summary>
+			/// <param name="iX"></param>
+			/// <param name="sValue">A chroma value Ry or By depending on odd or even.</param>
+			protected void PixelSetR36Cleanup( int iX, short sValue ) {
+				_CRy[iX] = sValue;
+
+				_pBitmapRX.SetPixel( iX,   _AY,   YCtoRGB( _Y1[iX  ], _CRy[iX], _CBy[iX]) );
+				_pBitmapRX.SetPixel( iX+1, _AY,   YCtoRGB( _Y1[iX+1], _CRy[iX], _CBy[iX]) );
+				_pBitmapRX.SetPixel( iX,   _AY+1, YCtoRGB( _Y2[iX  ], _CRy[iX], _CBy[iX]) );
+				_pBitmapRX.SetPixel( iX+1, _AY+1, YCtoRGB( _Y2[iX+1], _CRy[iX], _CBy[iX]) );
 			}
 
 			/// <summary>
 			/// I'm using this function as double duty for the B/W and the Robot images.
-			/// Technically I need set the Y36 or Pixel in one case or the other. I'll 
-			/// sort it out later.
+			/// Technically I need set the Y1 for PD or the Pixel in BW. The BW pixel will
+			/// get overridden later by the PD color writing case.
 			/// </summary>
 			protected void PixelSetY( int iX, short sValue ) {
 				sValue += 128;
-				_Y36[iX] = sValue;
+				_Y1[iX] = sValue;
 				_pBitmapRX.SetPixel( iX, _AY, new SKColor( (byte)sValue, (byte)sValue, (byte)sValue ) );
 			}
 
@@ -178,6 +205,9 @@ namespace Play.SSTV {
 					case ScanLineChannelType.Red   : return PixelSetRed;
 					case ScanLineChannelType.Green : return PixelSetGreen;
 					case ScanLineChannelType.Y     : return PixelSetY;
+					case ScanLineChannelType.R36Y2 : return PixelSetR36Y2;
+					case ScanLineChannelType.R36By : return PixelSetR36By;
+					case ScanLineChannelType.R36Cln: return PixelSetR36Cleanup;
 					default : return null;
 				}
 			}
@@ -243,7 +273,7 @@ namespace Play.SSTV {
 			_skD12Canvas = new( _pBitmapD12 );
 
 			// Need to make this variable depending on the processor.
-            for( int i = 0; i < 3; ++i ) {
+            for( int i = 0; i < 1; ++i ) {
                 _rgBuffers.Add(new ScanBuffers(this));
             }
 
@@ -259,6 +289,9 @@ namespace Play.SSTV {
 			_rgDiagnosticColors.Add( ScanLineChannelType.Y1,    new( SKColors.Gray,  1 ) );
 			_rgDiagnosticColors.Add( ScanLineChannelType.Y2,    new( SKColors.Gray,  1 ) );
 			_rgDiagnosticColors.Add( ScanLineChannelType.Y,     new( SKColors.Gray,  1 ) );
+			_rgDiagnosticColors.Add( ScanLineChannelType.R36Y2, new( SKColors.Gray,  1 ) );
+			_rgDiagnosticColors.Add( ScanLineChannelType.R36By, new( SKColors.Gray,  1 ) );
+			_rgDiagnosticColors.Add( ScanLineChannelType.R36Cln, new( SKColors.Gray,  1 ) );
 			_rgDiagnosticColors.Add( ScanLineChannelType.END,   new( SKColors.Aquamarine, 3 ) );
 		}
 
@@ -396,6 +429,13 @@ namespace Play.SSTV {
 			B = (short)(1.164457*Y + 2.017364*BY );
 
 			LimitRGB( ref R, ref G, ref B);
+		}
+
+		protected static SKColor YCtoRGB( int Y, int RY, int BY ) {
+			short R, G, B;
+
+			YCtoRGB( out R, out G, out B, Y, RY, BY );
+			return new SKColor( (byte)R, (byte)G, (byte)B );
 		}
 
 		protected static void LimitRGB( ref short R, ref short G, ref short B ) {
@@ -540,8 +580,8 @@ namespace Play.SSTV {
 						if( i < oChannel.Max ) {
 							if( oWriter != null ) {
 								int x = (int)((i - oChannel.Min) * oChannel.Scaling );
-								if( (x != rx) && (x >= 0) && (x < _pBitmapRX.Width) ) {
-									rx = x; oWriter( x, (short)(GetPixelLevel( _dp.SignalGet( iSx ) ) ) );
+								if( x != rx ) {
+									rx = x; oWriter( x, GetPixelLevel( _dp.SignalGet( iSx ) ) );
 								}
 							} // else null and just do-nothing/skip this data value.
 							break;
@@ -865,7 +905,11 @@ namespace Play.SSTV {
 		public double Reset( int iBmpWidth, double dbStart, double dbCorrection ) {
 			_dbScanWidthCorrected = SpecWidthInSamples * dbCorrection;
 
-			Scaling = iBmpWidth / _dbScanWidthCorrected;
+			// this works only for the full width encodings!!
+			//Scaling = iBmpWidth / _dbScanWidthCorrected;
+
+			double dblChannelWidthInMs = Max - Min;
+			Scaling = iBmpWidth / dblChannelWidthInMs;
 
 			Min = dbStart;
 			Max = dbStart + ( _dbScanWidthCorrected );
