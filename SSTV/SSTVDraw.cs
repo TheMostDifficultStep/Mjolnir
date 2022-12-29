@@ -153,8 +153,8 @@ namespace Play.SSTV {
 				_pBitmapRX.SetPixel( iX+1, _AY, YCtoRGB( _Y1[iX], _CRy[iX2+1], _CBy[iX2+1]) );
 			}
 
-			protected void PixelSetR36By( int iX, short sValue ) {
-				_CBy[iX] = sValue;
+			protected void PixelSetR36Chroma( int iX, short sValue ) {
+				_CRy[iX] = sValue;
 			}
 
 			protected void PixelSetR36Y2( int iX, short sValue ) {
@@ -162,13 +162,13 @@ namespace Play.SSTV {
 			}
 
 			/// <summary>
-			/// Robot 36 is Y1 By, followed by
-			///             Y2 Ry.
+			/// Robot 36 is Y1 Ry, followed by
+			///             Y2 By.
 			/// </summary>
 			/// <param name="iX"></param>
 			/// <param name="sValue">A chroma value Ry or By depending on odd or even.</param>
 			protected void PixelSetR36Cleanup( int iX, short sValue ) {
-				_CRy[iX] = sValue;
+				_CBy[iX] = sValue;
 
 				_pBitmapRX.SetPixel( iX,   _AY,   YCtoRGB( _Y1[iX  ], _CRy[iX], _CBy[iX]) );
 				_pBitmapRX.SetPixel( iX+1, _AY,   YCtoRGB( _Y1[iX+1], _CRy[iX], _CBy[iX]) );
@@ -200,7 +200,7 @@ namespace Play.SSTV {
 					case ScanLineChannelType.Green : return PixelSetGreen;
 					case ScanLineChannelType.Y     : return PixelSetY;
 					case ScanLineChannelType.R36Y2 : return PixelSetR36Y2;
-					case ScanLineChannelType.R36By : return PixelSetR36By;
+					case ScanLineChannelType.R36Chr : return PixelSetR36Chroma;
 					case ScanLineChannelType.R36Cln: return PixelSetR36Cleanup;
 					default : return null;
 				}
@@ -284,7 +284,7 @@ namespace Play.SSTV {
 			_rgDiagnosticColors.Add( ScanLineChannelType.Y2,    new( SKColors.Gray,  1 ) );
 			_rgDiagnosticColors.Add( ScanLineChannelType.Y,     new( SKColors.Gray,  1 ) );
 			_rgDiagnosticColors.Add( ScanLineChannelType.R36Y2, new( SKColors.Gray,  1 ) );
-			_rgDiagnosticColors.Add( ScanLineChannelType.R36By, new( SKColors.Gray,  1 ) );
+			_rgDiagnosticColors.Add( ScanLineChannelType.R36Chr, new( SKColors.Gray,  1 ) );
 			_rgDiagnosticColors.Add( ScanLineChannelType.R36Cln, new( SKColors.Gray,  1 ) );
 			_rgDiagnosticColors.Add( ScanLineChannelType.END,   new( SKColors.Aquamarine, 3 ) );
 		}

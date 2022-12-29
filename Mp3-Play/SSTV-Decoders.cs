@@ -36,7 +36,7 @@ namespace Play.Sound {
         RYx2,
         BYx2,
         R36Y2,
-        R36By,
+        R36Chr,
         R36Cln,
         END
     }
@@ -136,7 +136,7 @@ namespace Play.Sound {
                                                                               
 			ChannelMap.Add( new( WidthSyncInMS /2, ScanLineChannelType.Gap    ) );
             ChannelMap.Add( new( WidthGapInMS  /2, ScanLineChannelType.Gap    ) );
-			ChannelMap.Add( new( WidthColorInMS/2, ScanLineChannelType.R36By  ) );
+			ChannelMap.Add( new( WidthColorInMS/2, ScanLineChannelType.R36Chr ) );
 
 			ChannelMap.Add( new( WidthSyncInMS,    ScanLineChannelType.Sync   ) );
 			ChannelMap.Add( new( WidthGapInMS,     ScanLineChannelType.Gap    ) );

@@ -1620,6 +1620,9 @@ namespace Play.Sound {
 		/// variety of families. Each family has various variants, all map to
 		/// the legacy modes.
 		/// </summary>
+		/// <remarks>This is the code for the old flat outlines on the RX and TX
+		/// windows. Probably obsolete. But let's leave it until my Shell can
+		/// implement dropdown windows. For Family/Submode lists.</remarks>
 		public static IEnumerator<SSTVMode> EnumModes() {
             IEnumerator<SSTVMode> itrMode = SSTVModeMartin.EnumAllModes();
 			while( itrMode.MoveNext() ) 
