@@ -442,9 +442,7 @@ namespace Play.Sound {
     }
 
     /// <summary>
-    /// This class doesn't work yet. Just the start of my thinking. If I go back and
-    /// redo how the PD modes cache their values, I think I can share that code
-    /// with this. But it going to be fiddly and I don't want to deal with it yet.
+    /// This class parses the Robot 36 data type.
     /// </summary>
     public class SSTVModeRobot420 : SSTVModeRobot422 {
         public SSTVModeRobot420( byte bVIS, string strName, double dblSync, double dblGap, double dblClrWidth, SKSizeI skSize, AllModes eLegacy = AllModes.smEND) : 
@@ -456,7 +454,11 @@ namespace Play.Sound {
         /// <summary>
         /// 420 mode is going to be pecular since you need know if you are on 
         /// an even or odd scan line. If we catch the VIS we're ok. Else if
-        /// guessing in the middle we might be off by one.
+        /// guessing in the middle we might be off by one. As it is I'm cheating
+        /// and merging the two scan lines so that my parallel thread system can deal
+        /// with Y1, By, Y2, Ry as a single (super) scanline. Since Ry or By is being
+        /// used from the previous scan. Turns out it doesn't seem to affect the
+        /// slant detection code! Thank goodness.
         /// </summary>
         /// <exception cref="InvalidProgramException"></exception>
 		protected override void Initialize() {

@@ -119,13 +119,8 @@ namespace Play.SSTV {
 			/// for PD.  Cached the Y1, RY and BY values first and finish with this call.
 			/// </summary>
 			protected void PixelSetY2( int iX, short sValue ) {
-				short R, G, B;
-
-				YCtoRGB( out R, out G, out B, _Y1[iX], _CRy[iX], _CBy[iX]);
-				_pBitmapRX.SetPixel( iX, _AY,   new SKColor( (byte)R, (byte)G, (byte)B ) );
-
-				YCtoRGB( out R, out G, out B, sValue + 128,   _CRy[iX], _CBy[iX]);
-				_pBitmapRX.SetPixel( iX, _AY+1, new SKColor( (byte)R, (byte)G, (byte)B ) );
+				_pBitmapRX.SetPixel( iX, _AY,   YCtoRGB( _Y1[iX],      _CRy[iX], _CBy[iX]) );
+				_pBitmapRX.SetPixel( iX, _AY+1, YCtoRGB( sValue + 128, _CRy[iX], _CBy[iX]) );
 			}
 
 			protected void PixelSetRY( int iX, short sValue ) {
@@ -149,14 +144,13 @@ namespace Play.SSTV {
 			/// <param name="sValue"></param>
 			protected void PixelSetBYx2( int iX, short sValue ) {
 				int iX2 = iX * 2;
+
 				_CBy[iX2  ] = sValue;
 				_CBy[iX2+1] = sValue;
 
-				YCtoRGB( out short R, out short G, out short B, _Y1[iX], _CRy[iX2], _CBy[iX2]);
-				_pBitmapRX.SetPixel( iX, _AY,   new SKColor( (byte)R, (byte)G, (byte)B ) );
+				_pBitmapRX.SetPixel( iX,   _AY, YCtoRGB( _Y1[iX], _CRy[iX2  ], _CBy[iX2  ]) );
 
-				YCtoRGB( out R, out G, out B, _Y1[iX], _CRy[iX2+1], _CBy[iX2+1]);
-				_pBitmapRX.SetPixel( iX+1, _AY,   new SKColor( (byte)R, (byte)G, (byte)B ) );
+				_pBitmapRX.SetPixel( iX+1, _AY, YCtoRGB( _Y1[iX], _CRy[iX2+1], _CBy[iX2+1]) );
 			}
 
 			protected void PixelSetR36By( int iX, short sValue ) {
@@ -273,7 +267,7 @@ namespace Play.SSTV {
 			_skD12Canvas = new( _pBitmapD12 );
 
 			// Need to make this variable depending on the processor.
-            for( int i = 0; i < 1; ++i ) {
+            for( int i = 0; i < 3; ++i ) {
                 _rgBuffers.Add(new ScanBuffers(this));
             }
 
