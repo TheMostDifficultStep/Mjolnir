@@ -1,12 +1,4 @@
-﻿using System;
-using System.IO;
-using System.Collections.Generic;
-using System.Collections;
-using System.Linq;
-
-using SkiaSharp;
-
-//-----------------------------------------------------------------------------------------------------------------------------------------------
+﻿//-----------------------------------------------------------------------------------------------------------------------------------------------
 // Copyright+LGPL
 // Copyright 2000-2013 Makoto Mori, Nobuyuki Oba
 // (c) 2021 https://github.com/TheMostDifficultStep
@@ -22,6 +14,13 @@ using SkiaSharp;
 // You should have received a copy of the GNU Lesser General Public License along with MMTTY.  If not, see 
 // <http://www.gnu.org/licenses/>.
 //-----------------------------------------------------------------------------------------------------------------------------------------------
+
+using System;
+using System.IO;
+using System.Collections.Generic;
+using System.Collections;
+
+using SkiaSharp;
 
 namespace Play.Sound {
     public enum GainIndx : int {
@@ -241,23 +240,6 @@ namespace Play.Sound {
             }
         }
     }
-
-    /// <summary>
-    /// List of known modes. I could do something like my controllers in the future
-    /// where you register your controller and the controller is called to create
-    /// an instance. But this is easiest for now.
-    /// </summary>
-    public enum TVFamily : int {
-        None = 0,
-        Martin,
-        Scottie,
-        PD, 
-        BW,
-        Pasokon,
-        Robot,
-        WWV
-    }
-
 
     /// <summary>
     /// Generators are accessed by the main sstv document (DocSSTV) accessing the modulator.

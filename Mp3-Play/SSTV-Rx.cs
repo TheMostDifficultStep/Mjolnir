@@ -19,6 +19,9 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Text;
+
+using SkiaSharp;
 
 namespace Play.Sound {
 	/// <summary>
@@ -1665,7 +1668,6 @@ namespace Play.Sound {
 			yield return new SSTVFamily( TVFamily.BW,      "BW",      typeof( SSTVModeBW ) );
 			yield return new SSTVFamily( TVFamily.Pasokon, "Pasokon", typeof( SSTVModePasokon ) );
 		    yield return new SSTVFamily( TVFamily.Robot,   "Robot",   typeof( SSTVModeRobot422 ) );
-		  //I seem to have two robot decoders. Need to look at that.
 		}
 
         public IEnumerator<SSTVMode> GetEnumerator()
@@ -1761,5 +1763,101 @@ namespace Play.Sound {
         }
 
     } // end Class
+
+    /// <summary>
+    /// List of known modes. I could do something like my controllers in the future
+    /// where you register your controller and the controller is called to create
+    /// an instance. But this is easiest for now.
+    /// </summary>
+    public enum TVFamily : int {
+        None = 0,
+        Martin,
+        Scottie,
+        PD, 
+        BW,
+        Pasokon,
+        Robot,
+        WWV
+    }
+
+	/// <summary>
+	/// Which comes first, Reception or Transmission?! Perhaps this belongs in it's own file. But
+	/// I'll put it at the bottom of the RX file now. It used to be in the TX file.
+	/// </summary>
+    public abstract class SSTVMode {
+                 public  double   WidthColorInMS { get; } // Time to relay all pixels of one color component.
+        abstract public  double   WidthSyncInMS  { get; } // BUG: Does this get corrected????
+        abstract public  double   WidthGapInMS   { get; }
+                 public  double   ScanWidthInMS  { get; protected set; } // Time for complete scan line as per specification.
+
+        virtual  public  int      ScanMultiplier { get; } = 1;
+
+        readonly public  byte     VIS;
+        readonly public  string   Version = string.Empty;
+
+        readonly public  TVFamily Family;
+        readonly public  AllModes LegacyMode;       // Legacy support.
+        abstract public  string   FamilyName { get; }
+
+        readonly public  List<ScanLineChannel> ChannelMap = new();
+
+        protected abstract void Initialize();
+        protected virtual void SetScanWidth() {
+            foreach( ScanLineChannel oChannel in ChannelMap )
+                ScanWidthInMS += oChannel.WidthInMs;
+        }
+
+        /// <summary>
+        /// Base class for the image reception descriptor.
+        /// </summary>
+        /// <param name="bVIS"></param>
+        /// <param name="strName">Human readable name of mode.</param>
+        /// <param name="dbColorWidthInMS">Tx width of one color block in the scan line in ms.</param>
+        /// <param name="skSize">Do NOT include the top 16 scan line grey scale in the height value.</param>
+        public SSTVMode( TVFamily tvMode, byte bVIS, string strName, 
+                         double dbColorWidthInMS, SKSizeI skSize, AllModes eLegacy = AllModes.smEND ) 
+        {
+            VIS            = bVIS;
+            Version        = strName;
+            WidthColorInMS = dbColorWidthInMS;
+            Family         = tvMode;
+            Resolution     = skSize;
+            LegacyMode     = eLegacy;
+        }
+
+        public override string ToString() {
+            StringBuilder sbValue = new();
+
+            sbValue.Append( FamilyName );
+            sbValue.Append( ' ' );
+            sbValue.Append( Version );
+
+            sbValue.Append( " : " );
+            sbValue.Append( Resolution.Width.ToString() );
+            sbValue.Append( "x" );
+            sbValue.Append( Resolution.Height.ToString() );
+            sbValue.Append( " @ " );
+            sbValue.Append( ( ScanWidthInMS * Resolution.Height / ScanMultiplier / 1000 ).ToString( "0." ) );
+            sbValue.Append( "s" );
+
+            return sbValue.ToString();
+        }
+
+        /// <summary>
+        /// This is the offset from the start of the scan line to the end
+        /// of the horizontal sync signal in millseconds. Used for aligning
+        /// the horizontal offset of the image.
+        /// </summary>
+        public virtual double OffsetInMS => WidthSyncInMS;
+
+        /// <summary>
+        /// This is a little tricky. Scottie, Martin, and the PD modes all specify 16 scan lines
+        /// of a grey scale calibration added to the output, HOWEVER, I don't see the code to send 
+        /// that in MMSSTV. It looks like they use that area for image.
+        /// </summary>
+        public SKSizeI Resolution { get; protected set; }
+    }
+
+
 }
 

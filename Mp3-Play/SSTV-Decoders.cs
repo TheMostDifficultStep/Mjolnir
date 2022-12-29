@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
 
 using SkiaSharp;
 
@@ -50,106 +49,6 @@ namespace Play.Sound {
             WidthInMs = dblWidthInMs;
             Type      = eType;
         }
-    }
-
-    public abstract class SSTVMode {
-                 public  double   WidthColorInMS { get; } // Time to relay all pixels of one color component.
-        abstract public  double   WidthSyncInMS  { get; } // BUG: Does this get corrected????
-        abstract public  double   WidthGapInMS   { get; }
-                 public  double   ScanWidthInMS  { get; protected set; } // Time for complete scan line as per specification.
-
-        virtual  public  int      ScanMultiplier { get; } = 1;
-
-        readonly public  byte     VIS;
-        readonly public  string   Version = string.Empty;
-
-        readonly public  TVFamily Family;
-        readonly public  AllModes LegacyMode;       // Legacy support.
-        abstract public  string   FamilyName { get; }
-
-        readonly public  List<ScanLineChannel> ChannelMap = new();
-
-        protected abstract void Initialize();
-        protected virtual void SetScanWidth() {
-            foreach( ScanLineChannel oChannel in ChannelMap )
-                ScanWidthInMS += oChannel.WidthInMs;
-        }
-
-        public enum Resolutions { 
-            h128or160,
-            h256or320,
-            v128or120,
-            v256or240,
-        }
-
-        /// <summary>
-        /// Base class for the image reception descriptor.
-        /// </summary>
-        /// <param name="bVIS"></param>
-        /// <param name="strName">Human readable name of mode.</param>
-        /// <param name="dbColorWidthInMS">Tx width of one color block in the scan line in ms.</param>
-        /// <param name="skSize">Do NOT include the top 16 scan line grey scale in the height value.</param>
-        public SSTVMode( TVFamily tvMode, byte bVIS, string strName, 
-                         double dbColorWidthInMS, SKSizeI skSize, AllModes eLegacy = AllModes.smEND ) 
-        {
-            VIS            = bVIS;
-            Version        = strName;
-            WidthColorInMS = dbColorWidthInMS;
-            Family         = tvMode;
-            Resolution     = skSize;
-            LegacyMode     = eLegacy;
-        }
-
-        public override string ToString() {
-            StringBuilder sbValue = new();
-
-            sbValue.Append( FamilyName );
-            sbValue.Append( ' ' );
-            sbValue.Append( Version );
-
-            sbValue.Append( " : " );
-            sbValue.Append( Resolution.Width.ToString() );
-            sbValue.Append( "x" );
-            sbValue.Append( Resolution.Height.ToString() );
-            sbValue.Append( " @ " );
-            sbValue.Append( ( ScanWidthInMS * Resolution.Height / ScanMultiplier / 1000 ).ToString( "0." ) );
-            sbValue.Append( "s" );
-
-            return sbValue.ToString();
-        }
-
-        /// <summary>
-        /// This is the offset from the start of the scan line to the end
-        /// of the horizontal sync signal in millseconds. Used for aligning
-        /// the horizontal offset of the image.
-        /// </summary>
-        public virtual double OffsetInMS => WidthSyncInMS;
-
-        /// <summary>
-        /// Basically we're either square resoution or 1 x 1.3 mode. (&Half height modes?)
-        /// 11??: 320 x 240 
-        /// 10??: 320 x 120 
-        /// 11??: 256 x 256 
-        /// 10??: 256 x 128
-        /// 00??: 160 x 120
-        /// 00??: 128 x 128 
-        /// 01??: 128 x 256
-        /// 01??: 160 x 240
-        /// </summary>
-        public void VisResolution( ref Resolutions eHorz, ref Resolutions eVert ) {
-            const int iHoriBits = 0x04;
-            const int iVertbits = 0x08;
-
-            eHorz  = ( VIS & iHoriBits ) == 0 ? Resolutions.h128or160 : Resolutions.h256or320;
-            eVert  = ( VIS & iVertbits ) == 0 ? Resolutions.v128or120 : Resolutions.v256or240;
-        }
-
-        /// <summary>
-        /// This is a little tricky. Scottie, Martin, and the PD modes all specify 16 scan lines
-        /// of a grey scale calibration added to the output, HOWEVER, I don't see the code to send 
-        /// that in MMSSTV. It looks like they use that area for image.
-        /// </summary>
-        public SKSizeI Resolution { get; protected set; }
     }
 
     public class SSTVModeRobot422 : SSTVMode {
