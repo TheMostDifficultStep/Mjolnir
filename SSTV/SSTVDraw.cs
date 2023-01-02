@@ -56,7 +56,12 @@ namespace Play.SSTV {
 			protected readonly short[]  _Y2  = new short[800];
 			protected readonly short[]  _CRy = new short[800]; 
 			protected readonly short[]  _CBy = new short[800]; 
-			protected int      _AY;
+			protected readonly SSTVDraw _oDraw;
+
+			protected int  _AY;
+			protected bool _fChromaInvert;
+
+			List<short> _rgSense = new();
 
 			public setPixel[] Writers { get; }
 
@@ -66,6 +71,7 @@ namespace Play.SSTV {
 				if( oHost._pBitmapRX == null )
 					throw new InvalidProgramException( "SSTV Target bitmap is null!" );
 
+				_oDraw     = oHost;
 				_pBitmapRX = oHost._pBitmapRX;
 
 				var rgWriterEnum = typeof( ScanLineChannelType ).GetEnumValues();
@@ -84,6 +90,8 @@ namespace Play.SSTV {
 
 				if( (_AY < 0) || (_AY >= _pBitmapRX.Height) )
 					return false;
+
+				_rgSense.Clear();
 
 				return true;
 			}
@@ -149,16 +157,56 @@ namespace Play.SSTV {
 				_CBy[iX2+1] = sValue;
 
 				_pBitmapRX.SetPixel( iX,   _AY, YCtoRGB( _Y1[iX], _CRy[iX2  ], _CBy[iX2  ]) );
-
 				_pBitmapRX.SetPixel( iX+1, _AY, YCtoRGB( _Y1[iX], _CRy[iX2+1], _CBy[iX2+1]) );
-			}
-
-			protected void PixelSetR36Chroma( int iX, short sValue ) {
-				_CRy[iX] = sValue;
 			}
 
 			protected void PixelSetR36Y2( int iX, short sValue ) {
 				_Y2[iX] = (short)(sValue + 128);
+			}
+
+			/// <summary>
+			/// Depending on how we've configured the scan line parser theres always a
+			/// chance that the chroma is backwards in Robot 36. So we try to detect
+			/// what kind of chroma line this is.
+			/// 1500 Hz Ry signal, 2300 By Signal.
+			/// We're going to grab every sample and average for best results (hopefully_
+			/// </summary>
+			/// <param name="iX"></param>
+			/// <param name="sValue"></param>
+			protected void PixelSetChromaSense( int iX, short sValue ) {
+				_rgSense.Add( sValue );
+				sValue = _oDraw.GetPixelLevel( sValue );
+			}
+
+			/// <summary>
+			/// We've collected all the chroma ID now in the gap time slot
+			/// we'll try to figure out if the chroma is inverted.
+			/// I could just put this in PixelSetR36Chroma but then we'll 
+			/// do that for every pixel which is more check than in the gap.
+			/// </summary>
+			protected void PixelSetChromaCalc( int iX, short sValue ) {
+				if( _rgSense.Count > 0 ) {
+					double dblSenseAverage = 0;
+					for( int iCount = 0; iCount < _rgSense.Count; iCount++ ) {
+						dblSenseAverage += _rgSense[iCount];
+					}
+					dblSenseAverage /= _rgSense.Count;
+
+					if ( dblSenseAverage <= -64 || dblSenseAverage >= 64 ) {
+						// My guess is the absolute value of the chroma must be
+						// greater than 64. Meaning you're getting a signal.
+						_fChromaInvert = dblSenseAverage >= 0;
+					}
+					_rgSense.Clear();
+				}
+			}
+
+			protected void PixelSetR36Chroma( int iX, short sValue ) {
+				if( _fChromaInvert ) {
+					_CBy[iX] = sValue; // Invert.
+				} else {
+					_CRy[iX] = sValue; // Normal.
+				}
 			}
 
 			/// <summary>
@@ -168,7 +216,11 @@ namespace Play.SSTV {
 			/// <param name="iX"></param>
 			/// <param name="sValue">A chroma value Ry or By depending on odd or even.</param>
 			protected void PixelSetR36Cleanup( int iX, short sValue ) {
-				_CBy[iX] = sValue;
+				if( _fChromaInvert ) {
+					_CRy[iX] = sValue;
+				} else {
+					_CBy[iX] = sValue;
+				}
 
 				_pBitmapRX.SetPixel( iX,   _AY,   YCtoRGB( _Y1[iX  ], _CRy[iX], _CBy[iX]) );
 				_pBitmapRX.SetPixel( iX+1, _AY,   YCtoRGB( _Y1[iX+1], _CRy[iX], _CBy[iX]) );
@@ -200,7 +252,9 @@ namespace Play.SSTV {
 					case ScanLineChannelType.Green : return PixelSetGreen;
 					case ScanLineChannelType.Y     : return PixelSetY;
 					case ScanLineChannelType.R36Y2 : return PixelSetR36Y2;
+					case ScanLineChannelType.R36Sense : return PixelSetChromaSense;
 					case ScanLineChannelType.R36Chr : return PixelSetR36Chroma;
+					case ScanLineChannelType.R36Branch : return PixelSetChromaCalc;
 					case ScanLineChannelType.R36Cln: return PixelSetR36Cleanup;
 					default : return null;
 				}
@@ -267,26 +321,26 @@ namespace Play.SSTV {
 			_skD12Canvas = new( _pBitmapD12 );
 
 			// Need to make this variable depending on the processor.
-            for( int i = 0; i < 3; ++i ) {
+            for( int i = 0; i < 1; ++i ) { // set to 1 for debug.
                 _rgBuffers.Add(new ScanBuffers(this));
             }
 
-            _rgDiagnosticColors.Add( ScanLineChannelType.Sync,  new( SKColors.White, 2 ) );
-			_rgDiagnosticColors.Add( ScanLineChannelType.Gap,   new( SKColors.Brown, 1 ) );
-			_rgDiagnosticColors.Add( ScanLineChannelType.Red,   new( SKColors.Red,   1 ) );
-			_rgDiagnosticColors.Add( ScanLineChannelType.Green, new( SKColors.Green, 1 ) );
-			_rgDiagnosticColors.Add( ScanLineChannelType.Blue,  new( SKColors.Blue,  1 ) );
-			_rgDiagnosticColors.Add( ScanLineChannelType.BY,    new( SKColors.Blue,  1 ) );
-			_rgDiagnosticColors.Add( ScanLineChannelType.RY,    new( SKColors.Red,   1 ) );
-			_rgDiagnosticColors.Add( ScanLineChannelType.BYx2,  new( SKColors.Blue,  1 ) );
-			_rgDiagnosticColors.Add( ScanLineChannelType.RYx2,  new( SKColors.Red,   1 ) );
-			_rgDiagnosticColors.Add( ScanLineChannelType.Y1,    new( SKColors.Gray,  1 ) );
-			_rgDiagnosticColors.Add( ScanLineChannelType.Y2,    new( SKColors.Gray,  1 ) );
-			_rgDiagnosticColors.Add( ScanLineChannelType.Y,     new( SKColors.Gray,  1 ) );
-			_rgDiagnosticColors.Add( ScanLineChannelType.R36Y2, new( SKColors.Gray,  1 ) );
-			_rgDiagnosticColors.Add( ScanLineChannelType.R36Chr, new( SKColors.Gray,  1 ) );
-			_rgDiagnosticColors.Add( ScanLineChannelType.R36Cln, new( SKColors.Gray,  1 ) );
-			_rgDiagnosticColors.Add( ScanLineChannelType.END,   new( SKColors.Aquamarine, 3 ) );
+            _rgDiagnosticColors.Add( ScanLineChannelType.Sync,   new( SKColors.White, 2 ) );
+			_rgDiagnosticColors.Add( ScanLineChannelType.Gap,    new( SKColors.Brown, 1 ) );
+			_rgDiagnosticColors.Add( ScanLineChannelType.Red,    new( SKColors.Red,   1 ) );
+			_rgDiagnosticColors.Add( ScanLineChannelType.Green,  new( SKColors.Green, 1 ) );
+			_rgDiagnosticColors.Add( ScanLineChannelType.Blue,   new( SKColors.Blue,  1 ) );
+			_rgDiagnosticColors.Add( ScanLineChannelType.BY,     new( SKColors.Blue,  1 ) );
+			_rgDiagnosticColors.Add( ScanLineChannelType.RY,     new( SKColors.Red,   1 ) );
+			_rgDiagnosticColors.Add( ScanLineChannelType.BYx2,   new( SKColors.Blue,  1 ) );
+			_rgDiagnosticColors.Add( ScanLineChannelType.RYx2,   new( SKColors.Red,   1 ) );
+			_rgDiagnosticColors.Add( ScanLineChannelType.Y1,     new( SKColors.Gray,  1 ) );
+			_rgDiagnosticColors.Add( ScanLineChannelType.Y2,     new( SKColors.Gray,  1 ) );
+			_rgDiagnosticColors.Add( ScanLineChannelType.Y,      new( SKColors.Gray,  1 ) );
+			_rgDiagnosticColors.Add( ScanLineChannelType.R36Y2,  new( SKColors.Gray,  1 ) );
+			_rgDiagnosticColors.Add( ScanLineChannelType.R36Chr, new( SKColors.Red,   1 ) );
+			_rgDiagnosticColors.Add( ScanLineChannelType.R36Cln, new( SKColors.Blue,  1 ) );
+			_rgDiagnosticColors.Add( ScanLineChannelType.END,    new( SKColors.Aquamarine, 3 ) );
 		}
 
 		/// <summary>this method get's called to initiate the processing of
@@ -508,21 +562,21 @@ namespace Play.SSTV {
 				double dblXCh = ( dblStartIndex + oSlot.Min ) * dbD12XScale;
 				dblXCh %= _pBitmapD12.Width;
 
-				DiagnosticPaint sPaint = _rgDiagnosticColors[oSlot.ChannelType];
+				if( _rgDiagnosticColors.TryGetValue( oSlot.ChannelType, out DiagnosticPaint sPaint ) ) {
+					skPaint.Color       = sPaint.Color;
+					skPaint.StrokeWidth = sPaint.StrokeWidth;
 
-				skPaint.Color       = sPaint.Color;
-				skPaint.StrokeWidth = sPaint.StrokeWidth;
+					if( oSlot.ChannelType == ScanLineChannelType.Gap ||
+						oSlot.ChannelType == ScanLineChannelType.END ) {
+						skPaint.PathEffect = skDash;
+					} else {
+						skPaint.PathEffect = null;
+					}
 
-				if( oSlot.ChannelType == ScanLineChannelType.Gap ||
-					oSlot.ChannelType == ScanLineChannelType.END ) {
-					skPaint.PathEffect = skDash;
-				} else {
-					skPaint.PathEffect = null;
+					_skD12Canvas.DrawLine( new SKPoint( (int)dblXCh, 0 ), 
+										   new SKPoint( (int)dblXCh, _pBitmapD12.Height), 
+										   skPaint );
 				}
-
-				_skD12Canvas.DrawLine( new SKPoint( (int)dblXCh, 0 ), 
-									   new SKPoint( (int)dblXCh, _pBitmapD12.Height), 
-									   skPaint );
 			}
 		}
 

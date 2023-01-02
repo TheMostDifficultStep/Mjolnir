@@ -36,6 +36,8 @@ namespace Play.Sound {
         RYx2,
         BYx2,
         R36Y2,
+        R36Sense,
+        R36Branch,
         R36Chr,
         R36Cln,
         END
@@ -134,17 +136,17 @@ namespace Play.Sound {
 			ChannelMap.Add( new( WidthGapInMS,     ScanLineChannelType.Gap    ) );
 			ChannelMap.Add( new( WidthColorInMS,   ScanLineChannelType.Y1     ) );
                                                                               
-			ChannelMap.Add( new( WidthSyncInMS /2, ScanLineChannelType.Gap    ) );
-            ChannelMap.Add( new( WidthGapInMS  /2, ScanLineChannelType.Gap    ) );
-			ChannelMap.Add( new( WidthColorInMS/2, ScanLineChannelType.R36Chr ) );
+			ChannelMap.Add( new( WidthSyncInMS /2, ScanLineChannelType.R36Sense  ) );
+            ChannelMap.Add( new( WidthGapInMS  /2, ScanLineChannelType.R36Branch ) );
+			ChannelMap.Add( new( WidthColorInMS/2, ScanLineChannelType.R36Chr    ) );
 
 			ChannelMap.Add( new( WidthSyncInMS,    ScanLineChannelType.Sync   ) );
 			ChannelMap.Add( new( WidthGapInMS,     ScanLineChannelType.Gap    ) );
 			ChannelMap.Add( new( WidthColorInMS,   ScanLineChannelType.R36Y2  ) );
                                                                               
-			ChannelMap.Add( new( WidthSyncInMS /2, ScanLineChannelType.Gap    ) );
-            ChannelMap.Add( new( WidthGapInMS  /2, ScanLineChannelType.Gap    ) );
-			ChannelMap.Add( new( WidthColorInMS/2, ScanLineChannelType.R36Cln ) );
+			ChannelMap.Add( new( WidthSyncInMS /2, ScanLineChannelType.Gap      ) );
+            ChannelMap.Add( new( WidthGapInMS  /2, ScanLineChannelType.Gap      ) );
+			ChannelMap.Add( new( WidthColorInMS/2, ScanLineChannelType.R36Cln   ) );
 
             SetScanWidth();
 		}
