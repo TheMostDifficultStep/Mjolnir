@@ -328,13 +328,13 @@ namespace Play.Sound {
                 if( (iLine & 1 ) == 0 ) { // Even lines R-Y
 	                Write( 1500, Mode.WidthSyncInMS/2 );    // sync
                     Write( 1900, Mode.WidthGapInMS /2 );    // gap
-	                for( int x = 0; x < Width; x += 2 ) {   // R-Y
+	                for( int x = 0; x < Width; x += 2 ) {   // R-Y (first scan line)
 		                Write( ColorToFreq( _rgChromaCache[x].RY ), dbTimePerPixel );
 	                }
                 } else {                  // Odd  lines B-Y
 	                Write( 2300, Mode.WidthSyncInMS/2 );    // sync
                     Write( 1900, Mode.WidthGapInMS /2 );    // gap
-	                for( int x = 0; x < Width; x += 2 ) {   // B-Y
+	                for( int x = 0; x < Width; x += 2 ) {   // B-Y (second scan line)
 		                Write( ColorToFreq( _rgChromaCache[x].BY ), dbTimePerPixel );
 	                }
                 }

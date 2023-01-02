@@ -92,6 +92,7 @@ namespace Play.SSTV {
 					return false;
 
 				_rgSense.Clear();
+				_fChromaInvert = false;
 
 				return true;
 			}
@@ -179,11 +180,23 @@ namespace Play.SSTV {
 			}
 
 			/// <summary>
-			/// We've collected all the chroma ID now in the gap time slot
+			/// We've collected all the chroma ID now in the next gap slot
 			/// we'll try to figure out if the chroma is inverted.
 			/// I could just put this in PixelSetR36Chroma but then we'll 
-			/// do that for every pixel which is more check than in the gap.
+			/// do that for every pixel which is more checks than in the gap.
 			/// </summary>
+			/// <remarks>So the original code convertes the value +/- 16k
+			/// signal values into a pixel level...
+			/// -128 to 128. -128 is black (1500Hz Ry), +128 is white (2300Hz By).
+			/// But when I normalize like that that the result goes to (almost) 
+			/// zero and I can't tell what the value is. 
+			/// Now there is a calibrating step, but the only part that matters
+			/// is the (sys.m_DemOff) demodulator offset. So really I could simply
+			/// expose that and look for a positive or negative signal.
+			/// ---
+			/// At present I only check the first chroma identifier. To really
+			/// be smart I could check BOTH and the most positive one wins.
+			/// </remarks>
 			protected void PixelSetChromaCalc( int iX, short sValue ) {
 				if( _rgSense.Count > 0 ) {
 					double dblSenseAverage = 0;
@@ -192,20 +205,22 @@ namespace Play.SSTV {
 					}
 					dblSenseAverage /= _rgSense.Count;
 
-					if ( dblSenseAverage <= -64 || dblSenseAverage >= 64 ) {
+					// See above remarks...
+					//dblSenseAverage = _oDraw.GetPixelLevel( (short)dblSenseAverage );
+					//if ( dblSenseAverage <= -64 || dblSenseAverage >= 64 ) {
 						// My guess is the absolute value of the chroma must be
 						// greater than 64. Meaning you're getting a signal.
 						_fChromaInvert = dblSenseAverage >= 0;
-					}
+					//}
 					_rgSense.Clear();
 				}
 			}
 
 			protected void PixelSetR36Chroma( int iX, short sValue ) {
 				if( _fChromaInvert ) {
-					_CBy[iX] = sValue; // Invert.
+					_CBy[iX] = sValue; // Invert, second scan line.
 				} else {
-					_CRy[iX] = sValue; // Normal.
+					_CRy[iX] = sValue; // Normal, first  scan line.
 				}
 			}
 
@@ -452,11 +467,13 @@ namespace Play.SSTV {
 
 		/// <summary>
 		/// Convert ip levels -16,384 (black) through 16,384 (white) to -128 to +128.
+		/// Also if there is more white than black the system can balance the value.
+		/// 2300 hz is white, 1500 hz is black for normal wide band SSTV.
 		/// </summary>
 		/// <param name="ip">frequency as a level value.</param>
 		/// <returns></returns>
 		protected short GetPixelLevel(short ip)	{
-			if( _dp.Sys.m_DemCalibration && (_pCalibration != null) ){
+			if( _dp.Sys.m_DemCalibration && (_pCalibration != null) ) {
 				int d = (ip / 8) + 2048;
 				if( d < 0 )
 					d = 0;
