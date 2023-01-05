@@ -336,7 +336,7 @@ namespace Play.SSTV {
 			_skD12Canvas = new( _pBitmapD12 );
 
 			// Need to make this variable depending on the processor.
-            for( int i = 0; i < 1; ++i ) { // set to 1 for debug.
+            for( int i = 0; i < 3; ++i ) { // set to 1 for debug.
                 _rgBuffers.Add(new ScanBuffers(this));
             }
 

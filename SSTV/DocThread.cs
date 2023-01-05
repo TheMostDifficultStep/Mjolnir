@@ -345,8 +345,42 @@ namespace Play.SSTV {
             _oToUIQueue.Enqueue( new( eProp, iParam ) );
         }
 
+        /// <summary>
+        /// Check our message queue. We try to dequeue all Frequency up/down
+        /// message en mass if possible. I probably could even allow interleaved
+        /// messages, but I'd need to store those lower pri messages on a 
+        /// seperate queue. But in general, there isn't a lot of messages 
+        /// coming thru.
+        /// </summary>
+        /// <returns></returns>
         protected bool CheckMessages() {
             while( _oInputQueue.TryDequeue( out TVMessage oMsg ) ) {
+                // Try to fast dequeue any frequency up down messages.
+                double dblSlant = 0;
+                bool   fTally   = false;
+                do {
+                    switch( oMsg._eMsg ) {
+                        case TVMessage.Message.FrequencyDown:
+                            dblSlant -= 0.3;
+                            fTally = true;
+                            break;
+                        case TVMessage.Message.FrequencyUp:
+                            dblSlant += 0.3;
+                            fTally = true;
+                            break;
+                        default:
+                            fTally = false;
+                            break;
+                    }
+                } while( fTally && _oInputQueue.TryDequeue( out oMsg ) );
+
+                // If we picked up any slant correction, process that.
+                if( dblSlant != 0 ) 
+                    _oSSTVDraw.ManualSlopeAdjust( dblSlant );
+                // If we didn't get any more messages, just bail.
+                if( oMsg == null )
+                    break;
+
                 switch( oMsg._eMsg ) {
                     case TVMessage.Message.ExitWorkThread:
                         _oToUIQueue.Enqueue( new( SSTVEvents.ThreadExit, 0 ) );
