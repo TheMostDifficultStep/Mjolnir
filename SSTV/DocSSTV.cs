@@ -228,14 +228,17 @@ namespace Play.SSTV {
             ExitWorkThread,
             FrequencyUp,
             FrequencyDown,
+            Intercept,
         }
 
         public readonly Message _eMsg;
         public readonly object  _oParam;
+        public readonly int     _iParam;
 
-        public TVMessage( Message eMsg, object oParam = null ) {
+        public TVMessage( Message eMsg, object oParam = null, int iParam = 0 ) {
             _eMsg   = eMsg;
             _oParam = oParam;
+            _iParam = iParam;
         }
     }
 
@@ -686,8 +689,12 @@ namespace Play.SSTV {
             return true;
         }
 
-        public void PostBGMessage( TVMessage.Message msg ) {
-            _rgUItoBGQueue.Enqueue( new TVMessage( msg, null ) );
+        public void PostBGMessage( TVMessage.Message eMsg ) {
+            _rgUItoBGQueue.Enqueue( new TVMessage( eMsg, null ) );
+        }
+
+        public void PostBGMessage( TVMessage.Message eMsg, int iParam ) {
+            _rgUItoBGQueue.Enqueue( new TVMessage( eMsg, null, iParam ) );
         }
 
         protected void InitDeviceList() {

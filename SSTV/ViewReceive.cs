@@ -383,6 +383,24 @@ namespace Play.SSTV {
             Invalidate();
         }
         
+        protected override void OnKeyDown(KeyEventArgs e) {
+            if( this.IsDisposed )
+                return;
+
+            e.Handled = true;
+
+            switch( e.KeyCode ) {
+                case Keys.Right:
+					_oDocSSTV.PostBGMessage( TVMessage.Message.Intercept,  2 );
+					break;
+                case Keys.Left:
+					_oDocSSTV.PostBGMessage( TVMessage.Message.Intercept, -2 );
+					break;
+                case Keys.Enter:
+                    break;
+            }
+        }
+
         protected override void OnMouseDown(MouseEventArgs e) {
             this.Select();
 		}

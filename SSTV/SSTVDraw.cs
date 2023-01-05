@@ -290,7 +290,7 @@ namespace Play.SSTV {
 		const    int                _iBucketSize    = 20;
 		readonly List<double>       _rgSlopeBuckets = new();
 
-		bool     _fAuto          = false;
+		bool     _fAuto          = false; // Auto slant adjust.
 		double   _dblSlope       = 0;
 		double   _dblIntercept   = 0;
 
@@ -644,7 +644,7 @@ namespace Play.SSTV {
 						setPixel     oWriter  = oBuff.Writers[(int)oChannel.ChannelType];
 						if( i < oChannel.Max ) {
 							if( oWriter != null ) {
-								int x = (int)((i - oChannel.Min) * oChannel.Scaling );
+								int x = (int)((i - oChannel.Min) * oChannel.PixelsPerSample );
 								if( x != rx ) {
 									rx = x; oWriter( x, GetPixelLevel( _dp.SignalGet( iSx ) ) );
 								}
@@ -750,6 +750,42 @@ namespace Play.SSTV {
 		public void ManualSlopeAdjust( double dblDir ) {
 			_fAuto     = false;
 			_dblSlope += dblDir;
+
+			ProcessAll();
+		}
+
+		/// <summary>
+		/// Distance to move the intercept.
+		/// </summary>
+		/// <param name="dblDir">value in pixels.</param>
+		public void ManualInterceptAdjust( double dblDir ) {
+			if( dblDir == 0 )
+				return;
+
+			// find a channel that represents the width of samples
+			// that make up one full bitmap width.
+			// TODO: I should set this value when I set up the channels.
+			double dblSamplesPerPixel = 0;
+			try {
+				foreach( ColorChannel oChannel in _rgSlots ) {
+					if( oChannel.ChannelType == ScanLineChannelType.Red || 
+						oChannel.ChannelType == ScanLineChannelType.Y1  ||
+						oChannel.ChannelType == ScanLineChannelType.Y ) {
+						// from bmp pixel to scan line sample scale.
+						dblSamplesPerPixel = 1 / oChannel.PixelsPerSample;
+						break;
+					}
+				}
+			} catch ( Exception oEx ) {
+				Type[] rgErrors = { typeof( ArithmeticException ) };
+				if( rgErrors.IsUnhandled( oEx ) )
+					throw;
+
+				return;
+			}
+
+			_fAuto         = false;
+			_dblIntercept += dblDir * dblSamplesPerPixel;
 
 			ProcessAll();
 		}
@@ -955,7 +991,7 @@ namespace Play.SSTV {
 
 		public double   Min      { get; protected set; }
 		public double   Max      { get; protected set; }
-		public double   Scaling  { get; protected set; }
+		public double   PixelsPerSample  { get; protected set; } // Scaling.
 
 		public ColorChannel( double dbWidthInSamples, ScanLineChannelType eType ) {
 			SpecWidthInSamples = dbWidthInSamples;
@@ -970,11 +1006,8 @@ namespace Play.SSTV {
 		public double Reset( int iBmpWidth, double dbStart, double dbCorrection ) {
 			_dbScanWidthCorrected = SpecWidthInSamples * dbCorrection;
 
-			// this works only for the full width encodings!!
-			//Scaling = iBmpWidth / _dbScanWidthCorrected;
-
 			double dblChannelWidthInMs = Max - Min;
-			Scaling = iBmpWidth / dblChannelWidthInMs;
+			PixelsPerSample = iBmpWidth / dblChannelWidthInMs;
 
 			Min = dbStart;
 			Max = dbStart + ( _dbScanWidthCorrected );

@@ -349,15 +349,16 @@ namespace Play.SSTV {
         /// Check our message queue. We try to dequeue all Frequency up/down
         /// message en mass if possible. I probably could even allow interleaved
         /// messages, but I'd need to store those lower pri messages on a 
-        /// seperate queue. But in general, there isn't a lot of messages 
-        /// coming thru.
+        /// seperate temp queue. But in general, there isn't a lot of messages 
+        /// coming thru, so we should be fine as we are.
         /// </summary>
         /// <returns></returns>
         protected bool CheckMessages() {
             while( _oInputQueue.TryDequeue( out TVMessage oMsg ) ) {
                 // Try to fast dequeue any frequency up down messages.
-                double dblSlant = 0;
-                bool   fTally   = false;
+                double dblSlant   = 0;
+                int    iIntercept = 0;
+                bool   fTally     = false;
                 do {
                     switch( oMsg._eMsg ) {
                         case TVMessage.Message.FrequencyDown:
@@ -368,6 +369,9 @@ namespace Play.SSTV {
                             dblSlant += 0.3;
                             fTally = true;
                             break;
+                        case TVMessage.Message.Intercept:
+                            iIntercept += 5 * oMsg._iParam;
+                            break;
                         default:
                             fTally = false;
                             break;
@@ -377,6 +381,9 @@ namespace Play.SSTV {
                 // If we picked up any slant correction, process that.
                 if( dblSlant != 0 ) 
                     _oSSTVDraw.ManualSlopeAdjust( dblSlant );
+                if( iIntercept != 0 )
+                    _oSSTVDraw.ManualInterceptAdjust( iIntercept );
+
                 // If we didn't get any more messages, just bail.
                 if( oMsg == null )
                     break;
@@ -405,6 +412,9 @@ namespace Play.SSTV {
                         break;
                     case TVMessage.Message.FrequencyUp:
                         _oSSTVDraw.ManualSlopeAdjust( +0.3 );
+                        break;
+                    case TVMessage.Message.Intercept:
+                        _oSSTVDraw.ManualInterceptAdjust( 5 * oMsg._iParam );
                         break;
                 }
             }
