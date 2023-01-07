@@ -173,16 +173,6 @@ namespace Play.SSTV {
     }
 
 	/// <summary>
-	/// A little subclass of the editwindow to turn on the check marks. turn on readonly and have multiline.
-	/// </summary>
-	public class CheckList : EditWindow2 {
-		public CheckList( IPgViewSite oSite, Editor oEditor ) : base( oSite, oEditor, fReadOnly:true, fSingleLine:false ) {
-			_fCheckMarks = true;
-			ToolSelect   = 2; // BUG: change this to an enum in the future.
-		}
-	}
-
-	/// <summary>
 	/// This is a old view so we can select a transmit image. Basically a slightly
 	/// motified directory viewer. 
 	/// </summary>

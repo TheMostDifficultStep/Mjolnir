@@ -142,14 +142,14 @@ namespace Play.Edit {
         /// coordinates to us.</param>
         /// <returns>Character offset of the given location. 0 if left of the
         /// first element.</returns>
-        public override int GlyphPointToOffset( SKPointI pntWorld ) {
+        public override int GlyphPointToOffset( int iTop, SKPointI pntWorld ) {
 			try {
 				int iSegment;
 
 				// Since the lines are wrapped, find which segment we think
                 // the desired offset is in.
 				for( iSegment = 0; iSegment <= _iWrapCount; ++iSegment ) {
-					if( ( Top + ( iSegment + 1 ) * base.Height ) > pntWorld.Y )
+					if( ( iTop + ( iSegment + 1 ) * base.Height ) > pntWorld.Y )
 						break;
 				}
 

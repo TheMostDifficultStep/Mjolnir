@@ -644,7 +644,7 @@ namespace Play.SSTV {
 						setPixel     oWriter  = oBuff.Writers[(int)oChannel.ChannelType];
 						if( i < oChannel.Max ) {
 							if( oWriter != null ) {
-								int x = (int)((i - oChannel.Min) * oChannel.PixelsPerSample );
+								int x = (int)((i - oChannel.Min) * oChannel.PixelsPerMs );
 								if( x != rx ) {
 									rx = x; oWriter( x, GetPixelLevel( _dp.SignalGet( iSx ) ) );
 								}
@@ -772,7 +772,7 @@ namespace Play.SSTV {
 						oChannel.ChannelType == ScanLineChannelType.Y1  ||
 						oChannel.ChannelType == ScanLineChannelType.Y ) {
 						// from bmp pixel to scan line sample scale.
-						dblSamplesPerPixel = 1 / oChannel.PixelsPerSample;
+						dblSamplesPerPixel = 1 / ( oChannel.PixelsPerMs * ( _dp.SampFreq / 1000 ) );
 						break;
 					}
 				}
@@ -991,7 +991,7 @@ namespace Play.SSTV {
 
 		public double   Min      { get; protected set; }
 		public double   Max      { get; protected set; }
-		public double   PixelsPerSample  { get; protected set; } // Scaling.
+		public double   PixelsPerMs  { get; protected set; } // Scaling.
 
 		public ColorChannel( double dbWidthInSamples, ScanLineChannelType eType ) {
 			SpecWidthInSamples = dbWidthInSamples;
@@ -1007,7 +1007,7 @@ namespace Play.SSTV {
 			_dbScanWidthCorrected = SpecWidthInSamples * dbCorrection;
 
 			double dblChannelWidthInMs = Max - Min;
-			PixelsPerSample = iBmpWidth / dblChannelWidthInMs;
+			PixelsPerMs = iBmpWidth / dblChannelWidthInMs;
 
 			Min = dbStart;
 			Max = dbStart + ( _dbScanWidthCorrected );

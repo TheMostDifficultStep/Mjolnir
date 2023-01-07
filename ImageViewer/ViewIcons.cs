@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Windows.Forms;
 using System.IO;
@@ -111,11 +112,11 @@ namespace Play.ImageViewer {
         IPgSave<XmlDocumentFragment>,
         IPgCommandView
     {
-        protected readonly CacheBase2      _oTextCache     = new CacheBase2();
-        protected readonly SmartRect       _oTextRect      = new SmartRect();
-        protected readonly ScrollBar2      _oScrollBarVirt;
+        protected readonly List<FTCacheLine>   _oTextCache     = new();
+        protected readonly SmartRect           _oTextRect      = new SmartRect();
+        protected readonly ScrollBar2          _oScrollBarVirt;
         protected readonly List<ImageLineBase> _rgThumbs       = new List<ImageLineBase>();
-        protected          uint            _uiStdText      = 0;
+        protected          uint                _uiStdText      = 0;
 
         protected       int  _iImgHeight   = 100;
         protected const int  _iMarginLeft  = 5;

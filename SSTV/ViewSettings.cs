@@ -7,6 +7,7 @@ using SkiaSharp;
 using Play.Forms;
 using Play.Interfaces.Embedding;
 using Play.Rectangles;
+using Play.Edit;
 
 namespace Play.SSTV {
     /// <summary>

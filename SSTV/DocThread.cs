@@ -414,7 +414,7 @@ namespace Play.SSTV {
                         _oSSTVDraw.ManualSlopeAdjust( +0.3 );
                         break;
                     case TVMessage.Message.Intercept:
-                        _oSSTVDraw.ManualInterceptAdjust( 5 * oMsg._iParam );
+                        _oSSTVDraw.ManualInterceptAdjust( oMsg._iParam );
                         break;
                 }
             }

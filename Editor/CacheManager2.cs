@@ -8,14 +8,13 @@ using SkiaSharp;
 
 using Play.Interfaces.Embedding;
 using Play.Rectangles;
-using Play.Parse.Impl;
 
 namespace Play.Edit {
     public class CacheBase2 :
-        IEnumerable<FTCacheLine>,
+        IEnumerable<CacheRow>,
         IDisposable
     {
-        protected List<FTCacheLine> _rgOldCache = new List<FTCacheLine>();
+        protected List<CacheRow> _rgOldCache = new List<CacheRow>();
 
 		public CacheBase2() { 
 		}
@@ -26,7 +25,7 @@ namespace Play.Edit {
         protected virtual void LogError( string strDetails ) {
         }
 
-        public IEnumerator<FTCacheLine> GetEnumerator() {
+        public IEnumerator<CacheRow> GetEnumerator() {
             return _rgOldCache.GetEnumerator();
         }
 
@@ -34,9 +33,7 @@ namespace Play.Edit {
             return _rgOldCache.GetEnumerator();
         }
 
-		public int Width { get; set; }
-
-        public void Add( FTCacheLine oCache ) {
+        public void Add( CacheRow oCache ) {
             _rgOldCache.Add( oCache );
         }
 
@@ -72,7 +69,6 @@ namespace Play.Edit {
 			_oTextRect.SetPoint(SET.RIGID, LOCUS.UPPERLEFT | LOCUS.EXTENT, oViewSize.Width, oViewSize.Height );
             
             GlyphLt    = Font.GetGlyph( 0x003c ); // we show carriage return as a '<' sign.
-			Width      = _oTextRect.Width;
             FontHeight = (int)Font.FontHeight; // BUG: Cache elem's are variable height in general.
         }
 
@@ -149,13 +145,12 @@ namespace Play.Edit {
         /// The buffer rectangle is reset so it's top is zero and the top of the new cache
         /// element is zero. Old cache is untouched and will need to be cleared.
         /// </summary>
-        protected FTCacheLine CacheReset( 
+        protected CacheRow CacheReset( 
             RefreshNeighborhood eNeighborhood
         ) {
             // Where to set the first cache elem TOP? 0 or somewhere in the middle of the screen?
             // I think 0 is fine since we can go negative no problem.
             _oTextRect.SetPoint(SET.RIGID, LOCUS.UPPERLEFT, 0, 0 );
-			Width = _oTextRect.Width; // TODO: Not strictly needed.
 
 			// Ask our site for locating ourselves. Either based on our scroll
 			// position or carat depending on how we were called.
@@ -163,7 +158,7 @@ namespace Play.Edit {
 			if ( oLine == null )
                 return null;
 
-            FTCacheLine oElem = _rgOldCache.Find( item => item.At == oLine.At ); // TODO: Reconsider change back to item.Line == oLine
+            CacheRow oElem = _rgOldCache.Find( item => item.At == oLine.At ); // TODO: Reconsider change back to item.Line == oLine
             if (oElem == null) // If can't find matching elem, create it.
                 oElem = CreateElement( oLine );
 
@@ -189,17 +184,17 @@ namespace Play.Edit {
         /// Deleted lines are removed from the cache the minute they are deleted. 
         /// </summary>
         /// <returns>Highest previously cached element that looks valid.</returns>
-        protected FTCacheLine FindLeast()
+        protected CacheRow FindLeast()
         {
             if( _rgOldCache.Count == 0 )
                 return( null );
 
             // Find the closest valid line to the top of the TextRect.
-            FTCacheLine oLeast   = null;
-            int         iMinDist = int.MaxValue;
+            CacheRow oLeast   = null;
+            int      iMinDist = int.MaxValue;
 
             for( int iElem = 0; iElem < _rgOldCache.Count; ++iElem ) {
-                FTCacheLine oCurrLine = _rgOldCache[iElem];
+                CacheRow oCurrLine = _rgOldCache[iElem];
                 // If the element overlaps the textrect or is inside, use it. Might be
                 // nice to add a check if the line is still in the buffer or has been deleted.
                 if( oCurrLine.Top    <= TextRect[SCALAR.BOTTOM] + FontHeight * 2 &&
@@ -230,12 +225,12 @@ namespace Play.Edit {
         /// <param name="oElem">Element where we are building up the cache from.</param>
         /// <param name="iDir">Which direction to try.</param>
         /// <returns>New or recycled cache element stacked above or below previous.</returns>
-        protected FTCacheLine RefreshNext( FTCacheLine oElem, int iDir ) {
+        protected CacheRow RefreshNext( CacheRow oElem, int iDir ) {
             if( oElem == null )
                 return( null );
 
-            FTCacheLine oPrev = oElem;
-            int         iLine = oElem.At + iDir;
+            CacheRow oPrev = oElem;
+            int      iLine = oElem.At + iDir;
 
             // See if we already the line computations. Given the old cache is sorted by
             // line I could potentially do a b-search. This find is a linear operation.
@@ -253,7 +248,7 @@ namespace Play.Edit {
 
             if( oElem != null ) {
                 if( oElem.IsInvalid ) {
-                    ElemUpdate( oElem );
+                    ElemUpdate( oElem.CacheList[0] );
                 }
                 if( iDir < 0 ) {
                     oElem.Top = oPrev.Top - oElem.Height - LineSpacing;
@@ -270,25 +265,25 @@ namespace Play.Edit {
         /// Note: Can't search for the line with the binary search since we're thrashing the order of the cache.
         /// </summary>
         /// <returns>True if the cache has any elements.</returns>
-        protected bool CacheRefresh( FTCacheLine oTop ) {
+        protected bool CacheRefresh( CacheRow oTop ) {
             if( oTop == null ) {
                 _oSite.LogError( "view cache", "Unable to find least or reseed new cache! We're hosed!" );
                 return false;
             }
 
             if( oTop.IsInvalid ) {
-                ElemUpdate( oTop );
+                ElemUpdate( oTop.CacheList[0] );
             }
 
-            List<FTCacheLine> rgNewCache = new List<FTCacheLine>();
+            List<CacheRow> rgNewCache = new List<CacheRow>();
 
             rgNewCache.Add( oTop ); // Stick our seed in the new cache.
 
-            FTCacheLine oElem = oTop; // Current starting point.
+            CacheRow oElem = oTop; // Current starting point.
 
             // Build downwards towards larger line numbers.
             while( oElem != null && oElem.Bottom < TextRect[SCALAR.BOTTOM] ) {
-                FTCacheLine oPrev = oElem;
+                CacheRow oPrev = oElem;
                 oElem = RefreshNext( oElem, +1 );
                 if( oElem == null ) {
                     // We're at the bottom, Re-shift the rect bottom to match bottom line so we don't have gap.
@@ -299,12 +294,12 @@ namespace Play.Edit {
                 }
             };
 
-            FTCacheLine oBottom = oElem; // Last downward element we saved.
+            CacheRow oBottom = oElem; // Last downward element we saved.
             oElem = oTop;
 
             // Build upwards towards smaller line numbers.
             while( oElem != null && oElem.Top > TextRect[SCALAR.TOP ] ) {
-                FTCacheLine oPrev = oElem;
+                CacheRow oPrev = oElem;
                 oElem = RefreshNext( oElem, -1 );
                 if( oElem == null ) {
                     // We're at the top. Re-shift the rect top to match top line so we don't have a gap.
@@ -320,7 +315,7 @@ namespace Play.Edit {
             // Go down one last time in case the rect was moved up by the upward building loop. That
             // would create a gap that the downward builder didn't know about.
             while( oElem != null && oElem.Bottom < TextRect[SCALAR.BOTTOM] ) {
-                FTCacheLine oPrev = oElem;
+                CacheRow oPrev = oElem;
                 oElem = RefreshNext( oElem, +1 );
                 if( oElem != null ) {
                     rgNewCache.Add( oElem );
@@ -334,17 +329,19 @@ namespace Play.Edit {
             return _rgOldCache.Count != 0;
         } // end method
 
-		/// <remarks>TODO: Work in progress. Clearly looking for formatting right after
+		/// <summary>TODO: Work in progress. Clearly looking for formatting right after
         /// an update might not be wise. NOTE: Word breaking is different than formatting,
         /// I always forget this! If you are making your own text display you'll
-        /// need this WordBreak() call somewhere equivalently.</remarks>
+        /// need this WordBreak() call somewhere equivalently.</summary>
+        /// <remarks>2023-1-7: Let's keep this focused on the textarea for the moment.
+        /// We can expand to other columns when we add that little bit extra.</remarks>
         protected void ElemUpdate( FTCacheLine oElem ) {
 			try {
                 _oSite.WordBreak( oElem.Line, oElem.Words );
 
 				oElem.Update( Font );
                 oElem.OnChangeFormatting( _oSite.Selections );
-                oElem.OnChangeSize( this.Width );
+                oElem.OnChangeSize( _oTextRect[SCALAR.WIDTH] );
 			} catch( Exception oEx ) {
 				Type[] rgErrors = { typeof( NullReferenceException ),
 									typeof( ArgumentNullException ),
@@ -362,8 +359,8 @@ namespace Play.Edit {
         /// </summary>
         protected void CacheValidate() {
 			try {
-				FTCacheLine oPrev = null;
-				foreach( FTCacheLine oElem in _rgOldCache ) {
+				CacheRow oPrev = null;
+				foreach( CacheRow oElem in _rgOldCache ) {
         //            if( oElem.Color.Count > 0 ) {
 					   // oElem.Words.Clear();
         //                foreach( IColorRange oRange in oElem.Line.Formatting ) {
@@ -374,7 +371,7 @@ namespace Play.Edit {
         //                oElem.Words.Add(new ColorRange(0,oElem.Line.ElementCount,0));
 				    //}
 					if( oElem.IsInvalid )
-						ElemUpdate( oElem );
+						ElemUpdate( oElem.CacheList[0] );
 
 					// NOTE: if the elements aren't stacked in line order, we've got a problem.
 					if( oPrev != null )
@@ -402,14 +399,12 @@ namespace Play.Edit {
             RefreshType         eReset,
             RefreshNeighborhood eNeighborhood
         ) {
-			Width = _oTextRect.Width;
-
             // Sort cache by line number so we can possibly b-search. I know, it's line number dependency.
             // Of course, finding holes is going to depend on the document lines getting renumberd
             // before our call.
             _rgOldCache.Sort( (x, y) => x.At - y.At ); 
 
-            FTCacheLine oStart = null;
+            CacheRow oStart = null;
 
             switch( eReset ) {
                 case RefreshType.RESET:
@@ -440,24 +435,29 @@ namespace Play.Edit {
         /// </summary>
         /// <param name="oLine">The line we are trying to display.</param>
         /// <returns>A cache element with enough information to display the line on the screen.</returns>
-        private FTCacheLine CreateElement( Line oLine ) {
+        protected virtual CacheRow CreateElement( Line oLine ) {
             if( oLine == null ) {
                 _oSite.LogError( "view cache", "Guest line must not be null for screen cache element." );
                 return null;
             }
 
+            // TODO: Add an array of the columns and then we can auto
+            //       generate those elements too.
             FTCacheLine oElem;
 
-			// oElem = new CacheTable( oLine ); // Experimental columnular table.
 			if( _oSite.IsWrapped( oLine.At ) ) {
 				oElem = new FTCacheWrap( oLine ); // Heavy duty guy.
 			} else {
 				oElem = new FTCacheLine( oLine ); // Simpler object.
 			}
 
+            CacheRow oRow = new CacheRow();
+
+            oRow.CacheList.Add( oElem );
+
             ElemUpdate( oElem );
 
-            return oElem;
+            return oRow;
         }
 
         /// <summary>
@@ -476,9 +476,9 @@ namespace Play.Edit {
         /// one line. Or perhaps better, simply make sure I've got a cached elem
         /// above and/or below the view port at all times.
         /// </summary>
-        public FTCacheLine PreCache( int iLineAt ) {
+        public CacheRow PreCache( int iLineAt ) {
             // Check if the given edit is in the cache.
-            foreach( FTCacheLine oTemp in _rgOldCache ) {
+            foreach( CacheRow oTemp in _rgOldCache ) {
                 if( oTemp.At == iLineAt )
                     return( oTemp );
             }
@@ -489,7 +489,7 @@ namespace Play.Edit {
                 return( null );
 
             // Line is not currently in cache, make a new elem.
-            FTCacheLine oCache = CreateElement( oLine );
+            CacheRow oCache = CreateElement( oLine );
 
             if( oCache == null )
                 return( null );
@@ -497,7 +497,7 @@ namespace Play.Edit {
             // We sort of assume the new element is going to be at the top
             // or bottom of the view and set only it's vertical placement.
             // Also assumes Line.At implies order in the buffer.
-            foreach( FTCacheLine oTemp in _rgOldCache ) {
+            foreach( CacheRow oTemp in _rgOldCache ) {
                 if( oTemp.At == oCache.At + 1 ) { // Is the cache elem above?
                     oCache.Bottom = oTemp.Top - LineSpacing;
                     break;
@@ -517,22 +517,23 @@ namespace Play.Edit {
         /// <remarks>In this brave new world. A single grapheme can be made up of
         /// many codepoints! This brings up the issue of editing these multi point
         /// grapheme's but I'll side step that for the moment.</remarks>
+        /// <remarks>Still focused on the TextArea.</remarks>
         /// <exception cref="ArgumentException" />
         public IEnumerator<IPgGlyph> EnumGrapheme( ILineRange oCaret ) {
             if( oCaret == null || oCaret.Line == null )
                 throw new ArgumentException( "Caret or Line on Caret is empty" );
 
-            FTCacheLine oElem = CacheLocate( oCaret.At );
+            CacheRow oRow = CacheLocate( oCaret.At );
 
-            if( oElem == null ) 
+            if( oRow == null ) 
                 return null;
 
-            PgCluster oCluster = oElem.ClusterAt( oCaret.Offset );
+            PgCluster oCluster = oRow.CacheList[0].ClusterAt( oCaret.Offset );
 
             if( oCluster == null )
                 return null;
 
-            return oElem.ClusterCharacters( oCluster );
+            return oRow.CacheList[0].ClusterCharacters( oCluster );
         }
 
         /// <summary>
@@ -552,23 +553,23 @@ namespace Play.Edit {
             int iOffset = oCaret.Offset;
 
             // If total miss, build a new screen based on the location of the caret.
-            FTCacheLine oElem = CacheLocate( oCaret.At );
+            CacheRow oElem = CacheLocate( oCaret.At );
             if( oElem == null ) {
                 return CaretMove.MISS;
             }
 
             if( iDir != 0 ) {
                 // First, see if we can navigate within the line we are currently at.
-                if( !oElem.Navigate( eAxis, iDir, ref flAdvance, ref iOffset ) ) {
+                if( !oElem.CacheList[0].Navigate( eAxis, iDir, ref flAdvance, ref iOffset ) ) {
                     iDir = iDir < 0 ? -1 : 1; // Only allow move one line up or down.
 
 					// _rgLeft[_rgLeft.Count-1] = _oTextRect.GetScalar( SCALAR.WIDTH );
 
                     try {
-                        FTCacheLine oNext = PreCache( oElem.At + iDir );
+                        CacheRow oNext = PreCache( oElem.At + iDir );
                         if( oNext != null ) {
                             // Find out where to place the cursor as it moves to the next line.
-                            iOffset = oNext.OffsetBound( eAxis, iDir * -1, flAdvance );
+                            iOffset = oNext.CacheList[0].OffsetBound( eAxis, iDir * -1, flAdvance );
                             oElem   = oNext;
                         }
                     } catch( ArgumentOutOfRangeException ) {
@@ -584,13 +585,18 @@ namespace Play.Edit {
             return CaretLocal( oElem, iOffset );
         }
 
+        /// <summary>
+        /// Look for a hit in the TextArea.
+        /// </summary>
+        /// <param name="oCaret"></param>
+        /// <returns></returns>
         public bool IsHit( ILineRange oCaret ) {
-            FTCacheLine oCache = CacheLocate( oCaret.At );
+            CacheRow oRow = CacheLocate( oCaret.At );
 
-            if( oCache != null ) {
-                Point pntCaretLoc = oCache.GlyphOffsetToPoint( oCaret.Offset );
+            if( oRow != null ) {
+                Point pntCaretLoc = oRow.CacheList[0].GlyphOffsetToPoint( oCaret.Offset );
 
-                pntCaretLoc.Y += oCache.Top;
+                pntCaretLoc.Y += oRow.Top;
 
                 bool fTopIn = _oTextRect.IsInside( pntCaretLoc.X, pntCaretLoc.Y );
                 bool fBotIn = _oTextRect.IsInside( pntCaretLoc.X, pntCaretLoc.Y + FontHeight );
@@ -615,13 +621,13 @@ namespace Play.Edit {
         /// Update the sliding window based the offset into the given cache element.
         /// If calling this the caret is already nearby, so try to locate.
         /// </summary>
-        /// <param name="oCache">The cache element to consider.</param>
+        /// <param name="oRow">The cache element to consider.</param>
         /// <param name="iOffset">Offset into the given cache element.</param>
-        public CaretMove CaretLocal( FTCacheLine oCache, int iOffset ) {
+        public CaretMove CaretLocal( CacheRow oRow, int iOffset ) {
             CaretMove eMove       = CaretMove.LOCAL;
-            Point     pntCaretLoc = oCache.GlyphOffsetToPoint( iOffset );
+            Point     pntCaretLoc = oRow.CacheList[0].GlyphOffsetToPoint( iOffset );
 
-            pntCaretLoc.Y += oCache.Top;
+            pntCaretLoc.Y += oRow.Top;
 
             LOCUS eHitTop = _oTextRect.IsWhere( pntCaretLoc.X, pntCaretLoc.Y );
             LOCUS eHitBot = _oTextRect.IsWhere( pntCaretLoc.X, pntCaretLoc.Y + FontHeight );
@@ -644,9 +650,9 @@ namespace Play.Edit {
         /// </summary>
         /// <seealso cref="ElemUpdate"/>
         public void OnLineUpdated( Line oLine ) {
-            foreach( FTCacheLine oCache in _rgOldCache ) {
+            foreach( CacheRow oCache in _rgOldCache ) {
                 if( oCache.Line == oLine ) {
-                    ElemUpdate( oCache );
+                    ElemUpdate( oCache.CacheList[0] );
                 }
             }
         }
@@ -677,16 +683,20 @@ namespace Play.Edit {
         ///         Currently updating the entire cache, only the line who's text has
         ///         changed, needs the "update"</remarks> 
         public void OnChangeFormatting( ICollection<ILineSelection> rgSelection, int iWidth ) {
-            foreach( FTCacheLine oCache in _rgOldCache ) {
+            foreach( CacheRow oRow in _rgOldCache ) {
+                FTCacheLine oCache = oRow.CacheList[0];
               //oCache.Update( Font ); Just can't call this here. Too slow.
                 oCache.OnChangeFormatting( rgSelection );
                 oCache.OnChangeSize( iWidth );
             }
         }
 
+        /// <remarks>
+        /// Not again we're only updating the text area formatting.
+        /// </remarks>
         public void OnChangeSelection( ICollection<ILineSelection> rgSelection ) {
-            foreach( FTCacheLine oCache in _rgOldCache ) {
-                oCache.OnChangeFormatting( rgSelection );
+            foreach( CacheRow oRow in _rgOldCache ) {
+                oRow.CacheList[0].OnChangeFormatting( rgSelection );
             }
         }
 
@@ -698,7 +708,6 @@ namespace Play.Edit {
         /// <param name="rgSize">The new size of the rectangle.</param>
         public void OnChangeSize( Size oSize ) {
             _oTextRect.SetPoint(SET.RIGID, LOCUS.UPPERLEFT | LOCUS.EXTENT, oSize.Width, oSize.Height );
-			Width = _oTextRect[SCALAR.WIDTH];
 
             // We've got to make sure we're sorted properly so we don't scramble the screen
             // when aligning. Sort by line is self healing but makes us dependant on line number.
@@ -713,11 +722,11 @@ namespace Play.Edit {
             // The height of the elements might change because of the width change
             // and so the following siblings need to have their top's reset!
             int iTop = _rgOldCache[0].Top;
-            foreach( FTCacheLine oElem in this ) {
-                oElem.OnChangeSize( Width );
-                oElem.Top = iTop;
+            foreach( CacheRow oRow in this ) {
+                oRow.CacheList[0].OnChangeSize( _oTextRect[SCALAR.WIDTH] );
+                oRow.Top = iTop;
 
-                iTop = oElem.Bottom + LineSpacing; // Aligning.
+                iTop = oRow.Bottom + LineSpacing; // Aligning.
             }
         }
 
@@ -727,8 +736,8 @@ namespace Play.Edit {
         /// <param name="iLine">Line identifier. Technically for use, this does not need to be an
         /// array index. But just a unique value sitting at the "At" property on the line.</param>
         /// <returns>The cache element representing that line.</returns>
-        public FTCacheLine CacheLocate( int iLine ) {
-            foreach( FTCacheLine oCache in _rgOldCache ) {
+        public CacheRow CacheLocate( int iLine ) {
+            foreach( CacheRow oCache in _rgOldCache ) {
                 if( oCache.At == iLine ) {
                     return( oCache );
                 }
@@ -741,16 +750,17 @@ namespace Play.Edit {
         /// Return the line offset position converted to World coordinates. CumulativeHeight
         /// and Cumulative Width.
         /// </summary>
+        /// <remarks>Again hard coded for text area.</remarks>
         /// <param name="oLine">The line we are searching for.</param>
         /// <param name="iOffset">Offset within the line.</param>
         /// <param name="pntLocation">return world relative graphics coordinates.</param>
         /// <returns></returns>
         public bool GlyphLineToPoint( ILineRange oSelection, out Point pntWorld ) {
-            FTCacheLine oCache = CacheLocate( oSelection.At );
+            CacheRow oRow = CacheLocate( oSelection.At );
 
-            if( oCache != null ) {
-                pntWorld = oCache.GlyphOffsetToPoint( oSelection.Offset );
-                pntWorld.Y += oCache.Top;
+            if( oRow != null ) {
+                pntWorld = oRow.CacheList[0].GlyphOffsetToPoint( oSelection.Offset );
+                pntWorld.Y += oRow.Top;
                 return( true );
             } else {
                 pntWorld = new Point( 0, 0 );
@@ -762,24 +772,33 @@ namespace Play.Edit {
         /// <summary>
         /// Given a point location attempt to locate the nearest line/glyph.
         /// </summary>
+        /// <remarks>At this point we've probably located the textarea column the mouse click
+        /// has occurred and we want to find which FTCacheLine it hits.
+        /// If we want to edit in other columns we can do so by passing an
+        /// argument.</remarks>
         /// <param name="pntLocation">Graphics location of interest in world coordinates.</param>
         /// <param name="oCaret">This object line offset is updated to the closest line offset.</param>
         public FTCacheLine GlyphPointToRange( SKPointI pntLocation, ILineRange oCaret ) {
-            foreach( FTCacheLine oElem in _rgOldCache ) {
-                if( oElem.Top    <= pntLocation.Y &&
-                    oElem.Bottom >= pntLocation.Y ) 
+            foreach( CacheRow oRow in _rgOldCache ) {
+                if( oRow.Top    <= pntLocation.Y &&
+                    oRow.Bottom >= pntLocation.Y ) 
                 {
-                    oCaret.Line   = oElem.Line;
-                    oCaret.Offset = oElem.GlyphPointToOffset( pntLocation );
+                    FTCacheLine oCache = oRow.CacheList[0];
 
-                    return oElem;
+                    oCaret.Line   = oCache.Line;
+                    oCaret.Offset = oCache.GlyphPointToOffset( oRow.Top, pntLocation );
+
+                    return oRow.CacheList[0]; // BUG: Hard coded for text only.
                 }
             }
 
             return null;
         }
 
-        public PointF RenderAt( FTCacheLine oCache, Point pntScreenTL ) {
+        /// <summary>
+        /// Find the location to render primary textarea text.
+        /// </summary>
+        public PointF RenderAt( CacheRow oCache, Point pntScreenTL ) {
             SKPointI pntWorldTopLeft  = TextRect.GetPoint(LOCUS.UPPERLEFT);
             PointF   pntRenderAt      = new PointF( pntScreenTL.X - pntWorldTopLeft.X, 
                                                   pntScreenTL.Y + oCache.Top - pntWorldTopLeft.Y );
@@ -795,12 +814,13 @@ namespace Play.Edit {
             Point                       pntScreenTL ) 
         {
             try {
-                foreach( FTCacheLine oCache in this ) {
+                foreach( CacheRow oRow in this ) {
+                    FTCacheLine oCache = oRow.CacheList[0]; // TODO: Might not hold up...
                     foreach( ILineSelection oSelection in rgSelectionTypes ) {
                         if( oSelection.IsEOLSelected && 
                             oSelection.IsHit( oCache.Line ) )
                         {
-                            oCache.RenderEOL( skCanvas, skPaint, RenderAt( oCache, pntScreenTL ), rgStdColors, GlyphLt );
+                            oCache.RenderEOL( skCanvas, skPaint, RenderAt( oRow, pntScreenTL ), rgStdColors, GlyphLt );
                         }
                     }
                 }
@@ -814,14 +834,16 @@ namespace Play.Edit {
         } // end method
 
         /// <summary>
-        /// Links are those little "error here" marks.
+        /// Links are those little "error here" marks. Now we're multi column, but since
+        /// errors are generally main text only this will probably still work.
         /// </summary>
         /// <param name="pntTopLeft">Top left of all the edits. We add the vertical extents
         /// to arrive at our position.</param>
         public void RenderErrorMark( SKCanvas skCanvas, SKPaint skPaint, Point pntScreenTL )
         {
-            foreach( FTCacheLine oCache in this ) {
-                oCache.RenderLinks( skCanvas, skPaint, RenderAt( oCache, pntScreenTL ) );
+            foreach( CacheRow oRow in this ) {
+                FTCacheLine oCache = oRow.CacheList[0];
+                oCache.RenderLinks( skCanvas, skPaint, RenderAt( oRow, pntScreenTL ) );
             }
         } // end method
 

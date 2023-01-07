@@ -178,7 +178,7 @@ namespace Play.Edit {
         SizeF        _szScrollBars  = new SizeF( .1875F, .1875F );
 
         protected          IPgGlyph              _oCheque     = null;
-        protected          LayoutRect            _rctCheques;
+        protected          LayoutRect            _rctCheques; // TODO: Move this to the subclass eventually.
         protected readonly LayoutRect            _rctTextArea = new LayoutRect( LayoutRect.CSS.None );
         protected readonly LayoutStackHorizontal _oLayout     = new LayoutStackHorizontal() { Spacing = 5 };
 
@@ -197,7 +197,6 @@ namespace Play.Edit {
         protected      CacheManager2 _oCacheMan;
         protected          bool      _fReadOnly;
         protected readonly bool      _fSingleLine; // Little hack until I make single line editors.
-        protected          bool      _fCheckMarks = false; // Right now subclass and reset this to use checkmarks.
 
         public Dictionary<string, HyperLink> HyperLinks { get; } = new Dictionary<string, HyperLink>();
 
@@ -315,6 +314,13 @@ namespace Play.Edit {
             base.Dispose(disposing);
         }
 
+        /// <summary>
+        /// I want to make it so we can add extra columns between the scroll bar and the text.
+        /// Might want right hand columns in the future, but let's start with this.
+        /// </summary>
+        protected virtual void InitColumns() {
+        }
+
         /// <remarks>
         /// This object illustrates some of the problems of overriding behavior for objects that send events.
 		/// If I use InitNew within Load, Load might set our carat, but InitNew would have initialized already
@@ -340,11 +346,11 @@ namespace Play.Edit {
 
                 int iWidth        = (int)(oGraphics.DpiX * _szScrollBars.Width);
                 var oLayoutSBVirt = new LayoutControl( _oScrollBarVirt, LayoutRect.CSS.Pixels, (uint)iWidth);
-                    _rctCheques   = new LayoutRect( LayoutRect.CSS.Pixels, (uint)_oCheque.Coordinates.advance_x, 0 );
 
                 _oLayout.Add( oLayoutSBVirt );   // Scrollbar
-                if( _fCheckMarks )               // If I could turn off columns I wouldn't need to do this.
-                    _oLayout.Add( _rctCheques ); // Whoooo! new select column!!
+
+                InitColumns();
+
                 _oLayout.Add( _rctTextArea  );   // Main text area.
 
 			    _oLayout.SetRect( 0, 0, Width, Height );
@@ -560,7 +566,7 @@ namespace Play.Edit {
 
 			CacheRefresh( RefreshType.COMPLEX, RefreshNeighborhood.SCROLL );
 
-			foreach( FTCacheLine oCache in _oCacheMan ) {
+			foreach( CacheRow oCache in _oCacheMan ) {
 				//if( sSize.Width < oCache.UnwrappedWidth )
 				//	sSize.Width = (int)oCache.UnwrappedWidth;
 				if( sSize.Height < oCache.Height )
@@ -948,7 +954,7 @@ namespace Play.Edit {
         /// </summary>
         /// <param name="oCache"></param>
         /// <returns></returns>
-        protected virtual PointF RenderAt( FTCacheLine oCache ) {
+        protected virtual PointF RenderAt( CacheRow oCache ) {
             return( _oCacheMan.RenderAt( oCache, new Point( _rctTextArea.Left, _rctTextArea.Top ) ) );
         }
 
@@ -957,7 +963,7 @@ namespace Play.Edit {
         /// between lines we could omit the previous all screen clear and just paint here!</summary>
         /// <remarks>If we wanted to paint transparent we could probably omit this and go with
         /// whatever is the existing background. Like a bitmap or something.</remarks>
-        protected void PaintBackground( SKCanvas skCanvas, SKPaint skPaint, FTCacheLine oCache ) {
+        protected void PaintBackground( SKCanvas skCanvas, SKPaint skPaint, CacheRow oCache ) {
             StdUIColors eBg    = StdUIColors.Max;
             PointF      pntUL  = RenderAt( oCache );
             SKRect      skRect = new SKRect( _rctTextArea.Left, pntUL.Y, _rctTextArea.Right, pntUL.Y + oCache.Height );
@@ -1008,6 +1014,17 @@ namespace Play.Edit {
             skCanvas.DrawRect(skRect, skPaint);
         }
 
+        /// <remarks>
+        /// Note: that we are sharing the skPaint and that might result in problems in the
+        /// future. We might want to either have our own paint object or return the
+        /// values to their original values.
+        /// </remarks>
+        protected virtual void OnPaintExtraColumnsBG( SKCanvas skCanvas, SKPaint skPaint ) {
+        }
+
+        protected virtual void OnPaintExtraColumn( SKCanvas skCanvas, SKPaint skPaint, CacheRow oCache ) {
+        }
+
         protected override void OnPaintSurface( SKPaintSurfaceEventArgs e ) {
             base.OnPaintSurface(e);
 
@@ -1026,20 +1043,16 @@ namespace Play.Edit {
                 // Paint all window background. BUG: We could get by without this if there was no space between lines.
                 skCanvas.DrawRect(e.Info.Rect, skPaint);
 
-                if( _fCheckMarks ) {
-                    skPaint.Color = _oStdUI.ColorsStandardAt( StdUIColors.BG );
-
-                    skCanvas.DrawRect( _rctCheques.SKRect, skPaint );
-                }
+                OnPaintExtraColumnsBG( skCanvas, skPaint );
 
                 // Now paint the lines.
-                foreach( FTCacheLine oCache in _oCacheMan ) {
-                    PaintBackground(skCanvas, skPaint, oCache);
+                foreach( CacheRow oRow in _oCacheMan ) {
+                    FTCacheLine oCache = oRow.CacheList[0];
+                    PaintBackground(skCanvas, skPaint, oRow);
 
-                    if( _oDocument.CheckedLine == oCache.Line )
-                        DrawGlyph(skCanvas, skPaint2, _rctCheques.Left, RenderAt(oCache).Y, _oCheque );
+                    OnPaintExtraColumn( skCanvas, skPaint2, oRow );
 
-                    oCache.Render(skCanvas, _oStdUI, RenderAt(oCache), this.Focused);
+                    oCache.Render(skCanvas, _oStdUI, RenderAt(oRow), this.Focused);
                 }
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( NullReferenceException ),
@@ -1097,7 +1110,7 @@ namespace Play.Edit {
           //int iLocalWidth   = 0;
             int iLocalHeight  = 1;
 
-            foreach( FTCacheLine oCache in _oCacheMan ) {
+            foreach( CacheRow oCache in _oCacheMan ) {
                 // Count all the buffered characters.
                 iCharCount   += oCache.Line.ElementCount;
                 iLocalHeight += oCache.Height;
@@ -1410,7 +1423,7 @@ namespace Play.Edit {
                     if( Cursor != Cursors.IBeam )
                         Cursor = Cursors.IBeam;
                 }
-                if( _rctCheques.IsInside( sLocation.X, sLocation.Y ) ) {
+                if( _rctCheques != null && _rctCheques.IsInside( sLocation.X, sLocation.Y ) ) {
                     if( Cursor != Cursors.Arrow )
                         Cursor = Cursors.Arrow;
                 }
@@ -1509,7 +1522,8 @@ namespace Play.Edit {
 
             CaretIconRefreshLocation();
 
-            if( _rctCheques.IsInside( e.Location.X, e.Location.Y ) ) {
+            // This system allows only one checked line. 
+            if( _rctCheques != null && _rctCheques.IsInside( e.Location.X, e.Location.Y ) ) {
                 _oDocument.CheckedLine = CaretPos.Line;
                 Raise_SelectionChanged();
                 Invalidate();
@@ -1621,11 +1635,15 @@ namespace Play.Edit {
                     Point       pntTemp   = this.PointToClient( new Point(oArg.X, oArg.Y) );
                     SKPointI    pntWorld  = ClientToWorld( new SKPointI( pntTemp.X, pntTemp.Y ) );
                     FTCacheLine oCacheHit = null;
+                    int         iRowTop   = 0;
 
                     // Target's always going to be in the cache since it's the only place we can drop!
-                    foreach( FTCacheLine oCache in _oCacheMan ) {
-                        if( oCache.IsHit( new Point( pntWorld.X, pntWorld.Y ) ) ) {
+                    // BUG: Need to check if in the TextArea...
+                    foreach( CacheRow oRow in _oCacheMan ) {
+                        if( oRow.IsHit( new Point( pntWorld.X, pntWorld.Y ) ) ) {
+                            FTCacheLine oCache = oRow.CacheList[0];
                             oCacheHit = oCache;
+                            iRowTop   = oRow.Top;
                             break;
                         }
                     }
@@ -1633,7 +1651,7 @@ namespace Play.Edit {
                     // lines to cache. See OnLineNew() callback! 
                     if( oCacheHit != null ) {
                         Line oLine = oCacheHit.Line;
-                        int  iEdge = oCacheHit.GlyphPointToOffset( pntWorld );
+                        int  iEdge = oCacheHit.GlyphPointToOffset( iRowTop, pntWorld );
 
                         // We can add in front of the EOL character.
                         Debug.Assert( iEdge <= oLine.ElementCount );
@@ -2425,16 +2443,16 @@ namespace Play.Edit {
         #endregion
 
         /// <summary>
-        /// Find if the given world coordiate is within the selection
+        /// Find if the given world coordiate is within the selection of primary text.
         /// </summary>
         /// <param name="pntLocation">Point in world coordiates.</param>
         /// <returns>True if the value is within the current selection if there is one!</returns>
         public bool IsSelectionHit( Point pntWorld ) {
-            foreach( FTCacheLine oCache in _oCacheMan ) {
+            foreach( CacheRow oCache in _oCacheMan ) {
                 foreach( LineRange oSelection in _rgSelectionTypes ) {
                     if( oSelection.IsHit( oCache.Line ) ) {
                         if( oCache.IsHit( pntWorld ) ) {
-                            int iEdge = oCache.GlyphPointToOffset( new SKPointI( pntWorld.X, pntWorld.Y ) );
+                            int iEdge = oCache.CacheList[0].GlyphPointToOffset( oCache.Top, new SKPointI( pntWorld.X, pntWorld.Y ) );
 
                             if( oSelection.SelectionType == SelectionTypes.Middle ) {
                                 if( iEdge >= oSelection.Offset &&
@@ -2594,4 +2612,66 @@ namespace Play.Edit {
 			}
 		}
 	}
+
+	/// <summary>
+	/// A little subclass of the editwindow to turn on the check marks. turn on readonly and have multiline.
+    /// I haven't finished moving all the checklist column behavior here yet, but it'll do for now.
+	/// </summary>
+	public class CheckList : EditWindow2 {
+		public CheckList( IPgViewSite oSite, BaseEditor oEditor, bool fReadOnly = false ) : 
+            base( oSite, oEditor, fReadOnly:true, fSingleLine:false )     
+        {
+
+			ToolSelect = 2; // BUG: change this to an enum in the future.
+		}
+
+        /// <summary>
+        /// I want to make it so we can add extra columns between the scroll bar and the text.
+        /// Might want right hand columns in the future, but let's start with this.
+        /// </summary>
+        protected override void InitColumns() {
+            // Need this here for now. The _oCheque doesn't get cached until the cache manager
+            // is set up. We can fix that but I'll do it later.
+            _rctCheques = new LayoutRect( LayoutRect.CSS.Pixels, (uint)_oCheque.Coordinates.advance_x, 0 );
+
+            _oLayout.Add( _rctCheques ); // Whoooo! new select column!!
+        }
+        /// <remarks>
+        /// Note: that we are sharing the skPaint and that might result in problems in the
+        /// future. We might want to either have our own paint object or return the
+        /// values to their original values.
+        /// </remarks>
+        protected override void OnPaintExtraColumnsBG( SKCanvas skCanvas, SKPaint skPaint ) {
+            skPaint.Color = _oStdUI.ColorsStandardAt( StdUIColors.BG );
+
+            skCanvas.DrawRect( _rctCheques.SKRect, skPaint );
+        }
+
+        protected override void OnPaintExtraColumn( SKCanvas skCanvas, SKPaint skPaint, CacheRow oCache ) {
+            if( _oDocument.CheckedLine == oCache.Line )
+                DrawGlyph(skCanvas, skPaint, _rctCheques.Left, RenderAt(oCache).Y, _oCheque );
+        }
+	}
+
+    public class LineNumberWindow :EditWindow2 {
+        protected LayoutRect _rctLineNumbers;
+
+		public LineNumberWindow( IPgViewSite oSite, BaseEditor oEditor, bool fReadOnly = false ) : 
+            base( oSite, oEditor, fReadOnly:true, fSingleLine:false ) 
+        {
+            _rctLineNumbers  = new LayoutRect( LayoutRect.CSS.Pixels, 30, 0 ); // Hard code a width for now.
+		}
+
+        protected override void InitColumns() {
+            _oLayout.Add( _rctLineNumbers ); 
+        }
+        protected override void OnPaintExtraColumnsBG( SKCanvas skCanvas, SKPaint skPaint ) {
+            skPaint.Color = SKColors.LightSalmon;
+
+            skCanvas.DrawRect( _rctLineNumbers.SKRect, skPaint );
+        }
+        protected override void OnPaintExtraColumn( SKCanvas skCanvas, SKPaint skPaint, CacheRow oCache ) {
+            DrawGlyph(skCanvas, skPaint, _rctLineNumbers.Left, RenderAt(oCache).Y, _oCheque );
+        }
+    }
 }

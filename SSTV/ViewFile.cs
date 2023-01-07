@@ -38,7 +38,7 @@ namespace Play.SSTV {
 	/// <summary>
 	/// This window is for the file chooser.
 	/// </summary>
-	public class WindowTextDir : EditWindow2 {
+	public class WindowTextDir : CheckList {
 		protected readonly FileChooser _rgFileList;
 
 		public WindowTextDir( IPgViewSite oSiteView, FileChooser rgFileList ) :
@@ -47,7 +47,6 @@ namespace Play.SSTV {
 			_rgFileList = rgFileList ?? throw new ArgumentNullException();
 
 
-			_fCheckMarks = true;
 			ToolSelect   = 2; // BUG: change this to an enum in the future.
 
 			HyperLinks.Add( "chooser", OnChooser );

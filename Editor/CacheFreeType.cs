@@ -119,6 +119,30 @@ namespace Play.Edit {
         }
     }
 
+    /// <summary>
+    /// I'm going to attempt to separate the cacheline elements from the row so I can 
+    /// have multiple cacheline's on a row.
+    /// </summary>
+    public class CacheRow {
+        public         Line Line      => CacheList[0].Line; // This is reasonable to get us off the ground.
+        public         int  At        { get { return Line.At; } }
+        public         int  Top       { get; set; }
+        public virtual int  Height    { get { return CacheList[0].Height; } }
+        public         bool IsInvalid => CacheList[0].IsInvalid;
+
+        public int Bottom {
+            get { return Top + Height; }
+            set { Top = value - Height; }
+        }
+
+        // Well have a matching array of SmartRect's for each cache elem inside.
+        public List<FTCacheLine> CacheList { get; } = new List<FTCacheLine> ();
+
+        public bool IsHit( Point pntLocation ) {
+            return pntLocation.Y >= Top && pntLocation.Y < Bottom;
+        }
+    }
+
     public class FTCacheLine : 
 		IEnumerable<IColorRange>
     {
@@ -130,7 +154,7 @@ namespace Play.Edit {
 
         public         Line Line      { get; }
         public         int  At        { get { return Line.At; } }
-        public         int  Top       { get; set; }
+        //public         int  Top       { get; set; }
         public virtual int  Height    { get { return LineHeight; } }
         public         bool IsInvalid { get; protected set; } = true;
         public         int  LineHeight{ protected set; get; }
@@ -140,10 +164,10 @@ namespace Play.Edit {
         protected const int InvisibleEOL = 0; // use this if I put the "<" at the end of selected lines.
                                               // this marks places where I used to fix up for that.
 
-        public int Bottom {
-            get { return Top + Height; }
-            set { Top = value - Height; }
-        }
+        //public int Bottom {
+        //    get { return Top + Height; }
+        //    set { Top = value - Height; }
+        //}
 
         protected readonly List<IPgGlyph>  _rgGlyphs     = new List<IPgGlyph >(100); // Glyphs that construct characters.
         protected readonly List<PgCluster> _rgClusters   = new List<PgCluster>(100); // Single unit representing a character.
@@ -161,10 +185,8 @@ namespace Play.Edit {
         public override string ToString() {
             StringBuilder sbBuild = new StringBuilder();
 
-            sbBuild.Append( "T:" );
-            sbBuild.Append( Top );
-            sbBuild.Append( "B:" );
-            sbBuild.Append( Bottom );
+            sbBuild.Append( "Height:" );
+            sbBuild.Append( Height );
             sbBuild.Append( "@" );
             sbBuild.Append( Line.At.ToString() );
             sbBuild.Append( "=" );
@@ -215,9 +237,9 @@ namespace Play.Edit {
         /// </summary>
         /// <param name="pntLocation">Test, value in world coordinates.</param>
         /// <returns>true if the point is with our cached element location.</returns>
-        public bool IsHit( Point pntLocation ) {
-            return pntLocation.Y >= Top && pntLocation.Y < Bottom;
-        }
+        //public bool IsHit( Point pntLocation ) {
+        //    return pntLocation.Y >= Top && pntLocation.Y < Bottom;
+        //}
 
         /// <summary>
         /// A dummy enumerator that identifies all the text as a single black run.
@@ -707,7 +729,8 @@ namespace Play.Edit {
         /// GlyphPointToOffset2() for the beginnings of a replacement.
         /// </summary>
         /// <returns>Character offset of the given location. 0 if left of the first element.</returns>
-        public virtual int GlyphPointToOffset( SKPointI pntWorld ) {
+        /// <remarks>The row top is needed for the word wrapped version.</remarks>
+        public virtual int GlyphPointToOffset( int iRowTop, SKPointI pntWorld ) {
             if( _rgClusters.Count < 1 )
                 return 0;
 
