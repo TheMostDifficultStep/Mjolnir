@@ -10,47 +10,17 @@ using Play.Interfaces.Embedding;
 using Play.Rectangles;
 
 namespace Play.Edit {
-    public class CacheBase2 :
-        IEnumerable<CacheRow>,
-        IDisposable
-    {
-        protected List<CacheRow> _rgOldCache = new List<CacheRow>();
-
-		public CacheBase2() { 
-		}
-
-        public void Dispose() {
-        }
-
-        protected virtual void LogError( string strDetails ) {
-        }
-
-        public IEnumerator<CacheRow> GetEnumerator() {
-            return _rgOldCache.GetEnumerator();
-        }
-
-        IEnumerator IEnumerable.GetEnumerator() {
-            return _rgOldCache.GetEnumerator();
-        }
-
-        public void Add( CacheRow oCache ) {
-            _rgOldCache.Add( oCache );
-        }
-
-        public void Clear() {
-            _rgOldCache.Clear();
-        }
-    }
-
     /// <summary>
     /// This is the primary object that holds all the measured lines for the currently displayed portion of text.
     /// </summary>
 	/// <remarks>I'm not sure where I got the idea to break up the CacheManager/CacheBase but it is important
 	/// to initialize the manager's _oTextRect</remarks>
-    public class CacheManager2 : CacheBase2 
+    public class CacheManager2 :         
+        IEnumerable<CacheRow>
     {
-        readonly CacheManagerAbstractSite _oSite     = null;
-        readonly SmartRect                _oTextRect = new SmartRect(); // World coordinates of our view port.
+        readonly CacheManagerAbstractSite _oSite      = null;
+        readonly SmartRect                _oTextRect  = new SmartRect(); // World coordinates of our view port.
+        protected List<CacheRow>          _rgOldCache = new List<CacheRow>();
 
                   IPgFontRender Font       { get; }
         protected IPgGlyph      GlyphLt    { get; } // Our end of line character.
@@ -72,7 +42,15 @@ namespace Play.Edit {
             FontHeight = (int)Font.FontHeight; // BUG: Cache elem's are variable height in general.
         }
 
-        protected override void LogError( string strDetails ) {
+        public IEnumerator<CacheRow> GetEnumerator() {
+            return _rgOldCache.GetEnumerator();
+        }
+
+        IEnumerator IEnumerable.GetEnumerator() {
+            return _rgOldCache.GetEnumerator();
+        }
+
+        protected void LogError( string strDetails ) {
             _oSite.LogError( "Text Manager", strDetails );
         }
 
