@@ -251,6 +251,9 @@ namespace Play.SSTV {
 
         DocSSTV _oDocSSTV;
 
+        // see System.Collections.ReadOnlyCollectionBase for readonly collections.
+        readonly static Keys[] _rgHandledKeys = { Keys.Shift | Keys.Right,  Keys.Shift | Keys.Left, Keys.Back,
+                                                  Keys.Delete, Keys.Enter };
 		protected class WinSlot :
 			IPgViewSite,
 			IPgShellSite
@@ -312,6 +315,8 @@ namespace Play.SSTV {
 
 			Icon = SKImageResourceHelper.GetImageResource( Assembly.GetExecutingAssembly(), _strIcon );
 
+            Array.Sort<Keys>( _rgHandledKeys );
+
 			SetBorderOn();
 		}
 
@@ -329,6 +334,15 @@ namespace Play.SSTV {
             _oDocSSTV.PropertyChange += OnPropertyChange_DocSSTV;
 
 			return true;
+        }
+
+        protected override bool IsInputKey(Keys keyData) {
+            int iIndex = Array.BinarySearch<Keys>(_rgHandledKeys, keyData);
+
+            if (iIndex >= 0)
+                return (true);
+
+            return base.IsInputKey( keyData );
         }
 
         public bool IsPlaying { get { 
@@ -388,13 +402,14 @@ namespace Play.SSTV {
                 return;
 
             e.Handled = true;
+			int iDistance = e.Shift ? 3 : 10; // If shift pressed, move slower.
 
             switch( e.KeyCode ) {
                 case Keys.Right:
-					_oDocSSTV.PostBGMessage( TVMessage.Message.Intercept,  2 );
+					_oDocSSTV.PostBGMessage( TVMessage.Message.Intercept, -iDistance );
 					break;
                 case Keys.Left:
-					_oDocSSTV.PostBGMessage( TVMessage.Message.Intercept, -2 );
+					_oDocSSTV.PostBGMessage( TVMessage.Message.Intercept, +iDistance );
 					break;
                 case Keys.Enter:
                     break;
@@ -408,11 +423,13 @@ namespace Play.SSTV {
         protected override void OnMouseWheel(MouseEventArgs e) {
             base.OnMouseWheel(e);
 
-			TVMessage.Message eMsg = e.Delta > 0 ? 
-				TVMessage.Message.FrequencyUp :
-				TVMessage.Message.FrequencyDown;
+			bool fShiftPressed = (Control.ModifierKeys & Keys.Shift) != Keys.None;
+			int  iDistance     = fShiftPressed ? 15 : 30; // in 100ths
 
-			_oDocSSTV.PostBGMessage( eMsg );
+			if(  e.Delta < 0 )
+				iDistance *= -1;
+
+			_oDocSSTV.PostBGMessage( TVMessage.Message.Frequency, iDistance );
         }
 
         public override bool Execute( Guid sGuid ) {

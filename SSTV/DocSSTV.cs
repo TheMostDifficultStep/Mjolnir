@@ -226,8 +226,7 @@ namespace Play.SSTV {
             TryNewMode,
             ChangeDirectory,
             ExitWorkThread,
-            FrequencyUp,
-            FrequencyDown,
+            Frequency,
             Intercept,
         }
 

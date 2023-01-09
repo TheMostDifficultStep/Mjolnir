@@ -237,11 +237,14 @@ namespace Play.SSTV {
         protected override void OnMouseWheel(MouseEventArgs e) {
             base.OnMouseWheel(e);
 
-			TVMessage.Message eMsg = e.Delta > 0 ? 
-				TVMessage.Message.FrequencyUp :
-				TVMessage.Message.FrequencyDown;
+			bool fShiftPressed = (Control.ModifierKeys & Keys.Shift) != Keys.None;
 
-			_oDocSSTV.PostBGMessage( eMsg );
+			int iDistance = fShiftPressed ? 15 : 30; // in 100ths
+
+			if(  e.Delta < 0 )
+				iDistance *= -1;
+
+			_oDocSSTV.PostBGMessage( TVMessage.Message.Frequency, iDistance );
         }
     }
 

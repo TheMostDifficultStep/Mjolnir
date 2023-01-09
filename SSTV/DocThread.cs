@@ -285,8 +285,6 @@ namespace Play.SSTV {
 
         readonly double _dblSampRate;
         readonly int    _iDevice;
-        BufferSSTV _oPlayBuffer;
-        WmmPlayer  _oPlayer;
 
         // This is the errors we generally handle in our work function.
         protected static readonly Type[] _rgLoopErrors = { typeof( NullReferenceException ),
@@ -367,16 +365,12 @@ namespace Play.SSTV {
                 bool   fTally     = false;
                 do {
                     switch( oMsg._eMsg ) {
-                        case TVMessage.Message.FrequencyDown:
-                            dblSlant -= 0.3;
-                            fTally = true;
-                            break;
-                        case TVMessage.Message.FrequencyUp:
-                            dblSlant += 0.3;
+                        case TVMessage.Message.Frequency:
+                            dblSlant += oMsg._iParam / 100.0;
                             fTally = true;
                             break;
                         case TVMessage.Message.Intercept:
-                            iIntercept += 5 * oMsg._iParam;
+                            iIntercept += oMsg._iParam;
                             break;
                         default:
                             fTally = false;
@@ -413,11 +407,8 @@ namespace Play.SSTV {
                         SaveImage( _oLastMode );
                         _oToUIQueue.Enqueue( new( SSTVEvents.ImageSaved, 0 ) );
                         break;
-                    case TVMessage.Message.FrequencyDown:
-                        _oSSTVDraw.ManualSlopeAdjust( -0.3 );
-                        break;
-                    case TVMessage.Message.FrequencyUp:
-                        _oSSTVDraw.ManualSlopeAdjust( +0.3 );
+                    case TVMessage.Message.Frequency:
+                        _oSSTVDraw.ManualSlopeAdjust( oMsg._iParam / 100.0 );
                         break;
                     case TVMessage.Message.Intercept:
                         _oSSTVDraw.ManualInterceptAdjust( oMsg._iParam );
@@ -437,10 +428,10 @@ namespace Play.SSTV {
         /// read from the sound card and I'll be able to punt that code.</remarks>
         public void DoWork() {
             // The player MUST be created on the same thread. Else if the
-            // foreground shuts down first. We hang in waveOutWrite()!!
-            Specification oMonSpec = new( (long)_dblSampRate, 1, 0, 16 );
-            _oPlayBuffer = new BufferSSTV( oMonSpec );
-            _oPlayer     = new WmmPlayer ( oMonSpec, _iDevice );
+            // foreground device shuts down first. We hang in waveOutWrite()!!
+            Specification oMonSpec    = new( (long)_dblSampRate, 1, 0, 16 );
+            BufferSSTV    oPlayBuffer = new BufferSSTV( oMonSpec );
+            WmmPlayer     oPlayer     = new WmmPlayer ( oMonSpec, _iDevice );
 
             try {
                 _oSSTVDeMo.Send_NextMode  = _oSSTVDraw.OnModeTransition_SSTVDeMo;
@@ -461,13 +452,13 @@ namespace Play.SSTV {
                     while( !_oDataQueue.IsEmpty ) {
                         if( _oDataQueue.TryDequeue( out double dblValue ) ) {
                             _oSSTVDeMo.Do( dblValue );
-                            _oPlayBuffer.Write( (short)dblValue );
+                            oPlayBuffer.Write( (short)dblValue );
                         } else {
                             throw new InvalidDataException( "Can't Dequeue non empty Data Queue." );
                         }
                     }
 
-                    _oPlayer  .Play( _oPlayBuffer );
+                    oPlayer   .Play( oPlayBuffer );
                     _oSSTVDraw.Process();
 
                     // Bug: This should be based on sample frequency and buffer size.
@@ -480,7 +471,7 @@ namespace Play.SSTV {
 
                 _oToUIQueue.Enqueue( new( SSTVEvents.ThreadAbort, 0 ) );
             }
-            _oPlayer.Dispose();
+            oPlayer.Dispose();
         }
 
         /// <summary>
