@@ -283,8 +283,10 @@ namespace Play.SSTV {
         protected readonly SSTVDraw _oSSTVDraw;
         protected readonly SSTVDEM  _oSSTVDeMo;
 
-        readonly BufferSSTV _oPlayBuffer;
-        readonly WmmPlayer  _oPlayer;
+        readonly double _dblSampRate;
+        readonly int    _iDevice;
+        BufferSSTV _oPlayBuffer;
+        WmmPlayer  _oPlayer;
 
         // This is the errors we generally handle in our work function.
         protected static readonly Type[] _rgLoopErrors = { typeof( NullReferenceException ),
@@ -303,7 +305,12 @@ namespace Play.SSTV {
         /// <remarks>We can re-unify the two thread state objects if we get the WaveIn
         /// servicing this object to be initialized within THIS object, instead of
         /// outboard. Then we don't need to pass in the sample rate here and we can
-        /// init the DeMo and Draw objects in the base!! (maybe -_-)</remarks>
+        /// init the DeMo and Draw objects in the base!! (maybe -_-)
+        /// NOTE: I'm creating this object in the main thread and then USING it in
+        /// the background thread. This has implications for the AUDIO device. 
+        /// Might want to come up with a way to create this object always in the
+        /// thread it is used in. (So I can have the player and buffer readonly again)
+        /// </remarks>
         /// <exception cref="ArgumentNullException"></exception>
         public DeviceListeningState( int                          iDevice,
                                      double                       dblSampleRate,
@@ -323,12 +330,11 @@ namespace Play.SSTV {
             _iImageQuality = iImageQuality;
             _strFileName   = strFileName;
 
+            _iDevice     = iDevice;
+            _dblSampRate = dblSampleRate;
+
             _oSSTVDeMo = new SSTVDEM ( new SYSSET(), dblSampleRate );
 			_oSSTVDraw = new SSTVDraw( _oSSTVDeMo, oD12, oRx );
-
-            Specification oMonSpec = new( (long)dblSampleRate, 1, 0, 16 );
-            _oPlayBuffer = new BufferSSTV( oMonSpec );
-            _oPlayer     = new WmmPlayer ( oMonSpec, iDevice );
         }
 
         /// <summary>
@@ -430,6 +436,12 @@ namespace Play.SSTV {
         /// we need the DataQueue. In the future I'll write my own code to
         /// read from the sound card and I'll be able to punt that code.</remarks>
         public void DoWork() {
+            // The player MUST be created on the same thread. Else if the
+            // foreground shuts down first. We hang in waveOutWrite()!!
+            Specification oMonSpec = new( (long)_dblSampRate, 1, 0, 16 );
+            _oPlayBuffer = new BufferSSTV( oMonSpec );
+            _oPlayer     = new WmmPlayer ( oMonSpec, _iDevice );
+
             try {
                 _oSSTVDeMo.Send_NextMode  = _oSSTVDraw.OnModeTransition_SSTVDeMo;
                 _oSSTVDraw.Send_TvEvents  = OnTvEvents_SSTVDraw;

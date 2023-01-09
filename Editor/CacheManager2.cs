@@ -38,7 +38,7 @@ namespace Play.Edit {
 
 			_oTextRect.SetPoint(SET.RIGID, LOCUS.UPPERLEFT | LOCUS.EXTENT, oViewSize.Width, oViewSize.Height );
             
-            GlyphLt    = Font.GetGlyph( 0x003c ); // we show carriage return as a '<' sign.
+            GlyphLt    = Font.GetGlyph( 0x003c ); // we used to show carriage return as a '<' sign.
             FontHeight = (int)Font.FontHeight; // BUG: Cache elem's are variable height in general.
         }
 
@@ -61,7 +61,7 @@ namespace Play.Edit {
         public int LineSpacing { get; set; } = 1;
 
         /// <summary>
-        /// Count of number of UniscribeCache objects inside the manager.
+        /// Count of number of CacheRow objects inside the manager.
         /// </summary>
         public int Count {
             get { return _rgOldCache.Count; }

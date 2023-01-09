@@ -921,6 +921,7 @@ namespace Play.Edit {
         /// Refresh the carat visual position. If it's not in the range of the cached screen than
         /// park the physical cursor just off screen.
         /// </summary>
+        /// <seealso cref="ClientToWorld(SKPointI)"/>
         private void CaretIconRefreshLocation() {
             Point pntCaretWorldLoc = new Point( 0, 0 ); 
 
@@ -931,7 +932,6 @@ namespace Play.Edit {
                 
             if( _oCacheMan.GlyphLineToPoint( CaretPos, out pntCaretWorldLoc ) ) {
                 // this changes from world coordinates to client coordinates.
-                // Check out ClientToWorld() call...
                 SKPointI pntWorldTopLeft   = _oCacheMan.TextRect.GetPoint(LOCUS.UPPERLEFT);
                 SKPointI pntCaretScreenLoc = new SKPointI( pntCaretWorldLoc.X - pntWorldTopLeft.X + TopLeft.X, 
                                                            pntCaretWorldLoc.Y - pntWorldTopLeft.Y + TopLeft.Y );
@@ -2015,7 +2015,7 @@ namespace Play.Edit {
             _oCacheMan.OnScrollBar_Vertical( e );
             CacheRefresh( RefreshType.COMPLEX, RefreshNeighborhood.SCROLL );
 
-            // Only care about the Y cooridnate. X we're going to override to the advance value.
+            // Only care about the Y coordinate. X we're going to override to the advance value.
             SKPointI pntWorld = _oCacheMan.TextRect.GetPoint(LOCUS.CENTER);
             pntWorld.X = (int)_iAdvance; 
 
