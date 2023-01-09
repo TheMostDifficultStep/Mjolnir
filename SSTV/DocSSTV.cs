@@ -1645,6 +1645,9 @@ namespace Play.SSTV {
                     }
 
                     if( _oWaveIn == null ) {
+                        // BUG: we hang on shutdown trying to stop the wavein recording
+                        // it is recommended not to use the function callback. but
+                        // instead you should use the window callback.
                         _oWaveIn = new WaveIn( WaveCallbackInfo.FunctionCallback() );
 
                         // System works best if frequency here is not the calibrated (clock) value.
@@ -1688,9 +1691,8 @@ namespace Play.SSTV {
                         iQuality, strSaveDir, String.Empty,
                         _rgBGtoUIQueue, _rgDataQueue, 
                         _rgUItoBGQueue, SyncImage.Bitmap, DisplayImage.Bitmap );
-                    ThreadStart   threadDelegate = new ThreadStart( oWorker.DoWork );
 
-                    _oThread = new Thread( threadDelegate );
+                    _oThread = new Thread( oWorker.DoWork );
                     _oThread.Start(); // Can send out of memory exception!
 
                     if( _oWaveIn != null ) {

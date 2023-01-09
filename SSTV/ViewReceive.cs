@@ -441,6 +441,7 @@ namespace Play.SSTV {
 				// BUG: What if we're launched with one tool and then the tool is
 				//      changed midway and we hit stop. Need to sort that out.
 				_oDocSSTV.ReceiveLiveStop();
+				return true;
 			}
 
 			if( sGuid == GlobalCommands.Save ) {
