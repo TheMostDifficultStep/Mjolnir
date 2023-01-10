@@ -27,14 +27,6 @@
 // MSDN Audio Streaming Sample Code
 // https://msdn.microsoft.com/en-us/library/windows/desktop/dd317593(v=vs.85).aspx
 
-// MSDN CreateSemaphore function
-// https://msdn.microsoft.com/en-us/library/windows/desktop/ms682438(v=vs.85).aspx
-// MSDN WaitForSingleObjectEx function
-// https://msdn.microsoft.com/en-us/library/windows/desktop/ms687036(v=vs.85).aspx
-
-// https://docs.microsoft.com/en-us/dotnet/csharp/language-reference/keywords/lock-statement
-// See also System.Threading.Semaphore
-
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -128,133 +120,168 @@ namespace Play.Sound {
 		}
 	} /* end class */
 	
+	public abstract class ManagedHeader {
+		/* flags for dwFlags field of WAVEHDR */
+		public const int WHDR_DONE      = 0x00000001;  /* done bit */
+		public const int WHDR_PREPARED  = 0x00000002;  /* set if this header has been prepared */
+		public const int WHDR_BEGINLOOP = 0x00000004;  /* loop start block */
+		public const int WHDR_ENDLOOP   = 0x00000008;  /* loop end block */
+		public const int WHDR_INQUEUE   = 0x00000010;  /* reserved for driver */
+
+		protected WAVEHDR          _oWaveHeader             = new WAVEHDR();
+		protected readonly IntPtr  _ipUnManagedHeader       = IntPtr.Zero; 
+		protected readonly uint    _uiBufferCapacityInBytes = 0;
+
+		/// <exception cref="ArgumentException"></exception>
+		/// <exception cref="ArgumentOutOfRangeException"></exception>
+		/// <exception cref="OutOfMemoryException"></exception>
+		public ManagedHeader( IntPtr hWave, uint uiBytesPerBlock, uint uiID ) {
+			if( hWave == IntPtr.Zero )
+				throw new ArgumentException( "Wave device handle is empty." );
+			if( uiBytesPerBlock == 0 || uiBytesPerBlock > 20000 ) // Arbitrary big number.
+				throw new ArgumentOutOfRangeException( "Bytes per block zero or greater than 10000." );
+
+			_uiBufferCapacityInBytes = uiBytesPerBlock;
+
+			// We share space for your header AND it's data in one unmanaged HGlobal memory alloc.
+			// makes free-ing up resources easer. But I don't want to do the math to allocate a single
+			// unmanaged buffer for ALL our headers. I don't think it's worth it.
+			// Add a machine word at the end just in case my math is bum.
+			_ipUnManagedHeader = Marshal.AllocHGlobal(  Marshal.SizeOf(typeof(WAVEHDR) ) + (int)_uiBufferCapacityInBytes + sizeof(int) );
+
+			if( _ipUnManagedHeader == IntPtr.Zero ) {
+				throw new OutOfMemoryException( "Couldn't allocate unmanaged header and buffer." );
+			}
+
+			_oWaveHeader.dwBufferLength = 0;
+			_oWaveHeader.dwUser         = (IntPtr)uiID;
+			_oWaveHeader.dwFlags        = 0;
+			_oWaveHeader.lpData         = _ipUnManagedHeader + Marshal.SizeOf(typeof(WAVEHDR) );
+			_oWaveHeader.lpNext         = IntPtr.Zero;
+			_oWaveHeader.dwLoops        = 0;
+			_oWaveHeader.reserved       = 0;
+		}
+
+		public void Dispose() {
+			if( _ipUnManagedHeader != IntPtr.Zero ) {
+				Marshal.FreeHGlobal( _ipUnManagedHeader );
+				//_ipUnManagedHeader = IntPtr.Zero;
+				_oWaveHeader.lpData    = IntPtr.Zero;
+			}
+		}
+
+		public void CopyUnmanagedValue( out WAVEHDR sWaveHeader ) {
+			sWaveHeader = (WAVEHDR)Marshal.PtrToStructure( _ipUnManagedHeader, typeof( WAVEHDR ) );
+		}
+
+		/// <summary>
+		/// Is this header currently queued up for playing.
+		/// </summary>
+		public bool IsUsable {
+			get {
+				if( ( _oWaveHeader.dwFlags & WHDR_INQUEUE ) != 0 )
+					return false;
+
+				if( ( _oWaveHeader.dwFlags & WHDR_DONE ) != 0 )
+					return true;
+
+				return true; // Both are false so we can use it.
+			}
+		}
+
+		/// <summary>
+		/// Mark this header usable for queueing music. Set all flags to zero.
+		/// Set buffered loaded length to zero.
+		/// </summary>
+		public void Recycle() {
+			// Just clear the bits in question. Don't set all flags to 
+			// zero else you'll get an UNPREPARED error at the very least.
+			_oWaveHeader.dwFlags        &= ~WHDR_DONE;    // Clear the bit.
+			_oWaveHeader.dwFlags        &= ~WHDR_INQUEUE; // Clear the bit.
+			_oWaveHeader.dwBufferLength  = 0;
+		}
+
+		/// <summary>
+		/// Capacity of this sound buffer in bytes.
+		/// </summary>
+		public uint Capacity {
+			get { return( _uiBufferCapacityInBytes ); }
+		}
+
+		/// <exception cref="ArgumentException"></exception>
+		/// <exception cref="BadDeviceIdException" ></exception>
+		/// <exception cref="InvalidHandleException"></exception>
+		/// <exception cref="MMSystemException"></exception>
+		/// <remarks>Basically copy my managed wave header into the unmanaged
+		/// _ipUnManagedHeader to set it. Also set the WHDR_DONE flag on all
+		/// buffers so my Play() program knows the buffer is ready to go.</remarks>
+		public void DoPrepare( IntPtr hWave ) {
+			// copy my managed wave header into the unmanaged _ipUnManagedHeader to set it
+			Marshal.StructureToPtr( _oWaveHeader, _ipUnManagedHeader, false);
+
+			MMSYSERROR error = MMSYSERROR.MMSYSERR_NOERROR;
+
+			error = DoPrepare(hWave, _ipUnManagedHeader, Marshal.SizeOf(typeof(WAVEHDR) ));
+
+			CopyUnmanagedValue( out WAVEHDR oWaveHeader );
+
+			if( ( oWaveHeader.dwFlags & WHDR_PREPARED ) == 0 )
+				error = MMSYSERROR.WAVERR_UNPREPARED;
+
+			MMHelpers.ThrowOnError( error, ErrorSource.WaveOut );
+
+			_oWaveHeader = oWaveHeader; // Copy the stuff back to ourself. 
+		}
+		public void UnPrepare( IntPtr hWave ) {
+			MMSYSERROR eError =	MMSYSERROR.MMSYSERR_NOERROR;
+
+			if( (( _oWaveHeader.dwFlags & WHDR_PREPARED ) != 0 ) && 
+				_ipUnManagedHeader != IntPtr.Zero 
+			) {
+				eError = UnPrepare( hWave, _ipUnManagedHeader, Marshal.SizeOf(typeof(WAVEHDR) ));
+			}
+			MMHelpers.ThrowOnError( eError, ErrorSource.WaveOut );
+
+			CopyUnmanagedValue( out WAVEHDR oHeader );
+			_oWaveHeader.dwFlags = oHeader.dwFlags;
+		}
+
+		public abstract MMSYSERROR DoPrepare( IntPtr hWave, IntPtr hHeader, int iSize );
+		public abstract MMSYSERROR UnPrepare( IntPtr hWave, IntPtr hHeader, int iSize );
+
+		public virtual bool Write( IntPtr hWave, IPgReader oBuffer ) {
+			throw new NotImplementedException();
+		}
+	}
+
 	unsafe public class WmmPlayer : IPgPlayer 
 	{
-		/* flags for dwFlags field of WAVEHDR */
-		const int WHDR_DONE      = 0x00000001;  /* done bit */
-		const int WHDR_PREPARED  = 0x00000002;  /* set if this header has been prepared */
-		const int WHDR_BEGINLOOP = 0x00000004;  /* loop start block */
-		const int WHDR_ENDLOOP   = 0x00000008;  /* loop end block */
-		const int WHDR_INQUEUE   = 0x00000010;  /* reserved for driver */
+		// These need to live on a class. So might as well have them here.
+        [DllImport("winmm.dll", SetLastError = true, CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Winapi)]
+			public static extern MMSYSERROR waveOutOpen(ref IntPtr phwo, int uDeviceID, ref WAVEFORMATEX oFmt, WaveOutProc dwCallback, IntPtr dwCallbackInstance, WaveOpenFlags dwFlags);
+        [DllImport("winmm.dll", SetLastError = true, CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Winapi)]
+			public static extern MMSYSERROR waveOutClose( IntPtr hHandle );
+        [DllImport("winmm.dll", SetLastError = true, CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Winapi)]
+			public static extern MMSYSERROR waveOutPrepareHeader(IntPtr hwo, IntPtr ipHeader, int cbwh);
+        [DllImport("winmm.dll", SetLastError = true, CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Winapi)]
+			public static extern MMSYSERROR waveOutUnprepareHeader(IntPtr hwo, IntPtr ipHeader, int cbwh);
+        [DllImport("winmm.dll", SetLastError = true, CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Winapi)]
+			public static extern MMSYSERROR waveOutWrite(IntPtr hwo, IntPtr ipHeader, int cbwh);
+        [DllImport("winmm.dll", SetLastError = true, CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Winapi)]
+			public static extern MMSYSERROR waveOutReset(IntPtr hwo);
 
-		private class ManagedHeader {
-			WAVEHDR          _oWaveHeader             = new WAVEHDR();
-			readonly IntPtr  _ipUnManagedHeader       = IntPtr.Zero; 
-			readonly uint    _uiBufferCapacityInBytes = 0;
-
-			/// <exception cref="ArgumentException"></exception>
-			/// <exception cref="ArgumentOutOfRangeException"></exception>
-			/// <exception cref="OutOfMemoryException"></exception>
-			public ManagedHeader( IntPtr hWave, uint uiBytesPerBlock, uint uiID ) {
-				if( hWave == IntPtr.Zero )
-					throw new ArgumentException( "Wave device handle is empty." );
-				if( uiBytesPerBlock == 0 || uiBytesPerBlock > 20000 ) // Arbitrary big number.
-					throw new ArgumentOutOfRangeException( "Bytes per block zero or greater than 10000." );
-
-				_uiBufferCapacityInBytes = uiBytesPerBlock;
-
-				// We share space for your header AND it's data in one unmanaged HGlobal memory alloc.
-				// makes free-ing up resources easer. But I don't want to do the math to allocate a single
-				// unmanaged buffer for ALL our headers. I don't think it's worth it.
-				// Add a machine word at the end just in case my math is bum.
-				_ipUnManagedHeader = Marshal.AllocHGlobal(  Marshal.SizeOf(typeof(WAVEHDR) ) + (int)_uiBufferCapacityInBytes + sizeof(int) );
-
-				if( _ipUnManagedHeader == IntPtr.Zero ) {
-					throw new OutOfMemoryException( "Couldn't allocate unmanaged header and buffer." );
-				}
-
-				_oWaveHeader.dwBufferLength = 0;
-				_oWaveHeader.dwUser         = (IntPtr)uiID;
-				_oWaveHeader.dwFlags        = 0;
-				_oWaveHeader.lpData         = _ipUnManagedHeader + Marshal.SizeOf(typeof(WAVEHDR) );
-				_oWaveHeader.lpNext         = IntPtr.Zero;
-				_oWaveHeader.dwLoops        = 0;
-				_oWaveHeader.reserved       = 0;
+		private class WriteHeader : ManagedHeader {
+			public WriteHeader( IntPtr hWave, uint uiBytesPerBlock, uint uiID ) :
+				base( hWave, uiBytesPerBlock, uiID ) 
+			{
 			}
 
-			public void CopyUnmanagedValue( out WAVEHDR sWaveHeader ) {
-				sWaveHeader = (WAVEHDR)Marshal.PtrToStructure( _ipUnManagedHeader, typeof( WAVEHDR ) );
+			public override MMSYSERROR DoPrepare( IntPtr hWave, IntPtr hHeader, int iSize ) {
+				return waveOutPrepareHeader( hWave, _ipUnManagedHeader, Marshal.SizeOf(typeof(WAVEHDR) ));
 			}
 
-			/// <summary>
-			/// Is this header currently queued up for playing.
-			/// </summary>
-			public bool IsUsable {
-				get {
-					if( ( _oWaveHeader.dwFlags & WHDR_INQUEUE ) != 0 )
-						return false;
-
-					if( ( _oWaveHeader.dwFlags & WHDR_DONE ) != 0 )
-						return true;
-
-					return true; // Both are false so we can use it.
-				}
-			}
-
-			/// <summary>
-			/// Mark this header usable for queueing music. Set all flags to zero.
-			/// Set buffered loaded length to zero.
-			/// </summary>
-			public void Recycle() {
-				// Just clear the bits in question. Don't set all flags to 
-				// zero else you'll get an UNPREPARED error at the very least.
-				_oWaveHeader.dwFlags        &= ~WHDR_DONE;    // Clear the bit.
-				_oWaveHeader.dwFlags        &= ~WHDR_INQUEUE; // Clear the bit.
-				_oWaveHeader.dwBufferLength  = 0;
-			}
-
-			/// <summary>
-			/// Capacity of this sound buffer in bytes.
-			/// </summary>
-			public uint Capacity {
-				get { return( _uiBufferCapacityInBytes ); }
-			}
-
-			/// <exception cref="ArgumentException"></exception>
-			/// <exception cref="BadDeviceIdException" ></exception>
-			/// <exception cref="InvalidHandleException"></exception>
-			/// <exception cref="MMSystemException"></exception>
-			/// <remarks>Basically copy my managed wave header into the unmanaged
-			/// _ipUnManagedHeader to set it. Also set the WHDR_DONE flag on all
-			/// buffers so my Play() program knows the buffer is ready to go.</remarks>
-			public void Prepare( IntPtr hWave ) {
-				// copy my managed wave header into the unmanaged _ipUnManagedHeader to set it
-				Marshal.StructureToPtr( _oWaveHeader, _ipUnManagedHeader, false);
-
-				MMSYSERROR error = MMSYSERROR.MMSYSERR_NOERROR;
-
-				error = waveOutPrepareHeader(hWave, _ipUnManagedHeader, Marshal.SizeOf(typeof(WAVEHDR) ));
-
-				CopyUnmanagedValue( out WAVEHDR oWaveHeader );
-
-				if( ( oWaveHeader.dwFlags & WHDR_PREPARED ) == 0 )
-					error = MMSYSERROR.WAVERR_UNPREPARED;
-
-				MMHelpers.ThrowOnError( error, ErrorSource.WaveOut );
-
-				_oWaveHeader = oWaveHeader; // Copy the stuff back to ourself. 
-			}
-
-			public void UnPrepare( IntPtr hWave ) {
-				MMSYSERROR eError =	MMSYSERROR.MMSYSERR_NOERROR;
-
-				if( (( _oWaveHeader.dwFlags & WHDR_PREPARED ) != 0 ) && 
-					_ipUnManagedHeader != IntPtr.Zero 
-				) {
-					eError = waveOutUnprepareHeader( hWave, _ipUnManagedHeader, Marshal.SizeOf(typeof(WAVEHDR) ));
-				}
-				MMHelpers.ThrowOnError( eError, ErrorSource.WaveOut );
-
-				CopyUnmanagedValue( out WAVEHDR oHeader );
-				_oWaveHeader.dwFlags = oHeader.dwFlags;
-			}
-
-			public void Dispose() {
-				if( _ipUnManagedHeader != IntPtr.Zero ) {
-					Marshal.FreeHGlobal( _ipUnManagedHeader );
-				  //_ipUnManagedHeader = IntPtr.Zero;
-					_oWaveHeader.lpData    = IntPtr.Zero;
-				}
+			public override MMSYSERROR UnPrepare( IntPtr hWave, IntPtr hHeader, int iSize ) {
+				return waveOutUnprepareHeader( hWave, _ipUnManagedHeader, Marshal.SizeOf(typeof(WAVEHDR) ));
 			}
 
 			/// <summary>
@@ -268,7 +295,7 @@ namespace Play.Sound {
 			/// is not null... the try block will catch the nullreferenceexception and we throw as a
 			/// invalidoperationexception with an inner exception set. ^_^;;
 			/// </remarks>
-			public bool Write( IntPtr hWave, IPgReader oBuffer ) {
+			public override bool Write( IntPtr hWave, IPgReader oBuffer ) {
 				try {
 					// We might have less data than our capacity.
 					_oWaveHeader.dwBufferLength = (int)oBuffer.Read( _oWaveHeader.lpData, _uiBufferCapacityInBytes ); 
@@ -296,26 +323,12 @@ namespace Play.Sound {
 			}
 		}
 
-        [DllImport("winmm.dll", SetLastError = true, CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Winapi)]
-			public static extern MMSYSERROR waveOutOpen(ref IntPtr phwo, int uDeviceID, ref WAVEFORMATEX oFmt, WaveOutProc dwCallback, IntPtr dwCallbackInstance, WaveOpenFlags dwFlags);
-        [DllImport("winmm.dll", SetLastError = true, CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Winapi)]
-			public static extern MMSYSERROR waveOutClose( IntPtr hHandle );
-        [DllImport("winmm.dll", SetLastError = true, CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Winapi)]
-			public static extern MMSYSERROR waveOutPrepareHeader(IntPtr hwo, IntPtr ipHeader, int cbwh);
-        [DllImport("winmm.dll", SetLastError = true, CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Winapi)]
-			public static extern MMSYSERROR waveOutUnprepareHeader(IntPtr hwo, IntPtr ipHeader, int cbwh);
-        [DllImport("winmm.dll", SetLastError = true, CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Winapi)]
-			public static extern MMSYSERROR waveOutWrite(IntPtr hwo, IntPtr ipHeader, int cbwh);
-        [DllImport("winmm.dll", SetLastError = true, CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Winapi)]
-			public static extern MMSYSERROR waveOutReset(IntPtr hwo);
-
-		WAVEFORMATEX        _oFormat;
-		IntPtr              _hWave             = IntPtr.Zero;
-		readonly int        _iBlockCapacity    = 42;   // Bigger, longer play between interruptions, but longer bleed out.
-		readonly uint       _uiSamplesPerBlock = 1024; // Was 42/512.
-		List<ManagedHeader> _rgHeaders         = new List<ManagedHeader>();
-      //WaveOutProc         _oCallback;
-		uint				_uiWaitInMs; // Bleed time.
+		WAVEFORMATEX      _oFormat;
+		IntPtr            _hWave             = IntPtr.Zero;
+		readonly int      _iBlockCapacity    = 42;   // Bigger, longer play between interruptions, but longer bleed out.
+		readonly uint     _uiSamplesPerBlock = 1024; // Was 42/512.
+		List<WriteHeader> _rgHeaders         = new List<WriteHeader>();
+		uint			  _uiWaitInMs; // Bleed time.
 
 		public int DeviceID { get; protected set; }
 
@@ -368,7 +381,7 @@ namespace Play.Sound {
 			// we can't actually dispose, and thus unprep, the new object!!
 			for (uint iAlloc=0; iAlloc < _iBlockCapacity; ++iAlloc ) {
 				try {
-					_rgHeaders.Add( new ManagedHeader( _hWave, BytesPerBLock, iAlloc ) );
+					_rgHeaders.Add( new WriteHeader( _hWave, BytesPerBLock, iAlloc ) );
 				} catch( Exception oEx ) {
 					CleanAndThrow( oEx );
 				}
@@ -378,7 +391,7 @@ namespace Play.Sound {
 			// If we have a problem we can try to tear 'em all down.
 			foreach( ManagedHeader oHeader in _rgHeaders ) {
 				try {
-					oHeader.Prepare( _hWave );
+					oHeader.DoPrepare( _hWave );
 				} catch( Exception oEx ) {
 					CleanAndThrow( oEx );
 				}
@@ -401,7 +414,7 @@ namespace Play.Sound {
 
 			// If it's an error we recognize, we'll try to clean up our unmanaged resources on the way out.
 			if( rgErrors.Contains( oEx.GetType() ) ) {
-				foreach( ManagedHeader oClean in _rgHeaders ) {
+				foreach( WriteHeader oClean in _rgHeaders ) {
 					oClean.UnPrepare( _hWave );
 					oClean.Dispose();
 				}
@@ -436,7 +449,7 @@ namespace Play.Sound {
 		/// up back here as a delegate we're OK. Kinda magic. ^_^;;
 		/// </summary>
 		/// <remarks>This no longer used. I've read the callback can crash in certain instances of thread usage.</remarks>
-		protected virtual void InternalCallback(IntPtr waveOutHandle, WaveOutMessage eMessage, IntPtr ipInstance, IntPtr ipWaveHeader, IntPtr dwReserved )
+		[Obsolete] protected virtual void InternalCallback(IntPtr waveOutHandle, WaveOutMessage eMessage, IntPtr ipInstance, IntPtr ipWaveHeader, IntPtr dwReserved )
         {
             if( eMessage == WaveOutMessage.WriteDone) {
 				try {
@@ -484,10 +497,10 @@ namespace Play.Sound {
 					oManagedHdr.CopyUnmanagedValue( out WAVEHDR oWaveHdr );
 
 					// Make sure you sum time from ALL headers.
-					if( ( oWaveHdr.dwFlags & WHDR_INQUEUE ) != 0 ) {
+					if( ( oWaveHdr.dwFlags & ManagedHeader.WHDR_INQUEUE ) != 0 ) {
 						_uiWaitInMs += MilliSecPerBlock;
 					} else {
-						if( ( oWaveHdr.dwFlags & WHDR_DONE ) != 0 ) {
+						if( ( oWaveHdr.dwFlags & ManagedHeader.WHDR_DONE ) != 0 ) {
 							oManagedHdr.Recycle();
 						}
 						oManagedHdr.Write( _hWave, oBuffer );
