@@ -196,32 +196,41 @@ namespace Play.SSTV {
         public void PopulateRxModes( SSTVMode oModeSelect = null ) {
 			_ddSSTVMode.Items.Clear();
 
-			// If I've got a new mode, select the family from that, regardless
-			// if the family is already properly selected. This is ok since we
-			// won't get any additional events from doing this.
-			if( oModeSelect != null ) { 
-				if( _rgFamilyLookup.TryGetValue( oModeSelect.Family, out int iIndex ) ) {
-					_ddSSTVFamily.SelectedIndex = iIndex;
+			try {
+				// If I've got a new mode, select the family from that, regardless
+				// if the family is already properly selected. This is ok since we
+				// won't get any additional events from doing this.
+				if( oModeSelect != null ) { 
+					if( _rgFamilyLookup.TryGetValue( oModeSelect.Family, out int iIndex ) ) {
+						_ddSSTVFamily.SelectedIndex = iIndex;
+					}
+				} else {
+					_ddSSTVFamily.SelectedIndex = 0; // back to auto.
+					_ddSSTVMode  .SelectedIndex = -1;
 				}
-			} else {
-				_ddSSTVFamily.SelectedIndex = 0; // back to auto.
-				_ddSSTVMode  .SelectedIndex = -1;
-			}
-			// By this point we should have a family, now populate the modes.
-			if( _ddSSTVFamily.SelectedItem is SSTVDEM.SSTVFamily oNewFamily ) {
-				foreach( Line oLine in SSTVDocument.RxModeList ) {
-					if( oLine.Extra is SSTVMode oMode ) {
-						if( oMode.Family == oNewFamily._eFamily ) {
-							int iIndex = _ddSSTVMode.Items.Add( /*oLine*/ oMode );
-							if( oModeSelect != null && oMode.LegacyMode == oModeSelect.LegacyMode )
-								_ddSSTVMode.SelectedIndex = iIndex;
+				// By this point we should have a family, now populate the modes.
+				if( _ddSSTVFamily.SelectedItem is SSTVDEM.SSTVFamily oNewFamily ) {
+					foreach( Line oLine in SSTVDocument.RxModeList ) {
+						if( oLine.Extra is SSTVMode oMode ) {
+							if( oMode.Family == oNewFamily._eFamily ) {
+								int iIndex = _ddSSTVMode.Items.Add( /*oLine*/ oMode );
+								if( oModeSelect != null && oMode.LegacyMode == oModeSelect.LegacyMode )
+									_ddSSTVMode.SelectedIndex = iIndex;
+							}
 						}
 					}
 				}
+				if( _ddSSTVMode.SelectedIndex == -1 && _ddSSTVMode.Items.Count > 0 ) {
+					_ddSSTVMode.SelectedIndex = 0;
+				}
+			} catch( Exception oEx ) {
+				Type[] rgErrors = { typeof( NullReferenceException ),
+									typeof( ArgumentOutOfRangeException ) };
+				if( rgErrors.IsUnhandled( oEx ) )
+					throw;
+
+				LogError( "RXProperties PopulateRxModes unexpected." );
 			}
-            if( _ddSSTVMode.SelectedIndex == -1 && _ddSSTVMode.Items.Count > 0 ) {
-                _ddSSTVMode.SelectedIndex = 0;
-            }
         }
     }
 
