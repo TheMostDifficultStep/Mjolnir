@@ -33,6 +33,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Globalization;
+using System.IO;
 
 namespace Play.Sound {
 	public class MMHelpers {
@@ -135,13 +136,13 @@ namespace Play.Sound {
 		/// <exception cref="ArgumentException"></exception>
 		/// <exception cref="ArgumentOutOfRangeException"></exception>
 		/// <exception cref="OutOfMemoryException"></exception>
-		public ManagedHeader( IntPtr hWave, uint uiBytesPerBlock, uint uiID ) {
+		public ManagedHeader( IntPtr hWave, uint uiBytesPerHeader, uint uiID ) {
 			if( hWave == IntPtr.Zero )
 				throw new ArgumentException( "Wave device handle is empty." );
-			if( uiBytesPerBlock == 0 || uiBytesPerBlock > 20000 ) // Arbitrary big number.
+			if( uiBytesPerHeader == 0 || uiBytesPerHeader > 20000 ) // Arbitrary big number.
 				throw new ArgumentOutOfRangeException( "Bytes per block zero or greater than 10000." );
 
-			_uiBufferCapacityInBytes = uiBytesPerBlock;
+			_uiBufferCapacityInBytes = uiBytesPerHeader;
 
 			// We share space for your header AND it's data in one unmanaged HGlobal memory alloc.
 			// makes free-ing up resources easer. But I don't want to do the math to allocate a single
@@ -252,9 +253,159 @@ namespace Play.Sound {
 		public virtual bool Write( IntPtr hWave, IPgReader oBuffer ) {
 			throw new NotImplementedException();
 		}
+
+		public virtual int Read( IntPtr hWave, byte[] rgBytes ) {
+			CopyUnmanagedValue( out WAVEHDR oHeader );
+
+			Marshal.Copy( oHeader.lpData, rgBytes, 0, oHeader.dwBytesRecorded );
+
+			return oHeader.dwBytesRecorded;
+		}
 	}
 
-	unsafe public class WmmPlayer : IPgPlayer 
+	public abstract class WmmDevice : IDisposable {
+		protected WAVEFORMATEX        _oFormat;
+		protected IntPtr              _hWave             = IntPtr.Zero;
+		protected readonly int        _iHeaderCapacity   = 42;   // Bigger, longer play between interruptions, but longer bleed out.
+		protected readonly uint       _uiSamplesPerHeader = 1024; // Was 42/512.
+		protected List<ManagedHeader> _rgHeaders         = new ();
+		protected uint			      _uiWaitInMs; // Bleed time.
+
+		public int DeviceID { get; protected set; }
+
+		protected readonly Specification _oSpec;
+
+		protected abstract MMSYSERROR Reset();
+		protected abstract MMSYSERROR Close();
+		protected abstract MMSYSERROR Open();
+
+		protected abstract ManagedHeader CreateHeader( uint uiId );
+
+		public WmmDevice( Specification oSpec, int iDeviceID ) {
+			_oSpec   = oSpec ?? throw new ArgumentNullException();
+			DeviceID = iDeviceID;
+
+			_oFormat.wFormatTag       = (short)WaveFormatTag.Pcm; // Little-endian
+			_oFormat.wBitsPerSample   = (short)oSpec.BitsPerSample;
+			_oFormat.nSamplesPerSec   = oSpec.Rate;
+			_oFormat.nChannels        = (short)oSpec.Channels;
+			_oFormat.nBlockAlign      = (short)(_oFormat.nChannels * _oFormat.wBitsPerSample / 8); // Bytes per block.
+			_oFormat.nAvgBytesPerSec  = _oFormat.nSamplesPerSec * _oFormat.nBlockAlign;
+			_oFormat.cbSize           = 0;
+
+			MMSYSERROR eError = MMSYSERROR.MMSYSERR_NOERROR;
+
+			try {
+				eError = Open();
+			} catch (Exception oEx) {
+				Type[] rgErrors = { typeof( EntryPointNotFoundException ),
+									typeof( MissingMethodException ),
+									typeof( NotSupportedException ),
+									typeof( DllNotFoundException ),
+									typeof( BadImageFormatException  ),
+									typeof( MethodAccessException  ) };
+				if( !rgErrors.Contains( oEx.GetType() ) )
+					throw;
+
+				throw new MMSystemException( "Problem opening sound device", oEx );
+			}
+
+            MMHelpers.ThrowOnError( eError, ErrorSource.WaveOut );
+
+			// First step, just create the header and allocate memory. DO NOT PREP
+			// the header!!! Separate step since if we get an exception in the constructor 
+			// we can't actually dispose, and thus unprep, the new object!!
+			for (uint iAlloc=0; iAlloc < _iHeaderCapacity; ++iAlloc ) {
+				try {
+					_rgHeaders.Add( CreateHeader( iAlloc ) );
+				} catch( Exception oEx ) {
+					CleanAndThrow( oEx );
+				}
+			}
+
+			// The headers are ready to go. Now let's try prepping them.
+			// If we have a problem we can try to tear 'em all down.
+			foreach( ManagedHeader oHeader in _rgHeaders ) {
+				try {
+					oHeader.DoPrepare( _hWave );
+				} catch( Exception oEx ) {
+					CleanAndThrow( oEx );
+				}
+			}
+		}
+
+		public void Dispose() {
+			MMSYSERROR eError = MMSYSERROR.MMSYSERR_NOERROR;
+
+			if( _hWave != IntPtr.Zero ) {
+				eError = Reset();
+				// I Want to log the error. I'll need a site to do that.
+
+				foreach( ManagedHeader oHeader in _rgHeaders ) {
+					oHeader.UnPrepare( _hWave );
+				}
+
+				eError = Close();
+
+				foreach( ManagedHeader oHeader in _rgHeaders ) {
+					oHeader.Dispose();
+				}
+
+				_hWave = IntPtr.Zero;
+			
+				// Better late than never!!
+				MMHelpers.ThrowOnError( eError, ErrorSource.WaveOut );
+			}
+		}
+
+		/// <summary>
+		/// Clean up on some kind of exception thrown in our constructor.
+		/// </summary>
+		/// <param name="oEx"></param>
+		protected void CleanAndThrow( Exception oEx ) {
+			MMSYSERROR eSaved = MMSYSERROR.MMSYSERR_NOERROR;
+
+			Type[] rgErrors = { typeof( ArgumentException ),
+								typeof( ArgumentOutOfRangeException ),
+								typeof( OutOfMemoryException ),
+								typeof( BadDeviceIdException ),
+								typeof( InvalidHandleException ),
+								typeof( MMSystemException ) };
+
+			// If it's an error we recognize, we'll try to clean up our unmanaged resources on the way out.
+			if( rgErrors.Contains( oEx.GetType() ) ) {
+				foreach( ManagedHeader oClean in _rgHeaders ) {
+					oClean.UnPrepare( _hWave );
+					oClean.Dispose();
+				}
+			}
+			if( eSaved != MMSYSERROR.MMSYSERR_NOERROR )
+				throw new MMSystemException( MMHelpers.GenerateErrorMessage( eSaved, ErrorSource.WaveOut ), oEx );
+
+			throw oEx;
+		}
+
+		public Specification Spec {
+			get { return _oSpec; }
+		}
+
+		public uint MilliSecPerHeader {
+			get {
+				return ( _uiSamplesPerHeader * 1000 + (uint)_oFormat.nSamplesPerSec - 1) / (uint)_oFormat.nSamplesPerSec;
+			}
+		}
+
+		public uint BytesPerHeader {
+			get {
+				return (uint)_oFormat.nBlockAlign * _uiSamplesPerHeader;
+			}
+		}
+
+		public uint Busy => _uiWaitInMs;
+
+	}
+
+	unsafe public class WmmPlayer : WmmDevice, IPgPlayer 
 	{
 		// These need to live on a class. So might as well have them here.
         [DllImport("winmm.dll", SetLastError = true, CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Winapi)]
@@ -271,8 +422,8 @@ namespace Play.Sound {
 			public static extern MMSYSERROR waveOutReset(IntPtr hwo);
 
 		private class WriteHeader : ManagedHeader {
-			public WriteHeader( IntPtr hWave, uint uiBytesPerBlock, uint uiID ) :
-				base( hWave, uiBytesPerBlock, uiID ) 
+			public WriteHeader( IntPtr hWave, uint uiBytesPerHeader, uint uiID ) :
+				base( hWave, uiBytesPerHeader, uiID ) 
 			{
 			}
 
@@ -323,125 +474,33 @@ namespace Play.Sound {
 			}
 		}
 
-		WAVEFORMATEX      _oFormat;
-		IntPtr            _hWave             = IntPtr.Zero;
-		readonly int      _iBlockCapacity    = 42;   // Bigger, longer play between interruptions, but longer bleed out.
-		readonly uint     _uiSamplesPerBlock = 1024; // Was 42/512.
-		List<WriteHeader> _rgHeaders         = new List<WriteHeader>();
-		uint			  _uiWaitInMs; // Bleed time.
+        protected override MMSYSERROR Reset() {
+            return waveOutReset( _hWave );
+        }
 
-		public int DeviceID { get; protected set; }
+        protected override MMSYSERROR Close() {
+            return waveOutClose( _hWave );
+        }
 
-		readonly Specification _oSpec;
+		protected override MMSYSERROR Open() {
+			return waveOutOpen(ref _hWave, DeviceID, ref _oFormat, null, IntPtr.Zero, WaveOpenFlags.CALLBACK_NULL );
+		}
 
-		/// <summary>
-		/// Set up a music player for use.
-		/// </summary>
-		/// <exception cref="ArgumentException" />
-		/// <exception cref="ArgumentNullException" />
-		/// <exception cref="BadDeviceIdException" />
-		/// <exception cref="InvalidHandleException" />
-		/// <exception cref="MMSystemException" />
-		/// <seealso>https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-createeventa</seealso>/>
-		public WmmPlayer( Specification oSpec, int iDeviceID ) {
-		  //_oCallback = new WaveOutProc(this.InternalCallback);
-			_oSpec     = oSpec ?? throw new ArgumentNullException();
+		protected override ManagedHeader CreateHeader( uint uiId ) {
+			return new WriteHeader( _hWave, BytesPerHeader, uiId );
+		}
 
-			DeviceID = iDeviceID;
-
-			_oFormat.wFormatTag       = (short)WaveFormatTag.Pcm; // Little-endian
-			_oFormat.wBitsPerSample   = (short)oSpec.BitsPerSample;
-			_oFormat.nSamplesPerSec   = oSpec.Rate;
-			_oFormat.nChannels        = (short)oSpec.Channels;
-			_oFormat.nBlockAlign      = (short)(_oFormat.nChannels * _oFormat.wBitsPerSample / 8);
-			_oFormat.nAvgBytesPerSec  = _oFormat.nSamplesPerSec * _oFormat.nBlockAlign;
-			_oFormat.cbSize           = 0;
-
-			MMSYSERROR eError = MMSYSERROR.MMSYSERR_NOERROR;
-
-			try {
-				eError = waveOutOpen(ref _hWave, iDeviceID, ref _oFormat, null, IntPtr.Zero, WaveOpenFlags.CALLBACK_NULL );
-			} catch (Exception oEx) {
-				Type[] rgErrors = { typeof( EntryPointNotFoundException ),
-									typeof( MissingMethodException ),
-									typeof( NotSupportedException ),
-									typeof( DllNotFoundException ),
-									typeof( BadImageFormatException  ),
-									typeof( MethodAccessException  ) };
-				if( !rgErrors.Contains( oEx.GetType() ) )
-					throw;
-
-				throw new MMSystemException( "Problem opening sound device", oEx );
-			}
-
-            MMHelpers.ThrowOnError( eError, ErrorSource.WaveOut );
-
-			// First step, just create the header and allocate memory. DO NOT PREP
-			// the header!!! Separate step since if we get an exception in the constructor 
-			// we can't actually dispose, and thus unprep, the new object!!
-			for (uint iAlloc=0; iAlloc < _iBlockCapacity; ++iAlloc ) {
-				try {
-					_rgHeaders.Add( new WriteHeader( _hWave, BytesPerBLock, iAlloc ) );
-				} catch( Exception oEx ) {
-					CleanAndThrow( oEx );
-				}
-			}
-
-			// The headers are ready to go. Now let's try prepping them.
-			// If we have a problem we can try to tear 'em all down.
-			foreach( ManagedHeader oHeader in _rgHeaders ) {
-				try {
-					oHeader.DoPrepare( _hWave );
-				} catch( Exception oEx ) {
-					CleanAndThrow( oEx );
-				}
-			}
+        /// <summary>
+        /// Set up a music player for use.
+        /// </summary>
+        /// <exception cref="ArgumentException" />
+        /// <exception cref="ArgumentNullException" />
+        /// <exception cref="BadDeviceIdException" />
+        /// <exception cref="InvalidHandleException" />
+        /// <exception cref="MMSystemException" />
+        /// <seealso>https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-createeventa</seealso>/>
+        public WmmPlayer( Specification oSpec, int iDeviceID ) : base( oSpec, iDeviceID ) {
 		} // end method
-
-		/// <summary>
-		/// Clean up on some kind of exception thrown in our constructor.
-		/// </summary>
-		/// <param name="oEx"></param>
-		private void CleanAndThrow( Exception oEx ) {
-			MMSYSERROR eSaved = MMSYSERROR.MMSYSERR_NOERROR;
-
-			Type[] rgErrors = { typeof( ArgumentException ),
-								typeof( ArgumentOutOfRangeException ),
-								typeof( OutOfMemoryException ),
-								typeof( BadDeviceIdException ),
-								typeof( InvalidHandleException ),
-								typeof( MMSystemException ) };
-
-			// If it's an error we recognize, we'll try to clean up our unmanaged resources on the way out.
-			if( rgErrors.Contains( oEx.GetType() ) ) {
-				foreach( WriteHeader oClean in _rgHeaders ) {
-					oClean.UnPrepare( _hWave );
-					oClean.Dispose();
-				}
-			}
-			if( eSaved != MMSYSERROR.MMSYSERR_NOERROR )
-				throw new MMSystemException( MMHelpers.GenerateErrorMessage( eSaved, ErrorSource.WaveOut ), oEx );
-
-			throw oEx;
-		}
-
-		public Specification Spec {
-			get { return( _oSpec ); }
-		}
-
-		public uint MilliSecPerBlock {
-			get {
-				return( (( _uiSamplesPerBlock * 1000 + (uint)_oFormat.nSamplesPerSec - 1) / (uint)_oFormat.nSamplesPerSec ) );
-			}
-		}
-
-		public uint BytesPerBLock {
-			get {
-				return( (uint)_oFormat.nBlockAlign * _uiSamplesPerBlock );
-			}
-		}
-
-		public uint Busy => _uiWaitInMs;
 
 		/// <summary>
 		/// Normally we would use the ipInstance variable to disambiguate the caller in unmanaged world.
@@ -498,13 +557,13 @@ namespace Play.Sound {
 
 					// Make sure you sum time from ALL headers.
 					if( ( oWaveHdr.dwFlags & ManagedHeader.WHDR_INQUEUE ) != 0 ) {
-						_uiWaitInMs += MilliSecPerBlock;
+						_uiWaitInMs += MilliSecPerHeader;
 					} else {
 						if( ( oWaveHdr.dwFlags & ManagedHeader.WHDR_DONE ) != 0 ) {
 							oManagedHdr.Recycle();
 						}
 						oManagedHdr.Write( _hWave, oBuffer );
-						_uiWaitInMs += MilliSecPerBlock;
+						_uiWaitInMs += MilliSecPerHeader;
 					}
 				}
 			} catch( Exception oEx ) {
@@ -556,32 +615,9 @@ namespace Play.Sound {
 					break;
 
 				// BUG : Ack! I should make sure the player is actually playing, else the big sleep!!! ^_^;
-				System.Threading.Thread.Sleep( (int)((MilliSecPerBlock>>1)+1 ) * iBusyHeaders );
+				System.Threading.Thread.Sleep( (int)((MilliSecPerHeader>>1)+1 ) * iBusyHeaders );
 			}
 		}
 
-		public void Dispose() {
-			MMSYSERROR eError = MMSYSERROR.MMSYSERR_NOERROR;
-
-			if( _hWave != IntPtr.Zero ) {
-				eError = waveOutReset( _hWave );
-				// I Want to log the error. I'll need a site to do that.
-
-				foreach( ManagedHeader oHeader in _rgHeaders ) {
-					oHeader.UnPrepare( _hWave );
-				}
-
-				eError = waveOutClose( _hWave );
-
-				foreach( ManagedHeader oHeader in _rgHeaders ) {
-					oHeader.Dispose();
-				}
-
-				_hWave = IntPtr.Zero;
-			
-				// Better late than never!!
-				MMHelpers.ThrowOnError( eError, ErrorSource.WaveOut );
-			}
-		}
 	} // end class
 } // end namespace

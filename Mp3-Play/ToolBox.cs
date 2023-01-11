@@ -263,7 +263,7 @@ namespace Play.Sound {
 		/// <param name="iWordSize">Word size requested.</param>
 		/// <remarks>Might be fun to check for overflow.</remarks>
 		/// <exception cref="IndexOutOfRangeException" >Your word size was bigger than 4.</exception>
-		protected static int GetBytes( int   iValue, ref byte[] bytes, int iWordSize ) {
+		protected static int GetBytes( int iValue, ref byte[] bytes, int iWordSize ) {
 			int[] rgPow = { 0, 8, 16, 24 };
 
 			if( BitConverter.IsLittleEndian ) {

@@ -28,14 +28,11 @@
 // https://msdn.microsoft.com/en-us/library/windows/desktop/dd317593(v=vs.85).aspx
 
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.InteropServices;
-using System.Text;
-using System.Globalization;
 
 namespace Play.Sound {
-	unsafe public class WmmReader {
+	unsafe public class WmmReader : WmmDevice {
+		// These need to live on a class. So might as well have them here.
         [DllImport("winmm.dll", SetLastError = true, CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Winapi)]
 			public static extern MMSYSERROR waveInOpen(ref IntPtr phwo, int uDeviceID, ref WAVEFORMATEX oFmt, WaveOutProc dwCallback, IntPtr dwCallbackInstance, WaveOpenFlags dwFlags);
         [DllImport("winmm.dll", SetLastError = true, CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Winapi)]
@@ -45,12 +42,86 @@ namespace Play.Sound {
         [DllImport("winmm.dll", SetLastError = true, CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Winapi)]
 			public static extern MMSYSERROR waveInUnprepareHeader(IntPtr hwo, IntPtr ipHeader, int cbwh);
         [DllImport("winmm.dll", SetLastError = true, CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Winapi)]
-			public static extern MMSYSERROR waveInRead(IntPtr hwo, IntPtr ipHeader, int cbwh);
-        [DllImport("winmm.dll", SetLastError = true, CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Winapi)]
 			public static extern MMSYSERROR waveInReset(IntPtr hwo);
+        [DllImport("winmm.dll", SetLastError = true, CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Winapi)]
+			public static extern MMSYSERROR waveInAddBuffer( IntPtr hWaveIn, IntPtr ipHeader, int iWH );
 
+		int _iNextRead = 0;
 
-        public WmmReader( Specification oSpec, int iDeviceID ) {
+		private class ReadHeader : ManagedHeader {
+			public ReadHeader( IntPtr hWave, uint uiBytesPerBlock, uint uiID ) :
+				base( hWave, uiBytesPerBlock, uiID ) 
+			{
+			}
+
+			public override MMSYSERROR DoPrepare( IntPtr hWave, IntPtr hHeader, int iSize ) {
+				return waveInPrepareHeader( hWave, _ipUnManagedHeader, Marshal.SizeOf(typeof(WAVEHDR) ));
+			}
+
+			public override MMSYSERROR UnPrepare( IntPtr hWave, IntPtr hHeader, int iSize ) {
+				return waveInUnprepareHeader( hWave, _ipUnManagedHeader, Marshal.SizeOf(typeof(WAVEHDR) ));
+			}
+
+			public void AddBuffer( IntPtr hWaveIn ) {
+				// dwFlags &= ~WHDR_DONE; clear the done flag and add the buffer.
+				MMHelpers.ThrowOnError( waveInAddBuffer( hWaveIn, _ipUnManagedHeader, Marshal.SizeOf(typeof(WAVEHDR) ) ), ErrorSource.WaveIn );
+			}
+		}
+
+        protected override MMSYSERROR Reset() {
+            return waveInReset( _hWave );
         }
+
+        protected override MMSYSERROR Close() {
+            return waveInClose( _hWave );
+        }
+
+		protected override MMSYSERROR Open() {
+			return waveInOpen(ref _hWave, DeviceID, ref _oFormat, null, IntPtr.Zero, WaveOpenFlags.CALLBACK_NULL );
+		}
+
+		protected override ManagedHeader CreateHeader( uint uiId ) {
+			return new ReadHeader( _hWave, BytesPerHeader, uiId );
+		}
+
+		byte[] _rgBytes;
+
+        public WmmReader( Specification oSpec, int iDeviceID ) : base( oSpec, iDeviceID ) {
+			// Headers all prepped now just add 'em into the system.
+			try {
+				foreach( ReadHeader oHeader in _rgHeaders ) {
+					oHeader.AddBuffer( _hWave );
+				}
+			} catch( Exception oEx ) {
+				CleanAndThrow( oEx );
+			}
+			_rgBytes = new byte[BytesPerHeader];
+			// Call start recording to get things going.
+        }
+
+		public void ProcessBuffer( int iRead ) {
+		}
+
+		public uint Read() {
+			// The only scary thing is if for SOOOME reason the 
+			// a header never get's loaded. We'll be stuck waiting
+			// forever!
+			while( _rgHeaders[_iNextRead] is ReadHeader oHeader ) {
+				if( oHeader.IsUsable ) {
+					ProcessBuffer( oHeader.Read( _hWave, _rgBytes ) );
+
+					oHeader.Recycle();
+					oHeader.AddBuffer( _hWave );
+
+					if( ++_iNextRead > _rgHeaders.Count )
+						_iNextRead = 0;
+				} else {
+					break;
+				}
+			}
+
+			// By now they should be all newly queued up or waiting.
+			return (uint)(MilliSecPerHeader * _rgHeaders.Count / 2);
+		}
     }
 }
