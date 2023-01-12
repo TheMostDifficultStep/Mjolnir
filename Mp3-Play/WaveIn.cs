@@ -29,6 +29,7 @@
 
 using System;
 using System.Runtime.InteropServices;
+using System.Collections.Generic;
 
 namespace Play.Sound {
 	unsafe public class WmmReader : WmmDevice {
@@ -45,8 +46,10 @@ namespace Play.Sound {
 			public static extern MMSYSERROR waveInReset(IntPtr hwo);
         [DllImport("winmm.dll", SetLastError = true, CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Winapi)]
 			public static extern MMSYSERROR waveInAddBuffer( IntPtr hWaveIn, IntPtr ipHeader, int iWH );
-
-		int _iNextRead = 0;
+        [DllImport("winmm.dll", SetLastError = true, CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Winapi)]
+			public static extern MMSYSERROR waveInStart( IntPtr hwo);
+        [DllImport("winmm.dll", SetLastError = true, CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Winapi)]
+			public static extern MMSYSERROR waveInStop( IntPtr hwo );
 
 		private class ReadHeader : ManagedHeader {
 			public ReadHeader( IntPtr hWave, uint uiBytesPerBlock, uint uiID ) :
@@ -62,9 +65,16 @@ namespace Play.Sound {
 				return waveInUnprepareHeader( hWave, _ipUnManagedHeader, Marshal.SizeOf(typeof(WAVEHDR) ));
 			}
 
-			public void AddBuffer( IntPtr hWaveIn ) {
-				// dwFlags &= ~WHDR_DONE; clear the done flag and add the buffer.
-				MMHelpers.ThrowOnError( waveInAddBuffer( hWaveIn, _ipUnManagedHeader, Marshal.SizeOf(typeof(WAVEHDR) ) ), ErrorSource.WaveIn );
+			/// <exception cref="ArgumentException" />
+			/// <exception cref="BadDeviceIdException" />
+			/// <exception cref="InvalidHandleException" />
+			/// <exception cref="MMSystemException" />
+			public override void AddBuffer( IntPtr hWaveIn ) {
+				_oWaveHeader.dwFlags &= ~WHDR_DONE;    // Clear the bit.
+				_oWaveHeader.dwFlags &= ~WHDR_INQUEUE; // Clear the bit.
+
+				Marshal  .StructureToPtr( _oWaveHeader, _ipUnManagedHeader, false ); // Managed -> Unmanaged.
+				MMHelpers.ThrowOnError  ( waveInAddBuffer( hWaveIn, _ipUnManagedHeader, Marshal.SizeOf(typeof(WAVEHDR) ) ), ErrorSource.WaveIn );
 			}
 		}
 
@@ -80,48 +90,82 @@ namespace Play.Sound {
 			return waveInOpen(ref _hWave, DeviceID, ref _oFormat, null, IntPtr.Zero, WaveOpenFlags.CALLBACK_NULL );
 		}
 
+		public void RecordStart() {
+			MMHelpers.ThrowOnError(waveInStart( _hWave ), ErrorSource.WaveIn );
+		}
+
+		public void RecordStop() {
+			MMHelpers.ThrowOnError(waveInStop( _hWave ), ErrorSource.WaveIn );
+		}
+
 		protected override ManagedHeader CreateHeader( uint uiId ) {
 			return new ReadHeader( _hWave, BytesPerHeader, uiId );
 		}
 
-		byte[] _rgBytes;
+		readonly byte[]               _rgBytes;
+        readonly BlockCopies          _oWaveReader;
+		readonly Queue<ManagedHeader> _quHeaders = new();
 
         public WmmReader( Specification oSpec, int iDeviceID ) : base( oSpec, iDeviceID ) {
 			// Headers all prepped now just add 'em into the system.
 			try {
 				foreach( ReadHeader oHeader in _rgHeaders ) {
 					oHeader.AddBuffer( _hWave );
+					_quHeaders.Enqueue( oHeader );
 				}
 			} catch( Exception oEx ) {
 				CleanAndThrow( oEx );
 			}
-			_rgBytes = new byte[BytesPerHeader];
+
+			_rgBytes     = new byte[BytesPerHeader];
+			_oWaveReader = new ( 1, oSpec.Channels, 0, oSpec.BitsPerSample );
+
 			// Call start recording to get things going.
         }
 
-		public void ProcessBuffer( int iRead ) {
-		}
+		/// <summary>Read as many of the headers as are ready. </summary>
+		/// <remarks>
+		/// By this time the headers are all enqueued. And we're checking
+		/// the first one to see if it is ready. Keep processing ready headers
+		/// until we get to the first non ready element.
+		/// The only scary thing is if for SOOOME reason the a
+		/// header never get's loaded, sound will stop. We currently
+		/// have no way to reset.
+		/// </remarks>
+		/// <param name="oQueue">You might think a stream would be what you
+		/// want but turns out a queue does the job neatly.</param>
+		/// <returns>The amount of buffered capture time in milliseconds.</returns>
+		/// <exception cref="InvalidOperationException" />
+		/// <exception cref="ArgumentException" />
+		/// <exception cref="BadDeviceIdException" />
+		/// <exception cref="InvalidHandleException" />
+		/// <exception cref="MMSystemException" />
+		public uint Read( Queue<short> oQueue ) {
+			if( _quHeaders.Count <= 0 )
+				throw new InvalidOperationException( "Signal Queue is Empty!" );
+			if( _quHeaders.Count > _rgHeaders.Count )
+				throw new InvalidOperationException( "Unexpected # of headers in microphone queue!" );
 
-		public uint Read() {
-			// The only scary thing is if for SOOOME reason the 
-			// a header never get's loaded. We'll be stuck waiting
-			// forever!
-			while( _rgHeaders[_iNextRead] is ReadHeader oHeader ) {
-				if( oHeader.IsUsable ) {
-					ProcessBuffer( oHeader.Read( _hWave, _rgBytes ) );
+			while( _quHeaders.TryPeek( out ManagedHeader oHeader ) ) {
+				oHeader.Refresh();
 
-					oHeader.Recycle();
-					oHeader.AddBuffer( _hWave );
-
-					if( ++_iNextRead > _rgHeaders.Count )
-						_iNextRead = 0;
-				} else {
+				if( !oHeader.IsUsable )
 					break;
+
+				_quHeaders.Dequeue();
+
+				int iRead = oHeader.Read( _hWave, _rgBytes );
+
+				foreach( short sSample in new BlockCopies.SampleEnumerable( _oWaveReader, _rgBytes, iRead ) ) {
+					oQueue.Enqueue( sSample );
 				}
+
+				oHeader.AddBuffer( _hWave );
+				_quHeaders.Enqueue( oHeader );
 			}
 
 			// By now they should be all newly queued up or waiting.
-			return (uint)(MilliSecPerHeader * _rgHeaders.Count / 2);
+			return (uint)(MilliSecPerHeader * _rgHeaders.Count - 1 );
 		}
     }
 }

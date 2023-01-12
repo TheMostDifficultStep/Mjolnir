@@ -269,13 +269,10 @@ namespace Play.SSTV {
         }
 
         readonly ConcurrentQueue<SSTVMessage> _rgBGtoUIQueue = new ConcurrentQueue<SSTVMessage>(); // From BG thread to UI thread.
-        readonly ConcurrentQueue<double>      _rgDataQueue   = new ConcurrentQueue<double>();      // From UI thread to BG thread.
-        readonly ConcurrentQueue<TVMessage>   _rgUItoBGQueue = new ConcurrentQueue<TVMessage>();
+        readonly ConcurrentQueue<TVMessage>   _rgUItoBGQueue = new ConcurrentQueue<TVMessage>  ();
 
-        Thread      _oThread     = null;
-        WaveIn      _oWaveIn     = null;
-        BlockCopies _oWaveReader = null;
-        Task        _oTxTask     = null;
+        Thread _oThread = null;
+        Task   _oTxTask = null;
 
         public bool        StateTx => _oTxTask != null;
         public DocSSTVMode StateRx { get; protected set; }
@@ -1503,9 +1500,13 @@ namespace Play.SSTV {
                             PropertyChange?.Invoke( SSTVEvents.ImageSaved );
                             RxHistoryList.Refresh();
                             break;
+                        case SSTVEvents.ThreadExit:
+                            // If there's an abort, you'll get that message and then this one.
+                            Properties.ValueUpdate( SSTVProperties.Names.Std_Process, "Rx Stopped!", true );
+                            break;
                         case SSTVEvents.ThreadAbort:
                             if( _oThread == null ) {
-                                LogError( "Unexpected Image Thread Abort." );
+                                LogError( "Image Thread Abort on Null." );
                             } else { 
                                 LogError( "Image Thread Abort." );
                             }
@@ -1644,39 +1645,33 @@ namespace Play.SSTV {
                         return;
                     }
 
-                    if( _oWaveIn == null ) {
-                        // BUG: we hang on shutdown trying to stop the wavein recording
-                        // it is recommended not to use the function callback. but
-                        // instead you should use the window callback.
-                        _oWaveIn = new WaveIn( WaveCallbackInfo.FunctionCallback() );
+                    //if( _oWaveIn == null ) {
+                    //    // BUG: we hang on shutdown trying to stop the wavein recording
+                    //    // it is recommended not to use the function callback. but
+                    //    // instead you should use the window callback.
+                    //    _oWaveIn = new WaveIn( WaveCallbackInfo.FunctionCallback() );
 
-                        // System works best if frequency here is not the calibrated (clock) value.
-                        // Makes sense since it's not calibrated! But need to coordinate with desired
-                        // (clock) frequency some how. TODO... ^_^;;
-                        _oWaveIn.BufferMilliseconds = 250;
-                        _oWaveIn.DeviceNumber       = iMicrophone;
-                        _oWaveIn.WaveFormat         = new WaveFormat( 11028, 16, 1 );
-                        _oWaveIn.NumberOfBuffers    = 2;
-                        _oWaveIn.DataAvailable += OnDataAvailable_WaveIn;
-                    }
-                    _oWaveReader = new BlockCopies( 1, 1, 0, _oWaveIn.WaveFormat.BitsPerSample );
+                    //    // System works best if frequency here is not the calibrated (clock) value.
+                    //    // Makes sense since it's not calibrated! But need to coordinate with desired
+                    //    // (clock) frequency some how. TODO... ^_^;;
+                    //    _oWaveIn.BufferMilliseconds = 250;
+                    //    _oWaveIn.DeviceNumber       = iMicrophone;
+                    //    _oWaveIn.WaveFormat         = new WaveFormat( 11028, 16, 1 );
+                    //    _oWaveIn.NumberOfBuffers    = 2;
+                    //    _oWaveIn.DataAvailable += OnDataAvailable_WaveIn;
+                    //}
+                    //_oWaveReader = new BlockCopies( 1, 1, 0, _oWaveIn.WaveFormat.BitsPerSample );
 
                     _rgUItoBGQueue.Clear();
                     _rgBGtoUIQueue.Clear();
-                    _rgDataQueue  .Clear();
 
                     // File reader used to clear this value on each run but I like keeping that
                     // value for similar reads. So Reset the mode on Device read begin. No events
                     // or our task will be getting an event we don't want.
                     RxModeList.CheckedReset = RxModeList[0];
 
-                    // See CheckedReset above.
-                    //if( RxModeList.CheckedLine.Extra is SSTVMode oMode ) {
-                    //    _rgUItoBGQueue.Enqueue( new TVMessage( TVMessage.Message.TryNewMode, oMode ) );
-                    //}
-
                     int    iQuality    = Properties.GetValueAsInt( SSTVProperties.Names.Std_ImgQuality, 80 );
-                    double dblFreq     = Properties.GetValueAsDbl( SSTVProperties.Names.Std_Frequency,   11028 );
+                    double dblFreq     = Properties.GetValueAsDbl( SSTVProperties.Names.Std_Frequency,  11028 );
                     string strSaveDir  = Properties[ SSTVProperties.Names.Rx_SaveDir  ];
 
                     // Just note, if we do a file read, we might no longer be in the MyPictures path.
@@ -1686,22 +1681,17 @@ namespace Play.SSTV {
                     }
 
                     DeviceListeningState oWorker = new DeviceListeningState( 
-                        iMonitor,
+                        iMonitor, iMicrophone,
                         dblFreq, 
                         iQuality, strSaveDir, String.Empty,
-                        _rgBGtoUIQueue, _rgDataQueue, 
-                        _rgUItoBGQueue, SyncImage.Bitmap, DisplayImage.Bitmap );
+                        _rgBGtoUIQueue, _rgUItoBGQueue, 
+                        SyncImage.Bitmap, DisplayImage.Bitmap );
 
                     _oThread = new Thread( oWorker.DoWork );
                     _oThread.Start(); // Can send out of memory exception!
 
-                    if( _oWaveIn != null ) {
-                        _oWaveIn.StopRecording();
-                        _oWaveIn.StartRecording();
-                    }
-
                     _oWorkPlace.Start( 1 );
-                    Properties.ValueUpdate( SSTVProperties.Names.Std_Process, "Start: Live.", true );
+                    Properties.ValueUpdate( SSTVProperties.Names.Std_Process, "Rx Live, Started.", true );
                     StateRx = DocSSTVMode.DeviceRead;
                 } catch( Exception oEx ) {
                     Type[] rgErrors = { typeof( NullReferenceException ),
@@ -1709,13 +1699,13 @@ namespace Play.SSTV {
                                         typeof( FormatException ),
                                         typeof( OverflowException ),
                                         typeof( ThreadStateException ),
+                                        typeof( OutOfMemoryException ),
                                         typeof( InsufficientMemoryException ),
-                                        typeof( BadDeviceIdException ),
-                                        typeof( NAudio.MmException ) };
+                                        typeof( BadDeviceIdException ) };
                     if( rgErrors.IsUnhandled( oEx ) )
                         throw;
 
-                    Properties.ValueUpdate( SSTVProperties.Names.Std_Process, "Start: Error.", true );
+                    Properties.ValueUpdate( SSTVProperties.Names.Std_Process, "Rx Live: Error!", true );
                     LogError( "Couldn't launch device listening thread." );
                 }
 
@@ -1731,43 +1721,11 @@ namespace Play.SSTV {
             _rgUItoBGQueue.Enqueue( new TVMessage( TVMessage.Message.ExitWorkThread ) );
             _oThread = null;
 
-            if( _oWaveIn != null ) {
-                _oWaveIn.StopRecording();   
-                _oWaveIn = null;
-            }
-
             Properties.ValueUpdate( SSTVProperties.Names.Std_Process, "Stopped: All.", true );
 
             _oWorkPlace.Pause(); // TODO: flush the message buffers? Probably should.
             StateRx = DocSSTVMode.Ready;
             _oSiteBase.Notify( ShellNotify.MediaStatusChanged );
-        }
-
-        /// <summary>
-        /// Be sure to implement dispose on this object and make sure it get's
-        /// called b/c this method will get called if the still living bg thread
-        /// doesn't get an abort message.
-        /// </summary>
-        /// <remarks>Looks like I can't call wavein.stop() from within the callback. AND
-        /// it looks like NAudio is calling us from its non foreground thread!!!</remarks>
-        private void OnDataAvailable_WaveIn( object sender, WaveInEventArgs e ) {
-            try {
-                if( _rgDataQueue.Count > 1e6 ) {
-                    _rgBGtoUIQueue.Enqueue( new( SSTVEvents.ThreadException, (int)TxThreadErrors.DataOverflow ) );
-                } else {
-                    // No use stuffing the data queue if there's no thread to pick it up.
-                    if( _oThread != null ) {
-                        for( IEnumerator<double>oIter = _oWaveReader.EnumAsSigned16Bit( e.Buffer, e.BytesRecorded ); oIter.MoveNext(); ) {
-                            _rgDataQueue.Enqueue( oIter.Current );
-                        }
-                    }
-                }
-            } catch( NullReferenceException ) {
-                // Used to catch an InvalidOperationException from an NAudio buffer I was using here.
-                // I'm not using hat any more, but I'll keep the try block for now.
-                // Safest way to report this is post an event to ourselves.
-                _rgBGtoUIQueue.Enqueue( new( SSTVEvents.ThreadException, (int)TxThreadErrors.WorkerException ) );
-            }
         }
 
         /// <summary>

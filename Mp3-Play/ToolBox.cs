@@ -447,12 +447,32 @@ namespace Play.Sound {
 			_uiStep = (uint)( _iDecimation * _iChannels );
 		}
 
+		public struct SampleEnumerable : IEnumerable<double>{
+			readonly BlockCopies _oCopier;
+			readonly Byte[]      _rgSource;
+			readonly int         _iSrcLen;
+
+			public SampleEnumerable( BlockCopies oCopier, Byte[] rgSource, int iSrcLen ) {
+				_oCopier  = oCopier ?? throw new ArgumentNullException(nameof (oCopier));
+				_rgSource = rgSource ?? throw new ArgumentNullException( nameof( rgSource ) );
+				_iSrcLen  = iSrcLen;
+			}
+
+			public IEnumerator<double> GetEnumerator() {
+				return _oCopier.EnumAsSigned16Bit( _rgSource, _iSrcLen );
+			}
+
+			IEnumerator IEnumerable.GetEnumerator() {
+				return GetEnumerator();
+			}
+		}
+
 		/// <summary>
 		/// Reads the channel specified by the constructor of this object. Handy when
 		/// the data just comes from some random buffer.
 		/// </summary>
 		/// <param name="rgSource">Array of data in bytes</param>
-		/// <param name="iSrcLen">Length of data to read.</param>
+		/// <param name="iSrcLen">Length of data to read in bytes.</param>
 		/// <returns></returns>
 		public IEnumerator<double> EnumAsSigned16Bit( Byte[] rgSource, int iSrcLen ) {
 			int iChannelOffset = _iBytesPerChannel * _iChannel;

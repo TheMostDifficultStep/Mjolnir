@@ -271,7 +271,7 @@ namespace Play.SSTV {
     /// <seealso cref="FileReadingState"/>
     public class DeviceListeningState : BGThreadState
     {
-        protected readonly ConcurrentQueue<double>      _oDataQueue; 
+      //protected readonly ConcurrentQueue<double>      _oDataQueue; 
         protected readonly WaveFormat                   _oDataFormat;
         protected readonly ConcurrentQueue<TVMessage>   _oInputQueue;
         protected          string                       _strFilePath;   // path and img quality could potentially change
@@ -284,9 +284,11 @@ namespace Play.SSTV {
         protected readonly SSTVDEM  _oSSTVDeMo;
 
         readonly double _dblSampRate;
-        readonly int    _iDevice;
+        readonly int    _iSpeaker;
+        readonly int    _iMicrophone;
 
         // This is the errors we generally handle in our work function.
+        // But we will bail out of the loop.
         protected static readonly Type[] _rgLoopErrors = { typeof( NullReferenceException ),
                                                            typeof( ArgumentNullException ),
                                                            typeof( MMSystemException ),
@@ -295,7 +297,12 @@ namespace Play.SSTV {
 										                   typeof( IndexOutOfRangeException ),
                                                            typeof( InvalidDataException ),
                                                            typeof( ArgumentOutOfRangeException ),
-                                                           typeof( KeyNotFoundException ) };
+                                                           typeof( KeyNotFoundException ),
+                                                           typeof( ArgumentException ),
+                                                           typeof( BadDeviceIdException ),
+                                                           typeof( InvalidHandleException ),
+                                                           typeof( MMSystemException )
+                                                         };
 
         /// <summary>
         /// Support the bg thread for the device listener.
@@ -311,25 +318,26 @@ namespace Play.SSTV {
         /// </remarks>
         /// <exception cref="ArgumentNullException"></exception>
         public DeviceListeningState( int                          iDevice,
+                                     int                          iMicrophone,
                                      double                       dblSampleRate,
                                      int                          iImageQuality,
                                      string                       strFilePath,
                                      string                       strFileName,
                                      ConcurrentQueue<SSTVMessage> oToUIQueue, 
-                                     ConcurrentQueue<double>      oDataQueue, 
                                      ConcurrentQueue<TVMessage>   oInputQueue,
                                      SKBitmap                     oD12,
                                      SKBitmap                     oRx ) :
             base( oToUIQueue )
         {
-            _oDataQueue    = oDataQueue  ?? throw new ArgumentNullException( nameof( oDataQueue  ) );
             _oInputQueue   = oInputQueue ?? throw new ArgumentNullException( nameof( oInputQueue   ) );
             _strFilePath   = strFilePath ?? throw new ArgumentNullException( nameof( strFilePath ) );
             _iImageQuality = iImageQuality;
             _strFileName   = strFileName;
 
-            _iDevice     = iDevice;
-            _dblSampRate = dblSampleRate;
+            _iSpeaker      = iDevice;
+            _iMicrophone   = iMicrophone;
+
+            _dblSampRate   = dblSampleRate;
 
             _oSSTVDeMo = new SSTVDEM ( new SYSSET(), dblSampleRate );
 			_oSSTVDraw = new SSTVDraw( _oSSTVDeMo, oD12, oRx );
@@ -427,12 +435,6 @@ namespace Play.SSTV {
         /// we need the DataQueue. In the future I'll write my own code to
         /// read from the sound card and I'll be able to punt that code.</remarks>
         public void DoWork() {
-            // The player MUST be created on the same thread. Else if the
-            // foreground device shuts down first. We hang in waveOutWrite()!!
-            Specification oMonSpec    = new( (long)_dblSampRate, 1, 0, 16 );
-            BufferSSTV    oPlayBuffer = new BufferSSTV( oMonSpec );
-            WmmPlayer     oPlayer     = new WmmPlayer ( oMonSpec, _iDevice );
-
             try {
                 _oSSTVDeMo.Send_NextMode  = _oSSTVDraw.OnModeTransition_SSTVDeMo;
                 _oSSTVDraw.Send_TvEvents  = OnTvEvents_SSTVDraw;
@@ -447,15 +449,23 @@ namespace Play.SSTV {
                 return;
             }
 
+            // The player MUST be created on the same thread. Else if the
+            // foreground device shuts down first. We hang in waveOutWrite()!!
+            Specification oMonSpec    = new ( (long)_dblSampRate, 1, 0, 16 );
+            BufferSSTV    oPlayBuffer = new ( oMonSpec );
+            WmmPlayer     oPlayer     = new ( oMonSpec, _iSpeaker );
+            WmmReader     oReader     = new ( oMonSpec, _iMicrophone );
+            Queue<short>  oQueue      = new Queue<short>();
+
             try {
+                oReader.RecordStart();
+
                 while( CheckMessages() ) {
-                    while( !_oDataQueue.IsEmpty ) {
-                        if( _oDataQueue.TryDequeue( out double dblValue ) ) {
-                            _oSSTVDeMo.Do( dblValue );
-                            oPlayBuffer.Write( (short)dblValue );
-                        } else {
-                            throw new InvalidDataException( "Can't Dequeue non empty Data Queue." );
-                        }
+                    oReader.Read( oQueue );
+
+                    while( oQueue.TryDequeue( out short dblValue ) ) {
+                        _oSSTVDeMo.Do( (double)dblValue );
+                        oPlayBuffer.Write( (short)dblValue );
                     }
 
                     oPlayer   .Play( oPlayBuffer );
@@ -471,7 +481,32 @@ namespace Play.SSTV {
 
                 _oToUIQueue.Enqueue( new( SSTVEvents.ThreadAbort, 0 ) );
             }
-            oPlayer.Dispose();
+
+            // If we've bailed because of an exception in the loop
+            // we'll hit it again when we try to stop.
+            try {
+                oReader.RecordStop();
+            } catch( Exception oEx ) {
+                if( _rgLoopErrors.IsUnhandled( oEx ) )
+                    throw;
+            }
+
+            // And again when we try to close. Plow thru so we can close up.
+            try {
+                oReader.Dispose();
+            } catch( Exception oEx ) {
+                if( _rgLoopErrors.IsUnhandled( oEx ) )
+                    throw;
+            }
+            // this is less likely. But in case we have a usb speaker..
+            try {
+                oPlayer.Dispose();
+            } catch( Exception oEx ) {
+                if( _rgLoopErrors.IsUnhandled( oEx ) )
+                    throw;
+            }
+
+            _oToUIQueue.Enqueue( new( SSTVEvents.ThreadExit, 0 ) );
         }
 
         /// <summary>

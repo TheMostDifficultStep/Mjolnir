@@ -71,6 +71,10 @@ namespace Play.Sound {
 			return( sbLastError.ToString() );
 		}
 
+		/// <exception cref="ArgumentException" />
+		/// <exception cref="BadDeviceIdException" />
+		/// <exception cref="InvalidHandleException" />
+		/// <exception cref="MMSystemException" />
         public static void ThrowOnError( MMSYSERROR error, ErrorSource source ) {
             if (error == MMSYSERROR.MMSYSERR_NOERROR) {
                 return;
@@ -154,7 +158,7 @@ namespace Play.Sound {
 				throw new OutOfMemoryException( "Couldn't allocate unmanaged header and buffer." );
 			}
 
-			_oWaveHeader.dwBufferLength = 0;
+			_oWaveHeader.dwBufferLength = (int)_uiBufferCapacityInBytes;
 			_oWaveHeader.dwUser         = (IntPtr)uiID;
 			_oWaveHeader.dwFlags        = 0;
 			_oWaveHeader.lpData         = _ipUnManagedHeader + Marshal.SizeOf(typeof(WAVEHDR) );
@@ -176,6 +180,14 @@ namespace Play.Sound {
 		}
 
 		/// <summary>
+		/// Move the header top from the unmanaged header to our managed wave header.
+		/// </summary>
+		public void Refresh() {
+			_oWaveHeader = (WAVEHDR)Marshal.PtrToStructure( _ipUnManagedHeader, typeof( WAVEHDR ) );
+		}
+
+
+		/// <summary>
 		/// Is this header currently queued up for playing.
 		/// </summary>
 		public bool IsUsable {
@@ -186,7 +198,7 @@ namespace Play.Sound {
 				if( ( _oWaveHeader.dwFlags & WHDR_DONE ) != 0 )
 					return true;
 
-				return true; // Both are false so we can use it.
+				return true; 
 			}
 		}
 
@@ -194,11 +206,13 @@ namespace Play.Sound {
 		/// Mark this header usable for queueing music. Set all flags to zero.
 		/// Set buffered loaded length to zero.
 		/// </summary>
-		public void Recycle() {
+		public virtual void Recycle() {
 			// Just clear the bits in question. Don't set all flags to 
 			// zero else you'll get an UNPREPARED error at the very least.
-			_oWaveHeader.dwFlags        &= ~WHDR_DONE;    // Clear the bit.
-			_oWaveHeader.dwFlags        &= ~WHDR_INQUEUE; // Clear the bit.
+			_oWaveHeader.dwFlags &= ~WHDR_DONE;    // Clear the bit.
+			_oWaveHeader.dwFlags &= ~WHDR_INQUEUE; // Clear the bit.
+
+			// The writer sets this for every write. But the reader leaves this it's buffer size.
 			_oWaveHeader.dwBufferLength  = 0;
 		}
 
@@ -254,12 +268,16 @@ namespace Play.Sound {
 			throw new NotImplementedException();
 		}
 
-		public virtual int Read( IntPtr hWave, byte[] rgBytes ) {
+		public int Read( IntPtr hWave, byte[] rgBytes ) {
 			CopyUnmanagedValue( out WAVEHDR oHeader );
 
 			Marshal.Copy( oHeader.lpData, rgBytes, 0, oHeader.dwBytesRecorded );
 
 			return oHeader.dwBytesRecorded;
+		}
+
+		public virtual void AddBuffer( IntPtr hWaveIn ) {
+			throw new NotImplementedException();
 		}
 	}
 
