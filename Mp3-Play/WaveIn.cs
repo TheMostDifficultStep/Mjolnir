@@ -106,6 +106,11 @@ namespace Play.Sound {
         readonly BlockCopies          _oWaveReader;
 		readonly Queue<ManagedHeader> _quHeaders = new();
 
+		/// <summary>
+		/// While the sound might be multi channel. We only listen for channel 0.
+		/// </summary>
+		/// <param name="oSpec">Audio parameters.</param>
+		/// <param name="iDeviceID">Wave device id.</param>
         public WmmReader( Specification oSpec, int iDeviceID ) : base( oSpec, iDeviceID ) {
 			// Headers all prepped now just add 'em into the system.
 			try {
@@ -123,7 +128,8 @@ namespace Play.Sound {
 			// Call start recording to get things going.
         }
 
-		/// <summary>Read as many of the headers as are ready. </summary>
+		/// <summary>Read as many of the headers as are ready. 
+		/// Only reading sound from a single channel.</summary>
 		/// <remarks>
 		/// By this time the headers are all enqueued. And we're checking
 		/// the first one to see if it is ready. Keep processing ready headers

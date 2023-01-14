@@ -1649,7 +1649,19 @@ namespace Play.Sound {
 				yield return itrMode.Current;
 		}
 
-		public class SSTVFamily {
+        public struct EnumerateFamilies : IEnumerable<SSTVFamily> {
+			public EnumerateFamilies() {
+			}
+            public IEnumerator<SSTVFamily> GetEnumerator() {
+                return EnumFamilies();
+            }
+
+            IEnumerator IEnumerable.GetEnumerator() {
+                return GetEnumerator();
+            }
+        }
+
+        public class SSTVFamily {
 			public SSTVFamily( TVFamily eFamily, string strName, Type typClass ) {
 				_eFamily  = eFamily;
 				_strName  = strName;

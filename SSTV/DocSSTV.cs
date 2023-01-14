@@ -112,14 +112,14 @@ namespace Play.SSTV {
             LabelSet( Names.Tx_TheirCall,    "Rx Call", SKColors.LightGreen );
             LabelSet( Names.Tx_RST,          "RSV" ); // Readibility, strength, video
             LabelSet( Names.Tx_Message,      "Message" );
-            LabelSet( Names.Tx_Progress,     "Sent", new SKColor( red:0xff, green:0xbf, blue:0 ) );
+            LabelSet( Names.Tx_Progress,     "Tx % Sent" );
             LabelSet( Names.Tx_SrcDir,       "Tx Source Dir" );
             LabelSet( Names.Tx_SrcFile,      "Tx Filename" );
             LabelSet( Names.Tx_FamilySelect, "Tx Family" );
             LabelSet( Names.Tx_ModeSelect,   "Tx Mode" );
             LabelSet( Names.Tx_LayoutSelect, "Layout" );
 
-            LabelSet( Names.Rx_Mode,         "Mode", new SKColor( red:0xff, green:0xbf, blue:0 ) );
+            LabelSet( Names.Rx_Mode,         "Rx Last", new SKColor( red:0xff, green:0xbf, blue:0 ) );
             LabelSet( Names.Rx_Width,        "Width" );
             LabelSet( Names.Rx_Height,       "Height" );
             LabelSet( Names.Rx_Progress,     "Received" );
@@ -599,7 +599,6 @@ namespace Play.SSTV {
             TemplateList.LineAppend( "CQ Color Gradient" );
             TemplateList.LineAppend( "High Def Message" );
             TemplateList.LineAppend( "High Def CQ" );
-            TemplateList.LineAppend( "High Def From Me" );
             TemplateList.LineAppend( "High Def Reply" );
             TemplateList.LineAppend( "High Def Reply Pnp" );
             
@@ -1014,12 +1013,9 @@ namespace Play.SSTV {
                         TemplateSetCQLayout( oMode, true );
                         break;
                     case 6:
-                        TemplateSetHiDefMessage( oMode, "from " + MyCall );
-                        break;
-                    case 7:
                         TemplateSetHiDefMessage( oMode, TemplateReplyFromProps() );
                         break;
-                    case 8:
+                    case 7:
                         TemplateSetHiDefReplyPnP( oMode );
                         break;
 				}
@@ -1443,7 +1439,7 @@ namespace Play.SSTV {
 
         /// <summary>
         /// This is our task to poll the Background to UI Queue. It serves both
-        /// the receive thread and the transmit thread. Technically TX and RX can run
+        /// the receive thread and the transmit thread. TX and RX can run
         /// concurrently with no problems.
         /// </summary>
         public IEnumerator<int> CreateTaskReceiver() {
@@ -1502,7 +1498,7 @@ namespace Play.SSTV {
                             break;
                         case SSTVEvents.ThreadExit:
                             // If there's an abort, you'll get that message and then this one.
-                            Properties.ValueUpdate( SSTVProperties.Names.Std_Process, "Rx Stopped!", true );
+                            Properties.ValueUpdate( SSTVProperties.Names.Std_Process, "Rx Live: Stopped!", true );
                             break;
                         case SSTVEvents.ThreadAbort:
                             if( _oThread == null ) {
@@ -1691,7 +1687,7 @@ namespace Play.SSTV {
                     _oThread.Start(); // Can send out of memory exception!
 
                     _oWorkPlace.Start( 1 );
-                    Properties.ValueUpdate( SSTVProperties.Names.Std_Process, "Rx Live, Started.", true );
+                    Properties.ValueUpdate( SSTVProperties.Names.Std_Process, "Rx Live: Started.", true );
                     StateRx = DocSSTVMode.DeviceRead;
                 } catch( Exception oEx ) {
                     Type[] rgErrors = { typeof( NullReferenceException ),

@@ -64,16 +64,17 @@ namespace Play.SSTV {
 			if( _oTxView != null ) {
 				try {
 					PropertyInitRow( Layout as SmartTable, 
+									 (int)SSTVProperties.Names.Rx_Mode );
+					PropertyInitRow( Layout as SmartTable, 
 									 (int)SSTVProperties.Names.Tx_LayoutSelect, 
 									 _ddTemplates );
 
 					// Call this once to set up the mode families.
-					IEnumerator<SSTVDEM.SSTVFamily> itrFamily = SSTVDEM.EnumFamilies();
 					SSTVDEM.SSTVFamily oPD = null;
-					while( itrFamily.MoveNext() ) {
-						int iMainIndex = _ddSSTVFamily.Items.Add( itrFamily.Current );
-						if( itrFamily.Current._eFamily == TVFamily.PD ) {
-							oPD = itrFamily.Current;
+					foreach( SSTVDEM.SSTVFamily oFamily in new SSTVDEM.EnumerateFamilies() ) {
+						int iMainIndex = _ddSSTVFamily.Items.Add( oFamily );
+						if( oFamily._eFamily == TVFamily.PD ) {
+							oPD = oFamily;
 							_ddSSTVFamily.SelectedIndex = iMainIndex;
 						}
 					}
@@ -187,7 +188,7 @@ namespace Play.SSTV {
 			get { 
 				StringBuilder sbBanner = new StringBuilder();
 
-				sbBanner.Append("MySSTV Transmit");
+				sbBanner.Append("MySSTV Transmit Basic");
 				if( _oDocSSTV.PortTxList.CheckedLine is Line oLine ) {
 					sbBanner.Append( " : " );
 					sbBanner.Append( oLine.ToString() );
@@ -402,7 +403,7 @@ namespace Play.SSTV {
 			get { 
 				StringBuilder sbBanner = new StringBuilder();
 
-				sbBanner.Append("MySSTV Transmit");
+				sbBanner.Append("MySSTV Transmit Deluxe");
 				if( _oDocSSTV.PortTxList.CheckedLine is Line oLine ) {
 					sbBanner.Append( " : " );
 					sbBanner.Append( oLine.ToString() );
