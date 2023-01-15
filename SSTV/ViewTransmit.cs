@@ -64,10 +64,10 @@ namespace Play.SSTV {
 			if( _oTxView != null ) {
 				try {
 					PropertyInitRow( Layout as SmartTable, 
-									 (int)SSTVProperties.Names.Rx_Mode );
-					PropertyInitRow( Layout as SmartTable, 
 									 (int)SSTVProperties.Names.Tx_LayoutSelect, 
 									 _ddTemplates );
+					PropertyInitRow( Layout as SmartTable, 
+									 (int)SSTVProperties.Names.Rx_Mode );
 
 					// Call this once to set up the mode families.
 					SSTVDEM.SSTVFamily oPD = null;
