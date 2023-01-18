@@ -1719,13 +1719,10 @@ namespace Play.Sound {
 
 			// TCanvas *pCanvas = pBitmapLvl->Canvas;
 
-			// Ah! this is a vertical bar!!
-			int XL = 0;        // Left, right, top, bottom.
-			int XR = 18 - 1;   // pBitmapLvl width
-			int YT = 0;
-			int YB = 300 - 1;  // pBitmapLvl height
+			int YB = 100 - 1;  // pBitmapLvl height
+			int YT = 18  - 1;  // want to factor this out.
 
-			SKRect rc = new SKRect( XL, YT, XR, YB );
+			SKRect rc = new SKRect( 0, 0, YT, YB );
 
 			// Fill full rect with black.
 			//pCanvas->Brush->Color = clBlack;
@@ -1733,19 +1730,23 @@ namespace Play.Sound {
 
 			m_Rcptlvl.Fix();
 
-			double k;
+			// Need to track these magic numbers down.
+			const double dblRcptMax = 24578;
+			const double dblSyncMax = 16384;
+
+			double dblScale;
 			if( m_LevelType == LevelDisplay.Sync ){
 				m_SyncLvl.Fix();
-				k = YB / 16384.0;
-				rc.Top = (float)(YB - (m_SyncLvl.m_Lvl * k));
+				dblScale = YB / dblSyncMax;
+				rc.Top = (float)(YB - (m_SyncLvl.m_Lvl * dblScale));
 			} else {
-				k = YB / 24578.0;
-				rc.Top = (float)(YB - (m_Rcptlvl.m_CurMax * k));
+				dblScale = YB / dblRcptMax;
+				rc.Top = (float)(YB - (m_Rcptlvl.m_CurMax * dblScale));
 			}
 			if( fTransmitting ){
 				skColor = Synced ? new SKColor(0x00ffff00) : SKColors.Yellow;
 			}
-			else if( m_Rcptlvl.m_CurMax >= 24578 ){
+			else if( m_Rcptlvl.m_CurMax >= dblRcptMax ){
 				skColor = SKColors.Red;
 			}
 			else if( Synced ){
@@ -1755,13 +1756,14 @@ namespace Play.Sound {
 				skColor = SKColors.Gray;
 			}
 
-			// refill the bottom of the bitmap.
+			// fill from bottom up the signal color (previous black on top)
 			//if( rc.Top < 0 )
 			//	rc.Top = 0;
 			//pCanvas->FillRect(rc);
 
 			if( m_LevelType == LevelDisplay.Receipt ){
-				rc.Top = (float)(YB - (m_Rcptlvl.m_PeakMax * k));
+				// This is simply a line showing the last peak max.
+				rc.Top = (float)(YB - (m_Rcptlvl.m_PeakMax * dblScale));
 				if( rc.Top < 0 ) 
 					rc.Top = 0;
 				rc.Bottom = rc.Top + 1;
@@ -1769,7 +1771,7 @@ namespace Play.Sound {
 				if( fTransmitting ){
 					skColor = SKColors.White;
 				}
-				else if( m_Rcptlvl.m_PeakMax < 24578 ){
+				else if( m_Rcptlvl.m_PeakMax < dblRcptMax ){
 					skColor = SKColors.White;
 				}
 				else {
