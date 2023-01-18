@@ -971,7 +971,7 @@ namespace Play.SSTV {
 			SyncOffsetInSamples = Mode.OffsetInMS * dblSamplesPerMs;
 		}
 
-    } // End Class TmmSSTV
+    } // End Class
 
     public delegate void setPixel( int iX, short sLevel );
 

@@ -161,7 +161,7 @@ namespace Play.Sound {
 	struct CSLVL {
 		double  m_Max;
 		double  m_Min;
-		double  m_Lvl;
+		public double  m_Lvl { get; private set; } 
 
 		         int m_Cnt;
 		readonly int m_CntMax;
@@ -202,7 +202,7 @@ namespace Play.Sound {
 	}
 
 	struct CLVL	{
-		double m_PeakMax;
+		public double m_PeakMax { get; private set; } 
 		double m_PeakAGC;
 		double m_Peak;
 		public double m_CurMax { get; private set; }
@@ -1708,6 +1708,78 @@ namespace Play.Sound {
 			}
 			return null;
 		}
+
+		/// <summary>
+		/// This is just a first cut at porting the level indicator. We
+		/// Can't actually do any drawing here. We'll need to send a message
+		/// to the foreground thread.
+		/// </summary>
+		private void CalcLevel( bool fTransmitting ) {
+			SKColor skColor = SKColors.Black;
+
+			// TCanvas *pCanvas = pBitmapLvl->Canvas;
+
+			// Ah! this is a vertical bar!!
+			int XL = 0;        // Left, right, top, bottom.
+			int XR = 18 - 1;   // pBitmapLvl width
+			int YT = 0;
+			int YB = 300 - 1;  // pBitmapLvl height
+
+			SKRect rc = new SKRect( XL, YT, XR, YB );
+
+			// Fill full rect with black.
+			//pCanvas->Brush->Color = clBlack;
+			//pCanvas->FillRect(rc);
+
+			m_Rcptlvl.Fix();
+
+			double k;
+			if( m_LevelType == LevelDisplay.Sync ){
+				m_SyncLvl.Fix();
+				k = YB / 16384.0;
+				rc.Top = (float)(YB - (m_SyncLvl.m_Lvl * k));
+			} else {
+				k = YB / 24578.0;
+				rc.Top = (float)(YB - (m_Rcptlvl.m_CurMax * k));
+			}
+			if( fTransmitting ){
+				skColor = Synced ? new SKColor(0x00ffff00) : SKColors.Yellow;
+			}
+			else if( m_Rcptlvl.m_CurMax >= 24578 ){
+				skColor = SKColors.Red;
+			}
+			else if( Synced ){
+				skColor = SKColors.Lime;
+			}
+			else {
+				skColor = SKColors.Gray;
+			}
+
+			// refill the bottom of the bitmap.
+			//if( rc.Top < 0 )
+			//	rc.Top = 0;
+			//pCanvas->FillRect(rc);
+
+			if( m_LevelType == LevelDisplay.Receipt ){
+				rc.Top = (float)(YB - (m_Rcptlvl.m_PeakMax * k));
+				if( rc.Top < 0 ) 
+					rc.Top = 0;
+				rc.Bottom = rc.Top + 1;
+
+				if( fTransmitting ){
+					skColor = SKColors.White;
+				}
+				else if( m_Rcptlvl.m_PeakMax < 24578 ){
+					skColor = SKColors.White;
+				}
+				else {
+					skColor = SKColors.Red;
+				}
+				//pCanvas->FillRect(rc);
+			}
+			//PBoxLvl->Canvas->Draw(0, 0, pBitmapLvl);
+		}
+
     }
 
 	public class DemodTest : SSTVDEM, IPgModulator {
