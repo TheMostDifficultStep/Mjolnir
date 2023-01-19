@@ -1709,26 +1709,40 @@ namespace Play.Sound {
 			return null;
 		}
 
+		public struct Levels {
+			public Levels() {
+				_skColor = SKColors.Black;
+			}
+
+			public double Current { 
+				get { return Current; } 
+				set { Current = LimitZero( value ); } 
+			}
+			public double Peak { 
+				get { return Peak; } 
+				set { Peak = LimitZero( value ); } 
+			}
+			public SKColor _skColor;
+
+			double LimitZero( double dblValue ) {
+				if( dblValue < 0 )
+					return 0;
+
+				return dblValue;
+			}
+		}
+
 		/// <summary>
-		/// This is just a first cut at porting the level indicator. We
 		/// Can't actually do any drawing here. We'll need to send a message
 		/// to the foreground thread.
 		/// </summary>
-		private void CalcLevel( bool fTransmitting ) {
+		private Levels CalcLevel( bool fTransmitting ) {
 			SKColor skColor = SKColors.Black;
 
-			// TCanvas *pCanvas = pBitmapLvl->Canvas;
+			int YB = 100; // Percentage.
+			Levels sLevel =	new Levels();
 
-			int YB = 100 - 1;  // pBitmapLvl height
-			int YT = 18  - 1;  // want to factor this out.
-
-			SKRect rc = new SKRect( 0, 0, YT, YB );
-
-			// Fill full rect with black.
-			//pCanvas->Brush->Color = clBlack;
-			//pCanvas->FillRect(rc);
-
-			m_Rcptlvl.Fix();
+			m_Rcptlvl.Fix(); // Fix here, get's used in a couple of places.
 
 			// Need to track these magic numbers down.
 			const double dblRcptMax = 24578;
@@ -1738,10 +1752,10 @@ namespace Play.Sound {
 			if( m_LevelType == LevelDisplay.Sync ){
 				m_SyncLvl.Fix();
 				dblScale = YB / dblSyncMax;
-				rc.Top = (float)(YB - (m_SyncLvl.m_Lvl * dblScale));
+				sLevel.Current = YB - (m_SyncLvl.m_Lvl * dblScale);
 			} else {
 				dblScale = YB / dblRcptMax;
-				rc.Top = (float)(YB - (m_Rcptlvl.m_CurMax * dblScale));
+				sLevel.Current = YB - (m_Rcptlvl.m_CurMax * dblScale);
 			}
 			if( fTransmitting ){
 				skColor = Synced ? new SKColor(0x00ffff00) : SKColors.Yellow;
@@ -1756,17 +1770,9 @@ namespace Play.Sound {
 				skColor = SKColors.Gray;
 			}
 
-			// fill from bottom up the signal color (previous black on top)
-			//if( rc.Top < 0 )
-			//	rc.Top = 0;
-			//pCanvas->FillRect(rc);
-
 			if( m_LevelType == LevelDisplay.Receipt ){
 				// This is simply a line showing the last peak max.
-				rc.Top = (float)(YB - (m_Rcptlvl.m_PeakMax * dblScale));
-				if( rc.Top < 0 ) 
-					rc.Top = 0;
-				rc.Bottom = rc.Top + 1;
+				sLevel.Peak = YB - (m_Rcptlvl.m_PeakMax * dblScale);
 
 				if( fTransmitting ){
 					skColor = SKColors.White;
@@ -1777,9 +1783,11 @@ namespace Play.Sound {
 				else {
 					skColor = SKColors.Red;
 				}
-				//pCanvas->FillRect(rc);
 			}
-			//PBoxLvl->Canvas->Draw(0, 0, pBitmapLvl);
+
+			sLevel._skColor = skColor;
+
+			return sLevel;
 		}
 
     }
