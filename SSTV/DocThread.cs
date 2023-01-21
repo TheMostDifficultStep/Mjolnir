@@ -475,7 +475,7 @@ namespace Play.SSTV {
 
                     // Bug: This should be based on sample frequency and buffer size.
                     //      and/or if we are completing all the work on time.
-                    Thread.Sleep( 200 );
+                    Thread.Sleep( 100 );
                 }
 			} catch( Exception oEx ) {
                 if( _rgLoopErrors.IsUnhandled( oEx ) )

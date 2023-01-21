@@ -1546,7 +1546,7 @@ namespace Play.SSTV {
                     _oTxTask = null;
                 }
 
-                yield return 250; // wait 1/4 of a second.
+                yield return 100; // wait 1/10 of a second. Makes the level indicator more responsive.
             };
         }
 
