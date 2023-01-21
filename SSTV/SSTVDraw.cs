@@ -493,7 +493,9 @@ namespace Play.SSTV {
 			G = (short)(1.164457*Y - 0.813022*RY - 0.391786*BY );
 			B = (short)(1.164457*Y + 2.017364*BY );
 
-			LimitRGB( ref R, ref G, ref B);
+			R = Limit256(R);
+			G = Limit256(G);
+			B = Limit256(B);
 		}
 
 		protected static SKColor YCtoRGB( int Y, int RY, int BY ) {
@@ -501,12 +503,6 @@ namespace Play.SSTV {
 
 			YCtoRGB( out R, out G, out B, Y, RY, BY );
 			return new SKColor( (byte)R, (byte)G, (byte)B );
-		}
-
-		protected static void LimitRGB( ref short R, ref short G, ref short B ) {
-			R = Limit256(R);
-			G = Limit256(G);
-			B = Limit256(B);
 		}
 
 		protected static short Limit256(short d) {
@@ -971,6 +967,9 @@ namespace Play.SSTV {
 			SyncOffsetInSamples = Mode.OffsetInMS * dblSamplesPerMs;
 		}
 
+		public SSTVDEM.Levels GetLevels( bool fTransmitting ) {
+			return _dp.CalcLevel( fTransmitting );
+		}
     } // End Class
 
     public delegate void setPixel( int iX, short sLevel );

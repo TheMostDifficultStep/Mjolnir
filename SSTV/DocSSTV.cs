@@ -41,6 +41,7 @@ namespace Play.SSTV {
             Rx_ModeSelect,
             Rx_Diagnostic,
             Rx_HistoryIcons,
+            Rx_SignalLevel,
 
             Tx_Progress,
             Tx_SrcDir,
@@ -130,6 +131,7 @@ namespace Play.SSTV {
             LabelSet( Names.Rx_ModeSelect,   "Rx Mode" );
             LabelSet( Names.Rx_Diagnostic,   "Diagnostics" );
             LabelSet( Names.Rx_HistoryIcons, "History" );
+            LabelSet( Names.Rx_SignalLevel,  "Signal Lvl" );
 
             // Initialize these to reasonable values, the user can update and save.
             ValueUpdate( Names.Std_ImgQuality, "80" );
@@ -212,6 +214,7 @@ namespace Play.SSTV {
         UploadTime,
 		DownLoadTime,
         DownLoadFinished,
+        DownloadLevels,
         ImageSaved,
         ThreadException,
         ThreadAbort,
@@ -241,14 +244,17 @@ namespace Play.SSTV {
         }
     }
 
+    // Arg, I wonder if I should unify with TVMessage. :-/
     public struct SSTVMessage {
-        public SSTVMessage( SSTVEvents eEvent, int iParam ) {
+        public SSTVMessage( SSTVEvents eEvent, int iParam, object oParam2 = null ) {
             Event = eEvent;
             Param = iParam;
+            Param2 = oParam2;
         }
 
-        public SSTVEvents Event;
-        public int        Param;
+        public SSTVEvents Event  { get; }
+        public int        Param  { get; }
+        public object     Param2 { get; }
     }
 
     /// <summary>
@@ -366,6 +372,7 @@ namespace Play.SSTV {
         // This is where our image and diagnostic image live.
 		public ImageSoloDoc DisplayImage { get; protected set; }
 		public ImageSoloDoc SyncImage    { get; protected set; }
+        public ImageSoloDoc SignalLevel  { get; protected set; } // Don't really need bitmap, easy to use for now.
 
         // Some test stuff. 
         private DataTester _oDataTester;
@@ -406,6 +413,7 @@ namespace Play.SSTV {
                           
 			DisplayImage  = new ImageSoloDoc( new DocSlot( this ) );
 			SyncImage     = new ImageSoloDoc( new DocSlot( this ) );
+            SignalLevel   = new ImageSoloDoc( new DocSlot( this ) );
                           
             Properties = new ( new DocSlot( this ) );
             StateRx    = DocSSTVMode.Ready;
@@ -619,6 +627,8 @@ namespace Play.SSTV {
 				return false;
 			if( !SyncImage   .InitNew() )
 				return false;
+            if( !SignalLevel .InitNew() )
+                return false;
 
             if( !MonitorList.InitNew() )
                 return false;
@@ -636,10 +646,12 @@ namespace Play.SSTV {
             SKSizeI szMax = new( 800, 616 );
 		    SyncImage   .Bitmap = new SKBitmap( szMax.Width, szMax.Height, SKColorType.Rgb888x, SKAlphaType.Unknown );
 		    DisplayImage.Bitmap = new SKBitmap( szMax.Width, szMax.Height, SKColorType.Rgb888x, SKAlphaType.Opaque  );
+            SignalLevel .Bitmap = new SKBitmap( 100, 10, SKColorType.Rgb888x, SKAlphaType.Opaque  );
 
             // Just set it up so it looks ok to start. Gets updated for each image downloaded.
 			DisplayImage.WorldDisplay = new SKRectI( 0, 0, 320,         256 );
             SyncImage   .WorldDisplay = new SKRectI( 0, 0, szMax.Width, 256 );
+            SignalLevel .WorldDisplay = new SKRectI( 0, 0, 100,          10 );
 
             SettingsInit();
 
@@ -1446,6 +1458,9 @@ namespace Play.SSTV {
             while( true ) {
                 while( _rgBGtoUIQueue.TryDequeue( out SSTVMessage sResult ) ) {
                     switch( sResult.Event ) {
+                        case SSTVEvents.DownloadLevels: {
+                            SignalLevelRender( sResult );
+                        } break;
                         case SSTVEvents.ModeChanged: {
                             SSTVMode oMode = null;
 
@@ -1533,6 +1548,29 @@ namespace Play.SSTV {
 
                 yield return 250; // wait 1/4 of a second.
             };
+        }
+
+        protected void SignalLevelRender( SSTVMessage msg ) {
+            if( SignalLevel.Bitmap != null &&
+                msg.Param2 is SSTVDEM.Levels oLevel
+            ) {
+                using SKCanvas skCanvas = new( SignalLevel.Bitmap );
+                using SKPaint  skPaint  = new() { Color = SKColors.Black };
+
+                skCanvas.DrawRect( 0, 0, SignalLevel.Bitmap.Width, SignalLevel.Bitmap.Height, skPaint );
+
+                skPaint.Color = oLevel.CurrColor;
+
+                skCanvas.DrawRect( 0, 0, (float)(SignalLevel.Bitmap.Width * oLevel.Current / 100), SignalLevel.Bitmap.Height, skPaint );
+
+                float flLineX = (float)(SignalLevel.Bitmap.Width * oLevel.Peak / 100);
+                skPaint.Color = oLevel.PeakColor;
+                skPaint.StrokeWidth = 2;
+
+                skCanvas.DrawLine( flLineX, 0, flLineX, SignalLevel.Bitmap.Height, skPaint );
+
+                SignalLevel.Raise_ImageUpdated();
+            }
         }
 
         public void ReceiveSave() {

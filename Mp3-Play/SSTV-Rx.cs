@@ -1576,9 +1576,11 @@ namespace Play.Sound {
 		/// <param name="iIndex">Check if this value is ok.</param>
 		/// <returns>-1, 0, 1, with 0 being in bounds.</returns>
 		public int BoundsCompare( int iIndex ) {
-			if( iIndex >= m_wBase )
+			int wBase = m_wBase; // multithread precaution
+
+			if( iIndex >= wBase )
 				return 1;
-			if( m_wBase - iIndex >= m_Buf.Length )
+			if( wBase - iIndex >= m_Buf.Length )
 				return -1;
 			if( iIndex < 0 )
 				return -1;
@@ -1709,38 +1711,41 @@ namespace Play.Sound {
 			return null;
 		}
 
-		public struct Levels {
-			public Levels() {
-				_skColor = SKColors.Black;
-			}
+		public class Levels {
+			public double Current { get; protected set;	}
+			public double Peak    { get; protected set;	}
 
-			public double Current { 
-				get { return Current; } 
-				set { Current = LimitZero( value ); } 
+			public SKColor CurrColor { get; protected set; }
+			public SKColor PeakColor { get; protected set; }
+
+			public Levels( double dblCurr, double dblPeak, SKColor clrCurr, SKColor clrPeak ) {
+				Current = LimitZero( dblCurr );
+				Peak    = LimitZero( dblPeak );
+
+				CurrColor = clrCurr;
+				PeakColor = clrPeak;
 			}
-			public double Peak { 
-				get { return Peak; } 
-				set { Peak = LimitZero( value ); } 
-			}
-			public SKColor _skColor;
 
 			double LimitZero( double dblValue ) {
 				if( dblValue < 0 )
 					return 0;
+				if( dblValue > 100 )
+					return 100;
 
 				return dblValue;
 			}
 		}
 
 		/// <summary>
-		/// Can't actually do any drawing here. We'll need to send a message
-		/// to the foreground thread.
+		/// Don't actually do any drawing here. We'll need to send a message
+		/// to the foreground thread. I'd like to make this a struct, but
+		/// in order to return the value with my current message queue it
+		/// needs to be a memory reference. I shouldn't be generating a lot
+		/// of these quickly, so this might be ok. Color should probably be
+		/// an enum with the values generated outside, but yeah...
 		/// </summary>
-		private Levels CalcLevel( bool fTransmitting ) {
-			SKColor skColor = SKColors.Black;
-
+		public Levels CalcLevel( bool fTransmitting ) {
 			int YB = 100; // Percentage.
-			Levels sLevel =	new Levels();
 
 			m_Rcptlvl.Fix(); // Fix here, get's used in a couple of places.
 
@@ -1748,46 +1753,52 @@ namespace Play.Sound {
 			const double dblRcptMax = 24578;
 			const double dblSyncMax = 16384;
 
-			double dblScale;
+			double  dblScale;
+			double  dblCurrent;
+			SKColor clrCurrent = SKColors.Black;
+
+
+			// This is the main level display.
 			if( m_LevelType == LevelDisplay.Sync ){
 				m_SyncLvl.Fix();
 				dblScale = YB / dblSyncMax;
-				sLevel.Current = YB - (m_SyncLvl.m_Lvl * dblScale);
+				dblCurrent = m_SyncLvl.m_Lvl * dblScale;
 			} else {
 				dblScale = YB / dblRcptMax;
-				sLevel.Current = YB - (m_Rcptlvl.m_CurMax * dblScale);
+				dblCurrent = m_Rcptlvl.m_CurMax * dblScale;
 			}
 			if( fTransmitting ){
-				skColor = Synced ? new SKColor(0x00ffff00) : SKColors.Yellow;
+				clrCurrent = Synced ? new SKColor(0x00ffff00) : SKColors.Yellow;
 			}
 			else if( m_Rcptlvl.m_CurMax >= dblRcptMax ){
-				skColor = SKColors.Red;
+				clrCurrent = SKColors.Red;
 			}
 			else if( Synced ){
-				skColor = SKColors.Lime;
+				clrCurrent = SKColors.Lime;
 			}
 			else {
-				skColor = SKColors.Gray;
+				clrCurrent = SKColors.Gray;
 			}
 
+			double  dblPeak      = 0;
+			SKColor clrPeakColor = new SKColor();
+
+			// This is simply a line showing the last peak max.
 			if( m_LevelType == LevelDisplay.Receipt ){
-				// This is simply a line showing the last peak max.
-				sLevel.Peak = YB - (m_Rcptlvl.m_PeakMax * dblScale);
+				dblPeak = m_Rcptlvl.m_PeakMax * dblScale;
 
 				if( fTransmitting ){
-					skColor = SKColors.White;
+					clrPeakColor = SKColors.White;
 				}
 				else if( m_Rcptlvl.m_PeakMax < dblRcptMax ){
-					skColor = SKColors.White;
+					clrPeakColor = SKColors.White;
 				}
 				else {
-					skColor = SKColors.Red;
+					clrPeakColor = SKColors.Red;
 				}
 			}
 
-			sLevel._skColor = skColor;
-
-			return sLevel;
+			return new Levels( dblCurrent, dblPeak, clrCurrent, clrPeakColor );
 		}
 
     }

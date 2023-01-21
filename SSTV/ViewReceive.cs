@@ -92,7 +92,10 @@ namespace Play.SSTV {
 
 				PropertyInitRow( Layout as SmartTable, 
 								 (int)SSTVProperties.Names.Rx_Diagnostic, 
-								 new ImageViewSingle( new WinSlot( this ), SSTVDocument.SyncImage )  );
+								 new ImageViewSingle( new WinSlot( this ), SSTVDocument.SyncImage ) );
+				PropertyInitRow( Layout as SmartTable, 
+								 (int)SSTVProperties.Names.Rx_SignalLevel, 
+								 new ImageViewSingle( new WinSlot( this ), SSTVDocument.SignalLevel )  );
 			} catch ( Exception oEx ) {
 				Type[] rgErrors = { typeof( NullReferenceException ),
 									typeof( ArgumentOutOfRangeException ) };
