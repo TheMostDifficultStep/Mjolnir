@@ -291,7 +291,6 @@ namespace Play.SSTV {
         // But we will bail out of the loop.
         protected static readonly Type[] _rgLoopErrors = { typeof( NullReferenceException ),
                                                            typeof( ArgumentNullException ),
-                                                           typeof( MMSystemException ),
                                                            typeof( InvalidOperationException ),
 										                   typeof( ArithmeticException ),
 										                   typeof( IndexOutOfRangeException ),
@@ -301,7 +300,8 @@ namespace Play.SSTV {
                                                            typeof( ArgumentException ),
                                                            typeof( BadDeviceIdException ),
                                                            typeof( InvalidHandleException ),
-                                                           typeof( MMSystemException )
+                                                           typeof( MMSystemException ),
+                                                           typeof( ThreadStateException )
                                                          };
 
         /// <summary>
@@ -336,7 +336,6 @@ namespace Play.SSTV {
 
             _iSpeaker      = iDevice;
             _iMicrophone   = iMicrophone;
-
             _dblSampRate   = dblSampleRate;
 
             _oSSTVDeMo = new SSTVDEM ( new SYSSET(), dblSampleRate );
@@ -370,12 +369,11 @@ namespace Play.SSTV {
                 // Try to fast dequeue any frequency up down messages.
                 double dblSlant   = 0;
                 int    iIntercept = 0;
-                bool   fTally     = false;
+                bool   fTally     = true;
                 do {
                     switch( oMsg._eMsg ) {
                         case TVMessage.Message.Frequency:
                             dblSlant += oMsg._iParam / 100.0;
-                            fTally = true;
                             break;
                         case TVMessage.Message.Intercept:
                             iIntercept += oMsg._iParam;
@@ -426,6 +424,10 @@ namespace Play.SSTV {
             return true;
         }
 
+        //public void Consumer( short sValue ) {
+        //    _oQueue.Enqueue( sValue );
+        //}
+
         /// <summary>
         /// This is the entry point for our device listener thread.
         /// Events within here are posted via message and are read in UI thread.
@@ -449,64 +451,32 @@ namespace Play.SSTV {
                 return;
             }
 
-            // The player MUST be created on the same thread. Else if the
-            // foreground device shuts down first. We hang in waveOutWrite()!!
-            Specification oMonSpec    = new ( (long)_dblSampRate, 1, 0, 16 );
-            BufferSSTV    oPlayBuffer = new ( oMonSpec );
-            WmmPlayer     oPlayer     = new ( oMonSpec, _iSpeaker );
-            WmmReader     oReader     = new ( oMonSpec, _iMicrophone );
-            Queue<short>  oQueue      = new Queue<short>();
+            ConcurrentQueue<short> oQueue  = new();
+            SoundHandler           oSound  = new( _iSpeaker, _iMicrophone, _dblSampRate, _oToUIQueue, oQueue );
+            Thread                 oThread = new( oSound.DoWork );
 
             try {
-                oReader.RecordStart();
+                oThread.Start();
 
                 while( CheckMessages() ) {
-                    oReader.Read( oQueue );
-
                     while( oQueue.TryDequeue( out short dblValue ) ) {
                         _oSSTVDeMo.Do( (double)dblValue );
-                        oPlayBuffer.Write( (short)dblValue );
                     }
 
-                    oPlayer   .Play( oPlayBuffer );
-                    _oSSTVDraw.Process();
-
+                    _oSSTVDraw .Process();
                     _oToUIQueue.Enqueue( new( SSTVEvents.DownloadLevels, 0, _oSSTVDraw.GetLevels( false ) ) );
 
-                    // Bug: This should be based on sample frequency and buffer size.
-                    //      and/or if we are completing all the work on time.
+                    // TODO: We can make this more responsive by using a semaphore.
                     Thread.Sleep( 100 );
                 }
+
 			} catch( Exception oEx ) {
                 if( _rgLoopErrors.IsUnhandled( oEx ) )
                     throw;
 
                 _oToUIQueue.Enqueue( new( SSTVEvents.ThreadAbort, 0 ) );
             }
-
-            // If we've bailed because of an exception in the loop
-            // we'll hit it again when we try to stop.
-            try {
-                oReader.RecordStop();
-            } catch( Exception oEx ) {
-                if( _rgLoopErrors.IsUnhandled( oEx ) )
-                    throw;
-            }
-
-            // And again when we try to close. Plow thru so we can close up.
-            try {
-                oReader.Dispose();
-            } catch( Exception oEx ) {
-                if( _rgLoopErrors.IsUnhandled( oEx ) )
-                    throw;
-            }
-            // this is less likely. But in case we have a usb speaker..
-            try {
-                oPlayer.Dispose();
-            } catch( Exception oEx ) {
-                if( _rgLoopErrors.IsUnhandled( oEx ) )
-                    throw;
-            }
+            oSound._fContinue = false;
 
             _oToUIQueue.Enqueue( new( SSTVEvents.ThreadExit, 0 ) );
         }
@@ -572,5 +542,124 @@ namespace Play.SSTV {
             // frequently enough to put pressure on the GC.
 		}
 
+    }
+
+    /// <summary>
+    /// This sound handler will read out sound from the sound card,
+    /// load those values into a concurrent queue of short (monoaural)
+    /// and play the sound through the speakers.
+    /// </summary>
+    public class SoundHandler {
+        readonly ConcurrentQueue<SSTVMessage> _oToUIQueue;
+        readonly ConcurrentQueue<short>       _oQueue;
+
+        readonly double _dblSampRate;
+        readonly int    _iSpeaker;
+        readonly int    _iMicrophone;
+
+        public bool _fContinue = true;
+        public bool _fMonitor  = true;
+
+        protected static readonly Type[] _rgLoopErrors = { typeof( NullReferenceException ),
+                                                           typeof( ArgumentNullException ),
+                                                           typeof( InvalidOperationException ),
+										                   typeof( ArithmeticException ),
+										                   typeof( IndexOutOfRangeException ),
+                                                           typeof( InvalidDataException ),
+                                                           typeof( ArgumentOutOfRangeException ),
+                                                           typeof( ArgumentException ),
+                                                           typeof( BadDeviceIdException ),
+                                                           typeof( InvalidHandleException ),
+                                                           typeof( MMSystemException )
+                                                         };
+        public SoundHandler( int    iSpeaker,
+                             int    iMicrophone,
+                             double dblSampleRate,
+                             ConcurrentQueue<SSTVMessage> oToUIQueue,
+                             ConcurrentQueue<short>       oQueue )
+        {
+            _oToUIQueue    = oToUIQueue ?? throw new ArgumentNullException( nameof( oToUIQueue ) );
+            _oQueue        = oQueue     ?? throw new ArgumentNullException( nameof( oQueue ) );
+            _iSpeaker      = iSpeaker;
+            _iMicrophone   = iMicrophone;
+
+            _dblSampRate   = dblSampleRate;
+        }
+
+        public void DoWork() {
+            int iMaxQueue = (int)Math.Pow( 10, 5 ); // = for const, .= for assign O.o
+
+            // The player and/or reader MUST be created and used on the same thread.
+            // Else if a sound device shuts down first randomly... We hang in
+            // waveOutWrite()!!
+            Specification oAudio  = new ( (long)_dblSampRate, 1, 0, 16 );
+            BufferSSTV    oBuffer = new ( oAudio );
+            WmmPlayer     oPlayer = new ( oAudio, _iSpeaker );
+            WmmReader     oReader = new ( oAudio, _iMicrophone );
+
+            void MonitorOn( short s ) { 
+                _oQueue.Enqueue( s );
+                oBuffer.Write  ( s );
+            };
+
+            void MonitorOff( short s ) {
+                _oQueue.Enqueue( s );
+            }
+
+            void MonitorOnly( short s ) {
+                oBuffer.Write( s );
+            }
+
+            try {
+                oReader.RecordStart();
+
+                while( _fContinue ) {
+                    Action<short> dConsumer = _fMonitor ? MonitorOn : MonitorOff;
+
+                    // If the buffer is getting too full
+                    if( _oQueue.Count > iMaxQueue ) {
+                        if( _fMonitor )
+                            dConsumer = MonitorOnly;
+                        else
+                            break; // Monitor is off, queue consumer not consuming, so....
+                    }
+
+                    int ulSleep = oReader.Read( dConsumer );
+                    oPlayer.Play( oBuffer );
+
+                    Thread.Sleep( ( ulSleep >> 1 ) + 1 );
+                }
+            } catch ( Exception oEx ) {  
+                if( _rgLoopErrors.IsUnhandled( oEx ) )
+                    throw;
+
+                _oToUIQueue.Enqueue( new( SSTVEvents.ThreadException, 1 ) );
+            }
+            // If we've bailed because of an exception in the loop
+            // we'll hit it again when we try to stop.
+            try {
+                oReader.RecordStop();
+            } catch( Exception oEx ) {
+                if( _rgLoopErrors.IsUnhandled( oEx ) )
+                    throw;
+            }
+
+            // And again when we try to close. Plow thru so we can close up.
+            try {
+                oReader.Dispose();
+            } catch( Exception oEx ) {
+                if( _rgLoopErrors.IsUnhandled( oEx ) )
+                    throw;
+            }
+            // this is less likely. But in case we have a usb speaker problem..
+            try {
+                oPlayer.Dispose();
+            } catch( Exception oEx ) {
+                if( _rgLoopErrors.IsUnhandled( oEx ) )
+                    throw;
+            }
+
+            _oToUIQueue.Enqueue( new( SSTVEvents.ThreadExit, 1 ) );
+        }
     }
 }

@@ -1679,23 +1679,6 @@ namespace Play.SSTV {
                         return;
                     }
 
-                    //if( _oWaveIn == null ) {
-                    //    // BUG: we hang on shutdown trying to stop the wavein recording
-                    //    // it is recommended not to use the function callback. but
-                    //    // instead you should use the window callback.
-                    //    _oWaveIn = new WaveIn( WaveCallbackInfo.FunctionCallback() );
-
-                    //    // System works best if frequency here is not the calibrated (clock) value.
-                    //    // Makes sense since it's not calibrated! But need to coordinate with desired
-                    //    // (clock) frequency some how. TODO... ^_^;;
-                    //    _oWaveIn.BufferMilliseconds = 250;
-                    //    _oWaveIn.DeviceNumber       = iMicrophone;
-                    //    _oWaveIn.WaveFormat         = new WaveFormat( 11028, 16, 1 );
-                    //    _oWaveIn.NumberOfBuffers    = 2;
-                    //    _oWaveIn.DataAvailable += OnDataAvailable_WaveIn;
-                    //}
-                    //_oWaveReader = new BlockCopies( 1, 1, 0, _oWaveIn.WaveFormat.BitsPerSample );
-
                     _rgUItoBGQueue.Clear();
                     _rgBGtoUIQueue.Clear();
 
