@@ -268,6 +268,13 @@ namespace Play.Sound {
 			throw new NotImplementedException();
 		}
 
+		/// <summary>
+		/// Read in the bites from a header block.
+		/// </summary>
+		/// <param name="hWave">Handle to wave device.</param>
+		/// <param name="rgBytes">Loation to copy sound data blocks into. This
+		/// may be multi channel sound!</param>
+		/// <returns>Number of bytes read.</returns>
 		public int Read( IntPtr hWave, byte[] rgBytes ) {
 			CopyUnmanagedValue( out WAVEHDR oHeader );
 
