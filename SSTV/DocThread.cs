@@ -464,7 +464,7 @@ namespace Play.SSTV {
                     }
 
                     _oSSTVDraw .Process();
-                    _oToUIQueue.Enqueue( new( SSTVEvents.DownloadLevels, 0, _oSSTVDraw.GetLevels( false ) ) );
+                    _oToUIQueue.Enqueue( new( SSTVEvents.DownloadLevels, 0, _oSSTVDeMo.CalcLevel( false ) ) );
 
                     // TODO: We can make this more responsive by using a semaphore.
                     Thread.Sleep( 100 );
@@ -586,6 +586,11 @@ namespace Play.SSTV {
             _dblSampRate   = dblSampleRate;
         }
 
+        /// <summary>
+        /// Turns out there's a bit of art to sampling sound. Too fast and waste time checking
+        /// buffers that aren't loaded yet. Too slow and our monitor gets way behind and we
+        /// risk buffers getting filled.
+        /// </summary>
         public void DoWork() {
             int iMaxQueue = (int)Math.Pow( 10, 5 ); // = for const, .= for assign O.o
 
@@ -596,6 +601,9 @@ namespace Play.SSTV {
             BufferSSTV    oBuffer = new ( oAudio );
             WmmPlayer     oPlayer = new ( oAudio, _iSpeaker );
             WmmReader     oReader = new ( oAudio, _iMicrophone );
+
+            // If we return samples slower than this, our audio level visuals are sluggish.
+            const int     iBestSleepInMs = 100;
 
             void MonitorOn( short s ) { 
                 _oQueue.Enqueue( s );
@@ -616,7 +624,7 @@ namespace Play.SSTV {
                 while( _fContinue ) {
                     Action<short> dConsumer = _fMonitor ? MonitorOn : MonitorOff;
 
-                    // If the buffer is getting too full
+                    // Check if the buffer is getting too full
                     if( _oQueue.Count > iMaxQueue ) {
                         if( _fMonitor )
                             dConsumer = MonitorOnly;
@@ -624,10 +632,13 @@ namespace Play.SSTV {
                             break; // Monitor is off, queue consumer not consuming, so....
                     }
 
-                    int ulSleep = oReader.Read( dConsumer );
+                    int iReadSleepInMs = oReader.Read( dConsumer );
                     oPlayer.Play( oBuffer );
 
-                    Thread.Sleep( ( ulSleep >> 1 ) + 1 );
+                    int iBufSleep = ( iReadSleepInMs >> 1 ) + 1;
+                    int iMinSleep = iBufSleep > iBestSleepInMs ? iBestSleepInMs : iBufSleep;
+
+                    Thread.Sleep( iMinSleep );
                 }
             } catch ( Exception oEx ) {  
                 if( _rgLoopErrors.IsUnhandled( oEx ) )

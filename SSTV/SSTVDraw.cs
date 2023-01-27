@@ -966,10 +966,6 @@ namespace Play.SSTV {
 
 			SyncOffsetInSamples = Mode.OffsetInMS * dblSamplesPerMs;
 		}
-
-		public SSTVDEM.Levels GetLevels( bool fTransmitting ) {
-			return _dp.CalcLevel( fTransmitting );
-		}
     } // End Class
 
     public delegate void setPixel( int iX, short sLevel );
