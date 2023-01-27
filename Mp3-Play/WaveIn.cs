@@ -30,6 +30,7 @@
 using System;
 using System.Runtime.InteropServices;
 using System.Collections.Generic;
+using System.Collections.Concurrent;
 
 namespace Play.Sound {
 	unsafe public class WmmReader : WmmDevice {
@@ -146,7 +147,7 @@ namespace Play.Sound {
 		/// <exception cref="BadDeviceIdException" />
 		/// <exception cref="InvalidHandleException" />
 		/// <exception cref="MMSystemException" />
-		public uint Read( Queue<short> oQueue ) {
+		public int Read( Action<short> oConsumer ) {
 			if( _quHeaders.Count <= 0 )
 				throw new InvalidOperationException( "Signal Queue is Empty!" );
 			if( _quHeaders.Count > _rgHeaders.Count )
@@ -160,10 +161,13 @@ namespace Play.Sound {
 
 				_quHeaders.Dequeue();
 
-				int iRead = oHeader.Read( _hWave, _rgBytes );
+				// It would be unusual for the consumer to be null. But we'll barrel ahead.
+				if( oConsumer != null ) {
+					int iRead = oHeader.Read( _hWave, _rgBytes );
 
-				foreach( short sSample in new BlockCopies.SampleEnumerable( _oWaveReader, _rgBytes, iRead ) ) {
-					oQueue.Enqueue( sSample );
+					foreach( short sSample in new BlockCopies.SampleEnumerable( _oWaveReader, _rgBytes, iRead ) ) {
+						oConsumer( sSample );
+					}
 				}
 
 				oHeader.AddBuffer( _hWave );
@@ -171,7 +175,7 @@ namespace Play.Sound {
 			}
 
 			// By now they should be all newly queued up or waiting.
-			return (uint)(MilliSecPerHeader * _rgHeaders.Count - 1 );
+			return (int)MilliSecPerHeader * _rgHeaders.Count - 1;
 		}
     }
 }
