@@ -1329,6 +1329,10 @@ namespace Play.Sound {
 			_oConverter.SetWidth( _rgFreqTable );
 		}
 
+		int MStoSamples( int iMilliSeconds ) {
+			return (int)(iMilliSeconds * SampFreq/1000);
+		}
+
 		/// <summary>
 		/// At present this is only called in the constructor. Maybe when I get further
 		/// along I'll see about a dialog setting for this or something.
@@ -1355,10 +1359,10 @@ namespace Play.Sound {
 			//		break;
 			//	}
 			//}
-			// The first 1900hz has been seen, and now we're going down to 1200 for 15 ms. (s/b 10)
+			// The first 1900hz has been seen, and now we're going down to 1200. (was 15, s/b 10)
 			if( (d12 > d19) && (d12 > m_SLvl) && ((d12-d19) >= m_SLvl) ){
 				_oSyncState = StateContinuousChk;
-				_iSyncTime = (int)(10 * SampFreq/1000); // this is probably the ~10 ms between each 1900hz tone.
+				_iSyncTime = MStoSamples( 10 ); // this is probably the ~10 ms between each 1900hz tone.
 				// m_sint2.SyncMax = d12;
 				//m_sint1.Trig = (uint)d12;
 			}
@@ -1377,7 +1381,7 @@ namespace Play.Sound {
 				//}
 				if( --_iSyncTime == 0 ){
 					_oSyncState   = StateVisDecode;
-					_iSyncTime    = (int)(30 * SampFreq/1000); // Each bit is 30 ms!!
+					_iSyncTime    = MStoSamples( 30 ); // Each bit is 30 ms!!
 					_iVisData     = 0; // Init value
 					_iVisCnt      = 8; // Start counting down the 8 bits, (after 30ms).
 					_tvNextMode   = null; // just to be sure.
@@ -1394,7 +1398,7 @@ namespace Play.Sound {
 					// Start over? this is happening at the end of ve5kc test files.
 					_oSyncState = StateAutoStart; 
 				} else {
-					_iSyncTime = (int)(30 * SampFreq/1000 ); // Get next bit.
+					_iSyncTime = MStoSamples(30); // Get next bit.
 					_iVisData >>= 1; // we shift right to make room for next.
 					if( d11 > d13 ) 
 						_iVisData |= 0x0080; // Set the 8th bit to 1.(else it's 0)

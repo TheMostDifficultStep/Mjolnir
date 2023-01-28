@@ -19,6 +19,7 @@ namespace Monitor {
         protected SmartTable          Blinken    { get; }
         protected LayoutStackVertical VertStack  { get; }
         protected EditWindow2         WinCommand { get; }
+        protected EditWindow2         WinAssembly { get; }
 
         public IPgParent Parentage => _oSiteView.Host;
         public IPgParent Services  => Parentage.Services;
@@ -71,8 +72,9 @@ namespace Monitor {
             VertStack  = new LayoutStackVertical();
             Layout     = VertStack;
 
-            WinCommand = new EditWindow2( new ViewSlot( this ), oMonitorDoc.TextCommands ) { Parent = this };
-            Blinken    = new SmartTable( 5, LayoutRect.CSS.Percent ) { Track = 40 };
+            WinCommand  = new EditWindow2( new ViewSlot( this ), oMonitorDoc.TextCommands ) { Parent = this };
+            WinAssembly = new EditWindow2( new ViewSlot( this ), oMonitorDoc.AssemblyDoc  ) { Parent = this };
+            Blinken     = new SmartTable( 5, LayoutRect.CSS.Percent ) { Track = 40 };
         }
 
         public override bool InitNew() {
@@ -80,6 +82,9 @@ namespace Monitor {
                 return false;
 
             if( !WinCommand.InitNew() )
+                return false;
+
+            if( !WinAssembly.InitNew() )
                 return false;
 
             // First, add the columns to our table.
@@ -151,15 +156,27 @@ namespace Monitor {
                 Blinken.AddRow( rgLayout );
             }
 
+            // Add the memory window and assembly.
+            LayoutStackHorizontal oHoriz = new( ) { Track = 60, Units = LayoutRect.CSS.Percent };
+
+            oHoriz.Add( new LayoutControl( WinCommand,  LayoutRect.CSS.Percent ) { Track = 50 } );
+            oHoriz.Add( new LayoutControl( WinAssembly, LayoutRect.CSS.Percent ) { Track = 50 } );
+
             // complete final layout of table and command window.
             VertStack.Add( Blinken );
-            VertStack.Add( new LayoutControl( WinCommand, LayoutRect.CSS.Percent ) { Track = 60 } );
+            VertStack.Add( oHoriz  );
 
             OnDocumentEvent( BUFFEREVENTS.MULTILINE );
-            OnSizeChanged( new EventArgs() );
+//          OnSizeChanged( new EventArgs() );
 
             MonitorDoc.RefreshScreen += OnRefreshScreen_MonDoc;
             return true;
+        }
+
+        protected override void OnSizeChanged(EventArgs e) {
+            if( Width > 0 && Height > 0 ) {
+                base.OnSizeChanged(e);
+            }
         }
 
         public bool Load(XmlElement oStream) {

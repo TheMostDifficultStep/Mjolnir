@@ -62,6 +62,8 @@ namespace Monitor {
         public IPgParent Services  => Parentage.Services;
 
         public Editor        TextCommands { get; }
+        public Editor        AssemblyDoc  { get; }
+
         public DocProperties FrontDisplay { get; }
         public List<Line>    StatusLine   { get; } = new();
         public Editor        LablEdit     { get; }
@@ -129,6 +131,7 @@ namespace Monitor {
             _oBaseSite = oSite ?? throw new ArgumentNullException( "Site to document must not be null." );
 
             TextCommands = new ProgramFile  ( new DocSlot( this ) );
+            AssemblyDoc  = new Editor       ( new DocSlot( this ) );
             FrontDisplay = new DocProperties( new DocSlot( this ) );
             LablEdit     = new Editor       ( new DocSlot( this ) );
 
@@ -217,6 +220,9 @@ namespace Monitor {
 
         public bool InitNew() {
             if( !TextCommands.InitNew() )
+                return false;
+
+            if( !AssemblyDoc.InitNew() )
                 return false;
 
             if( !Initialize() ) 

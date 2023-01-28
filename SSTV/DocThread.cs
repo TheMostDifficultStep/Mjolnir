@@ -453,7 +453,7 @@ namespace Play.SSTV {
 
             ConcurrentQueue<short> oQueue  = new();
             SoundHandler           oSound  = new( _iSpeaker, _iMicrophone, _dblSampRate, _oToUIQueue, oQueue );
-            Thread                 oThread = new( oSound.DoWork );
+            Thread                 oThread = new( oSound.DoWork ) { Priority = ThreadPriority.AboveNormal };
 
             try {
                 oThread.Start();
