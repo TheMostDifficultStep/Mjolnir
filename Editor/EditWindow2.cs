@@ -179,8 +179,9 @@ namespace Play.Edit {
 
         protected          IPgGlyph              _oCheque     = null;
         protected          LayoutRect            _rctCheques; // TODO: Move this to the subclass eventually.
-        protected readonly LayoutRect            _rctTextArea = new LayoutRect( LayoutRect.CSS.None );
+        protected readonly LayoutRect            _rctTextArea = new LayoutRect( LayoutRect.CSS.None ); // Not same as the CacheMan text area!!
         protected readonly LayoutStackHorizontal _oLayout     = new LayoutStackHorizontal() { Spacing = 5 };
+        protected readonly List<SmartRect>       _rgColumns   = new (); // We'll phase out _rctTextArea if we can.
 
         // Possible to change if move window from one screen to another. Right now only init at start.
         public SizeF DPI { get; protected set; }
@@ -319,6 +320,8 @@ namespace Play.Edit {
         /// Might want right hand columns in the future, but let's start with this.
         /// </summary>
         protected virtual void InitColumns() {
+            _oLayout  .Add( _rctTextArea );   // Main text area.
+            _rgColumns.Add( _rctTextArea );
         }
 
         /// <remarks>
@@ -330,7 +333,23 @@ namespace Play.Edit {
 			DecorNavPropsInit();
 
 			try {
-				_oCacheMan = CreateCacheManager();
+                IPgMainWindow.PgDisplayInfo oInfo = new IPgMainWindow.PgDisplayInfo();
+                if( _oSiteView.Host.TopWindow is IPgMainWindow oMainWin ) {
+                    oInfo = oMainWin.MainDisplayInfo;
+                }
+
+                // cour.ttf, consola.ttf
+                uint uiStdText = _oStdUI.FontCache( _oStdUI.FaceCache( @"C:\windows\fonts\consola.ttf"  ), 12, oInfo.pntDpi );
+                uint uiStdUI   = _oStdUI.FontCache( _oStdUI.FaceCache( @"C:\windows\fonts\seguisym.ttf" ), 12, oInfo.pntDpi );
+              //uint uiEmojID  = _oStdUI.FontCache( _oStdUI.FaceCache( @"C:\Users\Frodo\AppData\Local\Microsoft\Windows\Fonts\NotoEmoji-Regular.ttf" ), 12, sResolution );
+
+                // BUG: Sort of weird I do this here. You would think it would be in the
+                // constructor or in the InitInternal() call. :-/
+                IPgFontRender oRender = _oStdUI.FontRendererAt( uiStdUI );
+            
+                _oCheque = oRender.GetGlyph(0x2714); // TODO: Make overridable.
+
+				_oCacheMan = CreateCacheManager( uiStdText );
 			} catch( ArgumentNullException ) {
 				LogError( "editor", "Unable to create CacheManager" );
 				return( false );
@@ -349,9 +368,7 @@ namespace Play.Edit {
 
                 _oLayout.Add( oLayoutSBVirt );   // Scrollbar
 
-                InitColumns();
-
-                _oLayout.Add( _rctTextArea  );   // Main text area.
+                InitColumns(); // Columns arent the same as the layout quite yet.
 
 			    _oLayout.SetRect( 0, 0, Width, Height );
 			    _oLayout.LayoutChildren();
@@ -364,8 +381,8 @@ namespace Play.Edit {
 			_oDocument.BufferEvent  += OnBufferEvent;
             _oDocument.CheckedEvent += OnCheckedEvent;
 
-            HyperLinks.Add( "url", OnBrowserLink );
-            HyperLinks.Add( "callsign", OnCallSign );
+            HyperLinks.Add( "url",       OnBrowserLink );
+            HyperLinks.Add( "callsign",  OnCallSign );
             HyperLinks.Add( "localpath", OnLocalPath );
 
             Invalidate();
@@ -422,26 +439,8 @@ namespace Play.Edit {
         /// Not super relevent but see https://devblogs.microsoft.com/xamarin/styling-for-multiple-device-resolutions/ for 
         /// other ways to get device resolution.
         /// </summary>
-		protected virtual CacheManager2 CreateCacheManager() {
-            IPgMainWindow.PgDisplayInfo oInfo = new IPgMainWindow.PgDisplayInfo();
-            if( _oSiteView.Host.TopWindow is IPgMainWindow oMainWin ) {
-                oInfo = oMainWin.MainDisplayInfo;
-            }
-
-            // cour.ttf, consola.ttf
-            uint uiStdText = _oStdUI.FontCache( _oStdUI.FaceCache( @"C:\windows\fonts\consola.ttf"  ), 12, oInfo.pntDpi );
-            uint uiStdUI   = _oStdUI.FontCache( _oStdUI.FaceCache( @"C:\windows\fonts\seguisym.ttf" ), 12, oInfo.pntDpi );
-          //uint uiEmojID  = _oStdUI.FontCache( _oStdUI.FaceCache( @"C:\Users\Frodo\AppData\Local\Microsoft\Windows\Fonts\NotoEmoji-Regular.ttf" ), 12, sResolution );
-
-            // BUG: Sort of weird I do this here. You would think it would be in the
-            // constructor or in the InitInternal() call. :-/
-            IPgFontRender oRender = _oStdUI.FontRendererAt( uiStdUI );
-            
-            _oCheque = oRender.GetGlyph(0x2714); // TODO: Make overridable.
-
-			return new CacheManager2( new CacheManSlot( this ),
-									  _oStdUI.FontRendererAt( uiStdText ), 
-									  TextExtent );
+		protected virtual CacheManager2 CreateCacheManager( uint uiStdText ) {
+			return new CacheManager2( new CacheManSlot( this ), _oStdUI.FontRendererAt( uiStdText ), _rgColumns );
 		}
 
         /// <summary>
@@ -954,8 +953,8 @@ namespace Play.Edit {
         /// </summary>
         /// <param name="oCache"></param>
         /// <returns></returns>
-        protected virtual PointF RenderAt( CacheRow oCache ) {
-            return( _oCacheMan.RenderAt( oCache, new Point( _rctTextArea.Left, _rctTextArea.Top ) ) );
+        protected virtual PointF RenderAt( CacheRow oCache, SmartRect rcColumn ) {
+            return( _oCacheMan.RenderAt( oCache, new Point( rcColumn.Left, rcColumn.Top ) ) );
         }
 
         /// <summary>Paint just the background of just this cache element. And only
@@ -965,7 +964,7 @@ namespace Play.Edit {
         /// whatever is the existing background. Like a bitmap or something.</remarks>
         protected void PaintBackground( SKCanvas skCanvas, SKPaint skPaint, CacheRow oCache ) {
             StdUIColors eBg    = StdUIColors.Max;
-            PointF      pntUL  = RenderAt( oCache );
+            PointF      pntUL  = RenderAt( oCache, _rctTextArea );
             SKRect      skRect = new SKRect( _rctTextArea.Left, pntUL.Y, _rctTextArea.Right, pntUL.Y + oCache.Height );
 
             if( CaretPos.Line != null && oCache.At == CaretPos.At && !_fSingleLine)
@@ -1022,7 +1021,7 @@ namespace Play.Edit {
         protected virtual void OnPaintExtraColumnsBG( SKCanvas skCanvas, SKPaint skPaint ) {
         }
 
-        protected virtual void OnPaintExtraColumn( SKCanvas skCanvas, SKPaint skPaint, CacheRow oCache ) {
+        [Obsolete]protected virtual void OnPaintExtraColumn( SKCanvas skCanvas, SKPaint skPaint, CacheRow oCache ) {
         }
 
         protected override void OnPaintSurface( SKPaintSurfaceEventArgs e ) {
@@ -1047,12 +1046,14 @@ namespace Play.Edit {
 
                 // Now paint the lines.
                 foreach( CacheRow oRow in _oCacheMan ) {
-                    FTCacheLine oCache = oRow.CacheList[0];
                     PaintBackground(skCanvas, skPaint, oRow);
+                    OnPaintExtraColumn( skCanvas, skPaint2, oRow ); 
 
-                    OnPaintExtraColumn( skCanvas, skPaint2, oRow );
+                    for( int i=0; i<oRow.CacheList.Count; ++i ) {
+                        FTCacheLine oCache = oRow.CacheList[i];
 
-                    oCache.Render(skCanvas, _oStdUI, RenderAt(oRow), this.Focused);
+                        oCache.Render(skCanvas, _oStdUI, RenderAt(oRow, _rgColumns[i] ), i == 0 ? this.Focused : false );
+                    }
                 }
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( NullReferenceException ),
@@ -2621,7 +2622,6 @@ namespace Play.Edit {
 		public CheckList( IPgViewSite oSite, BaseEditor oEditor, bool fReadOnly = false ) : 
             base( oSite, oEditor, fReadOnly:true, fSingleLine:false )     
         {
-
 			ToolSelect = 2; // BUG: change this to an enum in the future.
 		}
 
@@ -2634,7 +2634,11 @@ namespace Play.Edit {
             // is set up. We can fix that but I'll do it later.
             _rctCheques = new LayoutRect( LayoutRect.CSS.Pixels, (uint)_oCheque.Coordinates.advance_x, 0 );
 
-            _oLayout.Add( _rctCheques ); // Whoooo! new select column!!
+            _oLayout  .Add( _rctCheques );  // Whoooo! new select column!!
+            _oLayout  .Add( _rctTextArea ); // Main text area.
+
+            _rgColumns.Add( _rctTextArea ); // Text is always the first cache element on a row.
+            _rgColumns.Add( _rctCheques );  // even if NOT the first column.
         }
         /// <remarks>
         /// Note: that we are sharing the skPaint and that might result in problems in the
@@ -2649,29 +2653,7 @@ namespace Play.Edit {
 
         protected override void OnPaintExtraColumn( SKCanvas skCanvas, SKPaint skPaint, CacheRow oCache ) {
             if( _oDocument.CheckedLine == oCache.Line )
-                DrawGlyph(skCanvas, skPaint, _rctCheques.Left, RenderAt(oCache).Y, _oCheque );
+                DrawGlyph(skCanvas, skPaint, _rctCheques.Left, RenderAt(oCache, _rctTextArea).Y, _oCheque );
         }
 	}
-
-    public class LineNumberWindow :EditWindow2 {
-        protected LayoutRect _rctLineNumbers;
-
-		public LineNumberWindow( IPgViewSite oSite, BaseEditor oEditor, bool fReadOnly = false ) : 
-            base( oSite, oEditor, fReadOnly:true, fSingleLine:false ) 
-        {
-            _rctLineNumbers  = new LayoutRect( LayoutRect.CSS.Pixels, 30, 0 ); // Hard code a width for now.
-		}
-
-        protected override void InitColumns() {
-            _oLayout.Add( _rctLineNumbers ); 
-        }
-        protected override void OnPaintExtraColumnsBG( SKCanvas skCanvas, SKPaint skPaint ) {
-            skPaint.Color = SKColors.LightSalmon;
-
-            skCanvas.DrawRect( _rctLineNumbers.SKRect, skPaint );
-        }
-        protected override void OnPaintExtraColumn( SKCanvas skCanvas, SKPaint skPaint, CacheRow oCache ) {
-            DrawGlyph(skCanvas, skPaint, _rctLineNumbers.Left, RenderAt(oCache).Y, _oCheque );
-        }
-    }
 }

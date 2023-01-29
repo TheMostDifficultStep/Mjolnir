@@ -128,7 +128,15 @@ namespace Play.Edit {
         public         int  At        { get { return Line.At; } }
         public         int  Top       { get; set; }
         public virtual int  Height    { get { return CacheList[0].Height; } }
-        public         bool IsInvalid => CacheList[0].IsInvalid;
+        public         bool IsInvalid { 
+            get {
+                bool fReturn = false;
+                foreach( FTCacheLine oElem in CacheList ) {
+                    fReturn |= oElem.IsInvalid;
+                }
+                return fReturn;
+            }
+        }
 
         public int Bottom {
             get { return Top + Height; }
@@ -156,7 +164,7 @@ namespace Play.Edit {
         public         int  At        { get { return Line.At; } }
         //public         int  Top       { get; set; }
         public virtual int  Height    { get { return LineHeight; } }
-        public         bool IsInvalid { get; protected set; } = true;
+        public virtual bool IsInvalid { get; protected set; } = true;
         public         int  LineHeight{ protected set; get; }
         public         int  FontHeight{ protected set; get; }
         public       Align  Justify   { set; get; } = Align.Left;
@@ -361,7 +369,7 @@ namespace Play.Edit {
         /// </summary>
         /// <remarks>Do NOT set the cluster AdvanceLeft, that will be set in WrapSegments() </remarks>
         /// <seealso cref="FTCacheWrap.WrapSegments"/>
-        public void Update( IPgFontRender oFR ) {
+        public virtual void Update( IPgFontRender oFR ) {
             if( oFR == null )
                 throw new ArgumentNullException();
 

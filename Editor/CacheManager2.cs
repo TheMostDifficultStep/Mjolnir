@@ -18,9 +18,10 @@ namespace Play.Edit {
     public class CacheManager2 :         
         IEnumerable<CacheRow>
     {
-        readonly CacheManagerAbstractSite _oSite      = null;
-        readonly SmartRect                _oTextRect  = new SmartRect(); // World coordinates of our view port.
-        protected List<CacheRow>          _rgOldCache = new List<CacheRow>();
+        readonly CacheManagerAbstractSite  _oSite      = null;
+        readonly SmartRect                 _oTextRect  = new SmartRect(); // World coordinates of our view port.
+        protected List<CacheRow>           _rgOldCache = new List<CacheRow>();
+        protected readonly List<SmartRect> _rgColumns;
 
                   IPgFontRender Font       { get; }
         protected IPgGlyph      GlyphLt    { get; } // Our end of line character.
@@ -30,14 +31,13 @@ namespace Play.Edit {
         /// <remarks>Need to sort out the LineHeight accessor since the cache elements might be
         /// variable height, Need to make sure I'm using this correctly. Consider calling it
         /// "LineScroll"</remarks>
-        public CacheManager2( CacheManagerAbstractSite oSite, IPgFontRender oFont, Size oViewSize ) :
+        public CacheManager2( CacheManagerAbstractSite oSite, IPgFontRender oFont, List<SmartRect> rgColumns ) :
 			base() 
 		{
-			Font   = oFont ?? throw new ArgumentNullException( "Need a font to get things rolling." );
-			_oSite = oSite ?? throw new ArgumentNullException( "Cache manager is a sited object.");
+			Font       = oFont     ?? throw new ArgumentNullException( "Need a font to get things rolling." );
+			_oSite     = oSite     ?? throw new ArgumentNullException( "Cache manager is a sited object.");
+            _rgColumns = rgColumns ?? throw new ArgumentNullException( "Columns list from Edit Window is null!" );
 
-			_oTextRect.SetPoint(SET.RIGID, LOCUS.UPPERLEFT | LOCUS.EXTENT, oViewSize.Width, oViewSize.Height );
-            
             GlyphLt    = Font.GetGlyph( 0x003c ); // we used to show carriage return as a '<' sign.
             FontHeight = (int)Font.FontHeight; // BUG: Cache elem's are variable height in general.
         }
@@ -136,24 +136,24 @@ namespace Play.Edit {
 			if ( oLine == null )
                 return null;
 
-            CacheRow oElem = _rgOldCache.Find( item => item.At == oLine.At ); // TODO: Reconsider change back to item.Line == oLine
-            if (oElem == null) // If can't find matching elem, create it.
-                oElem = CreateElement( oLine );
+            CacheRow oRow = _rgOldCache.Find( item => item.At == oLine.At ); // TODO: Reconsider change back to item.Line == oLine
+            if (oRow == null) // If can't find matching elem, create it.
+                oRow = CreateRow( oLine );
 
-            if( oElem == null )
+            if( oRow == null )
                 return null;
 
             // Text rect is reset to UL => 0,0. Now set this element's top down a bit and build around it.
             switch( eNeighborhood ) {
                 case RefreshNeighborhood.CARET:
-                    oElem.Top = FontHeight * 2; // Match the slop in RefreshCache() else new elem will be outside rect on first load() and get flushed!
+                    oRow.Top = FontHeight * 2; // Match the slop in RefreshCache() else new elem will be outside rect on first load() and get flushed!
                     break;
                 case RefreshNeighborhood.SCROLL:
-                    oElem.Top = 0; // If this is bottom line. We'll accumulate backwards to fix up cache.
+                    oRow.Top = 0; // If this is bottom line. We'll accumulate backwards to fix up cache.
                     break;
             }
 
-            return oElem;
+            return oRow;
         }
 
         /// <summary>
@@ -171,8 +171,8 @@ namespace Play.Edit {
             CacheRow oLeast   = null;
             int      iMinDist = int.MaxValue;
 
-            for( int iElem = 0; iElem < _rgOldCache.Count; ++iElem ) {
-                CacheRow oCurrLine = _rgOldCache[iElem];
+            for( int iRow = 0; iRow < _rgOldCache.Count; ++iRow ) {
+                CacheRow oCurrLine = _rgOldCache[iRow];
                 // If the element overlaps the textrect or is inside, use it. Might be
                 // nice to add a check if the line is still in the buffer or has been deleted.
                 if( oCurrLine.Top    <= TextRect[SCALAR.BOTTOM] + FontHeight * 2 &&
@@ -200,20 +200,20 @@ namespace Play.Edit {
         /// Find the next line after the line pointed to by the current cache element.
         /// Use an old element or create a new element and stack in the given direction.
         /// </summary>
-        /// <param name="oElem">Element where we are building up the cache from.</param>
+        /// <param name="oRow">Element where we are building up the cache from.</param>
         /// <param name="iDir">Which direction to try.</param>
         /// <returns>New or recycled cache element stacked above or below previous.</returns>
-        protected CacheRow RefreshNext( CacheRow oElem, int iDir ) {
-            if( oElem == null )
+        protected CacheRow RefreshNext( CacheRow oRow, int iDir ) {
+            if( oRow == null )
                 return( null );
 
-            CacheRow oPrev = oElem;
-            int      iLine = oElem.At + iDir;
+            CacheRow oPrev = oRow;
+            int      iLine = oRow.At + iDir;
 
             // See if we already the line computations. Given the old cache is sorted by
             // line I could potentially do a b-search. This find is a linear operation.
-            oElem = _rgOldCache.Find( item => item.At == iLine );
-            if( oElem == null ) { // If can't find matching elem, create it.
+            oRow = _rgOldCache.Find( item => item.At == iLine );
+            if( oRow == null ) { // If can't find matching elem, create it.
                 Line oLine = _oSite.GetLine(iLine);
 
                 // If we reach the top or bottom, the next line is going to be null.
@@ -221,21 +221,21 @@ namespace Play.Edit {
                     return( null );
                 }
 
-                oElem = CreateElement( oLine );
+                oRow = CreateRow( oLine );
             }
 
-            if( oElem != null ) {
-                if( oElem.IsInvalid ) {
-                    ElemUpdate( oElem.CacheList[0] );
+            if( oRow != null ) {
+                if( oRow.IsInvalid ) {
+                    RowUpdate( oRow );
                 }
                 if( iDir < 0 ) {
-                    oElem.Top = oPrev.Top - oElem.Height - LineSpacing;
+                    oRow.Top = oPrev.Top - oRow.Height - LineSpacing;
                 } else {
-                    oElem.Top = oPrev.Bottom + LineSpacing;
+                    oRow.Top = oPrev.Bottom + LineSpacing;
                 }
             }
 
-            return( oElem );
+            return( oRow );
         }
         
         /// <summary>
@@ -250,53 +250,53 @@ namespace Play.Edit {
             }
 
             if( oTop.IsInvalid ) {
-                ElemUpdate( oTop.CacheList[0] );
+                RowUpdate( oTop );
             }
 
             List<CacheRow> rgNewCache = new List<CacheRow>();
 
             rgNewCache.Add( oTop ); // Stick our seed in the new cache.
 
-            CacheRow oElem = oTop; // Current starting point.
+            CacheRow oRow = oTop; // Current starting point.
 
             // Build downwards towards larger line numbers.
-            while( oElem != null && oElem.Bottom < TextRect[SCALAR.BOTTOM] ) {
-                CacheRow oPrev = oElem;
-                oElem = RefreshNext( oElem, +1 );
-                if( oElem == null ) {
+            while( oRow != null && oRow.Bottom < TextRect[SCALAR.BOTTOM] ) {
+                CacheRow oPrev = oRow;
+                oRow = RefreshNext( oRow, +1 );
+                if( oRow == null ) {
                     // We're at the bottom, Re-shift the rect bottom to match bottom line so we don't have gap.
                     // This way we don't keep scrolling elements forever out of view.
                     TextRect.SetScalar(SET.RIGID, SCALAR.BOTTOM, oPrev.Bottom );
                 } else {
-                    rgNewCache.Add( oElem );
+                    rgNewCache.Add( oRow );
                 }
             };
 
-            CacheRow oBottom = oElem; // Last downward element we saved.
-            oElem = oTop;
+            CacheRow oBottom = oRow; // Last downward element we saved.
+            oRow = oTop;
 
             // Build upwards towards smaller line numbers.
-            while( oElem != null && oElem.Top > TextRect[SCALAR.TOP ] ) {
-                CacheRow oPrev = oElem;
-                oElem = RefreshNext( oElem, -1 );
-                if( oElem == null ) {
+            while( oRow != null && oRow.Top > TextRect[SCALAR.TOP ] ) {
+                CacheRow oPrev = oRow;
+                oRow = RefreshNext( oRow, -1 );
+                if( oRow == null ) {
                     // We're at the top. Re-shift the rect top to match top line so we don't have a gap.
                     // this way we don't keep scrolling elements forever out of view.
                     TextRect.SetScalar(SET.RIGID, SCALAR.TOP, oPrev.Top );
                 } else {
-                    rgNewCache.Add( oElem );
+                    rgNewCache.Add( oRow );
                 }
             }
 
-            oElem = oBottom;
+            oRow = oBottom;
 
             // Go down one last time in case the rect was moved up by the upward building loop. That
             // would create a gap that the downward builder didn't know about.
-            while( oElem != null && oElem.Bottom < TextRect[SCALAR.BOTTOM] ) {
-                CacheRow oPrev = oElem;
-                oElem = RefreshNext( oElem, +1 );
-                if( oElem != null ) {
-                    rgNewCache.Add( oElem );
+            while( oRow != null && oRow.Bottom < TextRect[SCALAR.BOTTOM] ) {
+                CacheRow oPrev = oRow;
+                oRow = RefreshNext( oRow, +1 );
+                if( oRow != null ) {
+                    rgNewCache.Add( oRow );
                 }
             };
             
@@ -332,13 +332,46 @@ namespace Play.Edit {
         }
 
         /// <summary>
+        /// For now the main text area is our primary editing zone. The rest won't
+        /// be editable for now.
+        /// </summary>
+        /// <param name="oRow"></param>
+        protected void RowUpdate( CacheRow oRow ) {
+            for( int i=0; i< oRow.CacheList.Count; i++ ) {
+                if( i == 0 ) {
+                    ElemUpdate ( oRow.CacheList[i] );
+                } else {
+                    ElemUpdate2( oRow.CacheList[i], _rgColumns[i].Width );
+                }
+            }
+        }
+
+        protected void ElemUpdate2( FTCacheLine oElem, int iWidth ) {
+			try {
+                _oSite.WordBreak( oElem.Line, oElem.Words );
+
+				oElem.Update            ( Font );
+                oElem.OnChangeFormatting( null );
+                oElem.OnChangeSize      ( iWidth );
+			} catch( Exception oEx ) {
+				Type[] rgErrors = { typeof( NullReferenceException ),
+									typeof( ArgumentNullException ),
+                                    typeof( ArgumentOutOfRangeException ) };
+				if( !rgErrors.Contains( oEx.GetType() ))
+					throw;
+
+                _oSite.LogError( "view cache", "Update request on empty element" );
+			}
+        }
+
+        /// <summary>
         /// Simply update invalid elements and restack. Use this when simply editing within one line.
 		/// We redo the elem.top in case a line grows in height.
         /// </summary>
         protected void CacheValidate() {
 			try {
 				CacheRow oPrev = null;
-				foreach( CacheRow oElem in _rgOldCache ) {
+				foreach( CacheRow oRow in _rgOldCache ) {
         //            if( oElem.Color.Count > 0 ) {
 					   // oElem.Words.Clear();
         //                foreach( IColorRange oRange in oElem.Line.Formatting ) {
@@ -348,14 +381,14 @@ namespace Play.Edit {
         //            if( oElem.Words.Count < 1 ) {
         //                oElem.Words.Add(new ColorRange(0,oElem.Line.ElementCount,0));
 				    //}
-					if( oElem.IsInvalid )
-						ElemUpdate( oElem.CacheList[0] );
+					if( oRow.IsInvalid )
+						RowUpdate( oRow );
 
 					// NOTE: if the elements aren't stacked in line order, we've got a problem.
 					if( oPrev != null )
-						oElem.Top = oPrev.Bottom + LineSpacing;
+						oRow.Top = oPrev.Bottom + LineSpacing;
 
-					oPrev = oElem;
+					oPrev = oRow;
 				}
 			} catch( Exception oEx ) {
 				Type[] rgErrors = { typeof( NullReferenceException ),
@@ -413,11 +446,13 @@ namespace Play.Edit {
         /// </summary>
         /// <param name="oLine">The line we are trying to display.</param>
         /// <returns>A cache element with enough information to display the line on the screen.</returns>
-        protected virtual CacheRow CreateElement( Line oLine ) {
+        protected virtual CacheRow CreateRow( Line oLine ) {
             if( oLine == null ) {
                 _oSite.LogError( "view cache", "Guest line must not be null for screen cache element." );
                 return null;
             }
+
+            CacheRow oRow = new CacheRow();
 
             // TODO: Add an array of the columns and then we can auto
             //       generate those elements too.
@@ -428,8 +463,6 @@ namespace Play.Edit {
 			} else {
 				oElem = new FTCacheLine( oLine ); // Simpler object.
 			}
-
-            CacheRow oRow = new CacheRow();
 
             oRow.CacheList.Add( oElem );
 
@@ -467,7 +500,7 @@ namespace Play.Edit {
                 return( null );
 
             // Line is not currently in cache, make a new elem.
-            CacheRow oCache = CreateElement( oLine );
+            CacheRow oCache = CreateRow( oLine );
 
             if( oCache == null )
                 return( null );
@@ -624,13 +657,13 @@ namespace Play.Edit {
 
         /// <summary>
         /// We used to simply call oCache.Update(), however, word wrapping doesn't work
-        /// unless we call the resize too. So call ElemUpdate for completeness.
+        /// unless we call the resize too. So call RowUpdate for completeness.
         /// </summary>
         /// <seealso cref="ElemUpdate"/>
         public void OnLineUpdated( Line oLine ) {
-            foreach( CacheRow oCache in _rgOldCache ) {
-                if( oCache.Line == oLine ) {
-                    ElemUpdate( oCache.CacheList[0] );
+            foreach( CacheRow oRow in _rgOldCache ) {
+                if( oRow.Line == oLine ) {
+                    RowUpdate( oRow );
                 }
             }
         }
@@ -779,7 +812,7 @@ namespace Play.Edit {
         public PointF RenderAt( CacheRow oCache, Point pntScreenTL ) {
             SKPointI pntWorldTopLeft  = TextRect.GetPoint(LOCUS.UPPERLEFT);
             PointF   pntRenderAt      = new PointF( pntScreenTL.X - pntWorldTopLeft.X, 
-                                                  pntScreenTL.Y + oCache.Top - pntWorldTopLeft.Y );
+                                                    pntScreenTL.Y + oCache.Top - pntWorldTopLeft.Y );
 
             return pntRenderAt;
         }

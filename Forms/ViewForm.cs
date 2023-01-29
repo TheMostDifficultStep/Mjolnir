@@ -866,6 +866,7 @@ namespace Play.Forms {
 				    Clipboard  .SetDataObject( oDataObject );
 				}
 			} catch( NullReferenceException ) {
+                _oSiteView.LogError( "Clipboard", "Copy to clipboard problem" );
 			}
         }
 

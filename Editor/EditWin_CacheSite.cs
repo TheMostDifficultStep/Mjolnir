@@ -152,7 +152,7 @@ namespace Play.Edit {
 		/// <summary>
 		/// There is only one Cache manager slot per edit window.
 		/// </summary>
-		class CacheManSlot : CacheManagerAbstractSite {
+		protected class CacheManSlot : CacheManagerAbstractSite {
 			readonly EditWindow2 _oHost;
 
 			public CacheManSlot( EditWindow2 oHost ) {

@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Xml;
+﻿using System.Xml;
 
 using Play.Interfaces.Embedding;
 using Play.Forms;
@@ -9,6 +7,63 @@ using Play.Edit;
 using SkiaSharp;
 
 namespace Monitor {
+    public class AssemblyWindow : EditWindow2 {
+        public class FTCacheLineNumber : FTCacheWrap {
+            Line _oHost;
+            int  _iAt;
+            public FTCacheLineNumber( Line oLine, Line oHost ) : base( oLine ) {
+                _oHost = oHost ?? throw new ArgumentNullException( nameof( oHost ) );
+            }
+
+            public override void Update(IPgFontRender oFR) {
+                _iAt = _oHost.At;
+
+                Line.Empty();
+                Line.TryAppend( _oHost.At.ToString() );
+
+                base.Update(oFR);
+            }
+
+            public override bool IsInvalid { get => _iAt != _oHost.At; }
+        }
+        public class CacheManagerAsm : CacheManager2 {
+            public CacheManagerAsm( CacheManagerAbstractSite oSite, IPgFontRender oFont, List<SmartRect> rgCols ) :
+                base( oSite, oFont, rgCols ) {
+            }
+
+            protected override CacheRow CreateRow( Line oLine ) {
+                CacheRow oRow = base.CreateRow( oLine );
+
+                FTCacheLine oElem = new FTCacheLineNumber( new TextLine( 0, string.Empty ), oLine ); 
+
+                ElemUpdate2( oElem, _rgColumns[1].Width );
+
+                oRow.CacheList.Add( oElem );
+
+                return oRow;
+            }
+        }
+
+        protected readonly LayoutRect _rctLabelColumns = new LayoutRect( LayoutRect.CSS.Flex ) { Track = 30 };
+
+        public AssemblyWindow( IPgViewSite oSite, Editor oEdit ) : base( oSite, oEdit ) {
+        }
+
+        protected override void InitColumns() {
+            _oLayout  .Add( _rctLabelColumns );
+            _oLayout  .Add( _rctTextArea );   // Main text area.
+
+            _rgColumns.Add( _rctTextArea );
+            _rgColumns.Add( _rctLabelColumns );   
+        }
+
+        protected override CacheManager2 CreateCacheManager(uint uiStdText) {
+            return new CacheManagerAsm( new CacheManSlot(this),
+                                      _oStdUI.FontRendererAt(uiStdText),
+                                      _rgColumns );
+        }
+    }
+
     internal class WindowFrontPanel : FormsWindow,
         IPgParent,
         IPgCommandView,
@@ -72,8 +127,8 @@ namespace Monitor {
             VertStack  = new LayoutStackVertical();
             Layout     = VertStack;
 
-            WinCommand  = new EditWindow2( new ViewSlot( this ), oMonitorDoc.TextCommands ) { Parent = this };
-            WinAssembly = new EditWindow2( new ViewSlot( this ), oMonitorDoc.AssemblyDoc  ) { Parent = this };
+            WinCommand  = new EditWindow2   ( new ViewSlot( this ), oMonitorDoc.TextCommands ) { Parent = this };
+            WinAssembly = new AssemblyWindow( new ViewSlot( this ), oMonitorDoc.AssemblyDoc  ) { Parent = this };
             Blinken     = new SmartTable( 5, LayoutRect.CSS.Percent ) { Track = 40 };
         }
 
