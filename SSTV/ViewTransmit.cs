@@ -46,11 +46,12 @@ namespace Play.SSTV {
 
 		public readonly static int[] Subset = new int[] { 
 			(int)SSTVProperties.Names.Tx_Progress,
+			(int)SSTVProperties.Names.Rx_Mode,
 			(int)SSTVProperties.Names.Tx_SrcDir,
 			(int)SSTVProperties.Names.Tx_SrcFile,
 			(int)SSTVProperties.Names.Tx_TheirCall,
 			(int)SSTVProperties.Names.Tx_RST,
-			(int)SSTVProperties.Names.Tx_Message 
+			(int)SSTVProperties.Names.Tx_Message
 		};
 
 		/// <summary>
@@ -66,9 +67,6 @@ namespace Play.SSTV {
 					PropertyInitRow( Layout as SmartTable, 
 									 (int)SSTVProperties.Names.Tx_LayoutSelect, 
 									 _ddTemplates );
-					PropertyInitRow( Layout as SmartTable, 
-									 (int)SSTVProperties.Names.Rx_Mode );
-
 					// Call this once to set up the mode families.
 					SSTVDEM.SSTVFamily oPD = null;
 					foreach( SSTVDEM.SSTVFamily oFamily in new SSTVDEM.EnumerateFamilies() ) {

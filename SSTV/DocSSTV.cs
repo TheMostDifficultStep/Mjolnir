@@ -105,7 +105,7 @@ namespace Play.SSTV {
             LabelSet( Names.Std_TxPort,     "Transmit  to Device" );
             LabelSet( Names.Std_RxPort,     "Receive from Device" );
             LabelSet( Names.Std_ImgQuality, "Image Save Quality" );
-            LabelSet( Names.Std_Process,    "Task Status" );
+            LabelSet( Names.Std_Process,    "Rx Status" );
             LabelSet( Names.Std_MicGain,    "Output Gain < 30,000" );
             LabelSet( Names.Std_Frequency,  "Frequency" ); // TODO: Give it yellow if calibrated value different than base.
 
