@@ -127,7 +127,7 @@ namespace Monitor {
             VertStack  = new LayoutStackVertical();
             Layout     = VertStack;
 
-            WinCommand  = new EditWindow2   ( new ViewSlot( this ), oMonitorDoc.TextCommands ) { Parent = this };
+            WinCommand  = new AssemblyWindow( new ViewSlot( this ), oMonitorDoc.TextCommands ) { Parent = this };
             WinAssembly = new AssemblyWindow( new ViewSlot( this ), oMonitorDoc.AssemblyDoc  ) { Parent = this };
             Blinken     = new SmartTable( 5, LayoutRect.CSS.Percent ) { Track = 40 };
         }

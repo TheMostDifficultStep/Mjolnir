@@ -8,7 +8,7 @@ using Play.Forms;
 namespace Monitor {
     public class MonitorController : Controller {
         public MonitorController() {
-            _rgExtensions.Add( ".fourbit" );
+            _rgExtensions.Add( ".nibble" );
         }
         public override IDisposable CreateDocument(IPgBaseSite oSite, string strExtension) {
             return new MonitorDocument( oSite );
@@ -141,7 +141,7 @@ namespace Monitor {
             _dctInstructions.Add( "halt",     Inst_Halt );
             _dctInstructions.Add( "jump-imm", Inst_JumpImm ); // unconditional jump.
             _dctInstructions.Add( "comp-abs", Inst_CompAbs ); // (cmp {a}, cpx, cpy)
-            _dctInstructions.Add( "comp-imm", Inst_CompImm); // (cmp {a}, cpx, cpy)
+            _dctInstructions.Add( "comp-imm", Inst_CompImm);  // (cmp {a}, cpx, cpy)
             _dctInstructions.Add( "brat-imm", Inst_BranchTrueImm ); // branch true, flag, addr;
             _dctInstructions.Add( "braf-imm", Inst_BranchFalseImm ); // branch false, flag, addr;
             _dctInstructions.Add( "incr",     Inst_Increment );
@@ -156,9 +156,10 @@ namespace Monitor {
             _dctInstructions.Add( "divf",     Inst_DivideFloat );
             _dctInstructions.Add( "move",     Inst_MoveReg );
 
-            _dctStatusNames.Add( "zero",  (int)StatusBits.Zero );
-            _dctStatusNames.Add( "carry", (int)StatusBits.Carry );
-            _dctStatusNames.Add( "neg",   (int)StatusBits.Negative );
+            _dctStatusNames.Add( "zero",     (int)StatusBits.Zero );
+            _dctStatusNames.Add( "carry",    (int)StatusBits.Carry );
+            _dctStatusNames.Add( "neg",      (int)StatusBits.Negative );
+            _dctStatusNames.Add( "negative", (int)StatusBits.Negative );
 
             // This is 6502 flag positions, Don't presently mach my status lines.
             _dctPowerOfTwo.Add(   1, 0 ); // carry
@@ -603,6 +604,8 @@ namespace Monitor {
 
 
         public void ProgramRun( bool fNotStep = true ) {
+            int iCnt = 0; // Just a hack to prevent infinite loops. Need something nicer.
+            int iMax = (int)Math.Pow( 10, 5);
             try {
                 do {
                     Line oInst = TextCommands[PC];
@@ -615,7 +618,7 @@ namespace Monitor {
 
                     TextCommands.HighLight = TextCommands[PC];
                     RefreshScreen(0);
-                } while( PC < TextCommands.ElementCount && fNotStep );
+                } while( PC < TextCommands.ElementCount && fNotStep && ++iCnt < iMax );
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( NullReferenceException ),
                                     typeof( ArgumentNullException ), 
