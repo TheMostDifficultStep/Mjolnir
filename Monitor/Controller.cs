@@ -484,12 +484,6 @@ namespace Monitor {
             FrontDisplay.Property_Values.Raise_BufferEvent( BUFFEREVENTS.FORMATTED );
         }
 
-        /// <summary>
-        ///Condition 	        N 	Z 	C
-        ///Register < Memory 	1 	0 	0
-        ///Register = Memory 	0 	1 	1
-        ///Register > Memory 	0 	0 	1         
-        ///</summary>
         public void Inst_CompAbs() {
             int    iRegister = int.Parse( TextCommands[++PC].ToString() );
             string strAddr   = TextCommands[++PC].ToString();
@@ -499,32 +493,19 @@ namespace Monitor {
             if( int.TryParse( strAddr, out int iAddr ) ) {
                 string strData = TextCommands[iAddr].ToString();
 
-                // I suppose we could allow letters there so it's easier
-                // to read than for example 65 instead of 'a'. But numbers
-                // for now.
-                if( int.TryParse( strData, out int iMemoryData ) ) {
-                    int iRegisterData = RegisterRead( iRegister );
-                    if( iRegisterData < iMemoryData ) {
-                        SetStatusBits( '1', '0', '0' );
-                    } else {
-                        if( iRegisterData > iMemoryData ) {
-                            SetStatusBits( '0', '0', '1' );
-                        } else {
-                            SetStatusBits( '0', '1', '1' ); // eq. carry s/b 1 but use 0 for now.
-                        }
-                    }
-                    return;
-                }
+                Compare( iRegister, strData );
+                return;
             }
             _oBaseSite.LogError( "Invalid Op", "Bad address or data at address" );
         }
 
-        public void Inst_CompImm() {
-            int    iRegister = int.Parse( TextCommands[++PC].ToString() );
-            string strData   = TextCommands[++PC].ToString();
-
-            ++PC;
-
+        /// <summary>
+        ///Condition 	        N 	Z 	C
+        ///Register < Memory 	1 	0 	0
+        ///Register = Memory 	0 	1 	1
+        ///Register > Memory 	0 	0 	1         
+        ///</summary>
+        public void Compare( int iRegister, string strData ) {
             if( int.TryParse( strData, out int iData ) ) {
                 int iRegisterData = RegisterRead( iRegister );
                 if( iRegisterData < iData ) {
@@ -539,6 +520,15 @@ namespace Monitor {
                 return;
             }
             _oBaseSite.LogError( "Invalid Op", "Bad address or data at address" );
+        }
+
+        public void Inst_CompImm() {
+            int    iRegister = int.Parse( TextCommands[++PC].ToString() );
+            string strData   = TextCommands[++PC].ToString();
+
+            ++PC;
+
+            Compare( iRegister, strData );
         }
 
         /// <summary>
