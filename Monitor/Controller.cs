@@ -592,7 +592,13 @@ namespace Monitor {
             RegisterWrite( iRegister, --iRegisterData );
         }
 
-
+        /// <summary>
+        /// So it turns out when your not single stepping you're ending
+        /// up doing screen refreshes on the visible registers for every
+        /// instruction. That's something to consider doing something
+        /// about if I ever want this to run fast(er)
+        /// </summary>
+        /// <param name="fNotStep"></param>
         public void ProgramRun( bool fNotStep = true ) {
             int iCnt = 0; // Just a hack to prevent infinite loops. Need something nicer.
             int iMax = (int)Math.Pow( 10, 5);

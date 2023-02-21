@@ -469,9 +469,9 @@ namespace Play.SSTV {
 				if( sGuid.Equals(GlobalDecorations.Properties) ) {
 					return new WindowRxProperties( oBaseSite, _oDocSSTV );
 				}
-				if( sGuid.Equals( GlobalDecorations.Outline ) ) {
-					return new CheckList( oBaseSite, _oDocSSTV.RxModeList );
-				}
+				//if( sGuid.Equals( GlobalDecorations.Outline ) ) {
+				//	return new CheckList( oBaseSite, _oDocSSTV.RxModeList );
+				//}
 				return false;
 			} catch ( Exception oEx ) {
 				Type[] rgErrors = { typeof( NotImplementedException ),
@@ -724,9 +724,10 @@ namespace Play.SSTV {
 				if( sGuid.Equals(GlobalDecorations.Properties) ) {
 					return new WindowRxProperties( oBaseSite, _oDocSSTV );
 				}
-				if( sGuid.Equals( GlobalDecorations.Outline ) ) {
-					return new CheckList( oBaseSite, _oDocSSTV.RxModeList );
-				}
+				// Property pane contains two dropdowns for this now.
+				//if( sGuid.Equals( GlobalDecorations.Outline ) ) {
+				//	return new CheckList( oBaseSite, _oDocSSTV.RxModeList );
+				//}
 				return false;
 			} catch ( Exception oEx ) {
 				Type[] rgErrors = { typeof( NotImplementedException ),

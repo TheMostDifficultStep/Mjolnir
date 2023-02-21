@@ -64,6 +64,9 @@ namespace Mjolnir {
                 case "mycr":
                     oElem = new TextTermCR();
                     break;
+                case "mytab":
+                    oElem = new TextTermTab();
+                    break;
                 case "myEmpty":
                     oElem = new TextTermEmpty();
                     break;

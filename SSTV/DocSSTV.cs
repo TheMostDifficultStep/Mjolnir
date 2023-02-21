@@ -1513,7 +1513,7 @@ namespace Play.SSTV {
                             break;
                         case SSTVEvents.ThreadExit:
                             // If there's an abort, you'll get that message and then this one.
-                            Properties.ValueUpdate( SSTVProperties.Names.Std_Process, "Rx Live: Stopped!", true );
+                            Properties.ValueUpdate( SSTVProperties.Names.Std_Process, "Rx Live: Stopped - " + sResult.Param.ToString(), true );
                             break;
                         case SSTVEvents.ThreadAbort:
                             if( _oThread == null ) {

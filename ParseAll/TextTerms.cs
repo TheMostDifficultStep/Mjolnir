@@ -97,20 +97,21 @@ namespace Play.Parse.Impl.Text
 		}
     }
 
-	/// <summary>
-	/// 2019: Had tab, but tabbed columns and space are different.
-	/// </summary>
-	/// <remarks>Might specifically need a TabSpace terminal. Or perhaps
-	/// I'll add a value attrib so you can specifically add tab.</remarks>
-	public class TextTermSpace : ProdElem<char>
+    public abstract class TextTermBase : ProdElem<char>
 	{
-        int m_iMin;
+        protected int m_iMin;
 
-        public TextTermSpace( )
+        public TextTermBase( )
         {
             m_iMin = 1;
         } 
 
+		/// <summary>
+		/// "Occur" seems to be different than minmatch and maxmatch. Might
+		/// want to revue that.
+		/// </summary>
+		/// <param name="p_xmlElement"></param>
+		/// <returns></returns>
         public override bool Load( XmlElement p_xmlElement )
         {
             String strOccur = p_xmlElement.GetAttribute( "occur" );
@@ -127,6 +128,18 @@ namespace Play.Parse.Impl.Text
             }
             return (true);
         } 
+		public override bool IsVisible => false;
+    }
+
+
+	/// <summary>
+	/// 2019: Had tab, but tabbed columns and space are different.
+	/// </summary>
+	/// <remarks>Might specifically need a TabSpace terminal. Or perhaps
+	/// I'll add a value attrib so you can specifically add tab.</remarks>
+	public class TextTermSpace : TextTermBase
+	{
+        public TextTermSpace( ) { } 
 
         public override bool IsEqual( int p_iMaxStack, DataStream<char> p_oStream, bool fLookAhead, int p_iPos, out int p_iMatch, out Production<char> p_oProd )
 		{
@@ -149,36 +162,40 @@ namespace Play.Parse.Impl.Text
 		{
 			return( "_" );
 		}
-
-		public override bool IsVisible => false;
 	} 
 
-    public class TextTermCR : ProdElem<char>
+	public class TextTermTab : TextTermBase
+	{
+        public TextTermTab( ) { } 
+
+        public override bool IsEqual( int p_iMaxStack, DataStream<char> p_oStream, bool fLookAhead, int p_iPos, out int p_iMatch, out Production<char> p_oProd )
+		{
+            p_iMatch = 0;
+			p_oProd  = null;
+			
+			while( p_oStream.InBounds( p_iPos + p_iMatch ) && p_iMatch < _iMaxMatch ) {
+				char cChar = p_oStream[ p_iPos + p_iMatch ];
+				if( cChar == '\t' )
+					p_iMatch++;
+				else
+					break;
+			}
+
+			return( p_iMatch > 0 && p_iMatch <= _iMaxMatch && p_iMatch >= _iMinMatch );
+        } 
+
+		public override string ToString()
+		{
+			return( "/t" );
+		}
+	} 
+    public class TextTermCR : TextTermBase
     {
-        int m_iMin;
+        public TextTermCR() { } 
 
-        public TextTermCR()
-        {
-            m_iMin = 1;
-        } 
-
-        public override bool Load(XmlElement p_xmlElement)
-        {
-            String strOccur = p_xmlElement.GetAttribute("occur");
-
-            if (!base.Load(p_xmlElement))
-                return (false);
-
-            if (strOccur != null)
-            {
-                if (strOccur == "*")
-                    m_iMin = 0;
-                else
-                    m_iMin = 1;
-            }
-            return (true);
-        } 
-
+        /// <summary>
+        /// Looking for either \n OR \r OR both!
+        /// </summary>
         public override bool IsEqual(int p_iMaxStack, DataStream<char> p_oStream, bool fLookAhead, int p_iPos, out int p_iMatch, out Production<char> p_oProd)
         {
             p_iMatch = 0;
@@ -186,9 +203,9 @@ namespace Play.Parse.Impl.Text
 
             while (p_oStream.InBounds(p_iPos + p_iMatch))
             {
-                char cValue = p_oStream[p_iPos + p_iMatch];
+                char   cValue   = p_oStream[p_iPos + p_iMatch];
                 string arrSpace = "\n\r";
-                bool fMatch = false;
+                bool   fMatch   = false;
 
                 for (int i = 0; i < arrSpace.Length; ++i)
                 {
@@ -209,9 +226,8 @@ namespace Play.Parse.Impl.Text
         {
             return ("EOL");
         }
-
-		public override bool IsVisible => false;
 	}
+
     // A simple base class to collect the "value" attribute from the XML BNF.
 	// value is typically something like the token we are looking for.
 	public abstract class ValueTerminal : ProdElem<char> 

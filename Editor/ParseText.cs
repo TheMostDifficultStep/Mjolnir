@@ -294,8 +294,23 @@ namespace Play.Integration {
 
 				sbMessage.Append( p_iStream.ToString() );
 				sbMessage.Append( " '" );
-				sbMessage.Append( _oStream.SubString( p_iStream, p_iLength ) );
-				sbMessage.Append( "'" );
+                if( p_iLength == 1 ) {
+                    switch( _oStream[p_iStream] ) {
+                        case '\n':
+                            sbMessage.Append( @"\n" );
+                            break;
+                        case '\r':
+                            sbMessage.Append( @"\r" );
+                            break;
+                        default:
+                            sbMessage.Append( _oStream[p_iStream] );
+                            break;
+                    }
+                } else {
+				    sbMessage.Append( _oStream.SubString( p_iStream, p_iLength ) );
+                }
+				sbMessage.Append( "' -- " );
+                sbMessage.Append( p_oElem.ToString() );
 
 				_rgDocProds.LineAppend( sbMessage.ToString() ); // BUG: Make a line append that takes a stringbuilder.
 			}

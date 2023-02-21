@@ -528,7 +528,6 @@ namespace Play.Edit {
         /// <remarks>In this brave new world. A single grapheme can be made up of
         /// many codepoints! This brings up the issue of editing these multi point
         /// grapheme's but I'll side step that for the moment.</remarks>
-        /// <remarks>Still focused on the TextArea.</remarks>
         /// <exception cref="ArgumentException" />
         public IEnumerator<IPgGlyph> EnumGrapheme( ILineRange oCaret ) {
             if( oCaret == null || oCaret.Line == null )
@@ -564,24 +563,24 @@ namespace Play.Edit {
             int iOffset = oCaret.Offset;
 
             // If total miss, build a new screen based on the location of the caret.
-            CacheRow oElem = CacheLocate( oCaret.At );
-            if( oElem == null ) {
+            CacheRow oRow = CacheLocate( oCaret.At );
+            if( oRow == null ) {
                 return CaretMove.MISS;
             }
 
             if( iDir != 0 ) {
                 // First, see if we can navigate within the line we are currently at.
-                if( !oElem.CacheList[0].Navigate( eAxis, iDir, ref flAdvance, ref iOffset ) ) {
+                if( !oRow.CacheList[0].Navigate( eAxis, iDir, ref flAdvance, ref iOffset ) ) {
                     iDir = iDir < 0 ? -1 : 1; // Only allow move one line up or down.
 
 					// _rgLeft[_rgLeft.Count-1] = _oTextRect.GetScalar( SCALAR.WIDTH );
 
                     try {
-                        CacheRow oNext = PreCache( oElem.At + iDir );
+                        CacheRow oNext = PreCache( oRow.At + iDir );
                         if( oNext != null ) {
                             // Find out where to place the cursor as it moves to the next line.
                             iOffset = oNext.CacheList[0].OffsetBound( eAxis, iDir * -1, flAdvance );
-                            oElem   = oNext;
+                            oRow   = oNext;
                         }
                     } catch( ArgumentOutOfRangeException ) {
                         // We're not throwing yet in PreCache, but this is what we want.
@@ -589,11 +588,11 @@ namespace Play.Edit {
                 }
 
                 // If going up or down ends up null, we won't be moving the caret.
-                oCaret.Line   = oElem.Line;
+                oCaret.Line   = oRow.Line;
                 oCaret.Offset = iOffset;
             }
 
-            return CaretLocal( oElem, iOffset );
+            return CaretLocal( oRow, iOffset );
         }
 
         /// <summary>
@@ -759,13 +758,11 @@ namespace Play.Edit {
 
         /// <summary>
         /// Return the line offset position converted to World coordinates. CumulativeHeight
-        /// and Cumulative Width.
+        /// and Cumulative Width. This is used to position the carat.
         /// </summary>
         /// <remarks>Again hard coded for text area.</remarks>
-        /// <param name="oLine">The line we are searching for.</param>
-        /// <param name="iOffset">Offset within the line.</param>
-        /// <param name="pntLocation">return world relative graphics coordinates.</param>
-        /// <returns></returns>
+        /// <param name="oSelection">The Line and offset see are seeking.</param>
+        /// <param name="pntWorld">world relative graphics coordinates.</param>
         public bool GlyphLineToPoint( ILineRange oSelection, out Point pntWorld ) {
             CacheRow oRow = CacheLocate( oSelection.At );
 

@@ -173,9 +173,9 @@ namespace Play.SSTV {
 
 	/// <summary>
 	/// This is a old view so we can select a transmit image. Basically a slightly
-	/// motified directory viewer. 
+	/// motified directory viewer. Not in use currently.
 	/// </summary>
-	public class ViewTransmitSolo: 
+	public class WinTransmitSolo: 
 		WindowSoloImageNav 
 	{
 		public static Guid GUID { get; } = new Guid( "{5BC25D2B-3F4E-4339-935C-CFADC2650B35}" );
@@ -198,7 +198,7 @@ namespace Play.SSTV {
 
         DocSSTV _oDocSSTV;
 
-		public ViewTransmitSolo( IPgViewSite oSiteBase, DocSSTV oDocSSTV ) : base( oSiteBase, oDocSSTV.TxImageList ) {
+		public WinTransmitSolo( IPgViewSite oSiteBase, DocSSTV oDocSSTV ) : base( oSiteBase, oDocSSTV.TxImageList ) {
 			_oDocSSTV = oDocSSTV ?? throw new ArgumentNullException( "oDocSSTV must not be null." );
 		}
 
@@ -254,9 +254,10 @@ namespace Play.SSTV {
 			if( sGuid.Equals(GlobalDecorations.Properties) ) {
 				return new ViewTxProperties( oBaseSite, _oDocSSTV );
 			}
-			if( sGuid.Equals( GlobalDecorations.Outline ) ) {
-				return new CheckList( oBaseSite, _oDocSSTV.TxModeList );
-			}
+			// TODO: Turn back one when useful.
+			//if( sGuid.Equals( GlobalDecorations.Outline ) ) {
+			//	return new CheckList( oBaseSite, _oDocSSTV.TxModeList );
+			//}
 			if( sGuid.Equals( GlobalDecorations.Options ) ) {
 				return new ImageViewIcons( oBaseSite, _oDocSSTV.TxImageList );
 			}
@@ -748,11 +749,11 @@ namespace Play.SSTV {
 				_wmTxProperties = new ViewTxProperties( oBaseSite, this, _oDocSSTV );
 				return _wmTxProperties;
 			}
-			if( sGuid.Equals( GlobalDecorations.Outline ) ) {
-				//return new CheckList( oBaseSite, _oDocSSTV.TxModeList );
-				//return new CheckList( oBaseSite, _oDocSSTV.TemplateList ) { ReadOnly = true }; // We'll be read/write in the future.
-				return new EditWindow2( oBaseSite, _oDocSSTV.TxBitmapComp.Layers ) { ReadOnly = true };
-			}
+			//if( sGuid.Equals( GlobalDecorations.Outline ) ) {
+			//	//return new CheckList( oBaseSite, _oDocSSTV.TxModeList );
+			//	//return new CheckList( oBaseSite, _oDocSSTV.TemplateList ) { ReadOnly = true }; // We'll be read/write in the future.
+			//	return new EditWindow2( oBaseSite, _oDocSSTV.TxBitmapComp.Layers ) { ReadOnly = true };
+			//}
 			//if( sGuid.Equals( GlobalDecorations.Options ) ) {
 			//	//return new CheckList( oBaseSite, _oDocSSTV.TemplateList ) { ReadOnly = true }; // We'll be read/write in the future.
 			//	// BUG: This is super hacky, but just try for now. Since the addornment
