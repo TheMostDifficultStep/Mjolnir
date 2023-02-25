@@ -148,10 +148,10 @@ namespace Play.Edit {
             if( _rgValue == null )
                 return( string.Empty );
 
-            if( iLength > this.Length - iStart )
-                iLength = this.Length - iStart;
             if( iStart >= this.Length )
                 iStart  = this.Length - 1;
+            if( iStart + iLength - 1 > this.Length )
+                iLength = this.Length - iStart;
             if( iStart < 0 )
                 iStart  = 0;
 

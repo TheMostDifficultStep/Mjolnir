@@ -208,7 +208,7 @@ namespace Play.SSTV {
                     throw;
 
                 // Never send TxThreadErrors.ThreadAbort, that's for the Device thread only.
-                _oToUIQueue.Enqueue( new( SSTVEvents.ThreadException, (int)TxThreadErrors.WorkerException ) );
+                _oToUIQueue.Enqueue( new( SSTVEvents.ThreadException, (int)TxThreadErrors.WorkerException, oEx ) );
             }
         }
 
@@ -459,6 +459,11 @@ namespace Play.SSTV {
                 oThread.Start();
 
                 while( CheckMessages() ) {
+                    // Our sound thread can throw an exception and exit.
+                    if( !oThread.IsAlive ) {
+                        _oToUIQueue.Enqueue( new( SSTVEvents.ThreadAbort, 10 ) );
+                        break;
+                    }
                     while( oQueue.TryDequeue( out short dblValue ) ) {
                         _oSSTVDeMo.Do( (double)dblValue );
                     }
@@ -644,7 +649,7 @@ namespace Play.SSTV {
                 if( _rgLoopErrors.IsUnhandled( oEx ) )
                     throw;
 
-                _oToUIQueue.Enqueue( new( SSTVEvents.ThreadException, 1 ) );
+                _oToUIQueue.Enqueue( new( SSTVEvents.ThreadException, (int)TxThreadErrors.WorkerException, oEx ) );
             }
             // If we've bailed because of an exception in the loop
             // we'll hit it again when we try to stop.

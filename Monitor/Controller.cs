@@ -1,9 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections;
 
 using Play.Interfaces.Embedding;
 using Play.Edit; 
 using Play.Forms;
+using Play.Integration;
+using Play.Parse;
+using Play.Parse.Impl;
 
 namespace Monitor {
     public class MonitorController : Controller {
@@ -56,6 +58,8 @@ namespace Monitor {
         protected Dictionary< string, Action> _dctInstructions = new();
         protected Dictionary< string, int >   _dctStatusNames  = new();
         protected Dictionary< int, int >      _dctPowerOfTwo   = new();
+
+        protected readonly Grammer<char> _oGrammer;
         public bool IsDirty => false;
 
         public IPgParent Parentage => _oBaseSite.Host;
@@ -170,6 +174,23 @@ namespace Monitor {
             _dctPowerOfTwo.Add(  32, 5 ); // unused.
             _dctPowerOfTwo.Add(  64, 6 ); // overflow
             _dctPowerOfTwo.Add( 128, 7 ); // negative.
+
+			try {
+				// A parser is matched one per text document we are loading.
+				ParseHandlerText oParser = new ParseHandlerText( AssemblyDoc, "asm" );
+                _oGrammer = oParser.Grammer;
+			} catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( NullReferenceException ),
+                                    typeof( InvalidCastException ),
+                                    typeof( ArgumentNullException ),
+									typeof( ArgumentException ),
+									typeof( InvalidOperationException ),
+									typeof( InvalidProgramException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
+
+				throw new InvalidOperationException( "Couldn't create parse handler for given text.", oEx );
+			}
         }
 
         // See ca 1816 warning.
@@ -244,6 +265,47 @@ namespace Monitor {
                 return false;
 
             return true;
+        }
+
+        public void CompileAsm() {
+            TextCommands.Clear();
+
+            State<char> oStatement = _oGrammer.FindState( "statement" );
+            State<char> oParam     = _oGrammer.FindState( "param" );
+
+            int iInstr = oStatement.Bindings.IndexOfKey( "instr" );
+            int iParms = oStatement.Bindings.IndexOfKey( "params" );
+            int iValue = oParam    .Bindings.IndexOfKey( "value" );
+
+            using( BaseEditor.Manipulator oBulk = TextCommands.CreateManipulator() ) {
+                foreach( Line oLine in AssemblyDoc ) {
+                    foreach( IColorRange oRange in oLine.Formatting ) {
+                        // I can actually look this up on the grammer first.
+                        if( oRange is MemoryState<char> oState &&
+                            oState.StateName == "statement"  ) {
+                            if( oState.Values != null ) {
+                                // I want line offsets not stream offsets.
+                                IColorRange oInstr = (IColorRange)oState.Values[iInstr];
+                                ArrayList   oParms = (ArrayList  )oState.Values[iParms];
+
+                                if( oInstr != null ) {
+                                    oBulk.LineAppend( oLine.SubString( oInstr.Offset, oInstr.Length ) );
+                                }
+                                if( oParms != null ) {
+                                    foreach( MemoryState<char> oParamBound in oParms ) {
+                                        if( oParamBound.Values != null ){
+                                            IColorRange oValue = (IColorRange)oParamBound.Values[iValue];
+                                            if( oValue != null ) {
+                                            oBulk.LineAppend( oLine.SubString( oValue.Offset, oValue.Length ) );
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         /// <summary>
@@ -380,7 +442,7 @@ namespace Monitor {
                     iResult = iA / iB;
                     break;
                 default:
-                    throw new InvalidOperationException( "bad floating point operation" );
+                    throw new InvalidOperationException( "bad Arithmetic operation" );
             }
 
             RegisterWrite( 0, iResult.ToString() );

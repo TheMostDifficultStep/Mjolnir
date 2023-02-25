@@ -5,6 +5,7 @@ using Play.Forms;
 using Play.Rectangles;
 using Play.Edit;
 using SkiaSharp;
+using System.Windows.Forms;
 
 namespace Monitor {
     public class AssemblyWindow : EditWindow2 {
@@ -231,6 +232,14 @@ namespace Monitor {
         protected override void OnSizeChanged(EventArgs e) {
             if( Width > 0 && Height > 0 ) {
                 base.OnSizeChanged(e);
+            }
+        }
+
+        protected override void OnKeyDown(KeyEventArgs e) {
+            base.OnKeyDown(e);
+
+            if( e.KeyCode == Keys.F2 ) {
+                MonitorDoc.CompileAsm();
             }
         }
 

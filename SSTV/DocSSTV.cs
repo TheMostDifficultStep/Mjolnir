@@ -1523,6 +1523,11 @@ namespace Play.SSTV {
                             }
                             RxModeList.HighLight   = null;
                             RxModeList.CheckedLine = RxModeList[0];
+
+                            if( sResult.Param2 is Exception oEx ) {
+                                LogError( oEx.StackTrace );
+                            }
+
                             _oThread = null;
                             break; 
                         case SSTVEvents.ThreadException:
@@ -1532,6 +1537,10 @@ namespace Play.SSTV {
                                 if( sResult.Param == (int)TxThreadErrors.DataOverflow ) {
                                     LogError( "Data Overflow, halting device read" );
                                     ReceiveLiveStop(); 
+                                }
+                                if( sResult.Param2 is Exception oExThread ) {
+                                    LogError( oExThread.StackTrace );
+                                    LogError( oExThread.Message );
                                 }
                             } catch( IndexOutOfRangeException ) {
                                 LogError( "General Thread Exception " + sResult.Param.ToString() );

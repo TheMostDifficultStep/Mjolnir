@@ -157,6 +157,8 @@ namespace Play.Integration {
             _oDocument.BufferEvent += _oDocEvent = new BufferEvent(this.OnEvent);   
         }
 
+        public Grammer<char> Grammer => _oTextGrammar;
+
 		public BaseEditor ProductionsEdit {
 			set {
 				if( value == null )
