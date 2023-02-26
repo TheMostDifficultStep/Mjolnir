@@ -1,4 +1,6 @@
 ﻿using System.Collections;
+using System.Collections.Generic;
+using System.Text;
 
 using Play.Interfaces.Embedding;
 using Play.Edit; 
@@ -270,36 +272,64 @@ namespace Monitor {
         public void CompileAsm() {
             TextCommands.Clear();
 
-            State<char> oStatement = _oGrammer.FindState( "statement" );
-            State<char> oParam     = _oGrammer.FindState( "param" );
+            // Let's look up all the bindings just once at the start!!
+            State<char> oClassStatement = _oGrammer.FindState( "statement" );
+            State<char> oClassParam     = _oGrammer.FindState( "param" );
 
-            int iInstr = oStatement.Bindings.IndexOfKey( "instr" );
-            int iParms = oStatement.Bindings.IndexOfKey( "params" );
-            int iValue = oParam    .Bindings.IndexOfKey( "value" );
+            // Would be nice if checked if any -1.
+            int iInstr = oClassStatement.Bindings.IndexOfKey( "instr" );
+            int iParms = oClassStatement.Bindings.IndexOfKey( "params" );
+
+            int iValue = oClassParam    .Bindings.IndexOfKey( "value" );
+            int iHex   = oClassParam    .Bindings.IndexOfKey( "hex" );
+            int iImm   = oClassParam    .Bindings.IndexOfKey( "immed" );
 
             using( BaseEditor.Manipulator oBulk = TextCommands.CreateManipulator() ) {
-                foreach( Line oLine in AssemblyDoc ) {
-                    foreach( IColorRange oRange in oLine.Formatting ) {
-                        // I can actually look this up on the grammer first.
-                        if( oRange is MemoryState<char> oState &&
-                            oState.StateName == "statement"  ) {
-                            if( oState.Values != null ) {
-                                // I want line offsets not stream offsets.
-                                IColorRange oInstr = (IColorRange)oState.Values[iInstr];
-                                ArrayList   oParms = (ArrayList  )oState.Values[iParms];
+                StringBuilder  oBuild = new();
+                List<string> rgValues = new(3);
 
-                                if( oInstr != null ) {
-                                    oBulk.LineAppend( oLine.SubString( oInstr.Offset, oInstr.Length ) );
-                                }
-                                if( oParms != null ) {
-                                    foreach( MemoryState<char> oParamBound in oParms ) {
-                                        if( oParamBound.Values != null ){
-                                            IColorRange oValue = (IColorRange)oParamBound.Values[iValue];
-                                            if( oValue != null ) {
-                                            oBulk.LineAppend( oLine.SubString( oValue.Offset, oValue.Length ) );
+                foreach( Line oLine in AssemblyDoc ) {
+                    oBuild  .Clear();
+                    rgValues.Clear();
+                    bool fImm    = false;
+                    foreach( IColorRange oRange in oLine.Formatting ) {
+                        if( oRange is MemoryState<char> oState &&
+                            oState.StateName == "statement" &&
+                            oState.Values != null )
+                        {
+                            // I want line offsets not stream offsets. We can do this since
+                            // no datum (that we care about) will extend past one line.
+                            IColorRange oInstr = (IColorRange)oState.Values[iInstr];
+                            ArrayList   oParms = (ArrayList  )oState.Values[iParms];
+                            string      sInstr = string.Empty;
+
+                            if( oInstr != null ) {
+                                sInstr = oLine.SubString( oInstr.Offset, oInstr.Length );
+                            }
+                            if( oParms != null && !string.IsNullOrEmpty( sInstr ) ) {
+                                foreach( MemoryState<char> oParam in oParms ) {
+                                    if( oParam.Values != null ){
+                                        IColorRange oValue = (IColorRange)oParam.Values[iValue];
+                                        IColorRange oImm   = (IColorRange)oParam.Values[iImm];
+                                        if( oValue != null ) {
+                                            string strValue = oLine.SubString( oValue.Offset, oValue.Length );
+                                            rgValues.Add( strValue );
+
+                                            if( oImm != null && !fImm ) {
+                                                fImm = true;
                                             }
-                                        }
+                                         }
                                     }
+                                }
+                            }
+                            if( !string.IsNullOrEmpty( sInstr ) ) {
+                                oBuild.Append( sInstr );
+                                if( fImm ) {
+                                    oBuild.Append( "_imm" );
+                                }
+                                oBulk.LineAppend( oBuild.ToString() );
+                                foreach( string strValue in rgValues ) {
+                                    oBulk.LineAppend( strValue );
                                 }
                             }
                         }

@@ -536,6 +536,7 @@ namespace Play.Integration {
 			if( _oStream.InBounds( p_iStart ) ) {
 				Line oLine  = _oStream.SeekLine(p_iStart, out int iOffset);
 
+                sbMessage.Append( "Line : " );
 				sbMessage.Append( oLine.At.ToString() ); 
 				sbMessage.Append( ", Offset: " );
 				sbMessage.Append( iOffset.ToString() );
