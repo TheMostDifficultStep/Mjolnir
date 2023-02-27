@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 
 using Play.Interfaces.Embedding;
 
@@ -7,10 +8,15 @@ namespace Play.Parse.Impl
 {
     public delegate void OnParseFinish<T>( MemoryState<T> oStart, DataStream<T> oStream );
 
-    // Base class for holding all positions in the buffer. This object aggregates the behavior
-    // of the state or terminal it contains. When a ProdElem succeeds IsEqual() this is the
-    // object that stores the stream offset when it was found.
-    // Used to save the entire parse tree but no more.
+    /// <summary>
+    /// Base class for holding all positions in the buffer. This object aggregates the behavior
+    /// of the state or terminal it contains. When a ProdElem succeeds IsEqual() this is the
+    /// object that stores the stream offset when it was found.
+    /// Used to save the entire parse tree but no longer. 
+    /// And I would love NOT to inherit from ProdBase. But he binding system is using the
+    /// parse stack. I'll have to give it some thought.
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
     public abstract class MemoryElem<T> : 
         ProdBase<T>,
         IPgWordRange // IColorRange
@@ -21,7 +27,7 @@ namespace Play.Parse.Impl
         protected int m_iOffs   = -1;
         protected int m_iColor  =  0;
 
-        public ProdElem<T> m_oInst = null; // Production Element we an 'instance' of.
+        public ProdElem<T> _oProdElem = null; // Production Element we are an 'instance' of.
 
         /// <summary>
         /// Base implementation of all memory elements. Because we throw these straight into our
@@ -30,15 +36,15 @@ namespace Play.Parse.Impl
         /// <param name="p_oInst">An element from a production.</param>
         /// <param name="p_oParent">Might be null. We don't build resulting tree anymore.</param>
         protected MemoryElem(ProdElem<T> p_oInst, MemoryState<T> p_oParent) {
-			m_oInst = p_oInst ?? throw new ArgumentNullException();
+			_oProdElem = p_oInst ?? throw new ArgumentNullException();
         }
 
 		/// <summary>
 		/// By default prodbase<> is not a word. So we need to check the production instance we come from.
 		/// </summary>
-		public override bool IsWord    => m_oInst.IsWord;
-		public override bool IsVisible => m_oInst.IsVisible;
-		public override bool IsTerm    => m_oInst.IsTerm;
+		public override bool IsWord    => _oProdElem.IsWord;
+		public override bool IsVisible => _oProdElem.IsVisible;
+		public override bool IsTerm    => _oProdElem.IsTerm;
 
 		/// <summary>
 		/// Save the position for a terminal when matched.
@@ -51,7 +57,7 @@ namespace Play.Parse.Impl
             out int           p_iMatch,
             out Production<T> p_oProd
         ) {
-            bool l_bRet = m_oInst.IsEqual( p_iMaxStack, p_oStream, p_fLookAhead, p_iPos, out p_iMatch, out p_oProd );
+            bool l_bRet = _oProdElem.IsEqual( p_iMaxStack, p_oStream, p_fLookAhead, p_iPos, out p_iMatch, out p_oProd );
 
             m_iStart = p_iPos; // Always record this position so we know where the error occurred.
 
@@ -63,11 +69,11 @@ namespace Play.Parse.Impl
 
         public override string ToString()
         {
- 	         return m_oInst.ToString();
+ 	         return _oProdElem.ToString();
         }
 
         public override string ID {
-            get { return( m_oInst.ID ); }
+            get { return( _oProdElem.ID ); }
         }
 
         public virtual string StateName => string.Empty;
@@ -141,20 +147,14 @@ namespace Play.Parse.Impl
             }
         }
 
-        virtual public Object[] Values {
-            get {
-                return (null);
-            }
-        }
-
         public virtual ProdElem<T> ProdElem {
             get {
-                return (m_oInst);
+                return (_oProdElem);
             }
         } 
 
         public virtual string DisplayName( DataStream<T> p_oStream ) {
-            return (m_oInst.ToString());
+            return (_oProdElem.ToString());
         }
         
         public virtual int ColorIndex 
@@ -166,14 +166,6 @@ namespace Play.Parse.Impl
                 m_iColor = value;
             }
         }
-
-		/// <summary>
-		/// Use the data stream to get a string representing our parsed portion.
-		/// </summary>
-		/// <remarks>Not sure this is the greatest function name. This is more like a read.</remarks>
-		/// <param name="p_oText">Data stream.</param>
-		/// <returns></returns>
-        public abstract string Write(DataStream<T> p_oText);
     } // end class 
 
     public class MemoryTerminal<T> : MemoryElem<T> {
@@ -184,32 +176,26 @@ namespace Play.Parse.Impl
             // terminals must always have a parent.
         } // MemoryTerminal
 
-		public override string Write(DataStream<T> p_oStream) {
-            if (p_oStream != null) {
-                if (this.IsError)
-                    return ("Error at Pos: " + m_iStart.ToString() + ", Attempt: " + m_oInst.ToString() );
-                else {
-                    string strOut = p_oStream.SubString(m_iStart, Length);
-
-                    if (strOut.Length == 0)
-                        return ("empty");
-
-                    return ("'" + strOut + "'");
-                }
-            }
-            return (m_oInst.ToString() );
-        }
-
         public override string DisplayName(DataStream<T> p_oStream) {
-            return ( Write( p_oStream ) );
+            if( p_oStream != null ) {
+                if( IsError )
+                    return "Error at Pos: " + m_iStart.ToString() + ", Attempt: " + _oProdElem.ToString();
+
+                string strOut = p_oStream.SubString(m_iStart, Length);
+
+                if (strOut.Length == 0)
+                    return ("empty");
+
+                return "'" + strOut + "'";
+            }
+            return _oProdElem.ToString();
         }
     } // end class
 
     public class MemoryState<T> : MemoryElem<T> {
         protected State<T> _oState;   // The state for which we are storing instance data.
-        protected Object[] _rgValues; // the values to store, some of which may be arrays. 
-                                      // TODO: 3/7/2017, separate singletons from array values.
-
+        protected object[] _rgValues; // the values to store, some of which may be arrays. 
+                                      
         /// <summary>
         /// A memory state should always come from a production elem instance. We create
         /// a dummy production elem instance for the start state so that m_oInst is always
@@ -231,7 +217,7 @@ namespace Play.Parse.Impl
             // Check how many bindings the state has and create a array 
             // to hold the elements as they are parsed.
             if( _oState.IsBinding )
-                _rgValues = new Object[_oState.Bindings.Count];
+                _rgValues = new object[_oState.Bindings.Count];
             else
                 _rgValues = null;
 
@@ -243,21 +229,6 @@ namespace Play.Parse.Impl
                 else
                     _rgValues[iIndex] = null;
             }
-        }
-
-		public override string Write(DataStream<T> p_oStream) {
-            if (!IsError) {
-                if( this.Length > 0 ) {
-                    string strOut = p_oStream.SubString(Start, Length);
-
-                    if (strOut.Length != 0)
-                        return (strOut);
-                }
-            }
-
-            // TODO: Do I really want to print the name in the event of some kind of
-            //       binding error? Need to think about it.
-            return (_oState.Name);
         }
 
         /// <summary>
@@ -342,38 +313,73 @@ namespace Play.Parse.Impl
             }
         }
 
-        /// <summary>
-        /// Values are either an array list object holding collection of bindings
-        /// or they are a single binding. 
-        /// </summary>
-        public override Object[] Values {
-            get {
-                return (_rgValues);
-            }
+        // This is a state that binds sub members.
+        public override bool IsBinding {
+            get { return _oState.IsBinding; }
         }
 
         public int IndexOfBinding( string strBinding ) {
-            return( _oState.Bindings.IndexOfKey( strBinding ) );
+            return _oState.Bindings.IndexOfKey( strBinding );
         }
 
-        public object GetValue( string strIndex ) {
-            int iIndex = Class.Bindings.Keys.IndexOf( strIndex );
+        /// <summary>
+        /// Get the value of a binding in a one-off fashion. If you're
+        /// making multiple calls to a particular binding. It's better
+        /// to get the binding index from the grammmer and use the
+        /// int value of the binding.
+        /// </summary>
+        /// <param name="strBinding">The string name of the binding you
+        /// to retrieve a singleton from.</param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentOutOfRangeException"></exception>
+        /// <exception cref="InvalidCastException"></exception>
+        public MemoryElem<T> GetValue( string strBinding ) {
+            int iBinding = Class.Bindings.Keys.IndexOf( strBinding );
 
-            return( GetValue( iIndex ) );
+            return GetValue( iBinding );
         }
 
-        public object GetValue( int iIndex ) {
-            if( iIndex > -1 && iIndex < Class.Bindings.Keys.Count )
-                return( Values[iIndex] );
-            
-            // TODO: I should return a static instance with start and end @ 0 or something.
-            return( null );
+        /// <param name="iBinding">Which binding you wish to access.</param>
+        /// <param name="iIndex">Index of binding if an array.</param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentOutOfRangeException"></exception>
+        /// <exception cref="InvalidCastException"></exception>
+        public MemoryElem<T> GetValue( int iBinding, int iIndex = 0 ) {
+            if( _oState.Bindings.Values[iBinding].IsArray ) {
+                return ((MemoryElem<T>[])_rgValues[iBinding])[iIndex];
+            }
+
+            return (MemoryElem<T>)_rgValues[iBinding];
         }
 
-        // This is a state that binds sub members.
-        public override bool IsBinding {
-            get { return( _oState.IsBinding ); }
+        protected struct BindingsEnumerable : IEnumerable<MemoryElem<T>> {
+            readonly MemoryState<T> _oHost;
+            readonly int            _iBinding;
+
+            public BindingsEnumerable( MemoryState<T> oHost, int iBinding ) {
+                _oHost = oHost ?? throw new ArgumentNullException( );
+                _iBinding = iBinding;
+            }
+
+            public IEnumerator<MemoryElem<T>> GetEnumerator() {
+                ArrayList rgValues = (ArrayList)_oHost._rgValues[_iBinding];
+                for( int i=0; i< rgValues.Count; ++i ) {
+                    yield return (MemoryElem<T>)rgValues[i];
+                }
+            }
+
+            IEnumerator IEnumerable.GetEnumerator() {
+                return GetEnumerator();
+            }
         }
+
+        public IEnumerable<MemoryElem<T>> EnumValues( int iBinding ) {
+            if( !_oState.Bindings.Values[iBinding].IsArray )
+                throw new ArgumentException( "The Binding is not an Array");
+
+            return new BindingsEnumerable( this, iBinding );
+        }
+
     } // End class 
 
     /// <summary>

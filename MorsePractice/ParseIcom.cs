@@ -139,16 +139,14 @@ namespace Play.MorsePractice {
             string            strIndex 
         ) {
             try {
-                int iIndex = oMemState.Class.Bindings.IndexOfKey( strIndex );
-
                 // Only the memory element has the stream offset. IColorRange is a line offset.
-                if( iIndex > -1 ) {
-                    if( oMemState.Values[iIndex] is MemoryElem<char> oMemory )
-                        return rgTextStream.SubString( oMemory.Start, oMemory.Length );
-                }
+                if( oMemState.GetValue( strIndex ) is MemoryElem<char> oMemory )
+                    return rgTextStream.SubString( oMemory.Start, oMemory.Length );
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( NullReferenceException ),
-                                    typeof( IndexOutOfRangeException ) };
+                                    typeof( ArgumentOutOfRangeException ),
+                                    typeof( InvalidProgramException ),
+                                    typeof( InvalidCastException ) };
                 if( rgErrors.IsUnhandled( oEx ) )
                     throw;
             }

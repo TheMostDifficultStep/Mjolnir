@@ -25,26 +25,24 @@ namespace Play.Parse.Impl.Text
         /// </summary>
         /// <remarks>This function as originally in the main executable "parsefragments.cs". I've moved
         /// it here as a helper function.</remarks>
-        public static string GetTagAttribute( this MemoryState<char> oChild, DataStream<char> oTextStream, string strAttribName ) {
+        public static string GetTagAttribute( this MemoryState<char> oChild, 
+                                              DataStream<char> oTextStream,
+                                              string strAttribName
+        ) {
             try { 
-                if( oChild.Values == null )
-                    return string.Empty;
-
                 string    strReturn = string.Empty;
                 int       iIndex    = oChild.IndexOfBinding( "attribs" );
-                ArrayList rgAttribs = (ArrayList)oChild.Values[iIndex] as ArrayList;
 
-                if( rgAttribs != null && iIndex >= 0 ) {
-                    foreach( MemoryState<char> oAttrib in rgAttribs ) {
-                        int iAttrName = oAttrib.IndexOfBinding( "attribname" );
-                        int iAttrValu = oAttrib.IndexOfBinding( "attribvalue" );
-                        MemoryElem<char> oAttribName = oAttrib.Values[iAttrName] as MemoryElem<char>;
-                        string strTestAttribName = oTextStream.SubString( oAttribName.Start, oAttribName.Length );
+                foreach( MemoryState<char> oAttrib in oChild.EnumValues( iIndex ) ) {
+                    int iAttrName = oAttrib.IndexOfBinding( "attribname" );
+                    int iAttrValu = oAttrib.IndexOfBinding( "attribvalue" );
 
-                        if( string.Compare( strTestAttribName, strAttribName, true ) == 0 ) {
-                            MemoryElem<char> oAttribValu = oAttrib.Values[iAttrValu] as MemoryElem<char>;
-                            strReturn = oTextStream.SubString( oAttribValu.Start, oAttribValu.Length );
-                        }
+                    MemoryElem<char> oAttribName = oAttrib.GetValue(iAttrName) as MemoryElem<char>;
+                    string strTestAttribName = oTextStream.SubString( oAttribName.Start, oAttribName.Length );
+
+                    if( string.Compare( strTestAttribName, strAttribName, true ) == 0 ) {
+                        MemoryElem<char> oAttribValu = oAttrib.GetValue(iAttrValu) as MemoryElem<char>;
+                        strReturn = oTextStream.SubString( oAttribValu.Start, oAttribValu.Length );
                     }
                 }
             
@@ -103,14 +101,14 @@ namespace Play.Parse.Impl.Text
         public static string GetBinding( 
             DataStream<char>                rgTextStream,
             SortedList<string, BindingInfo> rgDecl, 
-            MemoryElem<char>                oMemElem, 
+            MemoryState<char>               oMemElem, 
             string                          strIndex 
         ) {
             int iIndex = rgDecl.IndexOfKey( strIndex );
 
             if( iIndex > -1 ) {
                 // Only the memory element has the stream offset. IColorRange is a line offset.
-                MemoryElem<char> oMemory = oMemElem.Values[iIndex] as MemoryElem<char>;
+                MemoryElem<char> oMemory = oMemElem.GetValue( iIndex ) as MemoryElem<char>;
                 if( oMemory != null )
                     return( rgTextStream.SubString( oMemory.Start, oMemory.Length ) );
             }

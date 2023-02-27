@@ -23,7 +23,7 @@ namespace Play.Parse.Impl {
 		public abstract bool   IsTerm    { get; }
 		public virtual  bool   IsVisible { get { return true; } }
 
-        public virtual  bool   Bind( ProdBase<T> oChild ) { return( false ); }
+        public virtual  bool   Bind( ProdBase<T> oChild ) { return false; }
 
         // The only person calling this are the MemoryMarker & MemoryBinder
         // If I swap duties of the MemoryState and MemoryBinder I might be

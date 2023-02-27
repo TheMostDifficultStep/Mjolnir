@@ -32,12 +32,6 @@ namespace Play.Parse.Impl.Text
 
         //    return( fResult );
         //}
-
-        public override string Write( DataStream<TagInfo> p_oText ) {
-            TagInfo oTag = p_oText[m_iStart];
-
-            return( oTag.ToString() );
-        }
     }
 
     public class MemoryTermTag : MemoryElemTag {

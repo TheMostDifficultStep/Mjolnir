@@ -659,7 +659,7 @@ namespace Play.Interfaces.Embedding {
         public abstract bool InBounds(int p_iPos); // less than EOF.
 		public abstract int Position { get;	set; }
 		public abstract T this [int iPos ] { get; }
-		[Obsolete]public abstract string SubString( int iPos, int iLen ); // Pretty much used for debugging.
+		public abstract string SubString( int iPos, int iLen ); // Pretty much used for debugging.
 	}
 
     public interface IPgDataStream<T> {

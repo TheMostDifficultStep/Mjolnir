@@ -480,12 +480,10 @@ namespace Play.Edit {
         private void OnBrowserLink( Line oLine, IPgWordRange oRange ) {
             try {
                 if( oRange is MemoryState<char> oState ) {
-                    int iProtocol = oState.IndexOfBinding( "protocol" );
-                    if( iProtocol >= 0 && oState.Values[iProtocol] is MemoryElem<char> oProto ) {
+                    if( oState.GetValue( "protocol" ) is MemoryElem<char> oProto ) {
                         string strProto = oLine.SubString( oProto.Offset, oProto.Length );
                         if( string.Compare( strProto, "file", ignoreCase:true ) == 0 ) {
-                            int iPathPlus = oState.IndexOfBinding( "urlremaining" ); // skip protocol and domain.
-                            if( iPathPlus >=0 && oState.Values[iPathPlus] is MemoryElem<char> oPath ) {
+                            if( oState.GetValue( "urlremaining" ) is MemoryElem<char> oPath ) {
                                 string strPath = oLine.SubString( oPath.Offset, oPath.Length);
                                 string strExtn = Path.GetExtension(strPath);
 
