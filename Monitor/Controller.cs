@@ -50,6 +50,42 @@ namespace Monitor {
         Overflow
     }
 
+    public enum AddrModes {
+        Acc, // Non-Indexed,non memory
+        Imm,
+        Imp,
+
+        Rel, // Non-Indexed memory ops
+        Abs,
+        Zpg,
+        Ind,
+
+        Abs_Indx, // Indexed memory ops
+        Zpg_Indx,
+        Indx_Indr,
+        Indr_Indx
+    }
+
+    public class AsmInstruction {
+        public readonly string    _strName;
+        public readonly string    _strInst;
+        public readonly AddrModes _eMode;
+        public readonly bool      _fIndexed;
+        public readonly bool      _fMemory;
+
+        public AsmInstruction( string strName, string strInst, AddrModes eMode, bool fIndexed, bool fMemory ) {
+            _strName  = strName;
+            _strInst  = strInst;
+            _eMode    = eMode;
+            _fIndexed = fIndexed;
+            _fMemory  = fMemory;
+        }
+
+        public override string ToString() {
+            return _strName + '-' + _eMode.ToString();
+        }
+    }
+
     public class MonitorDocument :
         IPgParent,
 		IDisposable,
@@ -74,6 +110,8 @@ namespace Monitor {
         public List<Line>    StatusLine   { get; } = new();
         public Editor        LablEdit     { get; }
         public List<Line>    Registers    { get; } = new();
+
+        protected readonly List<AsmInstruction> _rgInstr = new();
 
         public enum StatusBits : int {
             Overflow = 0, 
@@ -239,7 +277,20 @@ namespace Monitor {
             LablEdit.LineAppend( "Carry",    false );
             LablEdit.LineAppend( "Overflow", false );
 
+            InitInstructions();
+
             return true;
+        }
+
+        public void InitInstructions() {
+            _rgInstr.Add( new AsmInstruction( "load", "ea", AddrModes.Imm, false, false ) );
+            _rgInstr.Add( new AsmInstruction( "load", "eb", AddrModes.Abs, false, true  ) );
+            _rgInstr.Add( new AsmInstruction( "addi", "cc", AddrModes.Imp, false, false ) );
+            _rgInstr.Add( new AsmInstruction( "save", "b0", AddrModes.Imp, false, true  ) );
+            _rgInstr.Add( new AsmInstruction( "comp", "a0", AddrModes.Abs, false, true  ) );
+            _rgInstr.Add( new AsmInstruction( "brat", "10", AddrModes.Imm, false, true  ) );
+
+            _rgInstr.Sort( ( s1, s2 ) => string.Compare( s1._strName, s2._strName ) );
         }
 
         public bool InitNew() {
@@ -268,6 +319,8 @@ namespace Monitor {
 
             return true;
         }
+
+
 
         public void CompileAsm() {
             TextCommands.Clear();
@@ -321,15 +374,45 @@ namespace Monitor {
                                     }
                                 }
                             }
-                            if( !string.IsNullOrEmpty( sInstr ) ) {
-                                oBuild.Append( sInstr );
-                                if( fImm ) {
-                                    oBuild.Append( "_imm" );
+                            int Compare( AsmInstruction strTry ) {
+                                return string.Compare( sInstr, strTry._strName );
+                            }
+
+                            int i = FindStuff<AsmInstruction>.BinarySearch( _rgInstr, 0, _rgInstr.Count-1, Compare );
+                            if( i >= 0 ) {
+                                int k = i;
+                                for( ; k > 0 && string.Compare( sInstr, _rgInstr[k-1]._strName ) == 0; k-- ) {
                                 }
+                                int j = k;
+                                AsmInstruction asmInstr = null;
+                                for( ; j < _rgInstr.Count && string.Compare( sInstr, _rgInstr[j]._strName ) == 0; j++ ) {
+                                    if( fImm == true ) {
+                                        if( _rgInstr[j]._eMode == AddrModes.Imm )
+                                            break;
+                                    } else {
+                                        if( _rgInstr[j]._fMemory == true ) 
+                                            break;
+                                    }
+                                }
+                                asmInstr = _rgInstr[j];
+
+                                oBuild.Append( asmInstr._strName );
+                                switch( asmInstr._eMode ) {
+                                    case AddrModes.Imm:
+                                        oBuild.Append( "_imm" );
+                                        break;
+                                    case AddrModes.Abs:
+                                        oBuild.Append( "_abs" );
+                                        break;
+                                }
+
                                 oBulk.LineAppend( oBuild.ToString() );
                                 foreach( string strValue in rgValues ) {
                                     oBulk.LineAppend( strValue );
                                 }
+                            } else {
+                                break; // Error.
+                                _oBaseSite.LogError( "Parsing", "Unrecognized instruction" );
                             }
                         }
                     }

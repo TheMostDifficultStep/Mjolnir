@@ -20,7 +20,7 @@ namespace Play.Interfaces.Embedding {
         /// <returns>Matching index, else inverse of closest match.</returns>
         /// <exception cref="ArgumentOutOfRangeException" />
         /// <exception cref="NullReferenceException" />
-        public static int BinarySearch( List<T> rgLines, int iLow, int iHigh, FindPredicate<T> delCompare ) 
+        public static int BinarySearch( IList<T> rgLines, int iLow, int iHigh, FindPredicate<T> delCompare ) 
         {
             if( iLow > iHigh )
                 throw new ArgumentException( "Low > High" ); // Our one out of bounds return condition.
@@ -659,7 +659,7 @@ namespace Play.Interfaces.Embedding {
         public abstract bool InBounds(int p_iPos); // less than EOF.
 		public abstract int Position { get;	set; }
 		public abstract T this [int iPos ] { get; }
-		public abstract string SubString( int iPos, int iLen ); // Pretty much used for debugging.
+		public abstract string SubString( int iPos, int iLen ); 
 	}
 
     public interface IPgDataStream<T> {
