@@ -8,6 +8,7 @@ using Play.Forms;
 using Play.Integration;
 using Play.Parse;
 using Play.Parse.Impl;
+using System.Drawing;
 
 namespace Monitor {
     public class MonitorController : Controller {
@@ -67,14 +68,12 @@ namespace Monitor {
     }
 
     public class AsmInstruction {
-        public readonly string    _strName;
         public readonly string    _strInst;
         public readonly AddrModes _eMode;
         public readonly bool      _fIndexed;
         public readonly bool      _fMemory;
 
-        public AsmInstruction( string strName, string strInst, AddrModes eMode, bool fIndexed, bool fMemory ) {
-            _strName  = strName;
+        public AsmInstruction( string strInst, AddrModes eMode, bool fIndexed, bool fMemory ) {
             _strInst  = strInst;
             _eMode    = eMode;
             _fIndexed = fIndexed;
@@ -82,7 +81,7 @@ namespace Monitor {
         }
 
         public override string ToString() {
-            return _strName + '-' + _eMode.ToString();
+            return _strInst + '-' + _eMode.ToString();
         }
     }
 
@@ -111,7 +110,7 @@ namespace Monitor {
         public Editor        LablEdit     { get; }
         public List<Line>    Registers    { get; } = new();
 
-        protected readonly List<AsmInstruction> _rgInstr = new();
+        protected readonly Dictionary<string, List<AsmInstruction>> _rgInstr = new();
 
         public enum StatusBits : int {
             Overflow = 0, 
@@ -283,14 +282,22 @@ namespace Monitor {
         }
 
         public void InitInstructions() {
-            _rgInstr.Add( new AsmInstruction( "load", "ea", AddrModes.Imm, false, false ) );
-            _rgInstr.Add( new AsmInstruction( "load", "eb", AddrModes.Abs, false, true  ) );
-            _rgInstr.Add( new AsmInstruction( "addi", "cc", AddrModes.Imp, false, false ) );
-            _rgInstr.Add( new AsmInstruction( "save", "b0", AddrModes.Imp, false, true  ) );
-            _rgInstr.Add( new AsmInstruction( "comp", "a0", AddrModes.Abs, false, true  ) );
-            _rgInstr.Add( new AsmInstruction( "brat", "10", AddrModes.Imm, false, true  ) );
+            Add( "load", new AsmInstruction( "ea", AddrModes.Imm, false, false ) );
+            Add( "load", new AsmInstruction( "eb", AddrModes.Abs, false, true  ) );
+            Add( "addi", new AsmInstruction( "cc", AddrModes.Imp, false, false ) );
+            Add( "save", new AsmInstruction( "b0", AddrModes.Imp, false, true  ) );
+            Add( "comp", new AsmInstruction( "a0", AddrModes.Abs, false, true  ) );
+            Add( "brat", new AsmInstruction( "10", AddrModes.Imm, false, true  ) );
+        }
 
-            _rgInstr.Sort( ( s1, s2 ) => string.Compare( s1._strName, s2._strName ) );
+        protected void Add( string strName, AsmInstruction oInstr ) {
+            if( _rgInstr.TryGetValue( strName, out List<AsmInstruction> rgOps  ) ) {
+                rgOps.Add( oInstr );
+            } else {
+                List<AsmInstruction> rgNewOps = new ();
+                rgNewOps.Add( oInstr );
+                _rgInstr.Add( strName, rgNewOps );
+            }
         }
 
         public bool InitNew() {
@@ -374,44 +381,41 @@ namespace Monitor {
                                     }
                                 }
                             }
-                            int Compare( AsmInstruction strTry ) {
-                                return string.Compare( sInstr, strTry._strName );
-                            }
 
-                            int i = FindStuff<AsmInstruction>.BinarySearch( _rgInstr, 0, _rgInstr.Count-1, Compare );
-                            if( i >= 0 ) {
-                                int k = i;
-                                for( ; k > 0 && string.Compare( sInstr, _rgInstr[k-1]._strName ) == 0; k-- ) {
-                                }
-                                int j = k;
-                                AsmInstruction asmInstr = null;
-                                for( ; j < _rgInstr.Count && string.Compare( sInstr, _rgInstr[j]._strName ) == 0; j++ ) {
+                            List<AsmInstruction> rgOps = _rgInstr[sInstr];
+                            if( rgOps != null ) {
+                                AsmInstruction oInstPick = null;
+                                foreach( AsmInstruction oInst in rgOps ) {
                                     if( fImm == true ) {
-                                        if( _rgInstr[j]._eMode == AddrModes.Imm )
+                                        if( oInst._eMode == AddrModes.Imm ) {
+                                            oInstPick = oInst;
                                             break;
+                                        }
                                     } else {
-                                        if( _rgInstr[j]._fMemory == true ) 
+                                        if( oInst._fMemory == true ) {
+                                            oInstPick = oInst;
                                             break;
+                                        }
                                     }
                                 }
-                                asmInstr = _rgInstr[j];
 
-                                oBuild.Append( asmInstr._strName );
-                                switch( asmInstr._eMode ) {
-                                    case AddrModes.Imm:
-                                        oBuild.Append( "_imm" );
-                                        break;
-                                    case AddrModes.Abs:
-                                        oBuild.Append( "_abs" );
-                                        break;
-                                }
+                                if( oInstPick != null ) {
+                                    oBuild.Append( sInstr );
+                                    switch( oInstPick._eMode ) {
+                                        case AddrModes.Imm:
+                                            oBuild.Append( "_imm" );
+                                            break;
+                                        case AddrModes.Abs:
+                                            oBuild.Append( "_abs" );
+                                            break;
+                                    }
 
-                                oBulk.LineAppend( oBuild.ToString() );
-                                foreach( string strValue in rgValues ) {
-                                    oBulk.LineAppend( strValue );
+                                    oBulk.LineAppend( oBuild.ToString() );
+                                    foreach( string strValue in rgValues ) {
+                                        oBulk.LineAppend( strValue );
+                                    }
                                 }
                             } else {
-                                break; // Error.
                                 _oBaseSite.LogError( "Parsing", "Unrecognized instruction" );
                             }
                         }
