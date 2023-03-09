@@ -288,6 +288,7 @@ namespace Monitor {
             Add( "save", new AsmInstruction( "b0", AddrModes.Imp, false, true  ) );
             Add( "comp", new AsmInstruction( "a0", AddrModes.Abs, false, true  ) );
             Add( "brat", new AsmInstruction( "10", AddrModes.Imm, false, true  ) );
+            Add( "halt", new AsmInstruction( "20", AddrModes.Imp, false, false ) );
         }
 
         protected void Add( string strName, AsmInstruction oInstr ) {
@@ -382,8 +383,7 @@ namespace Monitor {
                                 }
                             }
 
-                            List<AsmInstruction> rgOps = _rgInstr[sInstr];
-                            if( rgOps != null ) {
+                            if( _rgInstr.TryGetValue( sInstr, out List<AsmInstruction> rgOps ) ) {
                                 AsmInstruction oInstPick = null;
                                 foreach( AsmInstruction oInst in rgOps ) {
                                     if( fImm == true ) {
@@ -416,7 +416,7 @@ namespace Monitor {
                                     }
                                 }
                             } else {
-                                _oBaseSite.LogError( "Parsing", "Unrecognized instruction" );
+                                _oBaseSite.LogError( "Parsing", "Unrecognized instruction, Line : " + oLine.At.ToString() );
                             }
                         }
                     }

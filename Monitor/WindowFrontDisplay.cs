@@ -215,8 +215,8 @@ namespace Monitor {
             // Add the memory window and assembly.
             LayoutStackHorizontal oHoriz = new( ) { Track = 60, Units = LayoutRect.CSS.Percent };
 
-            oHoriz.Add( new LayoutControl( WinCommand,  LayoutRect.CSS.Percent ) { Track = 50 } );
-            oHoriz.Add( new LayoutControl( WinAssembly, LayoutRect.CSS.Percent ) { Track = 50 } );
+            oHoriz.Add( new LayoutControl( WinCommand,  LayoutRect.CSS.Percent ) { Track = 20 } );
+            oHoriz.Add( new LayoutControl( WinAssembly, LayoutRect.CSS.Percent ) { Track = 80 } );
 
             // complete final layout of table and command window.
             VertStack.Add( Blinken );
