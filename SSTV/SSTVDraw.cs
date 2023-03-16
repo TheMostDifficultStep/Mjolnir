@@ -374,21 +374,27 @@ namespace Play.SSTV {
 				//      sender is miscalibrated! See InitSlots()
 				SyncOffsetInSamples = Mode.OffsetInMS * _dp.SampFreq / 1000;
 
+				ClearImage();
+
 				// If the delegate is null, no way to send the error up!!
 				Send_TvEvents( SSTVEvents.ModeChanged, (int)Mode.LegacyMode );
 				Send_TvEvents( SSTVEvents.DownLoadTime, 0 );
-
-				// This is a little dangerous. But since the main thread never messes with the
-				// bitmap we'll probably be ok.
-				using SKCanvas sKCanvas = new(_pBitmapRX);
-				sKCanvas.Clear(SKColors.Gray);
-				_skD12Canvas.Clear();
 
 				StartTime = DateTime.Now;
 			} catch( NullReferenceException ) {
 				Send_TvEvents?.Invoke( SSTVEvents.ThreadException, (int)TxThreadErrors.StartException );
 			}
         }
+
+		public void ClearImage() {
+			using SKCanvas sKCanvas = new(_pBitmapRX);
+			sKCanvas.Clear(SKColors.Gray);
+			_skD12Canvas.Clear();
+
+			// Unlike the ModeChanged and DownLoadTime events. This just tell us to do a blind refresh.
+			// that is implicit in the other events. So might want to sort that out.
+			Send_TvEvents( SSTVEvents.ImageUpdated, 0 );
+		}
 
 		/// <summary>
 		/// Call this when we've filled the target bitmap. Technically the user could send

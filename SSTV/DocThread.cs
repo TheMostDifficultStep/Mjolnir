@@ -419,6 +419,9 @@ namespace Play.SSTV {
                     case TVMessage.Message.Intercept:
                         _oSSTVDraw.ManualInterceptAdjust( oMsg._iParam );
                         break;
+                    case TVMessage.Message.ClearImage:
+                        _oSSTVDraw.ClearImage();
+                        break;
                 }
             }
             return true;

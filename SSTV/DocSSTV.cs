@@ -216,6 +216,7 @@ namespace Play.SSTV {
 		DownLoadTime,
         DownLoadFinished,
         DownloadLevels,
+        ImageUpdated,
         ImageSaved,
         ThreadException,
         ThreadAbort,
@@ -232,6 +233,7 @@ namespace Play.SSTV {
             ExitWorkThread,
             Frequency,
             Intercept,
+            ClearImage,
         }
 
         public readonly Message _eMsg;
@@ -1489,13 +1491,17 @@ namespace Play.SSTV {
                             }
                             PropertyChange?.Invoke( SSTVEvents.ModeChanged );
                         } break;
+                        case SSTVEvents.ImageUpdated:
+                            // A little bit skanky. First place we need public access to the Raise event...
+                            DisplayImage.Raise_ImageUpdated();
+                            SyncImage   .Raise_ImageUpdated();
+                            break;
                         case SSTVEvents.UploadTime:
                             Properties.ValueUpdate( SSTVProperties.Names.Tx_Progress, sResult.Param.ToString( "D2" ) + "%", Broadcast:true );
                             break;
                         case SSTVEvents.DownLoadTime: 
                             Properties.ValueUpdate( SSTVProperties.Names.Rx_Progress, sResult.Param.ToString( "D2" ) + "%", Broadcast:true );
                             PropertyChange?.Invoke( SSTVEvents.DownLoadTime );
-                            // A little bit skanky. First place we need public access to this...
                             DisplayImage.Raise_ImageUpdated();
                             SyncImage   .Raise_ImageUpdated();
                             break;

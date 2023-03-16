@@ -239,8 +239,7 @@ namespace Play.SSTV {
 
 	/// <summary>
 	/// This view shows the single image being downloaded from the audio stream.
-	/// This is the original receiver window, but now I use the integrated 
-	/// rx/history window, WindowDeviceViewer
+	/// This is the original receiver window, and the one I'm using as of 3/16/2023
 	/// </summary>
 	public class WindowSoloRx : 
 		ImageViewSingle, 
@@ -445,6 +444,10 @@ namespace Play.SSTV {
         }
 
         public override bool Execute( Guid sGuid ) {
+			if( sGuid == GlobalCommands.Delete ) {
+				_oDocSSTV.PostBGMessage( TVMessage.Message.ClearImage );
+				return true;
+			}
 			if( sGuid == GlobalCommands.Play ) {
 				_oDocSSTV.ReceiveLiveBegin();
 				return true;
@@ -745,7 +748,8 @@ namespace Play.SSTV {
 	} // End WindowRxBase
 
 	/// <summary>
-	/// Spiffy new window that shows the receive directory as icons.
+	/// Spiffy new window that shows the receive directory as icons. But not
+	/// the main window I'm using at present 3/16/2023
 	/// </summary>
 	public class WindowDeviceViewer : 
 		WindowRxBase,
@@ -849,6 +853,10 @@ namespace Play.SSTV {
         }
 
         public override bool Execute( Guid sGuid ) {
+			if( sGuid == GlobalCommands.Delete ) {
+				_oDocSSTV.PostBGMessage( TVMessage.Message.ClearImage );
+				return true;
+			}
 			if( sGuid == GlobalCommands.Play ) {
 				_oDocSSTV.ReceiveLiveBegin();
 				return true;
