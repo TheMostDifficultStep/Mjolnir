@@ -201,6 +201,7 @@ namespace Play.SSTV {
     public enum TxThreadErrors {
         DrawingException,
         WorkerException,
+        BadDeviceException,
         ReadException,
         DiagnosticsException,
         StartException,
@@ -1536,6 +1537,10 @@ namespace Play.SSTV {
 
                                 if( sResult.Param == (int)TxThreadErrors.DataOverflow ) {
                                     LogError( "Data Overflow, halting device read" );
+                                    ReceiveLiveStop(); 
+                                }
+                                if( sResult.Param == (int)TxThreadErrors.BadDeviceException ) {
+                                    LogError( "Problem with device, try another..." );
                                     ReceiveLiveStop(); 
                                 }
                                 if( sResult.Param2 is Exception oExThread ) {

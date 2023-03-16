@@ -604,11 +604,25 @@ namespace Play.SSTV {
             // waveOutWrite()!!
             Specification oAudio  = new ( (long)_dblSampRate, 1, 0, 16 );
             BufferSSTV    oBuffer = new ( oAudio );
-            WmmPlayer     oPlayer = new ( oAudio, _iSpeaker );
-            WmmReader     oReader = new ( oAudio, _iMicrophone );
+            WmmPlayer     oPlayer;
+            WmmReader     oReader;
+
+            try {
+                oPlayer = new ( oAudio, _iSpeaker );
+                oReader = new ( oAudio, _iMicrophone );
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( BadDeviceIdException ),
+                                    typeof( ArgumentException ),
+                                    typeof( InvalidHandleException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
+
+                _oToUIQueue.Enqueue( new( SSTVEvents.ThreadException, (int)TxThreadErrors.BadDeviceException ) );
+                return;
+            }
 
             // If we return samples slower than this, our audio level visuals are sluggish.
-            const int     iBestSleepInMs = 100;
+            const int iBestSleepInMs = 100;
 
             void MonitorOn( short s ) { 
                 _oQueue.Enqueue( s );
