@@ -1,0 +1,275 @@
+﻿<?xml version="1.0" ?>
+<bnfstuff>
+    <metadata>
+        <colortable>
+            <color name="black"     value="black" />
+            <color name="keyword"   value="blue" />
+            <color name="red"       value="red"  />
+            <color name="darkred"   value="darkred"  />
+            <color name="green"     value="green"  />
+            <color name="gray"      value="gray" />
+            <color name="purple"    value="purple" />
+            <color name="subcall"   value="steelblue" />
+            <color name="mode"      value="red" />
+            <color name="escapes"   value="cadetblue" />
+            <color name="vinstr"    value="violet" />
+        </colortable>
+        <terminals>
+            <term name="mytoken"   />
+            <term name="myliteral" />
+            <term name="mynumber"  />
+            <term name="myspace"   />
+            <term name="mycr"      />
+            <term name="myEmpty"   />
+            <term name="myanyof"   />
+			<term name="mytab"     />
+        </terminals>
+    </metadata>
+    <bnftable>
+        <state name="start">
+            <production>
+                <nont state="asm" />
+            </production>
+        </state>
+
+        <state name="space"> <!-- needs tabs too -->
+            <production>
+                <term class="myspace" />
+                <nont state="space" />
+            </production>
+            <production>
+                <term class="mytab" />
+                <nont state="space" />
+            </production>
+            <production>
+                <term class="myEmpty" />
+            </production>
+        </state>
+
+		<state name="dparams">
+            <capture>
+                <binding id="name"  array="false" color = "blue" />
+                <binding id="type"  array="false" color = "red" />
+                <binding id="value" array="false" color = "blue" />
+            </capture>
+			<production lookahead="4" >
+				<nont state="space" />
+				<term class="mytoken" value=".data" id="directive" />
+				<nont state="space" />
+				<term class="mycr"  />
+
+				<nont state="dparams" />
+			</production>
+		</state>
+
+		<state name="directive" >
+            <capture>
+                <binding id="directive" array="false" color = "blue" />
+                <binding id="params"    array="true"  color = "purple" />
+                <binding id="comment"   array="false" color = "green" />
+            </capture>
+			<production lookahead="4" >
+				<nont state="space" />
+				<term class="mytoken" value=".data" id="directive" />
+				<nont state="space" />
+				<term class="mycr"  />
+
+				<nont state="dparams" />
+			</production>
+		</state>
+
+        <state name="asm">
+            <production>
+                <nont state="statement" id="statements" />
+                <nont state="asm" />
+            </production>
+            <production>
+                <nont state="commentline" />
+                <nont state="asm" />
+            </production>
+            <production>
+                <term class="myspace" />
+                <nont state="asm" />
+            </production>
+            <production>
+                <term class="mytab" />
+                <nont state="asm" />
+            </production>
+            <production>
+                <term class="mycr" />
+                <nont state="asm" />
+            </production>
+            <production>
+                <term class="myEmpty" />
+            </production>
+        </state>
+
+
+        <state name="commentline">
+            <capture>
+                <binding id="delim" color="green" />
+                <binding id="ctext" color="green" />
+            </capture>
+            <production>
+                <term class="mytoken" value="//" id="delim" />
+                <nont state="incomment" id="ctext" />
+                <term class="mycr" />
+            </production>
+        </state>
+
+        <state name="incomment">
+            <production>
+                <term class="mytoken" value="&#9;" />
+                <nont state="incomment" />
+            </production>
+            <production>
+                <term class="myanyof" value="&gt;&lt;&amp;&apos;~!@#$%^*_-+=/(){}[]?,.;:&#32;\|" />
+                <nont state="incomment" />
+            </production>
+            <production>
+                <term class="myanyof" value="&quot;" />
+                <nont state="incomment" />
+            </production>
+            <production>
+                <term class="myliteral" />
+                <nont state="incomment" />
+            </production>
+            <production>
+                <term class="mynumber" />
+                <nont state="incomment" />
+            </production>
+            <production>
+                <term class="myEmpty" />
+            </production>
+        </state>
+
+		<state name="trailing" >
+			<production >
+				<!--<term class="mytoken" value=";" /> -->
+				<nont state="commentline" id="comment" />
+				<term class="mycr" />
+			</production >
+			<production >
+				<term class="mycr" />
+			</production >
+		</state>
+
+		<state name="param" >
+            <capture>
+				<binding id="immed" color="gray" />
+				<binding id="hex"   color="gray" />
+				<binding id="value" color="purple" />
+            </capture>
+			<production lookahead="3" >
+				<!-- Hex immediate -->
+				<nont state="space" />
+				<term class="mytoken" value="#" id="immed" />
+				<term class="mytoken" value="$" id="hex" />
+				<term class="myanyof" value="0123456789abcdefABCDEF" id="value" />
+			</production>
+			<production lookahead="2" >
+				<!-- Decimal immediate -->
+				<nont state="space" />
+				<term class="mytoken" value="#" id="immed" />
+				<term class="mynumber" id="value" />
+			</production>
+			<production lookahead="2" >
+				<!-- Hex -->
+				<nont state="space" />
+				<term class="mytoken" value="$" id="hex" />
+				<term class="myanyof" value="0123456789abcdefABCDEF" id="value" />
+			</production>
+			<production lookahead="2" >
+				<!-- Label -->
+				<nont state="space" />
+				<term class="myliteral" id="value" />
+			</production>
+			<production lookahead="2" >
+				<!-- Decimal -->
+				<nont state="space" />
+				<term class="mynumber" id="value" />
+			</production>
+		</state>
+
+		<!-- You can't recurse within param production, else
+             that production spans the entire recursion! -->
+		<state name="params" >
+			<production>
+				<nont state="param" id="params" />
+				<nont state="params" />
+			</production>
+			<production >
+				<term class="myEmpty" />
+			</production >
+		</state> 
+
+		<!-- special case for the jmp instruction -->
+		<state name="jparam" >
+            <capture>
+				<binding id="immed" color="gray" />
+				<binding id="hex"   color="gray" />
+				<binding id="value" color="purple" />
+            </capture>
+			<production lookahead="2" >
+				<!-- Decimal -->
+				<nont state="space" />
+				<term class="mynumber" id="value" />
+			</production>
+			<production lookahead="2" >
+				<!-- Hex -->
+				<nont state="space" />
+				<term class="mytoken" value="$" id="hex" />
+				<term class="myanyof" value="0123456789abcdefABCDEF" id="value" />
+			</production>
+		</state>
+
+		<state name="instr" >
+            <capture>
+				<binding id="indirect" color="gray" />
+            </capture>
+			<production lookahead="2" >
+				<nont state="space" />
+				<term class="mytoken" value="jmp" id="instr" />
+				
+				<nont state="space" />
+				<term class="mytoken" value="(" id="indirect" />
+				<nont state="space" />
+				<nont state="jparam" id="value" />
+				<nont state="space" />
+				<term class="mytoken" value=")" id="indirect" />
+				<nont state="space" />
+				<nont state="trailing" />
+			</production>
+			<production lookahead="2" >
+				<nont state="space" />
+				<term class="myliteral" id="instr" />
+				
+				<nont state="params"  />
+
+				<nont state="space" />
+				<nont state="trailing" />
+			</production>
+		</state>
+
+		<state name="statement" >
+            <capture>
+				<binding id="label"   color="red" />
+                <binding id="instr"   array="false" color = "blue" />
+                <binding id="params"  array="true"  color = "purple" />
+                <binding id="comment" array="false" color = "green" />
+            </capture>
+			<production lookahead="4" >
+				<nont state="space" />
+				<term class="myliteral" id="label" />
+				<nont state="space" />
+				<term class="mytoken" value=":" />
+
+				<nont state="instr" />
+			</production>
+			<production>
+				<nont state="instr" />
+			</production>
+		</state>
+
+    </bnftable>
+</bnfstuff>

@@ -1,0 +1,1655 @@
+﻿<?xml version="1.0" ?>
+<bnfstuff>
+    <metadata>
+        <colortable>
+            <color name="black"     value="black" />
+            <color name="keyword"   value="blue" />
+            <color name="red"       value="red"  />
+            <color name="darkred"   value="darkred"  />
+            <color name="green"     value="green"  />
+            <color name="gray"      value="gray" />
+            <color name="purple"    value="purple" />
+            <color name="subcall"   value="steelblue" />
+            <color name="filename"  value="darkorange" />
+            <color name="escapes"   value="cadetblue" />
+            <color name="vinstr"    value="violet" />
+        </colortable>
+        <terminals>
+            <term name="mytoken"   class="TextTermToken" />
+            <term name="myliteral" class="TextTermLiteral" />
+            <term name="mynumber"  class="TextTermNumber" />
+            <term name="myspace"   class="TextTermSpace" />
+            <term name="mycr"      class="TextTermCR" />
+            <!-- Must follow casing or we don't read this element in the reader
+	       need to fix that bug in the grammer reader -->
+            <term name="myEmpty"   class="TextTermEmpty" />
+            <term name="myanyof"   class="TextTermAnyOf" />
+        </terminals>
+    </metadata>
+    <bnftable>
+        <state name="start">
+            <production>
+                <nont state="eazy" />
+            </production>
+        </state>
+
+        <state name="space"> <!-- needs tabs too -->
+            <production>
+                <nont state="commentline" />
+                <nont state="space" />
+            </production>
+            <production lookahead="2">
+                <term class="myspace" />
+                <nont state="space" />
+            </production>
+            <production lookahead="2">
+                <term class="mycr" />
+                <nont state="space" />
+            </production>
+            <production>
+                <term class="myEmpty" />
+            </production>
+        </state>
+
+        <state name="subroutine" >
+            <capture>
+                <binding id="subkeyword" color="blue" />
+                <binding id="subname" color="darkred" />
+            </capture>
+            <production lookahead="2">
+                <term class="mytoken" value="sub" id="subkeyword"/>
+                <nont state="space" />
+                <nont state="name" id="subname"/>
+                <nont state="space" />
+                <nont state="block" />
+                <nont state="eazy" />
+            </production>
+        </state>
+
+        <state name="eazy">
+            <capture>
+                <binding id="vardecl" array="true" />
+                <binding id="statements" array="true" />
+                <binding id="inc" array="true" color="darkred" />
+            </capture>
+            <production>
+                <nont state="flowcontrol" />
+                <nont state="eazy" />
+            </production>
+            <production>
+                <nont state="declaration" id="vardecl" />
+                <nont state="eazy" />
+            </production>
+            <production>
+                <nont state="statement" id="statements" />
+                <nont state="eazy" />
+            </production>
+            <production >
+                <nont state="subroutine" />
+                <nont state="eazy" />
+            </production>
+            <production>
+                <nont state="commentline" />
+                <nont state="eazy" />
+            </production>
+            <production>
+                <term class="myspace" />
+                <nont state="eazy" />
+            </production>
+            <production>
+                <term class="mycr" />
+                <nont state="eazy" />
+            </production>
+            <production>
+                <term class="myEmpty" />
+            </production>
+        </state>
+
+        <state name="foreachscalar" >
+            <capture>
+                <binding id="sigil"   color="red" />
+                <binding id="fscalar" color="red" />
+            </capture>
+            <production>
+                <term class="mytoken" value="$" id="sigil"/>
+                <nont state="name" id="fscalar" />
+            </production>
+        </state>
+
+        <state name="foreach" >
+            <production lookahead="5"> <!-- foreach my $foo ( "hello" "test" ) { ... } -->
+                <term class="mytoken" value="foreach" id="keyword"/>
+                <nont state="space" /> 
+                <term class="mytoken" value="my" id="my" />
+                <nont state="space" />
+                <nont state="foreachscalar" />
+                <nont state="space" />
+                <nont state="invocation" />
+                <!-- really this is just a single arg, not full invocation -->
+                <nont state="space" />
+                <nont state="block" />
+            </production>
+            <production lookahead="5">
+                <term class="mytoken" value="foreach" id="keyword"/>
+                <nont state="space" />
+                <nont state="invocation" />
+                <!-- really this is just a single arg, not full invocation -->
+                <nont state="space" />
+                <nont state="block" />
+            </production>
+        </state>
+
+        <state name="for" >
+            <capture>
+                <binding id="var"  color="red" />
+				<binding id="ext"  color="blue" />
+				<binding id="bound" color="purple" />
+            </capture>
+            <production lookahead="3">
+                <term class="mytoken" value="for" id="keyword"/>
+                <nont state="space" />
+				<term class="myliteral" id="var" />
+                <nont state="space" />
+				<term class="mytoken" value=":=" />
+                <nont state="space" />
+				<term class="mynumber" id="bound" /> <!-- sb invocations but forget it for now -->
+				<nont state="space" />
+				<term class="mytoken" value="to" id="ext" />
+				<nont state="space" />
+				<term class="mynumber" id="bound" />
+
+                <nont state="space" />
+                <nont state="block" />
+            </production>
+        </state>
+
+        <state name="flowcontrol" >
+            <capture>
+                <binding id="keyword" color="blue" />
+                <binding id="my"      color="blue" />
+            </capture>
+            <production >
+                <nont state="foreach" />
+            </production>
+            <production >
+                <nont state="for" />
+            </production>
+            <production lookahead="5">
+                <term class="mytoken" value="while" id="keyword"/>
+                <nont state="space" />
+                <term class="mytoken" value="(" />
+                <nont state="space" />
+                <nont state="flowdecision" />
+                <nont state="space" />
+                <term class="mytoken" value=")" />
+                <nont state="space" />
+                <nont state="block" />
+                <!--<nont state="perl" />-->
+            </production>
+            <production lookahead="3">
+                <term class="mytoken" value="if" id="keyword"/>
+                <nont state="space" />
+                <nont state="flowdecision" />
+                <nont state="space" />
+                <nont state="block" />
+                <nont state="space" />
+                <nont state="elifblock" />
+                <!--<nont state="perl" />-->
+            </production>
+        </state>
+
+        <state name="elifblock" >
+            <production lookahead="3">
+                <term class="mytoken" value="elsif" id="keyword"/>
+                <nont state="space" />
+                <term class="mytoken" value="(" />
+                <nont state="space" />
+                <nont state="flowdecision" />
+                <nont state="space" />
+                <term class="mytoken" value=")" />
+                <nont state="space" />
+                <nont state="block" />
+                <nont state="space" />
+                <nont state="elifblock" />
+            </production>
+            <production>
+                <term class="mytoken" value="else" id="keyword"/>
+                <nont state="space" />
+                <nont state="block" />
+                <nont state="space" />
+            </production>
+            <production>
+                <term class="myEmpty" />
+            </production>
+        </state>
+
+        <state name="flowdecision" >
+            <capture>
+                <binding id="flowmatch" color="purple" />
+                <binding id="matchon" color="purple" />
+            </capture>
+            <production lookahead="5" > <!-- BUG: need 5 to overcome logic+ down at invocation.param I'm guessing  -->
+                <nont state="vname" id="matchon" />
+                <nont state="space" />
+                <nont state="indexer" /> 
+                <nont state="space" />
+                <term class="mytoken" value="=~" />
+                <nont state="space" />
+                <nont state="match" id="flowmatch"/>
+            </production>
+            <production >
+                <nont state="match" id="flowmatch"/>
+            </production>
+            <production >
+                <nont state="logic+" />
+            </production>
+            <production >
+                <nont state="innerdecl" />
+            </production>
+            <production >
+                <nont state="diamond" />
+            </production>
+        </state>
+
+        <state name="logic.next" >
+            <capture>
+                <binding id="boolean" color="gray" />
+            </capture>
+            <production>
+                <nont state="operator" id="boolean" />
+                <nont state="space" />
+                <nont state="invocation.param" />
+                <nont state="space" />
+                <nont state="logic.next" />
+            </production>
+            <production>
+                <term class="myEmpty" />
+            </production>
+        </state>
+
+        <state name="logic+" >
+            <production>
+                <term class="mytoken" value="!" />
+                <nont state="space" />
+                <nont state="invocation.param" />
+                <nont state="space" />
+                <nont state="logic.next" />
+            </production>
+            <production>
+                <nont state="invocation.param" />
+                <nont state="space" />
+                <nont state="logic.next" />
+            </production>
+        </state>
+
+        <state name="operator" >
+            <production>
+                <term class="mytoken" value="=="  />
+            </production>
+            <production>
+                <term class="mytoken" value="&lt;="  />
+            </production>
+            <production>
+                <term class="mytoken" value="&gt;="  />
+            </production>
+            <production>
+                <term class="mytoken" value="&lt;"  />
+            </production>
+            <production>
+                <term class="mytoken" value="&gt;"  />
+            </production>
+            <production>
+                <term class="mytoken" value="/"  />
+            </production>
+            <production>
+                <term class="mytoken" value="or" />
+            </production>
+            <production>
+                <term class="mytoken" value="and" />
+            </production>
+            <production>
+                <term class="mytoken" value="eq"  />
+            </production>
+            <production>
+                <term class="mytoken" value="ne"  />
+            </production>
+            <production>
+                <term class="mytoken" value="*"  />
+            </production>
+            <production>
+                <term class="mytoken" value="&amp;&amp;"  />
+            </production>
+            <!-- TODO: This might be something special like =~ binding operator. -->
+            <production>
+                <term class="mytoken" value="!~"  />
+            </production>
+            <production>
+                <term class="mytoken" value="||"  />
+            </production>
+        </state>
+
+        <state name="block" >
+            <production>
+                <term class="mytoken" value="{" />
+                <nont state="space" />
+                <nont state="block.in" />
+                <term class="mytoken" value="}" />
+                <nont state="space" />
+            </production>
+        </state>
+
+        <state name="block.in" >
+            <production>
+                <nont state="flowcontrol" />
+                <nont state="block.in" />
+            </production>
+            <production>
+                <nont state="declaration" id="vardecl" />
+                <nont state="block.in" />
+            </production>
+            <production>
+                <nont state="statement" id="statements" />
+                <nont state="block.in" />
+            </production>
+            <production>
+                <nont state="commentline" />
+                <nont state="block.in" />
+            </production>
+            <production>
+                <term class="myspace" />
+                <nont state="block.in" />
+            </production>
+            <production>
+                <term class="mycr" />
+                <nont state="block.in" />
+            </production>
+            <production>
+                <term class="myEmpty" />
+            </production>
+        </state>
+
+        <state name="alphanum.cont" >
+            <production>
+                <term class="myliteral" />
+                <nont state="alphanum.cont" />
+            </production>
+            <production>
+                <term class="mynumber" />
+                <nont state="alphanum.cont" />
+            </production>
+            <production>
+                <term class="myEmpty" />
+            </production>
+            
+        </state >
+
+        <state name="alphanum" >
+            <production>
+                <term class="myliteral" />
+                <nont state="alphanum.cont" />
+            </production>
+        </state >
+
+        <state name="namespace.cont" >
+            <production>
+                <term class="mytoken" value="::" />
+                <nont state="space" />
+                <nont state="alphanum" />
+                <nont state="space" />
+                <nont state="namespace.cont" />
+            </production>
+            <production>
+                <term class="myEmpty" />
+            </production>
+        </state>
+
+        <state name="namespace" >
+            <production lookahead="3" >
+                <!-- namespace can't include "-" else abc::xyz->new() won't match 
+                     in a rhandside of a statement, see class "name" for another approach. -->
+                <nont state="alphanum" />
+                <nont state="space" />
+                <nont state="namespace.cont" />
+            </production>
+        </state>
+
+        <state name="include" >
+            <production lookahead="3">
+                <term class="mytoken" value="use" id="inc" />
+                <nont state="space" />
+                <nont state="namespace" id="namespace" />
+            </production>
+            <production lookahead="3">
+                <term class="mytoken" value="require" id="inc" />
+                <nont state="space" />
+                <nont state="namespace" id="namespace" />
+            </production>
+        </state>
+
+        <state name="myour">
+            <production>
+                <term class="mytoken" value="my" />
+            </production>
+            <production>
+                <term class="mytoken" value="our" />
+            </production>
+        </state>
+
+        <state name="regex" >
+            <production>
+                <nont state="substitution" />
+            </production>
+            <production>
+                <nont state="match" />
+            </production>
+        </state>
+
+        <state name="optassign" >
+            <production>
+                <nont state="declassign" />
+            </production>
+            <production>
+                <term class="myEmpty" />
+            </production>
+        </state>
+
+        <!-- I want to be able to destinguish between assignment and variable
+             declaration. I probably need to break this state up a bit... -->
+        <state name="innerdecl" >
+            <!-- decl inside flow of control -->
+            <capture>
+                <binding id="my" color="keyword" />
+                <binding id="decltype"  color="red" />
+                <binding id="declname"  color="red" />
+                <binding id="variabletype"  color="darkred" />
+                <binding id="variablename"  color="purple" />
+                <binding id="variablevalue" color="purple" />
+            </capture>
+            <!-- keyword matching we need to be carefull since non-keywords will
+                 match at the same length. "subcall" gives us problems recognizing,
+                 so grab a little extra to make sure we're the best choice. -->
+            <production lookahead="6" >
+                <nont state="myour" id="my" />
+                <nont state="space" />
+                <nont state="vtype" id="decltype" />
+                <nont state="name" id="declname" />
+                <nont state="space" />
+                <nont state="optassign" />
+            </production>
+            <production lookahead="6" >
+                <term class="mytoken" value="my" id="my" />
+                <nont state="space" />
+                <term class="mytoken" value="(" />
+                <nont state="space" />
+                <nont state="vnamelist+" />
+                <nont state="space" />
+                <term class="mytoken" value=")" />
+                <nont state="space" />
+                <nont state="declassign" />
+            </production>
+            <production lookahead="4" >
+                <nont state="vtype" id="variabletype" />
+                <nont state="name" id="variablename" />
+                <nont state="space" />
+                <nont state="declassign" />
+            </production>
+        </state>
+
+        <state name="declaration" >
+            <!-- stand alone line -->
+            <production >
+                <!-- By using innerdecl I'm requiring an assignment to the declaration -->
+                <nont state="innerdecl" />
+                <term class="mytoken" value=";" />
+            </production>
+        </state>
+
+        <state name="vtype" >
+            <production>
+                <term class="mytoken" value="$" />
+            </production>
+            <production>
+                <term class="mytoken" value="@" />
+            </production>
+            <production>
+                <term class="mytoken" value="%" />
+            </production>
+            <production>
+                <term class="mytoken" value="*" />
+            </production>
+            <production>
+                <term class="mytoken" value="$#" />
+            </production>
+        </state>
+
+        <!-- Don't pile into vname since we don't want to allow []'s -->
+        <state name="vcast" >
+            <production>
+                <term class="mytoken" value="@$" />
+                <nont state="name" />
+            </production>
+            <production>
+                <term class="mytoken" value="%$" />
+                <nont state="name" />
+            </production>
+        </state>
+
+        <state name="vname" >
+            <!-- looahead helps the stringliteral with this element -->
+            <production lookahead="2">
+                <nont state="vtype" />
+                <nont state="name" />
+            </production>
+        </state>
+
+        <state name="vnamelist.next">
+            <production>
+                <term class="mytoken" value="," />
+                <nont state="space" />
+                <nont state="vname" id="variablename"/>
+                <nont state="space" />
+                <nont state="vnamelist.next" />
+            </production>
+            <production>
+                <term class="myEmpty" />
+            </production>
+        </state>
+
+        <state name="vnamelist+" >
+            <capture>
+                <binding id="variablename" array="true" color="red"/>
+            </capture>
+            <production>
+                <nont state="vname" id="variablename" />
+                <nont state="space" />
+                <nont state="vnamelist.next" />
+            </production>
+        </state>
+
+        <state name="declassign" >
+            <production lookahead="3">
+                <term class="mytoken" value="=" />
+                <nont state="space" />
+                <nont state="rhandside" id="variablevalue" />
+                <nont state="space" />
+            </production>
+            <production lookahead="3">
+                <term class="mytoken" value=".=" />
+                <nont state="space" />
+                <nont state="rhandside" id="variablevalue" />
+                <nont state="space" />
+            </production>
+            <production>
+                <term class="mytoken" value="=~" />
+                <nont state="space" />
+                <nont state="regex" id="variablevalue" />
+                <nont state="space" />
+            </production>
+        </state>
+
+        <state name="rhandside" >
+            <production >
+                <nont state="qw" />
+            </production>
+            <production >
+                <nont state="diamond"  />
+            </production>
+            <production >
+                <nont state="stringliteral+" />
+                <!-- TODO: need to add . concatination of strings with variables -->
+            </production>
+            <production >
+                <nont state="arithmetic" />
+            </production>
+        </state>
+
+      <state name="indexer" >
+        <production>
+          <term class="mytoken" value="{" />
+          <nont state="space" />
+          <nont state="term" />
+          <nont state="space" />
+          <term class="mytoken" value="}" />
+        </production>
+        <production>
+          <term class="mytoken" value="[" />
+          <nont state="space" />
+          <nont state="term" />
+          <nont state="space" />
+          <term class="mytoken" value="]" />
+          <nont state="space" />
+        </production>
+        <!-- make then next recursive and we're good to go -->
+        <production>
+          <term class="mytoken" value="-&gt;" />
+          <nont state="space" />
+          <nont state="subcall" />
+        </production>
+        <production>
+          <term class="myEmpty" />
+        </production>
+      </state>
+
+      <state name="elem" >
+        <production>
+          <term class="mynumber" />
+        </production>
+        <production>
+          <term class="mytoken" value="+" />
+        </production>
+        <production>
+          <nont state="name" id="tname" />
+          <nont state="space" />
+          <nont state="indexer" />
+        </production>
+      </state>
+
+      <!-- probably belongs in logic invocation.params -->
+      <state name="term" >
+        <capture>
+           <binding id="tsigil" color="darkred" />
+           <binding id="tname"  color="purple" />
+        </capture>
+        <production>
+          <nont state="number+" id="tname" />
+        </production>
+        <production>
+          <term class="mytoken" value="$" id="tsigil" />
+          <nont state="elem" />
+        </production>
+        
+        <!-- need to make recursive, next two. 
+        <production lookahead="3" >
+          <nont state="namespace" />
+          <nont state="space" />
+          <term class="mytoken" value="-&gt;" />
+          <nont state="space" />
+          <nont state="subcall" />
+        </production> -->
+
+        <production>
+          <nont state="subcall"  />
+        </production>
+
+        <production >
+          <nont state="stringliteral+" />
+        </production >
+      </state>
+
+      <state name="arithmetic.operator" >
+        <production>
+          <term class="myanyof" value="+-/*." maxmatch="1" />
+        </production>
+      </state>
+
+      <state name="arithmetic.next" >
+        <production lookahead="2">
+          <nont state="space" />
+          <nont state="arithmetic.operator" />
+          <nont state="space" />
+          <nont state="term" />
+          <nont state="arithmetic.next" />
+        </production>
+        <production >
+          <term class="myEmpty" />
+        </production>
+      </state>
+
+      <state name="arithmetic" >
+        <production >
+          <nont state="term" />
+          <nont state="arithmetic.next" />
+        </production>
+      </state>
+
+        <state name="number.dec.next" >
+            <production >
+                <term class="mynumber"  />
+                <nont state="number.dec.next" />
+            </production>
+            <production>
+                <term class="myEmpty" />
+            </production>
+        </state>
+
+        <state name="number.dec" >
+            <production >
+                <term class="mynumber"  />
+                <nont state="number.dec.next" />
+            </production>
+        </state>
+
+        <state name="number.cont" >
+            <production >
+                <term class="mynumber"  />
+                <nont state="number.cont" />
+            </production>
+            <production >
+                <term class="mytoken" value="."  />
+                <nont state="number.dec" />
+            </production>
+            <production>
+                <term class="myEmpty" />
+            </production>
+        </state>
+
+        <state name="number+" >
+            <production >
+                <term class="mynumber"  />
+                <nont state="number.cont" />
+            </production>
+            <production lookahead="2">
+                <term class="mytoken" value="."  />
+                <nont state="number.dec" />
+            </production>
+        </state>
+
+        <state name="diamond" >
+            <production>
+                <term class="mytoken" value="&lt;" />
+                <nont state="invocation.param" />
+                <term class="mytoken" value="&gt;" />
+            </production>
+        </state>
+
+        <state name="qw" >
+            <capture>
+                <binding id="qwords" array="true" color="purple"/>
+                <binding id="qwkeyword" color="keyword" />
+            </capture>
+            <production>
+                <term class="mytoken" value="qw" id="qwkeyword" />
+                <nont state="space" />
+                <nont state="qw.delim" />
+                <nont state="space" />
+            </production>
+            <production>
+                <nont state="qw.delim" />
+                <nont state="space" />
+            </production>
+        </state>
+
+        <state name="qw.delim" >
+            <production>
+                <term class="mytoken" value="[" />
+                <nont state="qwords*" />
+                <term class="mytoken" value="]" />
+            </production>
+            <production>
+                <term class="mytoken" value="{" />
+                <nont state="qwords*" />
+                <term class="mytoken" value="}" />
+            </production>
+            <production>
+                <term class="mytoken" value="(" />
+                <nont state="qwords*" />
+                <term class="mytoken" value=")" />
+            </production>
+            <production>
+                <term class="mytoken" value="/" />
+                <nont state="qwords*" />
+                <term class="mytoken" value="/" />
+            </production>
+            <production>
+                <term class="mytoken" value="\" />
+                <nont state="qwords*" />
+                <term class="mytoken" value="\" />
+            </production>
+            <production>
+                <term class="mytoken" value="#" />
+                <nont state="qwords*" />
+                <term class="mytoken" value="#" />
+            </production>
+        </state>
+
+        <state name="qword.select" >
+            <production>
+                <!-- Just thinking about this, this would be the list we need to
+                     remove the delimator from, and add the delimiters NOT used -->
+                <term class="myanyof" value="?%_.-,;:!*&gt;&lt;" />
+            </production>
+            <production>
+                <term class="myliteral" />
+            </production>
+            <production>
+                <term class="mynumber" />
+            </production>
+            <production>
+                <term class="mytoken" value="$" />
+            </production>
+            <production>
+                <term class="mytoken" value="$" />
+                <term class="mynumber" />
+            </production>
+        </state>
+        
+        <state name="qword.in" >
+            <production>
+                <nont state="qword.select" />
+                <nont state="qword.in" />
+            </production>
+            <production>
+                <term class="myEmpty" />
+            </production>
+        </state>
+
+        <state name="qword" >
+            <production >
+                <nont state="stringliteral+" />
+            </production>
+            <production>
+                <nont state="qword.select" />
+                <nont state="qword.in" />
+            </production>
+        </state>
+
+        <state name="qwords*" >
+            <production lookahead="2">
+                <nont state="space" />
+                <nont state="qword" id="qwords" />
+                <nont state="qwords.next" />
+            </production>
+            <production>
+                <term class="myEmpty" />
+            </production>
+        </state>
+
+        <!-- accept , between words or simply space! -->
+        <state name="qwords.next">
+            <production lookahead="2" >
+                <term class="myspace" /> <!-- must be at least one space. won't deal with crlf tho -->
+                <nont state="qword" />
+                <nont state="qwords.next" />
+            </production>
+            <production lookahead="2" >
+                <nont state="space" />
+                <term class="mytoken" value="," />
+                <nont state="space" />
+                <nont state="qword" />
+                <nont state="qwords.next" />
+            </production>
+            <production>
+                <nont state="space" />
+                <term class="myEmpty" />
+            </production>
+        </state>
+
+        <state name="statement" >
+            <capture>
+                <binding id="last" color="keyword" />
+            </capture>
+            <production>
+                <nont state="varref" />
+                <nont state="space" />
+                <term class="mytoken" value=";" />
+            </production>
+            <production>
+                <nont state="subcall" />
+            </production>
+        </state>
+
+        <!-- only call this one after the -&gt;  -->
+        <state name="property" >
+            <production>
+                <nont state="subcall" />
+            </production>
+            <production>
+                <nont state="name" />
+            </production>
+        </state>
+
+        <state name="optionalamp" >
+            <production>
+                <term class="mytoken" value="&amp;" />
+            </production>
+            <production>
+                <term class="myEmpty" />
+            </production>
+        </state>
+
+        <state name="subcall" >
+            <capture>
+                <binding id="subcall" color="gray" />
+            </capture>
+            <!-- Don't get too greedy or you'll trip up the keyword matches -->
+            <production lookahead="3" >
+				<term class="myliteral" id="subcall" /> 
+                <nont state="space" />
+                <nont state="invocation" />
+                <nont state="space" />
+            </production>
+        </state>
+
+
+        <state name="invocation.param" >
+            <capture >
+                <binding id="ipconst" color="purple" />
+                <binding id="ipname"  color="red" />
+                <binding id="ipfname" color="filename" />
+            </capture>
+            <production lookahead="3">
+                <nont state="vname" id="ipname" />
+                <nont state="space" />
+                <nont state="objectnotation" />
+                <nont state="space" />
+            </production>
+            <production lookahead="5">
+                <!-- $foo[bar], %foo{bar} also $foo{bar} which is wrong... ^_^;; -->
+                <nont state="vname" id="ipname" />
+                <nont state="space" />
+                <nont state="space" />
+                <nont state="varref.vararray" />
+                <nont state="space" />
+            </production>
+            <production>
+                <nont state="number+" id="ipconst" />
+                <nont state="space" />
+            </production>
+            <production>
+                <nont state="match" />
+                <nont state="space" />
+            </production>
+            <production>
+                <nont state="subcall" id="ipname" />
+                <nont state="space" />
+            </production>
+            <production>
+                <nont state="vcast" id="ipname" />
+                <nont state="space" />
+            </production>
+            <production>
+                <nont state="name" id="ipname" />
+                <nont state="space" />
+            </production>
+            <production>
+                <nont state="vname" id="ipname" />
+                <nont state="space" />
+            </production>
+            <production lookahead="3">
+                <nont state="namespace" />
+                <nont state="space" />
+                <nont state="objectnotation" />
+                <nont state="space" />
+            </production>
+            <production >
+                <term class="mytoken" value="(" />
+                <nont state="space" />
+                <nont state="logic+" />
+                <nont state="space" />
+                <term class="mytoken" value=")" />
+                <nont state="space" />
+            </production>
+        </state>
+
+        <state name="invocation.opt" >
+            <production>
+                <!-- Note: we require a param after the comman which is not standard perl! -->
+                <term class="mytoken" value="," />
+                <nont state="space" />
+                <nont state="invocation.param" />
+                <nont state="space" />
+                <nont state="invocation.opt" />
+            </production>
+            <production>
+                <nont state="concat+" />
+            </production>
+            <production>
+                <term class="myEmpty" />
+            </production>
+        </state>
+
+        <state name="invocation.params*" >
+            <production>
+                <nont state="logic+" />
+                <nont state="invocation.opt" />
+            </production>
+            <production>
+                <term class="myEmpty" />
+            </production>
+        </state>
+
+        <state name="invocation" >
+            <capture>
+                <binding id="leftparen"   color="black" />
+                <binding id="rightparen" color="black" />
+            </capture>
+            <production>
+                <term class="mytoken" value="(" id="leftparen"/>
+                <nont state="space" />
+                <nont state="invocation.params*" />
+                <nont state="space" />
+                <term class="mytoken" value=")" id="rightparen"/>
+                <nont state="space" />
+            </production>
+        </state>
+
+        <state name="objectnotation.opt" >
+            <production >
+                <nont state="objectnotation" />
+            </production>
+            <production>
+                <term class="myEmpty" />
+            </production>
+        </state>
+
+        <state name="objectnotation" >
+            <production lookahead="3" >
+                <term class="mytoken" value="-&gt;" />
+                <nont state="space" />
+                <nont state="property" />
+                <nont state="space" />
+                <nont state="objectnotation.opt" />
+            </production>
+            <production lookahead="3" >
+                <term class="mytoken" value="-&gt;" />
+                <nont state="space" />
+                <nont state="block" />
+                <nont state="space" />
+                <nont state="objectnotation.opt" />
+            </production>
+        </state>
+
+        <state name="concat+" >
+            <production>
+                <term class="mytoken" value="." />
+                <nont state="space" />
+                <nont state="logic+" />
+                <nont state="space" />
+                <nont state="concat+" />
+            </production>
+            <production>
+                <term class="myEmpty" />
+            </production>
+        </state>
+
+        <state name="varref" >
+            <capture>
+                <binding id="reftype"   color="darkred" />
+                <binding id="reference" color="purple" />
+            </capture>
+            <production>
+                <term class="mytoken" value="$" id="reftype" />
+                <nont state="name" id="reference"/>
+                <nont state="space" />
+                <nont state="varref.vararray" />
+                <nont state="space" />
+                <nont state="varref.ops" />
+                <nont state="space" />
+                <nont state="varref.control" />
+            </production>
+            <production>
+                <term class="mytoken" value="@" id="reftype" />
+                <nont state="name" id="reference"/>
+                <nont state="space" />
+                <nont state="varref.ops" />
+                <nont state="space" />
+                <nont state="varref.control" />
+            </production>
+            <production>
+                <term class="mytoken" value="%" id="reftype" />
+                <nont state="name" id="reference"/>
+                <nont state="space" />
+                <nont state="varref.control" />
+            </production>
+        </state>
+
+        <state name="varref.vararray" >
+            <capture>
+                <binding id="index" color="purple" />
+                <binding id="itype" color="darkred" />
+            </capture>
+            <production>
+                <term class="mytoken" value="{" />
+                <nont state="space" />
+                <nont state="invocation.param" />
+                <nont state="space" />
+                <term class="mytoken" value="}" />
+            </production>
+            <production>
+                <term class="mytoken" value="[" />
+                <nont state="space" />
+                <nont state="invocation.param" />
+                <nont state="space" />
+                <term class="mytoken" value="]" />
+            </production>
+            <production>
+                <term class="myEmpty" />
+            </production>
+        </state>
+        
+        <!--<state name="varref.vararray.index" >
+            <production>
+                <term class="mytoken" value="$" id="itype" />
+                <nont state="name" id="index" />
+                <nont state="space" />
+            </production>
+            <production>
+                <term class="mynumber" id="index" />
+                <nont state="space" />
+            </production>
+            <production>
+                <nont state="stringliteral+" />
+            </production>
+            --><!-- add a function call --><!--
+        </state>-->
+
+        <state name="varref.ops" >
+            <capture>
+                <binding id="operator" color="keyword" />
+            </capture>
+            <production>
+                <term class="mytoken" value="++" id="operator" />
+            </production>
+            <production>
+                <term class="mytoken" value="--" id="operator" />
+            </production>
+            <production>
+                <term class="mytoken" value="+=" id="operator" />
+                <nont state="space" />
+                <nont state="rhandside" />
+            </production>
+            <production >
+                <term class="mytoken" value="-&gt;" id="operator" />
+                <nont state="space" />
+                <!-- could also be a simply variable reference -->
+                <nont state="subcall" />
+            </production>
+            <production>
+                <!-- this is the 'cmp' operator -->
+                <term class="mytoken" value="&lt;=&gt;" id="operator" />
+                <nont state="space" />
+                <nont state="rhandside" />
+            </production>
+            <production>
+                <nont state="declassign" />
+            </production>
+            <production>
+                <term class="myEmpty" />
+            </production>
+        </state>
+
+        <state name="varref.control" >
+            <capture >
+                <binding id="blocktype" color="keyword" />
+            </capture>
+            <production>
+                <term class="mytoken" value="foreach" id="blocktype" />
+                <nont state="space" />
+                <nont state="expression" />
+            </production>
+            <production>
+                <term class="mytoken" value="if" id="blocktype" />
+                <nont state="space" />
+                <nont state="expression" />
+            </production>
+            <production>
+                <term class="mytoken" value="unless" id="blocktype" />
+                <nont state="space" />
+                <nont state="expression" />
+            </production>
+            <production>
+                <term class="myEmpty" />
+            </production>
+        </state>
+
+        <state name="expression" >
+            <production>
+                <term class="mytoken" value="(" />
+                <nont state="space" />
+                <nont state="expression.inner" />
+                <nont state="space" />
+                <term class="mytoken" value=")"/>
+                <nont state="space" />
+            </production>
+            <production>
+                <nont state="expression.inner" />
+                <nont state="space" />
+            </production>
+        </state>
+
+        <state name="expression.inner" >
+            <capture>
+                <binding id="eivar" color="purple" />
+                <binding id="eitype" color="darkred" />
+            </capture>
+            <!-- an array variable -->
+            <production>
+                <term class="mytoken" value="@" id="eitype" />
+                <term class="myliteral" id="eivar" />
+                <nont state="space" />
+            </production>
+            <production>
+                <term class="mytoken" value="%" id="eitype" />
+                <term class="myliteral" id="eivar" />
+                <nont state="space" />
+            </production>
+            <!-- a function call -->
+            <production>
+                <term class="myliteral" />
+                <nont state="space" />
+            </production>
+        </state>
+
+        <!-- This state allows empty names need to substate it. -->
+        <!-- Need to check how I'm using this $! is ok but &! as a function
+             name, is not. -->
+        <state name="name" >
+            <production>
+                <term class="mynumber" />
+            </production>
+            <production>
+                <term class="myliteral" />
+                <nont state="name.opt" />
+            </production>
+            <production>
+                <term class="mytoken" value="!" />
+            </production>
+        </state>
+
+        <state name="name.opt" >
+            <production>
+                <term class="myanyof" value="_" />
+                <nont state="name.opt" />
+            </production>
+            <production>
+                <term class="myliteral" />
+                <nont state="name.opt" />
+            </production>
+            <production>
+                <term class="mynumber" />
+                <nont state="name.opt" />
+            </production>
+            <!-- this is a cheap way to keep our name from grabbing the "-" in 
+                 foo->bar() need to allow numerics after, but fix that up later -->
+            <production>
+                <term class="myanyof" value="-" />
+                <term class="myliteral" />
+                <nont state="name.opt" />
+            </production>
+            <production>
+                <term class="myEmpty" />
+            </production>
+        </state>
+
+        <state name="text">
+            <production>
+                <!-- Note: we don't allow '&gt;' '&lt;' & ';' in here for perl!!! -->
+                <term class="myanyof" value="^?%_.-/\,[](){}:!*&quot;&apos;" />
+                <nont state="text" />
+            </production>
+            <production>
+                <term class="myliteral" />
+                <nont state="text" />
+            </production>
+            <production>
+                <term class="mynumber" />
+                <nont state="text" />
+            </production>
+            <production>
+                <term class="myspace" />
+                <nont state="text" />
+            </production>
+            <production>
+                <term class="mycr" />
+            </production>
+            <production>
+                <term class="myEmpty" />
+            </production>
+        </state>
+
+        <state name="atom.in" >
+            <production>
+                <term class="myliteral" />
+                <nont state="atom.in" />
+            </production>
+            <production>
+                <term class="mynumber" />
+                <nont state="atom.in" />
+            </production>
+            <production>
+                <term class="mytoken" value="^" />
+                <nont state="atom.in" />
+            </production>
+            <!-- TODO: Pretty broken, but it works. Need to update my "myliteral" function
+                 to specify a single literal ... occur="1" -->
+            <production lookahead="2" >
+                <term class="mytoken" value="-" />
+                <nont state="atom.in" />
+            </production>
+            <production >
+                <term class="myanyof" value="/%_:' &amp;?" maxmatch="1" />
+                <nont state="atom.in" />
+            </production>
+            <production >
+                <nont state="escapesequence" id="escapecolor"/>
+                <nont state="atom.in" />
+            </production>
+            <production>
+                <term class="myEmpty" />
+            </production>
+        </state>
+
+        <state name="atom" >
+            <production>
+                <term class="mytoken" value="[" id="escapecolor"  />
+                <nont state="atom.in" />
+                <term class="mytoken" value="]" id="escapecolor"  />
+            </production>
+        </state>
+
+        <state name="subst.in">
+            <production>
+                <nont state="stringguts" />
+                <nont state="subst.in" />
+            </production>
+            <production >
+                <nont state="atom" id="escapecolor"/>
+                <nont state="subst.in" />
+            </production> 
+            <production >
+                <nont state="escapesequence" id="escapecolor"/>
+                <nont state="subst.in" />
+            </production>
+            <production>
+                <term class="myanyof" value="$" />
+                <term class="mynumber"  />
+                <nont state="subst.in" />
+            </production>
+            <production>
+                <term class="myanyof" value="%+&apos;&quot;" />
+                <nont state="subst.in" />
+            </production>
+            <production>
+                <term class="myEmpty" />
+            </production>
+        </state>
+
+        <state name="subst.pre" >
+            <production>
+                <term class="mytoken" value="^" />
+            </production>
+            <production>
+                <term class="myEmpty" />
+            </production>
+        </state>
+
+        <state name="subst.post" >
+            <production>
+                <term class="mytoken" value="$" />
+            </production>
+            <production>
+                <term class="myEmpty" />
+            </production>
+        </state>
+
+        <state name="subst.ops" >
+            <production>
+                <term class="myanyof" value="msixpogce" />
+                <nont state="subst.ops" />
+            </production>
+            <production>
+                <term class="myEmpty" />
+            </production>
+        </state>
+
+        <state name="substitution" >
+            <capture>
+                <binding id="escapecolor" color="escapes" />
+                <binding id="keywordb" color="keyword" />
+                <binding id="prepost" color="gray" />
+            </capture>
+            <production>
+                <term class="mytoken" value="s" id="keywordb" />
+                <term class="mytoken" value="/" />
+                <nont state="subst.pre" id="prepost"  />
+                <nont state="subst.in" />
+                <nont state="subst.post" id="prepost" />
+                <term class="mytoken" value="/" />
+                <nont state="subst.pre" id="prepost" />
+                <nont state="subst.in" />
+                <nont state="subst.post" id="prepost" />
+                <term class="mytoken" value="/" />
+                <nont state="space" />
+                <nont state="subst.ops" id="keywordb" />
+            </production>
+        </state>
+
+        <state name="match.ops" >
+            <production>
+                <term class="myanyof" value="msixpogc" />
+                <nont state="match.ops" />
+            </production>
+            <production>
+                <term class="myEmpty" />
+            </production>
+        </state>
+
+        <state name="match.mods" >
+            <production>
+                <term class="mytoken" value="i" />
+            </production>
+            <production>
+                <term class="mytoken" value="m" />
+            </production>
+            <production>
+                <term class="mytoken" value="s" />
+            </production>
+            <production>
+                <term class="mytoken" value="x" />
+            </production>
+            <production>
+                <term class="myEmpty" />
+            </production>
+        </state>
+
+        <state name="match" >
+            <capture>
+                <binding id="escapecolor" color="escapes" />
+                <binding id="keywordb" color="keyword" />
+                <binding id="prepost" color="gray" />
+            </capture>
+            <production lookahead="2">
+                <nont state="match.mods" id="keywordb" />
+                <term class="mytoken" value="/" />
+                <nont state="subst.pre" id="prepost"  />
+                <nont state="subst.in" />
+                <nont state="subst.post" id="prepost" />
+                <term class="mytoken" value="/" />
+                <nont state="space" />
+                <nont state="match.ops" id="keywordb" />
+            </production>
+        </state>
+
+        <state name="stringguts" >
+            <production>
+                <!-- NOTE: $ is special in a string literal, won't be here. -->
+                <!-- the ^ operator should be restricted in the matching case. -->
+                <term class="myanyof" value="|#=?_.-,;:!*&amp;&gt;&lt;()}+" />
+            </production>
+            <production>
+                <term class="myliteral" />
+            </production>
+            <production>
+                <term class="mynumber" />
+            </production>
+            <production>
+                <term class="mycr" />
+            </production>
+            <production>
+                <term class="myspace" />
+            </production>
+        </state>
+
+        <state name="escapechars" >
+            <production>
+                <term class="mytoken" value="&quot;" />
+            </production>
+            <production>
+                <term class="myanyof" value="\/*+?|{[]()^$.#-" maxmatch="1" />
+            </production>
+            <production>
+                <term class="myanyof" value="ntrdDs" maxmatch="1" />
+            </production>
+            <production>
+                <term class="mytoken" value="x" />
+                <term class="myliteral" /> <!-- Really s/b two chars -->
+            </production>
+            <production lookahead="3">
+                <term class="mytoken" value="x" />
+                <nont state="space" />
+                <term class="mytoken" value="{"/>
+                <nont state="space" />
+                <term class="myliteral" />
+                <nont state="space" />
+                <term class="mytoken" value="}"/>
+                <!-- Really s/b two chars -->
+            </production>
+        </state>
+
+        <state name="escapesequence" >
+            <production lookahead="2" >
+                <term class="mytoken" value="\" />
+                <nont state="escapechars" />
+            </production>
+        </state>
+
+        <state name="vnameinstring" >
+            <production>
+                <term class="mytoken" value="$" />
+                <term class="mytoken" value="{" />
+                <nont state="name" />
+                <term class="mytoken" value="}" />
+            </production>
+        </state>
+
+        <state name="stringliteral+" >
+            <capture>
+                <binding id="variableinstring" color="vinstr" />
+                <binding id="escapecolor" color="escapes" />
+            </capture>
+            <production>
+                <term class="mytoken" value="&quot;" />
+                <nont state="stringliteralquo" />
+            </production>
+            <production>
+                <term class="mytoken" value="/" />
+                <nont state="stringliteralforeslash" />
+            </production>
+            <production>
+                <term class="mytoken" value="'" />
+                <nont state="stringliteralapos" />
+            </production>
+            <production>
+                <term class="mytoken" value="''" />
+                <!-- another case? -->
+            </production>
+        </state>
+
+        <state name="stringliteralquo">
+            <!-- I should capture outside in a master class instead of this 
+                 looping class. Better yet I need to separate binding from color. 
+                 But since I only want the color I'm ok for now. -->
+            <production>
+                <nont state="stringguts" />
+                <nont state="stringliteralquo" />
+            </production>
+            <production>
+                <term class="mytoken" value="{" />
+                <nont state="stringliteralquo" />
+            </production>
+            <!-- the next three productions deal with escapes -->
+            <production >
+                <nont state="escapesequence" id="escapecolor"/>
+                <nont state="stringliteralquo" />
+            </production>
+            <production>
+                <nont state="vnameinstring" id="variableinstring"/>
+                <nont state="stringliteralquo" />
+            </production>
+            <production>
+                <nont state="vname" id="variableinstring"/>
+                <nont state="stringliteralquo" />
+            </production>
+            <production>
+                <term class="myanyof" value="[]^%&apos;/" />
+                <nont state="stringliteralquo" />
+            </production>
+            <production>
+                <term class="mytoken" value="&quot;" />
+            </production>
+        </state>
+
+        <state name="stringliteralforeslash">
+            <production>
+                <nont state="stringguts" />
+                <nont state="stringliteralforeslash" />
+            </production>
+            <production >
+                <nont state="escapesequence" id="escapecolor"/>
+                <nont state="stringliteralforeslash" />
+            </production>
+            <production>
+                <term class="myanyof" value="[]^%&apos;&quot;" />
+                <nont state="stringliteralforeslash" />
+            </production>
+            <production>
+                <term class="mytoken" value="/" />
+            </production>
+        </state>
+
+        <state name="stringliteralapos">
+            <production>
+                <nont state="stringguts" />
+                <nont state="stringliteralapos" />
+            </production>
+            <!-- BUG Escapes might be illegal too, need to check this -->
+            <production >
+                <nont state="escapesequence" id="escapecolor" />
+                <nont state="stringliteralapos" />
+            </production>
+            <!-- DO NOT INCLUDE vnameinstring production in the apos literal. (not legal apparently) -->
+            <production>
+                <term class="myanyof" value="[]^%&quot;/{$" maxmatch="1" />
+                <nont state="stringliteralapos" />
+            </production>
+            <production>
+                <term class="mytoken" value="&apos;" />
+            </production>
+        </state>
+
+        <state name="commentline">
+            <capture>
+                <binding id="delim" color="green" />
+                <binding id="ctext" color="green" />
+            </capture>
+            <production>
+                <term class="mytoken" value="#" id="delim" />
+                <nont state="incomment" id="ctext" />
+                <term class="mycr" />
+            </production>
+        </state>
+
+        <state name="incomment">
+            <production>
+                <term class="myanyof" value="&gt;&lt;&amp;&apos;~!@#$%^*_-+=/(){}[]?,.;:&#32;&#09;\|" />
+                <nont state="incomment" />
+            </production>
+            <production>
+                <term class="myanyof" value="&quot;" />
+                <nont state="incomment" />
+            </production>
+            <production>
+                <term class="myliteral" />
+                <nont state="incomment" />
+            </production>
+            <production>
+                <term class="mynumber" />
+                <nont state="incomment" />
+            </production>
+            <production>
+                <term class="myEmpty" />
+            </production>
+        </state>
+
+    </bnftable>
+</bnfstuff>
