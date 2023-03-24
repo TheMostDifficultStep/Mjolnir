@@ -490,8 +490,11 @@ namespace Play.Forms {
 
             Line oNext = DocForms[ TabOrder[iNext] ];
 
+            // Got to keep the carat in our PropertyValues form.
             foreach( LayoutSingleLine oLayout in CacheList ) {
-                if( oLayout.Cache.Line == oNext ) {
+                if( oLayout.Cache.Line == oNext &&
+                    oNext == DocForms[oNext.At] ) 
+                {
                     Caret.Layout = oLayout;
 
                     //oLayout.SelectHead( Caret, e.Location, ModifierKeys == Keys.Shift );
@@ -790,11 +793,15 @@ namespace Play.Forms {
 
             if( e.Button == MouseButtons.Left ) {
                 // Set the caret for sure if hit. If not just leave it where ever it was.
-                foreach( LayoutSingleLine oCache in CacheList ) {
-                    if( oCache.IsInside( e.X, e.Y ) ) {
-                        Caret.Layout = oCache;
+                foreach( LayoutSingleLine oLayout in CacheList ) {
+                    Line oLine = oLayout.Cache.Line;
+                    // Keep the carat on our PropertyValues document.
+                    if( oLayout.IsInside( e.X, e.Y ) &&
+                        oLine == DocForms[oLine.At] ) 
+                    {
+                        Caret.Layout = oLayout;
 
-                        oCache.SelectHead( Caret, e.Location, ModifierKeys == Keys.Shift );
+                        oLayout.SelectHead( Caret, e.Location, ModifierKeys == Keys.Shift );
                         Links.Find( Caret.Line, Caret.Offset, true );
                     }
                 }

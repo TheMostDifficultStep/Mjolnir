@@ -745,6 +745,8 @@ namespace Play.Edit {
 
                     if( oRangeLine != null ) {
                         // Blast any dummy lines. Brilliant, but sleasy. ^_^;;
+                        // BUG: Ah! our forms are comparing labels & values from
+                        // different documents!! Argghghg!
                         if( oRangeLine.At == oLine.At && oRangeLine != oLine ) {
                             oCaret.Line = oLine;
                         }

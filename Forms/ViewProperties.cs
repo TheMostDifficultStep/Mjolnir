@@ -108,9 +108,15 @@ namespace Play.Forms {
 
             InitRows();
 
-            // BUG: This is happening when there is no album art.
+            // NOTE: This is happening when there is no album art.
             if( CacheList.Count > 0 ) {
-                Caret.Layout = CacheList[0];
+                // ALSO: Need to keep the caret on the DocForms (Property_Values)
+                foreach( LayoutSingleLine oTest in CacheList ) {
+                    if( oTest.Cache.Line == DocForms[oTest.Cache.Line.At] ) {
+                        Caret.Layout = oTest;
+                        break;
+                    }
+                }
             }
 
             // The base formwindow already gets these, see the constructor.
