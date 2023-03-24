@@ -798,6 +798,9 @@ namespace Play.Edit {
         }
 
         public void ListenerAdd( ILineEvents oListener ) {
+            if( _rgBufferCallbacks.Contains( oListener ) )
+                return;
+
             _rgBufferCallbacks.Add( oListener );
         }
         
@@ -805,12 +808,6 @@ namespace Play.Edit {
             _rgBufferCallbacks.Remove( oListener );
         }
         
-        // Note: We have to use "iLine" to identify the line because if we send the "Line"
-        // object and use the ".At" property. It will be out of date after the first line
-        // delete on any set of "bulk" operations! I don't want to introduce O(n^2) complexity
-        // by updating all the line.at values after any line insert/delet operation.
-        // The alternative is a to overload the "Line" object to be also a linked list item. 
-        // But then we forsake quick array lookups for the undo module.
         public void Raise_AfterLineUpdate( Line oLine, int iIndex, int iOldLen, int iNewLen ) {
             foreach( ILineEvents oEvents in _rgBufferCallbacks ) {
                 oEvents.OnLineUpdated( oLine, iIndex, iOldLen, iNewLen );

@@ -12,6 +12,7 @@ using Play.Interfaces.Embedding;
 using Play.Edit;
 using Play.Rectangles;
 using Play.Parse;
+using System.Text;
 
 namespace Play.Forms {
         /// <summary>
@@ -67,6 +68,23 @@ namespace Play.Forms {
         public LayoutSingleLine( FTCacheLine oCache, CSS eCSS ) : base( eCSS ) {
             Cache = oCache ?? throw new ArgumentNullException();
             _rgSelections[0] = Selection;
+        }
+
+        public override string ToString() {
+            try {
+                StringBuilder sbBuild = new StringBuilder();
+
+                sbBuild.Append( "F" );
+                sbBuild.Append( Cache.Line.Formatting.Count.ToString() );
+                sbBuild.Append( "@" );
+                sbBuild.Append( Cache.Line.At.ToString() );
+                sbBuild.Append( ":" );
+                sbBuild.Append( Cache.Line.ToString(), 0, Cache.Line.ElementCount > 50 ? 50 : Cache.Line.ElementCount );
+
+                return sbBuild.ToString();
+            } catch( NullReferenceException ) {
+                return "Layout Single Line : TS Error";
+            }
         }
 
         public void Paint( SKCanvas skCanvas, IPgStandardUI2 oStdUI, bool fFocused ) {
@@ -428,14 +446,17 @@ namespace Play.Forms {
                 case BUFFEREVENTS.FORMATTED:
                 case BUFFEREVENTS.SINGLELINE:
                 case BUFFEREVENTS.MULTILINE:
-                    foreach( LayoutSingleLine oCache in CacheList ) {
-                        oCache.Cache.Update( StdUI.FontRendererAt( StdText ) );
-                        oCache.OnChangeFormatting();
-                        oCache.Cache.OnChangeSize( oCache.Width );
+                    {
+                        IPgFontRender oRender = StdUI.FontRendererAt( StdText );
+                        foreach( LayoutSingleLine oCache in CacheList ) {
+                            oCache.Cache.Update( oRender );
+                            oCache.OnChangeFormatting();
+                            oCache.Cache.OnChangeSize( oCache.Width );
+                        }
+                        // No need to parse anything for word wrapping since I
+                        // have implemented new word wrap code in the editor code.
+                        OnSizeChanged( new EventArgs() ); 
                     }
-                    // No need to parse anything for word wrapping since I
-                    // have implemented new word wrap code in the editor code.
-                    OnSizeChanged( new EventArgs() ); 
                     break;
             }
         }

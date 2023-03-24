@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-
 using Play.Interfaces.Embedding;
 using Play.Parse;
 
@@ -11,13 +10,22 @@ namespace Play.Edit {
     /// </summary>
 	public class SubStream : DataStream<char> 
 	{
-		readonly Line   _oLine;
-		         int    _iPos = 0;
+		Line   _oLine;
+		int    _iPos = 0;
 
 		public SubStream( Line oLine )
 		{
 			_oLine = oLine ?? throw new ArgumentNullException();
 		}
+
+        public Line Line => _oLine;
+
+        public void Reset( Line oLine ) {
+            if( oLine != null )
+                _oLine = oLine;
+
+            _iPos = 0;
+        }
 
 		public void Seek( int p_iDistance ) 
 		{

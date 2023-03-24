@@ -497,6 +497,11 @@ namespace Play.Integration {
         }
 	} // Text implementation.
 
+    /// <summary>
+    /// Unlike the ParseHandlerText, this object parses provides no iterator and parses
+    /// all in one go.
+    /// </summary>
+    /// <seealso cref="ParseHandlerText"/>
 	public class ParseSimpleText : IParseEvents<char> {
 		public Editor Document { get; }
 
@@ -579,7 +584,7 @@ namespace Play.Integration {
 			Document.Site.LogError( "Parsing", sbMessage.ToString(), false );
 		}
 
-		public bool Parse() {
+		public virtual bool Parse() {
 			try {
 				MemoryState<char>   oMStart  = new MemoryState<char>( new ProdState<char>( _oStart ), null );
 				ParseIterator<char> oParser  = new ParseIterator<char>( _oStream, this, oMStart );

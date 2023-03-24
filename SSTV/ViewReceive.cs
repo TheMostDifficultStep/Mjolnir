@@ -18,10 +18,10 @@ using Play.Forms;
 using Play.Sound;
 
 namespace Play.SSTV {
-    /// <summary>
+	/// <summary>
 	/// This viewer shows a subset of all SSTV Properties. Those for the Receiver only.
-    /// </summary>
-    public class WindowRxProperties : 
+	/// </summary>
+	public class WindowRxProperties : 
         WindowStandardProperties
      {
         public DocSSTV SSTVDocument { get; }
@@ -235,6 +235,13 @@ namespace Play.SSTV {
 				LogError( "RXProperties PopulateRxModes unexpected." );
 			}
         }
+
+		// Uncomment this if you want to see this event get called
+		// if you set the debugger on the event raise, you only get
+		// to see the first sink and no others.
+		//protected override void OnDocumentEvent(  BUFFEREVENTS eEvent ) {
+		//	base.OnDocumentEvent( eEvent );
+		//}
     }
 
 	/// <summary>

@@ -166,7 +166,7 @@ namespace Play.Parse
 
     public class MyStack<T> {
         List<FMarker<T>> _rgStack = new List<FMarker<T>>();
-        int              _iTop = -1;
+        int              _iTop = -1; // BUG: I don't think I really need this!
        
         public void Push( T oValue ) {
             if( oValue == null )
@@ -199,7 +199,12 @@ namespace Play.Parse
             }
         }
 
-        internal MyStackEnum GetEnumerator() {
+        public void Clear() {
+            _iTop = -1;
+            _rgStack.Clear();
+        }
+
+        public MyStackEnum GetEnumerator() {
             return( new MyStackEnum( this ) );
         }
 
@@ -213,7 +218,7 @@ namespace Play.Parse
         /// </summary>
         /// <remarks>Need to implement a callback so I can watch the stack when it changes.
         /// Since I use this pretty specifically I'm not going to bother right now.</remarks>
-        internal class MyStackEnum {
+        public class MyStackEnum {
             MyStack<T> _oStack;
             int        _iPos;
             FMarker<T> _oCurrent = default(FMarker<T>);
@@ -341,7 +346,7 @@ namespace Play.Parse
 
 					if( oMemElem is ProdState<T> oProdState ) {
 						// Don't push the memory binder at this point, if we do, we have to
-						// wade thru inactive sibling binders by counting frames and etc. Waist of time.
+						// wade thru inactive sibling binders by counting frames and etc. Waste of time.
 						if (!string.IsNullOrEmpty(oProdState.ID) || oProdState.IsBinding || oProdState.IsWord) {
 							oMemElem = new MemoryState<T>(oProdState, p_oParent as MemoryState<T>);
 						}

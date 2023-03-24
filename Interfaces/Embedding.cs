@@ -505,7 +505,7 @@ namespace Play.Interfaces.Embedding {
 	public interface IPgAnonymousWorker {
 		bool Execute( Guid guidCommand );
         void Stop();
-		void Start( long iWait );
+		void Start( long iWaitInMs );
 		void Pause();
 
 		WorkerStatus Status { get; }

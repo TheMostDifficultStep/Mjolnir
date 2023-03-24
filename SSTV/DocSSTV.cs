@@ -10,7 +10,6 @@ using System.Xml;
 using System.Reflection;
 
 using SkiaSharp;
-using NAudio.Wave;
 
 using Play.Drawing;
 using Play.Rectangles;
@@ -28,7 +27,7 @@ namespace Play.SSTV {
     /// allows us to re-arrange property values without scrambling their meaning. But it also means you can't
     /// use some kind of runtime forms generator since the indicies must have corresponding pre compiled enum's.
     /// </summary>
-    public class SSTVProperties : DocProperties {
+    public class SSTVProperties : DocProperties, IDisposable {
         public enum Names : int {
 			Rx_Mode,
             Rx_Width,
@@ -64,17 +63,35 @@ namespace Play.SSTV {
             Std_Frequency
         }
 
-        public SSTVProperties( IPgBaseSite oSiteBase ) : base( oSiteBase ) {
+        readonly ParseFormText _oParser;
+
+        public void CheckParse() {
+            _oParser.Parse();
+        }
+
+        public SSTVProperties( IPgRoundRobinWork oWorker, IPgBaseSite oSiteBase ) : base( oSiteBase ) {
+            _oParser = new ParseFormText( oWorker, Property_Values, "text" );
+        }
+
+        public virtual void Dispose() {
+            _oParser.Dispose(); // remove the parser sink on the form values.
+        }
+
+        public void ParseAll() {
+            _oParser.ParseAll();
         }
 
         public override bool InitNew() {
             if( !base.InitNew() ) 
                 return false;
+            // Might want to look at disposing this. But not strictly nessesary.
+            if( !_oParser.InitNew() )
+                return false;
             
             // Set up the parser so we get spiffy colorization on our text!! HOWEVER,
             // Some lines are not sending events to the Property_Values document and we
             // need to trigger the parse seperately.
-            new ParseHandlerText( Property_Values, "text" );
+            // new ParseHandlerText( Property_Values, "text" );
 
             if( _oSiteBase.Host is not DocSSTV oSSTVDoc )
                 return false;
@@ -418,7 +435,7 @@ namespace Play.SSTV {
 			SyncImage     = new ImageSoloDoc( new DocSlot( this ) );
             SignalLevel   = new ImageSoloDoc( new DocSlot( this ) );
                           
-            Properties = new ( new DocSlot( this ) );
+            Properties = new ( _oWorkPlace, new DocSlot( this ) );
             StateRx    = DocSSTVMode.Ready;
         }
 
@@ -438,6 +455,8 @@ namespace Play.SSTV {
                     RxModeList   .CheckedEvent -= OnCheckedEvent_RxModeList;
                     TxModeList   .CheckedEvent -= OnCheckedEvent_TxModeList;
                     TemplateList .CheckedEvent -= OnCheckedEvent_TemplateList;
+
+                    Properties.Dispose();
                 }
 
                 // TODO: free unmanaged resources (unmanaged objects) and override finalizer
@@ -656,7 +675,7 @@ namespace Play.SSTV {
             SyncImage   .WorldDisplay = new SKRectI( 0, 0, szMax.Width, 256 );
             SignalLevel .WorldDisplay = new SKRectI( 0, 0, 100,          10 );
 
-            SettingsInit();
+            SettingsInit(); // Loads up a bunch of properties here.
 
             string strMyDocs = Environment.GetFolderPath( Environment.SpecialFolder.MyDocuments );
             if( !TxImageList.LoadURL( strMyDocs ) ) {
@@ -668,14 +687,6 @@ namespace Play.SSTV {
 				LogError( "Couldn't find pictures history directory for SSTV" );
                 return false;
             }
-            // It's a little bit hacky: I'm adding a property from my property list
-            // into the RxHistorList's set of properties. Note: if those properties are
-            // saved somehow, this injected property will get saved in, but the host
-            // might not recognize the parasite property on subsequent load.
-            //RxHistoryList.Properties.PropertyAppend( 
-            //    "Rx Call",
-            //    Properties.Property_Values[(int)SSTVProperties.Names.Tx_TheirCall]
-            //);
 
             RxModeList.LineAppend( "Auto", fUndoable:false );
             LoadModes( SSTVDEM.EnumModes(), RxModeList, fAddResolution:false );
@@ -694,6 +705,7 @@ namespace Play.SSTV {
 
             RenderComposite();
 
+            Properties.ParseAll();
             _oWorkPlace.Queue( CreateTaskReceiver(), Timeout.Infinite );
 
             return true;
@@ -1565,6 +1577,8 @@ namespace Play.SSTV {
                     _oTxTask.Dispose();
                     _oTxTask = null;
                 }
+
+                Properties.CheckParse();
 
                 yield return 100; // wait 1/10 of a second. Makes the level indicator more responsive.
             };
