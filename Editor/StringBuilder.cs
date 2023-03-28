@@ -1,6 +1,4 @@
 using System;
-using System.Collections.Generic;
-using System.Text;
 using System.IO;
 
 using Play.Interfaces.Embedding;
@@ -118,19 +116,19 @@ namespace Play.Edit {
         public char this[int iIndex] {
             get {
                 if( _rgValue == null )
-                    return( '\0' );
+                    return '\0';
 
                 if( iIndex < 0 )
-                    return ( '\0' );
+                    return '\0';
                     
                 // Return just a single character EOF. The stream based reader will
                 // get the \r but the line based one will not. BUG: The return char
                 // should be inherited from the document and not always \r. Also won't
                 // be correct in the EOF case!
                 if( iIndex >= Length )
-                    return ( '\r' );
+                    return '\r';
 
-                return ( _rgValue[iIndex] );
+                return _rgValue[iIndex];
             }
         }
 
@@ -169,24 +167,6 @@ namespace Play.Edit {
 
             return ( new String(_rgValue, 0, this.Length) );
         }
-
-        ///// <summary>
-        ///// Normally you would have to call ToString(), then ToLower() on that. Which
-        ///// is simply to wasteful in our case. Here you can get the lowercase string in
-        ///// one step. S/b null terminated since the string is maintained to be such.
-        ///// </summary>
-        ///// <returns></returns>
-        //public string ToLower() {
-        //    if( _rgValue == null )
-        //        return ( string.Empty );
-
-        //    StringBuilder sbToLower = new StringBuilder( this.Length );
-        //    for( int i = 0; i< this.Length; ++i ) {
-        //        sbToLower.Append( char.ToLower( _rgValue[i] ) );
-        //    }
-
-        //    return(  sbToLower.ToString() );
-        //}
 
         /// <summary>
         /// Return the text buffer we are using for this line.
