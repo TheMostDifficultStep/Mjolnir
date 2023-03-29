@@ -350,8 +350,6 @@ namespace Mjolnir {
             _oLayoutPrimary.Add( _rgSideInfo[SideIdentify.Bottom] );
 
             _oLayoutPrimary.Padding.Bottom = 5;
-
-            DecorMenuReload();
         }
 
         //protected override void Dispose(bool disposing) {
@@ -496,8 +494,6 @@ namespace Mjolnir {
         /// </summary>
         /// <param name="xmlDocument">Pointer to the xml document with our settings.</param>
         protected void InitializeEdges( XmlDocument xmlDocument ) {
-            XmlElement xmlElem = xmlDocument.SelectSingleNode( "config/mainwindow/margin" ) as XmlElement;
-
             Dictionary<string, SideStuff> _rgDim = new Dictionary<string, SideStuff>();
 
             // These need to match the SideIdentify items in the config. 
@@ -510,12 +506,12 @@ namespace Mjolnir {
 
             // Read in all the edge values.
             try {
-                if( xmlElem != null ) {
+                if( xmlDocument.SelectSingleNode( "config/mainwindow/margin" ) is XmlElement xmlMargin ) {
                     foreach( SideIdentify eSide in Enum.GetValues( typeof( SideIdentify ) ) ) {
                         string strSide = eSide.ToString().ToLower();
-                        string strSize = xmlElem.GetAttribute( strSide );
+                        string strSize = xmlMargin.GetAttribute( strSide );
                         if( !string.IsNullOrEmpty( strSize ) ) { 
-                            if( int.TryParse( xmlElem.GetAttribute( strSide ), out int iValue ) ) {
+                            if( int.TryParse( xmlMargin.GetAttribute( strSide ), out int iValue ) ) {
                                 SideStuff sStuff  = _rgDim[strSide];
 							    _rgSideInfo.Add(eSide, new SideRect( sStuff.eTrack ) { 
                                     Spacing  = 5,

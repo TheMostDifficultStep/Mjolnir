@@ -163,6 +163,7 @@ namespace Mjolnir {
 	} // End Class
 
     public partial class MainWin {
+        // Look at making this a struct 
         public class MainWinDecorEnum :
             IEnumerable<IPgMenuVisibility> 
         {
@@ -221,7 +222,8 @@ namespace Mjolnir {
         }
 
         /// <summary>
-        /// Read out the positions of the tools from the config file. 
+        /// Read out the positions of the tools from the config file. This represents the "default" layout
+        /// need to consider this in concert with the newer "pvs" session files.
         /// </summary>
         /// <param name="xmlDocument">Config xml file.</param>
         protected void InitializeShepards( XmlDocument xmlDocument ) {
@@ -286,6 +288,7 @@ namespace Mjolnir {
                 oShepard.SetRect(LOCUS.UPPERLEFT, ptOrigin.X, ptOrigin.Y, 30, 30 );
                 oShepard.Orientation = eEdge;
                 oShepard.Sizing      = SMARTSIZE.Normal;
+
 				if( strToolVis.ToLower() == "true" )
 					oShepard.Show = SHOWSTATE.Active;
 				else
@@ -303,7 +306,11 @@ namespace Mjolnir {
                 ptOrigin.Offset( 5, 5 );
             }
 
-			LayoutLoadShepards(); // loads the shepards into the sides BUT NOT THE decor in the shepard!!
+            DecorMenuReload();               // LayoutLoadShepardsAt depends on this!!
+			// loads the shepards into the sides BUT NOT THE decor in the shepard!!
+            foreach( SideIdentify eSide in _rgSideInfo.Keys ) {
+                LayoutLoadShepardsAt(eSide); // Menu must be loaded by now!!
+            }
         }
 
         /// <summary>
@@ -615,12 +622,6 @@ namespace Mjolnir {
 			oSide.LayoutChildren();  // BUG: If rail distance is zero, no layout happens!!
 		}
 
-        protected void LayoutLoadShepards() {
-            foreach( SideIdentify eSide in _rgSideInfo.Keys ) {
-                LayoutLoadShepardsAt(eSide);
-            }
-        }
-
         /// <summary>
         /// This is a test function to draw a diagonal where the decor
         /// boxes are. Use it in the OnPaint() function for diagnostics.
@@ -660,35 +661,66 @@ namespace Mjolnir {
             }
         }
 
+        protected class MenuReset {
+            public IPgMenuVisibility _oDecorMenu;
+            public bool              _fVisible;
+        }
+
         /// <summary>
         /// We depend on ViewSelect() called AFTER this has been called on load.
         /// </summary>
+        /// <remarks>We're not paying atention to the config loaded shepards/decor
+        /// need to close any that were opened in config.</remarks>
         /// <seealso cref="ViewSelect(ViewSlot, bool)" />
         public void DecorLoad( XmlElement xmlRoot ) {
             try {
-				XmlNodeList        rgXmlViews = xmlRoot.SelectNodes( "Decors/Decor");
-                List<SideIdentify> rgOrient = new List<SideIdentify>();
+				XmlNodeList                         rgXmlDecors = xmlRoot.SelectNodes( "Decors/Decor");
+                Dictionary<SideIdentify, bool>      dctSides    = new();
+                Dictionary<string, MenuReset>       dctDecor    = new();
 
-				foreach( XmlElement xmlView in rgXmlViews ) {
-                    string strDecor = xmlView.GetAttribute( "name" );
-                    foreach( IPgMenuVisibility oDecorVis in _oDecorEnum ) {
-                        if( string.Compare( oDecorVis.Shepard.Name, strDecor ) == 0 ) {
-                            oDecorVis.Checked = true;
-						    oDecorVis.Shepard.Hidden = false;
-			                rgOrient.Add( (SideIdentify)oDecorVis.Shepard.Orientation );
-                        }
+                // Identify any "side" that will be effected by a shepard visibility.
+                foreach( SideIdentify eSide in Enum.GetValues( typeof( SideIdentify ) ) ) {
+                    dctSides.Add( eSide, false );
+                }
+                // Set up copy of the menu assuming no decor specified in the .pvs file
+                foreach( IPgMenuVisibility oDecorVis in _oDecorEnum ) {
+                    dctDecor.Add( oDecorVis.Shepard.Name, new MenuReset() { _fVisible = false, _oDecorMenu = oDecorVis } );
+                }
+                // If we find a decor specified as shown flag it that we want it on.
+				foreach( XmlElement xmlDecor in rgXmlDecors ) {
+                    string strDecorName = xmlDecor.GetAttribute( "name" );
+                    dctDecor[strDecorName]._fVisible = true;
+                }
+                // Now go thru all the menu items and see if the .pvs visibility matches it's current visibility.
+                bool fFoundAtLeastOne = false;
+                foreach( KeyValuePair< string,MenuReset> oPair in dctDecor ) {
+                    IPgMenuVisibility oMenuVis = oPair.Value._oDecorMenu;
+                    SideIdentify      eOrient  = oMenuVis.Shepard.Orientation;
+
+                    if( oPair.Value._fVisible != oMenuVis.Checked ) {
+                        oMenuVis.Checked        =  oPair.Value._fVisible;
+					    oMenuVis.Shepard.Hidden = !oPair.Value._fVisible;
+                        dctSides[ eOrient ]     =  oPair.Value._fVisible;
+                        fFoundAtLeastOne        =  true;
                     }
                 }
-                if( rgOrient.Count > 0 ) {
-                    DecorMenuReload();
-                    foreach( SideIdentify eOrientation in rgOrient ) {
-			            LayoutLoadShepardsAt( eOrientation );
+                // If anything is found reset the UI.
+                if( fFoundAtLeastOne ) {
+                    //DecorMenuReload();
+                    foreach( KeyValuePair< SideIdentify, bool > oPair in dctSides ) {
+                        if( oPair.Value ) {
+			                LayoutLoadShepardsAt( oPair.Key );
+                        }
+                        _rgSideInfo[oPair.Key].Hidden = !oPair.Value;
+                        DecorShuffleSide( oPair.Key );
                     }
+                    OnSizeChanged( new EventArgs() );
                 }
             } catch ( Exception oEx ) {
                 Type[] rgErrors = { typeof( XmlException ),
                                     typeof( ArgumentException ),
-                                    typeof( ArgumentNullException ) };
+                                    typeof( ArgumentNullException ),
+                                    typeof( KeyNotFoundException ) };
                 if( rgErrors.IsUnhandled( oEx ) )
                     throw;
                 LogError( null, "Main Window Load", "Couldn't Load decor configuration" );
