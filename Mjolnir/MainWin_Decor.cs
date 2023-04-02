@@ -664,62 +664,124 @@ namespace Mjolnir {
         protected class MenuReset {
             public IPgMenuVisibility _oDecorMenu;
             public bool              _fVisible;
+            public SideIdentify      _eNewSide;
+            public SideIdentify      _eOldSide;
+            public int               _iOrder;
+        }
+
+
+        /// <summary>
+        /// Normally we sort items on a side based on the rectangle centers. However when
+        /// reloading form a session (pvs) file, we use the specified order.
+        /// </summary>
+        class CompareOrder : IComparer<MenuReset>
+        {
+            public int Compare(MenuReset rcA, MenuReset rcB)
+            {
+                return rcA._iOrder - rcB._iOrder;
+            }
         }
 
         /// <summary>
         /// We depend on ViewSelect() called AFTER this has been called on load.
         /// </summary>
-        /// <remarks>We're not paying atention to the config loaded shepards/decor
-        /// need to close any that were opened in config.</remarks>
         /// <seealso cref="ViewSelect(ViewSlot, bool)" />
+        /// <seealso cref="LayoutLoadShepardsAt"/>
+        /// <seealso cref="DecorMenuReload"/>
         public void DecorLoad( XmlElement xmlRoot ) {
             try {
 				XmlNodeList                         rgXmlDecors = xmlRoot.SelectNodes( "Decors/Decor");
+                Dictionary<string, SideIdentify>    dctFindSide = new(); // search side enum by a string.
                 Dictionary<SideIdentify, bool>      dctSides    = new();
-                Dictionary<string, MenuReset>       dctDecor    = new();
+                Dictionary<string, MenuReset>       dctDecor    = new(); // search decor by string.
 
                 // Identify any "side" that will be effected by a shepard visibility.
                 foreach( SideIdentify eSide in Enum.GetValues( typeof( SideIdentify ) ) ) {
-                    dctSides.Add( eSide, false );
+                    dctSides   .Add( eSide, false );
+                    dctFindSide.Add( eSide.ToString().ToLower(), eSide );
                 }
                 // Set up copy of the menu assuming no decor specified in the .pvs file
                 foreach( IPgMenuVisibility oDecorVis in _oDecorEnum ) {
-                    dctDecor.Add( oDecorVis.Shepard.Name, new MenuReset() { _fVisible = false, _oDecorMenu = oDecorVis } );
+                    dctDecor.Add( oDecorVis.Shepard.Name, new MenuReset() { 
+                        _fVisible   = false, 
+                        _oDecorMenu = oDecorVis, 
+                        _eOldSide   = oDecorVis.Shepard.Orientation,
+                        _eNewSide   = oDecorVis.Shepard.Orientation,
+                        _iOrder     = 100 } );
                 }
-                // If we find a decor specified as shown flag it that we want it on.
+                // If we find a decor specified as shown, flag it that we want it on.
 				foreach( XmlElement xmlDecor in rgXmlDecors ) {
-                    string strDecorName = xmlDecor.GetAttribute( "name" );
-                    dctDecor[strDecorName]._fVisible = true;
+                    try {
+                        string strDecorName = xmlDecor.GetAttribute( "name" );
+                        string strDecorSide = xmlDecor.GetAttribute( "side" );
+                        string strDecorOrdr = xmlDecor.GetAttribute( "order" );
+
+                        dctDecor[strDecorName]._fVisible = true;
+                        dctDecor[strDecorName]._eNewSide = dctFindSide[ strDecorSide ];
+                        dctDecor[strDecorName]._iOrder   = int.Parse( strDecorOrdr );
+                    } catch( Exception oEx ) {
+                        Type[] rgErrors = { typeof( KeyNotFoundException ),
+                                            typeof( FormatException ),
+                                            typeof( OverflowException ),
+                                            typeof( ArgumentNullException ) };
+                        if( rgErrors.IsUnhandled( oEx ) ) 
+                            throw;
+                    }
+                    // if we fail to find side we'll still dock the decor
+                    // but it won't be on the correct side or right order.
                 }
                 // Now go thru all the menu items and see if the .pvs visibility matches it's current visibility.
                 bool fFoundAtLeastOne = false;
                 foreach( KeyValuePair< string,MenuReset> oPair in dctDecor ) {
                     IPgMenuVisibility oMenuVis = oPair.Value._oDecorMenu;
-                    SideIdentify      eOrient  = oMenuVis.Shepard.Orientation;
+                    SideIdentify      eOrient  = oPair.Value._eNewSide;   // oMenuVis.Shepard.Orientation;
 
-                    if( oPair.Value._fVisible != oMenuVis.Checked ) {
-                        oMenuVis.Checked        =  oPair.Value._fVisible;
-					    oMenuVis.Shepard.Hidden = !oPair.Value._fVisible;
-                        dctSides[ eOrient ]     =  oPair.Value._fVisible;
-                        fFoundAtLeastOne        =  true;
+                    if( oPair.Value._fVisible != oMenuVis.Checked ||
+                        oPair.Value._eNewSide != oMenuVis.Shepard.Orientation ) {
+                        oMenuVis.Checked             =  oPair.Value._fVisible;
+					    oMenuVis.Shepard.Hidden      = !oPair.Value._fVisible;
+                        oMenuVis.Shepard.Orientation =  eOrient;
+                        dctSides[ eOrient ]          =  oPair.Value._fVisible;
+                        fFoundAtLeastOne             =  true;
                     }
                 }
                 // If anything is found reset the UI.
                 if( fFoundAtLeastOne ) {
-                    //DecorMenuReload();
+			        List<MenuReset> rgSort   = new ( 10 );
+                    CompareOrder    oCompare = new ();
                     foreach( KeyValuePair< SideIdentify, bool > oPair in dctSides ) {
-                        if( oPair.Value ) {
-			                LayoutLoadShepardsAt( oPair.Key );
+                        if( oPair.Value ) { // If the side was touched...
+			                rgSort.Clear();
+                            // load everthing we want on that side into our sorter.
+                            foreach( MenuReset oHerder in dctDecor.Values ) {
+                                if( oHerder._eNewSide == oPair.Key &&
+                                    oHerder._oDecorMenu.Checked ) {
+                                    rgSort.Add( oHerder );
+                                }
+                            }
+                            // Sort 'em by the order specified in the pvs file.
+                            rgSort.Sort( oCompare );
+
+                            // TODO: We might be able to obviate the need or our external sort array.
+                            SideRect oSide  = _rgSideInfo[oPair.Key];
+
+			                oSide.Clear();
+                            foreach( MenuReset oHerder in rgSort ) {
+                                oSide.Add( oHerder._oDecorMenu.Shepard );
+                            }
+			                oSide.PercentReset  ( fNormalize:true );
+			                oSide.LayoutChildren();  // BUG: If rail distance is zero, no layout happens!!
                         }
                         _rgSideInfo[oPair.Key].Hidden = !oPair.Value;
                         DecorShuffleSide( oPair.Key );
                     }
-                    OnSizeChanged( new EventArgs() );
+                    LayoutFrame();
                 }
             } catch ( Exception oEx ) {
                 Type[] rgErrors = { typeof( XmlException ),
                                     typeof( ArgumentException ),
                                     typeof( ArgumentNullException ),
+                                    typeof( InvalidOperationException ),
                                     typeof( KeyNotFoundException ) };
                 if( rgErrors.IsUnhandled( oEx ) )
                     throw;
