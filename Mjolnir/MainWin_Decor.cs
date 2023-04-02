@@ -638,16 +638,30 @@ namespace Mjolnir {
             }
         }
 
+        /// <summary>
+        /// Save the decor positions in the session file. This class depends on the shepards/herders
+        /// in a side are sorted by their visual order by the decor manager. If we break that we'll
+        /// have to sort here.
+        /// </summary>
+        /// <param name="xmlOurRoot"></param>
+        /// <seealso cref="DecorLoad( XmlElement )"/>
+        /// <seealso cref="LayoutLoadShepardsAt"/>
         public void DecorSave(  XmlDocumentFragment xmlOurRoot ) {
             try {
 			    XmlElement xmlDecors = xmlOurRoot.OwnerDocument.CreateElement( "Decors" );
-                foreach( IPgMenuVisibility oDecorMenu in _oDecorEnum ) {
-                    if( oDecorMenu.Checked ) {
-                        XmlElement xmlDecor =xmlOurRoot.OwnerDocument.CreateElement( "Decor" );
+                foreach( KeyValuePair<SideIdentify,SideRect> oPair in _rgSideInfo ) {
+                    int i = 0;
+                    foreach( SmartHerderBase oHerder in oPair.Value ) {
+                        if( !oHerder.Hidden ) {
+                            XmlElement xmlDecor =xmlOurRoot.OwnerDocument.CreateElement( "Decor" );
 
-				        xmlDecor.SetAttribute( "name", oDecorMenu.Shepard.Name );
+				            xmlDecor.SetAttribute( "name",  oHerder.Name );
+                            xmlDecor.SetAttribute( "side",  oHerder.Orientation.ToString().ToLower() );
+                            xmlDecor.SetAttribute( "order", i.ToString() );
 
-                        xmlDecors.AppendChild( xmlDecor );
+                            xmlDecors.AppendChild( xmlDecor );
+                            ++i;
+                        }
                     }
                 }
                 xmlOurRoot.AppendChild( xmlDecors );
@@ -688,6 +702,7 @@ namespace Mjolnir {
         /// <seealso cref="ViewSelect(ViewSlot, bool)" />
         /// <seealso cref="LayoutLoadShepardsAt"/>
         /// <seealso cref="DecorMenuReload"/>
+        /// <seealso cref="DecorSave"/>
         public void DecorLoad( XmlElement xmlRoot ) {
             try {
 				XmlNodeList                         rgXmlDecors = xmlRoot.SelectNodes( "Decors/Decor");
