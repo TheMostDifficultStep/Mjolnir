@@ -84,6 +84,9 @@ namespace Play.Edit {
                         ++i;
                     }
                     _iLength = i;
+                } else {
+                    if( _rgValue.Length < _iLength )
+                        _iLength = _rgValue.Length; 
                 }
             
                 // Don't have one then the length is the number of characters.
@@ -138,22 +141,30 @@ namespace Play.Edit {
         /// <param name="iStart">Starting offset.</param>
         /// <param name="iLength">Number of characters.</param>
         /// <returns>A string.</returns>
-        /// <remarks>Since I'm using the String constructor this throws errors possibly.
+        /// <remarks>Since I'm only using this for the banner I simply
+        /// return an empty string if encounter an error.
         /// exceptions.</remarks>
-        /// <exception cref="ArgumentOutOfRangeException" />
-        /// <exception cref="ArgumentNullException" />
         public string SubString(int iStart, int iLength) {
-            if( _rgValue == null )
-                return( string.Empty );
+            try {
+                if( _rgValue == null )
+                    return string.Empty;
 
-            if( iStart >= this.Length )
-                iStart  = this.Length - 1;
-            if( iStart < 0 )
-                iStart  = 0;
-            if( iStart + iLength - 1 > this.Length )
-                iLength = this.Length - iStart;
+                if( iStart >= this.Length )
+                    iStart  = this.Length - 1;
+                if( iStart < 0 )
+                    iStart  = 0;
+                if( iStart + iLength - 1 > this.Length )
+                    iLength = this.Length - iStart;
 
-            return ( new String( _rgValue, iStart, iLength ) );
+                return new String( _rgValue, iStart, iLength );
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( ArgumentOutOfRangeException ),
+                                    typeof( ArgumentNullException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
+
+                return String.Empty;
+            }
         }
 
         /// <summary>
