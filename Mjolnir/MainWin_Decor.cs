@@ -51,10 +51,15 @@ namespace Mjolnir {
 
 		public LayoutRect Last { get { return _rgLayout[Count-1]; } }
 
-		public void Load( IEnumerable<SmartHerderBase> rgSource ) {
+		public int Load( IEnumerable<SmartHerderBase> rgSource ) {
+            int iTrack = 0;
+
 			foreach( SmartHerderBase oChild in rgSource ) {
 				Add( oChild );
+                iTrack += (int)oChild.Track;
 			}
+
+            return iTrack;
 		}
 
 		/// <exception cref="ArgumentNullException" />
@@ -121,7 +126,7 @@ namespace Mjolnir {
 			foreach( LayoutRect oChild in _rgLayout ) {
 				if( oChild.Units == CSS.Percent ) {
 					if( fNormalize ) {
-						oChild.Track = (uint)( 100 / iAdjustables );
+						oChild.Track = (uint)( 100 / iAdjustables ); // Evenly distribution.
 					} else {
 						oChild.Track = (uint)( 100 * oChild.GetExtent( Direction ) / iAdjustableExt);
 					}
@@ -577,6 +582,7 @@ namespace Mjolnir {
 		/// decor.
 		/// </summary>
         /// <seealso cref="DecorSetState"/>
+        /// <seealso cref="DecorLoad(XmlElement)"/>
         protected void LayoutLoadShepardsAt( SideIdentify eSide ) {
 			SideRect oSide = null;
 			
@@ -658,10 +664,17 @@ namespace Mjolnir {
 				            xmlDecor.SetAttribute( "name",  oHerder.Name );
                             xmlDecor.SetAttribute( "side",  oHerder.Orientation.ToString().ToLower() );
                             xmlDecor.SetAttribute( "order", i.ToString() );
+                            xmlDecor.SetAttribute( "track", oHerder.Track.ToString() );
 
                             xmlDecors.AppendChild( xmlDecor );
                             ++i;
                         }
+                    }
+                    if( i > 0 ) {
+                        XmlElement xmlSide =xmlOurRoot.OwnerDocument.CreateElement( "Side" );
+
+                        xmlSide.SetAttribute( "name", oPair.Key.ToString() );
+                        xmlSide.SetAttribute( "rail", oPair.Value.Track.ToString() );
                     }
                 }
                 xmlOurRoot.AppendChild( xmlDecors );
@@ -676,11 +689,22 @@ namespace Mjolnir {
         }
 
         protected class MenuReset {
-            public IPgMenuVisibility _oDecorMenu;
+            public readonly IPgMenuVisibility _oDecorMenu;
+            public readonly SideIdentify      _eOldSide;
+
             public bool              _fVisible;
             public SideIdentify      _eNewSide;
-            public SideIdentify      _eOldSide;
             public int               _iOrder;
+            public uint             _uiTrack;
+
+            public MenuReset( IPgMenuVisibility oDecorVis ) {
+                _oDecorMenu = oDecorVis;
+                _eOldSide   = oDecorVis.Shepard.Orientation;
+                _eNewSide   = _eOldSide;
+                _fVisible   = false;
+                _iOrder     = 100;
+                _uiTrack    = 10;
+            }
         }
 
 
@@ -688,11 +712,27 @@ namespace Mjolnir {
         /// Normally we sort items on a side based on the rectangle centers. However when
         /// reloading form a session (pvs) file, we use the specified order.
         /// </summary>
-        class CompareOrder : IComparer<MenuReset>
-        {
-            public int Compare(MenuReset rcA, MenuReset rcB)
-            {
+        class CompareOrder : IComparer<MenuReset> {
+            public int Compare(MenuReset rcA, MenuReset rcB ) {
                 return rcA._iOrder - rcB._iOrder;
+            }
+        }
+
+        struct EnumerateHerders : IEnumerable<SmartHerderBase> {
+            List<MenuReset> _rgResetList;
+
+            public EnumerateHerders( List<MenuReset> rgResetList ) {
+                _rgResetList = rgResetList ?? throw new ArgumentNullException();
+            }
+
+            public IEnumerator<SmartHerderBase> GetEnumerator() {
+                foreach( MenuReset oReset in _rgResetList ) {
+                    yield return oReset._oDecorMenu.Shepard;
+                }
+            }
+
+            IEnumerator IEnumerable.GetEnumerator() {
+                return GetEnumerator();
             }
         }
 
@@ -717,12 +757,7 @@ namespace Mjolnir {
                 }
                 // Set up copy of the menu assuming no decor specified in the .pvs file
                 foreach( IPgMenuVisibility oDecorVis in _oDecorEnum ) {
-                    dctDecor.Add( oDecorVis.Shepard.Name, new MenuReset() { 
-                        _fVisible   = false, 
-                        _oDecorMenu = oDecorVis, 
-                        _eOldSide   = oDecorVis.Shepard.Orientation,
-                        _eNewSide   = oDecorVis.Shepard.Orientation,
-                        _iOrder     = 100 } );
+                    dctDecor.Add( oDecorVis.Shepard.Name, new MenuReset( oDecorVis ) );
                 }
                 // If we find a decor specified as shown, flag it that we want it on.
 				foreach( XmlElement xmlDecor in rgXmlDecors ) {
@@ -730,10 +765,13 @@ namespace Mjolnir {
                         string strDecorName = xmlDecor.GetAttribute( "name" );
                         string strDecorSide = xmlDecor.GetAttribute( "side" );
                         string strDecorOrdr = xmlDecor.GetAttribute( "order" );
+                        string strDecorTrak = xmlDecor.GetAttribute( "track" );
+                        MenuReset oReset = dctDecor[strDecorName];
 
-                        dctDecor[strDecorName]._fVisible = true;
-                        dctDecor[strDecorName]._eNewSide = dctFindSide[ strDecorSide ];
-                        dctDecor[strDecorName]._iOrder   = int.Parse( strDecorOrdr );
+                        oReset._fVisible = true;
+                        oReset._eNewSide = dctFindSide[ strDecorSide ];
+                        oReset._iOrder   = int .Parse( strDecorOrdr );
+                        oReset._uiTrack  = uint.Parse( strDecorTrak );
                     } catch( Exception oEx ) {
                         Type[] rgErrors = { typeof( KeyNotFoundException ),
                                             typeof( FormatException ),
@@ -752,10 +790,12 @@ namespace Mjolnir {
                     SideIdentify      eOrient  = oPair.Value._eNewSide;   // oMenuVis.Shepard.Orientation;
 
                     if( oPair.Value._fVisible != oMenuVis.Checked ||
-                        oPair.Value._eNewSide != oMenuVis.Shepard.Orientation ) {
+                        oPair.Value._eNewSide != oMenuVis.Shepard.Orientation ) 
+                    {
                         oMenuVis.Checked             =  oPair.Value._fVisible;
 					    oMenuVis.Shepard.Hidden      = !oPair.Value._fVisible;
                         oMenuVis.Shepard.Orientation =  eOrient;
+                        oMenuVis.Shepard.Track       =  oPair.Value._uiTrack; // check CSS style.
                         dctSides[ eOrient ]          =  oPair.Value._fVisible;
                         fFoundAtLeastOne             =  true;
                     }
@@ -781,10 +821,11 @@ namespace Mjolnir {
                             SideRect oSide  = _rgSideInfo[oPair.Key];
 
 			                oSide.Clear();
-                            foreach( MenuReset oHerder in rgSort ) {
-                                oSide.Add( oHerder._oDecorMenu.Shepard );
-                            }
-			                oSide.PercentReset  ( fNormalize:true );
+                            // Check the track %'s seem reasonable. If not, reset them.
+                            int iTrack = oSide.Load( new EnumerateHerders( rgSort ) );
+                            if( iTrack < 90 || iTrack > 100 )
+                                oSide.PercentReset( fNormalize:true );
+
 			                oSide.LayoutChildren();  // BUG: If rail distance is zero, no layout happens!!
                         }
                         _rgSideInfo[oPair.Key].Hidden = !oPair.Value;
