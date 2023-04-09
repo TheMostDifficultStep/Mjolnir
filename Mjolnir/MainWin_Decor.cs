@@ -838,7 +838,8 @@ namespace Mjolnir {
                                     typeof( ArgumentException ),
                                     typeof( ArgumentNullException ),
                                     typeof( InvalidOperationException ),
-                                    typeof( KeyNotFoundException ) };
+                                    typeof( KeyNotFoundException ),
+                                    typeof( NullReferenceException ) };
                 if( rgErrors.IsUnhandled( oEx ) )
                     throw;
                 LogError( null, "Main Window Load", "Couldn't Load decor configuration" );
