@@ -1,11 +1,12 @@
 ﻿using System.Xml;
+using System.Windows.Forms;
 
 using Play.Interfaces.Embedding;
 using Play.Forms;
 using Play.Rectangles;
 using Play.Edit;
+
 using SkiaSharp;
-using System.Windows.Forms;
 
 namespace Monitor {
     public class AssemblyWindow : EditWindow2 {
