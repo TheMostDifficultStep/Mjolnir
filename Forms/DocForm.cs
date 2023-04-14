@@ -5,6 +5,8 @@ using System.Collections.Generic;
 using Play.Interfaces.Embedding;
 using Play.Edit;
 
+using SkiaSharp;
+
 namespace Play.Forms {
     public class SimpleCacheCaret : IPgCacheCaret  {
         protected int              _iOffset = 0;
@@ -184,6 +186,24 @@ namespace Play.Forms {
         }
     }
 
+    public struct LabelValuePair {
+        public Line _oLabel;
+        public Line _oValue;
+    }
+
+    public struct LabelAccessor {
+        List<LabelValuePair> _rgProps;
+        public LabelAccessor( List<LabelValuePair> rgProps ) {
+            _rgProps = rgProps ?? throw new ArgumentNullException();
+        }
+
+        public Line this[ int i ] {
+            get {
+                return _rgProps[ i ]._oLabel;
+            }
+        }
+    }
+
     /// <summary>
     /// Document for labels and values style form. Makes separating readable values
     /// from readonly values. Probably move this over to forms project at some time.
@@ -195,8 +215,11 @@ namespace Play.Forms {
         public IPgParent Services  => Parentage.Services;
         public void      LogError( string strMessage ) { _oSiteBase.LogError( "Property Page Client", strMessage ); }
 
-        public Editor Property_Labels { get; }
-        public Editor Property_Values { get; }
+        //public LabelAccessor Property_Labels { get { return new LabelAccessor( PropertyPairs ); } }
+        public Editor PropertyDoc { get; } // Got to be public so the form window can access.
+
+        protected List<LabelValuePair> PropertyPairs { get; } = new List<LabelValuePair>();
+        public    int                  PropertyCount => PropertyPairs.Count;
 
         // This lets us override the standard color for a property.
         // TODO: Give it two slots. Normal override and Error color...
@@ -222,6 +245,10 @@ namespace Play.Forms {
 			}
 		}
 
+        /// <summary>
+        /// TODO: Let's add an array that we can use to save the modified values and then on dispose
+        /// we can sent a new type of event.
+        /// </summary>
         public class Bulk :
             IDisposable
         {
@@ -248,14 +275,11 @@ namespace Play.Forms {
         public DocProperties( IPgBaseSite oSiteBase ) {
             _oSiteBase = oSiteBase ?? throw new ArgumentNullException( "Site must not be null." );
 
-            Property_Labels = new Editor( new DocSlot( this ) );
-            Property_Values = new Editor( new DocSlot( this ) );
+            PropertyDoc = new Editor( new DocSlot( this ) );
         }
 
         public virtual bool InitNew() {
-            if( !Property_Labels.InitNew() )
-                return false;
-            if( !Property_Values.InitNew() )
+            if( !PropertyDoc.InitNew() )
                 return false;
 
             return true;
@@ -263,30 +287,46 @@ namespace Play.Forms {
 
         public Line this[int iIndex] { 
             get { 
-                return Property_Values[iIndex];
+                return PropertyPairs[iIndex]._oValue;
             }
         }
 
-        public int Count => Property_Values.ElementCount; 
+        public LabelValuePair GetPropertyPair( int iIndex ) {
+            return PropertyPairs[(int)iIndex];
+        }
 
         public virtual void Clear() {
-            foreach( Line oLine in Property_Values ) {
-                oLine.Empty();
+            foreach( LabelValuePair oProp in PropertyPairs ) {
+                oProp._oValue.Empty();
             }
-            Property_Values.Raise_BufferEvent( BUFFEREVENTS.MULTILINE ); 
+            PropertyDoc.Raise_BufferEvent( BUFFEREVENTS.MULTILINE ); 
         }
 
         /// <summary>
         /// Sends an event to the views right away. Should make a manipulator for this.
         /// </summary>
         public void ValueUpdate( int iIndex, string strValue, bool Broadcast = false ) {
-            Line oLine = Property_Values[iIndex];
+            Line oLine = PropertyPairs[iIndex]._oValue;
+
             oLine.Empty();
             oLine.TryAppend( strValue );
 
             if( Broadcast ) {
                 // Need to look at this multi line call. s/b single line.
-                Property_Values.Raise_BufferEvent( BUFFEREVENTS.MULTILINE ); // single line probably depends on the caret.
+                PropertyDoc.Raise_BufferEvent( BUFFEREVENTS.MULTILINE ); // single line probably depends on the caret.
+            }
+        }
+
+        public void ValueClear( int iIndex ) {
+            PropertyPairs[iIndex]._oValue.Empty();
+        }
+
+        public void LabelUpdate( int iIndex, string strLabel, SKColor? skBgColor = null ) {
+            PropertyPairs[iIndex]._oLabel.Empty();
+            PropertyPairs[iIndex]._oLabel.TryAppend( strLabel );
+
+            if( skBgColor.HasValue ) {
+                ValueBgColor.Add( iIndex, skBgColor.Value );
             }
         }
 
@@ -294,28 +334,20 @@ namespace Play.Forms {
         /// Use this when you've updated properties independently and want to finally notify the viewers.
         /// </summary>
         public void RaiseBufferEvent() {
-            Property_Values.CharacterCount( 0 );
-            Property_Values.Raise_BufferEvent( BUFFEREVENTS.MULTILINE ); 
+            PropertyDoc.CharacterCount( 0 );
+            PropertyDoc.Raise_BufferEvent( BUFFEREVENTS.MULTILINE ); 
         }
 
-        /// <summary>
-        /// This isn't going to work so I'm going to yank it for now. Need to update
-        /// my properties system so that I can merge multi document properties
-        /// </summary>
-        /// <param name="strLabel">Label for this property.</param>
-        /// <param name="oLine">A line possible from another editor instance.</param>
-        /// <returns></returns>
-        /*
-        public int PropertyAppend( string strLabel, Line oLine ) {
-            if( Property_Values.ElementCount != Property_Labels.ElementCount ) {
-                _oSiteBase.LogError( "Properties", "Mismatched label/value in document properties." );
-            }
-            Property_Labels.LineAppend      ( strLabel, fUndoable:false );
-            Property_Values.LineInsertNoUndo( Property_Values.ElementCount, oLine );
+        public LabelValuePair CreatePropertyPair( string strName = "", string strValue = "" ) {
+            LabelValuePair oProp = new LabelValuePair();
 
-            return Property_Values.ElementCount - 1;
+            oProp._oLabel = PropertyDoc.LineAppend( strName,  fUndoable:false );
+            oProp._oValue = PropertyDoc.LineAppend( strValue, fUndoable:false );
+
+            PropertyPairs.Add( oProp );
+
+            return oProp;
         }
-        */
     }
 
 }

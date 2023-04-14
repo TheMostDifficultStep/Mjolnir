@@ -67,7 +67,7 @@ namespace Kanji_Practice {
         /// special case and so I'll probably split the FormsWindow object for this.</remarks>
         /// <exception cref="ArgumentNullException"></exception>
         public ViewKanji( IPgViewSite oViewSite, KanjiDocument oMonitorDoc ) : 
-            base( oViewSite, oMonitorDoc.FrontDisplay.Property_Values ) 
+            base( oViewSite, oMonitorDoc.FrontDisplay.PropertyDoc ) 
         {
             KanjiDoc = oMonitorDoc ?? throw new ArgumentNullException( "Monitor document must not be null!" );
 

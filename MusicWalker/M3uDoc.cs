@@ -181,8 +181,7 @@ namespace Play.MusicWalker {
 					if( rgColumns == null )
 						continue;
 
-					Property_Labels.LineAppend( rgColumns[0], fUndoable:false );
-					Property_Values.LineAppend( rgColumns[1], fUndoable:false );
+					CreatePropertyPair( rgColumns[0], rgColumns[1] );
 				}
 			} catch( Exception oEx ) {
 				Type[] rgErrors = { typeof( NullReferenceException ),
@@ -191,8 +190,7 @@ namespace Play.MusicWalker {
 				if( rgErrors.IsUnhandled( oEx ) )
 					throw;
 
-				Property_Labels.LineAppend( "Album", fUndoable:false );
-				Property_Values.LineAppend( "Error reading properties", fUndoable:false );
+				CreatePropertyPair( "Album", "Error reading properties" );
 			}
 			return true;
 		}

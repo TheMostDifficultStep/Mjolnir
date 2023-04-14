@@ -475,7 +475,7 @@ namespace Play.SSTV {
 
             public Encoding FileEncoding => Encoding.Default;
 
-            public string FilePath => _oHost._oDocSSTV.Properties[SSTVProperties.Names.Rx_SaveDir].ToString();
+            public string FilePath => _oHost._oDocSSTV.Properties[SSTVProperties.Names.Rx_SaveDir];
 
             public string FileBase => String.Empty;
         }
@@ -502,7 +502,8 @@ namespace Play.SSTV {
 				_wmTxViewChoices   .Dispose();
 				_wmTxImageComposite.Dispose();
 				_wmRxViewChoices   .Dispose();
-				_oDocSSTV.Properties.Property_Values.SubmitEvent -= OnSubmitEvent_SSTVProperties;
+
+				_oDocSSTV.Properties.PropertyDoc.SubmitEvent -= OnSubmitEvent_SSTVProperties;
 
 				_fDisposed = true;
 			}
@@ -528,7 +529,7 @@ namespace Play.SSTV {
             _oLayout .Add( oHBLayout );
 
             OnSizeChanged( new EventArgs() );
-            _oDocSSTV.Properties.Property_Values.SubmitEvent += OnSubmitEvent_SSTVProperties;
+            _oDocSSTV.Properties.PropertyDoc.SubmitEvent += OnSubmitEvent_SSTVProperties;
 
 			return true;
         }

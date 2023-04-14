@@ -338,6 +338,8 @@ namespace Play.ImageViewer {
 				_oBitmapUnknown = ImageResourceHelper.GetImageResource(  Assembly.GetExecutingAssembly(), _strUnknownImage );
 				_oSKBmpError    = GetSKBitmapResource(  Assembly.GetExecutingAssembly(), _strUnknownImage ) ?? throw new InvalidOperationException( "Couldn't Load Error SKBitmap" );
             } catch( InvalidOperationException ) {
+                Type[] rgErrors = { typeof( InvalidOperationException ),
+                                    typeof( FileNotFoundException ) };
                 _oSiteBase.LogError( "Image Base Constructor", "Having trouble finding error bitmap resource." );
             }
 		}
@@ -630,28 +632,23 @@ namespace Play.ImageViewer {
                     return false;
 
                 for( int i=0; i<(int)Names.MAX; ++i ) {
-                    Property_Labels.LineAppend( string.Empty, fUndoable:false );
-                    Property_Values.LineAppend( string.Empty, fUndoable:false );
+                    CreatePropertyPair();
                 }
 
-                LabelSet( Names.Name,     "Name", new SKColor( red:0xff, green:0xbf, blue:0 ) );
-                LabelSet( Names.Width,    "Width" );
-                LabelSet( Names.Height,   "Height" );
-                LabelSet( Names.Depth,    "Depth" );
-                LabelSet( Names.Modified, "Modified" );
-                LabelSet( Names.Size,     "Size" );
+                LabelUpdate( Names.Name,     "Name", new SKColor( red:0xff, green:0xbf, blue:0 ) );
+                LabelUpdate( Names.Width,    "Width" );
+                LabelUpdate( Names.Height,   "Height" );
+                LabelUpdate( Names.Depth,    "Depth" );
+                LabelUpdate( Names.Modified, "Modified" );
+                LabelUpdate( Names.Size,     "Size" );
 
                 Clear();
 
                 return true;
             }
 
-            public void LabelSet( Names eName, string strLabel, SKColor? skBgColor = null ) {
-                Property_Labels[(int)eName].TryAppend( strLabel );
-
-                if( skBgColor.HasValue ) {
-                    ValueBgColor.Add( (int)eName, skBgColor.Value );
-                }
+            public void LabelUpdate( Names eName, string strLabel, SKColor? skBgColor = null ) {
+                LabelUpdate( (int)eName, strLabel, skBgColor );
             }
 
             public void ValueUpdate( Names eName, string strValue, bool Broadcast = false ) {

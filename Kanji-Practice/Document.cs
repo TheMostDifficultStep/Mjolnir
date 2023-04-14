@@ -78,8 +78,6 @@ namespace Kanji_Practice {
             if( !FrontDisplay.InitNew() )
                 return false;
 
-            Editor PropValues = FrontDisplay.Property_Values;
-
             return true;
         }
 

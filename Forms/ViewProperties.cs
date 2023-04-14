@@ -30,7 +30,10 @@ namespace Play.Forms {
         public IPgParent Parentage => _oSiteView.Host;
         public IPgParent Services  => Parentage.Services;
 
-        public WindowStandardProperties( IPgViewSite oSiteView, DocProperties oDocument ) : base( oSiteView, oDocument.Property_Values ) {
+        /// <remarks>
+        /// TODO: Make the FormsWindow base take the DocForms.
+        /// </remarks>
+        public WindowStandardProperties( IPgViewSite oSiteView, DocProperties oDocument ) : base( oSiteView, oDocument.PropertyDoc ) {
             Document = oDocument ?? throw new ArgumentNullException( "ViewStandardProperties's Document is null." );
  			_oStdUI  = oSiteView.Host.Services as IPgStandardUI2 ?? throw new ArgumentException( "Parent view must provide IPgStandardUI service" );
 
@@ -67,12 +70,15 @@ namespace Play.Forms {
         //}
 
         public void PropertyInitRow( SmartTable oLayout, int iIndex, Control oWinValue = null ) {
-            var oLayoutLabel = new LayoutSingleLine( new FTCacheWrap( Document.Property_Labels[iIndex] ), LayoutRect.CSS.Flex );
+            LabelValuePair sPropertyPair = Document.GetPropertyPair( iIndex );
+
+            var oLayoutLabel = new LayoutSingleLine( new FTCacheWrap( sPropertyPair._oLabel ), LayoutRect.CSS.Flex );
             LayoutRect oLayoutValue;
             
             if( oWinValue == null ) {
-                oLayoutValue = new LayoutSingleLine( new FTCacheWrap( Document.Property_Values[iIndex] ), LayoutRect.CSS.Flex );
-            } else { // If the value is a multi-line value make an editor.
+                oLayoutValue = new LayoutSingleLine( new FTCacheWrap( sPropertyPair._oValue ), LayoutRect.CSS.Flex );
+            } else { 
+                // If the value is a multi-line value make an editor. And ignor the value line (if there is one).
                 if( oWinValue is IPgLoad oWinLoad ) {
                     oWinLoad.InitNew();
                 }
@@ -93,6 +99,46 @@ namespace Play.Forms {
 				}
                 oLayoutSingle.BgColor = skBgColor;
                 CacheList.Add( oLayoutSingle );
+            }
+        }
+
+        /// <summary>
+        /// this is the default InitRows() function that set's everything. However InitNew() might
+        /// get overriden and call the InitRows( int[] ) on a subset. 
+        /// </summary>
+        public virtual void InitRows() {
+            if( Layout is not SmartTable oTable ) {
+                LogError( "Unexpected Layout for Property Page" );
+                return;
+            }
+
+            List<int> rgTabOrder = new List<int>();
+            for( int i = 0; i< Document.PropertyCount; ++i ) {
+                PropertyInitRow( oTable, i );
+                rgTabOrder.Add( i );
+            }
+            TabOrder = rgTabOrder.ToArray();
+        }
+
+        public virtual void InitRows( int[] rgShow ) {
+            if( Layout is not SmartTable oTable ) {
+                LogError( "Unexpected Layout for Property Page" );
+                return;
+            }
+            try {
+                foreach( int iIndex in rgShow ) { 
+                    PropertyInitRow( oTable, iIndex );
+                }
+                TabOrder = rgShow;
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( IndexOutOfRangeException ),
+                                    typeof( ArgumentOutOfRangeException ),
+                                    typeof( NullReferenceException ),
+                                    typeof( ArgumentNullException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
+
+                LogError( "Bad property page index list" );
             }
         }
 
@@ -130,42 +176,6 @@ namespace Play.Forms {
             Links.Add( "callsign", OnCallSign );
 
             return true;
-        }
-
-        public virtual void InitRows() {
-            if( Layout is not SmartTable oTable ) {
-                LogError( "Unexpected Layout for Property Page" );
-                return;
-            }
-
-            List<int> rgTabOrder = new List<int>();
-            foreach( Line oLine in Document.Property_Labels ) {
-                PropertyInitRow( oTable, oLine.At );
-                rgTabOrder.Add( oLine.At );
-            }
-            TabOrder = rgTabOrder.ToArray();
-        }
-
-        public virtual void InitRows( int[] rgShow ) {
-            if( Layout is not SmartTable oTable ) {
-                LogError( "Unexpected Layout for Property Page" );
-                return;
-            }
-            try {
-                foreach( int iIndex in rgShow ) { 
-                    PropertyInitRow( oTable, iIndex );
-                }
-                TabOrder = rgShow;
-            } catch( Exception oEx ) {
-                Type[] rgErrors = { typeof( IndexOutOfRangeException ),
-                                    typeof( ArgumentOutOfRangeException ),
-                                    typeof( NullReferenceException ),
-                                    typeof( ArgumentNullException ) };
-                if( rgErrors.IsUnhandled( oEx ) )
-                    throw;
-
-                LogError( "Bad property page index list" );
-            }
         }
 
         protected void OnCallSign( Line oLine, IPgWordRange oRange ) {

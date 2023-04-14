@@ -601,7 +601,7 @@ namespace Play.SSTV {
 
             public Encoding FileEncoding => Encoding.Default;
 
-            public string FilePath => _oHost._oDocSSTV.Properties[SSTVProperties.Names.Rx_SaveDir].ToString();
+            public string FilePath => _oHost._oDocSSTV.Properties[SSTVProperties.Names.Rx_SaveDir];
 
             public string FileBase => String.Empty;
         }

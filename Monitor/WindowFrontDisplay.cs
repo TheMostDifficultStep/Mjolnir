@@ -122,7 +122,7 @@ namespace Monitor {
         /// special case and so I'll probably split the FormsWindow object for this.</remarks>
         /// <exception cref="ArgumentNullException"></exception>
         public WindowFrontPanel( IPgViewSite oViewSite, MonitorDocument oMonitorDoc ) : 
-            base( oViewSite, oMonitorDoc.FrontDisplay.Property_Values ) 
+            base( oViewSite, oMonitorDoc.FrontDisplay.PropertyDoc ) 
         {
             MonitorDoc = oMonitorDoc ?? throw new ArgumentNullException( "Monitor document must not be null!" );
 

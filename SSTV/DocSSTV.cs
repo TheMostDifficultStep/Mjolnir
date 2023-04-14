@@ -19,7 +19,6 @@ using Play.Sound.FFT;
 using Play.Edit;
 using Play.ImageViewer;
 using Play.Forms;
-using Play.Integration;
 
 namespace Play.SSTV {
     /// <summary>
@@ -70,7 +69,7 @@ namespace Play.SSTV {
         }
 
         public SSTVProperties( IPgRoundRobinWork oWorker, IPgBaseSite oSiteBase ) : base( oSiteBase ) {
-            _oParser = new ParseFormText( oWorker, Property_Values, "text" );
+            _oParser = new ParseFormText( oWorker, PropertyDoc, "text" );
         }
 
         public virtual void Dispose() {
@@ -96,64 +95,54 @@ namespace Play.SSTV {
             if( _oSiteBase.Host is not DocSSTV oSSTVDoc )
                 return false;
 
+            // Set up our basic list of values.
             foreach( Names eName in Enum.GetValues(typeof(Names)) ) {
-                Property_Labels.LineAppend( string.Empty, fUndoable:false );
-                switch( eName ) {
-                    case Names.Tx_SrcDir:
-                        Property_Values.LineInsertNoUndo( Property_Values.ElementCount, oSSTVDoc.TxImageList.CurrentShowPath );
-                        break;
-                    case Names.Tx_SrcFile:
-                        Property_Values.LineInsertNoUndo( Property_Values.ElementCount, oSSTVDoc.TxImageList.CurrentShowFile );
-                        break;
-                    case Names.Rx_SaveDir:
-                        Property_Values.LineInsertNoUndo( Property_Values.ElementCount, oSSTVDoc.RxHistoryList.CurrentShowPath );
-                        break;
-                    case Names.Rx_HistoryFile:
-                        Property_Values.LineInsertNoUndo( Property_Values.ElementCount, oSSTVDoc.RxHistoryList.CurrentShowFile );
-                        break;
-                    default:
-                        Property_Values.LineAppend( string.Empty, fUndoable:false );
-                        break;
-                }
+                CreatePropertyPair( eName.ToString() );
             }
 
             // TODO: Need a way to clear the monitor check if don't want to monitor.
-            LabelSet( Names.Std_MnPort,     "Monitor with Device" );
-            LabelSet( Names.Std_TxPort,     "Transmit  to Device" );
-            LabelSet( Names.Std_RxPort,     "Receive from Device" );
-            LabelSet( Names.Std_ImgQuality, "Image Save Quality" );
-            LabelSet( Names.Std_Process,    "Rx Status" );
-            LabelSet( Names.Std_MicGain,    "Output Gain < 30,000" );
-            LabelSet( Names.Std_Frequency,  "Frequency" ); // TODO: Give it yellow if calibrated value different than base.
+            LabelUpdate( Names.Std_MnPort,     "Monitor with Device" );
+            LabelUpdate( Names.Std_TxPort,     "Transmit  to Device" );
+            LabelUpdate( Names.Std_RxPort,     "Receive from Device" );
+            LabelUpdate( Names.Std_ImgQuality, "Image Save Quality" );
+            LabelUpdate( Names.Std_Process,    "Rx Status" );
+            LabelUpdate( Names.Std_MicGain,    "Output Gain < 30,000" );
+            LabelUpdate( Names.Std_Frequency,  "Frequency" ); // TODO: Give it yellow if calibrated value different than base.
 
-            LabelSet( Names.Tx_MyCall,       "My Call" );
-            LabelSet( Names.Tx_TheirCall,    "Rx Call", SKColors.LightGreen );
-            LabelSet( Names.Tx_RST,          "RSV" ); // Readibility, strength, video
-            LabelSet( Names.Tx_Message,      "Message" );
-            LabelSet( Names.Tx_Progress,     "Tx % Sent" );
-            LabelSet( Names.Tx_SrcDir,       "Tx Source Dir" );
-            LabelSet( Names.Tx_SrcFile,      "Tx Filename" );
-            LabelSet( Names.Tx_FamilySelect, "Tx Family" );
-            LabelSet( Names.Tx_ModeSelect,   "Tx Mode" );
-            LabelSet( Names.Tx_LayoutSelect, "Layout" );
+            LabelUpdate( Names.Tx_MyCall,       "My Call" );
+            LabelUpdate( Names.Tx_TheirCall,    "Rx Call", SKColors.LightGreen );
+            LabelUpdate( Names.Tx_RST,          "RSV" ); // Readibility, strength, video
+            LabelUpdate( Names.Tx_Message,      "Message" );
+            LabelUpdate( Names.Tx_Progress,     "Tx % Sent" );
+            LabelUpdate( Names.Tx_SrcDir,       "Tx Source Dir" );
+            LabelUpdate( Names.Tx_SrcFile,      "Tx Filename" );
+            LabelUpdate( Names.Tx_FamilySelect, "Tx Family" );
+            LabelUpdate( Names.Tx_ModeSelect,   "Tx Mode" );
+            LabelUpdate( Names.Tx_LayoutSelect, "Layout" );
 
-            LabelSet( Names.Rx_Mode,         "Rx Last", new SKColor( red:0xff, green:0xbf, blue:0 ) );
-            LabelSet( Names.Rx_Width,        "Width" );
-            LabelSet( Names.Rx_Height,       "Height" );
-            LabelSet( Names.Rx_Progress,     "Received" );
-            LabelSet( Names.Rx_SaveDir,      "Rx Save Dir" );
-            LabelSet( Names.Rx_HistoryFile,  "Rx Filename" );
-            LabelSet( Names.Rx_Window,       "Rx Window" );
-            LabelSet( Names.Rx_FamilySelect, "Rx Family" );
-            LabelSet( Names.Rx_ModeSelect,   "Rx Mode" );
-            LabelSet( Names.Rx_Diagnostic,   "Diagnostics" );
-            LabelSet( Names.Rx_HistoryIcons, "History" );
-            LabelSet( Names.Rx_SignalLevel,  "Signal Lvl" );
+            LabelUpdate( Names.Rx_Mode,         "Rx Last", new SKColor( red:0xff, green:0xbf, blue:0 ) );
+            LabelUpdate( Names.Rx_Width,        "Width" );
+            LabelUpdate( Names.Rx_Height,       "Height" );
+            LabelUpdate( Names.Rx_Progress,     "Received" );
+            LabelUpdate( Names.Rx_SaveDir,      "Rx Save Dir" );
+            LabelUpdate( Names.Rx_HistoryFile,  "Rx Filename" );
+            LabelUpdate( Names.Rx_Window,       "Rx Window" );
+            LabelUpdate( Names.Rx_FamilySelect, "Rx Family" );
+            LabelUpdate( Names.Rx_ModeSelect,   "Rx Mode" );
+            LabelUpdate( Names.Rx_Diagnostic,   "Diagnostics" );
+            LabelUpdate( Names.Rx_HistoryIcons, "History" );
+            LabelUpdate( Names.Rx_SignalLevel,  "Signal Lvl" );
+
+            // I forget where the values get updated... :-/
+            ValueUpdate( Names.Tx_SrcDir,      oSSTVDoc.TxImageList  .CurrentShowPath );
+            ValueUpdate( Names.Tx_SrcFile,     oSSTVDoc.TxImageList  .CurrentShowFile );
+            ValueUpdate( Names.Rx_SaveDir,     oSSTVDoc.RxHistoryList.CurrentShowPath );
+            ValueUpdate( Names.Rx_HistoryFile, oSSTVDoc.RxHistoryList.CurrentShowFile );
 
             // Initialize these to reasonable values, the user can update and save.
             ValueUpdate( Names.Std_ImgQuality, "80" );
             ValueUpdate( Names.Std_MicGain,    "10000" ); // Out of 30,000
-            ValueUpdate( Names.Std_Frequency,  "11028" ); // Calibrated value. 11023.72 for me ^_^.
+            ValueUpdate( Names.Std_Frequency,  "11025" ); 
 
             return true;
         }
@@ -164,31 +153,30 @@ namespace Play.SSTV {
         public override void Clear() {
         }
 
-        public void LabelSet( Names eName, string strLabel, SKColor? skBgColor = null ) {
-            Property_Labels[(int)eName].TryAppend( strLabel );
-
-            if( skBgColor.HasValue ) {
-                ValueBgColor.Add( (int)eName, skBgColor.Value );
-            }
+        public void LabelUpdate( Names eName, string strLabel, SKColor? skBgColor = null ) {
+            LabelUpdate( (int)eName, strLabel, skBgColor );
         }
 
         public void ValueUpdate( Names eName, string strValue, bool Broadcast = false ) {
             ValueUpdate( (int)eName, strValue, Broadcast );
         }
 
+        public void ValueUpdate( Names eName, Line oValue, bool Broadcast = false ) {
+            ValueUpdate( (int)eName, oValue.ToString(), Broadcast );
+        }
         public string this[ Names eIndex ] {
             get {
-                return Property_Values[(int)eIndex].ToString();
+                return PropertyPairs[(int)eIndex]._oValue.ToString();
             }
         }
 
-        public bool GetValueAsBool( Names eIndex ) {
-            return string.Compare( Property_Values[(int)eIndex].ToString(), "true", ignoreCase:true ) == 0;
+        public bool ValueGetAsBool( Names eIndex ) {
+            return string.Compare( this[eIndex], "true", ignoreCase:true ) == 0;
         }
 
-        public int GetValueAsInt( Names eIndex, int? iDefault = null ) {
+        public int ValueGetAsInt( Names eIndex, int? iDefault = null ) {
             if( iDefault.HasValue ) {
-                if( !int.TryParse( Property_Values[(int)eIndex].ToString(), out int iValue ) ) {
+                if( !int.TryParse( this[eIndex], out int iValue ) ) {
                     iValue = iDefault.Value;
                     ValueBgColor.Add( (int)eIndex, SKColors.LightPink ); // Sigh...Need some way to go back ^_^;
                 }
@@ -196,11 +184,11 @@ namespace Play.SSTV {
                 return iValue;
             }
 
-            return int.Parse( Property_Values[(int)eIndex].ToString() );
+            return int.Parse( this[eIndex] );
         }
 
-        public double GetValueAsDbl( Names eIndex, double? dblDefault = null ) {
-            Line oProperty = Property_Values[(int)eIndex];
+        public double ValueGetAsDbl( Names eIndex, double? dblDefault = null ) {
+            Line oProperty = PropertyPairs[(int)eIndex]._oValue;
 
             if( dblDefault.HasValue ) {
                 if( !double.TryParse( oProperty.ToString(), out double dblValue ) ) {
@@ -682,7 +670,7 @@ namespace Play.SSTV {
 				LogError( "Couldn't find pictures tx directory for SSTV" );
                 return false;
 			}
-            string strMyPics = Properties[SSTVProperties.Names.Rx_SaveDir].ToString();
+            string strMyPics = Properties[SSTVProperties.Names.Rx_SaveDir];
             if( !RxHistoryList.LoadURL( strMyPics ) ) {
 				LogError( "Couldn't find pictures history directory for SSTV" );
                 return false;
@@ -1335,7 +1323,7 @@ namespace Play.SSTV {
             }
         }
 
-        protected int MicrophoneGain => Properties.GetValueAsInt( SSTVProperties.Names.Std_MicGain );
+        protected int MicrophoneGain => Properties.ValueGetAsInt( SSTVProperties.Names.Std_MicGain );
 
 		public bool RenderComposite() {
             SSTVMode oMode = TransmitModeSelection;
@@ -1420,7 +1408,7 @@ namespace Play.SSTV {
 
             void oTransmitAction() {
                 SKBitmap bmpCopy = TxBitmapComp.Bitmap.Copy();
-                double   dblFreq = Properties.GetValueAsDbl(SSTVProperties.Names.Std_Frequency);
+                double   dblFreq = Properties.ValueGetAsDbl(SSTVProperties.Names.Std_Frequency);
                 TxState   oState = null;
                 try {
                     oState = new TxState(oMode, dblFreq, MicrophoneGain,
@@ -1721,8 +1709,8 @@ namespace Play.SSTV {
                     // or our task will be getting an event we don't want.
                     RxModeList.CheckedReset = RxModeList[0];
 
-                    int    iQuality    = Properties.GetValueAsInt( SSTVProperties.Names.Std_ImgQuality, 80 );
-                    double dblFreq     = Properties.GetValueAsDbl( SSTVProperties.Names.Std_Frequency,  11028 );
+                    int    iQuality    = Properties.ValueGetAsInt( SSTVProperties.Names.Std_ImgQuality, 80 );
+                    double dblFreq     = Properties.ValueGetAsDbl( SSTVProperties.Names.Std_Frequency,  11028 );
                     string strSaveDir  = Properties[ SSTVProperties.Names.Rx_SaveDir  ];
 
                     // Just note, if we do a file read, we might no longer be in the MyPictures path.

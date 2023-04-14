@@ -243,7 +243,7 @@ namespace Monitor {
             if( !LablEdit.InitNew() )
                 return false;
 
-            Editor PropValues = FrontDisplay.Property_Values;
+            Editor PropValues = FrontDisplay.PropertyDoc;
             for( int i = 0; i<8; ++i ) {
                 StatusLine.Add( PropValues.LineAppend( "0", fUndoable:false ) );
             }
@@ -659,7 +659,7 @@ namespace Monitor {
             StatusLine[(int)StatusBits.Carry   ].Empty();
             StatusLine[(int)StatusBits.Carry   ].TryInsert( 0, cCarry );
 
-            FrontDisplay.Property_Values.Raise_BufferEvent( BUFFEREVENTS.FORMATTED );
+            FrontDisplay.PropertyDoc.Raise_BufferEvent( BUFFEREVENTS.FORMATTED );
         }
 
         public void Inst_CompAbs() {

@@ -1342,25 +1342,24 @@ namespace Play.MorsePractice {
                 return false;
 
             for( int i=0; i<(int)Names.MAX; ++i ) {
-                Property_Labels.LineAppend( string.Empty, fUndoable:false );
-                Property_Values.LineAppend( string.Empty, fUndoable:false );
+                CreatePropertyPair();
             }
 
-            LabelSet( Names.Radio_Link,         "Radio Link" );
-            LabelSet( Names.Timer,              "Timer" );
-            LabelSet( Names.Frequency,          "Frequency", new SKColor( red:0xff, green:0xbf, blue:0 ) );
-            LabelSet( Names.Callsign,           "Callsign" );
-            LabelSet( Names.Location,           "Location" );
-            LabelSet( Names.Group,              "Group" );
-            LabelSet( Names.Repeater_Tone,      "Repeater Tone" );
-            LabelSet( Names.Rptr_Tone_Enable,   "Tone Enable" );
-            LabelSet( Names.Repeater_URL,       "Repeater URL" );
-            LabelSet( Names.Power_Level,        "Power Level" );
-            LabelSet( Names.Alternates,         "Alternates" );
-            LabelSet( Names.COM_Port,           "COM Port" );
-            LabelSet( Names.Address_Radio,      "Radio Addr" );
-            LabelSet( Names.Address_Controller, "Controller Addr" );
-            LabelSet( Names.Mode,               "Mode" ); // Rx or Tx??
+            LabelUpdate( Names.Radio_Link,         "Radio Link" );
+            LabelUpdate( Names.Timer,              "Timer" );
+            LabelUpdate( Names.Frequency,          "Frequency", new SKColor( red:0xff, green:0xbf, blue:0 ) );
+            LabelUpdate( Names.Callsign,           "Callsign" );
+            LabelUpdate( Names.Location,           "Location" );
+            LabelUpdate( Names.Group,              "Group" );
+            LabelUpdate( Names.Repeater_Tone,      "Repeater Tone" );
+            LabelUpdate( Names.Rptr_Tone_Enable,   "Tone Enable" );
+            LabelUpdate( Names.Repeater_URL,       "Repeater URL" );
+            LabelUpdate( Names.Power_Level,        "Power Level" );
+            LabelUpdate( Names.Alternates,         "Alternates" );
+            LabelUpdate( Names.COM_Port,           "COM Port" );
+            LabelUpdate( Names.Address_Radio,      "Radio Addr" );
+            LabelUpdate( Names.Address_Controller, "Controller Addr" );
+            LabelUpdate( Names.Mode,               "Mode" ); // Rx or Tx??
 
             // We'll actually initialize the serial port with these values! but they're not changable after that yet.
             ValueUpdate( Names.COM_Port,           "4" );    // While a property,
@@ -1370,34 +1369,34 @@ namespace Play.MorsePractice {
             return true;
         }
 
-        public void LabelSet( Names eName, string strLabel, SKColor? skBgColor = null ) {
-            Property_Labels[(int)eName].TryAppend( strLabel );
-
-            if( skBgColor.HasValue ) {
-                ValueBgColor.Add( (int)eName, skBgColor.Value );
-            }
+        public void LabelUpdate( Names eName, string strLabel, SKColor? skBgColor = null ) {
+            LabelUpdate( (int)eName, strLabel, skBgColor);
         }
 
         public void ValueUpdate( Names eName, string strValue, bool Broadcast = true ) {
             ValueUpdate( (int)eName, strValue, Broadcast );
         }
 
+        public void ValueClear( Names eName ) {
+            ValueClear( (int)eName );
+        }
+
         /// <summary>
         /// Override the clear to only clear the specific repeater information. If you want to 
-        /// clear all values, call the base method.
+        /// clear all repeater values. Do NOT call the base, which will clear everything.
         /// </summary>
         public override void Clear() {
-            Property_Values[(int)Names.Frequency       ].Empty();
-            Property_Values[(int)Names.Callsign        ].Empty();
-            Property_Values[(int)Names.Location        ].Empty();
-            Property_Values[(int)Names.Group           ].Empty();
-            Property_Values[(int)Names.Repeater_Tone   ].Empty();
-            Property_Values[(int)Names.Rptr_Tone_Enable].Empty();
-            Property_Values[(int)Names.Power_Level     ].Empty();
-            Property_Values[(int)Names.Alternates      ].Empty();
-            Property_Values[(int)Names.Repeater_URL    ].Empty();
+            ValueClear( Names.Frequency        );
+            ValueClear( Names.Callsign         );
+            ValueClear( Names.Location         );
+            ValueClear( Names.Group            );
+            ValueClear( Names.Repeater_Tone    );
+            ValueClear( Names.Rptr_Tone_Enable );
+            ValueClear( Names.Power_Level      );
+            ValueClear( Names.Alternates       );
+            ValueClear( Names.Repeater_URL     );
 
-            Property_Values.Raise_BufferEvent( BUFFEREVENTS.MULTILINE ); 
+            PropertyDoc.Raise_BufferEvent( BUFFEREVENTS.MULTILINE ); 
         }
     }
 }
