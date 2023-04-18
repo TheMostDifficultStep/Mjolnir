@@ -291,6 +291,17 @@ namespace Play.Forms {
             }
         }
 
+        public int ValueGetAsInt( int iIndex, int? iDefault = null ) {
+            if( iDefault.HasValue ) {
+                if( !int.TryParse( this[iIndex].ToString(), out int iValue ) ) {
+                    iValue = iDefault.Value;
+                }
+                return iValue;
+            }
+
+            return int.Parse( this[iIndex].ToString() );
+        }
+
         public LabelValuePair GetPropertyPair( int iIndex ) {
             return PropertyPairs[(int)iIndex];
         }

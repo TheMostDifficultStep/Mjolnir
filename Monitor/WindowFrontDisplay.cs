@@ -7,8 +7,15 @@ using Play.Rectangles;
 using Play.Edit;
 
 using SkiaSharp;
+using SkiaSharp.Views.Desktop;
+
 
 namespace Monitor {
+    public class PropertyWindow : WindowStandardProperties {
+        public PropertyWindow( IPgViewSite oViewSite, CpuProperties oPropDoc ) : base( oViewSite, oPropDoc ) {
+        }
+    }
+
     public class AssemblyWindow : EditWindow2 {
         public class FTCacheLineNumber : FTCacheWrap {
             Line _oHost;
@@ -66,20 +73,21 @@ namespace Monitor {
         }
     }
 
-    internal class WindowFrontPanel : FormsWindow,
+    internal class WindowFrontPanel : SKControl,
         IPgParent,
         IPgCommandView,
         IPgLoad<XmlElement>,
         IPgSave<XmlDocumentFragment>
     {
-        protected MonitorDocument     MonitorDoc { get; }
-        protected SmartTable          Blinken    { get; }
-        protected LayoutStackVertical VertStack  { get; }
-        protected EditWindow2         WinCommand { get; }
-        protected EditWindow2         WinAssembly { get; }
+        protected MonitorDocument       MonitorDoc { get; }
+        protected LayoutStackHorizontal Layout     { get; } = new LayoutStackHorizontal();
+        protected EditWindow2           WinCommand { get; }
+        protected EditWindow2           WinAssembly { get; }
 
         public IPgParent Parentage => _oSiteView.Host;
         public IPgParent Services  => Parentage.Services;
+
+        protected IPgViewSite _oSiteView;
 
         public string Banner => "Nibble Monitor";
 
@@ -115,127 +123,46 @@ namespace Monitor {
 			public IPgViewNotify EventChain => _oHost._oSiteView.EventChain;
 		}
 
-        /// <remarks>So this is an interesting case for our forms object. I would like the
-        /// data and address lines to be two seperate text editors. The form which we 
-        /// derive from really only understands one editor of editable elements. It comes
-        /// down to who gets edit events. And how would undo work. It seems pretty
-        /// special case and so I'll probably split the FormsWindow object for this.</remarks>
+        /// <remarks>So turns out having seperate documents containing the various elements
+        /// we want to display results in a bug in the main form window trying to manage the
+        /// visual elements. Plus, undo is a nightmare. So punt on that and using a single
+        /// property doc, but create outboard collections of the registers and status bits.</remarks>
         /// <exception cref="ArgumentNullException"></exception>
-        public WindowFrontPanel( IPgViewSite oViewSite, MonitorDocument oMonitorDoc ) : 
-            base( oViewSite, oMonitorDoc.FrontDisplay.PropertyDoc ) 
+        public WindowFrontPanel( IPgViewSite oViewSite, MonitorDocument oMonitorDoc ) 
         {
+            _oSiteView = oViewSite   ?? throw new ArgumentNullException();
             MonitorDoc = oMonitorDoc ?? throw new ArgumentNullException( "Monitor document must not be null!" );
-
-            VertStack  = new LayoutStackVertical();
-            Layout     = VertStack;
 
             WinCommand  = new AssemblyWindow( new ViewSlot( this ), oMonitorDoc.TextCommands ) { Parent = this };
             WinAssembly = new AssemblyWindow( new ViewSlot( this ), oMonitorDoc.AssemblyDoc  ) { Parent = this };
-            Blinken     = new SmartTable( 5, LayoutRect.CSS.Percent ) { Track = 40 };
         }
 
-        public override bool InitNew() {
-            if( !base.InitNew() )
-                return false;
-
+        public virtual bool InitNew() {
             if( !WinCommand.InitNew() )
                 return false;
 
             if( !WinAssembly.InitNew() )
                 return false;
 
-            // First, add the columns to our table.
-			Blinken.Add( new LayoutRect( LayoutRect.CSS.Flex ) );
-			Blinken.Add( new LayoutRect( LayoutRect.CSS.Pixels, 60, .20f ) );
-			Blinken.Add( new LayoutRect( LayoutRect.CSS.Pixels, 60, .20f ) );
-			Blinken.Add( new LayoutRect( LayoutRect.CSS.Pixels, 60, .20f ) );
-			Blinken.Add( new LayoutRect( LayoutRect.CSS.Pixels, 60, .20f ) );
-			//Blinken.Add( new LayoutRect( LayoutRect.CSS.None ) );
-
-            Editor oLabels = MonitorDoc.LablEdit;
-
-            // Status lights top labels...
-            List<LayoutRect> rgStatusLabel = new();
-            rgStatusLabel.Add( new LayoutSingleLine( new FTCacheLine( oLabels[3] ), LayoutRect.CSS.Flex ) /* { Span = 4 } */ );
-
-            rgStatusLabel.Add( new LayoutSingleLine( new FTCacheLine( oLabels[15] ), LayoutRect.CSS.Flex ) );
-            rgStatusLabel.Add( new LayoutSingleLine( new FTCacheLine( oLabels[14] ), LayoutRect.CSS.Flex ) );
-            rgStatusLabel.Add( new LayoutSingleLine( new FTCacheLine( oLabels[13] ), LayoutRect.CSS.Flex ) );
-            rgStatusLabel.Add( new LayoutSingleLine( new FTCacheLine( oLabels[12] ), LayoutRect.CSS.Flex ) ); // N
-            foreach( LayoutRect oRect in rgStatusLabel ) {
-                if( oRect is LayoutSingleLine oSingle ) {
-                    CacheList.Add( oSingle );
-                }
-            }
-
-            // Status Label for the blinken lights row.
-            List<LayoutRect> rgStatusLayout = new();
-            rgStatusLayout.Add( new LayoutSingleLine( new FTCacheLine( oLabels[2] ), LayoutRect.CSS.Flex )  );
-
-            //rgStatusLayout.Add( new LayoutSingleLine( new FTCacheLine( oLabels[3] ), LayoutRect.CSS.Flex ) { Span = 3 } );
-            // Status Values blinken lights.
-            for( int i=0; i<4; ++i ) {
-                rgStatusLayout.Add( new LayoutSingleLine( new FTCacheLine( MonitorDoc.StatusLine[i] ), LayoutRect.CSS.Flex ) );
-            }
-            foreach( LayoutRect oRect in rgStatusLayout ) {
-                if( oRect is LayoutSingleLine oSingle ) {
-                    CacheList.Add( oSingle );
-                }
-            }
-
-            Blinken.AddRow( rgStatusLabel );
-            Blinken.AddRow( rgStatusLayout );
-
-            List<LayoutRect> rgBlankLine = new();
-            rgBlankLine.Add( new LayoutSingleLine( new FTCacheLine( oLabels[3] ), LayoutRect.CSS.Flex )  );
-            foreach( LayoutRect oRect in rgBlankLine ) {
-                if( oRect is LayoutSingleLine oSingle ) {
-                    CacheList.Add( oSingle );
-                }
-            }
-
-            Blinken.AddRow( rgBlankLine );
-
-            // Stuff the registers onto the same amount of blinken lines.
-            for( int i=0; i< MonitorDoc.Registers.Count; ++i ) {
-                List<LayoutRect> rgLayout  = new();
-                Line             oRegister = MonitorDoc.Registers[i];
-                Line             oLabel    = MonitorDoc.LablEdit[i+6]; // I forgot why I'm not using the property page labels.
-
-                LayoutSingleLine oLayName = new LayoutSingleLine( new FTCacheLine( oLabel ), LayoutRect.CSS.Flex );
-                rgLayout .Add( oLayName );
-                CacheList.Add( oLayName );
-
-                LayoutSingleLine oLayLine = new LayoutSingleLine( new FTCacheLine( oRegister ), LayoutRect.CSS.Flex );
-                rgLayout .Add( oLayLine );
-                CacheList.Add( oLayLine );
-
-                Blinken.AddRow( rgLayout );
-            }
-
             // Add the memory window and assembly.
-            LayoutStackHorizontal oHoriz = new( ) { Track = 60, Units = LayoutRect.CSS.Percent };
+            Layout.Add( new LayoutControl( WinCommand,  LayoutRect.CSS.Percent ) { Track = 30 } );
+            Layout.Add( new LayoutControl( WinAssembly, LayoutRect.CSS.Percent ) { Track = 70 } );
 
-            oHoriz.Add( new LayoutControl( WinCommand,  LayoutRect.CSS.Percent ) { Track = 20 } );
-            oHoriz.Add( new LayoutControl( WinAssembly, LayoutRect.CSS.Percent ) { Track = 80 } );
-
-            // complete final layout of table and command window.
-            VertStack.Add( Blinken );
-            VertStack.Add( oHoriz  );
-
-            OnDocumentEvent( BUFFEREVENTS.MULTILINE );
-//          OnSizeChanged( new EventArgs() );
+            OnSizeChanged( new EventArgs() );
 
             MonitorDoc.RefreshScreen += OnRefreshScreen_MonDoc;
             return true;
         }
 
         protected override void OnSizeChanged(EventArgs e) {
+			base.OnSizeChanged(e);
             if( Width > 0 && Height > 0 ) {
-                base.OnSizeChanged(e);
+			    Layout.SetRect( 0, 0, Width, Height );
+			    Layout.LayoutChildren();
             }
         }
 
+        // this isn't going to get called...
         protected override void OnKeyDown(KeyEventArgs e) {
             base.OnKeyDown(e);
 
@@ -255,7 +182,6 @@ namespace Monitor {
             base.Dispose(disposing);
         }
         private void OnRefreshScreen_MonDoc(int obj) {
-            OnDocumentEvent(BUFFEREVENTS.MULTILINE );
             Invalidate();
         }
 
@@ -276,6 +202,9 @@ namespace Monitor {
         }
 
         public object Decorate(IPgViewSite oBaseSite, Guid sGuid) {
+			if( sGuid.Equals(GlobalDecorations.Properties) ) {
+                return new PropertyWindow( oBaseSite, this.MonitorDoc.Properties );
+            }
             return null;
         }
 

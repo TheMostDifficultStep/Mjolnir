@@ -8,7 +8,8 @@ using Play.Forms;
 using Play.Integration;
 using Play.Parse;
 using Play.Parse.Impl;
-using System.Drawing;
+
+using SkiaSharp;
 
 namespace Monitor {
     public class MonitorController : Controller {
@@ -85,6 +86,61 @@ namespace Monitor {
         }
     }
 
+    public class CpuProperties : DocProperties {
+        public enum Properties : int {
+            Status,
+            Overflow_Bit,
+            Carry_Bit, 
+            Zero_Bit, 
+            Negative_Bit,
+            Register_0,
+            Register_1,
+            Register_2,
+            Register_3,
+            Stack_Pointer,
+            Program_Counter
+        }
+
+        public CpuProperties( IPgBaseSite oSiteBase ) : base( oSiteBase ) {
+        }
+
+        public override bool InitNew() {
+            if( !base.InitNew() ) 
+                return false;
+            
+            // Set up the parser so we get spiffy colorization on our text!! HOWEVER,
+            // Some lines are not sending events to the Property_Values document and we
+            // need to trigger the parse seperately.
+            // new ParseHandlerText( Property_Values, "text" );
+
+            if( _oSiteBase.Host is not MonitorDocument oMonitorDoc )
+                return false;
+
+            // Set up our basic list of values.
+            foreach( Properties eName in Enum.GetValues(typeof(Properties)) ) {
+                CreatePropertyPair( eName.ToString() );
+            }
+
+            // Set up human readable labels.
+            LabelUpdate( (int)Properties.Register_0,      "0" );
+            LabelUpdate( (int)Properties.Register_1,      "1" );
+            LabelUpdate( (int)Properties.Register_2,      "2" ); // Readibility, strength, video
+            LabelUpdate( (int)Properties.Register_3,      "3" );
+            LabelUpdate( (int)Properties.Status,          "Status", SKColors.LightGreen );
+            LabelUpdate( (int)Properties.Negative_Bit,    "Negative" );
+            LabelUpdate( (int)Properties.Zero_Bit,        "Zero" );
+            LabelUpdate( (int)Properties.Carry_Bit,       "Carry" );
+            LabelUpdate( (int)Properties.Overflow_Bit,    "Overflow" );
+            LabelUpdate( (int)Properties.Stack_Pointer,   "Stack" );
+            LabelUpdate( (int)Properties.Program_Counter, "PC" );
+
+            // Put some initial values if needed here... :-/
+            ValueUpdate( (int)Properties.Program_Counter, "0" );
+
+            return true;
+        }
+    }
+
     public class MonitorDocument :
         IPgParent,
 		IDisposable,
@@ -104,13 +160,17 @@ namespace Monitor {
 
         public Editor        TextCommands { get; }
         public Editor        AssemblyDoc  { get; }
+        public CpuProperties Properties { get; }
 
-        public DocProperties FrontDisplay { get; }
-        public List<Line>    StatusLine   { get; } = new();
-        public Editor        LablEdit     { get; }
-        public List<Line>    Registers    { get; } = new();
+        protected readonly List<Line>                               _rgRegisters = new();
+        protected readonly List<Line>                               _rgStatusBit = new();
+        protected readonly Dictionary<string, List<AsmInstruction>> _rgInstr     = new();
 
-        protected readonly Dictionary<string, List<AsmInstruction>> _rgInstr = new();
+        public string? StatusBitAsString( StatusBits eBit ) {
+            string? strReturn = _rgStatusBit[(int)eBit].ToString();
+
+            return strReturn;
+        }
 
         public enum StatusBits : int {
             Overflow = 0, 
@@ -175,8 +235,7 @@ namespace Monitor {
 
             TextCommands = new ProgramFile  ( new DocSlot( this ) );
             AssemblyDoc  = new Editor       ( new DocSlot( this ) );
-            FrontDisplay = new DocProperties( new DocSlot( this ) );
-            LablEdit     = new Editor       ( new DocSlot( this ) );
+            Properties   = new CpuProperties( new DocSlot( this ) );
 
             _dctInstructions.Add( "load-imm", Inst_LoadImm ); // load, reg, data (lda, ldx, ldy)
             _dctInstructions.Add( "load-abs", Inst_LoadAbs ); // load, reg, addr of data.
@@ -237,46 +296,20 @@ namespace Monitor {
         }
 
         public bool Initialize() {
-            if( !FrontDisplay.InitNew() )
+            if( !Properties.InitNew() )
                 return false;
-
-            if( !LablEdit.InitNew() )
-                return false;
-
-            Editor PropValues = FrontDisplay.PropertyDoc;
-            for( int i = 0; i<8; ++i ) {
-                StatusLine.Add( PropValues.LineAppend( "0", fUndoable:false ) );
-            }
-
-            LablEdit.LineAppend( "Data",    fUndoable:false ); // 0
-            LablEdit.LineAppend( "...",     fUndoable:false );
-            LablEdit.LineAppend( "Status",  fUndoable:false );
-            LablEdit.LineAppend( "",        fUndoable:false ); // 3
-            LablEdit.LineAppend( "High",    fUndoable:false );
-            LablEdit.LineAppend( "Low",     fUndoable:false );
-
-
-            for( int iRegister = 0; iRegister < 6; ++iRegister ) {
-                Registers.Add( PropValues.LineAppend( "0", fUndoable:false ) );
-                switch( iRegister ) {
-                    case 4:
-                        LablEdit.LineAppend( "Stack   (" + iRegister.ToString() + ")", fUndoable:false );
-                        break;
-                    case 5:
-                        LablEdit.LineAppend( "Program (" + iRegister.ToString() + ")", fUndoable:false );
-                        break;
-                    default:
-                        LablEdit.LineAppend( "Register" + iRegister.ToString(), fUndoable:false );
-                        break;
-                }
-            }
-
-            LablEdit.LineAppend( "Negative", false ); // 12
-            LablEdit.LineAppend( "Zero",     false );
-            LablEdit.LineAppend( "Carry",    false );
-            LablEdit.LineAppend( "Overflow", false );
 
             InitInstructions();
+
+            _rgRegisters.Add( Properties[(int)CpuProperties.Properties.Register_0] );
+            _rgRegisters.Add( Properties[(int)CpuProperties.Properties.Register_1] );
+            _rgRegisters.Add( Properties[(int)CpuProperties.Properties.Register_2] );
+            _rgRegisters.Add( Properties[(int)CpuProperties.Properties.Register_3] );
+
+            _rgStatusBit.Add( Properties[(int)StatusBits.Overflow ] );
+            _rgStatusBit.Add( Properties[(int)StatusBits.Carry    ] );
+            _rgStatusBit.Add( Properties[(int)StatusBits.Zero     ] );
+            _rgStatusBit.Add( Properties[(int)StatusBits.Negative ] );
 
             return true;
         }
@@ -327,8 +360,6 @@ namespace Monitor {
 
             return true;
         }
-
-
 
         public void CompileAsm() {
             TextCommands.Clear();
@@ -432,22 +463,30 @@ namespace Monitor {
         /// <param name="strData"></param>
         /// <exception cref="InvalidOperationException"></exception>
         protected void RegisterWrite( int iRegister, string strData ) {
-            Line oRegister = Registers[iRegister];
+            Line oRegister = _rgRegisters[iRegister];
             oRegister.Empty();
             oRegister.TryAppend( strData );
         }
 
         protected void RegisterWrite( int iRegister, int iData ) {
-            Line oRegister = Registers[iRegister];
+            Line oRegister = _rgRegisters[iRegister];
             oRegister.Empty();
             oRegister.TryAppend( iData.ToString() );
         }
 
         protected int RegisterRead( int iRegister ) {
-            Line oRegister = Registers[iRegister];
+            try {
+                Line oRegister = _rgRegisters[iRegister];
 
-            if( int.TryParse( oRegister.ToString(), out int iData ) ) {
-                return iData;
+                if( oRegister.ElementCount == 0 )
+                    return 0;
+
+                if( int.TryParse( oRegister.ToString(), out int iData ) ) {
+                    return iData;
+                }
+            } catch( ArgumentOutOfRangeException oEx ) {
+                _oBaseSite.LogError( "Program", "Illegal register" );
+                throw new InvalidOperationException(  "Illegal register", oEx );
             }
 
             _oBaseSite.LogError( "Program", "Illegal value in register" );
@@ -455,7 +494,10 @@ namespace Monitor {
         }
 
         protected float RegisterReadFloat( int iRegister ) {
-            Line oRegister = Registers[iRegister];
+            Line oRegister = _rgRegisters[iRegister];
+
+            if( oRegister.ElementCount == 0 )
+                return 0;
 
             if( float.TryParse( oRegister.ToString(), out float flData ) ) {
                 return flData;
@@ -466,7 +508,7 @@ namespace Monitor {
         }
 
         protected void RegisterWriteFloat( int iRegister, float flData ) {
-            Line oRegister = Registers[iRegister];
+            Line oRegister = _rgRegisters[iRegister];
             oRegister.Empty();
             oRegister.TryAppend( flData.ToString() );
         }
@@ -506,9 +548,9 @@ namespace Monitor {
         }
 
         public int PC { 
-            get { return RegisterRead( 5 ); } 
+            get { return Properties.ValueGetAsInt((int)CpuProperties.Properties.Program_Counter); } 
             set { 
-                RegisterWrite( 5, value.ToString() ); 
+                Properties.ValueUpdate( (int)CpuProperties.Properties.Program_Counter, value.ToString() ); 
                 TextCommands.Raise_BufferEvent( BUFFEREVENTS.FORMATTED );
             } 
         }
@@ -540,7 +582,7 @@ namespace Monitor {
         private void ArithmeticInteger( Arithmetic eOperand ) {
             int iA      = RegisterRead( 0 );
             int iB      = RegisterRead( 1 );
-            int iC      = GetStatusBit( StatusBits.Carry );
+            int iC      = StatusBitAsInt( StatusBits.Carry );
             int iResult = 0;
             
             switch( eOperand ) {
@@ -644,22 +686,24 @@ namespace Monitor {
             PC = TextCommands.ElementCount;
         }
 
-        public int GetStatusBit( StatusBits eWhichBit ) {
-            if( !int.TryParse( StatusLine[(int)eWhichBit].ToString(), out int iFlagValue ) ) {
+        public int StatusBitAsInt( StatusBits eWhichBit ) {
+            string strStatusBit = StatusBitAsString(eWhichBit);
+
+            if( string.IsNullOrEmpty( strStatusBit ) )
+                return 0;
+
+            if( !int.TryParse( strStatusBit, out int iFlagValue ) ) {
                 throw new InvalidOperationException();
             }
             return iFlagValue;
         }
 
         public void SetStatusBits( char cNegative, char cZero, char cCarry ) {
-            StatusLine[(int)StatusBits.Negative].Empty();
-            StatusLine[(int)StatusBits.Negative].TryInsert( 0, cNegative );
-            StatusLine[(int)StatusBits.Zero    ].Empty();
-            StatusLine[(int)StatusBits.Zero    ].TryInsert( 0, cZero);
-            StatusLine[(int)StatusBits.Carry   ].Empty();
-            StatusLine[(int)StatusBits.Carry   ].TryInsert( 0, cCarry );
+            Properties.ValueUpdate( (int)StatusBits.Negative, cNegative.ToString() );
+            Properties.ValueUpdate( (int)StatusBits.Zero,     cZero    .ToString() );
+            Properties.ValueUpdate( (int)StatusBits.Carry,    cCarry   .ToString() );
 
-            FrontDisplay.PropertyDoc.Raise_BufferEvent( BUFFEREVENTS.FORMATTED );
+            Properties.PropertyDoc.Raise_BufferEvent( BUFFEREVENTS.FORMATTED );
         }
 
         public void Inst_CompAbs() {
@@ -741,7 +785,7 @@ namespace Monitor {
                     }
                 }
                 // Get the value of the requested status flag. 0 or 1.
-                if( !int.TryParse( StatusLine[iStatusLine].ToString(), out int iFlagValue ) ) {
+                if( !int.TryParse( _rgStatusBit[iStatusLine].ToString(), out int iFlagValue ) ) {
                     throw new InvalidOperationException();
                 }
                 bool fResult = fOnTrue ? iFlagValue != 0 : iFlagValue == 0;

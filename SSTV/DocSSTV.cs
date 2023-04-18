@@ -178,7 +178,7 @@ namespace Play.SSTV {
             if( iDefault.HasValue ) {
                 if( !int.TryParse( this[eIndex], out int iValue ) ) {
                     iValue = iDefault.Value;
-                    ValueBgColor.Add( (int)eIndex, SKColors.LightPink ); // Sigh...Need some way to go back ^_^;
+                    //ValueBgColor.Add( (int)eIndex, SKColors.LightPink ); // Sigh...Need some way to go back ^_^;
                 }
 
                 return iValue;
