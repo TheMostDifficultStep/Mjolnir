@@ -302,6 +302,10 @@ namespace Play.Forms {
             return int.Parse( this[iIndex].ToString() );
         }
 
+        public string ValueGetAsStr( int iIndex ) {
+            return this[iIndex].ToString();
+        }
+
         public LabelValuePair GetPropertyPair( int iIndex ) {
             return PropertyPairs[(int)iIndex];
         }

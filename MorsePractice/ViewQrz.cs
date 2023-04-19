@@ -85,8 +85,8 @@ namespace Play.MorsePractice {
 		public Editor CallSign       { get { return _oDocMorse.CallSign; } }
         public Editor CallSignBio    { get { return _oDocMorse.CallSignBio; } }
 
-        EditWin ViewCallSign { get; }
-		EditWin ViewBiograph { get; }
+        EditWindow2 ViewCallSign { get; }
+		EditWindow2 ViewBiograph { get; }
 
         public bool IsDirty => false;
 
@@ -99,8 +99,8 @@ namespace Play.MorsePractice {
             _oDocMorse  = oDocument ?? throw new ArgumentNullException();
             _oSiteShell = oSiteView as IPgShellSite ?? throw new ArgumentException("Parent view must provide IPgShellSite service");
 
-			ViewCallSign = new EditWin( new ViewQrzCommandSlot( this ), CallSign, false, fSingleLine:true ) { Parent = this };
-            ViewBiograph = new ViewBio( new ViewQrzSlot       ( this ), oDocument ) { Parent = this };
+			ViewCallSign = new EditWindow2( new ViewQrzCommandSlot( this ), CallSign, false, fSingleLine:true ) { Parent = this };
+            ViewBiograph = new ViewBio    ( new ViewQrzSlot       ( this ), oDocument ) { Parent = this };
 
             _rgLayout = new LayoutStackVertical() {
                 Spacing   = 15,

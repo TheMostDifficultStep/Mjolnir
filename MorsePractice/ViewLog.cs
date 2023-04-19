@@ -29,14 +29,15 @@ namespace Play.MorsePractice {
     }
 
 	/// <summary>
-	/// An experiment to read a log in an SQL file. Just a fragment and unfinished.
+	/// An experiment to read a log in an SQL file. Just a fragment and unfinished
+	/// and really broken since I have removed the old Uniscribe code.
 	/// </summary>
 	public class ViewLog : Control,
 		IPgCommandView,
         IPgLoad<XmlElement>,
 		IPgSave<XmlDocumentFragment>,
 		IPgTableEvents,
-		IEnumerable<LayoutText> 
+		IEnumerable<LayoutText2> 
 	{
 		static public Guid ViewLogger { get; } = new Guid("{BE243DE2-7763-4A44-9499-0EEDBC84D8A4}");
 
@@ -50,7 +51,7 @@ namespace Play.MorsePractice {
 		readonly SmartTable       _oTable = new SmartTable( 20, LayoutRect.CSS.None ); // Add some slop. Not measuring well...
 		readonly IPgStandardUI    _oStdUI;
 
-        protected SCRIPT_FONTPROPERTIES _sDefFontProps = new SCRIPT_FONTPROPERTIES();
+        //protected SCRIPT_FONTPROPERTIES _sDefFontProps = new SCRIPT_FONTPROPERTIES();
         protected IntPtr                _hScriptCache  = IntPtr.Zero;
 		protected bool                  _fCacheInvalid = true;
 
@@ -122,7 +123,7 @@ namespace Play.MorsePractice {
 			foreach(ICollection<Line> oRow in _oDocument.Rows ) {
 				List<LayoutRect> rgRow = new List<LayoutRect>( oRow.Count );
 				foreach( Line oLine in oRow ) {
-					LayoutText oName = new LayoutText( new CacheWrapped( oLine ), LayoutRect.CSS.Flex, 1 );
+					LayoutText2 oName = new LayoutText2( new FTCacheWrap( oLine ), LayoutRect.CSS.Flex, 10, 1 );
 
 					// Load up the row with our display elements.
 					rgRow.Add( oName );
@@ -149,45 +150,45 @@ namespace Play.MorsePractice {
 		}
 
 		protected void CellsUpdateAll( IntPtr hDC ) {
-			if( _hScriptCache == IntPtr.Zero )
-				_sDefFontProps.Load( hDC, ref _hScriptCache );
+			//if( _hScriptCache == IntPtr.Zero )
+			//	_sDefFontProps.Load( hDC, ref _hScriptCache );
 
-			foreach( LayoutText oTextRect in this ) {
-				CacheWrapped oCache = oTextRect.Cache;
-				if( oCache.IsInvalid ) { 
-					oCache.Update( hDC, ref _hScriptCache, 4, this.FontHeight, _sDefFontProps, null, oTextRect.Width, null );
+			//foreach( LayoutText oTextRect in this ) {
+			//	CacheWrapped oCache = oTextRect.Cache;
+			//	if( oCache.IsInvalid ) { 
+			//		oCache.Update( hDC, ref _hScriptCache, 4, this.FontHeight, _sDefFontProps, null, oTextRect.Width, null );
 
-					// This is super crude. But let's go for it at the moment.
-					oCache.Words.Clear();
-					//foreach (IColorRange oRange in oCache.Line.Formatting) {
-					//	oCache.Words.Add(oRange);
-					//}
-				}
-			}
+			//		// This is super crude. But let's go for it at the moment.
+			//		oCache.Words.Clear();
+			//		//foreach (IColorRange oRange in oCache.Line.Formatting) {
+			//		//	oCache.Words.Add(oRange);
+			//		//}
+			//	}
+			//}
 
-			_fCacheInvalid = false;
+			//_fCacheInvalid = false;
 		}
 
 		protected override void OnPaint(PaintEventArgs oE) {
 			base.OnPaint(oE);
 
-			using( GraphicsContext oDC = new GraphicsContext( oE.Graphics ) ) {
-				IntPtr hFont = _oStdUI.FontStandard.ToHfont();
+			//using( GraphicsContext oDC = new GraphicsContext( oE.Graphics ) ) {
+			//	IntPtr hFont = _oStdUI.FontStandard.ToHfont();
 
-				using( new ItemContext( oDC.Handle, hFont ) ) {
-					if( _fCacheInvalid ) {
-						CellsUpdateAll( oDC.Handle );
-						_oTable.SetRect( 0, 0, Width, Height );
-						_oTable.LayoutChildren();
-					}
+			//	using( new ItemContext( oDC.Handle, hFont ) ) {
+			//		if( _fCacheInvalid ) {
+			//			CellsUpdateAll( oDC.Handle );
+			//			_oTable.SetRect( 0, 0, Width, Height );
+			//			_oTable.LayoutChildren();
+			//		}
 
-					foreach( LayoutText oTextRect in this ) {
-						if( _oTable.IsIntersecting( oTextRect ) ) {
-							oTextRect.Cache.Render( oDC.Handle, _hScriptCache, new PointF( oTextRect.Left, oTextRect.Top ), 0, null );
-						}
-					}
-				}
-			}
+			//		foreach( LayoutText2 oTextRect in this ) {
+			//			if( _oTable.IsIntersecting( oTextRect ) ) {
+			//				oTextRect.Cache.Render( oDC.Handle, _hScriptCache, new PointF( oTextRect.Left, oTextRect.Top ), 0, null );
+			//			}
+			//		}
+			//	}
+			//}
 		}
 
 		/// <summary>
@@ -228,10 +229,10 @@ namespace Play.MorsePractice {
 			Invalidate();
 		}
 
-		public IEnumerator<LayoutText> GetEnumerator() {
+		public IEnumerator<LayoutText2> GetEnumerator() {
 			foreach( LayoutStack oRow in _oTable.Rows ) {
 				foreach( LayoutRect oRect in oRow ) {
-					if( oRect is LayoutText oTextRect ) {
+					if( oRect is LayoutText2 oTextRect ) {
 						yield return oTextRect;
 					}
 				}

@@ -68,8 +68,8 @@ namespace Monitor {
 
         protected override CacheManager2 CreateCacheManager(uint uiStdText) {
             return new CacheManagerAsm( new CacheManSlot(this),
-                                      _oStdUI.FontRendererAt(uiStdText),
-                                      _rgColumns );
+                                        _oStdUI.FontRendererAt(uiStdText),
+                                        _rgColumns );
         }
     }
 

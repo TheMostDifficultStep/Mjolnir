@@ -544,7 +544,7 @@ namespace Mjolnir {
                 _oFindWindow = oFindWin;
             }
 
-			public EditWin Guest {
+			public EditWindow2 Guest {
 				set;
 				get;
 			}

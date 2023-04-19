@@ -10,6 +10,23 @@ using Play.Interfaces.Embedding;
 using Play.Rectangles;
 
 namespace Play.Edit {
+	public enum UNICACHEHIT : int {
+        Hit,   // the line was found, coordinates were returned.
+        Miss,  // the line is not in the cache.
+    }
+
+    public enum CaretMove {
+        LOCAL,
+        MISS,
+        NEARBY,
+    }
+
+    public enum RefreshType {
+        RESET,
+        COMPLEX,
+        SIMPLE
+    }
+
     /// <summary>
     /// This is the primary object that holds all the measured lines for the currently displayed portion of text.
     /// </summary>

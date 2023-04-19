@@ -12,23 +12,6 @@ using Play.Parse;
 using Play.Rectangles;
 
 namespace Play.Edit {
-	public enum UNICACHEHIT : int {
-        Hit,   // the line was found, coordinates were returned.
-        Miss,  // the line is not in the cache.
-    }
-
-    public enum CaretMove {
-        LOCAL,
-        MISS,
-        NEARBY,
-    }
-
-    public enum RefreshType {
-        RESET,
-        COMPLEX,
-        SIMPLE
-    }
-
     public class CacheBase :
         IEnumerable<UniscribeCache>,
         IDisposable

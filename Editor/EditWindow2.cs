@@ -22,6 +22,69 @@ using Play.Controls;
 using Play.Parse;
 using Play.Parse.Impl;
 
+namespace Play.Rectangles {
+	/// <summary>
+	/// It's a little bit weird, but I can't seem to get this to work in the "Drawing" project, 
+    /// where I tried including System.Windows.Forms. However, here it works? Don't know why
+    /// But since anyone doing anything is going to include the "Editor" project. It's OK.
+	/// </summary>
+    /// <remarks>Move into an editor window support file.</remarks>
+	public class LayoutControl : LayoutRect {
+		protected Control _oControl;
+
+		public LayoutControl( Control oView, LayoutRect.CSS eUnits, uint uiTrack ) : base( eUnits, uiTrack, 0 ) {
+			_oControl = oView ?? throw new ArgumentNullException();
+
+			this.SizeEvent += OnSizeEvent; // BUG: Looks leak worthy. ^_^;;
+		}
+
+		public LayoutControl( Control oView, LayoutRect.CSS eUnits ) : base( eUnits, 0, 0 ) {
+			_oControl = oView ?? throw new ArgumentNullException();
+
+			this.SizeEvent += OnSizeEvent;
+		}
+
+		protected virtual void OnSizeEvent(SmartRect o) {
+			_oControl.Bounds = this.Rect;
+		}
+
+		public override uint TrackDesired(TRACK eParentAxis, int uiRail) {
+            if( Units == CSS.Pixels ) // Go with the set track size.
+                return Track;
+
+			Size szProposed = eParentAxis == TRACK.HORIZ ? new Size( (int)Track, uiRail ) : new Size( uiRail, (int)Track );
+			Size szPrefered = _oControl.GetPreferredSize( szProposed );
+			int  iTrack     = eParentAxis == TRACK.HORIZ ? szPrefered.Width : szPrefered.Height;
+            
+			return (uint)iTrack;
+		}
+
+		public Control Guest {
+			get { return _oControl; }
+		}
+
+        public override bool Hidden {
+            // Hmmm... I'd like to use the Control value, but if I do, everything
+            // is hidden. But if I used the Layout's value all is well. So stick
+            // with that for now.
+            //get { return _oControl.Visible; }
+            set {
+                if( value ) {
+                    _oControl.Hide();
+                } else {
+                    _oControl.Show();
+                }
+            }
+            get {
+                return !_oControl.Visible;
+            }
+        }
+    }
+
+}
+
+
+
 namespace Play.Edit {
     // https://www.freetype.org/freetype2/docs/documentation.html
 
@@ -154,6 +217,10 @@ namespace Play.Edit {
             return Line.SubString( iPos, iLen );
         }
     }
+
+    public delegate void HyperLink ( Line oLine, IPgWordRange oRange );
+
+
 
     public partial class EditWindow2 : 
         SKControl, 
@@ -2215,12 +2282,12 @@ namespace Play.Edit {
                         return( true );
 
                     case Keys.Control | Keys.E: {
-                        using( Graphics oGraph = this.CreateGraphics() ) {
-                            float flDipX = oGraph.DpiX; 
-                            using( GraphicsContext oDC = new GraphicsContext( oGraph ) ) {
-                                EnumFontsHelper.Test2( oDC.Handle, flDipX );
-                            }
-                        }
+                        //using( Graphics oGraph = this.CreateGraphics() ) {
+                        //    float flDipX = oGraph.DpiX; 
+                        //    using( GraphicsContext oDC = new GraphicsContext( oGraph ) ) {
+                        //        EnumFontsHelper.Test2( oDC.Handle, flDipX );
+                        //    }
+                        //}
                         return( true );
                     }
                     case Keys.Control | Keys.R: {
@@ -2609,6 +2676,41 @@ namespace Play.Edit {
 				if( rgErrors.IsUnhandled( oEx ) )
 					throw;
 			}
+		}
+	}
+
+	/// <summary>
+	/// Don't let your head explode. This is an editwin to 
+	/// show the productions on the _oDocumentOverride. BUT
+	/// container of the productions in a child document.
+	/// SO be careful when accessing _oDocument!!!
+	/// </summary>
+	public class EditWinProductions : EditWindow2 {
+		readonly BaseEditor _oDocumentOverride;
+
+		public EditWinProductions( IPgViewSite oBaseSite, BaseEditor oDocument ) : 
+			base( oBaseSite, oDocument.Productions, false, false ) 
+		{
+			_oDocumentOverride = oDocument ?? throw new ArgumentNullException( "Weird happenings in EdiwWinProperties!" );
+
+			try {
+				oDocument.ProductionsTrace = true;
+			} catch( NotImplementedException oEx ) {
+                // BUG: This might be too severe of a responce in a hetrogeneous documents open
+                //      situation. Some windows might support this and some might not and we
+                //      get annoying mssages.
+				throw new ArgumentException( "Document must support productions to use this window!", oEx );
+			}
+		}
+
+		/// BUG: I'm noticing this is getting called really late.
+		/// I'm probably not dealing with closing addornments properly.
+		protected override void Dispose(bool disposing) {
+			if( disposing ) {
+                HyperLinks.Clear();
+				_oDocumentOverride.ProductionsTrace = false;
+			}
+			base.Dispose(disposing);
 		}
 	}
 

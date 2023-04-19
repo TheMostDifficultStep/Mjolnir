@@ -255,8 +255,6 @@ namespace Mjolnir {
                     default:
                         return new EditWindow2( oBaseSite, (Editor)oDocument );
 
-                    case var t when t == EditWin.ViewType:
-                        return new EditWin( oBaseSite, (Editor)oDocument );
                 }
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( NullReferenceException ),
@@ -271,7 +269,6 @@ namespace Mjolnir {
 
         public override IEnumerator<IPgViewType> GetEnumerator() {
  	        yield return new ViewType( "Default",   EditWindow2.ViewType );
-            yield return new ViewType( "Old Style", EditWin    .ViewType );
             yield return new ViewType( "Test Tabs", WindowTextTabs.ViewType );
         }
 

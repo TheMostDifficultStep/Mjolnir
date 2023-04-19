@@ -9,7 +9,7 @@ namespace Play.MorsePractice {
     /// <summary>
     /// this is an embedded view in the ViewQrz view.
     /// </summary>
-    class ViewBio : EditWin { 
+    class ViewBio : EditWindow2 { 
         protected readonly ViewQrz  _oParent;
         protected readonly DocNotes _oDocMorse;
 
@@ -21,8 +21,8 @@ namespace Play.MorsePractice {
         }
 
         /// <seealso cref="ViewBio.InitNewInternal"/>
-        protected override bool InitNewInternal() {
-            if( !base.InitNewInternal() )
+        protected override bool InitInternal() {
+            if( !base.InitInternal() )
                 return false;
 
             if( HyperLinks.ContainsKey( "callsign" ) ) {

@@ -22,11 +22,6 @@ namespace Mjolnir {
                 ToolsBrushActive.Dispose();
             }
 
-            if( _hScriptCache != IntPtr.Zero ) {
-                PgUniscribe.ScriptFreeCache( ref _hScriptCache );
-                _hScriptCache = IntPtr.Zero;
-            }
-
             base.Dispose(disposing);
         }
 

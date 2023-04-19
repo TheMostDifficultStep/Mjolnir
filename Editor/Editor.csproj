@@ -11,11 +11,27 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="CacheManager.cs" />
+    <Compile Remove="CacheUniscribe.cs" />
+    <Compile Remove="CacheWrapped.cs" />
+    <Compile Remove="EditWin.cs" />
+    <Compile Remove="EditWin.Designer.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <None Remove="Content\icon8-doc.png" />
   </ItemGroup>
 
   <ItemGroup>
     <EmbeddedResource Include="Content\icon8-doc.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="CacheManager.cs" />
+    <None Include="CacheUniscribe.cs" />
+    <None Include="CacheWrapped.cs" />
+    <None Include="EditWin.cs" />
+    <None Include="EditWin.Designer.cs" />
   </ItemGroup>
 
   <ItemGroup>

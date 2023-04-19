@@ -9,47 +9,47 @@ using Play.Interfaces.Embedding;
 using Play.Rectangles;
 
 namespace Play.Edit {
-	public class LayoutText : LayoutRect {
-		public CacheWrapped Cache { get; }
+	//public class LayoutText : LayoutRect {
+	//	public CacheWrapped Cache { get; }
 
-		public LayoutText( CacheWrapped oCache, LayoutRect.CSS eUnits, uint uiTrack ) :
-			base( eUnits, uiTrack, 1 ) 
-		{
-			Cache = oCache ?? throw new ArgumentNullException();
-		}
+	//	public LayoutText( CacheWrapped oCache, LayoutRect.CSS eUnits, uint uiTrack ) :
+	//		base( eUnits, uiTrack, 1 ) 
+	//	{
+	//		Cache = oCache ?? throw new ArgumentNullException();
+	//	}
 
-		public override uint TrackDesired(TRACK eParentAxis, int uiRail) {
-			if( eParentAxis == TRACK.VERT ) {
-				if (Cache is CacheWrapped oWrap) {
-					List<int> rgSides = new List<int>(2) { 0, (int)uiRail };
-					oWrap.WrapSegmentsCreate( this.Width );
-				}
-			}
+	//	public override uint TrackDesired(TRACK eParentAxis, int uiRail) {
+	//		if( eParentAxis == TRACK.VERT ) {
+	//			if (Cache is CacheWrapped oWrap) {
+	//				List<int> rgSides = new List<int>(2) { 0, (int)uiRail };
+	//				oWrap.WrapSegmentsCreate( this.Width );
+	//			}
+	//		}
 
-			int iValue = 0;
+	//		int iValue = 0;
             
-            if( eParentAxis == TRACK.HORIZ )
-                iValue = Cache.Width;
-            else
-                iValue = Cache.Height;
+ //           if( eParentAxis == TRACK.HORIZ )
+ //               iValue = Cache.Width;
+ //           else
+ //               iValue = Cache.Height;
 
-			if( iValue < 0 )
-				return 0;
+	//		if( iValue < 0 )
+	//			return 0;
 
-			return (uint)iValue;
-		}
+	//		return (uint)iValue;
+	//	}
 
-        public void Paint( IntPtr hDC, IntPtr hScriptCache, int iColor ) {
-            if( !Hidden ) { 
-                Cache.Render( hDC, hScriptCache, new PointF( Left, Top ), iColor, 
-                              new RECT( Left, Top, Right, Bottom  ) );
-            }
-        }
+ //       public void Paint( IntPtr hDC, IntPtr hScriptCache, int iColor ) {
+ //           if( !Hidden ) { 
+ //               Cache.Render( hDC, hScriptCache, new PointF( Left, Top ), iColor, 
+ //                             new RECT( Left, Top, Right, Bottom  ) );
+ //           }
+ //       }
 
-		public override void Invalidate() {
-			Cache.Invalidate();
-		}
-	}
+	//	public override void Invalidate() {
+	//		Cache.Invalidate();
+	//	}
+	//}
 
 	public class LayoutText2 : LayoutRect {
 		public FTCacheLine Cache { get; }

@@ -10,7 +10,7 @@ using SkiaSharp;
 
 using Play.Interfaces.Embedding;
 using Play.Rectangles;
-using Play.Edit;
+using Play.Forms;
 
 namespace Play.ImageViewer {
 	// TODO: Convert the left hand column of the properties to be light CacheWrap elements instead
@@ -25,60 +25,6 @@ namespace Play.ImageViewer {
 		IPgParent
 	{
 		public static Guid Guid { get; } = new Guid("ad862093-fdcf-4642-a43f-f8e1f7b15bd0");
-
-		protected enum Labels : int {
-			Name = 0,
-			Format,
-			Quality,
-			Width,
-			Height,
-			Fixed,
-			FilePath,
-			FileName,
-			Max
-		}
-
-		protected class Input {
-			public readonly Labels _eLabel;
-			public readonly string _strLabel;
-			public readonly string _strValue;
-
-			public uint   _uiHeight;
-			public Editor _oEditor;
-
-			public Editor Editor { 
-				set { 
-					_oEditor = value ; 
-				}
-				get { 
-					return _oEditor; 
-				}
-			}
-
-			public string Text {
-				get {
-					return _oEditor[0].ToString();
-				}
-				set {
-					using( BaseEditor.Manipulator oManip = _oEditor.CreateManipulator() ) {
-						oManip.DeleteAll();
-						oManip.LineInsert( 0, value );
-					}
-				}
-			}
-
-			public int Number {
-				get { return int.Parse( _oEditor[0].ToString() ); }
-				set { Text = value.ToString(); }
-			}
-
-			public Input( Labels eLabel, string strLabel, string strValue, uint uiHeight ) {
-				_eLabel   = eLabel;
-				_strLabel = strLabel;
-				_strValue = strValue;
-				_uiHeight = uiHeight;
-			}
-		}
 
 		protected class SnipSlotBase :
 			IPgBaseSite
@@ -113,14 +59,14 @@ namespace Play.ImageViewer {
 		protected readonly IPgViewSite               _oSiteBase;
         protected readonly IPgShellSite              _oSiteShell;
         protected readonly IPgViewNotify             _oViewEvents; // From our site, window manager (view interface).
-		protected readonly Dictionary<Labels, Input> _rgProperty = new Dictionary<Labels, Input>();
+
+		protected WindowStandardProperties PropertiesWin;
+		internal  ImageSnipProperties      PropertiesDoc;
 
         readonly LayoutStackVertical _rgVertStack = new LayoutStackVertical() { Spacing = 5 };
-		readonly SmartTable          _rgTable     = new SmartTable( 5, LayoutRect.CSS.Flex );
 
 		protected ImageSoloDoc    SnipDoc { get; }
 		protected ImageViewSingle SnipView{ get; }
-		protected Input this[Labels eIndex] => _rgProperty[eIndex];
 
         protected uint _uiReturnID       = 0; // Which view to return to after snip save.
 		protected bool _fBlockTextEvents = false;
@@ -133,19 +79,13 @@ namespace Play.ImageViewer {
 			_oDocument   = oDoc ?? throw new ArgumentNullException( "Document must not be null." );
 			Icon         = _oDocument.GetResource( "icons8-cut-40.png" );
 
-            uint uiHeight = (uint)(Font.Height * 1.5);
-            _rgProperty.Add( Labels.Format,   new Input( Labels.Format,   "Format",   "jpg",   uiHeight ));
-			_rgProperty.Add( Labels.Quality,  new Input( Labels.Quality,  "Quality",  "80",    uiHeight ));
-			_rgProperty.Add( Labels.Height,   new Input( Labels.Height,   "Height",   "100",   uiHeight ));
-			_rgProperty.Add( Labels.Width,    new Input( Labels.Width,    "Width",    "100" ,  uiHeight ));
-			_rgProperty.Add( Labels.Fixed,    new Input( Labels.Fixed,    "Fixed",    "Width", uiHeight ));
-			_rgProperty.Add( Labels.FilePath, new Input( Labels.FilePath, "Path",     "",      uiHeight ));
-			_rgProperty.Add( Labels.FileName, new Input( Labels.FileName, "Filename", "",      uiHeight ));
-
 			SnipDoc  = new ImageSoloDoc   ( new SnipSlotBase( this ) );
 			SnipView = new ImageViewSingle( new SnipSlotView( this ), SnipDoc ) {
 				Parent = this
 			};
+
+			PropertiesDoc = new ImageSnipProperties( new SnipSlotBase( this ) );
+			PropertiesWin = new WindowStandardProperties( new SnipSlotView( this ), PropertiesDoc );
 		}
 
 		public Guid      Catagory  => Guid;
@@ -156,54 +96,6 @@ namespace Play.ImageViewer {
 		public IPgParent Services  => Parentage.Services;
 
 		public bool IsDirty => false;
-
-		/// <summary>This is a little hacky. We're using the full fledged edit box for simple one line
-		/// entry. We'll replace with a simpler single line editor in the future. See my property page work.</summary>
-		/// <exception cref="InvalidOperationException" />
-		protected LayoutControl CreateEditBox( Input oInput, bool fReadOnly ) {
-			string strText = fReadOnly ? oInput._strLabel : oInput._strValue;
-			try {
-				Editor oEdit = new Editor( new SnipSlotBase( this ) );
-
-				if( !oEdit.Load( strText ) ) {
-					oEdit.Dispose();
-					throw new InvalidOperationException();
-				}
-
-				EditWin oControl = new EditWin( new SnipSlotView( this ), oEdit, fReadOnly, fSingleLine:true ){
-					ScrollBarWidths = 0F,
-					Parent          = this,
-					Height          = (int)oInput._uiHeight //Font.Height
-				};
-
-				if( !oControl.InitNew() ) {
-					oControl.Dispose();
-					oEdit   .Dispose();
-					throw new InvalidOperationException();
-				}
-
-				if( !fReadOnly ) {
-					_rgProperty[oInput._eLabel].Editor = oEdit;
-
-					if( oInput._eLabel == Labels.Width ) {
-						oEdit.BufferEvent += OnWidthChanged;
-					}
-					if( oInput._eLabel == Labels.Height ) {
-						oEdit.BufferEvent += OnHeightChanged;
-					}
-				}
-
-				return new LayoutControl( oControl, LayoutRect.CSS.Pixels, (uint)(Font.Height * 1.5) );
-			} catch( Exception oEx ) {
-				Type[] rgErrors = { typeof( InvalidOperationException ),
-									typeof( ArgumentException ) };
-
-				if( rgErrors.IsUnhandled( oEx ) )
-					throw;
-
-				throw new InvalidOperationException();
-			}
-		}
 
 		public bool InitNew() {
 			void LogError( Exception oEx ) {
@@ -219,29 +111,28 @@ namespace Play.ImageViewer {
 
 			if( !SnipView.InitNew() ) {
 				_oSiteBase.LogError( "Snip", "Couldn't set up Preview." );
+				return false;
 			}
 			if( !SnipDoc.InitNew() ) {
 				_oSiteBase.LogError( "Snip", "Couldn't set up Snip Saver." );
+				return false;
+			}
+			if( !PropertiesDoc.InitNew() ) {
+				_oSiteBase.LogError( "Snip", "Couldn't set up Snip Properties." );
+				return false;
+			}
+			if( !PropertiesWin.InitNew() ) {
+				_oSiteBase.LogError( "Snip", "Couldn't set up Snip Property Viewer." );
+				return false;
 			}
 
+
+			PropertiesWin.Parent = this;
+			SnipView     .Parent = this;
+
 			try {
-                _rgVertStack.Add( new LayoutImageView(SnipView) ); // LayoutRect( LayoutRect.CSS.None )
-
-                // We're close. Flex doesn't quite work with the default editor.
-                // I've got timing issues for measuring the text.
-                _rgTable.Add( new LayoutRect( LayoutRect.CSS.Percent, 20, 30 ) );
-				_rgTable.Add( new LayoutRect( LayoutRect.CSS.Percent, 80, 70 ) );
-
-				List<LayoutRect> rgRow = new List<LayoutRect>(1);
-
-				foreach( KeyValuePair<Labels, Input> oPair in _rgProperty ) {
-					rgRow = new List<LayoutRect>(2) {
-						CreateEditBox(oPair.Value, true ),
-						CreateEditBox(oPair.Value,false )
-					};
-					_rgTable.AddRow( rgRow );
-				}
-                _rgVertStack.Add( _rgTable );
+                _rgVertStack.Add( new LayoutImageView( SnipView,      LayoutRect.CSS.None   ) { Track = 50 } ); 
+                _rgVertStack.Add( new LayoutControl  ( PropertiesWin, LayoutRect.CSS.Pixels ) { Track = 150 } );
 			} catch( Exception oEx ) {
 				LogError( oEx );
 				return false;
@@ -251,6 +142,7 @@ namespace Play.ImageViewer {
 
 			// TODO: We'll add a setting to determine the aspect affinity.
 			OnHeightChanged( BUFFEREVENTS.SINGLELINE );
+			OnSizeChanged( new EventArgs() );
 
 			return true;
 		}
@@ -269,6 +161,7 @@ namespace Play.ImageViewer {
 				// TODO: Call dispose on the properties and such. Or check
 				//       that they are disposing.
 
+				SnipDoc.ImageUpdated -= OnSnipChanged;
 				_fDisposed = true;
 			}
 			base.Dispose( fDisposing );
@@ -279,20 +172,24 @@ namespace Play.ImageViewer {
 		}
 
 		private void OnSnipChanged() {
-			_rgProperty[Labels.Height].Number = 900;
+			PropertiesDoc.ValueUpdate( (int)ImageSnipProperties.Labels.Height, "900", true );
+
+			// In the old days we could track a single event when this changed since each
+			// property was a single line editor. 
+			OnHeightChanged( BUFFEREVENTS.SINGLELINE );
 		}
 
 		protected override void OnSizeChanged( EventArgs e ) {
 			base.OnSizeChanged(e);
 
-            _rgVertStack.SetRect( 0, 0, Width, Height );
-            _rgVertStack.LayoutChildren();
+			if( Width > 0 && Height > 0 ) {
+				_rgVertStack.SetRect( 0, 0, Width, Height );
+				_rgVertStack.LayoutChildren();
+			}
 		}
 
-        protected override void OnMouseUp(MouseEventArgs e)
+        protected void JumpBack()
         {
-            base.OnMouseUp(e);
-
             foreach( IPgCommandView oView in _oSiteShell.EnumerateSiblings ) {
                 if( oView is WindowSoloImageNav oViewSolo && oViewSolo.ID == _uiReturnID ) {
                     oViewSolo.FocusMe();
@@ -315,6 +212,10 @@ namespace Play.ImageViewer {
 			typeof( DivideByZeroException ) 
 		};
 
+		/// <summary>Call this if the Height property changes.</summary>
+		/// <remarks>Unfortunately, we don't get individual property line change events
+		/// and so we can only call this right now when the snip changes. This is ok since
+		/// I hardly ever adjust the size of a snip. But it is a BUG.</remarks>
 		private void OnHeightChanged(BUFFEREVENTS eEvent) {
 			if( ( eEvent & ( BUFFEREVENTS.SINGLELINE | BUFFEREVENTS.MULTILINE )) == 0 )
 				return;
@@ -324,18 +225,18 @@ namespace Play.ImageViewer {
 			_fBlockTextEvents = true;
 
 			try {
-				int   iHeight    = this[Labels.Height].Number;
+				int iHeight = PropertiesDoc.ValueGetAsInt( (int)ImageSnipProperties.Labels.Height );
 
                 // Limit the height to the actual height, no zooming...
                 if( iHeight > SnipView.WorldCoordinates.Height ) {
                     iHeight = SnipView.WorldCoordinates.Height;
-                    this[Labels.Height].Number = iHeight;
+                    PropertiesDoc.ValueUpdate( (int)ImageSnipProperties.Labels.Height, iHeight.ToString() );
                 }
 
                 float flSlope    = SnipView.WorldCoordinates.GetSlope( LOCUS.UPPERLEFT );
 				int   iNewWidth  = (int)Math.Round( iHeight / flSlope );
 				
-				this[Labels.Width].Number = iNewWidth;
+                PropertiesDoc.ValueUpdate( (int)ImageSnipProperties.Labels.Width, iNewWidth.ToString() );
 			} catch( Exception oEx ) {
 				if( rgAspectErrors.IsUnhandled( oEx ) ) 
 					throw;
@@ -344,6 +245,10 @@ namespace Play.ImageViewer {
 			}
 		}
 
+		/// <summary>Call this if the Width property changes.</summary>
+		/// <remarks>Unfortunately, we don't get individual property line change events
+		/// and so we can only call this right now when the snip changes. This is ok since
+		/// I hardly ever adjust the size of a snip. But it is a BUG.</remarks>
 		private void OnWidthChanged(BUFFEREVENTS eEvent) {
 			if( ( eEvent & ( BUFFEREVENTS.SINGLELINE | BUFFEREVENTS.MULTILINE )) == 0 )
 				return;
@@ -353,18 +258,18 @@ namespace Play.ImageViewer {
 			_fBlockTextEvents = true;
 
 			try {
-				int   iWidth  = this[Labels.Width].Number;
+				int   iWidth  = PropertiesDoc.ValueGetAsInt( (int)ImageSnipProperties.Labels.Width);
 
                 // Limit the width to the actual width, no zooming...
                 if ( iWidth > SnipView.WorldCoordinates.Width ) {
                     iWidth = SnipView.WorldCoordinates.Width;
-                    this[Labels.Width].Number = iWidth;
+					PropertiesDoc.ValueUpdate( (int)ImageSnipProperties.Labels.Width, iWidth.ToString() );
                 }
 
                 float flSlope = SnipView.WorldCoordinates.GetSlope( LOCUS.UPPERLEFT );
 				int   iHeight = (int)Math.Round( iWidth * flSlope );
 				
-				this[Labels.Height].Number = iHeight;
+                PropertiesDoc.ValueUpdate( (int)ImageSnipProperties.Labels.Height, iHeight.ToString() );
 			} catch( Exception oEx ) {
 				if( rgAspectErrors.IsUnhandled( oEx ) ) 
 					throw;
@@ -382,8 +287,8 @@ namespace Play.ImageViewer {
 		public SKSizeI SnipSize {
 			get {
 				try {
-					int iWidth  = _rgProperty[Labels.Width] .Number;
-					int iHeight = _rgProperty[Labels.Height].Number;
+					int iWidth  = PropertiesDoc.ValueGetAsInt((int)ImageSnipProperties.Labels.Width);
+					int iHeight = PropertiesDoc.ValueGetAsInt((int)ImageSnipProperties.Labels.Height);
 
 					return new SKSizeI(iWidth, iHeight );
 				} catch( Exception oEx ) {
@@ -397,8 +302,8 @@ namespace Play.ImageViewer {
 
 		public bool SnipMake( SmartRect rcSnipRect, uint uiReturnID ) {
 			try {
-				_rgProperty[Labels.FileName].Text = _oDocument.CurrentFileName;
-				_rgProperty[Labels.FilePath].Text = Path.GetDirectoryName( _oDocument.CurrentFullPath );
+				PropertiesDoc.ValueUpdate( (int)ImageSnipProperties.Labels.FileName, _oDocument.CurrentFileName );
+				PropertiesDoc.ValueUpdate( (int)ImageSnipProperties.Labels.FilePath, Path.GetDirectoryName( _oDocument.CurrentFullPath ), true );
 
 				// Copy the snip section currently selected. This is the full resolution original.
 				if( !SnipDoc.Load( _oDocument.Bitmap, rcSnipRect.SKRect, rcSnipRect.SKRect.Size ) ) {
@@ -431,14 +336,17 @@ namespace Play.ImageViewer {
 		public void SnipSave( bool fSaveAs ) {
 			try {
 				// If we've got a filename try that path first. 
-				if( string.IsNullOrEmpty( _rgProperty[Labels.FilePath].Text ) )
+				string strInitialDir  = PropertiesDoc[ (int)ImageSnipProperties.Labels.FilePath].ToString();
+				string strInitialFile = PropertiesDoc[ (int)ImageSnipProperties.Labels.FileName].ToString();
+
+				if( string.IsNullOrEmpty( strInitialDir ) )
 					fSaveAs = true;
 
 				if( fSaveAs == true ) {
 					SaveFileDialog oDialog = new SaveFileDialog();
 
-					oDialog.InitialDirectory = _rgProperty[Labels.FilePath].Text;
-					oDialog.FileName         = _rgProperty[Labels.FileName].Text;
+					oDialog.InitialDirectory = strInitialDir;
+					oDialog.FileName         = strInitialFile;
 
 					oDialog.ShowDialog();
 
@@ -447,10 +355,10 @@ namespace Play.ImageViewer {
 						return;
 					}
 
-					_rgProperty[Labels.FilePath].Text = Path.GetDirectoryName( oDialog.FileName );
-					_rgProperty[Labels.FileName].Text = Path.GetFileName     ( oDialog.FileName );
+					PropertiesDoc.ValueUpdate( (int)ImageSnipProperties.Labels.FilePath, Path.GetDirectoryName( oDialog.FileName ) );
+					PropertiesDoc.ValueUpdate( (int)ImageSnipProperties.Labels.FileName, Path.GetFileName     ( oDialog.FileName ) );
 				} else {
- 					if (File.Exists(Path.Combine( _rgProperty[Labels.FilePath].Text, _rgProperty[Labels.FileName].Text ) ) ) {
+ 					if (File.Exists(Path.Combine( strInitialDir, strInitialFile ) ) ) {
 						DialogResult eResult = MessageBox.Show("Do you wish to over write the file.", "File Exists", MessageBoxButtons.YesNo );
 
 						if( eResult != DialogResult.Yes )
@@ -475,8 +383,8 @@ namespace Play.ImageViewer {
                         _oSiteBase.LogError("Snip Save", "Could not create the snip copy, sizing error.");
                         return;
                     }
-                    string strFullName = Path.Combine( _rgProperty[Labels.FilePath].Text,
-                                                       _rgProperty[Labels.FileName].Text );
+                    string strFullName = Path.Combine( PropertiesDoc.ValueGetAsStr( (int)ImageSnipProperties.Labels.FilePath ),
+                                                       PropertiesDoc.ValueGetAsStr( (int)ImageSnipProperties.Labels.FileName ) );
                     using( Stream oStream = File.Open( strFullName, FileMode.Create )) {
                         if( !oSnipTemp.Save(oStream)) {
                             _oSiteBase.LogError("Snip Save", "Could not create the snip copy, stream error.");
@@ -513,6 +421,10 @@ namespace Play.ImageViewer {
 			}
 			if( sGuid == GlobalCommands.SaveAs ) {
 				SnipSave( fSaveAs:true );
+				return true;
+			}
+			if( sGuid == GlobalCommands.JumpParent ) {
+				JumpBack();
 				return true;
 			}
 

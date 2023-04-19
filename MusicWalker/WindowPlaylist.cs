@@ -4,7 +4,7 @@ using Play.Interfaces.Embedding;
 using Play.Edit;
 
 namespace Play.MusicWalker {
-	class PlayListWindow : EditWin {
+	class PlayListWindow : EditWindow2 {
 		public Editor SongProperties { get; }
 		public Editor ListOutline    { get; }
 
@@ -16,25 +16,6 @@ namespace Play.MusicWalker {
 
 			public override WorkerStatus PlayStatus => ((PlayListWindow)_oSiteBase.Host).PlayStatus;
 		}
-
-		//protected class PLDocSlot :
-		//	IPgBaseSite
-		//{
-		//	protected readonly PlayListWindow _oHost;
-
-		//	public PLDocSlot( PlayListWindow oHost ) {
-		//		_oHost = oHost ?? throw new ArgumentNullException();
-		//	}
-
-		//	public IPgParent Host => _oHost;
-
-		//	public void LogError(string strMessage, string strDetails, bool fShow=true) {
-		//		_oHost.LogError( strMessage, strDetails );
-		//	}
-
-		//	public void Notify( ShellNotify eEvent ) {
-		//	}
-		//} // End class
 
 		public PlayListWindow( IPgViewSite oSite, MusicCollection oDoc ) : base( oSite, oDoc.PlayList ) {
 			_oMusicDoc = oDoc ?? throw new ArgumentNullException( "Document must not be null." );
@@ -53,8 +34,8 @@ namespace Play.MusicWalker {
 			ListOutline.HighLight_Raise();
 		}
 
-		protected override bool InitNewInternal() {
-			if( !base.InitNewInternal() )
+		protected override bool InitInternal() {
+			if( !base.InitInternal() )
 				return false;
 
 			LoadAlbumSummery();
@@ -137,10 +118,10 @@ namespace Play.MusicWalker {
 
 		public override object Decorate( IPgViewSite oBaseSite, Guid sGuid ) {
 			if( sGuid.Equals( GlobalDecorations.Outline ) ) {
-				return new EditWin( oBaseSite, ListOutline, true ) { Wrap = false };
+				return new EditWindow2( oBaseSite, ListOutline, true ) { Wrap = false };
 			}
 			if( sGuid.Equals( GlobalDecorations.Properties ) ) { // Bit rate and etc.
-				return new EditWin( oBaseSite, SongProperties, true );
+				return new EditWindow2( oBaseSite, SongProperties, true );
 			}
 
             return base.Decorate( oBaseSite, sGuid );

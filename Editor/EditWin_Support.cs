@@ -29,7 +29,7 @@ namespace Play.Edit {
 	}
 
     // BUG: This is looking a bit bogus these days. Need to rethink.
-    public delegate void TextLocate( EditWin sender, int iStream );
+    //public delegate void TextLocate( EditWin sender, int iStream );
     
     public enum RefreshNeighborhood {
         SCROLL,

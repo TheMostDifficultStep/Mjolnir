@@ -80,8 +80,8 @@ namespace Mjolnir {
         protected bool        _fIsClosing = false;
 		internal  TOPLAYOUT   _eLayout    = TOPLAYOUT.Solo; // Once layout 1&2 are normalized I won't need this.
 
-        protected SCRIPT_FONTPROPERTIES _sDefFontProps = new SCRIPT_FONTPROPERTIES();
-        protected IntPtr                _hScriptCache  = IntPtr.Zero;
+        //protected SCRIPT_FONTPROPERTIES _sDefFontProps = new SCRIPT_FONTPROPERTIES();
+        //protected IntPtr                _hScriptCache  = IntPtr.Zero;
 		protected bool                  _fTextInvalid  = true;
 
 		public enum TOPLAYOUT {
@@ -418,16 +418,6 @@ namespace Mjolnir {
             // messages. Then load up children, then send this event.
             if (_oSelectedWinSite != null && ViewChanged != null)
                 ViewChanged(_oSelectedWinSite.Guest as IPgParent ); // BUG, guest really needs to be a IPgParent.
-
-			if( _hScriptCache == IntPtr.Zero ) { 
-                using( Graphics oG = this.CreateGraphics() ) { 
-                    using( GraphicsContext oDC = new GraphicsContext( oG ) ) {
- 				        using( new ItemContext( oDC.Handle, ToolsFont.ToHfont() ) ) {
-				            _sDefFontProps.Load( oDC.Handle, ref _hScriptCache );
-                        }
-                    }
-                }
-            }
 
             //RegisterDragDrop( this.Handle, Marshal.GetComInterfaceForObject( this, typeof( Microsoft.VisualStudio.OLE.Interop.IDropTarget ) ) );
         }
