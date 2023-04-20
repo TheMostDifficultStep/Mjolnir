@@ -150,7 +150,7 @@ namespace Play.SSTV {
         /// <summary>
         /// Let's not do any clearing for the moment.
         /// </summary>
-        public override void Clear() {
+        public override void ValuesEmpty() {
         }
 
         public void LabelUpdate( Names eName, string strLabel, SKColor? skBgColor = null ) {
@@ -193,7 +193,7 @@ namespace Play.SSTV {
             if( dblDefault.HasValue ) {
                 if( !double.TryParse( oProperty.ToString(), out double dblValue ) ) {
                     dblValue = dblDefault.Value;
-                    ValueBgColor.Add( (int)eIndex, SKColors.LightPink ); 
+                    //ValueBgColor.Add( (int)eIndex, SKColors.LightPink ); 
                 }
 
                 return dblValue;
@@ -904,7 +904,7 @@ namespace Play.SSTV {
             }
             TxBitmapComp.Clear(); // We have references to TxImageList.Bitmap we must clear;
             RenderComposite();
-            Properties.RaiseBufferEvent();
+            Properties.RaiseUpdateEvent();
         }
 
         private void OnCheckedEvent_TxModeList(Line oLineChecked) {
@@ -921,7 +921,7 @@ namespace Play.SSTV {
         /// </summary>
         private void OnImageUpdated_RxHistoryList() {
             // BUG: Need to make the RxProp the one that gets changed and we catch an event to LoadAgain();
-			Properties.RaiseBufferEvent();
+			Properties.RaiseUpdateEvent();
             if( StateRx == DocSSTVMode.DeviceRead ) {
                 _rgUItoBGQueue.Enqueue( new TVMessage( TVMessage.Message.ChangeDirectory, RxHistoryList.CurrentDirectory ) );
             }

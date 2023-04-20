@@ -30,16 +30,6 @@ namespace Play.Forms {
         public IPgParent Parentage => _oSiteView.Host;
         public IPgParent Services  => Parentage.Services;
 
-        /// <remarks>
-        /// TODO: Make the FormsWindow base take the DocForms.
-        /// </remarks>
-        public WindowStandardProperties( IPgViewSite oSiteView, DocProperties oDocument ) : base( oSiteView, oDocument.PropertyDoc ) {
-            Document = oDocument ?? throw new ArgumentNullException( "ViewStandardProperties's Document is null." );
- 			_oStdUI  = oSiteView.Host.Services as IPgStandardUI2 ?? throw new ArgumentException( "Parent view must provide IPgStandardUI service" );
-
-			BgColorDefault = _oStdUI.ColorsStandardAt( StdUIColors.BG );
-        }
-
 		protected class WinSlot :
 			IPgViewSite
 		{
@@ -62,12 +52,51 @@ namespace Play.Forms {
             public IPgViewNotify EventChain => _oHost._oSiteView.EventChain;
         }
 
-        //protected override void Dispose( bool disposing ) {
-        //    if( disposing && !_fDisposed ) {
-        //        Document.PropertyEvents -= OnPropertyEvent;
-        //    }
-        //    base.Dispose( disposing );
-        //}
+        /// <remarks>
+        /// TODO: Make the FormsWindow base take the DocForms.
+        /// </remarks>
+        public WindowStandardProperties( IPgViewSite oSiteView, DocProperties oDocument ) : 
+            base( oSiteView, oDocument.PropertyDoc ) 
+        {
+            Document = oDocument ?? throw new ArgumentNullException( "ViewStandardProperties's Document is null." );
+ 			_oStdUI  = oSiteView.Host.Services as IPgStandardUI2 ?? throw new ArgumentException( "Parent view must provide IPgStandardUI service" );
+
+			BgColorDefault = _oStdUI.ColorsStandardAt( StdUIColors.BG );
+        }
+
+        protected override void Dispose(bool disposing) {
+            if( disposing && !_fDisposed ) {
+                Document.ListenerRemove( this );
+            }
+            base.Dispose(disposing);
+        }
+
+        public override bool InitNew() {
+            if( !base.InitNew() ) 
+                return false;
+
+            SmartTable oLayout = new SmartTable( 5, LayoutRect.CSS.None );
+            Layout = oLayout;
+
+            oLayout.Add( new LayoutRect( LayoutRect.CSS.Flex, 30, 0 ) ); // Name.
+            oLayout.Add( new LayoutRect( LayoutRect.CSS.None, 70, 0 ) ); // Value.
+
+            InitRows();
+
+            // The base formwindow already gets these, see the constructor.
+            //Document.Property_Values.BufferEvent += OnBufferEvent_Doc_Property_Values;
+
+            OnPropertyEvent( BUFFEREVENTS.MULTILINE );
+            OnSizeChanged( new EventArgs() );
+
+            // This certainly does not belong on the base form, but here
+            // it is a little more reasonable.
+            Links.Add( "callsign", OnCallSign );
+
+            Document.ListenerAdd( this );
+
+            return true;
+        }
 
         public void PropertyInitRow( SmartTable oLayout, int iIndex, Control oWinValue = null ) {
             LabelValuePair sPropertyPair = Document.GetPropertyPair( iIndex );
@@ -142,48 +171,19 @@ namespace Play.Forms {
             }
         }
 
-        public override bool InitNew() {
-            if( !base.InitNew() ) 
-                return false;
-
-            SmartTable oLayout = new SmartTable( 5, LayoutRect.CSS.None );
-            Layout = oLayout;
-
-            oLayout.Add( new LayoutRect( LayoutRect.CSS.Flex, 30, 0 ) ); // Name.
-            oLayout.Add( new LayoutRect( LayoutRect.CSS.None, 70, 0 ) ); // Value.
-
-            InitRows();
-
-            // NOTE: This is happening when there is no album art.
-            if( CacheList.Count > 0 ) {
-                // ALSO: Need to keep the caret on the DocForms (Property_Values)
-                foreach( LayoutSingleLine oTest in CacheList ) {
-                    if( oTest.Cache.Line == DocForms[oTest.Cache.Line.At] ) {
-                        Caret.Layout = oTest;
-                        break;
-                    }
-                }
-            }
-
-            // The base formwindow already gets these, see the constructor.
-            //Document.Property_Values.BufferEvent += OnBufferEvent_Doc_Property_Values;
-
-            OnPropertyEvent( BUFFEREVENTS.MULTILINE );
-            OnSizeChanged( new EventArgs() );
-
-            // This certainly does not belong on the base form, but here
-            // it is a little more reasonable.
-            Links.Add( "callsign", OnCallSign );
-
-            return true;
-        }
-
         protected void OnCallSign( Line oLine, IPgWordRange oRange ) {
             BrowserLink( "http://www.qrz.com/db/" +  oLine.SubString( oRange.Offset, oRange.Length) );
         }
 
 
         public void OnPropertyEvent( BUFFEREVENTS eEvent ) {
+            OnDocumentEvent( BUFFEREVENTS.MULTILINE );
+        }
+
+        public override void OnFormLoad() {
+            base.OnFormLoad();
+
+            InitRows();
             OnDocumentEvent( BUFFEREVENTS.MULTILINE );
         }
     }

@@ -642,7 +642,7 @@ namespace Play.ImageViewer {
                 LabelUpdate( Names.Modified, "Modified" );
                 LabelUpdate( Names.Size,     "Size" );
 
-                Clear();
+                ValuesEmpty();
 
                 return true;
             }

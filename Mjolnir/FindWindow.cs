@@ -87,8 +87,8 @@ namespace Mjolnir {
 
             DocForms.LineAppend( string.Empty, false );
             LayoutSingleLine oLayoutSearchKey = new LayoutSingleLine( new FTCacheWrap( DocForms[0] ), LayoutRect.CSS.Flex) { Span = 4, BgColor=SkiaSharp.SKColors.White };
-            Caret.Layout = oLayoutSearchKey;
             CacheList.Add( oLayoutSearchKey );
+            _iCaretAtLayout = CacheList.Count - 1;
 
             SmartTable oTable = new SmartTable( 5, LayoutRect.CSS.None );
             Layout = oTable;

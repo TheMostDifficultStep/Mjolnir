@@ -8,7 +8,6 @@ using SkiaSharp;
 using Play.Interfaces.Embedding;
 using Play.Rectangles;
 using Play.Edit;
-using Play.Integration;
 
 namespace Play.ImageViewer {
 

@@ -492,7 +492,7 @@ namespace Play.MorsePractice {
                     }
                 } 
             }
-            Properties.RaiseBufferEvent();
+            Properties.RaiseUpdateEvent();
        }
 
         /// <summary>
@@ -510,7 +510,7 @@ namespace Play.MorsePractice {
 
             _iRadioFrequency = iFrequency;
 
-            Properties.Clear();
+            Properties.ValuesEmpty();
 
             Properties.ValueUpdate( RadioProperties.Names.Timer, "Stopped" );
             Properties.ValueUpdate( RadioProperties.Names.Radio_Link, "On" );
@@ -1385,7 +1385,7 @@ namespace Play.MorsePractice {
         /// Override the clear to only clear the specific repeater information. If you want to 
         /// clear all repeater values. Do NOT call the base, which will clear everything.
         /// </summary>
-        public override void Clear() {
+        public override void ValuesEmpty() {
             ValueClear( Names.Frequency        );
             ValueClear( Names.Callsign         );
             ValueClear( Names.Location         );

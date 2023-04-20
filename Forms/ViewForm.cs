@@ -15,12 +15,12 @@ using Play.Parse;
 using System.Text;
 
 namespace Play.Forms {
-        /// <summary>
-        /// This could actually go in our general layout library. But I'm sort
-        /// of testing it out for now.
-        /// </summary>
-        public class LayoutCenter : LayoutControl {
-            int     _iPreferedRail = -1;
+    /// <summary>
+    /// This could actually go in our general layout library. But I'm sort
+    /// of testing it out for now.
+    /// </summary>
+    public class LayoutCenter : LayoutControl {
+        int     _iPreferedRail = -1;
 
 		public LayoutCenter( Control oView, LayoutRect.CSS eUnits, uint uiTrack ) : base( oView, eUnits, uiTrack ) {
 		}
@@ -331,8 +331,14 @@ namespace Play.Forms {
     /// And this window can layout any LayoutRect object.
     /// </summary>
     /// <seealso cref="LayoutRect"/>
-    public class FormsWindow : SKControl {
+    public class FormsWindow : 
+        SKControl,
+        IPgCacheCaret,
+        IPgFormEvents
+    {
         protected bool _fDisposed { get; private set; }
+
+        protected int _iCaretAtLayout = -1;
 
 		protected readonly IPgViewSite   _oSiteView;
         protected readonly IPgViewNotify _oViewEvents; // Our site from the window manager (view interface).
@@ -342,7 +348,7 @@ namespace Play.Forms {
         protected List<LayoutSingleLine> CacheList { get; }      = new List<LayoutSingleLine>();
 
         protected Editor           DocForms { get; }
-        protected SimpleCacheCaret Caret    { get; }
+        //protected SimpleCacheCaret Caret    { get; }
         public    uint             StdText  { get; set; }
         protected IPgStandardUI2   StdUI    { get; }
 
@@ -361,8 +367,6 @@ namespace Play.Forms {
             StdUI        = (IPgStandardUI2)oSiteView.Host.Services;
 
             Array.Sort<Keys>(_rgHandledKeys);
-
-            Caret = new SimpleCacheCaret( null );
         }
         
         /// <summary>
@@ -371,7 +375,7 @@ namespace Play.Forms {
         protected override void Dispose( bool disposing ) {
             if( disposing && !_fDisposed ) {
                 DocForms.BufferEvent -= OnDocumentEvent;
-                DocForms.CaretRemove( Caret );
+                DocForms.CaretRemove( this );
 
                 _fDisposed = true;
             }
@@ -394,7 +398,7 @@ namespace Play.Forms {
             }
 
             DocForms.BufferEvent += OnDocumentEvent;
-            DocForms.CaretAdd( Caret ); // Document moves our caret and keeps it in sync.
+            DocForms.CaretAdd( this ); // Document moves our caret and keeps it in sync.
 
             IPgMainWindow.PgDisplayInfo oInfo = new IPgMainWindow.PgDisplayInfo();
             if( _oSiteView.Host.TopWindow is IPgMainWindow oMainWin ) {
@@ -491,15 +495,15 @@ namespace Play.Forms {
             Line oNext = DocForms[ TabOrder[iNext] ];
 
             // Got to keep the carat in our PropertyValues form.
-            foreach( LayoutSingleLine oLayout in CacheList ) {
-                if( oLayout.Cache.Line == oNext &&
+            for( int i = 0; i< CacheList.Count; ++i ) {
+                if( CacheList[i].Cache.Line == oNext &&
                     oNext == DocForms[oNext.At] ) 
                 {
-                    Caret.Layout = oLayout;
+                    _iCaretAtLayout = i;
 
                     //oLayout.SelectHead( Caret, e.Location, ModifierKeys == Keys.Shift );
                     //TODO: Select All.
-                    return oLayout.Cache;
+                    return CacheList[i].Cache;
                 }
             }
             return null;
@@ -507,17 +511,15 @@ namespace Play.Forms {
 
         public void CaretMove( Axis eAxis, int iDir, bool fJumpLine = false ) {
             try {
-                int   iOffset   = Caret.Offset;
-                float flAdvance = Caret.Advance;
+                int              iOffset   = Offset;
+                float            flAdvance = Advance;
+                LayoutSingleLine oLayout   = CacheList[_iCaretAtLayout];
 
-                if( Caret.Layout == null )
-                    return;
-
-                Caret.Layout.Selection.Length = 0;
-                Caret.Layout.OnChangeFormatting();
+                oLayout.Selection.Length = 0;
+                oLayout.OnChangeFormatting();
 
                 // If total miss, build a new screen based on the location of the caret.
-                FTCacheLine oElem = Caret.Layout.Cache;
+                FTCacheLine oElem = oLayout.Cache;
 
                 if( iDir != 0 ) {
                     // First, see if we can navigate within the line we are currently at.
@@ -529,13 +531,13 @@ namespace Play.Forms {
                             iOffset = oNext.OffsetBound( eAxis, iDir * -1, flAdvance );
                             oElem   = oNext;
                             // TODO: Set the advance...maybe?
-                            Caret.Layout.SelectAll( Caret );
+                            oLayout.SelectAll( this );
                         }
                     }
                     // If going up or down ends up null, we won't be moving the caret.
                     //Caret.Cache   = oElem;
-                    Caret.Offset  = iOffset;
-                    Caret.Advance = (int)flAdvance;
+                    Offset  = iOffset;
+                    Advance = (int)flAdvance;
                 }
 
                 CaretLocal( oElem, iOffset );
@@ -559,6 +561,12 @@ namespace Play.Forms {
             Invalidate();
         }
 
+        private static Type[] _rgStdErrors = { typeof( ApplicationException ),
+                                               typeof( ArgumentOutOfRangeException ),
+                                               typeof( NotImplementedException ),
+                                               typeof( NullReferenceException ),
+                                               typeof( InvalidCastException ) };
+
         /// <summary>
         /// Reposition the caret.
         /// </summary>
@@ -566,13 +574,22 @@ namespace Play.Forms {
             if( Focused != true )
                 return;
 
-            if( Caret.Layout != null ) {
-                SKPointI pntCaretWorldLoc  = Caret.Layout.CaretWorldPosition( Caret ); 
-                if( Caret.Layout.IsInside( pntCaretWorldLoc.X, pntCaretWorldLoc.Y ) ) {
+            try {
+                int              iOffset   = Offset;
+                float            flAdvance = Advance;
+                LayoutSingleLine oLayout   = CacheList[_iCaretAtLayout];
+
+                SKPointI pntCaretWorldLoc  = oLayout.CaretWorldPosition( this ); 
+                if( oLayout.IsInside( pntCaretWorldLoc.X, pntCaretWorldLoc.Y ) ) {
                     User32.SetCaretPos(pntCaretWorldLoc.X, pntCaretWorldLoc.Y);
                 } else {
                     User32.SetCaretPos( -10, -10 ); // Park it off screen.
                 }
+            } catch( Exception oEx ) {
+                if( _rgStdErrors.IsUnhandled( oEx ) )
+                    throw;
+
+                _oSiteView.LogError( "Editing", "Problem moving the cursor" );
             }
         }
 
@@ -581,34 +598,88 @@ namespace Play.Forms {
         /// </summary>
         public bool IsSelection {
             get {
-                if( Caret.Layout == null )
-                    return false;
+                try {
+                    return CacheList[_iCaretAtLayout].Selection.Length > 0;
+                } catch( Exception oEx ) {
+                    if( _rgStdErrors.IsUnhandled( oEx ) )
+                        throw;
 
-                return( Caret.Layout.Selection.Length > 0 );
+                    _oSiteView.LogError( "Editing", "Problem moving the cursor" );
+                    return false;
+                }
             }
         }
 
+        #region IPgCacheCaret
+        protected LayoutSingleLine GetLayoutAtCaret => CacheList[_iCaretAtLayout];
+
+        public int Advance { get; set; } = 0;
+        public Line Line { 
+            get { 
+                try {
+                    return GetLayoutAtCaret.Cache.Line;
+                } catch( Exception oEx ) {
+                    if( _rgStdErrors.IsUnhandled( oEx ) )
+                        throw;
+
+                    _oSiteView.LogError( "Editing", "Problem reporting caret Line." );
+                    return DocForms[0];
+                }
+            }
+            set { 
+                _iCaretAtLayout = -1;
+                for( int i = 0; i< CacheList.Count; ++i ) {
+                    if( CacheList[i].Cache.Line == value ) {
+                        _iCaretAtLayout = i;
+                        break;
+                    }                        
+                }
+                if( _iCaretAtLayout > -1 ) {
+                    Advance = 0;
+                }
+            }
+        }
+
+        public int At { 
+            get { 
+                try {
+                    return GetLayoutAtCaret.Cache.Line.At;
+                } catch( Exception oEx ) {
+                    if( _rgStdErrors.IsUnhandled( oEx ) )
+                        throw;
+
+                    _oSiteView.LogError( "Editing", "Problem reporting caret position." );
+                    return -1;
+                }
+            }
+        }
+        public int ColorIndex { get { throw new NotImplementedException(); } }
+
+        public int Offset { get; set; } = 0;
+        public int Length { set { } get => 0; }
+        #endregion
+
         public void OnKey_Delete( bool fBackSpace ) {
             try {
+                LayoutSingleLine oLayout = GetLayoutAtCaret;
+                int              iLineAt = oLayout.Cache.Line.At;
+
                 using Editor.Manipulator oBulk = DocForms.CreateManipulator();
+
                 if( IsSelection ) {
-                    oBulk.LineTextDelete( Caret.At, Caret.Layout.Selection );
+                    oBulk.LineTextDelete( iLineAt, oLayout.Selection );
                 } else {
                     if( fBackSpace ) {
-                        if( Caret.Offset > 0 ) {
-                            oBulk.LineTextDelete( Caret.At, new ColorRange( Caret.Offset - 1, 1 ) );
+                        if( Offset > 0 ) {
+                            oBulk.LineTextDelete( iLineAt, new ColorRange( Offset - 1, 1 ) );
                         }
                     } else {
-                        oBulk.LineTextDelete( Caret.At, new ColorRange( Caret.Offset, 1 ) );
+                        oBulk.LineTextDelete( iLineAt, new ColorRange( Offset, 1 ) );
                     }
                 }
                 OnKeyDown_Arrows( Axis.Horizontal, 0 );
             } catch( Exception oEx ) {
-                Type[] rgErrors = { typeof( ApplicationException ),
-                                    typeof( ArgumentOutOfRangeException ),
-                                    typeof( NotImplementedException ),
-                                    typeof( NullReferenceException ) };
-                if( rgErrors.IsUnhandled( oEx ) )
+                if( _rgStdErrors.IsUnhandled( oEx ) )
                     throw;
                 _oSiteView.LogError( "Forms", "Unable to delete character." );
             }
@@ -630,23 +701,21 @@ namespace Play.Forms {
                     return;
                 }
                 if( !char.IsControl( e.KeyChar )  ) { 
+                    LayoutSingleLine oLayout = GetLayoutAtCaret;
+                    int              iLineAt = oLayout.Cache.Line.At;
                     if( IsSelection ) {
                         using( Editor.Manipulator oBulk = DocForms.CreateManipulator() ) {
-                            oBulk.LineTextDelete( Caret.At, Caret.Layout.Selection );
-                            oBulk.LineCharInsert( Caret.At, Caret.Offset, e.KeyChar );
+                            oBulk.LineTextDelete( iLineAt, oLayout.Selection );
+                            oBulk.LineCharInsert( iLineAt, Offset, e.KeyChar );
                         }
                     } else {
-                        DocForms.LineCharInsert( Caret.At, Caret.Offset, e.KeyChar);
+                        DocForms.LineCharInsert( iLineAt, Offset, e.KeyChar);
                     }
                     // Find the new carat position and update its screen location. 
                     OnKeyDown_Arrows( Axis.Horizontal, 0 );
                 }
             } catch( Exception oEx ) {
-                Type[] rgErrors = { typeof( ApplicationException ),
-                                    typeof( ArgumentOutOfRangeException ),
-                                    typeof( NotImplementedException ),
-                                    typeof( NullReferenceException ) };
-                if( rgErrors.IsUnhandled( oEx ) )
+                if( _rgStdErrors.IsUnhandled( oEx ) )
                     throw;
                 _oSiteView.LogError( "Forms", "Unable to accept character." );
             }
@@ -739,9 +808,11 @@ namespace Play.Forms {
                     break;
                 case Keys.Escape:
                     try {
-                        Caret.Layout.SelectClear();
+                        GetLayoutAtCaret.SelectClear();
                         Invalidate();
-                    } catch {
+                    } catch( Exception oEx ) {
+                        if( _rgStdErrors.IsUnhandled( oEx ) )
+                            throw;
                     }
                     break;
 
@@ -788,22 +859,30 @@ namespace Play.Forms {
         } // end method
 
         protected override void OnMouseDown(MouseEventArgs e) {
+
             base.OnMouseDown( e );
             Select();
 
             if( e.Button == MouseButtons.Left ) {
-                // Set the caret for sure if hit. If not just leave it where ever it was.
-                foreach( LayoutSingleLine oLayout in CacheList ) {
-                    Line oLine = oLayout.Cache.Line;
-                    // Keep the carat on our PropertyValues document.
-                    if( oLayout.IsInside( e.X, e.Y ) &&
-                        oLine == DocForms[oLine.At] ) 
-                    {
-                        Caret.Layout = oLayout;
-
-                        oLayout.SelectHead( Caret, e.Location, ModifierKeys == Keys.Shift );
-                        Links.Find( Caret.Line, Caret.Offset, true );
+                try {
+                    // Set the caret for sure if hit. If not just leave it where ever it was.
+                    for( int i=0; i<CacheList.Count; i++ ) {
+                        LayoutSingleLine oLayout = CacheList[i];
+                        // NOTE: This is why we have to have all Line objects in a single Editor.
+                        if( oLayout.IsInside( e.X, e.Y )  ) {
+                            if( _iCaretAtLayout == i ) {
+                                GetLayoutAtCaret.SelectHead( this, e.Location, ModifierKeys == Keys.Shift );
+                            } else {
+                                _iCaretAtLayout = i;
+                                GetLayoutAtCaret.SelectHead( this, e.Location, false );
+                            }
+                            // BUG: Shouldn't call this if there is a selection on the link.
+                            Links.Find( GetLayoutAtCaret.Cache.Line, Offset, true );
+                        }
                     }
+                } catch( Exception oEx ) {
+                    if( _rgStdErrors.IsUnhandled( oEx ) )
+                        throw;
                 }
             }
 
@@ -832,12 +911,15 @@ namespace Play.Forms {
             Cursor = oCursor;
 
             if ((e.Button & MouseButtons.Left) == MouseButtons.Left && e.Clicks == 0 ) {
-                if( Caret.Layout != null ) {
-                    Caret.Layout.SelectNext( Caret, e.Location );
+                try {
+                    GetLayoutAtCaret.SelectNext( this, e.Location );
 
                     CaretIconRefresh();
                     Invalidate();
                     Update();
+                } catch( Exception oEx ) {
+                    if( _rgStdErrors.IsUnhandled( oEx ) )
+                        throw;
                 }
             }
         }
@@ -859,8 +941,15 @@ namespace Play.Forms {
 
         protected void SelectionDelete() {
             if( IsSelection ) {
-                using( Editor.Manipulator oBulk = DocForms.CreateManipulator() ) {
-                    oBulk.LineTextDelete( Caret.At, Caret.Layout.Selection );
+                try {
+                    LayoutSingleLine oLayout = GetLayoutAtCaret;
+
+                    using( Editor.Manipulator oBulk = DocForms.CreateManipulator() ) {
+                        oBulk.LineTextDelete( oLayout.Cache.At, oLayout.Selection );
+                    }
+                } catch( Exception oEx ) {
+                    if( _rgStdErrors.IsUnhandled( oEx ) )
+                        throw;
                 }
             }
         }
@@ -882,18 +971,21 @@ namespace Play.Forms {
 			// AND brings up the context menu. In the future we'll want to give the
 			// option to choose the desired portion of any complex object.
 			try {
+                LayoutSingleLine oLayout = GetLayoutAtCaret;
 				if( IsSelection ) {
-					oSelection = Caret.Layout.Selection;
+					oSelection = oLayout.Selection;
 				} else {
-					oSelection = new ColorRange( 0, Caret.Layout.Cache.Line.ElementCount, 0 );
+					oSelection = new ColorRange( 0, oLayout.Cache.Line.ElementCount, 0 );
  				}
 				if( oSelection != null ) {
-					string strSelection = Caret.Line.SubString( oSelection.Offset, oSelection.Length );
+					string strSelection = oLayout.Cache.Line.SubString( oSelection.Offset, oSelection.Length );
 
 				    oDataObject.SetData      ( strSelection );
 				    Clipboard  .SetDataObject( oDataObject );
 				}
-			} catch( NullReferenceException ) {
+            } catch( Exception oEx ) {
+                if( _rgStdErrors.IsUnhandled( oEx ) )
+                    throw;
                 _oSiteView.LogError( "Clipboard", "Copy to clipboard problem" );
 			}
         }
@@ -905,34 +997,49 @@ namespace Play.Forms {
             //if( _fReadOnly )
             //    return;
 
-            if( Caret.Layout == null )
-                return;
-
             try {
-                IDataObject oDataObject = oDataSource as IDataObject;
+                LayoutSingleLine oLayout = GetLayoutAtCaret;
+                int              iLineAt = oLayout.Cache.At;
+                IDataObject      oData   = oDataSource as IDataObject;
 
                 // TODO: This might be a dummy line. So we need dummies to be at -1.
                 //       Still a work in progress. See oBulk.LineInsert() below...
                 if( sOperation == ClipboardOperations.Text ||
                     sOperation == ClipboardOperations.Default 
                   ) {
-                    string strPaste = oDataObject.GetData(typeof(System.String)) as string;
+                    string strPaste = oData.GetData(typeof(System.String)) as string;
                     using( Editor.Manipulator oBulk = new Editor.Manipulator( DocForms ) ) {
                         if( IsSelection ) {
-                            oBulk.LineTextDelete( Caret.At, Caret.Layout.Selection );
+                            oBulk.LineTextDelete( iLineAt, oLayout.Selection );
                         }
-                        oBulk.LineTextInsert( Caret.At, Caret.Offset, strPaste, 0, strPaste.Length );
+                        oBulk.LineTextInsert( iLineAt, Offset, strPaste, 0, strPaste.Length );
                     }
                 }
             } catch( Exception oEx ) {
-                Type[] rgErrors = { typeof( NullReferenceException ),
-                                    typeof( InvalidCastException ) };
-                if( rgErrors.IsUnhandled( oEx ) )
+                if( _rgStdErrors.IsUnhandled( oEx ) )
                     throw;
             }
         }
 
+        public virtual void OnFormUpdate(IEnumerable<Line> rgUpdates) {
+            OnDocumentEvent( BUFFEREVENTS.MULTILINE );
+        }
 
+        public virtual void OnFormFormat(IEnumerable<Line> rgUpdates) {
+            OnDocumentEvent( BUFFEREVENTS.FORMATTED );
+        }
+
+        public virtual void OnFormClear() {
+            _iCaretAtLayout = 0;
+
+            CacheList.Clear();
+            Layout   .Clear(); // Hopefully clear the children but not the template for the form.
+
+            Invalidate();
+        }
+
+        public virtual void OnFormLoad() {
+        }
     }
 
 	public class ContextMenuTest : SKControl {

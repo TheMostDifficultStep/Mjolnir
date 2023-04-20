@@ -160,8 +160,8 @@ namespace Play.MusicWalker {
 		}
 	}
 
-    public class AlbumProperties : DocProperties {
-        public AlbumProperties( IPgBaseSite oSiteBase ) : base( oSiteBase ) {
+    public class AlbumProperties2 : DocProperties {
+        public AlbumProperties2( IPgBaseSite oSiteBase ) : base( oSiteBase ) {
         }
 
 		/// <summary>
@@ -202,11 +202,11 @@ namespace Play.MusicWalker {
 	/// <remarks>Used to implement from EditorWithParser. Now untangled it still works but no colorization atm.</remarks>
 	public class M3UDocument : EditorWithMusic {
 		public ImageWalkerDir  AlbumArt        { get; }
-		public AlbumProperties AlbumProperties { get; }
+		public AlbumProperties2 AlbumProperties { get; }
 
         public M3UDocument( IPgBaseSite oSite ) : base( oSite ) {
 			AlbumArt        = new ImageWalkerDir ( new DocSlot( this ) ); // Note: ImageWalker needs a better IPgFileSite implementation.
-			AlbumProperties = new AlbumProperties( new DocSlot( this ) ); //       need to subclass this DocSlot.
+			AlbumProperties = new AlbumProperties2( new DocSlot( this ) ); //       need to subclass this DocSlot.
         }
 
 		private void AlbumPropertiesLoad() {

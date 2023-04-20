@@ -46,13 +46,6 @@ namespace Play.SSTV {
 			Icon         = oDocument.CreateIconic( _strViewIcon );
         }
 
-        protected override void Dispose( bool disposing ) {
-            if( disposing ) {
-                DocForms.CaretRemove( Caret );
-            }
-            base.Dispose(disposing);
-        }
-
         public override void InitRows() {
             SSTVProperties.Names[] rgShow = { SSTVProperties.Names.Std_MnPort, 
                                               SSTVProperties.Names.Std_TxPort, 

@@ -132,7 +132,7 @@ namespace Play.ImageViewer {
 
 			try {
                 _rgVertStack.Add( new LayoutImageView( SnipView,      LayoutRect.CSS.None   ) { Track = 50 } ); 
-                _rgVertStack.Add( new LayoutControl  ( PropertiesWin, LayoutRect.CSS.Pixels ) { Track = 150 } );
+                _rgVertStack.Add( new LayoutControl  ( PropertiesWin, LayoutRect.CSS.Pixels ) { Track = 140 } );
 			} catch( Exception oEx ) {
 				LogError( oEx );
 				return false;

@@ -158,7 +158,6 @@ namespace Play.Clock {
         protected override void Dispose( bool disposing ) {
             if( disposing ) {
                 Document.ClockEvent -= OnEvent;
-                DocForms.CaretRemove( Caret );
             }
             base.Dispose(disposing);
         }
@@ -204,7 +203,7 @@ namespace Play.Clock {
                 oCache.BgColor = _oStdUI.ColorsStandardAt( StdUIColors.BGNoEditText );
             }
 
-            Caret.Layout = oLayoutTimeUtc;
+            //_iCaretAtLayout = 0;
 
             OnDocumentEvent( BUFFEREVENTS.MULTILINE );
             OnSizeChanged( new EventArgs() );

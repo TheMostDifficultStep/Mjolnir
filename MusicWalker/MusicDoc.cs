@@ -482,7 +482,7 @@ namespace Play.MusicWalker {
 									typeof( FileNotFoundException ),
 									typeof( GrammerNotFoundException ) };
 				if( rgErrors.IsUnhandled( oEx ) )
-					throw oEx;
+					throw;
 
 				throw new InvalidOperationException( "Couldn't find the M3U Grammer.");
 			}

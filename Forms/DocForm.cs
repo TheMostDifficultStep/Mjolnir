@@ -8,6 +8,15 @@ using Play.Edit;
 using SkiaSharp;
 
 namespace Play.Forms {
+    /// Form windows will listen to these events.
+    /// </summary>
+    public interface IPgFormEvents {
+        void OnFormUpdate( IEnumerable<Line> rgUpdates ); // Line contents have been updated. remeasure
+        void OnFormFormat( IEnumerable<Line> rgUpdates ); // Line formatting has been changed. repaint
+        void OnFormClear(); // All properties/labels are to be removed.
+        void OnFormLoad (); // All properties/labels have been created.
+    }
+
     public class SimpleCacheCaret : IPgCacheCaret  {
         protected int              _iOffset = 0;
         protected LayoutSingleLine _oLayout;
@@ -129,9 +138,11 @@ namespace Play.Forms {
 
     /// <summary>
     /// This is basically an editor that loads all the lines but doesn't offer
-    /// undo, so that the user doesn't accidently hit undo and remove forms items.
+    /// line delete, so that the user doesn't accidently hit undo and remove forms items.
     /// This implementation is a bit obsolete since I'm leaning towards a values/labels
     /// version which separates writable items.
+    /// .ps Tried labels and values in seperate documents, that version had a major
+    /// window bug so that way won't work.
     /// </summary>
     [Obsolete("See the DocProperties object.")] public class FormsEditor : Editor {
         public FormsEditor( IPgBaseSite oSite ) : base( oSite ) {
@@ -208,7 +219,7 @@ namespace Play.Forms {
     /// Document for labels and values style form. Makes separating readable values
     /// from readonly values. Probably move this over to forms project at some time.
     /// </summary>
-    public class DocProperties : IPgParent, IPgLoad {
+    public class DocProperties : IPgParent, IPgLoad, IDisposable {
         protected readonly IPgBaseSite _oSiteBase;
 
         public IPgParent Parentage => _oSiteBase.Host;
@@ -217,6 +228,7 @@ namespace Play.Forms {
 
         //public LabelAccessor Property_Labels { get { return new LabelAccessor( PropertyPairs ); } }
         public Editor PropertyDoc { get; } // Got to be public so the form window can access.
+        protected readonly List<IPgFormEvents> _rgFormEvents = new ();
 
         protected List<LabelValuePair> PropertyPairs { get; } = new List<LabelValuePair>();
         public    int                  PropertyCount => PropertyPairs.Count;
@@ -259,7 +271,7 @@ namespace Play.Forms {
             }
 
             public void Dispose() {
-                _oHost.RaiseBufferEvent();
+                _oHost.RaiseUpdateEvent();
             }
 
             public void Set( int iIndex, string strValue ) {
@@ -283,6 +295,14 @@ namespace Play.Forms {
                 return false;
 
             return true;
+        }
+
+        public void ListenerAdd( IPgFormEvents oCallback ) {
+            _rgFormEvents.Add( oCallback );
+        }
+
+        public void ListenerRemove( IPgFormEvents oCallback ) {
+            _rgFormEvents.Remove( oCallback );
         }
 
         public Line this[int iIndex] { 
@@ -310,11 +330,29 @@ namespace Play.Forms {
             return PropertyPairs[(int)iIndex];
         }
 
-        public virtual void Clear() {
+        public virtual void ValuesEmpty() {
             foreach( LabelValuePair oProp in PropertyPairs ) {
                 oProp._oValue.Empty();
             }
             PropertyDoc.Raise_BufferEvent( BUFFEREVENTS.MULTILINE ); 
+
+            foreach( IPgFormEvents oCall in _rgFormEvents ) {
+                oCall.OnFormUpdate( PropertyDoc );
+            }
+        }
+
+        /// <summary>
+        /// Clear out the form of all properties and labels.
+        /// </summary>
+        public virtual void Clear() {
+            PropertyPairs.Clear();
+            PropertyDoc  .Clear();
+
+            PropertyDoc.Raise_BufferEvent( BUFFEREVENTS.MULTILINE ); 
+
+            foreach( IPgFormEvents oCall in _rgFormEvents ) {
+                oCall.OnFormClear();
+            }
         }
 
         /// <summary>
@@ -348,9 +386,33 @@ namespace Play.Forms {
         /// <summary>
         /// Use this when you've updated properties independently and want to finally notify the viewers.
         /// </summary>
-        public void RaiseBufferEvent() {
+        public void RaiseUpdateEvent() {
             PropertyDoc.CharacterCount( 0 );
-            PropertyDoc.Raise_BufferEvent( BUFFEREVENTS.MULTILINE ); 
+
+            // Anyone using DocProperties object s/b using IPgFormEvents
+            //PropertyDoc.Raise_BufferEvent( BUFFEREVENTS.MULTILINE ); 
+            
+            foreach( IPgFormEvents oCall in _rgFormEvents ) {
+                oCall.OnFormUpdate( PropertyDoc );
+            }
+        }
+
+        /// <summary>
+        /// This is for the rare case where a form get's flushed and rebuilt during
+        /// it's lifetime. Most forms are build once and the window shows up
+        /// later and set's itself up to be used for the remainder. You could
+        /// use this event in a scenario where the window is displayed before the
+        /// property document has been constructed.
+        /// </summary>
+        public void RaiseLoadedEvent() {
+            PropertyDoc.CharacterCount( 0 );
+            
+            foreach( IPgFormEvents oCall in _rgFormEvents ) {
+                oCall.OnFormLoad();
+            }
+        }
+
+        private void RaiseFormatedEvent() {
         }
 
         public LabelValuePair CreatePropertyPair( string strName = "", string strValue = "" ) {
@@ -362,6 +424,12 @@ namespace Play.Forms {
             PropertyPairs.Add( oProp );
 
             return oProp;
+        }
+
+        public void Dispose() {
+            _rgFormEvents.Clear(); // Removes circular references.
+
+            PropertyDoc.Dispose();
         }
     }
 

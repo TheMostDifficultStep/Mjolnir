@@ -12,11 +12,127 @@ using Play.Drawing;
 using Play.Interfaces.Embedding;
 using Play.Rectangles;
 using Play.Edit;
+using Play.Forms;
+using Play.Parse.Impl;
+using Play.Parse;
 using Play.Integration;
 using Play.ImageViewer;
 
 namespace Play.MusicWalker {
-	public class MusicWin : 
+
+	/// <summary>
+	/// New AlbumProperties derived from DocProperties instead of the old PropDoc
+	/// </summary>
+    public class AlbumProperties : DocProperties {
+        public AlbumProperties(IPgBaseSite oSiteBase) : base(oSiteBase) {
+        }
+		protected class ParseLoadSlot : DocSlot,
+			IParseEvents<char>
+		{
+			DataStream<char> _oStream;
+			string           _strPropName;
+
+			public ParseLoadSlot( AlbumProperties oDoc, DataStream<char> oStream ) : base( oDoc ) {
+				_oStream = oStream ?? throw new ArgumentNullException();
+			}
+
+			public void OnMatch(ProdBase<char> oElem, int iStart, int iLength) {
+				if( oElem is MemoryBinder<char> oBind ) {
+					// TODO: Would be nice to do a line to line copy, but for now this will do.
+					switch( oBind.Target.ID ) {
+						case "pn": {
+							_strPropName = _oStream.SubString( oBind.Start, iStart - oBind.Start );
+							break;
+							}
+						case "pv": {
+							string strPropValue = _oStream.SubString( oBind.Start, iStart - oBind.Start );
+
+							_oHost.CreatePropertyPair( _strPropName, strPropValue );
+							break;
+							}
+					}
+				}
+			}
+
+			public void OnParserError(ProdBase<char> p_oMemory, int p_iStart) {
+				LogError( "Property Parsing", "Couldn't parse property file." );
+			}
+		}
+
+		protected void LogError( string strTitle, string strMsg ) {
+			_oSiteBase.LogError( strTitle, strMsg );
+		}
+
+		/// <summary>
+		/// In this case, we'll property parse a tab delimited text file and 
+		/// construct the property array automagically. We're kind of doing a
+		/// lot in a load and we could potentially use the task scheduler. 
+		/// </summary>
+		/// <remarks>BUG: Need to make sure the properties are at least accessible in the main 
+		/// program grammer resources. Like "linebreaker" and "text" bnf's</remarks>
+		public bool Load(TextReader oFileStream) {
+			Grammer<char> oPropertyGrammar;
+
+			Clear(); // Erase all properties/labels from the form. Starting over.
+
+			try {
+				oPropertyGrammar = (Grammer<char>)((IPgGrammers)Services).GetGrammer( "properties" );
+
+				if( oPropertyGrammar == null ) {
+					return false;
+				}
+			} catch ( Exception oEx ) {
+                Type[] rgErrors = { typeof( NullReferenceException ),
+                                    typeof( InvalidCastException ),
+                                    typeof( ArgumentNullException ),
+									typeof( GrammerNotFoundException ) };
+                if( !rgErrors.IsUnhandled( oEx ) )
+                    throw;
+
+				LogError( "Property Parsing", "Couldn't get grammar for property assignment parsing." );
+				return false;
+			}
+
+			// Raw file containing the tab separated properties.
+			Editor oPropFile = new Editor( new DocSlot( this ) );
+			
+			if( !oPropFile.Load( oFileStream ) ) {
+				LogError( "Property Parsing", "Couldn't read file for property assignment parsing." );
+				return false;
+			}
+
+			State<char>         oStart  = oPropertyGrammar.FindState("start");
+			DataStream<char>    oStream = oPropFile.CreateStream();
+			MemoryState<char>   oMStart = new MemoryState<char>( new ProdState<char>( oStart ), null );
+			ParseLoadSlot       oSlot   = new ParseLoadSlot( this, oStream );
+			ParseIterator<char> oParser = new ParseIterator<char>( oStream, oSlot, oMStart );
+
+			while( oParser.MoveNext() );
+
+			ParsePropertyValues();
+
+			RaiseLoadedEvent();
+
+			return true;
+		}
+
+		/// <summary>
+		/// Now that the properties have been loaded. Parse the form to hilight urls and quotes.
+		/// </summary>
+		/// <remarks>Something like this would be usefull on the DocProperties object.</remarks>
+		public void ParsePropertyValues() {
+			ParseHandlerText    oHandler = new ParseHandlerText( PropertyDoc, "text" );
+			State<char>         oStart   = oHandler.Grammer.FindState("start");
+			DataStream<char>    oStream  = PropertyDoc.CreateStream();
+			MemoryState<char>   oMStart  = new MemoryState<char>( new ProdState<char>( oStart ), null );
+			ParseIterator<char> oParser  = new ParseIterator<char>( oStream, oHandler, oMStart );
+
+			while( oParser.MoveNext() );
+		}
+
+    }
+
+    public class MusicWin : 
 		Control,
 		IPgParent,
 		IPgTextView,
@@ -38,7 +154,7 @@ namespace Play.MusicWalker {
         public MusicCollection Document        { get; }
         public ImageSoloDoc    AlbumArtCurrent { get; }
 		public Editor          AlbumCurrent    { get; }
-		public PropDoc         AlbumProperties { get; } // Props for current album.
+		public AlbumProperties AlbumProperties { get; } // Props for current album.
 
 		LibraryWindow   ViewLibrary { get; }
 		ImageViewSingle ViewSpeaker { get; }
@@ -151,9 +267,9 @@ namespace Play.MusicWalker {
 
 			Icon = SKImageResourceHelper.GetImageResource( Assembly.GetExecutingAssembly(), _strMusicIcon );
 
-			AlbumArtCurrent = new ImageSoloDoc( new MusicWinSlot( this ));
-			AlbumCurrent    = new CurrentAlbum( new MusicWinSlot( this ));
-			AlbumProperties = new PropDoc     ( new MusicWinSlot( this ));
+			AlbumArtCurrent = new ImageSoloDoc   ( new MusicWinSlot( this ));
+			AlbumCurrent    = new CurrentAlbum   ( new MusicWinSlot( this ));
+			AlbumProperties = new AlbumProperties( new MusicWinSlot( this ));
 
 			ViewLibrary  = new LibraryWindow( new MusicViewSlot(this), this ) {
 				Parent = this
@@ -406,7 +522,7 @@ namespace Play.MusicWalker {
                 return new MusicAlbumDecor( oBaseSite, this );
             }
 			if( sGuid.Equals( GlobalDecorations.Properties ) ) {
-				return new PropWin( oBaseSite, AlbumProperties );
+				return new WindowStandardProperties( oBaseSite, AlbumProperties );
 			}
 
 			return false;
