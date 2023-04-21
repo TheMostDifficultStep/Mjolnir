@@ -83,10 +83,17 @@ namespace Play.Rectangles {
 
 }
 
-
-
 namespace Play.Edit {
     // https://www.freetype.org/freetype2/docs/documentation.html
+
+    /// <summary>
+    /// Move this to the forms package after I finish updating the edit window properties.
+    /// </summary>
+    public interface IPgFormBulkUpdates : IDisposable {
+        int  AddProperty( string strPropertyName );
+        void SetValue( int iIndex, string strValue );
+        void SetLabel( int iIndex, string strLabel );
+    }
 
     public delegate void TextLocate2( EditWindow2 sender, int iStream );
 
@@ -1988,38 +1995,56 @@ namespace Play.Edit {
             DecorNavigatorUpdate( eSource, oCarat );
         }
 
+        public enum EditNavigation : int {
+            Line = 0,
+            Column,
+            Character,
+            Selection,
+            Character_Count,
+            File_Encoding
+        }
+
+        protected virtual IPgFormBulkUpdates CreateBulkLoader() {
+            return NavProps.EditProperties;
+        }
+
 		protected virtual void DecorNavPropsInit() {
-			using( PropDoc.Manipulator oBulk = NavProps.EditProperties ) {
-				oBulk.Add( "Line" );
-				oBulk.Add( "Column" );
-				oBulk.Add( "Character" );
-				oBulk.Add( "Selection" );
-				oBulk.Add( "Character Count" );
-				oBulk.Add( "File Encoding" );
+			using( IPgFormBulkUpdates oBulk = CreateBulkLoader() ) {
+                foreach( EditNavigation eNav in Enum.GetValues( typeof( EditNavigation ) ) ) {
+                    if( (int)eNav != oBulk.AddProperty( eNav.ToString() ) ) {
+                        throw new InvalidProgramException( "Editor nave props missaligned" );
+                    }
+                }
+				oBulk.SetLabel( (int)EditNavigation.Character_Count, "Character Count" );
+				oBulk.SetLabel( (int)EditNavigation.File_Encoding,   "File Encoding" );
 			}
 		}
 
 		/// <remarks>Note that List<T> throws ArgumentOutOfRangeException for the same cases 
 		/// where arrays use IndexOutOfRangeException. It's a bitch I know.</remarks>
         protected virtual void DecorNavigatorUpdate( NavigationSource eSource, ILineRange oCaret ) {
-            int                   iLine = 0, iIndex = 0, iLineCharCount = 0;
-            IEnumerator<IPgGlyph> itrGlyphs;
-            StringBuilder         sbBuild = new StringBuilder();
-            int                   iGlyphCount = 0;
+            StringBuilder sbBuild = new StringBuilder();
 
             try {
-                iLine          = oCaret.At + 1;
-                iIndex         = oCaret.Offset;
-                iLineCharCount = oCaret.Line.ElementCount;
-                itrGlyphs      = _oCacheMan.EnumGrapheme( oCaret );
+                int iLine          = oCaret.At + 1;
+                int iIndex         = oCaret.Offset;
+                int iLineCharCount = oCaret.Line.ElementCount;
+                int iGlyphCount    = 0;
 
-                if( itrGlyphs != null ) {
-                    while( itrGlyphs.MoveNext() ) { 
-                        if( iGlyphCount++ > 0 )
-                            sbBuild.Append( ", " );
-                        sbBuild.Append( "0x" );
-                        sbBuild.Append( itrGlyphs.Current.CodePoint.ToString("x4") );
-                    }
+                foreach( IPgGlyph oGlyph in _oCacheMan.EnumGrapheme( oCaret ) ) {
+                    if( iGlyphCount++ > 0 )
+                        sbBuild.Append( ", " );
+                    sbBuild.Append( "0x" );
+                    sbBuild.Append( oGlyph.CodePoint.ToString("x4") );
+                }
+
+                using (IPgFormBulkUpdates oBulk = CreateBulkLoader() ) {
+                    oBulk.SetValue( (int)EditNavigation.Line,            iLine.ToString()  + " of " + _oDocument.ElementCount.ToString());
+                    oBulk.SetValue( (int)EditNavigation.Column,          iIndex.ToString() + " of " + iLineCharCount.ToString());
+                    oBulk.SetValue( (int)EditNavigation.Character,       sbBuild.ToString() );
+                    oBulk.SetValue( (int)EditNavigation.Selection,       SelectionCount.ToString());
+                    oBulk.SetValue( (int)EditNavigation.Character_Count, _oDocument.Size.ToString());
+                    oBulk.SetValue( (int)EditNavigation.File_Encoding,   _oDocument.FileEncoding + " (" + _oDocument.FileStats + ")");
                 }
 			} catch( Exception oEx ) {
 				Type[] rgErrors = { typeof( NullReferenceException ),
@@ -2032,14 +2057,6 @@ namespace Play.Edit {
 				LogError( "Nav properties", "Problem prepping data" );
             }
 
-            using (PropDoc.Manipulator oBulk = NavProps.EditProperties) {
-                oBulk.Set(0, iLine.ToString()  + " of " + _oDocument.ElementCount.ToString());
-                oBulk.Set(1, iIndex.ToString() + " of " + iLineCharCount.ToString());
-                oBulk.Set(2, sbBuild.ToString() );
-                oBulk.Set(3, SelectionCount.ToString());
-                oBulk.Set(4, _oDocument.Size.ToString());
-                oBulk.Set(5, _oDocument.FileEncoding + " (" + _oDocument.FileStats + ")");
-            }
         }
 
         /// <remarks>It's a bummer that I have to call this method whenever the key's are pressed

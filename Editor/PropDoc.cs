@@ -111,7 +111,10 @@ namespace Play.Edit {
 			}
 		}
 
-		public class Manipulator : IDisposable {
+		public class Manipulator : 
+			IPgFormBulkUpdates,
+			IDisposable
+		{
 			PropDoc _oDoc;
 			bool    _fChangedAll = false;
 
@@ -128,7 +131,7 @@ namespace Play.Edit {
 				}
 			}
 
-			public int Add( string strLabel ) {
+			public int AddProperty( string strLabel ) {
 				int iLine = _oDoc._rgProperties.Count;
 
 				_oDoc._rgProperties.Add( new PropertyItem (new TextLine( iLine, strLabel ), new TextLine( iLine, string.Empty ) ) );
@@ -140,7 +143,7 @@ namespace Play.Edit {
 				return iLine;
 			}
 
-			public void Set(int iLine, string strValue) {
+			public void SetValue(int iLine, string strValue) {
 				try {
 					Line oLine = _oDoc._rgProperties[iLine].Value;
 
@@ -152,6 +155,17 @@ namespace Play.Edit {
 					}
 				} catch( ArgumentOutOfRangeException ) {
 					_oDoc.LogError( "property value", "Assign index out of range" );
+				}
+			}
+
+			public void SetLabel( int iProperty, string strName ) {
+				try {
+					PropertyItem oItem = _oDoc._rgProperties[iProperty];
+
+					oItem.Name.Empty();
+					oItem.Name.TryAppend( strName );
+				} catch( ArgumentOutOfRangeException ) {
+					_oDoc.LogError( "property label", "Assign index out of range" );
 				}
 			}
 

@@ -541,26 +541,46 @@ namespace Play.Edit {
             return oCache;
         }
 
+        public struct GraphemeCollection : IEnumerable<IPgGlyph> {
+            FTCacheLine _oCache;
+            PgCluster   _oCluster;
+            public GraphemeCollection( FTCacheLine oCache, PgCluster oCluster ) {
+                _oCache   = oCache   ?? throw new ArgumentNullException();
+                _oCluster = oCluster ?? throw new ArgumentNullException();
+            }
+
+            public IEnumerator<IPgGlyph> GetEnumerator() {
+                return _oCache.ClusterCharacters( _oCluster );
+            }
+
+            IEnumerator IEnumerable.GetEnumerator() {
+                return GetEnumerator();
+            }
+        }
+
+        public static IPgGlyph[] _rgEmptyGlyph = new IPgGlyph[0];
+
         /// <summary>List all the codepoints that make up this character.</summary>
         /// <remarks>In this brave new world. A single grapheme can be made up of
         /// many codepoints! This brings up the issue of editing these multi point
         /// grapheme's but I'll side step that for the moment.</remarks>
         /// <exception cref="ArgumentException" />
-        public IEnumerator<IPgGlyph> EnumGrapheme( ILineRange oCaret ) {
+        public IEnumerable<IPgGlyph> EnumGrapheme( ILineRange oCaret ) {
             if( oCaret == null || oCaret.Line == null )
                 throw new ArgumentException( "Caret or Line on Caret is empty" );
 
             CacheRow oRow = CacheLocate( oCaret.At );
 
             if( oRow == null ) 
-                return null;
+                return _rgEmptyGlyph;
 
-            PgCluster oCluster = oRow.CacheList[0].ClusterAt( oCaret.Offset );
+            FTCacheLine oCache   = oRow.CacheList[0];
+            PgCluster   oCluster = oCache.ClusterAt( oCaret.Offset );
 
             if( oCluster == null )
-                return null;
+                return _rgEmptyGlyph;
 
-            return oRow.CacheList[0].ClusterCharacters( oCluster );
+            return new GraphemeCollection( oCache, oCluster );
         }
 
         /// <summary>
