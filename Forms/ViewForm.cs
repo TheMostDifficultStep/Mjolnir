@@ -570,9 +570,18 @@ namespace Play.Forms {
         /// <summary>
         /// Reposition the caret.
         /// </summary>
+        /// <seealso cref="OnMouseDown(MouseEventArgs)"
         protected void CaretIconRefresh() {
             if( Focused != true )
                 return;
+
+            // This can happen on first mouse touch, and the caret wasn't any
+            // element. The form gets selected and this get's called. The caret
+            // is updated at the exit of the MouseDown call.
+            if( _iCaretAtLayout < 0 ) {
+                User32.SetCaretPos( -10, -10 ); // Park it off screen.
+                return;
+            }
 
             try {
                 int              iOffset   = Offset;
