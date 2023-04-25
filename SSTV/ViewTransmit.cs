@@ -64,7 +64,7 @@ namespace Play.SSTV {
 
 			if( _oTxView != null ) {
 				try {
-					PropertyInitRow( Layout as SmartTable, 
+					PropertyInitRow( Layout as LayoutTable, 
 									 (int)SSTVProperties.Names.Tx_LayoutSelect, 
 									 _ddTemplates );
 					// Call this once to set up the mode families.
@@ -85,7 +85,7 @@ namespace Play.SSTV {
 					_ddSSTVFamily.AutoSize      = true;
 					_ddSSTVFamily.TabIndex      = 0;
 					_ddSSTVFamily.DropDownStyle = ComboBoxStyle.DropDownList;
-					PropertyInitRow( Layout as SmartTable, 
+					PropertyInitRow( Layout as LayoutTable, 
 									 (int)SSTVProperties.Names.Tx_FamilySelect, 
 									 _ddSSTVFamily );
 
@@ -94,7 +94,7 @@ namespace Play.SSTV {
 					_ddSSTVMode.TabIndex      = 1;
 					_ddSSTVMode.DropDownStyle = ComboBoxStyle.DropDownList;
 
-					PropertyInitRow( Layout as SmartTable, 
+					PropertyInitRow( Layout as LayoutTable, 
 									 (int)SSTVProperties.Names.Tx_ModeSelect, 
 									 _ddSSTVMode );
 
@@ -122,7 +122,7 @@ namespace Play.SSTV {
 				}
 			}
 
-			PropertyInitRow( Layout as SmartTable, 
+			PropertyInitRow( Layout as LayoutTable, 
 				             (int)SSTVProperties.Names.Rx_Window, 
 							 new ImageViewSingle( new WinSlot( this ), _oDocSSTV.DisplayImage )  );
 

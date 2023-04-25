@@ -168,12 +168,12 @@ namespace Play.Clock {
 
             Document.ClockEvent += OnEvent;
 
-            SmartTable oLayout = new SmartTable( 5, LayoutRect.CSS.None );
+            LayoutTable oLayout = new LayoutTable( 5, LayoutRect.CSS.Flex );
             Layout = oLayout;
 
-            oLayout.Add( new LayoutRect( LayoutRect.CSS.Percent, 30, 0 ) ); // time
-            oLayout.Add( new LayoutRect( LayoutRect.CSS.Percent, 45, 0 ) ); // date
-            oLayout.Add( new LayoutRect( LayoutRect.CSS.Percent, 25, 0 ) ); // zones.
+            oLayout.AddColumn( LayoutRect.CSS.Percent, 30 ); // time
+            oLayout.AddColumn( LayoutRect.CSS.Percent, 45 ); // date
+            oLayout.AddColumn( LayoutRect.CSS.Percent, 25 ); // zones.
             
             var oLayoutTimeUtc = new LayoutSingleLine( new FTCacheWrap( Document.DocZones[0] ), LayoutRect.CSS.Flex );
             var oLayoutDateUtc = new LayoutSingleLine( new FTCacheWrap( Document.DocZones[1] ), LayoutRect.CSS.Flex );

@@ -392,7 +392,7 @@ namespace Play.SSTV {
 
 			    InitRows( rgShow );
 
-			    PropertyInitRow( Layout as SmartTable, 
+			    PropertyInitRow( Layout as LayoutTable, 
 				                 (int)SSTVProperties.Names.Rx_Window, 
 							     new ImageViewSingle( new WinSlot( this ), SSTVDocument.DisplayImage )  );
 

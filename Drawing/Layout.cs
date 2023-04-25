@@ -19,6 +19,11 @@ namespace Play.Rectangles {
 			Empty
 		}
 
+		public LayoutRect( ) : base() { 
+			_eLayout        = CSS.None; 
+			Track           = 0;
+			TrackMaxPercent = 1;
+		}
 		public LayoutRect( CSS eLayout ) : base() { 
 			_eLayout        = eLayout;
 			Track           = 0;
@@ -33,7 +38,7 @@ namespace Play.Rectangles {
 
 		public CSS   Units { get { return Hidden ? CSS.Empty : _eLayout; } set { _eLayout = value; } }
 		public uint  Track { get; set; } // TODO: Make this a float.
-		public float TrackMaxPercent { get; } // TODO : Use minmax object.
+		public float TrackMaxPercent { get; set; } // TODO : Use minmax object.
 		public int   Span  { get; set; } = 0; // CSS span value minus 1. Bummer here but shared with SmartTable.
 		public virtual bool  Hidden { get; set; } = false;
 		public CSS   Layout { get => _eLayout; set { _eLayout = value; } }
@@ -380,14 +385,6 @@ namespace Play.Rectangles {
 					}
 				}
 
-				// So once the track is set, some objects might want more height (rail).
-				//for( int i = 0; i<Count; ++i ) {
-				//	uint uiItemRail = Item(i).TrackDesired( Direction, (int)_rgTrack[i] );
-				//	if( uiItemRail > uiRailsDistance )
-				//		uiRailsDistance = uiItemRail;
-				//}
-				//extRail.Stop = extRail.Start + (int)uiRailsDistance;
-
 				// This is a "box car" for current section of track we are calculating. ^_^
 				Extent extCarriageTrack = new Extent( extTrack.Start, 0 ); 
 
@@ -510,11 +507,44 @@ namespace Play.Rectangles {
 	/// <summary>
 	/// A table object computes row rail size as the max track needed by a given cell on that row.
 	/// </summary>
-	public class SmartTable : ParentRect {
+	public class LayoutTable : ParentRect {
         readonly LayoutStack _oRowStack;
         readonly LayoutStack _oColStack;
 
-		public SmartTable( uint uiSpacing, CSS eUnits ) : base( eUnits, 0, 100 ) {
+		public class LayoutColumn : LayoutRect {
+			readonly LayoutStack _oRowStack;
+			readonly uint        _uiColumn;
+			
+			public LayoutColumn( uint uiColumn, LayoutStack oRowStack ) : 
+				base() 
+			{
+				_oRowStack = oRowStack ?? throw new ArgumentNullException();
+				_uiColumn  = uiColumn;
+			}
+
+			/// <summary>
+			/// It's a bit of a bummer that I'm tracking the entire table. 
+			/// But a scrolling table is likely to be fixed height anyway, so
+			/// this might turn out ok.
+			/// </summary>
+			public override uint TrackDesired( TRACK eDir, int iRail ) {
+				if( Units == CSS.Flex ) {
+					foreach( LayoutStack oRow in _oRowStack ) {
+						LayoutRect oCell          = oRow.Item( (int)_uiColumn );
+        				uint       uiTrackDesired = oCell.TrackDesired(TRACK.HORIZ, iRail );
+
+						// Look for max column width desired out of all the rows.
+						if( Track < uiTrackDesired ) {
+							Track = uiTrackDesired;
+        				}
+        			}
+				}
+
+				return Track;
+			}
+		}
+
+		public LayoutTable( uint uiSpacing, CSS eUnits ) : base( eUnits, 0, 100 ) {
 			Spacing    = uiSpacing;
 
             _oRowStack = new LayoutStackVertical  ( ) { Spacing = this.Spacing };
@@ -536,9 +566,22 @@ namespace Play.Rectangles {
             get { return _oRowStack; }
         }
 
-        public virtual void Add( LayoutRect oColumn) {
-            _oColStack.Add( oColumn );
-        }
+		/// <remarks>
+		/// These columns have access to the rows! And we're not introducing any circular
+		/// references which is mainly undesirable. But they allow the stack layout code
+		/// to do double duty layout for the table columns!!
+		/// </remarks>
+		public virtual void AddColumn( CSS eLayout, int iTrack ) {
+			if( eLayout == CSS.Flex ) {
+				_oColStack.Add( new LayoutTable.LayoutColumn( (uint)_oColStack.Count, _oRowStack ) 
+									{ TrackMaxPercent = iTrack, Units = eLayout } 
+							  );
+			} else {
+				_oColStack.Add( new LayoutTable.LayoutColumn( (uint)_oColStack.Count, _oRowStack ) 
+									{ Track = (uint)iTrack, Units = eLayout } 
+							  );
+			}
+		}
 
         /// <summary>
         /// You'll need to reload the columns if you make this call.
@@ -557,41 +600,6 @@ namespace Play.Rectangles {
             _oRowStack.Add( oNewRowRect );
 		}
 
-        // See PropWin.cs in the Editor for the reason we need the column flex stuff.
-        public bool LayoutColumnWidth( int iWidth, int iHeight ) {
-            _oColStack.SetRect( 0, 0, iWidth, iHeight );
-
-            // In the flex columns look for the longest cell in that column.
-            // We kind of need a minimum height per row which might make the 
-            // TrackDesired guess a bit more accurate in general.
-            // Example: Flex Image followed by a multi line text box!
-            // at least max track percent blocks the column width.
-            int iColumn = 0;
-        	foreach( LayoutRect oColumn in _oColStack ) {
-                if( oColumn.Units == CSS.Flex ) {
-                    oColumn.Track = 0;
-                    foreach( LayoutStack oRow in _oRowStack ) {
-                        LayoutRect oCell          = oRow.Item(iColumn);
-        				uint       uiTrackDesired = oCell.TrackDesired(TRACK.HORIZ, iHeight);
-
-                        if( oColumn.Track < uiTrackDesired ) {
-                            oColumn.Track = uiTrackDesired;
-        				}
-        			}
-                }
-                iColumn++;
-        	}
-
-            // This works because a normal LayoutRect will use whatever Track value is set
-            // on it for the TrackDesired() which is called in flex mode.
-            _oColStack.LayoutChildren();
-
-            // At this point the columns do not have their rail start and stop values set,
-            // or their track start and stop. Only the track segments are done.
-
-            return true;
-        }
-
         public override uint TrackDesired(TRACK eParentAxis, int iRail) {
             switch( eParentAxis ) {
                 case TRACK.HORIZ:
@@ -601,7 +609,7 @@ namespace Play.Rectangles {
                     return _oRowStack.Track;
             }
 
-            return( 0 );
+            return 0;
         }
 
         /// <summary>
@@ -610,25 +618,23 @@ namespace Play.Rectangles {
         /// </summary>
         public bool HeightDesired( int iWidth ) {
 			try {
-                LayoutColumnWidth( iWidth, 10000 );
-
                 _oRowStack.Track = 0;
 
-                foreach ( LayoutStack oRow in _oRowStack ) {
+                foreach ( LayoutStack oRowItem in _oRowStack ) {
                     // Find the max cell height for the row.
                     int iColumn = 0; // which cell on the row we're looking at.
-                    oRow.Track  = 0;
-                    foreach( LayoutRect oCell in oRow ) {
+                    oRowItem.Track  = 0;
+                    foreach( LayoutRect oCell in oRowItem ) {
                         int  iLeft   = _oColStack.Item(iColumn             ).Left;
                         int  iRight  = _oColStack.Item(iColumn + oCell.Span).Right;
 						int  iSpan   = iRight - iLeft;
                         uint uiTrack = oCell.TrackDesired( TRACK.VERT, iSpan );
 						// Update the row track size if cell is bigger.
-						if( uiTrack > oRow.Track )
-							oRow.Track = uiTrack;
+						if( uiTrack > oRowItem.Track )
+							oRowItem.Track = uiTrack;
                         iColumn += oCell.Span + 1; // Make sure we skip over the spanned cell!!
 					}
-                    _oRowStack.Track += oRow.Track + Spacing; // BUG: Margins are all messed up.
+                    _oRowStack.Track += oRowItem.Track + Spacing; // BUG: Margins are all messed up.
                 }
             } catch ( Exception oEx ) {
 				Type[] rgErrors = { 
@@ -653,10 +659,13 @@ namespace Play.Rectangles {
         public override bool LayoutChildren() {
             try {
 
-                if( _eLayout != CSS.Flex ) // BUG: This seems odd. Should flex be on for row height calculation??
-                    HeightDesired( Width );
-                else
-                    LayoutColumnWidth( Width, Height );
+                if( _eLayout == CSS.Flex ) {
+					_oColStack.Width  = Width;
+					_oColStack.Height = 10000;
+					_oColStack.LayoutChildren();
+				}
+
+                HeightDesired( Width );
 
                 int iRowStart = Top;
                 int iColumn   = 0;

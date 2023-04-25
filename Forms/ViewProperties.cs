@@ -75,11 +75,11 @@ namespace Play.Forms {
             if( !base.InitNew() ) 
                 return false;
 
-            SmartTable oLayout = new SmartTable( 5, LayoutRect.CSS.None );
+            LayoutTable oLayout = new LayoutTable( 5, LayoutRect.CSS.Flex );
             Layout = oLayout;
 
-            oLayout.Add( new LayoutRect( LayoutRect.CSS.Flex, 30, 0 ) ); // Name.
-            oLayout.Add( new LayoutRect( LayoutRect.CSS.None, 70, 0 ) ); // Value.
+            oLayout.AddColumn( LayoutRect.CSS.Flex, 30 ); // Name
+            oLayout.AddColumn( LayoutRect.CSS.None, 70 ); // Value;
 
             InitRows();
 
@@ -98,7 +98,13 @@ namespace Play.Forms {
             return true;
         }
 
-        public void PropertyInitRow( SmartTable oLayout, int iIndex, Control oWinValue = null ) {
+        public override int CaretHome { 
+            get {
+                return Document[0].At; // This is the first property value.
+            } 
+        }
+
+        public void PropertyInitRow( LayoutTable oLayout, int iIndex, Control oWinValue = null ) {
             LabelValuePair sPropertyPair = Document.GetPropertyPair( iIndex );
 
             var oLayoutLabel = new LayoutSingleLine( new FTCacheWrap( sPropertyPair._oLabel ), LayoutRect.CSS.Flex );
@@ -136,7 +142,7 @@ namespace Play.Forms {
         /// get overriden and call the InitRows( int[] ) on a subset. 
         /// </summary>
         public virtual void InitRows() {
-            if( Layout is not SmartTable oTable ) {
+            if( Layout is not LayoutTable oTable ) {
                 LogError( "Unexpected Layout for Property Page" );
                 return;
             }
@@ -150,7 +156,7 @@ namespace Play.Forms {
         }
 
         public virtual void InitRows( int[] rgShow ) {
-            if( Layout is not SmartTable oTable ) {
+            if( Layout is not LayoutTable oTable ) {
                 LogError( "Unexpected Layout for Property Page" );
                 return;
             }

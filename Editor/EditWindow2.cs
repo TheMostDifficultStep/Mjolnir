@@ -52,8 +52,9 @@ namespace Play.Rectangles {
             if( Units == CSS.Pixels ) // Go with the set track size.
                 return Track;
 
-			Size szProposed = eParentAxis == TRACK.HORIZ ? new Size( (int)Track, uiRail ) : new Size( uiRail, (int)Track );
+			Size szProposed = eParentAxis == TRACK.HORIZ ? new Size( 10000, uiRail ) : new Size( uiRail, 10000 );
 			Size szPrefered = _oControl.GetPreferredSize( szProposed );
+
 			int  iTrack     = eParentAxis == TRACK.HORIZ ? szPrefered.Width : szPrefered.Height;
             
 			return (uint)iTrack;
@@ -2012,7 +2013,7 @@ namespace Play.Edit {
 			using( IPgFormBulkUpdates oBulk = CreateBulkLoader() ) {
                 foreach( EditNavigation eNav in Enum.GetValues( typeof( EditNavigation ) ) ) {
                     if( (int)eNav != oBulk.AddProperty( eNav.ToString() ) ) {
-                        throw new InvalidProgramException( "Editor nave props missaligned" );
+                        throw new InvalidProgramException( "Editor nav props missaligned" );
                     }
                 }
 				oBulk.SetLabel( (int)EditNavigation.Character_Count, "Character Count" );
@@ -2620,11 +2621,13 @@ namespace Play.Edit {
             return( false );
         }
 
+        /// <summary>
+        /// Using this at all is probably not a good thing. I'm going to add
+        /// the property pages and production viewer to the main mjolnir editor
+        /// window subclass so I can use the forms objects.
+        /// </summary>
         public virtual object Decorate( IPgViewSite oBaseSite, Guid sGuid ) {
 			try {
-				if (sGuid.Equals(GlobalDecorations.Properties)) {
-					return new PropWin( oBaseSite, NavProps );
-				}
 				if ( sGuid.Equals( GlobalDecorations.Productions ) ) {
 					return new EditWinProductions( oBaseSite, _oDocument );
 				}

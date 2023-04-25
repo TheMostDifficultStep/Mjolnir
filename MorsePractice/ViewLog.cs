@@ -48,7 +48,7 @@ namespace Play.MorsePractice {
 
 		readonly IPgViewSite      _oSiteView;
 	    readonly IPgTableDocument _oDocument;
-		readonly SmartTable       _oTable = new SmartTable( 20, LayoutRect.CSS.None ); // Add some slop. Not measuring well...
+		readonly LayoutTable       _oTable = new LayoutTable( 20, LayoutRect.CSS.Flex ); // Add some slop. Not measuring well...
 		readonly IPgStandardUI    _oStdUI;
 
         //protected SCRIPT_FONTPROPERTIES _sDefFontProps = new SCRIPT_FONTPROPERTIES();
@@ -74,13 +74,13 @@ namespace Play.MorsePractice {
 		}
 
 		public bool InitNew() {
-			_oTable.Add( new LayoutRect( LayoutRect.CSS.Flex, 0, 20 ) ); // freq
-			_oTable.Add( new LayoutRect( LayoutRect.CSS.Flex, 0, 10 ) ); // time
-			_oTable.Add( new LayoutRect( LayoutRect.CSS.Flex, 0, 20 ) ); // date
-			_oTable.Add( new LayoutRect( LayoutRect.CSS.Flex, 0, 20 ) ); // station
-			_oTable.Add( new LayoutRect( LayoutRect.CSS.Flex, 0, 10 ) ); //	mode
-			_oTable.Add( new LayoutRect( LayoutRect.CSS.Flex, 0, 10 ) ); //	qso
-			_oTable.Add( new LayoutRect( LayoutRect.CSS.None ) ); // net
+			_oTable.AddColumn( LayoutRect.CSS.Flex, 20 ); // freq
+			_oTable.AddColumn( LayoutRect.CSS.Flex, 10 ); // time
+			_oTable.AddColumn( LayoutRect.CSS.Flex, 20 ); // date
+			_oTable.AddColumn( LayoutRect.CSS.Flex, 20 ); // station
+			_oTable.AddColumn( LayoutRect.CSS.Flex, 10 ); // mode
+			_oTable.AddColumn( LayoutRect.CSS.Flex, 10 ); // qso
+			_oTable.AddColumn( LayoutRect.CSS.None,  0 ); // net
 
 			LoadTableView();
 

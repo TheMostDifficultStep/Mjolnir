@@ -55,7 +55,7 @@ namespace Play.SSTV {
                                               SSTVProperties.Names.Std_MicGain,
                                               SSTVProperties.Names.Std_Frequency };
 
-            if( Layout is SmartTable oTable ) {
+            if( Layout is LayoutTable oTable ) {
                 foreach( SSTVProperties.Names eName in rgShow ) {
                     switch( eName ) {
                         case SSTVProperties.Names.Std_TxPort:

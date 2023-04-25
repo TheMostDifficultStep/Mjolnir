@@ -20,7 +20,7 @@ namespace Kanji_Practice {
         IPgSave<XmlDocumentFragment>
     {
         protected KanjiDocument       KanjiDoc   { get; }
-        protected SmartTable          Blinken    { get; }
+        protected LayoutTable          Blinken    { get; }
         protected LayoutStackVertical VertStack  { get; }
 
         public IPgParent Parentage => _oSiteView.Host;
@@ -74,7 +74,7 @@ namespace Kanji_Practice {
             VertStack  = new LayoutStackVertical();
             Layout     = VertStack;
 
-            Blinken     = new SmartTable( 5, LayoutRect.CSS.Percent ) { Track = 40 };
+            Blinken     = new LayoutTable( 5, LayoutRect.CSS.Percent ) { Track = 40 };
         }
 
         public override bool InitNew() {
@@ -82,11 +82,11 @@ namespace Kanji_Practice {
                 return false;
 
             // First, add the columns to our table.
-			Blinken.Add( new LayoutRect( LayoutRect.CSS.Flex ) );
-			Blinken.Add( new LayoutRect( LayoutRect.CSS.Pixels, 60, .20f ) );
-			Blinken.Add( new LayoutRect( LayoutRect.CSS.Pixels, 60, .20f ) );
-			Blinken.Add( new LayoutRect( LayoutRect.CSS.Pixels, 60, .20f ) );
-			Blinken.Add( new LayoutRect( LayoutRect.CSS.Pixels, 60, .20f ) );
+			Blinken.AddColumn( LayoutRect.CSS.Flex, 0 );
+			Blinken.AddColumn( LayoutRect.CSS.Pixels, 60 );
+			Blinken.AddColumn( LayoutRect.CSS.Pixels, 60 );
+			Blinken.AddColumn( LayoutRect.CSS.Pixels, 60 );
+			Blinken.AddColumn( LayoutRect.CSS.Pixels, 60 );
 			//Blinken.Add( new LayoutRect( LayoutRect.CSS.None ) );
 
             Editor oLabels = KanjiDoc.FlashCardDoc;

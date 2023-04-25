@@ -442,6 +442,20 @@ namespace Play.Forms {
         }
 
         /// <summary>
+        /// Pretty clear the TRACK direction should come from the LayoutControl
+        /// object we would be embedded in. I'm going to do this now just to see
+        /// if I can get it off the ground. And then we'll add a direction to the
+        /// form and make a layout control subclass that takes the form.
+        /// </summary>
+		public override Size GetPreferredSize( Size sProposed ) {
+            uint uiTrack = Layout.TrackDesired( TRACK.VERT, sProposed.Width );
+
+            Size szSize = new Size( sProposed.Width, (int)uiTrack );
+
+            return szSize;
+        }
+
+        /// <summary>
         /// Just update the entire cache. TODO: Just update the items that
         /// have changed.
         /// </summary>
@@ -509,11 +523,40 @@ namespace Play.Forms {
             return null;
         }
 
+        public virtual int CaretHome => 0;
+
+        public int CaretSanitized {
+            get {
+                if( _iCaretAtLayout < 0 ) {
+                    if( CacheList.Count > 0 ) {
+                        try {
+                            _iCaretAtLayout = CaretHome; 
+                        } catch( ArgumentOutOfRangeException ) {
+                            // A little dubious. But let's give it a go.
+                            _iCaretAtLayout = 0;
+                        }
+                    }
+                }
+                return _iCaretAtLayout;
+            }
+        }
+
+        /// <summary>
+        /// BUG: This was lifted from the scrolling text editor, but it's pretty broken
+        /// behavor for a form. You need to move based on layout position not caret
+        /// advance position. And in a twist of fate, I had to design such a thing for
+        /// the mighty M$ 20 years ago!!</summary>
+        /// <remarks>
+        /// This is getting called on keyboard operations. I think I'd like to reset
+        /// the cursor. Seems to be a better idea than locking the user out, especially
+        /// when you can move to a valid position via mouse.
+        /// </remarks>
+        /// <seealso cref="CaretHome"/>
         public void CaretMove( Axis eAxis, int iDir, bool fJumpLine = false ) {
             try {
                 int              iOffset   = Offset;
                 float            flAdvance = Advance;
-                LayoutSingleLine oLayout   = CacheList[_iCaretAtLayout];
+                LayoutSingleLine oLayout   = CacheList[CaretSanitized];
 
                 oLayout.Selection.Length = 0;
                 oLayout.OnChangeFormatting();
@@ -568,7 +611,8 @@ namespace Play.Forms {
                                                typeof( InvalidCastException ) };
 
         /// <summary>
-        /// Reposition the caret.
+        /// Reposition the caret. If not on an invalid position we park the
+        /// caret off screen.
         /// </summary>
         /// <seealso cref="OnMouseDown(MouseEventArgs)"
         protected void CaretIconRefresh() {
@@ -748,8 +792,10 @@ namespace Play.Forms {
         }
 
         protected override void OnSizeChanged( EventArgs e ) {
-			Layout.SetRect( 0, 0, Width, Height );
-			Layout.LayoutChildren();
+            if( Width > 0 && Height > 0 ) {
+			    Layout.SetRect( 0, 0, Width, Height );
+			    Layout.LayoutChildren();
+            }
 
             CaretIconRefresh();
 

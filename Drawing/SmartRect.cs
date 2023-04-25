@@ -546,7 +546,8 @@ namespace Play.Rectangles {
                 return (m_rgiCur[(int)SIDE.BOTTOM] - m_rgiCur[(int)SIDE.TOP] );
             }
 			set {
-				SetScalar( SET.STRETCH, SCALAR.TOP, this.Bottom + value );
+				//SetScalar( SET.STRETCH, SCALAR.TOP, this.Bottom + value );
+				SetScalar( SET.STRETCH, SCALAR.BOTTOM, this.Top + value );
 			}
         }
 

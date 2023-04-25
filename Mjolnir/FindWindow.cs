@@ -90,14 +90,14 @@ namespace Mjolnir {
             CacheList.Add( oLayoutSearchKey );
             _iCaretAtLayout = CacheList.Count - 1;
 
-            SmartTable oTable = new SmartTable( 5, LayoutRect.CSS.None );
+            LayoutTable oTable = new LayoutTable( 5, LayoutRect.CSS.Flex );
             Layout = oTable;
 
-			oTable.Add( new LayoutRect( LayoutRect.CSS.Pixels, 50, .25f ) );
-			oTable.Add( new LayoutRect( LayoutRect.CSS.Pixels, 50, .25f ) );
-			oTable.Add( new LayoutRect( LayoutRect.CSS.Pixels, 50, .25f ) );
-			oTable.Add( new LayoutRect( LayoutRect.CSS.Pixels, 50, .25f ) );
-			oTable.Add( new LayoutRect( LayoutRect.CSS.None ) );
+            oTable.AddColumn( LayoutRect.CSS.Pixels, 50 );
+            oTable.AddColumn( LayoutRect.CSS.Pixels, 50 );
+            oTable.AddColumn( LayoutRect.CSS.Pixels, 50 );
+            oTable.AddColumn( LayoutRect.CSS.Pixels, 50 );
+            oTable.AddColumn( LayoutRect.CSS.None   , 0 );
 
             oTable.AddRow( new List<LayoutRect>() { oLayoutSearchKey } ); 
 
