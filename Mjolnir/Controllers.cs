@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Text;
 
 using Play.Interfaces.Embedding; 
 using Play.Edit;
@@ -232,8 +233,58 @@ namespace Mjolnir {
             return true;
         }
 
-        protected override IPgFormBulkUpdates CreateBulkLoader() {
+        protected IPgFormBulkUpdates CreateBulkLoader() {
             return new DocProperties.Manipulator( _oDoc_Properties );
+        }
+
+		protected override void DecorNavPropsInit() {
+			using( IPgFormBulkUpdates oBulk = CreateBulkLoader( ) ) {
+                foreach( EditNavigation eNav in Enum.GetValues( typeof( EditNavigation ) ) ) {
+                    if( (int)eNav != oBulk.AddProperty( eNav.ToString() ) ) {
+                        throw new InvalidProgramException( "Editor nav props missaligned" );
+                    }
+                }
+				oBulk.SetLabel( (int)EditNavigation.Character_Count, "Character Count" );
+				oBulk.SetLabel( (int)EditNavigation.File_Encoding,   "File Encoding" );
+			}
+		}
+
+		/// <remarks>Note that List<T> throws ArgumentOutOfRangeException for the same cases 
+		/// where arrays use IndexOutOfRangeException. It's a bitch I know.</remarks>
+        protected override void DecorNavigatorUpdate( NavigationSource eSource, ILineRange oCaret ) {
+            StringBuilder sbBuild = new StringBuilder();
+
+            try {
+                int iLine          = oCaret.At + 1;
+                int iIndex         = oCaret.Offset;
+                int iLineCharCount = oCaret.Line.ElementCount;
+                int iGlyphCount    = 0;
+
+                foreach( IPgGlyph oGlyph in _oCacheMan.EnumGrapheme( oCaret ) ) {
+                    if( iGlyphCount++ > 0 )
+                        sbBuild.Append( ", " );
+                    sbBuild.Append( "0x" );
+                    sbBuild.Append( oGlyph.CodePoint.ToString("x4") );
+                }
+
+                using (IPgFormBulkUpdates oBulk = CreateBulkLoader() ) {
+                    oBulk.SetValue( (int)EditNavigation.Line,            iLine.ToString()  + " of " + _oDocument.ElementCount.ToString());
+                    oBulk.SetValue( (int)EditNavigation.Column,          iIndex.ToString() + " of " + iLineCharCount.ToString());
+                    oBulk.SetValue( (int)EditNavigation.Character,       sbBuild.ToString() );
+                    oBulk.SetValue( (int)EditNavigation.Selection,       SelectionCount.ToString());
+                    oBulk.SetValue( (int)EditNavigation.Character_Count, _oDocument.Size.ToString());
+                    oBulk.SetValue( (int)EditNavigation.File_Encoding,   _oDocument.FileEncoding + " (" + _oDocument.FileStats + ")");
+                }
+			} catch( Exception oEx ) {
+				Type[] rgErrors = { typeof( NullReferenceException ),
+									typeof( IndexOutOfRangeException ),
+									typeof( ArgumentOutOfRangeException ),
+                                    typeof( ArgumentException ) };
+				if( rgErrors.IsUnhandled( oEx ) )
+					throw;
+
+				LogError( "Nav properties", "Problem prepping data" );
+            }
         }
 
         public override object Decorate( IPgViewSite oBaseSite, Guid sGuid ) {

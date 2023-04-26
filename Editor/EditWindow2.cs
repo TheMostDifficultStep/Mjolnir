@@ -2046,75 +2046,13 @@ namespace Play.Edit {
             File_Encoding
         }
 
-        public class DummyBulkLoader : IPgFormBulkUpdates {
-            int iCount = 0;
-            public int AddProperty(string strPropertyName) {
-                return iCount++;
-            }
-
-            public void Dispose() {
-            }
-
-            public void SetLabel(int iIndex, string strLabel) {
-            }
-
-            public void SetValue(int iIndex, string strValue) {
-            }
-        }
-
-        protected virtual IPgFormBulkUpdates CreateBulkLoader() {
-            return new DummyBulkLoader();
-        }
-
+        /// <seealso cref="DecorNavigatorUpdate" />
 		protected virtual void DecorNavPropsInit() {
-			using( IPgFormBulkUpdates oBulk = CreateBulkLoader() ) {
-                foreach( EditNavigation eNav in Enum.GetValues( typeof( EditNavigation ) ) ) {
-                    if( (int)eNav != oBulk.AddProperty( eNav.ToString() ) ) {
-                        throw new InvalidProgramException( "Editor nav props missaligned" );
-                    }
-                }
-				oBulk.SetLabel( (int)EditNavigation.Character_Count, "Character Count" );
-				oBulk.SetLabel( (int)EditNavigation.File_Encoding,   "File Encoding" );
-			}
+            // don't do anything.
 		}
 
-		/// <remarks>Note that List<T> throws ArgumentOutOfRangeException for the same cases 
-		/// where arrays use IndexOutOfRangeException. It's a bitch I know.</remarks>
         protected virtual void DecorNavigatorUpdate( NavigationSource eSource, ILineRange oCaret ) {
-            StringBuilder sbBuild = new StringBuilder();
-
-            try {
-                int iLine          = oCaret.At + 1;
-                int iIndex         = oCaret.Offset;
-                int iLineCharCount = oCaret.Line.ElementCount;
-                int iGlyphCount    = 0;
-
-                foreach( IPgGlyph oGlyph in _oCacheMan.EnumGrapheme( oCaret ) ) {
-                    if( iGlyphCount++ > 0 )
-                        sbBuild.Append( ", " );
-                    sbBuild.Append( "0x" );
-                    sbBuild.Append( oGlyph.CodePoint.ToString("x4") );
-                }
-
-                using (IPgFormBulkUpdates oBulk = CreateBulkLoader() ) {
-                    oBulk.SetValue( (int)EditNavigation.Line,            iLine.ToString()  + " of " + _oDocument.ElementCount.ToString());
-                    oBulk.SetValue( (int)EditNavigation.Column,          iIndex.ToString() + " of " + iLineCharCount.ToString());
-                    oBulk.SetValue( (int)EditNavigation.Character,       sbBuild.ToString() );
-                    oBulk.SetValue( (int)EditNavigation.Selection,       SelectionCount.ToString());
-                    oBulk.SetValue( (int)EditNavigation.Character_Count, _oDocument.Size.ToString());
-                    oBulk.SetValue( (int)EditNavigation.File_Encoding,   _oDocument.FileEncoding + " (" + _oDocument.FileStats + ")");
-                }
-			} catch( Exception oEx ) {
-				Type[] rgErrors = { typeof( NullReferenceException ),
-									typeof( IndexOutOfRangeException ),
-									typeof( ArgumentOutOfRangeException ),
-                                    typeof( ArgumentException ) };
-				if( rgErrors.IsUnhandled( oEx ) )
-					throw;
-
-				LogError( "Nav properties", "Problem prepping data" );
-            }
-
+            // don't do anything in the default case. Only the shell edit window needs this.
         }
 
         /// <remarks>It's a bummer that I have to call this method whenever the key's are pressed

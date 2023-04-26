@@ -2,12 +2,11 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
+using System.Text;
 
 using Play.Parse;
 using Play.Parse.Impl;
 using Play.Interfaces.Embedding;
-using System.Text;
 
 // These classes could be part of an editor sub namespace perhaps. Then the 
 // Line definitions could be part of a lighter module. Just trying to sort out
@@ -374,14 +373,14 @@ namespace Play.Edit {
             Raise_BufferEvent( BUFFEREVENTS.CLEARFORMATTING );  
         }
 
-        internal string FileEncoding {
+        public string FileEncoding {
             get { 
-				string strDefault = System.Text.Encoding.Default.ToString();
+				string strDefault = Encoding.Default.ToString();
                 try {
 					if( _oSiteFile == null )
 						return strDefault;
 
-                    return( _oSiteFile.FileEncoding.WebName );
+                    return _oSiteFile.FileEncoding.WebName;
                 } catch( NullReferenceException ) {
                     return strDefault;
                 }
@@ -391,7 +390,7 @@ namespace Play.Edit {
         /// <summary>
         /// BUG: This needs to be localized.
         /// </summary>
-        internal string FileStats {
+        public string FileStats {
             get { 
                 string strStat = "?";
 
