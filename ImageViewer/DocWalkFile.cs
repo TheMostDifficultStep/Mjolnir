@@ -655,8 +655,8 @@ namespace Play.ImageViewer {
                 ValueUpdate( (int)eName, strValue, Broadcast );
             }
 
-            public Bulk CreateManipulator() {
-                return new Bulk( this );
+            public DocProperties.Manipulator CreateManipulator() {
+                return new DocProperties.Manipulator( this );
             }
         }
 
@@ -1383,13 +1383,13 @@ namespace Play.ImageViewer {
                     throw;
             }
 
-            using( ImageProperties.Bulk oBulk = Properties.CreateManipulator() ) {
-                oBulk.Set( (int)ImageProperties.Names.Width,    iWidth .ToString() );
-                oBulk.Set( (int)ImageProperties.Names.Height,   iHeight.ToString() );
-                oBulk.Set( (int)ImageProperties.Names.Depth,    strDepth );
-                oBulk.Set( (int)ImageProperties.Names.Modified, dtModified.ToShortDateString() );
-                oBulk.Set( (int)ImageProperties.Names.Size,     lSize.ToString( "n0" ) + " Bytes" );
-                oBulk.Set( (int)ImageProperties.Names.Name,     Path.GetFileName( strName ) );
+            using( ImageProperties.Manipulator oBulk = Properties.CreateManipulator() ) {
+                oBulk.SetValue( (int)ImageProperties.Names.Width,    iWidth .ToString() );
+                oBulk.SetValue( (int)ImageProperties.Names.Height,   iHeight.ToString() );
+                oBulk.SetValue( (int)ImageProperties.Names.Depth,    strDepth );
+                oBulk.SetValue( (int)ImageProperties.Names.Modified, dtModified.ToShortDateString() );
+                oBulk.SetValue( (int)ImageProperties.Names.Size,     lSize.ToString( "n0" ) + " Bytes" );
+                oBulk.SetValue( (int)ImageProperties.Names.Name,     Path.GetFileName( strName ) );
             }
         }
 

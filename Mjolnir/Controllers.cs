@@ -105,8 +105,8 @@ namespace Mjolnir {
 	/// EditorWithMusic! So I think I can sort this out better.
 	/// </summary>
     public class EditorWithParser : Editor { // was EditorWithMusic
-        ParseHandlerText _oParseHandler;
-		readonly Editor  _oDoc_Productions;
+        ParseHandlerText       _oParseHandler;
+		readonly Editor        _oDoc_Productions;
 
         public EditorWithParser( IPgBaseSite oSite ) : base( oSite ) {
 			// This would be a great place for us to implement linked documents!!!
@@ -114,14 +114,14 @@ namespace Mjolnir {
         }
 
         public ParseHandlerText ParseHandler {
-            get { return( _oParseHandler ); }
+            get { return _oParseHandler; }
             set { 
                 _oParseHandler = value ?? throw new ArgumentNullException();
             }
         }
 
 		public override bool ProductionsTrace {
-			get { return( _oParseHandler.ProductionsTrace ); }
+			get { return _oParseHandler.ProductionsTrace; }
 			set {  _oParseHandler.ProductionsTrace = value; }
 		}
 
@@ -131,18 +131,25 @@ namespace Mjolnir {
 			}
 		}
 
+        public bool Initialize() {
+			if( !_oDoc_Productions.InitNew() )
+				return false;
+
+            if( !_oParseHandler.InitNew() )
+                return false;
+
+			_oParseHandler.ProductionsEdit = _oDoc_Productions;
+
+            return true;
+        }
+
 		public override bool InitNew() {
             try {
                 if( !base.InitNew() )
-                    return( false );
+                    return false;
 
-				if( !_oDoc_Productions.InitNew() )
-					return( false );
-
-                if( !_oParseHandler.InitNew() )
-                    return( false );
-
-				_oParseHandler.ProductionsEdit = _oDoc_Productions;
+                if( !Initialize() )
+                    return false;
             } catch ( NullReferenceException ) {
                 return( false );
             }
@@ -152,30 +159,105 @@ namespace Mjolnir {
         public override bool Load(TextReader oReader) {
             try {
                 if( !base.Load(oReader) )
-                    return( false );
+                    return false;
 
-				if( !_oDoc_Productions.InitNew() )
-					return( false );
-
-                if( !_oParseHandler.InitNew() )
-                    return( false );
-
-				_oParseHandler.ProductionsEdit = _oDoc_Productions;
+                if( !Initialize() )
+                    return false;
             } catch ( NullReferenceException ) {
-                return( false );
+                return false;
             }
-            return( true );
+            return true;
         }
 
         public override void Dispose() {
             if( _oParseHandler != null )
                 _oParseHandler.Dispose();
-			if( _oDoc_Productions != null )
-				_oDoc_Productions.Dispose();
+
+			_oDoc_Productions.Dispose();
 
             base.Dispose();
         }
 	}
+
+    /// <summary>
+    /// Moved this out of the base editor project and stuck it out here since only primary 
+    /// embedded documents in the shell really need this behavior.
+    /// </summary>
+	public class EditWinProductions : EditWindow2 {
+		readonly BaseEditor _oDocumentOverride;
+
+		public EditWinProductions( IPgViewSite oBaseSite, BaseEditor oDocument ) : 
+			base( oBaseSite, oDocument.Productions, false, false ) 
+		{
+			_oDocumentOverride = oDocument ?? throw new ArgumentNullException( "Weird happenings in EdiwWinProperties!" );
+
+			try {
+				oDocument.ProductionsTrace = true;
+			} catch( NotImplementedException oEx ) {
+                // BUG: This might be too severe of a responce in a hetrogeneous documents open
+                //      situation. Some windows might support this and some might not and we
+                //      get annoying mssages.
+				throw new ArgumentException( "Document must support productions to use this window!", oEx );
+			}
+		}
+
+		/// BUG: I'm noticing this is getting called really late.
+		/// I'm probably not dealing with closing addornments properly.
+		protected override void Dispose(bool disposing) {
+			if( disposing ) {
+				_oDocumentOverride.ProductionsTrace = false;
+			}
+			base.Dispose(disposing);
+		}
+	}
+
+    public class EditPresentation : EditWindow2 {
+        DocProperties _oDoc_Properties;
+
+        public EditPresentation(IPgViewSite oSiteView, BaseEditor p_oDocument, bool fReadOnly = false, bool fSingleLine = false) : 
+            base(oSiteView, p_oDocument, fReadOnly, fSingleLine) {
+
+            _oDoc_Properties = new DocProperties( new DocSlot( this ) );
+        }
+
+        protected override bool InitInternal() {
+            // Props must be initialized first since the base will call on the bulk constructor
+            // to make it's window properties, and it'll assert we're already loaded on init!!
+            if( !_oDoc_Properties.InitNew() )
+                return false;
+
+            if( !base.InitInternal() )
+                return false;
+
+            return true;
+        }
+
+        protected override IPgFormBulkUpdates CreateBulkLoader() {
+            return new DocProperties.Manipulator( _oDoc_Properties );
+        }
+
+        public override object Decorate( IPgViewSite oBaseSite, Guid sGuid ) {
+			try {
+				if ( sGuid.Equals( GlobalDecorations.Productions ) ) {
+					return new EditWinProductions( oBaseSite, _oDocument );
+				}
+				if ( sGuid.Equals( GlobalDecorations.Properties ) ) {
+					return new WindowStandardProperties( oBaseSite, _oDoc_Properties );
+				}
+			} catch ( Exception oEx ) {
+				Type[] rgErrors = { typeof( NotImplementedException ),
+									typeof( NullReferenceException ),
+									typeof( ArgumentException ),
+									typeof( ArgumentNullException ) };
+				if( rgErrors.IsUnhandled( oEx ) )
+					throw;
+
+				LogError( "decor", "Couldn't create EditWin decor: " + sGuid.ToString() );
+			}
+
+            return base.Decorate( oBaseSite, sGuid );
+        }
+    }
 
     /// <summary>
     /// Normally a controller will live in the document's namespace. The shell will create one to handle file
@@ -253,7 +335,7 @@ namespace Mjolnir {
                     case var r when r == EditWindow2.ViewType:
                     case var s when s == Guid.Empty:
                     default:
-                        return new EditWindow2( oBaseSite, (Editor)oDocument );
+                        return new EditPresentation( oBaseSite, (Editor)oDocument );
 
                 }
             } catch( Exception oEx ) {

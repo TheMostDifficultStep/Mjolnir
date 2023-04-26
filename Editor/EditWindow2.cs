@@ -277,7 +277,7 @@ namespace Play.Edit {
         SKControl, 
 		IPgLoad<XmlElement>,
 		IPgSave<XmlDocumentFragment>,
-        IPgCommandView, 
+        IPgCommandView, // TODO: Consider moving this behavior to the EditPresentation shell window.
         IPgTextView,
 		IPgTools,
         ILineEvents,
@@ -325,7 +325,6 @@ namespace Play.Edit {
 
         readonly ScrollBar2 _oScrollBarVirt;
 
-		PropDoc NavProps { get; }
         public event Navigation LineChanged;
 
 		IPgAnonymousWorker    _oMorse;
@@ -388,8 +387,6 @@ namespace Play.Edit {
 
 			//Parent = oSiteView.Host as Control;
 
-			NavProps = new PropDoc( new DocSlot( this ) );
-
             // BUG: The GetLine can crash with some custom line objects. If the document is empty and an empty
             //      line is attempted to be created but fails due to implementation error.
             CaretPos       = new CaretPosition( p_oDocument.GetLine(0) );
@@ -428,6 +425,7 @@ namespace Play.Edit {
             if( disposing ) {
                 _oDocument.CaretRemove( CaretPos );
                 _oScrollBarVirt.Scroll -= OnScrollBar; 
+                HyperLinks.Clear();
             }
 
             base.Dispose(disposing);
@@ -2048,8 +2046,24 @@ namespace Play.Edit {
             File_Encoding
         }
 
+        public class DummyBulkLoader : IPgFormBulkUpdates {
+            int iCount = 0;
+            public int AddProperty(string strPropertyName) {
+                return iCount++;
+            }
+
+            public void Dispose() {
+            }
+
+            public void SetLabel(int iIndex, string strLabel) {
+            }
+
+            public void SetValue(int iIndex, string strValue) {
+            }
+        }
+
         protected virtual IPgFormBulkUpdates CreateBulkLoader() {
-            return NavProps.EditProperties;
+            return new DummyBulkLoader();
         }
 
 		protected virtual void DecorNavPropsInit() {
@@ -2670,21 +2684,6 @@ namespace Play.Edit {
         /// window subclass so I can use the forms objects.
         /// </summary>
         public virtual object Decorate( IPgViewSite oBaseSite, Guid sGuid ) {
-			try {
-				if ( sGuid.Equals( GlobalDecorations.Productions ) ) {
-					return new EditWinProductions( oBaseSite, _oDocument );
-				}
-			} catch ( Exception oEx ) {
-				Type[] rgErrors = { typeof( NotImplementedException ),
-									typeof( NullReferenceException ),
-									typeof( ArgumentException ),
-									typeof( ArgumentNullException ) };
-				if( rgErrors.IsUnhandled( oEx ) )
-					throw;
-
-				LogError( "decor", "Couldn't create EditWin decor: " + sGuid.ToString() );
-			}
-
             return( null );
         }
 
@@ -2739,41 +2738,6 @@ namespace Play.Edit {
 				if( rgErrors.IsUnhandled( oEx ) )
 					throw;
 			}
-		}
-	}
-
-	/// <summary>
-	/// Don't let your head explode. This is an editwin to 
-	/// show the productions on the _oDocumentOverride. BUT
-	/// container of the productions in a child document.
-	/// SO be careful when accessing _oDocument!!!
-	/// </summary>
-	public class EditWinProductions : EditWindow2 {
-		readonly BaseEditor _oDocumentOverride;
-
-		public EditWinProductions( IPgViewSite oBaseSite, BaseEditor oDocument ) : 
-			base( oBaseSite, oDocument.Productions, false, false ) 
-		{
-			_oDocumentOverride = oDocument ?? throw new ArgumentNullException( "Weird happenings in EdiwWinProperties!" );
-
-			try {
-				oDocument.ProductionsTrace = true;
-			} catch( NotImplementedException oEx ) {
-                // BUG: This might be too severe of a responce in a hetrogeneous documents open
-                //      situation. Some windows might support this and some might not and we
-                //      get annoying mssages.
-				throw new ArgumentException( "Document must support productions to use this window!", oEx );
-			}
-		}
-
-		/// BUG: I'm noticing this is getting called really late.
-		/// I'm probably not dealing with closing addornments properly.
-		protected override void Dispose(bool disposing) {
-			if( disposing ) {
-                HyperLinks.Clear();
-				_oDocumentOverride.ProductionsTrace = false;
-			}
-			base.Dispose(disposing);
 		}
 	}
 

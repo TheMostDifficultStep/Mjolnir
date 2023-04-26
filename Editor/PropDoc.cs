@@ -168,29 +168,6 @@ namespace Play.Edit {
 					_oDoc.LogError( "property label", "Assign index out of range" );
 				}
 			}
-
-			public void Wipe( int iLine ) {
-				try {
-					Line oLine = _oDoc._rgProperties[iLine].Value;
-
-					oLine.TryDelete( 0, oLine.ElementCount, out string strRemoved );
-
-					foreach( IPgPropertyChanges oEvent in _oDoc._rgChangeEvents ) {
-						oEvent.OnPropertyChanged( iLine );
-					}
-				} catch( ArgumentOutOfRangeException ) {
-					_oDoc.LogError( "property value", "Clear index out of range" );
-				}
-			}
-
-			public void WipeAll() {
-				foreach( PropertyItem oItem in _oDoc._rgProperties ) {
-					Line oLine = oItem.Value;
-
-					oLine.TryDelete( 0, oLine.ElementCount, out string strRemoved );
-				}
-				_fChangedAll = true;
-			}
 		} // end class
 
 		public IPgParent Parentage => _oSiteBase.Host;

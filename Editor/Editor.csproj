@@ -16,6 +16,7 @@
     <Compile Remove="CacheWrapped.cs" />
     <Compile Remove="EditWin.cs" />
     <Compile Remove="EditWin.Designer.cs" />
+    <Compile Remove="PropDoc.cs" />
   </ItemGroup>
 
   <ItemGroup>

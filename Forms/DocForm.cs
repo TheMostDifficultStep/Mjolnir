@@ -6,6 +6,7 @@ using Play.Interfaces.Embedding;
 using Play.Edit;
 
 using SkiaSharp;
+using System.Collections;
 
 namespace Play.Forms {
     /// Form windows will listen to these events.
@@ -257,27 +258,62 @@ namespace Play.Forms {
 			}
 		}
 
-        /// <summary>
-        /// TODO: Let's add an array that we can use to save the modified values and then on dispose
-        /// we can sent a new type of event.
-        /// </summary>
-        public class Bulk :
-            IDisposable
-        {
-            DocProperties _oHost;
+		public class Manipulator : 
+            IEnumerable<Line>,
+			IPgFormBulkUpdates,
+			IDisposable
+		{
+			DocProperties  _oDocument;
+            SortedSet<int> _rgSortedLines = new SortedSet<int>();
 
-            public Bulk( DocProperties oHost ) {
-                _oHost = oHost ?? throw new ArgumentNullException( nameof( oHost ) );
+			public Manipulator( DocProperties oDoc ) 
+			{
+				_oDocument = oDoc ?? throw new ArgumentNullException();
+			}
+
+			public void Dispose() {
+                foreach( IPgFormEvents oCall in _oDocument._rgFormEvents ) {
+                    oCall.OnFormUpdate( this );
+                }
+                _rgSortedLines.Clear();
+			}
+
+			public int AddProperty( string strLabel ) {
+                int iLine = _oDocument.PropertyCount;
+
+                LabelValuePair oPair = _oDocument.CreatePropertyPair( strLabel );
+
+                _rgSortedLines.Add( oPair._oLabel.At );
+                _rgSortedLines.Add( oPair._oValue.At );
+
+				return iLine;
+			}
+
+			public void SetValue( int iLine, string strValue ) {
+                _oDocument.ValueUpdate( iLine, strValue );
+                _rgSortedLines.Add( iLine );
+			}
+
+			public void SetLabel( int iProperty, string strName ) {
+                try {
+                    LabelValuePair oPair = _oDocument.GetPropertyPair( iProperty );
+                    _rgSortedLines.Add( oPair._oLabel.At );
+                    _oDocument.LabelUpdate( iProperty, strName );
+                } catch( ArgumentOutOfRangeException ) {
+					_oDocument.LogError( "Assign index out of range" );
+                }
+			}
+
+            public IEnumerator<Line> GetEnumerator() {
+                foreach( int iLine in _rgSortedLines ) { 
+                    yield return _oDocument.PropertyDoc[iLine];
+                }
             }
 
-            public void Dispose() {
-                _oHost.RaiseUpdateEvent();
+            IEnumerator IEnumerable.GetEnumerator() {
+                return GetEnumerator();
             }
-
-            public void Set( int iIndex, string strValue ) {
-                _oHost.ValueUpdate( iIndex, strValue );
-            }
-        }
+        } // end class
 
         // Seems like we dont need this since the base form sends
         // events but I've got to check why the property screens can't
