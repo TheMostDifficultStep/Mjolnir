@@ -131,8 +131,8 @@ namespace Play.ImageViewer {
 			SnipView     .Parent = this;
 
 			try {
-                _rgVertStack.Add( new LayoutImageView( SnipView,      LayoutRect.CSS.None ) { TrackMaxPercent = 70 } ); 
-                _rgVertStack.Add( new LayoutControl  ( PropertiesWin, LayoutRect.CSS.Flex ) { TrackMaxPercent = 30 } );
+                _rgVertStack.Add( new LayoutImageView( SnipView,      LayoutRect.CSS.None ) { TrackMaxPercent = 0.7F } ); 
+                _rgVertStack.Add( new LayoutControl  ( PropertiesWin, LayoutRect.CSS.Flex ) { TrackMaxPercent = 0.3F } );
 			} catch( Exception oEx ) {
 				LogError( oEx );
 				return false;

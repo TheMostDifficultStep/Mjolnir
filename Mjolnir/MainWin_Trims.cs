@@ -15,13 +15,13 @@ namespace Mjolnir
     public class FrameletForView : LayoutStackVertical
     {
         readonly LayoutStackHorizontal _rgLayoutTitleBar;
-        readonly LayoutText2           _oLayoutText;
+        readonly LayoutText           _oLayoutText;
 
         public FrameletForView( ViewSlot oGuestSlot, uint uiTitleHeight ) : base() {
             if( oGuestSlot == null )
                 throw new ArgumentNullException();
 
-            _oLayoutText = new LayoutText2( new FTCacheLine( new TextLine( 0, "Arrgh" ) ), CSS.None, 0, 0 );
+            _oLayoutText = new LayoutText( new FTCacheLine( new TextLine( 0, "Arrgh" ) ), CSS.None, 0, 0 );
 
             _rgLayoutTitleBar = new LayoutStackHorizontal() { Spacing = 3, Units = CSS.Pixels, Track = uiTitleHeight, Hidden = false };
 

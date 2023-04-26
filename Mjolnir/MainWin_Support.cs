@@ -40,7 +40,7 @@ namespace Mjolnir {
 
 					_oControl.LogError( null, "Square Layout Flow", "Problem accessing current a view's layout: " + iIndex.ToString() );
 
-					return new LayoutRect( CSS.Empty );
+					return new LayoutRect( CSS.None );
 				}
 			}
 

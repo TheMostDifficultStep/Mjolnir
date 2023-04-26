@@ -37,7 +37,7 @@ namespace Play.MorsePractice {
         IPgLoad<XmlElement>,
 		IPgSave<XmlDocumentFragment>,
 		IPgTableEvents,
-		IEnumerable<LayoutText2> 
+		IEnumerable<LayoutText> 
 	{
 		static public Guid ViewLogger { get; } = new Guid("{BE243DE2-7763-4A44-9499-0EEDBC84D8A4}");
 
@@ -123,7 +123,7 @@ namespace Play.MorsePractice {
 			foreach(ICollection<Line> oRow in _oDocument.Rows ) {
 				List<LayoutRect> rgRow = new List<LayoutRect>( oRow.Count );
 				foreach( Line oLine in oRow ) {
-					LayoutText2 oName = new LayoutText2( new FTCacheWrap( oLine ), LayoutRect.CSS.Flex, 10, 1 );
+					LayoutText oName = new LayoutText( new FTCacheWrap( oLine ), LayoutRect.CSS.Flex, 10, 1 );
 
 					// Load up the row with our display elements.
 					rgRow.Add( oName );
@@ -229,10 +229,10 @@ namespace Play.MorsePractice {
 			Invalidate();
 		}
 
-		public IEnumerator<LayoutText2> GetEnumerator() {
+		public IEnumerator<LayoutText> GetEnumerator() {
 			foreach( LayoutStack oRow in _oTable.Rows ) {
 				foreach( LayoutRect oRect in oRow ) {
-					if( oRect is LayoutText2 oTextRect ) {
+					if( oRect is LayoutText oTextRect ) {
 						yield return oTextRect;
 					}
 				}

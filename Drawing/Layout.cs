@@ -15,8 +15,8 @@ namespace Play.Rectangles {
 			Percent,
 			Pixels,
 			Flex,
-			None,
-			Empty
+			None,  // None takes up remaining track.
+			Hidden // Hidden takes up no track and s/b is hidden.
 		}
 
 		public LayoutRect( ) : base() { 
@@ -36,7 +36,7 @@ namespace Play.Rectangles {
 			TrackMaxPercent = flMaxPercent;
 		}
 
-		public CSS   Units { get { return Hidden ? CSS.Empty : _eLayout; } set { _eLayout = value; } }
+		public CSS   Units { get { return Hidden ? CSS.Hidden : _eLayout; } set { _eLayout = value; } }
 		public uint  Track { get; set; } // TODO: Make this a float.
 		public float TrackMaxPercent { get; set; } // TODO : Use minmax object.
 		public int   Span  { get; set; } = 0; // CSS span value minus 1. Bummer here but shared with SmartTable.
