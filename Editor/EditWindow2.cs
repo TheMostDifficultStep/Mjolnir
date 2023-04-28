@@ -449,15 +449,14 @@ namespace Play.Edit {
 			DecorNavPropsInit();
 
 			try {
+                // The object we get from the interface has some standard screen dpi and size
+                // values. We then attempt to override those values with our actual values.
                 IPgMainWindow.PgDisplayInfo oInfo = new IPgMainWindow.PgDisplayInfo();
                 if( _oSiteView.Host.TopWindow is IPgMainWindow oMainWin ) {
                     oInfo = oMainWin.MainDisplayInfo;
-                    DPI = new SizeF( oInfo.pntDpi.X, oInfo.pntDpi.Y );
-                } else {
-                    return false;
                 }
+                DPI = new SizeF( oInfo.pntDpi.X, oInfo.pntDpi.Y );
 
-                // cour.ttf, consola.ttf
                 uint uiStdText = _oStdUI.FontCache( _oStdUI.FaceCache( @"C:\windows\fonts\consola.ttf"  ), 12, oInfo.pntDpi );
                 uint uiStdUI   = _oStdUI.FontCache( _oStdUI.FaceCache( @"C:\windows\fonts\seguisym.ttf" ), 12, oInfo.pntDpi );
               //uint uiEmojID  = _oStdUI.FontCache( _oStdUI.FaceCache( @"C:\Users\Frodo\AppData\Local\Microsoft\Windows\Fonts\NotoEmoji-Regular.ttf" ), 12, sResolution );
@@ -478,7 +477,6 @@ namespace Play.Edit {
 
             ScrollBarRefresh();
             CaretIconRefreshLocation();
-
 
             int iWidth        = (int)(DPI.Width * _szScrollBars.Width);
             var oLayoutSBVirt = new LayoutControl( _oScrollBarVirt, LayoutRect.CSS.Pixels, (uint)iWidth);
