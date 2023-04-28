@@ -452,6 +452,9 @@ namespace Play.Edit {
                 IPgMainWindow.PgDisplayInfo oInfo = new IPgMainWindow.PgDisplayInfo();
                 if( _oSiteView.Host.TopWindow is IPgMainWindow oMainWin ) {
                     oInfo = oMainWin.MainDisplayInfo;
+                    DPI = new SizeF( oInfo.pntDpi.X, oInfo.pntDpi.Y );
+                } else {
+                    return false;
                 }
 
                 // cour.ttf, consola.ttf
@@ -476,19 +479,16 @@ namespace Play.Edit {
             ScrollBarRefresh();
             CaretIconRefreshLocation();
 
-            using( Graphics oGraphics = this.CreateGraphics() ) {
-                DPI = new SizeF( oGraphics.DpiX, oGraphics.DpiY );
 
-                int iWidth        = (int)(oGraphics.DpiX * _szScrollBars.Width);
-                var oLayoutSBVirt = new LayoutControl( _oScrollBarVirt, LayoutRect.CSS.Pixels, (uint)iWidth);
+            int iWidth        = (int)(DPI.Width * _szScrollBars.Width);
+            var oLayoutSBVirt = new LayoutControl( _oScrollBarVirt, LayoutRect.CSS.Pixels, (uint)iWidth);
 
-                _oLayout.Add( oLayoutSBVirt );   // Scrollbar
+            _oLayout.Add( oLayoutSBVirt );   // Scrollbar
 
-                InitColumns(); // Columns arent the same as the layout quite yet.
+            InitColumns(); // Columns arent the same as the layout quite yet.
 
-			    _oLayout.SetRect( 0, 0, Width, Height );
-			    _oLayout.LayoutChildren();
-            }
+			_oLayout.SetRect( 0, 0, Width, Height );
+			_oLayout.LayoutChildren();
 
 			// Kind of evil since we 'might' get called back even before we exit this proc!
 			_oDocument.ListenerAdd(this);  // TODO, consider making this a normal .net event.
@@ -1239,8 +1239,10 @@ namespace Play.Edit {
         }
 
 		// <summary>
-		/// Of course this isn't valid if the cache elements haven't been measured yet.
-		/// Still experimental.
+		/// Return the full height of the cached area. Remember height depends on width.
+        /// So you must send dependable width value. When embedding a edit window in a
+        /// horizontally running track, you need to give the remaining track possibly 
+        /// available as the width to get good height value from this routine. 
 		/// </summary>
 		public override Size GetPreferredSize( Size sProposed ) {
 			_oLayout.SetRect( 0, 0, sProposed.Width, sProposed.Height );
@@ -1277,20 +1279,9 @@ namespace Play.Edit {
                 return;
 			}
 
-            //using( Graphics oGraphics = this.CreateGraphics() )
-            //{
-            //    int iWidth = (int)(oGraphics.DpiX * _szScrollBars.Width);
-            //    _pntScreenTL = new Point(iWidth + 1, 0); // Where to display the upperleft of the lines.
-
-            //    _oScrollBarVirt.Width = iWidth;
-            //    _oScrollBarVirt.Height = this.Height;
-            //}
-
             _oLayout.SetRect( 0, 0, Width, Height );
 			_oLayout.LayoutChildren();
 
-            // BUG: Not setting the wrap properly the first time through even tho
-            //      a parse has already occured because of another view.
             _oCacheMan.OnChangeSize( this.TextExtent );
             CacheRefresh( RefreshType.COMPLEX, RefreshNeighborhood.SCROLL );
         }
