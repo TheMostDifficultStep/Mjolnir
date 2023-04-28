@@ -298,7 +298,7 @@ namespace Play.Edit {
         protected          IPgGlyph              _oCheque     = null;
         protected          LayoutRect            _rctCheques; // TODO: Move this to the subclass eventually.
         protected readonly LayoutRect            _rctTextArea = new LayoutRect( LayoutRect.CSS.None ); // Not same as the CacheMan text area!!
-        protected readonly LayoutStackHorizontal _oLayout     = new LayoutStackHorizontal() { Spacing = 5 };
+        protected readonly LayoutStackHorizontal _oLayout     = new LayoutStackHorizontal() { Spacing = 5, Units = LayoutRect.CSS.Flex};
         protected readonly List<SmartRect>       _rgColumns   = new (); // We'll phase out _rctTextArea if we can.
 
         // Possible to change if move window from one screen to another. Right now only init at start.
@@ -489,6 +489,7 @@ namespace Play.Edit {
 			    _oLayout.SetRect( 0, 0, Width, Height );
 			    _oLayout.LayoutChildren();
             }
+
 			// Kind of evil since we 'might' get called back even before we exit this proc!
 			_oDocument.ListenerAdd(this);  // TODO, consider making this a normal .net event.
 			_oDocument.CaretAdd(CaretPos); // Document moves our caret and keeps it in sync.
@@ -670,25 +671,6 @@ namespace Play.Edit {
             _oSiteView.LogError( strCatagory, strDetails );
         }
 
-		/// <summary>
-		/// Of course this isn't valid if the cache elements haven't been measured yet.
-		/// Still experimental.
-		/// </summary>
-		public override Size GetPreferredSize( Size sProposed ) {
-			Size sSize = sProposed;
-
-			CacheRefresh( RefreshType.COMPLEX, RefreshNeighborhood.SCROLL );
-
-			foreach( CacheRow oCache in _oCacheMan ) {
-				//if( sSize.Width < oCache.UnwrappedWidth )
-				//	sSize.Width = (int)oCache.UnwrappedWidth;
-				if( sSize.Height < oCache.Height )
-					sSize.Height = (int)oCache.Height;
-			}
-
-			return sSize;
-		}
-			
 		private void OnBufferEvent(BUFFEREVENTS eEvent) {
 			switch( eEvent ) {
 				case BUFFEREVENTS.LOADED:
@@ -1256,7 +1238,32 @@ namespace Play.Edit {
             _oCacheMan.Refresh( eRefreshType, eNeighborhood );
         }
 
-		/// <remarks>
+		// <summary>
+		/// Of course this isn't valid if the cache elements haven't been measured yet.
+		/// Still experimental.
+		/// </summary>
+		public override Size GetPreferredSize( Size sProposed ) {
+			_oLayout.SetRect( 0, 0, sProposed.Width, sProposed.Height );
+			_oLayout.LayoutChildren();
+
+            _oCacheMan.OnChangeSize( sProposed );
+			CacheRefresh( RefreshType.COMPLEX, RefreshNeighborhood.SCROLL );
+
+            int iHeight = 0;
+
+			foreach( CacheRow oCache in _oCacheMan ) {
+				//if( sSize.Width < oCache.UnwrappedWidth )
+				//	sSize.Width = (int)oCache.UnwrappedWidth;
+				iHeight += (int)oCache.Height;
+			}
+
+            sProposed.Height = iHeight;
+
+			return sProposed;
+		}
+			
+
+        /// <remarks>
 		/// When you look at it. Refreshing the Cache after the size doesn't allow us to measure
 		/// the text in case we want to set the size of the window! In the normal case, this is
 		/// ok, but in the case of table layout it is a problem.
