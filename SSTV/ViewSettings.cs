@@ -59,13 +59,13 @@ namespace Play.SSTV {
                 foreach( SSTVProperties.Names eName in rgShow ) {
                     switch( eName ) {
                         case SSTVProperties.Names.Std_TxPort:
-                            PropertyInitRow( oTable, (int)eName, new CheckList( new WinSlot( this ), SSTVDocument.PortTxList ) );
+                            PropertyInitRow( oTable, (int)eName, new CheckList( new WinSlot( this ), SSTVDocument.PortTxList ) { ScrollVisible = false } );
                             break;
                         case SSTVProperties.Names.Std_MnPort:
-                            PropertyInitRow( oTable, (int)eName, new CheckList( new WinSlot( this ), SSTVDocument.MonitorList ) );
+                            PropertyInitRow( oTable, (int)eName, new CheckList( new WinSlot( this ), SSTVDocument.MonitorList ) { ScrollVisible = false } );
                             break;
                         case SSTVProperties.Names.Std_RxPort:
-                            PropertyInitRow( oTable, (int)eName, new CheckList( new WinSlot( this ), SSTVDocument.PortRxList ) );
+                            PropertyInitRow( oTable, (int)eName, new CheckList( new WinSlot( this ), SSTVDocument.PortRxList ) { ScrollVisible = false } );
                             break;
                         default:
                             PropertyInitRow( oTable, (int)eName ); // This creates a regular cacheline.
