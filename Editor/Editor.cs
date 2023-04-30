@@ -723,6 +723,7 @@ namespace Play.Edit {
         /// <remarks> This is the only line operation you won't find on 
         /// the bulk editor since it's never used as part of the undo 
         /// operations.</remarks>
+        /// <seealso cref="FormsWindow.Line"/>
         public void LineCharInsert( int iLine, int iIndex, char cChar) {
             Line oLine;
 
@@ -743,8 +744,8 @@ namespace Play.Edit {
                     Line oRangeLine = oCaret.Line;
 
                     if( oRangeLine != null ) {
-                        // Blast any dummy lines. Brilliant, but sleasy. ^_^;;
-                        // BUG: Ah! our forms are comparing labels & values from
+                        // Reset any dummy lines. Brilliant, but sleasy. ^_^;;
+                        // NOTE: Our forms labels & values MUST NOT be from 
                         // different documents!! Argghghg!
                         if( oRangeLine.At == oLine.At && oRangeLine != oLine ) {
                             oCaret.Line = oLine;

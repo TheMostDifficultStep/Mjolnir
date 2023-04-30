@@ -667,9 +667,21 @@ namespace Play.Forms {
         protected LayoutSingleLine GetLayoutAtCaret => CacheList[_iCaretAtLayout];
 
         public int Advance { get; set; } = 0;
+
+        /// <remarks>
+        /// It probably would be nice to get rid of this accessor since we have a lot
+        /// more ability to reset the caret here at the view level than we did when the
+        /// caret was a simple stand alone struct. We really don't need this.
+        /// </remarks>
+        /// <see cref="BaseEditor.LineCharInsert"/>
         public Line Line { 
             get { 
                 try {
+                    // Normally we check if the line given is null or not. See
+                    // BaseEditor::LineCharInsert(); See also "At" below.
+                    if( _iCaretAtLayout < 0 )
+                        return null;
+
                     return GetLayoutAtCaret.Cache.Line;
                 } catch( Exception oEx ) {
                     if( _rgStdErrors.IsUnhandled( oEx ) )
@@ -696,6 +708,11 @@ namespace Play.Forms {
         public int At { 
             get { 
                 try {
+                    // Technically this is zero. But at present some windows if
+                    // not visited for the first time have carets set to -1.
+                    if( _iCaretAtLayout < 0 )
+                        return -1;
+
                     return GetLayoutAtCaret.Cache.Line.At;
                 } catch( Exception oEx ) {
                     if( _rgStdErrors.IsUnhandled( oEx ) )

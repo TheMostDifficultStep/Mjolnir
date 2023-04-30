@@ -294,7 +294,7 @@ namespace Play.Edit {
         float        _iAdvance      = 0; // Horizontal prefered position of cursor, world units.
         SmartRect    _rctDragBounds = null; // TODO: Move this into the selector.
         SizeF        _szScrollBars  = new SizeF( .1875F, .1875F );
-        public bool ScrollVisible { get; set; }
+        public bool ScrollVisible { get; set; } = true;
 
         protected          IPgGlyph              _oCheque     = null;
         protected          LayoutRect            _rctCheques; // TODO: Move this to the subclass eventually.
