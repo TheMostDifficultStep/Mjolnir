@@ -9,6 +9,31 @@ using Play.Integration;
 using Play.Parse.Impl;
 
 namespace Kanji_Practice {
+    public class KanjiProperties : DocProperties {
+		public enum Labels : int {
+			Kanji = 0,
+			Hiragana,
+			Meaning,
+		}
+
+        public KanjiProperties(IPgBaseSite oSiteBase) : base(oSiteBase) {
+        }
+
+        public override bool InitNew() {
+            if( !base.InitNew() )
+				return false;
+
+            foreach( Labels eLabel in Enum.GetValues(typeof(Labels))) {
+				CreatePropertyPair( eLabel.ToString() );
+            }
+
+            ValueUpdate( (int)Labels.Kanji,    "彼女"   );
+			ValueUpdate( (int)Labels.Hiragana, "かのじょ"    );
+			ValueUpdate( (int)Labels.Meaning,  "she, her, girlfriend​"   );
+
+			return true;
+        }
+    }
     public class KanjiDocument :
         IPgParent,
 		IDisposable,
@@ -49,12 +74,12 @@ namespace Kanji_Practice {
         public KanjiDocument( IPgBaseSite oSite ) {
             _oBaseSite = oSite ?? throw new ArgumentNullException( "Site to document must not be null." );
 
-            FlashCardDoc  = new Editor       ( new DocSlot( this ) ); // The raw stack of flash cards.
-            FrontDisplay  = new DocProperties( new DocSlot( this ) ); // The basic form Kanji, Hiragana, Description.
+            FlashCardDoc  = new Editor         ( new DocSlot( this ) ); // The raw stack of flash cards.
+            FrontDisplay  = new KanjiProperties( new DocSlot( this ) ); // The basic form Kanji, Hiragana, Description.
 
 			try {
 				// A parser is matched one per text document we are loading.
-				ParseHandlerText oParser = new ParseHandlerText( FlashCardDoc, "asm" );
+				ParseHandlerText oParser = new ParseHandlerText( FlashCardDoc, "text" );
                 _oGrammer = oParser.Grammer;
 			} catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( NullReferenceException ),

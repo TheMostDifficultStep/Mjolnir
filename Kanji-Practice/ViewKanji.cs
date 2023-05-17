@@ -19,9 +19,8 @@ namespace Kanji_Practice {
         IPgLoad<XmlElement>,
         IPgSave<XmlDocumentFragment>
     {
-        protected KanjiDocument       KanjiDoc   { get; }
-        protected LayoutTable          Blinken    { get; }
-        protected LayoutStackVertical VertStack  { get; }
+        protected KanjiDocument            KanjiDoc     { get; }
+        protected WindowStandardProperties CenterDisplay{ get; }
 
         public IPgParent Parentage => _oSiteView.Host;
         public IPgParent Services  => Parentage.Services;
@@ -60,70 +59,30 @@ namespace Kanji_Practice {
 			public IPgViewNotify EventChain => _oHost._oSiteView.EventChain;
 		}
 
-        /// <remarks>So this is an interesting case for our forms object. I would like the
-        /// data and address lines to be two seperate text editors. The form which we 
-        /// derive from really only understands one editor of editable elements. It comes
-        /// down to who gets edit events. And how would undo work. It seems pretty
-        /// special case and so I'll probably split the FormsWindow object for this.</remarks>
-        /// <exception cref="ArgumentNullException"></exception>
         public ViewKanji( IPgViewSite oViewSite, KanjiDocument oMonitorDoc ) : 
             base( oViewSite, oMonitorDoc.FrontDisplay.PropertyDoc ) 
         {
-            KanjiDoc = oMonitorDoc ?? throw new ArgumentNullException( "Monitor document must not be null!" );
+            KanjiDoc      = oMonitorDoc ?? throw new ArgumentNullException( "Monitor document must not be null!" );
 
-            VertStack  = new LayoutStackVertical();
-            Layout     = VertStack;
+            Layout        = new LayoutStackHorizontal() { Units = LayoutRect.CSS.Flex };
+            CenterDisplay = new WindowStandardProperties( new ViewSlot( this ), KanjiDoc.FrontDisplay );
 
-            Blinken     = new LayoutTable( 5, LayoutRect.CSS.Percent ) { Track = 40 };
+            CenterDisplay.Parent = this;
         }
 
         public override bool InitNew() {
             if( !base.InitNew() )
                 return false;
 
-            // First, add the columns to our table.
-			Blinken.AddColumn( LayoutRect.CSS.Flex, 0 );
-			Blinken.AddColumn( LayoutRect.CSS.Pixels, 60 );
-			Blinken.AddColumn( LayoutRect.CSS.Pixels, 60 );
-			Blinken.AddColumn( LayoutRect.CSS.Pixels, 60 );
-			Blinken.AddColumn( LayoutRect.CSS.Pixels, 60 );
-			//Blinken.Add( new LayoutRect( LayoutRect.CSS.None ) );
-
-            Editor oLabels = KanjiDoc.FlashCardDoc;
-
-            // Status lights top labels...
-            List<LayoutRect> rgStatusLabel = new();
-            rgStatusLabel.Add( new LayoutSingleLine( new FTCacheLine( oLabels[3] ), LayoutRect.CSS.Flex ) /* { Span = 4 } */ );
-
-            rgStatusLabel.Add( new LayoutSingleLine( new FTCacheLine( oLabels[15] ), LayoutRect.CSS.Flex ) );
-            rgStatusLabel.Add( new LayoutSingleLine( new FTCacheLine( oLabels[14] ), LayoutRect.CSS.Flex ) );
-            rgStatusLabel.Add( new LayoutSingleLine( new FTCacheLine( oLabels[13] ), LayoutRect.CSS.Flex ) );
-            rgStatusLabel.Add( new LayoutSingleLine( new FTCacheLine( oLabels[12] ), LayoutRect.CSS.Flex ) ); // N
-
-            foreach( LayoutRect oRect in rgStatusLabel ) {
-                if( oRect is LayoutSingleLine oSingle ) {
-                    CacheList.Add( oSingle );
-                }
-            }
-
-            Blinken.AddRow( rgStatusLabel );
-
-            List<LayoutRect> rgBlankLine = new();
-            rgBlankLine.Add( new LayoutSingleLine( new FTCacheLine( oLabels[3] ), LayoutRect.CSS.Flex )  );
-            foreach( LayoutRect oRect in rgBlankLine ) {
-                if( oRect is LayoutSingleLine oSingle ) {
-                    CacheList.Add( oSingle );
-                }
-            }
-
-            Blinken.AddRow( rgBlankLine );
-
-            // Add the memory window and assembly.
-            LayoutStackHorizontal oHoriz = new( ) { Track = 60, Units = LayoutRect.CSS.Percent };
+            if( !CenterDisplay.InitNew() )
+                return false;
 
             // complete final layout of table and command window.
-            VertStack.Add( Blinken );
-            VertStack.Add( oHoriz  );
+            if( Layout is LayoutStack oStack ) {
+                oStack.Add( new LayoutRect   ( LayoutRect.CSS.Pixels ) { Track = 50 } );
+                oStack.Add( new LayoutControl( CenterDisplay, LayoutRect.CSS.None ) );
+                oStack.Add( new LayoutRect   ( LayoutRect.CSS.Pixels ) { Track = 50 } );
+            }
 
             OnDocumentEvent( BUFFEREVENTS.MULTILINE );
 

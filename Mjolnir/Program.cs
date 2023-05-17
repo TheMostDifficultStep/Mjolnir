@@ -839,7 +839,7 @@ namespace Mjolnir {
                 // Rank documents by priority. We can add a choose if more than on doc with pri > 0.
                 foreach( IPgController2 oTryMe in Controllers ) {
                     PgDocumentDescriptor oTryDesc = oTryMe.Suitability( strFileExtn );
-                    if( oTryDesc.CompareTo( oDocDesc ) > 0 ) {
+                    if( oTryDesc.CompareTo( oDocDesc ) >= 0 ) {
                         oDocDesc = oTryDesc;
                     }
                 }
@@ -1153,6 +1153,7 @@ namespace Mjolnir {
             Controllers.Add( new Play.Clock        .SolarController() );
             Controllers.Add( new Play.SSTV         .MySSTVController() );
             Controllers.Add( new Monitor           .MonitorController() );
+            Controllers.Add( new Kanji_Practice    .KanjiController() );
         }
 
         protected class EmbeddedGrammars {
