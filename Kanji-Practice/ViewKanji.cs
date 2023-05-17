@@ -119,6 +119,9 @@ namespace Kanji_Practice {
         }
 
         public bool Execute(Guid sGuid) {
+            if( sGuid == GlobalCommands.JumpNext ) {
+                KanjiDoc.JumpNext();
+            }
             return false;
         }
 

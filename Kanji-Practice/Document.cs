@@ -37,6 +37,7 @@ namespace Kanji_Practice {
     public class KanjiDocument :
         IPgParent,
 		IDisposable,
+        IPgCommandBase,
         IPgLoad<TextReader>,
         IPgSave<TextWriter>
     {
@@ -71,6 +72,7 @@ namespace Kanji_Practice {
             }
         }
 
+        protected int _iFlashLine = 0;
         public KanjiDocument( IPgBaseSite oSite ) {
             _oBaseSite = oSite ?? throw new ArgumentNullException( "Site to document must not be null." );
 
@@ -125,6 +127,25 @@ namespace Kanji_Practice {
                 return false;
 
             return true;
+        }
+
+        public void JumpNext() {
+            using DocProperties.Manipulator oBulk = new ( FrontDisplay );
+
+            _iFlashLine++;
+
+            oBulk.SetValue( (int)KanjiProperties.Labels.Kanji, "Hello" + _iFlashLine.ToString() );
+            oBulk.SetValue( (int)KanjiProperties.Labels.Hiragana, "hello" );
+            oBulk.SetValue( (int)KanjiProperties.Labels.Meaning, "this is a meaning." );
+        }
+
+        public bool Execute(Guid sGuid) {
+            if( sGuid == GlobalCommands.JumpNext ) {
+                JumpNext();
+                return true;
+            }
+
+            return false;
         }
     }
 }
