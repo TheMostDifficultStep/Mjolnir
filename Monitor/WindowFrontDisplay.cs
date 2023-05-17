@@ -5,6 +5,8 @@ using Play.Interfaces.Embedding;
 using Play.Forms;
 using Play.Rectangles;
 using Play.Edit;
+using Play.Parse;
+using Play.Parse.Impl;
 
 using SkiaSharp;
 using SkiaSharp.Views.Desktop;
@@ -16,15 +18,16 @@ namespace Monitor {
         }
     }
 
-    public class AssemblyWindow : EditWindow2 {
+    public class LineNumberWindow : EditWindow2 {
         public class FTCacheLineNumber : FTCacheWrap {
-            Line _oHost;
-            int  _iAt;
-            public FTCacheLineNumber( Line oLine, Line oHost ) : base( oLine ) {
-                _oHost = oHost ?? throw new ArgumentNullException( nameof( oHost ) );
+            Line _oHost; // Our special line to hold the line number.
+            int  _iAt;   // the line we are at.
+
+            public FTCacheLineNumber( Line oLine ) : base( oLine ) {
+                _oHost = new TextLine( 0, string.Empty );
             }
 
-            public override void Update(IPgFontRender oFR) {
+            public override void Update(IPgFontRender oFR, IMemoryRange oRange ) {
                 _iAt = _oHost.At;
 
                 Line.Empty();
@@ -43,7 +46,7 @@ namespace Monitor {
             protected override CacheRow CreateRow( Line oLine ) {
                 CacheRow oRow = base.CreateRow( oLine );
 
-                FTCacheLine oElem = new FTCacheLineNumber( new TextLine( 0, string.Empty ), oLine ); 
+                FTCacheLine oElem = new FTCacheLineNumber( oLine ); 
 
                 ElemUpdate2( oElem, _rgColumns[1].Width );
 
@@ -53,17 +56,17 @@ namespace Monitor {
             }
         }
 
-        protected readonly LayoutRect _rctLabelColumns = new LayoutRect( LayoutRect.CSS.Flex ) { Track = 30 };
+        protected readonly LayoutRect _rctLineNumbers = new LayoutRect( LayoutRect.CSS.Flex ) { Track = 30 };
 
-        public AssemblyWindow( IPgViewSite oSite, Editor oEdit ) : base( oSite, oEdit ) {
+        public LineNumberWindow( IPgViewSite oSite, Editor oEdit ) : base( oSite, oEdit ) {
         }
 
         protected override void InitColumns() {
-            _oLayout  .Add( _rctLabelColumns );
+            _oLayout  .Add( _rctLineNumbers );
             _oLayout  .Add( _rctTextArea );   // Main text area.
 
-            _rgColumns.Add( _rctTextArea );
-            _rgColumns.Add( _rctLabelColumns );   
+            _rgColumns.Add( _rctTextArea );   // Text is always the first cache element on a row.
+            _rgColumns.Add( _rctLineNumbers );   // Even if later in the layout.
         }
 
         protected override CacheManager2 CreateCacheManager(uint uiStdText) {
@@ -73,6 +76,114 @@ namespace Monitor {
         }
     }
 
+    public class NumberLabelWindow : LineNumberWindow {
+        public class CacheManagerLabel : CacheManagerAsm {
+            List<IMemoryRange> _rgColumnOffsets = new();
+
+            public CacheManagerLabel( CacheManagerAbstractSite oSite, IPgFontRender oFont, List<SmartRect> rgCols ) :
+                base( oSite, oFont, rgCols ) {
+
+                for( int i=0; i<4; ++i ) {
+                    _rgColumnOffsets.Add( new ColorRange( 0, 0, 0 ) );
+                }
+            }
+
+            protected override CacheRow CreateRow( Line oLine ) {
+                CacheRow oRow = base.CreateRow( oLine );
+
+                FTCacheLine oElem = new FTCacheWrap( oLine ); 
+
+                ElemUpdate2( oElem, _rgColumns[2].Width );
+
+                oRow.CacheList.Add( oElem );
+
+                return oRow;
+            }
+
+            protected void ElemUpdate3( FTCacheLine oElem, int iWidth, IMemoryRange oRange ) {
+			    try {
+				    oElem.Update            ( Font, oRange );
+                    oElem.OnChangeFormatting( null );
+                    oElem.OnChangeSize      ( iWidth );
+			    } catch( Exception oEx ) {
+				    Type[] rgErrors = { typeof( NullReferenceException ),
+									    typeof( ArgumentNullException ),
+                                        typeof( ArgumentOutOfRangeException ) };
+				    if( !rgErrors.Contains( oEx.GetType() ))
+					    throw;
+
+                    _oSite.LogError( "view cache", "Update request on empty element" );
+			    }
+            }
+
+            protected void Organize( CacheRow oRow ) {
+                foreach( ColorRange oRange in _rgColumnOffsets ) {
+                    oRange.Offset = 0;
+                    oRange.Length = 0;
+                }
+
+                foreach( IColorRange oRange in oRow.Line.Formatting ) {
+                    if( oRange is MemoryElem<char> oWord ) {
+                        if( string.Compare(oWord.ID, "labelblock") == 0 ) {
+                            _rgColumnOffsets[1].Offset = oRange.Offset;
+                            _rgColumnOffsets[1].Length = oRange.Length;
+                        }
+                        if( string.Compare(oWord.ID, "instrblock") == 0 ) {
+                            _rgColumnOffsets[2].Offset = oRange.Offset;
+                            _rgColumnOffsets[2].Length = oRange.Length;
+                        }
+                        // Would love this kind of comment to right hand side go clear to right window edge.
+                        if( string.Compare(oWord.ID, "commentline") == 0 ) { 
+                            _rgColumnOffsets[2].Offset = oRange.Offset;
+                            _rgColumnOffsets[2].Length = oRange.Length;
+                        }
+                        if( string.Compare(oWord.ID, "comment") == 0 ) {
+                            _rgColumnOffsets[3].Offset = oRange.Offset;
+                            _rgColumnOffsets[3].Length = oRange.Length;
+                        }
+                    }
+                }
+
+                _rgColumnOffsets[2].Offset = _rgColumnOffsets[1].Offset + _rgColumnOffsets[0].Length;
+            }
+
+            protected override void RowUpdate( CacheRow oRow ) {
+                Organize( oRow );
+                for( int i=0; i< oRow.CacheList.Count; i++ ) {
+                    IMemoryRange oArg = null;
+
+                    if( _rgColumnOffsets[i].Offset > -1 ) {
+                        oArg = _rgColumnOffsets[i];
+                    }
+
+                    ElemUpdate3( oRow.CacheList[i], _rgColumns[i].Width, oArg );
+                }
+            }
+        }
+        protected readonly LayoutRect _rctLabelColumn = new LayoutRect( LayoutRect.CSS.Flex ) { Track = 1 };
+
+        public NumberLabelWindow( IPgViewSite oSite, Editor oEdit ) : base( oSite, oEdit ) {
+        }
+
+        /// <seealso cref="CacheManager2.RowUpdate"/>
+        protected override void InitColumns() {
+            _oLayout  .Add( _rctLineNumbers );
+            _oLayout  .Add( _rctLabelColumn );
+            _oLayout  .Add( _rctTextArea );  
+
+            _rgColumns.Add( _rctTextArea );      // Text is always the first cache element on a row.
+            _rgColumns.Add( _rctLineNumbers );   // Even if later in the layout. The rest must align.
+            _rgColumns.Add( _rctLabelColumn );   // btw layout and columns
+        }
+
+        protected override CacheManager2 CreateCacheManager(uint uiStdText) {
+            return new CacheManagerLabel( new CacheManSlot(this),
+                                        _oStdUI.FontRendererAt(uiStdText),
+                                        _rgColumns );
+        }
+    }
+
+
     internal class WindowFrontPanel : SKControl,
         IPgParent,
         IPgCommandView,
@@ -80,9 +191,9 @@ namespace Monitor {
         IPgSave<XmlDocumentFragment>
     {
         protected MonitorDocument       MonitorDoc { get; }
-        protected LayoutStackHorizontal Layout     { get; } = new LayoutStackHorizontal();
-        protected EditWindow2           WinCommand { get; }
-        protected EditWindow2           WinAssembly { get; }
+        protected LayoutStackHorizontal MyLayout   { get; } = new LayoutStackHorizontal();
+        protected EditWindow2           WinCommand { get; } // machine code..
+        protected EditWindow2           WinAssembly{ get; }
 
         public IPgParent Parentage => _oSiteView.Host;
         public IPgParent Services  => Parentage.Services;
@@ -133,8 +244,8 @@ namespace Monitor {
             _oSiteView = oViewSite   ?? throw new ArgumentNullException();
             MonitorDoc = oMonitorDoc ?? throw new ArgumentNullException( "Monitor document must not be null!" );
 
-            WinCommand  = new AssemblyWindow( new ViewSlot( this ), oMonitorDoc.TextCommands ) { Parent = this };
-            WinAssembly = new AssemblyWindow( new ViewSlot( this ), oMonitorDoc.AssemblyDoc  ) { Parent = this };
+            WinCommand  = new LineNumberWindow ( new ViewSlot( this ), oMonitorDoc.TextCommands ) { Parent = this };
+            WinAssembly = new NumberLabelWindow( new ViewSlot( this ), oMonitorDoc.AssemblyDoc  ) { Parent = this };
         }
 
         public virtual bool InitNew() {
@@ -145,8 +256,11 @@ namespace Monitor {
                 return false;
 
             // Add the memory window and assembly.
-            Layout.Add( new LayoutControl( WinCommand,  LayoutRect.CSS.Percent ) { Track = 30 } );
-            Layout.Add( new LayoutControl( WinAssembly, LayoutRect.CSS.Percent ) { Track = 70 } );
+            MyLayout.Add( new LayoutControl( WinCommand,  LayoutRect.CSS.Percent ) { Track = 30 } );
+            MyLayout.Add( new LayoutControl( WinAssembly, LayoutRect.CSS.Percent ) { Track = 70 } );
+
+            WinCommand .Parent = this;
+            WinAssembly.Parent = this;
 
             OnSizeChanged( new EventArgs() );
 
@@ -157,8 +271,8 @@ namespace Monitor {
         protected override void OnSizeChanged(EventArgs e) {
 			base.OnSizeChanged(e);
             if( Width > 0 && Height > 0 ) {
-			    Layout.SetRect( 0, 0, Width, Height );
-			    Layout.LayoutChildren();
+			    MyLayout.SetRect( 0, 0, Width, Height );
+			    MyLayout.LayoutChildren();
             }
         }
 

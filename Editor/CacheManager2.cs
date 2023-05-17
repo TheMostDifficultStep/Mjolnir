@@ -35,12 +35,12 @@ namespace Play.Edit {
     public class CacheManager2 :         
         IEnumerable<CacheRow>
     {
-        readonly CacheManagerAbstractSite  _oSite      = null;
+        protected readonly CacheManagerAbstractSite  _oSite      = null;
         readonly SmartRect                 _oTextRect  = new SmartRect(); // World coordinates of our view port.
         protected List<CacheRow>           _rgOldCache = new List<CacheRow>();
         protected readonly List<SmartRect> _rgColumns;
 
-                  IPgFontRender Font       { get; }
+        protected IPgFontRender Font       { get; }
         protected IPgGlyph      GlyphLt    { get; } // Our end of line character.
         public    int           FontHeight { get; } // Helps us determine scrolling distances.
 
@@ -353,7 +353,7 @@ namespace Play.Edit {
         /// be editable for now.
         /// </summary>
         /// <param name="oRow"></param>
-        protected void RowUpdate( CacheRow oRow ) {
+        protected virtual void RowUpdate( CacheRow oRow ) {
             for( int i=0; i< oRow.CacheList.Count; i++ ) {
                 if( i == 0 ) {
                     ElemUpdate ( oRow.CacheList[i] );

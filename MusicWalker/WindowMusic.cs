@@ -483,7 +483,7 @@ namespace Play.MusicWalker {
 				if( Document.ErrorsStandardFile.IsUnhandled( oEx ) )
 					throw;
 				AlbumProperties.Clear();
-				_oSiteView.LogError( "internal", "Couldn't load album properties : " + strPropPath, false );
+				//_oSiteView.LogError( "internal", "Couldn't load album properties : " + strPropPath, false );
 			}
 
 			try {
@@ -498,7 +498,7 @@ namespace Play.MusicWalker {
 
 				AlbumArtCurrent.Raise_BitmapDispose();
 
-				_oSiteView.LogError( "internal", "Couldn't load album art : " + strArtPath, false );
+				//_oSiteView.LogError( "internal", "Couldn't load album art : " + strArtPath, false );
 			}
 
 			try {

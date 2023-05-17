@@ -269,6 +269,46 @@ namespace Play.Edit {
         }
     }
 
+    public class CharStream2 : DataStream2<char>, IPgDataStream<char> {
+        public Line Line { get; }
+
+        protected Extent Bounds { get; }
+
+        public override int  Count          => Line.ElementCount;
+        public override char this[int iPos] => Line[iPos];
+
+        public CharStream2( Line oLine ) {
+            Line   = oLine ?? throw new ArgumentNullException();
+            Bounds = new Extent( 0, oLine.ElementCount );
+        }
+        public CharStream2( Line oLine, IMemoryRange oRange ) {
+            Line   = oLine ?? throw new ArgumentNullException();
+
+            if( oRange == null ) {
+                Bounds = new Extent( 0, oLine.ElementCount );
+            } else {
+                Bounds = new Extent( oRange.Offset, oRange.Offset + oRange.Length );
+            }
+
+            if( Bounds.Start < 0 )
+                throw new ArgumentOutOfRangeException( "Start is too low" );
+            if( Bounds.Stop > Line.ElementCount )
+                throw new ArgumentOutOfRangeException( "Stop is too high" );
+        }
+        public override bool InBounds( int p_iPos ) {
+            if( p_iPos  < Bounds.Start )
+                return false;
+            if( p_iPos >= Bounds.Stop )
+                return false;
+
+            return true;
+        }
+
+		public override string SubString( int iPos, int iLen ) {
+            return Line.SubString( iPos, iLen );
+        }
+    }
+
     public delegate void HyperLink ( Line oLine, IPgWordRange oRange );
 
 

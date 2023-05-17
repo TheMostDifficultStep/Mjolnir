@@ -262,7 +262,7 @@ namespace Play.Edit {
 
         // TODO: Move this to a static helper class.
         // https://stackoverflow.com/questions/23919515/how-to-convert-from-utf-16-to-utf-32-on-linux-with-std-library
-        static UInt32 ReadCodepointFrom( CharStream oStream ) 
+        static UInt32 ReadCodepointFrom( DataStream2<char> oStream ) 
         {
           //bool is_surrogate(char uc) { return (uc - 0xd800) < 0x2048; }
             bool is_hi_surrogate(char uc) { return (uc & 0xfffffc00) == 0xd800; }
@@ -338,10 +338,10 @@ namespace Play.Edit {
             }
         }
 
-        protected void LoadCodePoints( IPgFontRender oFR ) {
+        protected void LoadCodePoints( IPgFontRender oFR, IMemoryRange oRange ) {
             _rgGlyphs.Clear();
 
-            CharStream oStream = new CharStream( Line );
+            CharStream2 oStream = new CharStream2( Line, oRange );
             while( oStream.InBounds( oStream.Position ) ) {
                 int      iOffs  = oStream.Position;
                 uint     uiCode = ReadCodepointFrom( oStream );
@@ -369,13 +369,13 @@ namespace Play.Edit {
         /// </summary>
         /// <remarks>Do NOT set the cluster AdvanceLeft, that will be set in WrapSegments() </remarks>
         /// <seealso cref="FTCacheWrap.WrapSegments"/>
-        public virtual void Update( IPgFontRender oFR ) {
+        public virtual void Update( IPgFontRender oFR, IMemoryRange oRange = null ) {
             if( oFR == null )
                 throw new ArgumentNullException();
 
             FontHeight = (int)oFR.FontHeight;
             LineHeight = (int)(FontHeight * 1.2 ); // Make this a intra line property in the future.
-            LoadCodePoints( oFR );
+            LoadCodePoints( oFR, oRange );
 
             _rgClusters.Clear();
             PgCluster oCluster;
