@@ -137,7 +137,7 @@ namespace Play.Integration {
 			try {
 				_oTextGrammar = (Grammer<char>)((IPgGrammers)oDocument.Services).GetGrammer( strLangName );
                 if ( _oTextGrammar == null )
-                    throw new ArgumentOutOfRangeException();
+                    throw new ArgumentOutOfRangeException("Unrecognized grammar name!");
 			} catch ( Exception oEx ) {
                 Type[] rgErrors = { typeof( NullReferenceException ),
                                     typeof( InvalidCastException ),

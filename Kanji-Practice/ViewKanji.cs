@@ -120,13 +120,28 @@ namespace Kanji_Practice {
 
         public bool Execute(Guid sGuid) {
             if( sGuid == GlobalCommands.JumpNext ) {
-                KanjiDoc.JumpNext();
+                KanjiDoc.Jump(1);
+            }
+            if( sGuid == GlobalCommands.JumpPrev ) {
+                KanjiDoc.Jump(-1);
             }
             return false;
         }
 
         public object Decorate(IPgViewSite oBaseSite, Guid sGuid) {
-            return null;
+			try {
+			} catch ( Exception oEx ) {
+				Type[] rgErrors = { typeof( NotImplementedException ),
+									typeof( NullReferenceException ),
+									typeof( ArgumentException ),
+									typeof( ArgumentNullException ) };
+				if( rgErrors.IsUnhandled( oEx ) )
+					throw;
+
+				//LogError( "decor", "Couldn't create EditWin decor: " + sGuid.ToString() );
+			}
+
+            return( null );
         }
 
         public bool Save(XmlDocumentFragment oStream) {

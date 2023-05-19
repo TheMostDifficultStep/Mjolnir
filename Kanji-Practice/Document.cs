@@ -6,6 +6,7 @@ using Play.Interfaces.Embedding;
 using Play.Edit; 
 using Play.Forms;
 using Play.Integration;
+using Play.Parse;
 using Play.Parse.Impl;
 
 namespace Kanji_Practice {
@@ -73,6 +74,8 @@ namespace Kanji_Practice {
         }
 
         protected int _iFlashLine = 0;
+        protected Dictionary<string, CardInfo> _rgCard = new();
+
         public KanjiDocument( IPgBaseSite oSite ) {
             _oBaseSite = oSite ?? throw new ArgumentNullException( "Site to document must not be null." );
 
@@ -81,7 +84,7 @@ namespace Kanji_Practice {
 
 			try {
 				// A parser is matched one per text document we are loading.
-				ParseHandlerText oParser = new ParseHandlerText( FlashCardDoc, "text" );
+				ParseHandlerText oParser = new ParseHandlerText( FlashCardDoc, "flashcard" );
                 _oGrammer = oParser.Grammer;
 			} catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( NullReferenceException ),
@@ -101,9 +104,28 @@ namespace Kanji_Practice {
         public void Dispose() {
         }
 
+        public class CardInfo {
+            readonly public int _iLabel;
+
+            public IMemoryRange _oRange;
+
+            public CardInfo( KanjiProperties.Labels eLabel ) {
+                _iLabel = (int)eLabel;
+                _oRange = null;
+            }
+
+            public override string ToString() {
+                return _iLabel.ToString() + " " + _oRange.ToString();
+            }
+        }
+
         public bool Initialize() {
             if( !FrontDisplay.InitNew() )
                 return false;
+
+            _rgCard.Add( "kanji",    new CardInfo( KanjiProperties.Labels.Kanji ) );
+            _rgCard.Add( "hiragana", new CardInfo( KanjiProperties.Labels.Hiragana ) );
+            _rgCard.Add( "meaning",  new CardInfo( KanjiProperties.Labels.Meaning ) );
 
             return true;
         }
@@ -123,25 +145,68 @@ namespace Kanji_Practice {
         }
 
         public bool Load(TextReader oStream) {
+            if( !FlashCardDoc.Load( oStream ) )
+                return false;
+
             if( !Initialize() ) 
                 return false;
 
             return true;
         }
 
-        public void JumpNext() {
+        public void Jump( int iDir ) {
             using DocProperties.Manipulator oBulk = new ( FrontDisplay );
 
-            _iFlashLine++;
+            if( FlashCardDoc.IsHit( _iFlashLine + iDir ) ) {
+                _iFlashLine += iDir;
 
-            oBulk.SetValue( (int)KanjiProperties.Labels.Kanji, "Hello" + _iFlashLine.ToString() );
-            oBulk.SetValue( (int)KanjiProperties.Labels.Hiragana, "hello" );
-            oBulk.SetValue( (int)KanjiProperties.Labels.Meaning, "this is a meaning." );
+                Line oCard = FlashCardDoc[_iFlashLine];
+
+                FindFormatting( oCard );
+
+                foreach( KeyValuePair<string,CardInfo> oInfo in _rgCard ) {
+                    IMemoryRange oRange = oInfo.Value._oRange;
+                    if( oRange != null ) {
+                        oBulk.SetValue( oInfo.Value._iLabel, oCard.SubString( oRange.Offset, oRange.Length ) );
+                    }
+                }
+
+                Line oKanji = FrontDisplay[ (int)KanjiProperties.Labels.Kanji];
+
+                oKanji.Formatting.Clear();
+                oKanji.Formatting.Add( new ColorRange( 0, oKanji.ElementCount, 2 ) );
+            }
+        }
+
+        public void FindFormatting( Line oLine ) {
+            try {
+                foreach( KeyValuePair<string,CardInfo> oClear in _rgCard ) {
+                    oClear.Value._oRange = null;
+                }
+                foreach( IColorRange oRange in oLine.Formatting ) {
+                    if( oRange is MemoryElem<char> oElem ) {
+                        if( _rgCard.TryGetValue( oElem.ID, out CardInfo oCard ) ) {
+                            oCard._oRange = oRange;
+                        }
+                    }
+                }
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( ArgumentNullException ),
+                                    typeof( KeyNotFoundException ),
+                                    typeof( NullReferenceException ),
+                                    typeof( ArgumentOutOfRangeException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
+            }
         }
 
         public bool Execute(Guid sGuid) {
             if( sGuid == GlobalCommands.JumpNext ) {
-                JumpNext();
+                Jump( 1 );
+                return true;
+            }
+            if( sGuid == GlobalCommands.JumpPrev ) {
+                Jump( -1 );
                 return true;
             }
 

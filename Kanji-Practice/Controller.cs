@@ -3,7 +3,7 @@
 namespace Kanji_Practice {
     public class KanjiController : Controller {
         public KanjiController() {
-            _rgExtensions.Add( ".kanji" );
+            _rgExtensions.Add( ".deck" );
         }
         public override IDisposable CreateDocument(IPgBaseSite oSite, string strExtension) {
             return new KanjiDocument( oSite );
