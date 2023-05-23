@@ -613,7 +613,7 @@ namespace Mjolnir {
                 foreach( FTFace oFaceFallback in _rgFace ) {
                     if( oFaceFallback.ID != oRender.Face.ID ) {
                         if( oFaceFallback.GlyphFromCodePoint( uiCode ) != 0 ) {
-                            FontRender oRenderNew = new FontRender( oFaceFallback, oRender.Resolution, oRender.Height, (uint)_rgRenders.Count );
+                            FontRender oRenderNew = new FontRender( oFaceFallback, oRender.Resolution, oRender.HeightUnmagnified, (uint)_rgRenders.Count );
                             oRenderNew.InitNew();
                             oRenderNew.GlyphLoad( uiCode, out IPgGlyph oGlyphTry );
                             _rgRenders.Add( oRenderNew );
