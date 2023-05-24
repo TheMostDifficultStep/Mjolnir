@@ -8,6 +8,7 @@ using System.Text;
 using System.Reflection;
 using System.Drawing;
 using System.Linq;
+using System.Collections;
 
 using SkiaSharp;
 
@@ -962,10 +963,21 @@ namespace Mjolnir {
             }
         }
 
-        public IEnumerator<string> EnumFileExtensions() 
-        {
-            foreach( KeyValuePair<string,ExtensionMap> oPair in _rgExtensionMap ) {
-                yield return( oPair.Key );
+        public IEnumerable<string> FileExtnList => new FileExtCollection( this );
+
+        public struct FileExtCollection : IEnumerable<string> {
+            private readonly Program _oHost;
+            public FileExtCollection( Program oHost ) {
+                _oHost = oHost ?? throw new ArgumentNullException();
+            }
+            public IEnumerator<string> GetEnumerator() {
+                foreach( KeyValuePair<string,ExtensionMap> oPair in _oHost._rgExtensionMap ) {
+                    yield return( oPair.Key );
+                }
+            }
+
+            IEnumerator IEnumerable.GetEnumerator() {
+                return GetEnumerator();
             }
         }
 

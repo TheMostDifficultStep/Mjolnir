@@ -326,8 +326,8 @@ namespace Mjolnir {
             // This is a little bogus loading from the config file since the user can modify it and
             // botch loading of types at startup.
 			if( fDefaultExtensions ) {
-				for( IEnumerator<string> oEnumExtn = _oProgram.EnumFileExtensions(); oEnumExtn.MoveNext(); ) {
-					_rgExtensions.Add( oEnumExtn.Current );
+				foreach( string strExtn in _oProgram.FileExtnList ) {
+					_rgExtensions.Add( strExtn );
 				}
 			}
         }
