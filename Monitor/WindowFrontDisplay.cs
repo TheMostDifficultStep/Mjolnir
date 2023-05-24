@@ -20,23 +20,20 @@ namespace Monitor {
 
     public class LineNumberWindow : EditWindow2 {
         public class FTCacheLineNumber : FTCacheWrap {
-            Line _oHost; // Our special line to hold the line number.
-            int  _iAt;   // the line we are at.
+            Line _oGuest; // The line we are listing.
 
-            public FTCacheLineNumber( Line oLine ) : base( oLine ) {
-                _oHost = new TextLine( 0, string.Empty );
+            public FTCacheLineNumber( Line oLine, Line oGuest ) : base( oLine ) {
+                _oGuest = oGuest ?? throw new ArgumentNullException( "Guest line must not be null" );
             }
 
             public override void Update(IPgFontRender oFR, IMemoryRange oRange ) {
-                _iAt = _oHost.At;
-
                 Line.Empty();
-                Line.TryAppend( _oHost.At.ToString() );
+                Line.TryAppend( _oGuest.At.ToString() );
 
                 base.Update(oFR);
             }
 
-            public override bool IsInvalid { get => _iAt != _oHost.At; }
+            public override bool IsInvalid { get => _oGuest.At != Line.At; }
         }
         public class CacheManagerAsm : CacheManager2 {
             public CacheManagerAsm( CacheManagerAbstractSite oSite, IPgFontRender oFont, List<SmartRect> rgCols ) :
@@ -46,7 +43,7 @@ namespace Monitor {
             protected override CacheRow CreateRow( Line oLine ) {
                 CacheRow oRow = base.CreateRow( oLine );
 
-                FTCacheLine oElem = new FTCacheLineNumber( oLine ); 
+                FTCacheLine oElem = new FTCacheLineNumber( new TextLine( oLine.At, oLine.At.ToString() ), oLine );
 
                 ElemUpdate2( oElem, _rgColumns[1].Width );
 
@@ -244,8 +241,8 @@ namespace Monitor {
             _oSiteView = oViewSite   ?? throw new ArgumentNullException();
             MonitorDoc = oMonitorDoc ?? throw new ArgumentNullException( "Monitor document must not be null!" );
 
-            WinCommand  = new LineNumberWindow ( new ViewSlot( this ), oMonitorDoc.TextCommands ) { Parent = this };
-            WinAssembly = new NumberLabelWindow( new ViewSlot( this ), oMonitorDoc.AssemblyDoc  ) { Parent = this };
+            WinCommand  = new LineNumberWindow( new ViewSlot( this ), oMonitorDoc.TextCommands ) { Parent = this };
+            WinAssembly = new LineNumberWindow( new ViewSlot( this ), oMonitorDoc.AssemblyDoc  ) { Parent = this };
         }
 
         public virtual bool InitNew() {

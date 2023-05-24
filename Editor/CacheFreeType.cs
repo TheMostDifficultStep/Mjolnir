@@ -356,6 +356,15 @@ namespace Play.Edit {
             }
         }
 
+        protected struct MemoryRange : IMemoryRange {
+            public MemoryRange( int iOffset, int iLength ) {
+                Offset = iOffset;
+                Length = iLength;
+            }
+            public int Offset { get ; set ; }
+            public int Length { get ; set ; }
+        }
+
         /// <summary>
         /// Right now I'm just hacking a simple shaper. Normally I'd get a cluster list
         /// from a shaper. But I'm faking it for fun. Right now the big challenge is this
@@ -372,6 +381,8 @@ namespace Play.Edit {
         public virtual void Update( IPgFontRender oFR, IMemoryRange oRange = null ) {
             if( oFR == null )
                 throw new ArgumentNullException();
+            if( oRange == null )
+                oRange = new MemoryRange( 0, Line.ElementCount );
 
             FontHeight = (int)oFR.FontHeight;
             LineHeight = (int)(FontHeight * 1.2 ); // Make this a intra line property in the future.

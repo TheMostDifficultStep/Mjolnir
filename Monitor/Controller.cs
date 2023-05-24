@@ -14,7 +14,7 @@ using SkiaSharp;
 namespace Monitor {
     public class MonitorController : Controller {
         public MonitorController() {
-            _rgExtensions.Add( ".nibble" );
+            _rgExtensions.Add( ".asmtest" );
         }
         public override IDisposable CreateDocument(IPgBaseSite oSite, string strExtension) {
             return new MonitorDocument( oSite );
@@ -348,11 +348,14 @@ namespace Monitor {
         }
 
         public bool Save(TextWriter oStream) {
-            return TextCommands.Save( oStream );
+            return AssemblyDoc.Save( oStream );
         }
 
         public bool Load(TextReader oStream) {
-            if( !TextCommands.Load( oStream ) )
+            if( !AssemblyDoc.Load( oStream ) )
+                return false;
+
+            if( !TextCommands.InitNew() )
                 return false;
 
             if( !Initialize() ) 
