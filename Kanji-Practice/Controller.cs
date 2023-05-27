@@ -1,7 +1,11 @@
 ﻿using Play.Interfaces.Embedding;
+using Play.Edit;
 
 namespace Kanji_Practice {
     public class KanjiController : Controller {
+
+        public static Guid ViewPlainCardStackGuid = new Guid( "{3729DF52-4724-43B1-82E4-1148D84A9FDA}" );
+
         public KanjiController() {
             _rgExtensions.Add( ".deck" );
         }
@@ -12,7 +16,12 @@ namespace Kanji_Practice {
         public override IDisposable CreateView(IPgViewSite oViewSite, object oDocument, Guid guidViewType) {
             if( oDocument is KanjiDocument oKanjiDoc ) {
 			    try {
-				    return new ViewKanji( oViewSite, oKanjiDoc );
+                    if( guidViewType == Guid.Empty ) {
+				        return new ViewKanji( oViewSite, oKanjiDoc );
+                    }
+                    if( guidViewType == ViewPlainCardStackGuid ) {
+                        return new EditWindow2( oViewSite, oKanjiDoc.FlashCardDoc );
+                    }
                 } catch( Exception oEx ) {
                     Type[] rgErrors = { typeof( NullReferenceException ),
                                         typeof( InvalidCastException ),
@@ -28,6 +37,7 @@ namespace Kanji_Practice {
 
         public override IEnumerator<IPgViewType> GetEnumerator() {
  	        yield return new ViewType( "MainView", Guid.Empty );
+            yield return new ViewType( "Card Stack", ViewPlainCardStackGuid );
         }
     }
 }

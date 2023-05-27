@@ -3,12 +3,8 @@ using System.Windows.Forms;
 
 
 using Play.Interfaces.Embedding;
-using Play.Edit; 
 using Play.Forms;
 using Play.Rectangles;
-using Play.Integration;
-using Play.Parse;
-using Play.Parse.Impl;
 
 using SkiaSharp;
 

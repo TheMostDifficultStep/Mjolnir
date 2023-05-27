@@ -44,13 +44,12 @@ namespace Kanji_Practice {
     {
         protected readonly IPgBaseSite _oBaseSite;
 
-        protected readonly Grammer<char> _oGrammer;
         public bool IsDirty => false;
 
         public IPgParent Parentage => _oBaseSite.Host;
         public IPgParent Services  => Parentage.Services;
 
-        public Editor        FlashCardDoc  { get; }
+        public EditorWithParser        FlashCardDoc  { get; }
 
         public DocProperties FrontDisplay { get; }
 
@@ -79,13 +78,12 @@ namespace Kanji_Practice {
         public KanjiDocument( IPgBaseSite oSite ) {
             _oBaseSite = oSite ?? throw new ArgumentNullException( "Site to document must not be null." );
 
-            FlashCardDoc  = new Editor         ( new DocSlot( this ) ); // The raw stack of flash cards.
-            FrontDisplay  = new KanjiProperties( new DocSlot( this ) ); // The basic form Kanji, Hiragana, Description.
+            FlashCardDoc  = new EditorWithParser( new DocSlot( this ) ); // The raw stack of flash cards.
+            FrontDisplay  = new KanjiProperties ( new DocSlot( this ) ); // The basic form Kanji, Hiragana, Description.
 
 			try {
 				// A parser is matched one per text document we are loading.
-				ParseHandlerText oParser = new ParseHandlerText( FlashCardDoc, "flashcard" );
-                _oGrammer = oParser.Grammer;
+				FlashCardDoc.ParseHandler = new ParseHandlerText( FlashCardDoc, "flashcard" );
 			} catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( NullReferenceException ),
                                     typeof( InvalidCastException ),
@@ -107,7 +105,7 @@ namespace Kanji_Practice {
         public class CardInfo {
             readonly public int _iLabel;
 
-            public IMemoryRange _oRange;
+            public IMemoryRange ? _oRange;
 
             public CardInfo( KanjiProperties.Labels eLabel ) {
                 _iLabel = (int)eLabel;
@@ -115,7 +113,15 @@ namespace Kanji_Practice {
             }
 
             public override string ToString() {
-                return _iLabel.ToString() + " " + _oRange.ToString();
+                StringBuilder sb = new StringBuilder();
+
+                sb.Append( _iLabel.ToString() );
+                if( _oRange != null ) {
+                    sb.Append( ' ' );
+                    sb.Append( _oRange.ToString() );
+                }
+
+                return sb.ToString();
             }
         }
 
