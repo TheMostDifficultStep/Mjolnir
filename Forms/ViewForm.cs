@@ -352,6 +352,8 @@ namespace Play.Forms {
         public    uint             StdText  { get; set; }
         protected IPgStandardUI2   StdUI    { get; }
 
+        public    virtual uint     StdFontSize { get; set; } = 12;
+
         public HyperlinkCollection Links { get; } = new ();
         public int[]               TabOrder { get; set; } = null;
 
@@ -405,7 +407,7 @@ namespace Play.Forms {
                 oInfo = oMainWin.MainDisplayInfo;
             }
 
-            StdText = StdUI.FontCache(StdUI.FaceCache(@"C:\windows\fonts\consola.ttf"), 12, oInfo.pntDpi);
+            StdText = StdUI.FontCache(StdUI.FaceCache(@"C:\windows\fonts\consola.ttf"), StdFontSize, oInfo.pntDpi);
 
             return true;
         }

@@ -59,9 +59,10 @@ namespace Kanji_Practice {
             base( oViewSite, oMonitorDoc.FrontDisplay.PropertyDoc ) 
         {
             KanjiDoc      = oMonitorDoc ?? throw new ArgumentNullException( "Monitor document must not be null!" );
+            StdFontSize   = 30;
 
             Layout        = new LayoutStackHorizontal() { Units = LayoutRect.CSS.Flex };
-            CenterDisplay = new WindowStandardProperties( new ViewSlot( this ), KanjiDoc.FrontDisplay );
+            CenterDisplay = new WindowStandardProperties( new ViewSlot( this ), KanjiDoc.FrontDisplay ) { StdFontSize = this.StdFontSize };
 
             CenterDisplay.Parent = this;
         }
