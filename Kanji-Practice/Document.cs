@@ -147,7 +147,7 @@ namespace Kanji_Practice {
         }
 
         public bool Save(TextWriter oStream) {
-            return true;
+            return FlashCardDoc.Save( oStream );
         }
 
         public bool Load(TextReader oStream) {
