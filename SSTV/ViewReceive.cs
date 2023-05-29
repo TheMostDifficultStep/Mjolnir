@@ -26,7 +26,7 @@ namespace Play.SSTV {
      {
         public DocSSTV SSTVDocument { get; }
 
-        public readonly ComboBox _ddSSTVMode   = new ComboBox();
+        public readonly ComboBox _ddSSTVMode   = new ComboBox(); // Set parent??
         public readonly ComboBox _ddSSTVFamily = new ComboBox();
 
 		protected readonly Dictionary<TVFamily, int > _rgFamilyLookup = new ();

@@ -1,22 +1,93 @@
 ﻿using System.Xml;
 using System.Windows.Forms;
 
-
 using Play.Interfaces.Embedding;
 using Play.Forms;
 using Play.Rectangles;
+using Play.ImageViewer;
 
 using SkiaSharp;
 
 namespace Kanji_Practice {
+    public class ViewScratchPad : ImageViewSingle {
+        readonly SKCanvas _oCanvas;
+        readonly SKPaint  _oPaint;
+        protected SKPoint _pntAspect   = SKPoint.Empty;
+        protected SKPoint _pntPrevious = SKPoint.Empty;
+        public ViewScratchPad(IPgViewSite oSiteBase, ImageBaseDoc oDocSolo) : base(oSiteBase, oDocSolo) {
+            _oCanvas = new SKCanvas( oDocSolo.Bitmap );
+            _oPaint  = new SKPaint() { Color = SKColors.Black };
+        }
+
+        protected override void Dispose(bool fDisposing) {
+            if( !_fDisposed ) {
+                _oCanvas.Dispose();
+                _oPaint .Dispose();
+            }
+            base.Dispose(fDisposing);
+        }
+
+        protected override void OnSizeChanged(EventArgs e) {
+            base.OnSizeChanged(e);
+
+			_pntAspect = new SKPoint( Document.Bitmap.Width  / (float)_rctViewPort.Width,
+									  Document.Bitmap.Height / (float)_rctViewPort.Height );
+        }
+
+        protected override void OnMouseDown(MouseEventArgs e) {
+            base.OnMouseDown(e);
+
+            if( e.Button == MouseButtons.Left ) {
+                _pntPrevious = new SKPoint( e.X * _pntAspect.X, e.Y * _pntAspect.Y );
+            }
+        }
+
+        protected override void OnMouseMove(MouseEventArgs e) {
+            if( e.Button == MouseButtons.Left ) {
+                SKPoint pntNext = new SKPoint( e.X * _pntAspect.X, e.Y * _pntAspect.Y );
+
+                _oCanvas.DrawLine( _pntPrevious, pntNext, _oPaint );
+                _pntPrevious = pntNext;
+                Invalidate();
+            }
+        }
+    }
+
     internal class KanjiMagnify : WindowStandardProperties {
         protected uint BigFont { get; } 
-        public KanjiMagnify( IPgViewSite oSite, DocProperties oProperties ) : base( oSite, oProperties ) {
+        protected ImageViewSingle ViewScratch { get; }
+
+        public KanjiMagnify( IPgViewSite oSite, DocProperties oProperties, KanjiScratch oScratchDoc ) : base( oSite, oProperties ) {
             IPgMainWindow.PgDisplayInfo oInfo = new IPgMainWindow.PgDisplayInfo();
             if( _oSiteView.Host.TopWindow is IPgMainWindow oMainWin ) {
                 oInfo = oMainWin.MainDisplayInfo;
             }
             BigFont = StdUI.FontCache( StdFace, 30, oInfo.pntDpi );
+
+            ViewScratch = new ViewScratchPad( new WinSlot( this ), oScratchDoc );
+            ViewScratch.Parent = this;
+        }
+
+        public override void InitRows() {
+			int[] rgShow = { 
+				(int)KanjiProperties.Labels.Kanji,
+                (int)KanjiProperties.Labels.Hiragana,
+                (int)KanjiProperties.Labels.Meaning
+			};
+
+			base.InitRows( rgShow );
+
+			try {
+				PropertyInitRow( Layout as LayoutTable, 
+								 (int)KanjiProperties.Labels.Scratch, 
+								 ViewScratch );
+			} catch ( Exception oEx ) {
+				Type[] rgErrors = { typeof( NullReferenceException ),
+									typeof( ArgumentOutOfRangeException ) };
+				if( rgErrors.IsUnhandled( oEx ) )
+					throw;
+				LogError( "Unable to set up receive mode selectors" );
+            }
         }
 
         public override bool InitNew() {
@@ -93,7 +164,7 @@ namespace Kanji_Practice {
             KanjiDoc      = oMonitorDoc ?? throw new ArgumentNullException( "Monitor document must not be null!" );
 
             Layout        = new LayoutStackHorizontal() { Units = LayoutRect.CSS.Flex };
-            CenterDisplay = new KanjiMagnify( new ViewSlot( this ), KanjiDoc.FrontDisplay ) ;
+            CenterDisplay = new KanjiMagnify( new ViewSlot( this ), KanjiDoc.FrontDisplay, KanjiDoc.ScratchPad ) ;
 
             CenterDisplay.Parent = this;
         }

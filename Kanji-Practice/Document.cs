@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.Text;
 
 using Play.Interfaces.Embedding;
 using Play.Edit; 
@@ -8,13 +6,39 @@ using Play.Forms;
 using Play.Integration;
 using Play.Parse;
 using Play.Parse.Impl;
+using Play.ImageViewer;
+
+using SkiaSharp;
 
 namespace Kanji_Practice {
+    public class KanjiScratch : ImageSoloDoc {
+        public KanjiScratch(IPgBaseSite oSiteBase) : base(oSiteBase) {
+        }
+
+        public override bool InitNew() {
+            if( !base.InitNew() )
+                return false;
+
+            Bitmap = new SKBitmap( 200, 200, SkiaSharp.SKColorType.Gray8, SkiaSharp.SKAlphaType.Opaque );
+
+            return true;
+        }
+
+        public void Clear() {
+            using SKCanvas oCanvas = new SKCanvas( Bitmap );
+
+            oCanvas.Clear( SKColors.White );
+
+            Raise_ImageUpdated();
+        }
+
+    }
     public class KanjiProperties : DocProperties {
 		public enum Labels : int {
 			Kanji = 0,
 			Hiragana,
 			Meaning,
+            Scratch
 		}
 
         public KanjiProperties(IPgBaseSite oSiteBase) : base(oSiteBase) {
@@ -51,6 +75,7 @@ namespace Kanji_Practice {
 
         public EditorWithParser FlashCardDoc  { get; }
         public DocProperties    FrontDisplay { get; }
+        public KanjiScratch     ScratchPad   { get; }
 
         public class DocSlot :
             IPgBaseSite
@@ -79,6 +104,7 @@ namespace Kanji_Practice {
 
             FlashCardDoc  = new EditorWithParser( new DocSlot( this ) ); // The raw stack of flash cards.
             FrontDisplay  = new KanjiProperties ( new DocSlot( this ) ); // The basic form Kanji, Hiragana, Description.
+            ScratchPad    = new KanjiScratch    ( new DocSlot( this ) ); // Practice writing area.
 
 			try {
 				// A parser is matched one per text document we are loading.
@@ -127,6 +153,8 @@ namespace Kanji_Practice {
 
         public bool Initialize() {
             if( !FrontDisplay.InitNew() )
+                return false;
+            if( !ScratchPad.InitNew() )
                 return false;
 
             _rgCard.Add( new CardInfo( "kanji",    KanjiProperties.Labels.Kanji    ) );
@@ -198,6 +226,10 @@ namespace Kanji_Practice {
 
                 oKanji.Formatting.Clear();
                 oKanji.Formatting.Add( new ColorRange( 0, oKanji.ElementCount, 2 ) );
+
+                if( !fShowAll ) {
+                    ScratchPad.Clear();
+                }
             }
         }
 
