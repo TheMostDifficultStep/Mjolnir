@@ -156,6 +156,8 @@ namespace Kanji_Practice {
             if( !Initialize() ) 
                 return false;
 
+            Jump( 0 );
+
             return true;
         }
 
