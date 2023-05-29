@@ -28,9 +28,9 @@ namespace Kanji_Practice {
 				CreatePropertyPair( eLabel.ToString() );
             }
 
-            ValueUpdate( (int)Labels.Kanji,    "彼女"   );
-			ValueUpdate( (int)Labels.Hiragana, "かのじょ"    );
-			ValueUpdate( (int)Labels.Meaning,  "she, her, girlfriend​"   );
+            //ValueUpdate( (int)Labels.Kanji,    "彼女"   );
+			//ValueUpdate( (int)Labels.Hiragana, "かのじょ"    );
+			//ValueUpdate( (int)Labels.Meaning,  "she, her, girlfriend​"   );
 
 			return true;
         }
@@ -72,7 +72,7 @@ namespace Kanji_Practice {
         }
 
         protected int _iFlashLine = 0;
-        protected Dictionary<string, CardInfo> _rgCard = new();
+        protected List< CardInfo > _rgCard = new();
 
         public KanjiDocument( IPgBaseSite oSite ) {
             _oBaseSite = oSite ?? throw new ArgumentNullException( "Site to document must not be null." );
@@ -102,22 +102,23 @@ namespace Kanji_Practice {
         }
 
         public class CardInfo {
-            readonly public int _iLabel;
+            public KanjiProperties.Labels Label    { get; }
+            public string                 FormatID { get; }
+            public IMemoryRange ?         Range    { get; set; }
 
-            public IMemoryRange ? _oRange;
-
-            public CardInfo( KanjiProperties.Labels eLabel ) {
-                _iLabel = (int)eLabel;
-                _oRange = null;
+            public CardInfo( string strFormatID, KanjiProperties.Labels eLabel ) {
+                FormatID = strFormatID;
+                Label    = eLabel;
+                Range    = null;
             }
 
             public override string ToString() {
                 StringBuilder sb = new StringBuilder();
 
-                sb.Append( _iLabel.ToString() );
-                if( _oRange != null ) {
+                sb.Append( Label.ToString() );
+                if( Range != null ) {
                     sb.Append( ' ' );
-                    sb.Append( _oRange.ToString() );
+                    sb.Append( Range.ToString() );
                 }
 
                 return sb.ToString();
@@ -128,11 +129,17 @@ namespace Kanji_Practice {
             if( !FrontDisplay.InitNew() )
                 return false;
 
-            _rgCard.Add( "kanji",    new CardInfo( KanjiProperties.Labels.Kanji ) );
-            _rgCard.Add( "hiragana", new CardInfo( KanjiProperties.Labels.Hiragana ) );
-            _rgCard.Add( "meaning",  new CardInfo( KanjiProperties.Labels.Meaning ) );
+            _rgCard.Add( new CardInfo( "kanji",    KanjiProperties.Labels.Kanji    ) );
+            _rgCard.Add( new CardInfo( "hiragana", KanjiProperties.Labels.Hiragana ) );
+            _rgCard.Add( new CardInfo( "meaning" , KanjiProperties.Labels.Meaning  ) );
+
+            FlashCardDoc.BufferEvent += FlashCardDoc_BufferEvent;
 
             return true;
+        }
+
+        private void FlashCardDoc_BufferEvent(BUFFEREVENTS eEvent) {
+            Jump( 0 );
         }
 
         public bool InitNew() {
@@ -161,20 +168,29 @@ namespace Kanji_Practice {
             return true;
         }
 
-        public void Jump( int iDir ) {
-            using DocProperties.Manipulator oBulk = new ( FrontDisplay );
-
+        public void Jump( int iDir, bool fShowAll = false ) {
             if( FlashCardDoc.IsHit( _iFlashLine + iDir ) ) {
+                using DocProperties.Manipulator oBulk = new ( FrontDisplay );
+
                 _iFlashLine += iDir;
 
                 Line oCard = FlashCardDoc[_iFlashLine];
 
                 FindFormatting( oCard );
 
-                foreach( KeyValuePair<string,CardInfo> oInfo in _rgCard ) {
-                    IMemoryRange oRange = oInfo.Value._oRange;
+                foreach( CardInfo oInfo in _rgCard ) {
+                    IMemoryRange oRange = oInfo.Range!;
                     if( oRange != null ) {
-                        oBulk.SetValue( oInfo.Value._iLabel, oCard.SubString( oRange.Offset, oRange.Length ) );
+                        string strValue = oCard.SubString( oRange.Offset, oRange.Length );
+                        
+                        if( !fShowAll ) {
+                            if( oInfo.Label == KanjiProperties.Labels.Hiragana )
+                                strValue = String.Empty;
+                            if( oInfo.Label == KanjiProperties.Labels.Meaning )
+                                strValue = String.Empty;
+                        }
+
+                        oBulk.SetValue( (int)oInfo.Label, strValue );
                     }
                 }
 
@@ -187,13 +203,15 @@ namespace Kanji_Practice {
 
         public void FindFormatting( Line oLine ) {
             try {
-                foreach( KeyValuePair<string,CardInfo> oClear in _rgCard ) {
-                    oClear.Value._oRange = null;
+                foreach( CardInfo oClear in _rgCard ) {
+                    oClear.Range = null;
                 }
                 foreach( IColorRange oRange in oLine.Formatting ) {
                     if( oRange is MemoryElem<char> oElem ) {
-                        if( _rgCard.TryGetValue( oElem.ID, out CardInfo oCard ) ) {
-                            oCard._oRange = oRange;
+                        foreach( CardInfo oInfo in _rgCard ) {
+                            if( string.Compare( oInfo.FormatID, oElem.ID ) == 0 ) {
+                                oInfo.Range = oRange;
+                            }
                         }
                     }
                 }
@@ -214,6 +232,10 @@ namespace Kanji_Practice {
             }
             if( sGuid == GlobalCommands.JumpPrev ) {
                 Jump( -1 );
+                return true;
+            }
+            if( sGuid == GlobalCommands.Play ) {
+                Jump( 0, fShowAll:true );
                 return true;
             }
 

@@ -151,6 +151,9 @@ namespace Kanji_Practice {
             if( sGuid == GlobalCommands.JumpPrev ) {
                 KanjiDoc.Jump(-1);
             }
+            if( sGuid == GlobalCommands.Play ) {
+                KanjiDoc.Jump( 0, fShowAll:true );
+            }
             return false;
         }
 
