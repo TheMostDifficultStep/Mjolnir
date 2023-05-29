@@ -61,6 +61,7 @@ namespace Play.Forms {
         public SimpleRange Selection { get; } = new SimpleRange(0);
         public SKColor     BgColor { get; set; } = SKColors.LightGray;
         public SKColor     FgColor { get; set; } = SKColors.Red;
+        public uint        FontID  { get; set; } = uint.MaxValue;
 
         // Normally selection lives on the view, but I'll put it here for forms for now.
         protected ILineSelection[] _rgSelections = new ILineSelection[1];
@@ -349,7 +350,7 @@ namespace Play.Forms {
 
         protected Editor           DocForms { get; }
         //protected SimpleCacheCaret Caret    { get; }
-        public    uint             StdText  { get; set; }
+        public    uint             StdFont  { get; }
         public    ushort           StdFace  { get; }
         protected IPgStandardUI2   StdUI    { get; }
 
@@ -370,6 +371,13 @@ namespace Play.Forms {
             StdUI        = (IPgStandardUI2)oSiteView.Host.Services;
 
             StdFace = StdUI.FaceCache(@"C:\windows\fonts\consola.ttf");
+
+            IPgMainWindow.PgDisplayInfo oInfo = new IPgMainWindow.PgDisplayInfo();
+            if( _oSiteView.Host.TopWindow is IPgMainWindow oMainWin ) {
+                oInfo = oMainWin.MainDisplayInfo;
+            }
+
+            StdFont = StdUI.FontCache( StdFace, StdFontSize, oInfo.pntDpi );
 
             Array.Sort<Keys>(_rgHandledKeys);
         }
@@ -404,13 +412,6 @@ namespace Play.Forms {
 
             DocForms.BufferEvent += OnDocumentEvent;
             DocForms.CaretAdd( this ); // Document moves our caret and keeps it in sync.
-
-            IPgMainWindow.PgDisplayInfo oInfo = new IPgMainWindow.PgDisplayInfo();
-            if( _oSiteView.Host.TopWindow is IPgMainWindow oMainWin ) {
-                oInfo = oMainWin.MainDisplayInfo;
-            }
-
-            StdText = StdUI.FontCache( StdFace, StdFontSize, oInfo.pntDpi );
 
             return true;
         }
@@ -460,6 +461,13 @@ namespace Play.Forms {
             return szSize;
         }
 
+        protected IPgFontRender GetFont( uint uiFontID ) {
+            if( uiFontID == uint.MaxValue )
+                return StdUI.FontRendererAt( StdFont );
+
+            return StdUI.FontRendererAt( uiFontID );
+        }
+
         /// <summary>
         /// Just update the entire cache. TODO: Just update the items that
         /// have changed.
@@ -470,11 +478,11 @@ namespace Play.Forms {
                 case BUFFEREVENTS.SINGLELINE:
                 case BUFFEREVENTS.MULTILINE:
                     {
-                        IPgFontRender oRender = StdUI.FontRendererAt( StdText );
-                        foreach( LayoutSingleLine oCache in CacheList ) {
-                            oCache.Cache.Update( oRender );
-                            oCache.OnChangeFormatting();
-                            oCache.Cache.OnChangeSize( oCache.Width );
+                        // IPgFontRender oStdRender = StdUI.FontRendererAt( StdFont );
+                        foreach( LayoutSingleLine oLayout in CacheList ) {
+                            oLayout.Cache.Update( GetFont( oLayout.FontID ) );
+                            oLayout.OnChangeFormatting();
+                            oLayout.Cache.OnChangeSize( oLayout.Width );
                         }
                         // No need to parse anything for word wrapping since I
                         // have implemented new word wrap code in the editor code.
@@ -830,7 +838,7 @@ namespace Play.Forms {
             _oSiteView.EventChain.NotifyFocused(true);
 
             // Not perfect but getting better...
-            int iCaratHeight = (int)(StdUI.FontRendererAt( StdText ).LineHeight );
+            int iCaratHeight = (int)(StdUI.FontRendererAt( StdFont ).LineHeight );
 
             User32.CreateCaret( this.Handle, IntPtr.Zero, 2, iCaratHeight );
             CaretIconRefresh(); 

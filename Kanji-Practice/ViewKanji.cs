@@ -9,6 +9,38 @@ using Play.Rectangles;
 using SkiaSharp;
 
 namespace Kanji_Practice {
+    internal class KanjiMagnify : WindowStandardProperties {
+        protected uint BigFont { get; } 
+        public KanjiMagnify( IPgViewSite oSite, DocProperties oProperties ) : base( oSite, oProperties ) {
+            IPgMainWindow.PgDisplayInfo oInfo = new IPgMainWindow.PgDisplayInfo();
+            if( _oSiteView.Host.TopWindow is IPgMainWindow oMainWin ) {
+                oInfo = oMainWin.MainDisplayInfo;
+            }
+            BigFont = StdUI.FontCache( StdFace, 30, oInfo.pntDpi );
+        }
+
+        public override bool InitNew() {
+            if( !base.InitNew() ) 
+                return false;
+
+            LabelValuePair oKanjiPair = Document.GetPropertyPair( (int)KanjiProperties.Labels.Kanji );
+            LabelValuePair oHiragPair = Document.GetPropertyPair( (int)KanjiProperties.Labels.Hiragana );
+
+            foreach( LayoutSingleLine oLayout in CacheList ) {
+                if( oLayout.Cache.Line == oKanjiPair._oValue   ) {
+                    oLayout.FontID = BigFont;
+                }
+                if( oLayout.Cache.Line == oHiragPair._oValue   ) {
+                    oLayout.FontID = BigFont;
+                }
+            }
+
+            OnDocumentEvent( BUFFEREVENTS.FORMATTED );
+
+            return true;
+        }
+    }
+
     internal class ViewKanji: FormsWindow,
         IPgParent,
         IPgCommandView,
@@ -59,10 +91,9 @@ namespace Kanji_Practice {
             base( oViewSite, oMonitorDoc.FrontDisplay.PropertyDoc ) 
         {
             KanjiDoc      = oMonitorDoc ?? throw new ArgumentNullException( "Monitor document must not be null!" );
-            StdFontSize   = 30;
 
             Layout        = new LayoutStackHorizontal() { Units = LayoutRect.CSS.Flex };
-            CenterDisplay = new WindowStandardProperties( new ViewSlot( this ), KanjiDoc.FrontDisplay ) { StdFontSize = this.StdFontSize };
+            CenterDisplay = new KanjiMagnify( new ViewSlot( this ), KanjiDoc.FrontDisplay ) ;
 
             CenterDisplay.Parent = this;
         }
@@ -80,8 +111,6 @@ namespace Kanji_Practice {
                 oStack.Add( new LayoutControl( CenterDisplay, LayoutRect.CSS.None ) );
                 oStack.Add( new LayoutRect   ( LayoutRect.CSS.Pixels ) { Track = 50 } );
             }
-
-            OnDocumentEvent( BUFFEREVENTS.MULTILINE );
 
             //KanjiDoc.RefreshScreen += OnRefreshScreen_MonDoc;
             return true;
@@ -138,7 +167,7 @@ namespace Kanji_Practice {
 				//LogError( "decor", "Couldn't create EditWin decor: " + sGuid.ToString() );
 			}
 
-            return( null );
+            return( null! );
         }
 
         public bool Save(XmlDocumentFragment oStream) {

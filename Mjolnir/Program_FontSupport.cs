@@ -322,6 +322,9 @@ namespace Mjolnir {
     /// if the current font does not support the character (square box). That font character
     /// will be stored in the corresponding FontRenderer for it.
     /// </summary>
+    /// <remarks>I used to use a stub seperately which implemented the IPgFontRenderer to
+    /// provide font fallback. But it really didn't do much that this object could not
+    /// do if I simply give it a pointer to the face manager.</remarks>
     public class FontRender : IPgFontRender {
         public FTManager Manager    { get; }
         public FTFace    Face       { get; }
