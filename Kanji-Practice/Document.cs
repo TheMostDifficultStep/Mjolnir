@@ -44,14 +44,13 @@ namespace Kanji_Practice {
     {
         protected readonly IPgBaseSite _oBaseSite;
 
-        public bool IsDirty => false;
+        public bool IsDirty => FlashCardDoc.IsDirty;
 
         public IPgParent Parentage => _oBaseSite.Host;
         public IPgParent Services  => Parentage.Services;
 
-        public EditorWithParser        FlashCardDoc  { get; }
-
-        public DocProperties FrontDisplay { get; }
+        public EditorWithParser FlashCardDoc  { get; }
+        public DocProperties    FrontDisplay { get; }
 
         public class DocSlot :
             IPgBaseSite
