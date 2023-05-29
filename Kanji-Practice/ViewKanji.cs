@@ -43,6 +43,7 @@ namespace Kanji_Practice {
         }
 
         protected override void OnMouseMove(MouseEventArgs e) {
+            Cursor = Cursors.Arrow;
             if( e.Button == MouseButtons.Left ) {
                 SKPoint pntNext = new SKPoint( e.X * _pntAspect.X, e.Y * _pntAspect.Y );
 
