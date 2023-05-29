@@ -116,7 +116,7 @@ namespace Play.ImageViewer {
         protected readonly SmartRect           _oTextRect      = new SmartRect();
         protected readonly ScrollBar2          _oScrollBarVirt;
         protected readonly List<ImageLineBase> _rgThumbs       = new List<ImageLineBase>();
-        protected          uint                _uiStdText      = 0;
+        protected          uint                _uiStdFont      = 0;
 
         protected       int  _iImgHeight   = 100;
         protected const int  _iMarginLeft  = 5;
@@ -196,7 +196,7 @@ namespace Play.ImageViewer {
                 oInfo = oMainWin.MainDisplayInfo;
             }
 
-            _uiStdText = _oStdUI.FontCache( _oStdUI.FaceCache( @"C:\windows\fonts\consola.ttf" ), 12, oInfo.pntDpi );
+            _uiStdFont = _oStdUI.FontCache( _oStdUI.FaceCache( @"C:\windows\fonts\consola.ttf" ), 12, oInfo.pntDpi );
             _oStdUI.FaceCache(@"C:\Windows\Fonts\UDDigiKyokashoN-R.ttc"); // BUG: Let's add this at program level for fallback.
 
             OnTextLoaded(); // the text is available, the thumbs will come along later.
@@ -651,14 +651,14 @@ namespace Play.ImageViewer {
         }
 
         protected void ThumbsTextUpdate() {
-            using( IPgFontRender oFR = _oStdUI.FontRendererAt( _uiStdText ) ) {
-                foreach( FTCacheLine oCache in _oTextCache ) {
-                    //Document.FileList.WordBreak(oCache.Line, oCache.Words); // BUG: Need to see why not see text on first boot.
+            IPgFontRender oFR = _oStdUI.FontRendererAt( _uiStdFont );
 
-                    oCache.Update( oFR );
-                    oCache.OnChangeFormatting( null );
-                    oCache.OnChangeSize( _iImgHeight - 16 ); // BUG remove hard coded deal.
-                }
+            foreach( FTCacheLine oCache in _oTextCache ) {
+                //Document.FileList.WordBreak(oCache.Line, oCache.Words); // BUG: Need to see why not see text on first boot.
+
+                oCache.Update( oFR );
+                oCache.OnChangeFormatting( null );
+                oCache.OnChangeSize( _iImgHeight - 16 ); // BUG remove hard coded deal.
             }
         }
 

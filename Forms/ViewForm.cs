@@ -350,6 +350,7 @@ namespace Play.Forms {
         protected Editor           DocForms { get; }
         //protected SimpleCacheCaret Caret    { get; }
         public    uint             StdText  { get; set; }
+        public    ushort           StdFace  { get; }
         protected IPgStandardUI2   StdUI    { get; }
 
         public    virtual uint     StdFontSize { get; set; } = 12;
@@ -367,6 +368,8 @@ namespace Play.Forms {
             _oViewEvents = oSiteView.EventChain ?? throw new ArgumentException("Site.EventChain must support IPgViewSiteEvents");
             DocForms     = oDocForms ?? throw new ArgumentNullException( "Forms needs a text buffer" );
             StdUI        = (IPgStandardUI2)oSiteView.Host.Services;
+
+            StdFace = StdUI.FaceCache(@"C:\windows\fonts\consola.ttf");
 
             Array.Sort<Keys>(_rgHandledKeys);
         }
@@ -407,7 +410,7 @@ namespace Play.Forms {
                 oInfo = oMainWin.MainDisplayInfo;
             }
 
-            StdText = StdUI.FontCache(StdUI.FaceCache(@"C:\windows\fonts\consola.ttf"), StdFontSize, oInfo.pntDpi);
+            StdText = StdUI.FontCache( StdFace, StdFontSize, oInfo.pntDpi );
 
             return true;
         }
@@ -827,7 +830,7 @@ namespace Play.Forms {
             _oSiteView.EventChain.NotifyFocused(true);
 
             // Not perfect but getting better...
-            int iCaratHeight = (int)(StdUI.FontRendererAt( StdText ).FontHeight );
+            int iCaratHeight = (int)(StdUI.FontRendererAt( StdText ).LineHeight );
 
             User32.CreateCaret( this.Handle, IntPtr.Zero, 2, iCaratHeight );
             CaretIconRefresh(); 

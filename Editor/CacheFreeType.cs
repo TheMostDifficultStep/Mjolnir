@@ -384,7 +384,7 @@ namespace Play.Edit {
             if( oRange == null )
                 oRange = new MemoryRange( 0, Line.ElementCount );
 
-            FontHeight = (int)oFR.FontHeight;
+            FontHeight = (int)oFR.LineHeight;
             LineHeight = (int)(FontHeight * 1.2 ); // Make this a intra line property in the future.
             LoadCodePoints( oFR, oRange );
 

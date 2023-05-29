@@ -193,9 +193,13 @@ namespace Play.Edit {
         int        CodeLength  { get; set; } // Encoded word length either utf16 or utf8 depending on implementation.
     }
 
-    public interface IPgFontRender : IDisposable {
-        uint     FontHeight { get; }
-        uint     RendererID { get; }
+    /// <summary>
+    /// So it's a bit of a misnomer. This interface will have a primary font that it supports.
+    /// HOWEVER, if the codepoint is not supported in the font, the system will scan other loaded
+    /// faces to see if one will suffice and a font of the appropriate size will be generated.. 
+    /// </summary>
+    public interface IPgFontRender {
+        uint     LineHeight { get; } // Ascenders + decenders.
         IPgGlyph GetGlyph( UInt32 uiCodePoint );
     }
 

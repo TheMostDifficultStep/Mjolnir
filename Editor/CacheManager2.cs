@@ -56,7 +56,7 @@ namespace Play.Edit {
             _rgColumns = rgColumns ?? throw new ArgumentNullException( "Columns list from Edit Window is null!" );
 
             GlyphLt    = Font.GetGlyph( 0x003c ); // we used to show carriage return as a '<' sign.
-            FontHeight = (int)Font.FontHeight; // BUG: Cache elem's are variable height in general.
+            FontHeight = (int)Font.LineHeight; // BUG: Cache elem's are variable height in general.
         }
 
         public IEnumerator<CacheRow> GetEnumerator() {
