@@ -18,60 +18,6 @@ namespace Monitor {
         }
     }
 
-    public class LineNumberWindow : EditWindow2 {
-        public class FTCacheLineNumber : FTCacheWrap {
-            Line _oGuest; // The line we are listing.
-
-            public FTCacheLineNumber( Line oLine, Line oGuest ) : base( oLine ) {
-                _oGuest = oGuest ?? throw new ArgumentNullException( "Guest line must not be null" );
-            }
-
-            public override void Update(IPgFontRender oFR, IMemoryRange oRange ) {
-                Line.Empty();
-                Line.TryAppend( _oGuest.At.ToString() );
-
-                base.Update(oFR);
-            }
-
-            public override bool IsInvalid { get => _oGuest.At != Line.At; }
-        }
-        public class CacheManagerAsm : CacheManager2 {
-            public CacheManagerAsm( CacheManagerAbstractSite oSite, IPgFontRender oFont, List<SmartRect> rgCols ) :
-                base( oSite, oFont, rgCols ) {
-            }
-
-            protected override CacheRow CreateRow( Line oLine ) {
-                CacheRow oRow = base.CreateRow( oLine );
-
-                FTCacheLine oElem = new FTCacheLineNumber( new TextLine( oLine.At, oLine.At.ToString() ), oLine );
-
-                ElemUpdate2( oElem, _rgColumns[1].Width );
-
-                oRow.CacheList.Add( oElem );
-
-                return oRow;
-            }
-        }
-
-        protected readonly LayoutRect _rctLineNumbers = new LayoutRect( LayoutRect.CSS.Flex ) { Track = 30 };
-
-        public LineNumberWindow( IPgViewSite oSite, Editor oEdit ) : base( oSite, oEdit ) {
-        }
-
-        protected override void InitColumns() {
-            _oLayout  .Add( _rctLineNumbers );
-            _oLayout  .Add( _rctTextArea );   // Main text area.
-
-            _rgColumns.Add( _rctTextArea );   // Text is always the first cache element on a row.
-            _rgColumns.Add( _rctLineNumbers );   // Even if later in the layout.
-        }
-
-        protected override CacheManager2 CreateCacheManager(uint uiStdText) {
-            return new CacheManagerAsm( new CacheManSlot(this),
-                                        _oStdUI.FontRendererAt(uiStdText),
-                                        _rgColumns );
-        }
-    }
 
     public class NumberLabelWindow : LineNumberWindow {
         public class CacheManagerLabel : CacheManagerAsm {

@@ -1,5 +1,6 @@
 ﻿using Play.Interfaces.Embedding;
 using Play.Edit;
+using Play.Forms;
 
 namespace Kanji_Practice {
     public class KanjiController : Controller {
@@ -20,7 +21,7 @@ namespace Kanji_Practice {
 				        return new ViewKanji( oViewSite, oKanjiDoc );
                     }
                     if( guidViewType == ViewPlainCardStackGuid ) {
-                        return new EditWindow2( oViewSite, oKanjiDoc.FlashCardDoc );
+                        return new LineNumberWindow( oViewSite, oKanjiDoc.FlashCardDoc );
                     }
                 } catch( Exception oEx ) {
                     Type[] rgErrors = { typeof( NullReferenceException ),

@@ -19,7 +19,7 @@ namespace Kanji_Practice {
             if( !base.InitNew() )
                 return false;
 
-            Bitmap = new SKBitmap( 200, 200, SkiaSharp.SKColorType.Gray8, SkiaSharp.SKAlphaType.Opaque );
+            Bitmap = new SKBitmap( 200, 150, SkiaSharp.SKColorType.Gray8, SkiaSharp.SKAlphaType.Opaque );
 
             return true;
         }
