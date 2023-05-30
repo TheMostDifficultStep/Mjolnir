@@ -795,10 +795,11 @@ namespace Mjolnir {
                         oMenuVis.Checked             =  oPair.Value._fVisible;
 					    oMenuVis.Shepard.Hidden      = !oPair.Value._fVisible;
                         oMenuVis.Shepard.Orientation =  eOrient;
-                        oMenuVis.Shepard.Track       =  oPair.Value._uiTrack; // check CSS style.
                         dctSides[ eOrient ]          =  oPair.Value._fVisible;
                         fFoundAtLeastOne             =  true;
                     }
+                    // Always load the track value from saved value.
+                    oMenuVis.Shepard.Track = oPair.Value._uiTrack; // check CSS style.
                 }
                 // If anything is found reset the UI.
                 if( fFoundAtLeastOne ) {
@@ -823,7 +824,7 @@ namespace Mjolnir {
 			                oSide.Clear();
                             // Check the track %'s seem reasonable. If not, reset them.
                             int iTrack = oSide.Load( new EnumerateHerders( rgSort ) );
-                            if( iTrack < 90 || iTrack > 100 )
+                            if( iTrack < 90 || iTrack > 110 )
                                 oSide.PercentReset( fNormalize:true );
 
 			                oSide.LayoutChildren();  // BUG: If rail distance is zero, no layout happens!!
