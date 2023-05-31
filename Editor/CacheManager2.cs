@@ -42,7 +42,7 @@ namespace Play.Edit {
 
         protected IPgFontRender Font       { get; }
         protected IPgGlyph      GlyphLt    { get; } // Our end of line character.
-        public    int           FontHeight { get; } // Helps us determine scrolling distances.
+        public    int           LineHeight { get; } // Helps us determine scrolling distances.
 
         // TODO: Get the font from the site instead of from the constructor? Maybe?
         /// <remarks>Need to sort out the LineHeight accessor since the cache elements might be
@@ -56,7 +56,7 @@ namespace Play.Edit {
             _rgColumns = rgColumns ?? throw new ArgumentNullException( "Columns list from Edit Window is null!" );
 
             GlyphLt    = Font.GetGlyph( 0x003c ); // we used to show carriage return as a '<' sign.
-            FontHeight = (int)Font.LineHeight; // BUG: Cache elem's are variable height in general.
+            LineHeight = (int)Font.LineHeight; // BUG: Cache elem's are variable height in general.
         }
 
         public IEnumerator<CacheRow> GetEnumerator() {
@@ -90,7 +90,7 @@ namespace Play.Edit {
 
         public void OnMouseWheel( int iDelta ) {
             int iTopOld = _oTextRect[ SCALAR.TOP ];
-            int iTopNew = iTopOld - ( 4 * iDelta / FontHeight );
+            int iTopNew = iTopOld - ( 4 * iDelta / LineHeight );
             
             _oTextRect.SetScalar(SET.RIGID, SCALAR.TOP, iTopNew );
         }
@@ -106,13 +106,13 @@ namespace Play.Edit {
                     _oTextRect.SetScalar(SET.RIGID, SCALAR.TOP, iTopOld - iHeight - iSafetyMargin );
                     break; 
                 case ScrollEvents.SmallDecrement:
-                    _oTextRect.SetScalar(SET.RIGID, SCALAR.TOP, iTopOld - FontHeight );
+                    _oTextRect.SetScalar(SET.RIGID, SCALAR.TOP, iTopOld - LineHeight );
                     break;
                 case ScrollEvents.LargeIncrement:
                     _oTextRect.SetScalar(SET.RIGID, SCALAR.TOP, iTopOld + iHeight - iSafetyMargin );
                     break;
                 case ScrollEvents.SmallIncrement:
-                    _oTextRect.SetScalar(SET.RIGID, SCALAR.TOP, iTopOld + FontHeight );
+                    _oTextRect.SetScalar(SET.RIGID, SCALAR.TOP, iTopOld + LineHeight );
                     break;
 
                 // We can potentialy render less until this final end scroll comes in.
@@ -163,7 +163,7 @@ namespace Play.Edit {
             // Text rect is reset to UL => 0,0. Now set this element's top down a bit and build around it.
             switch( eNeighborhood ) {
                 case RefreshNeighborhood.CARET:
-                    oRow.Top = FontHeight * 2; // Match the slop in RefreshCache() else new elem will be outside rect on first load() and get flushed!
+                    oRow.Top = LineHeight * 2; // Match the slop in RefreshCache() else new elem will be outside rect on first load() and get flushed!
                     break;
                 case RefreshNeighborhood.SCROLL:
                     oRow.Top = 0; // If this is bottom line. We'll accumulate backwards to fix up cache.
@@ -192,8 +192,8 @@ namespace Play.Edit {
                 CacheRow oCurrLine = _rgOldCache[iRow];
                 // If the element overlaps the textrect or is inside, use it. Might be
                 // nice to add a check if the line is still in the buffer or has been deleted.
-                if( oCurrLine.Top    <= TextRect[SCALAR.BOTTOM] + FontHeight * 2 &&
-                    oCurrLine.Bottom >= TextRect[SCALAR.TOP   ] - FontHeight * 2 ) 
+                if( oCurrLine.Top    <= TextRect[SCALAR.BOTTOM] + LineHeight * 2 &&
+                    oCurrLine.Bottom >= TextRect[SCALAR.TOP   ] - LineHeight * 2 ) 
                 { 
                     // Is element's top closest to the top of the textrect.
                     int iDistance = Math.Abs( oCurrLine.Top - TextRect[SCALAR.TOP] );
@@ -646,7 +646,7 @@ namespace Play.Edit {
                 pntCaretLoc.Y += oRow.Top;
 
                 bool fTopIn = _oTextRect.IsInside( pntCaretLoc.X, pntCaretLoc.Y );
-                bool fBotIn = _oTextRect.IsInside( pntCaretLoc.X, pntCaretLoc.Y + FontHeight );
+                bool fBotIn = _oTextRect.IsInside( pntCaretLoc.X, pntCaretLoc.Y + LineHeight );
 
                 return fTopIn || fBotIn;
             }
@@ -677,14 +677,14 @@ namespace Play.Edit {
             pntCaretLoc.Y += oRow.Top;
 
             LOCUS eHitTop = _oTextRect.IsWhere( pntCaretLoc.X, pntCaretLoc.Y );
-            LOCUS eHitBot = _oTextRect.IsWhere( pntCaretLoc.X, pntCaretLoc.Y + FontHeight );
+            LOCUS eHitBot = _oTextRect.IsWhere( pntCaretLoc.X, pntCaretLoc.Y + LineHeight );
 
             if( ( eHitTop & LOCUS.TOP    ) != 0 ) {
                 _oTextRect.SetScalar(SET.RIGID, SCALAR.TOP,    pntCaretLoc.Y );
                 eMove = CaretMove.NEARBY;
             }
             if( ( eHitBot & LOCUS.BOTTOM ) != 0 ) {
-                _oTextRect.SetScalar(SET.RIGID, SCALAR.BOTTOM, pntCaretLoc.Y + FontHeight );
+                _oTextRect.SetScalar(SET.RIGID, SCALAR.BOTTOM, pntCaretLoc.Y + LineHeight );
                 eMove = CaretMove.NEARBY;
             }
 

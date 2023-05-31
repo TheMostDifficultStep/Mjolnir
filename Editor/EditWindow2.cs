@@ -1080,7 +1080,7 @@ namespace Play.Edit {
                 if( _oCacheMan.Count == 0 ) 
                     User32.SetCaretPos( _oScrollBarVirt.Width, 0 );
                 else
-                    User32.SetCaretPos( -10, -_oCacheMan.FontHeight ); // Park it off screen.
+                    User32.SetCaretPos( -10, -_oCacheMan.LineHeight ); // Park it off screen.
             }
         }
 
@@ -1216,7 +1216,7 @@ namespace Play.Edit {
                 _iAdvance = 0;
             }
 
-            User32.CreateCaret( this.Handle, IntPtr.Zero, 2, _oCacheMan.FontHeight );
+            User32.CreateCaret( this.Handle, IntPtr.Zero, 2, _oCacheMan.LineHeight );
             CaretIconRefreshLocation(); 
             User32.ShowCaret  ( this.Handle );
 
@@ -1302,6 +1302,9 @@ namespace Play.Edit {
 				//	sSize.Width = (int)oCache.UnwrappedWidth;
 				iHeight += (int)oCache.Height;
 			}
+
+            if( iHeight < _oCacheMan.LineHeight )
+                iHeight = _oCacheMan.LineHeight;
 
             sProposed.Height = iHeight;
 
