@@ -76,6 +76,7 @@ namespace Kanji_Practice {
         public EditorWithParser FlashCardDoc  { get; }
         public DocProperties    FrontDisplay { get; }
         public KanjiScratch     ScratchPad   { get; }
+        public Editor           Meanings     { get; }
 
         public class DocSlot :
             IPgBaseSite
@@ -97,7 +98,8 @@ namespace Kanji_Practice {
         }
 
         protected int _iFlashLine = 0;
-        protected List< CardInfo > _rgCard = new();
+        protected List< CardInfo >     _rgCard     = new();
+        protected List< IMemoryRange > _rgMeanings = new();
 
         public KanjiDocument( IPgBaseSite oSite ) {
             _oBaseSite = oSite ?? throw new ArgumentNullException( "Site to document must not be null." );
@@ -105,6 +107,7 @@ namespace Kanji_Practice {
             FlashCardDoc  = new EditorWithParser( new DocSlot( this ) ); // The raw stack of flash cards.
             FrontDisplay  = new KanjiProperties ( new DocSlot( this ) ); // The basic form Kanji, Hiragana, Description.
             ScratchPad    = new KanjiScratch    ( new DocSlot( this ) ); // Practice writing area.
+            Meanings      = new Editor          ( new DocSlot( this ) ); // multi value meanings.
 
 			try {
 				// A parser is matched one per text document we are loading.
@@ -151,23 +154,25 @@ namespace Kanji_Practice {
             }
         }
 
+        private void FlashCardDoc_BufferEvent(BUFFEREVENTS eEvent) {
+            Jump( 0 );
+        }
+
         public bool Initialize() {
             if( !FrontDisplay.InitNew() )
                 return false;
             if( !ScratchPad.InitNew() )
                 return false;
+            if( !Meanings.InitNew() )
+                return false;
 
             _rgCard.Add( new CardInfo( "kanji",    KanjiProperties.Labels.Kanji    ) );
             _rgCard.Add( new CardInfo( "hiragana", KanjiProperties.Labels.Hiragana ) );
-            _rgCard.Add( new CardInfo( "meaning" , KanjiProperties.Labels.Meaning  ) );
+          //_rgCard.Add( new CardInfo( "meaning" , KanjiProperties.Labels.Meaning  ) );
 
             FlashCardDoc.BufferEvent += FlashCardDoc_BufferEvent;
 
             return true;
-        }
-
-        private void FlashCardDoc_BufferEvent(BUFFEREVENTS eEvent) {
-            Jump( 0 );
         }
 
         public bool InitNew() {
@@ -221,6 +226,15 @@ namespace Kanji_Practice {
                         oBulk.SetValue( (int)oInfo.Label, strValue );
                     }
                 }
+                if( _rgMeanings.Count > 0 && fShowAll ) {
+                    using Editor.Manipulator oAddMeaning = Meanings.CreateManipulator();
+
+                    foreach( IMemoryRange oRange in _rgMeanings ) {
+                        if( oRange.Length > 0 ) {
+                            oAddMeaning.LineAppend( oCard.SubString( oRange.Offset, oRange.Length ) );
+                        }
+                    }
+                }
 
                 Line oKanji = FrontDisplay[ (int)KanjiProperties.Labels.Kanji];
 
@@ -238,12 +252,18 @@ namespace Kanji_Practice {
                 foreach( CardInfo oClear in _rgCard ) {
                     oClear.Range = null;
                 }
+                _rgMeanings.Clear();
+                Meanings.Clear();
+
                 foreach( IColorRange oRange in oLine.Formatting ) {
                     if( oRange is MemoryElem<char> oElem ) {
                         foreach( CardInfo oInfo in _rgCard ) {
                             if( string.Compare( oInfo.FormatID, oElem.ID ) == 0 ) {
                                 oInfo.Range = oRange;
                             }
+                        }
+                        if( oElem.ID == "meaning" ) {
+                            _rgMeanings.Add( oElem );
                         }
                     }
                 }

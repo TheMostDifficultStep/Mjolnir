@@ -1,5 +1,4 @@
 ﻿using Play.Interfaces.Embedding;
-using Play.Edit;
 using Play.Forms;
 
 namespace Kanji_Practice {

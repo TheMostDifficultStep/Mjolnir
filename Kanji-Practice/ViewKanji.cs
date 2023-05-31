@@ -2,6 +2,7 @@
 using System.Windows.Forms;
 
 using Play.Interfaces.Embedding;
+using Play.Edit;
 using Play.Forms;
 using Play.Rectangles;
 using Play.ImageViewer;
@@ -57,28 +58,34 @@ namespace Kanji_Practice {
     internal class KanjiMagnify : WindowStandardProperties {
         protected uint BigFont { get; } 
         protected ImageViewSingle ViewScratch { get; }
+        protected EditWindow2     ViewMeaning { get; }
 
-        public KanjiMagnify( IPgViewSite oSite, DocProperties oProperties, KanjiScratch oScratchDoc ) : base( oSite, oProperties ) {
+        public KanjiMagnify( IPgViewSite oSite, KanjiDocument oKanjiDoc ) : base( oSite, oKanjiDoc.FrontDisplay ) {
             IPgMainWindow.PgDisplayInfo oInfo = new IPgMainWindow.PgDisplayInfo();
             if( _oSiteView.Host.TopWindow is IPgMainWindow oMainWin ) {
                 oInfo = oMainWin.MainDisplayInfo;
             }
             BigFont = StdUI.FontCache( StdFace, 30, oInfo.pntDpi );
 
-            ViewScratch = new ViewScratchPad( new WinSlot( this ), oScratchDoc );
+            ViewScratch = new ViewScratchPad( new WinSlot( this ), oKanjiDoc.ScratchPad );
             ViewScratch.Parent = this;
+            ViewMeaning = new EditWindow2( new WinSlot( this ), oKanjiDoc.Meanings ) { ScrollVisible = false };
+            ViewMeaning.Parent = this;
         }
 
         public override void InitRows() {
 			int[] rgShow = { 
 				(int)KanjiProperties.Labels.Kanji,
                 (int)KanjiProperties.Labels.Hiragana,
-                (int)KanjiProperties.Labels.Meaning
+                //(int)KanjiProperties.Labels.Meaning
 			};
 
 			base.InitRows( rgShow );
 
 			try {
+				PropertyInitRow( Layout as LayoutTable, 
+								 (int)KanjiProperties.Labels.Meaning, 
+								 ViewMeaning );
 				PropertyInitRow( Layout as LayoutTable, 
 								 (int)KanjiProperties.Labels.Scratch, 
 								 ViewScratch );
@@ -165,7 +172,7 @@ namespace Kanji_Practice {
             KanjiDoc      = oMonitorDoc ?? throw new ArgumentNullException( "Monitor document must not be null!" );
 
             Layout        = new LayoutStackHorizontal() { Units = LayoutRect.CSS.Flex };
-            CenterDisplay = new KanjiMagnify( new ViewSlot( this ), KanjiDoc.FrontDisplay, KanjiDoc.ScratchPad ) ;
+            CenterDisplay = new KanjiMagnify( new ViewSlot( this ), KanjiDoc ) ;
 
             CenterDisplay.Parent = this;
         }
