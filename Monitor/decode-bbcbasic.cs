@@ -118,10 +118,10 @@ namespace Monitor {
 
         Tuple<int, byte[]> DecodeLine( BinaryReader oReader ) {
             byte bLineLen = oReader.ReadByte();
-            byte bLineHi  = oReader.ReadByte();
             byte bLineLo  = oReader.ReadByte();
+            byte bLineHi  = oReader.ReadByte();
 
-            int iLine = (short)(((bLineHi) & 0xFF) << 8 | (bLineLo) & 0xFF);
+            UInt16 iLine = (UInt16)(((bLineHi) & 0xFF) << 8 | (bLineLo) & 0xFF);
 
             if( iLine == 0xFFFF )
                 return new Tuple<int, byte[]>( iLine, new byte[0] );
@@ -134,16 +134,16 @@ namespace Monitor {
         // Each line is stored as a sequence of bytes:
         // 0x0d [line num hi] [line num lo] [line len] [data...]
         // BBC BASIC V format file.
-        // Agon : [line len][line num lo][line num high]
-        //        [ox0D][line len][line num lo][line num high]
-        //        [ox0D][line len][line num lo][line num high]
+        // Agon : [line len][line num lo][line num high][data...]
+        //        [ox0D][line len][line num lo][line num high][data...]
+        //        [ox0D][line len][line num lo][line num high][data...]
         //        ...
         List< Tuple<int,byte[]>> ReadLines( BinaryReader oReader ) {
             List<Tuple<int, byte[]>> rgLines = new();
             while( true ) {
                 Tuple<int, byte[]> oLine = DecodeLine( oReader );
 
-                rgLines.Append( oLine );
+                rgLines.Add( oLine );
 
                 if( oLine.Item1 == 0xFFFF )
                     break;
@@ -155,24 +155,26 @@ namespace Monitor {
             return rgLines;
         }
 
-        void Decode( BinaryReader oReader, List<string> rgOutput ) {
+        void Decode( BinaryReader oReader, Editor oEdit ) {
             // Decode binary data 'data' and write the result to 'output'."""
             List<Tuple<int, byte[]>> rgLines = ReadLines( oReader );
 
             foreach( Tuple<int,byte[]> oTuple in rgLines ) {
                 string strLine = Detokanize(oTuple);
 
-                rgOutput.Append( strLine );
+                oEdit.LineAppend( strLine );
             }
         }
 
-        public void Start( string strFileName ) {
+        public void Start( string strFileName, Editor oEdit ) {
             List<string> rgOutput = new();
 
             using Stream       oStream = File.OpenRead( strFileName );
             using BinaryReader oReader = new BinaryReader(oStream);
 
-            Decode( oReader, rgOutput);
+            oEdit.Clear();
+
+            Decode( oReader, oEdit);
         }
 
         public void Dump( string strFileName, Editor oEdit ) {
