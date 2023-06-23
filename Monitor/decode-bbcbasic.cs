@@ -116,28 +116,41 @@ namespace Monitor {
             return oSB.ToString();
         }
 
+        Tuple<int, byte[]> DecodeLine( BinaryReader oReader ) {
+            byte bLineLen = oReader.ReadByte();
+            byte bLineHi  = oReader.ReadByte();
+            byte bLineLo  = oReader.ReadByte();
+
+            int iLine = (short)(((bLineHi) & 0xFF) << 8 | (bLineLo) & 0xFF);
+
+            if( iLine == 0xFFFF )
+                return new Tuple<int, byte[]>( iLine, new byte[0] );
+
+            byte[] data = oReader.ReadBytes( bLineLen - 4 );
+
+            return new Tuple<int, byte[]>( iLine, data );
+        }
+
         // Each line is stored as a sequence of bytes:
         // 0x0d [line num hi] [line num lo] [line len] [data...]
         // BBC BASIC V format file.
+        // Agon : [line len][line num lo][line num high]
+        //        [ox0D][line len][line num lo][line num high]
+        //        [ox0D][line len][line num lo][line num high]
+        //        ...
         List< Tuple<int,byte[]>> ReadLines( BinaryReader oReader ) {
             List<Tuple<int, byte[]>> rgLines = new();
             while( true ) {
-                oReader.ReadByte();
-                if( oReader.ReadByte() != 0x0A )
-                    throw new InvalidProgramException( "Bad program" );
+                Tuple<int, byte[]> oLine = DecodeLine( oReader );
 
-                byte bLineHi = oReader.ReadByte();
-                if( bLineHi == 0xFF )
-                    break; // Done!
+                rgLines.Append( oLine );
 
-                byte bLineLo  = oReader.ReadByte();
-                byte bLineLen = oReader.ReadByte();
+                if( oLine.Item1 == 0xFFFF )
+                    break;
 
-                byte[] data = oReader.ReadBytes( bLineLen );
+                if( oReader.ReadByte() != 0x0D )
+                    throw new InvalidProgramException( "Bad Read" );
 
-                int iLine = (short)(((bLineHi) & 0xFF) << 8 | (bLineLo) & 0xFF);
-
-                rgLines.Append( new Tuple<int, byte[]>( iLine, data ));
             }
             return rgLines;
         }
@@ -156,17 +169,15 @@ namespace Monitor {
         public void Start( string strFileName ) {
             List<string> rgOutput = new();
 
-            using Stream oStream = File.OpenRead( strFileName );
-
+            using Stream       oStream = File.OpenRead( strFileName );
             using BinaryReader oReader = new BinaryReader(oStream);
 
             Decode( oReader, rgOutput);
         }
 
         public void Dump( string strFileName, Editor oEdit ) {
-            using Stream oStream = File.OpenRead( strFileName );
-
-            using BinaryReader oReader = new BinaryReader(oStream);
+            using Stream oStream = new FileStream( strFileName,FileMode.Open );
+            using BinaryReader oReader = new BinaryReader(oStream,Encoding.ASCII);
 
             oEdit.Clear();
 
@@ -175,10 +186,15 @@ namespace Monitor {
                 Line oLine = oEdit.LineAppend( String.Empty );
                 while( true ) {
                     bByte = oReader.ReadByte();
-                    if( bByte == 0x0A ) {
-                        oLine = oEdit.LineAppend( "0A " );
+                    if( bByte == 0x0D ) {
+                        oLine = oEdit.LineAppend( "0D " );
                     } else {
-                        oLine.TryAppend( bByte.ToString( "X2" ) );
+                        if( bByte < 0x7f ) {
+                            oLine.TryAppend( Convert.ToChar( bByte ).ToString() );
+                        } else {
+                            oLine.TryAppend( bByte.ToString( "X2" ) );
+                            oLine.TryAppend( "h" );
+                        }
                         oLine.TryAppend( " " );
                     }
                 }
