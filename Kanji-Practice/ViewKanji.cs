@@ -33,6 +33,25 @@ namespace Kanji_Practice {
 
 			_pntAspect = new SKPoint( Document.Bitmap.Width  / (float)_rctViewPort.Width,
 									  Document.Bitmap.Height / (float)_rctViewPort.Height );
+            /*
+            SKPoint skCenter = new SKPoint( Document.Bitmap.Width  / 2,
+                                            Document.Bitmap.Height / 2 );
+            double dblRadius = skCenter.X < skCenter.Y ? skCenter.X : skCenter.Y;
+
+            SKPoint skCurr = new SKPoint();
+            SKPoint skPrev = new SKPoint( skCenter.X, skCenter.Y + (float)dblRadius ); // Cos(0)=1
+
+            for( double dblAngle = 10; dblAngle <= 360; dblAngle += 10 ) {
+                double dblRad = dblAngle / 180 * Math.PI;
+
+                skCurr.X = (float)(skCenter.X + dblRadius * Math.Sin( dblRad ));
+                skCurr.Y = (float)(skCenter.Y + dblRadius * Math.Cos( dblRad ));
+
+                _oCanvas.DrawLine( skPrev, skCurr, _oPaint );
+
+                skPrev = skCurr;
+            }
+            */
         }
 
         protected override void OnMouseDown(MouseEventArgs e) {

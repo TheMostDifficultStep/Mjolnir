@@ -14,7 +14,7 @@ using SkiaSharp;
 namespace Monitor {
     public class MonitorController : Controller {
         public MonitorController() {
-            _rgExtensions.Add( ".asmtest" );
+            _rgExtensions.Add( ".asm" );
         }
         public override IDisposable CreateDocument(IPgBaseSite oSite, string strExtension) {
             return new MonitorDocument( oSite );
@@ -275,8 +275,8 @@ namespace Monitor {
 
 			try {
 				// A parser is matched one per text document we are loading.
-				ParseHandlerText oParser = new ParseHandlerText( AssemblyDoc, "asm" );
-                _oGrammer = oParser.Grammer;
+				//ParseHandlerText oParser = new ParseHandlerText( AssemblyDoc, "asm" );
+                //_oGrammer = oParser.Grammer;
 			} catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( NullReferenceException ),
                                     typeof( InvalidCastException ),
