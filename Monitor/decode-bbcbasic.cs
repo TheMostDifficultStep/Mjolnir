@@ -46,7 +46,7 @@ namespace Monitor {
         // This rediculously obsfucated bit stream avoids line number 0x8b (139)
         // from looking like a ELSE token in the byte stream for basic!!
         // https://xania.org/200711/bbc-basic-line-number-format-part-2
-        protected int DecodeLine( byte[] rgNumber ) {
+        protected int DecodeNumber( byte[] rgNumber ) {
             int r0, r1, r10;  
             
             r10 = rgNumber[0];
@@ -76,7 +76,7 @@ namespace Monitor {
 
             byte[] rgData = oLine.Item2;
             for( int i=0; i< rgData.Length; ++i ) {
-                if( rgData[i] < 0x75 ) {
+                if( rgData[i] < 0x7F ) {
                     oSB.Append( Convert.ToChar( rgData[i] ) );
                 } else {
                     switch( rgData[i] ) {
@@ -98,12 +98,18 @@ namespace Monitor {
                         case 0xe5: // Goto followed by Line number reference...
                             oSB.Append( stdTokens[rgData[  i] - 0x7f] ); // keyword
 
-                            byte[] rgNumber = new byte[3];
-                            ++i;
-                            for( int j=0; j<3;++j, ++i ) {
-                                rgNumber[j] = rgData[i];
+                            while( rgData[++i] == 0x20 ) {
+                                oSB.Append( ' ' );
                             }
-                            oSB.Append( DecodeLine( rgNumber ).ToString() ); // line number
+                            if( rgData[i] == 0x8d ) {
+                                ++i;
+                                byte[] rgNumber = new byte[3];
+                                for( int j=0; j<3;++j, ++i ) {
+                                    rgNumber[j] = rgData[i];
+                                }
+                                string strGotoLine = DecodeNumber( rgNumber ).ToString();
+                                oSB.Append( strGotoLine ); // line number
+                            }
                             break;
                         default:
                             oSB.Append( stdTokens[rgData[  i] - 0x7f] );
