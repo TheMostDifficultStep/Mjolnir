@@ -488,7 +488,7 @@ namespace Play.Edit {
         /// Might want right hand columns in the future, but let's start with this.
         /// </summary>
         protected virtual void InitColumns() {
-            _rgLayout  .Add( _rctTextArea );   // Main text area.
+            _rgLayout .Add( _rctTextArea );   // Main text area.
             _rgColumns.Add( _rctTextArea );
         }
 
@@ -2728,10 +2728,8 @@ namespace Play.Edit {
         {
 			ToolSelect = 2; // BUG: change this to an enum in the future.
 
-            uint uiStdUI   = _oStdUI.FontCache( _oStdUI.FaceCache( @"C:\windows\fonts\seguisym.ttf" ), 12, DPI );
+            uint uiStdUI = _oStdUI.FontCache( _oStdUI.FaceCache( @"C:\windows\fonts\seguisym.ttf" ), 12, DPI );
 
-            // BUG: Sort of weird I do this here. You would think it would be in the
-            // constructor or in the InitInternal() call. :-/
             IPgFontRender oRender = _oStdUI.FontRendererAt( uiStdUI );
             
             _oCheque = oRender.GetGlyph(0x2714); 
@@ -2746,8 +2744,8 @@ namespace Play.Edit {
             // is set up. We can fix that but I'll do it later.
             _rctCheques = new LayoutRect( LayoutRect.CSS.Pixels, (uint)_oCheque.Coordinates.advance_x, 0 );
 
-            _rgLayout  .Add( _rctCheques );  // Whoooo! new select column!!
-            _rgLayout  .Add( _rctTextArea ); // Main text area.
+            _rgLayout .Add( _rctCheques );  // Whoooo! new select column!!
+            _rgLayout .Add( _rctTextArea ); // Main text area.
 
             _rgColumns.Add( _rctTextArea ); // Text is always the first cache element on a row.
             _rgColumns.Add( _rctCheques );  // even if NOT the first column.
