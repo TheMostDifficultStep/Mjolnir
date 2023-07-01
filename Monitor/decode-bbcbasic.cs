@@ -162,13 +162,14 @@ namespace Monitor {
         }
 
         void Decode( BinaryReader oReader, Editor oEdit ) {
-            // Decode binary data 'data' and write the result to 'output'."""
+            // Decode binary data 'data' and write the result to 'output'.
             List<Tuple<int, byte[]>> rgLines = ReadLines( oReader );
 
             foreach( Tuple<int,byte[]> oTuple in rgLines ) {
                 string strLine = Detokanize(oTuple);
 
-                oEdit.LineAppend( strLine );
+                if( oTuple.Item1 != 0xffff )
+                    oEdit.LineAppend( strLine );
             }
         }
 
