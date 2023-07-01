@@ -340,14 +340,13 @@ namespace Play.Edit {
         SizeF        _szScrollBars  = new SizeF( .1875F, .1875F );
         public bool ScrollVisible { get; set; } = true;
 
-        protected          IPgGlyph              _oCheque     = null;
         protected          LayoutRect            _rctCheques; // TODO: Move this to the subclass eventually.
         protected readonly LayoutRect            _rctTextArea = new LayoutRect( LayoutRect.CSS.None ); // Not same as the CacheMan text area!!
-        protected readonly LayoutStackHorizontal _oLayout     = new LayoutStackHorizontal() { Spacing = 5, Units = LayoutRect.CSS.Flex};
+        protected readonly LayoutStackHorizontal _rgLayout    = new LayoutStackHorizontal() { Spacing = 5, Units = LayoutRect.CSS.Flex};
         protected readonly List<SmartRect>       _rgColumns   = new (); // We'll phase out _rctTextArea if we can.
 
         // Possible to change if move window from one screen to another. Right now only init at start.
-        public SizeF DPI { get; protected set; }
+        public SKPoint DPI { get; protected set; } // Might change to float if this is a problem.
 
         // see System.Collections.ReadOnlyCollectionBase for readonly collections.
         readonly static Keys[] _rgHandledKeys = { Keys.PageDown, Keys.PageUp, Keys.Down,
@@ -464,6 +463,14 @@ namespace Play.Edit {
 			_rgTools.Add( "Browse" );
             _rgTools.Add( "Choose" );
 			_rgTools.Add( "Morse" );
+
+            // The object we get from the interface has some standard screen dpi and size
+            // values. We then attempt to override those values with our actual values.
+            IPgMainWindow.PgDisplayInfo oInfo = new IPgMainWindow.PgDisplayInfo();
+            if( _oSiteView.Host.TopWindow is IPgMainWindow oMainWin ) {
+                oInfo = oMainWin.MainDisplayInfo;
+            }
+            DPI = new SKPoint( oInfo.pntDpi.X, oInfo.pntDpi.Y );
         }
 
         protected override void Dispose( bool disposing ) {
@@ -481,7 +488,7 @@ namespace Play.Edit {
         /// Might want right hand columns in the future, but let's start with this.
         /// </summary>
         protected virtual void InitColumns() {
-            _oLayout  .Add( _rctTextArea );   // Main text area.
+            _rgLayout  .Add( _rctTextArea );   // Main text area.
             _rgColumns.Add( _rctTextArea );
         }
 
@@ -494,23 +501,9 @@ namespace Play.Edit {
 			DecorNavPropsInit();
 
 			try {
-                // The object we get from the interface has some standard screen dpi and size
-                // values. We then attempt to override those values with our actual values.
-                IPgMainWindow.PgDisplayInfo oInfo = new IPgMainWindow.PgDisplayInfo();
-                if( _oSiteView.Host.TopWindow is IPgMainWindow oMainWin ) {
-                    oInfo = oMainWin.MainDisplayInfo;
-                }
-                DPI = new SizeF( oInfo.pntDpi.X, oInfo.pntDpi.Y );
-
-                uint uiStdText = _oStdUI.FontCache( _oStdUI.FaceCache( @"C:\windows\fonts\consola.ttf"  ), 12, oInfo.pntDpi );
-                uint uiStdUI   = _oStdUI.FontCache( _oStdUI.FaceCache( @"C:\windows\fonts\seguisym.ttf" ), 12, oInfo.pntDpi );
+                uint uiStdText = _oStdUI.FontCache( _oStdUI.FaceCache( @"C:\windows\fonts\consola.ttf"  ), 12, DPI );
+                uint uiStdUI   = _oStdUI.FontCache( _oStdUI.FaceCache( @"C:\windows\fonts\seguisym.ttf" ), 12, DPI );
               //uint uiEmojID  = _oStdUI.FontCache( _oStdUI.FaceCache( @"C:\Users\Frodo\AppData\Local\Microsoft\Windows\Fonts\NotoEmoji-Regular.ttf" ), 12, sResolution );
-
-                // BUG: Sort of weird I do this here. You would think it would be in the
-                // constructor or in the InitInternal() call. :-/
-                IPgFontRender oRender = _oStdUI.FontRendererAt( uiStdUI );
-            
-                _oCheque = oRender.GetGlyph(0x2714); // TODO: Make overridable.
 
 				_oCacheMan = CreateCacheManager( uiStdText );
 			} catch( ArgumentNullException ) {
@@ -524,15 +517,15 @@ namespace Play.Edit {
             ScrollBarRefresh();
             CaretIconRefreshLocation();
 
-            int iWidth        = (int)(DPI.Width * _szScrollBars.Width);
+            int iWidth        = (int)(DPI.X * _szScrollBars.Width);
             var oLayoutSBVirt = new LayoutControl( _oScrollBarVirt, LayoutRect.CSS.Pixels, (uint)iWidth);
 
-            _oLayout.Add( oLayoutSBVirt );   // Scrollbar
+            _rgLayout.Add( oLayoutSBVirt );   // Scrollbar
 
             InitColumns(); // Columns arent the same as the layout quite yet.
 
-			_oLayout.SetRect( 0, 0, Width, Height );
-			_oLayout.LayoutChildren();
+			_rgLayout.SetRect( 0, 0, Width, Height );
+			_rgLayout.LayoutChildren();
 
 			// Kind of evil since we 'might' get called back even before we exit this proc!
 			_oDocument.ListenerAdd(this);  // TODO, consider making this a normal .net event.
@@ -1180,9 +1173,9 @@ namespace Play.Edit {
                     Color     = _oStdUI.ColorsStandardAt(_fReadOnly ? StdUIColors.BGReadOnly : StdUIColors.BG)
                 };
                 // Paint all window background. BUG: We could get by without this if there was no space between lines.
-                skCanvas.DrawRect(e.Info.Rect, skPaint);
+                skCanvas.DrawRect( new SKRect( 0, 0, Width, Height )/* e.Info.Rect */, skPaint);
 
-                OnPaintExtraColumnsBG( skCanvas, skPaint );
+                OnPaintExtraColumnsBG( skCanvas, skPaint ); // Might want a column BG color override.
 
                 // Now paint the lines.
                 foreach( CacheRow oRow in _oCacheMan ) {
@@ -1289,8 +1282,8 @@ namespace Play.Edit {
         /// available as the width to get good height value from this routine. 
 		/// </summary>
 		public override Size GetPreferredSize( Size sProposed ) {
-			_oLayout.SetRect( 0, 0, sProposed.Width, sProposed.Height );
-			_oLayout.LayoutChildren();
+			_rgLayout.SetRect( 0, 0, sProposed.Width, sProposed.Height );
+			_rgLayout.LayoutChildren();
 
             _oCacheMan.OnChangeSize( sProposed );
 			CacheRefresh( RefreshType.COMPLEX, RefreshNeighborhood.SCROLL );
@@ -1326,8 +1319,8 @@ namespace Play.Edit {
                 return;
 			}
 
-            _oLayout.SetRect( 0, 0, Width, Height );
-			_oLayout.LayoutChildren();
+            _rgLayout.SetRect( 0, 0, Width, Height );
+			_rgLayout.LayoutChildren();
 
             _oCacheMan.OnChangeSize( this.TextExtent );
             CacheRefresh( RefreshType.COMPLEX, RefreshNeighborhood.SCROLL );
@@ -2729,10 +2722,19 @@ namespace Play.Edit {
     /// I haven't finished moving all the checklist column behavior here yet, but it'll do for now.
 	/// </summary>
 	public class CheckList : EditWindow2 {
+        protected readonly IPgGlyph _oCheque = null;
 		public CheckList( IPgViewSite oSite, BaseEditor oEditor, bool fReadOnly = false ) : 
             base( oSite, oEditor, fReadOnly:true, fSingleLine:false )     
         {
 			ToolSelect = 2; // BUG: change this to an enum in the future.
+
+            uint uiStdUI   = _oStdUI.FontCache( _oStdUI.FaceCache( @"C:\windows\fonts\seguisym.ttf" ), 12, DPI );
+
+            // BUG: Sort of weird I do this here. You would think it would be in the
+            // constructor or in the InitInternal() call. :-/
+            IPgFontRender oRender = _oStdUI.FontRendererAt( uiStdUI );
+            
+            _oCheque = oRender.GetGlyph(0x2714); 
 		}
 
         /// <summary>
@@ -2744,12 +2746,16 @@ namespace Play.Edit {
             // is set up. We can fix that but I'll do it later.
             _rctCheques = new LayoutRect( LayoutRect.CSS.Pixels, (uint)_oCheque.Coordinates.advance_x, 0 );
 
-            _oLayout  .Add( _rctCheques );  // Whoooo! new select column!!
-            _oLayout  .Add( _rctTextArea ); // Main text area.
+            _rgLayout  .Add( _rctCheques );  // Whoooo! new select column!!
+            _rgLayout  .Add( _rctTextArea ); // Main text area.
 
             _rgColumns.Add( _rctTextArea ); // Text is always the first cache element on a row.
             _rgColumns.Add( _rctCheques );  // even if NOT the first column.
         }
+
+        /// <summary>So the text area might be read only, but the check column is
+        /// typically r/w since we might change who's checked. Here we make sure the
+        /// BG is the r/w variety.</summary>
         /// <remarks>
         /// Note: that we are sharing the skPaint and that might result in problems in the
         /// future. We might want to either have our own paint object or return the
@@ -2760,7 +2766,10 @@ namespace Play.Edit {
 
             skCanvas.DrawRect( _rctCheques.SKRect, skPaint );
         }
-
+        /// <summary>
+        /// As much as I'd like to get rid of this. As you can see, it relies on some global information 
+        /// to set the check mark.
+        /// </summary>
         protected override void OnPaintExtraColumn( SKCanvas skCanvas, SKPaint skPaint, CacheRow oCache ) {
             if( _oDocument.CheckedLine == oCache.Line )
                 DrawGlyph(skCanvas, skPaint, _rctCheques.Left, RenderAt(oCache, _rctTextArea).Y, _oCheque );

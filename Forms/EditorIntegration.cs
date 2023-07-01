@@ -167,8 +167,8 @@ namespace Play.Forms {
         }
 
         protected override void InitColumns() {
-            _oLayout  .Add( _rctLineNumbers );
-            _oLayout  .Add( _rctTextArea );   // Main text area.
+            _rgLayout  .Add( _rctLineNumbers );
+            _rgLayout  .Add( _rctTextArea );   // Main text area.
 
             _rgColumns.Add( _rctTextArea );   // Text is always the first cache element on a row.
             _rgColumns.Add( _rctLineNumbers );   // Even if later in the layout.
