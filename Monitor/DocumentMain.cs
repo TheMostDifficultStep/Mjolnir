@@ -8,7 +8,45 @@ using Play.Parse;
 using Play.Parse.Impl;
 
 namespace Monitor {
+    public enum AddrModes {
+        Acc, // Non-Indexed,non memory
+        Imm,
+        Imp,
 
+        Rel, // Non-Indexed memory ops
+        Abs,
+        Zpg,
+        Ind,
+
+        Abs_Indx, // Indexed memory ops
+        Zpg_Indx,
+        Indx_Indr,
+        Indr_Indx
+    }
+
+    public class AsmInstruction {
+        public readonly string    _strInst;
+        public readonly AddrModes _eMode;
+        public readonly bool      _fIndexed;
+        public readonly bool      _fMemory;
+
+        public AsmInstruction( string strInst, AddrModes eMode, bool fIndexed, bool fMemory ) {
+            _strInst  = strInst;
+            _eMode    = eMode;
+            _fIndexed = fIndexed;
+            _fMemory  = fMemory;
+        }
+
+        public override string ToString() {
+            return _strInst + '-' + _eMode.ToString();
+        }
+    }
+
+    /// <summary>
+    /// This is a little cpu emulator. I started out as working towards a 6502 but
+    /// now that I have an Agon Light 2 running BBC basic I'll probably pivot towards
+    /// the Z80.
+    /// </summary>
     public class MonitorDocument :
         IPgParent,
 		IDisposable,
