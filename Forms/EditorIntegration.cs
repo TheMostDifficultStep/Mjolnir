@@ -153,8 +153,6 @@ namespace Play.Forms {
 
                 FTCacheLine oElem = new FTCacheLineNumber( new TextLine( oLine.At, oLine.At.ToString() ), oLine );
 
-                ElemUpdate2( oElem, _rgColumns[1].Width );
-
                 oRow.CacheList.Add( oElem );
 
                 return oRow;
@@ -170,14 +168,14 @@ namespace Play.Forms {
             _rgLayout  .Add( _rctLineNumbers );
             _rgLayout  .Add( _rctTextArea );   // Main text area.
 
-            _rgColumns.Add( _rctTextArea );   // Text is always the first cache element on a row.
-            _rgColumns.Add( _rctLineNumbers );   // Even if later in the layout.
+            _rgCacheMap.Add( _rctTextArea    );   // Text is always the first cache element on a row.
+            _rgCacheMap.Add( _rctLineNumbers );   // Even if later in the layout.
         }
 
         protected override CacheManager2 CreateCacheManager(uint uiStdText) {
             return new CacheManagerAsm( new CacheManSlot(this),
                                         _oStdUI.FontRendererAt(uiStdText),
-                                        _rgColumns );
+                                        _rgCacheMap );
         }
     }
 }

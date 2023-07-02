@@ -36,9 +36,9 @@ namespace Play.Edit {
         IEnumerable<CacheRow>
     {
         protected readonly CacheManagerAbstractSite  _oSite      = null;
-        readonly SmartRect                 _oTextRect  = new SmartRect(); // World coordinates of our view port.
-        protected List<CacheRow>           _rgOldCache = new List<CacheRow>();
-        protected readonly List<SmartRect> _rgColumns;
+        readonly SmartRect                  _oTextRect  = new SmartRect(); // World coordinates of our view port.
+        protected List<CacheRow>            _rgOldCache = new List<CacheRow>();
+        protected readonly List<SmartRect>  _rgCacheMap;
 
         protected IPgFontRender Font       { get; }
         protected IPgGlyph      GlyphLt    { get; } // Our end of line character.
@@ -51,9 +51,9 @@ namespace Play.Edit {
         public CacheManager2( CacheManagerAbstractSite oSite, IPgFontRender oFont, List<SmartRect> rgColumns ) :
 			base() 
 		{
-			Font       = oFont     ?? throw new ArgumentNullException( "Need a font to get things rolling." );
-			_oSite     = oSite     ?? throw new ArgumentNullException( "Cache manager is a sited object.");
-            _rgColumns = rgColumns ?? throw new ArgumentNullException( "Columns list from Edit Window is null!" );
+			Font        = oFont     ?? throw new ArgumentNullException( "Need a font to get things rolling." );
+			_oSite      = oSite     ?? throw new ArgumentNullException( "Cache manager is a sited object.");
+            _rgCacheMap = rgColumns ?? throw new ArgumentNullException( "Columns list from Edit Window is null!" );
 
             GlyphLt    = Font.GetGlyph( 0x003c ); // we used to show carriage return as a '<' sign.
             LineHeight = (int)Font.LineHeight; // BUG: Cache elem's are variable height in general.
@@ -159,6 +159,8 @@ namespace Play.Edit {
 
             if( oRow == null )
                 return null;
+
+            RowUpdate( oRow );
 
             // Text rect is reset to UL => 0,0. Now set this element's top down a bit and build around it.
             switch( eNeighborhood ) {
@@ -324,42 +326,14 @@ namespace Play.Edit {
             return _rgOldCache.Count != 0;
         } // end method
 
-		/// <summary>TODO: Work in progress. Clearly looking for formatting right after
-        /// an update might not be wise. NOTE: Word breaking is different than formatting,
-        /// I always forget this! If you are making your own text display you'll
-        /// need this WordBreak() call somewhere equivalently.</summary>
-        /// <remarks>2023-1-7: Let's keep this focused on the textarea for the moment.
-        /// We can expand to other columns when we add that little bit extra.</remarks>
-        protected void ElemUpdate( FTCacheLine oElem ) {
-			try {
-                _oSite.WordBreak( oElem.Line, oElem.Words );
-
-				oElem.Update( Font );
-                oElem.OnChangeFormatting( _oSite.Selections );
-                oElem.OnChangeSize( _oTextRect[SCALAR.WIDTH] );
-			} catch( Exception oEx ) {
-				Type[] rgErrors = { typeof( NullReferenceException ),
-									typeof( ArgumentNullException ),
-                                    typeof( ArgumentOutOfRangeException ) };
-				if( !rgErrors.Contains( oEx.GetType() ))
-					throw;
-
-                _oSite.LogError( "view cache", "Update request on empty element" );
-			}
-        }
-
         /// <summary>
         /// For now the main text area is our primary editing zone. The rest won't
         /// be editable for now.
         /// </summary>
-        /// <param name="oRow"></param>
+        /// <remarks>Note that the CacheList length MIGHT be less than the CacheMap length!</remarks>
         protected virtual void RowUpdate( CacheRow oRow ) {
-            for( int i=0; i< oRow.CacheList.Count; i++ ) {
-                if( i == 0 ) {
-                    ElemUpdate ( oRow.CacheList[i] );
-                } else {
-                    ElemUpdate2( oRow.CacheList[i], _rgColumns[i].Width );
-                }
+            for( int i=0; i<oRow.CacheList.Count && i<_rgCacheMap.Count; ++i ) {
+                ElemUpdate2( oRow.CacheList[i], _rgCacheMap[i].Width );
             }
         }
 
@@ -462,7 +436,10 @@ namespace Play.Edit {
         /// and so we create the element here and pass it out to be used.
         /// </summary>
         /// <param name="oLine">The line we are trying to display.</param>
-        /// <returns>A cache element with enough information to display the line on the screen.</returns>
+        /// <returns>A new row enough information to display the line on the screen.</returns>
+        /// <remarks> Be sure to call RowUpdate()
+        /// after this call so that the lines can be measured.</remarks>
+        /// <seealso cref="RowUpdate"/>
         protected virtual CacheRow CreateRow( Line oLine ) {
             if( oLine == null ) {
                 _oSite.LogError( "view cache", "Guest line must not be null for screen cache element." );
@@ -471,8 +448,6 @@ namespace Play.Edit {
 
             CacheRow oRow = new CacheRow();
 
-            // TODO: Add an array of the columns and then we can auto
-            //       generate those elements too.
             FTCacheLine oElem;
 
 			if( _oSite.IsWrapped( oLine.At ) ) {
@@ -482,8 +457,6 @@ namespace Play.Edit {
 			}
 
             oRow.CacheList.Add( oElem );
-
-            ElemUpdate( oElem );
 
             return oRow;
         }
@@ -517,28 +490,30 @@ namespace Play.Edit {
                 return( null );
 
             // Line is not currently in cache, make a new elem.
-            CacheRow oCache = CreateRow( oLine );
+            CacheRow oRow = CreateRow( oLine );
 
-            if( oCache == null )
+            if( oRow == null )
                 return( null );
+
+            RowUpdate( oRow );
 
             // We sort of assume the new element is going to be at the top
             // or bottom of the view and set only it's vertical placement.
             // Also assumes Line.At implies order in the buffer.
             foreach( CacheRow oTemp in _rgOldCache ) {
-                if( oTemp.At == oCache.At + 1 ) { // Is the cache elem above?
-                    oCache.Bottom = oTemp.Top - LineSpacing;
+                if( oTemp.At == oRow.At + 1 ) { // Is the cache elem above?
+                    oRow.Bottom = oTemp.Top - LineSpacing;
                     break;
                 }
-                if( oTemp.At == oCache.At - 1 ) { // Is the cache elem below?
-                    oCache.Top    = oTemp.Bottom + LineSpacing;
+                if( oTemp.At == oRow.At - 1 ) { // Is the cache elem below?
+                    oRow.Top    = oTemp.Bottom + LineSpacing;
                     break;
                 }
             }
 
-            _rgOldCache.Add( oCache );
+            _rgOldCache.Add( oRow );
 
-            return oCache;
+            return oRow;
         }
 
         public struct GraphemeCollection : IEnumerable<IPgGlyph> {

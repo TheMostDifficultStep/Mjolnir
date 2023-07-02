@@ -144,6 +144,7 @@ namespace Play.Edit {
         }
 
         // Well have a matching array of SmartRect's for each cache elem inside.
+        // CacheList s/b always inorder of the ColumnList but not necessarily the LAYOUT list.
         public List<FTCacheLine> CacheList { get; } = new List<FTCacheLine> ();
 
         public bool IsHit( Point pntLocation ) {
@@ -382,7 +383,7 @@ namespace Play.Edit {
             if( oFR == null )
                 throw new ArgumentNullException();
             if( oRange == null )
-                oRange = new MemoryRange( 0, Line.ElementCount );
+                oRange = new MemoryRange( 0, Line.ElementCount ); // this is a struct...
 
             FontHeight = (int)oFR.LineHeight;
             LineHeight = (int)(FontHeight * 1.2 ); // Make this a intra line property in the future.

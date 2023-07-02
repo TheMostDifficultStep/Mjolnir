@@ -343,7 +343,7 @@ namespace Play.Edit {
         protected          LayoutRect            _rctCheques; // TODO: Move this to the subclass eventually.
         protected readonly LayoutRect            _rctTextArea = new LayoutRect( LayoutRect.CSS.None ); // Not same as the CacheMan text area!!
         protected readonly LayoutStackHorizontal _rgLayout    = new LayoutStackHorizontal() { Spacing = 5, Units = LayoutRect.CSS.Flex};
-        protected readonly List<SmartRect>       _rgColumns   = new (); // We'll phase out _rctTextArea if we can.
+        protected readonly List<SmartRect>       _rgCacheMap   = new (); // We'll phase out _rctTextArea if we can.
 
         // Possible to change if move window from one screen to another. Right now only init at start.
         public SKPoint DPI { get; protected set; } // Might change to float if this is a problem.
@@ -488,8 +488,8 @@ namespace Play.Edit {
         /// Might want right hand columns in the future, but let's start with this.
         /// </summary>
         protected virtual void InitColumns() {
-            _rgLayout .Add( _rctTextArea );   // Main text area.
-            _rgColumns.Add( _rctTextArea );
+            _rgLayout  .Add( _rctTextArea );   // Main text area.
+            _rgCacheMap.Add( _rctTextArea );
         }
 
         /// <remarks>
@@ -594,7 +594,7 @@ namespace Play.Edit {
         /// other ways to get device resolution.
         /// </summary>
 		protected virtual CacheManager2 CreateCacheManager( uint uiStdText ) {
-			return new CacheManager2( new CacheManSlot( this ), _oStdUI.FontRendererAt( uiStdText ), _rgColumns );
+			return new CacheManager2( new CacheManSlot( this ), _oStdUI.FontRendererAt( uiStdText ), _rgCacheMap );
 		}
 
         /// <summary>
@@ -1149,7 +1149,7 @@ namespace Play.Edit {
         /// <remarks>
         /// Note: that we are sharing the skPaint and that might result in problems in the
         /// future. We might want to either have our own paint object or return the
-        /// values to their original values.
+        /// values to their original values. Could also use this for column stripes.
         /// </remarks>
         protected virtual void OnPaintExtraColumnsBG( SKCanvas skCanvas, SKPaint skPaint ) {
         }
@@ -1185,7 +1185,7 @@ namespace Play.Edit {
                     for( int i=0; i<oRow.CacheList.Count; ++i ) {
                         FTCacheLine oCache = oRow.CacheList[i];
 
-                        oCache.Render(skCanvas, _oStdUI, RenderAt(oRow, _rgColumns[i] ), i == 0 ? this.Focused : false );
+                        oCache.Render(skCanvas, _oStdUI, RenderAt(oRow, _rgCacheMap[i] ), i == 0 ? this.Focused : false );
                     }
                 }
             } catch( Exception oEx ) {
@@ -2736,8 +2736,8 @@ namespace Play.Edit {
 		}
 
         /// <summary>
-        /// I want to make it so we can add extra columns between the scroll bar and the text.
-        /// Might want right hand columns in the future, but let's start with this.
+        /// *The CacheMap does NOT include the check mark column basically because it is hacked
+        /// into the layout. You would have to modify this document to allow for multiple check marks.
         /// </summary>
         protected override void InitColumns() {
             // Need this here for now. The _oCheque doesn't get cached until the cache manager
@@ -2747,8 +2747,7 @@ namespace Play.Edit {
             _rgLayout .Add( _rctCheques );  // Whoooo! new select column!!
             _rgLayout .Add( _rctTextArea ); // Main text area.
 
-            _rgColumns.Add( _rctTextArea ); // Text is always the first cache element on a row.
-            _rgColumns.Add( _rctCheques );  // even if NOT the first column.
+            _rgCacheMap.Add( _rctTextArea ); // Text is always the first cache element on a row.
         }
 
         /// <summary>So the text area might be read only, but the check column is
@@ -2768,9 +2767,9 @@ namespace Play.Edit {
         /// As much as I'd like to get rid of this. As you can see, it relies on some global information 
         /// to set the check mark.
         /// </summary>
-        protected override void OnPaintExtraColumn( SKCanvas skCanvas, SKPaint skPaint, CacheRow oCache ) {
-            if( _oDocument.CheckedLine == oCache.Line )
-                DrawGlyph(skCanvas, skPaint, _rctCheques.Left, RenderAt(oCache, _rctTextArea).Y, _oCheque );
+        protected override void OnPaintExtraColumn( SKCanvas skCanvas, SKPaint skPaint, CacheRow oRow ) {
+            if( _oDocument.CheckedLine == oRow.Line )
+                DrawGlyph(skCanvas, skPaint, _rctCheques.Left, RenderAt(oRow, _rctTextArea).Y, _oCheque );
         }
 	}
 }
