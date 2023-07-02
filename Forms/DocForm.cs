@@ -159,22 +159,22 @@ namespace Play.Forms {
                 while( strLine != null ) {
                     ++iLine;
                     Line oLine;
-                    if( iLine < _rgLines.ElementCount ) {
+                    if( iLine < _rgLines.Count ) {
                         oLine = _rgLines[iLine];
                         oLine.TryDelete( 0, int.MaxValue, out string strRemoved );
                         oLine.TryAppend( strLine );
                         Raise_AfterLineUpdate( oLine, 0, strRemoved.Length, oLine.ElementCount );
                     } else { 
                         oLine = CreateLine( iLine, strLine );
-                        _rgLines.Insert( _rgLines.ElementCount, oLine );
+                        _rgLines.Insert( _rgLines.Count, oLine );
                         Raise_AfterInsertLine( oLine );
                     }
                         
                     _iCumulativeCount = oLine.Summate( iLine, _iCumulativeCount );
                     strLine = oReader.ReadLine();
                 }
-                while( _rgLines.ElementCount > iLine + 1 ) {
-                    int iDelete = _rgLines.ElementCount - 1;
+                while( _rgLines.Count > iLine + 1 ) {
+                    int iDelete = _rgLines.Count - 1;
                     Raise_BeforeLineDelete( _rgLines[iDelete] );
                     _rgLines.RemoveAt( iDelete );
                 }

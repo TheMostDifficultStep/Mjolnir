@@ -94,33 +94,6 @@ namespace Play.Edit {
         Vertical
     }
 
-    public class TextLineArray : IArray<Line>, IArray<TextLine>
-    {
-        List<TextLine> _rgLines = new List<TextLine>();
-
-        public int  ElementCount { get { return( _rgLines.Count ); } }
-        public void RemoveAt( int iIndex ) { _rgLines.RemoveAt( iIndex ); }
-        public void Clear() { _rgLines.Clear(); }
-
-        /// <summary>
-        /// Keep lizards out of my array!
-        /// </summary>
-        public bool Insert( int iIndex, Line oValue ) { 
-            TextLine oNewLine = oValue as TextLine;
-            if( oNewLine != null ) {
-                _rgLines.Insert( iIndex, oNewLine ); 
-            }
-            return( oNewLine != null );
-        }
-        public bool Insert( int iIndex, TextLine oValue ) { 
-            _rgLines.Insert( iIndex, oValue ); 
-            return( true );
-        }
-
-        Line     IReadableBag<Line    >.this[int iIndex] { get{ return( _rgLines[iIndex] ); } }
-        TextLine IReadableBag<TextLine>.this[int iIndex] { get{ return( _rgLines[iIndex] ); } }
-    }
-
     /// <summary>
     /// You know, I think this would be cooler if these functions were an interface that
     /// you plug into the side of the BaseEditor! Need to think about that...
@@ -128,11 +101,6 @@ namespace Play.Edit {
     public class Editor : BaseEditor
     {
         public Editor( IPgBaseSite oSite ) : base( oSite ) {
-        }
-
-        protected override IArray<Line> CreateLineArray 
-        { 
-            get { return( new TextLineArray() ); }
         }
 
         protected override Line CreateLine( int iLine, string strValue )
@@ -232,7 +200,7 @@ namespace Play.Edit {
             set { _oCheckedLine = value; }
         }
 
-        protected readonly IArray<Line>   _rgLines;
+        protected readonly List<Line>     _rgLines           = new List<Line>();
         readonly ICollection<ILineEvents> _rgBufferCallbacks = new List<ILineEvents>();
         readonly ICollection<ILineRange>  _rgCursors         = new List<ILineRange>();
         readonly Stack<IUndoUnit>[]       _rgUndoStacks      = new Stack<IUndoUnit>[2];
@@ -257,10 +225,8 @@ namespace Play.Edit {
 			for( int i=0; i<_rgUndoStacks.Length; ++i ) {
                 _rgUndoStacks[i] = new Stack<IUndoUnit>();
             }
-            _rgLines = CreateLineArray;
         }
 
-        protected abstract IArray<Line> CreateLineArray { get; }
         protected abstract Line         CreateLine( int iLine, string strValue );
 
         /// <summary>
@@ -367,7 +333,7 @@ namespace Play.Edit {
 		}
 
         public void ClearFormatting() {
-            for( int i=0; i<_rgLines.ElementCount; ++i ) {
+            for( int i=0; i<_rgLines.Count; ++i ) {
                 _rgLines[i].Formatting.Clear();
             }
             Raise_BufferEvent( BUFFEREVENTS.CLEARFORMATTING );  
@@ -441,7 +407,7 @@ namespace Play.Edit {
 
         public long WordCountUpdate() {
             _lWordCount = 0;
-            for( int i=0; i<_rgLines.ElementCount; ++i ) {
+            for( int i=0; i<_rgLines.Count; ++i ) {
                 _lWordCount += _rgLines[i].WordCount;
             }
 
@@ -465,7 +431,7 @@ namespace Play.Edit {
         {
             _iCumulativeCount = 0;
 
-            if( _rgLines.ElementCount == 0 ) {
+            if( _rgLines.Count == 0 ) {
                 return( 0 );
             }
             if( !IsHit( iStartLine ) ) {
@@ -473,7 +439,7 @@ namespace Play.Edit {
                 return( 0 );
             }
 
-			if( iStartLine <= _rgLines.ElementCount ) {
+			if( iStartLine <= _rgLines.Count ) {
 				// Try to backup one from given line so can catch cumulative count.
 				// else make sure we clear cumulative count of the new first line
 				if( iStartLine > 0 )
@@ -486,7 +452,7 @@ namespace Play.Edit {
 
             //int j = 0;
 
-            for( int i = iStartLine; i < _rgLines.ElementCount; ++i ) {
+            for( int i = iStartLine; i < _rgLines.Count; ++i ) {
                 _iCumulativeCount = _rgLines[i].Summate( i, _iCumulativeCount );
 
                 // Redo the stream position values in the local area, in case
@@ -522,7 +488,7 @@ namespace Play.Edit {
         }
 
         public int ElementCount {
-            get { return( _rgLines.ElementCount ); }
+            get { return( _rgLines.Count ); }
         }
 
         /// <summary>
@@ -575,11 +541,11 @@ namespace Play.Edit {
                 case DocumentPosition.TOP:
                     return( iLine );
                 case DocumentPosition.BOTTOM:
-                    return( _rgLines.ElementCount - iLine - 1 );
+                    return( _rgLines.Count - iLine - 1 );
                 case DocumentPosition.INSIDE:
                     if( iLine < 0 )
                         return( -1 );
-                    if( iLine > _rgLines.ElementCount - 1 )
+                    if( iLine > _rgLines.Count - 1 )
                         return( 1 );
 
                     return( 0 );
@@ -627,13 +593,13 @@ namespace Play.Edit {
         /// <returns>Line index closest to the given stream offset.</returns>
         /// <remarks>I probably could just use generics at this point.
         /// I lifted this implementation directly from 'binary_search' in wikipedia.</remarks>
-        static int BinarySearch( IArray<Line> rgLines, int iStreamOffset ) 
+        static int BinarySearch( IList<Line> rgLines, int iStreamOffset ) 
         {
-            if( rgLines.ElementCount == 0 )
+            if( rgLines.Count == 0 )
                 return( 0 );
 
             int iLow  = 0;
-            int iHigh = rgLines.ElementCount - 1;
+            int iHigh = rgLines.Count - 1;
             int iMid  = 0;
 
             while( iHigh >= iLow ) {
@@ -686,7 +652,7 @@ namespace Play.Edit {
         public Line LineInsertNoUndo( int iLine, Line oLine ) {
             if( oLine == null )
                 throw new ArgumentNullException( nameof( oLine ) );
-            if( iLine < 0 || iLine > _rgLines.ElementCount )
+            if( iLine < 0 || iLine > _rgLines.Count )
                 throw new ArgumentOutOfRangeException( nameof( iLine ) );
 
             _rgLines.Insert( iLine, oLine );
@@ -731,8 +697,8 @@ namespace Play.Edit {
                 if( iLine <= 0 ) 
                     iLine = 0;
 
-                if( iLine >= _rgLines.ElementCount )
-                    iLine = _rgLines.ElementCount;
+                if( iLine >= _rgLines.Count )
+                    iLine = _rgLines.Count;
 
                 _rgLines.Insert( iLine, CreateLine( iLine, string.Empty ) );
             }
@@ -983,7 +949,7 @@ namespace Play.Edit {
 #region IPgPersistStream 
 
         public virtual bool InitNew() {
-            if (_rgLines.ElementCount != 0) {
+            if (_rgLines.Count != 0) {
                 _oSiteBase.LogError( "editor", "Already Loaded" );
                 return (false);
             }
@@ -1006,7 +972,7 @@ namespace Play.Edit {
         /// </summary>
         public virtual bool Load( TextReader oReader ) {
 			// This makes us reloadable.
-            if( _rgLines.ElementCount > 0 ) {
+            if( _rgLines.Count > 0 ) {
 				using( Manipulator oManip = CreateManipulator() ) {
 					oManip.DeleteAll( false );
 				}
@@ -1025,7 +991,7 @@ namespace Play.Edit {
                     // stuff all over anyway. So just use the string. TextLine will copy it to an array.
                     strLine = oReader.ReadLine();
                     if( strLine != null ) {
-                        int  iLine = _rgLines.ElementCount;
+                        int  iLine = _rgLines.Count;
                         Line oLine = CreateLine( iLine, strLine );
                         
                         // BUG: if string length > 10K we should use a StringBuilderLine style line...
@@ -1034,9 +1000,9 @@ namespace Play.Edit {
                             _oSiteBase.LogError( "editor", "Warning! There is a long line which won't be viewable in this editor. Line: " + ( iLine + 1 ).ToString() );
                         }
 
-                        _iCumulativeCount = oLine.Summate( _rgLines.ElementCount, _iCumulativeCount );
+                        _iCumulativeCount = oLine.Summate( _rgLines.Count, _iCumulativeCount );
                         
-                        _rgLines.Insert( _rgLines.ElementCount, oLine );
+                        _rgLines.Insert( _rgLines.Count, oLine );
                         Raise_AfterInsertLine( oLine );
                     }
                 } while( strLine != null );
@@ -1076,12 +1042,12 @@ namespace Play.Edit {
 
             try {
                 int i=0;
-                while( i<_rgLines.ElementCount-1 ) {
+                while( i<_rgLines.Count-1 ) {
                     _rgLines[i].Save( oStream );
                     oStream.WriteLine();
                     ++i;
                 }
-                if( i<_rgLines.ElementCount ) {
+                if( i<_rgLines.Count ) {
                     _rgLines[i].Save( oStream );
                 }
                 fReturn   = true;
@@ -1138,11 +1104,11 @@ namespace Play.Edit {
         public IEnumerator<Line> CreateLineEnum() {
             int iIndex=0;
 
-            if( _rgLines.ElementCount > 0 ) {
+            if( _rgLines.Count > 0 ) {
                 yield return( _rgLines[iIndex] );
             }
 
-            while( ++iIndex < _rgLines.ElementCount ) {
+            while( ++iIndex < _rgLines.Count ) {
                 yield return( _rgLines[iIndex] );
             }
         }

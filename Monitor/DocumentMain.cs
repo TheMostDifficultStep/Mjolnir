@@ -65,7 +65,7 @@ namespace Monitor {
         public IPgParent Services  => Parentage.Services;
 
         public Editor        TextCommands { get; }
-        public BaseEditor    AssemblyDoc  { get; }
+        public BasicEditor   AssemblyDoc  { get; }
         public CpuProperties Properties { get; }
 
         protected readonly List<Line>                               _rgRegisters = new();

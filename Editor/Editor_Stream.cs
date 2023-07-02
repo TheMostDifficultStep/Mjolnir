@@ -1,5 +1,6 @@
 using System;
 using System.Text;
+using System.Collections.Generic;
 
 using Play.Interfaces.Embedding;
 
@@ -15,7 +16,7 @@ namespace Play.Edit {
         /// <remarks>This class along with the Manipulator bein </remarks>
         public class LineStream : DataStream<char> {
             StringBuilder m_sbSubString = new StringBuilder();
-            IArray<Line>  m_rgLines;
+            IList<Line>   m_rgLines;
             BaseEditor    m_oEditor;
 
             int  m_iPos    = -1;
@@ -27,7 +28,7 @@ namespace Play.Edit {
                 m_oEditor = oEdit ?? throw new ArgumentNullException( "Editor must not be null" );
                 m_rgLines = oEdit._rgLines ?? throw new ArgumentNullException( "Editor lines array must not be null" );
 
-                if( m_rgLines.ElementCount > 0 && m_rgLines[0].ElementCount > 0 )
+                if( m_rgLines.Count > 0 && m_rgLines[0].ElementCount > 0 )
                     m_cCached = m_rgLines[0][0];
             }
 
@@ -57,14 +58,14 @@ namespace Play.Edit {
                     return( true );
 
                 // If lines get deleted since our last search we might be out of bounds.
-                int l_iLine = m_iLine < m_rgLines.ElementCount ? m_iLine : 0;
+                int l_iLine = m_iLine < m_rgLines.Count ? m_iLine : 0;
 
                 try {
                     int l_iOffs = p_iPos - m_rgLines[l_iLine].CumulativeLength;
 
                     while (l_iOffs >= m_rgLines[l_iLine].ElementCount + 1) {
                         l_iLine++;
-                        if (l_iLine >= m_rgLines.ElementCount)
+                        if (l_iLine >= m_rgLines.Count)
                             return( false );
                         if (l_iLine < 0)
                             return( false );
@@ -73,7 +74,7 @@ namespace Play.Edit {
 
                     while (l_iOffs < 0) {
                         l_iLine--;
-                        if (l_iLine >= m_rgLines.ElementCount)
+                        if (l_iLine >= m_rgLines.Count)
                             return( false );
                         if (l_iLine < 0)
                             return( false );
@@ -86,7 +87,7 @@ namespace Play.Edit {
                     m_cCached = m_rgLines[m_iLine][m_iOffs];
                 } catch( ArgumentOutOfRangeException ) {
                     // Empty files the parser might seek and it's ok to fail quietly in that case.
-                    if( m_rgLines.ElementCount < 1 ) {
+                    if( m_rgLines.Count < 1 ) {
                         return( false );
                     }
                     if( m_oEditor.Site != null ) {

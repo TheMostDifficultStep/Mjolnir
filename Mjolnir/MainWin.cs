@@ -676,7 +676,7 @@ namespace Mjolnir {
             };
 
             oEditMenu.DropDownItems.Add(new ToolStripMenuItem("Paste as",   BitmapCreateFromChar( "\xE16C" ), rgSubMenu2 ) );
-          //oEditMenu.DropDownItems.Add(new ToolStripMenuItem("Insert...",  BitmapCreateFromChar( "\xE16F" ), new EventHandler( this.OnEditInsert ) ));
+            oEditMenu.DropDownItems.Add(new ToolStripMenuItem("Insert...",  BitmapCreateFromChar( "\xE16F" ), new EventHandler( this.OnEditInsert ), Keys.Control | Keys.I ));
             oEditMenu.DropDownItems.Add(new ToolStripSeparator() ); //---
 
             oEditMenu.DropDownItems.Add(new ToolStripMenuItem("Undo",       BitmapCreateFromChar( "\xE10e" ), new EventHandler(this.OnEditUndo),    Keys.Control | Keys.Z ));
@@ -1103,7 +1103,7 @@ namespace Mjolnir {
         /// <summary>
         /// Look at the file given to determine if valid.
         /// </summary>
-        private bool FileCheck( string strFileName ) {
+        private static bool FileCheck( string strFileName ) {
             FileAttributes oAttribs;
             bool           fIsFile  = false;
 
@@ -1122,7 +1122,7 @@ namespace Mjolnir {
                 }
             }
 
-            return( fIsFile );
+            return fIsFile;
         }
 
         public void OnDocSave( object sender, EventArgs e ) {

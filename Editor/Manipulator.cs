@@ -19,7 +19,7 @@ namespace Play.Edit {
             IDisposable 
         {
             readonly BaseEditor              _oDocument;
-            readonly IArray<Line>            _rgLines;
+            readonly List<Line>              _rgLines;
             readonly ICollection<ILineRange> _rgCaretsToReset = new List<ILineRange>();
 			         bool                    _fSendEvents;
 
@@ -72,7 +72,7 @@ namespace Play.Edit {
             /// <param name="strLine"></param>
             /// <remarks>What about -append- at end. It's essentially an insert before the Count position.</remarks>
             public Line LineInsert( int iLine, string strLine, bool fUndoable = true ) {
-                if( iLine < 0 || iLine > _rgLines.ElementCount ) {
+                if( iLine < 0 || iLine > _rgLines.Count ) {
                     Raise_HostError("LineInsert(): Line is out of range.");
                     return ( null );
                 }
@@ -97,7 +97,7 @@ namespace Play.Edit {
             /// <param name="strLine"></param>
             /// <returns></returns>
             public Line LineAppend( string strLine ) {
-                return( LineInsert( _rgLines.ElementCount, strLine ) );
+                return( LineInsert( _rgLines.Count, strLine ) );
             }
 
             /// <summary>
@@ -111,10 +111,10 @@ namespace Play.Edit {
             /// <returns></returns>
             public Line LineAppendNoUndo( string strLine ) {
                 try {
-                    int  iLine = _rgLines.ElementCount;
+                    int  iLine = _rgLines.Count;
                     Line oLine = _oDocument.CreateLine( iLine, strLine);
 
-                    _rgLines.Insert( _rgLines.ElementCount, oLine );
+                    _rgLines.Insert( _rgLines.Count, oLine );
 
                     _oDocument.SetDirty();
                     _oDocument.Raise_AfterInsertLine( oLine );
@@ -231,14 +231,14 @@ namespace Play.Edit {
                 if( iLine < 0 )
                     iLine = 0;
                 
-                if( iLine > _rgLines.ElementCount )
-                    iLine = _rgLines.ElementCount;
+                if( iLine > _rgLines.Count )
+                    iLine = _rgLines.Count;
                     
                 List<string> rgNewLines = StreamConvert( _oDocument.Site, _oDocument.EOL, oStream );
 
                 if( rgNewLines.Count > 0 ) {
                     using( _oDocument.UndoMasterBegin() ) {
-                        if( _rgLines.ElementCount == 0 ) {
+                        if( _rgLines.Count == 0 ) {
                             Line oLine = _oDocument.CreateLine( 0, string.Empty );
                             _rgLines.Insert(0, oLine );
                             _oDocument.UndoPush(new UndoLineInsert(0));
@@ -494,7 +494,7 @@ namespace Play.Edit {
             public void DeleteAll( bool fUndo = true )
             {
                 try {
-                    for( int i = _rgLines.ElementCount - 1; i >= 0; --i ) {
+                    for( int i = _rgLines.Count - 1; i >= 0; --i ) {
                         Line oLine = _rgLines[i];
                         _oDocument.Raise_BeforeLineDelete( oLine );
 

@@ -28,52 +28,12 @@ namespace Mjolnir {
         public int Length { get => 4; set { } }
     }
 
-   
-    public class ViewsLineArray : IArray<Line>, IArray<ViewSlot> {
-        List<ViewSlot> _rgLines = new List<ViewSlot>();
-
-        public int  ElementCount { get { return( _rgLines.Count ); } }
-        public void RemoveAt( int iIndex ) { _rgLines.RemoveAt( iIndex ); }
-        public void Clear() { _rgLines.Clear(); }
-
-        /// <summary>
-        /// Keep lizards out of my array! We are a gated communitity.
-        /// </summary>
-        public bool Insert( int iIndex, Line oValue ) {
-			if( oValue is ViewSlot oNewLine ) {
-                _rgLines.Insert( iIndex, oNewLine ); 
-				return true;
-            }
-            return false;
-        }
-
-        public bool Insert( int iIndex, ViewSlot oValue ) { 
-            _rgLines.Insert( iIndex, oValue ); 
-            return true;
-        }
-
-        Line      IReadableBag<Line     >.this[int iIndex] { get{ return( _rgLines[iIndex] ); } }
-        ViewSlot IReadableBag<ViewSlot>.this[int iIndex] { get{ return( _rgLines[iIndex] ); } }
-
-        public ViewSlot this[int iIndex] => _rgLines[iIndex];
-
-        public IEnumerator<ViewSlot> GetEnumerator() {
-            return( _rgLines.GetEnumerator() );
-        }
-    }
-
-	/// <summary>
+   	/// <summary>
 	/// An editor for view sites. This is a bit of an experiment with my non mutiple buffer
 	/// version of the editor.
 	/// </summary>
     public class ViewsEditor : BaseEditor {
         public ViewsEditor( IPgBaseSite oSite ) : base( oSite ) {}
-
-        readonly ViewsLineArray _rgContents = new ViewsLineArray();
-
-        protected override IArray<Line> CreateLineArray { 
-            get { return( _rgContents as IArray<Line> ); }
-        }
 
         /// <summary>
         /// Make the editor happy. It does not understand the concept of an empty document.
@@ -83,7 +43,10 @@ namespace Mjolnir {
         }
 
         public IEnumerator<ViewSlot> GetEnumerator() {
-            return( _rgContents.GetEnumerator() );
+            foreach( Line oLine in _rgLines ) {
+                if( oLine is ViewSlot oSlot )
+                    yield return oSlot;
+            }
         }
 
         /// <remarks>I could potentially obviate the need for inserted element to be
@@ -99,7 +62,7 @@ namespace Mjolnir {
             oLine.Formatting.Add( new VLHyperText( 1 ) );
             oLine.Formatting.Add( new ColorRange( 0, int.MaxValue, 0 ) );
 
-            _rgContents.Insert( iLine, oLine );
+            _rgLines.Insert( iLine, oLine );
 
             SetDirty();
 
@@ -115,11 +78,11 @@ namespace Mjolnir {
         /// main thing is to delete a particular viewsite. It's interesting how this just why
         /// you want Remove() on the ICollection</remarks>
         public bool Remove( ViewSlot oViewSite ) {
-            for( int i=0; i<_rgContents.ElementCount; ++i ) {
-                ViewSlot oLine = _rgContents[i];
+            for( int i=0; i<_rgLines.Count; ++i ) {
+                ViewSlot oLine = _rgLines[i] as ViewSlot;
                 if( oLine == oViewSite ) {
                     Raise_BeforeLineDelete( oLine );
-                    _rgContents.RemoveAt( i );
+                    _rgLines.RemoveAt( i );
                     oLine.Dispose();
 
                     foreach( ILineRange oCaret in CaretEnumerable ) {
@@ -184,7 +147,7 @@ namespace Mjolnir {
                 if( !IsHit( iLine ) )
                     throw new IndexOutOfRangeException();
 
-                return _rgContents[iLine]; 
+                return _rgLines[iLine] as ViewSlot; 
             }
         }
 

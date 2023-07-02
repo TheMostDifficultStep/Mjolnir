@@ -213,41 +213,10 @@ namespace Play.ImageViewer {
         }
     }
 
-    public class FileLineArray : IArray<Line>, IArray<FileLine> {
-        List<FileLine> _rgLines = new List<FileLine>();
-
-        public int  ElementCount { get { return( _rgLines.Count ); } }
-        public void RemoveAt( int iIndex ) { _rgLines.RemoveAt( iIndex ); }
-        public void Clear() { _rgLines.Clear(); }
-
-        /// <summary>
-        /// Keep lizards out of my array!
-        /// </summary>
-        public bool Insert( int iIndex, Line oValue ) { 
-            FileLine oNewLine = oValue as FileLine;
-            if( oNewLine != null ) {
-                _rgLines.Insert( iIndex, oNewLine ); 
-            }
-            return( oNewLine != null );
-        }
-        public bool Insert( int iIndex, FileLine oValue ) { 
-            _rgLines.Insert( iIndex, oValue ); 
-            return( true );
-        }
-
-        Line     IReadableBag<Line    >.this[int iIndex] { get{ return( _rgLines[iIndex] ); } }
-        FileLine IReadableBag<FileLine>.this[int iIndex] { get{ return( _rgLines[iIndex] ); } }
-    }
-
     public class FileEditor : BaseEditor {
         public FileEditor( IPgBaseSite oSite ) : base( oSite ) {
 
         }
-        protected override IArray<Line> CreateLineArray 
-        { 
-            get { return( new FileLineArray() ); }
-        }
-
         protected override Line CreateLine( int iLine, string strValue )
         {
             return( new FileLine( iLine, strValue ) );

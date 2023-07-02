@@ -13,6 +13,68 @@ using SkiaSharp.Views.Desktop;
 
 
 namespace Monitor {
+    public enum StatusReg : int {
+        Negative,
+        Zero,
+        Carry,
+        Overflow
+    }
+
+    public class CpuProperties : DocProperties {
+        public enum Properties : int {
+            Status,
+            Overflow_Bit,
+            Carry_Bit, 
+            Zero_Bit, 
+            Negative_Bit,
+            Register_0,
+            Register_1,
+            Register_2,
+            Register_3,
+            Stack_Pointer,
+            Program_Counter
+        }
+
+        public CpuProperties( IPgBaseSite oSiteBase ) : base( oSiteBase ) {
+        }
+
+        public override bool InitNew() {
+            if( !base.InitNew() ) 
+                return false;
+            
+            // Set up the parser so we get spiffy colorization on our text!! HOWEVER,
+            // Some lines are not sending events to the Property_Values document and we
+            // need to trigger the parse seperately.
+            // new ParseHandlerText( Property_Values, "text" );
+
+            if( _oSiteBase.Host is not MonitorDocument oMonitorDoc )
+                return false;
+
+            // Set up our basic list of values.
+            foreach( Properties eName in Enum.GetValues(typeof(Properties)) ) {
+                CreatePropertyPair( eName.ToString() );
+            }
+
+            // Set up human readable labels.
+            LabelUpdate( (int)Properties.Register_0,      "0" );
+            LabelUpdate( (int)Properties.Register_1,      "1" );
+            LabelUpdate( (int)Properties.Register_2,      "2" ); // Readibility, strength, video
+            LabelUpdate( (int)Properties.Register_3,      "3" );
+            LabelUpdate( (int)Properties.Status,          "Status", SKColors.LightGreen );
+            LabelUpdate( (int)Properties.Negative_Bit,    "Negative" );
+            LabelUpdate( (int)Properties.Zero_Bit,        "Zero" );
+            LabelUpdate( (int)Properties.Carry_Bit,       "Carry" );
+            LabelUpdate( (int)Properties.Overflow_Bit,    "Overflow" );
+            LabelUpdate( (int)Properties.Stack_Pointer,   "Stack" );
+            LabelUpdate( (int)Properties.Program_Counter, "PC" );
+
+            // Put some initial values if needed here... :-/
+            ValueUpdate( (int)Properties.Program_Counter, "0" );
+
+            return true;
+        }
+    }
+
     public class PropertyWindow : WindowStandardProperties {
         public PropertyWindow( IPgViewSite oViewSite, CpuProperties oPropDoc ) : base( oViewSite, oPropDoc ) {
         }
@@ -35,8 +97,6 @@ namespace Monitor {
                 CacheRow oRow = base.CreateRow( oLine );
 
                 FTCacheLine oElem = new FTCacheWrap( oLine ); 
-
-                ElemUpdate2( oElem, _rgColumns[2].Width );
 
                 oRow.CacheList.Add( oElem );
 
@@ -92,14 +152,15 @@ namespace Monitor {
 
             protected override void RowUpdate( CacheRow oRow ) {
                 Organize( oRow );
-                for( int i=0; i< oRow.CacheList.Count; i++ ) {
+
+                for( int i=0; i<_rgCacheMap.Count; ++i ) {
                     IMemoryRange oArg = null;
 
                     if( _rgColumnOffsets[i].Offset > -1 ) {
                         oArg = _rgColumnOffsets[i];
                     }
 
-                    ElemUpdate3( oRow.CacheList[i], _rgColumns[i].Width, oArg );
+                    ElemUpdate3( oRow.CacheList[i], _rgCacheMap[i].Width, oArg );
                 }
             }
         }
@@ -110,22 +171,85 @@ namespace Monitor {
 
         /// <seealso cref="CacheManager2.RowUpdate"/>
         protected override void InitColumns() {
-            _oLayout  .Add( _rctLineNumbers );
-            _oLayout  .Add( _rctLabelColumn );
-            _oLayout  .Add( _rctTextArea );  
+            _rgLayout  .Add( _rctLineNumbers );
+            _rgLayout  .Add( _rctLabelColumn );
+            _rgLayout  .Add( _rctTextArea );  
 
-            _rgColumns.Add( _rctTextArea );      // Text is always the first cache element on a row.
-            _rgColumns.Add( _rctLineNumbers );   // Even if later in the layout. The rest must align.
-            _rgColumns.Add( _rctLabelColumn );   // btw layout and columns
+            _rgCacheMap.Add( _rctTextArea );      // Text is always the first cache element on a row.
+            _rgCacheMap.Add( _rctLineNumbers );   // Even if later in the layout. The rest must align.
+            _rgCacheMap.Add( _rctLabelColumn );   // btw layout and columns
         }
 
         protected override CacheManager2 CreateCacheManager(uint uiStdText) {
             return new CacheManagerLabel( new CacheManSlot(this),
                                         _oStdUI.FontRendererAt(uiStdText),
-                                        _rgColumns );
+                                        _rgCacheMap );
         }
     }
 
+    public class BasicEditor : BaseEditor
+    {
+        public BasicEditor( IPgBaseSite oSite ) : base( oSite ) {
+        }
+
+        protected override Line CreateLine( int iLine, string strValue )
+        {
+            Line oNew = new TextLine( iLine, strValue );
+
+            int iBasicNumber = ( iLine + 1 ) * 10;
+
+            oNew.Extra = new TextLine( iBasicNumber, iBasicNumber.ToString() );
+
+            return( oNew );
+        }
+
+    }
+
+
+    public class BasicLineWindow : EditWindow2 {
+        public class FTCacheLineNumber : FTCacheWrap {
+            Line _oGuest; // The line we are listing.
+
+            public FTCacheLineNumber( Line oLine, Line oGuest ) : base( oLine ) {
+                _oGuest = oGuest ?? throw new ArgumentNullException( "Guest line must not be null" );
+            }
+        }
+        public class CacheManagerBasic : CacheManager2 {
+            public CacheManagerBasic( CacheManagerAbstractSite oSite, IPgFontRender oFont, List<SmartRect> rgCols ) :
+                base( oSite, oFont, rgCols ) {
+            }
+
+            protected override CacheRow CreateRow( Line oLine ) {
+                CacheRow oRow = base.CreateRow( oLine );
+
+                if( oLine.Extra is Line oLineNumber ) {
+                    FTCacheLine oElem = new FTCacheLineNumber( oLineNumber, oLine );
+
+                    oRow.CacheList.Add( oElem );
+                }
+
+                return oRow;
+            }
+        }
+
+        protected readonly LayoutRect _rctLineNumbers = new LayoutRect( LayoutRect.CSS.Flex ) { Track = 30 };
+
+        public BasicLineWindow( IPgViewSite oSite, BaseEditor oEdit ) : base( oSite, oEdit ) {
+        }
+        protected override CacheManager2 CreateCacheManager(uint uiStdText) {
+            return new CacheManagerBasic( new CacheManSlot(this),
+                                        _oStdUI.FontRendererAt(uiStdText),
+                                        _rgCacheMap );
+
+        }
+        protected override void InitColumns() {
+            _rgLayout  .Add( _rctLineNumbers );
+            _rgLayout  .Add( _rctTextArea );   // Main text area.
+
+            _rgCacheMap.Add( _rctTextArea    );   // Text is always the first cache element on a row.
+            _rgCacheMap.Add( _rctLineNumbers );   // Even if later in the layout.
+        }
+    }
 
     internal class WindowFrontPanel : SKControl,
         IPgParent,
@@ -188,7 +312,7 @@ namespace Monitor {
             MonitorDoc = oMonitorDoc ?? throw new ArgumentNullException( "Monitor document must not be null!" );
 
             WinCommand  = new LineNumberWindow( new ViewSlot( this ), oMonitorDoc.TextCommands ) { Parent = this };
-            WinAssembly = new LineNumberWindow( new ViewSlot( this ), oMonitorDoc.AssemblyDoc  ) { Parent = this };
+            WinAssembly = new BasicLineWindow ( new ViewSlot( this ), oMonitorDoc.AssemblyDoc  ) { Parent = this };
         }
 
         public virtual bool InitNew() {
@@ -242,6 +366,28 @@ namespace Monitor {
             Invalidate();
         }
 
+        private static bool FileCheck( string strFileName ) {
+            FileAttributes oAttribs;
+            bool           fIsFile  = false;
+
+            try {
+                oAttribs = File.GetAttributes(strFileName);
+                fIsFile  = ( oAttribs & FileAttributes.Directory ) == 0;
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( ArgumentException ),
+                                    typeof( PathTooLongException ),
+                                    typeof( NotSupportedException ),
+                                    typeof( FileNotFoundException ),
+                                    typeof( DirectoryNotFoundException ) };
+
+                if( rgErrors.IsUnhandled( oEx ) ) {
+                    throw;
+                }
+            }
+
+            return fIsFile;
+        }
+
         public bool Execute(Guid sGuid) {
             if( sGuid == GlobalCommands.Play ) {
                 MonitorDoc.ProgramRun();
@@ -254,6 +400,22 @@ namespace Monitor {
             if( sGuid == GlobalCommands.JumpParent ) {
                 MonitorDoc.ProgramReset();
                 return true;
+            }
+            if( sGuid == GlobalCommands.Insert ) {
+                // It's blocking but what can you do...
+                using( OpenFileDialog oDialog = new OpenFileDialog() ) {
+                    if( oDialog.ShowDialog() == DialogResult.OK ) {
+                        if( FileCheck( oDialog.FileName ) ) {
+                            // Don't put this in the FileOk event because after that event
+                            // the dialog returns focus to where it came from and we lose
+                            // focus from our newly opened view.
+                            Detokenize oBasic = new Detokenize();
+
+                            oBasic.Start( oDialog.FileName, MonitorDoc.AssemblyDoc );
+                            //oBasic.Dump( oDialog.FileName, MonitorDoc.AssemblyDoc );
+                        }
+                    }
+                }
             }
             return false;
         }
