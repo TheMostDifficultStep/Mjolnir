@@ -156,12 +156,6 @@ namespace Play.Interfaces.Embedding {
         T this[int index] { get; }
     }
 
-    public interface IArray<T> : IReadableBag<T> {
-        void RemoveAt( int iIndex );
-        bool Insert( int iIndex, T oValue );
-        void Clear();
-    }
-
 	[Obsolete("replace with exception handling.")]
     public enum GetMappedGrammerErrors {
         OK,

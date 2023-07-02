@@ -71,8 +71,8 @@ namespace Monitor {
         protected string Detokanize( Tuple<int,byte[]> oLine ) {
             StringBuilder oSB = new();
 
-            oSB.Append( oLine.Item1.ToString() );
-            oSB.Append( ' ' );
+            //oSB.Append( oLine.Item1.ToString() );
+            //oSB.Append( ' ' );
 
             byte[] rgData = oLine.Item2;
             for( int i=0; i< rgData.Length; ++i ) {
@@ -164,12 +164,13 @@ namespace Monitor {
         void Decode( BinaryReader oReader, BasicEditor oEdit ) {
             // Decode binary data 'data' and write the result to 'output'.
             List<Tuple<int, byte[]>> rgLines = ReadLines( oReader );
+            using BasicEditor.BasicManipulator oBulk = new ( oEdit );
 
             foreach( Tuple<int,byte[]> oTuple in rgLines ) {
                 string strLine = Detokanize(oTuple);
 
                 if( oTuple.Item1 != 0xffff )
-                    oEdit.LineAppend( strLine );
+                    oBulk.Append( oTuple.Item1, strLine );
             }
         }
 

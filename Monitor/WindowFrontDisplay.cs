@@ -187,25 +187,6 @@ namespace Monitor {
         }
     }
 
-    public class BasicEditor : BaseEditor
-    {
-        public BasicEditor( IPgBaseSite oSite ) : base( oSite ) {
-        }
-
-        protected override Line CreateLine( int iLine, string strValue )
-        {
-            Line oNew = new TextLine( iLine, strValue );
-
-            int iBasicNumber = ( iLine + 1 ) * 10;
-
-            oNew.Extra = new TextLine( iBasicNumber, iBasicNumber.ToString() );
-
-            return( oNew );
-        }
-
-    }
-
-
     public class BasicLineWindow : EditWindow2 {
         public class FTCacheLineNumber : FTCacheWrap {
             Line _oGuest; // The line we are listing.

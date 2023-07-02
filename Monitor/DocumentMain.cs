@@ -8,6 +8,39 @@ using Play.Parse;
 using Play.Parse.Impl;
 
 namespace Monitor {
+    public class BasicEditor : BaseEditor
+    {
+        public class BasicManipulator : IDisposable {
+            BasicEditor _oDocument;
+
+            public BasicManipulator( BasicEditor oDocument ) {
+                _oDocument = oDocument ?? throw new ArgumentNullException();
+            }
+
+            public void Append( int iBasic, string strLine ) {
+                _oDocument._rgLines.Add( _oDocument.CreateLine( iBasic, strLine ) );
+            }
+
+            public void Dispose() {
+                _oDocument.Raise_MultiFinished();
+            }
+        }
+        public BasicEditor( IPgBaseSite oSite ) : base( oSite ) {
+        }
+
+        protected override Line CreateLine( int iLine, string strValue )
+        {
+            Line oNew = new TextLine( iLine, strValue );
+
+            int iBasicNumber = iLine;// ( iLine + 1 ) * 10;
+
+            oNew.Extra = new TextLine( iBasicNumber, iBasicNumber.ToString() );
+
+            return( oNew );
+        }
+
+    }
+
     public enum AddrModes {
         Acc, // Non-Indexed,non memory
         Imm,
