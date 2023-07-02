@@ -331,6 +331,7 @@ namespace Play.Edit {
         /// be editable for now.
         /// </summary>
         /// <remarks>Note that the CacheList length MIGHT be less than the CacheMap length!</remarks>
+        /// <seealso cref="CheckList"/>
         protected virtual void RowUpdate( CacheRow oRow ) {
             for( int i=0; i<oRow.CacheList.Count && i<_rgCacheMap.Count; ++i ) {
                 ElemUpdate2( oRow.CacheList[i], _rgCacheMap[i].Width );
@@ -363,15 +364,6 @@ namespace Play.Edit {
 			try {
 				CacheRow oPrev = null;
 				foreach( CacheRow oRow in _rgOldCache ) {
-        //            if( oElem.Color.Count > 0 ) {
-					   // oElem.Words.Clear();
-        //                foreach( IColorRange oRange in oElem.Line.Formatting ) {
-        //                    oElem.Words.Add( oRange );
-        //                }
-        //            }
-        //            if( oElem.Words.Count < 1 ) {
-        //                oElem.Words.Add(new ColorRange(0,oElem.Line.ElementCount,0));
-				    //}
 					if( oRow.IsInvalid )
 						RowUpdate( oRow );
 

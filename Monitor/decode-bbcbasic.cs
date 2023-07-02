@@ -161,7 +161,7 @@ namespace Monitor {
             return rgLines;
         }
 
-        void Decode( BinaryReader oReader, Editor oEdit ) {
+        void Decode( BinaryReader oReader, BaseEditor oEdit ) {
             // Decode binary data 'data' and write the result to 'output'.
             List<Tuple<int, byte[]>> rgLines = ReadLines( oReader );
 
@@ -173,7 +173,7 @@ namespace Monitor {
             }
         }
 
-        public void Start( string strFileName, Editor oEdit ) {
+        public void Start( string strFileName, BaseEditor oEdit ) {
             List<string> rgOutput = new();
 
             using Stream       oStream = File.OpenRead( strFileName );

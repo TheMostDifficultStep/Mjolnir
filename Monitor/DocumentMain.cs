@@ -65,7 +65,7 @@ namespace Monitor {
         public IPgParent Services  => Parentage.Services;
 
         public Editor        TextCommands { get; }
-        public Editor        AssemblyDoc  { get; }
+        public BaseEditor    AssemblyDoc  { get; }
         public CpuProperties Properties { get; }
 
         protected readonly List<Line>                               _rgRegisters = new();
@@ -140,7 +140,7 @@ namespace Monitor {
             _oBaseSite = oSite ?? throw new ArgumentNullException( "Site to document must not be null." );
 
             TextCommands = new ProgramFile  ( new DocSlot( this ) );
-            AssemblyDoc  = new Editor       ( new DocSlot( this ) );
+            AssemblyDoc  = new BasicEditor  ( new DocSlot( this ) );
             Properties   = new CpuProperties( new DocSlot( this ) );
 
             _dctInstructions.Add( "load-imm", Inst_LoadImm ); // load, reg, data (lda, ldx, ldy)
