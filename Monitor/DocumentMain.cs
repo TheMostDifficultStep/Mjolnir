@@ -6,6 +6,7 @@ using Play.Interfaces.Embedding;
 using Play.Edit; 
 using Play.Parse;
 using Play.Parse.Impl;
+using Play.Integration;
 
 namespace Monitor {
     public class BasicEditor : BaseEditor
@@ -18,10 +19,15 @@ namespace Monitor {
             }
 
             public void Append( int iBasic, string strLine ) {
-                _oDocument._rgLines.Add( _oDocument.CreateLine( iBasic, strLine ) );
+                Line oNew = new TextLine( _oDocument._rgLines.Count, strLine );
+
+                oNew.Extra = new TextLine( iBasic, iBasic.ToString() );
+
+                _oDocument._rgLines.Add( oNew );
             }
 
             public void Dispose() {
+                _oDocument.CharacterCount( 0 );
                 _oDocument.Raise_MultiFinished();
             }
         }
@@ -34,7 +40,7 @@ namespace Monitor {
 
             int iBasicNumber = iLine;// ( iLine + 1 ) * 10;
 
-            oNew.Extra = new TextLine( iBasicNumber, iBasicNumber.ToString() );
+            oNew.Extra = new TextLine( -1, "?" );
 
             return( oNew );
         }
@@ -214,8 +220,8 @@ namespace Monitor {
 
 			try {
 				// A parser is matched one per text document we are loading.
-				//ParseHandlerText oParser = new ParseHandlerText( AssemblyDoc, "asm" );
-                //_oGrammer = oParser.Grammer;
+				ParseHandlerText oParser = new ParseHandlerText( AssemblyDoc, "bbcbasic" );
+                _oGrammer = oParser.Grammer;
 			} catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( NullReferenceException ),
                                     typeof( InvalidCastException ),

@@ -1,0 +1,286 @@
+<bnfstuff>
+    <metadata>
+        <colortable>
+            <color name="black"     value="black" />
+            <color name="keyword"   value="blue" />
+            <color name="red"       value="red"  />
+            <color name="darkred"   value="darkred"  />
+            <color name="green"     value="green"  />
+            <color name="gray"      value="gray" />
+            <color name="purple"    value="purple" />
+            <color name="subcall"   value="steelblue" />
+            <color name="filename"  value="darkorange" />
+            <color name="operator"  value="cadetblue" />
+            <color name="vinstr"    value="violet" />
+        </colortable>
+        <terminals>
+            <term name="mytoken"   class="TextTermToken" />
+            <term name="myliteral" class="TextTermLiteral" />
+            <term name="mynumber"  class="TextTermNumber" />
+            <term name="myspace"   class="TextTermSpace" />
+            <term name="mycr"      class="TextTermCR" />
+            <!-- Must follow casing or we don't read this element in the reader
+	       need to fix that bug in the grammer reader -->
+            <term name="myEmpty"   class="TextTermEmpty" />
+            <term name="myanyof"   class="TextTermAnyOf" />
+        </terminals>
+    </metadata>
+    <bnftable>
+        <state name="start">
+            <production>
+                <nont state="bbcbasic" />
+            </production>
+        </state>
+        <state name="space"> <!-- no tabs for now -->
+            <production>
+                <term class="myspace" />
+                <nont state="space" />
+            </production>
+            <production>
+                <term class="myEmpty" />
+            </production>
+        </state>
+		<state name="param"> <!-- probably going to need array types -->
+			<production>
+				<term class="mynumber" />
+			</production>
+			<production>
+				<term class="myliteral" />
+			</production>
+            <production lookahead="3" >
+				<term class="mytoken" value="(" />
+				<nont state="space" />
+				<nont state="math" />
+				<nont state="space" />
+				<term class="mytoken" value=")" />
+            </production>
+		</state>
+
+		<state name="for" >
+            <capture>
+                <binding id="keyword"  array="false" color = "blue" />
+                <binding id="foriter"  array="false" color = "red" />
+                <binding id="forstart" array="false" color = "purple" />
+                <binding id="forend"   array="false" color = "purple" />
+                <binding id="forstep"  array="false" color = "purple" />
+                <binding id="fornext"  array="false" color = "blue" />
+            </capture>
+			<production>
+				<term class="mytoken" value="for" id="keyword" />
+				<nont state="space" />
+				<term class="myliteral" id="foriter" />
+				<nont state="space" />
+				<term class="mytoken" value="=" />
+				<nont state="space" />
+				<nont state="param" id="forstart" />
+				<nont state="space" />
+				<term class="mytoken" value="to" />
+				<nont state="space" />
+				<nont state="param" id="forend" />
+				<nont state="space" />
+				<term class="mytoken" value="step" />
+				<nont state="space" />
+				<nont state="param" id="forstep" />
+				<nont state="space" />
+
+				<term class="mycr" />
+				<nont state="bbcbasic" />
+
+				<nont state="space" />
+				<term class="mytoken" value="next" id="fornext" />
+				<nont state="space" />
+				<term class="mycr" />				
+			</production>
+		</state >
+
+        <state name="block"> 
+            <production>
+                <nont state="function" />
+            </production>
+			<!--
+            <production>
+                <nont state="assign />
+            </production>
+-->
+        </state>
+
+        <state name="else"> 
+            <production>
+                <term class="mytoken" value="else" />
+                <nont state="space" />
+				<nont state="block" id="blockelse" />
+            </production>
+            <production>
+                <term class="myEmpty" />
+            </production>
+        </state>
+
+		<state name="comparator" >
+            <capture>
+                <binding id="comp" array="false" color = "red" />
+			</capture>
+            <production >
+                <term class="mytoken" value="=" />
+            </production>
+            <production >
+                <term class="mytoken" value="&gt;" />
+            </production>
+            <production >
+                <term class="mytoken" value="&lt;" />
+            </production>
+            <production >
+                <term class="mytoken" value="&gt;=" />
+            </production>
+            <production >
+                <term class="mytoken" value="&lt;=" />
+            </production>
+		</state>
+
+		<state name="operator" >
+            <capture>
+                <binding id="op" array="false" color = "operator" />
+			</capture>
+            <production >
+                <term class="mytoken" value="+" id="op" />
+            </production>
+            <production >
+                <term class="mytoken" value="-" id="op" />
+            </production>
+            <production >
+                <term class="mytoken" value="/" id="op" />
+            </production>
+            <production >
+                <term class="mytoken" value="*" id="op" />
+            </production>
+            <production >
+                <term class="mytoken" value="mod" id="op" />
+            </production>
+		</state>
+
+		<state name="math-next" >
+            <capture>
+                <binding id="op"   array="false" />
+                <binding id="opparam" array="false" color="purple" />
+			</capture>
+            <production lookahead="3" >
+				<nont state="operator" />
+				<nont state="space" />
+				<nont state="param" id="opparam" />
+				<nont state="space" />
+				<nont state="math-next" />
+            </production>
+			<production>
+				<term class="myEmpty" />
+			</production>
+		</state >
+
+		<state name="math" >
+            <production lookahead="3" >
+				<nont state="param" />
+				<nont state="space" />
+				<nont state="math-next" />
+            </production>
+		</state >
+
+		<state name="conditional" >
+            <production lookahead="3" >
+				<nont state="math" />
+				<nont state="space" />
+				<nont state="comparator" />
+				<nont state="space" />
+				<nont state="math" />
+				<nont state="space" />
+            </production>
+		</state>
+
+		<state name="if" >
+            <capture>
+                <binding id="keyword"   array="false" color = "blue" />
+                <binding id="ifcond"    array="false"  />
+                <binding id="blockthen" array="false" />
+                <binding id="bolckelse" array="false"  />
+            </capture>
+			<production>
+				<term class="mytoken" value="if" id="keyword" />
+				<nont state="space" />
+				<nont state="conditional" id="ifcond" />
+				<nont state="space" />
+
+				<term class="mytoken" value="then" />
+				<nont state="space" />
+				<nont state="block" id="blockthen" />
+				<nont state="space" />
+
+				<nont state="else" />
+				<nont state="space" />
+
+				<term class="mycr" />
+
+			</production>
+		</state >
+		<state name="param-next" >
+			<production>
+				<term class="mytoken" value="," />
+				<nont state="space" />
+				<nont state="param" id="params" />
+				<nont state="space" />
+				<nont state="param-next" />
+			</production>
+			<production>
+                <term class="myEmpty" />
+			</production>
+		</state >
+
+		<state name="param-first" >
+			<production lookahead="2" >
+				<nont state="space" />
+				<nont state="param" id="params" />
+				<nont state="space" />
+				<nont state="param-next"/>
+				<term class="mycr" />
+			</production>
+		</state>
+
+		<state name="function" >
+            <capture>
+                <binding id="keyword" array="false" color = "blue" />
+                <binding id="params"  array="true"  color = "purple" />
+            </capture>
+			<production>
+				<term class="mytoken" value="mode" id="keyword" />
+				<nont state="param-first" />
+			</production>
+			<production>
+				<term class="mytoken" value="goto" id="keyword" />
+				<nont state="param-first" />
+			</production>
+			<production>
+				<term class="mytoken" value="plot" id="keyword" />
+				<nont state="param-first" />
+			</production>
+			<production>
+				<term class="mytoken" value="move" id="keyword" />
+				<nont state="param-first" />
+			</production>
+		</state >
+
+		<state name="bbcbasic" >
+			<production>
+				<term class="myspace" />
+				<nont state="bbcbasic" />
+			</production>
+			<production>
+				<nont state="for"/>
+				<nont state="bbcbasic" />
+			</production>
+			<production>
+				<nont state="if"/>
+				<nont state="bbcbasic" />
+			</production>
+			<production>
+				<nont state="function"/>
+				<nont state="bbcbasic" />
+			</production>
+		</state>
+    </bnftable>
+</bnfstuff>

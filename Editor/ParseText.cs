@@ -106,7 +106,7 @@ namespace Play.Integration {
 		IPgLoad<string>,
         IDisposable
     {
-        readonly protected Editor        _oDocument;
+        readonly protected BaseEditor    _oDocument;
         readonly protected Grammer<char> _oTextGrammar;
 
         readonly protected IPgRoundRobinWork _oWorkPlace; 
@@ -131,7 +131,7 @@ namespace Play.Integration {
 		/// <exception cref="InvalidOperationException" />
         /// <exception cref="ArgumentOutOfRangeException" />
         /// <exception cref="ArgumentNullException" />
-        public ParseHandlerText( Editor oDocument, string strLangName ) {
+        public ParseHandlerText( BaseEditor oDocument, string strLangName ) {
 			_oDocument = oDocument ?? throw new ArgumentNullException( "Parser listener needs an editor to monitor" );
 
 			try {
