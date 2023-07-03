@@ -13,6 +13,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="Content\bbc-basic.bnf" />
     <None Remove="Content\config.phree" />
     <None Remove="Content\directory.bnf" />
     <None Remove="Content\icons8-bookmark-book-512.png" />
@@ -40,6 +41,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="Content\bbc-basic.bnf" />
     <EmbeddedResource Include="Content\config.phree" />
     <EmbeddedResource Include="Content\directory.bnf" />
     <EmbeddedResource Include="Content\icons8-bookmark-book-512.png" />
