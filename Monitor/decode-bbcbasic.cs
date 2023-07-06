@@ -11,7 +11,7 @@ namespace Monitor {
         // The list of BBC BASIC V tokens:
         // Base tokens, starting at 0x7f
 
-        public static string[] stdTokens = {
+        public static string[] rgTokenStd = {
         "OTHERWISE", /* 7f */ "AND", "DIV", "EOR", "MOD", "OR", "ERROR", "LINE", "OFF", "STEP", 
         "SPC", "TAB(", "ELSE", "THEN", "<line>" /* TODO */, "OPENIN", "PTR","PAGE", "TIME", "LOMEM", 
 
@@ -31,14 +31,14 @@ namespace Monitor {
         "RESTORE", "RETURN", "RUN", "STOP", "COLOUR", "TRACE", "UNTIL", "WIDTH", "OSCLI" };
 
         // Referred to as "ESCFN" tokens in the source, starting at 0x8e.
-        string[] cfnTokens = { "SUM", "BEAT" };
+        string[] rgTokenCfn = { "SUM", "BEAT" };
         // Referred to as "ESCCOM" tokens in the source, starting at 0x8e.
-        string[] comTokens = {
+        string[] rgTokenCom = {
             "APPEND", "AUTO", "CRUNCH", "DELET", "EDIT", "HELP", "LIST", "LOAD",
             "LVAR", "NEW", "OLD", "RENUMBER", "SAVE", "TEXTLOAD", "TEXTSAVE", "TWIN",
             "TWINO", "INSTALL" };
         // Referred to as "ESCSTMT", starting at 0x8e.
-        string[] stmTokens= {
+        string[] rgTokenStm= {
             "CASE", "CIRCLE", "FILL", "ORIGIN", "PSET", "RECT", "SWAP", "WHILE",
             "WAIT", "MOUSE", "QUIT", "SYS", "INSTALL", "LIBRARY", "TINT", "ELLIPSE",
             "BEATS", "TEMPO", "VOICES", "VOICE", "STEREO", "OVERLAY" };
@@ -81,13 +81,13 @@ namespace Monitor {
                 } else {
                     switch( rgData[i] ) {
                         case 0xC6:
-                            oSB.Append( cfnTokens[rgData[++i] - 0x8E] );
+                            oSB.Append( rgTokenCfn[rgData[++i] - 0x8E] );
                             break;
                         case 0xC7:
-                            oSB.Append( comTokens[rgData[++i] - 0x8E] );
+                            oSB.Append( rgTokenCom[rgData[++i] - 0x8E] );
                             break;
                         case 0xC8:
-                            oSB.Append( stmTokens[rgData[++i] - 0x8E] );
+                            oSB.Append( rgTokenStm[rgData[++i] - 0x8E] );
                             break;
                         case 0xF4: // rem
                             for( ++i; i< rgData.Length; ++i ) {
@@ -96,7 +96,7 @@ namespace Monitor {
                             break;
                         case 0xe4: // Gosub
                         case 0xe5: // Goto followed by Line number reference...
-                            oSB.Append( stdTokens[rgData[  i] - 0x7f] ); // keyword
+                            oSB.Append( rgTokenStd[rgData[  i] - 0x7f] ); // keyword
 
                             while( rgData[++i] == 0x20 ) {
                                 oSB.Append( ' ' );
@@ -112,7 +112,7 @@ namespace Monitor {
                             }
                             break;
                         default:
-                            oSB.Append( stdTokens[rgData[  i] - 0x7f] );
+                            oSB.Append( rgTokenStd[rgData[  i] - 0x7f] );
                             break;
                     }
                     
@@ -173,9 +173,20 @@ namespace Monitor {
                     oBulk.Append( oTuple.Item1, strLine );
             }
         }
+        
+        public static void ToLower( string[] rgStrings ) {
+            for( int i=0; i<rgStrings.Length; i++ ) {
+                rgStrings[i] = rgStrings[i].ToLower();
+            }
+        }
 
         public void Start( string strFileName, BasicEditor oEdit ) {
             List<string> rgOutput = new();
+
+            ToLower( rgTokenStd );
+            ToLower( rgTokenCfn );
+            ToLower( rgTokenCom );
+            ToLower( rgTokenStm );
 
             using Stream       oStream = File.OpenRead( strFileName );
             using BinaryReader oReader = new BinaryReader(oStream);
@@ -185,6 +196,11 @@ namespace Monitor {
             Decode( oReader, oEdit);
         }
 
+        /// <summary>
+        /// Simple byte dump of file contents using binary reader.
+        /// </summary>
+        /// <param name="strFileName">Source file</param>
+        /// <param name="oEdit">Target editor.</param>
         public void Dump( string strFileName, Editor oEdit ) {
             using Stream oStream = new FileStream( strFileName,FileMode.Open );
             using BinaryReader oReader = new BinaryReader(oStream,Encoding.ASCII);
