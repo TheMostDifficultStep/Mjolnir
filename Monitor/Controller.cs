@@ -18,10 +18,13 @@ namespace Monitor {
         public override IDisposable CreateView(IPgViewSite oViewSite, object oDocument, Guid guidViewType) {
             if( oDocument is MonitorDocument oMonitorDoc ) {
 			    try {
-				    if( guidViewType == Guid.Empty )
-					    return new WindowFrontPanel( oViewSite, oMonitorDoc );
+                    if( guidViewType == BasicLineWindow.GUID )
+					    return new BasicLineWindow( oViewSite, oMonitorDoc );
+                    if( guidViewType == WindowFrontPanel.GUID )
+                        return new WindowFrontPanel( oViewSite, oMonitorDoc );
 
-				    return new WindowFrontPanel( oViewSite, oMonitorDoc );
+                    // Service the GUID.Empty case too.
+				    return new BasicLineWindow( oViewSite, oMonitorDoc );
                 } catch( Exception oEx ) {
                     Type[] rgErrors = { typeof( NullReferenceException ),
                                         typeof( InvalidCastException ),
@@ -36,7 +39,7 @@ namespace Monitor {
         }
 
         public override IEnumerator<IPgViewType> GetEnumerator() {
- 	        yield return new ViewType( "MainView", Guid.Empty );
+            yield return new ViewType( "BBC Basic", BasicLineWindow.GUID );
         }
     }
 

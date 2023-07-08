@@ -183,6 +183,7 @@ namespace Monitor {
         public void Start( string strFileName, BasicEditor oEdit ) {
             List<string> rgOutput = new();
 
+            // Sort out lower/upper later.
             ToLower( rgTokenStd );
             ToLower( rgTokenCfn );
             ToLower( rgTokenCom );

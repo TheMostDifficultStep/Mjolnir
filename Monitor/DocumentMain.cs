@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Windows.Forms;
 
 using Play.Interfaces.Embedding;
 using Play.Edit; 
@@ -798,5 +799,47 @@ namespace Monitor {
             }
         }
 
+        private static bool FileCheck( string strFileName ) {
+            FileAttributes oAttribs;
+            bool           fIsFile  = false;
+
+            try {
+                oAttribs = File.GetAttributes(strFileName);
+                fIsFile  = ( oAttribs & FileAttributes.Directory ) == 0;
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( ArgumentException ),
+                                    typeof( PathTooLongException ),
+                                    typeof( NotSupportedException ),
+                                    typeof( FileNotFoundException ),
+                                    typeof( DirectoryNotFoundException ) };
+
+                if( rgErrors.IsUnhandled( oEx ) ) {
+                    throw;
+                }
+            }
+
+            return fIsFile;
+        }
+
+        /// <summary>
+        /// Reload the main document with the given file. Right now we just assume
+        /// it's BBC basic binary. In the future I'll have some sort of Insert As...
+        /// </summary>
+        public void LoadDialog() {
+            // It's blocking but what can you do...
+            using( OpenFileDialog oDialog = new OpenFileDialog() ) {
+                if( oDialog.ShowDialog() == DialogResult.OK ) {
+                    if( FileCheck( oDialog.FileName ) ) {
+                        // Don't put this in the FileOk event because after that event
+                        // the dialog returns focus to where it came from and we lose
+                        // focus from our newly opened view.
+                        Detokenize oBasic = new Detokenize();
+
+                        oBasic.Start( oDialog.FileName, AssemblyDoc );
+                        //oBasic.Dump( oDialog.FileName, MonitorDoc.AssemblyDoc );
+                    }
+                }
+            }
+        }
     }
 }

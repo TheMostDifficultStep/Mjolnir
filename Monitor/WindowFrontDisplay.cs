@@ -188,6 +188,11 @@ namespace Monitor {
     }
 
     public class BasicLineWindow : EditWindow2 {
+        public static Guid GUID { get; } = new Guid( "{3D3B82AF-49FA-469E-865F-F35DD8CF11FB}" );
+        public override Guid Catagory => GUID;
+
+        protected MonitorDocument Monitor { get; }
+
         public class FTCacheLineNumber : FTCacheWrap {
             Line _oGuest; // The line we are listing.
 
@@ -215,7 +220,8 @@ namespace Monitor {
 
         protected readonly LayoutRect _rctLineNumbers = new LayoutRect( LayoutRect.CSS.Flex ) { Track = 30 };
 
-        public BasicLineWindow( IPgViewSite oSite, BaseEditor oEdit ) : base( oSite, oEdit ) {
+        public BasicLineWindow( IPgViewSite oSite, MonitorDocument oDoc ) : base( oSite, oDoc.AssemblyDoc ) {
+            Monitor = oDoc ?? throw new ArgumentNullException( ); // We'll die before reaching this... :-/
         }
         protected override CacheManager2 CreateCacheManager(uint uiStdText) {
             return new CacheManagerBasic( new CacheManSlot(this),
@@ -230,6 +236,14 @@ namespace Monitor {
             _rgCacheMap.Add( _rctTextArea    );   // Text is always the first cache element on a row.
             _rgCacheMap.Add( _rctLineNumbers );   // Even if later in the layout.
         }
+
+        public override bool Execute( Guid sGuidCommand ) {
+            if( sGuidCommand == GlobalCommands.Insert ) {
+                Monitor.LoadDialog();
+                return true;
+            }
+            return base.Execute( sGuidCommand );
+        }
     }
 
     internal class WindowFrontPanel : SKControl,
@@ -238,10 +252,12 @@ namespace Monitor {
         IPgLoad<XmlElement>,
         IPgSave<XmlDocumentFragment>
     {
+        public static Guid GUID { get; } = new Guid( "{A28DDC95-EE48-4426-9D15-0B29F07D5F4A}" );
+
         protected MonitorDocument       MonitorDoc { get; }
         protected LayoutStackHorizontal MyLayout   { get; } = new LayoutStackHorizontal();
         protected EditWindow2           WinCommand { get; } // machine code..
-        protected EditWindow2           WinAssembly{ get; }
+        protected EditWindow2           WinAssembly{ get; } // Assembly, now BBC basic.
 
         public IPgParent Parentage => _oSiteView.Host;
         public IPgParent Services  => Parentage.Services;
@@ -293,7 +309,7 @@ namespace Monitor {
             MonitorDoc = oMonitorDoc ?? throw new ArgumentNullException( "Monitor document must not be null!" );
 
             WinCommand  = new LineNumberWindow( new ViewSlot( this ), oMonitorDoc.TextCommands ) { Parent = this };
-            WinAssembly = new BasicLineWindow ( new ViewSlot( this ), oMonitorDoc.AssemblyDoc  ) { Parent = this };
+            WinAssembly = new BasicLineWindow ( new ViewSlot( this ), oMonitorDoc  ) { Parent = this };
         }
 
         public virtual bool InitNew() {
@@ -347,28 +363,6 @@ namespace Monitor {
             Invalidate();
         }
 
-        private static bool FileCheck( string strFileName ) {
-            FileAttributes oAttribs;
-            bool           fIsFile  = false;
-
-            try {
-                oAttribs = File.GetAttributes(strFileName);
-                fIsFile  = ( oAttribs & FileAttributes.Directory ) == 0;
-            } catch( Exception oEx ) {
-                Type[] rgErrors = { typeof( ArgumentException ),
-                                    typeof( PathTooLongException ),
-                                    typeof( NotSupportedException ),
-                                    typeof( FileNotFoundException ),
-                                    typeof( DirectoryNotFoundException ) };
-
-                if( rgErrors.IsUnhandled( oEx ) ) {
-                    throw;
-                }
-            }
-
-            return fIsFile;
-        }
-
         public bool Execute(Guid sGuid) {
             if( sGuid == GlobalCommands.Play ) {
                 MonitorDoc.ProgramRun();
@@ -383,20 +377,7 @@ namespace Monitor {
                 return true;
             }
             if( sGuid == GlobalCommands.Insert ) {
-                // It's blocking but what can you do...
-                using( OpenFileDialog oDialog = new OpenFileDialog() ) {
-                    if( oDialog.ShowDialog() == DialogResult.OK ) {
-                        if( FileCheck( oDialog.FileName ) ) {
-                            // Don't put this in the FileOk event because after that event
-                            // the dialog returns focus to where it came from and we lose
-                            // focus from our newly opened view.
-                            Detokenize oBasic = new Detokenize();
-
-                            oBasic.Start( oDialog.FileName, MonitorDoc.AssemblyDoc );
-                            //oBasic.Dump( oDialog.FileName, MonitorDoc.AssemblyDoc );
-                        }
-                    }
-                }
+                MonitorDoc.LoadDialog();
             }
             return false;
         }
