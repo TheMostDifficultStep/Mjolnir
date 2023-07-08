@@ -855,6 +855,9 @@ namespace Mjolnir {
                     case var r when ( r == typeof( IPgLoadURL ) ):
                         oNewSite = new Program.DirBrowserSlot( this, oDocDesc.Controller, strFileExtn, iID);
                         break;
+                    case var r when ( r == typeof( IPgLoad<BinaryReader> ) ):
+                        oNewSite = new Program.BinarySlot( this, oDocDesc.Controller, strFileExtn, iID);
+                        break;
                     default:
                         LogError( null, "hosting", "Unable to create site for document." );
                         return  null;

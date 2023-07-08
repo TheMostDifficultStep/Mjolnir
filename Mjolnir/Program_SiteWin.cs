@@ -123,6 +123,14 @@ namespace Mjolnir {
                 }
             }
 
+
+            /// <summary>
+            /// DocSlot want's this....
+            /// </summary>
+            public override bool Load( string strFilename ) {
+                return false;
+            }
+
             public bool Load( XmlElement xmlParent ) {
                 if( xmlParent == null ) {
                     LogError( "Missing Parent XML node to load from" );
@@ -220,6 +228,13 @@ namespace Mjolnir {
             public new int Reference {
                 get { return( 0 ); }
                 set { }
+            }
+
+            /// <summary>
+            /// DocSlot want's this...
+            /// </summary>
+            public override bool Load( string strFilename ) {
+                return false;
             }
 
             public bool Save(bool fNewLocation) {

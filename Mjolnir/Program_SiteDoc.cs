@@ -53,6 +53,19 @@ namespace Mjolnir {
             protected FILESTATS _eFileStats  = FILESTATS.UNKNOWN;
             protected readonly string _strFileExt;
 
+			public static readonly Type[] _rgFileErrors = { 
+						typeof( ArgumentNullException ),
+						typeof( ArgumentException ),
+						typeof( NullReferenceException ),
+						typeof( DirectoryNotFoundException ),
+						typeof( IOException ),
+						typeof( UnauthorizedAccessException ),
+						typeof( PathTooLongException ),
+						typeof( SecurityException ),
+                        typeof( InvalidOperationException ),
+                        typeof( NotSupportedException ),
+                        typeof( FileNotFoundException ) };
+
             public BaseSlot( Program oProgram, IPgController2 oController, string strFileExt, int iID = -1 ) {
                 _oHost       = oProgram    ?? throw new ArgumentNullException( "Program" );
                 _strFileExt  = strFileExt  ?? throw new ArgumentNullException( "File Extension" );
@@ -83,6 +96,46 @@ namespace Mjolnir {
             public int Reference {
                 get { return( _iReferences ); }
                 set { _iReferences = value; }
+            }
+
+            public string LastPath {
+                get {
+                    // If we've got a filename try that path first. 
+                    if( string.IsNullOrEmpty( FileName ) || 
+                        string.IsNullOrEmpty( Path.GetFileNameWithoutExtension( FileName ) ) ) 
+                    {
+                        return( _oHost.LastPath );
+                    }
+
+                    return( Path.GetDirectoryName( FileName ) );
+                }
+            }
+
+            protected bool CheckLocation( bool fNewLocation ) {
+                string strLastPath = _oHost.LastPath;
+
+                // If we've got a filename try that path first. 
+                if( string.IsNullOrEmpty( FileName ) || 
+                    string.IsNullOrEmpty( Path.GetFileNameWithoutExtension( FileName ) ) )
+                    fNewLocation = true;
+                else
+                    strLastPath = Path.GetDirectoryName( FileName );
+
+                if( fNewLocation == true ) {
+                    SaveFileDialog oDialog = new SaveFileDialog();
+
+                    oDialog.InitialDirectory = strLastPath;
+                    oDialog.ShowDialog();
+
+                    if( oDialog.FileName == null || oDialog.FileName.Length == 0 || !oDialog.CheckPathExists ) {
+                        LogError( "Please supply a valid file name for your next Save request. ^_^;" );
+                        return( false );
+                    }
+
+                    FileName = oDialog.FileName;
+                }
+
+                return( true );
             }
 
             public bool CreateDocument() {
@@ -151,13 +204,17 @@ namespace Mjolnir {
                 get { return( _oController as IEnumerable<IPgViewType>); }
             }
 
-            public virtual bool InitNew() {
-                return( false );
-            }
+            /// <summary>
+            /// By being abstract, it tells the user that they've got to implement
+            /// something. I used have a virtual return false here.
+            /// </summary>
+            public abstract bool InitNew() ;
 
-            public virtual bool Load( string strFilename ) {
-                return( false );
-            }
+            /// <summary>
+            /// By being abstract, it tells the user that they've got to implement
+            /// something. I used have a virtual return false here.
+            /// </summary>
+            public abstract bool Load( string strFilename );
 
             public virtual void Dispose() {
                 if( _oGuestDispose != null ) {
@@ -340,50 +397,6 @@ namespace Mjolnir {
                 }
             }
 
-            public string LastPath {
-                get {
-                    // If we've got a filename try that path first. 
-                    if( string.IsNullOrEmpty( FileName ) || 
-                        string.IsNullOrEmpty( Path.GetFileNameWithoutExtension( FileName ) ) ) 
-                    {
-                        return( _oHost.LastPath );
-                    }
-
-                    return( Path.GetDirectoryName( FileName ) );
-                }
-            }
-
-            protected bool CheckLocation( bool fNewLocation ) {
-                string strLastPath = _oHost.LastPath;
-
-                // If we've got a filename try that path first. 
-                if( string.IsNullOrEmpty( FileName ) || 
-                    string.IsNullOrEmpty( Path.GetFileNameWithoutExtension( FileName ) ) )
-                    fNewLocation = true;
-                else
-                    strLastPath = Path.GetDirectoryName( FileName );
-
-                if( fNewLocation == true ) {
-                    SaveFileDialog oDialog = new SaveFileDialog();
-
-                    oDialog.InitialDirectory = strLastPath;
-                    oDialog.ShowDialog();
-
-                    if( oDialog.FileName == null || oDialog.FileName.Length == 0 || !oDialog.CheckPathExists ) {
-                        LogError( "Please supply a valid file name for your next Save request. ^_^;" );
-                        return( false );
-                    }
-
-                    FileName = oDialog.FileName;
-                }
-
-                return( true );
-            }
-
-            internal IEnumerator<ColorMap> Colors {
-                get { return( _oHost.GetSharedGrammarColors() ); }
-            }
-
             public override bool IsDirty {
                 get { 
                     if( _oGuestSave == null )
@@ -428,18 +441,7 @@ namespace Mjolnir {
 						oWriter.Flush();
                     }
                 } catch( Exception oEx ) {
-					Type[] rgErrors = { 
-						typeof( ArgumentNullException ),
-						typeof( ArgumentException ),
-						typeof( DirectoryNotFoundException ),
-						typeof( IOException ),
-						typeof( UnauthorizedAccessException ),
-						typeof( PathTooLongException ),
-						typeof( SecurityException ),
-						typeof( NullReferenceException ),
-                        typeof( InvalidOperationException ) };
-
-					if( rgErrors.IsUnhandled( oEx ) )
+					if( _rgFileErrors.IsUnhandled( oEx ) )
 						throw;
 
                     ExplainFileException( oEx );
@@ -493,7 +495,7 @@ namespace Mjolnir {
                 Encoding utf8NoBom = new UTF8Encoding(false);
 
                 try {
-                    FileInfo oFile = new System.IO.FileInfo(strFileName);
+                    FileInfo oFile = new FileInfo(strFileName);
 
                     FileStream oByteStream = oFile.OpenRead(); // by default StreamReader closes the stream.
                     // Overridable versions of StreamReader can prevent that in higher versions of .net
@@ -514,11 +516,7 @@ namespace Mjolnir {
 				                _oEncoding = fNoBOM ? utf8NoBom : oReader.CurrentEncoding;
                             }
 						} catch( Exception oEx ) {
-							Type[] rgErrors = { typeof( IOException ),
-												typeof( ArgumentException ), 
-												typeof( NullReferenceException ) }; 
-
-							if( rgErrors.IsUnhandled( oEx ) )
+							if( _rgFileErrors.IsUnhandled( oEx ) )
 								throw;
 
                             LogError( "Died trying to load : " + strFileName );
@@ -530,15 +528,7 @@ namespace Mjolnir {
                         OnLoaded(); // For our subclasses.
                     }
                 } catch( Exception oEx ) {
-                    Type[] rgErrors = { typeof( DirectoryNotFoundException ),
-                                        typeof( FileNotFoundException ),
-                                        typeof( IOException ),
-                                        typeof( ArgumentException ),
-										typeof( ArgumentNullException ), // if the drive doesn't exist.
-                                        typeof( NullReferenceException ),
-                                        typeof( NotSupportedException ) }; 
-
-					if( rgErrors.IsUnhandled( oEx ) )
+					if( _rgFileErrors.IsUnhandled( oEx ) )
 						throw;
 
                     LogError( "Could not find or session is currently open :" + strFileName );
@@ -546,45 +536,6 @@ namespace Mjolnir {
                 }
 
                 return ( _fLoaded );
-            }
-
-            public bool LoadResource( string strResourceName ) {
-                Assembly     oAssembly = null;
-                Stream       oStream   = null;
-                StreamReader oReader   = null;
-                bool         fReturn   = false;
-
-                if( _oGuestLoad == null ) {
-                    LogError( "internal", "Guest document does not support IPgLoad<TestReader>" );
-                    return( false );
-                }
-
-                try {
-                    oAssembly = Assembly.GetExecutingAssembly();
-                    oStream   = oAssembly.GetManifestResourceStream( strResourceName );
-
-                    using( oReader = new StreamReader( oStream ) ) {
-                        fReturn = _oGuestLoad.Load( oReader ); 
-
-                        if( fReturn ) {
-                            FileName     = strResourceName;
-                            _oEncoding   = oReader.CurrentEncoding;
-                            _eFileStats  = FILESTATS.READONLY;
-
-                            OnLoaded(); // For our subclasses.
-                        }
-                    }
-                } catch( Exception oEx ) {
-                    Type[] rgErrors = { typeof( ArgumentNullException ), typeof( ArgumentException ),
-                                        typeof( FileLoadException ),     typeof( FileNotFoundException ),
-                                        typeof( BadImageFormatException ) };
-                    if( rgErrors.IsUnhandled( oEx ) ) 
-						throw;
-
-                    LogError( "LoadResource", "Tried to read: " + strResourceName );
-                }
-
-                return( fReturn );
             }
 
             public override void Notify( ShellNotify eEvent ) {
@@ -606,6 +557,145 @@ namespace Mjolnir {
 
                 base.Dispose();
             }
+        }
+
+        public class BinarySlot :
+            BaseSlot,
+            IPgFileSite,
+            IDocSlot {
+
+            protected IPgLoad<BinaryReader> _oGuestLoad;
+            protected IPgSave<BinaryWriter> _oGuestSave;
+
+            public BinarySlot(Program oProgram, IPgController2 oController, string strFileExt, int iID = -1) : 
+                base(oProgram, oController, strFileExt, iID) 
+            {
+            }
+
+            public override bool IsDirty => _oGuestSave.IsDirty;
+
+            protected override void GuestSet( IDisposable value ) {
+                base.GuestSet( value ); // mucho importante!!!
+
+                try {
+                    _oGuestLoad = (IPgLoad<BinaryReader>)value;
+                    _oGuestSave = value as IPgSave<BinaryWriter>; 
+                } catch( InvalidCastException oEx ) {
+                    throw new ArgumentException( "document dosen't support required interfaces.", oEx );
+                }
+            }
+
+            /// <remarks>You know I could probably make a templatized base object... 7/7/2023</remarks>
+            public override void Notify( ShellNotify eEvent ) {
+				switch( eEvent ) {
+                    case ShellNotify.MediaStatusChanged:
+					case ShellNotify.DocumentDirty:
+						_oHost.Raise_UpdateTitles( this );
+						break;
+				}
+            }
+
+            /// <summary>
+            /// Clean up after all the stuff we put into the Main Window which
+            /// is our host.
+            /// </summary>
+            public override void Dispose() {
+				_oGuestLoad = null;
+				_oGuestSave = null;
+
+                base.Dispose();
+            }
+
+            public override bool InitNew() {
+                if( _oGuestLoad == null ) {
+                    LogError( "document", "Init failure, this object does not support IPgLoad<BinaryReader>: " + Title );
+                    return false;
+                }
+
+                if( !_oGuestLoad.InitNew() )
+                    return false;
+
+                // Might want to save load state so I can see if we get called again...
+
+                return true;
+            }
+
+            public override bool Load(string strFileName) {
+                if( _oGuestLoad == null ) {
+                    LogError( "document", "Load failure, his object does not support IPgLoad<BinaryReader>: " + Title );
+                    return( false );
+                }
+
+                try {
+                    FileInfo oFile = new FileInfo(strFileName);
+
+                    FileStream oByteStream = oFile.OpenRead(); 
+
+                    using( BinaryReader oReader = new BinaryReader( oByteStream ) ) {
+                        try {
+							FileName = strFileName; // Guests sometimes need this when loading.
+
+							if( oFile.IsReadOnly )
+								_eFileStats = FILESTATS.READONLY;
+							else
+								_eFileStats = FILESTATS.READWRITE;
+
+                            if( !_oGuestLoad.Load( oReader ) )
+                                return false;
+
+                            _oHost.LastPath = Path.GetDirectoryName( strFileName );
+						} catch( Exception oEx ) {
+							if( _rgFileErrors.IsUnhandled( oEx ) )
+								throw;
+
+                            LogError( "Died trying to load : " + strFileName );
+                        }
+                    }
+                } catch( Exception oEx ) {
+					if( _rgFileErrors.IsUnhandled( oEx ) )
+						throw;
+
+                    LogError( "Could not find or session is currently open :" + strFileName );
+                }
+
+                return true;
+            }
+            public bool Save(bool fAtNewLocation) {
+                if( _oGuestSave == null ) {
+                    LogError( "Cannot persist " + Title, ". The object does not support IPgSave<TextWriter>." );
+                    return false;
+                }
+				//if( !_fLoaded ) {
+				//	return true;
+				//}
+
+                if( !CheckLocation( fAtNewLocation ) )
+                    return false;
+
+                bool fSaved = false;
+
+                try {
+                    FileInfo   oFile       = new FileInfo(FileName);
+                    FileStream oByteStream = oFile.OpenWrite(); 
+
+                    oByteStream.SetLength( 0 ); // the best way? :-/
+
+                    using( BinaryWriter oWriter = new BinaryWriter( oByteStream, ASCIIEncoding.UTF8 ) ) {
+                        fSaved = _oGuestSave.Save( oWriter );
+						oWriter.Flush();
+                    }
+                } catch( Exception oEx ) {
+					if( _rgFileErrors.IsUnhandled( oEx ) )
+						throw;
+
+                    ExplainFileException( oEx );
+                }
+
+                _oHost.Raise_UpdateTitles( this );
+
+                return fSaved;
+            }
+
         }
 
         /// <summary>

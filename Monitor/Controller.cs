@@ -9,8 +9,21 @@ using SkiaSharp;
 namespace Monitor {
     public class MonitorController : Controller {
         public MonitorController() {
-            _rgExtensions.Add( ".asm" );
+            //_rgExtensions.Add( ".asm" );
+            _rgExtensions.Add( ".bas" );
         }
+
+        /*
+         * Arggg... I don't want to commit to read/write in binary yet... 
+         *          but the shell can support it now! ^_^;;
+        public override PgDocumentDescriptor Suitability(string strExtension) {
+            if( string.Compare( PrimaryExtension, strExtension ) == 0 )
+                return new PgDocumentDescriptor( strExtension, typeof( IPgLoad<BinaryReader> ), (byte)255, this );
+
+            return new PgDocumentDescriptor( strExtension, typeof( IPgLoad<BinaryReader> ), (byte)0, this );
+        }
+        */
+
         public override IDisposable CreateDocument(IPgBaseSite oSite, string strExtension) {
             return new MonitorDocument( oSite );
         }
