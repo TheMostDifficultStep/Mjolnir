@@ -27,6 +27,14 @@ namespace Monitor {
                 _oDocument._rgLines.Add( oNew );
             }
 
+            public void Append( string strLine ) { 
+                Line oNew = new TextLine( _oDocument._rgLines.Count, strLine );
+
+                oNew.Extra = new TextLine( -1, "?" );
+
+                _oDocument._rgLines.Add( oNew );
+            }
+
             public void Dispose() {
                 _oDocument.CharacterCount( 0 );
                 _oDocument.Raise_MultiFinished();
@@ -293,12 +301,55 @@ namespace Monitor {
             return true;
         }
 
-        public bool Save(TextWriter oStream) {
-            return AssemblyDoc.Save( oStream );
+        public bool LoadBasic( TextReader oStream ) {
+            using BasicEditor.BasicManipulator oBulk = new ( AssemblyDoc );
+
+            try {
+                string?            strLine  = null;
+                ReadOnlySpan<char> spNumber = null;
+                string?            spBasic  = null; // Might need to update my string params on the editor.
+                do {
+                    strLine = oStream.ReadLine();
+
+                    if( strLine != null ) {
+                        int i=0;
+                        for( ; i<strLine.Length; ++i ) {
+                            if( !Char.IsDigit( strLine[i] ) ) {
+                                spNumber = strLine.AsSpan().Slice(start: 0, length: i);
+                                break;
+                            }
+                        }
+                        for( ; i<strLine.Length; ++i ) {
+                            if( !Char.IsWhiteSpace( strLine[i] ) ) {
+                                spBasic = strLine.Substring( startIndex: i, length: strLine.Length - i );
+                                break;
+                            }
+                        }
+                        if( spBasic != null && spNumber != null && int.TryParse( spNumber, out int iNumber ) ) {
+                            oBulk.Append( iNumber, spBasic );
+                        } else {
+                            if( strLine.Length > 0 ) {
+                                oBulk.Append( strLine );
+                            }
+                        }
+                    }
+                } while( strLine != null );
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( IOException ),
+                                    typeof( OutOfMemoryException ),
+                                    typeof( ObjectDisposedException ),
+                                    typeof( ArgumentOutOfRangeException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
+
+                return false;
+            }
+
+            return true;
         }
 
         public bool Load(TextReader oStream) {
-            if( !AssemblyDoc.Load( oStream ) )
+            if( !LoadBasic( oStream ) )
                 return false;
 
             if( !TextCommands.InitNew() )
@@ -307,6 +358,17 @@ namespace Monitor {
             if( !Initialize() ) 
                 return false;
 
+            return true;
+        }
+
+        public bool Save(TextWriter oStream) {
+            foreach( Line oLine in AssemblyDoc ) {
+                if( oLine.Extra is Line oNumber ) {
+                    oStream.Write( oNumber.ToString() );
+                    oStream.Write( ' ' );
+                }
+                oStream.WriteLine( oLine.ToString() );
+            }
             return true;
         }
 
