@@ -218,12 +218,16 @@ namespace Play.Edit {
 
         public abstract string SubString( int iStart, int iLength ); 
       //public override string ToString() { return new string( Buffer, 0, ElementCount ); } // TODO TextLine() we can remove it's implementation.
-        
+        public abstract Span<char> SubSpan( IMemoryRange oRange );
+        public abstract Span<char> SubSpan( int iStart, int iLength );
+        public abstract Span<char> AsSpan { get; }
+       
         public virtual bool TryInsert( int iIndex, char cChar ) { return( false ); }
         public virtual bool TryInsert( int iDestOffset, string strSource, int iSrcIndex, int iSrcLength ) { return( false ); }
         public virtual bool TryDelete( int iIndex, int iLength, out string strRemoved ) { strRemoved = string.Empty; return( false ); }
         public virtual bool TryAppend( string strValue ) { return TryInsert( ElementCount, strValue, 0, strValue.Length ); }
 
+        public abstract bool TryReplace( int iStart, int iLenght, ReadOnlySpan<char> spReplacements );
 		public virtual void Empty() { }
 
         public virtual void Dispose() { _iLine = -1; }
@@ -254,6 +258,11 @@ namespace Play.Edit {
         public TextLine( int iLine, string strValue) : base( iLine )
         {
             _sbBuffer = new MyStringBuilder( strValue );
+        }
+
+        public TextLine( int iLine, ReadOnlySpan<char> spValue ) : base( iLine )
+        {
+            _sbBuffer = new MyStringBuilder( spValue );
         }
 
         public override void Save( TextWriter oStream, int iStart = 0, int iLength = int.MaxValue )
@@ -287,8 +296,26 @@ namespace Play.Edit {
         /// <exception cref="ArgumentOutOfRangeException" />
         /// <exception cref="ArgumentNullException" />
         public override string SubString( int iStart, int iLength ) {
-            return( _sbBuffer.SubString( iStart, iLength ) );
-        } 
+            return _sbBuffer.SubString( iStart, iLength );
+        }
+
+        public override Span<char> SubSpan( IMemoryRange oRange ) {
+            return _sbBuffer.SubSpan( oRange.Offset, oRange.Length );
+        }
+
+        public override Span<char> SubSpan( int iOffset, int iLength ) {
+            return _sbBuffer.SubSpan( iOffset, iLength );
+        }
+
+        public override Span<char> AsSpan => _sbBuffer.AsSpan.Slice( 0, _sbBuffer.Length );
+
+        public override bool TryReplace(int iStart, int iLength, ReadOnlySpan<char> spReplacements) {
+            if( _sbBuffer.Replace( iStart, iLength, spReplacements ) ) {
+                FormattingShiftInsert( iStart, spReplacements.Length - iLength );
+                return true;
+            }
+            return false;
+        }
 
         /// <summary>
         /// Insert the string into this line of text.

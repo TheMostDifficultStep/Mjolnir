@@ -242,6 +242,10 @@ namespace Monitor {
                 Monitor.LoadDialog();
                 return true;
             }
+            if( sGuidCommand == GlobalCommands.Pause ) {
+                Monitor.Renumber();
+                return true;
+            }
             return base.Execute( sGuidCommand );
         }
     }

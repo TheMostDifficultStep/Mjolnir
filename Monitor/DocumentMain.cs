@@ -27,8 +27,8 @@ namespace Monitor {
                 _oDocument._rgLines.Add( oNew );
             }
 
-            public void Append( string strLine ) { 
-                Line oNew = new TextLine( _oDocument._rgLines.Count, strLine );
+            public void Append( ReadOnlySpan<char> spLine ) { 
+                Line oNew = new TextLine( _oDocument._rgLines.Count, spLine );
 
                 oNew.Extra = new TextLine( -1, "?" );
 
@@ -364,12 +364,78 @@ namespace Monitor {
         public bool Save(TextWriter oStream) {
             foreach( Line oLine in AssemblyDoc ) {
                 if( oLine.Extra is Line oNumber ) {
-                    oStream.Write( oNumber.ToString() );
+                    oStream.Write( oNumber.AsSpan );
                     oStream.Write( ' ' );
                 }
-                oStream.WriteLine( oLine.ToString() );
+                oStream.WriteLine( oLine.AsSpan );
             }
             return true;
+        }
+
+        struct Remaps {
+            public IMemoryRange oRange;
+            public Line oSourceLine;
+            public Line oTargetLine;
+        }
+
+        public Line? FindTarget( ReadOnlySpan<char> spBasicLine ) {
+            foreach( Line oLine in AssemblyDoc ) {
+                if( oLine.Extra is Line oNumber ) {
+                    if( MemoryExtensions.CompareTo( spBasicLine, oNumber.AsSpan, StringComparison.Ordinal ) == 0 ) {
+                        return oLine;
+                    }
+                }
+            }
+            return null;
+        }
+
+        public void Renumber() {
+            State<char> oFunction = _oGrammer.FindState( "function" );
+
+            int iInstr = oFunction.Bindings.IndexOfKey( "keyword" );
+            int iParms = oFunction.Bindings.IndexOfKey( "params" );
+
+            List<Remaps> rgRemap = new();
+
+            // Look for all the goto's
+            foreach( Line oLine in AssemblyDoc ) {
+                foreach( IColorRange oRange in oLine.Formatting ) {
+                    if( oRange is MemoryState<char> oMemory ) {
+                        if( string.Compare( oMemory.StateName, "function" ) == 0 ) {
+                            Span<char> spFnName = oLine.SubSpan( oMemory.GetValue( iInstr ) );
+
+                            if( MemoryExtensions.CompareTo( spFnName, "goto", StringComparison.OrdinalIgnoreCase ) == 0 ) {
+                                IPgWordRange wrParam = oMemory.GetValue( iParms, 0 );
+                                Span<char>   spParam = oLine  .SubSpan ( wrParam );
+                                Line? oTarget = FindTarget( spParam );
+                                if( oTarget != null ) {
+                                    rgRemap.Add( new Remaps() { oSourceLine = oLine, 
+                                                                oTargetLine = oTarget,
+                                                                oRange      = wrParam } );
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Renumber the lines.
+            int iBasicLine = 10;
+            foreach( Line oLine in AssemblyDoc ) {
+                if( oLine.Extra is Line oNumber ) {
+                    oNumber.Empty();
+                    oNumber.TryAppend( iBasicLine.ToString() );
+                }
+                iBasicLine += 10;
+            }
+
+            foreach( Remaps oMap in rgRemap ) {
+                if( oMap.oTargetLine.Extra is Line oNumber ) {
+                    oMap.oSourceLine.TryReplace( oMap.oRange.Offset, oMap.oRange.Length, oNumber.AsSpan );
+                }
+            }
+
+            AssemblyDoc.Raise_MultiFinished();
         }
 
         public void CompileAsm() {

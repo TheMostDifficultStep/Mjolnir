@@ -35,6 +35,18 @@ namespace Play.Edit {
             _rgValue = strInit.ToCharArray(); // BUG: If string is empty, let's leave _rgValue equal to null!
         }
         
+        public MyStringBuilder( ReadOnlySpan<char> spInit )
+        {
+			if( spInit.Length < 1 ) {
+				_rgValue = new char[2];
+				return;
+			}
+
+            _rgValue = new char[spInit.Length];
+
+            spInit.CopyTo( _rgValue );
+        }
+
         public MyStringBuilder()
         {
             _rgValue = new char[2]; // BUG: See above.
@@ -92,6 +104,41 @@ namespace Play.Edit {
                 // Don't have one then the length is the number of characters.
                 return( _iLength );
             }
+        }
+
+        public bool Replace( int iStart, int iLength, ReadOnlySpan<char> spReplacement ) {
+            if( iStart + iLength > _rgValue.Length )
+                return false;
+
+            int iDiff = spReplacement.Length - iLength;
+
+            if( iDiff > 0 ) { // bump up the length if we're adding stuff. 
+                Capacity += iDiff;
+            }
+            int iPush = iStart + iLength;
+
+            try {
+                Array.ConstrainedCopy( sourceArray     :_rgValue, iPush, 
+                                       destinationArray:_rgValue, iPush+iDiff, 
+                                       _iLength - iPush );
+                foreach( char c in spReplacement ) {
+                    _rgValue[iStart++] = c;
+                }
+                _iLength += iDiff;
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( ArgumentNullException ),
+                                    typeof( RankException ),
+                                    typeof( ArrayTypeMismatchException ),
+                                    typeof( InvalidCastException ),
+                                    typeof( ArgumentOutOfRangeException ),
+                                    typeof( ArgumentException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
+
+                return false;
+            }
+
+            return true;
         }
 
 		public void Empty() {
@@ -166,6 +213,17 @@ namespace Play.Edit {
                 return String.Empty;
             }
         }
+
+        /// <summary>
+        /// The future, the glorious future...
+        /// </summary>
+        /// <exception cref="ArrayTypeMismatchException" />
+        /// <exception cref="ArgumentOutOfRangeException" />
+        public Span<char> SubSpan( int iStart, int iLength ) {
+            return _rgValue.AsSpan( iStart, iLength );
+        }
+
+        public Span<char> AsSpan => _rgValue.AsSpan();
 
         /// <summary>
         /// Returns a string for the line. This allocates a new string on each

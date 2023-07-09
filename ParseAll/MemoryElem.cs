@@ -346,7 +346,9 @@ namespace Play.Parse.Impl
         /// <exception cref="InvalidCastException"></exception>
         public MemoryElem<T> GetValue( int iBinding, int iIndex = 0 ) {
             if( _oState.Bindings.Values[iBinding].IsArray ) {
-                return ((MemoryElem<T>[])_rgValues[iBinding])[iIndex];
+                ArrayList rgList = (ArrayList)_rgValues[iBinding];
+
+                return (MemoryElem<T>)rgList[iIndex];
             }
 
             return (MemoryElem<T>)_rgValues[iBinding];
