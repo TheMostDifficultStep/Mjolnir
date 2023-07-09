@@ -384,6 +384,22 @@ namespace Play.Edit {
 			}
         }
 
+        /// <summary>Invalidate ALL window cash elements.</summary>
+        /// <remarks>
+        /// Sort of odd. I found out that on the OnMultiFinished is not marking the lines
+        /// as invalid, even tho the implication is that everthing is updated. Probably
+        /// never noticed b/c the line change events would invalidate lines, but for
+        /// the new BBC basic line renumber, none of that is used. (at present 7/9/2023)
+        /// </remarks>
+        /// <seealso cref="EditWindow2.OnMultiFinished"/>
+        public void Invalidate() {
+            foreach( CacheRow oRow in this ) {
+                foreach( FTCacheLine oElem in oRow.CacheList ) {
+                    oElem.Invalidate();
+                }
+            }
+        }
+
         /// <summary>
         /// Call this function when the user has scrolled or resized the screen.
         /// Or lines got inserted or deleted from the document. 
@@ -662,6 +678,7 @@ namespace Play.Edit {
         /// We used to simply call oCache.Update(), however, word wrapping doesn't work
         /// unless we call the resize too. So call RowUpdate for completeness.
         /// </summary>
+        /// <remarks>Note: We just update and don't check if any of the elements are Invalid.</remarks>
         /// <seealso cref="ElemUpdate"/>
         public void OnLineUpdated( Line oLine ) {
             foreach( CacheRow oRow in _rgOldCache ) {

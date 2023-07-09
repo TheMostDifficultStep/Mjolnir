@@ -2380,29 +2380,35 @@ namespace Play.Edit {
             _oCacheMan.OnLineUpdated( oLine );
         }
 
-        /// <summary>
+        /// <remarks>
         /// Note: Don't Raise caret movement events here. We don't know if the caret really moved
         ///       and that can cause problems with focus management in the EditorViewSites implementation.
-        /// </summary>
+        /// When line updated events happen, the system updates the line regardless of IsValid state.
+        /// But MultiFinished events are broad and might not have accompanying line events. So I
+        /// Invalidate all before calling CacheRefresh(). This will now slow us down a bit.
+        /// Which is a drag since only one operation really needs this and that is BBC Basic Line renumbering.
+        /// </remarks>
         protected void OnMultiFinished() {
             // BUG: If our document get's closed but somebody still points to it, it can
             // do an update on us. This window will be disposed and unusable. Need to
             // unlink the document events when this view get closed.
-            if( this.IsDisposed )
+            if( IsDisposed )
                 return;
+
+            _oCacheMan.Invalidate();
 
             CacheRefresh( RefreshType.COMPLEX, RefreshNeighborhood.SCROLL );
 
-            this.Invalidate();
+            Invalidate();
         }
 
         protected void OnSingleFinished() {
-            if( this.IsDisposed )
+            if( IsDisposed )
                 return;
 
             CacheRefresh( RefreshType.SIMPLE, RefreshNeighborhood.SCROLL );
 
-            this.Invalidate();
+            Invalidate();
         }
 
         /// <summary>
