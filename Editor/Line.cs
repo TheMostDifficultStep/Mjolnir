@@ -211,8 +211,6 @@ namespace Play.Edit {
             }
         }
 
-        public virtual char[]  Buffer { get { return( null ); } }
-
         public abstract int    ElementCount { get; }
         public virtual char   this[int iIndex] { get { return( '\0' ); } }
 
@@ -244,11 +242,12 @@ namespace Play.Edit {
     /// char's we're ok in general. I won't display text over 60,000 characters anyway.
     /// BUG: I should drop that down to 40K chars and live with that until I chunk the data.
     /// But in all honesty it would probably be more cost effective to make a feature that
-    /// uses the associated parser to offer to break big lines.</remarks>
+    /// uses the associated parser to offer to break big lines.
+    /// 7/10/2023 : My GDI EditorWindow is retired. We can now rethink all this...
+    /// </remarks>
     public class TextLine : Line
     {
         readonly MyStringBuilder _sbBuffer;
-        object _oExtra;
 
         /// <summary>
         /// The string to initalize my line with. I take a string 
@@ -268,12 +267,6 @@ namespace Play.Edit {
         public override void Save( TextWriter oStream, int iStart = 0, int iLength = int.MaxValue )
         {
             _sbBuffer.Save( oStream, iStart, iLength );
-        }
-
-        public override char[] Buffer {
-            get {
-                return( _sbBuffer.Buffer );
-            }
         }
 
         public override char this[int iIndex] {
@@ -312,6 +305,7 @@ namespace Play.Edit {
         public override bool TryReplace(int iStart, int iLength, ReadOnlySpan<char> spReplacements) {
             if( _sbBuffer.Replace( iStart, iLength, spReplacements ) ) {
                 FormattingShiftInsert( iStart, spReplacements.Length - iLength );
+                IsDirty = true;
                 return true;
             }
             return false;
@@ -372,14 +366,7 @@ namespace Play.Edit {
 		/// Extra spot for document users. The document itself and views on it shouldn't use this. But we'll see how that goes.
 		/// Note: It won't get overtly disposed. So don't stick any unmanaged goodies in there.
 		/// </summary>
-		public override Object Extra {
-            get { 
-                return( _oExtra );
-            }
-            set {
-                _oExtra = value;
-            }
-        }
+		public override Object Extra { get; set; }
 
     } // TextLine
 }

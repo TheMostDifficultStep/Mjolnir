@@ -53,7 +53,11 @@ namespace Monitor {
 
             return( oNew );
         }
-        public override bool Load( TextReader oStream ) {
+
+        /// <summary>
+        /// Load in our txt basic file. Basically "line number in digits" "space" "basic..." 
+        /// </summary>
+        public override bool Load( TextReader oReader ) {
             using BasicEditor.BasicManipulator oBulk = new ( this );
 
             Clear( fSendEvents: false );
@@ -63,7 +67,7 @@ namespace Monitor {
                 ReadOnlySpan<char> spNumber = null;
                 string?            spBasic  = null; // Might need to update my string params on the editor.
                 do {
-                    strLine = oStream.ReadLine();
+                    strLine = oReader.ReadLine();
 
                     if( strLine != null ) {
                         int i=0;
@@ -88,6 +92,8 @@ namespace Monitor {
                         }
                     }
                 } while( strLine != null );
+
+                Raise_BufferEvent( BUFFEREVENTS.LOADED );  
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( IOException ),
                                     typeof( OutOfMemoryException ),
@@ -104,6 +110,38 @@ namespace Monitor {
             return true;
         }
 
+        /// <remarks>
+        /// Note how I scan save using the span to write to the writer. 
+        /// </remarks>
+        public override bool Save( TextWriter oWriter ) {
+            try {
+                foreach( Line oLine in this ) {
+                    if( oLine.Extra is Line oNumber ) {
+                        oWriter.Write(oNumber.AsSpan);
+                        oWriter.Write(' ');
+                    }
+                    oWriter.WriteLine(oLine.AsSpan);
+                }
+                _fIsDirty = false;
+            } catch( Exception oE ) {
+                Type[] rgErrors = {
+                    typeof( FormatException ),
+                    typeof( IOException ),
+                    typeof( ObjectDisposedException ),
+                    typeof( ArgumentNullException )
+                };
+
+                if( rgErrors.IsUnhandled( oE ) )
+                    throw;
+
+                _oSiteBase.LogError( "editor", oE.Message );
+                return false;
+            } finally {
+                oWriter.Flush();
+            }
+            
+            return true;
+        }
     }
 
     public enum AddrModes {
@@ -383,15 +421,8 @@ namespace Monitor {
             return true;
         }
 
-        public bool Save(TextWriter oStream) {
-            foreach( Line oLine in AssemblyDoc ) {
-                if( oLine.Extra is Line oNumber ) {
-                    oStream.Write( oNumber.AsSpan );
-                    oStream.Write( ' ' );
-                }
-                oStream.WriteLine( oLine.AsSpan );
-            }
-            return true;
+        public bool Save(TextWriter oWriter ) {
+            return AssemblyDoc.Save( oWriter );
         }
 
         struct Remaps {

@@ -1019,6 +1019,7 @@ namespace Play.Edit {
 
                 return( false );
             } finally {
+                // 7/10/2023, why do both???
                 Raise_MultiFinished();
                 Raise_BufferEvent( BUFFEREVENTS.LOADED );  
 
@@ -1034,7 +1035,7 @@ namespace Play.Edit {
         /// </summary>
         /// <param name="oStream"></param>
         /// <returns>true if successful.</returns>
-        public bool Save( TextWriter oStream )
+        public virtual bool Save( TextWriter oStream )
         {
             if( _oSiteBase == null )
                 return( false );
