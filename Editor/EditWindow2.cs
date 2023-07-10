@@ -562,7 +562,7 @@ namespace Play.Edit {
                     StringBuilder sbBanner = new StringBuilder();
 
                     if( string.IsNullOrEmpty( _oDocument.FileBase ) ) {
-                        sbBanner.Append( "<Unsaved Text File>" );
+                        sbBanner.Append( "<Unknown Location>" );
                     } else {
                         sbBanner.Append( _oDocument.FileBase );
                     }

@@ -274,7 +274,7 @@ namespace Monitor {
 
         public Guid Catagory => Guid.Empty;
 
-        public bool  IsDirty => false;
+        public bool  IsDirty => MonitorDoc.IsDirty;
 
         protected class DocSlot :
 			IPgBaseSite

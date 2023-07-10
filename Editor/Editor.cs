@@ -174,11 +174,12 @@ namespace Play.Edit {
         protected readonly IPgBaseSite _oSiteBase;
         protected readonly IPgFileSite _oSiteFile;
 
+        protected bool _fIsDirty         = false;
+        protected int  _iCumulativeCount = 0;
+
         IRefCount _oUndoMaster      = null;
         string    _strEOL           = "\r\n";
-        protected int       _iCumulativeCount = 0;
         int       _iUndoMode        = 0;
-        bool      _fIsDirty         = false;
         long      _lWordCount       = 0;
 		Line      _oLineHighLight   = null;
         Line      _oCheckedLine     = null;

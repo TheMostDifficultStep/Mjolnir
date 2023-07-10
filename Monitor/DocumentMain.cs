@@ -53,6 +53,56 @@ namespace Monitor {
 
             return( oNew );
         }
+        public override bool Load( TextReader oStream ) {
+            using BasicEditor.BasicManipulator oBulk = new ( this );
+
+            Clear( fSendEvents: false );
+
+            try {
+                string?            strLine  = null;
+                ReadOnlySpan<char> spNumber = null;
+                string?            spBasic  = null; // Might need to update my string params on the editor.
+                do {
+                    strLine = oStream.ReadLine();
+
+                    if( strLine != null ) {
+                        int i=0;
+                        for( ; i<strLine.Length; ++i ) {
+                            if( !Char.IsDigit( strLine[i] ) ) {
+                                spNumber = strLine.AsSpan().Slice(start: 0, length: i);
+                                break;
+                            }
+                        }
+                        for( ; i<strLine.Length; ++i ) {
+                            if( !Char.IsWhiteSpace( strLine[i] ) ) {
+                                spBasic = strLine.Substring( startIndex: i, length: strLine.Length - i );
+                                break;
+                            }
+                        }
+                        if( spBasic != null && spNumber != null && int.TryParse( spNumber, out int iNumber ) ) {
+                            oBulk.Append( iNumber, spBasic );
+                        } else {
+                            if( strLine.Length > 0 ) {
+                                oBulk.Append( strLine );
+                            }
+                        }
+                    }
+                } while( strLine != null );
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( IOException ),
+                                    typeof( OutOfMemoryException ),
+                                    typeof( ObjectDisposedException ),
+                                    typeof( ArgumentOutOfRangeException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
+
+                return false;
+            }
+
+            _fIsDirty = false;
+
+            return true;
+        }
 
     }
 
@@ -102,12 +152,14 @@ namespace Monitor {
         IPgSave<TextWriter>
     {
         protected readonly IPgBaseSite _oBaseSite;
+        protected readonly IPgFileSite _oFileSite;
+
         protected Dictionary< string, Action> _dctInstructions = new();
         protected Dictionary< string, int >   _dctStatusNames  = new();
         protected Dictionary< int, int >      _dctPowerOfTwo   = new();
 
         protected readonly Grammer<char> _oGrammer;
-        public bool IsDirty => false;
+        public bool IsDirty => AssemblyDoc.IsDirty;
 
         public IPgParent Parentage => _oBaseSite.Host;
         public IPgParent Services  => Parentage.Services;
@@ -144,7 +196,7 @@ namespace Monitor {
             Div
         }
 
-        public event Action<int> RefreshScreen;
+        public event Action<int>? RefreshScreen;
 
         public class DocSlot :
             IPgBaseSite
@@ -163,6 +215,22 @@ namespace Monitor {
             public void Notify(ShellNotify eEvent) {
                 _oHost._oBaseSite.Notify( eEvent );
             }
+        }
+
+        public class FileSlot :
+            DocSlot,
+            IPgFileSite 
+        {
+
+            public FileSlot( MonitorDocument oHost ) : base( oHost ) {
+            }
+            public FILESTATS FileStatus => _oHost._oFileSite.FileStatus;
+
+            public Encoding FileEncoding => _oHost._oFileSite.FileEncoding;
+
+            public string FilePath => _oHost._oFileSite.FilePath;
+
+            public string FileBase => _oHost._oFileSite.FileBase;
         }
 
         public class ProgramFile : Editor {
@@ -186,10 +254,11 @@ namespace Monitor {
         }
         public MonitorDocument( IPgBaseSite oSite ) {
             _oBaseSite = oSite ?? throw new ArgumentNullException( "Site to document must not be null." );
+            _oFileSite = oSite as IPgFileSite ?? throw new ArgumentException( "Need a IPgFileSite" );
 
-            TextCommands = new ProgramFile  ( new DocSlot( this ) );
-            AssemblyDoc  = new BasicEditor  ( new DocSlot( this ) );
-            Properties   = new CpuProperties( new DocSlot( this ) );
+            TextCommands = new ProgramFile  ( new DocSlot ( this ) );
+            AssemblyDoc  = new BasicEditor  ( new FileSlot( this ) );
+            Properties   = new CpuProperties( new DocSlot ( this ) );
 
             _dctInstructions.Add( "load-imm", Inst_LoadImm ); // load, reg, data (lda, ldx, ldy)
             _dctInstructions.Add( "load-abs", Inst_LoadAbs ); // load, reg, addr of data.
@@ -301,55 +370,8 @@ namespace Monitor {
             return true;
         }
 
-        public bool LoadBasic( TextReader oStream ) {
-            using BasicEditor.BasicManipulator oBulk = new ( AssemblyDoc );
-
-            try {
-                string?            strLine  = null;
-                ReadOnlySpan<char> spNumber = null;
-                string?            spBasic  = null; // Might need to update my string params on the editor.
-                do {
-                    strLine = oStream.ReadLine();
-
-                    if( strLine != null ) {
-                        int i=0;
-                        for( ; i<strLine.Length; ++i ) {
-                            if( !Char.IsDigit( strLine[i] ) ) {
-                                spNumber = strLine.AsSpan().Slice(start: 0, length: i);
-                                break;
-                            }
-                        }
-                        for( ; i<strLine.Length; ++i ) {
-                            if( !Char.IsWhiteSpace( strLine[i] ) ) {
-                                spBasic = strLine.Substring( startIndex: i, length: strLine.Length - i );
-                                break;
-                            }
-                        }
-                        if( spBasic != null && spNumber != null && int.TryParse( spNumber, out int iNumber ) ) {
-                            oBulk.Append( iNumber, spBasic );
-                        } else {
-                            if( strLine.Length > 0 ) {
-                                oBulk.Append( strLine );
-                            }
-                        }
-                    }
-                } while( strLine != null );
-            } catch( Exception oEx ) {
-                Type[] rgErrors = { typeof( IOException ),
-                                    typeof( OutOfMemoryException ),
-                                    typeof( ObjectDisposedException ),
-                                    typeof( ArgumentOutOfRangeException ) };
-                if( rgErrors.IsUnhandled( oEx ) )
-                    throw;
-
-                return false;
-            }
-
-            return true;
-        }
-
         public bool Load(TextReader oStream) {
-            if( !LoadBasic( oStream ) )
+            if( !AssemblyDoc.Load( oStream ) )
                 return false;
 
             if( !TextCommands.InitNew() )
@@ -912,7 +934,7 @@ namespace Monitor {
                     delInstruction();
 
                     TextCommands.HighLight = TextCommands[PC];
-                    RefreshScreen(0);
+                    RefreshScreen?.Invoke(0);
                 } while( PC < TextCommands.ElementCount && fNotStep && ++iCnt < iMax );
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( NullReferenceException ),
