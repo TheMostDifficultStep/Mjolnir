@@ -1204,13 +1204,22 @@ namespace Mjolnir {
         }
 
         public IEnumerator<ColorMap> GetSharedGrammarColors() {
-            return( _rgGrammarColors.GetEnumerator() );
+            return _rgGrammarColors.GetEnumerator();
         }
 
+        /// <summary>
+        /// This adds a named color, typically from a grammar into the shared
+        /// color table space. Get the RGB value from the programs build in
+        /// default color names. I'd like to move away from this model, since
+        /// I never made a true grammar merging functionality.
+        /// </summary>
+        /// <param name="strName">This is the functional use of the color.</param>
+        /// <param name="strValue">This is the human readable name of the color.</param>
+        /// <seealso cref="GrammarTextColor"/>
         public int AddColor(string strName, string strValue) {
             for( int i=0; i<_rgGrammarColors.Count; ++i ) {
                 if( strName == _rgGrammarColors[i]._strName ) {
-                    return( i );
+                    return i;
                 }
             }
             if( !_rgDefColors.TryGetValue( strValue, out SKColor sNewColor ) ) {
@@ -1219,7 +1228,7 @@ namespace Mjolnir {
 
             _rgGrammarColors.Add( new ColorMap( strName, strValue, sNewColor ) );
 
-            return( _rgGrammarColors.Count - 1 );
+            return _rgGrammarColors.Count - 1;
         }
 
         /// <summary>
@@ -1721,6 +1730,14 @@ namespace Mjolnir {
             }
         }
 
+        /// <summary>
+        /// Return the color from index to the merged grammar color table.
+        /// </summary>
+        /// <remarks>It would be nice if the colors weren't all shared
+        /// amoung all the grammars UNLESS NECESSARY. Different grammers might describe
+        /// the same function using different colors and then it's whoever
+        /// added it first wins.</remarks>
+        /// <seealso cref="AddColor"/>
         public SKColor GrammarTextColor( int i ) {
             return _rgGrammarColors[i]._sColor;
         }

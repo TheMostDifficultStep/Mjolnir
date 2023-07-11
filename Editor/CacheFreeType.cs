@@ -501,7 +501,9 @@ namespace Play.Edit {
         } // end method
 
         /// <summary>
-        /// Set the color of the cluster of glyphs.
+        /// Set the color of the cluster of glyphs. Note: each glyph might be a different
+        /// color for something like a emoji! But we don't support more than one glyph
+        /// per character really.
         /// </summary>
         /// <remarks>Double check that the index is less than the cluster count. We often have
         /// an parse element that is int max or something when we don't have the line parsed.</remarks>
@@ -630,6 +632,8 @@ namespace Play.Edit {
                         }
 
                         //foreach( int iGlyph in oCluster ) {
+                            // Just printing the first one even if multiple glyphs. Nor would I be
+                            // changing the color per glyph, which is probabl necessary for color emoji.
                             DrawGlyph( skCanvas, skPaint, flX, flY, _rgGlyphs[oCluster.Glyphs.Offset] );
                         //}
                     } // end foreach

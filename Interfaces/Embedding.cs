@@ -108,9 +108,9 @@ namespace Play.Interfaces.Embedding {
     }
 
     public struct ColorMap {
-        public readonly string  _strName;
-        public readonly string  _strValue;
-        public readonly SKColor _sColor;
+        public readonly string  _strName;  // Like "function" describing the element.
+        public readonly string  _strValue; // the human readable value based on the program defs.
+        public readonly SKColor _sColor;   // the actual color.
 
         public ColorMap( string strName, string strValue, SKColor sColor ) {
             _strName  = strName;
