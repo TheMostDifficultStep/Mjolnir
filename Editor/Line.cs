@@ -96,13 +96,20 @@ namespace Play.Edit {
 
         public static bool IsNullOrEmpty( Line oLine ) {
             if( oLine == null )
-                return( true );
-            if( oLine.At < 0 )
-                return( true );
-            if( string.IsNullOrEmpty( oLine.ToString() ) )
-                return( true );
+                return true;
+            if( oLine.IsEmpty() )
+                return true;
 
-            return( false );
+            return false;
+        }
+
+        public bool IsEmpty() {
+            if( At < 0 )
+                return true;
+            if( ElementCount <= 0 )
+                return true;
+
+            return false;
         }
 
         /// <summary>
@@ -216,9 +223,9 @@ namespace Play.Edit {
 
         public abstract string SubString( int iStart, int iLength ); 
       //public override string ToString() { return new string( Buffer, 0, ElementCount ); } // TODO TextLine() we can remove it's implementation.
-        public abstract Span<char> SubSpan( IMemoryRange oRange );
-        public abstract Span<char> SubSpan( int iStart, int iLength );
-        public abstract Span<char> AsSpan { get; }
+        public abstract ReadOnlySpan<char> SubSpan( IMemoryRange oRange );
+        public abstract ReadOnlySpan<char> SubSpan( int iStart, int iLength );
+        public abstract ReadOnlySpan<char> AsSpan { get; }
        
         public virtual bool TryInsert( int iIndex, char cChar ) { return( false ); }
         public virtual bool TryInsert( int iDestOffset, string strSource, int iSrcIndex, int iSrcLength ) { return( false ); }
@@ -292,15 +299,15 @@ namespace Play.Edit {
             return _sbBuffer.SubString( iStart, iLength );
         }
 
-        public override Span<char> SubSpan( IMemoryRange oRange ) {
+        public override ReadOnlySpan<char> SubSpan( IMemoryRange oRange ) {
             return _sbBuffer.SubSpan( oRange.Offset, oRange.Length );
         }
 
-        public override Span<char> SubSpan( int iOffset, int iLength ) {
+        public override ReadOnlySpan<char> SubSpan( int iOffset, int iLength ) {
             return _sbBuffer.SubSpan( iOffset, iLength );
         }
 
-        public override Span<char> AsSpan => _sbBuffer.AsSpan.Slice( 0, _sbBuffer.Length );
+        public override ReadOnlySpan<char> AsSpan => _sbBuffer.AsSpan.Slice( _sbBuffer.Length );
 
         public override bool TryReplace(int iStart, int iLength, ReadOnlySpan<char> spReplacements) {
             if( _sbBuffer.Replace( iStart, iLength, spReplacements ) ) {

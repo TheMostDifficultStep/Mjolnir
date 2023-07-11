@@ -690,17 +690,6 @@ namespace Play.Edit {
             set { _fReadOnly = value; }
         }
 
-        /// <summary>
-        /// This is kinda dumb. But we could easily overload any caller if our buffer was big
-        /// enough. So we just return the first line in the document buffer.
-        /// </summary>
-        public override string Text {
-            get {
-                // Just a hack to get us off of the ground.
-                return( _oDocument.GetLine(0).ToString() );
-            }
-        }
-
         // If a sub-site is generating an error and calling up we would potentially want to know 
         // which before forwarding on up. Especially if there are bunches of them. But since not, 
         // we'll just go with this.

@@ -199,7 +199,7 @@ namespace Play.Edit {
             sbBuild.Append( "@" );
             sbBuild.Append( Line.At.ToString() );
             sbBuild.Append( "=" );
-            sbBuild.Append( Line.ToString(), 0, Line.ElementCount > 50 ? 50 : Line.ElementCount );
+            sbBuild.Append( Line.SubSpan( 0, Line.ElementCount > 50 ? 50 : Line.ElementCount ) );
 
             return( sbBuild.ToString() );
         }

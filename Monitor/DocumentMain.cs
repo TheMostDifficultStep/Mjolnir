@@ -188,12 +188,12 @@ namespace Monitor {
                 foreach( IColorRange oRange in oLine.Formatting ) {
                     if( oRange is MemoryState<char> oMemory ) {
                         if( string.Compare( oMemory.StateName, "function" ) == 0 ) {
-                            Span<char> spFnName = oLine.SubSpan( oMemory.GetValue( iInstr ) );
+                            ReadOnlySpan<char> spFnName = oLine.SubSpan( oMemory.GetValue( iInstr ) );
                             string []  rgValues = { "goto", "gosub" };
 
                             if( Contains( rgValues, spFnName ) ) {
-                                IPgWordRange wrParam = oMemory.GetValue( iParms, 0 );
-                                Span<char>   spParam = oLine  .SubSpan ( wrParam );
+                                IPgWordRange       wrParam = oMemory.GetValue( iParms, 0 );
+                                ReadOnlySpan<char> spParam = oLine  .SubSpan ( wrParam );
                                 if( FindLineNumber( spParam ) is Line oTarget ) {
                                     rgRemap.Add( new Remaps() { oSourceLine = oLine, 
                                                                 oTargetLine = oTarget,
