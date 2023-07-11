@@ -42,10 +42,10 @@ namespace Mjolnir {
 
         List<IPgController2> Controllers { get; }  = new List<IPgController2>();
 
-        readonly SKColor[]     _rgStdColors  = new SKColor[(int)StdUIColors.Max ];
-        readonly List<SKColor> _rgTxtColors  = new List<SKColor>();
+        readonly Dictionary<string, SKColor> _rgDefColors     = new Dictionary<string, SKColor>(StringComparer.OrdinalIgnoreCase);
+        readonly SKColor[]                   _rgStdColors     = new SKColor[(int)StdUIColors.Max ];
+        readonly List<ColorMap>              _rgGrammarColors = new List<ColorMap>();
 
-        readonly List<ColorMap>                   _rgGrammarColors = new List<ColorMap>();
         readonly Dictionary<string, ExtensionMap> _rgExtensionMap  = new Dictionary<string, ExtensionMap>();
         readonly Dictionary<string, LangSlot>     _rgLanguageSite  = new Dictionary<string, LangSlot>();    // Load on demand
         readonly Dictionary<string, GrammerMap>   _rgGrammarMap    = new Dictionary<string, GrammerMap>();  // Initialized on startup.
@@ -252,6 +252,157 @@ namespace Mjolnir {
             }
         }
 
+        /// <summary>
+        /// This is just a dictionary of favorite color types. This is different than the
+        /// GrammerColors which represent the colors in actual use. It is possible that
+        /// there are custom colors in the grammar not described by the Default table.
+        /// (Tho highly unlikely)
+        /// </summary>
+        protected void InitializeColorTable() {
+            _rgDefColors.Add( "AliceBlue", new SKColor(4293982463u) );
+            _rgDefColors.Add( "AntiqueWhite", new SKColor(4294634455u) );
+            _rgDefColors.Add( "Aqua", new SKColor(4278255615u));
+            _rgDefColors.Add( "Aquamarine", new SKColor(4286578644u) );
+            _rgDefColors.Add( "Azure", new SKColor(4293984255u));
+            _rgDefColors.Add( "Beige", new SKColor(4294309340u));
+            _rgDefColors.Add( "Bisque", new SKColor(4294960324u));
+            _rgDefColors.Add( "Black",  new SKColor(4278190080u));
+            _rgDefColors.Add( "BlanchedAlmond",  new SKColor(4294962125u));
+            _rgDefColors.Add( "Blue",  new SKColor(4278190335u));
+            _rgDefColors.Add( "BlueViolet",  new SKColor(4287245282u));
+            _rgDefColors.Add( "Brown", new SKColor(4289014314u));
+            _rgDefColors.Add( "BurlyWood",  new SKColor(4292786311u));
+            _rgDefColors.Add( "CadetBlue",  new SKColor(4284456608u));
+            _rgDefColors.Add( "Chartreuse",  new SKColor(4286578432u));
+            _rgDefColors.Add( "Chocolate", new SKColor(4291979550u));
+            _rgDefColors.Add( "Coral", new SKColor(4294934352u));
+            _rgDefColors.Add( "CornflowerBlue",  new SKColor(4284782061u));
+            _rgDefColors.Add( "Cornsilk", new SKColor(4294965468u));
+            _rgDefColors.Add( "Crimson",  new SKColor(4292613180u));
+            _rgDefColors.Add( "Cyan",  new SKColor(4278255615u));
+            _rgDefColors.Add( "DarkBlue",  new SKColor(4278190219u));
+            _rgDefColors.Add( "DarkCyan",  new SKColor(4278225803u));
+            _rgDefColors.Add( "DarkGoldenrod",  new SKColor(4290283019u));
+            _rgDefColors.Add( "DarkGray",  new SKColor(4289309097u));
+            _rgDefColors.Add( "DarkGreen",  new SKColor(4278215680u));
+            _rgDefColors.Add( "DarkKhaki",  new SKColor(4290623339u));
+            _rgDefColors.Add( "DarkMagenta",  new SKColor(4287299723u));
+            _rgDefColors.Add( "DarkOliveGreen",  new SKColor(4283788079u));
+            _rgDefColors.Add( "DarkOrange",  new SKColor(4294937600u));
+            _rgDefColors.Add( "DarkOrchid",  new SKColor(4288230092u));
+            _rgDefColors.Add( "DarkRed", new SKColor(4287299584u));
+            _rgDefColors.Add( "DarkSalmon",  new SKColor(4293498490u));
+            _rgDefColors.Add( "DarkSeaGreen",  new SKColor(4287609995u));
+            _rgDefColors.Add( "DarkSlateBlue", new SKColor(4282924427u));
+            _rgDefColors.Add( "DarkSlateGray", new SKColor(4281290575u));
+            _rgDefColors.Add( "DarkTurquoise", new SKColor(4278243025u));
+            _rgDefColors.Add( "DarkViolet", new SKColor(4287889619u));
+            _rgDefColors.Add( "DeepPink", new SKColor(4294907027u));
+            _rgDefColors.Add( "DeepSkyBlue", new SKColor(4278239231u));
+            _rgDefColors.Add( "DimGray", new SKColor(4285098345u));
+            _rgDefColors.Add( "DodgerBlue", new SKColor(4280193279u));
+            _rgDefColors.Add( "Firebrick", new SKColor(4289864226u));
+            _rgDefColors.Add( "FloralWhite", new SKColor(4294966000u));
+            _rgDefColors.Add( "ForestGreen", new SKColor(4280453922u));
+            _rgDefColors.Add( "Fuchsia", new SKColor(4294902015u));
+            _rgDefColors.Add( "Gainsboro",  new SKColor(4292664540u));
+            _rgDefColors.Add( "GhostWhite",  new SKColor(4294506751u));
+            _rgDefColors.Add( "Gold", new SKColor(4294956800u));
+            _rgDefColors.Add( "Goldenrod", new SKColor(4292519200u));
+            _rgDefColors.Add( "Gray", new SKColor(4286611584u));
+            _rgDefColors.Add( "Green", new SKColor(4278222848u));
+            _rgDefColors.Add( "GreenYellow", new SKColor(4289593135u));
+            _rgDefColors.Add( "Honeydew", new SKColor(4293984240u));
+            _rgDefColors.Add( "HotPink", new SKColor(4294928820u));
+            _rgDefColors.Add( "IndianRed", new SKColor(4291648604u));
+            _rgDefColors.Add( "Indigo", new SKColor(4283105410u));
+            _rgDefColors.Add( "Ivory", new SKColor(4294967280u));
+            _rgDefColors.Add( "Khaki", new SKColor(4293977740u));
+            _rgDefColors.Add( "Lavender", new SKColor(4293322490u));
+            _rgDefColors.Add( "LavenderBlush", new SKColor(4294963445u));
+            _rgDefColors.Add( "LawnGreen", new SKColor(4286381056u));
+            _rgDefColors.Add( "LemonChiffon", new SKColor(4294965965u));
+            _rgDefColors.Add( "LightBlue", new SKColor(4289583334u));
+            _rgDefColors.Add( "LightCoral", new SKColor(4293951616u));
+            _rgDefColors.Add( "LightCyan",  new SKColor(4292935679u));
+            _rgDefColors.Add( "LightGoldenrodYellow",  new SKColor(4294638290u));
+            _rgDefColors.Add( "LightGray",  new SKColor(4292072403u));
+            _rgDefColors.Add( "LightGreen",  new SKColor(4287688336u));
+            _rgDefColors.Add( "LightPink",  new SKColor(4294948545u));
+            _rgDefColors.Add( "LightSalmon",  new SKColor(4294942842u));
+            _rgDefColors.Add( "LightSeaGreen",  new SKColor(4280332970u));
+            _rgDefColors.Add( "LightSkyBlue",  new SKColor(4287090426u));
+            _rgDefColors.Add( "LightSlateGray",  new SKColor(4286023833u));
+            _rgDefColors.Add( "LightSteelBlue",  new SKColor(4289774814u));
+            _rgDefColors.Add( "LightYellow",  new SKColor(4294967264u));
+            _rgDefColors.Add( "Lime",  new SKColor(4278255360u));
+            _rgDefColors.Add( "LimeGreen",  new SKColor(4281519410u));
+            _rgDefColors.Add( "Linen",  new SKColor(4294635750u));
+            _rgDefColors.Add( "Magenta",  new SKColor(4294902015u));
+            _rgDefColors.Add( "Maroon",  new SKColor(4286578688u));
+            _rgDefColors.Add( "MediumAquamarine",  new SKColor(4284927402u));
+            _rgDefColors.Add( "MediumBlue",  new SKColor(4278190285u));
+            _rgDefColors.Add( "MediumOrchid",  new SKColor(4290401747u));
+            _rgDefColors.Add( "MediumPurple", new SKColor(4287852763u));
+            _rgDefColors.Add( "MediumSeaGreen",  new SKColor(4282168177u));
+            _rgDefColors.Add( "MediumSlateBlue",  new SKColor(4286277870u));
+            _rgDefColors.Add( "MediumSpringGreen",  new SKColor(4278254234u));
+            _rgDefColors.Add( "MediumTurquoise",  new SKColor(4282962380u));
+            _rgDefColors.Add( "MediumVioletRed",  new SKColor(4291237253u));
+            _rgDefColors.Add( "MidnightBlue",  new SKColor(4279834992u));
+            _rgDefColors.Add( "MintCream",  new SKColor(4294311930u));
+            _rgDefColors.Add( "MistyRose",  new SKColor(4294960353u));
+            _rgDefColors.Add( "Moccasin",  new SKColor(4294960309u));
+            _rgDefColors.Add( "NavajoWhite",  new SKColor(4294958765u));
+            _rgDefColors.Add( "Navy",  new SKColor(4278190208u));
+            _rgDefColors.Add( "OldLace",  new SKColor(4294833638u));
+            _rgDefColors.Add( "Olive",  new SKColor(4286611456u));
+            _rgDefColors.Add( "OliveDrab",   new SKColor(4285238819u));
+            _rgDefColors.Add( "Orange",   new SKColor(4294944000u));
+            _rgDefColors.Add( "OrangeRed",   new SKColor(4294919424u));
+            _rgDefColors.Add( "Orchid",  new SKColor(4292505814u));
+            _rgDefColors.Add( "PaleGoldenrod",   new SKColor(4293847210u));
+            _rgDefColors.Add( "PaleGreen",   new SKColor(4288215960u));
+            _rgDefColors.Add( "PaleTurquoise",   new SKColor(4289720046u));
+            _rgDefColors.Add( "PaleVioletRed",   new SKColor(4292571283u));
+            _rgDefColors.Add( "PapayaWhip",  new SKColor(4294963157u));
+            _rgDefColors.Add( "PeachPuff",   new SKColor(4294957753u));
+            _rgDefColors.Add( "Peru",   new SKColor(4291659071u));
+            _rgDefColors.Add( "Pink",   new SKColor(4294951115u));
+            _rgDefColors.Add( "Plum",   new SKColor(4292714717u));
+            _rgDefColors.Add( "PowderBlue",   new SKColor(4289781990u));
+            _rgDefColors.Add( "Purple",   new SKColor(4286578816u));
+            _rgDefColors.Add( "Red",  new SKColor(4294901760u));
+            _rgDefColors.Add( "RosyBrown",   new SKColor(4290547599u));
+            _rgDefColors.Add( "RoyalBlue",   new SKColor(4282477025u));
+            _rgDefColors.Add( "SaddleBrown",   new SKColor(4287317267u));
+            _rgDefColors.Add( "Salmon",   new SKColor(4294606962u));
+            _rgDefColors.Add( "SandyBrown",   new SKColor(4294222944u));
+            _rgDefColors.Add( "SeaGreen",   new SKColor(4281240407u));
+            _rgDefColors.Add( "SeaShell",   new SKColor(4294964718u));
+            _rgDefColors.Add( "Sienna",   new SKColor(4288696877u));
+            _rgDefColors.Add( "Silver",   new SKColor(4290822336u));
+            _rgDefColors.Add( "SkyBlue",   new SKColor(4287090411u));
+            _rgDefColors.Add( "SlateBlue",   new SKColor(4285160141u));
+            _rgDefColors.Add( "SlateGray",   new SKColor(4285563024u));
+            _rgDefColors.Add( "Snow",   new SKColor(4294966010u));
+            _rgDefColors.Add( "SpringGreen",   new SKColor(4278255487u));
+            _rgDefColors.Add( "SteelBlue",   new SKColor(4282811060u));
+            _rgDefColors.Add( "Tan",   new SKColor(4291998860u));
+            _rgDefColors.Add( "Teal",   new SKColor(4278222976u));
+            _rgDefColors.Add( "Thistle",   new SKColor(4292394968u));
+            _rgDefColors.Add( "Tomato",   new SKColor(4294927175u));
+            _rgDefColors.Add( "Turquoise",   new SKColor(4282441936u));
+            _rgDefColors.Add( "Violet",   new SKColor(4293821166u));
+            _rgDefColors.Add( "Wheat",   new SKColor(4294303411u));
+            _rgDefColors.Add( "White",   new SKColor(uint.MaxValue));
+            _rgDefColors.Add( "WhiteSmoke",   new SKColor(4294309365u));
+            _rgDefColors.Add( "Yellow",   new SKColor(4294967040u));
+            _rgDefColors.Add( "YellowGreen",   new SKColor(4288335154u));
+            _rgDefColors.Add( "Transparent",   new SKColor(16777215u));
+            _rgDefColors.Add( "Empty",   new SKColor(0u));
+        }
+
 		/// <summary>
 		/// In this case these would be global documents you might want to show all the time.
 		/// Or use for some kind of "first load" document display. Not currently called.
@@ -398,18 +549,14 @@ namespace Mjolnir {
                 TryLogXmlError( oEx, "Couldn't load program fonts." );
             }
 
+            InitializeColorTable();
             InitializeLanguages( xmlConfig );
 
-            // Parser color table. BUG: Technically this can get new colors over time.
-			foreach( ColorMap oMap in _rgGrammarColors ) {
-				Color sColor = Color.FromName( oMap._strValue );
-                _rgTxtColors.Add( new SKColor( sColor.R, sColor.G, sColor.B ) );
-			}
-            if( _rgTxtColors.Count <= 0 ) {
+            if( _rgGrammarColors.Count <= 0 ) {
                 LogError( "Grammars", "No text colors. Adding a default Black" );
                 // TODO: See the program constructor for the shell colors. Black might not
                 // work if we have a std bg color of black instead of the usual white.
-                _rgTxtColors.Add( SKColors.Black );
+                _rgGrammarColors.Add( new ColorMap( "black", "black", SKColors.Black ) );
             }
 
             InitializePlugins    ( xmlConfig );
@@ -1066,19 +1213,30 @@ namespace Mjolnir {
                     return( i );
                 }
             }
-            _rgGrammarColors.Add( new ColorMap( strName, strValue ) );
+            if( !_rgDefColors.TryGetValue( strValue, out SKColor sNewColor ) ) {
+                sNewColor = SKColors.Black;
+            }
+
+            _rgGrammarColors.Add( new ColorMap( strName, strValue, sNewColor ) );
 
             return( _rgGrammarColors.Count - 1 );
         }
 
-        public int GetColorIndex(string strName) {
+        /// <summary>
+        /// Look up the color by it's usage and not it's color name value
+        /// For example "functioncall, red". Might be duplicates and so it's
+        /// first come first served. I'll look into fixing that later. BUG 7/10/2023
+        /// </summary>
+        public int GetColorIndex(string strUsage) {
             for( int i=0; i<_rgGrammarColors.Count; ++i ) {
-                if( strName == _rgGrammarColors[i]._strName ) {
-                    return( i );
+                if( string.Compare( strUsage, 
+                                    _rgGrammarColors[i]._strName,
+                                    ignoreCase:true ) == 0 ) {
+                    return i;
                 }
             }
 
-            return( 0 );
+            return 0;
         }
 
         /// <summary>
@@ -1563,8 +1721,8 @@ namespace Mjolnir {
             }
         }
 
-        public IReadOnlyList<SKColor> ColorsText {
-            get { return _rgTxtColors; }
+        public SKColor GrammarTextColor( int i ) {
+            return _rgGrammarColors[i]._sColor;
         }
 
         [Obsolete]private static UInt32 SetRGB(byte r, byte g, byte b) {

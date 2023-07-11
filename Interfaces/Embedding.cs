@@ -108,12 +108,18 @@ namespace Play.Interfaces.Embedding {
     }
 
     public struct ColorMap {
-        public readonly string _strName;
-        public readonly string _strValue;
+        public readonly string  _strName;
+        public readonly string  _strValue;
+        public readonly SKColor _sColor;
 
-        public ColorMap( string strName, string strValue ) {
+        public ColorMap( string strName, string strValue, SKColor sColor ) {
             _strName  = strName;
             _strValue = strValue;
+            _sColor   = sColor;
+        }
+
+        public override string ToString() {
+            return _strName;
         }
     }
 

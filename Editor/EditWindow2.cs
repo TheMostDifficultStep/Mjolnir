@@ -210,7 +210,7 @@ namespace Play.Edit {
         IPgFontRender FontStandardAt  ( string strName, SKSize skResolution );
         SKColor       ColorsStandardAt( StdUIColors eColor );
 
-        IReadOnlyList<SKColor> ColorsText { get; }
+        SKColor       GrammarTextColor( int iIndex ); // Index to the master grammar indexed colors.
     }
 
     public abstract class DataStream2<T> : DataStream<T> {

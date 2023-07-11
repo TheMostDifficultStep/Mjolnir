@@ -618,7 +618,7 @@ namespace Play.Edit {
                         // Negative numbers can be hyper links too, need to work that out. 
                         try {
                             skPaint.Color = oCluster.ColorIndex < 0 ? oStdUI.ColorsStandardAt( StdUIColors.TextSelected ) : 
-                                                                      oStdUI.ColorsText[ oCluster.ColorIndex ];
+                                                                      oStdUI.GrammarTextColor( oCluster.ColorIndex );
                         } catch( Exception oEx ) {
                             Type[] rgErrors = { typeof( ArgumentOutOfRangeException ),
                                                 typeof( IndexOutOfRangeException ) };

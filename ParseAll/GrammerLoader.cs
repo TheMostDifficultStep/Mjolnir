@@ -50,6 +50,7 @@ namespace Play.Parse.Impl {
     {
         readonly IPgBaseSite  _oSite;
 		readonly IPgGrammarSite _oSiteGrammer;
+      //readonly List<ColorMap> _rgColors = new(); not yet... 7/10/2023
 
         readonly Dictionary<string, StateSlot> _rgAvailableStates = new Dictionary<string, StateSlot>(); 
 
@@ -143,7 +144,7 @@ namespace Play.Parse.Impl {
 
             if( xmllistColors == null ) {
                 _oSite.LogError( "internal error", "Color node in the grammar not found!" );
-                return( false );
+                return false;
             }
 
             try {
@@ -152,9 +153,9 @@ namespace Play.Parse.Impl {
                     string strValue = oNode.GetAttribute( "value" );
 
                     if( string.IsNullOrEmpty( strName ) )
-                        return( false );
+                        return false;
                     if( string.IsNullOrEmpty( strValue ) )
-                        return( false );
+                        return false;
 
                     _oSiteGrammer.AddColor( strName, strValue );
                 }
@@ -165,10 +166,10 @@ namespace Play.Parse.Impl {
 				if( rgErrors.IsUnhandled( oEx ) )
 					throw;
 
-                return( false );
+                return false;
             }
             
-            return( true );
+            return true;
         } 
 
         protected bool Load( ref XmlDocument p_xmldocParse  ) {

@@ -202,7 +202,7 @@ namespace Monitor {
         /// </summary>
         /// <param name="strFileName">Source file</param>
         /// <param name="oEdit">Target editor.</param>
-        public void Dump( string strFileName, Editor oEdit ) {
+        public static void Dump( string strFileName, Editor oEdit ) {
             using Stream oStream = new FileStream( strFileName,FileMode.Open );
             using BinaryReader oReader = new BinaryReader(oStream,Encoding.ASCII);
 
@@ -227,6 +227,48 @@ namespace Monitor {
                 }
             } catch( EndOfStreamException ) {
             }
+        }
+    }
+
+    public class EnTokenize {
+        List<byte> _rgLineOutput = new();
+
+        public EnTokenize() { 
+        }
+
+        public byte Convert( Line oLine ) {
+            _rgLineOutput.Clear();
+
+            return 0;
+        }
+
+        public bool Start( BasicEditor oEdit, string strFileName ) {
+            if( oEdit == null )
+                throw new ArgumentNullException() ;
+
+            using Stream oStream = new FileStream( strFileName,FileMode.CreateNew );
+            using BinaryWriter oWriter = new BinaryWriter(oStream,Encoding.ASCII);
+
+            foreach( Line oLine in oEdit ) {
+                if( oLine.Extra is not Line oNumber )
+                    return false;
+
+                if( !int.TryParse( oNumber.AsSpan, out int iLine ) )
+                    return false;
+
+                if( iLine > Math.Pow( 2, 16 ) )
+                    return false;
+
+                byte[] bytes = BitConverter.GetBytes( (short)iLine );
+
+                byte bLength = Convert( oLine );
+
+                oWriter.Write( bLength );
+                oWriter.Write( bytes[0] ); // Lo line num
+                oWriter.Write( bytes[1] ); // Hi line num
+            }
+
+            return true;
         }
     }
 }
