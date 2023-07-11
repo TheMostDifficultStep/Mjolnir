@@ -176,10 +176,19 @@ namespace Monitor {
         }
 
         public void Renumber( Grammer<char> oGrammar ) {
+            if( oGrammar == null )
+                throw new ArgumentNullException();
+
             State<char> oFunction = oGrammar.FindState( "function" );
+
+            if( oFunction == null )
+                throw new ArgumentException("Can't find required state in grammar.");
 
             int iInstr = oFunction.Bindings.IndexOfKey( "keyword" );
             int iParms = oFunction.Bindings.IndexOfKey( "params" );
+
+            if( iInstr == -1 || iParms == -1 )
+                throw new ArgumentException( "Could not find required state bindings" );
 
             List<Remaps> rgRemap = new();
 
@@ -220,6 +229,8 @@ namespace Monitor {
                     oMap.oSourceLine.TryReplace( oMap.oParamRange.Offset, oMap.oParamRange.Length, oNumber.AsSpan );
                 }
             }
+
+            SetDirty();
 
             Raise_MultiFinished();
         }
@@ -508,7 +519,17 @@ namespace Monitor {
         }
 
         public void Renumber() {
-            AssemblyDoc.Renumber( _oGrammer );
+            try {
+                AssemblyDoc.Renumber( _oGrammer );
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( ArgumentNullException ),
+                                    typeof( ArgumentException ),
+                                    typeof( NullReferenceException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
+
+                _oBaseSite.LogError( "Editing", "Problem with language grammar." );
+            }
         }
 
         public void CompileAsm() {

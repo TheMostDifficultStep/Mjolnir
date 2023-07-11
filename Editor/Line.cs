@@ -168,6 +168,11 @@ namespace Play.Edit {
             }
         }
         
+        /// <summary>
+        /// Compares LINE NUMBER not contents...
+        /// </summary>
+        /// <param name="oOther"></param>
+        /// <remarks>Required by the IComparable generic.</remarks>
         public int CompareTo(Line oOther) {
             return( _iLine - oOther.At );
         }
