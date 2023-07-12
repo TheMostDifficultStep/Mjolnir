@@ -312,7 +312,7 @@ namespace Play.Edit {
             return _sbBuffer.SubSpan( iOffset, iLength );
         }
 
-        public override ReadOnlySpan<char> AsSpan => _sbBuffer.AsSpan.Slice( _sbBuffer.Length );
+        public override ReadOnlySpan<char> AsSpan => _sbBuffer.AsSpan.Slice( 0, _sbBuffer.Length );
 
         public override bool TryReplace(int iStart, int iLength, ReadOnlySpan<char> spReplacements) {
             if( _sbBuffer.Replace( iStart, iLength, spReplacements ) ) {

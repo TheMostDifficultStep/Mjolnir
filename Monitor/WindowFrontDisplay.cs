@@ -218,7 +218,7 @@ namespace Monitor {
             }
         }
 
-        protected readonly LayoutRect _rctLineNumbers = new LayoutRect( LayoutRect.CSS.Flex ) { Track = 30 };
+        protected readonly LayoutRect _rctLineNumbers = new LayoutRect( LayoutRect.CSS.Flex ) { Track = 40 };
 
         public BasicLineWindow( IPgViewSite oSite, MonitorDocument oDoc ) : base( oSite, oDoc.AssemblyDoc ) {
             Monitor = oDoc ?? throw new ArgumentNullException( ); // We'll die before reaching this... :-/
