@@ -163,14 +163,18 @@ namespace Monitor {
 
         void Decode( BinaryReader oReader, BasicEditor oEdit ) {
             // Decode binary data 'data' and write the result to 'output'.
-            List<Tuple<int, byte[]>> rgLines = ReadLines( oReader );
-            using BasicEditor.BasicManipulator oBulk = new ( oEdit );
+            try {
+                List<Tuple<int, byte[]>> rgLines = ReadLines( oReader );
+                using BasicEditor.BasicManipulator oBulk = new ( oEdit );
 
-            foreach( Tuple<int,byte[]> oTuple in rgLines ) {
-                string strLine = Detokanize(oTuple);
+                foreach( Tuple<int,byte[]> oTuple in rgLines ) {
+                    string strLine = Detokanize(oTuple);
 
-                if( oTuple.Item1 != 0xffff )
-                    oBulk.Append( oTuple.Item1, strLine );
+                    if( oTuple.Item1 != 0xffff )
+                        oBulk.Append( oTuple.Item1, strLine );
+                }
+            } catch( InvalidProgramException ) {
+                oEdit.LogError( "Bad program format. Is it really a binary BBC Basic file?" );
             }
         }
         
