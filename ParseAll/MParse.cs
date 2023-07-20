@@ -145,57 +145,34 @@ namespace Play.Parse
         } // End Method
     } // End Class
 
-    // TODO: We can store the binder here and forget about the Bind() method on the
-    //       ProdBase<T> interface!! But my wrists are sore so I'll do that some
-    //       other day.
-    public struct FMarker<U> {
-        U   _oValue;
-
-        public FMarker( U oValue ) {
-            _oValue = oValue;
-        }
-
-        public override string ToString() {
-            return( _oValue.ToString() );
-        }
-
-        public U Value {
-            get { return( _oValue ); }
-        }
-    }
-
     public class MyStack<T> {
-        List<FMarker<T>> _rgStack = new List<FMarker<T>>();
-        int              _iTop = -1; // BUG: I don't think I really need this!
+        readonly List<T> _rgStack = new List<T>();
+        int              _iTop    = -1; // NOTE: Might not really need this!
        
         public void Push( T oValue ) {
             if( oValue == null )
                 throw new ArgumentNullException( "not expecting null on the stack" );
             _iTop++;
             if( _iTop >= _rgStack.Count )
-                _rgStack.Add( new FMarker<T>( oValue ) );
+                _rgStack.Add( oValue );
             else
-                _rgStack[_iTop] = new FMarker<T>( oValue );
+                _rgStack[_iTop] = oValue;
         }
 
         public T Pop() {
             if( _iTop <= -1 )
                 throw new InvalidOperationException( "The Stack is empty." );
 
-            FMarker<T> sReturn = _rgStack[_iTop];
-            _rgStack[_iTop] = default(FMarker<T>); // Zero out that old position.
+            T oReturn = _rgStack[_iTop];
+            _rgStack[_iTop] = default(T); // Zero out that old position.
             --_iTop;
 
-            return( sReturn.Value );
-        }
-
-        public FMarker<T> At( int iIndex ) {
-            return _rgStack[iIndex];
+            return oReturn;
         }
 
         public int Count {
             get {
-                return( _iTop + 1 );
+                return _iTop + 1;
             }
         }
 
@@ -221,14 +198,14 @@ namespace Play.Parse
         public class MyStackEnum {
             MyStack<T> _oStack;
             int        _iPos;
-            FMarker<T> _oCurrent = default(FMarker<T>);
+            T _oCurrent = default(T);
 
             public MyStackEnum( MyStack<T> oStack ) {
                 _oStack = oStack;
                 _iPos   = _oStack.Count;
             }
 
-            public FMarker<T> Current {
+            public T Current {
                 get {
                     return( _oCurrent );
                 }
@@ -313,7 +290,7 @@ namespace Play.Parse
             _oStackEnum.Reset();
             while( _oStackEnum.MoveNext() ) {
                 try {
-                    if( _oStackEnum.Current.Value.Bind( oProdBase ) )
+                    if( _oStackEnum.Current.Bind( oProdBase ) )
                         break;
                 } catch( NullReferenceException oEx ) {
                     LogException( oEx, _iInput );

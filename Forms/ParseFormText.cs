@@ -169,7 +169,7 @@ namespace Play.Forms {
             _oStackEnum.Reset();
             while( _oStackEnum.MoveNext() ) {
                 try {
-                    if( _oStackEnum.Current.Value.Bind( oProdBase ) )
+                    if( _oStackEnum.Current.Bind( oProdBase ) )
                         break;
                 } catch( NullReferenceException oEx ) {
                     LogError( oEx, _iInput );
