@@ -321,6 +321,21 @@ namespace Play.Parse
             }
         }
 
+        protected void ThrowParseError( Production<T> p_oProduction, int iProdElem ) {
+            StringBuilder sbError = new StringBuilder();
+
+            sbError.AppendLine( "Problem with production..." );
+            sbError.Append( "State: " );
+            sbError.AppendLine( p_oProduction.StateName );
+            sbError.Append( "Production #: " );
+            sbError.AppendLine( p_oProduction.Index.ToString() );
+            sbError.Append( "Element #: " );
+            sbError.Append( iProdElem.ToString() );
+            sbError.AppendLine( "." );
+
+            throw new InvalidOperationException( sbError.ToString() );
+        }
+
         /// <summary>
         /// 3/8/2017 : Now that memory elements are all created here we might be able to
         /// further improve by pushing memory elements creation to the document, so that
@@ -342,36 +357,25 @@ namespace Play.Parse
                 }
 
                 for( int iProdElem = p_oProduction.Count - 1; iProdElem >= 0; --iProdElem ) {
-                    ProdBase<T> oMemElem = p_oProduction[iProdElem];
+                    ProdBase<T> oProdElem = p_oProduction[iProdElem];
 
-					if( oMemElem is ProdState<T> oProdState ) {
+					if( oProdElem is ProdState<T> oProdState ) {
 						// Don't push the memory binder at this point, if we do, we have to
 						// wade thru inactive sibling binders by counting frames and etc. Waste of time.
-						if (!string.IsNullOrEmpty(oProdState.ID) || oProdState.IsBinding || oProdState.IsWord) {
-							oMemElem = new MemoryState<T>(oProdState, p_oParent as MemoryState<T>);
+						if( !string.IsNullOrEmpty(oProdState.ID) || oProdState.IsBinding || oProdState.IsWord) {
+							oProdElem = new MemoryState<T>(oProdState, p_oParent as MemoryState<T>);
 						}
 					} else {
 						// At present the listeners are just tossing these into the line color info.
 						// And we might be capturing them as well (if ID is non-null).
-						oMemElem = new MemoryTerminal<T>(p_oProduction[iProdElem], p_oParent as MemoryState<T>);
+						oProdElem = new MemoryTerminal<T>(p_oProduction[iProdElem], p_oParent as MemoryState<T>);
 					}
 
-					if( oMemElem == null ) {
-                        StringBuilder sbError = new StringBuilder();
-
-                        sbError.AppendLine( "Problem with production..." );
-                        sbError.Append( "State: " );
-                        sbError.AppendLine( p_oProduction.StateName );
-                        sbError.Append( "Production #: " );
-                        sbError.AppendLine( p_oProduction.Index.ToString() );
-                        sbError.Append( "Element #: " );
-                        sbError.Append( iProdElem.ToString() );
-                        sbError.AppendLine( "." );
-
-                        throw new InvalidOperationException( sbError.ToString() );
+					if( oProdElem == null ) {
+                        ThrowParseError( p_oProduction, iProdElem );
                     }
 
-                    _oStack.Push( oMemElem );
+                    _oStack.Push( oProdElem );
                 }
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( ArgumentNullException ),
