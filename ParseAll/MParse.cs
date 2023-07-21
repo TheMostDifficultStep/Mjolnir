@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Text;
 
@@ -195,20 +196,21 @@ namespace Play.Parse
         /// </summary>
         /// <remarks>Need to implement a callback so I can watch the stack when it changes.
         /// Since I use this pretty specifically I'm not going to bother right now.</remarks>
-        public class MyStackEnum {
+        public class MyStackEnum : IEnumerator<T>{
             MyStack<T> _oStack;
             int        _iPos;
-            T _oCurrent = default(T);
+            T          _oCurrent = default(T);
 
             public MyStackEnum( MyStack<T> oStack ) {
                 _oStack = oStack;
                 _iPos   = _oStack.Count;
             }
 
-            public T Current {
-                get {
-                    return( _oCurrent );
-                }
+            public T Current => _oCurrent;
+
+            object IEnumerator.Current => _oCurrent;
+
+            public void Dispose() {
             }
 
             public bool MoveNext()
@@ -216,9 +218,9 @@ namespace Play.Parse
                 if( _iPos > 0 ) {
                     _iPos--;
                     _oCurrent = _oStack._rgStack[_iPos];
-                    return( true );
+                    return true;
                 }
- 	            return ( false );
+ 	            return false;
             }
 
             public void Reset()
@@ -238,7 +240,8 @@ namespace Play.Parse
     /// <typeparam name="ST">The type of the elements in the stream we handle.</typeparam>
     /// <remarks>This object is basically an enumerator. I'll make it an actual
     /// enumerator some time. Current would be the last matched terminal.</remarks>
-	public class ParseIterator<T> 
+	public class ParseIterator<T> :
+        IEnumerable<ProdBase<T>>
 	{
         MyStack<ProdBase<T>>             _oStack;
         MyStack<ProdBase<T>>.MyStackEnum _oStackEnum;
@@ -283,18 +286,16 @@ namespace Play.Parse
         /// <summary>
         /// Attempt to bind a production element to a parent production state.
         /// </summary>
-        /// <param name="iFrame"></param>
         /// <param name="oProdBase"></param>
         protected void Bind( ProdBase<T> oProdBase ) 
         {
-            _oStackEnum.Reset();
-            while( _oStackEnum.MoveNext() ) {
-                try {
-                    if( _oStackEnum.Current.Bind( oProdBase ) )
+            try {
+                foreach( ProdBase<T> oProdElem in this ) {
+                    if( oProdElem.Bind( oProdBase ) )
                         break;
-                } catch( NullReferenceException oEx ) {
-                    LogException( oEx, _iInput );
                 }
+            } catch( NullReferenceException oEx ) {
+                LogException( oEx, _iInput );
             }
         }
 
@@ -407,6 +408,15 @@ namespace Play.Parse
             }
 			return( true );
         } // MoveNext()
+
+        public IEnumerator<ProdBase<T>> GetEnumerator() {
+            _oStackEnum.Reset();
+            return _oStackEnum;
+        }
+
+        IEnumerator IEnumerable.GetEnumerator() {
+            return GetEnumerator();
+        }
     } // End Class ParseIterator
 
 
