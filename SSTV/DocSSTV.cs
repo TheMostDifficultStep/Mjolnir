@@ -670,12 +670,6 @@ namespace Play.SSTV {
 				LogError( "Couldn't find pictures tx directory for SSTV" );
                 return false;
 			}
-            string strMyPics = Properties[SSTVProperties.Names.Rx_SaveDir];
-            if( !RxHistoryList.LoadURL( strMyPics ) ) {
-				LogError( "Couldn't find pictures history directory for SSTV" );
-                return false;
-            }
-
             RxModeList.LineAppend( "Auto", fUndoable:false );
             LoadModes( SSTVDEM.EnumModes(), RxModeList, fAddResolution:false );
             LoadModes( SSTVDEM.EnumModes(), TxModeList, fAddResolution:true  );
@@ -691,7 +685,14 @@ namespace Play.SSTV {
             TxModeList   .CheckedEvent += OnCheckedEvent_TxModeList;
             TemplateList .CheckedEvent += OnCheckedEvent_TemplateList;
 
-            RenderComposite();
+            // We'll get a callback from this before exiting!! O.o
+            string strMyPics = Properties[SSTVProperties.Names.Rx_SaveDir];
+            if( !RxHistoryList.LoadURL( strMyPics ) ) {
+				LogError( "Couldn't find pictures history directory for SSTV" );
+                return false;
+            }
+
+            RenderComposite(); // Duplicate. We'll possibly get call in callback above.
 
             Properties.ParseAll();
             _oWorkPlace.Queue( CreateTaskReceiver(), Timeout.Infinite );
@@ -897,6 +898,9 @@ namespace Play.SSTV {
         }
 
         private void OnImageUpdated_TxImageList() {
+            Properties.ValueUpdate( SSTVProperties.Names.Tx_SrcDir,  TxImageList.CurrentShowPath );
+            Properties.ValueUpdate( SSTVProperties.Names.Tx_SrcFile, TxImageList.CurrentShowFile );
+
             if( TxImageList.Bitmap != null ) {
 			    Selection.SetRect( 0, 0, TxImageList.Bitmap.Width, TxImageList.Bitmap.Height );
             } else {
@@ -920,8 +924,12 @@ namespace Play.SSTV {
         /// Look at this again later.
         /// </summary>
         private void OnImageUpdated_RxHistoryList() {
+            Properties.ValueUpdate( SSTVProperties.Names.Rx_SaveDir,     RxHistoryList.CurrentShowPath );
+            Properties.ValueUpdate( SSTVProperties.Names.Rx_HistoryFile, RxHistoryList.CurrentShowFile );
+
             // BUG: Need to make the RxProp the one that gets changed and we catch an event to LoadAgain();
 			Properties.RaiseUpdateEvent();
+
             if( StateRx == DocSSTVMode.DeviceRead ) {
                 _rgUItoBGQueue.Enqueue( new TVMessage( TVMessage.Message.ChangeDirectory, RxHistoryList.CurrentDirectory ) );
             }
