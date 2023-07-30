@@ -294,6 +294,8 @@ namespace Mjolnir {
                 oShepard.Orientation = eEdge;
                 oShepard.Sizing      = SMARTSIZE.Normal;
 
+                // NOTE: This isn't the final say. The item just also have content.
+                // But at this point we don't know... :-/
 				if( strToolVis.ToLower() == "true" )
 					oShepard.Show = SHOWSTATE.Active;
 				else

@@ -679,8 +679,15 @@ namespace Mjolnir {
 
             try {
 				if( iPvs < 0 ) {
+                    // This case is a little weird. Since InitNew has no params
+                    // we just create doc/view pairs outside and then init
+                    // the program (which then init's the main window). Doesn't
+                    // seem to blow up and simplifes code path. Go with it for now.
+                    MainWindow.DocumentShowAll(rgArgsClean);
+
 					_oDocSite_Session.InitNew();
 				} else {
+                    // Loads the documents AND the saved views/positions in main window.
 					_oDocSite_Session.Load( rgArgs[iPvs] );
 				}
 			} catch( Exception oEx ) {
@@ -689,8 +696,6 @@ namespace Mjolnir {
 
                 LogError( "Session", "Session Init/Load error" );
 			}
-
-            MainWindow.DocumentShowAll(rgArgsClean);
         }
 
         public bool InitNew() {

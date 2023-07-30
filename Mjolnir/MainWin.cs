@@ -2515,38 +2515,16 @@ namespace Mjolnir {
         /// could easily deal with the two step initialization of a window. Mainly the goal is to have
         /// the window to be usable even if the more complex Load() fails. And if InitNew() fails we're
         /// probably in real bad shape anyway. ^_^;;
+        /// It seems it's ok to load doc/view pair's from the command line before calling this init
+        /// new. Since we can call DecorShuffle() to prep all the adornments...
 		/// </remarks>
         public bool InitNew() {
-            //Document.SearchSlot.InitNew();
-
             InitializeSoloWindows();
 
             Document.RecentsAddListener( new MainWin_Recent( this ) );
             Document.EventUpdateTitles += UpdateAllTitlesFor;
 
-			ViewSlot oLastSlot = null;
-
-			// If for some reason we can't find persistance data for the main win, but we've got
-			// some documents. Then we'll just create a default view for any doc's we find.
-			foreach( IDocSlot oDocSlot in Document.DocSlots ) {
-				try {
-					if( oDocSlot.Document == null )
-						continue;
-
-					ViewSlot oViewSite = ViewCreateBase( oDocSlot, Guid.Empty );
-
-					if( oViewSite.InitNew() ) {
-						ViewAdd( oViewSite );
-						oLastSlot = oViewSite;
-					} else {
-						oViewSite.Dispose();
-					}
-				} catch( NullReferenceException ) {
-				}
-			}
-
-			ViewSelect( oLastSlot, true );
-
+            DecorShuffle(); // Only makes sense if we load docs/views before this call.
             SetTitle();
 
             return( true );
