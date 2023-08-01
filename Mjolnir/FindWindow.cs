@@ -84,6 +84,11 @@ namespace Mjolnir {
             //      so we don't know who's focused at the moment.
             _oViewChangedHandler   = new ViewChanged(OnViewChanged);
             _oWinMain.ViewChanged += _oViewChangedHandler;
+            if( _oWinMain.ViewSiteSelected != null && 
+                _oWinMain.ViewSiteSelected.Guest is IPgTextView oView ) 
+            {
+                _oView = oView;
+            }
 
             DocForms.LineAppend( string.Empty, false );
             LayoutSingleLine oLayoutSearchKey = new LayoutSingleLine( new FTCacheWrap( DocForms[0] ), LayoutRect.CSS.Flex) { Span = 4, BgColor=SkiaSharp.SKColors.White };
@@ -415,22 +420,26 @@ namespace Mjolnir {
 
             _oDoc_SearchResults.Clear();
 
-            if( _oEnumResults == null ) {
-				// Save our starting point.
-                _sEnumStart   = _oView.Caret;
-                _oEnumResults = EnumSearchResults();
-            }
-            if( _oEnumResults.MoveNext() ) {
-                ILineRange oRange = _oEnumResults.Current;
+            try {
+                if( _oEnumResults == null ) {
+				    // Save our starting point.
+                    _sEnumStart   = _oView.Caret;
+                    _oEnumResults = EnumSearchResults();
+                }
+                if( _oEnumResults.MoveNext() ) {
+                    ILineRange oRange = _oEnumResults.Current;
 
-                _oView.SelectionClear(); 
-				_oView.SelectionSet( oRange.Line.At, oRange.Offset, oRange.Length );
-				_oView.ScrollToCaret();
-            } else {
-                _oView.SelectionClear(); 
-				_oView.SelectionSet( _sEnumStart.Line, _sEnumStart.Offset, 0 );
-				_oView.ScrollToCaret();
-                _oEnumResults = null;
+                    _oView.SelectionClear(); 
+				    _oView.SelectionSet( oRange.Line.At, oRange.Offset, oRange.Length );
+				    _oView.ScrollToCaret();
+                } else {
+                    _oView.SelectionClear(); 
+				    _oView.SelectionSet( _sEnumStart.Line, _sEnumStart.Offset, 0 );
+				    _oView.ScrollToCaret();
+                    _oEnumResults = null;
+                }
+            } catch( NullReferenceException ) {
+                LogError( "Select a document view." );
             }
         }
 
