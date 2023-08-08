@@ -258,17 +258,17 @@ namespace Play.Rectangles
         /// <summary>
         /// This is the default way to start a drag operation.
         /// </summary>
-        public SmartGrabDrag BeginDrag( int p_iX, int p_iY, SKPointI p_pntAspect ) {
+        public SmartGrabDrag BeginDrag( int p_iX, int p_iY, SKPointI p_pntAspect, SmartRect p_rcViewBounds = null ) {
             HIT eHit = IsHit( p_iX, p_iY, out LOCUS l_eEdges );
             switch( eHit ) {
                 case HIT.CORNER:
                 case HIT.MIDPOINT:
-                    return BeginAspectDrag( null, SET.STRETCH, eHit, l_eEdges, p_iX, p_iY, p_pntAspect );
+                    return BeginAspectDrag( null, SET.STRETCH, eHit, l_eEdges, p_iX, p_iY, p_pntAspect, p_rcViewBounds );
 
                 case HIT.INSIDE:
-                    return new SmartGrabDrag( null, this, SET.RIGID, LOCUS.UPPERLEFT, p_iX, p_iY );
+                    return new SmartGrabDrag( null, this, SET.RIGID, LOCUS.UPPERLEFT, p_iX, p_iY, p_rcViewBounds );
                 case HIT.EDGE:
-                    return new SmartGrabDrag( null, this, SET.RIGID, l_eEdges, p_iX, p_iY );
+                    return new SmartGrabDrag( null, this, SET.RIGID, l_eEdges, p_iX, p_iY, p_rcViewBounds );
             }
 
             return null;
@@ -288,9 +288,10 @@ namespace Play.Rectangles
             LOCUS         p_eEdges,
             int           p_iX, 
             int           p_iY,
-            SKPoint       p_pntAspect
+            SKPoint       p_pntAspect,
+            SmartRect     p_rcViewBounds = null
 		) {
-			return new SmartGrabDrag( p_oFinished, this, p_eStretch, p_eEdges, p_iX, p_iY );
+			return new SmartGrabDrag( p_oFinished, this, p_eStretch, p_eEdges, p_iX, p_iY, p_rcViewBounds );
 		}
 
         public void HoverStop() {
@@ -429,29 +430,30 @@ namespace Play.Rectangles
             LOCUS         p_eEdges,
             int           p_iX, 
             int           p_iY,
-            SKPoint       p_pntAspect
+            SKPoint       p_pntAspect,
+            SmartRect     p_rcViewBounds = null
 		) {
             switch( p_eHit ) {
                 case HIT.CORNER:
 			        switch( Mode ) {
 				        default:
 				        case DragMode.FreeStyle:
-					        return new SmartGrabDrag  ( p_oFinished, this, p_eStretch, p_eEdges, p_iX, p_iY );
+					        return new SmartGrabDrag  ( p_oFinished, this, p_eStretch, p_eEdges, p_iX, p_iY, p_rcViewBounds );
 				        case DragMode.FixedRatio:
-					        return new SmartSelectDrag( p_oFinished, this, p_eStretch, p_eEdges, p_iX, p_iY, p_pntAspect );
+					        return new SmartSelectDrag( p_oFinished, this, p_eStretch, p_eEdges, p_iX, p_iY, p_rcViewBounds, p_pntAspect );
 			        }
 
                 case HIT.MIDPOINT:
 			        switch( Mode ) {
 				        default:
 				        case DragMode.FreeStyle:
-					        return new SmartGrabDrag  ( p_oFinished, this, p_eStretch, p_eEdges, p_iX, p_iY );
+					        return new SmartGrabDrag  ( p_oFinished, this, p_eStretch, p_eEdges, p_iX, p_iY, p_rcViewBounds );
 				        case DragMode.FixedRatio:
-					        return new SmartGrabDrag( p_oFinished, this, SET.RIGID, LOCUS.UPPERLEFT, p_iX, p_iY );
+					        return new SmartGrabDrag( p_oFinished, this, SET.RIGID, LOCUS.UPPERLEFT, p_iX, p_iY, p_rcViewBounds );
 			        }
                 case HIT.INSIDE:
                 case HIT.EDGE:
-                    return new SmartGrabDrag( p_oFinished, this, SET.RIGID, LOCUS.UPPERLEFT, p_iX, p_iY );
+                    return new SmartGrabDrag( p_oFinished, this, SET.RIGID, LOCUS.UPPERLEFT, p_iX, p_iY, p_rcViewBounds );
             }
             return null;
 		}
@@ -515,6 +517,8 @@ namespace Play.Rectangles
         protected readonly SKPointI     _pntOffset;
 		protected          SKPointI     _pntLastMove;
         protected readonly DragFinished _oFinished = null;
+        protected readonly SmartRect    _rcViewBounds;
+        protected readonly SmartRect    _rcTemp = new();
 
         public SmartGrabDrag(
             DragFinished  p_oFinished,
@@ -522,7 +526,8 @@ namespace Play.Rectangles
             SET           p_eStretch,
             LOCUS         p_eEdges,
             int           p_iX, 
-            int           p_iY )
+            int           p_iY,
+            SmartRect     p_rctViewBounds )
         {
             Invertable            = true;
             Guest                 = p_oGuest ?? throw new ArgumentNullException("The guest may not be null");
@@ -530,6 +535,7 @@ namespace Play.Rectangles
             _eStretch             = p_eStretch;
             _rcGuestOrigSize.Copy = p_oGuest;
             this.Copy             = p_oGuest;
+            _rcViewBounds         = p_rctViewBounds;
 
             // This is co-dependent on our implementation of Dragging on the guest. This means
             // we'll typically need subclasses to control the actual drag.
@@ -571,11 +577,23 @@ namespace Play.Rectangles
             iX += _pntOffset.X;
             iY += _pntOffset.Y;
 
-            //this.Copy = _oGuest.Outer; // Copy current guest size/position.
- 
-            SetPoint( iX, iY );
+            if( _rcViewBounds == null ) {
+                SetPoint( iX, iY );
+                return;
+            }
 
-            //this.Union(_oGuest.Outer); // Union with new size/position to get a dirty rect.
+            // So we need to check the WHOLE rect when dragging from the CENTER
+            // and moving the whole object instead of just an edge or corner!!
+            _rcTemp.Copy = Guest;
+            _rcTemp.SetPoint(_eStretch, _eEdges, iX, iY);
+
+            if( _rcViewBounds.IsInside( _rcTemp ) ) {
+                //this.Copy = _oGuest.Outer; // Copy current guest size/position.
+ 
+                Guest.Copy = _rcTemp;
+
+                //this.Union(_oGuest.Outer); // Union with new size/position to get a dirty rect.
+            }
         }
 
         /// <summary>
@@ -597,8 +615,9 @@ namespace Play.Rectangles
             LOCUS         p_eEdges,
             int           p_iX, 
             int           p_iY,
-            SKPoint       p_pntAspect = new SKPoint()
-            ) : base( p_oFinished, p_oGuest, p_eStretch, p_eEdges, p_iX, p_iY )
+            SmartRect     p_rcViewBounds,
+            SKPoint       p_pntAspect
+            ) : base( p_oFinished, p_oGuest, p_eStretch, p_eEdges, p_iX, p_iY, p_rcViewBounds )
         {
 		    SKPointI pntAnchorSide = new SKPointI( p_iX, p_iY ); // Shouldn't, need this default. But compiler is whining.
 			LOCUS    eOppoEdge     = GetInvert( p_eEdges );
@@ -641,7 +660,19 @@ namespace Play.Rectangles
             else
                 p_iX = (int)( (p_iY - _flIntercept ) / _flSlope );
 
-            SetPoint( p_iX, p_iY );
+            if( _rcViewBounds == null ) {
+                SetPoint( p_iX, p_iY );
+                return;
+            }
+
+            // So we need to check the WHOLE rect when dragging from the CENTER
+            // and moving the whole object instead of just an edge or corner!!
+            _rcTemp.Copy = Guest;
+            _rcTemp.SetPoint(_eStretch, _eEdges, p_iX, p_iY);
+
+            if( _rcViewBounds.IsInside( _rcTemp ) ) {
+                Guest.Copy = _rcTemp;
+            }
         }
 	}
 }

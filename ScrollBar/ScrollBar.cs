@@ -299,7 +299,7 @@ namespace Play.Controls {
                         RepeaterStart(ScrollEvents.LargeIncrement );
                         break;
                     case LOCUS.CENTER:
-                        _oDrag = new SmartGrabDrag( null, _oThumb, SET.RIGID, LOCUS.UPPERLEFT, e.X, e.Y );
+                        _oDrag = new SmartGrabDrag( null, _oThumb, SET.RIGID, LOCUS.UPPERLEFT, e.X, e.Y, null );
 
                         Invalidate();
                         break;

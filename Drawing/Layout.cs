@@ -158,7 +158,7 @@ namespace Play.Rectangles {
 		TRACK      _eDir;
 		Action< bool, SKPointI> _oCallback;
         public SmartDragLayout( Action< bool, SKPointI> oCallback, LayoutRect oGuest, TRACK eDir, LOCUS p_eEdges, int p_iX, int p_iY) : 
-			base( null, oGuest, SET.STRETCH, p_eEdges, p_iX, p_iY)
+			base( null, oGuest, SET.STRETCH, p_eEdges, p_iX, p_iY, null )
 		{
 			_oCallback = oCallback ?? throw new ArgumentNullException( nameof( oCallback ) );
 			_eEdgeOppo = SmartRect.GetInvert( p_eEdges );

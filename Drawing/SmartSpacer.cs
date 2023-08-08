@@ -143,7 +143,7 @@ namespace Play.Rectangles {
 			TRACK		 eAxis,
             int          iX,
             int          iY ) : 
-            base( oFinished, oGuest, SET.RIGID, LOCUS.UPPERLEFT, iX, iY )
+            base( oFinished, oGuest, SET.RIGID, LOCUS.UPPERLEFT, iX, iY, null )
         {
 			_eAxis = eAxis;
         }

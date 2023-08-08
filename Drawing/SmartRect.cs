@@ -405,6 +405,18 @@ namespace Play.Rectangles {
             }
         }
 
+        public SKPointI GetCenter() {
+            SKPointI pntReturn = new SKPointI( 0, 0 );
+
+            pntReturn.X = m_rgiCur[(int)SIDE.RIGHT] - m_rgiCur[(int)SIDE.LEFT];
+            pntReturn.X = m_rgiCur[(int)SIDE.LEFT] + (pntReturn.X >> 1);
+
+            pntReturn.Y = m_rgiCur[(int)SIDE.BOTTOM] - m_rgiCur[(int)SIDE.TOP];
+            pntReturn.Y = m_rgiCur[(int)SIDE.TOP] + (pntReturn.Y >> 1);
+
+            return pntReturn;
+        }
+
 		/// <exception cref="ArgumentOutOfRangeException" />
         public SKPointI GetPoint( LOCUS p_uiEdges )
         {
@@ -417,11 +429,7 @@ namespace Play.Rectangles {
             switch (p_uiEdges)
             {
                 case LOCUS.CENTER:
-                    pntReturn.X = m_rgiCur[(int)SIDE.RIGHT] - m_rgiCur[(int)SIDE.LEFT];
-                    pntReturn.X = m_rgiCur[(int)SIDE.LEFT] + (pntReturn.X >> 1);
-
-                    pntReturn.Y = m_rgiCur[(int)SIDE.BOTTOM] - m_rgiCur[(int)SIDE.TOP];
-                    pntReturn.Y = m_rgiCur[(int)SIDE.TOP] + (pntReturn.Y >> 1);
+                    pntReturn = GetCenter();
                     break;
                 case LOCUS.EXTENT:
                     pntReturn.X = m_rgiCur[(int)SIDE.RIGHT] - m_rgiCur[(int)SIDE.LEFT];
@@ -436,6 +444,8 @@ namespace Play.Rectangles {
                 case LOCUS.LOWERRIGHT:
                 case LOCUS.UPPERRIGHT:
                 case LOCUS.LOWERLEFT:
+                    pntReturn = GetCenter();
+
                     if ((p_uiEdges & LOCUS.LEFT) != 0)
                         pntReturn.X = m_rgiCur[(int)SIDE.LEFT];
                     if ((p_uiEdges & LOCUS.TOP) != 0)

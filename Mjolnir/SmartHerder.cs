@@ -792,7 +792,7 @@ namespace Mjolnir {
             SmartHerderBase p_herderGuest,
             int             p_iX,
             int             p_iY ) : 
-            base( p_oFinished, p_herderGuest, SET.RIGID, LOCUS.UPPERLEFT, p_iX, p_iY )
+            base( p_oFinished, p_herderGuest, SET.RIGID, LOCUS.UPPERLEFT, p_iX, p_iY, null )
         {
             if( p_oFinished == null )
                 throw new ArgumentNullException( "Need the 'finished' delegate" );

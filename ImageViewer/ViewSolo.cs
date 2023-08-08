@@ -482,10 +482,10 @@ namespace Play.ImageViewer {
 					_rcSelectionView.Show   = SHOWSTATE.Focused;
 					_rcSelectionView.SetRect( e.X-1, e.Y-1, e.X+1, e.Y+1 );
 					// If selection hidden, we choose the lower right as the drag edge to get started.
-					_oSmartDrag = _rcSelectionView.BeginAspectDrag( null, SET.STRETCH, SmartGrab.HIT.CORNER, LOCUS.LOWERRIGHT, e.X, e.Y, Aspect );
+					_oSmartDrag = _rcSelectionView.BeginAspectDrag( null, SET.STRETCH, SmartGrab.HIT.CORNER, LOCUS.LOWERRIGHT, e.X, e.Y, Aspect, _rctViewPort );
 				} else {
 					if( e.Button == MouseButtons.Left ) {
-						_oSmartDrag = _rcSelectionView.BeginDrag( e.X, e.Y, Aspect );
+						_oSmartDrag = _rcSelectionView.BeginDrag( e.X, e.Y, Aspect, _rctViewPort );
 					}
 				}
 			}
