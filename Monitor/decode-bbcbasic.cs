@@ -64,6 +64,46 @@ namespace Monitor {
             return r0;
         }
 
+        /// <remarks>
+        /// https://xania.org/200711/bbc-basic-line-number-format
+        /// The algorithm used splits the top two bits off each of the two bytes of 
+        /// the 16-bit line number. These bits are combined (in binary as 00LlHh00), 
+        /// exclusive-ORred with 0x54, and stored as the first byte of the 3-byte 
+        /// sequence. The remaining six bits of each byte are then stored, in LO/HI 
+        /// order, ORred with 0x40.
+        /// </remarks>
+        /// <param name="iNumber"></param>
+        /// <returns></returns>
+        public byte[] EncodeNumber( int iNumber ) {
+            byte[] rgReturn = new byte[3];
+            uint uNumber = (uint)iNumber;
+
+            try {
+                ulong uTopBitsHi = uNumber & 0xc000; // 1100000000000000
+                ulong uTopBitsLo = uNumber & 0x00c0; // 0000000011000000
+
+                // Make a byte that looks like ... (00LLHH00)
+                uTopBitsHi = uTopBitsHi >> 12; // (8 + 4)
+                uTopBitsLo = uTopBitsLo >> 2;
+
+                byte uLead = (byte)(( uTopBitsHi | uTopBitsLo ) ^ 0x54 );
+
+                byte uHi6 = (byte)(uNumber >> 8 & 0x3f );
+                byte uLo6 = (byte)(uNumber      & 0x3f );
+
+                uHi6 |= 0x40;
+                uLo6 |= 0x40;
+
+                rgReturn[2] = uLead;
+                rgReturn[1] = uLo6;
+                rgReturn[0] = uHi6;
+
+            } catch( FormatException ) {
+            }
+
+            return rgReturn;
+        }
+
         // Replace all tokens in the line 'line' with their ASCII equivalent.
         // Internal function used as a callback to the regular expression
         // to replace tokens with their ASCII equivalents.

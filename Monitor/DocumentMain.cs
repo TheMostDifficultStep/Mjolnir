@@ -1063,5 +1063,10 @@ namespace Monitor {
                 }
             }
         }
+
+        public void TestNumbers() {
+            Detokenize oBasic = new Detokenize();
+            byte[] rgResult = oBasic.EncodeNumber( 139 );
+        }
     }
 }
