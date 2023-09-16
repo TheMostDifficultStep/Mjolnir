@@ -1,6 +1,10 @@
 ﻿using System.Text;
 
 using Play.Edit;
+using Play.Parse.Impl;
+using Play.Parse;
+using Play.Interfaces.Embedding;
+using OpenTK.Audio.OpenAL;
 
 namespace Monitor {
     /// <summary>
@@ -12,8 +16,8 @@ namespace Monitor {
         // Base tokens, starting at 0x7f
 
         public static string[] rgTokenStd = {
-        "OTHERWISE", /* 7f */ "AND", "DIV", "EOR", "MOD", "OR", "ERROR", "LINE", "OFF", "STEP", 
-        "SPC", "TAB(", "ELSE", "THEN", "<line>" /* TODO */, "OPENIN", "PTR","PAGE", "TIME", "LOMEM", 
+        "OTHERWISE"/* 7f */, "AND", "DIV", "EOR", "MOD", "OR", "ERROR", "LINE", "OFF", "STEP", 
+        "SPC", "TAB(", "ELSE", "THEN", "<line no>" /* TODO */, "OPENIN", "PTR","PAGE", "TIME", "LOMEM", 
 
         "HIMEM", "ABS", "ACS", "ADVAL", "ASC","ASN", "ATN", "BGET", "COS", "COUNT", 
         "DEG", "ERL", "ERR","EVAL", "EXP", "EXT", "FALSE", "FN", "GET", "INKEY",
@@ -31,10 +35,10 @@ namespace Monitor {
         "RESTORE", "RETURN", "RUN", "STOP", "COLOUR", "TRACE", "UNTIL", "WIDTH", "OSCLI" };
 
         // Referred to as "ESCFN" tokens in the source, starting at 0x8e.
-        string[] rgTokenCfn = { "SUM", "BEAT" };
+        string[] rgTokenFnc = { "SUM", "BEAT" };
         // Referred to as "ESCCOM" tokens in the source, starting at 0x8e.
         string[] rgTokenCom = {
-            "APPEND", "AUTO", "CRUNCH", "DELET", "EDIT", "HELP", "LIST", "LOAD",
+            "APPEND", "AUTO", "CRUNCH", "DELETE", "EDIT", "HELP", "LIST", "LOAD",
             "LVAR", "NEW", "OLD", "RENUMBER", "SAVE", "TEXTLOAD", "TEXTSAVE", "TWIN",
             "TWINO", "INSTALL" };
         // Referred to as "ESCSTMT", starting at 0x8e.
@@ -46,7 +50,7 @@ namespace Monitor {
         // This rediculously obsfucated bit stream avoids line number 0x8b (139)
         // from looking like a ELSE token in the byte stream for basic!!
         // https://xania.org/200711/bbc-basic-line-number-format-part-2
-        protected int DecodeNumber( byte[] rgNumber ) {
+        public int DecodeNumber( byte[] rgNumber ) {
             int r0, r1, r10;  
             
             r10 = rgNumber[0];
@@ -71,6 +75,7 @@ namespace Monitor {
         /// exclusive-ORred with 0x54, and stored as the first byte of the 3-byte 
         /// sequence. The remaining six bits of each byte are then stored, in LO/HI 
         /// order, ORred with 0x40.
+        /// Does not include the lead 0x8D token. Add that yourself in front.
         /// </remarks>
         /// <param name="iNumber"></param>
         /// <returns></returns>
@@ -79,24 +84,20 @@ namespace Monitor {
             uint uNumber = (uint)iNumber;
 
             try {
-                ulong uTopBitsHi = uNumber & 0xc000; // 1100000000000000
-                ulong uTopBitsLo = uNumber & 0x00c0; // 0000000011000000
+                ulong uTopBitsHi = uNumber & 0xc000; // 11000000 00000000
+                ulong uTopBitsLo = uNumber & 0x00c0; // 00000000 11000000
 
                 // Make a byte that looks like ... (00LLHH00)
                 uTopBitsHi = uTopBitsHi >> 12; // (8 + 4)
                 uTopBitsLo = uTopBitsLo >> 2;
 
-                byte uLead = (byte)(( uTopBitsHi | uTopBitsLo ) ^ 0x54 );
+                byte bLead = (byte)(( uTopBitsHi | uTopBitsLo ) ^ 0x54 );
+                byte bLo6  = (byte)((uNumber      & 0x3f ) | 0x40 );
+                byte bHi6  = (byte)((uNumber >> 8 & 0x3f ) | 0x40 );
 
-                byte uHi6 = (byte)(uNumber >> 8 & 0x3f );
-                byte uLo6 = (byte)(uNumber      & 0x3f );
-
-                uHi6 |= 0x40;
-                uLo6 |= 0x40;
-
-                rgReturn[2] = uLead;
-                rgReturn[1] = uLo6;
-                rgReturn[0] = uHi6;
+                rgReturn[0] = bLead; // I might have these backwards...
+                rgReturn[1] = bLo6;
+                rgReturn[2] = bHi6;
 
             } catch( FormatException ) {
             }
@@ -104,10 +105,141 @@ namespace Monitor {
             return rgReturn;
         }
 
-        // Replace all tokens in the line 'line' with their ASCII equivalent.
-        // Internal function used as a callback to the regular expression
-        // to replace tokens with their ASCII equivalents.
-        // Any character value greater or equal to 0x7f is interpreted as a token
+        /// <remarks>
+        /// Consider adding support for version of BBC BASIC you're using.
+        /// Right now my decoder reads BBC BASIC V. for the Agon computer.
+        /// </remarks>
+        protected byte GetToken( Span<char> spToken ) {
+            return 0;
+        }
+
+        /// <summary>
+        /// Take the plain text bbc basic and tokenize it for binary file. 
+        /// </summary>
+        /// <remarks>
+        /// http://www.benryves.com/bin/bbcbasic/manual/Appendix_Tokeniser.htm
+        /// https://www.ncus.org.uk/dsbbcoms.htm
+        /// </remarks>
+        protected bool Tokanize( BasicEditor oEdit, BinaryWriter oWriter ) {
+            if( oWriter == null )
+                throw new ArgumentNullException();
+
+            // I could fix this but maybe later... :-/
+            if( !BitConverter.IsLittleEndian )
+                throw new InvalidProgramException( "This procedure assumes LittleEndian" );
+
+            try {
+                int[]                  rgMapping = new int[100]; // Map line char pos with a token.
+                List<MemoryElem<char>> rgTokens  = new List<MemoryElem<char>>();
+                List<byte>             rgOutput  = new List<byte>();
+                bool                   fNext     = false;
+
+                foreach( Line oLine in oEdit ) {
+                    // Resize array to match line length.
+                    if( rgMapping.Length < oLine.ElementCount )
+                        rgMapping = new int[oLine.ElementCount];
+                    // Init the array. Clear the tokens for the line.
+                    for( int i = 0; i < rgMapping.Length; i++ )
+                        rgMapping[i] = 0;
+                    rgTokens.Clear();
+                    rgOutput.Clear();
+
+                    // Get the basic line number
+                    if( oLine.Extra is not Line oBasicLineNumber ) {
+                        throw new InvalidDataException( "Editor does not include basic line number info." );
+                    }
+                    short iBasicLineNumber = short.Parse( oBasicLineNumber.AsSpan );
+
+                    // Map shows character token position. > 0 means it's a token.
+                    // BUG: tokenize numbers!!
+                    foreach( IColorRange oRange in oLine.Formatting ) {
+                        if( oRange is MemoryElem<char> oToken && (
+                            string.Compare( oToken.ID, "token"  ) == 0 ||
+                            string.Compare( oToken.ID, "number" ) == 0 )
+                        ) { 
+                            rgTokens.Add( oToken );
+                            for( int i = oRange.Offset; i< oToken.Length; i++ ) {
+                                rgMapping[i] = rgTokens.Count; // One greater than actual index of token.
+                            }
+                        } 
+                    }
+
+                    // Tokenize the line and output to the output line.
+                    for( int i = 0; i < oLine.ElementCount; i++ ) {
+                        if( rgMapping[i] == 0 ) {
+                            if( oLine[i] > 0x7f )
+                                throw new InvalidDataException( "BBC basic V ascii text error." );
+
+                            rgOutput.Add( (byte)oLine[i] );
+                        } else {
+                            MemoryElem<char> oRange = rgTokens[rgMapping[i] - 1];
+                            Span<char> spToken = oLine.Slice( oRange );
+
+                            if( string.Compare( oRange.ID, "token" ) == 0 ) {
+                                byte bToken = GetToken( spToken );
+                                rgOutput.Add( bToken );
+                            } else {
+                                byte[] rgNumEncoding = EncodeNumber( int.Parse( spToken ) );
+                                foreach( byte bToken in rgNumEncoding ) { 
+                                    rgOutput.Add( bToken );
+                                }
+                            }
+                            i += oRange.Length;
+
+                        }
+                    }
+                    // Line length max is 255 ascii characters.
+                    if( rgOutput.Count > 0xff ) {
+                        StringBuilder sbError = new StringBuilder();
+
+                        sbError.Append( "Line length greater than 255 chars. Basic Line Number: " );
+                        sbError.Append( oBasicLineNumber.AsSpan );
+
+                        throw new InvalidDataException( sbError.ToString() );
+                    }
+
+                    byte[] rgBytes = BitConverter.GetBytes( iBasicLineNumber );
+
+                    // Only put line feed on the line that is AFTER the first line.
+                    if( fNext )
+                        oWriter.Write( 0x0d );
+
+                    oWriter.Write( (byte)rgOutput.Count );
+                    oWriter.Write( rgBytes[0] ); // Low byte first.
+                    oWriter.Write( rgBytes[1] );
+
+                    foreach( byte bChar in rgOutput )
+                        oWriter.Write( bChar );
+
+                    fNext = true;
+                }
+
+                // end of program.
+                oWriter.Write( 0 );
+                oWriter.Write( 255 );
+                oWriter.Write( 255 );
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( IndexOutOfRangeException ),
+                                    typeof( ArgumentOutOfRangeException ),
+                                    typeof( InvalidDataException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Replace all tokens in the line 'line' with their ASCII equivalent.
+        /// Internal function used as a callback to the regular expression
+        /// to replace tokens with their ASCII equivalents.
+        /// </summary>
+        /// <remarks>
+        /// Any character value greater or equal to 0x7f is interpreted as a token.
+        /// Note that 0X7F is ascii DEL key which is ignored and used by 
+        /// bbc basic V as the OTHERWISE token.
+        /// The normal BBC token space which starts at 0x80
+        /// </remarks>
         protected string Detokanize( Tuple<int,byte[]> oLine ) {
             StringBuilder oSB = new();
 
@@ -121,7 +253,7 @@ namespace Monitor {
                 } else {
                     switch( rgData[i] ) {
                         case 0xC6:
-                            oSB.Append( rgTokenCfn[rgData[++i] - 0x8E] );
+                            oSB.Append( rgTokenFnc[rgData[++i] - 0x8E] );
                             break;
                         case 0xC7:
                             oSB.Append( rgTokenCom[rgData[++i] - 0x8E] );
@@ -229,7 +361,7 @@ namespace Monitor {
 
             // Sort out lower/upper later.
             ToLower( rgTokenStd );
-            ToLower( rgTokenCfn );
+            ToLower( rgTokenFnc );
             ToLower( rgTokenCom );
             ToLower( rgTokenStm );
 

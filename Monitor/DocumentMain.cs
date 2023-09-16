@@ -1067,6 +1067,11 @@ namespace Monitor {
         public void TestNumbers() {
             Detokenize oBasic = new Detokenize();
             byte[] rgResult = oBasic.EncodeNumber( 139 );
+
+            int iTest = oBasic.DecodeNumber( rgResult );
+
+            if( iTest != 139 )
+                this._oBaseSite.LogError( "test", "BBC Basic Number encode/decode error" );
         }
     }
 }

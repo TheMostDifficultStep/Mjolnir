@@ -246,6 +246,10 @@ namespace Monitor {
                 Monitor.Renumber();
                 return true;
             }
+            if( sGuidCommand == GlobalCommands.JumpPrev ) {
+                Monitor.TestNumbers();
+                return true;
+            }
             return base.Execute( sGuidCommand );
         }
     }

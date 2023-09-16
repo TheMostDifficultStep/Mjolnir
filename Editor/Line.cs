@@ -90,6 +90,11 @@ namespace Play.Edit {
         public bool IsDirty { get; protected set; }
         public void ClearDirty() { IsDirty = false; }
 
+        public abstract Span<char> Slice( int iOffset, int iLength );
+        public Span<char> Slice( IMemoryRange oRange ) {
+            return Slice( oRange.Offset, oRange.Length );
+        }
+
         public Line( int iLine ) {
             _iLine = iLine;
         }
@@ -285,6 +290,10 @@ namespace Play.Edit {
             get {
                 return( _sbBuffer[iIndex] );
             }
+        }
+
+        public override Span<char> Slice(int iOffset, int iLength) {
+            return _sbBuffer.SubSpan( iOffset, iLength );
         }
 
         public override int ElementCount {
