@@ -247,7 +247,7 @@ namespace Monitor {
                 return true;
             }
             if( sGuidCommand == GlobalCommands.JumpPrev ) {
-                Monitor.TestNumbers();
+                Monitor.Test();
                 return true;
             }
             return base.Execute( sGuidCommand );

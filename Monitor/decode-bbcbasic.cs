@@ -5,6 +5,7 @@ using Play.Parse.Impl;
 using Play.Parse;
 using Play.Interfaces.Embedding;
 using OpenTK.Audio.OpenAL;
+using System;
 
 namespace Monitor {
     /// <summary>
@@ -12,10 +13,14 @@ namespace Monitor {
     /// minus all the regular expression stuff.
     /// </summary>
     public class Detokenize {
+        public Detokenize() {
+            TableBuilder();
+        }
+
         // The list of BBC BASIC V tokens:
         // Base tokens, starting at 0x7f
 
-        public static string[] rgTokenStd = {
+        public static string[] _rgTokenStd = {
         "OTHERWISE"/* 7f */, "AND", "DIV", "EOR", "MOD", "OR", "ERROR", "LINE", "OFF", "STEP", 
         "SPC", "TAB(", "ELSE", "THEN", "<line no>" /* TODO */, "OPENIN", "PTR","PAGE", "TIME", "LOMEM", 
 
@@ -35,17 +40,124 @@ namespace Monitor {
         "RESTORE", "RETURN", "RUN", "STOP", "COLOUR", "TRACE", "UNTIL", "WIDTH", "OSCLI" };
 
         // Referred to as "ESCFN" tokens in the source, starting at 0x8e.
-        string[] rgTokenFnc = { "SUM", "BEAT" };
+        string[] _rgTokenFnc = { "SUM", "BEAT" };
         // Referred to as "ESCCOM" tokens in the source, starting at 0x8e.
-        string[] rgTokenCom = {
+        string[] _rgTokenCom = {
             "APPEND", "AUTO", "CRUNCH", "DELETE", "EDIT", "HELP", "LIST", "LOAD",
             "LVAR", "NEW", "OLD", "RENUMBER", "SAVE", "TEXTLOAD", "TEXTSAVE", "TWIN",
             "TWINO", "INSTALL" };
         // Referred to as "ESCSTMT", starting at 0x8e.
-        string[] rgTokenStm= {
+        string[] _rgTokenStm= {
             "CASE", "CIRCLE", "FILL", "ORIGIN", "PSET", "RECT", "SWAP", "WHILE",
             "WAIT", "MOUSE", "QUIT", "SYS", "INSTALL", "LIBRARY", "TINT", "ELLIPSE",
             "BEATS", "TEMPO", "VOICES", "VOICE", "STEREO", "OVERLAY" };
+
+        enum TokenType {
+            Std, Fnc, Com, Stm
+        }
+        struct TokenInfo {
+            readonly public string    _strToken;
+            readonly public TokenType _eType;
+            readonly public byte      _bToken;
+            readonly public byte      _bExtn;
+
+            public TokenInfo( string strToken, TokenType tokenType, byte bValue ) {
+                _strToken = strToken;
+                _eType    = tokenType;
+                _bToken   = bValue;
+
+                switch( _eType ) {
+                    case TokenType.Std:
+                        _bExtn = 0;
+                        break;
+                    case TokenType.Fnc:
+                        _bExtn = 0xc6;
+                        break;
+                    case TokenType.Com:
+                        _bExtn = 0xc7;
+                        break;
+                    case TokenType.Stm:
+                        _bExtn = 0xc8;
+                        break;
+                    default:
+                        throw new InvalidProgramException();
+                }
+            }
+        }
+
+        List<TokenInfo> _dcTokenLookup = new ();
+
+        protected void TableBuilder() {
+            byte bIndex = 0x7f;
+            foreach( string strToken in _rgTokenStd ) {
+                _dcTokenLookup.Add( new TokenInfo( strToken, TokenType.Std, bIndex++ ) );
+            }
+
+            bIndex = 0x8e;
+            foreach( string strToken in _rgTokenFnc ) {
+                _dcTokenLookup.Add( new TokenInfo( strToken, TokenType.Fnc, bIndex++ ) );
+            }
+            bIndex = 0x8e;
+            foreach( string strToken in _rgTokenCom ) {
+                _dcTokenLookup.Add( new TokenInfo( strToken, TokenType.Com, bIndex++ ) );
+            }
+            bIndex = 0x8e;
+            foreach( string strToken in _rgTokenStm ) {
+                _dcTokenLookup.Add( new TokenInfo( strToken, TokenType.Stm, bIndex++ ) );
+            }
+
+            int CompareToken( TokenInfo x, TokenInfo y ) {
+                return string.Compare( x._strToken, y._strToken, ignoreCase:true );
+            }
+
+            _dcTokenLookup.Sort( CompareToken );
+        }
+
+        List<char> _rgLookup = new();
+        /// <remarks>
+        /// Consider adding support for version of BBC BASIC you're using.
+        /// Right now my decoder reads BBC BASIC V. for the Agon computer.
+        /// </remarks>
+        protected byte GetToken( ReadOnlySpan<char> spToken ) {
+            // Avoid allocating a string every time, but...
+            _rgLookup.Clear();
+            foreach( char c in spToken ) {
+                _rgLookup.Add( c );
+            }
+
+            // It's a crock, but you cannot put a Span inside of a delegate.
+            // https://github.com/Microsoft/referencesource/blob/master/mscorlib/system/string.cs
+            int CompareTokenCaseInsensitive( TokenInfo spTry ) {
+                for( int i = 0; i<Math.Min( _rgLookup.Count, spTry._strToken.Length) ; i++ ) {
+                    char c1 = _rgLookup[i];
+                    char c2 = spTry._strToken[i];
+
+                    if( (c1 | c2) > 0x7F )
+                        throw new InvalidDataException( "must be ascii comparison" );
+
+                    // uppercase both chars - notice that we need just one compare per char
+                    if ((uint)(c1 - 'a') <= (uint)('z' - 'a')) 
+                        c1 -= (char)0x20;
+                    if ((uint)(c1 - 'a') <= (uint)('z' - 'a')) 
+                        c1 -= (char)0x20;
+
+                    int iComp2 = c1 - c2;
+
+                    if( c1 != c2 )
+                        return c1 - c2;
+                }
+                return _rgLookup.Count - spTry._strToken.Length;
+            }
+
+            int iIndex = FindStuff<TokenInfo>.BinarySearch( _dcTokenLookup,
+                                                            0, 
+                                                            _dcTokenLookup.Count, 
+                                                            CompareTokenCaseInsensitive );
+            if( iIndex > 0 )
+                return _dcTokenLookup[iIndex]._bToken;
+
+            throw new InvalidDataException( "Couldn't find token" );
+        }
 
         // This rediculously obsfucated bit stream avoids line number 0x8b (139)
         // from looking like a ELSE token in the byte stream for basic!!
@@ -105,14 +217,6 @@ namespace Monitor {
             return rgReturn;
         }
 
-        /// <remarks>
-        /// Consider adding support for version of BBC BASIC you're using.
-        /// Right now my decoder reads BBC BASIC V. for the Agon computer.
-        /// </remarks>
-        protected byte GetToken( Span<char> spToken ) {
-            return 0;
-        }
-
         /// <summary>
         /// Take the plain text bbc basic and tokenize it for binary file. 
         /// </summary>
@@ -154,7 +258,7 @@ namespace Monitor {
                     // BUG: tokenize numbers!!
                     foreach( IColorRange oRange in oLine.Formatting ) {
                         if( oRange is MemoryElem<char> oToken && (
-                            string.Compare( oToken.ID, "token"  ) == 0 ||
+                            string.Compare( oToken.ID, "keyword"  ) == 0 ||
                             string.Compare( oToken.ID, "number" ) == 0 )
                         ) { 
                             rgTokens.Add( oToken );
@@ -175,7 +279,7 @@ namespace Monitor {
                             MemoryElem<char> oRange = rgTokens[rgMapping[i] - 1];
                             Span<char> spToken = oLine.Slice( oRange );
 
-                            if( string.Compare( oRange.ID, "token" ) == 0 ) {
+                            if( string.Compare( oRange.ID, "keyword" ) == 0 ) {
                                 byte bToken = GetToken( spToken );
                                 rgOutput.Add( bToken );
                             } else {
@@ -253,13 +357,13 @@ namespace Monitor {
                 } else {
                     switch( rgData[i] ) {
                         case 0xC6:
-                            oSB.Append( rgTokenFnc[rgData[++i] - 0x8E] );
+                            oSB.Append( _rgTokenFnc[rgData[++i] - 0x8E] );
                             break;
                         case 0xC7:
-                            oSB.Append( rgTokenCom[rgData[++i] - 0x8E] );
+                            oSB.Append( _rgTokenCom[rgData[++i] - 0x8E] );
                             break;
                         case 0xC8:
-                            oSB.Append( rgTokenStm[rgData[++i] - 0x8E] );
+                            oSB.Append( _rgTokenStm[rgData[++i] - 0x8E] );
                             break;
                         case 0xF4: // rem
                             for( ++i; i< rgData.Length; ++i ) {
@@ -268,7 +372,7 @@ namespace Monitor {
                             break;
                         case 0xe4: // Gosub
                         case 0xe5: // Goto followed by Line number reference...
-                            oSB.Append( rgTokenStd[rgData[  i] - 0x7f] ); // keyword
+                            oSB.Append( _rgTokenStd[rgData[  i] - 0x7f] ); // keyword
 
                             while( rgData[++i] == 0x20 ) {
                                 oSB.Append( ' ' );
@@ -284,7 +388,7 @@ namespace Monitor {
                             }
                             break;
                         default:
-                            oSB.Append( rgTokenStd[rgData[  i] - 0x7f] );
+                            oSB.Append( _rgTokenStd[rgData[  i] - 0x7f] );
                             break;
                     }
                     
@@ -360,10 +464,10 @@ namespace Monitor {
             List<string> rgOutput = new();
 
             // Sort out lower/upper later.
-            ToLower( rgTokenStd );
-            ToLower( rgTokenFnc );
-            ToLower( rgTokenCom );
-            ToLower( rgTokenStm );
+            ToLower( _rgTokenStd );
+            ToLower( _rgTokenFnc );
+            ToLower( _rgTokenCom );
+            ToLower( _rgTokenStm );
 
             using Stream       oStream = File.OpenRead( strFileName );
             using BinaryReader oReader = new BinaryReader(oStream);
@@ -403,6 +507,17 @@ namespace Monitor {
                 }
             } catch( EndOfStreamException ) {
             }
+        }
+        public void Test( IPgBaseSite oSite ) {
+            byte[] rgResult = EncodeNumber( 139 );
+
+            int iTest = DecodeNumber( rgResult );
+
+            if( iTest != 139 )
+                oSite.LogError( "test", "BBC Basic Number encode/decode error" );
+
+            byte bToken = GetToken( "THEN" );
+            
         }
     }
 
@@ -446,5 +561,6 @@ namespace Monitor {
 
             return true;
         }
+
     }
 }
