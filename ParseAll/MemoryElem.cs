@@ -344,8 +344,11 @@ namespace Play.Parse.Impl
         /// <returns></returns>
         /// <exception cref="ArgumentOutOfRangeException"></exception>
         /// <exception cref="InvalidCastException"></exception>
+        /// <exception cref="NullReferenceException" ></exception>
         public MemoryElem<T> GetValue( int iBinding, int iIndex = 0 ) {
             if( _oState.Bindings.Values[iBinding].IsArray ) {
+                if( _rgValues == null )
+                    throw new NullReferenceException( "No binding for request" );
                 ArrayList rgList = (ArrayList)_rgValues[iBinding];
 
                 return (MemoryElem<T>)rgList[iIndex];
@@ -481,5 +484,94 @@ namespace Play.Parse.Impl
         }
 
     } // End Class
+    public class OutlineBinder<T> : 
+        ProdBase<T>
+    {
+        public    ProdState<T> Target { get; }
+        protected int      _iStart;
+        protected int      _iEnd;
 
+        public OutlineBinder( int iStart, ProdState<T> p_oTarget) {
+            if( p_oTarget == null )
+                throw new ArgumentNullException( "Target must not be null." );
+
+            _iStart = iStart;
+            _iEnd   = iStart;
+            Target  = p_oTarget;
+        }
+
+        /// <summary>
+        /// Production end markers have no name. If they had an ID they the'll go thru
+        /// the binding system, which is undesirable.
+        /// </summary>
+        public override string ID {
+            get { return string.Empty; }
+        }
+
+        public override string ToString()
+        { 
+            return "Outline for: " + Target.Class.Name;
+        }
+
+        public override bool IsBinding {
+            get {
+                return true;
+            }
+        }
+
+		/// <summary>
+		/// This is a weird one. Technically it is a terminal. But not for any of the reasons I'd
+		/// be interested in this as a terminal. So I'm going to return false.
+		/// </summary>
+		public override bool IsTerm {
+			get { return false; }
+		}
+
+        /// <summary>
+        /// Override this call and insert the child into the tree.
+        /// </summary>
+        /// <param name="p_oChild"></param>
+        /// <returns></returns>
+        public override bool Bind( ProdBase<T> p_oChild ) {
+            bool fBind = p_oChild is ProdState<T> oChildState && oChildState == Target;
+            return fBind;
+        }
+
+        /// <summary>
+        /// The element has at last drifted to the top of the stack when this get's called.
+        /// Always return true. Saves the position to the target of the sentinal.
+        /// </summary>
+        /// <param name="p_iMatch">0 Always.</param>
+        /// <param name="p_oProd">null Always.</param>
+        /// <returns>true always.</returns>
+        /// <remarks>Always going to have a problem at the end of file, since the sibling
+        ///          will have consumed all available data we'll be out of bounds!</remarks>
+        public override bool IsEqual(
+            int               p_iMaxStack,
+            DataStream<T>     p_oText, 
+            bool              p_fLookAhead, 
+            int               p_iPos, 
+            out int           p_iMatch, 
+            out Production<T> p_oProd )
+        {
+            p_oProd  = null;
+            p_iMatch = 0;
+
+            // At this time the current position is one past the last stream item captured
+            // by the production in the state.
+            _iEnd = p_iPos;
+
+            // It's legal for us to be be past the end of the stream since we are a null char.
+            return p_oText.InBounds( p_iPos - 1 );
+        }
+
+        public int Start => _iStart;
+
+        /// <summary>
+        /// Last I checked the "End" character is the first character following
+        /// the range of characters in this element. This "End" character is
+        /// outside of the selection.
+        /// </summary>
+        public int End => _iEnd; 
+    }
 }

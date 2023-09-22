@@ -185,7 +185,7 @@ namespace Monitor {
                 throw new ArgumentException("Can't find required state in grammar.");
 
             int iInstr = oFunction.Bindings.IndexOfKey( "keyword" );
-            int iParms = oFunction.Bindings.IndexOfKey( "params" );
+            int iParms = oFunction.Bindings.IndexOfKey( "number" ); // For goto & gosub
 
             if( iInstr == -1 || iParms == -1 )
                 throw new ArgumentException( "Could not find required state bindings" );
@@ -201,12 +201,20 @@ namespace Monitor {
                             string []  rgValues = { "goto", "gosub" };
 
                             if( Contains( rgValues, spFnName ) ) {
-                                IPgWordRange       wrParam = oMemory.GetValue( iParms, 0 );
-                                ReadOnlySpan<char> spParam = oLine  .SubSpan ( wrParam );
-                                if( FindLineNumber( spParam ) is Line oTarget ) {
-                                    rgRemap.Add( new Remaps() { oSourceLine = oLine, 
-                                                                oTargetLine = oTarget,
-                                                                oParamRange = wrParam } );
+                                try {
+                                    IPgWordRange       wrParam = oMemory.GetValue( iParms  );
+                                    ReadOnlySpan<char> spParam = oLine  .SubSpan ( wrParam );
+                                    if( FindLineNumber( spParam ) is Line oTarget ) {
+                                        rgRemap.Add( new Remaps() { oSourceLine = oLine, 
+                                                                    oTargetLine = oTarget,
+                                                                    oParamRange = wrParam } );
+                                    }
+                                } catch( Exception oEx ) {
+                                    Type[] rgErrors = { typeof( ArgumentOutOfRangeException ),
+                                                        typeof( InvalidCastException ),
+                                                        typeof( NullReferenceException ) };
+                                    if( rgErrors.IsUnhandled( oEx ) )
+                                        throw;
                                 }
                             }
                         }

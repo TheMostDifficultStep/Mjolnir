@@ -52,10 +52,10 @@ namespace Monitor {
             "WAIT", "MOUSE", "QUIT", "SYS", "INSTALL", "LIBRARY", "TINT", "ELLIPSE",
             "BEATS", "TEMPO", "VOICES", "VOICE", "STEREO", "OVERLAY" };
 
-        enum TokenType {
+        public enum TokenType {
             Std, Fnc, Com, Stm
         }
-        struct TokenInfo {
+        public struct TokenInfo {
             readonly public string    _strToken;
             readonly public TokenType _eType;
             readonly public byte      _bToken;
@@ -118,7 +118,7 @@ namespace Monitor {
         /// Consider adding support for version of BBC BASIC you're using.
         /// Right now my decoder reads BBC BASIC V. for the Agon computer.
         /// </remarks>
-        protected byte GetToken( ReadOnlySpan<char> spToken ) {
+        protected TokenInfo GetToken( ReadOnlySpan<char> spToken ) {
             // Avoid allocating a string every time, but...
             _rgLookup.Clear();
             foreach( char c in spToken ) {
@@ -154,7 +154,7 @@ namespace Monitor {
                                                             _dcTokenLookup.Count, 
                                                             CompareTokenCaseInsensitive );
             if( iIndex > 0 )
-                return _dcTokenLookup[iIndex]._bToken;
+                return _dcTokenLookup[iIndex];
 
             throw new InvalidDataException( "Couldn't find token" );
         }
@@ -280,8 +280,10 @@ namespace Monitor {
                             Span<char> spToken = oLine.Slice( oRange );
 
                             if( string.Compare( oRange.ID, "keyword" ) == 0 ) {
-                                byte bToken = GetToken( spToken );
-                                rgOutput.Add( bToken );
+                                TokenInfo sToken = GetToken( spToken );
+                                if( sToken._bExtn != 0x00 )
+                                    rgOutput.Add( sToken._bExtn );
+                                rgOutput.Add( sToken._bToken );
                             } else {
                                 byte[] rgNumEncoding = EncodeNumber( int.Parse( spToken ) );
                                 foreach( byte bToken in rgNumEncoding ) { 
@@ -509,15 +511,29 @@ namespace Monitor {
             }
         }
         public void Test( IPgBaseSite oSite ) {
-            byte[] rgResult = EncodeNumber( 139 );
-
-            int iTest = DecodeNumber( rgResult );
-
-            if( iTest != 139 )
-                oSite.LogError( "test", "BBC Basic Number encode/decode error" );
-
-            byte bToken = GetToken( "THEN" );
+            byte[] rgResult;
             
+            for( int i=0; i< 0xffff; ++i ) {
+                rgResult = EncodeNumber( i );
+
+                int iTest = DecodeNumber( rgResult );
+
+                if( iTest != i )
+                    oSite.LogError( "test", "BBC Basic Number encode/decode error" );
+            }
+
+            TokenInfo sToken = GetToken( "THEN" );
+            
+            if( sToken._bToken != 0x8c )
+                oSite.LogError( "test", "Get token failure" );
+
+            sToken = GetToken( "Sound" );
+            if( sToken._bToken != 0xd4 )
+                oSite.LogError( "test", "Get token failure" );
+
+            sToken = GetToken( "Delete" );
+            if( sToken._bExtn != 0xc7 || sToken._bToken != 0x91 )
+                oSite.LogError( "test", "Get token failure" );
         }
     }
 
