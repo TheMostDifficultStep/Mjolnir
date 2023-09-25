@@ -10,6 +10,7 @@ using Play.Parse.Impl;
 using Play.Integration;
 using OpenTK.Graphics.OpenGL;
 using System.Net.Http.Headers;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.Window;
 
 namespace Monitor {
     public class BasicEditor : BaseEditor
@@ -1063,7 +1064,7 @@ namespace Monitor {
                         // Don't put this in the FileOk event because after that event
                         // the dialog returns focus to where it came from and we lose
                         // focus from our newly opened view.
-                        Detokenize oBasic = new Detokenize();
+                        BbcBasic5 oBasic = new BbcBasic5();
 
                         oBasic.Start( oDialog.FileName, AssemblyDoc );
                         //oBasic.Dump( oDialog.FileName, MonitorDoc.AssemblyDoc );
@@ -1073,8 +1074,29 @@ namespace Monitor {
         }
 
         public void Test() {
-            Detokenize oBasic = new Detokenize();
+            BbcBasic5 oBasic = new BbcBasic5();
             oBasic.Test( this._oBaseSite );
+        }
+
+        public void Encode() {
+            // It's blocking but what can you do...
+            using( OpenFileDialog oDialog = new OpenFileDialog() ) {
+                if( oDialog.ShowDialog() == DialogResult.OK ) {
+                    //if( FileCheck( oDialog.FileName ) ) {
+                        using FileStream oStream = new FileStream( oDialog.FileName,
+                                                             FileMode.Create, 
+                                                             FileAccess.Write );
+                        using BinaryWriter oWriter = new BinaryWriter( oStream );
+                        // Don't put this in the FileOk event because after that event
+                        // the dialog returns focus to where it came from and we lose
+                        // focus from our newly opened view.
+                        BbcBasic5 oBasic = new BbcBasic5();
+
+                        oBasic.Tokenize( AssemblyDoc , oWriter );
+                        //oBasic.Dump( oDialog.FileName, MonitorDoc.AssemblyDoc );
+                    //}
+                }
+            }
         }
     }
 }

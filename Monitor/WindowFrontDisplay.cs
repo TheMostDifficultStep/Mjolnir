@@ -250,6 +250,10 @@ namespace Monitor {
                 Monitor.Test();
                 return true;
             }
+            if( sGuidCommand == GlobalCommands.JumpNext ) {
+                Monitor.Encode();
+                return true;
+            }
             return base.Execute( sGuidCommand );
         }
     }

@@ -12,8 +12,8 @@ namespace Monitor {
     /// This code is based on 2007 Matt Godbolt's Python implementation
     /// minus all the regular expression stuff.
     /// </summary>
-    public class Detokenize {
-        public Detokenize() {
+    public class BbcBasic5 {
+        public BbcBasic5() {
             TableBuilder();
         }
 
@@ -83,6 +83,8 @@ namespace Monitor {
                         throw new InvalidProgramException();
                 }
             }
+
+            public override string ToString() => _strToken;
         }
 
         List<TokenInfo> _dcTokenLookup = new ();
@@ -138,8 +140,8 @@ namespace Monitor {
                     // uppercase both chars - notice that we need just one compare per char
                     if ((uint)(c1 - 'a') <= (uint)('z' - 'a')) 
                         c1 -= (char)0x20;
-                    if ((uint)(c1 - 'a') <= (uint)('z' - 'a')) 
-                        c1 -= (char)0x20;
+                    if ((uint)(c2 - 'a') <= (uint)('z' - 'a')) 
+                        c2 -= (char)0x20;
 
                     int iComp2 = c1 - c2;
 
@@ -162,7 +164,7 @@ namespace Monitor {
         // This rediculously obsfucated bit stream avoids line number 0x8b (139)
         // from looking like a ELSE token in the byte stream for basic!!
         // https://xania.org/200711/bbc-basic-line-number-format-part-2
-        public int DecodeNumber( byte[] rgNumber ) {
+        public static int DecodeNumber( byte[] rgNumber ) {
             int r0, r1, r10;  
             
             r10 = rgNumber[0];
@@ -191,7 +193,7 @@ namespace Monitor {
         /// </remarks>
         /// <param name="iNumber"></param>
         /// <returns></returns>
-        public byte[] EncodeNumber( int iNumber ) {
+        public static byte[] EncodeNumber( int iNumber ) {
             byte[] rgReturn = new byte[3];
             uint uNumber = (uint)iNumber;
 
@@ -224,7 +226,7 @@ namespace Monitor {
         /// http://www.benryves.com/bin/bbcbasic/manual/Appendix_Tokeniser.htm
         /// https://www.ncus.org.uk/dsbbcoms.htm
         /// </remarks>
-        protected bool Tokanize( BasicEditor oEdit, BinaryWriter oWriter ) {
+        public bool Tokenize( BasicEditor oEdit, BinaryWriter oWriter ) {
             if( oWriter == null )
                 throw new ArgumentNullException();
 
@@ -537,46 +539,4 @@ namespace Monitor {
         }
     }
 
-    public class EnTokenize {
-        List<byte> _rgLineOutput = new();
-
-        public EnTokenize() { 
-        }
-
-        public byte Convert( Line oLine ) {
-            _rgLineOutput.Clear();
-
-            return 0;
-        }
-
-        public bool Start( BasicEditor oEdit, string strFileName ) {
-            if( oEdit == null )
-                throw new ArgumentNullException() ;
-
-            using Stream oStream = new FileStream( strFileName,FileMode.CreateNew );
-            using BinaryWriter oWriter = new BinaryWriter(oStream,Encoding.ASCII);
-
-            foreach( Line oLine in oEdit ) {
-                if( oLine.Extra is not Line oNumber )
-                    return false;
-
-                if( !int.TryParse( oNumber.AsSpan, out int iLine ) )
-                    return false;
-
-                if( iLine > Math.Pow( 2, 16 ) )
-                    return false;
-
-                byte[] bytes = BitConverter.GetBytes( (short)iLine );
-
-                byte bLength = Convert( oLine );
-
-                oWriter.Write( bLength );
-                oWriter.Write( bytes[0] ); // Lo line num
-                oWriter.Write( bytes[1] ); // Hi line num
-            }
-
-            return true;
-        }
-
-    }
 }
