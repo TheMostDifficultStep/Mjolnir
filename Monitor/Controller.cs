@@ -5,6 +5,7 @@ using Play.Interfaces.Embedding;
 using Play.Forms;
 
 using SkiaSharp;
+using Play.Edit;
 
 namespace Monitor {
     public class MonitorController : Controller {
@@ -28,6 +29,9 @@ namespace Monitor {
             return new MonitorDocument( oSite );
         }
 
+        public static Guid DumpWindow { get; } = new Guid( "{247AE5B9-F6F1-4B6B-AB9C-81C83BC320B2}" );
+
+
         public override IDisposable CreateView(IPgViewSite oViewSite, object oDocument, Guid guidViewType) {
             if( oDocument is MonitorDocument oMonitorDoc ) {
 			    try {
@@ -35,6 +39,8 @@ namespace Monitor {
 					    return new BasicLineWindow( oViewSite, oMonitorDoc );
                     if( guidViewType == WindowFrontPanel.GUID )
                         return new WindowFrontPanel( oViewSite, oMonitorDoc );
+                    if( guidViewType == DumpWindow )
+                        return new EditWindow2( oViewSite, oMonitorDoc.DumpDocument );
 
                     // Service the GUID.Empty case too.
 				    return new BasicLineWindow( oViewSite, oMonitorDoc );

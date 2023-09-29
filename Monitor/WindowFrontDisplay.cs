@@ -1,5 +1,6 @@
 ﻿using System.Xml;
 using System.Windows.Forms;
+using System.Drawing;
 
 using Play.Interfaces.Embedding;
 using Play.Forms;
@@ -187,9 +188,12 @@ namespace Monitor {
         }
     }
 
-    public class BasicLineWindow : EditWindow2 {
+    public class BasicLineWindow : 
+        EditWindow2
+    {
         public static Guid GUID { get; } = new Guid( "{3D3B82AF-49FA-469E-865F-F35DD8CF11FB}" );
         public override Guid Catagory => GUID;
+        protected List<string> _rgTools = new List<string>();
 
         protected MonitorDocument Monitor { get; }
 
@@ -220,8 +224,27 @@ namespace Monitor {
 
         protected readonly LayoutRect _rctLineNumbers = new LayoutRect( LayoutRect.CSS.Flex ) { Track = 40 };
 
+        protected class Tool {
+            public readonly string _strName;
+            public readonly Action _pcAction;
+
+            public Tool( string strName, Action pcAction ) {
+                _strName  = strName;
+                _pcAction = pcAction;
+            }
+        }
+
+        protected List<Tool> _rgTools2 = new();
+
         public BasicLineWindow( IPgViewSite oSite, MonitorDocument oDoc ) : base( oSite, oDoc.AssemblyDoc ) {
             Monitor = oDoc ?? throw new ArgumentNullException( ); // We'll die before reaching this... :-/
+            _rgTools.Clear();
+
+            _rgTools2.Add( new Tool( "Side Load" , oDoc.SideLoad ) );
+            _rgTools2.Add( new Tool( "Side Save" , oDoc.SideSave ) );
+            _rgTools2.Add( new Tool( "Renumber",   oDoc.Renumber ) );
+            _rgTools2.Add( new Tool( "Test" ,      oDoc.Test     ) );
+            _rgTools2.Add( new Tool( "Dump File",  DumpBinaryFile ) );
         }
         protected override CacheManager2 CreateCacheManager(uint uiStdText) {
             return new CacheManagerBasic( new CacheManSlot(this),
@@ -237,25 +260,35 @@ namespace Monitor {
             _rgCacheMap.Add( _rctLineNumbers );   // Even if later in the layout.
         }
 
+        public void DumpBinaryFile() {
+            Monitor.DumpBinaryFile( _oSiteView );
+        }
+
         public override bool Execute( Guid sGuidCommand ) {
             if( sGuidCommand == GlobalCommands.Insert ) {
-                Monitor.LoadDialog();
-                return true;
-            }
-            if( sGuidCommand == GlobalCommands.Pause ) {
-                Monitor.Renumber();
-                return true;
-            }
-            if( sGuidCommand == GlobalCommands.JumpPrev ) {
-                Monitor.Test();
-                return true;
-            }
-            if( sGuidCommand == GlobalCommands.JumpNext ) {
-                Monitor.Encode();
+                Monitor.SideLoad();
                 return true;
             }
             return base.Execute( sGuidCommand );
         }
+
+		public override int ToolSelect { 
+            get => base.ToolSelect; 
+            set { 
+                base.ToolSelect = value ;
+                _rgTools2[value]._pcAction();
+            }
+        }
+
+        public override string ToolName( int i ) {
+            try {
+                return _rgTools2[i]._strName;
+            } catch( ArgumentOutOfRangeException ) {
+                return "Unknown Tool";
+            }
+        }
+
+        public override int ToolCount => _rgTools2.Count;
     }
 
     internal class WindowFrontPanel : SKControl,
@@ -389,7 +422,7 @@ namespace Monitor {
                 return true;
             }
             if( sGuid == GlobalCommands.Insert ) {
-                MonitorDoc.LoadDialog();
+                MonitorDoc.SideLoad();
             }
             return false;
         }

@@ -195,7 +195,12 @@ namespace Play.Interfaces.Embedding {
 	  //string    Identifer   { get; } // something we can use for error messages.
 	}
 
-
+    public enum EditorShowEnum {
+        SILENT,
+        [Obsolete]BRINGTOTOP,
+        FOCUS,
+    }
+    
     public interface IPgMainWindow {
         public struct PgDisplayInfo {
             public SKPointI pntSize;
@@ -208,6 +213,7 @@ namespace Play.Interfaces.Embedding {
         }
 
         int DocumentShow( string strFileName, Guid guidViewType, bool fShow );
+
         PgDisplayInfo MainDisplayInfo { get; }
     }
 
@@ -487,6 +493,8 @@ namespace Play.Interfaces.Embedding {
         IEnumerable<IPgCommandView> EnumerateSiblings { get; }
         void   FocusMe();
         void   FocusCenterView();
+        void   FocusTo( IPgCommandView oView );
+
         uint   SiteID { get; }
     }
 

@@ -36,7 +36,6 @@ namespace Play.SSTV {
 
 		protected class WinSlot :
 			IPgViewSite,
-			IPgShellSite,
 			IPgViewNotify
 		{
 			protected readonly WindowChildForm _oHost;
@@ -73,25 +72,6 @@ namespace Play.SSTV {
             }
 
             public IPgViewNotify EventChain => this;
-
-            #region IPgShellSite
-            public object AddView( Guid guidViewType, bool fFocus ) {
-                return null;
-            }
-
-            public void FocusMe() {
-                throw new NotImplementedException();
-            }
-
-            public void FocusCenterView() {
-                throw new NotImplementedException();
-            }
-
-            public IEnumerable<IPgCommandView> EnumerateSiblings => throw new NotImplementedException();
-
-            public uint SiteID => throw new NotImplementedException();
-
-            #endregion
         }
 
         public virtual bool InitNew() {

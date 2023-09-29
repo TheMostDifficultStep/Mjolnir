@@ -124,12 +124,6 @@ namespace Mjolnir {
         }
     } // End class
 
-    public enum EditorShowEnum {
-        SILENT,
-        BRINGTOTOP,
-        FOCUS,
-    }
-    
     /// <summary>
     /// User AZDean on 
     /// http://stackoverflow.com/questions/3427696/windows-requires-a-click-to-activate-a-window-before-a-second-click-will-select

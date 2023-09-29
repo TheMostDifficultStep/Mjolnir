@@ -2664,7 +2664,7 @@ namespace Play.Edit {
             }
         }
 
-		public string ToolName(int iTool) {
+		public virtual string ToolName(int iTool) {
 			try {
 				return _rgTools[iTool];
 			} catch( ArgumentOutOfRangeException ) {
@@ -2676,9 +2676,9 @@ namespace Play.Edit {
 			return null;
 		}
 
-		public int ToolCount => _rgTools.Count;
+		public virtual int ToolCount => _rgTools.Count;
 
-		public int ToolSelect { 
+		public virtual int ToolSelect { 
 			get => _iSelectedTool; 
 			set { 
 				_iSelectedTool = value; 

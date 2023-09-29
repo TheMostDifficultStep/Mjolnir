@@ -571,6 +571,10 @@ namespace Mjolnir {
 			_oHost.FocusCurrentView();
 		}
 
+        public void FocusTo( IPgCommandView oView ) {
+            _oHost.CurrentView = oView;
+        }
+
         public uint SiteID { get { return _iID; } }
 	}
 

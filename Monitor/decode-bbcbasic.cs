@@ -260,11 +260,11 @@ namespace Monitor {
                     // BUG: tokenize numbers!!
                     foreach( IColorRange oRange in oLine.Formatting ) {
                         if( oRange is MemoryElem<char> oToken && (
-                            string.Compare( oToken.ID, "keyword"  ) == 0 ||
+                            string.Compare( oToken.ID, "keywords"  ) == 0 ||
                             string.Compare( oToken.ID, "number" ) == 0 )
                         ) { 
                             rgTokens.Add( oToken );
-                            for( int i = oRange.Offset; i< oToken.Length; i++ ) {
+                            for( int i = oRange.Offset; i< oRange.Offset + oToken.Length; i++ ) {
                                 rgMapping[i] = rgTokens.Count; // One greater than actual index of token.
                             }
                         } 
@@ -274,22 +274,26 @@ namespace Monitor {
                     for( int i = 0; i < oLine.ElementCount; i++ ) {
                         if( rgMapping[i] == 0 ) {
                             if( oLine[i] > 0x7f )
-                                throw new InvalidDataException( "BBC basic V ascii text error." );
+                                throw new InvalidDataException( "BBC basic V ascii text error - 1." );
 
                             rgOutput.Add( (byte)oLine[i] );
                         } else {
-                            MemoryElem<char> oRange = rgTokens[rgMapping[i] - 1];
-                            Span<char> spToken = oLine.Slice( oRange );
+                            MemoryElem<char> oRange  = rgTokens[rgMapping[i] - 1];
+                            Span<char>       spToken = oLine.Slice( oRange );
 
-                            if( string.Compare( oRange.ID, "keyword" ) == 0 ) {
+                            if( string.Compare( oRange.ID, "keywords" ) == 0 ) {
                                 TokenInfo sToken = GetToken( spToken );
                                 if( sToken._bExtn != 0x00 )
                                     rgOutput.Add( sToken._bExtn );
                                 rgOutput.Add( sToken._bToken );
                             } else {
-                                byte[] rgNumEncoding = EncodeNumber( int.Parse( spToken ) );
-                                foreach( byte bToken in rgNumEncoding ) { 
-                                    rgOutput.Add( bToken );
+                                if( string.Compare( oRange.ID, "number" ) == 0 ) {
+                                    byte[] rgNumEncoding = EncodeNumber( int.Parse( spToken ) );
+                                    foreach( byte bToken in rgNumEncoding ) { 
+                                        rgOutput.Add( bToken );
+                                    }
+                                } else {
+                                    throw new InvalidDataException( "BBC basic V ascii text error - 2." );
                                 }
                             }
                             i += oRange.Length;
@@ -310,11 +314,11 @@ namespace Monitor {
 
                     // Only put line feed on the line that is AFTER the first line.
                     if( fNext )
-                        oWriter.Write( 0x0d );
+                        oWriter.Write( (byte)0x0d );
 
                     oWriter.Write( (byte)rgOutput.Count );
-                    oWriter.Write( rgBytes[0] ); // Low byte first.
-                    oWriter.Write( rgBytes[1] );
+                    oWriter.Write( (byte)rgBytes[0] ); // Low byte first.
+                    oWriter.Write( (byte)rgBytes[1] );
 
                     foreach( byte bChar in rgOutput )
                         oWriter.Write( bChar );
@@ -322,14 +326,21 @@ namespace Monitor {
                     fNext = true;
                 }
 
-                // end of program.
-                oWriter.Write( 0 );
-                oWriter.Write( 255 );
-                oWriter.Write( 255 );
+                if( fNext )
+                    oWriter.Write( (byte)0x0d );
+
+               // end of program.
+                oWriter.Write( (byte)0 );
+                oWriter.Write( (byte)255 );
+                oWriter.Write( (byte)255 );
+
+                oWriter.Flush();
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( IndexOutOfRangeException ),
                                     typeof( ArgumentOutOfRangeException ),
-                                    typeof( InvalidDataException ) };
+                                    typeof( InvalidDataException ),
+                                    typeof( IOException ),
+                                    typeof( ObjectDisposedException ) };
                 if( rgErrors.IsUnhandled( oEx ) )
                     throw;
             }
@@ -486,21 +497,24 @@ namespace Monitor {
         /// </summary>
         /// <param name="strFileName">Source file</param>
         /// <param name="oEdit">Target editor.</param>
-        public static void Dump( string strFileName, Editor oEdit ) {
-            using Stream oStream = new FileStream( strFileName,FileMode.Open );
-            using BinaryReader oReader = new BinaryReader(oStream,Encoding.ASCII);
+        public static void Dump( string strFileName, BaseEditor oEdit ) {
+            using Stream       oStream = new FileStream  ( strFileName, FileMode.Open );
+            using BinaryReader oReader = new BinaryReader( oStream,     Encoding.ASCII);
 
             oEdit.Clear();
 
             byte bByte;
             try {
                 Line oLine = oEdit.LineAppend( String.Empty );
+                int iIndex = 0;
                 while( true ) {
                     bByte = oReader.ReadByte();
                     if( bByte == 0x0D ) {
+                        iIndex = 0;
                         oLine = oEdit.LineAppend( "0D " );
+                        oLine.Formatting.Add( new ColorRange( 0, 2, 1 ) );
                     } else {
-                        if( bByte < 0x7f ) {
+                        if( bByte < 0x7f && bByte > 0x20 ) {
                             oLine.TryAppend( Convert.ToChar( bByte ).ToString() );
                         } else {
                             oLine.TryAppend( bByte.ToString( "X2" ) );

@@ -2219,7 +2219,7 @@ namespace Mjolnir {
             if( oViewSlot != null )
                 return (int)oViewSlot.ID;
 
-            return -1; // the one reason uint's suck! Sigh.
+            return -1; // the one reason uint's suck! Sigh. (Tho' could use nullable type)
         }
 
         protected ViewSlot DocumentShow( string strFileName, Guid guidViewType, EditorShowEnum eShow ) {
@@ -2334,7 +2334,7 @@ namespace Mjolnir {
 
         public event ViewChanged ViewChanged;
 
-        private class ViewEnumerable : IEnumerable<IPgCommandView> {
+        private struct ViewEnumerable : IEnumerable<IPgCommandView> {
             MainWin  _oOwner;
             IDocSlot _oSiteDoc;
 

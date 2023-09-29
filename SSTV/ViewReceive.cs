@@ -273,8 +273,7 @@ namespace Play.SSTV {
         readonly static Keys[] _rgHandledKeys = { Keys.Shift | Keys.Right,  Keys.Shift | Keys.Left, Keys.Back,
                                                   Keys.Delete, Keys.Enter };
 		protected class WinSlot :
-			IPgViewSite,
-			IPgShellSite
+			IPgViewSite
 		{
 			protected readonly WindowSoloRx _oHost;
 
@@ -292,23 +291,7 @@ namespace Play.SSTV {
 				_oHost._oSiteView.Notify( eEvent );
 			}
 
-            public object AddView( Guid guidViewType, bool fFocus ) {
-                return null;
-            }
-
-            public void FocusMe() {
-                throw new NotImplementedException();
-            }
-
-            public void FocusCenterView() {
-                throw new NotImplementedException();
-            }
-
             public IPgViewNotify EventChain => _oHost._oSiteView.EventChain;
-
-            public IEnumerable<IPgCommandView> EnumerateSiblings => throw new NotImplementedException();
-
-            public uint SiteID => throw new NotImplementedException();
         }
 
         public string Banner {
@@ -542,7 +525,6 @@ namespace Play.SSTV {
 		protected class WinSlot :
 			IPgFileSite,
 			IPgViewSite,
-			IPgShellSite,
 			IPgViewNotify
 		{
 			protected readonly WindowStaggardBase _oHost;
@@ -564,18 +546,6 @@ namespace Play.SSTV {
 				_oHost._oSiteView.Notify( eEvent );
 			}
 
-            public object AddView( Guid guidViewType, bool fFocus ) {
-                return null;
-            }
-
-            public void FocusMe() {
-                throw new NotImplementedException();
-            }
-
-            public void FocusCenterView() {
-                throw new NotImplementedException();
-            }
-
             public void NotifyFocused(bool fSelect) {
 				if( fSelect == true ) {
 					_oHost.BringChildToFront( ID );
@@ -592,10 +562,6 @@ namespace Play.SSTV {
             }
 
             public IPgViewNotify EventChain => this;
-
-            public IEnumerable<IPgCommandView> EnumerateSiblings => throw new NotImplementedException();
-
-            public uint SiteID => throw new NotImplementedException();
 
             public FILESTATS FileStatus => FILESTATS.UNKNOWN;
 

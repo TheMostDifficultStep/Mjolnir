@@ -417,7 +417,6 @@ namespace Play.SSTV {
 		protected class SSTVWinSlot :
 			IPgFileSite,
 			IPgViewSite,
-			IPgShellSite,
 			IPgViewNotify
 		{
 			protected readonly ViewTransmitDeluxe _oHost;
@@ -439,18 +438,6 @@ namespace Play.SSTV {
 				_oHost._oSiteView.Notify( eEvent );
 			}
 
-            public object AddView( Guid guidViewType, bool fFocus ) {
-                return null;
-            }
-
-            public void FocusMe() {
-                throw new NotImplementedException();
-            }
-
-            public void FocusCenterView() {
-                throw new NotImplementedException();
-            }
-
             public void NotifyFocused(bool fSelect) {
 				if( fSelect == true ) {
 					_oHost._oSiteView.EventChain.NotifyFocused( fSelect );
@@ -466,10 +453,6 @@ namespace Play.SSTV {
             }
 
             public IPgViewNotify EventChain => this;
-
-            public IEnumerable<IPgCommandView> EnumerateSiblings => throw new NotImplementedException();
-
-            public uint SiteID => throw new NotImplementedException();
 
             public FILESTATS FileStatus => FILESTATS.UNKNOWN;
 

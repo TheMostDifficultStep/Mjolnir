@@ -185,7 +185,7 @@ namespace Monitor {
             if( oFunction == null )
                 throw new ArgumentException("Can't find required state in grammar.");
 
-            int iInstr = oFunction.Bindings.IndexOfKey( "keyword" );
+            int iInstr = oFunction.Bindings.IndexOfKey( "keywords" );
             int iParms = oFunction.Bindings.IndexOfKey( "number" ); // For goto & gosub
 
             if( iInstr == -1 || iParms == -1 )
@@ -304,9 +304,10 @@ namespace Monitor {
         public IPgParent Parentage => _oBaseSite.Host;
         public IPgParent Services  => Parentage.Services;
 
-        public Editor        TextCommands { get; }
-        public BasicEditor   AssemblyDoc  { get; }
+        public Editor        TextCommands { get; } // Machine code like commands for the emulator.
+        public BasicEditor   AssemblyDoc  { get; } // Assembly to be compiled to machine code.
         public CpuProperties Properties { get; }
+        public Editor        DumpDocument { get; }
 
         protected readonly List<Line>                               _rgRegisters = new();
         protected readonly List<Line>                               _rgStatusBit = new();
@@ -399,6 +400,7 @@ namespace Monitor {
             TextCommands = new ProgramFile  ( new DocSlot ( this ) );
             AssemblyDoc  = new BasicEditor  ( new FileSlot( this ) );
             Properties   = new CpuProperties( new DocSlot ( this ) );
+            DumpDocument         = new Editor       ( new DocSlot ( this ) );
 
             _dctInstructions.Add( "load-imm", Inst_LoadImm ); // load, reg, data (lda, ldx, ldy)
             _dctInstructions.Add( "load-abs", Inst_LoadAbs ); // load, reg, addr of data.
@@ -460,6 +462,8 @@ namespace Monitor {
 
         public bool Initialize() {
             if( !Properties.InitNew() )
+                return false;
+            if( !DumpDocument.InitNew() )
                 return false;
 
             InitInstructions();
@@ -1056,7 +1060,7 @@ namespace Monitor {
         /// Reload the main document with the given file. Right now we just assume
         /// it's BBC basic binary. In the future I'll have some sort of Insert As...
         /// </summary>
-        public void LoadDialog() {
+        public void SideLoad() {
             // It's blocking but what can you do...
             using( OpenFileDialog oDialog = new OpenFileDialog() ) {
                 if( oDialog.ShowDialog() == DialogResult.OK ) {
@@ -1078,7 +1082,11 @@ namespace Monitor {
             oBasic.Test( this._oBaseSite );
         }
 
-        public void Encode() {
+        /// <summary>
+        /// Encode the text bbc basic file to a binary stream to
+        /// the file indicated by the dialog.
+        /// </summary>
+        public void SideSave() {
             // It's blocking but what can you do...
             using( OpenFileDialog oDialog = new OpenFileDialog() ) {
                 if( oDialog.ShowDialog() == DialogResult.OK ) {
@@ -1086,15 +1094,46 @@ namespace Monitor {
                         using FileStream oStream = new FileStream( oDialog.FileName,
                                                              FileMode.Create, 
                                                              FileAccess.Write );
-                        using BinaryWriter oWriter = new BinaryWriter( oStream );
+                        using BinaryWriter oWriter = new BinaryWriter( oStream, Encoding.ASCII );
                         // Don't put this in the FileOk event because after that event
                         // the dialog returns focus to where it came from and we lose
                         // focus from our newly opened view.
                         BbcBasic5 oBasic = new BbcBasic5();
 
                         oBasic.Tokenize( AssemblyDoc , oWriter );
-                        //oBasic.Dump( oDialog.FileName, MonitorDoc.AssemblyDoc );
                     //}
+                }
+            }
+        }
+
+        /// <summary>
+        /// Do a memory dump of the given file in the file system. Open a view on the dump file.
+        /// </summary>
+        public void DumpBinaryFile( IPgViewSite oViewSite ) {
+           if( oViewSite is IPgShellSite oShellSite ) {
+                IPgCommandView oFoundView = null;
+                foreach( IPgCommandView oView in oShellSite.EnumerateSiblings ) {
+                    if( oView.Catagory == MonitorController.DumpWindow ) {
+                        oFoundView = oView;
+                        break;
+                    }
+                }
+                // It's blocking but what can you do...
+                using( OpenFileDialog oDialog = new OpenFileDialog() ) {
+                    if( oDialog.ShowDialog() == DialogResult.OK ) {
+                        if( FileCheck( oDialog.FileName ) ) {
+                            // Don't put this in the FileOk event because after that event
+                            // the dialog returns focus to where it came from and we lose
+                            // focus from our newly opened view.
+                            BbcBasic5.Dump( oDialog.FileName, DumpDocument );
+
+                            if( oFoundView == null ) {
+                                oShellSite.AddView( MonitorController.DumpWindow, fFocus: true );
+                            } else {
+                                oShellSite.FocusTo( oFoundView );
+                            }
+                        }
+                    }
                 }
             }
         }

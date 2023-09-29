@@ -61,8 +61,7 @@ namespace Play.SSTV {
 		protected LayoutStack _oLayout = new LayoutStackVertical() { Spacing = 5 };
 
 		protected class SSTVWinSlot :
-			IPgViewSite,
-			IPgShellSite
+			IPgViewSite
 		{
 			protected readonly WindowDiagnostics _oHost;
 
@@ -80,23 +79,7 @@ namespace Play.SSTV {
 				_oHost._oSiteView.Notify( eEvent );
 			}
 
-            public object AddView( Guid guidViewType, bool fFocus ) {
-                return null;
-            }
-
-            public void FocusMe() {
-                throw new NotImplementedException();
-            }
-
-            public void FocusCenterView() {
-                throw new NotImplementedException();
-            }
-
             public IPgViewNotify EventChain => _oHost._oSiteView.EventChain;
-
-            public IEnumerable<IPgCommandView> EnumerateSiblings => throw new NotImplementedException();
-
-            public uint SiteID => throw new NotImplementedException();
         }
 
 		public IPgParent Parentage => _oSiteView.Host;
