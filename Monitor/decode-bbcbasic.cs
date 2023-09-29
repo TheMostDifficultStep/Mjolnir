@@ -184,7 +184,7 @@ namespace Monitor {
 
         /// <remarks>
         /// https://xania.org/200711/bbc-basic-line-number-format
-        /// The algorithm used splits the top two bits off each of the two bytes of 
+        /// This algorithm splits the top two bits off each of the two bytes of 
         /// the 16-bit line number. These bits are combined (in binary as 00LlHh00), 
         /// exclusive-ORred with 0x54, and stored as the first byte of the 3-byte 
         /// sequence. The remaining six bits of each byte are then stored, in LO/HI 
@@ -289,6 +289,7 @@ namespace Monitor {
                             } else {
                                 if( string.Compare( oRange.ID, "number" ) == 0 ) {
                                     byte[] rgNumEncoding = EncodeNumber( int.Parse( spToken ) );
+                                    rgOutput.Add( 0x8d );
                                     foreach( byte bToken in rgNumEncoding ) { 
                                         rgOutput.Add( bToken );
                                     }
@@ -297,7 +298,6 @@ namespace Monitor {
                                 }
                             }
                             i += oRange.Length;
-
                         }
                     }
                     // Line length max is 255 ascii characters.
