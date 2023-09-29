@@ -238,7 +238,6 @@ namespace Monitor {
                 int[]                  rgMapping = new int[100]; // Map line char pos with a token.
                 List<MemoryElem<char>> rgTokens  = new List<MemoryElem<char>>();
                 List<byte>             rgOutput  = new List<byte>();
-                bool                   fNext     = false;
 
                 foreach( Line oLine in oEdit ) {
                     // Resize array to match line length.
@@ -297,11 +296,11 @@ namespace Monitor {
                                     throw new InvalidDataException( "BBC basic V ascii text error - 2." );
                                 }
                             }
-                            i += oRange.Length;
+                            i += oRange.Length - 1;
                         }
                     }
-                    // Line length max is 255 ascii characters.
-                    if( rgOutput.Count > 0xff ) {
+                    // Line length max is 255 ascii characters. Subtract line line, basic line num.
+                    if( rgOutput.Count > 0xff - 4 ) {
                         StringBuilder sbError = new StringBuilder();
 
                         sbError.Append( "Line length greater than 255 chars. Basic Line Number: " );
@@ -312,22 +311,15 @@ namespace Monitor {
 
                     byte[] rgBytes = BitConverter.GetBytes( iBasicLineNumber );
 
-                    // Only put line feed on the line that is AFTER the first line.
-                    if( fNext )
-                        oWriter.Write( (byte)0x0d );
-
-                    oWriter.Write( (byte)rgOutput.Count );
+                    oWriter.Write( (byte)(rgOutput.Count + 4 ));
                     oWriter.Write( (byte)rgBytes[0] ); // Low byte first.
                     oWriter.Write( (byte)rgBytes[1] );
 
                     foreach( byte bChar in rgOutput )
                         oWriter.Write( bChar );
 
-                    fNext = true;
-                }
-
-                if( fNext )
                     oWriter.Write( (byte)0x0d );
+                }
 
                // end of program.
                 oWriter.Write( (byte)0 );
