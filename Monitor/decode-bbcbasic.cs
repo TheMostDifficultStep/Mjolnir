@@ -461,6 +461,9 @@ namespace Monitor {
             }
         }
         
+        /// <summary>
+        /// Convert to lower case insitu!! Don't alloc another string.
+        /// </summary>
         public static void ToLower( string[] rgStrings ) {
             for( int i=0; i<rgStrings.Length; i++ ) {
                 rgStrings[i] = rgStrings[i].ToLower();
@@ -521,6 +524,7 @@ namespace Monitor {
         public void Test( IPgBaseSite oSite ) {
             Span<byte> rgResult = stackalloc byte[3];
             
+            // Test all the numbers
             for( int i=0; i< 0xffff; ++i ) {
                 EncodeNumber( i, rgResult );
 
@@ -530,6 +534,7 @@ namespace Monitor {
                     oSite.LogError( "test", "BBC Basic Number encode/decode error" );
             }
 
+            // Random test. TODO make it test all!!
             TokenInfo sToken = GetToken( "THEN" );
             
             if( sToken._bToken != 0x8c )
