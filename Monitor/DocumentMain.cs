@@ -1100,7 +1100,7 @@ namespace Monitor {
                         // focus from our newly opened view.
                         BbcBasic5 oBasic = new BbcBasic5();
 
-                        oBasic.Tokenize( AssemblyDoc , oWriter );
+                        oBasic.IO_Tokenize( AssemblyDoc , oWriter );
                     //}
                 }
             }

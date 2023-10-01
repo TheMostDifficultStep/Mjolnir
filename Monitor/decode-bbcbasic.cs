@@ -164,7 +164,7 @@ namespace Monitor {
         // This rediculously obsfucated bit stream avoids line number 0x8b (139)
         // from looking like a ELSE token in the byte stream for basic!!
         // https://xania.org/200711/bbc-basic-line-number-format-part-2
-        public static int DecodeNumber( byte[] rgNumber ) {
+        static int DecodeNumber( Span<byte> rgNumber ) {
             int r0, r1, r10;  
             
             r10 = rgNumber[0];
@@ -193,30 +193,23 @@ namespace Monitor {
         /// </remarks>
         /// <param name="iNumber"></param>
         /// <returns></returns>
-        public static byte[] EncodeNumber( int iNumber ) {
-            byte[] rgReturn = new byte[3];
+        static void EncodeNumber( int iNumber, Span<byte> rgReturn ) {
             uint uNumber = (uint)iNumber;
 
-            try {
-                ulong uTopBitsHi = uNumber & 0xc000; // 11000000 00000000
-                ulong uTopBitsLo = uNumber & 0x00c0; // 00000000 11000000
+            ulong uTopBitsHi = uNumber & 0xc000; // 11000000 00000000
+            ulong uTopBitsLo = uNumber & 0x00c0; // 00000000 11000000
 
-                // Make a byte that looks like ... (00LLHH00)
-                uTopBitsHi = uTopBitsHi >> 12; // (8 + 4)
-                uTopBitsLo = uTopBitsLo >> 2;
+            // Make a byte that looks like ... (00LLHH00)
+            uTopBitsHi = uTopBitsHi >> 12; // (8 + 4)
+            uTopBitsLo = uTopBitsLo >> 2;
 
-                byte bLead = (byte)(( uTopBitsHi | uTopBitsLo ) ^ 0x54 );
-                byte bLo6  = (byte)((uNumber      & 0x3f ) | 0x40 );
-                byte bHi6  = (byte)((uNumber >> 8 & 0x3f ) | 0x40 );
+            byte bLead = (byte)(( uTopBitsHi | uTopBitsLo ) ^ 0x54 );
+            byte bLo6  = (byte)((uNumber      & 0x3f ) | 0x40 );
+            byte bHi6  = (byte)((uNumber >> 8 & 0x3f ) | 0x40 );
 
-                rgReturn[0] = bLead; // I might have these backwards...
-                rgReturn[1] = bLo6;
-                rgReturn[2] = bHi6;
-
-            } catch( FormatException ) {
-            }
-
-            return rgReturn;
+            rgReturn[0] = bLead; // I might have these backwards...
+            rgReturn[1] = bLo6;
+            rgReturn[2] = bHi6;
         }
 
         /// <summary>
@@ -226,8 +219,13 @@ namespace Monitor {
         /// http://www.benryves.com/bin/bbcbasic/manual/Appendix_Tokeniser.htm
         /// https://www.ncus.org.uk/dsbbcoms.htm
         /// </remarks>
-        public bool Tokenize( BasicEditor oEdit, BinaryWriter oWriter ) {
-            if( oWriter == null )
+        /// <param name="oEdit">Input text editor.</param>
+        /// <param name="oWriter">Output to BBC basic binary.</param>
+        /// <exception cref="ArgumentNullException" />
+        /// <exception cref="InvalidProgramException" />
+        /// <exception cref="InvalidDataException" />
+        public bool IO_Tokenize( BasicEditor oEdit, BinaryWriter oWriter ) {
+            if( oWriter == null || oEdit == null )
                 throw new ArgumentNullException();
 
             // I could fix this but maybe later... :-/
@@ -235,9 +233,10 @@ namespace Monitor {
                 throw new InvalidProgramException( "This procedure assumes LittleEndian" );
 
             try {
-                int[]                  rgMapping = new int[100]; // Map line char pos with a token.
-                List<MemoryElem<char>> rgTokens  = new List<MemoryElem<char>>();
-                List<byte>             rgOutput  = new List<byte>();
+                int[]                  rgMapping     = new int[100]; // Map line char pos with a token.
+                List<MemoryElem<char>> rgTokens      = new List<MemoryElem<char>>();
+                List<byte>             rgOutput      = new List<byte>();
+                byte[]                 rgNumEncoding = new byte[3];
 
                 foreach( Line oLine in oEdit ) {
                     // Resize array to match line length.
@@ -287,7 +286,7 @@ namespace Monitor {
                                 rgOutput.Add( sToken._bToken );
                             } else {
                                 if( string.Compare( oRange.ID, "number" ) == 0 ) {
-                                    byte[] rgNumEncoding = EncodeNumber( int.Parse( spToken ) );
+                                    EncodeNumber( int.Parse( spToken ), rgNumEncoding );
                                     rgOutput.Add( 0x8d );
                                     foreach( byte bToken in rgNumEncoding ) { 
                                         rgOutput.Add( bToken );
@@ -332,7 +331,9 @@ namespace Monitor {
                                     typeof( ArgumentOutOfRangeException ),
                                     typeof( InvalidDataException ),
                                     typeof( IOException ),
-                                    typeof( ObjectDisposedException ) };
+                                    typeof( ObjectDisposedException ),
+                                    typeof( FormatException ),
+                                    typeof( NullReferenceException ) };
                 if( rgErrors.IsUnhandled( oEx ) )
                     throw;
             }
@@ -349,9 +350,9 @@ namespace Monitor {
         /// Any character value greater or equal to 0x7f is interpreted as a token.
         /// Note that 0X7F is ascii DEL key which is ignored and used by 
         /// bbc basic V as the OTHERWISE token.
-        /// The normal BBC token space which starts at 0x80
+        /// The normal BBC token space starts at 0x80
         /// </remarks>
-        protected string Detokanize( Tuple<int,byte[]> oLine ) {
+        protected string ReadTokens( Tuple<int,byte[]> oLine ) {
             StringBuilder oSB = new();
 
             //oSB.Append( oLine.Item1.ToString() );
@@ -405,32 +406,45 @@ namespace Monitor {
             return oSB.ToString();
         }
 
-        Tuple<int, byte[]> DecodeLine( BinaryReader oReader ) {
+        /// <summary>
+        /// Decode a single line from the binary file. Returns
+        /// a tuple which is the bbc basic line number followed by
+        /// the binary stream for the line.
+        /// </summary>
+        /// <param name="oReader">The binary stream</param>
+        /// <returns>A tuple containing the bbc basic line number followed
+        /// by the binary stream.</returns>
+        Tuple<int, byte[]> GetLine( BinaryReader oReader ) {
             byte bLineLen = oReader.ReadByte();
             byte bLineLo  = oReader.ReadByte();
             byte bLineHi  = oReader.ReadByte();
 
-            UInt16 iLine = (UInt16)(((bLineHi) & 0xFF) << 8 | (bLineLo) & 0xFF);
+            // This is the BBC basic line number in binary.
+            UInt16 iLineNumber = (UInt16)(((bLineHi) & 0xFF) << 8 | (bLineLo) & 0xFF);
 
-            if( iLine == 0xFFFF )
-                return new Tuple<int, byte[]>( iLine, new byte[0] );
+            if( iLineNumber == 0xFFFF )
+                return new Tuple<int, byte[]>( iLineNumber, new byte[0] );
 
             byte[] data = oReader.ReadBytes( bLineLen - 4 );
 
-            return new Tuple<int, byte[]>( iLine, data );
+            return new Tuple<int, byte[]>( iLineNumber, data );
         }
 
-        // Each line is stored as a sequence of bytes:
-        // 0x0d [line num hi] [line num lo] [line len] [data...]
-        // BBC BASIC V format file.
-        // Agon : [line len][line num lo][line num high][data...]
-        //        [ox0D][line len][line num lo][line num high][data...]
-        //        [ox0D][line len][line num lo][line num high][data...]
-        //        ...
+        /// <summary>
+        /// Each line is stored as a sequence of bytes:
+        /// 0x0d [line num hi] [line num lo] [line len] [data...]
+        /// BBC BASIC V format file.
+        /// Agon : [line len][line num lo][line num high][data...][ox0D]
+        ///        [line len][line num lo][line num high][data...][ox0D]
+        ///        ...
+        /// </summary>
+        /// <param name="oReader">the binary stream reader.</param>
+        /// <returns>List of partially decoded tuples.</returns>
+        /// <exception cref="InvalidProgramException"></exception>
         List< Tuple<int,byte[]>> ReadLines( BinaryReader oReader ) {
             List<Tuple<int, byte[]>> rgLines = new();
             while( true ) {
-                Tuple<int, byte[]> oLine = DecodeLine( oReader );
+                Tuple<int, byte[]> oLine = GetLine( oReader );
 
                 rgLines.Add( oLine );
 
@@ -444,14 +458,22 @@ namespace Monitor {
             return rgLines;
         }
 
-        void Decode( BinaryReader oReader, BasicEditor oEdit ) {
+        /// <summary>
+        /// Load up the binary string as a text file in the basic editor object.
+        /// </summary>
+        /// <param name="oReader">Input binary stream.</param>
+        /// <param name="oEdit">Output to BBC basic text file editor.</param>
+        void IO_Detokanize( BinaryReader oReader, BasicEditor oEdit ) {
+            if( oReader == null || oEdit == null ) 
+                throw new ArgumentNullException();
+
             // Decode binary data 'data' and write the result to 'output'.
             try {
                 List<Tuple<int, byte[]>> rgLines = ReadLines( oReader );
                 using BasicEditor.BasicManipulator oBulk = new ( oEdit );
 
                 foreach( Tuple<int,byte[]> oTuple in rgLines ) {
-                    string strLine = Detokanize(oTuple);
+                    string strLine = ReadTokens(oTuple);
 
                     if( oTuple.Item1 != 0xffff )
                         oBulk.Append( oTuple.Item1, strLine );
@@ -481,7 +503,7 @@ namespace Monitor {
 
             oEdit.Clear();
 
-            Decode( oReader, oEdit);
+            IO_Detokanize( oReader, oEdit);
         }
 
         /// <summary>
@@ -519,10 +541,10 @@ namespace Monitor {
             }
         }
         public void Test( IPgBaseSite oSite ) {
-            byte[] rgResult;
+            Span<byte> rgResult = stackalloc byte[3];
             
             for( int i=0; i< 0xffff; ++i ) {
-                rgResult = EncodeNumber( i );
+                EncodeNumber( i, rgResult );
 
                 int iTest = DecodeNumber( rgResult );
 
