@@ -353,10 +353,10 @@ namespace Monitor {
         /// bbc basic V as the OTHERWISE token.
         /// The normal BBC token space starts at 0x80
         /// </remarks>
-        protected string ReadTokens( byte[] rgData ) {
+        protected string ReadTokens( Span<byte> rgData, int iLength ) {
             StringBuilder oSB = new();
 
-            for( int i=0; i< rgData.Length; ++i ) {
+            for( int i=0; i< iLength; ++i ) {
                 if( rgData[i] < 0x7F ) {
                     oSB.Append( Convert.ToChar( rgData[i] ) );
                 } else {
@@ -404,30 +404,6 @@ namespace Monitor {
         }
 
         /// <summary>
-        /// Decode a single line from the binary file. Returns
-        /// a tuple which is the bbc basic line number followed by
-        /// the binary stream for the line.
-        /// </summary>
-        /// <param name="oReader">The binary stream</param>
-        /// <returns>A tuple containing the bbc basic line number followed
-        /// by the binary stream.</returns>
-        Tuple<int, byte[]> GetLine( BinaryReader oReader ) {
-            byte bLineLen = oReader.ReadByte();
-            byte bLineLo  = oReader.ReadByte();
-            byte bLineHi  = oReader.ReadByte();
-
-            // This is the BBC basic line number in binary.
-            UInt16 iLineNumber = (UInt16)(((bLineHi) & 0xFF) << 8 | (bLineLo) & 0xFF);
-
-            if( iLineNumber == 0xFFFF )
-                return new Tuple<int, byte[]>( iLineNumber, new byte[0] );
-
-            byte[] data = oReader.ReadBytes( bLineLen - 4 );
-
-            return new Tuple<int, byte[]>( iLineNumber, data );
-        }
-
-        /// <summary>
         /// Each line is stored as a sequence of bytes:
         /// 0x0d [line num hi] [line num lo] [line len] [data...]
         /// BBC BASIC V format file.
@@ -441,6 +417,8 @@ namespace Monitor {
         void IO_Detokanize( BinaryReader oReader, BasicEditor oEdit ) {
             if( oReader == null || oEdit == null ) 
                 throw new ArgumentNullException();
+
+            Span<byte> rgData = stackalloc byte[255];
 
             try {
                 using BasicEditor.BasicManipulator oBulk = new ( oEdit );
@@ -456,8 +434,13 @@ namespace Monitor {
                     if( iLineNumber == 0xFFFF )
                         break;
 
-                    byte[] data    = oReader.ReadBytes( bLineLen - 4 );
-                    string strLine = ReadTokens(data);
+                    // I SHOULD be able to pass the array to the reader. :-/
+                    int iReadLen = bLineLen - 4;
+                    for( int i = 0; i < iReadLen; i++ ) {
+                        rgData[i] = oReader.ReadByte();
+                    }
+
+                    string strLine = ReadTokens(rgData, iReadLen);
 
                     oBulk.Append( iLineNumber, strLine );
 
