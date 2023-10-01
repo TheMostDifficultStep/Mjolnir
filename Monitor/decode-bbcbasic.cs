@@ -6,6 +6,7 @@ using Play.Parse;
 using Play.Interfaces.Embedding;
 using OpenTK.Audio.OpenAL;
 using System;
+using System.Runtime.CompilerServices;
 
 namespace Monitor {
     /// <summary>
@@ -352,13 +353,9 @@ namespace Monitor {
         /// bbc basic V as the OTHERWISE token.
         /// The normal BBC token space starts at 0x80
         /// </remarks>
-        protected string ReadTokens( Tuple<int,byte[]> oLine ) {
+        protected string ReadTokens( byte[] rgData ) {
             StringBuilder oSB = new();
 
-            //oSB.Append( oLine.Item1.ToString() );
-            //oSB.Append( ' ' );
-
-            byte[] rgData = oLine.Item2;
             for( int i=0; i< rgData.Length; ++i ) {
                 if( rgData[i] < 0x7F ) {
                     oSB.Append( Convert.ToChar( rgData[i] ) );
@@ -438,47 +435,45 @@ namespace Monitor {
         ///        [line len][line num lo][line num high][data...][ox0D]
         ///        ...
         /// </summary>
-        /// <param name="oReader">the binary stream reader.</param>
-        /// <returns>List of partially decoded tuples.</returns>
         /// <exception cref="InvalidProgramException"></exception>
-        List< Tuple<int,byte[]>> ReadLines( BinaryReader oReader ) {
-            List<Tuple<int, byte[]>> rgLines = new();
-            while( true ) {
-                Tuple<int, byte[]> oLine = GetLine( oReader );
-
-                rgLines.Add( oLine );
-
-                if( oLine.Item1 == 0xFFFF )
-                    break;
-
-                if( oReader.ReadByte() != 0x0D )
-                    throw new InvalidProgramException( "Bad Read" );
-
-            }
-            return rgLines;
-        }
-
-        /// <summary>
-        /// Load up the binary string as a text file in the basic editor object.
-        /// </summary>
         /// <param name="oReader">Input binary stream.</param>
         /// <param name="oEdit">Output to BBC basic text file editor.</param>
         void IO_Detokanize( BinaryReader oReader, BasicEditor oEdit ) {
             if( oReader == null || oEdit == null ) 
                 throw new ArgumentNullException();
 
-            // Decode binary data 'data' and write the result to 'output'.
             try {
-                List<Tuple<int, byte[]>> rgLines = ReadLines( oReader );
                 using BasicEditor.BasicManipulator oBulk = new ( oEdit );
 
-                foreach( Tuple<int,byte[]> oTuple in rgLines ) {
-                    string strLine = ReadTokens(oTuple);
+                while( true ) {
+                    byte bLineLen = oReader.ReadByte();
+                    byte bLineLo  = oReader.ReadByte();
+                    byte bLineHi  = oReader.ReadByte();
 
-                    if( oTuple.Item1 != 0xffff )
-                        oBulk.Append( oTuple.Item1, strLine );
+                    // This is the BBC basic line number in binary.
+                    UInt16 iLineNumber = (UInt16)(((bLineHi) & 0xFF) << 8 | (bLineLo) & 0xFF);
+
+                    if( iLineNumber == 0xFFFF )
+                        break;
+
+                    byte[] data    = oReader.ReadBytes( bLineLen - 4 );
+                    string strLine = ReadTokens(data);
+
+                    oBulk.Append( iLineNumber, strLine );
+
+                    if( oReader.ReadByte() != 0x0d )
+                        throw new InvalidDataException( "Expected linefeed" );
                 }
-            } catch( InvalidProgramException ) {
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( EndOfStreamException ),
+                                    typeof( InvalidProgramException ),
+                                    typeof( InvalidDataException ),
+                                    typeof( IOException ),
+                                    typeof( ObjectDisposedException ),
+                                    typeof( IndexOutOfRangeException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
+
                 oEdit.LogError( "Bad program format. Is it really a binary BBC Basic file?" );
             }
         }
