@@ -485,6 +485,8 @@ namespace Monitor {
             oEdit.Clear();
 
             IO_Detokanize( oReader, oEdit);
+            // Want the Edit Window banner to update...
+            oEdit.Raise_BufferEvent(BUFFEREVENTS.LOADED);
         }
 
         /// <summary>

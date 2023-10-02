@@ -393,6 +393,11 @@ namespace Play.Edit {
             /// </summary>
             public void LineMergeWithNext( int iLine ) {
                 try {
+                    // So the IsWhere is returning 1 (out of -1, 0, 1 ) for this
+                    // case. IsHit() returns false. This seems like a safer patch for now
+                    // versus messing with IsWhere(). 
+                    if( iLine == 0 && _rgLines.Count == 0 )
+                        return;
                     if( !IsHit( iLine ) ) {
                         _oDocument.Site.LogError( "Manipulator::LineMerge(): Line is out of range.", string.Empty );
                         return;

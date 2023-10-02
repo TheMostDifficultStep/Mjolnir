@@ -700,6 +700,9 @@ namespace Play.Edit {
 		private void OnBufferEvent(BUFFEREVENTS eEvent) {
 			switch( eEvent ) {
 				case BUFFEREVENTS.LOADED:
+                    // Carat might be a zombie. Let's update it...
+                    CaretPos.Line = _oDocument.GetLine( CaretPos.Line.At );
+
 					Raise_Navigated( NavigationSource.API, CaretPos );
 					break;
 			}

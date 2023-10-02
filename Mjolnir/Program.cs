@@ -1340,6 +1340,7 @@ namespace Mjolnir {
             Controllers.Add( new Play.Clock        .SolarController() );
             Controllers.Add( new Play.SSTV         .MySSTVController() );
             Controllers.Add( new Monitor           .MonitorController() );
+            Controllers.Add( new Monitor           .BBCBasicController() );
             Controllers.Add( new Kanji_Practice    .KanjiController() );
         }
 

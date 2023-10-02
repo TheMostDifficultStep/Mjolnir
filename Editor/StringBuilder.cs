@@ -200,7 +200,7 @@ namespace Play.Edit {
                     iStart  = this.Length - 1;
                 if( iStart < 0 )
                     iStart  = 0;
-                if( iStart + iLength - 1 > this.Length )
+                if( iStart + iLength > this.Length )
                     iLength = this.Length - iStart;
 
                 return new String( _rgValue, iStart, iLength );

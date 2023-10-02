@@ -1113,7 +1113,7 @@ namespace Monitor {
            if( oViewSite is IPgShellSite oShellSite ) {
                 IPgCommandView oFoundView = null;
                 foreach( IPgCommandView oView in oShellSite.EnumerateSiblings ) {
-                    if( oView.Catagory == MonitorController.DumpWindow ) {
+                    if( oView.Catagory == MonitorController.DumpWindowGUID ) {
                         oFoundView = oView;
                         break;
                     }
@@ -1128,7 +1128,7 @@ namespace Monitor {
                             BbcBasic5.Dump( oDialog.FileName, DumpDocument );
 
                             if( oFoundView == null ) {
-                                oShellSite.AddView( MonitorController.DumpWindow, fFocus: true );
+                                oShellSite.AddView( MonitorController.DumpWindowGUID, fFocus: true );
                             } else {
                                 oShellSite.FocusTo( oFoundView );
                             }
