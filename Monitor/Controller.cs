@@ -56,9 +56,10 @@ namespace Monitor {
         }
 
         public override PgDocumentDescriptor Suitability(string strExtension) {
-            // BUG, TODO: What about the other extensions??
-            if( string.Compare( PrimaryExtension, strExtension ) == 0 )
-                return new PgDocumentDescriptor( strExtension, typeof( IPgLoad<BinaryReader> ), (byte)255, this );
+            foreach( string strExtn in _rgExtensions ) {
+                if( string.Compare( strExtn, strExtension ) == 0 )
+                    return new PgDocumentDescriptor( strExtension, typeof( IPgLoad<BinaryReader> ), (byte)255, this );
+            }
 
             return new PgDocumentDescriptor( strExtension, typeof( IPgLoad<BinaryReader> ), (byte)0, this );
         }
