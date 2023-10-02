@@ -15,7 +15,7 @@ namespace Monitor {
     /// </summary>
     public class BbcBasic5 {
         public BbcBasic5() {
-            TableBuilder();
+            TableBuilder( true );
         }
 
         // The list of BBC BASIC V tokens:
@@ -90,7 +90,7 @@ namespace Monitor {
 
         List<TokenInfo> _dcTokenLookup = new ();
 
-        protected void TableBuilder() {
+        protected void TableBuilder( bool fToLower ) {
             byte bIndex = 0x7f;
             foreach( string strToken in _rgTokenStd ) {
                 _dcTokenLookup.Add( new TokenInfo( strToken, TokenType.Std, bIndex++ ) );
@@ -111,6 +111,14 @@ namespace Monitor {
 
             int CompareToken( TokenInfo x, TokenInfo y ) {
                 return string.Compare( x._strToken, y._strToken, ignoreCase:true );
+            }
+
+            if( fToLower ) {
+                // Sort out lower/upper later.
+                ToLower( _rgTokenStd );
+                ToLower( _rgTokenFnc );
+                ToLower( _rgTokenCom );
+                ToLower( _rgTokenStm );
             }
 
             _dcTokenLookup.Sort( CompareToken );
@@ -418,7 +426,7 @@ namespace Monitor {
             if( oReader == null || oEdit == null ) 
                 throw new ArgumentNullException();
 
-            Span<byte> rgData = stackalloc byte[255];
+            byte[] rgData = new byte[255];
 
             try {
                 using BasicEditor.BasicManipulator oBulk = new ( oEdit );
@@ -434,13 +442,14 @@ namespace Monitor {
                     if( iLineNumber == 0xFFFF )
                         break;
 
-                    // I SHOULD be able to pass the array to the reader. :-/
                     int iReadLen = bLineLen - 4;
-                    for( int i = 0; i < iReadLen; i++ ) {
-                        rgData[i] = oReader.ReadByte();
-                    }
+                    // I SHOULD be able to load only a portion of the span. :-/
+                    //for( int i = 0; i < iReadLen; i++ ) {
+                    //    rgData[i] = oReader.ReadByte();
+                    //}
+                    oReader.Read( rgData, 0, iReadLen );
 
-                    string strLine = ReadTokens(rgData, iReadLen);
+                    string strLine = ReadTokens( rgData, iReadLen);
 
                     oBulk.Append( iLineNumber, strLine );
 
@@ -470,15 +479,7 @@ namespace Monitor {
             }
         }
 
-        public void Start( string strFileName, BasicEditor oEdit ) {
-            List<string> rgOutput = new();
-
-            // Sort out lower/upper later.
-            ToLower( _rgTokenStd );
-            ToLower( _rgTokenFnc );
-            ToLower( _rgTokenCom );
-            ToLower( _rgTokenStm );
-
+        public void Load( string strFileName, BasicEditor oEdit ) {
             using Stream       oStream = File.OpenRead( strFileName );
             using BinaryReader oReader = new BinaryReader(oStream);
 
@@ -487,6 +488,16 @@ namespace Monitor {
             IO_Detokanize( oReader, oEdit);
             // Want the Edit Window banner to update...
             oEdit.Raise_BufferEvent(BUFFEREVENTS.LOADED);
+        }
+
+        public bool Load( BinaryReader oReader, BasicEditor oEdit ) {
+            oEdit.Clear();
+
+            IO_Detokanize( oReader, oEdit);
+            // Want the Edit Window banner to update...
+            oEdit.Raise_BufferEvent(BUFFEREVENTS.LOADED);
+
+            return true;
         }
 
         /// <summary>

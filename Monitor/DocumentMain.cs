@@ -289,7 +289,9 @@ namespace Monitor {
         IPgParent,
 		IDisposable,
         IPgLoad<TextReader>,
-        IPgSave<TextWriter>
+        IPgSave<TextWriter>,
+        IPgLoad<BinaryReader>,
+        IPgSave<BinaryWriter>
     {
         protected readonly IPgBaseSite _oBaseSite;
         protected readonly IPgFileSite _oFileSite;
@@ -1070,8 +1072,7 @@ namespace Monitor {
                         // focus from our newly opened view.
                         BbcBasic5 oBasic = new BbcBasic5();
 
-                        oBasic.Start( oDialog.FileName, AssemblyDoc );
-                        //oBasic.Dump( oDialog.FileName, MonitorDoc.AssemblyDoc );
+                        oBasic.Load( oDialog.FileName, AssemblyDoc );
                     }
                 }
             }
@@ -1100,7 +1101,7 @@ namespace Monitor {
                         // focus from our newly opened view.
                         BbcBasic5 oBasic = new BbcBasic5();
 
-                        oBasic.IO_Tokenize( AssemblyDoc , oWriter );
+                        oBasic.IO_Tokenize( AssemblyDoc, oWriter );
                     //}
                 }
             }
@@ -1136,6 +1137,18 @@ namespace Monitor {
                     }
                 }
             }
+        }
+
+        public bool Load(BinaryReader oReader ) {
+            BbcBasic5 oBasic = new BbcBasic5();
+
+            return oBasic.Load( oReader, AssemblyDoc );
+        }
+
+        public bool Save(BinaryWriter oWriter) {
+            BbcBasic5 oBasic = new BbcBasic5();
+
+            return oBasic.IO_Tokenize( AssemblyDoc, oWriter );
         }
     }
 }

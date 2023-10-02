@@ -9,6 +9,8 @@ using Play.Edit;
 
 namespace Monitor {
     public abstract class BaseController : Controller {
+        public static Guid DumpWindowGUID { get; } = new Guid( "{247AE5B9-F6F1-4B6B-AB9C-81C83BC320B2}" );
+
         public override IDisposable CreateDocument(IPgBaseSite oSite, string strExtension) {
             return new MonitorDocument( oSite );
         }
@@ -18,20 +20,6 @@ namespace Monitor {
         public MonitorController() {
             _rgExtensions.Add( ".asm" );
         }
-
-        /*
-         * Arggg... I don't want to commit to read/write in binary yet... 
-         *          but the shell can support it now! ^_^;;
-        public override PgDocumentDescriptor Suitability(string strExtension) {
-            if( string.Compare( PrimaryExtension, strExtension ) == 0 )
-                return new PgDocumentDescriptor( strExtension, typeof( IPgLoad<BinaryReader> ), (byte)255, this );
-
-            return new PgDocumentDescriptor( strExtension, typeof( IPgLoad<BinaryReader> ), (byte)0, this );
-        }
-        */
-
-        public static Guid DumpWindowGUID { get; } = new Guid( "{247AE5B9-F6F1-4B6B-AB9C-81C83BC320B2}" );
-
 
         public override IDisposable CreateView(IPgViewSite oViewSite, object oDocument, Guid guidViewType) {
             if( oDocument is MonitorDocument oMonitorDoc ) {
@@ -63,17 +51,24 @@ namespace Monitor {
 
     public class BBCBasicController : BaseController {
         public BBCBasicController() {
-            _rgExtensions.Add( ".bas" ); // Unicode text basic file.
+            _rgExtensions.Add( ".bas" ); // More generalized, but we'll give it a go.
+            _rgExtensions.Add( ".bbc" ); // binary basic file (bbc basic for windows)
         }
 
-        public static Guid DumpWindow { get; } = new Guid( "{247AE5B9-F6F1-4B6B-AB9C-81C83BC320B2}" );
+        public override PgDocumentDescriptor Suitability(string strExtension) {
+            // BUG, TODO: What about the other extensions??
+            if( string.Compare( PrimaryExtension, strExtension ) == 0 )
+                return new PgDocumentDescriptor( strExtension, typeof( IPgLoad<BinaryReader> ), (byte)255, this );
+
+            return new PgDocumentDescriptor( strExtension, typeof( IPgLoad<BinaryReader> ), (byte)0, this );
+        }
 
         public override IDisposable CreateView(IPgViewSite oViewSite, object oDocument, Guid guidViewType) {
             if( oDocument is MonitorDocument oMonitorDoc ) {
 			    try {
                     if( guidViewType == BasicLineWindow.GUID )
 					    return new BasicLineWindow( oViewSite, oMonitorDoc );
-                    if( guidViewType == DumpWindow )
+                    if( guidViewType == DumpWindowGUID )
                         return new EditWindow2( oViewSite, oMonitorDoc.DumpDocument );
 
                     // Service the GUID.Empty case too.
