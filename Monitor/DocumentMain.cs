@@ -315,6 +315,9 @@ namespace Monitor {
         protected readonly List<Line>                               _rgStatusBit = new();
         protected readonly Dictionary<string, List<AsmInstruction>> _rgInstr     = new();
 
+        protected bool _fIsBinaryLoad = false;
+        public bool BinaryLoaded { get { return _fIsBinaryLoad; } }
+
         public string? StatusBitAsString( StatusBits eBit ) {
             string? strReturn = _rgStatusBit[(int)eBit].ToString();
 
@@ -517,6 +520,8 @@ namespace Monitor {
         }
 
         public bool Load(TextReader oStream) {
+            _fIsBinaryLoad = false;
+
             if( !AssemblyDoc.Load( oStream ) )
                 return false;
 
@@ -1065,6 +1070,8 @@ namespace Monitor {
         public void SideLoad() {
             // It's blocking but what can you do...
             using( OpenFileDialog oDialog = new OpenFileDialog() ) {
+                oDialog.Filter = "BBC Binary|*.bbc|Basic Binary|*.bas";
+
                 if( oDialog.ShowDialog() == DialogResult.OK ) {
                     if( FileCheck( oDialog.FileName ) ) {
                         // Don't put this in the FileOk event because after that event
@@ -1087,26 +1094,37 @@ namespace Monitor {
         /// Encode the text bbc basic file to a binary stream to
         /// the file indicated by the dialog.
         /// </summary>
-        public void SideSave() {
+        public void SideSaveBinary() {
             // It's blocking but what can you do...
             using( OpenFileDialog oDialog = new OpenFileDialog() ) {
                 if( oDialog.ShowDialog() == DialogResult.OK ) {
+                    // Don't put this in the FileOk event because after that event
+                    // the dialog returns focus to where it came from and we lose
+                    // focus from our newly opened view.
                     //if( FileCheck( oDialog.FileName ) ) {
-                        using FileStream oStream = new FileStream( oDialog.FileName,
-                                                             FileMode.Create, 
-                                                             FileAccess.Write );
-                        using BinaryWriter oWriter = new BinaryWriter( oStream, Encoding.ASCII );
-                        // Don't put this in the FileOk event because after that event
-                        // the dialog returns focus to where it came from and we lose
-                        // focus from our newly opened view.
-                        BbcBasic5 oBasic = new BbcBasic5();
-
-                        oBasic.IO_Tokenize( AssemblyDoc, oWriter );
+                    SideSaveBinary( oDialog.FileName );
                     //}
                 }
             }
         }
 
+        public void SideSaveBinary( string strFileName ) {
+            using FileStream oStream = new FileStream( strFileName,
+                                                       FileMode.Create, 
+                                                       FileAccess.Write );
+            using BinaryWriter oWriter = new BinaryWriter( oStream, Encoding.ASCII );
+            BbcBasic5 oBasic = new BbcBasic5();
+
+            oBasic.IO_Tokenize( AssemblyDoc, oWriter );
+        }
+
+        public void SideSaveText( string strFileName ) {
+            using FileStream oStream = new FileStream( strFileName,
+                                                       FileMode.Create, 
+                                                       FileAccess.Write );
+            using TextWriter oWriter = new StreamWriter( oStream, Encoding.UTF8 );
+            Save( oWriter );
+        }
         /// <summary>
         /// Do a memory dump of the given file in the file system. Open a view on the dump file.
         /// </summary>
@@ -1140,9 +1158,19 @@ namespace Monitor {
         }
 
         public bool Load(BinaryReader oReader ) {
+            _fIsBinaryLoad = true;
             BbcBasic5 oBasic = new BbcBasic5();
 
-            return oBasic.Load( oReader, AssemblyDoc );
+            if( !oBasic.Load( oReader, AssemblyDoc ) )
+                return false;
+
+            if( !TextCommands.InitNew() )
+                return false;
+
+            if( !Initialize() ) 
+                return false;
+
+            return true;
         }
 
         public bool Save(BinaryWriter oWriter) {

@@ -50,20 +50,6 @@ namespace Monitor {
     }
 
     public class BBCBasicController : BaseController {
-        public BBCBasicController() {
-            _rgExtensions.Add( ".bas" ); // More generalized, but we'll give it a go.
-            _rgExtensions.Add( ".bbc" ); // binary basic file (bbc basic for windows)
-        }
-
-        public override PgDocumentDescriptor Suitability(string strExtension) {
-            foreach( string strExtn in _rgExtensions ) {
-                if( string.Compare( strExtn, strExtension ) == 0 )
-                    return new PgDocumentDescriptor( strExtension, typeof( IPgLoad<BinaryReader> ), (byte)255, this );
-            }
-
-            return new PgDocumentDescriptor( strExtension, typeof( IPgLoad<BinaryReader> ), (byte)0, this );
-        }
-
         public override IDisposable CreateView(IPgViewSite oViewSite, object oDocument, Guid guidViewType) {
             if( oDocument is MonitorDocument oMonitorDoc ) {
 			    try {
@@ -88,7 +74,28 @@ namespace Monitor {
         }
 
         public override IEnumerator<IPgViewType> GetEnumerator() {
-            yield return new ViewType( "BBC Basic Text", BasicLineWindow.GUID );
+            yield return new ViewType( "BBC Basic Edit", BasicLineWindow.GUID );
+        }
+    }
+    public class BBCBasicBinaryController : BBCBasicController {
+        public BBCBasicBinaryController() {
+            _rgExtensions.Add( ".bas" ); // More generalized, but we'll give it a go.
+            _rgExtensions.Add( ".bbc" ); // binary basic file (bbc basic for windows)
+        }
+
+        public override PgDocumentDescriptor Suitability(string strExtension) {
+            foreach( string strExtn in _rgExtensions ) {
+                if( string.Compare( strExtn, strExtension ) == 0 )
+                    return new PgDocumentDescriptor( strExtension, typeof( IPgLoad<BinaryReader> ), (byte)255, this );
+            }
+
+            return new PgDocumentDescriptor( strExtension, typeof( IPgLoad<BinaryReader> ), (byte)0, this );
+        }
+    }
+
+    public class BBCBasicTextController : BBCBasicController {
+        public BBCBasicTextController() {
+            _rgExtensions.Add( ".bbt" );
         }
     }
 }

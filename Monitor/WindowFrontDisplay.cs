@@ -241,7 +241,7 @@ namespace Monitor {
             _rgTools.Clear();
 
             _rgTools2.Add( new Tool( "Side Load" , oDoc.SideLoad ) );
-            _rgTools2.Add( new Tool( "Side Save" , oDoc.SideSave ) );
+            _rgTools2.Add( new Tool( "Side Save" , oDoc.SideSaveBinary ) );
             _rgTools2.Add( new Tool( "Renumber",   oDoc.Renumber ) );
             _rgTools2.Add( new Tool( "Test" ,      oDoc.Test     ) );
             _rgTools2.Add( new Tool( "Dump File",  DumpBinaryFile ) );
@@ -269,7 +269,36 @@ namespace Monitor {
                 Monitor.SideLoad();
                 return true;
             }
+            if( sGuidCommand == GlobalCommands.SaveAs ) {
+                SaveAsDialog();
+                return true;
+            }
             return base.Execute( sGuidCommand );
+        }
+
+        protected void SaveAsDialog() {
+            using( SaveFileDialog oSave = new SaveFileDialog() ) {
+                oSave.Filter = "BBC Binary|*.bbc|Basic Binary|*.bas|Text File|*.btx";
+                oSave.Title  = "Save Basic File";
+
+                oSave.FilterIndex = Monitor.BinaryLoaded ? 1 : 3;
+                
+                if( oSave.ShowDialog() == DialogResult.OK ) {
+                    if( string.IsNullOrEmpty( oSave.FileName ) ) {
+                        return;
+                    }
+                    // NOTE that the FilterIndex property is one-based.
+                    switch( oSave.FilterIndex ) {
+                        case 1:
+                        case 2:
+                            Monitor.SideSaveBinary( oSave.FileName );
+                            break;
+                        case 3:
+                            Monitor.SideSaveText( oSave.FileName );
+                            break;
+                    }
+                }
+            }
         }
 
 		public override int ToolSelect { 
