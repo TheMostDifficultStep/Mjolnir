@@ -294,6 +294,19 @@ namespace Monitor {
         IPgSave<BinaryWriter>
     {
         protected readonly IPgBaseSite _oBaseSite;
+                                
+        public static readonly Type[] _rgIOErrors = { 
+            typeof( ArgumentException ),
+            typeof( ArgumentNullException ),
+            typeof( NotSupportedException ),
+            typeof( FileNotFoundException ),
+            typeof( IOException ),
+            typeof( System.Security.SecurityException ),
+            typeof( DirectoryNotFoundException ),
+            typeof( UnauthorizedAccessException ),
+            typeof( PathTooLongException ),
+            typeof( ArgumentOutOfRangeException ) };
+
         protected readonly IPgFileSite _oFileSite;
 
         protected Dictionary< string, Action> _dctInstructions = new();
@@ -317,6 +330,10 @@ namespace Monitor {
 
         protected bool _fIsBinaryLoad = false;
         public bool BinaryLoaded { get { return _fIsBinaryLoad; } }
+
+        protected void LogError( string strLabel, string strMessage ) {
+            _oBaseSite.LogError( strLabel, strMessage );
+        }
 
         public string? StatusBitAsString( StatusBits eBit ) {
             string? strReturn = _rgStatusBit[(int)eBit].ToString();
@@ -1049,13 +1066,7 @@ namespace Monitor {
                 oAttribs = File.GetAttributes(strFileName);
                 fIsFile  = ( oAttribs & FileAttributes.Directory ) == 0;
             } catch( Exception oEx ) {
-                Type[] rgErrors = { typeof( ArgumentException ),
-                                    typeof( PathTooLongException ),
-                                    typeof( NotSupportedException ),
-                                    typeof( FileNotFoundException ),
-                                    typeof( DirectoryNotFoundException ) };
-
-                if( rgErrors.IsUnhandled( oEx ) ) {
+                if( _rgIOErrors.IsUnhandled( oEx ) ) {
                     throw;
                 }
             }
@@ -1069,19 +1080,25 @@ namespace Monitor {
         /// </summary>
         public void SideLoad() {
             // It's blocking but what can you do...
-            using( OpenFileDialog oDialog = new OpenFileDialog() ) {
-                oDialog.Filter = "BBC Binary|*.bbc|Basic Binary|*.bas";
+            try {
+                using( OpenFileDialog oDialog = new OpenFileDialog() ) {
+                    oDialog.Filter = "BBC Binary|*.bbc|Basic Binary|*.bas";
 
-                if( oDialog.ShowDialog() == DialogResult.OK ) {
-                    if( FileCheck( oDialog.FileName ) ) {
-                        // Don't put this in the FileOk event because after that event
-                        // the dialog returns focus to where it came from and we lose
-                        // focus from our newly opened view.
-                        BbcBasic5 oBasic = new BbcBasic5();
+                    if( oDialog.ShowDialog() == DialogResult.OK ) {
+                        if( FileCheck( oDialog.FileName ) ) {
+                            // Don't put this in the FileOk event because after that event
+                            // the dialog returns focus to where it came from and we lose
+                            // focus from our newly opened view.
+                            BbcBasic5 oBasic = new BbcBasic5();
 
-                        oBasic.Load( oDialog.FileName, AssemblyDoc );
+                            oBasic.Load( oDialog.FileName, AssemblyDoc );
+                        }
                     }
                 }
+            } catch( Exception oEx ) {
+                if( _rgIOErrors.IsUnhandled( oEx ) )
+                    throw;
+                LogError( "Load", "Problem with given file." );
             }
         }
 
@@ -1091,46 +1108,68 @@ namespace Monitor {
         }
 
         /// <summary>
-        /// Encode the text bbc basic file to a binary stream to
-        /// the file indicated by the dialog.
+        /// Typically you'll get an error that the file is already open if it's
+        /// the file servicing our object. Not sure why since the stream should
+        /// have been closed after the load. But this makes doubly sure we're not
+        /// trying to use our own file. 
+        /// TODO: Might be nice to integrate with shell so I can check all files
+        /// in use by the shell.
         /// </summary>
-        public void SideSaveBinary() {
-            // It's blocking but what can you do...
-            using( OpenFileDialog oDialog = new OpenFileDialog() ) {
-                if( oDialog.ShowDialog() == DialogResult.OK ) {
-                    // Don't put this in the FileOk event because after that event
-                    // the dialog returns focus to where it came from and we lose
-                    // focus from our newly opened view.
-                    //if( FileCheck( oDialog.FileName ) ) {
-                    SideSaveBinary( oDialog.FileName );
-                    //}
-                }
+        public bool IsOverwrite( string strFileName ) {
+            if( string.Compare( Path.Combine( _oFileSite.FilePath, _oFileSite.FileBase ), 
+                                strFileName, ignoreCase:true ) == 0 ) 
+            {
+                _oBaseSite.LogError( "Save", 
+                                     "Can't overwrite working file! Try another name." );
+                return false;
             }
+            return true;
         }
 
         public void SideSaveBinary( string strFileName ) {
-            using FileStream oStream = new FileStream( strFileName,
-                                                       FileMode.Create, 
-                                                       FileAccess.Write );
-            using BinaryWriter oWriter = new BinaryWriter( oStream, Encoding.ASCII );
-            BbcBasic5 oBasic = new BbcBasic5();
+            if( IsOverwrite( strFileName ) )
+                return;
 
-            oBasic.IO_Tokenize( AssemblyDoc, oWriter );
+            try {
+                using FileStream oStream = new FileStream( strFileName,
+                                                           FileMode.Create, 
+                                                           FileAccess.Write );
+                using BinaryWriter oWriter = new BinaryWriter( oStream, Encoding.ASCII );
+                BbcBasic5 oBasic = new BbcBasic5();
+
+                oBasic.IO_Tokenize( AssemblyDoc, oWriter );
+                oWriter.Flush();
+            } catch( Exception oEx ) {
+                if( _rgIOErrors.IsUnhandled( oEx ) )
+                    throw;
+                LogError( "Save", "File may be r/o, path too long, unauthorized." );
+            }
         }
 
         public void SideSaveText( string strFileName ) {
-            using FileStream oStream = new FileStream( strFileName,
-                                                       FileMode.Create, 
-                                                       FileAccess.Write );
-            using TextWriter oWriter = new StreamWriter( oStream, Encoding.UTF8 );
-            Save( oWriter );
+            if( IsOverwrite( strFileName ) )
+                return;
+
+            try {
+                using FileStream oStream = new FileStream( strFileName,
+                                                           FileMode.Create, 
+                                                           FileAccess.Write );
+                using TextWriter oWriter = new StreamWriter( oStream, Encoding.UTF8 );
+                Save( oWriter );
+                oWriter.Flush();
+            } catch( Exception oEx ) {
+                if( _rgIOErrors.IsUnhandled( oEx ) )
+                    throw;
+                LogError( "Save", "File may be r/o, path too long, unauthorized." );
+            }
         }
+
         /// <summary>
         /// Do a memory dump of the given file in the file system. Open a view on the dump file.
         /// </summary>
         public void DumpBinaryFile( IPgViewSite oViewSite ) {
            if( oViewSite is IPgShellSite oShellSite ) {
-                IPgCommandView oFoundView = null;
+                IPgCommandView? oFoundView = null;
                 foreach( IPgCommandView oView in oShellSite.EnumerateSiblings ) {
                     if( oView.Catagory == MonitorController.DumpWindowGUID ) {
                         oFoundView = oView;

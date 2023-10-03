@@ -501,7 +501,7 @@ namespace Mjolnir {
                     // Overridable versions of StreamReader can prevent that in higher versions of .net
                     using( StreamReader oReader = new StreamReader( oByteStream, utf8NoBom ) ) {
                         try {
-							FileName = strFileName; // Guests sometimes need this when loading.
+							FileName = oFile.FullName; // Guests sometimes need this when loading.
 
 							if( oFile.IsReadOnly )
 								_eFileStats = FILESTATS.READONLY;
@@ -630,10 +630,12 @@ namespace Mjolnir {
                     FileInfo oFile = new FileInfo(strFileName);
 
                     FileStream oByteStream = oFile.OpenRead(); 
+                    // BUG: Need to get the directory path!!
+                    //_strFilePath = oFile.DirectoryName;
 
                     using( BinaryReader oReader = new BinaryReader( oByteStream ) ) {
                         try {
-							FileName = strFileName; // Guests sometimes need this when loading.
+							FileName = oFile.FullName; // Guests sometimes need this when loading.
 
 							if( oFile.IsReadOnly )
 								_eFileStats = FILESTATS.READONLY;
@@ -695,7 +697,14 @@ namespace Mjolnir {
 
                 return fSaved;
             }
-
+            public override string FileName {
+                set {
+                    if( !string.IsNullOrEmpty( value ) ) {
+                        _strFileName = value;
+                        _oHost.Raise_UpdateTitles( this );
+                    }
+                }
+            }
         }
 
         /// <summary>
@@ -713,7 +722,9 @@ namespace Mjolnir {
                 string  strControllerExt,
                 string  strName // Need localized values.
 
-		    ) : base( oProgram, oProgram.GetController( strControllerExt ), strControllerExt ) {
+		    ) : base( oProgram, 
+                      oProgram.GetController( strControllerExt ), 
+                      strControllerExt ) {
                 _strName = strName;
             }
             

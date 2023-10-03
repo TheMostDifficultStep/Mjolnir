@@ -336,8 +336,9 @@ namespace Monitor {
 
                 oWriter.Flush();
             } catch( Exception oEx ) {
-                Type[] rgErrors = { typeof( IndexOutOfRangeException ),
-                                    typeof( ArgumentOutOfRangeException ),
+                Type[] rgErrors = { typeof( ArgumentOutOfRangeException ),
+                                    typeof( ArgumentNullException ),
+                                    typeof( IndexOutOfRangeException ),
                                     typeof( InvalidDataException ),
                                     typeof( IOException ),
                                     typeof( ObjectDisposedException ),
