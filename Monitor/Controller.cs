@@ -95,7 +95,7 @@ namespace Monitor {
 
     public class BBCBasicTextController : BBCBasicController {
         public BBCBasicTextController() {
-            _rgExtensions.Add( ".bbt" );
+            _rgExtensions.Add( ".btx" );
         }
     }
 }

@@ -433,7 +433,7 @@ namespace Monitor {
             _dctStatusNames.Add( "neg",      (int)StatusBits.Negative );
             _dctStatusNames.Add( "negative", (int)StatusBits.Negative );
 
-            // This is 6502 flag positions, Don't presently mach my status lines.
+            // This is 6502 flag positions, Don't presently match my status lines.
             _dctPowerOfTwo.Add(   1, 0 ); // carry
             _dctPowerOfTwo.Add(   2, 1 ); // zero
             _dctPowerOfTwo.Add(   4, 2 ); // int disable

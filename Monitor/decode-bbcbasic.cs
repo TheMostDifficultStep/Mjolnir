@@ -379,7 +379,8 @@ namespace Monitor {
                             oSB.Append( _rgTokenStm[rgData[++i] - 0x8E] );
                             break;
                         case 0xF4: // rem
-                            for( ++i; i< rgData.Length; ++i ) {
+                            oSB.Append( _rgTokenStd[rgData[  i] - 0x7f] );
+                            for( ++i; i< iLength; ++i ) {
                                 oSB.Append( Convert.ToChar( rgData[i] ) );
                             }
                             break;
