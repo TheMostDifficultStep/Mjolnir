@@ -33,6 +33,14 @@ namespace Monitor {
                 _oDocument._rgLines.Add( oNew );
             }
 
+            public void Append( int iBasic, ReadOnlySpan<char> strLine ) {
+                Line oNew = new TextLine( _oDocument._rgLines.Count, strLine );
+
+                oNew.Extra = new TextLine( iBasic, iBasic.ToString() );
+
+                _oDocument._rgLines.Add( oNew );
+            }
+
             public void Append( ReadOnlySpan<char> spLine ) { 
                 Line oNew = new TextLine( _oDocument._rgLines.Count, spLine );
 
@@ -87,8 +95,10 @@ namespace Monitor {
             try {
                 string?            strLine  = null;
                 ReadOnlySpan<char> spNumber = null;
-                string?            spBasic  = null; // Might need to update my string params on the editor.
+                ReadOnlySpan<char> spBasic  = null; 
                 do {
+                    // char[] rgLine = stackalloc char[300]
+                    // ReadOnlySpan<char> spLine = oReader.ReadLine( rgLine )
                     strLine = oReader.ReadLine();
 
                     if( strLine != null ) {
@@ -106,9 +116,9 @@ namespace Monitor {
                         if( Char.IsWhiteSpace( strLine[i] ) )
                             ++i;
 
-                        spBasic = strLine.Substring( startIndex: i, length: strLine.Length - i );
+                        spBasic = strLine.AsSpan().Slice( start:i, length: strLine.Length - i );
                         // Combine the line number and the basic commands.
-                        if( spBasic != null && spNumber != null && int.TryParse( spNumber, out int iNumber ) ) {
+                        if( int.TryParse( spNumber, out int iNumber ) ) {
                             oBulk.Append( iNumber, spBasic );
                         } else {
                             if( strLine.Length > 0 ) {
