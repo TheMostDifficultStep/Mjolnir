@@ -424,7 +424,7 @@ namespace Monitor {
         /// <exception cref="InvalidProgramException"></exception>
         /// <param name="oReader">Input binary stream.</param>
         /// <param name="oEdit">Output to BBC basic text file editor.</param>
-        void IO_Detokanize( BinaryReader oReader, BasicEditor oEdit ) {
+        public bool IO_Detokanize( BinaryReader oReader, BasicEditor oEdit ) {
             if( oReader == null || oEdit == null ) 
                 throw new ArgumentNullException();
 
@@ -455,9 +455,12 @@ namespace Monitor {
 
                     oBulk.Append( iLineNumber, strLine );
 
-                    if( oReader.ReadByte() != 0x0d )
-                        throw new InvalidDataException( "Expected linefeed" );
+                    if( oReader.ReadByte() != 0x0d ) {
+                        oEdit.LogError( "Expected linefeed" );
+                        return false;
+                    }
                 }
+                return true;
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( EndOfStreamException ),
                                     typeof( InvalidProgramException ),
@@ -469,6 +472,8 @@ namespace Monitor {
                     throw;
 
                 oEdit.LogError( "Bad program format. Is it really a binary BBC Basic file?" );
+                
+                return false;
             }
         }
         
@@ -490,16 +495,6 @@ namespace Monitor {
             IO_Detokanize( oReader, oEdit);
             // Want the Edit Window banner to update...
             oEdit.Raise_BufferEvent(BUFFEREVENTS.LOADED);
-        }
-
-        public bool Load( BinaryReader oReader, BasicEditor oEdit ) {
-            oEdit.Clear();
-
-            IO_Detokanize( oReader, oEdit);
-            // Want the Edit Window banner to update...
-            oEdit.Raise_BufferEvent(BUFFEREVENTS.LOADED);
-
-            return true;
         }
 
         /// <summary>

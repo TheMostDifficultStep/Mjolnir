@@ -8,13 +8,15 @@ using Play.Edit;
 using Play.Parse;
 using Play.Parse.Impl;
 using Play.Integration;
-using OpenTK.Graphics.OpenGL;
-using System.Net.Http.Headers;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement.Window;
 
 namespace Monitor {
-    public class BasicEditor : BaseEditor
+    public class BasicEditor : 
+        BaseEditor,
+        IPgSave<BinaryWriter>,
+        IPgLoad<BinaryReader>
     {
+        bool _fBinaryLoaded = false;
+
         public class BasicManipulator : IDisposable {
             BasicEditor _oDocument;
 
@@ -74,18 +76,21 @@ namespace Monitor {
 
                     if( strLine != null ) {
                         int i=0;
+                        // Strip the number off of the start of the string.
                         for( ; i<strLine.Length; ++i ) {
                             if( !Char.IsDigit( strLine[i] ) ) {
                                 spNumber = strLine.AsSpan().Slice(start: 0, length: i);
                                 break;
                             }
                         }
+                        // Take the rest and use as the basic commands.
                         for( ; i<strLine.Length; ++i ) {
                             if( !Char.IsWhiteSpace( strLine[i] ) ) {
                                 spBasic = strLine.Substring( startIndex: i, length: strLine.Length - i );
                                 break;
                             }
                         }
+                        // Combine the line number and the basic commands.
                         if( spBasic != null && spNumber != null && int.TryParse( spNumber, out int iNumber ) ) {
                             oBulk.Append( iNumber, spBasic );
                         } else {
@@ -125,7 +130,8 @@ namespace Monitor {
                     }
                     oWriter.WriteLine(oLine.AsSpan);
                 }
-                _fIsDirty = false;
+                if( !_fBinaryLoaded )
+                    _fIsDirty = false;
             } catch( Exception oE ) {
                 Type[] rgErrors = {
                     typeof( FormatException ),
@@ -143,6 +149,37 @@ namespace Monitor {
                 oWriter.Flush();
             }
             
+            return true;
+        }
+
+        public bool Load( BinaryReader oReader ) {
+            _fBinaryLoaded = true;
+            Clear();
+
+            BbcBasic5 oBasic = new BbcBasic5();
+
+            bool fReturn = oBasic.IO_Detokanize( oReader, this );
+            // Want the Edit Window banner to update...
+            Raise_BufferEvent( BUFFEREVENTS.LOADED );
+
+            return fReturn;
+        }
+
+        public bool Save( BinaryWriter oWriter ) {
+            try {
+                BbcBasic5 oBasic = new BbcBasic5();
+
+                oBasic.IO_Tokenize( this, oWriter );
+
+                if( _fBinaryLoaded )
+                    _fIsDirty = false;
+            } catch( Exception oEx ) {
+                if( MonitorDocument._rgIOErrors.IsUnhandled( oEx ) )
+                    throw;
+                LogError( "File may be r/o, path too long, unauthorized." );
+                return false;
+            }
+
             return true;
         }
 
@@ -243,7 +280,6 @@ namespace Monitor {
 
             Raise_MultiFinished();
         }
-
     }
 
     public enum AddrModes {
@@ -314,7 +350,7 @@ namespace Monitor {
         protected Dictionary< int, int >      _dctPowerOfTwo   = new();
 
         protected readonly Grammer<char> _oGrammer;
-        public bool IsDirty => AssemblyDoc.IsDirty;
+        public bool IsDirty => AssemblyDoc.IsDirty; // TODO: not fleshed out yet.
 
         public IPgParent Parentage => _oBaseSite.Host;
         public IPgParent Services  => Parentage.Services;
@@ -1102,6 +1138,34 @@ namespace Monitor {
             }
         }
 
+        public void SaveAsDialog() {
+            using( SaveFileDialog oSave = new SaveFileDialog() ) {
+                oSave.Filter       = "BBC Binary|*.bbc|Basic Binary|*.bas|Text File|*.btx";
+                oSave.Title        = "Save Basic File";
+                oSave.AddExtension = true;
+                oSave.FileName     = Path.GetFileNameWithoutExtension( _oFileSite.FileBase );
+
+                // Set default to opposite type we are persisted as.
+                oSave.FilterIndex = BinaryLoaded ? 1 : 3;
+                
+                if( oSave.ShowDialog() == DialogResult.OK ) {
+                    if( string.IsNullOrEmpty( oSave.FileName ) ) {
+                        return;
+                    }
+                    // NOTE: that the FilterIndex property is one-based.
+                    switch( oSave.FilterIndex ) {
+                        case 1:
+                        case 2:
+                            SideSaveBinary( oSave.FileName );
+                            break;
+                        case 3:
+                            SideSaveText( oSave.FileName );
+                            break;
+                    }
+                }
+            }
+        }
+
         public void Test() {
             BbcBasic5 oBasic = new BbcBasic5();
             oBasic.Test( this._oBaseSite );
@@ -1135,10 +1199,7 @@ namespace Monitor {
                                                            FileMode.Create, 
                                                            FileAccess.Write );
                 using BinaryWriter oWriter = new BinaryWriter( oStream, Encoding.ASCII );
-                BbcBasic5 oBasic = new BbcBasic5();
-
-                oBasic.IO_Tokenize( AssemblyDoc, oWriter );
-                oWriter.Flush();
+                AssemblyDoc.Save( oWriter );
             } catch( Exception oEx ) {
                 if( _rgIOErrors.IsUnhandled( oEx ) )
                     throw;
@@ -1156,7 +1217,6 @@ namespace Monitor {
                                                            FileAccess.Write );
                 using TextWriter oWriter = new StreamWriter( oStream, Encoding.UTF8 );
                 Save( oWriter );
-                oWriter.Flush();
             } catch( Exception oEx ) {
                 if( _rgIOErrors.IsUnhandled( oEx ) )
                     throw;
@@ -1198,9 +1258,8 @@ namespace Monitor {
 
         public bool Load(BinaryReader oReader ) {
             _fIsBinaryLoad = true;
-            BbcBasic5 oBasic = new BbcBasic5();
 
-            if( !oBasic.Load( oReader, AssemblyDoc ) )
+            if( !AssemblyDoc.Load( oReader ) )
                 return false;
 
             if( !TextCommands.InitNew() )
@@ -1212,6 +1271,12 @@ namespace Monitor {
             return true;
         }
 
+
+        /// <summary>
+        /// The binary version of our loader.
+        /// </summary>
+        /// <seealso cref="SideSaveBinary(string)"/>
+        /// <seealso cref="SideSaveText(string)"/>
         public bool Save(BinaryWriter oWriter) {
             BbcBasic5 oBasic = new BbcBasic5();
 

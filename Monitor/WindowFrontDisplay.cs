@@ -268,38 +268,10 @@ namespace Monitor {
                 return true;
             }
             if( sGuidCommand == GlobalCommands.SaveAs ) {
-                SaveAsDialog();
+                Monitor.SaveAsDialog();
                 return true;
             }
             return base.Execute( sGuidCommand );
-        }
-
-        protected void SaveAsDialog() {
-            using( SaveFileDialog oSave = new SaveFileDialog() ) {
-                oSave.Filter       = "BBC Binary|*.bbc|Basic Binary|*.bas|Text File|*.btx";
-                oSave.Title        = "Save Basic File";
-                oSave.AddExtension = true;
-                // TODO: Set filename default.
-
-                // Set default to opposite type we are persisted as.
-                oSave.FilterIndex = Monitor.BinaryLoaded ? 1 : 3;
-                
-                if( oSave.ShowDialog() == DialogResult.OK ) {
-                    if( string.IsNullOrEmpty( oSave.FileName ) ) {
-                        return;
-                    }
-                    // NOTE: that the FilterIndex property is one-based.
-                    switch( oSave.FilterIndex ) {
-                        case 1:
-                        case 2:
-                            Monitor.SideSaveBinary( oSave.FileName );
-                            break;
-                        case 3:
-                            Monitor.SideSaveText( oSave.FileName );
-                            break;
-                    }
-                }
-            }
         }
 
 		public override int ToolSelect { 
