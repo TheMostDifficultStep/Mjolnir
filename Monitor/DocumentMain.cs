@@ -96,37 +96,38 @@ namespace Monitor {
                 string?            strLine  = null;
                 ReadOnlySpan<char> spNumber = null;
                 ReadOnlySpan<char> spBasic  = null; 
-                do {
+                while( true ) {
                     // char[] rgLine = stackalloc char[300]
                     // ReadOnlySpan<char> spLine = oReader.ReadLine( rgLine )
                     strLine = oReader.ReadLine();
 
-                    if( strLine != null ) {
-                        int i=0;
-                        // Strip the number off of the start of the string.
-                        for( ; i<strLine.Length; ++i ) {
-                            if( !Char.IsDigit( strLine[i] ) ) {
-                                spNumber = strLine.AsSpan().Slice(start: 0, length: i);
-                                break;
-                            }
-                        }
-                        // Take the rest and use as the basic commands. We
-                        // assume that there is ONE space between the line
-                        // number and the commands, but check just in case not...
-                        if( Char.IsWhiteSpace( strLine[i] ) )
-                            ++i;
+                    if( strLine == null )
+                        break;
 
-                        spBasic = strLine.AsSpan().Slice( start:i, length: strLine.Length - i );
-                        // Combine the line number and the basic commands.
-                        if( int.TryParse( spNumber, out int iNumber ) ) {
-                            oBulk.Append( iNumber, spBasic );
-                        } else {
-                            if( strLine.Length > 0 ) {
-                                oBulk.Append( strLine );
-                            }
+                    int i=0;
+                    // Strip the number off of the start of the string.
+                    for( ; i<strLine.Length; ++i ) {
+                        if( !Char.IsDigit( strLine[i] ) ) {
+                            spNumber = strLine.AsSpan().Slice(start: 0, length: i);
+                            break;
                         }
                     }
-                } while( strLine != null );
+                    // Take the rest and use as the basic commands. We
+                    // assume that there is ONE space between the line
+                    // number and the commands, but check just in case not...
+                    if( Char.IsWhiteSpace( strLine[i] ) )
+                        ++i;
+
+                    spBasic = strLine.AsSpan().Slice( start:i, length: strLine.Length - i );
+                    // Combine the line number and the basic commands.
+                    if( int.TryParse( spNumber, out int iNumber ) ) {
+                        oBulk.Append( iNumber, spBasic );
+                    } else {
+                        if( strLine.Length > 0 ) {
+                            oBulk.Append( strLine );
+                        }
+                    }
+                };
 
                 Raise_BufferEvent( BUFFEREVENTS.LOADED );  
             } catch( Exception oEx ) {
