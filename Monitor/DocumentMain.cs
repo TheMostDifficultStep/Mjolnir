@@ -100,13 +100,13 @@ namespace Monitor {
                                 break;
                             }
                         }
-                        // Take the rest and use as the basic commands.
-                        for( ; i<strLine.Length; ++i ) {
-                            if( !Char.IsWhiteSpace( strLine[i] ) ) {
-                                spBasic = strLine.Substring( startIndex: i, length: strLine.Length - i );
-                                break;
-                            }
-                        }
+                        // Take the rest and use as the basic commands. We
+                        // assume that there is ONE space between the line
+                        // number and the commands, but check just in case not...
+                        if( Char.IsWhiteSpace( strLine[i] ) )
+                            ++i;
+
+                        spBasic = strLine.Substring( startIndex: i, length: strLine.Length - i );
                         // Combine the line number and the basic commands.
                         if( spBasic != null && spNumber != null && int.TryParse( spNumber, out int iNumber ) ) {
                             oBulk.Append( iNumber, spBasic );
@@ -171,7 +171,7 @@ namespace Monitor {
 
         /// <summary>
         /// OUr persistant storage in the binary file case.
-        /// DO NOT CALL THIS FUNCTION TO SIDE LOAD... Edit/Insert...
+        /// DO NOT CALL THIS FUNCTION TO SIDE LOAD... or Edit/Insert...
         /// </summary>
         /// <param name="oReader"></param>
         /// <returns></returns>
