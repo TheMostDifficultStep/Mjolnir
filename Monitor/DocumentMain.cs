@@ -1146,7 +1146,7 @@ namespace Monitor {
                 oSave.FileName     = Path.GetFileNameWithoutExtension( _oFileSite.FileBase );
 
                 // Set default to opposite type we are persisted as.
-                oSave.FilterIndex = BinaryLoaded ? 1 : 3;
+                oSave.FilterIndex = BinaryLoaded ? 3 : 1;
                 
                 if( oSave.ShowDialog() == DialogResult.OK ) {
                     if( string.IsNullOrEmpty( oSave.FileName ) ) {

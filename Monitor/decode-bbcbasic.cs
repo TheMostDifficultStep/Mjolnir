@@ -329,7 +329,7 @@ namespace Monitor {
                     oWriter.Write( (byte)0x0d );
                 }
 
-               // end of program.
+                // end of program.
                 oWriter.Write( (byte)0 );
                 oWriter.Write( (byte)255 );
                 oWriter.Write( (byte)255 );
