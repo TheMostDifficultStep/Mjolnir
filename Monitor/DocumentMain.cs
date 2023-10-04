@@ -16,6 +16,7 @@ namespace Monitor {
         IPgLoad<BinaryReader>
     {
         bool _fBinaryLoaded = false;
+        protected readonly Grammer<char> _oGrammer;
 
         public class BasicManipulator : IDisposable {
             BasicEditor _oDocument;
@@ -46,6 +47,22 @@ namespace Monitor {
             }
         }
         public BasicEditor( IPgBaseSite oSite ) : base( oSite ) {
+			try {
+				// A parser is matched one per text document we are loading.
+				ParseHandlerText oParser = new ParseHandlerText( this, "bbcbasic" );
+                _oGrammer = oParser.Grammer;
+			} catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( NullReferenceException ),
+                                    typeof( InvalidCastException ),
+                                    typeof( ArgumentNullException ),
+									typeof( ArgumentException ),
+									typeof( InvalidOperationException ),
+									typeof( InvalidProgramException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
+
+				throw new InvalidOperationException( "Couldn't create parse handler for given text.", oEx );
+			}
         }
 
         protected override Line CreateLine( int iLine, string strValue )
@@ -152,6 +169,12 @@ namespace Monitor {
             return true;
         }
 
+        /// <summary>
+        /// OUr persistant storage in the binary file case.
+        /// DO NOT CALL THIS FUNCTION TO SIDE LOAD... Edit/Insert...
+        /// </summary>
+        /// <param name="oReader"></param>
+        /// <returns></returns>
         public bool Load( BinaryReader oReader ) {
             _fBinaryLoaded = true;
             Clear();
@@ -161,6 +184,11 @@ namespace Monitor {
             bool fReturn = oBasic.IO_Detokanize( oReader, this );
             // Want the Edit Window banner to update...
             Raise_BufferEvent( BUFFEREVENTS.LOADED );
+
+            // We're basically side loading and the manipulator is
+            // dirtying the document. Clear it since this is our
+            // persistant storage primary load.
+            _fIsDirty = false;
 
             return fReturn;
         }
@@ -213,11 +241,8 @@ namespace Monitor {
             return false;
         }
 
-        public void Renumber( Grammer<char> oGrammar ) {
-            if( oGrammar == null )
-                throw new ArgumentNullException();
-
-            State<char> oFunction = oGrammar.FindState( "function" );
+        public void Renumber() {
+            State<char> oFunction = _oGrammer.FindState( "function" );
 
             if( oFunction == null )
                 throw new ArgumentException("Can't find required state in grammar.");
@@ -279,6 +304,10 @@ namespace Monitor {
             SetDirty();
 
             Raise_MultiFinished();
+        }
+        public void Test() {
+            BbcBasic5 oBasic = new BbcBasic5();
+            oBasic.Test( _oSiteBase );
         }
     }
 
@@ -350,13 +379,14 @@ namespace Monitor {
         protected Dictionary< int, int >      _dctPowerOfTwo   = new();
 
         protected readonly Grammer<char> _oGrammer;
-        public bool IsDirty => AssemblyDoc.IsDirty; // TODO: not fleshed out yet.
+        public bool IsDirty => BasicDoc.IsDirty; 
 
         public IPgParent Parentage => _oBaseSite.Host;
         public IPgParent Services  => Parentage.Services;
 
         public Editor        TextCommands { get; } // Machine code like commands for the emulator.
-        public BasicEditor   AssemblyDoc  { get; } // Assembly to be compiled to machine code.
+        public BasicEditor   BasicDoc     { get; } // High level basic.
+        public Editor        AssemblyDoc  { get; } // Assembly to be compiled to machine code.
         public CpuProperties Properties { get; }
         public Editor        DumpDocument { get; }
 
@@ -456,9 +486,10 @@ namespace Monitor {
             _oFileSite = oSite as IPgFileSite ?? throw new ArgumentException( "Need a IPgFileSite" );
 
             TextCommands = new ProgramFile  ( new DocSlot ( this ) );
-            AssemblyDoc  = new BasicEditor  ( new FileSlot( this ) );
+            BasicDoc     = new BasicEditor  ( new FileSlot( this ) );
+            AssemblyDoc  = new Editor       ( new FileSlot( this ) );
             Properties   = new CpuProperties( new DocSlot ( this ) );
-            DumpDocument         = new Editor       ( new DocSlot ( this ) );
+            DumpDocument = new Editor       ( new DocSlot ( this ) );
 
             _dctInstructions.Add( "load-imm", Inst_LoadImm ); // load, reg, data (lda, ldx, ldy)
             _dctInstructions.Add( "load-abs", Inst_LoadAbs ); // load, reg, addr of data.
@@ -496,22 +527,22 @@ namespace Monitor {
             _dctPowerOfTwo.Add(  64, 6 ); // overflow
             _dctPowerOfTwo.Add( 128, 7 ); // negative.
 
-			try {
-				// A parser is matched one per text document we are loading.
-				ParseHandlerText oParser = new ParseHandlerText( AssemblyDoc, "bbcbasic" );
-                _oGrammer = oParser.Grammer;
-			} catch( Exception oEx ) {
-                Type[] rgErrors = { typeof( NullReferenceException ),
-                                    typeof( InvalidCastException ),
-                                    typeof( ArgumentNullException ),
-									typeof( ArgumentException ),
-									typeof( InvalidOperationException ),
-									typeof( InvalidProgramException ) };
-                if( rgErrors.IsUnhandled( oEx ) )
-                    throw;
+			//try {
+			//	// A parser is matched one per text document we are loading.
+			//	ParseHandlerText oParser = new ParseHandlerText( AssemblyDoc, "bbcbasic" );
+   //             _oGrammer = oParser.Grammer;
+			//} catch( Exception oEx ) {
+   //             Type[] rgErrors = { typeof( NullReferenceException ),
+   //                                 typeof( InvalidCastException ),
+   //                                 typeof( ArgumentNullException ),
+			//						typeof( ArgumentException ),
+			//						typeof( InvalidOperationException ),
+			//						typeof( InvalidProgramException ) };
+   //             if( rgErrors.IsUnhandled( oEx ) )
+   //                 throw;
 
-				throw new InvalidOperationException( "Couldn't create parse handler for given text.", oEx );
-			}
+			//	throw new InvalidOperationException( "Couldn't create parse handler for given text.", oEx );
+			//}
         }
 
         // See ca 1816 warning.
@@ -563,6 +594,9 @@ namespace Monitor {
             if( !TextCommands.InitNew() )
                 return false;
 
+            if( !BasicDoc.InitNew() )
+                return false;
+
             if( !AssemblyDoc.InitNew() )
                 return false;
 
@@ -575,7 +609,10 @@ namespace Monitor {
         public bool Load(TextReader oStream) {
             _fIsBinaryLoad = false;
 
-            if( !AssemblyDoc.Load( oStream ) )
+            if( !BasicDoc.Load( oStream ) )
+                return false;
+
+            if( !AssemblyDoc.InitNew() )
                 return false;
 
             if( !TextCommands.InitNew() )
@@ -588,21 +625,7 @@ namespace Monitor {
         }
 
         public bool Save(TextWriter oWriter ) {
-            return AssemblyDoc.Save( oWriter );
-        }
-
-        public void Renumber() {
-            try {
-                AssemblyDoc.Renumber( _oGrammer );
-            } catch( Exception oEx ) {
-                Type[] rgErrors = { typeof( ArgumentNullException ),
-                                    typeof( ArgumentException ),
-                                    typeof( NullReferenceException ) };
-                if( rgErrors.IsUnhandled( oEx ) )
-                    throw;
-
-                _oBaseSite.LogError( "Editing", "Problem with language grammar." );
-            }
+            return BasicDoc.Save( oWriter );
         }
 
         public void CompileAsm() {
@@ -1127,7 +1150,7 @@ namespace Monitor {
                             // focus from our newly opened view.
                             BbcBasic5 oBasic = new BbcBasic5();
 
-                            oBasic.Load( oDialog.FileName, AssemblyDoc );
+                            oBasic.Load( oDialog.FileName, BasicDoc );
                         }
                     }
                 }
@@ -1144,9 +1167,7 @@ namespace Monitor {
                 oSave.Title        = "Save Basic File";
                 oSave.AddExtension = true;
                 oSave.FileName     = Path.GetFileNameWithoutExtension( _oFileSite.FileBase );
-
-                // Set default to opposite type we are persisted as.
-                oSave.FilterIndex = BinaryLoaded ? 3 : 1;
+                oSave.FilterIndex  = BinaryLoaded ? 3 : 1; // opposite type we are persisted as.
                 
                 if( oSave.ShowDialog() == DialogResult.OK ) {
                     if( string.IsNullOrEmpty( oSave.FileName ) ) {
@@ -1164,11 +1185,6 @@ namespace Monitor {
                     }
                 }
             }
-        }
-
-        public void Test() {
-            BbcBasic5 oBasic = new BbcBasic5();
-            oBasic.Test( this._oBaseSite );
         }
 
         /// <summary>
@@ -1199,7 +1215,7 @@ namespace Monitor {
                                                            FileMode.Create, 
                                                            FileAccess.Write );
                 using BinaryWriter oWriter = new BinaryWriter( oStream, Encoding.ASCII );
-                AssemblyDoc.Save( oWriter );
+                BasicDoc.Save( oWriter );
             } catch( Exception oEx ) {
                 if( _rgIOErrors.IsUnhandled( oEx ) )
                     throw;
@@ -1259,7 +1275,10 @@ namespace Monitor {
         public bool Load(BinaryReader oReader ) {
             _fIsBinaryLoad = true;
 
-            if( !AssemblyDoc.Load( oReader ) )
+            if( !BasicDoc.Load( oReader ) )
+                return false;
+
+            if( !AssemblyDoc.InitNew() )
                 return false;
 
             if( !TextCommands.InitNew() )
@@ -1280,7 +1299,7 @@ namespace Monitor {
         public bool Save(BinaryWriter oWriter) {
             BbcBasic5 oBasic = new BbcBasic5();
 
-            return oBasic.IO_Tokenize( AssemblyDoc, oWriter );
+            return oBasic.IO_Tokenize( BasicDoc, oWriter );
         }
     }
 }

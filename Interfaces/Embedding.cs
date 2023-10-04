@@ -527,8 +527,11 @@ namespace Play.Interfaces.Embedding {
 		IPgAnonymousWorker CreateMorseWorker( IEnumerable<char> oText );
 	}
 
-    public interface IPgSave<T> {
+    public interface IPgSave {
         bool IsDirty { get; }
+    }
+
+    public interface IPgSave<T> : IPgSave {
         bool Save( T oStream );
     }
 
@@ -536,8 +539,7 @@ namespace Play.Interfaces.Embedding {
     /// So in the case of our directory browsers, it doesn't make sense to allow
     /// Save( string dir ) to save whatever was was being done to a DIFFERENT dir. 
     /// </summary>
-    public interface IPgSaveURL {
-        bool IsDirty { get; }
+    public interface IPgSaveURL : IPgSave {
         bool Save();
     }
 

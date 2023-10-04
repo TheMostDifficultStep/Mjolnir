@@ -236,12 +236,12 @@ namespace Monitor {
 
         protected List<Tool> _rgTools2 = new();
 
-        public BasicLineWindow( IPgViewSite oSite, MonitorDocument oDoc ) : base( oSite, oDoc.AssemblyDoc ) {
+        public BasicLineWindow( IPgViewSite oSite, MonitorDocument oDoc ) : base( oSite, oDoc.BasicDoc ) {
             Monitor = oDoc ?? throw new ArgumentNullException( ); // We'll die before reaching this... :-/
             _rgTools.Clear();
 
-            _rgTools2.Add( new Tool( "Renumber",   oDoc.Renumber ) );
-            _rgTools2.Add( new Tool( "Test" ,      oDoc.Test     ) );
+            _rgTools2.Add( new Tool( "Renumber",   oDoc.BasicDoc.Renumber ) );
+            _rgTools2.Add( new Tool( "Test" ,      oDoc.BasicDoc.Test ) );
             _rgTools2.Add( new Tool( "Dump File",  DumpBinaryFile ) );
         }
         protected override CacheManager2 CreateCacheManager(uint uiStdText) {
