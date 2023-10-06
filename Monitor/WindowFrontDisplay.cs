@@ -243,6 +243,7 @@ namespace Monitor {
             _rgTools2.Add( new Tool( "Renumber",   oDoc.BasicDoc.Renumber ) );
             _rgTools2.Add( new Tool( "Test" ,      oDoc.BasicDoc.Test ) );
             _rgTools2.Add( new Tool( "Dump File",  DumpBinaryFile ) );
+            _rgTools2.Add( new Tool( "Compile",    oDoc.BasicDoc.Compile ) );
         }
         protected override CacheManager2 CreateCacheManager(uint uiStdText) {
             return new CacheManagerBasic( new CacheManSlot(this),

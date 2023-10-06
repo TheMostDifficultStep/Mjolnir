@@ -98,7 +98,7 @@ namespace Monitor {
                 ReadOnlySpan<char> spBasic  = null; 
                 while( true ) {
                     // char[] rgLine = stackalloc char[300]
-                    // ReadOnlySpan<char> spLine = oReader.ReadLine( rgLine )
+                    // ReadOnlySpan<char> spLine = oReader.ReadLine( ref rgLine )
                     strLine = oReader.ReadLine();
 
                     if( strLine == null )
@@ -108,7 +108,7 @@ namespace Monitor {
                     // Strip the number off of the start of the string.
                     for( ; i<strLine.Length; ++i ) {
                         if( !Char.IsDigit( strLine[i] ) ) {
-                            spNumber = strLine.AsSpan().Slice(start: 0, length: i);
+                            spNumber = strLine.AsSpan()[0..i];
                             break;
                         }
                     }
@@ -319,6 +319,54 @@ namespace Monitor {
         public void Test() {
             BbcBasic5 oBasic = new BbcBasic5();
             oBasic.Test( _oSiteBase );
+        }
+
+        /// <summary>
+        /// This is a poster child for why the start event on the parser needs
+        /// to past the first state found in the parse tree.
+        /// </summary>
+        public void Compile() {
+            foreach( IColorRange oRange in this[0].Formatting ) {
+                if( oRange is MemoryState<char> oMState ) {
+                    if( string.Compare( oMState.StateName, "start", ignoreCase: true ) == 0 ) {
+                        Compile( oMState );
+                        return;
+                    }
+                }
+            }
+
+            LogError( "Problem starting compile" );
+        }
+
+        /// <summary>
+        /// This is my first attempt at a compiler. I'm going to target
+        /// my emulator. And the emulator will be roughly z-80 since I want
+        /// to target the agon in the end.
+        /// </summary>
+        /// <remarks>TODO: Make the parser return the start block!!
+        /// so we an walk the parse tree!!</remarks>
+        public void Compile( in MemoryState<char> oMStart ) {
+            Clear();
+
+            // Let's look up all the bindings just once at the start!!
+            State<char> oClassStart = _oGrammer.FindState( "start" );
+            State<char> oClassBasic = _oGrammer.FindState( "bbcbasic" );
+
+            // BUG: Would be nice if checked if any -1. Make a version that
+            // throws exception in the future!!
+            int iStart     = oClassStart.Bindings.IndexOfKey( "bbcbasic" );
+            int iStatement = oClassBasic.Bindings.IndexOfKey( "statement" );
+            int iContinue  = oClassBasic.Bindings.IndexOfKey( "bbcbasic" );
+
+            MemoryState<char> oNext = oMStart.GetState( iStart );
+            int i = 0;
+
+            while( oNext != null ) {
+                oNext = oNext.GetState( iContinue ); // Could make it array access.
+                ++i;
+            }
+
+            LogError( "Parse nodes: " + i.ToString() );
         }
     }
 

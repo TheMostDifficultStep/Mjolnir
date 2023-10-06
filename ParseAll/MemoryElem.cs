@@ -357,6 +357,26 @@ namespace Play.Parse.Impl
             return (MemoryElem<T>)_rgValues[iBinding];
         }
 
+        /// <summary>
+        /// I need this for walking the tree. Any terminal is not going
+        /// to be able to return a binding. BUT A state can, AND we need 
+        /// another state to continue tree traversal.
+        /// </summary>
+        /// <exception cref="NullReferenceException" />
+        /// <exception cref="ArgumentOutOfRangeException"/>
+        /// <exception cref="IndexOutOfRangeException" />
+        /// <exception cref="InvalidCastException" />
+        public MemoryState<T> GetState( int iBinding, int iIndex = 0 ) {
+            if( _oState.Bindings.Values[iBinding].IsArray ) {
+                if( _rgValues == null )
+                    throw new NullReferenceException( "No binding for request" );
+                ArrayList rgList = (ArrayList)_rgValues[iBinding];
+
+                return (MemoryState<T>)rgList[iIndex];
+            }
+
+            return (MemoryState<T>)_rgValues[iBinding];
+        }        
         protected struct BindingsEnumerable : IEnumerable<MemoryElem<T>> {
             readonly MemoryState<T> _oHost;
             readonly int            _iBinding;
