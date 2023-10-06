@@ -343,6 +343,15 @@ namespace Monitor {
         }
 
         /// <summary>
+        /// We'll try to make this Span based in the future. But too many changes for now.
+        /// </summary>
+        /// <returns></returns>
+        public static string GetString( LineStream oStream, MemoryElem<char> oElem ) {
+            Line oLine = oStream.SeekLine( oElem.Start, out int iLineOffset);
+            return oLine.SubString( oElem.Offset, oElem.Length );
+        }
+
+        /// <summary>
         /// This is my first attempt at a compiler. I'm going to target
         /// my emulator. And the emulator will be roughly z-80 since I want
         /// to target the agon in the end.
@@ -361,6 +370,7 @@ namespace Monitor {
             int iStatement = oClassBasic.Bindings.IndexOfKey( "statement" );
             int iContinue  = oClassBasic.Bindings.IndexOfKey( "bbcbasic" );
             int iFCallName = oClassFCall.Bindings.IndexOfKey( "procname" );
+            int iFParams   = oClassFCall.Bindings.IndexOfKey( "params" );
             
             BaseEditor.LineStream oStream   = this        .CreateStream();
             Editor.Manipulator    oMechBulk = oMachineCode.CreateManipulator();
@@ -373,8 +383,11 @@ namespace Monitor {
                     if( IsStateMatch( oStatement, "function" ) ) {
                         MemoryElem<char> oFCallName = oStatement.GetValue( iFCallName );
                         if( oFCallName != null ) {
-                            Line oLine = oStream.SeekLine( oFCallName.Start, out int iLineOffset);
-                            oMechBulk.LineAppend( oLine.SubString( oFCallName.Offset, oFCallName.Length ) );
+                            oMechBulk.LineAppend( GetString( oStream, oFCallName ) );
+
+                            foreach( MemoryElem<char> oParam in oStatement.EnumValues( iFParams ) ) {
+                                oMechBulk.LineAppend( GetString( oStream, oParam ) );
+                            }
                         }
                     }
                 }
