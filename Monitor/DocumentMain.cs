@@ -8,6 +8,7 @@ using Play.Edit;
 using Play.Parse;
 using Play.Parse.Impl;
 using Play.Integration;
+using System.CodeDom;
 
 namespace Monitor {
     public class BasicEditor : 
@@ -258,7 +259,7 @@ namespace Monitor {
             if( oFunction == null )
                 throw new ArgumentException("Can't find required state in grammar.");
 
-            int iInstr = oFunction.Bindings.IndexOfKey( "keywords" );
+            int iInstr = oFunction.Bindings.IndexOfKey( "procname" );
             int iParms = oFunction.Bindings.IndexOfKey( "number" ); // For goto & gosub
 
             if( iInstr == -1 || iParms == -1 )
@@ -321,20 +322,23 @@ namespace Monitor {
             oBasic.Test( _oSiteBase );
         }
 
+        public static bool IsStateMatch( MemoryState<char> oMState, string strName ) {
+            return string.Compare( oMState.StateName, strName, ignoreCase:true ) == 0 ;
+        }
+
         /// <summary>
         /// This is a poster child for why the start event on the parser needs
         /// to past the first state found in the parse tree.
         /// </summary>
-        public void Compile() {
+        public void Compile( Editor oMachineCode ) {
             foreach( IColorRange oRange in this[0].Formatting ) {
                 if( oRange is MemoryState<char> oMState ) {
-                    if( string.Compare( oMState.StateName, "start", ignoreCase: true ) == 0 ) {
-                        Compile( oMState );
+                    if( IsStateMatch( oMState, "start" ) ) {
+                        Compile( oMState, oMachineCode );
                         return;
                     }
                 }
             }
-
             LogError( "Problem starting compile" );
         }
 
@@ -345,24 +349,38 @@ namespace Monitor {
         /// </summary>
         /// <remarks>TODO: Make the parser return the start block!!
         /// so we an walk the parse tree!!</remarks>
-        public void Compile( in MemoryState<char> oMStart ) {
-            Clear();
-
+        public void Compile( in MemoryState<char> oMStart, in Editor oMachineCode ) {
             // Let's look up all the bindings just once at the start!!
             State<char> oClassStart = _oGrammer.FindState( "start" );
             State<char> oClassBasic = _oGrammer.FindState( "bbcbasic" );
+            State<char> oClassFCall = _oGrammer.FindState( "function" );
 
             // BUG: Would be nice if checked if any -1. Make a version that
             // throws exception in the future!!
             int iStart     = oClassStart.Bindings.IndexOfKey( "bbcbasic" );
             int iStatement = oClassBasic.Bindings.IndexOfKey( "statement" );
             int iContinue  = oClassBasic.Bindings.IndexOfKey( "bbcbasic" );
-
-            MemoryState<char> oNext = oMStart.GetState( iStart );
+            int iFCallName = oClassFCall.Bindings.IndexOfKey( "procname" );
+            
+            BaseEditor.LineStream oStream   = this        .CreateStream();
+            Editor.Manipulator    oMechBulk = oMachineCode.CreateManipulator();
+            MemoryState<char>     oNext     = oMStart     .GetState( iStart );
             int i = 0;
 
             while( oNext != null ) {
+                MemoryState<char> oStatement = oNext.GetState( iStatement );
+                if( oStatement != null ) {
+                    if( IsStateMatch( oStatement, "function" ) ) {
+                        MemoryElem<char> oFCallName = oStatement.GetValue( iFCallName );
+                        if( oFCallName != null ) {
+                            Line oLine = oStream.SeekLine( oFCallName.Start, out int iLineOffset);
+                            oMechBulk.LineAppend( oLine.SubString( oFCallName.Offset, oFCallName.Length ) );
+                        }
+                    }
+                }
+
                 oNext = oNext.GetState( iContinue ); // Could make it array access.
+
                 ++i;
             }
 
