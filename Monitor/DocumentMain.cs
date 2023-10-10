@@ -9,6 +9,8 @@ using Play.Parse;
 using Play.Parse.Impl;
 using Play.Integration;
 using System.CodeDom;
+using System.Diagnostics;
+using System.Linq.Expressions;
 
 namespace Monitor {
     public class BasicEditor : 
@@ -359,45 +361,119 @@ namespace Monitor {
         /// <remarks>TODO: Make the parser return the start block!!
         /// so we an walk the parse tree!!</remarks>
         public void Compile( in MemoryState<char> oMStart, in Editor oMachineCode ) {
-            // Let's look up all the bindings just once at the start!!
-            State<char> oClassStart = _oGrammer.FindState( "start" );
-            State<char> oClassBasic = _oGrammer.FindState( "bbcbasic" );
-            State<char> oClassFCall = _oGrammer.FindState( "function" );
+            State<char>            oClassStart = _oGrammer.FindState( "start" );
+            int                    iStart      = oClassStart.Bindings.IndexOfKey( "bbcbasic" );
+            MemoryState<char>      oStart      = oMStart  .GetState( iStart );
+            BasicEditor.LineStream oStream     = this.CreateStream();
 
-            // BUG: Would be nice if checked if any -1. Make a version that
-            // throws exception in the future!!
-            int iStart     = oClassStart.Bindings.IndexOfKey( "bbcbasic" );
-            int iStatement = oClassBasic.Bindings.IndexOfKey( "statement" );
-            int iContinue  = oClassBasic.Bindings.IndexOfKey( "bbcbasic" );
-            int iFCallName = oClassFCall.Bindings.IndexOfKey( "procname" );
-            int iFParams   = oClassFCall.Bindings.IndexOfKey( "params" );
-            
-            BaseEditor.LineStream oStream   = this        .CreateStream();
-            Editor.Manipulator    oMechBulk = oMachineCode.CreateManipulator();
-            MemoryState<char>     oNext     = oMStart     .GetState( iStart );
-            int i = 0;
+            Compiler oBuild = new Compiler( _oGrammer, oStream, oMachineCode );
 
-            while( oNext != null ) {
-                MemoryState<char> oStatement = oNext.GetState( iStatement );
+            MemoryState<char>  oNode = oBuild.GetNode( oStart );
+            while( oNode != null ) {
+                MemoryState<char> oStatement = oBuild.GetStatement( oNode );
                 if( oStatement != null ) {
                     if( IsStateMatch( oStatement, "function" ) ) {
-                        MemoryElem<char> oFCallName = oStatement.GetValue( iFCallName );
-                        if( oFCallName != null ) {
-                            oMechBulk.LineAppend( GetString( oStream, oFCallName ) );
-
-                            foreach( MemoryElem<char> oParam in oStatement.EnumValues( iFParams ) ) {
-                                oMechBulk.LineAppend( GetString( oStream, oParam ) );
-                            }
-                        }
+                        oBuild.FCallName( oStatement );
                     }
                 }
 
-                oNext = oNext.GetState( iContinue ); // Could make it array access.
+                oNode = oBuild.GetNode( oNode ); // Could make it array access.
+            }
+        }
 
-                ++i;
+        /* 
+            For example, in BNF, the classic expression grammar is:
+
+             <expr> ::= <term> "+" <expr>
+                     |  <term>
+
+             <term> ::= <factor> "*" <term>
+                     |  <factor>
+
+             <factor> ::= "(" <expr> ")"
+                       |  <const>
+
+             <const> ::= integer
+         */
+        protected class Compiler {
+            // BUG: Would be nice if checked if any -1. Make a version that
+            // throws exception in the future!!
+            int _iStart ;
+            int _iStatement;
+            int _iContinue;
+            int _iFCallName;
+            int _iFParams;
+
+            Editor.Manipulator    _oMechBulk;
+            Grammer<char>         _oGrammer;
+            BaseEditor.LineStream _oStream;
+            Editor                _oMachineCode;
+
+            public Compiler( Grammer<char>         oGrammer, 
+                             BaseEditor.LineStream oStream,
+                             Editor                oMachineCode           
+            ) { 
+                _oGrammer = oGrammer ?? throw new ArgumentNullException( nameof( oGrammer ) );
+                _oStream  = oStream  ?? throw new ArgumentNullException( nameof( oStream ) );
+
+                // Let's look up all the bindings just once at the start!!
+                State<char> oClassBasic= oGrammer.FindState( "bbcbasic" );;
+                State<char> oClassFCall= oGrammer.FindState( "function" );
+
+                // BUG: Would be nice if checked if any -1. Make a version that
+                // throws exception in the future!!
+                _iStatement = oClassBasic.Bindings.IndexOfKey( "statement" );
+                _iContinue  = oClassBasic.Bindings.IndexOfKey( "bbcbasic" );
+                _iFCallName = oClassFCall.Bindings.IndexOfKey( "procname" );
+                _iFParams   = oClassFCall.Bindings.IndexOfKey( "params" );
+            
+                _oMechBulk = oMachineCode.CreateManipulator();
+            } 
+
+            public MemoryState<char> GetNode( MemoryState<char> oCurrent ) {
+                return oCurrent.GetState( _iContinue );
             }
 
-            LogError( "Parse nodes: " + i.ToString() );
+            public MemoryState<char> GetStatement( MemoryState<char> oCurrent ) {
+                return oCurrent.GetState( _iStatement );
+            }
+
+            void LineAppend( MemoryElem<char> oElem ) {
+                _oMechBulk.LineAppend( GetString( _oStream, oElem ) );
+            }
+
+            void LineAppend( string strValue ) {
+                _oMechBulk.LineAppend( strValue );
+            }
+            /* 
+            The classic expression grammar is:
+
+            <expr>   ::= <term> "+" <expr>
+                      |  <term>
+            <term>   ::= <factor> "*" <term>
+                      |  <factor>
+            <factor> ::= "(" <expr> ")"
+                      |  <const>
+            <const>  ::= integer
+            */
+            protected string Expression( MemoryState<char> oExpression ) {
+                return string.Empty;
+            }
+
+            public void FCallName( MemoryState<char> oStatement ) {
+                MemoryElem<char> oFCallName = oStatement.GetValue( _iFCallName );
+                if( oFCallName != null ) {
+                    LineAppend( oFCallName );
+
+                    foreach( MemoryElem<char> oParam in oStatement.EnumValues( _iFParams ) ) {
+                        if( oParam is MemoryState<char> oExpression ) {
+                            LineAppend( Expression( oExpression ) );
+                        } else {
+                            LineAppend( oParam );
+                        }
+                    }
+                }
+            }
         }
     }
 
