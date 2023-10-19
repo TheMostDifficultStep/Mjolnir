@@ -572,7 +572,13 @@ namespace Mjolnir {
             {
             }
 
-            public override bool IsDirty => _oGuestSave.IsDirty;
+            public override bool IsDirty {
+                get { 
+                    if( _oGuestSave != null )
+                        return _oGuestSave.IsDirty;
+                    return false;
+                }
+            }
 
             protected override void GuestSet( IDisposable value ) {
                 base.GuestSet( value ); // mucho importante!!!
@@ -581,7 +587,7 @@ namespace Mjolnir {
                     _oGuestLoad = (IPgLoad<BinaryReader>)value;
                     _oGuestSave = value as IPgSave<BinaryWriter>; 
                 } catch( InvalidCastException oEx ) {
-                    throw new ArgumentException( "document dosen't support required interfaces.", oEx );
+                    throw new ArgumentException( "document doesn't support required interfaces.", oEx );
                 }
             }
 

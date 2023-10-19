@@ -1390,9 +1390,9 @@ namespace Monitor {
             {
                 _oBaseSite.LogError( "Save", 
                                      "Can't overwrite working file! Try another name." );
-                return false;
+                return true;
             }
-            return true;
+            return false;
         }
 
         public void SideSaveBinary( string strFileName ) {
@@ -1413,8 +1413,10 @@ namespace Monitor {
         }
 
         public void SideSaveText( string strFileName ) {
-            if( IsOverwrite( strFileName ) )
+            if( IsOverwrite( strFileName ) ) {
+                LogError( "Save", "That file exists, can't overwrite (yet)." );
                 return;
+            }
 
             try {
                 using FileStream oStream = new FileStream( strFileName,
