@@ -4,9 +4,7 @@ using Play.Edit;
 using Play.Parse.Impl;
 using Play.Parse;
 using Play.Interfaces.Embedding;
-using OpenTK.Audio.OpenAL;
-using System;
-using System.Runtime.CompilerServices;
+using Play.Parse.Impl.Text;
 
 namespace Monitor {
     /// <summary>
@@ -21,9 +19,10 @@ namespace Monitor {
         // The list of BBC BASIC V tokens:
         // Base tokens, starting at 0x7f
 
+        // So "<line no>" stands for the 8D which delineates a 3 byte number following!
         public static string[] _rgTokenStd = {
         "OTHERWISE"/* 7f */, "AND", "DIV", "EOR", "MOD", "OR", "ERROR", "LINE", "OFF", "STEP", 
-        "SPC", "TAB(", "ELSE", "THEN", "<line no>" /* TODO */, "OPENIN", "PTR","PAGE", "TIME", "LOMEM", 
+        "SPC", "TAB(", "ELSE", "THEN", "<line no>", "OPENIN", "PTR","PAGE", "TIME", "LOMEM", 
 
         "HIMEM", "ABS", "ACS", "ADVAL", "ASC","ASN", "ATN", "BGET", "COS", "COUNT", 
         "DEG", "ERL", "ERR","EVAL", "EXP", "EXT", "FALSE", "FN", "GET", "INKEY",
@@ -222,6 +221,22 @@ namespace Monitor {
         }
 
         /// <summary>
+        /// Just a little debugging tool.
+        /// </summary>
+        static string ConvToString( List<byte> rgOutput ) {
+            StringBuilder sbBuilder = new StringBuilder( rgOutput.Count );
+
+            foreach( byte bByte in rgOutput ) {
+                if( bByte < 0x7f )
+                    sbBuilder.Append( (char)bByte );
+                else
+                    sbBuilder.Append( '?' );
+            }
+
+            return sbBuilder.ToString();
+        }
+
+        /// <summary>
         /// Take the plain text bbc basic and tokenize it for binary file. 
         /// </summary>
         /// <remarks>
@@ -270,9 +285,12 @@ namespace Monitor {
                             string.Compare( oToken.ID, "keywords"  ) == 0 ||
                             string.Compare( oToken.ID, "number" ) == 0 )
                         ) { 
-                            rgTokens.Add( oToken );
-                            for( int i = oRange.Offset; i< oRange.Offset + oToken.Length; i++ ) {
-                                rgMapping[i] = rgTokens.Count; // One greater than actual index of token.
+                            // TODO: Need to be specific about what was bound...
+                            if( oToken.ProdElem is TextTermNumber oNumber ) {
+                                rgTokens.Add( oToken );
+                                for( int i = oRange.Offset; i< oRange.Offset + oToken.Length; i++ ) {
+                                    rgMapping[i] = rgTokens.Count; // One greater than actual index of token.
+                                }
                             }
                         } 
                     }
@@ -320,8 +338,10 @@ namespace Monitor {
                     byte[] rgBytes = BitConverter.GetBytes( iBasicLineNumber );
 
                     oWriter.Write( (byte)(rgOutput.Count + 4 ));
-                    oWriter.Write( (byte)rgBytes[0] ); // Low byte first.
-                    oWriter.Write( (byte)rgBytes[1] );
+                    oWriter.Write( rgBytes[0] ); // Low byte first.
+                    oWriter.Write( rgBytes[1] );
+
+                    //string strAsString = ConvToString( rgOutput ); // debug code.
 
                     foreach( byte bChar in rgOutput )
                         oWriter.Write( bChar );
@@ -385,22 +405,29 @@ namespace Monitor {
                                 oSB.Append( Convert.ToChar( rgData[i] ) );
                             }
                             break;
-                        case 0xe4: // Gosub
-                        case 0xe5: // Goto followed by Line number reference...
-                            oSB.Append( _rgTokenStd[rgData[  i] - 0x7f] ); // keyword
+                        //case 0xe4: // Gosub
+                        //case 0xe5: // Goto followed by Line number reference...
+                        //    oSB.Append( _rgTokenStd[rgData[  i] - 0x7f] ); // keyword
 
-                            while( rgData[++i] == 0x20 ) {
-                                oSB.Append( ' ' );
+                        //    while( rgData[++i] == 0x20 ) {
+                        //        oSB.Append( ' ' );
+                        //    }
+                        //    if( rgData[i] == 0x8d ) {
+                        //        ++i;
+                        //        byte[] rgNumber = new byte[3];
+                        //        for( int j=0; j<3;++j, ++i ) {
+                        //            rgNumber[j] = rgData[i];
+                        //        }
+                        //        string strGotoLine = DecodeNumber( rgNumber ).ToString();
+                        //        oSB.Append( strGotoLine ); // line number
+                        //    }
+                        //    break;
+                        case 0x8d: // Number
+                            byte[] rgNumber = new byte[3];
+                            for( int j = 0; j < 3; ++j, ++i ) {
+                                rgNumber[j] = rgData[i+1];
                             }
-                            if( rgData[i] == 0x8d ) {
-                                ++i;
-                                byte[] rgNumber = new byte[3];
-                                for( int j=0; j<3;++j, ++i ) {
-                                    rgNumber[j] = rgData[i];
-                                }
-                                string strGotoLine = DecodeNumber( rgNumber ).ToString();
-                                oSB.Append( strGotoLine ); // line number
-                            }
+                            oSB.Append( DecodeNumber(rgNumber) ); // line number
                             break;
                         default:
                             oSB.Append( _rgTokenStd[rgData[  i] - 0x7f] );
