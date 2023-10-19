@@ -403,6 +403,8 @@ namespace Monitor {
             int _iContinue;
             int _iFCallName;
             int _iFParams;
+            int _iNumber;
+            int _iFactorExp;
 
             Editor.Manipulator    _oMechBulk;
             Grammer<char>         _oGrammer;
@@ -417,15 +419,18 @@ namespace Monitor {
                 _oStream  = oStream  ?? throw new ArgumentNullException( nameof( oStream ) );
 
                 // Let's look up all the bindings just once at the start!!
-                State<char> oClassBasic= oGrammer.FindState( "bbcbasic" );;
+                State<char> oClassBasic= oGrammer.FindState( "bbcbasic" );
                 State<char> oClassFCall= oGrammer.FindState( "function" );
+                State<char> oClassFacto= oGrammer.FindState( "factor" );
 
                 // BUG: Would be nice if checked if any -1. Make a version that
                 // throws exception in the future!!
-                _iStatement = oClassBasic.Bindings.IndexOfKey( "statement" );
-                _iContinue  = oClassBasic.Bindings.IndexOfKey( "bbcbasic" );
-                _iFCallName = oClassFCall.Bindings.IndexOfKey( "procname" );
-                _iFParams   = oClassFCall.Bindings.IndexOfKey( "params" );
+                _iStatement  = oClassBasic.Bindings.IndexOfKey( "statement" );
+                _iContinue   = oClassBasic.Bindings.IndexOfKey( "bbcbasic" );
+                _iFCallName  = oClassFCall.Bindings.IndexOfKey( "procname" );
+                _iFParams    = oClassFCall.Bindings.IndexOfKey( "params" );
+                _iNumber     = oClassFacto.Bindings.IndexOfKey( "number" );
+                _iFactorExp = oClassFacto.Bindings.IndexOfKey( "factorexp" );
             
                 _oMechBulk = oMachineCode.CreateManipulator();
             } 
@@ -445,6 +450,7 @@ namespace Monitor {
             void LineAppend( string strValue ) {
                 _oMechBulk.LineAppend( strValue );
             }
+
             /* 
             The classic expression grammar is:
 
@@ -456,8 +462,25 @@ namespace Monitor {
                       |  <const>
             <const>  ::= integer
             */
-            protected string Expression( MemoryState<char> oExpression ) {
-                return string.Empty;
+            protected void Expression( MemoryState<char> oExpression ) {
+                if( IsStateMatch( oExpression, "factor" ) ) {
+                    MemoryElem<char> oNumber = oExpression.GetValue( _iNumber );
+                    if( oNumber is MemoryState<char> oNumState ) {
+                        if( IsStateMatch( oNumState, "vdecl" ) ) {
+                            LineAppend( oNumState );
+                        }
+                        if( IsStateMatch( oNumState, "built-in-function-call" ) ) {
+                            FCallName( oNumState );
+                        }
+                    } else {
+                        if( oNumber != null ) {
+                            LineAppend( oNumber );
+                        } else {
+                            MemoryState<char> oFactorExpr = oExpression.GetState( _iFactorExp );
+                            Expression( oFactorExpr );
+                        }
+                    }
+                }
             }
 
             public void FCallName( MemoryState<char> oStatement ) {
@@ -467,7 +490,7 @@ namespace Monitor {
 
                     foreach( MemoryElem<char> oParam in oStatement.EnumValues( _iFParams ) ) {
                         if( oParam is MemoryState<char> oExpression ) {
-                            LineAppend( Expression( oExpression ) );
+                            Expression( oExpression );
                         } else {
                             LineAppend( oParam );
                         }
