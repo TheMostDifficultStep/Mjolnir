@@ -405,23 +405,6 @@ namespace Monitor {
                                 oSB.Append( Convert.ToChar( rgData[i] ) );
                             }
                             break;
-                        //case 0xe4: // Gosub
-                        //case 0xe5: // Goto followed by Line number reference...
-                        //    oSB.Append( _rgTokenStd[rgData[  i] - 0x7f] ); // keyword
-
-                        //    while( rgData[++i] == 0x20 ) {
-                        //        oSB.Append( ' ' );
-                        //    }
-                        //    if( rgData[i] == 0x8d ) {
-                        //        ++i;
-                        //        byte[] rgNumber = new byte[3];
-                        //        for( int j=0; j<3;++j, ++i ) {
-                        //            rgNumber[j] = rgData[i];
-                        //        }
-                        //        string strGotoLine = DecodeNumber( rgNumber ).ToString();
-                        //        oSB.Append( strGotoLine ); // line number
-                        //    }
-                        //    break;
                         case 0x8d: // Number
                             byte[] rgNumber = new byte[3];
                             for( int j = 0; j < 3; ++j, ++i ) {
