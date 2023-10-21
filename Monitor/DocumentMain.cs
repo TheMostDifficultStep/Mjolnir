@@ -8,9 +8,6 @@ using Play.Edit;
 using Play.Parse;
 using Play.Parse.Impl;
 using Play.Integration;
-using System.CodeDom;
-using System.Diagnostics;
-using System.Linq.Expressions;
 
 namespace Monitor {
     public class BasicEditor : 

@@ -280,18 +280,18 @@ namespace Monitor {
                     short iBasicLineNumber = short.Parse( oBasicLineNumber.AsSpan );
 
                     // Map shows character token position. > 0 means it's a token.
-                    // BUG: tokenize numbers!!
+                    // Must be specific about the number binding...
                     foreach( IColorRange oRange in oLine.Formatting ) {
                         if( oRange is MemoryElem<char> oToken && (
-                            string.Compare( oToken.ID, "keywords"  ) == 0 ||
-                            string.Compare( oToken.ID, "number" ) == 0 )
+                                string.Compare( oToken.ID, "keywords"  ) == 0 ||
+                                ( string.Compare( oToken.ID, "number" ) == 0 &&
+                                  oToken.ProdElem is TextTermNumber
+                                )
+                            )
                         ) { 
-                            // TODO: Need to be specific about what was bound...
-                            if( oToken.ProdElem is TextTermNumber oNumber ) {
-                                rgTokens.Add( oToken );
-                                for( int i = oRange.Offset; i< oRange.Offset + oToken.Length; i++ ) {
-                                    rgMapping[i] = rgTokens.Count; // One greater than actual index of token.
-                                }
+                            rgTokens.Add( oToken );
+                            for( int i = oRange.Offset; i< oRange.Offset + oToken.Length; i++ ) {
+                                rgMapping[i] = rgTokens.Count; // One greater than actual index of token.
                             }
                         } 
                     }
@@ -516,17 +516,17 @@ namespace Monitor {
         /// <param name="strFileName">Source file</param>
         /// <param name="oEdit">Target editor.</param>
         public static void Dump( string strFileName, BaseEditor oEdit ) {
-            using Stream       oStream = new FileStream  ( strFileName, FileMode.Open );
-            using BinaryReader oReader = new BinaryReader( oStream,     Encoding.ASCII);
-
-            oEdit.Clear();
-
-            byte bByte;
             try {
-                Line oLine = oEdit.LineAppend( String.Empty );
-                int iIndex = 0;
+                using Stream       oStream = new FileStream  ( strFileName, FileMode.Open );
+                using BinaryReader oReader = new BinaryReader( oStream,     Encoding.ASCII);
+
+                oEdit.Clear();
+
+                Line oLine  = oEdit.LineAppend( String.Empty );
+                int  iIndex = 0;
+
                 while( true ) {
-                    bByte = oReader.ReadByte();
+                    byte bByte = oReader.ReadByte();
                     if( bByte == 0x0D ) {
                         iIndex = 0;
                         oLine = oEdit.LineAppend( "0D " );
@@ -541,7 +541,16 @@ namespace Monitor {
                         oLine.TryAppend( " " );
                     }
                 }
-            } catch( EndOfStreamException ) {
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( EndOfStreamException ),
+                                    typeof( UnauthorizedAccessException ),
+                                    typeof( NullReferenceException ),
+                                    typeof( ArgumentException ),
+                                    typeof( ArgumentNullException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
+
+                oEdit.LogError( "Problem opening or reading the file" );
             }
         }
         public void Test( IPgBaseSite oSite ) {
