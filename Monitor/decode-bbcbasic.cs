@@ -20,6 +20,7 @@ namespace Monitor {
         // Base tokens, starting at 0x7f
 
         // So "<line no>" stands for the 8D which delineates a 3 byte number following!
+        // We never replace with the text from this table in that case.
         public static string[] _rgTokenStd = {
         "OTHERWISE"/* 7f */, "AND", "DIV", "EOR", "MOD", "OR", "ERROR", "LINE", "OFF", "STEP", 
         "SPC", "TAB(", "ELSE", "THEN", "<line no>", "OPENIN", "PTR","PAGE", "TIME", "LOMEM", 
@@ -366,6 +367,8 @@ namespace Monitor {
                                     typeof( NullReferenceException ) };
                 if( rgErrors.IsUnhandled( oEx ) )
                     throw;
+
+                oEdit.LogError( "Could not tokenize stream! Save to text instead." );
             }
 
             return true;

@@ -261,7 +261,7 @@ namespace Monitor {
             if( oFunction == null )
                 throw new ArgumentException("Can't find required state in grammar.");
 
-            int iInstr = oFunction.Bindings.IndexOfKey( "procname" );
+            int iInstr = oFunction.Bindings.IndexOfKey( "keywords" );
             int iParms = oFunction.Bindings.IndexOfKey( "number" ); // For goto & gosub
 
             if( iInstr == -1 || iParms == -1 )
