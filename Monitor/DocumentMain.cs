@@ -85,6 +85,25 @@ namespace Monitor {
         }
 
         /// <summary>
+        /// Typically you'll get an error that the file is already open if it's
+        /// the file servicing our object. Not sure why since the stream should
+        /// have been closed after the load. But this makes doubly sure we're not
+        /// trying to use our own file. 
+        /// TODO: Might be nice to integrate with shell so I can check all files
+        /// in use by the shell.
+        /// </summary>
+        public bool IsOverwrite( string strFileName ) {
+            if( string.Compare( Path.Combine( _oSiteFile.FilePath, _oSiteFile.FileBase ), 
+                                strFileName, ignoreCase:true ) == 0 ) 
+            {
+                _oSiteBase.LogError( "Save", 
+                                     "Can't overwrite working file! Try another name." );
+                return true;
+            }
+            return false;
+        }
+
+        /// <summary>
         /// Load in our txt basic file. Basically "line number in digits" "space" "basic..." 
         /// </summary>
         public override bool Load( TextReader oReader ) {
@@ -146,10 +165,11 @@ namespace Monitor {
             return true;
         }
 
-        /// <remarks>
-        /// Note how I scan save using the span to write to the writer. 
-        /// </remarks>
-        public override bool Save( TextWriter oWriter ) {
+        /// <summary>
+        /// Use this function to do a side save. This does not clear the
+        /// dirty bit for document. 
+        /// </summary>
+        public bool SaveSide( TextWriter oWriter ) {
             try {
                 foreach( Line oLine in this ) {
                     if( oLine.Extra is Line oNumber ) {
@@ -181,6 +201,21 @@ namespace Monitor {
         }
 
         /// <summary>
+        /// This is how the shell saves. Only the shell should call this
+        /// function. Use SaveSide for "saveas" operations.
+        /// </summary>
+        /// <remarks>TODO: You know, this is why I should have the dirty bit saved
+        /// on the site the shell manages!! Then I wouldn't have this problem!!</remarks>
+        /// <seealso cref="SaveSide"/>
+        public override bool Save( TextWriter oWriter ) {
+            if( !SaveSide( oWriter ) )
+                return false;
+
+            _fIsDirty = false;
+            return true;
+        }
+
+        /// <summary>
         /// OUr persistant storage in the binary file case.
         /// DO NOT CALL THIS FUNCTION TO SIDE LOAD... or Edit/Insert...
         /// </summary>
@@ -204,14 +239,11 @@ namespace Monitor {
             return fReturn;
         }
 
-        public bool Save( BinaryWriter oWriter ) {
+        public bool SaveSide( BinaryWriter oWriter ) {
             try {
                 BbcBasic5 oBasic = new BbcBasic5();
 
                 oBasic.IO_Tokenize( this, oWriter );
-
-                if( _fBinaryLoaded )
-                    _fIsDirty = false;
             } catch( Exception oEx ) {
                 if( MonitorDocument._rgIOErrors.IsUnhandled( oEx ) )
                     throw;
@@ -219,6 +251,19 @@ namespace Monitor {
                 return false;
             }
 
+            return true;
+        }
+
+        /// <summary>
+        /// This is how the shell saves. Only the shell should call this
+        /// function. Use SaveSide for "saveas" operations.
+        /// </summary>
+        /// <seealso cref="SaveSide"/>
+        public bool Save( BinaryWriter oWriter ) {
+            if( !SaveSide( oWriter ) )
+                return false;
+
+            _fIsDirty = false;
             return true;
         }
 
@@ -1373,27 +1418,8 @@ namespace Monitor {
             }
         }
 
-        /// <summary>
-        /// Typically you'll get an error that the file is already open if it's
-        /// the file servicing our object. Not sure why since the stream should
-        /// have been closed after the load. But this makes doubly sure we're not
-        /// trying to use our own file. 
-        /// TODO: Might be nice to integrate with shell so I can check all files
-        /// in use by the shell.
-        /// </summary>
-        public bool IsOverwrite( string strFileName ) {
-            if( string.Compare( Path.Combine( _oFileSite.FilePath, _oFileSite.FileBase ), 
-                                strFileName, ignoreCase:true ) == 0 ) 
-            {
-                _oBaseSite.LogError( "Save", 
-                                     "Can't overwrite working file! Try another name." );
-                return true;
-            }
-            return false;
-        }
-
         public void SideSaveBinary( string strFileName ) {
-            if( IsOverwrite( strFileName ) )
+            if( BasicDoc.IsOverwrite( strFileName ) )
                 return;
 
             try {
@@ -1401,7 +1427,7 @@ namespace Monitor {
                                                            FileMode.Create, 
                                                            FileAccess.Write );
                 using BinaryWriter oWriter = new BinaryWriter( oStream, Encoding.ASCII );
-                BasicDoc.Save( oWriter );
+                BasicDoc.SaveSide( oWriter );
             } catch( Exception oEx ) {
                 if( _rgIOErrors.IsUnhandled( oEx ) )
                     throw;
@@ -1410,7 +1436,7 @@ namespace Monitor {
         }
 
         public void SideSaveText( string strFileName ) {
-            if( IsOverwrite( strFileName ) ) {
+            if( BasicDoc.IsOverwrite( strFileName ) ) {
                 LogError( "Save", "That file exists, can't overwrite (yet)." );
                 return;
             }
@@ -1420,7 +1446,7 @@ namespace Monitor {
                                                            FileMode.Create, 
                                                            FileAccess.Write );
                 using TextWriter oWriter = new StreamWriter( oStream, Encoding.UTF8 );
-                Save( oWriter );
+                BasicDoc.SaveSide( oWriter );
             } catch( Exception oEx ) {
                 if( _rgIOErrors.IsUnhandled( oEx ) )
                     throw;
@@ -1485,9 +1511,7 @@ namespace Monitor {
         /// <seealso cref="SideSaveBinary(string)"/>
         /// <seealso cref="SideSaveText(string)"/>
         public bool Save(BinaryWriter oWriter) {
-            BbcBasic5 oBasic = new BbcBasic5();
-
-            return oBasic.IO_Tokenize( BasicDoc, oWriter );
+            return BasicDoc.Save( oWriter );
         }
     }
 }
