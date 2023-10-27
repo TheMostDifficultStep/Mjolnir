@@ -93,7 +93,7 @@ namespace Monitor {
         /// in use by the shell.
         /// </summary>
         public bool IsOverwrite( string strFileName ) {
-            if( string.Compare( Path.Combine( _oSiteFile.FilePath, _oSiteFile.FileBase ), 
+            if( string.Compare( _oSiteFile.FilePath, 
                                 strFileName, ignoreCase:true ) == 0 ) 
             {
                 _oSiteBase.LogError( "Save", 
@@ -690,7 +690,7 @@ namespace Monitor {
 
             public string FilePath => _oHost._oFileSite.FilePath;
 
-            public string FileBase => _oHost._oFileSite.FileBase;
+            public string FileName => _oHost._oFileSite.FileName;
         }
 
         public class ProgramFile : Editor {
@@ -1397,7 +1397,7 @@ namespace Monitor {
                 oSave.Filter       = "BBC Binary|*.bbc|Basic Binary|*.bas|Text File|*.btx";
                 oSave.Title        = "Save Basic File";
                 oSave.AddExtension = true;
-                oSave.FileName     = Path.GetFileNameWithoutExtension( _oFileSite.FileBase );
+                oSave.FileName     = Path.GetFileNameWithoutExtension( _oFileSite.FileName );
                 oSave.FilterIndex  = BinaryLoaded ? 3 : 1; // opposite type we are persisted as.
                 
                 if( oSave.ShowDialog() == DialogResult.OK ) {

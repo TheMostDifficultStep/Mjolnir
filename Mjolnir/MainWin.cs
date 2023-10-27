@@ -253,7 +253,8 @@ namespace Mjolnir {
             public IDisposable    Document   => _oGuest;
             public bool           IsDirty    => false;
             public string         Title      => "View Selector";
-            public string         FileName   => string.Empty;
+            public string         FilePath   => string.Empty;
+            public string         FileDir    => string.Empty;
             public IPgController2 Controller => _oController;
 
             public IEnumerable<IPgViewType> ViewTypes => _oController;
@@ -999,10 +1000,10 @@ namespace Mjolnir {
         public void OnSessionView( object sender, EventArgs e ) {
             Program.TextSlot oSessionSlot = Document.SessionSlot; 
             if( _oDoc_ViewSelector.FindFirstView( oSessionSlot ) == null ) {
-                if( string.IsNullOrEmpty( oSessionSlot.FileName ) )
+                if( string.IsNullOrEmpty( oSessionSlot.FilePath ) )
                     LogError( oSessionSlot, "host", "The current session has not been persisted." );
                 else
-                    DocumentShow( oSessionSlot.FileName );
+                    DocumentShow( oSessionSlot.FilePath );
             }
         }
 
@@ -1302,6 +1303,9 @@ namespace Mjolnir {
             if( _oSelectedWinSite != null ) {
                 DataObject oDataObject  = new DataObject();
 				try {
+                    // BUG. Get the file name directly from the doc site instead
+                    //      of assuming that this is a real DOS path. b/c this is
+                    //      not reliable if the path is ONLY a path and no Filename.
 					oDataObject.SetData( Path.GetFileName( _oSelectedWinSite.FileName ) );
 					Clipboard.SetDataObject( oDataObject );
 				} catch( ArgumentException ) {
@@ -1314,7 +1318,7 @@ namespace Mjolnir {
             if( _oSelectedWinSite != null ) {
                 DataObject oDataObject  = new DataObject();
 				try {
-					oDataObject.SetData( Path.GetDirectoryName( _oSelectedWinSite.FileName ) );
+					oDataObject.SetData( _oSelectedWinSite.FileDir );
 					Clipboard.SetDataObject( oDataObject );         
 				} catch( ArgumentException ) {
 					_oSelectedWinSite.LogError( "clipboard", "Malformed directory path." );
@@ -2146,7 +2150,7 @@ namespace Mjolnir {
                 if( rgErr.IsUnhandled( oEx ) ) 
 					throw;
 
-                LogError( null, "view", "unable to create new view on document : " + oDocSlot.FileName );
+                LogError( null, "view", "unable to create new view on document : " + oDocSlot.FilePath );
 				// BUG: It's possible the document remains open with no view if the view create fails!
                 //      6/17/2020: I've got the ViewBookmark there. I should try creating one!
                 return null;

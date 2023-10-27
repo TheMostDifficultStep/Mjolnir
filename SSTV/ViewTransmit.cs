@@ -460,7 +460,7 @@ namespace Play.SSTV {
 
             public string FilePath => _oHost._oDocSSTV.Properties[SSTVProperties.Names.Rx_SaveDir];
 
-            public string FileBase => String.Empty;
+            public string FileName => String.Empty;
         }
 
         public ViewTransmitDeluxe( IPgViewSite oSiteView, DocSSTV oDocSSTV )  {

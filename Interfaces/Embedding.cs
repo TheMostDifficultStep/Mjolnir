@@ -242,7 +242,7 @@ namespace Play.Interfaces.Embedding {
         FILESTATS FileStatus   { get; }
         Encoding  FileEncoding { get; }
 		string    FilePath     { get; } // Path only.
-        string    FileBase     { get; } // File name plus extention. No path.
+        string    FileName     { get; } // File name plus extention. No path.
     }
 
     public enum FILESTATS {

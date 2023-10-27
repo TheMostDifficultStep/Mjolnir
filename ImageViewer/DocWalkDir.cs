@@ -569,6 +569,12 @@ namespace Play.ImageViewer {
             return true;
         }
 
+        /// <summary>
+        /// Would be nice if we save the path with this object, somehow. But the
+        /// normal TestSite saves to a file and all we want to do here is save the
+        /// URL in a session file!!
+        /// </summary>
+        /// <seealso cref="Program.DirBrowserSlot.Save( bool )"/>
         public override bool Save() {
             // A little risky to depend on the dirty flag. But these are afterall, just thumnails.
             if( _fDirtyThumbs ) {

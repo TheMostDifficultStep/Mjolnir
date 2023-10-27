@@ -655,7 +655,7 @@ namespace Play.ImageViewer {
 			public IPgParent Host       => _oDoc;
 			public FILESTATS FileStatus => FILESTATS.UNKNOWN;
 			public string    FilePath   => string.Empty;
-            public string    FileBase   => string.Empty;
+            public string    FileName   => string.Empty;
 
 			public virtual Encoding FileEncoding => Encoding.Default;
 		}
@@ -724,12 +724,12 @@ namespace Play.ImageViewer {
 
                 sbBuilder.Append( CurrentFileName );
                 sbBuilder.Append(  " @ " );
-                if( string.IsNullOrEmpty( _oSiteFile.FileBase ) ) {
+                if( string.IsNullOrEmpty( _oSiteFile.FileName ) ) {
                     sbBuilder.Append( "Unnamed Scraps File" );
                 } else {
                     sbBuilder.Append( _oSiteFile.FilePath );
                     sbBuilder.Append( Path.DirectorySeparatorChar );
-                    sbBuilder.Append( _oSiteFile.FileBase );
+                    sbBuilder.Append( _oSiteFile.FileName );
                 }
 
                 return sbBuilder.ToString();
@@ -871,6 +871,10 @@ namespace Play.ImageViewer {
             }
         }
 
+        /// <summary>
+        /// Unlike the ImageWalkerDir, here we actualy want to save
+        /// our contents out as a file!!
+        /// </summary>
         public bool Save(TextWriter oStream) {
             FileList.Save( oStream );
             _fDirtyDoc = false;

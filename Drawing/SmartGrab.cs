@@ -574,26 +574,29 @@ namespace Play.Rectangles
 			_pntLastMove.X = iX;
 			_pntLastMove.Y = iY;
 
-            iX += _pntOffset.X;
-            iY += _pntOffset.Y;
+            SKPointI pntTarget = new SKPointI(  iX + _pntOffset.X, iY + _pntOffset.Y );
 
             if( _rcViewBounds == null ) {
-                SetPoint( iX, iY );
+                SetPoint( pntTarget.X, pntTarget.Y );
                 return;
             }
 
             // So we need to check the WHOLE rect when dragging from the CENTER
             // and moving the whole object instead of just an edge or corner!!
             _rcTemp.Copy = Guest;
-            _rcTemp.SetPoint(_eStretch, _eEdges, iX, iY);
+            //_rcTemp.SetPoint(_eStretch, _eEdges, pntTarget.X, pntTarget.Y);
 
-            if( _rcViewBounds.IsInside( _rcTemp ) ) {
-                //this.Copy = _oGuest.Outer; // Copy current guest size/position.
- 
-                Guest.Copy = _rcTemp;
+            if( _rcTemp.Top <= _rcViewBounds.Top )
+                pntTarget.Y = _rcViewBounds.Top;
+            if( _rcTemp.Bottom >= _rcViewBounds.Bottom )
+                pntTarget.Y = _rcViewBounds.Bottom;
+            if( _rcTemp.Left <= _rcViewBounds.Left )
+                pntTarget.X = _rcViewBounds.Left;
+            if( _rcTemp.Right >= _rcViewBounds.Right )
+                pntTarget.X = _rcViewBounds.Right;
 
-                //this.Union(_oGuest.Outer); // Union with new size/position to get a dirty rect.
-            }
+            _rcTemp.SetPoint( _eStretch, _eEdges, pntTarget.X, pntTarget.Y );
+            Guest.Copy = _rcTemp;
         }
 
         /// <summary>

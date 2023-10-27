@@ -520,7 +520,7 @@ namespace Play.MusicWalker {
 			//}
 		}
 
-		public string FileBase => _oSiteFile.FileBase;
+		public string FileBase => _oSiteFile.FileName;
 
 		/// <exception cref="InvalidOperationException" />
 		public Stream GetEmbedding( string strResource ) {

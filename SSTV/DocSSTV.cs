@@ -328,7 +328,7 @@ namespace Play.SSTV {
 
 			public DocSlot( DocSSTV oHost, string strFileBase = "Not Implemented" ) {
 				_oHost = oHost ?? throw new ArgumentNullException( "Host" );
-                FileBase = strFileBase ?? throw new ArgumentNullException("File base string" );
+                FileName = strFileBase ?? throw new ArgumentNullException("File base string" );
 			}
 
 			public IPgParent Host => _oHost;
@@ -345,7 +345,7 @@ namespace Play.SSTV {
             public FILESTATS FileStatus   => FILESTATS.READONLY;
             public Encoding  FileEncoding => Encoding.Default;
             public string    FilePath     => "Not Implemented";
-            public string    FileBase     { get; protected set; }
+            public string    FileName     { get; protected set; }
 		}
 
         protected readonly IPgBaseSite       _oSiteBase;

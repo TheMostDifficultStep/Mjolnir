@@ -8,6 +8,7 @@ using System.Reflection;
 
 using Play.Interfaces.Embedding; 
 using Play.Parse.Impl;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.Window;
 
 namespace Mjolnir {
     /// <summary>
@@ -27,7 +28,12 @@ namespace Mjolnir {
         bool        Save( bool fNewLocation );
         void        Dispose();
         string      Title     { get; } // Slightly redundant, but more flexible than FileName. Do not use for Views. (they have their own system)
-        string      FileName  { get; }
+        /// <summary>
+        /// Full file name path, dir and ext. Don't want to be using for session
+        /// save. Only titles, but I'm trying to sort that out.
+        /// </summary>
+        string      FilePath  { get; }
+        string      FileDir   { get; }
         int         Reference { get; set; }
         bool        InitNew();
         bool        Load( string strFileName ); // Kinda limits us to file types. But it's all the shell really supports anyway.
@@ -49,8 +55,11 @@ namespace Mjolnir {
             protected IDisposable _oGuestDispose;
 
             protected int       _iReferences = 0;
-            protected string    _strFileName = string.Empty;
+            protected string    _strFileName = string.Empty; // Just file name if available.
+            protected string    _strFilePath = string.Empty; // Full path and name.
+            protected string    _strFileDir  = string.Empty; // Just the path w/ no filename.
             protected FILESTATS _eFileStats  = FILESTATS.UNKNOWN;
+
             protected readonly string _strFileExt;
 
 			public static readonly Type[] _rgFileErrors = { 
@@ -101,25 +110,27 @@ namespace Mjolnir {
             public string LastPath {
                 get {
                     // If we've got a filename try that path first. 
-                    if( string.IsNullOrEmpty( FileName ) || 
-                        string.IsNullOrEmpty( Path.GetFileNameWithoutExtension( FileName ) ) ) 
+                    if( string.IsNullOrEmpty( FilePath ) || 
+                        string.IsNullOrEmpty( Path.GetFileNameWithoutExtension( FilePath ) ) ) 
                     {
-                        return( _oHost.LastPath );
+                        return _oHost.LastPath;
                     }
 
-                    return( Path.GetDirectoryName( FileName ) );
+                    return FileDir;
                 }
             }
+
+            public virtual string FileDir => _strFileDir;
 
             protected bool CheckLocation( bool fNewLocation ) {
                 string strLastPath = _oHost.LastPath;
 
                 // If we've got a filename try that path first. 
-                if( string.IsNullOrEmpty( FileName ) || 
-                    string.IsNullOrEmpty( Path.GetFileNameWithoutExtension( FileName ) ) )
+                if( string.IsNullOrEmpty( FilePath ) || 
+                    string.IsNullOrEmpty( Path.GetFileNameWithoutExtension( FilePath ) ) )
                     fNewLocation = true;
                 else
-                    strLastPath = Path.GetDirectoryName( FileName );
+                    strLastPath = Path.GetDirectoryName( FilePath );
 
                 if( fNewLocation == true ) {
                     SaveFileDialog oDialog = new SaveFileDialog();
@@ -132,7 +143,7 @@ namespace Mjolnir {
                         return( false );
                     }
 
-                    FileName = oDialog.FileName;
+                    FilePath = oDialog.FileName;
                 }
 
                 return( true );
@@ -231,35 +242,51 @@ namespace Mjolnir {
                 LogError( "alert", strMessage );
             }
 
-			public string FilePath {
+            /// <summary>
+            /// Just the file name. No path.
+            /// </summary>
+            public string FileName {
 				get { 
 					try {
-						return( Path.GetDirectoryName( FileName ) ); 
+						return _strFileName; 
 					} catch( NullReferenceException ) {
-						return( string.Empty );
-					}
-				}
-			}
-
-            public string FileBase {
-				get { 
-					try {
-						return( Path.GetFileName( FileName ) ); 
-					} catch( NullReferenceException ) {
-						return( string.Empty );
+						return string.Empty;
 					}
 				}
             }
 
-            public virtual string FileName {
+            /// <summary>
+            /// Full file name and path! Use for titles and such. DO NOT
+            /// USE for opening files.
+            /// </summary>
+            /// <seealso cref="FileName"/>
+            /// <seealso cref="FilePath"/>
+            /// <seealso cref="FileDir"/>
+            public virtual string FilePath {
                 get {
-                    return( _strFileName );
+                    try {
+                        return _strFilePath;
+                    } catch( NullReferenceException ) {
+                        return string.Empty;
+                    }
                 }
 
                 set {
-                    if( !string.IsNullOrEmpty( value ) ) {
-                        _strFileName = value;
+                    FileInfo oFileInfo = new FileInfo( value );
+                    if( oFileInfo.Exists ) {
+                        _strFileName = oFileInfo.Name;
+                        _strFileDir  = oFileInfo.DirectoryName;
+                    } else {
+                        _strFileName = string.Empty;
+                        _strFileDir  = oFileInfo.FullName;
                     }
+                    // We cache this b/c it get's called a lot for
+                    // the view's title bar.
+                    _strFilePath = oFileInfo.FullName;
+
+                    //if( !string.IsNullOrEmpty( value ) ) {
+                    //    _strFileName = value;
+                    //}
                 }
             }
 
@@ -292,9 +319,9 @@ namespace Mjolnir {
             /// </summary>
 			public virtual string Title {
                 get {
-                    StringBuilder sbTitle = new StringBuilder( FileName );
+                    StringBuilder sbTitle = new StringBuilder( FilePath );
 
-                    if( string.IsNullOrEmpty( FileName ) ) {
+                    if( string.IsNullOrEmpty( FilePath ) ) {
                         NewFileTitleAppend( sbTitle );
                     }
 
@@ -380,10 +407,10 @@ namespace Mjolnir {
                 }
             }
 
-            public override string FileName {
+            public override string FilePath {
                 set {
                     if( !string.IsNullOrEmpty( value ) ) {
-                        _strFileName = value;
+                        _strFilePath = value;
                         _oHost.Raise_UpdateTitles( this );
                     }
                 }
@@ -436,7 +463,7 @@ namespace Mjolnir {
                 try {
                     // Note: By default StreamWriter closes a stream when provided. Newer versions of .net provide leaveOpen flag.
                     //       Let's just use streamwriter with filename direcly since we're not dealing with binary objects yet. 
-                    using( StreamWriter oWriter = new StreamWriter( FileName, false, _oEncoding ) ) {
+                    using( StreamWriter oWriter = new StreamWriter( FilePath, false, _oEncoding ) ) {
                         fSaved = _oGuestSave.Save( oWriter );
 						oWriter.Flush();
                     }
@@ -501,7 +528,7 @@ namespace Mjolnir {
                     // Overridable versions of StreamReader can prevent that in higher versions of .net
                     using( StreamReader oReader = new StreamReader( oByteStream, utf8NoBom ) ) {
                         try {
-							FileName = oFile.FullName; // Guests sometimes need this when loading.
+							FilePath = oFile.FullName; // Guests sometimes need this when loading.
 
 							if( oFile.IsReadOnly )
 								_eFileStats = FILESTATS.READONLY;
@@ -636,12 +663,10 @@ namespace Mjolnir {
                     FileInfo oFile = new FileInfo(strFileName);
 
                     FileStream oByteStream = oFile.OpenRead(); 
-                    // BUG: Need to get the directory path!!
-                    //_strFilePath = oFile.DirectoryName;
 
                     using( BinaryReader oReader = new BinaryReader( oByteStream ) ) {
                         try {
-							FileName = oFile.FullName; // Guests sometimes need this when loading.
+							FilePath = oFile.FullName; // Guests sometimes need this when loading.
 
 							if( oFile.IsReadOnly )
 								_eFileStats = FILESTATS.READONLY;
@@ -683,7 +708,7 @@ namespace Mjolnir {
                 bool fSaved = false;
 
                 try {
-                    FileInfo   oFile       = new FileInfo(FileName);
+                    FileInfo   oFile       = new FileInfo(FilePath);
                     FileStream oByteStream = oFile.OpenWrite(); 
 
                     oByteStream.SetLength( 0 ); // the best way? :-/
@@ -703,14 +728,14 @@ namespace Mjolnir {
 
                 return fSaved;
             }
-            public override string FileName {
-                set {
-                    if( !string.IsNullOrEmpty( value ) ) {
-                        _strFileName = value;
-                        _oHost.Raise_UpdateTitles( this );
-                    }
-                }
-            }
+            //public override string FileName {
+            //    set {
+            //        if( !string.IsNullOrEmpty( value ) ) {
+            //            _strFileName = value;
+            //            _oHost.Raise_UpdateTitles( this );
+            //        }
+            //    }
+            //}
         }
 
         /// <summary>
@@ -812,7 +837,7 @@ namespace Mjolnir {
             /// </summary>
             public override string Title {
                 get {
-					string strFileOnly = Path.GetFileName( FileName );
+					string strFileOnly = FileName;
 
 					if( string.IsNullOrEmpty( strFileOnly ) )
 						return( string.Empty );
@@ -833,7 +858,7 @@ namespace Mjolnir {
 			/// </summary>
 			public override bool IsDirty {
 				get {
-					return _oHost.IsDirty && !string.IsNullOrEmpty( FileName );
+					return _oHost.IsDirty && !string.IsNullOrEmpty( FilePath );
 				}
 			}
 		}
@@ -859,10 +884,17 @@ namespace Mjolnir {
             /// a path and may return string empty. We should save the path independently
             /// of the object just in case of this problem.
             /// </summary>
-			public override string FileName { 
+			public override string FilePath { 
 				get { return( _oGuestLoad.CurrentURL ); } 
-				set => base.FileName = value; 
+				set => base.FilePath = value; 
 			}
+
+            /// <summary>
+            /// So this is interesting. The directory walker can change directories.
+            /// So Just override FileDir for now. Now that I have the Directory check
+            /// on the text object, I might be able to remove this somehow? Not sure.
+            /// </summary>
+            public override string FileDir => _oGuestLoad.CurrentURL;
 
             /// <summary>
             /// Basically any object here must support the Load/Save URL interfaces.
@@ -873,20 +905,6 @@ namespace Mjolnir {
 
                 _oGuestLoad = (IPgLoadURL)value;
                 _oGuestSave = (IPgSaveURL)value;
-            }
-
-            // TODO : Look at this. The filename saved should just be a directory.
-            public string LastPath {
-                get {
-                    // If we've got a filename try that path first. 
-                    if( string.IsNullOrEmpty( FileName ) || 
-                        string.IsNullOrEmpty( Path.GetFileNameWithoutExtension( FileName ) ) ) 
-                    {
-                        return( _oHost.LastPath );
-                    }
-
-                    return( Path.GetDirectoryName( FileName ) );
-                }
             }
 
             public override bool InitNew() {
@@ -900,7 +918,7 @@ namespace Mjolnir {
             /// save via this object.
             /// </summary>
             public override bool Load( string strFileName ) {
-                FileName = strFileName; 
+                FilePath = strFileName; 
 
                 return _oGuestLoad.LoadURL( strFileName );
             }

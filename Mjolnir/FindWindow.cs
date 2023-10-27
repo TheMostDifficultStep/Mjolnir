@@ -11,6 +11,7 @@ using Play.Forms;
 using Play.Integration;
 using Play.Rectangles;
 using Play.Parse.Impl;
+using System.IO;
 
 namespace Mjolnir {
     /// <remarks>
@@ -341,7 +342,13 @@ namespace Mjolnir {
             Regex oReg = null;
             try {
                 oReg = new Regex( strFind, eOpts );
-            } catch( ArgumentException ) {
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( ArgumentException ),
+                                    typeof( ArgumentNullException ),
+                                    typeof( FileNotFoundException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
+
                 _oWinMain.LogError( null, "search", "Problem with regex search string" );
                 yield break;
             }

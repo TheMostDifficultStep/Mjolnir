@@ -79,13 +79,14 @@ namespace Mjolnir {
             public XmlSlot( Program oProgram, string strControllerExtn, string strName ) : 
                 base( oProgram, oProgram.GetController( strControllerExtn ), strControllerExtn ) 
             {
-                _strFileName = strName;
+                //CheckLocation( true ); Need do do something like this...
+                _strFilePath = strName;
             }
 
             public XmlSlot( Program oProgram, IPgController2 oController ) : 
                 base( oProgram, oController, string.Empty ) 
             {
-                _strFileName = string.Empty;
+                _strFilePath = string.Empty;
             }
 
             protected override void GuestSet( IDisposable value ) {
@@ -199,7 +200,7 @@ namespace Mjolnir {
             public ComplexXmlSlot( Program oProgram ) : 
                 base( oProgram, new ControllerForTopLevelWindows( oProgram ), ".finddialog" ) 
             {
-                _strFileName = "Find Dialog";
+                _strFilePath = "Find Dialog";
             }
 
             public override bool InitNew() {

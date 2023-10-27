@@ -838,11 +838,11 @@ namespace Mjolnir {
 
             foreach( IDocSlot oDocSite in DocSlots ) {
                 // If It doesn't have a file name I'm just dropping it from the session.
-                if( !string.IsNullOrEmpty( oDocSite.FileName ) ) {
+                if( !string.IsNullOrEmpty( oDocSite.FilePath ) ) {
                     XmlElement xmlFile = xmlRoot.CreateElement( "FileName" );
 
 					xmlFile.SetAttribute( "docid", oDocSite.ID.ToString() );
-                    xmlFile.InnerText = oDocSite.FileName;
+                    xmlFile.InnerText = oDocSite.FilePath;
 
                     xmlDocs.AppendChild( xmlFile );
                 }
@@ -901,7 +901,7 @@ namespace Mjolnir {
                     oSite.Save(false);
             }
             // Only save session it if it's got a file name. If not then don't bother the user.
-            if( !string.IsNullOrEmpty( _oDocSite_Session.FileName ) && _oDocSite_Session.IsDirty ) {
+            if( !string.IsNullOrEmpty( _oDocSite_Session.FilePath ) && _oDocSite_Session.IsDirty ) {
                 _oDocSite_Session.Save(false);
             }
         }
@@ -1066,16 +1066,16 @@ namespace Mjolnir {
 
             // Note: If the object has a problem with the load and doesn't store the Filename,
             //       we can get an empty string here... 
-			if( !string.IsNullOrEmpty(oDocSite.FileName) ) {
+			if( !string.IsNullOrEmpty(oDocSite.FilePath) ) {
 				bool fFound = false;
                 foreach( Line oLine in _oDoc_Recents ) {
-                    if( oLine.Compare( oDocSite.FileName, IgnoreCase:true ) == 0 ) {
+                    if( oLine.Compare( oDocSite.FilePath, IgnoreCase:true ) == 0 ) {
                         fFound = true;
                         break;
                     }
                 }
 				if( !fFound  ) {
-					_oDoc_Recents.LineInsert( oDocSite.FileName );
+					_oDoc_Recents.LineInsert( oDocSite.FilePath );
 				}
 			}
 

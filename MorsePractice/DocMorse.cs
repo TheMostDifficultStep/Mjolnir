@@ -73,7 +73,7 @@ namespace Play.MorsePractice {
             FILESTATS IPgFileSite.FileStatus   => _oHost._oSiteFile.FileStatus;
             Encoding  IPgFileSite.FileEncoding => _oHost._oSiteFile.FileEncoding;
             string    IPgFileSite.FilePath     => _oHost._oSiteFile.FilePath;
-            string    IPgFileSite.FileBase     => _oHost._oSiteFile.FileBase + " / " + _strName;
+            string    IPgFileSite.FileName     => _oHost._oSiteFile.FileName + " / " + _strName;
 		}
 
 		readonly string      _strMorseTable = @"Play.MorsePractice.Content.international-morse-code.txt";
@@ -229,7 +229,7 @@ namespace Play.MorsePractice {
             FILESTATS IPgFileSite.FileStatus   => _oHost._oSiteFile.FileStatus;
             Encoding  IPgFileSite.FileEncoding => _oHost._oSiteFile.FileEncoding;
             string    IPgFileSite.FilePath     => _oHost._oSiteFile.FilePath;
-            string    IPgFileSite.FileBase     => _oHost._oSiteFile.FileBase + " / " + _strName;
+            string    IPgFileSite.FileName     => _oHost._oSiteFile.FileName + " / " + _strName;
 		}
 
 		readonly IPgBaseSite _oSiteBase;

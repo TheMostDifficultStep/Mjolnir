@@ -153,7 +153,7 @@ namespace Play.Edit {
             Encoding IPgFileSite.FileEncoding => Encoding.UTF8;
 
             string IPgFileSite.FilePath => "Foo";
-            string IPgFileSite.FileBase => "Bar";
+            string IPgFileSite.FileName => "Bar";
 
             public void LogError(string strMessage, string strDetails, bool fShow=true) {
 				_oHost._oSiteBase.LogError( strMessage, strDetails, fShow );
@@ -394,7 +394,7 @@ namespace Play.Edit {
 		public string FileBase {
 			get { 
                 if( _oSiteFile != null )
-					return _oSiteFile.FileBase; 
+					return _oSiteFile.FileName; 
 
                 return string.Empty;
 			}
