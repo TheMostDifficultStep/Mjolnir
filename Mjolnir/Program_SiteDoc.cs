@@ -263,14 +263,6 @@ namespace Mjolnir {
             /// <seealso cref="FilePath"/>
             /// <seealso cref="FileDir"/>
             public virtual string FilePath {
-                get {
-                    try {
-                        return _strFilePath;
-                    } catch( NullReferenceException ) {
-                        return string.Empty;
-                    }
-                }
-
                 set {
                     FileInfo oFileInfo = new FileInfo( value );
                     if( oFileInfo.Exists ) {
@@ -287,6 +279,14 @@ namespace Mjolnir {
                     //if( !string.IsNullOrEmpty( value ) ) {
                     //    _strFileName = value;
                     //}
+                }
+
+                get {
+                    try {
+                        return _strFilePath;
+                    } catch( NullReferenceException ) {
+                        return string.Empty;
+                    }
                 }
             }
 
@@ -407,10 +407,14 @@ namespace Mjolnir {
                 }
             }
 
+            /// <summary>
+            /// TODO: I probably can move the Raise_UpdateTitles() to the base. But let's 
+            /// leave it for now.
+            /// </summary>
             public override string FilePath {
                 set {
                     if( !string.IsNullOrEmpty( value ) ) {
-                        _strFilePath = value;
+                        base.FilePath = value;
                         _oHost.Raise_UpdateTitles( this );
                     }
                 }
