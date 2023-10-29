@@ -524,16 +524,9 @@ namespace Mjolnir {
 			}
         }
 
-        // TODO: Figure out how to pass the filename back on a per view basis.
-        // BUG: This might be wrong...
-        public virtual string FileName => _oDocSite.FilePath;
-
-        /// <summary>
-        /// Unlike FileName which is the full path. This is the verified
-        /// directory to the file. It will never include the file name.
-        /// </summary>
-        /// <seealso cref="FileName"/>
-        public virtual string FileDir => _oDocSite.FileDir;
+        public virtual string FileName => _oDocSite.FileName;
+        public virtual string FilePath => _oDocSite.FilePath;
+        public virtual string FileDir  => _oDocSite.FileDir;
 
         /// <summary>
         /// Request the shell to create a new view on this view's document.

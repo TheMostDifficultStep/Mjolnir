@@ -255,6 +255,7 @@ namespace Mjolnir {
             public string         Title      => "View Selector";
             public string         FilePath   => string.Empty;
             public string         FileDir    => string.Empty;
+            public string         FileName   => string.Empty;
             public IPgController2 Controller => _oController;
 
             public IEnumerable<IPgViewType> ViewTypes => _oController;
@@ -1306,7 +1307,7 @@ namespace Mjolnir {
                     // BUG. Get the file name directly from the doc site instead
                     //      of assuming that this is a real DOS path. b/c this is
                     //      not reliable if the path is ONLY a path and no Filename.
-					oDataObject.SetData( Path.GetFileName( _oSelectedWinSite.FileName ) );
+					oDataObject.SetData( _oSelectedWinSite.FileName );
 					Clipboard.SetDataObject( oDataObject );
 				} catch( ArgumentException ) {
 					_oSelectedWinSite.LogError( "clipboard", "Malformed file name." );
@@ -1330,7 +1331,7 @@ namespace Mjolnir {
             if( _oSelectedWinSite != null ) {
                 DataObject oDataObject  = new DataObject();
 
-                oDataObject.SetData( _oSelectedWinSite.FileName );
+                oDataObject.SetData( _oSelectedWinSite.FilePath );
                 Clipboard.SetDataObject( oDataObject );                
             }
         }

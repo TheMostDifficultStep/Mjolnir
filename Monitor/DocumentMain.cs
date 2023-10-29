@@ -451,7 +451,6 @@ namespace Monitor {
             Editor.Manipulator    _oMechBulk;
             Grammer<char>         _oGrammer;
             BaseEditor.LineStream _oStream;
-            Editor                _oMachineCode;
 
             public Compiler( Grammer<char>         oGrammer, 
                              BaseEditor.LineStream oStream,
@@ -459,6 +458,9 @@ namespace Monitor {
             ) { 
                 _oGrammer = oGrammer ?? throw new ArgumentNullException( nameof( oGrammer ) );
                 _oStream  = oStream  ?? throw new ArgumentNullException( nameof( oStream ) );
+
+                if( oMachineCode == null )
+                    throw new ArgumentNullException( "Machine code file" );
 
                 // Let's look up all the bindings just once at the start!!
                 State<char> oClassBasic= oGrammer.FindState( "bbcbasic" );
@@ -472,7 +474,7 @@ namespace Monitor {
                 _iFCallName  = oClassFCall.Bindings.IndexOfKey( "procname" );
                 _iFParams    = oClassFCall.Bindings.IndexOfKey( "params" );
                 _iNumber     = oClassFacto.Bindings.IndexOfKey( "number" );
-                _iFactorExp = oClassFacto.Bindings.IndexOfKey( "factorexp" );
+                _iFactorExp  = oClassFacto.Bindings.IndexOfKey( "factorexp" );
             
                 _oMechBulk = oMachineCode.CreateManipulator();
             } 

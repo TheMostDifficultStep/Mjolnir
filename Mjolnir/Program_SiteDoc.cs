@@ -33,7 +33,16 @@ namespace Mjolnir {
         /// save. Only titles, but I'm trying to sort that out.
         /// </summary>
         string      FilePath  { get; }
+        /// <summary>
+        /// This is the verified
+        /// directory to the file. It will never include the a file name.
+        /// in the case that the file has no extension.
+        /// </summary>
         string      FileDir   { get; }
+        /// <summary>
+        /// This is only the name of the file. Even if it has no extension.
+        /// </summary>
+        string      FileName  { get; }
         int         Reference { get; set; }
         bool        InitNew();
         bool        Load( string strFileName ); // Kinda limits us to file types. But it's all the shell really supports anyway.
@@ -56,8 +65,8 @@ namespace Mjolnir {
 
             protected int       _iReferences = 0;
             protected string    _strFileName = string.Empty; // Just file name if available.
-            protected string    _strFilePath = string.Empty; // Full path and name.
             protected string    _strFileDir  = string.Empty; // Just the path w/ no filename.
+            protected string    _strFilePath = string.Empty; // Full path and name.
             protected FILESTATS _eFileStats  = FILESTATS.UNKNOWN;
 
             protected readonly string _strFileExt;
@@ -121,6 +130,19 @@ namespace Mjolnir {
             }
 
             public virtual string FileDir => _strFileDir;
+
+            /// <summary>
+            /// Just the file name. No path.
+            /// </summary>
+            public virtual string FileName {
+				get { 
+					try {
+						return _strFileName; 
+					} catch( NullReferenceException ) {
+						return string.Empty;
+					}
+				}
+            }
 
             protected bool CheckLocation( bool fNewLocation ) {
                 string strLastPath = _oHost.LastPath;
@@ -240,19 +262,6 @@ namespace Mjolnir {
             /// <param name="strMessage"></param>
             protected void LogError( string strMessage ) {
                 LogError( "alert", strMessage );
-            }
-
-            /// <summary>
-            /// Just the file name. No path.
-            /// </summary>
-            public string FileName {
-				get { 
-					try {
-						return _strFileName; 
-					} catch( NullReferenceException ) {
-						return string.Empty;
-					}
-				}
             }
 
             /// <summary>
