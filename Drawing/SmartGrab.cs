@@ -577,6 +577,8 @@ namespace Play.Rectangles
         /// </summary>
         /// <param name="iX">New position X of tracking point.</param>
         /// <param name="iY">New position Y of tracking point.</param>
+        /// <remarks>TODO: Would be nice if we stick to whatever side we bump
+        /// into smoothly when the go past an edge.</remarks>
         public virtual void Move(int iX, int iY)
         {
 			_pntLastMove.X = iX;
@@ -590,16 +592,15 @@ namespace Play.Rectangles
                 return;
             }
 
-            // BUG: So we need to check the WHOLE rect when dragging from the CENTER
-            // and moving the whole object instead of just an edge or corner!!
             _rcTemp.Copy = Guest;
             _rcTemp.SetPoint(_eStretch, _eEdges, pntTarget.X, pntTarget.Y);
 
+            // So we need to check the WHOLE rect when dragging from the CENTER
+            // and moving the whole object instead of just an edge or corner!!
             if( _rcViewBounds.IsInside( _rcTemp ) ) {
                 Guest.Copy = _rcTemp;
                 return;
             }
-
         }
 
         /// <summary>
