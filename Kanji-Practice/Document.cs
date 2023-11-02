@@ -67,6 +67,7 @@ namespace Kanji_Practice {
         IPgSave<TextWriter>
     {
         protected readonly IPgBaseSite _oBaseSite;
+        protected readonly IPgFileSite _oFileSite;
 
         public bool IsDirty => FlashCardDoc.IsDirty;
 
@@ -79,7 +80,8 @@ namespace Kanji_Practice {
         public Editor           Meanings     { get; }
 
         public class DocSlot :
-            IPgBaseSite
+            IPgBaseSite,
+            IPgFileSite
         {
             protected readonly KanjiDocument _oHost;
 
@@ -95,6 +97,31 @@ namespace Kanji_Practice {
             public void Notify(ShellNotify eEvent) {
                 _oHost._oBaseSite.Notify( eEvent );
             }
+
+            public FILESTATS FileStatus => FILESTATS.UNKNOWN;
+
+            public Encoding FileEncoding => Encoding.UTF8;
+
+            public string FilePath => string.Empty;
+
+            /// <summary>
+            /// So this is a little evil. I'd like the file to be real. But I have
+            /// no notation for a file that is an embedding!! Basically embedding is
+            /// something like this "file.txt!obj1!.."
+            /// </summary>
+            public virtual string FileName { 
+                get {
+                    return _oHost._oFileSite.FileName + "!embedding";
+            }   }
+        }
+
+        public class PriDocSlot : DocSlot {
+            public PriDocSlot(KanjiDocument oHost) : base(oHost) {
+            }
+            public override string FileName { 
+                get {
+                    return _oHost._oFileSite.FileName;
+            }   }
         }
 
         protected int _iFlashLine = 0;
@@ -103,11 +130,12 @@ namespace Kanji_Practice {
 
         public KanjiDocument( IPgBaseSite oSite ) {
             _oBaseSite = oSite ?? throw new ArgumentNullException( "Site to document must not be null." );
+            _oFileSite = oSite as IPgFileSite ?? throw new InvalidCastException( "IPgFileSite not supported" );
 
-            FlashCardDoc  = new EditorWithParser( new DocSlot( this ) ); // The raw stack of flash cards.
-            FrontDisplay  = new KanjiProperties ( new DocSlot( this ) ); // The basic form Kanji, Hiragana, Description.
-            ScratchPad    = new KanjiScratch    ( new DocSlot( this ) ); // Practice writing area.
-            Meanings      = new Editor          ( new DocSlot( this ) ); // multi value meanings.
+            FlashCardDoc  = new EditorWithParser( new PriDocSlot( this ) ); // The raw stack of flash cards.
+            FrontDisplay  = new KanjiProperties ( new DocSlot   ( this ) ); // The basic form Kanji, Hiragana, Description.
+            ScratchPad    = new KanjiScratch    ( new DocSlot   ( this ) ); // Practice writing area.
+            Meanings      = new Editor          ( new DocSlot   ( this ) ); // multi value meanings.
 
 			try {
 				// A parser is matched one per text document we are loading.

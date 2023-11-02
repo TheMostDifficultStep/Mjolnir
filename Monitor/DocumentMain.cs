@@ -440,25 +440,23 @@ namespace Monitor {
         protected class Compiler {
             // BUG: Would be nice if checked if any -1. Make a version that
             // throws exception in the future!!
-            int _iStart ;
             int _iStatement;
             int _iContinue;
             int _iFCallName;
             int _iFParams;
             int _iNumber;
-            int _iFactorExp;
 
             Editor.Manipulator    _oMechBulk;
-            Grammer<char>         _oGrammer;
             BaseEditor.LineStream _oStream;
 
             public Compiler( Grammer<char>         oGrammer, 
                              BaseEditor.LineStream oStream,
                              Editor                oMachineCode           
             ) { 
-                _oGrammer = oGrammer ?? throw new ArgumentNullException( nameof( oGrammer ) );
-                _oStream  = oStream  ?? throw new ArgumentNullException( nameof( oStream ) );
+                _oStream = oStream  ?? throw new ArgumentNullException( nameof( oStream ) );
 
+                if( oGrammer == null )
+                    throw new ArgumentNullException( nameof( oGrammer ) );
                 if( oMachineCode == null )
                     throw new ArgumentNullException( "Machine code file" );
 
@@ -474,7 +472,6 @@ namespace Monitor {
                 _iFCallName  = oClassFCall.Bindings.IndexOfKey( "procname" );
                 _iFParams    = oClassFCall.Bindings.IndexOfKey( "params" );
                 _iNumber     = oClassFacto.Bindings.IndexOfKey( "number" );
-                _iFactorExp  = oClassFacto.Bindings.IndexOfKey( "factorexp" );
             
                 _oMechBulk = oMachineCode.CreateManipulator();
             } 
@@ -487,7 +484,7 @@ namespace Monitor {
                 return oCurrent.GetState( _iStatement );
             }
 
-            void LineAppend( MemoryElem<char> oElem ) {
+            void LinePush( MemoryElem<char> oElem ) {
                 _oMechBulk.LineAppend( GetString( _oStream, oElem ) );
             }
 
@@ -507,21 +504,22 @@ namespace Monitor {
             <const>  ::= integer
             */
             protected void Expression( MemoryState<char> oExpression ) {
+                if( IsStateMatch( oExpression, "term" ) ) {
+                }
                 if( IsStateMatch( oExpression, "factor" ) ) {
                     MemoryElem<char> oNumber = oExpression.GetValue( _iNumber );
+                    // Either a complicated state...
                     if( oNumber is MemoryState<char> oNumState ) {
                         if( IsStateMatch( oNumState, "vdecl" ) ) {
-                            LineAppend( oNumState );
+                            LinePush( oNumState );
                         }
                         if( IsStateMatch( oNumState, "built-in-function-call" ) ) {
                             FCallName( oNumState );
                         }
                     } else {
+                        // Or a simple number
                         if( oNumber != null ) {
-                            LineAppend( oNumber );
-                        } else {
-                            MemoryState<char> oFactorExpr = oExpression.GetState( _iFactorExp );
-                            Expression( oFactorExpr );
+                            LinePush( oNumber );
                         }
                     }
                 }
@@ -530,13 +528,13 @@ namespace Monitor {
             public void FCallName( MemoryState<char> oStatement ) {
                 MemoryElem<char> oFCallName = oStatement.GetValue( _iFCallName );
                 if( oFCallName != null ) {
-                    LineAppend( oFCallName );
+                    LinePush( oFCallName );
 
                     foreach( MemoryElem<char> oParam in oStatement.EnumValues( _iFParams ) ) {
                         if( oParam is MemoryState<char> oExpression ) {
                             Expression( oExpression );
                         } else {
-                            LineAppend( oParam );
+                            LinePush( oParam );
                         }
                     }
                 }
