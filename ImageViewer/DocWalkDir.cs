@@ -53,7 +53,7 @@ namespace Play.ImageViewer {
             }
         }
 
-        public string CurrentURL { get { return CurrentDirectory; } }
+        public string CurrentURL { get { return CurrentFullPath; } }
 
         public override string CurrentFullPath {
 			get {

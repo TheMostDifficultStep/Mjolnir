@@ -893,7 +893,7 @@ namespace Mjolnir {
             }
 
             /// <summary>
-            /// Be aware that the guest might be in an zombie state and unable to return
+            /// TODO: Be aware that the guest might be in an zombie state and unable to return
             /// a path and may return string empty. We should save the path independently
             /// of the object just in case of this problem.
             /// </summary>
@@ -903,11 +903,26 @@ namespace Mjolnir {
 			}
 
             /// <summary>
-            /// So this is interesting. The directory walker can change directories.
-            /// So Just override FileDir for now. Now that I have the Directory check
-            /// on the text object, I might be able to remove this somehow? Not sure.
+            /// This problem between the file and the path and the dir
+            /// has been brewing for while. I Probably need to update
+            /// the IPgLoadURL interface to return the file and the dir
+            /// seperately. 
             /// </summary>
-            public override string FileDir => _oGuestLoad.CurrentURL;
+            public override string FileDir {
+                get {
+                    return Path.GetDirectoryName( _oGuestLoad.CurrentURL );
+                }
+            }
+
+            /// <summary>
+            /// IPgLoadURL probably needs updating b/c files that don't have
+            /// an extension can fool the Path parser. 
+            /// </summary>
+            public override string FileName {
+                get {
+                    return Path.GetFileName( _oGuestLoad.CurrentURL );
+                }
+            }
 
             /// <summary>
             /// Basically any object here must support the Load/Save URL interfaces.
