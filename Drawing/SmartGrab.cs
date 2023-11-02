@@ -472,7 +472,7 @@ namespace Play.Rectangles
 											   backColor:Color.White ) ) {
 						using( Pen oPen = new Pen( oBrush ) ) {
 							SmartRect oBorder = new SmartRect( this );
-							oBorder  .SetScalar    ( SET.INCR, SCALAR.LEFT | SCALAR.TOP, 1 );
+							//oBorder  .SetScalar    ( SET.INCR, SCALAR.LEFT | SCALAR.TOP, 1 );
 							oGraphics.DrawRectangle( oPen, oBorder.Rect);
 
 							for (int i = 0; i < 4; ++i) {
@@ -529,7 +529,7 @@ namespace Play.Rectangles
             int           p_iY,
             SmartRect     p_rctViewBounds )
         {
-            Invertable            = true;
+            Invertable            = false; // This is dependent on what you're doing reall. :-/
             Guest                 = p_oGuest ?? throw new ArgumentNullException("The guest may not be null");
             _eEdges               = p_eEdges;
             _eStretch             = p_eStretch;
@@ -540,7 +540,15 @@ namespace Play.Rectangles
             // This is co-dependent on our implementation of Dragging on the guest. This means
             // we'll typically need subclasses to control the actual drag.
             _pntGuestStart = Guest.GetPoint( p_eEdges );
-            _pntOffset     = new SKPointI( _pntGuestStart.X - p_iX, _pntGuestStart.Y - p_iY );
+            _pntOffset     = new SKPointI( 0, 0 );
+
+            if( ( p_eEdges & LOCUS.LEFT ) > 0 || ( p_eEdges & LOCUS.RIGHT ) > 0 ) {
+                _pntOffset.X = _pntGuestStart.X - p_iX; 
+            }
+            if( ( p_eEdges & LOCUS.TOP ) > 0 || ( p_eEdges & LOCUS.BOTTOM ) > 0 ) {
+                _pntOffset.Y = _pntGuestStart.Y - p_iY; 
+            }
+
 			_pntLastMove   = new SKPointI( p_iX, p_iY );
 
             _oFinished = p_oFinished;
@@ -576,27 +584,22 @@ namespace Play.Rectangles
 
             SKPointI pntTarget = new SKPointI(  iX + _pntOffset.X, iY + _pntOffset.Y );
 
+            // This is going to move the guest unconstrained.
             if( _rcViewBounds == null ) {
                 SetPoint( pntTarget.X, pntTarget.Y );
                 return;
             }
 
-            // So we need to check the WHOLE rect when dragging from the CENTER
+            // BUG: So we need to check the WHOLE rect when dragging from the CENTER
             // and moving the whole object instead of just an edge or corner!!
             _rcTemp.Copy = Guest;
-            //_rcTemp.SetPoint(_eStretch, _eEdges, pntTarget.X, pntTarget.Y);
+            _rcTemp.SetPoint(_eStretch, _eEdges, pntTarget.X, pntTarget.Y);
 
-            if( _rcTemp.Top <= _rcViewBounds.Top )
-                pntTarget.Y = _rcViewBounds.Top;
-            if( _rcTemp.Bottom >= _rcViewBounds.Bottom )
-                pntTarget.Y = _rcViewBounds.Bottom;
-            if( _rcTemp.Left <= _rcViewBounds.Left )
-                pntTarget.X = _rcViewBounds.Left;
-            if( _rcTemp.Right >= _rcViewBounds.Right )
-                pntTarget.X = _rcViewBounds.Right;
+            if( _rcViewBounds.IsInside( _rcTemp ) ) {
+                Guest.Copy = _rcTemp;
+                return;
+            }
 
-            _rcTemp.SetPoint( _eStretch, _eEdges, pntTarget.X, pntTarget.Y );
-            Guest.Copy = _rcTemp;
         }
 
         /// <summary>

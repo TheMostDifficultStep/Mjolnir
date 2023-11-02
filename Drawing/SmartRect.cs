@@ -247,43 +247,42 @@ namespace Play.Rectangles {
             int   p_lSetX,
             int   p_lSetY)
         {
-            int[] l_rglAdjust = { p_lSetX, p_lSetY }; // 0 is the X coord, 1 is the Y coord.
-            int[] l_rgiSign   = { -1, -1, 1, 1 };     // This depends on coordinate system. ^_^;
-            uint  l_uiScalar  = 1;
-            bool  fRigid      = (p_uiStretch & SET.RIGID) != 0;
-            bool  fIncr       = (p_uiStretch & SET.INCR)  != 0;
+            int[] rgAdjust = { p_lSetX, p_lSetY }; // 0 is the X coord, 1 is the Y coord.
+            int[] rgSign   = { -1, -1, 1, 1 };     // left, top, right, bottom ^_^;
+            uint  uiScalar = 1;
+            bool  fRigid   = (p_uiStretch & SET.RIGID) != 0;
+            bool  fIncr    = (p_uiStretch & SET.INCR)  != 0;
 
-            for (uint iEdge4 = 0; iEdge4 < 4; ++iEdge4) {
-                if (((LOCUS)l_uiScalar & p_uiEdges) != 0) {
-                    uint iAdIdx = (iEdge4 % 2);     // Mod 2 of any edge, see l_rglAdjust
-                    uint iEdgeO = (iEdge4 + 2) % 4; // Compute the opposite edge.
+            for (uint iEdgeCheck = 0; iEdgeCheck < 4; ++iEdgeCheck) {
+                // Only check the edge being changed.
+                if (((LOCUS)uiScalar & p_uiEdges) != 0) {
+                    uint iAdIdx  = (iEdgeCheck % 2);     // Mod 2 of any edge, see l_rglAdjust
+                    uint iEdgeO  = (iEdgeCheck + 2) % 4; // Compute the opposite edge.
                     int  lExtent = 0;
 
                     // It's ok to recalc since in the stretch case we need the updated extent!
                     if( fRigid )
-                        lExtent = m_rgiCur[iEdgeO] - m_rgiCur[iEdge4];
+                        lExtent = m_rgiCur[iEdgeO] - m_rgiCur[iEdgeCheck];
 
-                    int iValue;
+                    int iEdgeChkVal;
                     if( fIncr)
-                        iValue = m_rgiCur[iEdge4] + l_rglAdjust[iAdIdx] * l_rgiSign[iEdge4];
+                        iEdgeChkVal = m_rgiCur[iEdgeCheck] + rgAdjust[iAdIdx] * rgSign[iEdgeCheck];
                     else
-                        iValue =  l_rglAdjust[iAdIdx];
+                        iEdgeChkVal =  rgAdjust[iAdIdx];
 
+                    bool fMove = true;
                     // Prevent the rect from going inside out!!
-                    if( !fRigid ) {
-                        if( ( iValue - m_rgiCur[iEdgeO] ) * l_rgiSign[iEdge4] >= 0 ) {
-                            m_rgiCur[iEdge4] = iValue;
-                        }
+                    if( !Invertable || !fRigid ) {
+                        fMove = ( iEdgeChkVal - m_rgiCur[iEdgeO] ) * rgSign[iEdgeCheck] >= 0;
                     } 
-                    // If the rect is rigid it's not possible to turn inside out (barring overflow)
-                    if( Invertable || fRigid ) {
-                        m_rgiCur[iEdge4] = iValue;
+                    if( fMove ) {
+                        m_rgiCur[iEdgeCheck] = iEdgeChkVal;
                     }
-
-                    if( fRigid )
-                        m_rgiCur[iEdgeO] = m_rgiCur[iEdge4] + lExtent;
+                    // Move the whole rectangle in one direction. 
+                    if( fRigid && fMove )
+                        m_rgiCur[iEdgeO] = m_rgiCur[iEdgeCheck] + lExtent;
                 }
-                l_uiScalar = l_uiScalar << 1;
+                uiScalar = uiScalar << 1;
             }
         } // End SetRectStretch
 
@@ -444,7 +443,7 @@ namespace Play.Rectangles {
                 case LOCUS.LOWERRIGHT:
                 case LOCUS.UPPERRIGHT:
                 case LOCUS.LOWERLEFT:
-                    pntReturn = GetCenter();
+                    //pntReturn = GetCenter();
 
                     if ((p_uiEdges & LOCUS.LEFT) != 0)
                         pntReturn.X = m_rgiCur[(int)SIDE.LEFT];
