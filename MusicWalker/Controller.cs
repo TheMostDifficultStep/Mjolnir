@@ -94,7 +94,7 @@ namespace Play.MusicWalker {
 			_rgExtensions.Add( ".mp3" );
 		}
 
-        public override PgDocumentDescriptor Suitability(string strExtension) {
+        public override PgDocDescr Suitability(string strExtension) {
             byte bPriority = (byte)0;
 
 			foreach( string strUs in _rgExtensions ) {
@@ -102,7 +102,7 @@ namespace Play.MusicWalker {
 					bPriority = 255;
 			}
 
-            return new PgDocumentDescriptor( strExtension, 
+            return new PgDocDescr( strExtension, 
                                              typeof( IPgLoadURL ), 
                                              bPriority, 
                                              this );

@@ -562,10 +562,16 @@ namespace Mjolnir {
             InitializePlugins    ( xmlConfig );
             InitializeControllers();
 
-            _oDocSlot_Recents = new XmlSlot(this, ".txt", "Recent" );
-            _oDocSlot_Recents.CreateDocument();
-            _oDocSlot_Recents.InitNew();
-            _oDoc_Recents = (Editor)_oDocSlot_Recents.Document;
+            {
+                PgDocDescr oDescr = GetController( ".txt" );
+                if( oDescr.StgReqmnt != typeof( IPgLoad<TextReader> ) )
+                    throw new InvalidProgramException();
+
+                _oDocSlot_Recents = new XmlSlot(this, oDescr, "Recent" );
+                _oDocSlot_Recents.CreateDocument();
+                _oDocSlot_Recents.InitNew();
+                _oDoc_Recents = (Editor)_oDocSlot_Recents.Document;
+            }
 
             using( Editor.Manipulator oManip = _oDoc_Recents.CreateManipulator() ) {
 				try {
@@ -579,29 +585,51 @@ namespace Mjolnir {
 				}
             }
 
-			_oDocSlot_Scraps = new InternalSlot(this, ".scraps", "Scraps");
-            _oDocSlot_Scraps.CreateDocument();
-			_oDocSlot_Scraps.InitNew();
+            {
+                PgDocDescr oDescr = GetController( ".scraps" );
+                if( oDescr.StgReqmnt != typeof( IPgLoad<TextReader> ) )
+                    throw new InvalidProgramException();
 
- 			// BUG: it's part of the window session load/init sequence. And the MainWin is trying
-			// to get at the parse handler in it's constructor. So we've got to InitNew/Load before
-			// that. So I'll InitNew() now and let load get called subsequently...for now. ^_^;;
-			_oDocSlot_SearchKey = new XmlSlot( this, ".search", "Find String" );
-            _oDocSlot_SearchKey.CreateDocument();
-			_oDocSlot_SearchKey.InitNew(); 
+			    _oDocSlot_Scraps = new InternalSlot( this, oDescr, "Scraps");
+                _oDocSlot_Scraps.CreateDocument();
+			    _oDocSlot_Scraps.InitNew();
+            }
 
-            _oDocSlot_Results = new InternalSlot( this, ".results", "Find Results" );
-            _oDocSlot_Results.CreateDocument();
-            _oDocSlot_Results.InitNew();
+            {
+ 			    // BUG: it's part of the window session load/init sequence. And the MainWin is trying
+			    // to get at the parse handler in it's constructor. So we've got to InitNew/Load before
+			    // that. So I'll InitNew() now and let load get called subsequently...for now. ^_^;;
+                PgDocDescr oDescr = GetController( ".search" );
+                if( oDescr.StgReqmnt != typeof( IPgLoad<TextReader> ) )
+                    throw new InvalidProgramException();
+
+			    _oDocSlot_SearchKey = new XmlSlot( this, oDescr, "Find String" );
+                _oDocSlot_SearchKey.CreateDocument();
+			    _oDocSlot_SearchKey.InitNew(); 
+            }
+
+            {
+                PgDocDescr oDescr = GetController( ".results" );
+                if( oDescr.StgReqmnt != typeof( IPgLoad<TextReader> ) )
+                    throw new InvalidProgramException();
+
+                _oDocSlot_Results = new InternalSlot( this, oDescr, "Find Results" );
+                _oDocSlot_Results.CreateDocument();
+                _oDocSlot_Results.InitNew();
+            }
 
             // We'll move the search key into the complexxmlslot's doc eventually.
             _oDocSlot_Find = new ComplexXmlSlot( this );
             _oDocSlot_Find.CreateDocument();
             _oDocSlot_Find.InitNew();
 
-            _oDocSlot_Clock = new InternalSlot( this, new ControllerForTopLevelWindows( this ), ".clock" );
-            _oDocSlot_Clock.CreateDocument();
-            _oDocSlot_Clock.InitNew();
+            {
+                IPgController2 oTopLevelController = new ControllerForTopLevelWindows( this );
+                PgDocDescr     oDocDesc            = oTopLevelController.Suitability( ".clock" );
+                _oDocSlot_Clock = new InternalSlot( this, oDocDesc, "Clock" );
+                _oDocSlot_Clock.CreateDocument();
+                _oDocSlot_Clock.InitNew();
+            }
         }
 
         /// <summary>
@@ -917,8 +945,8 @@ namespace Mjolnir {
             }
         }
 
-        public class PlainTextDesc :
-            PgDocumentDescriptor 
+        [Obsolete]public class PlainTextDesc :
+            PgDocDescr 
         {
             public PlainTextDesc( string strFileExtn, IPgController2 oController ) :
                 base( strFileExtn, typeof( IPgLoad<TextReader> ), 0, oController ) 
@@ -946,23 +974,22 @@ namespace Mjolnir {
         /// </summary>
         /// <param name="strFileExtn"></param>
         /// <returns></returns>
-		[Obsolete]public IPgController2 GetController( string strFileExtn, bool fSendMessage = false ) {
-            PlainTextDesc        oPlainDesc  = new PlainTextDesc( strFileExtn, PlainTextController );
-            PgDocumentDescriptor oDocDesc    = oPlainDesc;
+		public PgDocDescr GetController( string strFileExtn, bool fSendMessage = false ) {
+            PgDocDescr oPlainDesc  = PlainTextController.Suitability( strFileExtn );
+            PgDocDescr oDocDesc    = oPlainDesc;
 
             foreach( IPgController2 oTryMe in Controllers ) {
-                PgDocumentDescriptor oTryDesc = oTryMe.Suitability( strFileExtn );
-                if( oTryDesc.CompareTo( oDocDesc ) > 0 &&
-                    oTryDesc.StgReqmnt == typeof( IPgLoad<TextReader> ) ) {
+                PgDocDescr oTryDesc = oTryMe.Suitability( strFileExtn );
+                if( oTryDesc.CompareTo( oDocDesc ) > 0 ) {
                     oDocDesc = oTryDesc;
                 }
             }
 
             if( oDocDesc == oPlainDesc && fSendMessage ) {
-                LogError( null, "host", oPlainDesc.Message );
+                LogError( null, "host", "No controller match, trying Plain Text" );
             }
 
-            return( oDocDesc.Controller );
+            return oDocDesc;
         }
 
         /// <summary>
@@ -981,23 +1008,23 @@ namespace Mjolnir {
 				return null;
 			}
 
-            IDocSlot      oDocSite;
-            string        strFileExtn = Path.GetExtension(strFileName).ToLower();
-            PlainTextDesc oPlainDesc  = new PlainTextDesc( strFileExtn, PlainTextController );
+            IDocSlot   oDocSite;
+            string     strFileExtn = Path.GetExtension(strFileName).ToLower();
+            PgDocDescr oPlainDesc  = PlainTextController.Suitability( strFileExtn );
             
             try {
-                PgDocumentDescriptor oDocDesc = oPlainDesc;
-                Program.BaseSlot     oNewSite = null;
+                PgDocDescr       oDocDesc = oPlainDesc;
+                Program.BaseSlot oNewSite = null;
 
                 // Rank documents by priority. We can add a choose if more than on doc with pri > 0.
                 foreach( IPgController2 oTryMe in Controllers ) {
-                    PgDocumentDescriptor oTryDesc = oTryMe.Suitability( strFileExtn );
-                    if( oTryDesc.CompareTo( oDocDesc ) >= 0 ) {
+                    PgDocDescr oTryDesc = oTryMe.Suitability( strFileExtn );
+                    if( oTryDesc.CompareTo( oDocDesc ) > 0 ) {
                         oDocDesc = oTryDesc;
                     }
                 }
                 if( oDocDesc == oPlainDesc ) {
-                    LogError( null, "host", oPlainDesc.Message );
+                    LogError( null, "host", "No controller match, trying Plain Text" );
                 }
 
                 switch( oDocDesc.StgReqmnt ) {

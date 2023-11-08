@@ -763,17 +763,6 @@ namespace Mjolnir {
 
             public InternalSlot(
                 Program oProgram,
-                string  strControllerExt,
-                string  strName // Need localized values.
-
-		    ) : base( oProgram, 
-                      oProgram.GetController( strControllerExt ), 
-                      strControllerExt ) {
-                _strName = strName;
-            }
-            
-            public InternalSlot(
-                Program oProgram,
                 string  strName // Need localized values.
 
 		    ) : base( oProgram, oProgram.PlainTextController, ".txt" ) {
@@ -782,15 +771,10 @@ namespace Mjolnir {
 
             public InternalSlot(
                 Program        oProgram,
-                IPgController2 oController
-            ) : base( oProgram, oController, string.Empty ) {
-            }
-        
-            public InternalSlot(
-                Program        oProgram,
-                IPgController2 oController,
-                string         strExtension
-            ) : base( oProgram, oController, strExtension ) {
+                PgDocDescr     oDescriptor,
+                string         strName
+            ) : base( oProgram, oDescriptor.Controller, oDescriptor.FileExtn ) {
+                _strName = strName ?? throw new ArgumentNullException( nameof( strName ) );
             }
         }
 

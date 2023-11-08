@@ -97,13 +97,25 @@ namespace Play.ImageViewer {
         /// </summary>
         /// <param name="strExtension"></param>
         /// <returns></returns>
-        public override PgDocumentDescriptor Suitability(string strExtension) {
-            byte bPriority = string.IsNullOrEmpty( strExtension ) ? (byte)255 : (byte)20; // See above fool!
-
-            return new PgDocumentDescriptor( strExtension, 
-                                             typeof( IPgLoadURL ), 
-                                             bPriority, 
-                                             this );
+        public override PgDocDescr Suitability(string strExtension) {
+            if( string.IsNullOrEmpty( strExtension ) ) {
+                return new PgDocDescr( strExtension, 
+                                       typeof( IPgLoadURL ), 
+                                       255, 
+                                       this );
+            }
+            foreach( string strExtn in ImageWalkerDoc._rgFileExts ) {
+                if( string.Compare( strExtn, strExtension, ignoreCase:true ) == 0 ) {
+                    return new PgDocDescr( strExtension, 
+                                           typeof( IPgLoadURL ), 
+                                           200, 
+                                           this );
+                }
+            }
+            return new PgDocDescr( strExtension, 
+                                   typeof( IPgLoadURL ), 
+                                   0, 
+                                   this );
         }
     }
 }

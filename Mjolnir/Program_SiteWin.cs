@@ -76,17 +76,11 @@ namespace Mjolnir {
         {
             protected IPgSave<TextWriter> _oGuest;
 
-            public XmlSlot( Program oProgram, string strControllerExtn, string strName ) : 
-                base( oProgram, oProgram.GetController( strControllerExtn ), strControllerExtn ) 
+            public XmlSlot( Program oProgram, PgDocDescr oDescriptor, string strName ) : 
+                base( oProgram, oDescriptor.Controller, oDescriptor.FileExtn ) 
             {
                 //CheckLocation( true ); Need do do something like this...
                 _strFilePath = strName;
-            }
-
-            public XmlSlot( Program oProgram, IPgController2 oController ) : 
-                base( oProgram, oController, string.Empty ) 
-            {
-                _strFilePath = string.Empty;
             }
 
             protected override void GuestSet( IDisposable value ) {

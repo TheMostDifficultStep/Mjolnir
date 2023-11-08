@@ -258,13 +258,13 @@ namespace Play.Interfaces.Embedding {
         string Name { get; }
     }
 
-    public class PgDocumentDescriptor {
+    public class PgDocDescr {
         public string         FileExtn   { get; }
         public Type           StgReqmnt  { get; }
         public byte           Priority   { get; }
         public IPgController2 Controller { get; }
 
-        public PgDocumentDescriptor( string strExtn, Type oStg, byte bPri, IPgController2 oOwner ) {
+        public PgDocDescr( string strExtn, Type oStg, byte bPri, IPgController2 oOwner ) {
             FileExtn   = strExtn ?? throw new ArgumentNullException( "File Extention arg" );
             Controller = oOwner  ?? throw new ArgumentNullException( "Controller arg" );
             StgReqmnt  = oStg    ?? throw new ArgumentNullException( "Storage Requirement" );
@@ -276,7 +276,7 @@ namespace Play.Interfaces.Embedding {
         /// The rest are descriptors of the object and are not comparible!!
         /// </remarks>
         /// <returns></returns>
-        public int CompareTo( PgDocumentDescriptor oOther ) {
+        public int CompareTo( PgDocDescr oOther ) {
             return this.Priority - oOther.Priority;
         }
     }
@@ -291,7 +291,7 @@ namespace Play.Interfaces.Embedding {
         IDisposable CreateView    ( IPgViewSite oViewSite, object oDocument, Guid guidViewType );
 
         string      PrimaryExtension { get; }
-        PgDocumentDescriptor Suitability( string strExtension );
+        PgDocDescr Suitability( string strExtension );
     }
 
     //public enum PLAYORDER {
@@ -763,14 +763,14 @@ namespace Play.Interfaces.Embedding {
         /// as effective. That lets each file have at least one primary document associated with
         /// it. After that, I'll have to add code to deal with equivalent suitibilities.
         /// </summary>
-        public virtual PgDocumentDescriptor Suitability(string strExtension) {
+        public virtual PgDocDescr Suitability(string strExtension) {
             if( string.Compare( PrimaryExtension, strExtension ) == 0 )
-                return new PgDocumentDescriptor( strExtension, typeof( IPgLoad<TextReader> ), (byte)255, this );
+                return new PgDocDescr( strExtension, typeof( IPgLoad<TextReader> ), (byte)255, this );
 
-            return new PgDocumentDescriptor( strExtension, 
-                                             typeof( IPgLoad<TextReader> ), 
-                                             _rgExtensions.Contains( strExtension ) ? (byte)125 : (byte)0, 
-                                             this );
+            return new PgDocDescr( strExtension, 
+                                   typeof( IPgLoad<TextReader> ), 
+                                   _rgExtensions.Contains( strExtension ) ? (byte)125 : (byte)0, 
+                                   this );
         }
     }
 }

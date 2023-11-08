@@ -224,7 +224,7 @@ namespace Mjolnir {
                 return GetEnumerator();
             }
 
-            public PgDocumentDescriptor Suitability(string strExtension) {
+            public PgDocDescr Suitability(string strExtension) {
                 throw new NotImplementedException();
             }
         }
@@ -2188,7 +2188,7 @@ namespace Mjolnir {
         /// Note the "filename" my be either an actual file name OR a directory. If it is
         /// a file name we want to create a normal file reading site for it. But if it
         /// is a directory the persistance isn't the same. I still haven't sorted it all out.
-        /// I need to pust the "IsFile" deal down farther I think.
+        /// I need to put the "IsFile" deal down farther I think.
         /// </summary>
         /// <param name="strFileName"></param>
         /// <param name="eShow"></param>

@@ -83,13 +83,13 @@ namespace Monitor {
             _rgExtensions.Add( ".bbc" ); // binary basic file (bbc basic for windows)
         }
 
-        public override PgDocumentDescriptor Suitability(string strExtension) {
+        public override PgDocDescr Suitability(string strExtension) {
             foreach( string strExtn in _rgExtensions ) {
                 if( string.Compare( strExtn, strExtension ) == 0 )
-                    return new PgDocumentDescriptor( strExtension, typeof( IPgLoad<BinaryReader> ), (byte)255, this );
+                    return new PgDocDescr( strExtension, typeof( IPgLoad<BinaryReader> ), (byte)255, this );
             }
 
-            return new PgDocumentDescriptor( strExtension, typeof( IPgLoad<BinaryReader> ), (byte)0, this );
+            return new PgDocDescr( strExtension, typeof( IPgLoad<BinaryReader> ), (byte)0, this );
         }
     }
 
