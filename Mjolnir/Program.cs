@@ -946,28 +946,6 @@ namespace Mjolnir {
             }
         }
 
-        [Obsolete]public class PlainTextDesc :
-            PgDocDescr 
-        {
-            public PlainTextDesc( string strFileExtn, IPgController2 oController ) :
-                base( strFileExtn, typeof( IPgLoad<TextReader> ), 0, oController ) 
-            { }
-
-            public string Message {
-                get {
-                    StringBuilder sbMessage = new StringBuilder();
-
-                    sbMessage.Append( "Couldn't find a controller for: " );
-                    sbMessage.Append( FileExtn );
-                    sbMessage.Append( ", trying " );
-                    sbMessage.Append( Controller.PrimaryExtension );
-                    sbMessage.Append( "." );
-
-                    return sbMessage.ToString();
-                }
-            }
-        }
-
         /// <summary>
         /// What we really should do is save the controller for the document type we actually
         /// want to use in these case and just grab it. Basically we want Editor for text and
@@ -1014,19 +992,8 @@ namespace Mjolnir {
             PgDocDescr oPlainDesc  = PlainTextController.Suitability( strFileExtn );
             
             try {
-                PgDocDescr       oDocDesc = oPlainDesc;
+                PgDocDescr       oDocDesc = GetController( strFileExtn, fSendMessage:true );
                 Program.BaseSlot oNewSite = null;
-
-                // Rank documents by priority. We can add a choose if more than on doc with pri > 0.
-                foreach( IPgController2 oTryMe in Controllers ) {
-                    PgDocDescr oTryDesc = oTryMe.Suitability( strFileExtn );
-                    if( oTryDesc.CompareTo( oDocDesc ) > 0 ) {
-                        oDocDesc = oTryDesc;
-                    }
-                }
-                if( oDocDesc == oPlainDesc ) {
-                    LogError( null, "host", "No controller match, trying Plain Text" );
-                }
 
                 switch( oDocDesc.StgReqmnt ) {
                     case var r when ( r == typeof( IPgLoad<TextReader> ) ):
