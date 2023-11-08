@@ -618,14 +618,15 @@ namespace Mjolnir {
                 _oDocSlot_Results.InitNew();
             }
 
-            // We'll move the search key into the complexxmlslot's doc eventually.
-            _oDocSlot_Find = new ComplexXmlSlot( this );
-            _oDocSlot_Find.CreateDocument();
-            _oDocSlot_Find.InitNew();
-
             {
                 IPgController2 oTopLevelController = new ControllerForTopLevelWindows( this );
-                PgDocDescr     oDocDesc            = oTopLevelController.Suitability( ".clock" );
+                PgDocDescr oDocDesc = oTopLevelController.Suitability( ".finddialog" );
+                // We'll move the search key into the complexxmlslot's doc eventually.
+                _oDocSlot_Find = new ComplexXmlSlot( this, oDocDesc, "Find Dialog" );
+                _oDocSlot_Find.CreateDocument();
+                _oDocSlot_Find.InitNew();
+
+                oDocDesc = oTopLevelController.Suitability( ".clock" );
                 _oDocSlot_Clock = new InternalSlot( this, oDocDesc, "Clock" );
                 _oDocSlot_Clock.CreateDocument();
                 _oDocSlot_Clock.InitNew();

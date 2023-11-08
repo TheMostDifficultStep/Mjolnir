@@ -100,8 +100,6 @@ namespace Mjolnir {
         /// I really want this to load in the event there is NO doc type matching.
         /// regardless of file extension or extended matching extensions.
         /// </summary>
-        /// <param name="strExtension"></param>
-        /// <returns></returns>
         public override PgDocDescr Suitability(string strExtension) {
             if( string.Compare( PrimaryExtension, strExtension, ignoreCase:true ) == 0 )
                 return new PgDocDescr( strExtension, typeof( IPgLoad<TextReader> ), 255, this );

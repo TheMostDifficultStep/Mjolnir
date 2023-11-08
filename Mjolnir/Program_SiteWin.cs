@@ -191,10 +191,10 @@ namespace Mjolnir {
             BaseSlot,
             IDocSlot 
         {
-            public ComplexXmlSlot( Program oProgram ) : 
-                base( oProgram, new ControllerForTopLevelWindows( oProgram ), ".finddialog" ) 
+            public ComplexXmlSlot( Program oProgram, PgDocDescr oDescriptor, string strName ) : 
+                base( oProgram, oDescriptor.Controller, oDescriptor.FileExtn ) 
             {
-                _strFilePath = "Find Dialog";
+                _strFilePath = strName; // TODO: This looks a little odd. :-/
             }
 
             public override bool InitNew() {
