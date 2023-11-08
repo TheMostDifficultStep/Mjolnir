@@ -516,21 +516,33 @@ namespace Mjolnir {
 		/// Load up the program global settings. This is not the same as loading session state.
 		/// </summary>
         protected void Initialize( XmlDocument xmlConfig ) {
-            // This works only because the plain text editor doesn't use the parser.
-            // TODO: Maybe we can tack one on AFTER the grammars have successfully loaded.
-            // So then we get all the parser features!!
-            _oDocSlot_Alerts = new InternalSlot(this, "Alerts");
-            _oDocSlot_Alerts.CreateDocument();
-            _oDocSlot_Alerts.InitNew();
-            _oDoc_Alerts = (Editor)_oDocSlot_Alerts.Document;
+            {
+                //PgDocDescr oDescr = GetController( ".txt" );
+                PgDocDescr oDescr = PlainTextController.Suitability( ".txt" );
+                if( oDescr.StgReqmnt != typeof( IPgLoad<TextReader> ) )
+                    throw new InvalidProgramException();
+
+                // TODO: Maybe we can tack a parser on AFTER the grammars have
+                // successfully loaded. So then we get all the parser features!!
+                _oDocSlot_Alerts = new InternalSlot(this, oDescr, "Alerts");
+                _oDocSlot_Alerts.CreateDocument();
+                _oDocSlot_Alerts.InitNew();
+                _oDoc_Alerts = (Editor)_oDocSlot_Alerts.Document;
+            }
 
             // BUG: If this fails, we're borked. Need to make us more resilient to failing to load config.
             if ( !LoadConfigDoc( xmlConfig ) )
                 throw new ApplicationException( "Couldn't load configuration" );
 
-            // Store our cached fonts so we can look 'em up quickly.
-            _oDocSlot_Fonts = new InternalSlot(this, "Fonts");
-            _oDocSlot_Fonts.CreateDocument();
+            {
+                PgDocDescr oDescr = PlainTextController.Suitability( ".txt" );
+                if( oDescr.StgReqmnt != typeof( IPgLoad<TextReader> ) )
+                    throw new InvalidProgramException();
+
+                // Store our cached fonts so we can look 'em up quickly.
+                _oDocSlot_Fonts = new InternalSlot(this, oDescr, "Fonts");
+                _oDocSlot_Fonts.CreateDocument();
+            }
             try {
                 if( _oDocSlot_Fonts.Document is Editor docFonts ) {
                     using( Editor.Manipulator oManip = docFonts.CreateManipulator() ) {
@@ -691,8 +703,12 @@ namespace Mjolnir {
 					throw;
 			}
 
+            // TODO: This isn't the greatest controller for the session. :-/
+            // But the guest is overridden with "this" so the Create doc/view
+            // stuff won't be activated. Let's make a special controller later...
+            PgDocDescr oDescr = PlainTextController.Suitability( ".txt" );
             // MainWindow references this, so got to initialize it first.
-			_oDocSite_Session = new Program.SessonSlot( this );
+			_oDocSite_Session = new Program.SessonSlot( this, oDescr );
 
             // BUG: In the future, we'll move this into the program initnew/load.
             //      Even better. At least show a window with the error.
@@ -947,9 +963,7 @@ namespace Mjolnir {
         }
 
         /// <summary>
-        /// What we really should do is save the controller for the document type we actually
-        /// want to use in these case and just grab it. Basically we want Editor for text and
-        /// ImageWalkerFile for images.
+        /// Try to find the best controller for the given file extention. 
         /// </summary>
         /// <param name="strFileExtn"></param>
         /// <returns></returns>
@@ -957,15 +971,19 @@ namespace Mjolnir {
             PgDocDescr oPlainDesc  = PlainTextController.Suitability( strFileExtn );
             PgDocDescr oDocDesc    = oPlainDesc;
 
-            foreach( IPgController2 oTryMe in Controllers ) {
-                PgDocDescr oTryDesc = oTryMe.Suitability( strFileExtn );
-                if( oTryDesc.CompareTo( oDocDesc ) >= 0 ) {
-                    oDocDesc = oTryDesc;
+            try {
+                foreach( IPgController2 oTryMe in Controllers ) {
+                    PgDocDescr oTryDesc = oTryMe.Suitability( strFileExtn );
+                    if( oTryDesc.CompareTo( oDocDesc ) >= 0 ) {
+                        oDocDesc = oTryDesc;
+                    }
                 }
-            }
 
-            if( oDocDesc == oPlainDesc && fSendMessage ) {
-                LogError( null, "host", "No controller match, trying Plain Text" );
+                if( oDocDesc == oPlainDesc && fSendMessage ) {
+                    LogError( "Controllers", "No controller match, trying Plain Text" );
+                }
+            } catch( NullReferenceException ) {
+                LogError( "Controllers", "A controller returned a null Suitability object. Going with best match so far." );
             }
 
             return oDocDesc;

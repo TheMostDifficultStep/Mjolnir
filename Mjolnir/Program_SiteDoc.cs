@@ -84,6 +84,8 @@ namespace Mjolnir {
                         typeof( NotSupportedException ),
                         typeof( FileNotFoundException ) };
 
+            /// <remarks>TODO: Would be nice to update this to use the PgDocDescr object
+            /// instead of the oController/strFileExt pair. </remarks>
             public BaseSlot( Program oProgram, IPgController2 oController, string strFileExt, int iID = -1 ) {
                 _oHost       = oProgram    ?? throw new ArgumentNullException( "Program" );
                 _strFileExt  = strFileExt  ?? throw new ArgumentNullException( "File Extension" );
@@ -762,14 +764,6 @@ namespace Mjolnir {
             protected readonly string _strName;
 
             public InternalSlot(
-                Program oProgram,
-                string  strName // Need localized values.
-
-		    ) : base( oProgram, oProgram.PlainTextController, ".txt" ) {
-                _strName = strName;
-            }
-
-            public InternalSlot(
                 Program        oProgram,
                 PgDocDescr     oDescriptor,
                 string         strName
@@ -823,9 +817,8 @@ namespace Mjolnir {
 		/// Session is special in that it controls the title for the main window. We're hosting ourself!
 		/// </summary>
 		public class SessonSlot : InternalSlot {
-            public SessonSlot(
-                Program oProgram
-		    ) : base( oProgram, "Sesson" ) {
+            public SessonSlot( Program oProgram, PgDocDescr oDescr )
+		    : base( oProgram, oDescr, "Sesson" ) {
 				GuestSet( oProgram );
             }
         
@@ -837,16 +830,16 @@ namespace Mjolnir {
 					string strFileOnly = FileName;
 
 					if( string.IsNullOrEmpty( strFileOnly ) )
-						return( string.Empty );
+						return string.Empty;
 
                     StringBuilder sbTitle = new StringBuilder();
 
                     sbTitle.Append( strFileOnly );
                     if( IsDirty ) {
-                        sbTitle.Append( "*" );
+                        sbTitle.Append( '*' );
                     }
 
-                    return( sbTitle.ToString() );
+                    return sbTitle.ToString();
                 }
             }
 

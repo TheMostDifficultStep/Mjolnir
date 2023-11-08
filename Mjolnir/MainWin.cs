@@ -2138,8 +2138,8 @@ namespace Mjolnir {
 				} else {
 					oViewSlot.Guest = (Control)oDocSlot.Controller.
 									  CreateView( oViewSlot,
-								         			oDocSlot.Document, 
-								         			guidViewType );
+								         	      oDocSlot.Document, 
+								         		  guidViewType );
 				}
             } catch( Exception oEx ) {
                 // Exceptions can come from within CreateView() AND .Guest assignment.
