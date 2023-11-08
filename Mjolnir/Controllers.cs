@@ -97,12 +97,12 @@ namespace Mjolnir {
         }
 
         /// <summary>
-        /// I really want this to load in the event there is NO doc type matching.
-        /// regardless of file extension or extended matching extensions.
+        /// Don't make this match higher than the Parset Text controller!!
         /// </summary>
+        /// <seealso cref="ControllerForParsedText.Suitability(string)"/>
         public override PgDocDescr Suitability(string strExtension) {
             if( string.Compare( PrimaryExtension, strExtension, ignoreCase:true ) == 0 )
-                return new PgDocDescr( strExtension, typeof( IPgLoad<TextReader> ), 255, this );
+                return new PgDocDescr( strExtension, typeof( IPgLoad<TextReader> ), 190, this );
 
             return new PgDocDescr( strExtension, 
                                    typeof( IPgLoad<TextReader> ), 
@@ -336,6 +336,20 @@ namespace Mjolnir {
             yield return new ViewType( "Test Tabs", WindowTextTabs.ViewType );
         }
 
+        /// <summary>
+        /// So parsed text can be compatible with MANY file extensions. For the most
+        /// part most will be a good match. EXCEPT if we have a controller specifically
+        /// for a text type. Like .bas for example. Those controllers are always the best
+        /// match. It would be better if there are no overlaps. But let's try a modestly
+        /// high match on any matching extension.
+        /// </summary>
+        /// <seealso cref="ControllerForPlainText.Suitability(string)"
+        public override PgDocDescr Suitability(string strExtension) {
+            return new PgDocDescr( strExtension, 
+                                   typeof( IPgLoad<TextReader> ), 
+                                   _rgExtensions.Contains( strExtension ) ? (byte)201 : (byte)0, 
+                                   this );
+        }
     }
 
     /// <summary>

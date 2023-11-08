@@ -959,7 +959,7 @@ namespace Mjolnir {
 
             foreach( IPgController2 oTryMe in Controllers ) {
                 PgDocDescr oTryDesc = oTryMe.Suitability( strFileExtn );
-                if( oTryDesc.CompareTo( oDocDesc ) > 0 ) {
+                if( oTryDesc.CompareTo( oDocDesc ) >= 0 ) {
                     oDocDesc = oTryDesc;
                 }
             }
@@ -989,7 +989,6 @@ namespace Mjolnir {
 
             IDocSlot   oDocSite;
             string     strFileExtn = Path.GetExtension(strFileName).ToLower();
-            PgDocDescr oPlainDesc  = PlainTextController.Suitability( strFileExtn );
             
             try {
                 PgDocDescr       oDocDesc = GetController( strFileExtn, fSendMessage:true );
