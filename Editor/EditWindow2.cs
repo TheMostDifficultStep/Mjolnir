@@ -1117,6 +1117,10 @@ namespace Play.Edit {
         /// <summary>
         /// This is a simple little glyph draw for the left hand column check mark.
         /// </summary>
+        /// <remarks>
+        /// Would be nice to remove this and use the
+        /// </remarks>
+        /// <seealso cref="Edit.FTCacheLine.DrawGlyph(SKCanvas, SKPaint, float, float, IPgGlyph)"/>
         public static void DrawGlyph( 
             SKCanvas      skCanvas, 
             SKPaint       skPaint,
@@ -1124,6 +1128,10 @@ namespace Play.Edit {
             float         flY, 
             IPgGlyph      oGlyph
         ) {
+            if( oGlyph.Image.Width  <= 0 ||
+                oGlyph.Image.Height <= 0 )
+                return;
+
             SKRect skRect = new SKRect( flX, flY, 
                                         flX + oGlyph.Image.Width, 
                                         flY + oGlyph.Image.Height );

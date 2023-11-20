@@ -546,6 +546,10 @@ namespace Play.Edit {
             float         flY, 
             IPgGlyph      oGlyph
         ) {
+            if( oGlyph.Image.Width  <= 0 ||
+                oGlyph.Image.Height <= 0 )
+                return;
+
             SKRect skRect = new SKRect( flX, flY, 
                                         flX + oGlyph.Image.Width, 
                                         flY + oGlyph.Image.Height );
@@ -640,7 +644,8 @@ namespace Play.Edit {
                 } catch( Exception oEx ) {
                     Type[] rgErrors = { typeof( ArgumentOutOfRangeException ),
                                         typeof( NullReferenceException ),
-                                        typeof( ArithmeticException ) };
+                                        typeof( ArithmeticException ),
+                                        typeof( ArgumentNullException ) };
                     if( rgErrors.IsUnhandled( oEx ) )
                         throw;
 
@@ -665,6 +670,8 @@ namespace Play.Edit {
             PointF   pntEditAt )
         {
             if( _rgGlyphs.Count <= 0 )
+                return;
+            if( skCanvas == null )
                 return;
 
             // Our new system paints UP from the baseline. It's nice because it's a bit more how
@@ -693,7 +700,8 @@ namespace Play.Edit {
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( ArgumentOutOfRangeException ),
                                     typeof( NullReferenceException ),
-                                    typeof( ArithmeticException ) };
+                                    typeof( ArithmeticException ),
+                                    typeof( ArgumentNullException ) };
                 if( rgErrors.IsUnhandled( oEx ) )
                     throw;
 
@@ -706,12 +714,23 @@ namespace Play.Edit {
         /// <remarks>Need to look at why we pass the pntEditAt. Why not just use our own 'left' / 'top'</remarks>
         public void RenderEOL( SKCanvas skCanvas, SKPaint skPaint, PointF pntEditAt,  List<SKColor> rgStdColors, IPgGlyph oGlyphLessThan )
         {
-            Point pntOffset = GlyphOffsetToPoint( _rgClusters.Count );
+            try {
+                Point pntOffset = GlyphOffsetToPoint( _rgClusters.Count );
 
-            DrawGlyph( skCanvas, skPaint,
-                       (Int32)( pntEditAt.X + pntOffset.X ),
-                       (Int32)( pntEditAt.Y + pntOffset.Y ),
-                       oGlyphLessThan );
+                DrawGlyph( skCanvas, skPaint,
+                           (Int32)( pntEditAt.X + pntOffset.X ),
+                           (Int32)( pntEditAt.Y + pntOffset.Y ),
+                           oGlyphLessThan );
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( ArgumentOutOfRangeException ),
+                                    typeof( NullReferenceException ),
+                                    typeof( ArithmeticException ),
+                                    typeof( ArgumentNullException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
+
+                Debug.Fail( "Exception thrown in FTCacheLine.RenderEOL" );
+            }
         } // end method
 
         /// <summary>

@@ -48,7 +48,7 @@ namespace Monitor {
             // need to trigger the parse seperately.
             // new ParseHandlerText( Property_Values, "text" );
 
-            if( _oSiteBase.Host is not MonitorDocument oMonitorDoc )
+            if( _oSiteBase.Host is not Old_CPU_Emulator oMonitorDoc )
                 return false;
 
             // Set up our basic list of values.
@@ -195,7 +195,7 @@ namespace Monitor {
         public override Guid Catagory => GUID;
         protected List<string> _rgTools = new List<string>();
 
-        protected MonitorDocument Monitor { get; }
+        protected Old_CPU_Emulator Monitor { get; }
 
         public class FTCacheLineNumber : FTCacheWrap {
             Line _oGuest; // The line we are listing.
@@ -236,7 +236,7 @@ namespace Monitor {
 
         protected List<Tool> _rgTools2 = new();
 
-        public BasicLineWindow( IPgViewSite oSite, MonitorDocument oDoc ) : base( oSite, oDoc.BasicDoc ) {
+        public BasicLineWindow( IPgViewSite oSite, Old_CPU_Emulator oDoc ) : base( oSite, oDoc.BasicDoc ) {
             Monitor = oDoc ?? throw new ArgumentNullException( ); // We'll die before reaching this... :-/
             _rgTools.Clear();
 
@@ -307,7 +307,7 @@ namespace Monitor {
     {
         public static Guid GUID { get; } = new Guid( "{A28DDC95-EE48-4426-9D15-0B29F07D5F4A}" );
 
-        protected MonitorDocument       MonitorDoc { get; }
+        protected Old_CPU_Emulator       MonitorDoc { get; }
         protected LayoutStackHorizontal MyLayout   { get; } = new LayoutStackHorizontal();
         protected EditWindow2           WinCommand { get; } // machine code..
         protected EditWindow2           WinAssembly{ get; } // Assembly, now BBC basic.
@@ -356,7 +356,7 @@ namespace Monitor {
         /// visual elements. Plus, undo is a nightmare. So punt on that and using a single
         /// property doc, but create outboard collections of the registers and status bits.</remarks>
         /// <exception cref="ArgumentNullException"></exception>
-        public WindowFrontPanel( IPgViewSite oViewSite, MonitorDocument oMonitorDoc ) 
+        public WindowFrontPanel( IPgViewSite oViewSite, Old_CPU_Emulator oMonitorDoc ) 
         {
             _oSiteView = oViewSite   ?? throw new ArgumentNullException();
             MonitorDoc = oMonitorDoc ?? throw new ArgumentNullException( "Monitor document must not be null!" );

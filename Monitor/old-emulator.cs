@@ -46,9 +46,9 @@ namespace Monitor {
     /// <summary>
     /// This is a little cpu emulator. I started out as working towards a 6502 but
     /// now that I have an Agon Light 2 running BBC basic I'll probably pivot towards
-    /// the Z80. As a matter of fact. I'm just going with an pre build emulator.
+    /// the Z80. As a matter of fact. I'm just going with an pre built emulator.
     /// </summary>
-    public class MonitorDocument :
+    public class Old_CPU_Emulator :
         IPgParent,
 		IDisposable,
         IPgLoad<TextReader>,
@@ -128,9 +128,9 @@ namespace Monitor {
         public class DocSlot :
             IPgBaseSite
         {
-            protected readonly MonitorDocument _oHost;
+            protected readonly Old_CPU_Emulator _oHost;
 
-            public DocSlot( MonitorDocument oHost ) {
+            public DocSlot( Old_CPU_Emulator oHost ) {
                 _oHost = oHost;
             }
             public IPgParent Host => _oHost;
@@ -149,7 +149,7 @@ namespace Monitor {
             IPgFileSite 
         {
 
-            public FileSlot( MonitorDocument oHost ) : base( oHost ) {
+            public FileSlot( Old_CPU_Emulator oHost ) : base( oHost ) {
             }
             public FILESTATS FileStatus => _oHost._oFileSite.FileStatus;
 
@@ -163,7 +163,7 @@ namespace Monitor {
         public class ProgramFile : Editor {
             public ProgramFile( IPgBaseSite oBaseSite ) : base( oBaseSite ) { }
 
-            public override WorkerStatus PlayStatus => ( _oSiteBase.Host as MonitorDocument ).PlayStatus;
+            public override WorkerStatus PlayStatus => ( _oSiteBase.Host as Old_CPU_Emulator ).PlayStatus;
         }
 
         /// <summary>
@@ -179,7 +179,7 @@ namespace Monitor {
                 // return WorkerStatus.PAUSED;
             } 
         }
-        public MonitorDocument( IPgBaseSite oSite ) {
+        public Old_CPU_Emulator( IPgBaseSite oSite ) {
             _oBaseSite = oSite ?? throw new ArgumentNullException( "Site to document must not be null." );
             _oFileSite = oSite as IPgFileSite ?? throw new ArgumentException( "Need a IPgFileSite" );
 

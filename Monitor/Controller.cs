@@ -12,7 +12,7 @@ namespace Monitor {
         public static Guid DumpWindowGUID { get; } = new Guid( "{247AE5B9-F6F1-4B6B-AB9C-81C83BC320B2}" );
 
         public override IDisposable CreateDocument(IPgBaseSite oSite, string strExtension) {
-            return new MonitorDocument( oSite );
+            return new Old_CPU_Emulator( oSite );
         }
 
     }
@@ -22,7 +22,7 @@ namespace Monitor {
         }
 
         public override IDisposable CreateView(IPgViewSite oViewSite, object oDocument, Guid guidViewType) {
-            if( oDocument is MonitorDocument oMonitorDoc ) {
+            if( oDocument is Old_CPU_Emulator oMonitorDoc ) {
 			    try {
                     if( guidViewType == WindowFrontPanel.GUID )
                         return new WindowFrontPanel( oViewSite, oMonitorDoc );
@@ -51,7 +51,7 @@ namespace Monitor {
 
     public class BBCBasicController : BaseController {
         public override IDisposable CreateView(IPgViewSite oViewSite, object oDocument, Guid guidViewType) {
-            if( oDocument is MonitorDocument oMonitorDoc ) {
+            if( oDocument is Old_CPU_Emulator oMonitorDoc ) {
 			    try {
                     if( guidViewType == BasicLineWindow.GUID )
 					    return new BasicLineWindow( oViewSite, oMonitorDoc );

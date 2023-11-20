@@ -1,9 +1,4 @@
-﻿using System.Text;
-using System.Windows.Forms;
-using System.Runtime.InteropServices;
-
-
-using Play.Interfaces.Embedding;
+﻿using Play.Interfaces.Embedding;
 using Play.Edit; 
 using Play.Parse;
 using Play.Parse.Impl;
@@ -245,7 +240,7 @@ namespace Monitor {
 
                 oBasic.IO_Tokenize( this, oWriter );
             } catch( Exception oEx ) {
-                if( MonitorDocument._rgIOErrors.IsUnhandled( oEx ) )
+                if( Old_CPU_Emulator._rgIOErrors.IsUnhandled( oEx ) )
                     throw;
                 LogError( "File may be r/o, path too long, unauthorized." );
                 return false;
