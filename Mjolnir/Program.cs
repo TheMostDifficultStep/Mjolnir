@@ -1351,7 +1351,7 @@ namespace Mjolnir {
 			Controllers.Add( new Play.MorsePractice.MorseController3() );
             Controllers.Add( new Play.Clock        .SolarController() );
             Controllers.Add( new Play.SSTV         .MySSTVController() );
-            Controllers.Add( new Monitor           .MonitorController() );
+            Controllers.Add( new Monitor           .OldMonitorController() );
             Controllers.Add( new Monitor           .BBCBasicBinaryController() );
             Controllers.Add( new Monitor           .BBCBasicTextController() );
             Controllers.Add( new Kanji_Practice    .KanjiController() );

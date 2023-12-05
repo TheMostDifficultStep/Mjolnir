@@ -78,7 +78,6 @@ namespace Play.Edit {
     public abstract class Line :
         IComparable<Line>,
         IComparable<string>,
-        IReadableBag<char>,
         IDisposable
     {
         readonly ICollection<IColorRange> _rgFormatting = new List<IColorRange>();

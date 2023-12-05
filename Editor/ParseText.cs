@@ -17,12 +17,12 @@ namespace Play.Integration {
     {
         readonly Grammer<char>       _oWordGrammar;
         readonly IPgRoundRobinWork   _oWorkPlace;
-        readonly Editor              _oEditor;
-        readonly Editor.LineStream   _oStream;
+        readonly BaseEditor              _oEditor;
+        readonly BaseEditor.LineStream   _oStream;
 
         ParseIterator<char> _oParseIter;
 
-        public WordCounter( Editor oEditor ) {
+        public WordCounter( BaseEditor oEditor ) {
             _oEditor = oEditor ?? throw new ArgumentNullException();
 			// Set up a listener on the editor so we know when to parse.
 
@@ -110,7 +110,7 @@ namespace Play.Integration {
         readonly protected Grammer<char> _oTextGrammar;
 
         readonly protected IPgRoundRobinWork _oWorkPlace; 
-        readonly protected Editor.LineStream _oStream;
+        readonly protected BaseEditor.LineStream _oStream;
 
         private BufferEvent _oDocEvent;
         private DateTime    _dtStartParse;
@@ -503,12 +503,12 @@ namespace Play.Integration {
     /// </summary>
     /// <seealso cref="ParseHandlerText"/>
 	public class ParseSimpleText : IParseEvents<char> {
-		public Editor Document { get; }
+		public BaseEditor Document { get; }
 
 		protected BaseEditor.LineStream _oStream;
 		protected State<char>			_oStart;
 
-		public ParseSimpleText( Editor oText, Grammer<char> oLanguage ) {
+		public ParseSimpleText( BaseEditor oText, Grammer<char> oLanguage ) {
 			Document = oText ?? throw new ArgumentNullException( "Editor must not be null" );
 
 			if( oLanguage == null )

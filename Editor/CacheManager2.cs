@@ -788,7 +788,9 @@ namespace Play.Edit {
             CacheRow oRow = CacheLocate( oSelection.At );
 
             if( oRow != null ) {
+                // This one returns local row/col in points(pixels) 0,0 ul of FTCacheLine
                 pntWorld = oRow.CacheList[0].GlyphOffsetToPoint( oSelection.Offset );
+                // This adds the vertical offset of the world.
                 pntWorld.Y += oRow.Top;
                 return( true );
             } else {

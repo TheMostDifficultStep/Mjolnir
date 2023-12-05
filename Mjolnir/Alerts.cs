@@ -35,7 +35,7 @@ namespace Mjolnir {
 		}
 
 		public new void Show() {
-			_oWin_Alerts.ScrollTo( EDGE.BOTTOM );
+			_oWin_Alerts.ScrollTo( SCROLLPOS.BOTTOM );
 			base.Show();
 		}
 

@@ -611,13 +611,6 @@ namespace Play.Interfaces.Embedding {
         }
     }
 
-    public enum EDGE {
-        LEFT   = 0,
-        TOP    = 1,
-        RIGHT  = 2,
-        BOTTOM = 3
-    }
-
     public delegate void Navigation( int iLine );
 
 	/// <summary>
@@ -634,25 +627,34 @@ namespace Play.Interfaces.Embedding {
 		}
 	}
 
-    /// <summary>
+    //public enum EDGE {
+    //    LEFT   = 0,
+    //    TOP    = 1,
+    //    RIGHT  = 2,
+    //    BOTTOM = 3
+    //}
+
+    public enum SCROLLPOS {
+        TOP,
+        BOTTOM,
+        CARET
+    }
+
+/// <summary>
     /// Basically any kind of text editing object which uses the Line class. 
     /// This interface allows you to work with the FindWindow.
     /// </summary>
     public interface IPgTextView : IPgParent { 
         TextPosition Caret { get; }
 
-        void ScrollTo( EDGE eEdge ); 
+        void ScrollTo( SCROLLPOS eEdge ); 
         void ScrollToCaret();
-
+        /// <summary>
+        /// Simple selection on one line. Works for most cases.
+        /// Goto line w/ selection length 0.
+        /// </summary>
         bool SelectionSet( int iLine, int iOffset, int iLength );
         void SelectionClear();
-
-		// I'd love to return an enumerable but then I end up having to
-		// have the return type, and Line is specific to the editor.
-		// Then the ImageViewer and MusicPlayer need to pull in the Edit
-		// namespace in places they don't really have to. They use the
-		// text editor, but they don't have to.
-        object DocumentText { get; }
     }
 
     public delegate void ViewChanged( object oView );

@@ -21,6 +21,7 @@ using Play.Rectangles;
 using Play.Controls;
 using Play.Parse;
 using Play.Parse.Impl;
+using System.Collections;
 
 namespace Play.Rectangles {
 	/// <summary>
@@ -325,7 +326,9 @@ namespace Play.Edit {
         IPgTextView,
 		IPgTools,
         ILineEvents,
-        IPgSelectionHelper
+        IPgSelectionHelper,
+        IEnumerable<ILineRange>,
+        IReadableBag<Line>
     {
         public static readonly Guid ViewType = new Guid( "{B9218737-4EC6-4E5F-BF2A-D41949CD07DA}" );
         
@@ -376,7 +379,7 @@ namespace Play.Edit {
 		protected int         _iSelectedTool = 0;
 
 		public IPgParent Parentage    => _oSiteView.Host;
-        public object    DocumentText => _oDocument;
+        public object    DocumentText => _oDocument; // IPgSelectionHelper
 		public IPgParent Services     => Parentage.Services;
 
         protected class ChooserHyperLink : IPgWordRange
@@ -793,14 +796,14 @@ namespace Play.Edit {
         /// So the ScrollBarRefresh() and CaretIconRefeshLocation() calls had to check if _oCacheMan was null.
         /// </summary>
         /// <remarks>I'm going to keep this so I can check in on this.</remarks>
-        protected override void OnHandleCreated(EventArgs e) {
-            try {
-                base.OnHandleCreated(e);
-            } catch( InvalidOperationException ) {
-                // Seeing weird failure now and again. Could be a delegate bailing.
-                // Since I don't know of any delegates of my own. I'm going to punt.
-            }
-        }
+        //protected override void OnHandleCreated(EventArgs e) {
+        //    try {
+        //        base.OnHandleCreated(e);
+        //    } catch( InvalidOperationException ) {
+        //        // Seeing weird failure now and again. Could be a delegate bailing.
+        //        // Since I don't know of any delegates of my own. I'm going to punt.
+        //    }
+        //}
 
         /// <summary>
         /// Always return true. I don't keep track of view specific data.
@@ -880,10 +883,10 @@ namespace Play.Edit {
 				if( SelectionCount > 0 ) {
 					strSelection = this.SelectionCopy();
 				} else {
-						IMemoryRange oSelection = FindFormattingUnderRange( CaretPos );
-						if( oSelection != null ) {
-							strSelection = CaretPos.Line.SubString( oSelection.Offset, oSelection.Length );
-						}
+					IMemoryRange oSelection = FindFormattingUnderRange( CaretPos );
+					if( oSelection != null ) {
+						strSelection = CaretPos.Line.SubString( oSelection.Offset, oSelection.Length );
+					}
  				}
 
 				oDataObject.SetData( strSelection );
@@ -1909,6 +1912,7 @@ namespace Play.Edit {
         /// This is a bit more efficient than calling GetSelections() since we don't actually
         /// need to visit all the nodes in the "selectall" case.
         /// </summary>
+        /// <returns>Count of charactes in selection including cr/lf.</returns>
         protected long SelectionCount 
         {
             get {
@@ -2228,10 +2232,10 @@ namespace Play.Edit {
                     OnKeyDown_Arrows( Axis.Horizontal, -1);
                     break;
                 case Keys.Home:
-                    ScrollTo( EDGE.TOP );
+                    ScrollTo( SCROLLPOS.TOP );
                     break;
                 case Keys.End:
-                    ScrollTo( EDGE.BOTTOM);
+                    ScrollTo( SCROLLPOS.BOTTOM);
                     break;
                     
                 case Keys.Back:
@@ -2507,17 +2511,17 @@ namespace Play.Edit {
         /// which requires us to update the _iAdvance.
         /// </summary>
 		/// <seealso cref="CaretAndAdvanceReset"/>
-        public void ScrollTo( EDGE eEdge )
+        public void ScrollTo( SCROLLPOS eEdge )
         {
             Line oLine   = null;
             int  iOffset = 0;
                 
             switch( eEdge ) {
-                case EDGE.TOP:
+                case SCROLLPOS.TOP:
                     oLine   = _oDocument.GetLine( 0 );
                     iOffset = 0;
                     break;
-                case EDGE.BOTTOM:
+                case SCROLLPOS.BOTTOM:
                     oLine   = _oDocument.GetLine( _oDocument.ElementCount - 1 );
                     iOffset = oLine.ElementCount;
                     break;
@@ -2697,7 +2701,7 @@ namespace Play.Edit {
 			}
 		}
 
-		protected void PlayMorse() {
+        protected void PlayMorse() {
 			if( _oMorse != null ) {
 				switch( _oMorse.Status ) {
 					case WorkerStatus.FREE:
@@ -2721,7 +2725,20 @@ namespace Play.Edit {
 					throw;
 			}
 		}
-	}
+
+        public IEnumerator<ILineRange> GetEnumerator() {
+            return _oDocument.CreateLineSearch( Caret.Line, Caret.Offset );
+        }
+
+        IEnumerator IEnumerable.GetEnumerator() {
+            return GetEnumerator();
+        }
+
+        public int ElementCount => _oDocument.ElementCount;
+
+        public Line this[int iIndex] => _oDocument[iIndex];
+
+    }
 
 	/// <summary>
 	/// A little subclass of the editwindow to turn on the check marks. turn on readonly and have multiline.

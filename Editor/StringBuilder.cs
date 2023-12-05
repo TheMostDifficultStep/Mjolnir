@@ -47,11 +47,6 @@ namespace Play.Edit {
             spInit.CopyTo( _rgValue );
         }
 
-        public MyStringBuilder()
-        {
-            _rgValue = new char[2]; // BUG: See above.
-        }
-
         public int Capacity
         {
             get {

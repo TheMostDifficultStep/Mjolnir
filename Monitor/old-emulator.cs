@@ -931,7 +931,7 @@ namespace Monitor {
            if( oViewSite is IPgShellSite oShellSite ) {
                 IPgCommandView? oFoundView = null;
                 foreach( IPgCommandView oView in oShellSite.EnumerateSiblings ) {
-                    if( oView.Catagory == MonitorController.DumpWindowGUID ) {
+                    if( oView.Catagory == OldMonitorController.DumpWindowGUID ) {
                         oFoundView = oView;
                         break;
                     }
@@ -946,7 +946,7 @@ namespace Monitor {
                             BbcBasic5.Dump( oDialog.FileName, DumpDocument );
 
                             if( oFoundView == null ) {
-                                oShellSite.AddView( MonitorController.DumpWindowGUID, fFocus: true );
+                                oShellSite.AddView( OldMonitorController.DumpWindowGUID, fFocus: true );
                             } else {
                                 oShellSite.FocusTo( oFoundView );
                             }

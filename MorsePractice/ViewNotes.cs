@@ -1,9 +1,9 @@
 ﻿using System;
+using System.Windows.Forms;
 
 using Play.Interfaces.Embedding;
 using Play.Parse;
 using Play.Edit;
-using System.Windows.Forms;
 
 namespace Play.MorsePractice {
     /// <summary>
@@ -94,7 +94,7 @@ namespace Play.MorsePractice {
         protected override void OnKeyDown(KeyEventArgs e) {
             if( e.KeyCode == Keys.T && e.Control == true ) {
                 _oDocNotes.InsertFreqDateTime();
-                ScrollTo(EDGE.BOTTOM);
+                ScrollTo(SCROLLPOS.BOTTOM);
             }
             base.OnKeyDown(e);
         }

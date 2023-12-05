@@ -25,12 +25,12 @@ namespace Play.Forms {
         readonly MyStack<ProdBase<char>>    _oStack;
         readonly MyStack<ProdBase<char>>.MyStackEnum _oStackEnum;
 		         int                        _iInput;
-        readonly Editor                     _oDocument;
+        readonly BaseEditor                     _oDocument;
         readonly SubStream                  _oStream;
         readonly List<Line>                 _rgCleanUp = new();
                  IPgRoundRobinWork          _oWorker; 
 
-        public ParseFormText( IPgRoundRobinWork oWorker, Editor oText, string strLangName ) {
+        public ParseFormText( IPgRoundRobinWork oWorker, BaseEditor oText, string strLangName ) {
             Grammer<char> oLanguage;
 			try {
 				oLanguage = (Grammer<char>)((IPgGrammers)oText.Services).GetGrammer( strLangName );

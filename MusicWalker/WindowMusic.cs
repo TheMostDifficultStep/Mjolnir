@@ -613,7 +613,7 @@ namespace Play.MusicWalker {
 
         public int PercentCompleted => throw new NotImplementedException();
 
-        public void ScrollTo(EDGE eEdge) {
+        public void ScrollTo(SCROLLPOS eEdge) {
 			ViewLibrary.ScrollTo( eEdge );
 		}
 

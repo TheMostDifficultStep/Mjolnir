@@ -4,15 +4,15 @@ using System.Windows.Forms;
 using System.Drawing;
 using System.Diagnostics;
 using System.IO;
+using System.Text;
 
 using SkiaSharp;
 using SkiaSharp.Views.Desktop;
 
 using Play.Interfaces.Embedding;
-using Play.Edit;
 using Play.Rectangles;
 using Play.Parse;
-using System.Text;
+using Play.Edit;
 
 namespace Play.Forms {
     /// <summary>
@@ -747,7 +747,7 @@ namespace Play.Forms {
                 LayoutSingleLine oLayout = GetLayoutAtCaret;
                 int              iLineAt = oLayout.Cache.Line.At;
 
-                using Editor.Manipulator oBulk = DocForms.CreateManipulator();
+                using BaseEditor.Manipulator oBulk = DocForms.CreateManipulator();
 
                 if( IsSelection ) {
                     oBulk.LineTextDelete( iLineAt, oLayout.Selection );
@@ -787,7 +787,7 @@ namespace Play.Forms {
                     LayoutSingleLine oLayout = GetLayoutAtCaret;
                     int              iLineAt = oLayout.Cache.Line.At;
                     if( IsSelection ) {
-                        using( Editor.Manipulator oBulk = DocForms.CreateManipulator() ) {
+                        using( BaseEditor.Manipulator oBulk = DocForms.CreateManipulator() ) {
                             oBulk.LineTextDelete( iLineAt, oLayout.Selection );
                             oBulk.LineCharInsert( iLineAt, Offset, e.KeyChar );
                         }
@@ -1029,7 +1029,7 @@ namespace Play.Forms {
                 try {
                     LayoutSingleLine oLayout = GetLayoutAtCaret;
 
-                    using( Editor.Manipulator oBulk = DocForms.CreateManipulator() ) {
+                    using( BaseEditor.Manipulator oBulk = DocForms.CreateManipulator() ) {
                         oBulk.LineTextDelete( oLayout.Cache.At, oLayout.Selection );
                     }
                 } catch( Exception oEx ) {
@@ -1093,7 +1093,7 @@ namespace Play.Forms {
                     sOperation == ClipboardOperations.Default 
                   ) {
                     string strPaste = oData.GetData(typeof(System.String)) as string;
-                    using( Editor.Manipulator oBulk = new Editor.Manipulator( DocForms ) ) {
+                    using( BaseEditor.Manipulator oBulk = new BaseEditor.Manipulator( DocForms ) ) {
                         if( IsSelection ) {
                             oBulk.LineTextDelete( iLineAt, oLayout.Selection );
                         }

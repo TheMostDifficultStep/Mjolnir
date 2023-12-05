@@ -56,7 +56,6 @@ namespace Mjolnir {
             this.oSearchType.Items.AddRange( rgSearchTypes );
             this.oSearchType.SelectedIndex = 0;
             this.oSearchType.DropDownStyle = ComboBoxStyle.DropDownList;
-            this.oSearchType.SelectedIndexChanged += Regex_SelectedIndexChanged;
             // 
             // oMatchCase
             // 

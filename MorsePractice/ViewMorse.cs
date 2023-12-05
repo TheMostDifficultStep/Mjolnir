@@ -170,7 +170,7 @@ namespace Play.MorsePractice {
 			return true;
 		}
 
-		public void ScrollTo(EDGE eEdge) {
+		public void ScrollTo(SCROLLPOS eEdge) {
 		}
 
 		public void ScrollToCaret() {

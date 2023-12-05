@@ -10,6 +10,9 @@ using Play.Forms;
 
 using SkiaSharp.Views.Desktop;
 using SkiaSharp;
+using Play.Edit;
+using System.Collections;
+using System.Reflection;
 
 namespace Play.ImageViewer {
 	public enum WindowSoloImageTools : int {
@@ -24,6 +27,8 @@ namespace Play.ImageViewer {
 		IPgTools,
         IPgTextView,
 		IPgPlayStatus,
+		IEnumerable<ILineRange>,
+		IReadableBag<Line>,
         IDisposable 
     {
 		protected class DocSlot :
@@ -113,8 +118,6 @@ namespace Play.ImageViewer {
         public virtual string    Banner		  => _oDocWalker.Banner;
 		public         SKBitmap  Icon         { get; }
 		public         Image     Iconic => null;
-        public         object    DocumentText => _oDocWalker;
-
         public         uint      ID { get { return _oSiteShell.SiteID; } }
 
 		protected SmartGrabDrag _oSmartDrag = null; // See the base class for the SmartGrab.
@@ -638,7 +641,7 @@ namespace Play.ImageViewer {
             }
         }
 
-		public void ScrollTo( EDGE eEdge ) { }
+		public void ScrollTo( SCROLLPOS eEdge ) { }
         public void ScrollToCaret()        { }
 
         public bool SelectionSet( int iLine, int iOffset, int iLength ) { return( _oDocWalker.Given( iLine ) ); }
@@ -718,6 +721,19 @@ namespace Play.ImageViewer {
 			_rcSelectionView.Hidden = true;
 			Invalidate();
 		}
-  
-	} // End Class
+
+        public IEnumerator<ILineRange> GetEnumerator() {
+			return _oDocWalker.CreateLineSearch();
+        }
+
+        IEnumerator IEnumerable.GetEnumerator() {
+            return GetEnumerator();
+        }
+
+		public int ElementCount => _oDocWalker.ElementCount;
+
+        public Line this[int index] => _oDocWalker[index];
+
+
+    } // End Class
 }

@@ -1091,6 +1091,20 @@ namespace Play.ImageViewer {
 
         public int ElementCount { get { return( FileList.ElementCount ); } }
         
+        /// <summary>
+        /// This Enumerator is a little different since the document
+        /// and not the view is the keeper of the "pointer" to the
+        /// selected line.
+        /// </summary>
+        public IEnumerator<ILineRange> CreateLineSearch() {
+            int iStart = 0;
+
+            if( _oDisplayLine != null )
+                iStart = _oDisplayLine.At;
+
+            return FileList.CreateLineSearch( iStart, 0 );
+        }
+
         protected void ImageLoad( string strFileName ) {
             foreach( Line oLine in FileList ) {
                 if( oLine.CompareTo( strFileName ) == 0 ) {

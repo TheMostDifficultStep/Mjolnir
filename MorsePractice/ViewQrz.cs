@@ -92,8 +92,6 @@ namespace Play.MorsePractice {
 
         public TextPosition Caret => ((IPgTextView)ViewBiograph).Caret;
 
-        public object DocumentText => ((IPgTextView)ViewBiograph).DocumentText;
-
         public ViewQrz( IPgViewSite oSiteView, DocNotes oDocument ) {
             _oSiteView  = oSiteView ?? throw new ArgumentNullException();
             _oDocMorse  = oDocument ?? throw new ArgumentNullException();
@@ -166,7 +164,7 @@ namespace Play.MorsePractice {
             return null;
         }
 
-        public void ScrollTo(EDGE eEdge)
+        public void ScrollTo(SCROLLPOS eEdge)
         {
             ((IPgTextView)ViewBiograph).ScrollTo(eEdge);
         }

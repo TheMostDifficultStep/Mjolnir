@@ -81,8 +81,8 @@ namespace Monitor {
         }
     }
 
-
     public class NumberLabelWindow : LineNumberWindow {
+        public static Guid GUID { get; } = new Guid( "{A0F2D092-F8D1-48E3-9ECA-30A3A8287C45}" );
         public class CacheManagerLabel : CacheManagerAsm {
             List<IMemoryRange> _rgColumnOffsets = new();
 
@@ -94,8 +94,12 @@ namespace Monitor {
                 }
             }
 
+            /// <remarks>
+            /// I could probably just have column total and create a bunch
+            /// of FTCacheWraps all at once, instead of peicemeal like now.
+            /// </remarks>
             protected override CacheRow CreateRow( Line oLine ) {
-                CacheRow oRow = base.CreateRow( oLine );
+                CacheRow oRow = base.CreateRow( oLine ); // Let base add it's rows.
 
                 FTCacheLine oElem = new FTCacheWrap( oLine ); 
 
@@ -104,7 +108,7 @@ namespace Monitor {
                 return oRow;
             }
 
-            protected void ElemUpdate3( FTCacheLine oElem, int iWidth, IMemoryRange oRange ) {
+            protected void ElemUpdate3( FTCacheLine oElem, int iWidth, IMemoryRange? oRange ) {
 			    try {
 				    oElem.Update            ( Font, oRange );
                     oElem.OnChangeFormatting( null );
@@ -155,7 +159,7 @@ namespace Monitor {
                 Organize( oRow );
 
                 for( int i=0; i<_rgCacheMap.Count; ++i ) {
-                    IMemoryRange oArg = null;
+                    IMemoryRange? oArg = null;
 
                     if( _rgColumnOffsets[i].Offset > -1 ) {
                         oArg = _rgColumnOffsets[i];
@@ -167,7 +171,9 @@ namespace Monitor {
         }
         protected readonly LayoutRect _rctLabelColumn = new LayoutRect( LayoutRect.CSS.Flex ) { Track = 1 };
 
-        public NumberLabelWindow( IPgViewSite oSite, Editor oEdit ) : base( oSite, oEdit ) {
+        public NumberLabelWindow( IPgViewSite oSite, Editor oEdit ) : 
+            base( oSite, oEdit ) 
+        {
         }
 
         /// <seealso cref="CacheManager2.RowUpdate"/>

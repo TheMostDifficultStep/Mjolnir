@@ -55,7 +55,7 @@ namespace Play.Integration {
     {
         readonly Grammer<TagInfo> _oGrammer;
 
-        Editor.LineStream _oTextStream;
+        BaseEditor.LineStream _oTextStream;
         TagStream         _oTagStream;
         MemoryStateTag    _oStart;
 
@@ -70,7 +70,7 @@ namespace Play.Integration {
         /// </summary>
         /// <param name="rgTags">List of tags to parse.</param>
         /// <param name="oTextStream">Text stream where the tags came from. So we can get tag names and etc.</param>
-        public void Parse( List<TagInfo> rgTags, Editor.LineStream oTextStream ) {
+        public void Parse( List<TagInfo> rgTags, BaseEditor.LineStream oTextStream ) {
             if( oTextStream == null )
                 throw new ArgumentNullException();
 
@@ -150,7 +150,7 @@ namespace Play.Integration {
         readonly protected List<TagInfo>  _rgTagBag = new List<TagInfo>(100);
         readonly protected string         _strTagGrammerName = "html_4_trad";
 
-        public ParseHandlerHTML( Editor oDocument ) : base( oDocument, "html" ) {
+        public ParseHandlerHTML( BaseEditor oDocument ) : base( oDocument, "html" ) {
             try {
                 _oTagGrammer = (TagGrammer)((IPgGrammers)_oDocument.Services).GetGrammer(_strTagGrammerName);
             } catch (Exception oEx) {

@@ -94,21 +94,6 @@ namespace Play.Edit {
         Vertical
     }
 
-    /// <summary>
-    /// You know, I think this would be cooler if these functions were an interface that
-    /// you plug into the side of the BaseEditor! Need to think about that...
-    /// </summary>
-    public class Editor : BaseEditor
-    {
-        public Editor( IPgBaseSite oSite ) : base( oSite ) {
-        }
-
-        protected override Line CreateLine( int iLine, string strValue )
-        {
-            return( new TextLine( iLine, strValue ) );
-        }
-    }
-
 	public delegate void HilightEvent();
     public delegate void CheckedEvent( Line oLineChecked );
 
@@ -228,7 +213,7 @@ namespace Play.Edit {
             }
         }
 
-        protected abstract Line         CreateLine( int iLine, string strValue );
+        protected abstract Line CreateLine( int iLine, string strValue );
 
         /// <summary>
         /// This is returning the title. It's tempting to return a string of the entire 
@@ -566,9 +551,9 @@ namespace Play.Edit {
         /// position. I'll make this return an interface sometime.
         /// </summary>
         /// <returns>A LineStream object.</returns>
-        public Editor.LineStream CreateStream()
+        public BaseEditor.LineStream CreateStream()
         {
-            return( new Editor.LineStream( this ) );
+            return( new LineStream( this ) );
         }
 
         /// <summary>
@@ -1107,12 +1092,46 @@ namespace Play.Edit {
             int iIndex=0;
 
             if( _rgLines.Count > 0 ) {
-                yield return( _rgLines[iIndex] );
+                yield return _rgLines[iIndex];
             }
 
             while( ++iIndex < _rgLines.Count ) {
-                yield return( _rgLines[iIndex] );
+                yield return _rgLines[iIndex];
             }
+        }
+
+        /// <summary>
+        /// This will create line search ranges starting with everything to
+        /// the right of the cursor. Through all lines, and then lastly 
+        /// anything that was on the left of the cursor!! O.o
+        /// </summary>
+        /// <param name="iIndex"></param>
+        /// <param name="iOffset"></param>
+        public IEnumerator<ILineRange> CreateLineSearch( int iIndex, int iOffset ) {
+            if( _rgLines.Count <=0 )
+                yield break;
+
+            Line      oStart   = _rgLines[iIndex];
+            int       iLength  = oStart.ElementCount;
+
+            LineRange oRange   = new LineRange( null, 0, 0, SelectionTypes.Middle );
+            LineRange oFirst   = new LineRange( oStart, iOffset, iLength - iOffset + 1, SelectionTypes.Start );
+            LineRange oLast    = new LineRange( oStart, 0, iOffset, SelectionTypes.End );
+
+            yield return oFirst;
+
+            for( int i=iIndex+1, j = 0; 
+                 j < _rgLines.Count - 1; 
+                 ++j, i = ++i % _rgLines.Count ) 
+            {
+                oRange.Line   = _rgLines[i];
+                oRange.Offset = 0;
+                oRange.Length = _rgLines[i].ElementCount;
+
+                yield return oRange;
+            }
+
+            yield return oLast;
         }
 
         public void LineDirtyClear() {
@@ -1121,4 +1140,20 @@ namespace Play.Edit {
             }
         }
     }
+
+    /// <summary>
+    /// You know, I think this would be cooler if these functions were an interface that
+    /// you plug into the side of the BaseEditor! Need to think about that...
+    /// </summary>
+    public class Editor : BaseEditor
+    {
+        public Editor( IPgBaseSite oSite ) : base( oSite ) {
+        }
+
+        protected override Line CreateLine( int iLine, string strValue )
+        {
+            return( new TextLine( iLine, strValue ) );
+        }
+    }
+
 }

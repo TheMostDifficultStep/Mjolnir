@@ -1,7 +1,4 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-
-using Play.Interfaces.Embedding;
+﻿using Play.Interfaces.Embedding;
 using Play.Forms;
 
 using SkiaSharp;
@@ -16,8 +13,8 @@ namespace Monitor {
         }
 
     }
-    public class MonitorController : BaseController {
-        public MonitorController() {
+    public class OldMonitorController : BaseController {
+        public OldMonitorController() {
             _rgExtensions.Add( ".asm" );
         }
 
@@ -98,4 +95,41 @@ namespace Monitor {
             _rgExtensions.Add( ".btx" );
         }
     }
+
+    public class NewMonitorController : Controller {
+        public NewMonitorController() {
+            _rgExtensions.Add( ".asm" );
+        }
+
+        public override IDisposable CreateView(IPgViewSite oViewSite, object oDocument, Guid guidViewType) {
+            if( oDocument is Document_Monitor oMonitorDoc ) {
+			    try {
+                    if( guidViewType == Window_Program_Display.GUID )
+                        return new Window_Program_Display( oViewSite, oMonitorDoc.Doc_Displ );
+                    if( guidViewType == NumberLabelWindow.GUID )
+                        return new NumberLabelWindow( oViewSite, oMonitorDoc.Doc_Asm );
+
+                    // Service the GUID.Empty case too.
+                    return new NumberLabelWindow( oViewSite, oMonitorDoc.Doc_Asm );
+                } catch( Exception oEx ) {
+                    Type[] rgErrors = { typeof( NullReferenceException ),
+                                        typeof( InvalidCastException ),
+                                        typeof( ArgumentNullException ),
+									    typeof( ArgumentException ) };
+                    if( rgErrors.IsUnhandled( oEx ) )
+                        throw;
+                }
+            }
+
+			throw new InvalidOperationException( "Controller couldn't create view for Monitor document." );
+        }
+
+        public override IEnumerator<IPgViewType> GetEnumerator() {
+            yield return new ViewType( "Assembly Display", Window_Program_Display.GUID );
+        }
+        public override IDisposable CreateDocument(IPgBaseSite oSite, string strExtension) {
+            return new Document_Monitor( oSite );
+        }
+    }
+
 }

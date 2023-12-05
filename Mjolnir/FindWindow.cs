@@ -1,4 +1,5 @@
 using System;
+using System.Runtime;
 using System.Collections;
 using System.Collections.Generic;
 using System.Text;
@@ -166,10 +167,6 @@ namespace Mjolnir {
             }
         }
 
-        void Regex_SelectedIndexChanged(object sender, System.EventArgs e) {
-            Reset();
-        }
-
         void MoveCaretToLineAndShow() {
             try {
                 int iRequestedLine = 0;
@@ -221,95 +218,77 @@ namespace Mjolnir {
              this.Enabled = true;
         }
 
-		//protected override void OnSizeChanged(EventArgs e) {
-		//	Layout2.SetRect( 0, 0, Width, Height );
-		//	Layout2.LayoutChildren();
+        protected struct TextMatches : IEnumerable<ILineRange> {
+            readonly ILineRange _oRange;
+            readonly string     _strFind;
+            readonly bool       _fMatchCase;
+            public TextMatches( ILineRange oRange, string strFind, bool fMatchCase = false ) {
+                _oRange     = oRange  ?? throw new ArgumentNullException();
+                _strFind    = strFind ?? throw new ArgumentNullException();
+                _fMatchCase = fMatchCase;
+            }
 
-  //          CaretIconRefresh();
+            public IEnumerator<ILineRange> GetEnumerator() {
+                Line oLine  = _oRange.Line;
+                int  iStart = _oRange.Offset;
+                int  iMax   = _oRange.Offset + _oRange.Length;
 
-  //          Invalidate();
-
-		//	//base.OnSizeChanged(e);
-		//}
-
-        /// <summary>
-        /// Look for a match in the section of the line given.
-        /// </summary>
-        private ILineRange TextMatch( 
-            string strFind, 
-            Line   oLine, 
-            int    iOffsetStart ) 
-        {
-            try {
-			    while( iOffsetStart < oLine.ElementCount ) {
+			    while( iStart < iMax ) {
 				    int iMatch = 0;
-				    for( int j=0; j<strFind.Length; ++j ) {
-                        char cChar = oLine[iOffsetStart+j];
+				    for( int j=0; j < _strFind.Length && j+iStart < iMax; ++j ) {
+                        char cChar = oLine[iStart+j];
 
-                        if( !oMatchCase.Checked )
+                        if( _fMatchCase )
                             cChar = char.ToLower( cChar );
 
-					    if ( strFind[j] == cChar )
+					    if ( _strFind[j] == cChar )
 						    iMatch++;
 					    else
 						    break;
 				    }
-				    if( iMatch == strFind.Length ) {
-                        return( new LineRange( oLine, iOffsetStart, iMatch, SelectionTypes.Empty ) );
+				    if( iMatch == _strFind.Length ) {
+                        yield return new LineRange( oLine, iStart, iMatch, SelectionTypes.Empty );
+                        iStart += iMatch;
+                    } else {
+                        iStart += 1;
                     }
-				    iOffsetStart++;
 			    }
-            } catch( Exception oEx ) {
-                Type[] rgErrors = { typeof( ArgumentOutOfRangeException ),
-                                    typeof( NullReferenceException ) };
-                if( rgErrors.IsUnhandled( oEx ) )
-                    throw;
-
-                _oWinMain.LogError( null, "search", "Tried to walk off the end of a buffer in the Find Window." );
             }
 
-            return( null );
+            IEnumerator IEnumerable.GetEnumerator() {
+                return GetEnumerator();
+            }
         }
 
-        public IEnumerator<ILineRange> CreateTextEnum( IReadableBag<Line> oDoc, string strFind, int iLine ) {
-            if( oDoc == null )
+        /// <summary>
+        /// Finds the text based on the new IEnumerable<ILineRange> on any
+        /// text capable view!!
+        /// </summary>
+        public IEnumerator<ILineRange> CreateTextFind( IEnumerable<ILineRange> oView, string strFind ) {
+            if( oView == null )
                 yield break;
 			if( string.IsNullOrEmpty( strFind ) )
 				yield break;
 
-            int iCount  = 0;
-            int iOffset = 0;
-
             if( !oMatchCase.Checked )
                 strFind = strFind.ToLower();
 
-            while( true ) {
-                if( iCount++ >= oDoc.ElementCount ) {
-                    break;
+            foreach( ILineRange oRange in oView ) {
+                foreach( ILineRange oMatch in new TextMatches( oRange, strFind, oMatchCase.Checked ) ) {
+                    yield return oMatch;
                 }
-                do {
-                    ILineRange oRange = TextMatch( strFind, oDoc[ iLine ], iOffset );
-                    if( oRange == null )
-                        break;
-                    
-                    iOffset = oRange.Offset + oRange.Length; // Do now, in case range is tampered with.
-                    yield return( oRange );
-                } while( iOffset <  oDoc[ iLine ].ElementCount ); 
-
-                iOffset = 0;
-                iLine   = ++iLine % oDoc.ElementCount;
-            } // End while
-        } // End method
+            }
+        }
 
         /// <summary>
-        /// Sort of a misnomer. Since we simply return the same line everytime 'next' occures.
-        /// But this object lets us use the same code for regex, and text searches. Just remember
+        /// Sort of a misnomer. Since we simply return the same line everytime 'next' is pressed.
+        /// But this object lets us us the same code for regex, and text searches. Just remember
         /// to set the caret position in the case of line number in the calling code.
         /// </summary>
         /// <returns></returns>
-        public IEnumerator<ILineRange> CreateLineNumberEnum( IReadableBag<Line> oDoc, string strFind )
+        public IEnumerator<ILineRange> CreateLineNumberEnum( IReadableBag<Line> oView, string strFind )
         {
-            if( oDoc == null )
+            if( oView == null )
                 yield break;
 
             int  iRequestedLine;
@@ -326,12 +305,11 @@ namespace Mjolnir {
                 throw new InvalidOperationException( "Unexpected return in FindWindow Line Parse" );
             }
 
-            yield return( new LineRange( oDoc[iRequestedLine], 0, 0, SelectionTypes.Empty ) );
+            yield return( new LineRange( oView[iRequestedLine], 0, 0, SelectionTypes.Empty ) );
         }
 
-        public IEnumerator<ILineRange> CreateRegexEnum( IReadableBag<Line> oDoc, string strFind, int iLine )
-        {
-            if( oDoc == null )
+        public IEnumerator<ILineRange> CreateRegexFind( IEnumerable<ILineRange> oWin, string strFind ) {
+            if( oWin == null )
                 yield break;
 
             RegexOptions eOpts = RegexOptions.None;
@@ -345,7 +323,7 @@ namespace Mjolnir {
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( ArgumentException ),
                                     typeof( ArgumentNullException ),
-                                    typeof( FileNotFoundException ) };
+                                    typeof( ArgumentOutOfRangeException ) };
                 if( rgErrors.IsUnhandled( oEx ) )
                     throw;
 
@@ -353,52 +331,44 @@ namespace Mjolnir {
                 yield break;
             }
 
-            int  iCount = 0;
+            foreach( ILineRange oRange in oWin ) {
+                Match oMatch = null;
+                try {
+                    // Still an allocation pain. Fix when Regex takes Span<char>
+                    oMatch = oReg.Match( oRange.Line.ToString(), oRange.Offset, oRange.Length );
+                } catch( Exception oEx ) {
+                    Type[] rgErrors = { typeof( ArgumentException ),
+                                        typeof( ArgumentNullException ),
+                                        typeof( ArgumentOutOfRangeException ) };
+                    if( rgErrors.IsUnhandled( oEx ) )
+                        throw;
 
-            while( true ) {
-                if( iCount++ >= oDoc.ElementCount )
-                    yield break;
+                    _oWinMain.LogError( null, "search", "Could not Regex search current line of text." );
+                }
 
-                int    iStart  = 0;
-                Line   oLine   = oDoc[ iLine ];
-                string strLine = oLine.ToString(); // BUG: Pretty evil actually. Need to go all string based lines. 
-                Match  oMatch  = null;
+				if( oMatch != null && oMatch.Success ) {
+                    if( oMatch.Groups.Count > 1 ) {
+                        // This is effectively multi-selection on a line
+                        for( int iGroup = 1; iGroup < oMatch.Groups.Count; ++iGroup ) {
+                            Group oGroup = oMatch.Groups[iGroup];
 
-                do {
-                    try {
-                        oMatch = oReg.Match( strLine, iStart ); // Can throw exceptions.
-                    } catch( ArgumentOutOfRangeException ) {
-                        _oWinMain.LogError( null, "search", "Could not Regex search current line of text." );
-                    }
-
-				    if( oMatch != null && oMatch.Success ) {
-                        if( oMatch.Groups.Count > 1 ) {
-                            // This is effectively multi-selection on a line
-                            for( int iGroup = 1; iGroup < oMatch.Groups.Count; ++iGroup ) {
-                                Group oGroup = oMatch.Groups[iGroup];
-
-                                yield return( new LineRange( oLine, oGroup.Index, oGroup.Length, SelectionTypes.Empty ) );
-                            }
-                        } else {
-                            yield return( new LineRange( oLine, oMatch.Index, oMatch.Length, SelectionTypes.Empty ) );
+                            yield return( new LineRange( oRange.Line, oGroup.Index, oGroup.Length, SelectionTypes.Empty ) );
                         }
-                        iStart = oMatch.Index + oMatch.Length;
-                    } // if match
-                } while( oMatch != null && oMatch.Success && iStart < oLine.ElementCount );
-
-                iLine = ++iLine % oDoc.ElementCount;
-            } // End while
+                    } else {
+                        yield return( new LineRange( oRange.Line, oMatch.Index, oMatch.Length, SelectionTypes.Empty ) );
+                    }
+                } 
+            }
         }
-
         private IEnumerator<ILineRange> EnumSearchResults() {
 			try {
 				switch( oSearchType.SelectedItem.ToString() ) {
 					case "Text":
-						return CreateTextEnum( _oView.DocumentText as IReadableBag<Line>, DocForms[0].ToString(), _oView.Caret.Line );
+						return CreateTextFind( _oView as IEnumerable<ILineRange>, DocForms[0].ToString() );
 					case "Regex":
-						return CreateRegexEnum( _oView.DocumentText as IReadableBag<Line>, DocForms[0].ToString(), _oView.Caret.Line );
+						return CreateRegexFind( _oView as IEnumerable<ILineRange>, DocForms[0].ToString() );
 					case "Line":
-						return CreateLineNumberEnum( _oView.DocumentText as IReadableBag<Line>, DocForms[0].ToString() );
+						return CreateLineNumberEnum( _oView as IReadableBag<Line>, DocForms[0].ToString() );
 				}
 			} catch( NullReferenceException ) {
                 _oWinMain.LogError( null, "search", "Problem generating Search enumerators." );
@@ -407,11 +377,11 @@ namespace Mjolnir {
         }
 
         public IEnumerator<ILineRange> GetEnumerator() {
-            return( EnumSearchResults() );
+            return EnumSearchResults();
         }
 
         IEnumerator IEnumerable.GetEnumerator() {
-            return( EnumSearchResults() );
+            return EnumSearchResults();
         }
 
         /// <summary>
@@ -425,7 +395,7 @@ namespace Mjolnir {
         public override void Submit() {
             base.Submit();
 
-            _oDoc_SearchResults.Clear();
+            //_oDoc_SearchResults.Clear();
 
             try {
                 if( _oEnumResults == null ) {
@@ -454,7 +424,7 @@ namespace Mjolnir {
             try {
                 _oDoc_SearchResults.Clear();
 
-                using( Editor.Manipulator oSearchManip = _oDoc_SearchResults.CreateManipulator() ) {
+                using( BaseEditor.Manipulator oSearchManip = _oDoc_SearchResults.CreateManipulator() ) {
                     StringBuilder oMatchBuilder = new StringBuilder();
 
                     // oSearchType.SelectedItem.ToString() ;
