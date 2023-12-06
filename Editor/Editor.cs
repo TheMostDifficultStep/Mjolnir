@@ -1115,7 +1115,7 @@ namespace Play.Edit {
             int       iLength  = oStart.ElementCount;
 
             LineRange oRange   = new LineRange( null, 0, 0, SelectionTypes.Middle );
-            LineRange oFirst   = new LineRange( oStart, iOffset, iLength - iOffset + 1, SelectionTypes.Start );
+            LineRange oFirst   = new LineRange( oStart, iOffset, iLength - iOffset, SelectionTypes.Start );
             LineRange oLast    = new LineRange( oStart, 0, iOffset, SelectionTypes.End );
 
             yield return oFirst;
