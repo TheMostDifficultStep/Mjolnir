@@ -238,7 +238,7 @@ namespace Mjolnir {
 				    for( int j=0; j < _strFind.Length && j+iStart < iMax; ++j ) {
                         char cChar = oLine[iStart+j];
 
-                        if( _fMatchCase )
+                        if( !_fMatchCase )
                             cChar = char.ToLower( cChar );
 
 					    if ( _strFind[j] == cChar )
