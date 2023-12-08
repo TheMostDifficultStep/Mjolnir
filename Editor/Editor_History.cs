@@ -1,8 +1,5 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.IO;
-using System.Text;
 
 using Play.Parse;
 using Play.Parse.Impl;
@@ -17,15 +14,22 @@ namespace Play.Edit {
     /// This will be the backing history object. It will be
     /// a circular buffer. 
     /// </summary>
-    public class EditorHistory {
+    public class EditorHistory :
+		IPgParent,
+		IPgLoad,
+        IDisposable
+    {
         protected readonly IPgBaseSite _oBaseSite;
 
-        protected IPgLineFactory _oLineFactory;
-        protected int            _iCurrentLine;
-        protected List<Line>     _rgLines = new();
+        protected IPgLineFactory   _oLineFactory;
+        protected int              _iCurrentLine;
+        protected int              _iMaxHistory = 30;
+        protected LinkedList<Line> _rgLines = new();
 
         public IReadOnlyList<Line> Lines { get; private set; }
 
+		public IPgParent Parentage => _oBaseSite.Host;
+		public IPgParent Services  => Parentage.Services; // Shortcut for Wordbreaker and ParseHandlerText
 
         public EditorHistory( IPgBaseSite oBaseSite ) {
             _oBaseSite = oBaseSite ?? throw new ArgumentNullException();
@@ -41,12 +45,35 @@ namespace Play.Edit {
             }
         }
 
-        public int HistoryCapacity { 
-            get { return _rgLines.Capacity; }
+        public int MaxHistory { 
+            get { return _iMaxHistory; }
             set {
-                // Shuffle contents.
-                _rgLines.Capacity = value;
+                if( value == 0 )
+                    throw new ArgumentOutOfRangeException( "Must be greater than zero" );
+
+                _iMaxHistory = value;
             }
+        }
+
+        public int ElementCount => _rgLines.Count;
+
+        public bool InitNew() {
+            _rgLines.AddFirst( new TextLine( 0, string.Empty ) );
+            return true;
+        }
+
+        public void Dispose() {
+            // right now nothing special.
+        }
+
+        public LinkedListNode<Line> AddLine() {
+            LinkedListNode<Line> oNode = _rgLines.AddFirst( new TextLine( 0, string.Empty ) );
+
+            while( _rgLines.Count > _iMaxHistory ) {
+                _rgLines.RemoveLast();
+            }
+
+            return oNode;
         }
     }
 }

@@ -970,7 +970,7 @@ namespace Play.Edit {
         /// <summary>
         /// Convert a file drop into base64 URI! might be nice to do text too....
         /// </summary>
-        protected void PasteAsFileDropToBase64( System.Windows.Forms.IDataObject oDataObject ) {
+        protected void PasteAsFileDropToBase64( IDataObject oDataObject ) {
             if(  oDataObject == null ) 
                 return;
             if( _fReadOnly )
@@ -2726,6 +2726,9 @@ namespace Play.Edit {
 			}
 		}
 
+        /// <summary>
+        /// Enumerate starting on rhs of cursor, down/around, then lhs of cursor.
+        /// </summary>
         public IEnumerator<ILineRange> GetEnumerator() {
             return _oDocument.CreateLineSearch( Caret.Line, Caret.Offset );
         }

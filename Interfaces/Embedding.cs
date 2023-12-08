@@ -157,6 +157,11 @@ namespace Play.Interfaces.Embedding {
 
     public delegate void BufferEvent( BUFFEREVENTS eEvent );
 
+    /// <summary>
+    /// This is like a IReadonlyCollection<t> (count) and a 
+    /// IReadOnlyList<t> (this[])
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
     public interface IReadableBag<T>  {
         int  ElementCount { get; } 
         T this[int index] { get; }

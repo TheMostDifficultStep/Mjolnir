@@ -532,7 +532,6 @@ namespace Play.ImageViewer {
         IPgLoad<TextReader>,
         IPgSave<TextWriter>,
         IReadableBag<Line>, 
-        IEnumerable<Line>,
         IDisposable
     {
         protected readonly IPgFileSite       _oSiteFile;
@@ -1076,14 +1075,6 @@ namespace Play.ImageViewer {
 		public virtual string CurrentFullPath {
 			get { return _oDisplayLine.ToString(); }
 		}
-
-        IEnumerator<Line> IEnumerable<Line>.GetEnumerator() {
-            return FileList.CreateLineEnum();
-        }
-
-        IEnumerator IEnumerable.GetEnumerator() {
-            return FileList.CreateLineEnum();
-        }
 
         public Line this[int iIndex] { 
             get { return( FileList[iIndex] ); } 

@@ -15,35 +15,37 @@ namespace Play.Edit {
         IPgCommandView, // TODO: Consider moving this behavior to the EditPresentation shell window.
         IPgTextView 
     {
-        protected IPgViewSite _oSiteView;
-        readonly ICollection<ILineSelection> _rgSelection = new List<ILineSelection>( 2 );
-
-        public bool IsDirty => true;
+        protected readonly IPgViewSite                 _oSiteView;
+        protected readonly ICollection<ILineSelection> _rgSelection = new List<ILineSelection>( 2 );
+        protected readonly string                      _strBanner;
+        static readonly Guid _gCat = new Guid( "F254B7BB-2E10-4C91-AA82-51CFB2C30FD8" );
+        public bool      IsDirty   => true;
         public IPgParent Parentage => _oSiteView.Host;
-
         public IPgParent Services  => Parentage.Services;
 
+        public WindowHistory( IPgViewSite oSiteView, string strBanner ) {
+            _oSiteView = oSiteView ?? throw new ArgumentNullException();
+            _strBanner = strBanner;
+        }
 
-        public string Banner => throw new NotImplementedException();
+        public string Banner => _strBanner;
 
         public SKBitmap Icon => null;
 
-        public Guid Catagory => throw new NotImplementedException();
+        public Guid Catagory => _gCat;
 
         public TextPosition Caret => throw new NotImplementedException();
 
-        public object DocumentText => null;
-
         public object Decorate(IPgViewSite oBaseSite, Guid sGuid) {
-            throw new NotImplementedException();
+            return null;
         }
 
         public bool Execute(Guid sGuid) {
-            throw new NotImplementedException();
+            return false;
         }
 
         public bool InitNew() {
-            throw new NotImplementedException();
+            return true;
         }
 
         public bool Load(XmlElement oStream) {

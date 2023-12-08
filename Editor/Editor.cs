@@ -804,22 +804,6 @@ namespace Play.Edit {
 			BufferEvent?.Invoke(eEvent);
 		}
 
-        /// <summary>
-        /// An enumerator so we work with the for each command.
-        /// </summary>
-        /// <returns></returns>
-        //IEnumerator<Line> IEnumerable<Line>.GetEnumerator() {
-        //    return (_rgLines.GetEnumerator());
-        //}
-
-        /// <summary>
-        /// An enumerator so we work can with the for each command.
-        /// </summary>
-        /// <returns></returns>
-        //IEnumerator IEnumerable.GetEnumerator() {
-        //    return (_rgLines.GetEnumerator());
-        //}
-
 #region UndoStuff
         public int UndoMode
         {
@@ -868,7 +852,7 @@ namespace Play.Edit {
 
         // This is a set of methods that must be available to the collection of objects that represent
         // the editor. However, they must most not be exposed to outsiders using the object. Alas, .net
-        // doesn't do a good job here so their public. But I will not expose these via any interface.
+        // doesn't do a good job here so they're public. But I will not expose these via any interface.
         public IDisposable UndoMasterBegin() {
             if( _oUndoMaster == null )
                 _oUndoMaster = new UndoMaster( this );

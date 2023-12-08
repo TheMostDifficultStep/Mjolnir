@@ -21,7 +21,7 @@ namespace Mjolnir {
     /// </remarks>
     public partial class FindWindow : 
 		FormsWindow,
-		IEnumerable<ILineRange>,
+		IEnumerable<ILineRange>, // Really belongs on a doc for the "find" window.
 		IPgLoad,
 		IPgParent
 	{
@@ -218,6 +218,11 @@ namespace Mjolnir {
              this.Enabled = true;
         }
 
+        /// <summary>
+        /// Given a line range, find all the matches within. For example.
+        /// "a test of a test here", search "test" will give 2 matches.
+        /// </summary>
+        /// <returns>A line range representing the match.</returns>
         protected struct TextMatches : IEnumerable<ILineRange> {
             readonly ILineRange _oRange;
             readonly string     _strFind;
