@@ -1040,7 +1040,7 @@ namespace Mjolnir {
             EditorInitNewShow( ".mysstv" );
         }
         public void OnDocNewMonitor( object sender, EventArgs e ) {
-            EditorInitNewShow( ".fourbit" );
+            EditorInitNewShow( ".asm" );
         }
 
         public void OnDocOpen( object sender, EventArgs e ) {

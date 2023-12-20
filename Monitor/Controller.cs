@@ -1,7 +1,5 @@
 ﻿using Play.Interfaces.Embedding;
-using Play.Forms;
 
-using SkiaSharp;
 using Play.Edit;
 
 namespace Monitor {
@@ -104,13 +102,11 @@ namespace Monitor {
         public override IDisposable CreateView(IPgViewSite oViewSite, object oDocument, Guid guidViewType) {
             if( oDocument is Document_Monitor oMonitorDoc ) {
 			    try {
-                    if( guidViewType == Window_Program_Display.GUID )
-                        return new Window_Program_Display( oViewSite, oMonitorDoc.Doc_Displ );
-                    if( guidViewType == NumberLabelWindow.GUID )
-                        return new NumberLabelWindow( oViewSite, oMonitorDoc.Doc_Asm );
+                    if( guidViewType == WindowProgramDisplay.GUID )
+                        return new WindowProgramDisplay( oViewSite, oMonitorDoc );
 
                     // Service the GUID.Empty case too.
-                    return new NumberLabelWindow( oViewSite, oMonitorDoc.Doc_Asm );
+                    return new WindowProgramDisplay( oViewSite, oMonitorDoc );
                 } catch( Exception oEx ) {
                     Type[] rgErrors = { typeof( NullReferenceException ),
                                         typeof( InvalidCastException ),
@@ -125,7 +121,7 @@ namespace Monitor {
         }
 
         public override IEnumerator<IPgViewType> GetEnumerator() {
-            yield return new ViewType( "Assembly Display", Window_Program_Display.GUID );
+            yield return new ViewType( "Assembly Display", WindowProgramDisplay.GUID );
         }
         public override IDisposable CreateDocument(IPgBaseSite oSite, string strExtension) {
             return new Document_Monitor( oSite );

@@ -116,6 +116,7 @@ namespace Play.Edit {
         IPgSave<TextWriter>,
         IPgLoad<TextReader>,
 		IPgLoad<string>,
+        IPgLoad<IEnumerable<string>>,
         IEnumerable<Line>,
         IReadableBag<Line>,
         IDisposable
@@ -935,12 +936,8 @@ namespace Play.Edit {
 			LineAppend( strText );
 			return true;
 		}
-	
-        /// <summary>
-        /// Read from a file, whatever encoding. Not good at reporting errors yet. It is
-        /// OK to re-load the editor.
-        /// </summary>
-        public virtual bool Load( TextReader oReader ) {
+
+        protected void Reset() {
 			// This makes us reloadable.
             if( _rgLines.Count > 0 ) {
 				using( Manipulator oManip = CreateManipulator() ) {
@@ -950,6 +947,14 @@ namespace Play.Edit {
 
             _iCumulativeCount = 0;
 			_oLineHighLight   = null;
+        }
+	
+        /// <summary>
+        /// Read from a file, whatever encoding. Not good at reporting errors yet. It is
+        /// OK to re-load the editor.
+        /// </summary>
+        public virtual bool Load( TextReader oReader ) {
+			Reset();
             
             string strLine;
             try {
@@ -996,6 +1001,42 @@ namespace Play.Edit {
             }
 
             return (true);
+        }
+
+
+        public bool Load(IEnumerable<string> oClxn ) {
+			Reset();
+            
+            try {
+                foreach( string strLine in oClxn ) {
+                    int  iLine = _rgLines.Count;
+                    Line oLine = CreateLine( iLine, strLine );
+                        
+                    if( strLine.Length > 64000 ) {
+                        _oSiteBase.LogError( "editor", "Warning! There is a long line which won't be viewable in this editor. Line: " + ( iLine + 1 ).ToString() );
+                    }
+
+                    _iCumulativeCount = oLine.Summate( _rgLines.Count, _iCumulativeCount );
+                        
+                    _rgLines.Insert( _rgLines.Count, oLine );
+                    Raise_AfterInsertLine( oLine );
+                }
+            } catch( Exception oE ) {
+                Type[] rgErrors = { typeof( IOException ),
+                                    typeof( NullReferenceException ),
+                                    typeof( ArgumentNullException ),
+                                    typeof( ArgumentException ) };
+                if( rgErrors.IsUnhandled( oE ) )
+                    throw;
+
+                _oSiteBase.LogError( "editor", "Unable to read line iterator contents." );
+
+                return false;
+            } finally {
+                Raise_BufferEvent( BUFFEREVENTS.LOADED );  
+            }
+
+            return true;
         }
 
         /// <summary>
@@ -1046,11 +1087,15 @@ namespace Play.Edit {
         /// Has the file changed since last saved? 
         /// </summary>
         public bool IsDirty {
-            get { return( _fIsDirty ); }
+            get { return _fIsDirty; }
         }
 
         protected void SetDirty() {
             _fIsDirty = true;
+        }
+
+        public void ClearDirty() {
+            _fIsDirty = false;
         }
 
         public IPgBaseSite Site {

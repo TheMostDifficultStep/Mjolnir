@@ -167,6 +167,12 @@ namespace Play.Interfaces.Embedding {
         T this[int index] { get; }
     }
 
+    //public interface IPgReadWriteBag<T> :
+    //    IReadableBag<T>
+    //{
+    //    T this[int index] { set; }
+    //}
+
 	[Obsolete("replace with exception handling.")]
     public enum GetMappedGrammerErrors {
         OK,

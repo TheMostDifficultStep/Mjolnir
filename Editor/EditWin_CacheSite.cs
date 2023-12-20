@@ -159,8 +159,13 @@ namespace Play.Edit {
 				_oHost = oHost ?? throw new ArgumentNullException( "Cache Manager needs a Edit Window as host." );
 			}
 
-			public override bool IsWrapped( int iLine ) {
-				return( _oHost.Wrap );
+			/// <remarks>
+			/// This used to be on a per line basis, but after all these years
+			/// it's pretty much an all or nothing kind of thing. TODO: I should just
+			/// remove this and set it as a property of the CacheManager..
+			/// </remarks>
+			public override bool IsWrapped() {
+				return _oHost.Wrap;
 			}
 
 			public override IPgParent Host => _oHost;
@@ -181,10 +186,6 @@ namespace Play.Edit {
 				}
 			}
 
-			/// <summary>
-			/// Just remember that the font is probably selected into the DC at this point.
-			/// But I'm not going to make that a requirement.
-			/// </summary>
 			public override void OnRefreshComplete()
 			{
 				_oHost.ScrollBarRefresh();
@@ -200,24 +201,14 @@ namespace Play.Edit {
 			/// <param name="oLine">The line we are on.</param>
 			/// <param name="iOffs">Offset into the line.</param>
 			/// <remarks>I currently haven't implemented the offset portion.</remarks>
-			protected void NeighborhoodOfScroll( out Line oLine, out int iOffs ) {
-				int iStreamOffset = 0;
-				int iLine         = 0;
-
+			protected void NeighborhoodOfScroll( out Line oLine ) {
 				oLine = null;
-				iOffs = 0;
 
 				try {
-					iStreamOffset = (int)(_oHost._oDocument.Size * _oHost._oScrollBarVirt.Progress);
-					iLine         = _oHost._oDocument.BinarySearchForLine( iStreamOffset );
+					int iStreamOffset = (int)(_oHost._oDocument.Size * _oHost._oScrollBarVirt.Progress);
+					int iLine         = _oHost._oDocument.BinarySearchForLine( iStreamOffset );
 
 					oLine = GetLine(iLine);
-
-					if( oLine != null )
-						iOffs = iStreamOffset - oLine.CumulativeLength; 
-
-					if( iOffs < 0 )
-						iOffs = 0;
 				} catch ( Exception oEx ) {
 					Type[] rgErrors = { typeof( NullReferenceException ),
 										typeof( IndexOutOfRangeException ) };
@@ -228,35 +219,29 @@ namespace Play.Edit {
 				}
 			}
 
-			protected void NeighborhoodOfCaret( out Line oLine, out int iOffs ) {
+			protected void NeighborhoodOfCaret( out Line oLine ) {
 				try {
 					oLine = GetLine( _oHost.CaretPos.At );
-					iOffs = _oHost.CaretPos.Offset; 
-
-					if( iOffs < 0 )
-						iOffs = 0;
 				} catch( NullReferenceException ) {
 					oLine = null;
-					iOffs = 0; 
-
 					LogError( "Scrolling Problem", "I crashed while trying to locate the caret. You are at the start of the document." );
 				}
 			}
 
 			/// <summary>
-			/// Return the line offset in the requested neighborhood.
+			/// Return the line in the requested neighborhood.
 			/// </summary>
-			/// <remarks>Remember this function must not return the dummy line if editor is empty.</remarks>
-			public override void Neighborhood( RefreshNeighborhood eHood, out Line oLine, out int iOffs ) {
+			/// <remarks>Remember this function must not return 
+			/// the dummy line if editor is empty.</remarks>
+			public override void Neighborhood( RefreshNeighborhood eHood, out Line oLine ) {
 				oLine = null;
-				iOffs = 0;
 
 				switch( eHood ) {
 					case RefreshNeighborhood.SCROLL:
-						NeighborhoodOfScroll( out oLine, out iOffs );
+						NeighborhoodOfScroll( out oLine );
 						break;
 					case RefreshNeighborhood.CARET:
-						NeighborhoodOfCaret( out oLine, out iOffs );
+						NeighborhoodOfCaret( out oLine );
 						break;
 				}
 			}
@@ -279,18 +264,13 @@ namespace Play.Edit {
 			public override Line GetLine( int iLineAt ) {
 				try {
 					if( !_oHost._oDocument.IsHit( iLineAt ) )
-						return( null );
+						return null;
 
-					return( _oHost._oDocument.GetLine( iLineAt ) );
+					return _oHost._oDocument.GetLine( iLineAt );
 				} catch( NullReferenceException ) {
 					return null;
 				}
 			}
-
-			public override void WordBreak( Line oLine, ICollection<IPgWordRange> rgWords ) {
-				_oHost.WordBreak( oLine, rgWords );
-			}
-
 		} // end class
 	}
 

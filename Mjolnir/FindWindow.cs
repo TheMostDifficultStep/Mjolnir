@@ -1,5 +1,4 @@
 using System;
-using System.Runtime;
 using System.Collections;
 using System.Collections.Generic;
 using System.Text;
@@ -11,8 +10,6 @@ using Play.Edit;
 using Play.Forms;
 using Play.Integration;
 using Play.Rectangles;
-using Play.Parse.Impl;
-using System.IO;
 
 namespace Mjolnir {
     /// <remarks>

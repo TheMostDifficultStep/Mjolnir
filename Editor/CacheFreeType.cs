@@ -169,6 +169,7 @@ namespace Play.Edit {
         public         int  LineHeight{ protected set; get; }
         public         int  FontHeight{ protected set; get; }
         public       Align  Justify   { set; get; } = Align.Left;
+        public         int  Column    { set; get; } = 0;
 
         protected const int InvisibleEOL = 0; // use this if I put the "<" at the end of selected lines.
                                               // this marks places where I used to fix up for that.
@@ -184,8 +185,9 @@ namespace Play.Edit {
 
         public List<IPgWordRange> Words { get; } = new List<IPgWordRange>();
 
-        public FTCacheLine( Line oLine ) {
-            Line = oLine ?? throw new ArgumentNullException();
+        public FTCacheLine( Line oLine, int iColumn = 0 ) {
+            Line   = oLine ?? throw new ArgumentNullException();
+            Column = iColumn;
         }
 
         /// <summary>

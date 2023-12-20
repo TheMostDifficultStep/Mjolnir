@@ -149,7 +149,7 @@ namespace Play.Edit {
 
 			// Ask our site for locating ourselves. Either based on our scroll
 			// position or carat depending on how we were called.
-			_oSite.Neighborhood( eNeighborhood, out Line oLine, out int iOffs);
+			_oSite.Neighborhood( eNeighborhood, out Line oLine );
 			if ( oLine == null )
                 return null;
 
@@ -340,7 +340,7 @@ namespace Play.Edit {
 
         protected void ElemUpdate2( FTCacheLine oElem, int iWidth ) {
 			try {
-                _oSite.WordBreak( oElem.Line, oElem.Words );
+                //_oSite.WordBreak( oElem.Line, oElem.Words );
 
 				oElem.Update            ( Font );
                 oElem.OnChangeFormatting( null );
@@ -458,7 +458,7 @@ namespace Play.Edit {
 
             FTCacheLine oElem;
 
-			if( _oSite.IsWrapped( oLine.At ) ) {
+			if( _oSite.IsWrapped() ) {
 				oElem = new FTCacheWrap( oLine ); // Heavy duty guy.
 			} else {
 				oElem = new FTCacheLine( oLine ); // Simpler object.
@@ -600,7 +600,7 @@ namespace Play.Edit {
                         if( oNext != null ) {
                             // Find out where to place the cursor as it moves to the next line.
                             iOffset = oNext.CacheList[0].OffsetBound( eAxis, iDir * -1, flAdvance );
-                            oRow   = oNext;
+                            oRow    = oNext;
                         }
                     } catch( ArgumentOutOfRangeException ) {
                         // We're not throwing yet in PreCache, but this is what we want.
@@ -816,10 +816,22 @@ namespace Play.Edit {
                 {
                     FTCacheLine oCache = oRow.CacheList[0];
 
-                    oCaret.Line   = oCache.Line;
-                    oCaret.Offset = oCache.GlyphPointToOffset( oRow.Top, pntLocation );
+                    oCaret.Line = oCache.Line;
+                    oCaret.Offset = oCache.GlyphPointToOffset(oRow.Top, pntLocation);
 
                     return oRow.CacheList[0]; // BUG: Hard coded for text only.
+
+                    //foreach( FTCacheLine oTryCache in oRow.CacheList ) {
+                    //    int iOffset = oTryCache.GlyphPointToOffset( oRow.Top, pntLocation );
+                    //    if( iOffset >= 0 ) {
+                    //        oCaret.Line   = oTryCache.Line;
+                    //        oCaret.Offset = iOffset;
+                    //        if( oCaret is CaretPosition oPosn ) {
+                    //            oPosn._iColumn = oTryCache.Column;
+                    //        }
+                    //        return oTryCache;
+                    //    }
+                    //}
                 }
             }
 

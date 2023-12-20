@@ -1,6 +1,5 @@
 ﻿using System.Xml;
 using System.Windows.Forms;
-using System.Drawing;
 
 using Play.Interfaces.Embedding;
 using Play.Forms;
@@ -130,24 +129,36 @@ namespace Monitor {
                     oRange.Length = 0;
                 }
 
-                foreach( IColorRange oRange in oRow.Line.Formatting ) {
-                    if( oRange is MemoryElem<char> oWord ) {
-                        if( string.Compare(oWord.ID, "labelblock") == 0 ) {
-                            _rgColumnOffsets[1].Offset = oRange.Offset;
-                            _rgColumnOffsets[1].Length = oRange.Length;
-                        }
-                        if( string.Compare(oWord.ID, "instrblock") == 0 ) {
-                            _rgColumnOffsets[2].Offset = oRange.Offset;
-                            _rgColumnOffsets[2].Length = oRange.Length;
-                        }
-                        // Would love this kind of comment to right hand side go clear to right window edge.
-                        if( string.Compare(oWord.ID, "commentline") == 0 ) { 
-                            _rgColumnOffsets[2].Offset = oRange.Offset;
-                            _rgColumnOffsets[2].Length = oRange.Length;
-                        }
-                        if( string.Compare(oWord.ID, "comment") == 0 ) {
-                            _rgColumnOffsets[3].Offset = oRange.Offset;
-                            _rgColumnOffsets[3].Length = oRange.Length;
+                if( oRow.Line.Formatting.Count <= 0 ) {
+                    int[] rgWidth = { 10, 10, 70, 30 };
+                    int   iCol    = 0;
+
+                    for( int i = 0; i < rgWidth.Length; i++ ) {
+                        _rgColumnOffsets[i].Offset = iCol;
+                        _rgColumnOffsets[i].Length = rgWidth[i];
+
+                        iCol+= rgWidth[i];
+                    }
+                } else {
+                    foreach( IColorRange oRange in oRow.Line.Formatting ) {
+                        if( oRange is MemoryElem<char> oWord ) {
+                            if( string.Compare(oWord.ID, "labelblock") == 0 ) {
+                                _rgColumnOffsets[1].Offset = oRange.Offset;
+                                _rgColumnOffsets[1].Length = oRange.Length;
+                            }
+                            if( string.Compare(oWord.ID, "instrblock") == 0 ) {
+                                _rgColumnOffsets[2].Offset = oRange.Offset;
+                                _rgColumnOffsets[2].Length = oRange.Length;
+                            }
+                            // Would love this kind of comment to right hand side go clear to right window edge.
+                            if( string.Compare(oWord.ID, "commentline") == 0 ) { 
+                                _rgColumnOffsets[2].Offset = oRange.Offset;
+                                _rgColumnOffsets[2].Length = oRange.Length;
+                            }
+                            if( string.Compare(oWord.ID, "comment") == 0 ) {
+                                _rgColumnOffsets[3].Offset = oRange.Offset;
+                                _rgColumnOffsets[3].Length = oRange.Length;
+                            }
                         }
                     }
                 }
@@ -171,7 +182,7 @@ namespace Monitor {
         }
         protected readonly LayoutRect _rctLabelColumn = new LayoutRect( LayoutRect.CSS.Flex ) { Track = 1 };
 
-        public NumberLabelWindow( IPgViewSite oSite, Editor oEdit ) : 
+        public NumberLabelWindow( IPgViewSite oSite, BaseEditor oEdit ) : 
             base( oSite, oEdit ) 
         {
         }

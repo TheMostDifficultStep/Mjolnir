@@ -159,9 +159,9 @@ namespace Play.Forms {
             }
         }
 
-        protected readonly LayoutRect _rctLineNumbers = new LayoutRect( LayoutRect.CSS.Flex ) { Track = 30 };
+        protected readonly LayoutRect _rctLineNumbers = new LayoutRect( LayoutRect.CSS.Flex ) { Track = 60 };
 
-        public LineNumberWindow( IPgViewSite oSite, Editor oEdit ) : base( oSite, oEdit ) {
+        public LineNumberWindow( IPgViewSite oSite, BaseEditor oEdit ) : base( oSite, oEdit ) {
         }
         protected override CacheManager2 CreateCacheManager(uint uiStdText) {
             return new CacheManagerAsm( new CacheManSlot(this),

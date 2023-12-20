@@ -7,6 +7,15 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="tinybasic2dms.bin" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="tinybasic2dms.bin" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\z80\z80\z80.csproj" />
     <ProjectReference Include="..\Drawing\Drawing.csproj" />
     <ProjectReference Include="..\Editor\Editor.csproj" />
     <ProjectReference Include="..\Forms\Forms.csproj" />

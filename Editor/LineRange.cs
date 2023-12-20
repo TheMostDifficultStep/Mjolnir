@@ -24,14 +24,9 @@ namespace Play.Edit {
             _iColorIndex = -1;
         }
         
-        public void IncrementLength( int iIncrement )
-        {
-            _iLength++;
-        }
-        
         public int Offset {
             get {
-                return ( _iOffset );
+                return _iOffset;
             }
             
             set {
@@ -43,7 +38,7 @@ namespace Play.Edit {
 
         public int Length {
             get {
-                return ( _iLength );
+                return _iLength;
             }
             set {
                 if( _iLength != int.MaxValue ) {
@@ -54,37 +49,18 @@ namespace Play.Edit {
             }
         }
 
-        /// <summary>
-        /// The end character offset. This character is the first outside
-        /// of the given range ascending.
-        /// </summary>
-        //public int Extent {
-        //    get {
-        //        return( _iOffset + _iLength );
-        //    }
-        //}
-
-        public void Summate( int i ) 
-        {
-            // See CacheWrapped.cs DiceAColor() where a ColorRange object can be created as part of the formatting
-            // to replace a damaged parsing element on an edit that occurs between parses.
-        }
-
         public int ColorIndex {
             get {
-                return ( _iColorIndex );
+                return _iColorIndex;
             }
 
             set {
                 _iColorIndex = value;
             }
         }
-
-        public string Qualified => string.Empty;
-
-        public bool   IsWord    => false;
-        public bool   IsTerm    => true;
-        public string StateName => "Manual Color Range";
+        public virtual bool IsWord => false;
+        public bool         IsTerm => true;
+        public virtual string StateName => "Manual Color Range";
     } // end class
 
     /// <summary>

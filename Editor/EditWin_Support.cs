@@ -43,16 +43,12 @@ namespace Play.Edit {
         public abstract void   LogError( string s1, string s2, bool fShow=true );
         public virtual  void   Notify( ShellNotify eEvent ) {}
 
-        public abstract void Neighborhood( RefreshNeighborhood eHood, out Line oLine, out int iOffset );
+        public abstract void Neighborhood( RefreshNeighborhood eHood, out Line oLine );
         public abstract Line GetLine  ( int iLineAt );
-        public abstract bool IsWrapped( int iLineAt );
+        public abstract bool IsWrapped();
 
         public abstract ICollection<ILineSelection> Selections{ get; }
         public abstract void OnRefreshComplete();
-
-        public virtual FILESTATS FileStatus { get { return( FILESTATS.UNKNOWN ); } }
-
-        public virtual void WordBreak( Line oLine, ICollection<IPgWordRange> rgWords ) { }
     }
 
     public static class WM {

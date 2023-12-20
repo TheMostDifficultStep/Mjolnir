@@ -20,7 +20,7 @@ namespace Play.Edit {
     public class FTCacheWrap : FTCacheLine {
         int _iWrapCount = 0;
 
-        public FTCacheWrap( Line oLine ) : base( oLine ) {
+        public FTCacheWrap( Line oLine, int iColumn = 0 ) : base( oLine, iColumn ) {
         }
 
         override public int Height {
@@ -292,7 +292,6 @@ namespace Play.Edit {
         /// breaker for each cached line. Outside of the EditWindow world you'll
         /// have to see that word breaking is done in some other manner.</remarks>
         /// <param name="iDisplayWidth">Width in pixels.</param>
-        /// <seealso cref="CacheManagerAbstractSite.WordBreak"/>
         /// <seealso cref="CacheManager2.ElemUpdate"/>
         public  void WrapSegmentsOld( int iDisplayWidth ) {
             try {

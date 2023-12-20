@@ -85,9 +85,10 @@ namespace Play.Edit {
             }
         }
     }
-
+    
     public class CaretPosition : SimpleLineCaret 
     {
+        public int _iColumn = 0;
         public CaretPosition( Line oLine ) : base( oLine, 0 ) {
         }
 

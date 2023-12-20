@@ -364,10 +364,16 @@ namespace Play.Edit {
         protected          bool      _fReadOnly;
         protected readonly bool      _fSingleLine; // Little hack until I make single line editors.
 
+        /// <summary>
+        /// This is the collection of hyperlink callbacks. Any Word Range found
+        /// will be matched against the statename and the hyper link callback.
+        /// </summary>
         public Dictionary<string, HyperLink> HyperLinks { get; } = new Dictionary<string, HyperLink>();
 
         // These values must be updated on edits which will destroy list nodes.
                   readonly TextSelector  _oTextSelector;
+
+        /// <seealso cref="EditWindow2.Caret"/>
         protected          CaretPosition CaretPos { get; set; }
 
         readonly ScrollBar2 _oScrollBarVirt;
@@ -621,7 +627,7 @@ namespace Play.Edit {
             }
         }
 
-        private void OnLocalPath( Line oLine, IPgWordRange oRange ) {
+        protected void OnLocalPath( Line oLine, IPgWordRange oRange ) {
             string strFile = oLine.SubString( oRange.Offset, oRange.Length);
 
             if( Parentage.TopWindow is IPgMainWindow oMainWin ) {
@@ -634,7 +640,7 @@ namespace Play.Edit {
         /// the .pdf so that displays in the browser instead of our text editor trying to handle
         /// the file .pdf case.
         /// </summary>
-        private void OnBrowserLink( Line oLine, IPgWordRange oRange ) {
+        protected void OnBrowserLink( Line oLine, IPgWordRange oRange ) {
             try {
                 if( oRange is MemoryState<char> oState ) {
                     if( oState.GetValue( "protocol" ) is MemoryElem<char> oProto ) {

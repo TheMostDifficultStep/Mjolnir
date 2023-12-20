@@ -10,9 +10,15 @@ namespace Play.Edit {
         public Line CreateLine( int iLine, string strValue );
     }
 
+    public interface IPgLineHistory {
+        void LineNew( Line oLine );
+        void LineUpdated( Line oLine );
+    }
+
     /// <summary>
-    /// This will be the backing history object. It will be
-    /// a circular buffer. 
+    /// A little experiment for a history listing object.
+    /// It just takes values and holds them to view. No
+    /// Editing. Just Write and WriteLine.
     /// </summary>
     public class EditorHistory :
 		IPgParent,
@@ -21,10 +27,11 @@ namespace Play.Edit {
     {
         protected readonly IPgBaseSite _oBaseSite;
 
-        protected IPgLineFactory   _oLineFactory;
-        protected int              _iCurrentLine;
-        protected int              _iMaxHistory = 30;
-        protected LinkedList<Line> _rgLines = new();
+        protected IPgLineFactory       _oLineFactory;
+        protected int                  _iMaxHistory = 30;
+        protected LinkedList<Line>     _rgLines = new();
+        protected CaretPosition        _oCaret;
+        protected List<IPgLineHistory> _rgEvents = new();
 
         public IReadOnlyList<Line> Lines { get; private set; }
 
@@ -33,16 +40,6 @@ namespace Play.Edit {
 
         public EditorHistory( IPgBaseSite oBaseSite ) {
             _oBaseSite = oBaseSite ?? throw new ArgumentNullException();
-        }
-
-        public IPgLineFactory LineFactory { 
-            set {
-                // Erase current contents.
-                _oLineFactory = value;
-            }
-            get {
-                return _oLineFactory;
-            }
         }
 
         public int MaxHistory { 
@@ -63,17 +60,73 @@ namespace Play.Edit {
         }
 
         public void Dispose() {
-            // right now nothing special.
+            _rgEvents.Clear();
         }
 
-        public LinkedListNode<Line> AddLine() {
-            LinkedListNode<Line> oNode = _rgLines.AddFirst( new TextLine( 0, string.Empty ) );
+        public void EventSetHistory( IPgLineHistory oEvent ) {
+            _rgEvents.Add( oEvent );
+        }
 
-            while( _rgLines.Count > _iMaxHistory ) {
-                _rgLines.RemoveLast();
+        public void EventClrHistory( IPgLineHistory oEvent ) {
+            _rgEvents.Remove( oEvent );
+        }
+
+        public void Write( string strText ) {
+            if( _rgLines.First == null ) {
+                _rgLines.AddFirst( new TextLine( 0, strText ) );
+            } else {
+                _rgLines.First.Value.TryAppend( strText );
             }
+        }
 
-            return oNode;
+        public void WriteLine( string strText ) {
+            try {
+                _rgLines.First.Value.TryAppend( strText );
+            
+                Line oLine = null;
+
+                // Look for the line about to fall off.
+                // Try reuse it's line.
+                if( _rgLines.Count == _iMaxHistory ) {
+                    oLine = _rgLines.Last.Value;
+                    _rgLines.Last.Value = null;
+                }
+                if( oLine == null ) {
+                    oLine = new TextLine( 0, string.Empty );
+                } else {
+                    oLine.Empty();
+                }
+
+                // Old line is recycled here.
+                LinkedListNode<Line> oNode = _rgLines.AddFirst( oLine );
+                oNode.Value = oLine;
+
+                while( _rgLines.Count > _iMaxHistory ) {
+                    _rgLines.RemoveLast();
+                }
+
+                Raise_NewLineEvent( _rgLines.First.Value );
+            } catch( NullReferenceException ) {
+                _oBaseSite.LogError( "Error", "History insert error." );
+            }
+        }
+
+        /// <summary>
+        /// There is a new line at the bottom of the screen.
+        /// </summary>
+        public void Raise_NewLineEvent( Line oLine ) {
+            foreach( IPgLineHistory oEvent in _rgEvents ) {
+                oEvent.LineNew( oLine );
+            }
+        }
+
+        /// <summary>
+        /// The bottom screen line has been appended to.
+        /// </summary>
+        public void Raise_LineUpdate( Line oLine ) {
+            foreach( IPgLineHistory oEvent in _rgEvents ) {
+                oEvent.LineUpdated( oLine );
+            }
         }
     }
 }

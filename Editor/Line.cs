@@ -205,6 +205,26 @@ namespace Play.Edit {
             return 0;
         }
 
+        public int Compare(ReadOnlySpan<char> strOther, bool IgnoreCase = false ) {
+            int iDiff = strOther.Length - this.ElementCount;
+
+            if( iDiff != 0 )
+                return iDiff;
+
+            for (int i = 0; i < strOther.Length; i++ ) {
+                if( IgnoreCase )
+                    iDiff = char.ToLower( strOther[i] ) - char.ToLower( this[i] );
+                else
+                    iDiff = strOther[i].CompareTo( this[i] );
+                
+                if( iDiff != 0 ) {
+                    return iDiff;
+                }
+            }
+
+            return 0;
+        }
+
         /// <summary>
         /// Extra spot for document users. The document itself won't use this.
         /// Note: It won't get overtly disposed. So don't forget any unmanaged goodies in there.
