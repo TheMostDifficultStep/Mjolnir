@@ -93,7 +93,7 @@ namespace Monitor {
                     throw;
             }
 
-            ReadOnlySpan<char> strJumpRaw = oLine.SubSpan( oRange );
+            string strJumpRaw = oLine.SubString( oRange.Offset, oRange.Length );
 
             if( !int.TryParse( strJumpRaw, 
                                System.Globalization.NumberStyles.HexNumber, 
