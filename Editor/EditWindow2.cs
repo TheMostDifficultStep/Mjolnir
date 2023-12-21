@@ -853,8 +853,10 @@ namespace Play.Edit {
         }
 
         protected bool HyperLinkFind( SKPointI oLocation, bool fDoJump ) {
-            if( _oCacheMan.GlyphPointToRange(ClientToWorld(oLocation), _oLastCursor ) != null ) {
-                return HyperLinkFind( _oLastCursor, fDoJump );
+            if( ClientToWorld(oLocation, out SKPointI pntWorldLoc ) == 0 ) {
+                if( _oCacheMan.GlyphPointToRange(pntWorldLoc, 0, _oLastCursor ) != null ) {
+                    return HyperLinkFind( _oLastCursor, fDoJump );
+                }
             }
 
             return false;
@@ -1106,12 +1108,14 @@ namespace Play.Edit {
             if( _oDocument.HighLight != null && oCache.At == _oDocument.HighLight.At)
                 eBg = _oDocument.PlayHighlightColor;
             if( _iSelectedTool == 2 ) {
-                Point    pntMouse = this.PointToClient( MousePosition );
-                SKPointI pntWorld = ClientToWorld( new SKPointI( pntMouse.X, pntMouse.Y ) );
+                Point pntMouse    = this.PointToClient( MousePosition );
+                int   iCacheIndex = ClientToWorld( new SKPointI( pntMouse.X, pntMouse.Y ), out SKPointI pntWorld );
                 if( oCache.Top    <= pntWorld.Y &&
                     oCache.Bottom >= pntWorld.Y &&
-                    _rctTextArea.Left  < pntMouse.X &&
-                    _rctTextArea.Right > pntMouse.X ) {
+                    iCacheIndex   >= 0
+                    //_rctTextArea.Left  < pntMouse.X &&
+                    //_rctTextArea.Right > pntMouse.X 
+                ) {
                     eBg = StdUIColors.BGWithCursor;
                 }
             }
@@ -1406,6 +1410,13 @@ namespace Play.Edit {
             return( oTerminal );
         }
 
+        /// <summary>
+        /// Where the screen lives in the WORLD coordinates. X is the
+        /// client X starting position. Y is the distance down the document
+        /// we are. 
+        /// Made sense when there was only one total text area which could
+        /// have text wrapping. But now with multi columns it's problematic. 
+        /// </summary>
         public Point TopLeft {
             get { return new Point( _rctTextArea.Left, _rctTextArea.Top ); }
         }
@@ -1438,7 +1449,10 @@ namespace Play.Edit {
 
             this.Select();
 
-            CaretAndAdvanceReset( ClientToWorld( new SKPointI( e.Location.X, e.Location.Y ) ) );
+            if( ClientToWorld( new SKPointI( e.Location.X, e.Location.Y ), out SKPointI pntWorldLoc ) != 0 )
+                return;
+
+            CaretAndAdvanceReset( pntWorldLoc );
 
             _oTextSelector.Clear();
 
@@ -1469,7 +1483,9 @@ namespace Play.Edit {
         /// <param name="e"></param>
         protected override void OnMouseDown(MouseEventArgs e) {
             base.OnMouseDown( e );
-            SKPointI pntWorldLoc = ClientToWorld( new SKPointI( e.Location.X, e.Location.Y ) );
+
+            if( ClientToWorld( new SKPointI( e.Location.X, e.Location.Y ), out SKPointI pntWorldLoc ) != 0 )
+                return;
 
             this.Select();
 
@@ -1504,13 +1520,36 @@ namespace Play.Edit {
             this.Invalidate();
         }
 
-        protected SKPointI ClientToWorld( SKPointI pntMouse ) {
+        /// <summary>
+        /// Assist converting the mouse position to a cache elem world position.
+        /// </summary>
+        /// <param name="pntMouse">Mouse pos in client coordinates./param>
+        /// <param name="pntLocation">Mouse pos in world coordinates.</param>
+        /// <returns>index to the cacheman element.</returns>
+        protected int ClientToWorld( SKPointI pntMouse, out SKPointI pntLocation ) {
+            // This represents the sliding world window. We can't currently handle
+            // scrolling left/right. :-/
             SKPointI pntWorldTL = _oCacheMan.TextRect.GetPoint(LOCUS.UPPERLEFT);
 
-            SKPointI pntLocation = new SKPointI( pntMouse.X - TopLeft.X + pntWorldTL.X,
-                                                 pntMouse.Y - TopLeft.Y + pntWorldTL.Y  );
+            //SKPointI pntLocation = new SKPointI( pntMouse.X - TopLeft.X + pntWorldTL.X,
+            //                                     pntMouse.Y - TopLeft.Y + pntWorldTL.Y);
 
-            return( pntLocation );
+            //return pntLocation;
+            for( int i=0; i<_rgCacheMap.Count; ++i ) {
+                SmartRect oColumn = _rgCacheMap[i];
+                if( oColumn.IsInside( pntMouse.X, pntMouse.Y ) ) {
+                    SKPointI pntColumnTL = oColumn.GetPoint( LOCUS.UPPERLEFT );
+
+                    pntLocation = new SKPointI( pntMouse.X - pntColumnTL.X + pntWorldTL.X,
+                                                pntMouse.Y - pntColumnTL.Y + pntWorldTL.Y);
+
+                    return i;
+                }
+            }
+
+            pntLocation = new SKPointI( -10, -10 ); // Would pos should never be negative. ^_^;;
+
+            return -1;
         }
 
         /// <summary>
@@ -1518,7 +1557,10 @@ namespace Play.Edit {
         /// a selection we move the cursor to show where the drop will occur. 
         /// </summary>
         protected void UpdateSelection( SKPointI pntMouse ) {
-            CaretAndAdvanceReset( ClientToWorld( pntMouse ) );
+            if( ClientToWorld( new SKPointI( pntMouse.X, pntMouse.Y ), out SKPointI pntWorldLoc ) != 0 )
+                return;
+
+            CaretAndAdvanceReset( pntWorldLoc );
 
             _oTextSelector.NextLocation( CaretPos ); // Change what is selected.
 
@@ -1751,7 +1793,9 @@ namespace Play.Edit {
             oArg.Effect = DragDropEffects.None;
 
             Point    pntLocation = this.PointToClient( new Point(oArg.X, oArg.Y));
-            SKPointI pntWorldLoc = ClientToWorld( new SKPointI( pntLocation.X, pntLocation.Y ) );
+
+            if( ClientToWorld( new SKPointI( pntLocation.X, pntLocation.Y ), out SKPointI pntWorldLoc ) != 0 )
+                return;
 
             CaretAndAdvanceReset( pntWorldLoc );
             CaretIconRefreshLocation(); // BUG: We need to move the cursor when draging on ourself.
@@ -1795,14 +1839,17 @@ namespace Play.Edit {
                     ( oArg.Effect & DragDropEffects.Move ) != 0    )
                 {
                     Point       pntTemp   = this.PointToClient( new Point(oArg.X, oArg.Y) );
-                    SKPointI    pntWorld  = ClientToWorld( new SKPointI( pntTemp.X, pntTemp.Y ) );
+
+                    if( ClientToWorld( new SKPointI( pntTemp.X, pntTemp.Y ), out SKPointI pntWorldLoc ) != 0 )
+                        return;
+
                     FTCacheLine oCacheHit = null;
                     int         iRowTop   = 0;
 
                     // Target's always going to be in the cache since it's the only place we can drop!
                     // BUG: Need to check if in the TextArea...
                     foreach( CacheRow oRow in _oCacheMan ) {
-                        if( oRow.IsHit( new Point( pntWorld.X, pntWorld.Y ) ) ) {
+                        if( oRow.IsHit( new Point( pntWorldLoc.X, pntWorldLoc.Y ) ) ) {
                             FTCacheLine oCache = oRow.CacheList[0];
                             oCacheHit = oCache;
                             iRowTop   = oRow.Top;
@@ -1813,7 +1860,7 @@ namespace Play.Edit {
                     // lines to cache. See OnLineNew() callback! 
                     if( oCacheHit != null ) {
                         Line oLine = oCacheHit.Line;
-                        int  iEdge = oCacheHit.GlyphPointToOffset( iRowTop, pntWorld );
+                        int  iEdge = oCacheHit.GlyphPointToOffset( iRowTop, pntWorldLoc );
 
                         // We can add in front of the EOL character.
                         Debug.Assert( iEdge <= oLine.ElementCount );
@@ -2146,12 +2193,12 @@ namespace Play.Edit {
             SKPointI pntWorld = _oCacheMan.TextRect.GetPoint(LOCUS.CENTER);
             pntWorld.X = (int)_iAdvance; 
 
-			_oCacheMan.GlyphPointToRange( pntWorld, CaretPos );
+            if( _oCacheMan.GlyphPointToRange( pntWorld, 0, CaretPos ) != null ) {
+                CaretIconRefreshLocation();
 
-            CaretIconRefreshLocation();
-
-            // While I don't REALLY know if the caret moved. It is as good as moved.
-            Raise_Navigated( NavigationSource.UI, CaretPos );
+                // While I don't REALLY know if the caret moved. It is as good as moved.
+                Raise_Navigated( NavigationSource.UI, CaretPos );
+            }
         }
 
         protected void OnKeyDelete( bool fBackSpace ) {

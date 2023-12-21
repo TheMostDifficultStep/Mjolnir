@@ -809,29 +809,17 @@ namespace Play.Edit {
         /// argument.</remarks>
         /// <param name="pntLocation">Graphics location of interest in world coordinates.</param>
         /// <param name="oCaret">This object line offset is updated to the closest line offset.</param>
-        public FTCacheLine GlyphPointToRange( SKPointI pntLocation, ILineRange oCaret ) {
+        public FTCacheLine GlyphPointToRange( SKPointI pntLocation, int iIndex, ILineRange oCaret ) {
             foreach( CacheRow oRow in _rgOldCache ) {
                 if( oRow.Top    <= pntLocation.Y &&
                     oRow.Bottom >= pntLocation.Y ) 
                 {
-                    FTCacheLine oCache = oRow.CacheList[0];
+                    FTCacheLine oCache = oRow.CacheList[iIndex];
 
-                    oCaret.Line = oCache.Line;
+                    oCaret.Line   = oCache.Line;
                     oCaret.Offset = oCache.GlyphPointToOffset(oRow.Top, pntLocation);
 
                     return oRow.CacheList[0]; // BUG: Hard coded for text only.
-
-                    //foreach( FTCacheLine oTryCache in oRow.CacheList ) {
-                    //    int iOffset = oTryCache.GlyphPointToOffset( oRow.Top, pntLocation );
-                    //    if( iOffset >= 0 ) {
-                    //        oCaret.Line   = oTryCache.Line;
-                    //        oCaret.Offset = iOffset;
-                    //        if( oCaret is CaretPosition oPosn ) {
-                    //            oPosn._iColumn = oTryCache.Column;
-                    //        }
-                    //        return oTryCache;
-                    //    }
-                    //}
                 }
             }
 
@@ -840,7 +828,9 @@ namespace Play.Edit {
 
         /// <summary>
         /// Find the location to render primary textarea text.
+        /// Note: Currently not actually being used! O.o
         /// </summary>
+        /// <seealso cref="RenderAt( CacheRow oCache, SmartRect rcColumn )"/>
         public PointF RenderAt( CacheRow oCache, Point pntScreenTL ) {
             SKPointI pntWorldTopLeft  = TextRect.GetPoint(LOCUS.UPPERLEFT);
             PointF   pntRenderAt      = new PointF( pntScreenTL.X - pntWorldTopLeft.X, 
@@ -898,7 +888,7 @@ namespace Play.Edit {
         /// <param name="pntWorld">World Coordinates.</param>
         /// <remarks>Advance is modulo in the wrapped text case.</remarks>
         public void CaretAndAdvanceReset( SKPointI pntWorld, ILineRange oCaretPos, ref float flAdvance ) {
-            FTCacheLine oCache = GlyphPointToRange( pntWorld, oCaretPos );
+            FTCacheLine oCache = GlyphPointToRange( pntWorld, 0, oCaretPos );
             if( oCache != null ) {
                 Point oNewLocation = oCache.GlyphOffsetToPoint( oCaretPos.Offset );
 
