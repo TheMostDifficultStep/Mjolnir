@@ -189,10 +189,10 @@ namespace Play.Edit {
 			
 			try {
                 PgCluster oCluster    = _rgClusters[_rgClusterMap[iOffset]];
-                int       iYOffset    = (int)base.Height * oCluster.Segment;
+                int       iYOffset    = base.Height * oCluster.Segment;
 				Point     pntLocation = new Point( (int)oCluster.AdvanceLeft, iYOffset );
                                              
-				return( pntLocation );
+				return pntLocation;
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( ArgumentOutOfRangeException ),
                                     typeof( NullReferenceException ) };
