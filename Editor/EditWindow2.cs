@@ -1447,9 +1447,10 @@ namespace Play.Edit {
         protected override void OnMouseDoubleClick( MouseEventArgs e ) {
             base.OnMouseDoubleClick(e);
 
-            this.Select();
+            Select();
 
-            if( ClientToWorld( new SKPointI( e.Location.X, e.Location.Y ), out SKPointI pntWorldLoc ) != 0 )
+            if( ClientToWorld( new SKPointI( e.Location.X, e.Location.Y ), 
+                               out SKPointI pntWorldLoc ) != 0 )
                 return;
 
             CaretAndAdvanceReset( pntWorldLoc );
@@ -1467,6 +1468,7 @@ namespace Play.Edit {
                                                           SelectionTypes.Start );
                 _rgSelectionTypes.Add( oSelStart );
 
+                // Grow the selection if range is affect by another window.
                 _oDocument.CaretAdd( oSelStart ); // BUGBUG: Never get's removed. Use the TextSelector class!!!
                 _oCacheMan.OnChangeSelection( _rgSelectionTypes );
             }
@@ -1524,7 +1526,8 @@ namespace Play.Edit {
         /// </summary>
         /// <param name="pntMouse">Mouse pos in client coordinates./param>
         /// <param name="pntLocation">Mouse pos in world coordinates.</param>
-        /// <returns>index to the cacheman element.</returns>
+        /// <returns>index to the cacheman element. 0 is always the document
+        /// line by default.</returns>
         protected int ClientToWorld( SKPointI pntMouse, out SKPointI pntLocation ) {
             // This represents the sliding world window. We can't currently handle
             // scrolling left/right. :-/

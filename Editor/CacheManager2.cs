@@ -750,14 +750,26 @@ namespace Play.Edit {
             if( _rgOldCache.Count == 0 )
                 return;
 
-            // The height of the elements might change because of the width change
-            // and so the following siblings need to have their top's reset!
-            int iTop = _rgOldCache[0].Top;
-            foreach( CacheRow oRow in this ) {
-                oRow.CacheList[0].OnChangeSize( _oTextRect[SCALAR.WIDTH] );
-                oRow.Top = iTop;
+            try {
+                // The height of the elements might change because of the width change
+                // and so the following siblings need to have their top's reset!
+                int iTop = _rgOldCache[0].Top;
+                foreach( CacheRow oRow in this ) {
+                    oRow.Top = iTop;
+                    iTop     = oRow.Bottom + LineSpacing; // Aligning.
 
-                iTop = oRow.Bottom + LineSpacing; // Aligning.
+                    for( int i=0; i< _rgCacheMap.Count; ++i ) {
+                        SmartRect oColumn = _rgCacheMap[i];
+                        oRow.CacheList[i].OnChangeSize( oColumn.Width );
+                    }
+                }
+            } catch( Exception oEx ) {
+                // if the _rgCacheMap and the oRow.CacheList don't match
+                // we might walk of the end of one or the other.
+                Type[] rgErrors = { typeof( NullReferenceException ),
+                                    typeof( ArgumentOutOfRangeException ) };
+                if( rgErrors.IsUnhandled( oEx ))
+                    throw;
             }
         }
 

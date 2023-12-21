@@ -144,7 +144,7 @@ namespace Play.Edit {
         }
 
         // Well have a matching array of SmartRect's for each cache elem inside.
-        // CacheList s/b always inorder of the ColumnList but not necessarily the LAYOUT list.
+        // CacheList s/b always inorder of the CacheMap but not necessarily the LAYOUT list.
         public List<FTCacheLine> CacheList { get; } = new List<FTCacheLine> ();
 
         public bool IsHit( Point pntLocation ) {
