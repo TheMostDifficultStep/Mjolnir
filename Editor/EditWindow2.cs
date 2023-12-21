@@ -1457,8 +1457,7 @@ namespace Play.Edit {
             _oTextSelector.Clear();
 
             // Double click, so look at the formatting, to see how much to select.
-            IMemoryRange oRange = FindFormattingUnderRange( CaretPos );
-            if( oRange != null ) {
+            if( FindFormattingUnderRange( CaretPos ) is IMemoryRange oRange ) {
                 // TODO: This code might be better as a flyweight version of a TextSelect 
                 // class. Then I could use each interchangibly depending on I want to auto 
                 // select like here or manual select like in TextSelector.
@@ -1947,9 +1946,7 @@ namespace Play.Edit {
                         yield return( oMiddle );
                     }
                 } else {
-                    SelectAll oAll = rgRanges[SelectionTypes.Middle] as SelectAll;
-
-                    if( oAll != null ) {
+                    if( rgRanges[SelectionTypes.Middle] is SelectAll oAll ) {
                         for( int i=0; i<_oDocument.ElementCount; ++i ) {
                             oAll.Line = _oDocument[i];
                             yield return( oAll );
