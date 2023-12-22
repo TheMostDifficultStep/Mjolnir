@@ -36,7 +36,9 @@ namespace Play.Edit {
         IEnumerable<CacheRow>
     {
         protected readonly CacheManagerAbstractSite  _oSite      = null;
-        readonly SmartRect                  _oTextRect  = new SmartRect(); // World coordinates of our view port.
+        // World coordinates of our view port. Do not confuse these with the
+        // layout columns, those are different.
+        readonly SmartRect                  _oTextRect  = new SmartRect();
         protected List<CacheRow>            _rgOldCache = new List<CacheRow>();
         protected readonly List<SmartRect>  _rgCacheMap;
 
@@ -343,7 +345,7 @@ namespace Play.Edit {
                 //_oSite.WordBreak( oElem.Line, oElem.Words );
 
 				oElem.Update            ( Font );
-                oElem.OnChangeFormatting( null );
+                oElem.OnChangeFormatting( _oSite.Selections );
                 oElem.OnChangeSize      ( iWidth );
 			} catch( Exception oEx ) {
 				Type[] rgErrors = { typeof( NullReferenceException ),

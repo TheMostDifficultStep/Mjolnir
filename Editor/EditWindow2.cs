@@ -371,7 +371,7 @@ namespace Play.Edit {
         public Dictionary<string, HyperLink> HyperLinks { get; } = new Dictionary<string, HyperLink>();
 
         // These values must be updated on edits which will destroy list nodes.
-                  readonly TextSelector  _oTextSelector;
+        readonly TextSelector  _oTextSelector;
 
         /// <seealso cref="EditWindow2.Caret"/>
         protected          CaretPosition CaretPos { get; set; }
@@ -1056,20 +1056,18 @@ namespace Play.Edit {
         /// Refresh the carat visual position. If it's not in the range of the cached screen than
         /// park the physical cursor just off screen.
         /// </summary>
-        /// <seealso cref="ClientToWorld(SKPointI)"/>
         private void CaretIconRefreshLocation() {
-            Point pntCaretWorldLoc = new Point( 0, 0 ); 
-
             if( Focused != true )
                 return;
 			if( _oCacheMan == null ) // Can happen if InitNew() fails and we press forward.
 				return;
                 
-            if( _oCacheMan.GlyphLineToPoint( CaretPos, out pntCaretWorldLoc ) ) {
+            if( _oCacheMan.GlyphLineToPoint( CaretPos, out Point pntCaretWorldLoc ) ) {
+                SmartRect oTextColumn       = _rgCacheMap[0];
                 // this changes from world coordinates to client coordinates.
-                SKPointI pntWorldTopLeft   = _oCacheMan.TextRect.GetPoint(LOCUS.UPPERLEFT);
-                SKPointI pntCaretScreenLoc = new SKPointI( pntCaretWorldLoc.X - pntWorldTopLeft.X + TopLeft.X, 
-                                                           pntCaretWorldLoc.Y - pntWorldTopLeft.Y + TopLeft.Y );
+                SKPointI  pntWorldTopLeft   = _oCacheMan.TextRect.GetPoint(LOCUS.UPPERLEFT);
+                SKPointI  pntCaretScreenLoc = new SKPointI( pntCaretWorldLoc.X - pntWorldTopLeft.X + oTextColumn.Left, 
+                                                            pntCaretWorldLoc.Y - pntWorldTopLeft.Y + oTextColumn.Top  );
 
                 User32.SetCaretPos(pntCaretScreenLoc.X, pntCaretScreenLoc.Y);
             } else {
@@ -1093,7 +1091,7 @@ namespace Play.Edit {
             return( _oCacheMan.RenderAt( oCache, new Point( rcColumn.Left, rcColumn.Top ) ) );
         }
 
-        /// <summary>Paint just the background of just this cache element. And only
+        /// <summary>Paint just the background of just this cache row. And only
         /// if a special color. Else the normal bg color previously set ok. If there was no space
         /// between lines we could omit the previous all screen clear and just paint here!</summary>
         /// <remarks>If we wanted to paint transparent we could probably omit this and go with
@@ -1112,10 +1110,8 @@ namespace Play.Edit {
                 int   iCacheIndex = ClientToWorld( new SKPointI( pntMouse.X, pntMouse.Y ), out SKPointI pntWorld );
                 if( oCache.Top    <= pntWorld.Y &&
                     oCache.Bottom >= pntWorld.Y &&
-                    iCacheIndex   >= 0
-                    //_rctTextArea.Left  < pntMouse.X &&
-                    //_rctTextArea.Right > pntMouse.X 
-                ) {
+                    iCacheIndex   >= 0 ) 
+                {
                     eBg = StdUIColors.BGWithCursor;
                 }
             }
@@ -1335,6 +1331,8 @@ namespace Play.Edit {
             _rgLayout.SetRect( 0, 0, Width, Height );
 			_rgLayout.LayoutChildren();
 
+            // TODO: We can get rid of this reference by putting the scroll
+            //       bar in the layout and painting accordingly.
             _oCacheMan.OnChangeSize( this.TextExtent );
             CacheRefresh( RefreshType.COMPLEX, RefreshNeighborhood.SCROLL );
         }

@@ -110,7 +110,7 @@ namespace Monitor {
             protected void ElemUpdate3( FTCacheLine oElem, int iWidth, IMemoryRange? oRange ) {
 			    try {
 				    oElem.Update            ( Font, oRange );
-                    oElem.OnChangeFormatting( null );
+                    oElem.OnChangeFormatting( _oSite.Selections );
                     oElem.OnChangeSize      ( iWidth );
 			    } catch( Exception oEx ) {
 				    Type[] rgErrors = { typeof( NullReferenceException ),
