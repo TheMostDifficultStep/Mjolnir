@@ -11,6 +11,7 @@ using System.Xml.XPath;
 using System.Text;
 using System.Security;
 using System.Windows.Forms;
+using System.Collections;
 
 using SkiaSharp;
 using SkiaSharp.Views.Desktop;
@@ -21,7 +22,6 @@ using Play.Rectangles;
 using Play.Controls;
 using Play.Parse;
 using Play.Parse.Impl;
-using System.Collections;
 
 namespace Play.Rectangles {
 	/// <summary>
@@ -337,7 +337,6 @@ namespace Play.Edit {
         protected readonly IPgViewSite    _oSiteView;   // Our site from the window manager (base interface).
 		protected readonly IPgStandardUI2 _oStdUI;
 
-        bool         _fWrap         = true;
         float        _iAdvance      = 0; // Horizontal prefered position of cursor, world units.
         SmartRect    _rctDragBounds = null; // TODO: Move this into the selector.
         SizeF        _szScrollBars  = new SizeF( .1875F, .1875F );
@@ -495,6 +494,7 @@ namespace Play.Edit {
         /// <summary>
         /// I want to make it so we can add extra columns between the scroll bar and the text.
         /// Might want right hand columns in the future, but let's start with this.
+        /// TODO: Add the scroll bar to the layout.
         /// </summary>
         protected virtual void InitColumns() {
             _rgLayout  .Add( _rctTextArea );   // Main text area.
@@ -781,20 +781,6 @@ namespace Play.Edit {
         }
 
         /// <summary>
-        /// CR was pressed in the navigation tool window. We get our cursor back on screen and set focus to ourselves.
-        /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="e"></param>
-        void Navigation_OnKeyPress(object sender, KeyPressEventArgs e)
-        {
-            ScrollToCaret();
-
-            if( e.KeyChar == '\r' ) {
-                this.Focus();
-            }
-        }
-
-        /// <summary>
         /// So we used to try to get information for the cache manager here when we were uniscribe.
         /// However, it's dangerous since it's not created in a timely manner. This call might happen
         /// while we are in the middle of another call! Like InitNew(). I had this call happening when
@@ -815,15 +801,11 @@ namespace Play.Edit {
         /// Always return true. I don't keep track of view specific data.
         /// </summary>
         /// <returns>true</returns>
-        public bool IsDirty {
-            get {
-                return( true );
-            }
-        }
+        public bool IsDirty => true;
 
 		public bool Wrap {
-            get { return _fWrap; }
-            set { _fWrap = value; }
+            get;
+            set;
         }
 
         public ICollection<ILineSelection> Selections {
@@ -914,7 +896,7 @@ namespace Play.Edit {
                 _oSiteView.LogError( "Edit", "Data source argument null!" );
                 return;
             }
-            System.Windows.Forms.IDataObject oDataObject = oDataSource as System.Windows.Forms.IDataObject;
+            IDataObject oDataObject = oDataSource as IDataObject;
             if( oDataObject == null ) {
                 _oSiteView.LogError( "Edit", "Caller must support IDataObject!" );
                 return;
@@ -1030,23 +1012,6 @@ namespace Play.Edit {
             }                    
         }
 
-        /// <summary>
-        /// TODO: I've removed the "locate" event from the context menu. But I still like the idea but on
-        /// the main menu, to scroll the region with the cursor on screen and find the element in any tool.
-        /// This will probably be the "Find Caret" command. See about merge TextLocate and Navigate events
-        /// </summary>
-        private void OnLocate( object o, EventArgs e ) {
-            int iStreamOffset = CaretPos.Line.CumulativeLength + CaretPos.Offset;
-
-            Raise_Locate( iStreamOffset );
-        }
-
-        public event TextLocate2 Locate;
-
-        protected virtual void Raise_Locate( int iStream ) {
-			Locate?.Invoke(this, iStream);
-		}
-
         public virtual void Raise_SelectionChanged() {
             _oDocument.Raise_BufferEvent( BUFFEREVENTS.FORMATTED );  
             // ScrollToCaret(); race and syncronization issues.
@@ -1096,20 +1061,20 @@ namespace Play.Edit {
         /// between lines we could omit the previous all screen clear and just paint here!</summary>
         /// <remarks>If we wanted to paint transparent we could probably omit this and go with
         /// whatever is the existing background. Like a bitmap or something.</remarks>
-        protected void PaintBackground( SKCanvas skCanvas, SKPaint skPaint, CacheRow oCache ) {
+        protected void PaintBackground( SKCanvas skCanvas, SKPaint skPaint, CacheRow oRow ) {
             StdUIColors eBg    = StdUIColors.Max;
-            PointF      pntUL  = RenderAt( oCache, _rctTextArea );
-            SKRect      skRect = new SKRect( _rctTextArea.Left, pntUL.Y, _rctTextArea.Right, pntUL.Y + oCache.Height );
+            PointF      pntUL  = RenderAt( oRow, _rctTextArea );
+            SKRect      skRect = new SKRect( _rctTextArea.Left, pntUL.Y, _rctTextArea.Right, pntUL.Y + oRow.Height );
 
-            if( CaretPos.Line != null && oCache.At == CaretPos.At && !_fSingleLine)
+            if( CaretPos.Line != null && oRow.At == CaretPos.At && !_fSingleLine)
                 eBg = StdUIColors.BGWithCursor;
-            if( _oDocument.HighLight != null && oCache.At == _oDocument.HighLight.At)
+            if( _oDocument.HighLight != null && oRow.At == _oDocument.HighLight.At)
                 eBg = _oDocument.PlayHighlightColor;
             if( _iSelectedTool == 2 ) {
                 Point pntMouse    = this.PointToClient( MousePosition );
                 int   iCacheIndex = ClientToWorld( new SKPointI( pntMouse.X, pntMouse.Y ), out SKPointI pntWorld );
-                if( oCache.Top    <= pntWorld.Y &&
-                    oCache.Bottom >= pntWorld.Y &&
+                if( oRow.Top    <= pntWorld.Y &&
+                    oRow.Bottom >= pntWorld.Y &&
                     iCacheIndex   >= 0 ) 
                 {
                     eBg = StdUIColors.BGWithCursor;
@@ -1129,7 +1094,7 @@ namespace Play.Edit {
         /// <remarks>
         /// Would be nice to remove this and use the
         /// </remarks>
-        /// <seealso cref="Edit.FTCacheLine.DrawGlyph(SKCanvas, SKPaint, float, float, IPgGlyph)"/>
+        /// <seealso cref="FTCacheLine.DrawGlyph(SKCanvas, SKPaint, float, float, IPgGlyph)"/>
         public static void DrawGlyph( 
             SKCanvas      skCanvas, 
             SKPaint       skPaint,
@@ -1191,10 +1156,10 @@ namespace Play.Edit {
                     PaintBackground(skCanvas, skPaint, oRow);
                     OnPaintExtraColumn( skCanvas, skPaint2, oRow ); 
 
-                    for( int i=0; i<oRow.CacheList.Count; ++i ) {
-                        FTCacheLine oCache = oRow.CacheList[i];
+                    for( int iCache=0; iCache<oRow.CacheList.Count; ++iCache ) {
+                        FTCacheLine oCache = oRow.CacheList[iCache];
 
-                        oCache.Render(skCanvas, _oStdUI, RenderAt(oRow, _rgCacheMap[i] ), i == 0 ? this.Focused : false );
+                        oCache.Render(skCanvas, _oStdUI, RenderAt(oRow, _rgCacheMap[iCache] ), iCache == 0 ? this.Focused : false );
                     }
                 }
             } catch( Exception oEx ) {
@@ -1318,6 +1283,8 @@ namespace Play.Edit {
 		/// When you look at it. Refreshing the Cache after the size doesn't allow us to measure
 		/// the text in case we want to set the size of the window! In the normal case, this is
 		/// ok, but in the case of table layout it is a problem.
+        /// Remember we need to use the _rctTextArea which is setup by the layout engine,
+        /// do not simply subtract off the scroll bar from the window width!!
 		/// </remarks>
         protected override void OnSizeChanged( EventArgs e ) {
             base.OnSizeChanged(e);
@@ -1333,7 +1300,7 @@ namespace Play.Edit {
 
             // TODO: We can get rid of this reference by putting the scroll
             //       bar in the layout and painting accordingly.
-            _oCacheMan.OnChangeSize( this.TextExtent );
+            _oCacheMan.OnChangeSize( new Size( _rctTextArea.Width, _rctTextArea.Height ) );
             CacheRefresh( RefreshType.COMPLEX, RefreshNeighborhood.SCROLL );
         }
 
@@ -1406,29 +1373,6 @@ namespace Play.Edit {
             }
 
             return( oTerminal );
-        }
-
-        /// <summary>
-        /// Where the screen lives in the WORLD coordinates. X is the
-        /// client X starting position. Y is the distance down the document
-        /// we are. 
-        /// Made sense when there was only one total text area which could
-        /// have text wrapping. But now with multi columns it's problematic. 
-        /// </summary>
-        public Point TopLeft {
-            get { return new Point( _rctTextArea.Left, _rctTextArea.Top ); }
-        }
-
-        /// <summary>
-        /// Remember we need to use the _rctTextArea which is setup by the layout engine,
-        /// do not simply subtract off the scroll bar from the window width!!
-        /// </summary>
-        protected Size TextExtent {
-            get {
-                Size sizeExtent = 
-                    new Size( _rctTextArea.Width, _rctTextArea.Height );
-                return( sizeExtent );
-            }
         }
 
         /// <summary>
@@ -1696,7 +1640,7 @@ namespace Play.Edit {
             }
         }
 
-        /// <summary>If we are over a hyper link and there is no selection: jump if the
+        /// <summary>If we are over a hyperlink and there is no selection: jump if the
         /// left button pressed, jump if browse mode or control key pressed.</summary>
         /// <remarks>Whether we dropped or not we need to clear the drag bounds rect.
         /// So don't clear it in the OnDragDrop() event, we need to clear it
@@ -1708,8 +1652,8 @@ namespace Play.Edit {
             bool fFoundHyperLink = false;
 
             if( _iSelectedTool == 2 ) {
-                if( ( e.Button == MouseButtons.Left &&
-                      ((ModifierKeys & Keys.Control) == 0) ) 
+                if( e.Button == MouseButtons.Left &&
+                    ((ModifierKeys & Keys.Control) == 0) 
                   ) {
                     fFoundHyperLink = HyperLinkFind(new SKPointI(e.Location.X, e.Location.Y), fDoJump:true);
                 }
@@ -1792,7 +1736,7 @@ namespace Play.Edit {
 
             oArg.Effect = DragDropEffects.None;
 
-            Point    pntLocation = this.PointToClient( new Point(oArg.X, oArg.Y));
+            Point pntLocation = PointToClient( new Point(oArg.X, oArg.Y));
 
             if( ClientToWorld( new SKPointI( pntLocation.X, pntLocation.Y ), out SKPointI pntWorldLoc ) != 0 )
                 return;
@@ -2256,7 +2200,7 @@ namespace Play.Edit {
         /// usability issue. We keep the caret on screen when we use the keyboard.
         /// </summary>
         protected override void OnKeyDown(KeyEventArgs e) {
-            if( this.IsDisposed )
+            if( IsDisposed )
                 return;
 
             //base.OnKeyDown( e ); // Not sure this is really needed for the control beneath. Probably bad actually.
@@ -2309,7 +2253,7 @@ namespace Play.Edit {
 
         protected override void OnKeyUp(KeyEventArgs e)
         {
-            if (this.IsDisposed)
+            if (IsDisposed)
                 return;
 
             e.Handled = true;
@@ -2329,7 +2273,7 @@ namespace Play.Edit {
         /// <param name="e"></param>
         protected override void OnKeyPress(KeyPressEventArgs e)
         {
-            if( this.IsDisposed )
+            if( IsDisposed )
                return;
 
  	        //base.OnKeyPress(e);

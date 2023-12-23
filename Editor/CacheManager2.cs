@@ -738,6 +738,9 @@ namespace Play.Edit {
         /// position of the cache rectangle. You must call Refresh() on the cache 
         /// after making this call.
         /// </summary>
+        /// <remarks>All we really need out of our text rect is it's scrolling position.
+        /// By now the layout is set and the height and width of the visible colums is
+        /// already calculated.</remarks>
         /// <param name="rgSize">The new size of the rectangle.</param>
         public void OnChangeSize( Size oSize ) {
             _oTextRect.SetPoint(SET.RIGID, LOCUS.UPPERLEFT | LOCUS.EXTENT, oSize.Width, oSize.Height );

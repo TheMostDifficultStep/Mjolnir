@@ -1,9 +1,6 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Drawing;
-using System.Text;
-using System.Linq;
 
 using Play.Interfaces.Embedding;
 
@@ -199,31 +196,6 @@ namespace Play.Edit {
         }
 
         /// <summary>
-        /// Return the stream extent of the current selection. Returns point -1, -1 if no selection.
-        /// TODO: Reset the editor before getting the Stream Values. But really
-        /// since we know the lines we can just compute them.
-        /// </summary>
-        public Point StreamBounds
-        {
-            get {
-                if( _oSelectStart.Line != null ) {
-                    if( _oSelectEnd.Line != null ) {
-                        int iCompare = _oSelectStart.Line.CumulativeLength - _oSelectEnd.Line.CumulativeLength;
-
-                        if( iCompare < 0 ) {
-                            return( new Point( _oSelectStart.Start, _oSelectEnd.End ) );
-                        } else {
-                            return( new Point( _oSelectEnd.Start, _oSelectStart.End ) );
-                        }
-                    }
-                    return( new Point( _oSelectStart.Start, _oSelectStart.End ) );
-                }
-
-                return( new Point( -1, -1 ) );
-            }
-        }
-
-        /// <summary>
         /// Check if the given location is within the current selection.
         /// Not finished.
         /// </summary>
@@ -235,14 +207,6 @@ namespace Play.Edit {
             Point pntLocation = new Point( (int)pntLocationF.X, (int)pntLocationF.Y );
 
             return( _oView.IsSelectionHit( pntLocation ) );
-        }
-
-        public bool IsEmpty {
-            get {
-                Point oBounds = this.StreamBounds;
-
-                return( oBounds.X - oBounds.Y == 0 );
-            }
         }
 
         /// <summary>
