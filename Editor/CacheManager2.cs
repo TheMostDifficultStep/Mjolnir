@@ -8,6 +8,7 @@ using SkiaSharp;
 
 using Play.Interfaces.Embedding;
 using Play.Rectangles;
+using Play.Parse;
 
 namespace Play.Edit {
 	public enum UNICACHEHIT : int {
@@ -340,11 +341,11 @@ namespace Play.Edit {
             }
         }
 
-        protected void ElemUpdate2( FTCacheLine oElem, int iWidth ) {
+        protected void ElemUpdate2( FTCacheLine oElem, int iWidth, IMemoryRange oRange = null ) {
 			try {
                 //_oSite.WordBreak( oElem.Line, oElem.Words );
 
-				oElem.Update            ( Font );
+				oElem.Update            ( Font, oRange );
                 oElem.OnChangeFormatting( _oSite.Selections );
                 oElem.OnChangeSize      ( iWidth );
 			} catch( Exception oEx ) {

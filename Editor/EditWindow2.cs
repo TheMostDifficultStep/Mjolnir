@@ -501,6 +501,13 @@ namespace Play.Edit {
             _rgCacheMap.Add( _rctTextArea );
         }
 
+        /// <summary>
+        /// Slight hackery, but this will allow us to remove the special column
+        /// painting routine for check marks...
+        /// </summary>
+        /// <returns>Returns the currently checked line given by the document</returns>
+        public Line CheckedLine() { return _oDocument.CheckedLine; }
+
         /// <remarks>
         /// This object illustrates some of the problems of overriding behavior for objects that send events.
 		/// If I use InitNew within Load, Load might set our carat, but InitNew would have initialized already
@@ -1120,17 +1127,6 @@ namespace Play.Edit {
             skCanvas.DrawRect(skRect, skPaint);
         }
 
-        /// <remarks>
-        /// Note: that we are sharing the skPaint and that might result in problems in the
-        /// future. We might want to either have our own paint object or return the
-        /// values to their original values. Could also use this for column stripes.
-        /// </remarks>
-        protected virtual void OnPaintExtraColumnsBG( SKCanvas skCanvas, SKPaint skPaint ) {
-        }
-
-        [Obsolete]protected virtual void OnPaintExtraColumn( SKCanvas skCanvas, SKPaint skPaint, CacheRow oCache ) {
-        }
-
         protected override void OnPaintSurface( SKPaintSurfaceEventArgs e ) {
             base.OnPaintSurface(e);
 
@@ -1149,12 +1145,9 @@ namespace Play.Edit {
                 // Paint all window background. BUG: We could get by without this if there was no space between lines.
                 skCanvas.DrawRect( new SKRect( 0, 0, Width, Height )/* e.Info.Rect */, skPaint);
 
-                OnPaintExtraColumnsBG( skCanvas, skPaint ); // Might want a column BG color override.
-
                 // Now paint the lines.
                 foreach( CacheRow oRow in _oCacheMan ) {
                     PaintBackground(skCanvas, skPaint, oRow);
-                    OnPaintExtraColumn( skCanvas, skPaint2, oRow ); 
 
                     for( int iCache=0; iCache<oRow.CacheList.Count; ++iCache ) {
                         FTCacheLine oCache = oRow.CacheList[iCache];
@@ -2744,6 +2737,57 @@ namespace Play.Edit {
 	/// </summary>
 	public class CheckList : EditWindow2 {
         protected readonly IPgGlyph _oCheque = null;
+        public class FTCacheCheck : FTCacheWrap {
+            readonly        Func<Line> _oCheckedLine;
+            readonly static string     _strCheckMark = "\x2714";
+            Line                       _oGuest; // The line we are listing.
+            public FTCacheCheck( Line oLine, Line oGuest, Func<Line> oCheckedLine ) : base( oLine ) {
+                _oCheckedLine = oCheckedLine ?? throw new ArgumentNullException();
+                _oGuest       = oGuest       ?? throw new ArgumentNullException();
+            }
+
+            public override void Update(IPgFontRender oFR, IMemoryRange oRange ) {
+                Line.Empty();
+
+                if( _oCheckedLine() == _oGuest ) {
+                    Line.TryAppend( _strCheckMark );
+                }
+
+                base.Update(oFR);
+            }
+
+            public override bool IsInvalid { 
+                get {
+                    bool fWeAreChecked  = Line[0] == _strCheckMark[0];
+                    bool fTheyreChecked = _oCheckedLine() == _oGuest;
+                
+                    return fWeAreChecked != fTheyreChecked;
+                } 
+            }
+        }
+
+        public class CacheManagerChk : CacheManager2 {
+            public CacheManagerChk( CacheManagerAbstractSite oSite, IPgFontRender oFont, List<SmartRect> rgCols ) :
+                base( oSite, oFont, rgCols ) {
+            }
+
+            protected override CacheRow CreateRow( Line oLine ) {
+                CacheRow oRow = base.CreateRow( oLine );
+
+                Func<Line> oCheckedLine = null;
+
+                if( _oSite.Host is EditWindow2 oWin ) {
+                    oCheckedLine = new ( oWin.CheckedLine );
+                }
+
+                FTCacheLine oElem = new FTCacheCheck( new TextLine( oLine.At, string.Empty ), oLine, oCheckedLine );
+
+                oRow.CacheList.Add( oElem );
+
+                return oRow;
+            }
+        }
+
 		public CheckList( IPgViewSite oSite, BaseEditor oEditor, bool fReadOnly = false ) : 
             base( oSite, oEditor, fReadOnly:true, fSingleLine:false )     
         {
@@ -2769,6 +2813,13 @@ namespace Play.Edit {
             _rgLayout .Add( _rctTextArea ); // Main text area.
 
             _rgCacheMap.Add( _rctTextArea ); // Text is always the first cache element on a row.
+            _rgCacheMap.Add( _rctCheques );
+        }
+
+        protected override CacheManager2 CreateCacheManager(uint uiStdText) {
+            return new CacheManagerChk( new CacheManSlot(this),
+                                        _oStdUI.FontRendererAt(uiStdText),
+                                        _rgCacheMap );
         }
 
         /// <summary>So the text area might be read only, but the check column is
@@ -2779,18 +2830,18 @@ namespace Play.Edit {
         /// future. We might want to either have our own paint object or return the
         /// values to their original values.
         /// </remarks>
-        protected override void OnPaintExtraColumnsBG( SKCanvas skCanvas, SKPaint skPaint ) {
-            skPaint.Color = _oStdUI.ColorsStandardAt( StdUIColors.BG );
+        //protected override void OnPaintExtraColumnsBG( SKCanvas skCanvas, SKPaint skPaint ) {
+        //    skPaint.Color = _oStdUI.ColorsStandardAt( StdUIColors.BG );
 
-            skCanvas.DrawRect( _rctCheques.SKRect, skPaint );
-        }
+        //    skCanvas.DrawRect( _rctCheques.SKRect, skPaint );
+        //}
         /// <summary>
         /// As much as I'd like to get rid of this. As you can see, it relies on some global information 
         /// to set the check mark.
         /// </summary>
-        protected override void OnPaintExtraColumn( SKCanvas skCanvas, SKPaint skPaint, CacheRow oRow ) {
-            if( _oDocument.CheckedLine == oRow.Line )
-                DrawGlyph(skCanvas, skPaint, _rctCheques.Left, RenderAt(oRow, _rctTextArea).Y, _oCheque );
-        }
+        //protected override void OnPaintExtraColumn( SKCanvas skCanvas, SKPaint skPaint, CacheRow oRow ) {
+        //    if( _oDocument.CheckedLine == oRow.Line )
+        //        DrawGlyph(skCanvas, skPaint, _rctCheques.Left, RenderAt(oRow, _rctTextArea).Y, _oCheque );
+        //}
 	}
 }

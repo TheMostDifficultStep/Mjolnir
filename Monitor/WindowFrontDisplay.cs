@@ -107,22 +107,6 @@ namespace Monitor {
                 return oRow;
             }
 
-            protected void ElemUpdate3( FTCacheLine oElem, int iWidth, IMemoryRange? oRange ) {
-			    try {
-				    oElem.Update            ( Font, oRange );
-                    oElem.OnChangeFormatting( _oSite.Selections );
-                    oElem.OnChangeSize      ( iWidth );
-			    } catch( Exception oEx ) {
-				    Type[] rgErrors = { typeof( NullReferenceException ),
-									    typeof( ArgumentNullException ),
-                                        typeof( ArgumentOutOfRangeException ) };
-				    if( !rgErrors.Contains( oEx.GetType() ))
-					    throw;
-
-                    _oSite.LogError( "view cache", "Update request on empty element" );
-			    }
-            }
-
             protected void Organize( CacheRow oRow ) {
                 foreach( ColorRange oRange in _rgColumnOffsets ) {
                     oRange.Offset = 0;
@@ -176,7 +160,7 @@ namespace Monitor {
                         oArg = _rgColumnOffsets[i];
                     }
 
-                    ElemUpdate3( oRow.CacheList[i], _rgCacheMap[i].Width, oArg );
+                    ElemUpdate2( oRow.CacheList[i], _rgCacheMap[i].Width, oArg );
                 }
             }
         }
