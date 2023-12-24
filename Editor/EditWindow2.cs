@@ -2800,17 +2800,22 @@ namespace Play.Edit {
             _oCheque = oRender.GetGlyph(0x2714); 
 		}
 
-        /// <summary>
-        /// *The CacheMap does NOT include the check mark column basically because it is hacked
-        /// into the layout. You would have to modify this document to allow for multiple check marks.
-        /// </summary>
+        /// <remarks>
+        /// You know, I might be able to get rid of the _rgCacheMap if I can
+        /// enumerate/index the _rgLayout object directly. Right now the 
+        /// CacheMap is list of rectangles that map 1->1 to the CacheList in the
+        /// Row object of the cache manager.
+        /// Also, now it should be easy(ier) to make a list of random checkbox's,
+        /// as opposed to the radio buttons here, since we can use the 
+        /// Line.Extra or the new system for the multi line document I'm considering!!
+        /// </remarks>
         protected override void InitColumns() {
             // Need this here for now. The _oCheque doesn't get cached until the cache manager
             // is set up. We can fix that but I'll do it later.
             _rctCheques = new LayoutRect( LayoutRect.CSS.Pixels, (uint)_oCheque.Coordinates.advance_x, 0 );
 
-            _rgLayout .Add( _rctCheques );  // Whoooo! new select column!!
-            _rgLayout .Add( _rctTextArea ); // Main text area.
+            _rgLayout  .Add( _rctCheques );  // New select column!!
+            _rgLayout  .Add( _rctTextArea ); // Main text area.
 
             _rgCacheMap.Add( _rctTextArea ); // Text is always the first cache element on a row.
             _rgCacheMap.Add( _rctCheques );
@@ -2822,22 +2827,11 @@ namespace Play.Edit {
                                         _rgCacheMap );
         }
 
-        /// <summary>So the text area might be read only, but the check column is
-        /// typically r/w since we might change who's checked. Here we make sure the
-        /// BG is the r/w variety.</summary>
-        /// <remarks>
-        /// Note: that we are sharing the skPaint and that might result in problems in the
-        /// future. We might want to either have our own paint object or return the
-        /// values to their original values.
-        /// </remarks>
-        //protected override void OnPaintExtraColumnsBG( SKCanvas skCanvas, SKPaint skPaint ) {
-        //    skPaint.Color = _oStdUI.ColorsStandardAt( StdUIColors.BG );
-
-        //    skCanvas.DrawRect( _rctCheques.SKRect, skPaint );
-        //}
         /// <summary>
-        /// As much as I'd like to get rid of this. As you can see, it relies on some global information 
-        /// to set the check mark.
+        /// Currently, I re-measure the code point each time there is a screen
+        /// update. With the old system, I was using the Glyph directly and so
+        /// didn't need to re-measure. Of course, if we ever dynamically change
+        /// the face size, then this Glyph approach would need work...
         /// </summary>
         //protected override void OnPaintExtraColumn( SKCanvas skCanvas, SKPaint skPaint, CacheRow oRow ) {
         //    if( _oDocument.CheckedLine == oRow.Line )
