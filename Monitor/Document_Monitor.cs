@@ -389,6 +389,24 @@ namespace Monitor {
         {
             return new AsmLine( iLine, strValue );
         }
+
+        /// <summary>
+        /// This is my new experiment for extra data on the line. Later
+        /// I'll add a multi column line structure. But now I'll just
+        /// query for our expected Line subclass!!
+        /// </summary>
+        /// <exception cref="ArgumentOutOfRangeException"></exception>
+        public override Line GetLine( int iLine, int iColumn = 0 ) {
+            Line oLine = base.GetLine( iLine, iColumn );
+
+            if( iColumn == 0 )
+                return oLine;
+
+            if( iColumn == 1 && oLine is AsmLine oAsmLine )
+                return oAsmLine.LineComment;
+
+            throw new ArgumentOutOfRangeException();
+        }
     }
     internal class Document_Monitor :
         IPgParent,
@@ -730,6 +748,13 @@ namespace Monitor {
                 // Decode only the ROM section of our given memory.
                 while( iAddr < _rgRam.RamStart ) {
                     Z80Instr sInstr = FindInfo( iAddr );
+
+                    int iLineCount = _oDoc.Doc_Asm.ElementCount;
+                    if( iLineCount % 10 == 1 ) {
+                        Line oLine = _oDoc.Doc_Asm.GetLine( iLineCount - 1, 1 );
+
+                        oLine.TryAppend( "Hello " + iLineCount.ToString() );
+                    }
 
                     switch( sInstr.Z80Type ) {
                         case Z80Types.Instruction:

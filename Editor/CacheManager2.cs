@@ -802,7 +802,7 @@ namespace Play.Edit {
         /// <remarks>Again hard coded for text area.</remarks>
         /// <param name="oSelection">The Line and offset see are seeking.</param>
         /// <param name="pntWorld">world relative graphics coordinates.</param>
-        public bool GlyphLineToPoint( ILineRange oSelection, out Point pntWorld ) {
+        public bool GlyphLineToPoint( int iCacheElem, ILineRange oSelection, out Point pntWorld ) {
             CacheRow oRow = CacheLocate( oSelection.At );
 
             if( oRow != null ) {
@@ -810,7 +810,7 @@ namespace Play.Edit {
                 pntWorld = oRow.CacheList[0].GlyphOffsetToPoint( oSelection.Offset );
                 // This adds the vertical offset of the world.
                 pntWorld.Y += oRow.Top;
-                return( true );
+                return true;
             } else {
                 pntWorld = new Point( 0, 0 );
             }

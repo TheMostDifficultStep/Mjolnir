@@ -1034,8 +1034,8 @@ namespace Play.Edit {
 			if( _oCacheMan == null ) // Can happen if InitNew() fails and we press forward.
 				return;
                 
-            if( _oCacheMan.GlyphLineToPoint( CaretPos, out Point pntCaretWorldLoc ) ) {
-                SmartRect oTextColumn       = _rgCacheMap[0];
+            if( _oCacheMan.GlyphLineToPoint( CaretPos._iColumn, CaretPos, out Point pntCaretWorldLoc ) ) {
+                SmartRect oTextColumn       = _rgCacheMap[CaretPos._iColumn];
                 // this changes from world coordinates to client coordinates.
                 SKPointI  pntWorldTopLeft   = _oCacheMan.TextRect.GetPoint(LOCUS.UPPERLEFT);
                 SKPointI  pntCaretScreenLoc = new SKPointI( pntCaretWorldLoc.X - pntWorldTopLeft.X + oTextColumn.Left, 
@@ -1127,6 +1127,11 @@ namespace Play.Edit {
             skCanvas.DrawRect(skRect, skPaint);
         }
 
+        /// <remarks>
+        /// The CacheMap is list of rectangles that map 1->1 to the CacheList in the
+        /// Row object of the cache manager. Unfortunately there might be layout objects
+        /// that are NOT part of the cache map. Like the scroll bar.
+        /// </remarks>
         protected override void OnPaintSurface( SKPaintSurfaceEventArgs e ) {
             base.OnPaintSurface(e);
 
@@ -1142,10 +1147,11 @@ namespace Play.Edit {
                     BlendMode = SKBlendMode.Src,
                     Color     = _oStdUI.ColorsStandardAt(_fReadOnly ? StdUIColors.BGReadOnly : StdUIColors.BG)
                 };
-                // Paint all window background. BUG: We could get by without this if there was no space between lines.
-                skCanvas.DrawRect( new SKRect( 0, 0, Width, Height )/* e.Info.Rect */, skPaint);
+                // Paint all window background. Note: We could get by without this if
+                // there was no space between lines/columns.
+                skCanvas.DrawRect( new SKRect( 0, 0, Width, Height ), skPaint);
 
-                // Now paint the lines.
+                // Now paint the rows.
                 foreach( CacheRow oRow in _oCacheMan ) {
                     PaintBackground(skCanvas, skPaint, oRow);
 
@@ -2523,7 +2529,7 @@ namespace Play.Edit {
 
             ScrollToCaret();
 
-            if( _oCacheMan.GlyphLineToPoint( CaretPos, out Point pntCaretWorldLoc ) ) {
+            if( _oCacheMan.GlyphLineToPoint( CaretPos._iColumn, CaretPos, out Point pntCaretWorldLoc ) ) {
                 _iAdvance = pntCaretWorldLoc.X;
             }
             CaretIconRefreshLocation();
@@ -2801,10 +2807,6 @@ namespace Play.Edit {
 		}
 
         /// <remarks>
-        /// You know, I might be able to get rid of the _rgCacheMap if I can
-        /// enumerate/index the _rgLayout object directly. Right now the 
-        /// CacheMap is list of rectangles that map 1->1 to the CacheList in the
-        /// Row object of the cache manager.
         /// Also, now it should be easy(ier) to make a list of random checkbox's,
         /// as opposed to the radio buttons here, since we can use the 
         /// Line.Extra or the new system for the multi line document I'm considering!!

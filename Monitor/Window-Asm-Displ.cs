@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-using Play.Edit;
+﻿using Play.Edit;
 using Play.Interfaces.Embedding;
 using Play.Parse;
 using Play.Rectangles;
@@ -29,6 +23,7 @@ namespace Monitor {
                                         _oStdUI.FontRendererAt(uiStdText),
                                         _rgCacheMap );
         }
+
         public class CacheManagerAsm : CacheManager2 {
             public CacheManagerAsm( CacheManagerAbstractSite oSite, IPgFontRender oFont, List<SmartRect> rgCols ) :
                 base( oSite, oFont, rgCols ) {
@@ -44,10 +39,6 @@ namespace Monitor {
                     oRow.CacheList[0].Column = 1; // Gotta override the column!!
 
                     oRow.CacheList.Add( new FTCacheWrap( oAsmLine.Extra as Line, 0 ) );
-
-                    oAsmLine.LineComment.Empty();
-                    oAsmLine.LineComment.TryAppend( "Hello" + oLine.At.ToString() );
-
                     oRow.CacheList.Add( new FTCacheWrap( oAsmLine.LineComment, 2 ) );
                 }
 

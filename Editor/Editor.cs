@@ -485,17 +485,21 @@ namespace Play.Edit {
         /// <returns>The line object at the index given, or an empty line if out of bounds.</returns>
         /// <remarks>TODO: I could return the same dummy line. But I'd want a line that doesn't allow anyone
         /// to set it's buffer. Wait until I abstract the notion of a line a bit more.</remarks>
-        public Line GetLine( int iIndex ) {
+        public virtual Line GetLine( int iIndex, int iColumn = 0 ) {
+            Line oTry;
+
             if( !IsHit( iIndex ) ) {
-                return( CreateLine( 0, string.Empty ) );
+                oTry = CreateLine( 0, string.Empty );
+            } else {
+                oTry = _rgLines[iIndex];
             }
 
-            return( _rgLines[iIndex] );
+            return oTry;
         }
 
         public Line this[int iIndex] { 
             get { 
-                return( GetLine( iIndex) );
+                return GetLine( iIndex );
             }
         }            
 

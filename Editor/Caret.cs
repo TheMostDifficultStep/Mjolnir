@@ -15,6 +15,7 @@ namespace Play.Edit {
     public class SimpleLineCaret :
         ILineRange
     {
+        public    int  _iColumn = 0; // CacheMap column NOT layout column.
         protected Line _oLine;
         protected int  _iOffset = 0;
 
@@ -88,7 +89,6 @@ namespace Play.Edit {
     
     public class CaretPosition : SimpleLineCaret 
     {
-        public int _iColumn = 0;
         public CaretPosition( Line oLine ) : base( oLine, 0 ) {
         }
 
