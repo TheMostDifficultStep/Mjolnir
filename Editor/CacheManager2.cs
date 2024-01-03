@@ -11,11 +11,6 @@ using Play.Rectangles;
 using Play.Parse;
 
 namespace Play.Edit {
-	public enum UNICACHEHIT : int {
-        Hit,   // the line was found, coordinates were returned.
-        Miss,  // the line is not in the cache.
-    }
-
     public enum CaretMove {
         LOCAL,
         MISS,
@@ -275,9 +270,9 @@ namespace Play.Edit {
                 RowUpdate( oTop );
             }
 
-            List<CacheRow> rgNewCache = new List<CacheRow>();
-
-            rgNewCache.Add( oTop ); // Stick our seed in the new cache.
+            List<CacheRow> rgNewCache = new List<CacheRow> {
+                oTop // Stick our seed in the new cache.
+            };
 
             CacheRow oRow = oTop; // Current starting point.
 
