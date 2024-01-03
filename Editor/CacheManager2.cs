@@ -800,14 +800,14 @@ namespace Play.Edit {
         /// and Cumulative Width. This is used to position the carat.
         /// </summary>
         /// <remarks>Again hard coded for text area.</remarks>
-        /// <param name="oSelection">The Line and offset see are seeking.</param>
+        /// <param name="oCaratPos">The Line and offset see are seeking.</param>
         /// <param name="pntWorld">world relative graphics coordinates.</param>
-        public bool GlyphLineToPoint( int iCacheElem, ILineRange oSelection, out Point pntWorld ) {
-            CacheRow oRow = CacheLocate( oSelection.At );
+        public bool GlyphLineToPoint( int iCacheColumn, ILineRange oCaratPos, out Point pntWorld ) {
+            CacheRow oRow = CacheLocate( oCaratPos.At );
 
             if( oRow != null ) {
                 // This one returns local row/col in points(pixels) 0,0 ul of FTCacheLine
-                pntWorld = oRow.CacheList[0].GlyphOffsetToPoint( oSelection.Offset );
+                pntWorld = oRow.CacheList[iCacheColumn].GlyphOffsetToPoint( oCaratPos.Offset );
                 // This adds the vertical offset of the world.
                 pntWorld.Y += oRow.Top;
                 return true;
@@ -825,19 +825,20 @@ namespace Play.Edit {
         /// has occurred and we want to find which FTCacheLine it hits.
         /// If we want to edit in other columns we can do so by passing an
         /// argument.</remarks>
-        /// <param name="pntLocation">Graphics location of interest in world coordinates.</param>
+        /// <param name="oWorldLoc">Graphics location of interest in world coordinates. Basically
+        ///                         where the mouse clicked.</param>
         /// <param name="oCaret">This object line offset is updated to the closest line offset.</param>
-        public FTCacheLine GlyphPointToRange( SKPointI pntLocation, int iIndex, ILineRange oCaret ) {
+        public FTCacheLine GlyphPointToRange( ref EditWindow2.WorldLocator oWorldLoc, ILineRange oCaret ) {
             foreach( CacheRow oRow in _rgOldCache ) {
-                if( oRow.Top    <= pntLocation.Y &&
-                    oRow.Bottom >= pntLocation.Y ) 
+                if( oRow.Top    <= oWorldLoc.Y &&
+                    oRow.Bottom >= oWorldLoc.Y ) 
                 {
-                    FTCacheLine oCache = oRow.CacheList[iIndex];
+                    FTCacheLine oCache = oRow.CacheList[oWorldLoc._iColumn];
 
                     oCaret.Line   = oCache.Line;
-                    oCaret.Offset = oCache.GlyphPointToOffset(oRow.Top, pntLocation);
+                    oCaret.Offset = oCache.GlyphPointToOffset(oRow.Top, oWorldLoc._pntLocation );
 
-                    return oRow.CacheList[0]; // BUG: Hard coded for text only.
+                    return oCache;
                 }
             }
 
@@ -905,8 +906,8 @@ namespace Play.Edit {
         /// </summary>
         /// <param name="pntWorld">World Coordinates.</param>
         /// <remarks>Advance is modulo in the wrapped text case.</remarks>
-        public void CaretAndAdvanceReset( SKPointI pntWorld, ILineRange oCaretPos, ref float flAdvance ) {
-            FTCacheLine oCache = GlyphPointToRange( pntWorld, 0, oCaretPos );
+        public void CaretAndAdvanceReset( ref EditWindow2.WorldLocator sWorldLoc, ILineRange oCaretPos, ref float flAdvance ) {
+            FTCacheLine oCache = GlyphPointToRange( ref sWorldLoc, oCaretPos );
             if( oCache != null ) {
                 Point oNewLocation = oCache.GlyphOffsetToPoint( oCaretPos.Offset );
 

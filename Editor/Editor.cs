@@ -503,16 +503,6 @@ namespace Play.Edit {
             }
         }            
 
-        /// <summary>
-        /// TODO: Now that I always return a line, this function is less useful. Think about removing this later.
-        /// </summary>
-        public int GetLineLength( int iLineAt ) {
-            if( !IsHit( iLineAt ) )
-                return( 0 );
-
-            return( _rgLines[iLineAt].ElementCount );
-        }
-        
         public bool IsHit( int iLine ) {
             return( IsWhere( DocumentPosition.INSIDE, iLine ) == 0 );
         }
@@ -635,23 +625,6 @@ namespace Play.Edit {
             using( Manipulator oBulk = this.CreateManipulator() ) {
                 oBulk.LineInsert( 0, strText );
             }
-        }
-
-        /// <summary>
-        /// A little back door for forms editors. Use at your own risk!
-        /// </summary>
-        public Line LineInsertNoUndo( int iLine, Line oLine ) {
-            if( oLine == null )
-                throw new ArgumentNullException( nameof( oLine ) );
-            if( iLine < 0 || iLine > _rgLines.Count )
-                throw new ArgumentOutOfRangeException( nameof( iLine ) );
-
-            _rgLines.Insert( iLine, oLine );
-
-            SetDirty();
-            Raise_AfterInsertLine( oLine );
-
-            return( oLine );
         }
 
         /// <summary>

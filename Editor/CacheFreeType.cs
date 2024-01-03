@@ -124,7 +124,9 @@ namespace Play.Edit {
     /// have multiple cacheline's on a row.
     /// </summary>
     public class CacheRow {
-        public         Line Line      => CacheList[0].Line; // This is reasonable to get us off the ground.
+        // This is super important that the CacheList 0 is used. The other's line
+        // numbers are not managed by the text editor.
+        public         Line Line      => CacheList[0].Line; 
         public         int  At        { get { return Line.At; } }
         public         int  Top       { get; set; }
         public virtual int  Height    { get { return CacheList[0].Height; } }

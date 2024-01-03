@@ -7,6 +7,8 @@ using Play.Edit;
 
 using z80;
 using Play.Parse;
+using Play.Forms;
+using System.Xml;
 
 namespace Monitor {
 
@@ -514,35 +516,6 @@ namespace Monitor {
 
             return true;
         }
-        protected bool LoadTiny() {
-            try {
-                Assembly   oAssembly = Assembly.GetExecutingAssembly();
-                string?   strAsmName = oAssembly.GetName().Name;
-			    using Stream oStream = oAssembly.GetManifestResourceStream( strAsmName + ".tinybasic2dms.bin" );
-
-                if( oStream == null )
-                    return false;
-
-                // This isn't necessarily the z80 emulator memory. Let's
-                // see how this turns out. We can get the memory size needed by
-                // reading the first "ld sp, nn" instruction.;
-                byte[] rgRWRam = new byte[4096];
-                int    iCount  = 0;
-
-                for( int iByte = oStream.ReadByte();
-                     iByte != -1;
-                     iByte = oStream.ReadByte() ) 
-                {
-                    rgRWRam[iCount++] = (byte)iByte;
-                }
-                _rgMemory = new Z80Memory( rgRWRam, (ushort)iCount );
-            } catch( NullReferenceException ) {
-                return false;
-            }
-
-            return true;
-        }
-
         public bool Load(TextReader oStream) {
             if( !Doc_Asm.Load( oStream ) )
                 return false;
@@ -566,9 +539,9 @@ namespace Monitor {
             if( !Doc_Outl.InitNew() )
                 return false;
 
-            if( LoadTiny() ) {
-                Dissassemble();
-            }
+            //if( LoadTiny() ) {
+            //    Dissassemble();
+            //}
 
             return true;
         }
@@ -586,216 +559,434 @@ namespace Monitor {
             return sInstr;
         }
 
-        protected class Dissambler : 
-            IDisposable
-        {
-            readonly Document_Monitor    _oDoc;
-            readonly Editor.Manipulator  _oBulkAsm;
-            readonly Editor.Manipulator  _oBulkOutline;
-            readonly SortedSet<int>      _rgOutlineLabels = new();
-            readonly Regex               _oRegEx          = new("{n+}|{d+}", RegexOptions.IgnoreCase);
-            readonly StringBuilder       _sbBuilder       = new();
-            readonly StringBuilder       _sbData          = new();
-            readonly LinkedList<AsmData> _rgAsmData       = new();
-            readonly Z80Memory           _rgRam;
-            readonly Z80Definitions      _oZ80Info;
-
-            struct AsmData {
-                public byte _bData;
-                public int  _iAddr;
-
-                public AsmData( byte bDatam, int iAddr ) {
-                    _bData = bDatam;
-                    _iAddr = iAddr;
-                }
-            }
-
-            public Dissambler( Document_Monitor oDoc ) {
-                _oDoc     = oDoc           ?? throw new ArgumentNullException();
-                _rgRam    = oDoc._rgMemory ?? throw new ArgumentNullException();
-                _oZ80Info = oDoc._oZ80Info ?? throw new ArgumentNullException(); 
-
-                _oBulkAsm     = oDoc.Doc_Asm .CreateManipulator();
-                _oBulkOutline = oDoc.Doc_Outl.CreateManipulator();
-            }
-
-            public void Dispose() {
-                _oBulkAsm    .Dispose();
-                _oBulkOutline.Dispose();
-
-                _oDoc.Doc_Asm .ClearDirty();
-                _oDoc.Doc_Outl.ClearDirty();
-            }
-
-            public class HyperLinkCpuJump : 
-                ColorRange
-            {
-                public override bool IsWord => true;
-
-                public override string StateName => "CpuJump";
-
-                public HyperLinkCpuJump( int iOffset, int iLength, int iColorIndex ) :
-                    base( iOffset, iLength, iColorIndex ) 
-                {
-                }
-            }
-
-            protected void ProcessInstruction(Z80Instr sInstr, int iAddr ) {
-                _sbBuilder.Clear();
-
-                Match oMatch   = _oRegEx.Match( sInstr.Name );
-                Line? oAsmLine;
-
-                if( oMatch != null && oMatch.Success ) {
-                    int iNumber = 0;
-
-                    switch( sInstr.Length ) {
-                        case 0:
-                            throw new InvalidDataException("Problem with z80 instr table" );
-                        case 2:
-                            iNumber = _rgRam[iAddr+1];
-                            break;
-                        case 3:
-                            iNumber = _rgRam[iAddr+1] + _rgRam[iAddr+2] * 0x0100;
-                            break;
-                    }
-
-                    // Append the instruction
-                    for( int i = 0; i<oMatch.Index; i++ ) {
-                        _sbBuilder.Append( sInstr.Name[i] );
-                    }
-                    // Append the number
-                    string strNumber = iNumber.ToString( "X2" );
-                    _sbBuilder.Append( strNumber );
-                    // Append everything after the number.
-                    for( int i = oMatch.Index + oMatch.Length; i<sInstr.Name.Length; i++ ) {
-                        _sbBuilder.Append( sInstr.Name[i] );
-                    }
-                    oAsmLine = _oBulkAsm.LineAppend( _sbBuilder.ToString() );
-
-                    int? iColorIndex;
-                    if( sInstr.Jump != JumpType.None ) {
-                        iColorIndex = 1;
-                    } else {
-                        iColorIndex = 2;
-                    }
-
-                    // Color the number
-                    oAsmLine.Formatting.Add( 
-                        new HyperLinkCpuJump( oMatch.Index,
-                                              strNumber.Length,
-                                              iColorIndex.Value ) );
-
-                    if( !_rgOutlineLabels.Contains( iNumber ) ) {
-                        if( sInstr.Jump == JumpType.Abs )
-                            _rgOutlineLabels.Add( iNumber );
-                        if( sInstr.Jump == JumpType.Rel )
-                            _rgOutlineLabels.Add( iNumber + iAddr ); // +1, +2??
-                    }
-                } else {
-                    oAsmLine = _oBulkAsm.LineAppend( sInstr.Name );
-                }
-
-                if( oAsmLine.Extra is TextLine oAddrLine ) {
-                    oAddrLine.TryReplace( 0, oAddrLine.ElementCount, iAddr.ToString( "X4" ) );
-                }
-            }
-
-            protected Z80Instr FindInfo( int iAddr ) {
-                Z80Instr? sInstr;
-                    
-                if( iAddr < 0x56c ) {
-                    sInstr = _oZ80Info.FindMain( _rgRam[iAddr] );
-                } else {
-                    sInstr = new Z80Instr( _rgRam[iAddr ] );
-                }
-
-                return sInstr.Value;
-            }
-
-            protected void WriteDataLn( int iColumnCount ) {
-                if( _rgAsmData.First == null )
-                    return;
-
-                _sbData.Clear();
-                string strAddr = _rgAsmData.First.Value._iAddr.ToString( "X4" );
-
-                int iCount = 0;
-                while( _rgAsmData.First != null && iCount++ < 20 ) {
-                    byte bData = _rgAsmData.First.Value._bData;
-
-                    if( bData < 0x20 || bData > 0x80 ) 
-                    {
-                        _sbData.Append( bData.ToString( "X2" ) );
-                        _sbData.Append( ' ' );
-                    } else {
-                        _sbData.Append( ' ' );
-                        _sbData.Append( (char)bData );
-                        _sbData.Append( ' ' );
-                    }
-                    _rgAsmData.RemoveFirst();
-                }
-                Line oData = _oBulkAsm.LineAppend( _sbData.ToString() );
-                if( oData.Extra is TextLine oAddrLine ) {
-                    oAddrLine.TryReplace( 0, oAddrLine.ElementCount, strAddr );
-                }
-            }
-
-            public void Dissassemble() {
-                int       iAddr    = 0; 
-                const int iColumns = 20;
-
-                // Decode only the ROM section of our given memory.
-                while( iAddr < _rgRam.RamStart ) {
-                    Z80Instr sInstr = FindInfo( iAddr );
-
-                    int iLineCount = _oDoc.Doc_Asm.ElementCount;
-                    if( iLineCount % 10 == 1 ) {
-                        Line oLine = _oDoc.Doc_Asm.GetLine( iLineCount - 1, 1 );
-
-                        oLine.TryAppend( "Hello " + iLineCount.ToString() );
-                    }
-
-                    switch( sInstr.Z80Type ) {
-                        case Z80Types.Instruction:
-                            WriteDataLn( iColumns );
-
-                            if( string.IsNullOrEmpty( sInstr.Name ) ) {
-                                // Just put the instruction number and bail.
-                                _oBulkAsm.LineAppend( _rgRam[iAddr].ToString() );
-                                break;
-                            }
-                            ProcessInstruction( sInstr, iAddr );
-                            break;
-                        case Z80Types.Data:
-                            _rgAsmData.AddLast( new AsmData(_rgRam[iAddr],iAddr ) );
-
-                            if( _rgAsmData.Count >= iColumns ) {
-                                WriteDataLn( iColumns );
-                            }
-                            break;
-                    }
-                    iAddr += sInstr.Length;
-                }
-
-                WriteDataLn( iColumns );
-
-                // Take all the labels and stick them in the outline.
-                foreach( int i in _rgOutlineLabels ) {
-                    _oBulkOutline.LineAppend( i.ToString( "X" ) );
-                }
-            }
-        }
-
         public void Dissassemble() {
             if( _rgMemory == null ) {
                 LogError( "Error", "Load a binary first." );
                 return;
             }
 
-            using Dissambler oTool = new( this );
+            //using Dissambler oTool = new( this );
 
-            oTool.Dissassemble();
+            //oTool.Dissassemble();
         }
+    }
+
+    public class Z80Dissambler : 
+        IDisposable
+    {
+        readonly Editor.Manipulator  _oBulkAsm;
+        readonly Editor.Manipulator  _oBulkOutline;
+        readonly SortedSet<int>      _rgOutlineLabels = new();
+        readonly Regex               _oRegEx          = new("{n+}|{d+}", RegexOptions.IgnoreCase);
+        readonly StringBuilder       _sbBuilder       = new();
+        readonly StringBuilder       _sbData          = new();
+        readonly LinkedList<AsmData> _rgAsmData       = new();
+        readonly Z80Memory           _rgRam;
+        readonly Z80Definitions      _oZ80Info;
+
+        struct AsmData {
+            public byte _bData;
+            public int  _iAddr;
+
+            public AsmData( byte bDatam, int iAddr ) {
+                _bData = bDatam;
+                _iAddr = iAddr;
+            }
+        }
+
+        public Z80Dissambler( 
+            Z80Definitions     oDefinitions, 
+            Z80Memory          rgMemory, 
+            Editor.Manipulator oBulkOutline 
+        ) {
+            _rgRam        = rgMemory     ?? throw new ArgumentNullException();
+            _oZ80Info     = oDefinitions ?? throw new ArgumentNullException(); 
+            _oBulkOutline = oBulkOutline ?? throw new ArgumentNullException();
+
+            //_oBulkAsm     = oDoc.Doc_Asm .CreateManipulator();
+        }
+
+        public void Dispose() {
+            _oBulkAsm    .Dispose();
+            _oBulkOutline.Dispose();
+        }
+
+        public class HyperLinkCpuJump : 
+            ColorRange
+        {
+            public override bool IsWord => true;
+
+            public override string StateName => "CpuJump";
+
+            public HyperLinkCpuJump( int iOffset, int iLength, int iColorIndex ) :
+                base( iOffset, iLength, iColorIndex ) 
+            {
+            }
+        }
+
+        protected void ProcessInstruction(Z80Instr sInstr, int iAddr ) {
+            _sbBuilder.Clear();
+
+            Match oMatch   = _oRegEx.Match( sInstr.Name );
+            Line? oAsmLine;
+
+            if( oMatch != null && oMatch.Success ) {
+                int iNumber = 0;
+
+                switch( sInstr.Length ) {
+                    case 0:
+                        throw new InvalidDataException("Problem with z80 instr table" );
+                    case 2:
+                        iNumber = _rgRam[iAddr+1];
+                        break;
+                    case 3:
+                        iNumber = _rgRam[iAddr+1] + _rgRam[iAddr+2] * 0x0100;
+                        break;
+                }
+
+                // Append the instruction
+                for( int i = 0; i<oMatch.Index; i++ ) {
+                    _sbBuilder.Append( sInstr.Name[i] );
+                }
+                // Append the number
+                string strNumber = iNumber.ToString( "X2" );
+                _sbBuilder.Append( strNumber );
+                // Append everything after the number.
+                for( int i = oMatch.Index + oMatch.Length; i<sInstr.Name.Length; i++ ) {
+                    _sbBuilder.Append( sInstr.Name[i] );
+                }
+                oAsmLine = _oBulkAsm.LineAppend( _sbBuilder.ToString() );
+
+                int? iColorIndex;
+                if( sInstr.Jump != JumpType.None ) {
+                    iColorIndex = 1;
+                } else {
+                    iColorIndex = 2;
+                }
+
+                // Color the number
+                oAsmLine.Formatting.Add( 
+                    new HyperLinkCpuJump( oMatch.Index,
+                                            strNumber.Length,
+                                            iColorIndex.Value ) );
+
+                if( !_rgOutlineLabels.Contains( iNumber ) ) {
+                    if( sInstr.Jump == JumpType.Abs )
+                        _rgOutlineLabels.Add( iNumber );
+                    if( sInstr.Jump == JumpType.Rel )
+                        _rgOutlineLabels.Add( iNumber + iAddr ); // +1, +2??
+                }
+            } else {
+                oAsmLine = _oBulkAsm.LineAppend( sInstr.Name );
+            }
+
+            if( oAsmLine.Extra is TextLine oAddrLine ) {
+                oAddrLine.TryReplace( 0, oAddrLine.ElementCount, iAddr.ToString( "X4" ) );
+            }
+        }
+
+        protected Z80Instr FindInfo( int iAddr ) {
+            Z80Instr? sInstr;
+                    
+            if( iAddr < 0x56c ) {
+                sInstr = _oZ80Info.FindMain( _rgRam[iAddr] );
+            } else {
+                sInstr = new Z80Instr( _rgRam[iAddr ] );
+            }
+
+            return sInstr.Value;
+        }
+
+        protected void WriteDataLn( int iColumnCount ) {
+            if( _rgAsmData.First == null )
+                return;
+
+            _sbData.Clear();
+            string strAddr = _rgAsmData.First.Value._iAddr.ToString( "X4" );
+
+            int iCount = 0;
+            while( _rgAsmData.First != null && iCount++ < 20 ) {
+                byte bData = _rgAsmData.First.Value._bData;
+
+                if( bData < 0x20 || bData > 0x80 ) 
+                {
+                    _sbData.Append( bData.ToString( "X2" ) );
+                    _sbData.Append( ' ' );
+                } else {
+                    _sbData.Append( ' ' );
+                    _sbData.Append( (char)bData );
+                    _sbData.Append( ' ' );
+                }
+                _rgAsmData.RemoveFirst();
+            }
+            Line oData = _oBulkAsm.LineAppend( _sbData.ToString() );
+            if( oData.Extra is TextLine oAddrLine ) {
+                oAddrLine.TryReplace( 0, oAddrLine.ElementCount, strAddr );
+            }
+        }
+
+        public void Dissassemble() {
+            int       iAddr    = 0; 
+            const int iColumns = 20;
+
+            // Decode only the ROM section of our given memory.
+            while( iAddr < _rgRam.RamStart ) {
+                Z80Instr sInstr = FindInfo( iAddr );
+
+                switch( sInstr.Z80Type ) {
+                    case Z80Types.Instruction:
+                        WriteDataLn( iColumns );
+
+                        if( string.IsNullOrEmpty( sInstr.Name ) ) {
+                            // Just put the instruction number and bail.
+                            _oBulkAsm.LineAppend( _rgRam[iAddr].ToString() );
+                            break;
+                        }
+                        ProcessInstruction( sInstr, iAddr );
+                        break;
+                    case Z80Types.Data:
+                        _rgAsmData.AddLast( new AsmData(_rgRam[iAddr],iAddr ) );
+
+                        if( _rgAsmData.Count >= iColumns ) {
+                            WriteDataLn( iColumns );
+                        }
+                        break;
+                }
+                iAddr += sInstr.Length;
+            }
+
+            WriteDataLn( iColumns );
+
+            // Take all the labels and stick them in the outline.
+            foreach( int i in _rgOutlineLabels ) {
+                _oBulkOutline.LineAppend( i.ToString( "X" ) );
+            }
+        }
+    }
+
+    public class MonitorProperties : DocProperties {
+		public enum Labels : int {
+			BinaryFile = 0,
+			CommentsFile
+		}
+
+        public MonitorProperties(IPgBaseSite oSiteBase) : base(oSiteBase) {
+        }
+
+        public override bool InitNew() {
+            if( !base.InitNew() )
+				return false;
+
+            foreach( Labels eLabel in Enum.GetValues(typeof(Labels))) {
+				CreatePropertyPair( eLabel.ToString() );
+            }
+
+			return true;
+        }
+    }
+
+    public class AsmEditor2 : EditMultiColumn,
+        IPgSave<TextWriter>,
+        IPgLoad<TextReader>
+    {
+        public    MonitorProperties _docProperties;
+        protected Z80Memory?        _rgMemory;
+        protected Z80Definitions    _rgZ80Definitions;
+
+        // Move these to doc prop's later...
+        protected string _strBinaryFileName   = string.Empty;
+        protected string _strCommentsFileName = string.Empty;
+
+		public class DocSlot : 
+			IPgBaseSite
+		{
+			readonly AsmEditor2 _oDoc;
+
+			public DocSlot( AsmEditor2 oDoc ) {
+				_oDoc = oDoc ?? throw new ArgumentNullException();
+			}
+
+			public void LogError( string strMessage, string strDetails, bool fShow=true ) {
+				_oDoc.LogError( strDetails );
+			}
+
+			public void Notify( ShellNotify eEvent ) {
+			}
+
+			public IPgParent Host => _oDoc;
+		}
+
+        public AsmEditor2() {
+            _docProperties    = new MonitorProperties( new DocSlot( this ) );
+            _rgZ80Definitions = new Z80Definitions();
+        }
+
+        public void Dissassemble() {
+            if( _rgMemory == null ) {
+                LogError( "Load a binary first." );
+                return;
+            }
+
+            try {
+                using Z80Dissambler oDeCompile = 
+                        new Z80Dissambler( _rgZ80Definitions, _rgMemory, null );
+
+                oDeCompile.Dissassemble();
+            } catch( NullReferenceException ) {
+                LogError( "Null Ref Exception in Dissassembler." );
+            }
+        }
+
+        public bool InitNew() {
+            if( !_docProperties.InitNew() )
+                return false;
+            
+            if( !LoadTiny() ) 
+                return false;
+
+            Dissassemble();
+
+            Raise_EveryRowEvent( BUFFEREVENTS.LOADED );
+
+            return true;
+        }
+
+        /// <summary>
+        /// This is an unusual document in that it is simply an XML
+        /// file with pointers to the actual files we are interested in:
+        /// 1) The binary which we will dissassemble.
+        /// 2) The source comments we are adding.
+        /// 3) Markers for the code/data portions of the binary file.
+        /// </summary>
+        /// <param name="oStream"></param>
+        /// <returns></returns>
+        public bool Load(TextReader oStream) {
+            if( !_docProperties.InitNew() )
+                return false;
+
+            try {
+                XmlDocument xmlDoc = new XmlDocument();
+                xmlDoc.Load(oStream);
+
+                if( xmlDoc.SelectSingleNode( "root" ) is XmlNode xmlRoot) {
+                    if( xmlRoot.SelectSingleNode( "binary" ) is XmlElement xmlBinary ) {
+                        _strBinaryFileName   = xmlBinary.InnerText;
+                    }
+                    if( xmlRoot.SelectSingleNode( "comments" ) is XmlElement xmlComments ) {
+                        _strCommentsFileName = xmlComments.InnerText;
+                    }
+                    // Note: This will cause rows to come and go. Might need to
+                    //       put extra effort into maintaining comments.
+                    if( xmlRoot.SelectNodes( "segments" ) is XmlNodeList rgxCodeData ) {
+                        foreach( XmlNode xmlNode in rgxCodeData ) {
+                            if( xmlNode is XmlElement xmlElem ) {
+                                string strAddr = xmlElem.GetAttribute( "Addr" );
+                                string strType = xmlElem.GetAttribute( "Type" ); // Code/Data
+                            }
+                        }
+                    }
+                }
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( IOException ),
+                                    typeof( OutOfMemoryException ),
+                                    typeof( ObjectDisposedException ),
+                                    typeof( ArgumentOutOfRangeException ),
+                                    typeof( XmlException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
+
+                return false;
+            }
+
+            // Pass the file name in the future.
+            if( !LoadTiny() )
+                return false;
+
+            Raise_EveryRowEvent( BUFFEREVENTS.LOADED );
+
+            Dissassemble();
+
+            return true;
+        }
+
+        public bool Save(TextWriter oStream) {
+            try {
+                XmlDocument xmlDoc      = new XmlDocument();
+                XmlElement  xmlRoot     = xmlDoc.CreateElement( "root" );
+                XmlElement  xmlBinary   = xmlDoc.CreateElement( "binary" );
+                XmlElement  xmlComments = xmlDoc.CreateElement( "comments" );
+
+                // Add element for data boundaries...
+
+                xmlDoc .AppendChild( xmlRoot );
+                xmlRoot.AppendChild( xmlBinary );
+                xmlRoot.AppendChild( xmlComments );
+
+                xmlBinary  .InnerText = _strBinaryFileName;
+                xmlComments.InnerText = _strCommentsFileName;
+
+                xmlDoc.Save( oStream );
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( IOException ),
+                                    typeof( OutOfMemoryException ),
+                                    typeof( ObjectDisposedException ),
+                                    typeof( ArgumentOutOfRangeException ),
+                                    typeof( XmlException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
+
+                return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Load up the binary file into a memory stream.
+        /// </summary>
+        /// <returns></returns>
+        /// <exception cref="InvalidProgramException"></exception>
+        protected bool LoadTiny() {
+            try {
+                Assembly    oAssembly = Assembly.GetExecutingAssembly();
+                string?    strAsmName = oAssembly.GetName().Name;
+			    using Stream? oStream = oAssembly.GetManifestResourceStream( strAsmName + ".tinybasic2dms.bin" );
+
+                if( oStream == null )
+                    throw new InvalidProgramException();
+
+                // This isn't necessarily the z80 emulator memory. Let's
+                // see how this turns out. We can get the memory size needed by
+                // reading the first "ld sp, nn" instruction. But fake it for now.
+                byte[] rgRWRam = new byte[4096];
+                int    iCount  = 0;
+
+                for( int iByte = oStream.ReadByte();
+                         iByte != -1;
+                         iByte = oStream.ReadByte() ) 
+                {
+                    rgRWRam[iCount++] = (byte)iByte;
+                }
+
+                _rgMemory = new Z80Memory( rgRWRam, (ushort)iCount );
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( ArgumentNullException ),
+                                    typeof( ArgumentException ),
+                                    typeof( FileLoadException ),
+                                    typeof( FileNotFoundException ),
+                                    typeof( BadImageFormatException ),
+                                    typeof( NotImplementedException ),
+                                    typeof( NullReferenceException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
+
+                LogError( "Unable to load binary program file." );
+
+                return false;
+            }
+
+            return true;
+        }
+
     }
 }

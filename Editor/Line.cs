@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using Play.Interfaces.Embedding;
@@ -409,4 +410,24 @@ namespace Play.Edit {
 		public override Object Extra { get; set; }
 
     } // TextLine
+
+    public class Row 
+    {
+                 int        _iLine     = -1;
+        readonly List<Line> _rgColumns = new List<Line>();
+
+        public Row( int iRow ) { 
+            _iLine = iRow; 
+        }
+
+        public Line this[int index] => _rgColumns[index];
+
+        public int At { get; set; }
+        public int Count => _rgColumns.Count;
+
+        public void Insert( int iLine, Line oLine ) {
+        }
+
+    }
+
 }
