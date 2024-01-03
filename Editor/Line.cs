@@ -411,7 +411,8 @@ namespace Play.Edit {
 
     } // TextLine
 
-    public class Row 
+    public class Row :
+        IEnumerable<Line>
     {
                  int        _iLine     = -1;
         readonly List<Line> _rgColumns = new List<Line>();
@@ -428,6 +429,15 @@ namespace Play.Edit {
         public void Insert( int iLine, Line oLine ) {
         }
 
+        public IEnumerator<Line> GetEnumerator() {
+            foreach( Line oLine in _rgColumns ) {
+                yield return oLine;
+            }
+        }
+
+        IEnumerator IEnumerable.GetEnumerator() {
+            return GetEnumerator();
+        }
     }
 
 }

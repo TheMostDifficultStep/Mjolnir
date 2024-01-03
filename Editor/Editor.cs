@@ -51,26 +51,6 @@ namespace Play.Edit {
         int  Release( string strID );
     }
 
-    /// <summary>
-    /// An interface I might use on my text document. This is the one case
-    /// where inheriting from a abstract class might be a better idea.
-    /// </summary>
-    //public interface IPgTextBuffer {
-    //    ITextLine GetLine(long lLine);
-    //    long      FindLine( ITextLine oLine );
-    //    long      LineCount();
-    //    long      CharacterCount();
-    //    string    SubString(long lStart, long lLength);
-    //    bool      CopyTo( char[] rgBuffer, long lStart, long lLength );
-        
-    //    bool TrySplit ( int iLine, int iIndex );
-    //    bool TryMerge ( int iLine );
-
-    //    DataStream<char> NewStream();
-
-    //    IList<ILineEvents> CaratEvents{ get; }
-    //}
-
     public interface IBufferEvents {
         void OnEvent( BUFFEREVENTS eEvent );
     }

@@ -359,10 +359,10 @@ namespace Play.Edit {
 
         readonly ICollection<ILineSelection> _rgSelectionTypes = new List<ILineSelection>( 3 );
 
-        protected readonly LineRange _oLastCursor = new LineRange(); // A spare for use with the hyperlink stuff.
-        protected      CacheManager2 _oCacheMan;
-        protected          bool      _fReadOnly;
-        protected readonly bool      _fSingleLine; // Little hack until I make single line editors.
+        protected readonly LineRange     _oLastCursor = new LineRange(); // A spare for use with the hyperlink stuff.
+        protected readonly CacheManager2 _oCacheMan;
+        protected          bool          _fReadOnly;
+        protected readonly bool          _fSingleLine; // Little hack until I make single line editors.
 
         /// <summary>
         /// This is the collection of hyperlink callbacks. Any Word Range found
@@ -480,6 +480,12 @@ namespace Play.Edit {
                 oInfo = oMainWin.MainDisplayInfo;
             }
             DPI = new SKPoint( oInfo.pntDpi.X, oInfo.pntDpi.Y );
+
+            uint uiStdText = _oStdUI.FontCache( _oStdUI.FaceCache( @"C:\windows\fonts\consola.ttf"  ), 12, DPI );
+            uint uiStdUI   = _oStdUI.FontCache( _oStdUI.FaceCache( @"C:\windows\fonts\seguisym.ttf" ), 12, DPI );
+          //uint uiEmojID  = _oStdUI.FontCache( _oStdUI.FaceCache( @"C:\Users\Frodo\AppData\Local\Microsoft\Windows\Fonts\NotoEmoji-Regular.ttf" ), 12, sResolution );
+
+			_oCacheMan = CreateCacheManager( uiStdText );
         }
 
         protected override void Dispose( bool disposing ) {
@@ -516,17 +522,6 @@ namespace Play.Edit {
         /// </remarks>
         protected virtual bool InitInternal() {
 			DecorNavPropsInit();
-
-			try {
-                uint uiStdText = _oStdUI.FontCache( _oStdUI.FaceCache( @"C:\windows\fonts\consola.ttf"  ), 12, DPI );
-                uint uiStdUI   = _oStdUI.FontCache( _oStdUI.FaceCache( @"C:\windows\fonts\seguisym.ttf" ), 12, DPI );
-              //uint uiEmojID  = _oStdUI.FontCache( _oStdUI.FaceCache( @"C:\Users\Frodo\AppData\Local\Microsoft\Windows\Fonts\NotoEmoji-Regular.ttf" ), 12, sResolution );
-
-				_oCacheMan = CreateCacheManager( uiStdText );
-			} catch( ArgumentNullException ) {
-				LogError( "editor", "Unable to create CacheManager" );
-				return( false );
-			}
 
             _oScrollBarVirt.Visible = ScrollVisible;
             _oScrollBarVirt.Scroll += OnScrollBar; 
@@ -1032,8 +1027,6 @@ namespace Play.Edit {
         private void CaretIconRefreshLocation() {
             if( Focused != true )
                 return;
-			if( _oCacheMan == null ) // Can happen if InitNew() fails and we press forward.
-				return;
                 
             if( _oCacheMan.GlyphLineToPoint( _iCaretColumn, CaretPos, out Point pntCaretWorldLoc ) ) {
                 SmartRect oTextColumn       = _rgCacheMap[_iCaretColumn];
@@ -1289,12 +1282,6 @@ namespace Play.Edit {
 		/// </remarks>
         protected override void OnSizeChanged( EventArgs e ) {
             base.OnSizeChanged(e);
-
-            // Probably forgot to call InitNew() on us!
-            if( _oCacheMan == null ) {
-				//LogError( "Editor", "Cache manager uninitialized" );
-                return;
-			}
 
             _rgLayout.SetRect( 0, 0, Width, Height );
 			_rgLayout.LayoutChildren();
