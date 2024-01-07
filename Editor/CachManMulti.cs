@@ -1,37 +1,61 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Drawing; 
+using System.Drawing;
 using System.Linq;
 
 using SkiaSharp;
 
 using Play.Interfaces.Embedding;
-using Play.Rectangles;
 using Play.Parse;
+using Play.Rectangles;
+using System.Threading;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.TextBox;
 
 namespace Play.Edit {
-    public enum CaretMove {
-        LOCAL, // Onscreen
-        MISS,
-        NEARBY,
+    public interface IRowRange : IMemoryRange {
+        Row Row { get; }
     }
 
-    public enum RefreshType {
-        RESET,
-        COMPLEX,
-        SIMPLE
+    public enum Trek {
+        Next,
+        Prev
+    }
+
+    public enum Bump {
+        OK,
+        BumpLow,
+        BumpHigh,
+        Stop
     }
 
     /// <summary>
-    /// This is the primary object that holds all the measured lines for the currently displayed portion of text.
+    /// Note: column order on screen might not be the same as that
+    /// for the document. O.o
     /// </summary>
-	/// <remarks>I'm not sure where I got the idea to break up the CacheManager/CacheBase but it is important
-	/// to initialize the manager's _oTextRect</remarks>
-    public class CacheManager2 :         
+    public interface ICaretLocation {
+        Row   CurrentRow  { get; }
+        Line  CurrentLine { get; }
+        int   CharOffset  { get; }
+        float Advance     { get; }
+
+        bool SetCaretPosition( int iRow, int iColumn, int iOffset ); // Vertical move
+        bool SetCaretPosition( int iColumn, float fAdvance );        // Horizontal move
+
+    }
+    public interface ICacheManSite :
+        IPgBaseSite
+    {
+        Row            GetRowAtHood( RefreshNeighborhood eHood );
+        Row            GetRowAtIndex( int iIndex );
+        void           OnRefreshComplete();
+
+        //ICollection<ILineSelection> Selections{ get; }
+    }
+    public class CacheMultiColumn:         
         IEnumerable<CacheRow>
     {
-        protected readonly CacheManagerAbstractSite  _oSite      = null;
+        protected readonly ICacheManSite    _oSite;
         // World coordinates of our view port. Do not confuse these with the
         // layout columns, those are different.
         readonly SmartRect                  _oTextRect  = new SmartRect();
@@ -46,7 +70,7 @@ namespace Play.Edit {
         /// <remarks>Need to sort out the LineHeight accessor since the cache elements might be
         /// variable height, Need to make sure I'm using this correctly. Consider calling it
         /// "LineScroll"</remarks>
-        public CacheManager2( CacheManagerAbstractSite oSite, IPgFontRender oFont, List<SmartRect> rgColumns ) :
+        public CacheMultiColumn( ICacheManSite oSite, IPgFontRender oFont, List<SmartRect> rgColumns ) :
 			base() 
 		{
 			Font        = oFont     ?? throw new ArgumentNullException( "Need a font to get things rolling." );
@@ -138,25 +162,27 @@ namespace Play.Edit {
         /// The buffer rectangle is reset so it's top is zero and the top of the new cache
         /// element is zero. Old cache is untouched and will need to be cleared.
         /// </summary>
-        protected CacheRow CacheReset( 
-            RefreshNeighborhood eNeighborhood
-        ) {
-            // Where to set the first cache elem TOP? 0 or somewhere in the middle of the screen?
+        protected CacheRow CacheReset( RefreshNeighborhood eNeighborhood ) {
             // I think 0 is fine since we can go negative no problem.
             _oTextRect.SetPoint(SET.RIGID, LOCUS.UPPERLEFT, 0, 0 );
 
-			// Ask our site for locating ourselves. Either based on our scroll
-			// position or carat depending on how we were called.
-			_oSite.Neighborhood( eNeighborhood, out Line oLine );
-			if ( oLine == null )
-                return null;
+            CacheRow oRow = null;
 
-            CacheRow oRow = _rgOldCache.Find( item => item.At == oLine.At ); // TODO: Reconsider change back to item.Line == oLine
-            if (oRow == null) // If can't find matching elem, create it.
-                oRow = CreateRow( oLine );
+            try {
+		        // Ask our site for locating ourselves. Either based on our scroll
+		        // position or carat depending on how we were called.
+		        Row oDocRow = _oSite.GetRowAtHood( eNeighborhood );
 
-            if( oRow == null )
-                return null;
+                oRow = _rgOldCache.Find( item => item.At == oDocRow.At ); 
+
+                if (oRow == null) // If can't find matching elem, create it.
+                    oRow = CreateRow( oDocRow );
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( NullReferenceException ),
+                                    typeof( ArgumentNullException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
+            }
 
             RowUpdate( oRow );
 
@@ -217,42 +243,42 @@ namespace Play.Edit {
         /// Find the next line after the line pointed to by the current cache element.
         /// Use an old element or create a new element and stack in the given direction.
         /// </summary>
-        /// <param name="oRow">Element where we are building up the cache from.</param>
+        /// <param name="oCacheRow">Element where we are building up the cache from.</param>
         /// <param name="iDir">Which direction to try.</param>
         /// <returns>New or recycled cache element stacked above or below previous.</returns>
-        protected CacheRow RefreshNext( CacheRow oRow, int iDir ) {
-            if( oRow == null )
+        protected CacheRow RefreshNext( CacheRow oCacheRow, int iDir ) {
+            if( oCacheRow == null )
                 return( null );
 
-            CacheRow oPrev = oRow;
-            int      iLine = oRow.At + iDir;
+            CacheRow oPrev = oCacheRow;
+            int      iLine = oCacheRow.At + iDir;
 
             // See if we already the line computations. Given the old cache is sorted by
             // line I could potentially do a b-search. This find is a linear operation.
-            oRow = _rgOldCache.Find( item => item.At == iLine );
-            if( oRow == null ) { // If can't find matching elem, create it.
-                Line oLine = _oSite.GetLine(iLine);
+            oCacheRow = _rgOldCache.Find( item => item.At == iLine );
+            if( oCacheRow == null ) { // If can't find matching elem, create it.
+                Row oDocRow = _oSite.GetRowAtIndex(iLine);
 
                 // If we reach the top or bottom, the next line is going to be null.
-                if( oLine == null ) {
+                if( oDocRow == null ) {
                     return( null );
                 }
 
-                oRow = CreateRow( oLine );
+                oCacheRow = CreateRow( oDocRow );
             }
 
-            if( oRow != null ) {
-                if( oRow.IsInvalid ) {
-                    RowUpdate( oRow );
+            if( oCacheRow != null ) {
+                if( oCacheRow.IsInvalid ) {
+                    RowUpdate( oCacheRow );
                 }
                 if( iDir < 0 ) {
-                    oRow.Top = oPrev.Top - oRow.Height - LineSpacing;
+                    oCacheRow.Top = oPrev.Top - oCacheRow.Height - LineSpacing;
                 } else {
-                    oRow.Top = oPrev.Bottom + LineSpacing;
+                    oCacheRow.Top = oPrev.Bottom + LineSpacing;
                 }
             }
 
-            return( oRow );
+            return( oCacheRow );
         }
         
         /// <summary>
@@ -332,16 +358,14 @@ namespace Play.Edit {
         /// <seealso cref="CheckList"/>
         protected virtual void RowUpdate( CacheRow oRow ) {
             for( int i=0; i<oRow.CacheList.Count && i<_rgCacheMap.Count; ++i ) {
-                ElemUpdate2( oRow.CacheList[i], _rgCacheMap[i].Width );
+                ElemUpdate( oRow.CacheList[i], _rgCacheMap[i].Width );
             }
         }
 
-        protected void ElemUpdate2( FTCacheLine oElem, int iWidth, IMemoryRange oRange = null ) {
+        protected void ElemUpdate( FTCacheLine oElem, int iWidth, IMemoryRange oRange = null ) {
 			try {
-                //_oSite.WordBreak( oElem.Line, oElem.Words );
-
 				oElem.Update            ( Font, oRange );
-                oElem.OnChangeFormatting( _oSite.Selections );
+              //oElem.OnChangeFormatting( _oSite.Selections );
                 oElem.OnChangeSize      ( iWidth );
 			} catch( Exception oEx ) {
 				Type[] rgErrors = { typeof( NullReferenceException ),
@@ -446,25 +470,18 @@ namespace Play.Edit {
         /// <remarks> Be sure to call RowUpdate()
         /// after this call so that the lines can be measured.</remarks>
         /// <seealso cref="RowUpdate"/>
-        protected virtual CacheRow CreateRow( Line oLine ) {
-            if( oLine == null ) {
-                _oSite.LogError( "view cache", "Guest line must not be null for screen cache element." );
-                return null;
-            }
+        protected virtual CacheRow CreateRow( Row oDocRow ) {
+            if( oDocRow == null )
+                throw new ArgumentNullException();
 
-            CacheRow oRow = new CacheRow();
+            CacheRow oCacheRow = new CacheRow();
 
-            FTCacheLine oElem;
-
-			if( _oSite.IsWrapped() ) {
-				oElem = new FTCacheWrap( oLine ); // Heavy duty guy.
-			} else {
-				oElem = new FTCacheLine( oLine ); // Simpler object.
+            foreach( Line oLine in oDocRow ) {
+				FTCacheLine oElem = new FTCacheWrap( oLine );
+                oCacheRow.CacheList.Add( oElem );
 			}
 
-            oRow.CacheList.Add( oElem );
-
-            return oRow;
+            return oCacheRow;
         }
 
         /// <summary>
@@ -479,29 +496,21 @@ namespace Play.Edit {
         /// TODO: If the line isn't in the cache, I could attempt to move
         /// the text rect by one line height, note: CaratLocal()
         /// based on current font, refreshing the cache. But that seems
-        /// a bit like overkill given I know I'm only crawling up or down.
+        /// a bit like overkill given I know I'm only crawling up or down
         /// one line. Or perhaps better, simply make sure I've got a cached elem
         /// above and/or below the view port at all times.
         /// </summary>
-        public CacheRow PreCache( int iLineAt ) {
+        public CacheRow PreCache( Row oNextRow ) {
             // Check if the given edit is in the cache.
             foreach( CacheRow oTemp in _rgOldCache ) {
-                if( oTemp.At == iLineAt )
-                    return( oTemp );
+                if( oTemp.At == oNextRow.At )
+                    return oTemp;
             }
 
-            // Try to find the requested line in the editor.
-            Line oLine = _oSite.GetLine( iLineAt );
-            if( oLine == null )
-                return( null );
-
             // Line is not currently in cache, make a new elem.
-            CacheRow oRow = CreateRow( oLine );
+            CacheRow oRow = CreateRow( oNextRow );
 
-            if( oRow == null )
-                return( null );
-
-            RowUpdate( oRow );
+            RowUpdate( oRow ); // Need to know CacheRow height...
 
             // We sort of assume the new element is going to be at the top
             // or bottom of the view and set only it's vertical placement.
@@ -572,45 +581,37 @@ namespace Play.Edit {
         /// <param name="flAdvance">Distance from left to maintain when moving vertically. This value can be updated.</param>
         /// <param name="oCaret">The caret to be updated.</param>
         /// <returns>Instructions on how to refresh the cache after this movement.</returns>
-        public CaretMove MoveCaret( Axis eAxis, int iDir, ref float flAdvance, ILineRange oCaret ) {
-            if( oCaret == null ) {
-                _oSite.LogError( "view cache", "Caret pointer must not be null." );
-                return CaretMove.LOCAL;
-            }
-
-            int iOffset = oCaret.Offset;
+        public CaretMove MoveCaret( Axis           eAxis, 
+                                    int            iDir, 
+                                    ICaretLocation oCaretPos ) 
+        {
+            if( oCaretPos == null )
+                throw new ArgumentNullException();
+            if( iDir == 0 )
+                throw new ArgumentOutOfRangeException();
 
             // If total miss, build a new screen based on the location of the caret.
-            CacheRow oRow = CacheLocate( oCaret.At );
-            if( oRow == null ) {
+            CacheRow oCacheRow = CacheLocate( oCaretPos.CurrentRow.At );
+            if( oCacheRow == null ) {
                 return CaretMove.MISS;
             }
 
-            if( iDir != 0 ) {
-                // First, see if we can navigate within the line we are currently at.
-                if( !oRow.CacheList[0].Navigate( eAxis, iDir, ref flAdvance, ref iOffset ) ) {
-                    iDir = iDir < 0 ? -1 : 1; // Only allow move one line up or down.
+            // First, see if we can navigate within the row we are currently at.
+            if( !oCacheRow.CacheList[0].Navigate( eAxis, iDir, oCaretPos ) ) {
+                iDir = iDir < 0 ? -1 : 1; // Only allow move one line up or down.
+                // Now try moving vertically...
+                Row oDocRow = _oSite.GetRowAtIndex( oCaretPos.CurrentRow.At + iDir );
+                if( oDocRow != null ) {
+                    CacheRow oNext = PreCache( oDocRow );
 
-					// _rgLeft[_rgLeft.Count-1] = _oTextRect.GetScalar( SCALAR.WIDTH );
+                    // Find out where to place the cursor as it moves to the next line.
+                    int iOffset = oNext.CacheList[0].OffsetBound( eAxis, iDir * -1, oCaretPos.Advance );
 
-                    try {
-                        CacheRow oNext = PreCache( oRow.At + iDir );
-                        if( oNext != null ) {
-                            // Find out where to place the cursor as it moves to the next line.
-                            iOffset = oNext.CacheList[0].OffsetBound( eAxis, iDir * -1, flAdvance );
-                            oRow    = oNext;
-                        }
-                    } catch( ArgumentOutOfRangeException ) {
-                        // We're not throwing yet in PreCache, but this is what we want.
-                    }
+                    oCaretPos.SetCaretPosition( oCacheRow.At, 0, iOffset );
                 }
-
-                // If going up or down ends up null, we won't be moving the caret.
-                oCaret.Line   = oRow.Line;
-                oCaret.Offset = iOffset;
             }
 
-            return CaretLocal( oRow, iOffset );
+            return CaretLocal( oCacheRow, oCaretPos );
         }
 
         /// <summary>
@@ -651,9 +652,9 @@ namespace Play.Edit {
         /// </summary>
         /// <param name="oRow">The cache element to consider.</param>
         /// <param name="iOffset">Offset into the given cache element.</param>
-        public CaretMove CaretLocal( CacheRow oRow, int iOffset ) {
+        protected CaretMove CaretLocal( CacheRow oRow, ICaretLocation oCaretPos ) {
             CaretMove eMove       = CaretMove.LOCAL;
-            Point     pntCaretLoc = oRow.CacheList[0].GlyphOffsetToPoint( iOffset );
+            Point     pntCaretLoc = oRow.CacheList[0].GlyphOffsetToPoint( oCaretPos.CharOffset );
 
             pntCaretLoc.Y += oRow.Top;
 

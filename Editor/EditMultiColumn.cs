@@ -22,7 +22,7 @@ namespace Play.Edit {
     /// </summary>
     /// <remarks>
     /// This is the start of a new document type. I'm no longer trying
-    /// to extend my basic editor. While the former can allow multiple columns,
+    /// to extend my basic editor. The former can allow multiple columns,
     /// only one is the text stream. The rest are line numbers, check boxes
     /// and things that are not selectable.
     /// </remarks>

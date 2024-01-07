@@ -414,11 +414,10 @@ namespace Play.Edit {
     public class Row :
         IEnumerable<Line>
     {
-                 int        _iLine     = -1;
         readonly List<Line> _rgColumns = new List<Line>();
 
         public Row( int iRow ) { 
-            _iLine = iRow; 
+            At = iRow; 
         }
 
         public Line this[int index] => _rgColumns[index];
