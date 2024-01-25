@@ -10,7 +10,6 @@ using Play.Interfaces.Embedding;
 
 namespace Play.Edit {
     public interface IPgRowEvents {
-        void OnRowEvent( BUFFEREVENTS eEvent, IEnumerable<Row> oEnum ); // Multi line events.
         void OnRowEvent( BUFFEREVENTS eEvent, Row oRow );               // Single Line events.
         void OnRowEvent( BUFFEREVENTS eEvent );                         // Every Line events.
     }
@@ -30,12 +29,18 @@ namespace Play.Edit {
         IPgParent,
         IEnumerable<Row>,
         IReadableBag<Row>,
+        IPgDocTraits<Row>,
         IDisposable 
     {
-        protected IPgBaseSite _oSiteBase;
-        protected List<Row>   _rgRows;
+        protected readonly IPgBaseSite _oSiteBase;
+
         protected Func<Row>   _fnRowCreator;
+        protected List<Row>   _rgRows;
         protected List<bool>  _rgColumnWR; // is the column editable...
+
+        public event Action<Row> HighLightChanged;
+        public event Action<Row> CheckedEvent;
+
         public List<IPgRowEvents> EventCallbacks {get;} = new List<IPgRowEvents>();
 
         public IPgParent Parentage => _oSiteBase.Host;
@@ -43,18 +48,34 @@ namespace Play.Edit {
 
         public virtual bool IsDirty => false;
 
+        protected Row         _oRowHighlight;
+        protected StdUIColors _ePlayColor;
+
         public int ElementCount => _rgRows.Count;
+
+        public Row HighLight { 
+            get => _oRowHighlight; 
+            set { _oRowHighlight = value; } // Send a window update event;
+        }
+
+        public StdUIColors PlayHighlightColor { 
+            get => _ePlayColor; 
+            set { _ePlayColor = value; }  // Send a window update event;
+        }
+        public bool ReadOnly { 
+            get; 
+            set; // Send a window update event;
+        }
 
         public Row this[int iIndex] => _rgRows[iIndex];
 
-        public virtual void Dispose() {
-            EventCallbacks.Clear();
+        public EditMultiColumn( IPgBaseSite oSiteBase ) {
+            _oSiteBase = oSiteBase;
+            ReadOnly   = false;
         }
 
-        protected void Raise_MultiRowEvent( BUFFEREVENTS eEvent, IEnumerable<Row> oEnum ) {
-            foreach( IPgRowEvents oEvent in EventCallbacks ) {
-                oEvent.OnRowEvent( eEvent, oEnum );
-            }
+        public virtual void Dispose() {
+            EventCallbacks.Clear();
         }
 
         protected void Raise_SinglRowEvent( BUFFEREVENTS eEvent, Row oRow ) {

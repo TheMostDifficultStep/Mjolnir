@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+
 using Play.Interfaces.Embedding;
 using Play.Parse;
 
@@ -411,21 +412,25 @@ namespace Play.Edit {
 
     } // TextLine
 
-    public class Row :
+    public abstract class Row :
         IEnumerable<Line>
     {
-        readonly List<Line> _rgColumns = new List<Line>();
+        protected Line[] _rgColumns;
+        readonly static Line _oDefault = new TextLine( 0, string.Empty );
 
-        public Row( int iRow ) { 
-            At = iRow; 
+        public Line this[int index] {
+            get {
+                if( _rgColumns[index] == null )
+                    return _oDefault;
+
+                return _rgColumns[index];
+            }
         }
 
-        public Line this[int index] => _rgColumns[index];
+        public int At { get; set; } = 0;
+        public int Count => _rgColumns.Length;
 
-        public int At { get; set; }
-        public int Count => _rgColumns.Count;
-
-        public void Insert( int iLine, Line oLine ) {
+        public void Add( int iLine, Line oLine ) {
         }
 
         public IEnumerator<Line> GetEnumerator() {

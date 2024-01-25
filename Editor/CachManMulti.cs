@@ -9,8 +9,6 @@ using SkiaSharp;
 using Play.Interfaces.Embedding;
 using Play.Parse;
 using Play.Rectangles;
-using System.Threading;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement.TextBox;
 
 namespace Play.Edit {
     public interface IRowRange : IMemoryRange {
@@ -61,6 +59,7 @@ namespace Play.Edit {
         readonly SmartRect                  _oTextRect  = new SmartRect();
         protected List<CacheRow>            _rgOldCache = new List<CacheRow>();
         protected readonly List<SmartRect>  _rgCacheMap;
+        protected readonly TextLine         _oDummyLine = new TextLine( -2, string.Empty );
 
         protected IPgFontRender Font       { get; }
         protected IPgGlyph      GlyphLt    { get; } // Our end of line character.
@@ -166,17 +165,31 @@ namespace Play.Edit {
             // I think 0 is fine since we can go negative no problem.
             _oTextRect.SetPoint(SET.RIGID, LOCUS.UPPERLEFT, 0, 0 );
 
-            CacheRow oRow = null;
+            CacheRow oCacheRow = null;
 
             try {
 		        // Ask our site for locating ourselves. Either based on our scroll
 		        // position or carat depending on how we were called.
 		        Row oDocRow = _oSite.GetRowAtHood( eNeighborhood );
+                if( oDocRow == null )
+                    return null;
 
-                oRow = _rgOldCache.Find( item => item.At == oDocRow.At ); 
+                oCacheRow = _rgOldCache.Find( item => item.At == oDocRow.At ); 
 
-                if (oRow == null) // If can't find matching elem, create it.
-                    oRow = CreateRow( oDocRow );
+                if( oCacheRow == null ) // If can't find matching elem, create it.
+                    oCacheRow = CreateRow( oDocRow );
+
+                RowUpdate( oCacheRow );
+
+                // Text rect is reset to UL => 0,0. Now set this element's top down a bit and build around it.
+                switch( eNeighborhood ) {
+                    case RefreshNeighborhood.CARET:
+                        oCacheRow.Top = LineHeight * 2; // Match the slop in RefreshCache() else new elem will be outside rect on first load() and get flushed!
+                        break;
+                    case RefreshNeighborhood.SCROLL:
+                        oCacheRow.Top = 0; // If this is bottom line. We'll accumulate backwards to fix up cache.
+                        break;
+                }
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( NullReferenceException ),
                                     typeof( ArgumentNullException ) };
@@ -184,19 +197,7 @@ namespace Play.Edit {
                     throw;
             }
 
-            RowUpdate( oRow );
-
-            // Text rect is reset to UL => 0,0. Now set this element's top down a bit and build around it.
-            switch( eNeighborhood ) {
-                case RefreshNeighborhood.CARET:
-                    oRow.Top = LineHeight * 2; // Match the slop in RefreshCache() else new elem will be outside rect on first load() and get flushed!
-                    break;
-                case RefreshNeighborhood.SCROLL:
-                    oRow.Top = 0; // If this is bottom line. We'll accumulate backwards to fix up cache.
-                    break;
-            }
-
-            return oRow;
+            return oCacheRow;
         }
 
         /// <summary>
@@ -429,7 +430,7 @@ namespace Play.Edit {
         /// </summary>
         public void Refresh( 
             RefreshType         eReset,
-            RefreshNeighborhood eNeighborhood
+            RefreshNeighborhood eNeighborhood = RefreshNeighborhood.CARET
         ) {
             // Sort cache by line number so we can possibly b-search. I know, it's line number dependency.
             // Of course, finding holes is going to depend on the document lines getting renumberd
@@ -474,10 +475,15 @@ namespace Play.Edit {
             if( oDocRow == null )
                 throw new ArgumentNullException();
 
-            CacheRow oCacheRow = new CacheRow();
+            CacheRow oCacheRow = new CacheRow2( oDocRow );
 
+            // TODO: Change this to use a dummy cache element too...
             foreach( Line oLine in oDocRow ) {
-				FTCacheLine oElem = new FTCacheWrap( oLine );
+				Line oTemp = oLine;
+                if( oTemp == null ) {
+                    oTemp = _oDummyLine;
+                }
+                FTCacheLine oElem = new FTCacheWrap( oTemp );
                 oCacheRow.CacheList.Add( oElem );
 			}
 
@@ -703,6 +709,24 @@ namespace Play.Edit {
                 if( _rgOldCache[i].Line == oLine ) {
                     _rgOldCache.RemoveAt( i );
                     break;
+                }
+            }
+        }
+
+        public void UpdateAllRows() {
+            foreach( CacheRow oRow in _rgOldCache ) {
+                RowUpdate( oRow );
+            }
+        }
+
+        /// <summary>
+        /// I need to make the Row available on the CacheRow but this will work for
+        /// now I think.
+        /// </summary>
+        public void UpdateRow( Row oDocRow ) {
+            foreach( CacheRow oCacheRow in _rgOldCache ) {
+                if( oCacheRow.At == oDocRow.At ) {
+                    RowUpdate( oCacheRow );
                 }
             }
         }

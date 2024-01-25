@@ -9,6 +9,7 @@ using SkiaSharp;
 
 using Play.Parse;
 using Play.Interfaces.Embedding;
+using Play.Rectangles;
 
 namespace Play.Edit {
     /// <summary>
@@ -127,7 +128,7 @@ namespace Play.Edit {
         // This is super important that the CacheList 0 is used. The other's line
         // numbers are not managed by the text editor.
         public         Line Line      => CacheList[0].Line; 
-        public         int  At        { get { return Line.At; } }
+        public virtual int  At        { get { return Line.At; } }
         public         int  Top       { get; set; }
         public virtual int  Height    { get { return CacheList[0].Height; } }
         public         bool IsInvalid { 
@@ -151,6 +152,16 @@ namespace Play.Edit {
 
         public bool IsHit( Point pntLocation ) {
             return pntLocation.Y >= Top && pntLocation.Y < Bottom;
+        }
+    }
+
+    public class CacheRow2 : CacheRow {
+        protected Row _oDocRow;
+
+        public override int At => _oDocRow.At;
+
+        public CacheRow2( Row oDocRow ) {
+            _oDocRow = oDocRow ?? throw new ArgumentNullException( nameof( oDocRow ) );
         }
     }
 
@@ -586,6 +597,15 @@ namespace Play.Edit {
             skCanvas.DrawRect(skRect, skPaint);
         }
 
+        public virtual void Render(
+            SKCanvas       skCanvas,
+            IPgStandardUI2 oStdUI,
+            SmartRect      rcSquare,
+            bool           fFocused = true )
+        {
+            PointF pntUpperLeft = new PointF( rcSquare.Top, rcSquare.Left );
+            Render( skCanvas, oStdUI, pntUpperLeft, fFocused );
+        }
         /// <summary>
         /// A cluster is a set of glyphs that make up a character. All of the 
         /// glyphs are in the _rgGlyphs array and the cluster has an offset

@@ -3,6 +3,8 @@ using Play.Interfaces.Embedding;
 using Play.Parse;
 using Play.Rectangles;
 
+using SkiaSharp;
+
 namespace Monitor {
     public class MemAddrWindow : EditWindow2 {
         public MemAddrWindow( IPgViewSite oSite, BaseEditor oEdit ) : 
@@ -132,8 +134,18 @@ namespace Monitor {
 
     }
 
-    internal class WindowProgramDisplay : MemAddrWindow {
+    internal class WindowProgramDisplay : 
+        WindowMultiColumn,
+        IPgCommandView
+    {
         public static Guid GUID { get; } = new Guid( "{1DBE2048-619C-44EA-882C-024DF5087743}" );
+
+        public string Banner => "Assembly Monitor";
+
+        public SKBitmap? Icon => null;
+
+        public Guid Catagory => GUID;
+
         readonly Document_Monitor _oMonDoc;
         public WindowProgramDisplay( 
             IPgViewSite      oSiteView, 
@@ -145,11 +157,15 @@ namespace Monitor {
             _oMonDoc = p_oDocument;
         }
 
-        public override object Decorate(IPgViewSite oBaseSite, Guid sGuid) {
+        public bool Execute(Guid sGuid) {
+            return false;
+        }
+
+        public object? Decorate(IPgViewSite oBaseSite, Guid sGuid) {
             if( sGuid == GlobalDecorations.Outline ) {
                 return new EditWindow2( oBaseSite, _oMonDoc.Doc_Outl, fReadOnly:true );
             }
-            return base.Decorate(oBaseSite, sGuid);
+            return null;
         }
     }
 }

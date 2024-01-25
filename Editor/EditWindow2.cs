@@ -446,6 +446,7 @@ namespace Play.Edit {
             _oTextSelector = new TextSelector( this );
             _fReadOnly     = fReadOnly;
             _fSingleLine   = fSingleLine;
+            Wrap           = true;
 
 			// https://icons8.com/
 			Icon = SKImageResourceHelper.GetImageResource( Assembly.GetExecutingAssembly(), @"Editor.Content.icon8-doc.png" );
@@ -468,10 +469,10 @@ namespace Play.Edit {
 
             Controls.Add(_oScrollBarVirt);
 
-			_rgTools.Add( "Edit" );
-			_rgTools.Add( "Browse" );
-            _rgTools.Add( "Choose" );
-			_rgTools.Add( "Morse" );
+			_rgTools.Add( "Edit" );   // Standard text editing.
+			_rgTools.Add( "Browse" ); // More like a browser where you jump on hyperlinks.
+            _rgTools.Add( "Choose" ); // Chooser for check box lists.
+			_rgTools.Add( "Morse" );  // plays morse code.
 
             // The object we get from the interface has some standard screen dpi and size
             // values. We then attempt to override those values with our actual values.

@@ -410,7 +410,7 @@ namespace Monitor {
             throw new ArgumentOutOfRangeException();
         }
     }
-    internal class Document_Monitor :
+    public class Document_Monitor :
         IPgParent,
 		IDisposable,
         IPgLoad<TextReader>,
@@ -420,11 +420,9 @@ namespace Monitor {
         public IPgParent Parentage => _oBaseSite.Host;
         public IPgParent Services  => Parentage.Services;
 
-        public AssemblyEditor Doc_Asm   { get; }
-        public Editor Doc_Displ { get; }
-        public Editor Doc_Outl  { get; }
-
-        Z80Memory? _rgMemory = null;
+        public AsmEditor2 Doc_Asm   { get; }
+        public Editor     Doc_Displ { get; }
+        public Editor     Doc_Outl  { get; }
 
         public bool IsDirty => Doc_Asm.IsDirty;
 
@@ -508,7 +506,7 @@ namespace Monitor {
             rgBytes.Add( (byte)iLoop );
             rgBytes.Add( 0x00 );
 
-            _rgMemory = new Z80Memory( new byte[rgBytes.Count], 0x0000 );
+            Z80Memory _rgMemory = new Z80Memory( new byte[rgBytes.Count], 0x0000 );
 
             for( int i =0; i<rgBytes.Count; ++i ) {
                 _rgMemory[i] = rgBytes[i];
@@ -539,9 +537,7 @@ namespace Monitor {
             if( !Doc_Outl.InitNew() )
                 return false;
 
-            //if( LoadTiny() ) {
-            //    Dissassemble();
-            //}
+            Dissassemble(); // tiny gets loaded in Doc_Asm.InitNew for now.
 
             return true;
         }
@@ -550,31 +546,17 @@ namespace Monitor {
             return Doc_Asm.Save( oStream );
         }
 
-        public Z80Instr IdentifyMemory( int iAddr ) {
-            if( _rgMemory == null )
-                throw new InvalidProgramException( "Expected Ram Reference" );
-
-            Z80Instr sInstr = _oZ80Info.FindMain( _rgMemory[iAddr] );
-
-            return sInstr;
-        }
-
         public void Dissassemble() {
-            if( _rgMemory == null ) {
-                LogError( "Error", "Load a binary first." );
-                return;
-            }
+            using Editor.Manipulator oBulkOutl = Doc_Outl.CreateManipulator();
 
-            //using Dissambler oTool = new( this );
-
-            //oTool.Dissassemble();
+            Doc_Asm.Dissassemble( oBulkOutl );
         }
     }
 
     public class Z80Dissambler : 
         IDisposable
     {
-        readonly Editor.Manipulator  _oBulkAsm;
+        readonly AsmEditor2.Hacker   _oBulkAsm;
         readonly Editor.Manipulator  _oBulkOutline;
         readonly SortedSet<int>      _rgOutlineLabels = new();
         readonly Regex               _oRegEx          = new("{n+}|{d+}", RegexOptions.IgnoreCase);
@@ -597,13 +579,14 @@ namespace Monitor {
         public Z80Dissambler( 
             Z80Definitions     oDefinitions, 
             Z80Memory          rgMemory, 
-            Editor.Manipulator oBulkOutline 
+            AsmEditor2.Hacker  oBulkAsm,
+            Editor.Manipulator oBulkOutline
         ) {
             _rgRam        = rgMemory     ?? throw new ArgumentNullException();
             _oZ80Info     = oDefinitions ?? throw new ArgumentNullException(); 
             _oBulkOutline = oBulkOutline ?? throw new ArgumentNullException();
 
-            //_oBulkAsm     = oDoc.Doc_Asm .CreateManipulator();
+            _oBulkAsm     = oBulkAsm     ?? throw new ArgumentNullException();;
         }
 
         public void Dispose() {
@@ -655,7 +638,7 @@ namespace Monitor {
                 for( int i = oMatch.Index + oMatch.Length; i<sInstr.Name.Length; i++ ) {
                     _sbBuilder.Append( sInstr.Name[i] );
                 }
-                oAsmLine = _oBulkAsm.LineAppend( _sbBuilder.ToString() );
+                oAsmLine = _oBulkAsm.Insert( _sbBuilder.ToString(), AsmEditor2.InsertionPoint.After );
 
                 int? iColorIndex;
                 if( sInstr.Jump != JumpType.None ) {
@@ -667,8 +650,8 @@ namespace Monitor {
                 // Color the number
                 oAsmLine.Formatting.Add( 
                     new HyperLinkCpuJump( oMatch.Index,
-                                            strNumber.Length,
-                                            iColorIndex.Value ) );
+                                          strNumber.Length,
+                                          iColorIndex.Value ) );
 
                 if( !_rgOutlineLabels.Contains( iNumber ) ) {
                     if( sInstr.Jump == JumpType.Abs )
@@ -677,7 +660,7 @@ namespace Monitor {
                         _rgOutlineLabels.Add( iNumber + iAddr ); // +1, +2??
                 }
             } else {
-                oAsmLine = _oBulkAsm.LineAppend( sInstr.Name );
+                oAsmLine = _oBulkAsm.Insert( sInstr.Name, AsmEditor2.InsertionPoint.After );
             }
 
             if( oAsmLine.Extra is TextLine oAddrLine ) {
@@ -698,31 +681,31 @@ namespace Monitor {
         }
 
         protected void WriteDataLn( int iColumnCount ) {
-            if( _rgAsmData.First == null )
-                return;
+            //if( _rgAsmData.First == null )
+            //    return;
 
-            _sbData.Clear();
-            string strAddr = _rgAsmData.First.Value._iAddr.ToString( "X4" );
+            //_sbData.Clear();
+            //string strAddr = _rgAsmData.First.Value._iAddr.ToString( "X4" );
 
-            int iCount = 0;
-            while( _rgAsmData.First != null && iCount++ < 20 ) {
-                byte bData = _rgAsmData.First.Value._bData;
+            //int iCount = 0;
+            //while( _rgAsmData.First != null && iCount++ < 20 ) {
+            //    byte bData = _rgAsmData.First.Value._bData;
 
-                if( bData < 0x20 || bData > 0x80 ) 
-                {
-                    _sbData.Append( bData.ToString( "X2" ) );
-                    _sbData.Append( ' ' );
-                } else {
-                    _sbData.Append( ' ' );
-                    _sbData.Append( (char)bData );
-                    _sbData.Append( ' ' );
-                }
-                _rgAsmData.RemoveFirst();
-            }
-            Line oData = _oBulkAsm.LineAppend( _sbData.ToString() );
-            if( oData.Extra is TextLine oAddrLine ) {
-                oAddrLine.TryReplace( 0, oAddrLine.ElementCount, strAddr );
-            }
+            //    if( bData < 0x20 || bData > 0x80 ) 
+            //    {
+            //        _sbData.Append( bData.ToString( "X2" ) );
+            //        _sbData.Append( ' ' );
+            //    } else {
+            //        _sbData.Append( ' ' );
+            //        _sbData.Append( (char)bData );
+            //        _sbData.Append( ' ' );
+            //    }
+            //    _rgAsmData.RemoveFirst();
+            //}
+            //Line oData = _oBulkAsm.LineAppend( _sbData.ToString() );
+            //if( oData.Extra is TextLine oAddrLine ) {
+            //    oAddrLine.TryReplace( 0, oAddrLine.ElementCount, strAddr );
+            //}
         }
 
         public void Dissassemble() {
@@ -739,7 +722,7 @@ namespace Monitor {
 
                         if( string.IsNullOrEmpty( sInstr.Name ) ) {
                             // Just put the instruction number and bail.
-                            _oBulkAsm.LineAppend( _rgRam[iAddr].ToString() );
+                            _oBulkAsm.Insert( _rgRam[iAddr].ToString(), AsmEditor2.InsertionPoint.After );
                             break;
                         }
                         ProcessInstruction( sInstr, iAddr );
@@ -785,6 +768,17 @@ namespace Monitor {
         }
     }
 
+    public class AsmRow : Row {
+        public AsmRow() {
+            _rgColumns = new Line[3];
+        }
+
+        public AsmRow( string strAssembly ) {
+            _rgColumns    = new Line[3];
+            _rgColumns[1] = new TextLine( 1, strAssembly );
+        }
+    }
+
     public class AsmEditor2 : EditMultiColumn,
         IPgSave<TextWriter>,
         IPgLoad<TextReader>
@@ -796,6 +790,12 @@ namespace Monitor {
         // Move these to doc prop's later...
         protected string _strBinaryFileName   = string.Empty;
         protected string _strCommentsFileName = string.Empty;
+
+        public enum AsmColumns {
+            labels,
+            assembly,
+            comments
+        }
 
 		public class DocSlot : 
 			IPgBaseSite
@@ -816,23 +816,98 @@ namespace Monitor {
 			public IPgParent Host => _oDoc;
 		}
 
-        public AsmEditor2() {
-            _docProperties    = new MonitorProperties( new DocSlot( this ) );
+        public AsmEditor2( IPgBaseSite oSiteBase ) : base( oSiteBase ) {
+            _docProperties    = new MonitorProperties(new DocSlot(this));
             _rgZ80Definitions = new Z80Definitions();
+
+            _rgRows = new List<Row>();
         }
 
-        public void Dissassemble() {
+        public enum InsertionPoint {
+            Before,
+            After
+        }
+
+        /// <summary>
+        /// Move this to the EditMultiColumn later...
+        /// </summary>
+        public class Hacker : IDisposable {
+            AsmEditor2 _oDoc;
+
+            public Hacker( AsmEditor2 oDoc ) {
+                _oDoc = oDoc;
+            }
+
+            public int Location { get; set; } = 0;
+
+            public void Dispose() {
+                for( int i=0; i<_oDoc.ElementCount; ++i ) {
+                    _oDoc[i].At = i;
+                }
+                _oDoc.Raise_EveryRowEvent( BUFFEREVENTS.MULTILINE );
+            }
+
+            public void Insert( Row oDocRow, InsertionPoint eInsert ) {
+                if( Location < 0 )
+                    throw new IndexOutOfRangeException( "Location must not be negative" );
+                if( Location > _oDoc.ElementCount )
+                    throw new IndexOutOfRangeException( "Location must not be negative" );
+
+                switch( eInsert ) {
+                    case InsertionPoint.After:
+                        if( Location + 1 >= _oDoc.ElementCount ) {
+                            _oDoc._rgRows.Add( oDocRow );
+                        } else {
+                            _oDoc._rgRows.Insert( ++Location, oDocRow );
+                        }
+                        break;
+                    case InsertionPoint.Before:
+                        if( Location - 1 >= 0 )
+                            _oDoc._rgRows.Insert( Location--, oDocRow );
+                        else 
+                            _oDoc._rgRows.Insert( 0, oDocRow );
+                        break;
+                }
+            }
+
+            public void Delete() {
+                _oDoc._rgRows.RemoveAt( Location );
+            }
+
+            /// <summary>
+            /// Put this in a subclass later.
+            /// </summary>
+            public Line Insert( string strValue, InsertionPoint eInsert ) {
+                AsmRow oAsmRow = new AsmRow( strValue );
+
+                Insert( oAsmRow, eInsert );
+
+                return oAsmRow[1];
+            }
+        }
+
+        public void Dissassemble( Editor.Manipulator oBulkOutl ) {
             if( _rgMemory == null ) {
                 LogError( "Load a binary first." );
                 return;
             }
 
             try {
+                using Hacker oBulkAsm = new Hacker( this );
+
                 using Z80Dissambler oDeCompile = 
-                        new Z80Dissambler( _rgZ80Definitions, _rgMemory, null );
+                        new Z80Dissambler( _rgZ80Definitions, 
+                                           _rgMemory,
+                                           oBulkAsm,
+                                           oBulkOutl );
 
                 oDeCompile.Dissassemble();
-            } catch( NullReferenceException ) {
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( NullReferenceException ),
+                                    typeof( ArgumentNullException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
+
                 LogError( "Null Ref Exception in Dissassembler." );
             }
         }
@@ -843,8 +918,6 @@ namespace Monitor {
             
             if( !LoadTiny() ) 
                 return false;
-
-            Dissassemble();
 
             Raise_EveryRowEvent( BUFFEREVENTS.LOADED );
 
@@ -904,7 +977,7 @@ namespace Monitor {
 
             Raise_EveryRowEvent( BUFFEREVENTS.LOADED );
 
-            Dissassemble();
+            //Dissassemble( );
 
             return true;
         }
