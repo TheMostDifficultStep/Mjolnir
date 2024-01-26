@@ -18,9 +18,9 @@ namespace Play.Edit {
     }
 
     public enum RefreshType {
-        RESET,
-        COMPLEX,
-        SIMPLE
+        RESET,   // Start over from caret or scroll pos.
+        COMPLEX, // Elements have been deleated. Try to patch up.
+        SIMPLE   // Probably just some text edits.
     }
 
     /// <summary>

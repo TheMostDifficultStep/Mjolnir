@@ -39,7 +39,7 @@ namespace Play.Edit {
         protected readonly IReadableBag<Row>     _oDocList;
         protected readonly IPgDocTraits<Row>     _oDocTraits;
         protected readonly CacheMultiColumn      _oCacheMan;
-        protected readonly LayoutStackHorizontal _rgLayout  = new() { Spacing = 5 };
+        protected readonly LayoutStackHorizontal _rgLayout;
 		protected readonly IPgStandardUI2        _oStdUI;
         protected readonly ScrollBar2            _oScrollBarVirt;
         protected readonly List<SmartRect>       _rgColumns = new(); // Might not match document columns! O.o
@@ -134,10 +134,14 @@ namespace Play.Edit {
             }
 
             public Row GetRowAtIndex(int iIndex) {
-                if( iIndex >= _oHost._oDocList.ElementCount ) 
+                if( iIndex >= _oHost._oDocList.ElementCount ) {
+                    LogError( "Cache Man Site", "Document item lookup error" );
                     return null;
-                if( iIndex < 0 )
+                }
+                if( iIndex < 0 ) {
+                    LogError( "Cache Man Site", "Document item lookup error" );
                     return null;
+                }
 
                 return _oHost._oDocList[iIndex];
             }
@@ -193,6 +197,8 @@ namespace Play.Edit {
 
             _oScrollBarVirt = new ScrollBar2( new DocSlot( this ) );
 
+            _rgLayout       = new LayoutStackHorizontal() { Spacing = 5, Units = LayoutRect.CSS.Flex};
+
             _rgLayout.Add( new LayoutControl( _oScrollBarVirt, LayoutRect.CSS.Pixels, 12 ) );
             _rgLayout.Add( new LayoutRect( LayoutRect.CSS.Percent, 30, 1L ) );
             _rgLayout.Add( new LayoutRect( LayoutRect.CSS.Percent, 20, 1L ) );
@@ -204,11 +210,9 @@ namespace Play.Edit {
             _rgColumns.Add( _rgLayout.Item( 2 ) );
             _rgColumns.Add( _rgLayout.Item( 3 ) );
 
-            _oCacheMan      = new CacheMultiColumn( new CacheManSite( this ), 
-                                                    _oStdUI.FontRendererAt( uiStdText ),
-                                                    _rgColumns ); 
-
-            _rgLayout       = new LayoutStackHorizontal() { Spacing = 5, Units = LayoutRect.CSS.Flex};
+            _oCacheMan = new CacheMultiColumn( new CacheManSite( this ), 
+                                               _oStdUI.FontRendererAt( uiStdText ),
+                                               _rgColumns ); 
         }
 
         public bool  IsDirty => true;
@@ -365,9 +369,20 @@ namespace Play.Edit {
             _oCacheMan.Refresh( RefreshType.COMPLEX, RefreshNeighborhood.SCROLL );
         }
 
-        protected void PaintRowBG( SKCanvas skCanvas, SKPaint skPaint, CacheRow oCRow, SmartRect rctCRow ) {
+        /// <summary>
+        /// Paint BG depending on various highlight modes for the row/column.
+        /// </summary>
+        protected void PaintSquareBG( 
+            SKCanvas  skCanvas, 
+            SKPaint   skPaint, 
+            CacheRow  oCRow, 
+            int       iColumn,
+            SmartRect rctCRow 
+        ) {
             StdUIColors eBg = StdUIColors.Max;
 
+            if( iColumn == 1 )
+                eBg = StdUIColors.BGReadOnly;
             if( CurrentRow != null && oCRow.At == CurrentRow.At )
                 eBg = StdUIColors.BGWithCursor;
             if( _oDocTraits.HighLight != null && oCRow.At == _oDocTraits.HighLight.At)
@@ -379,6 +394,25 @@ namespace Play.Edit {
                 skCanvas.DrawRect( rctCRow.SKRect, skPaint );
             }
         }
+
+        protected void OnPaintSurface_Test(SKPaintSurfaceEventArgs e) {
+            SKSurface skSurface = e.Surface;
+            SKCanvas  skCanvas  = skSurface.Canvas;
+            using SKPaint skPaint = new SKPaint {
+                Color = SKColors.Blue
+            };
+            foreach( SmartRect rctColumn in _rgLayout ) {
+                skCanvas.DrawRect( rctColumn.SKRect, skPaint);
+
+                if( skPaint.Color == SKColors.Blue ) {
+                    skPaint.Color = SKColors.Red;
+                } else { 
+                    if( skPaint.Color == SKColors.Red ) {
+                        skPaint.Color = SKColors.Blue;
+                    }
+                }
+            }
+        }
         protected override void OnPaintSurface(SKPaintSurfaceEventArgs e) {
             base.OnPaintSurface(e);
 
@@ -387,29 +421,33 @@ namespace Play.Edit {
 
                 SKSurface skSurface = e.Surface;
                 SKCanvas  skCanvas  = skSurface.Canvas;
-                using SKPaint skPaint2 = new SKPaint {
-                    Color = SKColors.Blue
-                };
-                using SKPaint skPaint = new SKPaint() {
+
+                using SKPaint skPaintBG = new SKPaint() {
                     BlendMode = SKBlendMode.Src,
                     Color     = _oStdUI.ColorsStandardAt(_fReadOnly ? StdUIColors.BGReadOnly : StdUIColors.BG)
                 };
+                using SKPaint skPaintTx = new SKPaint() { FilterQuality = SKFilterQuality.High };
+
                 // Paint all window background. Note: We could get by without this if
                 // there was no space between lines/columns.
-                skCanvas.DrawRect( new SKRect( 0, 0, Width, Height ), skPaint);
+                skCanvas.DrawRect( new SKRect( 0, 0, Width, Height ), skPaintBG);
 
                 // Now paint the rows.
                 SmartRect rctSquare = new();
-                foreach( CacheRow oRow in _oCacheMan ) {
-                    for( int iCache=0; iCache<oRow.CacheList.Count; ++iCache ) {
-                        FTCacheLine oCache  = oRow.CacheList[iCache];
+                foreach( CacheRow oCacheRow in _oCacheMan ) {
+                    for( int iCache=0; iCache<oCacheRow.CacheList.Count; ++iCache ) {
+                        FTCacheLine oCache  = oCacheRow.CacheList[iCache];
                         SmartRect   oColumn = _rgColumns[iCache];
 
-                        rctSquare.SetRect( oColumn.Left, oRow.Top, oColumn.Right, oRow.Bottom );
+                        rctSquare.SetRect( oColumn.Left, oCacheRow.Top, oColumn.Right, oCacheRow.Bottom );
 
-                        PaintRowBG( skCanvas, skPaint, oRow, rctSquare );
+                        // Test pattern...
+                        //skPaint.Color = iCache % 2 == 0 ? SKColors.Blue : SKColors.Green;
+                        //skCanvas.DrawRect( rctSquare.SKRect, skPaint );
+                        PaintSquareBG( skCanvas, skPaintBG, oCacheRow, iCache, rctSquare );
 
-                        oCache.Render(skCanvas, _oStdUI, rctSquare, this.Focused );
+                        oCache.Render(skCanvas, _oStdUI, skPaintTx, rctSquare, this.Focused );
+
                     }
                 }
             } catch( Exception oEx ) {

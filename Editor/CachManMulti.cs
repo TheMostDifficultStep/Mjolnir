@@ -392,7 +392,7 @@ namespace Play.Edit {
 
 					// NOTE: if the elements aren't stacked in line order, we've got a problem.
 					if( oPrev != null )
-						oRow.Top = oPrev.Bottom + LineSpacing;
+						oRow.Top = oPrev.Bottom + LineSpacing; // BUG: this looks wrong...
 
 					oPrev = oRow;
 				}

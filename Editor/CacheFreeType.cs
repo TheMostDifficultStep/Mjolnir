@@ -597,14 +597,83 @@ namespace Play.Edit {
             skCanvas.DrawRect(skRect, skPaint);
         }
 
+        /// <summary>
+        /// Negative numbers can be hyper links too, need to work that out. 
+        /// </summary>
+        protected SKColor GetGlyphColor( PgCluster oCluster, IPgStandardUI2 oStdUI ) {
+            try {
+                return oCluster.ColorIndex < 0 ? oStdUI.ColorsStandardAt( StdUIColors.TextSelected ) : 
+                                                 oStdUI.GrammarTextColor( oCluster.ColorIndex );
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( ArgumentOutOfRangeException ),
+                                    typeof( IndexOutOfRangeException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
+
+                // Return from here slower but should only be in the error recovery case.
+                Debug.Fail( "Exception thrown in FTCacheLine.GetGlyphColor" );
+            }
+            return SKColors.Black;
+        }
+
+        /// <summary>
+        /// This is my new column rendering function. It's a little nicer b/c it doesn't 
+        /// allocate a paint structure for every call. It's given the square that it's
+        /// printing in. Tho' it still might print outside if not configed correctly.
+        /// </summary>
+        /// <param name="rcSquare">The actual area we are supposed to print within.
+        /// Tho this might not work if the cluster segments haven't been properly measured.</param>
         public virtual void Render(
             SKCanvas       skCanvas,
             IPgStandardUI2 oStdUI,
+            SKPaint        skPaint,
             SmartRect      rcSquare,
             bool           fFocused = true )
         {
-            PointF pntUpperLeft = new PointF( rcSquare.Top, rcSquare.Left );
-            Render( skCanvas, oStdUI, pntUpperLeft, fFocused );
+            if( _rgGlyphs.Count <= 0 )
+                return;
+
+            // Our new system paints UP from the baseline. It's nice because it's a bit more how
+            // we think of text but weird since the screen origin is top left and we print successive
+            // lines down. >_<;;
+            SKPoint pntLowerLeft = new SKPoint( rcSquare.Left, rcSquare.Top + FontHeight );
+
+            try { // Draw all glyphs so whitespace is properly colored when selected.
+			    foreach( PgCluster oCluster in _rgClusters ) {
+                    int iYDiff = LineHeight * oCluster.Segment;
+
+                    float flX = pntLowerLeft.X + oCluster.AdvanceLeft; 
+                    float flY = pntLowerLeft.Y + iYDiff - oCluster.Coordinates.top;
+
+                    // Only draw if we need to override the last painted bg color.
+                    if( oCluster.ColorIndex < 0 ) {
+                        skPaint.Color = oStdUI.ColorsStandardAt( fFocused ? StdUIColors.BGSelectedFocus : StdUIColors.BGSelectedBlur );
+                        DrawGlyphBack( skCanvas, skPaint, flX, rcSquare.Top + LineHeight + iYDiff, oCluster );
+                    }
+
+                    // Not changing the color per glyph, which is probably necessary for color emoji.
+                    skPaint.Color = GetGlyphColor( oCluster, oStdUI );
+
+                    //foreach( int iGlyph in oCluster ) {
+                        // Just printing the first one even if multiple glyphs. Good enough for now.
+                        DrawGlyph( skCanvas, skPaint, flX, flY, _rgGlyphs[oCluster.Glyphs.Offset] );
+                    //}
+                } // end foreach
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( ArgumentOutOfRangeException ),
+                                    typeof( NullReferenceException ),
+                                    typeof( ArithmeticException ),
+                                    typeof( ArgumentNullException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
+
+                // Would love to report an error. But this is pretty rare. Let's just put up a red flag!!
+                // TODO: I should make a new exception type. 
+                skPaint .Color = Line.At > 0 ? SKColors.Red : SKColors.Lime;
+                skCanvas.DrawRect(new SKRect(pntLowerLeft.X,       rcSquare.Top,
+                                             pntLowerLeft.X + 100, rcSquare.Top + Height), skPaint);
+                Debug.Fail( "Exception thrown in FTCacheLine.Render" );
+            }
         }
         /// <summary>
         /// A cluster is a set of glyphs that make up a character. All of the 
@@ -645,19 +714,7 @@ namespace Play.Edit {
                             DrawGlyphBack( skCanvas, skPaint, flX, pntEditAt.Y + LineHeight + iYDiff, oCluster );
                         }
 
-                        // Negative numbers can be hyper links too, need to work that out. 
-                        try {
-                            skPaint.Color = oCluster.ColorIndex < 0 ? oStdUI.ColorsStandardAt( StdUIColors.TextSelected ) : 
-                                                                      oStdUI.GrammarTextColor( oCluster.ColorIndex );
-                        } catch( Exception oEx ) {
-                            Type[] rgErrors = { typeof( ArgumentOutOfRangeException ),
-                                                typeof( IndexOutOfRangeException ) };
-                            if( rgErrors.IsUnhandled( oEx ) )
-                                throw;
-
-                            // Slower but should only be in the error recovery case.
-                            skPaint.Color = SKColors.Black;
-                        }
+                        skPaint.Color = GetGlyphColor( oCluster, oStdUI );
 
                         //foreach( int iGlyph in oCluster ) {
                             // Just printing the first one even if multiple glyphs. Nor would I be

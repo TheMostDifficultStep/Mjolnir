@@ -361,26 +361,27 @@ namespace Play.Rectangles {
 				// Note 1: Need to add the margins between each object to the remaining track extent.
 				uint uiRemainingExtent = (uint)iTrackRemaining;
 
-				// We can't have both Percent and None objects, so if we have ANY "none"
-				// objects, we just punt on the percent objects. TODO: New strategy maybe?
-				if( uiCssNoneCount == 0 ) {
-					// Percent objects take up the remaining space.
-					for( int i = 0; i<Count; ++i ) {
-						LayoutRect oChild = Item(i);
+				// Percent objects now take their slice.
+				for( int i = 0; i<Count; ++i ) {
+					LayoutRect oChild = Item(i);
 			
-						if( oChild.Units == CSS.Percent ) {
-							_rgTrack[i] = (uint)( ((float)oChild.Track / 100f ) * uiRemainingExtent );
-							//iTrackDistance -= _rgTrack[i];
-						}
+					if( oChild.Units == CSS.Percent ) {
+						_rgTrack[i] = (uint)( ((float)oChild.Track / 100f ) * uiRemainingExtent );
+						iTrackRemaining -= _rgTrack[i];
 					}
-				} else {
+				}
+
+				uiRemainingExtent = (uint)iTrackRemaining;
+
+				// Hopefully there's some space left for the "none" objects. You
+				// would like at least some mininmum of pixels each. :-/
+				if( uiCssNoneCount != 0) {
 					// Divy up the remaining space equally among the "None" objects.
 					for( int i = 0; i<Count; ++i ) {
 						LayoutRect oChild = Item(i);
 
 						if( oChild.Units == CSS.None ) {
 							_rgTrack[i] = (uint)( ((float)1/uiCssNoneCount ) * uiRemainingExtent );
-							//iTrackDistance -= _rgTrack[i];
 						}
 					}
 				}

@@ -67,6 +67,8 @@ namespace Play.Edit {
             set; // Send a window update event;
         }
 
+        /// <exception cref="ArgumentOutOfRangeException" </exception>
+        /// <remarks>Should I return a dummy element? Probably not</remarks>
         public Row this[int iIndex] => _rgRows[iIndex];
 
         public EditMultiColumn( IPgBaseSite oSiteBase ) {
