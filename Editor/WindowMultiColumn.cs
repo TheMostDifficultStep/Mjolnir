@@ -10,9 +10,9 @@ using SkiaSharp.Views.Desktop;
 using Play.Interfaces.Embedding;
 using Play.Rectangles;
 using Play.Controls;
+using System.Drawing;
 
 namespace Play.Edit {
-
     public interface IPgDocTraits<T> {
         T HighLight { get; set; }
         StdUIColors PlayHighlightColor { get; set; }
@@ -366,7 +366,8 @@ namespace Play.Edit {
             _oCacheMan.TextRect.Width  = Width;
             _oCacheMan.TextRect.Height = Height;
 
-            _oCacheMan.Refresh( RefreshType.COMPLEX, RefreshNeighborhood.SCROLL );
+            _oCacheMan.OnChangeSize();
+            _oCacheMan.Refresh( RefreshType.COMPLEX );
         }
 
         /// <summary>

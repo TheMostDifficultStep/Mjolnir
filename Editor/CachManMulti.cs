@@ -763,9 +763,7 @@ namespace Play.Edit {
         /// By now the layout is set and the height and width of the visible colums is
         /// already calculated.</remarks>
         /// <param name="rgSize">The new size of the rectangle.</param>
-        public void OnChangeSize( Size oSize ) {
-            _oTextRect.SetPoint(SET.RIGID, LOCUS.UPPERLEFT | LOCUS.EXTENT, oSize.Width, oSize.Height );
-
+        public void OnChangeSize() {
             // We've got to make sure we're sorted properly so we don't scramble the screen
             // when aligning. Sort by line is self healing but makes us dependant on line number.
             // But Sort by Top obviates that line# dependancy. Since Refresh() is self healing
@@ -781,13 +779,15 @@ namespace Play.Edit {
                 // and so the following siblings need to have their top's reset!
                 int iTop = _rgOldCache[0].Top;
                 foreach( CacheRow oRow in this ) {
+                    for( int i=0; i< _rgCacheMap.Count; ++i ) {
+                        SmartRect   oColumn = _rgCacheMap[i];
+                        FTCacheLine oCache  = oRow.CacheList[i];
+
+                        oCache.OnChangeSize( oColumn.Width );
+                    }
+
                     oRow.Top = iTop;
                     iTop     = oRow.Bottom + LineSpacing; // Aligning.
-
-                    for( int i=0; i< _rgCacheMap.Count; ++i ) {
-                        SmartRect oColumn = _rgCacheMap[i];
-                        oRow.CacheList[i].OnChangeSize( oColumn.Width );
-                    }
                 }
             } catch( Exception oEx ) {
                 // if the _rgCacheMap and the oRow.CacheList don't match

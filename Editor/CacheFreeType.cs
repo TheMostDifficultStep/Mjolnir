@@ -130,7 +130,26 @@ namespace Play.Edit {
         public         Line Line      => CacheList[0].Line; 
         public virtual int  At        { get { return Line.At; } }
         public         int  Top       { get; set; }
-        public virtual int  Height    { get { return CacheList[0].Height; } }
+
+        /// <summary>
+        /// TODO: Little bit of a bummer it is calculated every time. We might be able
+        /// to cache this value after OnSizeChanged is calculated on the row...
+        /// </summary>
+        /// <seealso cref="CacheMultiColumn.OnChangeSize"/>
+        public virtual int Height { 
+            get { 
+                int iHeight = 0;
+
+                for( int i=0; i< CacheList.Count; ++i ) {
+                    FTCacheLine oCache  = CacheList[i];
+
+                    if( oCache.Height > iHeight )
+                        iHeight = oCache.Height;
+                }
+
+                return iHeight;
+            } 
+        }
         public         bool IsInvalid { 
             get {
                 bool fReturn = false;
