@@ -58,12 +58,15 @@ namespace Play.Edit {
         // layout columns, those are different.
         readonly SmartRect                  _oTextRect  = new SmartRect();
         protected List<CacheRow>            _rgOldCache = new List<CacheRow>();
+        protected List<CacheRow>            _rgNewCache = new List<CacheRow>(); 
+
         protected readonly List<SmartRect>  _rgCacheMap;
         protected readonly TextLine         _oDummyLine = new TextLine( -2, string.Empty );
 
         protected IPgFontRender Font       { get; }
         protected IPgGlyph      GlyphLt    { get; } // Our end of line character.
         public    int           LineHeight { get; } // Helps us determine scrolling distances.
+        public    int           RowSpacing { get; set; } = 1;
 
         // TODO: Get the font from the site instead of from the constructor? Maybe?
         /// <remarks>Need to sort out the LineHeight accessor since the cache elements might be
@@ -129,7 +132,7 @@ namespace Play.Edit {
         /// </summary>
         /// <param name="oCacheRow">CRow with top & bottom set.</param>
         protected int ClippedHeight( CacheRow oCacheRow ) {
-            int iHeight = oCacheRow.Height + 1;
+            int iHeight = oCacheRow.Height + RowSpacing;
 
             if( oCacheRow.Top < 0 ) {
                 iHeight += oCacheRow.Top;
@@ -183,28 +186,27 @@ namespace Play.Edit {
             if( oSeedRow == null )
                 oSeedRow = CacheReset( RefreshNeighborhood.SCROLL ); 
 
-            // Linked list perf can actually be worse!! Use List<>... :-/
-            List<CacheRow> rgNewCache   = new List<CacheRow>() { oSeedRow }; 
-            int            iRowSpacing  = 1;
-            CacheRow       oPrevCache   = oSeedRow;
+            _rgNewCache.Clear();
+            _rgNewCache.Add( oSeedRow );
 
             // First go up from the seed.
+            CacheRow oPrevCache = oSeedRow;
             while( oPrevCache.Top < 0 ) {
                 CacheRow oNewCache = GetACacheRow( oPrevCache.At - 1 );
                 if( oNewCache == null )
                     break;
 
-                oNewCache.Top = oPrevCache.Top - ( oNewCache.Height + iRowSpacing );
-                rgNewCache.Insert( 0, oNewCache );
+                oNewCache.Top = oPrevCache.Top - ( oNewCache.Height + RowSpacing );
+                _rgNewCache.Insert( 0, oNewCache );
                 oPrevCache = oNewCache;
             }
             // Pull the top up if there's a gap. ie we could not go up.
-            if( rgNewCache[0].Top > 0 ) {
+            if( _rgNewCache[0].Top > 0 ) {
                 int iTop = 0;
-                foreach( CacheRow oCRow in rgNewCache ) {
+                foreach( CacheRow oCRow in _rgNewCache ) {
                     oCRow.Top = iTop;
 
-                    iTop += oCRow.Height + iRowSpacing;
+                    iTop += oCRow.Height + RowSpacing;
                 }
             }
             // Reset ourselves and try to go down now.
@@ -214,13 +216,14 @@ namespace Play.Edit {
                 if( oNewCache == null )
                     break;
 
-                oNewCache.Top = oPrevCache.Bottom + iRowSpacing;
-                rgNewCache.Add( oNewCache );
+                oNewCache.Top = oPrevCache.Bottom + RowSpacing;
+                _rgNewCache.Add( oNewCache );
                 oPrevCache = oNewCache;
             }
 
             _rgOldCache.Clear();
-            _rgOldCache.AddRange( rgNewCache );
+            _rgOldCache.AddRange( _rgNewCache );
+            _rgNewCache.Clear();
         }
 
         public void OnScrollBar_Vertical( ScrollEvents e ) {
