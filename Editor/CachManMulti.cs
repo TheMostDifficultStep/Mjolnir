@@ -141,6 +141,33 @@ namespace Play.Edit {
             return iHeight;
         }
 
+        /// <summary>
+        /// Try to get a new row first from the existing old cache.
+        /// If that fails, make a new CacheRow. Returns null if
+        /// the data element is out of bounds of the document.
+        /// </summary>
+        /// <param name="iDataRow">Which data row we want to represent.</param>
+        protected CacheRow GetACacheRow( int iDataRow ) {
+            Row oNextDRow = _oSite.GetRowAtIndex( iDataRow );
+
+            if( oNextDRow == null )
+                return null;
+
+            CacheRow oNewCache = _rgOldCache.Find( x => x.At == oNextDRow.At );
+
+            if( oNewCache == null ) {
+                oNewCache = CreateRow( _oSite.GetRowAtIndex( oNextDRow.At ) );
+                RowMeasure( oNewCache );
+            }
+
+            return oNewCache;
+        }
+
+        /// <summary>
+        /// New code for re-building the cache. It only needs two passes, versus
+        /// the three that the previous walker needed. It should be usable for
+        /// complex edit's as well.
+        /// </summary>
         public void LukeCacheWalker() {
             CacheRow oSeedRow = null;
 
@@ -156,40 +183,40 @@ namespace Play.Edit {
             if( oSeedRow == null )
                 oSeedRow = CacheReset( RefreshNeighborhood.SCROLL ); 
 
-            List<CacheRow> rgNewCache   = new List<CacheRow>() { oSeedRow }; // put this in class later.
-            int[]          rgDir        = { -1, 1 }; // First go up then down!
+            // Linked list perf can actually be worse!! Use List<>... :-/
+            List<CacheRow> rgNewCache   = new List<CacheRow>() { oSeedRow }; 
             int            iRowSpacing  = 1;
+            CacheRow       oPrevCache   = oSeedRow;
 
-            foreach( int iDir in rgDir ) {
-                CacheRow       oPrevCache   = oSeedRow;
-                while( iDir < 0 ? oPrevCache.Top < 0 : oPrevCache.Bottom < _oTextRect.Height ) {
-                    Row oNextDRow = _oSite.GetRowAtIndex( oPrevCache.At + iDir );
+            // First go up from the seed.
+            while( oPrevCache.Top < 0 ) {
+                CacheRow oNewCache = GetACacheRow( oPrevCache.At - 1 );
+                if( oNewCache == null )
+                    break;
 
-                    if( oNextDRow == null )
-                        break;
+                oNewCache.Top = oPrevCache.Top - ( oNewCache.Height + iRowSpacing );
+                rgNewCache.Insert( 0, oNewCache );
+                oPrevCache = oNewCache;
+            }
+            // Pull the top up if there's a gap. ie we could not go up.
+            if( rgNewCache[0].Top > 0 ) {
+                int iTop = 0;
+                foreach( CacheRow oCRow in rgNewCache ) {
+                    oCRow.Top = iTop;
 
-                    CacheRow oNewCache = _rgOldCache.Find( x => x.At == oNextDRow.At );
-                    if( oNewCache == null ) {
-                        oNewCache = CreateRow( _oSite.GetRowAtIndex( oNextDRow.At ) );
-                    }
-                    if( iDir < 0 ) {
-                        oNewCache.Top = oPrevCache.Top - ( oNewCache.Height + iRowSpacing );
-                        rgNewCache.Insert( 0, oNewCache );
-                    } else {
-                        oNewCache.Top = oPrevCache.Bottom + iRowSpacing;
-                        rgNewCache.Add( oNewCache );
-                    }
-                    oPrevCache = oNewCache;
+                    iTop += oCRow.Height + iRowSpacing;
                 }
-                // Pull the top up if there's a gap.
-                if( rgNewCache[0].Top > 0 ) {
-                    int iTop = 0;
-                    foreach( CacheRow oCRow in rgNewCache ) {
-                        oCRow.Top = iTop;
+            }
+            // Reset ourselves and try to go down now.
+            oPrevCache = oSeedRow;
+            while( oPrevCache.Bottom < _oTextRect.Height ) {
+                CacheRow oNewCache = GetACacheRow( oPrevCache.At + 1 );
+                if( oNewCache == null )
+                    break;
 
-                        iTop += oCRow.Height + iRowSpacing;
-                    }
-                }
+                oNewCache.Top = oPrevCache.Bottom + iRowSpacing;
+                rgNewCache.Add( oNewCache );
+                oPrevCache = oNewCache;
             }
 
             _rgOldCache.Clear();
