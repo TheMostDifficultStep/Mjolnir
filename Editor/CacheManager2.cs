@@ -679,9 +679,9 @@ namespace Play.Edit {
         /// <remarks>Note: We just update and don't check if any of the elements are Invalid.</remarks>
         /// <seealso cref="ElemUpdate"/>
         public void OnLineUpdated( Line oLine ) {
-            foreach( CacheRow oRow in _rgOldCache ) {
-                if( oRow.Line == oLine ) {
-                    RowUpdate( oRow );
+            foreach( CacheRow oCacheRow in _rgOldCache ) {
+                if( oCacheRow.Line == oLine ) {
+                    RowUpdate( oCacheRow );
                 }
             }
         }

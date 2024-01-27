@@ -80,6 +80,12 @@ namespace Monitor {
         }
     }
 
+    /// <summary>
+    /// This is the old way of doing multi column using the CacheMan2 system.
+    /// This is why I'm writing the CacheMultiColumn. Still a work in progress.
+    /// But, I should be able to delete this monstrosity soon.
+    /// </summary>
+    /// <seealso cref="WindowMultiColumn"/>
     public class NumberLabelWindow : LineNumberWindow {
         public static Guid GUID { get; } = new Guid( "{A0F2D092-F8D1-48E3-9ECA-30A3A8287C45}" );
         public class CacheManagerLabel : CacheManagerAsm {

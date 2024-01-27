@@ -121,8 +121,12 @@ namespace Play.Edit {
     }
 
     /// <summary>
-    /// I'm going to attempt to separate the cacheline elements from the row so I can 
-    /// have multiple cacheline's on a row.
+    /// While this is the new object for CacheMan2 multi column displays. It
+    /// still relies on old Line/Document system. A single text stream. 
+    /// Which is fine for line numbers and check box like systems.
+    /// But I should split this class into an abstract class with one being
+    /// document "line" based and the other being multi column document "row"
+    /// based. Like spread sheets for example.
     /// </summary>
     public class CacheRow {
         // This is super important that the CacheList 0 is used. The other's line
@@ -130,6 +134,12 @@ namespace Play.Edit {
         public         Line Line      => CacheList[0].Line; 
         public virtual int  At        { get { return Line.At; } }
         public         int  Top       { get; set; }
+
+        // Well have a matching array of SmartRect's for each cache elem inside.
+        // CacheList s/b always inorder of the CacheMap but not necessarily the
+        // same as the "layout" list. For example scroll bar in layout but not
+        // the cache system.
+        public List<FTCacheLine> CacheList { get; } = new List<FTCacheLine> ();
 
         /// <summary>
         /// TODO: Little bit of a bummer it is calculated every time. We might be able
@@ -141,7 +151,7 @@ namespace Play.Edit {
                 int iHeight = 0;
 
                 for( int i=0; i< CacheList.Count; ++i ) {
-                    FTCacheLine oCache  = CacheList[i];
+                    FTCacheLine oCache = CacheList[i];
 
                     if( oCache.Height > iHeight )
                         iHeight = oCache.Height;
@@ -150,7 +160,7 @@ namespace Play.Edit {
                 return iHeight;
             } 
         }
-        public         bool IsInvalid { 
+        public bool IsInvalid { 
             get {
                 bool fReturn = false;
                 foreach( FTCacheLine oElem in CacheList ) {
@@ -164,10 +174,6 @@ namespace Play.Edit {
             get { return Top + Height; }
             set { Top = value - Height; }
         }
-
-        // Well have a matching array of SmartRect's for each cache elem inside.
-        // CacheList s/b always inorder of the CacheMap but not necessarily the LAYOUT list.
-        public List<FTCacheLine> CacheList { get; } = new List<FTCacheLine> ();
 
         public bool IsHit( Point pntLocation ) {
             return pntLocation.Y >= Top && pntLocation.Y < Bottom;

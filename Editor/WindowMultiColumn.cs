@@ -135,11 +135,9 @@ namespace Play.Edit {
 
             public Row GetRowAtIndex(int iIndex) {
                 if( iIndex >= _oHost._oDocList.ElementCount ) {
-                    LogError( "Cache Man Site", "Document item lookup error" );
                     return null;
                 }
                 if( iIndex < 0 ) {
-                    LogError( "Cache Man Site", "Document item lookup error" );
                     return null;
                 }
 
@@ -460,6 +458,12 @@ namespace Play.Edit {
                 if( rgErrors.IsUnhandled( oEx ) )
                     throw;
             }
+        }
+
+        protected override void OnMouseWheel(MouseEventArgs e) {
+            base.OnMouseWheel(e);
+
+            _oCacheMan.OnMouseWheel( e.Delta );
         }
     }
 }

@@ -110,10 +110,90 @@ namespace Play.Edit {
         }
 
         public void OnMouseWheel( int iDelta ) {
-            int iTopOld = _oTextRect[ SCALAR.TOP ];
-            int iTopNew = iTopOld - ( 4 * iDelta / LineHeight );
-            
-            _oTextRect.SetScalar(SET.RIGID, SCALAR.TOP, iTopNew );
+            int iTop = _rgOldCache[0].Top + ( 4 * iDelta / LineHeight );
+
+            foreach( CacheRow oCacheRow in _rgOldCache ) {
+                oCacheRow.Top = iTop;
+                iTop += oCacheRow.Height;
+            }
+
+            LukeCacheWalker();
+
+            _oSite.OnRefreshComplete();
+        }
+
+        /// <summary>
+        /// If part of the cache row is overrlapping the visible area,
+        /// we need to clip that off so we calculate the proper number of
+        /// rows we need to fill the screen.
+        /// </summary>
+        /// <param name="oCacheRow">CRow with top & bottom set.</param>
+        protected int ClippedHeight( CacheRow oCacheRow ) {
+            int iHeight = oCacheRow.Height + 1;
+
+            if( oCacheRow.Top < 0 ) {
+                iHeight += oCacheRow.Top;
+            }
+            if( oCacheRow.Bottom > _oTextRect[SCALAR.HEIGHT] ) {
+                iHeight += ( _oTextRect[SCALAR.HEIGHT] - oCacheRow.Bottom );
+            }
+
+            return iHeight;
+        }
+
+        public void LukeCacheWalker() {
+            CacheRow oSeedRow = null;
+
+            if( _rgOldCache.Count > 0 ) {
+                oSeedRow = _rgOldCache[0];
+                foreach( CacheRow oCacheRow in _rgOldCache ) {
+                    if( ClippedHeight( oCacheRow ) > 0 && oCacheRow.At >= 0 ) {
+                        if( oCacheRow.Top < oSeedRow.Top )
+                            oSeedRow = oCacheRow;
+                    }
+                }
+            }
+            if( oSeedRow == null )
+                oSeedRow = CacheReset( RefreshNeighborhood.SCROLL ); 
+
+            List<CacheRow> rgNewCache   = new List<CacheRow>() { oSeedRow }; // put this in class later.
+            int[]          rgDir        = { -1, 1 }; // First go up then down!
+            int            iRowSpacing  = 1;
+
+            foreach( int iDir in rgDir ) {
+                CacheRow       oPrevCache   = oSeedRow;
+                while( iDir < 0 ? oPrevCache.Top < 0 : oPrevCache.Bottom < _oTextRect.Height ) {
+                    Row oNextDRow = _oSite.GetRowAtIndex( oPrevCache.At + iDir );
+
+                    if( oNextDRow == null )
+                        break;
+
+                    CacheRow oNewCache = _rgOldCache.Find( x => x.At == oNextDRow.At );
+                    if( oNewCache == null ) {
+                        oNewCache = CreateRow( _oSite.GetRowAtIndex( oNextDRow.At ) );
+                    }
+                    if( iDir < 0 ) {
+                        oNewCache.Top = oPrevCache.Top - ( oNewCache.Height + iRowSpacing );
+                        rgNewCache.Insert( 0, oNewCache );
+                    } else {
+                        oNewCache.Top = oPrevCache.Bottom + iRowSpacing;
+                        rgNewCache.Add( oNewCache );
+                    }
+                    oPrevCache = oNewCache;
+                }
+                // Pull the top up if there's a gap.
+                if( rgNewCache[0].Top > 0 ) {
+                    int iTop = 0;
+                    foreach( CacheRow oCRow in rgNewCache ) {
+                        oCRow.Top = iTop;
+
+                        iTop += oCRow.Height + iRowSpacing;
+                    }
+                }
+            }
+
+            _rgOldCache.Clear();
+            _rgOldCache.AddRange( rgNewCache );
         }
 
         public void OnScrollBar_Vertical( ScrollEvents e ) {
@@ -179,7 +259,7 @@ namespace Play.Edit {
                 if( oCacheRow == null ) // If can't find matching elem, create it.
                     oCacheRow = CreateRow( oDocRow );
 
-                RowUpdate( oCacheRow );
+                RowMeasure( oCacheRow );
 
                 // Text rect is reset to UL => 0,0. Now set this element's top down a bit and build around it.
                 switch( eNeighborhood ) {
@@ -270,7 +350,7 @@ namespace Play.Edit {
 
             if( oCacheRow != null ) {
                 if( oCacheRow.IsInvalid ) {
-                    RowUpdate( oCacheRow );
+                    RowMeasure( oCacheRow );
                 }
                 if( iDir < 0 ) {
                     oCacheRow.Top = oPrev.Top - oCacheRow.Height - LineSpacing;
@@ -294,7 +374,7 @@ namespace Play.Edit {
             }
 
             if( oTop.IsInvalid ) {
-                RowUpdate( oTop );
+                RowMeasure( oTop );
             }
 
             List<CacheRow> rgNewCache = new List<CacheRow> {
@@ -310,7 +390,7 @@ namespace Play.Edit {
                 if( oRow == null ) {
                     // We're at the bottom, Re-shift the rect bottom to match bottom line so we don't have gap.
                     // This way we don't keep scrolling elements forever out of view.
-                    TextRect.SetScalar(SET.RIGID, SCALAR.BOTTOM, oPrev.Bottom );
+                    //TextRect.SetScalar(SET.RIGID, SCALAR.BOTTOM, oPrev.Bottom );
                 } else {
                     rgNewCache.Add( oRow );
                 }
@@ -326,7 +406,7 @@ namespace Play.Edit {
                 if( oRow == null ) {
                     // We're at the top. Re-shift the rect top to match top line so we don't have a gap.
                     // this way we don't keep scrolling elements forever out of view.
-                    TextRect.SetScalar(SET.RIGID, SCALAR.TOP, oPrev.Top );
+                    //TextRect.SetScalar(SET.RIGID, SCALAR.TOP, oPrev.Top );
                 } else {
                     rgNewCache.Add( oRow );
                 }
@@ -357,7 +437,7 @@ namespace Play.Edit {
         /// </summary>
         /// <remarks>Note that the CacheList length MIGHT be less than the CacheMap length!</remarks>
         /// <seealso cref="CheckList"/>
-        protected virtual void RowUpdate( CacheRow oRow ) {
+        protected virtual void RowMeasure( CacheRow oRow ) {
             for( int i=0; i<oRow.CacheList.Count && i<_rgCacheMap.Count; ++i ) {
                 ElemUpdate( oRow.CacheList[i], _rgCacheMap[i].Width );
             }
@@ -388,7 +468,7 @@ namespace Play.Edit {
 				CacheRow oPrev = null;
 				foreach( CacheRow oRow in _rgOldCache ) {
 					if( oRow.IsInvalid )
-						RowUpdate( oRow );
+						RowMeasure( oRow );
 
 					// NOTE: if the elements aren't stacked in line order, we've got a problem.
 					if( oPrev != null )
@@ -470,7 +550,7 @@ namespace Play.Edit {
         /// <returns>A new row enough information to display the line on the screen.</returns>
         /// <remarks> Be sure to call RowUpdate()
         /// after this call so that the lines can be measured.</remarks>
-        /// <seealso cref="RowUpdate"/>
+        /// <seealso cref="RowMeasure"/>
         protected virtual CacheRow CreateRow( Row oDocRow ) {
             if( oDocRow == null )
                 throw new ArgumentNullException();
@@ -516,7 +596,7 @@ namespace Play.Edit {
             // Line is not currently in cache, make a new elem.
             CacheRow oRow = CreateRow( oNextRow );
 
-            RowUpdate( oRow ); // Need to know CacheRow height...
+            RowMeasure( oRow ); // Need to know CacheRow height...
 
             // We sort of assume the new element is going to be at the top
             // or bottom of the view and set only it's vertical placement.
@@ -688,7 +768,7 @@ namespace Play.Edit {
         public void OnLineUpdated( Line oLine ) {
             foreach( CacheRow oRow in _rgOldCache ) {
                 if( oRow.Line == oLine ) {
-                    RowUpdate( oRow );
+                    RowMeasure( oRow );
                 }
             }
         }
@@ -715,7 +795,7 @@ namespace Play.Edit {
 
         public void UpdateAllRows() {
             foreach( CacheRow oRow in _rgOldCache ) {
-                RowUpdate( oRow );
+                RowMeasure( oRow );
             }
         }
 
@@ -726,7 +806,7 @@ namespace Play.Edit {
         public void UpdateRow( Row oDocRow ) {
             foreach( CacheRow oCacheRow in _rgOldCache ) {
                 if( oCacheRow.At == oDocRow.At ) {
-                    RowUpdate( oCacheRow );
+                    RowMeasure( oCacheRow );
                 }
             }
         }

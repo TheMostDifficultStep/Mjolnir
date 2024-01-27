@@ -1230,7 +1230,8 @@ namespace Play.Edit {
             // BUG: Hacky business for setting our scroll bar height. I can do better.
             float flMultiplyer  = (float)_oCacheMan.TextRect[SCALAR.HEIGHT] / iLocalHeight;
             if( _oCacheMan.Count > 0 )
-                _oScrollBarVirt.Refresh( TextShowing( iCharCount ) * flMultiplyer, TextShowing( iStreamOffset ) );
+                _oScrollBarVirt.Refresh( TextShowing( iCharCount ) * flMultiplyer, 
+                                         TextShowing( iStreamOffset ) );
         }
 
         private float TextShowing( int iCount ) {
