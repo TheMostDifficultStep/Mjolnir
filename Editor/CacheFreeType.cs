@@ -141,6 +141,18 @@ namespace Play.Edit {
         // the cache system.
         public List<FTCacheLine> CacheList { get; } = new List<FTCacheLine> ();
 
+        public override string ToString() {
+            StringBuilder sbBuilder = new();
+            
+            sbBuilder.Append( "at " );
+            sbBuilder.Append( At );
+            sbBuilder.Append( " top " );
+            sbBuilder.Append( Top );
+            sbBuilder.Append( " bot " );
+            sbBuilder.Append( Bottom );
+
+            return sbBuilder.ToString();
+        }
         /// <summary>
         /// TODO: Little bit of a bummer it is calculated every time. We might be able
         /// to cache this value after OnSizeChanged is calculated on the row...

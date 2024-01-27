@@ -219,6 +219,15 @@ namespace Play.Edit {
         public int   CharOffset  => _iOffset;
         public float Advance     => _flAdvance;
 
+        protected override void Dispose( bool disposing ) {
+            if( disposing ) {
+                //_oDocument.CaretRemove( CaretPos );
+                _oScrollBarVirt.Scroll -= OnScrollBar; 
+            }
+
+            base.Dispose(disposing);
+        }
+
         protected void LogError( string strMessage, bool fShow = false ) {
             _oSiteView.LogError( "Multi Column Window", strMessage, fShow );
         }
@@ -286,12 +295,19 @@ namespace Play.Edit {
             return true;
         }
 
-        public virtual bool Initialize() {
+        /// <summary>
+        /// Where we really initialize.
+        /// </summary>
+        /// <seealso cref="InitNew"/>
+        /// <seealso cref="Load"/>
+        protected virtual bool Initialize() {
             if( _oSiteView.Host is Control oParent ) {
                 this.Parent = oParent;
             }
 
-            _oScrollBarVirt.Parent = this;
+            _oScrollBarVirt.Parent  = this;
+            _oScrollBarVirt.Visible = true;
+            _oScrollBarVirt.Scroll += OnScrollBar; 
 
             return true;
         }
@@ -316,13 +332,11 @@ namespace Play.Edit {
 
         public void OnRowEvent(BUFFEREVENTS eEvent, Row oRow) {
             _oCacheMan.UpdateRow( oRow ); // Actually, only need to invalidate... hmmm.
-            _oCacheMan.Refresh( RefreshType.COMPLEX );
-            Invalidate();
+            _oCacheMan.LukeCacheWalker( RefreshNeighborhood.SCROLL );
         }
 
         public void OnRowEvent(BUFFEREVENTS eEvent) {
-            _oCacheMan.Refresh( RefreshType.COMPLEX );
-            Invalidate();
+            _oCacheMan.LukeCacheWalker( RefreshNeighborhood.SCROLL );
         }
 
         public class SimpleRange :
@@ -365,7 +379,7 @@ namespace Play.Edit {
             _oCacheMan.TextRect.Height = Height;
 
             _oCacheMan.OnChangeSize();
-            _oCacheMan.Refresh( RefreshType.COMPLEX );
+            _oCacheMan.LukeCacheWalker( RefreshNeighborhood.SCROLL );
         }
 
         /// <summary>
@@ -412,12 +426,14 @@ namespace Play.Edit {
                 }
             }
         }
+
+        /// <remarks>
+        /// Used to do a simple refresh before painting, but no longer... O.o
+        /// </remarks>
         protected override void OnPaintSurface(SKPaintSurfaceEventArgs e) {
             base.OnPaintSurface(e);
 
             try {
-                _oCacheMan.Refresh( RefreshType.SIMPLE, RefreshNeighborhood.CARET );
-
                 SKSurface skSurface = e.Surface;
                 SKCanvas  skCanvas  = skSurface.Canvas;
 
@@ -464,6 +480,46 @@ namespace Play.Edit {
             base.OnMouseWheel(e);
 
             _oCacheMan.OnMouseWheel( e.Delta );
+        }
+
+        /// <summary>
+        /// Event handler for the vertical or horizontal scroll bar.
+        /// </summary>
+        void OnScrollBar( ScrollEvents e ) {
+            switch( e ) {
+                case ScrollEvents.ThumbPosition:
+                case ScrollEvents.ThumbTrack:
+                    break;
+                default:
+                    _oCacheMan.OnScrollBar_Vertical( e );
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// Note: The difference between scroll bar scrolling and Page-Up/Down scrolling is a
+        /// usability issue. We keep the caret on screen when we use the keyboard.
+        /// </summary>
+        protected override void OnKeyDown(KeyEventArgs e) {
+            if( IsDisposed )
+                return;
+
+            //base.OnKeyDown( e ); // Not sure this is really needed for the control beneath. Probably bad actually.
+            
+            e.Handled = true;
+
+            switch( e.KeyCode ) {
+                case Keys.PageDown:
+                    _oCacheMan.OnScrollBar_Vertical( ScrollEvents.LargeIncrement );
+                    break;
+                case Keys.PageUp:
+                    _oCacheMan.OnScrollBar_Vertical( ScrollEvents.LargeDecrement );
+                    break;
+                case Keys.Down:
+                    break;
+                case Keys.Up:
+                    break;
+            }
         }
     }
 }

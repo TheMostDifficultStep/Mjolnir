@@ -96,12 +96,6 @@ namespace Play.Edit {
         }
 
         /// <summary>
-        /// Going to have to be ultra careful before enabling this. Up to now we've assumed 1 space
-        /// between lines and line height given by the font.
-        /// </summary>
-        public int LineSpacing { get; set; } = 1;
-
-        /// <summary>
         /// Count of number of CacheRow objects inside the manager.
         /// </summary>
         public int Count {
@@ -115,12 +109,16 @@ namespace Play.Edit {
         public void OnMouseWheel( int iDelta ) {
             int iTop = _rgOldCache[0].Top + ( 4 * iDelta / LineHeight );
 
+            Scroll( iTop );
+        }
+
+        protected void Scroll( int iTop ) {
             foreach( CacheRow oCacheRow in _rgOldCache ) {
                 oCacheRow.Top = iTop;
                 iTop += oCacheRow.Height;
             }
 
-            LukeCacheWalker();
+            LukeCacheWalker( RefreshNeighborhood.SCROLL );
 
             _oSite.OnRefreshComplete();
         }
@@ -132,14 +130,28 @@ namespace Play.Edit {
         /// </summary>
         /// <param name="oCacheRow">CRow with top & bottom set.</param>
         protected int ClippedHeight( CacheRow oCacheRow ) {
-            int iHeight = oCacheRow.Height + RowSpacing;
+            // Above the visible portion.
+            if( oCacheRow.Bottom < 0 )
+                return 0;
 
-            if( oCacheRow.Top < 0 ) {
-                iHeight += oCacheRow.Top;
-            }
-            if( oCacheRow.Bottom > _oTextRect[SCALAR.HEIGHT] ) {
-                iHeight += ( _oTextRect[SCALAR.HEIGHT] - oCacheRow.Bottom );
-            }
+            // Below the visible portion.
+            if( oCacheRow.Top > _oTextRect.Height )
+                return 0;
+
+            int iTop = oCacheRow.Top;
+            int iBot = oCacheRow.Bottom;
+
+            // Top is peaking over the visible portion with bottom inside or below.
+            if( oCacheRow.Top < 0 ) 
+                iTop = 0;
+
+            if( oCacheRow.Bottom > _oTextRect.Height )
+                iBot = _oTextRect.Height;
+
+            int iHeight = iBot - iTop + 1;
+
+            if( iHeight < 0 )
+                return 0;
 
             return iHeight;
         }
@@ -170,28 +182,31 @@ namespace Play.Edit {
         /// New code for re-building the cache. It only needs two passes, versus
         /// the three that the previous walker needed. It should be usable for
         /// complex edit's as well.
+        /// Calls OnRefreshComplete() on the site when finished.
         /// </summary>
-        public void LukeCacheWalker() {
+        public void LukeCacheWalker( RefreshNeighborhood eIfRefresh ) {
             CacheRow oSeedRow = null;
 
             if( _rgOldCache.Count > 0 ) {
-                oSeedRow = _rgOldCache[0];
-                foreach( CacheRow oCacheRow in _rgOldCache ) {
-                    if( ClippedHeight( oCacheRow ) > 0 && oCacheRow.At >= 0 ) {
-                        if( oCacheRow.Top < oSeedRow.Top )
-                            oSeedRow = oCacheRow;
+                int iTop = _oTextRect.Height;
+                foreach( CacheRow oTestRow in _rgOldCache ) {
+                    if( ClippedHeight( oTestRow ) > 0 && oTestRow.At >= 0 ) {
+                        if( oTestRow.Top < iTop ) {
+                            oSeedRow = oTestRow;
+                            iTop     = oTestRow.Top;
+                        }
                     }
                 }
             }
             if( oSeedRow == null )
-                oSeedRow = CacheReset( RefreshNeighborhood.SCROLL ); 
+                oSeedRow = CacheReset( eIfRefresh ); 
 
             _rgNewCache.Clear();
             _rgNewCache.Add( oSeedRow );
 
             // First go up from the seed.
             CacheRow oPrevCache = oSeedRow;
-            while( oPrevCache.Top < 0 ) {
+            while( oPrevCache.Top > 0 ) {
                 CacheRow oNewCache = GetACacheRow( oPrevCache.At - 1 );
                 if( oNewCache == null )
                     break;
@@ -224,39 +239,38 @@ namespace Play.Edit {
             _rgOldCache.Clear();
             _rgOldCache.AddRange( _rgNewCache );
             _rgNewCache.Clear();
+
+            _oSite.OnRefreshComplete();
         }
 
+        /// <summary>
+        /// Visual Studio editor moves the caret too. But if we scroll with the
+        /// mouse or scroll bar they don't move the caret... hmmm...
+        /// </summary>
+        /// <param name="e"></param>
         public void OnScrollBar_Vertical( ScrollEvents e ) {
-            int iHeight       = _oTextRect[ SCALAR.HEIGHT ];
-            int iTopOld       = _oTextRect[ SCALAR.TOP    ];
-            int iSafetyMargin = 10; // Probably should be some % of font height.
-
             switch( e ) {
                 // These events move incrementally from where we were.
                 case ScrollEvents.LargeDecrement:
-                    _oTextRect.SetScalar(SET.RIGID, SCALAR.TOP, iTopOld - iHeight - iSafetyMargin );
+                    Scroll( (int)(.80 * _oTextRect.Height ) );
                     break; 
-                case ScrollEvents.SmallDecrement:
-                    _oTextRect.SetScalar(SET.RIGID, SCALAR.TOP, iTopOld - LineHeight );
-                    break;
                 case ScrollEvents.LargeIncrement:
-                    _oTextRect.SetScalar(SET.RIGID, SCALAR.TOP, iTopOld + iHeight - iSafetyMargin );
+                    Scroll( (int)(.80 * - _oTextRect.Height ) );
+                    break;
+                case ScrollEvents.SmallDecrement:
+                    Scroll( LineHeight );
                     break;
                 case ScrollEvents.SmallIncrement:
-                    _oTextRect.SetScalar(SET.RIGID, SCALAR.TOP, iTopOld + LineHeight );
+                    Scroll( -LineHeight );
                     break;
 
                 // We can potentialy render less until this final end scroll comes in.
                 case ScrollEvents.EndScroll:
                     break;
 
-                // These events reset the coordinate system. NOTE: Scroll reset does this too. Probably redundant.
                 case ScrollEvents.First:
-                    _oTextRect.SetScalar(SET.RIGID, SCALAR.TOP, 0 );
                     break;
                 case ScrollEvents.Last:
-                    // TODO: Probably dangerous setting MaxValue. I could simply move it past the last screen full.
-                    _oTextRect.SetScalar(SET.RIGID, SCALAR.BOTTOM, int.MaxValue - iHeight );
                     break;
                 case ScrollEvents.ThumbPosition:
                     break;
@@ -271,6 +285,7 @@ namespace Play.Edit {
         /// The buffer rectangle is reset so it's top is zero and the top of the new cache
         /// element is zero. Old cache is untouched and will need to be cleared.
         /// </summary>
+        /// <seealso cref="PreCache(Row)"/>
         protected CacheRow CacheReset( RefreshNeighborhood eNeighborhood ) {
             // I think 0 is fine since we can go negative no problem.
             _oTextRect.SetPoint(SET.RIGID, LOCUS.UPPERLEFT, 0, 0 );
@@ -311,157 +326,6 @@ namespace Play.Edit {
         }
 
         /// <summary>
-        /// Simply trying to find the topmost cache element we can use. No need to be sorted.
-        /// If the cache is missing lines (insert for example) we won't notice.
-        /// Deleted lines are removed from the cache the minute they are deleted. 
-        /// </summary>
-        /// <returns>Highest previously cached element that looks valid.</returns>
-        protected CacheRow FindLeast()
-        {
-            if( _rgOldCache.Count == 0 )
-                return( null );
-
-            // Find the closest valid line to the top of the TextRect.
-            CacheRow oLeast   = null;
-            int      iMinDist = int.MaxValue;
-
-            for( int iRow = 0; iRow < _rgOldCache.Count; ++iRow ) {
-                CacheRow oCurrLine = _rgOldCache[iRow];
-                // If the element overlaps the textrect or is inside, use it. Might be
-                // nice to add a check if the line is still in the buffer or has been deleted.
-                if( oCurrLine.Top    <= TextRect[SCALAR.BOTTOM] + LineHeight * 2 &&
-                    oCurrLine.Bottom >= TextRect[SCALAR.TOP   ] - LineHeight * 2 ) 
-                { 
-                    // Is element's top closest to the top of the textrect.
-                    int iDistance = Math.Abs( oCurrLine.Top - TextRect[SCALAR.TOP] );
-                    if( iDistance < iMinDist ) {
-                        oLeast   = oCurrLine;
-                        iMinDist = iDistance;
-                    }
-                    // Is element's bottom closest to the top of the textrect.
-                    iDistance = Math.Abs( oCurrLine.Bottom - TextRect[SCALAR.TOP] );
-                    if( iDistance < iMinDist ) {
-                        oLeast   = oCurrLine;
-                        iMinDist = iDistance;
-                    }
-                }
-            }
-
-            return( oLeast );
-        }
-
-        /// <summary>
-        /// Find the next line after the line pointed to by the current cache element.
-        /// Use an old element or create a new element and stack in the given direction.
-        /// </summary>
-        /// <param name="oCacheRow">Element where we are building up the cache from.</param>
-        /// <param name="iDir">Which direction to try.</param>
-        /// <returns>New or recycled cache element stacked above or below previous.</returns>
-        protected CacheRow RefreshNext( CacheRow oCacheRow, int iDir ) {
-            if( oCacheRow == null )
-                return( null );
-
-            CacheRow oPrev = oCacheRow;
-            int      iLine = oCacheRow.At + iDir;
-
-            // See if we already the line computations. Given the old cache is sorted by
-            // line I could potentially do a b-search. This find is a linear operation.
-            oCacheRow = _rgOldCache.Find( item => item.At == iLine );
-            if( oCacheRow == null ) { // If can't find matching elem, create it.
-                Row oDocRow = _oSite.GetRowAtIndex(iLine);
-
-                // If we reach the top or bottom, the next line is going to be null.
-                if( oDocRow == null ) {
-                    return( null );
-                }
-
-                oCacheRow = CreateRow( oDocRow );
-            }
-
-            if( oCacheRow != null ) {
-                if( oCacheRow.IsInvalid ) {
-                    RowMeasure( oCacheRow );
-                }
-                if( iDir < 0 ) {
-                    oCacheRow.Top = oPrev.Top - oCacheRow.Height - LineSpacing;
-                } else {
-                    oCacheRow.Top = oPrev.Bottom + LineSpacing;
-                }
-            }
-
-            return( oCacheRow );
-        }
-        
-        /// <summary>
-        /// Find new gaps and create new cache elements for them.
-        /// Note: Can't search for the line with the binary search since we're thrashing the order of the cache.
-        /// </summary>
-        /// <returns>True if the cache has any elements.</returns>
-        protected bool CacheRefresh( CacheRow oTop ) {
-            if( oTop == null ) {
-                _oSite.LogError( "view cache", "Unable to find least or reseed new cache! We're hosed!" );
-                return false;
-            }
-
-            if( oTop.IsInvalid ) {
-                RowMeasure( oTop );
-            }
-
-            List<CacheRow> rgNewCache = new List<CacheRow> {
-                oTop // Stick our seed in the new cache.
-            };
-
-            CacheRow oRow = oTop; // Current starting point.
-
-            // Build downwards towards larger line numbers.
-            while( oRow != null && oRow.Bottom < TextRect[SCALAR.BOTTOM] ) {
-                CacheRow oPrev = oRow;
-                oRow = RefreshNext( oRow, +1 );
-                if( oRow == null ) {
-                    // We're at the bottom, Re-shift the rect bottom to match bottom line so we don't have gap.
-                    // This way we don't keep scrolling elements forever out of view.
-                    //TextRect.SetScalar(SET.RIGID, SCALAR.BOTTOM, oPrev.Bottom );
-                } else {
-                    rgNewCache.Add( oRow );
-                }
-            };
-
-            CacheRow oBottom = oRow; // Last downward element we saved.
-            oRow = oTop;
-
-            // Build upwards towards smaller line numbers.
-            while( oRow != null && oRow.Top > TextRect[SCALAR.TOP ] ) {
-                CacheRow oPrev = oRow;
-                oRow = RefreshNext( oRow, -1 );
-                if( oRow == null ) {
-                    // We're at the top. Re-shift the rect top to match top line so we don't have a gap.
-                    // this way we don't keep scrolling elements forever out of view.
-                    //TextRect.SetScalar(SET.RIGID, SCALAR.TOP, oPrev.Top );
-                } else {
-                    rgNewCache.Add( oRow );
-                }
-            }
-
-            oRow = oBottom;
-
-            // Go down one last time in case the rect was moved up by the upward building loop. That
-            // would create a gap that the downward builder didn't know about.
-            while( oRow != null && oRow.Bottom < TextRect[SCALAR.BOTTOM] ) {
-                CacheRow oPrev = oRow;
-                oRow = RefreshNext( oRow, +1 );
-                if( oRow != null ) {
-                    rgNewCache.Add( oRow );
-                }
-            };
-            
-			// Sort by line order in case we forget the array order isn't always the window position order.
-           _rgOldCache = rgNewCache;
-           _rgOldCache.Sort( (x, y) => x.At - y.At ); 
-
-            return _rgOldCache.Count != 0;
-        } // end method
-
-        /// <summary>
         /// For now the main text area is our primary editing zone. The rest won't
         /// be editable for now.
         /// </summary>
@@ -493,7 +357,7 @@ namespace Play.Edit {
         /// Simply update invalid elements and restack. Use this when simply editing within one line.
 		/// We redo the elem.top in case a line grows in height.
         /// </summary>
-        protected void CacheValidate() {
+        protected void Validate() {
 			try {
 				CacheRow oPrev = null;
 				foreach( CacheRow oRow in _rgOldCache ) {
@@ -502,7 +366,7 @@ namespace Play.Edit {
 
 					// NOTE: if the elements aren't stacked in line order, we've got a problem.
 					if( oPrev != null )
-						oRow.Top = oPrev.Bottom + LineSpacing; // BUG: this looks wrong...
+						oRow.Top = oPrev.Bottom + RowSpacing; // BUG: this looks wrong...
 
 					oPrev = oRow;
 				}
@@ -517,7 +381,8 @@ namespace Play.Edit {
 			}
         }
 
-        /// <summary>Invalidate ALL window cash elements.</summary>
+        /// <summary>Invalidate ALL window cash elements. probably the same code
+        /// as OnChangeSize. Might unify if possible...</summary>
         /// <remarks>
         /// Sort of odd. I found out that on the OnMultiFinished is not marking the lines
         /// as invalid, even tho the implication is that everthing is updated. Probably
@@ -525,6 +390,7 @@ namespace Play.Edit {
         /// the new BBC basic line renumber, none of that is used. (at present 7/9/2023)
         /// </remarks>
         /// <seealso cref="EditWindow2.OnMultiFinished"/>
+        /// <seealso cref="OnChangeSize"/>
         public void Invalidate() {
             foreach( CacheRow oRow in this ) {
                 foreach( FTCacheLine oElem in oRow.CacheList ) {
@@ -532,45 +398,6 @@ namespace Play.Edit {
                 }
             }
         }
-
-        /// <summary>
-        /// Call this function when the user has scrolled or resized the screen.
-        /// Or lines got inserted or deleted from the document. 
-        /// Note: At present, we don't really know when a cut or paste has occured. This is kind of a drag.
-        /// </summary>
-        public void Refresh( 
-            RefreshType         eReset,
-            RefreshNeighborhood eNeighborhood = RefreshNeighborhood.CARET
-        ) {
-            // Sort cache by line number so we can possibly b-search. I know, it's line number dependency.
-            // Of course, finding holes is going to depend on the document lines getting renumberd
-            // before our call.
-            _rgOldCache.Sort( (x, y) => x.At - y.At ); 
-
-            CacheRow oStart = null;
-
-            switch( eReset ) {
-                case RefreshType.RESET:
-                    oStart = CacheReset( eNeighborhood );
-                    break;
-                case RefreshType.COMPLEX:
-                    oStart = FindLeast();
-                    break;
-                case RefreshType.SIMPLE:
-                    CacheValidate();
-                    return;
-            }
-
-            // Couldn't find anything fall back to scroll pos! This can happen if lines are deleted.
-            if( oStart == null ) {
-                oStart = CacheReset( RefreshNeighborhood.SCROLL );
-            }
-            if( oStart != null ) {
-                CacheRefresh( oStart );
-            }
-
-            _oSite.OnRefreshComplete();
-        } // end method
 
         /// <summary>
         /// Create a cached line element. There are a lot of dependencies on stuff in this object
@@ -616,7 +443,7 @@ namespace Play.Edit {
         /// one line. Or perhaps better, simply make sure I've got a cached elem
         /// above and/or below the view port at all times.
         /// </summary>
-        public CacheRow PreCache( Row oNextRow ) {
+        [Obsolete]public CacheRow PreCache( Row oNextRow ) {
             // Check if the given edit is in the cache.
             foreach( CacheRow oTemp in _rgOldCache ) {
                 if( oTemp.At == oNextRow.At )
@@ -633,11 +460,11 @@ namespace Play.Edit {
             // Also assumes Line.At implies order in the buffer.
             foreach( CacheRow oTemp in _rgOldCache ) {
                 if( oTemp.At == oRow.At + 1 ) { // Is the cache elem above?
-                    oRow.Bottom = oTemp.Top - LineSpacing;
+                    oRow.Bottom = oTemp.Top - RowSpacing;
                     break;
                 }
                 if( oTemp.At == oRow.At - 1 ) { // Is the cache elem below?
-                    oRow.Top    = oTemp.Bottom + LineSpacing;
+                    oRow.Top    = oTemp.Bottom + RowSpacing;
                     break;
                 }
             }
@@ -874,20 +701,11 @@ namespace Play.Edit {
         /// already calculated.</remarks>
         /// <param name="rgSize">The new size of the rectangle.</param>
         public void OnChangeSize() {
-            // We've got to make sure we're sorted properly so we don't scramble the screen
-            // when aligning. Sort by line is self healing but makes us dependant on line number.
-            // But Sort by Top obviates that line# dependancy. Since Refresh() is self healing
-            // I'm going with sort by Top here, so I can try to remove my line number dependancy
-            // in all of the manager. NOTE: Using overload for Comparisson<T> not IComparer.
-            _rgOldCache.Sort( (x, y) => x.Top.CompareTo( y.Top ) ); 
-
             if( _rgOldCache.Count == 0 )
                 return;
 
             try {
-                // The height of the elements might change because of the width change
-                // and so the following siblings need to have their top's reset!
-                int iTop = _rgOldCache[0].Top;
+                // Let the existing items remeasure.
                 foreach( CacheRow oRow in this ) {
                     for( int i=0; i< _rgCacheMap.Count; ++i ) {
                         SmartRect   oColumn = _rgCacheMap[i];
@@ -895,10 +713,9 @@ namespace Play.Edit {
 
                         oCache.OnChangeSize( oColumn.Width );
                     }
-
-                    oRow.Top = iTop;
-                    iTop     = oRow.Bottom + LineSpacing; // Aligning.
                 }
+                // Call this in case we need to add new rows...
+                LukeCacheWalker( RefreshNeighborhood.SCROLL );
             } catch( Exception oEx ) {
                 // if the _rgCacheMap and the oRow.CacheList don't match
                 // we might walk of the end of one or the other.
