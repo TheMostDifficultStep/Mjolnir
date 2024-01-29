@@ -10,7 +10,7 @@ using SkiaSharp.Views.Desktop;
 using Play.Interfaces.Embedding;
 using Play.Rectangles;
 using Play.Controls;
-using System.Drawing;
+using System.Net;
 
 namespace Play.Edit {
     public interface IPgDocTraits<T> {
@@ -156,10 +156,24 @@ namespace Play.Edit {
 				}
             }
 
-            public void OnRefreshComplete() {
-				//_oHost.ScrollBarRefresh();
+            public void OnRefreshComplete( Row oRowBottom, int iRowCount ) {
 				//_oHost.CaretIconRefreshLocation();
 
+                try {
+                    if( oRowBottom != null ) {
+                        _oHost._oScrollBarVirt.Refresh( 
+                            iRowCount     / (float)_oHost._oDocList.ElementCount,
+                            oRowBottom.At / (float)_oHost._oDocList.ElementCount 
+                        );
+                    }
+                } catch( Exception oEx ) {
+                    Type[] rgErrors = { typeof( NullReferenceException ),
+                                        typeof( ArithmeticException ) };
+                    if( rgErrors.IsUnhandled( oEx ) )
+                        throw;
+
+                    _oHost.LogError( "Problem Updating Window Scrollbar." );
+                }
 				_oHost.Invalidate();
             }
         }
@@ -373,13 +387,11 @@ namespace Play.Edit {
             _rgLayout.SetRect( 0, 0, Width, Height );
 			_rgLayout.LayoutChildren();
 
-            // this is actually the active scroll region of the
-            // layout (minus the scrollbar). This will work for now.
-            _oCacheMan.TextRect.Width  = Width;
-            _oCacheMan.TextRect.Height = Height;
+            // It should be possible to place the cacheman anywhere within
+            // a sub region of the screen. But don't do that ^_^;;
+            _oCacheMan.TextRect.SetRect( 0, 0, Width, Height );
 
             _oCacheMan.OnChangeSize();
-            _oCacheMan.LukeCacheWalker( RefreshNeighborhood.SCROLL );
         }
 
         /// <summary>

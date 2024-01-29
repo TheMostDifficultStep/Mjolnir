@@ -197,6 +197,8 @@ namespace Play.Edit {
 
         public override int At => _oDocRow.At;
 
+        public virtual Row DataRow => _oDocRow;
+
         public CacheRow2( Row oDocRow ) {
             _oDocRow = oDocRow ?? throw new ArgumentNullException( nameof( oDocRow ) );
         }

@@ -46,7 +46,7 @@ namespace Play.Edit {
     {
         Row            GetRowAtHood( RefreshNeighborhood eHood );
         Row            GetRowAtIndex( int iIndex );
-        void           OnRefreshComplete();
+        void           OnRefreshComplete( Row oRowBottom, int iRowCount );
 
         //ICollection<ILineSelection> Selections{ get; }
     }
@@ -119,8 +119,6 @@ namespace Play.Edit {
             }
 
             LukeCacheWalker( RefreshNeighborhood.SCROLL );
-
-            _oSite.OnRefreshComplete();
         }
 
         /// <summary>
@@ -288,7 +286,12 @@ namespace Play.Edit {
             _rgOldCache.AddRange( _rgNewCache );
             _rgNewCache.Clear();
 
-            _oSite.OnRefreshComplete();
+            Row oLastDRow = null;
+
+            if( oLastCache is CacheRow2 oLastCache2 )
+                oLastDRow = oLastCache2.DataRow;
+
+            _oSite.OnRefreshComplete( oLastDRow, _rgOldCache.Count );
         }
 
         /// <summary>
