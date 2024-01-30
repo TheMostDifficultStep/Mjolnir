@@ -84,7 +84,7 @@ namespace Play.Edit {
             /// Tiny safety check.
             /// </summary>
             int CheckBound( int iRow ) {
-                if( iRow > _oHost._oDocList.ElementCount )
+                if( iRow >= _oHost._oDocList.ElementCount )
                     iRow = _oHost._oDocList.ElementCount - 1;
 
                 if( iRow < 0 ) // If elem count zero, above will give -1;
