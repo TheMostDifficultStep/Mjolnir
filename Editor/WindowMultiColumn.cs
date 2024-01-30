@@ -93,42 +93,27 @@ namespace Play.Edit {
                 return iRow;
             }
 
-			protected void NeighborhoodOfScroll( out Row oRow ) {
-				try {
-					int iRow = (int)(_oHost._oDocList.ElementCount * _oHost._oScrollBarVirt.Progress);
-
-					oRow = _oHost._oDocList[CheckBound(iRow)];
-				} catch ( Exception oEx ) {
-                    if( _rgErrors.IsUnhandled( oEx ) )
-                        throw;
-                    oRow = null;
-					LogError( "Multi Column Scrolling Problem", "Problem determining NeighborhoodOfScroll" );
-				}
-			}
-
-			protected void NeighborhoodOfCaret( out Row oLine ) {
-				try {
-					oLine = _oHost._oDocList[ CheckBound( _oHost.At ) ];
-				} catch( Exception oEx ) {
-                    if( _rgErrors.IsUnhandled( oEx ) )
-                        throw;
-
-					oLine = null;
-					LogError( "Multi Column Scrolling Problem", "I crashed while trying to use the caret. You are at the start of the document." );
-				}
-			}
-
             public Row GetRowAtHood(RefreshNeighborhood eHood) {
 				Row oRow = null;
 
-				switch( eHood ) {
-					case RefreshNeighborhood.SCROLL:
-						NeighborhoodOfScroll( out oRow );
-						break;
-					case RefreshNeighborhood.CARET:
-						NeighborhoodOfCaret( out oRow );
-						break;
-				}
+                try {
+				    switch( eHood ) {
+					    case RefreshNeighborhood.SCROLL:
+					        int iRow = (int)(_oHost._oDocList.ElementCount * _oHost._oScrollBarVirt.Progress);
+
+					        oRow = _oHost._oDocList[CheckBound(iRow)];
+						    break;
+					    case RefreshNeighborhood.CARET:
+						    oRow = _oHost._oDocList[ CheckBound( _oHost.At ) ];
+						    break;
+				    }
+                } catch( Exception oEx ) {
+                    if( _rgErrors.IsUnhandled( oEx ) )
+                        throw;
+
+					oRow = null;
+					LogError( "Multi Column Scrolling Problem", "I crashed while trying to use the caret. You are at the start of the document." );
+                }
 
                 return oRow;
             }
