@@ -109,16 +109,25 @@ namespace Play.Edit {
         public void OnMouseWheel( int iDelta ) {
             int iTop = _rgOldCache[0].Top + ( 4 * iDelta / LineHeight );
 
-            Scroll( iTop );
+            CacheScroll( iTop );
         }
 
-        protected void Scroll( int iTop ) {
+        protected void CacheScroll( int iTop ) {
             foreach( CacheRow oCacheRow in _rgOldCache ) {
                 oCacheRow.Top = iTop;
                 iTop += oCacheRow.Height;
             }
 
-            LukeCacheWalker( RefreshNeighborhood.SCROLL );
+            CacheRow oSeedCache = FindTop();
+
+            if( oSeedCache == null )
+                oSeedCache = CacheReset( RefreshNeighborhood.SCROLL );
+
+            LukeCacheWalker( oSeedCache );
+        }
+
+        public void CacheResetFromThumb() {
+            LukeCacheWalker( CacheReset( RefreshNeighborhood.SCROLL ) );
         }
 
         /// <summary>
@@ -192,25 +201,6 @@ namespace Play.Edit {
             }
         }
 
-        /// <summary>
-        /// Restack from the bottom up! Not using this yet. But maybe...
-        /// </summary>
-        protected void RestackNewCacheFromBot() {
-            if( _rgNewCache.Count < 1 )
-                return;
-
-            CacheRow oPrevRow = _rgNewCache[_rgNewCache.Count - 1];
-
-            oPrevRow.Top = _oTextRect.Height - oPrevRow.Height;
-
-            for( int i=_rgNewCache.Count - 2; i >= 0; i-- ) {
-                CacheRow oNextRow = _rgNewCache[i];
-
-                oNextRow.Top = oPrevRow.Top - oNextRow.Height - RowSpacing;
-                oPrevRow = oNextRow;
-            }
-        }
-
         public CacheRow FindTop() {
             CacheRow oSeedCache = null;
             if( _rgOldCache.Count > 0 ) {
@@ -237,11 +227,11 @@ namespace Play.Edit {
         /// visible area, the outside part DOES NOT contribute. That's why
         /// we check the clipped height!!</remarks>
         /// <seealso cref="ICacheManSite.OnRefreshComplete"/>
-        public void LukeCacheWalker( RefreshNeighborhood eIfRefresh ) {
-            CacheRow oSeedCache = FindTop();
-
-            if( oSeedCache == null )
-                oSeedCache = CacheReset( eIfRefresh ); 
+        public void LukeCacheWalker( CacheRow oSeedCache ) {
+            if( oSeedCache == null ) {
+                LogError( "Cache construction error" );
+                return;
+            }
 
             _rgNewCache.Clear();
             _rgNewCache.Add( oSeedCache );
@@ -303,29 +293,25 @@ namespace Play.Edit {
             switch( e ) {
                 // These events move incrementally from where we were.
                 case ScrollEvents.LargeDecrement:
-                    Scroll( (int)(.80 * _oTextRect.Height ) );
+                    CacheScroll( (int)(.80 * _oTextRect.Height ) );
                     break; 
                 case ScrollEvents.LargeIncrement:
-                    Scroll( (int)(.80 * - _oTextRect.Height ) );
+                    CacheScroll( (int)(.80 * - _oTextRect.Height ) );
                     break;
                 case ScrollEvents.SmallDecrement:
-                    Scroll( LineHeight );
+                    CacheScroll( LineHeight );
                     break;
                 case ScrollEvents.SmallIncrement:
-                    Scroll( -LineHeight );
+                    CacheScroll( -LineHeight );
                     break;
 
                 // We can potentialy render less until this final end scroll comes in.
                 case ScrollEvents.EndScroll:
-                    break;
-
                 case ScrollEvents.First:
-                    break;
                 case ScrollEvents.Last:
-                    break;
                 case ScrollEvents.ThumbPosition:
-                    break;
                 case ScrollEvents.ThumbTrack:
+                    CacheResetFromThumb();
                     break;
             }
         }
@@ -337,10 +323,8 @@ namespace Play.Edit {
         /// element is zero. Old cache is untouched and will need to be cleared.
         /// </summary>
         /// <seealso cref="PreCache(Row)"/>
+        /// <seealso cref="RecycleCacheRow"/>
         protected CacheRow CacheReset( RefreshNeighborhood eNeighborhood ) {
-            // I think 0 is fine since we can go negative no problem.
-            _oTextRect.SetPoint(SET.RIGID, LOCUS.UPPERLEFT, 0, 0 );
-
             CacheRow oCacheRow = null;
 
             try {
@@ -766,7 +750,12 @@ namespace Play.Edit {
                     }
                 }
                 // Call this in case we need to add new rows...
-                LukeCacheWalker( RefreshNeighborhood.SCROLL );
+                CacheRow oSeedCache = FindTop();
+
+                if( oSeedCache == null )
+                    oSeedCache = CacheReset( RefreshNeighborhood.SCROLL );
+
+                LukeCacheWalker( oSeedCache );
             } catch( Exception oEx ) {
                 // if the _rgCacheMap and the oRow.CacheList don't match
                 // we might walk of the end of one or the other.

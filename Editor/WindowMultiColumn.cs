@@ -346,11 +346,11 @@ namespace Play.Edit {
 
         public void OnRowEvent(BUFFEREVENTS eEvent, Row oRow) {
             _oCacheMan.UpdateRow( oRow ); // Actually, only need to invalidate... hmmm.
-            _oCacheMan.LukeCacheWalker( RefreshNeighborhood.SCROLL );
+            _oCacheMan.CacheResetFromThumb();
         }
 
         public void OnRowEvent(BUFFEREVENTS eEvent) {
-            _oCacheMan.LukeCacheWalker( RefreshNeighborhood.SCROLL );
+            _oCacheMan.CacheResetFromThumb();
         }
 
         public class SimpleRange :
@@ -392,6 +392,8 @@ namespace Play.Edit {
             _oCacheMan.TextRect.SetRect( 0, 0, Width, Height );
 
             _oCacheMan.OnChangeSize();
+
+            Invalidate();
         }
 
         /// <summary>
@@ -498,14 +500,7 @@ namespace Play.Edit {
         /// Event handler for the vertical or horizontal scroll bar.
         /// </summary>
         void OnScrollBar( ScrollEvents e ) {
-            switch( e ) {
-                case ScrollEvents.ThumbPosition:
-                case ScrollEvents.ThumbTrack:
-                    break;
-                default:
-                    _oCacheMan.OnScrollBar_Vertical( e );
-                    break;
-            }
+            _oCacheMan.OnScrollBar_Vertical( e );
         }
 
         /// <summary>
