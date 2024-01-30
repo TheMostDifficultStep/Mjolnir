@@ -94,6 +94,9 @@ namespace Play.Edit {
             }
 
             public Row GetRowAtHood(RefreshNeighborhood eHood) {
+                if( _oHost._oDocList.ElementCount == 0 )
+                    return null;
+
 				Row oRow = null;
 
                 try {
@@ -101,7 +104,7 @@ namespace Play.Edit {
 					    case RefreshNeighborhood.SCROLL:
 					        int iRow = (int)(_oHost._oDocList.ElementCount * _oHost._oScrollBarVirt.Progress);
 
-					        oRow = _oHost._oDocList[CheckBound(iRow)];
+					        oRow = _oHost._oDocList[ CheckBound( iRow ) ];
 						    break;
 					    case RefreshNeighborhood.CARET:
 						    oRow = _oHost._oDocList[ CheckBound( _oHost.At ) ];
