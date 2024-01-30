@@ -387,13 +387,11 @@ namespace Play.Edit {
             _rgLayout.SetRect( 0, 0, Width, Height );
 			_rgLayout.LayoutChildren();
 
-            // It should be possible to place the cacheman anywhere within
-            // a sub region of the screen. But don't do that ^_^;;
+            // Almost ready to remove this. The TextRect is basically
+            // the window display intersecting the union of all the columns.
+            // Only the height really used. Columns come from layout.
             _oCacheMan.TextRect.SetRect( 0, 0, Width, Height );
-
             _oCacheMan.OnChangeSize();
-
-            Invalidate();
         }
 
         /// <summary>

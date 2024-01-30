@@ -123,11 +123,11 @@ namespace Play.Edit {
             if( oSeedCache == null )
                 oSeedCache = CacheReset( RefreshNeighborhood.SCROLL );
 
-            LukeCacheWalker( oSeedCache );
+            CacheWalker( oSeedCache, false );
         }
 
         public void CacheResetFromThumb() {
-            LukeCacheWalker( CacheReset( RefreshNeighborhood.SCROLL ) );
+            CacheWalker( CacheReset( RefreshNeighborhood.SCROLL ), false );
         }
 
         /// <summary>
@@ -164,12 +164,57 @@ namespace Play.Edit {
         }
 
         /// <summary>
+        /// This effectively resets the cache manager. We create a seed element
+        /// chosen by rough scroll position or cursor as specified by the neighborhood.
+        /// The buffer rectangle is reset so it's top is zero and the top of the new cache
+        /// element is zero. Old cache is untouched and will need to be cleared.
+        /// </summary>
+        /// <seealso cref="PreCache(Row)"/>
+        /// <seealso cref="CacheRecycle"/>
+        protected CacheRow CacheReset( RefreshNeighborhood eNeighborhood ) {
+            CacheRow oCacheRow = null;
+
+            try {
+		        // Ask our site for locating ourselves. Either based on our scroll
+		        // position or carat depending on how we were called.
+		        Row oDocRow = _oSite.GetRowAtHood( eNeighborhood );
+                if( oDocRow == null )
+                    return null;
+
+                oCacheRow = _rgOldCache.Find( item => item.At == oDocRow.At ); 
+
+                if( oCacheRow == null ) // If can't find matching elem, create it.
+                    oCacheRow = CreateRow( oDocRow );
+
+                RowMeasure( oCacheRow );
+
+                // Text rect is reset to UL => 0,0. Now set this element's top down a bit and build around it.
+                switch( eNeighborhood ) {
+                    case RefreshNeighborhood.CARET:
+                        oCacheRow.Top = LineHeight * 2; // Match the slop in RefreshCache() else new elem will be outside rect on first load() and get flushed!
+                        break;
+                    case RefreshNeighborhood.SCROLL:
+                        oCacheRow.Top = 0; // If this is bottom line. We'll accumulate backwards to fix up cache.
+                        break;
+                }
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( NullReferenceException ),
+                                    typeof( ArgumentNullException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
+            }
+
+            return oCacheRow;
+        }
+
+        /// <summary>
         /// Try to get a new row first from the existing old cache.
         /// If that fails, make a new CacheRow. Returns null if
         /// the data element is out of bounds of the document.
         /// </summary>
         /// <param name="iDataRow">Which data row we want to represent.</param>
-        protected CacheRow RecycleCacheRow( CacheRow oPrevCache, int iDir ) {
+        /// <seealso cref="CacheReset"/>
+        protected CacheRow CacheRecycle( CacheRow oPrevCache, int iDir, bool fRemeasure = false ) {
             Row oNextDRow = _oSite.GetRowAtIndex( oPrevCache.At + iDir );
 
             if( oNextDRow == null )
@@ -181,8 +226,10 @@ namespace Play.Edit {
             // If we're reusing a cache, it's already measured!! ^_^
             if( oNewCache == null ) {
                 oNewCache = CreateRow( _oSite.GetRowAtIndex( oNextDRow.At ) );
-                RowMeasure( oNewCache );
+                fRemeasure = true;
             }
+            if( fRemeasure ) 
+                RowMeasure( oNewCache );
 
             if( iDir > 0 )
                 oNewCache.Top = oPrevCache.Bottom + RowSpacing;
@@ -192,6 +239,12 @@ namespace Play.Edit {
             return oNewCache;
         }
 
+        /// <summary>
+        /// Right now we assume the cache managed part is basically
+        /// starting from the top of the available window. This doesn't
+        /// have to be and we could use the TextRect.Top as the starter.
+        /// We would have to update the CacheWalker too...
+        /// </summary>
         protected void RestackNewCacheFromTop() {
             int iTop = 0;
             foreach( CacheRow oCRow in _rgNewCache ) {
@@ -227,7 +280,7 @@ namespace Play.Edit {
         /// visible area, the outside part DOES NOT contribute. That's why
         /// we check the clipped height!!</remarks>
         /// <seealso cref="ICacheManSite.OnRefreshComplete"/>
-        public void LukeCacheWalker( CacheRow oSeedCache ) {
+        public void CacheWalker( CacheRow oSeedCache, bool fRemeasure ) {
             if( oSeedCache == null ) {
                 LogError( "Cache construction error" );
                 return;
@@ -236,39 +289,40 @@ namespace Play.Edit {
             _rgNewCache.Clear();
             _rgNewCache.Add( oSeedCache );
 
-            int      iDistance  = 0;
             CacheRow oFallCache = oSeedCache; // First go down.
-            while( oFallCache.Bottom < _oTextRect.Height ) {
-                CacheRow oNewCache = RecycleCacheRow( oFallCache, 1 );
-                if( oNewCache == null )
+            while( oFallCache.Bottom < _oTextRect.Bottom ) {
+                CacheRow oNewCache = CacheRecycle( oFallCache, 1, fRemeasure );
+                if( oNewCache == null ) {
+                    _oTextRect.SetScalar( SET.RIGID, SCALAR.BOTTOM, oFallCache.Bottom );
                     break;
+                }
 
-                iDistance  += ClippedHeight( oNewCache );
                 oFallCache  = oNewCache;
                 _rgNewCache.Add( oNewCache );
             }
             CacheRow oRiseCache = oSeedCache; // Then go up.
-            while( oRiseCache.Top > 0 ) { 
-                CacheRow oNewCache = RecycleCacheRow( oRiseCache, -1 );
-                if( oNewCache == null ) 
+            while( oRiseCache.Top > _oTextRect.Top ) { 
+                CacheRow oNewCache = CacheRecycle( oRiseCache, -1, fRemeasure );
+                if( oNewCache == null ) {
+                    _oTextRect.SetScalar( SET.RIGID, SCALAR.TOP, oRiseCache.Top );
                     break;
+                }
 
-                iDistance  += ClippedHeight( oNewCache );
                 oRiseCache  = oNewCache;
                 _rgNewCache.Insert( 0, oNewCache );
             }
             CacheRow oLastCache = oFallCache; // Then try down to finish filling.
-            while( iDistance < _oTextRect.Height ) { 
-                CacheRow oNewCache = RecycleCacheRow( oLastCache, 1 );
+            while( oLastCache.Bottom < _oTextRect.Bottom ) { 
+                CacheRow oNewCache = CacheRecycle( oLastCache, 1, fRemeasure );
                 if( oNewCache == null )
                     break;
 
-                iDistance += oNewCache.Height + RowSpacing;
                 oLastCache = oNewCache;
                 _rgNewCache.Add( oNewCache );
             }
 
-            if( oRiseCache.Top > 0 ) {
+            if( _oTextRect.Top != 0 ) {
+                _oTextRect.SetScalar( SET.RIGID, SCALAR.TOP, 0 );
                 RestackNewCacheFromTop();
             }
 
@@ -314,50 +368,6 @@ namespace Play.Edit {
                     CacheResetFromThumb();
                     break;
             }
-        }
-
-        /// <summary>
-        /// This effectively resets the cache manager. We create a seed element
-        /// chosen by rough scroll position or cursor as specified by the neighborhood.
-        /// The buffer rectangle is reset so it's top is zero and the top of the new cache
-        /// element is zero. Old cache is untouched and will need to be cleared.
-        /// </summary>
-        /// <seealso cref="PreCache(Row)"/>
-        /// <seealso cref="RecycleCacheRow"/>
-        protected CacheRow CacheReset( RefreshNeighborhood eNeighborhood ) {
-            CacheRow oCacheRow = null;
-
-            try {
-		        // Ask our site for locating ourselves. Either based on our scroll
-		        // position or carat depending on how we were called.
-		        Row oDocRow = _oSite.GetRowAtHood( eNeighborhood );
-                if( oDocRow == null )
-                    return null;
-
-                oCacheRow = _rgOldCache.Find( item => item.At == oDocRow.At ); 
-
-                if( oCacheRow == null ) // If can't find matching elem, create it.
-                    oCacheRow = CreateRow( oDocRow );
-
-                RowMeasure( oCacheRow );
-
-                // Text rect is reset to UL => 0,0. Now set this element's top down a bit and build around it.
-                switch( eNeighborhood ) {
-                    case RefreshNeighborhood.CARET:
-                        oCacheRow.Top = LineHeight * 2; // Match the slop in RefreshCache() else new elem will be outside rect on first load() and get flushed!
-                        break;
-                    case RefreshNeighborhood.SCROLL:
-                        oCacheRow.Top = 0; // If this is bottom line. We'll accumulate backwards to fix up cache.
-                        break;
-                }
-            } catch( Exception oEx ) {
-                Type[] rgErrors = { typeof( NullReferenceException ),
-                                    typeof( ArgumentNullException ) };
-                if( rgErrors.IsUnhandled( oEx ) )
-                    throw;
-            }
-
-            return oCacheRow;
         }
 
         /// <summary>
@@ -736,26 +746,17 @@ namespace Play.Edit {
         /// already calculated.</remarks>
         /// <param name="rgSize">The new size of the rectangle.</param>
         public void OnChangeSize() {
-            if( _rgOldCache.Count == 0 )
-                return;
-
             try {
-                // Let the existing items remeasure.
-                foreach( CacheRow oRow in this ) {
-                    for( int i=0; i< _rgCacheMap.Count; ++i ) {
-                        SmartRect   oColumn = _rgCacheMap[i];
-                        FTCacheLine oCache  = oRow.CacheList[i];
-
-                        oCache.OnChangeSize( oColumn.Width );
-                    }
-                }
-                // Call this in case we need to add new rows...
+                // If the height changed, our buffer is all messed up.
+                // There will be rows missing. And if the width changed
+                // the amount of rows show gets affected too.
+                // So on rebuild force a remeasure of ALL columns.
                 CacheRow oSeedCache = FindTop();
 
                 if( oSeedCache == null )
                     oSeedCache = CacheReset( RefreshNeighborhood.SCROLL );
 
-                LukeCacheWalker( oSeedCache );
+                CacheWalker( oSeedCache, fRemeasure:true );
             } catch( Exception oEx ) {
                 // if the _rgCacheMap and the oRow.CacheList don't match
                 // we might walk of the end of one or the other.
@@ -831,60 +832,6 @@ namespace Play.Edit {
 
             return null;
         }
-
-        /// <summary>
-        /// Find the location to render primary textarea text.
-        /// Note: Currently not actually being used! O.o
-        /// </summary>
-        /// <seealso cref="RenderAt( CacheRow oCache, SmartRect rcColumn )"/>
-        public PointF RenderAt( CacheRow oCache, Point pntScreenTL ) {
-            SKPointI pntWorldTopLeft  = TextRect.GetPoint(LOCUS.UPPERLEFT);
-            PointF   pntRenderAt      = new PointF( pntScreenTL.X - pntWorldTopLeft.X, 
-                                                    pntScreenTL.Y + oCache.Top - pntWorldTopLeft.Y );
-
-            return pntRenderAt;
-        }
-
-        public void RenderEOL( 
-            SKCanvas                    skCanvas, 
-            SKPaint                     skPaint,
-            List<SKColor>               rgStdColors,
-            ICollection<ILineSelection> rgSelectionTypes, 
-            Point                       pntScreenTL ) 
-        {
-            try {
-                foreach( CacheRow oRow in this ) {
-                    FTCacheLine oCache = oRow.CacheList[0]; // TODO: Might not hold up...
-                    foreach( ILineSelection oSelection in rgSelectionTypes ) {
-                        if( oSelection.IsEOLSelected && 
-                            oSelection.IsHit( oCache.Line ) )
-                        {
-                            oCache.RenderEOL( skCanvas, skPaint, RenderAt( oRow, pntScreenTL ), rgStdColors, GlyphLt );
-                        }
-                    }
-                }
-            } catch( Exception oEx ) {
-                Type[] rgError = { typeof( NullReferenceException ),
-                                   typeof( ArgumentOutOfRangeException ),
-                                   typeof( ArgumentNullException ) };
-                if( rgError.IsUnhandled( oEx ) )
-                    throw;
-            }
-        } // end method
-
-        /// <summary>
-        /// Links are those little "error here" marks. Now we're multi column, but since
-        /// errors are generally main text only this will probably still work.
-        /// </summary>
-        /// <param name="pntTopLeft">Top left of all the edits. We add the vertical extents
-        /// to arrive at our position.</param>
-        public void RenderErrorMark( SKCanvas skCanvas, SKPaint skPaint, Point pntScreenTL )
-        {
-            foreach( CacheRow oRow in this ) {
-                FTCacheLine oCache = oRow.CacheList[0];
-                oCache.RenderLinks( skCanvas, skPaint, RenderAt( oRow, pntScreenTL ) );
-            }
-        } // end method
 
 		/// <summary>
         /// Advance tells us how far along graphically, we are in the text stream
