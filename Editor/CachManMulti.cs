@@ -389,7 +389,7 @@ namespace Play.Edit {
         protected void ElemUpdate( FTCacheLine oElem, int iWidth, IMemoryRange oRange = null ) {
 			try {
 				oElem.Update            ( Font, oRange );
-              //oElem.OnChangeFormatting( _oSite.Selections );
+                oElem.OnChangeFormatting( null );
                 oElem.OnChangeSize      ( iWidth );
 			} catch( Exception oEx ) {
 				Type[] rgErrors = { typeof( NullReferenceException ),
@@ -724,10 +724,11 @@ namespace Play.Edit {
         ///         changed, needs the "update"</remarks> 
         public void OnChangeFormatting( ICollection<ILineSelection> rgSelection, int iWidth ) {
             foreach( CacheRow oRow in _rgOldCache ) {
-                FTCacheLine oCache = oRow.CacheList[0];
-              //oCache.Update( Font ); Just can't call this here. Too slow.
-                oCache.OnChangeFormatting( rgSelection );
-                oCache.OnChangeSize( iWidth );
+                foreach( FTCacheLine oCacheCol in oRow.CacheList ) {
+                  //oCacheCol.Update( Font ); Just can't call this here. Too slow.
+                    oCacheCol.OnChangeFormatting( rgSelection );
+                  //oCacheCol.OnChangeSize( iWidth );
+                }
             }
         }
 

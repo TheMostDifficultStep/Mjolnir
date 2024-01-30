@@ -450,19 +450,18 @@ namespace Play.Edit {
                 // Now paint the rows.
                 SmartRect rctSquare = new();
                 foreach( CacheRow oCacheRow in _oCacheMan ) {
-                    for( int iCache=0; iCache<oCacheRow.CacheList.Count; ++iCache ) {
-                        FTCacheLine oCache  = oCacheRow.CacheList[iCache];
-                        SmartRect   oColumn = _rgColumns[iCache];
+                    for( int iCacheCol=0; iCacheCol<oCacheRow.CacheList.Count; ++iCacheCol ) {
+                        FTCacheLine oCache  = oCacheRow.CacheList[iCacheCol];
+                        SmartRect   oColumn = _rgColumns[iCacheCol];
 
                         rctSquare.SetRect( oColumn.Left, oCacheRow.Top, oColumn.Right, oCacheRow.Bottom );
 
                         // Test pattern...
                         //skPaint.Color = iCache % 2 == 0 ? SKColors.Blue : SKColors.Green;
                         //skCanvas.DrawRect( rctSquare.SKRect, skPaint );
-                        PaintSquareBG( skCanvas, skPaintBG, oCacheRow, iCache, rctSquare );
+                        PaintSquareBG( skCanvas, skPaintBG, oCacheRow, iCacheCol, rctSquare );
 
                         oCache.Render(skCanvas, _oStdUI, skPaintTx, rctSquare, this.Focused );
-
                     }
                 }
             } catch( Exception oEx ) {
