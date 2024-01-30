@@ -167,6 +167,27 @@ namespace Play.Interfaces.Embedding {
         T this[int index] { get; }
     }
 
+    /// <summary>
+    /// The idea here is that the elements each have a unique
+    /// address, but you can only find the next or prev element
+    /// from any address.
+    /// By separating the address from the data we can deal
+    /// with a cache of data from the bag.
+    /// </summary>
+    public interface ISequentialBag<A,V> {
+        public enum Neighborhood {
+            TOP,
+            BOTTOM,
+            PERCENT,
+        }
+        int Count { get; }
+
+        A ElementAt   ( Neighborhood eFrom );
+        A ElementNear ( Neighborhood eFrom, A oElem );
+        V ElementValue( A address );
+        bool IsAddressValid( A address );
+    }
+
     //public interface IPgReadWriteBag<T> :
     //    IReadableBag<T>
     //{

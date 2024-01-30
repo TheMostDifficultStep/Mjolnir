@@ -10,8 +10,170 @@ using Play.Interfaces.Embedding;
 
 namespace Play.Edit {
     public interface IPgRowEvents {
-        void OnRowEvent( BUFFEREVENTS eEvent, Row oRow );               // Single Line events.
-        void OnRowEvent( BUFFEREVENTS eEvent );                         // Every Line events.
+        void OnRowEvent( BUFFEREVENTS eEvent, Row oRow ); // Single Line events.
+        void OnRowEvent( BUFFEREVENTS eEvent );           // Every Line events.
+    }
+
+    /// <summary>
+    /// This streamer streams the text from a particular column. If any edits
+    /// occur, this object becomes invalid. We can handle this by caching 
+    /// all of these created and then invalidate them when any edit occurs.
+    /// </summary>
+    public class RowStream : DataStream<char> {
+        IList<Row> _rgRows;
+        int        _iPos  = -1;
+        int        _iRow  = 0;
+        int        _iOffs = 0;
+        char       _cChar = '\0';
+
+        readonly int                   _iColumn;
+        readonly int                   _iCharCount;
+        readonly Action<string,string> _fnLogError;
+
+        public RowStream( 
+            IList<Row>            rgRows, 
+            int                   iColumn, 
+            int                   iCharCount, 
+            Action<string,string> fnLogError
+        ) {
+            _rgRows     = rgRows     ?? throw new ArgumentNullException( "Row array must not be null" );
+            _fnLogError = fnLogError ?? throw new ArgumentNullException();
+
+            if( _rgRows.Count < 1 )
+                throw new ArgumentException( "Empty document" );
+            if( _rgRows[0][iColumn].ElementCount < 1 )
+                throw new ArgumentException( "Empty document" );
+            if( iColumn < 0 || iColumn >= _rgRows[0].Count )
+                throw new ArgumentException( "Column out of bounds" );
+
+            _iColumn    = iColumn;
+            _iCharCount = iCharCount;
+            _cChar      = _rgRows[0][iColumn][0];
+        }
+
+        public override bool InBounds(int p_iPos) {
+            if( p_iPos < 0 )
+                return false;
+
+            return p_iPos <= _iCharCount;
+        }
+
+        public override int Position {
+            get {
+                return _iPos;
+            }
+            set {
+                Seek( value );
+            }
+        }
+
+        /// <summary>
+        /// Seek our position pointer to be at the given position from the start of the
+        /// stream.
+        /// </summary>
+        /// <remarks>I've noticed we re-seek the same position many many times.
+        /// So I've optimized the call to return quickly if the next seek is the
+        /// same as the last seek!</remarks>
+        /// <param name="p_iPos">Stream position from start.</param>
+        protected bool Seek( int p_iPos ) {
+            if( p_iPos == _iPos ) // Most seeks are to the same position!! Optimize that!
+                return true;
+
+            // If lines get deleted since our last search we might be out of bounds.
+            int _iTempRow = _iRow;
+
+            try {
+                int l_iOffs = p_iPos - _rgRows[_iTempRow][_iColumn].CumulativeLength;
+
+                while( l_iOffs >= _rgRows[_iTempRow][_iColumn].ElementCount + 1 ) {
+                    _iTempRow++;
+                    if( _iTempRow >= _rgRows.Count )
+                        return false;
+                    if( _iTempRow < 0 )
+                        return false;
+                    l_iOffs = p_iPos - _rgRows[_iTempRow][_iColumn].CumulativeLength;
+                }
+
+                while( l_iOffs < 0 ) {
+                    _iTempRow--;
+                    if( _iTempRow >= _rgRows.Count )
+                        return false;
+                    if( _iTempRow < 0 )
+                        return false;
+                    l_iOffs = p_iPos - _rgRows[_iTempRow][_iColumn].CumulativeLength;
+                }
+
+                _iRow  = _iTempRow;
+                _iOffs = l_iOffs;
+                _iPos  = p_iPos;
+                _cChar = _rgRows[_iRow][_iColumn][_iOffs];
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( ArgumentOutOfRangeException ),
+                                    typeof( NullReferenceException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
+                                    
+                _fnLogError( "Multi Column Editor", "Problem seeking within the document." );
+                return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// This function will work most efficiently if you seek very
+        /// near your last position. Random seeking will be more expensive.
+        /// </summary>
+        /// <param name="iPos">The position to retrieve.</param>
+        /// <returns>Character at this position.</returns>
+        public override char this[int iPos] {
+            get {
+                if( Seek( iPos ) )
+                    return _cChar;
+
+                return '\0';
+            }
+        }
+
+        /// <summary>
+        /// This is not used by the parser and should be on a different interface.
+        /// </summary>
+        public override string SubString(int iPos, int iLen) {
+            return string.Empty;
+        }
+        
+        /// <summary>
+        /// Get closest line at the given position. In the future I want to return an
+        /// interface supporting. Formatting, At, ToString
+        /// </summary>
+        /// <param name="p_iPos"></param>
+        /// <param name="p_iOffset"></param>
+        public virtual Line SeekLine( int p_iPos, out int p_iOffset )
+        {
+            return _rgRows[ SeekIndex( p_iPos, out p_iOffset ) ][_iColumn];
+        }
+
+        public virtual Line SeekLine( int p_iPos )
+        {
+            int iOffset;
+            return _rgRows[ SeekIndex( p_iPos, out iOffset ) ][_iColumn];
+        }
+
+        /// <summary>
+        /// Seek closest line at given position. Internal position is modified
+        /// </summary>
+        /// <param name="iStreamOffset">Stream offset</param>
+        /// <param name="p_iOffset">Corresponding Line offset</param>
+        /// <returns>Row Index</returns>
+        protected virtual int SeekIndex( int iStreamOffset, out int p_iOffset )
+        {
+            if( Seek( iStreamOffset ) ) {       
+                p_iOffset = _iOffs;
+                return _iRow;
+            }
+            p_iOffset = 0;
+            return 0;
+        }
     }
 
     /// <summary>

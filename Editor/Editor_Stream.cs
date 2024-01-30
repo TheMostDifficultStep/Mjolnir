@@ -38,7 +38,7 @@ namespace Play.Edit {
 
             public override int Position {
                 get {
-                    return (m_iPos);
+                    return m_iPos;
                 }
                 set {
                     Seek( value );
@@ -108,9 +108,9 @@ namespace Play.Edit {
             public override char this[int iPos] {
                 get {
                     if( Seek( iPos ) ) {
-                        return ( m_cCached );
+                        return m_cCached;
                     } else {
-                        return ( '\0' );
+                        return '\0';
                     }
                 }
             }
@@ -185,7 +185,7 @@ namespace Play.Edit {
             /// </summary>
             /// <param name="iStreamOffset">Stream offset</param>
             /// <param name="p_iOffset">Corresponding Line offset</param>
-            /// <returns></returns>
+            /// <returns>Line index</returns>
             public virtual int SeekIndex( int iStreamOffset, out int p_iOffset )
             {
                 if( Seek( iStreamOffset ) ) {       
