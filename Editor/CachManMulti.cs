@@ -286,6 +286,10 @@ namespace Play.Edit {
                 return;
             }
 
+            if( fRemeasure ) {
+                RowMeasure( oSeedCache );
+            }
+
             _rgNewCache.Clear();
             _rgNewCache.Add( oSeedCache );
 

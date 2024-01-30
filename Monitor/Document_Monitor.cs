@@ -613,6 +613,7 @@ namespace Monitor {
             Match oMatch   = _oRegEx.Match( sInstr.Name );
             Line? oAsmLine;
 
+            // If there's a number it's a jump I guess..
             if( oMatch != null && oMatch.Success ) {
                 int iNumber = 0;
 
@@ -1049,7 +1050,8 @@ namespace Monitor {
                                     typeof( FileNotFoundException ),
                                     typeof( BadImageFormatException ),
                                     typeof( NotImplementedException ),
-                                    typeof( NullReferenceException ) };
+                                    typeof( NullReferenceException ),
+                                    typeof( ArgumentOutOfRangeException ) };
                 if( rgErrors.IsUnhandled( oEx ) )
                     throw;
 
