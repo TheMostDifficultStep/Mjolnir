@@ -818,18 +818,20 @@ namespace Play.Edit {
         /// has occurred and we want to find which FTCacheLine it hits.
         /// If we want to edit in other columns we can do so by passing an
         /// argument.</remarks>
-        /// <param name="oWorldLoc">Graphics location of interest in world coordinates. Basically
+        /// <param name="pntWorldLoc">Graphics location of interest in world coordinates. Basically
         ///                         where the mouse clicked.</param>
         /// <param name="oCaret">This object line offset is updated to the closest line offset.</param>
-        public FTCacheLine GlyphPointToRange( ref EditWindow2.WorldLocator oWorldLoc, ILineRange oCaret ) {
+        public FTCacheLine GlyphPointToRange( int iColumn, SKPointI pntWorldLoc, ILineRange oCaret ) {
             foreach( CacheRow oRow in _rgOldCache ) {
-                if( oRow.Top    <= oWorldLoc.Y &&
-                    oRow.Bottom >= oWorldLoc.Y ) 
+                if( oRow.Top    <= pntWorldLoc.Y &&
+                    oRow.Bottom >= pntWorldLoc.Y ) 
                 {
-                    FTCacheLine oCache = oRow.CacheList[oWorldLoc._iColumn];
+                    FTCacheLine oCache   = oRow.CacheList[iColumn];
+                    SKPointI    pntLocal = new SKPointI( pntWorldLoc.X - _rgCacheMap[iColumn].Left,
+                                                         pntWorldLoc.Y - _rgCacheMap[iColumn].Top );
 
                     oCaret.Line   = oCache.Line;
-                    oCaret.Offset = oCache.GlyphPointToOffset(oRow.Top, oWorldLoc._pntLocation );
+                    oCaret.Offset = oCache.GlyphPointToOffset(oRow.Top, pntLocal );
 
                     return oCache;
                 }
@@ -845,13 +847,13 @@ namespace Play.Edit {
         /// </summary>
         /// <param name="pntWorld">World Coordinates.</param>
         /// <remarks>Advance is modulo in the wrapped text case.</remarks>
-        public void CaretAndAdvanceReset( ref EditWindow2.WorldLocator sWorldLoc, ILineRange oCaretPos, ref float flAdvance ) {
-            FTCacheLine oCache = GlyphPointToRange( ref sWorldLoc, oCaretPos );
-            if( oCache != null ) {
-                Point oNewLocation = oCache.GlyphOffsetToPoint( oCaretPos.Offset );
+        public void CaretAndAdvanceReset( int iColumn, SKPointI sWorldLoc, ILineRange oCaretPos, ref float flAdvance ) {
+            //FTCacheLine oCache = GlyphPointToRange( iColumn ref sWorldLoc, oCaretPos );
+            //if( oCache != null ) {
+            //    Point oNewLocation = oCache.GlyphOffsetToPoint( oCaretPos.Offset );
 
-                flAdvance = oNewLocation.X; 
-            }
+            //    flAdvance = oNewLocation.X; 
+            //}
         }
    } // end class
 }

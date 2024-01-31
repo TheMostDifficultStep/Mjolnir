@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections;
 using System.Windows.Forms;
 using System.Xml;
+using System.Drawing;
 
 using SkiaSharp;
 using SkiaSharp.Views.Desktop;
@@ -10,7 +11,8 @@ using SkiaSharp.Views.Desktop;
 using Play.Interfaces.Embedding;
 using Play.Rectangles;
 using Play.Controls;
-using System.Net;
+using static Play.Edit.EditWindow2; // gives us access to static function... :-P
+using Play.Parse;
 
 namespace Play.Edit {
     public interface IPgDocTraits<T> {
@@ -225,6 +227,7 @@ namespace Play.Edit {
             if( disposing ) {
                 //_oDocument.CaretRemove( CaretPos );
                 _oScrollBarVirt.Scroll -= OnScrollBar; 
+                HyperLinks.Clear();
             }
 
             base.Dispose(disposing);
@@ -473,6 +476,60 @@ namespace Play.Edit {
                 if( rgErrors.IsUnhandled( oEx ) )
                     throw;
             }
+        }
+
+        public static bool IsCtrlKey( Keys oKey ) => ( oKey & Keys.Control ) != 0;
+
+        protected readonly LineRange _oLastCursor = new LineRange(); // A spare for use with the hyperlink stuff.
+        public Dictionary<string, HyperLink> HyperLinks { get; } = new Dictionary<string, HyperLink>();
+
+        protected bool HyperLinkFind( ILineRange oPosition, bool fDoJump ) {
+            IPgWordRange oRange = FindFormattingUnderRange( oPosition );
+            if( oRange != null ) { 
+                foreach( KeyValuePair<string, HyperLink> oPair in HyperLinks ) { 
+                    if( oRange.StateName == oPair.Key ) {
+                        if( fDoJump )
+                            oPair.Value?.Invoke( null, oRange );
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        protected bool HyperLinkFind( int iColumn, SKPointI oLocation, bool fDoJump ) {
+            if( _oCacheMan.GlyphPointToRange( iColumn, oLocation, _oLastCursor ) != null ) {
+                return HyperLinkFind( _oLastCursor, fDoJump );
+            }
+
+            return false;
+        }
+        
+        
+        protected void CursorUpdate( Point sLocation, MouseButtons eButton ) {
+            Cursor oNewCursor = Cursors.Arrow;
+
+            if( eButton != MouseButtons.Left ) {
+                for( int i=0; i<_rgColumns.Count; ++i ) {
+                    SmartRect oColumn = _rgColumns[i];
+                    if( oColumn.IsInside( sLocation.X, sLocation.Y ) ) {
+                        oNewCursor = Cursors.IBeam;
+
+                        if( HyperLinkFind( i, new SKPointI( sLocation.X, sLocation.Y ), fDoJump:false ) )
+                            oNewCursor = Cursors.Hand;
+
+                        break;
+                    }
+                }
+            }
+
+            Cursor = oNewCursor;
+        }
+
+        protected override void OnMouseMove(MouseEventArgs e) {
+            base.OnMouseMove( e );
+
+            CursorUpdate( e.Location, e.Button );
         }
 
         protected override void OnMouseWheel(MouseEventArgs e) {

@@ -161,6 +161,51 @@ namespace Monitor {
             return false;
         }
 
+        /// <remarks>
+        /// This won't work for the data look ups atm.
+        /// </remarks>
+        protected void OnCpuJump(Line oLine, IPgWordRange oRange) {
+            //try {
+            //    _rgHistory.AddFirst( CaretPos.Line );
+            //    if( _rgHistory.Count > 10 ) {
+            //        _rgHistory.RemoveLast();
+            //    }
+            //} catch( Exception oEx ) {
+            //    Type[] rgError = { typeof( NullReferenceException ),
+            //                       typeof( ArgumentOutOfRangeException ) };
+            //    if( rgError.IsUnhandled( oEx ) )
+            //        throw;
+            //}
+
+            //string strJumpRaw = oLine.SubString( oRange.Offset, oRange.Length );
+
+            //if( !int.TryParse( strJumpRaw, 
+            //                   System.Globalization.NumberStyles.HexNumber, 
+            //                   null, out int iJumpAddr ) )
+            //    return;
+
+            //string strJumpX4 = iJumpAddr.ToString( "X4" );
+
+            //foreach( Line oTry in _oDocument ) {
+            //    if( oTry.Extra is Line oMemAddr ) {
+            //        if( oMemAddr.Compare( strJumpX4, IgnoreCase:true ) == 0 ) {
+            //            CaretPos.Line   = oTry;
+            //            CaretPos.Offset = 0;
+            //            ScrollToCaret();
+            //        }
+            //    }
+            //}
+        }
+
+        protected override bool Initialize() {
+            if( !base.Initialize() )
+                return false;
+
+            HyperLinks.Add( "CpuJump", OnCpuJump );
+
+            return true;
+        }
+
         public object? Decorate(IPgViewSite oBaseSite, Guid sGuid) {
             if( sGuid == GlobalDecorations.Outline ) {
                 return new EditWindow2( oBaseSite, _oMonDoc.Doc_Outl, fReadOnly:true );
