@@ -565,6 +565,8 @@ namespace Monitor {
         readonly LinkedList<AsmData> _rgAsmData       = new();
         readonly Z80Memory           _rgRam;
         readonly Z80Definitions      _oZ80Info;
+        readonly IReadableBag<Row>   _oAsmBag;
+        readonly IEnumerable<Row>    _oAsmEnu;
 
         struct AsmData {
             public byte _bData;
@@ -580,13 +582,16 @@ namespace Monitor {
             Z80Definitions     oDefinitions, 
             Z80Memory          rgMemory, 
             AsmEditor2.Hacker  oBulkAsm,
-            Editor.Manipulator oBulkOutline
+            Editor.Manipulator oBulkOutline,
+            IReadableBag<Row>  oAsmDoc
         ) {
             _rgRam        = rgMemory     ?? throw new ArgumentNullException();
             _oZ80Info     = oDefinitions ?? throw new ArgumentNullException(); 
             _oBulkOutline = oBulkOutline ?? throw new ArgumentNullException();
 
-            _oBulkAsm     = oBulkAsm     ?? throw new ArgumentNullException();;
+            _oBulkAsm     = oBulkAsm     ?? throw new ArgumentNullException();
+            _oAsmBag      = oAsmDoc      ?? throw new ArgumentNullException();
+            _oAsmEnu      = (IEnumerable<Row>) _oAsmBag;
         }
 
         public void Dispose() {
@@ -611,7 +616,7 @@ namespace Monitor {
             _sbBuilder.Clear();
 
             Match oMatch   = _oRegEx.Match( sInstr.Name );
-            Line? oAsmLine;
+            Row?  oNewRow;
 
             // If there's a number it's a jump I guess..
             if( oMatch != null && oMatch.Success ) {
@@ -639,7 +644,7 @@ namespace Monitor {
                 for( int i = oMatch.Index + oMatch.Length; i<sInstr.Name.Length; i++ ) {
                     _sbBuilder.Append( sInstr.Name[i] );
                 }
-                oAsmLine = _oBulkAsm.Insert( _sbBuilder.ToString(), AsmEditor2.InsertionPoint.After );
+                oNewRow = _oBulkAsm.Insert( _sbBuilder.ToString(), AsmEditor2.InsertionPoint.After );
 
                 int? iColorIndex;
                 if( sInstr.Jump != JumpType.None ) {
@@ -649,7 +654,7 @@ namespace Monitor {
                 }
 
                 // Color the number
-                oAsmLine.Formatting.Add( 
+                oNewRow[1].Formatting.Add( 
                     new HyperLinkCpuJump( oMatch.Index,
                                           strNumber.Length,
                                           iColorIndex.Value ) );
@@ -661,11 +666,11 @@ namespace Monitor {
                         _rgOutlineLabels.Add( iNumber + iAddr ); // +1, +2??
                 }
             } else {
-                oAsmLine = _oBulkAsm.Insert( sInstr.Name, AsmEditor2.InsertionPoint.After );
+                oNewRow = _oBulkAsm.Insert( sInstr.Name, AsmEditor2.InsertionPoint.After );
             }
 
-            if( oAsmLine.Extra is TextLine oAddrLine ) {
-                oAddrLine.TryReplace( 0, oAddrLine.ElementCount, iAddr.ToString( "X4" ) );
+            if( oNewRow is AsmRow oAsmRow ) {
+                oAsmRow.Map = iAddr;
             }
         }
 
@@ -744,6 +749,18 @@ namespace Monitor {
             // Take all the labels and stick them in the outline.
             foreach( int i in _rgOutlineLabels ) {
                 _oBulkOutline.LineAppend( i.ToString( "X" ) );
+
+                foreach( Row oRow in _oAsmEnu ) {
+                    if( oRow is AsmRow oAsmRow &&
+                        oAsmRow.Map == i )
+                    {
+                        if( oAsmRow[0] != null ) {
+                            oAsmRow[0].TryAppend(  i.ToString( "X" ) );
+                        } else {
+                            // Spew an error
+                        }
+                    }
+                }
             }
         }
     }
@@ -776,7 +793,14 @@ namespace Monitor {
 
         public AsmRow( string strAssembly ) {
             _rgColumns    = new Line[3];
+            _rgColumns[0] = new TextLine( 0, string.Empty );
             _rgColumns[1] = new TextLine( 1, strAssembly );
+        }
+
+        public int Map { get; set; } = -1;
+
+        public void SetLine( int iColumn, Line oLine ) {
+            _rgColumns[iColumn] = oLine;
         }
     }
 
@@ -878,12 +902,12 @@ namespace Monitor {
             /// <summary>
             /// Put this in a subclass later.
             /// </summary>
-            public Line Insert( string strValue, InsertionPoint eInsert ) {
+            public Row Insert( string strValue, InsertionPoint eInsert ) {
                 AsmRow oAsmRow = new AsmRow( strValue );
 
                 Insert( oAsmRow, eInsert );
 
-                return oAsmRow[1];
+                return oAsmRow;
             }
         }
 
@@ -900,7 +924,8 @@ namespace Monitor {
                         new Z80Dissambler( _rgZ80Definitions, 
                                            _rgMemory,
                                            oBulkAsm,
-                                           oBulkOutl );
+                                           oBulkOutl,
+                                           this );
 
                 oDeCompile.Dissassemble();
             } catch( Exception oEx ) {

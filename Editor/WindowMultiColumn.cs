@@ -202,8 +202,8 @@ namespace Play.Edit {
             _rgLayout       = new LayoutStackHorizontal() { Spacing = 5, Units = LayoutRect.CSS.Flex};
 
             _rgLayout.Add( new LayoutControl( _oScrollBarVirt, LayoutRect.CSS.Pixels, 12 ) );
-            _rgLayout.Add( new LayoutRect( LayoutRect.CSS.Percent, 30, 1L ) );
-            _rgLayout.Add( new LayoutRect( LayoutRect.CSS.Percent, 20, 1L ) );
+            _rgLayout.Add( new LayoutRect( LayoutRect.CSS.Percent, 10, 1L ) );
+            _rgLayout.Add( new LayoutRect( LayoutRect.CSS.Pixels, 100, 1L ) );
             _rgLayout.Add( new LayoutRect( LayoutRect.CSS.None ) );
 
             // Need to figure out how to match the columns of the Window vs Document...
@@ -481,7 +481,7 @@ namespace Play.Edit {
         public static bool IsCtrlKey( Keys oKey ) => ( oKey & Keys.Control ) != 0;
 
         protected readonly LineRange _oLastCursor = new LineRange(); // A spare for use with the hyperlink stuff.
-        public Dictionary<string, HyperLink> HyperLinks { get; } = new Dictionary<string, HyperLink>();
+        protected Dictionary<string, HyperLink> HyperLinks { get; } = new Dictionary<string, HyperLink>();
 
         protected bool HyperLinkFind( ILineRange oPosition, bool fDoJump ) {
             IPgWordRange oRange = FindFormattingUnderRange( oPosition );
@@ -505,19 +505,22 @@ namespace Play.Edit {
             return false;
         }
         
-        
-        protected void CursorUpdate( Point sLocation, MouseButtons eButton ) {
+        /// <summary>
+        /// Update the caret. Right now we're written for browser mode.
+        /// So a mouse hovering over a hyperlink will show a hand.
+        /// If left mouse down for select, then make I-beam with in 
+        /// column.
+        /// </summary>
+        protected void CursorUpdate( SKPointI pntLocation, MouseButtons eButton ) {
             Cursor oNewCursor = Cursors.Arrow;
 
-            if( eButton != MouseButtons.Left ) {
-                for( int i=0; i<_rgColumns.Count; ++i ) {
-                    SmartRect oColumn = _rgColumns[i];
-                    if( oColumn.IsInside( sLocation.X, sLocation.Y ) ) {
-                        oNewCursor = Cursors.IBeam;
-
-                        if( HyperLinkFind( i, new SKPointI( sLocation.X, sLocation.Y ), fDoJump:false ) )
+            for( int i=0; i<_rgColumns.Count; ++i ) {
+                SmartRect oColumn = _rgColumns[i];
+                if( oColumn.IsInside( pntLocation.X, pntLocation.Y ) ) {
+                    oNewCursor = Cursors.IBeam;
+                    if( eButton != MouseButtons.Left ) { // if not selecting.
+                        if( HyperLinkFind( i, pntLocation, fDoJump:false ) )
                             oNewCursor = Cursors.Hand;
-
                         break;
                     }
                 }
@@ -529,7 +532,7 @@ namespace Play.Edit {
         protected override void OnMouseMove(MouseEventArgs e) {
             base.OnMouseMove( e );
 
-            CursorUpdate( e.Location, e.Button );
+            CursorUpdate( new SKPointI( e.X, e.Y ), e.Button );
         }
 
         protected override void OnMouseWheel(MouseEventArgs e) {
