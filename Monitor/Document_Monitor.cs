@@ -677,7 +677,7 @@ namespace Monitor {
         protected Z80Instr FindInfo( int iAddr ) {
             Z80Instr? sInstr;
                     
-            if( iAddr < 0x56c ) {
+            if( iAddr < 0x721) {
                 sInstr = _oZ80Info.FindMain( _rgRam[iAddr] );
             } else {
                 sInstr = new Z80Instr( _rgRam[iAddr ] );

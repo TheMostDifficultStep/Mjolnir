@@ -35,7 +35,8 @@ namespace Play.Edit {
     {
         public static Guid _sGuid = new Guid( "{03F21BC8-F911-4FE4-931D-9EB9F7A15A10}" );
 
-        protected readonly IPgViewSite _oSiteView;
+        protected readonly IPgViewSite   _oSiteView;
+        protected readonly IPgViewNotify _oViewEvents;
 
         protected readonly IEnumerable<Row>      _oDocEnum;
         protected readonly IReadableBag<Row>     _oDocList;
@@ -45,7 +46,6 @@ namespace Play.Edit {
 		protected readonly IPgStandardUI2        _oStdUI;
         protected readonly ScrollBar2            _oScrollBarVirt;
         protected readonly List<SmartRect>       _rgColumns = new(); // Might not match document columns! O.o
-
 
         protected float _flAdvance;
         protected int   _iOffset;
@@ -192,7 +192,8 @@ namespace Play.Edit {
             _oDocList   = (IReadableBag<Row>)oDocument;
             _oDocTraits = (IPgDocTraits<Row>)oDocument;
 
-            _oSiteView = oViewSite;
+            _oSiteView   = oViewSite;
+            _oViewEvents = oViewSite.EventChain ?? throw new ArgumentException( "Site.EventChain must support IPgViewSiteEvents" );
 
             _oStdUI         = oViewSite.Host.Services as IPgStandardUI2 ?? throw new ArgumentException( "Parent view must provide IPgStandardUI service" );
             uint uiStdText  = _oStdUI.FontCache( _oStdUI.FaceCache( @"C:\windows\fonts\consola.ttf" ), 12, GetDPI() );
@@ -202,8 +203,8 @@ namespace Play.Edit {
             _rgLayout       = new LayoutStackHorizontal() { Spacing = 5, Units = LayoutRect.CSS.Flex};
 
             _rgLayout.Add( new LayoutControl( _oScrollBarVirt, LayoutRect.CSS.Pixels, 12 ) );
-            _rgLayout.Add( new LayoutRect( LayoutRect.CSS.Percent, 10, 1L ) );
-            _rgLayout.Add( new LayoutRect( LayoutRect.CSS.Pixels, 100, 1L ) );
+            _rgLayout.Add( new LayoutRect( LayoutRect.CSS.Percent, 20, 1L ) );
+            _rgLayout.Add( new LayoutRect( LayoutRect.CSS.Percent, 30, 1L ) );
             _rgLayout.Add( new LayoutRect( LayoutRect.CSS.None ) );
 
             // Need to figure out how to match the columns of the Window vs Document...
@@ -383,6 +384,23 @@ namespace Play.Edit {
             // Only the height really used. Columns come from layout.
             _oCacheMan.TextRect.SetRect( 0, 0, Width, Height );
             _oCacheMan.OnChangeSize();
+        }
+
+        protected override void OnGotFocus(EventArgs e) {
+            base.OnGotFocus(e);
+
+            _oViewEvents.NotifyFocused( true );
+
+            Invalidate();
+        }
+        protected override void OnLostFocus(EventArgs e) {
+            base.OnLostFocus( e );
+
+            _oScrollBarVirt.Show( SHOWSTATE.Inactive );
+
+            _oViewEvents.NotifyFocused( false );
+
+            Invalidate();
         }
 
         /// <summary>
@@ -572,6 +590,14 @@ namespace Play.Edit {
                 case Keys.Up:
                     break;
             }
+        }
+
+        protected override void OnMouseDown(MouseEventArgs e) {
+            base.OnMouseDown( e );
+
+            Select();
+
+            Invalidate();
         }
     }
 }
