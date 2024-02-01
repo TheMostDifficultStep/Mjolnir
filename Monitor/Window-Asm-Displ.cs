@@ -164,34 +164,33 @@ namespace Monitor {
         /// <remarks>
         /// This won't work for the data look ups atm.
         /// </remarks>
-        protected void OnCpuJump(Row oRow, int iColumn, IPgWordRange oRange) {
-            //try {
-            //    _rgHistory.AddFirst( CaretPos.Line );
-            //    if( _rgHistory.Count > 10 ) {
-            //        _rgHistory.RemoveLast();
-            //    }
-            //} catch( Exception oEx ) {
-            //    Type[] rgError = { typeof( NullReferenceException ),
-            //                       typeof( ArgumentOutOfRangeException ) };
-            //    if( rgError.IsUnhandled( oEx ) )
-            //        throw;
-            //}
+        protected void OnCpuJump( Row oRow, int iColumn, IPgWordRange oRange ) {
+            try {
+                //    _rgHistory.AddFirst( CaretPos.Line );
+                //    if( _rgHistory.Count > 10 ) {
+                //        _rgHistory.RemoveLast();
+                //    }
 
-            Line oLine = oRow[iColumn];
+                Line   oLine      = oRow[iColumn];
+                string strJumpRaw = oLine.SubString( oRange.Offset, oRange.Length );
 
-            string strJumpRaw = oLine.SubString( oRange.Offset, oRange.Length );
+                if( !int.TryParse( strJumpRaw,
+                                   System.Globalization.NumberStyles.HexNumber,
+                                   null, out int iJumpAddr ) )
+                    return;
 
-            if( !int.TryParse( strJumpRaw,
-                               System.Globalization.NumberStyles.HexNumber,
-                               null, out int iJumpAddr) )
-                return;
+                string strJumpX4 = iJumpAddr.ToString("X4");
 
-            string strJumpX4 = iJumpAddr.ToString("X4");
-
-            foreach( AsmRow oTry in _oDocEnum ) {
-                if( oTry.Map == iJumpAddr ) {
-                    _oCacheMan.SetCaretPositionAndScroll( oRow.At, iColumn, oRange.Offset );
+                foreach( AsmRow oTry in _oDocEnum ) {
+                    if( oTry.Map == iJumpAddr ) {
+                        _oCacheMan.SetCaretPositionAndScroll( oTry.At, iColumn, 0 );
+                    }
                 }
+            } catch( Exception oEx ) {
+                Type[] rgError = { typeof( NullReferenceException ),
+                                   typeof( ArgumentOutOfRangeException ) };
+                if( rgError.IsUnhandled(oEx) )
+                    throw;
             }
         }
 
