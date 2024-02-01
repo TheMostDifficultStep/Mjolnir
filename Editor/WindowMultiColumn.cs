@@ -90,32 +90,22 @@ namespace Play.Edit {
                 return iRow;
             }
 
-            public Row GetRowAtHood(RefreshNeighborhood eHood) {
+            public Row GetRowAtScroll() {
                 if( _oHost._oDocList.ElementCount == 0 )
                     return null;
 
-				Row oRow = null;
-
                 try {
-				    switch( eHood ) {
-					    case RefreshNeighborhood.SCROLL:
-					        int iRow = (int)(_oHost._oDocList.ElementCount * _oHost._oScrollBarVirt.Progress);
+					int iRow = (int)(_oHost._oDocList.ElementCount * _oHost._oScrollBarVirt.Progress);
 
-					        oRow = _oHost._oDocList[ CheckBound( iRow ) ];
-						    break;
-					    case RefreshNeighborhood.CARET:
-						    oRow = _oHost._oDocList[ CheckBound( _oHost._oCacheMan.CaretRow.At ) ];
-						    break;
-				    }
+					return _oHost._oDocList[ CheckBound( iRow ) ];
                 } catch( Exception oEx ) {
                     if( _rgErrors.IsUnhandled( oEx ) )
                         throw;
 
-					oRow = null;
 					LogError( "Multi Column Scrolling Problem", "I crashed while trying to use the caret. You are at the start of the document." );
                 }
 
-                return oRow;
+                return null;
             }
 
             public Row GetRowAtIndex(int iIndex) {
@@ -192,9 +182,7 @@ namespace Play.Edit {
 
             _oStdUI         = oViewSite.Host.Services as IPgStandardUI2 ?? throw new ArgumentException( "Parent view must provide IPgStandardUI service" );
             uint uiStdText  = _oStdUI.FontCache( _oStdUI.FaceCache( @"C:\windows\fonts\consola.ttf" ), 12, GetDPI() );
-
             _oScrollBarVirt = new ScrollBar2( new DocSlot( this ) );
-
             _rgLayout       = new LayoutStackHorizontal() { Spacing = 5, Units = LayoutRect.CSS.Flex};
 
             _rgLayout.Add( new LayoutControl( _oScrollBarVirt, LayoutRect.CSS.Pixels, 12 ) );
@@ -241,9 +229,6 @@ namespace Play.Edit {
         public IPgParent Parentage => _oSiteView.Host;
 
         public IPgParent Services => Parentage.Services;
-
-        protected void ScrollToCaret() {
-        }
 
         /// <summary>
         /// Where we really initialize.
@@ -481,9 +466,9 @@ namespace Play.Edit {
             return false;
         }
 
-        protected bool HyperLinkFind( int iColumn, SKPointI oLocation, bool fDoJump ) {
+        protected bool HyperLinkFind( int iColumn, SKPointI pntLocation, bool fDoJump ) {
             try {
-                if( _oCacheMan.GlyphPointToRange( iColumn, oLocation, out int iOff, out int iRow ) ) {
+                if( _oCacheMan.PointToRange( iColumn, pntLocation, out int iOff, out int iRow ) ) {
                     return HyperLinkFind( _oDocList[iRow], iColumn, iOff, fDoJump );
                 }
             } catch( Exception oEx ) {
