@@ -33,11 +33,11 @@ namespace Play.Edit {
     /// for the document. O.o
     /// </summary>
     public interface ICaretLocation {
-        Row   CaretRow    { get; }
+        int   CaretRow    { get; }
         int   CaretColumn { get; }
         int   CaretOffset { get; }
 
-        bool SetCaretPositionAndScroll( Row oRow, int iColumn, int iOffset ); // update adv?
+        bool SetCaretPositionAndScroll( int iRow, int iColumn, int iOffset ); 
     }
     public interface ICacheManSite :
         IPgBaseSite
@@ -67,7 +67,7 @@ namespace Play.Edit {
         public    int           LineHeight { get; } // Helps us determine scrolling distances.
         public    int           RowSpacing { get; set; } = 1;
 
-        protected Row   _oCaretRow; // Might rather have this to be an index, in case the row gets deleted...
+        protected int   _iCaretRow; 
         protected int   _iCaretCol;
         protected int   _iCaretOff;
         protected float _fAdvance;
@@ -85,15 +85,15 @@ namespace Play.Edit {
         public CacheMultiColumn( ICacheManSite oSite, IPgFontRender oFont, List<SmartRect> rgColumns ) :
 			base() 
 		{
-			Font        = oFont     ?? throw new ArgumentNullException( "Need a font to get things rolling." );
-			_oSite      = oSite     ?? throw new ArgumentNullException( "Cache manager is a sited object.");
+			Font           = oFont     ?? throw new ArgumentNullException( "Need a font to get things rolling." );
+			_oSite         = oSite     ?? throw new ArgumentNullException( "Cache manager is a sited object.");
             _rgColumnRects = rgColumns ?? throw new ArgumentNullException( "Columns list from Edit Window is null!" );
 
             GlyphLt    = Font.GetGlyph( 0x003c ); // we used to show carriage return as a '<' sign.
             LineHeight = (int)Font.LineHeight; // BUG: Cache elem's are variable height in general.
 
-            _oCaretRow = oSite.GetRowAtIndex( 0 ) ?? throw new NullReferenceException();
-            _iCaretCol = 0;
+            _iCaretRow = 0;
+            _iCaretCol = 0; // Make sure the column is edible :-/
             _iCaretOff = 0;
             _fAdvance  = 0;
         }
@@ -130,7 +130,7 @@ namespace Play.Edit {
             get { return _oTextRect; }
         }
 
-        public Row   CaretRow    => _oCaretRow;
+        public int   CaretRow    => _iCaretRow;
 
         public int   CaretColumn => _iCaretCol;
 
@@ -216,7 +216,7 @@ namespace Play.Edit {
                         oDocRow = _oSite.GetRowAtScroll( );
                         break;
                     case RefreshNeighborhood.CARET:
-                        oDocRow = _oCaretRow;
+                        oDocRow = _oSite.GetRowAtIndex( _iCaretRow );
                         break;
                 }
                 if( oDocRow == null )
@@ -573,17 +573,17 @@ namespace Play.Edit {
                 throw new ArgumentOutOfRangeException();
 
             try {
-                CacheRow oCaretCacheRow = CacheLocate( _oCaretRow.At );
+                CacheRow oCaretCacheRow = CacheLocate( _iCaretRow );
                 if( oCaretCacheRow != null ) {
                     // First, see if we can navigate within the row we are currently at.
-                    if( !oCaretCacheRow[CaretColumn].Navigate( eAxis, iDir, ref _fAdvance, ref _iCaretOff ) ) {
+                    if( !oCaretCacheRow[_iCaretCol].Navigate( eAxis, iDir, ref _fAdvance, ref _iCaretOff ) ) {
                         // Now try moving vertically, but stay in the same column...
-                        Row oDocRow = _oSite.GetRowAtIndex( _oCaretRow.At + iDir );
+                        Row oDocRow = _oSite.GetRowAtIndex( _iCaretRow + iDir );
                         if( oDocRow != null ) {
                             CacheRow oNext = CacheReset( RefreshNeighborhood.CARET );
 
                             // Find out where to place the cursor as it moves to the next line.
-                            _iCaretOff = oNext[CaretColumn].OffsetBound( eAxis, iDir * -1, _fAdvance );
+                            _iCaretOff = oNext[_iCaretCol].OffsetBound( eAxis, iDir * -1, _fAdvance );
                         }
                     }
                 } else {
@@ -821,7 +821,7 @@ namespace Play.Edit {
                     if( oColumn.IsInside( pntWorldLoc.X, pntWorldLoc.Y ) ) {
                         // Only care if the point is within the cache.
                         if( PointToRange( iColumn, pntWorldLoc, out int iOff, out int iRow ) ) {
-                            _oCaretRow = _oSite.GetRowAtIndex( iRow );
+                            _iCaretRow = iRow;
                             _iCaretCol = iColumn;
                             _iCaretOff = iOff;
                             _fAdvance  = pntWorldLoc.X - oColumn.Left;
@@ -835,19 +835,20 @@ namespace Play.Edit {
         }
 
         /// <summary>
-        /// Move the caret to a new position. Usuall as a result of moving the
-        /// caret to some formatting/hyperlink position.
+        /// Move the caret to a new position. Usually as a result of moving the
+        /// caret to some formatting/hyperlink/mouse position.
         /// </summary>
         /// <seealso cref="ScrollToCaret"/>
         /// <exception cref="ArgumentOutOfRangeException" />
-        public bool SetCaretPositionAndScroll( Row oDataRow, int iColumn, int iOffset ) {
+        public bool SetCaretPositionAndScroll( int iDataRow, int iColumn, int iOffset ) {
             try {
-                Line oLine = oDataRow[iColumn];
+                Row  oDataRow = _oSite.GetRowAtIndex( iDataRow );
+                Line oLine    = oDataRow[iColumn];
 
                 if( iOffset < 0 || iOffset >= oLine.ElementCount )
                     return false;
 
-                _oCaretRow = oDataRow;
+                _iCaretRow = iDataRow;
                 _iCaretCol = iColumn;
                 _iCaretOff = iOffset;
 
@@ -858,7 +859,6 @@ namespace Play.Edit {
 
                 return false;
             }
-            // Reset advance? Need the thing to be in the cache then.... Hmmm.
 
             return true;
         }

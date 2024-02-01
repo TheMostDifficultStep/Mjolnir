@@ -190,7 +190,7 @@ namespace Monitor {
 
             foreach( AsmRow oTry in _oDocEnum ) {
                 if( oTry.Map == iJumpAddr ) {
-                    _oCacheMan.SetCaretPositionAndScroll( oRow, iColumn, oRange.Offset );
+                    _oCacheMan.SetCaretPositionAndScroll( oRow.At, iColumn, oRange.Offset );
                 }
             }
         }

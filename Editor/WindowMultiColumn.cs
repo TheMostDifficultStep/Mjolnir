@@ -347,7 +347,7 @@ namespace Play.Edit {
             try {
                 if( iColumn == 1 )
                     eBg = StdUIColors.BGReadOnly;
-                if( _oCacheMan.CaretRow.At == oCRow.At )
+                if( _oCacheMan.CaretRow == oCRow.At )
                     eBg = StdUIColors.BGWithCursor;
                 if( _oDocTraits.HighLight != null && oCRow.At == _oDocTraits.HighLight.At)
                     eBg = _oDocTraits.PlayHighlightColor;
