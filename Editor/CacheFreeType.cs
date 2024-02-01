@@ -141,6 +141,8 @@ namespace Play.Edit {
         // the cache system.
         public List<FTCacheLine> CacheList { get; } = new List<FTCacheLine> ();
 
+        public FTCacheLine this[int iIndex] => CacheList[iIndex];
+
         public override string ToString() {
             StringBuilder sbBuilder = new();
             
@@ -955,14 +957,14 @@ namespace Play.Edit {
         } // end method
 
         /// <summary>
-        /// Move left or right on this line.
+        /// New. Move left or right on this line. Untested.
         /// </summary>
         /// <param name="iDir">+/- number of glyphs to move.</param>
         /// <returns>True if able to move. False if positioning will move out of bounds.</returns>
         /// <remarks>TODO: In the future we must use the cluster info.</remarks>
         protected virtual bool NavigateHorizontal( int iDir, ICaretLocation oCaretPos ) {
             try {
-                int iNextCluster = _rgClusterMap[oCaretPos.CharOffset] + iDir;
+                int iNextCluster = _rgClusterMap[oCaretPos.CaretOffset] + iDir;
                 
                 if( iNextCluster > -1 && iNextCluster < _rgClusters.Count ) {
                     PgCluster oNewCluster = _rgClusters[iNextCluster];
@@ -984,7 +986,7 @@ namespace Play.Edit {
         }
 
         /// <summary>
-        /// Move up or down based on the previous advance. For a non-wrapped line it always fails
+        /// OLD Move up or down based on the previous advance. For a non-wrapped line it always fails
         /// to move internally.
         /// </summary>
         /// <param name="iIncrement">Direction of travel, positive is down, negative is up.</param>
@@ -992,12 +994,20 @@ namespace Play.Edit {
         /// <param name="iOffset">Closest character we can find to the given offset on a line above or below.</param>
         /// <returns>false, always since one cannot navigate vertically on a non-wrapped line.</returns>
         protected virtual bool NavigateVertical( int iDir, float flAdvance, ref int iOffset ) {
-            return( false );
+            return false;
         }
 
+        /// <summary>
+        /// New function. Probably not implemented on the cache wrap.
+        /// </summary>
         protected virtual bool NavigateVertical( int iDir, ICaretLocation oCaretPos ) {
-            return( false );
+            return false;
         }
+
+        /// <summary>
+        /// New navigator.
+        /// </summary>
+        /// <exception cref="ArgumentOutOfRangeException"></exception>
         public bool Navigate( Axis eAxis, int iDir, ICaretLocation oCaretPos ) {
             // See if we can navigate within the line we are currently at.
             switch( eAxis ) {
@@ -1013,13 +1023,17 @@ namespace Play.Edit {
             // See if we can navigate within the line we are currently at.
             switch( eAxis ) {
                 case Axis.Horizontal:
-                    return( NavigateHorizontal( iDir, ref flAdvance, ref iOffset ) );
+                    return NavigateHorizontal( iDir, ref flAdvance, ref iOffset );
                 case Axis.Vertical:
-                    return( NavigateVertical( iDir, flAdvance, ref iOffset ) );
+                    return NavigateVertical  ( iDir, flAdvance, ref iOffset );
             }
 
             throw new ArgumentOutOfRangeException( "expecting only horizontal or vertical" );
         }
+
+        /// <summary>
+        /// OLD navigator.
+        /// </summary>
         protected virtual bool NavigateHorizontal( int iDir, ref float flAdvance, ref int iOffset ) {
             try {
                 int iNextCluster = _rgClusterMap[iOffset] + iDir;

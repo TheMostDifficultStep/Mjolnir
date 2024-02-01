@@ -150,8 +150,8 @@ namespace Monitor {
         public WindowProgramDisplay( 
             IPgViewSite      oSiteView, 
             Document_Monitor p_oDocument, 
-            bool             fReadOnly   = false, 
-            bool             fSingleLine = false) : 
+            bool             fReadOnly   = false 
+        ) : 
             base( oSiteView, p_oDocument.Doc_Asm ) 
         {
             _oMonDoc = p_oDocument;
@@ -164,7 +164,7 @@ namespace Monitor {
         /// <remarks>
         /// This won't work for the data look ups atm.
         /// </remarks>
-        protected void OnCpuJump(Line oLine, IPgWordRange oRange) {
+        protected void OnCpuJump(Row oRow, int iColumn, IPgWordRange oRange) {
             //try {
             //    _rgHistory.AddFirst( CaretPos.Line );
             //    if( _rgHistory.Count > 10 ) {
@@ -177,24 +177,24 @@ namespace Monitor {
             //        throw;
             //}
 
-            //string strJumpRaw = oLine.SubString( oRange.Offset, oRange.Length );
+            Line oLine = oRow[iColumn];
 
-            //if( !int.TryParse( strJumpRaw, 
-            //                   System.Globalization.NumberStyles.HexNumber, 
-            //                   null, out int iJumpAddr ) )
-            //    return;
+            string strJumpRaw = oLine.SubString( oRange.Offset, oRange.Length );
 
-            //string strJumpX4 = iJumpAddr.ToString( "X4" );
+            if( !int.TryParse( strJumpRaw,
+                               System.Globalization.NumberStyles.HexNumber,
+                               null, out int iJumpAddr) )
+                return;
 
-            //foreach( Line oTry in _oDocument ) {
-            //    if( oTry.Extra is Line oMemAddr ) {
-            //        if( oMemAddr.Compare( strJumpX4, IgnoreCase:true ) == 0 ) {
-            //            CaretPos.Line   = oTry;
-            //            CaretPos.Offset = 0;
-            //            ScrollToCaret();
-            //        }
-            //    }
-            //}
+            string strJumpX4 = iJumpAddr.ToString("X4");
+
+            foreach( AsmRow oTry in _oDocEnum ) {
+                if( oTry.Map == iJumpAddr ) {
+                    if( _oCacheMan.SetCaretPosition( oRow, iColumn, oRange.Offset ) ) {
+                        ScrollToCaret();
+                    }
+                }
+            }
         }
 
         protected override bool Initialize() {

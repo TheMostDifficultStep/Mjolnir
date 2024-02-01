@@ -29,9 +29,7 @@ namespace Play.Edit {
         IPgLoad<XmlElement>,
         IPgSave<XmlDocumentFragment>,
         IPgRowEvents,
-        IEnumerable<ILineRange>,
-        ICaretLocation, // The cache manager needs this.
-        ILineRange      // The document uses this to update us.
+        IEnumerable<ILineRange>
     {
         public static Guid _sGuid = new Guid( "{03F21BC8-F911-4FE4-931D-9EB9F7A15A10}" );
 
@@ -47,11 +45,8 @@ namespace Play.Edit {
         protected readonly ScrollBar2            _oScrollBarVirt;
         protected readonly List<SmartRect>       _rgColumns = new(); // Might not match document columns! O.o
 
-        protected float _flAdvance;
-        protected int   _iOffset;
-        protected Line  _oLine;
-        protected Row   _oRow;
-        protected bool  _fReadOnly = false;
+        protected bool _fReadOnly = false;
+        protected Dictionary<string, Action<Row, int, IPgWordRange>> HyperLinks { get; } = new ();
 
         /// <summary>
         /// How much readonly can you get? Window only or doc level. :-/
@@ -109,7 +104,7 @@ namespace Play.Edit {
 					        oRow = _oHost._oDocList[ CheckBound( iRow ) ];
 						    break;
 					    case RefreshNeighborhood.CARET:
-						    oRow = _oHost._oDocList[ CheckBound( _oHost.At ) ];
+						    oRow = _oHost._oDocList[ CheckBound( _oHost._oCacheMan.CaretRow.At ) ];
 						    break;
 				    }
                 } catch( Exception oEx ) {
@@ -219,11 +214,6 @@ namespace Play.Edit {
         }
 
         public bool  IsDirty => true;
-        public Row   CurrentRow  => _oRow;
-        public Line  CurrentLine => _oLine;
-        public int   CharOffset  => _iOffset;
-        public float Advance     => _flAdvance;
-
         protected override void Dispose( bool disposing ) {
             if( disposing ) {
                 //_oDocument.CaretRemove( CaretPos );
@@ -248,57 +238,11 @@ namespace Play.Edit {
             return new SKPoint( oInfo.pntDpi.X, oInfo.pntDpi.Y );
         }
 
-        public Line Line { 
-            get => _oLine; 
-            set => throw new NotImplementedException(); // dummy line cleanup might call this..
-        }
-
-        public int At => _oRow.At;
-
-        public int ColorIndex => 0;
-
-        public int Length { get => 1; set { } }
-        public int Offset { 
-            get => _iOffset; 
-            // Unlike your average formatting element, we are actually in the
-            // position of being able to check the validity of this assignment. :-/
-            set { _iOffset = value; } 
-        }
-
         public IPgParent Parentage => _oSiteView.Host;
 
         public IPgParent Services => Parentage.Services;
 
-        public bool SetCaretPosition(int iRow, int iColumn, int iOffset) {
-            try {
-                _oRow    = _oDocList[iRow];
-                _oLine   = _oRow[iColumn];
-                _iOffset = iOffset;
-            } catch( Exception oEx ) {
-                Type[] rgErrors = { typeof( ArgumentOutOfRangeException ),
-                                    typeof( NullReferenceException ) };
-                if( rgErrors.IsUnhandled( oEx ) )
-                    throw;
-
-                return false;
-            }
-            return true;
-        }
-
-        public bool SetCaretPosition(int iColumn, float fAdvance) {
-            try {
-                _flAdvance = fAdvance;
-                _oLine     = CurrentRow[iColumn];
-            } catch( Exception oEx ) {
-                Type[] rgErrors = { typeof( ArgumentOutOfRangeException ),
-                                    typeof( NullReferenceException ) };
-                if( rgErrors.IsUnhandled( oEx ) )
-                    throw;
-
-                return false;
-            }
-
-            return true;
+        protected void ScrollToCaret() {
         }
 
         /// <summary>
@@ -415,17 +359,21 @@ namespace Play.Edit {
         ) {
             StdUIColors eBg = StdUIColors.Max;
 
-            if( iColumn == 1 )
-                eBg = StdUIColors.BGReadOnly;
-            if( CurrentRow != null && oCRow.At == CurrentRow.At )
-                eBg = StdUIColors.BGWithCursor;
-            if( _oDocTraits.HighLight != null && oCRow.At == _oDocTraits.HighLight.At)
-                eBg = _oDocTraits.PlayHighlightColor;
+            try {
+                if( iColumn == 1 )
+                    eBg = StdUIColors.BGReadOnly;
+                if( _oCacheMan.CaretRow.At == oCRow.At )
+                    eBg = StdUIColors.BGWithCursor;
+                if( _oDocTraits.HighLight != null && oCRow.At == _oDocTraits.HighLight.At)
+                    eBg = _oDocTraits.PlayHighlightColor;
 
-            if( eBg != StdUIColors.Max ) {
-                skPaint .BlendMode = SKBlendMode.Src;
-                skPaint .Color     = _oStdUI.ColorsStandardAt( eBg );
-                skCanvas.DrawRect( rctCRow.SKRect, skPaint );
+                if( eBg != StdUIColors.Max ) {
+                    skPaint .BlendMode = SKBlendMode.Src;
+                    skPaint .Color     = _oStdUI.ColorsStandardAt( eBg );
+                    skCanvas.DrawRect( rctCRow.SKRect, skPaint );
+                }
+            } catch( NullReferenceException ) {
+                LogError( "Problem painting row/col bg" );
             }
         }
 
@@ -497,27 +445,54 @@ namespace Play.Edit {
         }
 
         public static bool IsCtrlKey( Keys oKey ) => ( oKey & Keys.Control ) != 0;
+        public struct RangeStruct :
+            IColorRange 
+        {
+            int _iOffset;
+            int _iLength;
 
-        protected readonly LineRange _oLastCursor = new LineRange(); // A spare for use with the hyperlink stuff.
-        protected Dictionary<string, HyperLink> HyperLinks { get; } = new Dictionary<string, HyperLink>();
+            public RangeStruct( int iOffset, int iLength ) {
+                _iOffset = iOffset;
+                _iLength = iLength;
+            }
 
-        protected bool HyperLinkFind( ILineRange oPosition, bool fDoJump ) {
-            IPgWordRange oRange = FindFormattingUnderRange( oPosition );
+            public int ColorIndex => 0;
+
+            public int Offset { get => _iOffset; 
+                                set => throw new InvalidOperationException(); }
+            public int Length { get => _iLength; 
+                                set => throw new NotImplementedException(); }
+        }
+        protected bool HyperLinkFind( Row oRow, int iColumn, int iOffset, bool fDoJump ) {
+            Line        oLine = oRow[iColumn];
+            RangeStruct oFind = new RangeStruct( iOffset, 1 );
+
+            IPgWordRange oRange = oLine.FindFormattingUnderRange( oFind );
             if( oRange != null ) { 
-                foreach( KeyValuePair<string, HyperLink> oPair in HyperLinks ) { 
+                foreach( KeyValuePair<string, Action<Row, int, IPgWordRange>> oPair in HyperLinks ) { 
                     if( oRange.StateName == oPair.Key ) {
                         if( fDoJump )
-                            oPair.Value?.Invoke( null, oRange );
+                            oPair.Value?.Invoke( oRow, iColumn, oRange );
                         return true;
                     }
                 }
             }
+
             return false;
         }
 
         protected bool HyperLinkFind( int iColumn, SKPointI oLocation, bool fDoJump ) {
-            if( _oCacheMan.GlyphPointToRange( iColumn, oLocation, _oLastCursor ) != null ) {
-                return HyperLinkFind( _oLastCursor, fDoJump );
+            try {
+                if( _oCacheMan.GlyphPointToRange( iColumn, oLocation, out int iOff, out int iRow ) ) {
+                    return HyperLinkFind( _oDocList[iRow], iColumn, iOff, fDoJump );
+                }
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( NullReferenceException ),
+                                    typeof( ArgumentOutOfRangeException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
+                if( fDoJump ) // avoid throwing up a pile of messages on mouse move!
+                    LogError( "Hyperlink exception" );
             }
 
             return false;
@@ -532,12 +507,12 @@ namespace Play.Edit {
         protected void CursorUpdate( SKPointI pntLocation, MouseButtons eButton ) {
             Cursor oNewCursor = Cursors.Arrow;
 
-            for( int i=0; i<_rgColumns.Count; ++i ) {
-                SmartRect oColumn = _rgColumns[i];
+            for( int iColumn=0; iColumn<_rgColumns.Count; ++iColumn ) {
+                SmartRect oColumn = _rgColumns[iColumn];
                 if( oColumn.IsInside( pntLocation.X, pntLocation.Y ) ) {
                     oNewCursor = Cursors.IBeam;
                     if( eButton != MouseButtons.Left ) { // if not selecting.
-                        if( HyperLinkFind( i, pntLocation, fDoJump:false ) )
+                        if( HyperLinkFind( iColumn, pntLocation, fDoJump:false ) )
                             oNewCursor = Cursors.Hand;
                         break;
                     }

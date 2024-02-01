@@ -316,8 +316,6 @@ namespace Play.Edit {
 
     public delegate void HyperLink ( Line oLine, IPgWordRange oRange );
 
-
-
     public partial class EditWindow2 : 
         SKControl, 
 		IPgLoad<XmlElement>,
@@ -825,7 +823,7 @@ namespace Play.Edit {
         }
 
         protected bool HyperLinkFind( ILineRange oPosition, bool fDoJump ) {
-            IPgWordRange oRange = FindFormattingUnderRange( oPosition );
+            IPgWordRange oRange = oPosition.Line.FindFormattingUnderRange( oPosition );
             if( oRange != null ) { 
                 foreach( KeyValuePair<string, HyperLink> oPair in HyperLinks ) { 
                     if( oRange.StateName == oPair.Key ) {
@@ -877,7 +875,7 @@ namespace Play.Edit {
 				if( SelectionCount > 0 ) {
 					strSelection = this.SelectionCopy();
 				} else {
-					IMemoryRange oSelection = FindFormattingUnderRange( CaretPos );
+					IMemoryRange oSelection = CaretPos.Line.FindFormattingUnderRange( CaretPos );
 					if( oSelection != null ) {
 						strSelection = CaretPos.Line.SubString( oSelection.Offset, oSelection.Length );
 					}
@@ -1325,47 +1323,6 @@ namespace Play.Edit {
         }
 
         /// <summary>
-        /// Use this to find something to select when the user double clicks.
-        /// BUG: can be static/and on a helper class.
-        /// </summary>
-        /// <param name="oSearchPos">A LineRange containing the line and offset/length
-        /// position use for the search.</param>
-        /// <returns>Returns the formatting element under the Search position.</returns>
-        public static IPgWordRange FindFormattingUnderRange( ILineRange oSearchPos ) {
-            if( oSearchPos == null )
-                throw new ArgumentNullException();
-            if( oSearchPos.Line == null )
-                return( null );
-
-            IPgWordRange oTerminal = null;
-
-            try { 
-                foreach(IPgWordRange oTry in oSearchPos.Line.Formatting ) {
-                    if( oTry is IPgWordRange oRange &&
-                        oSearchPos.Offset >= oRange.Offset &&
-                        oSearchPos.Offset  < oRange.Offset + oRange.Length )
-                    {
-						// The first word we find is the best choice.
-						if( oRange.IsWord ) {
-							return oRange;
-						}
-						// The term under the carat is OK, But keep trying for better...
-						if( oRange.IsTerm ) {
-							oTerminal = oRange;
-						}
-                    }
-                }
-            } catch( Exception oEx ) { 
-                Type[] rgErrors = { typeof( NullReferenceException ), 
-                                    typeof( InvalidCastException )};
-                if( rgErrors.IsUnhandled( oEx ))
-                    throw;
-            }
-
-            return( oTerminal );
-        }
-
-        /// <summary>
         /// Advance tells us how far along graphically, we are in the text stream
         /// from the left hand side, so if the cursor moves up or down we can try 
         /// to hit that same advance point. Updates the caret pos as a side effect.
@@ -1393,7 +1350,7 @@ namespace Play.Edit {
                 return;
 
             // Double click, so look at the formatting, to see how much to select.
-            if( FindFormattingUnderRange( CaretPos ) is IMemoryRange oRange ) {
+            if( CaretPos.Line.FindFormattingUnderRange( CaretPos ) is IMemoryRange oRange ) {
                 // TODO: This code might be better as a flyweight version of a TextSelect 
                 // class. Then I could use each interchangibly depending on I want to auto 
                 // select like here or manual select like in TextSelector.

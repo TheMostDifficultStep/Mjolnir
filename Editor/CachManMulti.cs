@@ -32,12 +32,12 @@ namespace Play.Edit {
     /// for the document. O.o
     /// </summary>
     public interface ICaretLocation {
-        Row   CurrentRow  { get; }
-        Line  CurrentLine { get; }
-        int   CharOffset  { get; }
+        Row   CaretRow    { get; }
+        int   CaretColumn { get; }
+        int   CaretOffset { get; }
         float Advance     { get; }
 
-        bool SetCaretPosition( int iRow, int iColumn, int iOffset ); // Vertical move
+        bool SetCaretPosition( Row oRow, int iColumn, int iOffset ); // Vertical move
         bool SetCaretPosition( int iColumn, float fAdvance );        // Horizontal move
 
     }
@@ -51,7 +51,8 @@ namespace Play.Edit {
         //ICollection<ILineSelection> Selections{ get; }
     }
     public class CacheMultiColumn:         
-        IEnumerable<CacheRow>
+        IEnumerable<CacheRow>,
+        ICaretLocation
     {
         protected readonly ICacheManSite    _oSite;
         // World coordinates of our view port. Do not confuse these with the
@@ -106,12 +107,24 @@ namespace Play.Edit {
             get { return _oTextRect; }
         }
 
+        public Row CaretRow => throw new NotImplementedException();
+
+        public int CaretColumn => throw new NotImplementedException();
+
+        public int CaretOffset => throw new NotImplementedException();
+
+        public float Advance => throw new NotImplementedException();
+
         public void OnMouseWheel( int iDelta ) {
             int iTop = _rgOldCache[0].Top + ( 4 * iDelta / LineHeight );
 
             CacheScroll( iTop );
         }
 
+        /// <summary>
+        /// Slide the cache elements to the new top.
+        /// </summary>
+        /// <param name="iTop">A value relative to the TextRect.</param>
         protected void CacheScroll( int iTop ) {
             foreach( CacheRow oCacheRow in _rgOldCache ) {
                 oCacheRow.Top = iTop;
@@ -280,7 +293,7 @@ namespace Play.Edit {
         /// visible area, the outside part DOES NOT contribute. That's why
         /// we check the clipped height!!</remarks>
         /// <seealso cref="ICacheManSite.OnRefreshComplete"/>
-        public void CacheWalker( CacheRow oSeedCache, bool fRemeasure ) {
+        public void CacheWalker( CacheRow oSeedCache, bool fRemeasure = false ) {
             if( oSeedCache == null ) {
                 LogError( "Cache construction error" );
                 return;
@@ -573,37 +586,37 @@ namespace Play.Edit {
         /// <param name="flAdvance">Distance from left to maintain when moving vertically. This value can be updated.</param>
         /// <param name="oCaret">The caret to be updated.</param>
         /// <returns>Instructions on how to refresh the cache after this movement.</returns>
-        public CaretMove MoveCaret( Axis           eAxis, 
-                                    int            iDir, 
-                                    ICaretLocation oCaretPos ) 
+        public bool MoveCaret( Axis eAxis, int iDir ) 
         {
-            if( oCaretPos == null )
-                throw new ArgumentNullException();
             if( iDir == 0 )
                 throw new ArgumentOutOfRangeException();
 
             // If total miss, build a new screen based on the location of the caret.
-            CacheRow oCacheRow = CacheLocate( oCaretPos.CurrentRow.At );
+            CacheRow oCacheRow = CacheLocate( CaretRow.At );
             if( oCacheRow == null ) {
-                return CaretMove.MISS;
+                oCacheRow = PreCache( CaretRow );
+
+                CacheWalker( oCacheRow );
             }
 
             // First, see if we can navigate within the row we are currently at.
-            if( !oCacheRow.CacheList[0].Navigate( eAxis, iDir, oCaretPos ) ) {
+            if( !oCacheRow[CaretColumn].Navigate( eAxis, iDir, this ) ) {
                 iDir = iDir < 0 ? -1 : 1; // Only allow move one line up or down.
                 // Now try moving vertically...
-                Row oDocRow = _oSite.GetRowAtIndex( oCaretPos.CurrentRow.At + iDir );
+                Row oDocRow = _oSite.GetRowAtIndex( CaretRow.At + iDir );
                 if( oDocRow != null ) {
                     CacheRow oNext = PreCache( oDocRow );
 
                     // Find out where to place the cursor as it moves to the next line.
-                    int iOffset = oNext.CacheList[0].OffsetBound( eAxis, iDir * -1, oCaretPos.Advance );
+                    int iOffset = oNext[0].OffsetBound( eAxis, iDir * -1, Advance );
 
-                    oCaretPos.SetCaretPosition( oCacheRow.At, 0, iOffset );
+                    SetCaretPosition( CaretRow, CaretColumn, iOffset );
+
+                    CacheWalker( oNext );
                 }
             }
 
-            return CaretLocal( oCacheRow, oCaretPos );
+            return CaretLocal( oCacheRow, CaretColumn, CaretOffset );
         }
 
         /// <summary>
@@ -642,27 +655,33 @@ namespace Play.Edit {
         /// Update the sliding window based the offset into the given cache element.
         /// If calling this the caret is already nearby, so try to locate.
         /// </summary>
-        /// <param name="oRow">The cache element to consider.</param>
+        /// <param name="iColumn">The cache element to consider.</param>
         /// <param name="iOffset">Offset into the given cache element.</param>
-        protected CaretMove CaretLocal( CacheRow oRow, ICaretLocation oCaretPos ) {
-            CaretMove eMove       = CaretMove.LOCAL;
-            Point     pntCaretLoc = oRow.CacheList[0].GlyphOffsetToPoint( oCaretPos.CharOffset );
+        protected bool CaretLocal( CacheRow oCaretCache, int iColumn, int iOffset ) {
+            try {
+                FTCacheLine oCache = oCaretCache[iColumn];
+                Point  pntCaretLoc = oCache.GlyphOffsetToPoint( iOffset );
 
-            pntCaretLoc.Y += oRow.Top;
+                LOCUS eHitTop = _oTextRect.IsWhere( pntCaretLoc.X, pntCaretLoc.Y );
+                LOCUS eHitBot = _oTextRect.IsWhere( pntCaretLoc.X, pntCaretLoc.Y + LineHeight );
 
-            LOCUS eHitTop = _oTextRect.IsWhere( pntCaretLoc.X, pntCaretLoc.Y );
-            LOCUS eHitBot = _oTextRect.IsWhere( pntCaretLoc.X, pntCaretLoc.Y + LineHeight );
-
-            if( ( eHitTop & LOCUS.TOP    ) != 0 ) {
-                _oTextRect.SetScalar(SET.RIGID, SCALAR.TOP,    pntCaretLoc.Y );
-                eMove = CaretMove.NEARBY;
+                if( ( eHitTop & LOCUS.TOP    ) != 0 ) {
+                    //CacheScroll( oCaretCache.Top );
+                    //_oTextRect.SetScalar(SET.RIGID, SCALAR.TOP,    pntCaretLoc.Y );
+                    return true;
+                }
+                if( ( eHitBot & LOCUS.BOTTOM ) != 0 ) {
+                    //_oTextRect.SetScalar(SET.RIGID, SCALAR.BOTTOM, pntCaretLoc.Y + LineHeight );
+                    return true;
+                }
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( NullReferenceException ),
+                                    typeof( ArgumentOutOfRangeException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
             }
-            if( ( eHitBot & LOCUS.BOTTOM ) != 0 ) {
-                _oTextRect.SetScalar(SET.RIGID, SCALAR.BOTTOM, pntCaretLoc.Y + LineHeight );
-                eMove = CaretMove.NEARBY;
-            }
 
-            return eMove;
+            return false;
         }
 
         /// <summary>
@@ -775,13 +794,13 @@ namespace Play.Edit {
         /// <summary>
         /// Find the requested line.
         /// </summary>
-        /// <param name="iLine">Line identifier. Technically for use, this does not need to be an
+        /// <param name="iRow">Line identifier. Technically for use, this does not need to be an
         /// array index. But just a unique value sitting at the "At" property on the line.</param>
         /// <returns>The cache element representing that line.</returns>
-        public CacheRow CacheLocate( int iLine ) {
+        public CacheRow CacheLocate( int iRow ) {
             foreach( CacheRow oCache in _rgOldCache ) {
-                if( oCache.At == iLine ) {
-                    return( oCache );
+                if( oCache.At == iRow ) {
+                    return oCache;
                 }
             }
 
@@ -821,23 +840,28 @@ namespace Play.Edit {
         /// <param name="pntWorldLoc">Graphics location of interest in world coordinates. Basically
         ///                         where the mouse clicked.</param>
         /// <param name="oCaret">This object line offset is updated to the closest line offset.</param>
-        public FTCacheLine GlyphPointToRange( int iColumn, SKPointI pntWorldLoc, ILineRange oCaret ) {
-            foreach( CacheRow oRow in _rgOldCache ) {
-                if( oRow.Top    <= pntWorldLoc.Y &&
-                    oRow.Bottom >= pntWorldLoc.Y ) 
+        public bool GlyphPointToRange( 
+            int iColumn, SKPointI pntWorldLoc, out int iOffset, out int iRow )
+        {
+            foreach( CacheRow oCacheRow in _rgOldCache ) {
+                if( oCacheRow.Top    <= pntWorldLoc.Y &&
+                    oCacheRow.Bottom >= pntWorldLoc.Y ) 
                 {
-                    FTCacheLine oCache   = oRow.CacheList[iColumn];
+                    FTCacheLine oCache   = oCacheRow.CacheList[iColumn];
                     SKPointI    pntLocal = new SKPointI( pntWorldLoc.X - _rgCacheMap[iColumn].Left,
                                                          pntWorldLoc.Y - _rgCacheMap[iColumn].Top );
 
-                    oCaret.Line   = oCache.Line;
-                    oCaret.Offset = oCache.GlyphPointToOffset(oRow.Top, pntLocal );
+                    iOffset = oCache   .GlyphPointToOffset(oCacheRow.Top, pntLocal );
+                    iRow    = oCacheRow.At;
 
-                    return oCache;
+                    return true;
                 }
             }
 
-            return null;
+            iOffset = -1;
+            iRow    = -1;
+
+            return false;
         }
 
 		/// <summary>
@@ -855,5 +879,13 @@ namespace Play.Edit {
             //    flAdvance = oNewLocation.X; 
             //}
         }
-   } // end class
+
+        public bool SetCaretPosition(Row oRow, int iColumn, int iOffset) {
+            throw new NotImplementedException();
+        }
+
+        public bool SetCaretPosition(int iColumn, float fAdvance) {
+            throw new NotImplementedException();
+        }
+    } // end class
 }

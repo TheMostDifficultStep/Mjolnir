@@ -100,6 +100,44 @@ namespace Play.Edit {
             _iLine = iLine;
         }
 
+        /// <summary>
+        /// Use this to find something to select when the user double clicks.
+        /// </summary>
+        /// <param name="oSearchPos">A LineRange containing the line and offset/length
+        /// position use for the search.</param>
+        /// <returns>Returns the formatting element under the Search position.</returns>
+        public IPgWordRange FindFormattingUnderRange( IColorRange oSearchPos ) {
+            if( oSearchPos == null )
+                throw new ArgumentNullException();
+
+            IPgWordRange oTerminal = null;
+
+            try { 
+                foreach(IPgWordRange oTry in Formatting ) {
+                    if( oTry is IPgWordRange oRange &&
+                        oSearchPos.Offset >= oRange.Offset &&
+                        oSearchPos.Offset  < oRange.Offset + oRange.Length )
+                    {
+						// The first word we find is the best choice.
+						if( oRange.IsWord ) {
+							return oRange;
+						}
+						// The term under the carat is OK, But keep trying for better...
+						if( oRange.IsTerm ) {
+							oTerminal = oRange;
+						}
+                    }
+                }
+            } catch( Exception oEx ) { 
+                Type[] rgErrors = { typeof( NullReferenceException ), 
+                                    typeof( InvalidCastException )};
+                if( rgErrors.IsUnhandled( oEx ))
+                    throw;
+            }
+
+            return( oTerminal );
+        }
+
         public static bool IsNullOrEmpty( Line oLine ) {
             if( oLine == null )
                 return true;
