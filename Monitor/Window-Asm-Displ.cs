@@ -181,6 +181,7 @@ namespace Monitor {
 
                 string strJumpX4 = iJumpAddr.ToString("X4");
 
+                // Use a bubble search in the future...
                 foreach( AsmRow oTry in _oDocEnum ) {
                     if( oTry.Map == iJumpAddr ) {
                         _oCacheMan.SetCaretPositionAndScroll( oTry.At, iColumn, 0 );

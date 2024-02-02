@@ -67,7 +67,7 @@ namespace Play.Edit {
         public    int           LineHeight { get; } // Helps us determine scrolling distances.
         public    int           RowSpacing { get; set; } = 1;
 
-        protected int   _iCaretRow; 
+        protected Row   _oCaretRow; 
         protected int   _iCaretCol;
         protected int   _iCaretOff;
         protected float _fAdvance;
@@ -92,7 +92,7 @@ namespace Play.Edit {
             GlyphLt    = Font.GetGlyph( 0x003c ); // we used to show carriage return as a '<' sign.
             LineHeight = (int)Font.LineHeight; // BUG: Cache elem's are variable height in general.
 
-            _iCaretRow = 0;
+            _oCaretRow = _oSite.GetRowAtIndex( 0 );
             _iCaretCol = 0; // Make sure the column is edible :-/
             _iCaretOff = 0;
             _fAdvance  = 0;
@@ -130,11 +130,23 @@ namespace Play.Edit {
             get { return _oTextRect; }
         }
 
-        public int   CaretRow    => _iCaretRow;
+        public int CaretRow {
+            get {
+                try {
+                    if( _oCaretRow.At < 0 )
+                        _oSite.LogError( "Cacheman", "Zombie Caret Row." );
 
-        public int   CaretColumn => _iCaretCol;
+                    return _oCaretRow.At; 
+                } catch( NullReferenceException ) {
+                    _oSite.LogError( "Cacheman", "Lost track of Caret Row (exception)." );
+                }
+                return 0; // Will cause a cache reset on caret moves.
+            }
+        }
 
-        public int   CaretOffset => _iCaretOff;
+        public int CaretColumn => _iCaretCol;
+
+        public int CaretOffset => _iCaretOff;
 
         public void OnMouseWheel( int iDelta ) {
             int iTop = _rgOldCache[0].Top + ( 4 * iDelta / LineHeight );
@@ -216,7 +228,7 @@ namespace Play.Edit {
                         oDocRow = _oSite.GetRowAtScroll( );
                         break;
                     case RefreshNeighborhood.CARET:
-                        oDocRow = _oSite.GetRowAtIndex( _iCaretRow );
+                        oDocRow = _oSite.GetRowAtIndex( CaretRow );
                         break;
                 }
                 if( oDocRow == null )
@@ -239,9 +251,7 @@ namespace Play.Edit {
                         break;
                 }
             } catch( Exception oEx ) {
-                Type[] rgErrors = { typeof( NullReferenceException ),
-                                    typeof( ArgumentNullException ) };
-                if( rgErrors.IsUnhandled( oEx ) )
+                if( IsUnhandledStdRpt( oEx ) )
                     throw;
             }
 
@@ -387,6 +397,7 @@ namespace Play.Edit {
         /// Visual Studio editor moves the caret too. But if we scroll with the
         /// mouse or scroll bar they don't move the caret... hmmm...
         /// </summary>
+        /// <remarks>BUG: Need to set the caret on scroll from keystrokes...</remarks>
         /// <param name="e"></param>
         public void OnScrollBar_Vertical( ScrollEvents e ) {
             switch( e ) {
@@ -560,6 +571,29 @@ namespace Play.Edit {
         }
 
         /// <summary>
+        /// Update the sliding window based the offset into the given cache element.
+        /// We want to make sure the caret is always visible and doesn't slide off screen.
+        /// The CacheWalker will normalize the window so the top is 0 (or whereever
+        /// it should be)
+        /// </summary>
+        /// <param name="oCaret">The cache row where the caret is situated.</param>
+        protected void CaretLocal( CacheRow oCaret ) {
+            Point pntCaretLoc = oCaret.CacheList[_iCaretCol].GlyphOffsetToPoint( _iCaretOff );
+
+            pntCaretLoc.Y += oCaret.Top;
+
+            LOCUS eHitTop = _oTextRect.IsWhere( pntCaretLoc.X, pntCaretLoc.Y );
+            LOCUS eHitBot = _oTextRect.IsWhere( pntCaretLoc.X, pntCaretLoc.Y + LineHeight );
+
+            if( ( eHitTop & LOCUS.TOP    ) != 0 ) {
+                _oTextRect.SetScalar(SET.RIGID, SCALAR.TOP,    pntCaretLoc.Y );
+            }
+            if( ( eHitBot & LOCUS.BOTTOM ) != 0 ) {
+                _oTextRect.SetScalar(SET.RIGID, SCALAR.BOTTOM, pntCaretLoc.Y + LineHeight );
+            }
+        }
+
+        /// <summary>
         /// Move the given caret offset on glyph in the direction specified. There are no side effects.
         /// </summary>
         /// <param name="eAxis">Horizontal or Vertical</param>
@@ -567,25 +601,32 @@ namespace Play.Edit {
         /// <param name="flAdvance">Distance from left to maintain when moving vertically. This value can be updated.</param>
         /// <param name="oCaret">The caret to be updated.</param>
         /// <returns>Instructions on how to refresh the cache after this movement.</returns>
-        public void MoveCaret( Axis eAxis, int iDir ) 
-        {
+        public void CaretMove( Axis eAxis, int iDir ) {
             if( !( iDir == 1 || iDir == -1 ) )
                 throw new ArgumentOutOfRangeException();
 
             try {
-                CacheRow oCaretCacheRow = CacheLocate( _iCaretRow );
+                CacheRow oCaretCacheRow = CacheLocate( CaretRow );
                 if( oCaretCacheRow != null ) {
-                    // First, see if we can navigate within the row we are currently at.
+                    // First, see if we can navigate within the cache we are currently at.
                     if( !oCaretCacheRow[_iCaretCol].Navigate( eAxis, iDir, ref _fAdvance, ref _iCaretOff ) ) {
                         // Now try moving vertically, but stay in the same column...
-                        Row oDocRow = _oSite.GetRowAtIndex( _iCaretRow + iDir );
+                        Row oDocRow = _oSite.GetRowAtIndex( CaretRow + iDir);
                         if( oDocRow != null ) {
-                            CacheRow oNext = CacheReset( RefreshNeighborhood.CARET );
-
-                            // Find out where to place the cursor as it moves to the next line.
-                            _iCaretOff = oNext[_iCaretCol].OffsetBound( eAxis, iDir * -1, _fAdvance );
+                            CacheRow oNewCache = _rgOldCache.Find(item => item.At == oDocRow.At);
+                            if( oNewCache == null ) {
+                                oNewCache = CreateRow(oDocRow);
+                                RowMeasure( oNewCache );
+                            }
+                            if( iDir > 0 ) {
+                                oNewCache.Top = oCaretCacheRow.Bottom + RowSpacing;
+                            }
+                            _oCaretRow = oDocRow;
+                            _iCaretOff = oNewCache[_iCaretCol].OffsetBound( eAxis, iDir * -1, _fAdvance );
+                            oCaretCacheRow = oNewCache;
                         }
                     }
+                    CaretLocal( oCaretCacheRow );
                 } else {
                     // Total miss, build a new screen based on the location of the caret.
                     oCaretCacheRow = CacheReset( RefreshNeighborhood.CARET );
@@ -821,7 +862,7 @@ namespace Play.Edit {
                     if( oColumn.IsInside( pntWorldLoc.X, pntWorldLoc.Y ) ) {
                         // Only care if the point is within the cache.
                         if( PointToRange( iColumn, pntWorldLoc, out int iOff, out int iRow ) ) {
-                            _iCaretRow = iRow;
+                            _oCaretRow = _oSite.GetRowAtIndex( iRow );
                             _iCaretCol = iColumn;
                             _iCaretOff = iOff;
                             _fAdvance  = pntWorldLoc.X - oColumn.Left;
@@ -848,7 +889,7 @@ namespace Play.Edit {
                 if( iOffset < 0 || iOffset >= oLine.ElementCount )
                     return false;
 
-                _iCaretRow = iDataRow;
+                _oCaretRow = oDataRow;
                 _iCaretCol = iColumn;
                 _iCaretOff = iOffset;
 

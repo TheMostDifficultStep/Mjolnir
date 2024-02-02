@@ -48,6 +48,15 @@ namespace Play.Edit {
         protected bool _fReadOnly = false;
         protected Dictionary<string, Action<Row, int, IPgWordRange>> HyperLinks { get; } = new ();
 
+        readonly static Keys[] _rgHandledKeys = { Keys.PageDown, Keys.PageUp, Keys.Down,
+                                                  Keys.Up, Keys.Right, Keys.Left, Keys.Back,
+                                                  Keys.Delete, Keys.Enter, Keys.Tab,
+                                                  Keys.Control | Keys.A, Keys.Control | Keys.F };
+
+        public IPgParent Parentage => _oSiteView.Host;
+
+        public IPgParent Services => Parentage.Services;
+
         /// <summary>
         /// How much readonly can you get? Window only or doc level. :-/
         /// </summary>
@@ -199,6 +208,8 @@ namespace Play.Edit {
             _oCacheMan = new CacheMultiColumn( new CacheManSite( this ), 
                                                _oStdUI.FontRendererAt( uiStdText ),
                                                _rgColumns ); 
+
+            Array.Sort<Keys>( _rgHandledKeys );
         }
 
         public bool  IsDirty => true;
@@ -216,6 +227,15 @@ namespace Play.Edit {
             _oSiteView.LogError( "Multi Column Window", strMessage, fShow );
         }
 
+        protected override bool IsInputKey(Keys keyData) {
+            int iIndex = Array.BinarySearch<Keys>(_rgHandledKeys, keyData);
+
+            if (iIndex >= 0)
+                return (true);
+
+            return base.IsInputKey( keyData );
+        }
+
         public SKPoint GetDPI() {
             // The object we get from the interface has some standard screen dpi and size
             // values. We then attempt to override those values with our actual values.
@@ -225,10 +245,6 @@ namespace Play.Edit {
             }
             return new SKPoint( oInfo.pntDpi.X, oInfo.pntDpi.Y );
         }
-
-        public IPgParent Parentage => _oSiteView.Host;
-
-        public IPgParent Services => Parentage.Services;
 
         /// <summary>
         /// Where we really initialize.
@@ -546,9 +562,18 @@ namespace Play.Edit {
                     _oCacheMan.OnScrollBar_Vertical( ScrollEvents.LargeDecrement );
                     break;
                 case Keys.Down:
+                    _oCacheMan.CaretMove( Axis.Vertical, 1 );
                     break;
                 case Keys.Up:
+                    _oCacheMan.CaretMove( Axis.Vertical, -1 );
                     break;
+                case Keys.Right:
+                    _oCacheMan.CaretMove( Axis.Horizontal, 1 );
+                    break;
+                case Keys.Left:
+                    _oCacheMan.CaretMove( Axis.Horizontal, -1 );
+                    break;
+
             }
         }
 
