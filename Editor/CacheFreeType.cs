@@ -510,7 +510,7 @@ namespace Play.Edit {
         /// <seealso cref="Update"/>
         /// <seealso cref="OnChangeSize"/>
         /// <seealso cref="FTCacheWrap.WrapSegmentNoWords(int)"/>
-        public virtual void WrapSegments( int iDisplayWidth ) {
+        protected virtual void WrapSegments( int iDisplayWidth ) {
             float flAdvance  = 0;
             int   iWrapCount = 0;
             Span<float> rgStart = stackalloc float[10];

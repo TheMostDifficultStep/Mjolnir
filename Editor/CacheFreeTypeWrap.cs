@@ -74,7 +74,7 @@ namespace Play.Edit {
         /// </summary>
         /// <param name="iSegment">The particular segment we are interested in.</param>
         /// <param name="flAdvance">The horizontal distance in "pixels" we are interested in.</param>
-        public int FindNearestOffset( int iSegment, float flAdvance ) {
+        protected int FindNearestOffset( int iSegment, float flAdvance ) {
             if( _rgClusters.Count < 1 )
                 return 0;
 
@@ -282,73 +282,6 @@ namespace Play.Edit {
         }
 
         /// <summary>
-        /// Wrap the segments to make intelligent word wrap on a line. Turns out
-        /// with the given line breaker, this wrapper isn't any more powerful than
-        /// the new WrapSegments call which needs no (complicated) parser to
-        /// support it's use.
-        /// </summary>
-        /// <remarks>In the standard text editor case the window's cache manager
-        /// makes sure that the Words array is populated by running a word
-        /// breaker for each cached line. Outside of the EditWindow world you'll
-        /// have to see that word breaking is done in some other manner.</remarks>
-        /// <param name="iDisplayWidth">Width in pixels.</param>
-        /// <seealso cref="CacheManager2.ElemUpdate"/>
-        public  void WrapSegmentsOld( int iDisplayWidth ) {
-            try {
-                if( _rgClusters.Count < 1 )
-                    return;
-
-                if( Words.Count == 0 ) {
-                    WrapSegmentSimple( iDisplayWidth );
-                    return;
-                }
-
-                float flAdvance  = 0;
-                _iWrapCount      = 0;
-                Span<float> rgStart = stackalloc float[10];
-                IEnumerator<IPgWordRange> oEnum = Words.GetEnumerator();
-
-				while( oEnum.MoveNext() ) {
-                    int iIndex = oEnum.Current.Offset;
-                    do {
-                        // The first word on a line never get's a redo. Only it's tail will wrap.
-                        while( !LoadWord( oEnum.Current, iDisplayWidth, ref flAdvance, ref iIndex ) ) {
-                            JustifyLine( rgStart, _iWrapCount, iDisplayWidth, flAdvance );
-                            flAdvance = 0;
-                            _iWrapCount++;
-                        }
-                        if( !oEnum.MoveNext() )
-                            break;
-                        iIndex = oEnum.Current.Offset;
-
-                        // There MUST be one word on line before try redo the next on the next line.
-                        if( !LoadWord( oEnum.Current, iDisplayWidth, ref flAdvance, ref iIndex ) ) {
-                            JustifyLine( rgStart, _iWrapCount, iDisplayWidth, flAdvance );
-                            flAdvance = 0;
-                            _iWrapCount++;                 // Advance the line/wrap
-                            iIndex = oEnum.Current.Offset; // Redo the word on next line!
-                        }
-                    } while( true );
-                }
-                // Don't forget to patch up our trailing EOL glyph that isn't in the source. See Update()
-                _rgClusters[_rgClusters.Count-1].AdvanceLeft = flAdvance;
-                _rgClusters[_rgClusters.Count-1].Segment     = _iWrapCount;
-
-                JustifyLine( rgStart, _iWrapCount, iDisplayWidth, flAdvance );
-                JustifyDone( rgStart );
-            } catch( Exception oEx ) {
-                Type[] rgError = { typeof( IndexOutOfRangeException ),
-                                   typeof( ArgumentOutOfRangeException ),
-                                   typeof( NullReferenceException ),
-                                   typeof( ArgumentOutOfRangeException ) };
-                if( rgError.IsUnhandled(oEx) )
-                    throw;
-
-                base.WrapSegments( iDisplayWidth );
-            }
-        }
-
-        /// <summary>
         /// Start reading a cluster run, keep at it as long as the visibility remains the same
         /// and the text width is less than the DisplayWidth.
         /// </summary>
@@ -404,7 +337,7 @@ namespace Play.Edit {
         /// greater than or equal as a single unit, so it's a wash.
         /// </remarks>
         /// <param name="iDisplayWidth"></param>
-        public override void WrapSegments( int iDisplayWidth ) {
+        protected override void WrapSegments( int iDisplayWidth ) {
             try {
                 _iWrapCount = 0;
 

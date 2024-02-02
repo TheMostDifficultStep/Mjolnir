@@ -192,7 +192,7 @@ namespace Play.ImageViewer {
 
         protected override void OnSize() {
             base.OnSize();
-            CacheElem.WrapSegments( Width );
+            CacheElem.OnChangeSize( Width );
         }
 
         /// <summary>

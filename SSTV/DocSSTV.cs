@@ -1174,7 +1174,7 @@ namespace Play.SSTV {
             // After the layout now we can word wrap the text.
             //oEdit.WordBreak( oElem.Line, oElem.Words ); 
             oElem.Update( _oStdUI.FontRendererAt( uiFontID ) );
-            oElem.WrapSegments( oImage.Width );
+            oElem.OnChangeSize( oImage.Width );
 
             //SelectionAdjust( oImage );
             TxImgLayoutAspect = new ( oImage.Width, oImage.Height );
@@ -1232,7 +1232,7 @@ namespace Play.SSTV {
             // After the layout now we can word wrap the text.
             //oEdit.WordBreak( oWrap.Line, oWrap.Words ); 
             oWrap.Update( _oStdUI.FontRendererAt( uiFontID ) );
-            oWrap.WrapSegments( oSingle.Width );
+            oWrap.OnChangeSize( oSingle.Width );
 
             //SelectionAdjust( oImage1 );
             TxImgLayoutAspect = new ( oImage1.Width, oImage1.Height );
