@@ -237,7 +237,7 @@ namespace Play.Edit {
                 oCacheRow = _rgOldCache.Find( item => item.At == oDocRow.At ); 
 
                 if( oCacheRow == null ) // If can't find matching elem, create it.
-                    oCacheRow = CreateRow( oDocRow );
+                    oCacheRow = CreateCacheRow( oDocRow );
 
                 RowMeasure( oCacheRow );
 
@@ -276,7 +276,7 @@ namespace Play.Edit {
 
             // If we're reusing a cache, it's already measured!! ^_^
             if( oNewCache == null ) {
-                oNewCache = CreateRow( _oSite.GetRowAtIndex( oNextDRow.At ) );
+                oNewCache = CreateCacheRow( _oSite.GetRowAtIndex( oNextDRow.At ) );
                 fRemeasure = true;
             }
             if( fRemeasure ) 
@@ -465,52 +465,6 @@ namespace Play.Edit {
         }
 
         /// <summary>
-        /// Simply update invalid elements and restack. Use this when simply editing within one line.
-		/// We redo the elem.top in case a line grows in height.
-        /// </summary>
-        protected void Validate() {
-			try {
-				CacheRow oPrev = null;
-				foreach( CacheRow oRow in _rgOldCache ) {
-					if( oRow.IsInvalid )
-						RowMeasure( oRow );
-
-					// NOTE: if the elements aren't stacked in line order, we've got a problem.
-					if( oPrev != null )
-						oRow.Top = oPrev.Bottom + RowSpacing; // BUG: this looks wrong...
-
-					oPrev = oRow;
-				}
-			} catch( Exception oEx ) {
-				Type[] rgErrors = { typeof( NullReferenceException ),
-									typeof( ArgumentNullException ),
-                                    typeof( ArgumentOutOfRangeException ) };
-				if( !rgErrors.Contains( oEx.GetType() ))
-					throw;
-
-				_oSite.LogError( "view cache", "Couldn't validate cache elements." );
-			}
-        }
-
-        /// <summary>Invalidate ALL window cash elements. probably the same code
-        /// as OnChangeSize. Might unify if possible...</summary>
-        /// <remarks>
-        /// Sort of odd. I found out that on the OnMultiFinished is not marking the lines
-        /// as invalid, even tho the implication is that everthing is updated. Probably
-        /// never noticed b/c the line change events would invalidate lines, but for
-        /// the new BBC basic line renumber, none of that is used. (at present 7/9/2023)
-        /// </remarks>
-        /// <seealso cref="EditWindow2.OnMultiFinished"/>
-        /// <seealso cref="OnChangeSize"/>
-        public void Invalidate() {
-            foreach( CacheRow oRow in this ) {
-                foreach( FTCacheLine oElem in oRow.CacheList ) {
-                    oElem.Invalidate();
-                }
-            }
-        }
-
-        /// <summary>
         /// Create a cached line element. There are a lot of dependencies on stuff in this object
         /// and so we create the element here and pass it out to be used.
         /// </summary>
@@ -519,7 +473,7 @@ namespace Play.Edit {
         /// <remarks> Be sure to call RowUpdate()
         /// after this call so that the lines can be measured.</remarks>
         /// <seealso cref="RowMeasure"/>
-        protected virtual CacheRow CreateRow( Row oDocRow ) {
+        protected virtual CacheRow CreateCacheRow( Row oDocRow ) {
             if( oDocRow == null )
                 throw new ArgumentNullException();
 
@@ -623,7 +577,7 @@ namespace Play.Edit {
                         if( oDocRow != null ) {
                             CacheRow oNewCache = _rgOldCache.Find(item => item.At == oDocRow.At);
                             if( oNewCache == null ) {
-                                oNewCache = CreateRow(oDocRow);
+                                oNewCache = CreateCacheRow(oDocRow);
                                 RowMeasure( oNewCache );
                             }
                             if( iDir > 0 ) {
