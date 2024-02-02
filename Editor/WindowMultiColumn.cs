@@ -282,7 +282,7 @@ namespace Play.Edit {
         }
 
         public void OnRowEvent(BUFFEREVENTS eEvent, Row oRow) {
-            _oCacheMan.UpdateRow( oRow ); // Actually, only need to invalidate... hmmm.
+            _oCacheMan.UpdateRow( oRow ); 
             _oCacheMan.CacheResetFromThumb();
         }
 
@@ -484,7 +484,7 @@ namespace Play.Edit {
 
         protected bool HyperLinkFind( int iColumn, SKPointI pntLocation, bool fDoJump ) {
             try {
-                if( _oCacheMan.PointToRange( iColumn, pntLocation, out int iOff, out int iRow ) ) {
+                if( _oCacheMan.PointToRow( iColumn, pntLocation, out int iOff, out int iRow ) ) {
                     return HyperLinkFind( _oDocList[iRow], iColumn, iOff, fDoJump );
                 }
             } catch( Exception oEx ) {
