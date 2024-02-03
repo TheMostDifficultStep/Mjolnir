@@ -28,44 +28,33 @@ namespace Play.Edit {
         Stop
     }
 
-    /// <summary>
-    /// Note: column order on screen might not be the same as that
-    /// for the document. O.o
-    /// </summary>
-    public interface ICaretLocation {
-        int   CaretRow    { get; }
-        int   CaretColumn { get; }
-        int   CaretOffset { get; }
-
-        bool SetCaretPositionAndScroll( int iRow, int iColumn, int iOffset ); 
-    }
     public interface ICacheManSite :
         IPgBaseSite
     {
         Row            GetRowAtScroll();
         Row            GetRowAtIndex( int iIndex );
-        void           OnRefreshComplete( Row oRowBottom, int iRowCount );
+        void           OnRefreshComplete( int iProgress, int iVisibleCount, bool fCaretVisible, SKPointI pntCaret );
 
         //ICollection<ILineSelection> Selections{ get; }
     }
     public class CacheMultiColumn:         
-        IEnumerable<CacheRow>,
-        ICaretLocation
+        IEnumerable<CacheRow>
     {
-        protected readonly ICacheManSite    _oSite;
+        protected readonly ICacheManSite   _oSite;
         // World coordinates of our view port. Do not confuse these with the
         // layout columns, those are different.
-        readonly SmartRect                  _oTextRect  = new SmartRect();
-        protected List<CacheRow>            _rgOldCache = new List<CacheRow>();
-        protected List<CacheRow>            _rgNewCache = new List<CacheRow>(); 
+        protected readonly SmartRect       _oTextRect  = new SmartRect();
+        protected readonly List<CacheRow>  _rgOldCache = new List<CacheRow>();
+        protected readonly List<CacheRow>  _rgNewCache = new List<CacheRow>(); 
 
-        protected readonly List<SmartRect>  _rgColumnRects;
-        protected readonly TextLine         _oDummyLine = new TextLine( -2, string.Empty );
+        protected readonly List<SmartRect> _rgColumnRects;
+        protected readonly TextLine        _oDummyLine = new TextLine( -2, string.Empty );
 
         protected IPgFontRender Font       { get; }
         protected IPgGlyph      GlyphLt    { get; } // Our end of line character.
         public    int           LineHeight { get; } // Helps us determine scrolling distances.
         public    int           RowSpacing { get; set; } = 1;
+        public    SKPointI      CaretSize  => new SKPointI( 2, LineHeight );
 
         protected Row   _oCaretRow; 
         protected int   _iCaretCol;
@@ -119,13 +108,6 @@ namespace Play.Edit {
             return false;
         }
 
-        /// <summary>
-        /// Count of number of CacheRow objects inside the manager.
-        /// </summary>
-        public int Count {
-            get { return _rgOldCache.Count; }
-        }
-
         public SmartRect TextRect {
             get { return _oTextRect; }
         }
@@ -144,21 +126,17 @@ namespace Play.Edit {
             }
         }
 
-        public int CaretColumn => _iCaretCol;
-
-        public int CaretOffset => _iCaretOff;
-
         public void OnMouseWheel( int iDelta ) {
             int iTop = _rgOldCache[0].Top + ( 4 * iDelta / LineHeight );
 
-            CacheScroll( iTop );
+            Scroll( iTop );
         }
 
         /// <summary>
         /// Slide the cache elements to the new top.
         /// </summary>
         /// <param name="iTop">A value relative to the TextRect.</param>
-        protected void CacheScroll( int iTop ) {
+        protected void Scroll( int iTop ) {
             foreach( CacheRow oCacheRow in _rgOldCache ) {
                 oCacheRow.Top = iTop;
                 iTop += oCacheRow.Height;
@@ -338,6 +316,8 @@ namespace Play.Edit {
             return null;
         }
 
+        enum InsertAt { TOP,BOTTOM };
+
         /// <summary>
         /// New code for re-building the cache. Not entirely different
         /// than the original. Omits the sliding window concept.
@@ -357,8 +337,20 @@ namespace Play.Edit {
                 RowMeasure( oSeedCache );
             }
 
+            CacheRow oCacheWithCaret = null; // If non null, caret might be visible...
+
+            void NewCacheAdd( InsertAt ePos, CacheRow oNewCacheRow ) {
+                if( oNewCacheRow.At == _oCaretRow.At ) {
+                    oCacheWithCaret = oNewCacheRow;
+                }
+                if( ePos == InsertAt.BOTTOM )
+                    _rgNewCache.Add( oNewCacheRow );
+                if( ePos == InsertAt.TOP )
+                    _rgNewCache.Insert( 0, oNewCacheRow );
+            }
+
             _rgNewCache.Clear();
-            _rgNewCache.Add( oSeedCache );
+            NewCacheAdd( InsertAt.BOTTOM, oSeedCache );
 
             CacheRow oFallCache = oSeedCache; // First go down.
             while( oFallCache.Bottom < _oTextRect.Bottom ) {
@@ -368,8 +360,7 @@ namespace Play.Edit {
                     break;
                 }
 
-                oFallCache  = oNewCache;
-                _rgNewCache.Add( oNewCache );
+                NewCacheAdd( InsertAt.BOTTOM, oFallCache = oNewCache );
             }
             CacheRow oRiseCache = oSeedCache; // Then go up.
             while( oRiseCache.Top > _oTextRect.Top ) { 
@@ -379,8 +370,7 @@ namespace Play.Edit {
                     break;
                 }
 
-                oRiseCache  = oNewCache;
-                _rgNewCache.Insert( 0, oNewCache );
+                NewCacheAdd( InsertAt.TOP, oRiseCache = oNewCache );
             }
             CacheRow oLastCache = oFallCache; // Then try down to finish filling.
             while( oLastCache.Bottom < _oTextRect.Bottom ) { 
@@ -388,8 +378,7 @@ namespace Play.Edit {
                 if( oNewCache == null )
                     break;
 
-                oLastCache = oNewCache;
-                _rgNewCache.Add( oNewCache );
+                NewCacheAdd( InsertAt.BOTTOM, oLastCache = oNewCache );
             }
 
             if( _oTextRect.Top != 0 ) {
@@ -401,12 +390,53 @@ namespace Play.Edit {
             _rgOldCache.AddRange( _rgNewCache );
             _rgNewCache.Clear();
 
-            Row oLastDRow = null;
+            int  iBottomRow    = ( oLastCache == null ) ? 0 : oLastCache.At;
+            bool fCaretVisible = IsCaretVisible( oCacheWithCaret, out SKPointI pntCaret );
 
-            if( oLastCache is CacheRow2 oLastCache2 )
-                oLastDRow = oLastCache2.DataRow;
+            _oSite.OnRefreshComplete( iBottomRow, 
+                                      _rgOldCache.Count,
+                                      fCaretVisible,
+                                      pntCaret );
+        }
 
-            _oSite.OnRefreshComplete( oLastDRow, _rgOldCache.Count );
+        /// <summary>
+        /// If data row containing caret is cached then it is visible!
+        /// And we can compute where the caret should be.
+        /// </summary>
+        /// <remarks>We could intersect the rect for the caret and the TextRect, but
+        /// we don't horzontally scroll. So the caret won't be off on the left or right.</remarks>
+        /// <param name="oCaretCacheRow">Cache row representing the data row with the caret.</param>
+        /// <param name="pntCaret">Location of the caret on the screen.</param>
+        protected bool IsCaretVisible( CacheRow oCaretCacheRow, out SKPointI pntCaret ) {
+            pntCaret = new( -10, -10 );
+
+            if( oCaretCacheRow == null )
+                return false;
+
+            try {
+                // Left top coordinate of the caret offset.
+                Point     pntCaretWorld     = oCaretCacheRow[_iCaretCol].GlyphOffsetToPoint( _iCaretOff );
+                SmartRect oColumn           = _rgColumnRects[_iCaretCol];
+
+                pntCaret = new SKPointI( pntCaretWorld.X + oColumn.Left,
+                                         pntCaretWorld.Y + oCaretCacheRow.Top );
+            } catch( Exception oEx ) {
+                if( IsUnhandledStdRpt( oEx ) )
+                    throw;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// When the window get's the focus, we need to see if the caret needs to be shown.
+        /// </summary>
+        /// <param name="pntCaret">Caret position in window coordinates.</param>
+        /// <returns>Caret on screen or not.</returns>
+        public bool IsCaretVisible( out SKPointI pntCaret ) {
+            CacheRow oCaretRow = CacheLocate( CaretRow );
+
+            return IsCaretVisible( oCaretRow, out pntCaret );
         }
 
         /// <summary>
@@ -419,16 +449,16 @@ namespace Play.Edit {
             switch( e ) {
                 // These events move incrementally from where we were.
                 case ScrollEvents.LargeDecrement:
-                    CacheScroll( (int)(.80 * _oTextRect.Height ) );
+                    Scroll( (int)(.80 * _oTextRect.Height ) );
                     break; 
                 case ScrollEvents.LargeIncrement:
-                    CacheScroll( (int)(.80 * - _oTextRect.Height ) );
+                    Scroll( (int)(.80 * - _oTextRect.Height ) );
                     break;
                 case ScrollEvents.SmallDecrement:
-                    CacheScroll( LineHeight );
+                    Scroll( LineHeight );
                     break;
                 case ScrollEvents.SmallIncrement:
-                    CacheScroll( -LineHeight );
+                    Scroll( -LineHeight );
                     break;
 
                 // We can potentialy render less until this final end scroll comes in.
@@ -479,14 +509,10 @@ namespace Play.Edit {
 
             CacheRow oCacheRow = new CacheRow2( oDocRow );
 
-            // TODO: Change this to use a dummy cache element too...
+            // BUG : Doc columns might not match order of row columns!! >_<;;
+            // Note: If we suddenly start typing in a dummy lines, we'll have problems..
             foreach( Line oLine in oDocRow ) {
-				Line oTemp = oLine;
-                if( oTemp == null ) {
-                    oTemp = _oDummyLine;
-                }
-                FTCacheLine oElem = new FTCacheWrap( oTemp );
-                oCacheRow.CacheList.Add( oElem );
+                oCacheRow.CacheList.Add( new FTCacheWrap( oLine == null ? _oDummyLine : oLine ) );
 			}
 
             return oCacheRow;
@@ -599,6 +625,9 @@ namespace Play.Edit {
                 if( IsUnhandledStdRpt( oEx ) )
                     throw;
             }
+        }
+
+        protected void Raise_CaretMoved( CacheRow oCaretCacheRow ) {
         }
 
         /// <summary>

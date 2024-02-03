@@ -140,16 +140,21 @@ namespace Play.Edit {
 				}
             }
 
-            public void OnRefreshComplete( Row oRowBottom, int iRowCount ) {
-				//_oHost.CaretIconRefreshLocation();
-
+            public void OnRefreshComplete( int      iRowBottom, 
+                                           int      iRowVisible, 
+                                           bool     fCaretVisible,
+                                           SKPointI pntCaret )
+            {
                 try {
-                    if( oRowBottom != null ) {
-                        _oHost._oScrollBarVirt.Refresh( 
-                            iRowCount     / (float)_oHost._oDocList.ElementCount,
-                            oRowBottom.At / (float)_oHost._oDocList.ElementCount 
-                        );
-                    }
+                    int iRowCount = _oHost._oDocList.ElementCount;
+
+                    // If you hide the caret that seems to destroy it :-/
+                    User32.SetCaretPos( pntCaret.X, pntCaret.Y );
+
+                    _oHost._oScrollBarVirt.Refresh( 
+                        iRowVisible / (float)iRowCount,
+                        iRowBottom  / (float)iRowCount
+                    );
                 } catch( Exception oEx ) {
                     Type[] rgErrors = { typeof( NullReferenceException ),
                                         typeof( ArithmeticException ) };
@@ -158,6 +163,7 @@ namespace Play.Edit {
 
                     _oHost.LogError( "Problem Updating Window Scrollbar." );
                 }
+
 				_oHost.Invalidate();
             }
         }
@@ -210,6 +216,8 @@ namespace Play.Edit {
                                                _rgColumns ); 
 
             Array.Sort<Keys>( _rgHandledKeys );
+
+            Parent = _oSiteView.Host as Control;
         }
 
         public bool  IsDirty => true;
@@ -218,6 +226,7 @@ namespace Play.Edit {
                 //_oDocument.CaretRemove( CaretPos );
                 _oScrollBarVirt.Scroll -= OnScrollBar; 
                 HyperLinks.Clear();
+                User32.DestroyCaret();
             }
 
             base.Dispose(disposing);
@@ -225,6 +234,10 @@ namespace Play.Edit {
 
         protected void LogError( string strMessage, bool fShow = false ) {
             _oSiteView.LogError( "Multi Column Window", strMessage, fShow );
+        }
+
+        protected override void OnHandleCreated(EventArgs e) {
+            base.OnHandleCreated(e);
         }
 
         protected override bool IsInputKey(Keys keyData) {
@@ -336,6 +349,15 @@ namespace Play.Edit {
 
             _oViewEvents.NotifyFocused( true );
 
+            User32.CreateCaret( Handle, IntPtr.Zero, 
+                                _oCacheMan.CaretSize.X, 
+                                _oCacheMan.CaretSize.Y );
+
+            if( _oCacheMan.IsCaretVisible( out SKPointI pntCaret ) ) {
+                User32.SetCaretPos( pntCaret.X, pntCaret.Y );
+                User32.ShowCaret  ( Handle );
+            }
+
             Invalidate();
         }
         protected override void OnLostFocus(EventArgs e) {
@@ -344,6 +366,7 @@ namespace Play.Edit {
             _oScrollBarVirt.Show( SHOWSTATE.Inactive );
 
             _oViewEvents.NotifyFocused( false );
+            User32.DestroyCaret();
 
             Invalidate();
         }
