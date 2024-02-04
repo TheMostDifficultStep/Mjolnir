@@ -863,7 +863,7 @@ namespace Monitor {
                 _oDoc = oDoc;
             }
 
-            public int Location { get; set; } = 0;
+            public int RowIndex { get; set; } = 0;
 
             public void Dispose() {
                 for( int i=0; i<_oDoc.ElementCount; ++i ) {
@@ -872,23 +872,23 @@ namespace Monitor {
                 _oDoc.Raise_EveryRowEvent( BUFFEREVENTS.MULTILINE );
             }
 
-            public void Insert( Row oDocRow, InsertionPoint eInsert ) {
-                if( Location < 0 )
+            public void InsertRow( Row oDocRow, InsertionPoint eInsert ) {
+                if( RowIndex < 0 )
                     throw new IndexOutOfRangeException( "Location must not be negative" );
-                if( Location > _oDoc.ElementCount )
+                if( RowIndex > _oDoc.ElementCount )
                     throw new IndexOutOfRangeException( "Location must not be negative" );
 
                 switch( eInsert ) {
                     case InsertionPoint.After:
-                        if( Location + 1 >= _oDoc.ElementCount ) {
+                        if( RowIndex + 1 >= _oDoc.ElementCount ) {
                             _oDoc._rgRows.Add( oDocRow );
                         } else {
-                            _oDoc._rgRows.Insert( ++Location, oDocRow );
+                            _oDoc._rgRows.Insert( ++RowIndex, oDocRow );
                         }
                         break;
                     case InsertionPoint.Before:
-                        if( Location - 1 >= 0 )
-                            _oDoc._rgRows.Insert( Location--, oDocRow );
+                        if( RowIndex - 1 >= 0 )
+                            _oDoc._rgRows.Insert( RowIndex--, oDocRow );
                         else 
                             _oDoc._rgRows.Insert( 0, oDocRow );
                         break;
@@ -896,7 +896,7 @@ namespace Monitor {
             }
 
             public void Delete() {
-                _oDoc._rgRows.RemoveAt( Location );
+                _oDoc._rgRows.RemoveAt( RowIndex );
             }
 
             /// <summary>
@@ -905,9 +905,40 @@ namespace Monitor {
             public Row Insert( string strValue, InsertionPoint eInsert ) {
                 AsmRow oAsmRow = new AsmRow( strValue );
 
-                Insert( oAsmRow, eInsert );
+                InsertRow( oAsmRow, eInsert );
 
                 return oAsmRow;
+            }
+
+            public bool TextInsertTry( int iColumn, int iOffset, Span<char> spText ) {
+                try {
+                    Row  oRow  = _oDoc._rgRows[RowIndex];
+                    Line oLine = oRow[iColumn];
+
+                    // Just a hack to see if it'll go!!
+                    if( oLine.TryInsert( iOffset, spText.ToString(), 0, spText.Length ) ) {
+                        foreach( TBucket oBucket in _oDoc._rgTrackers ) {
+                            IPgCaretColumnLocation<Row> oTracker = oBucket._oTracker;
+
+                            if( oTracker.Column == iColumn &&
+                                oTracker.Row    == oRow ) 
+                            {
+                                Marker.ShiftInsert( oTracker, iOffset, spText.Length );
+                            }
+                        }
+                    }
+                    foreach( IPgRowEvents oEvent in _oDoc.EventCallbacks ) {
+                        oEvent.OnRowEvent( BUFFEREVENTS.SINGLELINE, oRow );
+                    }
+                    return true;
+                } catch( Exception oEx ) {
+                    Type[] rgErrors = { typeof( NullReferenceException ),
+                                        typeof( IndexOutOfRangeException ),
+                                        typeof( ArgumentOutOfRangeException ) };
+                    if( rgErrors.IsUnhandled( oEx ) )
+                        throw;
+                }
+                return false;
             }
         }
 

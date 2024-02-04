@@ -196,9 +196,22 @@ namespace Play.Edit {
     {
         protected readonly IPgBaseSite _oSiteBase;
 
-        protected Func<Row>   _fnRowCreator;
-        protected List<Row>   _rgRows;
-        protected List<bool>  _rgColumnWR; // is the column editable...
+        protected struct TBucket {
+            readonly public object                      _oOwner;
+            readonly public IPgCaretColumnLocation<Row> _oTracker;
+
+            public TBucket( object oOwner, IPgCaretColumnLocation<Row> oTracker ) {
+                _oOwner   = oOwner   ?? throw new ArgumentNullException( "owner" );
+                _oTracker = oTracker ?? throw new ArgumentNullException( "tracker" );
+            }
+        }
+
+        protected Func<Row>     _fnRowCreator;
+        protected List<Row>     _rgRows;
+        protected List<bool>    _rgColumnWR; // is the column editable...
+        protected Row           _oRowHighlight;
+        protected StdUIColors   _ePlayColor;
+        protected List<TBucket> _rgTrackers = new();
 
         public event Action<Row> HighLightChanged;
         public event Action<Row> CheckedEvent;
@@ -209,9 +222,6 @@ namespace Play.Edit {
         public IPgParent Services  => Parentage;
 
         public virtual bool IsDirty => false;
-
-        protected Row         _oRowHighlight;
-        protected StdUIColors _ePlayColor;
 
         public int ElementCount => _rgRows.Count;
 
@@ -263,6 +273,19 @@ namespace Play.Edit {
 
         public virtual void LogError( string strMessage ) { 
             _oSiteBase.LogError( "Multi Column Editor", strMessage );
+        }
+
+        public void TrackerInsert( object oOwner, IPgCaretColumnLocation<Row> oTracker ) {
+            _rgTrackers.Add( new TBucket( oOwner, oTracker ) );
+        }
+
+        public void TrackerRemoveAll( object oOwner ) { 
+            for( int i=0; i< _rgTrackers.Count; i++ ) {
+                if( _rgTrackers[i]._oOwner == oOwner ) {
+                    _rgTrackers.RemoveAt( i );
+                    break;
+                }
+            }
         }
 
         public void RenumberRows() {

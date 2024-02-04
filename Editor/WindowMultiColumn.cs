@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Collections;
 using System.Windows.Forms;
 using System.Xml;
-using System.Drawing;
 
 using SkiaSharp;
 using SkiaSharp.Views.Desktop;
@@ -11,7 +10,6 @@ using SkiaSharp.Views.Desktop;
 using Play.Interfaces.Embedding;
 using Play.Rectangles;
 using Play.Controls;
-using static Play.Edit.EditWindow2; // gives us access to static function... :-P
 using Play.Parse;
 
 namespace Play.Edit {
@@ -22,7 +20,11 @@ namespace Play.Edit {
 
         event Action<T> HighLightChanged; // Only one line is high lighted.
         event Action<T> CheckedEvent;     // Any number of rows can be checked.
+
+        void TrackerInsert( object oOwner, IPgCaretColumnLocation<T> oTracker );
+        void TrackerRemoveAll( object oOwner );
     }
+
     public class WindowMultiColumn :
         SKControl, 
         IPgParent,
@@ -69,7 +71,7 @@ namespace Play.Edit {
             }
         }
 
-        public class CacheManSite :
+        protected class CacheManSite :
             ICacheManSite
         {
             readonly WindowMultiColumn _oHost;
@@ -214,6 +216,7 @@ namespace Play.Edit {
             _oCacheMan = new CacheMultiColumn( new CacheManSite( this ), 
                                                _oStdUI.FontRendererAt( uiStdText ),
                                                _rgColumns ); 
+            _oDocTraits.TrackerInsert( this, _oCacheMan.CreateCaretTracker() );
 
             Array.Sort<Keys>( _rgHandledKeys );
 
@@ -223,10 +226,10 @@ namespace Play.Edit {
         public bool  IsDirty => true;
         protected override void Dispose( bool disposing ) {
             if( disposing ) {
-                //_oDocument.CaretRemove( CaretPos );
+                _oDocTraits    .TrackerRemoveAll( this );
                 _oScrollBarVirt.Scroll -= OnScrollBar; 
-                HyperLinks.Clear();
-                User32.DestroyCaret();
+                HyperLinks     .Clear();
+                User32         .DestroyCaret();
             }
 
             base.Dispose(disposing);
@@ -294,13 +297,24 @@ namespace Play.Edit {
             return true;
         }
 
-        public void OnRowEvent(BUFFEREVENTS eEvent, Row oRow) {
+        /// <summary>
+        /// This happens for simple edits. 
+        /// </summary>
+        /// <param name="eEvent"></param>
+        /// <param name="oRow"></param>
+        public void OnRowEvent(BUFFEREVENTS eEvent, Row oRow /*, bool fMycaret */) {
             _oCacheMan.UpdateRow( oRow ); 
-            _oCacheMan.CacheResetFromThumb();
         }
 
+        /// <summary>
+        /// This can happen for big edits. 
+        /// BUG You can see the problem is if we want to track 
+        /// our cursor or stick with the scroll position.
+        /// </summary>
+        /// <param name="eEvent"></param>
         public void OnRowEvent(BUFFEREVENTS eEvent) {
-            _oCacheMan.CacheResetFromThumb();
+            // BUG: If caret is on screen, keep it there. If not use thumb...
+            _oCacheMan.CacheRepair( RefreshNeighborhood.SCROLL, fMeasure:true );
         }
 
         public class SimpleRange :
@@ -596,8 +610,22 @@ namespace Play.Edit {
                 case Keys.Left:
                     _oCacheMan.CaretMove( Axis.Horizontal, -1 );
                     break;
-
             }
+        }
+
+        protected override void OnKeyPress(KeyPressEventArgs e) {
+            if( IsDisposed )
+                return;
+            if( _oViewEvents.IsCommandPress( e.KeyChar ) )
+                return;
+            if( _fReadOnly )
+                return;
+
+            Span<char> rgInsert = stackalloc char[1];
+            rgInsert[0] = e.KeyChar;
+
+          //_oDocOps.TryInsert( _iColumn, _iOffset, rgInsert );
+            _oCacheMan.CaretMove( Axis.Horizontal, 0 );
         }
 
         protected override void OnMouseDown(MouseEventArgs e) {

@@ -468,9 +468,6 @@ namespace Play.Edit {
         public int At { get; set; } = 0;
         public int Count => _rgColumns.Length;
 
-        public void Add( int iLine, Line oLine ) {
-        }
-
         public IEnumerator<Line> GetEnumerator() {
             foreach( Line oLine in _rgColumns ) {
                 yield return oLine;
