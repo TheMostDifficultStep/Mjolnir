@@ -869,7 +869,7 @@ namespace Monitor {
                 for( int i=0; i<_oDoc.ElementCount; ++i ) {
                     _oDoc[i].At = i;
                 }
-                _oDoc.Raise_EveryRowEvent( BUFFEREVENTS.MULTILINE );
+                _oDoc.Raise_EveryRowEvent( DOCUMENTEVENTS.MODIFIED );
             }
 
             public void InsertRow( Row oDocRow, InsertionPoint eInsert ) {
@@ -910,36 +910,6 @@ namespace Monitor {
                 return oAsmRow;
             }
 
-            public bool TextInsertTry( int iColumn, int iOffset, Span<char> spText ) {
-                try {
-                    Row  oRow  = _oDoc._rgRows[RowIndex];
-                    Line oLine = oRow[iColumn];
-
-                    // Just a hack to see if it'll go!!
-                    if( oLine.TryInsert( iOffset, spText.ToString(), 0, spText.Length ) ) {
-                        foreach( TBucket oBucket in _oDoc._rgTrackers ) {
-                            IPgCaretColumnLocation<Row> oTracker = oBucket._oTracker;
-
-                            if( oTracker.Column == iColumn &&
-                                oTracker.Row    == oRow ) 
-                            {
-                                Marker.ShiftInsert( oTracker, iOffset, spText.Length );
-                            }
-                        }
-                    }
-                    foreach( IPgRowEvents oEvent in _oDoc.EventCallbacks ) {
-                        oEvent.OnRowEvent( BUFFEREVENTS.SINGLELINE, oRow );
-                    }
-                    return true;
-                } catch( Exception oEx ) {
-                    Type[] rgErrors = { typeof( NullReferenceException ),
-                                        typeof( IndexOutOfRangeException ),
-                                        typeof( ArgumentOutOfRangeException ) };
-                    if( rgErrors.IsUnhandled( oEx ) )
-                        throw;
-                }
-                return false;
-            }
         }
 
         public void Dissassemble( Editor.Manipulator oBulkOutl ) {
@@ -976,7 +946,7 @@ namespace Monitor {
             if( !LoadTiny() ) 
                 return false;
 
-            Raise_EveryRowEvent( BUFFEREVENTS.LOADED );
+            Raise_EveryRowEvent( DOCUMENTEVENTS.LOADED );
 
             return true;
         }
@@ -1032,7 +1002,7 @@ namespace Monitor {
             if( !LoadTiny() )
                 return false;
 
-            Raise_EveryRowEvent( BUFFEREVENTS.LOADED );
+            Raise_EveryRowEvent( DOCUMENTEVENTS.LOADED );
 
             //Dissassemble( );
 

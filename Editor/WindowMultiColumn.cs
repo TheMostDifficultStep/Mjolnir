@@ -20,9 +20,16 @@ namespace Play.Edit {
 
         event Action<T> HighLightChanged; // Only one line is high lighted.
         event Action<T> CheckedEvent;     // Any number of rows can be checked.
+    }
 
-        void TrackerInsert( object oOwner, IPgCaretColumnLocation<T> oTracker );
+    public interface IPgDocOperations<T> {
+        void TrackerAdd      ( object oOwner, IPgCaretInfo<T> oTracker );
         void TrackerRemoveAll( object oOwner );
+
+        void ListenerAdd   ( IPgEditEvents<T> e );
+        void ListenerRemove( IPgEditEvents<T> e );
+
+        bool TryInsertAt( Row oRow, int iColumn, int iOffset, Span<char> spText );
     }
 
     public class WindowMultiColumn :
@@ -30,7 +37,7 @@ namespace Play.Edit {
         IPgParent,
         IPgLoad<XmlElement>,
         IPgSave<XmlDocumentFragment>,
-        IPgRowEvents,
+        IPgEditEvents<Row>,
         IEnumerable<ILineRange>
     {
         public static Guid _sGuid = new Guid( "{03F21BC8-F911-4FE4-931D-9EB9F7A15A10}" );
@@ -38,9 +45,10 @@ namespace Play.Edit {
         protected readonly IPgViewSite   _oSiteView;
         protected readonly IPgViewNotify _oViewEvents;
 
-        protected readonly IEnumerable<Row>      _oDocEnum;
-        protected readonly IReadableBag<Row>     _oDocList;
-        protected readonly IPgDocTraits<Row>     _oDocTraits;
+        protected readonly IEnumerable     <Row> _oDocEnum;
+        protected readonly IReadableBag    <Row> _oDocList;
+        protected readonly IPgDocTraits    <Row> _oDocTraits;
+        protected readonly IPgDocOperations<Row> _oDocOps;
         protected readonly CacheMultiColumn      _oCacheMan;
         protected readonly LayoutStackHorizontal _rgLayout;
 		protected readonly IPgStandardUI2        _oStdUI;
@@ -190,9 +198,10 @@ namespace Play.Edit {
 		} // End class
 
         public WindowMultiColumn( IPgViewSite oViewSite, object oDocument ) {
-            _oDocEnum   = (IEnumerable <Row>)oDocument;
-            _oDocList   = (IReadableBag<Row>)oDocument;
-            _oDocTraits = (IPgDocTraits<Row>)oDocument;
+            _oDocEnum   = (IEnumerable     <Row>)oDocument;
+            _oDocList   = (IReadableBag    <Row>)oDocument;
+            _oDocTraits = (IPgDocTraits    <Row>)oDocument;
+            _oDocOps    = (IPgDocOperations<Row>)oDocument;
 
             _oSiteView   = oViewSite;
             _oViewEvents = oViewSite.EventChain ?? throw new ArgumentException( "Site.EventChain must support IPgViewSiteEvents" );
@@ -216,7 +225,6 @@ namespace Play.Edit {
             _oCacheMan = new CacheMultiColumn( new CacheManSite( this ), 
                                                _oStdUI.FontRendererAt( uiStdText ),
                                                _rgColumns ); 
-            _oDocTraits.TrackerInsert( this, _oCacheMan.CreateCaretTracker() );
 
             Array.Sort<Keys>( _rgHandledKeys );
 
@@ -226,7 +234,8 @@ namespace Play.Edit {
         public bool  IsDirty => true;
         protected override void Dispose( bool disposing ) {
             if( disposing ) {
-                _oDocTraits    .TrackerRemoveAll( this );
+                _oDocOps       .ListenerRemove  ( this );
+                _oDocOps       .TrackerRemoveAll( this );
                 _oScrollBarVirt.Scroll -= OnScrollBar; 
                 HyperLinks     .Clear();
                 User32         .DestroyCaret();
@@ -237,10 +246,6 @@ namespace Play.Edit {
 
         protected void LogError( string strMessage, bool fShow = false ) {
             _oSiteView.LogError( "Multi Column Window", strMessage, fShow );
-        }
-
-        protected override void OnHandleCreated(EventArgs e) {
-            base.OnHandleCreated(e);
         }
 
         protected override bool IsInputKey(Keys keyData) {
@@ -268,13 +273,12 @@ namespace Play.Edit {
         /// <seealso cref="InitNew"/>
         /// <seealso cref="Load"/>
         protected virtual bool Initialize() {
-            if( _oSiteView.Host is Control oParent ) {
-                this.Parent = oParent;
-            }
-
             _oScrollBarVirt.Parent  = this;
             _oScrollBarVirt.Visible = true;
             _oScrollBarVirt.Scroll += OnScrollBar; 
+
+            _oDocOps.TrackerAdd ( this, _oCacheMan.CreateCaretTracker() );
+            _oDocOps.ListenerAdd( this );
 
             return true;
         }
@@ -300,21 +304,16 @@ namespace Play.Edit {
         /// <summary>
         /// This happens for simple edits. 
         /// </summary>
-        /// <param name="eEvent"></param>
-        /// <param name="oRow"></param>
-        public void OnRowEvent(BUFFEREVENTS eEvent, Row oRow /*, bool fMycaret */) {
-            _oCacheMan.UpdateRow( oRow ); 
+        public void OnRowEvent( Row oRow ) {
+            _oCacheMan.RowMeasure ( oRow );
+            _oCacheMan.CacheRepair( fMeasure:false );
         }
 
         /// <summary>
         /// This can happen for big edits. 
-        /// BUG You can see the problem is if we want to track 
-        /// our cursor or stick with the scroll position.
         /// </summary>
-        /// <param name="eEvent"></param>
-        public void OnRowEvent(BUFFEREVENTS eEvent) {
-            // BUG: If caret is on screen, keep it there. If not use thumb...
-            _oCacheMan.CacheRepair( RefreshNeighborhood.SCROLL, fMeasure:true );
+        public void OnDocEvent(DOCUMENTEVENTS eEvent) {
+            _oCacheMan.CacheRepair( fMeasure:true );
         }
 
         public class SimpleRange :
@@ -621,11 +620,17 @@ namespace Play.Edit {
             if( _fReadOnly )
                 return;
 
-            Span<char> rgInsert = stackalloc char[1];
-            rgInsert[0] = e.KeyChar;
+            if( !char.IsControl( e.KeyChar ) ) {
+                Span<char> rgInsert = stackalloc char[1];
+                rgInsert[0] = e.KeyChar;
 
-          //_oDocOps.TryInsert( _iColumn, _iOffset, rgInsert );
-            _oCacheMan.CaretMove( Axis.Horizontal, 0 );
+                IPgCaretInfo<Row> oCaret = _oCacheMan.CreateCaretTracker();
+
+                _oDocOps.TryInsertAt( oCaret.Row,
+                                    oCaret.Column,
+                                    oCaret.Offset, 
+                                    rgInsert );
+            }
         }
 
         protected override void OnMouseDown(MouseEventArgs e) {

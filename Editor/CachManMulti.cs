@@ -26,14 +26,11 @@ namespace Play.Edit {
         Stop
     }
 
-    public interface IPgCaretColumnLocation<T> :
+    public interface IPgCaretInfo<T> :
         IMemoryRange
     {
         T   Row    { get; }
         int Column { get; }
-
-        // Only the cache manager can change the column.
-        void Reset( T oRow, int iOffset );
     }
 
     public interface ICacheManSite :
@@ -76,7 +73,7 @@ namespace Play.Edit {
                                        typeof( NullReferenceException ) };
 
         protected class CaretTracker :
-            IPgCaretColumnLocation<Row> 
+            IPgCaretInfo<Row> 
         {
             readonly CacheMultiColumn _oHost;
 
@@ -88,18 +85,11 @@ namespace Play.Edit {
             public int Column => _oHost._iCaretCol;
             public int Offset { 
                 get => _oHost._iCaretOff;
-                set => throw new NotSupportedException();
+                set => _oHost._iCaretOff = value;
             }
             public int Length { 
                 get => 0;
                 set => throw new NotImplementedException(); 
-            }
-            public void Reset( Row oRow, int iOffset ) {
-                //_oHost.SetCaretPositionAndScroll( oRow.At, _oHost._iCaretCol, iOffset, fMeasure:true );
-            }
-
-            public void Reset( int iOffset ) {
-                //_oHost.SetCaretPositionAndScroll( _oHost.CaretRow, _oHost._iCaretCol, iOffset, fMeasure:false );
             }
         }
 
@@ -150,7 +140,7 @@ namespace Play.Edit {
         /// must be removed from the document when the windows is destroyed.
         /// </summary>
         /// <returns></returns>
-        public IPgCaretColumnLocation<Row> CreateCaretTracker() {
+        public IPgCaretInfo<Row> CreateCaretTracker() {
             return new CaretTracker( this );
         }
 
@@ -179,7 +169,8 @@ namespace Play.Edit {
         }
 
         /// <summary>
-        /// Slide the cache elements to the new top.
+        /// Slide the cache elements to the new top. Use this for scrolling
+        /// items on the screen. No resize has occured.
         /// </summary>
         /// <param name="iTop">A value relative to the TextRect.</param>
         protected void Scroll( int iTop ) {
@@ -188,20 +179,47 @@ namespace Play.Edit {
                 iTop += oCacheRow.Height;
             }
 
-            CacheRepair( RefreshNeighborhood.SCROLL );
-        }
-
-        public void CacheRepair( RefreshNeighborhood oHood, bool fMeasure = false ) {
             CacheRow oSeedCache = CacheLocateTop();
 
             if( oSeedCache == null )
-                oSeedCache = CacheReset( oHood );
+                oSeedCache = CacheReset( RefreshNeighborhood.SCROLL );
 
-            CacheWalker( oSeedCache, fMeasure );
+            CacheWalker( oSeedCache, false );
         }
 
-        public void CacheResetFromScrollPos() {
-            CacheWalker( CacheReset( RefreshNeighborhood.SCROLL ), false );
+        /// <summary>
+        /// New experimental positioning. The rule is: if the caret is on
+        /// screen, keep it there. Else, repair as best you can, else 
+        /// rebuild the screen from the current cache position. If you
+        /// have scrolled the caret off screen I assume it's intentional.
+        /// </summary>
+        /// <param name="fMeasure">Remeasure all row items.</param>
+        public void CacheRepair( bool fMeasure = false ) {
+            try {
+                CacheRow oSeedCache = CacheLocate( CaretRow );
+
+                if( oSeedCache == null ) {
+                    oSeedCache = CacheLocateTop();
+                } else {
+                    CaretLocal( oSeedCache );
+                }
+
+                oSeedCache ??= CacheReset( RefreshNeighborhood.SCROLL );
+
+                CacheWalker( oSeedCache, fMeasure );
+            } catch( Exception oEx ) {
+                if( IsUnhandledStdRpt( oEx ) )
+                    throw;
+            }
+        }
+
+        public void RowMeasure( Row oRow ) {
+            CacheRow oCacheRow = CacheLocate( oRow.At );
+
+            // BUG need to shuffle the rest down if the size changees...
+            if( oCacheRow != null ) {
+                RowMeasure( oCacheRow );
+            }
         }
 
         /// <summary>
@@ -520,7 +538,7 @@ namespace Play.Edit {
                 case ScrollEvents.Last:
                 case ScrollEvents.ThumbPosition:
                 case ScrollEvents.ThumbTrack:
-                    CacheResetFromScrollPos();
+                    CacheWalker( CacheReset( RefreshNeighborhood.SCROLL ), false );
                     break;
             }
         }
@@ -716,18 +734,6 @@ namespace Play.Edit {
             }
         }
 
-        /// <summary>
-        /// I need to make the Row available on the CacheRow but this will work for
-        /// now I think.
-        /// </summary>
-        public void UpdateRow( Row oDocRow ) {
-            foreach( CacheRow oCacheRow in _rgOldCache ) {
-                if( oCacheRow.At == oDocRow.At ) {
-                    RowMeasure( oCacheRow );
-                }
-            }
-        }
-
         ///<summary>When formatting changes, that's typically because of a text change.</summary>
         ///<remarks>In CacheRefresh we get the Selections from the CacheMan Site. But here
         ///         we require it as a parameter. Need to think about that.
@@ -737,20 +743,8 @@ namespace Play.Edit {
         public void OnChangeFormatting( ICollection<ILineSelection> rgSelection ) {
             foreach( CacheRow oRow in _rgOldCache ) {
                 foreach( FTCacheLine oCacheCol in oRow.CacheList ) {
-                  //oCacheCol.Update( Font ); 
                     oCacheCol.OnChangeFormatting( rgSelection );
-                  //oCacheCol.OnChangeSize( iWidth );
                 }
-            }
-        }
-
-        /// <remarks>
-        /// Not again we're only updating the text area formatting.
-        /// </remarks>
-        //  see OnChangeFormatting
-        public void OnChangeSelection( ICollection<ILineSelection> rgSelection ) {
-            foreach( CacheRow oRow in _rgOldCache ) {
-                oRow.CacheList[0].OnChangeFormatting( rgSelection );
             }
         }
 
@@ -771,7 +765,7 @@ namespace Play.Edit {
                 // So on rebuild force a remeasure of ALL columns.
                 // NOTE: Might want to keep caret on screen if it lives
                 //       in one of the cached rows.... >:-|
-                CacheRepair( RefreshNeighborhood.SCROLL, fMeasure:true );
+                CacheRepair( fMeasure:true );
             } catch( Exception oEx ) {
                 // if the _rgCacheMap and the oRow.CacheList don't match
                 // we might walk of the end of one or the other.

@@ -9,9 +9,15 @@ using Play.Parse.Impl;
 using Play.Interfaces.Embedding;
 
 namespace Play.Edit {
-    public interface IPgRowEvents {
-        void OnRowEvent( BUFFEREVENTS eEvent, Row oRow ); // Single Line events.
-        void OnRowEvent( BUFFEREVENTS eEvent );           // Every Line events.
+    public enum DOCUMENTEVENTS {
+        MODIFIED,
+        FORMATTED,
+        LOADED
+    }
+
+    public interface IPgEditEvents<T> {
+        void OnRowEvent( T oRow ); // Single Line events.
+        void OnDocEvent( DOCUMENTEVENTS eEvent ); // Every Line events.
     }
 
     /// <summary>
@@ -192,15 +198,16 @@ namespace Play.Edit {
         IEnumerable<Row>,
         IReadableBag<Row>,
         IPgDocTraits<Row>,
+        IPgDocOperations<Row>,
         IDisposable 
     {
         protected readonly IPgBaseSite _oSiteBase;
 
         protected struct TBucket {
             readonly public object                      _oOwner;
-            readonly public IPgCaretColumnLocation<Row> _oTracker;
+            readonly public IPgCaretInfo<Row> _oTracker;
 
-            public TBucket( object oOwner, IPgCaretColumnLocation<Row> oTracker ) {
+            public TBucket( object oOwner, IPgCaretInfo<Row> oTracker ) {
                 _oOwner   = oOwner   ?? throw new ArgumentNullException( "owner" );
                 _oTracker = oTracker ?? throw new ArgumentNullException( "tracker" );
             }
@@ -216,7 +223,7 @@ namespace Play.Edit {
         public event Action<Row> HighLightChanged;
         public event Action<Row> CheckedEvent;
 
-        public List<IPgRowEvents> EventCallbacks {get;} = new List<IPgRowEvents>();
+        public List<IPgEditEvents<Row>> _rgListeners = new ();
 
         public IPgParent Parentage => _oSiteBase.Host;
         public IPgParent Services  => Parentage;
@@ -249,18 +256,18 @@ namespace Play.Edit {
         }
 
         public virtual void Dispose() {
-            EventCallbacks.Clear();
+            _rgListeners.Clear();
         }
 
-        protected void Raise_SinglRowEvent( BUFFEREVENTS eEvent, Row oRow ) {
-            foreach( IPgRowEvents oEvent in EventCallbacks ) {
-                oEvent.OnRowEvent( eEvent, oRow );
+        protected void Raise_SinglRowEvent( Row oRow ) {
+            foreach( IPgEditEvents<Row> oEvent in _rgListeners ) {
+                oEvent.OnRowEvent( oRow );
             }
         }
 
-        protected void Raise_EveryRowEvent( BUFFEREVENTS eEvent ) {
-            foreach( IPgRowEvents oEvent in EventCallbacks ) {
-                oEvent.OnRowEvent( eEvent );
+        protected void Raise_EveryRowEvent( DOCUMENTEVENTS eEvent ) {
+            foreach( IPgEditEvents<Row> oEvent in _rgListeners ) {
+                oEvent.OnDocEvent( eEvent );
             }
         }
         public IEnumerator<Row> GetEnumerator() {
@@ -275,7 +282,7 @@ namespace Play.Edit {
             _oSiteBase.LogError( "Multi Column Editor", strMessage );
         }
 
-        public void TrackerInsert( object oOwner, IPgCaretColumnLocation<Row> oTracker ) {
+        public void TrackerAdd( object oOwner, IPgCaretInfo<Row> oTracker ) {
             _rgTrackers.Add( new TBucket( oOwner, oTracker ) );
         }
 
@@ -288,10 +295,51 @@ namespace Play.Edit {
             }
         }
 
+        public void ListenerAdd( IPgEditEvents<Row> e ) {
+            _rgListeners.Add( e );
+        }
+
+        public void ListenerRemove( IPgEditEvents<Row> e ) {
+            _rgListeners.Remove( e );
+        }
+
         public void RenumberRows() {
             for( int i=0; i< _rgRows.Count; i++ ) {
                 _rgRows[i].At = i;
             }
+        }
+
+        /// <summary>
+        /// This method is for small edits. Like typing characters.
+        /// </summary>
+        public bool TryInsertAt( Row oRow, int iColumn, int iOffset, Span<char> spText ) {
+            try {
+                Line oLine = oRow[iColumn];
+
+                // BUG: Change the insert to take a Span! \^_^/
+                if( oLine.TryInsert( iOffset, spText.ToString(), 0, spText.Length ) ) {
+                    foreach( TBucket oBucket in _rgTrackers ) {
+                        IPgCaretInfo<Row> oTracker = oBucket._oTracker;
+
+                        if( oTracker.Column == iColumn &&
+                            oTracker.Row    == oRow ) 
+                        {
+                            Marker.ShiftInsert( oTracker, iOffset, spText.Length );
+                        }
+                    }
+                }
+                foreach( IPgEditEvents<Row> oEvent in _rgListeners ) {
+                    oEvent.OnRowEvent( oRow );
+                }
+                return true;
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( NullReferenceException ),
+                                    typeof( IndexOutOfRangeException ),
+                                    typeof( ArgumentOutOfRangeException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
+            }
+            return false;
         }
     }
 
