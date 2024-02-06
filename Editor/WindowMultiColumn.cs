@@ -11,6 +11,8 @@ using Play.Interfaces.Embedding;
 using Play.Rectangles;
 using Play.Controls;
 using Play.Parse;
+using System.Drawing;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.TextBox;
 
 namespace Play.Edit {
     public interface IPgDocTraits<T> {
@@ -628,6 +630,41 @@ namespace Play.Edit {
             }
         }
 
+        protected override bool ProcessCmdKey(ref Message msg, Keys keyData)	
+        {
+            if( this.IsDisposed )
+                return( false );
+
+            const int WM_KEYDOWN    = 0x100;
+            const int WM_SYSKEYDOWN = 0x104;
+               
+            if ((msg.Msg == WM_KEYDOWN) || (msg.Msg == WM_SYSKEYDOWN))
+            {
+                switch(keyData) {
+                    case Keys.Control | Keys.F:
+                        _oViewEvents.IsCommandKey( CommandKey.Find, KeyBoardEnum.Control );
+                        return( true );
+                    case Keys.Control | Keys.A:
+                        //SelectionSetAll();
+                        Invalidate();
+                        return( true );
+
+                    case Keys.Control | Keys.Z:
+                        if( !_fReadOnly ) {
+                            //_oDocument.Undo();
+                        }
+                        return( true );
+                    case Keys.Delete: {
+                        // The only way to get this event.
+                        CacheMultiColumn.CaretInfo oCaret = _oCacheMan.CopyCaret();
+                        _oDocOps.TryDeleteAt( oCaret.Row, oCaret.Column, oCaret.Offset, 1 );
+                        return( true );
+                    }
+                }
+            } 
+
+            return base.ProcessCmdKey( ref msg, keyData );
+        } // end method
         protected override void OnKeyPress(KeyPressEventArgs e) {
             if( IsDisposed )
                 return;
@@ -641,6 +678,8 @@ namespace Play.Edit {
                 rgInsert[0] = e.KeyChar;
 
                 _oDocOps.TryReplaceAt( _oCacheMan.CopyCaret(), rgInsert );
+
+                e.Handled = true;
             }
         }
 
