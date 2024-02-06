@@ -188,6 +188,10 @@ namespace Play.Edit {
 
 				_oHost.Invalidate();
             }
+
+            public void OnCaretPositioned( SKPointI pntCaret, bool fVisible ) {
+                User32.SetCaretPos( pntCaret.X, pntCaret.Y );
+            }
         }
 
         protected class DocSlot :
@@ -648,6 +652,7 @@ namespace Play.Edit {
             base.OnMouseDown( e );
 
             Select();
+            _oCacheMan.CaretAdvance( new SKPointI( e.X, e.Y ) );
 
             Invalidate();
         }

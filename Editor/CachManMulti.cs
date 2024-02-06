@@ -39,6 +39,7 @@ namespace Play.Edit {
         Row            GetRowAtScroll();
         Row            GetRowAtIndex( int iIndex );
         void           OnRefreshComplete( int iProgress, int iVisibleCount, bool fCaretVisible, SKPointI pntCaret );
+        void           OnCaretPositioned( SKPointI pntCaretbool, bool fVisible );
 
         //ICollection<ILineSelection> Selections{ get; }
     }
@@ -780,27 +781,34 @@ namespace Play.Edit {
             }
         }
 
-        protected void Raise_CaretMoved( CacheRow oCaretCacheRow ) {
-        }
+        public bool CaretAdvance( SKPointI pntPick ) {
+            try {
+                for( int iColumn = 0; iColumn < _rgColumnRects.Count; iColumn++ ) {
+                    SmartRect rctColumn = _rgColumnRects[iColumn];
+                    if( rctColumn.IsInside( pntPick.X, pntPick.Y ) ) {
+                        CacheRow oCacheRow = PointToCache( iColumn, pntPick, out int iOffset );
+                        if( oCacheRow != null ) {
+                            _fAdvance  = pntPick.X - rctColumn.Left;
+                            _oCaretRow = _oSite.GetRowAtIndex( oCacheRow.At );
+                            _iCaretCol = iColumn;
+                            _iCaretOff = iOffset;
 
-        /// <summary>
-        /// We used to simply call oCache.Update(), however, word wrapping doesn't work
-        /// unless we call the resize too. So call RowUpdate for completeness.
-        /// </summary>
-        /// <remarks>Note: We just update and don't check if any of the elements are Invalid.</remarks>
-        public void OnLineUpdated( Line oLine ) {
-            foreach( CacheRow oRow in _rgOldCache ) {
-                if( oRow.Line == oLine ) {
-                    RowMeasure( oRow );
+                            Point pntCaret = oCacheRow[iColumn].GlyphOffsetToPoint( _iCaretOff );
+
+                            pntCaret.X += rctColumn.Left;
+                            pntCaret.Y += oCacheRow.Top;
+
+                            _oSite.OnCaretPositioned( new SKPointI( pntCaret.X, pntCaret.Y ), true );
+                            return true;
+                        }
+                        break;
+                    }
                 }
+            } catch( Exception oEx ) {
+                if( IsUnhandledStdRpt( oEx ) )
+                    throw;
             }
-        }
-
-        /// <summary>
-        /// TODO: Should invalidate our host window.
-        /// </summary>
-        public void OnLineAdded( Line oLine ) {
-            OnLineUpdated( oLine );
+            return false;
         }
 
         /// <summary>
@@ -812,20 +820,6 @@ namespace Play.Edit {
                 if( _rgOldCache[i].Line == oLine ) {
                     _rgOldCache.RemoveAt( i );
                     break;
-                }
-            }
-        }
-
-        ///<summary>When formatting changes, that's typically because of a text change.</summary>
-        ///<remarks>In CacheRefresh we get the Selections from the CacheMan Site. But here
-        ///         we require it as a parameter. Need to think about that.
-        ///         Currently updating the entire cache, only the line who's text has
-        ///         changed, needs the "update"</remarks> 
-        // see OnChangeSelection
-        public void OnChangeFormatting( ICollection<ILineSelection> rgSelection ) {
-            foreach( CacheRow oRow in _rgOldCache ) {
-                foreach( FTCacheLine oCacheCol in oRow.CacheList ) {
-                    oCacheCol.OnChangeFormatting( rgSelection );
                 }
             }
         }
@@ -864,7 +858,24 @@ namespace Play.Edit {
         ///                         where the mouse clicked.</param>
         /// <param name="oCaret">This object line offset is updated to the closest line offset.</param>
         public bool PointToRow( 
-            int iColumn, SKPointI pntWorldLoc, out int iOffset, out int iRow )
+            int iColumn, SKPointI pntWorldLoc, out int iOffset, out int iDataRow )
+        {
+            CacheRow oCacheRow = PointToCache( iColumn, pntWorldLoc, out int iLineOffset );
+            if( oCacheRow != null ) {
+                iDataRow = oCacheRow.At;
+                iOffset  = iLineOffset;
+
+                return true;
+            }
+
+            iOffset  = -1;
+            iDataRow = -1;
+
+            return false;
+        }
+
+        protected CacheRow PointToCache(
+            int iColumn, SKPointI pntWorldLoc, out int iOffset )
         {
             try {
                 foreach( CacheRow oCacheRow in _rgOldCache ) {
@@ -875,10 +886,9 @@ namespace Play.Edit {
                         SKPointI    pntLocal = new SKPointI( pntWorldLoc.X - _rgColumnRects[iColumn].Left,
                                                              pntWorldLoc.Y - _rgColumnRects[iColumn].Top );
 
-                        iOffset = oCache   .GlyphPointToOffset(oCacheRow.Top, pntLocal );
-                        iRow    = oCacheRow.At;
+                        iOffset = oCache.GlyphPointToOffset(oCacheRow.Top, pntLocal );
 
-                        return true;
+                        return oCacheRow;
                     }
                 }
             } catch( Exception oEx ) {
@@ -887,9 +897,8 @@ namespace Play.Edit {
             }
 
             iOffset = -1;
-            iRow    = -1;
 
-            return false;
+            return null;
         }
 
         /// <summary>
