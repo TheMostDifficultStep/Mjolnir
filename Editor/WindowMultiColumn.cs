@@ -633,7 +633,7 @@ namespace Play.Edit {
         protected override bool ProcessCmdKey(ref Message msg, Keys keyData)	
         {
             if( this.IsDisposed )
-                return( false );
+                return false;
 
             const int WM_KEYDOWN    = 0x100;
             const int WM_SYSKEYDOWN = 0x104;
@@ -643,28 +643,29 @@ namespace Play.Edit {
                 switch(keyData) {
                     case Keys.Control | Keys.F:
                         _oViewEvents.IsCommandKey( CommandKey.Find, KeyBoardEnum.Control );
-                        return( true );
+                        return true;
                     case Keys.Control | Keys.A:
                         //SelectionSetAll();
                         Invalidate();
-                        return( true );
+                        return true;
 
                     case Keys.Control | Keys.Z:
                         if( !_fReadOnly ) {
                             //_oDocument.Undo();
                         }
-                        return( true );
+                        return true;
                     case Keys.Delete: {
                         // The only way to get this event.
                         CacheMultiColumn.CaretInfo oCaret = _oCacheMan.CopyCaret();
                         _oDocOps.TryDeleteAt( oCaret.Row, oCaret.Column, oCaret.Offset, 1 );
-                        return( true );
+                        return true;
                     }
                 }
             } 
 
             return base.ProcessCmdKey( ref msg, keyData );
         } // end method
+
         protected override void OnKeyPress(KeyPressEventArgs e) {
             if( IsDisposed )
                 return;
