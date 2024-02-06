@@ -513,10 +513,11 @@ namespace Play.Edit {
                 NewCacheAdd( InsertAt.BOTTOM, oLastCache = oNewCache );
             }
 
-            if( _oTextRect.Top != 0 ) {
+            if( _oTextRect.Top != 0 && _rgNewCache.Count > 0 ) {
                 int iOldTextTop = _oTextRect.Top;
+                int iNewElemTop = _rgNewCache[0].Top;
                 _oTextRect.SetScalar( SET.RIGID, SCALAR.TOP, 0 );
-                CacheRestackFromTop( iOldTextTop );
+                CacheRestackFromTop( iNewElemTop - iOldTextTop );
             }
 
             _rgOldCache.Clear();
