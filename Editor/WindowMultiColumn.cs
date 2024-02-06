@@ -63,9 +63,9 @@ namespace Play.Edit {
         protected readonly IPgDocTraits    <Row> _oDocTraits;
         protected readonly IPgDocOperations<Row> _oDocOps;
         protected readonly CacheMultiColumn      _oCacheMan;
-        protected readonly LayoutStackHorizontal _rgLayout;
 		protected readonly IPgStandardUI2        _oStdUI;
         protected readonly ScrollBar2            _oScrollBarVirt;
+        protected readonly LayoutStack           _rgLayout;
         protected readonly List<SmartRect>       _rgColumns = new(); // Might not match document columns! O.o
 
         protected bool _fReadOnly = false;
@@ -226,15 +226,6 @@ namespace Play.Edit {
             _rgLayout       = new LayoutStackHorizontal() { Spacing = 5, Units = LayoutRect.CSS.Flex};
 
             _rgLayout.Add( new LayoutControl( _oScrollBarVirt, LayoutRect.CSS.Pixels, 12 ) );
-            _rgLayout.Add( new LayoutRect( LayoutRect.CSS.Percent, 20, 1L ) );
-            _rgLayout.Add( new LayoutRect( LayoutRect.CSS.Percent, 30, 1L ) );
-            _rgLayout.Add( new LayoutRect( LayoutRect.CSS.None ) );
-
-            // Need to figure out how to match the columns of the Window vs Document...
-            // TODO: I'm going to add the columns to the cache site so I can init the later instead of now.
-            _rgColumns.Add( _rgLayout.Item( 1 ) );
-            _rgColumns.Add( _rgLayout.Item( 2 ) );
-            _rgColumns.Add( _rgLayout.Item( 3 ) );
 
             _oCacheMan = new CacheMultiColumn( new CacheManSite( this ), 
                                                _oStdUI.FontRendererAt( uiStdText ),
@@ -264,8 +255,8 @@ namespace Play.Edit {
         protected override bool IsInputKey(Keys keyData) {
             int iIndex = Array.BinarySearch<Keys>(_rgHandledKeys, keyData);
 
-            if (iIndex >= 0)
-                return (true);
+            if( iIndex >= 0 )
+                return true;
 
             return base.IsInputKey( keyData );
         }
@@ -546,7 +537,7 @@ namespace Play.Edit {
         }
         
         /// <summary>
-        /// Update the caret. Right now we're written for browser mode.
+        /// Update the cursor shape. Right now we're written for browser mode.
         /// So a mouse hovering over a hyperlink will show a hand.
         /// If left mouse down for select, then make I-beam with in 
         /// column.
