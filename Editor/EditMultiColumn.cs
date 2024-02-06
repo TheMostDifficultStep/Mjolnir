@@ -193,16 +193,6 @@ namespace Play.Edit {
     {
         protected readonly IPgBaseSite _oSiteBase;
 
-        protected struct TBucket {
-            readonly public object                      _oOwner;
-            readonly public IPgCaretInfo<Row> _oTracker;
-
-            public TBucket( object oOwner, IPgCaretInfo<Row> oTracker ) {
-                _oOwner   = oOwner   ?? throw new ArgumentNullException( "owner" );
-                _oTracker = oTracker ?? throw new ArgumentNullException( "tracker" );
-            }
-        }
-
         protected Func<Row>            _fnRowCreator;
         protected List<Row>            _rgRows;
         protected List<bool>           _rgColumnWR; // is the column editable...
@@ -276,6 +266,43 @@ namespace Play.Edit {
             }
         }
 
+        struct TrackerEnumerable :         
+            IEnumerable<IPgCaretInfo<Row>>
+        {
+            readonly List<IPgEditHandler> _rgHandlers;
+
+            public TrackerEnumerable(EditMultiColumn oHost ) {
+                if( oHost == null )
+                    throw new ArgumentNullException();
+
+                _rgHandlers = oHost._rgTemp;
+                _rgHandlers.Clear();
+
+                foreach( IPgEditEvents oListener in oHost._rgListeners ) {
+                    _rgHandlers.Add( oListener.NewEditHandler() );
+                }
+            }
+
+            public IEnumerator<IPgCaretInfo<Row>> GetEnumerator() {
+                foreach( IPgEditHandler oHandler in _rgHandlers ) {
+                    foreach( IPgCaretInfo<Row> oTracker in oHandler ) {
+                        yield return oTracker;
+                    }
+                }
+            }
+
+            IEnumerator IEnumerable.GetEnumerator() {
+                throw new NotImplementedException();
+            }
+
+            public void FinishUp( Row oRow ) {
+                foreach( IPgEditHandler oHandler in _rgHandlers ) {
+                    oHandler.OnUpdated( oRow );
+                }
+                _rgHandlers.Clear();
+            }
+        }
+
         public bool TryReplaceAt( IPgCaretInfo<Row> oCaret, ReadOnlySpan<char> spText ) {
             return TryReplaceAt( oCaret.Row, oCaret.Column, oCaret.Offset, oCaret.Length, spText );
         }
@@ -314,43 +341,38 @@ namespace Play.Edit {
             return false;
         }
 
-        struct TrackerEnumerable :         
-            IEnumerable<IPgCaretInfo<Row>>
-        {
-            readonly List<IPgEditHandler> _rgHandlers;
+        public bool TryDeleteAt( Row oRow, int iColumn, int iSrcOff, int iSrcLen ) {
+            try {
+                string strRemoved = string.Empty;
+                Line   oLine      = oRow[iColumn];
 
-            public TrackerEnumerable(EditMultiColumn oHost ) {
-                if( oHost == null )
-                    throw new ArgumentNullException();
+                TrackerEnumerable oTE = new TrackerEnumerable( this );
 
-                _rgHandlers = oHost._rgTemp;
-                _rgHandlers.Clear();
-
-                foreach( IPgEditEvents oListener in oHost._rgListeners ) {
-                    _rgHandlers.Add( oListener.NewEditHandler() );
-                }
-            }
-
-            public IEnumerator<IPgCaretInfo<Row>> GetEnumerator() {
-                foreach( IPgEditHandler oHandler in _rgHandlers ) {
-                    foreach( IPgCaretInfo<Row> oTracker in oHandler ) {
-                        yield return oTracker;
+                if( oLine.TryDelete( iSrcOff, iSrcLen, out strRemoved ) ) {
+                    IMemoryRange oDeleted = new ColorRange( iSrcOff, iSrcLen ); // BUG use struct...
+                    foreach( IColorRange oFormat in oLine.Formatting ) {
+                        Marker.ShiftDelete( oFormat, oDeleted );
+                    }
+                    foreach( IPgCaretInfo<Row> oTracker in oTE ) {
+                        if( oTracker.Row    == oRow &&
+                            oTracker.Column == iColumn )
+                        {
+                            if( oTracker.Offset >= iSrcOff ) {
+                                oTracker.Offset = iSrcOff;
+                            }
+                        }
                     }
                 }
+
+                oTE.FinishUp( null );
+
+                return true;
+            } catch( NullReferenceException ) {
+                _oSiteBase.LogError( "Delete Text", "Error in LineTextDelete" );
             }
 
-            IEnumerator IEnumerable.GetEnumerator() {
-                throw new NotImplementedException();
-            }
-
-            public void FinishUp( Row oRow ) {
-                foreach( IPgEditHandler oHandler in _rgHandlers ) {
-                    oHandler.OnUpdated( oRow );
-                }
-                _rgHandlers.Clear();
-            }
+            return false;
         }
-
     }
 
 }

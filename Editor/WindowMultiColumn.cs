@@ -28,6 +28,8 @@ namespace Play.Edit {
 
         bool TryReplaceAt( T oRow, int iColumn, int iSrcOff, int iSrcLen, ReadOnlySpan<char> spText );
         bool TryReplaceAt( IPgCaretInfo<Row> oCaret, ReadOnlySpan<char> spText );
+
+        bool TryDeleteAt( Row oRow, int iColumn, int iSrcOff, int iSrcLen );
     }
 
     public interface IPgEditHandler :
@@ -596,6 +598,8 @@ namespace Play.Edit {
             
             e.Handled = true;
 
+            CacheMultiColumn.CaretInfo oCaret = _oCacheMan.CopyCaret();
+
             switch( e.KeyCode ) {
                 case Keys.PageDown:
                     _oCacheMan.OnScrollBar_Vertical( ScrollEvents.LargeIncrement );
@@ -614,6 +618,12 @@ namespace Play.Edit {
                     break;
                 case Keys.Left:
                     _oCacheMan.CaretMove( Axis.Horizontal, -1 );
+                    break;
+                case Keys.Delete:
+                    _oDocOps.TryDeleteAt( oCaret.Row, oCaret.Column, oCaret.Offset, 1 );
+                    break;
+                case Keys.Back:
+                    _oDocOps.TryDeleteAt( oCaret.Row, oCaret.Column, oCaret.Offset - 1, 1 );
                     break;
             }
         }

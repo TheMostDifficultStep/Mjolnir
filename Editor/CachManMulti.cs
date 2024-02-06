@@ -404,8 +404,7 @@ namespace Play.Edit {
         /// have to be and we could use the TextRect.Top as the starter.
         /// We would have to update the CacheWalker too...
         /// </summary>
-        protected void CacheRestackFromTop() {
-            int iTop = 0;
+        protected void CacheRestackFromTop(int iTop) {
             foreach( CacheRow oCRow in _rgNewCache ) {
                 oCRow.Top = iTop;
 
@@ -515,8 +514,9 @@ namespace Play.Edit {
             }
 
             if( _oTextRect.Top != 0 ) {
+                int iOldTextTop = _oTextRect.Top;
                 _oTextRect.SetScalar( SET.RIGID, SCALAR.TOP, 0 );
-                CacheRestackFromTop();
+                CacheRestackFromTop( iOldTextTop );
             }
 
             _rgOldCache.Clear();
