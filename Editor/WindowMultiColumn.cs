@@ -23,13 +23,24 @@ namespace Play.Edit {
     }
 
     public interface IPgDocOperations<T> {
-        void TrackerAdd      ( object oOwner, IPgCaretInfo<T> oTracker );
-        void TrackerRemoveAll( object oOwner );
-
         void ListenerAdd   ( IPgEditEvents<T> e );
         void ListenerRemove( IPgEditEvents<T> e );
 
         bool TryInsertAt( Row oRow, int iColumn, int iOffset, Span<char> spText );
+    }
+
+    public enum DOCUMENTEVENTS {
+        MODIFIED,
+        FORMATTED,
+        LOADED
+    }
+
+    public interface IPgDocEvent {
+        void OnUpdated( Row oRow ); 
+    }
+
+    public interface IPgEditEvents<T> {
+        IPgDocEvent CreateDocEventObject();
     }
 
     public class WindowMultiColumn :
@@ -235,7 +246,6 @@ namespace Play.Edit {
         protected override void Dispose( bool disposing ) {
             if( disposing ) {
                 _oDocOps       .ListenerRemove  ( this );
-                _oDocOps       .TrackerRemoveAll( this );
                 _oScrollBarVirt.Scroll -= OnScrollBar; 
                 HyperLinks     .Clear();
                 User32         .DestroyCaret();
@@ -277,7 +287,6 @@ namespace Play.Edit {
             _oScrollBarVirt.Visible = true;
             _oScrollBarVirt.Scroll += OnScrollBar; 
 
-            _oDocOps.TrackerAdd ( this, _oCacheMan.CreateCaretTracker() );
             _oDocOps.ListenerAdd( this );
 
             return true;
@@ -304,16 +313,11 @@ namespace Play.Edit {
         /// <summary>
         /// This happens for simple edits. 
         /// </summary>
-        public void OnRowEvent( Row oRow ) {
-            _oCacheMan.RowMeasure ( oRow );
-            _oCacheMan.CacheRepair( fMeasure:false );
+        public IPgDocEvent CreateDocEventObject() {
+            return _oCacheMan.CreateDocEventObject();
         }
 
-        /// <summary>
-        /// This can happen for big edits. 
-        /// </summary>
-        public void OnDocEvent(DOCUMENTEVENTS eEvent) {
-            _oCacheMan.CacheRepair( fMeasure:true );
+        public void CreateUpdater() {
         }
 
         public class SimpleRange :
@@ -624,12 +628,12 @@ namespace Play.Edit {
                 Span<char> rgInsert = stackalloc char[1];
                 rgInsert[0] = e.KeyChar;
 
-                IPgCaretInfo<Row> oCaret = _oCacheMan.CreateCaretTracker();
+                IPgCaretInfo<Row> oCaret = _oCacheMan.CopyCaret();
 
                 _oDocOps.TryInsertAt( oCaret.Row,
-                                    oCaret.Column,
-                                    oCaret.Offset, 
-                                    rgInsert );
+                                      oCaret.Column,
+                                      oCaret.Offset, 
+                                      rgInsert );
             }
         }
 

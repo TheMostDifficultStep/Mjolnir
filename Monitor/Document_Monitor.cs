@@ -869,7 +869,7 @@ namespace Monitor {
                 for( int i=0; i<_oDoc.ElementCount; ++i ) {
                     _oDoc[i].At = i;
                 }
-                _oDoc.Raise_EveryRowEvent( DOCUMENTEVENTS.MODIFIED );
+                //_oDoc.Raise_EveryRowEvent( DOCUMENTEVENTS.MODIFIED );
             }
 
             public void InsertRow( Row oDocRow, InsertionPoint eInsert ) {
@@ -946,7 +946,7 @@ namespace Monitor {
             if( !LoadTiny() ) 
                 return false;
 
-            Raise_EveryRowEvent( DOCUMENTEVENTS.LOADED );
+            //Raise_EveryRowEvent( DOCUMENTEVENTS.LOADED );
 
             return true;
         }
@@ -1002,7 +1002,7 @@ namespace Monitor {
             if( !LoadTiny() )
                 return false;
 
-            Raise_EveryRowEvent( DOCUMENTEVENTS.LOADED );
+            //Raise_EveryRowEvent( DOCUMENTEVENTS.LOADED );
 
             //Dissassemble( );
 

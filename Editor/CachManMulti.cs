@@ -72,13 +72,20 @@ namespace Play.Edit {
                                        typeof( IndexOutOfRangeException ),
                                        typeof( NullReferenceException ) };
 
+        /// <summary>
+        /// We need this object since we don't know where the caret is
+        /// BEFORE the edit.
+        /// </summary>
         protected class CaretTracker :
-            IPgCaretInfo<Row> 
+            IPgCaretInfo<Row>,
+            IPgDocEvent
         {
             readonly CacheMultiColumn _oHost;
+            readonly bool             _fCaretVisible;
 
             public CaretTracker( CacheMultiColumn oHost ) {
-                _oHost = oHost ?? throw new ArgumentNullException();
+                _oHost         = oHost ?? throw new ArgumentNullException();
+                _fCaretVisible = _oHost.IsCaretVisible( out SKPointI pntCaret );
             }
 
             public Row Row    => _oHost._oCaretRow;
@@ -90,6 +97,10 @@ namespace Play.Edit {
             public int Length { 
                 get => 0;
                 set => throw new NotImplementedException(); 
+            }
+
+            public void OnUpdated( Row oRow ) {
+                _oHost.CacheRepair( oRow, _fCaretVisible );
             }
         }
 
@@ -133,15 +144,6 @@ namespace Play.Edit {
             _oSite.LogError( "CacheMultiColumn", "Exception occurred" );
 
             return false;
-        }
-
-        /// <summary>
-        /// Create a caret tracker to pass to the document. This object
-        /// must be removed from the document when the windows is destroyed.
-        /// </summary>
-        /// <returns></returns>
-        public IPgCaretInfo<Row> CreateCaretTracker() {
-            return new CaretTracker( this );
         }
 
         public SmartRect TextRect {
@@ -188,20 +190,69 @@ namespace Play.Edit {
         }
 
         /// <summary>
+        /// This object will get called whenever there's an edit to
+        /// the document, such as a typed character or cut/paste.
+        /// It SHOULD NOT be called for format changes/reparse.
+        /// </summary>
+        public IPgDocEvent CreateDocEventObject() {
+            return new CaretTracker( this );
+        }
+
+        protected struct CaretInfo :
+            IPgCaretInfo<Row> 
+        {
+            int iOffset = 0;
+            public CaretInfo( CacheMultiColumn oHost ) {
+                Row     = oHost._oCaretRow;
+                Column  = oHost._iCaretCol;
+                iOffset = oHost._iCaretOff;
+            }
+
+            public Row Row    { get; }
+
+            public int Column { get; }
+
+            public int Offset { get => iOffset; set => throw new NotImplementedException(); }
+            public int Length { get => 0; set => throw new NotImplementedException(); }
+        }
+
+        public IPgCaretInfo<Row> CopyCaret() {
+            return new CaretInfo( this );
+        }
+
+        /// <summary>
         /// New experimental positioning. The rule is: if the caret is on
         /// screen, keep it there. Else, repair as best you can, else 
         /// rebuild the screen from the current cache position. If you
         /// have scrolled the caret off screen I assume it's intentional.
         /// </summary>
         /// <param name="fMeasure">Remeasure all row items.</param>
-        public void CacheRepair( bool fMeasure = false ) {
+        public void CacheRepair( Row oPatch, bool fFindCaret ) {
             try {
-                CacheRow oSeedCache = CacheLocate( CaretRow );
+                CacheRow oSeedCache = null;
+                bool     fMeasure   = oPatch == null;
+                int      iTop       = _rgOldCache.Count < 1 ? 0 : _rgOldCache[0].Top;
 
-                if( oSeedCache == null ) {
-                    oSeedCache = CacheLocateTop();
+                foreach( CacheRow oCacheRow in _rgOldCache ) {
+                    if( oCacheRow.At == CaretRow ) {
+                        oSeedCache = oCacheRow;
+                    }
+                    if( oPatch       != null &&
+                        oCacheRow.At == oPatch.At ) {
+                        RowMeasure(oCacheRow);
+                    }
+                    oCacheRow.Top = iTop;
+                    iTop += oCacheRow.Height + RowSpacing;
+                }
+                if( fFindCaret ) {
+                    if( oSeedCache != null )
+                        CaretSlideWindow( oSeedCache );
+                    else
+                        CreateCacheRow( _oCaretRow );
                 } else {
-                    CaretLocal( oSeedCache );
+                    if( oSeedCache == null ) {
+                        oSeedCache = CacheLocateTop();
+                    }
                 }
 
                 oSeedCache ??= CacheReset( RefreshNeighborhood.SCROLL );
@@ -210,15 +261,6 @@ namespace Play.Edit {
             } catch( Exception oEx ) {
                 if( IsUnhandledStdRpt( oEx ) )
                     throw;
-            }
-        }
-
-        public void RowMeasure( Row oRow ) {
-            CacheRow oCacheRow = CacheLocate( oRow.At );
-
-            // BUG need to shuffle the rest down if the size changees...
-            if( oCacheRow != null ) {
-                RowMeasure( oCacheRow );
             }
         }
 
@@ -462,41 +504,12 @@ namespace Play.Edit {
             _rgNewCache.Clear();
 
             int  iBottomRow    = ( oLastCache == null ) ? 0 : oLastCache.At;
-            bool fCaretVisible = IsCaretVisible( oCacheWithCaret, out SKPointI pntCaret );
+            bool fCaretVisible = IsCaretNear( oCacheWithCaret, out SKPointI pntCaret );
 
             _oSite.OnRefreshComplete( iBottomRow, 
                                       _rgOldCache.Count,
                                       fCaretVisible,
                                       pntCaret );
-        }
-
-        /// <summary>
-        /// If data row containing caret is cached then it is visible!
-        /// And we can compute where the caret should be.
-        /// </summary>
-        /// <remarks>We could intersect the rect for the caret and the TextRect, but
-        /// we don't horzontally scroll. So the caret won't be off on the left or right.</remarks>
-        /// <param name="oCaretCacheRow">Cache row representing the data row with the caret.</param>
-        /// <param name="pntCaret">Location of the caret on the screen.</param>
-        protected bool IsCaretVisible( CacheRow oCaretCacheRow, out SKPointI pntCaret ) {
-            pntCaret = new( -10, -10 );
-
-            if( oCaretCacheRow == null )
-                return false;
-
-            try {
-                // Left top coordinate of the caret offset.
-                Point     pntCaretWorld     = oCaretCacheRow[_iCaretCol].GlyphOffsetToPoint( _iCaretOff );
-                SmartRect oColumn           = _rgColumnRects[_iCaretCol];
-
-                pntCaret = new SKPointI( pntCaretWorld.X + oColumn.Left,
-                                         pntCaretWorld.Y + oCaretCacheRow.Top );
-            } catch( Exception oEx ) {
-                if( IsUnhandledStdRpt( oEx ) )
-                    throw;
-            }
-
-            return true;
         }
 
         /// <summary>
@@ -507,7 +520,14 @@ namespace Play.Edit {
         public bool IsCaretVisible( out SKPointI pntCaret ) {
             CacheRow oCaretRow = CacheLocate( CaretRow );
 
-            return IsCaretVisible( oCaretRow, out pntCaret );
+            if( IsCaretNear( oCaretRow, out pntCaret ) ) {
+                bool fTL = TextRect.IsInside( pntCaret.X, pntCaret.Y );
+                bool fRB = TextRect.IsInside( pntCaret.X + CaretSize.X, pntCaret.Y + CaretSize.Y );
+
+                return fTL | fRB;
+            }
+
+            return false;
         }
 
         /// <summary>
@@ -632,25 +652,52 @@ namespace Play.Edit {
         }
 
         /// <summary>
+        /// If data row containing caret is cached then it MIGHT be visible.
+        /// return the coordinates of the caret relative to it's column.
+        /// </summary>
+        /// <remarks>We could intersect the rect for the caret and the TextRect, but
+        /// we don't horzontally scroll. So the caret won't be off on the left or right.</remarks>
+        /// <param name="oCaretCacheRow">Cache row representing the data row with the caret.</param>
+        /// <param name="pntCaretTop">Location of the caret on the screen.</param>
+        protected bool IsCaretNear( CacheRow oCaretCacheRow, out SKPointI pntCaretTop ) {
+            pntCaretTop = new( -10, -10 ); // s/b offscreen in any top/left 0,0 window clent space.
+
+            if( oCaretCacheRow == null )
+                return false;
+
+            try {
+                // Left top coordinate of the caret offset.
+                Point     pntCaretRelative  = oCaretCacheRow[_iCaretCol].GlyphOffsetToPoint( _iCaretOff );
+                SmartRect oColumn           = _rgColumnRects[_iCaretCol];
+
+                pntCaretTop = new SKPointI( pntCaretRelative.X + oColumn.Left,
+                                            pntCaretRelative.Y + oCaretCacheRow.Top );
+            } catch( Exception oEx ) {
+                if( IsUnhandledStdRpt( oEx ) )
+                    throw;
+            }
+
+            return true;
+        }
+
+        /// <summary>
         /// Update the sliding window based the offset into the given cache element.
         /// We want to make sure the caret is always visible and doesn't slide off screen.
         /// The CacheWalker will normalize the window so the top is 0 (or whereever
         /// it should be)
         /// </summary>
         /// <param name="oCaret">The cache row where the caret is situated.</param>
-        protected void CaretLocal( CacheRow oCaret ) {
-            Point pntCaretLoc = oCaret.CacheList[_iCaretCol].GlyphOffsetToPoint( _iCaretOff );
+        protected void CaretSlideWindow( CacheRow oCaret ) {
+            if( IsCaretNear( oCaret, out SKPointI pntCaretLoc ) ) {
+                LOCUS eHitTop = _oTextRect.IsWhere( pntCaretLoc.X, pntCaretLoc.Y );
+                LOCUS eHitBot = _oTextRect.IsWhere( pntCaretLoc.X, pntCaretLoc.Y + LineHeight );
 
-            pntCaretLoc.Y += oCaret.Top;
-
-            LOCUS eHitTop = _oTextRect.IsWhere( pntCaretLoc.X, pntCaretLoc.Y );
-            LOCUS eHitBot = _oTextRect.IsWhere( pntCaretLoc.X, pntCaretLoc.Y + LineHeight );
-
-            if( ( eHitTop & LOCUS.TOP    ) != 0 ) {
-                _oTextRect.SetScalar(SET.RIGID, SCALAR.TOP,    pntCaretLoc.Y );
-            }
-            if( ( eHitBot & LOCUS.BOTTOM ) != 0 ) {
-                _oTextRect.SetScalar(SET.RIGID, SCALAR.BOTTOM, pntCaretLoc.Y + LineHeight );
+                if( ( eHitTop & LOCUS.TOP    ) != 0 ) {
+                    _oTextRect.SetScalar(SET.RIGID, SCALAR.TOP,    pntCaretLoc.Y );
+                }
+                if( ( eHitBot & LOCUS.BOTTOM ) != 0 ) {
+                    _oTextRect.SetScalar(SET.RIGID, SCALAR.BOTTOM, pntCaretLoc.Y + LineHeight );
+                }
             }
         }
 
@@ -685,7 +732,7 @@ namespace Play.Edit {
                             oCaretCacheRow = oNewCache;
                         }
                     }
-                    CaretLocal( oCaretCacheRow );
+                    CaretSlideWindow( oCaretCacheRow );
                 } else {
                     // Total miss, build a new screen based on the location of the caret.
                     oCaretCacheRow = CacheReset( RefreshNeighborhood.CARET );
@@ -759,13 +806,7 @@ namespace Play.Edit {
         /// <param name="rgSize">The new size of the rectangle.</param>
         public void OnChangeSize() {
             try {
-                // If the height changed, our buffer is all messed up.
-                // There will be rows missing. And if the width changed
-                // the amount of rows show gets affected too.
-                // So on rebuild force a remeasure of ALL columns.
-                // NOTE: Might want to keep caret on screen if it lives
-                //       in one of the cached rows.... >:-|
-                CacheRepair( fMeasure:true );
+                CacheRepair( null, false ); // BUG: Use a CaretTracker...
             } catch( Exception oEx ) {
                 // if the _rgCacheMap and the oRow.CacheList don't match
                 // we might walk of the end of one or the other.
@@ -841,7 +882,7 @@ namespace Play.Edit {
                     oCaretCacheRow = CacheReset( RefreshNeighborhood.CARET );
                 }
 
-                CaretLocal ( oCaretCacheRow );
+                CaretSlideWindow ( oCaretCacheRow );
                 CacheWalker( oCaretCacheRow, fMeasure );
             } catch( Exception oEx ) {
                 if( IsUnhandledStdRpt( oEx ) )
@@ -860,7 +901,7 @@ namespace Play.Edit {
                 oCaretCacheRow = CacheReset( RefreshNeighborhood.CARET );
             }
 
-            CaretLocal ( oCaretCacheRow );
+            CaretSlideWindow ( oCaretCacheRow );
             CacheWalker( oCaretCacheRow );
         }
 

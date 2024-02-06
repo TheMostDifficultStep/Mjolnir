@@ -9,17 +9,6 @@ using Play.Parse.Impl;
 using Play.Interfaces.Embedding;
 
 namespace Play.Edit {
-    public enum DOCUMENTEVENTS {
-        MODIFIED,
-        FORMATTED,
-        LOADED
-    }
-
-    public interface IPgEditEvents<T> {
-        void OnRowEvent( T oRow ); // Single Line events.
-        void OnDocEvent( DOCUMENTEVENTS eEvent ); // Every Line events.
-    }
-
     /// <summary>
     /// This streamer streams the text from a particular column. If any edits
     /// occur, this object becomes invalid. We can handle this by caching 
@@ -218,7 +207,6 @@ namespace Play.Edit {
         protected List<bool>    _rgColumnWR; // is the column editable...
         protected Row           _oRowHighlight;
         protected StdUIColors   _ePlayColor;
-        protected List<TBucket> _rgTrackers = new();
 
         public event Action<Row> HighLightChanged;
         public event Action<Row> CheckedEvent;
@@ -259,17 +247,6 @@ namespace Play.Edit {
             _rgListeners.Clear();
         }
 
-        protected void Raise_SinglRowEvent( Row oRow ) {
-            foreach( IPgEditEvents<Row> oEvent in _rgListeners ) {
-                oEvent.OnRowEvent( oRow );
-            }
-        }
-
-        protected void Raise_EveryRowEvent( DOCUMENTEVENTS eEvent ) {
-            foreach( IPgEditEvents<Row> oEvent in _rgListeners ) {
-                oEvent.OnDocEvent( eEvent );
-            }
-        }
         public IEnumerator<Row> GetEnumerator() {
             return _rgRows.GetEnumerator();
         }
@@ -280,19 +257,6 @@ namespace Play.Edit {
 
         public virtual void LogError( string strMessage ) { 
             _oSiteBase.LogError( "Multi Column Editor", strMessage );
-        }
-
-        public void TrackerAdd( object oOwner, IPgCaretInfo<Row> oTracker ) {
-            _rgTrackers.Add( new TBucket( oOwner, oTracker ) );
-        }
-
-        public void TrackerRemoveAll( object oOwner ) { 
-            for( int i=0; i< _rgTrackers.Count; i++ ) {
-                if( _rgTrackers[i]._oOwner == oOwner ) {
-                    _rgTrackers.RemoveAt( i );
-                    break;
-                }
-            }
         }
 
         public void ListenerAdd( IPgEditEvents<Row> e ) {
@@ -316,10 +280,14 @@ namespace Play.Edit {
             try {
                 Line oLine = oRow[iColumn];
 
+                List<IPgDocEvent> rgTrackers = new();
+                foreach( IPgEditEvents<Row> e in _rgListeners ) {
+                    rgTrackers.Add( e.CreateDocEventObject() );
+                }
                 // BUG: Change the insert to take a Span! \^_^/
                 if( oLine.TryInsert( iOffset, spText.ToString(), 0, spText.Length ) ) {
-                    foreach( TBucket oBucket in _rgTrackers ) {
-                        IPgCaretInfo<Row> oTracker = oBucket._oTracker;
+                    foreach( IPgDocEvent oListen in rgTrackers ) {
+                        IPgCaretInfo<Row> oTracker = oListen as IPgCaretInfo<Row>;
 
                         if( oTracker.Column == iColumn &&
                             oTracker.Row    == oRow ) 
@@ -328,8 +296,8 @@ namespace Play.Edit {
                         }
                     }
                 }
-                foreach( IPgEditEvents<Row> oEvent in _rgListeners ) {
-                    oEvent.OnRowEvent( oRow );
+                foreach( IPgDocEvent oEvent in rgTrackers ) {
+                    oEvent.OnUpdated( oRow );
                 }
                 return true;
             } catch( Exception oEx ) {
