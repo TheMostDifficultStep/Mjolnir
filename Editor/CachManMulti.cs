@@ -573,7 +573,8 @@ namespace Play.Edit {
                 bool fTL = TextRect.IsInside( pntCaret.X, pntCaret.Y );
                 bool fRB = TextRect.IsInside( pntCaret.X + CaretSize.X, pntCaret.Y + CaretSize.Y );
 
-                return fTL | fRB;
+                bool fResult = fTL | fRB;
+                return fResult;
             }
 
             return false;
@@ -839,7 +840,8 @@ namespace Play.Edit {
         /// <param name="rgSize">The new size of the rectangle.</param>
         public void OnChangeSize() {
             try {
-                CacheRepair( null, false ); // BUG: Use a CaretTracker...
+                bool fCaretOnScreen = IsCaretVisible( out SKPointI pntCaret );
+                CacheRepair( null, fCaretOnScreen ); 
             } catch( Exception oEx ) {
                 // if the _rgCacheMap and the oRow.CacheList don't match
                 // we might walk of the end of one or the other.

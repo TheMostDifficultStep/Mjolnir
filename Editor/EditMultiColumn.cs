@@ -276,27 +276,27 @@ namespace Play.Edit {
             }
         }
 
-        public bool TryInsertAt( IPgCaretInfo<Row> oCaret, Span<char> spText ) {
-            return TryInsertAt( oCaret.Row, oCaret.Column, oCaret.Offset, spText );
+        public bool TryReplaceAt( IPgCaretInfo<Row> oCaret, ReadOnlySpan<char> spText ) {
+            return TryReplaceAt( oCaret.Row, oCaret.Column, oCaret.Offset, oCaret.Length, spText );
         }
 
         /// <summary>
-        /// This method is for small edits. Like typing characters. Might
-        /// need a try replace instead...
+        /// This method is for small edits. Like typing characters. Simply an insert
+        /// if srclen is 0.
         /// </summary>
-        public bool TryInsertAt( Row oRow, int iColumn, int iOffset, Span<char> spText ) {
+        public bool TryReplaceAt( Row oRow, int iColumn, int iSrcOff, int iSrcLen, ReadOnlySpan<char> spText ) {
             try {
                 Line oLine = oRow[iColumn];
 
                 TrackerEnumerable oTE = new TrackerEnumerable( this );
 
                 // BUG: Change the insert to take a Span! \^_^/
-                if( oLine.TryInsert( iOffset, spText.ToString(), 0, spText.Length ) ) {
+                if( oLine.TryReplace( iSrcOff, iSrcLen, spText ) ) {
                     foreach( IPgCaretInfo<Row> oTracker in oTE ) {
                         if( oTracker.Column == iColumn &&
                             oTracker.Row    == oRow ) 
                         {
-                            Marker.ShiftInsert( oTracker, iOffset, spText.Length );
+                            Marker.ShiftInsert( oTracker, iSrcOff, spText.Length - iSrcLen );
                         }
                     }
                 }

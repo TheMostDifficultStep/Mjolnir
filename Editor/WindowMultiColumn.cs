@@ -26,8 +26,8 @@ namespace Play.Edit {
         void ListenerAdd   ( IPgEditEvents e );
         void ListenerRemove( IPgEditEvents e );
 
-        bool TryInsertAt( T oRow, int iColumn, int iOffset, Span<char> spText );
-        bool TryInsertAt( IPgCaretInfo<Row> oCaret, Span<char> spText );
+        bool TryReplaceAt( T oRow, int iColumn, int iSrcOff, int iSrcLen, ReadOnlySpan<char> spText );
+        bool TryReplaceAt( IPgCaretInfo<Row> oCaret, ReadOnlySpan<char> spText );
     }
 
     public interface IPgEditHandler :
@@ -630,7 +630,7 @@ namespace Play.Edit {
                 Span<char> rgInsert = stackalloc char[1];
                 rgInsert[0] = e.KeyChar;
 
-                _oDocOps.TryInsertAt( _oCacheMan.CopyCaret(), rgInsert );
+                _oDocOps.TryReplaceAt( _oCacheMan.CopyCaret(), rgInsert );
             }
         }
 
