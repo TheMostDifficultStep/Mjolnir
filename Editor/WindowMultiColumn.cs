@@ -23,24 +23,22 @@ namespace Play.Edit {
     }
 
     public interface IPgDocOperations<T> {
-        void ListenerAdd   ( IPgEditEvents<T> e );
-        void ListenerRemove( IPgEditEvents<T> e );
+        void ListenerAdd   ( IPgEditEvents e );
+        void ListenerRemove( IPgEditEvents e );
 
-        bool TryInsertAt( Row oRow, int iColumn, int iOffset, Span<char> spText );
+        bool TryInsertAt( T oRow, int iColumn, int iOffset, Span<char> spText );
+        bool TryInsertAt( IPgCaretInfo<Row> oCaret, Span<char> spText );
     }
 
-    public enum DOCUMENTEVENTS {
-        MODIFIED,
-        FORMATTED,
-        LOADED
-    }
-
-    public interface IPgDocEvent {
+    public interface IPgEditHandler :
+        IEnumerable<IPgCaretInfo<Row>>
+    {
         void OnUpdated( Row oRow ); 
     }
 
-    public interface IPgEditEvents<T> {
-        IPgDocEvent CreateDocEventObject();
+    public interface IPgEditEvents {
+        IPgEditHandler NewEditHandler(); // Any kind of edit.
+        void           OnDocFormatted();    // Document gets formatted.
     }
 
     public class WindowMultiColumn :
@@ -48,7 +46,7 @@ namespace Play.Edit {
         IPgParent,
         IPgLoad<XmlElement>,
         IPgSave<XmlDocumentFragment>,
-        IPgEditEvents<Row>,
+        IPgEditEvents,
         IEnumerable<ILineRange>
     {
         public static Guid _sGuid = new Guid( "{03F21BC8-F911-4FE4-931D-9EB9F7A15A10}" );
@@ -169,7 +167,8 @@ namespace Play.Edit {
                 try {
                     int iRowCount = _oHost._oDocList.ElementCount;
 
-                    // If you hide the caret that seems to destroy it :-/
+                    // If you hide the caret, that seems to destroy it.
+                    // So the system just moves it off screen. :-/
                     User32.SetCaretPos( pntCaret.X, pntCaret.Y );
 
                     _oHost._oScrollBarVirt.Refresh( 
@@ -310,15 +309,15 @@ namespace Play.Edit {
             return true;
         }
 
-        /// <summary>
-        /// This happens for simple edits. 
-        /// </summary>
-        public IPgDocEvent CreateDocEventObject() {
+        #region IPgEditEvents
+        public IPgEditHandler NewEditHandler() {
             return _oCacheMan.CreateDocEventObject();
         }
 
-        public void CreateUpdater() {
+        public void OnDocFormatted() {
+            _oCacheMan.CacheReColor();
         }
+        #endregion
 
         public class SimpleRange :
             ILineRange {
@@ -370,10 +369,13 @@ namespace Play.Edit {
                                 _oCacheMan.CaretSize.X, 
                                 _oCacheMan.CaretSize.Y );
 
-            if( _oCacheMan.IsCaretVisible( out SKPointI pntCaret ) ) {
-                User32.SetCaretPos( pntCaret.X, pntCaret.Y );
-                User32.ShowCaret  ( Handle );
-            }
+            // Hiding the caret seems to destroy it so just
+            // immediately show, the cacheman will park it off screen
+            // if it's not displayable on an active cache line.
+            _oCacheMan.IsCaretVisible( out SKPointI pntCaret );
+
+            User32.SetCaretPos( pntCaret.X, pntCaret.Y );
+            User32.ShowCaret  ( Handle );
 
             Invalidate();
         }
@@ -628,12 +630,7 @@ namespace Play.Edit {
                 Span<char> rgInsert = stackalloc char[1];
                 rgInsert[0] = e.KeyChar;
 
-                IPgCaretInfo<Row> oCaret = _oCacheMan.CopyCaret();
-
-                _oDocOps.TryInsertAt( oCaret.Row,
-                                      oCaret.Column,
-                                      oCaret.Offset, 
-                                      rgInsert );
+                _oDocOps.TryInsertAt( _oCacheMan.CopyCaret(), rgInsert );
             }
         }
 

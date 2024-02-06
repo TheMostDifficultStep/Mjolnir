@@ -7,6 +7,7 @@ using System.Xml;
 using Play.Parse;
 using Play.Parse.Impl;
 using Play.Interfaces.Embedding;
+using System.Data.Common;
 
 namespace Play.Edit {
     /// <summary>
@@ -188,7 +189,7 @@ namespace Play.Edit {
         IReadableBag<Row>,
         IPgDocTraits<Row>,
         IPgDocOperations<Row>,
-        IDisposable 
+        IDisposable
     {
         protected readonly IPgBaseSite _oSiteBase;
 
@@ -202,16 +203,18 @@ namespace Play.Edit {
             }
         }
 
-        protected Func<Row>     _fnRowCreator;
-        protected List<Row>     _rgRows;
-        protected List<bool>    _rgColumnWR; // is the column editable...
-        protected Row           _oRowHighlight;
-        protected StdUIColors   _ePlayColor;
+        protected Func<Row>            _fnRowCreator;
+        protected List<Row>            _rgRows;
+        protected List<bool>           _rgColumnWR; // is the column editable...
+        protected Row                  _oRowHighlight;
+        protected StdUIColors          _ePlayColor;
+        protected List<IPgEditHandler> _rgTemp = new();
 
         public event Action<Row> HighLightChanged;
         public event Action<Row> CheckedEvent;
 
-        public List<IPgEditEvents<Row>> _rgListeners = new ();
+        public List<IPgEditEvents> _rgListeners = new ();
+
 
         public IPgParent Parentage => _oSiteBase.Host;
         public IPgParent Services  => Parentage;
@@ -259,11 +262,11 @@ namespace Play.Edit {
             _oSiteBase.LogError( "Multi Column Editor", strMessage );
         }
 
-        public void ListenerAdd( IPgEditEvents<Row> e ) {
+        public void ListenerAdd( IPgEditEvents e ) {
             _rgListeners.Add( e );
         }
 
-        public void ListenerRemove( IPgEditEvents<Row> e ) {
+        public void ListenerRemove( IPgEditEvents e ) {
             _rgListeners.Remove( e );
         }
 
@@ -273,22 +276,23 @@ namespace Play.Edit {
             }
         }
 
+        public bool TryInsertAt( IPgCaretInfo<Row> oCaret, Span<char> spText ) {
+            return TryInsertAt( oCaret.Row, oCaret.Column, oCaret.Offset, spText );
+        }
+
         /// <summary>
-        /// This method is for small edits. Like typing characters.
+        /// This method is for small edits. Like typing characters. Might
+        /// need a try replace instead...
         /// </summary>
         public bool TryInsertAt( Row oRow, int iColumn, int iOffset, Span<char> spText ) {
             try {
                 Line oLine = oRow[iColumn];
 
-                List<IPgDocEvent> rgTrackers = new();
-                foreach( IPgEditEvents<Row> e in _rgListeners ) {
-                    rgTrackers.Add( e.CreateDocEventObject() );
-                }
+                TrackerEnumerable oTE = new TrackerEnumerable( this );
+
                 // BUG: Change the insert to take a Span! \^_^/
                 if( oLine.TryInsert( iOffset, spText.ToString(), 0, spText.Length ) ) {
-                    foreach( IPgDocEvent oListen in rgTrackers ) {
-                        IPgCaretInfo<Row> oTracker = oListen as IPgCaretInfo<Row>;
-
+                    foreach( IPgCaretInfo<Row> oTracker in oTE ) {
                         if( oTracker.Column == iColumn &&
                             oTracker.Row    == oRow ) 
                         {
@@ -296,9 +300,9 @@ namespace Play.Edit {
                         }
                     }
                 }
-                foreach( IPgDocEvent oEvent in rgTrackers ) {
-                    oEvent.OnUpdated( oRow );
-                }
+
+                oTE.FinishUp( oRow );
+
                 return true;
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( NullReferenceException ),
@@ -309,6 +313,44 @@ namespace Play.Edit {
             }
             return false;
         }
+
+        struct TrackerEnumerable :         
+            IEnumerable<IPgCaretInfo<Row>>
+        {
+            readonly List<IPgEditHandler> _rgHandlers;
+
+            public TrackerEnumerable(EditMultiColumn oHost ) {
+                if( oHost == null )
+                    throw new ArgumentNullException();
+
+                _rgHandlers = oHost._rgTemp;
+                _rgHandlers.Clear();
+
+                foreach( IPgEditEvents oListener in oHost._rgListeners ) {
+                    _rgHandlers.Add( oListener.NewEditHandler() );
+                }
+            }
+
+            public IEnumerator<IPgCaretInfo<Row>> GetEnumerator() {
+                foreach( IPgEditHandler oHandler in _rgHandlers ) {
+                    foreach( IPgCaretInfo<Row> oTracker in oHandler ) {
+                        yield return oTracker;
+                    }
+                }
+            }
+
+            IEnumerator IEnumerable.GetEnumerator() {
+                throw new NotImplementedException();
+            }
+
+            public void FinishUp( Row oRow ) {
+                foreach( IPgEditHandler oHandler in _rgHandlers ) {
+                    oHandler.OnUpdated( oRow );
+                }
+                _rgHandlers.Clear();
+            }
+        }
+
     }
 
 }

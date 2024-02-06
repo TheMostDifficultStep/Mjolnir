@@ -72,20 +72,13 @@ namespace Play.Edit {
                                        typeof( IndexOutOfRangeException ),
                                        typeof( NullReferenceException ) };
 
-        /// <summary>
-        /// We need this object since we don't know where the caret is
-        /// BEFORE the edit.
-        /// </summary>
         protected class CaretTracker :
-            IPgCaretInfo<Row>,
-            IPgDocEvent
+            IPgCaretInfo<Row>
         {
             readonly CacheMultiColumn _oHost;
-            readonly bool             _fCaretVisible;
 
             public CaretTracker( CacheMultiColumn oHost ) {
-                _oHost         = oHost ?? throw new ArgumentNullException();
-                _fCaretVisible = _oHost.IsCaretVisible( out SKPointI pntCaret );
+                _oHost = oHost ?? throw new ArgumentNullException();
             }
 
             public Row Row    => _oHost._oCaretRow;
@@ -98,9 +91,36 @@ namespace Play.Edit {
                 get => 0;
                 set => throw new NotImplementedException(); 
             }
+        }
+
+        /// <summary>
+        /// We need this object since we have to ask where the caret is
+        /// BEFORE the edit. AFTER the edit even if we use the existing cache, 
+        /// the local x,y of the caret comes from the new line measurements
+        /// and we end up with incorrect location information.
+        /// </summary>
+        protected class EditHandler :
+            IEnumerable<IPgCaretInfo<Row>>,
+            IPgEditHandler
+        {
+            readonly CacheMultiColumn _oHost;
+            readonly bool             _fCaretVisible;
+
+            public EditHandler( CacheMultiColumn oHost ) {
+                _oHost         = oHost ?? throw new ArgumentNullException();
+                _fCaretVisible = _oHost.IsCaretVisible( out SKPointI pntCaret );
+            }
+
+            public IEnumerator<IPgCaretInfo<Row>> GetEnumerator() {
+                yield return new CaretTracker( _oHost );
+            }
 
             public void OnUpdated( Row oRow ) {
                 _oHost.CacheRepair( oRow, _fCaretVisible );
+            }
+
+            IEnumerator IEnumerable.GetEnumerator() {
+                return GetEnumerator();
             }
         }
 
@@ -194,11 +214,11 @@ namespace Play.Edit {
         /// the document, such as a typed character or cut/paste.
         /// It SHOULD NOT be called for format changes/reparse.
         /// </summary>
-        public IPgDocEvent CreateDocEventObject() {
-            return new CaretTracker( this );
+        public IPgEditHandler CreateDocEventObject() {
+            return new EditHandler( this );
         }
 
-        protected struct CaretInfo :
+        public struct CaretInfo :
             IPgCaretInfo<Row> 
         {
             int iOffset = 0;
@@ -216,7 +236,7 @@ namespace Play.Edit {
             public int Length { get => 0; set => throw new NotImplementedException(); }
         }
 
-        public IPgCaretInfo<Row> CopyCaret() {
+        public CaretInfo CopyCaret() {
             return new CaretInfo( this );
         }
 
@@ -513,6 +533,35 @@ namespace Play.Edit {
         }
 
         /// <summary>
+        /// If data row containing caret is cached then it MIGHT be visible.
+        /// return the coordinates of the caret relative to it's column.
+        /// </summary>
+        /// <remarks>We could intersect the rect for the caret and the TextRect, but
+        /// we don't horzontally scroll. So the caret won't be off on the left or right.</remarks>
+        /// <param name="oCaretCacheRow">Cache row representing the data row with the caret.</param>
+        /// <param name="pntCaretTop">Location of the caret on the screen.</param>
+        protected bool IsCaretNear( CacheRow oCaretCacheRow, out SKPointI pntCaretTop ) {
+            pntCaretTop = new( -10, -10 ); // s/b offscreen in any top/left 0,0 window clent space.
+
+            if( oCaretCacheRow == null )
+                return false;
+
+            try {
+                // Left top coordinate of the caret offset.
+                Point     pntCaretRelative  = oCaretCacheRow[_iCaretCol].GlyphOffsetToPoint( _iCaretOff );
+                SmartRect oColumn           = _rgColumnRects[_iCaretCol];
+
+                pntCaretTop = new SKPointI( pntCaretRelative.X + oColumn.Left,
+                                            pntCaretRelative.Y + oCaretCacheRow.Top );
+            } catch( Exception oEx ) {
+                if( IsUnhandledStdRpt( oEx ) )
+                    throw;
+            }
+
+            return true;
+        }
+
+        /// <summary>
         /// When the window get's the focus, we need to see if the caret needs to be shown.
         /// </summary>
         /// <param name="pntCaret">Caret position in window coordinates.</param>
@@ -585,6 +634,19 @@ namespace Play.Edit {
 			}
         }
 
+        public void CacheReColor() {
+            try {
+                foreach( CacheRow oCacheRow in _rgOldCache ) {
+                    foreach( FTCacheLine oCacheLine in oCacheRow.CacheList ) {
+                        oCacheLine.OnChangeFormatting( null );
+                    }
+                }
+			} catch( Exception oEx ) {
+                if( IsUnhandledStdRpt( oEx ) )
+                    throw;
+			}
+        }
+
         /// <summary>
         /// Create a cached line element. There are a lot of dependencies on stuff in this object
         /// and so we create the element here and pass it out to be used.
@@ -649,35 +711,6 @@ namespace Play.Edit {
                 return _rgEmptyGlyph;
 
             return new GraphemeCollection( oCache, oCluster );
-        }
-
-        /// <summary>
-        /// If data row containing caret is cached then it MIGHT be visible.
-        /// return the coordinates of the caret relative to it's column.
-        /// </summary>
-        /// <remarks>We could intersect the rect for the caret and the TextRect, but
-        /// we don't horzontally scroll. So the caret won't be off on the left or right.</remarks>
-        /// <param name="oCaretCacheRow">Cache row representing the data row with the caret.</param>
-        /// <param name="pntCaretTop">Location of the caret on the screen.</param>
-        protected bool IsCaretNear( CacheRow oCaretCacheRow, out SKPointI pntCaretTop ) {
-            pntCaretTop = new( -10, -10 ); // s/b offscreen in any top/left 0,0 window clent space.
-
-            if( oCaretCacheRow == null )
-                return false;
-
-            try {
-                // Left top coordinate of the caret offset.
-                Point     pntCaretRelative  = oCaretCacheRow[_iCaretCol].GlyphOffsetToPoint( _iCaretOff );
-                SmartRect oColumn           = _rgColumnRects[_iCaretCol];
-
-                pntCaretTop = new SKPointI( pntCaretRelative.X + oColumn.Left,
-                                            pntCaretRelative.Y + oCaretCacheRow.Top );
-            } catch( Exception oEx ) {
-                if( IsUnhandledStdRpt( oEx ) )
-                    throw;
-            }
-
-            return true;
         }
 
         /// <summary>
