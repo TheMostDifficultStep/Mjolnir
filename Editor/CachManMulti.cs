@@ -38,7 +38,7 @@ namespace Play.Edit {
     {
         Row            GetRowAtScroll();
         Row            GetRowAtIndex( int iIndex );
-        void           OnRefreshComplete( int iProgress, int iVisibleCount, bool fCaretVisible, SKPointI pntCaret );
+        void           OnRefreshComplete( int iProgress, int iVisibleCount );
         void           OnCaretPositioned( SKPointI pntCaretbool, bool fVisible );
 
         //ICollection<ILineSelection> Selections{ get; }
@@ -528,10 +528,8 @@ namespace Play.Edit {
             int  iBottomRow    = ( oLastCache == null ) ? 0 : oLastCache.At;
             bool fCaretVisible = IsCaretNear( oCacheWithCaret, out SKPointI pntCaret );
 
-            _oSite.OnRefreshComplete( iBottomRow, 
-                                      _rgOldCache.Count,
-                                      fCaretVisible,
-                                      pntCaret );
+            _oSite.OnRefreshComplete( iBottomRow, _rgOldCache.Count );
+            _oSite.OnCaretPositioned( pntCaret,   fCaretVisible );
         }
 
         /// <summary>
@@ -812,19 +810,6 @@ namespace Play.Edit {
         }
 
         /// <summary>
-        /// TODO: This is lame for bulk deletes but is fine for a single line. Look to see
-        /// if the new line is sequentially somewhere within our cached lines.
-        /// </summary>
-        public void OnLineDeleted( Line oLine ) {
-            for( int i = 0; i<_rgOldCache.Count; ++i ) {
-                if( _rgOldCache[i].Line == oLine ) {
-                    _rgOldCache.RemoveAt( i );
-                    break;
-                }
-            }
-        }
-
-        /// <summary>
         /// This function behaves like the OnScroll() and OnMouse() events. It modifies the 
         /// position of the cache rectangle. You must call Refresh() on the cache 
         /// after making this call.
@@ -854,13 +839,13 @@ namespace Play.Edit {
         /// has occurred and we want to find which FTCacheLine it hits.
         /// If we want to edit in other columns we can do so by passing an
         /// argument.</remarks>
-        /// <param name="pntWorldLoc">Graphics location of interest in world coordinates. Basically
+        /// <param name="pntScreenLoc">Graphics location of interest in world coordinates. Basically
         ///                         where the mouse clicked.</param>
         /// <param name="oCaret">This object line offset is updated to the closest line offset.</param>
         public bool PointToRow( 
-            int iColumn, SKPointI pntWorldLoc, out int iOffset, out int iDataRow )
+            int iColumn, SKPointI pntScreenLoc, out int iOffset, out int iDataRow )
         {
-            CacheRow oCacheRow = PointToCache( iColumn, pntWorldLoc, out int iLineOffset );
+            CacheRow oCacheRow = PointToCache( iColumn, pntScreenLoc, out int iLineOffset );
             if( oCacheRow != null ) {
                 iDataRow = oCacheRow.At;
                 iOffset  = iLineOffset;
@@ -874,17 +859,23 @@ namespace Play.Edit {
             return false;
         }
 
-        protected CacheRow PointToCache(
-            int iColumn, SKPointI pntWorldLoc, out int iOffset )
+        /// <summary>
+        /// Return the CacheRow and Line offset for the given Column and screen point.
+        /// </summary>
+        /// <param name="iColumn">Column within we are searching.</param>
+        /// <param name="pntScreenPick">A screen coordinate.</param>
+        /// <param name="iOffset">Offset into the line if row is found.</param>
+        /// <returns></returns>
+        protected CacheRow PointToCache( int iColumn, SKPointI pntScreenPick, out int iOffset )
         {
             try {
                 foreach( CacheRow oCacheRow in _rgOldCache ) {
-                    if( oCacheRow.Top    <= pntWorldLoc.Y &&
-                        oCacheRow.Bottom >= pntWorldLoc.Y ) 
+                    if( oCacheRow.Top    <= pntScreenPick.Y &&
+                        oCacheRow.Bottom >= pntScreenPick.Y ) 
                     {
                         FTCacheLine oCache   = oCacheRow.CacheList[iColumn];
-                        SKPointI    pntLocal = new SKPointI( pntWorldLoc.X - _rgColumnRects[iColumn].Left,
-                                                             pntWorldLoc.Y - _rgColumnRects[iColumn].Top );
+                        SKPointI    pntLocal = new SKPointI( pntScreenPick.X - _rgColumnRects[iColumn].Left,
+                                                             pntScreenPick.Y - _rgColumnRects[iColumn].Top );
 
                         iOffset = oCache.GlyphPointToOffset(oCacheRow.Top, pntLocal );
 

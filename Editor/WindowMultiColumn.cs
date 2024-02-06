@@ -161,17 +161,10 @@ namespace Play.Edit {
 				}
             }
 
-            public void OnRefreshComplete( int      iRowBottom, 
-                                           int      iRowVisible, 
-                                           bool     fCaretVisible,
-                                           SKPointI pntCaret )
+            public void OnRefreshComplete( int iRowBottom, int iRowVisible )
             {
                 try {
                     int iRowCount = _oHost._oDocList.ElementCount;
-
-                    // If you hide the caret, that seems to destroy it.
-                    // So the system just moves it off screen. :-/
-                    User32.SetCaretPos( pntCaret.X, pntCaret.Y );
 
                     _oHost._oScrollBarVirt.Refresh( 
                         iRowVisible / (float)iRowCount,
@@ -190,6 +183,9 @@ namespace Play.Edit {
             }
 
             public void OnCaretPositioned( SKPointI pntCaret, bool fVisible ) {
+                // If you hide the caret, that seems to destroy it.
+                // So the system just moves it off screen. :-/
+
                 User32.SetCaretPos( pntCaret.X, pntCaret.Y );
             }
         }
