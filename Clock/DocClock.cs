@@ -77,7 +77,6 @@ namespace Play.Clock {
         protected IPgRoundRobinWork _oWorkPlace;
 
         public event Action ClockEvent;
-        public       Editor DocZones { get; }
 
         public DocumentClock( IPgBaseSite oSite ) :
             base( oSite )
