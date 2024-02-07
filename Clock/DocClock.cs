@@ -204,6 +204,7 @@ namespace Play.Clock {
         }
 
         public void OnClockUpdated() {
+            // This remeasures all the items.
             OnSizeChanged( new EventArgs() );
         }
     }

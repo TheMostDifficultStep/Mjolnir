@@ -237,8 +237,6 @@ namespace Play.Edit {
         protected readonly List<PgCluster> _rgClusters   = new List<PgCluster>(100); // Single unit representing a character.
         protected readonly List<int>       _rgClusterMap = new List<int      >(100); // Cluster map from UTF to Cluster.
 
-        public List<IPgWordRange> Words { get; } = new List<IPgWordRange>();
-
         public FTCacheLine( Line oLine, int iColumn = 0 ) {
             Line   = oLine ?? throw new ArgumentNullException();
             Column = iColumn;
