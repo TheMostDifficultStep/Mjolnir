@@ -193,18 +193,15 @@ namespace Play.Edit {
     {
         protected readonly IPgBaseSite _oSiteBase;
 
-        protected Func<Row>            _fnRowCreator;
-        protected List<Row>            _rgRows;
+        protected readonly List<Row>   _rgRows = new();
         protected List<bool>           _rgColumnWR; // is the column editable...
         protected Row                  _oRowHighlight;
         protected StdUIColors          _ePlayColor;
         protected List<IPgEditHandler> _rgTemp = new();
+        protected List<IPgEditEvents>  _rgListeners = new ();
 
         public event Action<Row> HighLightChanged;
         public event Action<Row> CheckedEvent;
-
-        public List<IPgEditEvents> _rgListeners = new ();
-
 
         public IPgParent Parentage => _oSiteBase.Host;
         public IPgParent Services  => Parentage;

@@ -193,7 +193,7 @@ namespace Monitor {
 
                 // Use a bubble search in the future...
                 foreach( AsmRow oTry in _oDocEnum ) {
-                    if( oTry.Map == iJumpAddr ) {
+                    if( oTry.AddressMap == iJumpAddr ) {
                         _oCacheMan.SetCaretPositionAndScroll( oTry.At, iColumn, 0 );
                     }
                 }

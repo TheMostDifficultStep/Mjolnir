@@ -286,14 +286,14 @@ namespace Play.Edit {
             return true;
         }
 
-        public bool InitNew() {
+        public virtual bool InitNew() {
             if( !Initialize() )
                 return false;
 
             return true;
         }
 
-        public bool Load(XmlElement oStream) {
+        public virtual bool Load(XmlElement oStream) {
             if( !Initialize() )
                 return false;
 

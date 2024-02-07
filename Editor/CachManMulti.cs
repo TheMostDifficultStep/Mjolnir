@@ -255,7 +255,8 @@ namespace Play.Edit {
                 int      iTop       = _rgOldCache.Count < 1 ? 0 : _rgOldCache[0].Top;
 
                 foreach( CacheRow oCacheRow in _rgOldCache ) {
-                    if( oCacheRow.At == CaretRow ) {
+                    if( oCacheRow.At == CaretRow &&
+                        oSeedCache   == null ) {
                         oSeedCache = oCacheRow;
                     }
                     if( oPatch       != null &&

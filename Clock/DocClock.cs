@@ -10,28 +10,62 @@ using Play.Drawing;
 using Play.Interfaces.Embedding;
 using Play.Rectangles;
 using Play.Edit;
-using Play.Forms;
 
 namespace Play.Clock {
-    public class DocumentClock :
-        IPgParent,
-        IPgSave<TextWriter>,
-        IPgLoad<TextReader>,
-        IDisposable
-    {
-        IPgBaseSite Site { get; }
+    public class ClockRow : Row {
+        public ClockRow( string strDate, string strLabel ) {
+            _rgColumns    = new Line[3];
+            _rgColumns[0] = new TextLine( 0, string.Empty );
+            _rgColumns[1] = new TextLine( 1, strDate );
+            _rgColumns[2] = new TextLine( 2, strLabel );
+        }
 
+        public void SetTime( DateTime oDT ) {
+            string strTime = oDT.Hour.ToString( "D2" ) + ":" + oDT.Minute.ToString( "D2");
+
+            Line oTime = this[0];
+            oTime.Empty();
+            oTime.TryAppend( strTime );
+
+            Line oDate = this[1];
+            oDate.Empty();
+            oDate.TryAppend( oDT.ToShortDateString() );
+        }
+
+        public void SetLocal12( DateTime oDT ) {
+            int    iHour     = oDT.Hour;
+            string strMidDay = "am"; 
+
+            if( iHour > 12 ) {
+                strMidDay = "pm";
+                iHour    -= 12;
+            }
+            if( iHour == 0 ) {
+                iHour    += 12;
+            }
+
+            Line oTime = this[0];
+            oTime.Empty();
+            oTime.TryAppend( iHour.ToString( "D2" ) + ":" + oDT.Minute.ToString( "D2" ) + strMidDay );
+        }
+    }
+
+    public class DocumentClock :
+        EditMultiColumn,
+        IPgSave<TextWriter>,
+        IPgLoad<TextReader>
+    {
 		public class DocSlot : 
 			IPgBaseSite
 		{
 			protected readonly DocumentClock _oDoc;
 
-			public DocSlot(DocumentClock oDoc ) {
+			public DocSlot( DocumentClock oDoc ) {
 				_oDoc = oDoc ?? throw new ArgumentNullException( "Document must not be null." );
 			}
 
 			public void LogError( string strMessage, string strDetails, bool fShow=true ) {
-				_oDoc.Site.LogError( strMessage, "PropDocSlot : " + strDetails );
+				_oDoc._oSiteBase.LogError( strMessage, "PropDocSlot : " + strDetails );
 			}
 
 			public void Notify( ShellNotify eEvent ) {
@@ -40,40 +74,33 @@ namespace Play.Clock {
 			public IPgParent Host => _oDoc;
 		}
 
-        public IPgParent Parentage => Site.Host;
-        public IPgParent Services  => Parentage;
-        public bool      IsDirty   => false;
-
         protected IPgRoundRobinWork _oWorkPlace;
 
-        public event BufferEvent  ClockEvent;
-        public       Editor       DocZones { get; }
+        public event Action ClockEvent;
+        public       Editor DocZones { get; }
 
-        public DocumentClock( IPgBaseSite oSite ) {
-            Site = oSite ?? throw new ArgumentNullException("Document site must not be null." );
-
-            DocZones = new FormsEditor( new DocSlot( this ) );
-        }
-
-        public void Dispose() {
+        public DocumentClock( IPgBaseSite oSite ) :
+            base( oSite )
+        {
         }
 
         public bool InitNew(){
-            DocZones.LineAppend( string.Empty, fUndoable:false );
-            DocZones.LineAppend( string.Empty, fUndoable:false );
-            DocZones.LineAppend( "utc",        fUndoable:false );
-            DocZones.LineAppend( string.Empty, fUndoable:false );
-            DocZones.LineAppend( string.Empty, fUndoable:false );
-            DocZones.LineAppend( "local",      fUndoable:false );
-            DocZones.LineAppend( string.Empty, fUndoable:false );
-            DocZones.LineAppend( "12hr clock", fUndoable:false );
-            DocZones.LineAppend( "local",      fUndoable:false );
-
 			try {
+                _rgRows.Add( new ClockRow( string.Empty,  "utc"   ) );
+                _rgRows.Add( new ClockRow( string.Empty,  "local" ) );
+                _rgRows.Add( new ClockRow( "12 hr clock", "local" ) );
+
+                RenumberRows();
+
 				_oWorkPlace = ((IPgScheduler)Services).CreateWorkPlace();
                 _oWorkPlace.Queue( CreateWorker(), 1000 );
-			} catch( InvalidCastException ) {
-				Site.LogError( "Clock Doc", "Can't set up time update" );
+			} catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( ArgumentNullException ),
+                                    typeof( NullReferenceException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
+
+				LogError( "Can't set up time update worker." );
 			}
 
             return true;
@@ -87,135 +114,84 @@ namespace Play.Clock {
             return true;
         }
 
-        protected static void FormattedTimeString( DateTime oDT, Line oTime, Line oDate ) {
-            string strTime = oDT.Hour.ToString( "D2" ) + ":" + oDT.Minute.ToString( "D2");
-
-            oTime.Empty();
-            oTime.TryAppend( strTime );
-
-            oDate.Empty();
-            oDate.TryAppend( oDT.ToShortDateString() );
-        }
-
         public IEnumerator<int> CreateWorker() {
             while( true ) {
                 DateTime oDT = DateTime.Now;
-
-                FormattedTimeString( oDT.ToUniversalTime(), DocZones[0], DocZones[1] );
-                FormattedTimeString( oDT,                   DocZones[3], DocZones[4] );
-
-                int    iHour     = oDT.Hour;
-                string strMidDay = "am"; 
-
-                if( iHour > 12 ) {
-                    strMidDay = "pm";
-                    iHour    -= 12;
+                
+                foreach( ClockRow row in _rgRows ) {
+                    switch( row.At ) {
+                        case 0:
+                            row.SetTime( oDT.ToUniversalTime() );
+                            break;
+                        case 1:
+                            row.SetTime( oDT );
+                            break;
+                        case 2:
+                            row.SetLocal12( oDT );
+                            break;
+                    }
                 }
-                if( iHour == 0 ) {
-                    iHour    += 12;
-                }
 
-                DocZones[6].Empty();
-                DocZones[6].TryAppend( iHour.ToString( "D2" ) + ":" + oDT.Minute.ToString( "D2" ) + strMidDay );
-
-                ClockEvent?.Invoke( BUFFEREVENTS.MULTILINE );
+                ClockEvent?.Invoke();
 
                 yield return 10000;
             }
         }
     }
 
-    public class ViewClock :
-        FormsWindow,
+    public class WindowClock :
+        WindowMultiColumn,
         IPgLoad<XmlElement>,
         IPgSave<XmlDocumentFragment>,
         IPgParent,
-        IPgCommandView,
-        IBufferEvents
+        IPgCommandView
     {
         private   readonly string         _strViewIcon  = "Play.Clock.Content.icon_clock.gif";
         protected readonly IPgViewSite    _oViewSite;
-        protected readonly IPgStandardUI2 _oStdUI;
+      //protected readonly IPgStandardUI2 _oStdUI;
 
 
         public Guid      Catagory  => Guid.Empty; // Default view.
         public string    Banner    => "World Clock";
         public SKBitmap  Icon    { get; }
-        public bool      IsDirty   => false;
-        public IPgParent Parentage => _oViewSite.Host;
-        public IPgParent Services  => Parentage.Services;
 
         protected DocumentClock Document { get; }
 
-        public ViewClock( IPgViewSite oViewSite, DocumentClock oDocClock ) : base( oViewSite, oDocClock.DocZones ) {
+        public WindowClock( IPgViewSite oViewSite, DocumentClock oDocClock ) : 
+            base( oViewSite, oDocClock ) 
+        {
             Document   = oDocClock ?? throw new ArgumentNullException( "Clock document must not be null." );
             _oViewSite = oViewSite;
- 			_oStdUI    = Services as IPgStandardUI2 ?? throw new ArgumentException( "Parent view must provide IPgStandardUI service" );
+ 	      //_oStdUI    = Services as IPgStandardUI2 ?? throw new ArgumentException( "Parent view must provide IPgStandardUI service" );
 
 			Icon       = SKImageResourceHelper.GetImageResource( Assembly.GetExecutingAssembly(), _strViewIcon );
         }
 
         protected override void Dispose( bool disposing ) {
             if( disposing ) {
-                Document.ClockEvent -= OnEvent;
+                Document.ClockEvent -= OnClockUpdated;
             }
             base.Dispose(disposing);
         }
 
-        public override bool InitNew() {
-            if( !base.InitNew() ) 
+        protected override bool Initialize() {
+            if( !base.Initialize() ) 
                 return false;
 
-            Document.ClockEvent += OnEvent;
+            Document.ClockEvent += OnClockUpdated;
 
-            LayoutTable oLayout = new LayoutTable( 5, LayoutRect.CSS.Flex );
-            Layout = oLayout;
-
-            oLayout.AddColumn( LayoutRect.CSS.Percent, 30 ); // time
-            oLayout.AddColumn( LayoutRect.CSS.Percent, 45 ); // date
-            oLayout.AddColumn( LayoutRect.CSS.Percent, 25 ); // zones.
+            _rgLayout.Add( new LayoutRect( LayoutRect.CSS.Percent, 30, 1L )); // time
+            _rgLayout.Add( new LayoutRect( LayoutRect.CSS.Percent, 45, 1L )); // date
+            _rgLayout.Add( new LayoutRect( LayoutRect.CSS.Percent, 25, 1L )); // zones.
             
-            var oLayoutTimeUtc = new LayoutSingleLine( new FTCacheWrap( Document.DocZones[0] ), LayoutRect.CSS.Flex );
-            var oLayoutDateUtc = new LayoutSingleLine( new FTCacheWrap( Document.DocZones[1] ), LayoutRect.CSS.Flex );
-            var oLayoutZoneUtc = new LayoutSingleLine( new FTCacheWrap( Document.DocZones[2] ), LayoutRect.CSS.Flex );
-            var oLayoutTimePst = new LayoutSingleLine( new FTCacheWrap( Document.DocZones[3] ), LayoutRect.CSS.Flex );
-            var oLayoutDatePst = new LayoutSingleLine( new FTCacheWrap( Document.DocZones[4] ), LayoutRect.CSS.Flex );
-            var oLayoutZonePst = new LayoutSingleLine( new FTCacheWrap( Document.DocZones[5] ), LayoutRect.CSS.Flex );
-            var oLayoutTime12h = new LayoutSingleLine( new FTCacheWrap( Document.DocZones[6] ), LayoutRect.CSS.Flex );
-            var oLayoutDate12h = new LayoutSingleLine( new FTCacheWrap( Document.DocZones[7] ), LayoutRect.CSS.Flex );
-            var oLayoutZone12h = new LayoutSingleLine( new FTCacheWrap( Document.DocZones[8] ), LayoutRect.CSS.Flex );
+            // Figure this out later...
+            //foreach( LayoutSingleLine oCache in CacheList ) {
+            //    oCache.BgColor = _oStdUI.ColorsStandardAt( StdUIColors.BGNoEditText );
+            //}
+            _rgColumns.Add( _rgLayout.Item( 1 ) );
+            _rgColumns.Add( _rgLayout.Item( 2 ) );
+            _rgColumns.Add( _rgLayout.Item( 3 ) );
 
-            oLayout.AddRow( new List<LayoutRect>() { oLayoutTimeUtc, oLayoutDateUtc, oLayoutZoneUtc } );
-            oLayout.AddRow( new List<LayoutRect>() { oLayoutTimePst, oLayoutDatePst, oLayoutZonePst } );
-            oLayout.AddRow( new List<LayoutRect>() { oLayoutTime12h, oLayoutDate12h, oLayoutZone12h } );
-
-            CacheList.Add( oLayoutTimeUtc );
-            CacheList.Add( oLayoutDateUtc );
-            CacheList.Add( oLayoutZoneUtc );
-            CacheList.Add( oLayoutTimePst );
-            CacheList.Add( oLayoutDatePst );
-            CacheList.Add( oLayoutZonePst );
-            CacheList.Add( oLayoutTime12h );
-            CacheList.Add( oLayoutDate12h );
-            CacheList.Add( oLayoutZone12h );
-
-            foreach( LayoutSingleLine oCache in CacheList ) {
-                oCache.BgColor = _oStdUI.ColorsStandardAt( StdUIColors.BGNoEditText );
-            }
-
-            //_iCaretAtLayout = 0;
-
-            OnDocumentEvent( BUFFEREVENTS.MULTILINE );
-            OnSizeChanged( new EventArgs() );
-
-            return true;
-        }
-
-        public bool Load(XmlElement oStream) {
-            return true;
-        }
-
-        public bool Save(XmlDocumentFragment oStream) {
             return true;
         }
 
@@ -227,8 +203,7 @@ namespace Play.Clock {
             return false;
         }
 
-        public void OnEvent(BUFFEREVENTS eEvent) {
-            OnDocumentEvent( BUFFEREVENTS.MULTILINE );
+        public void OnClockUpdated() {
             Invalidate();
         }
     }

@@ -32,7 +32,7 @@ namespace Mjolnir {
         public override IDisposable CreateView( IPgViewSite oBaseSite, object oDocument, Guid guidViewType ) {
             try {
                 if( guidViewType == Program.Clock ) {
-                    return new ViewClock( oBaseSite, oDocument as DocumentClock );
+                    return new WindowClock( oBaseSite, oDocument as DocumentClock );
                 }
 				if( guidViewType == Program.FindDialog ) {
                     if( _oDocument.MainWindow == null )

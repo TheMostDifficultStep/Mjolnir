@@ -670,7 +670,7 @@ namespace Monitor {
             }
 
             if( oNewRow is AsmRow oAsmRow ) {
-                oAsmRow.Map = iAddr;
+                oAsmRow.AddressMap = iAddr;
             }
         }
 
@@ -752,7 +752,7 @@ namespace Monitor {
 
                 foreach( Row oRow in _oAsmEnu ) {
                     if( oRow is AsmRow oAsmRow &&
-                        oAsmRow.Map == i )
+                        oAsmRow.AddressMap == i )
                     {
                         if( oAsmRow[0] != null ) {
                             oAsmRow[0].TryAppend(  i.ToString( "X" ) );
@@ -797,7 +797,7 @@ namespace Monitor {
             _rgColumns[1] = new TextLine( 1, strAssembly );
         }
 
-        public int Map { get; set; } = -1;
+        public int AddressMap { get; set; } = -1;
 
         public void SetLine( int iColumn, Line oLine ) {
             _rgColumns[iColumn] = oLine;
@@ -844,8 +844,6 @@ namespace Monitor {
         public AsmEditor2( IPgBaseSite oSiteBase ) : base( oSiteBase ) {
             _docProperties    = new MonitorProperties(new DocSlot(this));
             _rgZ80Definitions = new Z80Definitions();
-
-            _rgRows = new List<Row>();
         }
 
         public enum InsertionPoint {
