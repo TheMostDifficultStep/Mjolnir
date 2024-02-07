@@ -142,19 +142,6 @@ namespace Play.Forms {
         public Line _oValue;
     }
 
-    public struct LabelAccessor {
-        List<LabelValuePair> _rgProps;
-        public LabelAccessor( List<LabelValuePair> rgProps ) {
-            _rgProps = rgProps ?? throw new ArgumentNullException();
-        }
-
-        public Line this[ int i ] {
-            get {
-                return _rgProps[ i ]._oLabel;
-            }
-        }
-    }
-
     /// <summary>
     /// Document for labels and values style form. Makes separating readable values
     /// from readonly values. Probably move this over to forms project at some time.
@@ -164,14 +151,14 @@ namespace Play.Forms {
 
         public IPgParent Parentage => _oSiteBase.Host;
         public IPgParent Services  => Parentage.Services;
-        public void      LogError( string strMessage ) { _oSiteBase.LogError( "Property Page Client", strMessage ); }
+        protected void      LogError( string strMessage ) { _oSiteBase.LogError( "Property Page Client", strMessage ); }
 
         //public LabelAccessor Property_Labels { get { return new LabelAccessor( PropertyPairs ); } }
         public Editor PropertyDoc { get; } // Got to be public so the form window can access.
         protected readonly List<IPgFormEvents> _rgFormEvents = new ();
 
-        protected List<LabelValuePair> PropertyPairs { get; } = new List<LabelValuePair>();
-        public    int                  PropertyCount => PropertyPairs.Count;
+        private List<LabelValuePair> PropertyPairs { get; } = new List<LabelValuePair>();
+        public  int                  PropertyCount => PropertyPairs.Count;
 
         // This lets us override the standard color for a property.
         // TODO: Give it two slots. Normal override and Error color...
@@ -379,15 +366,12 @@ namespace Play.Forms {
         /// use this event in a scenario where the window is displayed before the
         /// property document has been constructed.
         /// </summary>
-        public void RaiseLoadedEvent() {
+        protected void RaiseLoadedEvent() {
             PropertyDoc.CharacterCount( 0 );
             
             foreach( IPgFormEvents oCall in _rgFormEvents ) {
                 oCall.OnFormLoad();
             }
-        }
-
-        private void RaiseFormatedEvent() {
         }
 
         public LabelValuePair CreatePropertyPair( string strName = "", string strValue = "" ) {
@@ -408,4 +392,12 @@ namespace Play.Forms {
         }
     }
 
+    public class NewProperties :
+        EditMultiColumn
+    {
+        public NewProperties( IPgBaseSite oSite ) : base( oSite ) 
+        { }
+
+
+    }
 }

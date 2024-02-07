@@ -129,7 +129,6 @@ namespace Play.MusicWalker {
 
 			while( oParser.MoveNext() );
 		}
-
     }
 
     public class MusicWin : 

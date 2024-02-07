@@ -121,14 +121,14 @@ namespace Kanji_Practice {
             if( !base.InitNew() ) 
                 return false;
 
-            LabelValuePair oKanjiPair = Document.GetPropertyPair( (int)KanjiProperties.Labels.Kanji );
-            LabelValuePair oHiragPair = Document.GetPropertyPair( (int)KanjiProperties.Labels.Hiragana );
+            Line oKanjiLine = Document[ (int)KanjiProperties.Labels.Kanji ];
+            Line oHiragLine = Document[ (int)KanjiProperties.Labels.Hiragana ];
 
             foreach( LayoutSingleLine oLayout in CacheList ) {
-                if( oLayout.Cache.Line == oKanjiPair._oValue   ) {
+                if( oLayout.Cache.Line == oKanjiLine   ) {
                     oLayout.FontID = BigFont;
                 }
-                if( oLayout.Cache.Line == oHiragPair._oValue   ) {
+                if( oLayout.Cache.Line == oHiragLine   ) {
                     oLayout.FontID = BigFont;
                 }
             }

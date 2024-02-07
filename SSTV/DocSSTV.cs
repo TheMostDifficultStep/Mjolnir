@@ -166,7 +166,7 @@ namespace Play.SSTV {
         }
         public string this[ Names eIndex ] {
             get {
-                return PropertyPairs[(int)eIndex]._oValue.ToString();
+                return ValueGetAsStr((int)eIndex);
             }
         }
 
@@ -188,10 +188,10 @@ namespace Play.SSTV {
         }
 
         public double ValueGetAsDbl( Names eIndex, double? dblDefault = null ) {
-            Line oProperty = PropertyPairs[(int)eIndex]._oValue;
+            string strProperty = ValueGetAsStr((int)eIndex);
 
             if( dblDefault.HasValue ) {
-                if( !double.TryParse( oProperty.ToString(), out double dblValue ) ) {
+                if( !double.TryParse( strProperty, out double dblValue ) ) {
                     dblValue = dblDefault.Value;
                     //ValueBgColor.Add( (int)eIndex, SKColors.LightPink ); 
                 }
@@ -199,7 +199,7 @@ namespace Play.SSTV {
                 return dblValue;
             }
 
-            return double.Parse( oProperty.ToString() );
+            return double.Parse( strProperty );
         }
     }
 
