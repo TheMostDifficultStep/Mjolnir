@@ -412,7 +412,7 @@ namespace Mjolnir {
         }
 
         public override IDisposable CreateDocument( IPgBaseSite oSite, string strExtension ) {
-            return new FormsEditor( oSite );
+            return new Editor( oSite ); // Might be nice to use a simpler one line object...
         }
 
         public override IDisposable CreateView( IPgViewSite oViewSite, object oDocument, Guid guidViewType ) {

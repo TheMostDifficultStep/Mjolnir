@@ -137,67 +137,6 @@ namespace Play.Forms {
         }
     }
 
-    /// <summary>
-    /// This is basically an editor that loads all the lines but doesn't offer
-    /// line delete, so that the user doesn't accidently hit undo and remove forms items.
-    /// This implementation is a bit obsolete since I'm leaning towards a values/labels
-    /// version which separates writable items.
-    /// .ps Tried labels and values in seperate documents, that version had a major
-    /// window bug so that way won't work.
-    /// </summary>
-    [Obsolete("See the DocProperties object.")] public class FormsEditor : Editor {
-        public FormsEditor( IPgBaseSite oSite ) : base( oSite ) {
-        }
-
-        public override bool Load( TextReader oReader ) {
-            _iCumulativeCount = 0;
-			HighLight         = null;
-            
-            try {
-                int    iLine   = -1;
-                string strLine = oReader.ReadLine();
-                while( strLine != null ) {
-                    ++iLine;
-                    Line oLine;
-                    if( iLine < _rgLines.Count ) {
-                        oLine = _rgLines[iLine];
-                        oLine.TryDelete( 0, int.MaxValue, out string strRemoved );
-                        oLine.TryAppend( strLine );
-                        Raise_AfterLineUpdate( oLine, 0, strRemoved.Length, oLine.ElementCount );
-                    } else { 
-                        oLine = CreateLine( iLine, strLine );
-                        _rgLines.Insert( _rgLines.Count, oLine );
-                        Raise_AfterInsertLine( oLine );
-                    }
-                        
-                    _iCumulativeCount = oLine.Summate( iLine, _iCumulativeCount );
-                    strLine = oReader.ReadLine();
-                }
-                while( _rgLines.Count > iLine + 1 ) {
-                    int iDelete = _rgLines.Count - 1;
-                    Raise_BeforeLineDelete( _rgLines[iDelete] );
-                    _rgLines.RemoveAt( iDelete );
-                }
-            } catch( Exception oE ) {
-                Type[] rgErrors = { typeof( IOException ),
-                                    typeof( NullReferenceException ),
-                                    typeof( ArgumentNullException ),
-                                    typeof( ArgumentException ) };
-                if( rgErrors.IsUnhandled( oE ) )
-                    throw;
-
-                _oSiteBase.LogError( "editor", "Unable to read stream (file) contents." );
-
-                return( false );
-            } finally {
-                Raise_MultiFinished();
-                Raise_BufferEvent( BUFFEREVENTS.LOADED );  
-            }
-
-            return (true);
-        }
-    }
-
     public struct LabelValuePair {
         public Line _oLabel;
         public Line _oValue;

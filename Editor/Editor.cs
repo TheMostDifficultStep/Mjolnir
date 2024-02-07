@@ -930,6 +930,7 @@ namespace Play.Edit {
                         // and modify the edit win to show a generic message on that line.
                         if( strLine.Length > 64000 ) {
                             _oSiteBase.LogError( "editor", "Warning! There is a long line which won't be viewable in this editor. Line: " + ( iLine + 1 ).ToString() );
+                            return false;
                         }
 
                         _iCumulativeCount = oLine.Summate( _rgLines.Count, _iCumulativeCount );
