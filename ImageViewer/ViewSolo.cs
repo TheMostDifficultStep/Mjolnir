@@ -12,7 +12,6 @@ using SkiaSharp.Views.Desktop;
 using SkiaSharp;
 using Play.Edit;
 using System.Collections;
-using System.Reflection;
 
 namespace Play.ImageViewer {
 	public enum WindowSoloImageTools : int {

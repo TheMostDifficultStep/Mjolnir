@@ -360,17 +360,19 @@ namespace Play.Edit {
 
             _oViewEvents.NotifyFocused( true );
 
-            User32.CreateCaret( Handle, IntPtr.Zero, 
-                                _oCacheMan.CaretSize.X, 
-                                _oCacheMan.CaretSize.Y );
+            if( !_fReadOnly ) {
+                User32.CreateCaret( Handle, IntPtr.Zero, 
+                                    _oCacheMan.CaretSize.X, 
+                                    _oCacheMan.CaretSize.Y );
 
-            // Hiding the caret seems to destroy it so just
-            // immediately show, the cacheman will park it off screen
-            // if it's not displayable on an active cache line.
-            _oCacheMan.IsCaretVisible( out SKPointI pntCaret );
+                // Hiding the caret seems to destroy it so just
+                // immediately show, the cacheman will park it off screen
+                // if it's not displayable on an active cache line.
+                _oCacheMan.IsCaretVisible( out SKPointI pntCaret );
 
-            User32.SetCaretPos( pntCaret.X, pntCaret.Y );
-            User32.ShowCaret  ( Handle );
+                User32.SetCaretPos( pntCaret.X, pntCaret.Y );
+                User32.ShowCaret  ( Handle );
+            }
 
             Invalidate();
         }
@@ -612,11 +614,9 @@ namespace Play.Edit {
                 case Keys.Left:
                     _oCacheMan.CaretMove( Axis.Horizontal, -1 );
                     break;
-                case Keys.Delete:
-                    _oDocOps.TryDeleteAt( oCaret.Row, oCaret.Column, oCaret.Offset, 1 );
-                    break;
                 case Keys.Back:
-                    _oDocOps.TryDeleteAt( oCaret.Row, oCaret.Column, oCaret.Offset - 1, 1 );
+                    if( !_fReadOnly )
+                        _oDocOps.TryDeleteAt( oCaret.Row, oCaret.Column, oCaret.Offset - 1, 1 );
                     break;
             }
         }
@@ -647,8 +647,10 @@ namespace Play.Edit {
                         return true;
                     case Keys.Delete: {
                         // The only way to get this event.
-                        CacheMultiColumn.CaretInfo oCaret = _oCacheMan.CopyCaret();
-                        _oDocOps.TryDeleteAt( oCaret.Row, oCaret.Column, oCaret.Offset, 1 );
+                        if( !_fReadOnly ) {
+                            CacheMultiColumn.CaretInfo oCaret = _oCacheMan.CopyCaret();
+                            _oDocOps.TryDeleteAt( oCaret.Row, oCaret.Column, oCaret.Offset, 1 );
+                        }
                         return true;
                     }
                 }
@@ -665,7 +667,7 @@ namespace Play.Edit {
             if( _fReadOnly )
                 return;
 
-            if( !char.IsControl( e.KeyChar ) ) {
+            if( !char.IsControl( e.KeyChar ) && !_fReadOnly ) {
                 Span<char> rgInsert = stackalloc char[1];
                 rgInsert[0] = e.KeyChar;
 

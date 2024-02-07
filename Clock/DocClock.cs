@@ -164,6 +164,7 @@ namespace Play.Clock {
  	      //_oStdUI    = Services as IPgStandardUI2 ?? throw new ArgumentException( "Parent view must provide IPgStandardUI service" );
 
 			Icon       = SKImageResourceHelper.GetImageResource( Assembly.GetExecutingAssembly(), _strViewIcon );
+            _fReadOnly = true;
         }
 
         protected override void Dispose( bool disposing ) {
