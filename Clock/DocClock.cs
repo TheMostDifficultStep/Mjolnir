@@ -204,7 +204,7 @@ namespace Play.Clock {
         }
 
         public void OnClockUpdated() {
-            Invalidate();
+            OnSizeChanged( new EventArgs() );
         }
     }
 }

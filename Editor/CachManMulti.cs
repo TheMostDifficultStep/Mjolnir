@@ -117,7 +117,7 @@ namespace Play.Edit {
             }
 
             public void OnUpdated( Row oRow ) {
-                _oHost.CacheRepair( oRow, _fCaretVisible );
+                _oHost.CacheRepair( oRow, _fCaretVisible, fMeasure:false );
             }
 
             IEnumerator IEnumerable.GetEnumerator() {
@@ -247,16 +247,17 @@ namespace Play.Edit {
         /// rebuild the screen from the current cache position. If you
         /// have scrolled the caret off screen I assume it's intentional.
         /// </summary>
+        /// <remarks>BUG: Might need to if the row is invalid and
+        /// remeasure such items. It's a little bigger job so I'll
+        /// look into that later...</remarks>
         /// <param name="fMeasure">Remeasure all row items.</param>
-        public void CacheRepair( Row oPatch, bool fFindCaret ) {
+        public void CacheRepair( Row oPatch, bool fFindCaret, bool fMeasure ) {
             try {
                 CacheRow oSeedCache = null;
-                bool     fMeasure   = oPatch == null;
                 int      iTop       = _rgOldCache.Count < 1 ? 0 : _rgOldCache[0].Top;
 
                 foreach( CacheRow oCacheRow in _rgOldCache ) {
-                    if( oCacheRow.At == CaretRow &&
-                        oSeedCache   == null ) {
+                    if( oCacheRow.At == CaretRow ) {
                         oSeedCache = oCacheRow;
                     }
                     if( oPatch       != null &&
@@ -822,7 +823,7 @@ namespace Play.Edit {
         public void OnChangeSize() {
             try {
                 bool fCaretOnScreen = IsCaretVisible( out SKPointI pntCaret );
-                CacheRepair( null, fCaretOnScreen ); 
+                CacheRepair( null, fCaretOnScreen, fMeasure:true ); 
             } catch( Exception oEx ) {
                 // if the _rgCacheMap and the oRow.CacheList don't match
                 // we might walk of the end of one or the other.
