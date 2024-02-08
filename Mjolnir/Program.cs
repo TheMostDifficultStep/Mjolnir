@@ -637,6 +637,12 @@ namespace Mjolnir {
                 _oDocSlot_Find = new ComplexXmlSlot( this, oDocDesc, "Find Dialog" );
                 _oDocSlot_Find.CreateDocument();
                 _oDocSlot_Find.InitNew();
+                if( _oDocSlot_Find.Document is Editor oFindEdit ) {
+                    // Was doing this in the window and that's WRONG!!
+                    oFindEdit.LineAppend( string.Empty, false );
+                } else {
+                    throw new InvalidProgramException();
+                }
 
                 oDocDesc = oTopLevelController.Suitability( ".clock" );
                 _oDocSlot_Clock = new InternalSlot( this, oDocDesc, "Clock" );

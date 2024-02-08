@@ -1,13 +1,9 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.IO;
-using System.Xml;
 
 using Play.Parse;
-using Play.Parse.Impl;
 using Play.Interfaces.Embedding;
-using System.Data.Common;
 
 namespace Play.Edit {
     /// <summary>
@@ -313,7 +309,6 @@ namespace Play.Edit {
 
                 TrackerEnumerable oTE = new TrackerEnumerable( this );
 
-                // BUG: Change the insert to take a Span! \^_^/
                 if( oLine.TryReplace( iSrcOff, iSrcLen, spText ) ) {
                     foreach( IPgCaretInfo<Row> oTracker in oTE ) {
                         if( oTracker.Column == iColumn &&

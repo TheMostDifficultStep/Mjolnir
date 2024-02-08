@@ -73,6 +73,39 @@ namespace Play.Edit {
 	}
 
     /// <summary>
+    /// Some really nice extentions to the line. Maybe just make part of 
+    /// the line class? Since we're here and all?
+    /// </summary>
+    public static class LineExtensions {
+        public static int GetAsInt( this Line oLine, int? iDefault = null ) {
+            if( iDefault.HasValue ) {
+                if( !int.TryParse( oLine.AsSpan, out int iValue ) ) {
+                    iValue = iDefault.Value;
+                }
+                return iValue;
+            }
+
+            return int.Parse( oLine.AsSpan );
+        }
+
+        public static bool GetAsBool( this Line oLine ) {
+            return string.Compare( oLine.ToString(), "true", ignoreCase:true ) == 0;
+        }
+
+        public static double GetAsDouble( this Line oLine, double? dblDefault = null ) {
+            if( dblDefault.HasValue ) {
+                if( !double.TryParse( oLine.AsSpan, out double dblValue ) ) {
+                    dblValue = dblDefault.Value;
+                }
+
+                return dblValue;
+            }
+
+            return double.Parse( oLine.AsSpan );
+        }
+    }
+
+    /// <summary>
     /// abstract for operations that can happen on single line. I no longer inherit from any kind of
     /// string builder, because the editor can now hold any object that can generate a text string.
     /// Either mutable for editing, or Immutable for readonly.

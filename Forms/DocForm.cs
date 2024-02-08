@@ -1,5 +1,4 @@
 ﻿using System;
-using System.IO;
 using System.Collections.Generic;
 using System.Collections;
 
@@ -7,6 +6,7 @@ using SkiaSharp;
 
 using Play.Interfaces.Embedding;
 using Play.Edit;
+using Play.Parse;
 
 
 namespace Play.Forms {
@@ -395,39 +395,27 @@ namespace Play.Forms {
             PropertyDoc.Dispose();
         }
     }
+    
+    public interface IPgFormInterface {
+        Line GetLine( int iIndex ); // Replaces this[iIndex] { get; }
+        void LineAppend( string strValue, bool fUndoable = true );
 
-    public static class LineExtensions {
-        public static int GetAsInt( this Line oLine, int? iDefault = null ) {
-            if( iDefault.HasValue ) {
-                if( !int.TryParse( oLine.AsSpan, out int iValue ) ) {
-                    iValue = iDefault.Value;
-                }
-                return iValue;
-            }
+        /// <summary>
+        /// Should be able to Delete, Insert (char/str), replace all in one!!
+        /// </summary>
+        bool LineTextReplace( int iLine, IMemoryRange mrDelete, ReadOnlySpan<char> spInsert );
+        void Undo();
+        void Raise_Submit();
+        void CaretAdd   ( ILineRange oRange );
+        void CaretRemove( ILineRange oRange );
 
-            return int.Parse( oLine.AsSpan );
-        }
-
-        public static bool GetAsBool( this Line oLine ) {
-            return string.Compare( oLine.ToString(), "true", ignoreCase:true ) == 0;
-        }
-
-        public static double GetAsDouble( this Line oLine, double? dblDefault = null ) {
-            if( dblDefault.HasValue ) {
-                if( !double.TryParse( oLine.AsSpan, out double dblValue ) ) {
-                    dblValue = dblDefault.Value;
-                }
-
-                return dblValue;
-            }
-
-            return double.Parse( oLine.AsSpan );
-        }
+        BufferEvent BufferEvent { get; }
     }
 
     /*
     public class DocProperties :
-        EditMultiColumn
+        EditMultiColumn,
+        IPgLoad
     {
         public class PropertyRow : Row {
             public PropertyRow( string strLabel ) {
@@ -480,6 +468,13 @@ namespace Play.Forms {
 
         public DocProperties( IPgBaseSite oSite ) : base( oSite ) 
         { }
+
+        /// <remarks>
+        /// Consider making this abstract, if I can make class abstract...
+        /// </remarks>
+        public virtual bool InitNew() {
+            return true;
+        }
 
 		public class Manipulator : 
             IEnumerable<Line>,
@@ -575,6 +570,10 @@ namespace Play.Forms {
             return _rgRows[iIndex][1].GetAsBool();
         }
 
+        public Line   ValueAsLine( int iIndex ) {
+            return _rgRows[iIndex][1];
+        }
+
         public LabelValuePair GetPropertyPair( int iIndex ) {
             return new LabelValuePair( this[iIndex] );
         }
@@ -633,6 +632,17 @@ namespace Play.Forms {
                         oEvent.OnFormUpdate( new ValueEnumerator( rgTemp ) );
                     }
                 }
+            }
+        }
+
+        public void LabelUpdate(int iIndex, string strLabel, SKColor? skBgColor = null) {
+            Line oLabel = _rgRows[iIndex][0];
+
+            oLabel.Empty();
+            oLabel.TryAppend(strLabel);
+
+            if( skBgColor.HasValue ) {
+                ValueBgColor.Add(iIndex, skBgColor.Value);
             }
         }
 

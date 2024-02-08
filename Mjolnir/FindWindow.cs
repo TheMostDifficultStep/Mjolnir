@@ -89,8 +89,7 @@ namespace Mjolnir {
                 _oView = oView;
             }
 
-            DocForms.LineAppend( string.Empty, false );
-            LayoutSingleLine oLayoutSearchKey = new LayoutSingleLine( new FTCacheWrap( DocForms[0] ), LayoutRect.CSS.Flex) { Span = 4, BgColor=SkiaSharp.SKColors.White };
+            LayoutSingleLine oLayoutSearchKey = new LayoutSingleLine( new FTCacheWrap( DocForms.GetLine(0) ), LayoutRect.CSS.Flex) { Span = 4, BgColor=SkiaSharp.SKColors.White };
             CacheList.Add( oLayoutSearchKey );
             _iCaretAtLayout = CacheList.Count - 1;
 
@@ -167,7 +166,7 @@ namespace Mjolnir {
         void MoveCaretToLineAndShow() {
             try {
                 int iRequestedLine = 0;
-                if( int.TryParse( DocForms[0].ToString(), out iRequestedLine ) ) {
+                if( int.TryParse( DocForms.GetLine(0).ToString(), out iRequestedLine ) ) {
                     iRequestedLine -= 1;
 
 					_oView.SelectionSet( iRequestedLine, 0, 0 );
@@ -364,13 +363,15 @@ namespace Mjolnir {
         }
         private IEnumerator<ILineRange> EnumSearchResults() {
 			try {
+                string strFind = DocForms.GetLine(0).ToString();
+
 				switch( oSearchType.SelectedItem.ToString() ) {
 					case "Text":
-						return CreateTextFind( _oView as IEnumerable<ILineRange>, DocForms[0].ToString() );
+						return CreateTextFind ( _oView as IEnumerable<ILineRange>, strFind );
 					case "Regex":
-						return CreateRegexFind( _oView as IEnumerable<ILineRange>, DocForms[0].ToString() );
+						return CreateRegexFind( _oView as IEnumerable<ILineRange>, strFind );
 					case "Line":
-						return CreateLineNumberEnum( _oView as IReadableBag<Line>, DocForms[0].ToString() );
+						return CreateLineNumberEnum( _oView as IReadableBag<Line>, strFind );
 				}
 			} catch( NullReferenceException ) {
                 _oWinMain.LogError( null, "search", "Problem generating Search enumerators." );

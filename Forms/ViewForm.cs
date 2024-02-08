@@ -519,12 +519,12 @@ namespace Play.Forms {
                 }
             }
 
-            Line oNext = DocForms[ TabOrder[iNext] ];
+            Line oNext = DocForms.GetLine( TabOrder[iNext]);
 
             // Got to keep the carat in our PropertyValues form.
             for( int i = 0; i< CacheList.Count; ++i ) {
                 if( CacheList[i].Cache.Line == oNext &&
-                    oNext == DocForms[oNext.At] ) 
+                    oNext == DocForms.GetLine(oNext.At) ) 
                 {
                     _iCaretAtLayout = i;
 
@@ -701,7 +701,7 @@ namespace Play.Forms {
                         throw;
 
                     _oSiteView.LogError( "Editing", "Problem reporting caret Line." );
-                    return DocForms[0];
+                    return DocForms.GetLine(0);
                 }
             }
             set { 
