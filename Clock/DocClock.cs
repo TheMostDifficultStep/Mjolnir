@@ -149,7 +149,6 @@ namespace Play.Clock {
         protected readonly IPgViewSite    _oViewSite;
       //protected readonly IPgStandardUI2 _oStdUI;
 
-
         public Guid      Catagory  => Guid.Empty; // Default view.
         public string    Banner    => "World Clock";
         public SKBitmap  Icon    { get; }

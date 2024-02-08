@@ -209,6 +209,9 @@ namespace Play.Edit {
         public virtual bool IsDirty => false;
 
         public int ElementCount => _rgRows.Count;
+        /// <exception cref="ArgumentOutOfRangeException" </exception>
+        /// <remarks>Should I return a dummy element? Probably not</remarks>
+        public Row this[int iIndex] => _rgRows[iIndex];
 
         public Row HighLight { 
             get => _oRowHighlight; 
@@ -223,10 +226,6 @@ namespace Play.Edit {
             get; 
             set; // Send a window update event;
         }
-
-        /// <exception cref="ArgumentOutOfRangeException" </exception>
-        /// <remarks>Should I return a dummy element? Probably not</remarks>
-        public Row this[int iIndex] => _rgRows[iIndex];
 
         public EditMultiColumn( IPgBaseSite oSiteBase ) {
             _oSiteBase = oSiteBase;
