@@ -188,7 +188,8 @@ namespace Play.Edit {
                 // If you hide the caret, that seems to destroy it.
                 // So the system just moves it off screen. :-/
 
-                User32.SetCaretPos( pntCaret.X, pntCaret.Y );
+                if( _oHost.Focused )
+                    User32.SetCaretPos( pntCaret.X, pntCaret.Y );
             }
         }
 
@@ -668,8 +669,7 @@ namespace Play.Edit {
                 return;
 
             if( !char.IsControl( e.KeyChar ) && !_fReadOnly ) {
-                Span<char> rgInsert = stackalloc char[1];
-                rgInsert[0] = e.KeyChar;
+                ReadOnlySpan<char> rgInsert = stackalloc char[1] { e.KeyChar };
 
                 _oDocOps.TryReplaceAt( _oCacheMan.CopyCaret(), rgInsert );
 
