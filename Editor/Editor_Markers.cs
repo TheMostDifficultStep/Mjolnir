@@ -11,7 +11,6 @@ namespace Play.Edit
         /// <summary>
         /// See if this range intersects. 
         /// </summary>
-        /// <param name="oTestRange"></param>
         /// <remarks>
         ///   0123456789...
         /// 1)  11111 +   "test"
@@ -32,6 +31,8 @@ namespace Play.Edit
         /// 6)        11111   (no overlap)
         ///     22222
         /// </remarks>
+        /// <param name="oThis"></param>
+        /// <param name="oTest"></param>
         public static bool Intersect(
             IMemoryRange oThis,
             IMemoryRange oTest 
@@ -41,14 +42,12 @@ namespace Play.Edit
             int iGreatestStart = oThis.Offset >= oTest.Offset ? oThis.Offset : oTest.Offset;
             int iLeastEnd      = iThisEnd     <= iTestEnd ? iThisEnd : iTestEnd;
             int iOverlap       = iLeastEnd - iGreatestStart; // iGreatestStart >= iLeastEnd, no overlap.
-            int iLeftLength    = 0;
-            int iRightLength   = 0;
 
             if( iOverlap <= 0 )
                 return ( false ); // No overlap.
 
-            iLeftLength  = oThis.Offset - oTest.Offset;
-            iRightLength = iTestEnd - iThisEnd;
+            int iLeftLength  = oThis.Offset - oTest.Offset;
+            int iRightLength = iTestEnd - iThisEnd;
             
             if( iLeftLength > 0 ) {
                 oThis.Offset = oTest.Offset;
@@ -102,6 +101,46 @@ namespace Play.Edit
                         }
                     }
                 }
+            }
+        }
+
+        /// <summary>
+        /// One marker shifter to rule them all! This should be able to replace all
+        /// over marker shifters.
+        /// </summary>
+        /// <param name="oRange">The marker in question.</param>
+        /// <param name="iDelOff">The start of the deleted section or caret.</param>
+        /// <param name="iDelLen">Length of section, 0 is ok.</param>
+        /// <param name="iDiff">If inserted text is less length than deleted text,
+        /// this value is negative, else it is positive the difference.</param>
+        public static void ShiftReplace( IMemoryRange oRange, int iDelOff, int iDelLen, int iDiff ) {
+            // If the Range RHS is less than iDelOff then need to do nothing.
+            int iRangeEnd = oRange.Offset + oRange.Length;
+            int iDelEnd   = iDelOff + iDelLen;
+
+            if( iRangeEnd >= iDelOff && oRange.Offset < iDelEnd ) {
+                // ... there is overlap
+                if( oRange.Offset < iDelOff ) {
+                    // ...Range start is less than the delete start
+                    if( iRangeEnd >= iDelEnd + iDiff ) 
+                        oRange.Length += iDiff;                      // End was outside the delete
+                    else
+                        oRange.Length = iDelOff - oRange.Offset;     // End was inside the delete
+                } else {
+                    // ... Range start is somewhere inside of the delete.
+                    oRange.Offset = iDelEnd + iDiff;
+                    if( iRangeEnd < iDelEnd + iDiff )
+                        oRange.Length = 0;                           // End was inside the delete
+                    else
+                        oRange.Length = iRangeEnd - iDelEnd + iDiff; // End was outside the delete
+                }
+                // Safety check...
+                if( oRange.Length < 0 )
+                    oRange.Length = 0;
+            } else {
+                // Anything to right of delete must be shifted.
+                if( oRange.Offset >= iDelEnd )
+                    oRange.Offset += iDiff;
             }
         }
 

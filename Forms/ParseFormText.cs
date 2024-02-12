@@ -236,7 +236,7 @@ namespace Play.Forms {
         /// <summary>
         /// 
         /// </summary>
-        /// <seealso cref="BaseEditor.Submit_Raise"/>
+        /// <seealso cref="BaseEditor.Raise_Submit"/>
         public void Parse() {
 			try {
                 if( _rgParseEvents.Count > 0 ) {

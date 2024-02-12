@@ -370,46 +370,6 @@ namespace Monitor {
         }
     }
 
-    public class AssemblyEditor : BaseEditor {
-
-        /// <remarks>
-        /// It would be nice if we only allocate a comment line if we actually
-        /// need it. Need to think about that for the future.
-        /// </remarks>
-        public class AsmLine : TextLine {
-            public Line LineComment { get; }
-            public AsmLine( int iLine, string strValue ) :
-                base( iLine, strValue )
-            {
-                Extra       = new TextLine( 0, string.Empty ); // memory address display.
-                LineComment = new TextLine( 0, string.Empty ); // Comment, needed or not.
-            }
-        }
-        public AssemblyEditor(IPgBaseSite oSite) : base(oSite) {
-        }
-        protected override Line CreateLine( int iLine, string strValue )
-        {
-            return new AsmLine( iLine, strValue );
-        }
-
-        /// <summary>
-        /// This is my new experiment for extra data on the line. Later
-        /// I'll add a multi column line structure. But now I'll just
-        /// query for our expected Line subclass!!
-        /// </summary>
-        /// <exception cref="ArgumentOutOfRangeException"></exception>
-        public override Line GetLine( int iLine, int iColumn = 0 ) {
-            Line oLine = base.GetLine( iLine, iColumn );
-
-            if( iColumn == 0 )
-                return oLine;
-
-            if( iColumn == 1 && oLine is AsmLine oAsmLine )
-                return oAsmLine.LineComment;
-
-            throw new ArgumentOutOfRangeException();
-        }
-    }
     public class Document_Monitor :
         IPgParent,
 		IDisposable,

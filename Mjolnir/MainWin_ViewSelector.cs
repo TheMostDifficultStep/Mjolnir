@@ -24,7 +24,7 @@ namespace Mjolnir {
         public string StateName  => "ViewSwitch";
         public int    ColorIndex => _iColor;
 
-        public int Offset { get => 0; set => throw new NotImplementedException(); }
+        public int Offset { get => 0; set { } }
         public int Length { get => 4; set { } }
     }
 

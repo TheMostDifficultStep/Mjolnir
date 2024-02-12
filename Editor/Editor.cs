@@ -86,6 +86,22 @@ namespace Play.Edit {
 		void OnLineClear  ();
 	}
 
+    public interface IPgFormInterface {
+        Line GetLine( int iIndex ); // Replaces this[iIndex] { get; }
+        Line LineAppend( string strValue, bool fUndoable = true );
+
+        /// <summary>
+        /// Should be able to Delete, Insert (char/str), replace all in one!!
+        /// </summary>
+        bool LineTextReplace( int iLine, IMemoryRange mrDelete, ReadOnlySpan<char> spInsert );
+        void Undo();
+        void Raise_Submit();
+        void CaretAdd   ( ILineRange oRange );
+        void CaretRemove( ILineRange oRange );
+
+        event BufferEvent BufferEvent;
+    }
+
     /// <summary>
     /// This is the Document for the editing control. It is basically line based,
     /// but it supports stream reading objects (for the parser). I should build
@@ -99,6 +115,7 @@ namespace Play.Edit {
         IPgLoad<IEnumerable<string>>,
         IEnumerable<Line>,
         IReadableBag<Line>,
+        IPgFormInterface,
         IDisposable
      {
 		public class DocSlot:
@@ -236,7 +253,7 @@ namespace Play.Edit {
         /// the submit on a form is pressed (Enter Key).
         /// The two concepts are similiar but I don't want to attempt to combine them yet.
         /// </summary>
-        public void Submit_Raise() {
+        public void Raise_Submit() {
             List<int> rgDirty = new List<int>();
 
             foreach( Line oLine in this ) {
@@ -465,7 +482,7 @@ namespace Play.Edit {
         /// <returns>The line object at the index given, or an empty line if out of bounds.</returns>
         /// <remarks>TODO: I could return the same dummy line. But I'd want a line that doesn't allow anyone
         /// to set it's buffer. Wait until I abstract the notion of a line a bit more.</remarks>
-        public virtual Line GetLine( int iIndex, int iColumn = 0 ) {
+        public virtual Line GetLine( int iIndex ) {
             Line oTry;
 
             if( !IsHit( iIndex ) ) {
@@ -689,6 +706,60 @@ namespace Play.Edit {
             }
             //Raise_ChangesFinished();
             Raise_BufferEvent( BUFFEREVENTS.SINGLELINE ); // TODO: Need to assert there is no bulk upload going on.
+        }
+
+        /// <summary>
+        /// At present this is only used for my form documents, (search & property pages)
+        /// it does not support UNDO. That will be added by the time I attempt to
+        /// remove the deprecated line operations which are in use with the standard
+        /// text editor.
+        /// </summary>
+        /// <remarks>It's ok to send a del range that is out of bounds of the line,
+        /// this function will return false, but throw no exceptions or error messages
+        /// </remarks>
+        /// <param name="iLine">The line to operate on.</param>
+        /// <param name="rgDel">The range to delete.</param>
+        /// <param name="spIns">The span to insert in place of the delete.</param>
+        /// <returns>true if successful, false if not.</returns>
+        public bool LineTextReplace( int iLine, IMemoryRange rgDel, ReadOnlySpan<char> spIns ) {
+            if( !IsHit( iLine ) )
+                return false;
+
+            if( rgDel.Offset < 0 )
+                return false;
+
+            if( spIns == null ) {
+                spIns = string.Empty;
+            }
+
+            Line oLine = _rgLines[iLine];
+
+            if( oLine.TryReplace( rgDel.Offset, rgDel.Length, spIns ) ) {
+                foreach( ILineRange oCaret in CaretEnumerable ) {
+                    Line oRangeLine = oCaret.Line;
+
+                    if( oRangeLine != null ) {
+                        // Reset any dummy lines. Brilliant, but sleasy. ^_^;;
+                        // NOTE: Our forms labels & values MUST NOT be from 
+                        // different documents!! Argghghg!
+                        if( oRangeLine.At == oLine.At && oRangeLine != oLine ) {
+                            oCaret.Line = oLine;
+                        }
+                        // Make sure the line is assigned on the line range, second 
+                        // Check the two lines are EQUAL (but not necessarily the same reference)
+                        if( oCaret.At == oLine.At ) {
+                            Marker.ShiftReplace( oCaret, rgDel.Offset, rgDel.Length, spIns.Length - rgDel.Length );
+                        }
+                    }
+                }
+
+                SetDirty();
+                CharacterCount( iLine );
+
+                Raise_AfterLineUpdate( oLine, rgDel.Offset, 0, 1 );
+            }
+            Raise_BufferEvent( BUFFEREVENTS.SINGLELINE ); // TODO: Need to assert there is no bulk upload going on.
+            return true;
         }
 
         public void CaretAdd( ILineRange oCaret )

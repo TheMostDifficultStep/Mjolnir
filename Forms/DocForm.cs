@@ -396,22 +396,6 @@ namespace Play.Forms {
         }
     }
     
-    public interface IPgFormInterface {
-        Line GetLine( int iIndex ); // Replaces this[iIndex] { get; }
-        void LineAppend( string strValue, bool fUndoable = true );
-
-        /// <summary>
-        /// Should be able to Delete, Insert (char/str), replace all in one!!
-        /// </summary>
-        bool LineTextReplace( int iLine, IMemoryRange mrDelete, ReadOnlySpan<char> spInsert );
-        void Undo();
-        void Raise_Submit();
-        void CaretAdd   ( ILineRange oRange );
-        void CaretRemove( ILineRange oRange );
-
-        BufferEvent BufferEvent { get; }
-    }
-
     /*
     public class DocProperties :
         EditMultiColumn,

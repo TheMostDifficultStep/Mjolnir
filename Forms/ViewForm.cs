@@ -339,7 +339,7 @@ namespace Play.Forms {
     {
         protected bool _fDisposed { get; private set; }
 
-        protected int _iCaretAtLayout = -1;
+        protected int  _iCaretAtLayout = -1;
 
 		protected readonly IPgViewSite   _oSiteView;
         protected readonly IPgViewNotify _oViewEvents; // Our site from the window manager (view interface).
@@ -348,7 +348,9 @@ namespace Play.Forms {
         protected new ParentRect         Layout    { get; set; } = new LayoutStackHorizontal() { Spacing = 5 };
         protected List<LayoutSingleLine> CacheList { get; }      = new List<LayoutSingleLine>();
 
-        protected Editor           DocForms { get; }
+        protected IReadableBag<Line>      DocForms  { get; }
+        protected IPgFormInterface       DocForms2 { get; }     
+        
         //protected SimpleCacheCaret Caret    { get; }
         public    uint             StdFont  { get; }
         public    ushort           StdFace  { get; }
@@ -364,10 +366,11 @@ namespace Play.Forms {
                                                   Keys.Delete, Keys.Enter, Keys.Tab, Keys.Tab | Keys.Shift,
                                                   Keys.Control | Keys.A, Keys.Control | Keys.F };
 
-        public FormsWindow( IPgViewSite oSiteView, Editor oDocForms ) {
+        public FormsWindow( IPgViewSite oSiteView, IReadableBag<Line> oDocForms ) {
 			_oSiteView   = oSiteView ?? throw new ArgumentNullException( "Find window needs a site!!" );
             _oViewEvents = oSiteView.EventChain ?? throw new ArgumentException("Site.EventChain must support IPgViewSiteEvents");
             DocForms     = oDocForms ?? throw new ArgumentNullException( "Forms needs a text buffer" );
+            DocForms2    = (IPgFormInterface)oDocForms;
             StdUI        = (IPgStandardUI2)oSiteView.Host.Services;
 
             StdFace = StdUI.FaceCache(@"C:\windows\fonts\consola.ttf");
@@ -387,8 +390,8 @@ namespace Play.Forms {
         /// </summary>
         protected override void Dispose( bool disposing ) {
             if( disposing && !_fDisposed ) {
-                DocForms.BufferEvent -= OnDocumentEvent;
-                DocForms.CaretRemove( this );
+                DocForms2.BufferEvent -= OnDocumentEvent;
+                DocForms2.CaretRemove( this );
 
                 _fDisposed = true;
             }
@@ -410,8 +413,8 @@ namespace Play.Forms {
                 this.ContextMenuStrip = oMenu;
             }
 
-            DocForms.BufferEvent += OnDocumentEvent;
-            DocForms.CaretAdd( this ); // Document moves our caret and keeps it in sync.
+            DocForms2.BufferEvent += OnDocumentEvent;
+            DocForms2.CaretAdd( this ); // Document moves our caret and keeps it in sync.
 
             return true;
         }
@@ -434,7 +437,7 @@ namespace Play.Forms {
         }
 
         public virtual void Submit() {
-            DocForms.Submit_Raise();
+            DocForms2.Raise_Submit();
         }
 
         // Let Forms know what keys we want sent our way.
@@ -519,13 +522,12 @@ namespace Play.Forms {
                 }
             }
 
-            Line oNext = DocForms.GetLine( TabOrder[iNext]);
+            Line oNext = DocForms2.GetLine( TabOrder[iNext] );
 
             // Got to keep the carat in our PropertyValues form.
             for( int i = 0; i< CacheList.Count; ++i ) {
                 if( CacheList[i].Cache.Line == oNext &&
-                    oNext == DocForms.GetLine(oNext.At) ) 
-                {
+                    oNext == DocForms2.GetLine(oNext.At) ) {
                     _iCaretAtLayout = i;
 
                     //oLayout.SelectHead( Caret, e.Location, ModifierKeys == Keys.Shift );
@@ -701,7 +703,7 @@ namespace Play.Forms {
                         throw;
 
                     _oSiteView.LogError( "Editing", "Problem reporting caret Line." );
-                    return DocForms.GetLine(0);
+                    return DocForms2.GetLine(0);
                 }
             }
             set { 
@@ -747,17 +749,14 @@ namespace Play.Forms {
                 LayoutSingleLine oLayout = GetLayoutAtCaret;
                 int              iLineAt = oLayout.Cache.Line.At;
 
-                using BaseEditor.Manipulator oBulk = DocForms.CreateManipulator();
-
                 if( IsSelection ) {
-                    oBulk.LineTextDelete( iLineAt, oLayout.Selection );
+                    DocForms2.LineTextReplace( iLineAt, oLayout.Selection, null );
+                    oLayout.SelectClear();
                 } else {
                     if( fBackSpace ) {
-                        if( Offset > 0 ) {
-                            oBulk.LineTextDelete( iLineAt, new ColorRange( Offset - 1, 1 ) );
-                        }
+                        DocForms2.LineTextReplace( iLineAt, new ColorRange( Offset - 1, 1 ), null );
                     } else {
-                        oBulk.LineTextDelete( iLineAt, new ColorRange( Offset, 1 ) );
+                        DocForms2.LineTextReplace( iLineAt, new ColorRange( Offset, 1 ), null );
                     }
                 }
                 OnKeyDown_Arrows( Axis.Horizontal, 0 );
@@ -784,15 +783,15 @@ namespace Play.Forms {
                     return;
                 }
                 if( !char.IsControl( e.KeyChar )  ) { 
-                    LayoutSingleLine oLayout = GetLayoutAtCaret;
-                    int              iLineAt = oLayout.Cache.Line.At;
+                    LayoutSingleLine   oLayout = GetLayoutAtCaret;
+                    int                iLineAt = oLayout.Cache.Line.At;
+                    ReadOnlySpan<char> spChar  = stackalloc char[1] { e.KeyChar };
+
                     if( IsSelection ) {
-                        using( BaseEditor.Manipulator oBulk = DocForms.CreateManipulator() ) {
-                            oBulk.LineTextDelete( iLineAt, oLayout.Selection );
-                            oBulk.LineCharInsert( iLineAt, Offset, e.KeyChar );
-                        }
+                        DocForms2.LineTextReplace( iLineAt, oLayout.Selection, spChar );
+                        oLayout.SelectClear();
                     } else {
-                        DocForms.LineCharInsert( iLineAt, Offset, e.KeyChar);
+                        DocForms2.LineTextReplace( iLineAt, this, spChar );
                     }
                     // Find the new carat position and update its screen location. 
                     OnKeyDown_Arrows( Axis.Horizontal, 0 );
@@ -925,7 +924,7 @@ namespace Play.Forms {
                         Invalidate();
                         return( true );
                     case Keys.Control | Keys.Z:
-                        DocForms.Undo();
+                        DocForms2.Undo();
                         return( true );
                     case Keys.Control | Keys.V:
                         ClipboardPasteFrom( Clipboard.GetDataObject(), ClipboardOperations.Default );
@@ -995,6 +994,8 @@ namespace Play.Forms {
             }
             Cursor = oCursor;
 
+            // This is a bug since we're just calling SelectNext with no clue if the
+            // item was previously selected in the first place!!
             if ((e.Button & MouseButtons.Left) == MouseButtons.Left && e.Clicks == 0 ) {
                 try {
                     GetLayoutAtCaret.SelectNext( this, e.Location );
@@ -1029,9 +1030,7 @@ namespace Play.Forms {
                 try {
                     LayoutSingleLine oLayout = GetLayoutAtCaret;
 
-                    using( BaseEditor.Manipulator oBulk = DocForms.CreateManipulator() ) {
-                        oBulk.LineTextDelete( oLayout.Cache.At, oLayout.Selection );
-                    }
+                    DocForms2.LineTextReplace( oLayout.Cache.At, oLayout.Selection, null );
                 } catch( Exception oEx ) {
                     if( _rgStdErrors.IsUnhandled( oEx ) )
                         throw;
@@ -1092,12 +1091,13 @@ namespace Play.Forms {
                 if( sOperation == ClipboardOperations.Text ||
                     sOperation == ClipboardOperations.Default 
                   ) {
-                    string strPaste = oData.GetData(typeof(System.String)) as string;
-                    using( BaseEditor.Manipulator oBulk = new BaseEditor.Manipulator( DocForms ) ) {
+                    if( oData.GetData(typeof(System.String)) is string strPaste ) {
                         if( IsSelection ) {
-                            oBulk.LineTextDelete( iLineAt, oLayout.Selection );
+                            DocForms2.LineTextReplace( iLineAt, oLayout.Selection, strPaste );
+                            oLayout.SelectClear();
+                        } else {
+                            DocForms2.LineTextReplace( iLineAt, this, strPaste );
                         }
-                        oBulk.LineTextInsert( iLineAt, Offset, strPaste, 0, strPaste.Length );
                     }
                 }
             } catch( Exception oEx ) {

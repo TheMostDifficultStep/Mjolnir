@@ -101,23 +101,34 @@ namespace Play.Edit {
             }
         }
 
-        public bool Replace( int iStart, int iLength, ReadOnlySpan<char> spReplacement ) {
-            if( iStart + iLength > _rgValue.Length )
-                return false;
-
-            int iDiff = spReplacement.Length - iLength;
-
-            if( iDiff > 0 ) { // bump up the length if we're adding stuff. 
-                Capacity += iDiff;
-            }
-            int iPush = iStart + iLength;
+        /// <summary>
+        /// Try to pivot ALL array operations into this procedure...
+        /// </summary>
+        /// <exception cref="ArgumentOutOfRangeException"></exception>
+        public bool Replace( int iDelOff, int iDelLen, ReadOnlySpan<char> spInsert ) {
+            if( iDelOff < 0 || iDelLen < 0 )
+                throw new ArgumentOutOfRangeException();
+            if( spInsert == null )
+                spInsert = string.Empty;
 
             try {
-                Array.ConstrainedCopy( sourceArray     :_rgValue, iPush, 
-                                       destinationArray:_rgValue, iPush+iDiff, 
-                                       _iLength - iPush );
-                foreach( char c in spReplacement ) {
-                    _rgValue[iStart++] = c;
+                if( iDelOff + iDelLen > _rgValue.Length )
+                    return false;
+
+                int iDiff = spInsert.Length - iDelLen;          // > 0 means we're adding stuff.
+
+                if( iDiff > 0 && Length + iDiff >= Capacity ) { // bump up the Capacity if needed. 
+                    Capacity += iDiff;
+                }
+                int iPush = iDelOff + iDelLen;                  // Shift everything past this index.
+
+                if( iDiff != 0 ) {
+                    Array.ConstrainedCopy(      sourceArray:_rgValue, iPush, 
+                                           destinationArray:_rgValue, iPush+iDiff, 
+                                           _iLength - iPush );
+                }
+                foreach( char c in spInsert ) {
+                    _rgValue[iDelOff++] = c;
                 }
                 _iLength += iDiff;
             } catch( Exception oEx ) {
@@ -126,7 +137,8 @@ namespace Play.Edit {
                                     typeof( ArrayTypeMismatchException ),
                                     typeof( InvalidCastException ),
                                     typeof( ArgumentOutOfRangeException ),
-                                    typeof( ArgumentException ) };
+                                    typeof( ArgumentException ),
+                                    typeof( NullReferenceException ) };
                 if( rgErrors.IsUnhandled( oEx ) )
                     throw;
 
@@ -263,7 +275,7 @@ namespace Play.Edit {
         /// <param name="iIndex">The character position to begin inserting.</param>
         /// <param name="cChar">The character to insert. TODO: Should probably filter /n/r.</param>
         /// <returns>Returns false if the index is greater than the length or less than zero.</returns>
-        public virtual bool TryInsert( int iIndex, char cChar )
+        [Obsolete]public virtual bool TryInsert( int iIndex, char cChar )
         {
             if( Length + 1 >= Capacity ) {
                 Capacity += 10; // bump up the capacity by a little.
@@ -298,7 +310,7 @@ namespace Play.Edit {
         /// <remarks>We take a string because it is immutable. There is no danger to the caller
         /// that we might remember the address and start monkeying around with it at some
         /// later time.</remarks>
-        public virtual bool TryInsert( int iDestOffset, string strSource, int iSrcIndex, int iSrcLength )
+        [Obsolete]public virtual bool TryInsert( int iDestOffset, ReadOnlySpan<char> strSource, int iSrcIndex, int iSrcLength )
         {
             // Make sure they don't want us copy to outside of ourselves. But it is ok to append at the very end.
             if( iDestOffset < 0 || iDestOffset > this.Length )
@@ -321,7 +333,10 @@ namespace Play.Edit {
 
             // And stuff the new stuff into the hole. Well, I guess I can trust Microsquish not to
             // mess with my character buffer later! ^_^;
-            strSource.CopyTo( iSrcIndex, _rgValue, iDestOffset, iSrcLength );
+            //strSource.CopyTo( iSrcIndex, _rgValue, iDestOffset, iSrcLength );
+            for( int i = 0; i < iSrcLength; ++ i ) {
+                _rgValue[iDestOffset+i] = strSource[iSrcIndex+i];
+            }
 
             // We can do this since we allocate a little extra or have at least this much extra space left.
             _rgValue[iNewLength] = '\0';
@@ -337,7 +352,7 @@ namespace Play.Edit {
         /// <param name="iLength">Length</param>
         /// <param name="strRemoved">A copy of what was removed.</param>
         /// <returns>true if successful.</returns>
-        public virtual bool TryDelete( int iIndex, int iLength, out string strRemoved )
+        [Obsolete]public virtual bool TryDelete( int iIndex, int iLength, out string strRemoved )
         {
             strRemoved = String.Empty;
             

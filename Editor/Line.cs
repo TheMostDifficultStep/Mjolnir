@@ -330,7 +330,7 @@ namespace Play.Edit {
         public abstract ReadOnlySpan<char> AsSpan { get; }
        
         public virtual bool TryInsert( int iIndex, char cChar ) { return( false ); }
-        public virtual bool TryInsert( int iDestOffset, string strSource, int iSrcIndex, int iSrcLength ) { return( false ); }
+        public virtual bool TryInsert( int iDestOffset, ReadOnlySpan<char> strSource, int iSrcIndex, int iSrcLength ) { return( false ); }
         public virtual bool TryDelete( int iIndex, int iLength, out string strRemoved ) { strRemoved = string.Empty; return( false ); }
         public virtual bool TryAppend( string strValue ) { return TryInsert( ElementCount, strValue, 0, strValue.Length ); }
 
@@ -432,7 +432,10 @@ namespace Play.Edit {
         /// <param name="iSrcIndex">Where in the source to start.</param>
         /// <param name="iSrcLength">How much of the source to copy.</param>
         /// <returns></returns>
-        public override bool TryInsert( int iDestOffset, string strSource, int iSrcIndex, int iSrcLength ) {
+        public override bool TryInsert( int iDestOffset, ReadOnlySpan<char> strSource, int iSrcIndex, int iSrcLength ) {
+            if( iSrcLength <= 0 || strSource == null )
+                return false;
+
             bool fReturn = _sbBuffer.TryInsert(iDestOffset, strSource, iSrcIndex, iSrcLength);
 
             if( fReturn ) {
