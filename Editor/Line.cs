@@ -320,19 +320,18 @@ namespace Play.Edit {
             }
         }
 
-        public abstract int    ElementCount { get; }
+        public abstract int   ElementCount { get; }
         public virtual char   this[int iIndex] { get { return( '\0' ); } }
 
         public abstract string SubString( int iStart, int iLength ); 
-      //public override string ToString() { return new string( Buffer, 0, ElementCount ); } // TODO TextLine() we can remove it's implementation.
         public abstract ReadOnlySpan<char> SubSpan( IMemoryRange oRange );
         public abstract ReadOnlySpan<char> SubSpan( int iStart, int iLength );
         public abstract ReadOnlySpan<char> AsSpan { get; }
        
-        public virtual bool TryInsert( int iIndex, char cChar ) { return( false ); }
-        public virtual bool TryInsert( int iDestOffset, ReadOnlySpan<char> strSource, int iSrcIndex, int iSrcLength ) { return( false ); }
-        public virtual bool TryDelete( int iIndex, int iLength, out string strRemoved ) { strRemoved = string.Empty; return( false ); }
-        public virtual bool TryAppend( string strValue ) { return TryInsert( ElementCount, strValue, 0, strValue.Length ); }
+        [Obsolete]public virtual bool TryInsert( int iIndex, char cChar ) { return( false ); }
+        [Obsolete]public virtual bool TryInsert( int iDestOffset, ReadOnlySpan<char> strSource, int iSrcIndex, int iSrcLength ) { return( false ); }
+        [Obsolete]public virtual bool TryDelete( int iIndex, int iLength, out string strRemoved ) { strRemoved = string.Empty; return( false ); }
+        [Obsolete]public virtual bool TryAppend( string strValue ) { return TryInsert( ElementCount, strValue, 0, strValue.Length ); }
 
         public abstract bool TryReplace( int iStart, int iLength, ReadOnlySpan<char> spReplacements );
 		public virtual void Empty() { }
@@ -415,6 +414,9 @@ namespace Play.Edit {
 
         public override ReadOnlySpan<char> AsSpan => _sbBuffer.AsSpan.Slice( 0, _sbBuffer.Length );
 
+        /// <summary>
+        /// BUG: This needs to use the new Marker.ShiftReplace() function...
+        /// </summary>
         public override bool TryReplace(int iStart, int iLength, ReadOnlySpan<char> spReplacements) {
             if( _sbBuffer.Replace( iStart, iLength, spReplacements ) ) {
                 FormattingShiftInsert( iStart, spReplacements.Length - iLength );
@@ -432,7 +434,7 @@ namespace Play.Edit {
         /// <param name="iSrcIndex">Where in the source to start.</param>
         /// <param name="iSrcLength">How much of the source to copy.</param>
         /// <returns></returns>
-        public override bool TryInsert( int iDestOffset, ReadOnlySpan<char> strSource, int iSrcIndex, int iSrcLength ) {
+        [Obsolete]public override bool TryInsert( int iDestOffset, ReadOnlySpan<char> strSource, int iSrcIndex, int iSrcLength ) {
             if( iSrcLength <= 0 || strSource == null )
                 return false;
 
@@ -451,7 +453,7 @@ namespace Play.Edit {
         /// <param name="iIndex">Index to push to the right.</param>
         /// <param name="cChar">Character to put at the index.</param>
         /// <returns></returns>
-        public override bool TryInsert( int iIndex, char cChar ) {
+        [Obsolete]public override bool TryInsert( int iIndex, char cChar ) {
             bool fReturn = _sbBuffer.TryInsert(iIndex, cChar);
 
             if( fReturn ) {
@@ -462,7 +464,7 @@ namespace Play.Edit {
             return( fReturn );
         }
 
-        public override bool TryDelete( int iIndex, int iLength, out string strRemoved ) {
+        [Obsolete]public override bool TryDelete( int iIndex, int iLength, out string strRemoved ) {
             if( _sbBuffer.TryDelete( iIndex, iLength, out strRemoved ) ) {
                 IsDirty = true;
                 return true;
