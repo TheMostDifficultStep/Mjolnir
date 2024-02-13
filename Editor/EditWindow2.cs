@@ -1150,9 +1150,9 @@ namespace Play.Edit {
                     PaintBackground(skCanvas, skPaint, oRow);
 
                     for( int iCache=0; iCache<oRow.CacheList.Count; ++iCache ) {
-                        FTCacheLine oCache = oRow.CacheList[iCache];
-
-                        oCache.Render(skCanvas, _oStdUI, RenderAt(oRow, _rgCacheMap[iCache] ), iCache == 0 ? this.Focused : false );
+                        if( oRow[iCache] is IPgCacheRender oRender ) {
+                            oRender.Render(skCanvas, _oStdUI, RenderAt(oRow, _rgCacheMap[iCache] ), iCache == 0 ? this.Focused : false );
+                        }
                     }
                 }
             } catch( Exception oEx ) {

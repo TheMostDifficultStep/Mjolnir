@@ -128,20 +128,20 @@ namespace Play.Edit {
     /// document "line" based and the other being multi column document "row"
     /// based. Like spread sheets for example.
     /// </summary>
-    public class CacheRow {
+    public abstract class CacheRow {
         // This is super important that the CacheList 0 is used. The other's line
         // numbers are not managed by the text editor.
-        public         Line Line      => CacheList[0].Line; 
-        public virtual int  At        { get { return Line.At; } }
-        public         int  Top       { get; set; }
+        public abstract Line Line { get; }
+        public abstract int  At   { get; }
+        public          int  Top  { get; set; }
 
         // Well have a matching array of SmartRect's for each cache elem inside.
         // CacheList s/b always inorder of the CacheMap but not necessarily the
         // same as the "layout" list. For example scroll bar in layout but not
         // the cache system.
-        public List<FTCacheLine> CacheList { get; } = new List<FTCacheLine> ();
+        public List<IPgCacheMeasures> CacheList { get; } = new List<IPgCacheMeasures>();
 
-        public FTCacheLine this[int iIndex] => CacheList[iIndex];
+        public IPgCacheMeasures this[int iIndex] => CacheList[iIndex];
 
         public override string ToString() {
             StringBuilder sbBuilder = new();
@@ -165,7 +165,7 @@ namespace Play.Edit {
                 int iHeight = 0;
 
                 for( int i=0; i< CacheList.Count; ++i ) {
-                    FTCacheLine oCache = CacheList[i];
+                    IPgCacheMeasures oCache = CacheList[i];
 
                     if( oCache.Height > iHeight )
                         iHeight = oCache.Height;
@@ -194,12 +194,24 @@ namespace Play.Edit {
         }
     }
 
+    public class CacheRowSingle :
+        CacheRow
+    {
+        Line _oLine;
+
+        public CacheRowSingle(Line oLine) {
+            _oLine = oLine;
+        }
+
+        public override Line Line => _oLine; 
+        public override int  At { get { return _oLine.At; } }
+    }
+
     public class CacheRow2 : CacheRow {
         protected Row _oDocRow;
 
-        public override int At => _oDocRow.At;
-
-        //public virtual Row DataRow => _oDocRow;
+        public override int  At   => _oDocRow.At;
+        public override Line Line => _oDocRow[0]; 
 
         public CacheRow2( Row oDocRow ) {
             _oDocRow = oDocRow ?? throw new ArgumentNullException( nameof( oDocRow ) );
@@ -212,7 +224,12 @@ namespace Play.Edit {
         Right
     }
 
-    public interface IPgCacheLine {
+    /// <summary>
+    /// Height really maps to TrackDesired,
+    /// UnwrappedWidth is similar a "RailMaxPercent" ... TrackMaxPercent.
+    /// Maybe can consolidate the two systems. Might not be worth it..
+    /// </summary>
+    public interface IPgCacheMeasures {
         int   Height { get; }
         float UnwrappedWidth { get; }
 
@@ -245,7 +262,9 @@ namespace Play.Edit {
             PointF         pntEditAt );
     }
 
-    public class FTCacheLine 
+    public class FTCacheLine :
+        IPgCacheMeasures,
+        IPgCacheRender
     {
         public         Line Line      { get; }
         public virtual int  Height    { get { return LineHeight; } }

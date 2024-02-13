@@ -454,6 +454,8 @@ namespace Play.Edit {
             }
         }
 
+        protected SmartRect SparePaintingRect { get; } = new();
+
         /// <remarks>
         /// Used to do a simple refresh before painting, but no longer... O.o
         /// </remarks>
@@ -475,20 +477,21 @@ namespace Play.Edit {
                 skCanvas.DrawRect( new SKRect( 0, 0, Width, Height ), skPaintBG);
 
                 // Now paint the rows.
-                SmartRect rctSquare = new();
+                SmartRect rctSquare = SparePaintingRect;
                 foreach( CacheRow oCacheRow in _oCacheMan ) {
                     for( int iCacheCol=0; iCacheCol<oCacheRow.CacheList.Count; ++iCacheCol ) {
-                        FTCacheLine oCache  = oCacheRow.CacheList[iCacheCol];
-                        SmartRect   oColumn = _rgColumns[iCacheCol];
+                        if( oCacheRow[iCacheCol] is IPgCacheRender oRender ) {
+                            SmartRect oColumn = _rgColumns[iCacheCol];
 
-                        rctSquare.SetRect( oColumn.Left, oCacheRow.Top, oColumn.Right, oCacheRow.Bottom );
+                            rctSquare.SetRect( oColumn.Left, oCacheRow.Top, oColumn.Right, oCacheRow.Bottom );
 
-                        // Test pattern...
-                        //skPaint.Color = iCache % 2 == 0 ? SKColors.Blue : SKColors.Green;
-                        //skCanvas.DrawRect( rctSquare.SKRect, skPaint );
-                        PaintSquareBG( skCanvas, skPaintBG, oCacheRow, iCacheCol, rctSquare );
+                            // Test pattern...
+                            //skPaint.Color = iCache % 2 == 0 ? SKColors.Blue : SKColors.Green;
+                            //skCanvas.DrawRect( rctSquare.SKRect, skPaint );
+                            PaintSquareBG( skCanvas, skPaintBG, oCacheRow, iCacheCol, rctSquare );
 
-                        oCache.Render(skCanvas, _oStdUI, skPaintTx, rctSquare, this.Focused );
+                            oRender.Render(skCanvas, _oStdUI, skPaintTx, rctSquare, this.Focused );
+                        }
                     }
                 }
             } catch( Exception oEx ) {

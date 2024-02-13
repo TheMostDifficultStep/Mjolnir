@@ -335,7 +335,7 @@ namespace Play.Edit {
         protected virtual void RowUpdate( CacheRow oRow ) {
 			try {
                 for( int i=0; i<oRow.CacheList.Count && i<_rgCacheMap.Count; ++i ) {
-                    FTCacheLine oElem = oRow.CacheList[i];
+                    IPgCacheMeasures oElem = oRow.CacheList[i];
 
 				    oElem.Update            ( Font );
                     oElem.OnChangeFormatting( _oSite.Selections );
@@ -450,7 +450,7 @@ namespace Play.Edit {
                 return null;
             }
 
-            CacheRow oRow = new CacheRow();
+            CacheRow oRow = new CacheRowSingle( oLine );
 
             FTCacheLine oElem;
 
@@ -550,16 +550,14 @@ namespace Play.Edit {
 
             CacheRow oRow = CacheLocate( oCaret.At );
 
-            if( oRow == null ) 
-                return _rgEmptyGlyph;
+            if( oRow != null && oRow[0] is FTCacheLine oCache ) {
+                PgCluster   oCluster = oCache.ClusterAt( oCaret.Offset );
 
-            FTCacheLine oCache   = oRow.CacheList[0];
-            PgCluster   oCluster = oCache.ClusterAt( oCaret.Offset );
+                if( oCluster != null )
+                    return new GraphemeCollection( oCache, oCluster );
+            }
 
-            if( oCluster == null )
-                return _rgEmptyGlyph;
-
-            return new GraphemeCollection( oCache, oCluster );
+            return _rgEmptyGlyph;
         }
 
         /// <summary>
@@ -711,7 +709,7 @@ namespace Play.Edit {
         ///         changed, needs the "update"</remarks> 
         public void OnChangeFormatting( ICollection<ILineSelection> rgSelection, int iWidth ) {
             foreach( CacheRow oRow in _rgOldCache ) {
-                FTCacheLine oCache = oRow.CacheList[0];
+                IPgCacheMeasures oCache = oRow.CacheList[0];
               //oCache.Update( Font ); Just can't call this here. Too slow.
                 oCache.OnChangeFormatting( rgSelection );
                 oCache.OnChangeSize( iWidth );
@@ -821,14 +819,14 @@ namespace Play.Edit {
         /// <param name="oWorldLoc">Graphics location of interest in world coordinates. Basically
         ///                         where the mouse clicked.</param>
         /// <param name="oCaret">This object line offset is updated to the closest line offset.</param>
-        public FTCacheLine GlyphPointToRange( ref EditWindow2.WorldLocator oWorldLoc, ILineRange oCaret ) {
+        public IPgCacheMeasures GlyphPointToRange( ref EditWindow2.WorldLocator oWorldLoc, ILineRange oCaret ) {
             foreach( CacheRow oRow in _rgOldCache ) {
                 if( oRow.Top    <= oWorldLoc.Y &&
                     oRow.Bottom >= oWorldLoc.Y ) 
                 {
-                    FTCacheLine oCache = oRow.CacheList[oWorldLoc._iColumn];
+                    IPgCacheMeasures oCache = oRow.CacheList[oWorldLoc._iColumn];
 
-                    oCaret.Line   = oCache.Line;
+                    oCaret.Line   = oRow.Line;
                     oCaret.Offset = oCache.GlyphPointToOffset(oRow.Top, oWorldLoc._pntLocation );
 
                     return oCache;
@@ -900,7 +898,7 @@ namespace Play.Edit {
         /// <param name="pntWorld">World Coordinates.</param>
         /// <remarks>Advance is modulo in the wrapped text case.</remarks>
         public void CaretAndAdvanceReset( ref EditWindow2.WorldLocator sWorldLoc, ILineRange oCaretPos, ref float flAdvance ) {
-            FTCacheLine oCache = GlyphPointToRange( ref sWorldLoc, oCaretPos );
+            IPgCacheMeasures oCache = GlyphPointToRange( ref sWorldLoc, oCaretPos );
             if( oCache != null ) {
                 Point oNewLocation = oCache.GlyphOffsetToPoint( oCaretPos.Offset );
 

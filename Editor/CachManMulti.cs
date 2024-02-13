@@ -625,7 +625,7 @@ namespace Play.Edit {
         protected virtual void RowMeasure( CacheRow oRow ) {
             try {
                 for( int i=0; i<oRow.CacheList.Count && i<_rgColumnRects.Count; ++i ) {
-                    FTCacheLine oElem = oRow.CacheList[i];
+                    IPgCacheMeasures oElem = oRow.CacheList[i];
 
 				    oElem.Update            ( Font );
                     oElem.OnChangeFormatting( null );
@@ -689,31 +689,6 @@ namespace Play.Edit {
             IEnumerator IEnumerable.GetEnumerator() {
                 return GetEnumerator();
             }
-        }
-
-        public static IPgGlyph[] _rgEmptyGlyph = new IPgGlyph[0];
-
-        /// <summary>BUG: Fix this later... List all the codepoints that make up this character.</summary>
-        /// <remarks>In this brave new world. A single grapheme can be made up of
-        /// many codepoints! This brings up the issue of editing these multi point
-        /// grapheme's but I'll side step that for the moment.</remarks>
-        /// <exception cref="ArgumentException" />
-        public IEnumerable<IPgGlyph> EnumGrapheme( ILineRange oCaret ) {
-            if( oCaret == null || oCaret.Line == null )
-                throw new ArgumentException( "Caret or Line on Caret is empty" );
-
-            CacheRow oRow = CacheLocate( oCaret.At );
-
-            if( oRow == null ) 
-                return _rgEmptyGlyph;
-
-            FTCacheLine oCache   = oRow.CacheList[0];
-            PgCluster   oCluster = oCache.ClusterAt( oCaret.Offset );
-
-            if( oCluster == null )
-                return _rgEmptyGlyph;
-
-            return new GraphemeCollection( oCache, oCluster );
         }
 
         /// <summary>
@@ -875,9 +850,9 @@ namespace Play.Edit {
                     if( oCacheRow.Top    <= pntScreenPick.Y &&
                         oCacheRow.Bottom >= pntScreenPick.Y ) 
                     {
-                        FTCacheLine oCache   = oCacheRow.CacheList[iColumn];
-                        SKPointI    pntLocal = new SKPointI( pntScreenPick.X - _rgColumnRects[iColumn].Left,
-                                                             pntScreenPick.Y - _rgColumnRects[iColumn].Top );
+                        IPgCacheMeasures oCache   = oCacheRow.CacheList[iColumn];
+                        SKPointI         pntLocal = new SKPointI( pntScreenPick.X - _rgColumnRects[iColumn].Left,
+                                                                  pntScreenPick.Y - _rgColumnRects[iColumn].Top );
 
                         iOffset = oCache.GlyphPointToOffset(oCacheRow.Top, pntLocal );
 
