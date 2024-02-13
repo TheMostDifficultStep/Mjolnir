@@ -214,10 +214,9 @@ namespace Play.Edit {
 
     public interface IPgCacheLine {
         int   Height { get; }
-        Align Justify { get; set; }
         float UnwrappedWidth { get; }
-        bool  IsInvalid { get; set; }
 
+        bool  IsInvalid { get; set; }
         void  Update( IPgFontRender oRender );
         void  OnChangeFormatting( ICollection<ILineSelection> rgSelections );
         void  OnChangeSize( int iWidth );
