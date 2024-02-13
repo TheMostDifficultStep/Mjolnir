@@ -216,8 +216,7 @@ namespace Play.Edit {
         int   Height { get; }
         Align Justify { get; set; }
         float UnwrappedWidth { get; }
-        bool  IsInvalid { get; }
-        void  Invalidate();
+        bool  IsInvalid { get; set; }
 
         void  Update( IPgFontRender oRender );
         void  OnChangeFormatting( ICollection<ILineSelection> rgSelections );
@@ -251,7 +250,7 @@ namespace Play.Edit {
     {
         public         Line Line      { get; }
         public virtual int  Height    { get { return LineHeight; } }
-        public virtual bool IsInvalid { get; protected set; } = true;
+        public virtual bool IsInvalid { get; set; } = true;
         protected      int  LineHeight{ set; get; }
         protected      int  FontHeight{ set; get; }
         public       Align  Justify   { set; get; } = Align.Left;
@@ -317,10 +316,6 @@ namespace Play.Edit {
             for( int i=oCluster.Glyphs.Offset; i<oCluster.Glyphs.Offset + oCluster.Glyphs.Length; ++i ) {
                 yield return _rgGlyphs[i];
             }
-        }
-
-        public void Invalidate() {
-            IsInvalid = true;
         }
 
         // TODO: Move this to a static helper class.

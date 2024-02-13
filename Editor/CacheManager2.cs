@@ -391,7 +391,7 @@ namespace Play.Edit {
         public void Invalidate() {
             foreach( CacheRow oRow in this ) {
                 foreach( FTCacheLine oElem in oRow.CacheList ) {
-                    oElem.Invalidate();
+                    oElem.IsInvalid = true;
                 }
             }
         }

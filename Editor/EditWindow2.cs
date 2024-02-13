@@ -127,7 +127,7 @@ namespace Play.Edit {
         }
 
 		public override void Invalidate() {
-			Cache.Invalidate();
+			Cache.IsInvalid = true;
 		}
 	}
 
