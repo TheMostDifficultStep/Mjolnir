@@ -147,7 +147,6 @@ namespace Play.Clock {
     {
         private   readonly string         _strViewIcon  = "Play.Clock.Content.icon_clock.gif";
         protected readonly IPgViewSite    _oViewSite;
-      //protected readonly IPgStandardUI2 _oStdUI;
 
         public Guid      Catagory  => Guid.Empty; // Default view.
         public string    Banner    => "World Clock";
@@ -160,7 +159,6 @@ namespace Play.Clock {
         {
             Document   = oDocClock ?? throw new ArgumentNullException( "Clock document must not be null." );
             _oViewSite = oViewSite;
- 	      //_oStdUI    = Services as IPgStandardUI2 ?? throw new ArgumentException( "Parent view must provide IPgStandardUI service" );
 
 			Icon       = SKImageResourceHelper.GetImageResource( Assembly.GetExecutingAssembly(), _strViewIcon );
             _fReadOnly = true;

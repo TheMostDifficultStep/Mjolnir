@@ -395,7 +395,7 @@ namespace Play.Forms {
             PropertyDoc.Dispose();
         }
     }
-    
+  
     /*
     public class DocProperties :
         EditMultiColumn,
@@ -495,7 +495,7 @@ namespace Play.Forms {
                     Line oValueLine = _oHost[ iLine ][1];
 
                     oValueLine.Empty();
-                    oValueLine.TryAppend( strValue );
+                    oValueLine.TryReplace( 0, oValueLine.ElementCount, strValue );
 
                     _rgSortedLines.Add( iLine );
                 } catch( ArgumentOutOfRangeException ) {
@@ -508,7 +508,7 @@ namespace Play.Forms {
                     Line oLabelLine = _oHost[ iProperty ][0];
 
                     oLabelLine.Empty();
-                    oLabelLine.TryAppend( strLabel );
+                    oLabelLine.TryReplace( 0, oLabelLine.ElementCount, strLabel );
 
                     _rgSortedLines.Add( iProperty );
                 } catch( ArgumentOutOfRangeException ) {
@@ -603,7 +603,7 @@ namespace Play.Forms {
         public void ValueUpdate( int iIndex, string strValue, bool Broadcast = false ) {
             if( _rgRows[iIndex] is PropertyRow oPair ) {
                 oPair.Value.Empty();
-                oPair.Value.TryAppend( strValue );
+                oPair.Value.TryReplace( 0, oPair.Value.ElementCount, strValue );
 
                 if( Broadcast ) {
                     // Need to look at this multi line call. s/b single line.
@@ -623,7 +623,7 @@ namespace Play.Forms {
             Line oLabel = _rgRows[iIndex][0];
 
             oLabel.Empty();
-            oLabel.TryAppend(strLabel);
+            oLabel.TryReplace( 0, oLabel.ElementCount, strLabel );
 
             if( skBgColor.HasValue ) {
                 ValueBgColor.Add(iIndex, skBgColor.Value);

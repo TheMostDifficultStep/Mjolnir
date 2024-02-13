@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Collections;
 using System.Windows.Forms;
 using System.Xml;
+using System.Diagnostics;
+using System.IO;
 
 using SkiaSharp;
 using SkiaSharp.Views.Desktop;
@@ -11,8 +13,6 @@ using Play.Interfaces.Embedding;
 using Play.Rectangles;
 using Play.Controls;
 using Play.Parse;
-using System.Drawing;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement.TextBox;
 
 namespace Play.Edit {
     public interface IPgDocTraits<T> {
@@ -251,6 +251,23 @@ namespace Play.Edit {
 
         protected void LogError( string strMessage, bool fShow = false ) {
             _oSiteView.LogError( "Multi Column Window", strMessage, fShow );
+        }
+
+        protected void BrowserLink( string strUrl ) {
+            try {
+                ProcessStartInfo psi = new ProcessStartInfo {
+                    FileName        = strUrl,
+                    UseShellExecute = true
+                };
+                Process.Start( psi );
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( ObjectDisposedException ), 
+                                    typeof( FileNotFoundException ),
+                                    typeof( NullReferenceException ),
+                                    typeof( System.ComponentModel.Win32Exception ) };
+                if( rgErrors.IsUnhandled( oEx ) ) 
+                    throw;
+            }
         }
 
         protected override bool IsInputKey(Keys keyData) {
