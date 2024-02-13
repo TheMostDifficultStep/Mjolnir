@@ -206,8 +206,7 @@ namespace Play.Edit {
         }
     }
 
-    public class FTCacheLine : 
-		IEnumerable<IColorRange>
+    public class FTCacheLine 
     {
         public enum Align {
             Left,
@@ -225,11 +224,6 @@ namespace Play.Edit {
 
         protected const int InvisibleEOL = 0; // use this if I put the "<" at the end of selected lines.
                                               // this marks places where I used to fix up for that.
-
-        //public int Bottom {
-        //    get { return Top + Height; }
-        //    set { Top = value - Height; }
-        //}
 
         protected readonly List<IPgGlyph>  _rgGlyphs     = new List<IPgGlyph >(100); // Glyphs that construct characters.
         protected readonly List<PgCluster> _rgClusters   = new List<PgCluster>(100); // Single unit representing a character.
@@ -808,30 +802,30 @@ namespace Play.Edit {
                 Debug.Fail( "Exception thrown in FTCacheLine.Render" );
             }
         } // end method
-
+        
+        /*
         /// <summary>Render the End Of Line character.</summary>
         /// <param name="pntEditAt">Top left of the cache element on screen.</param>
         /// <remarks>Need to look at why we pass the pntEditAt. Why not just use our own 'left' / 'top'</remarks>
-        //public void RenderEOL( SKCanvas skCanvas, SKPaint skPaint, PointF pntEditAt,  List<SKColor> rgStdColors, IPgGlyph oGlyphLessThan )
-        //{
-        //    try {
-        //        Point pntOffset = GlyphOffsetToPoint( _rgClusters.Count );
+        public void RenderEOL(SKCanvas skCanvas, SKPaint skPaint, PointF pntEditAt, List<SKColor> rgStdColors, IPgGlyph oGlyphLessThan) {
+            try {
+                Point pntOffset = GlyphOffsetToPoint(_rgClusters.Count);
 
-        //        DrawGlyph( skCanvas, skPaint,
-        //                   (Int32)( pntEditAt.X + pntOffset.X ),
-        //                   (Int32)( pntEditAt.Y + pntOffset.Y ),
-        //                   oGlyphLessThan );
-        //    } catch( Exception oEx ) {
-        //        Type[] rgErrors = { typeof( ArgumentOutOfRangeException ),
-        //                            typeof( NullReferenceException ),
-        //                            typeof( ArithmeticException ),
-        //                            typeof( ArgumentNullException ) };
-        //        if( rgErrors.IsUnhandled( oEx ) )
-        //            throw;
+                DrawGlyph(skCanvas, skPaint,
+                           (Int32)( pntEditAt.X + pntOffset.X ),
+                           (Int32)( pntEditAt.Y + pntOffset.Y ),
+                           oGlyphLessThan);
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( ArgumentOutOfRangeException ),
+                                    typeof( NullReferenceException ),
+                                    typeof( ArithmeticException ),
+                                    typeof( ArgumentNullException ) };
+                if( rgErrors.IsUnhandled(oEx) )
+                    throw;
 
-        //        Debug.Fail( "Exception thrown in FTCacheLine.RenderEOL" );
-        //    }
-        //} // end method
+                Debug.Fail("Exception thrown in FTCacheLine.RenderEOL");
+            }
+        } // end method
 
         /// <summary>
         /// Render the little underline's to show where an error has occured.
@@ -865,6 +859,7 @@ namespace Play.Edit {
                 Debug.Fail( "Exception in FTCacheLine.RenderLinks" );
 			}
         } // end method
+        */
 
         /// <summary>
         /// Find the character offset of the mouse position. TODO: This is a crude
@@ -1061,7 +1056,8 @@ namespace Play.Edit {
 		/// We correct this problem in OnChangeFormatting().
 		/// </remarks>
 		/// <seealso cref="OnChangeFormatting"/>
-		public IEnumerator<IColorRange> GetEnumerator() {
+        /*
+		protected IEnumerator<IColorRange> GetEnumerator() {
 			if( Line.Formatting.Count > 0 ) {
 				foreach( IColorRange oRange in Line.Formatting ) {
                     if( oRange is IPgWordRange oWord && oWord.IsTerm )
@@ -1072,8 +1068,9 @@ namespace Play.Edit {
 			yield return( new WordRange( 0, Line.ElementCount, 0 ) );
 		}
 
-		IEnumerator IEnumerable.GetEnumerator() {
-			return GetEnumerator();
-		}
-	} // end class
+        IEnumerator IEnumerable.GetEnumerator() {
+            return GetEnumerator();
+        }
+        */
+    } // end class
 }
