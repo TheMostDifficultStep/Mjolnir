@@ -125,10 +125,10 @@ namespace Kanji_Practice {
             Line oHiragLine = Document[ (int)KanjiProperties.Labels.Hiragana ];
 
             foreach( LayoutSingleLine oLayout in CacheList ) {
-                if( oLayout.Cache.Line == oKanjiLine   ) {
+                if( oLayout.Line == oKanjiLine   ) {
                     oLayout.FontID = BigFont;
                 }
-                if( oLayout.Cache.Line == oHiragLine   ) {
+                if( oLayout.Line == oHiragLine   ) {
                     oLayout.FontID = BigFont;
                 }
             }

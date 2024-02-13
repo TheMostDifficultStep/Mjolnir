@@ -62,12 +62,14 @@ namespace Play.Forms {
         public SKColor     BgColor { get; set; } = SKColors.LightGray;
         public SKColor     FgColor { get; set; } = SKColors.Red;
         public uint        FontID  { get; set; } = uint.MaxValue;
+        public Line        Line    => Cache.Line;
 
         // Normally selection lives on the view, but I'll put it here for forms for now.
         protected ILineSelection[] _rgSelections = new ILineSelection[1];
 
         public LayoutSingleLine( FTCacheLine oCache, CSS eCSS ) : base( eCSS ) {
             Cache = oCache ?? throw new ArgumentNullException();
+
             _rgSelections[0] = Selection;
         }
 
@@ -76,11 +78,11 @@ namespace Play.Forms {
                 StringBuilder sbBuild = new StringBuilder();
 
                 sbBuild.Append( "F" );
-                sbBuild.Append( Cache.Line.Formatting.Count.ToString() );
+                sbBuild.Append( Line.Formatting.Count.ToString() );
                 sbBuild.Append( "@" );
-                sbBuild.Append( Cache.Line.At.ToString() );
+                sbBuild.Append( Line.At.ToString() );
                 sbBuild.Append( ":" );
-                sbBuild.Append( Cache.Line.ToString(), 0, Cache.Line.ElementCount > 50 ? 50 : Cache.Line.ElementCount );
+                sbBuild.Append( Line.ToString(), 0, Line.ElementCount > 50 ? 50 : Line.ElementCount );
 
                 return sbBuild.ToString();
             } catch( NullReferenceException ) {
@@ -526,8 +528,7 @@ namespace Play.Forms {
 
             // Got to keep the carat in our PropertyValues form.
             for( int i = 0; i< CacheList.Count; ++i ) {
-                if( CacheList[i].Cache.Line == oNext &&
-                    oNext == DocForms2.GetLine(oNext.At) ) {
+                if( CacheList[i].Line == oNext ) {
                     _iCaretAtLayout = i;
 
                     //oLayout.SelectHead( Caret, e.Location, ModifierKeys == Keys.Shift );
@@ -697,7 +698,7 @@ namespace Play.Forms {
                     if( _iCaretAtLayout < 0 )
                         return null;
 
-                    return GetLayoutAtCaret.Cache.Line;
+                    return GetLayoutAtCaret.Line;
                 } catch( Exception oEx ) {
                     if( _rgStdErrors.IsUnhandled( oEx ) )
                         throw;
@@ -709,7 +710,7 @@ namespace Play.Forms {
             set { 
                 _iCaretAtLayout = -1;
                 for( int i = 0; i< CacheList.Count; ++i ) {
-                    if( CacheList[i].Cache.Line == value ) {
+                    if( CacheList[i].Line == value ) {
                         _iCaretAtLayout = i;
                         break;
                     }                        
@@ -728,7 +729,7 @@ namespace Play.Forms {
                     if( _iCaretAtLayout < 0 )
                         return -1;
 
-                    return GetLayoutAtCaret.Cache.Line.At;
+                    return GetLayoutAtCaret.Line.At;
                 } catch( Exception oEx ) {
                     if( _rgStdErrors.IsUnhandled( oEx ) )
                         throw;
@@ -747,7 +748,7 @@ namespace Play.Forms {
         public void OnKey_Delete( bool fBackSpace ) {
             try {
                 LayoutSingleLine oLayout = GetLayoutAtCaret;
-                int              iLineAt = oLayout.Cache.Line.At;
+                int              iLineAt = oLayout.Cache.At;
 
                 if( IsSelection ) {
                     DocForms2.LineTextReplace( iLineAt, oLayout.Selection, null );
@@ -784,7 +785,7 @@ namespace Play.Forms {
                 }
                 if( !char.IsControl( e.KeyChar )  ) { 
                     LayoutSingleLine   oLayout = GetLayoutAtCaret;
-                    int                iLineAt = oLayout.Cache.Line.At;
+                    int                iLineAt = oLayout.Line.At;
                     ReadOnlySpan<char> spChar  = stackalloc char[1] { e.KeyChar };
 
                     if( IsSelection ) {
@@ -961,7 +962,7 @@ namespace Play.Forms {
                                 GetLayoutAtCaret.SelectHead( this, e.Location, false );
                             }
                             // BUG: Shouldn't call this if there is a selection on the link.
-                            Links.Find( GetLayoutAtCaret.Cache.Line, Offset, true );
+                            Links.Find( GetLayoutAtCaret.Line, Offset, true );
                         }
                     }
                 } catch( Exception oEx ) {
@@ -984,7 +985,7 @@ namespace Play.Forms {
                     SKPointI pntWorld = new SKPointI( e.X - oLayout.Left,
                                                       e.Y - oLayout.Top);
                     int iEdge = oLayout.Cache.GlyphPointToOffset( this.Top, pntWorld );
-                    if( Links.Find( oLayout.Cache.Line, iEdge, false ) ) {
+                    if( Links.Find( oLayout.Line, iEdge, false ) ) {
                         oCursor = Cursors.Hand;
                     } else {
                         oCursor = Cursors.IBeam;
@@ -1059,10 +1060,10 @@ namespace Play.Forms {
 				if( IsSelection ) {
 					oSelection = oLayout.Selection;
 				} else {
-					oSelection = new ColorRange( 0, oLayout.Cache.Line.ElementCount, 0 );
+					oSelection = new ColorRange( 0, oLayout.Line.ElementCount, 0 );
  				}
 				if( oSelection != null ) {
-					string strSelection = oLayout.Cache.Line.SubString( oSelection.Offset, oSelection.Length );
+					string strSelection = oLayout.Line.SubString( oSelection.Offset, oSelection.Length );
 
 				    oDataObject.SetData      ( strSelection );
 				    Clipboard  .SetDataObject( oDataObject );

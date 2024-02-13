@@ -1798,14 +1798,13 @@ namespace Play.Edit {
                     // Got to do the insert AFTER walking the _oCacheMan b/c stream insert adds 
                     // lines to cache. See OnLineNew() callback! 
                     if( oCacheHit != null ) {
-                        Line oLine = oCacheHit.Line;
                         int  iEdge = oCacheHit.GlyphPointToOffset( iRowTop, sWorldLoc._pntLocation );
 
                         // We can add in front of the EOL character.
-                        Debug.Assert( iEdge <= oLine.ElementCount );
+                        //Debug.Assert( iEdge <= oLine.ElementCount );
 
                         using( Editor.Manipulator oBulk = new Editor.Manipulator( _oDocument ) ) {
-                            oBulk.StreamInsert( oLine.At, iEdge, new StringReader( item ) ); // TODO: Check line count good.
+                            oBulk.StreamInsert( oCacheHit.At, iEdge, new StringReader( item ) ); // TODO: Check line count good.
                         }
                     }
                 }
@@ -2752,7 +2751,7 @@ namespace Play.Edit {
                 Line.Empty();
 
                 if( _oCheckedLine() == _oGuest ) {
-                    Line.TryAppend( _strCheckMark );
+                    Line.TryReplace( 0, Line.ElementCount, _strCheckMark );
                 }
 
                 base.Update(oFR);

@@ -207,9 +207,9 @@ namespace Play.ImageViewer {
         //    return true;
         //}
 
-        public string Text { 
-            set { CacheElem.Line.TryAppend( value ); }
-        }
+        //public string Text { 
+        //    set { CacheElem.Line.TryAppend( value ); }
+        //}
 
         /// <summary>
         /// Whenever the text changes, you need to call this function to
