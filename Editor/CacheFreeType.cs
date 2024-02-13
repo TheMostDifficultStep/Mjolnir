@@ -407,15 +407,13 @@ namespace Play.Edit {
         /// </summary>
         /// <remarks>Do NOT set the cluster AdvanceLeft, that will be set in WrapSegments() </remarks>
         /// <seealso cref="FTCacheWrap.WrapSegments"/>
-        public virtual void Update( IPgFontRender oFR, IMemoryRange oRange = null ) {
+        public virtual void Update( IPgFontRender oFR ) {
             if( oFR == null )
                 throw new ArgumentNullException();
-            if( oRange == null )
-                oRange = new MemoryRange( 0, Line.ElementCount ); // this is a struct...
 
             FontHeight = (int)oFR.LineHeight;
             LineHeight = (int)(FontHeight * 1.2 ); // Make this a intra line property in the future.
-            LoadCodePoints( oFR, oRange );
+            LoadCodePoints( oFR, new MemoryRange( 0, Line.ElementCount ) );
 
             _rgClusters.Clear();
             PgCluster oCluster;

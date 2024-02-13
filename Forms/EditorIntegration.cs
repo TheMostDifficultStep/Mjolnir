@@ -134,7 +134,7 @@ namespace Play.Forms {
                 _oGuest = oGuest ?? throw new ArgumentNullException( "Guest line must not be null" );
             }
 
-            public override void Update(IPgFontRender oFR, IMemoryRange oRange ) {
+            public override void Update(IPgFontRender oFR ) {
                 Line.TryReplace( 0, Line.ElementCount, _oGuest.At.ToString() );
 
                 base.Update(oFR);

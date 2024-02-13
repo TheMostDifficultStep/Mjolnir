@@ -2747,7 +2747,7 @@ namespace Play.Edit {
                 _oGuest       = oGuest       ?? throw new ArgumentNullException();
             }
 
-            public override void Update(IPgFontRender oFR, IMemoryRange oRange ) {
+            public override void Update(IPgFontRender oFR ) {
                 Line.Empty();
 
                 if( _oCheckedLine() == _oGuest ) {

@@ -336,11 +336,11 @@ namespace Play.Edit {
             }
         }
 
-        protected void ElemUpdate2( FTCacheLine oElem, int iWidth, IMemoryRange oRange = null ) {
+        protected void ElemUpdate2( FTCacheLine oElem, int iWidth ) {
 			try {
                 //_oSite.WordBreak( oElem.Line, oElem.Words );
 
-				oElem.Update            ( Font, oRange );
+				oElem.Update            ( Font );
                 oElem.OnChangeFormatting( _oSite.Selections );
                 oElem.OnChangeSize      ( iWidth );
 			} catch( Exception oEx ) {
