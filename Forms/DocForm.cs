@@ -60,9 +60,9 @@ namespace Play.Forms {
         }
         
         public Line Line {
-            get { return Layout.Cache.Line; }
+            get { return Layout.Line; }
             set {
-                if( value != Layout.Cache.Line )
+                if( value != Layout.Line )
                     throw new ApplicationException();
             }
         }

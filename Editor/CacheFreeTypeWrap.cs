@@ -20,7 +20,7 @@ namespace Play.Edit {
     public class FTCacheWrap : FTCacheLine {
         int _iWrapCount = 0;
 
-        public FTCacheWrap( Line oLine, int iColumn = 0 ) : base( oLine, iColumn ) {
+        public FTCacheWrap( Line oLine ) : base( oLine ) {
         }
 
         override public int Height {
@@ -258,27 +258,6 @@ namespace Play.Edit {
                 flOffset = 0;
 
             rgStart[iSegment] = flOffset;
-        }
-
-        /// <summary>
-        /// Load the current color range into the clusters list as much as possible.
-        /// </summary>
-        /// <remarks>Our formatting info can contain a fake EOL word that is outside the cluster limits.</remarks>
-        private bool LoadWord( IColorRange oWord, int iDisplayWidth, ref float flAdvance, ref int iIndex ) {
-            while( iIndex < oWord.Offset + oWord.Length ) {
-                if( iIndex >= _rgClusters.Count )
-                    return true;
-
-                PgCluster oCluster = _rgClusters[iIndex];
-
-                // Put at least ONE character on a line. So advance MUST be > 0.
-                if( oCluster.IsVisible && flAdvance + oCluster.AdvanceOffs > iDisplayWidth && flAdvance > 0 )
-                    return false;
-
-                flAdvance = oCluster.Increment( flAdvance, _iWrapCount );
-                ++iIndex;
-            }
-            return true;
         }
 
         /// <summary>

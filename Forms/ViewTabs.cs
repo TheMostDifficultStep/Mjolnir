@@ -238,7 +238,7 @@ namespace Play.Forms {
             }
             // Find the text cache and remove it.
             for( int i=0; i<_rgTextCache.Count; ++i ) {
-                if( _rgTextCache[i].Cache.Line == oLine ) {
+                if( _rgTextCache[i].Line == oLine ) {
                     _rgTextCache.RemoveAt( i );
                 }
             }

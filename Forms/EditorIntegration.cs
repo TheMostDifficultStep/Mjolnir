@@ -135,7 +135,6 @@ namespace Play.Forms {
             }
 
             public override void Update(IPgFontRender oFR, IMemoryRange oRange ) {
-                Line.Empty();
                 Line.TryReplace( 0, Line.ElementCount, _oGuest.At.ToString() );
 
                 base.Update(oFR);

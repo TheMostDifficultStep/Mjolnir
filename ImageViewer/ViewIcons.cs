@@ -318,7 +318,7 @@ namespace Play.ImageViewer {
         protected override void OnMouseUp(MouseEventArgs e) {
             base.OnMouseUp(e);
 
-            if( e.Button == System.Windows.Forms.MouseButtons.Left ) {
+            if( e.Button == MouseButtons.Left ) {
 				ImageLineBase oFound = null;
                 foreach( ImageLineBase oThumb in _rgThumbs ) {
                     if( oThumb.IsInside( e.X, e.Y + _oTextRect.Top ) ) {

@@ -217,13 +217,11 @@ namespace Play.Edit {
 
         public         Line Line      { get; }
         public         int  At        { get { return Line.At; } }
-        //public         int  Top       { get; set; }
         public virtual int  Height    { get { return LineHeight; } }
         public virtual bool IsInvalid { get; protected set; } = true;
-        public         int  LineHeight{ protected set; get; }
-        public         int  FontHeight{ protected set; get; }
+        protected      int  LineHeight{ set; get; }
+        protected      int  FontHeight{ set; get; }
         public       Align  Justify   { set; get; } = Align.Left;
-        public         int  Column    { set; get; } = 0;
 
         protected const int InvisibleEOL = 0; // use this if I put the "<" at the end of selected lines.
                                               // this marks places where I used to fix up for that.
@@ -237,9 +235,8 @@ namespace Play.Edit {
         protected readonly List<PgCluster> _rgClusters   = new List<PgCluster>(100); // Single unit representing a character.
         protected readonly List<int>       _rgClusterMap = new List<int      >(100); // Cluster map from UTF to Cluster.
 
-        public FTCacheLine( Line oLine, int iColumn = 0 ) {
+        public FTCacheLine( Line oLine ) {
             Line   = oLine ?? throw new ArgumentNullException();
-            Column = iColumn;
         }
 
         /// <summary>
@@ -293,16 +290,6 @@ namespace Play.Edit {
                 yield return _rgGlyphs[i];
             }
         }
-
-        /// <summary>
-        /// Is the point location vertically within our element? Anywhere on the left or
-        /// right of the valid vertical position will return true.
-        /// </summary>
-        /// <param name="pntLocation">Test, value in world coordinates.</param>
-        /// <returns>true if the point is with our cached element location.</returns>
-        //public bool IsHit( Point pntLocation ) {
-        //    return pntLocation.Y >= Top && pntLocation.Y < Bottom;
-        //}
 
         public void Invalidate() {
             IsInvalid = true;
@@ -586,7 +573,7 @@ namespace Play.Edit {
         /// An alpha value of 0x00 is fully transparent and 
         /// an alpha value of 0xFF is fully opaque.
         /// </remarks>
-        public virtual void DrawGlyph( 
+        protected virtual void DrawGlyph( 
             SKCanvas      skCanvas, 
             SKPaint       skPaint,
             float         flX, 
@@ -825,33 +812,33 @@ namespace Play.Edit {
         /// <summary>Render the End Of Line character.</summary>
         /// <param name="pntEditAt">Top left of the cache element on screen.</param>
         /// <remarks>Need to look at why we pass the pntEditAt. Why not just use our own 'left' / 'top'</remarks>
-        public void RenderEOL( SKCanvas skCanvas, SKPaint skPaint, PointF pntEditAt,  List<SKColor> rgStdColors, IPgGlyph oGlyphLessThan )
-        {
-            try {
-                Point pntOffset = GlyphOffsetToPoint( _rgClusters.Count );
+        //public void RenderEOL( SKCanvas skCanvas, SKPaint skPaint, PointF pntEditAt,  List<SKColor> rgStdColors, IPgGlyph oGlyphLessThan )
+        //{
+        //    try {
+        //        Point pntOffset = GlyphOffsetToPoint( _rgClusters.Count );
 
-                DrawGlyph( skCanvas, skPaint,
-                           (Int32)( pntEditAt.X + pntOffset.X ),
-                           (Int32)( pntEditAt.Y + pntOffset.Y ),
-                           oGlyphLessThan );
-            } catch( Exception oEx ) {
-                Type[] rgErrors = { typeof( ArgumentOutOfRangeException ),
-                                    typeof( NullReferenceException ),
-                                    typeof( ArithmeticException ),
-                                    typeof( ArgumentNullException ) };
-                if( rgErrors.IsUnhandled( oEx ) )
-                    throw;
+        //        DrawGlyph( skCanvas, skPaint,
+        //                   (Int32)( pntEditAt.X + pntOffset.X ),
+        //                   (Int32)( pntEditAt.Y + pntOffset.Y ),
+        //                   oGlyphLessThan );
+        //    } catch( Exception oEx ) {
+        //        Type[] rgErrors = { typeof( ArgumentOutOfRangeException ),
+        //                            typeof( NullReferenceException ),
+        //                            typeof( ArithmeticException ),
+        //                            typeof( ArgumentNullException ) };
+        //        if( rgErrors.IsUnhandled( oEx ) )
+        //            throw;
 
-                Debug.Fail( "Exception thrown in FTCacheLine.RenderEOL" );
-            }
-        } // end method
+        //        Debug.Fail( "Exception thrown in FTCacheLine.RenderEOL" );
+        //    }
+        //} // end method
 
         /// <summary>
         /// Render the little underline's to show where an error has occured.
         /// </summary>
         /// <param name="hDC">handle to a display context.</param>
         /// <param name="pntEditAt">Top left of the cache element on screen.</param>
-        public void RenderLinks( SKCanvas skCanvas, SKPaint skPaint, PointF pntEditAt ) 
+        protected void RenderLinks( SKCanvas skCanvas, SKPaint skPaint, PointF pntEditAt ) 
         {
 			try {
 				using( IEnumerator<IColorRange> oEnum = GetEnumerator() ) {

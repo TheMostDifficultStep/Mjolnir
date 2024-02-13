@@ -62,7 +62,7 @@ namespace Play.Forms {
         public SKColor     BgColor { get; set; } = SKColors.LightGray;
         public SKColor     FgColor { get; set; } = SKColors.Red;
         public uint        FontID  { get; set; } = uint.MaxValue;
-        public Line        Line    => Cache.Line;
+        public Line        Line    => Cache.Line; // Someday line won't be available from cache...
 
         // Normally selection lives on the view, but I'll put it here for forms for now.
         protected ILineSelection[] _rgSelections = new ILineSelection[1];

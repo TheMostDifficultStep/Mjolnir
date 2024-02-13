@@ -853,32 +853,32 @@ namespace Play.Edit {
             return pntRenderAt;
         }
 
-        public void RenderEOL( 
-            SKCanvas                    skCanvas, 
-            SKPaint                     skPaint,
-            List<SKColor>               rgStdColors,
-            ICollection<ILineSelection> rgSelectionTypes, 
-            Point                       pntScreenTL ) 
-        {
-            try {
-                foreach( CacheRow oRow in this ) {
-                    FTCacheLine oCache = oRow.CacheList[0]; // TODO: Might not hold up...
-                    foreach( ILineSelection oSelection in rgSelectionTypes ) {
-                        if( oSelection.IsEOLSelected && 
-                            oSelection.IsHit( oCache.Line ) )
-                        {
-                            oCache.RenderEOL( skCanvas, skPaint, RenderAt( oRow, pntScreenTL ), rgStdColors, GlyphLt );
-                        }
-                    }
-                }
-            } catch( Exception oEx ) {
-                Type[] rgError = { typeof( NullReferenceException ),
-                                   typeof( ArgumentOutOfRangeException ),
-                                   typeof( ArgumentNullException ) };
-                if( rgError.IsUnhandled( oEx ) )
-                    throw;
-            }
-        } // end method
+        //protected void RenderEOL( 
+        //    SKCanvas                    skCanvas, 
+        //    SKPaint                     skPaint,
+        //    List<SKColor>               rgStdColors,
+        //    ICollection<ILineSelection> rgSelectionTypes, 
+        //    Point                       pntScreenTL ) 
+        //{
+        //    try {
+        //        foreach( CacheRow oRow in this ) {
+        //            FTCacheLine oCache = oRow.CacheList[0]; // TODO: Might not hold up...
+        //            foreach( ILineSelection oSelection in rgSelectionTypes ) {
+        //                if( oSelection.IsEOLSelected && 
+        //                    oSelection.IsHit( oCache.Line ) )
+        //                {
+        //                    oCache.RenderEOL( skCanvas, skPaint, RenderAt( oRow, pntScreenTL ), rgStdColors, GlyphLt );
+        //                }
+        //            }
+        //        }
+        //    } catch( Exception oEx ) {
+        //        Type[] rgError = { typeof( NullReferenceException ),
+        //                           typeof( ArgumentOutOfRangeException ),
+        //                           typeof( ArgumentNullException ) };
+        //        if( rgError.IsUnhandled( oEx ) )
+        //            throw;
+        //    }
+        //} // end method
 
         /// <summary>
         /// Links are those little "error here" marks. Now we're multi column, but since
@@ -886,13 +886,13 @@ namespace Play.Edit {
         /// </summary>
         /// <param name="pntTopLeft">Top left of all the edits. We add the vertical extents
         /// to arrive at our position.</param>
-        public void RenderErrorMark( SKCanvas skCanvas, SKPaint skPaint, Point pntScreenTL )
-        {
-            foreach( CacheRow oRow in this ) {
-                FTCacheLine oCache = oRow.CacheList[0];
-                oCache.RenderLinks( skCanvas, skPaint, RenderAt( oRow, pntScreenTL ) );
-            }
-        } // end method
+        //protected void RenderErrorMark( SKCanvas skCanvas, SKPaint skPaint, Point pntScreenTL )
+        //{
+        //    foreach( CacheRow oRow in this ) {
+        //        FTCacheLine oCache = oRow.CacheList[0];
+        //        oCache.RenderLinks( skCanvas, skPaint, RenderAt( oRow, pntScreenTL ) );
+        //    }
+        //} // end method
 
 		/// <summary>
         /// Advance tells us how far along graphically, we are in the text stream

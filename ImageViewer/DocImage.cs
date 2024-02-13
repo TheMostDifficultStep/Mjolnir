@@ -196,22 +196,6 @@ namespace Play.ImageViewer {
         }
 
         /// <summary>
-        /// Whenever the line length / Container width changes
-        /// you need to call this function to re-wrap the characters.
-        /// Not really needed if the text does not wrap. But most text does.
-        /// </summary>
-        /// <returns></returns>
-        //public override bool LayoutChildren() {
-        //    CacheElem.WrapSegments( Width );
-
-        //    return true;
-        //}
-
-        //public string Text { 
-        //    set { CacheElem.Line.TryAppend( value ); }
-        //}
-
-        /// <summary>
         /// Whenever the text changes, you need to call this function to
         /// re-measure the text elements.
         /// </summary>
