@@ -206,16 +206,50 @@ namespace Play.Edit {
         }
     }
 
+    public enum Align {
+        Left,
+        Center,
+        Right
+    }
+
+    public interface IPgCacheLine {
+        int   Height { get; }
+        Align Justify { get; set; }
+        float UnwrappedWidth { get; }
+        bool  IsInvalid { get; }
+        void  Invalidate();
+
+        void  Update( IPgFontRender oRender );
+        void  OnChangeFormatting( ICollection<ILineSelection> rgSelections );
+        void  OnChangeSize( int iWidth );
+
+        int   GlyphPointToOffset( int iRowTop, SKPointI pntWorld );
+        Point GlyphOffsetToPoint( int iOffset );
+        bool  Navigate( Axis eAxis, int iDir, ref float flAdvance, ref int iOffset );
+        int   OffsetBound( Axis eAxis, int iIncrement, float flAdvance );
+    }
+
+    public interface IPgCacheRender {
+        void Render(
+            SKCanvas       skCanvas,
+            IPgStandardUI2 oStdUI,
+            SKPaint        skPaint,
+            SmartRect      rcSquare,
+            bool           fFocused = true );
+        void Render(
+            SKCanvas       skCanvas,
+            IPgStandardUI2 oStdUI,
+            PointF         pntEditAt,
+            bool           fFocused = true );
+        void Render(
+            SKCanvas       skCanvas,
+            SKPaint        skPaint,
+            PointF         pntEditAt );
+    }
+
     public class FTCacheLine 
     {
-        public enum Align {
-            Left,
-            Center,
-            Right
-        }
-
         public         Line Line      { get; }
-        public         int  At        { get { return Line.At; } }
         public virtual int  Height    { get { return LineHeight; } }
         public virtual bool IsInvalid { get; protected set; } = true;
         protected      int  LineHeight{ set; get; }

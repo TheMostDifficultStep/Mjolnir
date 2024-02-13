@@ -627,7 +627,7 @@ namespace Play.Edit {
                 for( int i=0; i<oRow.CacheList.Count && i<_rgColumnRects.Count; ++i ) {
                     FTCacheLine oElem = oRow.CacheList[i];
 
-				    oElem.Update            ( Font /*, range */ );
+				    oElem.Update            ( Font );
                     oElem.OnChangeFormatting( null );
                     oElem.OnChangeSize      ( _rgColumnRects[i].Width );
                 }

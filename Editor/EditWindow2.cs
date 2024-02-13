@@ -1782,29 +1782,26 @@ namespace Play.Edit {
                     if( !ClientToWorld( new SKPointI( pntTemp.X, pntTemp.Y ), out WorldLocator sWorldLoc ) )
                         return;
 
-                    FTCacheLine oCacheHit = null;
-                    int         iRowTop   = 0;
+                    CacheRow    oCacheRow = null;
 
                     // Target's always going to be in the cache since it's the only place we can drop!
                     // BUG: Need to check if in the TextArea...
                     foreach( CacheRow oRow in _oCacheMan ) {
                         if( oRow.IsHit( new Point( sWorldLoc.X, sWorldLoc.Y ) ) ) {
-                            FTCacheLine oCache = oRow.CacheList[0];
-                            oCacheHit = oCache;
-                            iRowTop   = oRow.Top;
+                            oCacheRow = oRow;
                             break;
                         }
                     }
                     // Got to do the insert AFTER walking the _oCacheMan b/c stream insert adds 
                     // lines to cache. See OnLineNew() callback! 
-                    if( oCacheHit != null ) {
-                        int  iEdge = oCacheHit.GlyphPointToOffset( iRowTop, sWorldLoc._pntLocation );
+                    if( oCacheRow != null ) {
+                        int  iEdge = oCacheRow[0].GlyphPointToOffset( oCacheRow.Top, sWorldLoc._pntLocation );
 
                         // We can add in front of the EOL character.
                         //Debug.Assert( iEdge <= oLine.ElementCount );
 
                         using( Editor.Manipulator oBulk = new Editor.Manipulator( _oDocument ) ) {
-                            oBulk.StreamInsert( oCacheHit.At, iEdge, new StringReader( item ) ); // TODO: Check line count good.
+                            oBulk.StreamInsert( oCacheRow.At, iEdge, new StringReader( item ) ); // TODO: Check line count good.
                         }
                     }
                 }

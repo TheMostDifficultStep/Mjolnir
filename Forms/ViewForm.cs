@@ -503,16 +503,16 @@ namespace Play.Forms {
         /// of the entire property set on a document (or the Property Values Document to be exact.)
         /// This subset is stored in the TabOrder array.
         /// </summary>
-        /// <param name="oElem">The cache element we are currently at.</param>
+        /// <param name="iAt">The cache element we are currently at.</param>
         /// <param name="iDir">The direction to go.</param>
         /// <returns>The next cache element to move the cursor to.</returns>
-        protected FTCacheLine ElemNext( FTCacheLine oElem, int iDir ) {
+        protected FTCacheLine ElemNext( int iAt, int iDir ) {
             if( TabOrder == null )
                 return null;
 
             int iNext = -2;
             for( int iTab = 0; iTab < TabOrder.Length; ++iTab ) {
-                if( TabOrder[iTab] == oElem.At ) {
+                if( TabOrder[iTab] == iAt ) {
                     iNext = iTab + iDir;
                 }
             }
@@ -585,7 +585,7 @@ namespace Play.Forms {
                     if( !oElem.Navigate( eAxis, iDir, ref flAdvance, ref iOffset ) || fJumpLine ) {
                         iDir = iDir < 0 ? -1 : 1; // Only allow move one line up or down.
 
-                        FTCacheLine oNext = ElemNext( oElem, iDir );
+                        FTCacheLine oNext = ElemNext( oLayout.Line.At, iDir );
                         if( oNext != null ) {
                             iOffset = oNext.OffsetBound( eAxis, iDir * -1, flAdvance );
                             oElem   = oNext;
@@ -748,7 +748,7 @@ namespace Play.Forms {
         public void OnKey_Delete( bool fBackSpace ) {
             try {
                 LayoutSingleLine oLayout = GetLayoutAtCaret;
-                int              iLineAt = oLayout.Cache.At;
+                int              iLineAt = oLayout.Line.At;
 
                 if( IsSelection ) {
                     DocForms2.LineTextReplace( iLineAt, oLayout.Selection, null );
@@ -1031,7 +1031,7 @@ namespace Play.Forms {
                 try {
                     LayoutSingleLine oLayout = GetLayoutAtCaret;
 
-                    DocForms2.LineTextReplace( oLayout.Cache.At, oLayout.Selection, null );
+                    DocForms2.LineTextReplace( oLayout.Line.At, oLayout.Selection, null );
                 } catch( Exception oEx ) {
                     if( _rgStdErrors.IsUnhandled( oEx ) )
                         throw;
@@ -1084,7 +1084,7 @@ namespace Play.Forms {
 
             try {
                 LayoutSingleLine oLayout = GetLayoutAtCaret;
-                int              iLineAt = oLayout.Cache.At;
+                int              iLineAt = oLayout.Line.At;
                 IDataObject      oData   = oDataSource as IDataObject;
 
                 // TODO: This might be a dummy line. So we need dummies to be at -1.

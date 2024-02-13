@@ -1108,7 +1108,7 @@ namespace Play.SSTV {
             }
 
             Line               oLine = TxBitmapComp.Text.LineAppend( "CQ de " + MyCall, fUndoable:false );
-            LayoutSingleLine oSingle = new( new FTCacheWrap( oLine ) { Justify = FTCacheLine.Align.Center }, LayoutRect.CSS.None ) 
+            LayoutSingleLine oSingle = new( new FTCacheWrap( oLine ) { Justify = Align.Center }, LayoutRect.CSS.None ) 
                                          { BgColor = SKColors.Transparent, 
                                            FgColor = fHighContrast ? SKColors.White : ForeColor };
 
@@ -1144,7 +1144,7 @@ namespace Play.SSTV {
             LayoutStackVertical oStack = new();
             Editor               oEdit = TxBitmapComp.Text;
             Line                 oLine = oEdit.LineAppend( strMessage, fUndoable:false );
-            FTCacheWrap          oElem = new( oLine ) { Justify = FTCacheLine.Align.Center };
+            FTCacheWrap          oElem = new( oLine ) { Justify = Align.Center };
             LayoutSingleLine     oText = new( oElem, LayoutRect.CSS.Flex ) 
                                          { BgColor = SKColors.Black, FgColor = SKColors.White };
 
@@ -1199,7 +1199,7 @@ namespace Play.SSTV {
 
             Editor             oEdit = TxBitmapComp.Text;
             Line               oLine = oEdit.LineAppend( TemplateReplyFromProps(), fUndoable:false );
-            FTCacheWrap        oWrap = new FTCacheWrap( oLine ) { Justify = FTCacheLine.Align.Center };
+            FTCacheWrap        oWrap = new FTCacheWrap( oLine ) { Justify = Align.Center };
             LayoutSingleLine oSingle = new( oWrap, LayoutRect.CSS.Flex ) 
                                          { Track = 60, BgColor = SKColors.Transparent, 
                                            FgColor = SKColors.White };
