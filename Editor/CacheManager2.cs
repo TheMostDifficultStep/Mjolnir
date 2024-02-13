@@ -325,32 +325,30 @@ namespace Play.Edit {
         } // end method
 
         /// <summary>
-        /// For now the main text area is our primary editing zone. The rest won't
-        /// be editable for now.
+        /// Remeasure the text, get all the colors, and finally
+        /// calculate each element height based on the provided width.
         /// </summary>
-        /// <remarks>Note that the CacheList length MIGHT be less than the CacheMap length!</remarks>
+        /// <remarks>Note that the CacheList length MIGHT be 
+        /// less than the CacheMap length! NOTE: If one of the elements throw it
+        /// messes us up for the whole row. :-/ </remarks>
         /// <seealso cref="CheckList"/>
         protected virtual void RowUpdate( CacheRow oRow ) {
-            for( int i=0; i<oRow.CacheList.Count && i<_rgCacheMap.Count; ++i ) {
-                ElemUpdate2( oRow.CacheList[i], _rgCacheMap[i].Width );
-            }
-        }
-
-        protected void ElemUpdate2( FTCacheLine oElem, int iWidth ) {
 			try {
-                //_oSite.WordBreak( oElem.Line, oElem.Words );
+                for( int i=0; i<oRow.CacheList.Count && i<_rgCacheMap.Count; ++i ) {
+                    FTCacheLine oElem = oRow.CacheList[i];
 
-				oElem.Update            ( Font );
-                oElem.OnChangeFormatting( _oSite.Selections );
-                oElem.OnChangeSize      ( iWidth );
+				    oElem.Update            ( Font );
+                    oElem.OnChangeFormatting( _oSite.Selections );
+                    oElem.OnChangeSize      ( _rgCacheMap[i].Width  );
+                }
 			} catch( Exception oEx ) {
 				Type[] rgErrors = { typeof( NullReferenceException ),
 									typeof( ArgumentNullException ),
                                     typeof( ArgumentOutOfRangeException ) };
-				if( !rgErrors.Contains( oEx.GetType() ))
+				if( rgErrors.IsUnhandled( oEx ) )
 					throw;
 
-                _oSite.LogError( "view cache", "Update request on empty element" );
+                _oSite.LogError( "view cache", "Error on row update request. Row: " + oRow.At.ToString() );
 			}
         }
 
@@ -677,7 +675,7 @@ namespace Play.Edit {
         /// unless we call the resize too. So call RowUpdate for completeness.
         /// </summary>
         /// <remarks>Note: We just update and don't check if any of the elements are Invalid.</remarks>
-        /// <seealso cref="ElemUpdate"/>
+        /// <seealso cref="RowUpdate"/>
         public void OnLineUpdated( Line oLine ) {
             foreach( CacheRow oCacheRow in _rgOldCache ) {
                 if( oCacheRow.Line == oLine ) {
