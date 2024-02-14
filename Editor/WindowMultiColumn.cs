@@ -222,19 +222,23 @@ namespace Play.Edit {
             _oViewEvents = oViewSite.EventChain ?? throw new ArgumentException( "Site.EventChain must support IPgViewSiteEvents" );
 
             _oStdUI         = oViewSite.Host.Services as IPgStandardUI2 ?? throw new ArgumentException( "Parent view must provide IPgStandardUI service" );
-            uint uiStdText  = _oStdUI.FontCache( _oStdUI.FaceCache( @"C:\windows\fonts\consola.ttf" ), 12, GetDPI() );
             _oScrollBarVirt = new ScrollBar2( new DocSlot( this ) );
             _rgLayout       = new LayoutStackHorizontal() { Spacing = 5, Units = LayoutRect.CSS.Flex};
 
             _rgLayout.Add( new LayoutControl( _oScrollBarVirt, LayoutRect.CSS.Pixels, 12 ) );
 
-            _oCacheMan = new CacheMultiColumn( new CacheManSite( this ), 
-                                               _oStdUI.FontRendererAt( uiStdText ),
-                                               _rgColumns ); 
+            _oCacheMan = CreateCacheMan();
 
             Array.Sort<Keys>( _rgHandledKeys );
 
             Parent = _oSiteView.Host as Control;
+        }
+
+        public virtual CacheMultiColumn CreateCacheMan() {
+            uint uiStdText  = _oStdUI.FontCache( _oStdUI.FaceCache( @"C:\windows\fonts\consola.ttf" ), 12, GetDPI() );
+            return new CacheMultiColumn( new CacheManSite( this ), 
+                                         _oStdUI.FontRendererAt( uiStdText ),
+                                         _rgColumns ); 
         }
 
         public bool  IsDirty => true;

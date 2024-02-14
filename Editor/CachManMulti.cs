@@ -140,10 +140,14 @@ namespace Play.Edit {
             GlyphLt    = Font.GetGlyph( 0x003c ); // we used to show carriage return as a '<' sign.
             LineHeight = (int)Font.LineHeight; // BUG: Cache elem's are variable height in general.
 
-            _oCaretRow = _oSite.GetRowAtIndex( 0 );
+            _oCaretRow = _oSite.GetRowAtIndex( 0 ); // This must be updated for the PropertyPage case. >:-(
             _iCaretCol = 0; // Make sure the column is edible :-/
             _iCaretOff = 0;
             _fAdvance  = 0;
+        }
+
+        protected virtual Row GetTabOrderRow( int iIndex, int iDir ) {
+            return _oSite.GetRowAtIndex( iIndex+iDir );
         }
 
         public IEnumerator<CacheRow> GetEnumerator() {
@@ -251,6 +255,8 @@ namespace Play.Edit {
         /// remeasure such items. It's a little bigger job so I'll
         /// look into that later...</remarks>
         /// <param name="fMeasure">Remeasure all row items.</param>
+        /// <param name="fFindCaret">Keep the caret on the screen</param>
+        /// <param name="oPatch">Make sure this item is re-measured.</param>
         public void CacheRepair( Row oPatch, bool fFindCaret, bool fMeasure ) {
             try {
                 CacheRow oSeedCache = null;
@@ -377,7 +383,7 @@ namespace Play.Edit {
         /// <param name="iDataRow">Which data row we want to represent.</param>
         /// <seealso cref="CacheReset"/>
         protected CacheRow CacheRecycle( CacheRow oPrevCache, int iDir, bool fRemeasure = false ) {
-            Row oNextDRow = _oSite.GetRowAtIndex( oPrevCache.At + iDir );
+            Row oNextDRow =  GetTabOrderRow( oPrevCache.At, iDir);
 
             if( oNextDRow == null )
                 return null;
@@ -652,26 +658,26 @@ namespace Play.Edit {
 
         /// <summary>
         /// Create a cached line element. There are a lot of dependencies on stuff in this object
-        /// and so we create the element here and pass it out to be used.
+        /// and so we create the element here and pass it out to be used. Be sure to call 
+        /// RowMeasure() after this call so that the lines can be measured.
         /// </summary>
-        /// <param name="oLine">The line we are trying to display.</param>
-        /// <returns>A new row enough information to display the line on the screen.</returns>
-        /// <remarks> Be sure to call RowUpdate()
-        /// after this call so that the lines can be measured.</remarks>
+        /// <param name="oRow">The row we want to display.</param>
+        /// <remarks>Might be nice to have a call to the host and let them create the row.
+        /// Would be excellent in the property page case!</remarks>
         /// <seealso cref="RowMeasure"/>
         protected virtual CacheRow CreateCacheRow( Row oDocRow ) {
             if( oDocRow == null )
                 throw new ArgumentNullException();
 
-            CacheRow oCacheRow = new CacheRow2( oDocRow );
+            CacheRow oFreshCacheRow = new CacheRow2( oDocRow );
 
             // BUG : Doc columns might not match order of row columns!! >_<;;
             // Note: If we suddenly start typing in a dummy lines, we'll have problems..
             foreach( Line oLine in oDocRow ) {
-                oCacheRow.CacheList.Add( new FTCacheWrap( oLine == null ? _oDummyLine : oLine ) );
+                oFreshCacheRow.CacheList.Add( new FTCacheWrap( oLine == null ? _oDummyLine : oLine ) );
 			}
 
-            return oCacheRow;
+            return oFreshCacheRow;
         }
 
         public struct GraphemeCollection : IEnumerable<IPgGlyph> {
@@ -728,7 +734,7 @@ namespace Play.Edit {
                     // First, see if we can navigate within the cache item we are currently at.
                     if( !oCaretCacheRow[_iCaretCol].Navigate( eAxis, iDir, ref _fAdvance, ref _iCaretOff ) ) {
                         // Now try moving vertically, but stay in the same column...
-                        Row oDocRow = _oSite.GetRowAtIndex( CaretRow + iDir);
+                        Row oDocRow = GetTabOrderRow( CaretRow, iDir);
                         if( oDocRow != null ) {
                             CacheRow oNewCache = _rgOldCache.Find(item => item.At == oDocRow.At);
                             if( oNewCache == null ) {
@@ -919,4 +925,66 @@ namespace Play.Edit {
         }
 
     } // end class
+
+    /// <summary>
+    /// This manager expects all the rows to be precached. Great for the
+    /// property pages that have windows which would have to be created
+    /// and destroyed on the fly, when usually nothing ever falls out of
+    /// the cache.
+    /// </summary>
+    public class CacheMultiFixed : CacheMultiColumn {
+        List<CacheRow> _rgFixedCache = new ();
+        public CacheMultiFixed(ICacheManSite oSite, IPgFontRender oFont, List<SmartRect> rgColumns) : 
+            base(oSite, oFont, rgColumns) 
+        {
+        }
+
+        protected override CacheRow CreateCacheRow(Row oDocRow) {
+            foreach( CacheRow oCacheRow in _rgFixedCache ) { 
+                if( oCacheRow.At == oDocRow.At ) {
+                    RowMeasure( oCacheRow );
+                    return oCacheRow;
+                }
+            }
+            _oSite.LogError( "Cache Manager Multi", "Seem to have lost an data row..." );
+            return base.CreateCacheRow(oDocRow);
+        }
+
+        /// <summary>
+        /// If we had the base.CreateCacheRow call into the host to get
+        /// the row, we wouldn't need this call at all! O.o
+        /// </summary>
+        /// <param name="oCacheRow"></param>
+        public void Add( CacheRow oCacheRow ) {
+            if( _rgFixedCache.Count <= 0 )
+                _oCaretRow = _oSite.GetRowAtIndex( oCacheRow.At );
+
+            _rgFixedCache.Add( oCacheRow );
+        }
+
+        /// <summary>
+        /// In the property page case we might be showing a subset of
+        /// all the property data row's possible and in some random
+        /// order. We assume the order based on the insertion order.
+        /// </summary>
+        /// <param name="iIndex">The data row where we are.</param>
+        /// <param name="iDir">Direction in tab order to go.</param>
+        protected override Row GetTabOrderRow( int iIndex, int iDir ) {
+            int iFixedIndex = -100;
+            for( int i=0; i< _rgFixedCache.Count; ++i ) {
+                if( _rgFixedCache[i].At == iIndex ) {
+                    iFixedIndex = i;
+                    break;
+                }
+            }
+
+            int iNextIndex = iFixedIndex + iDir;
+            if( iNextIndex < 0 )
+                return null;
+            if( iNextIndex >= _rgFixedCache.Count )
+                return null;
+
+            return _oSite.GetRowAtIndex( _rgFixedCache[iNextIndex].At );
+        }
+    }
 }

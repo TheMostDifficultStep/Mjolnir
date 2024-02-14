@@ -189,8 +189,8 @@ namespace Play.Forms {
         public override void OnFormLoad() {
             base.OnFormLoad();
 
-            InitRows();
-            OnDocumentEvent( BUFFEREVENTS.MULTILINE );
+            //InitRows();
+            //OnDocumentEvent( BUFFEREVENTS.MULTILINE );
         }
     }
 }
