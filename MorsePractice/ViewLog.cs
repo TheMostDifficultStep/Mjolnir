@@ -271,9 +271,9 @@ namespace Play.MorsePractice {
         public ViewRadioProperties( IPgViewSite oSiteView, DocProperties oDocument ) : base( oSiteView, oDocument ) {
         }
 
-        private void OnFrequencyJump( Line oLine, IPgWordRange oRange ) {
+        private void OnFrequencyJump( Row oRow, int iColumn, IPgWordRange oRange ) {
             try {
-                string strValue = oLine.SubString( oRange.Offset, oRange.Length );
+                string strValue = oRow[iColumn].SubString( oRange.Offset, oRange.Length );
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( IndexOutOfRangeException ),
                                     typeof( NullReferenceException ),
@@ -288,7 +288,7 @@ namespace Play.MorsePractice {
             if( !base.InitNew() ) 
                 return false;
 
-			Links.Add( "fjump", OnFrequencyJump );
+			HyperLinks.Add( "fjump", OnFrequencyJump );
             return true;
         }
     }

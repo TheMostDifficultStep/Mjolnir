@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Windows.Forms;
 
 using SkiaSharp;
-using SkiaSharp.Views.Desktop;
 
 using Play.Rectangles;
 using Play.Interfaces.Embedding;
@@ -18,17 +17,15 @@ namespace Play.Forms {
     /// </summary>
     /// <seealso cref="DocProperties"/>
     public class WindowStandardProperties : 
-        FormsWindow,
+        WindowMultiColumn,
         IPgParent,
-        IPgLoad
+        IPgLoad,
+        IPgFormEvents
      {
-        protected DocProperties Document { get; }
-		protected readonly IPgStandardUI2 _oStdUI;
+        protected DocProperties   Document { get; }
+        protected CacheMultiFixed FixedCache { get; set; }
 
 		public SKColor BgColorDefault { get; protected set; }
-
-        public IPgParent Parentage => _oSiteView.Host;
-        public IPgParent Services  => Parentage.Services;
 
 		protected class WinSlot :
 			IPgViewSite
@@ -56,85 +53,81 @@ namespace Play.Forms {
         /// TODO: Make the FormsWindow base take the DocForms.
         /// </remarks>
         public WindowStandardProperties( IPgViewSite oSiteView, DocProperties oDocument ) : 
-            base( oSiteView, oDocument.PropertyDoc ) 
+            base( oSiteView, oDocument ) 
         {
             Document = oDocument ?? throw new ArgumentNullException( "ViewStandardProperties's Document is null." );
- 			_oStdUI  = oSiteView.Host.Services as IPgStandardUI2 ?? throw new ArgumentException( "Parent view must provide IPgStandardUI service" );
 
 			BgColorDefault = _oStdUI.ColorsStandardAt( StdUIColors.BG );
         }
 
         protected override void Dispose(bool disposing) {
-            if( disposing && !_fDisposed ) {
-                Document.ListenerRemove( this );
+            if( disposing ) {
+                // Close child windows?
             }
             base.Dispose(disposing);
         }
 
-        public override bool InitNew() {
-            if( !base.InitNew() ) 
+        protected override CacheMultiColumn CreateCacheMan() {
+            uint uiStdText  = _oStdUI.FontCache( _oStdUI.FaceCache( @"C:\windows\fonts\consola.ttf" ), 12, GetDPI() );
+            FixedCache = new CacheMultiFixed( new CacheManSite( this ), 
+                                         _oStdUI.FontRendererAt( uiStdText ),
+                                         _rgColumns ); 
+            return FixedCache;
+        }
+
+        protected override bool Initialize() {
+            if( !base.Initialize() )
                 return false;
 
-            LayoutTable oLayout = new LayoutTable( 5, LayoutRect.CSS.Flex );
-            Layout = oLayout;
+            _rgLayout.Add( new LayoutRect( LayoutRect.CSS.Percent, 30, 1L ) ); // Name
+            _rgLayout.Add( new LayoutRect( LayoutRect.CSS.None,    70, 1L ) ); // Value;
 
-            oLayout.AddColumn( LayoutRect.CSS.Flex, 30 ); // Name
-            oLayout.AddColumn( LayoutRect.CSS.None, 70 ); // Value;
+            _rgColumns.Add( _rgLayout.Item( 1 ) );
+            _rgColumns.Add( _rgLayout.Item( 2 ) );
 
             InitRows();
 
-            // The base formwindow already gets these, see the constructor.
-            //Document.Property_Values.BufferEvent += OnBufferEvent_Doc_Property_Values;
-
-            OnPropertyEvent( BUFFEREVENTS.MULTILINE );
-            OnSizeChanged( new EventArgs() );
-
             // This certainly does not belong on the base form, but here
             // it is a little more reasonable.
-            Links.Add( "callsign", OnCallSign );
-
-            Document.ListenerAdd( this );
+            HyperLinks.Add( "callsign", OnCallSign );
 
             return true;
         }
 
-        public override int CaretHome { 
-            get {
-                return Document[0].At; // This is the first property value.
-            } 
+        public void PropertyInitRow( int iIndex, Control oWinValue ) {
+            Row         oRow         = _oDocList[iIndex];
+            CacheRow    oNewCacheRow = new CacheRow2( oRow );
+            FTCacheWrap oLabel       = new FTCacheWrap( oRow[0] );
+
+            // If the value is a multi-line value make an editor. And ignor the value line (if there is one).
+            if( oWinValue is IPgLoad oWinLoad ) {
+                oWinLoad.InitNew();
+            }
+            oWinValue.Parent = this;
+
+            oLabel.BgColor = _oStdUI.ColorsStandardAt( StdUIColors.BGReadOnly );
+
+            oNewCacheRow.CacheList.Add( oLabel );
+            oNewCacheRow.CacheList.Add( new CacheControl( oWinValue ) );
+
+            FixedCache.Add( oNewCacheRow );
         }
 
-        public void PropertyInitRow( LayoutTable oLayout, int iIndex, Control oWinValue = null ) {
-            LabelValuePair sPropertyPair = Document.GetPropertyPair( iIndex );
+        public void PropertyInitRow( int iIndex ) {
+            Row         oRow         = _oDocList[iIndex];
+            CacheRow    oNewCacheRow = new CacheRow2( oRow );
+            FTCacheWrap oLabel       = new FTCacheWrap( oRow[0] );
+            FTCacheWrap oValue       = new FTCacheWrap( oRow[1] );
 
-            var oLayoutLabel = new LayoutSingleLine( new FTCacheWrap( sPropertyPair._oLabel ), LayoutRect.CSS.Flex );
-            LayoutRect oLayoutValue;
-            
-            if( oWinValue == null ) {
-                oLayoutValue = new LayoutSingleLine( new FTCacheWrap( sPropertyPair._oValue ), LayoutRect.CSS.Flex );
-            } else { 
-                // If the value is a multi-line value make an editor. And ignor the value line (if there is one).
-                if( oWinValue is IPgLoad oWinLoad ) {
-                    oWinLoad.InitNew();
-                }
-                oWinValue.Parent = this;
-                oLayoutValue = new LayoutControl( oWinValue, LayoutRect.CSS.Flex, 100 );
+            if( Document.ValueBgColor.TryGetValue(iIndex, out SKColor skBgColorOverride) ) {
+                oValue.BgColor = skBgColorOverride;
             }
+            oLabel.BgColor = _oStdUI.ColorsStandardAt(StdUIColors.BGReadOnly);
 
-            oLayout.AddRow( new List<LayoutRect>() { oLayoutLabel, oLayoutValue } );
+            oNewCacheRow.CacheList.Add( oLabel );
+            oNewCacheRow.CacheList.Add( oValue );
 
-            oLayoutLabel.BgColor = _oStdUI.ColorsStandardAt( StdUIColors.BGReadOnly );
-
-            CacheList.Add( oLayoutLabel );
-            if( oLayoutValue is LayoutSingleLine oLayoutSingle ) {
-				SKColor skBgColor = BgColorDefault;
-
-				if( Document.ValueBgColor.TryGetValue( iIndex, out SKColor skBgColorOverride ) ) {
-					skBgColor = skBgColorOverride;
-				}
-                oLayoutSingle.BgColor = skBgColor;
-                CacheList.Add( oLayoutSingle );
-            }
+            FixedCache.Add( oNewCacheRow );
         }
 
         /// <summary>
@@ -142,55 +135,64 @@ namespace Play.Forms {
         /// get overriden and call the InitRows( int[] ) on a subset. 
         /// </summary>
         public virtual void InitRows() {
-            if( Layout is not LayoutTable oTable ) {
-                LogError( "Unexpected Layout for Property Page" );
-                return;
-            }
-
-            List<int> rgTabOrder = new List<int>();
-            for( int i = 0; i< Document.PropertyCount; ++i ) {
-                PropertyInitRow( oTable, i );
-                rgTabOrder.Add( i );
-            }
-            TabOrder = rgTabOrder.ToArray();
-        }
-
-        public virtual void InitRows( int[] rgShow ) {
-            if( Layout is not LayoutTable oTable ) {
-                LogError( "Unexpected Layout for Property Page" );
-                return;
-            }
             try {
-                foreach( int iIndex in rgShow ) { 
-                    PropertyInitRow( oTable, iIndex );
+                List<int> rgTabOrder = new List<int>();
+                for( int i = 0; i< Document.PropertyCount; ++i ) {
+                    PropertyInitRow( i );
+                    rgTabOrder.Add( i );
                 }
-                TabOrder = rgShow;
             } catch( Exception oEx ) {
-                Type[] rgErrors = { typeof( IndexOutOfRangeException ),
-                                    typeof( ArgumentOutOfRangeException ),
-                                    typeof( NullReferenceException ),
-                                    typeof( ArgumentNullException ) };
-                if( rgErrors.IsUnhandled( oEx ) )
+                if( IsStdErrorUnhandled( oEx ) )
                     throw;
 
                 LogError( "Bad property page index list" );
             }
         }
 
-        protected void OnCallSign( Line oLine, IPgWordRange oRange ) {
-            BrowserLink( "http://www.qrz.com/db/" +  oLine.SubString( oRange.Offset, oRange.Length) );
+        public virtual void InitRows( int[] rgShow ) {
+            try {
+                foreach( int iIndex in rgShow ) { 
+                    PropertyInitRow( iIndex );
+                }
+            } catch( Exception oEx ) {
+                if( IsStdErrorUnhandled( oEx ) )
+                    throw;
+
+                LogError( "Bad property page index tab list" );
+            }
         }
 
+        protected bool IsStdErrorUnhandled( Exception oEx ) {
+            Type[] rgErrors = { typeof( IndexOutOfRangeException ),
+                                typeof( ArgumentOutOfRangeException ),
+                                typeof( NullReferenceException ),
+                                typeof( ArgumentNullException ) };
+            return( rgErrors.IsUnhandled( oEx ) );
+        }
+
+        protected void OnCallSign( Row oRow, int iColumn, IPgWordRange oRange ) {
+            BrowserLink( "http://www.qrz.com/db/" +  oRow[1].SubString( oRange.Offset, oRange.Length) );
+        }
 
         public void OnPropertyEvent( BUFFEREVENTS eEvent ) {
-            OnDocumentEvent( BUFFEREVENTS.MULTILINE );
-        }
-
-        public override void OnFormLoad() {
-            base.OnFormLoad();
-
-            //InitRows();
             //OnDocumentEvent( BUFFEREVENTS.MULTILINE );
         }
-    }
+
+        public void OnFormUpdate(IEnumerable<Line> rgUpdates) {
+            Invalidate();
+        }
+
+        public void OnFormFormat(IEnumerable<Line> rgUpdates) {
+            _oCacheMan.CacheReColor();
+        }
+
+        public void OnFormClear() {
+            _oCacheMan.CacheRepair( null, true, true );
+        }
+
+        public void OnFormLoad() {
+            _oCacheMan.CacheRepair( null, true, true );
+        }
+    } // End Class
+    
 }

@@ -121,13 +121,13 @@ namespace Play.MusicWalker {
 		/// </summary>
 		/// <remarks>Something like this would be usefull on the DocProperties object.</remarks>
 		public void ParsePropertyValues() {
-			ParseHandlerText    oHandler = new ParseHandlerText( PropertyDoc, "text" );
-			State<char>         oStart   = oHandler.Grammer.FindState("start");
-			DataStream<char>    oStream  = PropertyDoc.CreateStream();
-			MemoryState<char>   oMStart  = new MemoryState<char>( new ProdState<char>( oStart ), null );
-			ParseIterator<char> oParser  = new ParseIterator<char>( oStream, oHandler, oMStart );
+			//ParseHandlerText    oHandler = new ParseHandlerText( PropertyDoc, "text" );
+			//State<char>         oStart   = oHandler.Grammer.FindState("start");
+			//DataStream<char>    oStream  = PropertyDoc.CreateStream();
+			//MemoryState<char>   oMStart  = new MemoryState<char>( new ProdState<char>( oStart ), null );
+			//ParseIterator<char> oParser  = new ParseIterator<char>( oStream, oHandler, oMStart );
 
-			while( oParser.MoveNext() );
+			//while( oParser.MoveNext() );
 		}
     }
 

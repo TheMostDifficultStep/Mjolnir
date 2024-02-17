@@ -225,7 +225,7 @@ namespace Play.ImageViewer {
 			_fBlockTextEvents = true;
 
 			try {
-				int iHeight = PropertiesDoc.ValueGetAsInt( (int)ImageSnipProperties.Labels.Height );
+				int iHeight = PropertiesDoc.ValueAsInt( (int)ImageSnipProperties.Labels.Height, 0 );
 
                 // Limit the height to the actual height, no zooming...
                 if( iHeight > SnipView.WorldCoordinates.Height ) {
@@ -258,7 +258,7 @@ namespace Play.ImageViewer {
 			_fBlockTextEvents = true;
 
 			try {
-				int   iWidth  = PropertiesDoc.ValueGetAsInt( (int)ImageSnipProperties.Labels.Width);
+				int   iWidth  = PropertiesDoc.ValueAsInt( (int)ImageSnipProperties.Labels.Width, 0);
 
                 // Limit the width to the actual width, no zooming...
                 if ( iWidth > SnipView.WorldCoordinates.Width ) {
@@ -287,8 +287,8 @@ namespace Play.ImageViewer {
 		public SKSizeI SnipSize {
 			get {
 				try {
-					int iWidth  = PropertiesDoc.ValueGetAsInt((int)ImageSnipProperties.Labels.Width);
-					int iHeight = PropertiesDoc.ValueGetAsInt((int)ImageSnipProperties.Labels.Height);
+					int iWidth  = PropertiesDoc.ValueAsInt((int)ImageSnipProperties.Labels.Width, 0);
+					int iHeight = PropertiesDoc.ValueAsInt((int)ImageSnipProperties.Labels.Height, 0);
 
 					return new SKSizeI(iWidth, iHeight );
 				} catch( Exception oEx ) {

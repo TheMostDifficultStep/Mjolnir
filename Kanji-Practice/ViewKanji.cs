@@ -74,12 +74,12 @@ namespace Kanji_Practice {
         }
     }
 
-    internal class KanjiMagnify : WindowStandardProperties {
+    internal class ViewKanjiProps : WindowStandardProperties {
         protected uint BigFont { get; } 
         protected ImageViewSingle ViewScratch { get; }
         protected EditWindow2     ViewMeaning { get; }
 
-        public KanjiMagnify( IPgViewSite oSite, KanjiDocument oKanjiDoc ) : base( oSite, oKanjiDoc.FrontDisplay ) {
+        public ViewKanjiProps( IPgViewSite oSite, KanjiDocument oKanjiDoc ) : base( oSite, oKanjiDoc.Properties ) {
             IPgMainWindow.PgDisplayInfo oInfo = new IPgMainWindow.PgDisplayInfo();
             if( _oSiteView.Host.TopWindow is IPgMainWindow oMainWin ) {
                 oInfo = oMainWin.MainDisplayInfo;
@@ -87,27 +87,20 @@ namespace Kanji_Practice {
             BigFont = StdUI.FontCache( StdFace, 30, oInfo.pntDpi );
 
             ViewScratch = new ViewScratchPad( new WinSlot( this ), oKanjiDoc.ScratchPad );
-            ViewScratch.Parent = this;
-            ViewMeaning = new EditWindow2( new WinSlot( this ), oKanjiDoc.Meanings ) { ScrollVisible = false };
-            ViewMeaning.Parent = this;
+            ViewMeaning = new EditWindow2   ( new WinSlot( this ), oKanjiDoc.Meanings ) { ScrollVisible = false };
         }
 
         public override void InitRows() {
 			int[] rgShow = { 
-				(int)KanjiProperties.Labels.Kanji,
-                (int)KanjiProperties.Labels.Hiragana,
-                //(int)KanjiProperties.Labels.Meaning
+				(int)KanjiPropEnum.Kanji,
+                (int)KanjiPropEnum.Hiragana
 			};
 
 			base.InitRows( rgShow );
 
 			try {
-				PropertyInitRow( Layout as LayoutTable, 
-								 (int)KanjiProperties.Labels.Meaning, 
-								 ViewMeaning );
-				PropertyInitRow( Layout as LayoutTable, 
-								 (int)KanjiProperties.Labels.Scratch, 
-								 ViewScratch );
+				PropertyInitRow( (int)KanjiPropEnum.Meaning, ViewMeaning );
+				PropertyInitRow( (int)KanjiPropEnum.Scratch, ViewScratch );
 			} catch ( Exception oEx ) {
 				Type[] rgErrors = { typeof( NullReferenceException ),
 									typeof( ArgumentOutOfRangeException ) };
@@ -121,24 +114,31 @@ namespace Kanji_Practice {
             if( !base.InitNew() ) 
                 return false;
 
-            Line oKanjiLine = Document[ (int)KanjiProperties.Labels.Kanji ];
-            Line oHiragLine = Document[ (int)KanjiProperties.Labels.Hiragana ];
+            ViewScratch.Parent = this;
+            ViewMeaning.Parent = this;
 
-            foreach( LayoutSingleLine oLayout in CacheList ) {
-                if( oLayout.Line == oKanjiLine   ) {
-                    oLayout.FontID = BigFont;
-                }
-                if( oLayout.Line == oHiragLine   ) {
-                    oLayout.FontID = BigFont;
-                }
-            }
+            //Line oKanjiLine = Document.ValueAsLine( (int)KanjiPropertiesTest.Labels.Kanji );
+            //Line oHiragLine = Document.ValueAsLine( (int)KanjiPropertiesTest.Labels.Hiragana );
 
-            OnDocumentEvent( BUFFEREVENTS.FORMATTED );
+            //foreach( LayoutSingleLine oLayout in CacheList ) {
+            //    if( oLayout.Line == oKanjiLine   ) {
+            //        oLayout.FontID = BigFont;
+            //    }
+            //    if( oLayout.Line == oHiragLine   ) {
+            //        oLayout.FontID = BigFont;
+            //    }
+            //}
+
+            //OnDocumentEvent( BUFFEREVENTS.FORMATTED );
+            Document.RaiseUpdateEvent();
 
             return true;
         }
     }
 
+    /// <summary>
+    /// Basically a simple wrapper around the Property Page.
+    /// </summary>
     internal class ViewKanji: FormsWindow,
         IPgParent,
         IPgCommandView,
@@ -151,13 +151,10 @@ namespace Kanji_Practice {
         public IPgParent Parentage => _oSiteView.Host;
         public IPgParent Services  => Parentage.Services;
 
-        public string Banner => "Kanji Cards";
-
-        public SKBitmap Icon => null;
-
-        public Guid Catagory => Guid.Empty;
-
-        public bool  IsDirty => false;
+        public string    Banner => "Kanji Cards";
+        public SKBitmap  Icon => null!;
+        public Guid      Catagory => Guid.Empty;
+        public bool      IsDirty => false;
 
         protected class DocSlot :
 			IPgBaseSite
@@ -186,14 +183,21 @@ namespace Kanji_Practice {
 		}
 
         public ViewKanji( IPgViewSite oViewSite, KanjiDocument oMonitorDoc ) : 
-            base( oViewSite, oMonitorDoc.FrontDisplay.PropertyDoc ) 
+            base( oViewSite, oMonitorDoc.Meanings /* just give it something... */) 
         {
             KanjiDoc      = oMonitorDoc ?? throw new ArgumentNullException( "Monitor document must not be null!" );
 
             Layout        = new LayoutStackHorizontal() { Units = LayoutRect.CSS.Flex };
-            CenterDisplay = new KanjiMagnify( new ViewSlot( this ), KanjiDoc ) ;
+            CenterDisplay = new ViewKanjiProps( new ViewSlot( this ), KanjiDoc ) ;
 
             CenterDisplay.Parent = this;
+        }
+
+        protected override void Dispose(bool disposing) {
+            if( disposing ) {
+                //KanjiDoc.RefreshScreen -= OnRefreshScreen_MonDoc;
+            }
+            base.Dispose(disposing);
         }
 
         public override bool InitNew() {
@@ -210,14 +214,11 @@ namespace Kanji_Practice {
                 oStack.Add( new LayoutRect   ( LayoutRect.CSS.Pixels ) { Track = 50 } );
             }
 
-            //KanjiDoc.RefreshScreen += OnRefreshScreen_MonDoc;
             return true;
         }
 
-        protected override void OnSizeChanged(EventArgs e) {
-            if( Width > 0 && Height > 0 ) {
-                base.OnSizeChanged(e);
-            }
+        public bool Load(XmlElement oStream) {
+            return InitNew();
         }
 
         protected override void OnKeyDown(KeyEventArgs e) {
@@ -225,21 +226,6 @@ namespace Kanji_Practice {
 
             if( e.KeyCode == Keys.F2 ) {
             }
-        }
-
-        public bool Load(XmlElement oStream) {
-            return InitNew();
-        }
-
-        protected override void Dispose(bool disposing) {
-            if( disposing ) {
-                //KanjiDoc.RefreshScreen -= OnRefreshScreen_MonDoc;
-            }
-            base.Dispose(disposing);
-        }
-        private void OnRefreshScreen_MonDoc(int obj) {
-            OnDocumentEvent(BUFFEREVENTS.MULTILINE );
-            Invalidate();
         }
 
         public bool Execute(Guid sGuid) {
@@ -256,19 +242,7 @@ namespace Kanji_Practice {
         }
 
         public object Decorate(IPgViewSite oBaseSite, Guid sGuid) {
-			try {
-			} catch ( Exception oEx ) {
-				Type[] rgErrors = { typeof( NotImplementedException ),
-									typeof( NullReferenceException ),
-									typeof( ArgumentException ),
-									typeof( ArgumentNullException ) };
-				if( rgErrors.IsUnhandled( oEx ) )
-					throw;
-
-				//LogError( "decor", "Couldn't create EditWin decor: " + sGuid.ToString() );
-			}
-
-            return( null! );
+            return null!;
         }
 
         public bool Save(XmlDocumentFragment oStream) {

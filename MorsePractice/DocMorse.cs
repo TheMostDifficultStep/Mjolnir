@@ -455,7 +455,7 @@ namespace Play.MorsePractice {
         /// modified text grammer) document and get all the formatting for free.
         /// </remarks>
         public void PopulateURL( RepeaterInfo oInfo ) {
-            Line oLine = Properties[(int)RadioProperties.Names.Repeater_URL];
+            Line oLine = Properties.ValueAsLine((int)RadioProperties.Names.Repeater_URL);
 
             oLine.Empty();
             oLine.Formatting.Clear();
@@ -467,7 +467,7 @@ namespace Play.MorsePractice {
         public void PopulateAlternates( RepeaterDir oRepeater ) {
             List<RepeaterDir> rgRepeaters = RepeaterBandsFind( oRepeater );
 
-            Line oLine = Properties[(int)RadioProperties.Names.Alternates];
+            Line oLine = Properties.ValueAsLine( (int)RadioProperties.Names.Alternates );
 
             oLine.Empty();
             oLine.Formatting.Clear();
@@ -1396,7 +1396,8 @@ namespace Play.MorsePractice {
             ValueClear( Names.Alternates       );
             ValueClear( Names.Repeater_URL     );
 
-            PropertyDoc.Raise_BufferEvent( BUFFEREVENTS.MULTILINE ); 
+            //PropertyDoc.Raise_BufferEvent( BUFFEREVENTS.MULTILINE );
+            RaiseUpdateEvent();
         }
     }
 }

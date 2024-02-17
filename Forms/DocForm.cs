@@ -138,21 +138,11 @@ namespace Play.Forms {
         }
     }
 
-    public struct LabelValuePair {
-        public Line _oLabel;
-        public Line _oValue;
-
-        public LabelValuePair( Row oRow ) {
-            _oLabel = oRow[0];
-            _oValue = oRow[1];
-        }
-    }
-
     /// <summary>
     /// Document for labels and values style form. Makes separating readable values
     /// from readonly values. Probably move this over to forms project at some time.
     /// </summary>
-    
+    /*
     public class DocProperties : IPgParent, IPgLoad, IDisposable {
         protected readonly IPgBaseSite _oSiteBase;
 
@@ -396,7 +386,7 @@ namespace Play.Forms {
         }
     }
   
-    /*
+    */
     public class DocProperties :
         EditMultiColumn,
         IPgLoad
@@ -423,7 +413,8 @@ namespace Play.Forms {
             public Line Value => this[1];
         }
 
-        protected readonly List<IPgFormEvents> _rgFormEvents = new ();
+        public event Action<int[]>  SubmitEvent;
+        //protected readonly List<IPgFormEvents> _rgFormEvents = new ();
         public int PropertyCount => _rgRows.Count;
 
         // This lets us override the standard color for a property.
@@ -465,25 +456,29 @@ namespace Play.Forms {
 			IPgFormBulkUpdates,
 			IDisposable
 		{
-			DocProperties  _oHost;
-            SortedSet<int> _rgSortedLines = new SortedSet<int>();
+			DocProperties        _oHost;
+            SortedSet<int>       _rgUniqueLines = new SortedSet<int>(); // What propert(y/ies) got updated.
+            List<IPgEditHandler> _rgHandlers = new List<IPgEditHandler>();
 
 			public Manipulator( DocProperties oDoc ) 
 			{
 				_oHost = oDoc ?? throw new ArgumentNullException();
+                foreach( IPgEditEvents oCall in _oHost._rgListeners ) {
+                    _rgHandlers.Add( oCall.NewEditHandler() );
+                }
 			}
 
 			public void Dispose() {
-                foreach( IPgFormEvents oCall in _oHost._rgFormEvents ) {
-                    oCall.OnFormUpdate( this );
+                foreach( IPgEditHandler oCall in _rgHandlers ) {
+                    oCall.OnUpdated( null );
                 }
-                _rgSortedLines.Clear();
+                _rgUniqueLines.Clear();
 			}
 
 			public int AddProperty( string strLabel ) {
                 int iLine = _oHost.PropertyCount;
 
-                _rgSortedLines.Add( iLine );
+                _rgUniqueLines.Add( iLine );
 
                 _oHost._rgRows.Add( new PropertyRow( strLabel ) );
 
@@ -497,7 +492,7 @@ namespace Play.Forms {
                     oValueLine.Empty();
                     oValueLine.TryReplace( 0, oValueLine.ElementCount, strValue );
 
-                    _rgSortedLines.Add( iLine );
+                    _rgUniqueLines.Add( iLine );
                 } catch( ArgumentOutOfRangeException ) {
 					_oHost.LogError( "Property assign index out of range" );
                 }
@@ -510,14 +505,14 @@ namespace Play.Forms {
                     oLabelLine.Empty();
                     oLabelLine.TryReplace( 0, oLabelLine.ElementCount, strLabel );
 
-                    _rgSortedLines.Add( iProperty );
+                    _rgUniqueLines.Add( iProperty );
                 } catch( ArgumentOutOfRangeException ) {
 					_oHost.LogError( "Property assign index out of range" );
                 }
 			}
 
             public IEnumerator<Line> GetEnumerator() {
-                foreach( int iLine in _rgSortedLines ) { 
+                foreach( int iLine in _rgUniqueLines ) { 
                     yield return _oHost[iLine][1]; // Enum the values.
                 }
             }
@@ -526,14 +521,6 @@ namespace Play.Forms {
                 return GetEnumerator();
             }
         } // end Manipulator
-
-        public void ListenerAdd( IPgFormEvents oCallback ) {
-            _rgFormEvents.Add( oCallback );
-        }
-
-        public void ListenerRemove( IPgFormEvents oCallback ) {
-            _rgFormEvents.Remove( oCallback );
-        }
 
         public ReadOnlySpan<char> ValueGetAsSpan( int iIndex ) {
             return _rgRows[iIndex][1].AsSpan;
@@ -546,8 +533,8 @@ namespace Play.Forms {
         public Double ValueAsDouble( int iIndex, double? dblDefault ) {
             return _rgRows[iIndex][1].GetAsDouble( dblDefault );
         }
-        public Double ValueAsInt( int iIndex, int? iDefault ) {
-            return _rgRows[iIndex][1].GetAsDouble( iDefault );
+        public int    ValueAsInt( int iIndex, int? iDefault ) {
+            return _rgRows[iIndex][1].GetAsInt( iDefault );
         }
 
         public bool   ValueAsBool( int iIndex ) {
@@ -556,10 +543,6 @@ namespace Play.Forms {
 
         public Line   ValueAsLine( int iIndex ) {
             return _rgRows[iIndex][1];
-        }
-
-        public LabelValuePair GetPropertyPair( int iIndex ) {
-            return new LabelValuePair( this[iIndex] );
         }
 
         protected struct ValueEnumerator :
@@ -595,8 +578,10 @@ namespace Play.Forms {
 
             // PropertyDoc.Raise_BufferEvent( BUFFEREVENTS.MULTILINE );  
 
-            foreach( IPgFormEvents oCall in _rgFormEvents ) {
-                oCall.OnFormUpdate( new ValueEnumerator( _rgRows ) );
+            foreach( object oCall in _rgListeners ) {
+                if( oCall is IPgFormEvents oEvent ) {
+                    oEvent.OnFormUpdate( new ValueEnumerator( _rgRows ) );
+                }
             }
         }
 
@@ -612,8 +597,10 @@ namespace Play.Forms {
 
                     List<Row> rgTemp = new() { _rgRows[iIndex] }; // BUG: experiment...
 
-                    foreach( IPgFormEvents oEvent in _rgFormEvents ) {
-                        oEvent.OnFormUpdate( new ValueEnumerator( rgTemp ) );
+                    foreach( object oCall in _rgListeners ) {
+                        if( oCall is IPgFormEvents oEvent ) {
+                            oEvent.OnFormUpdate( new ValueEnumerator( rgTemp ) );
+                        }
                     }
                 }
             }
@@ -640,8 +627,10 @@ namespace Play.Forms {
             //PropertyDoc.Raise_BufferEvent( BUFFEREVENTS.MULTILINE ); 
             
             // Make this a OnFormUpdate() w/ no params.
-            foreach( IPgFormEvents oCall in _rgFormEvents ) {
-                oCall.OnFormUpdate( new ValueEnumerator( _rgRows ) );
+            foreach( object oCall in _rgListeners ) {
+                if( oCall is IPgFormEvents oEvent ) {
+                    oEvent.OnFormUpdate( new ValueEnumerator( _rgRows ) );
+                }
             }
         }
 
@@ -655,8 +644,30 @@ namespace Play.Forms {
         protected void RaiseLoadedEvent() {
             RenumberRows(); // Kind of evil in this case. Might not want to do this...
             
-            foreach( IPgFormEvents oCall in _rgFormEvents ) {
-                oCall.OnFormLoad();
+            foreach( object oCall in _rgListeners ) {
+                if( oCall is IPgFormEvents oEvent ) {
+                    oEvent.OnFormLoad();
+                }
+            }
+        }
+
+        public void Raise_Submit() {
+            try {
+                List<int> rgDirty = new List<int>();
+
+                foreach( Row oRow in this ) {
+                    if( oRow[1].IsDirty ) {
+                        rgDirty.Add( oRow.At );
+                    }
+                    oRow[1].ClearDirty();
+                }
+                SubmitEvent?.Invoke( rgDirty.ToArray() );
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( NullReferenceException ),
+                                    typeof( ArgumentOutOfRangeException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
+                LogError( "Problem raising properties submit" );
             }
         }
 
@@ -667,8 +678,10 @@ namespace Play.Forms {
 
             //PropertyDoc.Raise_BufferEvent( BUFFEREVENTS.MULTILINE ); 
 
-            foreach( IPgFormEvents oCall in _rgFormEvents ) {
-                oCall.OnFormClear();
+            foreach( object oCall in _rgListeners ) {
+                if( oCall is IPgFormEvents oEvent ) {
+                    oEvent.OnFormClear();
+                }
             }
         }
 
@@ -679,5 +692,5 @@ namespace Play.Forms {
         }
 
     }
-    */
+    
 }

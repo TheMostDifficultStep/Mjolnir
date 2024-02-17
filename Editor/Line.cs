@@ -435,16 +435,13 @@ namespace Play.Edit {
         /// <param name="iSrcLength">How much of the source to copy.</param>
         /// <returns></returns>
         [Obsolete]public override bool TryInsert( int iDestOffset, ReadOnlySpan<char> strSource, int iSrcIndex, int iSrcLength ) {
-            if( iSrcLength <= 0 || strSource == null )
-                return false;
-
             bool fReturn = _sbBuffer.TryInsert(iDestOffset, strSource, iSrcIndex, iSrcLength);
 
-            if( fReturn ) {
+            if( fReturn && iSrcLength > 0 ) {
                 FormattingShiftInsert( iDestOffset, iSrcLength );
                 IsDirty = true;
             }
-            return( fReturn );
+            return fReturn;
         }
 
         /// <summary>
@@ -503,7 +500,7 @@ namespace Play.Edit {
             }
         }
 
-        public int At { get; set; } = 0;
+        public int At { get; set; } = -2;
         public int Count => _rgColumns.Length;
 
         public void Empty() {

@@ -8,6 +8,7 @@ using Play.Forms;
 using Play.Interfaces.Embedding;
 using Play.Rectangles;
 using Play.Edit;
+using SkiaSharp.Views.Desktop;
 
 namespace Play.SSTV {
     /// <summary>
@@ -20,21 +21,17 @@ namespace Play.SSTV {
     /// remove our direct DocSSTV dependency.</remarks>
     public class ViewSettings :
         WindowStandardProperties,
-        IPgLoad<XmlElement>,
-        IPgSave<XmlDocumentFragment>,
-        IPgParent,
         IPgCommandView
     {
         public static Guid GUID {get;} = new Guid("{5B8AC3A1-A20C-431B-BA13-09314BA767FC}");
 
-        private   readonly string      _strViewIcon  = "Play.SSTV.Content.icons8_settings.png";
-        protected readonly IPgViewSite _oViewSite;
+        private   readonly string _strViewIcon  = "Play.SSTV.Content.icons8_settings.png";
 
         public Guid      Catagory  => GUID; 
         public string    Banner    => "MySSTV Settings";
         public SKBitmap  Icon    { get; }
         public Image     Iconic => null;
-        public bool      IsDirty   => false;
+        public override bool IsDirty => false;
 
         public DocSSTV SSTVDocument { get; }
 
@@ -42,7 +39,6 @@ namespace Play.SSTV {
             base( oViewSite, oDocument.Properties ) 
         {
             SSTVDocument = oDocument; // Don't bother check for null, will have thrown by now see above...
-            _oViewSite   = oViewSite;
 			Icon         = oDocument.CreateIconic( _strViewIcon );
         }
 
@@ -55,48 +51,34 @@ namespace Play.SSTV {
                                               SSTVProperties.Names.Std_MicGain,
                                               SSTVProperties.Names.Std_Frequency };
 
-            if( Layout is LayoutTable oTable ) {
-                foreach( SSTVProperties.Names eName in rgShow ) {
-                    switch( eName ) {
-                        case SSTVProperties.Names.Std_TxPort:
-                            PropertyInitRow( oTable, (int)eName, new CheckList( new WinSlot( this ), SSTVDocument.PortTxList ) { ScrollVisible = false } );
-                            break;
-                        case SSTVProperties.Names.Std_MnPort:
-                            PropertyInitRow( oTable, (int)eName, new CheckList( new WinSlot( this ), SSTVDocument.MonitorList ) { ScrollVisible = false } );
-                            break;
-                        case SSTVProperties.Names.Std_RxPort:
-                            PropertyInitRow( oTable, (int)eName, new CheckList( new WinSlot( this ), SSTVDocument.PortRxList ) { ScrollVisible = false } );
-                            break;
-                        default:
-                            PropertyInitRow( oTable, (int)eName ); // This creates a regular cacheline.
-                            break;
-                    }
+            foreach( SSTVProperties.Names eName in rgShow ) {
+                switch( eName ) {
+                    case SSTVProperties.Names.Std_TxPort:
+                        PropertyInitRow( (int)eName, new CheckList( new WinSlot( this ), SSTVDocument.PortTxList ) { ScrollVisible = false } );
+                        break;
+                    case SSTVProperties.Names.Std_MnPort:
+                        PropertyInitRow( (int)eName, new CheckList( new WinSlot( this ), SSTVDocument.MonitorList ) { ScrollVisible = false } );
+                        break;
+                    case SSTVProperties.Names.Std_RxPort:
+                        PropertyInitRow( (int)eName, new CheckList( new WinSlot( this ), SSTVDocument.PortRxList ) { ScrollVisible = false } );
+                        break;
+                    default:
+                        PropertyInitRow( (int)eName ); // This creates a regular cacheline.
+                        break;
                 }
             }
         }
 
-        public override bool InitNew() {
-            if( ! base.InitNew() )
-                return false;
-
-            Layout.Padding.SetRect( 5, 0, 5, 0 ); // Table's don't respond to this yet.
-
-            return true;
-        }
-
-        public bool Load( XmlElement oStream ) {
-            if( !InitNew() )
-                return false;
-
-            return true;
-        }
-
-        public bool Save( XmlDocumentFragment oStream ) {
-            return true;
-        }
-
         public object Decorate(IPgViewSite oBaseSite, Guid sGuid) {
             return null;
+        }
+
+        protected override void OnPaintSurface(SKPaintSurfaceEventArgs e) {
+            base.OnPaintSurface(e);
+        }
+
+        protected override void OnSizeChanged(EventArgs e) {
+            base.OnSizeChanged(e);
         }
 
         public bool Execute(Guid sGuid) {

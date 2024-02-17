@@ -392,13 +392,11 @@ namespace Play.SSTV {
 
 			    InitRows( rgShow );
 
-			    PropertyInitRow( Layout as LayoutTable, 
-				                 (int)SSTVProperties.Names.Rx_Window, 
+			    PropertyInitRow( (int)SSTVProperties.Names.Rx_Window, 
 							     new ImageViewSingle( new WinSlot( this ), SSTVDocument.DisplayImage )  );
 
-				//PropertyInitRow( Layout as SmartTable, 
-				//				 (int)SSTVProperties.Names.Rx_HistoryIcons, 
-				//				 new ImageViewIcons( new WinSlot( this ), SSTVDocument.RxHistoryList )  );
+				//PropertyInitRow( (int)SSTVProperties.Names.Rx_HistoryIcons, 
+				//				   new ImageViewIcons( new WinSlot( this ), SSTVDocument.RxHistoryList )  );
             }
 
 		    // Use this for debugging if necessary.

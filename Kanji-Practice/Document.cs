@@ -1,5 +1,7 @@
 ﻿using System.Text;
 
+using SkiaSharp;
+
 using Play.Interfaces.Embedding;
 using Play.Edit; 
 using Play.Forms;
@@ -7,8 +9,6 @@ using Play.Integration;
 using Play.Parse;
 using Play.Parse.Impl;
 using Play.ImageViewer;
-
-using SkiaSharp;
 
 namespace Kanji_Practice {
     public class KanjiScratch : ImageSoloDoc {
@@ -33,32 +33,36 @@ namespace Kanji_Practice {
         }
 
     }
-    public class KanjiProperties : DocProperties {
-		public enum Labels : int {
-			Kanji = 0,
-			Hiragana,
-			Meaning,
-            Scratch
-		}
 
-        public KanjiProperties(IPgBaseSite oSiteBase) : base(oSiteBase) {
+	public enum KanjiPropEnum : int {
+		Kanji = 0,
+		Hiragana,
+		Meaning,
+        Scratch
+	}
+
+    public class KanjiProperties : 
+        DocProperties
+    {
+        public KanjiProperties(IPgBaseSite oSite) : base(oSite) {
         }
+
+        public PropertyRow this[KanjiPropEnum eIndex] => (PropertyRow)this[(int)eIndex];
 
         public override bool InitNew() {
-            if( !base.InitNew() )
-				return false;
+            if( !base.InitNew() ) 
+                return false;
 
-            foreach( Labels eLabel in Enum.GetValues(typeof(Labels))) {
-				CreatePropertyPair( eLabel.ToString() );
+            foreach( string strProp in Enum.GetNames(typeof(KanjiPropEnum)) ) {
+                _rgRows.Add( new PropertyRow( strProp ) );
             }
 
-            //ValueUpdate( (int)Labels.Kanji,    "彼女"   );
-			//ValueUpdate( (int)Labels.Hiragana, "かのじょ"    );
-			//ValueUpdate( (int)Labels.Meaning,  "she, her, girlfriend​"   );
-
-			return true;
+            return true;
         }
+
+
     }
+
     public class KanjiDocument :
         IPgParent,
 		IDisposable,
@@ -74,8 +78,8 @@ namespace Kanji_Practice {
         public IPgParent Parentage => _oBaseSite.Host;
         public IPgParent Services  => Parentage.Services;
 
-        public EditorWithParser FlashCardDoc  { get; }
-        public DocProperties    FrontDisplay { get; }
+        public EditorWithParser FlashCardDoc { get; }
+        public KanjiProperties  Properties   { get; }
         public KanjiScratch     ScratchPad   { get; }
         public Editor           Meanings     { get; }
 
@@ -132,10 +136,10 @@ namespace Kanji_Practice {
             _oBaseSite = oSite ?? throw new ArgumentNullException( "Site to document must not be null." );
             _oFileSite = oSite as IPgFileSite ?? throw new InvalidCastException( "IPgFileSite not supported" );
 
-            FlashCardDoc  = new EditorWithParser( new PriDocSlot( this ) ); // The raw stack of flash cards.
-            FrontDisplay  = new KanjiProperties ( new DocSlot   ( this ) ); // The basic form Kanji, Hiragana, Description.
-            ScratchPad    = new KanjiScratch    ( new DocSlot   ( this ) ); // Practice writing area.
-            Meanings      = new Editor          ( new DocSlot   ( this ) ); // multi value meanings.
+            FlashCardDoc = new EditorWithParser( new PriDocSlot( this ) ); // The raw stack of flash cards.
+            Properties   = new KanjiProperties ( new DocSlot   ( this ) ); // The basic form Kanji, Hiragana, Description.
+            ScratchPad   = new KanjiScratch    ( new DocSlot   ( this ) ); // Practice writing area.
+            Meanings     = new Editor          ( new DocSlot   ( this ) ); // multi value meanings.
 
 			try {
 				// A parser is matched one per text document we are loading.
@@ -159,11 +163,11 @@ namespace Kanji_Practice {
         }
 
         public class CardInfo {
-            public KanjiProperties.Labels Label    { get; }
-            public string                 FormatID { get; }
-            public IMemoryRange ?         Range    { get; set; }
+            public KanjiPropEnum  Label    { get; }
+            public string         FormatID { get; }
+            public IMemoryRange ? Range    { get; set; }
 
-            public CardInfo( string strFormatID, KanjiProperties.Labels eLabel ) {
+            public CardInfo( string strFormatID, KanjiPropEnum eLabel ) {
                 FormatID = strFormatID;
                 Label    = eLabel;
                 Range    = null;
@@ -187,16 +191,15 @@ namespace Kanji_Practice {
         }
 
         public bool Initialize() {
-            if( !FrontDisplay.InitNew() )
+            if( !Properties.InitNew() )
                 return false;
             if( !ScratchPad.InitNew() )
                 return false;
-            if( !Meanings.InitNew() )
+            if( !Meanings  .InitNew() )
                 return false;
 
-            _rgCard.Add( new CardInfo( "kanji",    KanjiProperties.Labels.Kanji    ) );
-            _rgCard.Add( new CardInfo( "hiragana", KanjiProperties.Labels.Hiragana ) );
-          //_rgCard.Add( new CardInfo( "meaning" , KanjiProperties.Labels.Meaning  ) );
+            _rgCard.Add( new CardInfo( "kanji",    KanjiPropEnum.Kanji    ) );
+            _rgCard.Add( new CardInfo( "hiragana", KanjiPropEnum.Hiragana ) );
 
             FlashCardDoc.BufferEvent += FlashCardDoc_BufferEvent;
 
@@ -230,48 +233,58 @@ namespace Kanji_Practice {
         }
 
         public void Jump( int iDir, bool fShowAll = false ) {
-            if( FlashCardDoc.IsHit( _iFlashLine + iDir ) ) {
-                using DocProperties.Manipulator oBulk = new ( FrontDisplay );
+            try {
+                if( FlashCardDoc.IsHit( _iFlashLine + iDir ) ) {
+                    _iFlashLine += iDir;
 
-                _iFlashLine += iDir;
+                    Line oCard = FlashCardDoc[_iFlashLine];
 
-                Line oCard = FlashCardDoc[_iFlashLine];
+                    FindFormatting( oCard );
 
-                FindFormatting( oCard );
-
-                foreach( CardInfo oInfo in _rgCard ) {
-                    IMemoryRange oRange = oInfo.Range!;
-                    if( oRange != null ) {
-                        string strValue = oCard.SubString( oRange.Offset, oRange.Length );
+                    using DocProperties.Manipulator oBulk = new DocProperties.Manipulator( Properties );
+                    foreach( CardInfo oInfo in _rgCard ) {
+                        if( oInfo.Range is IMemoryRange oRange ) {
+                            string strValue = oCard.SubString( oRange.Offset, oRange.Length );
                         
-                        if( !fShowAll ) {
-                            if( oInfo.Label == KanjiProperties.Labels.Hiragana )
-                                strValue = String.Empty;
-                            if( oInfo.Label == KanjiProperties.Labels.Meaning )
-                                strValue = String.Empty;
-                        }
+                            if( !fShowAll ) {
+                                if( oInfo.Label == KanjiPropEnum.Hiragana )
+                                    strValue = String.Empty;
+                                if( oInfo.Label == KanjiPropEnum.Meaning )
+                                    strValue = String.Empty;
+                            }
 
-                        oBulk.SetValue( (int)oInfo.Label, strValue );
-                    }
-                }
-                if( _rgMeanings.Count > 0 && fShowAll ) {
-                    using Editor.Manipulator oAddMeaning = Meanings.CreateManipulator();
-
-                    foreach( IMemoryRange oRange in _rgMeanings ) {
-                        if( oRange.Length > 0 ) {
-                            oAddMeaning.LineAppend( oCard.SubString( oRange.Offset, oRange.Length ) );
+                            oBulk.SetValue( (int)oInfo.Label, strValue );
                         }
                     }
+                    if( _rgMeanings.Count > 0 && fShowAll ) {
+                        using Editor.Manipulator oAddMeaning = Meanings.CreateManipulator();
+
+                        foreach( IMemoryRange oRange in _rgMeanings ) {
+                            if( oRange.Length > 0 ) {
+                                oAddMeaning.LineAppend( oCard.SubString( oRange.Offset, oRange.Length ) );
+                            }
+                        }
+                    }
+
+                    // We depend on the fact that the property page has already been loaded!!
+                    // At this point we are simply updating the values as we encounter new cards.
+                    Line oKanji = Properties[KanjiPropEnum.Kanji].Value;
+
+                    oKanji.Formatting.Clear();
+                    oKanji.Formatting.Add( new ColorRange( 0, oKanji.ElementCount, 2 ) );
+
+                    if( !fShowAll ) {
+                        ScratchPad.Clear();
+                    }
                 }
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( NullReferenceException ),
+                                    typeof( ArgumentNullException ),
+                                    typeof( ArgumentOutOfRangeException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
 
-                Line oKanji = FrontDisplay[ (int)KanjiProperties.Labels.Kanji];
-
-                oKanji.Formatting.Clear();
-                oKanji.Formatting.Add( new ColorRange( 0, oKanji.ElementCount, 2 ) );
-
-                if( !fShowAll ) {
-                    ScratchPad.Clear();
-                }
+                _oBaseSite.LogError( "Kanji", "problem loading up new kanji properties" );
             }
         }
 

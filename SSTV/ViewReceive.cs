@@ -77,8 +77,7 @@ namespace Play.SSTV {
 				_ddSSTVFamily.AutoSize      = true;
 				_ddSSTVFamily.TabIndex      = 0;
 				_ddSSTVFamily.DropDownStyle = ComboBoxStyle.DropDownList;
-				PropertyInitRow( Layout as LayoutTable, 
-								 (int)SSTVProperties.Names.Rx_FamilySelect, 
+				PropertyInitRow( (int)SSTVProperties.Names.Rx_FamilySelect, 
 								 _ddSSTVFamily );
 
                 _ddSSTVMode.SelectionChangeCommitted += OnSelectionChangeCommitted_Mode;
@@ -86,15 +85,12 @@ namespace Play.SSTV {
 				_ddSSTVMode.TabIndex      = 1;
 				_ddSSTVMode.DropDownStyle = ComboBoxStyle.DropDownList;
 
-				PropertyInitRow( Layout as LayoutTable, 
-								 (int)SSTVProperties.Names.Rx_ModeSelect, 
+				PropertyInitRow( (int)SSTVProperties.Names.Rx_ModeSelect, 
 								 _ddSSTVMode );
 
-				PropertyInitRow( Layout as LayoutTable, 
-								 (int)SSTVProperties.Names.Rx_Diagnostic, 
+				PropertyInitRow( (int)SSTVProperties.Names.Rx_Diagnostic, 
 								 new ImageViewSingle( new WinSlot( this ), SSTVDocument.SyncImage ) );
-				PropertyInitRow( Layout as LayoutTable, 
-								 (int)SSTVProperties.Names.Rx_SignalLevel, 
+				PropertyInitRow( (int)SSTVProperties.Names.Rx_SignalLevel, 
 								 new ImageViewSingle( new WinSlot( this ), SSTVDocument.SignalLevel )  );
 			} catch ( Exception oEx ) {
 				Type[] rgErrors = { typeof( NullReferenceException ),

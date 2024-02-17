@@ -255,15 +255,15 @@ namespace Monitor {
 
             InitInstructions();
 
-            _rgRegisters.Add( Properties[(int)CpuProperties.Properties.Register_0] );
-            _rgRegisters.Add( Properties[(int)CpuProperties.Properties.Register_1] );
-            _rgRegisters.Add( Properties[(int)CpuProperties.Properties.Register_2] );
-            _rgRegisters.Add( Properties[(int)CpuProperties.Properties.Register_3] );
+            _rgRegisters.Add( Properties[(int)CpuProperties.Properties.Register_0][1] );
+            _rgRegisters.Add( Properties[(int)CpuProperties.Properties.Register_1][1] );
+            _rgRegisters.Add( Properties[(int)CpuProperties.Properties.Register_2][1] );
+            _rgRegisters.Add( Properties[(int)CpuProperties.Properties.Register_3][1] );
 
-            _rgStatusBit.Add( Properties[(int)StatusBits.Overflow ] );
-            _rgStatusBit.Add( Properties[(int)StatusBits.Carry    ] );
-            _rgStatusBit.Add( Properties[(int)StatusBits.Zero     ] );
-            _rgStatusBit.Add( Properties[(int)StatusBits.Negative ] );
+            _rgStatusBit.Add( Properties[(int)StatusBits.Overflow ][1] );
+            _rgStatusBit.Add( Properties[(int)StatusBits.Carry    ][1] );
+            _rgStatusBit.Add( Properties[(int)StatusBits.Zero     ][1] );
+            _rgStatusBit.Add( Properties[(int)StatusBits.Negative ][1] );
 
             return true;
         }
@@ -516,7 +516,7 @@ namespace Monitor {
         }
 
         public int PC { 
-            get { return Properties.ValueGetAsInt((int)CpuProperties.Properties.Program_Counter); } 
+            get { return Properties.ValueAsInt((int)CpuProperties.Properties.Program_Counter, 0); } 
             set { 
                 Properties.ValueUpdate( (int)CpuProperties.Properties.Program_Counter, value.ToString() ); 
                 TextCommands.Raise_BufferEvent( BUFFEREVENTS.FORMATTED );
@@ -671,7 +671,7 @@ namespace Monitor {
             Properties.ValueUpdate( (int)StatusBits.Zero,     cZero    .ToString() );
             Properties.ValueUpdate( (int)StatusBits.Carry,    cCarry   .ToString() );
 
-            Properties.PropertyDoc.Raise_BufferEvent( BUFFEREVENTS.FORMATTED );
+            //Properties.PropertyDoc.Raise_BufferEvent( BUFFEREVENTS.FORMATTED );
         }
 
         public void Inst_CompAbs() {

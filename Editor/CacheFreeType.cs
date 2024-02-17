@@ -242,9 +242,14 @@ namespace Play.Edit {
         Point GlyphOffsetToPoint( int iOffset );
         bool  Navigate( Axis eAxis, int iDir, ref float flAdvance, ref int iOffset );
         int   OffsetBound( Axis eAxis, int iIncrement, float flAdvance );
+
     }
 
     public interface IPgCacheRender {
+        SKColor     BgColor { get; set; }
+        SKColor     FgColor { get; set; }
+        uint        FontID  { get; set; }
+
         void Render(
             SKCanvas       skCanvas,
             IPgStandardUI2 oStdUI,
@@ -299,6 +304,10 @@ namespace Play.Edit {
 
             return( sbBuild.ToString() );
         }
+
+        public SKColor BgColor { get; set; } = SKColors.Transparent;
+        public SKColor FgColor { get; set; } = SKColors.Black;
+        public uint    FontID  { get; set; } = uint.MaxValue;
 
         /// <summary>
         /// Total width of the line UNWRAPPED. 

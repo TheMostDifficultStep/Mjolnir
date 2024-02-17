@@ -5,6 +5,7 @@ using System.Windows.Forms;
 using System.Xml;
 using System.Diagnostics;
 using System.IO;
+using System.Drawing;
 
 using SkiaSharp;
 using SkiaSharp.Views.Desktop;
@@ -45,6 +46,79 @@ namespace Play.Edit {
         void           OnDocFormatted();    // Document gets formatted.
     }
 
+        /* Move these to viewform.cs later */
+    public interface IPgCacheWindow {
+        public Control Guest     { get; }
+        public uint    MaxHeight { get; set; }
+        public int     Height    { get; }
+        public void    OnChangeSize( int iWidth );
+        public void    MoveTo( SmartRect rcSquare );
+    }
+
+    public class CacheControl :
+        IPgCacheMeasures,
+        IPgCacheWindow
+    {
+        public Control Guest     { get; }
+        public uint    MaxHeight { get; set; } = 200;
+        public int     Height    { get; protected set; }
+                       
+        public float   UnwrappedWidth { get; protected set; } = 0;
+                       
+        public bool    IsInvalid { get => false; set { } }
+
+
+        public CacheControl( Control oGuest ) {
+            Guest = oGuest ?? throw new ArgumentNullException();
+        }
+
+        public Point GlyphOffsetToPoint(int iOffset) {
+            return new Point( 0, 0 );
+        }
+
+        public int GlyphPointToOffset(int iRowTop, SKPointI pntWorld) {
+            return 0;
+        }
+
+        public bool Navigate(Axis eAxis, int iDir, ref float flAdvance, ref int iOffset) {
+            return false;
+        }
+
+        public int OffsetBound(Axis eAxis, int iIncrement, float flAdvance) {
+            return 0;
+        }
+
+        public void OnChangeFormatting(ICollection<ILineSelection> rgSelections) {
+        }
+
+        /// <summary>
+        /// Notice the 2 step nature of our sizing. Our width is not negotable.
+        /// But our height can't be determined until the entire row has been
+        /// queried. And not even Top is available, since we need to see what
+        /// will fit on the screen first! O.o
+        /// </summary>
+        /// <remarks>So save our height as prefered, and then use it when 
+        /// render comes along.</remarks>
+        public void OnChangeSize( int iWidth ) {
+			Size szProposed = new Size( iWidth, (int)MaxHeight );
+			Size szPrefered = Guest.GetPreferredSize( szProposed );
+
+            Height         = Math.Min( szPrefered.Height, (int)MaxHeight );
+            UnwrappedWidth = iWidth;
+        }
+
+        public void Update(IPgFontRender oRender) {
+        }
+
+        /// <summary>
+        /// The square s/b at least our desired height (upto the max height)
+        /// But it might be taller b/c of other elements on the line.
+        /// </summary>
+        public void MoveTo( SmartRect rcSquare ) {
+            Guest.SetBounds( rcSquare.Left, rcSquare.Top, rcSquare.Width, Math.Min( Height, rcSquare.Height) );
+        }
+    }
+
     public class WindowMultiColumn :
         SKControl, 
         IPgParent,
@@ -77,8 +151,9 @@ namespace Play.Edit {
                                                   Keys.Control | Keys.A, Keys.Control | Keys.F };
 
         public IPgParent Parentage => _oSiteView.Host;
-
-        public IPgParent Services => Parentage.Services;
+        public IPgParent Services  => Parentage.Services;
+        protected IPgStandardUI2 StdUI => _oStdUI;
+        protected ushort         StdFace { get; }
 
         /// <summary>
         /// How much readonly can you get? Window only or doc level. :-/
@@ -93,7 +168,8 @@ namespace Play.Edit {
         }
 
         protected class CacheManSite :
-            ICacheManSite
+            ICacheManSite,
+            IReadableBag<Row>
         {
             readonly WindowMultiColumn _oHost;
 
@@ -109,46 +185,30 @@ namespace Play.Edit {
 
             public IPgParent Host => _oHost;
 
-            /// <summary>
-            /// Tiny safety check.
-            /// </summary>
-            int CheckBound( int iRow ) {
-                if( iRow >= _oHost._oDocList.ElementCount )
-                    iRow = _oHost._oDocList.ElementCount - 1;
+            public int ElementCount => _oHost._oDocList.ElementCount;
 
-                if( iRow < 0 ) // If elem count zero, above will give -1;
-                    iRow = 0;
+            public Row this[int iIndex] {
+                get {
+                    if( iIndex >= _oHost._oDocList.ElementCount )
+                        return null;
+                    if( iIndex < 0 ) 
+                        return null;
 
-                return iRow;
+                    return _oHost._oDocList[iIndex];
+                }
             }
 
-            public Row GetRowAtScroll() {
-                if( _oHost._oDocList.ElementCount == 0 )
-                    return null;
+            public float GetScrollProgress {
+                get {
+                    float flProgress = _oHost._oScrollBarVirt.Progress;
 
-                try {
-					int iRow = (int)(_oHost._oDocList.ElementCount * _oHost._oScrollBarVirt.Progress);
+                    if( flProgress > 1 )
+                        flProgress = 1;
+                    if( flProgress < 0 )
+                        flProgress = 0;
 
-					return _oHost._oDocList[ CheckBound( iRow ) ];
-                } catch( Exception oEx ) {
-                    if( _rgErrors.IsUnhandled( oEx ) )
-                        throw;
-
-					LogError( "Multi Column Scrolling Problem", "I crashed while trying to use the caret. You are at the start of the document." );
+                    return flProgress;
                 }
-
-                return null;
-            }
-
-            public Row GetRowAtIndex(int iIndex) {
-                if( iIndex >= _oHost._oDocList.ElementCount ) {
-                    return null;
-                }
-                if( iIndex < 0 ) {
-                    return null;
-                }
-
-                return _oHost._oDocList[iIndex];
             }
 
             public void LogError(string strMessage, string strDetails, bool fShow = true) {
@@ -163,34 +223,22 @@ namespace Play.Edit {
 				}
             }
 
-            public void OnRefreshComplete( int iRowBottom, int iRowVisible )
-            {
-                try {
-                    int iRowCount = _oHost._oDocList.ElementCount;
-
-                    _oHost._oScrollBarVirt.Refresh( 
-                        iRowVisible / (float)iRowCount,
-                        iRowBottom  / (float)iRowCount
-                    );
-                } catch( Exception oEx ) {
-                    Type[] rgErrors = { typeof( NullReferenceException ),
-                                        typeof( ArithmeticException ) };
-                    if( rgErrors.IsUnhandled( oEx ) )
-                        throw;
-
-                    _oHost.LogError( "Problem Updating Window Scrollbar." );
-                }
-
+            public void OnRefreshComplete(float flProgress, float flVisiblePercent) {
+                _oHost._oScrollBarVirt.Refresh( flProgress, flVisiblePercent );
 				_oHost.Invalidate();
             }
 
+            /// <summary>
+            /// If you hide the caret, that seems to destroy it.
+            /// So the we just move it off screen. :-/
+            /// </summary>
+            /// <param name="pntCaret"></param>
+            /// <param name="fVisible"></param>
             public void OnCaretPositioned( SKPointI pntCaret, bool fVisible ) {
-                // If you hide the caret, that seems to destroy it.
-                // So the system just moves it off screen. :-/
-
                 if( _oHost.Focused )
                     User32.SetCaretPos( pntCaret.X, pntCaret.Y );
             }
+
         }
 
         protected class DocSlot :
@@ -227,6 +275,8 @@ namespace Play.Edit {
 
             _rgLayout.Add( new LayoutControl( _oScrollBarVirt, LayoutRect.CSS.Pixels, 12 ) );
 
+            StdFace = StdUI.FaceCache(@"C:\windows\fonts\consola.ttf");
+
             _oCacheMan = CreateCacheMan();
 
             Array.Sort<Keys>( _rgHandledKeys );
@@ -234,14 +284,14 @@ namespace Play.Edit {
             Parent = _oSiteView.Host as Control;
         }
 
-        public virtual CacheMultiColumn CreateCacheMan() {
+        protected virtual CacheMultiColumn CreateCacheMan() {
             uint uiStdText  = _oStdUI.FontCache( _oStdUI.FaceCache( @"C:\windows\fonts\consola.ttf" ), 12, GetDPI() );
             return new CacheMultiColumn( new CacheManSite( this ), 
                                          _oStdUI.FontRendererAt( uiStdText ),
                                          _rgColumns ); 
         }
 
-        public bool  IsDirty => true;
+        public virtual bool IsDirty => true;
         protected override void Dispose( bool disposing ) {
             if( disposing ) {
                 _oDocOps       .ListenerRemove  ( this );
@@ -413,22 +463,27 @@ namespace Play.Edit {
         /// Paint BG depending on various highlight modes for the row/column.
         /// </summary>
         protected void PaintSquareBG( 
-            SKCanvas  skCanvas, 
-            SKPaint   skPaint, 
-            CacheRow  oCRow, 
-            int       iColumn,
-            SmartRect rctCRow 
+            SKCanvas       skCanvas, 
+            SKPaint        skPaint, 
+            CacheRow       oCRow, 
+            int            iColumn,
+            IPgCacheRender oElemInfo,
+            SmartRect      rctCRow 
         ) {
-            StdUIColors eBg = StdUIColors.Max;
-
             try {
-                if( iColumn == 1 )
-                    eBg = StdUIColors.BGReadOnly;
+                StdUIColors eBg = StdUIColors.Max;
+
                 if( _oCacheMan.CaretRow == oCRow.At )
                     eBg = StdUIColors.BGWithCursor;
                 if( _oDocTraits.HighLight != null && oCRow.At == _oDocTraits.HighLight.At)
                     eBg = _oDocTraits.PlayHighlightColor;
 
+                if( oElemInfo.BgColor != SKColors.Transparent ) {
+                    skPaint .BlendMode = SKBlendMode.Src;
+                    skPaint .Color     = oElemInfo.BgColor;
+                    skCanvas.DrawRect( rctCRow.SKRect, skPaint );
+                    return;
+                }
                 if( eBg != StdUIColors.Max ) {
                     skPaint .BlendMode = SKBlendMode.Src;
                     skPaint .Color     = _oStdUI.ColorsStandardAt( eBg );
@@ -492,7 +547,7 @@ namespace Play.Edit {
                             // Test pattern...
                             //skPaint.Color = iCache % 2 == 0 ? SKColors.Blue : SKColors.Green;
                             //skCanvas.DrawRect( rctSquare.SKRect, skPaint );
-                            PaintSquareBG( skCanvas, skPaintBG, oCacheRow, iCacheCol, rctSquare );
+                            PaintSquareBG( skCanvas, skPaintBG, oCacheRow, iCacheCol, oRender, rctSquare );
 
                             oRender.Render(skCanvas, _oStdUI, skPaintTx, rctSquare, this.Focused );
                         }

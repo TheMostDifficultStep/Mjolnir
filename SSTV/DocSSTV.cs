@@ -69,23 +69,24 @@ namespace Play.SSTV {
         }
 
         public SSTVProperties( IPgRoundRobinWork oWorker, IPgBaseSite oSiteBase ) : base( oSiteBase ) {
-            _oParser = new ParseFormText( oWorker, PropertyDoc, "text" );
+            //_oParser = new ParseFormText( oWorker, PropertyDoc, "text" );
         }
 
-        public virtual void Dispose() {
-            _oParser.Dispose(); // remove the parser sink on the form values.
+        public override void Dispose() {
+            //_oParser.Dispose(); // remove the parser sink on the form values.
+            base.Dispose();
         }
 
         public void ParseAll() {
-            _oParser.ParseAll();
+            //_oParser.ParseAll();
         }
 
         public override bool InitNew() {
             if( !base.InitNew() ) 
                 return false;
             // Might want to look at disposing this. But not strictly nessesary.
-            if( !_oParser.InitNew() )
-                return false;
+            //if( !_oParser.InitNew() )
+            //    return false;
             
             // Set up the parser so we get spiffy colorization on our text!! HOWEVER,
             // Some lines are not sending events to the Property_Values document and we
@@ -178,7 +179,7 @@ namespace Play.SSTV {
             if( iDefault.HasValue ) {
                 if( !int.TryParse( this[eIndex], out int iValue ) ) {
                     iValue = iDefault.Value;
-                    //ValueBgColor.Add( (int)eIndex, SKColors.LightPink ); // Sigh...Need some way to go back ^_^;
+                    ValueBgColor.Add( (int)eIndex, SKColors.LightPink ); // Sigh...Need some way to go back ^_^;
                 }
 
                 return iValue;
@@ -193,7 +194,7 @@ namespace Play.SSTV {
             if( dblDefault.HasValue ) {
                 if( !double.TryParse( strProperty, out double dblValue ) ) {
                     dblValue = dblDefault.Value;
-                    //ValueBgColor.Add( (int)eIndex, SKColors.LightPink ); 
+                    ValueBgColor.Add( (int)eIndex, SKColors.LightPink ); 
                 }
 
                 return dblValue;
@@ -472,10 +473,10 @@ namespace Play.SSTV {
             _oSiteBase.LogError( "SSTV", strMessage );
         }
 
-        public string MyCall    => Properties[(int)SSTVProperties.Names.Tx_MyCall].ToString().ToUpper();
-        public string Message   => Properties[(int)SSTVProperties.Names.Tx_Message].ToString();
-        public string TheirCall => Properties[(int)SSTVProperties.Names.Tx_TheirCall].ToString().ToUpper();
-        public string RST       => Properties[(int)SSTVProperties.Names.Tx_RST].ToString();
+        public string MyCall    => Properties.ValueGetAsStr((int)SSTVProperties.Names.Tx_MyCall).ToUpper();
+        public string Message   => Properties.ValueGetAsStr((int)SSTVProperties.Names.Tx_Message);
+        public string TheirCall => Properties.ValueGetAsStr((int)SSTVProperties.Names.Tx_TheirCall).ToUpper();
+        public string RST       => Properties.ValueGetAsStr((int)SSTVProperties.Names.Tx_RST);
 
         public SKColor ForeColor { get; set; } = SKColors.Red;
 

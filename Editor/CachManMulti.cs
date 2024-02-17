@@ -36,17 +36,15 @@ namespace Play.Edit {
     public interface ICacheManSite :
         IPgBaseSite
     {
-        Row            GetRowAtScroll();
-        Row            GetRowAtIndex( int iIndex );
-        void           OnRefreshComplete( int iProgress, int iVisibleCount );
-        void           OnCaretPositioned( SKPointI pntCaretbool, bool fVisible );
-
-        //ICollection<ILineSelection> Selections{ get; }
+        float GetScrollProgress { get; }
+        void  OnRefreshComplete( float flProgress, float flVisiblePercent );
+        void  OnCaretPositioned( SKPointI pntCaretbool, bool fVisible );
     }
     public class CacheMultiColumn:         
         IEnumerable<CacheRow>
     {
-        protected readonly ICacheManSite   _oSite;
+        protected readonly ICacheManSite     _oSite;
+        protected readonly IReadableBag<Row> _oSiteList;
         // World coordinates of our view port. Do not confuse these with the
         // layout columns, those are different.
         protected readonly SmartRect       _oTextRect  = new SmartRect();
@@ -95,11 +93,16 @@ namespace Play.Edit {
         }
 
         /// <summary>
+        /// This is where you put the caret (and in the future, selections)
+        /// so that the editor can enumerate all the values and keep them
+        /// up to date.
+        /// </summary>
+        /// <remarks>
         /// We need this object since we have to ask where the caret is
         /// BEFORE the edit. AFTER the edit even if we use the existing cache, 
         /// the local x,y of the caret comes from the new line measurements
         /// and we end up with incorrect location information.
-        /// </summary>
+        /// </remarks>
         protected class EditHandler :
             IEnumerable<IPgCaretInfo<Row>>,
             IPgEditHandler
@@ -116,8 +119,13 @@ namespace Play.Edit {
                 yield return new CaretTracker( _oHost );
             }
 
+            /// <summary>
+            /// This gets called at the end of the session.
+            /// </summary>
+            /// <param name="oRow">Null if the whole buffer should
+            /// be measured.</param>
             public void OnUpdated( Row oRow ) {
-                _oHost.CacheRepair( oRow, _fCaretVisible, fMeasure:false );
+                _oHost.CacheRepair( oRow, _fCaretVisible, oRow == null );
             }
 
             IEnumerator IEnumerable.GetEnumerator() {
@@ -135,19 +143,38 @@ namespace Play.Edit {
 		{
 			Font           = oFont     ?? throw new ArgumentNullException( "Need a font to get things rolling." );
 			_oSite         = oSite     ?? throw new ArgumentNullException( "Cache manager is a sited object.");
+            _oSiteList     = (IReadableBag<Row>)oSite;
             _rgColumnRects = rgColumns ?? throw new ArgumentNullException( "Columns list from Edit Window is null!" );
 
             GlyphLt    = Font.GetGlyph( 0x003c ); // we used to show carriage return as a '<' sign.
-            LineHeight = (int)Font.LineHeight; // BUG: Cache elem's are variable height in general.
+            LineHeight = (int)Font.LineHeight;    // BUG: Cache elem's are variable height in general.
 
-            _oCaretRow = _oSite.GetRowAtIndex( 0 ); // This must be updated for the PropertyPage case. >:-(
+            _oCaretRow = null;
             _iCaretCol = 0; // Make sure the column is edible :-/
             _iCaretOff = 0;
             _fAdvance  = 0;
         }
 
-        protected virtual Row GetTabOrderRow( int iIndex, int iDir ) {
-            return _oSite.GetRowAtIndex( iIndex+iDir );
+        /// <summary>
+        /// Find the next row in the tab order
+        /// </summary>
+        /// <param name="iIndex">Current position.</param>
+        /// <param name="iDir">+1, 0, -1</param>
+        /// <returns>The given row or NULL!!</returns>
+        protected virtual Row GetTabOrderAtIndex( int iIndex, int iDir ) {
+            return _oSiteList[ iIndex+iDir ];
+        }
+        protected virtual Row GetTabOrderAtScroll() {
+            try {
+                int iIndex = (int)(_oSite.GetScrollProgress * _oSiteList.ElementCount);
+
+                return _oSiteList[ iIndex ];
+            } catch( Exception oEx ) {
+                if( IsUnhandledStdRpt( oEx ) )
+                    throw;
+            }
+
+            return GetTabOrderAtIndex( 0, 0 );
         }
 
         public IEnumerator<CacheRow> GetEnumerator() {
@@ -178,8 +205,10 @@ namespace Play.Edit {
         public int CaretRow {
             get {
                 try {
+                    if( _oCaretRow == null )
+                        return 0;
                     if( _oCaretRow.At < 0 )
-                        _oSite.LogError( "Cacheman", "Zombie Caret Row." );
+                        return 0;
 
                     return _oCaretRow.At; 
                 } catch( NullReferenceException ) {
@@ -228,7 +257,7 @@ namespace Play.Edit {
         {
             int iOffset = 0;
             public CaretInfo( CacheMultiColumn oHost ) {
-                Row     = oHost._oCaretRow;
+                Row     = oHost._oCaretRow ?? throw new ArgumentNullException();
                 Column  = oHost._iCaretCol;
                 iOffset = oHost._iCaretOff;
             }
@@ -293,6 +322,29 @@ namespace Play.Edit {
             }
         }
 
+        protected void MoveWindows() {
+            try {
+                foreach( CacheRow oCacheRow in _rgOldCache ) {
+                    foreach( IPgCacheMeasures oCMElem in oCacheRow.CacheList ) {
+                    }
+                    for( int iCacheCol=0; iCacheCol<oCacheRow.CacheList.Count; ++iCacheCol ) {
+                        if( oCacheRow[iCacheCol] is IPgCacheWindow oCWElem ) {
+                            SmartRect rctColumn = _rgColumnRects[iCacheCol];
+                            SmartRect rctSquare = new SmartRect();
+
+                            rctSquare.SetRect( rctColumn.Left, oCacheRow.Top, rctColumn.Right, oCacheRow.Bottom );
+                            oCWElem  .MoveTo( rctSquare );
+                        }
+                    }
+                }
+            } catch( Exception oEx ) {
+                if( !IsUnhandledStdRpt( oEx ) )
+                    throw;
+
+                LogError( "Problem moving sub windows in multi column cache" );
+            }
+        }
+
         /// <summary>
         /// If part of the cache row is overrlapping the visible area,
         /// we need to clip that off so we calculate the proper number of
@@ -342,10 +394,10 @@ namespace Play.Edit {
 		        Row oDocRow = null;
                 switch( eNeighborhood ) {
                     case RefreshNeighborhood.SCROLL:
-                        oDocRow = _oSite.GetRowAtScroll( );
+                        oDocRow = GetTabOrderAtScroll();
                         break;
                     case RefreshNeighborhood.CARET:
-                        oDocRow = _oSite.GetRowAtIndex( CaretRow );
+                        oDocRow = _oSiteList[ CaretRow ];
                         break;
                 }
                 if( oDocRow == null )
@@ -383,7 +435,7 @@ namespace Play.Edit {
         /// <param name="iDataRow">Which data row we want to represent.</param>
         /// <seealso cref="CacheReset"/>
         protected CacheRow CacheRecycle( CacheRow oPrevCache, int iDir, bool fRemeasure = false ) {
-            Row oNextDRow =  GetTabOrderRow( oPrevCache.At, iDir);
+            Row oNextDRow =  GetTabOrderAtIndex( oPrevCache.At, iDir);
 
             if( oNextDRow == null )
                 return null;
@@ -393,7 +445,7 @@ namespace Play.Edit {
 
             // If we're reusing a cache, it's already measured!! ^_^
             if( oNewCache == null ) {
-                oNewCache = CreateCacheRow( _oSite.GetRowAtIndex( oNextDRow.At ) );
+                oNewCache = CreateCacheRow( _oSiteList[ oNextDRow.At ] );
                 fRemeasure = true;
             }
             if( fRemeasure ) 
@@ -481,7 +533,7 @@ namespace Play.Edit {
             CacheRow oCacheWithCaret = null; // If non null, caret might be visible...
 
             void NewCacheAdd( InsertAt ePos, CacheRow oNewCacheRow ) {
-                if( oNewCacheRow.At == _oCaretRow.At ) {
+                if( oNewCacheRow.At == CaretRow ) {
                     oCacheWithCaret = oNewCacheRow;
                 }
                 if( ePos == InsertAt.BOTTOM )
@@ -533,10 +585,22 @@ namespace Play.Edit {
             _rgOldCache.AddRange( _rgNewCache );
             _rgNewCache.Clear();
 
-            int  iBottomRow    = ( oLastCache == null ) ? 0 : oLastCache.At;
-            bool fCaretVisible = IsCaretNear( oCacheWithCaret, out SKPointI pntCaret );
+            MoveWindows();
 
-            _oSite.OnRefreshComplete( iBottomRow, _rgOldCache.Count );
+            FinishUp( oLastCache, oCacheWithCaret );
+        }
+
+        protected virtual void FinishUp( CacheRow oBottom, CacheRow oCaret ) {
+            if( _rgOldCache.Count <= 0 ) {
+                _oSite.OnRefreshComplete( 1, 1 );
+                _oSite.OnCaretPositioned( new SKPointI( -1000,-1000), false );
+                return;
+            }
+
+            int  iBottomRow    = ( oBottom == null ) ? 0 : oBottom.At;
+            bool fCaretVisible = IsCaretNear( oCaret, out SKPointI pntCaret );
+
+            _oSite.OnRefreshComplete( iBottomRow, _rgOldCache.Count / _oSiteList.ElementCount );
             _oSite.OnCaretPositioned( pntCaret,   fCaretVisible );
         }
 
@@ -734,7 +798,7 @@ namespace Play.Edit {
                     // First, see if we can navigate within the cache item we are currently at.
                     if( !oCaretCacheRow[_iCaretCol].Navigate( eAxis, iDir, ref _fAdvance, ref _iCaretOff ) ) {
                         // Now try moving vertically, but stay in the same column...
-                        Row oDocRow = GetTabOrderRow( CaretRow, iDir);
+                        Row oDocRow = GetTabOrderAtIndex( CaretRow, iDir);
                         if( oDocRow != null ) {
                             CacheRow oNewCache = _rgOldCache.Find(item => item.At == oDocRow.At);
                             if( oNewCache == null ) {
@@ -770,7 +834,7 @@ namespace Play.Edit {
                         CacheRow oCacheRow = PointToCache( iColumn, pntPick, out int iOffset );
                         if( oCacheRow != null ) {
                             _fAdvance  = pntPick.X - rctColumn.Left;
-                            _oCaretRow = _oSite.GetRowAtIndex( oCacheRow.At );
+                            _oCaretRow = _oSiteList[ oCacheRow.At ];
                             _iCaretCol = iColumn;
                             _iCaretOff = iOffset;
 
@@ -883,7 +947,7 @@ namespace Play.Edit {
         /// <exception cref="ArgumentOutOfRangeException" />
         public bool SetCaretPositionAndScroll( int iDataRow, int iColumn, int iOffset, bool fMeasure = false ) {
             try {
-                Row  oDataRow = _oSite.GetRowAtIndex( iDataRow );
+                Row  oDataRow = _oSiteList[ iDataRow ];
                 Line oLine    = oDataRow[iColumn];
 
                 if( iOffset < 0 || iOffset >= oLine.ElementCount )
@@ -914,14 +978,14 @@ namespace Play.Edit {
         }
 
         public void ScrollToCaret() {
-            CacheRow oCaretCacheRow = CacheLocate( _oCaretRow.At );
+            CacheRow oCaretCacheRow = CacheLocate( CaretRow );
 
             if( oCaretCacheRow == null ) {
                 oCaretCacheRow = CacheReset( RefreshNeighborhood.CARET );
             }
 
-            CaretSlideWindow ( oCaretCacheRow );
-            CacheWalker( oCaretCacheRow );
+            CaretSlideWindow( oCaretCacheRow );
+            CacheWalker     ( oCaretCacheRow );
         }
 
     } // end class
@@ -957,7 +1021,7 @@ namespace Play.Edit {
         /// <param name="oCacheRow"></param>
         public void Add( CacheRow oCacheRow ) {
             if( _rgFixedCache.Count <= 0 )
-                _oCaretRow = _oSite.GetRowAtIndex( oCacheRow.At );
+                _oCaretRow = _oSiteList[ oCacheRow.At ];
 
             _rgFixedCache.Add( oCacheRow );
         }
@@ -969,7 +1033,7 @@ namespace Play.Edit {
         /// </summary>
         /// <param name="iIndex">The data row where we are.</param>
         /// <param name="iDir">Direction in tab order to go.</param>
-        protected override Row GetTabOrderRow( int iIndex, int iDir ) {
+        protected override Row GetTabOrderAtIndex( int iIndex, int iDir ) {
             int iFixedIndex = -100;
             for( int i=0; i< _rgFixedCache.Count; ++i ) {
                 if( _rgFixedCache[i].At == iIndex ) {
@@ -984,7 +1048,40 @@ namespace Play.Edit {
             if( iNextIndex >= _rgFixedCache.Count )
                 return null;
 
-            return _oSite.GetRowAtIndex( _rgFixedCache[iNextIndex].At );
+            return _oSiteList[ _rgFixedCache[iNextIndex].At ];
         }
+
+        protected override Row GetTabOrderAtScroll() {
+            int iIndex = (int)(_oSite.GetScrollProgress * _rgFixedCache.Count );
+
+            if( _rgFixedCache.Count <= 0 )
+                return null;
+
+            return _oSiteList[ _rgFixedCache[iIndex].At ];
+        }
+
+        protected override void FinishUp( CacheRow oBottom, CacheRow oCaret ) {
+            if( _rgFixedCache.Count <= 0 ) {
+                _oSite.OnRefreshComplete( 1, 1 );
+                _oSite.OnCaretPositioned( new SKPointI( -1000,-1000), false );
+                return;
+            }
+
+            int  iBottomRow    = ( oBottom == null ) ? 0 : oBottom.At;
+            bool fCaretVisible = IsCaretNear( oCaret, out SKPointI pntCaret );
+            int  iFixedIndex   = 0;
+
+            for( int i=0; i< _rgFixedCache.Count; ++i ) {
+                if( _rgFixedCache[i].At == iBottomRow ) {
+                    iFixedIndex = i;
+                    break;
+                }
+            }
+
+            _oSite.OnRefreshComplete( (float)iFixedIndex       / _rgFixedCache.Count, 
+                                      (float)_rgOldCache.Count / _rgFixedCache.Count );
+            _oSite.OnCaretPositioned( pntCaret,   fCaretVisible );
+        }
+
     }
 }

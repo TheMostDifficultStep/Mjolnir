@@ -64,8 +64,7 @@ namespace Play.SSTV {
 
 			if( _oTxView != null ) {
 				try {
-					PropertyInitRow( Layout as LayoutTable, 
-									 (int)SSTVProperties.Names.Tx_LayoutSelect, 
+					PropertyInitRow( (int)SSTVProperties.Names.Tx_LayoutSelect, 
 									 _ddTemplates );
 					// Call this once to set up the mode families.
 					SSTVDEM.SSTVFamily oPD = null;
@@ -85,8 +84,7 @@ namespace Play.SSTV {
 					_ddSSTVFamily.AutoSize      = true;
 					_ddSSTVFamily.TabIndex      = 0;
 					_ddSSTVFamily.DropDownStyle = ComboBoxStyle.DropDownList;
-					PropertyInitRow( Layout as LayoutTable, 
-									 (int)SSTVProperties.Names.Tx_FamilySelect, 
+					PropertyInitRow( (int)SSTVProperties.Names.Tx_FamilySelect, 
 									 _ddSSTVFamily );
 
 					_ddSSTVMode.SelectedIndexChanged += OnSelectedIndexChanged_ModeDropDown;
@@ -94,8 +92,7 @@ namespace Play.SSTV {
 					_ddSSTVMode.TabIndex      = 1;
 					_ddSSTVMode.DropDownStyle = ComboBoxStyle.DropDownList;
 
-					PropertyInitRow( Layout as LayoutTable, 
-									 (int)SSTVProperties.Names.Tx_ModeSelect, 
+					PropertyInitRow( (int)SSTVProperties.Names.Tx_ModeSelect, 
 									 _ddSSTVMode );
 
 					_oTxView.PopulateSubModes( oPD );
@@ -122,8 +119,7 @@ namespace Play.SSTV {
 				}
 			}
 
-			PropertyInitRow( Layout as LayoutTable, 
-				             (int)SSTVProperties.Names.Rx_Window, 
+			PropertyInitRow( (int)SSTVProperties.Names.Rx_Window, 
 							 new ImageViewSingle( new WinSlot( this ), _oDocSSTV.DisplayImage )  );
 
         }
@@ -486,7 +482,7 @@ namespace Play.SSTV {
 				_wmTxImageComposite.Dispose();
 				_wmRxViewChoices   .Dispose();
 
-				_oDocSSTV.Properties.PropertyDoc.SubmitEvent -= OnSubmitEvent_SSTVProperties;
+				_oDocSSTV.Properties.SubmitEvent -= OnSubmitEvent_SSTVProperties;
 
 				_fDisposed = true;
 			}
@@ -512,7 +508,7 @@ namespace Play.SSTV {
             _oLayout .Add( oHBLayout );
 
             OnSizeChanged( new EventArgs() );
-            _oDocSSTV.Properties.PropertyDoc.SubmitEvent += OnSubmitEvent_SSTVProperties;
+            _oDocSSTV.Properties.SubmitEvent += OnSubmitEvent_SSTVProperties;
 
 			return true;
         }
