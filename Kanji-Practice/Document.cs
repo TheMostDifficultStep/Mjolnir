@@ -163,20 +163,20 @@ namespace Kanji_Practice {
         }
 
         public class CardInfo {
-            public KanjiPropEnum  Label    { get; }
+            public KanjiPropEnum  Property    { get; }
             public string         FormatID { get; }
             public IMemoryRange ? Range    { get; set; }
 
             public CardInfo( string strFormatID, KanjiPropEnum eLabel ) {
                 FormatID = strFormatID;
-                Label    = eLabel;
+                Property    = eLabel;
                 Range    = null;
             }
 
             public override string ToString() {
                 StringBuilder sb = new StringBuilder();
 
-                sb.Append( Label.ToString() );
+                sb.Append( Property.ToString() );
                 if( Range != null ) {
                     sb.Append( ' ' );
                     sb.Append( Range.ToString() );
@@ -247,13 +247,13 @@ namespace Kanji_Practice {
                             string strValue = oCard.SubString( oRange.Offset, oRange.Length );
                         
                             if( !fShowAll ) {
-                                if( oInfo.Label == KanjiPropEnum.Hiragana )
+                                if( oInfo.Property == KanjiPropEnum.Hiragana )
                                     strValue = String.Empty;
-                                if( oInfo.Label == KanjiPropEnum.Meaning )
+                                if( oInfo.Property == KanjiPropEnum.Meaning )
                                     strValue = String.Empty;
                             }
 
-                            oBulk.SetValue( (int)oInfo.Label, strValue );
+                            oBulk.SetValue( (int)oInfo.Property, strValue );
                         }
                     }
                     if( _rgMeanings.Count > 0 && fShowAll ) {

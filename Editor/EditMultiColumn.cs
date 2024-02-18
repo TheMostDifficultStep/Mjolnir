@@ -206,7 +206,9 @@ namespace Play.Edit {
 
         public int ElementCount => _rgRows.Count;
         /// <exception cref="ArgumentOutOfRangeException" </exception>
-        /// <remarks>Should I return a dummy element? Probably not</remarks>
+        /// <remarks>Don't return dummy element for out of bounds
+        /// else we don't know when a caret has reached the top or 
+        /// bottom of the file.</remarks>
         public Row this[int iIndex] => _rgRows[iIndex];
 
         public Row HighLight { 
@@ -258,6 +260,13 @@ namespace Play.Edit {
             }
         }
 
+        /// <summary>
+        /// The cache manager might have multiple objects that might be
+        /// affected by an edit. In order for us to better handle before/after
+        /// changes, we start the edit by getting a handler from it.
+        /// The handler enumerates all the elements that need to track
+        /// the edits on one window.
+        /// </summary>
         struct TrackerEnumerable :         
             IEnumerable<IPgCaretInfo<Row>>
         {
@@ -267,6 +276,7 @@ namespace Play.Edit {
                 if( oHost == null )
                     throw new ArgumentNullException();
 
+                // Save us from creating this everytime...
                 _rgHandlers = oHost._rgTemp;
                 _rgHandlers.Clear();
 
@@ -328,6 +338,7 @@ namespace Play.Edit {
                                     typeof( ArgumentOutOfRangeException ) };
                 if( rgErrors.IsUnhandled( oEx ) )
                     throw;
+                _oSiteBase.LogError( "Delete Text", "Error in TryReplaceAt" );
             }
             return false;
         }
@@ -358,8 +369,14 @@ namespace Play.Edit {
                 oTE.FinishUp( null );
 
                 return true;
-            } catch( NullReferenceException ) {
-                _oSiteBase.LogError( "Delete Text", "Error in LineTextDelete" );
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( NullReferenceException ),
+                                    typeof( IndexOutOfRangeException ),
+                                    typeof( ArgumentOutOfRangeException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
+
+                _oSiteBase.LogError( "Delete Text", "Error in TryDeleteAt" );
             }
 
             return false;

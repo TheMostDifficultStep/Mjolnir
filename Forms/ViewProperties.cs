@@ -95,18 +95,18 @@ namespace Play.Forms {
         }
 
         public void PropertyInitRow( int iIndex, Control oWinValue ) {
-            Row         oRow         = _oDocList[iIndex];
-            CacheRow    oNewCacheRow = new CacheRow2( oRow );
-            FTCacheWrap oLabel       = new FTCacheWrap( oRow[0] );
-
-            // If the value is a multi-line value make an editor. And ignor the value line (if there is one).
+            // If the value is a multi-line value make an editor. And ignore the value line (if there is one).
             if( oWinValue is IPgLoad oWinLoad ) {
                 oWinLoad.InitNew();
             }
             oWinValue.Parent = this;
 
+            Row         oRow         = _oDocList[iIndex];
+            FTCacheWrap oLabel       = new FTCacheWrap( oRow[0] );
+
             oLabel.BgColor = _oStdUI.ColorsStandardAt( StdUIColors.BGReadOnly );
 
+            CacheRow    oNewCacheRow = new CacheRow2( oRow );
             oNewCacheRow.CacheList.Add( oLabel );
             oNewCacheRow.CacheList.Add( new CacheControl( oWinValue ) );
 

@@ -684,7 +684,7 @@ namespace Play.MusicWalker {
 									typeof( ArgumentOutOfRangeException ),
 									typeof( UnauthorizedAccessException ) };
 				if( rgErrors.IsUnhandled( oEx ) )
-					throw oEx;
+					throw;
 
 				_oSiteBase.LogError( "musiccollection", "Trouble walking given directory structure: " + strStart, true );
 				return( false );

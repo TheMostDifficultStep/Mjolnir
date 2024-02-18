@@ -159,7 +159,6 @@ namespace Play.MusicWalker {
 		ImageViewSingle ViewSpeaker { get; }
 		ImageViewSingle ViewAlbumArt{ get; }
 		ImageViewSingle ViewSettings{ get; }
-	  //ComboBox        ViewRecievers{ get; }
 
 		public SKBitmap  Icon     { get; }
 		public string    Banner   => Document.FileBase;
@@ -287,9 +286,6 @@ namespace Play.MusicWalker {
 			ViewSettings = new ImageViewSingle( new MusicViewSlot( this ), oDoc.IconSettings ) {
 				Parent = this
 			};
-			//ViewRecievers = new ComboBox() {
-			//	Parent = this, Font = ((IPgStandardUI)_oDocumentMusic.Services).FontMenu
-			//};
 
 			_rgLayoutTop.SetPoint( SET.STRETCH, LOCUS.UPPERLEFT, 0, 0 );
 			_rgLayoutTop.Add(new LayoutControl( ViewLibrary, LayoutRect.CSS.None ));
