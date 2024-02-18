@@ -475,7 +475,7 @@ namespace Play.Edit {
             try {
                 StdUIColors eBg = StdUIColors.Max;
 
-                if( _oCacheMan.CaretRow == oCRow.At )
+                if( _oCacheMan.CaretAt == oCRow.At )
                     eBg = StdUIColors.BGWithCursor;
                 if( _oDocTraits.HighLight != null && oCRow.At == _oDocTraits.HighLight.At)
                     eBg = _oDocTraits.PlayHighlightColor;

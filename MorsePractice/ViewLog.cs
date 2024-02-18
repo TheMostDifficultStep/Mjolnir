@@ -78,7 +78,9 @@ namespace Play.MorsePractice {
 					_oCacheMan.CaretTab( iDir );
 					break;
 				case '\r':
-					LogDoc.InsertNew();
+					if( LogDoc.InsertNew( _oCacheMan.CaretAt + 1 ) is Row oRow ) {
+						_oCacheMan.CaretReset( oRow, iColumn:0 );
+					}
 					break;
 				default:
 					base.OnKeyPress( e );

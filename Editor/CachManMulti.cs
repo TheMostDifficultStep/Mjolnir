@@ -202,7 +202,7 @@ namespace Play.Edit {
             get { return _oTextRect; }
         }
 
-        public int CaretRow {
+        public int CaretAt {
             get {
                 try {
                     if( _oCaretRow == null )
@@ -297,7 +297,7 @@ namespace Play.Edit {
                 int      iTop       = _rgOldCache.Count < 1 ? 0 : _rgOldCache[0].Top;
 
                 foreach( CacheRow oCacheRow in _rgOldCache ) {
-                    if( oCacheRow.At == CaretRow ) {
+                    if( oCacheRow.At == CaretAt ) {
                         oSeedCache = oCacheRow;
                     }
                     if( oPatch       != null &&
@@ -402,7 +402,7 @@ namespace Play.Edit {
                         oDocRow = GetTabOrderAtScroll();
                         break;
                     case RefreshNeighborhood.CARET:
-                        oDocRow = _oSiteList[ CaretRow ];
+                        oDocRow = _oSiteList[ CaretAt ];
                         break;
                 }
                 if( oDocRow == null )
@@ -538,7 +538,7 @@ namespace Play.Edit {
             CacheRow oCacheWithCaret = null; // If non null, caret might be visible...
 
             void NewCacheAdd( InsertAt ePos, CacheRow oNewCacheRow ) {
-                if( oNewCacheRow.At == CaretRow ) {
+                if( oNewCacheRow.At == CaretAt ) {
                     oCacheWithCaret = oNewCacheRow;
                 }
                 if( ePos == InsertAt.BOTTOM )
@@ -644,7 +644,7 @@ namespace Play.Edit {
         /// <param name="pntCaret">Caret position in window coordinates.</param>
         /// <returns>Caret on screen or not.</returns>
         public bool IsCaretVisible( out SKPointI pntCaret ) {
-            CacheRow oCaretRow = CacheLocate( CaretRow );
+            CacheRow oCaretRow = CacheLocate( CaretAt );
 
             if( IsCaretNear( oCaretRow, out pntCaret ) ) {
                 bool fTL = TextRect.IsInside( pntCaret.X, pntCaret.Y );
@@ -798,12 +798,12 @@ namespace Play.Edit {
                 throw new ArgumentOutOfRangeException();
 
             try {
-                CacheRow oCaretCacheRow = CacheLocate( CaretRow );
+                CacheRow oCaretCacheRow = CacheLocate( CaretAt );
                 if( oCaretCacheRow != null ) {
                     // First, see if we can navigate within the cache item we are currently at.
                     if( !oCaretCacheRow[_iCaretCol].Navigate( eAxis, iDir, ref _fAdvance, ref _iCaretOff ) ) {
                         // Now try moving vertically, but stay in the same column...
-                        Row oDocRow = GetTabOrderAtIndex( CaretRow, iDir);
+                        Row oDocRow = GetTabOrderAtIndex( CaretAt, iDir);
                         if( oDocRow != null ) {
                             CacheRow oNewCache = _rgOldCache.Find(item => item.At == oDocRow.At);
                             if( oNewCache == null ) {
@@ -832,7 +832,7 @@ namespace Play.Edit {
         }
 
         public bool CaretTab( int iDir ) {
-            if( !( iDir == 1 || iDir == -1 ) )
+            if( iDir < -1 || iDir > 1 )
                 return false;
 
             _iCaretCol += iDir;
@@ -845,7 +845,7 @@ namespace Play.Edit {
             _fAdvance  = 0;
             _iCaretOff = 0;
 
-            if( CacheLocate( CaretRow ) is CacheRow oCaretRow ) {
+            if( CacheLocate( CaretAt ) is CacheRow oCaretRow ) {
                 Point pntCaret = oCaretRow[_iCaretCol].GlyphOffsetToPoint( _iCaretOff );
 
                 pntCaret.X += _rgColumnRects[_iCaretCol].Left;
@@ -855,6 +855,21 @@ namespace Play.Edit {
             } else {
                 _oSite.OnCaretPositioned( new SKPointI( -1000, -1000 ), false );
             }
+
+            return true;
+        }
+
+        public bool CaretReset( Row oRow, int iColumn ) {
+            if( oRow == null )
+                return false;
+
+            _oCaretRow = oRow;
+            _iCaretCol = 0;
+            _iCaretOff = 0;
+
+            CacheRow oCaret = CacheReset( RefreshNeighborhood.CARET );
+
+            CacheWalker( oCaret, false );
 
             return true;
         }
@@ -1011,7 +1026,7 @@ namespace Play.Edit {
         }
 
         public void ScrollToCaret() {
-            CacheRow oCaretCacheRow = CacheLocate( CaretRow );
+            CacheRow oCaretCacheRow = CacheLocate( CaretAt );
 
             if( oCaretCacheRow == null ) {
                 oCaretCacheRow = CacheReset( RefreshNeighborhood.CARET );

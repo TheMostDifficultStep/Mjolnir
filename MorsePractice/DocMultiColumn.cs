@@ -43,18 +43,29 @@ namespace Play.MorsePractice {
             return true;
         }
 
-        public void InsertNew() {
-            Row oNew = new LogRow();
+        public Row InsertNew() {
+            return InsertNew( _rgRows.Count );
+        }
 
-            _rgRows.Insert( _rgRows.Count, oNew );
+        public Row InsertNew( int iRow ) {
+            try {
+                Row oNew = new LogRow();
 
-            RenumberRows();
+                _rgRows.Insert( iRow, oNew );
 
-            foreach( object oEvent in _rgListeners ) {
-                if( oEvent is IPgLogEvents oSend ) {
-                    oSend.OnRowUpdate( oNew );
+                RenumberRows();
+
+                foreach( object oEvent in _rgListeners ) {
+                    if( oEvent is IPgLogEvents oSend ) {
+                        oSend.OnRowUpdate( oNew );
+                    }
                 }
+
+                return oNew;
+            } catch( ArgumentOutOfRangeException ) {
+                LogError( "Row is out of bounds" );
             }
+            return null;
         }
 
         public bool Load(TextReader oStream) {
