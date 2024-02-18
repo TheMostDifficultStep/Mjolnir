@@ -270,7 +270,12 @@ namespace Play.Edit {
             public int Length { get => 0; set => throw new NotImplementedException(); }
         }
 
-        public CaretInfo CopyCaret() {
+        public CaretInfo? CopyCaret() {
+            if( _oCaretRow == null )
+                _oCaretRow = GetTabOrderAtIndex( 0, 0 );
+            if( _oCaretRow == null )
+                return null;
+
             return new CaretInfo( this );
         }
 
@@ -824,6 +829,34 @@ namespace Play.Edit {
                 if( IsUnhandledStdRpt( oEx ) )
                     throw;
             }
+        }
+
+        public bool CaretTab( int iDir ) {
+            if( !( iDir == 1 || iDir == -1 ) )
+                return false;
+
+            _iCaretCol += iDir;
+
+            if( _iCaretCol < 0 )
+                _iCaretCol = 0;
+            if( _iCaretCol >= _rgColumnRects.Count )
+                _iCaretCol = 0;
+
+            _fAdvance  = 0;
+            _iCaretOff = 0;
+
+            if( CacheLocate( CaretRow ) is CacheRow oCaretRow ) {
+                Point pntCaret = oCaretRow[_iCaretCol].GlyphOffsetToPoint( _iCaretOff );
+
+                pntCaret.X += _rgColumnRects[_iCaretCol].Left;
+                pntCaret.Y += oCaretRow.Top;
+
+                _oSite.OnCaretPositioned( new SKPointI( pntCaret.X, pntCaret.Y ), true );
+            } else {
+                _oSite.OnCaretPositioned( new SKPointI( -1000, -1000 ), false );
+            }
+
+            return true;
         }
 
         public bool CaretAdvance( SKPointI pntPick ) {

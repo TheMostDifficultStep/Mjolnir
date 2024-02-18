@@ -21,226 +21,69 @@ namespace Play.MorsePractice {
 		void OnTableLoaded();
 	}
 
-    public interface IPgTableDocument {
-		ICollection<ICollection<Line>> Rows { get; }
-
-		void TableListenerAdd   ( IPgTableEvents oEvent );
-		void TableListenerRemove( IPgTableEvents oEvent );
-    }
-
 	/// <summary>
-	/// An experiment to read a log in an SQL file. Just a fragment and unfinished
-	/// and really broken since I have removed the old Uniscribe code.
+	/// Reviving this experiment, multi column log viewer!!
 	/// </summary>
-	public class ViewLog : Control,
+	public class ViewLog : 
+		WindowMultiColumn,
 		IPgCommandView,
         IPgLoad<XmlElement>,
 		IPgSave<XmlDocumentFragment>,
-		IPgTableEvents,
-		IEnumerable<LayoutText> 
+		IPgLogEvents
 	{
-		static public Guid ViewLogger { get; } = new Guid("{BE243DE2-7763-4A44-9499-0EEDBC84D8A4}");
+		static public Guid ViewCatagory { get; } = new Guid("{BE243DE2-7763-4A44-9499-0EEDBC84D8A4}");
 
-		public Guid   Catagory => ViewLogger;
+		public Guid   Catagory => ViewCatagory;
 		public string Banner   => "Log Viewer";
 		public SKBitmap Icon   => null;
-		public bool   IsDirty  => false;
 
-		readonly IPgViewSite      _oSiteView;
-	    readonly IPgTableDocument _oDocument;
-		readonly LayoutTable       _oTable = new LayoutTable( 20, LayoutRect.CSS.Flex ); // Add some slop. Not measuring well...
-		readonly IPgStandardUI    _oStdUI;
+		protected DocMultiColumn LogDoc { get; }
 
-        //protected SCRIPT_FONTPROPERTIES _sDefFontProps = new SCRIPT_FONTPROPERTIES();
-        protected IntPtr                _hScriptCache  = IntPtr.Zero;
-		protected bool                  _fCacheInvalid = true;
-
-		public ViewLog( IPgViewSite oSiteView, IPgTableDocument oDocument ) {
-			_oSiteView = oSiteView ?? throw new ArgumentNullException( "Site must not be null" );
-			_oDocument = oDocument ?? throw new ArgumentNullException( "Document must not be null" );
- 			_oStdUI    = oSiteView.Host.Services as IPgStandardUI ?? throw new ArgumentException( "Parent view must provide IPgStandardUI service" );
-			Font       = _oStdUI.FontStandard;
+		public ViewLog( IPgViewSite oSiteView, object oDocument ) :
+			base( oSiteView, oDocument )
+		{
+			LogDoc = (DocMultiColumn)oDocument;
 		}
 
-		protected override void Dispose( bool fDisposing ) {
-			if( fDisposing ) {
-				_oDocument.TableListenerRemove( this );
-			}
-            base.Dispose(fDisposing);
-		}
+		protected override bool Initialize() {
+			if( !base.Initialize() )
+				return false;
 
-		protected void LogError( string strMessage, string strDetails ) {
-			_oSiteView.LogError( strMessage, strDetails );
-		}
+			_rgLayout.Add( new LayoutRect( LayoutRect.CSS.Pixels, 100, 0.2F ) );
+			_rgLayout.Add( new LayoutRect( LayoutRect.CSS.Pixels, 40,  0.1F ) );
+			_rgLayout.Add( new LayoutRect( LayoutRect.CSS.None ) );
 
-		public bool InitNew() {
-			_oTable.AddColumn( LayoutRect.CSS.Flex, 20 ); // freq
-			_oTable.AddColumn( LayoutRect.CSS.Flex, 10 ); // time
-			_oTable.AddColumn( LayoutRect.CSS.Flex, 20 ); // date
-			_oTable.AddColumn( LayoutRect.CSS.Flex, 20 ); // station
-			_oTable.AddColumn( LayoutRect.CSS.Flex, 10 ); // mode
-			_oTable.AddColumn( LayoutRect.CSS.Flex, 10 ); // qso
-			_oTable.AddColumn( LayoutRect.CSS.None,  0 ); // net
-
-			LoadTableView();
-
-			_oDocument.TableListenerAdd( this );
+			_rgColumns.Add( _rgLayout.Item(1) );
+			_rgColumns.Add( _rgLayout.Item(2) );
+			_rgColumns.Add( _rgLayout.Item(3) );
 
 			return true;
 		}
 
-		public bool Load( XmlElement oStream ) {
-			return true;
-		}
-
-		public void OnTableRowChanged( int iRow ) {
-			try {
-				foreach( LayoutRect oLayout in _oTable.RowItem( iRow ) ) {
-					oLayout.Invalidate();
-				}
-				_fCacheInvalid = true;
-			} catch( Exception oEx ) {
-				Type[] rgErrors = { typeof( ArgumentOutOfRangeException ), // Index out of range.
-									typeof( InvalidCastException ),        // Unexpected table row contents.
-									typeof( NullReferenceException ) };
-				if( rgErrors.IsUnhandled( oEx ) )
-					throw;
-				LogError( "Property Changed", "Problem Invalidating given property row!" );
-            }
+        public void OnRowUpdate(Row oRow) {
+            _oCacheMan.CacheRepair( oRow, true, false );
         }
 
-		public void OnTableDone( bool fChangedAll ) {
-            Invalidate();
-		}
+        protected override void OnKeyPress(KeyPressEventArgs e) {
+            if( IsDisposed )
+                return;
+            if( _oViewEvents.IsCommandPress( e.KeyChar ) )
+                return;
+            if( _fReadOnly )
+                return;
 
-		public void OnTableClear() {
-			_oTable.Clear();
-
-			Invalidate();
-		}
-
-		protected void LoadTableView() {
-			foreach(ICollection<Line> oRow in _oDocument.Rows ) {
-				List<LayoutRect> rgRow = new List<LayoutRect>( oRow.Count );
-				foreach( Line oLine in oRow ) {
-					LayoutText oName = new LayoutText( new FTCacheWrap( oLine ), LayoutRect.CSS.Flex, 10, 1 );
-
-					// Load up the row with our display elements.
-					rgRow.Add( oName );
-				}
-				_oTable.AddRow( rgRow );
+			switch( e.KeyChar ) {
+				case '\t':
+					int iDir = ModifierKeys == Keys.Shift ? -1 : 1;
+					_oCacheMan.CaretTab( iDir );
+					break;
+				case '\r':
+					LogDoc.InsertNew();
+					break;
+				default:
+					base.OnKeyPress( e );
+					break;
 			}
-		}
-
-		public void OnTableLoaded() {
-			LoadTableView();
-
-			_fCacheInvalid = true;
-
-			Invalidate();
-		}
-
-		protected override void OnSizeChanged(EventArgs e) {
-			base.OnSizeChanged(e);
-
-			_oTable.SetRect( 0, 0, Width, Height );
-			_oTable.LayoutChildren();
-
-			Invalidate();
-		}
-
-		protected void CellsUpdateAll( IntPtr hDC ) {
-			//if( _hScriptCache == IntPtr.Zero )
-			//	_sDefFontProps.Load( hDC, ref _hScriptCache );
-
-			//foreach( LayoutText oTextRect in this ) {
-			//	CacheWrapped oCache = oTextRect.Cache;
-			//	if( oCache.IsInvalid ) { 
-			//		oCache.Update( hDC, ref _hScriptCache, 4, this.FontHeight, _sDefFontProps, null, oTextRect.Width, null );
-
-			//		// This is super crude. But let's go for it at the moment.
-			//		oCache.Words.Clear();
-			//		//foreach (IColorRange oRange in oCache.Line.Formatting) {
-			//		//	oCache.Words.Add(oRange);
-			//		//}
-			//	}
-			//}
-
-			//_fCacheInvalid = false;
-		}
-
-		protected override void OnPaint(PaintEventArgs oE) {
-			base.OnPaint(oE);
-
-			//using( GraphicsContext oDC = new GraphicsContext( oE.Graphics ) ) {
-			//	IntPtr hFont = _oStdUI.FontStandard.ToHfont();
-
-			//	using( new ItemContext( oDC.Handle, hFont ) ) {
-			//		if( _fCacheInvalid ) {
-			//			CellsUpdateAll( oDC.Handle );
-			//			_oTable.SetRect( 0, 0, Width, Height );
-			//			_oTable.LayoutChildren();
-			//		}
-
-			//		foreach( LayoutText2 oTextRect in this ) {
-			//			if( _oTable.IsIntersecting( oTextRect ) ) {
-			//				oTextRect.Cache.Render( oDC.Handle, _hScriptCache, new PointF( oTextRect.Left, oTextRect.Top ), 0, null );
-			//			}
-			//		}
-			//	}
-			//}
-		}
-
-		/// <summary>
-		/// Paint our background to our standard background color.
-		/// <param name="oE"></param>
-		protected override void OnPaintBackground(PaintEventArgs oE) {
-			base.OnPaintBackground(oE);
-
-			try {
-				using( Brush oBrush = new SolidBrush( LOGBRUSH.CreateColor( _oStdUI.ColorStandardPacked( StdUIColors.BG ) ) ) ) {
-					oE.Graphics.FillRectangle( oBrush, new Rectangle( 0, 0, this.Width, this.Height ) ); 
-				}
-			} catch( Exception oEx ) {
-                Type[] rgErrors = { typeof( NullReferenceException ),
-                                    typeof( ArgumentOutOfRangeException ),
-									typeof( ArgumentNullException ),
-									typeof( ArgumentException ) };
-				if( rgErrors.IsUnhandled( oEx ) )
-					throw;
-
-				LogError( "Paint", "Problem painting backgrounds." );
-			}
-		}
-
-		protected override void OnGotFocus(EventArgs e) {
-			base.OnGotFocus(e);
-
-			_oSiteView.EventChain.NotifyFocused( true );
-
-			Invalidate();
-		}
-
-		protected override void OnLostFocus(EventArgs e) {
-			base.OnLostFocus(e);
-
-			_oSiteView.EventChain.NotifyFocused( false );
-
-			Invalidate();
-		}
-
-		public IEnumerator<LayoutText> GetEnumerator() {
-			foreach( LayoutStack oRow in _oTable.Rows ) {
-				foreach( LayoutRect oRect in oRow ) {
-					if( oRect is LayoutText oTextRect ) {
-						yield return oTextRect;
-					}
-				}
-			}
-		}
-
-		IEnumerator IEnumerable.GetEnumerator() {
-			return GetEnumerator();
 		}
 
 		public bool Execute(Guid sGuid) {
@@ -250,11 +93,7 @@ namespace Play.MorsePractice {
 		public object Decorate(IPgViewSite oBaseSite, Guid sGuid) {
 			return null;
 		}
-
-		public bool Save(XmlDocumentFragment oStream) {
-			return true;
-		}
-	}
+    }
 
 
     /// <summary>

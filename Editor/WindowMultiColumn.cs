@@ -42,7 +42,7 @@ namespace Play.Edit {
     }
 
     public interface IPgEditEvents {
-        IPgEditHandler NewEditHandler(); // Any kind of edit.
+        IPgEditHandler CreateEditHandler(); // Any kind of edit.
         void           OnDocFormatted();    // Document gets formatted.
     }
 
@@ -148,7 +148,9 @@ namespace Play.Edit {
         readonly static Keys[] _rgHandledKeys = { Keys.PageDown, Keys.PageUp, Keys.Down,
                                                   Keys.Up, Keys.Right, Keys.Left, Keys.Back,
                                                   Keys.Delete, Keys.Enter, Keys.Tab,
-                                                  Keys.Control | Keys.A, Keys.Control | Keys.F };
+                                                  Keys.Shift | Keys.Tab,
+                                                  Keys.Control | Keys.A,
+                                                  Keys.Control | Keys.F };
 
         public IPgParent Parentage => _oSiteView.Host;
         public IPgParent Services  => Parentage.Services;
@@ -377,7 +379,7 @@ namespace Play.Edit {
         }
 
         #region IPgEditEvents
-        public IPgEditHandler NewEditHandler() {
+        public IPgEditHandler CreateEditHandler() {
             return _oCacheMan.CreateDocEventObject();
         }
 
@@ -525,9 +527,10 @@ namespace Play.Edit {
                 SKSurface skSurface = e.Surface;
                 SKCanvas  skCanvas  = skSurface.Canvas;
 
+                // BG of multi column window is always ReadOnly... O.o
                 using SKPaint skPaintBG = new SKPaint() {
                     BlendMode = SKBlendMode.Src,
-                    Color     = _oStdUI.ColorsStandardAt(_fReadOnly ? StdUIColors.BGReadOnly : StdUIColors.BG)
+                    Color     = _oStdUI.ColorsStandardAt( StdUIColors.BGReadOnly )
                 };
                 using SKPaint skPaintTx = new SKPaint() { FilterQuality = SKFilterQuality.High };
 
@@ -673,8 +676,6 @@ namespace Play.Edit {
             
             e.Handled = true;
 
-            CacheMultiColumn.CaretInfo oCaret = _oCacheMan.CopyCaret();
-
             switch( e.KeyCode ) {
                 case Keys.PageDown:
                     _oCacheMan.OnScrollBar_Vertical( ScrollEvents.LargeIncrement );
@@ -695,8 +696,9 @@ namespace Play.Edit {
                     _oCacheMan.CaretMove( Axis.Horizontal, -1 );
                     break;
                 case Keys.Back:
-                    if( !_fReadOnly )
+                    if(  !_fReadOnly && _oCacheMan.CopyCaret() is CacheMultiColumn.CaretInfo oCaret ) {
                         _oDocOps.TryDeleteAt( oCaret.Row, oCaret.Column, oCaret.Offset - 1, 1 );
+                    }
                     break;
             }
         }
@@ -728,8 +730,9 @@ namespace Play.Edit {
                     case Keys.Delete: {
                         // The only way to get this event.
                         if( !_fReadOnly ) {
-                            CacheMultiColumn.CaretInfo oCaret = _oCacheMan.CopyCaret();
-                            _oDocOps.TryDeleteAt( oCaret.Row, oCaret.Column, oCaret.Offset, 1 );
+                            if( _oCacheMan.CopyCaret() is CacheMultiColumn.CaretInfo oCaret ) {
+                                _oDocOps.TryDeleteAt( oCaret.Row, oCaret.Column, oCaret.Offset, 1 );
+                            }
                         }
                         return true;
                     }
@@ -747,7 +750,7 @@ namespace Play.Edit {
             if( _fReadOnly )
                 return;
 
-            if( !char.IsControl( e.KeyChar ) && !_fReadOnly ) {
+            if( !char.IsControl( e.KeyChar ) ) {
                 ReadOnlySpan<char> rgInsert = stackalloc char[1] { e.KeyChar };
 
                 _oDocOps.TryReplaceAt( _oCacheMan.CopyCaret(), rgInsert );

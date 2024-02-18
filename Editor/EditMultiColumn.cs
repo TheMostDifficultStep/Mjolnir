@@ -281,7 +281,7 @@ namespace Play.Edit {
                 _rgHandlers.Clear();
 
                 foreach( IPgEditEvents oListener in oHost._rgListeners ) {
-                    _rgHandlers.Add( oListener.NewEditHandler() );
+                    _rgHandlers.Add( oListener.CreateEditHandler() );
                 }
             }
 
@@ -306,6 +306,9 @@ namespace Play.Edit {
         }
 
         public bool TryReplaceAt( IPgCaretInfo<Row> oCaret, ReadOnlySpan<char> spText ) {
+            if( oCaret == null )
+                return false;
+
             return TryReplaceAt( oCaret.Row, oCaret.Column, oCaret.Offset, oCaret.Length, spText );
         }
 

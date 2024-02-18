@@ -174,4 +174,45 @@ namespace Play.MorsePractice
             yield return new ViewType( "Notes", ViewSimple._guidViewCategory );
         }
     }
+
+    public class MorseController4 : 
+        Controller 
+    {
+        public MorseController4() {
+			_rgExtensions.Add( ".netlogm" );
+        }
+
+        public override IDisposable CreateDocument( IPgBaseSite oSite, string strExtension ) {
+			if( strExtension.ToLower() == ".netlogm" ) {
+				return new DocMultiColumn( oSite );
+			}
+
+			return null;
+        }
+
+        public override IDisposable CreateView( IPgViewSite oBaseSite, object oDocument, Guid guidViewType ) {
+			try {
+                switch( guidViewType ) {
+                    case Guid r when r == ViewLog.ViewCatagory:
+                        return new ViewLog(oBaseSite, oDocument );
+
+                    default:
+                        return new ViewLog(oBaseSite, oDocument );
+                }
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( NullReferenceException ),
+                                    typeof( InvalidCastException ),
+                                    typeof( ArgumentNullException ),
+									typeof( ArgumentException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
+
+				throw new InvalidOperationException( "Controller couldn't create view for Image document.", oEx );
+            }
+        }
+
+        public override IEnumerator<IPgViewType> GetEnumerator() {
+            yield return new ViewType( "Log", ViewLog.ViewCatagory );
+        }
+    }
 }

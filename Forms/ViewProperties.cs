@@ -20,7 +20,7 @@ namespace Play.Forms {
         WindowMultiColumn,
         IPgParent,
         IPgLoad,
-        IPgFormEvents
+        IPgFormEvents // BUG: Need to work on this interface...
      {
         protected DocProperties   Document { get; }
         protected CacheMultiFixed FixedCache { get; set; }
@@ -174,12 +174,8 @@ namespace Play.Forms {
             BrowserLink( "http://www.qrz.com/db/" +  oRow[1].SubString( oRange.Offset, oRange.Length) );
         }
 
-        public void OnPropertyEvent( BUFFEREVENTS eEvent ) {
-            //OnDocumentEvent( BUFFEREVENTS.MULTILINE );
-        }
-
         public void OnFormUpdate(IEnumerable<Line> rgUpdates) {
-            Invalidate();
+            _oCacheMan.CacheRepair( null, true, true );
         }
 
         public void OnFormFormat(IEnumerable<Line> rgUpdates) {

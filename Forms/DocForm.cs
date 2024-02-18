@@ -19,68 +19,6 @@ namespace Play.Forms {
         void OnFormLoad (); // All properties/labels have been created.
     }
 
-    public class SimpleCacheCaret : IPgCacheCaret  {
-        protected int              _iOffset = 0;
-        protected LayoutSingleLine _oLayout;
-        public    int              Advance { get; set; }
-
-        public SimpleCacheCaret( LayoutSingleLine oLayout ) {
-            _oLayout  = oLayout;
-            _iOffset = 0;
-        }
-
-		public int ColorIndex {
-			get { return( 0 ); }
-		}
-
-        public override string ToString() {
-            return( "(" + _iOffset.ToString() + "...) " + Line.SubString( 0, 50 ) );
-        }
-
-        public int At {
-            get { return Line.At; }
-        }
-
-        public int Offset {
-            get { return _iOffset; }
-            
-            set {
-                if( value > Line.ElementCount )
-                    value = Line.ElementCount;
-                if( value <= 0 )
-                    value = 0;
-
-                _iOffset = value;
-            }
-        }
-        
-        public int Length {
-            get { return 0; }
-            set { throw new ArgumentOutOfRangeException("Caret length is always zero" ); }
-        }
-        
-        public Line Line {
-            get { return Layout.Line; }
-            set {
-                if( value != Layout.Line )
-                    throw new ApplicationException();
-            }
-        }
-
-        /// <summary>
-        /// Caret's always point to a single line, set that line here. It's a little
-        /// weird that we're pointing to the property layout and not the cache element
-        /// directly. Might want to revisit that. Turns out we can get a line set
-        /// by a editor that has had all it's elements cleared. 
-        /// </summary>
-        public LayoutSingleLine Layout {
-            get { return _oLayout; }
-            // If the line is read only on the FTCacheLine then it kind of makes sense to
-            // only allow updating the Cache element and not the Line.
-            set { _oLayout = value ?? throw new ArgumentNullException(); }
-        }
-    }
-
     public class SimpleRange : ILineSelection {
         int _iStart  = 0;
 
@@ -464,7 +402,7 @@ namespace Play.Forms {
 			{
 				_oHost = oDoc ?? throw new ArgumentNullException();
                 foreach( IPgEditEvents oCall in _oHost._rgListeners ) {
-                    _rgHandlers.Add( oCall.NewEditHandler() );
+                    _rgHandlers.Add( oCall.CreateEditHandler() );
                 }
 			}
 

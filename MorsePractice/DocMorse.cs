@@ -1218,16 +1218,6 @@ namespace Play.MorsePractice {
         }
 
         /// <summary>
-        /// A way to sink SQL events. Unfinished.
-        /// </summary>
-        /// <param name="oEvent"></param>
-        public void TableListenerAdd(IPgTableEvents oEvent) {
-        }
-
-        public void TableListenerRemove(IPgTableEvents oEvent) {
-        }
-
-        /// <summary>
         /// In the StdLog mode we're retrieving the frequency whenever the user
         /// spins the dial. So all we need to do is grab the property and 
         /// add to the notes.
