@@ -16,7 +16,7 @@ namespace Play.MorsePractice {
 	/// <summary>
 	/// Reviving this experiment, multi column log viewer!!
 	/// </summary>
-	public class ViewLog : 
+	public class ViewNetLog : 
 		WindowMultiColumn,
 		IPgCommandView,
         IPgLoad<XmlElement>,
@@ -31,7 +31,7 @@ namespace Play.MorsePractice {
 
 		protected DocMultiColumn LogDoc { get; }
 
-		public ViewLog( IPgViewSite oSiteView, object oDocument ) :
+		public ViewNetLog( IPgViewSite oSiteView, object oDocument ) :
 			base( oSiteView, oDocument )
 		{
 			LogDoc = (DocMultiColumn)oDocument;

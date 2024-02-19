@@ -40,7 +40,7 @@ namespace Play.MorsePractice {
     /// This class is not dedicated to only the morse code operations.
     /// Factored out all the logging helpers from this class.
     /// </summary>
-    /// <seealso cref="DocNotes"/>
+    /// <seealso cref="DocStdLog"/>
 	public class MorseDoc:
 		IPgParent,
 		IPgLoad<TextReader>,
@@ -193,7 +193,7 @@ namespace Play.MorsePractice {
     /// <summary>
     /// Our new net logger that uses the multicolumn editor for the logger...
     /// </summary>
-    /// <seealso cref="DocNotes"/>
+    /// <seealso cref="DocStdLog"/>
 	public class DocNetHost:
 		IPgParent,
 		IPgLoad<TextReader>,
@@ -236,16 +236,13 @@ namespace Play.MorsePractice {
 		public Editor         Notes { get; } // pointers to net info...
 		public DocMultiColumn Log   { get; } // actual log
 
-        /// <summary>
-        /// Document object for a little Morse Practice document.
-        /// </summary>
         public DocNetHost( IPgBaseSite oSiteBase ) {
 			_oSiteBase  = oSiteBase ?? throw new ArgumentNullException();
-            _oSiteFile  = (IPgFileSite)oSiteBase;
+            _oSiteFile  = (IPgFileSite )oSiteBase;
             _oScheduler = (IPgScheduler)Services;
 
-			Notes       = new Editor        ( new DocNetHostSlot( this, "Notes"  ) ); // Notes for listening to morse, or log files.
-			Log         = new DocMultiColumn( new DocNetHostSlot( this, "Log"    ) ); // Log the operators.
+			Notes       = new Editor        ( new DocNetHostSlot( this, "Notes" ) ); // Notes for running the net.
+			Log         = new DocMultiColumn( new DocNetHostSlot( this, "Log"   ) ); // Log the operators.
 
             new ParseHandlerText( Notes, "text" );
         }
@@ -298,7 +295,7 @@ namespace Play.MorsePractice {
     /// <summary>
     /// this will be our new call logger and ic-705 communicator.
     /// </summary>
-	public class DocNotes:
+	public class DocStdLog:
 		IPgParent,
 		IPgLoad<TextReader>,
 		IPgSave<TextWriter>,
@@ -314,10 +311,10 @@ namespace Play.MorsePractice {
 			IPgBaseSite,
             IPgFileSite
 		{
-			protected readonly DocNotes _oHost;
-            protected readonly string   _strName;
+			protected readonly DocStdLog _oHost;
+            protected readonly string    _strName;
 
-			public MorseDocSlot( DocNotes oHost, string strName ) {
+			public MorseDocSlot( DocStdLog oHost, string strName ) {
 				_oHost   = oHost   ?? throw new ArgumentNullException();
                 _strName = strName ?? throw new ArgumentNullException();
 			}
@@ -390,7 +387,7 @@ namespace Play.MorsePractice {
         /// <summary>
         /// Document object for a little Morse Practice document.
         /// </summary>
-        public DocNotes( IPgBaseSite oSiteBase ) {
+        public DocStdLog( IPgBaseSite oSiteBase ) {
 			_oSiteBase  = oSiteBase ?? throw new ArgumentNullException();
             _oSiteFile  = oSiteBase as IPgFileSite ?? throw new ArgumentException( "Host needs the IPgFileSite interface" );
             _oScheduler = Services as IPgScheduler ?? throw new ArgumentException("Host requries IPgScheduler");

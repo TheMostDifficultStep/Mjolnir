@@ -21,7 +21,7 @@ namespace Play.MorsePractice {
 
         readonly IPgViewSite  _oSiteView;
         readonly IPgShellSite _oSiteShell;
-        readonly DocNotes     _oDocMorse;
+        readonly DocStdLog     _oDocMorse;
         readonly LayoutStack  _rgLayout;
 
         protected bool _fDisposed = false;
@@ -92,7 +92,7 @@ namespace Play.MorsePractice {
 
         public TextPosition Caret => ((IPgTextView)ViewBiograph).Caret;
 
-        public ViewQrz( IPgViewSite oSiteView, DocNotes oDocument ) {
+        public ViewQrz( IPgViewSite oSiteView, DocStdLog oDocument ) {
             _oSiteView  = oSiteView ?? throw new ArgumentNullException();
             _oDocMorse  = oDocument ?? throw new ArgumentNullException();
             _oSiteShell = oSiteView as IPgShellSite ?? throw new ArgumentException("Parent view must provide IPgShellSite service");

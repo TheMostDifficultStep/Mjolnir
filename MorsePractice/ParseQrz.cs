@@ -13,11 +13,11 @@ namespace Play.MorsePractice {
     /// Parse the converted base64 HTML blob, CallSignSource, that we skimmed from the main document.
     /// </summary>
     public class ParseBioHTMLSkimmer : ParseHandlerHTML {
-        DocNotes Document { get; }
+        DocStdLog Document { get; }
 
         Editor   Bio => Document.CallSignBio;
 
-        public ParseBioHTMLSkimmer( DocNotes oDocument ) : 
+        public ParseBioHTMLSkimmer( DocStdLog oDocument ) : 
             base( oDocument.CallSignBioHtml ) 
         {
             Document = oDocument ?? throw new ArgumentNullException( "Document must not be null" );
@@ -99,12 +99,12 @@ namespace Play.MorsePractice {
     /// What I really need to do is to make a TAG grammer to pull this information.
     /// </summary>
     public class ParseQrzHTMLSkimmer : ParseHandlerHTML {
-        DocNotes Document { get; }
+        DocStdLog Document { get; }
 
         Editor   Address => Document.CallSignAddress;
         Editor   QrzPage => Document.CallSignPageHtml;
 
-        public ParseQrzHTMLSkimmer( DocNotes oDocument ) : 
+        public ParseQrzHTMLSkimmer( DocStdLog oDocument ) : 
             base( oDocument.CallSignPageHtml ) 
         {
             Document = oDocument ?? throw new ArgumentNullException( "Document must not be null" );

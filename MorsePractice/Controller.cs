@@ -19,14 +19,14 @@ namespace Play.MorsePractice
 
         public override IDisposable CreateDocument( IPgBaseSite oSite, string strExtension ) {
 			if( strExtension.ToLower() == ".netlog" ) {
-				return new DocNotes( oSite ) { FlagSComsOn = true };
+				return new DocStdLog( oSite ) { FlagSComsOn = true };
 			}
 
 			return null;
         }
 
         public override IDisposable CreateView( IPgViewSite oBaseSite, object oDocument, Guid guidViewType ) {
-            DocNotes oMorsePractice = oDocument as DocNotes ?? throw new ArgumentException( "Argument must be an ImageWalkerDoc" );
+            DocStdLog oMorsePractice = oDocument as DocStdLog ?? throw new ArgumentException( "Argument must be an ImageWalkerDoc" );
 
 			try {
                 switch( guidViewType ) {
@@ -78,14 +78,14 @@ namespace Play.MorsePractice
 
         public override IDisposable CreateDocument( IPgBaseSite oSite, string strExtension ) {
 			if( strExtension.ToLower() == ".stdlog" ) {
-				return new DocNotes( oSite ) { FlagScanCalls = false };
+				return new DocStdLog( oSite ) { FlagScanCalls = false };
 			}
 
 			return null;
         }
 
         public override IDisposable CreateView( IPgViewSite oBaseSite, object oDocument, Guid guidViewType ) {
-            DocNotes oMorsePractice = oDocument as DocNotes ?? throw new ArgumentException( "Argument must be an ImageWalkerDoc" );
+            DocStdLog oMorsePractice = oDocument as DocStdLog ?? throw new ArgumentException( "Argument must be an ImageWalkerDoc" );
 
 			try {
                 switch( guidViewType ) {
@@ -130,7 +130,7 @@ namespace Play.MorsePractice
         public override IDisposable CreateView( IPgViewSite oBaseSite, object oDocument, Guid guidViewType ) {
 			try {
                 switch( guidViewType ) {
-                    case Guid r when r == ViewLog.ViewCatagory:
+                    case Guid r when r == ViewNetLog.ViewCatagory:
                         return new ViewLogAndNotes(oBaseSite, (DocNetHost)oDocument );
 
                     default:

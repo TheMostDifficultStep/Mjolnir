@@ -29,6 +29,9 @@ namespace Play.MorsePractice {
         }
     }
 
+    /// <summary>
+    /// This is our new document to hold the net participants.
+    /// </summary>
     public class DocMultiColumn :
         EditMultiColumn,
 		IPgLoad<TextReader>,

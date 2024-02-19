@@ -65,23 +65,22 @@ namespace Play.MorsePractice {
 		readonly LayoutStack _rgLayout;
 
 		EditWindow2 ViewNotes{ get; }
-		ViewLog     ViewList { get; }
+		ViewNetLog  ViewList { get; }
 
 		public ViewLogAndNotes( IPgViewSite oSiteView, DocNetHost oDocument ) {
 			_oSiteView = oSiteView ?? throw new ArgumentNullException();
 			_oDocLog   = oDocument ?? throw new ArgumentNullException();
 
 			ViewNotes = new EditWindow2( new ViewMorseSlot( this ), _oDocLog.Notes ) { Parent = this };
-			ViewList  = new ViewLog    ( new ViewMorseSlot( this ), _oDocLog.Log   ) { Parent = this };
+			ViewList  = new ViewNetLog ( new ViewMorseSlot( this ), _oDocLog.Log   ) { Parent = this };
 
 			_rgLayout = new LayoutStackVertical( ) {
-								Spacing = 5,
+								Spacing  = 10,
 								Children = {
-									new LayoutControl( ViewNotes, LayoutRect.CSS.Percent, 30 ),
-									new LayoutControl( ViewList,  LayoutRect.CSS.Percent, 70 )
+									new LayoutControl( ViewNotes, LayoutRect.CSS.Flex ),
+									new LayoutControl( ViewList,  LayoutRect.CSS.None )
 								}
 							};
-			_rgLayout.Spacing = 5;
 		}
 
 		bool _fDisposed = false;
@@ -97,12 +96,12 @@ namespace Play.MorsePractice {
 			base.Dispose( disposing );
 		}
 
-		public IPgParent    Parentage    => _oSiteView.Host;
-		public IPgParent    Services     => Parentage.Services;
-		public bool         IsDirty      => _oDocLog.Log.IsDirty || _oDocLog.Notes.IsDirty;
-		public Guid         Catagory     => ViewCategory;
-		public string       Banner       => "Practice Morse Code";
-		public SKBitmap     Icon         => null;
+		public IPgParent Parentage => _oSiteView.Host;
+		public IPgParent Services  => Parentage.Services;
+		public bool      IsDirty   => _oDocLog.Log.IsDirty || _oDocLog.Notes.IsDirty;
+		public Guid      Catagory  => ViewCategory;
+		public string    Banner    => "Net Logger";
+		public SKBitmap  Icon      => null;
 
 		protected override void OnSizeChanged(EventArgs e) {
 			base.OnSizeChanged(e);
@@ -129,7 +128,7 @@ namespace Play.MorsePractice {
 		}
 
 		public bool InitNew() {
-			if( !ViewList.InitNew() )
+			if( !ViewList .InitNew() )
 				return false;
 			if( !ViewNotes.InitNew() )
 				return false;
