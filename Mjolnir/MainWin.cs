@@ -1029,7 +1029,7 @@ namespace Mjolnir {
         }
 
         public void OnDocNewNetLogger( object sender, EventArgs e ) {
-            EditorInitNewShow( ".netlog" );
+            EditorInitNewShow( ".netlogm" );
         }
 
         public void OnDocNewStdLogger( object sender, EventArgs e ) {

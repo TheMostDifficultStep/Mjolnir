@@ -32,7 +32,7 @@ namespace Play.MorsePractice {
             return true;
         }
 
-        protected void OnCallSign( Line oLine, IPgWordRange oRange ) {
+        protected void OnCallSign(Edit.Line oLine, IPgWordRange oRange ) {
             try { 
                 _oParent.StationLoad( oLine.SubString( oRange.Offset, oRange.Length ) );
             } catch(Exception oEx ) {
@@ -126,7 +126,7 @@ namespace Play.MorsePractice {
         /// At present we don't use this, we used to open our own browser, but now call the 
         /// system set browser.
         /// </summary>
-        protected void OnCallSign( Line oLine, IPgWordRange oRange ) {
+        protected void OnCallSign(Edit.Line oLine, IPgWordRange oRange ) {
             try { 
                 _oSiteShell.AddView(ViewQrz._guidViewCategory, fFocus: true);
 
@@ -151,7 +151,7 @@ namespace Play.MorsePractice {
                 if( oColor is IPgWordRange oWord && oWord.StateName == "callsign" && oWord.Offset == 0 ) {
                     string strCaratCall = oCarat.Line.SubString( oWord.Offset, oWord.Length );
 
-                    foreach( Line oCallLine in _oDocMorse.Calls ) {
+                    foreach( Edit.Line oCallLine in _oDocMorse.Calls ) {
                         if( string.Compare( oCallLine.SubString( 0, oWord.Length ),
                                             strCaratCall, ignoreCase:true ) == 0 )
                         {

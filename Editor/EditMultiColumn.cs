@@ -202,7 +202,7 @@ namespace Play.Edit {
         public IPgParent Parentage => _oSiteBase.Host;
         public IPgParent Services  => Parentage;
 
-        public virtual bool IsDirty => false;
+        public virtual bool IsDirty { get; set; }
 
         public int ElementCount => _rgRows.Count;
         /// <exception cref="ArgumentOutOfRangeException" </exception>
@@ -384,6 +384,7 @@ namespace Play.Edit {
 
             return false;
         }
+
     }
 
 }

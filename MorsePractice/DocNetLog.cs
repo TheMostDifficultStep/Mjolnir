@@ -21,7 +21,7 @@ namespace Play.MorsePractice {
 
     public class LogRow : Row {
         public LogRow() {
-            _rgColumns = new Line[3];
+            _rgColumns = new Edit.Line[3];
 
             for( int i=0; i<_rgColumns.Length; i++ ) {
                 _rgColumns[i] = new TextLine( i, string.Empty );
@@ -38,12 +38,6 @@ namespace Play.MorsePractice {
 		IPgSave<TextWriter>
     {
         public DocMultiColumn(IPgBaseSite oSiteBase) : base(oSiteBase) {
-        }
-
-        protected virtual bool Initialize() {
-            InsertNew();
-
-            return true;
         }
 
         public Row InsertNew() {
@@ -72,15 +66,50 @@ namespace Play.MorsePractice {
         }
 
         public bool Load(TextReader oStream) {
-            return Initialize();
+            return true;
         }
 
         public bool InitNew() {
-            return Initialize();
+            InsertNew();
+            return true;
         }
 
         public bool Save(TextWriter oStream) {
             return true;
         }
-    }
+
+        /// <summary>
+        /// Test a bulk loader. I think I'll move it to the base class
+        /// and add a OnRowUpdate() to the IPgEditEvents interface...
+        /// </summary>
+        public class BulkLoader :
+            IDisposable 
+        {
+            readonly DocMultiColumn _oHost;
+                     bool           _fDisposed = false;
+            public BulkLoader( DocMultiColumn oHost ) {
+                _oHost = oHost ?? throw new ArgumentNullException();
+            }
+
+            public void Dispose() {
+                if( !_fDisposed ) {
+                    foreach( object oListener in _oHost._rgListeners ) {
+                        if( oListener is IPgLogEvents oCall ) {
+                            oCall.OnRowUpdate( null );
+                        }
+                    }
+                    _oHost.RenumberRows();
+                    _fDisposed = true;
+                }
+            }
+
+            public void InsertAt( int iRow, Row oNew ) {
+                _oHost._rgRows.Insert( iRow, oNew );
+            }
+
+            public void Append( Row oNew ) {
+                _oHost._rgRows.Insert( _oHost._rgRows.Count, oNew );
+            }
+        }
+    } // end class
 }

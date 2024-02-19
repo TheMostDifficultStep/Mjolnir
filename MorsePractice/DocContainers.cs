@@ -1,15 +1,9 @@
-﻿using System;
-using System.IO;
-using System.Reflection;
-using System.Linq;
-using System.Text;
-using System.Net;
-using System.Net.Http;
-using System.Collections.Generic;
-using System.Threading.Tasks;
-using System.IO.Ports;
-using System.Collections.Concurrent;
-
+﻿using Play.Edit;
+using Play.Forms;
+using Play.Integration;
+using Play.Interfaces.Embedding;
+using Play.Parse;
+using Play.Parse.Impl;
 //using System.Data.SqlClient;
 //Microsoft.Data.SqlClient the new api for ms db's
 //https://mariadb.com/kb/en/mariadb-and-net/ // Question and answer.
@@ -17,13 +11,18 @@ using System.Collections.Concurrent;
 //https://mysqlconnector.net/ mit project for ado.net connectivity.
 
 using SkiaSharp;
-
-using Play.Interfaces.Embedding; 
-using Play.Edit;
-using Play.Forms;
-using Play.Integration;
-using Play.Parse;
-using Play.Parse.Impl;
+using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.IO;
+using System.IO.Ports;
+using System.Linq;
+using System.Net;
+using System.Net.Http;
+using System.Reflection;
+using System.Text;
+using System.Threading.Tasks;
+using System.Xml;
 
 //using MySql.Data.MySqlClient;
 
@@ -262,7 +261,7 @@ namespace Play.MorsePractice {
 			_oSiteBase.LogError( strMessage, strDetails, fShow );
 		}
 
-		public bool      IsDirty   => Notes.IsDirty; // || Sources.IsDirty;
+		public bool      IsDirty   => Notes.IsDirty || Log.IsDirty;
 		public IPgParent Parentage => _oSiteBase.Host;
 		public IPgParent Services  => Parentage.Services;
 
@@ -275,19 +274,160 @@ namespace Play.MorsePractice {
 			return true;
 		}
 
-		public bool Load(TextReader oStream) {
-			//if( !Notes.Load( oStream ) )
-			//	return false;
-			//if( !Log  .Load( oStream ) )
-			//	return false;
+        /// <summary>
+        /// This might be useful later, so I'm going to keep it for now.
+        /// </summary>
+        /// <param name="oEdit"></param>
+        /// <returns></returns>
+        protected bool ParseRaw( Editor oEdit ) {
+            ParseHandlerText oHandler = new ParseHandlerText( oEdit, "text" );
 
-            if( !InitNew() )
+			if( oHandler.Grammer.FindState("start") is not State<char> oStart  ) {
+                LogError( "Text Load", "Could not find grammar start state for nethost file" );
+                return false;
+            }
+
+            BaseEditor.LineStream oStream  = oEdit.CreateStream();
+            MemoryState<char>     oMStart  = new MemoryState<char>( new ProdState<char>( oStart ), null );
+            ParseIterator<char>   oParser  = new ParseIterator<char>( oStream, oHandler, oMStart );
+
+            oHandler.OnStart();
+
+            while( oParser.MoveNext() );
+
+            oHandler.OnFinish();
+
+            oHandler.Dispose();
+
+            return true;
+        }
+
+        protected bool LoadLogXml( TextReader oInput ) {
+            XmlDocument  xmlDoc   = new XmlDocument();
+            List<string> rgTokens = new ();
+
+            void ParseTokens( string strLine ) {
+                rgTokens.Clear();
+                int iStart   = 0;
+
+                for( int i=0; i<strLine.Length; ++i ) {
+                    if( strLine[i] == '\t' ) {
+                        rgTokens.Add( strLine.Substring( iStart, i-iStart ) );
+                        iStart = i+1;
+                    }
+                }
+                if( iStart < strLine.Length ) {
+                    rgTokens.Add( strLine.Substring( iStart, strLine.Length-iStart ) );
+                }
+            }
+            try {
+                xmlDoc.Load( oInput );
+
+                if( xmlDoc.SelectSingleNode( "//Root/Notes" ) is XmlNode xmlNotes ) {
+                    StringReader oReader = new StringReader( xmlNotes.InnerText );
+
+                    while( oReader.ReadLine() is string strLine ) {
+                        Notes.LineAppend( strLine, fUndoable:false );
+                    }
+                }
+                if( xmlDoc.SelectSingleNode( "//Root/Log" ) is XmlNode xmlLog ) {
+                    StringReader                    oReader = new ( xmlLog.InnerText );
+                    using DocMultiColumn.BulkLoader oLoader = new ( Log );
+
+                    while( oReader.ReadLine() is string strLine ) {
+                        LogRow oRow = new LogRow();
+                        ParseTokens( strLine );
+                        for( int i=0; i<rgTokens.Count; ++i ) {
+                            if( i<3 )
+                                oRow[i].TryReplace( 0, 0, rgTokens[i] );
+                            else 
+                                oRow[2].TryReplace( oRow[2].ElementCount, 0, rgTokens[i] );
+                        }
+                        oLoader.Append( oRow );
+                    }
+                }
+
+                Notes.ClearDirty();
+                if( Log.ElementCount <= 0 ) {
+                    Log.InsertNew();
+                }
+                return true;
+            } catch( Exception oEx ) {
+                if( rgStdErrors.IsUnhandled( oEx ) ) 
+                    throw;
+
+                LogError( "DocNetHost", "Problem loading file check if it is XML." );
+            }
+
+            return false;
+        }
+
+        protected static Type[] rgStdErrors = 
+            { typeof( XmlException ),
+              typeof( NullReferenceException ),
+              typeof( ArgumentNullException ),
+              typeof( ArgumentOutOfRangeException ),
+              typeof( XmlException ) };
+
+		public bool Load(TextReader oStream) {
+            if( !Notes.InitNew() )
+                return false;
+
+            if( !LoadLogXml( oStream ) ) 
                 return false;
 
 			return true;
 		}
 
+        /// <remarks>
+        /// Saving to XML is a tad crude since I'm holding the entire thing
+        /// in memory. A database would be nicer. But... :-/
+        /// </remarks>
 		public bool Save(TextWriter oStream) {
+            XmlDocument xmlDoc = new XmlDocument();
+            try {
+                if( xmlDoc.CreateElement( "Root" ) is XmlElement xmlRoot ) {
+                    xmlDoc.AppendChild( xmlRoot );
+                    if( xmlDoc.CreateElement( "Notes" ) is XmlElement xmlNotes ) {
+                        StringBuilder sbBuilder = new();
+
+                        int iCount = 0;
+                        foreach( Line oLine in Notes ) {
+                            if( iCount++ > 0 )
+                                sbBuilder.Append( "\r\n" );
+
+                            sbBuilder.Append( oLine.ToString() );
+                        }
+                        xmlNotes.InnerText = sbBuilder.ToString();
+                        xmlRoot.AppendChild( xmlNotes );
+                    }
+                    if( xmlDoc.CreateElement( "Log" ) is XmlElement xmlLog ) {
+                        StringBuilder sbBuilder = new();
+
+                        foreach( Row oRow in Log ) {
+                            sbBuilder.Append( oRow[0] );
+                            sbBuilder.Append( '\t' );
+                            sbBuilder.Append( oRow[1] );
+                            sbBuilder.Append( '\t' );
+                            sbBuilder.Append( oRow[2] );
+                            sbBuilder.Append( "\r\n" );
+                        }
+                        xmlLog.InnerText = sbBuilder.ToString();
+                        xmlRoot.AppendChild( xmlLog );
+                    }
+                }
+
+                xmlDoc.Save( oStream );
+
+                Notes.ClearDirty();
+                Log.IsDirty = false;
+            } catch( Exception oEx ) {
+                if( rgStdErrors.IsUnhandled( oEx ) ) 
+                    throw;
+                LogError( "DocNetHost", "Problem saving file" );
+                return false;
+            }
+
             return true;
 		}
     }
@@ -350,7 +490,7 @@ namespace Play.MorsePractice {
 
                  SerialPort              _oCiV; // Good cantidate for "init once"
         readonly ConcurrentQueue<byte[]> _oMsgQueue = new ConcurrentQueue<byte[]>(); // events to our forground thread.
-        readonly Line                    _oDataGram = new TextLine( 0, string.Empty );
+        readonly Edit.Line                    _oDataGram = new TextLine( 0, string.Empty );
         readonly Grammer<char>           _oCiVGrammar;
         readonly DatagramParser          _oParse;
 
@@ -557,7 +697,7 @@ namespace Play.MorsePractice {
         /// modified text grammer) document and get all the formatting for free.
         /// </remarks>
         public void PopulateURL( RepeaterInfo oInfo ) {
-            Line oLine = Properties.ValueAsLine((int)RadioProperties.Names.Repeater_URL);
+            Edit.Line oLine = Properties.ValueAsLine((int)RadioProperties.Names.Repeater_URL);
 
             oLine.Empty();
             oLine.Formatting.Clear();
@@ -569,7 +709,7 @@ namespace Play.MorsePractice {
         public void PopulateAlternates( RepeaterDir oRepeater ) {
             List<RepeaterDir> rgRepeaters = RepeaterBandsFind( oRepeater );
 
-            Line oLine = Properties.ValueAsLine( (int)RadioProperties.Names.Alternates );
+            Edit.Line oLine = Properties.ValueAsLine( (int)RadioProperties.Names.Alternates );
 
             oLine.Empty();
             oLine.Formatting.Clear();
@@ -1074,7 +1214,7 @@ namespace Play.MorsePractice {
             List< string > rgCallSigns = new List<string>();
 
             try {
-                foreach( Line oLine in Notes ) {
+                foreach( Edit.Line oLine in Notes ) {
                     // Note: When Formatting goes type IPgWordRange I can remove the filter.
                     foreach( IColorRange oColor in oLine.Formatting ) {
                         if( oColor is IPgWordRange oWord &&
