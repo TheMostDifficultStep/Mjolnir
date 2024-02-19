@@ -191,6 +191,111 @@ namespace Play.MorsePractice {
     }
 
     /// <summary>
+    /// Our new net logger that uses the multicolumn editor for the logger...
+    /// </summary>
+    /// <seealso cref="DocNotes"/>
+	public class DocNetHost:
+		IPgParent,
+		IPgLoad<TextReader>,
+		IPgSave<TextWriter>,
+        IDisposable
+	{
+        readonly IPgScheduler _oScheduler;
+
+        protected class DocNetHostSlot :
+			IPgBaseSite,
+            IPgFileSite
+		{
+			protected readonly DocNetHost _oHost;
+            protected readonly string   _strName;
+
+			public DocNetHostSlot( DocNetHost oHost, string strName ) {
+				_oHost   = oHost   ?? throw new ArgumentNullException();
+                _strName = strName ?? throw new ArgumentNullException();
+			}
+
+			public IPgParent Host => _oHost;
+
+            public void LogError(string strMessage, string strDetails, bool fShow=true) {
+				_oHost.LogError( strMessage, strDetails, fShow );
+			}
+
+			public void Notify( ShellNotify eEvent ) {
+			}
+
+            FILESTATS IPgFileSite.FileStatus   => _oHost._oSiteFile.FileStatus;
+            Encoding  IPgFileSite.FileEncoding => _oHost._oSiteFile.FileEncoding;
+            string    IPgFileSite.FilePath     => _oHost._oSiteFile.FilePath;
+            string    IPgFileSite.FileName     => _oHost._oSiteFile.FileName + " / " + _strName;
+		}
+
+		readonly IPgBaseSite _oSiteBase;
+        readonly IPgFileSite _oSiteFile;
+
+        // Stuff for the morse code pracice view.
+		public Editor         Notes { get; } // pointers to net info...
+		public DocMultiColumn Log   { get; } // actual log
+
+        /// <summary>
+        /// Document object for a little Morse Practice document.
+        /// </summary>
+        public DocNetHost( IPgBaseSite oSiteBase ) {
+			_oSiteBase  = oSiteBase ?? throw new ArgumentNullException();
+            _oSiteFile  = (IPgFileSite)oSiteBase;
+            _oScheduler = (IPgScheduler)Services;
+
+			Notes       = new Editor        ( new DocNetHostSlot( this, "Notes"  ) ); // Notes for listening to morse, or log files.
+			Log         = new DocMultiColumn( new DocNetHostSlot( this, "Log"    ) ); // Log the operators.
+
+            new ParseHandlerText( Notes, "text" );
+        }
+
+        private bool _fDisposed = false;
+
+		public void Dispose() {
+			if( !_fDisposed ) {
+				Notes.Dispose();
+				Log  .Dispose();
+
+                _fDisposed = true;
+			}
+		}
+
+		protected void LogError( string strMessage, string strDetails, bool fShow = false ) {
+			_oSiteBase.LogError( strMessage, strDetails, fShow );
+		}
+
+		public bool      IsDirty   => Notes.IsDirty; // || Sources.IsDirty;
+		public IPgParent Parentage => _oSiteBase.Host;
+		public IPgParent Services  => Parentage.Services;
+
+        public bool InitNew() {
+			if( !Notes.InitNew() )
+				return false;
+			if( !Log  .InitNew() )
+				return false;
+
+			return true;
+		}
+
+		public bool Load(TextReader oStream) {
+			//if( !Notes.Load( oStream ) )
+			//	return false;
+			//if( !Log  .Load( oStream ) )
+			//	return false;
+
+            if( !InitNew() )
+                return false;
+
+			return true;
+		}
+
+		public bool Save(TextWriter oStream) {
+            return true;
+		}
+    }
+
+    /// <summary>
     /// this will be our new call logger and ic-705 communicator.
     /// </summary>
 	public class DocNotes:

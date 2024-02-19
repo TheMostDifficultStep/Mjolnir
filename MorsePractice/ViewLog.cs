@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Collections;
 using System.Windows.Forms;
-using System.Drawing;
 using System.Xml;
 
 using SkiaSharp;
@@ -14,13 +13,6 @@ using Play.Forms;
 using Play.Parse;
 
 namespace Play.MorsePractice {
-	public interface IPgTableEvents {
-		void OnTableRowChanged( int iRow );
-		void OnTableDone( bool fChangedAll );
-		void OnTableClear();
-		void OnTableLoaded();
-	}
-
 	/// <summary>
 	/// Reviving this experiment, multi column log viewer!!
 	/// </summary>
