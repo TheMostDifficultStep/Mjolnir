@@ -635,7 +635,9 @@ namespace Play.Edit {
                 SmartRect oColumn = _rgColumns[iColumn];
                 if( oColumn.IsInside( pntLocation.X, pntLocation.Y ) ) {
                     oNewCursor = Cursors.IBeam;
-                    if( eButton != MouseButtons.Left ) { // if not selecting.
+                    if( eButton != MouseButtons.Left &&         // if not selecting.
+                        ((ModifierKeys & Keys.Control) == 0 ) ) // if not editing...
+                    { 
                         if( HyperLinkFind( iColumn, pntLocation, fDoJump:false ) )
                             oNewCursor = Cursors.Hand;
                         break;
@@ -764,7 +766,22 @@ namespace Play.Edit {
             base.OnMouseDown( e );
 
             Select();
-            _oCacheMan.CaretAdvance( new SKPointI( e.X, e.Y ) );
+            SKPointI pntClick = new SKPointI( e.X, e.Y );
+
+            _oCacheMan.CaretAdvance( pntClick );
+
+            if( e.Button == MouseButtons.Left &&
+                ((ModifierKeys & Keys.Control) == 0) ) 
+            {
+                for( int iColumn=0; iColumn<_rgColumns.Count; ++iColumn ) {
+                    SmartRect oColumn = _rgColumns[iColumn];
+                    if( oColumn.IsInside( e.X, e.Y ) ) {
+                        HyperLinkFind( iColumn, pntClick, fDoJump:true );
+                        break;
+                    }
+                }
+            }
+
 
             Invalidate();
         }

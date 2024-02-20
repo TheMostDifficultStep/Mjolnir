@@ -37,6 +37,11 @@ namespace Play.MorsePractice {
             _oWorkPlace = oSchedular.CreateWorkPlace() ?? throw new InvalidOperationException( "Need the scheduler service in order to work. ^_^;" );
         }
 
+        public override void Dispose() {
+            _oWorkPlace.Stop();
+            base.Dispose();
+        }
+
         public Row InsertNew() {
             return InsertNew( _rgRows.Count );
         }

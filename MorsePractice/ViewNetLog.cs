@@ -48,8 +48,14 @@ namespace Play.MorsePractice {
 			_rgColumns.Add( _rgLayout.Item(2) );
 			_rgColumns.Add( _rgLayout.Item(3) );
 
+            HyperLinks.Add( "callsign", OnCallSign );
+
 			return true;
 		}
+
+        protected void OnCallSign( Row oRow, int iColumn, IPgWordRange oRange ) {
+            BrowserLink( "http://www.qrz.com/db/" +  oRow[0].SubString( oRange.Offset, oRange.Length) );
+        }
 
         protected override void OnKeyPress(KeyPressEventArgs e) {
             if( IsDisposed )
