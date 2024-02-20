@@ -231,6 +231,10 @@ namespace Play.MorsePractice {
 		readonly IPgBaseSite _oSiteBase;
         readonly IPgFileSite _oSiteFile;
 
+		public bool      IsDirty   => Notes.IsDirty || Log.IsDirty;
+		public IPgParent Parentage => _oSiteBase.Host;
+		public IPgParent Services  => Parentage.Services;
+
         // Stuff for the morse code pracice view.
 		public Editor         Notes { get; } // pointers to net info...
 		public DocMultiColumn Log   { get; } // actual log
@@ -261,9 +265,9 @@ namespace Play.MorsePractice {
 			_oSiteBase.LogError( strMessage, strDetails, fShow );
 		}
 
-		public bool      IsDirty   => Notes.IsDirty || Log.IsDirty;
-		public IPgParent Parentage => _oSiteBase.Host;
-		public IPgParent Services  => Parentage.Services;
+		protected void LogError( string strDetails ) {
+			_oSiteBase.LogError( "DocNetHost", strDetails, false );
+		}
 
         public bool InitNew() {
 			if( !Notes.InitNew() )
@@ -273,34 +277,6 @@ namespace Play.MorsePractice {
 
 			return true;
 		}
-
-        /// <summary>
-        /// This might be useful later, so I'm going to keep it for now.
-        /// </summary>
-        /// <param name="oEdit"></param>
-        /// <returns></returns>
-        protected bool ParseRaw( Editor oEdit ) {
-            ParseHandlerText oHandler = new ParseHandlerText( oEdit, "text" );
-
-			if( oHandler.Grammer.FindState("start") is not State<char> oStart  ) {
-                LogError( "Text Load", "Could not find grammar start state for nethost file" );
-                return false;
-            }
-
-            BaseEditor.LineStream oStream  = oEdit.CreateStream();
-            MemoryState<char>     oMStart  = new MemoryState<char>( new ProdState<char>( oStart ), null );
-            ParseIterator<char>   oParser  = new ParseIterator<char>( oStream, oHandler, oMStart );
-
-            oHandler.OnStart();
-
-            while( oParser.MoveNext() );
-
-            oHandler.OnFinish();
-
-            oHandler.Dispose();
-
-            return true;
-        }
 
         protected bool LoadLogXml( TextReader oInput ) {
             XmlDocument  xmlDoc   = new XmlDocument();

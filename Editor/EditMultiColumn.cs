@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Text;
 
 using Play.Parse;
 using Play.Interfaces.Embedding;
+using Play.Parse.Impl;
 
 namespace Play.Edit {
     /// <summary>
@@ -18,18 +20,18 @@ namespace Play.Edit {
         int        _iOffs = 0;
         char       _cChar = '\0';
 
-        readonly int                   _iColumn;
-        readonly int                   _iCharCount;
-        readonly Action<string,string> _fnLogError;
+        readonly int _iColumn;
+        readonly int _iCharCount;
+        Action<string> LogError { get; }
 
         public RowStream( 
-            IList<Row>            rgRows, 
-            int                   iColumn, 
-            int                   iCharCount, 
-            Action<string,string> fnLogError
+            IList<Row>     rgRows, 
+            int            iColumn, 
+            int            iCharCount, 
+            Action<string> fnLogError
         ) {
             _rgRows     = rgRows     ?? throw new ArgumentNullException( "Row array must not be null" );
-            _fnLogError = fnLogError ?? throw new ArgumentNullException();
+            LogError = fnLogError ?? throw new ArgumentNullException();
 
             if( _rgRows.Count < 1 )
                 throw new ArgumentException( "Empty document" );
@@ -105,7 +107,7 @@ namespace Play.Edit {
                 if( rgErrors.IsUnhandled( oEx ) )
                     throw;
                                     
-                _fnLogError( "Multi Column Editor", "Problem seeking within the document." );
+                LogError( "Problem stream seeking within the multi column doc." );
                 return false;
             }
 
@@ -168,6 +170,103 @@ namespace Play.Edit {
         }
     }
 
+	public class ParseColumnText : IParseEvents<char> {
+		protected readonly RowStream   _oStream;
+		protected readonly State<char> _oStart;
+        protected Action<string> LogError {get; }
+
+		public ParseColumnText( RowStream      oStream, 
+                                Grammer<char>  oLanguage, 
+                                Action<string> oLogError ) 
+        {
+            _oStream = oStream   ?? throw new ArgumentNullException();
+            LogError = oLogError ?? throw new ArgumentNullException();
+
+			if( oLanguage == null )
+				throw new ArgumentNullException( "Language must not be null" );
+
+			_oStart  = oLanguage.FindState("start") ?? throw new InvalidOperationException( "Couldn't find start state" );
+		}
+
+		public void OnMatch( ProdBase<char> oElem, int iStream, int iLength ) {
+            MemoryElem<char> oMemElem  = oElem as MemoryElem<char>;
+            if( oMemElem != null ) { // Capture's both terms and states.
+                Line oLine = _oStream.SeekLine( oMemElem.Start, out int iLineOffset);
+
+                // Parser is totally stream based, talking to the base class. So have to do this here.
+                oMemElem.Offset = iLineOffset;
+                oLine.Formatting.Add(oMemElem);
+            }
+		}
+
+		public void OnParserError(ProdBase<char> p_oMemory, int p_iStart) {
+            StringBuilder sbMessage = new StringBuilder( 100 );
+
+            sbMessage.Append( "Markup Error! " ); 
+
+			if( p_iStart < 0 ) {
+				sbMessage.Append( "Parse underflow." );
+			}
+			if( _oStream.InBounds( p_iStart ) ) {
+				Line oLine  = _oStream.SeekLine(p_iStart, out int iOffset);
+
+                sbMessage.Append( "Line : " );
+				sbMessage.Append( oLine.At.ToString() ); 
+				sbMessage.Append( ", Offset: " );
+				sbMessage.Append( iOffset.ToString() );
+			} else {
+				sbMessage.Append( "Parse overflow." );
+			}
+
+            // The terminal passed us might be a memory term or a prod term.
+            // If it's a memory term, go to it's host to find the production it came from.
+            MemoryElem<char> l_oMemory = p_oMemory as MemoryElem<char>;
+            ProdElem<char>   oProdElem = p_oMemory as ProdElem<char>;
+
+            if( l_oMemory != null ) {
+                oProdElem = l_oMemory.ProdElem;
+            }
+
+            int iElem = 0;
+
+            if( oProdElem != null ) {
+                Production<char> oProd = oProdElem.Host;
+
+                if( oProd != null ) {
+                    // We have the production in the state and now find the particular
+                    // element that failed so we can report it relative to it's state.
+                    for( iElem =0; iElem < oProd.Count; ++iElem ) {
+                        if( oProd[iElem] == oProdElem ) {
+                            iElem++;
+                            break;
+                        }
+                    }
+                    sbMessage.Append( ". State: \"" );
+                    sbMessage.Append( oProd.StateName );
+                    sbMessage.Append( "\". Production: " ); 
+                    sbMessage.Append( oProd.Index.ToString() );
+                    sbMessage.Append( ". Element: " );
+                    sbMessage.Append( iElem.ToString() );
+                }
+            }
+
+			LogError( sbMessage.ToString() );
+		}
+
+		public virtual bool Parse() {
+			try {
+				MemoryState<char>   oMStart = new MemoryState<char>( new ProdState<char>( _oStart ), null );
+				ParseIterator<char> oParser = new ParseIterator<char>( _oStream, this, oMStart );
+
+				while( oParser.MoveNext() );
+			    return true;
+			} catch( NullReferenceException ) {
+                LogError( "Couldn't parse text column." );
+			}
+			return false;
+		}
+    }
+
     /// <summary>
     /// This multi column document does not behave like a normal text stream
     /// document. Let's see how this goes... Also, the expectation is to
@@ -200,7 +299,7 @@ namespace Play.Edit {
         public event Action<Row> CheckedEvent;
 
         public IPgParent Parentage => _oSiteBase.Host;
-        public IPgParent Services  => Parentage;
+        public IPgParent Services  => Parentage.Services;
 
         public virtual bool IsDirty { get; set; }
 
@@ -254,10 +353,47 @@ namespace Play.Edit {
             _rgListeners.Remove( e );
         }
 
+        /// <summary>
+        /// Renumber the rows and columns on each row. Also
+        /// sums up the cumulative count on a column basis for parsing.
+        /// </summary>
+        /// <exception cref="InvalidProgramException"></exception>
         public void RenumberRows() {
-            for( int i=0; i< _rgRows.Count; i++ ) {
-                _rgRows[i].At = i;
+            if( _rgRows.Count <= 0 )
+                return;
+            if( _rgRows[0].Count > 100 )
+                throw new InvalidProgramException( "Rows column count seems too large" );
+
+            try {
+                Span<int> rgTotals = stackalloc int[_rgRows[0].Count];
+
+                for( int iRow=0; iRow< _rgRows.Count; iRow++ ) {
+                    Row oRow = _rgRows[iRow];
+
+                    oRow.At = iRow;
+
+                    for( int iCol=0; iCol<oRow.Count; ++iCol ) {
+                        rgTotals[iCol] = oRow[iCol].Summate( iCol, rgTotals[iCol] );
+                    }
+                }
+            } catch ( Exception oEx ) {
+                Type[] rgErrors = { typeof( ArgumentOutOfRangeException ),
+                                    typeof( IndexOutOfRangeException ),
+                                    typeof( NullReferenceException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
+
+                LogError( "Problem in renumber rows." );
             }
+        }
+
+        public RowStream CreateColumnStream( int iColumn ) {
+            if( _rgRows.Count <= 0 )
+                return null;
+
+            int iMaxStream = _rgRows[_rgRows.Count-1][iColumn].CumulativeLength;
+
+            return new RowStream( _rgRows, 0, iMaxStream, LogError );
         }
 
         /// <summary>
@@ -384,7 +520,5 @@ namespace Play.Edit {
 
             return false;
         }
-
     }
-
 }

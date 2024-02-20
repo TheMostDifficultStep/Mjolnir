@@ -7,6 +7,8 @@ using Play.Edit;
 using Play.Forms;
 using Play.Parse;
 using System.IO;
+using Microsoft.VisualBasic.Logging;
+using Play.Parse.Impl;
 
 namespace Play.MorsePractice {
     /// <summary>
@@ -31,6 +33,7 @@ namespace Play.MorsePractice {
 
     /// <summary>
     /// This is our new document to hold the net participants.
+    /// TODO: I can probably move most of this into the EditMultiColumn class.
     /// </summary>
     public class DocMultiColumn :
         EditMultiColumn,
@@ -58,6 +61,8 @@ namespace Play.MorsePractice {
                     }
                 }
 
+                ReParse();
+
                 return oNew;
             } catch( ArgumentOutOfRangeException ) {
                 LogError( "Row is out of bounds" );
@@ -78,6 +83,35 @@ namespace Play.MorsePractice {
             return true;
         }
 
+        protected void ParseColumn( int iColumn ) {
+            try {
+                IPgGrammers oGServ = (IPgGrammers)Services;
+                if( oGServ.GetGrammer( "text" ) is Grammer<char> oGrammar ) {
+                    RowStream        oStream       = CreateColumnStream( 0 );
+                    ParseColumnText  oParseHandler = new ParseColumnText( oStream, oGrammar, LogError );
+
+                    oParseHandler.Parse();
+                }
+            } catch( InvalidCastException ) {
+                LogError( "Likely services retrieval error" );
+            }
+        }
+
+        /// <summary>
+        /// Normally I would schedule a re-parse but let's just do it 
+        /// all right now...
+        /// </summary>
+        /// <remarks>We'll have too keep this here, but we can move the rest.</remarks>
+        public virtual void ReParse() {
+            ParseColumn( 0 );
+
+            foreach( object oListener in _rgListeners ) {
+                if( oListener is IPgEditEvents oCall ) {
+                    oCall.OnDocFormatted();
+                }
+            }
+        }
+
         /// <summary>
         /// Test a bulk loader. I think I'll move it to the base class
         /// and add a OnRowUpdate() to the IPgEditEvents interface...
@@ -93,12 +127,13 @@ namespace Play.MorsePractice {
 
             public void Dispose() {
                 if( !_fDisposed ) {
+                    _oHost.RenumberRows();
                     foreach( object oListener in _oHost._rgListeners ) {
                         if( oListener is IPgLogEvents oCall ) {
                             oCall.OnRowUpdate( null );
                         }
                     }
-                    _oHost.RenumberRows();
+                    _oHost.ReParse();
                     _fDisposed = true;
                 }
             }
