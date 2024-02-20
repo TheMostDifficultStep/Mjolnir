@@ -389,7 +389,11 @@ namespace Play.Forms {
             return true;
         }
 
-		public class Manipulator : 
+        public override void DoParse() {
+            // Parse column 1.
+        }
+
+        public class Manipulator : 
             IEnumerable<Line>,
 			IPgFormBulkUpdates,
 			IDisposable
@@ -411,6 +415,7 @@ namespace Play.Forms {
                     oCall.OnUpdated( null );
                 }
                 _rgUniqueLines.Clear();
+                _oHost.DoParse();
 			}
 
 			public int AddProperty( string strLabel ) {

@@ -265,10 +265,6 @@ namespace Play.MorsePractice {
 			_oSiteBase.LogError( strMessage, strDetails, fShow );
 		}
 
-		protected void LogError( string strDetails ) {
-			_oSiteBase.LogError( "DocNetHost", strDetails, false );
-		}
-
         public bool InitNew() {
 			if( !Notes.InitNew() )
 				return false;

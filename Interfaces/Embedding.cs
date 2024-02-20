@@ -552,7 +552,7 @@ namespace Play.Interfaces.Embedding {
 	}
 
     public interface IPgRoundRobinWork : IPgAnonymousWorker {
-        void Queue( IEnumerator<int> oEnum, long iWait );
+        void Queue( IEnumerator<int> oEnum, long iWaitMS );
     }
 
 	public interface IPgMorseWorkerCreater {

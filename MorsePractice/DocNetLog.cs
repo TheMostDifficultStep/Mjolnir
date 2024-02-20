@@ -1,29 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
+using System.IO;
 
 using Play.Interfaces.Embedding;
 using Play.Edit;
-using Play.Forms;
-using Play.Parse;
-using System.IO;
-using Microsoft.VisualBasic.Logging;
 using Play.Parse.Impl;
 
 namespace Play.MorsePractice {
-    /// <summary>
-    /// I haven't rallied around a multi column set of events yet. Right
-    /// now the base editor WILL track markers in the file. But won't tell
-    /// you which row/line (combos) that have been touched. Still a work
-    /// in progress, see the Kanji practice program for previous efforts.
-    /// </summary>
-    interface IPgLogEvents {
-        void OnRowUpdate( Row oRow );
-    }
-
     public class LogRow : Row {
         public LogRow() {
-            _rgColumns = new Edit.Line[3];
+            _rgColumns = new Line[3];
 
             for( int i=0; i<_rgColumns.Length; i++ ) {
                 _rgColumns[i] = new TextLine( i, string.Empty );
@@ -40,7 +26,15 @@ namespace Play.MorsePractice {
 		IPgLoad<TextReader>,
 		IPgSave<TextWriter>
     {
+        readonly protected IPgRoundRobinWork _oWorkPlace; 
+
+        /// <exception cref="InvalidOperationException" />
+        /// <exception cref="InvalidCastException" />
+        /// <exception cref="NullReferenceException" />
         public DocMultiColumn(IPgBaseSite oSiteBase) : base(oSiteBase) {
+            IPgScheduler oSchedular = (IPgScheduler)_oSiteBase.Host.Services;
+
+            _oWorkPlace = oSchedular.CreateWorkPlace() ?? throw new InvalidOperationException( "Need the scheduler service in order to work. ^_^;" );
         }
 
         public Row InsertNew() {
@@ -54,14 +48,7 @@ namespace Play.MorsePractice {
                 _rgRows.Insert( iRow, oNew );
 
                 RenumberRows();
-
-                foreach( object oEvent in _rgListeners ) {
-                    if( oEvent is IPgLogEvents oSend ) {
-                        oSend.OnRowUpdate( oNew );
-                    }
-                }
-
-                ReParse();
+                DoParse     ();
 
                 return oNew;
             } catch( ArgumentOutOfRangeException ) {
@@ -87,7 +74,7 @@ namespace Play.MorsePractice {
             try {
                 IPgGrammers oGServ = (IPgGrammers)Services;
                 if( oGServ.GetGrammer( "text" ) is Grammer<char> oGrammar ) {
-                    RowStream        oStream       = CreateColumnStream( 0 );
+                    RowStream        oStream       = CreateColumnStream( iColumn:0 );
                     ParseColumnText  oParseHandler = new ParseColumnText( oStream, oGrammar, LogError );
 
                     oParseHandler.Parse();
@@ -97,12 +84,7 @@ namespace Play.MorsePractice {
             }
         }
 
-        /// <summary>
-        /// Normally I would schedule a re-parse but let's just do it 
-        /// all right now...
-        /// </summary>
-        /// <remarks>We'll have too keep this here, but we can move the rest.</remarks>
-        public virtual void ReParse() {
+        public IEnumerator<int> GetParseEnum() {
             ParseColumn( 0 );
 
             foreach( object oListener in _rgListeners ) {
@@ -110,30 +92,46 @@ namespace Play.MorsePractice {
                     oCall.OnDocFormatted();
                 }
             }
+
+            yield return 0;
         }
 
         /// <summary>
-        /// Test a bulk loader. I think I'll move it to the base class
-        /// and add a OnRowUpdate() to the IPgEditEvents interface...
+        /// Schedule a reparse since we don't want to be parsing and updating
+        /// right in the middle of typing EVERY character.
+        /// </summary>
+        /// <remarks>We'll have too keep this here, but we can move the rest.</remarks>
+        public override void DoParse() {
+            _oWorkPlace.Queue( GetParseEnum(), 2000 );
+        }
+
+        /// <summary>
+        /// Test a bulk loader. I think I'll move it to the base class.
+        /// It is slightly confusing that there is not an OnUpdateRow on the
+        /// IPgEditEvents interface. Instead we just tell ourselves to reparse,
+        /// which is basically all a "document" really needs to do. The window's
+        /// cache manager get's it by the CreateHandler()
         /// </summary>
         public class BulkLoader :
             IDisposable 
         {
             readonly DocMultiColumn _oHost;
                      bool           _fDisposed = false;
+            List<IPgEditHandler>    _rgHandlers = new List<IPgEditHandler>();
             public BulkLoader( DocMultiColumn oHost ) {
                 _oHost = oHost ?? throw new ArgumentNullException();
+                foreach( IPgEditEvents oCall in _oHost._rgListeners ) {
+                    _rgHandlers.Add( oCall.CreateEditHandler() );
+                }
             }
 
             public void Dispose() {
                 if( !_fDisposed ) {
                     _oHost.RenumberRows();
-                    foreach( object oListener in _oHost._rgListeners ) {
-                        if( oListener is IPgLogEvents oCall ) {
-                            oCall.OnRowUpdate( null );
-                        }
+                    foreach( IPgEditHandler oCall in _rgHandlers ) {
+                        oCall.OnUpdated( null );
                     }
-                    _oHost.ReParse();
+                    _oHost.DoParse();
                     _fDisposed = true;
                 }
             }

@@ -20,8 +20,7 @@ namespace Play.MorsePractice {
 		WindowMultiColumn,
 		IPgCommandView,
         IPgLoad<XmlElement>,
-		IPgSave<XmlDocumentFragment>,
-		IPgLogEvents
+		IPgSave<XmlDocumentFragment>
 	{
 		static public Guid ViewCatagory { get; } = new Guid("{BE243DE2-7763-4A44-9499-0EEDBC84D8A4}");
 
@@ -51,10 +50,6 @@ namespace Play.MorsePractice {
 
 			return true;
 		}
-
-        public void OnRowUpdate(Row oRow) {
-            _oCacheMan.CacheRepair( oRow, true, false );
-        }
 
         protected override void OnKeyPress(KeyPressEventArgs e) {
             if( IsDisposed )

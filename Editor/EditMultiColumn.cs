@@ -353,6 +353,9 @@ namespace Play.Edit {
             _rgListeners.Remove( e );
         }
 
+        public virtual void DoParse() {
+        }
+
         /// <summary>
         /// Renumber the rows and columns on each row. Also
         /// sums up the cumulative count on a column basis for parsing.
@@ -407,10 +410,10 @@ namespace Play.Edit {
             IEnumerable<IPgCaretInfo<Row>>
         {
             readonly List<IPgEditHandler> _rgHandlers;
+            readonly EditMultiColumn      _oHost;
 
             public TrackerEnumerable(EditMultiColumn oHost ) {
-                if( oHost == null )
-                    throw new ArgumentNullException();
+                _oHost = oHost ?? throw new ArgumentNullException();
 
                 // Save us from creating this everytime...
                 _rgHandlers = oHost._rgTemp;
@@ -438,6 +441,7 @@ namespace Play.Edit {
                     oHandler.OnUpdated( oRow );
                 }
                 _rgHandlers.Clear();
+                _oHost     .DoParse();
             }
         }
 

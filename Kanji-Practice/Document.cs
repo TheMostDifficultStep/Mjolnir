@@ -59,8 +59,6 @@ namespace Kanji_Practice {
 
             return true;
         }
-
-
     }
 
     public class KanjiDocument :

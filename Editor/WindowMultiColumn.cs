@@ -385,6 +385,7 @@ namespace Play.Edit {
 
         public void OnDocFormatted() {
             _oCacheMan.CacheReColor();
+            Invalidate();
         }
         #endregion
 
