@@ -142,7 +142,8 @@ namespace Play.Edit {
         protected readonly LayoutStack           _rgLayout;
         protected readonly List<SmartRect>       _rgColumns = new(); // Might not match document columns! O.o
 
-        protected bool _fReadOnly = false;
+        protected bool  _fReadOnly     = false;
+        protected SizeF _szScrollBars  = new SizeF( .1875F, .1875F );
         protected Dictionary<string, Action<Row, int, IPgWordRange>> HyperLinks { get; } = new ();
 
         readonly static Keys[] _rgHandledKeys = { Keys.PageDown, Keys.PageUp, Keys.Down,
@@ -154,6 +155,7 @@ namespace Play.Edit {
 
         public IPgParent Parentage => _oSiteView.Host;
         public IPgParent Services  => Parentage.Services;
+        public SKPoint   DPI { get; protected set; } 
         protected IPgStandardUI2 StdUI => _oStdUI;
         protected ushort         StdFace { get; }
 
@@ -275,7 +277,12 @@ namespace Play.Edit {
             _oScrollBarVirt = new ScrollBar2( new DocSlot( this ) );
             _rgLayout       = new LayoutStackHorizontal() { Spacing = 5, Units = LayoutRect.CSS.Flex};
 
-            _rgLayout.Add( new LayoutControl( _oScrollBarVirt, LayoutRect.CSS.Pixels, 12 ) );
+            /// <seealso cref="EditWindow2"/>
+            IPgMainWindow.PgDisplayInfo oInfo = new IPgMainWindow.PgDisplayInfo();
+            if( _oSiteView.Host.TopWindow is IPgMainWindow oMainWin ) {
+                oInfo = oMainWin.MainDisplayInfo;
+            }
+            DPI = new SKPoint( oInfo.pntDpi.X, oInfo.pntDpi.Y );
 
             StdFace = StdUI.FaceCache(@"C:\windows\fonts\consola.ttf");
 
@@ -346,7 +353,9 @@ namespace Play.Edit {
         }
 
         /// <summary>
-        /// Where we really initialize.
+        /// Where we really initialize. Nice to have the scroll bar initialize size
+        /// here since it would be cool if I reload the widths of things from
+        /// persistance in the futre!.
         /// </summary>
         /// <seealso cref="InitNew"/>
         /// <seealso cref="Load"/>
@@ -354,6 +363,10 @@ namespace Play.Edit {
             _oScrollBarVirt.Parent  = this;
             _oScrollBarVirt.Visible = true;
             _oScrollBarVirt.Scroll += OnScrollBar; 
+
+            _rgLayout.Add( new LayoutControl( _oScrollBarVirt, 
+                                              LayoutRect.CSS.Pixels, 
+                                              (uint)(DPI.X * _szScrollBars.Width) ) );
 
             _oDocOps.ListenerAdd( this );
 
