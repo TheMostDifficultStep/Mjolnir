@@ -28,12 +28,12 @@ namespace Play.MorsePractice {
 		public string Banner   => "Log Viewer";
 		public SKBitmap Icon   => null;
 
-		protected DocMultiColumn LogDoc { get; }
+		protected DocLogMultiColumn LogDoc { get; }
 
 		public ViewNetLog( IPgViewSite oSiteView, object oDocument ) :
 			base( oSiteView, oDocument )
 		{
-			LogDoc = (DocMultiColumn)oDocument;
+			LogDoc = (DocLogMultiColumn)oDocument;
 		}
 
 		protected override bool Initialize() {

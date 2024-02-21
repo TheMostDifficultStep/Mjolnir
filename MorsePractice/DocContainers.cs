@@ -46,8 +46,6 @@ namespace Play.MorsePractice {
 		IPgSave<TextWriter>,
         IDisposable
 	{
-        readonly IPgScheduler      _oScheduler;
-
         protected class MorseDocSlot :
 			IPgBaseSite,
             IPgFileSite
@@ -91,16 +89,15 @@ namespace Play.MorsePractice {
         /// Document object for a little Morse Practice document.
         /// </summary>
         public MorseDoc( IPgBaseSite oSiteBase ) {
-			_oSiteBase  = oSiteBase ?? throw new ArgumentNullException();
-            _oSiteFile  = oSiteBase as IPgFileSite ?? throw new ArgumentException( "Host needs the IPgFileSite interface" );
-            _oScheduler = Services as IPgScheduler ?? throw new ArgumentException("Host requries IPgScheduler");
+			_oSiteBase = oSiteBase ?? throw new ArgumentNullException();
+            _oSiteFile = (IPgFileSite)oSiteBase;
 
-            Source           = new Editor  ( new MorseDocSlot( this, "Source" ) ); // Morse code source for practice.
-			Notes            = new Editor  ( new MorseDocSlot( this, "Notes"  ) ); // Notes for listening to morse, or log files.
-			Stats            = new Editor  ( new MorseDocSlot( this, "Stats"  ) );
-			Morse            = new Editor  ( new MorseDocSlot( this, "Ref"    ) ); // Refrence table of morse code letters.
+            Source     = new Editor  ( new MorseDocSlot( this, "Source" ) ); // Morse code source for practice.
+			Notes      = new Editor  ( new MorseDocSlot( this, "Notes"  ) ); // Notes for listening to morse, or log files.
+			Stats      = new Editor  ( new MorseDocSlot( this, "Stats"  ) );
+			Morse      = new Editor  ( new MorseDocSlot( this, "Ref"    ) ); // Refrence table of morse code letters.
 
-            new ParseHandlerText   ( Notes,       "text" );
+            new ParseHandlerText( Notes, "text" );
         }
 
         private bool _fDisposed = false;
@@ -190,7 +187,8 @@ namespace Play.MorsePractice {
     }
 
     /// <summary>
-    /// Our new net logger that uses the multicolumn editor for the logger...
+    /// Our new net logger that uses standard editor for the Notes, and 
+    /// the multicolumn editor for the logger...
     /// </summary>
     /// <seealso cref="DocStdLog"/>
 	public class DocNetHost:
@@ -199,8 +197,6 @@ namespace Play.MorsePractice {
 		IPgSave<TextWriter>,
         IDisposable
 	{
-        readonly IPgScheduler _oScheduler;
-
         protected class DocNetHostSlot :
 			IPgBaseSite,
             IPgFileSite
@@ -237,15 +233,14 @@ namespace Play.MorsePractice {
 
         // Stuff for the morse code pracice view.
 		public Editor         Notes { get; } // pointers to net info...
-		public DocMultiColumn Log   { get; } // actual log
+		public DocLogMultiColumn Log   { get; } // actual log
 
         public DocNetHost( IPgBaseSite oSiteBase ) {
 			_oSiteBase  = oSiteBase ?? throw new ArgumentNullException();
             _oSiteFile  = (IPgFileSite )oSiteBase;
-            _oScheduler = (IPgScheduler)Services;
 
 			Notes       = new Editor        ( new DocNetHostSlot( this, "Notes" ) ); // Notes for running the net.
-			Log         = new DocMultiColumn( new DocNetHostSlot( this, "Log"   ) ); // Log the operators.
+			Log         = new DocLogMultiColumn( new DocNetHostSlot( this, "Log"   ) ); // Log the operators.
 
             new ParseHandlerText( Notes, "text" );
         }
@@ -304,7 +299,7 @@ namespace Play.MorsePractice {
                 }
                 if( xmlDoc.SelectSingleNode( "//Root/Log" ) is XmlNode xmlLog ) {
                     StringReader                    oReader = new ( xmlLog.InnerText );
-                    using DocMultiColumn.BulkLoader oLoader = new ( Log );
+                    using DocLogMultiColumn.BulkLoader oLoader = new ( Log );
 
                     while( oReader.ReadLine() is string strLine ) {
                         LogRow oRow = new LogRow();
@@ -1180,6 +1175,8 @@ namespace Play.MorsePractice {
 
         /// <summary>
         /// Scan the entire file for callsigns and pop them into the "Calls" editor.
+        /// This is only needed for the old ".netlog" file type that was using 
+        /// this. 
         /// </summary>
         public void ScanCallsigns() {
             Calls.Clear();
@@ -1209,14 +1206,6 @@ namespace Play.MorsePractice {
                 if( rgErrors.IsUnhandled( oEx ) )
                     throw;
                 LogError( "Serious Error", "ScanCallsigns suffered an error." );
-            }
-        }
-
-        public IEnumerator<int> EnumCallsScanTask() {
-            int iTimeInMs = 1000 * 60;
-            while( true ) {
-                ScanCallsigns();
-                yield return iTimeInMs;
             }
         }
 

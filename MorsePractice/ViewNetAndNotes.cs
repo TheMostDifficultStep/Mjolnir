@@ -11,22 +11,22 @@ using Play.Edit;
 namespace Play.MorsePractice {
 
 	/*
-		_rgLayout = new LayoutStackHorizontal() {
-			Spacing = 15,
-			Children = {
-				new LayoutStackVertical( ) {
-					Spacing = 15,
-					Children = {
-					new LayoutControl( ViewSource, LayoutRect.CSS.Percent, 40 ),
-					new LayoutControl( ViewNotes,  LayoutRect.CSS.Percent, 60 )
-					}
-				},
-				new LayoutStackVertical( 350, .3F ) {
-					Spacing = 15,
-					Children = {
-					new LayoutControl( ViewCode, LayoutRect.CSS.Percent, 100 )
-			}	}	}
-		};
+	_rgLayout = new LayoutStackHorizontal() {
+		Spacing = 15,
+		Children = {
+			new LayoutStackVertical( ) {
+				Spacing = 15,
+				Children = {
+				new LayoutControl( ViewSource, LayoutRect.CSS.Percent, 40 ),
+				new LayoutControl( ViewNotes,  LayoutRect.CSS.Percent, 60 )
+				}
+			},
+			new LayoutStackVertical( 350, .3F ) {
+				Spacing = 15,
+				Children = {
+				new LayoutControl( ViewCode, LayoutRect.CSS.Percent, 100 )
+		}	}	}
+	};
 	*/
 
 	class ViewLogAndNotes :
@@ -113,7 +113,23 @@ namespace Play.MorsePractice {
 		}
 
 		public object Decorate(IPgViewSite oBaseSite,Guid sGuid) {
-			return null;
+            try {
+                if (sGuid.Equals(GlobalDecorations.Outline)) {
+                    // TODO: When Calls gets updated, it would be nice to reset the hilighted line.
+                    return new EditWindow2(oBaseSite, _oDocLog.Log.Calls, fReadOnly: true, fSingleLine: false);
+                }
+            } catch (Exception oEx) {
+                Type[] rgErrors = { typeof( NotImplementedException ),
+                                    typeof( NullReferenceException ),
+                                    typeof( ArgumentException ),
+                                    typeof( ArgumentNullException ) };
+                if (rgErrors.IsUnhandled(oEx))
+                    throw;
+
+                _oSiteView.LogError( "View log & notes", "Couldn't create EditWin decor: " + sGuid.ToString());
+            }
+
+            return null;
 		}
 
 		public bool Execute(Guid sGuid) {

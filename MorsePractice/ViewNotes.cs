@@ -102,7 +102,8 @@ namespace Play.MorsePractice {
 
     /// <summary>
     /// This is a stand alone document view to be used to show the notes with a 
-    /// decoration that is list of callsigns found in the document.
+    /// decoration that is list of callsigns found in the document. This is the
+    /// old "stdlog" viewer that could show the unique calls on the left!
     /// </summary>
     class ViewNotes :
         EditWindow2
