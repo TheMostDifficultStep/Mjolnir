@@ -71,6 +71,7 @@ namespace Play.Edit {
                                        typeof( IndexOutOfRangeException ),
                                        typeof( NullReferenceException ) };
 
+        /// <seealso cref="CaretInfo" /*
         protected class CaretTracker :
             IPgCaretInfo<Row>
         {
@@ -252,6 +253,7 @@ namespace Play.Edit {
             return new EditHandler( this );
         }
 
+        /// <seealso cref="CaretTracker" />
         public struct CaretInfo :
             IPgCaretInfo<Row> 
         {
@@ -740,6 +742,7 @@ namespace Play.Edit {
 
             CacheRow oFreshCacheRow = new CacheRow2( oDocRow );
 
+            // TODO: Get the r/w status of the column so we can set its bgcolor.
             // BUG : Doc columns might not match order of row columns!! >_<;;
             // Note: If we suddenly start typing in a dummy lines, we'll have problems..
             foreach( Line oLine in oDocRow ) {

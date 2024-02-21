@@ -256,6 +256,8 @@ namespace Play.MorsePractice {
 			}
 		}
 
+        public string FileName => _oSiteFile.FileName;
+
 		protected void LogError( string strMessage, string strDetails, bool fShow = false ) {
 			_oSiteBase.LogError( strMessage, strDetails, fShow );
 		}

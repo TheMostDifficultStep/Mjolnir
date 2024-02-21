@@ -104,7 +104,7 @@ namespace Play.MorsePractice {
 		public IPgParent Services  => Parentage.Services;
 		public bool      IsDirty   => _oDocLog.Log.IsDirty || _oDocLog.Notes.IsDirty;
 		public Guid      Catagory  => ViewCategory;
-		public string    Banner    => "Net Logger";
+		public string    Banner    => _oDocLog.FileName;
 		public SKBitmap  Icon      { get; protected set; }
 
 		protected override void OnSizeChanged(EventArgs e) {
