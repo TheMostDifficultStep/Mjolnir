@@ -7,6 +7,8 @@ using SkiaSharp;
 using Play.Rectangles;
 using Play.Interfaces.Embedding;
 using Play.Edit;
+using Play.Drawing;
+using System.Reflection;
 
 namespace Play.MorsePractice {
 
@@ -37,6 +39,7 @@ namespace Play.MorsePractice {
 		IPgCommandView
 	{
 		public static Guid ViewCategory {get;} = new Guid( "{F308F2D9-5F57-4351-A145-C0AD45773D07}" );
+        static readonly protected string _strIcon = @"Play.MorsePractice.Content.icons8-copybook-60.jpg";
 
 		protected class ViewMorseSlot :
 			IPgBaseSite,
@@ -73,6 +76,7 @@ namespace Play.MorsePractice {
 
 			ViewNotes = new EditWindow2( new ViewMorseSlot( this ), _oDocLog.Notes ) { Parent = this };
 			ViewList  = new ViewNetLog ( new ViewMorseSlot( this ), _oDocLog.Log   ) { Parent = this };
+			Icon      = SKImageResourceHelper.GetImageResource( Assembly.GetExecutingAssembly(), _strIcon );
 
 			_rgLayout = new LayoutStackVertical( ) {
 								Spacing  = 10,
@@ -101,7 +105,7 @@ namespace Play.MorsePractice {
 		public bool      IsDirty   => _oDocLog.Log.IsDirty || _oDocLog.Notes.IsDirty;
 		public Guid      Catagory  => ViewCategory;
 		public string    Banner    => "Net Logger";
-		public SKBitmap  Icon      => null;
+		public SKBitmap  Icon      { get; protected set; }
 
 		protected override void OnSizeChanged(EventArgs e) {
 			base.OnSizeChanged(e);

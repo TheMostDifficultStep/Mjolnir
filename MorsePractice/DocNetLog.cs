@@ -29,6 +29,7 @@ namespace Play.MorsePractice {
 		IPgSave<TextWriter>
     {
         readonly protected IPgRoundRobinWork _oWorkPlace; 
+        readonly protected string            _strIcon = @"Play.MorsePractice.Content.icons8-copybook-60.jpg";
 
         public CallsDoc Calls { get; } // List of callsigns in left hand column of notes file.
 

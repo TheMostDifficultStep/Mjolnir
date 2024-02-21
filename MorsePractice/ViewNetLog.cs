@@ -11,6 +11,8 @@ using Play.Rectangles;
 using Play.Edit;
 using Play.Forms;
 using Play.Parse;
+using Play.Drawing;
+using System.Reflection;
 
 namespace Play.MorsePractice {
 	/// <summary>
@@ -25,10 +27,11 @@ namespace Play.MorsePractice {
 		IPgSave<XmlDocumentFragment>
 	{
 		static public Guid ViewCatagory { get; } = new Guid("{BE243DE2-7763-4A44-9499-0EEDBC84D8A4}");
+        static readonly protected string _strIcon = @"Play.MorsePractice.Content.icons8-copybook-60.jpg";
 
 		public Guid   Catagory => ViewCatagory;
 		public string Banner   => "Log Viewer";
-		public SKBitmap Icon   => null;
+		public SKBitmap Icon   { get; protected set; }
 
 		protected DocLogMultiColumn LogDoc { get; }
 
@@ -36,14 +39,15 @@ namespace Play.MorsePractice {
 			base( oSiteView, oDocument )
 		{
 			LogDoc = (DocLogMultiColumn)oDocument;
+			Icon   = SKImageResourceHelper.GetImageResource( Assembly.GetExecutingAssembly(), _strIcon );
 		}
 
 		protected override bool Initialize() {
 			if( !base.Initialize() )
 				return false;
 
-			_rgLayout.Add( new LayoutRect( LayoutRect.CSS.Pixels, 100, 0.2F ) );
-			_rgLayout.Add( new LayoutRect( LayoutRect.CSS.Pixels, 40,  0.1F ) );
+			_rgLayout.Add( new LayoutRect( LayoutRect.CSS.Pixels, 90, 0.2F ) );
+			_rgLayout.Add( new LayoutRect( LayoutRect.CSS.Pixels, 40, 0.1F ) );
 			_rgLayout.Add( new LayoutRect( LayoutRect.CSS.None ) );
 
 			_rgColumns.Add( _rgLayout.Item(1) );
