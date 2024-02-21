@@ -14,8 +14,10 @@ using Play.Parse;
 
 namespace Play.MorsePractice {
 	/// <summary>
-	/// Reviving this experiment, multi column log viewer!!
+	/// Reviving this experiment, multi column log viewer!! This is the 
+	/// inner columnar view beneath the notes in the "ViewLogAndNotes" case.
 	/// </summary>
+	/// <seealso cref="ViewLogAndNotes"/>
 	public class ViewNetLog : 
 		WindowMultiColumn,
 		IPgCommandView,

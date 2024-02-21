@@ -160,8 +160,14 @@ namespace Play.MorsePractice {
 
                     oParseHandler.Parse();
                 }
-            } catch( InvalidCastException ) {
-                LogError( "Likely services retrieval error" );
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( InvalidCastException ),
+                                    typeof( ArgumentOutOfRangeException ),
+                                    typeof( ArgumentNullException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
+
+                LogError( "Trouble setting up column parse." );
             }
         }
 

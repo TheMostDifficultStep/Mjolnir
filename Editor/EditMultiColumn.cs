@@ -391,12 +391,25 @@ namespace Play.Edit {
         }
 
         public RowStream CreateColumnStream( int iColumn ) {
-            if( _rgRows.Count <= 0 )
-                return null;
+            try {
+                if( _rgRows.Count <= 0 )
+                    return null;
 
-            int iMaxStream = _rgRows[_rgRows.Count-1][iColumn].CumulativeLength;
+                Line oLastLine = _rgRows[_rgRows.Count-1][iColumn];
+                int iMaxStream = oLastLine.CumulativeLength + oLastLine.ElementCount;
 
-            return new RowStream( _rgRows, 0, iMaxStream, LogError );
+                return new RowStream( _rgRows, 0, iMaxStream, LogError );
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( ArgumentOutOfRangeException ),
+                                    typeof( NullReferenceException ),
+                                    typeof( IndexOutOfRangeException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
+
+                LogError( "Unable to creat column stream." );
+            }
+
+            return null;
         }
 
         /// <summary>
