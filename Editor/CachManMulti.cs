@@ -219,6 +219,8 @@ namespace Play.Edit {
             }
         }
 
+        public int CaretColumn => _iCaretCol;
+
         public void OnMouseWheel( int iDelta ) {
             int iTop = _rgOldCache[0].Top + ( 4 * iDelta / LineHeight );
 

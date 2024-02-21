@@ -650,21 +650,14 @@ namespace Play.Interfaces.Embedding {
 	/// tighter integration witht the editor line positions and carats.
 	/// </summary>
 	public class TextPosition {
-		public int Line   { get; }
-		public int Offset { get; }
+		public int RowIndex{ get; }
+		public int Offset  { get; }
 
 		public TextPosition( int iLine, int iOffset ) {
-			Line   = iLine;
-			Offset = iOffset;
+			RowIndex = iLine;
+			Offset   = iOffset;
 		}
 	}
-
-    //public enum EDGE {
-    //    LEFT   = 0,
-    //    TOP    = 1,
-    //    RIGHT  = 2,
-    //    BOTTOM = 3
-    //}
 
     public enum SCROLLPOS {
         TOP,
@@ -680,7 +673,7 @@ namespace Play.Interfaces.Embedding {
         TextPosition Caret { get; }
 
         void ScrollTo( SCROLLPOS eEdge ); 
-        void ScrollToCaret();
+        void ScrollToCaret(); // TODO: Remove this soon
         /// <summary>
         /// Simple selection on one line. Works for most cases.
         /// Goto line w/ selection length 0.

@@ -755,7 +755,7 @@ namespace Mjolnir {
 
         protected void GotoView( bool fFocus ) {
 			try {
-                _oHost.ViewSelect( _oDoc_Views[_oViewText.Caret.Line], fFocus );
+                _oHost.ViewSelect( _oDoc_Views[_oViewText.Caret.RowIndex], fFocus );
 			} catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( NullReferenceException ),
                                     typeof( IndexOutOfRangeException ),
@@ -773,7 +773,7 @@ namespace Mjolnir {
 
         protected void MenuCloseViewCommand( object s, EventArgs e ) {
 			try {
-				_oHost.ViewClose( _oDoc_Views[_oViewText.Caret.Line] );
+				_oHost.ViewClose( _oDoc_Views[_oViewText.Caret.RowIndex] );
 			} catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( NullReferenceException ),
                                     typeof( IndexOutOfRangeException ),

@@ -30,9 +30,7 @@ namespace Play.Edit {
             _oLine   = oLine;
         }
 
-		public int ColorIndex {
-			get { return( 0 ); }
-		}
+		public int ColorIndex => 0;
 
         public override string ToString() {
             return( "(" + _iOffset.ToString() + "...) " + _oLine.SubString( 0, 50 ) );

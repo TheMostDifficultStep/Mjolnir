@@ -2716,7 +2716,7 @@ namespace Play.Edit {
         /// Enumerate starting on rhs of cursor, down/around, then lhs of cursor.
         /// </summary>
         public IEnumerator<ILineRange> GetEnumerator() {
-            return _oDocument.CreateLineSearch( Caret.Line, Caret.Offset );
+            return _oDocument.CreateLineSearch( Caret.RowIndex, Caret.Offset );
         }
 
         IEnumerator IEnumerable.GetEnumerator() {

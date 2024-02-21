@@ -169,7 +169,7 @@ namespace Play.MusicWalker {
 
 		public bool IsDirty => ViewLibrary.IsDirty;
 
-		public int CurrentAlbumIndex => ViewLibrary.Caret.Line;
+		public int CurrentAlbumIndex => ViewLibrary.Caret.RowIndex;
 
 
 		protected class MusicWinSlot :
@@ -421,7 +421,7 @@ namespace Play.MusicWalker {
             // TODO: Need to look at this. Since I basically know the ViewLibrary is pointing to the albums
             //       I can access the Document.Albums. But I'd rather access something like ViewLibrary.Document...
             //       Need to see why I can't do that.
-			Document.Commands.xQueue( this.Document.Albums[ViewLibrary.Caret.Line].ToString(), StartSong:0 );
+			Document.Commands.xQueue( this.Document.Albums[ViewLibrary.Caret.RowIndex].ToString(), StartSong:0 );
 		}
 
 		/// <summary>
@@ -438,7 +438,7 @@ namespace Play.MusicWalker {
 				SongCredentials oCurrentSong = Document.SongCurrent;
 
 				if( oCurrentSong  != null &&
-					oCurrentSong.AlbumIndex == ViewLibrary.Caret.Line ) 
+					oCurrentSong.AlbumIndex == ViewLibrary.Caret.RowIndex ) 
 				{
 					AlbumCurrent.HighLight = AlbumCurrent[oCurrentSong.SongIndex];
 				} else {

@@ -125,6 +125,7 @@ namespace Play.Edit {
         IPgLoad<XmlElement>,
         IPgSave<XmlDocumentFragment>,
         IPgEditEvents,
+        IPgTextView,
         IEnumerable<ILineRange>
     {
         public static Guid _sGuid = new Guid( "{03F21BC8-F911-4FE4-931D-9EB9F7A15A10}" );
@@ -355,7 +356,7 @@ namespace Play.Edit {
         /// <summary>
         /// Where we really initialize. Nice to have the scroll bar initialize size
         /// here since it would be cool if I reload the widths of things from
-        /// persistance in the futre!.
+        /// persistance in the future!.
         /// </summary>
         /// <seealso cref="InitNew"/>
         /// <seealso cref="Load"/>
@@ -415,13 +416,15 @@ namespace Play.Edit {
             SimpleRange oRange = new SimpleRange();
 
             foreach( Row oRow in _oDocEnum ) {
-                foreach( Line oLine in oRow ) {
-                    oRange.Line   = oLine;
-                    oRange.Offset = 0;
-                    oRange.Length = oLine.ElementCount;
-                    oRange.At     = oLine.At;
+                if( _oCacheMan.CaretColumn < _rgColumns.Count ) {
+                    foreach( Line oLine in oRow ) {
+                        oRange.Line   = oLine;
+                        oRange.Offset = 0;
+                        oRange.Length = oLine.ElementCount;
+                        oRange.At     = oRow .At;
 
-                    yield return oRange;
+                        yield return oRange;
+                    }
                 }
             }
         }
@@ -798,5 +801,39 @@ namespace Play.Edit {
 
             Invalidate();
         }
+
+        #region IPgTextView
+        public TextPosition Caret {
+            get {
+                CacheMultiColumn.CaretInfo? sCaret = _oCacheMan.CopyCaret();
+
+                if( sCaret is CacheMultiColumn.CaretInfo oCaretValue ) {
+                    return new TextPosition( oCaretValue.Row.At, oCaretValue.Offset );
+                }
+
+                return new TextPosition( 0, 0 );
+            }
+        }
+
+        public void ScrollTo(SCROLLPOS eEdge) {
+            switch( eEdge ) {
+                case SCROLLPOS.CARET:
+                    _oCacheMan.ScrollToCaret();
+                    break;
+                // The rest can probably be SetCaretPositionAndScroll()
+            }
+        }
+
+        public void ScrollToCaret() {
+            _oCacheMan.ScrollToCaret(); // BUG: This is weird...
+        }
+
+        public bool SelectionSet(int iLine, int iOffset, int iLength) {
+            return _oCacheMan.SetCaretPositionAndScroll( iLine, _oCacheMan.CaretColumn, iOffset );
+        }
+
+        public void SelectionClear() {
+        }
+        #endregion
     }
 }

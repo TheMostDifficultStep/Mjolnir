@@ -215,6 +215,35 @@ namespace Mjolnir {
         }
 
         /// <summary>
+        /// Argghgh, yet another line range. Need this so I can override the At operator
+        /// which normally gets it from the line! What an amazing stroke of luck that
+        /// I can do this!!
+        /// </summary>
+        public class LineRangeForMulti :
+            ILineRange 
+        {
+            readonly Line _oLine;
+            readonly int  _iOffset;
+            readonly int  _iLength;
+
+            public LineRangeForMulti( int iRowIndex, Line oLine, int iStart, int iLength ) {
+                At       = iRowIndex;
+                _oLine   = oLine ?? throw new ArgumentNullException();
+                _iOffset = iStart;
+                _iLength = iLength;
+            }
+
+            public Line Line { get => _oLine; set => throw new NotImplementedException(); }
+
+            public int At { get; protected set; } // Row index.
+
+            public int ColorIndex => 0;
+
+            public int Offset { get => _iOffset; set => throw new NotImplementedException(); }
+            public int Length { get => _iLength; set => throw new NotImplementedException(); }
+        }
+
+        /// <summary>
         /// Given a line range, find all the matches within. For example.
         /// "a test of a test here", search "test" will give 2 matches.
         /// </summary>
@@ -248,7 +277,7 @@ namespace Mjolnir {
 						    break;
 				    }
 				    if( iMatch == _strFind.Length ) {
-                        yield return new LineRange( oLine, iStart, iMatch, SelectionTypes.Empty );
+                        yield return new LineRangeForMulti( _oRange.At, oLine, iStart, iMatch );
                         iStart += iMatch;
                     } else {
                         iStart += 1;
@@ -287,7 +316,7 @@ namespace Mjolnir {
         /// to set the caret position in the case of line number in the calling code.
         /// </summary>
         /// <returns></returns>
-        public IEnumerator<ILineRange> CreateLineNumberEnum( IReadableBag<Line> oView, string strFind )
+        public IEnumerator<ILineRange> CreateLineNumberEnum( object oView, string strFind )
         {
             if( oView == null )
                 yield break;
@@ -306,7 +335,11 @@ namespace Mjolnir {
                 throw new InvalidOperationException( "Unexpected return in FindWindow Line Parse" );
             }
 
-            yield return( new LineRange( oView[iRequestedLine], 0, 0, SelectionTypes.Empty ) );
+            if( oView is IReadableBag<Row> )
+                yield return new LineRangeForMulti( iRequestedLine, null, 0, 0 );
+
+            if( oView is IReadableBag<Line> oViewLines ) 
+                yield return new LineRange( oViewLines[iRequestedLine], 0, 0, SelectionTypes.Empty );
         }
 
         public IEnumerator<ILineRange> CreateRegexFind( IEnumerable<ILineRange> oWin, string strFind ) {
@@ -353,10 +386,10 @@ namespace Mjolnir {
                         for( int iGroup = 1; iGroup < oMatch.Groups.Count; ++iGroup ) {
                             Group oGroup = oMatch.Groups[iGroup];
 
-                            yield return( new LineRange( oRange.Line, oGroup.Index, oGroup.Length, SelectionTypes.Empty ) );
+                            yield return new LineRangeForMulti( oRange.At, oRange.Line, oGroup.Index, oGroup.Length );
                         }
                     } else {
-                        yield return( new LineRange( oRange.Line, oMatch.Index, oMatch.Length, SelectionTypes.Empty ) );
+                        yield return new LineRangeForMulti( oRange.At, oRange.Line, oMatch.Index, oMatch.Length );
                     }
                 } 
             }
@@ -367,11 +400,11 @@ namespace Mjolnir {
 
 				switch( oSearchType.SelectedItem.ToString() ) {
 					case "Text":
-						return CreateTextFind ( _oView as IEnumerable<ILineRange>, strFind );
+						return CreateTextFind      ( _oView as IEnumerable<ILineRange>, strFind );
 					case "Regex":
-						return CreateRegexFind( _oView as IEnumerable<ILineRange>, strFind );
+						return CreateRegexFind     ( _oView as IEnumerable<ILineRange>, strFind );
 					case "Line":
-						return CreateLineNumberEnum( _oView as IReadableBag<Line>, strFind );
+						return CreateLineNumberEnum( _oView, strFind );
 				}
 			} catch( NullReferenceException ) {
                 _oWinMain.LogError( null, "search", "Problem generating Search enumerators." );
@@ -410,16 +443,16 @@ namespace Mjolnir {
                     ILineRange oRange = _oEnumResults.Current;
 
                     _oView.SelectionClear(); 
-				    _oView.SelectionSet( oRange.Line.At, oRange.Offset, oRange.Length );
+				    _oView.SelectionSet( oRange.At, oRange.Offset, oRange.Length );
 				    _oView.ScrollToCaret();
                 } else {
                     _oView.SelectionClear(); 
-				    _oView.SelectionSet( _sEnumStart.Line, _sEnumStart.Offset, 0 );
+				    _oView.SelectionSet( _sEnumStart.RowIndex, _sEnumStart.Offset, 0 );
 				    _oView.ScrollToCaret();
                     _oEnumResults = null;
                 }
             } catch( NullReferenceException ) {
-                LogError( "Select a document view." );
+                LogError( "Select a document view. Implement IPgTextView..." );
             }
         }
 

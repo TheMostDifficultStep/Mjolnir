@@ -239,7 +239,7 @@ namespace Play.MorsePractice {
 			_oSiteBase  = oSiteBase ?? throw new ArgumentNullException();
             _oSiteFile  = (IPgFileSite )oSiteBase;
 
-			Notes       = new Editor        ( new DocNetHostSlot( this, "Notes" ) ); // Notes for running the net.
+			Notes       = new Editor           ( new DocNetHostSlot( this, "Notes" ) ); // Notes for running the net.
 			Log         = new DocLogMultiColumn( new DocNetHostSlot( this, "Log"   ) ); // Log the operators.
 
             new ParseHandlerText( Notes, "text" );

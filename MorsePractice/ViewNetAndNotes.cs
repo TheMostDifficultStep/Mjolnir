@@ -9,6 +9,8 @@ using Play.Interfaces.Embedding;
 using Play.Edit;
 using Play.Drawing;
 using System.Reflection;
+using System.Collections.Generic;
+using System.Collections;
 
 namespace Play.MorsePractice {
 
@@ -36,7 +38,9 @@ namespace Play.MorsePractice {
 		IPgParent,
 		IPgLoad<XmlElement>,
 		IPgSave<XmlDocumentFragment>,
-		IPgCommandView
+		IPgCommandView,
+		IPgTextView,
+		IEnumerable<ILineRange>
 	{
 		public static Guid ViewCategory {get;} = new Guid( "{F308F2D9-5F57-4351-A145-C0AD45773D07}" );
         static readonly protected string _strIcon = @"Play.MorsePractice.Content.icons8-copybook-60.jpg";
@@ -107,7 +111,7 @@ namespace Play.MorsePractice {
 		public string    Banner    => _oDocLog.FileName;
 		public SKBitmap  Icon      { get; protected set; }
 
-		protected override void OnSizeChanged(EventArgs e) {
+        protected override void OnSizeChanged(EventArgs e) {
 			base.OnSizeChanged(e);
 
 			_rgLayout.SetRect( LOCUS.UPPERLEFT, 0, 0, Width, Height );
@@ -164,5 +168,32 @@ namespace Play.MorsePractice {
 			return true;
 		}
 
-	}
+        public IEnumerator<ILineRange> GetEnumerator() {
+			return ViewList.GetEnumerator();
+        }
+
+        IEnumerator IEnumerable.GetEnumerator() {
+            return GetEnumerator();
+        }
+
+        #region IPgTextView
+        public TextPosition Caret => ViewList.Caret;
+
+        public void ScrollTo(SCROLLPOS eEdge) {
+            ViewList.ScrollTo(eEdge);
+        }
+
+        public void ScrollToCaret() {
+            ViewList.ScrollToCaret();
+        }
+
+        public bool SelectionSet(int iLine, int iOffset, int iLength) {
+            return ViewList.SelectionSet(iLine, iOffset, iLength);
+        }
+
+        public void SelectionClear() {
+            ViewList.SelectionClear();
+        }
+        #endregion
+    }
 }
