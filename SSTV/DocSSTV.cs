@@ -65,7 +65,7 @@ namespace Play.SSTV {
         readonly ParseFormText _oParser;
 
         public void CheckParse() {
-            _oParser.Parse();
+            //_oParser.Parse();
         }
 
         public SSTVProperties( IPgRoundRobinWork oWorker, IPgBaseSite oSiteBase ) : base( oSiteBase ) {

@@ -106,6 +106,8 @@ namespace Mjolnir {
 					if( rgErrors.IsUnhandled( oEx ) )
 						throw;
 
+					_oHost.LogError( "Tasks", "Non preemptive multitasker task error!" );
+
                     Stop();
                 }
                 return( false );
