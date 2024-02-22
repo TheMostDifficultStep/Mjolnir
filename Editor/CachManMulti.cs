@@ -518,6 +518,26 @@ namespace Play.Edit {
             return null;
         }
 
+        /// <summary>
+        /// Use this to generate a prefered size if that gets asked for
+        /// form layouts. Make sure to call CacheRepair( null, true true )
+        /// on init. This will work in the Property Page case since we've
+        /// preloaded all the cache row's!!
+        /// </summary>
+        public int PreferedHeight {
+            get {
+                int iHeight = 0;
+                foreach( CacheRow oCache in _rgOldCache ) {
+                    iHeight += oCache.Height;
+                }
+                // So there's that "bearing y" from the origin I've never
+                // really resolved, so just add some slush. :-/
+                iHeight += LineHeight / 2;
+
+                return iHeight;
+            }
+        }
+
         enum InsertAt { TOP,BOTTOM };
 
         /// <summary>

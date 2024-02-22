@@ -55,10 +55,10 @@ namespace Play.ImageViewer {
 			public IPgViewNotify EventChain => _oHost._oSiteBase.EventChain;
 		} // End class
 
-		protected readonly ImageWalkerDoc            _oDocument;
-		protected readonly IPgViewSite               _oSiteBase;
-        protected readonly IPgShellSite              _oSiteShell;
-        protected readonly IPgViewNotify             _oViewEvents; // From our site, window manager (view interface).
+		protected readonly ImageWalkerDoc  _oDocument;
+		protected readonly IPgViewSite     _oSiteBase;
+        protected readonly IPgShellSite    _oSiteShell;
+        protected readonly IPgViewNotify   _oViewEvents; // From our site, window manager (view interface).
 
 		protected WindowStandardProperties PropertiesWin;
 		internal  ImageSnipProperties      PropertiesDoc;
@@ -84,7 +84,7 @@ namespace Play.ImageViewer {
 				Parent = this
 			};
 
-			PropertiesDoc = new ImageSnipProperties( new SnipSlotBase( this ) );
+			PropertiesDoc = new ImageSnipProperties     ( new SnipSlotBase( this ) );
 			PropertiesWin = new WindowStandardProperties( new SnipSlotView( this ), PropertiesDoc );
 		}
 
@@ -142,7 +142,6 @@ namespace Play.ImageViewer {
 
 			// TODO: We'll add a setting to determine the aspect affinity.
 			OnHeightChanged( BUFFEREVENTS.SINGLELINE );
-			OnSizeChanged( new EventArgs() );
 
 			return true;
 		}

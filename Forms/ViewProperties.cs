@@ -8,6 +8,7 @@ using Play.Rectangles;
 using Play.Interfaces.Embedding;
 using Play.Edit;
 using Play.Parse;
+using System.Drawing;
 
 namespace Play.Forms {
     /// <summary>
@@ -87,6 +88,9 @@ namespace Play.Forms {
 
             InitRows();
 
+            // Do this so we can return a desired height. O.o;;
+            _oCacheMan.CacheRepair( null, true, true );
+
             // This certainly does not belong on the base form, but here
             // it is a little more reasonable.
             HyperLinks.Add( "callsign", OnCallSign );
@@ -160,6 +164,10 @@ namespace Play.Forms {
 
                 LogError( "Bad property page index tab list" );
             }
+        }
+
+        public override Size GetPreferredSize(Size proposedSize) {
+            return new Size( Width, _oCacheMan.PreferedHeight );
         }
 
         protected bool IsStdErrorUnhandled( Exception oEx ) {
