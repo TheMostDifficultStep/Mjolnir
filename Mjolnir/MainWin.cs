@@ -1626,10 +1626,13 @@ namespace Mjolnir {
                                 // Whether or not the side is open DOES NOT affect the check on the menu!!
                                 // don't do this... oMenuItem.Checked = !fClosed;
                                 // fClosed is true, hides all the windows.
-                                oShepard.Hidden = fClosed;
+                                if( fClosed )
+                                    oShepard.Hidden = true;
+                                else
+                                    oShepard.Hidden = !oMenuItem.Checked;
                                 // fClosed is false, then we need to bring the right adornment forward.
                                 if( !oShepard.Hidden ) {
-                                    oShepard .AdornmentShuffle( _oSelectedWinSite );
+                                    oShepard.AdornmentShuffle( _oSelectedWinSite );
                                 }
                                 // Alas, closing and opening is not symetrical. We need to know
                                 // the curren view when opening so we can shuffle it's decor foreward.
