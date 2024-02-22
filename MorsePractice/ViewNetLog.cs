@@ -27,7 +27,7 @@ namespace Play.MorsePractice {
 		IPgSave<XmlDocumentFragment>
 	{
 		static public Guid ViewCatagory { get; } = new Guid("{BE243DE2-7763-4A44-9499-0EEDBC84D8A4}");
-        static readonly protected string _strIcon = @"Play.MorsePractice.Content.icons8-copybook-60.jpg";
+        static readonly protected string _strIcon = @"Play.MorsePractice.Content.icons8-copybook-60.png";
 
 		public Guid   Catagory => ViewCatagory;
 		public string Banner   => "Log Viewer";

@@ -43,7 +43,7 @@ namespace Play.MorsePractice {
 		IEnumerable<ILineRange>
 	{
 		public static Guid ViewCategory {get;} = new Guid( "{F308F2D9-5F57-4351-A145-C0AD45773D07}" );
-        static readonly protected string _strIcon = @"Play.MorsePractice.Content.icons8-copybook-60.jpg";
+        static readonly protected string _strIcon = @"Play.MorsePractice.Content.icons8-copybook-60.png";
 
 		protected class ViewMorseSlot :
 			IPgBaseSite,
