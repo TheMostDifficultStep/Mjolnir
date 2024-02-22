@@ -8,6 +8,21 @@ using Play.Interfaces.Embedding;
 using Play.Parse.Impl;
 
 namespace Play.Edit {
+    public static class BagOperations {
+        public static int Final( this IReadableBag<Row> rgList ) {
+            if( rgList.ElementCount <= 0 )
+                throw new ArgumentOutOfRangeException();
+
+            return rgList.ElementCount - 1;
+        }
+        public static int First( this IReadableBag<Row> rgList ) {
+            if( rgList.ElementCount <= 0 )
+                throw new ArgumentOutOfRangeException();
+
+            return 0;
+        }
+    }
+
     /// <summary>
     /// This streamer streams the text from a particular column. If any edits
     /// occur, this object becomes invalid. We can handle this by caching 

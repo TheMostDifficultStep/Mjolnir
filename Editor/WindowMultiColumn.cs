@@ -816,11 +816,20 @@ namespace Play.Edit {
         }
 
         public void ScrollTo(SCROLLPOS eEdge) {
-            switch( eEdge ) {
-                case SCROLLPOS.CARET:
-                    _oCacheMan.ScrollToCaret();
-                    break;
-                // The rest can probably be SetCaretPositionAndScroll()
+            try {
+                switch( eEdge ) {
+                    case SCROLLPOS.CARET:
+                        _oCacheMan.ScrollToCaret();
+                        break;
+                    case SCROLLPOS.TOP:
+                        _oCacheMan.SetCaretPositionAndScroll( 0, _oCacheMan.CaretColumn, _oDocList.First() );
+                        break;
+                    case SCROLLPOS.BOTTOM: 
+                        _oCacheMan.SetCaretPositionAndScroll( 0, _oCacheMan.CaretColumn, _oDocList.Final() );
+                        break; 
+                }
+            } catch( ArgumentOutOfRangeException ) {
+                LogError( "Multi Column List is empty." );
             }
         }
 
