@@ -1620,6 +1620,7 @@ namespace Mjolnir {
                         eID != SideIdentify.Options  ) 
                     {
                         bool fClosed = _rgSideInfo[eID].IsEmpty();
+                        _rgSideInfo[eID].IsDragClosed = fClosed;
                         foreach( IPgMenuVisibility oMenuItem in DecorSettings ) {
                             SmartHerderBase oShepard = oMenuItem.Shepard;
                             if( oShepard.Orientation == eID ) {
