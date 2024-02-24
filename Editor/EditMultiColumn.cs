@@ -39,25 +39,27 @@ namespace Play.Edit {
         readonly int _iCharCount;
         Action<string> LogError { get; }
 
+        /// <exception cref="ArgumentNullException"></exception>
+        /// <exception cref="ArgumentException"></exception>
         public RowStream( 
             IList<Row>     rgRows, 
             int            iColumn, 
             int            iCharCount, 
             Action<string> fnLogError
         ) {
-            _rgRows     = rgRows     ?? throw new ArgumentNullException( "Row array must not be null" );
+            _rgRows  = rgRows     ?? throw new ArgumentNullException( "Row array must not be null" );
             LogError = fnLogError ?? throw new ArgumentNullException();
 
             if( _rgRows.Count < 1 )
                 throw new ArgumentException( "Empty document" );
-            if( _rgRows[0][iColumn].ElementCount < 1 )
+            if( _rgRows[0][iColumn].ElementCount < 0 )
                 throw new ArgumentException( "Empty document" );
             if( iColumn < 0 || iColumn >= _rgRows[0].Count )
                 throw new ArgumentException( "Column out of bounds" );
 
             _iColumn    = iColumn;
             _iCharCount = iCharCount;
-            _cChar      = _rgRows[0][iColumn][0];
+            _cChar      = _rgRows[0][iColumn][0]; // Get \r for the character!
         }
 
         public override bool InBounds(int p_iPos) {
@@ -416,6 +418,8 @@ namespace Play.Edit {
                 return new RowStream( _rgRows, 0, iMaxStream, LogError );
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( ArgumentOutOfRangeException ),
+                                    typeof( ArgumentException ), // empty doc can send this.
+                                    typeof( ArgumentNullException ),
                                     typeof( NullReferenceException ),
                                     typeof( IndexOutOfRangeException ) };
                 if( rgErrors.IsUnhandled( oEx ) )

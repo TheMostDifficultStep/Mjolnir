@@ -140,6 +140,7 @@ namespace Play.MorsePractice {
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( NullReferenceException ),
                                     typeof( ArgumentNullException ),
+                                    typeof( ArgumentOutOfRangeException ),
                                     typeof( InvalidCastException ) };
                 if( rgErrors.IsUnhandled( oEx ) )
                     throw;
@@ -164,7 +165,8 @@ namespace Play.MorsePractice {
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( InvalidCastException ),
                                     typeof( ArgumentOutOfRangeException ),
-                                    typeof( ArgumentNullException ) };
+                                    typeof( ArgumentNullException ),
+                                    typeof( NullReferenceException ) };
                 if( rgErrors.IsUnhandled( oEx ) )
                     throw;
 
