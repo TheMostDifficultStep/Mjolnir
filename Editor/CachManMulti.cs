@@ -49,12 +49,6 @@ namespace Play.Edit {
         protected int   _iCaretOff;
         protected float _fAdvance;
 
-        static Type[] _rgStdErrors = { typeof( ArgumentNullException ),
-                                       typeof( ArgumentException ),
-                                       typeof( ArgumentOutOfRangeException ),
-                                       typeof( IndexOutOfRangeException ),
-                                       typeof( NullReferenceException ) };
-
         /// <seealso cref="CaretInfo" /*
         protected class CaretTracker :
             IPgCaretInfo<Row>
@@ -186,6 +180,12 @@ namespace Play.Edit {
         protected void LogError( string strDetails ) {
             _oSite.LogError( "Text Manager", strDetails );
         }
+
+        static Type[] _rgStdErrors = { typeof( ArgumentNullException ),
+                                       typeof( ArgumentException ),
+                                       typeof( ArgumentOutOfRangeException ),
+                                       typeof( IndexOutOfRangeException ),
+                                       typeof( NullReferenceException ) };
 
         protected bool IsUnhandledStdRpt( Exception oEx ) {
             if( _rgStdErrors.IsUnhandled( oEx ) )
@@ -855,28 +855,37 @@ namespace Play.Edit {
             if( iDir < -1 || iDir > 1 )
                 return false;
 
-            _iCaretCol += iDir;
+            try {
+                _iCaretCol += iDir;
 
-            if( _iCaretCol < 0 )
-                _iCaretCol = 0;
-            if( _iCaretCol >= _rgColumnRects.Count )
-                _iCaretCol = 0;
+                if( _iCaretCol < 0 )
+                    _iCaretCol = 0;
+                if( _iCaretCol >= _rgColumnRects.Count )
+                    _iCaretCol = 0;
 
-            _fAdvance  = 0;
-            _iCaretOff = 0;
+                _fAdvance  = 0;
+                _iCaretOff = 0;
 
-            if( CacheLocate( CaretAt ) is CacheRow oCaretRow ) {
-                Point pntCaret = oCaretRow[_iCaretCol].GlyphOffsetToPoint( _iCaretOff );
+                if( CacheLocate( CaretAt ) is CacheRow oCaretRow ) {
+                    if( iDir < 0 )
+                        _iCaretOff = oCaretRow[_iCaretCol].LastOffset;
 
-                pntCaret.X += _rgColumnRects[_iCaretCol].Left;
-                pntCaret.Y += oCaretRow.Top;
+                    Point pntCaret = oCaretRow[_iCaretCol].GlyphOffsetToPoint( _iCaretOff );
 
-                _oSite.OnCaretPositioned( new SKPointI( pntCaret.X, pntCaret.Y ), true );
-            } else {
-                _oSite.OnCaretPositioned( new SKPointI( -1000, -1000 ), false );
+                    pntCaret.X += _rgColumnRects[_iCaretCol].Left;
+                    pntCaret.Y += oCaretRow.Top;
+
+                    _oSite.OnCaretPositioned( new SKPointI( pntCaret.X, pntCaret.Y ), true );
+                } else {
+                    _oSite.OnCaretPositioned( new SKPointI( -1000, -1000 ), false );
+                }
+
+                return true;
+            } catch( Exception oEx ) {
+                if( IsUnhandledStdRpt( oEx ) )
+                    throw;
             }
-
-            return true;
+            return false;
         }
 
         public bool CaretReset( Row oRow, int iColumn ) {

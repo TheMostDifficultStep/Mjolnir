@@ -76,10 +76,12 @@ namespace Play.Edit {
         public Control Guest     { get; }
         public uint    MaxHeight { get; set; } = 200;
         public int     Height    { get; protected set; }
+        public int     LastOffset => 0;
                        
         public float   UnwrappedWidth { get; protected set; } = 0;
                        
         public bool    IsInvalid { get => false; set { } }
+
 
 
         public CacheControl( Control oGuest ) {

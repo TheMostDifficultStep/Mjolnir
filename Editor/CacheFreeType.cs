@@ -235,6 +235,7 @@ namespace Play.Edit {
     public interface IPgCacheMeasures {
         int   Height { get; }
         float UnwrappedWidth { get; }
+        int   LastOffset { get; }
 
         bool  IsInvalid { get; set; }
         void  Update( IPgFontRender oRender );
@@ -311,6 +312,7 @@ namespace Play.Edit {
         public SKColor BgColor { get; set; } = SKColors.Transparent;
         public SKColor FgColor { get; set; } = SKColors.Black;
         public uint    FontID  { get; set; } = uint.MaxValue;
+        public int     LastOffset => Line.ElementCount;
 
         /// <summary>
         /// Total width of the line UNWRAPPED. 
