@@ -10,22 +10,6 @@ using Play.Parse;
 using Play.Rectangles;
 
 namespace Play.Edit {
-    public interface IRowRange : IMemoryRange {
-        Row Row { get; }
-    }
-
-    public enum Trek {
-        Next,
-        Prev
-    }
-
-    public enum Bump {
-        OK,
-        BumpLow,
-        BumpHigh,
-        Stop
-    }
-
     public interface IPgCaretInfo<T> :
         IMemoryRange
     {
@@ -125,8 +109,17 @@ namespace Play.Edit {
             /// </summary>
             /// <param name="oRow">Null if the whole buffer should
             /// be measured.</param>
-            public void OnUpdated( Row oRow ) {
-                _oHost.CacheRepair( oRow, _fCaretVisible, oRow == null );
+            public void OnUpdated( EditType eType, Row oRow ) {
+                if( eType == EditType.DeleteRow ) {
+                    if( _oHost._oCaretRow == oRow ) {
+                        if( _oHost.GetTabOrderAtIndex( _oHost.CaretAt, 0 ) is Row oNext ) {
+                            _oHost._oCaretRow = oNext;
+                        }
+                    }
+                    _oHost.CacheRepair( null, _fCaretVisible, false );
+                } else {
+                    _oHost.CacheRepair( oRow, _fCaretVisible, oRow == null );
+                }
             }
 
             IEnumerator IEnumerable.GetEnumerator() {
@@ -168,6 +161,10 @@ namespace Play.Edit {
         protected virtual Row GetTabOrderAtScroll() {
             try {
                 int iIndex = (int)(_oSite.GetScrollProgress * _oSiteList.ElementCount);
+                if( iIndex >= _oSiteList.ElementCount )
+                    iIndex = _oSiteList.ElementCount - 1;
+                if( iIndex < 0 )
+                    return null;
 
                 return _oSiteList[ iIndex ];
             } catch( Exception oEx ) {
@@ -206,8 +203,10 @@ namespace Play.Edit {
         public int CaretAt {
             get {
                 try {
-                    if( _oCaretRow == null )
-                        return 0;
+                    if( _oCaretRow == null ) {
+                        Row oRow = GetTabOrderAtIndex( 0, 0 );
+                        return oRow.At;
+                    }
                     if( _oCaretRow.At < 0 )
                         return 0;
 
@@ -281,54 +280,6 @@ namespace Play.Edit {
                 return null;
 
             return new CaretInfo( this );
-        }
-
-        /// <summary>
-        /// New experimental positioning. The rule is: if the caret is on
-        /// screen, keep it there. Else, repair as best you can, else 
-        /// rebuild the screen from the current cache position. If you
-        /// have scrolled the caret off screen I assume it's intentional.
-        /// </summary>
-        /// <remarks>BUG: Might need to if the row is invalid and
-        /// remeasure such items. It's a little bigger job so I'll
-        /// look into that later...</remarks>
-        /// <param name="fMeasure">Remeasure all row items.</param>
-        /// <param name="fFindCaret">Keep the caret on the screen</param>
-        /// <param name="oPatch">Make sure this item is re-measured.</param>
-        public void CacheRepair( Row oPatch, bool fFindCaret, bool fMeasure ) {
-            try {
-                CacheRow oSeedCache = null;
-                int      iTop       = _rgOldCache.Count < 1 ? 0 : _rgOldCache[0].Top;
-
-                foreach( CacheRow oCacheRow in _rgOldCache ) {
-                    if( oCacheRow.At == CaretAt ) {
-                        oSeedCache = oCacheRow;
-                    }
-                    if( oPatch       != null &&
-                        oCacheRow.At == oPatch.At ) {
-                        RowMeasure(oCacheRow);
-                    }
-                    oCacheRow.Top = iTop;
-                    iTop += oCacheRow.Height + RowSpacing;
-                }
-                if( fFindCaret ) {
-                    if( oSeedCache != null )
-                        CaretSlideWindow( oSeedCache );
-                    else
-                        CreateCacheRow( _oCaretRow );
-                } else {
-                    if( oSeedCache == null ) {
-                        oSeedCache = CacheLocateTop();
-                    }
-                }
-
-                oSeedCache ??= CacheReset( RefreshNeighborhood.SCROLL );
-
-                CacheWalker( oSeedCache, fMeasure );
-            } catch( Exception oEx ) {
-                if( IsUnhandledStdRpt( oEx ) )
-                    throw;
-            }
         }
 
         protected void MoveWindows() {
@@ -412,7 +363,7 @@ namespace Play.Edit {
                 if( oDocRow == null )
                     return null;
 
-                oCacheRow = _rgOldCache.Find( item => item.At == oDocRow.At ); 
+                oCacheRow = _rgOldCache.Find( item => item.Row == oDocRow ); 
 
                 if( oCacheRow == null ) // If can't find matching elem, create it.
                     oCacheRow = CreateCacheRow( oDocRow );
@@ -449,8 +400,7 @@ namespace Play.Edit {
             if( oNextDRow == null )
                 return null;
 
-            // TODO: Given the values are sorted I could bubble search.
-            CacheRow oNewCache = _rgOldCache.Find( x => x.At == oNextDRow.At );
+            CacheRow oNewCache = _rgOldCache.Find( x => x.Row == oNextDRow );
 
             // If we're reusing a cache, it's already measured!! ^_^
             if( oNewCache == null ) {
@@ -509,9 +459,11 @@ namespace Play.Edit {
         /// array index. But just a unique value sitting at the "At" property on the line.</param>
         /// <returns>The cache element representing that line. or NULL</returns>
         protected CacheRow CacheLocate( int iRow ) {
-            foreach( CacheRow oCache in _rgOldCache ) {
-                if( oCache.At == iRow ) {
-                    return oCache;
+            if( _oSiteList[iRow] is Row oSearch ) {
+                foreach( CacheRow oCache in _rgOldCache ) {
+                    if( oCache.Row == oSearch ) {
+                        return oCache;
+                    }
                 }
             }
 
@@ -541,6 +493,50 @@ namespace Play.Edit {
         enum InsertAt { TOP,BOTTOM };
 
         /// <summary>
+        /// New experimental positioning. The rule is: if the caret is on
+        /// screen, keep it there. Else, repair as best you can, else 
+        /// rebuild the screen from the current cache position. If you
+        /// have scrolled the caret off screen I assume it's intentional.
+        /// </summary>
+        /// <remarks>BUG: Might need to if the row is invalid and
+        /// remeasure such items. It's a little bigger job so I'll
+        /// look into that later...</remarks>
+        /// <param name="fMeasure">Remeasure all row items.</param>
+        /// <param name="fFindCaret">Keep the caret on the screen</param>
+        /// <param name="oPatch">Make sure this item is re-measured.</param>
+        public void CacheRepair( Row oPatch, bool fFindCaret, bool fMeasure ) {
+            try {
+                CacheRow oSeedCache = null;
+
+                foreach( CacheRow oCacheRow in _rgOldCache ) {
+                    if( oCacheRow.Row == _oCaretRow &&
+                        _oCaretRow    != null ) {
+                        oSeedCache = oCacheRow;
+                    }
+                    if( oPatch        != null &&
+                        oCacheRow.Row == oPatch ) {
+                        RowMeasure(oCacheRow);
+                    }
+                }
+                if( fFindCaret ) {
+                    if( oSeedCache != null )
+                        CaretSlideWindow( oSeedCache );
+                } else {
+                    if( oSeedCache == null ) {
+                        oSeedCache = CacheLocateTop();
+                    }
+                }
+
+                oSeedCache ??= CacheReset( RefreshNeighborhood.SCROLL );
+
+                CacheWalker( oSeedCache, fMeasure );
+            } catch( Exception oEx ) {
+                if( IsUnhandledStdRpt( oEx ) )
+                    throw;
+            }
+        }
+
+        /// <summary>
         /// New code for re-building the cache. Not entirely different
         /// than the original. Omits the sliding window concept.
         /// Calls OnRefreshComplete() on the site when finished.
@@ -562,9 +558,9 @@ namespace Play.Edit {
             CacheRow oCacheWithCaret = null; // If non null, caret might be visible...
 
             void NewCacheAdd( InsertAt ePos, CacheRow oNewCacheRow ) {
-                if( oNewCacheRow.At == CaretAt ) {
+                if( oNewCacheRow.Row == _oCaretRow )
                     oCacheWithCaret = oNewCacheRow;
-                }
+
                 if( ePos == InsertAt.BOTTOM )
                     _rgNewCache.Add( oNewCacheRow );
                 if( ePos == InsertAt.TOP )
@@ -828,9 +824,8 @@ namespace Play.Edit {
                     // First, see if we can navigate within the cache item we are currently at.
                     if( !oCaretCacheRow[_iCaretCol].Navigate( eAxis, iDir, ref _fAdvance, ref _iCaretOff ) ) {
                         // Now try moving vertically, but stay in the same column...
-                        Row oDocRow = GetTabOrderAtIndex( CaretAt, iDir);
-                        if( oDocRow != null ) {
-                            CacheRow oNewCache = _rgOldCache.Find(item => item.At == oDocRow.At);
+                        if( GetTabOrderAtIndex( CaretAt, iDir) is Row oDocRow ) {
+                            CacheRow oNewCache = _rgOldCache.Find(item => item.Row == oDocRow);
                             if( oNewCache == null ) {
                                 oNewCache = CreateCacheRow(oDocRow);
                                 RowMeasure( oNewCache );
@@ -1030,7 +1025,7 @@ namespace Play.Edit {
                 _iCaretCol = iColumn;
                 _iCaretOff = iOffset;
 
-                CacheRow oCaretCacheRow = CacheLocate( _oCaretRow.At );
+                CacheRow oCaretCacheRow = CacheLocate( CaretAt );
 
                 if( oCaretCacheRow != null ) {
                     RowMeasure( oCaretCacheRow ); // Always measure caret row.
@@ -1078,7 +1073,7 @@ namespace Play.Edit {
 
         protected override CacheRow CreateCacheRow(Row oDocRow) {
             foreach( CacheRow oCacheRow in _rgFixedCache ) { 
-                if( oCacheRow.At == oDocRow.At ) {
+                if( oCacheRow.Row == oDocRow ) {
                     RowMeasure( oCacheRow );
                     return oCacheRow;
                 }
@@ -1140,12 +1135,11 @@ namespace Play.Edit {
                 return;
             }
 
-            int  iBottomRow    = ( oBottom == null ) ? 0 : oBottom.At;
             bool fCaretVisible = IsCaretNear( oCaret, out SKPointI pntCaret );
             int  iFixedIndex   = 0;
 
             for( int i=0; i< _rgFixedCache.Count; ++i ) {
-                if( _rgFixedCache[i].At == iBottomRow ) {
+                if( _rgFixedCache[i].Row == oBottom ) {
                     iFixedIndex = i;
                     break;
                 }

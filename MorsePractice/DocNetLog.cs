@@ -223,7 +223,7 @@ namespace Play.MorsePractice {
                 if( !_fDisposed ) {
                     _oHost.RenumberRows();
                     foreach( IPgEditHandler oCall in _rgHandlers ) {
-                        oCall.OnUpdated( null );
+                        oCall.OnUpdated( EditType.InsertRow, null );
                     }
                     _oHost.DoParse();
                     _fDisposed = true;

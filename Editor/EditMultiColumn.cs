@@ -438,10 +438,10 @@ namespace Play.Edit {
             IEnumerable<IPgCaretInfo<Row>>
         {
             readonly List<IPgEditHandler> _rgHandlers;
-            readonly EditMultiColumn      _oHost;
+            readonly EditMultiColumn      _oDoc;
 
             public TrackerEnumerable(EditMultiColumn oHost ) {
-                _oHost = oHost ?? throw new ArgumentNullException();
+                _oDoc = oHost ?? throw new ArgumentNullException();
 
                 // Save us from creating this everytime...
                 _rgHandlers = oHost._rgTemp;
@@ -464,20 +464,14 @@ namespace Play.Edit {
                 throw new NotImplementedException();
             }
 
-            public void FinishUp( Row oRow ) {
+            public void FinishUp( EditType eEdit, Row oRow = null ) {
                 foreach( IPgEditHandler oHandler in _rgHandlers ) {
-                    oHandler.OnUpdated( oRow );
+                    oHandler.OnUpdated( eEdit, oRow );
                 }
                 _rgHandlers.Clear();
-                _oHost     .DoParse();
+                _oDoc      .DoParse(); // At the very least invalidate. Maybe this should be OnUpdated... hmmm...
+                _oDoc      .IsDirty = true;
             }
-        }
-
-        public bool TryReplaceAt( IPgCaretInfo<Row> oCaret, ReadOnlySpan<char> spText ) {
-            if( oCaret == null )
-                return false;
-
-            return TryReplaceAt( oCaret.Row, oCaret.Column, oCaret.Offset, oCaret.Length, spText );
         }
 
         /// <summary>
@@ -500,7 +494,7 @@ namespace Play.Edit {
                     }
                 }
 
-                oTE.FinishUp( oRow );
+                oTE.FinishUp( EditType.ModifyElem, oRow );
 
                 return true;
             } catch( Exception oEx ) {
@@ -509,7 +503,7 @@ namespace Play.Edit {
                                     typeof( ArgumentOutOfRangeException ) };
                 if( rgErrors.IsUnhandled( oEx ) )
                     throw;
-                _oSiteBase.LogError( "Delete Text", "Error in TryReplaceAt" );
+                _oSiteBase.LogError( "Multi Column Edit", "Error in TryReplaceAt" );
             }
             return false;
         }
@@ -537,7 +531,7 @@ namespace Play.Edit {
                     }
                 }
 
-                oTE.FinishUp( null );
+                oTE.FinishUp( EditType.ModifyElem, oRow );
 
                 return true;
             } catch( Exception oEx ) {
@@ -547,9 +541,32 @@ namespace Play.Edit {
                 if( rgErrors.IsUnhandled( oEx ) )
                     throw;
 
-                _oSiteBase.LogError( "Delete Text", "Error in TryDeleteAt" );
+                _oSiteBase.LogError( "Multi Column Edit", "Error in TryDeleteAt" );
             }
 
+            return false;
+        }
+
+        public bool RowDeleteAt( Row oRow ) {
+            try {
+                TrackerEnumerable oTE = new TrackerEnumerable( this );
+
+                _rgRows.Remove( oRow ); // Faster if use index... probably...
+
+                RenumberRows(); // Huh... This fixes all my bugs. :-/
+
+                oTE.FinishUp( EditType.DeleteRow, oRow );
+
+                return true;
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( NullReferenceException ),
+                                    typeof( IndexOutOfRangeException ),
+                                    typeof( ArgumentOutOfRangeException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
+
+                _oSiteBase.LogError( "Multi Column Edit", "Error in RowDeleteAt" );
+            }
             return false;
         }
     }

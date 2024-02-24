@@ -25,20 +25,34 @@ namespace Play.Edit {
         event Action<T> CheckedEvent;     // Any number of rows can be checked.
     }
 
+    public static class DocOpExtender {
+        public static bool TryReplaceAt( this IPgDocOperations<Row> oDoc, IPgCaretInfo<Row> oCaret, ReadOnlySpan<char> spText ) {
+            return oDoc.TryReplaceAt( oCaret.Row, oCaret.Column, oCaret.Offset, oCaret.Length, spText );
+        }
+    }
+
     public interface IPgDocOperations<T> {
         void ListenerAdd   ( IPgEditEvents e );
         void ListenerRemove( IPgEditEvents e );
 
         bool TryReplaceAt( T oRow, int iColumn, int iSrcOff, int iSrcLen, ReadOnlySpan<char> spText );
-        bool TryReplaceAt( IPgCaretInfo<Row> oCaret, ReadOnlySpan<char> spText );
+        bool TryDeleteAt( T oRow, int iColumn, int iSrcOff, int iSrcLen ); // Would like to remove this one...
+        bool RowDeleteAt( T oRow );
+    }
 
-        bool TryDeleteAt( Row oRow, int iColumn, int iSrcOff, int iSrcLen );
+    public enum EditType {
+        ModifyElem, // And TextLine char replace/delete
+        DeleteRow,  // Entire row (or line in text editor) deleted.
+        InsertRow   // Not particularly actionable on bulk inserts... :-/
     }
 
     public interface IPgEditHandler :
         IEnumerable<IPgCaretInfo<Row>>
     {
-        void OnUpdated( Row oRow ); 
+        // Basically we might have info at the time of the edit start
+        // that we want to use when we are finishing up. So need this
+        // here and not on the greater window.
+        void OnUpdated( EditType eEdit, Row oRow ); 
     }
 
     public interface IPgEditEvents {
@@ -744,6 +758,13 @@ namespace Play.Edit {
                     case Keys.Control | Keys.Z:
                         if( !_fReadOnly ) {
                             //_oDocument.Undo();
+                        }
+                        return true;
+                    case Keys.Control | Keys.Q:
+                        if( !_fReadOnly ) { // Or column or elem locked...
+                            if( _oCacheMan.CopyCaret() is CacheMultiColumn.CaretInfo oCaret ) {
+                                _oDocOps.RowDeleteAt( oCaret.Row );
+                            }
                         }
                         return true;
                     case Keys.Delete: {

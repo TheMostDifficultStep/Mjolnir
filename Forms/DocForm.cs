@@ -412,7 +412,7 @@ namespace Play.Forms {
 
 			public void Dispose() {
                 foreach( IPgEditHandler oCall in _rgHandlers ) {
-                    oCall.OnUpdated( null );
+                    oCall.OnUpdated( EditType.ModifyElem, null );
                 }
                 _rgUniqueLines.Clear();
                 _oHost.DoParse();

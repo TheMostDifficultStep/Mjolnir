@@ -131,9 +131,10 @@ namespace Play.Edit {
     public abstract class CacheRow {
         // This is super important that the CacheList 0 is used. The other's line
         // numbers are not managed by the text editor.
-        public abstract Line Line { get; } // Hopefully we can remove this when update the CacheManager2
-        public abstract int  At   { get; }
-        public          int  Top  { get; set; }
+        public abstract Line   Line { get; } // Hopefully we can remove this when update the CacheManager2
+        public abstract int    At   { get; }
+        public          int    Top  { get; set; }
+        public abstract object Row  { get; } // Replace the "At" behavior...
 
         // Well have a matching array of SmartRect's for each cache elem inside.
         // CacheList s/b always inorder of the CacheMap but not necessarily the
@@ -203,15 +204,17 @@ namespace Play.Edit {
             _oLine = oLine;
         }
 
-        public override Line Line => _oLine; 
-        public override int  At   => _oLine.At;
+        public override Line   Line => _oLine; 
+        public override int    At   => _oLine.At;
+        public override object Row  => _oLine;
     }
 
     public class CacheRow2 : CacheRow {
         protected Row _oDocRow;
 
-        public override Line Line => _oDocRow[0]; 
-        public override int  At   => _oDocRow.At;
+        public override Line   Line => _oDocRow[0]; 
+        public override int    At   => _oDocRow.At;
+        public override object Row  => _oDocRow;
 
         public CacheRow2( Row oDocRow ) {
             _oDocRow = oDocRow ?? throw new ArgumentNullException( nameof( oDocRow ) );
