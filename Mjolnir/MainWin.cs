@@ -1620,7 +1620,9 @@ namespace Mjolnir {
                         eID != SideIdentify.Options  ) 
                     {
                         bool fClosed = _rgSideInfo[eID].IsEmpty();
-                        _rgSideInfo[eID].IsDragClosed = fClosed;
+                        // IsDragClosed if tru tells us the user closed that side,
+                        // regardless of menu selections on that side
+                        _rgSideInfo[eID].IsDragClosed = fClosed; 
                         foreach( IPgMenuVisibility oMenuItem in DecorSettings ) {
                             SmartHerderBase oShepard = oMenuItem.Shepard;
                             if( oShepard.Orientation == eID ) {
@@ -1631,7 +1633,7 @@ namespace Mjolnir {
                                     oShepard.Hidden = true;
                                 else
                                     oShepard.Hidden = !oMenuItem.Checked;
-                                // fClosed is false, then we need to bring the right adornment forward.
+                                // fClosed is false, then we need to bring the view associated adornment forward.
                                 if( !oShepard.Hidden ) {
                                     oShepard.AdornmentShuffle( _oSelectedWinSite );
                                 }

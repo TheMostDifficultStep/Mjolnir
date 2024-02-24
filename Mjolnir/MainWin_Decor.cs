@@ -19,6 +19,7 @@ namespace Mjolnir {
 		IEnumerable<SmartHerderBase>
 	{
 		readonly List<SmartBinder> _rgSpacers = new List<SmartBinder>();
+        public bool IsDragClosed = false;
 
 		public SideRect( TRACK eDir ) : base( eDir, 0 ) {
 		}
@@ -969,7 +970,7 @@ namespace Mjolnir {
                         oSide.Hidden = true;
 				    }
                 } else {              // currently closed
-                    if( IsAnyShepardReady( eOrientation ) ) {
+                    if( IsAnyShepardReady( eOrientation ) && !oSide.IsDragClosed ) {
                         if( oSide.Track < _iMargin ) {
                             oSide.Track = (uint)oSide.SideInit;
                         }
