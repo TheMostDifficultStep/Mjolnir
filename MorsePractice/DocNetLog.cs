@@ -181,7 +181,7 @@ namespace Play.MorsePractice {
         }
 
         /// <summary>
-        /// This allows use to use my scheduler to delay the parse until
+        /// This allows me to use my scheduler to delay the parse until
         /// (2 seconds) of time has passed since the last parse request.
         /// But then we just do the whole parse before returning.
         /// </summary>
@@ -204,49 +204,10 @@ namespace Play.MorsePractice {
         /// Schedule a reparse since we don't want to be parsing and updating
         /// right in the middle of typing EVERY character.
         /// </summary>
-        /// <remarks>We'll have too keep this here, but we can move the rest.</remarks>
+        /// <remarks>We'll have to keep this here, but we can move the rest.</remarks>
         public override void DoParse() {
             _oWorkPlace.Queue( GetParseEnum(), 2000 );
         }
 
-        /// <summary>
-        /// Test a bulk loader. I think I'll move it to the base class.
-        /// It is slightly confusing that there is not an OnUpdateRow on the
-        /// IPgEditEvents interface. Instead we just tell ourselves to reparse,
-        /// which is basically all a "document" really needs to do. The window's
-        /// cache manager get's it by the CreateHandler()
-        /// </summary>
-        public class BulkLoader :
-            IDisposable 
-        {
-            readonly DocLogMultiColumn _oHost;
-                     bool           _fDisposed = false;
-            List<IPgEditHandler>    _rgHandlers = new List<IPgEditHandler>();
-            public BulkLoader( DocLogMultiColumn oHost ) {
-                _oHost = oHost ?? throw new ArgumentNullException();
-                foreach( IPgEditEvents oCall in _oHost._rgListeners ) {
-                    _rgHandlers.Add( oCall.CreateEditHandler() );
-                }
-            }
-
-            public void Dispose() {
-                if( !_fDisposed ) {
-                    _oHost.RenumberAndSumate();
-                    foreach( IPgEditHandler oCall in _rgHandlers ) {
-                        oCall.OnUpdated( EditType.InsertRow, null );
-                    }
-                    _oHost.DoParse();
-                    _fDisposed = true;
-                }
-            }
-
-            public void InsertAt( int iRow, Row oNew ) {
-                _oHost._rgRows.Insert( iRow, oNew );
-            }
-
-            public void Append( Row oNew ) {
-                _oHost._rgRows.Insert( _oHost._rgRows.Count, oNew );
-            }
-        }
     } // end class
 }

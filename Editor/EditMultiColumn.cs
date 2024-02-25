@@ -574,5 +574,50 @@ namespace Play.Edit {
             }
             return false;
         }
+
+        /// <summary>
+        /// This bulk loader might overlap with DocProperties loaders. Might
+        /// look at that in the future.
+        /// </summary>
+        /// <remarks>
+        /// It is slightly confusing that there is not an OnUpdateRow on the
+        /// IPgEditEvents interface. Instead we just tell ourselves to reparse,
+        /// which is basically all a "document" really needs to do. The window's
+        /// cache manager gets OnUpdate event by the CreateHandler()
+        /// You could keep a spare handlers list, but since this isn't some
+        /// mega traffic object why bother...
+        /// </remarks>
+        public class BulkLoader :
+            IDisposable 
+        {
+            readonly EditMultiColumn      _oHost;
+                     bool                 _fDisposed  = false;
+            readonly List<IPgEditHandler> _rgHandlers = new List<IPgEditHandler>();
+            public BulkLoader( EditMultiColumn oHost ) {
+                _oHost = oHost ?? throw new ArgumentNullException();
+                foreach( IPgEditEvents oCall in _oHost._rgListeners ) {
+                    _rgHandlers.Add( oCall.CreateEditHandler() );
+                }
+            }
+
+            public void Dispose() {
+                if( !_fDisposed ) {
+                    _oHost.RenumberAndSumate();
+                    foreach( IPgEditHandler oCall in _rgHandlers ) {
+                        oCall.OnUpdated( EditType.InsertRow, null );
+                    }
+                    _oHost.DoParse();
+                    _fDisposed = true;
+                }
+            }
+
+            public void InsertAt( int iRow, Row oNew ) {
+                _oHost._rgRows.Insert( iRow, oNew );
+            }
+
+            public void Append( Row oNew ) {
+                _oHost._rgRows.Insert( _oHost._rgRows.Count, oNew );
+            }
+        }
     }
 }
