@@ -200,9 +200,12 @@ namespace Mjolnir {
         /// Listening for the view changed events on the shell. The FindWindow only 
         /// cares if the incoming view is a IPgTextview.
         /// </summary>
+        /// <remarks>
+        /// The view also needs to support IEnumerable&ltILineRange&gt
+        /// </remarks>
         /// <param name="oView">At present this value can be null!</param>
         private void OnViewChanged( object oView ) {
-            if( oView == null || !( oView is IPgTextView oViewText ) ) {
+            if( oView is not IPgTextView oViewText  ) {
                 this.Enabled = false;
                 return;
             }

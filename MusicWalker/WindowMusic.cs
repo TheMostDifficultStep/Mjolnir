@@ -5,6 +5,7 @@ using System.IO;
 using System.Xml;
 using System.Xml.XPath;
 using System.Runtime.InteropServices;
+using System.Collections.Generic;
 
 using SkiaSharp;
 
@@ -17,6 +18,7 @@ using Play.Parse.Impl;
 using Play.Parse;
 using Play.Integration;
 using Play.ImageViewer;
+using System.Collections;
 
 namespace Play.MusicWalker {
 
@@ -138,7 +140,8 @@ namespace Play.MusicWalker {
 		IPgLoad<XmlElement>,
 		IPgSave<XmlDocumentFragment>,
 		IPgCommandView,
-		IPgPlayStatus
+		IPgPlayStatus,
+		IEnumerable<ILineRange>
 	{
         readonly string          _strMusicIcon  = "MusicWalker.Content.icons8-music-24.png";
 		readonly string          _strVolumeIcon = "MusicWalker.Content.volume.cur";
@@ -623,6 +626,14 @@ namespace Play.MusicWalker {
 		public void SelectionClear() {
 			ViewLibrary.SelectionClear();
 		}
-	}
+
+        public IEnumerator<ILineRange> GetEnumerator() {
+            return ViewLibrary.GetEnumerator();
+        }
+
+        IEnumerator IEnumerable.GetEnumerator() {
+            return GetEnumerator();
+        }
+    }
 
 }
