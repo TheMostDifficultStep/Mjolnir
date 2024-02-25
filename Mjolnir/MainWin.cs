@@ -1626,13 +1626,13 @@ namespace Mjolnir {
                         foreach( IPgMenuVisibility oMenuItem in DecorSettings ) {
                             SmartHerderBase oShepard = oMenuItem.Shepard;
                             if( oShepard.Orientation == eID ) {
-                                // Whether or not the side is open DOES NOT affect the check on the menu!!
-                                // don't do this... oMenuItem.Checked = !fClosed;
                                 // fClosed is true, hides all the windows.
-                                if( fClosed )
-                                    oShepard.Hidden = true;
-                                else
+                                if( fClosed ) {
+                                    oShepard .Hidden  = true;
+                                    oMenuItem.Checked = false; // close it.
+                                } else {
                                     oShepard.Hidden = !oMenuItem.Checked;
+                                }
                                 // fClosed is false, then we need to bring the view associated adornment forward.
                                 if( !oShepard.Hidden ) {
                                     oShepard.AdornmentShuffle( _oSelectedWinSite );
