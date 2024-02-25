@@ -592,7 +592,9 @@ namespace Play.Rectangles
                 return;
             }
 
-            _rcTemp.Copy = Guest;
+            // Copy invertable prop else our temp might get inverted when it shouldn't!!
+            _rcTemp.Copy       = Guest;
+            _rcTemp.Invertable = Guest.Invertable;
             _rcTemp.SetPoint(_eStretch, _eEdges, pntTarget.X, pntTarget.Y);
 
             // So we need to check the WHOLE rect when dragging from the CENTER
@@ -660,7 +662,7 @@ namespace Play.Rectangles
             p_iX += _pntOffset.X;
             p_iY += _pntOffset.Y;
 
-            // Rememeber: our graphics is in quadrant IV (4) so we're upside down.
+            // Remember: our graphics is in quadrant IV (4) so we're upside down.
             // If our drag, pulls us past the bottom of the object, switch approach.
             if( p_iY > Bottom )
                 p_iY = (int)( _flSlope * p_iX + _flIntercept );

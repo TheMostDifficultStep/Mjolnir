@@ -135,6 +135,7 @@ namespace Play.ImageViewer {
 			}
 
 			_rcSelectionView.Hidden = true;
+			_rcSelectionView.Invertable = false;
 
             _rgLeft.Add( _rctLeft );
             _rgLeft.Add( _rctBottomLeft );
@@ -337,15 +338,7 @@ namespace Play.ImageViewer {
 				return;
 
 			try {
-				SKPoint pntAspect = new SKPoint( _rctViewPort.Width  / (float)Document.Bitmap.Width,
-											     _rctViewPort.Height / (float)Document.Bitmap.Height );
-
-				_rcSelectionView.SetPoint(SET.STRETCH, LOCUS.UPPERLEFT,
-											(int)(Selection.Left * pntAspect.X ) + _rctViewPort.Left,
-											(int)(Selection.Top  * pntAspect.Y ) + _rctViewPort.Top );
-				_rcSelectionView.SetPoint(SET.STRETCH, LOCUS.LOWERRIGHT,
-											(int)(Selection.Right  * pntAspect.X ) + _rctViewPort.Left,
-											(int)(Selection.Bottom * pntAspect.Y ) + _rctViewPort.Top);
+				AlignViewSelectionToCurrentBmpSelection();
 
 				// But we can set up or navigation hotspots w/o a bitmap.
 				int iHalfWidth = Width / 2;
@@ -494,19 +487,39 @@ namespace Play.ImageViewer {
         }
 
 		/// <summary>
-		/// This assigns a Selection in bmp (world) coordinages that matches the current
+		/// This assigns a Selection in bmp (world) coordinates that matches the current
 		/// view selection and aspect.
 		/// </summary>
+		/// <seealso cref="AlignViewSelectionToCurrentBmpSelection"/>
 		protected void AlignBmpSelectionToViewSelection() {
 			SKPoint pntAspect = new SKPoint( Document.Bitmap.Width  / (float)_rctViewPort.Width,
 											 Document.Bitmap.Height / (float)_rctViewPort.Height );
 
-			Selection.SetPoint( SET.STRETCH, LOCUS.UPPERLEFT, 
-										(int)((_rcSelectionView.Left - _rctViewPort.Left ) * pntAspect.X ),
-										(int)((_rcSelectionView.Top  - _rctViewPort.Top  ) * pntAspect.Y ) );
-			Selection.SetPoint( SET.STRETCH, LOCUS.LOWERRIGHT,
-										(int)((_rcSelectionView.Right  - _rctViewPort.Left ) * pntAspect.X ),
-										(int)((_rcSelectionView.Bottom - _rctViewPort.Top  ) * pntAspect.Y ) );
+			// Note: If you move the points top/left, bottom/right in two steps you might
+			//       end up with an intermediate inverted rect which is illegal and we
+			//       get scrambled values. Do it all in one step!!
+			Selection.SetRect( LOCUS.UPPERLEFT,
+							   (int)((_rcSelectionView.Left - _rctViewPort.Left ) * pntAspect.X ),
+						       (int)((_rcSelectionView.Top  - _rctViewPort.Top  ) * pntAspect.Y ),
+							   (int)( _rcSelectionView.Width   * pntAspect.X ),
+							   (int)( _rcSelectionView.Height  * pntAspect.Y ) );
+		}
+
+		/// <summary>
+		/// This is the inverse operation as it's sister method. Call this method
+		/// when the viewport is resized and we need to get our viewport selection
+		/// to map back to the current bmp selection.
+		/// </summary>
+		/// <seealso cref="AlignBmpSelectionToViewSelection"/>
+		protected void AlignViewSelectionToCurrentBmpSelection() {
+				SKPoint pntAspect = new SKPoint( _rctViewPort.Width  / (float)Document.Bitmap.Width,
+											     _rctViewPort.Height / (float)Document.Bitmap.Height );
+
+				_rcSelectionView.SetRect(LOCUS.UPPERLEFT,
+								   (int)( Selection.Left * pntAspect.X ) + _rctViewPort.Left,
+								   (int)( Selection.Top * pntAspect.Y ) + _rctViewPort.Top,
+								   (int)( Selection.Width * pntAspect.X ),
+								   (int)( Selection.Height * pntAspect.Y ));
 		}
 
         protected override void OnMouseUp(MouseEventArgs e) {

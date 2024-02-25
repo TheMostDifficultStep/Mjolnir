@@ -258,29 +258,30 @@ namespace Play.Rectangles {
                 if (((LOCUS)uiScalar & p_uiEdges) != 0) {
                     uint iAdIdx  = (iEdgeCheck % 2);     // Mod 2 of any edge, see l_rglAdjust
                     uint iEdgeO  = (iEdgeCheck + 2) % 4; // Compute the opposite edge.
-                    int  lExtent = 0;
+                    int  iEdgeChkVal;                    // Edge we're starting with...
 
-                    // It's ok to recalc since in the stretch case we need the updated extent!
-                    if( fRigid )
-                        lExtent = m_rgiCur[iEdgeO] - m_rgiCur[iEdgeCheck];
-
-                    int iEdgeChkVal;
                     if( fIncr)
                         iEdgeChkVal = m_rgiCur[iEdgeCheck] + rgAdjust[iAdIdx] * rgSign[iEdgeCheck];
                     else
                         iEdgeChkVal =  rgAdjust[iAdIdx];
 
-                    bool fMove = true;
-                    // Prevent the rect from going inside out!!
-                    if( !Invertable || !fRigid ) {
-                        fMove = ( iEdgeChkVal - m_rgiCur[iEdgeO] ) * rgSign[iEdgeCheck] >= 0;
-                    } 
-                    if( fMove ) {
+                    // Prevent the rect from going inside out!! NOTE: Had a bug, keep an eye out...
+                    // If a rigid move there's no way to invert unless rect is already inverted.
+                    if( fRigid ) {
+                        int lExtent = m_rgiCur[iEdgeO] - m_rgiCur[iEdgeCheck];
                         m_rgiCur[iEdgeCheck] = iEdgeChkVal;
+                        m_rgiCur[iEdgeO    ] = iEdgeChkVal + lExtent;
+                    } else {
+                        // Note! One side might attempt to invert and won't get set while
+                        //       it's partner (x vs y) might be moved successfully!!
+                        //       This is typically desirable for bmp selection operations!
+                        if( !Invertable ) {
+                            if( ( iEdgeChkVal - m_rgiCur[iEdgeO] ) * rgSign[iEdgeCheck] >= 0 )
+                                m_rgiCur[iEdgeCheck] = iEdgeChkVal;
+                        } else {
+                            m_rgiCur[iEdgeCheck] = iEdgeChkVal;
+                        }
                     }
-                    // Move the whole rectangle in one direction. 
-                    if( fRigid && fMove )
-                        m_rgiCur[iEdgeO] = m_rgiCur[iEdgeCheck] + lExtent;
                 }
                 uiScalar = uiScalar << 1;
             }
