@@ -564,7 +564,7 @@ namespace Play.Forms {
         /// Use this when you've updated properties independently and want to finally notify the viewers.
         /// </summary>
         public void RaiseUpdateEvent() {
-            RenumberRows();
+            RenumberAndSumate();
 
             // Anyone using DocProperties object s/b using IPgFormEvents
             //PropertyDoc.Raise_BufferEvent( BUFFEREVENTS.MULTILINE ); 
@@ -585,7 +585,7 @@ namespace Play.Forms {
         /// property document has been constructed.
         /// </summary>
         protected void RaiseLoadedEvent() {
-            RenumberRows(); // Kind of evil in this case. Might not want to do this...
+            RenumberAndSumate(); // Kind of evil in this case. Might not want to do this...
             
             foreach( object oCall in _rgListeners ) {
                 if( oCall is IPgFormEvents oEvent ) {
@@ -631,7 +631,7 @@ namespace Play.Forms {
         public void CreatePropertyPair( string strLabel = "", string strValue = "" ) {
             _rgRows.Add( new PropertyRow( strLabel, strValue ) );
 
-            RenumberRows();
+            RenumberAndSumate();
         }
 
     }

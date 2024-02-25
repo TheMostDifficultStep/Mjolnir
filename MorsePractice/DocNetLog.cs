@@ -71,13 +71,19 @@ namespace Play.MorsePractice {
             return InsertNew( _rgRows.Count );
         }
 
+        /// <summary>
+        /// Note: It's perfectly legal to insert at the element count.
+        /// This is effectively a append.
+        /// </summary>
+        /// <remarks>I could return an actual LogRow... :-/</remarks>
+        /// <returns>Newly inserted LogRow</returns>
         public Row InsertNew( int iRow ) {
             try {
                 Row oNew = new LogRow();
 
                 _rgRows.Insert( iRow, oNew );
 
-                RenumberRows();
+                RenumberAndSumate();
                 DoParse     ();
 
                 return oNew;
@@ -177,11 +183,13 @@ namespace Play.MorsePractice {
         /// <summary>
         /// This allows use to use my scheduler to delay the parse until
         /// (2 seconds) of time has passed since the last parse request.
+        /// But then we just do the whole parse before returning.
         /// </summary>
         /// <returns></returns>
         public IEnumerator<int> GetParseEnum() {
-            ParseColumn( 0 );
-            ScanForCallsigns();
+            RenumberAndSumate();
+            ParseColumn      ( 0 );
+            ScanForCallsigns ();
 
             foreach( object oListener in _rgListeners ) {
                 if( oListener is IPgEditEvents oCall ) {
@@ -223,7 +231,7 @@ namespace Play.MorsePractice {
 
             public void Dispose() {
                 if( !_fDisposed ) {
-                    _oHost.RenumberRows();
+                    _oHost.RenumberAndSumate();
                     foreach( IPgEditHandler oCall in _rgHandlers ) {
                         oCall.OnUpdated( EditType.InsertRow, null );
                     }

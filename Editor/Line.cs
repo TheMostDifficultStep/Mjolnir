@@ -210,7 +210,7 @@ namespace Play.Edit {
             _iLine             = iLine;
             _iCumulativeLength = iSum;
 
-            return ( iSum + this.ElementCount + 1 ); // add one for the EOL marker.
+            return iSum + this.ElementCount + 1; // add one for the EOL marker.
         }
 
         /// <summary>

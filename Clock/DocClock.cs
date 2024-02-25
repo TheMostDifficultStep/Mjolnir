@@ -89,7 +89,7 @@ namespace Play.Clock {
                 _rgRows.Add( new ClockRow( string.Empty,  "local" ) );
                 _rgRows.Add( new ClockRow( "12 hr clock", "local" ) );
 
-                RenumberRows();
+                RenumberAndSumate();
 
 				_oWorkPlace = ((IPgScheduler)Services).CreateWorkPlace();
                 _oWorkPlace.Queue( CreateWorker(), 1000 );

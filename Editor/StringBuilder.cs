@@ -244,16 +244,6 @@ namespace Play.Edit {
             return ( new String(_rgValue, 0, this.Length) );
         }
 
-        /// <summary>
-        /// Return the text buffer we are using for this line.
-        /// </summary>
-        /// <remarks>The only place that this would be super cool to access is in the code to display to the screen.</remarks>
-        internal char[] Buffer {
-            get {
-                return ( _rgValue );
-            }
-        }
-
         public void Save( TextWriter oStream, int iStart = 0, int iLength = int.MaxValue ) {
             if( _rgValue == null )
                 return;

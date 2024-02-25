@@ -37,7 +37,7 @@ namespace Play.Edit {
 
         readonly int _iColumn;
         readonly int _iCharCount;
-        Action<string> LogError { get; }
+        Action<string> LogError { get; } // Report our errors here.
 
         /// <exception cref="ArgumentNullException"></exception>
         /// <exception cref="ArgumentException"></exception>
@@ -52,10 +52,8 @@ namespace Play.Edit {
 
             if( _rgRows.Count < 1 )
                 throw new ArgumentException( "Empty document" );
-            if( _rgRows[0][iColumn].ElementCount < 0 )
-                throw new ArgumentException( "Empty document" );
             if( iColumn < 0 || iColumn >= _rgRows[0].Count )
-                throw new ArgumentException( "Column out of bounds" );
+                throw new ArgumentOutOfRangeException( "Column out of bounds" );
 
             _iColumn    = iColumn;
             _iCharCount = iCharCount;
@@ -378,7 +376,7 @@ namespace Play.Edit {
         /// sums up the cumulative count on a column basis for parsing.
         /// </summary>
         /// <exception cref="InvalidProgramException"></exception>
-        public void RenumberRows() {
+        public void RenumberAndSumate() {
             if( _rgRows.Count <= 0 )
                 return;
             if( _rgRows[0].Count > 100 )
@@ -407,6 +405,9 @@ namespace Play.Edit {
             }
         }
 
+        /// <summary>
+        /// Make sure the cumulative counts are upto date before making this call...
+        /// </summary>
         public RowStream CreateColumnStream( int iColumn ) {
             try {
                 if( _rgRows.Count <= 0 )
@@ -557,7 +558,7 @@ namespace Play.Edit {
 
                 _rgRows.Remove( oRow ); // Faster if use index... probably...
 
-                RenumberRows(); // Huh... This fixes all my bugs. :-/
+                RenumberAndSumate(); // Huh... This fixes all my bugs. :-/
 
                 oTE.FinishUp( EditType.DeleteRow, oRow );
 
