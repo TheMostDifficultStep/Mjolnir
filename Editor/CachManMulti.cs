@@ -859,6 +859,8 @@ namespace Play.Edit {
                 _iCaretCol += iDir;
 
                 if( _iCaretCol < 0 )
+                    _iCaretCol = _rgColumnRects.Count - 1;
+                if( _iCaretCol < 0 )
                     _iCaretCol = 0;
                 if( _iCaretCol >= _rgColumnRects.Count )
                     _iCaretCol = 0;
