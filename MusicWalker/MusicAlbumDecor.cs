@@ -85,12 +85,30 @@ namespace Play.MusicWalker {
 
 			ViewAlbumArt.Document.ImageUpdated += AlbumArt_ImageUpdated;
 			ViewAlbumSongs.LineChanged         += AlbumSongs_LineChanged;
+
 			_oHost.Document.SongStopped        += OnSongStopped;
 
 			return true;
 		}
 
-		private void OnSongStopped( int iAlbum, int iSong ) {
+		/// <summary>
+		/// This fixes a very unusual bug. As we shuffle, this control and it's children
+		/// are getting hidden. The Image is unaffected b/c it is not a (child) control! O.o
+		/// So if you size Mjolnir, with our Parent view NOT selected OnSizeChanged() 
+		/// gets a layout with only the Image having a non-zero size. Then when our
+		/// Parent view is selected and our Outline is shuffled into view, the layout is 
+		/// for the closed state! So we Relayout, when not hidden. 
+		/// </summary>
+        protected override void OnVisibleChanged(EventArgs e) {
+            base.OnVisibleChanged(e);
+
+			if( Visible ) {
+				_rgLayout.SetPoint( SET.STRETCH, LOCUS.LOWERRIGHT, Width, Height < 0 ? 0 : Height );
+				_rgLayout.LayoutChildren();
+			}
+        }
+
+        private void OnSongStopped( int iAlbum, int iSong ) {
 			try {
 				SongCredentials oCurrentSong = _oHost.Document.SongCurrent;
 

@@ -509,8 +509,8 @@ namespace Mjolnir {
             // value if we're not being hidden.
 			foreach( KeyValuePair<object, Control> oPair in _rgFlock ) {
 			    if( oSite == oPair.Key && DesiresVisiblity ) {
-					oPair.Value.Show();
 					oPair.Value.BringToFront();
+					oPair.Value.Show();
                     fFound = true;
 
                     // Shell sets all tabstops to false, we turn it on only if we are visible.

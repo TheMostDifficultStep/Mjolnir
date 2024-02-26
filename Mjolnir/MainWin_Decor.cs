@@ -968,7 +968,7 @@ namespace Mjolnir {
                 if( !oSide.Hidden ) { // currently open
                     if( !IsAnyShepardReady( eOrientation ) ) {
                         oSide.Hidden = true;
-				    }
+                    }
                 } else {              // currently closed
                     if( IsAnyShepardReady( eOrientation ) ) {
                         if( oSide.Track < _iMargin ) {
