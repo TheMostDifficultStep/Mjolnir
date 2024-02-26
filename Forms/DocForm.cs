@@ -283,23 +283,6 @@ namespace Play.Forms {
             DoParse();
         }
 
-        public virtual void Clear() {
-            TrackerEnumerable sTrack = new TrackerEnumerable( this );
-
-            foreach( Row oRow in this ) {
-                oRow.Empty();
-
-                foreach( IPgCaretInfo<Row> oCaret in sTrack ) {
-                    if( oCaret.Row == oRow )
-                        oCaret.Offset = 0;
-                }
-            }
-
-            sTrack.FinishUp( EditType.ModifyElem, null );
-
-            DoParse();
-        }
-
         public virtual void ValuesEmpty() {
             TrackerEnumerable sTrack = new TrackerEnumerable( this );
 
@@ -308,8 +291,9 @@ namespace Play.Forms {
                     oPair.Value.Empty();
 
                     foreach( IPgCaretInfo<Row> oCaret in sTrack ) {
-                        if( oCaret.Row == oRow && oCaret.Column == 1 )
+                        if( oCaret.Row == oRow && oCaret.Column == 1 ) {
                             oCaret.Offset = 0;
+                        }
                     }
                 }
             }

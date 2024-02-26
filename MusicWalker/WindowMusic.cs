@@ -75,7 +75,7 @@ namespace Play.MusicWalker {
 		public bool Load(TextReader oFileStream) {
 			Grammer<char> oPropertyGrammar;
 
-			Clear(); // Erase all properties/labels from the form. Starting over.
+			_rgRows.Clear(); // Erase all properties/labels from the form. Starting over.
 
 			try {
 				oPropertyGrammar = (Grammer<char>)((IPgGrammers)Services).GetGrammer( "properties" );
@@ -113,9 +113,18 @@ namespace Play.MusicWalker {
 
 			ParsePropertyValues();
 
-			RaiseLoadedEvent();
+			TrackerEnumerable sTracker = new (this);
+			sTracker.FinishUp( EditType.InsertRow, null );
 
 			return true;
+		}
+
+		public void LoadDefaultProps() {
+			_rgRows.Clear();
+			CreatePropertyPair( "No", "Properties" );
+			
+			TrackerEnumerable sTracker = new (this);
+			sTracker.FinishUp( EditType.InsertRow, null );
 		}
 
 		/// <summary>
@@ -130,6 +139,10 @@ namespace Play.MusicWalker {
 			//ParseIterator<char> oParser  = new ParseIterator<char>( oStream, oHandler, oMStart );
 
 			//while( oParser.MoveNext() );
+		}
+
+		public override void DoParse() {	
+			Raise_DocFormatted();
 		}
     }
 
@@ -480,8 +493,7 @@ namespace Play.MusicWalker {
 			} catch( Exception oEx ) {
 				if( Document.ErrorsStandardFile.IsUnhandled( oEx ) )
 					throw;
-				AlbumProperties.Clear();
-				//_oSiteView.LogError( "internal", "Couldn't load album properties : " + strPropPath, false );
+				AlbumProperties.LoadDefaultProps();
 			}
 
 			try {

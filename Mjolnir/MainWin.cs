@@ -80,9 +80,7 @@ namespace Mjolnir {
         protected bool        _fIsClosing = false;
 		internal  TOPLAYOUT   _eLayout    = TOPLAYOUT.Solo; // Once layout 1&2 are normalized I won't need this.
 
-        //protected SCRIPT_FONTPROPERTIES _sDefFontProps = new SCRIPT_FONTPROPERTIES();
-        //protected IntPtr                _hScriptCache  = IntPtr.Zero;
-		protected bool                  _fTextInvalid  = true;
+		protected bool        _fTextInvalid  = true;
 
 		public enum TOPLAYOUT {
 			Solo,

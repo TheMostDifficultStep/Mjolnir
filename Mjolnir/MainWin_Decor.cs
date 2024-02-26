@@ -970,7 +970,7 @@ namespace Mjolnir {
                         oSide.Hidden = true;
 				    }
                 } else {              // currently closed
-                    if( IsAnyShepardReady( eOrientation ) && !oSide.IsDragClosed ) {
+                    if( IsAnyShepardReady( eOrientation ) ) {
                         if( oSide.Track < _iMargin ) {
                             oSide.Track = (uint)oSide.SideInit;
                         }
