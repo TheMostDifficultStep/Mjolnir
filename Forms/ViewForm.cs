@@ -1111,10 +1111,6 @@ namespace Play.Forms {
             OnDocumentEvent( BUFFEREVENTS.MULTILINE );
         }
 
-        public virtual void OnFormFormat(IEnumerable<Line> rgUpdates) {
-            OnDocumentEvent( BUFFEREVENTS.FORMATTED );
-        }
-
         public virtual void OnFormClear() {
             _iCaretAtLayout = 0;
 

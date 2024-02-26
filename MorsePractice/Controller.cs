@@ -115,6 +115,7 @@ namespace Play.MorsePractice
     public class MorseController4 : 
         Controller 
     {
+        public static Guid ViewUniqueOperators { get; } = new Guid( "{09C47759-AF1C-45AB-A6F5-C60C3AC88E7E}");
         public MorseController4() {
 			_rgExtensions.Add( ".netlogm" );
         }
@@ -129,9 +130,12 @@ namespace Play.MorsePractice
 
         public override IDisposable CreateView( IPgViewSite oBaseSite, object oDocument, Guid guidViewType ) {
 			try {
+                DocNetHost oDocNetHost = (DocNetHost)oDocument;
                 switch( guidViewType ) {
                     case Guid r when r == ViewNetLog.ViewCatagory:
-                        return new ViewLogAndNotes(oBaseSite, (DocNetHost)oDocument );
+                        return new ViewLogAndNotes(oBaseSite, oDocNetHost );
+                    case Guid r when r == ViewUniqueOperators:
+                        return new EditWindow2(oBaseSite, oDocNetHost.Log.Calls, fReadOnly: true );
 
                     default:
                         return new ViewLogAndNotes(oBaseSite, (DocNetHost)oDocument );
@@ -149,7 +153,8 @@ namespace Play.MorsePractice
         }
 
         public override IEnumerator<IPgViewType> GetEnumerator() {
-            yield return new ViewType( "Log", ViewLogAndNotes.ViewCategory );
+            yield return new ViewType( "Log",       ViewLogAndNotes.ViewCategory );
+            yield return new ViewType( "Operators", ViewUniqueOperators );
         }
     }
 }

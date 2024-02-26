@@ -186,10 +186,6 @@ namespace Play.Forms {
             _oCacheMan.CacheRepair( null, true, true );
         }
 
-        public void OnFormFormat(IEnumerable<Line> rgUpdates) {
-            _oCacheMan.CacheReColor();
-        }
-
         public void OnFormClear() {
             _oCacheMan.CacheRepair( null, true, true );
         }

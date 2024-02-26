@@ -130,7 +130,7 @@ namespace Kanji_Practice {
             //}
 
             //OnDocumentEvent( BUFFEREVENTS.FORMATTED );
-            Document.RaiseUpdateEvent();
+            Invalidate();
 
             return true;
         }

@@ -909,7 +909,6 @@ namespace Play.SSTV {
             }
             TxBitmapComp.Clear(); // We have references to TxImageList.Bitmap we must clear;
             RenderComposite();
-            Properties.RaiseUpdateEvent();
         }
 
         private void OnCheckedEvent_TxModeList(Line oLineChecked) {
@@ -927,9 +926,6 @@ namespace Play.SSTV {
         private void OnImageUpdated_RxHistoryList() {
             Properties.ValueUpdate( SSTVProperties.Names.Rx_SaveDir,     RxHistoryList.CurrentShowPath );
             Properties.ValueUpdate( SSTVProperties.Names.Rx_HistoryFile, RxHistoryList.CurrentShowFile );
-
-            // BUG: Need to make the RxProp the one that gets changed and we catch an event to LoadAgain();
-			Properties.RaiseUpdateEvent();
 
             if( StateRx == DocSSTVMode.DeviceRead ) {
                 _rgUItoBGQueue.Enqueue( new TVMessage( TVMessage.Message.ChangeDirectory, RxHistoryList.CurrentDirectory ) );

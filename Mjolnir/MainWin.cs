@@ -1620,7 +1620,7 @@ namespace Mjolnir {
                         eID != SideIdentify.Options  ) 
                     {
                         bool fClosed = _rgSideInfo[eID].IsEmpty();
-                        // IsDragClosed if tru tells us the user closed that side,
+                        // IsDragClosed if true tells us the user closed that side,
                         // regardless of menu selections on that side
                         _rgSideInfo[eID].IsDragClosed = fClosed; 
                         foreach( IPgMenuVisibility oMenuItem in DecorSettings ) {
@@ -1629,16 +1629,15 @@ namespace Mjolnir {
                                 // fClosed is true, hides all the windows.
                                 if( fClosed ) {
                                     oShepard .Hidden  = true;
-                                    oMenuItem.Checked = false; // close it.
+                                    oMenuItem.Checked = false; // uncheck as the user wants it off now.
                                 } else {
-                                    oShepard.Hidden = !oMenuItem.Checked;
+                                    oShepard .Hidden  = !oMenuItem.Checked;
                                 }
-                                // fClosed is false, then we need to bring the view associated adornment forward.
+                                // Alas, closing and opening is not symetrical. On visible, we need
+                                // to know the current view so we can shuffle it's decor forward.
                                 if( !oShepard.Hidden ) {
                                     oShepard.AdornmentShuffle( _oSelectedWinSite );
                                 }
-                                // Alas, closing and opening is not symetrical. We need to know
-                                // the curren view when opening so we can shuffle it's decor foreward.
                             }
                         }
                     }

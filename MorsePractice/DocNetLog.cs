@@ -142,7 +142,14 @@ namespace Play.MorsePractice {
                 foreach( IGrouping<string, string> foo in dupes ) {
                     Calls.LineAppend( foo.Key + " : " + foo.Count().ToString() );
                 }
-                Calls.LineInsert( "Operator Count : " + dupes.Count().ToString() );
+                string strOperatorCount = dupes.Count().ToString();
+
+                Calls.LineInsert( "Operator Count : " + strOperatorCount );
+
+                if( _oSiteBase.Host is DocNetHost oNetDoc ) {
+                    oNetDoc.Props.ValueUpdate( (int)DocLogProperties.Names.Operator_Cnt, strOperatorCount );
+                    oNetDoc.Props.DoParse();
+                }
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( NullReferenceException ),
                                     typeof( ArgumentNullException ),
@@ -152,31 +159,6 @@ namespace Play.MorsePractice {
                     throw;
 
                 LogError( "Scan for callsigns suffered an error." );
-            }
-        }
-
-        protected void ParseColumn( int iColumn ) {
-            try {
-                IPgGrammers oGServ = (IPgGrammers)Services;
-                if( oGServ.GetGrammer( "text" ) is Grammer<char> oGrammar ) {
-                    RowStream        oStream       = CreateColumnStream( iColumn:0 );
-                    ParseColumnText  oParseHandler = new ParseColumnText( oStream, oGrammar, LogError );
-
-                    foreach( Row oRow in _rgRows ) {
-                        oRow[iColumn].Formatting.Clear();
-                    }
-
-                    oParseHandler.Parse();
-                }
-            } catch( Exception oEx ) {
-                Type[] rgErrors = { typeof( InvalidCastException ),
-                                    typeof( ArgumentOutOfRangeException ),
-                                    typeof( ArgumentNullException ),
-                                    typeof( NullReferenceException ) };
-                if( rgErrors.IsUnhandled( oEx ) )
-                    throw;
-
-                LogError( "Trouble setting up column parse." );
             }
         }
 
@@ -191,11 +173,7 @@ namespace Play.MorsePractice {
             ParseColumn      ( 0 );
             ScanForCallsigns ();
 
-            foreach( object oListener in _rgListeners ) {
-                if( oListener is IPgEditEvents oCall ) {
-                    oCall.OnDocFormatted();
-                }
-            }
+            Raise_DocFormatted();
 
             yield return 0;
         }

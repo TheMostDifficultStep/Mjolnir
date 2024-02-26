@@ -57,7 +57,7 @@ namespace Play.Edit {
 
     public interface IPgEditEvents {
         IPgEditHandler CreateEditHandler(); // Any kind of edit.
-        void           OnDocFormatted();    // Document gets formatted.
+        void           OnDocFormatted();    // Document gets formatted b/c of a parse...
     }
 
         /* Move these to viewform.cs later */
@@ -414,6 +414,11 @@ namespace Play.Edit {
         }
 
         public void OnDocFormatted() {
+            _oCacheMan.CacheReColor();
+            Invalidate();
+        }
+
+        public void OnDocUpdated() {
             _oCacheMan.CacheReColor();
             Invalidate();
         }

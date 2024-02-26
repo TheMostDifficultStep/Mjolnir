@@ -14,7 +14,6 @@ namespace Play.Forms {
     /// </summary>
     public interface IPgFormEvents {
         void OnFormUpdate( IEnumerable<Line> rgUpdates ); // Line contents have been updated. remeasure
-        void OnFormFormat( IEnumerable<Line> rgUpdates ); // Line formatting has been changed. repaint
         void OnFormClear(); // All properties/labels are to be removed.
         void OnFormLoad (); // All properties/labels have been created.
     }
@@ -389,8 +388,14 @@ namespace Play.Forms {
             return true;
         }
 
+        /// <summary>
+        /// This is turning into our OnDocUpdated style call but it's more
+        /// document global versus the per view updates that come from
+        /// IPgEditEvents. You can update the text immediately and then
+        /// schedual a parse.
+        /// </summary>
         public override void DoParse() {
-            // Parse column 1.
+            // Parse columns as you see fit in a subclass.
         }
 
         public class Manipulator : 
@@ -509,71 +514,82 @@ namespace Play.Forms {
         }
 
         public void ValueClear( int iIndex ) {
+            TrackerEnumerable sTrack = new TrackerEnumerable( this );
+
             if( _rgRows[iIndex] is PropertyRow oPair )
                 oPair.Value.Empty();
+
+            foreach( IPgCaretInfo<Row> oCaret in sTrack ) {
+                if( oCaret.Row == _rgRows[iIndex] && oCaret.Column == 1 )
+                    oCaret.Offset = 0;
+            }
+
+            sTrack.FinishUp( EditType.ModifyElem, _rgRows[iIndex] );
+
+            DoParse();
+        }
+
+        public virtual void Clear() {
+            TrackerEnumerable sTrack = new TrackerEnumerable( this );
+
+            foreach( Row oRow in this ) {
+                oRow.Empty();
+
+                foreach( IPgCaretInfo<Row> oCaret in sTrack ) {
+                    if( oCaret.Row == oRow )
+                        oCaret.Offset = 0;
+                }
+            }
+
+            sTrack.FinishUp( EditType.ModifyElem, null );
+
+            DoParse();
         }
 
         public virtual void ValuesEmpty() {
+            TrackerEnumerable sTrack = new TrackerEnumerable( this );
+
             foreach( Row oRow in this ) {
-                if( oRow is PropertyRow oPair )
+                if( oRow is PropertyRow oPair ) {
                     oPair.Value.Empty();
-            }
 
-            // PropertyDoc.Raise_BufferEvent( BUFFEREVENTS.MULTILINE );  
-
-            foreach( object oCall in _rgListeners ) {
-                if( oCall is IPgFormEvents oEvent ) {
-                    oEvent.OnFormUpdate( new ValueEnumerator( _rgRows ) );
+                    foreach( IPgCaretInfo<Row> oCaret in sTrack ) {
+                        if( oCaret.Row == oRow && oCaret.Column == 1 )
+                            oCaret.Offset = 0;
+                    }
                 }
             }
+
+            sTrack.FinishUp( EditType.ModifyElem, null );
+
+            DoParse();
         }
 
         public void ValueUpdate( int iIndex, string strValue, bool Broadcast = false ) {
             if( _rgRows[iIndex] is PropertyRow oPair ) {
-                oPair.Value.Empty();
+                TrackerEnumerable sTrack = new TrackerEnumerable( this );
+
                 oPair.Value.TryReplace( 0, oPair.Value.ElementCount, strValue );
 
-                if( Broadcast ) {
-                    // Need to look at this multi line call. s/b single line.
-                    // Single line probably depends on the caret.
-                    // PropertyDoc.Raise_BufferEvent( BUFFEREVENTS.MULTILINE ); 
+                List<Row> rgTemp = new() { _rgRows[iIndex] }; // BUG: experiment...
 
-                    List<Row> rgTemp = new() { _rgRows[iIndex] }; // BUG: experiment...
-
-                    foreach( object oCall in _rgListeners ) {
-                        if( oCall is IPgFormEvents oEvent ) {
-                            oEvent.OnFormUpdate( new ValueEnumerator( rgTemp ) );
-                        }
-                    }
-                }
+                sTrack.FinishUp( EditType.ModifyElem, _rgRows[iIndex] );
+                DoParse();
             }
         }
 
-        public void LabelUpdate(int iIndex, string strLabel, SKColor? skBgColor = null) {
-            Line oLabel = _rgRows[iIndex][0];
+        public void LabelUpdate( int iIndex, string strLabel, SKColor? skBgColor = null ) {
+            if( _rgRows[iIndex] is PropertyRow oPair ) {
+                TrackerEnumerable sTrack = new TrackerEnumerable( this );
 
-            oLabel.Empty();
-            oLabel.TryReplace( 0, oLabel.ElementCount, strLabel );
+                oPair.Label.TryReplace( 0, oPair.Label.ElementCount, strLabel );
 
-            if( skBgColor.HasValue ) {
-                ValueBgColor.Add(iIndex, skBgColor.Value);
-            }
-        }
-
-        /// <summary>
-        /// Use this when you've updated properties independently and want to finally notify the viewers.
-        /// </summary>
-        public void RaiseUpdateEvent() {
-            RenumberAndSumate();
-
-            // Anyone using DocProperties object s/b using IPgFormEvents
-            //PropertyDoc.Raise_BufferEvent( BUFFEREVENTS.MULTILINE ); 
-            
-            // Make this a OnFormUpdate() w/ no params.
-            foreach( object oCall in _rgListeners ) {
-                if( oCall is IPgFormEvents oEvent ) {
-                    oEvent.OnFormUpdate( new ValueEnumerator( _rgRows ) );
+                if( skBgColor.HasValue ) {
+                    ValueBgColor.Add(iIndex, skBgColor.Value);
                 }
+
+                sTrack.FinishUp( EditType.ModifyElem, _rgRows[iIndex] );
+                DoParse();
             }
         }
 
@@ -592,6 +608,8 @@ namespace Play.Forms {
                     oEvent.OnFormLoad();
                 }
             }
+            // this call will parse any updated text so we get color.
+            DoParse();
         }
 
         public void Raise_Submit() {
@@ -614,24 +632,12 @@ namespace Play.Forms {
             }
         }
 
-        public virtual void Clear() {
-            foreach( Row oRow in this ) {
-                oRow.Empty();
-            }
-
-            //PropertyDoc.Raise_BufferEvent( BUFFEREVENTS.MULTILINE ); 
-
-            foreach( object oCall in _rgListeners ) {
-                if( oCall is IPgFormEvents oEvent ) {
-                    oEvent.OnFormClear();
-                }
-            }
-        }
-
         public void CreatePropertyPair( string strLabel = "", string strValue = "" ) {
             _rgRows.Add( new PropertyRow( strLabel, strValue ) );
 
             RenumberAndSumate();
+            // this call will parse any updated text so we get color.
+            DoParse();
         }
 
     }

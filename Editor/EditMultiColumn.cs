@@ -368,7 +368,22 @@ namespace Play.Edit {
             _rgListeners.Remove( e );
         }
 
+        /// <summary>
+        /// This is turning into our OnDocUpdated style call but it's
+        /// document local versus the per view updates that come from
+        /// IPgEditEvents. You can update the text immediately and then
+        /// schedule a parse.
+        /// </summary>
         public virtual void DoParse() {
+        }
+
+        /// <summary>
+        /// Call this AFTER a parse has occured.
+        /// </summary>
+        protected void Raise_DocFormatted() {
+            foreach( IPgEditEvents oListener in _rgListeners ) {
+                oListener.OnDocFormatted();
+            }
         }
 
         /// <summary>
@@ -416,7 +431,7 @@ namespace Play.Edit {
                 Line oLastLine = _rgRows[_rgRows.Count-1][iColumn];
                 int iMaxStream = oLastLine.CumulativeLength + oLastLine.ElementCount;
 
-                return new RowStream( _rgRows, 0, iMaxStream, LogError );
+                return new RowStream( _rgRows, iColumn, iMaxStream, LogError );
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( ArgumentOutOfRangeException ),
                                     typeof( ArgumentException ), // empty doc can send this.
@@ -432,6 +447,31 @@ namespace Play.Edit {
             return null;
         }
 
+        public void ParseColumn( int iColumn, string strGrammar = "text" ) {
+            try {
+                IPgGrammers oGServ = (IPgGrammers)Services;
+                if( oGServ.GetGrammer( strGrammar ) is Grammer<char> oGrammar ) {
+                    RowStream        oStream       = CreateColumnStream( iColumn );
+                    ParseColumnText  oParseHandler = new ParseColumnText( oStream, oGrammar, LogError );
+
+                    foreach( Row oRow in _rgRows ) {
+                        oRow[iColumn].Formatting.Clear();
+                    }
+
+                    oParseHandler.Parse();
+                }
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( InvalidCastException ),
+                                    typeof( ArgumentOutOfRangeException ),
+                                    typeof( ArgumentNullException ),
+                                    typeof( NullReferenceException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
+
+                LogError( "Trouble setting up column parse." );
+            }
+        }
+
         /// <summary>
         /// The cache manager might have multiple objects that might be
         /// affected by an edit. In order for us to better handle before/after
@@ -439,7 +479,7 @@ namespace Play.Edit {
         /// The handler enumerates all the elements that need to track
         /// the edits on one window.
         /// </summary>
-        struct TrackerEnumerable :         
+        protected struct TrackerEnumerable :         
             IEnumerable<IPgCaretInfo<Row>>
         {
             readonly List<IPgEditHandler> _rgHandlers;

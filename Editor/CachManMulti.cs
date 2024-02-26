@@ -735,9 +735,7 @@ namespace Play.Edit {
         public void CacheReColor() {
             try {
                 foreach( CacheRow oCacheRow in _rgOldCache ) {
-                    foreach( FTCacheLine oCacheLine in oCacheRow.CacheList ) {
-                        oCacheLine.OnChangeFormatting( null );
-                    }
+                    RowMeasure( oCacheRow );
                 }
 			} catch( Exception oEx ) {
                 if( IsUnhandledStdRpt( oEx ) )

@@ -1,17 +1,4 @@
-﻿using Play.Edit;
-using Play.Forms;
-using Play.Integration;
-using Play.Interfaces.Embedding;
-using Play.Parse;
-using Play.Parse.Impl;
-//using System.Data.SqlClient;
-//Microsoft.Data.SqlClient the new api for ms db's
-//https://mariadb.com/kb/en/mariadb-and-net/ // Question and answer.
-//https://docs.microsoft.com/en-us/azure/mysql/connect-csharp // good tutorial for starting up.
-//https://mysqlconnector.net/ mit project for ado.net connectivity.
-
-using SkiaSharp;
-using System;
+﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
@@ -24,7 +11,20 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Xml;
 
+using SkiaSharp;
 //using MySql.Data.MySqlClient;
+//using System.Data.SqlClient;
+//Microsoft.Data.SqlClient the new api for ms db's
+//https://mariadb.com/kb/en/mariadb-and-net/ // Question and answer.
+//https://docs.microsoft.com/en-us/azure/mysql/connect-csharp // good tutorial for starting up.
+//https://mysqlconnector.net/ mit project for ado.net connectivity.
+
+using Play.Edit;
+using Play.Forms;
+using Play.Integration;
+using Play.Interfaces.Embedding;
+using Play.Parse;
+using Play.Parse.Impl;
 
 namespace Play.MorsePractice {
     public class CallsDoc : Editor {
@@ -35,6 +35,67 @@ namespace Play.MorsePractice {
 		}
     }
 
+    public class DocLogProperties : DocProperties, IDisposable {
+        public enum Names : int {
+            NetDate,
+            LongDate,
+            TimeStart,
+            TimeEnd,
+			Operator_Cnt,
+            Voter_Scope
+        }
+
+        readonly protected IPgRoundRobinWork _oWorkPlace; 
+
+        public DocLogProperties( IPgBaseSite oSiteBase ) : base( oSiteBase ) {
+            IPgScheduler oSchedular = (IPgScheduler)_oSiteBase.Host.Services;
+
+            _oWorkPlace = oSchedular.CreateWorkPlace() ?? throw new InvalidOperationException( "Need the scheduler service in order to work. ^_^;" );
+        }
+
+        public override void Dispose() {
+            _oWorkPlace.Stop();
+            base.Dispose();
+        }
+
+        public override bool InitNew() {
+            if( !base.InitNew() ) 
+                return false;
+            
+            // Set up our basic list of values.
+            foreach( Names eName in Enum.GetValues(typeof(Names)) ) {
+                CreatePropertyPair( eName.ToString() );
+            }
+
+            LabelUpdate( (int)Names.NetDate,      "Net Date" );
+            LabelUpdate( (int)Names.LongDate,     "Long Date" );
+            LabelUpdate( (int)Names.TimeStart,    "Start Time" );
+            LabelUpdate( (int)Names.TimeEnd,      "End Time" );
+            LabelUpdate( (int)Names.Operator_Cnt, "Operators", SKColors.LightGreen );
+            LabelUpdate( (int)Names.Voter_Scope,  "Voter Scope" );
+
+
+            ValueUpdate( (int)Names.NetDate,      DateTime.Now.ToShortDateString() );
+            ValueUpdate( (int)Names.LongDate,     DateTime.Now.ToLongDateString () );
+            ValueUpdate( (int)Names.Voter_Scope,  @"http://voter.psrg.org/supermon/voterlite.php?node=2462" );
+
+            return true;
+        }
+
+        public override void DoParse() {
+            _oWorkPlace.Queue( GetParseEnum(), iWaitMS:2000 );
+        }
+
+        public IEnumerator<int> GetParseEnum() {
+            RenumberAndSumate();
+            ParseColumn      ( 1 );
+
+            Raise_DocFormatted();
+
+            yield return 0;
+        }
+    }
+    
     /// <summary>
     /// This class is not dedicated to only the morse code operations.
     /// Factored out all the logging helpers from this class.
@@ -232,8 +293,9 @@ namespace Play.MorsePractice {
 		public IPgParent Services  => Parentage.Services;
 
         // Stuff for the morse code pracice view.
-		public Editor         Notes { get; } // pointers to net info...
+		public Editor            Notes { get; } // pointers to net info...
 		public DocLogMultiColumn Log   { get; } // actual log
+        public DocLogProperties  Props { get; }
 
         public DocNetHost( IPgBaseSite oSiteBase ) {
 			_oSiteBase  = oSiteBase ?? throw new ArgumentNullException();
@@ -241,6 +303,7 @@ namespace Play.MorsePractice {
 
 			Notes       = new Editor           ( new DocNetHostSlot( this, "Notes" ) ); // Notes for running the net.
 			Log         = new DocLogMultiColumn( new DocNetHostSlot( this, "Log"   ) ); // Log the operators.
+            Props       = new DocLogProperties ( new DocNetHostSlot( this, "Props" ) );
 
             new ParseHandlerText( Notes, "text" );
         }
@@ -251,6 +314,7 @@ namespace Play.MorsePractice {
 			if( !_fDisposed ) {
 				Notes.Dispose();
 				Log  .Dispose();
+                Props.Dispose();
 
                 _fDisposed = true;
 			}
@@ -267,6 +331,8 @@ namespace Play.MorsePractice {
 				return false;
 			if( !Log  .InitNew() )
 				return false;
+            if( !Props.InitNew() )
+                return false;
 
 			return true;
 		}
@@ -340,6 +406,8 @@ namespace Play.MorsePractice {
 
 		public bool Load(TextReader oStream) {
             if( !Notes.InitNew() )
+                return false;
+            if( !Props.InitNew() )
                 return false;
 
             if( !LoadLogXml( oStream ) ) 
@@ -678,22 +746,20 @@ namespace Play.MorsePractice {
         public void PopulateAlternates( RepeaterDir oRepeater ) {
             List<RepeaterDir> rgRepeaters = RepeaterBandsFind( oRepeater );
 
-            Edit.Line oLine = Properties.ValueAsLine( (int)RadioProperties.Names.Alternates );
-
-            oLine.Empty();
-            oLine.Formatting.Clear();
+            StringBuilder sbAlternates = new StringBuilder();
 
             if( rgRepeaters.Count == 0 ) {
-                oLine.TryAppend( "None" );
+                sbAlternates.Append( "None" );
             } else {
+                Line oLine = Properties.ValueAsLine( (int)RadioProperties.Names.Alternates );
                 foreach( RepeaterDir oDir in rgRepeaters ) {
                     try {
                         double dblFreqInMhz = (double)oDir.Output / Math.Pow( 10, 6 );
                         string strFreqInMhz = dblFreqInMhz.ToString();
                         int    iStart       = oLine.ElementCount;
 
-                        oLine.TryAppend( strFreqInMhz );
-                        oLine.TryAppend( " " );
+                        sbAlternates.Append( strFreqInMhz );
+                        sbAlternates.Append( " " );
                         oLine.Formatting.Add( new RepeaterHyperText( 1, iStart, strFreqInMhz.Length ) );
                     } catch( Exception oEx ) {
                         Type[] rgErrors = { typeof( NotImplementedException ),
@@ -703,7 +769,9 @@ namespace Play.MorsePractice {
                     }
                 } 
             }
-            Properties.RaiseUpdateEvent();
+            Properties.ValueUpdate( (int)RadioProperties.Names.Alternates,
+                                    sbAlternates.ToString() );
+
        }
 
         /// <summary>
@@ -1590,9 +1658,6 @@ namespace Play.MorsePractice {
             ValueClear( Names.Power_Level      );
             ValueClear( Names.Alternates       );
             ValueClear( Names.Repeater_URL     );
-
-            //PropertyDoc.Raise_BufferEvent( BUFFEREVENTS.MULTILINE );
-            RaiseUpdateEvent();
         }
     }
 }

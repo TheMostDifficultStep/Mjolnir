@@ -1,6 +1,9 @@
 ﻿using System;
 using System.Xml;
 using System.Windows.Forms;
+using System.Reflection;
+using System.Collections.Generic;
+using System.Collections;
 
 using SkiaSharp;
 
@@ -8,12 +11,9 @@ using Play.Rectangles;
 using Play.Interfaces.Embedding;
 using Play.Edit;
 using Play.Drawing;
-using System.Reflection;
-using System.Collections.Generic;
-using System.Collections;
+using Play.Forms;
 
 namespace Play.MorsePractice {
-
 	/*
 	_rgLayout = new LayoutStackHorizontal() {
 		Spacing = 15,
@@ -123,9 +123,11 @@ namespace Play.MorsePractice {
 		public object Decorate(IPgViewSite oBaseSite,Guid sGuid) {
             try {
                 if (sGuid.Equals(GlobalDecorations.Outline)) {
-                    // TODO: When Calls gets updated, it would be nice to reset the hilighted line.
                     return new EditWindow2(oBaseSite, _oDocLog.Log.Calls, fReadOnly: true, fSingleLine: false);
                 }
+				if( sGuid.Equals(GlobalDecorations.Properties )) {
+					return new WindowStandardProperties( oBaseSite, _oDocLog.Props );
+				}
             } catch (Exception oEx) {
                 Type[] rgErrors = { typeof( NotImplementedException ),
                                     typeof( NullReferenceException ),
@@ -143,9 +145,12 @@ namespace Play.MorsePractice {
 		public bool Execute(Guid sGuid) {
 			switch( sGuid ) {
 				case var a when sGuid == GlobalCommands.Play:
-				case var b when sGuid == GlobalCommands.Pause:
+					_oDocLog.Props.ValueUpdate( (int)DocLogProperties.Names.TimeStart, 
+						                        DateTime.Now.ToShortTimeString() );
+					break;
 				case var c when sGuid == GlobalCommands.Stop:
-					ViewNotes.Execute( sGuid );
+					_oDocLog.Props.ValueUpdate( (int)DocLogProperties.Names.TimeEnd, 
+						                        DateTime.Now.ToShortTimeString() );
 					break;
 			}
 			return false;
