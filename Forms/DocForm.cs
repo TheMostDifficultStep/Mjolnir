@@ -6,13 +6,13 @@ using SkiaSharp;
 
 using Play.Interfaces.Embedding;
 using Play.Edit;
-using Play.Parse;
 
 
 namespace Play.Forms {
-    /// Form windows will listen to these events.
+    /// <summary>
+    /// This is the old way of doing things, migrate to the IPgEditEvents. 
     /// </summary>
-    public interface IPgFormEvents {
+    [Obsolete]public interface IPgFormEvents {
         void OnFormUpdate( IEnumerable<Line> rgUpdates ); // Line contents have been updated. remeasure
         void OnFormClear(); // All properties/labels are to be removed.
         void OnFormLoad (); // All properties/labels have been created.
@@ -76,254 +76,9 @@ namespace Play.Forms {
     }
 
     /// <summary>
-    /// Document for labels and values style form. Makes separating readable values
-    /// from readonly values. Probably move this over to forms project at some time.
+    /// Spiffy new Multi Column based DocProperties. Use this for all
+    /// your property page needs.
     /// </summary>
-    /*
-    public class DocProperties : IPgParent, IPgLoad, IDisposable {
-        protected readonly IPgBaseSite _oSiteBase;
-
-        public IPgParent Parentage => _oSiteBase.Host;
-        public IPgParent Services => Parentage.Services;
-        protected void LogError(string strMessage) { _oSiteBase.LogError("Property Page Client", strMessage); }
-
-        //public LabelAccessor Property_Labels { get { return new LabelAccessor( PropertyPairs ); } }
-        public Editor PropertyDoc { get; } // Got to be public so the form window can access.
-        protected readonly List<IPgFormEvents> _rgFormEvents = new();
-
-        private List<LabelValuePair> PropertyPairs { get; } = new List<LabelValuePair>();
-        public int PropertyCount => PropertyPairs.Count;
-
-        // This lets us override the standard color for a property.
-        // TODO: Give it two slots. Normal override and Error color...
-        public Dictionary<int, SkiaSharp.SKColor> ValueBgColor { get; } = new Dictionary<int, SkiaSharp.SKColor>();
-
-        protected class DocSlot :
-            IPgBaseSite {
-            protected readonly DocProperties _oHost;
-
-            public DocSlot(DocProperties oHost) {
-                _oHost = oHost ?? throw new ArgumentNullException("Host");
-            }
-
-            public IPgParent Host => _oHost;
-
-            public void LogError(string strMessage, string strDetails, bool fShow = true) {
-                _oHost.LogError(strDetails);
-            }
-
-            public void Notify(ShellNotify eEvent) {
-                // Might want this value when we close to save the current playing list!!
-            }
-        }
-
-        public class Manipulator :
-            IEnumerable<Line>,
-            IPgFormBulkUpdates,
-            IDisposable {
-            DocProperties _oDocument;
-            SortedSet<int> _rgSortedLines = new SortedSet<int>();
-
-            public Manipulator(DocProperties oDoc) {
-                _oDocument = oDoc ?? throw new ArgumentNullException();
-            }
-
-            public void Dispose() {
-                foreach( IPgFormEvents oCall in _oDocument._rgFormEvents ) {
-                    oCall.OnFormUpdate(this);
-                }
-                _rgSortedLines.Clear();
-            }
-
-            public int AddProperty(string strLabel) {
-                int iLine = _oDocument.PropertyCount;
-
-                LabelValuePair oPair = _oDocument.CreatePropertyPair(strLabel);
-
-                _rgSortedLines.Add(oPair._oLabel.At);
-                _rgSortedLines.Add(oPair._oValue.At);
-
-                return iLine;
-            }
-
-            public void SetValue(int iLine, string strValue) {
-                _oDocument.ValueUpdate(iLine, strValue);
-                _rgSortedLines.Add(iLine);
-            }
-
-            public void SetLabel(int iProperty, string strName) {
-                try {
-                    LabelValuePair oPair = _oDocument.GetPropertyPair(iProperty);
-                    _rgSortedLines.Add(oPair._oLabel.At);
-                    _oDocument.LabelUpdate(iProperty, strName);
-                } catch( ArgumentOutOfRangeException ) {
-                    _oDocument.LogError("Assign index out of range");
-                }
-            }
-
-            public IEnumerator<Line> GetEnumerator() {
-                foreach( int iLine in _rgSortedLines ) {
-                    yield return _oDocument.PropertyDoc[iLine];
-                }
-            }
-
-            IEnumerator IEnumerable.GetEnumerator() {
-                return GetEnumerator();
-            }
-        } // end class
-
-        // Seems like we dont need this since the base form sends
-        // events but I've got to check why the property screens can't
-        // resize when the contents change.
-        //      public event BufferEvent PropertyEvents;
-
-        public DocProperties(IPgBaseSite oSiteBase) {
-            _oSiteBase = oSiteBase ?? throw new ArgumentNullException("Site must not be null.");
-
-            PropertyDoc = new Editor(new DocSlot(this));
-        }
-
-        public virtual bool InitNew() {
-            if( !PropertyDoc.InitNew() )
-                return false;
-
-            return true;
-        }
-
-        public void ListenerAdd(IPgFormEvents oCallback) {
-            _rgFormEvents.Add(oCallback);
-        }
-
-        public void ListenerRemove(IPgFormEvents oCallback) {
-            _rgFormEvents.Remove(oCallback);
-        }
-
-        public Line this[int iIndex] {
-            get {
-                return PropertyPairs[iIndex]._oValue;
-            }
-        }
-
-        public int ValueGetAsInt(int iIndex, int? iDefault = null) {
-            if( iDefault.HasValue ) {
-                if( !int.TryParse(this[iIndex].ToString(), out int iValue) ) {
-                    iValue = iDefault.Value;
-                }
-                return iValue;
-            }
-
-            return int.Parse(this[iIndex].ToString());
-        }
-
-        public string ValueGetAsStr(int iIndex) {
-            return this[iIndex].ToString();
-        }
-
-        public LabelValuePair GetPropertyPair(int iIndex) {
-            return PropertyPairs[(int)iIndex];
-        }
-
-        public virtual void ValuesEmpty() {
-            foreach( LabelValuePair oProp in PropertyPairs ) {
-                oProp._oValue.Empty();
-            }
-            PropertyDoc.Raise_BufferEvent(BUFFEREVENTS.MULTILINE);
-
-            foreach( IPgFormEvents oCall in _rgFormEvents ) {
-                oCall.OnFormUpdate(PropertyDoc);
-            }
-        }
-
-        /// <summary>
-        /// Clear out the form of all properties and labels.
-        /// </summary>
-        public virtual void Clear() {
-            PropertyPairs.Clear();
-            PropertyDoc.Clear();
-
-            PropertyDoc.Raise_BufferEvent(BUFFEREVENTS.MULTILINE);
-
-            foreach( IPgFormEvents oCall in _rgFormEvents ) {
-                oCall.OnFormClear();
-            }
-        }
-
-        /// <summary>
-        /// Sends an event to the views right away. Should make a manipulator for this.
-        /// </summary>
-        public void ValueUpdate(int iIndex, string strValue, bool Broadcast = false) {
-            Line oLine = PropertyPairs[iIndex]._oValue;
-
-            oLine.Empty();
-            oLine.TryAppend(strValue);
-
-            if( Broadcast ) {
-                // Need to look at this multi line call. s/b single line.
-                PropertyDoc.Raise_BufferEvent(BUFFEREVENTS.MULTILINE); // single line probably depends on the caret.
-            }
-        }
-
-        public void ValueClear(int iIndex) {
-            PropertyPairs[iIndex]._oValue.Empty();
-        }
-
-        public void LabelUpdate(int iIndex, string strLabel, SKColor? skBgColor = null) {
-            PropertyPairs[iIndex]._oLabel.Empty();
-            PropertyPairs[iIndex]._oLabel.TryAppend(strLabel);
-
-            if( skBgColor.HasValue ) {
-                ValueBgColor.Add(iIndex, skBgColor.Value);
-            }
-        }
-
-        /// <summary>
-        /// Use this when you've updated properties independently and want to finally notify the viewers.
-        /// </summary>
-        public void RaiseUpdateEvent() {
-            PropertyDoc.CharacterCount(0);
-
-            // Anyone using DocProperties object s/b using IPgFormEvents
-            //PropertyDoc.Raise_BufferEvent( BUFFEREVENTS.MULTILINE ); 
-
-            foreach( IPgFormEvents oCall in _rgFormEvents ) {
-                oCall.OnFormUpdate(PropertyDoc);
-            }
-        }
-
-        /// <summary>
-        /// This is for the rare case where a form get's flushed and rebuilt during
-        /// it's lifetime. Most forms are build once and the window shows up
-        /// later and set's itself up to be used for the remainder. You could
-        /// use this event in a scenario where the window is displayed before the
-        /// property document has been constructed.
-        /// </summary>
-        protected void RaiseLoadedEvent() {
-            PropertyDoc.CharacterCount(0);
-
-            foreach( IPgFormEvents oCall in _rgFormEvents ) {
-                oCall.OnFormLoad();
-            }
-        }
-
-        public LabelValuePair CreatePropertyPair(string strName = "", string strValue = "") {
-            LabelValuePair oProp = new LabelValuePair();
-
-            oProp._oLabel = PropertyDoc.LineAppend(strName, fUndoable: false);
-            oProp._oValue = PropertyDoc.LineAppend(strValue, fUndoable: false);
-
-            PropertyPairs.Add(oProp);
-
-            return oProp;
-        }
-
-        public void Dispose() {
-            _rgFormEvents.Clear(); // Removes circular references.
-
-            PropertyDoc.Dispose();
-        }
-    }
-  
-    */
     public class DocProperties :
         EditMultiColumn,
         IPgLoad
@@ -351,7 +106,6 @@ namespace Play.Forms {
         }
 
         public event Action<int[]>  SubmitEvent;
-        //protected readonly List<IPgFormEvents> _rgFormEvents = new ();
         public int PropertyCount => _rgRows.Count;
 
         // This lets us override the standard color for a property.
@@ -600,7 +354,7 @@ namespace Play.Forms {
         /// use this event in a scenario where the window is displayed before the
         /// property document has been constructed.
         /// </summary>
-        protected void RaiseLoadedEvent() {
+        [Obsolete]protected void RaiseLoadedEvent() {
             RenumberAndSumate(); // Kind of evil in this case. Might not want to do this...
             
             foreach( object oCall in _rgListeners ) {

@@ -204,7 +204,10 @@ namespace Play.Edit {
             get {
                 try {
                     if( _oCaretRow == null ) {
-                        Row oRow = GetTabOrderAtIndex( 0, 0 );
+                        // Doc might be empty! O.o
+                        if( GetTabOrderAtIndex( 0, 0 ) is not Row oRow )
+                            return 0;
+
                         return oRow.At;
                     }
                     if( _oCaretRow.At < 0 )
