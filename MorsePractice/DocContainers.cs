@@ -366,7 +366,7 @@ namespace Play.MorsePractice {
                     }
                 }
                 if( xmlDoc.SelectSingleNode( "//Root/Log" ) is XmlNode xmlLog ) {
-                    StringReader                    oReader = new ( xmlLog.InnerText );
+                    StringReader                       oReader = new ( xmlLog.InnerText );
                     using DocLogMultiColumn.BulkLoader oLoader = new ( Log );
 
                     while( oReader.ReadLine() is string strLine ) {
@@ -380,6 +380,12 @@ namespace Play.MorsePractice {
                         }
                         oLoader.Append( oRow );
                     }
+                }
+                if( xmlDoc.SelectSingleNode( "//Root/TimeStart" ) is XmlNode xmlStartTime ) {
+                    Props.ValueUpdate( (int)DocLogProperties.Names.TimeStart, xmlStartTime.InnerText );
+                }
+                if( xmlDoc.SelectSingleNode( "//Root/TimeEnd" ) is XmlNode xmlEndTime ) {
+                    Props.ValueUpdate( (int)DocLogProperties.Names.TimeStart, xmlEndTime.InnerText );
                 }
 
                 Notes.ClearDirty();
@@ -451,6 +457,14 @@ namespace Play.MorsePractice {
                         }
                         xmlLog.InnerText = sbBuilder.ToString();
                         xmlRoot.AppendChild( xmlLog );
+                    }
+                    if( xmlDoc.CreateElement( "TimeStart" ) is XmlElement xmlStartTime ) {
+                        xmlStartTime.InnerText = Props.ValueGetAsStr( (int)DocLogProperties.Names.TimeStart );
+                        xmlRoot.AppendChild( xmlStartTime );
+                    }
+                    if( xmlDoc.CreateElement( "TimeEnd" ) is XmlElement xmlEndTime ) {
+                        xmlEndTime.InnerText = Props.ValueGetAsStr( (int)DocLogProperties.Names.TimeStart );
+                        xmlRoot.AppendChild( xmlEndTime );
                     }
                 }
 
