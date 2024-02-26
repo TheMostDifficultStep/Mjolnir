@@ -529,6 +529,12 @@ namespace Play.Edit {
 
                 oSeedCache ??= CacheReset( RefreshNeighborhood.SCROLL );
 
+                // It's quite possible for the document to be EMPTY! O.o
+                if( oSeedCache == null ) {
+                    FinishUp( null, null );
+                    return;
+                }
+
                 CacheWalker( oSeedCache, fMeasure );
             } catch( Exception oEx ) {
                 if( IsUnhandledStdRpt( oEx ) )
