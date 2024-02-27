@@ -111,12 +111,28 @@ namespace Play.MorsePractice {
         public ViewRadioProperties( IPgViewSite oSiteView, DocProperties oDocument ) : base( oSiteView, oDocument ) {
         }
 
+		/// <summary>
+		/// I'm taking a leap of faith on the tone for the repeater, it might have
+		/// different tone values for different frequencies. I might need to look
+		/// it up in my table. Right now just assume it's the same for all channels
+		/// of that organization...
+		/// </summary>
         private void OnFrequencyJump( Row oRow, int iColumn, IPgWordRange oRange ) {
             try {
-                string strValue = oRow[iColumn].SubString( oRange.Offset, oRange.Length );
+                string strFreq = oRow[iColumn].SubString( oRange.Offset, oRange.Length );
 
 				if( Document.Parentage is DocStdLog oStdLog ) {
-					oStdLog.SendSetFrequency( (int)(double.Parse( strValue ) * Math.Pow( 10, 6 ) ));
+					int iFreqInMHz = (int)(double.Parse( strFreq ) * Math.Pow( 10, 6 ) );
+
+					oStdLog.SendSetFrequency( iFreqInMHz );
+
+					DocStdLog.RepeaterDir? oRepeater = oStdLog.GetRepeaterByOutputFreq( iFreqInMHz );
+
+					if( oRepeater.HasValue ) {
+						double dblTone = double.Parse( oRepeater.Value.Tone );
+
+						oStdLog.SendSetRepeaterTone( (int)(dblTone * 10 ));
+					}
 				}
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( IndexOutOfRangeException ),

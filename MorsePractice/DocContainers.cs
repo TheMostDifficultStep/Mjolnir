@@ -644,6 +644,10 @@ namespace Play.MorsePractice {
 			_oSiteBase.LogError( strMessage, strDetails, fShow );
 		}
 
+        protected void LogError( string strMessage, string strDetails ) {
+			_oSiteBase.LogError( strMessage, strDetails );
+        }
+
 		public bool      IsDirty   => Notes.IsDirty; // || Sources.IsDirty;
 		public IPgParent Parentage => _oSiteBase.Host;
 		public IPgParent Services  => Parentage.Services;
@@ -992,19 +996,61 @@ namespace Play.MorsePractice {
             }
         }
 
-        readonly List<byte> _rgCommand = new List<byte>();
+        protected class CivCommandStream {
+            readonly List<byte> _rgCommand = new List<byte>();
+            readonly byte       _bTxAddr;
+            readonly byte       _bCtrlAddr;
+            readonly SerialPort _oCiV;
+            Action< string, string> LogError { get; }
 
-        protected void PrepCommand( byte bCmnd ) {
-            _rgCommand.Clear();
+            public CivCommandStream( SerialPort oPort, Action< string, string> acLogError, byte bTxAddr, byte bCtrlAddr, byte bCommand ) {
+                _bTxAddr   = bTxAddr;
+                _bCtrlAddr = bCtrlAddr;
+                LogError   = acLogError ?? throw new ArgumentNullException();
+                _oCiV      = oPort      ?? throw new ArgumentNullException();
 
-            byte[] rgPreamble = new byte[] {
-                0xfe,
-                0xfe,
-                TransmitterAddress,
-                ControllerAddress,
-                bCmnd };
+                PrepCommand( bCommand );
+            }
 
-            _rgCommand.AddRange( rgPreamble );
+            protected void PrepCommand( byte bCmnd ) {
+                _rgCommand.Clear();
+
+                byte[] rgPreamble = new byte[] {
+                    0xfe,
+                    0xfe,
+                    _bTxAddr,
+                    _bCtrlAddr,
+                    bCmnd };
+
+                _rgCommand.AddRange( rgPreamble );
+            }
+
+            public void AddParam( byte bValue ) {
+                _rgCommand.Add( bValue);
+            }
+
+            public void Write() {
+                try {
+                    _rgCommand.Add( 0xfd ); // Add terminator...
+
+                    _oCiV.Write( _rgCommand.ToArray(), 0, _rgCommand.Count );
+                } catch( Exception oEx ) {
+                    Type[] rgException = { typeof( ArgumentNullException ),
+                                           typeof( InvalidOperationException ),
+                                           typeof( ArgumentOutOfRangeException ),
+                                           typeof( ArgumentException ),
+                                           typeof( OperationCanceledException ) };
+                    if( rgException.IsUnhandled( oEx ) )
+                        throw;
+
+                    LogError( "CiV", "CiV Send Command Error" );
+                }
+            }
+
+        }
+
+        protected CivCommandStream CreateCommander( byte bCmnd ) {
+            return new CivCommandStream( _oCiV, LogError, TransmitterAddress, ControllerAddress, bCmnd );
         }
 
         /// <summary>
@@ -1015,35 +1061,17 @@ namespace Play.MorsePractice {
         /// <remarks>read: Controller asks for some value from the radio.
         ///          send: Controller sets some value on the radio.</remarks>
         protected void SendCommand( byte bCmnd ) {
-            PrepCommand( bCmnd );
+            CivCommandStream oCommand = CreateCommander( bCmnd );
 
-            WriteCommand();
+            oCommand.Write();
         }
 
         protected void SendCommand( byte bCmnd, Byte bSub ) {
-            PrepCommand( bCmnd );
+            CivCommandStream oCommand = CreateCommander( bCmnd );
             
-            _rgCommand.Add( bSub );
+            oCommand.AddParam( bSub );
 
-            WriteCommand();
-        }
-
-        protected void WriteCommand() {
-            try {
-                _rgCommand.Add( 0xfd ); // Add terminator...
-
-                _oCiV.Write( _rgCommand.ToArray(), 0, _rgCommand.Count );
-            } catch( Exception oEx ) {
-                Type[] rgException = { typeof( ArgumentNullException ),
-                                       typeof( InvalidOperationException ),
-                                       typeof( ArgumentOutOfRangeException ),
-                                       typeof( ArgumentException ),
-                                       typeof( OperationCanceledException ) };
-                if( rgException.IsUnhandled( oEx ) )
-                    throw;
-
-                LogError( "CiV", "CiV Send Command Error" );
-            }
+            oCommand.Write();
         }
 
         public static void ConvertIntToList( int iFrequency, List<int> rgValue ) {
@@ -1058,7 +1086,7 @@ namespace Play.MorsePractice {
         }
 
         public void SendSetFrequency( int iFrequencyInMHz ) {
-            PrepCommand( 0x05 );
+            CivCommandStream oCommand = CreateCommander( 0x05 );
 
             List<int> rgNibbles = new List<int>();
             
@@ -1069,18 +1097,51 @@ namespace Play.MorsePractice {
                 rgNibbles.Add( 0 );
 
             if( rgNibbles.Count != 10 ) {
-                LogError( "Civ", "Bad SetFrequency command format." );
+                LogError( "Civ", "Bad set frequency command format." );
                 return;
             }
             // Convert our nibble digit stream to a stream of bytes
             for( int j=0; j<rgNibbles.Count; j+=2 ) {
                 byte bValue = (byte)((rgNibbles[j+1] << 4) + rgNibbles[j]);
-                _rgCommand.Add( bValue );
+                oCommand.AddParam( bValue );
             }
 
-            WriteCommand();
+            oCommand.Write();
         }
 
+        /// <summary>
+        /// Deci 1/10 or 0.1
+        /// </summary>
+        /// <param name="iFrequencyInDeciHz"></param>
+        public void SendSetRepeaterTone( int iFrequencyInDeciHz ) {
+            CivCommandStream oCommand = CreateCommander( 0x1B );
+
+            oCommand.AddParam( 0x00 );
+
+            List<int> rgNibbles = new List<int>();
+            
+            ConvertIntToList( iFrequencyInDeciHz, rgNibbles );
+
+            // Pad out the higher frequencies...
+            while( rgNibbles.Count < 6 )
+                rgNibbles.Add( 0 );
+
+            if( rgNibbles.Count != 6 ) {
+                LogError( "Civ", "Bad set tone command format." );
+                return;
+            }
+
+            rgNibbles.Reverse();
+
+            // Convert our nibble digit stream to a stream of bytes
+            // Because I had to reverse the list, we switch hi/lo order...
+            for( int j=0; j<rgNibbles.Count; j+=2 ) {
+                byte bValue = (byte)((rgNibbles[j] << 4) + rgNibbles[j+1]);
+                oCommand.AddParam( bValue );
+            }
+
+            oCommand.Write();
+        }
 
         /// <summary>
         /// set up the COM port i/o.
@@ -1194,6 +1255,15 @@ namespace Play.MorsePractice {
                 _rgRepeatersIn .Add( oItem.Input, oItem );
                 _rgRepeatersOut.Add( oItem.Output, oItem );
             }
+        }
+
+        public RepeaterDir? GetRepeaterByOutputFreq( int iFreqInMHz ) {
+            RepeaterDir oRepeater;
+
+            if( _rgRepeatersOut.TryGetValue( iFreqInMHz, out oRepeater ) )
+                return oRepeater;
+
+            return null;
         }
 
         /// <summary>
