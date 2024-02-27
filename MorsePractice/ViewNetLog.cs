@@ -129,6 +129,7 @@ namespace Play.MorsePractice {
                 return false;
 
 			HyperLinks.Add( "fjump", OnFrequencyJump );
+
             return true;
         }
     }

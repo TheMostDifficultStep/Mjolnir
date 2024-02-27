@@ -724,18 +724,18 @@ namespace Play.MorsePractice {
             int    _iColor = 1;
             int    _iStart;
             int    _iLength;
-            string _strAlternate;
+            string _strAlt;
 
             public RepeaterHyperText( int iColor, int iStart, int iLength, string strAlt = "Alternate" ) {
                 _iColor  = iColor;
                 _iStart  = iStart;
                 _iLength = iLength;
-                _strAlternate = strAlt;
+                _strAlt  = strAlt;
             }
 
             public bool   IsWord     => true;
             public bool   IsTerm     => true;
-            public string StateName  => _strAlternate;
+            public string StateName  => _strAlt;
             public int    ColorIndex => _iColor;
 
             // These are getting set by the new property page code,
@@ -929,7 +929,7 @@ namespace Play.MorsePractice {
         /// <seealso cref="SerialToList"/>
         /// <seealso cref="SerialToOffset"/>
         protected void SerialToDatagram( byte[] rgMsg ) {
-            _oDataGram.Empty();
+            _oDataGram.Empty(); // Get rid of the old data, and start again...
             foreach( byte bByte in rgMsg ) {
                 string strByte = bByte.ToString( "X2" );
 
@@ -957,7 +957,7 @@ namespace Play.MorsePractice {
                     Notes.LineAppend( rgBuilder.ToString() );
                     rgBuilder.Clear();
                 } else {
-                    rgBuilder.Append( " " );
+                    rgBuilder.Append( ' ' );
                 }
             }
 
@@ -1000,14 +1000,14 @@ namespace Play.MorsePractice {
         /// <remarks>read: Controller asks for some value from the radio.
         ///          send: Controller sets some value on the radio.</remarks>
         protected void SendCommand( byte bCmnd ) {
-            List<byte> rgCommand = new List<byte>();
-
-            rgCommand.Add( 0xfe );
-            rgCommand.Add( 0xfe );
-            rgCommand.Add( TransmitterAddress );
-            rgCommand.Add( ControllerAddress );
-            rgCommand.Add( bCmnd );
-            rgCommand.Add( 0xfd );
+            List<byte> rgCommand = new List<byte> {
+                0xfe,
+                0xfe,
+                TransmitterAddress,
+                ControllerAddress,
+                bCmnd,
+                0xfd
+            };
 
             try {
                 _oCiV.Write( rgCommand.ToArray(), 0, rgCommand.Count );
@@ -1025,15 +1025,15 @@ namespace Play.MorsePractice {
         }
 
         protected void SendCommand( byte bCmnd, Byte bSub ) {
-            List<byte> rgCommand = new List<byte>();
-
-            rgCommand.Add( 0xfe );
-            rgCommand.Add( 0xfe );
-            rgCommand.Add( TransmitterAddress );
-            rgCommand.Add( ControllerAddress );
-            rgCommand.Add( bCmnd );
-            rgCommand.Add( bSub  );
-            rgCommand.Add( 0xfd );
+            List<byte> rgCommand = new List<byte> {
+                0xfe,
+                0xfe,
+                TransmitterAddress,
+                ControllerAddress,
+                bCmnd,
+                bSub,
+                0xfd
+            };
 
             try {
                 _oCiV.Write( rgCommand.ToArray(), 0, rgCommand.Count );

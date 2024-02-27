@@ -94,6 +94,7 @@ namespace Play.Forms {
             // This certainly does not belong on the base form, but here
             // it is a little more reasonable.
             HyperLinks.Add( "callsign", OnCallSign );
+            HyperLinks.Add( "URL", OnURL );
 
             return true;
         }
@@ -180,6 +181,10 @@ namespace Play.Forms {
 
         protected void OnCallSign( Row oRow, int iColumn, IPgWordRange oRange ) {
             BrowserLink( "http://www.qrz.com/db/" +  oRow[1].SubString( oRange.Offset, oRange.Length) );
+        }
+
+        protected void OnURL( Row oRow, int iColumn, IPgWordRange oRange ) {
+            BrowserLink( oRow[1].SubString( oRange.Offset, oRange.Length) );
         }
 
         public void OnFormUpdate(IEnumerable<Line> rgUpdates) {
