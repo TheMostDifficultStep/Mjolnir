@@ -766,10 +766,12 @@ namespace Play.MorsePractice {
 
             StringBuilder sbAlternates = new StringBuilder();
 
+            Line oLine = Properties.ValueAsLine( (int)RadioProperties.Names.Alternates );
+            oLine.Formatting.Clear();
+
             if( rgRepeaters.Count == 0 ) {
                 sbAlternates.Append( "None" );
             } else {
-                Line oLine = Properties.ValueAsLine( (int)RadioProperties.Names.Alternates );
                 foreach( RepeaterDir oDir in rgRepeaters ) {
                     try {
                         double dblFreqInMhz = oDir.Output / Math.Pow( 10, 6 );
