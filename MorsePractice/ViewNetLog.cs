@@ -133,6 +133,11 @@ namespace Play.MorsePractice {
 
 						oStdLog.SendSetRepeaterTone( (int)(dblTone * 10 ));
 					}
+					oStdLog.SendToneEnable( true );
+                    oStdLog.SendCommand( 0x03 );       // Read Frequency.
+					oStdLog.SendCommand( 0x1B, 0x00 ); // request tone freq.
+					oStdLog.SendCommand( 0x16, 0x42 ); // request repeater tone squelch.
+					oStdLog.SendCommand( 0x14, 0x0A ); // request power level.
 				}
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( IndexOutOfRangeException ),

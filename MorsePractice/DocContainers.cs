@@ -840,7 +840,7 @@ namespace Play.MorsePractice {
             }
 
             SendCommand( 0x1B, 0x00 ); // request tone freq.
-            SendCommand( 0x16, 0x42 ); // request repeter tone squelch.
+            SendCommand( 0x16, 0x42 ); // request repeater tone squelch.
             SendCommand( 0x14, 0x0A ); // request power level.
         }
 
@@ -1060,13 +1060,13 @@ namespace Play.MorsePractice {
         /// <param name="bCmnd"></param>
         /// <remarks>read: Controller asks for some value from the radio.
         ///          send: Controller sets some value on the radio.</remarks>
-        protected void SendCommand( byte bCmnd ) {
+        public void SendCommand( byte bCmnd ) {
             CivCommandStream oCommand = CreateCommander( bCmnd );
 
             oCommand.Write();
         }
 
-        protected void SendCommand( byte bCmnd, Byte bSub ) {
+        public void SendCommand( byte bCmnd, Byte bSub ) {
             CivCommandStream oCommand = CreateCommander( bCmnd );
             
             oCommand.AddParam( bSub );
@@ -1122,11 +1122,7 @@ namespace Play.MorsePractice {
             
             ConvertIntToList( iFrequencyInDeciHz, rgNibbles );
 
-            // Pad out the higher frequencies...
-            while( rgNibbles.Count < 6 )
-                rgNibbles.Add( 0 );
-
-            if( rgNibbles.Count != 6 ) {
+            if( rgNibbles.Count != 4 ) {
                 LogError( "Civ", "Bad set tone command format." );
                 return;
             }
@@ -1139,6 +1135,15 @@ namespace Play.MorsePractice {
                 byte bValue = (byte)((rgNibbles[j] << 4) + rgNibbles[j+1]);
                 oCommand.AddParam( bValue );
             }
+
+            oCommand.Write();
+        }
+
+        public void SendToneEnable( bool fValue ) {
+            CivCommandStream oCommand = CreateCommander( 0x16 );
+
+            oCommand.AddParam( 0x42 );
+            oCommand.AddParam( fValue ? (byte)0x01 : (byte)0x00 );
 
             oCommand.Write();
         }
@@ -1227,16 +1232,16 @@ namespace Play.MorsePractice {
             rgTemp.Add( new RepeaterDir( 146.62,   -600, 120, "ww7ra",     "103.5" ));
             rgTemp.Add( new RepeaterDir( 145.43,   -600, 120, "kd7wdg",    "88.5"  ));
             rgTemp.Add( new RepeaterDir( 145.33,   -600, 120, "k7nws",     "179.9" ));
-            rgTemp.Add( new RepeaterDir( 146.900,  -600, 120, "w7srz",     "103.5" ));
-            rgTemp.Add( new RepeaterDir( 147.240,  -600, 120, "k7sye",     "123"   ));
+            rgTemp.Add( new RepeaterDir( 146.90,  -600, 120, "w7srz",     "103.5" ));
+            rgTemp.Add( new RepeaterDir( 147.24,  -600, 120, "k7sye",     "123"   ));
             rgTemp.Add( new RepeaterDir( 444.6375, 5000, 120, "wa7hjr/b"           ));
-            rgTemp.Add( new RepeaterDir( 444.650,  5000, 120, "wa7hjr/rm", "131.8" ));
+            rgTemp.Add( new RepeaterDir( 444.65,  5000, 120, "wa7hjr/rm", "131.8" ));
             rgTemp.Add( new RepeaterDir( 444.55,   5000, 120, "ww7sea",    "141.3" ));
             rgTemp.Add( new RepeaterDir( 441.075,  5000, 180, "k7lwh",     "103.5" ));
             rgTemp.Add( new RepeaterDir( 442.875,  5000, 120, "w7aux",     "103.5" ));
             rgTemp.Add( new RepeaterDir( 149.995,  -600, 120, "w7rnk/c"            ));
-            rgTemp.Add( new RepeaterDir( 147.280,  +600, 120, "w7dk",      "103.5" ));
-            rgTemp.Add( new RepeaterDir( 147.180,  +600, 120, "wa7law",    "103.5" ));
+            rgTemp.Add( new RepeaterDir( 147.28,  +600, 120, "w7dk",      "103.5" ));
+            rgTemp.Add( new RepeaterDir( 147.18,  +600, 120, "wa7law",    "103.5" ));
             rgTemp.Add( new RepeaterDir( 445.575,  5000, 120, "wa7law",    "103.5" ));
 
             _rgRepeatersInfo.Add( "k7lwh",  new RepeaterInfo( "Kirkland", "Lake Washington Ham Club", "http://www.lakewashingtonhamclub.org/" ));
