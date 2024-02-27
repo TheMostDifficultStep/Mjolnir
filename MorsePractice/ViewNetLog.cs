@@ -114,13 +114,21 @@ namespace Play.MorsePractice {
         private void OnFrequencyJump( Row oRow, int iColumn, IPgWordRange oRange ) {
             try {
                 string strValue = oRow[iColumn].SubString( oRange.Offset, oRange.Length );
+
+				if( Document.Parentage is DocStdLog oStdLog ) {
+					oStdLog.SendSetFrequency( (int)(double.Parse( strValue ) * Math.Pow( 10, 6 ) ));
+				}
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( IndexOutOfRangeException ),
                                     typeof( NullReferenceException ),
                                     typeof( ArgumentNullException ),
-                                    typeof( ArgumentException ) };
+                                    typeof( ArgumentException ),
+									typeof( FormatException ),
+									typeof( OverflowException ) };
                 if( rgErrors.IsUnhandled( oEx ) )
                     throw;
+
+				LogError( "Frequency read error..." );
             }
         }
 

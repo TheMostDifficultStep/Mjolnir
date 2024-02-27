@@ -992,6 +992,21 @@ namespace Play.MorsePractice {
             }
         }
 
+        readonly List<byte> _rgCommand = new List<byte>();
+
+        protected void PrepCommand( byte bCmnd ) {
+            _rgCommand.Clear();
+
+            byte[] rgPreamble = new byte[] {
+                0xfe,
+                0xfe,
+                TransmitterAddress,
+                ControllerAddress,
+                bCmnd };
+
+            _rgCommand.AddRange( rgPreamble );
+        }
+
         /// <summary>
         /// This handles command 03 (read frequency), which requires no sub command or data.
         /// Probably will work for 02 and 04 as well.
@@ -1000,43 +1015,24 @@ namespace Play.MorsePractice {
         /// <remarks>read: Controller asks for some value from the radio.
         ///          send: Controller sets some value on the radio.</remarks>
         protected void SendCommand( byte bCmnd ) {
-            List<byte> rgCommand = new List<byte> {
-                0xfe,
-                0xfe,
-                TransmitterAddress,
-                ControllerAddress,
-                bCmnd,
-                0xfd
-            };
+            PrepCommand( bCmnd );
 
-            try {
-                _oCiV.Write( rgCommand.ToArray(), 0, rgCommand.Count );
-            } catch( Exception oEx ) {
-                Type[] rgException = { typeof( ArgumentNullException ),
-                                       typeof( InvalidOperationException ),
-                                       typeof( ArgumentOutOfRangeException ),
-                                       typeof( ArgumentException ),
-                                       typeof( OperationCanceledException ) };
-                if( rgException.IsUnhandled( oEx ) )
-                    throw;
-
-                LogError( "CiV", "CiV Send Command Error" );
-            }
+            WriteCommand();
         }
 
         protected void SendCommand( byte bCmnd, Byte bSub ) {
-            List<byte> rgCommand = new List<byte> {
-                0xfe,
-                0xfe,
-                TransmitterAddress,
-                ControllerAddress,
-                bCmnd,
-                bSub,
-                0xfd
-            };
+            PrepCommand( bCmnd );
+            
+            _rgCommand.Add( bSub );
 
+            WriteCommand();
+        }
+
+        protected void WriteCommand() {
             try {
-                _oCiV.Write( rgCommand.ToArray(), 0, rgCommand.Count );
+                _rgCommand.Add( 0xfd ); // Add terminator...
+
+                _oCiV.Write( _rgCommand.ToArray(), 0, _rgCommand.Count );
             } catch( Exception oEx ) {
                 Type[] rgException = { typeof( ArgumentNullException ),
                                        typeof( InvalidOperationException ),
@@ -1049,6 +1045,42 @@ namespace Play.MorsePractice {
                 LogError( "CiV", "CiV Send Command Error" );
             }
         }
+
+        public static void ConvertIntToList( int iFrequency, List<int> rgValue ) {
+            // Makes a list from low to high...
+            int i = iFrequency;
+            while( i > 0 ) {
+                int iDigit = i % 10;
+                i /= 10;
+                //char c = (char)( iDigit + 48 );
+                rgValue.Add( iDigit );
+            }
+        }
+
+        public void SendSetFrequency( int iFrequencyInMHz ) {
+            PrepCommand( 0x05 );
+
+            List<int> rgNibbles = new List<int>();
+            
+            ConvertIntToList( iFrequencyInMHz, rgNibbles );
+
+            // Pad out the higher frequencies...
+            while( rgNibbles.Count < 10 )
+                rgNibbles.Add( 0 );
+
+            if( rgNibbles.Count != 10 ) {
+                LogError( "Civ", "Bad SetFrequency command format." );
+                return;
+            }
+            // Convert our nibble digit stream to a stream of bytes
+            for( int j=0; j<rgNibbles.Count; j+=2 ) {
+                byte bValue = (byte)((rgNibbles[j+1] << 4) + rgNibbles[j]);
+                _rgCommand.Add( bValue );
+            }
+
+            WriteCommand();
+        }
+
 
         /// <summary>
         /// set up the COM port i/o.
