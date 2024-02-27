@@ -167,7 +167,7 @@ namespace Play.SSTV {
         }
         public string this[ Names eIndex ] {
             get {
-                return ValueGetAsStr((int)eIndex);
+                return ValueAsStr((int)eIndex);
             }
         }
 
@@ -189,7 +189,7 @@ namespace Play.SSTV {
         }
 
         public double ValueGetAsDbl( Names eIndex, double? dblDefault = null ) {
-            string strProperty = ValueGetAsStr((int)eIndex);
+            string strProperty = ValueAsStr((int)eIndex);
 
             if( dblDefault.HasValue ) {
                 if( !double.TryParse( strProperty, out double dblValue ) ) {
@@ -473,10 +473,10 @@ namespace Play.SSTV {
             _oSiteBase.LogError( "SSTV", strMessage );
         }
 
-        public string MyCall    => Properties.ValueGetAsStr((int)SSTVProperties.Names.Tx_MyCall).ToUpper();
-        public string Message   => Properties.ValueGetAsStr((int)SSTVProperties.Names.Tx_Message);
-        public string TheirCall => Properties.ValueGetAsStr((int)SSTVProperties.Names.Tx_TheirCall).ToUpper();
-        public string RST       => Properties.ValueGetAsStr((int)SSTVProperties.Names.Tx_RST);
+        public string MyCall    => Properties.ValueAsStr((int)SSTVProperties.Names.Tx_MyCall).ToUpper();
+        public string Message   => Properties.ValueAsStr((int)SSTVProperties.Names.Tx_Message);
+        public string TheirCall => Properties.ValueAsStr((int)SSTVProperties.Names.Tx_TheirCall).ToUpper();
+        public string RST       => Properties.ValueAsStr((int)SSTVProperties.Names.Tx_RST);
 
         public SKColor ForeColor { get; set; } = SKColors.Red;
 

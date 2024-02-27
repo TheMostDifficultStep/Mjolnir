@@ -459,11 +459,11 @@ namespace Play.MorsePractice {
                         xmlRoot.AppendChild( xmlLog );
                     }
                     if( xmlDoc.CreateElement( "TimeStart" ) is XmlElement xmlStartTime ) {
-                        xmlStartTime.InnerText = Props.ValueGetAsStr( (int)DocLogProperties.Names.TimeStart );
+                        xmlStartTime.InnerText = Props.ValueAsStr( (int)DocLogProperties.Names.TimeStart );
                         xmlRoot.AppendChild( xmlStartTime );
                     }
                     if( xmlDoc.CreateElement( "TimeEnd" ) is XmlElement xmlEndTime ) {
-                        xmlEndTime.InnerText = Props.ValueGetAsStr( (int)DocLogProperties.Names.TimeStart );
+                        xmlEndTime.InnerText = Props.ValueAsStr( (int)DocLogProperties.Names.TimeStart );
                         xmlRoot.AppendChild( xmlEndTime );
                     }
                 }
@@ -541,7 +541,7 @@ namespace Play.MorsePractice {
 
                  SerialPort              _oCiV; // Good cantidate for "init once"
         readonly ConcurrentQueue<byte[]> _oMsgQueue = new ConcurrentQueue<byte[]>(); // events to our forground thread.
-        readonly Edit.Line                    _oDataGram = new TextLine( 0, string.Empty );
+        readonly Line                    _oDataGram = new TextLine( 0, string.Empty );
         readonly Grammer<char>           _oCiVGrammar;
         readonly DatagramParser          _oParse;
 
@@ -624,7 +624,7 @@ namespace Play.MorsePractice {
 
 		public void Dispose() {
 			if( !_fDisposed ) {
-                _oCiV ?.Close();
+                _oCiV  ?.Close();
                 _oParse?.Dispose();
 
 				Notes .Dispose();
@@ -721,9 +721,9 @@ namespace Play.MorsePractice {
         }
 
         public class RepeaterHyperText : IPgWordRange {
-            int _iColor = 1;
-            int _iStart;
-            int _iLength;
+            int    _iColor = 1;
+            int    _iStart;
+            int    _iLength;
             string _strAlternate;
 
             public RepeaterHyperText( int iColor, int iStart, int iLength, string strAlt = "Alternate" ) {
@@ -738,8 +738,10 @@ namespace Play.MorsePractice {
             public string StateName  => _strAlternate;
             public int    ColorIndex => _iColor;
 
-            public int Offset { get => _iStart;  set => throw new NotImplementedException(); }
-            public int Length { get => _iLength; set => throw new NotImplementedException(); }
+            // These are getting set by the new property page code,
+            // Just ignore the updates. The item is in the process of being updated.
+            public int Offset { get => _iStart;  set{ } }
+            public int Length { get => _iLength; set{ } }
         }
 
         /// <summary>
@@ -748,12 +750,10 @@ namespace Play.MorsePractice {
         /// modified text grammer) document and get all the formatting for free.
         /// </remarks>
         public void PopulateURL( RepeaterInfo oInfo ) {
-            Edit.Line oLine = Properties.ValueAsLine((int)RadioProperties.Names.Repeater_URL);
+            Line oLine = Properties.ValueAsLine((int)RadioProperties.Names.Repeater_URL);
 
-            oLine.Empty();
+            oLine.TryReplace( 0, oLine.ElementCount, oInfo.URL );
             oLine.Formatting.Clear();
-
-            oLine.TryAppend( oInfo.URL );
             oLine.Formatting.Add( new RepeaterHyperText( 1, 0, oInfo.URL.Length, "URL" ) );
         }
 
@@ -773,7 +773,7 @@ namespace Play.MorsePractice {
                         int    iStart       = oLine.ElementCount;
 
                         sbAlternates.Append( strFreqInMhz );
-                        sbAlternates.Append( " " );
+                        sbAlternates.Append( ' ');
                         oLine.Formatting.Add( new RepeaterHyperText( 1, iStart, strFreqInMhz.Length ) );
                     } catch( Exception oEx ) {
                         Type[] rgErrors = { typeof( NotImplementedException ),
@@ -804,21 +804,22 @@ namespace Play.MorsePractice {
             _iRadioFrequency = iFrequency;
 
             Properties.ValuesEmpty();
+            using DocProperties.Manipulator oProps = new (Properties);
 
-            Properties.ValueUpdate( RadioProperties.Names.Timer, "Stopped" );
-            Properties.ValueUpdate( RadioProperties.Names.Radio_Link, "On" );
-            Properties.ValueUpdate( RadioProperties.Names.Frequency, dblFreqInMhz.ToString() + " mHz" );
+            oProps.SetValue( (int)RadioProperties.Names.Timer,      "Stopped" );
+            oProps.SetValue( (int)RadioProperties.Names.Radio_Link, "On" );
+            oProps.SetValue( (int)RadioProperties.Names.Frequency,  dblFreqInMhz.ToString() + " mHz" );
 
             if( _rgRepeatersIn.TryGetValue( iFrequency, out oRepeater ) ) {
                 if( !fRequested ) {
-                    Properties.ValueUpdate( RadioProperties.Names.Timer,   "Timer start..." );
-                    Properties.ValueUpdate( RadioProperties.Names.Callsign, oRepeater.CallSign );
+                    oProps.SetValue( (int)RadioProperties.Names.Timer,   "Timer start..." );
+                    oProps.SetValue( (int)RadioProperties.Names.Callsign, oRepeater.CallSign );
                     _oTaskTimer.Queue( ListenForTimout( oRepeater.Timeout ), 0 );
                 }
             } else {
                 if( _rgRepeatersOut.TryGetValue( iFrequency, out oRepeater ) ) {
-                    Properties.ValueUpdate( RadioProperties.Names.Timer,    "Timer stop..." );
-                    Properties.ValueUpdate( RadioProperties.Names.Callsign, oRepeater.CallSign );
+                    oProps.SetValue( (int)RadioProperties.Names.Timer,    "Timer stop..." );
+                    oProps.SetValue( (int)RadioProperties.Names.Callsign, oRepeater.CallSign );
                 }
                 _oTaskTimer.Stop(); // stopped talking most likely.
             }
@@ -826,9 +827,9 @@ namespace Play.MorsePractice {
             if( !string.IsNullOrEmpty( oRepeater.CallSign ) ) { 
                 RepeaterInfo oInfo;
                 if( _rgRepeatersInfo.TryGetValue( oRepeater.CallSign, out oInfo ) ) {
-                    Properties.ValueUpdate( RadioProperties.Names.Location,      oInfo.Location );
-                    Properties.ValueUpdate( RadioProperties.Names.Group,         oInfo.Group );
-                    Properties.ValueUpdate( RadioProperties.Names.Repeater_Tone, oRepeater.Tone );
+                    oProps.SetValue( (int)RadioProperties.Names.Location,      oInfo.Location );
+                    oProps.SetValue( (int)RadioProperties.Names.Group,         oInfo.Group );
+                    oProps.SetValue( (int)RadioProperties.Names.Repeater_Tone, oRepeater.Tone );
                     PopulateURL( oInfo );
                 }
                 PopulateAlternates( oRepeater );
@@ -929,11 +930,10 @@ namespace Play.MorsePractice {
         /// <seealso cref="SerialToOffset"/>
         protected void SerialToDatagram( byte[] rgMsg ) {
             _oDataGram.Empty();
-
             foreach( byte bByte in rgMsg ) {
                 string strByte = bByte.ToString( "X2" );
 
-                _oDataGram.TryAppend( strByte + " " );
+                _oDataGram.TryReplace( _oDataGram.ElementCount, 0, strByte + ' ' );
             }
 
             //SerialToList( rgMsg ); // Debug things..
@@ -1063,7 +1063,7 @@ namespace Play.MorsePractice {
             _oTaskCiv.Queue( ListenToCom(), 100 );
 
             try {
-                string strPortNumber = Properties[(int)RadioProperties.Names.COM_Port].ToString();
+                string strPortNumber = Properties.ValueAsStr((int)RadioProperties.Names.COM_Port);
                 string strPortID     = "COM";
 
                 if( string.IsNullOrEmpty( strPortNumber ) ) {
@@ -1073,8 +1073,8 @@ namespace Play.MorsePractice {
                 }
 
                 // Byte.Parse assumes base ten string. So use Convert.ToByte( str, 16 )
-                TransmitterAddress = Convert.ToByte( Properties[(int)RadioProperties.Names.Address_Radio     ].ToString(), 16 );
-                ControllerAddress  = Convert.ToByte( Properties[(int)RadioProperties.Names.Address_Controller].ToString(), 16 );
+                TransmitterAddress = Convert.ToByte( Properties.ValueAsStr((int)RadioProperties.Names.Address_Radio     ), 16 );
+                ControllerAddress  = Convert.ToByte( Properties.ValueAsStr((int)RadioProperties.Names.Address_Controller), 16 );
 
                 _oCiV = new SerialPort( strPortID );
                 _oCiV.BaudRate  = 115200;
@@ -1516,9 +1516,9 @@ namespace Play.MorsePractice {
             try {
                 StringBuilder sbLine = new StringBuilder();
                 DateTime   dtNow  = DateTime.UtcNow;
-                string    strFreq = Properties[ (int)RadioProperties.Names.Frequency ].ToString();
-                string   strPower = Properties[ (int)RadioProperties.Names.Power_Level ].ToString();
-                string    strMode = Properties[ (int)RadioProperties.Names.Mode ].ToString();
+                string    strFreq = Properties.ValueAsStr( (int)RadioProperties.Names.Frequency );
+                string   strPower = Properties.ValueAsStr( (int)RadioProperties.Names.Power_Level );
+                string    strMode = Properties.ValueAsStr( (int)RadioProperties.Names.Mode );
 
                 sbLine.Append( String.IsNullOrEmpty( strFreq ) ? "?mHz" : strFreq );
                 sbLine.Append( '\t' ); // tab

@@ -228,7 +228,7 @@ namespace Play.Forms {
             return _rgRows[iIndex][1].AsSpan;
         }
 
-        public string ValueGetAsStr( int iIndex ) {
+        public string ValueAsStr( int iIndex ) {
             return _rgRows[iIndex][1].ToString();
         }
 
