@@ -726,7 +726,7 @@ namespace Play.MorsePractice {
             int    _iLength;
             string _strAlt;
 
-            public RepeaterHyperText( int iColor, int iStart, int iLength, string strAlt = "Alternate" ) {
+            public RepeaterHyperText( int iColor, int iStart, int iLength, string strAlt = "alternate" ) {
                 _iColor  = iColor;
                 _iStart  = iStart;
                 _iLength = iLength;
@@ -768,9 +768,9 @@ namespace Play.MorsePractice {
                 Line oLine = Properties.ValueAsLine( (int)RadioProperties.Names.Alternates );
                 foreach( RepeaterDir oDir in rgRepeaters ) {
                     try {
-                        double dblFreqInMhz = (double)oDir.Output / Math.Pow( 10, 6 );
+                        double dblFreqInMhz = oDir.Output / Math.Pow( 10, 6 );
                         string strFreqInMhz = dblFreqInMhz.ToString();
-                        int    iStart       = oLine.ElementCount;
+                        int    iStart       = sbAlternates.Length;
 
                         sbAlternates.Append( strFreqInMhz );
                         sbAlternates.Append( ' ');

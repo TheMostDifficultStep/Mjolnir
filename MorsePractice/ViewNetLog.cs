@@ -101,7 +101,7 @@ namespace Play.MorsePractice {
     /// Override to add our hyperlink.
 	/// We'll turn that into optionally a dropdown in the future.
     /// </summary>
-    /// <seealso cref="DocProperties"/>
+    /// <seealso cref="RadioProperties"/>
     public class ViewRadioProperties : 
         WindowStandardProperties
      {
@@ -128,7 +128,7 @@ namespace Play.MorsePractice {
             if( !base.InitNew() ) 
                 return false;
 
-			HyperLinks.Add( "fjump", OnFrequencyJump );
+			HyperLinks.Add( "alternate", OnFrequencyJump );
 
             return true;
         }
