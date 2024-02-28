@@ -119,25 +119,11 @@ namespace Play.MorsePractice {
 		/// </summary>
         private void OnFrequencyJump( Row oRow, int iColumn, IPgWordRange oRange ) {
             try {
-                string strFreq = oRow[iColumn].SubString( oRange.Offset, oRange.Length );
+                string strFreqInMHz = oRow[iColumn].SubString( oRange.Offset, oRange.Length );
 
 				if( Document.Parentage is DocStdLog oStdLog ) {
-					int iFreqInMHz = (int)(double.Parse( strFreq ) * Math.Pow( 10, 6 ) );
-
-					oStdLog.SendSetFrequency( iFreqInMHz );
-
-					DocStdLog.RepeaterDir? oRepeater = oStdLog.GetRepeaterByOutputFreq( iFreqInMHz );
-
-					if( oRepeater.HasValue ) {
-						double dblTone = double.Parse( oRepeater.Value.Tone );
-
-						oStdLog.SendSetRepeaterTone( (int)(dblTone * 10 ));
-					}
-					oStdLog.SendToneEnable( true );
-                    oStdLog.SendCommand( 0x03 );       // Read Frequency.
-					oStdLog.SendCommand( 0x1B, 0x00 ); // request tone freq.
-					oStdLog.SendCommand( 0x16, 0x42 ); // request repeater tone squelch.
-					oStdLog.SendCommand( 0x14, 0x0A ); // request power level.
+					int iFreqInHz = (int)(double.Parse( strFreqInMHz ) * Math.Pow( 10, 6 ) );
+					oStdLog.DoFrequencyJump( iFreqInHz );
 				}
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( IndexOutOfRangeException ),

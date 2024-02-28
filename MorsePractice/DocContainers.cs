@@ -684,23 +684,23 @@ namespace Play.MorsePractice {
             /// <remarks>Tried using float for the flFreq, but I'd get inexact values when mult by 10^6. Double
             /// seems to be free of the problem.</remarks>
             public RepeaterDir( double flFreq, int iOffs, int iTime, string strCall = "", string strTone = "" ) {
-                _iFrequency = (int)(flFreq * Math.Pow( 10, 6 ));
-                _iOffset    = iOffs  * 1000;
+                _iFreqInHz = (int)(flFreq * Math.Pow( 10, 6 ));
+                _iOffset   = iOffs  * 1000;
 
                 Timeout  = iTime;
                 CallSign = strCall;
                 Tone     = strTone;
             }
 
-            private readonly int _iFrequency;
-            private readonly int   _iOffset;
+            private readonly int _iFreqInHz;
+            private readonly int _iOffset;
 
             public int    Timeout     { get; }
             public string CallSign    { get; }
             public string Tone        { get; }
 
-            public int  Output => _iFrequency;
-            public int  Input  => _iFrequency + _iOffset;
+            public int  Output => _iFreqInHz;
+            public int  Input  => _iFreqInHz + _iOffset;
 
             public override string ToString() {
                 return CallSign;
@@ -1031,6 +1031,32 @@ namespace Play.MorsePractice {
                 _rgCommand.Add( bValue);
             }
 
+            /// <summary>
+            /// Note the "0d" Send Frequency offset command, starts at 100Hz digit!!
+            /// So take the converted nibble list and skip the first two (iStart = 2)
+            /// </summary>
+            /// <param name="iFreqInHz">Frequency in Hz</param>
+            /// <param name="iNibbleCount">Totall nibbles we want to generate.</param>
+            /// <param name="iStart"></param>
+            public void AddStream( int iFreqInHz, int iNibbleCount, int iStart = 0 ) {
+                Span<int> rgNibbles = stackalloc int[20];
+                int       iCount    = ConvertIntToList( iFreqInHz, rgNibbles );
+
+                // Pad out the higher frequencies...
+                while( iCount < iNibbleCount )
+                    rgNibbles[iCount++] = 0;
+
+                if( iCount != iNibbleCount ) {
+                    LogError( "Civ", "Bad set frequency command format." );
+                    return;
+                }
+                // Convert our nibble digit stream to a stream of bytes
+                for( int j=0; j<iCount; j+=2 ) {
+                    byte bValue = (byte)((rgNibbles[iStart+j+1] << 4) + rgNibbles[iStart+j]);
+                    AddParam( bValue );
+                }
+            }
+
             public void Write() {
                 try {
                     _rgCommand.Add( 0xfd ); // Add terminator...
@@ -1076,38 +1102,28 @@ namespace Play.MorsePractice {
             oCommand.Write();
         }
 
-        public static void ConvertIntToList( int iFrequency, List<int> rgValue ) {
+        public static int ConvertIntToList( int iFrequency, Span<int> rgValue ) {
             // Makes a list from low to high...
-            int i = iFrequency;
-            while( i > 0 ) {
+            int iCount = 0;
+            int i      = iFrequency;
+
+            while( i > 0 && iCount < rgValue.Length ) {
                 int iDigit = i % 10;
                 i /= 10;
                 //char c = (char)( iDigit + 48 );
-                rgValue.Add( iDigit );
+                rgValue[iCount++] = iDigit;
             }
+
+            return iCount;
         }
 
-        public void SendSetFrequency( int iFrequencyInMHz ) {
+        protected void SendSetFrequency( int iFrequencyInHz ) {
             CivCommandStream oCommand = CreateCommander( 0x05 );
 
             List<int> rgNibbles = new List<int>();
+
+            oCommand.AddStream( iFrequencyInHz, 10 );
             
-            ConvertIntToList( iFrequencyInMHz, rgNibbles );
-
-            // Pad out the higher frequencies...
-            while( rgNibbles.Count < 10 )
-                rgNibbles.Add( 0 );
-
-            if( rgNibbles.Count != 10 ) {
-                LogError( "Civ", "Bad set frequency command format." );
-                return;
-            }
-            // Convert our nibble digit stream to a stream of bytes
-            for( int j=0; j<rgNibbles.Count; j+=2 ) {
-                byte bValue = (byte)((rgNibbles[j+1] << 4) + rgNibbles[j]);
-                oCommand.AddParam( bValue );
-            }
-
             oCommand.Write();
         }
 
@@ -1120,11 +1136,11 @@ namespace Play.MorsePractice {
 
             oCommand.AddParam( 0x00 );
 
-            List<int> rgNibbles = new List<int>();
+            Span<int> rgNibbles = stackalloc int[4];
             
-            ConvertIntToList( iFrequencyInDeciHz, rgNibbles );
+            int iCount = ConvertIntToList( iFrequencyInDeciHz, rgNibbles );
 
-            if( rgNibbles.Count != 4 ) {
+            if( iCount != 4 ) {
                 LogError( "Civ", "Bad set tone command format." );
                 return;
             }
@@ -1133,7 +1149,7 @@ namespace Play.MorsePractice {
 
             // Convert our nibble digit stream to a stream of bytes
             // Because I had to reverse the list, we switch hi/lo order...
-            for( int j=0; j<rgNibbles.Count; j+=2 ) {
+            for( int j=0; j<iCount; j+=2 ) {
                 byte bValue = (byte)((rgNibbles[j] << 4) + rgNibbles[j+1]);
                 oCommand.AddParam( bValue );
             }
@@ -1148,6 +1164,43 @@ namespace Play.MorsePractice {
             oCommand.AddParam( fValue ? (byte)0x01 : (byte)0x00 );
 
             oCommand.Write();
+        }
+
+        public void SendFreqOffset( int iFreqInHz ) {
+            CivCommandStream oCommand = CreateCommander( 0x0d );
+
+            oCommand.AddStream( iFreqInHz, 8, 2 );
+
+            oCommand.Write();
+        }
+
+        public void DoFrequencyJump( int iFreqInHz ) {
+			SendSetFrequency( iFreqInHz );
+
+			if( GetRepeaterByOutputFreq( iFreqInHz ) is DocStdLog.RepeaterDir oRepeater) {
+				double dblTone = double.Parse( oRepeater.Tone );
+
+				SendSetRepeaterTone( (int)(dblTone * 10 ));
+			    SendToneEnable( true );
+
+                int iOffset = oRepeater.Input - oRepeater.Output;
+                if( iOffset < 0 ) {
+                    SendCommand( 0x0f, 0x11 ); // Dup-
+                    SendFreqOffset( Math.Abs( iOffset ) );
+                } else {
+                    if( iOffset > 0 ) {
+                        SendCommand( 0x0f, 0x12 ); // Dup+
+                        SendFreqOffset( Math.Abs( iOffset ) );
+                    }
+                }
+
+			}
+
+
+            SendCommand( 0x03 );       // Read Frequency.
+			SendCommand( 0x1B, 0x00 ); // request tone freq.
+			SendCommand( 0x16, 0x42 ); // request repeater tone squelch.
+			SendCommand( 0x14, 0x0A ); // request power level.
         }
 
         /// <summary>
@@ -1264,10 +1317,10 @@ namespace Play.MorsePractice {
             }
         }
 
-        public RepeaterDir? GetRepeaterByOutputFreq( int iFreqInMHz ) {
+        public RepeaterDir? GetRepeaterByOutputFreq( int iFreqInHz ) {
             RepeaterDir oRepeater;
 
-            if( _rgRepeatersOut.TryGetValue( iFreqInMHz, out oRepeater ) )
+            if( _rgRepeatersOut.TryGetValue( iFreqInHz, out oRepeater ) )
                 return oRepeater;
 
             return null;
