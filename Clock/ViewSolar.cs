@@ -80,12 +80,13 @@ namespace Play.Clock {
             return true;
         }
 
+        /// <seealso cref="LayoutImageView"/>
         public bool InitNew() {
             ViewSolarVhf.InitNew();
             ViewSolarMap.InitNew();
 
-            Layout.Add( new LayoutImageView( ViewSolarMap, LayoutRect.CSS.Percent ) { Track = 61 } );
-            Layout.Add( new LayoutImageView( ViewSolarVhf, LayoutRect.CSS.Percent ) { Track = 39 } );
+            Layout.Add( new LayoutControl( ViewSolarMap, LayoutRect.CSS.Percent ) { Track = 61 } );
+            Layout.Add( new LayoutControl( ViewSolarVhf, LayoutRect.CSS.Percent ) { Track = 39 } );
 
             OnSizeChanged( null );
 

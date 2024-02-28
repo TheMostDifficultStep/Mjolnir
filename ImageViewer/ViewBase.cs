@@ -14,9 +14,11 @@ using Play.Edit;
 namespace Play.ImageViewer {
 	/// <remarks>
 	/// There are probably a few places I'm using this control, when I could probably use the
-	/// lighter weight LayoutImage class.
+	/// lighter weight LayoutImage class. And it turns out LayoutControl wraps a ImageViewSingle
+	/// nicely and might just want to go to that...
 	/// </remarks>
 	/// <seealso cref="LayoutImage"/>
+	/// <seealso cref="LayoutControl"/>
 	public class LayoutImageView : LayoutRect {
 		ImageViewSingle _oView;
 

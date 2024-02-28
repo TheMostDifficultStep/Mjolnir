@@ -2,6 +2,8 @@
 using System.IO;
 using System.Reflection;
 using System.Net.Http;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 using Play.Interfaces.Embedding; 
 using Play.ImageViewer;
@@ -35,16 +37,23 @@ namespace Play.Clock
 
 		readonly IPgBaseSite _oSiteBase;
 
+		public bool      IsDirty   => false; // TODO:  Update this if/when we can edit the source.
+		public IPgParent Parentage => _oSiteBase.Host;
+		public IPgParent Services  => Parentage.Services;
+
         public ImageSoloDoc SolarMap { get; }
         public ImageSoloDoc SolarVhf { get; }
 
 		protected static readonly HttpClient _oHttpClient = new HttpClient(); 
+		protected readonly IPgRoundRobinWork _oWorkPlace; 
+
 
         /// <summary>
         /// Document object for a little Morse Practice document.
         /// </summary>
         public SolarDoc( IPgBaseSite oSiteBase ) {
 			_oSiteBase  = oSiteBase ?? throw new ArgumentNullException();
+            _oWorkPlace = ((IPgScheduler)Services).CreateWorkPlace() ?? throw new InvalidOperationException( "Need the scheduler service in order to work. ^_^;" );
 
             SolarMap = new ImageSoloDoc( new MorseDocSlot( this ) );
             SolarVhf = new ImageSoloDoc( new MorseDocSlot( this ) );
@@ -65,35 +74,39 @@ namespace Play.Clock
 			_oSiteBase.LogError( strMessage, strDetails, fShow );
 		}
 
-		public bool      IsDirty   => false; // TODO:  Update this if/when we can edit the source.
-		public IPgParent Parentage => _oSiteBase.Host;
-		public IPgParent Services  => Parentage.Services;
+		protected static Type[] _rgStdErrors = { 
+			typeof( TargetInvocationException ),
+			typeof( System.Net.Sockets.SocketException ),
+			typeof( NullReferenceException ),
+			typeof( HttpRequestException ),
+			typeof( InvalidOperationException ),
+			typeof( TaskCanceledException ) };
 
-		/// <summary>
-		/// TODO: So technically I could call something on the view to refresh itself after the loads,
-		/// HOWEVER, each image's view knows it has loaded and I think should ask their containing
-		/// view to invalidat and thus reload. But that then doubles the work since here is the
-		/// only place we know it's an atomic update. Still thinking about this.
-		/// </summary>
-        public async void LoadSolar() {
+
+		public IEnumerator<int> GetPageLoader() {
+			Task<HttpResponseMessage> tskVHF = null;
+			Task<HttpResponseMessage> tskMap = null;
+
 			try {
-				using Stream oStreamVhf = await _oHttpClient.GetStreamAsync( @"http://www.hamqsl.com/solar101vhf.php" );
-				using Stream oStreamMap = await _oHttpClient.GetStreamAsync( @"http://www.hamqsl.com/solarmap.php" );
-
-				SolarVhf.Load( oStreamVhf );
-				SolarMap.Load( oStreamMap );
+				tskVHF = _oHttpClient.GetAsync( @"http://www.hamqsl.com/solar101vhf.php" );
+				tskMap = _oHttpClient.GetAsync( @"http://www.hamqsl.com/solarmap.php" );
 			} catch( Exception oEx ) {
-				Type[] rgErrors = { typeof( TargetInvocationException ),
-									typeof( System.Net.Sockets.SocketException ),
-									typeof( NullReferenceException ),
-									typeof( HttpRequestException ),
-									typeof( InvalidOperationException ),
-									typeof( System.Threading.Tasks.TaskCanceledException ) };
-				if( rgErrors.IsUnhandled( oEx ) )
+				if( _rgStdErrors.IsUnhandled( oEx ) )
 					throw;
-				LogError( "Net IO", "Problem handling http request" );
+				LogError( "Net IO", "Problem handling http request solar101" );
 			}
-        }
+			while( !tskVHF.IsCompleted )
+				yield return 100;
+
+			while( !tskMap.IsCompleted )
+				yield return 100;
+
+			SolarVhf.Load( tskVHF.Result.Content.ReadAsStream() );
+			SolarMap.Load( tskMap.Result.Content.ReadAsStream() );
+
+			tskMap.Dispose();
+			tskVHF.Dispose();
+		}
 
         /// <summary>
         /// Both InitNew and Load call this base initialization function.
@@ -111,8 +124,6 @@ namespace Play.Clock
 			if( !Initialize() ) 
 				return false;
 
-			LoadSolar();
-
 			return true;
 		}
 
@@ -120,9 +131,13 @@ namespace Play.Clock
 			if( !Initialize() ) 
 				return false;
 
-			LoadSolar();
+			_oWorkPlace.Queue( GetPageLoader(), 1 );
 
 			return true;
+		}
+
+		public void LoadSolar() {
+			_oWorkPlace.Queue( GetPageLoader(), 0 );
 		}
 
 		public bool Save(TextWriter oStream) {

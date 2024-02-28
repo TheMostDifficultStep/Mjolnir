@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections;
 using System.Windows.Forms;
 using System.Xml;
+using System.Reflection;
 
 using SkiaSharp;
 
@@ -12,7 +13,6 @@ using Play.Edit;
 using Play.Forms;
 using Play.Parse;
 using Play.Drawing;
-using System.Reflection;
 
 namespace Play.MorsePractice {
 	/// <summary>
