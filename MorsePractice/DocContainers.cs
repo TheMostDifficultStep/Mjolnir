@@ -48,7 +48,7 @@ namespace Play.MorsePractice {
         readonly protected IPgRoundRobinWork _oWorkPlace; 
 
         public DocLogProperties( IPgBaseSite oSiteBase ) : base( oSiteBase ) {
-            IPgScheduler oSchedular = (IPgScheduler)_oSiteBase.Host.Services;
+            IPgScheduler oSchedular = (IPgScheduler)Services;
 
             _oWorkPlace = oSchedular.CreateWorkPlace() ?? throw new InvalidOperationException( "Need the scheduler service in order to work. ^_^;" );
         }

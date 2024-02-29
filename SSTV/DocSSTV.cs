@@ -63,6 +63,7 @@ namespace Play.SSTV {
         }
 
         readonly ParseFormText _oParser;
+        readonly protected IPgRoundRobinWork _oWorkPlace; 
 
         public void CheckParse() {
             //_oParser.Parse();
@@ -70,6 +71,9 @@ namespace Play.SSTV {
 
         public SSTVProperties( IPgRoundRobinWork oWorker, IPgBaseSite oSiteBase ) : base( oSiteBase ) {
             //_oParser = new ParseFormText( oWorker, PropertyDoc, "text" );
+            IPgScheduler oSchedular = (IPgScheduler)Services;
+
+            _oWorkPlace = oSchedular.CreateWorkPlace() ?? throw new InvalidOperationException( "Need the scheduler service in order to work. ^_^;" );
         }
 
         public override void Dispose() {
@@ -201,6 +205,25 @@ namespace Play.SSTV {
             }
 
             return double.Parse( strProperty );
+        }
+
+        /// <summary>
+        /// This is ok to get us off the ground but. We're back to 
+        /// the case where the parse keeps getting reset when the user
+        /// is transmitting an image. So you can't type a callsign and
+        /// get it parsed until the image is finished downloading.
+        /// </summary>
+        public override void DoParse() {
+            _oWorkPlace.Queue( GetParseEnum(), iWaitMS:2000 );
+        }
+
+        public IEnumerator<int> GetParseEnum() {
+            RenumberAndSumate();
+            ParseColumn      ( 1 );
+
+            Raise_DocFormatted();
+
+            yield return 0;
         }
     }
 
