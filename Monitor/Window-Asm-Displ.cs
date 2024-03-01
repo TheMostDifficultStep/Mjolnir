@@ -27,16 +27,6 @@ namespace Monitor {
             base( oSiteView, p_oDocument.Doc_Asm ) 
         {
             _oMonDoc = p_oDocument;
-
-            _rgLayout.Add( new LayoutRect( LayoutRect.CSS.Percent, 20, 1L ) );
-            _rgLayout.Add( new LayoutRect( LayoutRect.CSS.Percent, 30, 1L ) );
-            _rgLayout.Add( new LayoutRect( LayoutRect.CSS.None ) );
-
-            // Need to figure out how to match the columns of the Window vs Document...
-            // TODO: I'm going to add the columns to the cache site so I can init the later instead of now.
-            _rgColumns.Add( _rgLayout.Item( 1 ) );
-            _rgColumns.Add( _rgLayout.Item( 2 ) );
-            _rgColumns.Add( _rgLayout.Item( 3 ) );
         }
 
         public bool Execute(Guid sGuid) {
@@ -77,9 +67,25 @@ namespace Monitor {
             }
         }
 
+        /// <remarks>
+        /// I want to push layout to the init phase so we could potentially
+        /// load our layout from a file! ^_^
+        /// </remarks>
         protected override bool Initialize() {
             if( !base.Initialize() )
                 return false;
+
+            _rgLayout.Add( new LayoutRect( LayoutRect.CSS.Percent, 20, 1L ) ); // labels
+            _rgLayout.Add( new LayoutRect( LayoutRect.CSS.Percent, 10, 1L ) ); // instr
+            _rgLayout.Add( new LayoutRect( LayoutRect.CSS.Percent, 20, 1L ) ); // params
+            _rgLayout.Add( new LayoutRect( LayoutRect.CSS.None ) );            // comments
+
+            // Need to figure out how to match the columns of the Window vs Document...
+            // TODO: I'm going to add the columns to the cache site so I can init the later instead of now.
+            _rgColumns.Add( _rgLayout.Item( 1 ) );
+            _rgColumns.Add( _rgLayout.Item( 2 ) );
+            _rgColumns.Add( _rgLayout.Item( 3 ) );
+            _rgColumns.Add( _rgLayout.Item( 4 ) );
 
             HyperLinks.Add( "CpuJump", OnCpuJump );
 

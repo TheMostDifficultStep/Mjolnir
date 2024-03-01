@@ -2150,7 +2150,9 @@ namespace Mjolnir {
                                  typeof( ArgumentNullException ),
                                  typeof( NullReferenceException ),
 								 typeof( InvalidCastException ),
-                                 typeof( InvalidOperationException ) };
+                                 typeof( InvalidOperationException ),
+                                 typeof( IndexOutOfRangeException ),
+                                 typeof( ArgumentOutOfRangeException ) };
                 if( rgErr.IsUnhandled( oEx ) ) 
 					throw;
 

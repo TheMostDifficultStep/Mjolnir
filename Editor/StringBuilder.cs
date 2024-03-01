@@ -112,17 +112,17 @@ namespace Play.Edit {
                 spInsert = string.Empty;
 
             try {
-                if( iDelOff + iDelLen > _rgValue.Length )
+                if( iDelOff + iDelLen > Length )
                     return false;
 
                 int iDiff = spInsert.Length - iDelLen;          // > 0 means we're adding stuff.
 
-                if( iDiff > 0 && Length + iDiff >= Capacity ) { // bump up the Capacity if needed. 
-                    Capacity += iDiff;
+                if( iDiff >= 0 && Length + iDiff + 1 > Capacity ) { // bump up the Capacity if needed. 
+                    Capacity = Length + iDiff + 1;
                 }
                 int iPush = iDelOff + iDelLen;                  // Shift everything past this index.
 
-                if( iDiff != 0 ) {
+                if( iDiff != 0 && iPush < _iLength ) {
                     Array.ConstrainedCopy(      sourceArray:_rgValue, iPush, 
                                            destinationArray:_rgValue, iPush+iDiff, 
                                            _iLength - iPush );
@@ -131,6 +131,7 @@ namespace Play.Edit {
                     _rgValue[iDelOff++] = c;
                 }
                 _iLength += iDiff;
+                _rgValue[_iLength] = (char)0;
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( ArgumentNullException ),
                                     typeof( RankException ),
@@ -138,7 +139,8 @@ namespace Play.Edit {
                                     typeof( InvalidCastException ),
                                     typeof( ArgumentOutOfRangeException ),
                                     typeof( ArgumentException ),
-                                    typeof( NullReferenceException ) };
+                                    typeof( NullReferenceException ),
+                                    typeof( IndexOutOfRangeException ) };
                 if( rgErrors.IsUnhandled( oEx ) )
                     throw;
 
