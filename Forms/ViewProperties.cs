@@ -94,7 +94,7 @@ namespace Play.Forms {
             // This certainly does not belong on the base form, but here
             // it is a little more reasonable.
             HyperLinks.Add( "callsign", OnCallSign );
-            HyperLinks.Add( "URL", OnURL );
+            HyperLinks.Add( "url",      OnURL );
 
             return true;
         }

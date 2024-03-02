@@ -333,6 +333,13 @@ namespace Play.Edit {
             _oSiteView.LogError( "Multi Column Window", strMessage, fShow );
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <exception cref="ObjectDisposedException" />
+        /// <exception cref="FileNotFoundException" />
+        /// <exception cref="NullReferenceException" />
+        /// <exception cref="System.ComponentModel.Win32Exception" />
         protected void BrowserLink( string strUrl ) {
             try {
                 ProcessStartInfo psi = new ProcessStartInfo {
