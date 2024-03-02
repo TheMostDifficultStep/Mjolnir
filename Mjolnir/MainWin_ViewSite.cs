@@ -478,7 +478,7 @@ namespace Mjolnir {
         public virtual void Notify( ShellNotify eEvent ) {
 			switch( eEvent ) {
 				case ShellNotify.BannerChanged:
-					UpdateTitle();
+					// UpdateTitle();
                     // This updates all the view banners in the view list and calls SetTitle()
                     _oHost.UpdateAllTitlesFor( this._oDocSite ); 
                     _oHost.Tabs.Invalidate();

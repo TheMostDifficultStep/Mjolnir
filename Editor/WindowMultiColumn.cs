@@ -433,6 +433,11 @@ namespace Play.Edit {
             public int  Length { get ; set ; } = 0;
         }
 
+        /// <summary>
+        /// TODO: This is for the system text find dialog. However I notice
+        /// I'm not starting at the cursor line but just at the top
+        /// of the document. Probably should fix that...
+        /// </summary>
         public IEnumerator<ILineRange> GetEnumerator() {
             SimpleRange oRange = new SimpleRange();
 

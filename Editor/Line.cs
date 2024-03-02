@@ -331,7 +331,7 @@ namespace Play.Edit {
         [Obsolete]public virtual bool TryInsert( int iIndex, char cChar ) { return( false ); }
         [Obsolete]public virtual bool TryInsert( int iDestOffset, ReadOnlySpan<char> strSource, int iSrcIndex, int iSrcLength ) { return( false ); }
         [Obsolete]public virtual bool TryDelete( int iIndex, int iLength, out string strRemoved ) { strRemoved = string.Empty; return( false ); }
-        [Obsolete]public virtual bool TryAppend( string strValue ) { return TryInsert( ElementCount, strValue, 0, strValue.Length ); }
+        public virtual bool TryAppend( string strValue ) { return TryReplace( ElementCount, 0, strValue ); }
 
         public abstract bool TryReplace( int iStart, int iLength, ReadOnlySpan<char> spReplacements );
         // We do this alot, so make it simple.
