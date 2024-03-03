@@ -145,6 +145,8 @@ namespace Play.MorsePractice {
 		public bool Execute(Guid sGuid) {
 			switch( sGuid ) {
 				case var a when sGuid == GlobalCommands.Play:
+					_oDocLog.Props.ValueUpdate( (int)DocLogProperties.Names.LongDate,
+												DateTime.Now.ToLongDateString () );
 					_oDocLog.Props.ValueUpdate( (int)DocLogProperties.Names.TimeStart, 
 						                        DateTime.Now.ToShortTimeString() );
 					break;

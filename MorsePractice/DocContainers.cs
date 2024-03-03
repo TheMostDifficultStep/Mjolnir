@@ -37,7 +37,6 @@ namespace Play.MorsePractice {
 
     public class DocLogProperties : DocProperties, IDisposable {
         public enum Names : int {
-            NetDate,
             LongDate,
             TimeStart,
             TimeEnd,
@@ -67,16 +66,12 @@ namespace Play.MorsePractice {
                 CreatePropertyPair( eName.ToString() );
             }
 
-            LabelUpdate( (int)Names.NetDate,      "Net Date" );
             LabelUpdate( (int)Names.LongDate,     "Long Date" );
             LabelUpdate( (int)Names.TimeStart,    "Start Time" );
             LabelUpdate( (int)Names.TimeEnd,      "End Time" );
             LabelUpdate( (int)Names.Operator_Cnt, "Operators", SKColors.LightGreen );
             LabelUpdate( (int)Names.Voter_Scope,  "Voter Scope" );
 
-
-            ValueUpdate( (int)Names.NetDate,      DateTime.Now.ToShortDateString() );
-            ValueUpdate( (int)Names.LongDate,     DateTime.Now.ToLongDateString () );
             ValueUpdate( (int)Names.Voter_Scope,  @"http://voter.psrg.org/supermon/voterlite.php?node=2462" );
 
             return true;
