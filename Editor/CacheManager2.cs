@@ -820,17 +820,31 @@ namespace Play.Edit {
         ///                         where the mouse clicked.</param>
         /// <param name="oCaret">This object line offset is updated to the closest line offset.</param>
         public IPgCacheMeasures GlyphPointToRange( ref EditWindow2.WorldLocator oWorldLoc, ILineRange oCaret ) {
-            foreach( CacheRow oRow in _rgOldCache ) {
-                if( oRow.Top    <= oWorldLoc.Y &&
-                    oRow.Bottom >= oWorldLoc.Y ) 
-                {
-                    IPgCacheMeasures oCache = oRow.CacheList[oWorldLoc._iColumn];
+            try {
+                foreach( CacheRow oRow in _rgOldCache ) {
+                    if( oRow.Top    <= oWorldLoc.Y &&
+                        oRow.Bottom >= oWorldLoc.Y ) 
+                    {
+                        // Just bail on the first one. Something is up...
+                        if( oWorldLoc._iColumn < 0 || 
+                            oWorldLoc._iColumn >= oRow.CacheList.Count )
+                            return null;
 
-                    oCaret.Line   = oRow.Line;
-                    oCaret.Offset = oCache.GlyphPointToOffset(oRow.Top, oWorldLoc._pntLocation );
+                        IPgCacheMeasures oCache = oRow.CacheList[oWorldLoc._iColumn];
 
-                    return oCache;
+                        oCaret.Line   = oRow.Line;
+                        oCaret.Offset = oCache.GlyphPointToOffset(oRow.Top, oWorldLoc._pntLocation );
+
+                        return oCache;
+                    }
                 }
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( ArgumentOutOfRangeException ),
+                                    typeof( ArgumentException ),
+                                    typeof( NullReferenceException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
+                LogError( "CacheManager2.GlyphPointToRange exception" );
             }
 
             return null;
