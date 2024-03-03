@@ -134,6 +134,7 @@ namespace Monitor {
                                            this );
 
                 oDeCompile.Dissassemble();
+                RenumberAndSumate();
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( NullReferenceException ),
                                     typeof( ArgumentNullException ) };
@@ -173,7 +174,7 @@ namespace Monitor {
             // see how this turns out. We can get the memory size needed by
             // reading the first "ld sp, nn" instruction. But fake it for now.
             byte[] rgRWRam = new byte[4096];
-            int    iCount  = 0;
+            int    iCount  = 0x100;
 
             for( int iByte = oStream.ReadByte();
                  iByte != -1;

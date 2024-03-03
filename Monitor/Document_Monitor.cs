@@ -825,7 +825,8 @@ namespace Monitor {
             Z80Instr? sInstr;
              
             // BUG: hard coded for "tinybasic", just an experiment
-            if( iAddr >= 0x6A1 || ( iAddr >= 0xa6 && iAddr < 0xba ) ) {
+            //if( iAddr >= 0x6A1 || ( iAddr >= 0xa6 && iAddr < 0xba ) ) {
+            if( iAddr >= 0x196 ) {
                 sInstr = new Z80Instr( _rgRam[iAddr ] );
             } else {
                 sInstr = _oZ80Info.FindMain( _rgRam[iAddr] );

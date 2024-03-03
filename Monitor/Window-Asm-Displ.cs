@@ -56,7 +56,10 @@ namespace Monitor {
                 // Use a bubble search in the future...
                 foreach( AsmRow oTry in _oDocEnum ) {
                     if( oTry.AddressMap == iJumpAddr ) {
-                        _oCacheMan.SetCaretPositionAndScroll( oTry.At, iColumn, 0 );
+                        // Jump to column 1. It will have a value even if it
+                        // is a data line.
+                        _oCacheMan.SetCaretPositionAndScroll( oTry.At, 1, 0 );
+                        break;
                     }
                 }
             } catch( Exception oEx ) {
