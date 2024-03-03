@@ -321,13 +321,24 @@ namespace Play.MorsePractice {
 			_oSiteBase.LogError( strMessage, strDetails, fShow );
 		}
 
-        public bool InitNew() {
-			if( !Notes.InitNew() )
-				return false;
-			if( !Log  .InitNew() )
-				return false;
+        public bool InitCommon() {
+            if( !Notes.InitNew() )
+                return false;
             if( !Props.InitNew() )
                 return false;
+
+			Props.ValueUpdate( (int)DocLogProperties.Names.LongDate,
+							   DateTime.Now.ToLongDateString() );
+
+            return true;
+        }
+
+        public bool InitNew() {
+            if( !InitCommon() )
+                return false;
+
+			if( !Log.InitNew() )
+				return false;
 
 			return true;
 		}
@@ -406,9 +417,7 @@ namespace Play.MorsePractice {
               typeof( XmlException ) };
 
 		public bool Load(TextReader oStream) {
-            if( !Notes.InitNew() )
-                return false;
-            if( !Props.InitNew() )
+            if( !InitCommon() ) 
                 return false;
 
             if( !LoadLogXml( oStream ) ) 

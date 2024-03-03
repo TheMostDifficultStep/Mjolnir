@@ -70,6 +70,15 @@ namespace Play.MorsePractice {
 		readonly IPgViewSite _oSiteView;
 		readonly DocNetHost  _oDocLog;
 		readonly LayoutStack _rgLayout;
+				 bool        _fDisposed = false;
+
+
+		public IPgParent Parentage => _oSiteView.Host;
+		public IPgParent Services  => Parentage.Services;
+		public bool      IsDirty   => _oDocLog.Log.IsDirty || _oDocLog.Notes.IsDirty;
+		public Guid      Catagory  => ViewCategory;
+		public string    Banner    => string.IsNullOrEmpty( _oDocLog.FileName ) ? "New Net Logger" : _oDocLog.FileName;
+		public SKBitmap  Icon      { get; protected set; }
 
 		EditWindow2 ViewNotes{ get; }
 		ViewNetLog  ViewList { get; }
@@ -91,8 +100,6 @@ namespace Play.MorsePractice {
 							};
 		}
 
-		bool _fDisposed = false;
-
 		protected override void Dispose( bool disposing ) {
 			if( disposing && !_fDisposed ) {
 				ViewList .Dispose();
@@ -103,13 +110,6 @@ namespace Play.MorsePractice {
 
 			base.Dispose( disposing );
 		}
-
-		public IPgParent Parentage => _oSiteView.Host;
-		public IPgParent Services  => Parentage.Services;
-		public bool      IsDirty   => _oDocLog.Log.IsDirty || _oDocLog.Notes.IsDirty;
-		public Guid      Catagory  => ViewCategory;
-		public string    Banner    => string.IsNullOrEmpty( _oDocLog.FileName ) ? "New Net Logger" : _oDocLog.FileName;
-		public SKBitmap  Icon      { get; protected set; }
 
         protected override void OnSizeChanged(EventArgs e) {
 			base.OnSizeChanged(e);
