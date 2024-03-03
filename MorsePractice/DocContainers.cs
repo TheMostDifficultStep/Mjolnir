@@ -426,6 +426,14 @@ namespace Play.MorsePractice {
             try {
                 if( xmlDoc.CreateElement( "Root" ) is XmlElement xmlRoot ) {
                     xmlDoc.AppendChild( xmlRoot );
+                    if( xmlDoc.CreateElement( "TimeStart" ) is XmlElement xmlStartTime ) {
+                        xmlStartTime.InnerText = Props.ValueAsStr( (int)DocLogProperties.Names.TimeStart );
+                        xmlRoot.AppendChild( xmlStartTime );
+                    }
+                    if( xmlDoc.CreateElement( "TimeEnd" ) is XmlElement xmlEndTime ) {
+                        xmlEndTime.InnerText = Props.ValueAsStr( (int)DocLogProperties.Names.TimeEnd );
+                        xmlRoot.AppendChild( xmlEndTime );
+                    }
                     if( xmlDoc.CreateElement( "Notes" ) is XmlElement xmlNotes ) {
                         StringBuilder sbBuilder = new();
 
@@ -452,14 +460,6 @@ namespace Play.MorsePractice {
                         }
                         xmlLog.InnerText = sbBuilder.ToString();
                         xmlRoot.AppendChild( xmlLog );
-                    }
-                    if( xmlDoc.CreateElement( "TimeStart" ) is XmlElement xmlStartTime ) {
-                        xmlStartTime.InnerText = Props.ValueAsStr( (int)DocLogProperties.Names.TimeStart );
-                        xmlRoot.AppendChild( xmlStartTime );
-                    }
-                    if( xmlDoc.CreateElement( "TimeEnd" ) is XmlElement xmlEndTime ) {
-                        xmlEndTime.InnerText = Props.ValueAsStr( (int)DocLogProperties.Names.TimeStart );
-                        xmlRoot.AppendChild( xmlEndTime );
                     }
                 }
 
