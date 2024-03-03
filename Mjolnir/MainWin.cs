@@ -1038,7 +1038,7 @@ namespace Mjolnir {
             EditorInitNewShow( ".mysstv" );
         }
         public void OnDocNewMonitor( object sender, EventArgs e ) {
-            EditorInitNewShow( ".asm" );
+            EditorInitNewShow( ".asmprg" );
         }
 
         public void OnDocOpen( object sender, EventArgs e ) {

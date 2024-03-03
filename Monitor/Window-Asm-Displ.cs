@@ -6,7 +6,7 @@ using Play.Rectangles;
 using SkiaSharp;
 
 namespace Monitor {
-    internal class WindowProgramDisplay : 
+    internal class ViewProgramDisplay : 
         WindowMultiColumn,
         IPgCommandView
     {
@@ -19,7 +19,7 @@ namespace Monitor {
         public Guid Catagory => GUID;
 
         readonly Document_Monitor _oMonDoc;
-        public WindowProgramDisplay( 
+        public ViewProgramDisplay( 
             IPgViewSite      oSiteView, 
             Document_Monitor p_oDocument, 
             bool             fReadOnly   = false 

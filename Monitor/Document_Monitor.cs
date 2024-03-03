@@ -10,6 +10,7 @@ using Play.Parse;
 using Play.Forms;
 using System.Xml;
 using System;
+using System.Security;
 
 namespace Monitor {
 
@@ -393,6 +394,27 @@ namespace Monitor {
         }
     }
 
+    public class MonitorProperties : DocProperties {
+		public enum Labels : int {
+			BinaryFile = 0,
+			CommentsFile
+		}
+
+        public MonitorProperties(IPgBaseSite oSiteBase) : base(oSiteBase) {
+        }
+
+        public override bool InitNew() {
+            if( !base.InitNew() )
+				return false;
+
+            foreach( Labels eLabel in Enum.GetValues(typeof(Labels))) {
+				CreatePropertyPair( eLabel.ToString() );
+            }
+
+			return true;
+        }
+    }
+
     public class Document_Monitor :
         IPgParent,
 		IDisposable,
@@ -403,9 +425,13 @@ namespace Monitor {
         public IPgParent Parentage => _oBaseSite.Host;
         public IPgParent Services  => Parentage.Services;
 
-        public AsmEditor2 Doc_Asm   { get; }
-        public Editor     Doc_Displ { get; }
-        public Editor     Doc_Outl  { get; }
+        // Move these to doc prop's later...
+        protected string _strBinaryFileName   = string.Empty;
+        protected string _strCommentsFileName = string.Empty;
+
+        public AsmEditor2  Doc_Asm   { get; }
+        public DataSegmDoc Doc_Segm { get; }
+        public Editor      Doc_Outl  { get; }
 
         public bool IsDirty => Doc_Asm.IsDirty;
 
@@ -432,9 +458,9 @@ namespace Monitor {
         public Document_Monitor( IPgBaseSite oBaseSite ) {
             _oBaseSite = oBaseSite ?? throw new ArgumentNullException();
 
-            Doc_Asm   = new ( new DocSlot( this ) );
-            Doc_Displ = new ( new DocSlot( this ) );
-            Doc_Outl  = new ( new DocSlot( this ) );
+            Doc_Asm  = new ( new DocSlot( this ) );
+            Doc_Segm = new ( new DocSlot( this ) );
+            Doc_Outl = new ( new DocSlot( this ) );
         }
 
         protected void LogError( string strLabel, string strMessage ) {
@@ -497,24 +523,11 @@ namespace Monitor {
 
             return true;
         }
-        public bool Load(TextReader oStream) {
-            if( !Doc_Asm.Load( oStream ) )
-                return false;
-
-            if( !Doc_Displ.InitNew() )
-                return false;
-
-            if( !Doc_Outl.InitNew() )
-                return false;
-
-            return true;
-        }
-
         public bool InitNew() {
             if( !Doc_Asm.InitNew() )
                 return false;
 
-            if( !Doc_Displ.InitNew() )
+            if( !Doc_Segm.InitNew() )
                 return false;
 
             if( !Doc_Outl.InitNew() )
@@ -526,7 +539,137 @@ namespace Monitor {
         }
 
         public bool Save(TextWriter oStream) {
-            return Doc_Asm.Save( oStream );
+            try {
+                XmlDocument xmlDoc      = new XmlDocument();
+                XmlElement  xmlRoot     = xmlDoc.CreateElement( "root" );
+                XmlElement  xmlBinary   = xmlDoc.CreateElement( "binary" );
+                XmlElement  xmlComments = xmlDoc.CreateElement( "documenting" );
+                XmlElement  xmlDataSeg  = xmlDoc.CreateElement( "datasegments" );
+
+                xmlDoc .AppendChild( xmlRoot );
+                xmlRoot.AppendChild( xmlBinary );
+                xmlRoot.AppendChild( xmlComments );
+
+                xmlBinary.InnerText = _strBinaryFileName;
+
+                foreach( Row oNote in Doc_Asm ) {
+                    if( oNote is AsmRow oInstr &&
+                        ( // oInstr.Label  .ElementCount > 0 ||
+                          oInstr.Comment.ElementCount > 0    ) ) 
+                    {
+                        XmlElement xmlNote = xmlDoc.CreateElement( "note" );
+
+                        xmlNote.SetAttribute( "addr", oInstr.AddressMap.ToString() );
+                      //xmlNote.SetAttribute( "lbl",  oInstr.Label.     ToString() );
+                        xmlNote.InnerText = oInstr.Comment.ToString();
+
+                        xmlComments.AppendChild( xmlNote );
+                    }
+                }
+
+                xmlDoc.Save( oStream );
+                Doc_Asm.IsDirty = false;
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( NullReferenceException ),
+                                    typeof( IOException ),
+                                    typeof( OutOfMemoryException ),
+                                    typeof( ObjectDisposedException ),
+                                    typeof( ArgumentOutOfRangeException ),
+                                    typeof( XmlException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
+
+                return false;
+            }
+
+            return true;
+        }
+
+		public static readonly Type[] _rgFileErrors = { 
+					typeof( ArgumentNullException ),
+					typeof( ArgumentException ),
+					typeof( NullReferenceException ),
+					typeof( DirectoryNotFoundException ),
+					typeof( IOException ),
+					typeof( UnauthorizedAccessException ),
+					typeof( PathTooLongException ),
+					typeof( SecurityException ),
+                    typeof( InvalidOperationException ),
+                    typeof( NotSupportedException ),
+                    typeof( FileNotFoundException ) };
+
+        public bool LoadBinaryFile( string strFileName ) {
+            if( string.IsNullOrEmpty( strFileName ) )
+                return false;
+
+                  Encoding   utf8NoBom = new UTF8Encoding(false);
+                  FileInfo   oFile     = new FileInfo(strFileName);
+            using FileStream oStream   = oFile.OpenRead();
+
+            try {
+				_strBinaryFileName = oFile.FullName; 
+
+                if( !Doc_Asm.Load( oStream, Doc_Outl.CreateManipulator() ) ) {
+                    return false;
+                }
+
+                return true;
+			} catch( Exception oEx ) {
+				if( _rgFileErrors.IsUnhandled( oEx ) )
+					throw;
+
+                LogError( "asmprg", "Died trying to binary file : " + strFileName );
+            }
+            return false;
+        }
+
+        public bool Load( TextReader oReader ) {
+            if( !Doc_Outl.InitNew() ) // do this first. Dissassembler needs it.
+                return false;
+
+            try {
+                XmlDocument xmlDoc = new XmlDocument();
+                xmlDoc.Load( oReader );
+
+                if( xmlDoc.SelectSingleNode( "root" ) is XmlNode xmlRoot) {
+                    if( xmlRoot.SelectSingleNode( "binary" ) is XmlElement xmlBinary ) {
+                        if( !LoadBinaryFile( xmlBinary.InnerText ) )
+                            return false;
+                    }
+                    if( xmlRoot.SelectNodes( "datasegments" ) is XmlNodeList rgxCodeData ) {
+                        if( !Doc_Segm.Load( rgxCodeData ) )
+                            return false;
+                    }
+                    foreach( XmlNode xmlNote in xmlRoot.SelectNodes( "documenting/note" ) ) {
+                        if( xmlNote is XmlElement xmlElem ) {
+                            if( xmlElem.GetAttribute( "addr" ) is string strAddr ) {
+                                if( int.TryParse( strAddr, out int iAddr )) {
+                                    if( Doc_Asm.FindRowAtAddress( iAddr, out AsmRow oAsm ) ) {
+                                        //if( xmlElem.GetAttribute( "lbl" ) is string strLabel ) {
+                                        //    oAsm[0].TryReplace( strLabel );
+                                        //}
+                                        if( xmlElem.InnerText is string strComment ) {
+                                            oAsm[3].TryReplace( strComment );
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( IOException ),
+                                    typeof( OutOfMemoryException ),
+                                    typeof( ObjectDisposedException ),
+                                    typeof( ArgumentOutOfRangeException ),
+                                    typeof( ArgumentException ),
+                                    typeof( XmlException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
+
+                return false;
+            }
+            return true;
         }
 
         public void Dissassemble() {
@@ -595,6 +738,9 @@ namespace Monitor {
             }
         }
 
+        /// <summary>
+        /// Bug: No way to report an error as yet... :-/
+        /// </summary>
         protected void ProcessInstruction(Z80Instr sInstr, int iAddr ) {
             try {
                 _sbBuilder.Clear();
@@ -666,10 +812,12 @@ namespace Monitor {
                                     typeof( ArgumentException ),
                                     typeof( ArgumentOutOfRangeException ),
                                     typeof( FormatException ),
-                                    typeof( OverflowException ) };
+                                    typeof( OverflowException ),
+                                    typeof( InvalidDataException ) };
                 if( rgErrors.IsUnhandled( oEx ) )
                     throw;
 
+                
             }
         }
 
@@ -766,313 +914,4 @@ namespace Monitor {
         }
     }
 
-    public class MonitorProperties : DocProperties {
-		public enum Labels : int {
-			BinaryFile = 0,
-			CommentsFile
-		}
-
-        public MonitorProperties(IPgBaseSite oSiteBase) : base(oSiteBase) {
-        }
-
-        public override bool InitNew() {
-            if( !base.InitNew() )
-				return false;
-
-            foreach( Labels eLabel in Enum.GetValues(typeof(Labels))) {
-				CreatePropertyPair( eLabel.ToString() );
-            }
-
-			return true;
-        }
-    }
-
-    public class AsmRow : Row {
-        public AsmRow() {
-            _rgColumns = new Line[3];
-        }
-
-        public AsmRow( string strAssembly, string strParams ) {
-            _rgColumns    = new Line[4];
-            _rgColumns[0] = new TextLine( 0, string.Empty ); // label
-            _rgColumns[1] = new TextLine( 1, strAssembly );  // instr
-            _rgColumns[2] = new TextLine( 2, strParams );    // params
-            _rgColumns[3] = new TextLine( 2, string.Empty ); // comments
-        }
-
-        public int AddressMap { get; set; } = -1;
-    }
-
-    public class AsmEditor2 : EditMultiColumn,
-        IPgSave<TextWriter>,
-        IPgLoad<TextReader>
-    {
-        public    MonitorProperties _docProperties;
-        protected Z80Memory?        _rgMemory;
-        protected Z80Definitions    _rgZ80Definitions;
-
-        // Move these to doc prop's later...
-        protected string _strBinaryFileName   = string.Empty;
-        protected string _strCommentsFileName = string.Empty;
-
-        public enum AsmColumns {
-            labels,
-            assembly,
-            comments
-        }
-
-		public class DocSlot : 
-			IPgBaseSite
-		{
-			readonly AsmEditor2 _oDoc;
-
-			public DocSlot( AsmEditor2 oDoc ) {
-				_oDoc = oDoc ?? throw new ArgumentNullException();
-			}
-
-			public void LogError( string strMessage, string strDetails, bool fShow=true ) {
-				_oDoc.LogError( strDetails );
-			}
-
-			public void Notify( ShellNotify eEvent ) {
-			}
-
-			public IPgParent Host => _oDoc;
-		}
-
-        public AsmEditor2( IPgBaseSite oSiteBase ) : base( oSiteBase ) {
-            _docProperties    = new MonitorProperties(new DocSlot(this));
-            _rgZ80Definitions = new Z80Definitions();
-        }
-
-        /// <summary>
-        /// Move this to the EditMultiColumn later...
-        /// </summary>
-        public class Hacker : IDisposable {
-            AsmEditor2 _oDoc;
-
-            public Hacker( AsmEditor2 oDoc ) {
-                _oDoc = oDoc;
-            }
-
-            public int RowIndex { get; set; } = 0;
-
-            public void Dispose() {
-                for( int i=0; i<_oDoc.ElementCount; ++i ) {
-                    _oDoc[i].At = i;
-                }
-                //_oDoc.Raise_EveryRowEvent( DOCUMENTEVENTS.MODIFIED );
-            }
-
-            public void InsertRow( int iIndex, Row oDocRow ) {
-                if( RowIndex < 0 )
-                    throw new IndexOutOfRangeException( "Location must not be negative" );
-                if( RowIndex > _oDoc.ElementCount )
-                    throw new IndexOutOfRangeException( "Location must not be greater element count" );
-
-                _oDoc._rgRows.Insert( iIndex, oDocRow );
-            }
-
-            public void Delete() {
-                _oDoc._rgRows.RemoveAt( RowIndex );
-            }
-
-            /// <summary>
-            /// Put this in a subclass later.
-            /// </summary>
-            public Row Insert( int iIndex, string strInstr, string strParam ) {
-                AsmRow oAsmRow = new AsmRow( strInstr, strParam );
-
-                InsertRow( iIndex, oAsmRow );
-
-                return oAsmRow;
-            }
-
-            public Row Append( string strInstr, string strParam = null ) {
-                AsmRow oAsmRow = new AsmRow( strInstr, strParam ?? string.Empty );
-
-                InsertRow( _oDoc._rgRows.Count, oAsmRow );
-
-                return oAsmRow;
-            }
-        }
-
-        public void Dissassemble( Editor.Manipulator oBulkOutl ) {
-            if( _rgMemory == null ) {
-                LogError( "Load a binary first." );
-                return;
-            }
-
-            try {
-                using Hacker oBulkAsm = new Hacker( this );
-
-                using Z80Dissambler oDeCompile = 
-                        new Z80Dissambler( _rgZ80Definitions, 
-                                           _rgMemory,
-                                           oBulkAsm,
-                                           oBulkOutl,
-                                           this );
-
-                oDeCompile.Dissassemble();
-            } catch( Exception oEx ) {
-                Type[] rgErrors = { typeof( NullReferenceException ),
-                                    typeof( ArgumentNullException ) };
-                if( rgErrors.IsUnhandled( oEx ) )
-                    throw;
-
-                LogError( "Null Ref Exception in Dissassembler." );
-            }
-        }
-
-        public bool InitNew() {
-            if( !_docProperties.InitNew() )
-                return false;
-            
-            if( !LoadTiny() ) 
-                return false;
-
-            //Raise_EveryRowEvent( DOCUMENTEVENTS.LOADED );
-
-            return true;
-        }
-
-        /// <summary>
-        /// This is an unusual document in that it is simply an XML
-        /// file with pointers to the actual files we are interested in:
-        /// 1) The binary which we will dissassemble.
-        /// 2) The source comments we are adding.
-        /// 3) Markers for the code/data portions of the binary file.
-        /// </summary>
-        /// <param name="oStream"></param>
-        /// <returns></returns>
-        public bool Load(TextReader oStream) {
-            if( !_docProperties.InitNew() )
-                return false;
-
-            try {
-                XmlDocument xmlDoc = new XmlDocument();
-                xmlDoc.Load(oStream);
-
-                if( xmlDoc.SelectSingleNode( "root" ) is XmlNode xmlRoot) {
-                    if( xmlRoot.SelectSingleNode( "binary" ) is XmlElement xmlBinary ) {
-                        _strBinaryFileName   = xmlBinary.InnerText;
-                    }
-                    if( xmlRoot.SelectSingleNode( "comments" ) is XmlElement xmlComments ) {
-                        _strCommentsFileName = xmlComments.InnerText;
-                    }
-                    // Note: This will cause rows to come and go. Might need to
-                    //       put extra effort into maintaining comments.
-                    if( xmlRoot.SelectNodes( "segments" ) is XmlNodeList rgxCodeData ) {
-                        foreach( XmlNode xmlNode in rgxCodeData ) {
-                            if( xmlNode is XmlElement xmlElem ) {
-                                string strAddr = xmlElem.GetAttribute( "Addr" );
-                                string strType = xmlElem.GetAttribute( "Type" ); // Code/Data
-                            }
-                        }
-                    }
-                }
-            } catch( Exception oEx ) {
-                Type[] rgErrors = { typeof( IOException ),
-                                    typeof( OutOfMemoryException ),
-                                    typeof( ObjectDisposedException ),
-                                    typeof( ArgumentOutOfRangeException ),
-                                    typeof( XmlException ) };
-                if( rgErrors.IsUnhandled( oEx ) )
-                    throw;
-
-                return false;
-            }
-
-            // Pass the file name in the future.
-            if( !LoadTiny() )
-                return false;
-
-            //Raise_EveryRowEvent( DOCUMENTEVENTS.LOADED );
-
-            //Dissassemble( );
-
-            return true;
-        }
-
-        public bool Save(TextWriter oStream) {
-            try {
-                XmlDocument xmlDoc      = new XmlDocument();
-                XmlElement  xmlRoot     = xmlDoc.CreateElement( "root" );
-                XmlElement  xmlBinary   = xmlDoc.CreateElement( "binary" );
-                XmlElement  xmlComments = xmlDoc.CreateElement( "comments" );
-
-                // Add element for data boundaries...
-
-                xmlDoc .AppendChild( xmlRoot );
-                xmlRoot.AppendChild( xmlBinary );
-                xmlRoot.AppendChild( xmlComments );
-
-                xmlBinary  .InnerText = _strBinaryFileName;
-                xmlComments.InnerText = _strCommentsFileName;
-
-                xmlDoc.Save( oStream );
-            } catch( Exception oEx ) {
-                Type[] rgErrors = { typeof( IOException ),
-                                    typeof( OutOfMemoryException ),
-                                    typeof( ObjectDisposedException ),
-                                    typeof( ArgumentOutOfRangeException ),
-                                    typeof( XmlException ) };
-                if( rgErrors.IsUnhandled( oEx ) )
-                    throw;
-
-                return false;
-            }
-
-            return true;
-        }
-
-        /// <summary>
-        /// Load up the binary file into a memory stream.
-        /// </summary>
-        /// <returns></returns>
-        /// <exception cref="InvalidProgramException"></exception>
-        protected bool LoadTiny() {
-            try {
-                Assembly    oAssembly = Assembly.GetExecutingAssembly();
-                string?    strAsmName = oAssembly.GetName().Name;
-			    using Stream? oStream = oAssembly.GetManifestResourceStream( strAsmName + ".tinybasic2dms.bin" );
-
-                if( oStream == null )
-                    throw new InvalidProgramException();
-
-                // This isn't necessarily the z80 emulator memory. Let's
-                // see how this turns out. We can get the memory size needed by
-                // reading the first "ld sp, nn" instruction. But fake it for now.
-                byte[] rgRWRam = new byte[4096];
-                int    iCount  = 0;
-
-                for( int iByte = oStream.ReadByte();
-                         iByte != -1;
-                         iByte = oStream.ReadByte() ) 
-                {
-                    rgRWRam[iCount++] = (byte)iByte;
-                }
-
-                _rgMemory = new Z80Memory( rgRWRam, (ushort)iCount );
-            } catch( Exception oEx ) {
-                Type[] rgErrors = { typeof( ArgumentNullException ),
-                                    typeof( ArgumentException ),
-                                    typeof( FileLoadException ),
-                                    typeof( FileNotFoundException ),
-                                    typeof( BadImageFormatException ),
-                                    typeof( NotImplementedException ),
-                                    typeof( NullReferenceException ),
-                                    typeof( ArgumentOutOfRangeException ) };
-                if( rgErrors.IsUnhandled( oEx ) )
-                    throw;
-
-                LogError( "Unable to load binary program file." );
-
-                return false;
-            }
-
-            return true;
-        }
-
-    }
 }

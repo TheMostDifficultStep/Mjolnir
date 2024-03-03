@@ -570,7 +570,10 @@ namespace Play.Edit {
         /// <param name="iStreamOffset"></param>
         /// <returns>Line index closest to the given stream offset.</returns>
         /// <remarks>I probably could just use generics at this point.
-        /// I lifted this implementation directly from 'binary_search' in wikipedia.</remarks>
+        /// I lifted this implementation directly from 'binary_search' in wikipedia.
+        /// I've got a better generic search somewhere...FindStuff&lt;T&gt; in
+        /// Play.Interfaces.Embedding
+        /// </remarks>
         static int BinarySearch( IList<Line> rgLines, int iStreamOffset ) 
         {
             if( rgLines.Count == 0 )

@@ -20,7 +20,10 @@ namespace Play.Interfaces.Embedding {
         /// <returns>Matching index, else inverse of closest match.</returns>
         /// <exception cref="ArgumentOutOfRangeException" />
         /// <exception cref="NullReferenceException" />
-        public static int BinarySearch( IList<T> rgLines, int iLow, int iHigh, FindPredicate<T> delCompare ) 
+        /// <param name="iLow">Lowest value in the array.</param>
+        /// <param name="iHigh>Highest value IN THE array. Count is one too much!!</param>
+        /// <param name="delCompare">subtrack our search value from the given line address.</param>
+        public static int BinarySearch( IList<T> rgArray, int iLow, int iHigh, FindPredicate<T> delCompare ) 
         {
             if( iLow > iHigh )
                 throw new ArgumentException( "Low > High" ); // Our one out of bounds return condition.
@@ -30,7 +33,7 @@ namespace Play.Interfaces.Embedding {
 
             while( iLow <= iHigh ) {
                 iMid = iLow + (( iHigh - iLow ) >> 1 ); // Divide by 2.
-                iCmp = delCompare( rgLines[iMid] );
+                iCmp = delCompare( rgArray[iMid] );
 
                 if(      iCmp > 0 )
                     iLow  = iMid + 1;

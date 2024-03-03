@@ -96,17 +96,17 @@ namespace Monitor {
 
     public class NewMonitorController : Controller {
         public NewMonitorController() {
-            _rgExtensions.Add( ".asm" );
+            _rgExtensions.Add( ".asmprg" );
         }
 
         public override IDisposable CreateView(IPgViewSite oViewSite, object oDocument, Guid guidViewType) {
             if( oDocument is Document_Monitor oMonitorDoc ) {
 			    try {
-                    if( guidViewType == WindowProgramDisplay.GUID )
-                        return new WindowProgramDisplay( oViewSite, oMonitorDoc );
+                    if( guidViewType == ViewProgramDisplay.GUID )
+                        return new ViewProgramDisplay( oViewSite, oMonitorDoc );
 
                     // Service the GUID.Empty case too.
-                    return new WindowProgramDisplay( oViewSite, oMonitorDoc );
+                    return new ViewProgramDisplay( oViewSite, oMonitorDoc );
                 } catch( Exception oEx ) {
                     Type[] rgErrors = { typeof( NullReferenceException ),
                                         typeof( InvalidCastException ),
@@ -121,7 +121,7 @@ namespace Monitor {
         }
 
         public override IEnumerator<IPgViewType> GetEnumerator() {
-            yield return new ViewType( "Assembly Display", WindowProgramDisplay.GUID );
+            yield return new ViewType( "Assembly Display", ViewProgramDisplay.GUID );
         }
         public override IDisposable CreateDocument(IPgBaseSite oSite, string strExtension) {
             return new Document_Monitor( oSite );
