@@ -1,19 +1,13 @@
-﻿using Play.Edit;
+﻿using System.Xml;
+
+using Play.Edit;
 using Play.Interfaces.Embedding;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
-using System.Xml;
-using z80;
 
 namespace Monitor {
-
     public class AsmRow : Row {
         public AsmRow( string strAssembly, string strParams ) {
             _rgColumns    = new Line[4];
+            // Add a column for break points! O.o
             _rgColumns[0] = new TextLine( 0, string.Empty ); // label
             _rgColumns[1] = new TextLine( 1, strAssembly );  // instr
             _rgColumns[2] = new TextLine( 2, strParams );    // params
@@ -28,13 +22,9 @@ namespace Monitor {
         public Line Comment => _rgColumns[3];
     }
 
-    public class AsmEditor2 : 
+    public class AsmEditor : 
         EditMultiColumn
     {
-        public    MonitorProperties _docProperties;
-        protected Z80Memory?        _rgMemory;
-        protected Z80Definitions    _rgZ80Definitions;
-
         public enum AsmColumns {
             labels,
             assembly,
@@ -44,9 +34,9 @@ namespace Monitor {
 		public class DocSlot : 
 			IPgBaseSite
 		{
-			readonly AsmEditor2 _oDoc;
+			readonly AsmEditor _oDoc;
 
-			public DocSlot( AsmEditor2 oDoc ) {
+			public DocSlot( AsmEditor oDoc ) {
 				_oDoc = oDoc ?? throw new ArgumentNullException();
 			}
 
@@ -60,18 +50,16 @@ namespace Monitor {
 			public IPgParent Host => _oDoc;
 		}
 
-        public AsmEditor2( IPgBaseSite oSiteBase ) : base( oSiteBase ) {
-            _docProperties    = new MonitorProperties(new DocSlot(this));
-            _rgZ80Definitions = new Z80Definitions();
+        public AsmEditor( IPgBaseSite oSiteBase ) : base( oSiteBase ) {
         }
 
         /// <summary>
         /// Move this to the EditMultiColumn later...
         /// </summary>
-        public class Hacker : IDisposable {
-            AsmEditor2 _oDoc;
+        public class Mangler : IDisposable {
+            AsmEditor _oDoc;
 
-            public Hacker( AsmEditor2 oDoc ) {
+            public Mangler( AsmEditor oDoc ) {
                 _oDoc = oDoc;
             }
 
@@ -82,6 +70,7 @@ namespace Monitor {
                     _oDoc[i].At = i;
                 }
                 //_oDoc.Raise_EveryRowEvent( DOCUMENTEVENTS.MODIFIED );
+                _oDoc.RenumberAndSumate();
             }
 
             public void InsertRow( int iIndex, Row oDocRow ) {
@@ -117,77 +106,8 @@ namespace Monitor {
             }
         }
 
-        public void Dissassemble( Editor.Manipulator oBulkOutl ) {
-            if( _rgMemory == null ) {
-                LogError( "Load a binary first." );
-                return;
-            }
-
-            try {
-                using Hacker oBulkAsm = new Hacker( this );
-
-                using Z80Dissambler oDeCompile = 
-                        new Z80Dissambler( _rgZ80Definitions, 
-                                           _rgMemory,
-                                           oBulkAsm,
-                                           oBulkOutl,
-                                           this );
-
-                oDeCompile.Dissassemble();
-                RenumberAndSumate();
-            } catch( Exception oEx ) {
-                Type[] rgErrors = { typeof( NullReferenceException ),
-                                    typeof( ArgumentNullException ) };
-                if( rgErrors.IsUnhandled( oEx ) )
-                    throw;
-
-                LogError( "Null Ref Exception in Dissassembler." );
-            }
-        }
-
         public bool InitNew() {
-            if( !_docProperties.InitNew() )
-                return false;
-            
             //Raise_EveryRowEvent( DOCUMENTEVENTS.LOADED );
-
-            return true;
-        }
-
-        /// <summary>
-        /// This is an unusual document in that it is simply an XML
-        /// file with pointers to the actual files we are interested in:
-        /// 1) The binary which we will dissassemble.
-        /// 2) The source comments we are adding.
-        /// 3) Markers for the code/data portions of the binary file.
-        /// </summary>
-        /// <param name="oStream"></param>
-        /// <returns></returns>
-        public bool Load(Stream oStream, BaseEditor.Manipulator oBulkOutline ) {
-            if( oStream == null )
-                throw new ArgumentNullException();
-
-            if( !_docProperties.InitNew() )
-                return false;
-
-            // This isn't necessarily the z80 emulator memory. Let's
-            // see how this turns out. We can get the memory size needed by
-            // reading the first "ld sp, nn" instruction. But fake it for now.
-            byte[] rgRWRam = new byte[4096];
-            int    iCount  = 0x100;
-
-            for( int iByte = oStream.ReadByte();
-                 iByte != -1;
-                 iByte = oStream.ReadByte() ) 
-            {
-                rgRWRam[iCount++] = (byte)iByte;
-            }
-
-            _rgMemory = new Z80Memory( rgRWRam, (ushort)iCount );
-
-            //Raise_EveryRowEvent( DOCUMENTEVENTS.LOADED );
-
-            Dissassemble( oBulkOutline );
 
             return true;
         }
@@ -261,7 +181,7 @@ namespace Monitor {
         /// doc to be opened somewhere else..
         /// </summary>
         /// <returns></returns>
-        public bool Load( XmlNodeList rgxCodeData ) {
+        public bool LoadSegments( XmlNodeList rgxCodeData ) {
             try {
                 foreach( XmlNode xmlNode in rgxCodeData ) {
                     if( xmlNode is XmlElement xmlElem ) {

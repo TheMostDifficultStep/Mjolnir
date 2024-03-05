@@ -659,5 +659,15 @@ namespace Play.Edit {
                 _oHost._rgRows.Insert( _oHost._rgRows.Count, oNew );
             }
         }
+
+        public void Clear() {
+            _rgRows.Clear();
+
+            foreach( IPgEditEvents oCall in _rgListeners ) {
+                IPgEditHandler oHandle = oCall.CreateEditHandler();
+
+                oHandle.OnUpdated( EditType.DeleteRow, null );
+            }
+        }
     }
 }

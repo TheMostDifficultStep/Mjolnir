@@ -1,6 +1,7 @@
 ﻿using System.Text;
-using System.Reflection;
 using System.Text.RegularExpressions;
+using System.Security;
+using System.Xml;
 
 using Play.Interfaces.Embedding;
 using Play.Edit; 
@@ -8,9 +9,6 @@ using Play.Edit;
 using z80;
 using Play.Parse;
 using Play.Forms;
-using System.Xml;
-using System;
-using System.Security;
 
 namespace Monitor {
 
@@ -421,7 +419,9 @@ namespace Monitor {
         IPgLoad<TextReader>,
         IPgSave<TextWriter>
     {
-        protected readonly IPgBaseSite _oBaseSite;
+        protected readonly IPgBaseSite       _oBaseSite;
+        protected readonly IPgRoundRobinWork _oWorkPlace; 
+
         public IPgParent Parentage => _oBaseSite.Host;
         public IPgParent Services  => Parentage.Services;
 
@@ -429,9 +429,13 @@ namespace Monitor {
         protected string _strBinaryFileName   = string.Empty;
         protected string _strCommentsFileName = string.Empty;
 
-        public AsmEditor2  Doc_Asm   { get; }
+        protected Z80Memory?     _rgMemory;
+        protected Z80Definitions _rgZ80Def;
+        protected Z80            _cpuZ80;
+
+        public AsmEditor   Doc_Asm  { get; }
         public DataSegmDoc Doc_Segm { get; }
-        public Editor      Doc_Outl  { get; }
+        public Editor      Doc_Outl { get; }
 
         public bool IsDirty => Doc_Asm.IsDirty;
 
@@ -454,9 +458,11 @@ namespace Monitor {
             }
         }
 
-        protected Z80Definitions _oZ80Info = new();
         public Document_Monitor( IPgBaseSite oBaseSite ) {
-            _oBaseSite = oBaseSite ?? throw new ArgumentNullException();
+            _oBaseSite  = oBaseSite ?? throw new ArgumentNullException();
+            _oWorkPlace = ((IPgScheduler)Services).CreateWorkPlace() ?? throw new InvalidProgramException();
+
+            _rgZ80Def = new Z80Definitions();
 
             Doc_Asm  = new ( new DocSlot( this ) );
             Doc_Segm = new ( new DocSlot( this ) );
@@ -468,6 +474,7 @@ namespace Monitor {
         }
 
         public void Dispose() {
+            _oWorkPlace.Stop();
         }
 
         private bool LoadMe() {
@@ -523,17 +530,23 @@ namespace Monitor {
 
             return true;
         }
+
+        /// <summary>
+        /// Start address and memory size hard coded atm but
+        /// later we'll make those property page stuff.
+        /// </summary>
+        /// <returns></returns>
         public bool InitNew() {
-            if( !Doc_Asm.InitNew() )
+            if( !Doc_Outl.InitNew() )
                 return false;
 
             if( !Doc_Segm.InitNew() )
                 return false;
 
-            if( !Doc_Outl.InitNew() )
+            if( !Doc_Asm.InitNew() )
                 return false;
 
-            Dissassemble(); // tiny gets loaded in Doc_Asm.InitNew for now.
+            Dissassemble();
 
             return true;
         }
@@ -598,7 +611,40 @@ namespace Monitor {
                     typeof( NotSupportedException ),
                     typeof( FileNotFoundException ) };
 
-        public bool LoadBinaryFile( string strFileName ) {
+        /// <summary>
+        /// This is an unusual document in that it is simply an XML
+        /// file with pointers to the actual files we are interested in:
+        /// 1) The binary which we will dissassemble.
+        /// 2) The source comments we are adding.
+        /// 3) Markers for the code/data portions of the binary file.
+        /// </summary>
+        /// <param name="oStream"></param>
+        /// <returns></returns>
+        protected bool LoadMemory( Stream oStream ) {
+            if( oStream == null )
+                throw new ArgumentNullException();
+
+            // This isn't necessarily the z80 emulator memory. Let's
+            // see how this turns out. Memory size is still tricky.
+            // Well add that to property pages and .asmprg file.
+            byte[] rgRWRam = new byte[4096];
+            int    iCount  = 0x100; 
+
+            for( int iByte = oStream.ReadByte();
+                 iByte != -1;
+                 iByte = oStream.ReadByte() ) 
+            {
+                rgRWRam[iCount++] = (byte)iByte;
+            }
+
+            _rgMemory = new Z80Memory( rgRWRam, (ushort)iCount );
+
+            //Raise_EveryRowEvent( DOCUMENTEVENTS.LOADED );
+
+            return true;
+        }
+
+        protected bool LoadBinaryFile( string strFileName ) {
             if( string.IsNullOrEmpty( strFileName ) )
                 return false;
 
@@ -609,7 +655,7 @@ namespace Monitor {
             try {
 				_strBinaryFileName = oFile.FullName; 
 
-                if( !Doc_Asm.Load( oStream, Doc_Outl.CreateManipulator() ) ) {
+                if( !LoadMemory( oStream ) ) {
                     return false;
                 }
 
@@ -618,7 +664,7 @@ namespace Monitor {
 				if( _rgFileErrors.IsUnhandled( oEx ) )
 					throw;
 
-                LogError( "asmprg", "Died trying to binary file : " + strFileName );
+                LogError( "asmprg", "Died trying to read binary file : " + strFileName );
             }
             return false;
         }
@@ -637,7 +683,7 @@ namespace Monitor {
                             return false;
                     }
                     if( xmlRoot.SelectNodes( "datasegments" ) is XmlNodeList rgxCodeData ) {
-                        if( !Doc_Segm.Load( rgxCodeData ) )
+                        if( !Doc_Segm.LoadSegments( rgxCodeData ) )
                             return false;
                     }
                     foreach( XmlNode xmlNote in xmlRoot.SelectNodes( "documenting/note" ) ) {
@@ -672,27 +718,97 @@ namespace Monitor {
             return true;
         }
 
-        public void Dissassemble() {
-            using Editor.Manipulator oBulkOutl = Doc_Outl.CreateManipulator();
+        public void Dissassemble( ) {
+            if( _rgMemory == null ) {
+                LogError( "Monitor", "Load a binary first." );
+                return;
+            }
 
-            Doc_Asm.Dissassemble( oBulkOutl );
+            try {
+                Doc_Asm .Clear();
+                Doc_Outl.Clear();
+
+                using Z80Dissambler oDeCompile = 
+                    new Z80Dissambler( _rgZ80Def, _rgMemory, Doc_Outl, Doc_Asm, LogError );
+
+                oDeCompile.Dissassemble();
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( NullReferenceException ),
+                                    typeof( ArgumentNullException ),
+                                    typeof( ArgumentException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
+
+                LogError( "Monitor", "Null Ref Exception in Dissassembler." );
+            }
+        }
+
+        public class EmptyPorts : IPorts {
+
+            public bool NMI  => false;
+            public bool MI   => false;
+            public byte Data => 0x00;
+
+            public byte ReadPort(ushort address) {
+                byte bValue = 0;
+
+                return bValue;
+            }
+
+            public void WritePort(ushort address, byte value) {
+            }
+        }
+
+        public IEnumerator<int> GetProcessor() {
+            if( _cpuZ80 == null ) {
+                LogError( "Monitor", "CPU not available" );
+                yield break;
+            }
+
+            while( true ) {
+                for( int i=0; i<1000; ++i ) {
+                    _cpuZ80.Parse();
+
+                    if( _cpuZ80.Halt )
+                        yield break;
+                }
+                yield return 100;
+            }
+        }
+
+        public void CpuStart() {
+            if( _rgMemory == null ) {
+                LogError( "Monitor", "Dissassemble program first" );
+                return;
+            }
+            _oWorkPlace.Stop();
+
+            _cpuZ80 = new Z80( _rgMemory, new EmptyPorts() );
+
+            _oWorkPlace.Queue( GetProcessor(), 0 );
+        }
+
+        public void CpuStop() {
+            _oWorkPlace.Stop();
+        }
+
+        public void CpuBreak() {
+            _oWorkPlace.Pause();
         }
     }
 
     public class Z80Dissambler : 
         IDisposable
     {
-        readonly AsmEditor2.Hacker   _oBulkAsm;
-        readonly Editor.Manipulator  _oBulkOutline;
-        readonly SortedSet<int>      _rgOutlineLabels = new();
-        readonly Regex               _oRegEx          = new("{n+}|{d+}", RegexOptions.IgnoreCase);
-        readonly StringBuilder       _sbBuilder       = new();
-        readonly StringBuilder       _sbData          = new();
-        readonly LinkedList<AsmData> _rgAsmData       = new();
-        readonly Z80Memory           _rgRam;
-        readonly Z80Definitions      _oZ80Info;
-        readonly IReadableBag<Row>   _oAsmBag;
-        readonly IEnumerable<Row>    _oAsmEnu;
+        readonly AsmEditor.Mangler     _oBulkAsm;
+        readonly Editor.Manipulator    _oBulkOutline;
+        readonly SortedSet<int>        _rgOutlineLabels = new();
+        readonly StringBuilder         _sbBuilder       = new();
+        readonly StringBuilder         _sbData          = new();
+        readonly Z80Memory             _rgRam;
+        readonly Z80Definitions        _oZ80Info;
+        readonly IEnumerable<Row>      _oAsmEnu;
+        readonly Action<string,string> _fnLogError;
 
         struct AsmData {
             public byte _bData;
@@ -705,19 +821,19 @@ namespace Monitor {
         }
 
         public Z80Dissambler( 
-            Z80Definitions     oDefinitions, 
-            Z80Memory          rgMemory, 
-            AsmEditor2.Hacker  oBulkAsm,
-            Editor.Manipulator oBulkOutline,
-            IReadableBag<Row>  oAsmDoc
+            Z80Definitions        oDefinitions, 
+            Z80Memory             rgMemory, 
+            Editor                oOutDoc,
+            AsmEditor             oAsmDoc,
+            Action<string,string> fnLogError
         ) {
             _rgRam        = rgMemory     ?? throw new ArgumentNullException();
             _oZ80Info     = oDefinitions ?? throw new ArgumentNullException(); 
-            _oBulkOutline = oBulkOutline ?? throw new ArgumentNullException();
+            _oAsmEnu      = oAsmDoc      ?? throw new ArgumentNullException();
+            _fnLogError   = fnLogError   ?? throw new ArgumentNullException();
 
-            _oBulkAsm     = oBulkAsm     ?? throw new ArgumentNullException();
-            _oAsmBag      = oAsmDoc      ?? throw new ArgumentNullException();
-            _oAsmEnu      = (IEnumerable<Row>) _oAsmBag;
+            _oBulkAsm     = new AsmEditor.Mangler( oAsmDoc );
+            _oBulkOutline = oOutDoc.CreateManipulator();
         }
 
         public void Dispose() {
@@ -739,7 +855,7 @@ namespace Monitor {
         }
 
         /// <summary>
-        /// Bug: No way to report an error as yet... :-/
+        /// Process a single instruction.
         /// </summary>
         protected void ProcessInstruction(Z80Instr sInstr, int iAddr ) {
             try {
@@ -759,19 +875,24 @@ namespace Monitor {
                         iNumber = _rgRam[iAddr+1] + _rgRam[iAddr+2] * 0x0100;
                         break;
                     default:
-                        throw new InvalidDataException("Problem with z80 instr table" );
+                        _fnLogError( "Dissembler", "Problem with z80 instr table" );
+                        return;
                 }
 
-                if( sInstr.Number == null && sInstr.Length > 1 )
-                    throw new InvalidDataException( "Ooops" );
+                if( sInstr.Number == null && sInstr.Length > 1 ) {
+                    _fnLogError( "Dissembler", "Inconsistant z80 instr" );
+                    return;
+                }
 
                 if( sInstr.Number != null ) {
                     Line oLine = new TextLine( 0, sInstr.Params );
                     // Append the number
                     string strNumber = iNumber.ToString( "X2" );
 
-                    if( !oLine.TryReplace( sInstr.Number.Offset, sInstr.Number.Length, strNumber ) )
-                        throw new InvalidDataException( "oops" );
+                    if( !oLine.TryReplace( sInstr.Number.Offset, sInstr.Number.Length, strNumber ) ) {
+                        _fnLogError( "Dissembler", "Unable to replace number arg in z80 instr" );
+                        return;
+                    }
 
                     oNewRow = _oBulkAsm.Append( sInstr.Name.ToUpper(), oLine.ToString() );
 
@@ -817,7 +938,7 @@ namespace Monitor {
                 if( rgErrors.IsUnhandled( oEx ) )
                     throw;
 
-                
+                _fnLogError( "Dissembler", "Big failure in pass" );
             }
         }
 
@@ -835,29 +956,10 @@ namespace Monitor {
             return sInstr.Value;
         }
 
+        /// <summary>
+        /// Write the byte as a ascii value or hex if not readible.
+        /// </summary>
         protected void WriteDataLn( Z80Instr sInstr, int iAddr ) {
-            //if( _rgAsmData.First == null )
-            //    return;
-
-            //_sbData.Clear();
-            //string strAddr = _rgAsmData.First.Value._iAddr.ToString( "X4" );
-
-            //int iCount = 0;
-            //while( _rgAsmData.First != null && iCount++ < 20 ) {
-            //    byte bData = _rgAsmData.First.Value._bData;
-
-            //    if( bData < 0x20 || bData > 0x80 ) 
-            //    {
-            //        _sbData.Append( bData.ToString( "X2" ) );
-            //        _sbData.Append( ' ' );
-            //    } else {
-            //        _sbData.Append( ' ' );
-            //        _sbData.Append( (char)bData );
-            //        _sbData.Append( ' ' );
-            //    }
-            //    _rgAsmData.RemoveFirst();
-            //}
-
             _sbData.Clear();
 
             if( sInstr.Instr < 0x20 || sInstr.Instr > 0x80 ) {
@@ -900,6 +1002,8 @@ namespace Monitor {
             foreach( int i in _rgOutlineLabels ) {
                 _oBulkOutline.LineAppend( i.ToString( "X" ) );
 
+                // Go thru the assembler and update the address
+                // column entry if that row is a jump target.
                 foreach( Row oRow in _oAsmEnu ) {
                     if( oRow is AsmRow oAsmRow &&
                         oAsmRow.AddressMap == i )
@@ -912,7 +1016,6 @@ namespace Monitor {
                     }
                 }
             }
-        }
-    }
-
+        } // end method
+    } // end class
 }

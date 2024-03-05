@@ -29,10 +29,6 @@ namespace Monitor {
             _oMonDoc = p_oDocument;
         }
 
-        public bool Execute(Guid sGuid) {
-            return false;
-        }
-
         /// <remarks>
         /// This won't work for the data look ups atm.
         /// </remarks>
@@ -58,7 +54,8 @@ namespace Monitor {
                     if( oTry.AddressMap == iJumpAddr ) {
                         // Jump to column 1. It will have a value even if it
                         // is a data line.
-                        _oCacheMan.SetCaretPositionAndScroll( oTry.At, 1, 0 );
+                        if( !_oCacheMan.SetCaretPositionAndScroll( oTry.At, 1, 0 ) )
+                            LogError( "Couldn't jump to desired location. :-/" );
                         break;
                     }
                 }
@@ -101,5 +98,27 @@ namespace Monitor {
             }
             return null;
         }
+
+        public bool Execute(Guid sGuid) {
+            if( sGuid == GlobalCommands.JumpNext ) {
+                _oMonDoc.Dissassemble();
+                return true;
+            }
+            if( sGuid == GlobalCommands.Play ) {
+                _oMonDoc.CpuStart();
+                return true;
+            }
+            if( sGuid == GlobalCommands.Stop ) {
+                _oMonDoc.CpuStop();
+                return true;
+            }
+            if( sGuid == GlobalCommands.Pause ) {
+                _oMonDoc.CpuBreak();
+                return true;
+            }
+
+            return false;
+        }
+
     }
 }
