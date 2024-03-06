@@ -16,10 +16,15 @@ namespace Monitor {
 
         public int AddressMap { get; set; } = -1;
 
-        public Line Label => _rgColumns[0];
-        public Line Instr => _rgColumns[1];
-        public Line Param => _rgColumns[2];
-        public Line Comment => _rgColumns[3];
+        public Line Label => _rgColumns[ColumnLabel];
+        public Line Instr => _rgColumns[ColumnInstr];
+        public Line Param => _rgColumns[ColumnParam];
+        public Line Comment => _rgColumns[ColumnComment];
+
+        public const int ColumnLabel   = 0;
+        public const int ColumnInstr   = 1;
+        public const int ColumnParam   = 2;
+        public const int ColumnComment = 3;
     }
 
     public class AsmEditor : 
@@ -148,6 +153,13 @@ namespace Monitor {
             return false;
         }
 
+        public void UpdateHighlightLine( int iRow ) {
+            if( FindRowAtAddress( iRow, out AsmRow oAsm ) ) {
+                HighLight = oAsm;
+            } else {
+                HighLight = null;
+            }
+        }
         public override WorkerStatus PlayStatus {
             
 			get { 

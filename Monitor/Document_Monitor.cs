@@ -9,7 +9,6 @@ using Play.Edit;
 using z80;
 using Play.Parse;
 using Play.Forms;
-using System.Drawing;
 
 namespace Monitor {
 
@@ -480,6 +479,8 @@ namespace Monitor {
             _oWorkPlace.Stop();
         }
 
+        public ushort PC => _cpuZ80.Pc;
+
         /// <summary>
         /// This is needed by the embedded Doc_Asm to determine
         /// what's going on with the CPU.
@@ -782,7 +783,7 @@ namespace Monitor {
             }
 
             public void WritePort(ushort usAddress, byte bValue) {
-                byte bLowAddr = (byte)( 0x00ff | usAddress );
+                byte bLowAddr = (byte)( 0x00ff & usAddress );
             }
         }
 
@@ -823,25 +824,18 @@ namespace Monitor {
         public void CpuStop() {
             _oWorkPlace.Stop();
             _cpuZ80.Reset();
+            Doc_Asm.HighLight = null;
         }
 
         public void CpuBreak() {
             _oWorkPlace.Pause();
-            if( Doc_Asm.FindRowAtAddress( _cpuZ80.Pc, out AsmRow oAsm ) ) {
-                Doc_Asm.HighLight = oAsm;
-            } else {
-                Doc_Asm.HighLight = null;
-            }
+            Doc_Asm.UpdateHighlightLine( _cpuZ80.Pc );
         }
 
         public void CpuStep() {
             try {
                 if( _oWorkPlace.Status == WorkerStatus.FREE ) {
-                    if( Doc_Asm.FindRowAtAddress( _cpuZ80.Pc, out AsmRow oAsm ) ) {
-                        Doc_Asm.HighLight = oAsm;
-                    } else {
-                        Doc_Asm.HighLight = null;
-                    }
+                    Doc_Asm.UpdateHighlightLine( _cpuZ80.Pc );
                     _cpuZ80.Parse();
                 } else {
                     if( _cpuZ80.Halt ) 
@@ -859,6 +853,7 @@ namespace Monitor {
 
         public void CpuRecycle() {
             _cpuZ80.Reset();
+            Doc_Asm.HighLight = null;
         }
     }
 

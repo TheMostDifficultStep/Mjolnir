@@ -5,8 +5,6 @@ using Play.Interfaces.Embedding;
 using Play.Forms;
 using Play.Rectangles;
 using Play.Edit;
-using Play.Parse;
-using Play.Parse.Impl;
 
 using SkiaSharp;
 using SkiaSharp.Views.Desktop;

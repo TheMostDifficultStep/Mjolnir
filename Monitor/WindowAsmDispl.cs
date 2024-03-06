@@ -8,7 +8,8 @@ using SkiaSharp;
 namespace Monitor {
 
     /// <summary>
-    /// This is the multicolumn display for the AsmEditor.
+    /// This is the multicolumn display for the AsmEditor. Also using
+    /// it as the main window for the monitor atm.
     /// </summary>
     /// <seealso cref="AsmEditor"/>
     internal class ViewProgramDisplay : 
@@ -35,7 +36,8 @@ namespace Monitor {
         }
 
         /// <remarks>
-        /// This won't work for the data look ups atm.
+        /// This won't work for the data look ups atm. This executes
+        /// the hyperlink jump from the asm params to the target mem location.
         /// </remarks>
         protected void OnCpuJump( Row oRow, int iColumn, IPgWordRange oRange ) {
             try {
@@ -110,6 +112,9 @@ namespace Monitor {
                 return true;
             }
             if( sGuid == GlobalCommands.JumpNext ) {
+                if( _oMonDoc.Doc_Asm.FindRowAtAddress( _oMonDoc.PC, out AsmRow oAsm ) ) {
+                    _oCacheMan.CaretReset( oAsm, AsmRow.ColumnInstr );
+                }
                 _oMonDoc.CpuStep();
                 return true;
             }
@@ -123,6 +128,9 @@ namespace Monitor {
             }
             if( sGuid == GlobalCommands.Pause ) {
                 _oMonDoc.CpuBreak();
+                if( _oMonDoc.Doc_Asm.FindRowAtAddress( _oMonDoc.PC, out AsmRow oAsm ) ) {
+                    _oCacheMan.CaretReset( oAsm, AsmRow.ColumnInstr );
+                }
                 return true;
             }
             if( sGuid == GlobalCommands.Recycle ) {
