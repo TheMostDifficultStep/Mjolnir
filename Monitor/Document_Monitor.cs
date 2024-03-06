@@ -689,6 +689,13 @@ namespace Monitor {
                         if( !Doc_Segm.LoadSegments( rgxCodeData ) )
                             return false;
                     }
+
+                    // I'd rather not dissassmble unless requested. But I need that in
+                    // order to populate the comments if we have saved them previously...
+                    Dissassemble();
+
+                    // This is only valid if disassembled the binary first ... :-/
+                    // BUG: I'll need to sort this out eventually.
                     foreach( XmlNode xmlNote in xmlRoot.SelectNodes( "documenting/note" ) ) {
                         if( xmlNote is XmlElement xmlElem ) {
                             if( xmlElem.GetAttribute( "addr" ) is string strAddr ) {
@@ -698,7 +705,7 @@ namespace Monitor {
                                         //    oAsm[0].TryReplace( strLabel );
                                         //}
                                         if( xmlElem.InnerText is string strComment ) {
-                                            oAsm[3].TryReplace( strComment );
+                                            oAsm.Comment.TryReplace( strComment );
                                         }
                                     }
                                 }
@@ -758,7 +765,8 @@ namespace Monitor {
                 return bValue;
             }
 
-            public void WritePort(ushort address, byte value) {
+            public void WritePort(ushort usAddress, byte bValue) {
+                byte bLowAddr = (byte)( 0x00ff | usAddress );
             }
         }
 
@@ -768,11 +776,19 @@ namespace Monitor {
                 yield break;
             }
 
-            _cpuZ80.Reset();
-
             while( true ) {
                 for( int i=0; i<1000; ++i ) {
-                    _cpuZ80.Parse();
+                    try {
+                        _cpuZ80.Parse();
+                    } catch( Exception oEx ) {
+                        Type[] rgErrors = { typeof( NullReferenceException ),
+                                            typeof( IndexOutOfRangeException ) };
+                        if( rgErrors.IsUnhandled( oEx ) )
+                            throw;
+
+                        LogError( "CPU", "Cpu not created error." );
+                        yield break;
+                    }
 
                     if( _cpuZ80.Halt )
                         yield break;
@@ -782,12 +798,15 @@ namespace Monitor {
         }
 
         public void CpuStart() {
-            _oWorkPlace.Stop();
-            _oWorkPlace.Queue( GetProcessor(), 0 );
+            if( _oWorkPlace.Status == WorkerStatus.FREE ) {
+                _oWorkPlace.Stop();
+                _oWorkPlace.Queue( GetProcessor(), 0 );
+            }
         }
 
         public void CpuStop() {
             _oWorkPlace.Stop();
+            _cpuZ80.Reset();
         }
 
         public void CpuBreak() {
@@ -796,8 +815,13 @@ namespace Monitor {
 
         public void CpuStep() {
             try {
-                if( _oWorkPlace.Status == WorkerStatus.FREE && !_cpuZ80.Halt ) {
+                if( _oWorkPlace.Status == WorkerStatus.FREE ) {
                     _cpuZ80.Parse();
+                } else {
+                    if( _cpuZ80.Halt ) 
+                        LogError( "CPU", "Cpu is halted." );
+                    else
+                        LogError( "CPU", "Pause CPU first, (currently running)." );
                 }
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( NullReferenceException ) };
@@ -805,6 +829,10 @@ namespace Monitor {
                     throw;
                 LogError( "execute", "cpu confused" );
             }
+        }
+
+        public void CpuRecycle() {
+            _cpuZ80.Reset();
         }
     }
 
@@ -915,23 +943,27 @@ namespace Monitor {
                     }
 
                     // Color the number
-                    oNewRow[2].Formatting.Add( 
-                        new HyperLinkCpuJump( sInstr.Number.Offset,
-                                              strNumber.Length,
-                                              iColorIndex ) );
+                    if( oNewRow is AsmRow oAsm ) {
+                        oAsm.Param.Formatting.Add( 
+                            new HyperLinkCpuJump( sInstr.Number.Offset,
+                                                  strNumber.Length,
+                                                  iColorIndex ) );
 
-                    if( !_rgOutlineLabels.Contains( iNumber ) ) {
-                        if( sInstr.Jump == JumpType.Abs )
-                            _rgOutlineLabels.Add( iNumber );
-                        if( sInstr.Jump == JumpType.Rel )
-                            _rgOutlineLabels.Add( iNumber + iAddr ); // +1, +2??
+                        if( !_rgOutlineLabels.Contains( iNumber ) ) {
+                            if( sInstr.Jump == JumpType.Abs )
+                                _rgOutlineLabels.Add( iNumber );
+                            if( sInstr.Jump == JumpType.Rel )
+                                _rgOutlineLabels.Add( iNumber + iAddr ); // +1, +2??
+                        }
                     }
                 } else {
                     oNewRow = _oBulkAsm.Append( sInstr.Name.ToUpper(), sInstr.Params );
                     if( string.Compare( "rst", sInstr.Name ) == 0 ) {
                         iNumber = int.Parse( sInstr.Params, System.Globalization.NumberStyles.HexNumber );
-                        oNewRow[2].Formatting.Add( new HyperLinkCpuJump( 0, sInstr.Params.Length, 1 ) ); // Hacky...
-                        _rgOutlineLabels.Add( iNumber );
+                        if( oNewRow is AsmRow oAsm ) {
+                            oAsm.Param.Formatting.Add( new HyperLinkCpuJump( 0, sInstr.Params.Length, 1 ) ); // Hacky...
+                            _rgOutlineLabels.Add( iNumber );
+                        }
                     }
                 }
 
@@ -982,7 +1014,7 @@ namespace Monitor {
             Row oData = _oBulkAsm.Append( _sbData.ToString() );
             if( oData is AsmRow oAsmRow ) {
                 oAsmRow.AddressMap = iAddr;
-                oAsmRow[0].TryReplace( iAddr.ToString( "X" ) );
+                oAsmRow.Label.TryReplace( iAddr.ToString( "X" ) );
             }
         }
 
@@ -1019,8 +1051,8 @@ namespace Monitor {
                     if( oRow is AsmRow oAsmRow &&
                         oAsmRow.AddressMap == i )
                     {
-                        if( oAsmRow[0] != null ) {
-                            oAsmRow[0].TryReplace( i.ToString( "X" ) );
+                        if( oAsmRow.Label != null ) {
+                            oAsmRow.Label.TryReplace( i.ToString( "X" ) );
                         } else {
                             // Spew an error
                         }

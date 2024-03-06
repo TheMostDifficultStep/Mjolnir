@@ -736,7 +736,7 @@ namespace Mjolnir {
 				ForeColor = Color.Goldenrod
 			};
             _oTopMenu.Items.Add( oParent );
-            _oTopMenu.Items.Add(new ToolStripMenuItem(MyExtensions.strGoLeft,    null, new EventHandler(this.OnEditJumpPrev) ) );
+            _oTopMenu.Items.Add(new ToolStripMenuItem(MyExtensions.strRecycle,   null, new EventHandler(this.OnEditRecycle ) ) );
             _oTopMenu.Items.Add(new ToolStripMenuItem(MyExtensions.strGoRight,   null, new EventHandler(this.OnEditJumpNext) ) );
 
 			ToolStripMenuItem oPlay = new ToolStripMenuItem(MyExtensions.strPlay, null, new EventHandler(this.OnEditPlay)) {
@@ -1502,6 +1502,12 @@ namespace Mjolnir {
         protected void OnEditJumpPrev( object sender, EventArgs e ) {
             if( _oSelectedWinSite != null ) {
                 _oSelectedWinSite.Execute( GlobalCommands.JumpPrev);
+            }
+        }
+
+        protected void OnEditRecycle( object sender, EventArgs e ) {
+            if( _oSelectedWinSite != null ) {
+                _oSelectedWinSite.Execute( GlobalCommands.Recycle);
             }
         }
 

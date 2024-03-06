@@ -125,6 +125,11 @@ namespace Monitor {
             }
 
             try {
+                if( _rgRows.Count <= 0 ) {
+                    oFind = null;
+                    return false;
+                }
+
                 int iResult = FindStuff<Row>.BinarySearch( _rgRows, 0, _rgRows.Count - 1, Look );
                 if( iResult >= 0 ) {
                     oFind = (AsmRow)_rgRows[iResult];

@@ -100,8 +100,12 @@ namespace Monitor {
         }
 
         public bool Execute(Guid sGuid) {
-            if( sGuid == GlobalCommands.JumpNext ) {
+            if( sGuid == GlobalCommands.JumpParent ) {
                 _oMonDoc.Dissassemble();
+                return true;
+            }
+            if( sGuid == GlobalCommands.JumpNext ) {
+                _oMonDoc.CpuStep();
                 return true;
             }
             if( sGuid == GlobalCommands.Play ) {
@@ -114,6 +118,10 @@ namespace Monitor {
             }
             if( sGuid == GlobalCommands.Pause ) {
                 _oMonDoc.CpuBreak();
+                return true;
+            }
+            if( sGuid == GlobalCommands.Recycle ) {
+                _oMonDoc.CpuRecycle();
                 return true;
             }
 

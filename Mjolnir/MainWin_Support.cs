@@ -65,6 +65,7 @@ namespace Mjolnir {
         public const string str3InchFloppy = "\xe105";
 		public const string strNextView    = "\xe1c3"; // "\xe281"; // "\xe2fd";
 		public const string strHome        = "\xe10f"; 
+		public const string strRecycle     = "\xe117";
 
         [DllImport("user32.dll", CharSet = CharSet.Auto)] 
             public static extern bool DestroyIcon(IntPtr handle);

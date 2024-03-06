@@ -378,6 +378,9 @@ namespace Play.Interfaces.Embedding {
         public static readonly Guid EditWrapOff = new Guid( "{88E72180-CFC9-441D-B106-07632D628EFA}" );
         public static readonly Guid ReadOnly    = new Guid( "{A2D8ED0F-6AC9-4606-91E0-5A501DDF7EDC}" );
         public static readonly Guid ReadWrite   = new Guid( "{09B051A5-5A5E-417F-B49B-56EDC1B23CF1}" );
+
+        // Misc
+        public static readonly Guid Recycle     = new Guid( "{A26B2840-4C04-4C6C-AA19-C66D54264BC1}" );
     }
 
     public static class GlobalFonts {
