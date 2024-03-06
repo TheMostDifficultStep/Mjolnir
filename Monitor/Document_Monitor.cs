@@ -9,6 +9,7 @@ using Play.Edit;
 using z80;
 using Play.Parse;
 using Play.Forms;
+using System.Drawing;
 
 namespace Monitor {
 
@@ -429,9 +430,9 @@ namespace Monitor {
         protected string _strBinaryFileName   = string.Empty;
         protected string _strCommentsFileName = string.Empty;
 
-        protected Z80Memory?     _rgMemory;
-        protected Z80Definitions _rgZ80Def;
-        protected Z80            _cpuZ80;
+        protected readonly Z80Memory      _rgMemory;
+        protected          Z80Definitions _rgZ80Def;
+        protected readonly Z80            _cpuZ80;
 
         public AsmEditor   Doc_Asm  { get; }
         public DataSegmDoc Doc_Segm { get; }
@@ -463,6 +464,8 @@ namespace Monitor {
             _oWorkPlace = ((IPgScheduler)Services).CreateWorkPlace() ?? throw new InvalidProgramException();
 
             _rgZ80Def = new Z80Definitions();
+            _rgMemory = new Z80Memory();
+            _cpuZ80   = new Z80( _rgMemory, new EmptyPorts() );
 
             Doc_Asm  = new ( new DocSlot( this ) );
             Doc_Segm = new ( new DocSlot( this ) );
@@ -637,7 +640,7 @@ namespace Monitor {
                 rgRWRam[iCount++] = (byte)iByte;
             }
 
-            _rgMemory = new Z80Memory( rgRWRam, (ushort)iCount );
+            _rgMemory.Reset( rgRWRam, (ushort)iCount );
 
             //Raise_EveryRowEvent( DOCUMENTEVENTS.LOADED );
 
@@ -765,6 +768,8 @@ namespace Monitor {
                 yield break;
             }
 
+            _cpuZ80.Reset();
+
             while( true ) {
                 for( int i=0; i<1000; ++i ) {
                     _cpuZ80.Parse();
@@ -777,14 +782,7 @@ namespace Monitor {
         }
 
         public void CpuStart() {
-            if( _rgMemory == null ) {
-                LogError( "Monitor", "Dissassemble program first" );
-                return;
-            }
             _oWorkPlace.Stop();
-
-            _cpuZ80 = new Z80( _rgMemory, new EmptyPorts() );
-
             _oWorkPlace.Queue( GetProcessor(), 0 );
         }
 
@@ -794,6 +792,19 @@ namespace Monitor {
 
         public void CpuBreak() {
             _oWorkPlace.Pause();
+        }
+
+        public void CpuStep() {
+            try {
+                if( _oWorkPlace.Status == WorkerStatus.FREE && !_cpuZ80.Halt ) {
+                    _cpuZ80.Parse();
+                }
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( NullReferenceException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
+                LogError( "execute", "cpu confused" );
+            }
         }
     }
 
