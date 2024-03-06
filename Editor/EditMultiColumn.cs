@@ -327,13 +327,31 @@ namespace Play.Edit {
 
         public Row HighLight { 
             get => _oRowHighlight; 
-            set { _oRowHighlight = value; } // Send a window update event;
+            set { 
+                _oRowHighlight = value; 
+                Raise_DocFormatted();
+            }
         }
 
-        public StdUIColors PlayHighlightColor { 
-            get => _ePlayColor; 
-            set { _ePlayColor = value; }  // Send a window update event;
-        }
+		public virtual WorkerStatus PlayStatus {
+			get { return( WorkerStatus.NOTIMPLEMENTED ); }
+		}
+
+		public StdUIColors PlayHighlightColor {
+			get {
+				switch( PlayStatus ) {
+					case WorkerStatus.BUSY:
+						return StdUIColors.MusicLine;
+					case WorkerStatus.PAUSED:
+						return StdUIColors.MusicLinePaused ;
+
+					default:
+						return StdUIColors.BGReadOnly;
+				}
+			}
+            set { _ePlayColor = value; }  // Wouldn't expect this...
+		}
+  
         public bool ReadOnly { 
             get; 
             set; // Send a window update event;

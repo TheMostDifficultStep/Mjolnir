@@ -135,13 +135,29 @@ namespace Monitor {
                     oFind = (AsmRow)_rgRows[iResult];
                     return true;
                 }
-            } catch( InvalidDataException ) {
-                LogError( "Bad row type in AsmEditor2" );
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( InvalidCastException ),
+                                    typeof( NullReferenceException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
+
+                LogError( "Bad row type in AsmEditor2, or empty document!" );
             }
 
             oFind = null;
             return false;
         }
+
+        public override WorkerStatus PlayStatus {
+            
+			get { 
+                if( Parentage is Document_Monitor oMon ) 
+                    return oMon.PlayStatus; 
+
+                return WorkerStatus.NOTIMPLEMENTED;
+            }
+		}
+
     }
 
     public class SegmentRow : Row {

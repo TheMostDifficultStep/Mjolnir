@@ -480,6 +480,22 @@ namespace Monitor {
             _oWorkPlace.Stop();
         }
 
+        /// <summary>
+        /// This is needed by the embedded Doc_Asm to determine
+        /// what's going on with the CPU.
+        /// </summary>
+        public WorkerStatus PlayStatus {
+            get{
+                if( _oWorkPlace.Status != WorkerStatus.FREE ) 
+                    return _oWorkPlace.Status; 
+
+                if( _cpuZ80.Pc != 0 )
+                    return WorkerStatus.BUSY;
+
+                return WorkerStatus.FREE;
+            }
+        }
+
         private bool LoadMe() {
             List<byte> rgBytes = new List<byte>();
 
@@ -811,11 +827,21 @@ namespace Monitor {
 
         public void CpuBreak() {
             _oWorkPlace.Pause();
+            if( Doc_Asm.FindRowAtAddress( _cpuZ80.Pc, out AsmRow oAsm ) ) {
+                Doc_Asm.HighLight = oAsm;
+            } else {
+                Doc_Asm.HighLight = null;
+            }
         }
 
         public void CpuStep() {
             try {
                 if( _oWorkPlace.Status == WorkerStatus.FREE ) {
+                    if( Doc_Asm.FindRowAtAddress( _cpuZ80.Pc, out AsmRow oAsm ) ) {
+                        Doc_Asm.HighLight = oAsm;
+                    } else {
+                        Doc_Asm.HighLight = null;
+                    }
                     _cpuZ80.Parse();
                 } else {
                     if( _cpuZ80.Halt ) 

@@ -6,6 +6,11 @@ using Play.Rectangles;
 using SkiaSharp;
 
 namespace Monitor {
+
+    /// <summary>
+    /// This is the multicolumn display for the AsmEditor.
+    /// </summary>
+    /// <seealso cref="AsmEditor"/>
     internal class ViewProgramDisplay : 
         WindowMultiColumn,
         IPgCommandView
