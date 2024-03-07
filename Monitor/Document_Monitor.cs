@@ -10,6 +10,7 @@ using Play.Edit;
 using Play.Parse;
 using Play.Forms;
 using Play.ImageViewer;
+using System.Net;
 
 namespace Monitor {
 
@@ -466,7 +467,7 @@ namespace Monitor {
 
             _rgZ80Def = new Z80Definitions();
             _rgMemory = new Z80Memory();
-            _cpuZ80   = new Z80( _rgMemory, new EmptyPorts() );
+            _cpuZ80   = new Z80( _rgMemory, new EmptyPorts( this ) );
 
             Doc_Asm     = new ( new DocSlot( this ) );
             Doc_Segm    = new ( new DocSlot( this ) );
@@ -777,18 +778,47 @@ namespace Monitor {
         }
 
         public class EmptyPorts : IPorts {
+            Document_Monitor Mon { get; }
+            public EmptyPorts( Document_Monitor oMon ) { 
+                Mon = oMon ?? throw new ArgumentNullException();
+            }
+
             public bool NMI  => false;
             public bool MI   => false;
             public byte Data => 0x00;
 
-            public byte ReadPort(ushort address) {
-                byte bValue = 0;
+            public byte ReadPort(ushort usAddress) {
+                byte bLowAddr = (byte)( 0x00ff & usAddress );
+                byte bValue   = 0;
+
+                switch( bLowAddr ) {
+                    case 0x02:
+                        // When the dazzle check for a key. Update display.
+                        Mon.Doc_Display.Load( Mon._rgMemory.RawMemory, 0x200 );
+                        Mon.Doc_Display.Raise_ImageUpdated();
+                        return 0;
+                }
 
                 return bValue;
             }
 
             public void WritePort(ushort usAddress, byte bValue) {
                 byte bLowAddr = (byte)( 0x00ff & usAddress );
+
+                switch( bLowAddr ) {
+                    case 0x0f:
+                        // Check size from bValue
+                        if( ( bValue & (1 << 5) ) > 0 )
+                            Mon.Doc_Display.SetSize( DazzleDisplay.ImageSizes.SixtyFour );
+                        else
+                            Mon.Doc_Display.SetSize( DazzleDisplay.ImageSizes.ThirtyTwo );
+                        break;
+                    case 0x0e:
+                        byte bDazzleOffs = (byte)( bValue & 0x7f );
+                        bool bDazzleOn   = ( bValue & 0x80 ) > 0;
+                        int  iDazzleAddr = bDazzleOffs * 0x200;
+                        break;
+                }
             }
         }
 
@@ -833,8 +863,8 @@ namespace Monitor {
         }
 
         public void CpuBreak() {
-            _oWorkPlace.Pause();
             Doc_Asm.UpdateHighlightLine( _cpuZ80.Pc );
+            _oWorkPlace.Pause();
         }
 
         public void CpuStep() {
