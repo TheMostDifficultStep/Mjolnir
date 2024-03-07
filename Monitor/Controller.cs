@@ -108,7 +108,7 @@ namespace Monitor {
                     if( guidViewType == ViewProgramDisplay.GUID )
                         return new ViewProgramDisplay( oViewSite, oMonitorDoc );
                     if( guidViewType == _gViewDazzle )
-                        return new ImageViewSingle( oViewSite, oMonitorDoc.Doc_Display );
+                        return new WindowSoloImage( oViewSite, oMonitorDoc.Doc_Display );
 
                     // Service the GUID.Empty case too.
                     return new ViewProgramDisplay( oViewSite, oMonitorDoc );

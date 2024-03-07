@@ -14,31 +14,82 @@ using Play.Forms;
 using Play.Edit;
 
 namespace Play.ImageViewer {
-	public enum WindowSoloImageTools : int {
-		Select = 0,
-		Navigate
-	}
-
-    public class WindowSoloImageNav : ImageViewSingle,
+	public class WindowSoloImage : 
+		ImageViewSingle,
         IPgLoad<XmlElement>,
         IPgSave<XmlDocumentFragment>,
-        IPgCommandView,
-		IPgTools,
-        IPgTextView,
-		IPgPlayStatus,
-		IEnumerable<ILineRange>,
-		IReadableBag<Line>,
-        IDisposable 
-    {
-				 float          _flZoom = 1;
-		readonly ImageWalkerDoc _oDocWalker;
-		readonly IPgShellSite   _oSiteShell;
+		IPgCommandView
+	{
+		protected readonly IPgShellSite _oSiteShell;
+		protected readonly SmartSelect  _rcSelectionView = new SmartSelect(); // selection in View coords.
 
-		protected WindowSoloImageTools _eToolCurrent = WindowSoloImageTools.Navigate;
-		readonly  List<string>         _rgTools      = new List<string>();
+		protected SmartGrabDrag _oSmartDrag = null; // See the base class for the SmartGrab.
 
 		private SKPointI _pntAspect = new SKPointI( 320, 240 );
 
+        public virtual Guid      Catagory	  => Guid.Empty;
+        public virtual string    Banner		  => "Image Viewer";
+		public         SKBitmap  Icon         { get; protected set; }
+		public         Image     Iconic => null;
+        public         uint      ID { get { return _oSiteShell.SiteID; } }
+
+        public WindowSoloImage( IPgViewSite oBaseSite, ImageBaseDoc oDoc ) : base( oBaseSite, oDoc ) {
+			_oSiteShell = oBaseSite as IPgShellSite; // not required to exist.
+
+			_rcSelectionView.Hidden     = true;
+			_rcSelectionView.Invertable = false;
+        }
+
+        public bool IsDirty => false;
+
+        public override bool InitNew() {
+            if( !base.InitNew() )
+				return false;
+
+            ContextMenuStrip oMenu = new ContextMenuStrip();
+            oMenu.Items.Add( new ToolStripMenuItem("Copy", null, ClipboardCopyTo, Keys.Control | Keys.C));
+            oMenu.Items.Add( new ToolStripMenuItem("Snip", null, SelectionSnip ));
+            oMenu.Opened += new EventHandler(this.ContextMenuShowing);
+            
+			ContextMenuStrip = oMenu;
+
+			return true;
+        }
+
+        public bool Load( XmlElement xmlRoot ) {
+            if( !InitNew() )
+                return( false );
+            
+            return( true );
+        }
+
+        public bool Save( XmlDocumentFragment xmlRoot ) {
+            return( true );
+        }
+
+        /// <summary>
+        /// This is copied from the mainwin of the shell. It needs to be a tool, but I'm not sure where I want to stick it yet.
+        /// </summary>
+        /// <param name="strText">The character(s) to make a bitmap out of.</param>
+        /// <remarks>This will greatly benefit from my new FreeType font manager.</remarks>
+        public static Bitmap BitmapCreateFromChar( string strText ) {
+            Size   oSize = new Size( 16, 16 );
+            Bitmap oBmp  = new Bitmap( oSize.Width, oSize.Height );
+
+            using( Graphics g = Graphics.FromImage(oBmp) ) {
+                using( Font oFont = new Font( "Segoe MDL2 Assets", 10f, FontStyle.Regular ) ) {
+                    float  fPixels = oFont.SizeInPoints * oFont.FontFamily.GetCellDescent( FontStyle.Regular ) / oFont.FontFamily.GetEmHeight(FontStyle.Regular);
+                    SKPoint oPointF = new SKPoint( 0, fPixels );
+
+                    g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAlias;
+
+                    g.DrawString( strText, oFont, Brushes.Black, oPointF.ToDrawingPoint() );
+                }
+            }
+
+            return( oBmp );
+        }
+        
 		/// <summary>
 		/// Set and get Aspect ratio needed for selection when enforced.
 		/// </summary>
@@ -68,13 +119,237 @@ namespace Play.ImageViewer {
 			}
 		} 
 
+		/// <summary>
+		/// If the selection rectangle on the view is hidden, ie the tool is not
+		/// selected. The don't allow the context menu to have active items.
+		/// </summary>
+		protected void ContextMenuShowing(object sender, EventArgs e) {
+			foreach( ToolStripItem oItem in ContextMenuStrip.Items ) {
+				oItem.Enabled = !_rcSelectionView.Hidden;
+			}
+		}
+
+		/// <remarks>This represents an interesting cunundrom. The old OLE stuff looks like
+		/// it's dependent on the old style bitmap. BUG: Is this leaking?</remarks>
+		[Obsolete]protected void ClipboardCopyTo(object sender, EventArgs e) {
+			DataObject oDataObject = new DataObject();
+			oDataObject.SetImage( Document.Bitmap.ToBitmap() );
+		}
+
+        /// <summary>
+        /// This assigns a Selection in bmp (world) coordinates that matches the current
+        /// view selection and aspect.
+        /// </summary>
+        /// <seealso cref="AlignViewSelectionToCurrentBmpSelection"/>
+        protected void AlignBmpSelectionToViewSelection() {
+			SKPoint pntAspect = new SKPoint( Document.Bitmap.Width  / (float)_rctViewPort.Width,
+											 Document.Bitmap.Height / (float)_rctViewPort.Height );
+
+			// Note: If you move the points top/left, bottom/right in two steps you might
+			//       end up with an intermediate inverted rect which is illegal and we
+			//       get scrambled values. Do it all in one step!!
+			Selection.SetRect( LOCUS.UPPERLEFT,
+							   (int)((_rcSelectionView.Left - _rctViewPort.Left ) * pntAspect.X ),
+						       (int)((_rcSelectionView.Top  - _rctViewPort.Top  ) * pntAspect.Y ),
+							   (int)( _rcSelectionView.Width   * pntAspect.X ),
+							   (int)( _rcSelectionView.Height  * pntAspect.Y ) );
+		}
+
+		/// <summary>
+		/// This is the inverse operation as it's sister method. Call this method
+		/// when the viewport is resized and we need to get our viewport selection
+		/// to map back to the current bmp selection.
+		/// </summary>
+		/// <seealso cref="AlignBmpSelectionToViewSelection"/>
+		protected void AlignViewSelectionToCurrentBmpSelection() {
+				SKPoint pntAspect = new SKPoint( _rctViewPort.Width  / (float)Document.Bitmap.Width,
+											     _rctViewPort.Height / (float)Document.Bitmap.Height );
+
+				_rcSelectionView.SetRect(LOCUS.UPPERLEFT,
+								   (int)( Selection.Left * pntAspect.X ) + _rctViewPort.Left,
+								   (int)( Selection.Top * pntAspect.Y ) + _rctViewPort.Top,
+								   (int)( Selection.Width * pntAspect.X ),
+								   (int)( Selection.Height * pntAspect.Y ));
+		}
+
+		protected override void OnPaint(PaintEventArgs oE) {
+			base.OnPaint(oE);
+
+			_rcSelectionView.Paint( oE.Graphics );
+		}
+
+        protected override void OnGotFocus(EventArgs e) {
+            base.OnGotFocus( e );
+
+			_rcSelectionView.Show = SHOWSTATE.Focused;
+        }
+
+        protected override void OnLostFocus(EventArgs e) {
+            base.OnLostFocus(e);
+
+			_rcSelectionView.Show = SHOWSTATE.Active;
+        }
+
+        protected override void OnMouseMove(MouseEventArgs e) {
+            base.OnMouseMove(e);
+
+            //POINT ePoint = _rctViewPort.IsWhere( e.X, e.Y );
+			if( _oSmartDrag != null ) {
+				this.Cursor = Cursors.Default;
+				_oSmartDrag.Move( e.X, e.Y );
+				Refresh();
+				return;
+			}
+        }
+
+        protected override void OnMouseDown(MouseEventArgs e) {
+            base.OnMouseDown(e);
+
+			if( !Focused ) { 
+				//_fSkipMouse = true;
+				this.Select();
+			}
+        }
+
+        protected override void OnMouseUp(MouseEventArgs e) {
+            base.OnMouseUp(e);
+
+
+			if( _oSmartDrag != null && Document.Bitmap != null ) {
+				_oSmartDrag.Dispose();
+				_oSmartDrag = null;
+
+				AlignBmpSelectionToViewSelection();
+			}
+        }
+
+        /// <summary>
+        /// Let's us set the selection drag option, free drag or fixed aspect drag.
+        /// </summary>
+        public DragMode DragMode { get; set; } = DragMode.FreeStyle;
+		//	get {
+		//		//if( DragOptions[0].CompareTo( "FixedRatio" ) == 0 )
+		//			return DragMode.FixedRatio;
+
+		//		//return DragMode.FreeStyle;
+		//	}
+		//}
+
+		protected void SelectionSnip(object sender, EventArgs e) {
+			if( !_rcSelectionView.Hidden ) {
+				try {
+					if( _oSiteShell != null ) {
+						ViewSnipDialog oView = (ViewSnipDialog)_oSiteShell.AddView( ViewSnipDialog.Guid, fFocus:true );
+						if( oView != null )
+							oView.SnipMake(Selection, uiReturnID:ID );
+					}
+				} catch( Exception oEx ) {
+					Type[] rgErrors = { typeof( InvalidCastException ),
+										typeof( NullReferenceException ) };
+					if( rgErrors.IsUnhandled( oEx ) )
+						throw;
+
+					LogError( "ViewSolo", "Problem with selection ship" );
+				}
+			}
+		}
+
+        public void FocusMe() {
+			if( _oSiteShell != null ) {
+				_oSiteShell.FocusMe();
+			}
+        }
+		
+		protected override void OnImageUpdated() {
+			base.OnImageUpdated();
+
+			if( !_rcSelectionView.Hidden ) {
+				_rcSelectionView.Hidden = true;
+			}
+		}
+
+		public void SelectOff() {
+			_rcSelectionView.Hidden = true;
+			Invalidate();
+		}
+
+        protected override void OnSizeChanged(EventArgs e) {
+            base.OnSizeChanged(e);
+
+			// Turns out we get called all the time and we might not have our bitmap set yet.
+			if( Document.Bitmap == null )
+				return;
+
+			try {
+				AlignViewSelectionToCurrentBmpSelection();
+			} catch( NullReferenceException ) {
+				LogError( "SizeChanged", "Null pointer in WindowSoloImage" );
+			}
+
+            Invalidate();
+        }
+
+		public virtual void SelectAll() {
+			if( Document.Bitmap != null ) {
+				_rcSelectionView.Show = SHOWSTATE.Focused;
+			    _sBorder              = _sGrabBorder;  // Just in case not enough room.
+
+				Selection.SetRect( LOCUS.UPPERLEFT ,0, 0, Document.Bitmap.Width, Document.Bitmap.Height );
+
+				ViewPortSizeMax( _rctWorldPort, _rcSelectionView );
+				ViewPortSizeMax( _rctWorldPort, _rctViewPort );
+			} else {
+				_rcSelectionView.Hidden = true;
+			}
+			Invalidate();
+		}
+
+        public virtual object Decorate( IPgViewSite oBaseSite, Guid sGuid ) {
+            return( null );
+        }
+
+        public override bool Execute( Guid sGuid ) {
+			if( sGuid == GlobalCommands.SelectAll ) {
+				SelectAll();
+				return true;
+			}
+			if( sGuid == GlobalCommands.SelectOff ) {
+				SelectOff();
+				return true;
+			}
+
+            return( base.Execute( sGuid ) );
+        }
+
+	}
+
+    public class WindowSoloImageNav : 
+		WindowSoloImage,
+		IPgTools,
+        IPgTextView, // TODO: Only one member is used. Can I simplify for our case?
+		IPgPlayStatus,
+		IEnumerable<ILineRange>,
+		IReadableBag<Line>
+    {
+				 float          _flZoom = 1;
+		readonly ImageWalkerDoc _oDocWalker;
+
+		public enum Tools : int {
+			Select = 0,
+			Navigate
+		}
+
+		protected Tools        _eToolCurrent = Tools.Navigate;
+		readonly  List<string> _rgTools      = new List<string>();
+
+        public override string Banner => _oDocWalker.Banner;
+
       //TODO: Save these on the document.
       //Cursor _oCursorGrab;
         Cursor _oCursorHand;
         Cursor _oCursorLeft;
         Cursor _oCursorRight;
 
-		protected readonly SmartSelect _rcSelectionView = new SmartSelect(); // selection in View coords.
 	  //protected bool _fSkipMouse = false; Helped with staggard view, but don't use now.
 
         readonly SmartRect _rctLeft        = new SmartRect( LOCUS.UPPERLEFT, 0, 0, 0, 0 );
@@ -87,19 +362,10 @@ namespace Play.ImageViewer {
         readonly List<SmartRect> _rgLeft  = new List<SmartRect>(3);
         readonly List<SmartRect> _rgRight = new List<SmartRect>(3);
 
-        public virtual Guid      Catagory	  => Guid.Empty;
-        public virtual string    Banner		  => _oDocWalker.Banner;
-		public         SKBitmap  Icon         { get; }
-		public         Image     Iconic => null;
-        public         uint      ID { get { return _oSiteShell.SiteID; } }
-
-		protected SmartGrabDrag _oSmartDrag = null; // See the base class for the SmartGrab.
-
 		protected virtual string IconResource => "icons8-portrait.png";
 
         public WindowSoloImageNav( IPgViewSite oBaseSite, ImageWalkerDoc oDoc ) : base( oBaseSite, oDoc ) {
 			_oDocWalker = oDoc ?? throw new ArgumentNullException( "Document must not be null." );
-			_oSiteShell = oBaseSite as IPgShellSite; // not required to exist.
 
 			// BUG : This throws when a subclass in a DIFFERENT ASSEMBLY tries to
 			//       load it's resourse. What a pain in the a$$.
@@ -107,9 +373,6 @@ namespace Play.ImageViewer {
 				Icon = _oDocWalker.GetResource( IconResource );
 			} catch( InvalidOperationException ) {
 			}
-
-			_rcSelectionView.Hidden = true;
-			_rcSelectionView.Invertable = false;
 
             _rgLeft.Add( _rctLeft );
             _rgLeft.Add( _rctBottomLeft );
@@ -145,12 +408,6 @@ namespace Play.ImageViewer {
             } catch( ArgumentNullException ) {
             }
 
-            ContextMenuStrip oMenu = new ContextMenuStrip();
-            oMenu.Items.Add(new ToolStripMenuItem("Copy", null, this.ClipboardCopyTo, Keys.Control | Keys.C));
-            oMenu.Items.Add(new ToolStripMenuItem("Snip", null, this.SelectionSnip));
-            oMenu.Opened += new EventHandler(this.ContextMenuShowing);
-            this.ContextMenuStrip = oMenu;
-
             _oDocWalker.MediaEvent += OnMediaEvent_DocWalker;
 
             return true;
@@ -160,149 +417,39 @@ namespace Play.ImageViewer {
             _oViewSite.Notify( eEvent );
         }
 
-        public bool Load( XmlElement xmlRoot ) {
-            if( !InitNew() )
-                return( false );
-            
-            return( true );
-        }
-
-        public bool Save( XmlDocumentFragment xmlRoot ) {
-            return( true );
-        }
-
 		protected override void Dispose( bool fDisposing ) {
 			if( fDisposing ) {
 				if( !_fDisposed ) {
+					// BUG: Do I need to displode the ContextMenuStrip?
+					//if( ContextMenu != null ) {
+					//	ContextMenu.Dispose();
+					//	ContextMenu = null;
+					//}
+					if( Icon != null && Icon is IDisposable oDisp )
+						oDisp.Dispose();
+
+					if( _oCursorLeft != null ) {
+						_oCursorLeft.Dispose();
+						_oCursorLeft = null;
+					}
+					if( _oCursorRight != null ) {
+						_oCursorRight.Dispose();
+						_oCursorRight = null;
+					}
+
+					_oDocWalker.MediaEvent -= OnMediaEvent_DocWalker;
 				}
-
-				// BUG: Do I need to displode the ContextMenuStrip?
-				//if( ContextMenu != null ) {
-				//	ContextMenu.Dispose();
-				//	ContextMenu = null;
-				//}
-				if( Icon != null && Icon is IDisposable oDisp )
-					oDisp.Dispose();
-
-				if( _oCursorLeft != null )
-					_oCursorLeft.Dispose();
-				if( _oCursorRight != null )
-					_oCursorRight.Dispose();
-
-				_oDocWalker.MediaEvent -= OnMediaEvent_DocWalker;
 
 			}
             base.Dispose( fDisposing );
         }
 
-		/// <summary>
-		/// Let's us set the selection drag option, free drag or fixed aspect drag.
-		/// </summary>
-		public DragMode DragMode { get; set; } = DragMode.FreeStyle;
-		//	get {
-		//		//if( DragOptions[0].CompareTo( "FixedRatio" ) == 0 )
-		//			return DragMode.FixedRatio;
-
-		//		//return DragMode.FreeStyle;
-		//	}
-		//}
-
-		protected override void OnImageUpdated() {
-			base.OnImageUpdated();
-
-			if( !_rcSelectionView.Hidden ) {
-				_rcSelectionView.Hidden = true;
-			}
-		}
-
-		protected override void OnPaint(PaintEventArgs oE) {
-			base.OnPaint(oE);
-
-			_rcSelectionView.Paint( oE.Graphics );
-		}
-
-        protected override void OnGotFocus(EventArgs e) {
-            base.OnGotFocus( e );
-
-			_rcSelectionView.Show = SHOWSTATE.Focused;
-        }
-
-        protected override void OnLostFocus(EventArgs e) {
-            base.OnLostFocus(e);
-
-			_rcSelectionView.Show = SHOWSTATE.Active;
-        }
-        
-		protected void SelectionSnip(object sender, EventArgs e) {
-			if( !_rcSelectionView.Hidden ) {
-				try {
-					if( _oSiteShell != null ) {
-						ViewSnipDialog oView = (ViewSnipDialog)_oSiteShell.AddView( ViewSnipDialog.Guid, fFocus:true );
-						if( oView != null )
-							oView.SnipMake(Selection, uiReturnID:ID );
-					}
-				} catch( Exception oEx ) {
-					Type[] rgErrors = { typeof( InvalidCastException ),
-										typeof( NullReferenceException ) };
-					if( rgErrors.IsUnhandled( oEx ) )
-						throw;
-
-					LogError( "ViewSolo", "Problem with selection ship" );
-				}
-			}
-		}
-
-        public void FocusMe() {
-			if( _oSiteShell != null ) {
-				_oSiteShell.FocusMe();
-			}
-        }
-		
 		/// <remarks>This represents an interesting cunundrom. The old OLE stuff looks like
 		/// it's dependent on the old style bitmap. BUG: Is this leaking?</remarks>
 		[Obsolete]protected void ClipboardCopyTo(object sender, EventArgs e) {
 			DataObject oDataObject = new DataObject();
 			oDataObject.SetImage( _oDocWalker.Bitmap.ToBitmap() );
 		}
-
-		/// <summary>
-		/// If the selection rectangle on the view is hidden, ie the tool is not
-		/// selected. The don't allow the context menu to have active items.
-		/// </summary>
-		protected void ContextMenuShowing(object sender, EventArgs e) {
-			foreach( ToolStripItem oItem in ContextMenuStrip.Items ) {
-				oItem.Enabled = !_rcSelectionView.Hidden;
-			}
-		}
-
-        /// <summary>
-        /// This is copied from the mainwin of the shell. It needs to be a tool, but I'm not sure where I want to stick it yet.
-        /// </summary>
-        /// <param name="strText">The character(s) to make a bitmap out of.</param>
-        /// <remarks>This will greatly benefit from my new FreeType font manager.</remarks>
-        public static Bitmap BitmapCreateFromChar( string strText ) {
-            Size   oSize = new Size( 16, 16 );
-            Bitmap oBmp  = new Bitmap( oSize.Width, oSize.Height );
-
-            using( Graphics g = Graphics.FromImage(oBmp) ) {
-                using( Font oFont = new Font( "Segoe MDL2 Assets", 10f, FontStyle.Regular ) ) {
-                    float  fPixels = oFont.SizeInPoints * oFont.FontFamily.GetCellDescent( FontStyle.Regular ) / oFont.FontFamily.GetEmHeight(FontStyle.Regular);
-                    SKPoint oPointF = new SKPoint( 0, fPixels );
-
-                    g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAlias;
-
-                    g.DrawString( strText, oFont, Brushes.Black, oPointF.ToDrawingPoint() );
-                }
-            }
-
-            return( oBmp );
-        }
-        
-        public bool IsDirty {
-            get {
-                return( false );
-            }
-        }
 
         protected override void OnSizeChanged(EventArgs e) {
             base.OnSizeChanged(e);
@@ -312,8 +459,6 @@ namespace Play.ImageViewer {
 				return;
 
 			try {
-				AlignViewSelectionToCurrentBmpSelection();
-
 				// But we can set up or navigation hotspots w/o a bitmap.
 				int iHalfWidth = Width / 2;
 				int iNavWidth  = ( iHalfWidth > 50 ) ? 50 : iHalfWidth;
@@ -396,16 +541,13 @@ namespace Play.ImageViewer {
         protected override void OnMouseMove(MouseEventArgs e) {
             base.OnMouseMove(e);
 
-            //POINT ePoint = _rctViewPort.IsWhere( e.X, e.Y );
 			if( _oSmartDrag != null ) {
-				this.Cursor = Cursors.Default;
-				_oSmartDrag.Move( e.X, e.Y );
-				Refresh();
+				// Base class will have handled this.
 				return;
 			}
 
-			switch( (WindowSoloImageTools)ToolSelect ) {
-				case WindowSoloImageTools.Select:
+			switch( (Tools)ToolSelect ) {
+				case Tools.Select:
 					if( !_rcSelectionView.Hidden &&
 						_rcSelectionView.IsInside( e.X, e.Y ) ) {
 						this.Cursor = _oCursorHand;
@@ -413,7 +555,7 @@ namespace Play.ImageViewer {
 						this.Cursor = Cursors.Default;
 					}
 					break;
-				case WindowSoloImageTools.Navigate:
+				case Tools.Navigate:
 					Cursor[] rgCursors = { Cursors.Default, _oCursorLeft, _oCursorRight };
 					int      iCursor   = 0;
 
@@ -434,15 +576,9 @@ namespace Play.ImageViewer {
         }
 
         protected override void OnMouseDown(MouseEventArgs e) {
-			if( !Focused ) { 
-				//_fSkipMouse = true;
-				this.Select();
-				return;
-			}
-
             base.OnMouseDown(e);
 
-			if( _eToolCurrent == WindowSoloImageTools.Select ) {
+			if( _eToolCurrent == Tools.Select ) {
 				_rcSelectionView.Mode = DragMode;
 
 				if( _rcSelectionView.Hidden ) {
@@ -460,60 +596,18 @@ namespace Play.ImageViewer {
 			}
         }
 
-		/// <summary>
-		/// This assigns a Selection in bmp (world) coordinates that matches the current
-		/// view selection and aspect.
-		/// </summary>
-		/// <seealso cref="AlignViewSelectionToCurrentBmpSelection"/>
-		protected void AlignBmpSelectionToViewSelection() {
-			SKPoint pntAspect = new SKPoint( Document.Bitmap.Width  / (float)_rctViewPort.Width,
-											 Document.Bitmap.Height / (float)_rctViewPort.Height );
-
-			// Note: If you move the points top/left, bottom/right in two steps you might
-			//       end up with an intermediate inverted rect which is illegal and we
-			//       get scrambled values. Do it all in one step!!
-			Selection.SetRect( LOCUS.UPPERLEFT,
-							   (int)((_rcSelectionView.Left - _rctViewPort.Left ) * pntAspect.X ),
-						       (int)((_rcSelectionView.Top  - _rctViewPort.Top  ) * pntAspect.Y ),
-							   (int)( _rcSelectionView.Width   * pntAspect.X ),
-							   (int)( _rcSelectionView.Height  * pntAspect.Y ) );
-		}
-
-		/// <summary>
-		/// This is the inverse operation as it's sister method. Call this method
-		/// when the viewport is resized and we need to get our viewport selection
-		/// to map back to the current bmp selection.
-		/// </summary>
-		/// <seealso cref="AlignBmpSelectionToViewSelection"/>
-		protected void AlignViewSelectionToCurrentBmpSelection() {
-				SKPoint pntAspect = new SKPoint( _rctViewPort.Width  / (float)Document.Bitmap.Width,
-											     _rctViewPort.Height / (float)Document.Bitmap.Height );
-
-				_rcSelectionView.SetRect(LOCUS.UPPERLEFT,
-								   (int)( Selection.Left * pntAspect.X ) + _rctViewPort.Left,
-								   (int)( Selection.Top * pntAspect.Y ) + _rctViewPort.Top,
-								   (int)( Selection.Width * pntAspect.X ),
-								   (int)( Selection.Height * pntAspect.Y ));
-		}
-
         protected override void OnMouseUp(MouseEventArgs e) {
-			//if( _fSkipMouse ) {
-			//	_fSkipMouse = false;
-			//	return;
-			//}
-
-            base.OnMouseUp(e);
-
+			// This is a little hacky. But we need to clear the
+			// smart drag in the base and then exit so as not
+			// to call the tools below...
 			if( _oSmartDrag != null && Document.Bitmap != null ) {
-				_oSmartDrag.Dispose();
-				_oSmartDrag = null;
-
-				AlignBmpSelectionToViewSelection();
-
+				base.OnMouseUp(e);
 				return;
 			}
 
-			if( ToolSelect == (int)WindowSoloImageTools.Navigate ) {
+            base.OnMouseUp(e);
+
+			if( ToolSelect == (int)Tools.Navigate ) {
 				foreach( SmartRect rctHot in _rgLeft ) {
 					if( rctHot.IsInside( e.X, e.Y ) ) {
 						_oDocWalker.Next( -1 );
@@ -579,7 +673,16 @@ namespace Play.ImageViewer {
             }
         }
 
-        public virtual object Decorate( IPgViewSite oBaseSite, Guid sGuid ) {
+		public override void SelectAll() {
+			base.SelectAll();
+
+			if( Document.Bitmap != null ) {
+				ToolSelect = (int)Tools.Select;
+				// BUG: need to send the shell an event.
+			} 
+		}
+
+        public override object Decorate( IPgViewSite oBaseSite, Guid sGuid ) {
             if( sGuid == GlobalDecorations.Outline ) {
                 return new ImageViewIcons( oBaseSite, _oDocWalker );
             }
@@ -591,14 +694,6 @@ namespace Play.ImageViewer {
         }
 
         public override bool Execute( Guid sGuid ) {
-			if( sGuid == GlobalCommands.SelectAll ) {
-				SelectAll();
-				return true;
-			}
-			if( sGuid == GlobalCommands.SelectOff ) {
-				SelectOff();
-				return true;
-			}
 			if( sGuid == GlobalCommands.Play ) {
 				_oDocWalker.PlayStart();
                 _oViewSite.Notify( ShellNotify.MediaStatusChanged );
@@ -638,10 +733,10 @@ namespace Play.ImageViewer {
 		public int ToolSelect { 
 			get { return (int)_eToolCurrent; }
 			set {
-				WindowSoloImageTools eNextTool = (WindowSoloImageTools)value;
+				Tools eNextTool = (Tools)value;
 
 				if( _eToolCurrent != eNextTool && 
-					_eToolCurrent == WindowSoloImageTools.Select ) {
+					_eToolCurrent == Tools.Select ) {
 					_rcSelectionView.Hidden = true;
 					Invalidate();
 				}
@@ -683,29 +778,6 @@ namespace Play.ImageViewer {
 
 		public Image ToolIcon(int iTool) {
 			return null;
-		}
-
-		public void SelectAll() {
-			if( Document.Bitmap != null ) {
-				ToolSelect = (int)WindowSoloImageTools.Select;
-				// BUG: need to send the shell an event.
-
-				_rcSelectionView.Show = SHOWSTATE.Focused;
-			    _sBorder              = _sGrabBorder;  // Just in case not enough room.
-
-				Selection.SetRect( LOCUS.UPPERLEFT ,0, 0, Document.Bitmap.Width, Document.Bitmap.Height );
-
-				ViewPortSizeMax( _rctWorldPort, _rcSelectionView );
-				ViewPortSizeMax( _rctWorldPort, _rctViewPort );
-			} else {
-				_rcSelectionView.Hidden = true;
-			}
-			Invalidate();
-		}
-
-		public void SelectOff() {
-			_rcSelectionView.Hidden = true;
-			Invalidate();
 		}
 
         public IEnumerator<ILineRange> GetEnumerator() {
