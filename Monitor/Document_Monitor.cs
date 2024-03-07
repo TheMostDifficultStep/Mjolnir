@@ -3,12 +3,13 @@ using System.Text.RegularExpressions;
 using System.Security;
 using System.Xml;
 
+using z80;
+
 using Play.Interfaces.Embedding;
 using Play.Edit; 
-
-using z80;
 using Play.Parse;
 using Play.Forms;
+using Play.ImageViewer;
 
 namespace Monitor {
 
@@ -433,9 +434,10 @@ namespace Monitor {
         protected          Z80Definitions _rgZ80Def;
         protected readonly Z80            _cpuZ80;
 
-        public AsmEditor   Doc_Asm  { get; }
-        public DataSegmDoc Doc_Segm { get; }
-        public Editor      Doc_Outl { get; }
+        public AsmEditor     Doc_Asm     { get; }
+        public DataSegmDoc   Doc_Segm    { get; }
+        public Editor        Doc_Outl    { get; }
+        public DazzleDisplay Doc_Display { get; }
 
         public bool IsDirty => Doc_Asm.IsDirty;
 
@@ -466,9 +468,10 @@ namespace Monitor {
             _rgMemory = new Z80Memory();
             _cpuZ80   = new Z80( _rgMemory, new EmptyPorts() );
 
-            Doc_Asm  = new ( new DocSlot( this ) );
-            Doc_Segm = new ( new DocSlot( this ) );
-            Doc_Outl = new ( new DocSlot( this ) );
+            Doc_Asm     = new ( new DocSlot( this ) );
+            Doc_Segm    = new ( new DocSlot( this ) );
+            Doc_Outl    = new ( new DocSlot( this ) );
+            Doc_Display = new ( new DocSlot( this ) );
         }
 
         protected void LogError( string strLabel, string strMessage ) {
@@ -566,6 +569,9 @@ namespace Monitor {
             if( !Doc_Asm.InitNew() )
                 return false;
 
+            if( !Doc_Display.InitNew() )
+                return false;
+
             Dissassemble();
 
             return true;
@@ -659,8 +665,6 @@ namespace Monitor {
 
             _rgMemory.Reset( rgRWRam, (ushort)iCount );
 
-            //Raise_EveryRowEvent( DOCUMENTEVENTS.LOADED );
-
             return true;
         }
 
@@ -691,6 +695,8 @@ namespace Monitor {
 
         public bool Load( TextReader oReader ) {
             if( !Doc_Outl.InitNew() ) // do this first. Dissassembler needs it.
+                return false;
+            if( !Doc_Display.InitNew() )
                 return false;
 
             try {
@@ -771,7 +777,6 @@ namespace Monitor {
         }
 
         public class EmptyPorts : IPorts {
-
             public bool NMI  => false;
             public bool MI   => false;
             public byte Data => 0x00;

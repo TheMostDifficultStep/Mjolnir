@@ -42,11 +42,11 @@ namespace Play.ImageViewer {
 
 			try {
 				if( guidViewType == _guidViewImage )
-					return( new WindowSoloImageNav     ( oBaseSite, oDocImageBrowser ) );
-				if( guidViewType == ImageViewIconsMain.Guid )
-					return( new ImageViewIconsMain( oBaseSite, oDocImageBrowser ) );
-				if( guidViewType == ImageViewText.Guid )
-					return( new ImageViewText     ( oBaseSite, oDocImageBrowser ) );
+					return( new WindowSoloImageNav( oBaseSite, oDocImageBrowser ) );
+				if( guidViewType == ViewImageIconsMain.Guid )
+					return( new ViewImageIconsMain( oBaseSite, oDocImageBrowser ) );
+				if( guidViewType == ViewImageText.Guid )
+					return( new ViewImageText     ( oBaseSite, oDocImageBrowser ) );
 				if( guidViewType == ViewSnipDialog.Guid )
 					return( new ViewSnipDialog    ( oBaseSite, oDocImageBrowser ) );
 
@@ -66,8 +66,8 @@ namespace Play.ImageViewer {
         public override IEnumerator<IPgViewType> GetEnumerator() {
             // TODO: Move the guid to the view's class at least.
  	        yield return new ViewType( "Image", _guidViewImage );
- 	        yield return new ViewType( "Icons", ImageViewIconsMain.Guid );
- 	        yield return new ViewType( "Text",  ImageViewText.Guid  );
+ 	        yield return new ViewType( "Icons", ViewImageIconsMain.Guid );
+ 	        yield return new ViewType( "Text",  ViewImageText.Guid  );
 			yield return new ViewType( "Snip",  ViewSnipDialog.Guid );
         }
     }

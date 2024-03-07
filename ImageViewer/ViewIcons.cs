@@ -759,13 +759,13 @@ namespace Play.ImageViewer {
         }
     } // end class
 
-    public class ImageViewIconsMain : ImageViewIcons {
+    public class ViewImageIconsMain : ImageViewIcons {
 		// Since ONLY the main ViewIcons window in the center has this open solo view behavior, where
 		// the decor window does not, I think it's ok to have the dependency be on the view's site.
         protected readonly IPgShellSite _oSiteShell;
 		protected static readonly Guid _gViewType = new Guid( "{BA3861FA-673A-4FD3-9B10-A403AB5F51BE}" );
 
-        public ImageViewIconsMain( IPgViewSite oBaseSite, ImageWalkerDoc oDoc ) : base( oBaseSite, oDoc ) {
+        public ViewImageIconsMain( IPgViewSite oBaseSite, ImageWalkerDoc oDoc ) : base( oBaseSite, oDoc ) {
 			_oSiteShell = oBaseSite as IPgShellSite ?? throw new ArgumentException( "Site must support IPgShellSite" );
         }
 

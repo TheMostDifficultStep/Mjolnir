@@ -3,15 +3,15 @@ using System.Collections.Generic;
 using System.Windows.Forms;
 using System.Drawing; // TODO: Working towards deleting this!
 using System.Xml;
+using System.Collections;
+
+using SkiaSharp.Views.Desktop;
+using SkiaSharp;
 
 using Play.Interfaces.Embedding;
 using Play.Rectangles;
 using Play.Forms;
-
-using SkiaSharp.Views.Desktop;
-using SkiaSharp;
 using Play.Edit;
-using System.Collections;
 
 namespace Play.ImageViewer {
 	public enum WindowSoloImageTools : int {
@@ -30,32 +30,6 @@ namespace Play.ImageViewer {
 		IReadableBag<Line>,
         IDisposable 
     {
-		protected class DocSlot :
-			IPgBaseSite
-		{
-			protected readonly WindowSoloImageNav _oHost;
-
-			public DocSlot( WindowSoloImageNav oHost ) {
-				_oHost = oHost ?? throw new ArgumentNullException();
-			}
-
-			public IPgParent Host => _oHost;
-
-			public void LogError(string strMessage, string strDetails, bool fShow=true) {
-				_oHost._oViewSite.LogError( strMessage, strDetails, fShow );
-			}
-
-			public void Notify( ShellNotify eEvent ) {
-			}
-		} // End class
-
-		protected class ViewSlot : DocSlot, IPgViewSite {
-			public ViewSlot( WindowSoloImageNav oHost ) : base( oHost ) {
-			}
-
-			public IPgViewNotify EventChain => _oHost._oViewSite.EventChain;
-		}
-
 				 float          _flZoom = 1;
 		readonly ImageWalkerDoc _oDocWalker;
 		readonly IPgShellSite   _oSiteShell;

@@ -107,10 +107,11 @@ namespace Monitor {
         }
 
         public bool Execute(Guid sGuid) {
-            if( sGuid == GlobalCommands.JumpParent ) {
-                _oMonDoc.Dissassemble();
-                return true;
-            }
+            //let's not allow this until we sort out how the comments don't get lost...
+            //if( sGuid == GlobalCommands.JumpParent ) {
+            //    _oMonDoc.Dissassemble();
+            //    return true;
+            //}
             if( sGuid == GlobalCommands.JumpNext ) {
                 if( _oMonDoc.Doc_Asm.FindRowAtAddress( _oMonDoc.PC, out AsmRow oAsm ) ) {
                     _oCacheMan.CaretReset( oAsm, AsmRow.ColumnInstr );

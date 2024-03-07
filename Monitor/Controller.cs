@@ -1,6 +1,7 @@
 ﻿using Play.Interfaces.Embedding;
 
 using Play.Edit;
+using Play.ImageViewer;
 
 namespace Monitor {
     public abstract class BaseController : Controller {
@@ -99,11 +100,15 @@ namespace Monitor {
             _rgExtensions.Add( ".asmprg" );
         }
 
+        protected static Guid _gViewDazzle = new Guid( "{6F5EAD43-B191-404F-BC5D-F108FEB68205}" );
+
         public override IDisposable CreateView(IPgViewSite oViewSite, object oDocument, Guid guidViewType) {
             if( oDocument is Document_Monitor oMonitorDoc ) {
 			    try {
                     if( guidViewType == ViewProgramDisplay.GUID )
                         return new ViewProgramDisplay( oViewSite, oMonitorDoc );
+                    if( guidViewType == _gViewDazzle )
+                        return new ImageViewSingle( oViewSite, oMonitorDoc.Doc_Display );
 
                     // Service the GUID.Empty case too.
                     return new ViewProgramDisplay( oViewSite, oMonitorDoc );
@@ -122,6 +127,7 @@ namespace Monitor {
 
         public override IEnumerator<IPgViewType> GetEnumerator() {
             yield return new ViewType( "Assembly Display", ViewProgramDisplay.GUID );
+            yield return new ViewType( "Image Display", _gViewDazzle );
         }
         public override IDisposable CreateDocument(IPgBaseSite oSite, string strExtension) {
             return new Document_Monitor( oSite );
