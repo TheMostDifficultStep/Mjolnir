@@ -5,6 +5,8 @@ using Play.Rectangles;
 
 using SkiaSharp;
 
+using Play.Forms;
+
 namespace Monitor {
 
     /// <summary>
@@ -24,10 +26,10 @@ namespace Monitor {
 
         public Guid Catagory => GUID;
 
-        readonly Document_Monitor _oMonDoc;
+        readonly DocumentMonitor _oMonDoc;
         public ViewProgramDisplay( 
             IPgViewSite      oSiteView, 
-            Document_Monitor p_oDocument, 
+            DocumentMonitor p_oDocument, 
             bool             fReadOnly   = false 
         ) : 
             base( oSiteView, p_oDocument.Doc_Asm ) 
@@ -102,6 +104,9 @@ namespace Monitor {
         public object? Decorate(IPgViewSite oBaseSite, Guid sGuid) {
             if( sGuid == GlobalDecorations.Outline ) {
                 return new EditWindow2( oBaseSite, _oMonDoc.Doc_Outl, fReadOnly:true );
+            }
+            if( sGuid == GlobalDecorations.Properties ) {
+                return new WindowStandardProperties( oBaseSite, _oMonDoc.Doc_Props );
             }
             return null;
         }

@@ -9,8 +9,6 @@ using Play.Interfaces.Embedding;
 using Play.Edit; 
 using Play.Parse;
 using Play.Forms;
-using Play.ImageViewer;
-using System.Net;
 
 namespace Monitor {
 
@@ -296,7 +294,7 @@ namespace Monitor {
             _rgMain[0xd7] = new Z80Instr("rst", "10" );
             _rgMain[0xd8] = new Z80Instr("ret", "c" );
             _rgMain[0xd9] = new Z80Instr("exx" );
-            _rgMain[0xda] = new Z80Instr("jmp", "c, {nn}" );
+            _rgMain[0xda] = new Z80Instr("jp", "c, {nn}" );
             _rgMain[0xdb] = new Z80Instr("in", "a, port({n})" );
             _rgMain[0xdc] = new Z80Instr("call", "c, {nn}" );
             _rgMain[0xdd] = new Z80Instr("->ix" ); // not supported as yet...
@@ -394,28 +392,7 @@ namespace Monitor {
         }
     }
 
-    public class MonitorProperties : DocProperties {
-		public enum Labels : int {
-			BinaryFile = 0,
-			CommentsFile
-		}
-
-        public MonitorProperties(IPgBaseSite oSiteBase) : base(oSiteBase) {
-        }
-
-        public override bool InitNew() {
-            if( !base.InitNew() )
-				return false;
-
-            foreach( Labels eLabel in Enum.GetValues(typeof(Labels))) {
-				CreatePropertyPair( eLabel.ToString() );
-            }
-
-			return true;
-        }
-    }
-
-    public class Document_Monitor :
+    public class DocumentMonitor :
         IPgParent,
 		IDisposable,
         IPgLoad<TextReader>,
@@ -435,19 +412,20 @@ namespace Monitor {
         protected          Z80Definitions _rgZ80Def;
         protected readonly Z80            _cpuZ80;
 
-        public AsmEditor     Doc_Asm     { get; }
-        public DataSegmDoc   Doc_Segm    { get; }
-        public Editor        Doc_Outl    { get; }
-        public DazzleDisplay Doc_Display { get; }
+        public AsmEditor         Doc_Asm     { get; }
+        public DataSegmDoc       Doc_Segm    { get; }
+        public Editor            Doc_Outl    { get; }
+        public DazzleDisplay     Doc_Display { get; }
+        public MonitorProperties Doc_Props   { get; }
 
         public bool IsDirty => Doc_Asm.IsDirty;
 
         public class DocSlot :
             IPgBaseSite
         {
-            protected readonly Document_Monitor _oHost;
+            protected readonly DocumentMonitor _oHost;
 
-            public DocSlot( Document_Monitor oHost ) {
+            public DocSlot( DocumentMonitor oHost ) {
                 _oHost = oHost;
             }
             public IPgParent Host => _oHost;
@@ -461,7 +439,44 @@ namespace Monitor {
             }
         }
 
-        public Document_Monitor( IPgBaseSite oBaseSite ) {
+        public class MonitorProperties : DocProperties {
+		    public enum Labels : int {
+			    Acc = 0,
+                Flags,
+			    BC,
+                DE,
+                HL,
+                SP,
+                PC
+		    }
+
+            public MonitorProperties(IPgBaseSite oSiteBase) : base(oSiteBase) {
+            }
+
+            public override bool InitNew() {
+                if( !base.InitNew() )
+				    return false;
+
+                foreach( Labels eLabel in Enum.GetValues(typeof(Labels))) {
+				    CreatePropertyPair( eLabel.ToString() );
+                }
+
+			    return true;
+            }
+
+            public void Update( DocumentMonitor oMon ) {
+                using Manipulator oBulk = new Manipulator( oMon.Doc_Props );
+
+                oBulk.SetValue( (int)Labels.Acc, oMon._cpuZ80.Ac.ToString( "X2" ) );
+                oBulk.SetValue( (int)Labels.BC,  oMon._cpuZ80.Bc.ToString( "X4" ) );
+                oBulk.SetValue( (int)Labels.DE,  oMon._cpuZ80.De.ToString( "X4" ) );
+                oBulk.SetValue( (int)Labels.HL,  oMon._cpuZ80.Hl.ToString( "X4" ) );
+                oBulk.SetValue( (int)Labels.SP,  oMon._cpuZ80.Sp.ToString( "X4" ) );
+                oBulk.SetValue( (int)Labels.PC,  oMon._cpuZ80.Pc.ToString( "X4" ) );
+           }
+        }
+
+        public DocumentMonitor( IPgBaseSite oBaseSite ) {
             _oBaseSite  = oBaseSite ?? throw new ArgumentNullException();
             _oWorkPlace = ((IPgScheduler)Services).CreateWorkPlace() ?? throw new InvalidProgramException();
 
@@ -473,6 +488,7 @@ namespace Monitor {
             Doc_Segm    = new ( new DocSlot( this ) );
             Doc_Outl    = new ( new DocSlot( this ) );
             Doc_Display = new ( new DocSlot( this ) );
+            Doc_Props   = new ( new DocSlot( this ) );
         }
 
         protected void LogError( string strLabel, string strMessage ) {
@@ -571,6 +587,9 @@ namespace Monitor {
                 return false;
 
             if( !Doc_Display.InitNew() )
+                return false;
+
+            if( !Doc_Props.InitNew() )
                 return false;
 
             Dissassemble();
@@ -699,6 +718,8 @@ namespace Monitor {
                 return false;
             if( !Doc_Display.InitNew() )
                 return false;
+            if( !Doc_Props.InitNew() )
+                return false;
 
             try {
                 XmlDocument xmlDoc = new XmlDocument();
@@ -778,8 +799,8 @@ namespace Monitor {
         }
 
         public class EmptyPorts : IPorts {
-            Document_Monitor Mon { get; }
-            public EmptyPorts( Document_Monitor oMon ) { 
+            DocumentMonitor Mon { get; }
+            public EmptyPorts( DocumentMonitor oMon ) { 
                 Mon = oMon ?? throw new ArgumentNullException();
             }
 
@@ -845,7 +866,7 @@ namespace Monitor {
                     if( _cpuZ80.Halt )
                         yield break;
                 }
-                yield return 100;
+                yield return 10;
             }
         }
 
@@ -862,16 +883,24 @@ namespace Monitor {
             Doc_Asm.HighLight = null;
         }
 
+        /// <summary>
+        /// Stop the CPU. Of course, the CPU is already waiting
+        /// to execute it's next command. We just hijack it.
+        /// If I ever go multi threaded, this might need revisiting
+        /// since I need the state of the CPU before the pause...
+        /// </summary>
         public void CpuBreak() {
-            Doc_Asm.UpdateHighlightLine( _cpuZ80.Pc );
+            Doc_Asm    .UpdateHighlightLine( _cpuZ80.Pc );
+            Doc_Props  .Update( this );
             _oWorkPlace.Pause();
         }
 
         public void CpuStep() {
             try {
                 if( _oWorkPlace.Status == WorkerStatus.FREE ) {
-                    Doc_Asm.UpdateHighlightLine( _cpuZ80.Pc );
-                    _cpuZ80.Parse();
+                    Doc_Asm  .UpdateHighlightLine( _cpuZ80.Pc );
+                    Doc_Props.Update( this );
+                    _cpuZ80  .Parse();
                 } else {
                     if( _cpuZ80.Halt ) 
                         LogError( "CPU", "Cpu is halted." );

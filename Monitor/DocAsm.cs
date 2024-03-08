@@ -163,7 +163,7 @@ namespace Monitor {
         public override WorkerStatus PlayStatus {
             
 			get { 
-                if( Parentage is Document_Monitor oMon ) 
+                if( Parentage is DocumentMonitor oMon ) 
                     return oMon.PlayStatus; 
 
                 return WorkerStatus.NOTIMPLEMENTED;
