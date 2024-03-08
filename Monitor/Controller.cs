@@ -105,13 +105,13 @@ namespace Monitor {
         public override IDisposable CreateView(IPgViewSite oViewSite, object oDocument, Guid guidViewType) {
             if( oDocument is DocumentMonitor oMonitorDoc ) {
 			    try {
-                    if( guidViewType == ViewProgramDisplay.GUID )
-                        return new ViewProgramDisplay( oViewSite, oMonitorDoc );
+                    if( guidViewType == ViewDisassembly.GUID )
+                        return new ViewDisassembly  ( oViewSite, oMonitorDoc );
                     if( guidViewType == _gViewDazzle )
-                        return new WindowSoloImage( oViewSite, oMonitorDoc.Doc_Display );
+                        return new ViewEmulatorImage( oViewSite, oMonitorDoc );
 
                     // Service the GUID.Empty case too.
-                    return new ViewProgramDisplay( oViewSite, oMonitorDoc );
+                    return new ViewDisassembly( oViewSite, oMonitorDoc );
                 } catch( Exception oEx ) {
                     Type[] rgErrors = { typeof( NullReferenceException ),
                                         typeof( InvalidCastException ),
@@ -126,7 +126,7 @@ namespace Monitor {
         }
 
         public override IEnumerator<IPgViewType> GetEnumerator() {
-            yield return new ViewType( "Assembly Display", ViewProgramDisplay.GUID );
+            yield return new ViewType( "Assembly Display", ViewDisassembly.GUID );
             yield return new ViewType( "Image Display", _gViewDazzle );
         }
         public override IDisposable CreateDocument(IPgBaseSite oSite, string strExtension) {

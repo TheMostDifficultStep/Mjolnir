@@ -9,6 +9,9 @@ using Play.Interfaces.Embedding;
 using Play.Edit; 
 using Play.Parse;
 using Play.Forms;
+using Play.Drawing;
+using SkiaSharp;
+using System.Reflection;
 
 namespace Monitor {
 
@@ -405,8 +408,9 @@ namespace Monitor {
         public IPgParent Services  => Parentage.Services;
 
         // Move these to doc prop's later...
-        protected string _strBinaryFileName   = string.Empty;
-        protected string _strCommentsFileName = string.Empty;
+        protected string _strBinaryFileName = string.Empty;
+        public    string FileName { get; protected set; }  = string.Empty;
+
 
         protected readonly Z80Memory      _rgMemory;
         protected          Z80Definitions _rgZ80Def;
@@ -498,6 +502,13 @@ namespace Monitor {
         public void Dispose() {
             _oWorkPlace.Stop();
         }
+
+		public SKBitmap GetResource( string strName ) {
+			Assembly oAsm   = Assembly.GetExecutingAssembly();
+            string   strRes = oAsm.GetName().Name + ".Content." + strName;
+
+			return SKImageResourceHelper.GetImageResource( oAsm, strRes );
+		}
 
         public ushort PC => _cpuZ80.Pc;
 
@@ -704,6 +715,7 @@ namespace Monitor {
 
             try {
 				_strBinaryFileName = oFile.FullName; 
+                FileName           = oFile.Name;
 
                 if( !LoadMemory( oStream, fComFile ) ) {
                     return false;

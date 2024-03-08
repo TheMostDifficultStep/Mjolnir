@@ -6,28 +6,39 @@ using Play.Rectangles;
 using SkiaSharp;
 
 using Play.Forms;
+using Play.ImageViewer;
 
 namespace Monitor {
+    internal class ViewEmulatorImage :
+        WindowSoloImage {
+        public ViewEmulatorImage(IPgViewSite oBaseSite, DocumentMonitor oMon ) : 
+            base(oBaseSite, oMon.Doc_Display) 
+        {
+			try {
+				Icon = oMon.GetResource( "icons8-monitor-64.png" );
+			} catch( InvalidOperationException ) {
+			}
+
+        }
+    }
 
     /// <summary>
     /// This is the multicolumn display for the AsmEditor. Also using
     /// it as the main window for the monitor atm.
     /// </summary>
     /// <seealso cref="AsmEditor"/>
-    internal class ViewProgramDisplay : 
+    internal class ViewDisassembly : 
         WindowMultiColumn,
         IPgCommandView
     {
         public static Guid GUID { get; } = new Guid( "{1DBE2048-619C-44EA-882C-024DF5087743}" );
 
-        public string Banner => "Assembly Monitor";
-
-        public SKBitmap? Icon => null;
-
-        public Guid Catagory => GUID;
+        public string    Banner => "Assembly Monitor : " + _oMonDoc.FileName;
+		public SKBitmap? Icon { get; protected set; }
+        public Guid      Catagory => GUID;
 
         readonly DocumentMonitor _oMonDoc;
-        public ViewProgramDisplay( 
+        public ViewDisassembly( 
             IPgViewSite      oSiteView, 
             DocumentMonitor p_oDocument, 
             bool             fReadOnly   = false 
@@ -35,6 +46,10 @@ namespace Monitor {
             base( oSiteView, p_oDocument.Doc_Asm ) 
         {
             _oMonDoc = p_oDocument;
+			try {
+				Icon = _oMonDoc.GetResource( "icons8-script-96.png" );
+			} catch( InvalidOperationException ) {
+			}
         }
 
         /// <remarks>

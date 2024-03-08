@@ -12,7 +12,6 @@ using Play.Interfaces.Embedding;
 using Play.Rectangles;
 using Play.Forms;
 using Play.Edit;
-using static Play.ImageViewer.WindowSoloImageNav;
 
 namespace Play.ImageViewer {
 	public class WindowSoloImage : 
