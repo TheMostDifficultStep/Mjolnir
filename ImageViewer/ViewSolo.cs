@@ -12,6 +12,7 @@ using Play.Interfaces.Embedding;
 using Play.Rectangles;
 using Play.Forms;
 using Play.Edit;
+using static Play.ImageViewer.WindowSoloImageNav;
 
 namespace Play.ImageViewer {
 	public class WindowSoloImage : 
@@ -20,12 +21,17 @@ namespace Play.ImageViewer {
         IPgSave<XmlDocumentFragment>,
 		IPgCommandView
 	{
+		public enum Tools : int {
+			Select = 0,
+			Navigate
+		}
+
 		protected readonly IPgShellSite _oSiteShell;
+		protected          Tools        _eToolCurrent    = Tools.Select;
 		protected readonly SmartSelect  _rcSelectionView = new SmartSelect(); // selection in View coords.
 
 		protected SmartGrabDrag _oSmartDrag = null; // See the base class for the SmartGrab.
-
-		private SKPointI _pntAspect = new SKPointI( 320, 240 );
+		private   SKPointI      _pntAspect  = new SKPointI( 320, 240 );
 
         public virtual Guid      Catagory	  => Guid.Empty;
         public virtual string    Banner		  => "Image Viewer";
@@ -48,7 +54,8 @@ namespace Play.ImageViewer {
 
             ContextMenuStrip oMenu = new ContextMenuStrip();
             oMenu.Items.Add( new ToolStripMenuItem("Copy", null, ClipboardCopyTo, Keys.Control | Keys.C));
-            oMenu.Items.Add( new ToolStripMenuItem("Snip", null, SelectionSnip ));
+		  //Enable this when I have a snip dialog!!
+          //oMenu.Items.Add( new ToolStripMenuItem("Snip", null, SelectionSnip ));
             oMenu.Opened += new EventHandler(this.ContextMenuShowing);
             
 			ContextMenuStrip = oMenu;
@@ -200,6 +207,17 @@ namespace Play.ImageViewer {
 				Refresh();
 				return;
 			}
+
+			switch( _eToolCurrent ) {
+				case Tools.Select:
+					if( !_rcSelectionView.Hidden &&
+						_rcSelectionView.IsInside( e.X, e.Y ) ) {
+						this.Cursor = Cursors.Hand;
+					} else {
+						this.Cursor = Cursors.Default;
+					}
+					break;
+			}
         }
 
         protected override void OnMouseDown(MouseEventArgs e) {
@@ -208,6 +226,23 @@ namespace Play.ImageViewer {
 			if( !Focused ) { 
 				//_fSkipMouse = true;
 				this.Select();
+			}
+
+			if( _eToolCurrent == Tools.Select ) {
+				_rcSelectionView.Mode = DragMode;
+
+				if( _rcSelectionView.Hidden ) {
+					// We might be in the select mode but the selection is hidden at first, so...
+					_rcSelectionView.Hidden = false;
+					_rcSelectionView.Show   = SHOWSTATE.Focused;
+					_rcSelectionView.SetRect( e.X-1, e.Y-1, e.X+1, e.Y+1 );
+					// If selection hidden, we choose the lower right as the drag edge to get started.
+					_oSmartDrag = _rcSelectionView.BeginAspectDrag( null, SET.STRETCH, SmartGrab.HIT.CORNER, LOCUS.LOWERRIGHT, e.X, e.Y, Aspect, _rctViewPort );
+				} else {
+					if( e.Button == MouseButtons.Left ) {
+						_oSmartDrag = _rcSelectionView.BeginDrag( e.X, e.Y, Aspect, _rctViewPort );
+					}
+				}
 			}
         }
 
@@ -249,7 +284,7 @@ namespace Play.ImageViewer {
 					if( rgErrors.IsUnhandled( oEx ) )
 						throw;
 
-					LogError( "ViewSolo", "Problem with selection ship" );
+					LogError( "ViewSolo", "Problem with selection snip" );
 				}
 			}
 		}
@@ -334,19 +369,14 @@ namespace Play.ImageViewer {
 				 float          _flZoom = 1;
 		readonly ImageWalkerDoc _oDocWalker;
 
-		public enum Tools : int {
-			Select = 0,
-			Navigate
-		}
-
-		protected Tools        _eToolCurrent = Tools.Navigate;
-		readonly  List<string> _rgTools      = new List<string>();
+		// We don't have multiple tool selections until this object
+		// Our ansestor only offers Select.
+		protected readonly List<string> _rgTools = new List<string>();
 
         public override string Banner => _oDocWalker.Banner;
 
       //TODO: Save these on the document.
       //Cursor _oCursorGrab;
-        Cursor _oCursorHand;
         Cursor _oCursorLeft;
         Cursor _oCursorRight;
 
@@ -384,6 +414,8 @@ namespace Play.ImageViewer {
 
 			_rgTools.Add( "Select" );
 			_rgTools.Add( "Navigate" );
+
+			_eToolCurrent = Tools.Navigate;
         }
 
         public override bool InitNew() {
@@ -393,8 +425,6 @@ namespace Play.ImageViewer {
 			SetBorderOn(); // Want room for grab handles at all times.
 
 			ToolSelect = _rgTools.Count - 1;
-
-            _oCursorHand = Cursors.Hand;
 
             try {
                 _oCursorLeft  = User32.CreateCursorNoResize( BitmapCreateFromChar( "\xE973" ), 16, 16 );
@@ -547,14 +577,6 @@ namespace Play.ImageViewer {
 			}
 
 			switch( (Tools)ToolSelect ) {
-				case Tools.Select:
-					if( !_rcSelectionView.Hidden &&
-						_rcSelectionView.IsInside( e.X, e.Y ) ) {
-						this.Cursor = _oCursorHand;
-					} else {
-						this.Cursor = Cursors.Default;
-					}
-					break;
 				case Tools.Navigate:
 					Cursor[] rgCursors = { Cursors.Default, _oCursorLeft, _oCursorRight };
 					int      iCursor   = 0;
@@ -577,23 +599,6 @@ namespace Play.ImageViewer {
 
         protected override void OnMouseDown(MouseEventArgs e) {
             base.OnMouseDown(e);
-
-			if( _eToolCurrent == Tools.Select ) {
-				_rcSelectionView.Mode = DragMode;
-
-				if( _rcSelectionView.Hidden ) {
-					// We might be in the select mode but the selection is hidden at first, so...
-					_rcSelectionView.Hidden = false;
-					_rcSelectionView.Show   = SHOWSTATE.Focused;
-					_rcSelectionView.SetRect( e.X-1, e.Y-1, e.X+1, e.Y+1 );
-					// If selection hidden, we choose the lower right as the drag edge to get started.
-					_oSmartDrag = _rcSelectionView.BeginAspectDrag( null, SET.STRETCH, SmartGrab.HIT.CORNER, LOCUS.LOWERRIGHT, e.X, e.Y, Aspect, _rctViewPort );
-				} else {
-					if( e.Button == MouseButtons.Left ) {
-						_oSmartDrag = _rcSelectionView.BeginDrag( e.X, e.Y, Aspect, _rctViewPort );
-					}
-				}
-			}
         }
 
         protected override void OnMouseUp(MouseEventArgs e) {
