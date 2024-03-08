@@ -666,7 +666,7 @@ namespace Monitor {
         /// </summary>
         /// <param name="oStream"></param>
         /// <returns></returns>
-        protected bool LoadMemory( Stream oStream ) {
+        protected bool LoadMemory( Stream oStream, bool fComFile ) {
             if( oStream == null )
                 throw new ArgumentNullException();
 
@@ -674,16 +674,19 @@ namespace Monitor {
             // see how this turns out. Memory size is still tricky.
             // Well add that to property pages and .asmprg file.
             byte[] rgRWRam = new byte[4096];
-            int    iCount  = 0x100; 
+            int    iCount  = fComFile ? 0x100 : 0x00; 
 
             for( int iByte = oStream.ReadByte();
                  iByte != -1;
                  iByte = oStream.ReadByte() ) 
             {
+                if( iCount + 1 > rgRWRam.Length )
+                    return false;
+
                 rgRWRam[iCount++] = (byte)iByte;
             }
 
-            _rgMemory.Reset( rgRWRam, (ushort)iCount );
+            _rgMemory.Reset( rgRWRam, (ushort)iCount, fComFile );
 
             return true;
         }
@@ -695,11 +698,14 @@ namespace Monitor {
                   Encoding   utf8NoBom = new UTF8Encoding(false);
                   FileInfo   oFile     = new FileInfo(strFileName);
             using FileStream oStream   = oFile.OpenRead();
+                  string     strExtn   = oFile.Extension;
+
+            bool fComFile = string.Compare( strExtn, ".Com", ignoreCase: true ) == 0; 
 
             try {
 				_strBinaryFileName = oFile.FullName; 
 
-                if( !LoadMemory( oStream ) ) {
+                if( !LoadMemory( oStream, fComFile ) ) {
                     return false;
                 }
 
@@ -1075,11 +1081,14 @@ namespace Monitor {
              
             // BUG: hard coded for "tinybasic", just an experiment
             //if( iAddr >= 0x6A1 || ( iAddr >= 0xa6 && iAddr < 0xba ) ) {
-            if( iAddr >= 0x196 ) {
-                sInstr = new Z80Instr( _rgRam[iAddr ] );
-            } else {
+            // BUG: hard coded for "kscope"
+            //if( iAddr >= 0x196 ) {
+
+            //if( iAddr >= 0x196 ) {
+            //    sInstr = new Z80Instr( _rgRam[iAddr ] );
+            //} else {
                 sInstr = _oZ80Info.FindMain( _rgRam[iAddr] );
-            }
+//            }
 
             return sInstr.Value;
         }
