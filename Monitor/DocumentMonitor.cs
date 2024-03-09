@@ -1029,7 +1029,7 @@ namespace Monitor {
                 if( sInstr.Number != null ) {
                     Line oLine = new TextLine( 0, sInstr.Params );
                     // Append the number
-                    string strNumber = iNumber.ToString( "X2" );
+                    string strNumber = iNumber.ToString( sInstr.Length == 3 ? "X4" : "X2" );
 
                     if( !oLine.TryReplace( sInstr.Number.Offset, sInstr.Number.Length, strNumber ) ) {
                         _fnLogError( "Dissembler", "Unable to replace number arg in z80 instr" );
