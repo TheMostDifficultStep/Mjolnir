@@ -10,15 +10,26 @@ using Play.ImageViewer;
 
 namespace Monitor {
     internal class ViewEmulatorImage :
-        WindowSoloImage {
+        WindowSoloImage 
+    {
+        DocumentMonitor Mon { get; }
         public ViewEmulatorImage(IPgViewSite oBaseSite, DocumentMonitor oMon ) : 
             base(oBaseSite, oMon.Doc_Display) 
         {
+            Mon = oMon ?? throw new ArgumentNullException();
+
 			try {
 				Icon = oMon.GetResource( "icons8-monitor-64.png" );
 			} catch( InvalidOperationException ) {
 			}
+        }
 
+        public override bool Execute( Guid sGuid ) {
+            if( Mon.Execute( sGuid ) ) {
+                return true;
+            }
+
+            return base.Execute( sGuid );
         }
     }
 

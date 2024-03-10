@@ -943,6 +943,31 @@ namespace Monitor {
             _cpuZ80.Reset();
             Doc_Asm.HighLight = null;
         }
+
+        public bool Execute( Guid sCmnd ) {
+            if( sCmnd == GlobalCommands.JumpNext ) {
+                CpuStep();
+                return true;
+            }
+            if( sCmnd == GlobalCommands.Play ) {
+                CpuStart();
+                return true;
+            }
+            if( sCmnd == GlobalCommands.Stop ) {
+                CpuStop();
+                return true;
+            }
+            if( sCmnd == GlobalCommands.Pause ) {
+                CpuBreak();
+                return true;
+            }
+            if( sCmnd == GlobalCommands.Recycle ) {
+                CpuRecycle();
+                return true;
+            }
+
+            return false;
+        }
     }
 
     public class Z80Dissambler : 
