@@ -878,12 +878,18 @@ namespace Monitor {
                             throw;
 
                         LogError( "CPU", "Cpu not created error." );
+
+                        Doc_Display.Load( _rgMemory.RawMemory, 0x200 );
+                        Doc_Display.Raise_ImageUpdated();
                         yield break;
                     }
 
                     if( _cpuZ80.Halt )
                         yield break;
                 }
+
+                Doc_Display.Load( _rgMemory.RawMemory, 0x200 );
+                Doc_Display.Raise_ImageUpdated();
                 yield return 10;
             }
         }

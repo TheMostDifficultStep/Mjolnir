@@ -61,6 +61,11 @@ namespace Monitor {
             return( _rgTest[iIndex] );
         }
 
+        /// <summary>
+        /// This shows the 64x64 4bit color display.
+        /// </summary>
+        /// <param name="rgMemory"></param>
+        /// <param name="iStart"></param>
         public void Load( byte[] rgMemory, int iStart ) {
             if( Bitmap == null )
                 return;
@@ -68,14 +73,17 @@ namespace Monitor {
             try {
                 int iBmpHalfWidth = Bitmap.Width / 2;
 
-                for( int y = 0; y < Bitmap.Height; y++ ) {
-                    for( int x = 0; x < Bitmap.Width; x += 2 ) {
-                        int iAddr = iStart + ( y * iBmpHalfWidth ) + x/2;
-                        int iLow  = rgMemory[iAddr] & 0x0f;
-                        int iHigh = rgMemory[iAddr] & 0xf0 >> 4;
+                int a = iStart;
+                for( int y = 0; y < Bitmap.Height; y+=1 ) {
+                    for( int i = 0; i < iBmpHalfWidth; i += 1 ) {
+                        int x = i<<1;
+                        int iLow  = rgMemory[a] & 0x0f;
+                        int iHigh = ( rgMemory[a] & 0xf0 ) >> 4;
 
                         Bitmap.SetPixel( x,   y, GetColor( iLow ) );
                         Bitmap.SetPixel( x+1, y, GetColor( iHigh ) );
+
+                        a++;
                     }
                 }
                 Raise_ImageUpdated();
