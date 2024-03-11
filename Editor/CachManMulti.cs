@@ -106,7 +106,7 @@ namespace Play.Edit {
             public void OnUpdated( EditType eType, Row oRow ) {
                 if( eType == EditType.DeleteRow ) {
                     if( _oHost._oCaretRow == oRow ) {
-                        if( _oHost.GetTabOrderAtIndex( _oHost.CaretAt, 0 ) is Row oNext ) {
+                        if( _oHost._oSiteList[ _oHost.CaretAt ] is Row oNext ) {
                             _oHost._oCaretRow = oNext;
                         }
                     }
@@ -143,15 +143,6 @@ namespace Play.Edit {
             _fAdvance  = 0;
         }
 
-        /// <summary>
-        /// Find the next row in the tab order
-        /// </summary>
-        /// <param name="iIndex">Current position.</param>
-        /// <param name="iDir">+1, 0, -1</param>
-        /// <returns>The given row or NULL!!</returns>
-        protected virtual Row GetTabOrderAtIndex( int iIndex, int iDir ) {
-            return _oSiteList[ iIndex+iDir ];
-        }
         protected virtual Row GetTabOrderAtScroll() {
             try {
                 int iIndex = (int)(_oSite.GetScrollProgress * _oSiteList.ElementCount);
@@ -166,7 +157,7 @@ namespace Play.Edit {
                     throw;
             }
 
-            return GetTabOrderAtIndex( 0, 0 );
+            return _oSiteList[0];
         }
 
         public IEnumerator<CacheRow> GetEnumerator() {
@@ -205,7 +196,7 @@ namespace Play.Edit {
                 try {
                     if( _oCaretRow == null ) {
                         // Doc might be empty! O.o
-                        if( GetTabOrderAtIndex( 0, 0 ) is not Row oRow )
+                        if( _oSiteList[0] is not Row oRow )
                             return 0;
 
                         return oRow.At;
@@ -281,7 +272,7 @@ namespace Play.Edit {
 
         public CaretInfo? CopyCaret() {
             if( _oCaretRow == null )
-                _oCaretRow = GetTabOrderAtIndex( 0, 0 );
+                _oCaretRow = _oSiteList[0];
             if( _oCaretRow == null )
                 return null;
 
@@ -360,7 +351,9 @@ namespace Play.Edit {
 		        Row oDocRow = null;
                 switch( eNeighborhood ) {
                     case RefreshNeighborhood.SCROLL:
-                        oDocRow = GetTabOrderAtScroll();
+                        int iIndex = (int)(_oSite.GetScrollProgress * _oSiteList.ElementCount);
+
+                        oDocRow = _oSiteList[ iIndex ];
                         break;
                     case RefreshNeighborhood.CARET:
                         oDocRow = _oSiteList[ CaretAt ];
@@ -401,7 +394,7 @@ namespace Play.Edit {
         /// <param name="iDataRow">Which data row we want to represent.</param>
         /// <seealso cref="CacheReset"/>
         protected CacheRow CacheRecycle( CacheRow oPrevCache, int iDir, bool fRemeasure = false ) {
-            Row oNextDRow =  GetTabOrderAtIndex( oPrevCache.At, iDir);
+            Row oNextDRow = _oSiteList[oPrevCache.At + iDir];
 
             if( oNextDRow == null )
                 return null;
@@ -834,7 +827,7 @@ namespace Play.Edit {
                     // First, see if we can navigate within the cache item we are currently at.
                     if( !oCaretCacheRow[_iCaretCol].Navigate( eAxis, iDir, ref _fAdvance, ref _iCaretOff ) ) {
                         // Now try moving vertically, but stay in the same column...
-                        if( GetTabOrderAtIndex( CaretAt, iDir) is Row oDocRow ) {
+                        if( _oSiteList[ CaretAt + iDir ] is Row oDocRow ) {
                             CacheRow oNewCache = _rgOldCache.Find(item => item.Row == oDocRow);
                             if( oNewCache == null ) {
                                 oNewCache = CreateCacheRow(oDocRow);
@@ -977,20 +970,19 @@ namespace Play.Edit {
         /// argument.</remarks>
         /// <param name="pntScreenLoc">Graphics location of interest in world coordinates. Basically
         ///                         where the mouse clicked.</param>
-        /// <param name="oCaret">This object line offset is updated to the closest line offset.</param>
         public bool PointToRow( 
-            int iColumn, SKPointI pntScreenLoc, out int iOffset, out int iDataRow )
+            int iColumn, SKPointI pntScreenLoc, out int iOffset, out Row oDataRow )
         {
             CacheRow oCacheRow = PointToCache( iColumn, pntScreenLoc, out int iLineOffset );
-            if( oCacheRow != null ) {
-                iDataRow = oCacheRow.At;
+            if( oCacheRow != null && oCacheRow.Row is Row ) {
+                oDataRow = oCacheRow.Row as Row;
                 iOffset  = iLineOffset;
 
                 return true;
             }
 
             iOffset  = -1;
-            iDataRow = -1;
+            oDataRow = null;
 
             return false;
         }
@@ -1113,17 +1105,6 @@ namespace Play.Edit {
                 _oCaretRow = _oSiteList[ oCacheRow.At ];
 
             _rgFixedCache.Add( oCacheRow );
-        }
-
-        /// <summary>
-        /// In the property page case we might be showing a subset of
-        /// all the property data row's possible and in some random
-        /// order. We assume the order based on the insertion order.
-        /// </summary>
-        /// <param name="iIndex">The data row where we are.</param>
-        /// <param name="iDir">Direction in tab order to go.</param>
-        [Obsolete]protected override Row GetTabOrderAtIndex( int iIndex, int iDir ) {
-            return _oSiteList[ iIndex + iDir ];
         }
 
         [Obsolete]protected override Row GetTabOrderAtScroll() {

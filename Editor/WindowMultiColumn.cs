@@ -208,6 +208,10 @@ namespace Play.Edit {
 
             public int ElementCount => _oHost._oDocList.ElementCount;
 
+            /// <summary>
+            /// Do NOT throw an exception if the index is out of bounds
+            /// DO return a null row.
+            /// </summary>
             public virtual Row this[int iIndex] {
                 get {
                     if( iIndex >= _oHost._oDocList.ElementCount )
@@ -654,10 +658,16 @@ namespace Play.Edit {
             return false;
         }
 
+        /// <remarks>
+        /// Note that the Row returned from the PointToRow() function might be a
+        /// 'mirror' row. See the property page code. The row.At value won't point
+        /// do the row in the DocProperties object. row.At in that case is the
+        /// TabOrder...
+        /// </remarks>
         protected bool HyperLinkFind( int iColumn, SKPointI pntLocation, bool fDoJump ) {
             try {
-                if( _oCacheMan.PointToRow( iColumn, pntLocation, out int iOff, out int iRow ) ) {
-                    return HyperLinkFind( _oDocList[iRow], iColumn, iOff, fDoJump );
+                if( _oCacheMan.PointToRow( iColumn, pntLocation, out int iOff, out Row oRow ) ) {
+                    return HyperLinkFind( oRow, iColumn, iOff, fDoJump );
                 }
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( NullReferenceException ),
