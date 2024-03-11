@@ -23,8 +23,9 @@ namespace Play.Forms {
         IPgLoad,
         IPgFormEvents // BUG: Need to work on this interface...
      {
-        protected DocProperties   Document { get; }
-        protected CacheMultiFixed FixedCache { get; set; }
+        protected DocProperties                   Document   { get; }
+        protected CacheMultiFixed                 FixedCache { get; set; }
+        protected List<DocProperties.PropertyRow> TabOrder   { get; } = new List<DocProperties.PropertyRow>();
 
 		public SKColor BgColorDefault { get; protected set; }
 
@@ -68,12 +69,47 @@ namespace Play.Forms {
             base.Dispose(disposing);
         }
 
+        /// <summary>
+        /// This solves the problem of displaying a subset of all the properties
+        /// on the screen. We generate a TabOrder collection which is a list of
+        /// PropertyRows that share the Line objects from the original DocProperties
+        /// document. This way the TabOrder[n].At is n for all these elements!!
+        /// </summary>
+        protected class CacheManSiteSubSet :
+            CacheManSite {
+            WindowStandardProperties Host2 { get; }
+            public CacheManSiteSubSet(WindowStandardProperties oHost) : base(oHost) {
+                Host2 = oHost;
+            }
+
+            public override Row this[int iIndex] {
+                get { 
+                    if( iIndex >= Host2.TabOrder.Count )
+                        return null;
+                    if( iIndex < 0 ) 
+                        return null;
+
+                    return Host2.TabOrder[iIndex]; }
+            }
+        }
+
         protected override CacheMultiColumn CreateCacheMan() {
             uint uiStdText  = _oStdUI.FontCache( _oStdUI.FaceCache( @"C:\windows\fonts\consola.ttf" ), 12, GetDPI() );
-            FixedCache = new CacheMultiFixed( new CacheManSite( this ), 
-                                         _oStdUI.FontRendererAt( uiStdText ),
-                                         _rgColumns ); 
+            FixedCache = new CacheMultiFixed( new CacheManSiteSubSet( this ), 
+                                              _oStdUI.FontRendererAt( uiStdText ),
+                                              _rgColumns ); 
             return FixedCache;
+        }
+
+        protected DocProperties.PropertyRow AddMirrorProperty( int iIndex ) {
+            Row oOrigRow = Document[iIndex];
+
+            DocProperties.PropertyRow oMirrorRow = new (oOrigRow);
+            oMirrorRow.At = TabOrder.Count;
+
+            TabOrder.Add( oMirrorRow );
+
+            return oMirrorRow;
         }
 
         protected override bool Initialize() {
@@ -106,33 +142,33 @@ namespace Play.Forms {
             }
             oWinValue.Parent = this;
 
-            Row         oRow         = _oDocList[iIndex];
-            FTCacheWrap oLabel       = new FTCacheWrap( oRow[0] );
+            Row         oRow   = AddMirrorProperty( iIndex );
+            FTCacheWrap oLabel = new FTCacheWrap( oRow[0] );
 
             oLabel.BgColor = _oStdUI.ColorsStandardAt( StdUIColors.BGReadOnly );
 
-            CacheRow    oNewCacheRow = new CacheRow2( oRow );
-            oNewCacheRow.CacheList.Add( oLabel );
-            oNewCacheRow.CacheList.Add( new CacheControl( oWinValue ) );
+            CacheRow    oCache = new CacheRow2( oRow );
+            oCache.CacheList.Add( oLabel );
+            oCache.CacheList.Add( new CacheControl( oWinValue ) );
 
-            FixedCache.Add( oNewCacheRow );
+            FixedCache.Add( oCache );
         }
 
         public void PropertyInitRow( int iIndex ) {
-            Row         oRow         = _oDocList[iIndex];
-            CacheRow    oNewCacheRow = new CacheRow2( oRow );
-            FTCacheWrap oLabel       = new FTCacheWrap( oRow[0] );
-            FTCacheWrap oValue       = new FTCacheWrap( oRow[1] );
+            Row         oRow   = AddMirrorProperty( iIndex );
+            CacheRow    oCache = new CacheRow2( oRow );
+            FTCacheWrap oLabel = new FTCacheWrap( oRow[0] );
+            FTCacheWrap oValue = new FTCacheWrap( oRow[1] );
 
             if( Document.ValueBgColor.TryGetValue(iIndex, out SKColor skBgColorOverride) ) {
                 oValue.BgColor = skBgColorOverride;
             }
             oLabel.BgColor = _oStdUI.ColorsStandardAt(StdUIColors.BGReadOnly);
 
-            oNewCacheRow.CacheList.Add( oLabel );
-            oNewCacheRow.CacheList.Add( oValue );
+            oCache.CacheList.Add( oLabel );
+            oCache.CacheList.Add( oValue );
 
-            FixedCache.Add( oNewCacheRow );
+            FixedCache.Add( oCache );
         }
 
         /// <summary>
@@ -141,10 +177,8 @@ namespace Play.Forms {
         /// </summary>
         public virtual void InitRows() {
             try {
-                List<int> rgTabOrder = new List<int>();
                 for( int i = 0; i< Document.PropertyCount; ++i ) {
                     PropertyInitRow( i );
-                    rgTabOrder.Add( i );
                 }
             } catch( Exception oEx ) {
                 if( IsStdErrorUnhandled( oEx ) )

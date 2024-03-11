@@ -101,6 +101,13 @@ namespace Play.Forms {
                 _rgColumns[1] = new TextLine( 1, strValue );
             }
 
+            public PropertyRow( Row oOrig ) {
+                _rgColumns = new Line[2];
+
+                _rgColumns[0] = oOrig[0];
+                _rgColumns[1] = oOrig[1];
+            }
+
             public Line Label => this[0];
             public Line Value => this[1];
         }

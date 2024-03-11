@@ -1122,31 +1122,14 @@ namespace Play.Edit {
         /// </summary>
         /// <param name="iIndex">The data row where we are.</param>
         /// <param name="iDir">Direction in tab order to go.</param>
-        protected override Row GetTabOrderAtIndex( int iIndex, int iDir ) {
-            int iFixedIndex = -100;
-            for( int i=0; i< _rgFixedCache.Count; ++i ) {
-                if( _rgFixedCache[i].At == iIndex ) {
-                    iFixedIndex = i;
-                    break;
-                }
-            }
-
-            int iNextIndex = iFixedIndex + iDir;
-            if( iNextIndex < 0 )
-                return null;
-            if( iNextIndex >= _rgFixedCache.Count )
-                return null;
-
-            return _oSiteList[ _rgFixedCache[iNextIndex].At ];
+        [Obsolete]protected override Row GetTabOrderAtIndex( int iIndex, int iDir ) {
+            return _oSiteList[ iIndex + iDir ];
         }
 
-        protected override Row GetTabOrderAtScroll() {
+        [Obsolete]protected override Row GetTabOrderAtScroll() {
             int iIndex = (int)(_oSite.GetScrollProgress * _rgFixedCache.Count );
 
-            if( _rgFixedCache.Count <= 0 )
-                return null;
-
-            return _oSiteList[ _rgFixedCache[iIndex].At ];
+            return _oSiteList[iIndex];
         }
 
         protected override void FinishUp( CacheRow oBottom, CacheRow oCaret ) {

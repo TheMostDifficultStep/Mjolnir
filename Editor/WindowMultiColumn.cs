@@ -208,7 +208,7 @@ namespace Play.Edit {
 
             public int ElementCount => _oHost._oDocList.ElementCount;
 
-            public Row this[int iIndex] {
+            public virtual Row this[int iIndex] {
                 get {
                     if( iIndex >= _oHost._oDocList.ElementCount )
                         return null;
