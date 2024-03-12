@@ -520,15 +520,17 @@ namespace Play.Edit {
                 if( fFindCaret ) {
                     if( oSeedCache != null )
                         CaretSlideWindow( oSeedCache );
-                } else {
-                    if( oSeedCache == null ) {
-                        oSeedCache = CacheLocateTop();
-                    }
+                }
+                if( oSeedCache == null ) {
+                    oSeedCache = CacheLocateTop();
                 }
 
                 oSeedCache ??= CacheReset( RefreshNeighborhood.SCROLL );
 
-                // It's quite possible for the document to be EMPTY! O.o
+                // It's quite possible for the document to be EMPTY!
+                // Or the caret isn't set and our cache is empty..
+                // Probably should just force the caret to be on some line
+                // at all times... :-/
                 if( oSeedCache == null ) {
                     FinishUp( null, null );
                     return;

@@ -92,7 +92,7 @@ namespace Play.Clock {
                 RenumberAndSumate();
 
 				_oWorkPlace = ((IPgScheduler)Services).CreateWorkPlace();
-                _oWorkPlace.Queue( CreateWorker(), 1000 );
+                _oWorkPlace.Queue( CreateWorker(), 0 );
 			} catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( ArgumentNullException ),
                                     typeof( NullReferenceException ) };

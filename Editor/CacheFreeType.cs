@@ -128,13 +128,18 @@ namespace Play.Edit {
     /// document "line" based and the other being multi column document "row"
     /// based. Like spread sheets for example.
     /// </summary>
+    /// <remarks>
+    /// The Row member is an object so it can be either a Line or a Row object
+    /// mainly for backwards compat. Should I ever retire CacheManager2 in 
+    /// favor of CacheMultiColumn, we should be able to upgrade it to a "Row" class.
+    /// </remarks>
     public abstract class CacheRow {
         // This is super important that the CacheList 0 is used. The other's line
         // numbers are not managed by the text editor.
         public abstract Line   Line { get; } // Hopefully we can remove this when update the CacheManager2
-        public abstract int    At   { get; }
+        public abstract int    At   { get; } // Would love to retire this one...
         public          int    Top  { get; set; }
-        public abstract object Row  { get; } // Replace the "At" behavior...
+        public abstract object Row  { get; } // points to a Row or a Line object. 
 
         // Well have a matching array of SmartRect's for each cache elem inside.
         // CacheList s/b always inorder of the CacheMap but not necessarily the
