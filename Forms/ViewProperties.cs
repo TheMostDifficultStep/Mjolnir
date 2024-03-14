@@ -158,23 +158,24 @@ namespace Play.Forms {
             /// order elements on every move request. Fortunately it's a user
             /// input and thus we'll always have a timely responce.
             /// </summary>
-            /// <param name="oRow"></param>
-            /// <param name="iDir"></param>
+            /// <param name="oRow">Current row we want to navigate from.</param>
+            /// <param name="iDir">Direction from that point. +1, -1 typically.</param>
             /// <returns></returns>
             public override Row TabOrder( Row oRow, int iDir ) {
                 try {
-                    Row oCurrentTab = null;
+                    int iIndex = -1;
 
-                    foreach( Row oTab in TabList ) {
+                    for( int i=0; i<TabList.Count; ++i ) {
+                        Row oTab = TabList[i];
                         if( oTab == oRow ) {
-                            oCurrentTab = oTab;
+                            iIndex = i;
                             break;
                         }
                     }
-                    if( oCurrentTab == null ) 
+                    if( iIndex < 0 ) 
                         return null;
 
-                    int iIndex = oCurrentTab.At + iDir;
+                    iIndex += iDir;
 
                     if( iIndex >= TabList.Count )
                         return null;
