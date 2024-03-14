@@ -496,9 +496,11 @@ namespace Play.Edit {
         /// rebuild the screen from the current cache position. If you
         /// have scrolled the caret off screen I assume it's intentional.
         /// </summary>
-        /// <remarks>BUG: Might need to if the row is invalid and
+        /// <remarks>BUG: if the row is invalid might need to 
         /// remeasure such items. It's a little bigger job so I'll
-        /// look into that later...</remarks>
+        /// look into that later...
+        /// Also note that the _rgOldCache might be empty on first run!
+        /// </remarks>
         /// <param name="fMeasure">Remeasure all row items.</param>
         /// <param name="fFindCaret">Keep the caret on the screen</param>
         /// <param name="oPatch">Make sure this item is re-measured.</param>

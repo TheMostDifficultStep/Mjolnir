@@ -11,16 +11,6 @@ using Play.Parse;
 using System.Drawing;
 
 namespace Play.Forms {
-    public class TabOrder {
-        public int At { get; }
-        public Row Data { get; }
-
-        public TabOrder( int iAt, Row oData ) {
-            At   = iAt;
-            Data = oData;
-        }
-    }
-
     /// <summary>
     /// This manager expects all the rows to be precached. Great for the
     /// property pages that have windows which would have to be created
@@ -100,7 +90,7 @@ namespace Play.Forms {
      {
         protected DocProperties   Document   { get; }
         protected CacheMultiFixed FixedCache { get; set; }
-        protected List<TabOrder>  TabOrderList { get; set; } = new List<TabOrder>();
+        protected List<Row>       TabList    { get; set; } = new ();
 
 		public SKColor BgColorDefault { get; protected set; }
 
@@ -126,9 +116,6 @@ namespace Play.Forms {
             public IPgViewNotify EventChain => _oHost._oSiteView.EventChain;
         }
 
-        /// <remarks>
-        /// TODO: Make the FormsWindow base take the DocForms.
-        /// </remarks>
         public WindowStandardProperties( IPgViewSite oSiteView, DocProperties oDocument ) : 
             base( oSiteView, oDocument ) 
         {
@@ -148,19 +135,19 @@ namespace Play.Forms {
         /// This solves the problem of displaying a subset of all the properties
         /// on the screen. We generate a TabOrder collection which is a list of
         /// PropertyRows that share the Line objects from the original DocProperties
-        /// document. This way the TabOrder[n].At is n for all these elements!!
+        /// document. This way the TabList[n].At is n for all these elements!!
         /// </summary>
         protected class CacheManSiteSubSet :
             CacheManSite 
         {
-            List<TabOrder> TabList { get; }
+            List<Row> TabList { get; } // Order to display the Row's in.
             public CacheManSiteSubSet(WindowStandardProperties oHost) : base(oHost) 
             {
-                TabList = oHost.TabOrderList;
+                TabList = oHost.TabList;
             }
 
             public override Row TabStop(int iIndex) {
-                return TabList[iIndex].Data; 
+                return TabList[iIndex]; 
             }
 
             /// <summary>
@@ -176,10 +163,10 @@ namespace Play.Forms {
             /// <returns></returns>
             public override Row TabOrder( Row oRow, int iDir ) {
                 try {
-                    TabOrder oCurrentTab = null;
+                    Row oCurrentTab = null;
 
-                    foreach( TabOrder oTab in TabList ) {
-                        if( oTab.Data == oRow ) {
+                    foreach( Row oTab in TabList ) {
+                        if( oTab == oRow ) {
                             oCurrentTab = oTab;
                             break;
                         }
@@ -194,7 +181,7 @@ namespace Play.Forms {
                     if( iIndex < 0 ) 
                         return null;
 
-                    return TabList[iIndex].Data;
+                    return TabList[iIndex];
                 } catch( Exception oEx ) {
                     Type[] rgErrors = { typeof( NullReferenceException ),
                                         typeof( ArgumentOutOfRangeException ) };
@@ -217,11 +204,11 @@ namespace Play.Forms {
         }
 
         protected Row AddTabbedProperty( int iIndex ) {
-            Row oOrigRow = Document[iIndex];
+            Row oRow = Document[iIndex];
 
-            TabOrderList.Add( new TabOrder( TabOrderList.Count, oOrigRow ) );
+            TabList.Add( oRow );
 
-            return oOrigRow;
+            return oRow;
         }
 
         protected override bool Initialize() {
@@ -256,10 +243,10 @@ namespace Play.Forms {
 
             Row         oRow   = AddTabbedProperty( iIndex );
             FTCacheWrap oLabel = new FTCacheWrap( oRow[0] );
+            CacheRow    oCache = new CacheRow2( oRow );
 
             oLabel.BgColor = _oStdUI.ColorsStandardAt( StdUIColors.BGReadOnly );
 
-            CacheRow    oCache = new CacheRow2( oRow );
             oCache.CacheList.Add( oLabel );
             oCache.CacheList.Add( new CacheControl( oWinValue ) );
 
