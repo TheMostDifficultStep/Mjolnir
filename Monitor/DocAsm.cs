@@ -6,25 +6,28 @@ using Play.Interfaces.Embedding;
 namespace Monitor {
     public class AsmRow : Row {
         public AsmRow( string strAssembly, string strParams ) {
-            _rgColumns    = new Line[4];
+            _rgColumns    = new Line[5];
             // Add a column for break points! O.o
-            _rgColumns[0] = new TextLine( 0, string.Empty ); // label
-            _rgColumns[1] = new TextLine( 1, strAssembly );  // instr
-            _rgColumns[2] = new TextLine( 2, strParams );    // params
-            _rgColumns[3] = new TextLine( 3, string.Empty ); // comments
+            _rgColumns[0] = new TextLine( 0, string.Empty );
+            _rgColumns[1] = new TextLine( 1, string.Empty ); // label
+            _rgColumns[2] = new TextLine( 2, strAssembly );  // instr
+            _rgColumns[3] = new TextLine( 3, strParams );    // params
+            _rgColumns[4] = new TextLine( 4, string.Empty ); // comments
         }
 
         public int AddressMap { get; set; } = -1;
 
+        public Line Break => _rgColumns[ColumnBrkPnt];
         public Line Label => _rgColumns[ColumnLabel];
         public Line Instr => _rgColumns[ColumnInstr];
         public Line Param => _rgColumns[ColumnParam];
         public Line Comment => _rgColumns[ColumnComment];
 
-        public const int ColumnLabel   = 0;
-        public const int ColumnInstr   = 1;
-        public const int ColumnParam   = 2;
-        public const int ColumnComment = 3;
+        public const int ColumnBrkPnt  = 0;
+        public const int ColumnLabel   = 1;
+        public const int ColumnInstr   = 2;
+        public const int ColumnParam   = 3;
+        public const int ColumnComment = 4;
     }
 
     public class AsmEditor : 
@@ -71,9 +74,6 @@ namespace Monitor {
             public int RowIndex { get; set; } = 0;
 
             public void Dispose() {
-                for( int i=0; i<_oDoc.ElementCount; ++i ) {
-                    _oDoc[i].At = i;
-                }
                 //_oDoc.Raise_EveryRowEvent( DOCUMENTEVENTS.MODIFIED );
                 _oDoc.RenumberAndSumate();
             }

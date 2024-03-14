@@ -9,6 +9,11 @@ using Play.Forms;
 using Play.ImageViewer;
 
 namespace Monitor {
+
+    /// <summary>
+    /// This shows our dazzler image. Or anything using the display image
+    /// I suppose.
+    /// </summary>
     internal class ViewEmulatorImage :
         WindowSoloImage 
     {
@@ -50,13 +55,13 @@ namespace Monitor {
 
         readonly DocumentMonitor _oMonDoc;
         public ViewDisassembly( 
-            IPgViewSite      oSiteView, 
-            DocumentMonitor p_oDocument, 
-            bool             fReadOnly   = false 
+            IPgViewSite     oSiteView, 
+            DocumentMonitor oDocument, 
+            bool            fReadOnly   = false 
         ) : 
-            base( oSiteView, p_oDocument.Doc_Asm ) 
+            base( oSiteView, oDocument.Doc_Asm ) 
         {
-            _oMonDoc = p_oDocument;
+            _oMonDoc = oDocument;
 			try {
 				Icon = _oMonDoc.GetResource( "icons8-script-96.png" );
 			} catch( InvalidOperationException ) {
@@ -110,6 +115,7 @@ namespace Monitor {
             if( !base.Initialize() )
                 return false;
 
+            _rgLayout.Add( new LayoutRect( LayoutRect.CSS.Pixels,  15, 1L ) ); // breakpoints
             _rgLayout.Add( new LayoutRect( LayoutRect.CSS.Percent, 20, 1L ) ); // labels
             _rgLayout.Add( new LayoutRect( LayoutRect.CSS.Percent, 10, 1L ) ); // instr
             _rgLayout.Add( new LayoutRect( LayoutRect.CSS.Percent, 20, 1L ) ); // params
@@ -121,6 +127,7 @@ namespace Monitor {
             _rgColumns.Add( _rgLayout.Item( 2 ) );
             _rgColumns.Add( _rgLayout.Item( 3 ) );
             _rgColumns.Add( _rgLayout.Item( 4 ) );
+            _rgColumns.Add( _rgLayout.Item( 5 ) );
 
             HyperLinks.Add( "CpuJump", OnCpuJump );
 
