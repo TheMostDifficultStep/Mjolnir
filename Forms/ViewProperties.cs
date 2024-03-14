@@ -18,10 +18,16 @@ namespace Play.Forms {
     /// the cache.
     /// </summary>
     public class CacheMultiFixed : CacheMultiColumn {
-        List<CacheRow> _rgFixedCache = new ();
-        public CacheMultiFixed(ICacheManSite oSite, IPgFontRender oFont, List<SmartRect> rgColumns) : 
+        IReadOnlyList<CacheRow> _rgFixedCache;
+        public CacheMultiFixed(
+            ICacheManSite           oSite, 
+            IReadOnlyList<CacheRow> oCacheAccess,
+            IPgFontRender           oFont, 
+            List<SmartRect>         rgColumns
+        ) : 
             base(oSite, oFont, rgColumns) 
         {
+            _rgFixedCache = oCacheAccess ?? throw new ArgumentNullException();
         }
 
         protected override CacheRow CreateCacheRow(Row oDocRow) {
@@ -33,18 +39,6 @@ namespace Play.Forms {
             }
             _oSite.LogError( "Cache Manager Multi", "Seem to have lost an data row..." );
             return base.CreateCacheRow(oDocRow);
-        }
-
-        /// <summary>
-        /// If we had the base.CreateCacheRow call into the host to get
-        /// the row, we wouldn't need this call at all! O.o
-        /// </summary>
-        /// <param name="oCacheRow"></param>
-        public void Add( CacheRow oCacheRow ) {
-            if( _rgFixedCache.Count <= 0 )
-                _oCaretRow = _oSiteList[ oCacheRow.At ];
-
-            _rgFixedCache.Add( oCacheRow );
         }
 
         protected override Row GetTabOrderAtScroll() {
@@ -89,8 +83,8 @@ namespace Play.Forms {
         IPgFormEvents // BUG: Need to work on this interface...
      {
         protected DocProperties   Document   { get; }
-        protected CacheMultiFixed FixedCache { get; set; }
         protected List<Row>       TabList    { get; set; } = new ();
+        protected List<CacheRow>  FixedRows  { get; set; }
 
 		public SKColor BgColorDefault { get; protected set; }
 
@@ -131,23 +125,17 @@ namespace Play.Forms {
             base.Dispose(disposing);
         }
 
-        /// <summary>
-        /// This solves the problem of displaying a subset of all the properties
-        /// on the screen. We generate a TabOrder collection which is a list of
-        /// PropertyRows that share the Line objects from the original DocProperties
-        /// document. This way the TabList[n].At is n for all these elements!!
-        /// </summary>
         protected class CacheManSiteSubSet :
             CacheManSite 
         {
-            List<Row> TabList { get; } // Order to display the Row's in.
+            IReadOnlyList<CacheRow> CacheAccess { get; } 
             public CacheManSiteSubSet(WindowStandardProperties oHost) : base(oHost) 
             {
-                TabList = oHost.TabList;
+                CacheAccess = oHost.FixedRows;
             }
 
             public override Row TabStop(int iIndex) {
-                return TabList[iIndex]; 
+                return CacheAccess[iIndex].Row as Row; 
             }
 
             /// <summary>
@@ -165,8 +153,8 @@ namespace Play.Forms {
                 try {
                     int iIndex = -1;
 
-                    for( int i=0; i<TabList.Count; ++i ) {
-                        Row oTab = TabList[i];
+                    for( int i=0; i<CacheAccess.Count; ++i ) {
+                        Row oTab = CacheAccess[i].Row as Row;
                         if( oTab == oRow ) {
                             iIndex = i;
                             break;
@@ -177,12 +165,12 @@ namespace Play.Forms {
 
                     iIndex += iDir;
 
-                    if( iIndex >= TabList.Count )
+                    if( iIndex >= CacheAccess.Count )
                         return null;
                     if( iIndex < 0 ) 
                         return null;
 
-                    return TabList[iIndex];
+                    return CacheAccess[iIndex].Row as Row;
                 } catch( Exception oEx ) {
                     Type[] rgErrors = { typeof( NullReferenceException ),
                                         typeof( ArgumentOutOfRangeException ) };
@@ -196,20 +184,27 @@ namespace Play.Forms {
             }
         }
 
+        /// <summary>
+        /// WARNING: This gets called BEFORE our constructor. O.o Unusual side effect of
+        /// overriding a base class function which is called in the base class's constructor!!!
+        /// Pretty evil. TODO: Let's move this to the InitNew() step on the Window.
+        /// We'll loose readonly status on the _oCacheMan on the base class. But gain
+        /// a bit in readability/understandability.
+        /// </summary>
+        /// <remarks>At present we double down on the evil by initializing the List for the
+        /// fixed cache here. That way the CacheManSiteSubSet can find FixedRows already
+        /// established. It's nicer to have the fixedcache rows established here in this
+        /// class because it's where we are calling PropertyInitRow() in the first place.
+        /// </remarks>
         protected override CacheMultiColumn CreateCacheMan() {
             uint uiStdText  = _oStdUI.FontCache( _oStdUI.FaceCache( @"C:\windows\fonts\consola.ttf" ), 12, GetDPI() );
-            FixedCache = new CacheMultiFixed( new CacheManSiteSubSet( this ), 
+
+            FixedRows  = new List<CacheRow>(); // Slightly evil... >_<;;
+            CacheMultiFixed oCacheMan = new ( new CacheManSiteSubSet( this ), 
+                                              FixedRows as IReadOnlyList<CacheRow>,
                                               _oStdUI.FontRendererAt( uiStdText ),
                                               _rgColumns ); 
-            return FixedCache;
-        }
-
-        protected Row AddTabbedProperty( int iIndex ) {
-            Row oRow = Document[iIndex];
-
-            TabList.Add( oRow );
-
-            return oRow;
+            return oCacheMan;
         }
 
         protected override bool Initialize() {
@@ -242,7 +237,7 @@ namespace Play.Forms {
             }
             oWinValue.Parent = this;
 
-            Row         oRow   = AddTabbedProperty( iIndex );
+            Row         oRow   = Document[ iIndex ];
             FTCacheWrap oLabel = new FTCacheWrap( oRow[0] );
             CacheRow    oCache = new CacheRow2( oRow );
 
@@ -251,11 +246,11 @@ namespace Play.Forms {
             oCache.CacheList.Add( oLabel );
             oCache.CacheList.Add( new CacheControl( oWinValue ) );
 
-            FixedCache.Add( oCache );
+            FixedRows.Add( oCache );
         }
 
         public void PropertyInitRow( int iIndex ) {
-            Row         oRow   = AddTabbedProperty( iIndex );
+            Row         oRow   = Document[ iIndex ];
             CacheRow    oCache = new CacheRow2( oRow );
             FTCacheWrap oLabel = new FTCacheWrap( oRow[0] );
             FTCacheWrap oValue = new FTCacheWrap( oRow[1] );
@@ -268,7 +263,7 @@ namespace Play.Forms {
             oCache.CacheList.Add( oLabel );
             oCache.CacheList.Add( oValue );
 
-            FixedCache.Add( oCache );
+            FixedRows.Add( oCache );
         }
 
         /// <summary>
