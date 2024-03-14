@@ -58,7 +58,7 @@ namespace Play.Forms {
             int  iFixedIndex   = 0;
 
             for( int i=0; i< _rgFixedCache.Count; ++i ) {
-                if( _rgFixedCache[i].Row == oBottom ) {
+                if( _rgFixedCache[i] == oBottom ) {
                     iFixedIndex = i;
                     break;
                 }
@@ -135,16 +135,13 @@ namespace Play.Forms {
             }
 
             public override Row TabStop(int iIndex) {
-                return CacheAccess[iIndex].Row as Row; 
+                return CacheAccess[iIndex].Row; 
             }
 
             /// <summary>
-            /// Unfortunately, I can't seem to get around the fact that too many
-            /// references to the Row are in the cache manager and so I can't 
-            /// make a Tab order with mirrors so that the .At values would be
-            /// sequential for the tab order. So we need to search our tab
-            /// order elements on every move request. Fortunately it's a user
-            /// input and thus we'll always have a timely responce.
+            /// Since the Views on the property page must be established once
+            /// only. We can take advantage of the fixed cache to supply us with
+            /// the TabOrder!!
             /// </summary>
             /// <param name="oRow">Current row we want to navigate from.</param>
             /// <param name="iDir">Direction from that point. +1, -1 typically.</param>
@@ -154,7 +151,7 @@ namespace Play.Forms {
                     int iIndex = -1;
 
                     for( int i=0; i<CacheAccess.Count; ++i ) {
-                        Row oTab = CacheAccess[i].Row as Row;
+                        Row oTab = CacheAccess[i].Row;
                         if( oTab == oRow ) {
                             iIndex = i;
                             break;
@@ -170,7 +167,7 @@ namespace Play.Forms {
                     if( iIndex < 0 ) 
                         return null;
 
-                    return CacheAccess[iIndex].Row as Row;
+                    return CacheAccess[iIndex].Row;
                 } catch( Exception oEx ) {
                     Type[] rgErrors = { typeof( NullReferenceException ),
                                         typeof( ArgumentOutOfRangeException ) };
@@ -211,8 +208,8 @@ namespace Play.Forms {
             if( !base.Initialize() )
                 return false;
 
-            _rgLayout.Add( new LayoutRect( LayoutRect.CSS.Percent, 30, 1L ) ); // Name
-            _rgLayout.Add( new LayoutRect( LayoutRect.CSS.None,    70, 1L ) ); // Value;
+            _rgLayout .Add( new LayoutRect( LayoutRect.CSS.Percent, 30, 1L ) ); // Name
+            _rgLayout .Add( new LayoutRect( LayoutRect.CSS.None,    70, 1L ) ); // Value;
 
             _rgColumns.Add( _rgLayout.Item( 1 ) );
             _rgColumns.Add( _rgLayout.Item( 2 ) );
@@ -239,7 +236,7 @@ namespace Play.Forms {
 
             Row         oRow   = Document[ iIndex ];
             FTCacheWrap oLabel = new FTCacheWrap( oRow[0] );
-            CacheRow    oCache = new CacheRow2( oRow );
+            CacheRow    oCache = new CacheRow2  ( oRow );
 
             oLabel.BgColor = _oStdUI.ColorsStandardAt( StdUIColors.BGReadOnly );
 
@@ -251,7 +248,7 @@ namespace Play.Forms {
 
         public void PropertyInitRow( int iIndex ) {
             Row         oRow   = Document[ iIndex ];
-            CacheRow    oCache = new CacheRow2( oRow );
+            CacheRow    oCache = new CacheRow2  ( oRow );
             FTCacheWrap oLabel = new FTCacheWrap( oRow[0] );
             FTCacheWrap oValue = new FTCacheWrap( oRow[1] );
 

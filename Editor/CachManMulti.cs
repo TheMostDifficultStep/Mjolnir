@@ -393,7 +393,7 @@ namespace Play.Edit {
         /// <param name="iDataRow">Which data row we want to represent.</param>
         /// <seealso cref="CacheReset"/>
         protected CacheRow CacheRecycle( CacheRow oPrevCache, int iDir, bool fRemeasure = false ) {
-            Row oNextDRow = _oSite.TabOrder( oPrevCache.Row as Row, iDir );
+            Row oNextDRow = _oSite.TabOrder( oPrevCache.Row, iDir );
 
             if( oNextDRow == null )
                 return null;
@@ -978,7 +978,7 @@ namespace Play.Edit {
         {
             CacheRow oCacheRow = PointToCache( iColumn, pntScreenLoc, out int iLineOffset );
             if( oCacheRow != null && oCacheRow.Row is Row ) {
-                oDataRow = oCacheRow.Row as Row;
+                oDataRow = oCacheRow.Row;
                 iOffset  = iLineOffset;
 
                 return true;

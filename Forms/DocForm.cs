@@ -176,6 +176,11 @@ namespace Play.Forms {
                 }
 			}
 
+            ///<remarks>Normally this is where we would renumber the
+            ///Row.At values here. But that's dangerous on a property page. 
+            ///So dispence with that, but make sure the "AddProperty" 
+            ///call set's the "At" member...
+            ///<seealso cref="AddProperty(string)"/>
 			public void Dispose() {
                 foreach( IPgEditHandler oCall in _rgHandlers ) {
                     oCall.OnUpdated( EditType.ModifyElem, null );
@@ -184,12 +189,27 @@ namespace Play.Forms {
                 _oHost.DoParse();
 			}
 
+            /// <summary>
+            /// You need to be careful with this b/c the system will
+            /// renumber the lines when it has finished with the properties.
+            /// if you don't add properties in the same order as any
+            /// enum access you might create. Or randomly add something
+            /// in the middle, the Row.At values will not match your
+            /// expectations.
+            /// </summary>
+            /// <remarks>TODO: We should actually be able to remove this member
+            /// since the modern property pages don't do this. Only
+            /// the ancient Text editor uses it for navigation prop page.</remarks>
+            /// <seealso cref="Dispose"/>
 			public int AddProperty( string strLabel ) {
                 int iLine = _oHost.PropertyCount;
 
                 _rgUniqueLines.Add( iLine );
 
-                _oHost._rgRows.Add( new PropertyRow( strLabel ) );
+                Row oNew = new PropertyRow( strLabel );
+                oNew.At = _oHost._rgRows.Count;
+
+                _oHost._rgRows.Add( oNew );
 
 				return iLine;
 			}

@@ -139,7 +139,7 @@ namespace Play.Edit {
         public abstract Line   Line { get; } // Hopefully we can remove this when update the CacheManager2
         public abstract int    At   { get; } // Would love to retire this one...
         public          int    Top  { get; set; }
-        public abstract object Row  { get; } // points to a Row or a Line object. 
+        public abstract Row    Row  { get; }  
 
         // Well have a matching array of SmartRect's for each cache elem inside.
         // CacheList s/b always inorder of the CacheMap but not necessarily the
@@ -200,7 +200,11 @@ namespace Play.Edit {
         }
     }
 
-    public class CacheRowSingle :
+    /// <summary>
+    /// This is for backwards compat with the old CacheMan2 class.
+    /// It's obsolete, and move to CacheRow2 when you can...
+    /// </summary>
+    [Obsolete]public class CacheRowSingle :
         CacheRow
     {
         Line _oLine;
@@ -209,17 +213,17 @@ namespace Play.Edit {
             _oLine = oLine;
         }
 
-        public override Line   Line => _oLine; 
-        public override int    At   => _oLine.At;
-        public override object Row  => _oLine;
+        public override Line Line => _oLine; 
+        public override int  At   => _oLine.At;
+        public override Row  Row  => throw new NotImplementedException();
     }
 
     public class CacheRow2 : CacheRow {
         protected Row _oDocRow;
 
-        public override Line   Line => _oDocRow[0]; 
-        public override int    At   => _oDocRow.At;
-        public override object Row  => _oDocRow;
+        public override Line Line => _oDocRow[0]; 
+        public override int  At   => _oDocRow.At;
+        public override Row  Row  => _oDocRow;
 
         public CacheRow2( Row oDocRow ) {
             _oDocRow = oDocRow ?? throw new ArgumentNullException( nameof( oDocRow ) );
