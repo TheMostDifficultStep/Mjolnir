@@ -20,10 +20,15 @@ namespace Play.Edit {
     public interface ICacheManSite :
         IPgBaseSite
     {
+        Row   TabOrder( Row oRow, int iDir );
+        int   TabCount { get; }
+        Row   TabStop( int iIndex );
+
         float GetScrollProgress { get; }
         void  OnRefreshComplete( float flProgress, float flVisiblePercent );
         void  OnCaretPositioned( SKPointI pntCaretbool, bool fVisible );
     }
+
     public class CacheMultiColumn:         
         IEnumerable<CacheRow>
     {
@@ -145,19 +150,15 @@ namespace Play.Edit {
 
         protected virtual Row GetTabOrderAtScroll() {
             try {
-                int iIndex = (int)(_oSite.GetScrollProgress * _oSiteList.ElementCount);
-                if( iIndex >= _oSiteList.ElementCount )
-                    iIndex = _oSiteList.ElementCount - 1;
-                if( iIndex < 0 )
-                    return null;
+                int iIndex = (int)( _oSite.GetScrollProgress * _oSite.TabCount );
 
-                return _oSiteList[ iIndex ];
+                return _oSite.TabStop(iIndex);
             } catch( Exception oEx ) {
                 if( IsUnhandledStdRpt( oEx ) )
                     throw;
             }
 
-            return _oSiteList[0];
+            return _oSite.TabStop( 0 );
         }
 
         public IEnumerator<CacheRow> GetEnumerator() {
@@ -351,9 +352,7 @@ namespace Play.Edit {
 		        Row oDocRow = null;
                 switch( eNeighborhood ) {
                     case RefreshNeighborhood.SCROLL:
-                        int iIndex = (int)(_oSite.GetScrollProgress * _oSiteList.ElementCount);
-
-                        oDocRow = _oSiteList[ iIndex ];
+                        oDocRow = GetTabOrderAtScroll();
                         break;
                     case RefreshNeighborhood.CARET:
                         oDocRow = _oSiteList[ CaretAt ];
@@ -394,7 +393,7 @@ namespace Play.Edit {
         /// <param name="iDataRow">Which data row we want to represent.</param>
         /// <seealso cref="CacheReset"/>
         protected CacheRow CacheRecycle( CacheRow oPrevCache, int iDir, bool fRemeasure = false ) {
-            Row oNextDRow = _oSiteList[oPrevCache.At + iDir];
+            Row oNextDRow = _oSite.TabOrder( oPrevCache.Row as Row, iDir );
 
             if( oNextDRow == null )
                 return null;
@@ -632,7 +631,7 @@ namespace Play.Edit {
             int  iBottomRow    = ( oBottom == null ) ? 0 : oBottom.At;
             bool fCaretVisible = IsCaretNear( oCaret, out SKPointI pntCaret );
 
-            _oSite.OnRefreshComplete( iBottomRow, _rgOldCache.Count / _oSiteList.ElementCount );
+            _oSite.OnRefreshComplete( iBottomRow, _rgOldCache.Count / _oSite.TabCount );
             _oSite.OnCaretPositioned( pntCaret,   fCaretVisible );
         }
 
@@ -829,7 +828,7 @@ namespace Play.Edit {
                     // First, see if we can navigate within the cache item we are currently at.
                     if( !oCaretCacheRow[_iCaretCol].Navigate( eAxis, iDir, ref _fAdvance, ref _iCaretOff ) ) {
                         // Now try moving vertically, but stay in the same column...
-                        if( _oSiteList[ CaretAt + iDir ] is Row oDocRow ) {
+                        if( _oSite.TabOrder( _oCaretRow, iDir ) is Row oDocRow ) {
                             CacheRow oNewCache = _rgOldCache.Find(item => item.Row == oDocRow);
                             if( oNewCache == null ) {
                                 oNewCache = CreateCacheRow(oDocRow);
@@ -1072,70 +1071,4 @@ namespace Play.Edit {
         }
 
     } // end class
-
-    /// <summary>
-    /// This manager expects all the rows to be precached. Great for the
-    /// property pages that have windows which would have to be created
-    /// and destroyed on the fly, when usually nothing ever falls out of
-    /// the cache.
-    /// </summary>
-    public class CacheMultiFixed : CacheMultiColumn {
-        List<CacheRow> _rgFixedCache = new ();
-        public CacheMultiFixed(ICacheManSite oSite, IPgFontRender oFont, List<SmartRect> rgColumns) : 
-            base(oSite, oFont, rgColumns) 
-        {
-        }
-
-        protected override CacheRow CreateCacheRow(Row oDocRow) {
-            foreach( CacheRow oCacheRow in _rgFixedCache ) { 
-                if( oCacheRow.Row == oDocRow ) {
-                    RowMeasure( oCacheRow );
-                    return oCacheRow;
-                }
-            }
-            _oSite.LogError( "Cache Manager Multi", "Seem to have lost an data row..." );
-            return base.CreateCacheRow(oDocRow);
-        }
-
-        /// <summary>
-        /// If we had the base.CreateCacheRow call into the host to get
-        /// the row, we wouldn't need this call at all! O.o
-        /// </summary>
-        /// <param name="oCacheRow"></param>
-        public void Add( CacheRow oCacheRow ) {
-            if( _rgFixedCache.Count <= 0 )
-                _oCaretRow = _oSiteList[ oCacheRow.At ];
-
-            _rgFixedCache.Add( oCacheRow );
-        }
-
-        [Obsolete]protected override Row GetTabOrderAtScroll() {
-            int iIndex = (int)(_oSite.GetScrollProgress * _rgFixedCache.Count );
-
-            return _oSiteList[iIndex];
-        }
-
-        protected override void FinishUp( CacheRow oBottom, CacheRow oCaret ) {
-            if( _rgFixedCache.Count <= 0 ) {
-                _oSite.OnRefreshComplete( 1, 1 );
-                _oSite.OnCaretPositioned( new SKPointI( -1000,-1000), false );
-                return;
-            }
-
-            bool fCaretVisible = IsCaretNear( oCaret, out SKPointI pntCaret );
-            int  iFixedIndex   = 0;
-
-            for( int i=0; i< _rgFixedCache.Count; ++i ) {
-                if( _rgFixedCache[i].Row == oBottom ) {
-                    iFixedIndex = i;
-                    break;
-                }
-            }
-
-            _oSite.OnRefreshComplete( (float)iFixedIndex       / _rgFixedCache.Count, 
-                                      (float)_rgOldCache.Count / _rgFixedCache.Count );
-            _oSite.OnCaretPositioned( pntCaret,   fCaretVisible );
-        }
-
-    }
 }

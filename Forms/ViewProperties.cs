@@ -11,6 +11,81 @@ using Play.Parse;
 using System.Drawing;
 
 namespace Play.Forms {
+    public class TabOrder {
+        public int At { get; }
+        public Row Data { get; }
+
+        public TabOrder( int iAt, Row oData ) {
+            At   = iAt;
+            Data = oData;
+        }
+    }
+
+    /// <summary>
+    /// This manager expects all the rows to be precached. Great for the
+    /// property pages that have windows which would have to be created
+    /// and destroyed on the fly, when usually nothing ever falls out of
+    /// the cache.
+    /// </summary>
+    public class CacheMultiFixed : CacheMultiColumn {
+        List<CacheRow> _rgFixedCache = new ();
+        public CacheMultiFixed(ICacheManSite oSite, IPgFontRender oFont, List<SmartRect> rgColumns) : 
+            base(oSite, oFont, rgColumns) 
+        {
+        }
+
+        protected override CacheRow CreateCacheRow(Row oDocRow) {
+            foreach( CacheRow oCacheRow in _rgFixedCache ) { 
+                if( oCacheRow.Row == oDocRow ) {
+                    RowMeasure( oCacheRow );
+                    return oCacheRow;
+                }
+            }
+            _oSite.LogError( "Cache Manager Multi", "Seem to have lost an data row..." );
+            return base.CreateCacheRow(oDocRow);
+        }
+
+        /// <summary>
+        /// If we had the base.CreateCacheRow call into the host to get
+        /// the row, we wouldn't need this call at all! O.o
+        /// </summary>
+        /// <param name="oCacheRow"></param>
+        public void Add( CacheRow oCacheRow ) {
+            if( _rgFixedCache.Count <= 0 )
+                _oCaretRow = _oSiteList[ oCacheRow.At ];
+
+            _rgFixedCache.Add( oCacheRow );
+        }
+
+        protected override Row GetTabOrderAtScroll() {
+            int iIndex = (int)(_oSite.GetScrollProgress * _rgFixedCache.Count );
+
+            return _oSite.TabStop( 0 );
+        }
+
+        protected override void FinishUp( CacheRow oBottom, CacheRow oCaret ) {
+            if( _rgFixedCache.Count <= 0 ) {
+                _oSite.OnRefreshComplete( 1, 1 );
+                _oSite.OnCaretPositioned( new SKPointI( -1000,-1000), false );
+                return;
+            }
+
+            bool fCaretVisible = IsCaretNear( oCaret, out SKPointI pntCaret );
+            int  iFixedIndex   = 0;
+
+            for( int i=0; i< _rgFixedCache.Count; ++i ) {
+                if( _rgFixedCache[i].Row == oBottom ) {
+                    iFixedIndex = i;
+                    break;
+                }
+            }
+
+            _oSite.OnRefreshComplete( (float)iFixedIndex       / _rgFixedCache.Count, 
+                                      (float)_rgOldCache.Count / _rgFixedCache.Count );
+            _oSite.OnCaretPositioned( pntCaret,   fCaretVisible );
+        }
+    }
+
     /// <summary>
     /// View the DocProperties object. This makes two columns, label on the left
 	/// and value on the right. It is capable of adding an editwindow for the values.
@@ -23,9 +98,9 @@ namespace Play.Forms {
         IPgLoad,
         IPgFormEvents // BUG: Need to work on this interface...
      {
-        protected DocProperties                   Document   { get; }
-        protected CacheMultiFixed                 FixedCache { get; set; }
-        protected List<DocProperties.PropertyRow> TabOrder   { get; } = new List<DocProperties.PropertyRow>();
+        protected DocProperties   Document   { get; }
+        protected CacheMultiFixed FixedCache { get; set; }
+        protected List<TabOrder>  TabOrderList { get; set; } = new List<TabOrder>();
 
 		public SKColor BgColorDefault { get; protected set; }
 
@@ -76,20 +151,60 @@ namespace Play.Forms {
         /// document. This way the TabOrder[n].At is n for all these elements!!
         /// </summary>
         protected class CacheManSiteSubSet :
-            CacheManSite {
-            WindowStandardProperties Host2 { get; }
-            public CacheManSiteSubSet(WindowStandardProperties oHost) : base(oHost) {
-                Host2 = oHost;
+            CacheManSite 
+        {
+            List<TabOrder> TabList { get; }
+            public CacheManSiteSubSet(WindowStandardProperties oHost) : base(oHost) 
+            {
+                TabList = oHost.TabOrderList;
             }
 
-            public override Row this[int iIndex] {
-                get { 
-                    if( iIndex >= Host2.TabOrder.Count )
+            public override Row TabStop(int iIndex) {
+                return TabList[iIndex].Data; 
+            }
+
+            /// <summary>
+            /// Unfortunately, I can't seem to get around the fact that too many
+            /// references to the Row are in the cache manager and so I can't 
+            /// make a Tab order with mirrors so that the .At values would be
+            /// sequential for the tab order. So we need to search our tab
+            /// order elements on every move request. Fortunately it's a user
+            /// input and thus we'll always have a timely responce.
+            /// </summary>
+            /// <param name="oRow"></param>
+            /// <param name="iDir"></param>
+            /// <returns></returns>
+            public override Row TabOrder( Row oRow, int iDir ) {
+                try {
+                    TabOrder oCurrentTab = null;
+
+                    foreach( TabOrder oTab in TabList ) {
+                        if( oTab.Data == oRow ) {
+                            oCurrentTab = oTab;
+                            break;
+                        }
+                    }
+                    if( oCurrentTab == null ) 
+                        return null;
+
+                    int iIndex = oCurrentTab.At + iDir;
+
+                    if( iIndex >= TabList.Count )
                         return null;
                     if( iIndex < 0 ) 
                         return null;
 
-                    return Host2.TabOrder[iIndex]; }
+                    return TabList[iIndex].Data;
+                } catch( Exception oEx ) {
+                    Type[] rgErrors = { typeof( NullReferenceException ),
+                                        typeof( ArgumentOutOfRangeException ) };
+                    if( rgErrors.IsUnhandled( oEx ) )
+                        throw;
+
+                    LogError( "Tab Order", "Problem with tab list" );
+                }
+
+                return null;
             }
         }
 
@@ -101,15 +216,12 @@ namespace Play.Forms {
             return FixedCache;
         }
 
-        protected DocProperties.PropertyRow AddMirrorProperty( int iIndex ) {
+        protected Row AddTabbedProperty( int iIndex ) {
             Row oOrigRow = Document[iIndex];
 
-            DocProperties.PropertyRow oMirrorRow = new (oOrigRow);
-            oMirrorRow.At = TabOrder.Count;
+            TabOrderList.Add( new TabOrder( TabOrderList.Count, oOrigRow ) );
 
-            TabOrder.Add( oMirrorRow );
-
-            return oMirrorRow;
+            return oOrigRow;
         }
 
         protected override bool Initialize() {
@@ -142,7 +254,7 @@ namespace Play.Forms {
             }
             oWinValue.Parent = this;
 
-            Row         oRow   = AddMirrorProperty( iIndex );
+            Row         oRow   = AddTabbedProperty( iIndex );
             FTCacheWrap oLabel = new FTCacheWrap( oRow[0] );
 
             oLabel.BgColor = _oStdUI.ColorsStandardAt( StdUIColors.BGReadOnly );
@@ -155,7 +267,7 @@ namespace Play.Forms {
         }
 
         public void PropertyInitRow( int iIndex ) {
-            Row         oRow   = AddMirrorProperty( iIndex );
+            Row         oRow   = AddTabbedProperty( iIndex );
             CacheRow    oCache = new CacheRow2( oRow );
             FTCacheWrap oLabel = new FTCacheWrap( oRow[0] );
             FTCacheWrap oValue = new FTCacheWrap( oRow[1] );

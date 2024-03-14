@@ -14,6 +14,7 @@ using Play.Interfaces.Embedding;
 using Play.Rectangles;
 using Play.Controls;
 using Play.Parse;
+using System.Reflection;
 
 namespace Play.Edit {
     public interface IPgDocTraits<T> {
@@ -208,19 +209,34 @@ namespace Play.Edit {
 
             public int ElementCount => _oHost._oDocList.ElementCount;
 
-            /// <summary>
-            /// Do NOT throw an exception if the index is out of bounds
-            /// DO return a null row.
-            /// </summary>
-            public virtual Row this[int iIndex] {
-                get {
+            public virtual Row this[int iIndex] => _oHost._oDocList[iIndex];
+
+            public virtual Row TabStop( int iIndex ) {
+                try {
                     if( iIndex >= _oHost._oDocList.ElementCount )
                         return null;
-                    if( iIndex < 0 ) 
+                    if( iIndex < 0 )
                         return null;
 
                     return _oHost._oDocList[iIndex];
+                } catch( Exception oEx ) {
+                    Type[] rgErrors = { typeof( NullReferenceException ),
+                                        typeof( ArgumentOutOfRangeException ) };
+                    if( rgErrors.IsUnhandled( oEx ) )
+                        throw;
+
+                    LogError( "Tab Order", "Problem with tab list" );
                 }
+
+                return null;
+            }
+            public virtual int TabCount => _oHost._oDocList.ElementCount;
+
+            public virtual Row TabOrder( Row oRow, int iDir ) {
+                if( oRow == null )
+                    return null;
+
+                return TabStop( oRow.At + iDir );
             }
 
             public float GetScrollProgress {
