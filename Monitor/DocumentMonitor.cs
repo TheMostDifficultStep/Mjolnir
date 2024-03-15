@@ -410,6 +410,7 @@ namespace Monitor {
         // Move these to doc prop's later...
         protected string _strBinaryFileName = string.Empty;
         public    string FileName { get; protected set; }  = string.Empty;
+        protected SortedSet<ushort> _rgBreakPoints = new SortedSet<ushort>();
 
 
         protected readonly Z80Memory      _rgMemory;
@@ -470,8 +471,23 @@ namespace Monitor {
 
             public void Update( DocumentMonitor oMon ) {
                 using Manipulator oBulk = new Manipulator( oMon.Doc_Props );
+                StringBuilder sbFlags = new();
+
+                sbFlags.Append( "S:" );
+                sbFlags.Append( ( oMon._cpuZ80.Flags & (byte)Z80.Fl.S ) > 0 ? "1" : "0" );
+                sbFlags.Append( " Z:" );
+                sbFlags.Append( ( oMon._cpuZ80.Flags & (byte)Z80.Fl.Z ) > 0 ? "1" : "0" );
+                sbFlags.Append( " H:" );
+                sbFlags.Append( ( oMon._cpuZ80.Flags & (byte)Z80.Fl.H ) > 0 ? "1" : "0" );
+                sbFlags.Append( " PV:" );
+                sbFlags.Append( ( oMon._cpuZ80.Flags & (byte)Z80.Fl.PV ) > 0 ? "1" : "0" );
+                sbFlags.Append( " N:" );
+                sbFlags.Append( ( oMon._cpuZ80.Flags & (byte)Z80.Fl.N ) > 0 ? "1" : "0" );
+                sbFlags.Append( " C:" );
+                sbFlags.Append( ( oMon._cpuZ80.Flags & (byte)Z80.Fl.C ) > 0 ? "1" : "0" );
 
                 oBulk.SetValue( (int)Labels.Acc, oMon._cpuZ80.Ac.ToString( "X2" ) );
+                oBulk.SetValue( (int)Labels.Flags, sbFlags.ToString() );
                 oBulk.SetValue( (int)Labels.BC,  oMon._cpuZ80.Bc.ToString( "X4" ) );
                 oBulk.SetValue( (int)Labels.DE,  oMon._cpuZ80.De.ToString( "X4" ) );
                 oBulk.SetValue( (int)Labels.HL,  oMon._cpuZ80.Hl.ToString( "X4" ) );
@@ -861,26 +877,72 @@ namespace Monitor {
             }
         }
 
+        protected static Type[] _rgStdErrors = 
+            { typeof( NullReferenceException ),
+              typeof( IndexOutOfRangeException ),
+              typeof( ArgumentOutOfRangeException ) };
+
+        protected void StatusUpdate() {
+            try {
+                Doc_Asm    .UpdateHighlightLine( _cpuZ80.Pc );
+                Doc_Props  .Update( this );
+                Doc_Display.Load( _rgMemory.RawMemory, 0x200 );
+                Doc_Display.Raise_ImageUpdated();
+            } catch( Exception oEx ) {
+                if( _rgStdErrors.IsUnhandled( oEx ) )
+                    throw;
+
+                LogError( "Cpu", "Status Update Error" );
+            }
+        }
+
+        /// <summary>
+        /// Right now I don't get any event in particular when the
+        /// user set's break points. So we call this function liberaly
+        /// to reset things. TODO: We'll fix that later...
+        /// </summary>
+        protected void LoadBreakpoints() {
+            _rgBreakPoints.Clear();
+            foreach( Row oRow in Doc_Asm ) {
+                if( oRow is AsmRow oAsm ) {
+                    if( oAsm.Break.ElementCount > 0 ) {
+                        _rgBreakPoints.Add( (ushort)oAsm.AddressMap );
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// This is where we execute the processor in free running mode.
+        /// We'll do 1000 iterations and then yield to the foreground for
+        /// a bit.
+        /// </summary>
         public IEnumerator<int> GetProcessor() {
             if( _cpuZ80 == null ) {
                 LogError( "Monitor", "CPU not available" );
                 yield break;
             }
 
+            LoadBreakpoints();
+
             while( true ) {
                 for( int i=0; i<1000; ++i ) {
+                    if( _rgBreakPoints.Count > 0 &&
+                        _rgBreakPoints.Contains( _cpuZ80.Pc ) ) 
+                    {
+                        StatusUpdate();
+                        _oWorkPlace.Pause();
+                        yield return int.MaxValue;
+                    }
                     try {
                         _cpuZ80.Parse();
                     } catch( Exception oEx ) {
-                        Type[] rgErrors = { typeof( NullReferenceException ),
-                                            typeof( IndexOutOfRangeException ) };
-                        if( rgErrors.IsUnhandled( oEx ) )
+                        if( _rgStdErrors.IsUnhandled( oEx ) )
                             throw;
 
-                        LogError( "CPU", "Cpu not created error." );
+                        LogError( "CPU", "Cpu error." );
 
-                        Doc_Display.Load( _rgMemory.RawMemory, 0x200 );
-                        Doc_Display.Raise_ImageUpdated();
+                        StatusUpdate();
                         yield break;
                     }
 
@@ -895,9 +957,16 @@ namespace Monitor {
         }
 
         public void CpuStart() {
-            if( _oWorkPlace.Status == WorkerStatus.FREE ) {
-                _oWorkPlace.Stop();
-                _oWorkPlace.Queue( GetProcessor(), 0 );
+            switch( _oWorkPlace.Status ) {
+                case WorkerStatus.FREE:
+                    _oWorkPlace.Stop();
+                    _oWorkPlace.Queue( GetProcessor(), 0 );
+                    break;
+                case WorkerStatus.PAUSED:
+                case WorkerStatus.BUSY:
+                    LoadBreakpoints();
+                    _oWorkPlace.Start( 0 );
+                    break;
             }
         }
 
@@ -914,26 +983,35 @@ namespace Monitor {
         /// since I need the state of the CPU before the pause...
         /// </summary>
         public void CpuBreak() {
-            Doc_Asm    .UpdateHighlightLine( _cpuZ80.Pc );
-            Doc_Props  .Update( this );
             _oWorkPlace.Pause();
+            StatusUpdate();
         }
 
         public void CpuStep() {
             try {
-                if( _oWorkPlace.Status == WorkerStatus.FREE ) {
-                    Doc_Asm  .UpdateHighlightLine( _cpuZ80.Pc );
-                    Doc_Props.Update( this );
-                    _cpuZ80  .Parse();
-                } else {
-                    if( _cpuZ80.Halt ) 
-                        LogError( "CPU", "Cpu is halted." );
-                    else
-                        LogError( "CPU", "Pause CPU first, (currently running)." );
+                LoadBreakpoints();
+                switch( _oWorkPlace.Status ) {
+                    case WorkerStatus.FREE:
+                    case WorkerStatus.PAUSED:
+                        Doc_Asm  .UpdateHighlightLine( _cpuZ80.Pc );
+                        Doc_Props.Update( this );
+                        _cpuZ80  .Parse();
+                        Doc_Display.Load( _rgMemory.RawMemory, 0x200 );
+                        break;
+                    case WorkerStatus.BUSY:
+                        // We might have set timout infinite.
+                        _oWorkPlace.Start(0);
+                        break;
+                    default:
+                        if( _cpuZ80.Halt ) 
+                            LogError( "CPU", "Cpu is halted." );
+                        else
+                            LogError( "CPU", "Confused." );
+                        _oWorkPlace.Stop();
+                        break;
                 }
             } catch( Exception oEx ) {
-                Type[] rgErrors = { typeof( NullReferenceException ) };
-                if( rgErrors.IsUnhandled( oEx ) )
+                if( _rgStdErrors.IsUnhandled( oEx ) )
                     throw;
                 LogError( "execute", "cpu confused" );
             }
@@ -942,6 +1020,7 @@ namespace Monitor {
         public void CpuRecycle() {
             _cpuZ80.Reset();
             Doc_Asm.HighLight = null;
+            Doc_Display.Clear();
         }
 
         public bool Execute( Guid sCmnd ) {

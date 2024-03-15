@@ -97,5 +97,14 @@ namespace Monitor {
                 _oSiteBase.LogError( "Dazzle", "problem reading memory stream" );
             }
         }
+
+        public void Clear() {
+            using( SKCanvas skCanvas = new SKCanvas( Bitmap ) ) {
+                using( SKPaint skPaint = new SKPaint() ) {
+                    skCanvas.DrawColor( SKColors.White );
+                }
+            }
+            Raise_ImageUpdated();
+        }
     }
 }

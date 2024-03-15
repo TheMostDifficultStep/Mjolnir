@@ -102,7 +102,7 @@ namespace Monitor {
                 return oAsmRow;
             }
 
-            public Row Append( string strInstr, string strParam = null ) {
+            public Row Append( string strInstr, string? strParam = null ) {
                 AsmRow oAsmRow = new AsmRow( strInstr, strParam ?? string.Empty );
 
                 InsertRow( _oDoc._rgRows.Count, oAsmRow );
