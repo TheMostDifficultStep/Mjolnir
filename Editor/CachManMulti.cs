@@ -1047,7 +1047,8 @@ namespace Play.Edit {
                 Row  oDataRow = _oSiteList[ iDataRow ];
                 Line oLine    = oDataRow[iColumn];
 
-                if( iOffset < 0 || iOffset >= oLine.ElementCount )
+                // If elemcount is zero it's ok for offset to be zero.
+                if( iOffset < 0 || iOffset > oLine.ElementCount )
                     return false;
 
                 _oCaretRow = oDataRow;

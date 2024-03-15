@@ -14,7 +14,6 @@ using Play.Interfaces.Embedding;
 using Play.Rectangles;
 using Play.Controls;
 using Play.Parse;
-using System.Reflection;
 
 namespace Play.Edit {
     public interface IPgDocTraits<T> {
@@ -413,8 +412,15 @@ namespace Play.Edit {
                                               (uint)(DPI.X * _szScrollBars.Width) ) );
 
             _oDocOps.ListenerAdd( this );
+            _oDocTraits.HighLightChanged += _oDocTraits_HighLightChanged;
 
             return true;
+        }
+
+        private void _oDocTraits_HighLightChanged(Row oRow) {
+            if( Focused ) {
+                _oCacheMan.SetCaretPositionAndScroll( oRow.At, 0, 0, true );
+            }
         }
 
         public virtual bool InitNew() {
