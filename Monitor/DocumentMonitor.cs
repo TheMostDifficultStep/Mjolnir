@@ -452,7 +452,8 @@ namespace Monitor {
                 DE,
                 HL,
                 SP,
-                PC
+                PC,
+                Halted
 		    }
 
             public MonitorProperties(IPgBaseSite oSiteBase) : base(oSiteBase) {
@@ -493,8 +494,9 @@ namespace Monitor {
                 oBulk.SetValue( (int)Labels.HL,  oMon._cpuZ80.Hl.ToString( "X4" ) );
                 oBulk.SetValue( (int)Labels.SP,  oMon._cpuZ80.Sp.ToString( "X4" ) );
                 oBulk.SetValue( (int)Labels.PC,  oMon._cpuZ80.Pc.ToString( "X4" ) );
+                oBulk.SetValue( (int)Labels.Halted, oMon._cpuZ80.Halt ? "yes" : "no" );
            }
-        }
+        } // end class MonitorProperties
 
         public DocumentMonitor( IPgBaseSite oBaseSite ) {
             _oBaseSite  = oBaseSite ?? throw new ArgumentNullException();
@@ -542,60 +544,6 @@ namespace Monitor {
 
                 return WorkerStatus.FREE;
             }
-        }
-
-        private bool LoadMe() {
-            List<byte> rgBytes = new List<byte>();
-
-            rgBytes.Add( 0x31 ); // sp, nn
-            rgBytes.Add( 0x00 );
-            rgBytes.Add( 0x10 );
-
-            rgBytes.Add( 0xc3 ); // jp nn
-
-            int iStart_Patch = rgBytes.Count;
-
-            rgBytes.Add( 0x00 );
-            rgBytes.Add( 0x00 );
-
-            int iHello = rgBytes.Count;
-
-            rgBytes.Add( (byte)'h' );
-            rgBytes.Add( (byte)'e' );
-            rgBytes.Add( (byte)'l' );
-            rgBytes.Add( (byte)'l' );
-            rgBytes.Add( (byte)'o' );
-            rgBytes.Add( 0x00 );
-
-            int iStart = rgBytes.Count;
-            rgBytes[iStart_Patch] = (byte)iStart; // just set low byte.
-
-            rgBytes.Add( 0x21 );  // ld hl, nn
-            rgBytes.Add( (byte)iHello );
-            rgBytes.Add( 0x00 );
-
-            int iLoop = rgBytes.Count;
-
-            rgBytes.Add( 0x7e ); // ld a (hl)
-            rgBytes.Add( 0xfe ); // cmp 0
-            rgBytes.Add( 0x00 );
-            rgBytes.Add( 0xca ); // C2 jmp nz nn; CA-> JMP Z NN
-            rgBytes.Add( (byte)iStart );
-            rgBytes.Add( 0x00 );
-            rgBytes.Add( 0xd3 ); // Out, n
-            rgBytes.Add( 0x03 );
-            rgBytes.Add( 0x23 ); // inc hl
-            rgBytes.Add( 0xc3 ); // jp nn
-            rgBytes.Add( (byte)iLoop );
-            rgBytes.Add( 0x00 );
-
-            Z80Memory _rgMemory = new Z80Memory( new byte[rgBytes.Count], 0x0000 );
-
-            for( int i =0; i<rgBytes.Count; ++i ) {
-                _rgMemory[i] = rgBytes[i];
-            }
-
-            return true;
         }
 
         /// <summary>
@@ -946,8 +894,10 @@ namespace Monitor {
                         yield break;
                     }
 
-                    if( _cpuZ80.Halt )
+                    if( _cpuZ80.Halt ) {
+                        StatusUpdate();
                         yield break;
+                    }
                 }
 
                 Doc_Display.Load( _rgMemory.RawMemory, 0x200 );
