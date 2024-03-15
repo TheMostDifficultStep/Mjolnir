@@ -148,9 +148,18 @@ namespace Play.Edit {
             _fAdvance  = 0;
         }
 
+        /// <summary>
+        /// Return a location representative of the scroll bar. Always returns
+        /// a value, bounded by 0 or last element, UNLESS, the cache is empty.
+        /// </summary>
         protected virtual Row GetTabOrderAtScroll() {
             try {
                 int iIndex = (int)( _oSite.GetScrollProgress * _oSite.TabCount );
+
+                if( iIndex >= _oSite.TabCount )
+                    iIndex = _oSite.TabCount - 1;
+                if( iIndex < 0 )
+                    iIndex = 0;
 
                 return _oSite.TabStop(iIndex);
             } catch( Exception oEx ) {
@@ -709,11 +718,15 @@ namespace Play.Edit {
 
                 // We can potentialy render less until this final end scroll comes in.
                 case ScrollEvents.EndScroll:
-                case ScrollEvents.First:
-                case ScrollEvents.Last:
                 case ScrollEvents.ThumbPosition:
                 case ScrollEvents.ThumbTrack:
                     CacheWalker( CacheReset( RefreshNeighborhood.SCROLL ), false );
+                    break;
+                case ScrollEvents.First:
+                    CacheWalker( CreateCacheRow( _oSite.TabStop( 0 ) ), true );
+                    break;
+                case ScrollEvents.Last:
+                    CacheWalker( CreateCacheRow( _oSite.TabStop( _oSite.TabCount-1 ) ), true );
                     break;
             }
         }

@@ -41,12 +41,6 @@ namespace Play.Forms {
             return base.CreateCacheRow(oDocRow);
         }
 
-        protected override Row GetTabOrderAtScroll() {
-            int iIndex = (int)(_oSite.GetScrollProgress * _rgFixedCache.Count );
-
-            return _oSite.TabStop( 0 );
-        }
-
         protected override void FinishUp( CacheRow oBottom, CacheRow oCaret ) {
             if( _rgFixedCache.Count <= 0 ) {
                 _oSite.OnRefreshComplete( 1, 1 );
@@ -137,6 +131,8 @@ namespace Play.Forms {
             public override Row TabStop(int iIndex) {
                 return CacheAccess[iIndex].Row; 
             }
+
+            public override int TabCount => CacheAccess.Count;
 
             /// <summary>
             /// Since the Views on the property page must be established once
