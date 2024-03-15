@@ -943,9 +943,10 @@ namespace Monitor {
                 switch( _oWorkPlace.Status ) {
                     case WorkerStatus.FREE:
                     case WorkerStatus.PAUSED:
-                        Doc_Asm  .UpdateHighlightLine( _cpuZ80.Pc );
-                        Doc_Props.Update( this );
-                        _cpuZ80  .Parse();
+                        _cpuZ80    .Parse();
+
+                        Doc_Asm    .UpdateHighlightLine( _cpuZ80.Pc );
+                        Doc_Props  .Update( this );
                         Doc_Display.Load( _rgMemory.RawMemory, 0x200 );
                         break;
                     case WorkerStatus.BUSY:
