@@ -395,6 +395,126 @@ namespace Monitor {
         }
     }
 
+    public class DazzlePorts : IPorts {
+        DocumentMonitor Mon { get; }
+        public DazzlePorts( DocumentMonitor oMon ) { 
+            Mon = oMon ?? throw new ArgumentNullException();
+        }
+
+        public bool NMI  => false;
+        public bool MI   => false;
+        public byte Data => 0x00;
+
+        public byte ReadPort(ushort usAddress) {
+            byte bLowAddr = (byte)( 0x00ff & usAddress );
+            byte bValue   = 0;
+
+            switch( bLowAddr ) {
+                case 0x02:
+                    // When the dazzle check for a key. Update display.
+                    Mon.Doc_Display.Load( Mon.Z80Memory.RawMemory, 0x200 );
+                    Mon.Doc_Display.Raise_ImageUpdated();
+                    return 0;
+            }
+
+            return bValue;
+        }
+
+        public void WritePort(ushort usAddress, byte bValue) {
+            byte bLowAddr = (byte)( 0x00ff & usAddress );
+
+            switch( bLowAddr ) {
+                case 0x0f:
+                    // Check size from bValue
+                    if( ( bValue & (1 << 5) ) > 0 )
+                        Mon.Doc_Display.SetSize( DazzleDisplay.ImageSizes.SixtyFour );
+                    else
+                        Mon.Doc_Display.SetSize( DazzleDisplay.ImageSizes.ThirtyTwo );
+                    break;
+                case 0x0e:
+                    byte bDazzleOffs = (byte)( bValue & 0x7f );
+                    bool bDazzleOn   = ( bValue & 0x80 ) > 0;
+                    int  iDazzleAddr = bDazzleOffs * 0x200;
+                    break;
+            }
+        }
+    }
+
+    public class TinyBasicPorts : IPorts {
+        DocumentMonitor Mon { get; }
+        Queue<char>     _rgToDevice = new Queue<char>();
+        Queue<char>     _rgFromDev3 = new Queue<char>();
+        public TinyBasicPorts( DocumentMonitor oMon ) { 
+            Mon = oMon ?? throw new ArgumentNullException();
+
+            foreach( char c in "10 print \"Hello\"\r" ) {
+                _rgToDevice.Enqueue( c );
+            }
+        }
+
+        public bool NMI  => false;
+        public bool MI   => false;
+        public byte Data => 0x00;
+
+        /// <summary>
+        /// From device to CPU
+        /// </summary>
+        public byte ReadPort(ushort usAddress) {
+            byte bLowAddr = (byte)( 0x00ff & usAddress );
+            byte bValue   = 0;
+
+            switch( bLowAddr ) {
+                case 0x03:
+                    if( _rgToDevice.Count > 0 )
+                        return 1;
+                    return bValue;
+                case 0x02:
+                    return Convert.ToByte( _rgToDevice.Dequeue() );
+            }
+
+            return bValue;
+        }
+
+        /// <summary>
+        /// From CPU to device
+        /// </summary>
+        public void WritePort(ushort usAddress, byte bValue) {
+            byte bLowAddr = (byte)( 0x00ff & usAddress );
+
+            switch( bLowAddr ) {
+                case 0x03:
+                    _rgFromDev3.Enqueue( Convert.ToChar( bValue ) );
+                    break;
+                case 0x02:
+                    Mon.Doc_Terminal.AppendChar( Convert.ToChar( bValue ) );
+                    break;
+            }
+        }
+    }
+
+    public class Terminal : Editor {
+        public Terminal(IPgBaseSite oSite) : base(oSite) {
+            LineAppend( string.Empty );
+        }
+
+        public void AppendChar( char cChar ) {
+            if( cChar == '\n' ) {
+                LineAppend( string.Empty );
+                return;
+            }
+            if( cChar == '\r' )
+                return;
+
+            ReadOnlySpan<char> rgInsert = stackalloc char[1] { cChar };
+
+            Line oLine = this[ElementCount-1];
+            
+            oLine.TryReplace( oLine.ElementCount, 0, rgInsert );
+
+		    Raise_BufferEvent( BUFFEREVENTS.MULTILINE );
+        }
+    }
+
     public class DocumentMonitor :
         IPgParent,
 		IDisposable,
@@ -413,15 +533,16 @@ namespace Monitor {
         protected SortedSet<ushort> _rgBreakPoints = new SortedSet<ushort>();
 
 
-        protected readonly Z80Memory      _rgMemory;
+        public             Z80Memory      Z80Memory { get; }
         protected          Z80Definitions _rgZ80Def;
         protected readonly Z80            _cpuZ80;
 
         public AsmEditor         Doc_Asm     { get; }
         public DataSegmDoc       Doc_Segm    { get; }
-        public Editor            Doc_Outl    { get; }
+        public Editor            Doc_Outl    { get; } // Call address list.
         public DazzleDisplay     Doc_Display { get; }
         public MonitorProperties Doc_Props   { get; }
+        public Terminal          Doc_Terminal{ get; }
 
         public bool IsDirty => Doc_Asm.IsDirty;
 
@@ -503,14 +624,15 @@ namespace Monitor {
             _oWorkPlace = ((IPgScheduler)Services).CreateWorkPlace() ?? throw new InvalidProgramException();
 
             _rgZ80Def = new Z80Definitions();
-            _rgMemory = new Z80Memory();
-            _cpuZ80   = new Z80( _rgMemory, new EmptyPorts( this ) );
+            Z80Memory = new Z80Memory();
+            _cpuZ80   = new Z80( Z80Memory, new TinyBasicPorts( this ) );
 
             Doc_Asm     = new ( new DocSlot( this ) );
             Doc_Segm    = new ( new DocSlot( this ) );
             Doc_Outl    = new ( new DocSlot( this ) );
             Doc_Display = new ( new DocSlot( this ) );
             Doc_Props   = new ( new DocSlot( this ) );
+            Doc_Terminal= new ( new DocSlot( this ) );
         }
 
         protected void LogError( string strLabel, string strMessage ) {
@@ -565,6 +687,9 @@ namespace Monitor {
                 return false;
 
             if( !Doc_Props.InitNew() )
+                return false;
+
+            if( !Doc_Terminal.InitNew() )
                 return false;
 
             Dissassemble();
@@ -661,7 +786,7 @@ namespace Monitor {
                 rgRWRam[iCount++] = (byte)iByte;
             }
 
-            _rgMemory.Reset( rgRWRam, (ushort)iCount, fComFile );
+            Z80Memory.Reset( rgRWRam, (ushort)iCount, fComFile );
 
             return true;
         }
@@ -756,7 +881,7 @@ namespace Monitor {
         }
 
         public void Dissassemble( ) {
-            if( _rgMemory == null ) {
+            if( Z80Memory == null ) {
                 LogError( "Monitor", "Load a binary first." );
                 return;
             }
@@ -766,7 +891,7 @@ namespace Monitor {
                 Doc_Outl.Clear();
 
                 using Z80Dissambler oDeCompile = 
-                    new Z80Dissambler( _rgZ80Def, _rgMemory, Doc_Outl, Doc_Asm, LogError );
+                    new Z80Dissambler( _rgZ80Def, Z80Memory, Doc_Outl, Doc_Asm, LogError );
 
                 oDeCompile.Dissassemble();
             } catch( Exception oEx ) {
@@ -780,51 +905,6 @@ namespace Monitor {
             }
         }
 
-        public class EmptyPorts : IPorts {
-            DocumentMonitor Mon { get; }
-            public EmptyPorts( DocumentMonitor oMon ) { 
-                Mon = oMon ?? throw new ArgumentNullException();
-            }
-
-            public bool NMI  => false;
-            public bool MI   => false;
-            public byte Data => 0x00;
-
-            public byte ReadPort(ushort usAddress) {
-                byte bLowAddr = (byte)( 0x00ff & usAddress );
-                byte bValue   = 0;
-
-                switch( bLowAddr ) {
-                    case 0x02:
-                        // When the dazzle check for a key. Update display.
-                        Mon.Doc_Display.Load( Mon._rgMemory.RawMemory, 0x200 );
-                        Mon.Doc_Display.Raise_ImageUpdated();
-                        return 0;
-                }
-
-                return bValue;
-            }
-
-            public void WritePort(ushort usAddress, byte bValue) {
-                byte bLowAddr = (byte)( 0x00ff & usAddress );
-
-                switch( bLowAddr ) {
-                    case 0x0f:
-                        // Check size from bValue
-                        if( ( bValue & (1 << 5) ) > 0 )
-                            Mon.Doc_Display.SetSize( DazzleDisplay.ImageSizes.SixtyFour );
-                        else
-                            Mon.Doc_Display.SetSize( DazzleDisplay.ImageSizes.ThirtyTwo );
-                        break;
-                    case 0x0e:
-                        byte bDazzleOffs = (byte)( bValue & 0x7f );
-                        bool bDazzleOn   = ( bValue & 0x80 ) > 0;
-                        int  iDazzleAddr = bDazzleOffs * 0x200;
-                        break;
-                }
-            }
-        }
-
         protected static Type[] _rgStdErrors = 
             { typeof( NullReferenceException ),
               typeof( IndexOutOfRangeException ),
@@ -834,7 +914,7 @@ namespace Monitor {
             try {
                 Doc_Asm    .UpdateHighlightLine( _cpuZ80.Pc );
                 Doc_Props  .Update( this );
-                Doc_Display.Load( _rgMemory.RawMemory, 0x200 );
+                Doc_Display.Load( Z80Memory.RawMemory, 0x200 );
                 Doc_Display.Raise_ImageUpdated();
             } catch( Exception oEx ) {
                 if( _rgStdErrors.IsUnhandled( oEx ) )
@@ -900,7 +980,7 @@ namespace Monitor {
                     }
                 }
 
-                Doc_Display.Load( _rgMemory.RawMemory, 0x200 );
+                Doc_Display.Load( Z80Memory.RawMemory, 0x200 );
                 Doc_Display.Raise_ImageUpdated();
                 yield return 10;
             }
@@ -947,7 +1027,7 @@ namespace Monitor {
 
                         Doc_Asm    .UpdateHighlightLine( _cpuZ80.Pc );
                         Doc_Props  .Update( this );
-                        Doc_Display.Load( _rgMemory.RawMemory, 0x200 );
+                        Doc_Display.Load( Z80Memory.RawMemory, 0x200 );
                         break;
                     case WorkerStatus.BUSY:
                         // We might have set timout infinite.

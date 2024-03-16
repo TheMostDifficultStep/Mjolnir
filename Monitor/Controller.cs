@@ -100,8 +100,8 @@ namespace Monitor {
             _rgExtensions.Add( ".asmprg" );
         }
 
-        protected static Guid _gViewDazzle = new Guid( "{6F5EAD43-B191-404F-BC5D-F108FEB68205}" );
-
+        protected static Guid _gViewDazzle   = new Guid( "{6F5EAD43-B191-404F-BC5D-F108FEB68205}" );
+        protected static Guid _gViewTerminal = new Guid( "{BE1E1F3D-6CE5-4FE2-9A52-EA2E5F72D3D5}" );
         public override IDisposable CreateView(IPgViewSite oViewSite, object oDocument, Guid guidViewType) {
             if( oDocument is DocumentMonitor oMonitorDoc ) {
 			    try {
@@ -109,6 +109,8 @@ namespace Monitor {
                         return new ViewDisassembly  ( oViewSite, oMonitorDoc );
                     if( guidViewType == _gViewDazzle )
                         return new ViewEmulatorImage( oViewSite, oMonitorDoc );
+                    if( guidViewType == _gViewTerminal )
+                        return new EditWindow2( oViewSite, oMonitorDoc.Doc_Terminal );
 
                     // Service the GUID.Empty case too.
                     return new ViewDisassembly( oViewSite, oMonitorDoc );
@@ -127,7 +129,8 @@ namespace Monitor {
 
         public override IEnumerator<IPgViewType> GetEnumerator() {
             yield return new ViewType( "Assembly Display", ViewDisassembly.GUID );
-            yield return new ViewType( "Image Display", _gViewDazzle );
+            yield return new ViewType( "Dazzle Display", _gViewDazzle );
+            yield return new ViewType( "Terminal", _gViewTerminal );
         }
         public override IDisposable CreateDocument(IPgBaseSite oSite, string strExtension) {
             return new DocumentMonitor( oSite );
