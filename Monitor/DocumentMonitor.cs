@@ -465,10 +465,17 @@ namespace Monitor {
 
             switch( bLowAddr ) {
                 case 0x03:
+                    // This is constantly getting polled. This might be like
+                    // the 8PIO Polling input port status...
+                    // MUST return 1 to get the tiny basic prompt...
+                    // MUST return 2 to get the tiny basic to read text. on port 2.
+                    bValue = 0;
+
                     if( _rgToDevice.Count > 0 )
-                        return 1;
+                        return (byte)(3); 
                     return bValue;
                 case 0x02:
+                    // My attempt at Term->CPU communicate. is hit if return 2.
                     return Convert.ToByte( _rgToDevice.Dequeue() );
             }
 
@@ -478,14 +485,21 @@ namespace Monitor {
         /// <summary>
         /// From CPU to device
         /// </summary>
+        //_rgFromDev3.Enqueue( Convert.ToChar( bValue ) );
         public void WritePort(ushort usAddress, byte bValue) {
-            byte bLowAddr = (byte)( 0x00ff & usAddress );
+            byte bLowAddr = (byte)(   0x00ff & usAddress );
+            byte bHiAddr  = (byte)( ( 0xff00 & usAddress ) >> 8 );
 
             switch( bLowAddr ) {
                 case 0x03:
-                    _rgFromDev3.Enqueue( Convert.ToChar( bValue ) );
+                    // 4PIO...
+                    //         D2, D1, D0 control                IN (2), IN (1), IN (0)
+                    // D4, D3,            control OUT(1), OUT(0)
+                    //  0   1   1   1   0 : out(0), in(2), in(1)
+                    //  1   0   1   1   1 : out(1), in(2), in(1), in(0)
                     break;
                 case 0x02:
+                    // This has been getting tiny basic term output!!
                     Mon.Doc_Terminal.AppendChar( Convert.ToChar( bValue ) );
                     break;
             }
