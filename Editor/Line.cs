@@ -103,6 +103,14 @@ namespace Play.Edit {
 
             return double.Parse( oLine.AsSpan );
         }
+
+        public static bool TryReplace(this Line oLine, IMemoryRange oRange, Span<char> rgReplace) {
+            return oLine.TryReplace( oRange.Offset, oRange.Length, rgReplace );
+        }
+        public static bool TryReplace( this Line oLine, ReadOnlySpan<char> spReplacements ) {
+            return oLine.TryReplace( 0, oLine.ElementCount, spReplacements );
+        }
+
     }
 
     /// <summary>
@@ -331,13 +339,12 @@ namespace Play.Edit {
         [Obsolete]public virtual bool TryInsert( int iIndex, char cChar ) { return( false ); }
         [Obsolete]public virtual bool TryInsert( int iDestOffset, ReadOnlySpan<char> strSource, int iSrcIndex, int iSrcLength ) { return( false ); }
         [Obsolete]public virtual bool TryDelete( int iIndex, int iLength, out string strRemoved ) { strRemoved = string.Empty; return( false ); }
+        
+        // Viewslots use this so pushing this to the LineExtension class won't work. :-/
         public virtual bool TryAppend( string strValue ) { return TryReplace( ElementCount, 0, strValue ); }
 
         public abstract bool TryReplace( int iStart, int iLength, ReadOnlySpan<char> spReplacements );
-        // We do this alot, so make it simple.
-        public bool TryReplace( ReadOnlySpan<char> spReplacements ) {
-            return TryReplace( 0, this.ElementCount, spReplacements );
-        }
+
 		public virtual void Empty() { }
 
         public virtual void Dispose() { _iLine = -1; }

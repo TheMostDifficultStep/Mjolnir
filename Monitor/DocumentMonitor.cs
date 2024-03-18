@@ -32,7 +32,8 @@ namespace Monitor {
         public int        Length { get; set; }
         public Z80Types   Z80Type { get; set; }
         public JumpType   Jump { get; set; }
-        public IMemoryRange? Number { get; set; }
+        public bool       IsCall { get; set; }     
+        public IMemoryRange? NumberLocation { get; set; }
 
         public Z80Instr( string strName, string strParams = null ) {
             Instr   = 0;
@@ -41,7 +42,8 @@ namespace Monitor {
             Length  = 1;
             Z80Type = Z80Types.Instruction;
             Jump    = JumpType.None;
-            Number  = null;
+            IsCall  = false;
+            NumberLocation  = null;
         }
         public Z80Instr( byte bData ) {
             Instr   = bData;
@@ -50,7 +52,8 @@ namespace Monitor {
             Length  = 1;
             Z80Type = Z80Types.Data;
             Jump    = JumpType.None;
-            Number  = null;
+            IsCall  = false;
+            NumberLocation  = null;
         }
 
         public override string ToString() {
@@ -345,6 +348,10 @@ namespace Monitor {
             return _rgMain[iIndex];
         }
 
+        /// <summary>
+        /// Initialize our instruction definitions.
+        /// </summary>
+        /// <exception cref="InvalidDataException"></exception>
         private void InitNew() {
             Regex oReg = new Regex("{n+}|{d+}", RegexOptions.IgnoreCase);
 
@@ -355,11 +362,14 @@ namespace Monitor {
                     if( oMatch.Groups.Count > 1 ) 
                         throw new InvalidDataException("Unexpected z80 instruction" );
 
-                    _rgMain[i].Number = new ColorRange( oMatch.Index, oMatch.Length ); 
+                    _rgMain[i].NumberLocation = new ColorRange( oMatch.Index, oMatch.Length ); 
+
+                    if( string.Compare( _rgMain[i].Name, "call" ) == 0 )
+                        _rgMain[i].IsCall = true;
 
                     if( string.Compare( _rgMain[i].Name, "jp"   ) == 0 ||
                         string.Compare( _rgMain[i].Name, "jr"   ) == 0 ||
-                        string.Compare( _rgMain[i].Name, "call" ) == 0 )
+                        _rgMain[i].IsCall )
                     {
                         switch( _rgMain[i].Params[oMatch.Index+1] ) { // ignore first '{'
                             case 'n':
@@ -443,11 +453,11 @@ namespace Monitor {
     public class TinyBasicPorts : IPorts {
         DocumentMonitor Mon { get; }
         Queue<char>     _rgToDevice = new Queue<char>();
-        Queue<char>     _rgFromDev3 = new Queue<char>();
+        int             _iCount     = 0;
         public TinyBasicPorts( DocumentMonitor oMon ) { 
             Mon = oMon ?? throw new ArgumentNullException();
 
-            foreach( char c in "10 print \"Hello\"\r" ) {
+            foreach( char c in "10 PRINT \"HELLO\"\r" ) {
                 _rgToDevice.Enqueue( c );
             }
         }
@@ -461,25 +471,26 @@ namespace Monitor {
         /// </summary>
         public byte ReadPort(ushort usAddress) {
             byte bLowAddr = (byte)( 0x00ff & usAddress );
-            byte bValue   = 0;
+            byte bValue   = 1;
+
+            _iCount++;
 
             switch( bLowAddr ) {
                 case 0x03:
                     // This is constantly getting polled. This might be like
-                    // the 8PIO Polling input port status...
-                    // MUST return 1 to get the tiny basic prompt...
-                    // MUST return 2 to get the tiny basic to read text. on port 2.
-                    bValue = 0;
+                    // Polling input port status... 
+                    // MUST return 01 to get the tiny basic to write prompt on port 2.
+                    // MUST return 10 to get the tiny basic to read text on port 2.
+                    if( _iCount > 1000 && _rgToDevice.Count > 0 )
+                        return (byte)( 2 | bValue );
 
-                    if( _rgToDevice.Count > 0 )
-                        return (byte)(3); 
                     return bValue;
                 case 0x02:
                     // My attempt at Term->CPU communicate. is hit if return 2.
                     return Convert.ToByte( _rgToDevice.Dequeue() );
+                default:
+                    throw new NotImplementedException();
             }
-
-            return bValue;
         }
 
         /// <summary>
@@ -1176,17 +1187,17 @@ namespace Monitor {
                         return;
                 }
 
-                if( sInstr.Number == null && sInstr.Length > 1 ) {
+                if( sInstr.NumberLocation == null && sInstr.Length > 1 ) {
                     _fnLogError( "Dissembler", "Inconsistant z80 instr" );
                     return;
                 }
 
-                if( sInstr.Number != null ) {
+                if( sInstr.NumberLocation != null ) {
                     Line oLine = new TextLine( 0, sInstr.Params );
                     // Append the number
                     string strNumber = iNumber.ToString( sInstr.Length == 3 ? "X4" : "X2" );
 
-                    if( !oLine.TryReplace( sInstr.Number.Offset, sInstr.Number.Length, strNumber ) ) {
+                    if( !oLine.TryReplace( sInstr.NumberLocation.Offset, sInstr.NumberLocation.Length, strNumber ) ) {
                         _fnLogError( "Dissembler", "Unable to replace number arg in z80 instr" );
                         return;
                     }
@@ -1203,7 +1214,7 @@ namespace Monitor {
                     // Color the number
                     if( oNewRow is AsmRow oAsm ) {
                         oAsm.Param.Formatting.Add( 
-                            new HyperLinkCpuJump( sInstr.Number.Offset,
+                            new HyperLinkCpuJump( sInstr.NumberLocation.Offset,
                                                   strNumber.Length,
                                                   iColorIndex ) );
 
