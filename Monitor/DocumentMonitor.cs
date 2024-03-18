@@ -517,29 +517,6 @@ namespace Monitor {
         }
     }
 
-    public class Terminal : Editor {
-        public Terminal(IPgBaseSite oSite) : base(oSite) {
-            LineAppend( string.Empty );
-        }
-
-        public void AppendChar( char cChar ) {
-            if( cChar == '\n' ) {
-                LineAppend( string.Empty );
-                return;
-            }
-            if( cChar == '\r' )
-                return;
-
-            ReadOnlySpan<char> rgInsert = stackalloc char[1] { cChar };
-
-            Line oLine = this[ElementCount-1];
-            
-            oLine.TryReplace( oLine.ElementCount, 0, rgInsert );
-
-		    Raise_BufferEvent( BUFFEREVENTS.MULTILINE );
-        }
-    }
-
     public class DocumentMonitor :
         IPgParent,
 		IDisposable,
@@ -851,6 +828,8 @@ namespace Monitor {
             if( !Doc_Display.InitNew() )
                 return false;
             if( !Doc_Props.InitNew() )
+                return false;
+            if( !Doc_Terminal.InitNew() )
                 return false;
 
             try {

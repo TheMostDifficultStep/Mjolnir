@@ -465,7 +465,13 @@ namespace Play.Edit {
         /// <param name="iRow">Line identifier. Technically for use, this does not need to be an
         /// array index. But just a unique value sitting at the "At" property on the line.</param>
         /// <returns>The cache element representing that line. or NULL</returns>
+        /// <remarks>If the Caret has not been set yet, it will be at row -2.</remarks>
         protected CacheRow CacheLocate( int iRow ) {
+            if( iRow < 0 )
+                return null;
+            if( iRow >= _oSiteList.ElementCount )
+                return null;
+
             if( _oSiteList[iRow] is Row oSearch ) {
                 foreach( CacheRow oCache in _rgOldCache ) {
                     if( oCache.Row == oSearch ) {
@@ -681,14 +687,21 @@ namespace Play.Edit {
         /// <param name="pntCaret">Caret position in window coordinates.</param>
         /// <returns>Caret on screen or not.</returns>
         public bool IsCaretVisible( out SKPointI pntCaret ) {
-            CacheRow oCaretRow = CacheLocate( CaretAt );
+            try {
+                CacheRow oCaretRow = CacheLocate( CaretAt );
 
-            if( IsCaretNear( oCaretRow, out pntCaret ) ) {
-                bool fTL = TextRect.IsInside( pntCaret.X, pntCaret.Y );
-                bool fRB = TextRect.IsInside( pntCaret.X + CaretSize.X, pntCaret.Y + CaretSize.Y );
+                if( IsCaretNear( oCaretRow, out pntCaret ) ) {
+                    bool fTL = TextRect.IsInside( pntCaret.X, pntCaret.Y );
+                    bool fRB = TextRect.IsInside( pntCaret.X + CaretSize.X, pntCaret.Y + CaretSize.Y );
 
-                bool fResult = fTL | fRB;
-                return fResult;
+                    bool fResult = fTL | fRB;
+                    return fResult;
+                }
+            } catch( Exception oEx ) {
+                if( _rgStdErrors.IsUnhandled( oEx ) )
+                    throw;
+
+                pntCaret = new( -10, -10 ); // s/b offscreen in any top/left 0,0 window clent space.
             }
 
             return false;

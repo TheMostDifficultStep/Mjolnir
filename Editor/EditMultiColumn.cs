@@ -6,6 +6,7 @@ using System.Text;
 using Play.Parse;
 using Play.Interfaces.Embedding;
 using Play.Parse.Impl;
+using System.Windows.Forms;
 
 namespace Play.Edit {
     public static class BagOperations {
@@ -687,6 +688,14 @@ namespace Play.Edit {
 
                 oHandle.OnUpdated( EditType.DeleteRow, null );
             }
+        }
+
+        public void InsertAt( int iRow, Row oNew ) {
+            _rgRows.Insert( iRow, oNew );
+        }
+
+        public void Append( Row oNew ) {
+            _rgRows.Insert( _rgRows.Count, oNew );
         }
     }
 }

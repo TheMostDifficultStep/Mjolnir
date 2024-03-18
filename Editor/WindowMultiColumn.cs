@@ -414,6 +414,8 @@ namespace Play.Edit {
             _oDocOps.ListenerAdd( this );
             _oDocTraits.HighLightChanged += _oDocTraits_HighLightChanged;
 
+            //_oCacheMan.CaretReset( _oDocList[0], 0 );
+            // can't reset, not ready yet, but might want the cursor at 0,0 so to speak... :-/
             return true;
         }
 
