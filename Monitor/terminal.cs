@@ -2,10 +2,12 @@
 using System.Collections.Generic;
 using System.Text;
 using System.Windows.Forms;
+
+using SkiaSharp;
+
 using Play.Edit;
 using Play.Interfaces.Embedding;
 using Play.Rectangles;
-using SkiaSharp;
 
 namespace Monitor {
     public class ViewTerminal :
@@ -13,6 +15,10 @@ namespace Monitor {
         IPgCommandView 
     {
         public readonly static Guid _gViewTerminal = new Guid( "{BE1E1F3D-6CE5-4FE2-9A52-EA2E5F72D3D5}" );
+        public string    Banner => "Simple Terminal";
+		public SKBitmap? Icon { get; protected set; }
+        public Guid      Catagory => _gViewTerminal;
+
         protected DocumentMonitor DocMon { get; } 
 
         /// <summary>
@@ -28,13 +34,12 @@ namespace Monitor {
             IPgParent oDocParent = (IPgParent)oDocument;
 
             DocMon = (DocumentMonitor)oDocParent.Parentage; 
+
+			try {
+				Icon = DocMon.GetResource( "icons8-terminal-58.png" );
+			} catch( InvalidOperationException ) {
+			}
         }
-        public string   Banner => "Simple Terminal";
-
-        public SKBitmap Icon => null;
-
-        public Guid Catagory => _gViewTerminal;
-
         protected override bool Initialize() {
             if( !base.Initialize() )
                 return false;

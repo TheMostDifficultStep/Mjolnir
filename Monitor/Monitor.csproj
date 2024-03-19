@@ -9,11 +9,13 @@
   <ItemGroup>
     <None Remove="Content\icons8-monitor-64.png" />
     <None Remove="Content\icons8-script-96.png" />
+    <None Remove="Content\icons8-terminal-58.png" />
   </ItemGroup>
 
   <ItemGroup>
     <EmbeddedResource Include="Content\icons8-monitor-64.png" />
     <EmbeddedResource Include="Content\icons8-script-96.png" />
+    <EmbeddedResource Include="Content\icons8-terminal-58.png" />
   </ItemGroup>
 
   <ItemGroup>
