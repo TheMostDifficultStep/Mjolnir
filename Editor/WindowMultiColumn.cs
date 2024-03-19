@@ -420,7 +420,7 @@ namespace Play.Edit {
         }
 
         private void _oDocTraits_HighLightChanged(Row oRow) {
-            if( Focused ) {
+            if( Focused && oRow != null ) {
                 _oCacheMan.SetCaretPositionAndScroll( oRow.At, 0, 0, true );
             }
         }

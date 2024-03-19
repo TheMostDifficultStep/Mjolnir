@@ -98,13 +98,19 @@ namespace Monitor {
             }
         }
 
+        /// <summary>
+        /// Clear the bitmap if one is in use. This might not have a valid
+        /// image if we are not using the Dazzler.
+        /// </summary>
         public void Clear() {
-            using( SKCanvas skCanvas = new SKCanvas( Bitmap ) ) {
-                using( SKPaint skPaint = new SKPaint() ) {
-                    skCanvas.DrawColor( SKColors.White );
+            if( Bitmap != null ) {
+                using( SKCanvas skCanvas = new SKCanvas( Bitmap ) ) {
+                    using( SKPaint skPaint = new SKPaint() ) {
+                        skCanvas.DrawColor( SKColors.White );
+                    }
                 }
+                Raise_ImageUpdated();
             }
-            Raise_ImageUpdated();
         }
     }
 }

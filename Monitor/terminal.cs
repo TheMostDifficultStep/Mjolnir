@@ -66,7 +66,8 @@ namespace Monitor {
                 return;
 
             if( !char.IsControl( e.KeyChar ) ||
-                e.KeyChar == '\r' ) 
+                e.KeyChar == '\r' ||
+                e.KeyChar == '\b'    ) 
             {
                 DocMon.TerminalKeyPress( e.KeyChar );
                 e.Handled = true;

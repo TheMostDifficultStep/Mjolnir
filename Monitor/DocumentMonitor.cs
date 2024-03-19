@@ -1033,8 +1033,7 @@ namespace Monitor {
                         Doc_Display.Load( Z80Memory.RawMemory, 0x200 );
                         break;
                     case WorkerStatus.BUSY:
-                        // We might have set timout infinite.
-                        _oWorkPlace.Start(0);
+                        LogError( "CPU", "Pause to single step" );
                         break;
                     default:
                         if( _cpuZ80.Halt ) 
@@ -1052,11 +1051,23 @@ namespace Monitor {
         }
 
         public void CpuRecycle() {
-            _cpuZ80.Reset();
-            Doc_Asm.HighLight = null;
-            Doc_Display.Clear();
+            try {
+                _cpuZ80.Reset();
+                Doc_Asm.HighLight = null;
+                Doc_Display.Clear();
+            } catch( Exception oEx ) {
+                if( _rgStdErrors.IsUnhandled( oEx ) )
+                    throw;
+                LogError( "CPU", "Reset problem" );
+            }
         }
 
+        /// <summary>
+        /// This is a little hacky. But the easiest way to get the key
+        /// stroke to the queue is just stick it in on one of the unused
+        /// ports.
+        /// </summary>
+        /// <param name="cKey"></param>
         public void TerminalKeyPress( char cKey ) {
             Ports.WritePort( 0x01, Convert.ToByte( cKey ) );
         }

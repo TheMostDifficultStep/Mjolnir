@@ -331,7 +331,9 @@ namespace Play.Edit {
             set { 
                 _oRowHighlight = value; 
                 Raise_DocFormatted();
-                HighLightChanged?.Invoke( value );
+                if( value != null ) {
+                    HighLightChanged?.Invoke( value );
+                }
             }
         }
 
