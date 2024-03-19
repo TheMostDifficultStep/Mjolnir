@@ -453,13 +453,9 @@ namespace Monitor {
     public class TinyBasicPorts : IPorts {
         DocumentMonitor Mon { get; }
         Queue<char>     _rgToDevice = new Queue<char>();
-        int             _iCount     = 0;
+
         public TinyBasicPorts( DocumentMonitor oMon ) { 
             Mon = oMon ?? throw new ArgumentNullException();
-
-            foreach( char c in "10 PRINT \"HELLO\"\r" ) {
-                _rgToDevice.Enqueue( c );
-            }
         }
 
         public bool NMI  => false;
@@ -473,15 +469,13 @@ namespace Monitor {
             byte bLowAddr = (byte)( 0x00ff & usAddress );
             byte bValue   = 1;
 
-            _iCount++;
-
             switch( bLowAddr ) {
                 case 0x03:
                     // This is constantly getting polled. This might be like
                     // Polling input port status... 
                     // MUST return 01 to get the tiny basic to write prompt on port 2.
                     // MUST return 10 to get the tiny basic to read text on port 2.
-                    if( _iCount > 1000 && _rgToDevice.Count > 0 )
+                    if( _rgToDevice.Count > 0 )
                         return (byte)( 2 | bValue );
 
                     return bValue;
@@ -513,6 +507,9 @@ namespace Monitor {
                     // This has been getting tiny basic term output!!
                     Mon.Doc_Terminal.AppendChar( Convert.ToChar( bValue ) );
                     break;
+                case 0x01:
+                    _rgToDevice.Enqueue( Convert.ToChar( bValue ) );
+                    break;
             }
         }
     }
@@ -533,6 +530,7 @@ namespace Monitor {
         protected string _strBinaryFileName = string.Empty;
         public    string FileName { get; protected set; }  = string.Empty;
         protected SortedSet<ushort> _rgBreakPoints = new SortedSet<ushort>();
+        protected IPorts Ports { get; }
 
 
         public             Z80Memory      Z80Memory { get; }
@@ -627,7 +625,8 @@ namespace Monitor {
 
             _rgZ80Def = new Z80Definitions();
             Z80Memory = new Z80Memory();
-            _cpuZ80   = new Z80( Z80Memory, new TinyBasicPorts( this ) );
+            Ports     = new TinyBasicPorts( this );
+            _cpuZ80   = new Z80( Z80Memory, Ports );
 
             Doc_Asm     = new ( new DocSlot( this ) );
             Doc_Segm    = new ( new DocSlot( this ) );
@@ -1056,6 +1055,10 @@ namespace Monitor {
             _cpuZ80.Reset();
             Doc_Asm.HighLight = null;
             Doc_Display.Clear();
+        }
+
+        public void TerminalKeyPress( char cKey ) {
+            Ports.WritePort( 0x01, Convert.ToByte( cKey ) );
         }
 
         public bool Execute( Guid sCmnd ) {
