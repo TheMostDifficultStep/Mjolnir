@@ -45,13 +45,28 @@ namespace Monitor {
     /// <seealso cref="AsmEditor"/>
     internal class ViewDisassembly : 
         WindowMultiColumn,
-        IPgCommandView
+        IPgCommandView,
+        IReadableBag<Row>
     {
         public static Guid GUID { get; } = new Guid( "{1DBE2048-619C-44EA-882C-024DF5087743}" );
 
         public string    Banner => "Assembly Monitor : " + _oMonDoc.FileName;
 		public SKBitmap? Icon { get; protected set; }
         public Guid      Catagory => GUID;
+
+        public int ElementCount => _oMonDoc.Z80Memory.Count;
+
+        public Row this[int iIndex] {
+            get {
+                foreach( Row oRow in _oMonDoc.Doc_Asm ) {
+                    if( oRow is AsmRow oAsm ) {
+                        if( oAsm.AddressMap >= iIndex )
+                            return oRow;
+                    }
+                }
+                return null;
+            }
+        }
 
         readonly DocumentMonitor _oMonDoc;
         public ViewDisassembly( 

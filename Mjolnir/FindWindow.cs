@@ -158,22 +158,10 @@ namespace Mjolnir {
             base.OnDocumentEvent( eEvent );
             Reset();
 
+            // Simply resubmit whenever the user types a character.
+            // Jump to that line right away w/o the need for a CR.
             if( oSearchType.SelectedItem.ToString() == "Line" ) {
-                MoveCaretToLineAndShow();
-            }
-        }
-
-        void MoveCaretToLineAndShow() {
-            try {
-                int iRequestedLine = 0;
-                if( int.TryParse( DocForms2.GetLine(0).ToString(), out iRequestedLine ) ) {
-                    iRequestedLine -= 1;
-
-					_oView.SelectionSet( iRequestedLine, 0, 0 );
-					_oView.ScrollToCaret();
-                }
-            } catch( NullReferenceException ) {
-            } catch( IndexOutOfRangeException ) {
+                Submit();
             }
         }
 
@@ -327,7 +315,7 @@ namespace Mjolnir {
             int  iRequestedLine;
 
             try {
-                iRequestedLine = int.Parse( strFind ) - 1;
+                iRequestedLine = int.Parse( strFind );
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( ArgumentNullException ), 
 					                typeof( FormatException ), 
@@ -335,14 +323,18 @@ namespace Mjolnir {
                 if( rgErrors.IsUnhandled( oEx ) )
                     throw;
 
-                throw new InvalidOperationException( "Unexpected return in FindWindow Line Parse" );
+                // This can happen if the find string is empty for line search.
+                yield break;
             }
 
-            if( oView is IReadableBag<Row> )
-                yield return new LineRangeForMulti( iRequestedLine, null, 0, 0 );
+            if( oView is IReadableBag<Row> oViewRow ) {
+                if( oViewRow[iRequestedLine] is Row oSeek ) {
+                    yield return new LineRangeForMulti( oSeek.At, oSeek[0], 0, 0 );
+                }
+            }
 
             if( oView is IReadableBag<Line> oViewLines ) 
-                yield return new LineRange( oViewLines[iRequestedLine], 0, 0, SelectionTypes.Empty );
+                yield return new LineRange( oViewLines[iRequestedLine-1], 0, 0, SelectionTypes.Empty );
         }
 
         public IEnumerator<ILineRange> CreateRegexFind( IEnumerable<ILineRange> oWin, string strFind ) {
