@@ -90,7 +90,7 @@ namespace Monitor {
             _rgMain[0x11] = new Z80Instr("ld", "de, {nn}");
             _rgMain[0x12] = new Z80Instr("ld", "(de), a");
             _rgMain[0x13] = new Z80Instr("inc", "de");
-            _rgMain[0x14] = new Z80Instr("inc", "e");
+            _rgMain[0x14] = new Z80Instr("inc", "d");
             _rgMain[0x15] = new Z80Instr("dec", "d");
             _rgMain[0x16] = new Z80Instr("ld", "d, {n}");
             _rgMain[0x17] = new Z80Instr("rla");
@@ -480,6 +480,12 @@ namespace Monitor {
 
                     return bValue;
                 case 0x02:
+                    // The queue throws an exception if it's empty... this might
+                    // happen if we've got this "device" plugged in but the program
+                    // is expecting something else... O.o
+                    if( _rgToDevice.Count <= 0 )
+                        return 0;
+
                     // My attempt at Term->CPU communicate. is hit if return 2.
                     return Convert.ToByte( _rgToDevice.Dequeue() );
                 default:
@@ -625,7 +631,8 @@ namespace Monitor {
 
             _rgZ80Def = new Z80Definitions();
             Z80Memory = new Z80Memory();
-            Ports     = new TinyBasicPorts( this );
+            Ports     = new DazzlePorts( this );
+          //Ports     = new TinyBasicPorts( this );
             _cpuZ80   = new Z80( Z80Memory, Ports );
 
             Doc_Asm     = new ( new DocSlot( this ) );
@@ -985,7 +992,7 @@ namespace Monitor {
 
                 Doc_Display.Load( Z80Memory.RawMemory, 0x200 );
                 Doc_Display.Raise_ImageUpdated();
-                yield return 10;
+                yield return 0;
             }
         }
 
