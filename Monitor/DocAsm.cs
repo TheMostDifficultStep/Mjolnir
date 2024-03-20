@@ -6,28 +6,31 @@ using Play.Interfaces.Embedding;
 namespace Monitor {
     public class AsmRow : Row {
         public AsmRow( string strAssembly, string strParams ) {
-            _rgColumns    = new Line[5];
+            _rgColumns    = new Line[6];
             // Add a column for break points! O.o
-            _rgColumns[0] = new TextLine( 0, string.Empty );
-            _rgColumns[1] = new TextLine( 1, string.Empty ); // label
-            _rgColumns[2] = new TextLine( 2, strAssembly );  // instr
-            _rgColumns[3] = new TextLine( 3, strParams );    // params
-            _rgColumns[4] = new TextLine( 4, string.Empty ); // comments
+            _rgColumns[0] = new TextLine( 0, string.Empty ); // Machine code.
+            _rgColumns[1] = new TextLine( 1, string.Empty ); // Breakpoint
+            _rgColumns[2] = new TextLine( 2, string.Empty ); // label
+            _rgColumns[3] = new TextLine( 3, strAssembly );  // instr
+            _rgColumns[4] = new TextLine( 4, strParams );    // params
+            _rgColumns[5] = new TextLine( 5, string.Empty ); // comments
         }
 
         public int AddressMap { get; set; } = -1;
 
-        public Line Break => _rgColumns[ColumnBrkPnt];
-        public Line Label => _rgColumns[ColumnLabel];
-        public Line Instr => _rgColumns[ColumnInstr];
-        public Line Param => _rgColumns[ColumnParam];
+        public Line Code    => _rgColumns[ColumnCode];
+        public Line Break   => _rgColumns[ColumnBrkPnt];
+        public Line Label   => _rgColumns[ColumnLabel];
+        public Line Instr   => _rgColumns[ColumnInstr];
+        public Line Param   => _rgColumns[ColumnParam];
         public Line Comment => _rgColumns[ColumnComment];
 
-        public const int ColumnBrkPnt  = 0;
-        public const int ColumnLabel   = 1;
-        public const int ColumnInstr   = 2;
-        public const int ColumnParam   = 3;
-        public const int ColumnComment = 4;
+        public const int ColumnCode    = 0;
+        public const int ColumnBrkPnt  = 1;
+        public const int ColumnLabel   = 2;
+        public const int ColumnInstr   = 3;
+        public const int ColumnParam   = 4;
+        public const int ColumnComment = 5;
     }
 
     public class AsmEditor : 
@@ -94,13 +97,13 @@ namespace Monitor {
             /// <summary>
             /// Put this in a subclass later.
             /// </summary>
-            public Row Insert( int iIndex, string strInstr, string strParam ) {
-                AsmRow oAsmRow = new AsmRow( strInstr, strParam );
+            //public Row Insert( int iIndex, string strInstr, string strParam ) {
+            //    AsmRow oAsmRow = new AsmRow( strInstr, strParam );
 
-                InsertRow( iIndex, oAsmRow );
+            //    InsertRow( iIndex, oAsmRow );
 
-                return oAsmRow;
-            }
+            //    return oAsmRow;
+            //}
 
             public Row Append( string strInstr, string? strParam = null ) {
                 AsmRow oAsmRow = new AsmRow( strInstr, strParam ?? string.Empty );

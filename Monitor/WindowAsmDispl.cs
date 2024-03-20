@@ -43,6 +43,7 @@ namespace Monitor {
     /// it as the main window for the monitor atm.
     /// </summary>
     /// <seealso cref="AsmEditor"/>
+    /// <seealso cref="AsmRow"/>
     internal class ViewDisassembly : 
         WindowMultiColumn,
         IPgCommandView,
@@ -130,6 +131,7 @@ namespace Monitor {
             if( !base.Initialize() )
                 return false;
 
+            _rgLayout.Add( new LayoutRect( LayoutRect.CSS.Pixels,  60, 1L ) ); // Code
             _rgLayout.Add( new LayoutRect( LayoutRect.CSS.Pixels,  15, 1L ) ); // breakpoints
             _rgLayout.Add( new LayoutRect( LayoutRect.CSS.Percent, 20, 1L ) ); // labels
             _rgLayout.Add( new LayoutRect( LayoutRect.CSS.Percent, 10, 1L ) ); // instr
@@ -143,6 +145,7 @@ namespace Monitor {
             _rgColumns.Add( _rgLayout.Item( 3 ) );
             _rgColumns.Add( _rgLayout.Item( 4 ) );
             _rgColumns.Add( _rgLayout.Item( 5 ) );
+            _rgColumns.Add( _rgLayout.Item( 6 ) );
 
             HyperLinks.Add( "CpuJump", OnCpuJump );
 

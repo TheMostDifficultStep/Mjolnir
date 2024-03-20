@@ -1193,16 +1193,17 @@ namespace Monitor {
                 }
 
                 if( sInstr.NumberLocation != null ) {
-                    Line oLine = new TextLine( 0, sInstr.Params );
+                    Line oParms = new TextLine( 0, sInstr.Params );
+
                     // Append the number
                     string strNumber = iNumber.ToString( sInstr.Length == 3 ? "X4" : "X2" );
 
-                    if( !oLine.TryReplace( sInstr.NumberLocation.Offset, sInstr.NumberLocation.Length, strNumber ) ) {
+                    if( !oParms.TryReplace( sInstr.NumberLocation.Offset, sInstr.NumberLocation.Length, strNumber ) ) {
                         _fnLogError( "Dissembler", "Unable to replace number arg in z80 instr" );
                         return;
                     }
-
-                    oNewRow = _oBulkAsm.Append( sInstr.Name.ToUpper(), oLine.ToString() );
+                    oNewRow = _oBulkAsm.Append( sInstr.Name.ToUpper(),
+                                                oParms.ToString() );
 
                     int iColorIndex;
                     if( sInstr.Jump == JumpType.None ) {
@@ -1226,7 +1227,9 @@ namespace Monitor {
                         }
                     }
                 } else {
-                    oNewRow = _oBulkAsm.Append( sInstr.Name.ToUpper(), sInstr.Params );
+                    oNewRow = _oBulkAsm.Append( sInstr.Name.ToUpper(),  
+                                                sInstr.Params );
+
                     if( string.Compare( "rst", sInstr.Name ) == 0 ) {
                         iNumber = int.Parse( sInstr.Params, System.Globalization.NumberStyles.HexNumber );
                         if( oNewRow is AsmRow oAsm ) {
@@ -1237,6 +1240,11 @@ namespace Monitor {
                 }
 
                 if( oNewRow is AsmRow oAsmRow ) {
+                    for( int i = 0; i < sInstr.Length; ++i ) {
+                        _sbBuilder.Append( _rgRam[iAddr+i].ToString( "X2" ) );
+                    }
+                    oAsmRow.Code.TryReplace( _sbBuilder.ToString() );
+                    oAsmRow.Code.Formatting.Add( new ColorRange( 0, 2, 4 ) );
                     oAsmRow.AddressMap = iAddr;
                 }
             } catch( Exception oEx ) {
