@@ -530,6 +530,7 @@ namespace Play.Edit {
             return GetEnumerator();
         }
 
+        public static int ColumnCount => 1;
     }
 
 }

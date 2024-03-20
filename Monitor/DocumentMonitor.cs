@@ -580,7 +580,7 @@ namespace Monitor {
                 HL,
                 SP,
                 PC,
-                Halted
+                Halt
 		    }
 
             public MonitorProperties(IPgBaseSite oSiteBase) : base(oSiteBase) {
@@ -593,6 +593,11 @@ namespace Monitor {
                 foreach( Labels eLabel in Enum.GetValues(typeof(Labels))) {
 				    CreatePropertyPair( eLabel.ToString() );
                 }
+
+              //LabelUpdate( (int)Labels.Caret, "Caret Addr", SKColors.LightGoldenrodYellow );
+              //Unfortunately, this would require the view / property page communication, which
+              //while possible, is a bit of a pain. So I just added an address column to the
+              //debug screen.
 
 			    return true;
             }
@@ -614,14 +619,15 @@ namespace Monitor {
                 sbFlags.Append( " C:" );
                 sbFlags.Append( ( oMon._cpuZ80.Flags & (byte)Z80.Fl.C ) > 0 ? "1" : "0" );
 
-                oBulk.SetValue( (int)Labels.Acc, oMon._cpuZ80.Ac.ToString( "X2" ) );
+                oBulk.SetValue( (int)Labels.Acc,   oMon._cpuZ80.Ac.ToString( "X2" ) );
                 oBulk.SetValue( (int)Labels.Flags, sbFlags.ToString() );
-                oBulk.SetValue( (int)Labels.BC,  oMon._cpuZ80.Bc.ToString( "X4" ) );
-                oBulk.SetValue( (int)Labels.DE,  oMon._cpuZ80.De.ToString( "X4" ) );
-                oBulk.SetValue( (int)Labels.HL,  oMon._cpuZ80.Hl.ToString( "X4" ) );
-                oBulk.SetValue( (int)Labels.SP,  oMon._cpuZ80.Sp.ToString( "X4" ) );
-                oBulk.SetValue( (int)Labels.PC,  oMon._cpuZ80.Pc.ToString( "X4" ) );
-                oBulk.SetValue( (int)Labels.Halted, oMon._cpuZ80.Halt ? "yes" : "no" );
+                oBulk.SetValue( (int)Labels.BC,    oMon._cpuZ80.Bc.ToString( "X4" ) );
+                oBulk.SetValue( (int)Labels.DE,    oMon._cpuZ80.De.ToString( "X4" ) );
+                oBulk.SetValue( (int)Labels.HL,    oMon._cpuZ80.Hl.ToString( "X4" ) );
+                oBulk.SetValue( (int)Labels.SP,    oMon._cpuZ80.Sp.ToString( "X4" ) );
+                oBulk.SetValue( (int)Labels.PC,    oMon._cpuZ80.Pc.ToString( "X4" ) );
+                oBulk.SetValue( (int)Labels.Halt,  oMon._cpuZ80.Halt ? "yes" : "no" );
+              //oBulk.SetValue( (int)Labels.Caret, oMon.Z80Memory[oMon._cpuZ80.Pc].ToString( "X4" ) );
            }
         } // end class MonitorProperties
 
@@ -1239,12 +1245,17 @@ namespace Monitor {
                     }
                 }
 
+                IColorRange oCodeColor = new ColorRange( 0, 2, 4 ); // Arghgh, don't actuall know the color...
+                IColorRange oAddrColor = new ColorRange( 0, 8, 1 );
+
                 if( oNewRow is AsmRow oAsmRow ) {
                     for( int i = 0; i < sInstr.Length; ++i ) {
                         _sbBuilder.Append( _rgRam[iAddr+i].ToString( "X2" ) );
                     }
                     oAsmRow.Code.TryReplace( _sbBuilder.ToString() );
-                    oAsmRow.Code.Formatting.Add( new ColorRange( 0, 2, 4 ) );
+                    oAsmRow.Code.Formatting.Add( oCodeColor );
+                    oAsmRow.Addr.TryReplace( iAddr.ToString( "X4" ) );
+                    oAsmRow.Addr.Formatting.Add( oAddrColor );
                     oAsmRow.AddressMap = iAddr;
                 }
             } catch( Exception oEx ) {

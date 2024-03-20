@@ -6,18 +6,20 @@ using Play.Interfaces.Embedding;
 namespace Monitor {
     public class AsmRow : Row {
         public AsmRow( string strAssembly, string strParams ) {
-            _rgColumns    = new Line[6];
+            _rgColumns    = new Line[7];
             // Add a column for break points! O.o
             _rgColumns[0] = new TextLine( 0, string.Empty ); // Machine code.
-            _rgColumns[1] = new TextLine( 1, string.Empty ); // Breakpoint
-            _rgColumns[2] = new TextLine( 2, string.Empty ); // label
-            _rgColumns[3] = new TextLine( 3, strAssembly );  // instr
-            _rgColumns[4] = new TextLine( 4, strParams );    // params
-            _rgColumns[5] = new TextLine( 5, string.Empty ); // comments
+            _rgColumns[1] = new TextLine( 1, string.Empty ); // Machine code.
+            _rgColumns[2] = new TextLine( 2, string.Empty ); // Breakpoint
+            _rgColumns[3] = new TextLine( 3, string.Empty ); // label
+            _rgColumns[4] = new TextLine( 4, strAssembly );  // instr
+            _rgColumns[5] = new TextLine( 5, strParams );    // params
+            _rgColumns[6] = new TextLine( 6, string.Empty ); // comments
         }
 
         public int AddressMap { get; set; } = -1;
 
+        public Line Addr    => _rgColumns[ColumnAddr];
         public Line Code    => _rgColumns[ColumnCode];
         public Line Break   => _rgColumns[ColumnBrkPnt];
         public Line Label   => _rgColumns[ColumnLabel];
@@ -25,12 +27,15 @@ namespace Monitor {
         public Line Param   => _rgColumns[ColumnParam];
         public Line Comment => _rgColumns[ColumnComment];
 
-        public const int ColumnCode    = 0;
-        public const int ColumnBrkPnt  = 1;
-        public const int ColumnLabel   = 2;
-        public const int ColumnInstr   = 3;
-        public const int ColumnParam   = 4;
-        public const int ColumnComment = 5;
+        public const int ColumnAddr    = 0;
+        public const int ColumnCode    = 1;
+        public const int ColumnBrkPnt  = 2;
+        public const int ColumnLabel   = 3;
+        public const int ColumnInstr   = 4;
+        public const int ColumnParam   = 5;
+        public const int ColumnComment = 6;
+
+        public static new int ColumnCount => 7;
     }
 
     public class AsmEditor : 

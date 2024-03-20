@@ -131,6 +131,7 @@ namespace Monitor {
             if( !base.Initialize() )
                 return false;
 
+            _rgLayout.Add( new LayoutRect( LayoutRect.CSS.Pixels,  80, 1L ) ); // Address
             _rgLayout.Add( new LayoutRect( LayoutRect.CSS.Pixels,  60, 1L ) ); // Code
             _rgLayout.Add( new LayoutRect( LayoutRect.CSS.Pixels,  15, 1L ) ); // breakpoints
             _rgLayout.Add( new LayoutRect( LayoutRect.CSS.Percent, 20, 1L ) ); // labels
@@ -140,12 +141,9 @@ namespace Monitor {
 
             // Need to figure out how to match the columns of the Window vs Document...
             // TODO: I'm going to add the columns to the cache site so I can init the later instead of now.
-            _rgColumns.Add( _rgLayout.Item( 1 ) );
-            _rgColumns.Add( _rgLayout.Item( 2 ) );
-            _rgColumns.Add( _rgLayout.Item( 3 ) );
-            _rgColumns.Add( _rgLayout.Item( 4 ) );
-            _rgColumns.Add( _rgLayout.Item( 5 ) );
-            _rgColumns.Add( _rgLayout.Item( 6 ) );
+            for( int i=0; i<AsmRow.ColumnCount; ++i ) {
+                _rgColumns.Add( _rgLayout.Item( i+1 ) );
+            }
 
             HyperLinks.Add( "CpuJump", OnCpuJump );
 
