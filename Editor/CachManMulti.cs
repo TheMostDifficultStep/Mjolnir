@@ -921,7 +921,11 @@ namespace Play.Edit {
             }
             return false;
         }
-
+        
+        /// <summary>
+        /// This is a bit like our scroll commands.
+        /// </summary>
+        /// <seealso cref="ScrollToCaret"/>
         public bool CaretReset( Row oRow, int iColumn ) {
             if( oRow == null )
                 return false;
@@ -1088,6 +1092,8 @@ namespace Play.Edit {
             return true;
         }
 
+
+        /// <seealso cref="CaretReset"/>
         public void ScrollToCaret() {
             CacheRow oCaretCacheRow = CacheLocate( CaretAt );
 

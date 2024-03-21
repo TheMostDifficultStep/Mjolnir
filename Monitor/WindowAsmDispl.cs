@@ -57,6 +57,10 @@ namespace Monitor {
 
         public int ElementCount => _oMonDoc.Z80Memory.Count;
 
+        /// <summary>
+        /// Override the normal row behavior so we can search for lines
+        /// by address!! Seems to work nicely.
+        /// </summary>
         public Row this[int iIndex] {
             get {
                 foreach( Row oRow in _oMonDoc.Doc_Asm ) {
@@ -70,6 +74,13 @@ namespace Monitor {
         }
 
         readonly DocumentMonitor _oMonDoc;
+        readonly LinkedList<Row> _rgHistory = new LinkedList<Row>();
+
+        static readonly Type[] _rgErrors = { typeof( NullReferenceException ),
+                                             typeof( ArgumentOutOfRangeException ),
+                                             typeof( IndexOutOfRangeException ),
+                                             typeof( InvalidOperationException ) };
+
         public ViewDisassembly( 
             IPgViewSite     oSiteView, 
             DocumentMonitor oDocument, 
@@ -90,11 +101,6 @@ namespace Monitor {
         /// </remarks>
         protected void OnCpuJump( Row oRow, int iColumn, IPgWordRange oRange ) {
             try {
-                //    _rgHistory.AddFirst( CaretPos.Line );
-                //    if( _rgHistory.Count > 10 ) {
-                //        _rgHistory.RemoveLast();
-                //    }
-
                 Line   oLine      = oRow[iColumn];
                 string strJumpRaw = oLine.SubString( oRange.Offset, oRange.Length );
 
@@ -108,6 +114,11 @@ namespace Monitor {
                 // Use a bubble search in the future...
                 foreach( AsmRow oTry in _oDocEnum ) {
                     if( oTry.AddressMap == iJumpAddr ) {
+                        _rgHistory.AddFirst( oTry );
+                        if( _rgHistory.Count > 10 ) {
+                            _rgHistory.RemoveLast();
+                        }
+
                         // Jump to column 1. It will have a value even if it
                         // is a data line.
                         if( !_oCacheMan.SetCaretPositionAndScroll( oTry.At, 1, 0 ) )
@@ -116,9 +127,7 @@ namespace Monitor {
                     }
                 }
             } catch( Exception oEx ) {
-                Type[] rgError = { typeof( NullReferenceException ),
-                                   typeof( ArgumentOutOfRangeException ) };
-                if( rgError.IsUnhandled(oEx) )
+                if( _rgErrors.IsUnhandled(oEx) )
                     throw;
             }
         }
@@ -147,6 +156,14 @@ namespace Monitor {
 
             HyperLinks.Add( "CpuJump", OnCpuJump );
 
+            try {
+                _rgHistory.AddFirst( _oMonDoc.Doc_Asm[0] ); 
+            } catch( Exception oEx ) {
+                if( _rgErrors.IsUnhandled( oEx ) )
+                    throw;
+                return false;
+            }
+
             return true;
         }
 
@@ -166,6 +183,29 @@ namespace Monitor {
             //    _oMonDoc.Dissassemble();
             //    return true;
             //}
+            if( sGuid == GlobalCommands.JumpPrev ) {
+                try {
+                    // If the cursor is already on the history line, go
+                    // back one more. But always keep the last element
+                    // in the history list. (Hopefully it'll be our entry point)
+                    if( _rgHistory.First is LinkedListNode<Row> oNode ) {
+                        if( oNode.Value.At == _oCacheMan.CaretAt ) {
+                            if( _rgHistory.Count > 1 )
+                                _rgHistory.RemoveFirst();
+                            if( _rgHistory.First is LinkedListNode<Row> oNext ) {
+                                oNode = oNext;
+                            }
+                        }
+                        if( _rgHistory.Count > 1 )
+                            _rgHistory.RemoveFirst();
+                        _oCacheMan.CaretReset( oNode.Value, AsmRow.ColumnComment );
+                    }
+                } catch( Exception oEx ) {
+                    if( _rgErrors.IsUnhandled( oEx ) )
+                        throw;
+                    LogError( "Problem on history jump." );
+                }
+            }
             if( sGuid == GlobalCommands.JumpNext ) {
                 if( _oMonDoc.Doc_Asm.FindRowAtAddress( _oMonDoc.PC, out AsmRow oAsm ) ) {
                     _oCacheMan.CaretReset( oAsm, AsmRow.ColumnInstr );

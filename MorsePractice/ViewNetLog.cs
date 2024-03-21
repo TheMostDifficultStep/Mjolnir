@@ -77,6 +77,10 @@ namespace Play.MorsePractice {
 					_oCacheMan.CaretTab( iDir );
 					break;
 				case '\r':
+					// Not likely unset upon key press. But problematic if negative.
+					if( _oCacheMan.CaretAt < 0 )
+						break;
+
 					if( LogDoc.InsertNew( _oCacheMan.CaretAt + 1 ) is Row oRow ) {
 						_oCacheMan.CaretReset( oRow, iColumn:0 );
 					}
