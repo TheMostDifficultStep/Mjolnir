@@ -383,7 +383,7 @@ namespace Mjolnir {
         internal void ScrollToPrimaryEdit() {
             IPgTextView oGuestText = _oViewControl as IPgTextView;
             if( oGuestText != null )
-                oGuestText.ScrollToCaret();
+                oGuestText.ScrollTo( SCROLLPOS.CARET );
         }
         
         public virtual IPgParent     Host       => _oHost;

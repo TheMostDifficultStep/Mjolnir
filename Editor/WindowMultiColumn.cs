@@ -907,10 +907,6 @@ namespace Play.Edit {
             }
         }
 
-        public void ScrollToCaret() {
-            _oCacheMan.ScrollToCaret(); // BUG: This is weird...
-        }
-
         public bool SelectionSet(int iLine, int iOffset, int iLength) {
             return _oCacheMan.SetCaretPositionAndScroll( iLine, _oCacheMan.CaretColumn, iOffset );
         }

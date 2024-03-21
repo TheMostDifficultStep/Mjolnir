@@ -139,7 +139,7 @@ namespace Mjolnir {
 
                 if( oSearchResult.Line.At > -1 ) {
 				    _oView.SelectionSet( oSearchResult.Line.At, oSearchResult.Offset, oSearchResult.Length );
-				    _oView.ScrollToCaret();
+				    _oView.ScrollTo    ( SCROLLPOS.CARET );
                 }
             } catch( NullReferenceException ) {
             }
@@ -439,11 +439,11 @@ namespace Mjolnir {
 
                     _oView.SelectionClear(); 
 				    _oView.SelectionSet( oRange.At, oRange.Offset, oRange.Length );
-				    _oView.ScrollToCaret();
+				    _oView.ScrollTo    ( SCROLLPOS.CARET );
                 } else {
                     _oView.SelectionClear(); 
 				    _oView.SelectionSet( _sEnumStart.RowIndex, _sEnumStart.Offset, 0 );
-				    _oView.ScrollToCaret();
+				    _oView.ScrollTo    ( SCROLLPOS.CARET );
                     _oEnumResults = null;
                 }
             } catch( NullReferenceException ) {
@@ -540,7 +540,7 @@ namespace Mjolnir {
         private void Goto_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e) {
             if( _oView != null ) {
                 _oWinMain.CurrentView = _oView;
-                _oView.ScrollToCaret();
+                _oView.ScrollTo( SCROLLPOS.CARET );
             }
         }
         private void Results_LinkClicked( object sender, LinkLabelLinkClickedEventArgs e) {

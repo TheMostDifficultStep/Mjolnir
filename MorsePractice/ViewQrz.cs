@@ -169,11 +169,6 @@ namespace Play.MorsePractice {
             ((IPgTextView)ViewBiograph).ScrollTo(eEdge);
         }
 
-        public void ScrollToCaret()
-        {
-            ((IPgTextView)ViewBiograph).ScrollToCaret();
-        }
-
         public bool SelectionSet(int iLine, int iOffset, int iLength)
         {
             return ((IPgTextView)ViewBiograph).SelectionSet(iLine, iOffset, iLength);

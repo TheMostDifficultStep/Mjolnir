@@ -679,7 +679,6 @@ namespace Play.Interfaces.Embedding {
         TextPosition Caret { get; }
 
         void ScrollTo( SCROLLPOS eEdge ); 
-        void ScrollToCaret(); // TODO: Remove this soon
         /// <summary>
         /// Simple selection on one line. Works for most cases.
         /// Goto line w/ selection length 0.

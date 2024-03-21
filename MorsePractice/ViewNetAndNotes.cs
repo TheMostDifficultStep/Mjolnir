@@ -190,10 +190,6 @@ namespace Play.MorsePractice {
             ViewList.ScrollTo(eEdge);
         }
 
-        public void ScrollToCaret() {
-            ViewList.ScrollToCaret();
-        }
-
         public bool SelectionSet(int iLine, int iOffset, int iLength) {
             return ViewList.SelectionSet(iLine, iOffset, iLength);
         }
