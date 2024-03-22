@@ -637,8 +637,8 @@ namespace Monitor {
 
             _rgZ80Def = new Z80Definitions();
             Z80Memory = new Z80Memory();
-            Ports     = new DazzlePorts( this );
-          //Ports     = new TinyBasicPorts( this );
+          //Ports     = new DazzlePorts( this );
+            Ports     = new TinyBasicPorts( this );
             _cpuZ80   = new Z80( Z80Memory, Ports );
 
             Doc_Asm     = new ( new DocSlot( this ) );

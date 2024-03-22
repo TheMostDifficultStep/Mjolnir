@@ -90,7 +90,7 @@ namespace Monitor {
         public override Guid Catagory => GUID;
         protected List<string> _rgTools = new List<string>();
 
-        protected Old_CPU_Emulator Monitor { get; }
+        protected BasicDocument Monitor { get; }
 
         public class FTCacheLineNumber : FTCacheWrap {
             Line _oGuest; // The line we are listing.
@@ -131,15 +131,15 @@ namespace Monitor {
 
         protected List<Tool> _rgTools2 = new();
 
-        public BasicLineWindow( IPgViewSite oSite, Old_CPU_Emulator oDoc ) : base( oSite, oDoc.BasicDoc ) {
+        public BasicLineWindow( IPgViewSite oSite, BasicDocument oDoc ) : base( oSite, oDoc.BasicDoc ) {
             Monitor = oDoc ?? throw new ArgumentNullException( ); // We'll die before reaching this... :-/
             _rgTools.Clear();
 
             _rgTools2.Add( new Tool( "Renumber",   oDoc.BasicDoc.Renumber ) );
             _rgTools2.Add( new Tool( "Test" ,      oDoc.BasicDoc.Test ) );
             _rgTools2.Add( new Tool( "Dump File",  DumpBinaryFile ) );
-            _rgTools2.Add( new Tool( "Compile",    Compile ) );
-            _rgTools2.Add( new Tool( "Emulate",    oDoc.CallEmulator ) );
+          //_rgTools2.Add( new Tool( "Compile",    Compile ) );
+          //_rgTools2.Add( new Tool( "Emulate",    oDoc.CallEmulator ) );
         }
         protected override CacheManager2 CreateCacheManager(uint uiStdText) {
             return new CacheManagerBasic( new CacheManSlot(this),
@@ -159,20 +159,19 @@ namespace Monitor {
             Monitor.DumpBinaryFile( _oSiteView );
         }
 
-        public void Compile() {
-            Monitor.BasicDoc.Compile( Monitor.TextCommands );
-        }
-
-        public override bool Execute( Guid sGuidCommand ) {
-            if( sGuidCommand == GlobalCommands.Insert ) {
+        public override bool Execute( Guid sCommand ) {
+            if( sCommand == GlobalCommands.Insert ) {
                 Monitor.SideLoad();
                 return true;
             }
-            if( sGuidCommand == GlobalCommands.SaveAs ) {
+            if( sCommand == GlobalCommands.SaveAs ) {
                 Monitor.SaveAsDialog();
                 return true;
             }
-            return base.Execute( sGuidCommand );
+            if( sCommand == GlobalCommands.Insert ) {
+                Monitor.SideLoad();
+            }
+            return base.Execute( sCommand );
         }
 
 		public override int ToolSelect { 
@@ -202,10 +201,9 @@ namespace Monitor {
     {
         public static Guid GUID { get; } = new Guid( "{A28DDC95-EE48-4426-9D15-0B29F07D5F4A}" );
 
-        protected Old_CPU_Emulator       MonitorDoc { get; }
+        protected Old_CPU_Emulator      MonitorDoc { get; }
         protected LayoutStackHorizontal MyLayout   { get; } = new LayoutStackHorizontal();
         protected EditWindow2           WinCommand { get; } // machine code..
-        protected EditWindow2           WinAssembly{ get; } // Assembly, now BBC basic.
 
         public IPgParent Parentage => _oSiteView.Host;
         public IPgParent Services  => Parentage.Services;
@@ -246,33 +244,25 @@ namespace Monitor {
 			public IPgViewNotify EventChain => _oHost._oSiteView.EventChain;
 		}
 
-        /// <remarks>So turns out having seperate documents containing the various elements
-        /// we want to display results in a bug in the main form window trying to manage the
-        /// visual elements. Plus, undo is a nightmare. So punt on that and using a single
-        /// property doc, but create outboard collections of the registers and status bits.</remarks>
-        /// <exception cref="ArgumentNullException"></exception>
+        /// <remarks>This is the display for the assembly emulator. I used to share
+        /// the screen with the basic display, but I've removed that. Just keeping
+        /// this around for history at the moment.</remarks>
         public WindowFrontPanel( IPgViewSite oViewSite, Old_CPU_Emulator oMonitorDoc ) 
         {
             _oSiteView = oViewSite   ?? throw new ArgumentNullException();
             MonitorDoc = oMonitorDoc ?? throw new ArgumentNullException( "Monitor document must not be null!" );
 
             WinCommand  = new LineNumberWindow( new ViewSlot( this ), oMonitorDoc.TextCommands ) { Parent = this };
-            WinAssembly = new BasicLineWindow ( new ViewSlot( this ), oMonitorDoc  ) { Parent = this };
         }
 
         public virtual bool InitNew() {
             if( !WinCommand.InitNew() )
                 return false;
 
-            if( !WinAssembly.InitNew() )
-                return false;
-
             // Add the memory window and assembly.
             MyLayout.Add( new LayoutControl( WinCommand,  LayoutRect.CSS.Percent ) { Track = 30 } );
-            MyLayout.Add( new LayoutControl( WinAssembly, LayoutRect.CSS.Percent ) { Track = 70 } );
 
             WinCommand .Parent = this;
-            WinAssembly.Parent = this;
 
             OnSizeChanged( new EventArgs() );
 
@@ -323,9 +313,6 @@ namespace Monitor {
             if( sGuid == GlobalCommands.JumpParent ) {
                 MonitorDoc.ProgramReset();
                 return true;
-            }
-            if( sGuid == GlobalCommands.Insert ) {
-                MonitorDoc.SideLoad();
             }
             return false;
         }
