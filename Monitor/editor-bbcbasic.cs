@@ -7,13 +7,13 @@ namespace Monitor {
     public class BasicRow : Row {
         public const int ColumnNumber = 0;
         public const int ColumnText   = 1;
-        public BasicRow( int iRow, int iBasicLine, ReadOnlySpan<char> rgText ) { 
+        public BasicRow( int iBasicLine, ReadOnlySpan<char> rgText ) { 
             _rgColumns = new Line[2];
 
             string strLineNum = iBasicLine >= 0 ? iBasicLine.ToString() : "?";
 
             _rgColumns[0] = new TextLine( iBasicLine, strLineNum );
-            _rgColumns[1] = new TextLine( iRow,       rgText.ToString() );
+            _rgColumns[1] = new TextLine( 1,          rgText.ToString() );
         }
 
         public Line Text   => _rgColumns[ColumnText];
@@ -41,12 +41,20 @@ namespace Monitor {
                 _oDocument = oDocument ?? throw new ArgumentNullException();
             }
 
-            public void Append( int iBasic, ReadOnlySpan<char> strLine ) {
-                BasicRow oNew = new BasicRow( _oDocument._rgRows.Count, iBasic, strLine );
+            /// <summary>
+            /// Appends the line at the bottom of the file. But numbers
+            /// it with the given basic line number.
+            /// </summary>
+            public void Append( int iBasNum, ReadOnlySpan<char> strLine ) {
+                BasicRow oNew = new BasicRow( iBasNum, strLine );
 
                 _oDocument._rgRows.Add( oNew );
             }
 
+            /// <summary>
+            /// Use to append unnumbered basic lines.
+            /// </summary>
+            /// <param name="spLine"></param>
             public void Append( ReadOnlySpan<char> spLine ) { 
                 Append( -1, spLine );
             }
@@ -66,10 +74,8 @@ namespace Monitor {
             _oBasicGrammer = (Grammer<char>)oGServ.GetGrammer( "bbcbasic" );
        }
 
-        protected Row CreateRow( int iLine, string strValue ) {
-            int iBasicNumber = iLine;// ( iLine + 1 ) * 10;
-
-            Row oNew = new BasicRow( iLine, iBasicNumber, strValue );
+        public Row InsertRow( int iLine, int iBasNum, string strValue ) {
+            Row oNew = new BasicRow( iBasNum, strValue );
 
             _rgRows.Insert( iLine, oNew );
 
@@ -98,7 +104,7 @@ namespace Monitor {
         }
 
         public bool InitNew() {
-            CreateRow( 10, string.Empty );
+            InsertRow( 0, 10, string.Empty );
             return true;
         }
 
@@ -138,8 +144,8 @@ namespace Monitor {
 
                     spBasic = strLine.AsSpan().Slice( start:i, length: strLine.Length - i );
                     // Combine the line number and the basic commands.
-                    if( int.TryParse( spNumber, out int iNumber ) ) {
-                        oBulk.Append( iNumber, spBasic );
+                    if( int.TryParse( spNumber, out int iBasNum ) ) {
+                        oBulk.Append( iBasNum, spBasic );
                     } else {
                         if( strLine.Length > 0 ) {
                             oBulk.Append( strLine );
@@ -359,12 +365,12 @@ namespace Monitor {
 
                 DoParse();
             } catch( Exception oEx ) {
-                if( !IsStdException( oEx ) )
+                if( IsStdUnhandled( oEx ) )
                     throw;
             }
         }
 
-        public static bool IsStdException( Exception oEx ) {
+        public static bool IsStdUnhandled( Exception oEx ) {
             Type[] rgErrors = { typeof( ArgumentException ),
                                 typeof( ArgumentNullException ),
                                 typeof( InvalidCastException ),

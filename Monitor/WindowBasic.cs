@@ -1,9 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Drawing;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Drawing;
+using System.Windows.Forms;
 
 using Play.Edit;
 using Play.Interfaces.Embedding;
@@ -81,6 +77,43 @@ namespace Monitor {
             }
         }
 
+        protected override void OnKeyPress(KeyPressEventArgs e) {
+            if( IsDisposed )
+                return;
+            if( _oViewEvents.IsCommandPress( e.KeyChar ) )
+                return;
+            if( _fReadOnly )
+                return;
+
+			switch( e.KeyChar ) {
+				//case '\t':
+				//	int iDir = ModifierKeys == Keys.Shift ? -1 : 1;
+				//	_oCacheMan.CaretTab( iDir );
+				//	break;
+				case '\r':
+                    try {
+					    // Not likely unset upon key press. But problematic if negative.
+					    if( _oCacheMan.CaretAt < 0 )
+						    break;
+
+                        if( DocMain.BasicDoc[_oCacheMan.CaretAt] is BasicRow oCaret ) {
+                            if( int.TryParse( oCaret.Number.AsSpan, out int iBasNum ) ) {
+					            if( DocMain.BasicDoc.InsertRow( _oCacheMan.CaretAt + 1, -1, string.Empty ) is Row oRow ) {
+						            _oCacheMan.CaretReset( oRow, iColumn:BasicRow.ColumnText );
+					            }
+                            }
+                        }
+                    } catch( Exception oEx ) {
+                        if( BasicEditor.IsStdUnhandled( oEx ) )
+                            throw;
+                        LogError( "Couldn't add a line" );
+                    }
+					break;
+				default:
+					base.OnKeyPress( e );
+					break;
+			}
+		}
         public void DumpBinaryFile() {
             DocMain.DumpBinaryFile( _oSiteView );
         }
