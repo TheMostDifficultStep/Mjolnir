@@ -104,7 +104,7 @@ namespace Play.Edit {
             return double.Parse( oLine.AsSpan );
         }
 
-        public static bool TryReplace(this Line oLine, IMemoryRange oRange, Span<char> rgReplace) {
+        public static bool TryReplace(this Line oLine, IMemoryRange oRange, ReadOnlySpan<char> rgReplace) {
             return oLine.TryReplace( oRange.Offset, oRange.Length, rgReplace );
         }
         public static bool TryReplace( this Line oLine, ReadOnlySpan<char> spReplacements ) {
@@ -530,7 +530,7 @@ namespace Play.Edit {
             return GetEnumerator();
         }
 
-        public static int ColumnCount => 1;
+        public static int ColumnCount => throw new NotImplementedException();
     }
 
 }

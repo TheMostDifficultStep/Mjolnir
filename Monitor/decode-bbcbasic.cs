@@ -263,25 +263,21 @@ namespace Monitor {
                 List<byte>             rgOutput      = new List<byte>();
                 byte[]                 rgNumEncoding = new byte[3];
 
-                foreach( Line oLine in oEdit ) {
+                foreach( BasicRow oBasic in oEdit ) {
                     // Resize array to match line length.
-                    if( rgMapping.Length < oLine.ElementCount )
-                        rgMapping = new int[oLine.ElementCount];
+                    if( rgMapping.Length < oBasic.Text.ElementCount )
+                        rgMapping = new int[oBasic.Text.ElementCount];
                     // Init the array. Clear the tokens for the line.
                     for( int i = 0; i < rgMapping.Length; i++ )
                         rgMapping[i] = 0;
                     rgTokens.Clear();
                     rgOutput.Clear();
 
-                    // Get the basic line number
-                    if( oLine.Extra is not Line oBasicLineNumber ) {
-                        throw new InvalidDataException( "Editor does not include basic line number info." );
-                    }
-                    short iBasicLineNumber = short.Parse( oBasicLineNumber.AsSpan );
+                    short iBasicLineNumber = short.Parse( oBasic.Number.AsSpan );
 
                     // Map shows character token position. > 0 means it's a token.
                     // Must be specific about the number binding...
-                    foreach( IColorRange oRange in oLine.Formatting ) {
+                    foreach( IColorRange oRange in oBasic.Text.Formatting ) {
                         if( oRange is MemoryElem<char> oToken && (
                                 string.Compare( oToken.ID, "keywords"  ) == 0 ||
                                 ( string.Compare( oToken.ID, "number" ) == 0 &&
@@ -297,15 +293,15 @@ namespace Monitor {
                     }
 
                     // Tokenize the line and output to the output line.
-                    for( int i = 0; i < oLine.ElementCount; i++ ) {
+                    for( int i = 0; i < oBasic.Text.ElementCount; i++ ) {
                         if( rgMapping[i] == 0 ) {
-                            if( oLine[i] > 0x7f )
+                            if( oBasic.Text[i] > 0x7f )
                                 throw new InvalidDataException( "BBC basic V ascii text error - 1." );
 
-                            rgOutput.Add( (byte)oLine[i] );
+                            rgOutput.Add( (byte)oBasic.Text[i] );
                         } else {
                             MemoryElem<char> oRange  = rgTokens[rgMapping[i] - 1];
-                            Span<char>       spToken = oLine.Slice( oRange );
+                            Span<char>       spToken = oBasic.Text.Slice( oRange );
 
                             if( string.Compare( oRange.ID, "keywords" ) == 0 ) {
                                 TokenInfo sToken = GetToken( spToken );
@@ -331,7 +327,7 @@ namespace Monitor {
                         StringBuilder sbError = new StringBuilder();
 
                         sbError.Append( "Line length greater than 255 chars. Basic Line Number: " );
-                        sbError.Append( oBasicLineNumber.AsSpan );
+                        sbError.Append( oBasic.Number.AsSpan );
 
                         throw new InvalidDataException( sbError.ToString() );
                     }
@@ -507,7 +503,7 @@ namespace Monitor {
 
             IO_Detokanize( oReader, oEdit);
             // Want the Edit Window banner to update...
-            oEdit.Raise_BufferEvent(BUFFEREVENTS.LOADED);
+            oEdit.DoParse();
         }
 
         /// <summary>
