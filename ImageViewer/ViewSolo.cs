@@ -53,8 +53,7 @@ namespace Play.ImageViewer {
 
             ContextMenuStrip oMenu = new ContextMenuStrip();
             oMenu.Items.Add( new ToolStripMenuItem("Copy", null, ClipboardCopyTo, Keys.Control | Keys.C));
-		  //Enable this when I have a snip dialog!!
-          //oMenu.Items.Add( new ToolStripMenuItem("Snip", null, SelectionSnip ));
+            oMenu.Items.Add( new ToolStripMenuItem("Snip", null, SelectionSnip ));
             oMenu.Opened += new EventHandler(this.ContextMenuShowing);
             
 			ContextMenuStrip = oMenu;
