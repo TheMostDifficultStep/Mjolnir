@@ -109,15 +109,21 @@ namespace Play.Edit {
             /// <param name="oRow">Null if the whole buffer should
             /// be measured.</param>
             public void OnUpdated( EditType eType, Row oRow ) {
-                if( eType == EditType.DeleteRow ) {
-                    if( _oHost._oCaretRow == oRow ) {
-                        if( _oHost._oSiteList[ _oHost.CaretAt ] is Row oNext ) {
-                            _oHost._oCaretRow = oNext;
+                try {
+                    if( eType == EditType.DeleteRow ) {
+                        if( _oHost._oCaretRow == oRow ) {
+                            if( _oHost._oSiteList[ _oHost.CaretAt ] is Row oNext ) {
+                                _oHost._oCaretRow = oNext;
+                            }
                         }
+                        _oHost.CacheRepair( null, _fCaretVisible, false );
+                    } else {
+                        _oHost.CacheRepair( oRow, _fCaretVisible, oRow == null );
                     }
-                    _oHost.CacheRepair( null, _fCaretVisible, false );
-                } else {
-                    _oHost.CacheRepair( oRow, _fCaretVisible, oRow == null );
+                } catch( Exception oEx ) {
+                    if( _rgStdErrors.IsUnhandled( oEx ) )
+                        throw;
+                    _oHost.LogError( "Edit update issue" );
                 }
             }
 

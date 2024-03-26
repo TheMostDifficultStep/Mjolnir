@@ -80,9 +80,7 @@ namespace Play.ImageViewer {
 			Icon         = _oDocument.GetResource( "icons8-cut-40.png" );
 
 			SnipDoc  = new ImageSoloDoc   ( new SnipSlotBase( this ) );
-			SnipView = new ImageViewSingle( new SnipSlotView( this ), SnipDoc ) {
-				Parent = this
-			};
+			SnipView = new ImageViewSingle( new SnipSlotView( this ), SnipDoc );
 
 			PropertiesDoc = new ImageSnipProperties     ( new SnipSlotBase( this ) );
 			PropertiesWin = new WindowStandardProperties( new SnipSlotView( this ), PropertiesDoc );
@@ -131,8 +129,8 @@ namespace Play.ImageViewer {
 			SnipView     .Parent = this;
 
 			try {
-                _rgVertStack.Add( new LayoutImageView( SnipView,      LayoutRect.CSS.None ) { TrackMaxPercent = 0.7F } ); 
-                _rgVertStack.Add( new LayoutControl  ( PropertiesWin, LayoutRect.CSS.Flex ) { TrackMaxPercent = 0.3F } );
+                _rgVertStack.Add( new LayoutImageView( SnipView,      LayoutRect.CSS.None ) { TrackMaxPercent = 0.6F } ); 
+                _rgVertStack.Add( new LayoutControl  ( PropertiesWin, LayoutRect.CSS.Flex ) { TrackMaxPercent = 0.4F } );
 			} catch( Exception oEx ) {
 				LogError( oEx );
 				return false;
@@ -146,7 +144,7 @@ namespace Play.ImageViewer {
 			return true;
 		}
 
-		public bool Load(XmlElement oStream) {
+        public bool Load(XmlElement oStream) {
 			InitNew();
 
 			return true;
@@ -364,7 +362,6 @@ namespace Play.ImageViewer {
 							return;
 					}
 				}
-
 			} catch( Exception oEx ) {
 				Type[] rgErrors = { typeof( PathTooLongException ),
 									typeof( ArgumentException ) };
