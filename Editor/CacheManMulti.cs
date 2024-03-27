@@ -144,11 +144,11 @@ namespace Play.Edit {
             /// ______|___+++|++++++
             /// </summary>
             protected void TopRow( Row oRow ) {
-                int i=_rgColHighLow[0].Column;
+                int i=_rgRowHighLow[0].Column;
 
                 // First selection, from offset to end of Low.
-                Set( i, _rgColHighLow[0].Offset, 
-                        oRow[i].ElementCount - _rgColHighLow[0].Offset );
+                Set( i, _rgRowHighLow[0].Offset, 
+                        oRow[i].ElementCount - _rgRowHighLow[0].Offset );
                 
                 // Remaining selections. Select all.
                 while( ++i < oRow.Count ) {
@@ -165,13 +165,13 @@ namespace Play.Edit {
             protected void BotRow( Row oRow ) {
                 // Full selection on the left.
                 int i = 0;
-                while( i < _rgColHighLow[1].Column && i < oRow.Count ) {
+                while( i < _rgRowHighLow[1].Column && i < oRow.Count ) {
                     Set( i, 0, oRow[i].ElementCount );
                     ++i;
                 }
                 // selection, from 0 to offset of high.
                 if( i < oRow.Count ) {
-                    Set( i, 0, _rgColHighLow[1].Offset );
+                    Set( i, 0, _rgRowHighLow[1].Offset );
                 }
                 // no remaining selections.
             }
@@ -185,6 +185,21 @@ namespace Play.Edit {
             /// fEqualCol is false : ___+++|++++++|+_____
             /// </summary>
             protected void EquRow( Row oRow ) {
+                if( Caret.Column > Pin.Column ) {
+                    _rgColHighLow[0] = Pin;
+                    _rgColHighLow[1] = Caret;
+                } else {
+                    if( Caret.Column == Pin.Column &&
+                        Caret.Offset >  Pin.Offset ) 
+                    {
+                        _rgColHighLow[0] = Pin;
+                        _rgColHighLow[1] = Caret;
+                    } else {
+                        _rgColHighLow[0] = Caret;
+                        _rgColHighLow[1] = Pin;
+                    }
+                }
+
                 bool fEqualCol = Caret.Column == Pin.Column;
 
                 if( fEqualCol ) {
@@ -217,8 +232,6 @@ namespace Play.Edit {
                     if( Caret == null )
                         return false;
 
-                    bool fEqualRow = Caret.Row.At == Pin.Row.At;
-                    
                     if( Caret.Row.At > Pin.Row.At ) {
                         _rgRowHighLow[0] = Pin;
                         _rgRowHighLow[1] = Caret;
@@ -226,27 +239,12 @@ namespace Play.Edit {
                         _rgRowHighLow[0] = Caret;
                         _rgRowHighLow[1] = Pin;
                     }
-                    if( Caret.Column > Pin.Column ) {
-                        _rgColHighLow[0] = Pin;
-                        _rgColHighLow[1] = Caret;
-                    } else {
-                        if( Caret.Column == Pin.Column &&
-                            Caret.Offset >  Pin.Offset ) 
-                        {
-                            _rgColHighLow[0] = Pin;
-                            _rgColHighLow[1] = Caret;
-                        } else {
-                            _rgColHighLow[0] = Caret;
-                            _rgColHighLow[1] = Pin;
-                        }
-                    }
-
                     if( oRow.At < _rgRowHighLow[0].Row.At )
                         return false;
                     if( oRow.At > _rgRowHighLow[1].Row.At )
                         return false;
 
-                    if( fEqualRow ) {
+                    if( Caret.Row.At == Pin.Row.At ) {
                         EquRow( oRow );
                         return true;
                     }
