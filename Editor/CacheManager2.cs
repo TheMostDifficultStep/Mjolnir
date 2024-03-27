@@ -338,7 +338,7 @@ namespace Play.Edit {
                     IPgCacheMeasures oElem = oRow.CacheList[i];
 
 				    oElem.Measure            ( Font );
-                    oElem.OnChangeFormatting( _oSite.Selections );
+                    oElem.Colorize( _oSite.Selections );
                     oElem.OnChangeSize      ( _rgCacheMap[i].Width  );
                 }
 			} catch( Exception oEx ) {
@@ -711,7 +711,7 @@ namespace Play.Edit {
             foreach( CacheRow oRow in _rgOldCache ) {
                 IPgCacheMeasures oCache = oRow.CacheList[0];
               //oCache.Update( Font ); Just can't call this here. Too slow.
-                oCache.OnChangeFormatting( rgSelection );
+                oCache.Colorize( rgSelection );
                 oCache.OnChangeSize( iWidth );
             }
         }
@@ -721,7 +721,7 @@ namespace Play.Edit {
         /// </remarks>
         public void OnChangeSelection( ICollection<ILineSelection> rgSelection ) {
             foreach( CacheRow oRow in _rgOldCache ) {
-                oRow.CacheList[0].OnChangeFormatting( rgSelection );
+                oRow.CacheList[0].Colorize( rgSelection );
             }
         }
 

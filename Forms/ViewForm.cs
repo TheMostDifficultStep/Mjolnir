@@ -154,7 +154,7 @@ namespace Play.Forms {
         }
 
         public void OnChangeFormatting() {
-            Cache.OnChangeFormatting( _rgSelections );
+            Cache.Colorize( _rgSelections );
         }
 
         public SKPointI CaretWorldPosition( ILineRange oCaret ) {
@@ -195,7 +195,7 @@ namespace Play.Forms {
             } else {
                 Selection.Start = iEdge;
             }
-            Cache.OnChangeFormatting( _rgSelections );
+            Cache.Colorize( _rgSelections );
         }
 
         public void SelectNext( IPgCacheCaret oCaret, Point pntClient ) {
@@ -207,7 +207,7 @@ namespace Play.Forms {
             oCaret.Offset  = iEdge;
             oCaret.Advance = Cache.GlyphOffsetToPoint( oCaret.Offset ).X;
 
-            Cache.OnChangeFormatting( _rgSelections );
+            Cache.Colorize( _rgSelections );
         }
 
         public void SelectAll( IPgCacheCaret oCaret ) {
@@ -218,12 +218,12 @@ namespace Play.Forms {
             Selection.Start  = 0;
             Selection.Length = oCaret.Line.ElementCount;
 
-            Cache.OnChangeFormatting( _rgSelections );
+            Cache.Colorize( _rgSelections );
         }
 
         public void SelectClear() {
             Selection.Length = 0;
-            Cache.OnChangeFormatting( _rgSelections );
+            Cache.Colorize( _rgSelections );
         }
     }
 

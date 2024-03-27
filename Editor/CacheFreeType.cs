@@ -248,7 +248,7 @@ namespace Play.Edit {
 
         bool  IsInvalid { get; set; }
         void  Measure( IPgFontRender oRender );
-        void  OnChangeFormatting( ICollection<ILineSelection> rgSelections );
+        void  Colorize( ICollection<ILineSelection> rgSelections );
         void  OnChangeSize( int iWidth );
 
         int   GlyphPointToOffset( int iRowTop, SKPointI pntWorld );
@@ -575,7 +575,7 @@ namespace Play.Edit {
         /// <summary>
         /// Apply the line formatting and selection color to the clusters.
         /// </summary>
-        public virtual void OnChangeFormatting( ICollection<ILineSelection> rgSelections ) {
+        public virtual void Colorize( ICollection<ILineSelection> rgSelections ) {
             ClusterColorClear();
 
             // Only grab the color ranges, States can have a color set but then the
@@ -1123,7 +1123,7 @@ namespace Play.Edit {
 		/// Words and Formatting are more primative (parse data only) and never contain selection.
 		/// We correct this problem in OnChangeFormatting().
 		/// </remarks>
-		/// <seealso cref="OnChangeFormatting"/>
+		/// <seealso cref="Colorize"/>
         /*
 		protected IEnumerator<IColorRange> GetEnumerator() {
 			if( Line.Formatting.Count > 0 ) {

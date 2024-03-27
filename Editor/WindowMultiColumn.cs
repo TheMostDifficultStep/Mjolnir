@@ -104,7 +104,7 @@ namespace Play.Edit {
             return 0;
         }
 
-        public void OnChangeFormatting(ICollection<ILineSelection> rgSelections) {
+        public void Colorize(ICollection<ILineSelection> rgSelections) {
         }
 
         /// <summary>
