@@ -223,15 +223,22 @@ namespace Play.Edit {
                         _rgRowHighLow[0] = Pin;
                         _rgRowHighLow[1] = Caret;
                     } else {
-                        _rgRowHighLow[1] = Pin;
                         _rgRowHighLow[0] = Caret;
+                        _rgRowHighLow[1] = Pin;
                     }
                     if( Caret.Column > Pin.Column ) {
                         _rgColHighLow[0] = Pin;
                         _rgColHighLow[1] = Caret;
                     } else {
-                        _rgColHighLow[1] = Pin;
-                        _rgColHighLow[0] = Caret;
+                        if( Caret.Column == Pin.Column &&
+                            Caret.Offset >  Pin.Offset ) 
+                        {
+                            _rgColHighLow[0] = Pin;
+                            _rgColHighLow[1] = Caret;
+                        } else {
+                            _rgColHighLow[0] = Caret;
+                            _rgColHighLow[1] = Pin;
+                        }
                     }
 
                     if( oRow.At < _rgRowHighLow[0].Row.At )
