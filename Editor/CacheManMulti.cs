@@ -10,6 +10,7 @@ using Play.Parse;
 using Play.Rectangles;
 using System.Windows.Forms;
 using System.Linq;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.TextBox;
 
 namespace Play.Edit {
     public interface IPgCaretInfo<T> :
@@ -42,8 +43,9 @@ namespace Play.Edit {
         protected readonly List<CacheRow>  _rgOldCache = new List<CacheRow>();
         protected readonly List<CacheRow>  _rgNewCache = new List<CacheRow>(); 
 
-        protected readonly List<SmartRect> _rgColumnRects;
-        protected readonly TextLine        _oDummyLine = new TextLine( -2, string.Empty );
+        protected readonly List<SmartRect>  _rgColumnRects;
+        protected readonly TextLine         _oDummyLine = new TextLine( -2, string.Empty );
+        protected          SelectionManager _oSelection ;
 
         protected IPgFontRender Font       { get; }
         protected IPgGlyph      GlyphLt    { get; } // Our end of line character.
@@ -56,7 +58,8 @@ namespace Play.Edit {
         protected int   _iCaretOff;
         protected float _fAdvance;
 
-        /// <seealso cref="CaretInfo" /*
+        /// <seealso cref="CaretInfo" />
+        /// <seealso cref="SelectionManager" />
         protected class CaretTracker :
             IPgCaretInfo<Row>
         {
@@ -86,6 +89,8 @@ namespace Play.Edit {
             readonly IPgCaretInfo<Row>[] _rgColHighLow = new IPgCaretInfo<Row>[2];
             readonly IColorRange      [] _rgSelections;
             readonly IColorRange      [] _rgCache;
+
+            bool _fFrozen = true;
             public SelectionManager( int iMaxCols ) {
                 _rgSelections = new IColorRange[iMaxCols];
                 _rgCache      = new IColorRange[iMaxCols];
@@ -95,14 +100,34 @@ namespace Play.Edit {
                 }
             }
 
+            public IColorRange this [ int iIndex ] {
+                get { return _rgSelections[iIndex]; }
+            }
+
             /// <summary>
             /// Call this at the start of the selection and
             /// we'll track relative to the location of the caret at this time.
             /// </summary>
             /// <param name="oCaret">First point to begin selection from.</param>
             public void SetPin( IPgCaretInfo<Row> oCaret ) {
-                Caret = oCaret;
-                Pin   = new CaretInfo( oCaret );
+                Caret    = oCaret;
+                Pin      = new CaretInfo( oCaret );
+                _fFrozen = false;
+            }
+
+            public void Freeze() {
+                Caret    = new CaretInfo( Caret );
+                _fFrozen = true;
+            }
+
+            public bool IsFrozen => _fFrozen;
+
+            public void Clear() { 
+                Caret = null;
+                for( int i=0; i< _rgCache.Length; ++i ) {
+                    _rgSelections[i] = null;
+                }
+                _fFrozen = true;
             }
 
             protected void Set( int iCol, int iOffset, int iLength ) {
@@ -123,7 +148,7 @@ namespace Play.Edit {
 
                 // First selection, from offset to end of Low.
                 Set( i, _rgColHighLow[0].Offset, 
-                        oRow[i].ElementCount - _rgSelections[i].Offset );
+                        oRow[i].ElementCount - _rgColHighLow[0].Offset );
                 
                 // Remaining selections. Select all.
                 while( ++i < oRow.Count ) {
@@ -174,7 +199,7 @@ namespace Play.Edit {
 
                     Set( iLo, _rgColHighLow[0].Offset, 
                               oRow[iLo].ElementCount - 
-                              _rgSelections[iLo].Offset );
+                              _rgColHighLow[0].Offset );
 
                     for( int i=iLo+1; i<iHi; ++i ) {
                         Set( i, 0, oRow[i].ElementCount );
@@ -189,6 +214,8 @@ namespace Play.Edit {
                     for( int i=0; i< _rgCache.Length; ++i ) {
                         _rgSelections[i] = null;
                     }
+                    if( Caret == null )
+                        return false;
 
                     bool fEqualRow = Caret.Row.At == Pin.Row.At;
                     
@@ -239,7 +266,7 @@ namespace Play.Edit {
                 }
                 return false;
             }
-        }
+        } // End class
 
         /// <summary>
         /// This is where you put the caret (and in the future, selections)
@@ -309,6 +336,7 @@ namespace Play.Edit {
 			_oSite         = oSite     ?? throw new ArgumentNullException( "Cache manager is a sited object.");
             _oSiteList     = (IReadableBag<Row>)oSite;
             _rgColumnRects = rgColumns ?? throw new ArgumentNullException( "Columns list from Edit Window is null!" );
+            _oSelection    = new SelectionManager( 20 ); // Argh, rgColumns.Count not set yet... :-/
 
             GlyphLt    = Font.GetGlyph( 0x003c ); // we used to show carriage return as a '<' sign.
             LineHeight = (int)Font.LineHeight;    // BUG: Cache elem's are variable height in general.
@@ -436,11 +464,10 @@ namespace Play.Edit {
         public struct CaretInfo :
             IPgCaretInfo<Row> 
         {
-            int iOffset = 0;
             public CaretInfo( CacheMultiColumn oHost ) {
-                Row     = oHost._oCaretRow ?? throw new ArgumentNullException();
-                Column  = oHost._iCaretCol;
-                iOffset = oHost._iCaretOff;
+                Row    = oHost._oCaretRow ?? throw new ArgumentNullException();
+                Column = oHost._iCaretCol;
+                Offset = oHost._iCaretOff;
             }
 
             public CaretInfo( IPgCaretInfo<Row> oSource ) {
@@ -453,8 +480,8 @@ namespace Play.Edit {
 
             public int Column { get; }
 
-            public int Offset { get => iOffset; set => throw new NotImplementedException(); }
-            public int Length { get => 0; set => throw new NotImplementedException(); }
+            public int Offset { get ; set ; }
+            public int Length { readonly get => 0; set => throw new NotImplementedException(); }
         }
 
         public CaretInfo? CopyCaret() {
@@ -921,21 +948,40 @@ namespace Play.Edit {
             }
         }
 
-        /// <summary>
-        /// For now the main text area is our primary editing zone. The rest won't
-        /// be editable for now.
-        /// </summary>
         /// <remarks>Note that the CacheList length MIGHT be less than 
         /// the _rgColumnRects length!</remarks>
         /// <seealso cref="CheckList"/>
-        protected virtual void RowMeasure( CacheRow oRow ) {
+        protected virtual void RowMeasure( CacheRow oCacheRow ) {
             try {
-                for( int i=0; i<oRow.CacheList.Count && i<_rgColumnRects.Count; ++i ) {
-                    IPgCacheMeasures oElem = oRow.CacheList[i];
+                _oSelection.IsSelection( oCacheRow.Row );
+
+                for( int i=0; i<oCacheRow.CacheList.Count && i<_rgColumnRects.Count; ++i ) {
+                    IPgCacheMeasures oElem = oCacheRow.CacheList[i];
 
 				    oElem.Measure     ( Font );
-                    oElem.Colorize    ( null );
+                    oElem.Colorize    ( _oSelection[i] );
                     oElem.OnChangeSize( _rgColumnRects[i].Width );
+                }
+			} catch( Exception oEx ) {
+                if( IsUnhandledStdRpt( oEx ) )
+                    throw;
+			}
+        }
+
+        public bool IsSelecting => !_oSelection.IsFrozen;
+
+        public void BeginSelect() {
+            _oSelection.SetPin( new CaretTracker( this ) );
+        }
+
+        public void EndSelect() {
+            _oSelection.Freeze();
+        }
+
+        public void CacheReMeasure() {
+            try {
+                foreach( CacheRow oCacheRow in _rgOldCache ) {
+                    RowMeasure( oCacheRow );
                 }
 			} catch( Exception oEx ) {
                 if( IsUnhandledStdRpt( oEx ) )
@@ -946,7 +992,13 @@ namespace Play.Edit {
         public void CacheReColor() {
             try {
                 foreach( CacheRow oCacheRow in _rgOldCache ) {
-                    RowMeasure( oCacheRow );
+                    _oSelection.IsSelection( oCacheRow.Row );
+
+                    for( int i=0; i<oCacheRow.CacheList.Count && i<_rgColumnRects.Count; ++i ) {
+                        IPgCacheMeasures oElem = oCacheRow.CacheList[i];
+
+                        oElem.Colorize( _oSelection[i] );
+                    }
                 }
 			} catch( Exception oEx ) {
                 if( IsUnhandledStdRpt( oEx ) )

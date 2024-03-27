@@ -657,7 +657,7 @@ namespace Play.ImageViewer {
                 //Document.FileList.WordBreak(oCache.Line, oCache.Words); // BUG: Need to see why not see text on first boot.
 
                 oCache.Measure( oFR );
-                oCache.Colorize( null );
+                oCache.Colorize( (ILineSelection)null );
                 oCache.OnChangeSize( _iImgHeight - 16 ); // BUG remove hard coded deal.
             }
         }

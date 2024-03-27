@@ -249,6 +249,8 @@ namespace Play.Edit {
         bool  IsInvalid { get; set; }
         void  Measure( IPgFontRender oRender );
         void  Colorize( ICollection<ILineSelection> rgSelections );
+        void  Colorize( IColorRange oColorRange );
+
         void  OnChangeSize( int iWidth );
 
         int   GlyphPointToOffset( int iRowTop, SKPointI pntWorld );
@@ -596,6 +598,21 @@ namespace Play.Edit {
             }
         } // end method
 
+        public virtual void Colorize( IColorRange oRangeSlxn ) {
+            ClusterColorClear();
+
+            // Only grab the color ranges, States can have a color set but then the
+            // subsequent terminals are all black and we blast our color set.
+			foreach( IColorRange oColor in Line.Formatting ) {
+                if( oColor.ColorIndex > 0 ) {
+                    ClusterColorSet = oColor;
+                }
+			}
+
+            // Selection overrides what ever colors we had set.
+            ClusterColorSet = oRangeSlxn;
+        } // end method
+
         /// <summary>
         /// Set the color of the cluster of glyphs. Note: each glyph might be a different
         /// color for something like a emoji! But we don't support more than one glyph
@@ -606,6 +623,8 @@ namespace Play.Edit {
         protected IColorRange ClusterColorSet {
             set {
                 try {
+                    if( value == null )
+                        return;
                     for( int i = value.Offset; 
                          i < value.Offset + value.Length && i < _rgClusterMap.Count; 
                         ++i ) 

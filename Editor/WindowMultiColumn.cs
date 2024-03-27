@@ -106,6 +106,8 @@ namespace Play.Edit {
 
         public void Colorize(ICollection<ILineSelection> rgSelections) {
         }
+        public void Colorize(IColorRange rgColorRange ) {
+        }
 
         /// <summary>
         /// Notice the 2 step nature of our sizing. Our width is not negotable.
@@ -448,13 +450,17 @@ namespace Play.Edit {
             return _oCacheMan.CreateDocEventObject();
         }
 
+        /// <summary>
+        /// We remeasure since parse is typically caused by a
+        /// text change.
+        /// </summary>
         public void OnDocFormatted() {
-            _oCacheMan.CacheReColor();
+            _oCacheMan.CacheReMeasure();
             Invalidate();
         }
 
         public void OnDocUpdated() {
-            _oCacheMan.CacheReColor();
+            _oCacheMan.CacheReMeasure();
             Invalidate();
         }
         #endregion
@@ -731,12 +737,6 @@ namespace Play.Edit {
             Cursor = oNewCursor;
         }
 
-        protected override void OnMouseMove(MouseEventArgs e) {
-            base.OnMouseMove( e );
-
-            CursorUpdate( new SKPointI( e.X, e.Y ), e.Button );
-        }
-
         protected override void OnMouseWheel(MouseEventArgs e) {
             base.OnMouseWheel(e);
 
@@ -852,6 +852,25 @@ namespace Play.Edit {
             }
         }
 
+        protected override void OnMouseMove(MouseEventArgs e) {
+            base.OnMouseMove( e );
+
+            SKPointI pntMouse = new SKPointI( e.X, e.Y );
+
+            CursorUpdate( pntMouse, e.Button );
+            if( _oCacheMan.IsSelecting ) {
+                _oCacheMan.CacheReColor();
+                _oCacheMan.CaretAdvance(pntMouse);
+                Invalidate();
+            }
+        }
+
+        protected override void OnMouseUp(MouseEventArgs e) {
+            base.OnMouseUp(e);
+
+            _oCacheMan.EndSelect();
+        }
+
         protected override void OnMouseDown(MouseEventArgs e) {
             base.OnMouseDown( e );
 
@@ -860,18 +879,22 @@ namespace Play.Edit {
 
             _oCacheMan.CaretAdvance( pntClick );
 
+            bool fHyperLinked = false;
             if( e.Button == MouseButtons.Left &&
                 ((ModifierKeys & Keys.Control) == 0) ) 
             {
                 for( int iColumn=0; iColumn<_rgColumns.Count; ++iColumn ) {
                     SmartRect oColumn = _rgColumns[iColumn];
                     if( oColumn.IsInside( e.X, e.Y ) ) {
-                        HyperLinkFind( iColumn, pntClick, fDoJump:true );
+                        fHyperLinked = HyperLinkFind( iColumn, pntClick, fDoJump:true );
                         break;
                     }
                 }
             }
-
+            if( !fHyperLinked ) {
+                _oCacheMan.BeginSelect();
+                _oCacheMan.CacheReColor();
+            }
 
             Invalidate();
         }
