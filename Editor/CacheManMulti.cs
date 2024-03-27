@@ -8,6 +8,8 @@ using SkiaSharp;
 using Play.Interfaces.Embedding;
 using Play.Parse;
 using Play.Rectangles;
+using System.Windows.Forms;
+using System.Linq;
 
 namespace Play.Edit {
     public interface IPgCaretInfo<T> :
@@ -73,6 +75,148 @@ namespace Play.Edit {
             public int Length { 
                 get => 0;
                 set => throw new NotImplementedException(); 
+            }
+        }
+
+        public class SelectionManager {
+            public IPgCaretInfo<Row> Caret { get; }
+            public CaretInfo         Pin   { get; }
+
+            readonly IPgCaretInfo<Row>[] _rgRowHighLow = new IPgCaretInfo<Row>[2];
+            readonly IPgCaretInfo<Row>[] _rgColHighLow = new IPgCaretInfo<Row>[2];
+            readonly IColorRange      [] _rgSelections = new IColorRange[20];
+            public SelectionManager( IPgCaretInfo<Row> oCaretCopy ) {
+                Pin = new CaretInfo( oCaretCopy );
+            }
+
+            /// <summary>
+            /// This is the case where top & bottom row's are different.
+            /// So we have no selection until the column and then
+            /// full selection from that column on.
+            /// ______|___+++|++++++
+            /// </summary>
+            public void TopRow( Row oRow ) {
+                int i=_rgColHighLow[0].Column;
+
+                // First selection, from offset to end of Low.
+                _rgSelections[i].Offset = _rgColHighLow[0].Offset;
+                _rgSelections[i].Length = oRow[i].ElementCount - _rgSelections[i].Offset;
+                
+                // Remaining selections. Select all.
+                while( ++i < oRow.Count ) {
+                    _rgSelections[i].Offset = 0;
+                    _rgSelections[i].Length = oRow[i].ElementCount;
+                }
+            }
+
+            /// <summary>
+            /// This is the case where top & bottom row's are different.
+            /// So we have selections until the column and then
+            /// no selection from that column on.
+            /// ++++++|+++___|______
+            /// </summary>
+            public void BotRow( Row oRow ) {
+                // Full selection on the left.
+                int i = 0;
+                while( i < _rgColHighLow[1].Column && i < oRow.Count ) {
+                    _rgSelections[i].Offset = 0;
+                    _rgSelections[i].Length = oRow[i].ElementCount;
+                    ++i;
+                }
+                // selection, from 0 to offset of high.
+                if( i < oRow.Count ) {
+                    _rgSelections[i].Offset = 0;
+                    _rgSelections[i].Length = _rgColHighLow[1].Offset;
+                }
+                // no remaining selections.
+            }
+
+            /// <summary>
+            /// This is the case where top & bottom row's are same.
+            /// So we have selections until the column and then
+            /// no selection from that column on.
+            ///             Column : 0      1      2
+            /// fEqualCol is true  : ______|_++++_|______
+            /// fEqualCol is false : ___+++|++++++|+_____
+            /// </summary>
+            public void EquRow( Row oRow ) {
+                bool fEqualCol = Caret.Column == Pin.Column;
+
+                if( fEqualCol ) {
+                    int iCol = Caret.Column;
+
+                    _rgSelections[iCol].Offset = _rgColHighLow[0].Offset;
+                    _rgSelections[iCol].Length = _rgColHighLow[1].Offset -
+                                                 _rgColHighLow[0].Offset;
+                } else {
+                    int iLo = _rgColHighLow[0].Column;
+                    int iHi = _rgColHighLow[1].Column;
+
+                    _rgSelections[iLo].Offset = _rgColHighLow[0].Offset;
+                    _rgSelections[iLo].Length = oRow[iLo].ElementCount - 
+                                                _rgSelections[iLo].Offset;
+
+                    for( int i=iLo+1; i<iHi; ++i ) {
+                        _rgSelections[i].Offset = 0;
+                        _rgSelections[i].Length = oRow[i].ElementCount;
+                    }
+
+                    _rgSelections[iHi].Offset = 0;
+                    _rgSelections[iHi].Length = _rgColHighLow[1].Offset;
+                }
+            }
+
+            public bool IsSelection( Row oRow ) {
+                try {
+                    bool fEqualRow = Caret.Row.At == Pin.Row.At;
+                    
+                    if( Caret.Row.At > Pin.Row.At ) {
+                        _rgRowHighLow[0] = Pin;
+                        _rgRowHighLow[1] = Caret;
+                    } else {
+                        _rgRowHighLow[1] = Pin;
+                        _rgRowHighLow[0] = Caret;
+                    }
+                    if( Caret.Column > Pin.Column ) {
+                        _rgColHighLow[0] = Pin;
+                        _rgColHighLow[1] = Caret;
+                    } else {
+                        _rgColHighLow[1] = Pin;
+                        _rgColHighLow[0] = Caret;
+                    }
+
+                    if( oRow.At < _rgRowHighLow[0].Row.At )
+                        return false;
+                    if( oRow.At > _rgRowHighLow[1].Row.At )
+                        return false;
+
+                    if( fEqualRow ) {
+                        EquRow( oRow );
+                        return true;
+                    }
+
+                    if( oRow.At == _rgRowHighLow[0].Row.At ) {
+                        TopRow( oRow );
+                        return true;
+                    }
+                    if( oRow.At == _rgRowHighLow[1].Row.At ) {
+                        BotRow( oRow );
+                        return true;
+                    }
+                    
+                    // Middle... select everything.
+                    for( int iCol=0; iCol<oRow.Count; ++iCol ) {
+                        _rgSelections[iCol].Offset = 0;
+                        _rgSelections[iCol].Length = oRow[iCol].ElementCount;
+                    }
+                    return true;
+                } catch ( Exception oEx ) {
+                    Type[] rgErrors = { typeof( NullReferenceException ),
+                                        typeof( ArgumentOutOfRangeException ) };
+                    if( rgErrors.IsUnhandled( oEx ) )
+                        throw;
+                }
+                return false;
             }
         }
 
@@ -278,6 +422,12 @@ namespace Play.Edit {
                 iOffset = oHost._iCaretOff;
             }
 
+            public CaretInfo( IPgCaretInfo<Row> oSource ) {
+                Row    = oSource.Row ?? throw new ArgumentNullException();
+                Column = oSource.Column;
+                Offset = oSource.Offset;
+            }
+
             public Row Row    { get; }
 
             public int Column { get; }
@@ -417,7 +567,7 @@ namespace Play.Edit {
 
             // If we're reusing a cache, it's already measured!! ^_^
             if( oNewCache == null ) {
-                oNewCache = CreateCacheRow( _oSiteList[ oNextDRow.At ] );
+                oNewCache = CreateCacheRow( oNextDRow ); // _oSiteList[ oNextDRow.At ]
                 fRemeasure = true;
             }
             if( fRemeasure ) 
