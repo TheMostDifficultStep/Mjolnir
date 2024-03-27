@@ -134,7 +134,7 @@ namespace Play.Forms {
             Cache.Render( skCanvas, skPaint, new PointF( pntUL.X, pntUL.Y ) );
         }
 
-        /// <seealso cref="FTCacheLine.Update"/>
+        /// <seealso cref="FTCacheLine.Measure"/>
         /// <seealso cref="FTCacheLine.UnwrappedWidth"/>
         public override uint TrackDesired(TRACK eParentAxis, int uiRail) {
             // Looks like unwrapped width of each character is not being summated for the cache
@@ -485,7 +485,7 @@ namespace Play.Forms {
                     {
                         // IPgFontRender oStdRender = StdUI.FontRendererAt( StdFont );
                         foreach( LayoutSingleLine oLayout in CacheList ) {
-                            oLayout.Cache.Update( GetFont( oLayout.FontID ) );
+                            oLayout.Cache.Measure( GetFont( oLayout.FontID ) );
                             oLayout.OnChangeFormatting();
                             oLayout.Cache.OnChangeSize( oLayout.Width );
                         }
@@ -1139,7 +1139,7 @@ namespace Play.Forms {
             _uiStdText = StdUI.FontCache( StdUI.FaceCache( @"C:\windows\fonts\consola.ttf" ), 12, new SKPoint( 96, 96 ) );
 
 			Cache = new FTCacheLine( new TextLine( 0, "hello" ) );
-			Cache.Update( StdUI.FontRendererAt( _uiStdText ) );
+			Cache.Measure( StdUI.FontRendererAt( _uiStdText ) );
 			Cache.OnChangeSize( 300 );
 		}
 

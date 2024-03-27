@@ -247,7 +247,7 @@ namespace Play.Edit {
         int   LastOffset { get; }
 
         bool  IsInvalid { get; set; }
-        void  Update( IPgFontRender oRender );
+        void  Measure( IPgFontRender oRender );
         void  OnChangeFormatting( ICollection<ILineSelection> rgSelections );
         void  OnChangeSize( int iWidth );
 
@@ -477,7 +477,7 @@ namespace Play.Edit {
         /// </summary>
         /// <remarks>Do NOT set the cluster AdvanceLeft, that will be set in WrapSegments() </remarks>
         /// <seealso cref="FTCacheWrap.WrapSegments"/>
-        public virtual void Update( IPgFontRender oFR ) {
+        public virtual void Measure( IPgFontRender oFR ) {
             if( oFR == null )
                 throw new ArgumentNullException();
 
@@ -547,7 +547,7 @@ namespace Play.Edit {
         /// enumerating the clusters we get it unlike when we use the
         /// parser.</remarks>
         /// <param name="iDisplayWidth"></param>
-        /// <seealso cref="Update"/>
+        /// <seealso cref="Measure"/>
         /// <seealso cref="OnChangeSize"/>
         /// <seealso cref="FTCacheWrap.WrapSegmentNoWords(int)"/>
         protected virtual void WrapSegments( int iDisplayWidth ) {

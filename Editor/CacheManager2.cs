@@ -337,7 +337,7 @@ namespace Play.Edit {
                 for( int i=0; i<oRow.CacheList.Count && i<_rgCacheMap.Count; ++i ) {
                     IPgCacheMeasures oElem = oRow.CacheList[i];
 
-				    oElem.Update            ( Font );
+				    oElem.Measure            ( Font );
                     oElem.OnChangeFormatting( _oSite.Selections );
                     oElem.OnChangeSize      ( _rgCacheMap[i].Width  );
                 }

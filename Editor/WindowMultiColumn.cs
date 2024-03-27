@@ -123,7 +123,7 @@ namespace Play.Edit {
             UnwrappedWidth = iWidth;
         }
 
-        public void Update(IPgFontRender oRender) {
+        public void Measure(IPgFontRender oRender) {
         }
 
         /// <summary>

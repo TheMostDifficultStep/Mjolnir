@@ -254,7 +254,7 @@ namespace Play.Forms {
                 case BUFFEREVENTS.SINGLELINE:
                 case BUFFEREVENTS.MULTILINE:
                     foreach( LayoutSingleLine oCache in _rgTextCache ) {
-                        oCache.Cache.Update( _oStdUI.FontRendererAt( _uStdFont ) );
+                        oCache.Cache.Measure( _oStdUI.FontRendererAt( _uStdFont ) );
                         oCache.OnChangeFormatting();
                         oCache.Cache.OnChangeSize( oCache.Width );
                     }

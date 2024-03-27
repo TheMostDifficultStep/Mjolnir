@@ -134,10 +134,10 @@ namespace Play.Forms {
                 _oGuest = oGuest ?? throw new ArgumentNullException( "Guest line must not be null" );
             }
 
-            public override void Update(IPgFontRender oFR ) {
+            public override void Measure(IPgFontRender oFR ) {
                 Line.TryReplace( 0, Line.ElementCount, _oGuest.At.ToString() );
 
-                base.Update(oFR);
+                base.Measure(oFR);
             }
 
             public override bool IsInvalid { get => _oGuest.At != Line.At; }
