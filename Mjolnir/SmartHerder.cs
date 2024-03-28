@@ -200,64 +200,68 @@ namespace Mjolnir {
                 || _fHideTitle || _oHost.DecorFont == null )
                 return; // Nothing to do.
 
-            // Need this to clip the bitmap.
-            SmartRect oRect = new SmartRect( this );
-            oRect.SetScalar( SET.RIGID, SCALAR.LEFT, 0 );
-            oRect.SetScalar( SET.RIGID, SCALAR.TOP, 0 );
-            Region oRgn     = new Region( oRect.Rect );
-            Color  oBgColor = _oHost.BackColor; // Color.LightGray;
+            try {
+                // Need this to clip the bitmap.
+                SmartRect oRect = new SmartRect( this );
+                oRect.SetScalar( SET.RIGID, SCALAR.LEFT, 0 );
+                oRect.SetScalar( SET.RIGID, SCALAR.TOP, 0 );
+                Region oRgn     = new Region( oRect.Rect );
+                Color  oBgColor = _oHost.BackColor; // Color.LightGray;
 
-            using( oRgn ) {
-                SKPointI oPointImage = this.GetPoint(LOCUS.UPPERLEFT);
-                Region   oOldRgn     = p_oGraphics.Clip;
+                using( oRgn ) {
+                    SKPointI oPointImage = this.GetPoint(LOCUS.UPPERLEFT);
+                    Region   oOldRgn     = p_oGraphics.Clip;
 
-                p_oGraphics.TranslateTransform( oPointImage.X, oPointImage.Y );
-                p_oGraphics.Clip = oRgn;
+                    p_oGraphics.TranslateTransform( oPointImage.X, oPointImage.Y );
+                    p_oGraphics.Clip = oRgn;
 
-                if( _eViewState == SHOWSTATE.Focused ) {
-                    oBgColor = _oHost.ToolsBrushActive.Color;
-                    p_oGraphics.FillRectangle( _oHost.ToolsBrushActive,
-                                               0,
-                                               0, 
-                                               this.GetScalar(SCALAR.WIDTH) + 1,
-                                               this.GetScalar(SCALAR.HEIGHT) + 1);
-                } else {
-                    p_oGraphics.FillRectangle( Brushes.LightGray,
-                                               0,
-                                               0, 
-                                               this.GetScalar(SCALAR.WIDTH) + 1,
-                                               this.GetScalar(SCALAR.HEIGHT) + 1);
+                    if( _eViewState == SHOWSTATE.Focused ) {
+                        oBgColor = _oHost.ToolsBrushActive.Color;
+                        p_oGraphics.FillRectangle( _oHost.ToolsBrushActive,
+                                                   0,
+                                                   0, 
+                                                   this.GetScalar(SCALAR.WIDTH) + 1,
+                                                   this.GetScalar(SCALAR.HEIGHT) + 1);
+                    } else {
+                        p_oGraphics.FillRectangle( Brushes.LightGray,
+                                                   0,
+                                                   0, 
+                                                   this.GetScalar(SCALAR.WIDTH) + 1,
+                                                   this.GetScalar(SCALAR.HEIGHT) + 1);
+                    }
+
+                    p_oGraphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+
+                    int iBoxWidth = _rcTitle[SCALAR.WIDTH] < _rcTitle[SCALAR.HEIGHT] ? _rcTitle[SCALAR.WIDTH] : _rcTitle[SCALAR.HEIGHT];
+                    if( _bmpIcon != null ) {
+                        float left = ( iBoxWidth - _bmpIcon.Width ) / 2;
+                        p_oGraphics.DrawImage(_bmpIcon, left, left ); // box width and height are the same.
+                    }
+
+                    int   iFontHeight = _oHost.DecorFont.Height;
+                    Point pntTemp     = new Point( iBoxWidth, iBoxWidth );
+                    switch( Orientation ) {
+                        case SideIdentify.Left:
+                        case SideIdentify.Right: 
+                            pntTemp.Y = pntTemp.Y / 2 - iFontHeight / 2;
+                            break;
+                        case SideIdentify.Bottom: 
+                        default:
+                            p_oGraphics.RotateTransform( 90 );
+                            pntTemp = new Point( pntTemp.X, - ( iFontHeight + (int)( (float)( iBoxWidth - iFontHeight ) / 2 ) ) );
+                            break;
+
+                    }
+
+                    p_oGraphics.DrawString( _strTitle, _oHost.DecorFont, Brushes.Black, pntTemp );
+                    p_oGraphics.ResetTransform();
+
+                    p_oGraphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.Default;
+
+                    p_oGraphics.Clip = oOldRgn;
                 }
-
-                p_oGraphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
-
-                int iBoxWidth = _rcTitle[SCALAR.WIDTH] < _rcTitle[SCALAR.HEIGHT] ? _rcTitle[SCALAR.WIDTH] : _rcTitle[SCALAR.HEIGHT];
-                if( _bmpIcon != null ) {
-                    float left = ( iBoxWidth - _bmpIcon.Width ) / 2;
-                    p_oGraphics.DrawImage(_bmpIcon, left, left ); // box width and height are the same.
-                }
-
-                int   iFontHeight = _oHost.DecorFont.Height;
-                Point pntTemp     = new Point( iBoxWidth, iBoxWidth );
-                switch( Orientation ) {
-                    case SideIdentify.Left:
-                    case SideIdentify.Right: 
-                        pntTemp.Y = pntTemp.Y / 2 - iFontHeight / 2;
-                        break;
-                    case SideIdentify.Bottom: 
-                    default:
-                        p_oGraphics.RotateTransform( 90 );
-                        pntTemp = new Point( pntTemp.X, - ( iFontHeight + (int)( (float)( iBoxWidth - iFontHeight ) / 2 ) ) );
-                        break;
-
-                }
-
-                p_oGraphics.DrawString( _strTitle, _oHost.DecorFont, Brushes.Black, pntTemp );
-                p_oGraphics.ResetTransform();
-
-                p_oGraphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.Default;
-
-                p_oGraphics.Clip = oOldRgn;
+            } catch( OverflowException ) {
+                // Probably rectangle inside out...
             }
         }
 
