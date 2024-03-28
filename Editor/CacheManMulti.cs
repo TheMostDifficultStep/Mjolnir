@@ -110,6 +110,9 @@ namespace Play.Edit {
             /// </summary>
             /// <param name="oCaret">First point to begin selection from.</param>
             public void SetPin( IPgCaretInfo<Row> oCaret ) {
+                if( oCaret.Row == null )
+                    return;
+
                 Caret    = oCaret;
                 Pin      = new CaretInfo( oCaret );
                 _fFrozen = false;
