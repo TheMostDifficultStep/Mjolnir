@@ -115,6 +115,10 @@ namespace Play.Edit {
                 _fFrozen = false;
             }
 
+            /// <summary>
+            /// Capture the current selection and stop updating it 
+            /// even if caret moves. 
+            /// </summary>
             public void Freeze() {
                 Caret    = new CaretInfo( Caret );
                 _fFrozen = true;
