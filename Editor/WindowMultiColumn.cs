@@ -281,6 +281,13 @@ namespace Play.Edit {
                     User32.SetCaretPos( pntCaret.X, pntCaret.Y );
             }
 
+            public uint FontCache( uint uiHeight ) {
+                return _oHost._oStdUI.FontCache( _oHost.StdFace, uiHeight, _oHost.GetDPI() );
+            }
+            public IPgFontRender FontUse( uint uiFont ) {
+                return _oHost._oStdUI.FontRendererAt( uiFont );
+            }
+
         }
 
         protected class DocSlot :
@@ -332,10 +339,8 @@ namespace Play.Edit {
         }
 
         protected virtual CacheMultiColumn CreateCacheMan() {
-            uint uiStdText  = _oStdUI.FontCache( _oStdUI.FaceCache( @"C:\windows\fonts\consola.ttf" ), 12, GetDPI() );
-            return new CacheMultiColumn( new CacheManSite( this ), 
-                                         _oStdUI.FontRendererAt( uiStdText ),
-                                         _rgColumns ); 
+            //uint uiStdText  = _oStdUI.FontCache( StdFace, 12, GetDPI() );
+            return new CacheMultiColumn( new CacheManSite( this ), _rgColumns ); 
         }
 
         public virtual bool IsDirty => true;

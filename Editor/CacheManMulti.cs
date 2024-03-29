@@ -27,6 +27,9 @@ namespace Play.Edit {
         int   TabCount { get; }
         Row   TabStop( int iIndex );
 
+        uint          FontCache( uint uiHeight );
+        IPgFontRender FontUse  ( uint uiFont );
+
         float GetScrollProgress { get; }
         void  OnRefreshComplete( float flProgress, float flVisiblePercent );
         void  OnCaretPositioned( SKPointI pntCaretbool, bool fVisible );
@@ -123,7 +126,7 @@ namespace Play.Edit {
             /// even if caret moves. 
             /// </summary>
             public void Freeze() {
-                if( Caret.Row == null )
+                if( Caret == null )
                     return;
 
                 Caret    = new CaretInfo( Caret );
@@ -344,20 +347,20 @@ namespace Play.Edit {
         /// <remarks>Need to sort out the LineHeight accessor since the cache elements might be
         /// variable height, Need to make sure I'm using this correctly. Consider calling it
         /// "LineScroll"</remarks>
-        public CacheMultiColumn( ICacheManSite oSite, IPgFontRender oFont, List<SmartRect> rgColumns ) :
+        public CacheMultiColumn( ICacheManSite oSite, List<SmartRect> rgColumns ) :
 			base() 
 		{
-			Font           = oFont     ?? throw new ArgumentNullException( "Need a font to get things rolling." );
 			_oSite         = oSite     ?? throw new ArgumentNullException( "Cache manager is a sited object.");
             _oSiteList     = (IReadableBag<Row>)oSite;
             _rgColumnRects = rgColumns ?? throw new ArgumentNullException( "Columns list from Edit Window is null!" );
             _oSelection    = new SelectionManager( 20 ); // Argh, rgColumns.Count not set yet... :-/
 
+			Font       = oSite.FontUse( oSite.FontCache( 12 ) )  ?? throw new ArgumentNullException( "Need a font to get things rolling." );
             GlyphLt    = Font.GetGlyph( 0x003c ); // we used to show carriage return as a '<' sign.
             LineHeight = (int)Font.LineHeight;    // BUG: Cache elem's are variable height in general.
 
             _oCaretRow = null;
-            _iCaretCol = 0; // Make sure the column is edible :-/
+            _iCaretCol = 0; // Make sure the column is editable :-/
             _iCaretOff = 0;
             _fAdvance  = 0;
         }
@@ -971,11 +974,12 @@ namespace Play.Edit {
                 _oSelection.IsSelection( oCacheRow.Row );
 
                 for( int i=0; i<oCacheRow.CacheList.Count && i<_rgColumnRects.Count; ++i ) {
-                    IPgCacheMeasures oElem = oCacheRow.CacheList[i];
-
-				    oElem.Measure     ( Font );
-                    oElem.Colorize    ( _oSelection[i] );
-                    oElem.OnChangeSize( _rgColumnRects[i].Width );
+                    IPgCacheMeasures oMeasure = oCacheRow.CacheList[i];
+                    if( oMeasure is FTCacheLine oElem ) {
+				        oElem.Measure ( Font );
+                        oElem.Colorize( _oSelection[i] );
+                    }
+                    oMeasure.OnChangeSize( _rgColumnRects[i].Width );
                 }
 			} catch( Exception oEx ) {
                 if( IsUnhandledStdRpt( oEx ) )
@@ -1193,7 +1197,7 @@ namespace Play.Edit {
                         CacheRow oCacheRow = PointToCache( iColumn, pntPick, out int iOffset );
                         if( oCacheRow != null ) {
                             _fAdvance  = pntPick.X - rctColumn.Left;
-                            _oCaretRow = _oSiteList[ oCacheRow.At ];
+                            _oCaretRow = oCacheRow.Row;
                             _iCaretCol = iColumn;
                             _iCaretOff = iOffset;
 
