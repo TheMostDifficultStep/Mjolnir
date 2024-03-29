@@ -57,6 +57,11 @@ namespace Kanji_Practice {
                 _rgRows.Add( new PropertyRow( strProp ) );
             }
 
+            // BUG/TODO : You've got to do this else the properties don't have
+            // their ".At" value set. It's not automatically done since our
+            // base initializer would have already been called!! Must fix somehow...
+            RenumberAndSumate();
+
             return true;
         }
     }

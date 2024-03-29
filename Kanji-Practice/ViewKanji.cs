@@ -191,7 +191,7 @@ namespace Kanji_Practice {
         {
             KanjiDoc      = oMonitorDoc ?? throw new ArgumentNullException( "Monitor document must not be null!" );
 
-            Layout        = new LayoutStackHorizontal() { Units = LayoutRect.CSS.Flex };
+            Layout        = new LayoutStackHorizontal() { Units = LayoutRect.CSS.None };
             CenterDisplay = new ViewKanjiProps( new ViewSlot( this ), KanjiDoc ) ;
 
             CenterDisplay.Parent = this;
