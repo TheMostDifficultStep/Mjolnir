@@ -30,6 +30,7 @@ namespace Play.Forms {
             _rgFixedCache = oCacheAccess ?? throw new ArgumentNullException();
         }
 
+        public IEnumerable<CacheRow> FixedCache => _rgFixedCache;
         protected override CacheRow CreateCacheRow(Row oDocRow) {
             foreach( CacheRow oCacheRow in _rgFixedCache ) { 
                 if( oCacheRow.Row == oDocRow ) {

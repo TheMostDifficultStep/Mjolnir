@@ -123,6 +123,9 @@ namespace Play.Edit {
             /// even if caret moves. 
             /// </summary>
             public void Freeze() {
+                if( Caret.Row == null )
+                    return;
+
                 Caret    = new CaretInfo( Caret );
                 _fFrozen = true;
             }
