@@ -79,7 +79,9 @@ namespace Kanji_Practice {
         protected ImageViewSingle ViewScratch { get; }
         protected EditWindow2     ViewMeaning { get; }
 
-        public ViewKanjiProps( IPgViewSite oSite, KanjiDocument oKanjiDoc ) : base( oSite, oKanjiDoc.Properties ) {
+        public ViewKanjiProps( IPgViewSite oSite, KanjiDocument oKanjiDoc ) : 
+            base( oSite, oKanjiDoc.Properties ) 
+        {
             IPgMainWindow.PgDisplayInfo oInfo = new IPgMainWindow.PgDisplayInfo();
             if( _oSiteView.Host.TopWindow is IPgMainWindow oMainWin ) {
                 oInfo = oMainWin.MainDisplayInfo;
@@ -116,6 +118,8 @@ namespace Kanji_Practice {
 
             ViewScratch.Parent = this;
             ViewMeaning.Parent = this;
+            
+            _oScrollBarVirt.Visible = false;
 
             Line oKanjiLine = Document.ValueAsLine( (int)KanjiPropEnum.Kanji    );
             Line oHiragLine = Document.ValueAsLine( (int)KanjiPropEnum.Hiragana );
