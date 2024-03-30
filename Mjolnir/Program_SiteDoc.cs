@@ -146,7 +146,7 @@ namespace Mjolnir {
 				}
             }
 
-            protected bool CheckLocation( bool fNewLocation ) {
+            protected string CheckLocation( bool fNewLocation ) {
                 string strLastPath = _oHost.LastPath;
 
                 // If we've got a filename try that path first. 
@@ -162,15 +162,18 @@ namespace Mjolnir {
                     oDialog.InitialDirectory = strLastPath;
                     oDialog.ShowDialog();
 
-                    if( oDialog.FileName == null || oDialog.FileName.Length == 0 || !oDialog.CheckPathExists ) {
+                    if(  oDialog.FileName        == null || 
+                         oDialog.FileName.Length == 0    || 
+                        !oDialog.CheckPathExists ) 
+                    {
                         LogError( "Please supply a valid file name for your next Save request. ^_^;" );
-                        return( false );
+                        return null;
                     }
 
-                    FilePath = oDialog.FileName;
+                    return oDialog.FileName;
                 }
 
-                return( true );
+                return FilePath;
             }
 
             public bool CreateDocument() {
@@ -267,9 +270,14 @@ namespace Mjolnir {
             }
 
             /// <summary>
-            /// Full file name and path! Use for titles and such. DO NOT
-            /// USE for opening files.
+            /// Full file name and path. Use for titles and such. DO NOT
+            /// USE for opening files. Obviously, SAVE the file FIRST before
+            /// calling this property!
             /// </summary>
+            /// <remarks>We want to use the FileInfo() object for when we
+            /// are setting paths on the image viewer which never has a file
+            /// name and Path.GetFileName() will return c:\test\me "me" in
+            /// this case. FileInfo does not make that mistake...</remarks>
             /// <seealso cref="FileName"/>
             /// <seealso cref="FilePath"/>
             /// <seealso cref="FileDir"/>
@@ -419,14 +427,13 @@ namespace Mjolnir {
             }
 
             /// <summary>
-            /// TODO: I probably can move the Raise_UpdateTitles() to the base. But let's 
-            /// leave it for now.
+            /// Used to call Raise_UpdateTitles() here. But it seems I don't need
+            /// it. Looks like the Titles are getting updated.
             /// </summary>
             public override string FilePath {
                 set {
                     if( !string.IsNullOrEmpty( value ) ) {
                         base.FilePath = value;
-                        _oHost.Raise_UpdateTitles( this );
                     }
                 }
             }
@@ -470,15 +477,16 @@ namespace Mjolnir {
 					return true;
 				}
 
-                if( !CheckLocation( fAtNewLocation ) )
-                    return( false );
+                string strPath = CheckLocation( fAtNewLocation );
+                if( strPath == null )
+                    return false;
 
                 bool fSaved = false;
 
                 try {
                     // Note: By default StreamWriter closes a stream when provided. Newer versions of .net provide leaveOpen flag.
                     //       Let's just use streamwriter with filename direcly since we're not dealing with binary objects yet. 
-                    using( StreamWriter oWriter = new StreamWriter( FilePath, false, _oEncoding ) ) {
+                    using( StreamWriter oWriter = new StreamWriter( strPath, false, _oEncoding ) ) {
                         fSaved = _oGuestSave.Save( oWriter );
 						oWriter.Flush();
                     }
@@ -489,7 +497,8 @@ namespace Mjolnir {
                     ExplainFileException( oEx );
                 }
 
-                _oHost.Raise_UpdateTitles( this );
+                FilePath = strPath;
+                //_oHost.Raise_UpdateTitles( this );
 
                 return( fSaved );
             }
@@ -717,13 +726,15 @@ namespace Mjolnir {
 				//	return true;
 				//}
 
-                if( !CheckLocation( fAtNewLocation ) )
+                string strPath = CheckLocation( fAtNewLocation );
+
+                if( strPath == null )
                     return false;
 
                 bool fSaved = false;
 
                 try {
-                    FileInfo   oFile       = new FileInfo(FilePath);
+                    FileInfo   oFile       = new FileInfo(strPath);
                     FileStream oByteStream = oFile.OpenWrite(); 
 
                     oByteStream.SetLength( 0 ); // the best way? :-/
@@ -739,18 +750,11 @@ namespace Mjolnir {
                     ExplainFileException( oEx );
                 }
 
-                _oHost.Raise_UpdateTitles( this );
+                FilePath = strPath;
+                //_oHost.Raise_UpdateTitles( this );
 
                 return fSaved;
             }
-            //public override string FileName {
-            //    set {
-            //        if( !string.IsNullOrEmpty( value ) ) {
-            //            _strFileName = value;
-            //            _oHost.Raise_UpdateTitles( this );
-            //        }
-            //    }
-            //}
         }
 
         /// <summary>

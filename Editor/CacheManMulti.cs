@@ -664,6 +664,10 @@ namespace Play.Edit {
         /// <summary>
         /// Try locate the top most cache line still in the visible and valid.
         /// </summary>
+        /// <remarks>Requiring the row.At to be > 0 at present is the only way
+        /// to detect deleted lines not yet flushed. But if the property page
+        /// forgets to initialize the line number we end up failing here.
+        /// </remarks>
         protected CacheRow CacheLocateTop() {
             CacheRow oSeedCache = null;
             if( _rgOldCache.Count > 0 ) {
