@@ -2744,14 +2744,14 @@ namespace Play.Edit {
                 _oGuest       = oGuest       ?? throw new ArgumentNullException();
             }
 
-            public override void Update(IPgFontRender oFR ) {
+            public override void Measure(IPgFontRender oFR ) {
                 Line.Empty();
 
                 if( _oCheckedLine() == _oGuest ) {
                     Line.TryReplace( 0, Line.ElementCount, _strCheckMark );
                 }
 
-                base.Update(oFR);
+                base.Measure(oFR);
             }
 
             public override bool IsInvalid { 

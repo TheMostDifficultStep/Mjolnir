@@ -247,8 +247,10 @@ namespace Play.Edit {
         int   LastOffset { get; }
 
         bool  IsInvalid { get; set; }
-        void  Update( IPgFontRender oRender );
-        void  OnChangeFormatting( ICollection<ILineSelection> rgSelections );
+        void  Measure( IPgFontRender oRender );
+        void  Colorize( ICollection<ILineSelection> rgSelections );
+        void  Colorize( IColorRange oColorRange );
+
         void  OnChangeSize( int iWidth );
 
         int   GlyphPointToOffset( int iRowTop, SKPointI pntWorld );
@@ -477,7 +479,7 @@ namespace Play.Edit {
         /// </summary>
         /// <remarks>Do NOT set the cluster AdvanceLeft, that will be set in WrapSegments() </remarks>
         /// <seealso cref="FTCacheWrap.WrapSegments"/>
-        public virtual void Update( IPgFontRender oFR ) {
+        public virtual void Measure( IPgFontRender oFR ) {
             if( oFR == null )
                 throw new ArgumentNullException();
 
@@ -547,7 +549,7 @@ namespace Play.Edit {
         /// enumerating the clusters we get it unlike when we use the
         /// parser.</remarks>
         /// <param name="iDisplayWidth"></param>
-        /// <seealso cref="Update"/>
+        /// <seealso cref="Measure"/>
         /// <seealso cref="OnChangeSize"/>
         /// <seealso cref="FTCacheWrap.WrapSegmentNoWords(int)"/>
         protected virtual void WrapSegments( int iDisplayWidth ) {
@@ -575,7 +577,7 @@ namespace Play.Edit {
         /// <summary>
         /// Apply the line formatting and selection color to the clusters.
         /// </summary>
-        public virtual void OnChangeFormatting( ICollection<ILineSelection> rgSelections ) {
+        public virtual void Colorize( ICollection<ILineSelection> rgSelections ) {
             ClusterColorClear();
 
             // Only grab the color ranges, States can have a color set but then the
@@ -596,6 +598,21 @@ namespace Play.Edit {
             }
         } // end method
 
+        public virtual void Colorize( IColorRange oRangeSlxn ) {
+            ClusterColorClear();
+
+            // Only grab the color ranges, States can have a color set but then the
+            // subsequent terminals are all black and we blast our color set.
+			foreach( IColorRange oColor in Line.Formatting ) {
+                if( oColor.ColorIndex > 0 ) {
+                    ClusterColorSet = oColor;
+                }
+			}
+
+            // Selection overrides what ever colors we had set.
+            ClusterColorSet = oRangeSlxn;
+        } // end method
+
         /// <summary>
         /// Set the color of the cluster of glyphs. Note: each glyph might be a different
         /// color for something like a emoji! But we don't support more than one glyph
@@ -606,6 +623,8 @@ namespace Play.Edit {
         protected IColorRange ClusterColorSet {
             set {
                 try {
+                    if( value == null )
+                        return;
                     for( int i = value.Offset; 
                          i < value.Offset + value.Length && i < _rgClusterMap.Count; 
                         ++i ) 
@@ -1123,7 +1142,7 @@ namespace Play.Edit {
 		/// Words and Formatting are more primative (parse data only) and never contain selection.
 		/// We correct this problem in OnChangeFormatting().
 		/// </remarks>
-		/// <seealso cref="OnChangeFormatting"/>
+		/// <seealso cref="Colorize"/>
         /*
 		protected IEnumerator<IColorRange> GetEnumerator() {
 			if( Line.Formatting.Count > 0 ) {

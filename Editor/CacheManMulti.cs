@@ -8,6 +8,9 @@ using SkiaSharp;
 using Play.Interfaces.Embedding;
 using Play.Parse;
 using Play.Rectangles;
+using System.Windows.Forms;
+using System.Linq;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.TextBox;
 
 namespace Play.Edit {
     public interface IPgCaretInfo<T> :
@@ -23,6 +26,9 @@ namespace Play.Edit {
         Row   TabOrder( Row oRow, int iDir );
         int   TabCount { get; }
         Row   TabStop( int iIndex );
+
+        uint          FontCache( uint uiHeight );
+        IPgFontRender FontUse  ( uint uiFont );
 
         float GetScrollProgress { get; }
         void  OnRefreshComplete( float flProgress, float flVisiblePercent );
@@ -40,8 +46,9 @@ namespace Play.Edit {
         protected readonly List<CacheRow>  _rgOldCache = new List<CacheRow>();
         protected readonly List<CacheRow>  _rgNewCache = new List<CacheRow>(); 
 
-        protected readonly List<SmartRect> _rgColumnRects;
-        protected readonly TextLine        _oDummyLine = new TextLine( -2, string.Empty );
+        protected readonly List<SmartRect>  _rgColumnRects;
+        protected readonly TextLine         _oDummyLine = new TextLine( -2, string.Empty );
+        protected          SelectionManager _oSelection ;
 
         protected IPgFontRender Font       { get; }
         protected IPgGlyph      GlyphLt    { get; } // Our end of line character.
@@ -54,7 +61,8 @@ namespace Play.Edit {
         protected int   _iCaretOff;
         protected float _fAdvance;
 
-        /// <seealso cref="CaretInfo" /*
+        /// <seealso cref="CaretInfo" />
+        /// <seealso cref="SelectionManager" />
         protected class CaretTracker :
             IPgCaretInfo<Row>
         {
@@ -75,6 +83,208 @@ namespace Play.Edit {
                 set => throw new NotImplementedException(); 
             }
         }
+
+        public class SelectionManager {
+            public IPgCaretInfo<Row> Caret { get; protected set; }
+            public CaretInfo         Pin   { get; protected set; }
+
+            readonly IPgCaretInfo<Row>[] _rgRowHighLow = new IPgCaretInfo<Row>[2];
+            readonly IPgCaretInfo<Row>[] _rgColHighLow = new IPgCaretInfo<Row>[2];
+            readonly IColorRange      [] _rgSelections;
+            readonly IColorRange      [] _rgCache;
+
+            bool _fFrozen = true;
+            public SelectionManager( int iMaxCols ) {
+                _rgSelections = new IColorRange[iMaxCols];
+                _rgCache      = new IColorRange[iMaxCols];
+
+                for( int i=0; i< _rgCache.Length; ++i ) {
+                    _rgCache[i] = new ColorRange( 0, 0, -1 );
+                }
+            }
+
+            public IColorRange this [ int iIndex ] {
+                get { return _rgSelections[iIndex]; }
+            }
+
+            /// <summary>
+            /// Call this at the start of the selection and
+            /// we'll track relative to the location of the caret at this time.
+            /// </summary>
+            /// <param name="oCaret">First point to begin selection from.</param>
+            public void SetPin( IPgCaretInfo<Row> oCaret ) {
+                if( oCaret.Row == null )
+                    return;
+
+                Caret    = oCaret;
+                Pin      = new CaretInfo( oCaret );
+                _fFrozen = false;
+            }
+
+            /// <summary>
+            /// Capture the current selection and stop updating it 
+            /// even if caret moves. 
+            /// </summary>
+            public void Freeze() {
+                if( Caret == null )
+                    return;
+
+                Caret    = new CaretInfo( Caret );
+                _fFrozen = true;
+            }
+
+            public bool IsFrozen => _fFrozen;
+
+            public void Clear() { 
+                Caret = null;
+                for( int i=0; i< _rgCache.Length; ++i ) {
+                    _rgSelections[i] = null;
+                }
+                _fFrozen = true;
+            }
+
+            protected void Set( int iCol, int iOffset, int iLength ) {
+                _rgSelections[iCol] = _rgCache[iCol];
+
+                _rgSelections[iCol].Offset = iOffset;
+                _rgSelections[iCol].Length = iLength;
+            }
+
+            /// <summary>
+            /// This is the case where top & bottom row's are different.
+            /// So we have no selection until the column and then
+            /// full selection from that column on.
+            /// ______|___+++|++++++
+            /// </summary>
+            protected void TopRow( Row oRow ) {
+                int i=_rgRowHighLow[0].Column;
+
+                // First selection, from offset to end of Low.
+                Set( i, _rgRowHighLow[0].Offset, 
+                        oRow[i].ElementCount - _rgRowHighLow[0].Offset );
+                
+                // Remaining selections. Select all.
+                while( ++i < oRow.Count ) {
+                    Set( i, 0, oRow[i].ElementCount );
+                }
+            }
+
+            /// <summary>
+            /// This is the case where top & bottom row's are different.
+            /// So we have selections until the column and then
+            /// no selection from that column on.
+            /// ++++++|+++___|______
+            /// </summary>
+            protected void BotRow( Row oRow ) {
+                // Full selection on the left.
+                int i = 0;
+                while( i < _rgRowHighLow[1].Column && i < oRow.Count ) {
+                    Set( i, 0, oRow[i].ElementCount );
+                    ++i;
+                }
+                // selection, from 0 to offset of high.
+                if( i < oRow.Count ) {
+                    Set( i, 0, _rgRowHighLow[1].Offset );
+                }
+                // no remaining selections.
+            }
+
+            /// <summary>
+            /// This is the case where top & bottom row's are same.
+            /// So we have selections until the column and then
+            /// no selection from that column on.
+            ///             Column : 0      1      2
+            /// fEqualCol is true  : ______|_++++_|______
+            /// fEqualCol is false : ___+++|++++++|+_____
+            /// </summary>
+            protected void EquRow( Row oRow ) {
+                if( Caret.Column > Pin.Column ) {
+                    _rgColHighLow[0] = Pin;
+                    _rgColHighLow[1] = Caret;
+                } else {
+                    if( Caret.Column == Pin.Column &&
+                        Caret.Offset >  Pin.Offset ) 
+                    {
+                        _rgColHighLow[0] = Pin;
+                        _rgColHighLow[1] = Caret;
+                    } else {
+                        _rgColHighLow[0] = Caret;
+                        _rgColHighLow[1] = Pin;
+                    }
+                }
+
+                bool fEqualCol = Caret.Column == Pin.Column;
+
+                if( fEqualCol ) {
+                    int iCol = Caret.Column;
+
+                    Set( iCol, _rgColHighLow[0].Offset, 
+                               _rgColHighLow[1].Offset -
+                               _rgColHighLow[0].Offset );
+                } else {
+                    int iLo = _rgColHighLow[0].Column;
+                    int iHi = _rgColHighLow[1].Column;
+
+                    Set( iLo, _rgColHighLow[0].Offset, 
+                              oRow[iLo].ElementCount - 
+                              _rgColHighLow[0].Offset );
+
+                    for( int i=iLo+1; i<iHi; ++i ) {
+                        Set( i, 0, oRow[i].ElementCount );
+                    }
+
+                    Set( iHi, 0, _rgColHighLow[1].Offset );
+                }
+            }
+
+            public bool IsSelection( Row oRow ) {
+                try {
+                    for( int i=0; i< _rgCache.Length; ++i ) {
+                        _rgSelections[i] = null;
+                    }
+                    if( Caret == null )
+                        return false;
+
+                    if( Caret.Row.At > Pin.Row.At ) {
+                        _rgRowHighLow[0] = Pin;
+                        _rgRowHighLow[1] = Caret;
+                    } else {
+                        _rgRowHighLow[0] = Caret;
+                        _rgRowHighLow[1] = Pin;
+                    }
+                    if( oRow.At < _rgRowHighLow[0].Row.At )
+                        return false;
+                    if( oRow.At > _rgRowHighLow[1].Row.At )
+                        return false;
+
+                    if( Caret.Row.At == Pin.Row.At ) {
+                        EquRow( oRow );
+                        return true;
+                    }
+
+                    if( oRow.At == _rgRowHighLow[0].Row.At ) {
+                        TopRow( oRow );
+                        return true;
+                    }
+                    if( oRow.At == _rgRowHighLow[1].Row.At ) {
+                        BotRow( oRow );
+                        return true;
+                    }
+                    
+                    // Middle... select everything.
+                    for( int iCol=0; iCol<oRow.Count; ++iCol ) {
+                        Set( iCol, 0, oRow[iCol].ElementCount );
+                    }
+                    return true;
+                } catch ( Exception oEx ) {
+                    Type[] rgErrors = { typeof( NullReferenceException ),
+                                        typeof( ArgumentOutOfRangeException ) };
+                    if( rgErrors.IsUnhandled( oEx ) )
+                        throw;
+                }
+                return false;
+            }
+        } // End class
 
         /// <summary>
         /// This is where you put the caret (and in the future, selections)
@@ -109,15 +319,21 @@ namespace Play.Edit {
             /// <param name="oRow">Null if the whole buffer should
             /// be measured.</param>
             public void OnUpdated( EditType eType, Row oRow ) {
-                if( eType == EditType.DeleteRow ) {
-                    if( _oHost._oCaretRow == oRow ) {
-                        if( _oHost._oSiteList[ _oHost.CaretAt ] is Row oNext ) {
-                            _oHost._oCaretRow = oNext;
+                try {
+                    if( eType == EditType.DeleteRow ) {
+                        if( _oHost._oCaretRow == oRow ) {
+                            if( _oHost._oSiteList[ _oHost.CaretAt ] is Row oNext ) {
+                                _oHost._oCaretRow = oNext;
+                            }
                         }
+                        _oHost.CacheRepair( null, _fCaretVisible, false );
+                    } else {
+                        _oHost.CacheRepair( oRow, _fCaretVisible, oRow == null );
                     }
-                    _oHost.CacheRepair( null, _fCaretVisible, false );
-                } else {
-                    _oHost.CacheRepair( oRow, _fCaretVisible, oRow == null );
+                } catch( Exception oEx ) {
+                    if( _rgStdErrors.IsUnhandled( oEx ) )
+                        throw;
+                    _oHost.LogError( "Edit update issue" );
                 }
             }
 
@@ -131,19 +347,20 @@ namespace Play.Edit {
         /// <remarks>Need to sort out the LineHeight accessor since the cache elements might be
         /// variable height, Need to make sure I'm using this correctly. Consider calling it
         /// "LineScroll"</remarks>
-        public CacheMultiColumn( ICacheManSite oSite, IPgFontRender oFont, List<SmartRect> rgColumns ) :
+        public CacheMultiColumn( ICacheManSite oSite, List<SmartRect> rgColumns ) :
 			base() 
 		{
-			Font           = oFont     ?? throw new ArgumentNullException( "Need a font to get things rolling." );
 			_oSite         = oSite     ?? throw new ArgumentNullException( "Cache manager is a sited object.");
             _oSiteList     = (IReadableBag<Row>)oSite;
             _rgColumnRects = rgColumns ?? throw new ArgumentNullException( "Columns list from Edit Window is null!" );
+            _oSelection    = new SelectionManager( 20 ); // Argh, rgColumns.Count not set yet... :-/
 
+			Font       = oSite.FontUse( oSite.FontCache( 12 ) )  ?? throw new ArgumentNullException( "Need a font to get things rolling." );
             GlyphLt    = Font.GetGlyph( 0x003c ); // we used to show carriage return as a '<' sign.
             LineHeight = (int)Font.LineHeight;    // BUG: Cache elem's are variable height in general.
 
             _oCaretRow = null;
-            _iCaretCol = 0; // Make sure the column is edible :-/
+            _iCaretCol = 0; // Make sure the column is editable :-/
             _iCaretOff = 0;
             _fAdvance  = 0;
         }
@@ -265,19 +482,24 @@ namespace Play.Edit {
         public struct CaretInfo :
             IPgCaretInfo<Row> 
         {
-            int iOffset = 0;
             public CaretInfo( CacheMultiColumn oHost ) {
-                Row     = oHost._oCaretRow ?? throw new ArgumentNullException();
-                Column  = oHost._iCaretCol;
-                iOffset = oHost._iCaretOff;
+                Row    = oHost._oCaretRow ?? throw new ArgumentNullException();
+                Column = oHost._iCaretCol;
+                Offset = oHost._iCaretOff;
+            }
+
+            public CaretInfo( IPgCaretInfo<Row> oSource ) {
+                Row    = oSource.Row ?? throw new ArgumentNullException();
+                Column = oSource.Column;
+                Offset = oSource.Offset;
             }
 
             public Row Row    { get; }
 
             public int Column { get; }
 
-            public int Offset { get => iOffset; set => throw new NotImplementedException(); }
-            public int Length { get => 0; set => throw new NotImplementedException(); }
+            public int Offset { get ; set ; }
+            public int Length { readonly get => 0; set => throw new NotImplementedException(); }
         }
 
         public CaretInfo? CopyCaret() {
@@ -411,7 +633,7 @@ namespace Play.Edit {
 
             // If we're reusing a cache, it's already measured!! ^_^
             if( oNewCache == null ) {
-                oNewCache = CreateCacheRow( _oSiteList[ oNextDRow.At ] );
+                oNewCache = CreateCacheRow( oNextDRow ); // _oSiteList[ oNextDRow.At ]
                 fRemeasure = true;
             }
             if( fRemeasure ) 
@@ -442,6 +664,10 @@ namespace Play.Edit {
         /// <summary>
         /// Try locate the top most cache line still in the visible and valid.
         /// </summary>
+        /// <remarks>Requiring the row.At to be > 0 at present is the only way
+        /// to detect deleted lines not yet flushed. But if the property page
+        /// forgets to initialize the line number we end up failing here.
+        /// </remarks>
         protected CacheRow CacheLocateTop() {
             CacheRow oSeedCache = null;
             if( _rgOldCache.Count > 0 ) {
@@ -744,21 +970,41 @@ namespace Play.Edit {
             }
         }
 
-        /// <summary>
-        /// For now the main text area is our primary editing zone. The rest won't
-        /// be editable for now.
-        /// </summary>
         /// <remarks>Note that the CacheList length MIGHT be less than 
         /// the _rgColumnRects length!</remarks>
         /// <seealso cref="CheckList"/>
-        protected virtual void RowMeasure( CacheRow oRow ) {
+        protected virtual void RowMeasure( CacheRow oCacheRow ) {
             try {
-                for( int i=0; i<oRow.CacheList.Count && i<_rgColumnRects.Count; ++i ) {
-                    IPgCacheMeasures oElem = oRow.CacheList[i];
+                _oSelection.IsSelection( oCacheRow.Row );
 
-				    oElem.Update            ( Font );
-                    oElem.OnChangeFormatting( null );
-                    oElem.OnChangeSize      ( _rgColumnRects[i].Width );
+                for( int i=0; i<oCacheRow.CacheList.Count && i<_rgColumnRects.Count; ++i ) {
+                    IPgCacheMeasures oMeasure = oCacheRow.CacheList[i];
+                    if( oMeasure is FTCacheLine oElem ) {
+				        oElem.Measure ( Font );
+                        oElem.Colorize( _oSelection[i] );
+                    }
+                    oMeasure.OnChangeSize( _rgColumnRects[i].Width );
+                }
+			} catch( Exception oEx ) {
+                if( IsUnhandledStdRpt( oEx ) )
+                    throw;
+			}
+        }
+
+        public bool IsSelecting => !_oSelection.IsFrozen;
+
+        public void BeginSelect() {
+            _oSelection.SetPin( new CaretTracker( this ) );
+        }
+
+        public void EndSelect() {
+            _oSelection.Freeze();
+        }
+
+        public void CacheReMeasure() {
+            try {
+                foreach( CacheRow oCacheRow in _rgOldCache ) {
+                    RowMeasure( oCacheRow );
                 }
 			} catch( Exception oEx ) {
                 if( IsUnhandledStdRpt( oEx ) )
@@ -769,7 +1015,13 @@ namespace Play.Edit {
         public void CacheReColor() {
             try {
                 foreach( CacheRow oCacheRow in _rgOldCache ) {
-                    RowMeasure( oCacheRow );
+                    _oSelection.IsSelection( oCacheRow.Row );
+
+                    for( int i=0; i<oCacheRow.CacheList.Count && i<_rgColumnRects.Count; ++i ) {
+                        IPgCacheMeasures oElem = oCacheRow.CacheList[i];
+
+                        oElem.Colorize( _oSelection[i] );
+                    }
                 }
 			} catch( Exception oEx ) {
                 if( IsUnhandledStdRpt( oEx ) )
@@ -949,7 +1201,7 @@ namespace Play.Edit {
                         CacheRow oCacheRow = PointToCache( iColumn, pntPick, out int iOffset );
                         if( oCacheRow != null ) {
                             _fAdvance  = pntPick.X - rctColumn.Left;
-                            _oCaretRow = _oSiteList[ oCacheRow.At ];
+                            _oCaretRow = oCacheRow.Row;
                             _iCaretCol = iColumn;
                             _iCaretOff = iOffset;
 

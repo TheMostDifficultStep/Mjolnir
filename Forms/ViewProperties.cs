@@ -22,14 +22,14 @@ namespace Play.Forms {
         public CacheMultiFixed(
             ICacheManSite           oSite, 
             IReadOnlyList<CacheRow> oCacheAccess,
-            IPgFontRender           oFont, 
             List<SmartRect>         rgColumns
         ) : 
-            base(oSite, oFont, rgColumns) 
+            base(oSite, rgColumns) 
         {
             _rgFixedCache = oCacheAccess ?? throw new ArgumentNullException();
         }
 
+        public IEnumerable<CacheRow> FixedCache => _rgFixedCache;
         protected override CacheRow CreateCacheRow(Row oDocRow) {
             foreach( CacheRow oCacheRow in _rgFixedCache ) { 
                 if( oCacheRow.Row == oDocRow ) {
@@ -190,12 +190,9 @@ namespace Play.Forms {
         /// class because it's where we are calling PropertyInitRow() in the first place.
         /// </remarks>
         protected override CacheMultiColumn CreateCacheMan() {
-            uint uiStdText  = _oStdUI.FontCache( _oStdUI.FaceCache( @"C:\windows\fonts\consola.ttf" ), 12, GetDPI() );
-
             FixedRows  = new List<CacheRow>(); // Slightly evil... >_<;;
             CacheMultiFixed oCacheMan = new ( new CacheManSiteSubSet( this ), 
                                               FixedRows as IReadOnlyList<CacheRow>,
-                                              _oStdUI.FontRendererAt( uiStdText ),
                                               _rgColumns ); 
             return oCacheMan;
         }
@@ -237,7 +234,7 @@ namespace Play.Forms {
             oLabel.BgColor = _oStdUI.ColorsStandardAt( StdUIColors.BGReadOnly );
 
             oCache.CacheList.Add( oLabel );
-            oCache.CacheList.Add( new CacheControl( oWinValue ) );
+            oCache.CacheList.Add( new CacheControl( oWinValue ) { MaxHeight = 800 });
 
             FixedRows.Add( oCache );
         }

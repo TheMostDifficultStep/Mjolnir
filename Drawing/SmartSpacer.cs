@@ -38,7 +38,11 @@ namespace Play.Rectangles {
             }
 
             using( Brush oFocusBrush = new SolidBrush(oFocusColor )) {
-                p_oGraphics.FillRectangle(oFocusBrush, this.Rect );
+                try {
+                    p_oGraphics.FillRectangle(oFocusBrush, this.Rect );
+                } catch( OverflowException ) {
+                    // Inside out rectangle I'd wager.
+                }
             }
         }
 

@@ -581,8 +581,8 @@ namespace Play.Edit {
                 Line   oLine      = oRow[iColumn];
 
                 TrackerEnumerable oTE = new TrackerEnumerable( this );
-
-                if( oLine.TryDelete( iSrcOff, iSrcLen, out strRemoved ) ) {
+                //strRemoved = oLine.SubString( iSrcOff, iSrcLen );
+                if( oLine.TryReplace( iSrcOff, iSrcLen, null ) ) {
                     IMemoryRange oDeleted = new ColorRange( iSrcOff, iSrcLen ); // BUG use struct...
                     foreach( IColorRange oFormat in oLine.Formatting ) {
                         Marker.ShiftDelete( oFormat, oDeleted );

@@ -347,7 +347,7 @@ namespace Play.Rectangles
 			}
 		}
 
-        public override void Paint(Graphics oGraphics) {
+        [Obsolete]public override void Paint(Graphics oGraphics) {
             Brush oEdgeBrush   = null;
             Brush oCornerBrush = null;
 
@@ -382,6 +382,7 @@ namespace Play.Rectangles
                         };
                     }
                 }
+            } catch( OverflowException ) {
             } finally {
                 if (oCornerBrush != null)
                     oCornerBrush.Dispose();

@@ -79,7 +79,9 @@ namespace Kanji_Practice {
         protected ImageViewSingle ViewScratch { get; }
         protected EditWindow2     ViewMeaning { get; }
 
-        public ViewKanjiProps( IPgViewSite oSite, KanjiDocument oKanjiDoc ) : base( oSite, oKanjiDoc.Properties ) {
+        public ViewKanjiProps( IPgViewSite oSite, KanjiDocument oKanjiDoc ) : 
+            base( oSite, oKanjiDoc.Properties ) 
+        {
             IPgMainWindow.PgDisplayInfo oInfo = new IPgMainWindow.PgDisplayInfo();
             if( _oSiteView.Host.TopWindow is IPgMainWindow oMainWin ) {
                 oInfo = oMainWin.MainDisplayInfo;
@@ -116,18 +118,24 @@ namespace Kanji_Practice {
 
             ViewScratch.Parent = this;
             ViewMeaning.Parent = this;
+            
+            _oScrollBarVirt.Visible = false;
 
-            //Line oKanjiLine = Document.ValueAsLine( (int)KanjiPropertiesTest.Labels.Kanji );
-            //Line oHiragLine = Document.ValueAsLine( (int)KanjiPropertiesTest.Labels.Hiragana );
+            Line oKanjiLine = Document.ValueAsLine( (int)KanjiPropEnum.Kanji    );
+            Line oHiragLine = Document.ValueAsLine( (int)KanjiPropEnum.Hiragana );
 
-            //foreach( LayoutSingleLine oLayout in CacheList ) {
-            //    if( oLayout.Line == oKanjiLine   ) {
-            //        oLayout.FontID = BigFont;
-            //    }
-            //    if( oLayout.Line == oHiragLine   ) {
-            //        oLayout.FontID = BigFont;
-            //    }
-            //}
+            if( _oCacheMan is CacheMultiFixed oCacheMulti ) {
+                foreach( CacheRow oCRow in oCacheMulti.FixedCache ) {
+                    if( oCRow[1] is FTCacheLine oCElem ) {
+                        if( oCElem.Line == oKanjiLine ) {
+                            oCElem.FontID = BigFont;
+                        }
+                        if( oCElem.Line == oHiragLine ) {
+                            oCElem.FontID = BigFont;
+                        }
+                    }
+                }
+            }
 
             //OnDocumentEvent( BUFFEREVENTS.FORMATTED );
             Invalidate();
@@ -187,7 +195,7 @@ namespace Kanji_Practice {
         {
             KanjiDoc      = oMonitorDoc ?? throw new ArgumentNullException( "Monitor document must not be null!" );
 
-            Layout        = new LayoutStackHorizontal() { Units = LayoutRect.CSS.Flex };
+            Layout        = new LayoutStackHorizontal() { Units = LayoutRect.CSS.None };
             CenterDisplay = new ViewKanjiProps( new ViewSlot( this ), KanjiDoc ) ;
 
             CenterDisplay.Parent = this;

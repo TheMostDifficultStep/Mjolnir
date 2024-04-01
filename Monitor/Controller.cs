@@ -48,13 +48,13 @@ namespace Monitor {
         public override IDisposable CreateView(IPgViewSite oViewSite, object oDocument, Guid guidViewType) {
             if( oDocument is BasicDocument oMonitorDoc ) {
 			    try {
-                    if( guidViewType == BasicLineWindow.GUID )
-					    return new BasicLineWindow( oViewSite, oMonitorDoc );
+                    if( guidViewType == WindowBasic.GUID )
+					    return new WindowBasic( oViewSite, oMonitorDoc );
                     if( guidViewType == DumpWindowGUID )
                         return new EditWindow2( oViewSite, oMonitorDoc.DumpDocument );
 
                     // Service the GUID.Empty case too.
-				    return new BasicLineWindow( oViewSite, oMonitorDoc );
+				    return new WindowBasic( oViewSite, oMonitorDoc );
                 } catch( Exception oEx ) {
                     Type[] rgErrors = { typeof( NullReferenceException ),
                                         typeof( InvalidCastException ),
@@ -69,7 +69,7 @@ namespace Monitor {
         }
 
         public override IEnumerator<IPgViewType> GetEnumerator() {
-            yield return new ViewType( "BBC Basic Edit", BasicLineWindow.GUID );
+            yield return new ViewType( "BBC Basic Edit", WindowBasic.GUID );
         }
     }
     public class BBCBasicBinaryController : BBCBasicController {

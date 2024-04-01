@@ -212,7 +212,7 @@ namespace Play.ImageViewer {
 
             FontID = oStdUI.FontCache( FaceID, uiHeight, sRez );
 
-            CacheElem.Update( oStdUI.FontRendererAt( FontID ) );
+            CacheElem.Measure( oStdUI.FontRendererAt( FontID ) );
             OnSize();
         }
 

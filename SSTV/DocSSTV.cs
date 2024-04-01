@@ -1135,7 +1135,7 @@ namespace Play.SSTV {
             // Since we flex, do all this before layout children.
             uint      uiPoints = (uint)( uiPixHeight * iScreenPixPerInch / skEMsPerInch.Y );
             uint      uiFontID = _oStdUI.FontCache( TxBitmapComp.StdFace, uiPoints, skEMsPerInch );
-            oSingle.Cache.Update( _oStdUI.FontRendererAt( uiFontID ) );
+            oSingle.Cache.Measure( _oStdUI.FontRendererAt( uiFontID ) );
 
             oHoriz.Add( oSingle );
 
@@ -1176,7 +1176,7 @@ namespace Play.SSTV {
 
             uint      uiPoints = (uint)( uiMsgHeight * iScreenPixPerInch / skEMsPerInch.Y );
             uint      uiFontID = _oStdUI.FontCache( TxBitmapComp.StdFace, uiPoints, skEMsPerInch );
-            oText.Cache.Update( _oStdUI.FontRendererAt( uiFontID ) );
+            oText.Cache.Measure( _oStdUI.FontRendererAt( uiFontID ) );
 
             LayoutImage oImage = new LayoutImage( TxImageList.Bitmap, LayoutRect.CSS.None ) { Stretch = true };
             oImage.World.Copy = Selection;
@@ -1193,7 +1193,7 @@ namespace Play.SSTV {
 
             // After the layout now we can word wrap the text.
             //oEdit.WordBreak( oElem.Line, oElem.Words ); 
-            oElem.Update( _oStdUI.FontRendererAt( uiFontID ) );
+            oElem.Measure( _oStdUI.FontRendererAt( uiFontID ) );
             oElem.OnChangeSize( oImage.Width );
 
             //SelectionAdjust( oImage );
@@ -1227,7 +1227,7 @@ namespace Play.SSTV {
             // Since we flex, do all this before layout children.
             uint      uiPoints = (uint)( uiPixHeight * iScreenPixPerInch / skEMsPerInch.Y );
             uint      uiFontID = _oStdUI.FontCache( TxBitmapComp.StdFace, uiPoints, skEMsPerInch );
-            oSingle.Cache.Update( _oStdUI.FontRendererAt( uiFontID ) );
+            oSingle.Cache.Measure( _oStdUI.FontRendererAt( uiFontID ) );
             oSingle.Padding.SetRect( 5, 0, 5, 0 ); // BUG: Doesn't seem to work for text.
 
             oVertiMain.Add( oSingle );
@@ -1251,7 +1251,7 @@ namespace Play.SSTV {
 
             // After the layout now we can word wrap the text.
             //oEdit.WordBreak( oWrap.Line, oWrap.Words ); 
-            oWrap.Update( _oStdUI.FontRendererAt( uiFontID ) );
+            oWrap.Measure( _oStdUI.FontRendererAt( uiFontID ) );
             oWrap.OnChangeSize( oSingle.Width );
 
             //SelectionAdjust( oImage1 );

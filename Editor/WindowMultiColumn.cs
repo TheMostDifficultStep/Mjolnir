@@ -104,7 +104,9 @@ namespace Play.Edit {
             return 0;
         }
 
-        public void OnChangeFormatting(ICollection<ILineSelection> rgSelections) {
+        public void Colorize(ICollection<ILineSelection> rgSelections) {
+        }
+        public void Colorize(IColorRange rgColorRange ) {
         }
 
         /// <summary>
@@ -123,7 +125,7 @@ namespace Play.Edit {
             UnwrappedWidth = iWidth;
         }
 
-        public void Update(IPgFontRender oRender) {
+        public void Measure(IPgFontRender oRender) {
         }
 
         /// <summary>
@@ -279,6 +281,13 @@ namespace Play.Edit {
                     User32.SetCaretPos( pntCaret.X, pntCaret.Y );
             }
 
+            public uint FontCache( uint uiHeight ) {
+                return _oHost._oStdUI.FontCache( _oHost.StdFace, uiHeight, _oHost.GetDPI() );
+            }
+            public IPgFontRender FontUse( uint uiFont ) {
+                return _oHost._oStdUI.FontRendererAt( uiFont );
+            }
+
         }
 
         protected class DocSlot :
@@ -330,10 +339,8 @@ namespace Play.Edit {
         }
 
         protected virtual CacheMultiColumn CreateCacheMan() {
-            uint uiStdText  = _oStdUI.FontCache( _oStdUI.FaceCache( @"C:\windows\fonts\consola.ttf" ), 12, GetDPI() );
-            return new CacheMultiColumn( new CacheManSite( this ), 
-                                         _oStdUI.FontRendererAt( uiStdText ),
-                                         _rgColumns ); 
+            //uint uiStdText  = _oStdUI.FontCache( StdFace, 12, GetDPI() );
+            return new CacheMultiColumn( new CacheManSite( this ), _rgColumns ); 
         }
 
         public virtual bool IsDirty => true;
@@ -448,13 +455,17 @@ namespace Play.Edit {
             return _oCacheMan.CreateDocEventObject();
         }
 
+        /// <summary>
+        /// We remeasure since parse is typically caused by a
+        /// text change.
+        /// </summary>
         public void OnDocFormatted() {
-            _oCacheMan.CacheReColor();
+            _oCacheMan.CacheReMeasure();
             Invalidate();
         }
 
         public void OnDocUpdated() {
-            _oCacheMan.CacheReColor();
+            _oCacheMan.CacheReMeasure();
             Invalidate();
         }
         #endregion
@@ -731,12 +742,6 @@ namespace Play.Edit {
             Cursor = oNewCursor;
         }
 
-        protected override void OnMouseMove(MouseEventArgs e) {
-            base.OnMouseMove( e );
-
-            CursorUpdate( new SKPointI( e.X, e.Y ), e.Button );
-        }
-
         protected override void OnMouseWheel(MouseEventArgs e) {
             base.OnMouseWheel(e);
 
@@ -852,6 +857,25 @@ namespace Play.Edit {
             }
         }
 
+        protected override void OnMouseMove(MouseEventArgs e) {
+            base.OnMouseMove( e );
+
+            SKPointI pntMouse = new SKPointI( e.X, e.Y );
+
+            CursorUpdate( pntMouse, e.Button );
+            if( _oCacheMan.IsSelecting ) {
+                _oCacheMan.CacheReColor();
+                _oCacheMan.CaretAdvance(pntMouse);
+                Invalidate();
+            }
+        }
+
+        protected override void OnMouseUp(MouseEventArgs e) {
+            base.OnMouseUp(e);
+
+            _oCacheMan.EndSelect();
+        }
+
         protected override void OnMouseDown(MouseEventArgs e) {
             base.OnMouseDown( e );
 
@@ -860,18 +884,22 @@ namespace Play.Edit {
 
             _oCacheMan.CaretAdvance( pntClick );
 
+            bool fHyperLinked = false;
             if( e.Button == MouseButtons.Left &&
                 ((ModifierKeys & Keys.Control) == 0) ) 
             {
                 for( int iColumn=0; iColumn<_rgColumns.Count; ++iColumn ) {
                     SmartRect oColumn = _rgColumns[iColumn];
                     if( oColumn.IsInside( e.X, e.Y ) ) {
-                        HyperLinkFind( iColumn, pntClick, fDoJump:true );
+                        fHyperLinked = HyperLinkFind( iColumn, pntClick, fDoJump:true );
                         break;
                     }
                 }
             }
-
+            if( !fHyperLinked ) {
+                _oCacheMan.BeginSelect();
+                _oCacheMan.CacheReColor();
+            }
 
             Invalidate();
         }
