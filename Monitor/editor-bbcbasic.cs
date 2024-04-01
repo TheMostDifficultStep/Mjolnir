@@ -118,10 +118,16 @@ namespace Monitor {
                     if( strLine == null )
                         break;
 
+                    // Grab any whitespace that might precede the number
                     int i=0;
+                    for( ; i<strLine.Length; ++i ) {
+                        if( !char.IsWhiteSpace( strLine[i] ) )
+                            break;
+                    }
                     // Strip the number off of the start of the string.
                     for( ; i<strLine.Length; ++i ) {
-                        if( !Char.IsDigit( strLine[i] ) ) {
+                        if( !Char.IsDigit( strLine[i] )  ) 
+                        {
                             spNumber = strLine.AsSpan()[0..i];
                             break;
                         }
