@@ -69,6 +69,9 @@ namespace Play.Edit {
         public void    MoveTo( SmartRect rcSquare );
     }
 
+    /// <summary>
+    /// Put a control in the place of an FtCacheLine.
+    /// </summary>
     public class CacheControl :
         IPgCacheMeasures,
         IPgCacheWindow
@@ -421,6 +424,16 @@ namespace Play.Edit {
             _oDocOps.ListenerAdd( this );
             _oDocTraits.HighLightChanged += _oDocTraits_HighLightChanged;
 
+            if( this.ContextMenuStrip == null ) {
+                ContextMenuStrip oMenu = new ContextMenuStrip();
+                oMenu.Items.Add( new ToolStripMenuItem( "Cut",   null, OnCut,   Keys.Control | Keys.X ) );
+                oMenu.Items.Add( new ToolStripMenuItem( "Copy",  null, OnCopy,  Keys.Control | Keys.C ) );
+                oMenu.Items.Add( new ToolStripMenuItem( "Paste", null, OnPaste, Keys.Control | Keys.V ) );
+              //oMenu.Items.Add( new ToolStripMenuItem( "Jump",  null, this.OnJump,  Keys.Control | Keys.J ) );
+                this.ContextMenuStrip = oMenu;
+            }
+
+
             //_oCacheMan.CaretReset( _oDocList[0], 0 );
             // can't reset, not ready yet, but might want the cursor at 0,0 so to speak... :-/
             return true;
@@ -448,6 +461,37 @@ namespace Play.Edit {
 
         public bool Save(XmlDocumentFragment oStream) {
             return true;
+        }
+
+        public void OnCut(object o, EventArgs e ) {
+            if( _oCacheMan.SelectedRowCount == 1 ) {
+                if( _oCacheMan.SelectedColCount == 1 ) {
+                }
+            }
+        }
+
+        public void OnPaste(object o, EventArgs e ) {
+        }
+
+        public void OnCopy(object o, EventArgs e ) {
+            ClipboardCopyTo();
+        }
+
+        public void ClipboardCutTo() {
+            ClipboardCopyTo();
+            _oCacheMan.SelectionDelete();
+        }
+
+        public virtual void ClipboardCopyTo() {
+            DataObject oDataObject = new DataObject();
+
+			try {
+                string strSelection = _oCacheMan.SelectionCopy();
+
+                oDataObject.SetData( strSelection );
+				Clipboard.SetDataObject( oDataObject );
+			} catch( NullReferenceException ) {
+			}
         }
 
         #region IPgEditEvents
@@ -876,18 +920,21 @@ namespace Play.Edit {
             _oCacheMan.EndSelect();
         }
 
+        public static bool IsCtrl( Keys sKey ) {
+            return (ModifierKeys & Keys.Control) != 0;
+        }
+
         protected override void OnMouseDown(MouseEventArgs e) {
             base.OnMouseDown( e );
 
             Select();
             SKPointI pntClick = new SKPointI( e.X, e.Y );
 
+            // Move the caret and reset the Advance.
             _oCacheMan.CaretAdvance( pntClick );
 
-            bool fHyperLinked = false;
-            if( e.Button == MouseButtons.Left &&
-                ((ModifierKeys & Keys.Control) == 0) ) 
-            {
+            if( e.Button == MouseButtons.Left && !IsCtrl( ModifierKeys ) ) {
+                bool fHyperLinked = false;
                 for( int iColumn=0; iColumn<_rgColumns.Count; ++iColumn ) {
                     SmartRect oColumn = _rgColumns[iColumn];
                     if( oColumn.IsInside( e.X, e.Y ) ) {
@@ -895,10 +942,10 @@ namespace Play.Edit {
                         break;
                     }
                 }
-            }
-            if( !fHyperLinked ) {
-                _oCacheMan.BeginSelect();
-                _oCacheMan.CacheReColor();
+                if( !fHyperLinked ) {
+                    _oCacheMan.BeginSelect();
+                    _oCacheMan.CacheReColor();
+                }
             }
 
             Invalidate();

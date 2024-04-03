@@ -2,15 +2,13 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Text;
 
 using SkiaSharp;
 
 using Play.Interfaces.Embedding;
 using Play.Parse;
 using Play.Rectangles;
-using System.Windows.Forms;
-using System.Linq;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement.TextBox;
 
 namespace Play.Edit {
     public interface IPgCaretInfo<T> :
@@ -48,7 +46,7 @@ namespace Play.Edit {
 
         protected readonly List<SmartRect>  _rgColumnRects;
         protected readonly TextLine         _oDummyLine = new TextLine( -2, string.Empty );
-        protected          SelectionManager _oSelection ;
+        protected          SelectionManager _oSelection;
 
         protected IPgFontRender Font       { get; }
         protected IPgGlyph      GlyphLt    { get; } // Our end of line character.
@@ -84,6 +82,30 @@ namespace Play.Edit {
             }
         }
 
+        protected class SelectionEnumerator :
+            IEnumerable<Row> 
+        {
+            readonly IReadableBag<Row> _rgBag;
+            readonly SelectionManager  _oSlxn;
+
+            public SelectionEnumerator( IReadableBag<Row> rgBag, SelectionManager oSlxn ) {
+                _rgBag = rgBag ?? throw new ArgumentNullException();
+                _oSlxn = oSlxn ?? throw new ArgumentNullException();
+            }
+
+            public IEnumerator<Row> GetEnumerator() {
+                _oSlxn.IsSelection( _oSlxn.Caret.Row );
+
+                for( int i=_oSlxn.StartAt; i<=_oSlxn.EndAt; ++i ) {
+                    yield return _rgBag[i];
+                }
+            }
+
+            IEnumerator IEnumerable.GetEnumerator() {
+               return GetEnumerator();
+            }
+        }
+
         public class SelectionManager {
             public IPgCaretInfo<Row> Caret { get; protected set; }
             public CaretInfo         Pin   { get; protected set; }
@@ -103,6 +125,12 @@ namespace Play.Edit {
                 }
             }
 
+            /// <summary>
+            /// Retreive the current color range selection for the given column.
+            /// Remember to call IsSelection( Row ) first for the whole row.
+            /// </summary>
+            /// <param name="iIndex">Column selection.</param>
+            /// <exception cref="IndexOutOfRangeException" />
             public IColorRange this [ int iIndex ] {
                 get { return _rgSelections[iIndex]; }
             }
@@ -237,13 +265,21 @@ namespace Play.Edit {
                 }
             }
 
-            public bool IsSelection( Row oRow ) {
+            public enum SlxnType {
+                Top, Bottom, Middle, Equal, None
+            }
+
+            public int StartAt => _rgRowHighLow[0].Row.At;
+            public int EndAt   => _rgRowHighLow[1].Row.At;
+
+            public SlxnType IsSelection( Row oRow ) {
                 try {
+                    // Clear out any previous selections.
                     for( int i=0; i< _rgCache.Length; ++i ) {
                         _rgSelections[i] = null;
                     }
                     if( Caret == null )
-                        return false;
+                        return SlxnType.None;
 
                     if( Caret.Row.At > Pin.Row.At ) {
                         _rgRowHighLow[0] = Pin;
@@ -253,36 +289,77 @@ namespace Play.Edit {
                         _rgRowHighLow[1] = Pin;
                     }
                     if( oRow.At < _rgRowHighLow[0].Row.At )
-                        return false;
+                        return SlxnType.None;
                     if( oRow.At > _rgRowHighLow[1].Row.At )
-                        return false;
+                        return SlxnType.None;
 
                     if( Caret.Row.At == Pin.Row.At ) {
                         EquRow( oRow );
-                        return true;
+                        return SlxnType.Equal;
                     }
 
                     if( oRow.At == _rgRowHighLow[0].Row.At ) {
                         TopRow( oRow );
-                        return true;
+                        return SlxnType.Top;
                     }
                     if( oRow.At == _rgRowHighLow[1].Row.At ) {
                         BotRow( oRow );
-                        return true;
+                        return SlxnType.Bottom;
                     }
                     
                     // Middle... select everything.
                     for( int iCol=0; iCol<oRow.Count; ++iCol ) {
                         Set( iCol, 0, oRow[iCol].ElementCount );
                     }
-                    return true;
+                    return SlxnType.Middle;
                 } catch ( Exception oEx ) {
                     Type[] rgErrors = { typeof( NullReferenceException ),
                                         typeof( ArgumentOutOfRangeException ) };
                     if( rgErrors.IsUnhandled( oEx ) )
                         throw;
                 }
-                return false;
+                return SlxnType.None; // Technically error. But let's see how it goes.
+            }
+
+            public int RowCount {
+                get {
+                    try {
+                        int iRows = Math.Abs( Caret.Row.At - Pin.Row.At );
+
+                        if( iRows > 0 )
+                            return iRows + 1;
+
+                        SlxnType eSlxn = IsSelection( Caret.Row );
+
+                        if( eSlxn != SlxnType.Equal ) 
+                            return 0; // Technically an error.
+
+                        int iCharCount = 0;
+                        foreach( IColorRange oSlxn in _rgSelections ) {
+                            if( oSlxn != null )
+                                iCharCount += oSlxn.Length;
+                        }
+                        if( iCharCount > 0 )
+                            return 1;
+                    } catch( Exception oEx ) {
+                        Type[] rgErrors = { typeof( NullReferenceException ),
+                                            typeof( ArgumentOutOfRangeException ) };
+                        if( rgErrors.IsUnhandled( oEx ) )
+                            throw;
+                    }
+                    return 0;
+                }
+            }
+
+            public int ColumnCount {
+                get {
+                    int iCount = 0;
+                    for( int i=0; i<_rgSelections.Length; ++i ) {
+                        if( _rgSelections[i] != null )
+                            ++iCount;
+                    }
+                    return iCount;
+                }
             }
         } // End class
 
@@ -999,6 +1076,50 @@ namespace Play.Edit {
 
         public void EndSelect() {
             _oSelection.Freeze();
+        }
+
+        public int SelectedRowCount => _oSelection.RowCount;
+        public int SelectedColCount => _oSelection.ColumnCount;
+
+        protected IEnumerable<Row> Selection => new SelectionEnumerator( _oSiteList, _oSelection );
+
+        /// <summary>
+        /// Copy the entire selection. Stick a TAB between columns.
+        /// </summary>
+        public string SelectionCopy() {
+            StringBuilder oBuilder = new();
+
+            try {
+			    if( SelectedRowCount > 0 ) {
+                    int iCountRow = 0;
+                    foreach( Row oRow in Selection ) {
+                        int iCountCol = 0;
+                        // Just want CR -between- lines.
+                        if( iCountRow++ > 0 ) {
+                            oBuilder.AppendLine();
+                        }
+
+                        if( _oSelection.IsSelection( oRow ) != SelectionManager.SlxnType.None ) {
+                            for( int i=0; i<oRow.Count; i++ ) {
+                                if( _oSelection[i] != null ) {
+                                    if( iCountCol++ > 0 ) {
+                                        oBuilder.Append( '\t' );
+                                    }
+                                    oBuilder.Append( oRow[i].SubSpan( _oSelection[i] ) );
+                                }
+                            }
+                        }
+                    }
+ 			    }
+            } catch( Exception oEx ) {
+                if( IsUnhandledStdRpt( oEx ) )
+                    throw;
+            }
+
+            return oBuilder.ToString();
+        }
+
+        public void SelectionDelete() {
         }
 
         public void CacheReMeasure() {
