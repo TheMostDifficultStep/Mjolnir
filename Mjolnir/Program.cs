@@ -1172,6 +1172,23 @@ namespace Mjolnir {
         }
 
         /// <summary>
+        /// This will be the new system that throws exceptions.
+        /// </summary>
+        /// <exception cref="ArgumentException"></exception>
+        /// <exception cref="ArgumentOutOfRangeException"></exception>
+        public ExtensionMap GetMappingEx( string strFileExtn ) {
+            if( string.IsNullOrEmpty( strFileExtn ) ) {
+                LogError( "internal", "map grammer, argument null." );
+                throw new ArgumentException();
+            }
+            if( !_rgExtensionMap.TryGetValue(  strFileExtn.ToLower(), out ExtensionMap oMap ) ) {
+                throw new ArgumentOutOfRangeException();
+            }
+
+            return oMap;
+        }
+
+        /// <summary>
         /// The languages we support, and the extensions to map them
         /// to are preloaded. Here we look them up and return a
         /// language object that contains the ready to use grammer.
@@ -1721,6 +1738,17 @@ namespace Mjolnir {
 
             return( null );
 		}
+
+        public object GetGrammerByExtn( string strExtn ) {
+            ExtensionMap oMap  = GetMappingEx( strExtn );
+            LangSlot     oSite = GetMappedGrammerSite( oMap._strGrammar );
+
+            if( oSite != null)
+                return oSite.Guest;
+
+            throw new ArgumentOutOfRangeException();
+        }
+
         /// <summary>
         /// 
         /// </summary>

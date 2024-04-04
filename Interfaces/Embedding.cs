@@ -211,6 +211,7 @@ namespace Play.Interfaces.Embedding {
 		/// <exception cref="FileNotFoundException" />
 		/// <exception cref="ArgumentNullException" />
         object GetGrammer( string strName );
+        object GetGrammerByExtn( string strExtn );
     }
 
     /// <summary>

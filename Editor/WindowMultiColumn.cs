@@ -481,6 +481,8 @@ namespace Play.Edit {
                 CacheMultiColumn.SelectionManager oSelector = _oCacheMan.Selector;
                 if( oSelector.RowCount == 1 ) {
                     if( oSelector.IsSingleColumn( out int iColumn ) ) {
+                        ClipboardCopyTo();
+
                         Row          oRow   = _oDocList[_oCacheMan.CaretAt];
                         IMemoryRange oRange = oSelector[iColumn];
 

@@ -42,7 +42,7 @@ namespace Monitor {
     public class BBCBasicController : Controller {
         public static Guid DumpWindowGUID { get; } = new Guid( "{247AE5B9-F6F1-4B6B-AB9C-81C83BC320B2}" );
         public override IDisposable CreateDocument(IPgBaseSite oSite, string strExtension) {
-            return new BasicDocument( oSite );
+            return new BasicDocument( oSite, strExtension );
         }
 
         public override IDisposable CreateView(IPgViewSite oViewSite, object oDocument, Guid guidViewType) {
@@ -91,6 +91,16 @@ namespace Monitor {
     public class BBCBasicTextController : BBCBasicController {
         public BBCBasicTextController() {
             _rgExtensions.Add( ".btx" );
+            _rgExtensions.Add( ".msbtx" );
+        }
+
+        public override PgDocDescr Suitability(string strExtension) {
+            foreach( string strExtn in _rgExtensions ) {
+                if( string.Compare( strExtn, strExtension ) == 0 )
+                    return new PgDocDescr( strExtension, typeof( IPgLoad<TextReader> ), (byte)255, this );
+            }
+
+            return new PgDocDescr( strExtension, typeof( IPgLoad<TextReader> ), (byte)0, this );
         }
     }
 

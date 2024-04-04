@@ -169,6 +169,13 @@ namespace Play.Edit {
             return _rgRows[ SeekIndex( p_iPos, out iOffset ) ][_iColumn];
         }
 
+        public Row SeekRow( int iStreamPos, out int iColumn, out int iOffset ) {
+            Row oRow = _rgRows[ SeekIndex( iStreamPos, out iOffset ) ];
+            iColumn = _iColumn;
+
+            return oRow;
+        }
+
         /// <summary>
         /// Seek closest line at given position. Internal position is modified
         /// </summary>
@@ -224,12 +231,16 @@ namespace Play.Edit {
 				sbMessage.Append( "Parse underflow." );
 			}
 			if( _oStream.InBounds( p_iStart ) ) {
-				Line oLine  = _oStream.SeekLine(p_iStart, out int iOffset);
+				Row oRow  = _oStream.SeekRow( p_iStart, out int iColumn, out int iOffset );
 
-                sbMessage.Append( "Line : " );
-				sbMessage.Append( oLine.At.ToString() ); 
+                sbMessage.Append( "Row(0th) : " );
+				sbMessage.Append( oRow.At ); 
+                sbMessage.Append( ", Col: " );
+                sbMessage.Append( iColumn );
 				sbMessage.Append( ", Offset: " );
-				sbMessage.Append( iOffset.ToString() );
+				sbMessage.Append( iOffset );
+                sbMessage.Append( ", ID " );
+                sbMessage.Append( p_oMemory.ToString() );
 			} else {
 				sbMessage.Append( "Parse overflow." );
 			}
@@ -473,14 +484,7 @@ namespace Play.Edit {
             try {
                 IPgGrammers oGServ = (IPgGrammers)Services;
                 if( oGServ.GetGrammer( strGrammar ) is Grammer<char> oGrammar ) {
-                    RowStream        oStream       = CreateColumnStream( iColumn );
-                    ParseColumnText  oParseHandler = new ParseColumnText( oStream, oGrammar, LogError );
-
-                    foreach( Row oRow in _rgRows ) {
-                        oRow[iColumn].Formatting.Clear();
-                    }
-
-                    oParseHandler.Parse();
+                    ParseColumn( iColumn, oGrammar );
                 }
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( InvalidCastException ),
@@ -494,6 +498,27 @@ namespace Play.Edit {
             }
         }
 
+        public void ParseColumn( int iColumn, Grammer<char> oGrammar) {
+            try {
+                RowStream        oStream       = CreateColumnStream( iColumn );
+                ParseColumnText  oParseHandler = new ParseColumnText( oStream, oGrammar, LogError );
+
+                foreach( Row oRow in _rgRows ) {
+                    oRow[iColumn].Formatting.Clear();
+                }
+
+                oParseHandler.Parse();
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( InvalidCastException ),
+                                    typeof( ArgumentOutOfRangeException ),
+                                    typeof( ArgumentNullException ),
+                                    typeof( NullReferenceException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
+
+                LogError( "Trouble setting up column parse." );
+            }
+        }
         /// <summary>
         /// The cache manager might have multiple objects that might be
         /// affected by an edit. In order for us to better handle before/after

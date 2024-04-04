@@ -64,14 +64,22 @@ namespace Monitor {
                 _oDocument.DoParse          ();
             }
         }
-        public BasicEditor( IPgBaseSite oSite ) : base( oSite ) {
+
+        /// <summary>
+        /// I'd like to use this same object for multiple types of basics
+        /// But to do that I need to load the different grammar dialects.
+        /// I might have to make subclass documents but doesn't seem
+        /// necessary right now.
+        /// </summary>
+        /// <exception cref="InvalidOperationException"></exception>
+        public BasicEditor( IPgBaseSite oSite, string strExtn ) : base( oSite ) {
             _oSiteFile = (IPgFileSite)oSite;
 
             IPgScheduler oSchedular = (IPgScheduler)Services;
             IPgGrammers  oGServ     = (IPgGrammers)Services;
 
             _oWorkPlace    = oSchedular.CreateWorkPlace() ?? throw new InvalidOperationException( "Need the scheduler service in order to work. ^_^;" );
-            _oBasicGrammer = (Grammer<char>)oGServ.GetGrammer( "bbcbasic" );
+            _oBasicGrammer = (Grammer<char>)oGServ.GetGrammerByExtn( strExtn );
        }
 
         public Row InsertRow( int iLine, int iBasNum, string strValue ) {
@@ -392,7 +400,7 @@ namespace Monitor {
 
         public IEnumerator<int> GetParseEnum() {
             RenumberAndSumate();
-            ParseColumn      ( BasicRow.ColumnText, "bbcbasic" );
+            ParseColumn      ( BasicRow.ColumnText, _oBasicGrammer );
 
             Raise_DocFormatted();
 

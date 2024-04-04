@@ -882,11 +882,11 @@ namespace Monitor {
             _oBaseSite.LogError( strLabel, strMessage );
         }
 
-        public BasicDocument( IPgBaseSite oBaseSite ) {
+        public BasicDocument( IPgBaseSite oBaseSite, string strExtn ) {
             _oBaseSite = oBaseSite ?? throw new ArgumentNullException();
             _oFileSite = (IPgFileSite)oBaseSite;
 
-            BasicDoc     = new BasicEditor  ( new FileSlot( this ) );
+            BasicDoc     = new BasicEditor  ( new FileSlot( this ), strExtn );
             DumpDocument = new Editor       ( new DocSlot ( this ) );
         }
 
