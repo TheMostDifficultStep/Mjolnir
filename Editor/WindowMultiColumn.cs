@@ -29,6 +29,9 @@ namespace Play.Edit {
         public static bool TryReplaceAt( this IPgDocOperations<Row> oDoc, IPgCaretInfo<Row> oCaret, ReadOnlySpan<char> spText ) {
             return oDoc.TryReplaceAt( oCaret.Row, oCaret.Column, oCaret.Offset, oCaret.Length, spText );
         }
+        public static bool TryReplaceAt( this IPgDocOperations<Row> oDoc, Row oRow, int iColumn, IMemoryRange oRange, ReadOnlySpan<char> spText ) {
+            return oDoc.TryReplaceAt( oRow, iColumn, oRange.Offset, oRange.Length, spText );
+        }
     }
 
     public interface IPgDocOperations<T> {
@@ -463,10 +466,37 @@ namespace Play.Edit {
             return true;
         }
 
+        /// <summary>
+        /// First go at providing this functionality. Note that the selection
+        /// needs to be cleared BEFORE the TryReplace()!!! This is because 
+        /// when the document finished the edit and sends the update to the window
+        /// the formatting will remain on screen since that is what was copied to
+        /// the cachemanager. DoParse() does eventually cause the formatting to
+        /// be updated but that's 2 seconds later... :-/
+        /// </summary>
+        /// <remarks>I think this code would be cleaner if the caret was a first
+        /// class object like the selection. We'll work on that soon.</remarks>
         public void OnCut(object o, EventArgs e ) {
-            if( _oCacheMan.SelectedRowCount == 1 ) {
-                if( _oCacheMan.SelectedColCount == 1 ) {
+            try {
+                CacheMultiColumn.SelectionManager oSelector = _oCacheMan.Selector;
+                if( oSelector.RowCount == 1 ) {
+                    if( oSelector.IsSingleColumn( out int iColumn ) ) {
+                        Row          oRow   = _oDocList[_oCacheMan.CaretAt];
+                        IMemoryRange oRange = oSelector[iColumn];
+
+                        _oCacheMan.CaretOffset = oRange.Offset;
+                        oSelector.Clear();
+
+                        _oDocOps.TryReplaceAt( oRow, iColumn, oRange, string.Empty );
+                    }
                 }
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( NullReferenceException ),
+                                    typeof( ArgumentOutOfRangeException ),
+                                    typeof( IndexOutOfRangeException ),
+                                    typeof( ArgumentNullException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
             }
         }
 

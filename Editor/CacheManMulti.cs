@@ -46,7 +46,7 @@ namespace Play.Edit {
 
         protected readonly List<SmartRect>  _rgColumnRects;
         protected readonly TextLine         _oDummyLine = new TextLine( -2, string.Empty );
-        protected          SelectionManager _oSelection;
+        public             SelectionManager Selector { get; }
 
         protected IPgFontRender Font       { get; }
         protected IPgGlyph      GlyphLt    { get; } // Our end of line character.
@@ -163,6 +163,10 @@ namespace Play.Edit {
 
             public bool IsFrozen => _fFrozen;
 
+            /// <summary>
+            /// Clear the selections array but don't reset the selection
+            /// ranges. They might be in use temporarily by the caller.
+            /// </summary>
             public void Clear() { 
                 Caret = null;
                 for( int i=0; i< _rgCache.Length; ++i ) {
@@ -351,15 +355,17 @@ namespace Play.Edit {
                 }
             }
 
-            public int ColumnCount {
-                get {
-                    int iCount = 0;
-                    for( int i=0; i<_rgSelections.Length; ++i ) {
-                        if( _rgSelections[i] != null )
-                            ++iCount;
+            public bool IsSingleColumn( out int iColumn ) {
+                iColumn = -1;
+
+                int iCount  = 0;
+                for( int i=0; i<_rgSelections.Length; ++i ) {
+                    if( _rgSelections[i] != null ) {
+                        iColumn = i;
+                        ++iCount;
                     }
-                    return iCount;
                 }
+                return iCount == 1;
             }
         } // End class
 
@@ -430,7 +436,7 @@ namespace Play.Edit {
 			_oSite         = oSite     ?? throw new ArgumentNullException( "Cache manager is a sited object.");
             _oSiteList     = (IReadableBag<Row>)oSite;
             _rgColumnRects = rgColumns ?? throw new ArgumentNullException( "Columns list from Edit Window is null!" );
-            _oSelection    = new SelectionManager( 20 ); // Argh, rgColumns.Count not set yet... :-/
+            Selector       = new SelectionManager( 20 ); // Argh, rgColumns.Count not set yet... :-/
 
 			Font       = oSite.FontUse( oSite.FontCache( 12 ) )  ?? throw new ArgumentNullException( "Need a font to get things rolling." );
             GlyphLt    = Font.GetGlyph( 0x003c ); // we used to show carriage return as a '<' sign.
@@ -516,7 +522,14 @@ namespace Play.Edit {
             }
         }
 
+        /// <summary>
+        /// Both these functions would be better served by making the caret
+        /// a first class object in the CacheMult. I'll do that soon.
+        /// </summary>
         public int CaretColumn => _iCaretCol;
+        public int CaretOffset { 
+            set { _iCaretOff = value; }
+        }
 
         public void OnMouseWheel( int iDelta ) {
             if( _rgOldCache.Count <= 0 )
@@ -591,8 +604,8 @@ namespace Play.Edit {
         protected void MoveWindows() {
             try {
                 foreach( CacheRow oCacheRow in _rgOldCache ) {
-                    foreach( IPgCacheMeasures oCMElem in oCacheRow.CacheList ) {
-                    }
+                    //foreach( IPgCacheMeasures oCMElem in oCacheRow.CacheList ) {
+                    //}
                     for( int iCacheCol=0; iCacheCol<oCacheRow.CacheList.Count; ++iCacheCol ) {
                         if( oCacheRow[iCacheCol] is IPgCacheWindow oCWElem ) {
                             SmartRect rctColumn = _rgColumnRects[iCacheCol];
@@ -1052,13 +1065,13 @@ namespace Play.Edit {
         /// <seealso cref="CheckList"/>
         protected virtual void RowMeasure( CacheRow oCacheRow ) {
             try {
-                _oSelection.IsSelection( oCacheRow.Row );
+                Selector.IsSelection( oCacheRow.Row );
 
                 for( int i=0; i<oCacheRow.CacheList.Count && i<_rgColumnRects.Count; ++i ) {
                     IPgCacheMeasures oMeasure = oCacheRow.CacheList[i];
                     if( oMeasure is FTCacheLine oElem ) {
 				        oElem.Measure ( Font );
-                        oElem.Colorize( _oSelection[i] );
+                        oElem.Colorize( Selector[i] );
                     }
                     oMeasure.OnChangeSize( _rgColumnRects[i].Width );
                 }
@@ -1068,20 +1081,17 @@ namespace Play.Edit {
 			}
         }
 
-        public bool IsSelecting => !_oSelection.IsFrozen;
+        public bool IsSelecting => !Selector.IsFrozen;
 
         public void BeginSelect() {
-            _oSelection.SetPin( new CaretTracker( this ) );
+            Selector.SetPin( new CaretTracker( this ) );
         }
 
         public void EndSelect() {
-            _oSelection.Freeze();
+            Selector.Freeze();
         }
 
-        public int SelectedRowCount => _oSelection.RowCount;
-        public int SelectedColCount => _oSelection.ColumnCount;
-
-        protected IEnumerable<Row> Selection => new SelectionEnumerator( _oSiteList, _oSelection );
+        protected IEnumerable<Row> SelectionEnum => new SelectionEnumerator( _oSiteList, Selector );
 
         /// <summary>
         /// Copy the entire selection. Stick a TAB between columns.
@@ -1090,22 +1100,22 @@ namespace Play.Edit {
             StringBuilder oBuilder = new();
 
             try {
-			    if( SelectedRowCount > 0 ) {
+			    if( Selector.RowCount > 0 ) {
                     int iCountRow = 0;
-                    foreach( Row oRow in Selection ) {
+                    foreach( Row oRow in SelectionEnum ) {
                         int iCountCol = 0;
                         // Just want CR -between- lines.
                         if( iCountRow++ > 0 ) {
                             oBuilder.AppendLine();
                         }
 
-                        if( _oSelection.IsSelection( oRow ) != SelectionManager.SlxnType.None ) {
+                        if( Selector.IsSelection( oRow ) != SelectionManager.SlxnType.None ) {
                             for( int i=0; i<oRow.Count; i++ ) {
-                                if( _oSelection[i] != null ) {
+                                if( Selector[i] != null ) {
                                     if( iCountCol++ > 0 ) {
                                         oBuilder.Append( '\t' );
                                     }
-                                    oBuilder.Append( oRow[i].SubSpan( _oSelection[i] ) );
+                                    oBuilder.Append( oRow[i].SubSpan( Selector[i] ) );
                                 }
                             }
                         }
@@ -1136,12 +1146,12 @@ namespace Play.Edit {
         public void CacheReColor() {
             try {
                 foreach( CacheRow oCacheRow in _rgOldCache ) {
-                    _oSelection.IsSelection( oCacheRow.Row );
+                    Selector.IsSelection( oCacheRow.Row );
 
                     for( int i=0; i<oCacheRow.CacheList.Count && i<_rgColumnRects.Count; ++i ) {
                         IPgCacheMeasures oElem = oCacheRow.CacheList[i];
 
-                        oElem.Colorize( _oSelection[i] );
+                        oElem.Colorize( Selector[i] );
                     }
                 }
 			} catch( Exception oEx ) {
