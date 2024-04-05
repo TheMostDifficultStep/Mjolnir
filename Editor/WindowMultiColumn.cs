@@ -487,7 +487,7 @@ namespace Play.Edit {
                         IMemoryRange oRange = oSelector[iColumn];
 
                         _oCacheMan.CaretOffset = oRange.Offset;
-                        oSelector.Clear();
+                        oSelector.Clear(); // Do before TryReplace...
 
                         _oDocOps.TryReplaceAt( oRow, iColumn, oRange, string.Empty );
                     }
@@ -924,12 +924,33 @@ namespace Play.Edit {
             if( _fReadOnly )
                 return;
 
-            if( !char.IsControl( e.KeyChar ) ) {
-                ReadOnlySpan<char> rgInsert = stackalloc char[1] { e.KeyChar };
+            try {
+                if( !char.IsControl( e.KeyChar ) ) {
+                    ReadOnlySpan<char>                rgInsert  = stackalloc char[1] { e.KeyChar };
+                    CacheMultiColumn.SelectionManager oSelector = _oCacheMan.Selector;
 
-                _oDocOps.TryReplaceAt( _oCacheMan.CopyCaret(), rgInsert );
+                    if( oSelector.RowCount == 1 && oSelector.IsSingleColumn( out int iColumn ) ) 
+                    {
+                        Row          oRow   = _oDocList[_oCacheMan.CaretAt];
+                        IMemoryRange oRange = oSelector[iColumn];
 
-                e.Handled = true;
+                        oSelector.Clear(); // Do before the TryReplace...
+                        _oCacheMan.CaretOffset = oRange.Offset;
+                        _oDocOps.TryReplaceAt( oRow, iColumn, oRange, rgInsert );
+                    } else {
+                        oSelector.Clear();
+                        _oDocOps.TryReplaceAt( _oCacheMan.CopyCaret(), rgInsert );
+                    }
+
+                    e.Handled = true;
+                }
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( NullReferenceException ),
+                                    typeof( ArgumentOutOfRangeException ),
+                                    typeof( IndexOutOfRangeException ),
+                                    typeof( ArgumentNullException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
             }
         }
 
