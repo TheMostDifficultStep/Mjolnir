@@ -935,7 +935,7 @@ namespace Play.Edit {
                         IMemoryRange oRange = oSelector[iColumn];
 
                         oSelector.Clear(); // Do before the TryReplace...
-                        _oCacheMan.CaretOffset = oRange.Offset;
+                        _oCacheMan.CaretOffset = oRange.Offset+1;
                         _oDocOps.TryReplaceAt( oRow, iColumn, oRange, rgInsert );
                     } else {
                         oSelector.Clear();
