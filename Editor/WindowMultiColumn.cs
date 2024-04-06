@@ -150,6 +150,7 @@ namespace Play.Edit {
         IPgSave<XmlDocumentFragment>,
         IPgEditEvents,
         IPgTextView,
+        IPgCommandBase,
         IEnumerable<ILineRange>
     {
         public static Guid _sGuid = new Guid( "{03F21BC8-F911-4FE4-931D-9EB9F7A15A10}" );
@@ -1042,5 +1043,14 @@ namespace Play.Edit {
         public void SelectionClear() {
         }
         #endregion
+
+        public virtual bool Execute( Guid gCommand ) {
+            if( gCommand == GlobalCommands.Copy ) {
+                ClipboardCopyTo();
+                return true;
+            }
+
+            return false;
+        }
     }
 }

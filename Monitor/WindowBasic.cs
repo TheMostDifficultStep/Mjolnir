@@ -118,7 +118,7 @@ namespace Monitor {
             DocMain.DumpBinaryFile( _oSiteView );
         }
 
-        public virtual bool Execute( Guid sCommand ) {
+        public override bool Execute( Guid sCommand ) {
             if( sCommand == GlobalCommands.Insert ) {
                 DocMain.SideLoad();
                 return true;
@@ -131,7 +131,7 @@ namespace Monitor {
                 DocMain.SideLoad();
             }
 
-            return false;
+            return base.Execute( sCommand );
         }
 
 		public int ToolSelect { 
