@@ -171,6 +171,7 @@ namespace Play.MorsePractice {
         public IEnumerator<int> GetParseEnum() {
             RenumberAndSumate();
             ParseColumn      ( 0 );
+            ParseColumn      ( 2 );
             ScanForCallsigns ();
 
             Raise_DocFormatted();

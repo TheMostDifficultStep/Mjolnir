@@ -605,6 +605,7 @@ namespace Play.Edit {
         }
 
         public CaretInfo? CopyCaret() {
+            // TODO: Maybe a CaretNullException would work here!!
             if( _oCaretRow == null )
                 _oCaretRow = _oSiteList[0];
             if( _oCaretRow == null )

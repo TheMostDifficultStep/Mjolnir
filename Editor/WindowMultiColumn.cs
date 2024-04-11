@@ -228,9 +228,7 @@ namespace Play.Edit {
 
                     return _oHost._oDocList[iIndex];
                 } catch( Exception oEx ) {
-                    Type[] rgErrors = { typeof( NullReferenceException ),
-                                        typeof( ArgumentOutOfRangeException ) };
-                    if( rgErrors.IsUnhandled( oEx ) )
+                    if( _rgErrors.IsUnhandled( oEx ) )
                         throw;
 
                     LogError( "Tab Order", "Problem with tab list" );

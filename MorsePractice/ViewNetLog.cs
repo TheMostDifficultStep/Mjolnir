@@ -35,10 +35,10 @@ namespace Play.MorsePractice {
 
 		protected DocLogMultiColumn LogDoc { get; }
 
-		public ViewNetLog( IPgViewSite oSiteView, object oDocument ) :
+		public ViewNetLog( IPgViewSite oSiteView, DocLogMultiColumn oDocument ) :
 			base( oSiteView, oDocument )
 		{
-			LogDoc = (DocLogMultiColumn)oDocument;
+			LogDoc = oDocument;
 			Icon   = SKImageResourceHelper.GetImageResource( Assembly.GetExecutingAssembly(), _strIcon );
 		}
 
@@ -89,10 +89,6 @@ namespace Play.MorsePractice {
 					base.OnKeyPress( e );
 					break;
 			}
-		}
-
-		public bool Execute(Guid sGuid) {
-			return false;
 		}
 
 		public object Decorate(IPgViewSite oBaseSite, Guid sGuid) {
