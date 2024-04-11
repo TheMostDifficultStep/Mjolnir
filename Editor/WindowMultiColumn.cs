@@ -503,7 +503,8 @@ namespace Play.Edit {
             }
         }
 
-        public void OnPaste(object o, EventArgs e ) {
+        private void OnPaste(object o, EventArgs e ) {
+            ClipboardCopyFrom( Clipboard.GetDataObject(), ClipboardOperations.Default );
         }
 
         public void OnCopy(object o, EventArgs e ) {
@@ -525,6 +526,57 @@ namespace Play.Edit {
 				Clipboard.SetDataObject( oDataObject );
 			} catch( NullReferenceException ) {
 			}
+        }
+
+        public virtual void ClipboardCopyFrom( 
+            object oDataSource, 
+            Guid   sOperation 
+        ) {
+            if( _fReadOnly )
+                return;
+
+            if( oDataSource == null ) {
+                _oSiteView.LogError( "Edit", "Data source argument null!" );
+                return;
+            }
+            IDataObject oDataObject = oDataSource as IDataObject;
+            if( oDataObject == null ) {
+                _oSiteView.LogError( "Edit", "Caller must support IDataObject!" );
+                return;
+            }
+
+            if( sOperation == ClipboardOperations.Text ||
+                sOperation == ClipboardOperations.Default 
+              ) {
+                if( !oDataObject.GetDataPresent(typeof(String)) ) {
+                    LogError( "Clipboard type not understood" );
+                    return;
+                }
+
+                string strPaste = oDataObject.GetData(typeof(String)) as string;
+
+                try {
+                    CacheMultiColumn.SelectionManager oSelector = _oCacheMan.Selector;
+                    if( oSelector.RowCount == 1 ) {
+                        if( oSelector.IsSingleColumn( out int iColumn ) ) {
+                            Row          oRow   = _oDocList[_oCacheMan.CaretAt];
+                            IMemoryRange oRange = oSelector[iColumn];
+
+                            _oCacheMan.CaretOffset = oRange.Offset + 1;
+                            oSelector.Clear(); // Do before TryReplace...
+
+                            _oDocOps.TryReplaceAt( oRow, iColumn, oRange, strPaste );
+                        }
+                    }
+                } catch( Exception oEx ) {
+                    Type[] rgErrors = { typeof( NullReferenceException ),
+                                        typeof( ArgumentOutOfRangeException ),
+                                        typeof( IndexOutOfRangeException ),
+                                        typeof( ArgumentNullException ) };
+                    if( rgErrors.IsUnhandled( oEx ) )
+                        throw;
+                }
+            }
         }
 
         #region IPgEditEvents
@@ -968,14 +1020,55 @@ namespace Play.Edit {
             }
         }
 
+        public static bool IsCtrl( Keys sKey ) {
+            return (ModifierKeys & Keys.Control) != 0;
+        }
+
+        public bool IsInside( SKPointI pntClick, out int iColumn ) {
+            for( iColumn=0; iColumn<_rgColumns.Count; ++iColumn ) {
+                SmartRect oColumn = _rgColumns[iColumn];
+                if( oColumn.IsInside( pntClick.X, pntClick.Y ) ) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        protected override void OnMouseDoubleClick( MouseEventArgs e ) {
+            base.OnMouseDoubleClick(e);
+
+            Select();
+            SKPointI pntClick = new SKPointI( e.X, e.Y );
+
+            // Move the caret and reset the Advance.
+            _oCacheMan.CaretAdvance( pntClick );
+
+            try {
+                if( IsInside( pntClick, out int iColumn ) ) {
+                    CacheMultiColumn.CaretInfo? sCaret = _oCacheMan.CopyCaret();
+
+                    if( sCaret is CacheMultiColumn.CaretInfo oCaret ) {
+                        if( oCaret.Row[iColumn].FindFormattingUnderRange( oCaret ) is IMemoryRange oRange ) {
+                            _oCacheMan.Selector.SetWord( oCaret, oRange );
+                            _oCacheMan.CacheReColor();
+                            Invalidate();
+                        }
+                    }
+                }
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( NullReferenceException ),
+                                    typeof( ArgumentOutOfRangeException ),
+                                    typeof( IndexOutOfRangeException ),
+                                    typeof( ArgumentNullException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
+            }
+        }
+
         protected override void OnMouseUp(MouseEventArgs e) {
             base.OnMouseUp(e);
 
             _oCacheMan.EndSelect();
-        }
-
-        public static bool IsCtrl( Keys sKey ) {
-            return (ModifierKeys & Keys.Control) != 0;
         }
 
         protected override void OnMouseDown(MouseEventArgs e) {
@@ -988,21 +1081,15 @@ namespace Play.Edit {
             _oCacheMan.CaretAdvance( pntClick );
 
             if( e.Button == MouseButtons.Left && !IsCtrl( ModifierKeys ) ) {
-                bool fHyperLinked = false;
-                for( int iColumn=0; iColumn<_rgColumns.Count; ++iColumn ) {
-                    SmartRect oColumn = _rgColumns[iColumn];
-                    if( oColumn.IsInside( e.X, e.Y ) ) {
-                        fHyperLinked = HyperLinkFind( iColumn, pntClick, fDoJump:true );
-                        break;
+                if( IsInside( pntClick, out int iColumn ) ) {
+                    if( !HyperLinkFind( iColumn, pntClick, fDoJump:true ) ) {
+                        _oCacheMan.BeginSelect();
+                        _oCacheMan.CacheReColor();
                     }
-                }
-                if( !fHyperLinked ) {
-                    _oCacheMan.BeginSelect();
-                    _oCacheMan.CacheReColor();
+                    Invalidate();
                 }
             }
 
-            Invalidate();
         }
 
         #region IPgTextView
@@ -1047,6 +1134,10 @@ namespace Play.Edit {
         public virtual bool Execute( Guid gCommand ) {
             if( gCommand == GlobalCommands.Copy ) {
                 ClipboardCopyTo();
+                return true;
+            }
+            if( gCommand == GlobalCommands.Paste ) {
+                //ClipboardCopyFrom();
                 return true;
             }
 

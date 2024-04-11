@@ -149,6 +149,18 @@ namespace Play.Edit {
                 _fFrozen = false;
             }
 
+            public void SetWord( IPgCaretInfo<Row> oCaret, IMemoryRange oRange ) {
+                if( oRange == null )
+                    return;
+
+                oCaret.Offset = oRange.Offset;
+
+                Caret = oCaret;
+                // BUG: This might be a problem when I attempt to move the pin
+                // around b/c of user edits in another window.
+                Pin   = new CaretInfo(oCaret) { Offset = oRange.Offset + oRange.Length };
+            }
+
             /// <summary>
             /// Capture the current selection and stop updating it 
             /// even if caret moves. 
@@ -1324,6 +1336,10 @@ namespace Play.Edit {
             return true;
         }
 
+        /// <summary>
+        /// This moves the caret and we expect it's position to be updated w/o
+        /// any window invalidate since we are using the windows caret.
+        /// </summary>
         public bool CaretAdvance( SKPointI pntPick ) {
             try {
                 for( int iColumn = 0; iColumn < _rgColumnRects.Count; iColumn++ ) {

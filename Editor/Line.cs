@@ -147,7 +147,7 @@ namespace Play.Edit {
         /// <param name="oSearchPos">A LineRange containing the line and offset/length
         /// position use for the search.</param>
         /// <returns>Returns the formatting element under the Search position.</returns>
-        public IPgWordRange FindFormattingUnderRange( IColorRange oSearchPos ) {
+        public IPgWordRange FindFormattingUnderRange( IMemoryRange oSearchPos ) {
             if( oSearchPos == null )
                 throw new ArgumentNullException();
 
