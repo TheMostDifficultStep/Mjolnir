@@ -15,7 +15,7 @@ namespace Monitor {
         public static Guid GUID { get; } = new Guid( "{3D3B82AF-49FA-469E-865F-F35DD8CF11FB}" );
         protected List<string> _rgTools = new List<string>();
         public Guid     Catagory => GUID;
-        public string   Banner => "Basic Viewer" ; // + Monitor.FileName;
+        public string   Banner => "Basic Viewer - " + DocMain.FileName;
         public SKBitmap Icon => null;
         protected BasicDocument DocMain { get; }
 

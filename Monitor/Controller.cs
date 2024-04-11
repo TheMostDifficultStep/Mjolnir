@@ -91,7 +91,7 @@ namespace Monitor {
     public class BBCBasicTextController : BBCBasicController {
         public BBCBasicTextController() {
             _rgExtensions.Add( ".btx" );
-            _rgExtensions.Add( ".msbtx" );
+            _rgExtensions.Add( ".tbtxt" );
         }
 
         public override PgDocDescr Suitability(string strExtension) {

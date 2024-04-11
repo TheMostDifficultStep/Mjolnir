@@ -893,6 +893,8 @@ namespace Monitor {
         public void Dispose() {
         }
 
+        public string FileName => _oFileSite.FileName;
+
         public bool Initialize() {
             if( !DumpDocument.InitNew() )
                 return false;

@@ -21,7 +21,6 @@ using Play.Parse.Impl;
 
 namespace Play.Parse
 {
-	// BUG: Move this to "Play.Parse" namespace instead.
     public interface IMemoryRange {
         int Offset { get; set; }
         int Length { get; set; }
