@@ -60,7 +60,7 @@ namespace Play.MorsePractice {
 		}
 
         protected void OnCallSign( Row oRow, int iColumn, IPgWordRange oRange ) {
-            BrowserLink( "http://www.qrz.com/db/" +  oRow[0].SubString( oRange.Offset, oRange.Length) );
+            BrowserLink( "http://www.qrz.com/db/" +  oRow[iColumn].SubString( oRange.Offset, oRange.Length) );
         }
 
         protected override void OnKeyPress(KeyPressEventArgs e) {
