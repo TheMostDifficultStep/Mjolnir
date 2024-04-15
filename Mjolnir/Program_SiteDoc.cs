@@ -552,7 +552,7 @@ namespace Mjolnir {
                     // Overridable versions of StreamReader can prevent that in higher versions of .net
                     using( StreamReader oReader = new StreamReader( oByteStream, utf8NoBom ) ) {
                         try {
-							FilePath = oFile.FullName; // Guests sometimes need this when loading.
+							FilePath = oFile.DirectoryName; // Guests sometimes need this when loading.
 
 							if( oFile.IsReadOnly )
 								_eFileStats = FILESTATS.READONLY;
