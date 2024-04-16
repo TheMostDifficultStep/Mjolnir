@@ -426,18 +426,6 @@ namespace Mjolnir {
                 }
             }
 
-            /// <summary>
-            /// Used to call Raise_UpdateTitles() here. But it seems I don't need
-            /// it. Looks like the Titles are getting updated.
-            /// </summary>
-            public override string FilePath {
-                set {
-                    if( !string.IsNullOrEmpty( value ) ) {
-                        base.FilePath = value;
-                    }
-                }
-            }
-
             protected override void NewFileTitleAppend(StringBuilder sbTitle) {
                 if( string.IsNullOrEmpty( _strFileExt ) ) {
                     base.NewFileTitleAppend(sbTitle);
@@ -552,7 +540,7 @@ namespace Mjolnir {
                     // Overridable versions of StreamReader can prevent that in higher versions of .net
                     using( StreamReader oReader = new StreamReader( oByteStream, utf8NoBom ) ) {
                         try {
-							FilePath = oFile.DirectoryName; // Guests sometimes need this when loading.
+							FilePath = oFile.FullName; // Guests sometimes need this when loading.
 
 							if( oFile.IsReadOnly )
 								_eFileStats = FILESTATS.READONLY;
