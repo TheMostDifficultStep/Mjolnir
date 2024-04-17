@@ -157,15 +157,18 @@ namespace Play.Parse.Impl
             return (_oProdElem.ToString());
         }
         
-        public virtual int ColorIndex 
-        {
+        public virtual int ColorIndex {
             get {
-                return( m_iColor );
+                return m_iColor;
             }
             set {
                 m_iColor = value;
             }
         }
+
+        public int           PathID   { get; set; } = -1;
+        public MemoryElem<T> Children { get; set; } = null;
+        public MemoryElem<T> Next     { get; set; } = null;
     } // end class 
 
     public class MemoryTerminal<T> : MemoryElem<T> {

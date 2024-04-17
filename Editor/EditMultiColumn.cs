@@ -280,17 +280,20 @@ namespace Play.Edit {
 			LogError( sbMessage.ToString() );
 		}
 
-		public virtual bool Parse() {
+        /// <summary>
+        /// Parse everthing all in one go. This is not handed to the scheduler.
+        /// </summary>
+		public virtual MemoryState<char> Parse() {
 			try {
 				MemoryState<char>   oMStart = new MemoryState<char>( new ProdState<char>( _oStart ), null );
 				ParseIterator<char> oParser = new ParseIterator<char>( _oStream, this, oMStart );
 
 				while( oParser.MoveNext() );
-			    return true;
+			    return oMStart;
 			} catch( NullReferenceException ) {
                 LogError( "Couldn't parse text column." );
 			}
-			return false;
+			return null;
 		}
     }
 
@@ -498,7 +501,7 @@ namespace Play.Edit {
             }
         }
 
-        public void ParseColumn( int iColumn, Grammer<char> oGrammar) {
+        public MemoryState<char> ParseColumn( int iColumn, Grammer<char> oGrammar) {
             try {
                 RowStream        oStream       = CreateColumnStream( iColumn );
                 ParseColumnText  oParseHandler = new ParseColumnText( oStream, oGrammar, LogError );
@@ -507,7 +510,7 @@ namespace Play.Edit {
                     oRow[iColumn].Formatting.Clear();
                 }
 
-                oParseHandler.Parse();
+                return oParseHandler.Parse();
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( InvalidCastException ),
                                     typeof( ArgumentOutOfRangeException ),
@@ -518,6 +521,7 @@ namespace Play.Edit {
 
                 LogError( "Trouble setting up column parse." );
             }
+            return null;
         }
         /// <summary>
         /// The cache manager might have multiple objects that might be

@@ -313,6 +313,10 @@ namespace Play.Parse
             throw new InvalidOperationException( sbError.ToString() );
         }
 
+        protected virtual bool IsKeeper( ProdState<T> oProdState ) {
+            return !string.IsNullOrEmpty(oProdState.ID) || oProdState.IsBinding || oProdState.IsWord;
+        }
+
         /// <summary>
         /// 3/8/2017 : Now that memory elements are all created here we might be able to
         /// further improve by pushing memory elements creation to the document, so that
@@ -332,14 +336,13 @@ namespace Play.Parse
                     //        I save the start position in the memorybinder.
                     _oStack.Push( new MemoryBinder<T>( _iInput, p_oParent ) );
                 }
-
                 for( int iProdElem = p_oProduction.Count - 1; iProdElem >= 0; --iProdElem ) {
                     ProdBase<T> oProdElem = p_oProduction[iProdElem];
 
 					if( oProdElem is ProdState<T> oProdState ) {
 						// Don't push the memory binder at this point, if we do, we have to
 						// wade thru inactive sibling binders by counting frames and etc. Waste of time.
-						if( !string.IsNullOrEmpty(oProdState.ID) || oProdState.IsBinding || oProdState.IsWord) {
+						if( IsKeeper( oProdState ) ) {
 							oProdElem = new MemoryState<T>(oProdState, p_oParent as MemoryState<T>);
 						}
 					} else {
