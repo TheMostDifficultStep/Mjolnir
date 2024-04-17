@@ -149,7 +149,12 @@ namespace Play.Edit {
         /// This is not used by the parser and should be on a different interface.
         /// </summary>
         public override string SubString(int iPos, int iLen) {
-            return string.Empty;
+            StringBuilder sbTemp = new();
+
+            for( int i=iPos; i< iPos+iLen; ++i ) {
+                sbTemp.Append( this[i] );
+            }
+            return sbTemp.ToString();
         }
         
         /// <summary>

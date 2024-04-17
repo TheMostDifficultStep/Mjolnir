@@ -130,6 +130,9 @@ namespace Monitor {
             if( sCommand == GlobalCommands.Insert ) {
                 DocMain.SideLoad();
             }
+            if( sCommand == GlobalCommands.Play ) {
+                DocMain.BasicDoc.Compile();
+            }
 
             return base.Execute( sCommand );
         }

@@ -429,18 +429,24 @@ namespace Monitor {
         /// that makes this whole thing weird.</remarks>
         public void Compile() {
             try {
-                State<char> oStart = _oBasicGrammer.FindState("start") ?? throw new InvalidOperationException( "Couldn't find start state" );
-                Parser2   oParse = new Parser2( oStart, CreateColumnStream( BasicRow.ColumnText ) );
+                RenumberAndSumate();
+
+                State<char>      oStart  = _oBasicGrammer.FindState("start") ?? throw new InvalidOperationException( "Couldn't find start state" );
+                DataStream<char> oStream = CreateColumnStream( BasicRow.ColumnText );
+                Parser2          oParse  = new Parser2( oStart, oStream );
 
                 foreach( int iProgress in oParse ) {
                 }
+
+                BasicCompiler oCompiler = new BasicCompiler( oParse.MStart, oStream );
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( NullReferenceException ),
-                                    typeof( ArgumentOutOfRangeException ) };
+                                    typeof( ArgumentOutOfRangeException ),
+                                    typeof( InvalidDataException ) };
                 if( rgErrors.IsUnhandled( oEx ) )
                     throw;
+                LogError( "Problem with compile" );
             }
-            LogError( "Problem starting compile" );
         }
 
         public bool Execute(Guid sGuid) {
@@ -577,14 +583,16 @@ namespace Monitor {
 
         public OnParserException? ExceptionEvent;
 
+        public MemoryState<char> MStart { get; }
+
         public Parser2( State<char> oStart, DataStream<char> oStream ) {
             _oStream = oStream ?? throw new ArgumentNullException();
             if( oStart == null )
                 throw new ArgumentNullException();
 
-			MemoryState<char> oMStart = new MemoryState<char>( new ProdState<char>( oStart ), null );
+			MStart = new MemoryState<char>( new ProdState<char>( oStart ), null );
 
-            _oStack.Push( oMStart );
+            _oStack.Push( MStart );
         }
 
 		/// <remarks>
@@ -620,9 +628,9 @@ namespace Monitor {
                     MemoryElem<char> oTemp = oMParent.Children;
                     oMParent.Children = oNextElem;
                     oNextElem.Next    = oTemp;
-
-                    return true;
                 }
+
+                return true;
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( ArgumentNullException ),
                                     typeof( NullReferenceException ),
@@ -635,26 +643,25 @@ namespace Monitor {
             return false;
         }
         public IEnumerator<int> GetEnumerator() {
-            if( _oStack.Count < 1 )
-                yield break;
+            while( _oStack.Count > 0 ) {
+                MemoryElem<char>  oNonTerm    = _oStack.Pop(); 
+                Production<char>? oProduction = null;
+		        int               iMatch      = 0;
 
-            MemoryElem<char>  oNonTerm    = _oStack.Pop(); 
-            Production<char>? oProduction = null;
-		    int               iMatch      = 0;
-
-		    if( oNonTerm.IsEqual( 30, _oStream, false, _iInput, out iMatch, out oProduction) ) {
-                if( oProduction == null ) { // it's a terminal or a binder
-					_iInput += iMatch;
-				} else {                    // it's a state.
-					if( !Push( oProduction, oNonTerm ) )
-                        yield break;
-				}
-            } else {
-				// This won't stop infinte loops on the (empty) terminal. But will stop other errors.
-				if( !_oStream.InBounds( _iInput ) )
-					throw new IndexOutOfRangeException();
-			}
-			yield return _iInput;
+		        if( oNonTerm.IsEqual( 30, _oStream, false, _iInput, out iMatch, out oProduction) ) {
+                    if( oProduction == null ) { // it's a terminal or a binder
+					    _iInput += iMatch;
+				    } else {                    // it's a state.
+					    if( !Push( oProduction, oNonTerm ) )
+                            yield break;
+				    }
+                } else {
+				    // This won't stop infinte loops on the (empty) terminal. But will stop other errors.
+				    if( !_oStream.InBounds( _iInput ) )
+					    throw new IndexOutOfRangeException();
+			    }
+			    yield return _iInput;
+            }
         }
 
         IEnumerator IEnumerable.GetEnumerator() {
@@ -662,12 +669,13 @@ namespace Monitor {
         }
     }
 
-    public class TreeWalker 
+    public class BasicCompiler 
     {
         DataStream<char>          _oStream;
         Dictionary< string, int > _rgVariables = new ();
         int                       _iStackPointer = 100;
-        public TreeWalker( MemoryState<char> oMStart, DataStream<char> oStream ) {
+        List<string>              _rgTest = new List<string>();
+        public BasicCompiler( MemoryState<char> oMStart, DataStream<char> oStream ) {
             if( oMStart == null )
                 throw new ArgumentNullException();
             _oStream = oStream ?? throw new ArgumentNullException();
@@ -678,25 +686,32 @@ namespace Monitor {
         protected void Walk( MemoryState<char> oStart ) {
             MemoryElem<char> oNode = oStart;
             while( oNode != null ) {
-                if( oNode is MemoryState<char> oParent ) {
-                    if( IsState( oParent, "let" ) ) {
-                        WalkLet( oParent.Children );
+                if( IsState( oNode, "start" ) ) {
+                    oNode = oNode.Children;
+                    if( IsState( oNode, "basic" ) ) {
+                        oNode = oNode.Children;
+                        if( IsState( oNode, "let" ) ) {
+                            WalkLet( oNode );
+                        }
                     }
-                    Walk( oParent );
                 }
                 oNode = oNode.Next;
             }
         }
 
         protected void WalkLet( MemoryElem<char> oNode ) {
-            CheckValue( oNode, "LET" );
+            oNode = oNode.Children;
+
+          //CheckValue( oNode, "LET" );
             oNode = oNode.Next.Next;
             CheckState( oNode, "assign" );
-            MemoryElem<char> oVar = oNode.Children;
+            oNode = oNode.Children;
+            MemoryElem<char> oVar = oNode;
             CheckState( oVar, "var" );
 
             int iVariable = _iStackPointer;
-            _rgVariables.Add( GetValue( oVar.Children ), _iStackPointer );
+            string strVar = GetValue( oVar );
+            _rgVariables.Add( strVar, _iStackPointer );
             _iStackPointer -= 2; // int16
 
             MemoryElem<char> oType = oVar.Children.Next;
@@ -717,13 +732,13 @@ namespace Monitor {
             CheckState( oNode, "expression" );
             oNode = oNode.Children.Next;
             WalkTerm( oNode );
-            oNode = oNode.Next;
 
             switch( iPathID ) {
                 case 0:
+                    oNode = oNode.Next.Next;
                     string strOp = GetValue( oNode );
 
-                    oNode = oNode.Next;
+                    oNode = oNode.Next.Next;
                     WalkExpression( oNode );
 
                     if( strOp.Equals( "+" ) ) {
@@ -731,15 +746,22 @@ namespace Monitor {
                         // Pop HL
                         // Add HL, BC
                         // Push HL
+                        _rgTest.Add( "Pop 2" );
+                        _rgTest.Add( "Add HL, BC" );
+                        _rgTest.Add( "Push HL" );
                     }
                     if( strOp.Equals( "-" ) ) {
                         // Pop BC - recent expr result
                         // Pop HL - older  expr result
                         // Sub HL, BC // is order correct? HL = HL - BC
                         // Push HL
+                        _rgTest.Add( "Pop 2" );
+                        _rgTest.Add( "Sub HL, BC" );
+                        _rgTest.Add( "Push HL" );
                     }
                     break;
                 case 1:
+                    oNode = oNode.Next;
                     if( oNode != null )
                         throw new InvalidDataException( "Confused" );
                     break;
@@ -753,14 +775,18 @@ namespace Monitor {
 
             switch( iPathID ) {
                 case 0:
-                    oNode = oNode.Next;
+                    oNode = oNode.Next.Next;
                     string strOp = GetValue( oNode );
-                    WalkTerm( oNode.Next ); // right side.
+                    oNode = oNode.Next;
+                    WalkTerm( oNode ); // right side.
 
                     if( strOp.Equals( "*" ) ) {
                         // Pop  values.
                         // Call Mult
                         // Push HL
+                        _rgTest.Add( "Pop 2 ints" );
+                        _rgTest.Add( "Call Mult" );
+                        _rgTest.Add( "Pus HL" );
                     }
                     if( strOp.Equals( "/" ) ) {
                         // stack     = recent expr result
@@ -768,9 +794,13 @@ namespace Monitor {
                         // Pop values.
                         // Call Div
                         // Push HL
+                        _rgTest.Add( "Pop 2 ints" );
+                        _rgTest.Add( "Call Div" );
+                        _rgTest.Add( "Pus HL" );
                     }
                     break;
                 case 1:
+                    oNode = oNode.Next;
                     if( oNode != null )
                         throw new InvalidDataException( "confused" );
                     break;
@@ -792,12 +822,16 @@ namespace Monitor {
                     string strNumber = GetValue( oNode );
                     // LD   BC, int.Parse( strNumber ) // direct
                     // Push BC
+                    _rgTest.Add( "LD   BC, int.Parse( strNumber )" );
+                    _rgTest.Add( "Push BC"  );
                     break;
                 case 2:
                     CheckState( oNode, "var" );
                     string strVar = GetValue( oNode.Children );
                     // LD   BC, _rgVariables[ strVar ] indirect
                     // Push BC
+                    _rgTest.Add( "LD   BC, _rgVariables[ strVar ]" );
+                    _rgTest.Add( "Push BC"  );
                     break;
                 case 3:
                     CheckState( oNode, "built-in-function-call" );
@@ -807,7 +841,7 @@ namespace Monitor {
 
         /// <remarks>Assumes the element does NOT span multiple lines. :-( </remarks>
         public string GetValue( MemoryElem<char> oElem ) {
-            return _oStream.SubString( oElem.Offset, oElem.Length );
+            return _oStream.SubString( oElem.Start, oElem.Length );
         }
 
         public bool IsValue( MemoryElem<char> oElem, string strTest ) {
