@@ -786,7 +786,7 @@ namespace Monitor {
                         // Push HL
                         _rgTest.Add( "Pop 2 ints" );
                         _rgTest.Add( "Call Mult" );
-                        _rgTest.Add( "Pus HL" );
+                        _rgTest.Add( "Push HL" );
                     }
                     if( strOp.Equals( "/" ) ) {
                         // stack     = recent expr result
@@ -796,7 +796,7 @@ namespace Monitor {
                         // Push HL
                         _rgTest.Add( "Pop 2 ints" );
                         _rgTest.Add( "Call Div" );
-                        _rgTest.Add( "Pus HL" );
+                        _rgTest.Add( "Push HL" );
                     }
                     break;
                 case 1:

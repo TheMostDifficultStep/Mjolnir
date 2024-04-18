@@ -338,9 +338,12 @@ namespace Play.ImageViewer {
 		/// <param name="oDir"></param>
 		/// <returns></returns>
         public bool LoadChildren( DirectoryInfo oDir ) {
-            try {
-                _rgSiblings.Clear();
+            _rgSiblings.Clear();
 
+            if( oDir == null )
+                return true;
+
+            try {
                 foreach( DirectoryInfo oSibling in oDir.GetDirectories() ) {
                     _rgSiblings.Add( oSibling );
                 }
@@ -427,8 +430,8 @@ namespace Play.ImageViewer {
 			// BUG: Still not quite sorted in the case we don't load the directory.
             if( oDirectory.Parent != oDirectory ) {
 				// Load the siblings of the directory we are going to read.
-                if( !LoadChildren( oDirectory.Parent ) )
-					return false;
+                // Used to return false if fail. But let's ignore.
+                LoadChildren( oDirectory.Parent );
             }
 
             if( !DirectoryRead( oDirectory ) ) {
