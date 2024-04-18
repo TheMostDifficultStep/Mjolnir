@@ -486,7 +486,9 @@ namespace Mjolnir {
                 }
 
                 FilePath = strPath;
-                //_oHost.Raise_UpdateTitles( this );
+                // If I don't call this, then the session (if using) doesn't
+                // wipe the astrisk off of the title. 
+                _oHost.Raise_UpdateTitles( this );
 
                 return( fSaved );
             }

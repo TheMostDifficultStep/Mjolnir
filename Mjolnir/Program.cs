@@ -939,7 +939,7 @@ namespace Mjolnir {
             }
 
             _fSessionDirty = false;
-
+            
             return( true );
 		}
 

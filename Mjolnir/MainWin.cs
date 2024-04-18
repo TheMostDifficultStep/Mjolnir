@@ -1249,9 +1249,9 @@ namespace Mjolnir {
             base.Text = sbTitle.ToString();
         }
 
-        public string Banner {
-            get { return(base.Text ); }
-        }
+        //public string Banner {
+        //    get { return(base.Text ); }
+        //}
 
         /// <summary>
         /// Close the view the user has currently selected. Ask if he/she wants
