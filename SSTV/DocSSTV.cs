@@ -855,17 +855,17 @@ namespace Play.SSTV {
 
         public bool Save( TextWriter oStream ) {
 			try {
-                XmlDocument oDoc  = new ();
-                XmlElement  oRoot = oDoc.CreateElement( "MySSTV" );
-                oDoc.AppendChild( oRoot );
+                XmlDocument oXDoc = new ();
+                XmlElement  oRoot = oXDoc.CreateElement( "MySSTV" );
+                oXDoc.AppendChild( oRoot );
 
                 Action<string, SSTVProperties.Names> StringProperty = delegate ( string strName, SSTVProperties.Names eProperty ) { 
-                    XmlElement oElem = oDoc.CreateElement( strName );
-                    oElem.InnerText = Properties[(int)eProperty].ToString();
+                    XmlElement oElem = oXDoc.CreateElement( strName );
+                    oElem.InnerText = Properties.ValueAsStr( (int)eProperty ); // Safer than .ToString()...
                     oRoot.AppendChild( oElem ); 
                 };
                 Action<string, Editor> CheckProperty = delegate( string strName, Editor oEditor ) {
-                    XmlElement oElem = oDoc.CreateElement( strName );
+                    XmlElement oElem = oXDoc.CreateElement( strName );
                     if( oEditor.CheckedLine != null ) {
                         oElem.InnerText = oEditor.CheckedLine.ToString();
                         oRoot.AppendChild( oElem );
@@ -885,7 +885,7 @@ namespace Play.SSTV {
                 StringProperty( "TxSrcDir",       SSTVProperties.Names.Tx_SrcDir );
                 StringProperty( "Clock",          SSTVProperties.Names.Std_Frequency );
 
-                oDoc.Save( oStream );
+                oXDoc.Save( oStream );
 			} catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( NullReferenceException ),
                                     typeof( ArgumentNullException ),
