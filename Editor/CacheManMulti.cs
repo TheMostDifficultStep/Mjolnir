@@ -288,6 +288,12 @@ namespace Play.Edit {
             public int StartAt => _rgRowHighLow[0].Row.At;
             public int EndAt   => _rgRowHighLow[1].Row.At;
 
+            /// <summary>
+            /// This has the side effect of resetting the column selection
+            /// values so you may query for those after this call or
+            /// repaint properly.
+            /// </summary>
+            /// <returns>Overall selection type on the row.</returns>
             public SlxnType IsSelection( Row oRow ) {
                 try {
                     // Clear out any previous selections.
@@ -1238,6 +1244,7 @@ namespace Play.Edit {
 
         /// <summary>
         /// Try to move the given caret offset on glyph in the direction specified.
+        /// Need to clear selection when caret moves
         /// </summary>
         /// <param name="eAxis">Horizontal or Vertical</param>
         /// <param name="iDir">How much to move by, +1 or -1.</param>
@@ -1247,6 +1254,9 @@ namespace Play.Edit {
                 throw new ArgumentOutOfRangeException();
 
             try {
+                Selector.Clear();
+                CacheReColor();
+
                 CacheRow oCaretCacheRow = CacheLocate( CaretAt );
                 if( oCaretCacheRow != null ) {
                     // First, see if we can navigate within the cache item we are currently at.
@@ -1279,6 +1289,10 @@ namespace Play.Edit {
             }
         }
 
+        /// <summary>
+        /// User pressed the Tab key.
+        /// </summary>
+        /// <param name="iDir">Go in the direction given.</param>
         public bool CaretTab( int iDir ) {
             if( iDir < -1 || iDir > 1 )
                 return false;
