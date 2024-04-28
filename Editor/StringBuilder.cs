@@ -104,17 +104,21 @@ namespace Play.Edit {
         /// <summary>
         /// Try to pivot ALL array operations into this procedure...
         /// </summary>
-        /// <exception cref="ArgumentOutOfRangeException"></exception>
+        /// <remarks>I used to throw an exception if the Start or Length 
+        /// is less than 0. However, since we're already returning false if
+        /// the edit is out of range. It seems better just to return false.
+        /// Editors will often send start = -1, length 1 when user
+        /// presses delete on an empty buffer. This could happen a lot
+        /// It's safer to check here for all cases anyway.</remarks>
         public bool Replace( int iDelOff, int iDelLen, ReadOnlySpan<char> spInsert ) {
             if( iDelOff < 0 || iDelLen < 0 )
-                throw new ArgumentOutOfRangeException();
+                return false;
+            if( iDelOff + iDelLen > Length )
+                return false;
             if( spInsert == null )
                 spInsert = string.Empty;
 
             try {
-                if( iDelOff + iDelLen > Length )
-                    return false;
-
                 int iDiff = spInsert.Length - iDelLen;          // > 0 means we're adding stuff.
 
                 if( iDiff >= 0 && Length + iDiff + 1 > Capacity ) { // bump up the Capacity if needed. 

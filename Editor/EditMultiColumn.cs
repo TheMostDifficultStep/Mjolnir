@@ -6,7 +6,6 @@ using System.Text;
 using Play.Parse;
 using Play.Interfaces.Embedding;
 using Play.Parse.Impl;
-using System.Windows.Forms;
 
 namespace Play.Edit {
     public static class BagOperations {
@@ -616,7 +615,7 @@ namespace Play.Edit {
 
                 TrackerEnumerable oTE = new TrackerEnumerable( this );
                 //strRemoved = oLine.SubString( iSrcOff, iSrcLen );
-                if( oLine.TryReplace( iSrcOff, iSrcLen, null ) ) {
+               if( oLine.TryReplace( iSrcOff, iSrcLen, null ) ) {
                     IMemoryRange oDeleted = new ColorRange( iSrcOff, iSrcLen ); // BUG use struct...
                     foreach( IColorRange oFormat in oLine.Formatting ) {
                         Marker.ShiftDelete( oFormat, oDeleted );
