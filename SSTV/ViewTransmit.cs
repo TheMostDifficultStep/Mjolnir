@@ -165,6 +165,29 @@ namespace Play.SSTV {
 		    _oDocSSTV.RenderComposite();
         }
 
+		/// <summary>
+		/// It's a little clunky. But if any column in the TxProps get's a
+		/// Enter key. Let's re-render the composite image. Would be nice to
+		/// use my 2 second rule. But that get's blasted by the % image rec'd
+		/// feature. Still working on this.
+		/// </summary>
+        protected override bool ProcessCmdKey( ref Message msg, Keys keyData )	
+        {
+            if( this.IsDisposed )
+                return false;
+
+            const int WM_KEYDOWN = 0x100;
+               
+            if( msg.Msg == WM_KEYDOWN ) {
+                switch(keyData) {
+                    case Keys.Enter:
+						_oDocSSTV.RenderComposite();
+						return true;
+				}
+			}
+
+			return base.ProcessCmdKey( ref msg, keyData );
+		}
     }
 
 	/// <summary>
