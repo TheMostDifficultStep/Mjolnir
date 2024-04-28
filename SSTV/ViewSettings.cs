@@ -81,8 +81,12 @@ namespace Play.SSTV {
             base.OnSizeChanged(e);
         }
 
-        public bool Execute(Guid sGuid) {
-            return false;
+        public override bool Execute(Guid sGuid) {
+            if( sGuid == GlobalCommands.Recycle ) {
+                SSTVDocument.InitDeviceList();
+                return true;
+            }
+            return base.Execute( sGuid );
         }
     }
 }

@@ -732,8 +732,11 @@ namespace Play.SSTV {
             _rgUItoBGQueue.Enqueue( new TVMessage( eMsg, null, iParam ) );
         }
 
-        protected void InitDeviceList() {
+        public void InitDeviceList() {
 			IEnumerator<string> iterOutput = MMHelpers.GetOutputDevices();
+
+            PortTxList .Clear();
+            MonitorList.Clear();
 
 			for( int iCount = -1; iterOutput.MoveNext(); ++iCount ) {
                 PortTxList .LineAppend( iterOutput.Current, fUndoable:false );
@@ -1428,7 +1431,7 @@ namespace Play.SSTV {
             }
             if( StateRx != DocSSTVMode.DeviceRead ) {
                 // we need the receive listener polling to get updates for
-                // or tx progress. Starting the polling here mighte
+                // or tx progress. Starting the polling here might
                 // get us in a weird mode. This is easier for now.
                 LogError( "Start device receive first." );
                 return;
