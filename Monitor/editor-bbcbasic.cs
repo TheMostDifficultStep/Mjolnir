@@ -1,9 +1,9 @@
-﻿using Play.Interfaces.Embedding;
+﻿using System.Collections;
+
+using Play.Interfaces.Embedding;
 using Play.Edit; 
 using Play.Parse;
 using Play.Parse.Impl;
-using System.Data.Common;
-using System.Collections;
 
 namespace Monitor {
     public class BasicRow : Row {
@@ -438,7 +438,9 @@ namespace Monitor {
                 foreach( int iProgress in oParse ) {
                 }
 
-                BasicCompiler oCompiler = new BasicCompiler( oParse.MStart, oStream );
+                BasicCompiler oCompiler = new BasicCompiler( oStream );
+
+                oCompiler.Walk( oParse.MStart );
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( NullReferenceException ),
                                     typeof( ArgumentOutOfRangeException ),
@@ -579,7 +581,7 @@ namespace Monitor {
     {
         MyStack<MemoryElem<char>> _oStack = new MyStack<MemoryElem<char>>();
         int                       _iInput = 0;
-        DataStream<char>          _oStream;
+        DataStream<char>          _oStream; 
 
         public OnParserException? ExceptionEvent;
 
@@ -673,57 +675,84 @@ namespace Monitor {
     {
         DataStream<char>          _oStream;
         Dictionary< string, int > _rgVariables = new ();
-        int                       _iStackPointer = 100;
-        List<string>              _rgTest = new List<string>();
-        public BasicCompiler( MemoryState<char> oMStart, DataStream<char> oStream ) {
-            if( oMStart == null )
-                throw new ArgumentNullException();
+        List<byte>                _rgProgram = new();
+        int                       _iStackAddr = 1000;
+        int                       _iVAddr;
+        Z80Definitions            _rgZ80Definitions;
+        List<string> _rgTest = new(); // temp...
+        public BasicCompiler( DataStream<char> oStream ) {
             _oStream = oStream ?? throw new ArgumentNullException();
-
-            Walk( oMStart );
+            _iVAddr = _iStackAddr;
+            _rgZ80Definitions = new Z80Definitions();
         }
 
-        protected void Walk( MemoryState<char> oStart ) {
+        public void Walk( MemoryState<char> oStart ) {
+            if( oStart == null )
+                throw new ArgumentNullException();
+
             MemoryElem<char> oNode = oStart;
-            while( oNode != null ) {
-                if( IsState( oNode, "start" ) ) {
-                    oNode = oNode.Children;
+            if( IsState( oNode, "start" ) ) {
+                oNode = oNode.Children;
+                while( oNode != null ) {
                     if( IsState( oNode, "basic" ) ) {
                         oNode = oNode.Children;
                         if( IsState( oNode, "let" ) ) {
                             WalkLet( oNode );
                         }
+                        if( IsState( oNode, "print" ) ) {
+                            WalkPrint( oNode );
+                        }
                     }
+                    oNode = oNode.Next;
                 }
-                oNode = oNode.Next;
             }
         }
+
+        protected void WalkPrint( MemoryElem<char> oNode ) {
+            oNode = oNode.Children;
+
+            CheckValue( oNode, "PRINT" );
+            oNode = oNode.Next.Next;
+            string strValue = GetValue( oNode );
+            if( !_rgVariables.ContainsKey( strValue ) )
+                throw new InvalidDataException( "Variable not defined" );
+        }
+
+        protected void Add( Z80Instr sInstr, int iParam ) {
+        }
+        protected void Add( Z80Instr sInstr ) {
+            if( sInstr.Length > 1 )
+                throw new InvalidOperationException();
+        }
+
 
         protected void WalkLet( MemoryElem<char> oNode ) {
             oNode = oNode.Children;
 
-          //CheckValue( oNode, "LET" );
+            CheckValue( oNode, "LET" );
             oNode = oNode.Next.Next;
             CheckState( oNode, "assign" );
             oNode = oNode.Children;
             MemoryElem<char> oVar = oNode;
             CheckState( oVar, "var" );
 
-            int iVariable = _iStackPointer;
             string strVar = GetValue( oVar );
-            _rgVariables.Add( strVar, _iStackPointer );
-            _iStackPointer -= 2; // int16
+            if( _rgVariables.ContainsKey( strVar ) )
+                throw new InvalidDataException( "Variable already defined" );
+
+            _rgVariables.Add( strVar, _iVAddr );
+            _iVAddr += 2; // 16 bit addr.
 
             MemoryElem<char> oType = oVar.Children.Next;
-            string strType = GetValue( oType );
+            string strType = GetValue( oType ); // currently unused.
 
             oNode = oNode.Next.Next;
             CheckValue( oNode, "=" );
             oNode = oNode.Next.Next;
             WalkExpression( oNode );
 
-            // Pop BC
-            // ld [_iStackPointer], BC
+            Add( _rgZ80Definitions[0xe1] ); // Pop HL
+            Add( _rgZ80Definitions[0x22], _rgVariables[strVar] ); // LD [ADDR], HL
         }
 
         protected void WalkExpression( MemoryElem<char> oNode ) {

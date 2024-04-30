@@ -348,8 +348,13 @@ namespace Monitor {
             return _rgMain[iIndex];
         }
 
+        public Z80Instr this [ int iIndex ] {
+            get => _rgMain[iIndex];
+        }
+
         /// <summary>
-        /// Initialize our instruction definitions.
+        /// Initialize our instruction definitions. Currently called in the
+        /// constructor of this class, which is a little evil. But fix later.
         /// </summary>
         /// <exception cref="InvalidDataException"></exception>
         private void InitNew() {
