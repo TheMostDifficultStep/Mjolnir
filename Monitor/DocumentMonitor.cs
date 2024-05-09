@@ -63,6 +63,8 @@ namespace Monitor {
 
     public class Z80Definitions {
         Z80Instr[] _rgMain = new Z80Instr[256];
+        Z80Instr[] _rgMisc = new Z80Instr[256];  // ED
+        Z80Instr[] _rgBitI = new Z80Instr[256];  // CB
 
         /// <exception cref="ArgumentException" />
         /// <exception cref="ArgumentNullException" />
@@ -341,6 +343,13 @@ namespace Monitor {
             _rgMain[0xfe] = new Z80Instr("cp", "{n}");
             _rgMain[0xff] = new Z80Instr("rst", "38");
 
+            _rgMisc[0x42] = new Z80Instr( "sbc", "hl, bc" );
+            _rgMisc[0x52] = new Z80Instr( "sbc", "hl, de" );
+            _rgMisc[0x62] = new Z80Instr( "sbc", "hl, hl" ); // weird but there is is.
+            _rgMisc[0x72] = new Z80Instr( "sbc", "hl, sp" );
+
+            _rgBitI[0x24] = new Z80Instr( "sla", "h" );
+
             InitNew();
         }
 
@@ -350,6 +359,13 @@ namespace Monitor {
 
         public Z80Instr this [ int iIndex ] {
             get => _rgMain[iIndex];
+        }
+
+        public Z80Instr Misc( int iIndex ) {
+            return _rgMisc[iIndex];
+        }
+        public Z80Instr BitI( int iIndex ) {
+            return _rgBitI[iIndex];
         }
 
         /// <summary>

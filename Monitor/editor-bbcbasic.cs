@@ -4,6 +4,7 @@ using Play.Interfaces.Embedding;
 using Play.Edit; 
 using Play.Parse;
 using Play.Parse.Impl;
+using Play.Rectangles;
 
 namespace Monitor {
     public class BasicRow : Row {
@@ -677,9 +678,9 @@ namespace Monitor {
         Dictionary< string, int > _rgVariables = new ();
         List<byte>                _rgProgram = new();
         int                       _iStackAddr = 1000;
-        int                       _iVAddr;
+        int                       _iVAddr; // Start at the stack and go down.
         Z80Definitions            _rgZ80Definitions;
-        List<string> _rgTest = new(); // temp...
+
         public BasicCompiler( DataStream<char> oStream ) {
             _oStream = oStream ?? throw new ArgumentNullException();
             _iVAddr = _iStackAddr;
@@ -718,11 +719,32 @@ namespace Monitor {
                 throw new InvalidDataException( "Variable not defined" );
         }
 
-        protected void Add( Z80Instr sInstr, int iParam ) {
+        protected void AddMain( int iIndex, int iParam ) {
+            Z80Instr sInstr = _rgZ80Definitions[iIndex];
+            _rgProgram.Add( sInstr.Instr );
+            for( int i =0; i< sInstr.Length; ++i ) {
+                _rgProgram.Add( (byte)(iParam & 0xFF) );
+                iParam >>= 8;
+            }
+            if( iParam > 0 )
+                throw new InvalidDataException();
         }
-        protected void Add( Z80Instr sInstr ) {
-            if( sInstr.Length > 1 )
-                throw new InvalidOperationException();
+        protected void AddMain( int iIndex ) {
+            Z80Instr sInstr = _rgZ80Definitions[iIndex];
+            _rgProgram.Add( sInstr.Instr );
+            for( int i =0; i < sInstr.Length; ++i ) {
+                _rgProgram.Add( 0 );
+            }
+        }
+
+        protected void AddMisc( int iIndex ) {
+            Z80Instr sInstr = _rgZ80Definitions.Misc( iIndex );
+            _rgProgram.Add( sInstr.Instr );
+        }
+
+        protected void AddBitI( int iIndex ) {
+            Z80Instr sInstr = _rgZ80Definitions.BitI( iIndex );
+            _rgProgram.Add( sInstr.Instr );
         }
 
 
@@ -751,8 +773,8 @@ namespace Monitor {
             oNode = oNode.Next.Next;
             WalkExpression( oNode );
 
-            Add( _rgZ80Definitions[0xe1] ); // Pop HL
-            Add( _rgZ80Definitions[0x22], _rgVariables[strVar] ); // LD [ADDR], HL
+            AddMain( 0xe1 );                       // Pop HL
+            AddMain( 0x22, _rgVariables[strVar] ); // LD [ADDR], HL
         }
 
         protected void WalkExpression( MemoryElem<char> oNode ) {
@@ -771,22 +793,19 @@ namespace Monitor {
                     WalkExpression( oNode );
 
                     if( strOp.Equals( "+" ) ) {
-                        // Pop BC
-                        // Pop HL
-                        // Add HL, BC
-                        // Push HL
-                        _rgTest.Add( "Pop 2" );
-                        _rgTest.Add( "Add HL, BC" );
-                        _rgTest.Add( "Push HL" );
+                        AddMain( 0xd1 ); // pop de (recent expr result)
+                        AddMain( 0xe1 ); // pop hl (older  expr result)
+                        AddMain( 0x19 ); // add hl, de
+                        AddMain( 0xe5 ); // push hl
                     }
                     if( strOp.Equals( "-" ) ) {
-                        // Pop BC - recent expr result
-                        // Pop HL - older  expr result
                         // Sub HL, BC // is order correct? HL = HL - BC
                         // Push HL
-                        _rgTest.Add( "Pop 2" );
-                        _rgTest.Add( "Sub HL, BC" );
-                        _rgTest.Add( "Push HL" );
+                        AddMain( 0xb7 ); // or  a  (clear carry)
+                        AddMain( 0xd1 ); // pop de (recent expr result)
+                        AddMain( 0xe1 ); // pop hl (older  expr result)
+                        AddMisc( 0x42 ); // sbc HL, DE
+                        AddMain( 0xe5 ); // push hl
                     }
                     break;
                 case 1:
@@ -795,6 +814,34 @@ namespace Monitor {
                         throw new InvalidDataException( "Confused" );
                     break;
             }
+        }
+        
+        /// <summary>
+        /// http://z80-heaven.wikidot.com/advanced-math
+        /// </summary>
+        protected void H_times_E2() {
+            // Inputs:
+            //   H and E
+            // Outputs:
+            //   HL is the product
+            //   D is 0
+            //   B is 0
+            //   A,E,C are preserved
+            // 12 bytes
+
+            AddMain( 0x16, 0 ); // ld d,0
+            AddMain( 0x6a );    // ld l,d (smaller]]]]] instr than "ld l, 0" !)
+            AddMain( 0x06, 8 ); // ld b,8
+
+            int iLoop = _rgProgram.Count;
+
+            AddMain( 0x29 );    // add hl,hl
+            AddMain( 0x18, 3 ); // jr nc,$+3
+            AddMain( 0x19 );    // add hl,de
+
+            int iFrom = _rgProgram.Count + 2;
+            AddMain( 0x10, iFrom - iLoop );   // djnz iLoop (rel jump. loop on b)
+            AddMain( 0xc9 );      
         }
 
         protected void WalkTerm( MemoryElem<char> oNode ) {
@@ -813,9 +860,6 @@ namespace Monitor {
                         // Pop  values.
                         // Call Mult
                         // Push HL
-                        _rgTest.Add( "Pop 2 ints" );
-                        _rgTest.Add( "Call Mult" );
-                        _rgTest.Add( "Push HL" );
                     }
                     if( strOp.Equals( "/" ) ) {
                         // stack     = recent expr result
@@ -823,9 +867,6 @@ namespace Monitor {
                         // Pop values.
                         // Call Div
                         // Push HL
-                        _rgTest.Add( "Pop 2 ints" );
-                        _rgTest.Add( "Call Div" );
-                        _rgTest.Add( "Push HL" );
                     }
                     break;
                 case 1:
@@ -849,18 +890,17 @@ namespace Monitor {
                     break;
                 case 1:
                     string strNumber = GetValue( oNode );
-                    // LD   BC, int.Parse( strNumber ) // direct
-                    // Push BC
-                    _rgTest.Add( "LD   BC, int.Parse( strNumber )" );
-                    _rgTest.Add( "Push BC"  );
+
+                    AddMain( 0x21, int.Parse( strNumber ) ); // ld hd, nn
+                    AddMain( 0xe5 );                         // push hl
                     break;
                 case 2:
                     CheckState( oNode, "var" );
                     string strVar = GetValue( oNode.Children );
-                    // LD   BC, _rgVariables[ strVar ] indirect
-                    // Push BC
-                    _rgTest.Add( "LD   BC, _rgVariables[ strVar ]" );
-                    _rgTest.Add( "Push BC"  );
+                    int    iAddr  = _rgVariables[strVar];
+
+                    AddMain( 0x2a, iAddr ); // ld hl, (nn)
+                    AddMain( 0xe5 );        // push hl
                     break;
                 case 3:
                     CheckState( oNode, "built-in-function-call" );
