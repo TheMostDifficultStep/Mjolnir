@@ -25,7 +25,7 @@ namespace Monitor {
         Abs,
         Rel
     }
-    public struct Z80Instr {
+    public class Z80Instr {
         public string     Name { get; }
         public string     Params { get; }
         public byte       Instr { get; set; }
@@ -34,6 +34,7 @@ namespace Monitor {
         public JumpType   Jump { get; set; }
         public bool       IsCall { get; set; }     
         public IMemoryRange? NumberLocation { get; set; }
+        public byte       InstrExt { get; set; } = 0;
 
         public Z80Instr( string strName, string strParams = null ) {
             Instr   = 0;
@@ -343,16 +344,21 @@ namespace Monitor {
             _rgMain[0xfe] = new Z80Instr("cp", "{n}");
             _rgMain[0xff] = new Z80Instr("rst", "38");
 
-            _rgMisc[0x42] = new Z80Instr( "sbc", "hl, bc" );
-            _rgMisc[0x52] = new Z80Instr( "sbc", "hl, de" );
-            _rgMisc[0x62] = new Z80Instr( "sbc", "hl, hl" ); // weird but there is is.
-            _rgMisc[0x72] = new Z80Instr( "sbc", "hl, sp" );
+            _rgMisc[0x42] = new Z80Instr( "sbc", "hl, bc" ) { InstrExt = 0xED };
+            _rgMisc[0x52] = new Z80Instr( "sbc", "hl, de" ) { InstrExt = 0xED };
+            _rgMisc[0x62] = new Z80Instr( "sbc", "hl, hl" ) { InstrExt = 0xED }; // weird but there is is.
+            _rgMisc[0x72] = new Z80Instr( "sbc", "hl, sp" ) { InstrExt = 0xED };
 
-            _rgBitI[0x24] = new Z80Instr( "sla", "h" );
+            _rgBitI[0x24] = new Z80Instr( "sla", "h" ) { InstrExt = 0xCB };
 
             InitNew();
         }
 
+        /// <summary>
+        /// BUG: Need to fix this up so we can look at two bytes worth of instruction.
+        /// </summary>
+        /// <param name="iIndex"></param>
+        /// <returns></returns>
         public Z80Instr FindMain( int iIndex ) {
             return _rgMain[iIndex];
         }
@@ -376,52 +382,67 @@ namespace Monitor {
         private void InitNew() {
             Regex oReg = new Regex("{n+}|{d+}", RegexOptions.IgnoreCase);
 
-            for( int i=0; i<_rgMain.Length; i++ ) {
-                _rgMain[i].Instr = (byte)i;
-                Match oMatch = oReg.Match( _rgMain[i].Params );
-                if( oMatch != null && oMatch.Success ) {
-                    if( oMatch.Groups.Count > 1 ) 
-                        throw new InvalidDataException("Unexpected z80 instruction" );
+            InitArray( _rgMain, oReg );
+            InitArray( _rgBitI, oReg );
+            InitArray( _rgMisc, oReg );
+        }
 
-                    _rgMain[i].NumberLocation = new ColorRange( oMatch.Index, oMatch.Length ); 
+        private void InitArray( Z80Instr[] rgInstrs, Regex oReg ) {
+            for( int i=0; i<rgInstrs.Length; i++ ) {
+                Z80Instr oInstr = rgInstrs[i];
+                Match    oMatch = oReg.Match( oInstr.Params );
 
-                    if( string.Compare( _rgMain[i].Name, "call" ) == 0 )
-                        _rgMain[i].IsCall = true;
+                Setup( oInstr, i, oMatch );
+            }
+        }
 
-                    if( string.Compare( _rgMain[i].Name, "jp"   ) == 0 ||
-                        string.Compare( _rgMain[i].Name, "jr"   ) == 0 ||
-                        _rgMain[i].IsCall )
-                    {
-                        switch( _rgMain[i].Params[oMatch.Index+1] ) { // ignore first '{'
-                            case 'n':
-                                _rgMain[i].Jump = JumpType.Abs;
-                                break;
-                            case 'd':
-                                _rgMain[i].Jump = JumpType.Rel;
-                                break;
-                            default:
-                                throw new InvalidDataException("Unexpected z80 jump type" );
-                        }
-                    }
-                    switch( oMatch.Length ) {
-                        case 0:
-                            throw new InvalidDataException("Problem with z80 instr table" );
-                        case 3: // "{n}"
-                            _rgMain[i].Length += 1;
-                            break;
-                        case 4: // "{nn}"
-                            _rgMain[i].Length += 2;
-                            break;
-                        default:
-                            break;
-                    }
+        private void Setup( Z80Instr oInstr, int iIndex, Match oMatch ) {
+            if( oInstr == null )
+                throw new ArgumentNullException();
 
-                } else {
-                    if( string.Compare( _rgMain[i].Name, "rst"  ) == 0 ) {
-                        _rgMain[i].Jump = JumpType.Abs;
-                    }
+            oInstr.Instr = (byte)iIndex;
+
+            if( !oMatch.Success ) {
+                if( string.Compare( oInstr.Name, "rst"  ) == 0 ) {
+                    oInstr.Jump = JumpType.Abs;
                 }
-                
+                return;
+            }
+
+            if( oMatch.Groups.Count > 1 ) 
+                throw new InvalidDataException("Unexpected z80 instruction" );
+
+            oInstr.NumberLocation = new ColorRange( oMatch.Index, oMatch.Length ); 
+
+            if( string.Compare( oInstr.Name, "call" ) == 0 )
+                oInstr.IsCall = true;
+
+            if( string.Compare( oInstr.Name, "jp"   ) == 0 ||
+                string.Compare( oInstr.Name, "jr"   ) == 0 ||
+                oInstr.IsCall )
+            {
+                switch( oInstr.Params[oMatch.Index+1] ) { // ignore first '{'
+                    case 'n':
+                        oInstr.Jump = JumpType.Abs;
+                        break;
+                    case 'd':
+                        oInstr.Jump = JumpType.Rel;
+                        break;
+                    default:
+                        throw new InvalidDataException("Unexpected z80 jump type" );
+                }
+            }
+            switch( oMatch.Length ) {
+                case 0:
+                    throw new InvalidDataException("Problem with z80 instr table" );
+                case 3: // "{n}"
+                    oInstr.Length += 1;
+                    break;
+                case 4: // "{nn}"
+                    oInstr.Length += 2;
+                    break;
+                default:
+                    break;
             }
         }
     }
@@ -1295,7 +1316,7 @@ namespace Monitor {
         }
 
         protected Z80Instr FindInfo( int iAddr ) {
-            Z80Instr? sInstr;
+            Z80Instr oInstr;
              
             // BUG: hard coded for "tinybasic", just an experiment
             //if( iAddr >= 0x6A1 || ( iAddr >= 0xa6 && iAddr < 0xba ) ) {
@@ -1305,10 +1326,10 @@ namespace Monitor {
             //if( iAddr >= 0x196 ) {
             //    sInstr = new Z80Instr( _rgRam[iAddr ] );
             //} else {
-                sInstr = _oZ80Info.FindMain( _rgRam[iAddr] );
-//            }
+                oInstr = _oZ80Info.FindMain( _rgRam[iAddr] );
+            //}
 
-            return sInstr.Value;
+            return oInstr;
         }
 
         /// <summary>

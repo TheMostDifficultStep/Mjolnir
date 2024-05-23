@@ -157,8 +157,14 @@ namespace Monitor {
                     // Take the rest and use as the basic commands. We
                     // assume that there is ONE space between the line
                     // number and the commands, but check just in case not...
+                    if( i >= strLine.Length )
+                        continue;
+
                     if( Char.IsWhiteSpace( strLine[i] ) )
                         ++i;
+
+                    if( i >= strLine.Length )
+                        continue;
 
                     spBasic = strLine.AsSpan().Slice( start:i, length: strLine.Length - i );
                     // Combine the line number and the basic commands.
@@ -176,7 +182,8 @@ namespace Monitor {
                 Type[] rgErrors = { typeof( IOException ),
                                     typeof( OutOfMemoryException ),
                                     typeof( ObjectDisposedException ),
-                                    typeof( ArgumentOutOfRangeException ) };
+                                    typeof( ArgumentOutOfRangeException ),
+                                    typeof( IndexOutOfRangeException ) };
                 if( rgErrors.IsUnhandled( oEx ) )
                     throw;
 
@@ -676,10 +683,49 @@ namespace Monitor {
     {
         DataStream<char>          _oStream;
         Dictionary< string, int > _rgVariables = new ();
-        List<byte>                _rgProgram = new();
-        int                       _iStackAddr = 1000;
+        List<byte>                _rgProgram   = new();
+        Dictionary< string, int > _rgLabels    = new ();
+        int                       _iStackAddr  = 1000;
         int                       _iVAddr; // Start at the stack and go down.
         Z80Definitions            _rgZ80Definitions;
+
+        class LabelManager : IDisposable {
+            string        _strMethodName; // for referencing the entry point of proc.
+            BasicCompiler _oCompiler;
+            int           _iStartAddr;
+
+            Dictionary< string, int > _rgJumps = new (); // jumps
+
+
+            /// <summary>
+            /// Use this object to patch up the the jump labels at
+            /// the end of loading a passage of assembly.
+            /// </summary>
+            /// <param name="oCompiler"></param>
+            /// <param name="strMethod"></param>
+            /// <exception cref="ArgumentNullException"></exception>
+            /// <exception cref="ArgumentException>">Method name already in system.</exception>
+            public LabelManager( BasicCompiler oCompiler, string strMethod ) {
+                _strMethodName = strMethod ?? throw new ArgumentNullException();
+                _oCompiler     = oCompiler ?? throw new ArgumentNullException();
+
+                _iStartAddr    = oCompiler._rgProgram.Count;
+
+                _oCompiler._rgLabels.Add( strMethod, _iStartAddr );
+            }
+
+            public void AddJump( Z80Instr sInstr, string strLabel ) {
+                _oCompiler.AddMain( sInstr.Instr, strLabel );
+            }
+
+            public void Dispose() {
+                List<byte> oListing = _oCompiler._rgProgram;
+
+                foreach( KeyValuePair< string, int > oLabel in _rgJumps ) {
+                    int iInstr = oListing[oLabel.Value];
+                }
+            }
+        }
 
         public BasicCompiler( DataStream<char> oStream ) {
             _oStream = oStream ?? throw new ArgumentNullException();
@@ -719,16 +765,52 @@ namespace Monitor {
                 throw new InvalidDataException( "Variable not defined" );
         }
 
-        protected void AddMain( int iIndex, int iParam ) {
+        protected void AddMain( int iIndex, int? iParam = null ) {
             Z80Instr sInstr = _rgZ80Definitions[iIndex];
             _rgProgram.Add( sInstr.Instr );
-            for( int i =0; i< sInstr.Length; ++i ) {
+            if( iParam != null ) {
+                for( int i =0; i< sInstr.Length; ++i ) {
+                    _rgProgram.Add( (byte)(iParam.Value & 0xFF) );
+                    iParam >>= 8;
+                }
+                if( iParam > 0 )
+                    throw new InvalidDataException();
+            }
+        }
+
+        /// <summary>
+        /// Use this when you have a branch to a label.
+        /// </summary>
+        /// <param name="iIndex">instruction</param>
+        /// <param name="strLabel">name of the label.</param>
+        /// <exception cref="InvalidDataException"></exception>
+        /// <remarks>Check to see if the label exists. If not adds
+        /// it to the dictionary.</remarks>
+        protected void AddMain( int iIndex, string strLabel ) {
+            Z80Instr sInstr = _rgZ80Definitions[iIndex];
+            int      iStart = 1;
+
+            if( sInstr.InstrExt != 0 ) {
+                _rgProgram.Add( sInstr.InstrExt );
+                iStart += 1;
+            }
+            _rgProgram.Add( sInstr.Instr );
+
+            // Try to get the label value if in dictionary.
+            if( !_rgLabels.TryGetValue( strLabel, out int iParam ) ) {
+                iParam = 0;
+                AddLabel( strLabel ); // First reference of label, add it.
+            }
+            // In either case set the value or set zero.
+            for( int i = iStart; i< sInstr.Length; ++i ) {
                 _rgProgram.Add( (byte)(iParam & 0xFF) );
                 iParam >>= 8;
             }
-            if( iParam > 0 )
-                throw new InvalidDataException();
+            //if( iParam > 0 )
+            //    throw new InvalidDataException();
         }
+
+        /// <remarks>TODO: This won't work for 2 byte isntructions... :-/</remarks>
         protected void AddMain( int iIndex ) {
             Z80Instr sInstr = _rgZ80Definitions[iIndex];
             _rgProgram.Add( sInstr.Instr );
@@ -737,9 +819,13 @@ namespace Monitor {
             }
         }
 
-        protected void AddMisc( int iIndex ) {
-            Z80Instr sInstr = _rgZ80Definitions.Misc( iIndex );
-            _rgProgram.Add( sInstr.Instr );
+        /// <summary>
+        /// Use this for the target of a jump instruction. Basically
+        /// where you see the label defined in the asm.
+        /// </summary>
+        /// <param name="strLabel"></param>
+        protected void AddLabel( string strLabel ) {
+            _rgLabels.Add( strLabel, _rgProgram.Count );
         }
 
         protected void AddBitI( int iIndex ) {
@@ -804,7 +890,7 @@ namespace Monitor {
                         AddMain( 0xb7 ); // or  a  (clear carry)
                         AddMain( 0xd1 ); // pop de (recent expr result)
                         AddMain( 0xe1 ); // pop hl (older  expr result)
-                        AddMisc( 0x42 ); // sbc HL, DE
+                        AddMain( 0x42 ); // sbc HL, DE
                         AddMain( 0xe5 ); // push hl
                     }
                     break;
@@ -830,17 +916,16 @@ namespace Monitor {
             // 12 bytes
 
             AddMain( 0x16, 0 ); // ld d,0
-            AddMain( 0x6a );    // ld l,d (smaller]]]]] instr than "ld l, 0" !)
+            AddMain( 0x6a );    // ld l,d (smaller instr than "ld l, 0" !)
             AddMain( 0x06, 8 ); // ld b,8
 
-            int iLoop = _rgProgram.Count;
+            AddLabel( "H_Loop" );
 
             AddMain( 0x29 );    // add hl,hl
             AddMain( 0x18, 3 ); // jr nc,$+3
             AddMain( 0x19 );    // add hl,de
 
-            int iFrom = _rgProgram.Count + 2;
-            AddMain( 0x10, iFrom - iLoop );   // djnz iLoop (rel jump. loop on b)
+            AddMain( 0x10, "H_Loop" );   // djnz iLoop (rel jump. loop on b)
             AddMain( 0xc9 );      
         }
 
