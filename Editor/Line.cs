@@ -341,7 +341,7 @@ namespace Play.Edit {
         [Obsolete]public virtual bool TryDelete( int iIndex, int iLength, out string strRemoved ) { strRemoved = string.Empty; return( false ); }
         
         // Viewslots use this so pushing this to the LineExtension class won't work. :-/
-        public virtual bool TryAppend( string strValue ) { return TryReplace( ElementCount, 0, strValue ); }
+        public virtual bool TryAppend( ReadOnlySpan<char> strValue ) { return TryReplace( ElementCount, 0, strValue ); }
 
         public abstract bool TryReplace( int iStart, int iLength, ReadOnlySpan<char> spReplacements );
 

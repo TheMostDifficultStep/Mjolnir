@@ -149,13 +149,14 @@ namespace Play.MorsePractice {
 												DateTime.Now.ToLongDateString () );
 					_oDocLog.Props.ValueUpdate( (int)DocLogProperties.Names.TimeStart, 
 						                        DateTime.Now.ToShortTimeString() );
-					break;
+					return true;
 				case var c when sGuid == GlobalCommands.Stop:
 					_oDocLog.Props.ValueUpdate( (int)DocLogProperties.Names.TimeEnd, 
 						                        DateTime.Now.ToShortTimeString() );
-					break;
+					return true;
+				default:
+					return ViewList.Execute( sGuid );
 			}
-			return false;
 		}
 
 		public bool InitNew() {

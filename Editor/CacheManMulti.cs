@@ -82,23 +82,33 @@ namespace Play.Edit {
             }
         }
 
-        protected class SelectionEnumerator :
-            IEnumerable<Row> 
+        protected class SelectionEnumerable :
+            IPgSelection
         {
             readonly IReadableBag<Row> _rgBag;
-            readonly SelectionManager  _oSlxn;
+            readonly SelectionManager  _oSlxnManager;
 
-            public SelectionEnumerator( IReadableBag<Row> rgBag, SelectionManager oSlxn ) {
-                _rgBag = rgBag ?? throw new ArgumentNullException();
-                _oSlxn = oSlxn ?? throw new ArgumentNullException();
+            public SelectionEnumerable( IReadableBag<Row> rgBag, SelectionManager oSlxn ) {
+                _rgBag        = rgBag ?? throw new ArgumentNullException();
+                _oSlxnManager = oSlxn ?? throw new ArgumentNullException();
             }
 
             public IEnumerator<Row> GetEnumerator() {
-                _oSlxn.IsSelection( _oSlxn.Caret.Row );
-
-                for( int i=_oSlxn.StartAt; i<=_oSlxn.EndAt; ++i ) {
+                for( int i=_oSlxnManager.StartAt; i<=_oSlxnManager.EndAt; ++i ) {
                     yield return _rgBag[i];
                 }
+            }
+
+            /// <summary>
+            /// After retrieving a row from the enumeration you can call this
+            /// function to determine the selection on each column.
+            /// </summary>
+            public IMemoryRange AtColumn(int iIndex) {
+                return _oSlxnManager[iIndex];
+            }
+
+            public IPgSelection.SlxnType IsSelection(Row oRow) {
+                return _oSlxnManager.IsSelection( oRow );
             }
 
             IEnumerator IEnumerable.GetEnumerator() {
@@ -113,7 +123,7 @@ namespace Play.Edit {
             readonly IPgCaretInfo<Row>[] _rgRowHighLow = new IPgCaretInfo<Row>[2];
             readonly IPgCaretInfo<Row>[] _rgColHighLow = new IPgCaretInfo<Row>[2];
             readonly IColorRange      [] _rgSelections;
-            readonly IColorRange      [] _rgCache;
+            readonly IColorRange      [] _rgCache; // Color ranges that the selections can use.
 
             bool _fFrozen = true;
             public SelectionManager( int iMaxCols ) {
@@ -281,10 +291,6 @@ namespace Play.Edit {
                 }
             }
 
-            public enum SlxnType {
-                Top, Bottom, Middle, Equal, None
-            }
-
             public int StartAt => _rgRowHighLow[0].Row.At;
             public int EndAt   => _rgRowHighLow[1].Row.At;
 
@@ -294,14 +300,14 @@ namespace Play.Edit {
             /// repaint properly.
             /// </summary>
             /// <returns>Overall selection type on the row.</returns>
-            public SlxnType IsSelection( Row oRow ) {
+            public IPgSelection.SlxnType IsSelection( Row oRow ) {
                 try {
                     // Clear out any previous selections.
                     for( int i=0; i< _rgCache.Length; ++i ) {
                         _rgSelections[i] = null;
                     }
                     if( Caret == null )
-                        return SlxnType.None;
+                        return IPgSelection.SlxnType.None;
 
                     if( Caret.Row.At > Pin.Row.At ) {
                         _rgRowHighLow[0] = Pin;
@@ -311,49 +317,52 @@ namespace Play.Edit {
                         _rgRowHighLow[1] = Pin;
                     }
                     if( oRow.At < _rgRowHighLow[0].Row.At )
-                        return SlxnType.None;
+                        return IPgSelection.SlxnType.None;
                     if( oRow.At > _rgRowHighLow[1].Row.At )
-                        return SlxnType.None;
+                        return IPgSelection.SlxnType.None;
 
                     if( Caret.Row.At == Pin.Row.At ) {
                         EquRow( oRow );
-                        return SlxnType.Equal;
+                        return IPgSelection.SlxnType.Equal;
                     }
 
                     if( oRow.At == _rgRowHighLow[0].Row.At ) {
                         TopRow( oRow );
-                        return SlxnType.Top;
+                        return IPgSelection.SlxnType.Top;
                     }
                     if( oRow.At == _rgRowHighLow[1].Row.At ) {
                         BotRow( oRow );
-                        return SlxnType.Bottom;
+                        return IPgSelection.SlxnType.Bottom;
                     }
                     
                     // Middle... select everything.
                     for( int iCol=0; iCol<oRow.Count; ++iCol ) {
                         Set( iCol, 0, oRow[iCol].ElementCount );
                     }
-                    return SlxnType.Middle;
+                    return IPgSelection.SlxnType.Middle;
                 } catch ( Exception oEx ) {
                     Type[] rgErrors = { typeof( NullReferenceException ),
                                         typeof( ArgumentOutOfRangeException ) };
                     if( rgErrors.IsUnhandled( oEx ) )
                         throw;
                 }
-                return SlxnType.None; // Technically error. But let's see how it goes.
+                return IPgSelection.SlxnType.None; // Technically error. But let's see how it goes.
             }
 
             public int RowCount {
                 get {
+                    if( Caret == null )
+                        return 0;
+
                     try {
                         int iRows = Math.Abs( Caret.Row.At - Pin.Row.At );
 
                         if( iRows > 0 )
                             return iRows + 1;
 
-                        SlxnType eSlxn = IsSelection( Caret.Row );
+                        IPgSelection.SlxnType eSlxn = IsSelection( Caret.Row );
 
-                        if( eSlxn != SlxnType.Equal ) 
+                        if( eSlxn != IPgSelection.SlxnType.Equal ) 
                             return 0; // Technically an error.
 
                         int iCharCount = 0;
@@ -373,6 +382,12 @@ namespace Play.Edit {
                 }
             }
 
+            /// <summary>
+            /// Count the columns in the current row selection that
+            /// have any selection in them.
+            /// </summary>
+            /// <param name="iColumn">Return selected column count.</param>
+            /// <returns>True if there is only one column.</returns>
             public bool IsSingleColumn( out int iColumn ) {
                 iColumn = -1;
 
@@ -487,6 +502,13 @@ namespace Play.Edit {
 
             return _oSite.TabStop( 0 );
         }
+
+        /// <summary>
+        /// BUG: Let's try to phase this out. I typically need to call IsSelection on
+        /// each line to get the selection type anyway. That get's done in this
+        /// enumerator so it's wasting time.
+        /// </summary>
+        public IPgSelection Selection => new SelectionEnumerable( _oSiteList, Selector );
 
         public IEnumerator<CacheRow> GetEnumerator() {
             return _rgOldCache.GetEnumerator();
@@ -1110,25 +1132,24 @@ namespace Play.Edit {
             Selector.Freeze();
         }
 
-        protected IEnumerable<Row> SelectionEnum => new SelectionEnumerator( _oSiteList, Selector );
-
         /// <summary>
         /// Copy the entire selection. Stick a TAB between columns.
         /// </summary>
+        /// <seealso cref="EditMultiColumn.RowDelete(IPgSelection)"/>
         public string SelectionCopy() {
             StringBuilder oBuilder = new();
 
             try {
 			    if( Selector.RowCount > 0 ) {
                     int iCountRow = 0;
-                    foreach( Row oRow in SelectionEnum ) {
+                    foreach( Row oRow in Selection ) {
                         int iCountCol = 0;
                         // Just want CR -between- lines.
                         if( iCountRow++ > 0 ) {
                             oBuilder.AppendLine();
                         }
 
-                        if( Selector.IsSelection( oRow ) != SelectionManager.SlxnType.None ) {
+                        if( Selector.IsSelection( oRow ) != IPgSelection.SlxnType.None ) {
                             for( int i=0; i<oRow.Count; i++ ) {
                                 if( Selector[i] != null ) {
                                     if( iCountCol++ > 0 ) {
@@ -1146,9 +1167,6 @@ namespace Play.Edit {
             }
 
             return oBuilder.ToString();
-        }
-
-        public void SelectionDelete() {
         }
 
         public void CacheReMeasure() {

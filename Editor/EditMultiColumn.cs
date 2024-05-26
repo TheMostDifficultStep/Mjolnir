@@ -8,6 +8,16 @@ using Play.Interfaces.Embedding;
 using Play.Parse.Impl;
 
 namespace Play.Edit {
+    public interface IPgSelection :
+        IEnumerable<Row>
+    {
+        public enum SlxnType {
+            Top, Bottom, Middle, Equal, None
+        }
+
+        SlxnType     IsSelection( Row oRow );
+        IMemoryRange AtColumn   ( int iIndex );
+    }
     public static class BagOperations {
         public static int Final( this IReadableBag<Row> rgList ) {
             if( rgList.ElementCount <= 0 )
@@ -647,7 +657,7 @@ namespace Play.Edit {
             return false;
         }
 
-        public bool RowDeleteAt( Row oRow ) {
+        public bool RowDelete( Row oRow ) {
             try {
                 TrackerEnumerable oTE = new TrackerEnumerable( this );
 
@@ -668,6 +678,81 @@ namespace Play.Edit {
                 _oSiteBase.LogError( "Multi Column Edit", "Error in RowDeleteAt" );
             }
             return false;
+        }
+
+        /// <summary>
+        /// Delete all the rows in the selection. Attempt to merge the columns on
+        /// the top and bottom of the selection.
+        /// </summary>
+        /// <remarks>Perf seems a little slow on this one. Might want to look
+        /// into that.</remarks>
+        /// <seealso cref="CacheMultiColumn.SelectionCopy"/>
+        public void RowDelete( IPgSelection oSelection ) {
+            List<Row> rgDelete = new List<Row>();
+            Row       oRowTop  = null;
+            Row       oRowBot  = null;
+            try {
+                TrackerEnumerable oTE = new TrackerEnumerable( this );
+
+                foreach( Row oRow in oSelection ) {
+                    switch( oSelection.IsSelection( oRow ) ) {
+                        case IPgSelection.SlxnType.Middle: 
+                            rgDelete.Add( oRow );
+                            break;
+                        case IPgSelection.SlxnType.Top:
+                            oRowTop = oRow;
+                            break;
+                        case IPgSelection.SlxnType.Bottom:
+                            oRowBot = oRow;
+                            break;
+                    }
+                }
+                foreach( Row oRow in rgDelete ) {
+                    _rgRows.Remove( oRow );
+                }
+                // Remove the text from each line element
+                if( oRowTop != null ) {
+                    oSelection.IsSelection( oRowTop );
+                    for( int i=0; i< oRowTop.Count; ++i ) {
+                        IMemoryRange oRange = oSelection.AtColumn(i);
+                        if( oRange != null ) {
+                            Line oLine = oRowTop[i];
+                            oLine.TryReplace( oRange, null );
+                        }
+                    }
+                }
+                if( oRowBot != null ) {
+                    oSelection.IsSelection( oRowBot );
+                    for( int i=0; i< oRowBot.Count; ++i ) {
+                        IMemoryRange oRange = oSelection.AtColumn(i);
+                        if( oRange != null ) {
+                            Line oLine = oRowBot[i];
+                            oLine.TryReplace( oRange, null );
+                        }
+                    }
+                }
+                // Merge lines.
+                if( oRowTop != null && oRowBot != null ) {
+                    for( int i=0; i< oRowTop.Count; ++i ) {
+                        Line oLineTop = oRowTop[i];
+                        Line oLineBot = oRowBot[i];
+
+                        oLineTop.TryAppend( oLineBot.AsSpan );
+                        _rgRows.Remove( oRowBot );
+                    }
+
+                }
+                RenumberAndSumate();
+
+                oTE.FinishUp( EditType.DeleteRow, null );
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( NullReferenceException ),
+                                    typeof( IndexOutOfRangeException ),
+                                    typeof( ArgumentOutOfRangeException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
+                LogError( "Multi Column Delete Error" );
+            }
         }
 
         /// <summary>

@@ -40,7 +40,8 @@ namespace Play.Edit {
 
         bool TryReplaceAt( T oRow, int iColumn, int iSrcOff, int iSrcLen, ReadOnlySpan<char> spText );
         bool TryDeleteAt( T oRow, int iColumn, int iSrcOff, int iSrcLen ); // Would like to remove this one...
-        bool RowDeleteAt( T oRow );
+        bool RowDelete( T oRow );
+        void RowDelete( IPgSelection oSelection );
     }
 
     public enum EditType {
@@ -511,7 +512,8 @@ namespace Play.Edit {
 
         public void ClipboardCutTo() {
             ClipboardCopyTo();
-            _oCacheMan.SelectionDelete();
+
+            SelectionDelete();
         }
 
         public virtual void ClipboardCopyTo() {
@@ -948,7 +950,7 @@ namespace Play.Edit {
                     case Keys.Control | Keys.Q:
                         if( !_fReadOnly ) { // Or column or elem locked...
                             if( _oCacheMan.CopyCaret() is CacheMultiColumn.CaretInfo oCaret ) {
-                                _oDocOps.RowDeleteAt( oCaret.Row );
+                                _oDocOps.RowDelete( oCaret.Row );
                             }
                         }
                         return true;
@@ -988,9 +990,9 @@ namespace Play.Edit {
                         oSelector.Clear(); // Do before the TryReplace...
                         _oCacheMan.CaretOffset = oRange.Offset+1;
                         _oDocOps.TryReplaceAt( oRow, iColumn, oRange, rgInsert );
-                    } else {
-                        oSelector.Clear();
-                        _oDocOps.TryReplaceAt( _oCacheMan.CopyCaret(), rgInsert );
+                    //} else {
+                    // BUG: Arg, can't handle the other cases yet...
+                    //    SelectionDelete( e.KeyChar );
                     }
 
                     e.Handled = true;
@@ -1126,7 +1128,14 @@ namespace Play.Edit {
         }
 
         public void SelectionClear() {
+            _oCacheMan.Selector.Clear();
         }
+
+        public void SelectionDelete() {
+            _oDocOps.RowDelete( _oCacheMan.Selection );
+            SelectionClear();
+        }
+
         #endregion
 
         public virtual bool Execute( Guid gCommand ) {
@@ -1136,6 +1145,10 @@ namespace Play.Edit {
             }
             if( gCommand == GlobalCommands.Paste ) {
                 //ClipboardCopyFrom();
+                return true;
+            }
+            if( gCommand == GlobalCommands.Delete ) {
+                SelectionDelete();
                 return true;
             }
 
