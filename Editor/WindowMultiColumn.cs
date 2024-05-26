@@ -957,9 +957,10 @@ namespace Play.Edit {
                     case Keys.Delete: {
                         // The only way to get this event.
                         if( !_fReadOnly ) {
-                            if( _oCacheMan.CopyCaret() is CacheMultiColumn.CaretInfo oCaret ) {
-                                _oDocOps.TryDeleteAt( oCaret.Row, oCaret.Column, oCaret.Offset, 1 );
-                            }
+                            //if( _oCacheMan.CopyCaret() is CacheMultiColumn.CaretInfo oCaret ) {
+                            //    _oDocOps.TryDeleteAt( oCaret.Row, oCaret.Column, oCaret.Offset, 1 );
+                            //}
+                            SelectionDelete();
                         }
                         return true;
                     }

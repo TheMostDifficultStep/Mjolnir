@@ -738,8 +738,8 @@ namespace Play.Edit {
                         Line oLineBot = oRowBot[i];
 
                         oLineTop.TryAppend( oLineBot.AsSpan );
-                        _rgRows.Remove( oRowBot );
                     }
+                    _rgRows.Remove( oRowBot );
 
                 }
                 RenumberAndSumate();
