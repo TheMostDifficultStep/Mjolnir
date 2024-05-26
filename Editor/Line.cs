@@ -502,6 +502,8 @@ namespace Play.Edit {
         protected Line[] _rgColumns;
         readonly static Line _oDefault = new TextLine( 0, string.Empty );
 
+        public bool _fDeleted = false;
+
         public Line this[int index] {
             get {
                 if( _rgColumns[index] == null )

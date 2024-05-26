@@ -762,6 +762,10 @@ namespace Play.Edit {
 
             CacheRow oNewCache = _rgOldCache.Find( x => x.Row == oNextDRow );
 
+            // Little hack for now.
+            if( oNewCache != null && oNextDRow._fDeleted )
+                oNewCache = null;
+
             // If we're reusing a cache, it's already measured!! ^_^
             if( oNewCache == null ) {
                 oNewCache = CreateCacheRow( oNextDRow ); // _oSiteList[ oNextDRow.At ]
@@ -804,7 +808,10 @@ namespace Play.Edit {
             if( _rgOldCache.Count > 0 ) {
                 int iTop = _oTextRect.Height;
                 foreach( CacheRow oTestRow in _rgOldCache ) {
-                    if( ClippedHeight( oTestRow ) > 0 && oTestRow.At >= 0 ) {
+                    if( ClippedHeight( oTestRow ) > 0 && 
+                        oTestRow.At >= 0 && 
+                        oTestRow.Row._fDeleted == false 
+                    ) {
                         if( oTestRow.Top < iTop ) {
                             oSeedCache = oTestRow;
                             iTop     = oTestRow.Top;
@@ -882,10 +889,13 @@ namespace Play.Edit {
 
                 foreach( CacheRow oCacheRow in _rgOldCache ) {
                     if( oCacheRow.Row == _oCaretRow &&
-                        _oCaretRow    != null ) {
+                        _oCaretRow    != null &&
+                        _oCaretRow._fDeleted == false
+                        ) {
                         oSeedCache = oCacheRow;
                     }
                     if( oPatch        != null &&
+                        oPatch._fDeleted == false &&
                         oCacheRow.Row == oPatch ) {
                         RowMeasure(oCacheRow);
                     }

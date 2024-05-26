@@ -662,6 +662,7 @@ namespace Play.Edit {
                 TrackerEnumerable oTE = new TrackerEnumerable( this );
 
                 _rgRows.Remove( oRow ); // Faster if use index... probably...
+                oRow._fDeleted = true;
 
                 RenumberAndSumate(); // Huh... This fixes all my bugs. :-/
 
@@ -709,6 +710,7 @@ namespace Play.Edit {
                 }
                 foreach( Row oRow in rgDelete ) {
                     _rgRows.Remove( oRow );
+                    oRow._fDeleted = true;
                 }
                 // Remove the text from each line element
                 if( oRowTop != null ) {
@@ -740,6 +742,7 @@ namespace Play.Edit {
                         oLineTop.TryAppend( oLineBot.AsSpan );
                     }
                     _rgRows.Remove( oRowBot );
+                    oRowBot._fDeleted = true;
 
                 }
                 RenumberAndSumate();
