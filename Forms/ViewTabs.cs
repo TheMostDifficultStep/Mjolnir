@@ -155,7 +155,7 @@ namespace Play.Forms {
             LayoutPattern oTabStatus = new( LayoutRect.CSS.Pixels, 5, oViewLine, TabStatus );
 
             // Round up all the layouts into our tab object here.
-			LayoutStackHorizontal oTab = new () { Spacing = 5, BackgroundColor = TabBackground, ID = oViewLine };
+			LayoutStackHorizontal oTab = new () { Spacing = 5, BackgroundColor = TabBackground, Extra = oViewLine };
 				
             oTab.Add( oTabStatus ); // Bar to the left.
 			oTab.Add( oTabIcon );   // Icon for the tab.
@@ -231,7 +231,7 @@ namespace Play.Forms {
             for( int i=0; i<Layout.Count; ++i ) {
                 LayoutRect oChild = Layout.Item(i);
                 if( oChild is LayoutStack oTab ) {
-                    if( oTab.ID == oLine ) {
+                    if( oTab.Extra == oLine ) {
                         Layout.RemoveAt( i );
                     }
                 }
@@ -293,7 +293,7 @@ namespace Play.Forms {
                     if( oRect.IsInside( e.X, e.Y ) ) {
                         if( oRect is LayoutStack oTab ) {
                             oHover = oTab;
-                            OnTabLeftClicked( oTab.ID );
+                            OnTabLeftClicked( oTab.Extra );
                             Invalidate(); // Focus might change, need a re-paint.
                             break;
                         }
@@ -332,7 +332,7 @@ namespace Play.Forms {
         protected override LayoutRect CreateTab( Line oLine ) {
 			LayoutIcon            oTabIcon   = new( TabIcon( oLine ), LayoutRect.CSS.Flex );
             LayoutPattern         oTabStatus = new( LayoutRect.CSS.Pixels, 5, oLine, TabStatus );
-			LayoutStackHorizontal oTab       = new () { Spacing = 5, BackgroundColor = TabBackground, ID = oLine };
+			LayoutStackHorizontal oTab       = new () { Spacing = 5, BackgroundColor = TabBackground, Extra = oLine };
 				
             oTab.Add( oTabStatus );
 			oTab.Add( oTabIcon );

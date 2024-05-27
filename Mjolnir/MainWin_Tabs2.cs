@@ -152,7 +152,7 @@ namespace Mjolnir {
             SKColor clrBG = _oStdUI.ColorsStandardAt( StdUIColors.BGReadOnly );
 
             if( oID is ViewSlot oLine ) {
-                if( oLine == HoverTab?.ID ) 
+                if( oLine == HoverTab?.Extra ) 
                     return SKColors.LightYellow;
 
                 if( oLine.IsPlaying )

@@ -351,7 +351,7 @@ namespace Play.SSTV {
             SKColor skBG = _oStdUI.ColorsStandardAt( StdUIColors.BGReadOnly );
 
             if( oID is Line oLine ) {
-                if( oLine == HoverTab?.ID ) 
+                if( oLine == HoverTab?.Extra ) 
                     return SKColors.LightYellow;
 
                 if( _oTools.ToolSelect == oLine.At )

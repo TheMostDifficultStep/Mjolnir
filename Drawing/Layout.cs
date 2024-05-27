@@ -211,7 +211,7 @@ namespace Play.Rectangles {
 
 		public Func< object, SKColor > BackgroundColor = null;
 		public TRACK                   Direction { get; set; }
-		public object			       ID { get; set; } = null;
+		public object			       Extra { get; set; } = null;
 
 		public LayoutStack( TRACK eAxis ) : 
 			base( ) 
@@ -426,7 +426,7 @@ namespace Play.Rectangles {
 
         public override void PaintBackground(SKCanvas skCanvas) {
 			if( BackgroundColor != null ) {
-				SKPaint skPaint  = new SKPaint() { Color = BackgroundColor( ID ) };
+				SKPaint skPaint  = new SKPaint() { Color = BackgroundColor( Extra ) };
 				skCanvas.DrawRect( this.SKRect, skPaint );
 			}
         }
