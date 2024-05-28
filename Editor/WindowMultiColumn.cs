@@ -152,10 +152,14 @@ namespace Play.Edit {
         public readonly SmartRect _oColumn;
         public bool _fReadonly;
         public int  _iCacheID;
+        public int  _iDataID;
 
-        public ColumnInfo( SmartRect rcRect, int iColumn ) {
+        public ColumnInfo( SmartRect rcRect, int iUIColumn, int? iDataColumn ) {
+            int iDataColumnValue = iDataColumn.HasValue ? iDataColumn.Value : iUIColumn;
+
             _oColumn   = rcRect ?? throw new ArgumentNullException();
-            _iCacheID  = iColumn;
+            _iCacheID  = iUIColumn;
+            _iDataID   = iDataColumnValue;
             _fReadonly = false;
         }
     }
@@ -405,9 +409,9 @@ namespace Play.Edit {
         /// column.
         /// Cache Columns match the text columns directly.
         /// </summary>
-        protected void TextLayoutAdd( LayoutRect oLayout ) {
+        protected void TextLayoutAdd( LayoutRect oLayout, int? iDataColumn = null ) {
             _rgLayout.Add( oLayout );
-            _rgTxtCol.Add( new ColumnInfo( oLayout, _rgTxtCol.Count ) );
+            _rgTxtCol.Add( new ColumnInfo( oLayout, _rgTxtCol.Count, iDataColumn ) );
         }
 
         /// <summary>
@@ -1027,10 +1031,18 @@ namespace Play.Edit {
                 if( !char.IsControl( e.KeyChar ) ) {
                     ReadOnlySpan<char>                rgInsert  = stackalloc char[1] { e.KeyChar };
                     CacheMultiColumn.SelectionManager oSelector = _oCacheMan.Selector;
+                    Row                               oRow      = _oDocList[_oCacheMan.CaretAt];
 
+                    // I need to get my Caret stuff act together. Getting sloppy here.
+                    if( oSelector.RowCount == 0 ) {
+                        _oDocOps.TryReplaceAt( oRow, 
+                                               _oCacheMan.CaretColumn, 
+                                               _oCacheMan.CaretOffset,
+                                               0,
+                                               rgInsert );
+                    }
                     if( oSelector.RowCount == 1 && oSelector.IsSingleColumn( out int iColumn ) ) 
                     {
-                        Row          oRow   = _oDocList[_oCacheMan.CaretAt];
                         IMemoryRange oRange = oSelector[iColumn];
 
                         oSelector.Clear(); // Do before the TryReplace...
@@ -1050,6 +1062,7 @@ namespace Play.Edit {
                                     typeof( ArgumentNullException ) };
                 if( rgErrors.IsUnhandled( oEx ) )
                     throw;
+                LogError( "Caret is probably confused" );
             }
         }
 

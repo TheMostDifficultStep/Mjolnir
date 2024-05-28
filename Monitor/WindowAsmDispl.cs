@@ -142,13 +142,13 @@ namespace Monitor {
 
             int iColumnTop = TextColumnTop; // Use this to keep track of our columns
 
-            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Pixels,  80, 1L ) ); // Address
-            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Pixels,  60, 1L ) ); // Code
-            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Pixels,  15, 1L ) ); // breakpoints
-            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Percent, 20, 1L ) ); // labels
-            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Percent, 10, 1L ) ); // instr
-            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Percent, 20, 1L ) ); // params
-            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.None ) );            // comments
+            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Pixels,  80, 1L ), AsmRow.ColumnAddr ); // Address
+            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Pixels,  60, 1L ), AsmRow.ColumnCode ); // Code
+            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Pixels,  15, 1L ), AsmRow.ColumnBrkPnt ); // breakpoints
+            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Percent, 20, 1L ), AsmRow.ColumnLabel ); // labels
+            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Percent, 10, 1L ), AsmRow.ColumnInstr ); // instr
+            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Percent, 20, 1L ), AsmRow.ColumnParam ); // params
+            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.None ),            AsmRow.ColumnComment ); // comments
 
             HyperLinks.Add( "CpuJump", OnCpuJump );
 

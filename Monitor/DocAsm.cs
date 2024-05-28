@@ -7,8 +7,8 @@ namespace Monitor {
     public class AsmRow : Row {
         public AsmRow( string strAssembly, string strParams ) {
             _rgColumns    = new Line[7];
-            // Add a column for break points! O.o
-            _rgColumns[0] = new TextLine( 0, string.Empty ); // Machine code.
+
+            _rgColumns[0] = new TextLine( 0, string.Empty ); // Address.
             _rgColumns[1] = new TextLine( 1, string.Empty ); // Machine code.
             _rgColumns[2] = new TextLine( 2, string.Empty ); // Breakpoint
             _rgColumns[3] = new TextLine( 3, string.Empty ); // label

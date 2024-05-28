@@ -544,6 +544,9 @@ namespace Play.Edit {
             get { return _oTextRect; }
         }
 
+        /// <summary>
+        /// Return the row the caret is at. 
+        /// </summary>
         public int CaretAt {
             get {
                 try {
@@ -572,6 +575,7 @@ namespace Play.Edit {
         public int CaretColumn => _iCaretCol;
         public int CaretOffset { 
             set { _iCaretOff = value; }
+            get { return _iCaretOff; }
         }
 
         public void OnMouseWheel( int iDelta ) {
