@@ -48,9 +48,9 @@ namespace Play.MorsePractice {
 
 			int iColumnTop = TextColumnTop;
 
-			TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Pixels, 90, 0.2F ) );
-			TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Pixels, 40, 0.1F ) );
-			TextLayoutAdd( new LayoutRect( LayoutRect.CSS.None ) );
+			TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Pixels, 90, 0.2F ), LogRow.ColumnCall );
+			TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Pixels, 40, 0.1F ), LogRow.ColumnStat );
+			TextLayoutAdd( new LayoutRect( LayoutRect.CSS.None ),             LogRow.ColumnNote );
 
             HyperLinks.Add( "callsign", OnCallSign );
 

@@ -44,10 +44,7 @@ namespace Monitor {
             if( !base.Initialize() )
                 return false;
 
-            // Need to figure out how to match the columns of the Window vs Document...
-            int iColumnTop = TextColumnTop;
-
-            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.None ) ); // Text
+            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.None ), 0 ); // Text
 
             return true;
         }

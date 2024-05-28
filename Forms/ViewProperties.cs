@@ -9,6 +9,7 @@ using Play.Interfaces.Embedding;
 using Play.Edit;
 using Play.Parse;
 using System.Drawing;
+using static Play.Forms.DocProperties;
 
 namespace Play.Forms {
     /// <summary>
@@ -199,10 +200,8 @@ namespace Play.Forms {
             if( !base.Initialize() )
                 return false;
 
-            int iColumnTop = TextColumnTop;
-
-            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Percent, 30, 1L ) ); // Name
-            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.None,    70, 1L ) ); // Value;
+            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Percent, 30, 1L ), PropertyRow.ColumnLabel ); 
+            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.None,    70, 1L ), PropertyRow.ColumnValue ); 
 
             InitRows();
 

@@ -13,6 +13,9 @@ using Play.Edit;
 
 namespace Play.Clock {
     public class ClockRow : Row {
+        public const int ColumnTime = 0;
+        public const int ColumnDate = 1;
+        public const int ColumnZone = 2;
         public ClockRow( string strDate, string strLabel ) {
             _rgColumns    = new Line[3];
             _rgColumns[0] = new TextLine( 0, string.Empty );
@@ -179,9 +182,9 @@ namespace Play.Clock {
 
             int iColumnTop = TextColumnTop;
 
-            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Percent, 30, 1L )); // time
-            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Percent, 45, 1L )); // date
-            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Percent, 25, 1L )); // zones.
+            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Percent, 30, 1L ), ClockRow.ColumnTime); // time
+            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Percent, 45, 1L ), ClockRow.ColumnDate); // date
+            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Percent, 25, 1L ), ClockRow.ColumnZone); // zones.
             
             // Figure this out later...
             //foreach( LayoutSingleLine oCache in CacheList ) {

@@ -53,10 +53,8 @@ namespace Monitor {
             if( !base.Initialize() )
                 return false;
 
-            _iBasicColumnTop = TextColumnTop; // Use this to find -our- columns
-
-            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Pixels,  80, 1L ) ); // line number
-            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.None ) );            // basic code
+            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Pixels,  80, 1L ), BasicRow.ColumnNumber ); 
+            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.None ),            BasicRow.ColumnText );  
 
             return true;
         }

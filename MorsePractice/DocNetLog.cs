@@ -17,6 +17,10 @@ namespace Play.MorsePractice {
                 _rgColumns[i] = new TextLine( i, string.Empty );
             }
         }
+
+        public const int ColumnCall = 0;
+        public const int ColumnStat = 1;
+        public const int ColumnNote = 2;
     }
 
     /// <summary>

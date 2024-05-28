@@ -409,7 +409,7 @@ namespace Play.Edit {
         /// column.
         /// Cache Columns match the text columns directly.
         /// </summary>
-        protected void TextLayoutAdd( LayoutRect oLayout, int? iDataColumn = null ) {
+        protected void TextLayoutAdd( LayoutRect oLayout, int iDataColumn ) {
             _rgLayout.Add( oLayout );
             _rgTxtCol.Add( new ColumnInfo( oLayout, _rgTxtCol.Count, iDataColumn ) );
         }

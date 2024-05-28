@@ -108,8 +108,11 @@ namespace Play.Forms {
                 _rgColumns[1] = oOrig[1];
             }
 
-            public Line Label => this[0];
-            public Line Value => this[1];
+            public Line Label => this[ColumnLabel];
+            public Line Value => this[ColumnLabel];
+
+            public const int ColumnLabel = 0;
+            public const int ColumnValue = 1;
         }
 
         public event Action<int[]>  SubmitEvent;
