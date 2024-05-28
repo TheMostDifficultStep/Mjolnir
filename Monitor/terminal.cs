@@ -44,11 +44,10 @@ namespace Monitor {
             if( !base.Initialize() )
                 return false;
 
-            _rgLayout.Add( new LayoutRect( LayoutRect.CSS.None ) ); // Text
-
             // Need to figure out how to match the columns of the Window vs Document...
-            // TODO: I'm going to add the columns to the cache site so I can init the later instead of now.
-            _rgColumns.Add( _rgLayout.Item( 1 ) );
+            int iColumnTop = TextColumnTop;
+
+            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.None ) ); // Text
 
             return true;
         }

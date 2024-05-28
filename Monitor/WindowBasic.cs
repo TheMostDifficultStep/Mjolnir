@@ -19,6 +19,8 @@ namespace Monitor {
         public SKBitmap Icon => null;
         protected BasicDocument DocMain { get; }
 
+        protected int _iBasicColumnTop = -1;
+
         protected class Tool {
             public string Name { get; protected set; }
             public Action Do   { get; protected set; }
@@ -51,12 +53,10 @@ namespace Monitor {
             if( !base.Initialize() )
                 return false;
 
-            _rgLayout.Add( new LayoutRect( LayoutRect.CSS.Pixels,  80, 1L ) ); // line number
-            _rgLayout.Add( new LayoutRect( LayoutRect.CSS.None ) );            // basic code
+            _iBasicColumnTop = TextColumnTop; // Use this to find -our- columns
 
-            for( int i=0; i<BasicRow.ColumnCount; ++i ) {
-                _rgColumns.Add( _rgLayout.Item( i+1 ) );
-            }
+            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Pixels,  80, 1L ) ); // line number
+            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.None ) );            // basic code
 
             return true;
         }

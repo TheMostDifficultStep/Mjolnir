@@ -21,10 +21,9 @@ namespace Play.Forms {
         IReadOnlyList<CacheRow> _rgFixedCache;
         public CacheMultiFixed(
             ICacheManSite           oSite, 
-            IReadOnlyList<CacheRow> oCacheAccess,
-            List<SmartRect>         rgColumns
+            IReadOnlyList<CacheRow> oCacheAccess
         ) : 
-            base(oSite, rgColumns) 
+            base(oSite) 
         {
             _rgFixedCache = oCacheAccess ?? throw new ArgumentNullException();
         }
@@ -192,8 +191,7 @@ namespace Play.Forms {
         protected override CacheMultiColumn CreateCacheMan() {
             FixedRows  = new List<CacheRow>(); // Slightly evil... >_<;;
             CacheMultiFixed oCacheMan = new ( new CacheManSiteSubSet( this ), 
-                                              FixedRows as IReadOnlyList<CacheRow>,
-                                              _rgColumns ); 
+                                              FixedRows as IReadOnlyList<CacheRow> ); 
             return oCacheMan;
         }
 
@@ -201,11 +199,10 @@ namespace Play.Forms {
             if( !base.Initialize() )
                 return false;
 
-            _rgLayout .Add( new LayoutRect( LayoutRect.CSS.Percent, 30, 1L ) ); // Name
-            _rgLayout .Add( new LayoutRect( LayoutRect.CSS.None,    70, 1L ) ); // Value;
+            int iColumnTop = TextColumnTop;
 
-            _rgColumns.Add( _rgLayout.Item( 1 ) );
-            _rgColumns.Add( _rgLayout.Item( 2 ) );
+            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Percent, 30, 1L ) ); // Name
+            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.None,    70, 1L ) ); // Value;
 
             InitRows();
 

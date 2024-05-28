@@ -145,8 +145,8 @@ namespace Play.Clock {
         IPgParent,
         IPgCommandView
     {
-        private   readonly string         _strViewIcon  = "Play.Clock.Content.icon_clock.gif";
-        protected readonly IPgViewSite    _oViewSite;
+        private   readonly string      _strViewIcon  = "Play.Clock.Content.icon_clock.gif";
+        protected readonly IPgViewSite _oViewSite;
 
         public Guid      Catagory  => Guid.Empty; // Default view.
         public string    Banner    => "World Clock";
@@ -177,17 +177,16 @@ namespace Play.Clock {
 
             Document.ClockEvent += OnClockUpdated;
 
-            _rgLayout.Add( new LayoutRect( LayoutRect.CSS.Percent, 30, 1L )); // time
-            _rgLayout.Add( new LayoutRect( LayoutRect.CSS.Percent, 45, 1L )); // date
-            _rgLayout.Add( new LayoutRect( LayoutRect.CSS.Percent, 25, 1L )); // zones.
+            int iColumnTop = TextColumnTop;
+
+            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Percent, 30, 1L )); // time
+            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Percent, 45, 1L )); // date
+            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Percent, 25, 1L )); // zones.
             
             // Figure this out later...
             //foreach( LayoutSingleLine oCache in CacheList ) {
             //    oCache.BgColor = _oStdUI.ColorsStandardAt( StdUIColors.BGNoEditText );
             //}
-            _rgColumns.Add( _rgLayout.Item( 1 ) );
-            _rgColumns.Add( _rgLayout.Item( 2 ) );
-            _rgColumns.Add( _rgLayout.Item( 3 ) );
 
             return true;
         }
@@ -196,7 +195,7 @@ namespace Play.Clock {
             return null;
         }
 
-        public bool Execute(Guid sGuid) {
+        public override bool Execute(Guid sGuid) {
             return false;
         }
 

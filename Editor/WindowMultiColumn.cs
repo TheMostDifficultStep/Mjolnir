@@ -14,6 +14,7 @@ using Play.Interfaces.Embedding;
 using Play.Rectangles;
 using Play.Controls;
 using Play.Parse;
+using System.Collections.ObjectModel;
 
 namespace Play.Edit {
     public interface IPgDocTraits<T> {
@@ -144,6 +145,21 @@ namespace Play.Edit {
         }
     }
 
+    /// <summary>
+    /// Might want to add cache info to this struct too... ?
+    /// </summary>
+    public struct ColumnInfo {
+        public readonly SmartRect _oColumn;
+        public bool _fReadonly;
+        public int  _iCacheID;
+
+        public ColumnInfo( SmartRect rcRect, int iColumn ) {
+            _oColumn   = rcRect ?? throw new ArgumentNullException();
+            _iCacheID  = iColumn;
+            _fReadonly = false;
+        }
+    }
+
     public class WindowMultiColumn :
         SKControl, 
         IPgParent,
@@ -167,7 +183,7 @@ namespace Play.Edit {
 		protected readonly IPgStandardUI2        _oStdUI;
         protected readonly ScrollBar2            _oScrollBarVirt;
         protected readonly LayoutStack           _rgLayout;
-        protected readonly List<SmartRect>       _rgColumns = new(); // Might not match document columns! O.o
+        private   readonly List<ColumnInfo>      _rgTxtCol = new(); // Might not match document columns! O.o
 
         protected bool  _fReadOnly     = false;
         protected SizeF _szScrollBars  = new SizeF( .1875F, .1875F );
@@ -259,6 +275,8 @@ namespace Play.Edit {
                 }
             }
 
+            public ReadOnlyCollection<ColumnInfo> Columns => _oHost._rgTxtCol.AsReadOnly();
+
             public void LogError(string strMessage, string strDetails, bool fShow = true) {
                 _oHost.LogError( strDetails, fShow );
             }
@@ -346,7 +364,7 @@ namespace Play.Edit {
 
         protected virtual CacheMultiColumn CreateCacheMan() {
             //uint uiStdText  = _oStdUI.FontCache( StdFace, 12, GetDPI() );
-            return new CacheMultiColumn( new CacheManSite( this ), _rgColumns ); 
+            return new CacheMultiColumn( new CacheManSite( this ) ); 
         }
 
         public virtual bool IsDirty => true;
@@ -363,6 +381,33 @@ namespace Play.Edit {
 
         protected void LogError( string strMessage, bool fShow = false ) {
             _oSiteView.LogError( "Multi Column Window", strMessage, fShow );
+        }
+
+        /// <summary>
+        /// Use this value when initializing your columns so that you
+        /// can simply add the top value to your own offsets!! \^_^/
+        /// </summary>
+        protected int  TextColumnTop => _rgTxtCol.Count;
+
+        // Might want to add a rect outside of the columnar
+        // layout at some point. But I can't think of a reason yet.
+        //protected void TextColumnAdd( SmartRect oColumn ) {
+        //    int iCacheID = _rgColumns.Count;
+
+        //    _rgColumns.Add( new ColumnInfo( oColumn, iCacheID ) );
+        //}
+
+        /// <summary>
+        /// This method adds the layout to the layout AND the text
+        /// columns for caching. Position in the Layout is NOT the
+        /// same as the position in the Text columns. Generally b/c
+        /// the scroll bar is part of the layout but it is not a text
+        /// column.
+        /// Cache Columns match the text columns directly.
+        /// </summary>
+        protected void TextLayoutAdd( LayoutRect oLayout ) {
+            _rgLayout.Add( oLayout );
+            _rgTxtCol.Add( new ColumnInfo( oLayout, _rgTxtCol.Count ) );
         }
 
         /// <summary>
@@ -617,7 +662,7 @@ namespace Play.Edit {
             SimpleRange oRange = new SimpleRange();
 
             foreach( Row oRow in _oDocEnum ) {
-                if( _oCacheMan.CaretColumn < _rgColumns.Count ) {
+                if( _oCacheMan.CaretColumn < _rgTxtCol.Count ) {
                     foreach( Line oLine in oRow ) {
                         oRange.Line   = oLine;
                         oRange.Offset = 0;
@@ -761,7 +806,7 @@ namespace Play.Edit {
                 foreach( CacheRow oCacheRow in _oCacheMan ) {
                     for( int iCacheCol=0; iCacheCol<oCacheRow.CacheList.Count; ++iCacheCol ) {
                         if( oCacheRow[iCacheCol] is IPgCacheRender oRender ) {
-                            SmartRect oColumn = _rgColumns[iCacheCol];
+                            SmartRect oColumn = _rgTxtCol[iCacheCol]._oColumn;
 
                             rctSquare.SetRect( oColumn.Left, oCacheRow.Top, oColumn.Right, oCacheRow.Bottom );
 
@@ -854,8 +899,8 @@ namespace Play.Edit {
         protected void CursorUpdate( SKPointI pntLocation, MouseButtons eButton ) {
             Cursor oNewCursor = Cursors.Arrow;
 
-            for( int iColumn=0; iColumn<_rgColumns.Count; ++iColumn ) {
-                SmartRect oColumn = _rgColumns[iColumn];
+            for( int iColumn=0; iColumn<_rgTxtCol.Count; ++iColumn ) {
+                SmartRect oColumn = _rgTxtCol[iColumn]._oColumn;
                 if( oColumn.IsInside( pntLocation.X, pntLocation.Y ) ) {
                     oNewCursor = Cursors.IBeam;
                     if( eButton != MouseButtons.Left &&         // if not selecting.
@@ -1026,8 +1071,8 @@ namespace Play.Edit {
         }
 
         public bool IsInside( SKPointI pntClick, out int iColumn ) {
-            for( iColumn=0; iColumn<_rgColumns.Count; ++iColumn ) {
-                SmartRect oColumn = _rgColumns[iColumn];
+            for( iColumn=0; iColumn<_rgTxtCol.Count; ++iColumn ) {
+                SmartRect oColumn = _rgTxtCol[iColumn]._oColumn;
                 if( oColumn.IsInside( pntClick.X, pntClick.Y ) ) {
                     return true;
                 }

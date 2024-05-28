@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Text;
+using System.Collections.ObjectModel;
 
 using SkiaSharp;
 
@@ -31,6 +32,8 @@ namespace Play.Edit {
         float GetScrollProgress { get; }
         void  OnRefreshComplete( float flProgress, float flVisiblePercent );
         void  OnCaretPositioned( SKPointI pntCaretbool, bool fVisible );
+
+        ReadOnlyCollection<ColumnInfo> Columns { get; }
     }
 
     public class CacheMultiColumn:         
@@ -44,7 +47,7 @@ namespace Play.Edit {
         protected readonly List<CacheRow>  _rgOldCache = new List<CacheRow>();
         protected readonly List<CacheRow>  _rgNewCache = new List<CacheRow>(); 
 
-        protected readonly List<SmartRect>  _rgColumnRects;
+        protected readonly ReadOnlyCollection<ColumnInfo>  _rgColumnRects;
         protected readonly TextLine         _oDummyLine = new TextLine( -2, string.Empty );
         public             SelectionManager Selector { get; }
 
@@ -463,12 +466,12 @@ namespace Play.Edit {
         /// <remarks>Need to sort out the LineHeight accessor since the cache elements might be
         /// variable height, Need to make sure I'm using this correctly. Consider calling it
         /// "LineScroll"</remarks>
-        public CacheMultiColumn( ICacheManSite oSite, List<SmartRect> rgColumns ) :
+        public CacheMultiColumn( ICacheManSite oSite ) :
 			base() 
 		{
 			_oSite         = oSite     ?? throw new ArgumentNullException( "Cache manager is a sited object.");
             _oSiteList     = (IReadableBag<Row>)oSite;
-            _rgColumnRects = rgColumns ?? throw new ArgumentNullException( "Columns list from Edit Window is null!" );
+            _rgColumnRects = oSite.Columns ?? throw new ArgumentNullException( "Columns list from Edit Window is null!" );
             Selector       = new SelectionManager( 20 ); // Argh, rgColumns.Count not set yet... :-/
 
 			Font       = oSite.FontUse( oSite.FontCache( 12 ) )  ?? throw new ArgumentNullException( "Need a font to get things rolling." );
@@ -649,7 +652,7 @@ namespace Play.Edit {
                     //}
                     for( int iCacheCol=0; iCacheCol<oCacheRow.CacheList.Count; ++iCacheCol ) {
                         if( oCacheRow[iCacheCol] is IPgCacheWindow oCWElem ) {
-                            SmartRect rctColumn = _rgColumnRects[iCacheCol];
+                            SmartRect rctColumn = _rgColumnRects[iCacheCol]._oColumn;
                             SmartRect rctSquare = new SmartRect();
 
                             rctSquare.SetRect( rctColumn.Left, oCacheRow.Top, rctColumn.Right, oCacheRow.Bottom );
@@ -1036,7 +1039,7 @@ namespace Play.Edit {
             try {
                 // Left top coordinate of the caret offset.
                 Point     pntCaretRelative  = oCaretCacheRow[_iCaretCol].GlyphOffsetToPoint( _iCaretOff );
-                SmartRect oColumn           = _rgColumnRects[_iCaretCol];
+                SmartRect oColumn           = _rgColumnRects[_iCaretCol]._oColumn;
 
                 pntCaretTop = new SKPointI( pntCaretRelative.X + oColumn.Left,
                                             pntCaretRelative.Y + oCaretCacheRow.Top );
@@ -1124,7 +1127,7 @@ namespace Play.Edit {
 				        oElem.Measure ( Font );
                         oElem.Colorize( Selector[i] );
                     }
-                    oMeasure.OnChangeSize( _rgColumnRects[i].Width );
+                    oMeasure.OnChangeSize( _rgColumnRects[i]._oColumn.Width );
                 }
 			} catch( Exception oEx ) {
                 if( IsUnhandledStdRpt( oEx ) )
@@ -1344,7 +1347,7 @@ namespace Play.Edit {
 
                     Point pntCaret = oCaretRow[_iCaretCol].GlyphOffsetToPoint( _iCaretOff );
 
-                    pntCaret.X += _rgColumnRects[_iCaretCol].Left;
+                    pntCaret.X += _rgColumnRects[_iCaretCol]._oColumn.Left;
                     pntCaret.Y += oCaretRow.Top;
 
                     _oSite.OnCaretPositioned( new SKPointI( pntCaret.X, pntCaret.Y ), true );
@@ -1386,7 +1389,7 @@ namespace Play.Edit {
         public bool CaretAdvance( SKPointI pntPick ) {
             try {
                 for( int iColumn = 0; iColumn < _rgColumnRects.Count; iColumn++ ) {
-                    SmartRect rctColumn = _rgColumnRects[iColumn];
+                    SmartRect rctColumn = _rgColumnRects[iColumn]._oColumn;
                     if( rctColumn.IsInside( pntPick.X, pntPick.Y ) ) {
                         CacheRow oCacheRow = PointToCache( iColumn, pntPick, out int iOffset );
                         if( oCacheRow != null ) {
@@ -1476,9 +1479,10 @@ namespace Play.Edit {
                     if( oCacheRow.Top    <= pntScreenPick.Y &&
                         oCacheRow.Bottom >= pntScreenPick.Y ) 
                     {
+                        SmartRect        oColumn  = _rgColumnRects[iColumn]._oColumn;
                         IPgCacheMeasures oCache   = oCacheRow.CacheList[iColumn];
-                        SKPointI         pntLocal = new SKPointI( pntScreenPick.X - _rgColumnRects[iColumn].Left,
-                                                                  pntScreenPick.Y - _rgColumnRects[iColumn].Top );
+                        SKPointI         pntLocal = new SKPointI( pntScreenPick.X - oColumn.Left,
+                                                                  pntScreenPick.Y - oColumn.Top );
 
                         iOffset = oCache.GlyphPointToOffset(oCacheRow.Top, pntLocal );
 

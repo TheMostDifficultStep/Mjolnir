@@ -46,13 +46,11 @@ namespace Play.MorsePractice {
 			if( !base.Initialize() )
 				return false;
 
-			_rgLayout.Add( new LayoutRect( LayoutRect.CSS.Pixels, 90, 0.2F ) );
-			_rgLayout.Add( new LayoutRect( LayoutRect.CSS.Pixels, 40, 0.1F ) );
-			_rgLayout.Add( new LayoutRect( LayoutRect.CSS.None ) );
+			int iColumnTop = TextColumnTop;
 
-			_rgColumns.Add( _rgLayout.Item(1) );
-			_rgColumns.Add( _rgLayout.Item(2) );
-			_rgColumns.Add( _rgLayout.Item(3) );
+			TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Pixels, 90, 0.2F ) );
+			TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Pixels, 40, 0.1F ) );
+			TextLayoutAdd( new LayoutRect( LayoutRect.CSS.None ) );
 
             HyperLinks.Add( "callsign", OnCallSign );
 

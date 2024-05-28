@@ -140,19 +140,15 @@ namespace Monitor {
             if( !base.Initialize() )
                 return false;
 
-            _rgLayout.Add( new LayoutRect( LayoutRect.CSS.Pixels,  80, 1L ) ); // Address
-            _rgLayout.Add( new LayoutRect( LayoutRect.CSS.Pixels,  60, 1L ) ); // Code
-            _rgLayout.Add( new LayoutRect( LayoutRect.CSS.Pixels,  15, 1L ) ); // breakpoints
-            _rgLayout.Add( new LayoutRect( LayoutRect.CSS.Percent, 20, 1L ) ); // labels
-            _rgLayout.Add( new LayoutRect( LayoutRect.CSS.Percent, 10, 1L ) ); // instr
-            _rgLayout.Add( new LayoutRect( LayoutRect.CSS.Percent, 20, 1L ) ); // params
-            _rgLayout.Add( new LayoutRect( LayoutRect.CSS.None ) );            // comments
+            int iColumnTop = TextColumnTop; // Use this to keep track of our columns
 
-            // Need to figure out how to match the columns of the Window vs Document...
-            // TODO: I'm going to add the columns to the cache site so I can init the later instead of now.
-            for( int i=0; i<AsmRow.ColumnCount; ++i ) {
-                _rgColumns.Add( _rgLayout.Item( i+1 ) );
-            }
+            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Pixels,  80, 1L ) ); // Address
+            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Pixels,  60, 1L ) ); // Code
+            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Pixels,  15, 1L ) ); // breakpoints
+            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Percent, 20, 1L ) ); // labels
+            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Percent, 10, 1L ) ); // instr
+            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Percent, 20, 1L ) ); // params
+            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.None ) );            // comments
 
             HyperLinks.Add( "CpuJump", OnCpuJump );
 
