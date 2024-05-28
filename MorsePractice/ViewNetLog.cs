@@ -46,8 +46,6 @@ namespace Play.MorsePractice {
 			if( !base.Initialize() )
 				return false;
 
-			int iColumnTop = TextColumnTop;
-
 			TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Pixels, 90, 0.2F ), LogRow.ColumnCall );
 			TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Pixels, 40, 0.1F ), LogRow.ColumnStat );
 			TextLayoutAdd( new LayoutRect( LayoutRect.CSS.None ),             LogRow.ColumnNote );

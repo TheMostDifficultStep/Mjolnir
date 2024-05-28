@@ -140,8 +140,6 @@ namespace Monitor {
             if( !base.Initialize() )
                 return false;
 
-            int iColumnTop = TextColumnTop; // Use this to keep track of our columns
-
             TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Pixels,  80, 1L ), AsmRow.ColumnAddr ); // Address
             TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Pixels,  60, 1L ), AsmRow.ColumnCode ); // Code
             TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Pixels,  15, 1L ), AsmRow.ColumnBrkPnt ); // breakpoints

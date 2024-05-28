@@ -180,8 +180,6 @@ namespace Play.Clock {
 
             Document.ClockEvent += OnClockUpdated;
 
-            int iColumnTop = TextColumnTop;
-
             TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Percent, 30, 1L ), ClockRow.ColumnTime); // time
             TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Percent, 45, 1L ), ClockRow.ColumnDate); // date
             TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Percent, 25, 1L ), ClockRow.ColumnZone); // zones.

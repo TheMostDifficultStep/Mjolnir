@@ -158,8 +158,8 @@ namespace Play.Edit {
             int iDataColumnValue = iDataColumn.HasValue ? iDataColumn.Value : iUIColumn;
 
             _oColumn   = rcRect ?? throw new ArgumentNullException();
-            _iCacheID  = iUIColumn;
-            _iDataID   = iDataColumnValue;
+            _iCacheID  = iUIColumn;        // index of TextColumn on display
+            _iDataID   = iDataColumnValue; // index of data row column representing.
             _fReadonly = false;
         }
     }
@@ -386,20 +386,6 @@ namespace Play.Edit {
         protected void LogError( string strMessage, bool fShow = false ) {
             _oSiteView.LogError( "Multi Column Window", strMessage, fShow );
         }
-
-        /// <summary>
-        /// Use this value when initializing your columns so that you
-        /// can simply add the top value to your own offsets!! \^_^/
-        /// </summary>
-        protected int  TextColumnTop => _rgTxtCol.Count;
-
-        // Might want to add a rect outside of the columnar
-        // layout at some point. But I can't think of a reason yet.
-        //protected void TextColumnAdd( SmartRect oColumn ) {
-        //    int iCacheID = _rgColumns.Count;
-
-        //    _rgColumns.Add( new ColumnInfo( oColumn, iCacheID ) );
-        //}
 
         /// <summary>
         /// This method adds the layout to the layout AND the text
