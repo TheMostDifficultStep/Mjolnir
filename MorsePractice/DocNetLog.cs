@@ -5,7 +5,6 @@ using System.Linq;
 
 using Play.Interfaces.Embedding;
 using Play.Edit;
-using Play.Parse.Impl;
 using Play.Parse;
 
 namespace Play.MorsePractice {

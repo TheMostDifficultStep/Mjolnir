@@ -685,8 +685,6 @@ namespace Play.Edit {
         /// Delete all the rows in the selection. Attempt to merge the columns on
         /// the top and bottom of the selection.
         /// </summary>
-        /// <remarks>Perf seems a little slow on this one. Might want to look
-        /// into that.</remarks>
         /// <seealso cref="CacheMultiColumn.SelectionCopy"/>
         public void RowDelete( IPgSelection oSelection ) {
             List<Row> rgDelete = new List<Row>();
@@ -747,7 +745,7 @@ namespace Play.Edit {
                 }
                 RenumberAndSumate();
 
-                oTE.FinishUp( EditType.DeleteRow, null );
+                oTE.FinishUp( EditType.DeleteRow, oRowTop );
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( NullReferenceException ),
                                     typeof( IndexOutOfRangeException ),

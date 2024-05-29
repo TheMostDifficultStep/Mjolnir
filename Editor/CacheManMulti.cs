@@ -445,7 +445,7 @@ namespace Play.Edit {
                                 _oHost._oCaretRow = oNext;
                             }
                         }
-                        _oHost.CacheRepair( null, _fCaretVisible, false );
+                        _oHost.CacheRepair( oRow, _fCaretVisible, false );
                     } else {
                         _oHost.CacheRepair( oRow, _fCaretVisible, oRow == null );
                     }
