@@ -26,8 +26,8 @@ namespace Play.Edit {
         int   TabCount { get; }
         Row   TabStop( int iIndex );
 
-        uint          FontCache( uint uiHeight );
-        IPgFontRender FontUse  ( uint uiFont );
+        uint          FontCache( uint uiHeight ); // Cache the height we want.
+        IPgFontRender FontUse  ( uint uiFont );   // Get renderer for cached font.
 
         float GetScrollProgress { get; }
         void  OnRefreshComplete( float flProgress, float flVisiblePercent );

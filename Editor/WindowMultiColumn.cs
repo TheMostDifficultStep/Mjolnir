@@ -1015,28 +1015,38 @@ namespace Play.Edit {
 
             try {
                 if( !char.IsControl( e.KeyChar ) ) {
-                    ReadOnlySpan<char>                rgInsert  = stackalloc char[1] { e.KeyChar };
-                    CacheMultiColumn.SelectionManager oSelector = _oCacheMan.Selector;
-                    Row                               oRow      = _oDocList[_oCacheMan.CaretAt];
+                    ReadOnlySpan<char>   rgInsert  = stackalloc char[1] { e.KeyChar };
+                    CacheMultiColumn.
+                        SelectionManager oSelector = _oCacheMan.Selector;
+                    Row                  oRow      = _oDocList[_oCacheMan.CaretAt];
 
-                    // I need to get my Caret stuff act together. Getting sloppy here.
-                    if( oSelector.RowCount == 0 ) {
-                        _oDocOps.TryReplaceAt( oRow, 
-                                               _oCacheMan.CaretColumn, 
-                                               _oCacheMan.CaretOffset,
-                                               0,
-                                               rgInsert );
-                    }
-                    if( oSelector.RowCount == 1 && oSelector.IsSingleColumn( out int iColumn ) ) 
-                    {
-                        IMemoryRange oRange = oSelector[iColumn];
+                    // TODO: I might be able to improve this by making it so I can use
+                    // the selection at all times...
+                    switch( oSelector.RowCount ) {
+                        case 0:
+                            _oDocOps.TryReplaceAt( oRow, 
+                                                   _oCacheMan.CaretColumn, 
+                                                   _oCacheMan.CaretOffset,
+                                                   0,
+                                                   rgInsert );
+                            break;
+                        case 1:
+                            if( oSelector.IsSingleColumn( out int iColumn ) ) {
+                                IMemoryRange oRange = oSelector[iColumn];
 
-                        oSelector.Clear(); // Do before the TryReplace...
-                        _oCacheMan.CaretOffset = oRange.Offset+1;
-                        _oDocOps.TryReplaceAt( oRow, iColumn, oRange, rgInsert );
-                    //} else {
-                    // BUG: Arg, can't handle the other cases yet...
-                    //    SelectionDelete( e.KeyChar );
+                                oSelector.Clear(); // Do before the TryReplace...
+                                _oCacheMan.CaretOffset = oRange.Offset+1; // Want caret after ins text
+                                _oDocOps.TryReplaceAt( oRow, iColumn, oRange, rgInsert );
+                            }
+                            break;
+                        default: {
+                            SelectionDelete();
+                            _oDocOps.TryReplaceAt( oRow, 
+                                                   _oCacheMan.CaretColumn, 
+                                                   _oCacheMan.CaretOffset,
+                                                   0,
+                                                   rgInsert );
+                            } break;
                     }
 
                     e.Handled = true;
