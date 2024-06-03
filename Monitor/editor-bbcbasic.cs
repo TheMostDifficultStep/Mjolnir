@@ -481,109 +481,11 @@ namespace Monitor {
 
              <const> ::= integer
          */
-        protected class CompilerOld {
-            // BUG: Would be nice if checked if any -1. Make a version that
-            // throws exception in the future!!
-            int _iStatement;
-            int _iContinue;
-            int _iFCallName;
-            int _iFParams;
-            int _iNumber;
-
-            Editor.Manipulator _oMechBulk;
-            RowStream          _oStream;
-
-            public CompilerOld( Grammer<char> oGrammer, 
-                             RowStream     oStream,
-                             List<byte>    rgBytes           
-            ) { 
-                _oStream = oStream  ?? throw new ArgumentNullException( nameof( oStream ) );
-
-                if( oGrammer == null )
-                    throw new ArgumentNullException( nameof( oGrammer ) );
-                if( rgBytes == null )
-                    throw new ArgumentNullException( "Bbc Basic file is needed." );
-
-                // Let's look up all the bindings just once at the start!!
-                State<char> oClassBasic= oGrammer.FindState( "bbcbasic" );
-                State<char> oClassFCall= oGrammer.FindState( "function" );
-                State<char> oClassFacto= oGrammer.FindState( "factor" );
-
-                // BUG: Would be nice if checked if any -1. Make a version that
-                // throws exception in the future!!
-                _iStatement  = oClassBasic.Bindings.IndexOfKey( "statement" );
-                _iContinue   = oClassBasic.Bindings.IndexOfKey( "bbcbasic" );
-                _iFCallName  = oClassFCall.Bindings.IndexOfKey( "procname" );
-                _iFParams    = oClassFCall.Bindings.IndexOfKey( "params" );
-                _iNumber     = oClassFacto.Bindings.IndexOfKey( "number" );
-            } 
-
-            public MemoryState<char> GetNode( MemoryState<char> oCurrent ) {
-                return oCurrent.GetState( _iContinue );
-            }
-
-            public MemoryState<char> GetStatement( MemoryState<char> oCurrent ) {
-                return oCurrent.GetState( _iStatement );
-            }
-
-            void LinePush(MemoryElem<char> oElem) {
-                //_oMechBulk.LineAppend(GetString(_oStream, oElem));
-            }
-
-            void LineAppend( string strValue ) {
-                //_oMechBulk.LineAppend( strValue );
-            }
-
-            /* 
-            The classic expression grammar is:
-
-            <expr>   ::= <term> "+" <expr>
-                      |  <term>
-            <term>   ::= <factor> "*" <term>
-                      |  <factor>
-            <factor> ::= "(" <expr> ")"
-                      |  <const>
-            <const>  ::= integer
-            */
-            protected void Expression( MemoryState<char> oExpression ) {
-                if( IsStateMatch( oExpression, "term" ) ) {
-                }
-                if( IsStateMatch( oExpression, "factor" ) ) {
-                    MemoryElem<char> oNumber = oExpression.GetValue( _iNumber );
-                    // Either a complicated state...
-                    if( oNumber is MemoryState<char> oNumState ) {
-                        if( IsStateMatch( oNumState, "vdecl" ) ) {
-                            LinePush( oNumState );
-                        }
-                        if( IsStateMatch( oNumState, "built-in-function-call" ) ) {
-                            FCallName( oNumState );
-                        }
-                    } else {
-                        // Or a simple number
-                        if( oNumber != null ) {
-                            LinePush( oNumber );
-                        }
-                    }
-                }
-            }
-
-            public void FCallName( MemoryState<char> oStatement ) {
-                MemoryElem<char> oFCallName = oStatement.GetValue( _iFCallName );
-                if( oFCallName != null ) {
-                    LinePush( oFCallName );
-
-                    foreach( MemoryElem<char> oParam in oStatement.EnumValues( _iFParams ) ) {
-                        if( oParam is MemoryState<char> oExpression ) {
-                            Expression( oExpression );
-                        } else {
-                            LinePush( oParam );
-                        }
-                    }
-                }
-            }
-        }
     }
 
+    /// <summary>
+    /// A parser to parse the document all in one go.
+    /// </summary>
     public class Parser2 :
         IEnumerable<int> 
     {
@@ -679,6 +581,9 @@ namespace Monitor {
         }
     }
 
+    /// <summary>
+    /// Walk the parse tree and attempt to build the program...
+    /// </summary>
     public class BasicCompiler 
     {
         DataStream<char>          _oStream;
@@ -714,8 +619,12 @@ namespace Monitor {
                 _oCompiler._rgLabels.Add( strMethod, _iStartAddr );
             }
 
-            public void AddJump( Z80Instr sInstr, string strLabel ) {
-                _oCompiler.AddMain( sInstr.Instr, strLabel );
+            public void AddJump( int iIndex, string strLabel ) {
+                _oCompiler.AddMain( iIndex, strLabel );
+            }
+
+            public void AddLabel( string strLabel ) {
+                _oCompiler.AddLabel( strLabel );
             }
 
             public void Dispose() {
@@ -810,7 +719,9 @@ namespace Monitor {
             //    throw new InvalidDataException();
         }
 
-        /// <remarks>TODO: This won't work for 2 byte isntructions... :-/</remarks>
+        /// <summary>General instruction add no params, or uninited param.</summary>
+        /// <remarks>TODO: This won't work for 2 byte instructions... :-/</remarks>
+        /// <seealso cref="AddBit"/>
         protected void AddMain( int iIndex ) {
             Z80Instr sInstr = _rgZ80Definitions[iIndex];
             _rgProgram.Add( sInstr.Instr );
@@ -915,17 +826,19 @@ namespace Monitor {
             //   A,E,C are preserved
             // 12 bytes
 
+            using LabelManager oBind = new LabelManager( this, "H_timesE2" );
+
             AddMain( 0x16, 0 ); // ld d,0
             AddMain( 0x6a );    // ld l,d (smaller instr than "ld l, 0" !)
             AddMain( 0x06, 8 ); // ld b,8
 
-            AddLabel( "H_Loop" );
+            oBind.AddLabel( "H_Loop" );
 
             AddMain( 0x29 );    // add hl,hl
             AddMain( 0x18, 3 ); // jr nc,$+3
             AddMain( 0x19 );    // add hl,de
 
-            AddMain( 0x10, "H_Loop" );   // djnz iLoop (rel jump. loop on b)
+            oBind.AddJump( 0x10, "H_Loop" );   // 0x10 djnz iLoop (rel jump. loop on b)
             AddMain( 0xc9 );      
         }
 

@@ -84,6 +84,9 @@ namespace Play.Forms {
         IPgLoad
     {
         public class PropertyRow : Row {
+            public const int ColumnLabel = 0;
+            public const int ColumnValue = 1;
+
             public PropertyRow( string strLabel ) {
                 _rgColumns = new Line[2];
 
@@ -109,10 +112,7 @@ namespace Play.Forms {
             }
 
             public Line Label => this[ColumnLabel];
-            public Line Value => this[ColumnLabel];
-
-            public const int ColumnLabel = 0;
-            public const int ColumnValue = 1;
+            public Line Value => this[ColumnValue];
         }
 
         public event Action<int[]>  SubmitEvent;

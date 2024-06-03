@@ -2,6 +2,7 @@
 using System.Text.RegularExpressions;
 using System.Security;
 using System.Xml;
+using System.Reflection;
 
 using z80;
 
@@ -11,7 +12,6 @@ using Play.Parse;
 using Play.Forms;
 using Play.Drawing;
 using SkiaSharp;
-using System.Reflection;
 
 namespace Monitor {
 
