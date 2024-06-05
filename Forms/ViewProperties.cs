@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Windows.Forms;
+using System.Drawing; // size variable being used...
 
 using SkiaSharp;
 
@@ -8,8 +9,7 @@ using Play.Rectangles;
 using Play.Interfaces.Embedding;
 using Play.Edit;
 using Play.Parse;
-using System.Drawing;
-using static Play.Forms.DocProperties;
+using static Play.Forms.DocProperties; // weird?
 
 namespace Play.Forms {
     /// <summary>
