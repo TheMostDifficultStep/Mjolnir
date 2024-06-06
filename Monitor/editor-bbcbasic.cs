@@ -589,7 +589,7 @@ namespace Monitor {
         DataStream<char>          _oStream;
         Dictionary< string, int > _rgVariables = new ();
         List<byte>                _rgProgram   = new();
-        Dictionary< string, int > _rgLabels    = new ();
+        Dictionary< string, int > _rgLabels    = new (); // global jumps
         int                       _iStackAddr  = 1000;
         int                       _iVAddr; // Start at the stack and go down.
         Z80Definitions            _rgZ80Definitions;
@@ -599,8 +599,8 @@ namespace Monitor {
             BasicCompiler _oCompiler;
             int           _iStartAddr;
 
-            Dictionary< string, int > _rgJumps = new (); // jumps
-
+            Dictionary< string, int > _rgLocalLabels = new (); // addr to jump to.
+            Dictionary< string, int > _rgLocalJumps  = new (); // jumps needing label binding.
 
             /// <summary>
             /// Use this object to patch up the the jump labels at
@@ -618,22 +618,44 @@ namespace Monitor {
 
                 _oCompiler._rgLabels.Add( strMethod, _iStartAddr );
             }
-
-            public void AddJump( int iIndex, string strLabel ) {
-                _oCompiler.AddMain( iIndex, strLabel );
-            }
-
-            public void AddLabel( string strLabel ) {
-                _oCompiler.AddLabel( strLabel );
-            }
-
             public void Dispose() {
-                List<byte> oListing = _oCompiler._rgProgram;
+                List<byte> rgProgram = _oCompiler._rgProgram;
 
-                foreach( KeyValuePair< string, int > oLabel in _rgJumps ) {
-                    int iInstr = oListing[oLabel.Value];
+                foreach( KeyValuePair< string, int > oJump in _rgLocalJumps ) {
+                    Z80Instr oInstr = _oCompiler.FindInst( oJump.Value );
+                    int      iParam = _rgLocalLabels[ oJump.Key ];
+                    int      iStart = rgProgram[ oJump.Value ] + 1;
+
+                    if( oInstr.InstrExt != 0 )
+                        iStart += 1;
+
+                    for( int i = iStart; i< oInstr.Length; ++i ) {
+                        rgProgram[i] = (byte)(iParam & 0xFF);
+                        iParam >>= 8;
+                    }
                 }
             }
+            public void AddJump( int iIndex, string strLabel ) {
+                if( _rgLocalLabels.TryGetValue( strLabel, out int iTarget ) ) {
+                    _oCompiler.AddMain( iIndex, iTarget );
+                } else {
+                    // bind later.
+                    _rgLocalJumps.Add( strLabel, _oCompiler._rgProgram.Count );
+                    _oCompiler.AddMain( iIndex, 0 );
+                }
+            }
+
+            /// <summary>
+            /// Bind an address to a label. Should only be able to do once
+            /// for a local instance.
+            /// </summary>
+            /// <exception cref="ArgumentException">Label is already used.</exception>
+            public void AddLabel( string strLabel ) {
+                if( !_rgLocalLabels.TryAdd( strLabel, 
+                                           _oCompiler._rgProgram.Count ) )
+                    throw new ArgumentException( "label exists" );
+            }
+
         }
 
         public BasicCompiler( DataStream<char> oStream ) {
@@ -742,6 +764,19 @@ namespace Monitor {
         protected void AddBitI( int iIndex ) {
             Z80Instr sInstr = _rgZ80Definitions.BitI( iIndex );
             _rgProgram.Add( sInstr.Instr );
+        }
+
+        protected Z80Instr FindInst( int iAddr ) {
+            byte iLowByte = _rgProgram[iAddr];
+
+            switch( iLowByte ) {
+                case 0xec:
+                    return _rgZ80Definitions.BitI(_rgProgram[iAddr + 1]);
+                case 0xed:
+                    return _rgZ80Definitions.Misc(_rgProgram[iAddr + 1]);
+                default: 
+                    return _rgZ80Definitions.FindMain( iLowByte );
+            }
         }
 
 
