@@ -333,8 +333,8 @@ namespace Play.ImageViewer {
 		public void SnipSave( bool fSaveAs ) {
 			try {
 				// If we've got a filename try that path first. 
-				string strInitialDir  = PropertiesDoc[ (int)ImageSnipProperties.Labels.FilePath].ToString();
-				string strInitialFile = PropertiesDoc[ (int)ImageSnipProperties.Labels.FileName].ToString();
+				string strInitialDir  = PropertiesDoc.ValueAsStr( (int)ImageSnipProperties.Labels.FilePath );
+				string strInitialFile = PropertiesDoc.ValueAsStr( (int)ImageSnipProperties.Labels.FileName );
 
 				if( string.IsNullOrEmpty( strInitialDir ) )
 					fSaveAs = true;
