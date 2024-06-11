@@ -382,6 +382,7 @@ namespace Play.MusicWalker {
 
 		protected class MusicDocNowSlot : MusicDocSlot {
 			ImageSoloDoc _oGuest;
+			string       _strLastAlbumArt;
 
 			public int AlbumIndex { get; private set; } = -1;
 
@@ -415,6 +416,13 @@ namespace Play.MusicWalker {
 
 					FileInfo oAlbumLineInfo = (FileInfo)_oHost.Albums[oSong.AlbumIndex].Extra;
 					string   strFileName    = Path.Combine( oAlbumLineInfo.DirectoryName, "album.jpg" );
+
+					// If previously cached don't spend the time to reload the art.
+					if( string.Compare( strFileName, _strLastAlbumArt, ignoreCase: true ) == 0 ) {
+						return;
+					}
+
+					_strLastAlbumArt = strFileName;
 
 					using( Stream oReader = new FileStream( strFileName, FileMode.Open ) ) {
 						_oGuest.Load( oReader );
@@ -451,6 +459,10 @@ namespace Play.MusicWalker {
 					_oHost.Albums.HighLight   = _oHost.Albums[oSong.AlbumIndex];
 					_oHost.SongCurrent        = oSong;
 					_oHost.PlayList.HighLight = oLine;
+
+					// Sort of weird to load thru the slot. But go with it for now.
+					_oHost._oArtSlot.Load( oSong );
+
 					//Notify( ShellNotify.MediaStatusChanged ); not a good spot for this.
 				} catch( Exception oEx ) {
 					Type[] rgErrors = { typeof( NullReferenceException ), 
