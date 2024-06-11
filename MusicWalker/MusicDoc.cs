@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Net.Http;
 using System.Reflection;
+using System.IO;
 
 using Play.Interfaces.Embedding;
 using Play.Sound;
@@ -18,6 +19,7 @@ using Play.Parse;
 using Play.Parse.Impl;
 using Play.Integration;
 using Play.ImageViewer;
+//using static System.Net.WebRequestMethods;
 
 namespace Play.MusicWalker {
 	/// <summary>
@@ -364,6 +366,7 @@ namespace Play.MusicWalker {
 			IPgBaseSite
 		{
 			protected readonly MusicCollection _oHost;
+			protected          string          _strLastAlbumArt;
 
 			public MusicDocSlot( MusicCollection oHost ) {
 				_oHost = oHost ?? throw new ArgumentNullException();
@@ -382,7 +385,6 @@ namespace Play.MusicWalker {
 
 		protected class MusicDocNowSlot : MusicDocSlot {
 			ImageSoloDoc _oGuest;
-			string       _strLastAlbumArt;
 
 			public int AlbumIndex { get; private set; } = -1;
 
@@ -421,10 +423,10 @@ namespace Play.MusicWalker {
 					if( string.Compare( strFileName, _strLastAlbumArt, ignoreCase: true ) == 0 ) {
 						return;
 					}
+                    _strLastAlbumArt = strFileName;
 
-					_strLastAlbumArt = strFileName;
-
-					using( Stream oReader = new FileStream( strFileName, FileMode.Open ) ) {
+					// new FileStream(...) will fail on UNC path.
+					using( Stream oReader = File.OpenRead( strFileName ) ) {
 						_oGuest.Load( oReader );
 					}
 					AlbumIndex = oSong.AlbumIndex;
@@ -446,6 +448,7 @@ namespace Play.MusicWalker {
 					_oHost.Albums.HighLight   = null;
 					_oHost.SongCurrent        = null;
 					_oHost.PlayList.HighLight = null;
+					_strLastAlbumArt          = null;
 					//Notify( ShellNotify.MediaStatusChanged ); not a good spot for this.
 				} catch( NullReferenceException ) {
 					LogError( "player", "Trouble logging finished songs", true );
