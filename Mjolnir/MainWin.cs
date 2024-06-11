@@ -736,30 +736,33 @@ namespace Mjolnir {
 				ForeColor = Color.Goldenrod
 			};
             _oTopMenu.Items.Add( oParent );
-            _oTopMenu.Items.Add(new ToolStripMenuItem(MyExtensions.strRecycle,   null, new EventHandler(this.OnEditRecycle ) ) );
+            ToolStripMenuItem oRecycle = new (MyExtensions.strRecycle,   null, new EventHandler(this.OnEditRecycle ) ) {
+                ForeColor = Color.Blue
+            };
+            _oTopMenu.Items.Add( oRecycle );
             _oTopMenu.Items.Add(new ToolStripMenuItem(MyExtensions.strGoLeft,    null, new EventHandler(this.OnEditJumpPrev) ) );
             _oTopMenu.Items.Add(new ToolStripMenuItem(MyExtensions.strGoRight,   null, new EventHandler(this.OnEditJumpNext) ) );
 
 			ToolStripMenuItem oPlay = new ToolStripMenuItem(MyExtensions.strPlay, null, new EventHandler(this.OnEditPlay)) {
-				ForeColor = Color.DarkGreen
+				ForeColor = Color.Green
 			};
 			_oTopMenu.Items.Add( oPlay );
             _oTopMenu.Items.Add(new ToolStripMenuItem(MyExtensions.strPause,     null, new EventHandler(this.OnEditPause ) ) );
 
 			ToolStripMenuItem oStop = new ToolStripMenuItem(MyExtensions.strStop, null, new EventHandler(this.OnEditStop ) ) {
-				ForeColor = Color.DarkRed
+				ForeColor = Color.Red
 			};
 			_oTopMenu.Items.Add( oStop );
 
-			ToolStripMenuItem oViewNextSibling = new ToolStripMenuItem(MyExtensions.strHome, null, new EventHandler(this.OnViewNextSibling ) ) {
+			ToolStripMenuItem onViewHome = new ToolStripMenuItem(MyExtensions.strHome, null, new EventHandler(this.OnViewHome ) ) {
 				ForeColor = Color.DarkBlue
 			};
-			_oTopMenu.Items.Add( oViewNextSibling );
+			_oTopMenu.Items.Add( onViewHome );
 
-			ToolStripMenuItem oViewNextAll = new ToolStripMenuItem(MyExtensions.strNextView, null, new EventHandler(this.OnViewNextAll ) ) {
-				ForeColor = Color.DarkBlue
-			};
-			_oTopMenu.Items.Add( oViewNextAll );
+			//ToolStripMenuItem oViewNextAll = new ToolStripMenuItem(MyExtensions.strNextView, null, new EventHandler(this.OnViewNextAll ) ) {
+			//	ForeColor = Color.DarkBlue
+			//};
+			//_oTopMenu.Items.Add( oViewNextAll );
 
 			MakeDropdownOnHover();
         }
@@ -1420,6 +1423,11 @@ namespace Mjolnir {
             }
         }
 
+        /// <summary>
+        /// UnlikeViewSelectNextAll. This one tries to select the next view on the same document.
+        /// This is something else I don't seem to be using from the menu. But I'll keep it
+        /// around since it does seem handy. I'll expose it some other way...
+        /// </summary>
         protected void ViewSelectNext() {
             try {
                 if( _oDoc_ViewSelector.Find( _oSelectedWinSite, out int iLine ) ) {
@@ -1440,6 +1448,12 @@ namespace Mjolnir {
             }
         }
 
+        /// <summary>
+        /// Attempt to go to the next window. Ever since I created the tab viewer to show 
+        /// available windows and who is focused, I never use this feature so I've removed
+        /// it's call from the menu.
+        /// </summary>
+        /// <seealso cref="InitializeMenu(XmlDocument)"/>
         protected void ViewSelectNextAll() {
             try {
                 if( _oDoc_ViewSelector.Find( _oSelectedWinSite, out int iLine ) ) {
@@ -2058,8 +2072,13 @@ namespace Mjolnir {
             }
         }
 
-		private void OnViewNextSibling(object sender, EventArgs e) {
-			ViewSelectNext();
+        /// <summary>
+        /// I want to make a home screen that will show all the .pvs files and allow you to open
+        /// those as well as other documents. Tho' there is an issue of what to do if click on 
+        /// ANOTHER .pvs. I should probably warn user, and then I'll have to close all the previous
+        /// files and open the new one... :-/
+        /// </summary>
+		private void OnViewHome(object sender, EventArgs e) {
 		}
 
         private void OnViewNextAll( object sender, EventArgs e ) {
