@@ -305,8 +305,8 @@ namespace Play.SSTV {
 
 		// There's only one consumer of these events so these are just a delegate
 		// onto the listener.
-		public Action<SSTVEvents, int> Send_TvEvents;
-		public Action<SSTVMode >       Send_SavePoint;
+		public Action<SSTVEvents, int, Exception> Send_TvEvents;
+		public Action<SSTVMode >                  Send_SavePoint;
 
 		struct DiagnosticPaint {
 			public SKColor Color;
@@ -377,12 +377,12 @@ namespace Play.SSTV {
 				ClearImage();
 
 				// If the delegate is null, no way to send the error up!!
-				Send_TvEvents( SSTVEvents.ModeChanged, (int)Mode.LegacyMode );
-				Send_TvEvents( SSTVEvents.DownLoadTime, 0 );
+				Send_TvEvents( SSTVEvents.ModeChanged, (int)Mode.LegacyMode, null );
+				Send_TvEvents( SSTVEvents.DownLoadTime, 0, null );
 
 				StartTime = DateTime.Now;
-			} catch( NullReferenceException ) {
-				Send_TvEvents?.Invoke( SSTVEvents.ThreadException, (int)TxThreadErrors.StartException );
+			} catch( NullReferenceException oEx ) {
+				Send_TvEvents?.Invoke( SSTVEvents.ThreadException, (int)TxThreadErrors.StartException, oEx );
 			}
         }
 
@@ -393,7 +393,7 @@ namespace Play.SSTV {
 
 			// Unlike the ModeChanged and DownLoadTime events. This just tell us to do a blind refresh.
 			// that is implicit in the other events. So might want to sort that out.
-			Send_TvEvents( SSTVEvents.ImageUpdated, 0 );
+			Send_TvEvents( SSTVEvents.ImageUpdated, 0, null );
 		}
 
 		/// <summary>
@@ -406,7 +406,7 @@ namespace Play.SSTV {
 			try {
 				// Need to send regardless, but might get a bum image if not
 				// includes vis and we guess a wrong start state.
-				Send_TvEvents ( SSTVEvents.DownLoadFinished, PercentRxComplete );
+				Send_TvEvents ( SSTVEvents.DownLoadFinished, PercentRxComplete, null );
 				Send_SavePoint( Mode ); // _dp hasn't been reset yet! Wheeww!
 
 				if( _dp.Synced ) {
@@ -421,7 +421,7 @@ namespace Play.SSTV {
 				if( rgErrors.IsUnhandled( oEx ) )
 					throw;
 
-				Send_TvEvents?.Invoke( SSTVEvents.ThreadException, (int)TxThreadErrors.StopException );
+				Send_TvEvents?.Invoke( SSTVEvents.ThreadException, (int)TxThreadErrors.StopException, oEx );
 			}
 		}
 
@@ -665,7 +665,7 @@ namespace Play.SSTV {
 				if( rgErrors.IsUnhandled( oEx ) )
 					throw;
 
-				Send_TvEvents?.Invoke( SSTVEvents.ThreadException, (int)TxThreadErrors.DrawingException );
+				Send_TvEvents?.Invoke( SSTVEvents.ThreadException, (int)TxThreadErrors.DrawingException, oEx );
 			}
 		}
 
@@ -711,7 +711,7 @@ namespace Play.SSTV {
                     // Will need to update this if go back to the non-linear slant corrector.
                     int iScanLine = (int)( ( _dp.m_wBase - StartIndex ) / ScanWidthInSamples );
 
-					Send_TvEvents?.Invoke( SSTVEvents.DownLoadTime, PercentRxComplete );
+					Send_TvEvents?.Invoke( SSTVEvents.DownLoadTime, PercentRxComplete, null );
 					if( iScanLine >= ( _rgSlopeBuckets.Count + 1 ) * _iBucketSize ) {
 
 						int iStartLine = _rgSlopeBuckets.Count == 0 ? 0 : iScanLine - _iBucketSize - 1;
@@ -744,7 +744,7 @@ namespace Play.SSTV {
 					if( rgErrors.IsUnhandled( oEx ) )
 						throw;
 
-					Send_TvEvents?.Invoke( SSTVEvents.ThreadException, (int)TxThreadErrors.DrawingException );
+					Send_TvEvents?.Invoke( SSTVEvents.ThreadException, (int)TxThreadErrors.DrawingException, oEx );
 				}
 			}
 		}
@@ -807,7 +807,7 @@ namespace Play.SSTV {
             if( _dp.Synced ) {
 				DiagnosticsOverlay();
 			}
-			Send_TvEvents?.Invoke( SSTVEvents.DownLoadTime, 100 );
+			Send_TvEvents?.Invoke( SSTVEvents.DownLoadTime, 100, null );
 		}
 
 		/// <summary>
@@ -919,7 +919,7 @@ namespace Play.SSTV {
 		public void OnModeTransition_SSTVDeMo( SSTVMode oCurrMode, SSTVMode oPrevMode, int iPrevBase ) {
 			if( oCurrMode == null ) {
 				DiagnosticsOverlay();
-				Send_TvEvents?.Invoke( SSTVEvents.ModeChanged, -1 );
+				Send_TvEvents?.Invoke( SSTVEvents.ModeChanged, -1, null );
 				return;
 			}
 

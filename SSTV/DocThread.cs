@@ -216,8 +216,8 @@ namespace Play.SSTV {
         /// Listen to the SSTVDraw object. 
         /// </summary>
         /// <seealso cref="OnNextMode_SSTVDemo"/>
-        private void OnTVEvents_SSTVDraw( SSTVEvents eProp, int iParam ) {
-            _oToUIQueue.Enqueue( new( eProp, iParam ) );
+        private void OnTVEvents_SSTVDraw( SSTVEvents eProp, int iParam, Exception oEx ) {
+            _oToUIQueue.Enqueue( new( eProp, iParam, oEx ) );
         }
 
         IEnumerator IEnumerable.GetEnumerator() {
@@ -345,7 +345,7 @@ namespace Play.SSTV {
         /// <summary>
         /// Listen to the SSTVDraw object. And forward those events outside our thread envelope.
         /// </summary>
-        private void OnTvEvents_SSTVDraw( SSTVEvents eProp, int iParam ) {
+        private void OnTvEvents_SSTVDraw( SSTVEvents eProp, int iParam, Exception oEx ) {
             if( eProp == SSTVEvents.ModeChanged ) {
                 foreach( SSTVMode oMode in _oSSTVDeMo ) {
                     if( oMode.LegacyMode == (AllModes)iParam ) {
@@ -353,7 +353,7 @@ namespace Play.SSTV {
                     }
                 }
             }
-            _oToUIQueue.Enqueue( new( eProp, iParam ) );
+            _oToUIQueue.Enqueue( new( eProp, iParam, oEx ) );
         }
 
         /// <summary>

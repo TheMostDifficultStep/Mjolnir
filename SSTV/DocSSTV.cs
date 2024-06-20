@@ -496,6 +496,14 @@ namespace Play.SSTV {
             _oSiteBase.LogError( "SSTV", strMessage );
         }
 
+        public void LogError( string strMessage, Exception oEx ) {
+            if( oEx != null ) {
+                _oSiteBase.LogError( "SSTV", strMessage + ' ' + oEx.StackTrace );
+            } else {
+                LogError( strMessage );
+            }
+        }
+
         public string MyCall    => Properties.ValueAsStr((int)SSTVProperties.Names.Tx_MyCall).ToUpper();
         public string Message   => Properties.ValueAsStr((int)SSTVProperties.Names.Tx_Message);
         public string TheirCall => Properties.ValueAsStr((int)SSTVProperties.Names.Tx_TheirCall).ToUpper();
