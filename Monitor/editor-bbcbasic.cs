@@ -4,7 +4,6 @@ using Play.Interfaces.Embedding;
 using Play.Edit; 
 using Play.Parse;
 using Play.Parse.Impl;
-using Play.Rectangles;
 
 namespace Monitor {
     public class BasicRow : Row {
