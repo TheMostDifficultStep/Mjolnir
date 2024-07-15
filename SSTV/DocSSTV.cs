@@ -8,6 +8,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Xml;
 using System.Reflection;
+using System.IO.Ports;
+
 
 using SkiaSharp;
 
@@ -375,6 +377,7 @@ namespace Play.SSTV {
         protected readonly IPgBaseSite       _oSiteBase;
 		protected readonly IPgRoundRobinWork _oWorkPlace;
         protected readonly IPgStandardUI2    _oStdUI;
+
 
         public IPgParent Parentage => _oSiteBase.Host;
         public IPgParent Services  => Parentage;
@@ -1758,14 +1761,20 @@ namespace Play.SSTV {
                         Properties.ValueUpdate( SSTVProperties.Names.Rx_SaveDir, strSaveDir, Broadcast:true );
                     }
 
-                    DeviceListeningState oWorker = new DeviceListeningState( 
+                    DeviceListeningState oWorker = new DeviceListeningState(
                         iMonitor, iMicrophone,
-                        dblFreq, 
+                        dblFreq,
                         iQuality, strSaveDir, String.Empty,
-                        _rgBGtoUIQueue, _rgUItoBGQueue, 
-                        SyncImage.Bitmap, DisplayImage.Bitmap );
+                        _rgBGtoUIQueue, _rgUItoBGQueue,
+                        SyncImage.Bitmap, DisplayImage.Bitmap);
 
-                    _oThread = new Thread( oWorker.DoWork );
+                    //PortListening oWorker = new PortListening( 
+                    //    5, iMonitor,
+                    //    iQuality, strSaveDir,
+                    //    _rgBGtoUIQueue, _rgUItoBGQueue, 
+                    //    SyncImage.Bitmap, DisplayImage.Bitmap );
+
+                    _oThread = new Thread( oWorker.DoWork ) { Priority = ThreadPriority.AboveNormal };
                     _oThread.Start(); // Can send out of memory exception!
 
                     _oWorkPlace.Start( 1 );

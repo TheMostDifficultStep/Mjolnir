@@ -15,6 +15,7 @@ using Play.Sound;
 using Play.ImageViewer;
 using Play.Sound.FFT;
 using System.Collections;
+using System.IO.Ports;
 
 namespace Play.SSTV {
     public abstract class BGThreadState :
@@ -301,7 +302,8 @@ namespace Play.SSTV {
                                                            typeof( BadDeviceIdException ),
                                                            typeof( InvalidHandleException ),
                                                            typeof( MMSystemException ),
-                                                           typeof( ThreadStateException )
+                                                           typeof( ThreadStateException ),
+                                                           typeof( IOException )
                                                          };
 
         /// <summary>
@@ -311,13 +313,13 @@ namespace Play.SSTV {
         /// servicing this object to be initialized within THIS object, instead of
         /// outboard. Then we don't need to pass in the sample rate here and we can
         /// init the DeMo and Draw objects in the base!! (maybe -_-)
-        /// NOTE: I'm creating this object in the main thread and then USING it in
-        /// the background thread. This has implications for the AUDIO device. 
-        /// Might want to come up with a way to create this object always in the
-        /// thread it is used in. (So I can have the player and buffer readonly again)
+        /// 
+        /// NOTE: I'm creating this object in the main thread and BUT the audio
+        /// device is instantiated in the BG thread. The MMSystem sound devices
+        /// MUST be created and used on the same (background) thread.
         /// </remarks>
         /// <exception cref="ArgumentNullException"></exception>
-        public DeviceListeningState( int                          iDevice,
+        public DeviceListeningState( int                          iMonitor,
                                      int                          iMicrophone,
                                      double                       dblSampleRate,
                                      int                          iImageQuality,
@@ -334,7 +336,7 @@ namespace Play.SSTV {
             _iImageQuality = iImageQuality;
             _strFileName   = strFileName;
 
-            _iSpeaker      = iDevice;
+            _iSpeaker      = iMonitor;
             _iMicrophone   = iMicrophone;
             _dblSampRate   = dblSampleRate;
 
@@ -431,15 +433,7 @@ namespace Play.SSTV {
         //    _oQueue.Enqueue( sValue );
         //}
 
-        /// <summary>
-        /// This is the entry point for our device listener thread.
-        /// Events within here are posted via message and are read in UI thread.
-        /// </summary>
-        /// <remarks>At present we rely on NAudio to pick up the sound samples
-        /// in the UI thread. It sux but that's how they work. So that's why
-        /// we need the DataQueue. In the future I'll write my own code to
-        /// read from the sound card and I'll be able to punt that code.</remarks>
-        public void DoWork() {
+        public void InitCallbacks() {
             try {
                 _oSSTVDeMo.Send_NextMode  = _oSSTVDraw.OnModeTransition_SSTVDeMo;
                 _oSSTVDraw.Send_TvEvents  = OnTvEvents_SSTVDraw;
@@ -454,9 +448,22 @@ namespace Play.SSTV {
                 return;
             }
 
-            ConcurrentQueue<short> oQueue  = new();
-            SoundHandler           oSound  = new( _iSpeaker, _iMicrophone, _dblSampRate, _oToUIQueue, oQueue );
-            Thread                 oThread = new( oSound.DoWork ) { Priority = ThreadPriority.AboveNormal };
+        }
+
+        /// <summary>
+        /// This is the entry point for our device listener thread.
+        /// Events within here are posted via message and are read in UI thread.
+        /// </summary>
+        /// <remarks>At present we rely on NAudio to pick up the sound samples
+        /// in the UI thread. It sux but that's how they work. So that's why
+        /// we need the DataQueue. In the future I'll write my own code to
+        /// read from the sound card and I'll be able to punt that code.</remarks>
+        public void DoWork() {
+            InitCallbacks();
+
+            ConcurrentQueue<short> oTVAudio = new();
+            SoundHandler           oSound   = new( _iSpeaker, _iMicrophone, _dblSampRate, _oToUIQueue, oTVAudio );
+            Thread                 oThread  = new( oSound.DoWork ) { Priority = ThreadPriority.AboveNormal };
 
             try {
                 oThread.Start();
@@ -467,7 +474,7 @@ namespace Play.SSTV {
                         _oToUIQueue.Enqueue( new( SSTVEvents.ThreadAbort, 10 ) );
                         break;
                     }
-                    while( oQueue.TryDequeue( out short dblValue ) ) {
+                    while( oTVAudio.TryDequeue( out short dblValue ) ) {
                         _oSSTVDeMo.Do( (double)dblValue );
                     }
 
@@ -693,6 +700,117 @@ namespace Play.SSTV {
             }
 
             _oToUIQueue.Enqueue( new( SSTVEvents.ThreadExit, 1 ) );
+        }
+    }
+
+    /// <summary>
+    /// Little experiment to attempt to read audio from my 7300. 
+    /// Looks like only the CI-V control is showing up as COM5.
+    /// but no COM port for usb audio... So this is currently untested..
+    /// </summary>
+    public class PortListening : DeviceListeningState {
+        readonly BlockCopies _oWaveReader;
+                 byte[]      _rgRawAudio; // Test value for the moment...
+                 int         _iRawAudioLength = 0;
+        readonly int         _iSleepMS = 100;
+        readonly int         _iBitRate = 115200; // per second
+        readonly int         _iPortIn;
+
+        public PortListening( int iPort, int iMonitor, int iImageQuality,
+                              string strFilePath,ConcurrentQueue<SSTVMessage> oToUIQueue,
+                              ConcurrentQueue<TVMessage> oInputQueue, SKBitmap oD12, SKBitmap oRx ) : 
+            base( iMonitor, -1, 0.0, iImageQuality, strFilePath, string.Empty, oToUIQueue,
+                  oInputQueue, oD12, oRx )
+        {
+            int iBytesNeeded = (_iBitRate / 8) * (_iSleepMS / 1000) + 1000;
+
+            _oWaveReader = new( iDecimation:1, iChannels:1, iChannel:0 );
+            _rgRawAudio  = new byte[iBytesNeeded];
+            _iPortIn     = iPort;
+        }
+
+        public void GetData( object sender, SerialDataReceivedEventArgs e ) {
+            if( sender is SerialPort oPort ) {
+                GetData( oPort );
+            }
+        }
+
+        public bool GetData( SerialPort oPort ) {
+            _iRawAudioLength = 0;
+            int iRead = oPort.BytesToRead;
+
+            if( iRead > 0 ) {
+                try {
+                    _iRawAudioLength = oPort.Read( _rgRawAudio, 0, iRead );
+                } catch( Exception oEx ) {
+                    if( _rgLoopErrors.IsUnhandled( oEx ) )
+                        throw;
+
+                    _oInputQueue.Enqueue( new TVMessage( TVMessage.Message.ExitWorkThread ) );
+                    _oToUIQueue .Enqueue( new( SSTVEvents.ThreadAbort, 10 ) ); // BUG: I've got an enum somewhere...
+                }
+            } 
+
+            return _iRawAudioLength > 0;
+        }
+
+        /// <summary>
+        /// Alas, the IC-7300 is only showing CI-V on com5. The audio
+        /// is not showing up as a com port. Tho' it does snow up as
+        /// a USB Audio Codec (obviously, see the MMAudio stuff).
+        /// The IC-705 shows two COM ports. >_<;;
+        /// </summary>
+        /// <remarks>
+        /// So the dot net serial port example shows them create the
+        /// serial port in the main thread and then read from it in a
+        /// background thread. So I might be able to move the object 
+        /// out...
+        /// </remarks>
+        public new void DoWork() {
+            SerialPort oAudioPort;
+
+            try {
+                oAudioPort = new SerialPort( "COM" + _iPortIn.ToString() );
+            } catch( IOException ) {
+                _oToUIQueue.Enqueue( new( SSTVEvents.ThreadAbort, 11 ) );
+                return;
+            }
+
+            try {
+                oAudioPort.BaudRate       = _iBitRate;
+                oAudioPort.Parity         = Parity.None;
+                oAudioPort.StopBits       = StopBits.One;
+                oAudioPort.DataBits       = 8;
+                oAudioPort.Handshake      = Handshake.None;
+                oAudioPort.ReadBufferSize = _rgRawAudio.Length;
+
+                //oAudioPort.ReceivedBytesThreshold = oAudioPort.ReadBufferSize / 2;
+                //oAudioPort.DataReceived           += GetData;
+
+                oAudioPort.Open();
+
+                while( CheckMessages() ) {
+                    if( GetData( oAudioPort ) ) {
+					    foreach( short sSample in new BlockCopies.SampleEnumerable( _oWaveReader, _rgRawAudio, _iRawAudioLength ) ) {
+						    _oSSTVDeMo.Do( (double)sSample );
+					    }
+
+                        _oSSTVDraw .Process();
+                        _oToUIQueue.Enqueue( new( SSTVEvents.DownloadLevels, 0, _oSSTVDeMo.CalcLevel( false ) ) );
+                    }
+
+                    Thread.Sleep( _iSleepMS );
+                }
+			} catch( Exception oEx ) {
+                if( _rgLoopErrors.IsUnhandled( oEx ) )
+                    throw;
+
+                _oToUIQueue.Enqueue( new( SSTVEvents.ThreadAbort, 0 ) );
+            } finally {
+                 oAudioPort.Close();
+            }
+
+            _oToUIQueue.Enqueue( new( SSTVEvents.ThreadExit, 0 ) );
         }
     }
 }
