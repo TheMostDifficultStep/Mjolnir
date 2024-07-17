@@ -331,12 +331,19 @@ namespace Play.ImageViewer {
             }
         }
 
-		/// <remarks>
-		/// Note, it is possible to pass an invalid DirectoryInfo, so when we attempt
-		/// to retrieve the sibling directories, we will fail.
-		/// </remarks>
-		/// <param name="oDir"></param>
-		/// <returns></returns>
+        public override bool Execute(Guid sGuid) {
+            if( sGuid == GlobalCommands.Recycle ) {
+                return LoadAgain( CurrentDirectory );
+            }
+            return base.Execute(sGuid);
+        }
+
+        /// <remarks>
+        /// Note, it is possible to pass an invalid DirectoryInfo, so when we attempt
+        /// to retrieve the sibling directories, we will fail.
+        /// </remarks>
+        /// <param name="oDir"></param>
+        /// <returns></returns>
         public bool LoadChildren( DirectoryInfo oDir ) {
             _rgSiblings.Clear();
 
