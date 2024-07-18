@@ -990,12 +990,17 @@ namespace Play.Edit {
                         }
                         return true;
                     case Keys.Delete: {
-                        // The only way to get this event.
+                        // The only way to get this event. Tho' a bit ambiguous between delete a character
+                        // in a column or delete a row. 
                         if( !_fReadOnly ) {
-                            //if( _oCacheMan.CopyCaret() is CacheMultiColumn.CaretInfo oCaret ) {
-                            //    _oDocOps.TryDeleteAt( oCaret.Row, oCaret.Column, oCaret.Offset, 1 );
-                            //}
-                            SelectionDelete();
+                            if( _oCacheMan.Selector.RowCount == 0 ) {
+                                if( _oCacheMan.CopyCaret() is CacheMultiColumn.CaretInfo oCaret ) {
+                                    _oDocOps.TryDeleteAt(oCaret.Row, oCaret.Column, oCaret.Offset, 1);
+                                }
+                            } else {
+                                // BUG: This won't delete multi char's in one row w/ one column selection.
+                                SelectionDelete();
+                            }
                         }
                         return true;
                     }
