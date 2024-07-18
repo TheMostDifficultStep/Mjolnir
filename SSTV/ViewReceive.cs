@@ -430,6 +430,10 @@ namespace Play.SSTV {
         }
 
         public override bool Execute( Guid sGuid ) {
+			if( sGuid == GlobalCommands.Recycle ) {
+				_oDocSSTV.ResetMode();
+				return true;
+			}
 			if( sGuid == GlobalCommands.Delete ) {
 				_oDocSSTV.PostBGMessage( TVMessage.Message.ClearImage );
 				return true;
@@ -714,7 +718,15 @@ namespace Play.SSTV {
 
             return( null );
 		}
-	} // End WindowRxBase
+
+        public override bool Execute(Guid e) {
+			if( e == GlobalCommands.Recycle ) {
+				_oDocSSTV.ResetMode();
+				return true;
+			}
+            return false;
+        }
+    } // End WindowRxBase
 
 	/// <summary>
 	/// Spiffy new window that shows the receive directory as icons. But not

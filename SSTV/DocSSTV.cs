@@ -1701,7 +1701,28 @@ namespace Play.SSTV {
             _oWorkPlace.Pause();
             StateRx = DocSSTVMode.Ready;
             _rgBGtoUIQueue.Clear();
-       }
+        }
+
+        /// <summary>
+        /// Reset to "auto". No longer actively decoding an sstv image and looking
+        /// for the signal id to start download again.
+        /// </summary>
+        public void ResetMode() {
+            try {
+                if( !_oThread.IsAlive ) {
+                    LogError( "Make sure you have stared listening mode: 'press play'." );
+                    return;
+                }
+                RxModeList.CheckedLine = RxModeList[0];
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( NullReferenceException ),
+                                    typeof( ArgumentOutOfRangeException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
+
+                LogError( "Problem setting RX mode to auto." );
+            }
+        }
 
         /// <summary>
         /// 3'rd generation reader.
