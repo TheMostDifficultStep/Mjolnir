@@ -218,10 +218,14 @@ namespace Play.Edit {
         public override Row  Row  => throw new NotImplementedException();
     }
 
+    /// <summary>
+    /// This is the more modern element which derives it's "at" vlaue from
+    /// a Document Row instead of a single Line element.
+    /// </summary>
     public class CacheRow2 : CacheRow {
         protected Row _oDocRow;
 
-        public override Line Line => _oDocRow[0]; 
+        public override Line Line => _oDocRow[0]; // obsolete.
         public override int  At   => _oDocRow.At;
         public override Row  Row  => _oDocRow;
 

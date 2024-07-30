@@ -12,6 +12,7 @@ using Play.Interfaces.Embedding;
 using Play.Rectangles;
 using Play.Forms;
 using Play.Edit;
+using Play.Drawing;
 
 namespace Play.ImageViewer {
 	public class WindowSoloImage : 
@@ -76,7 +77,7 @@ namespace Play.ImageViewer {
         /// This is copied from the mainwin of the shell. It needs to be a tool, but I'm not sure where I want to stick it yet.
         /// </summary>
         /// <param name="strText">The character(s) to make a bitmap out of.</param>
-        /// <remarks>This will greatly benefit from my new FreeType font manager.</remarks>
+        /// <remarks>This will greatly benefit from my new FreeType font manager. TODO: Move to the Drawing namespace...</remarks>
         public static Bitmap BitmapCreateFromChar( string strText ) {
             Size   oSize = new Size( 16, 16 );
             Bitmap oBmp  = new Bitmap( oSize.Width, oSize.Height );

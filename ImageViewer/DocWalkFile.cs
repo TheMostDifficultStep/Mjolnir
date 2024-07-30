@@ -13,6 +13,7 @@ using System.Web;
 using System.Text;
 
 using SkiaSharp;
+using SkiaSharp.Views.Desktop;
 
 using Play.Drawing;
 using Play.Interfaces.Embedding;
@@ -21,7 +22,6 @@ using Play.Edit;
 using Play.Forms;
 using Play.Parse.Impl;
 using Play.Rectangles;
-using SkiaSharp.Views.Desktop;
 
 namespace Play.ImageViewer {
     unsafe public class FileOperationAPIWrapper {
@@ -223,156 +223,6 @@ namespace Play.ImageViewer {
         }
     }
     
-    public delegate void ImageUpdatedEvent();
-
-	public class ImageBaseDoc :
-		IPgParent,
-		IDisposable
-	{
-        protected readonly IPgBaseSite _oSiteBase;
-        protected          Bitmap      _oBitmapUnknown; // An error bitmap.
-        protected          SKBitmap    _oSKBmpError;    // New error bitmap. >_<;;
-		protected readonly string      _strUnknownImage = @"ImageViewer.Content.icons8-error-48.png";
-
-        public static readonly Type[] _rgBmpLoadErrs = { 
-			typeof( NullReferenceException ),
-            typeof( ArgumentNullException ),
-            typeof( ArgumentException ),
-            typeof( System.Security.SecurityException ),
-            typeof( FileNotFoundException ), // Handles bum entry in bag case.
-            typeof( PathTooLongException ),
-            typeof( DirectoryNotFoundException ),
-            typeof( UnauthorizedAccessException ),
-            typeof( NotSupportedException ),
-            typeof( PlatformNotSupportedException ),
-            typeof( FileFormatException ),
-            typeof( FileNotFoundException ), 
-            typeof( IOException ),
-            typeof( NotSupportedException )
-		};
-
-		public IPgParent Parentage   => _oSiteBase.Host;
-		public IPgParent Services    => Parentage.Services;
-
-        /// <summary>
-        /// Set the bitmap to display. NOTE: Previous bitmap will be Disposed!!
-        /// (If it exists and is not the same bitmap as present)
-        /// </summary>
-		public SKBitmap Bitmap { 
-            get { return _skBitmap; }
-            set { 
-                if( value != _skBitmap ) {
-                    if( _skBitmap != null ) {
-                        _skBitmap.Dispose();
-                    }
-
-                    _skBitmap = value;
-
-                    if( _skBitmap != null ) {
-                        WorldDisplay = new SKRectI( 0, 0, _skBitmap.Width, _skBitmap.Height );
-                    } else {
-                        WorldDisplay = new SKRectI( 0, 0, 0, 0 );
-                    }
-                }
-		    }
-        }
-
-        /// <summary>
-        /// The portion of the bitmap we want to show.
-        /// </summary>
-        public SKRectI WorldDisplay { 
-            get { return _skWorldDisplay; } 
-            set { _skWorldDisplay = value; Raise_ImageUpdated(); } 
-        }
-
-        /// <summary>
-        /// Size of the world display of the contained bitmap.
-        /// </summary>
-        public SKSizeI Size {
-            get { return _skWorldDisplay.Size; }
-        }
-        
-        public Bitmap    ErrorBitmap => _oBitmapUnknown;
-        public SKBitmap  ErrorBmp    => _oSKBmpError;
-
-        private   SKBitmap _skBitmap;
-        protected SKRectI  _skWorldDisplay;
-
-        public event ImageUpdatedEvent ImageUpdated;
-
-        public ImageBaseDoc( IPgBaseSite oSiteBase ) {
-            _oSiteBase = oSiteBase ?? throw new ArgumentNullException();
-
-            try {
-				_oBitmapUnknown = ImageResourceHelper.GetImageResource(  Assembly.GetExecutingAssembly(), _strUnknownImage );
-				_oSKBmpError    = GetSKBitmapResource(  Assembly.GetExecutingAssembly(), _strUnknownImage ) ?? throw new InvalidOperationException( "Couldn't Load Error SKBitmap" );
-            } catch( InvalidOperationException ) {
-                Type[] rgErrors = { typeof( InvalidOperationException ),
-                                    typeof( FileNotFoundException ) };
-                _oSiteBase.LogError( "Image Base Constructor", "Having trouble finding error bitmap resource." );
-            }
-		}
-
-        /// <summary>
-        /// We'll pack this out to the embedding interfaces after I get it going in this project.
-        /// </summary>
-        /// <param name="oAssembly"></param>
-        /// <param name="strResourceName"></param>
-        /// <returns></returns>
-		public static SKBitmap GetSKBitmapResource( Assembly oAssembly, string strResourceName ) {
-			try {
-                // Let's you peep in on all of them! ^_^
-                // string[] rgStuff = oAssembly.GetManifestResourceNames();
-
-				using( Stream oStream = oAssembly.GetManifestResourceStream( strResourceName )) {
-					return SKBitmap.Decode( oStream );
-				}
-			} catch( Exception oEx ) {
-				Type[] rgErrors = { typeof( NullReferenceException ), 
-									typeof( ArgumentNullException ),
-									typeof( ArgumentException ),
-									typeof( NotImplementedException ) };
-				if( !rgErrors.Contains( oEx.GetType() ) )
-					throw;
-
-				throw new ApplicationException( "Could not retrieve given image resource : " + strResourceName );
-			}
-		}
-
-		public virtual void Dispose() {
-            if( Bitmap != null ) {
-                Bitmap.Dispose();
-                Bitmap = null;
-            }
-			if( _oBitmapUnknown != null ) {
-				_oBitmapUnknown.Dispose();
-				_oBitmapUnknown = null;
-			}
-		}
-
-		protected virtual bool Initialize() {
-			return true;
-		}
-
-		public virtual void Raise_ImageUpdated() {
-            ImageUpdated?.Invoke();
-        }
-
-		public virtual bool Execute( Guid sGuid ) {
-			return( false );
-		}
-
-		public SKBitmap GetResource( string strName ) {
-			Assembly oAsm   = Assembly.GetExecutingAssembly();
-            string   strRes = oAsm.GetName().Name + ".Content." + strName;
-
-            // NOTE: .net core has new behavior for embedded resources. It is not the
-            //       namespace name, but the assembly name (at last)
-
-			return SKImageResourceHelper.GetImageResource( oAsm, strRes );
-		}
-	}
-
 	/// <summary>
 	/// Loads a single image from a stream, no navigation, left or right or anything.
     /// Don't confuse this with the DocWalker DirWalker objects and viewers.

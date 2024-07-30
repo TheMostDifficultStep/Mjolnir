@@ -6,6 +6,7 @@ using System.Xml;
 using System.Diagnostics;
 using System.IO;
 using System.Drawing;
+using System.Collections.ObjectModel;
 
 using SkiaSharp;
 using SkiaSharp.Views.Desktop;
@@ -14,16 +15,19 @@ using Play.Interfaces.Embedding;
 using Play.Rectangles;
 using Play.Controls;
 using Play.Parse;
-using System.Collections.ObjectModel;
 
 namespace Play.Edit {
     public interface IPgDocTraits<T> {
-        T HighLight { get; set; }
+        T           HighLight { get; set; }
         StdUIColors PlayHighlightColor { get; set; }
         bool        ReadOnly { get; set; }
 
         event Action<T> HighLightChanged; // Only one line is high lighted.
         event Action<T> CheckedEvent;     // Any number of rows can be checked.
+    }
+
+    public interface IPgDocTraitsExt<T> {
+        T CheckedEntry { get; set; }      // If this interface is supported, then only one check mark.
     }
 
     public static class DocOpExtender {
@@ -85,9 +89,7 @@ namespace Play.Edit {
         public uint    MaxHeight { get; set; } = 200;
         public int     Height    { get; protected set; }
         public int     LastOffset => 0;
-                       
         public float   UnwrappedWidth { get; protected set; } = 0;
-                       
         public bool    IsInvalid { get => false; set { } }
 
 

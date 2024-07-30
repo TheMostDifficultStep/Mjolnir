@@ -16,6 +16,7 @@ using Play.Edit;
 using Play.ImageViewer;
 using Play.Forms;
 using Play.Sound;
+using Play.Controls;
 
 namespace Play.SSTV {
 	/// <summary>
@@ -58,6 +59,14 @@ namespace Play.SSTV {
 			base.InitRows( rgShow );
 
 			try {
+				//DocumentDropDown oBmpDropDown = new DocumentDropDown( new WinSlot( this ) );
+
+				//PropertyInitRow( (int)SSTVProperties.Names.Rx_FamilySelect, 
+				//	             new ViewDropDown    ( new WinSlot( this ), 
+				//					 new DocProperties   ( new WinSlot( this ) ), 
+				//					 oBmpDropDown )
+				//			   );
+
                 SSTVDocument.RxModeList.CheckedEvent += OnCheckedEvent_RxModeList;
                 //SSTVDocument.PropertyChange          += OnPropertyChange_SSTVDocument;
 
@@ -94,7 +103,8 @@ namespace Play.SSTV {
 								 new ImageViewSingle( new WinSlot( this ), SSTVDocument.SignalLevel )  );
 			} catch ( Exception oEx ) {
 				Type[] rgErrors = { typeof( NullReferenceException ),
-									typeof( ArgumentOutOfRangeException ) };
+									typeof( ArgumentOutOfRangeException ),
+									typeof( ApplicationException ) };
 				if( rgErrors.IsUnhandled( oEx ) )
 					throw;
 				LogError( "Unable to set up receive mode selectors" );

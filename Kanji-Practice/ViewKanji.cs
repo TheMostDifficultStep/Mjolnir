@@ -6,6 +6,7 @@ using Play.Edit;
 using Play.Forms;
 using Play.Rectangles;
 using Play.ImageViewer;
+using Play.Drawing;
 
 using SkiaSharp;
 
