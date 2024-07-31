@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Collections;
 using System.Drawing;
+using System.Windows.Forms;
 
 using SkiaSharp.Views.Desktop;
 using SkiaSharp;
@@ -10,7 +11,6 @@ using Play.Interfaces.Embedding;
 using Play.Rectangles;
 using Play.Edit;
 using Play.Drawing;
-using System.Reflection.Metadata;
 
 namespace Play.Controls {
 
@@ -200,6 +200,27 @@ namespace Play.Controls {
                 if( rgErrors.IsUnhandled( oEx ) )
                     throw;
             }
+        }
+
+        /// <remarks>
+        /// Sometimes you have the case where you need to check the
+        /// position of the mouse w/o any movement. But I can't think of a 
+        /// case where that will matter at the moment.
+        /// </remarks>
+        /// <param name="e"></param>
+        protected override void OnMouseMove(MouseEventArgs e) {
+            base.OnMouseMove( e );
+
+            Cursor = Cursors.Arrow;
+
+            if( _rgLayout.Item(1).IsInside( e.Location.X, e.Location.Y ) ) {
+                Cursor = Cursors.Hand;
+            }
+        }
+
+        protected override void OnMouseDown( MouseEventArgs e ) { 
+            base.OnMouseDown( e ); 
+
         }
 
         public bool Execute(Guid sGuid) {

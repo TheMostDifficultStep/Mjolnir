@@ -8,11 +8,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Remove="Content\icons8-error-48.png" />
+    <None Remove="Content\icons8-list-64.png" />
   </ItemGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="Content\icons8-error-48.png" />
+    <EmbeddedResource Include="Content\icons8-list-64.png" />
   </ItemGroup>
 
   <ItemGroup>
