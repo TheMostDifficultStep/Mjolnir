@@ -1181,7 +1181,8 @@ namespace Play.Edit {
 
             yield return oFirst;
 
-            for( int i=iIndex+1, j = 0; 
+            // If index is last valid line, +1 will send us out of bounds. Use modulo...
+            for( int i = (iIndex+1) % _rgLines.Count , j = 0; 
                  j < _rgLines.Count - 1; 
                  ++j, i = ++i % _rgLines.Count ) 
             {
