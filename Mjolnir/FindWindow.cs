@@ -401,7 +401,15 @@ namespace Mjolnir {
 					case "Line":
 						return CreateLineNumberEnum( _oView, strFind );
 				}
-			} catch( NullReferenceException ) {
+			} catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( NullReferenceException ),
+                                    typeof( IndexOutOfRangeException ),
+                                    typeof( ArgumentOutOfRangeException ),
+                                    typeof( ArgumentException ),
+                                    typeof( ArgumentNullException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
+
                 _oWinMain.LogError( null, "search", "Problem generating Search enumerators." );
 			}
             return( null );
