@@ -11,6 +11,7 @@ using SkiaSharp;
 using Play.Interfaces.Embedding;
 using Play.Rectangles;
 using Play.Forms;
+using System.Reflection;
 
 namespace Play.ImageViewer {
 	// TODO: Convert the left hand column of the properties to be light CacheWrap elements instead
@@ -77,7 +78,8 @@ namespace Play.ImageViewer {
             _oSiteShell  = oSiteView as IPgShellSite ?? throw new ArgumentException( "View Site must support IPgShellSite" );
 			_oViewEvents = oSiteView.EventChain ?? throw new ArgumentException( "Site.EventChain must support IPgViewSiteEvents" );
 			_oDocument   = oDoc ?? throw new ArgumentNullException( "Document must not be null." );
-			Icon         = _oDocument.GetResource( "icons8-cut-40.png" );
+
+			Icon         = _oDocument.GetResource( "icons8-cut-40.png", Assembly.GetExecutingAssembly() );
 
 			SnipDoc  = new ImageSoloDoc   ( new SnipSlotBase( this ) );
 			SnipView = new ImageViewSingle( new SnipSlotView( this ), SnipDoc );

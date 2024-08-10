@@ -13,6 +13,7 @@ using Play.Rectangles;
 using Play.Forms;
 using Play.Edit;
 using Play.Drawing;
+using System.Reflection;
 
 namespace Play.ImageViewer {
 	public class WindowSoloImage : 
@@ -399,7 +400,7 @@ namespace Play.ImageViewer {
 			// BUG : This throws when a subclass in a DIFFERENT ASSEMBLY tries to
 			//       load it's resourse. What a pain in the a$$.
 			try {
-				Icon = _oDocWalker.GetResource( IconResource );
+				Icon = _oDocWalker.GetResource( IconResource, Assembly.GetExecutingAssembly() );
 			} catch( InvalidOperationException ) {
 			}
 

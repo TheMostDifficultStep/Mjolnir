@@ -215,12 +215,17 @@ namespace Play.Drawing {
 			return( false );
 		}
 
-		public SKBitmap GetResource( string strName ) {
-			Assembly oAsm   = Assembly.GetExecutingAssembly();
-            string   strRes = oAsm.GetName().Name + ".Content." + strName;
-
-            // NOTE: .net core has new behavior for embedded resources. It is not the
-            //       namespace name, but the assembly name (at last)
+        /// <summary>
+        /// Use Assembly.GetExecutingAssembly() in order to get the assembly
+        /// of the running code where the resource you want lives.
+        /// </summary>
+        /// <param name="strName">Name of the resource, expected in a "Content" directory.</param>
+        /// <param name="oAsm">Your assembly executing this code.</param>
+        /// <remarks>.net core has new behavior for embedded resources. It is not the
+        ///           namespace name, but the assembly name (at last)
+        /// </remarks>
+		public SKBitmap GetResource( string strName, Assembly oAsm ) {
+            string strRes = oAsm.GetName().Name + ".Content." + strName;
 
 			return SKImageResourceHelper.GetImageResource( oAsm, strRes );
 		}
