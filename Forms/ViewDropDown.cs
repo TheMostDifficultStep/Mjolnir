@@ -11,6 +11,8 @@ using Play.Interfaces.Embedding;
 using Play.Rectangles;
 using Play.Edit;
 using Play.Drawing;
+using static Play.Forms.DocProperties;
+using System.Runtime.InteropServices;
 
 namespace Play.Controls {
 
@@ -45,6 +47,28 @@ namespace Play.Controls {
         public IPgParent Parentage => _oSiteView.Host;
         public IPgParent Services  => Parentage.Services;
         protected IPgFontRender FontRender => _oStdUI.FontRendererAt( StdFont );
+
+		protected class WinSlot :
+			IPgViewSite
+		{
+			protected readonly ViewDropDown _oHost;
+
+			public WinSlot( ViewDropDown oHost ) {
+				_oHost = oHost ?? throw new ArgumentNullException();
+			}
+
+			public IPgParent Host => _oHost;
+
+			public void LogError(string strMessage, string strDetails, bool fShow=true) {
+				_oHost._oSiteView.LogError( strMessage, strDetails );
+			}
+
+			public void Notify( ShellNotify eEvent ) {
+				_oHost._oSiteView.Notify( eEvent );
+			}
+
+            public IPgViewNotify EventChain => _oHost._oSiteView.EventChain;
+        }
 
 
         /// <summary>
@@ -218,9 +242,28 @@ namespace Play.Controls {
             }
         }
 
+        /// <summary>
+        /// https://learn.microsoft.com/en-us/windows/win32/winmsg/window-features#pop-up-windows
+        /// </summary>
+        /// <param name="e"></param>
         protected override void OnMouseDown( MouseEventArgs e ) { 
             base.OnMouseDown( e ); 
 
+            ViewDDPopup oPopup = new ViewDDPopup( new WinSlot( this ), _oDocBag );
+            SmartRect   oRect  = new SmartRect( LOCUS.UPPERRIGHT, Right, Bottom, Width, 100 );
+
+            oPopup.Parent = this;
+            
+            // Where the popup should be in coords of parent of our VDD control.
+            Point oTopLeft   = new Point( oRect.Left, oRect.Top );
+
+            // Popup's are in screen coordinates.
+            Point oScreenLoc = this.Parent.PointToScreen( oTopLeft );
+
+            oPopup.Location = oScreenLoc;
+            oPopup.Size     = new Size( oRect.Width, oRect.Height );
+
+            oPopup.Show();
         }
 
         public bool Execute(Guid sGuid) {
@@ -299,6 +342,132 @@ namespace Play.Controls {
             IEnumerator IEnumerable.GetEnumerator() {
                 return GetEnumerator();
             }
+        }
+    }
+
+    public enum WindowStyles : UInt32 {
+        WS_POPUP             = 0x80000000,
+        WS_VISIBLE           = 0x10000000,
+        WS_CLIPSIBLINGS      = 0x04000000,
+        WS_CLIPCHILDREN      = 0x02000000,
+        WS_MAXIMIZEBOX       = 0x00010000,
+        WS_BORDER            = 0x00800000,
+                             
+        WS_EX_LEFT           = 0x00000000,
+        WS_EX_LTRREADING     = 0x00000000,
+        WS_EX_RIGHTSCROLLBAR = 0x00000000,
+        WS_EX_TOPMOST        = 0x00000008
+    }
+
+    public enum MouseActivate : int {
+        MA_ACTIVATE         = 1, //	Activates the window, and does not discard the mouse message.
+        MA_ACTIVATEANDEAT   = 2, //	Activates the window, and discards the mouse message.
+        MA_NOACTIVATE       = 3, // Does not activate the window, and does not discard the mouse message.
+        MA_NOACTIVATEANDEAT = 4
+    }
+    
+    /// <summary>
+    /// This is our popup for the drop down control. Its like a secondary view in that
+    /// it uses the same document as the ViewDropDown object
+    /// </summary>
+    /// <seealso cref="ViewDropDown"/>
+    public class ViewDDPopup :
+        WindowMultiColumn
+    {
+        private const int WM_ACTIVATE      = 0x0006;
+        private const int WM_MOUSEACTIVATE = 0x0021;
+
+        public ViewDDPopup( IPgViewSite oView, object oDocument ) : base( oView, oDocument ) {
+            //base.SetTopLevel(true);
+            Capture = true;
+        }
+
+        protected override bool Initialize() {
+            if( !base.Initialize() )
+                return false;
+
+            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Pixels, 20, 1L ), PropertyRow.ColumnLabel ); 
+            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.None,   70, 1L ), PropertyRow.ColumnValue ); 
+
+            // Do this so we can return a desired height. O.o;;
+            _oCacheMan.CacheRepair( null, true, true );
+
+            return true;
+        }
+
+        protected override CreateParams CreateParams {
+            get {
+                CreateParams createParams = base.CreateParams;
+
+                createParams.Style = unchecked((int)(
+                                         WindowStyles.WS_POPUP |
+                                         WindowStyles.WS_VISIBLE |
+                                         WindowStyles.WS_CLIPSIBLINGS |
+                                         WindowStyles.WS_CLIPCHILDREN |
+                                         WindowStyles.WS_BORDER ));
+                //createParams.ExStyle = (int)(WindowStyles.WS_EX_LEFT |
+                //                       WindowStyles.WS_EX_LTRREADING |
+                //                       WindowStyles.WS_EX_RIGHTSCROLLBAR | 
+                //                       WindowStyles.WS_EX_TOPMOST );
+
+                createParams.Parent  = HostHandle;
+
+                return createParams;
+            }
+        }
+
+        protected override void WndProc(ref Message m) {
+            switch( m.Msg ) {
+                case WM_ACTIVATE: {
+                    if( (int)m.WParam == 1 ) {
+                        // window is being activated
+                        if( HostHandle != IntPtr.Zero ) {
+                            User32.SetActiveWindow(HostHandle);
+                        }
+                    }
+                    break;
+                }
+                case WM_MOUSEACTIVATE: {
+                    m.Result = new IntPtr((int)MouseActivate.MA_NOACTIVATE);
+                    return;
+                }
+            }
+            base.WndProc(ref m);
+        }
+
+        protected override void OnLostFocus(EventArgs e) {
+            base.OnLostFocus(e);
+            Dispose();
+        }
+
+        protected override void OnMouseDown( MouseEventArgs e ) {
+            SmartRect rcDD = new SmartRect( Left, Top, Right, Bottom );
+            if( !rcDD.IsInside( e.X, e.Y ) ) {
+                Hide();
+                Dispose();
+                return;
+            }
+            base.OnMouseDown( e );
+        }
+
+        protected IntPtr HostHandle {
+            get { 
+                if( _oSiteView.Host is Control oParent ) {
+                    return oParent.Handle;
+                }
+                return IntPtr.Zero;
+            }
+        }
+        public void OnFormUpdate(IEnumerable<Line> rgUpdates) {
+            _oCacheMan.CacheRepair( null, true, true );
+        }
+
+        public void OnFormClear() {
+            _oCacheMan.CacheRepair( null, true, true );
+        }
+
+        public void OnFormLoad() {
+            _oCacheMan.CacheRepair( null, true, true );
         }
     }
 }

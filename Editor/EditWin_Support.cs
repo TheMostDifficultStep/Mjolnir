@@ -138,6 +138,33 @@ namespace Play.Edit {
         HS_DIAGCROSS=        5
     }
 
+    [StructLayout(LayoutKind.Sequential)]
+    public struct NativeRect
+    {
+        public int left;
+        public int top;
+        public int right;
+        public int bottom;
+
+        public override string ToString()
+        {
+            return $"Left: {left}, Top: {top}, Right: {right}, Bottom: {bottom}";
+        }
+    }
+
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct NativePoint
+    {
+        public int x;
+        public int y;
+
+        public override string ToString()
+        {
+            return $"X: {x}, Y: {y}";
+        }
+    }
+    
     unsafe public class User32 {
         [DllImport( "User32.DLL", EntryPoint = "GetDC", SetLastError = true )]
         public static extern IntPtr GetDC(IntPtr hWnd);
@@ -162,6 +189,21 @@ namespace Play.Edit {
 
         [DllImport("User32.DLL", EntryPoint = "SetForegroundWindow", SetLastError = true)]
         public static extern bool SetForegroundWindow( IntPtr hWnd );
+
+        [DllImport("user32.dll", CharSet = CharSet.Auto, ExactSpelling = true)]
+        public static extern IntPtr SetActiveWindow( IntPtr hWnd);
+
+        //[DllImport("user32.dll", EntryPoint = "GetClientRect")]
+        //[return: MarshalAs(UnmanagedType.Bool)]
+        //public static extern bool GetClientRect([In] IntPtr hWnd, [Out] out NativeRect lpRect);
+
+        [DllImport("user32.dll", EntryPoint = "ClientToScreen")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool ClientToScreen([In] IntPtr hWnd, ref NativePoint lpPoint);
+
+        [DllImport("user32.dll", EntryPoint = "ScreenToClient")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool ScreenToClient([In] IntPtr hWnd, ref NativePoint lpPoint);
     }
 
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
