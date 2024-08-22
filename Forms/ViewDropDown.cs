@@ -380,8 +380,6 @@ namespace Play.Controls {
         private const int WM_MOUSEACTIVATE = 0x0021;
 
         public ViewDDPopup( IPgViewSite oView, object oDocument ) : base( oView, oDocument ) {
-            //base.SetTopLevel(true);
-            Capture = true;
         }
 
         protected override bool Initialize() {
@@ -443,9 +441,9 @@ namespace Play.Controls {
         }
 
         protected override void OnMouseDown( MouseEventArgs e ) {
-            SmartRect rcDD = new SmartRect( 0, 0, Width, Height );
-            if( !rcDD.IsInside( e.X, e.Y ) ) {
-                Hide();
+            SmartRect rcClient = new SmartRect( 0, 0, Width, Height );
+            if( !rcClient.IsInside( e.X, e.Y ) ) {
+                Hide   ();
                 Dispose();
                 return;
             }
