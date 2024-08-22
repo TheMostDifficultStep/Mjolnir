@@ -253,6 +253,8 @@ namespace Play.Controls {
             SmartRect   oRect  = new SmartRect( LOCUS.UPPERRIGHT, Right, Bottom, Width, 100 );
 
             oPopup.Parent = this;
+
+            oPopup.InitNew();
             
             // Where the popup should be in coords of parent of our VDD control.
             Point oTopLeft   = new Point( oRect.Left, oRect.Top );
@@ -441,7 +443,7 @@ namespace Play.Controls {
         }
 
         protected override void OnMouseDown( MouseEventArgs e ) {
-            SmartRect rcDD = new SmartRect( Left, Top, Right, Bottom );
+            SmartRect rcDD = new SmartRect( 0, 0, Width, Height );
             if( !rcDD.IsInside( e.X, e.Y ) ) {
                 Hide();
                 Dispose();
