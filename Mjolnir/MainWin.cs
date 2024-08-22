@@ -640,7 +640,7 @@ namespace Mjolnir {
             oFileMenu.DropDownItems.Add(new ToolStripSeparator() ); //---
             oFileMenu.DropDownItems.Add(new ToolStripMenuItem("Save",       BitmapCreateFromChar( "\xe105" ), new EventHandler(this.OnDocSave), Keys.Control | Keys.S ));
             oFileMenu.DropDownItems.Add(new ToolStripMenuItem("Save As...", BitmapCreateFromChar( "\xe159" ), new EventHandler(this.OnDocSaveAs)));
-            oFileMenu.DropDownItems.Add(new ToolStripMenuItem("Save All",   BitmapCreateFromChar( "\xe158" ), new EventHandler(this.OnDocSaveAll), Keys.Control | Keys.Shift | Keys.O ));
+            oFileMenu.DropDownItems.Add(new ToolStripMenuItem("Save All",   BitmapCreateFromChar( "\xe158" ), new EventHandler(this.OnDocSaveAll), Keys.Control | Keys.Shift | Keys.S ));
           //oFileMenu.DropDownItems.Add(new ToolStripMenuItem("Run",        null, new EventHandler(this.OnRun)));
             oFileMenu.DropDownItems.Add(new ToolStripSeparator() ); //---
 
