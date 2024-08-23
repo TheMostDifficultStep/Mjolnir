@@ -11,8 +11,6 @@ using Play.Interfaces.Embedding;
 using Play.Rectangles;
 using Play.Edit;
 using Play.Drawing;
-using static Play.Forms.DocProperties;
-using System.Runtime.InteropServices;
 
 namespace Play.Controls {
 
@@ -384,7 +382,7 @@ namespace Play.Controls {
     {
         private const int WM_ACTIVATE      = 0x0006;
         private const int WM_MOUSEACTIVATE = 0x0021;
-
+        
         public ViewDDPopup( IPgViewSite oView, object oDocument ) : base( oView, oDocument ) {
         }
 

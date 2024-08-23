@@ -20,18 +20,18 @@ namespace Play.SSTV {
 
             public static new int ColumnCount => 2;
             public DDRow( SSTVDEM.SSTVFamily oFamily ) {
-                _rgColumns = new Line[2];
-
                 Family = oFamily ?? throw new ArgumentNullException();
 
-                _rgColumns[ColumnCheck  ] = new TextLine( ColumnCheck,   CheckedMark(false) );
-                _rgColumns[ColumnFamily ] = new TextLine( ColumnFamily,   oFamily._strName );
+                _rgColumns = new Line[2];
+
+                _rgColumns[ColumnCheck  ] = new TextLine( ColumnCheck,  CheckedMark(false) );
+                _rgColumns[ColumnFamily ] = new TextLine( ColumnFamily, oFamily._strName );
             }
 
             public SSTVDEM.SSTVFamily Family { get; set; }
 
             protected string CheckedMark( bool fChecked ) {
-                return fChecked ? "*" : "";
+                return fChecked ? "\x2714" : "";
             }
 
             public bool IsChecked {
@@ -88,9 +88,9 @@ namespace Play.SSTV {
 
             public static new int ColumnCount => 4;
             public DDRow( SSTVMode oMode ) {
-                _rgColumns = new Line[5];
-
                 Mode = oMode ?? throw new ArgumentNullException();
+
+                _rgColumns = new Line[5];
 
                 _rgColumns[ColumnCheck  ] = new TextLine( ColumnCheck,   CheckedMark(false) );
                 _rgColumns[ColumnVersion] = new TextLine( ColumnVersion, oMode.Version );
@@ -101,7 +101,7 @@ namespace Play.SSTV {
             public SSTVMode Mode { get; set; }
 
             protected string CheckedMark( bool fChecked ) {
-                return fChecked ? "*" : "";
+                return fChecked ? "\x2714" : "";
             }
 
             public bool IsChecked {
@@ -161,7 +161,8 @@ namespace Play.SSTV {
             if( !base.Initialize() )
                 return false;
 
-            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Pixels, 11, 1L ), SSTVFamilyList.DDRow.ColumnCheck ); 
+            // TODO: Check the width of a checkmark at the current font... :-/
+            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Pixels, 15, 1L ), SSTVFamilyList.DDRow.ColumnCheck ); 
             TextLayoutAdd( new LayoutRect( LayoutRect.CSS.None,   20, 1L ), SSTVFamilyList.DDRow.ColumnFamily ); 
 
             // Do this so we can return a desired height. O.o;;
@@ -182,7 +183,7 @@ namespace Play.SSTV {
             if( !base.Initialize() )
                 return false;
 
-            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Pixels, 20, 1L ), SSTVModeList.DDRow.ColumnCheck ); 
+            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Pixels, 15, 1L ), SSTVModeList.DDRow.ColumnCheck ); 
             TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Flex,   20, 1L ), SSTVModeList.DDRow.ColumnVersion ); 
             TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Flex,   20, 1L ), SSTVModeList.DDRow.ColumnWidth ); 
             TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Flex,   20, 1L ), SSTVModeList.DDRow.ColumnHeight ); 

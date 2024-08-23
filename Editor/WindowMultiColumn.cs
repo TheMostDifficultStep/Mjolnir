@@ -684,6 +684,12 @@ namespace Play.Edit {
             _oCacheMan.OnChangeSize();
         }
 
+        /// <summary>
+        /// Basically assuming a vertical layout. Horizontally we just
+        /// use the width we are given. 
+        /// </summary>
+        /// <remarks>Would be nice to figure yout some huristic for
+        /// balanced text horizontally too. But it's low priority.</remarks>
         public override Size GetPreferredSize( Size sProposed ) {
 			_rgLayout.SetRect( 0, 0, sProposed.Width, sProposed.Height );
 			_rgLayout.LayoutChildren();
@@ -691,16 +697,7 @@ namespace Play.Edit {
             _oCacheMan.TextRect.Copy = _rgLayout;
             _oCacheMan.OnChangeSize();
 
-            int iHeight = 0;
-
-			foreach( CacheRow oCache in _oCacheMan ) {
-				iHeight += (int)oCache.Height + 1;
-			}
-
-            if( iHeight < _oCacheMan.LineHeight )
-                iHeight = _oCacheMan.LineHeight;
-
-            sProposed.Height = iHeight;
+            sProposed.Height = _oCacheMan.HeightCached;
 
 			return sProposed;
 		}

@@ -1444,6 +1444,24 @@ namespace Play.Edit {
         }
 
         /// <summary>
+        /// Calculate the height of the current cache given the current layout.
+        /// </summary>
+        public int HeightCached { 
+            get {
+                int iHeight = 0;
+
+			    foreach( CacheRow oCache in this ) {
+				    iHeight += (int)oCache.Height + 1; // BUG: Make '1' a variable.
+			    }
+
+                if( iHeight < LineHeight )
+                    iHeight = LineHeight;
+
+                return iHeight;
+            }
+        } 
+
+        /// <summary>
         /// Given a point location attempt to locate the nearest cached line/glyph.
         /// </summary>
         /// <remarks>At this point we've probably located the textarea column the mouse click
