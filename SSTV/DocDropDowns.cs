@@ -82,7 +82,7 @@ namespace Play.SSTV {
     /// </summary>
     public class SSTVModeList :
         EditMultiColumn,
-        IPgLoad< IEnumerator<SSTVMode> >
+        IPgLoad< IEnumerable<SSTVMode> >
     {
         public enum Column : int {
             Check = 0,
@@ -123,18 +123,20 @@ namespace Play.SSTV {
         public SSTVModeList(IPgBaseSite oSiteBase) : base(oSiteBase) {
         }
 
-        public bool Load( IEnumerator<SSTVMode> itrMode ) {
+        public bool Load( IEnumerable<SSTVMode> rgModes ) {
+            if( rgModes == null ) {
+                throw new ArgumentNullException();
+            }
+
             TrackerEnumerable oTE = new TrackerEnumerable( this );
 
             _rgRows.Clear();
 
-            if( itrMode == null ) {
-                throw new ArgumentNullException();
+            foreach( SSTVMode oMode in rgModes ) {
+                _rgRows.Add( new DDRow( oMode ) );
             }
 
-            while( itrMode.MoveNext() ) {
-                _rgRows.Add( new DDRow( itrMode.Current ) );
-            }
+            RenumberAndSumate();
 
             oTE.FinishUp( EditType.DeleteRow );
 
