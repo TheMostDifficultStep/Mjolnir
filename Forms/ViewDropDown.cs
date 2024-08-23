@@ -11,8 +11,20 @@ using Play.Interfaces.Embedding;
 using Play.Rectangles;
 using Play.Edit;
 using Play.Drawing;
+using System.Reflection;
 
 namespace Play.Controls {
+    /// <summary>
+    /// Normally, I go thru a two step initialization. But here, the image
+    /// document is ready the moment it's feet hit the ground.
+    /// </summary>
+    /// <remarks>Its a shame I'm creating a bitmap for every dropdown instantiated.</remarks>
+    public class ImageForDropDown : ImageBaseDoc {
+        public ImageForDropDown(IPgBaseSite oSiteBase) : base(oSiteBase) {
+            Bitmap = GetSKBitmapResource( Assembly.GetExecutingAssembly(), 
+                                          "Play.Forms.Content.icons8-list-64.png" );
+        }
+    }
 
     /// <summary>
     /// This is basically a single line editor. But it has a column to signal a popup.
@@ -80,13 +92,13 @@ namespace Play.Controls {
         /// <param name="oBitmap">Image to use for the dropdown button.</param>
         /// <exception cref="ArgumentNullException"></exception>
         /// <exception cref="ArgumentException"></exception>
-        public ViewDropDown( IPgViewSite oViewSite, object oDocument, ImageBaseDoc oBitmap ) {
+        public ViewDropDown( IPgViewSite oViewSite, object oDocument ) {
             _oSiteView = oViewSite ?? throw new ArgumentNullException();
             _oStdUI    = Services as IPgStandardUI2 ?? throw new ArgumentException( "Parent view must provide IPgStandardUI service" );
 
             _oDocTraits = oDocument as IPgDocTraits<Row> ?? throw new ArgumentException( "Doc must support IPgDocTraits" );
             _oDocBag    = oDocument as IReadableBag<Row> ?? throw new ArgumentException( "Doc must support IReadableBag" );
-            _oBmpButton = oBitmap ?? throw new ArgumentNullException( "Please supply a bitmap" );
+            _oBmpButton = new ImageForDropDown( new WinSlot(this) );
 
             IPgMainWindow.PgDisplayInfo oInfo = new IPgMainWindow.PgDisplayInfo();
             if( _oSiteView.Host.TopWindow is IPgMainWindow oMainWin ) {

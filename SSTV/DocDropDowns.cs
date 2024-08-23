@@ -149,8 +149,8 @@ namespace Play.SSTV {
     }
 
     public class ViewFamilyDropDown : ViewDropDown {
-        public ViewFamilyDropDown(IPgViewSite oViewSite, object oDocument, ImageBaseDoc oBitmap) : 
-            base(oViewSite, oDocument, oBitmap) {
+        public ViewFamilyDropDown(IPgViewSite oViewSite, object oDocument) : 
+            base(oViewSite, oDocument) {
         }
 
         public override ViewDDPopup CreatePopup() {
