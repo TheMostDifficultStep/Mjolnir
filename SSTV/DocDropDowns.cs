@@ -61,6 +61,8 @@ namespace Play.SSTV {
                 _rgRows.Add( new DDRow( oFamily ) );
             }
 
+            RenumberAndSumate(); // Each row must be numbered, else cache messes up.
+
             oTE.FinishUp( EditType.DeleteRow );
 
             return true;

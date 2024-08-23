@@ -258,20 +258,18 @@ namespace Play.Controls {
         /// Take the newly created popup, Initialize it and position it.
         /// </summary>
         protected void PreparePopup( ViewDDPopup oPopup ) {
-            SmartRect oRect  = new SmartRect( LOCUS.UPPERRIGHT, Right, Bottom, Width, 100 );
-
             oPopup.Parent = this;
-
             oPopup.InitNew();
+
+            Size oPrefSize = oPopup.GetPreferredSize( new Size( Width, 10000 ) );
             
+            SmartRect oRect  = new SmartRect( LOCUS.UPPERRIGHT, Right, Bottom, oPrefSize.Width, oPrefSize.Height );
+
             // Where the popup should be in coords of parent of our VDD control.
-            Point oTopLeft   = new Point( oRect.Left, oRect.Top );
-
+            Point oTopLeft  = new Point( oRect.Left, oRect.Top );
             // Popup's are in screen coordinates.
-            Point oScreenLoc = this.Parent.PointToScreen( oTopLeft );
-
-            oPopup.Location  = oScreenLoc;
-            oPopup.Size      = new Size( oRect.Width, oRect.Height );
+            oPopup.Location = this.Parent.PointToScreen( oTopLeft );
+            oPopup.Size     = new Size( oRect.Width, oRect.Height );
 
             oPopup.Show();
         }

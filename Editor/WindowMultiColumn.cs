@@ -684,6 +684,27 @@ namespace Play.Edit {
             _oCacheMan.OnChangeSize();
         }
 
+        public override Size GetPreferredSize( Size sProposed ) {
+			_rgLayout.SetRect( 0, 0, sProposed.Width, sProposed.Height );
+			_rgLayout.LayoutChildren();
+
+            _oCacheMan.TextRect.Copy = _rgLayout;
+            _oCacheMan.OnChangeSize();
+
+            int iHeight = 0;
+
+			foreach( CacheRow oCache in _oCacheMan ) {
+				iHeight += (int)oCache.Height + 1;
+			}
+
+            if( iHeight < _oCacheMan.LineHeight )
+                iHeight = _oCacheMan.LineHeight;
+
+            sProposed.Height = iHeight;
+
+			return sProposed;
+		}
+			
         protected override void OnGotFocus(EventArgs e) {
             base.OnGotFocus(e);
 
