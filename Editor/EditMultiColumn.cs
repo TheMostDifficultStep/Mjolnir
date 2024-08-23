@@ -333,11 +333,11 @@ namespace Play.Edit {
         protected readonly IPgBaseSite _oSiteBase;
 
         protected readonly List<Row>   _rgRows = new();
-        protected List<bool>           _rgColumnWR; // is the column editable...
+        protected readonly List<bool>  _rgColumnWR; // is the column editable...
+        protected List<IPgEditHandler> _rgTemp      = new();
+        protected List<IPgEditEvents>  _rgListeners = new ();
         protected Row                  _oRowHighlight;
         protected StdUIColors          _ePlayColor;
-        protected List<IPgEditHandler> _rgTemp = new();
-        protected List<IPgEditEvents>  _rgListeners = new ();
 
         public event Action<Row> HighLightChanged;
         public event Action<Row> CheckedEvent;
@@ -448,6 +448,8 @@ namespace Play.Edit {
                 throw new InvalidProgramException( "Rows column count seems too large" );
 
             try {
+                // We assume all row have the same column count... :-/
+                // Thus we have an array of count of chars in each column.
                 Span<int> rgTotals = stackalloc int[_rgRows[0].Count];
 
                 for( int iRow=0; iRow< _rgRows.Count; iRow++ ) {
@@ -455,7 +457,7 @@ namespace Play.Edit {
 
                     oRow.At = iRow;
 
-                    for( int iCol=0; iCol<oRow.Count; ++iCol ) {
+                    for( int iCol=0; iCol < oRow.Count && iCol < rgTotals.Length; ++iCol ) {
                         rgTotals[iCol] = oRow[iCol].Summate( iCol, rgTotals[iCol] );
                     }
                 }

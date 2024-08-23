@@ -19,7 +19,7 @@ namespace Play.Controls {
     /// <summary>
     /// This is basically a single line editor. But it has a column to signal a popup.
     /// </summary>
-    public class ViewDropDown :
+    public abstract class ViewDropDown :
         SKControl,
         IPgParent,
         IPgLoad,
@@ -47,6 +47,8 @@ namespace Play.Controls {
         public IPgParent Parentage => _oSiteView.Host;
         public IPgParent Services  => Parentage.Services;
         protected IPgFontRender FontRender => _oStdUI.FontRendererAt( StdFont );
+
+        public abstract ViewDDPopup CreatePopup();
 
 		protected class WinSlot :
 			IPgViewSite
@@ -249,8 +251,14 @@ namespace Play.Controls {
         protected override void OnMouseDown( MouseEventArgs e ) { 
             base.OnMouseDown( e ); 
 
-            ViewDDPopup oPopup = new ViewDDPopup( new WinSlot( this ), _oDocBag );
-            SmartRect   oRect  = new SmartRect( LOCUS.UPPERRIGHT, Right, Bottom, Width, 100 );
+            PreparePopup( CreatePopup() );
+        }
+
+        /// <summary>
+        /// Take the newly created popup, Initialize it and position it.
+        /// </summary>
+        protected void PreparePopup( ViewDDPopup oPopup ) {
+            SmartRect oRect  = new SmartRect( LOCUS.UPPERRIGHT, Right, Bottom, Width, 100 );
 
             oPopup.Parent = this;
 
@@ -262,8 +270,8 @@ namespace Play.Controls {
             // Popup's are in screen coordinates.
             Point oScreenLoc = this.Parent.PointToScreen( oTopLeft );
 
-            oPopup.Location = oScreenLoc;
-            oPopup.Size     = new Size( oRect.Width, oRect.Height );
+            oPopup.Location  = oScreenLoc;
+            oPopup.Size      = new Size( oRect.Width, oRect.Height );
 
             oPopup.Show();
         }
@@ -373,26 +381,13 @@ namespace Play.Controls {
     /// it uses the same document as the ViewDropDown object
     /// </summary>
     /// <seealso cref="ViewDropDown"/>
-    public class ViewDDPopup :
+    public abstract class ViewDDPopup :
         WindowMultiColumn
     {
         private const int WM_ACTIVATE      = 0x0006;
         private const int WM_MOUSEACTIVATE = 0x0021;
 
         public ViewDDPopup( IPgViewSite oView, object oDocument ) : base( oView, oDocument ) {
-        }
-
-        protected override bool Initialize() {
-            if( !base.Initialize() )
-                return false;
-
-            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Pixels, 20, 1L ), PropertyRow.ColumnLabel ); 
-            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.None,   70, 1L ), PropertyRow.ColumnValue ); 
-
-            // Do this so we can return a desired height. O.o;;
-            _oCacheMan.CacheRepair( null, true, true );
-
-            return true;
         }
 
         protected override CreateParams CreateParams {

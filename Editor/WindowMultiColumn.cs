@@ -812,6 +812,7 @@ namespace Play.Edit {
                     }
                 }
             } catch( Exception oEx ) {
+                // TODO: Add some code to warn on every 100 errors so not so intrusive.
                 Type[] rgErrors = { typeof( NullReferenceException ),
                                     typeof( ArgumentOutOfRangeException ),
                                     typeof( ArgumentNullException ),
