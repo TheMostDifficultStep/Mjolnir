@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Drawing;
 
 using Play.Edit;
 using Play.Interfaces.Embedding;
@@ -10,22 +9,27 @@ using Play.Controls;
 using Play.Drawing;
 
 namespace Play.SSTV {
+    /// <summary>
+    /// List SSTVFamilyList all available SSTV image types. 
+    /// </summary>
     public class SSTVFamilyList :
         EditMultiColumn,
         IPgLoad< IEnumerable<SSTVDEM.SSTVFamily> >
     {
-        public class DDRow : Row {
-            public const int ColumnCheck   = 0;
-            public const int ColumnFamily  = 1;
+        public enum Column : int {
+            Check = 0,
+            Family
+        }
 
-            public static new int ColumnCount => 2;
+        public class DDRow : Row {
+            public static new int ColumnCount => Enum.GetNames(typeof(Column)).Length;
             public DDRow( SSTVDEM.SSTVFamily oFamily ) {
                 Family = oFamily ?? throw new ArgumentNullException();
 
-                _rgColumns = new Line[2];
+                _rgColumns = new Line[ColumnCount];
 
-                _rgColumns[ColumnCheck  ] = new TextLine( ColumnCheck,  CheckedMark(false) );
-                _rgColumns[ColumnFamily ] = new TextLine( ColumnFamily, oFamily._strName );
+                _rgColumns[(int)Column.Check  ] = new TextLine( (int)Column.Check,  CheckedMark(false) );
+                _rgColumns[(int)Column.Family ] = new TextLine( (int)Column.Family, oFamily._strName );
             }
 
             public SSTVDEM.SSTVFamily Family { get; set; }
@@ -36,10 +40,10 @@ namespace Play.SSTV {
 
             public bool IsChecked {
                 get {
-                    return _rgColumns[ColumnCheck].ElementCount > 0;
+                    return _rgColumns[(int)Column.Check].ElementCount > 0;
                 }
                 set {
-                    _rgColumns[ColumnCheck].TryReplace( CheckedMark( value ) );
+                    _rgColumns[(int)Column.Check].TryReplace( CheckedMark( value ) );
                 }
             }
         }
@@ -80,22 +84,24 @@ namespace Play.SSTV {
         EditMultiColumn,
         IPgLoad< IEnumerator<SSTVMode> >
     {
-        public class DDRow : Row {
-            public const int ColumnCheck   = 0;
-            public const int ColumnVersion = 1;
-            public const int ColumnWidth   = 2;
-            public const int ColumnHeight  = 3;
+        public enum Column : int {
+            Check = 0,
+            Version,
+            Width,
+            Height
+        }
 
-            public static new int ColumnCount => 4;
+        public class DDRow : Row {
+            public static new int ColumnCount => Enum.GetNames(typeof(Column)).Length;
             public DDRow( SSTVMode oMode ) {
                 Mode = oMode ?? throw new ArgumentNullException();
 
-                _rgColumns = new Line[5];
+                _rgColumns = new Line[ColumnCount];
 
-                _rgColumns[ColumnCheck  ] = new TextLine( ColumnCheck,   CheckedMark(false) );
-                _rgColumns[ColumnVersion] = new TextLine( ColumnVersion, oMode.Version );
-                _rgColumns[ColumnWidth  ] = new TextLine( ColumnWidth,   oMode.Resolution.Width .ToString() );
-                _rgColumns[ColumnHeight ] = new TextLine( ColumnHeight,  oMode.Resolution.Height.ToString() );
+                _rgColumns[(int)Column.Check  ] = new TextLine( (int)Column.Check,   CheckedMark(false) );
+                _rgColumns[(int)Column.Version] = new TextLine( (int)Column.Version, oMode.Version );
+                _rgColumns[(int)Column.Width  ] = new TextLine( (int)Column.Width,   oMode.Resolution.Width .ToString() );
+                _rgColumns[(int)Column.Height ] = new TextLine( (int)Column.Height,  oMode.Resolution.Height.ToString() );
             }
 
             public SSTVMode Mode { get; set; }
@@ -106,17 +112,16 @@ namespace Play.SSTV {
 
             public bool IsChecked {
                 get {
-                    return _rgColumns[ColumnCheck].ElementCount > 0;
+                    return _rgColumns[(int)Column.Check].ElementCount > 0;
                 }
                 set {
-                    _rgColumns[ColumnCheck].TryReplace( CheckedMark( value ) );
+                    _rgColumns[(int)Column.Check].TryReplace( CheckedMark( value ) );
                 }
             }
         }
 
         public SSTVModeList(IPgBaseSite oSiteBase) : base(oSiteBase) {
         }
-
 
         public bool Load( IEnumerator<SSTVMode> itrMode ) {
             TrackerEnumerable oTE = new TrackerEnumerable( this );
@@ -162,8 +167,8 @@ namespace Play.SSTV {
                 return false;
 
             // TODO: Check the width of a checkmark at the current font... :-/
-            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Pixels, 15, 1L ), SSTVFamilyList.DDRow.ColumnCheck ); 
-            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.None,   20, 1L ), SSTVFamilyList.DDRow.ColumnFamily ); 
+            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Pixels, 15, 1L ), (int)SSTVFamilyList.Column.Check ); 
+            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.None,   20, 1L ), (int)SSTVFamilyList.Column.Family ); 
 
             // Do this so we can return a desired height. O.o;;
             _oCacheMan.CacheRepair( null, true, true );
@@ -183,10 +188,10 @@ namespace Play.SSTV {
             if( !base.Initialize() )
                 return false;
 
-            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Pixels, 15, 1L ), SSTVModeList.DDRow.ColumnCheck ); 
-            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Flex,   20, 1L ), SSTVModeList.DDRow.ColumnVersion ); 
-            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Flex,   20, 1L ), SSTVModeList.DDRow.ColumnWidth ); 
-            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Flex,   20, 1L ), SSTVModeList.DDRow.ColumnHeight ); 
+            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Pixels, 15, 1L ), (int)SSTVModeList.Column.Check ); 
+            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Flex,   20, 1L ), (int)SSTVModeList.Column.Version ); 
+            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Flex,   20, 1L ), (int)SSTVModeList.Column.Width ); 
+            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Flex,   20, 1L ), (int)SSTVModeList.Column.Height ); 
 
             // Do this so we can return a desired height. O.o;;
             _oCacheMan.CacheRepair( null, true, true );
