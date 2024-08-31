@@ -1387,13 +1387,47 @@ namespace Play.Edit {
         }
 
         /// <summary>
+        /// Find what row the pick is in. Useful for menu style windows.
+        /// </summary>
+        /// <param name="pntPick">Location to test.</param>
+        /// <param name="iReturn">Column hit. if Pick is between columns return -1</param>
+        /// <returns>The hit row.</returns>
+        public CacheRow IsRowHit( SKPointI pntPick, out int iReturn ) {
+            iReturn = -1;
+            try {
+                // First find which row we hit. 
+                foreach( CacheRow oCacheRow in _rgOldCache ) {
+                    if( oCacheRow.Top    <= pntPick.Y &&
+                        oCacheRow.Bottom >= pntPick.Y ) 
+                    {
+                        // If we hit any row, now see if pick is within any column
+                        for( int iColumn = 0; iColumn < _rgColumnRects.Count; iColumn++ ) {
+                            SmartRect rctColumn = _rgColumnRects[iColumn]._oColumn;
+                            if( rctColumn.IsInside( pntPick.X, pntPick.Y ) ) {
+                                iReturn = iColumn;
+                            }
+                        }
+                        return oCacheRow;
+                    }
+                }
+            } catch( Exception oEx ) {
+                if( IsUnhandledStdRpt( oEx ) )
+                    throw;
+            }
+            return null;
+        }
+
+        /// <summary>
         /// This moves the caret and we expect it's position to be updated w/o
         /// any window invalidate since we are using the windows caret.
         /// </summary>
+        /// <remarks>I could probably take advantage of the new IsRowHit...</remarks>
+        /// <seealso cref="IsRowHit"/>
         public bool CaretAdvance( SKPointI pntPick ) {
             try {
                 for( int iColumn = 0; iColumn < _rgColumnRects.Count; iColumn++ ) {
                     SmartRect rctColumn = _rgColumnRects[iColumn]._oColumn;
+                    // First find the column the pick is in. PointToCache will then search each cache row.
                     if( rctColumn.IsInside( pntPick.X, pntPick.Y ) ) {
                         CacheRow oCacheRow = PointToCache( iColumn, pntPick, out int iOffset );
                         if( oCacheRow != null ) {

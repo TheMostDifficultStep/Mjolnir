@@ -59,15 +59,15 @@ namespace Play.SSTV {
 			base.InitRows( rgShow );
 
 			try {
-				//DocumentDropDown oBmpDropDown = new DocumentDropDown( new WinSlot( this ) );
+				//SSTVFamilyList   oDDDocument = new SSTVFamilyList  (new WinSlot(this));
 
-				//PropertyInitRow( (int)SSTVProperties.Names.Rx_FamilySelect, 
-				//	             new ViewDropDown    ( new WinSlot( this ), 
-				//					 new DocProperties   ( new WinSlot( this ) ), 
-				//					 oBmpDropDown )
+				//oDDDocument.Load( new SSTVDEM.EnumerateFamilies() );
+
+				//PropertyInitRow((int)SSTVProperties.Names.Rx_FamilySelect,
+				//				 new ViewFamilyDropDown( new WinSlot(this), oDDDocument )
 				//			   );
 
-                SSTVDocument.RxModeList.CheckedEvent += OnCheckedEvent_RxModeList;
+				SSTVDocument.RxModeList.CheckedEvent += OnCheckedEvent_RxModeList;
                 //SSTVDocument.PropertyChange          += OnPropertyChange_SSTVDocument;
 
 				// Call this once to set up the populate the (mode) families.
@@ -86,10 +86,10 @@ namespace Play.SSTV {
 				_ddSSTVFamily.AutoSize      = true;
 				_ddSSTVFamily.TabIndex      = 0;
 				_ddSSTVFamily.DropDownStyle = ComboBoxStyle.DropDownList;
-				PropertyInitRow( (int)SSTVProperties.Names.Rx_FamilySelect, 
-								 _ddSSTVFamily );
+				PropertyInitRow((int)SSTVProperties.Names.Rx_FamilySelect,
+								 _ddSSTVFamily);
 
-                _ddSSTVMode.SelectionChangeCommitted += OnSelectionChangeCommitted_Mode;
+				_ddSSTVMode.SelectionChangeCommitted += OnSelectionChangeCommitted_Mode;
 				_ddSSTVMode.AutoSize      = true;
 				_ddSSTVMode.TabIndex      = 1;
 				_ddSSTVMode.DropDownStyle = ComboBoxStyle.DropDownList;

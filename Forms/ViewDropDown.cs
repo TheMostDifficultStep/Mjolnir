@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections;
 using System.Drawing;
 using System.Windows.Forms;
+using System.Reflection;
 
 using SkiaSharp.Views.Desktop;
 using SkiaSharp;
@@ -11,7 +12,6 @@ using Play.Interfaces.Embedding;
 using Play.Rectangles;
 using Play.Edit;
 using Play.Drawing;
-using System.Reflection;
 
 namespace Play.Controls {
     /// <summary>
@@ -394,8 +394,11 @@ namespace Play.Controls {
     {
         private const int WM_ACTIVATE      = 0x0006;
         private const int WM_MOUSEACTIVATE = 0x0021;
+
+        protected IPgDocTraitsExt<Row> _oDocTraitsEx;
         
         public ViewDDPopup( IPgViewSite oView, object oDocument ) : base( oView, oDocument ) {
+            _oDocTraitsEx = oDocument as IPgDocTraitsExt<Row> ?? throw new ArgumentException( "Doc must support IPgDocTraitsExt<>" );
         }
 
         protected override CreateParams CreateParams {
@@ -444,13 +447,20 @@ namespace Play.Controls {
         }
 
         protected override void OnMouseDown( MouseEventArgs e ) {
+            // Assuming we've captured the mouse...
             SmartRect rcClient = new SmartRect( 0, 0, Width, Height );
-            if( !rcClient.IsInside( e.X, e.Y ) ) {
+
+            if( rcClient.IsInside( e.X, e.Y ) ) {
+                if( _oCacheMan.IsRowHit( new SKPointI( e.X, e.Y ), out _ ) is CacheRow oCRow ) {
+                    // BUG: Need to ignore scroll bar activity...
+                    _oDocTraitsEx.CheckedEntry = oCRow.Row;
+                    Hide   ();
+                    Dispose();
+                }
+            } else {
                 Hide   ();
                 Dispose();
-                return;
             }
-            base.OnMouseDown( e );
         }
 
         protected IntPtr HostHandle {
