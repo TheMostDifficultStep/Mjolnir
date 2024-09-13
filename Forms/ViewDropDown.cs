@@ -395,10 +395,7 @@ namespace Play.Controls {
         private const int WM_ACTIVATE      = 0x0006;
         private const int WM_MOUSEACTIVATE = 0x0021;
 
-        protected IPgDocTraitsExt<Row> _oDocTraitsEx;
-        
         public ViewDDPopup( IPgViewSite oView, object oDocument ) : base( oView, oDocument ) {
-            _oDocTraitsEx = oDocument as IPgDocTraitsExt<Row> ?? throw new ArgumentException( "Doc must support IPgDocTraitsExt<>" );
         }
 
         protected override CreateParams CreateParams {
@@ -453,7 +450,6 @@ namespace Play.Controls {
             if( rcClient.IsInside( e.X, e.Y ) ) {
                 if( _oCacheMan.IsRowHit( new SKPointI( e.X, e.Y ), out _ ) is CacheRow oCRow ) {
                     // BUG: Need to ignore scroll bar activity...
-                    _oDocTraitsEx.CheckedEntry = oCRow.Row;
                     Hide   ();
                     Dispose();
                 }

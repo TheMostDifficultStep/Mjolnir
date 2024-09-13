@@ -26,11 +26,7 @@ namespace Play.Edit {
         event Action<T> CheckedEvent;     // Any number of rows can be checked.
     }
 
-    public interface IPgDocTraitsExt<T> {
-        T CheckedEntry { get; set; }      // If this interface is supported, then only one check mark.
-    }
-
-    public static class DocOpExtender {
+   public static class DocOpExtender {
         public static bool TryReplaceAt( this IPgDocOperations<Row> oDoc, IPgCaretInfo<Row> oCaret, ReadOnlySpan<char> spText ) {
             return oDoc.TryReplaceAt( oCaret.Row, oCaret.Column, oCaret.Offset, oCaret.Length, spText );
         }

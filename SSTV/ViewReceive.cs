@@ -59,9 +59,9 @@ namespace Play.SSTV {
 			base.InitRows( rgShow );
 
 			try {
-				//SSTVFamilyList   oDDDocument = new SSTVFamilyList  (new WinSlot(this));
+				SSTVFamilyList   oDDDocument = new SSTVFamilyList  (new WinSlot(this));
 
-				//oDDDocument.Load( new SSTVDEM.EnumerateFamilies() );
+				oDDDocument.Load( new SSTVDEM.EnumerateFamilies() );
 
 				//PropertyInitRow((int)SSTVProperties.Names.Rx_FamilySelect,
 				//				 new ViewFamilyDropDown( new WinSlot(this), oDDDocument )

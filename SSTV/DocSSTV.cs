@@ -229,16 +229,16 @@ namespace Play.SSTV {
         }
     }
 
-    public enum TxThreadErrors {
-        DrawingException,
-        WorkerException,
-        BadDeviceException,
-        ReadException,
-        DiagnosticsException,
-        StartException,
-        StopException,
-        DataOverflow
-    }
+    //public enum TxThreadErrors {
+    //    DrawingException,
+    //    WorkerException,
+    //    BadDeviceException,
+    //    ReadException,
+    //    DiagnosticsException,
+    //    StartException,
+    //    StopException,
+    //    DataOverflow
+    //}
 
     public enum SSTVEvents {
         ModeChanged,
@@ -280,13 +280,22 @@ namespace Play.SSTV {
 
     // Arg, I wonder if I should unify with TVMessage. :-/
     public struct SSTVMessage {
-        public SSTVMessage( SSTVEvents eEvent, int iParam, object oParam2 = null ) {
-            Event = eEvent;
-            Param = iParam;
-            Param2 = oParam2;
+        public SSTVMessage( SSTVEvents eEvent, string strMsg, object oParam2 = null ) {
+            Event   = eEvent;
+            Message = strMsg;
+            Param   = -1;
+            Param2  = oParam2;
+        }
+
+        public SSTVMessage( SSTVEvents eEvent, int iMsg ) {
+            Event   = eEvent;
+            Param   = iMsg;
+            Message = string.Empty;
+            Param2  = null;
         }
 
         public SSTVEvents Event  { get; }
+        public string     Message{ get; }
         public int        Param  { get; }
         public object     Param2 { get; }
     }
@@ -1332,7 +1341,7 @@ namespace Play.SSTV {
                 _oBGtoFGQueue.Enqueue( new( SSTVEvents.UploadTime, iPercent ) );
             }
             protected void Raise_SendError() {
-                _oBGtoFGQueue.Enqueue( new( SSTVEvents.ThreadException, (int)TxThreadErrors.WorkerException ) );
+                _oBGtoFGQueue.Enqueue( new( SSTVEvents.ThreadException, "Worker Exception" ) );
             }
 
             public IEnumerator<int> GetEnumerator() {
@@ -1492,8 +1501,6 @@ namespace Play.SSTV {
             _oSiteBase.Notify( ShellNotify.MediaStatusChanged );
         }
 
-        protected readonly string[] _rgThreadExStrings = { "Drawing Exception", "WorkerException", "ReadException", "DiagnosticsException" };
-
         /// <summary>
         /// This is our task to poll the Background to UI Queue. It serves both
         /// the receive thread and the transmit thread. TX and RX can run
@@ -1581,22 +1588,15 @@ namespace Play.SSTV {
                             break; 
                         case SSTVEvents.ThreadException:
                             try {
-                                LogError( _rgThreadExStrings[sResult.Param] );
+                                LogError( sResult.Message + " halting device read" );
+                                ReceiveLiveStop(); 
 
-                                if( sResult.Param == (int)TxThreadErrors.DataOverflow ) {
-                                    LogError( "Data Overflow, halting device read" );
-                                    ReceiveLiveStop(); 
-                                }
-                                if( sResult.Param == (int)TxThreadErrors.BadDeviceException ) {
-                                    LogError( "Problem with device, try another..." );
-                                    ReceiveLiveStop(); 
-                                }
                                 if( sResult.Param2 is Exception oExThread ) {
                                     LogError( oExThread.StackTrace );
                                     LogError( oExThread.Message );
                                 }
-                            } catch( IndexOutOfRangeException ) {
-                                LogError( "General Thread Exception " + sResult.Param.ToString() );
+                            } catch( NullReferenceException ) {
+                                LogError( "General error in thread messaging." );
                             }
                             break;
                     }

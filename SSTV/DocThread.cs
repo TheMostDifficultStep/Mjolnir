@@ -164,7 +164,7 @@ namespace Play.SSTV {
                     if( rgErrors.IsUnhandled( oEx ) )
                         throw;
 
-                    _oToUIQueue.Enqueue( new( SSTVEvents.ThreadException, (int)TxThreadErrors.ReadException ) );
+                    _oToUIQueue.Enqueue( new( SSTVEvents.ThreadException, "File Read Exception" ) );
 
                     break; // Drop down so we can unplug from our Demodulator.
                 }
@@ -180,7 +180,7 @@ namespace Play.SSTV {
         public void DoWork( SSTVMode oMode ) {
             try {
                 _oSSTVDeMo.Send_NextMode  = _oSSTVDraw.OnModeTransition_SSTVDeMo;
-                _oSSTVDraw.Send_TvEvents  = OnTVEvents_SSTVDraw;
+                _oSSTVDraw.Send_TvMessage = OnTVEvents_SSTVDraw;
                 _oSSTVDraw.Send_SavePoint = SaveImage;
 
                 // Note: SSTVDemodulator.Start() will try to use the callback(s) above.
@@ -209,7 +209,7 @@ namespace Play.SSTV {
                     throw;
 
                 // Never send TxThreadErrors.ThreadAbort, that's for the Device thread only.
-                _oToUIQueue.Enqueue( new( SSTVEvents.ThreadException, (int)TxThreadErrors.WorkerException, oEx ) );
+                _oToUIQueue.Enqueue( new( SSTVEvents.ThreadException, "Decoding Thread Exception", oEx ) );
             }
         }
 
@@ -217,8 +217,8 @@ namespace Play.SSTV {
         /// Listen to the SSTVDraw object. 
         /// </summary>
         /// <seealso cref="OnNextMode_SSTVDemo"/>
-        private void OnTVEvents_SSTVDraw( SSTVEvents eProp, int iParam, Exception oEx ) {
-            _oToUIQueue.Enqueue( new( eProp, iParam, oEx ) );
+        private void OnTVEvents_SSTVDraw( SSTVMessage sEvent ) {
+            _oToUIQueue.Enqueue( sEvent );
         }
 
         IEnumerator IEnumerable.GetEnumerator() {
@@ -347,15 +347,15 @@ namespace Play.SSTV {
         /// <summary>
         /// Listen to the SSTVDraw object. And forward those events outside our thread envelope.
         /// </summary>
-        private void OnTvEvents_SSTVDraw( SSTVEvents eProp, int iParam, Exception oEx ) {
-            if( eProp == SSTVEvents.ModeChanged ) {
+        private void OnTvEvents_SSTVDraw( SSTVMessage sMessage ) {
+            if( sMessage.Event == SSTVEvents.ModeChanged ) {
                 foreach( SSTVMode oMode in _oSSTVDeMo ) {
-                    if( oMode.LegacyMode == (AllModes)iParam ) {
+                    if( oMode.LegacyMode == (AllModes)sMessage.Param ) {
                         _oLastMode = oMode;
                     }
                 }
             }
-            _oToUIQueue.Enqueue( new( eProp, iParam, oEx ) );
+            _oToUIQueue.Enqueue( sMessage );
         }
 
         /// <summary>
@@ -436,7 +436,7 @@ namespace Play.SSTV {
         public void InitCallbacks() {
             try {
                 _oSSTVDeMo.Send_NextMode  = _oSSTVDraw.OnModeTransition_SSTVDeMo;
-                _oSSTVDraw.Send_TvEvents  = OnTvEvents_SSTVDraw;
+                _oSSTVDraw.Send_TvMessage = OnTvEvents_SSTVDraw;
                 _oSSTVDraw.Send_SavePoint = SaveImage;
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( NullReferenceException ),
@@ -479,7 +479,7 @@ namespace Play.SSTV {
                     }
 
                     _oSSTVDraw .Process();
-                    _oToUIQueue.Enqueue( new( SSTVEvents.DownloadLevels, 0, _oSSTVDeMo.CalcLevel( false ) ) );
+                    _oToUIQueue.Enqueue( new( SSTVEvents.DownloadLevels, "Levels", _oSSTVDeMo.CalcLevel( false ) ) );
 
                     // TODO: We can make this more responsive by using a semaphore.
                     Thread.Sleep( 100 );
@@ -627,7 +627,7 @@ namespace Play.SSTV {
                 if( rgErrors.IsUnhandled( oEx ) )
                     throw;
 
-                _oToUIQueue.Enqueue( new( SSTVEvents.ThreadException, (int)TxThreadErrors.BadDeviceException ) );
+                _oToUIQueue.Enqueue( new( SSTVEvents.ThreadException, "Bad Device. Try another") );
                 return;
             }
 
@@ -673,7 +673,7 @@ namespace Play.SSTV {
                 if( _rgLoopErrors.IsUnhandled( oEx ) )
                     throw;
 
-                _oToUIQueue.Enqueue( new( SSTVEvents.ThreadException, (int)TxThreadErrors.WorkerException, oEx ) );
+                _oToUIQueue.Enqueue( new( SSTVEvents.ThreadException, "General Sound Handle Error.", oEx ) );
             }
             // If we've bailed because of an exception in the loop
             // we'll hit it again when we try to stop.
@@ -796,7 +796,7 @@ namespace Play.SSTV {
 					    }
 
                         _oSSTVDraw .Process();
-                        _oToUIQueue.Enqueue( new( SSTVEvents.DownloadLevels, 0, _oSSTVDeMo.CalcLevel( false ) ) );
+                        _oToUIQueue.Enqueue( new( SSTVEvents.DownloadLevels, "Levels", _oSSTVDeMo.CalcLevel( false ) ) );
                     }
 
                     Thread.Sleep( _iSleepMS );

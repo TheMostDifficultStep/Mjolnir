@@ -7,6 +7,7 @@ using SkiaSharp;
 
 using Play.Interfaces.Embedding;
 using Play.Sound;
+using System.Runtime.Serialization;
 
 namespace Play.SSTV {
 	public struct SSTVPosition {
@@ -305,8 +306,8 @@ namespace Play.SSTV {
 
 		// There's only one consumer of these events so these are just a delegate
 		// onto the listener.
-		public Action<SSTVEvents, int, Exception> Send_TvEvents;
-		public Action<SSTVMode >                  Send_SavePoint;
+		public Action<SSTVMessage>                   Send_TvMessage;
+		public Action<SSTVMode >                     Send_SavePoint;
 
 		struct DiagnosticPaint {
 			public SKColor Color;
@@ -377,12 +378,12 @@ namespace Play.SSTV {
 				ClearImage();
 
 				// If the delegate is null, no way to send the error up!!
-				Send_TvEvents( SSTVEvents.ModeChanged, (int)Mode.LegacyMode, null );
-				Send_TvEvents( SSTVEvents.DownLoadTime, 0, null );
+				Send_TvMessage( new( SSTVEvents.ModeChanged, (int)Mode.LegacyMode ) );
+				Send_TvMessage( new( SSTVEvents.DownLoadTime, 0 ) );
 
 				StartTime = DateTime.Now;
 			} catch( NullReferenceException oEx ) {
-				Send_TvEvents?.Invoke( SSTVEvents.ThreadException, (int)TxThreadErrors.StartException, oEx );
+				Send_TvMessage?.Invoke( new SSTVMessage( SSTVEvents.ThreadException, "Start Draw Problem", oEx ));
 			}
         }
 
@@ -393,7 +394,7 @@ namespace Play.SSTV {
 
 			// Unlike the ModeChanged and DownLoadTime events. This just tell us to do a blind refresh.
 			// that is implicit in the other events. So might want to sort that out.
-			Send_TvEvents( SSTVEvents.ImageUpdated, 0, null );
+			Send_TvMessage( new( SSTVEvents.ImageUpdated, 0 ) );
 		}
 
 		/// <summary>
@@ -406,7 +407,7 @@ namespace Play.SSTV {
 			try {
 				// Need to send regardless, but might get a bum image if not
 				// includes vis and we guess a wrong start state.
-				Send_TvEvents ( SSTVEvents.DownLoadFinished, PercentRxComplete, null );
+				Send_TvMessage( new( SSTVEvents.DownLoadFinished, PercentRxComplete ) );
 				Send_SavePoint( Mode ); // _dp hasn't been reset yet! Wheeww!
 
 				if( _dp.Synced ) {
@@ -421,7 +422,7 @@ namespace Play.SSTV {
 				if( rgErrors.IsUnhandled( oEx ) )
 					throw;
 
-				Send_TvEvents?.Invoke( SSTVEvents.ThreadException, (int)TxThreadErrors.StopException, oEx );
+				Send_TvMessage?.Invoke( new( SSTVEvents.ThreadException, "General Problem in Draw thread. Stopping.", oEx));
 			}
 		}
 
@@ -665,7 +666,7 @@ namespace Play.SSTV {
 				if( rgErrors.IsUnhandled( oEx ) )
 					throw;
 
-				Send_TvEvents?.Invoke( SSTVEvents.ThreadException, (int)TxThreadErrors.DrawingException, oEx );
+				Send_TvMessage?.Invoke( new( SSTVEvents.ThreadException, "Problem processing Scanline!", oEx ));
 			}
 		}
 
@@ -711,7 +712,7 @@ namespace Play.SSTV {
                     // Will need to update this if go back to the non-linear slant corrector.
                     int iScanLine = (int)( ( _dp.m_wBase - StartIndex ) / ScanWidthInSamples );
 
-					Send_TvEvents?.Invoke( SSTVEvents.DownLoadTime, PercentRxComplete, null );
+					Send_TvMessage( new ( SSTVEvents.DownLoadTime, PercentRxComplete ) );
 					if( iScanLine >= ( _rgSlopeBuckets.Count + 1 ) * _iBucketSize ) {
 
 						int iStartLine = _rgSlopeBuckets.Count == 0 ? 0 : iScanLine - _iBucketSize - 1;
@@ -743,8 +744,7 @@ namespace Play.SSTV {
 										typeof( ArgumentOutOfRangeException ) };
 					if( rgErrors.IsUnhandled( oEx ) )
 						throw;
-
-					Send_TvEvents?.Invoke( SSTVEvents.ThreadException, (int)TxThreadErrors.DrawingException, oEx );
+					Send_TvMessage?.Invoke( new( SSTVEvents.ThreadException, "Drawing Thread Loop error.", oEx ));
 				}
 			}
 		}
@@ -807,7 +807,7 @@ namespace Play.SSTV {
             if( _dp.Synced ) {
 				DiagnosticsOverlay();
 			}
-			Send_TvEvents?.Invoke( SSTVEvents.DownLoadTime, 100, null );
+			Send_TvMessage?.Invoke( new( SSTVEvents.DownLoadTime, 100 ) );
 		}
 
 		/// <summary>
@@ -919,7 +919,7 @@ namespace Play.SSTV {
 		public void OnModeTransition_SSTVDeMo( SSTVMode oCurrMode, SSTVMode oPrevMode, int iPrevBase ) {
 			if( oCurrMode == null ) {
 				DiagnosticsOverlay();
-				Send_TvEvents?.Invoke( SSTVEvents.ModeChanged, -1, null );
+				Send_TvMessage?.Invoke( new( SSTVEvents.ModeChanged, -1 ) );
 				return;
 			}
 
