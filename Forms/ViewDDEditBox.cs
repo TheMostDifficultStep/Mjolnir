@@ -450,16 +450,14 @@ namespace Play.Controls {
             // Assuming we've captured the mouse...
             SmartRect rcClient = new SmartRect( 0, 0, Width, Height );
 
-            try {
-                if( rcClient.IsInside( e.X, e.Y ) ) {
-                    if( _oCacheMan.IsRowHit( new SKPointI( e.X, e.Y ), out _ ) is CacheRow oCRow ) {
-                        _oDocCheckMark.SetCheckAtRow( oCRow.Row );
-                        // BUG: Need to ignore scroll bar activity...
-                    }
+            if( rcClient.IsInside( e.X, e.Y ) ) {
+                if( _oCacheMan.IsRowHit( new SKPointI( e.X, e.Y ), out _ ) is CacheRow oCRow ) {
+                    _oDocCheckMark.SetCheckAtRow( oCRow.Row );
+                    // BUG: Need to ignore scroll bar activity...
                 }
-                Hide   ();
-                Dispose();
             }
+            Hide   ();
+            Dispose();
         }
 
         protected IntPtr HostHandle {
