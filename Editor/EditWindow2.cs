@@ -1261,7 +1261,7 @@ namespace Play.Edit {
 			foreach( CacheRow oCache in _oCacheMan ) {
 				//if( sSize.Width < oCache.UnwrappedWidth )
 				//	sSize.Width = (int)oCache.UnwrappedWidth;
-				iHeight += (int)oCache.Height;
+				iHeight += (int)oCache.Height + 1; // BUG: Hacky. but ok for now.
 			}
 
             if( iHeight < _oCacheMan.LineHeight )

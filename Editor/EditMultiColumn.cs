@@ -328,6 +328,7 @@ namespace Play.Edit {
         IReadableBag<Row>,
         IPgDocTraits<Row>,
         IPgDocOperations<Row>,
+        IPgDocCheckMarks,
         IDisposable
     {
         protected readonly IPgBaseSite _oSiteBase;
@@ -338,9 +339,10 @@ namespace Play.Edit {
         protected List<IPgEditEvents>  _rgListeners = new ();
         protected Row                  _oRowHighlight;
         protected StdUIColors          _ePlayColor;
+        protected bool                 _bIsSingleCheck = true; // One column only can radio or not.
+        protected string               _strCheckMark = "\x2714";
 
-        public event Action<Row> HighLightChanged;
-        public event Action<Row> CheckedEvent;
+        public event Action<Row> HighLightEvent;
 
         public IPgParent Parentage => _oSiteBase.Host;
         public IPgParent Services  => Parentage.Services;
@@ -360,7 +362,7 @@ namespace Play.Edit {
                 _oRowHighlight = value; 
                 Raise_DocFormatted();
                 if( value != null ) {
-                    HighLightChanged?.Invoke( value );
+                    HighLightEvent?.Invoke( value );
                 }
             }
         }
@@ -384,14 +386,55 @@ namespace Play.Edit {
             set { _ePlayColor = value; }  // Wouldn't expect this...
 		}
   
-        public bool ReadOnly { 
+        public bool IsReadOnly { 
             get; 
             set; // Send a window update event;
         }
 
+        /// <summary>
+        /// It's a bit of busy work to allow set, so don't allow for now.
+        /// </summary>
+        public bool   IsSingleCheck { get => _bIsSingleCheck; set => throw new NotImplementedException(); }
+        public string CheckValue    { get => _strCheckMark; set => throw new NotImplementedException(); }
+
+        /// <summary>
+        /// I suppose it's possible you have more than one column that is a check mark. But let's go
+        /// with a single column for now. In the event you change the column mid stride, we should
+        /// do a bunch of reseting. But for simplicity, we'll ignore for now... :-/
+        /// </summary>
+        public int    CheckColumn { get; set; } = 0;
+        
+        /// <summary>
+        /// Quick and dirty implementation I still need to call the TrackerEnumerable
+        /// </summary>
+        public bool SetCheckAtRow(Row oRow) {
+            Row oFound = null;
+
+            try {
+                foreach( Row oReset in _rgRows ) {
+                    if( oReset != oRow ) {
+                        oReset[CheckColumn].TryReplace( string.Empty );
+                    } else {
+                        oFound = oReset;
+                    }
+                }
+                oRow[CheckColumn].TryReplace( _strCheckMark );
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( IndexOutOfRangeException ),
+                                    typeof( ArgumentOutOfRangeException ),
+                                    typeof( NullReferenceException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
+
+                LogError( "Popup Mouse Error" );
+            }
+
+            return oFound is not null;
+        }
+
         public EditMultiColumn( IPgBaseSite oSiteBase ) {
             _oSiteBase = oSiteBase;
-            ReadOnly   = false;
+            IsReadOnly = false;
         }
 
         public virtual void Dispose() {

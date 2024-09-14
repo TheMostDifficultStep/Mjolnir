@@ -29,7 +29,7 @@ namespace Play.Controls {
     /// <summary>
     /// This is basically a single line editor. But it has a column to signal a popup.
     /// </summary>
-    public abstract class ViewDropDown :
+    public abstract class ViewDDEditBox :
         SKControl,
         IPgParent,
         IPgLoad,
@@ -63,9 +63,9 @@ namespace Play.Controls {
 		protected class WinSlot :
 			IPgViewSite
 		{
-			protected readonly ViewDropDown _oHost;
+			protected readonly ViewDDEditBox _oHost;
 
-			public WinSlot( ViewDropDown oHost ) {
+			public WinSlot( ViewDDEditBox oHost ) {
 				_oHost = oHost ?? throw new ArgumentNullException();
 			}
 
@@ -92,7 +92,7 @@ namespace Play.Controls {
         /// <param name="oBitmap">Image to use for the dropdown button.</param>
         /// <exception cref="ArgumentNullException"></exception>
         /// <exception cref="ArgumentException"></exception>
-        public ViewDropDown( IPgViewSite oViewSite, object oDocument ) {
+        public ViewDDEditBox( IPgViewSite oViewSite, object oDocument ) {
             _oSiteView = oViewSite ?? throw new ArgumentNullException();
             _oStdUI    = Services as IPgStandardUI2 ?? throw new ArgumentException( "Parent view must provide IPgStandardUI service" );
 
@@ -130,12 +130,12 @@ namespace Play.Controls {
             // Show the whole bitamp. Don't look for changes, not a high pri thing.
             _rctWorldPort.SetRect( 0, 0, _oBmpButton.Bitmap.Width, _oBmpButton.Bitmap.Height );
 
-            _oDocTraits.CheckedEvent += On_DocTraits_CheckedEvent;
+            //_oDocTraits.CheckedEvent += On_DocTraits_CheckedEvent;
             return true;
         }
 
         protected override void Dispose(bool disposing) {
-            _oDocTraits.CheckedEvent -= On_DocTraits_CheckedEvent;
+            //_oDocTraits.CheckedEvent -= On_DocTraits_CheckedEvent;
 
             base.Dispose(disposing);
         }
@@ -324,9 +324,9 @@ namespace Play.Controls {
             IEnumerable<IPgCaretInfo<Row>>,
             IPgEditHandler
         {
-            readonly ViewDropDown _oHost;
+            readonly ViewDDEditBox _oHost;
 
-            public EditHandler( ViewDropDown oHost ) {
+            public EditHandler( ViewDDEditBox oHost ) {
                 _oHost = oHost ?? throw new ArgumentNullException();
             }
 
@@ -388,17 +388,17 @@ namespace Play.Controls {
     /// This is our popup for the drop down control. Its like a secondary view in that
     /// it uses the same document as the ViewDropDown object
     /// </summary>
-    /// <seealso cref="ViewDropDown"/>
+    /// <seealso cref="ViewDDEditBox"/>
     public abstract class ViewDDPopup :
         WindowMultiColumn
     {
         private const int WM_ACTIVATE      = 0x0006;
         private const int WM_MOUSEACTIVATE = 0x0021;
 
-        protected IPgDocTraitsExt<Row> _oDocTraitsEx;
-        
+        protected IPgDocCheckMarks _oDocCheckMark;
+
         public ViewDDPopup( IPgViewSite oView, object oDocument ) : base( oView, oDocument ) {
-            _oDocTraitsEx = oDocument as IPgDocTraitsExt<Row> ?? throw new ArgumentException( "Doc must support IPgDocTraitsExt<>" );
+            _oDocCheckMark = (IPgDocCheckMarks)oDocument;
         }
 
         protected override CreateParams CreateParams {
@@ -450,16 +450,23 @@ namespace Play.Controls {
             // Assuming we've captured the mouse...
             SmartRect rcClient = new SmartRect( 0, 0, Width, Height );
 
-            if( rcClient.IsInside( e.X, e.Y ) ) {
-                if( _oCacheMan.IsRowHit( new SKPointI( e.X, e.Y ), out _ ) is CacheRow oCRow ) {
-                    // BUG: Need to ignore scroll bar activity...
-                    _oDocTraitsEx.CheckedEntry = oCRow.Row;
-                    Hide   ();
-                    Dispose();
+            try {
+                if( rcClient.IsInside( e.X, e.Y ) ) {
+                    if( _oCacheMan.IsRowHit( new SKPointI( e.X, e.Y ), out _ ) is CacheRow oCRow ) {
+                        _oDocCheckMark.SetCheckAtRow( oCRow.Row );
+                        // BUG: Need to ignore scroll bar activity...
+                    }
                 }
-            } else {
                 Hide   ();
                 Dispose();
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( IndexOutOfRangeException ),
+                                    typeof( ArgumentOutOfRangeException ),
+                                    typeof( NullReferenceException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
+
+                LogError( "Popup Mouse Error" );
             }
         }
 

@@ -148,8 +148,8 @@ namespace Play.SSTV {
         }
     }
 
-    public class ViewFamilyDropDown : ViewDropDown {
-        public ViewFamilyDropDown(IPgViewSite oViewSite, object oDocument) : 
+    public class ViewFamilyDDEditBox : ViewDDEditBox {
+        public ViewFamilyDDEditBox(IPgViewSite oViewSite, object oDocument) : 
             base(oViewSite, oDocument) {
         }
 

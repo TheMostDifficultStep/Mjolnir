@@ -20,14 +20,9 @@ namespace Play.Edit {
     public interface IPgDocTraits<T> {
         T           HighLight { get; set; }
         StdUIColors PlayHighlightColor { get; set; }
-        bool        ReadOnly { get; set; }
+        bool        IsReadOnly   { get; set; } // Needed? IReadonlyBag vs....
 
-        event Action<T> HighLightChanged; // Only one line is high lighted.
-        event Action<T> CheckedEvent;     // Any number of rows can be checked.
-    }
-
-    public interface IPgDocTraitsExt<T> {
-        T CheckedEntry { get; set; }      // If this interface is supported, then only one check mark.
+        event Action<T> HighLightEvent; // Only one line is high lighted.
     }
 
     public static class DocOpExtender {
@@ -47,6 +42,14 @@ namespace Play.Edit {
         bool TryDeleteAt( T oRow, int iColumn, int iSrcOff, int iSrcLen ); // Would like to remove this one...
         bool RowDelete( T oRow );
         void RowDelete( IPgSelection oSelection );
+    }
+
+    public interface IPgDocCheckMarks {
+        bool   IsSingleCheck { get; set; }
+        string CheckValue  { get; set; }
+        int    CheckColumn { get; set; }
+
+        bool SetCheckAtRow( Row oRow );
     }
 
     public enum EditType {
@@ -211,9 +214,9 @@ namespace Play.Edit {
         /// <summary>
         /// How much readonly can you get? Window only or doc level. :-/
         /// </summary>
-        public bool ReadOnly { 
+        public bool IsReadOnly { 
             get {
-                if( _oDocTraits.ReadOnly )
+                if( _oDocTraits.IsReadOnly )
                     return true;
 
                 return _fReadOnly;
@@ -462,7 +465,7 @@ namespace Play.Edit {
                                               (uint)(DPI.X * _szScrollBars.Width) ) );
 
             _oDocOps.ListenerAdd( this );
-            _oDocTraits.HighLightChanged += _oDocTraits_HighLightChanged;
+            _oDocTraits.HighLightEvent += _oDocTraits_OnHighLightEvent;
 
             if( this.ContextMenuStrip == null ) {
                 ContextMenuStrip oMenu = new ContextMenuStrip();
@@ -479,7 +482,7 @@ namespace Play.Edit {
             return true;
         }
 
-        private void _oDocTraits_HighLightChanged(Row oRow) {
+        private void _oDocTraits_OnHighLightEvent(Row oRow) {
             if( Focused && oRow != null ) {
                 _oCacheMan.SetCaretPositionAndScroll( oRow.At, 0, 0, true );
             }
