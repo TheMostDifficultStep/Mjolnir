@@ -1716,11 +1716,11 @@ namespace Play.Sound {
 		}
 
 		public class Levels {
-			public double Current { get; protected set;	}
-			public double Peak    { get; protected set;	}
+			public double Current { get; }
+			public double Peak    { get; }
 
-			public SKColor CurrColor { get; protected set; }
-			public SKColor PeakColor { get; protected set; }
+			public SKColor CurrColor { get; }
+			public SKColor PeakColor { get; }
 
 			public Levels( double dblCurr, double dblPeak, SKColor clrCurr, SKColor clrPeak ) {
 				Current = LimitZero( dblCurr );
@@ -1730,7 +1730,7 @@ namespace Play.Sound {
 				PeakColor = clrPeak;
 			}
 
-			double LimitZero( double dblValue ) {
+			static double LimitZero( double dblValue ) {
 				if( dblValue < 0 )
 					return 0;
 				if( dblValue > 100 )
@@ -1747,6 +1747,7 @@ namespace Play.Sound {
 		/// needs to be a memory reference. I shouldn't be generating a lot
 		/// of these quickly, so this might be ok. Color should probably be
 		/// an enum with the values generated outside, but yeah...
+		/// TODO: let's just set struct that can be read by message receiver.
 		/// </summary>
 		public Levels CalcLevel( bool fTransmitting ) {
 			int YB = 100; // Percentage.

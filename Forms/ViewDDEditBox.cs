@@ -459,14 +459,6 @@ namespace Play.Controls {
                 }
                 Hide   ();
                 Dispose();
-            } catch( Exception oEx ) {
-                Type[] rgErrors = { typeof( IndexOutOfRangeException ),
-                                    typeof( ArgumentOutOfRangeException ),
-                                    typeof( NullReferenceException ) };
-                if( rgErrors.IsUnhandled( oEx ) )
-                    throw;
-
-                LogError( "Popup Mouse Error" );
             }
         }
 
