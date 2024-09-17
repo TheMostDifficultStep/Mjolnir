@@ -436,27 +436,35 @@ namespace Play.Edit {
         /// <exception cref="ArgumentOutOfRangeException">If the row is not found in the colleciton.</exception>
         /// <remarks>Is it ok to clear a check on a line?! </remarks>
         public void SetCheckAtRow(Row oCheck) {
-            Row oFound = null;
+            Row oNew = null;
+            Row oOld = null;
 
             try {
                 foreach( Row oReset in _rgRows ) {
+                    // Just want an exact match or bust.
+                    if( oReset[CheckColumn].AsSpan.CompareTo( _strCheckValue, StringComparison.Ordinal ) == 0 ) {
+                        oOld = oReset;
+                    }
                     if( oReset != oCheck ) {
                         oReset[CheckColumn].TryReplace( _strCheckClear );
                     } else {
-                        oFound = oReset;
+                        oNew = oReset;
                         oCheck[CheckColumn].TryReplace( _strCheckValue );
                     }
                 }
-                if( oFound is null ) {
+                if( oNew is null ) {
                     // In this case we will have cleared all the check marks.
                     throw new ArgumentOutOfRangeException();
                 }
 
-                if( IsSingleCheck ) {
-                    RegisterCheckEvent?.Invoke( oCheck );
+                // The check mark has moved
+                if( oOld != oNew ) {
+                    if( IsSingleCheck )
+                        RegisterCheckEvent?.Invoke( oCheck );
+
+                    DoParse(); // Probably should do a 2 second delay in case of multi checking.
                 }
 
-                DoParse();
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( IndexOutOfRangeException ),
                                     typeof( ArgumentOutOfRangeException ),

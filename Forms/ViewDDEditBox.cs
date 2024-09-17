@@ -441,6 +441,16 @@ namespace Play.Controls {
             base.WndProc(ref m);
         }
 
+        protected override void OnKeyUp(KeyEventArgs e) {
+            base.OnKeyUp(e);
+            e.Handled = true;
+
+            if( e.KeyCode == Keys.Escape ) {
+                Hide   ();
+                Dispose();
+            }
+        }
+
         protected override void OnLostFocus(EventArgs e) {
             base.OnLostFocus(e);
             Dispose();

@@ -7,6 +7,9 @@ using Play.Sound;
 using Play.Rectangles;
 using Play.Controls;
 using Play.Drawing;
+using System.Drawing;
+using System.Collections;
+using static Play.Sound.SSTVDEM;
 
 namespace Play.SSTV {
     /// <summary>
@@ -56,6 +59,7 @@ namespace Play.SSTV {
                     IPgDocCheckMarks.CheckTypes.Clear;
 
                 _rgRows.Add( new DDRow( oFamily, GetCheckValue( eType ) ) );
+                iCount++;
             }
 
             RenumberAndSumate(); // Each row must be numbered, else cache messes up.
@@ -68,6 +72,31 @@ namespace Play.SSTV {
         public bool InitNew() {
             return true;
         }
+
+        /// <summary>
+        /// Find the currently selected family. There should always be a single selection
+        /// if not we are in an error. Throws exceptions if nothing selected or if more 
+        /// than one item selected!!
+        /// </summary>
+        /// <exception cref="InvalidOperationException" />
+        public SSTVDEM.SSTVFamily SelectedFamily {
+            get {
+                DDRow oSelected = null;
+                foreach( DDRow oRow in _rgRows ) {
+                    if( oRow[(int)SSTVFamilyList.Column.Check].AsSpan.CompareTo( _strCheckValue, StringComparison.Ordinal ) == 0 ) {
+                        if( oSelected != null ) {
+                            throw new InvalidOperationException( "Multi select happening on Single select question" );
+                        }
+                        oSelected = oRow;
+                    }
+                }
+                if( oSelected == null ) {
+                    throw new InvalidOperationException( "Nothing Selected" );
+                }
+
+                return oSelected.Family;
+            }
+        }
     }
 
     /// <summary>
@@ -75,7 +104,7 @@ namespace Play.SSTV {
     /// </summary>
     public class SSTVModeList :
         EditMultiColumn,
-        IPgLoad< IEnumerable<SSTVMode> >
+        IPgLoad< SSTVDEM.SSTVFamily >
     {
         public enum Column : int {
             Check = 0,
@@ -86,52 +115,50 @@ namespace Play.SSTV {
 
         public class DDRow : Row {
             public static new int ColumnCount => Enum.GetNames(typeof(Column)).Length;
-            public DDRow( SSTVMode oMode ) {
+            public DDRow( SSTVMode oMode, string strCheckMark ) {
                 Mode = oMode ?? throw new ArgumentNullException();
 
                 _rgColumns = new Line[ColumnCount];
 
-                _rgColumns[(int)Column.Check  ] = new TextLine( (int)Column.Check,   CheckedMark(false) );
+                _rgColumns[(int)Column.Check  ] = new TextLine( (int)Column.Check,   strCheckMark );
                 _rgColumns[(int)Column.Version] = new TextLine( (int)Column.Version, oMode.Version );
                 _rgColumns[(int)Column.Width  ] = new TextLine( (int)Column.Width,   oMode.Resolution.Width .ToString() );
                 _rgColumns[(int)Column.Height ] = new TextLine( (int)Column.Height,  oMode.Resolution.Height.ToString() );
             }
 
             public SSTVMode Mode { get; set; }
-
-            protected string CheckedMark( bool fChecked ) {
-                return fChecked ? "\x2714" : "";
-            }
-
-            public bool IsChecked {
-                get {
-                    return _rgColumns[(int)Column.Check].ElementCount > 0;
-                }
-                set {
-                    _rgColumns[(int)Column.Check].TryReplace( CheckedMark( value ) );
-                }
-            }
         }
 
         public SSTVModeList(IPgBaseSite oSiteBase) : base(oSiteBase) {
         }
 
-        public bool Load( IEnumerable<SSTVMode> rgModes ) {
-            if( rgModes == null ) {
+        /// <summary>
+        /// We are reloadable. We clear out old rows in favor of the new enumerable.
+        /// </summary>
+        /// <exception cref="ArgumentNullException"></exception>
+        public bool Load( SSTVDEM.SSTVFamily oFamily ) {
+            if( oFamily == null )
                 throw new ArgumentNullException();
-            }
 
             TrackerEnumerable oTE = new TrackerEnumerable( this );
 
             _rgRows.Clear();
+            int iCount = 0;
+            foreach( SSTVMode oMode in oFamily ) {
+                // TODO: Add a default value to the entry so we can add the
+                //       check mark to whoever!!
+                IPgDocCheckMarks.CheckTypes eType = (iCount==0) ? 
+                    IPgDocCheckMarks.CheckTypes.Marked : 
+                    IPgDocCheckMarks.CheckTypes.Clear;
 
-            foreach( SSTVMode oMode in rgModes ) {
-                _rgRows.Add( new DDRow( oMode ) );
+                _rgRows.Add( new DDRow( oMode, GetCheckValue( eType ) ) );
+                iCount++;
             }
 
             RenumberAndSumate();
 
             oTE.FinishUp( EditType.DeleteRow );
+
 
             return true;
         }
@@ -171,6 +198,16 @@ namespace Play.SSTV {
             return true;
         }
 
+    }
+
+    public class ViewModeDDEditBox : ViewDDEditBox {
+        public ViewModeDDEditBox(IPgViewSite oViewSite, object oDocument) : 
+            base(oViewSite, oDocument) {
+        }
+
+        public override ViewDDPopup CreatePopup() {
+            return new ViewSSTVModesPopup( new WinSlot( this ), _oDocBag );
+        }
     }
 
     public class ViewSSTVModesPopup : ViewDDPopup {

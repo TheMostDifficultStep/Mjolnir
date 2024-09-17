@@ -1667,7 +1667,9 @@ namespace Play.Sound {
             }
         }
 
-        public class SSTVFamily {
+        public class SSTVFamily :
+			IEnumerable<SSTVMode> 
+		{
 			public SSTVFamily( TVFamily eFamily, string strName, Type typClass ) {
 				_eFamily  = eFamily;
 				_strName  = strName;
@@ -1679,6 +1681,28 @@ namespace Play.Sound {
 
             public override string ToString() {
                 return _strName;
+            }
+
+            public IEnumerator<SSTVMode> GetEnumerator() {
+                switch( _eFamily ) {
+                    case TVFamily.Martin:
+                        return SSTVModeMartin  .EnumAllModes();
+                    case TVFamily.Scottie:
+                        return SSTVModeScottie .EnumAllModes();
+                    case TVFamily.PD:
+                        return SSTVModePD      .EnumAllModes();
+                    case TVFamily.BW:
+                        return SSTVModeBW      .EnumAllModes();
+                    case TVFamily.Pasokon:
+                        return SSTVModePasokon .EnumAllModes();
+                    case TVFamily.Robot:
+                        return SSTVModeRobot422.EnumAllModes();
+                }
+            throw new NotImplementedException();
+            }
+
+            IEnumerator IEnumerable.GetEnumerator() {
+                return GetEnumerator();
             }
         }
 
