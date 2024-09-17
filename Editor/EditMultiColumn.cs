@@ -340,9 +340,11 @@ namespace Play.Edit {
         protected Row                  _oRowHighlight;
         protected StdUIColors          _ePlayColor;
         protected bool                 _bIsSingleCheck = true; // One column only can radio or not.
-        protected string               _strCheckMark = "\x2714";
+        protected string               _strCheckValue = "\x2714";
+        protected string               _strCheckClear = string.Empty;
 
-        public event Action<Row> HighLightEvent;
+        public event Action<Row> RegisterHighLightEvent;
+        public event Action<Row> RegisterCheckEvent; // Events when check marks occur.
 
         public IPgParent Parentage => _oSiteBase.Host;
         public IPgParent Services  => Parentage.Services;
@@ -362,7 +364,7 @@ namespace Play.Edit {
                 _oRowHighlight = value; 
                 Raise_DocFormatted();
                 if( value != null ) {
-                    HighLightEvent?.Invoke( value );
+                    RegisterHighLightEvent?.Invoke( value );
                 }
             }
         }
@@ -395,30 +397,66 @@ namespace Play.Edit {
         /// It's a bit of busy work to allow set, so don't allow for now.
         /// </summary>
         public bool   IsSingleCheck { get => _bIsSingleCheck; set => throw new NotImplementedException(); }
-        public string CheckValue    { get => _strCheckMark; set => throw new NotImplementedException(); }
+        public string CheckValue    { get => _strCheckValue; set => throw new NotImplementedException(); }
+        public string CheckClear    { get => _strCheckClear; set => throw new NotImplementedException(); }
+
+        public string GetCheckValue( IPgDocCheckMarks.CheckTypes eCheck ) {
+            switch( eCheck ) {
+                case IPgDocCheckMarks.CheckTypes.Marked :
+                    return _strCheckValue;
+                case IPgDocCheckMarks.CheckTypes.Clear :
+                    return _strCheckClear;
+            }
+
+            return string.Empty;
+        }
+
+        public void SetCheckValue( IPgDocCheckMarks.CheckTypes eCheck, string strValue ) {
+            switch( eCheck ) {
+                case IPgDocCheckMarks.CheckTypes.Marked :
+                    _strCheckValue = strValue;
+                    break;
+                case IPgDocCheckMarks.CheckTypes.Clear :
+                    _strCheckClear = strValue;
+                    break;
+            }
+            DoParse();
+        }
 
         /// <summary>
         /// I suppose it's possible you have more than one column that is a check mark. But let's go
         /// with a single column for now. In the event you change the column mid stride, we should
         /// do a bunch of reseting. But for simplicity, we'll ignore for now... :-/
         /// </summary>
-        public int    CheckColumn { get; set; } = 0;
+        public int CheckColumn { get; set; } = 0;
         
         /// <summary>
         /// Quick and dirty implementation I still need to call the TrackerEnumerable
         /// </summary>
-        public bool SetCheckAtRow(Row oRow) {
+        /// <exception cref="ArgumentOutOfRangeException">If the row is not found in the colleciton.</exception>
+        /// <remarks>Is it ok to clear a check on a line?! </remarks>
+        public void SetCheckAtRow(Row oCheck) {
             Row oFound = null;
 
             try {
                 foreach( Row oReset in _rgRows ) {
-                    if( oReset != oRow ) {
-                        oReset[CheckColumn].TryReplace( string.Empty );
+                    if( oReset != oCheck ) {
+                        oReset[CheckColumn].TryReplace( _strCheckClear );
                     } else {
                         oFound = oReset;
+                        oCheck[CheckColumn].TryReplace( _strCheckValue );
                     }
                 }
-                oRow[CheckColumn].TryReplace( _strCheckMark );
+                if( oFound is null ) {
+                    // In this case we will have cleared all the check marks.
+                    throw new ArgumentOutOfRangeException();
+                }
+
+                if( IsSingleCheck ) {
+                    RegisterCheckEvent?.Invoke( oCheck );
+                }
+
+                DoParse();
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( IndexOutOfRangeException ),
                                     typeof( ArgumentOutOfRangeException ),
@@ -428,8 +466,6 @@ namespace Play.Edit {
 
                 LogError( "Popup Mouse Error" );
             }
-
-            return oFound is not null;
         }
 
         public EditMultiColumn( IPgBaseSite oSiteBase ) {

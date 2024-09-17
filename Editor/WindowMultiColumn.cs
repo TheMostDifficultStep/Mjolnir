@@ -22,7 +22,7 @@ namespace Play.Edit {
         StdUIColors PlayHighlightColor { get; set; }
         bool        IsReadOnly   { get; set; } // Needed? IReadonlyBag vs....
 
-        event Action<T> HighLightEvent; // Only one line is high lighted.
+        event Action<T> RegisterHighLightEvent; // Only one line is high lighted.
     }
 
     public static class DocOpExtender {
@@ -44,12 +44,35 @@ namespace Play.Edit {
         void RowDelete( IPgSelection oSelection );
     }
 
+    /// <summary>
+    /// An interface for radio box style check marks. In SingleCheck mode we send
+    /// a SubmitCheckEvent right away. BUT if in multi check mode you will need to send a
+    /// RaiseCheckEvent(). NOTE: You could make an array holding pointers to multiple
+    /// columns. IReadableBag\<IPgDocCheckMark\> for example. Then you could have any
+    /// number of columns for check marks!! I expect the standard usage to be single column
+    /// of check marks.
+    /// </summary>
     public interface IPgDocCheckMarks {
-        bool   IsSingleCheck { get; set; }
-        string CheckValue  { get; set; }
-        int    CheckColumn { get; set; }
+        enum CheckTypes {
+            Marked,
+            Clear
+        }
 
-        bool SetCheckAtRow( Row oRow );
+        bool   IsSingleCheck { get; set; } // Single check aka radio box...
+        int    CheckColumn   { get; set; }
+
+        string GetCheckValue( CheckTypes eCheck );
+        void   SetCheckValue( CheckTypes eCheck, string strValue );
+        void   SetCheckAtRow( Row oRow );
+
+        event Action<Row> RegisterCheckEvent;
+    }
+
+    public interface IPgDocMultiCheck : IReadableBag<IPgDocCheckMarks> {
+        /// <summary>
+        /// if multi check. null is sent to the RegisterCheckEvent.
+        /// </summary>
+        void RaiseCheckEvent(); 
     }
 
     public enum EditType {
@@ -465,7 +488,7 @@ namespace Play.Edit {
                                               (uint)(DPI.X * _szScrollBars.Width) ) );
 
             _oDocOps.ListenerAdd( this );
-            _oDocTraits.HighLightEvent += _oDocTraits_OnHighLightEvent;
+            _oDocTraits.RegisterHighLightEvent += _oDocTraits_OnHighLightEvent;
 
             if( this.ContextMenuStrip == null ) {
                 ContextMenuStrip oMenu = new ContextMenuStrip();

@@ -23,32 +23,20 @@ namespace Play.SSTV {
 
         public class DDRow : Row {
             public static new int ColumnCount => Enum.GetNames(typeof(Column)).Length;
-            public DDRow( SSTVDEM.SSTVFamily oFamily ) {
+            public DDRow( SSTVDEM.SSTVFamily oFamily, string strCheck ) {
                 Family = oFamily ?? throw new ArgumentNullException();
 
                 _rgColumns = new Line[ColumnCount];
 
-                _rgColumns[(int)Column.Check  ] = new TextLine( (int)Column.Check,  CheckedMark(false) );
+                _rgColumns[(int)Column.Check  ] = new TextLine( (int)Column.Check,  strCheck );
                 _rgColumns[(int)Column.Family ] = new TextLine( (int)Column.Family, oFamily._strName );
             }
 
             public SSTVDEM.SSTVFamily Family { get; set; }
-
-            protected string CheckedMark( bool fChecked ) {
-                return fChecked ? "\x2714" : "";
-            }
-
-            public bool IsChecked {
-                get {
-                    return _rgColumns[(int)Column.Check].ElementCount > 0;
-                }
-                set {
-                    _rgColumns[(int)Column.Check].TryReplace( CheckedMark( value ) );
-                }
-            }
         }
 
         public SSTVFamilyList(IPgBaseSite oSiteBase) : base(oSiteBase) {
+            CheckColumn = 0; // Just to be clear.
         }
 
 
@@ -61,8 +49,13 @@ namespace Play.SSTV {
 
             _rgRows.Clear();
 
+            int iCount = 0;
             foreach( SSTVDEM.SSTVFamily oFamily in rgFamilies  ) {
-                _rgRows.Add( new DDRow( oFamily ) );
+                IPgDocCheckMarks.CheckTypes eType = (iCount==0) ? 
+                    IPgDocCheckMarks.CheckTypes.Marked : 
+                    IPgDocCheckMarks.CheckTypes.Clear;
+
+                _rgRows.Add( new DDRow( oFamily, GetCheckValue( eType ) ) );
             }
 
             RenumberAndSumate(); // Each row must be numbered, else cache messes up.
