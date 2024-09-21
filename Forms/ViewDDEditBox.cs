@@ -49,6 +49,7 @@ namespace Play.Controls {
         protected readonly FTCacheLine       _oCacheLine; // this is our single text we are displaying.
         protected readonly Line              _oTextLine;
         protected readonly IPgDocTraits<Row> _oDocTraits; // Document holding our list.
+        protected readonly IPgDocCheckMarks  _oDocChecks;
         protected readonly IReadableBag<Row> _oDocBag;
         protected readonly ImageBaseDoc      _oBmpButton; // Bitmap for the button.
         protected readonly SmartRect         _rctWorldPort = new(); // The part of the bitmap we want to show.
@@ -97,6 +98,7 @@ namespace Play.Controls {
             _oStdUI    = Services as IPgStandardUI2 ?? throw new ArgumentException( "Parent view must provide IPgStandardUI service" );
 
             _oDocTraits = oDocument as IPgDocTraits<Row> ?? throw new ArgumentException( "Doc must support IPgDocTraits" );
+            _oDocChecks = oDocument as IPgDocCheckMarks  ?? throw new ArgumentException( "Doc must support IPgDocCheckMarks" );
             _oDocBag    = oDocument as IReadableBag<Row> ?? throw new ArgumentException( "Doc must support IReadableBag" );
             _oBmpButton = new ImageForDropDown( new WinSlot(this) );
 
@@ -130,7 +132,9 @@ namespace Play.Controls {
             // Show the whole bitamp. Don't look for changes, not a high pri thing.
             _rctWorldPort.SetRect( 0, 0, _oBmpButton.Bitmap.Width, _oBmpButton.Bitmap.Height );
 
-            //_oDocTraits.CheckedEvent += On_DocTraits_CheckedEvent;
+            OnCheckedEvent_DocCheckMarks( _oDocChecks.CheckedRow );
+
+            _oDocChecks.RegisterCheckEvent += OnCheckedEvent_DocCheckMarks;
             return true;
         }
 
@@ -148,14 +152,17 @@ namespace Play.Controls {
 
             ImageHelpers.ViewPortSizeMax( new( 0, 0 ), new( _rgLayout.Item(1).Width, Height ), _rctWorldPort, _rctViewPort );
 
-            ReDoText();
+            ReMeasureText();
         }
 
         public override Size GetPreferredSize(Size proposedSize) {
-            return new Size( Width, (int)FontRender.LineHeight + 4 );
+            return new Size( proposedSize.Width, (int)FontRender.LineHeight + 4 );
         }
 
-        protected void ReDoText() {
+        /// <summary>
+        /// Our sole text element is changed, so remeasure everything...
+        /// </summary>
+        protected void ReMeasureText() {
 			_oCacheLine.Measure     ( FontRender );
             _oCacheLine.Colorize    ( (ILineRange)null ); // Add selection when have it.
             _oCacheLine.OnChangeSize( _rgLayout.Item(0).Width );
@@ -271,7 +278,7 @@ namespace Play.Controls {
             oPopup.Parent = this;
             oPopup.InitNew();
 
-            Size oPrefSize = oPopup.GetPreferredSize( new Size( Width, 10000 ) );
+            Size oPrefSize = oPopup.GetPreferredSize( new Size( Width, 10000 ) ); 
             
             SmartRect oRect  = new SmartRect( LOCUS.UPPERRIGHT, Right, Bottom, oPrefSize.Width, oPrefSize.Height );
 
@@ -279,7 +286,7 @@ namespace Play.Controls {
             Point oTopLeft  = new Point( oRect.Left, oRect.Top );
             // Popup's are in screen coordinates.
             oPopup.Location = this.Parent.PointToScreen( oTopLeft );
-            oPopup.Size     = new Size( oRect.Width, oRect.Height );
+            oPopup.Size     = new Size( oRect.Width, oRect.Height ); 
 
             oPopup.Show();
         }
@@ -288,16 +295,18 @@ namespace Play.Controls {
             return false;
         }
 
-        private void On_DocTraits_CheckedEvent( Row oRow ) {
+        private void OnCheckedEvent_DocCheckMarks( Row oRow ) {
             if( oRow != null ) {
-                _oTextLine.TryReplace( 0, _oTextLine.ElementCount, oRow[0].AsSpan );
+                _oTextLine.TryReplace( 0, _oTextLine.ElementCount, oRow[1].AsSpan ); // replace the text.
                 _oTextLine.Summate( oRow.At, 0 );
             } else {
                 _oTextLine.TryReplace( 0, _oTextLine.ElementCount, "-no selection-" );
                 _oTextLine.Summate( -2, 0 );
             }
 
-            ReDoText();
+            ReMeasureText();
+
+            Invalidate();
         }
 
         public IPgEditHandler CreateEditHandler() {
@@ -350,7 +359,7 @@ namespace Play.Controls {
                         _oHost._oTextLine.TryReplace( oRow[0].AsSpan );
                     }
 
-                    _oHost.ReDoText();
+                    _oHost.ReMeasureText();
                     _oHost.Invalidate();
                 } catch( NullReferenceException ) {
                     _oHost.LogError( "ViewDropDown Edit Handler Error" );

@@ -70,7 +70,7 @@ namespace Play.SSTV {
 		    yield return new ViewType( "Transmit",            ViewTransmitDeluxe.GUID );
 		    yield return new ViewType( "Diagnostics",         WindowDiagnostics .GUID );
 			yield return new ViewType( "Chooser",             WindowSSTVChooser .GUID );
-			yield return new ViewType( "History",			  WindowSSTVHistory.GUID );
+			yield return new ViewType( "History",			  WindowSSTVHistory .GUID );
 			yield return new ViewType( "Settings",            ViewSettings      .GUID );
 		}
 	}

@@ -205,7 +205,7 @@ namespace Play.SSTV {
         
 		public override bool Execute( Guid sGuid ) {
 			if( sGuid == GlobalCommands.Play ) {
-				_oDocSSTV.ReceiveFileRead( _rgWavFileList.CurrentFullPath, _oDocSSTV.RxModeList.ChosenMode );
+				//_oDocSSTV.ReceiveFileRead( _rgWavFileList.CurrentFullPath, _oDocSSTV.RxModeList.ChosenMode );
 				return true;
 			}
 			if( sGuid == GlobalCommands.Stop ) {

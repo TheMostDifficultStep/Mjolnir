@@ -424,6 +424,31 @@ namespace Play.Edit {
         }
 
         /// <summary>
+        /// Find the currently selected family. There should always be a single selection
+        /// if not we are in an error. Throws exceptions if nothing selected or if more 
+        /// than one item selected!!
+        /// </summary>
+        /// <exception cref="InvalidOperationException" />
+        public Row CheckedRow { 
+            get {
+                if( !IsSingleCheck )
+                    throw new InvalidOperationException( "Document is not in single check mode." );
+
+                Row oSelected = null;
+                foreach( Row oRow in _rgRows ) {
+                    if( oRow[CheckColumn].AsSpan.CompareTo( _strCheckValue, StringComparison.Ordinal ) == 0 ) {
+                        if( oSelected != null ) {
+                            throw new InvalidOperationException( "Multi select happening on Single select question" );
+                        }
+                        oSelected = oRow;
+                    }
+                }
+                return oSelected;
+            }
+        }
+
+
+        /// <summary>
         /// I suppose it's possible you have more than one column that is a check mark. But let's go
         /// with a single column for now. In the event you change the column mid stride, we should
         /// do a bunch of reseting. But for simplicity, we'll ignore for now... :-/
@@ -521,6 +546,10 @@ namespace Play.Edit {
             foreach( IPgEditEvents oListener in _rgListeners ) {
                 oListener.OnDocFormatted();
             }
+        }
+
+        public void Raise_CheckEvent( Row oRow ) {
+            RegisterCheckEvent?.Invoke( oRow );
         }
 
         /// <summary>

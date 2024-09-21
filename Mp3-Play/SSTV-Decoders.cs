@@ -338,8 +338,8 @@ namespace Play.Sound {
             List<SSTVModePD> rgModes = new();
 
             // these numbers come from https://www.classicsstv.com/pdmodes.php G4IJE the inventor.
- 	        rgModes.Add( new SSTVModePD( 0xdd, " 50",   91.520, new SKSizeI( 320, 256 ), AllModes.smPD50  )); // see SSTV-Handbook.
-            rgModes.Add( new SSTVModePD( 0x63, " 90",  170.240, new SKSizeI( 320, 256 ), AllModes.smPD90  )); // Only reliable one.
+ 	        rgModes.Add( new SSTVModePD( 0xdd, "50",    91.520, new SKSizeI( 320, 256 ), AllModes.smPD50  )); // see SSTV-Handbook.
+            rgModes.Add( new SSTVModePD( 0x63, "90",   170.240, new SKSizeI( 320, 256 ), AllModes.smPD90  )); // Only reliable one.
             rgModes.Add( new SSTVModePD( 0x5f, "120",  121.600, new SKSizeI( 640, 512 ), AllModes.smPD120 )); 
             rgModes.Add( new SSTVModePD( 0xe2, "160",  195.584, new SKSizeI( 512, 384 ), AllModes.smPD160 )); 
             rgModes.Add( new SSTVModePD( 0x60, "180",  183.040, new SKSizeI( 640, 512 ), AllModes.smPD180 ));
@@ -379,7 +379,7 @@ namespace Play.Sound {
             List<SSTVModeBW> rgModes = new();
 
  	        rgModes.Add( new SSTVModeBW( 0x86, "12",     92.0, new SKSizeI( 160, 120 ), AllModes.smRM12 ) ); 
- 	        rgModes.Add( new SSTVModeBW( 0x82, " 8", 58.89709, new SKSizeI( 160, 120 ), AllModes.smRM8  ) ); 
+ 	        rgModes.Add( new SSTVModeBW( 0x82, "8",  58.89709, new SKSizeI( 160, 120 ), AllModes.smRM8  ) ); 
 
             foreach( SSTVModeBW oMode in rgModes ) {
                 oMode.Initialize();

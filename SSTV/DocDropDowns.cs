@@ -15,7 +15,7 @@ namespace Play.SSTV {
     /// <summary>
     /// List SSTVFamilyList all available SSTV image types. 
     /// </summary>
-    public class SSTVFamilyList :
+    public class SSTVFamilyDoc :
         EditMultiColumn,
         IPgLoad< IEnumerable<SSTVDEM.SSTVFamily> >
     {
@@ -38,7 +38,7 @@ namespace Play.SSTV {
             public SSTVDEM.SSTVFamily Family { get; set; }
         }
 
-        public SSTVFamilyList(IPgBaseSite oSiteBase) : base(oSiteBase) {
+        public SSTVFamilyDoc(IPgBaseSite oSiteBase) : base(oSiteBase) {
             CheckColumn = 0; // Just to be clear.
         }
 
@@ -81,28 +81,54 @@ namespace Play.SSTV {
         /// <exception cref="InvalidOperationException" />
         public SSTVDEM.SSTVFamily SelectedFamily {
             get {
-                DDRow oSelected = null;
-                foreach( DDRow oRow in _rgRows ) {
-                    if( oRow[(int)SSTVFamilyList.Column.Check].AsSpan.CompareTo( _strCheckValue, StringComparison.Ordinal ) == 0 ) {
-                        if( oSelected != null ) {
-                            throw new InvalidOperationException( "Multi select happening on Single select question" );
-                        }
-                        oSelected = oRow;
-                    }
+                if( CheckedRow is DDRow oFRow ) {
+                    return oFRow.Family;
                 }
-                if( oSelected == null ) {
-                    throw new InvalidOperationException( "Nothing Selected" );
-                }
-
-                return oSelected.Family;
+                throw new InvalidOperationException( "Nothing Selected" );
             }
+        }
+
+        /// <summary>
+        /// Look up the family that supports the given mode and give it
+        /// the check mark. I haven't sorted out the difference between
+        /// the window UI needing refresh and a listening mode update.
+        /// Basically we ALWAYS want a UI refresh, but we only want to
+        /// send an event to the listener when the UI insigates the change.
+        /// </summary>
+        /// <exception cref="ArgumentNullException"></exception>
+        public bool SelectFamily( SSTVMode oMode, bool fNotify = false ) {
+            if( oMode == null ) {
+                throw new ArgumentNullException( "Could not find TVFamily." );
+            }
+
+            DDRow oSelected = null;
+
+            foreach( DDRow oRow in _rgRows ) {
+                oRow[(int)SSTVFamilyDoc.Column.Check].TryReplace( _strCheckClear );
+
+                if( oSelected == null && oRow.Family._eFamily == oMode.Family ) {
+                    oRow[(int)SSTVFamilyDoc.Column.Check].TryReplace( _strCheckValue );
+
+                    oSelected = oRow;
+                }
+            }
+
+            // Techically we should NOT be missing a family. But clearly a problem.
+            if( oSelected is null ) {
+                return false;
+            }
+            if( fNotify ) {
+                Raise_CheckEvent( oSelected );
+                DoParse();
+            }
+            return true;
         }
     }
 
     /// <summary>
     /// List SSTVModes for the currently selected family. 
     /// </summary>
-    public class SSTVModeList :
+    public class SSTVModeDoc :
         EditMultiColumn,
         IPgLoad< SSTVDEM.SSTVFamily >
     {
@@ -129,7 +155,8 @@ namespace Play.SSTV {
             public SSTVMode Mode { get; set; }
         }
 
-        public SSTVModeList(IPgBaseSite oSiteBase) : base(oSiteBase) {
+        public SSTVModeDoc(IPgBaseSite oSiteBase) : base(oSiteBase) {
+            CheckColumn = 0; // Just to be clear.
         }
 
         /// <summary>
@@ -159,6 +186,7 @@ namespace Play.SSTV {
 
             oTE.FinishUp( EditType.DeleteRow );
 
+            Raise_CheckEvent( _rgRows[0] ); // Want UI to change but NOT send mode change to system...
 
             return true;
         }
@@ -189,8 +217,8 @@ namespace Play.SSTV {
                 return false;
 
             // TODO: Check the width of a checkmark at the current font... :-/
-            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Pixels, 15, 1L ), (int)SSTVFamilyList.Column.Check ); 
-            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.None,   20, 1L ), (int)SSTVFamilyList.Column.Family ); 
+            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Pixels, 15, 1L ), (int)SSTVFamilyDoc.Column.Check ); 
+            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.None,   20, 1L ), (int)SSTVFamilyDoc.Column.Family ); 
 
             // Do this so we can return a desired height. O.o;;
             _oCacheMan.CacheRepair( null, true, true );
@@ -220,16 +248,37 @@ namespace Play.SSTV {
             if( !base.Initialize() )
                 return false;
 
-            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Pixels, 15, 1L ), (int)SSTVModeList.Column.Check ); 
-            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Flex,   20, 1L ), (int)SSTVModeList.Column.Version ); 
-            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Flex,   20, 1L ), (int)SSTVModeList.Column.Width ); 
-            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Flex,   20, 1L ), (int)SSTVModeList.Column.Height ); 
+            // I'd really like to use flex. But that seems broken at present...
+            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Pixels,  15, 1L ), (int)SSTVModeDoc.Column.Check ); 
+            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Percent, 20, 1L ), (int)SSTVModeDoc.Column.Version ); 
+            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Percent, 20, 1L ), (int)SSTVModeDoc.Column.Width ); 
+            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Percent, 20, 1L ), (int)SSTVModeDoc.Column.Height ); 
 
             // Do this so we can return a desired height. O.o;;
             _oCacheMan.CacheRepair( null, true, true );
 
             return true;
         }
+    }
 
+    public class ViewSSTVModesAsList : WindowMultiColumn {
+        public ViewSSTVModesAsList(IPgViewSite oViewSite, object oDocument) : base(oViewSite, oDocument) {
+        }
+
+        protected override bool Initialize() {
+            if( !base.Initialize() )
+                return false;
+
+            // I'd really like to use flex. But that seems broken at present...
+            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Pixels,  15, 1L ), (int)SSTVModeDoc.Column.Check ); 
+            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Percent, 20, 1L ), (int)SSTVModeDoc.Column.Version ); 
+            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Percent, 20, 1L ), (int)SSTVModeDoc.Column.Width ); 
+            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Percent, 20, 1L ), (int)SSTVModeDoc.Column.Height ); 
+
+            // Do this so we can return a desired height. O.o;;
+            _oCacheMan.CacheRepair( null, true, true );
+
+            return true;
+        }
     }
 }

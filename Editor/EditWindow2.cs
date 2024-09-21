@@ -2513,7 +2513,7 @@ namespace Play.Edit {
                     break;
             }
 
-            SelectionClear();
+          //SelectionClear(); I shouldn't be doing this...
             if( oLine != null ) {
                 CaretPos.Line   = oLine;
                 CaretPos.Offset = iOffset;

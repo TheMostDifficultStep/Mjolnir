@@ -302,7 +302,7 @@ namespace Play.SSTV {
         }
 
         protected override void Dispose(bool disposing) {
-            _oDocSSTV.RxModeList.CheckedEvent -= OnCheckedEvent_RxModeList;
+            //_oDocSSTV.RxModeList.CheckedEvent -= OnCheckedEvent_RxModeList;
 
             base.Dispose(disposing);
         }
@@ -346,24 +346,24 @@ namespace Play.SSTV {
         /// But we're close.
         /// </summary>
         /// <seealso cref="PopulateSubModes"/>
-        private void OnSelectedModeChanged(object sender, EventArgs e) {
-            if( !_bProcessCheckModeList ) {
-                _bProcessCheckModeList = true;
-                if( sender == _ddModeMain ) { 
-                    PopulateSubModes( _ddModeMain, _ddModeSub );
-                }
-                if( _ddModeSub.SelectedItem is SSTVMode oDDListMode ) {
-                    foreach( Line oLine in _oDocSSTV.RxModeList ) {
-                        if( oLine.Extra is SSTVMode oRxListMode &&
-                            oRxListMode.LegacyMode == oDDListMode.LegacyMode ) 
-                        {
-                            _oDocSSTV.RxModeList.CheckedLine = oLine;
-                        }
-                    }
-                }
-                _bProcessCheckModeList = false;
-            }
-        }
+        //private void OnSelectedModeChanged(object sender, EventArgs e) {
+        //    if( !_bProcessCheckModeList ) {
+        //        _bProcessCheckModeList = true;
+        //        if( sender == _ddModeMain ) { 
+        //            PopulateSubModes( _ddModeMain, _ddModeSub );
+        //        }
+        //        if( _ddModeSub.SelectedItem is SSTVMode oDDListMode ) {
+        //            foreach( Line oLine in _oDocSSTV.RxModeList ) {
+        //                if( oLine.Extra is SSTVMode oRxListMode &&
+        //                    oRxListMode.LegacyMode == oDDListMode.LegacyMode ) 
+        //                {
+        //                    _oDocSSTV.RxModeList.CheckedLine = oLine;
+        //                }
+        //            }
+        //        }
+        //        _bProcessCheckModeList = false;
+        //    }
+        //}
 
         /// <summary>
         /// Populate the main dropdown and then this will fill in all
@@ -404,30 +404,37 @@ namespace Play.SSTV {
         /// if it's coming from ourselves syncing the drop down item
         /// </summary>
         /// <param name="oLineChecked">TxModeList line checked.</param>
-        private void OnCheckedEvent_RxModeList(Line oLineChecked) {
-            if( !_bProcessCheckModeList ) {
-                if( _oDocSSTV.RxModeList.CheckedLine.Extra is SSTVMode oNewMode ) {
-                    for( int iIndex = 0; iIndex < _ddModeMain.Items.Count; ++iIndex ) {
-                        object oItem = _ddModeMain.Items[iIndex];
-                        if( oItem is SSTVDEM.SSTVFamily oDesc &&
-                            oDesc._eFamily == oNewMode.Family ) {
-                            _ddModeMain.SelectedIndex = iIndex;
+        //private void OnCheckedEvent_RxModeList(Line oLineChecked) {
+        //    if( !_bProcessCheckModeList ) {
+        //        if( _oDocSSTV.RxModeList.CheckedLine.Extra is SSTVMode oNewMode ) {
+        //            for( int iIndex = 0; iIndex < _ddModeMain.Items.Count; ++iIndex ) {
+        //                object oItem = _ddModeMain.Items[iIndex];
+        //                if( oItem is SSTVDEM.SSTVFamily oDesc &&
+        //                    oDesc._eFamily == oNewMode.Family ) {
+        //                    _ddModeMain.SelectedIndex = iIndex;
 
-                            for( int iSub = 0; iSub < _ddModeSub.Items.Count; ++iSub ) {
-                                if( _ddModeSub.Items[iSub] is SSTVMode oMode ) {
-                                    PopulateSubModes( _ddModeMain, _ddModeSub, oMode );
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+        //                    for( int iSub = 0; iSub < _ddModeSub.Items.Count; ++iSub ) {
+        //                        if( _ddModeSub.Items[iSub] is SSTVMode oMode ) {
+        //                            PopulateSubModes( _ddModeMain, _ddModeSub, oMode );
+        //                        }
+        //                    }
+        //                }
+        //            }
+        //        }
+        //    }
+        //}
+
+        private void OnCheckEvent_RxSSTVModeDoc(Row obj) {
+            throw new NotImplementedException();
         }
 
         /// <summary>
         /// Set up the dual dropdowns for the SSTV node tool options.
         /// </summary>
         private void InitModes() {
+		  //new ViewFamilyDDEditBox(new WinSlot(this), _oDocSSTV.RxSSTVFamilyDoc );
+		  //new ViewModeDDEditBox  (new WinSlot(this), _oDocSSTV.RxSSTVModeDoc ) );
+
             IEnumerator<SSTVDEM.SSTVFamily> itrFamily = SSTVDEM.EnumFamilies();
             while( itrFamily.MoveNext() ) {
                 _ddModeMain.Items.Add( itrFamily.Current );
@@ -435,7 +442,7 @@ namespace Play.SSTV {
 
             PopulateSubModes( _ddModeMain, _ddModeSub );
 
-            _ddModeMain.SelectedIndexChanged += OnSelectedModeChanged;
+            //_ddModeMain.SelectedIndexChanged += OnSelectedModeChanged;
             _ddModeMain.AutoSize      = true;
             _ddModeMain.Name          = "Mode Select";
             _ddModeMain.TabIndex      = 0;
@@ -443,7 +450,7 @@ namespace Play.SSTV {
             _ddModeMain.DropDownStyle = ComboBoxStyle.DropDownList;
             _ddModeMain.Parent        = this;
 
-            _ddModeSub.SelectedIndexChanged += OnSelectedModeChanged;
+            //_ddModeSub.SelectedIndexChanged += OnSelectedModeChanged;
             _ddModeSub.AutoSize      = true;
             _ddModeSub.Name          = "Mode Sub Select";
             _ddModeSub.TabIndex      = 1;
@@ -459,7 +466,7 @@ namespace Play.SSTV {
 
             _rgFlock.Add( ReceiveCommands.Mode, oLayout );
 
-            _oDocSSTV.RxModeList.CheckedEvent += OnCheckedEvent_RxModeList;
+            //_oDocSSTV.RxModeList.CheckedEvent += OnCheckedEvent_RxModeList;
         }
 
         protected override void OnSizeChanged( EventArgs e ) { 

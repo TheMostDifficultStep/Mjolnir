@@ -1655,6 +1655,20 @@ namespace Play.Sound {
 				yield return itrMode.Current;
 		}
 
+		public static IEnumerable<SSTVMode> GenerateAllModes {
+			get => new ModeEnumerable();
+		}
+
+        protected struct ModeEnumerable : IEnumerable<SSTVMode> {
+            public IEnumerator<SSTVMode> GetEnumerator() {
+                return EnumModes();
+            }
+
+            IEnumerator IEnumerable.GetEnumerator() {
+                return GetEnumerator();
+            }
+        }
+
         public struct EnumerateFamilies : IEnumerable<SSTVFamily> {
 			public EnumerateFamilies() {
 			}

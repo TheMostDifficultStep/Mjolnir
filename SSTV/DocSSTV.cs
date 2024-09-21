@@ -184,8 +184,14 @@ namespace Play.SSTV {
         public int ValueGetAsInt( Names eIndex, int? iDefault = null ) {
             if( iDefault.HasValue ) {
                 if( !int.TryParse( this[eIndex], out int iValue ) ) {
+                    // There's a problem with this property. So let's hilight it.
                     iValue = iDefault.Value;
-                    ValueBgColor.Add( (int)eIndex, SKColors.LightPink ); // Sigh...Need some way to go back ^_^;
+                    if( !ValueBgColor.ContainsKey( (int)eIndex ) ) {
+                        ValueBgColor.Add( (int)eIndex, SKColors.LightPink ); // Sigh...Need some way to go back ^_^;
+                    }
+                } else {
+                    // Else it's ok and so clear the value.
+                    ValueBgColor.Remove( (int)eIndex );
                 }
 
                 return iValue;
@@ -396,10 +402,14 @@ namespace Play.SSTV {
 
         public Editor              TemplateList  { get; }
         public Editor              MonitorList   { get; }
+
         public Editor              PortTxList    { get; } 
         public Editor              PortRxList    { get; }
         public Specification       RxSpec        { get; protected set; } = new Specification( 44100, 1, 0, 16 ); // Syncronous rc test, tx image 
-        public ModeEditor          RxModeList    { get; }
+        public SSTVFamilyDoc      RxSSTVFamilyDoc { get; }
+        public SSTVModeDoc        RxSSTVModeDoc   { get; }
+      //public ModeEditor          RxModeList    { get; } // All our modes possible.
+        public List<SSTVMode>      AllModesList  { get; } = new List<SSTVMode>();
         public ModeEditor          TxModeList    { get; }
         public ImageWalkerDir      TxImageList   { get; }
         public ImageWalkerDir      RxHistoryList { get; }
@@ -445,12 +455,15 @@ namespace Play.SSTV {
             _oStdUI     = (IPgStandardUI2)Services;
 
             TemplateList  = new Editor        ( new DocSlot( this ) );
-            RxModeList    = new ModeEditor    ( new DocSlot( this, "SSTV Rx Modes" ) );
+          //RxModeList    = new ModeEditor    ( new DocSlot( this, "SSTV Rx Modes" ) );
             TxModeList    = new ModeEditor    ( new DocSlot( this, "SSTV Tx Modes" ) );
             TxImageList   = new ImageWalkerDir( new DocSlot( this ) );
             RxHistoryList = new ImageWalkerDir( new DocSlot( this ) );
             TxBitmapComp  = new DocImageEdit  ( new DocSlot( this ) );
                           
+            RxSSTVFamilyDoc = new SSTVFamilyDoc( new DocSlot(this) );
+            RxSSTVModeDoc   = new SSTVModeDoc  ( new DocSlot(this) );
+
             PortTxList    = new Editor        ( new DocSlot( this ) );
             PortRxList    = new Editor        ( new DocSlot( this ) );
             MonitorList   = new Editor        ( new DocSlot( this ) );
@@ -476,7 +489,7 @@ namespace Play.SSTV {
 
                     RxHistoryList.ImageUpdated -= OnImageUpdated_RxHistoryList;
                     TxImageList  .ImageUpdated -= OnImageUpdated_TxImageList;
-                    RxModeList   .CheckedEvent -= OnCheckedEvent_RxModeList;
+                  //RxModeList   .CheckedEvent -= OnCheckedEvent_RxModeList;
                     TxModeList   .CheckedEvent -= OnCheckedEvent_TxModeList;
                     TemplateList .CheckedEvent -= OnCheckedEvent_TemplateList;
 
@@ -670,10 +683,10 @@ namespace Play.SSTV {
         public bool InitNew() {
             if( !TemplateList.InitNew() ) // Might need to init differently b/c of load.
                 return false;
-            if( !RxModeList .InitNew() ) 
-                return false;
-            if( !TxModeList .InitNew() ) 
-                return false;
+            //if( !RxModeList .InitNew() ) 
+            //    return false;
+            //if( !TxModeList .InitNew() ) 
+            //    return false;
             if( !TxBitmapComp.InitNew() )
                 return false;
 
@@ -714,18 +727,29 @@ namespace Play.SSTV {
 				LogError( "Couldn't find pictures tx directory for SSTV" );
                 return false;
 			}
-            RxModeList.LineAppend( "Auto", fUndoable:false );
-            LoadModes( SSTVDEM.EnumModes(), RxModeList, fAddResolution:false );
-            LoadModes( SSTVDEM.EnumModes(), TxModeList, fAddResolution:true  );
+            //RxModeList.LineAppend( "Auto", fUndoable:false );
+            //LoadModes( SSTVDEM.EnumModes(), RxModeList, fAddResolution:false );
+            //LoadModes( SSTVDEM.EnumModes(), TxModeList, fAddResolution:true  );
+
+            // Since the mode descriptors are allocated, let's just grab them once.
+            foreach( SSTVMode oMode in SSTVDEM.GenerateAllModes ) {
+                AllModesList.Add( oMode );
+            }
+
+			RxSSTVFamilyDoc.Load( new SSTVDEM.EnumerateFamilies() );
+            RxSSTVFamilyDoc.RegisterCheckEvent += OnCheckEvent_RxSSTVFamilyDoc;
+			RxSSTVModeDoc  .Load( RxSSTVFamilyDoc.SelectedFamily );
+            RxSSTVModeDoc  .RegisterCheckEvent += OnCheckEvent_RxSSTVModeDoc;
+
 
             // Set this after TxImageList load since the CheckedLine call will 
             // call Listen_ModeChanged and that calls the properties update event.
-            RxModeList.CheckedLine = RxModeList[0];
+            //RxModeList.CheckedLine = RxModeList[0];
 
             // Get these set up so our stdproperties get the updates.
             TxImageList  .ImageUpdated += OnImageUpdated_TxImageList;
             RxHistoryList.ImageUpdated += OnImageUpdated_RxHistoryList;
-            RxModeList   .CheckedEvent += OnCheckedEvent_RxModeList;
+            //RxModeList   .CheckedEvent += OnCheckedEvent_RxModeList;
             TxModeList   .CheckedEvent += OnCheckedEvent_TxModeList;
             TemplateList .CheckedEvent += OnCheckedEvent_TemplateList;
 
@@ -743,6 +767,29 @@ namespace Play.SSTV {
 
             return true;
         }
+
+        private void OnCheckEvent_RxSSTVFamilyDoc(Row obj) {
+			try {
+				if( RxSSTVFamilyDoc.SelectedFamily is SSTVDEM.SSTVFamily oNewFamily ) {
+                    RxSSTVModeDoc.Load( oNewFamily ); // Verify that we send a CheckEvent...
+				}
+			} catch( Exception oEx ) {
+				Type[] rgErrors = { typeof( NullReferenceException ),
+									typeof( ArgumentOutOfRangeException ),
+                                    typeof( InvalidOperationException ) };
+				if( rgErrors.IsUnhandled( oEx ) )
+					throw;
+
+				LogError( "RXProperties OnSelectionChangeCommitted_Family unexpected." );
+			}
+        }
+
+        private void OnCheckEvent_RxSSTVModeDoc(Row oRow) {
+            if( oRow is SSTVModeDoc.DDRow oModeRow ) {
+                _rgUItoBGQueue.Enqueue( new TVMessage( TVMessage.Message.TryNewMode, oModeRow.Mode ) );
+            }
+        }
+
 
         public void PostBGMessage( TVMessage.Message eMsg ) {
             _rgUItoBGQueue.Enqueue( new TVMessage( eMsg, null ) );
@@ -832,7 +879,7 @@ namespace Play.SSTV {
                             PropertyLoadFromXml( MonitorList, oNode, fLoadMissing:true );
                             break;
                         case "RxMode":
-                            PropertyLoadFromXml( RxModeList, oNode );
+                          //PropertyLoadFromXml( RxModeList, oNode );
                             break;
                         case "TxMode":
                             PropertyLoadFromXml( TxModeList, oNode );
@@ -898,7 +945,7 @@ namespace Play.SSTV {
                 CheckProperty ( "RxDevice",       PortRxList );
                 CheckProperty ( "TxDevice",       PortTxList );
                 CheckProperty ( "MonitorDevice",  MonitorList );
-                CheckProperty ( "RxMode",         RxModeList );
+              //CheckProperty ( "RxMode",         RxModeList );
                 CheckProperty ( "TxMode",         TxModeList );
                 CheckProperty ( "Template",       TemplateList );
                 StringProperty( "ImageQuality",   SSTVProperties.Names.Std_ImgQuality );
@@ -1514,22 +1561,17 @@ namespace Play.SSTV {
                             SignalLevelRender( sResult );
                         } break;
                         case SSTVEvents.ModeChanged: {
+                            // We catch a null we're going back to listen mode. This is an error mode
+                            // in the file read case.
                             SSTVMode oMode = null;
-
-                            foreach( Line oLine in RxModeList ) {
-                                if( oLine.Extra is SSTVMode oTryMode ) {
-                                    if( oTryMode.LegacyMode == (AllModes)sResult.Param ) {
-                                        RxModeList.HighLight = oLine;
-                                        oMode = oTryMode;
-                                    }
+                            foreach( SSTVMode oLook in AllModesList ) {
+                                if( oLook.LegacyMode == (AllModes)sResult.Param ) {
+                                    oMode = oLook;
                                 }
                             }
-                            if( oMode == null ) {
-                                // We catch a null we're going back to listen mode. This is an error mode
-                                // in the file read case.
-                                RxModeList.HighLight    = null;
-                                RxModeList.CheckedReset = RxModeList[0]; 
-                                // Let's not clear the Mode, Width, Height, SaveName. Nice to have them around.
+
+                            if( !RxSSTVFamilyDoc.SelectFamily( oMode, fNotify:false ) ) {
+                                RxSSTVModeDoc.HighLight = null;
                             } else {
 			                    DisplayImage.WorldDisplay = new SKRectI( 0, 0, oMode.Resolution.Width, oMode.Resolution.Height );
                                 SyncImage   .WorldDisplay = new SKRectI( 0, 0, SyncImage.Bitmap.Width, oMode.Resolution.Height / oMode.ScanMultiplier );
@@ -1558,8 +1600,8 @@ namespace Play.SSTV {
                             Properties.ValueUpdate( SSTVProperties.Names.Rx_Progress, sResult.Param.ToString( "D2" ) + "% - Complete", Broadcast:true );
                             PropertyChange?.Invoke( SSTVEvents.DownLoadFinished );
 
-                            RxModeList.HighLight   = null;
-                            RxModeList.CheckedLine = RxModeList[0];
+                            RxSSTVFamilyDoc.SelectFamily( null, fNotify:false );
+                            RxSSTVModeDoc.HighLight = null;
 
                             RxHistoryList.Refresh();
                             break;
@@ -1577,8 +1619,10 @@ namespace Play.SSTV {
                             } else { 
                                 LogError( "Image Thread Abort." );
                             }
-                            RxModeList.HighLight   = null;
-                            RxModeList.CheckedLine = RxModeList[0];
+                          //RxModeList.HighLight   = null;
+                          //RxModeList.CheckedLine = RxModeList[0];
+                            RxSSTVFamilyDoc.SelectFamily( null, fNotify:false );
+                            RxSSTVModeDoc.HighLight = null;
 
                             if( sResult.Param2 is Exception oEx ) {
                                 LogError( oEx.StackTrace );
@@ -1693,7 +1737,7 @@ namespace Play.SSTV {
             // Download finished is sort of changing it's meaning in the file read case.
             PropertyChange?.Invoke( SSTVEvents.DownLoadFinished );
 
-            RxModeList.HighLight   = null;
+            //RxModeList.HighLight   = null;
             //RxModeList.CheckedLine = RxModeList[0]; see ReceiveLiveBegin. 
 
             RxHistoryList.LoadAgain( RxHistoryList.CurrentDirectory );
@@ -1713,7 +1757,8 @@ namespace Play.SSTV {
                     LogError( "Make sure you have stared listening mode: 'press play'." );
                     return;
                 }
-                RxModeList.CheckedLine = RxModeList[0];
+              //RxModeList.CheckedLine = RxModeList[0];
+                RxSSTVFamilyDoc.SelectFamily( null, fNotify:false );
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( NullReferenceException ),
                                     typeof( ArgumentOutOfRangeException ) };
@@ -1770,7 +1815,8 @@ namespace Play.SSTV {
                     // File reader used to clear this value on each run but I like keeping that
                     // value for similar reads. So Reset the mode on Device read begin. No events
                     // or our task will be getting an event we don't want.
-                    RxModeList.CheckedReset = RxModeList[0];
+                  //RxModeList.CheckedReset = RxModeList[0];
+                    RxSSTVFamilyDoc.SelectFamily( null, fNotify:false );
 
                     int    iQuality    = Properties.ValueGetAsInt( SSTVProperties.Names.Std_ImgQuality, 80 );
                     double dblFreq     = Properties.ValueGetAsDbl( SSTVProperties.Names.Std_Frequency,  11028 );
@@ -1822,7 +1868,9 @@ namespace Play.SSTV {
         }
 
         public void ReceiveLiveStop() {
-            RxModeList.HighLight = null;
+            //RxModeList.HighLight = null;
+            RxSSTVModeDoc  .HighLight = null;
+            RxSSTVFamilyDoc.HighLight = null;
 
             Properties.ValueUpdate( SSTVProperties.Names.Std_Process, "Stopping...", true );
 
@@ -1941,16 +1989,18 @@ namespace Play.SSTV {
 
 			    _oDoc.DisplayImage.WorldDisplay = new SKRectI( 0, 0, tvMode.Resolution.Width, tvMode.Resolution.Height );
 
+                _oDoc.RxSSTVFamilyDoc.SelectFamily( tvMode, fNotify:false );
+
                 // the mode objects in the list might be same spec but copied or something
                 // match them via their legacy modes. Set up equivanlance test later.
-                Line oFoundLine = null;
-                foreach( Line oLine in _oDoc.RxModeList ) {
-                    if( oLine.Extra is SSTVMode oLineMode ) {
-                        if( oLineMode.LegacyMode == tvMode.LegacyMode )
-                            oFoundLine = oLine;
-                    }
-                }
-                _oDoc.RxModeList.HighLight = oFoundLine;
+                //Line oFoundLine = null;
+                //foreach( Line oLine in _oDoc.RxModeList ) {
+                //    if( oLine.Extra is SSTVMode oLineMode ) {
+                //        if( oLineMode.LegacyMode == tvMode.LegacyMode )
+                //            oFoundLine = oLine;
+                //    }
+                //}
+                //_oDoc.RxModeList.HighLight = oFoundLine;
             }
         }
 

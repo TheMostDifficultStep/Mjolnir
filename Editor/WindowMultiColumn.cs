@@ -60,6 +60,8 @@ namespace Play.Edit {
 
         bool   IsSingleCheck { get; set; } // Single check aka radio box...
         int    CheckColumn   { get; set; }
+        Row    CheckedRow    { get; }      // If in single check mode. Return the row.
+
 
         string GetCheckValue( CheckTypes eCheck );
         void   SetCheckValue( CheckTypes eCheck, string strValue );
@@ -713,6 +715,9 @@ namespace Play.Edit {
         /// <summary>
         /// Basically assuming a vertical layout. Horizontally we just
         /// use the width we are given. 
+        /// TODO: Let's try to calc the max width of everything w/o wrapping
+        ///       and give that back as the width. b/c we can always use the
+        ///       width we were given.
         /// </summary>
         /// <remarks>Would be nice to figure yout some huristic for
         /// balanced text horizontally too. But it's low priority.</remarks>
