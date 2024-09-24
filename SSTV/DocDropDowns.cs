@@ -52,14 +52,16 @@ namespace Play.SSTV {
 
             _rgRows.Clear();
 
-            int iCount = 0;
-            foreach( SSTVDEM.SSTVFamily oFamily in rgFamilies  ) {
-                IPgDocCheckMarks.CheckTypes eType = (iCount==0) ? 
-                    IPgDocCheckMarks.CheckTypes.Marked : 
-                    IPgDocCheckMarks.CheckTypes.Clear;
+            // Let's side load the "auto" detect state so that I don't get this
+            // fake family mixed in with the valid families in the enumeration.
+            {
+                SSTVFamily oEmptyFamily = new SSTVFamily( TVFamily.None, "Auto", typeof( SSTVModeNone ) );
+                DDRow      oEmptyRow    = new DDRow( oEmptyFamily, CheckSetValue );
+                _rgRows.Add( oEmptyRow );
+            }
 
-                _rgRows.Add( new DDRow( oFamily, GetCheckValue( eType ) ) );
-                iCount++;
+            foreach( SSTVDEM.SSTVFamily oFamily in rgFamilies  ) {
+                _rgRows.Add( new DDRow( oFamily, CheckClrValue ) );
             }
 
             RenumberAndSumate(); // Each row must be numbered, else cache messes up.
@@ -81,7 +83,7 @@ namespace Play.SSTV {
         /// <exception cref="InvalidOperationException" />
         public SSTVDEM.SSTVFamily SelectedFamily {
             get {
-                if( CheckedRow is DDRow oFRow ) {
+                if( GetCheckedRow is DDRow oFRow ) {
                     return oFRow.Family;
                 }
                 throw new InvalidOperationException( "Nothing Selected" );
@@ -90,24 +92,28 @@ namespace Play.SSTV {
 
         /// <summary>
         /// Look up the family that supports the given mode and give it
-        /// the check mark. I haven't sorted out the difference between
-        /// the window UI needing refresh and a listening mode update.
-        /// Basically we ALWAYS want a UI refresh, but we only want to
-        /// send an event to the listener when the UI insigates the change.
+        /// the check mark.
         /// </summary>
-        /// <exception cref="ArgumentNullException"></exception>
-        public bool SelectFamily( SSTVMode oMode, bool fNotify = false ) {
+        /// <remarks>A window should NOT call this function. This function
+        /// will be called by the decode when a new image is being
+        /// received.</remarks>
+        /// <exception cref="ArgumentNullException" />
+        /// <exception cref="InvalidOperationException" />
+        public bool SelectFamily( SSTVMode oMode ) {
             if( oMode == null ) {
                 throw new ArgumentNullException( "Could not find TVFamily." );
+            }
+            if( !IsSingleCheck ) {
+                throw new InvalidOperationException( "Doc must be in SingleCheck mode." );
             }
 
             DDRow oSelected = null;
 
             foreach( DDRow oRow in _rgRows ) {
-                oRow[(int)SSTVFamilyDoc.Column.Check].TryReplace( _strCheckClear );
+                oRow[(int)Column.Check].TryReplace( _strCheckClear );
 
                 if( oSelected == null && oRow.Family._eFamily == oMode.Family ) {
-                    oRow[(int)SSTVFamilyDoc.Column.Check].TryReplace( _strCheckValue );
+                    oRow[(int)Column.Check].TryReplace( _strCheckValue );
 
                     oSelected = oRow;
                 }
@@ -117,10 +123,10 @@ namespace Play.SSTV {
             if( oSelected is null ) {
                 return false;
             }
-            if( fNotify ) {
-                Raise_CheckEvent( oSelected );
-                DoParse();
-            }
+
+            // Do NOT sent a check event. 
+            DoParse();
+
             return true;
         }
     }
@@ -155,6 +161,7 @@ namespace Play.SSTV {
             public SSTVMode Mode { get; set; }
         }
 
+        public event Action RegisterOnLoaded;
         public SSTVModeDoc(IPgBaseSite oSiteBase) : base(oSiteBase) {
             CheckColumn = 0; // Just to be clear.
         }
@@ -162,31 +169,30 @@ namespace Play.SSTV {
         /// <summary>
         /// We are reloadable. We clear out old rows in favor of the new enumerable.
         /// </summary>
-        /// <exception cref="ArgumentNullException"></exception>
+        /// <exception cref="ArgumentNullException" />
         public bool Load( SSTVDEM.SSTVFamily oFamily ) {
             if( oFamily == null )
                 throw new ArgumentNullException();
 
             TrackerEnumerable oTE = new TrackerEnumerable( this );
 
-            _rgRows.Clear();
-            int iCount = 0;
-            foreach( SSTVMode oMode in oFamily ) {
-                // TODO: Add a default value to the entry so we can add the
-                //       check mark to whoever!!
-                IPgDocCheckMarks.CheckTypes eType = (iCount==0) ? 
-                    IPgDocCheckMarks.CheckTypes.Marked : 
-                    IPgDocCheckMarks.CheckTypes.Clear;
+            Clear();
 
-                _rgRows.Add( new DDRow( oMode, GetCheckValue( eType ) ) );
+            int iCount = 0; // Well put the check as the first entry...
+            foreach( SSTVMode oMode in oFamily ) {
+                // TODO: Add a default value to the mode entry so we can add the
+                //       check mark to whoever!!
+                string strCheck = iCount==0 ? CheckSetValue : CheckClrValue;
+
+                _rgRows.Add( new DDRow( oMode, strCheck ) );
                 iCount++;
             }
 
             RenumberAndSumate();
 
-            oTE.FinishUp( EditType.DeleteRow );
+            oTE.FinishUp( EditType.InsertRow ); // This will call DoParse();
 
-            Raise_CheckEvent( _rgRows[0] ); // Want UI to change but NOT send mode change to system...
+            RegisterOnLoaded?.Invoke();
 
             return true;
         }
@@ -217,7 +223,7 @@ namespace Play.SSTV {
                 return false;
 
             // TODO: Check the width of a checkmark at the current font... :-/
-            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Pixels, 15, 1L ), (int)SSTVFamilyDoc.Column.Check ); 
+            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Pixels, 20, 1L ), (int)SSTVFamilyDoc.Column.Check ); 
             TextLayoutAdd( new LayoutRect( LayoutRect.CSS.None,   20, 1L ), (int)SSTVFamilyDoc.Column.Family ); 
 
             // Do this so we can return a desired height. O.o;;
@@ -249,7 +255,7 @@ namespace Play.SSTV {
                 return false;
 
             // I'd really like to use flex. But that seems broken at present...
-            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Pixels,  15, 1L ), (int)SSTVModeDoc.Column.Check ); 
+            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Pixels,  20, 1L ), (int)SSTVModeDoc.Column.Check ); 
             TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Percent, 20, 1L ), (int)SSTVModeDoc.Column.Version ); 
             TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Percent, 20, 1L ), (int)SSTVModeDoc.Column.Width ); 
             TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Percent, 20, 1L ), (int)SSTVModeDoc.Column.Height ); 
@@ -270,7 +276,7 @@ namespace Play.SSTV {
                 return false;
 
             // I'd really like to use flex. But that seems broken at present...
-            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Pixels,  15, 1L ), (int)SSTVModeDoc.Column.Check ); 
+            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Pixels,  20, 1L ), (int)SSTVModeDoc.Column.Check ); 
             TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Percent, 20, 1L ), (int)SSTVModeDoc.Column.Version ); 
             TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Percent, 20, 1L ), (int)SSTVModeDoc.Column.Width ); 
             TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Percent, 20, 1L ), (int)SSTVModeDoc.Column.Height ); 

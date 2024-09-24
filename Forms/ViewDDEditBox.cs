@@ -132,7 +132,7 @@ namespace Play.Controls {
             // Show the whole bitamp. Don't look for changes, not a high pri thing.
             _rctWorldPort.SetRect( 0, 0, _oBmpButton.Bitmap.Width, _oBmpButton.Bitmap.Height );
 
-            OnCheckedEvent_DocCheckMarks( _oDocChecks.CheckedRow );
+            OnCheckedEvent_DocCheckMarks( _oDocChecks.GetCheckedRow );
 
             _oDocChecks.RegisterCheckEvent += OnCheckedEvent_DocCheckMarks;
             return true;
@@ -465,7 +465,14 @@ namespace Play.Controls {
             Dispose();
         }
 
-        protected override void OnMouseDown( MouseEventArgs e ) {
+        /// <summary>
+        /// Must process the check in MOUSE UP. Because if we dispose ourselves on
+        /// mouse down. Then the window underneath gets the mouse up!!!!
+        /// This means you probably get weird effects if you mouse down in on window
+        /// and them mouse up in another!! O.o
+        /// </summary>
+        /// <param name="e"></param>
+        protected override void OnMouseUp( MouseEventArgs e ) {
             // Assuming we've captured the mouse...
             SmartRect rcClient = new SmartRect( 0, 0, Width, Height );
 

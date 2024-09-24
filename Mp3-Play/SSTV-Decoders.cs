@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-
+using Microsoft.VisualBasic;
 using SkiaSharp;
 
 //-----------------------------------------------------------------------------------------------------------------------------------------------
@@ -409,6 +409,27 @@ namespace Play.Sound {
 
             SetScanWidth();
 		}
+    }
+    public class SSTVModeNone : SSTVMode {
+        public SSTVModeNone() : 
+            base( TVFamily.None, 0, string.Empty, 0, new SKSizeI( 0, 0 ), AllModes.smEND ) 
+        {
+        }
+
+        public override double WidthSyncInMS => 0;
+        public override double WidthGapInMS  => 0;
+
+        public override string FamilyName => "Auto";
+
+		protected override void Initialize() {
+			if( Family != TVFamily.None )
+				throw new InvalidProgramException( "Mode must be of None type" );
+		}
+
+        // BUG: Really want an empty enumeration... :-/
+        public static IEnumerator<SSTVMode> EnumAllModes() {
+            yield return new SSTVModeNone();
+        }
     }
 }
 

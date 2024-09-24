@@ -406,8 +406,8 @@ namespace Play.SSTV {
         public Editor              PortTxList    { get; } 
         public Editor              PortRxList    { get; }
         public Specification       RxSpec        { get; protected set; } = new Specification( 44100, 1, 0, 16 ); // Syncronous rc test, tx image 
-        public SSTVFamilyDoc      RxSSTVFamilyDoc { get; }
-        public SSTVModeDoc        RxSSTVModeDoc   { get; }
+        public SSTVFamilyDoc       RxSSTVFamilyDoc { get; }
+        public SSTVModeDoc         RxSSTVModeDoc   { get; }
       //public ModeEditor          RxModeList    { get; } // All our modes possible.
         public List<SSTVMode>      AllModesList  { get; } = new List<SSTVMode>();
         public ModeEditor          TxModeList    { get; }
@@ -772,6 +772,7 @@ namespace Play.SSTV {
 			try {
 				if( RxSSTVFamilyDoc.SelectedFamily is SSTVDEM.SSTVFamily oNewFamily ) {
                     RxSSTVModeDoc.Load( oNewFamily ); // Verify that we send a CheckEvent...
+                    // TODO: Send an event that we want to resize the property page!!
 				}
 			} catch( Exception oEx ) {
 				Type[] rgErrors = { typeof( NullReferenceException ),
@@ -1035,7 +1036,6 @@ namespace Play.SSTV {
         /// This is a mess. I need to sort out the messaging. Only the
         /// thread based system has been tested recently.
         /// </summary>
-        /// <param name="eProp"></param>
         protected void Raise_PropertiesUpdated( SSTVEvents eProp ) {
             PropertiesTxReLoad();
 
@@ -1570,7 +1570,7 @@ namespace Play.SSTV {
                                 }
                             }
 
-                            if( !RxSSTVFamilyDoc.SelectFamily( oMode, fNotify:false ) ) {
+                            if( !RxSSTVFamilyDoc.SelectFamily( oMode ) ) {
                                 RxSSTVModeDoc.HighLight = null;
                             } else {
 			                    DisplayImage.WorldDisplay = new SKRectI( 0, 0, oMode.Resolution.Width, oMode.Resolution.Height );
@@ -1600,7 +1600,7 @@ namespace Play.SSTV {
                             Properties.ValueUpdate( SSTVProperties.Names.Rx_Progress, sResult.Param.ToString( "D2" ) + "% - Complete", Broadcast:true );
                             PropertyChange?.Invoke( SSTVEvents.DownLoadFinished );
 
-                            RxSSTVFamilyDoc.SelectFamily( null, fNotify:false );
+                            RxSSTVFamilyDoc.SelectFamily( null );
                             RxSSTVModeDoc.HighLight = null;
 
                             RxHistoryList.Refresh();
@@ -1621,7 +1621,7 @@ namespace Play.SSTV {
                             }
                           //RxModeList.HighLight   = null;
                           //RxModeList.CheckedLine = RxModeList[0];
-                            RxSSTVFamilyDoc.SelectFamily( null, fNotify:false );
+                            RxSSTVFamilyDoc.SelectFamily( null );
                             RxSSTVModeDoc.HighLight = null;
 
                             if( sResult.Param2 is Exception oEx ) {
@@ -1758,7 +1758,7 @@ namespace Play.SSTV {
                     return;
                 }
               //RxModeList.CheckedLine = RxModeList[0];
-                RxSSTVFamilyDoc.SelectFamily( null, fNotify:false );
+                RxSSTVFamilyDoc.SelectFamily( null );
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( NullReferenceException ),
                                     typeof( ArgumentOutOfRangeException ) };
@@ -1816,7 +1816,7 @@ namespace Play.SSTV {
                     // value for similar reads. So Reset the mode on Device read begin. No events
                     // or our task will be getting an event we don't want.
                   //RxModeList.CheckedReset = RxModeList[0];
-                    RxSSTVFamilyDoc.SelectFamily( null, fNotify:false );
+                    RxSSTVFamilyDoc.SelectFamily( null );
 
                     int    iQuality    = Properties.ValueGetAsInt( SSTVProperties.Names.Std_ImgQuality, 80 );
                     double dblFreq     = Properties.ValueGetAsDbl( SSTVProperties.Names.Std_Frequency,  11028 );
@@ -1989,7 +1989,7 @@ namespace Play.SSTV {
 
 			    _oDoc.DisplayImage.WorldDisplay = new SKRectI( 0, 0, tvMode.Resolution.Width, tvMode.Resolution.Height );
 
-                _oDoc.RxSSTVFamilyDoc.SelectFamily( tvMode, fNotify:false );
+                _oDoc.RxSSTVFamilyDoc.SelectFamily( tvMode );
 
                 // the mode objects in the list might be same spec but copied or something
                 // match them via their legacy modes. Set up equivanlance test later.

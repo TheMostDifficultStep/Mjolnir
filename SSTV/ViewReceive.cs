@@ -40,8 +40,6 @@ namespace Play.SSTV {
 			if( disposing ) {
                 //SSTVDocument.RxModeList.CheckedEvent -= OnCheckedEvent_RxModeList;
                 //SSTVDocument.PropertyChange          -= OnPropertyChange_SSTVDocument;
-				
-				//_oDDDocument.RegisterCheckEvent += RegisterCheckEvent_DDDoc;
 			}
             base.Dispose(disposing);
         }
@@ -62,11 +60,9 @@ namespace Play.SSTV {
 
 			try {
 				PropertyInitRow((int)SSTVProperties.Names.Rx_FamilySelect,
-								 new ViewFamilyDDEditBox(new WinSlot(this), SSTVDocument.RxSSTVFamilyDoc )
-							   );
+								 new ViewFamilyDDEditBox(new WinSlot(this), SSTVDocument.RxSSTVFamilyDoc ) );
 
-				//SSTVDocument.RxModeList.CheckedEvent += OnCheckedEvent_RxModeList;
-                //SSTVDocument.PropertyChange          += OnPropertyChange_SSTVDocument;
+				SSTVDocument.RxSSTVModeDoc.RegisterOnLoaded += OnLoaded_RxSSTVModeDoc;
 
 				//// Call this once to set up the populate the (mode) families.
 				//IEnumerator<SSTVDEM.SSTVFamily> itrFamily = SSTVDEM.EnumFamilies();
@@ -96,9 +92,7 @@ namespace Play.SSTV {
 				//				 _ddSSTVMode );
 
 				PropertyInitRow((int)SSTVProperties.Names.Rx_ModeSelect,
-								 new ViewSSTVModesAsList(new WinSlot(this), SSTVDocument.RxSSTVModeDoc )
-							   );
-
+								 new ViewSSTVModesAsList(new WinSlot(this), SSTVDocument.RxSSTVModeDoc ) );
 				PropertyInitRow( (int)SSTVProperties.Names.Rx_Diagnostic, 
 								 new ImageViewSingle( new WinSlot( this ), SSTVDocument.SyncImage ) );
 				PropertyInitRow( (int)SSTVProperties.Names.Rx_SignalLevel, 
@@ -113,20 +107,24 @@ namespace Play.SSTV {
 			}
         }
 
-        //     private void OnPropertyChange_SSTVDocument(SSTVEvents eProp) {
-        //try { 
-        //	Line oHighlight = SSTVDocument.RxModeList.HighLight;
-        //	if( oHighlight != null && oHighlight.Extra is SSTVMode oMode ) {
-        //		PopulateRxModes( oMode );
-        //	}
-        //} catch ( NullReferenceException ) {
-        //}
-        //     }
+		public void OnLoaded_RxSSTVModeDoc() {
+			OnSizeChanged( new EventArgs() );
+		}
 
-        /// <summary>
-        /// This gets called whenever one of the dropdowns gets COMMITED by the user here.
-        /// </summary>
-  //      private void ChangeModeAtList( SSTVMode oMode ) {
+		//     private void OnPropertyChange_SSTVDocument(SSTVEvents eProp) {
+		//try { 
+		//	Line oHighlight = SSTVDocument.RxModeList.HighLight;
+		//	if( oHighlight != null && oHighlight.Extra is SSTVMode oMode ) {
+		//		PopulateRxModes( oMode );
+		//	}
+		//} catch ( NullReferenceException ) {
+		//}
+		//     }
+
+		/// <summary>
+		/// This gets called whenever one of the dropdowns gets COMMITED by the user here.
+		/// </summary>
+		//      private void ChangeModeAtList( SSTVMode oMode ) {
 		//	try {
 		//		foreach( Line oLine in SSTVDocument.RxModeList ) {
 		//			if( oLine.Extra is SSTVMode oLineMode && 
@@ -145,15 +143,15 @@ namespace Play.SSTV {
 		//	}
 		//}
 
-  //      private void OnCheckedEvent_RxModeList(Line oLineChecked) {
+		//      private void OnCheckedEvent_RxModeList(Line oLineChecked) {
 		//	PopulateRxModes(oLineChecked.Extra as SSTVMode );
-  //      }
+		//      }
 
 		///// <summary>
 		///// Process user event. This will generate a returning OnCheckedEvent_RxModeList
 		///// event. Which should also cause the SSTVDocument to listen for the given mode.
 		///// </summary>
-  //      private void OnSelectionChangeCommitted_Mode(object sender, EventArgs e) {
+		//      private void OnSelectionChangeCommitted_Mode(object sender, EventArgs e) {
 		//	try {
 		//		if( _ddSSTVMode.SelectedItem is SSTVMode oNewMode ) {
 		//			ChangeModeAtList( oNewMode );
@@ -168,35 +166,35 @@ namespace Play.SSTV {
 		//	}
 		//}
 
-        /// <summary>
-        /// This is the event we want. If the UI changes then I want to do 
-        /// something about it. Else we'll use the document events to
-        /// change our selected index.
-        /// </summary>
-        /// <seealso cref="PopulateSubModes"/>
-   //     private void OnSelectionChangeCommitted_Family(object sender, EventArgs e) {
-			//try {
-			//	if( _ddSSTVFamily.SelectedItem is SSTVDEM.SSTVFamily oNewFamily ) {
-			//		foreach( Line oLine in SSTVDocument.RxModeList ) {
-			//			if( oLine.Extra is SSTVMode oMode ) {
-			//				if( oMode.Family == oNewFamily._eFamily ) {
-			//					ChangeModeAtList( oMode );
-			//					return;
-			//				}
-			//			}
-			//		}
-			//	} else {
-			//		SSTVDocument.RxModeList.CheckedLine = SSTVDocument.RxModeList[0];
-			//	}
-			//} catch( Exception oEx ) {
-			//	Type[] rgErrors = { typeof( NullReferenceException ),
-			//						typeof( ArgumentOutOfRangeException ) };
-			//	if( rgErrors.IsUnhandled( oEx ) )
-			//		throw;
+		/// <summary>
+		/// This is the event we want. If the UI changes then I want to do 
+		/// something about it. Else we'll use the document events to
+		/// change our selected index.
+		/// </summary>
+		/// <seealso cref="PopulateSubModes"/>
+		//     private void OnSelectionChangeCommitted_Family(object sender, EventArgs e) {
+		//try {
+		//	if( _ddSSTVFamily.SelectedItem is SSTVDEM.SSTVFamily oNewFamily ) {
+		//		foreach( Line oLine in SSTVDocument.RxModeList ) {
+		//			if( oLine.Extra is SSTVMode oMode ) {
+		//				if( oMode.Family == oNewFamily._eFamily ) {
+		//					ChangeModeAtList( oMode );
+		//					return;
+		//				}
+		//			}
+		//		}
+		//	} else {
+		//		SSTVDocument.RxModeList.CheckedLine = SSTVDocument.RxModeList[0];
+		//	}
+		//} catch( Exception oEx ) {
+		//	Type[] rgErrors = { typeof( NullReferenceException ),
+		//						typeof( ArgumentOutOfRangeException ) };
+		//	if( rgErrors.IsUnhandled( oEx ) )
+		//		throw;
 
-			//	LogError( "RXProperties OnSelectionChangeCommitted_Family unexpected." );
-			//}
-   //     }
+		//	LogError( "RXProperties OnSelectionChangeCommitted_Family unexpected." );
+		//}
+		//     }
 
 		/// <summary>
 		/// Populate the Rx mode / family dropdowns.
@@ -204,45 +202,45 @@ namespace Play.SSTV {
 		/// <param name="oModeSelect">The only time this parameter is deliberatly
 		/// null is during initialization. After that it's either a mode
 		/// or we want to be in "auto" detect mode.</param>
-   //     public void PopulateRxModes( SSTVMode oModeSelect = null ) {
-			//_ddSSTVMode.Items.Clear();
+		//     public void PopulateRxModes( SSTVMode oModeSelect = null ) {
+		//_ddSSTVMode.Items.Clear();
 
-			//try {
-			//	// If I've got a new mode, select the family from that, regardless
-			//	// if the family is already properly selected. This is ok since we
-			//	// won't get any additional events from doing this.
-			//	if( oModeSelect != null ) { 
-			//		if( _rgFamilyLookup.TryGetValue( oModeSelect.Family, out int iIndex ) ) {
-			//			_ddSSTVFamily.SelectedIndex = iIndex;
-			//		}
-			//	} else {
-			//		_ddSSTVFamily.SelectedIndex = 0; // back to auto.
-			//		_ddSSTVMode  .SelectedIndex = -1;
-			//	}
-			//	// By this point we should have a family, now populate the modes.
-			//	if( _ddSSTVFamily.SelectedItem is SSTVDEM.SSTVFamily oNewFamily ) {
-			//		foreach( Line oLine in SSTVDocument.RxModeList ) {
-			//			if( oLine.Extra is SSTVMode oMode ) {
-			//				if( oMode.Family == oNewFamily._eFamily ) {
-			//					int iIndex = _ddSSTVMode.Items.Add( /*oLine*/ oMode );
-			//					if( oModeSelect != null && oMode.LegacyMode == oModeSelect.LegacyMode )
-			//						_ddSSTVMode.SelectedIndex = iIndex;
-			//				}
-			//			}
-			//		}
-			//	}
-			//	if( _ddSSTVMode.SelectedIndex == -1 && _ddSSTVMode.Items.Count > 0 ) {
-			//		_ddSSTVMode.SelectedIndex = 0;
-			//	}
-			//} catch( Exception oEx ) {
-			//	Type[] rgErrors = { typeof( NullReferenceException ),
-			//						typeof( ArgumentOutOfRangeException ) };
-			//	if( rgErrors.IsUnhandled( oEx ) )
-			//		throw;
+		//try {
+		//	// If I've got a new mode, select the family from that, regardless
+		//	// if the family is already properly selected. This is ok since we
+		//	// won't get any additional events from doing this.
+		//	if( oModeSelect != null ) { 
+		//		if( _rgFamilyLookup.TryGetValue( oModeSelect.Family, out int iIndex ) ) {
+		//			_ddSSTVFamily.SelectedIndex = iIndex;
+		//		}
+		//	} else {
+		//		_ddSSTVFamily.SelectedIndex = 0; // back to auto.
+		//		_ddSSTVMode  .SelectedIndex = -1;
+		//	}
+		//	// By this point we should have a family, now populate the modes.
+		//	if( _ddSSTVFamily.SelectedItem is SSTVDEM.SSTVFamily oNewFamily ) {
+		//		foreach( Line oLine in SSTVDocument.RxModeList ) {
+		//			if( oLine.Extra is SSTVMode oMode ) {
+		//				if( oMode.Family == oNewFamily._eFamily ) {
+		//					int iIndex = _ddSSTVMode.Items.Add( /*oLine*/ oMode );
+		//					if( oModeSelect != null && oMode.LegacyMode == oModeSelect.LegacyMode )
+		//						_ddSSTVMode.SelectedIndex = iIndex;
+		//				}
+		//			}
+		//		}
+		//	}
+		//	if( _ddSSTVMode.SelectedIndex == -1 && _ddSSTVMode.Items.Count > 0 ) {
+		//		_ddSSTVMode.SelectedIndex = 0;
+		//	}
+		//} catch( Exception oEx ) {
+		//	Type[] rgErrors = { typeof( NullReferenceException ),
+		//						typeof( ArgumentOutOfRangeException ) };
+		//	if( rgErrors.IsUnhandled( oEx ) )
+		//		throw;
 
-			//	LogError( "RXProperties PopulateRxModes unexpected." );
-			//}
-   //     }
+		//	LogError( "RXProperties PopulateRxModes unexpected." );
+		//}
+		//     }
 
 		// Uncomment this if you want to see this event get called
 		// if you set the debugger on the event raise, you only get
@@ -250,7 +248,7 @@ namespace Play.SSTV {
 		//protected override void OnDocumentEvent(  BUFFEREVENTS eEvent ) {
 		//	base.OnDocumentEvent( eEvent );
 		//}
-    }
+	}
 
 	/// <summary>
 	/// This view shows the single image being downloaded from the audio stream.

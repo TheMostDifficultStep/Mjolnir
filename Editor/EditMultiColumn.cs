@@ -396,54 +396,54 @@ namespace Play.Edit {
         /// <summary>
         /// It's a bit of busy work to allow set, so don't allow for now.
         /// </summary>
-        public bool   IsSingleCheck { get => _bIsSingleCheck; set => throw new NotImplementedException(); }
-        public string CheckValue    { get => _strCheckValue; set => throw new NotImplementedException(); }
-        public string CheckClear    { get => _strCheckClear; set => throw new NotImplementedException(); }
-
-        public string GetCheckValue( IPgDocCheckMarks.CheckTypes eCheck ) {
-            switch( eCheck ) {
-                case IPgDocCheckMarks.CheckTypes.Marked :
-                    return _strCheckValue;
-                case IPgDocCheckMarks.CheckTypes.Clear :
-                    return _strCheckClear;
-            }
-
-            return string.Empty;
+        public bool IsSingleCheck { get => _bIsSingleCheck; set => throw new NotImplementedException(); }
+        public string CheckSetValue {
+            get => _strCheckValue;
+            set {
+                // Should scrub the document but not bothering at present.
+                _strCheckValue = value;
+                DoParse();
+            } 
         }
 
-        public void SetCheckValue( IPgDocCheckMarks.CheckTypes eCheck, string strValue ) {
-            switch( eCheck ) {
-                case IPgDocCheckMarks.CheckTypes.Marked :
-                    _strCheckValue = strValue;
-                    break;
-                case IPgDocCheckMarks.CheckTypes.Clear :
-                    _strCheckClear = strValue;
-                    break;
+        public string CheckClrValue {
+            get => _strCheckClear;
+            set {
+                _strCheckClear = value;
+                DoParse();
             }
-            DoParse();
         }
 
         /// <summary>
-        /// Find the currently selected family. There should always be a single selection
-        /// if not we are in an error. Throws exceptions if nothing selected or if more 
-        /// than one item selected!!
+        /// Return true if the default column has the default check mark.
+        /// </summary>
+        /// <exception cref="IndexOutOfRangeException" />
+        bool IsRowChecked( Row oRow ) {
+            return oRow[CheckColumn].CompareTo( _strCheckValue ) == 0;
+        }
+
+        /// <summary>
+        /// Find where the check is for the column this interface is
+        /// controlling. If there is more than a single selection
+        /// we are in an error. Throws exceptions if nothing selected 
+        /// or if more than one item selected!!
         /// </summary>
         /// <exception cref="InvalidOperationException" />
-        public Row CheckedRow { 
+        public Row GetCheckedRow { 
             get {
                 if( !IsSingleCheck )
                     throw new InvalidOperationException( "Document is not in single check mode." );
 
-                Row oSelected = null;
+                Row oFoundCheck = null;
                 foreach( Row oRow in _rgRows ) {
-                    if( oRow[CheckColumn].AsSpan.CompareTo( _strCheckValue, StringComparison.Ordinal ) == 0 ) {
-                        if( oSelected != null ) {
+                    if( IsRowChecked( oRow ) ) {
+                        if( oFoundCheck != null ) {
                             throw new InvalidOperationException( "Multi select happening on Single select question" );
                         }
-                        oSelected = oRow;
+                        oFoundCheck = oRow;
                     }
                 }
-                return oSelected;
+                return oFoundCheck;
             }
         }
 
@@ -467,14 +467,14 @@ namespace Play.Edit {
             try {
                 foreach( Row oReset in _rgRows ) {
                     // Just want an exact match or bust.
-                    if( oReset[CheckColumn].AsSpan.CompareTo( _strCheckValue, StringComparison.Ordinal ) == 0 ) {
+                    if( IsRowChecked( oReset ) ) {
                         oOld = oReset;
                     }
                     if( oReset != oCheck ) {
                         oReset[CheckColumn].TryReplace( _strCheckClear );
                     } else {
                         oNew = oReset;
-                        oCheck[CheckColumn].TryReplace( _strCheckValue );
+                        oReset[CheckColumn].TryReplace( _strCheckValue );
                     }
                 }
                 if( oNew is null ) {
@@ -484,6 +484,8 @@ namespace Play.Edit {
 
                 // The check mark has moved
                 if( oOld != oNew ) {
+                    // Window's DON'T register for this. They pick up the
+                    // UI change via OnFormatChange() gen'd by DoParse()
                     if( IsSingleCheck )
                         RegisterCheckEvent?.Invoke( oCheck );
 
@@ -537,6 +539,7 @@ namespace Play.Edit {
         /// schedule a parse.
         /// </summary>
         public virtual void DoParse() {
+            Raise_DocFormatted();
         }
 
         /// <summary>
@@ -780,7 +783,7 @@ namespace Play.Edit {
                 TrackerEnumerable oTE = new TrackerEnumerable( this );
 
                 _rgRows.Remove( oRow ); // Faster if use index... probably...
-                oRow._fDeleted = true;
+                oRow.Deleted = true;
 
                 RenumberAndSumate(); // Huh... This fixes all my bugs. :-/
 
@@ -826,7 +829,7 @@ namespace Play.Edit {
                 }
                 foreach( Row oRow in rgDelete ) {
                     _rgRows.Remove( oRow );
-                    oRow._fDeleted = true;
+                    oRow.Deleted = true;
                 }
                 // Remove the text from each line element
                 if( oRowTop != null ) {
@@ -858,7 +861,7 @@ namespace Play.Edit {
                         oLineTop.TryAppend( oLineBot.AsSpan );
                     }
                     _rgRows.Remove( oRowBot );
-                    oRowBot._fDeleted = true;
+                    oRowBot.Deleted = true;
 
                 }
                 RenumberAndSumate();
@@ -920,6 +923,10 @@ namespace Play.Edit {
         }
 
         public void Clear() {
+            foreach( Row oRow in _rgRows ) {
+                oRow.At = -2;
+                oRow.Deleted = true;
+            }
             _rgRows.Clear();
 
             foreach( IPgEditEvents oCall in _rgListeners ) {

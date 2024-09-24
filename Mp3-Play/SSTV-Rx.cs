@@ -1699,6 +1699,8 @@ namespace Play.Sound {
 
             public IEnumerator<SSTVMode> GetEnumerator() {
                 switch( _eFamily ) {
+					case TVFamily.None:
+						return SSTVModeNone.    EnumAllModes();
                     case TVFamily.Martin:
                         return SSTVModeMartin  .EnumAllModes();
                     case TVFamily.Scottie:
@@ -1712,7 +1714,7 @@ namespace Play.Sound {
                     case TVFamily.Robot:
                         return SSTVModeRobot422.EnumAllModes();
                 }
-            throw new NotImplementedException();
+				throw new NotImplementedException();
             }
 
             IEnumerator IEnumerable.GetEnumerator() {
@@ -2008,7 +2010,6 @@ namespace Play.Sound {
         /// </summary>
         public SKSizeI Resolution { get; protected set; }
     }
-
 
 }
 

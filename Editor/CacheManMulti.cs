@@ -425,7 +425,7 @@ namespace Play.Edit {
 
             public EditHandler( CacheMultiColumn oHost ) {
                 _oHost         = oHost ?? throw new ArgumentNullException();
-                _fCaretVisible = _oHost.IsCaretVisible( out SKPointI pntCaret );
+                _fCaretVisible = oHost.IsCaretVisible( out SKPointI pntCaret );
             }
 
             public IEnumerator<IPgCaretInfo<Row>> GetEnumerator() {
@@ -440,7 +440,7 @@ namespace Play.Edit {
             public void OnUpdated( EditType eType, Row oRow ) {
                 try {
                     if( eType == EditType.DeleteRow ) {
-                        if( _oHost._oCaretRow == oRow ) {
+                        if( oRow != null && _oHost._oCaretRow == oRow ) {
                             if( _oHost._oSiteList[ _oHost.CaretAt ] is Row oNext ) {
                                 _oHost._oCaretRow = oNext;
                             }
@@ -462,7 +462,6 @@ namespace Play.Edit {
         }
 
 
-        // TODO: Get the font from the site instead of from the constructor? Maybe?
         /// <remarks>Need to sort out the LineHeight accessor since the cache elements might be
         /// variable height, Need to make sure I'm using this correctly. Consider calling it
         /// "LineScroll"</remarks>
@@ -770,7 +769,7 @@ namespace Play.Edit {
             CacheRow oNewCache = _rgOldCache.Find( x => x.Row == oNextDRow );
 
             // Little hack for now.
-            if( oNewCache != null && oNextDRow._fDeleted )
+            if( oNewCache != null && oNextDRow.Deleted )
                 oNewCache = null;
 
             // If we're reusing a cache, it's already measured!! ^_^
@@ -817,7 +816,7 @@ namespace Play.Edit {
                 foreach( CacheRow oTestRow in _rgOldCache ) {
                     if( ClippedHeight( oTestRow ) > 0 && 
                         oTestRow.At >= 0 && 
-                        oTestRow.Row._fDeleted == false 
+                        oTestRow.Row.Deleted == false 
                     ) {
                         if( oTestRow.Top < iTop ) {
                             oSeedCache = oTestRow;
@@ -897,12 +896,12 @@ namespace Play.Edit {
                 foreach( CacheRow oCacheRow in _rgOldCache ) {
                     if( oCacheRow.Row == _oCaretRow &&
                         _oCaretRow    != null &&
-                        _oCaretRow._fDeleted == false
+                        _oCaretRow.Deleted == false
                         ) {
                         oSeedCache = oCacheRow;
                     }
                     if( oPatch        != null &&
-                        oPatch._fDeleted == false &&
+                        oPatch.Deleted == false &&
                         oCacheRow.Row == oPatch ) {
                         RowMeasure(oCacheRow);
                     }
@@ -1019,10 +1018,23 @@ namespace Play.Edit {
                 return;
             }
 
+            if( oCaret == null || oCaret.Row.Deleted ) {
+                oCaret = _rgOldCache[0];
+
+                _oCaretRow = oCaret.Row;
+                _iCaretCol = 0;
+                _iCaretOff = 0;
+            }
+
             int  iBottomRow    = ( oBottom == null ) ? 0 : oBottom.At;
             bool fCaretVisible = IsCaretNear( oCaret, out SKPointI pntCaret );
 
-            _oSite.OnRefreshComplete( iBottomRow, _rgOldCache.Count / _oSite.TabCount );
+            float flPercent = 1;
+
+            if( _oSite.TabCount > 0 ) {
+                flPercent = _rgOldCache.Count / _oSite.TabCount;
+            }
+            _oSite.OnRefreshComplete( iBottomRow, _rgOldCache.Count / flPercent );
             _oSite.OnCaretPositioned( pntCaret,   fCaretVisible );
         }
 

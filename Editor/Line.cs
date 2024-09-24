@@ -500,9 +500,19 @@ namespace Play.Edit {
         IEnumerable<Line>
     {
         protected Line[] _rgColumns;
+        protected bool   _fDeleted = false;
+
         readonly static Line _oDefault = new TextLine( 0, string.Empty );
 
-        public bool _fDeleted = false;
+        // Use this to signal that the element has been
+        // removed from it's document collection.
+        public bool Deleted { 
+            get => _fDeleted; 
+            set {
+                _fDeleted = true;
+                At        = -2;
+            }
+        }
 
         public Line this[int index] {
             get {

@@ -53,18 +53,12 @@ namespace Play.Edit {
     /// of check marks.
     /// </summary>
     public interface IPgDocCheckMarks {
-        enum CheckTypes {
-            Marked,
-            Clear
-        }
-
         bool   IsSingleCheck { get; set; } // Single check aka radio box...
         int    CheckColumn   { get; set; }
-        Row    CheckedRow    { get; }      // If in single check mode. Return the row.
+        string CheckSetValue { get; set; }
+        string CheckClrValue { get; set; }
+        Row    GetCheckedRow { get; }      // If in single check mode. Return the row.
 
-
-        string GetCheckValue( CheckTypes eCheck );
-        void   SetCheckValue( CheckTypes eCheck, string strValue );
         void   SetCheckAtRow( Row oRow );
 
         event Action<Row> RegisterCheckEvent;
@@ -213,6 +207,7 @@ namespace Play.Edit {
         protected readonly IReadableBag    <Row> _oDocList;
         protected readonly IPgDocTraits    <Row> _oDocTraits;
         protected readonly IPgDocOperations<Row> _oDocOps;
+        protected readonly IPgDocCheckMarks      _oDocChecks;
         protected readonly CacheMultiColumn      _oCacheMan;
 		protected readonly IPgStandardUI2        _oStdUI;
         protected readonly ScrollBar2            _oScrollBarVirt;
@@ -247,6 +242,8 @@ namespace Play.Edit {
                 return _fReadOnly;
             }
         }
+
+        public bool IsCaretInCheckColumn => ( _oCacheMan.CaretColumn == _oDocChecks.CheckColumn );
 
         protected class CacheManSite :
             ICacheManSite,
@@ -372,6 +369,7 @@ namespace Play.Edit {
             _oDocList   = (IReadableBag    <Row>)oDocument;
             _oDocTraits = (IPgDocTraits    <Row>)oDocument;
             _oDocOps    = (IPgDocOperations<Row>)oDocument;
+            _oDocChecks = (IPgDocCheckMarks)     oDocument;
 
             _oSiteView   = oViewSite;
             _oViewEvents = oViewSite.EventChain ?? throw new ArgumentException( "Site.EventChain must support IPgViewSiteEvents" );
@@ -653,7 +651,7 @@ namespace Play.Edit {
         /// We remeasure since parse is typically caused by a
         /// text change.
         /// </summary>
-        public void OnDocFormatted() {
+        public virtual void OnDocFormatted() {
             _oCacheMan.CacheReMeasure();
             Invalidate();
         }
@@ -1071,6 +1069,14 @@ namespace Play.Edit {
                 return;
 
             try {
+                if( _oDocChecks != null && _oCacheMan.CaretColumn == _oDocChecks.CheckColumn ) {
+                    if( e.KeyChar == ' ' ) { // space bar.
+                        Row oRow = _oDocList[_oCacheMan.CaretAt];
+                        _oDocChecks.SetCheckAtRow( oRow ); // sends a check event if check moves.
+                    }
+                    e.Handled = true;
+                    return;
+                }
                 if( !char.IsControl( e.KeyChar ) ) {
                     ReadOnlySpan<char>   rgInsert  = stackalloc char[1] { e.KeyChar };
                     CacheMultiColumn.
