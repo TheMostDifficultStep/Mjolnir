@@ -71,7 +71,7 @@ namespace Play.Sound {
         /// </summary>
         /// <exception cref="InvalidProgramException"></exception>
 		protected override void Initialize() {
-			if( Family != TVFamily.Robot )
+			if( TvFamily != TVFamily.Robot )
 				throw new InvalidProgramException( "Mode must be of Robot type" );
 
             ChannelMap.Clear(); // Just in case we get called again.
@@ -127,7 +127,7 @@ namespace Play.Sound {
         /// </summary>
         /// <exception cref="InvalidProgramException"></exception>
 		protected override void Initialize() {
-			if( Family != TVFamily.Robot )
+			if( TvFamily != TVFamily.Robot )
 				throw new InvalidProgramException( "Mode must be of Robot type" );
 
             ChannelMap.Clear(); // Just in case we get called again.
@@ -166,7 +166,7 @@ namespace Play.Sound {
         public override string FamilyName => "Pasokon";
 
 		protected override void Initialize() {
-			if( Family != TVFamily.Pasokon )
+			if( TvFamily != TVFamily.Pasokon )
 				throw new InvalidProgramException( "Mode must be of Pasokon type" );
 
             ChannelMap.Clear(); // Just in case we get called again.
@@ -213,7 +213,7 @@ namespace Play.Sound {
 
         public override string FamilyName => "Martin";
 		protected override void Initialize() {
-			if( Family != TVFamily.Martin )
+			if( TvFamily != TVFamily.Martin )
 				throw new InvalidProgramException( "Mode must be of Martin type" );
 
 			ChannelMap.Add( new( WidthSyncInMS,  ScanLineChannelType.Sync  ) );
@@ -258,7 +258,7 @@ namespace Play.Sound {
         public override string FamilyName => "Scottie";
 
 		protected override void Initialize() {
-			if( Family != TVFamily.Scottie )
+			if( TvFamily != TVFamily.Scottie )
 				throw new ArgumentOutOfRangeException( "Mode must be of Scottie type" );
 
 			ChannelMap.Add( new ( WidthGapInMS,    ScanLineChannelType.Gap   ) );
@@ -316,7 +316,7 @@ namespace Play.Sound {
 
 
         protected override void Initialize() {
-			if( Family != TVFamily.PD )
+			if( TvFamily != TVFamily.PD )
 				throw new ArgumentOutOfRangeException( "Mode must be of PD type" );
 
 			ChannelMap.Add( new( WidthSyncInMS,  ScanLineChannelType.Sync ) );
@@ -366,7 +366,7 @@ namespace Play.Sound {
         public override string FamilyName => "BW";
 
 		protected override void Initialize() {
-			if( Family != TVFamily.BW )
+			if( TvFamily != TVFamily.BW )
 				throw new InvalidProgramException( "Mode must be of BW type" );
 
 			ChannelMap.Add( new( WidthSyncInMS,  ScanLineChannelType.Sync  ) );
@@ -401,7 +401,7 @@ namespace Play.Sound {
 
 
 		protected override void Initialize() {
-			if( Family != TVFamily.WWV )
+			if( TvFamily != TVFamily.WWV )
 				throw new InvalidProgramException( "Mode must be of WWV type" );
 
 			ChannelMap.Add( new( WidthSyncInMS,  ScanLineChannelType.Sync  ) );
@@ -422,7 +422,7 @@ namespace Play.Sound {
         public override string FamilyName => "Auto";
 
 		protected override void Initialize() {
-			if( Family != TVFamily.None )
+			if( TvFamily != TVFamily.None )
 				throw new InvalidProgramException( "Mode must be of None type" );
 		}
 

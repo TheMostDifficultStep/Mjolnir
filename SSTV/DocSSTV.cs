@@ -1351,7 +1351,7 @@ namespace Play.SSTV {
                 _oSSTVBuffer    = new BufferSSTV( oTxSpec );
 				_oSSTVModulator = new SSTVMOD( 0, dblSampFreq, _oSSTVBuffer, iGain );
 
-				switch( oMode.Family ) {
+				switch( oMode.TvFamily ) {
 					case TVFamily.PD:
 						_oSSTVGenerator = new GeneratePD      ( skBitmap, _oSSTVModulator, oMode ); break;
 					case TVFamily.Martin:
@@ -1572,7 +1572,7 @@ namespace Play.SSTV {
                             if( oMode == null ) {
                                 RxSSTVFamilyDoc.ResetFamily();
                             } else {
-                                RxSSTVFamilyDoc.SelectFamily( oMode.Family );
+                                RxSSTVFamilyDoc.SelectFamily( oMode.TvFamily );
 
 			                    DisplayImage.WorldDisplay = new SKRectI( 0, 0, oMode.Resolution.Width, oMode.Resolution.Height );
                                 SyncImage   .WorldDisplay = new SKRectI( 0, 0, SyncImage.Bitmap.Width, oMode.Resolution.Height / oMode.ScanMultiplier );
@@ -1956,7 +1956,7 @@ namespace Play.SSTV {
 					    _oSSTVModulator   = new SSTVMOD( 0, oFFTMode.SampFreq, _oSSTVBuffer );
 					    _oRxSSTV          = new SSTVDraw ( _oSSTVDeModulator, oDoc.SyncImage.Bitmap, oDoc.DisplayImage.Bitmap );
 
-					    _oSSTVGenerator = oMode.Family switch {
+					    _oSSTVGenerator = oMode.TvFamily switch {
 						    TVFamily.PD      => new GeneratePD     ( oDoc.TxBitmapComp.Bitmap, oDemodTst, oMode ),
 						    TVFamily.Martin  => new GenerateMartin ( oDoc.TxBitmapComp.Bitmap, oDemodTst, oMode ),
 						    TVFamily.Scottie => new GenerateScottie( oDoc.TxBitmapComp.Bitmap, oDemodTst, oMode ),
@@ -1993,7 +1993,7 @@ namespace Play.SSTV {
 
 			    _oDoc.DisplayImage.WorldDisplay = new SKRectI( 0, 0, tvMode.Resolution.Width, tvMode.Resolution.Height );
 
-                _oDoc.RxSSTVFamilyDoc.SelectFamily( tvMode.Family );
+                _oDoc.RxSSTVFamilyDoc.SelectFamily( tvMode.TvFamily );
 
                 // the mode objects in the list might be same spec but copied or something
                 // match them via their legacy modes. Set up equivanlance test later.

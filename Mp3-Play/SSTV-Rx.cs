@@ -1113,7 +1113,7 @@ namespace Play.Sound {
 			if( ePrevMode == null ) {
 				// We don't support narrow, so always false. But might change in the future.
 				SetBandWidth( false ); // SSTVSET.IsNarrowMode( tvMode.Family )
-				_AFC.InitAFC( oMode.Family, SampFreq, _rgFreqTable );
+				_AFC.InitAFC( oMode.TvFamily, SampFreq, _rgFreqTable );
 				InitTone(0);
 
 				_oConverter.Clear();
@@ -1948,7 +1948,7 @@ namespace Play.Sound {
         readonly public  byte     VIS;
         readonly public  string   Version = string.Empty;
 
-        readonly public  TVFamily Family;
+        readonly public  TVFamily TvFamily;
         readonly public  AllModes LegacyMode;       // Legacy support.
         abstract public  string   FamilyName { get; }
 
@@ -1973,7 +1973,7 @@ namespace Play.Sound {
             VIS            = bVIS;
             Version        = strName;
             WidthColorInMS = dbColorWidthInMS;
-            Family         = tvMode;
+            TvFamily         = tvMode;
             Resolution     = skSize;
             LegacyMode     = eLegacy;
         }
