@@ -45,15 +45,16 @@ namespace Play.Controls {
         protected uint   StdFont { get; }
 
 
-        protected readonly LayoutStack       _rgLayout = new LayoutStackHorizontal() { Spacing = 5, Units = LayoutRect.CSS.Flex };
-        protected readonly FTCacheLine       _oCacheLine; // this is our single text we are displaying.
-        protected readonly Line              _oTextLine;
-        protected readonly IPgDocTraits<Row> _oDocTraits; // Document holding our list.
-        protected readonly IPgDocCheckMarks  _oDocChecks;
-        protected readonly IReadableBag<Row> _oDocBag;
-        protected readonly ImageBaseDoc      _oBmpButton; // Bitmap for the button.
-        protected readonly SmartRect         _rctWorldPort = new(); // The part of the bitmap we want to show.
-        protected readonly SmartRect         _rctViewPort  = new(); // where to show the part of the bmp we want to show!
+        protected readonly LayoutStack           _rgLayout = new LayoutStackHorizontal() { Spacing = 5, Units = LayoutRect.CSS.Flex };
+        protected readonly FTCacheLine           _oCacheLine; // this is our single text we are displaying.
+        protected readonly Line                  _oTextLine;
+        protected readonly IPgDocTraits<Row>     _oDocTraits; // Document holding our list.
+        protected readonly IPgDocCheckMarks      _oDocChecks;
+        protected readonly IPgDocOperations<Row> _oDocOps;
+        protected readonly IReadableBag<Row>     _oDocBag;
+        protected readonly ImageBaseDoc          _oBmpButton; // Bitmap for the button.
+        protected readonly SmartRect             _rctWorldPort = new(); // The part of the bitmap we want to show.
+        protected readonly SmartRect             _rctViewPort  = new(); // where to show the part of the bmp we want to show!
 
         public IPgParent Parentage => _oSiteView.Host;
         public IPgParent Services  => Parentage.Services;
@@ -97,9 +98,10 @@ namespace Play.Controls {
             _oSiteView = oViewSite ?? throw new ArgumentNullException();
             _oStdUI    = Services as IPgStandardUI2 ?? throw new ArgumentException( "Parent view must provide IPgStandardUI service" );
 
-            _oDocTraits = oDocument as IPgDocTraits<Row> ?? throw new ArgumentException( "Doc must support IPgDocTraits" );
-            _oDocChecks = oDocument as IPgDocCheckMarks  ?? throw new ArgumentException( "Doc must support IPgDocCheckMarks" );
-            _oDocBag    = oDocument as IReadableBag<Row> ?? throw new ArgumentException( "Doc must support IReadableBag" );
+            _oDocTraits = (IPgDocTraits<Row>    )oDocument;
+            _oDocChecks = (IPgDocCheckMarks     )oDocument;
+            _oDocBag    = (IReadableBag<Row>    )oDocument;
+            _oDocOps    = (IPgDocOperations<Row>)oDocument;
             _oBmpButton = new ImageForDropDown( new WinSlot(this) );
 
             IPgMainWindow.PgDisplayInfo oInfo = new IPgMainWindow.PgDisplayInfo();
@@ -126,20 +128,19 @@ namespace Play.Controls {
             if( _oBmpButton.Bitmap == null )
                 return false;
 
+            _oDocOps.ListenerAdd( this ); // Look for check mark move via this.
+
             _rgLayout.Add( new LayoutRect( LayoutRect.CSS.None   )); // Text.
             _rgLayout.Add( new LayoutRect( LayoutRect.CSS.Pixels, 12, (float)0.1 ) ); // Arrow bitmap.
 
             // Show the whole bitamp. Don't look for changes, not a high pri thing.
             _rctWorldPort.SetRect( 0, 0, _oBmpButton.Bitmap.Width, _oBmpButton.Bitmap.Height );
 
-            OnCheckedEvent_DocCheckMarks( _oDocChecks.GetCheckedRow );
-
-            _oDocChecks.RegisterCheckEvent += OnCheckedEvent_DocCheckMarks;
             return true;
         }
 
         protected override void Dispose(bool disposing) {
-            //_oDocTraits.CheckedEvent -= On_DocTraits_CheckedEvent;
+            _oDocOps.ListenerRemove( this );
 
             base.Dispose(disposing);
         }
@@ -295,7 +296,15 @@ namespace Play.Controls {
             return false;
         }
 
-        private void OnCheckedEvent_DocCheckMarks( Row oRow ) {
+        /// <summary>
+        /// At present we are NOT an editble dropdown. So if there are
+        /// any changes it's due to the primary document being edited
+        /// in some manner.
+        /// </summary>
+        /// <seealso cref="InitNew()"/>
+        public virtual void OnDocFormatted() {
+            Row oRow = _oDocChecks.CheckedRow;
+            
             if( oRow != null ) {
                 _oTextLine.TryReplace( 0, _oTextLine.ElementCount, oRow[1].AsSpan ); // replace the text.
                 _oTextLine.Summate( oRow.At, 0 );
@@ -311,11 +320,6 @@ namespace Play.Controls {
 
         public IPgEditHandler CreateEditHandler() {
             throw new NotImplementedException();
-        }
-
-        public void OnDocFormatted() {
-            _oCacheLine.Colorize( (ILineRange)null ); // Add selection when have it.
-            Invalidate();
         }
 
         /// <summary>

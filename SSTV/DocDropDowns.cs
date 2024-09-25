@@ -42,6 +42,7 @@ namespace Play.SSTV {
             CheckColumn = 0; // Just to be clear.
         }
 
+        public SSTVFamily Auto { get; protected set; }
 
         public bool Load( IEnumerable<SSTVDEM.SSTVFamily> rgFamilies ) {
             if( rgFamilies == null ) {
@@ -55,9 +56,8 @@ namespace Play.SSTV {
             // Let's side load the "auto" detect state so that I don't get this
             // fake family mixed in with the valid families in the enumeration.
             {
-                SSTVFamily oEmptyFamily = new SSTVFamily( TVFamily.None, "Auto", typeof( SSTVModeNone ) );
-                DDRow      oEmptyRow    = new DDRow( oEmptyFamily, CheckSetValue );
-                _rgRows.Add( oEmptyRow );
+                Auto = new SSTVFamily( TVFamily.None, "Auto", typeof( SSTVModeNone ) );
+                _rgRows.Add( new DDRow( Auto, CheckSetValue ) );
             }
 
             foreach( SSTVDEM.SSTVFamily oFamily in rgFamilies  ) {
@@ -83,11 +83,16 @@ namespace Play.SSTV {
         /// <exception cref="InvalidOperationException" />
         public SSTVDEM.SSTVFamily SelectedFamily {
             get {
-                if( GetCheckedRow is DDRow oFRow ) {
+                if( CheckedRow is DDRow oFRow ) {
                     return oFRow.Family;
                 }
                 throw new InvalidOperationException( "Nothing Selected" );
             }
+        }
+
+        public void ResetFamily() {
+            SelectFamily( Auto._eFamily );
+            HighLight = null;
         }
 
         /// <summary>
@@ -99,10 +104,7 @@ namespace Play.SSTV {
         /// received.</remarks>
         /// <exception cref="ArgumentNullException" />
         /// <exception cref="InvalidOperationException" />
-        public bool SelectFamily( SSTVMode oMode ) {
-            if( oMode == null ) {
-                throw new ArgumentNullException( "Could not find TVFamily." );
-            }
+        public bool SelectFamily( TVFamily eFamily ) {
             if( !IsSingleCheck ) {
                 throw new InvalidOperationException( "Doc must be in SingleCheck mode." );
             }
@@ -112,7 +114,7 @@ namespace Play.SSTV {
             foreach( DDRow oRow in _rgRows ) {
                 oRow[(int)Column.Check].TryReplace( _strCheckClear );
 
-                if( oSelected == null && oRow.Family._eFamily == oMode.Family ) {
+                if( oSelected == null && oRow.Family._eFamily == eFamily ) {
                     oRow[(int)Column.Check].TryReplace( _strCheckValue );
 
                     oSelected = oRow;

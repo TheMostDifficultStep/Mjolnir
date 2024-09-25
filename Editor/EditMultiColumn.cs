@@ -429,7 +429,7 @@ namespace Play.Edit {
         /// or if more than one item selected!!
         /// </summary>
         /// <exception cref="InvalidOperationException" />
-        public Row GetCheckedRow { 
+        public Row CheckedRow { 
             get {
                 if( !IsSingleCheck )
                     throw new InvalidOperationException( "Document is not in single check mode." );

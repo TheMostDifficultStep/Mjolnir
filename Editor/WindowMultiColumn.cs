@@ -57,7 +57,7 @@ namespace Play.Edit {
         int    CheckColumn   { get; set; }
         string CheckSetValue { get; set; }
         string CheckClrValue { get; set; }
-        Row    GetCheckedRow { get; }      // If in single check mode. Return the row.
+        Row    CheckedRow { get; }      // If in single check mode. Return the row.
 
         void   SetCheckAtRow( Row oRow );
 

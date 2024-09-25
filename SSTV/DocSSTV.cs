@@ -771,8 +771,7 @@ namespace Play.SSTV {
         private void OnCheckEvent_RxSSTVFamilyDoc(Row obj) {
 			try {
 				if( RxSSTVFamilyDoc.SelectedFamily is SSTVDEM.SSTVFamily oNewFamily ) {
-                    RxSSTVModeDoc.Load( oNewFamily ); // Verify that we send a CheckEvent...
-                    // TODO: Send an event that we want to resize the property page!!
+                    RxSSTVModeDoc.Load( oNewFamily ); 
 				}
 			} catch( Exception oEx ) {
 				Type[] rgErrors = { typeof( NullReferenceException ),
@@ -1570,9 +1569,11 @@ namespace Play.SSTV {
                                 }
                             }
 
-                            if( !RxSSTVFamilyDoc.SelectFamily( oMode ) ) {
-                                RxSSTVModeDoc.HighLight = null;
+                            if( oMode == null ) {
+                                RxSSTVFamilyDoc.ResetFamily();
                             } else {
+                                RxSSTVFamilyDoc.SelectFamily( oMode.Family );
+
 			                    DisplayImage.WorldDisplay = new SKRectI( 0, 0, oMode.Resolution.Width, oMode.Resolution.Height );
                                 SyncImage   .WorldDisplay = new SKRectI( 0, 0, SyncImage.Bitmap.Width, oMode.Resolution.Height / oMode.ScanMultiplier );
 
@@ -1580,6 +1581,9 @@ namespace Play.SSTV {
                                 Properties.ValueUpdate( SSTVProperties.Names.Rx_Width,  oMode.Resolution.Width .ToString() );
                                 Properties.ValueUpdate( SSTVProperties.Names.Rx_Height, oMode.Resolution.Height.ToString() );
                             }
+				            if( RxSSTVFamilyDoc.SelectedFamily is SSTVDEM.SSTVFamily oNewFamily ) {
+                                RxSSTVModeDoc.Load( oNewFamily );
+				            }
                             PropertyChange?.Invoke( SSTVEvents.ModeChanged );
                         } break;
                         case SSTVEvents.ImageUpdated:
@@ -1600,7 +1604,7 @@ namespace Play.SSTV {
                             Properties.ValueUpdate( SSTVProperties.Names.Rx_Progress, sResult.Param.ToString( "D2" ) + "% - Complete", Broadcast:true );
                             PropertyChange?.Invoke( SSTVEvents.DownLoadFinished );
 
-                            RxSSTVFamilyDoc.SelectFamily( null );
+                            RxSSTVFamilyDoc.SelectFamily( TVFamily.None );
                             RxSSTVModeDoc.HighLight = null;
 
                             RxHistoryList.Refresh();
@@ -1621,7 +1625,7 @@ namespace Play.SSTV {
                             }
                           //RxModeList.HighLight   = null;
                           //RxModeList.CheckedLine = RxModeList[0];
-                            RxSSTVFamilyDoc.SelectFamily( null );
+                            RxSSTVFamilyDoc.SelectFamily( TVFamily.None );
                             RxSSTVModeDoc.HighLight = null;
 
                             if( sResult.Param2 is Exception oEx ) {
@@ -1758,7 +1762,7 @@ namespace Play.SSTV {
                     return;
                 }
               //RxModeList.CheckedLine = RxModeList[0];
-                RxSSTVFamilyDoc.SelectFamily( null );
+                RxSSTVFamilyDoc.SelectFamily( TVFamily.None );
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( NullReferenceException ),
                                     typeof( ArgumentOutOfRangeException ) };
@@ -1816,7 +1820,7 @@ namespace Play.SSTV {
                     // value for similar reads. So Reset the mode on Device read begin. No events
                     // or our task will be getting an event we don't want.
                   //RxModeList.CheckedReset = RxModeList[0];
-                    RxSSTVFamilyDoc.SelectFamily( null );
+                    RxSSTVFamilyDoc.SelectFamily( TVFamily.None );
 
                     int    iQuality    = Properties.ValueGetAsInt( SSTVProperties.Names.Std_ImgQuality, 80 );
                     double dblFreq     = Properties.ValueGetAsDbl( SSTVProperties.Names.Std_Frequency,  11028 );
@@ -1989,7 +1993,7 @@ namespace Play.SSTV {
 
 			    _oDoc.DisplayImage.WorldDisplay = new SKRectI( 0, 0, tvMode.Resolution.Width, tvMode.Resolution.Height );
 
-                _oDoc.RxSSTVFamilyDoc.SelectFamily( tvMode );
+                _oDoc.RxSSTVFamilyDoc.SelectFamily( tvMode.Family );
 
                 // the mode objects in the list might be same spec but copied or something
                 // match them via their legacy modes. Set up equivanlance test later.
