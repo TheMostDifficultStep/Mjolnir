@@ -238,7 +238,7 @@ namespace Play.SSTV {
         }
     }
 
-    public class ViewFamilyDDEditBox : ViewDDEditBox {
+    public class ViewFamilyDDEditBox : ViewEditBox {
         public ViewFamilyDDEditBox(IPgViewSite oViewSite, object oDocument) : 
             base(oViewSite, oDocument) {
         }
@@ -270,7 +270,7 @@ namespace Play.SSTV {
 
     }
 
-    public class ViewModeDDEditBox : ViewDDEditBox {
+    public class ViewModeDDEditBox : ViewEditBox {
         public ViewModeDDEditBox(IPgViewSite oViewSite, object oDocument) : 
             base(oViewSite, oDocument) {
         }

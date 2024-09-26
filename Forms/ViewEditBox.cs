@@ -27,9 +27,10 @@ namespace Play.Controls {
     }
 
     /// <summary>
-    /// This is basically a single line editor. But it has a column to signal a popup.
+    /// This is basically a single line editor. Right now it's specialized to show
+    /// a single line of text and a bitmap on the right.
     /// </summary>
-    public abstract class ViewDDEditBox :
+    public abstract class ViewEditBox :
         SKControl,
         IPgParent,
         IPgLoad,
@@ -65,9 +66,9 @@ namespace Play.Controls {
 		protected class WinSlot :
 			IPgViewSite
 		{
-			protected readonly ViewDDEditBox _oHost;
+			protected readonly ViewEditBox _oHost;
 
-			public WinSlot( ViewDDEditBox oHost ) {
+			public WinSlot( ViewEditBox oHost ) {
 				_oHost = oHost ?? throw new ArgumentNullException();
 			}
 
@@ -94,7 +95,7 @@ namespace Play.Controls {
         /// <param name="oBitmap">Image to use for the dropdown button.</param>
         /// <exception cref="ArgumentNullException"></exception>
         /// <exception cref="ArgumentException"></exception>
-        public ViewDDEditBox( IPgViewSite oViewSite, object oDocument ) {
+        public ViewEditBox( IPgViewSite oViewSite, object oDocument ) {
             _oSiteView = oViewSite ?? throw new ArgumentNullException();
             _oStdUI    = Services as IPgStandardUI2 ?? throw new ArgumentException( "Parent view must provide IPgStandardUI service" );
 
@@ -135,6 +136,8 @@ namespace Play.Controls {
 
             // Show the whole bitamp. Don't look for changes, not a high pri thing.
             _rctWorldPort.SetRect( 0, 0, _oBmpButton.Bitmap.Width, _oBmpButton.Bitmap.Height );
+
+            OnDocFormatted(); // Initialize our text...
 
             return true;
         }
@@ -337,9 +340,9 @@ namespace Play.Controls {
             IEnumerable<IPgCaretInfo<Row>>,
             IPgEditHandler
         {
-            readonly ViewDDEditBox _oHost;
+            readonly ViewEditBox _oHost;
 
-            public EditHandler( ViewDDEditBox oHost ) {
+            public EditHandler( ViewEditBox oHost ) {
                 _oHost = oHost ?? throw new ArgumentNullException();
             }
 
@@ -401,7 +404,7 @@ namespace Play.Controls {
     /// This is our popup for the drop down control. Its like a secondary view in that
     /// it uses the same document as the ViewDropDown object
     /// </summary>
-    /// <seealso cref="ViewDDEditBox"/>
+    /// <seealso cref="ViewEditBox"/>
     public abstract class ViewDDPopup :
         WindowMultiColumn
     {
