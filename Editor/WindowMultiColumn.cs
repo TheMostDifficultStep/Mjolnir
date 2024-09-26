@@ -231,6 +231,8 @@ namespace Play.Edit {
         protected IPgStandardUI2 StdUI => _oStdUI;
         protected ushort         StdFace { get; }
 
+        public bool IsScrollVisible { get; set; } = true;
+
         /// <summary>
         /// How much readonly can you get? Window only or doc level. :-/
         /// </summary>
@@ -480,12 +482,14 @@ namespace Play.Edit {
         /// <seealso cref="Load"/>
         protected virtual bool Initialize() {
             _oScrollBarVirt.Parent  = this;
-            _oScrollBarVirt.Visible = true;
+            _oScrollBarVirt.Visible = IsScrollVisible;
             _oScrollBarVirt.Scroll += OnScrollBar; 
 
-            _rgLayout.Add( new LayoutControl( _oScrollBarVirt, 
-                                              LayoutRect.CSS.Pixels, 
-                                              (uint)(DPI.X * _szScrollBars.Width) ) );
+            if( IsScrollVisible ) {
+                _rgLayout.Add( new LayoutControl( _oScrollBarVirt, 
+                                                  LayoutRect.CSS.Pixels, 
+                                                  (uint)(DPI.X * _szScrollBars.Width) ) );
+            }
 
             _oDocOps   .ListenerAdd( this );
             _oDocTraits.RegisterHighLightEvent += _oDocTraits_OnHighLightEvent;

@@ -177,6 +177,12 @@ namespace Play.SSTV {
             return true;
         }
 
+        /// <summary>
+        /// It's kind of a drag. We want/need to have a mode descriptor
+        /// that describes the listening mode we are in at all times. BUT 
+        /// we would like the "auto" family to have no entries in the mode 
+        /// list!! O.o
+        /// </summary>
         public bool Load( TVFamily eFamily, AllSSTVModes eLegacyMode = AllSSTVModes.smEND ) {
             TrackerEnumerable oTE = new TrackerEnumerable( this );
 
@@ -299,6 +305,7 @@ namespace Play.SSTV {
 
     public class ViewSSTVModesAsList : WindowMultiColumn {
         public ViewSSTVModesAsList(IPgViewSite oViewSite, object oDocument) : base(oViewSite, oDocument) {
+            IsScrollVisible = false;
         }
 
         protected override bool Initialize() {

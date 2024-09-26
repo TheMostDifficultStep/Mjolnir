@@ -412,6 +412,7 @@ namespace Play.Controls {
 
         public ViewDDPopup( IPgViewSite oView, object oDocument ) : base( oView, oDocument ) {
             _oDocCheckMark = (IPgDocCheckMarks)oDocument;
+            IsScrollVisible = false;
         }
 
         protected override CreateParams CreateParams {
