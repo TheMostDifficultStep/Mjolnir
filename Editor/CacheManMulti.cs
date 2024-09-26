@@ -10,6 +10,7 @@ using SkiaSharp;
 using Play.Interfaces.Embedding;
 using Play.Parse;
 using Play.Rectangles;
+using System.Linq;
 
 namespace Play.Edit {
     public interface IPgCaretInfo<T> :
@@ -876,10 +877,35 @@ namespace Play.Edit {
         enum InsertAt { TOP,BOTTOM };
 
         /// <summary>
-        /// New experimental positioning. The rule is: if the caret is on
+        /// First remove all deleted lines. BUG: This might
+        /// delete the line with the cursor and we'll 
+        /// really lose track of where we are. 
+        /// </summary>
+        protected void CacheFlushDeleted() {
+            try {
+                foreach( CacheRow oCRow in _rgOldCache ) {
+                    if( !oCRow.Row.Deleted )
+                        _rgNewCache.Add( oCRow );
+                }
+
+                _rgOldCache.Clear();
+
+                foreach( CacheRow oCRow in _rgNewCache ) {
+                    _rgOldCache.Add( oCRow );
+                }
+            } catch( Exception oEx ) {
+                if( IsUnhandledStdRpt( oEx ) )
+                    throw;
+            }
+        }
+
+        /// <summary>
+        /// New Positioning. The rule is: if the caret is on
         /// screen, keep it there. Else, repair as best you can, else 
         /// rebuild the screen from the current cache position. If you
         /// have scrolled the caret off screen I assume it's intentional.
+        /// Unlike the cachewalker which deals with scrolling. This function
+        /// repairs the cache after random row editing.
         /// </summary>
         /// <remarks>BUG: if the row is invalid might need to 
         /// remeasure such items. It's a little bigger job so I'll
@@ -889,19 +915,18 @@ namespace Play.Edit {
         /// <param name="fMeasure">Remeasure all row items.</param>
         /// <param name="fFindCaret">Keep the caret on the screen</param>
         /// <param name="oPatch">Make sure this item is re-measured.</param>
+        /// <seealso cref="CacheWalker(CacheRow, bool)"/>
         public void CacheRepair( Row oPatch, bool fFindCaret, bool fMeasure ) {
             try {
+                CacheFlushDeleted();
+
                 CacheRow oSeedCache = null;
 
                 foreach( CacheRow oCacheRow in _rgOldCache ) {
-                    if( oCacheRow.Row == _oCaretRow &&
-                        _oCaretRow    != null &&
-                        _oCaretRow.Deleted == false
-                        ) {
+                    if( oCacheRow.Row == _oCaretRow ) {
                         oSeedCache = oCacheRow;
                     }
                     if( oPatch        != null &&
-                        oPatch.Deleted == false &&
                         oCacheRow.Row == oPatch ) {
                         RowMeasure(oCacheRow);
                     }

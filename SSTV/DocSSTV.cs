@@ -409,7 +409,6 @@ namespace Play.SSTV {
         public SSTVFamilyDoc       RxSSTVFamilyDoc { get; }
         public SSTVModeDoc         RxSSTVModeDoc   { get; }
       //public ModeEditor          RxModeList    { get; } // All our modes possible.
-        public List<SSTVMode>      AllModesList  { get; } = new List<SSTVMode>();
         public ModeEditor          TxModeList    { get; }
         public ImageWalkerDir      TxImageList   { get; }
         public ImageWalkerDir      RxHistoryList { get; }
@@ -703,6 +702,8 @@ namespace Play.SSTV {
                 return false;
             if( !PortRxList .InitNew() ) 
                 return false;
+            if( !RxSSTVModeDoc.InitNew() )
+                return false;
 
             if( !Properties.InitNew() )
                 return false;
@@ -731,14 +732,9 @@ namespace Play.SSTV {
             //LoadModes( SSTVDEM.EnumModes(), RxModeList, fAddResolution:false );
             //LoadModes( SSTVDEM.EnumModes(), TxModeList, fAddResolution:true  );
 
-            // Since the mode descriptors are allocated, let's just grab them once.
-            foreach( SSTVMode oMode in SSTVDEM.GenerateAllModes ) {
-                AllModesList.Add( oMode );
-            }
-
 			RxSSTVFamilyDoc.Load( new SSTVDEM.EnumerateFamilies() );
             RxSSTVFamilyDoc.RegisterCheckEvent += OnCheckEvent_RxSSTVFamilyDoc;
-			RxSSTVModeDoc  .Load( RxSSTVFamilyDoc.SelectedFamily );
+			RxSSTVModeDoc  .Load( RxSSTVFamilyDoc.SelectedFamily.TvFamily );
             RxSSTVModeDoc  .RegisterCheckEvent += OnCheckEvent_RxSSTVModeDoc;
 
 
@@ -749,7 +745,6 @@ namespace Play.SSTV {
             // Get these set up so our stdproperties get the updates.
             TxImageList  .ImageUpdated += OnImageUpdated_TxImageList;
             RxHistoryList.ImageUpdated += OnImageUpdated_RxHistoryList;
-            //RxModeList   .CheckedEvent += OnCheckedEvent_RxModeList;
             TxModeList   .CheckedEvent += OnCheckedEvent_TxModeList;
             TemplateList .CheckedEvent += OnCheckedEvent_TemplateList;
 
@@ -771,7 +766,7 @@ namespace Play.SSTV {
         private void OnCheckEvent_RxSSTVFamilyDoc(Row obj) {
 			try {
 				if( RxSSTVFamilyDoc.SelectedFamily is SSTVDEM.SSTVFamily oNewFamily ) {
-                    RxSSTVModeDoc.Load( oNewFamily ); 
+                    RxSSTVModeDoc.Load( oNewFamily.TvFamily ); 
 				}
 			} catch( Exception oEx ) {
 				Type[] rgErrors = { typeof( NullReferenceException ),
@@ -1364,11 +1359,11 @@ namespace Play.SSTV {
                         _oSSTVGenerator = new GeneratePasokon ( skBitmap, _oSSTVModulator, oMode ); break;
                     case TVFamily.Robot:
                         switch( oMode.LegacyMode ) {
-                            case AllModes.smR72:
-                            case AllModes.smR24:
+                            case AllSSTVModes.smR72:
+                            case AllSSTVModes.smR24:
                                 _oSSTVGenerator = new GenerateRobot422( skBitmap, _oSSTVModulator, oMode ); 
                                 break;
-                            case AllModes.smR36:
+                            case AllSSTVModes.smR36:
                                 _oSSTVGenerator = new GenerateRobot420( skBitmap, _oSSTVModulator, oMode );
                                 break;
                             default:
@@ -1560,14 +1555,7 @@ namespace Play.SSTV {
                             SignalLevelRender( sResult );
                         } break;
                         case SSTVEvents.ModeChanged: {
-                            // We catch a null we're going back to listen mode. This is an error mode
-                            // in the file read case.
-                            SSTVMode oMode = null;
-                            foreach( SSTVMode oLook in AllModesList ) {
-                                if( oLook.LegacyMode == (AllModes)sResult.Param ) {
-                                    oMode = oLook;
-                                }
-                            }
+                            SSTVMode oMode = RxSSTVModeDoc.GetDescriptor( (AllSSTVModes)sResult.Param );
 
                             if( oMode == null ) {
                                 RxSSTVFamilyDoc.ResetFamily();
@@ -1582,7 +1570,7 @@ namespace Play.SSTV {
                                 Properties.ValueUpdate( SSTVProperties.Names.Rx_Height, oMode.Resolution.Height.ToString() );
                             }
 				            if( RxSSTVFamilyDoc.SelectedFamily is SSTVDEM.SSTVFamily oNewFamily ) {
-                                RxSSTVModeDoc.Load( oNewFamily );
+                                RxSSTVModeDoc.Load( oNewFamily.TvFamily );
 				            }
                             PropertyChange?.Invoke( SSTVEvents.ModeChanged );
                         } break;

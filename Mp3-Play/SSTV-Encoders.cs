@@ -458,7 +458,7 @@ namespace Play.Sound {
         }
 
         public static IEnumerator<SSTVMode> GetModeEnumerator() {
- 	        yield return new SSTVModeBW( 0x00, "WWV", 1000, new SKSizeI( 320, 320 ), AllModes.smWWV ); 
+ 	        yield return new SSTVModeBW( 0x00, "WWV", 1000, new SKSizeI( 320, 320 ), AllSSTVModes.smWWV ); 
         }
 
         protected override void WriteLine(int iLine) {

@@ -81,7 +81,7 @@ namespace Play.Sound {
 		}
 	}
 
-	public enum AllModes {
+	public enum AllSSTVModes {
 		smR36 = 0,
 		smR72,
 		smAVT_obsolete,
@@ -455,7 +455,7 @@ namespace Play.Sound {
 				BailOut    = true;
 			}
 
-			public readonly AllModes LegacyMode;
+			public readonly AllSSTVModes LegacyMode;
 			public readonly uint     SyncWidth;
 			public          int      e;
 			public          bool     BailOut; // Don't check this one.
@@ -469,31 +469,31 @@ namespace Play.Sound {
 			public void ResetE( bool fNarrow, int iSyncCount ) {
 				BailOut = false;
 				switch( LegacyMode ){
-					case AllModes.smSC2_60:
-					case AllModes.smSC2_120:
+					case AllSSTVModes.smSC2_60:
+					case AllSSTVModes.smSC2_120:
 						BailOut = true;
 						break;
-					case AllModes.smR24:
-					case AllModes.smR36:
-					case AllModes.smMRT2:
-					case AllModes.smPD50:
-					case AllModes.smPD240:
+					case AllSSTVModes.smR24:
+					case AllSSTVModes.smR36:
+					case AllSSTVModes.smMRT2:
+					case AllSSTVModes.smPD50:
+					case AllSSTVModes.smPD240:
 						if( fNarrow ) 
 							BailOut = true;
 						e = iSyncCount - 4;
 						break;
-					case AllModes.smRM8:
-					case AllModes.smRM12:
+					case AllSSTVModes.smRM8:
+					case AllSSTVModes.smRM12:
 						if( fNarrow ) 
 							BailOut = true;
 						e = 0;
 						break;
-					case AllModes.smMN73:
-					case AllModes.smMN110:
-					case AllModes.smMN140:
-					case AllModes.smMC110:
-					case AllModes.smMC140:
-					case AllModes.smMC180:
+					case AllSSTVModes.smMN73:
+					case AllSSTVModes.smMN110:
+					case AllSSTVModes.smMN140:
+					case AllSSTVModes.smMC110:
+					case AllSSTVModes.smMC140:
+					case AllSSTVModes.smMC180:
 						if( !fNarrow ) 
 							BailOut = true;
 						e = iSyncCount - 5;
@@ -541,7 +541,7 @@ namespace Play.Sound {
 			m_fNarrow   = false;
 			m_SampPerMs = oDemod.SampFreq / 1000;
 			m_lDeff     = (long)(3 * m_SampPerMs);
-			m_MScanInfo = new List<ScanInfo>( (int)AllModes.smEND );
+			m_MScanInfo = new List<ScanInfo>( (int)AllSSTVModes.smEND );
 
 			Reset( false );
 
@@ -601,7 +601,7 @@ namespace Play.Sound {
 			return true;
 		}
 
-		public bool Check( out AllModes eModeReturned ) {
+		public bool Check( out AllSSTVModes eModeReturned ) {
 			uint w = m_rgMSyncList[m_rgMSyncList.Length -1];
 			for( int k = 1; k <= 3; k++ ){
 				uint ww = (uint)(w / k);
@@ -622,7 +622,7 @@ namespace Play.Sound {
 					break;
 				}
 			}
-			eModeReturned = AllModes.smEND;
+			eModeReturned = AllSSTVModes.smEND;
 			return false;
 		}
 
@@ -646,9 +646,9 @@ namespace Play.Sound {
 			}
 		}
 
-		public bool Start( out AllModes ss ) {
+		public bool Start( out AllSSTVModes ss ) {
 			bool fResult = false;
-			ss = AllModes.smEND;
+			ss = AllSSTVModes.smEND;
 
 			if( m_MSyncIntMax != 0 ) {
 				if( (m_MSyncIntPos - m_MSyncACnt) > m_MSLL ){
@@ -1218,25 +1218,25 @@ namespace Play.Sound {
 		/// The MakeFilter( H3, ... in CalcBPF was always commented out with this code called at the bottom.
 		/// But since I don't support narrow modes, I don't call this function either.
 		/// </summary>
-		public void CalcNarrowBPF(double[] H3, int bpftap, BandPass bpf, AllModes mode) {
+		public void CalcNarrowBPF(double[] H3, int bpftap, BandPass bpf, AllSSTVModes mode) {
 			int low, high;
 			switch(mode){
-				case AllModes.smMN73:
+				case AllSSTVModes.smMN73:
 					low = 1600; high = 2500;
 					break;
-				case AllModes.smMN110:
+				case AllSSTVModes.smMN110:
 					low = 1600; high = 2500;
         			break;
-				case AllModes.smMN140:
+				case AllSSTVModes.smMN140:
 					low = 1700; high = 2400;
         			break;
-				case AllModes.smMC110:
+				case AllSSTVModes.smMC110:
 					low = 1600; high = 2500;
         			break;
-				case AllModes.smMC140:
+				case AllSSTVModes.smMC140:
 					low = 1650; high = 2500;
         			break;
-				case AllModes.smMC180:
+				case AllSSTVModes.smMC180:
 					low = 1700; high = 2400;
         			break;
 				default:
@@ -1685,20 +1685,20 @@ namespace Play.Sound {
 			IEnumerable<SSTVMode> 
 		{
 			public SSTVFamily( TVFamily eFamily, string strName, Type typClass ) {
-				_eFamily  = eFamily;
+				TvFamily  = eFamily;
 				_strName  = strName;
 				_typClass = typClass;
 			}
 			public readonly string   _strName;
 			public readonly Type     _typClass;
-			public readonly TVFamily _eFamily;
+			public TVFamily TvFamily { get; }
 
             public override string ToString() {
                 return _strName;
             }
 
             public IEnumerator<SSTVMode> GetEnumerator() {
-                switch( _eFamily ) {
+                switch( TvFamily ) {
 					case TVFamily.None:
 						return SSTVModeNone.    EnumAllModes();
                     case TVFamily.Martin:
@@ -1746,7 +1746,7 @@ namespace Play.Sound {
 		/// and in those check the legacy value from within the family. In the future we might
 		/// be able to rid ourselves of the legacy states, but we'll see. 
 		/// </summary>
-		public SSTVMode GetSSTVMode( AllModes eLegacy ) {
+		public SSTVMode GetSSTVMode( AllSSTVModes eLegacy ) {
 			foreach( SSTVMode tvMode in this ) {
 				if( tvMode.LegacyMode == eLegacy ) {
 					return tvMode;
@@ -1949,7 +1949,7 @@ namespace Play.Sound {
         readonly public  string   Version = string.Empty;
 
         readonly public  TVFamily TvFamily;
-        readonly public  AllModes LegacyMode;       // Legacy support.
+        readonly public  AllSSTVModes LegacyMode;       // Legacy support.
         abstract public  string   FamilyName { get; }
 
         readonly public  List<ScanLineChannel> ChannelMap = new();
@@ -1968,7 +1968,7 @@ namespace Play.Sound {
         /// <param name="dbColorWidthInMS">Tx width of one color block in the scan line in ms.</param>
         /// <param name="skSize">Do NOT include the top 16 scan line grey scale in the height value.</param>
         public SSTVMode( TVFamily tvMode, byte bVIS, string strName, 
-                         double dbColorWidthInMS, SKSizeI skSize, AllModes eLegacy = AllModes.smEND ) 
+                         double dbColorWidthInMS, SKSizeI skSize, AllSSTVModes eLegacy = AllSSTVModes.smEND ) 
         {
             VIS            = bVIS;
             Version        = strName;

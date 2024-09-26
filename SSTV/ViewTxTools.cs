@@ -216,7 +216,7 @@ namespace Play.SSTV {
                 for( int iIndex = 0; iIndex < _ddModeMain.Items.Count; ++iIndex ) {
                     object oItem = _ddModeMain.Items[iIndex];
                     if( oItem is SSTVDEM.SSTVFamily oDesc &&
-                        oDesc._eFamily == oNewMode.TvFamily ) {
+                        oDesc.TvFamily == oNewMode.TvFamily ) {
                         _ddModeMain.SelectedIndex = iIndex;
 
                         for( int iSub = 0; iSub < _ddModeSub.Items.Count; ++iSub ) {

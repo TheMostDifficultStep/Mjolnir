@@ -91,7 +91,7 @@ namespace Play.SSTV {
         }
 
         public void ResetFamily() {
-            SelectFamily( Auto._eFamily );
+            SelectFamily( Auto.TvFamily );
             HighLight = null;
         }
 
@@ -114,7 +114,7 @@ namespace Play.SSTV {
             foreach( DDRow oRow in _rgRows ) {
                 oRow[(int)Column.Check].TryReplace( _strCheckClear );
 
-                if( oSelected == null && oRow.Family._eFamily == eFamily ) {
+                if( oSelected == null && oRow.Family.TvFamily == eFamily ) {
                     oRow[(int)Column.Check].TryReplace( _strCheckValue );
 
                     oSelected = oRow;
@@ -138,7 +138,7 @@ namespace Play.SSTV {
     /// </summary>
     public class SSTVModeDoc :
         EditMultiColumn,
-        IPgLoad< SSTVDEM.SSTVFamily >
+        IPgLoad< AllSSTVModes >
     {
         public enum Column : int {
             Check = 0,
@@ -147,6 +147,7 @@ namespace Play.SSTV {
             Height
         }
 
+        protected List<SSTVMode> AllDescriptors = new List<SSTVMode>();
         public class DDRow : Row {
             public static new int ColumnCount => Enum.GetNames(typeof(Column)).Length;
             public DDRow( SSTVMode oMode, string strCheckMark ) {
@@ -168,26 +169,29 @@ namespace Play.SSTV {
             CheckColumn = 0; // Just to be clear.
         }
 
-        /// <summary>
-        /// We are reloadable. We clear out old rows in favor of the new enumerable.
-        /// </summary>
-        /// <exception cref="ArgumentNullException" />
-        public bool Load( SSTVDEM.SSTVFamily oFamily ) {
-            if( oFamily == null )
-                throw new ArgumentNullException();
+        public bool InitNew() {
+            foreach( SSTVMode oMode in SSTVDEM.GenerateAllModes ) {
+                AllDescriptors.Add( oMode );
+            }
 
+            return true;
+        }
+
+        public bool Load( TVFamily eFamily ) {
             TrackerEnumerable oTE = new TrackerEnumerable( this );
 
             Clear();
 
             int iCount = 0; // Well put the check as the first entry...
-            foreach( SSTVMode oMode in oFamily ) {
-                // TODO: Add a default value to the mode entry so we can add the
-                //       check mark to whoever!!
-                string strCheck = iCount==0 ? CheckSetValue : CheckClrValue;
+            foreach( SSTVMode oMode in AllDescriptors ) {
+                if( oMode.TvFamily == eFamily ) {
+                    // TODO: Add a default value to the mode entry so we can add the
+                    //       check mark to whoever!!
+                    string strCheck = iCount==0 ? CheckSetValue : CheckClrValue;
 
-                _rgRows.Add( new DDRow( oMode, strCheck ) );
-                iCount++;
+                    _rgRows.Add( new DDRow( oMode, strCheck ) );
+                    iCount++;
+                }
             }
 
             RenumberAndSumate();
@@ -199,8 +203,36 @@ namespace Play.SSTV {
             return true;
         }
 
-        public bool InitNew() {
-            return true;
+        public SSTVMode GetDescriptor( AllSSTVModes eLegacyMode ) {
+            // Find the mode descriptor from the legacy mode enum
+            foreach( SSTVMode oMode in AllDescriptors ) {
+                if( oMode.LegacyMode == eLegacyMode ) {
+                    return oMode;
+                }
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// We are reloadable. Find the given mode we are in and 
+        /// select the entire family into our display list.
+        /// </summary>
+        /// <remarks>
+        /// We load all possible modes and then choose
+        /// them from the particular family so we're not constantly allocating
+        /// the mode descripters.
+        /// </remarks>
+        public bool Load( AllSSTVModes eLegacyMode ) {
+            SSTVMode oGiven = GetDescriptor( eLegacyMode );
+
+            if( oGiven != null ) {
+                Load( oGiven.TvFamily );
+                return true;
+            } else {
+                Clear();
+            }
+
+            return false;
         }
     }
 

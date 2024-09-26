@@ -70,7 +70,7 @@ namespace Play.SSTV {
 					SSTVDEM.SSTVFamily oPD = null;
 					foreach( SSTVDEM.SSTVFamily oFamily in new SSTVDEM.EnumerateFamilies() ) {
 						int iMainIndex = _ddSSTVFamily.Items.Add( oFamily );
-						if( oFamily._eFamily == TVFamily.PD ) {
+						if( oFamily.TvFamily == TVFamily.PD ) {
 							oPD = oFamily;
 							_ddSSTVFamily.SelectedIndex = iMainIndex;
 						}

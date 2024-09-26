@@ -54,7 +54,7 @@ namespace Play.Sound {
     }
 
     public class SSTVModeRobot422 : SSTVMode {
-        public SSTVModeRobot422( byte bVIS, string strName, double dblSync, double dblGap, double dblClrWidth, SKSizeI skSize, AllModes eLegacy = AllModes.smEND) : 
+        public SSTVModeRobot422( byte bVIS, string strName, double dblSync, double dblGap, double dblClrWidth, SKSizeI skSize, AllSSTVModes eLegacy = AllSSTVModes.smEND) : 
             base( TVFamily.Robot, bVIS, strName, dblClrWidth, skSize, eLegacy ) 
         {
             WidthSyncInMS = dblSync;
@@ -95,9 +95,9 @@ namespace Play.Sound {
             List<SSTVModeRobot422> rgModes = new();
 
  	      //rgModes.Add( new SSTVModeRobot420( 0x00, "12", 7, 3,  60, new SKSizeI( 160, 120 ), AllModes.smR12 ) );
- 	        rgModes.Add( new SSTVModeRobot422( 0x84, "24", 6, 2,  92, new SKSizeI( 160, 120 ), AllModes.smR24 ) );
-            rgModes.Add( new SSTVModeRobot420( 0x88, "36", 9, 3,  88, new SKSizeI( 320, 240 ), AllModes.smR36 ) );
- 	        rgModes.Add( new SSTVModeRobot422( 0x0c, "72", 9, 3, 138, new SKSizeI( 320, 240 ), AllModes.smR72 ) );
+ 	        rgModes.Add( new SSTVModeRobot422( 0x84, "24", 6, 2,  92, new SKSizeI( 160, 120 ), AllSSTVModes.smR24 ) );
+            rgModes.Add( new SSTVModeRobot420( 0x88, "36", 9, 3,  88, new SKSizeI( 320, 240 ), AllSSTVModes.smR36 ) );
+ 	        rgModes.Add( new SSTVModeRobot422( 0x0c, "72", 9, 3, 138, new SKSizeI( 320, 240 ), AllSSTVModes.smR72 ) );
 
             foreach( SSTVModeRobot422 oMode in rgModes ) {
                 oMode.Initialize();
@@ -110,7 +110,7 @@ namespace Play.Sound {
     /// This class parses the Robot 36 data type.
     /// </summary>
     public class SSTVModeRobot420 : SSTVModeRobot422 {
-        public SSTVModeRobot420( byte bVIS, string strName, double dblSync, double dblGap, double dblClrWidth, SKSizeI skSize, AllModes eLegacy = AllModes.smEND) : 
+        public SSTVModeRobot420( byte bVIS, string strName, double dblSync, double dblGap, double dblClrWidth, SKSizeI skSize, AllSSTVModes eLegacy = AllSSTVModes.smEND) : 
             base( bVIS, strName, dblSync, dblGap, dblClrWidth, skSize, eLegacy ) 
         {
         }
@@ -153,7 +153,7 @@ namespace Play.Sound {
     }
 
     public class SSTVModePasokon : SSTVMode {
-        public SSTVModePasokon( byte bVIS, string strName, double dblSync, double dblGap, double dblClrWidth, SKSizeI skSize, AllModes eLegacy = AllModes.smEND) : 
+        public SSTVModePasokon( byte bVIS, string strName, double dblSync, double dblGap, double dblClrWidth, SKSizeI skSize, AllSSTVModes eLegacy = AllSSTVModes.smEND) : 
             base( TVFamily.Pasokon, bVIS, strName, dblClrWidth, skSize, eLegacy ) 
         {
             WidthSyncInMS = dblSync;
@@ -191,9 +191,9 @@ namespace Play.Sound {
         public static IEnumerator<SSTVMode> EnumAllModes() {
             List<SSTVModePasokon> rgModes = new();
 
- 	        rgModes.Add( new SSTVModePasokon( 0x71, "3",   5.208, 1.042,    133.333, new SKSizeI( 640, 496 ), AllModes.smP3 ) );
-            rgModes.Add( new SSTVModePasokon( 0x72, "5",   7.813, 1.562375, 200.000, new SKSizeI( 640, 496 ), AllModes.smP5 ) );
- 	        rgModes.Add( new SSTVModePasokon( 0xf3, "7",  10.417, 2.083,    146.432, new SKSizeI( 640, 496 ), AllModes.smP7 ) );
+ 	        rgModes.Add( new SSTVModePasokon( 0x71, "3",   5.208, 1.042,    133.333, new SKSizeI( 640, 496 ), AllSSTVModes.smP3 ) );
+            rgModes.Add( new SSTVModePasokon( 0x72, "5",   7.813, 1.562375, 200.000, new SKSizeI( 640, 496 ), AllSSTVModes.smP5 ) );
+ 	        rgModes.Add( new SSTVModePasokon( 0xf3, "7",  10.417, 2.083,    146.432, new SKSizeI( 640, 496 ), AllSSTVModes.smP7 ) );
 
             foreach( SSTVModePasokon oMode in rgModes ) {
                 oMode.Initialize();
@@ -203,7 +203,7 @@ namespace Play.Sound {
     }
 
     public class SSTVModeMartin : SSTVMode {
-        public SSTVModeMartin( byte bVIS, string strName, double dbTxWidth, SKSizeI skSize, AllModes eLegacy = AllModes.smEND) : 
+        public SSTVModeMartin( byte bVIS, string strName, double dbTxWidth, SKSizeI skSize, AllSSTVModes eLegacy = AllSSTVModes.smEND) : 
             base( TVFamily.Martin, bVIS, strName, dbTxWidth, skSize, eLegacy ) 
         {
         }
@@ -234,10 +234,10 @@ namespace Play.Sound {
         public static IEnumerator<SSTVMode> EnumAllModes() {
             List<SSTVModeMartin> rgModes = new();
 
- 	        rgModes.Add( new SSTVModeMartin( 0xac, "1",  146.432, new SKSizeI( 320, 256 ), AllModes.smMRT1 ) );
-            rgModes.Add( new SSTVModeMartin( 0x28, "2",   73.216, new SKSizeI( 320, 256 ), AllModes.smMRT2 ) );
- 	        rgModes.Add( new SSTVModeMartin( 0x24, "3",  146.432, new SKSizeI( 160, 128 ), AllModes.smMRT3 ) );
-            rgModes.Add( new SSTVModeMartin( 0xa0, "4",   73.216, new SKSizeI( 160, 128 ), AllModes.smMRT4 ) );
+ 	        rgModes.Add( new SSTVModeMartin( 0xac, "1",  146.432, new SKSizeI( 320, 256 ), AllSSTVModes.smMRT1 ) );
+            rgModes.Add( new SSTVModeMartin( 0x28, "2",   73.216, new SKSizeI( 320, 256 ), AllSSTVModes.smMRT2 ) );
+ 	        rgModes.Add( new SSTVModeMartin( 0x24, "3",  146.432, new SKSizeI( 160, 128 ), AllSSTVModes.smMRT3 ) );
+            rgModes.Add( new SSTVModeMartin( 0xa0, "4",   73.216, new SKSizeI( 160, 128 ), AllSSTVModes.smMRT4 ) );
 
             foreach( SSTVModeMartin oMode in rgModes ) {
                 oMode.Initialize();
@@ -247,7 +247,7 @@ namespace Play.Sound {
     }
 
     public class SSTVModeScottie : SSTVMode {
-        public SSTVModeScottie( byte bVIS, string strName, double dbTxWidth, SKSizeI skSize, AllModes eLegacy = AllModes.smEND) : 
+        public SSTVModeScottie( byte bVIS, string strName, double dbTxWidth, SKSizeI skSize, AllSSTVModes eLegacy = AllSSTVModes.smEND) : 
             base( TVFamily.Scottie, bVIS, strName, dbTxWidth, skSize, eLegacy ) 
         {
         }
@@ -285,9 +285,9 @@ namespace Play.Sound {
         public static IEnumerator<SSTVMode> EnumAllModes() {
             List<SSTVModeScottie> rgModes = new();
 
- 	        rgModes.Add( new SSTVModeScottie( 0x3c, "1",  138.240, new SKSizeI( 320, 256 ), AllModes.smSCT1  ) );
-            rgModes.Add( new SSTVModeScottie( 0xb8, "2",   88.064, new SKSizeI( 320, 256 ), AllModes.smSCT2  ) );
-            rgModes.Add( new SSTVModeScottie( 0xcc, "DX", 345.600, new SKSizeI( 320, 256 ), AllModes.smSCTDX ) );
+ 	        rgModes.Add( new SSTVModeScottie( 0x3c, "1",  138.240, new SKSizeI( 320, 256 ), AllSSTVModes.smSCT1  ) );
+            rgModes.Add( new SSTVModeScottie( 0xb8, "2",   88.064, new SKSizeI( 320, 256 ), AllSSTVModes.smSCT2  ) );
+            rgModes.Add( new SSTVModeScottie( 0xcc, "DX", 345.600, new SKSizeI( 320, 256 ), AllSSTVModes.smSCTDX ) );
 
             foreach( SSTVModeScottie oMode in rgModes ) {
                 oMode.Initialize();
@@ -301,7 +301,7 @@ namespace Play.Sound {
     /// Note that PD is 420 sub sampling. 
     /// </summary>
     public class SSTVModePD : SSTVMode {
-        public SSTVModePD( byte bVIS, string strName, double dbTxWidth, SKSizeI skSize, AllModes eLegacy = AllModes.smEND) : 
+        public SSTVModePD( byte bVIS, string strName, double dbTxWidth, SKSizeI skSize, AllSSTVModes eLegacy = AllSSTVModes.smEND) : 
             base( TVFamily.PD, bVIS, strName, dbTxWidth, skSize, eLegacy ) 
         {
         }
@@ -338,13 +338,13 @@ namespace Play.Sound {
             List<SSTVModePD> rgModes = new();
 
             // these numbers come from https://www.classicsstv.com/pdmodes.php G4IJE the inventor.
- 	        rgModes.Add( new SSTVModePD( 0xdd, "50",    91.520, new SKSizeI( 320, 256 ), AllModes.smPD50  )); // see SSTV-Handbook.
-            rgModes.Add( new SSTVModePD( 0x63, "90",   170.240, new SKSizeI( 320, 256 ), AllModes.smPD90  )); // Only reliable one.
-            rgModes.Add( new SSTVModePD( 0x5f, "120",  121.600, new SKSizeI( 640, 512 ), AllModes.smPD120 )); 
-            rgModes.Add( new SSTVModePD( 0xe2, "160",  195.584, new SKSizeI( 512, 384 ), AllModes.smPD160 )); 
-            rgModes.Add( new SSTVModePD( 0x60, "180",  183.040, new SKSizeI( 640, 512 ), AllModes.smPD180 ));
-            rgModes.Add( new SSTVModePD( 0xe1, "240",  244.480, new SKSizeI( 640, 512 ), AllModes.smPD240 )); 
-            rgModes.Add( new SSTVModePD( 0xde, "290",  228.800, new SKSizeI( 800, 600 ), AllModes.smPD290 )); // see SSTV-handbook.
+ 	        rgModes.Add( new SSTVModePD( 0xdd, "50",    91.520, new SKSizeI( 320, 256 ), AllSSTVModes.smPD50  )); // see SSTV-Handbook.
+            rgModes.Add( new SSTVModePD( 0x63, "90",   170.240, new SKSizeI( 320, 256 ), AllSSTVModes.smPD90  )); // Only reliable one.
+            rgModes.Add( new SSTVModePD( 0x5f, "120",  121.600, new SKSizeI( 640, 512 ), AllSSTVModes.smPD120 )); 
+            rgModes.Add( new SSTVModePD( 0xe2, "160",  195.584, new SKSizeI( 512, 384 ), AllSSTVModes.smPD160 )); 
+            rgModes.Add( new SSTVModePD( 0x60, "180",  183.040, new SKSizeI( 640, 512 ), AllSSTVModes.smPD180 ));
+            rgModes.Add( new SSTVModePD( 0xe1, "240",  244.480, new SKSizeI( 640, 512 ), AllSSTVModes.smPD240 )); 
+            rgModes.Add( new SSTVModePD( 0xde, "290",  228.800, new SKSizeI( 800, 600 ), AllSSTVModes.smPD290 )); // see SSTV-handbook.
 
             foreach( SSTVModePD oMode in rgModes ) {
                 oMode.Initialize();
@@ -355,7 +355,7 @@ namespace Play.Sound {
     }
 
     public class SSTVModeBW : SSTVMode {
-        public SSTVModeBW( byte bVIS, string strName, double dbTxWidth, SKSizeI skSize, AllModes eLegacy = AllModes.smEND) : 
+        public SSTVModeBW( byte bVIS, string strName, double dbTxWidth, SKSizeI skSize, AllSSTVModes eLegacy = AllSSTVModes.smEND) : 
             base( TVFamily.BW, bVIS, strName, dbTxWidth, skSize, eLegacy ) 
         {
         }
@@ -378,8 +378,8 @@ namespace Play.Sound {
         public static IEnumerator<SSTVMode> EnumAllModes() {
             List<SSTVModeBW> rgModes = new();
 
- 	        rgModes.Add( new SSTVModeBW( 0x86, "12",     92.0, new SKSizeI( 160, 120 ), AllModes.smRM12 ) ); 
- 	        rgModes.Add( new SSTVModeBW( 0x82, "8",  58.89709, new SKSizeI( 160, 120 ), AllModes.smRM8  ) ); 
+ 	        rgModes.Add( new SSTVModeBW( 0x86, "12",     92.0, new SKSizeI( 160, 120 ), AllSSTVModes.smRM12 ) ); 
+ 	        rgModes.Add( new SSTVModeBW( 0x82, "8",  58.89709, new SKSizeI( 160, 120 ), AllSSTVModes.smRM8  ) ); 
 
             foreach( SSTVModeBW oMode in rgModes ) {
                 oMode.Initialize();
@@ -389,7 +389,7 @@ namespace Play.Sound {
     }
 
     public class SSTVModeWWV : SSTVMode {
-        public SSTVModeWWV( byte bVIS, string strName, double dbTxWidth, SKSizeI skSize, AllModes eLegacy = AllModes.smEND) : 
+        public SSTVModeWWV( byte bVIS, string strName, double dbTxWidth, SKSizeI skSize, AllSSTVModes eLegacy = AllSSTVModes.smEND) : 
             base( TVFamily.WWV, bVIS, strName, dbTxWidth, skSize, eLegacy ) 
         {
         }
@@ -412,7 +412,7 @@ namespace Play.Sound {
     }
     public class SSTVModeNone : SSTVMode {
         public SSTVModeNone() : 
-            base( TVFamily.None, 0, string.Empty, 0, new SKSizeI( 0, 0 ), AllModes.smEND ) 
+            base( TVFamily.None, 0, string.Empty, 0, new SKSizeI( 0, 0 ), AllSSTVModes.smEND ) 
         {
         }
 

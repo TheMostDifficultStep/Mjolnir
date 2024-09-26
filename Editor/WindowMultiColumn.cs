@@ -487,7 +487,7 @@ namespace Play.Edit {
                                               LayoutRect.CSS.Pixels, 
                                               (uint)(DPI.X * _szScrollBars.Width) ) );
 
-            _oDocOps.ListenerAdd( this );
+            _oDocOps   .ListenerAdd( this );
             _oDocTraits.RegisterHighLightEvent += _oDocTraits_OnHighLightEvent;
 
             if( this.ContextMenuStrip == null ) {

@@ -350,7 +350,7 @@ namespace Play.SSTV {
         private void OnTvEvents_SSTVDraw( SSTVMessage sMessage ) {
             if( sMessage.Event == SSTVEvents.ModeChanged ) {
                 foreach( SSTVMode oMode in _oSSTVDeMo ) {
-                    if( oMode.LegacyMode == (AllModes)sMessage.Param ) {
+                    if( oMode.LegacyMode == (AllSSTVModes)sMessage.Param ) {
                         _oLastMode = oMode;
                     }
                 }
