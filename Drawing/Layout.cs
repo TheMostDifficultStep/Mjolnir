@@ -682,7 +682,7 @@ namespace Play.Rectangles {
 
                         // vertical justify...BUG need this switched off/on
                         if (iHeightDiff > 0) {
-                            iTop += iHeightDiff / 2;
+                            iTop    += iHeightDiff / 2;
                             iBottom -= iHeightDiff / 2;
 
                             if (iBottom < iTop)

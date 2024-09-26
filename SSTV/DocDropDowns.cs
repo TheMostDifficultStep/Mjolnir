@@ -177,20 +177,16 @@ namespace Play.SSTV {
             return true;
         }
 
-        public bool Load( TVFamily eFamily ) {
+        public bool Load( TVFamily eFamily, AllSSTVModes eLegacyMode = AllSSTVModes.smEND ) {
             TrackerEnumerable oTE = new TrackerEnumerable( this );
 
             Clear();
 
-            int iCount = 0; // Well put the check as the first entry...
             foreach( SSTVMode oMode in AllDescriptors ) {
                 if( oMode.TvFamily == eFamily ) {
-                    // TODO: Add a default value to the mode entry so we can add the
-                    //       check mark to whoever!!
-                    string strCheck = iCount==0 ? CheckSetValue : CheckClrValue;
+                    string strCheck = eLegacyMode == oMode.LegacyMode ? CheckSetValue : CheckClrValue;
 
                     _rgRows.Add( new DDRow( oMode, strCheck ) );
-                    iCount++;
                 }
             }
 
@@ -226,7 +222,7 @@ namespace Play.SSTV {
             SSTVMode oGiven = GetDescriptor( eLegacyMode );
 
             if( oGiven != null ) {
-                Load( oGiven.TvFamily );
+                Load( oGiven.TvFamily, eLegacyMode );
                 return true;
             } else {
                 Clear();

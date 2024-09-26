@@ -883,6 +883,8 @@ namespace Play.Edit {
         /// </summary>
         protected void CacheFlushDeleted() {
             try {
+                _rgNewCache.Clear();
+
                 foreach( CacheRow oCRow in _rgOldCache ) {
                     if( !oCRow.Row.Deleted )
                         _rgNewCache.Add( oCRow );

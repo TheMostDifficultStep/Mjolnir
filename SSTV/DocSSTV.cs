@@ -1570,7 +1570,7 @@ namespace Play.SSTV {
                                 Properties.ValueUpdate( SSTVProperties.Names.Rx_Height, oMode.Resolution.Height.ToString() );
                             }
 				            if( RxSSTVFamilyDoc.SelectedFamily is SSTVDEM.SSTVFamily oNewFamily ) {
-                                RxSSTVModeDoc.Load( oNewFamily.TvFamily );
+                                RxSSTVModeDoc.Load( oNewFamily.TvFamily, oMode is not null ? oMode.LegacyMode : AllSSTVModes.smEND );
 				            }
                             PropertyChange?.Invoke( SSTVEvents.ModeChanged );
                         } break;
