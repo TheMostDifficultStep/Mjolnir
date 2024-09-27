@@ -408,7 +408,6 @@ namespace Play.SSTV {
         public Specification       RxSpec        { get; protected set; } = new Specification( 44100, 1, 0, 16 ); // Syncronous rc test, tx image 
         public SSTVFamilyDoc       RxSSTVFamilyDoc { get; }
         public SSTVModeDoc         RxSSTVModeDoc   { get; }
-      //public ModeEditor          RxModeList    { get; } // All our modes possible.
         public ModeEditor          TxModeList    { get; }
         public ImageWalkerDir      TxImageList   { get; }
         public ImageWalkerDir      RxHistoryList { get; }
@@ -682,10 +681,8 @@ namespace Play.SSTV {
         public bool InitNew() {
             if( !TemplateList.InitNew() ) // Might need to init differently b/c of load.
                 return false;
-            //if( !RxModeList .InitNew() ) 
-            //    return false;
-            //if( !TxModeList .InitNew() ) 
-            //    return false;
+            if( !TxModeList  .InitNew() ) // Sends a "loaded" buffer event...
+                return false;
             if( !TxBitmapComp.InitNew() )
                 return false;
 
@@ -728,15 +725,11 @@ namespace Play.SSTV {
 				LogError( "Couldn't find pictures tx directory for SSTV" );
                 return false;
 			}
-            //RxModeList.LineAppend( "Auto", fUndoable:false );
-            //LoadModes( SSTVDEM.EnumModes(), RxModeList, fAddResolution:false );
-            //LoadModes( SSTVDEM.EnumModes(), TxModeList, fAddResolution:true  );
 
 			RxSSTVFamilyDoc.Load( new SSTVDEM.EnumerateFamilies() );
             RxSSTVFamilyDoc.RegisterCheckEvent += OnCheckEvent_RxSSTVFamilyDoc;
 			RxSSTVModeDoc  .Load( RxSSTVFamilyDoc.SelectedFamily.TvFamily );
             RxSSTVModeDoc  .RegisterCheckEvent += OnCheckEvent_RxSSTVModeDoc;
-
 
             // Set this after TxImageList load since the CheckedLine call will 
             // call Listen_ModeChanged and that calls the properties update event.
