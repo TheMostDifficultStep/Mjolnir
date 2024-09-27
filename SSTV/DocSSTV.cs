@@ -763,10 +763,21 @@ namespace Play.SSTV {
             return true;
         }
 
+        /// <summary>
+        /// When a TV family is selected, load the modes for that family
+        /// in the RxSSTVModeDoc. BUT if the family is "none" there are no
+        /// modes defined for it. So we must enqueue the null message here.
+        /// </summary>
+        /// <param name="obj"></param>
         private void OnCheckEvent_RxSSTVFamilyDoc(Row obj) {
 			try {
 				if( RxSSTVFamilyDoc.SelectedFamily is SSTVDEM.SSTVFamily oNewFamily ) {
                     RxSSTVModeDoc.Load( oNewFamily.TvFamily ); 
+
+                    if( oNewFamily.TvFamily == TVFamily.None ) {
+                        // Go back to "auto" detect on the decoder...
+                        _rgUItoBGQueue.Enqueue( new TVMessage( TVMessage.Message.TryNewMode, null ) );
+                    }
 				}
 			} catch( Exception oEx ) {
 				Type[] rgErrors = { typeof( NullReferenceException ),
@@ -784,7 +795,6 @@ namespace Play.SSTV {
                 _rgUItoBGQueue.Enqueue( new TVMessage( TVMessage.Message.TryNewMode, oModeRow.Mode ) );
             }
         }
-
 
         public void PostBGMessage( TVMessage.Message eMsg ) {
             _rgUItoBGQueue.Enqueue( new TVMessage( eMsg, null ) );
@@ -1020,10 +1030,6 @@ namespace Play.SSTV {
             }
             TxBitmapComp.Clear(); // We have references to RxHistoryList.Bitmap we must clear;
             RenderComposite();
-        }
-
-        private void OnCheckedEvent_RxModeList(Line oLineChecked) {
-            _rgUItoBGQueue.Enqueue( new TVMessage( TVMessage.Message.TryNewMode, oLineChecked.Extra ) );
         }
 
         /// <summary>

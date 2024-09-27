@@ -15,6 +15,7 @@ using Play.Interfaces.Embedding;
 using Play.Rectangles;
 using Play.Controls;
 using Play.Parse;
+using System.Data.Common;
 
 namespace Play.Edit {
     public interface IPgDocTraits<T> {
@@ -946,13 +947,17 @@ namespace Play.Edit {
             for( int iColumn=0; iColumn<_rgTxtCol.Count; ++iColumn ) {
                 SmartRect oColumn = _rgTxtCol[iColumn]._oColumn;
                 if( oColumn.IsInside( pntLocation.X, pntLocation.Y ) ) {
-                    oNewCursor = Cursors.IBeam;
-                    if( eButton != MouseButtons.Left &&         // if not selecting.
-                        ((ModifierKeys & Keys.Control) == 0 ) ) // if not editing...
-                    { 
-                        if( HyperLinkFind( iColumn, pntLocation, fDoJump:false ) )
-                            oNewCursor = Cursors.Hand;
-                        break;
+                    if( _oDocChecks.CheckColumn == iColumn ) {
+                        oNewCursor = Cursors.Hand;
+                    } else {
+                        oNewCursor = Cursors.IBeam;
+                        if( eButton != MouseButtons.Left &&         // if not selecting.
+                            ((ModifierKeys & Keys.Control) == 0 ) ) // if not editing...
+                        { 
+                            if( HyperLinkFind( iColumn, pntLocation, fDoJump:false ) )
+                                oNewCursor = Cursors.Hand;
+                            break;
+                        }
                     }
                 }
             }
@@ -1073,7 +1078,7 @@ namespace Play.Edit {
                 return;
 
             try {
-                if( _oDocChecks != null && _oCacheMan.CaretColumn == _oDocChecks.CheckColumn ) {
+                if( _oCacheMan.CaretColumn == _oDocChecks.CheckColumn ) {
                     if( e.KeyChar == ' ' ) { // space bar.
                         Row oRow = _oDocList[_oCacheMan.CaretAt];
                         _oDocChecks.SetCheckAtRow( oRow ); // sends a check event if check moves.
@@ -1198,6 +1203,15 @@ namespace Play.Edit {
 
             Select();
             SKPointI pntClick = new SKPointI( e.X, e.Y );
+
+            if( IsInside( pntClick, out int iColumnM ) ) {
+                if( iColumnM == _oDocChecks.CheckColumn ) {
+                    if( _oCacheMan.PointToRow( iColumnM, pntClick, out int iOff, out Row oRow ) ) {
+                        _oDocChecks.SetCheckAtRow( oRow ); // sends a check event if check moves.
+                    }
+                    return;
+                }
+            }
 
             // Move the caret and reset the Advance.
             _oCacheMan.CaretAdvance( pntClick );
