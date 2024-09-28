@@ -185,8 +185,8 @@ namespace Play.SSTV {
 
         public bool IsPlaying { get { 
 			switch( _oDocSSTV.StateRx  ) {
-				case DocSSTV.DocSSTVMode.DeviceRead:
-				case DocSSTV.DocSSTVMode.FileRead:
+				case DocSSTV.DocSSTVState.DeviceRead:
+				case DocSSTV.DocSSTVState.FileRead:
 					return true;
 			}
 			return false;
@@ -194,9 +194,9 @@ namespace Play.SSTV {
 
         public SKColor BusyLight { get {
 			switch( _oDocSSTV.StateRx  ) {
-				case DocSSTV.DocSSTVMode.DeviceRead:
+				case DocSSTV.DocSSTVState.DeviceRead:
 					return SKColors.LightGreen;
-				case DocSSTV.DocSSTVMode.FileRead:
+				case DocSSTV.DocSSTVState.FileRead:
 					return SKColors.LightSalmon;
 			}
 			return SKColors.Empty;

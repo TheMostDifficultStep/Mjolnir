@@ -17,6 +17,7 @@ using Play.ImageViewer;
 using Play.Sound;
 using Play.Forms;
 using Play.Drawing;
+using Microsoft.VisualBasic;
 
 namespace Play.SSTV {
     /// <summary>
@@ -29,8 +30,6 @@ namespace Play.SSTV {
 		protected readonly DocSSTV            _oDocSSTV;
 		protected readonly ViewTransmitDeluxe _oTxView;
 
-        public readonly ComboBox _ddSSTVMode   = new ComboBox();
-        public readonly ComboBox _ddSSTVFamily = new ComboBox();
 		public readonly ComboBox _ddTemplates  = new ComboBox();
 
 		public ViewTxProperties( IPgViewSite oViewSite, DocSSTV oDocSSTV ) : base( oViewSite, oDocSSTV.Properties )
@@ -66,36 +65,10 @@ namespace Play.SSTV {
 				try {
 					PropertyInitRow( (int)SSTVProperties.Names.Tx_LayoutSelect, 
 									 _ddTemplates );
-					// Call this once to set up the mode families.
-					SSTVDEM.SSTVFamily oPD = null;
-					foreach( SSTVDEM.SSTVFamily oFamily in new SSTVDEM.EnumerateFamilies() ) {
-						int iMainIndex = _ddSSTVFamily.Items.Add( oFamily );
-						if( oFamily.TvFamily == TVFamily.PD ) {
-							oPD = oFamily;
-							_ddSSTVFamily.SelectedIndex = iMainIndex;
-						}
-					}
-					if( oPD == null && _ddSSTVFamily.Items[0] is SSTVDEM.SSTVFamily oDefault ) {
-						oPD = oDefault;
-						_ddSSTVFamily.SelectedIndex = 0;
-					}
-
-					_ddSSTVFamily.SelectedIndexChanged += OnSelectedFamilyChanged;
-					_ddSSTVFamily.AutoSize      = true;
-					_ddSSTVFamily.TabIndex      = 0;
-					_ddSSTVFamily.DropDownStyle = ComboBoxStyle.DropDownList;
 					PropertyInitRow( (int)SSTVProperties.Names.Tx_FamilySelect, 
-									 _ddSSTVFamily );
-
-					_ddSSTVMode.SelectedIndexChanged += OnSelectedIndexChanged_ModeDropDown;
-					_ddSSTVMode.AutoSize      = true;
-					_ddSSTVMode.TabIndex      = 1;
-					_ddSSTVMode.DropDownStyle = ComboBoxStyle.DropDownList;
-
-					PropertyInitRow( (int)SSTVProperties.Names.Tx_ModeSelect, 
-									 _ddSSTVMode );
-
-					_oTxView.PopulateSubModes( oPD );
+									 new ViewFamilyDDEditBox( new WinSlot( this ), _oDocSSTV.TxSSTVFamilyDoc ));
+					PropertyInitRow( (int)SSTVProperties.Names.Tx_ModeSelect,
+									 new ViewSSTVModesAsList( new WinSlot( this ), _oDocSSTV.TxSSTVModeDoc ));
 
 					foreach( Line oLine in _oDocSSTV.TemplateList ) {
 						_ddTemplates.Items.Add( oLine );
@@ -121,36 +94,6 @@ namespace Play.SSTV {
 
 			PropertyInitRow( (int)SSTVProperties.Names.Rx_Window, 
 							 new ImageViewSingle( new WinSlot( this ), _oDocSSTV.DisplayImage )  );
-
-        }
-
-        /// <summary>
-        /// Normally, we want to get the document message that the checked
-        /// line changed. But since the dropdown selectes itself we need
-        /// to ignore the checked event later, else we get in an infinite
-        /// loop.
-        /// </summary>
-        /// <seealso cref="PopulateSubModes"/>
-        private void OnSelectedFamilyChanged(object sender, EventArgs e) {
-            if( sender is ComboBox oFamilyCombo ) { 
-				if( _ddSSTVMode.SelectedItem is SSTVMode oDDListMode ) {
-					foreach( Line oLine in _oDocSSTV.TxModeList ) {
-						if( oLine.Extra is SSTVMode oTxListMode &&
-							oTxListMode.LegacyMode == oDDListMode.LegacyMode ) 
-						{
-							_oDocSSTV.TxModeList.CheckedLine = oLine;
-						}
-					}
-				}
-				_oTxView.PopulateSubModes( oFamilyCombo.SelectedItem as SSTVDEM.SSTVFamily );
-            }
-        }
-
-        private void OnSelectedIndexChanged_ModeDropDown(object sender, EventArgs e) {
-			if( _ddSSTVMode.SelectedItem is SSTVMode oNewMode ) {
-				_oDocSSTV.TransmitModeSelection = oNewMode;
-				_oDocSSTV.RenderComposite();
-			}
         }
 
         /// <summary>
@@ -638,7 +581,7 @@ namespace Play.SSTV {
         public bool Execute( Guid sGuid ) {
 			if( sGuid == GlobalCommands.Play ) {
 				if( _oDocSSTV.RenderComposite() ) {
-					_oDocSSTV.TransmitBegin( _wmTxProperties._ddSSTVMode.SelectedItem as SSTVMode ); 
+					_oDocSSTV.TransmitBegin  (); 
 				}
 				return true;
 			}
@@ -794,31 +737,6 @@ namespace Play.SSTV {
             return true;
         }
 
-		/// <results>
-		/// Not sure if I want this on the main view or on the properties window. It makes
-		/// more sense here since I'm more likely to have instances I need to connect to
-		/// instead of this static class reflection stuff I'm doing now.
-		/// </results>
-		/// <param name="oDesc"></param>
-		/// <param name="oMode"></param>
-        public void PopulateSubModes( SSTVDEM.SSTVFamily oDesc, SSTVMode oMode = null ) {
-            if( oDesc._typClass.GetMethod( "EnumAllModes" ).Invoke( null, Array.Empty<object>() ) is IEnumerator<SSTVMode> itrModes ) {
-                _wmTxProperties._ddSSTVMode.Items.Clear();
-
-                while( itrModes.MoveNext() ) {
-                    int iIndex = _wmTxProperties._ddSSTVMode.Items.Add( itrModes.Current );
-
-                    if( oMode != null && 
-                        itrModes.Current.LegacyMode == oMode.LegacyMode ) 
-                    {
-                        _wmTxProperties._ddSSTVMode.SelectedIndex = iIndex;
-                    }
-                }
-                if( oMode == null ) {
-                    _wmTxProperties._ddSSTVMode.SelectedIndex = 0;
-                }
-            }
-        }
     }
 
 }

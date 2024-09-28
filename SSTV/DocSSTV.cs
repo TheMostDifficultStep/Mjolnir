@@ -10,7 +10,6 @@ using System.Xml;
 using System.Reflection;
 using System.IO.Ports;
 
-
 using SkiaSharp;
 
 using Play.Drawing;
@@ -317,7 +316,7 @@ namespace Play.SSTV {
     {
         private bool disposedValue;
 
-        public enum DocSSTVMode {
+        public enum DocSSTVState {
             Ready,
             FileRead,
             DeviceRead
@@ -329,8 +328,8 @@ namespace Play.SSTV {
         Thread _oThread = null;
         Task   _oTxTask = null;
 
-        public bool        StateTx => _oTxTask != null;
-        public DocSSTVMode StateRx { get; protected set; }
+        public bool         StateTx => _oTxTask != null;
+        public DocSSTVState StateRx { get; protected set; }
 
         public event Action<SKPointI> Send_TxImageAspect;
         // Cheat for special layouts. Still working on this.
@@ -406,9 +405,10 @@ namespace Play.SSTV {
         public Editor              PortTxList    { get; } 
         public Editor              PortRxList    { get; }
         public Specification       RxSpec        { get; protected set; } = new Specification( 44100, 1, 0, 16 ); // Syncronous rc test, tx image 
-        public SSTVFamilyDoc       RxSSTVFamilyDoc { get; }
+        public SSTVRxFamilyDoc     RxSSTVFamilyDoc { get; }
         public SSTVModeDoc         RxSSTVModeDoc   { get; }
-        public ModeEditor          TxModeList    { get; }
+        public SSTVTxFamilyDoc     TxSSTVFamilyDoc { get; }
+        public SSTVModeDoc         TxSSTVModeDoc   { get; }
         public ImageWalkerDir      TxImageList   { get; }
         public ImageWalkerDir      RxHistoryList { get; }
         public SSTVProperties      Properties    { get; }
@@ -454,13 +454,15 @@ namespace Play.SSTV {
 
             TemplateList  = new Editor        ( new DocSlot( this ) );
           //RxModeList    = new ModeEditor    ( new DocSlot( this, "SSTV Rx Modes" ) );
-            TxModeList    = new ModeEditor    ( new DocSlot( this, "SSTV Tx Modes" ) );
+          //TxModeList    = new ModeEditor    ( new DocSlot( this, "SSTV Tx Modes" ) );
             TxImageList   = new ImageWalkerDir( new DocSlot( this ) );
             RxHistoryList = new ImageWalkerDir( new DocSlot( this ) );
             TxBitmapComp  = new DocImageEdit  ( new DocSlot( this ) );
                           
-            RxSSTVFamilyDoc = new SSTVFamilyDoc( new DocSlot(this) );
-            RxSSTVModeDoc   = new SSTVModeDoc  ( new DocSlot(this) );
+            RxSSTVFamilyDoc = new SSTVRxFamilyDoc( new DocSlot(this, "SSTV Rx Families" ) );
+            RxSSTVModeDoc   = new SSTVModeDoc    ( new DocSlot(this, "SSTV Rx Modes") );
+            TxSSTVFamilyDoc = new SSTVTxFamilyDoc( new DocSlot(this, "SSTV Tx Families" ) );
+            TxSSTVModeDoc   = new SSTVModeDoc    ( new DocSlot(this, "SSTV Tx Modes") ) { IsTxDoc = true };
 
             PortTxList    = new Editor        ( new DocSlot( this ) );
             PortRxList    = new Editor        ( new DocSlot( this ) );
@@ -471,7 +473,7 @@ namespace Play.SSTV {
             SignalLevel   = new ImageSoloDoc( new DocSlot( this ) );
                           
             Properties = new ( _oWorkPlace, new DocSlot( this ) );
-            StateRx    = DocSSTVMode.Ready;
+            StateRx    = DocSSTVState.Ready;
         }
 
         #region Dispose
@@ -487,9 +489,12 @@ namespace Play.SSTV {
 
                     RxHistoryList.ImageUpdated -= OnImageUpdated_RxHistoryList;
                     TxImageList  .ImageUpdated -= OnImageUpdated_TxImageList;
-                  //RxModeList   .CheckedEvent -= OnCheckedEvent_RxModeList;
-                    TxModeList   .CheckedEvent -= OnCheckedEvent_TxModeList;
                     TemplateList .CheckedEvent -= OnCheckedEvent_TemplateList;
+                  //RxModeList   .CheckedEvent -= OnCheckedEvent_RxModeList;
+                  //TxModeList   .CheckedEvent -= OnCheckedEvent_TxModeList;
+
+                    RxSSTVFamilyDoc.RegisterCheckEvent -= OnCheckEvent_RxSSTVFamilyDoc;
+                    RxSSTVModeDoc  .RegisterCheckEvent -= OnCheckEvent_RxSSTVModeDoc;
 
                     Properties.Dispose();
                 }
@@ -681,8 +686,6 @@ namespace Play.SSTV {
         public bool InitNew() {
             if( !TemplateList.InitNew() ) // Might need to init differently b/c of load.
                 return false;
-            if( !TxModeList  .InitNew() ) // Sends a "loaded" buffer event...
-                return false;
             if( !TxBitmapComp.InitNew() )
                 return false;
 
@@ -699,7 +702,10 @@ namespace Play.SSTV {
                 return false;
             if( !PortRxList .InitNew() ) 
                 return false;
+
             if( !RxSSTVModeDoc.InitNew() )
+                return false;
+            if( !TxSSTVModeDoc.InitNew() )
                 return false;
 
             if( !Properties.InitNew() )
@@ -731,6 +737,12 @@ namespace Play.SSTV {
 			RxSSTVModeDoc  .Load( RxSSTVFamilyDoc.SelectedFamily.TvFamily );
             RxSSTVModeDoc  .RegisterCheckEvent += OnCheckEvent_RxSSTVModeDoc;
 
+            TxSSTVFamilyDoc.Load( new SSTVDEM.EnumerateFamilies() );
+            TxSSTVFamilyDoc.RegisterCheckEvent += OnCheckEvent_TxSSTVFamilyDoc;
+			TxSSTVModeDoc  .Load( TxSSTVFamilyDoc.SelectedFamily.TvFamily );
+            TxSSTVModeDoc  .RegisterCheckEvent += OnCheckEvent_TxSSTVModeDoc;
+            TxSSTVModeDoc  .RegisterOnLoaded   += OnLoaded_TxSSTVModeDoc;
+
             // Set this after TxImageList load since the CheckedLine call will 
             // call Listen_ModeChanged and that calls the properties update event.
             //RxModeList.CheckedLine = RxModeList[0];
@@ -738,7 +750,6 @@ namespace Play.SSTV {
             // Get these set up so our stdproperties get the updates.
             TxImageList  .ImageUpdated += OnImageUpdated_TxImageList;
             RxHistoryList.ImageUpdated += OnImageUpdated_RxHistoryList;
-            TxModeList   .CheckedEvent += OnCheckedEvent_TxModeList;
             TemplateList .CheckedEvent += OnCheckedEvent_TemplateList;
 
             // We'll get a callback from this before exiting!! O.o
@@ -761,7 +772,8 @@ namespace Play.SSTV {
         /// in the RxSSTVModeDoc. BUT if the family is "none" there are no
         /// modes defined for it. So we must enqueue the null message here.
         /// </summary>
-        /// <param name="obj"></param>
+        /// <remarks>Note that the new loaded RxSSTVModeDoc will have NO
+        /// checks associated with it!!</remarks>
         private void OnCheckEvent_RxSSTVFamilyDoc(Row obj) {
 			try {
 				if( RxSSTVFamilyDoc.SelectedFamily is SSTVDEM.SSTVFamily oNewFamily ) {
@@ -788,6 +800,31 @@ namespace Play.SSTV {
                 _rgUItoBGQueue.Enqueue( new TVMessage( TVMessage.Message.TryNewMode, oModeRow.Mode ) );
             }
         }
+
+        private void OnCheckEvent_TxSSTVFamilyDoc( Row oRow ) {
+            if( oRow is SSTVTxFamilyDoc.DDRow oFamilyRow ) {
+                TxSSTVModeDoc.Load( oFamilyRow.Family.TvFamily );
+            }
+        }
+
+        private void OnLoaded_TxSSTVModeDoc() {
+			SSTVMode oMode = TxSSTVModeDoc.SelectedMode;
+
+			if( oMode != null ) {
+				TransmitModeSelection = oMode;
+				RenderComposite();
+			} else {
+				throw new NullReferenceException("Selected Mode must not be null");
+			}
+        }
+
+        private void OnCheckEvent_TxSSTVModeDoc( Row oRow ) {
+			if( oRow is SSTVModeDoc.DDRow oModeRow ) {
+				TransmitModeSelection = oModeRow.Mode;
+				RenderComposite();
+			}
+        }
+
 
         public void PostBGMessage( TVMessage.Message eMsg ) {
             _rgUItoBGQueue.Enqueue( new TVMessage( eMsg, null ) );
@@ -880,7 +917,7 @@ namespace Play.SSTV {
                           //PropertyLoadFromXml( RxModeList, oNode );
                             break;
                         case "TxMode":
-                            PropertyLoadFromXml( TxModeList, oNode );
+                          //PropertyLoadFromXml( TxModeList, oNode );
                             break;
                         case "Template":
                             PropertyLoadFromXml( TemplateList, oNode );
@@ -944,7 +981,7 @@ namespace Play.SSTV {
                 CheckProperty ( "TxDevice",       PortTxList );
                 CheckProperty ( "MonitorDevice",  MonitorList );
               //CheckProperty ( "RxMode",         RxModeList );
-                CheckProperty ( "TxMode",         TxModeList );
+              //CheckProperty ( "TxMode",         TxModeList );
                 CheckProperty ( "Template",       TemplateList );
                 StringProperty( "ImageQuality",   SSTVProperties.Names.Std_ImgQuality );
                 StringProperty( "DigiOutputGain", SSTVProperties.Names.Std_MicGain );
@@ -980,8 +1017,10 @@ namespace Play.SSTV {
         public SKPointI TxResolution {
             get {
                 try {
-                    if( TxModeList.CheckedLine != null && TxModeList.CheckedLine.Extra is SSTVMode oMode )
-                        return new SKPointI( oMode.Resolution.Width, oMode.Resolution.Height );
+                    if( TxSSTVModeDoc.CheckedRow is SSTVModeDoc.DDRow oRow ) {
+                        SKSizeI skSize = oRow.Mode.Resolution;
+                        return new SKPointI( skSize.Width, skSize.Height );
+                    }
                 } catch( NullReferenceException ) {
                     LogError( "Problem finding SSTVMode. Using default." );
                 }
@@ -1018,7 +1057,7 @@ namespace Play.SSTV {
             Properties.ValueUpdate( SSTVProperties.Names.Rx_SaveDir,     RxHistoryList.CurrentShowPath );
             Properties.ValueUpdate( SSTVProperties.Names.Rx_HistoryFile, RxHistoryList.CurrentShowFile );
 
-            if( StateRx == DocSSTVMode.DeviceRead ) {
+            if( StateRx == DocSSTVState.DeviceRead ) {
                 _rgUItoBGQueue.Enqueue( new TVMessage( TVMessage.Message.ChangeDirectory, RxHistoryList.CurrentDirectory ) );
             }
             TxBitmapComp.Clear(); // We have references to RxHistoryList.Bitmap we must clear;
@@ -1461,7 +1500,7 @@ namespace Play.SSTV {
             }
 
             if( !fInExit ) {
-                TxModeList.HighLight = null;
+                TxSSTVModeDoc.HighLight = null;
                 _oSiteBase.Notify( ShellNotify.MediaStatusChanged );
             }
         }
@@ -1470,11 +1509,13 @@ namespace Play.SSTV {
         /// Begin transmitting the image. We can stop but only after the 
         /// buffered transmission bleeds out.
         /// </summary>
-        public void TransmitBegin( SSTVMode oMode ) {
+        public void TransmitBegin( ) {
             if( StateTx ) {
                 LogError( "Already Transmitting" ); 
                 return;
             }
+            SSTVMode oMode = TxSSTVModeDoc.SelectedMode;
+
             if( oMode == null || TxBitmapComp.Bitmap == null ) {
                 LogError( "Transmit mode or image is not set." ); 
                 return;
@@ -1489,7 +1530,7 @@ namespace Play.SSTV {
                 LogError( "Transmit and Monitor sound devices must not be the same!!" ); 
                 return;
             }
-            if( StateRx != DocSSTVMode.DeviceRead ) {
+            if( StateRx != DocSSTVState.DeviceRead ) {
                 // we need the receive listener polling to get updates for
                 // or tx progress. Starting the polling here might
                 // get us in a weird mode. This is easier for now.
@@ -1688,7 +1729,7 @@ namespace Play.SSTV {
                 LogError( "Invalid filename for SSTV image read." );
                 return;
             }
-            if( StateRx != DocSSTVMode.Ready ) {
+            if( StateRx != DocSSTVState.Ready ) {
                 LogError( "Busy right now." );
                 return;
             }
@@ -1702,7 +1743,7 @@ namespace Play.SSTV {
                     break;
             }
 
-            StateRx = DocSSTVMode.FileRead;
+            StateRx = DocSSTVState.FileRead;
 
 			RxHistoryList.LoadAgain( strFileName );
             Properties.ValueUpdate( SSTVProperties.Names.Std_Process, "File Read Started." );
@@ -1734,7 +1775,7 @@ namespace Play.SSTV {
             RxHistoryList.LoadAgain( RxHistoryList.CurrentDirectory );
 
             _oWorkPlace.Pause();
-            StateRx = DocSSTVMode.Ready;
+            StateRx = DocSSTVState.Ready;
             _rgBGtoUIQueue.Clear();
         }
 
@@ -1776,7 +1817,7 @@ namespace Play.SSTV {
                 }
                 return;
             }
-            if( StateRx != DocSSTVMode.Ready ) {
+            if( StateRx != DocSSTVState.Ready ) {
                 LogError( "Busy right now." );
                 return;
             }
@@ -1837,7 +1878,7 @@ namespace Play.SSTV {
 
                     _oWorkPlace.Start( 1 );
                     Properties.ValueUpdate( SSTVProperties.Names.Std_Process, "Rx Live: Started.", true );
-                    StateRx = DocSSTVMode.DeviceRead;
+                    StateRx = DocSSTVState.DeviceRead;
                 } catch( Exception oEx ) {
                     Type[] rgErrors = { typeof( NullReferenceException ),
                                         typeof( ArgumentNullException ),
@@ -1871,7 +1912,7 @@ namespace Play.SSTV {
             Properties.ValueUpdate( SSTVProperties.Names.Std_Process, "Stopped: All.", true );
 
             _oWorkPlace.Pause(); // TODO: flush the message buffers? Probably should.
-            StateRx = DocSSTVMode.Ready;
+            StateRx = DocSSTVState.Ready;
             _oSiteBase.Notify( ShellNotify.MediaStatusChanged );
         }
 

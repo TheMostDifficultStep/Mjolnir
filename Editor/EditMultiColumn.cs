@@ -429,6 +429,7 @@ namespace Play.Edit {
         /// or if more than one item selected!!
         /// </summary>
         /// <exception cref="InvalidOperationException" />
+        /// <returns>A row with the check mark. Or null</returns>
         public Row CheckedRow { 
             get {
                 if( !IsSingleCheck )

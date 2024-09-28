@@ -35,9 +35,6 @@ namespace Play.SSTV {
         public readonly ComboBox _ddModeSub  = new ComboBox();
         public readonly ComboBox _ddModeMain = new ComboBox();
 
-        private bool _bProcessCheckModeList = false;
-
-
         public WindowTxTools( IPgViewSite oViewSite, DocSSTV oDocSSTV ) { 
             _oViewSite = oViewSite ?? throw new ArgumentNullException( nameof( oViewSite ) );
             _oDocSSTV  = oDocSSTV  ?? throw new InvalidProgramException( "Can't find document for view" );
@@ -141,121 +138,10 @@ namespace Play.SSTV {
         }
 
         /// <summary>
-        /// Normally, we want to get the document message that the checked
-        /// line changed. But since the dropdown selectes itself we need
-        /// to ignore the checked event later, else we get in an infinite
-        /// loop.
-        /// </summary>
-        /// <seealso cref="PopulateSubModes"/>
-        private void OnSelectedModeChanged(object sender, EventArgs e) {
-            if( !_bProcessCheckModeList ) {
-                _bProcessCheckModeList = true;
-                if( sender is ComboBox oMain ) { 
-                    PopulateSubModes( oMain, _ddModeSub );
-                }
-                if( _ddModeSub.SelectedItem is SSTVMode oDDListMode ) {
-                    foreach( Line oLine in _oDocSSTV.TxModeList ) {
-                        if( oLine.Extra is SSTVMode oTxListMode &&
-                            oTxListMode.LegacyMode == oDDListMode.LegacyMode ) 
-                        {
-                            _oDocSSTV.TxModeList.CheckedLine = oLine;
-                        }
-                    }
-                }
-                // Setting the hilight will send an event that DocSSTV will
-                // pick up and cause a RenderComposite on that one.
-                _bProcessCheckModeList = false;
-            }
-        }
-
-        /// <summary>
-        /// Populate the main dropdown and then this will fill in all
-        /// the sub modes for the selected item. It's got the ability to track
-        /// the TxModeList selection but I don't think I'm going to need that
-        /// since the way to set Mode selection is via the dual drop downs and 
-        /// not a straight TxModeList editor.
-        /// </summary>
-        public void PopulateSubModes( ComboBox ddModeMain, ComboBox ddModeSub, SSTVMode oSelectMode = null ) {
-            if( ddModeMain.SelectedItem is SSTVDEM.SSTVFamily oDesc ) {
-                ddModeSub.Items.Clear();
-
-                if( oDesc._typClass.GetMethod( "EnumAllModes" ).Invoke( null, Array.Empty<object>() ) is IEnumerator<SSTVMode> itrSubMode ) {
-                    while( itrSubMode.MoveNext() ) {
-                        int iIndex = ddModeSub.Items.Count;
-                        ddModeSub.Items.Add( itrSubMode.Current );
-
-                        if( oSelectMode != null && 
-                            itrSubMode.Current.LegacyMode == oSelectMode.LegacyMode ) 
-                        {
-                            ddModeSub.SelectedIndex = iIndex;
-                        }
-                    }
-                    if( oSelectMode == null ) {
-                        ddModeSub.SelectedIndex = 0;
-                    }
-                }
-            }
-        }
-
-        /// <summary>
-        /// When the template changes, the DocSSTV needs to have a doc
-        /// specific mode selection. I might as well have that be the checked item in 
-        /// the TxModeList. This will be how I sync the views. It's a hack since the
-        /// dropdowns send an update event whenever the selection changes even
-        /// if we're changing it ourselves, and that is not convenient in our
-        /// multiview world. We'll ignore the checked event
-        /// if it's coming from ourselves syncing the drop down item
-        /// </summary>
-        /// <remarks>Not currently used.</remarks>
-        /// <param name="oLineChecked">TxModeList line checked.</param>
-        private void OnCheckedEvent_TxModeList(Line oLineChecked) {
-            if( !_bProcessCheckModeList ) {
-                _bProcessCheckModeList = true;
-                SSTVMode oNewMode = _oDocSSTV.TransmitModeSelection;
-
-                for( int iIndex = 0; iIndex < _ddModeMain.Items.Count; ++iIndex ) {
-                    object oItem = _ddModeMain.Items[iIndex];
-                    if( oItem is SSTVDEM.SSTVFamily oDesc &&
-                        oDesc.TvFamily == oNewMode.TvFamily ) {
-                        _ddModeMain.SelectedIndex = iIndex;
-
-                        for( int iSub = 0; iSub < _ddModeSub.Items.Count; ++iSub ) {
-                            if( _ddModeSub.Items[iSub] is SSTVMode oMode ) {
-                                PopulateSubModes( _ddModeMain, _ddModeSub, oMode );
-                            }
-                        }
-                    }
-                }
-                _bProcessCheckModeList = false;
-            }
-        }
-
-        /// <summary>
         /// Set up the dual dropdowns for the SSTV node tool options.
         /// </summary>
         private void InitModes() {
-            IEnumerator<SSTVDEM.SSTVFamily> itrFamily = SSTVDEM.EnumFamilies();
-            while( itrFamily.MoveNext() ) {
-                _ddModeMain.Items.Add( itrFamily.Current );
-            }
-
-            PopulateSubModes( _ddModeMain, _ddModeSub );
-
-            _ddModeMain.SelectedIndexChanged += OnSelectedModeChanged;
-            _ddModeMain.AutoSize      = true;
-            _ddModeMain.Name          = "Mode Select";
-            _ddModeMain.TabIndex      = 0;
-            _ddModeMain.SelectedIndex = 0;
-            _ddModeMain.DropDownStyle = ComboBoxStyle.DropDownList;
-            _ddModeMain.Parent        = this;
-
-            _ddModeSub.SelectedIndexChanged += OnSelectedModeChanged;
-            _ddModeSub.AutoSize      = true;
-            _ddModeSub.Name          = "Mode Sub Select";
-            _ddModeSub.TabIndex      = 1;
-            _ddModeSub.SelectedIndex = 0;
-            _ddModeSub.DropDownStyle = ComboBoxStyle.DropDownList;
-            _ddModeSub.Parent        = this;
+            // This was gutted. Use the new Tx/Rx documents and dropdowns...
 
             LayoutStack oLayout = new LayoutStackHorizontal() { Spacing = 5 };
             oLayout.Add( new LayoutRect( LayoutRect.CSS.None ) );

@@ -139,8 +139,8 @@ namespace Play.SSTV {
 
             _oDocSSTV.RenderComposite();
 
-			_oDocSSTV.TxModeList.CheckedEvent -= OnCheckedEvent_TxModeList;
-            _oDocSSTV.Send_TxImageAspect      -= OnTxImageAspect_SSTVDoc;
+			_oDocSSTV.TxSSTVModeDoc.RegisterCheckEvent -= OnCheckedEvent_TxModeList;
+            _oDocSSTV.Send_TxImageAspect               -= OnTxImageAspect_SSTVDoc;
 
 		    _wnTxImageChoice.Dispose();
         }
@@ -152,9 +152,9 @@ namespace Play.SSTV {
             if( !_wnTxImageChoice.InitNew() )
                 return false;
 
-            _oDocSSTV.TxImageList.ImageUpdated += OnImageUpdated_TxImageList;
-			_oDocSSTV.TxModeList.CheckedEvent  += OnCheckedEvent_TxModeList;
-            _oDocSSTV.Send_TxImageAspect       += OnTxImageAspect_SSTVDoc;
+            _oDocSSTV.TxImageList  .ImageUpdated       += OnImageUpdated_TxImageList;
+			_oDocSSTV.TxSSTVModeDoc.RegisterCheckEvent += OnCheckedEvent_TxModeList;
+            _oDocSSTV              .Send_TxImageAspect += OnTxImageAspect_SSTVDoc;
 
 			_wnTxImageChoice.ToolSelect = 0; 
 
@@ -175,20 +175,26 @@ namespace Play.SSTV {
 			}
         }
 
-		protected void OnCheckedEvent_TxModeList( Line oLineChecked ) {
+        /// <summary>
+        /// TODO: Might be able to remove this now that I'm using the new
+        /// Tx/Rx dropdowns... 
+        /// </summary>
+		protected void OnCheckedEvent_TxModeList( Row oRow ) {
 			try {
-				_wnTxImageChoice.Aspect = _oDocSSTV.TxResolution;
+                if( oRow is SSTVModeDoc.DDRow oCheckRow ) {
+				    _wnTxImageChoice.Aspect = _oDocSSTV.TxResolution;
 
-			    if( _wnTxImageChoice.Selection.IsEmpty() ) {
-				    _wnTxImageChoice.Execute( GlobalCommands.SelectAll );
-			    }
+			        if( _wnTxImageChoice.Selection.IsEmpty() ) {
+				        _wnTxImageChoice.Execute( GlobalCommands.SelectAll );
+			        }
 
-                _oDocSSTV.Selection.Copy = _wnTxImageChoice.Selection;
+                    _oDocSSTV.Selection.Copy = _wnTxImageChoice.Selection;
 
-                // We don't know when the form will get it's OnCheckedEvent
-                // But if it get's it before us and Renders's we want it to
-                // do so again since we're changing the selection.
-			    _oDocSSTV.RenderComposite();
+                    // We don't know when the form will get it's OnCheckedEvent
+                    // But if it get's it before us and Renders's we want it to
+                    // do so again since we're changing the selection.
+			        _oDocSSTV.RenderComposite();
+                }
             } catch( NullReferenceException ) {
             }
 		}

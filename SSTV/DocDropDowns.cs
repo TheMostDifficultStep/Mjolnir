@@ -6,16 +6,11 @@ using Play.Interfaces.Embedding;
 using Play.Sound;
 using Play.Rectangles;
 using Play.Controls;
-using Play.Drawing;
-using System.Drawing;
-using System.Collections;
+
 using static Play.Sound.SSTVDEM;
 
 namespace Play.SSTV {
-    /// <summary>
-    /// List SSTVFamilyList all available SSTV image types. 
-    /// </summary>
-    public class SSTVFamilyDoc :
+    public class SSTVTxFamilyDoc :
         EditMultiColumn,
         IPgLoad< IEnumerable<SSTVDEM.SSTVFamily> >
     {
@@ -38,11 +33,11 @@ namespace Play.SSTV {
             public SSTVDEM.SSTVFamily Family { get; set; }
         }
 
-        public SSTVFamilyDoc(IPgBaseSite oSiteBase) : base(oSiteBase) {
+        public SSTVTxFamilyDoc(IPgBaseSite oSiteBase) : base(oSiteBase) {
             CheckColumn = 0; // Just to be clear.
         }
 
-        public SSTVFamily Auto { get; protected set; }
+        protected bool _fIsNoneIncluded = false;
 
         public bool Load( IEnumerable<SSTVDEM.SSTVFamily> rgFamilies ) {
             if( rgFamilies == null ) {
@@ -53,16 +48,13 @@ namespace Play.SSTV {
 
             _rgRows.Clear();
 
-            // Let's side load the "auto" detect state so that I don't get this
-            // fake family mixed in with the valid families in the enumeration.
-            {
-                Auto = new SSTVFamily( TVFamily.None, "Auto", typeof( SSTVModeNone ) );
-                _rgRows.Add( new DDRow( Auto, CheckSetValue ) );
-            }
+            PreLoadRows();
 
             foreach( SSTVDEM.SSTVFamily oFamily in rgFamilies  ) {
                 _rgRows.Add( new DDRow( oFamily, CheckClrValue ) );
             }
+
+            _rgRows[0][(int)Column.Check].TryReplace( CheckSetValue );
 
             RenumberAndSumate(); // Each row must be numbered, else cache messes up.
 
@@ -75,25 +67,7 @@ namespace Play.SSTV {
             return true;
         }
 
-        /// <summary>
-        /// Find the currently selected family. There should always be a single selection
-        /// if not we are in an error. Throws exceptions if nothing selected or if more 
-        /// than one item selected!!
-        /// </summary>
-        /// <exception cref="InvalidOperationException" />
-        public SSTVDEM.SSTVFamily SelectedFamily {
-            get {
-                if( CheckedRow is DDRow oFRow ) {
-                    return oFRow.Family;
-                }
-                throw new InvalidOperationException( "Nothing Selected" );
-            }
-        }
-
-        public void ResetFamily() {
-            SelectFamily( Auto.TvFamily );
-            HighLight = null;
-        }
+        protected virtual void PreLoadRows() { }
 
         /// <summary>
         /// Look up the family that supports the given mode and give it
@@ -104,9 +78,13 @@ namespace Play.SSTV {
         /// received.</remarks>
         /// <exception cref="ArgumentNullException" />
         /// <exception cref="InvalidOperationException" />
+        /// <seealso cref="SSTVRxFamilyDoc.PreLoadRows"/>
         public bool SelectFamily( TVFamily eFamily ) {
             if( !IsSingleCheck ) {
                 throw new InvalidOperationException( "Doc must be in SingleCheck mode." );
+            }
+            if( !_fIsNoneIncluded && eFamily == TVFamily.None ) {
+                throw new ArgumentOutOfRangeException("Can't use None for TX.");
             }
 
             DDRow oSelected = null;
@@ -130,6 +108,50 @@ namespace Play.SSTV {
             DoParse();
 
             return true;
+        }
+        /// <summary>
+        /// Find the currently selected family. There should always be a single selection
+        /// if not we are in an error. Throws exceptions if nothing selected or if more 
+        /// than one item selected!!
+        /// </summary>
+        /// <exception cref="InvalidOperationException" />
+        public SSTVDEM.SSTVFamily SelectedFamily {
+            get {
+                if( CheckedRow is DDRow oFRow ) {
+                    return oFRow.Family;
+                }
+                throw new InvalidOperationException( "Nothing Selected" );
+            }
+        }
+
+    }
+
+    /// <summary>
+    /// List SSTVFamilyList all available SSTV image types. 
+    /// </summary>
+    public class SSTVRxFamilyDoc :
+        SSTVTxFamilyDoc
+    {
+        public SSTVFamily Auto { get; protected set; }
+
+        public SSTVRxFamilyDoc(IPgBaseSite oSiteBase) : base(oSiteBase) {
+        }
+
+        ///<summary>The "none" family is NOT included int the Demodulator's
+        ///list of fammilies. But it is part of the TVFamily enum.
+        ///Side load the "auto" detect state so that I don't get this
+        ///fake family mixed in with the valid families in the enumeration.
+        ///</summary
+        protected override void PreLoadRows() {
+            Auto = new SSTVFamily( TVFamily.None, "Auto", typeof( SSTVModeNone ) );
+            _rgRows.Add( new DDRow( Auto, CheckSetValue ) );
+
+            _fIsNoneIncluded = true;
+        }
+
+        public void ResetFamily() {
+            SelectFamily( Auto.TvFamily );
+            HighLight = null;
         }
     }
 
@@ -164,6 +186,8 @@ namespace Play.SSTV {
             public SSTVMode Mode { get; set; }
         }
 
+        public bool IsTxDoc { get; set; } = false;
+
         public event Action RegisterOnLoaded;
         public SSTVModeDoc(IPgBaseSite oSiteBase) : base(oSiteBase) {
             CheckColumn = 0; // Just to be clear.
@@ -178,11 +202,18 @@ namespace Play.SSTV {
         }
 
         /// <summary>
+        /// For RX mode we want NO mode selected. UNLESS we are responding
+        /// to the VIS code then the eLegacyMode is the mode Rx'd.
+        /// BUT for Tx we simply select the first matching item in the list.
+        /// Would be nice if we could set the favorite mode for a given Tx
+        /// family and set the check there.
+        /// </summary>
+        /// <remarks>
         /// It's kind of a drag. We want/need to have a mode descriptor
         /// that describes the listening mode we are in at all times. BUT 
         /// we would like the "auto" family to have no entries in the mode 
         /// list!! O.o
-        /// </summary>
+        /// </remarks>
         public bool Load( TVFamily eFamily, AllSSTVModes eLegacyMode = AllSSTVModes.smEND ) {
             TrackerEnumerable oTE = new TrackerEnumerable( this );
 
@@ -190,7 +221,14 @@ namespace Play.SSTV {
 
             foreach( SSTVMode oMode in AllDescriptors ) {
                 if( oMode.TvFamily == eFamily ) {
-                    string strCheck = eLegacyMode == oMode.LegacyMode ? CheckSetValue : CheckClrValue;
+                    string strCheck = CheckClrValue;
+                    if( IsTxDoc ) {
+                        if( _rgRows.Count == 0 )
+                            strCheck = CheckSetValue;
+                    } else {
+                        if( eLegacyMode == oMode.LegacyMode )
+                            strCheck = CheckSetValue;
+                    }
 
                     _rgRows.Add( new DDRow( oMode, strCheck ) );
                 }
@@ -236,6 +274,15 @@ namespace Play.SSTV {
 
             return false;
         }
+
+        public SSTVMode SelectedMode {
+            get {
+                if( CheckedRow is DDRow oCheckRow ) 
+                    return oCheckRow.Mode;
+
+                return null;
+            }
+        }
     }
 
     public class ViewFamilyDDEditBox : ViewEditBox {
@@ -259,8 +306,8 @@ namespace Play.SSTV {
                 return false;
 
             // TODO: Check the width of a checkmark at the current font... :-/
-            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Pixels, 20, 1L ), (int)SSTVFamilyDoc.Column.Check ); 
-            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.None,   20, 1L ), (int)SSTVFamilyDoc.Column.Family ); 
+            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Pixels, 20, 1L ), (int)SSTVRxFamilyDoc.Column.Check ); 
+            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.None,   20, 1L ), (int)SSTVRxFamilyDoc.Column.Family ); 
 
             // Do this so we can return a desired height. O.o;;
             _oCacheMan.CacheRepair( null, true, true );
