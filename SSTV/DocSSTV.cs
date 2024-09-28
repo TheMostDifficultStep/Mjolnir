@@ -807,14 +807,21 @@ namespace Play.SSTV {
             }
         }
 
+        /// <summary>
+        /// When a TV family is selected, load the modes for that family
+        /// in the TxSSTVModeDoc.
+        /// </summary>
+        /// <remarks>Note that the new loaded TxSSTVModeDoc will have ONE
+        /// check associated with it!!</remarks>
         private void OnLoaded_TxSSTVModeDoc() {
 			SSTVMode oMode = TxSSTVModeDoc.SelectedMode;
 
-			if( oMode != null ) {
+			if( oMode == null ) {
+                // Hopefully we'll never get this.
+				LogError("Selected Tx Mode must not be null.");
+			} else {
 				TransmitModeSelection = oMode;
 				RenderComposite();
-			} else {
-				throw new NullReferenceException("Selected Mode must not be null");
 			}
         }
 
@@ -824,7 +831,6 @@ namespace Play.SSTV {
 				RenderComposite();
 			}
         }
-
 
         public void PostBGMessage( TVMessage.Message eMsg ) {
             _rgUItoBGQueue.Enqueue( new TVMessage( eMsg, null ) );
