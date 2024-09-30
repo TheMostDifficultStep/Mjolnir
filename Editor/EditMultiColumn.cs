@@ -454,7 +454,7 @@ namespace Play.Edit {
         /// with a single column for now. In the event you change the column mid stride, we should
         /// do a bunch of reseting. But for simplicity, we'll ignore for now... :-/
         /// </summary>
-        public int CheckColumn { get; set; } = 0;
+        public int CheckColumn { get; set; } = -1;
         
         /// <summary>
         /// Quick and dirty implementation I still need to call the TrackerEnumerable
