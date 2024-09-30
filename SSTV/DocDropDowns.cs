@@ -165,6 +165,7 @@ namespace Play.SSTV {
         public enum Column : int {
             Check = 0,
             Version,
+            Time,
             Width,
             Height
         }
@@ -177,8 +178,11 @@ namespace Play.SSTV {
 
                 _rgColumns = new Line[ColumnCount];
 
+                int iTime = (int)(( oMode.ScanWidthInMS * oMode.Resolution.Height ) / 1000 );
+
                 _rgColumns[(int)Column.Check  ] = new TextLine( (int)Column.Check,   strCheckMark );
                 _rgColumns[(int)Column.Version] = new TextLine( (int)Column.Version, oMode.Version );
+                _rgColumns[(int)Column.Time   ] = new TextLine( (int)Column.Time,    iTime.ToString() + "s" );
                 _rgColumns[(int)Column.Width  ] = new TextLine( (int)Column.Width,   oMode.Resolution.Width .ToString() );
                 _rgColumns[(int)Column.Height ] = new TextLine( (int)Column.Height,  oMode.Resolution.Height.ToString() );
             }
@@ -340,6 +344,7 @@ namespace Play.SSTV {
             // I'd really like to use flex. But that seems broken at present...
             TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Pixels,  20, 1L ), (int)SSTVModeDoc.Column.Check ); 
             TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Percent, 20, 1L ), (int)SSTVModeDoc.Column.Version ); 
+            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Percent, 20, 1L ), (int)SSTVModeDoc.Column.Time ); 
             TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Percent, 20, 1L ), (int)SSTVModeDoc.Column.Width ); 
             TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Percent, 20, 1L ), (int)SSTVModeDoc.Column.Height ); 
 
@@ -362,6 +367,7 @@ namespace Play.SSTV {
             // I'd really like to use flex. But that seems broken at present...
             TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Pixels,  20, 1L ), (int)SSTVModeDoc.Column.Check ); 
             TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Percent, 20, 1L ), (int)SSTVModeDoc.Column.Version ); 
+            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Percent, 20, 1L ), (int)SSTVModeDoc.Column.Time ); 
             TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Percent, 20, 1L ), (int)SSTVModeDoc.Column.Width ); 
             TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Percent, 20, 1L ), (int)SSTVModeDoc.Column.Height ); 
 

@@ -338,7 +338,7 @@ namespace Play.SSTV {
         // expect only the resize view to attempt to change this.
         // These are in the bitmap's world coordinates.
         public SmartSelect Selection { get; } = new SmartSelect() { Mode = DragMode.FixedRatio };
-		public SSTVMode    TransmitModeSelection { get; set; }
+		public SSTVMode    TransmitModeSelection { get => TxSSTVModeDoc.SelectedMode; }
 
         /// <summary>
         /// This editor shows the list of modes we can modulate.
@@ -556,38 +556,6 @@ namespace Play.SSTV {
                 dbSample += 80 * Math.Sin( Math.PI * 2 * 2900 * t);
 
                 rgData.Add(dbSample);
-            }
-        }
-
-        /// <summary>
-        /// Walk the iterator of SSTVModes and populate the ModeList. This sets
-        /// up the human readable names and maps to the associated mode.
-        /// TODO: Move to the ModeEditor class.
-        /// </summary>
-        /// <param name="iterMode"></param>
-        protected static void LoadModes( IEnumerator<SSTVMode> iterMode, Editor oEditor, bool fAddResolution=true) {
-            using BaseEditor.Manipulator oBulk = oEditor.CreateManipulator();
-            StringBuilder sbValue = new();
-
-            while( iterMode.MoveNext() ) {
-                SSTVMode oMode = iterMode.Current;
-
-                sbValue.Clear();
-                sbValue.Append( oMode.FamilyName );
-                sbValue.Append( ' ' );
-                sbValue.Append( oMode.Version );
-                if( fAddResolution ) {
-                    sbValue.Append( " : " );
-                    sbValue.Append( oMode.Resolution.Width.ToString() );
-                    sbValue.Append( 'x' );
-                    sbValue.Append( oMode.Resolution.Height.ToString() );
-                    sbValue.Append( " @ " );
-                    sbValue.Append( ( oMode.ScanWidthInMS * oMode.Resolution.Height / oMode.ScanMultiplier / 1000 ).ToString( "0." ) );
-                    sbValue.Append( 's' );
-                }
-                Line oLine = oBulk.LineAppendNoUndo( sbValue.ToString() );
-
-                oLine.Extra = oMode;
             }
         }
 
@@ -820,14 +788,12 @@ namespace Play.SSTV {
                 // Hopefully we'll never get this.
 				LogError("Selected Tx Mode must not be null.");
 			} else {
-				TransmitModeSelection = oMode;
 				RenderComposite();
 			}
         }
 
         private void OnCheckEvent_TxSSTVModeDoc( Row oRow ) {
 			if( oRow is SSTVModeDoc.DDRow oModeRow ) {
-				TransmitModeSelection = oModeRow.Mode;
 				RenderComposite();
 			}
         }
@@ -1044,10 +1010,6 @@ namespace Play.SSTV {
                 Selection.SetRect( 0, 0, 0, 0 );
             }
             TxBitmapComp.Clear(); // We have references to TxImageList.Bitmap we must clear;
-            RenderComposite();
-        }
-
-        private void OnCheckedEvent_TxModeList(Line oLineChecked) {
             RenderComposite();
         }
 
@@ -1462,13 +1424,13 @@ namespace Play.SSTV {
         protected int MicrophoneGain => Properties.ValueGetAsInt( SSTVProperties.Names.Std_MicGain );
 
 		public bool RenderComposite() {
-            SSTVMode oMode = TransmitModeSelection;
 			// sometimes we get events while we're sending. Let's block render for now.
 			if( StateTx ) {
 				LogError( "Already Playing" );
 				return false;
 			}
 
+            SSTVMode oMode = TransmitModeSelection;
 			if( oMode == null ) {
 			    //LogError( "Problem prepping template for transmit." );
 			    return false;

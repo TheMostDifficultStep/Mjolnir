@@ -15,7 +15,6 @@ using Play.Interfaces.Embedding;
 using Play.Rectangles;
 using Play.Controls;
 using Play.Parse;
-using System.Data.Common;
 
 namespace Play.Edit {
     public interface IPgDocTraits<T> {
