@@ -710,10 +710,6 @@ namespace Play.SSTV {
             TxSSTVModeDoc  .RegisterCheckEvent += OnCheckEvent_TxSSTVModeDoc;
             TxSSTVModeDoc  .RegisterOnLoaded   += OnLoaded_TxSSTVModeDoc;
 
-            // Set this after TxImageList load since the CheckedLine call will 
-            // call Listen_ModeChanged and that calls the properties update event.
-            //RxModeList.CheckedLine = RxModeList[0];
-
             // Get these set up so our stdproperties get the updates.
             TxImageList  .ImageUpdated += OnImageUpdated_TxImageList;
             RxHistoryList.ImageUpdated += OnImageUpdated_RxHistoryList;
