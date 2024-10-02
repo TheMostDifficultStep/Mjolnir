@@ -338,7 +338,6 @@ namespace Play.SSTV {
         // expect only the resize view to attempt to change this.
         // These are in the bitmap's world coordinates.
         public SmartSelect Selection { get; } = new SmartSelect() { Mode = DragMode.FixedRatio };
-		public SSTVMode    TransmitModeSelection { get => TxSSTVModeDoc.SelectedMode; }
 
         /// <summary>
         /// This editor shows the list of modes we can modulate.
@@ -453,8 +452,6 @@ namespace Play.SSTV {
             _oStdUI     = (IPgStandardUI2)Services;
 
             TemplateList  = new Editor        ( new DocSlot( this ) );
-          //RxModeList    = new ModeEditor    ( new DocSlot( this, "SSTV Rx Modes" ) );
-          //TxModeList    = new ModeEditor    ( new DocSlot( this, "SSTV Tx Modes" ) );
             TxImageList   = new ImageWalkerDir( new DocSlot( this ) );
             RxHistoryList = new ImageWalkerDir( new DocSlot( this ) );
             TxBitmapComp  = new DocImageEdit  ( new DocSlot( this ) );
@@ -464,13 +461,13 @@ namespace Play.SSTV {
             TxSSTVFamilyDoc = new SSTVTxFamilyDoc( new DocSlot(this, "SSTV Tx Families" ) );
             TxSSTVModeDoc   = new SSTVModeDoc    ( new DocSlot(this, "SSTV Tx Modes") );
 
-            PortTxList    = new Editor        ( new DocSlot( this ) );
-            PortRxList    = new Editor        ( new DocSlot( this ) );
-            MonitorList   = new Editor        ( new DocSlot( this ) );
+            PortTxList   = new Editor      ( new DocSlot( this ) );
+            PortRxList   = new Editor      ( new DocSlot( this ) );
+            MonitorList  = new Editor      ( new DocSlot( this ) );
                           
-			DisplayImage  = new ImageSoloDoc( new DocSlot( this ) );
-			SyncImage     = new ImageSoloDoc( new DocSlot( this ) );
-            SignalLevel   = new ImageSoloDoc( new DocSlot( this ) );
+			DisplayImage = new ImageSoloDoc( new DocSlot( this ) );
+			SyncImage    = new ImageSoloDoc( new DocSlot( this ) );
+            SignalLevel  = new ImageSoloDoc( new DocSlot( this ) );
                           
             Properties = new ( _oWorkPlace, new DocSlot( this ) );
             StateRx    = DocSSTVState.Ready;
@@ -490,11 +487,13 @@ namespace Play.SSTV {
                     RxHistoryList.ImageUpdated -= OnImageUpdated_RxHistoryList;
                     TxImageList  .ImageUpdated -= OnImageUpdated_TxImageList;
                     TemplateList .CheckedEvent -= OnCheckedEvent_TemplateList;
-                  //RxModeList   .CheckedEvent -= OnCheckedEvent_RxModeList;
-                  //TxModeList   .CheckedEvent -= OnCheckedEvent_TxModeList;
 
                     RxSSTVFamilyDoc.RegisterCheckEvent -= OnCheckEvent_RxSSTVFamilyDoc;
                     RxSSTVModeDoc  .RegisterCheckEvent -= OnCheckEvent_RxSSTVModeDoc;
+
+                    TxSSTVFamilyDoc.RegisterCheckEvent -= OnCheckEvent_TxSSTVFamilyDoc;
+                    TxSSTVModeDoc  .RegisterCheckEvent -= OnCheckEvent_TxSSTVModeDoc;
+                    TxSSTVModeDoc  .RegisterOnLoaded   -= OnLoaded_TxSSTVModeDoc;
 
                     Properties.Dispose();
                 }
@@ -1436,8 +1435,7 @@ namespace Play.SSTV {
 				return false;
 			}
 
-            SSTVMode oMode = TransmitModeSelection;
-			if( oMode == null ) {
+			if( TxSSTVModeDoc.SelectedMode is not SSTVMode oMode ) {
 			    //LogError( "Problem prepping template for transmit." );
 			    return false;
 			}
