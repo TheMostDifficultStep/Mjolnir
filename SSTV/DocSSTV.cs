@@ -462,7 +462,7 @@ namespace Play.SSTV {
             RxSSTVFamilyDoc = new SSTVRxFamilyDoc( new DocSlot(this, "SSTV Rx Families" ) );
             RxSSTVModeDoc   = new SSTVModeDoc    ( new DocSlot(this, "SSTV Rx Modes") );
             TxSSTVFamilyDoc = new SSTVTxFamilyDoc( new DocSlot(this, "SSTV Tx Families" ) );
-            TxSSTVModeDoc   = new SSTVModeDoc    ( new DocSlot(this, "SSTV Tx Modes") ) { IsTxDoc = true };
+            TxSSTVModeDoc   = new SSTVModeDoc    ( new DocSlot(this, "SSTV Tx Modes") );
 
             PortTxList    = new Editor        ( new DocSlot( this ) );
             PortRxList    = new Editor        ( new DocSlot( this ) );
@@ -738,7 +738,8 @@ namespace Play.SSTV {
         /// <summary>
         /// When a TV family is selected, load the modes for that family
         /// in the RxSSTVModeDoc. BUT if the family is "none" there are no
-        /// modes defined for it. So we must enqueue the null message here.
+        /// modes defined for it. We won't go into an infinite loop because
+        /// loading the RxSSTVModeDoc DOES NOT generate a check event!!!
         /// </summary>
         /// <remarks>Note that the new loaded RxSSTVModeDoc will have NO
         /// checks associated with it!!</remarks>
@@ -750,6 +751,11 @@ namespace Play.SSTV {
                     if( oNewFamily.TvFamily == TVFamily.None ) {
                         // Go back to "auto" detect on the decoder...
                         _rgUItoBGQueue.Enqueue( new TVMessage( TVMessage.Message.TryNewMode, null ) );
+                    }
+                    if( RxSSTVModeDoc.CheckedRow is SSTVModeDoc.DDRow oModeRow ) {
+                        // We clicked a TVFamily, thos modes are now loaded in the list,
+                        // so send an event to the listener for whoever is selected.
+                        _rgUItoBGQueue.Enqueue( new TVMessage( TVMessage.Message.TryNewMode, oModeRow.Mode ) );
                     }
 				}
 			} catch( Exception oEx ) {
@@ -1619,8 +1625,6 @@ namespace Play.SSTV {
                             } else { 
                                 LogError( "Image Thread Abort." );
                             }
-                          //RxModeList.HighLight   = null;
-                          //RxModeList.CheckedLine = RxModeList[0];
                             RxSSTVFamilyDoc.SelectFamily( TVFamily.None );
                             RxSSTVModeDoc.HighLight = null;
 

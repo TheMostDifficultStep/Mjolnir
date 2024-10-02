@@ -4,8 +4,6 @@ using System.Collections.Generic;
 using Play.Edit;
 using Play.Interfaces.Embedding;
 using Play.Sound;
-using Play.Rectangles;
-using Play.Controls;
 
 using static Play.Sound.SSTVDEM;
 
@@ -190,8 +188,6 @@ namespace Play.SSTV {
             public SSTVMode Mode { get; set; }
         }
 
-        public bool IsTxDoc { get; set; } = false;
-
         public event Action RegisterOnLoaded;
         public SSTVModeDoc(IPgBaseSite oSiteBase) : base(oSiteBase) {
             CheckColumn = 0; // Just to be clear.
@@ -206,8 +202,10 @@ namespace Play.SSTV {
         }
 
         /// <summary>
-        /// For RX mode we want NO mode selected. UNLESS we are responding
-        /// to the VIS code then the eLegacyMode is the mode Rx'd.
+        /// When we are responding to the VIS code on the demodulator
+        /// then the eLegacyMode is the mode recieved OR the user is
+        /// moving from AUTO to force a listening mode. Else we're clearing
+        /// all the descriptors, thus going back to AUTO.
         /// BUT for Tx we simply select the first matching item in the list.
         /// Would be nice if we could set the favorite mode for a given Tx
         /// family and set the check there.
@@ -218,6 +216,10 @@ namespace Play.SSTV {
         /// we would like the "auto" family to have no entries in the mode 
         /// list!! O.o
         /// </remarks>
+        /// <param name="eFamily">The TVFamily we want to list</param>
+        /// <param name="eLegacyMode">If the mode is smEND and we loaded
+        /// from the list. Then select the first "default" item. Else
+        /// try loading the elligble modes for that family.</param>
         public bool Load( TVFamily eFamily, AllSSTVModes eLegacyMode = AllSSTVModes.smEND ) {
             TrackerEnumerable oTE = new TrackerEnumerable( this );
 
@@ -226,16 +228,19 @@ namespace Play.SSTV {
             foreach( SSTVMode oMode in AllDescriptors ) {
                 if( oMode.TvFamily == eFamily ) {
                     string strCheck = CheckClrValue;
-                    if( IsTxDoc ) {
-                        if( _rgRows.Count == 0 )
-                            strCheck = CheckSetValue;
-                    } else {
-                        if( eLegacyMode == oMode.LegacyMode )
-                            strCheck = CheckSetValue;
-                    }
+
+                    if( eLegacyMode == oMode.LegacyMode )
+                        strCheck = CheckSetValue;
 
                     _rgRows.Add( new DDRow( oMode, strCheck ) );
                 }
+            }
+
+            // Go back and see if anything got checked due to a given mode
+            // If not set the check to the first column if we have anything
+            // to list. We are NOT sending a check event!!!
+            if( CheckedRow is null && _rgRows.Count > 0 ) {
+                _rgRows[0][CheckColumn].TryReplace( _strCheckValue );
             }
 
             RenumberAndSumate();
@@ -289,92 +294,5 @@ namespace Play.SSTV {
         }
     }
 
-    public class ViewFamilyDDEditBox : ViewEditBox {
-        public ViewFamilyDDEditBox(IPgViewSite oViewSite, object oDocument) : 
-            base(oViewSite, oDocument) {
-        }
-
-        public override ViewDDPopup CreatePopup() {
-            return new ViewSSTVFamilyPopup( new WinSlot( this ), _oDocBag );
-        }
-    }
-
-    public class ViewSSTVFamilyPopup: ViewDDPopup {
-        public ViewSSTVFamilyPopup( IPgViewSite oView, object oDocument ) : 
-            base(oView, oDocument) 
-        {
-        }
-
-        protected override bool Initialize() {
-            if( !base.Initialize() )
-                return false;
-
-            // TODO: Check the width of a checkmark at the current font... :-/
-            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Pixels, 20, 1L ), (int)SSTVRxFamilyDoc.Column.Check ); 
-            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.None,   20, 1L ), (int)SSTVRxFamilyDoc.Column.Family ); 
-
-            // Do this so we can return a desired height. O.o;;
-            _oCacheMan.CacheRepair( null, true, true );
-
-            return true;
-        }
-
-    }
-
-    public class ViewModeDDEditBox : ViewEditBox {
-        public ViewModeDDEditBox(IPgViewSite oViewSite, object oDocument) : 
-            base(oViewSite, oDocument) {
-        }
-
-        public override ViewDDPopup CreatePopup() {
-            return new ViewSSTVModesPopup( new WinSlot( this ), _oDocBag );
-        }
-    }
-
-    public class ViewSSTVModesPopup : ViewDDPopup {
-        public ViewSSTVModesPopup( IPgViewSite oView, object oDocument ) : 
-            base(oView, oDocument) 
-        {
-        }
-
-        protected override bool Initialize() {
-            if( !base.Initialize() )
-                return false;
-
-            // I'd really like to use flex. But that seems broken at present...
-            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Pixels,  20, 1L ), (int)SSTVModeDoc.Column.Check ); 
-            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Percent, 20, 1L ), (int)SSTVModeDoc.Column.Version ); 
-            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Percent, 20, 1L ), (int)SSTVModeDoc.Column.Time ); 
-            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Percent, 20, 1L ), (int)SSTVModeDoc.Column.Width ); 
-            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Percent, 20, 1L ), (int)SSTVModeDoc.Column.Height ); 
-
-            // Do this so we can return a desired height. O.o;;
-            _oCacheMan.CacheRepair( null, true, true );
-
-            return true;
-        }
-    }
-
-    public class ViewSSTVModesAsList : WindowMultiColumn {
-        public ViewSSTVModesAsList(IPgViewSite oViewSite, object oDocument) : base(oViewSite, oDocument) {
-            IsScrollVisible = false;
-        }
-
-        protected override bool Initialize() {
-            if( !base.Initialize() )
-                return false;
-
-            // I'd really like to use flex. But that seems broken at present...
-            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Pixels,  20, 1L ), (int)SSTVModeDoc.Column.Check ); 
-            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Percent, 20, 1L ), (int)SSTVModeDoc.Column.Version ); 
-            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Percent, 20, 1L ), (int)SSTVModeDoc.Column.Time ); 
-            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Percent, 20, 1L ), (int)SSTVModeDoc.Column.Width ); 
-            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Percent, 20, 1L ), (int)SSTVModeDoc.Column.Height ); 
-
-            // Do this so we can return a desired height. O.o;;
-            _oCacheMan.CacheRepair( null, true, true );
-
-            return true;
-        }
-    }
+ 
 }
