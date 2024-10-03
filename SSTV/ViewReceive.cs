@@ -65,7 +65,7 @@ namespace Play.SSTV {
 				PropertyInitRow( (int)SSTVProperties.Names.Rx_Diagnostic, 
 								 new ImageViewSingle    ( new WinSlot( this ), SSTVDocument.SyncImage ) );
 				PropertyInitRow( (int)SSTVProperties.Names.Rx_SignalLevel, 
-								 new ImageViewSingle    ( new WinSlot( this ), SSTVDocument.SignalLevel )  );
+								 new ImageViewSingle    ( new WinSlot( this ), SSTVDocument.SignalLevel ) );
 			} catch ( Exception oEx ) {
 				Type[] rgErrors = { typeof( NullReferenceException ),
 									typeof( ArgumentOutOfRangeException ),

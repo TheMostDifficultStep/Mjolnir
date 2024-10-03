@@ -63,26 +63,12 @@ namespace Play.SSTV {
 
 			if( _oTxView != null ) {
 				try {
-					PropertyInitRow( (int)SSTVProperties.Names.Tx_LayoutSelect, 
-									 _ddTemplates );
+					PropertyInitRow( (int)SSTVProperties.Names.Tx_LayoutSelect,
+								     new ViewTxTemplatesDDEditBox( new WinSlot( this ), _oDocSSTV.TxTemplateDoc ));
 					PropertyInitRow( (int)SSTVProperties.Names.Tx_FamilySelect, 
 									 new ViewFamilyDDEditBox( new WinSlot( this ), _oDocSSTV.TxSSTVFamilyDoc ));
 					PropertyInitRow( (int)SSTVProperties.Names.Tx_ModeSelect,
 									 new ViewSSTVModesAsList( new WinSlot( this ), _oDocSSTV.TxSSTVModeDoc ));
-
-					foreach( Line oLine in _oDocSSTV.TemplateList ) {
-						_ddTemplates.Items.Add( oLine );
-					}
-					_ddTemplates.SelectedIndexChanged += OnSelectedIndexChanged_TemplateDD;
-					_ddTemplates.SelectedIndex = 0;
-					_ddTemplates.AutoSize      = true;
-					_ddTemplates.Name          = "Mode Sub Select";
-					_ddTemplates.TabIndex      = 2;
-					_ddTemplates.DropDownStyle = ComboBoxStyle.DropDownList;
-
-				  //_oDocSSTV.TemplateList.CheckedEvent += OnCheckedEvent_TemplateList;
-				  //desirable but we loop forever responding to SelectedIndexChanged
-				  //events. Need to sort that out.
 				} catch ( Exception oEx ) {
 					Type[] rgErrors = { typeof( NullReferenceException ),
 										typeof( ArgumentOutOfRangeException ) };
@@ -94,18 +80,6 @@ namespace Play.SSTV {
 
 			PropertyInitRow( (int)SSTVProperties.Names.Rx_Window, 
 							 new ImageViewSingle( new WinSlot( this ), _oDocSSTV.DisplayImage )  );
-        }
-
-        /// <summary>
-        /// Still need to sort out the messaging so we can keep all the
-        /// selected items in sync.
-        /// </summary>
-        private void OnSelectedIndexChanged_TemplateDD(object sender, EventArgs e) {
-            if( sender is ComboBox ddTemplates ) {
-                _oDocSSTV.TemplateList.CheckedLine =
-                    _oDocSSTV.TemplateList[ ddTemplates.SelectedIndex ];
-            }
-		    _oDocSSTV.RenderComposite();
         }
 
 		/// <summary>

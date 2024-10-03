@@ -294,5 +294,53 @@ namespace Play.SSTV {
         }
     }
 
- 
+    public class SSTVTxTemplatesDoc :         
+        EditMultiColumn,
+        IPgLoad
+    {
+        public enum Column : int {
+            Check = 0,
+            Descr = 1
+        }
+
+        public class DDRow : Row {
+            public static new int ColumnCount => Enum.GetNames(typeof(Column)).Length;
+
+            public DDRow( string strDescription, string strCheck = "" ) {
+                _rgColumns = new Line[ColumnCount];
+
+                _rgColumns[(int)Column.Check ] = new TextLine( (int)Column.Check, strCheck );
+                _rgColumns[(int)Column.Descr ] = new TextLine( (int)Column.Descr, strDescription );
+            }
+
+        }
+
+        public SSTVTxTemplatesDoc(IPgBaseSite oSiteBase) : base(oSiteBase) {
+            CheckColumn = 0;
+        }
+
+        /// <summary>
+        /// Initialize the Layout Templates we know about. We depend on the
+        /// fixed order right now.
+        /// </summary>
+        /// <seealso cref="DocSSTV.TemplateSet"/>
+        public bool InitNew() {
+            // The order for these must not be changed.
+            _rgRows.Add( new DDRow( "Reply PnP" ) );
+            _rgRows.Add( new DDRow( "General Msg" ) );
+            _rgRows.Add( new DDRow( "General Msg Pnp" ));
+            _rgRows.Add( new DDRow( "CQ Color Gradient" ));
+            _rgRows.Add( new DDRow( "High Def Message" ));
+            _rgRows.Add( new DDRow( "High Def CQ", CheckSetValue ));
+            _rgRows.Add( new DDRow( "High Def Reply" ));
+            _rgRows.Add( new DDRow( "High Def Reply Pnp" ));
+
+            RenumberAndSumate();
+
+            // Do NOT sent a check event. 
+            DoParse();
+
+            return true;
+        }
+    }
 }

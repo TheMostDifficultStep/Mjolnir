@@ -398,7 +398,8 @@ namespace Play.SSTV {
 
         public event SSTVPropertyEvent PropertyChange;
 
-        public Editor              TemplateList  { get; }
+      //public Editor              TemplateList  { get; }
+        public SSTVTxTemplatesDoc  TxTemplateDoc { get; }
         public Editor              MonitorList   { get; }
 
         public Editor              PortTxList    { get; } 
@@ -451,10 +452,11 @@ namespace Play.SSTV {
             _oWorkPlace = ((IPgScheduler)Services).CreateWorkPlace() ?? throw new ApplicationException( "Couldn't create a worksite from scheduler.");
             _oStdUI     = (IPgStandardUI2)Services;
 
-            TemplateList  = new Editor        ( new DocSlot( this ) );
-            TxImageList   = new ImageWalkerDir( new DocSlot( this ) );
-            RxHistoryList = new ImageWalkerDir( new DocSlot( this ) );
-            TxBitmapComp  = new DocImageEdit  ( new DocSlot( this ) );
+          //TemplateList   = new Editor        ( new DocSlot( this ) );
+            TxTemplateDoc  = new SSTVTxTemplatesDoc( new DocSlot( this ) ); 
+            TxImageList    = new ImageWalkerDir    ( new DocSlot( this ) );
+            RxHistoryList  = new ImageWalkerDir    ( new DocSlot( this ) );
+            TxBitmapComp   = new DocImageEdit      ( new DocSlot( this ) );
                           
             RxSSTVFamilyDoc = new SSTVRxFamilyDoc( new DocSlot(this, "SSTV Rx Families" ) );
             RxSSTVModeDoc   = new SSTVModeDoc    ( new DocSlot(this, "SSTV Rx Modes") );
@@ -484,9 +486,9 @@ namespace Play.SSTV {
                     TransmitStop( true );
                     ReceiveLiveStop();
 
-                    RxHistoryList.ImageUpdated -= OnImageUpdated_RxHistoryList;
-                    TxImageList  .ImageUpdated -= OnImageUpdated_TxImageList;
-                    TemplateList .CheckedEvent -= OnCheckedEvent_TemplateList;
+                    RxHistoryList.ImageUpdated       -= OnImageUpdated_RxHistoryList;
+                    TxImageList  .ImageUpdated       -= OnImageUpdated_TxImageList;
+                    TxTemplateDoc.RegisterCheckEvent -= OnCheckedEvent_TemplateList;
 
                     RxSSTVFamilyDoc.RegisterCheckEvent -= OnCheckEvent_RxSSTVFamilyDoc;
                     RxSSTVModeDoc  .RegisterCheckEvent -= OnCheckEvent_RxSSTVModeDoc;
@@ -633,25 +635,12 @@ namespace Play.SSTV {
 		}
 
         /// <summary>
-        /// Not a true load since we already initialized the Template List.
-        /// But I wanted it separated out so it's easier to find.
+        /// Load also calls this function with RenderComposite() getting called
+        /// twice. A little bit of a bummer...
         /// </summary>
-        /// <returns></returns>
-        public bool TemplateLoad() {
-            TemplateList.LineAppend( "Reply PnP" );
-            TemplateList.LineAppend( "General Msg" );
-            TemplateList.LineAppend( "General Msg Pnp" );
-            TemplateList.LineAppend( "CQ Color Gradient" );
-            TemplateList.LineAppend( "High Def Message" );
-            TemplateList.LineAppend( "High Def CQ" );
-            TemplateList.LineAppend( "High Def Reply" );
-            TemplateList.LineAppend( "High Def Reply Pnp" );
-            
-            return true;
-        }
-
+        /// <see cref="Load(TextReader)"/>
         public bool InitNew() {
-            if( !TemplateList.InitNew() ) // Might need to init differently b/c of load.
+            if( !TxTemplateDoc.InitNew() ) 
                 return false;
             if( !TxBitmapComp.InitNew() )
                 return false;
@@ -677,8 +666,6 @@ namespace Play.SSTV {
 
             if( !Properties.InitNew() )
                 return false;
-
-            TemplateLoad();
 
             // Largest bitmap needed by any of the types I can decode.
             SKSizeI szMax = new( 800, 616 );
@@ -710,19 +697,19 @@ namespace Play.SSTV {
             TxSSTVModeDoc  .RegisterCheckEvent += OnCheckEvent_TxSSTVModeDoc;
             TxSSTVModeDoc  .RegisterOnLoaded   += OnLoaded_TxSSTVModeDoc;
 
-            // Get these set up so our stdproperties get the updates.
-            TxImageList  .ImageUpdated += OnImageUpdated_TxImageList;
-            RxHistoryList.ImageUpdated += OnImageUpdated_RxHistoryList;
-            TemplateList .CheckedEvent += OnCheckedEvent_TemplateList;
+            // Get these set up so our std properties get the updates.
+            TxImageList  .ImageUpdated       += OnImageUpdated_TxImageList;
+            RxHistoryList.ImageUpdated       += OnImageUpdated_RxHistoryList;
+            TxTemplateDoc.RegisterCheckEvent += OnCheckedEvent_TemplateList;
 
-            // We'll get a callback from this before exiting!! O.o
+            // We'll get a callback from this before exiting back into
+            // our RenderComposite() method!! And then Load() causes
+            // another Render. Might see if we can fix that...
             string strMyPics = Properties[SSTVProperties.Names.Rx_SaveDir];
             if( !RxHistoryList.LoadURL( strMyPics ) ) {
-				LogError( "Couldn't find pictures history directory for SSTV" );
+				LogError( "Couldn't find history directory for SSTV pictures." );
                 return false;
             }
-
-            RenderComposite(); // Duplicate. We'll possibly get call in callback above.
 
             Properties.ParseAll();
             _oWorkPlace.Queue( CreateTaskReceiver(), Timeout.Infinite );
@@ -744,7 +731,7 @@ namespace Play.SSTV {
                     RxSSTVModeDoc.Load( oNewFamily.TvFamily ); 
 
                     if( oNewFamily.TvFamily == TVFamily.None ) {
-                        // Go back to "auto" detect on the decoder...
+                        // Go back to "auto" detect on the decoder...s/b no modes in mode doc.
                         _rgUItoBGQueue.Enqueue( new TVMessage( TVMessage.Message.TryNewMode, null ) );
                     }
                     if( RxSSTVModeDoc.CheckedRow is SSTVModeDoc.DDRow oModeRow ) {
@@ -783,20 +770,11 @@ namespace Play.SSTV {
         /// <remarks>Note that the new loaded TxSSTVModeDoc will have ONE
         /// check associated with it!!</remarks>
         private void OnLoaded_TxSSTVModeDoc() {
-			SSTVMode oMode = TxSSTVModeDoc.SelectedMode;
-
-			if( oMode == null ) {
-                // Hopefully we'll never get this.
-				LogError("Selected Tx Mode must not be null.");
-			} else {
-				RenderComposite();
-			}
+		    RenderComposite();
         }
 
         private void OnCheckEvent_TxSSTVModeDoc( Row oRow ) {
-			if( oRow is SSTVModeDoc.DDRow oModeRow ) {
-				RenderComposite();
-			}
+			RenderComposite();
         }
 
         public void PostBGMessage( TVMessage.Message eMsg ) {
@@ -893,7 +871,7 @@ namespace Play.SSTV {
                           //PropertyLoadFromXml( TxModeList, oNode );
                             break;
                         case "Template":
-                            PropertyLoadFromXml( TemplateList, oNode );
+                          //PropertyLoadFromXml( TxTemplateDoc, oNode );
                             break;
                         case "ImageQuality":
                             Properties.ValueUpdate( SSTVProperties.Names.Std_ImgQuality, oNode.InnerText );
@@ -909,6 +887,7 @@ namespace Play.SSTV {
                             break;
                         case "TxSrcDir":
                             TxImageList.LoadAgain( oNode.InnerText );
+                            // This well endup calling RenderComposite() again... :-/
                             break;
                         case "Clock":
                             Properties.ValueUpdate( SSTVProperties.Names.Std_Frequency, oNode.InnerText );
@@ -935,6 +914,7 @@ namespace Play.SSTV {
 			try {
                 XmlDocument oXDoc = new ();
                 XmlElement  oRoot = oXDoc.CreateElement( "MySSTV" );
+
                 oXDoc.AppendChild( oRoot );
 
                 Action<string, SSTVProperties.Names> StringProperty = delegate ( string strName, SSTVProperties.Names eProperty ) { 
@@ -942,20 +922,27 @@ namespace Play.SSTV {
                     oElem.InnerText = Properties.ValueAsStr( (int)eProperty ); // Safer than .ToString()...
                     oRoot.AppendChild( oElem ); 
                 };
-                Action<string, Editor> CheckProperty = delegate( string strName, Editor oEditor ) {
+                Action<string, Editor> CheckedLine = delegate( string strName, Editor oEditor ) {
                     XmlElement oElem = oXDoc.CreateElement( strName );
                     if( oEditor.CheckedLine != null ) {
                         oElem.InnerText = oEditor.CheckedLine.ToString();
                         oRoot.AppendChild( oElem );
                     }
                 };
+                Action<string, SSTVTxTemplatesDoc> CheckedRow = delegate( string strName, SSTVTxTemplatesDoc oTxTemplDoc ) {
+                    XmlElement oElem = oXDoc.CreateElement( strName );
+                    if( oTxTemplDoc.CheckedRow is Row oRow ) {
+                        oElem.InnerText = oRow.At.ToString();
+                        oRoot.AppendChild( oElem );
+                    }
+                };
 
-                CheckProperty ( "RxDevice",       PortRxList );
-                CheckProperty ( "TxDevice",       PortTxList );
-                CheckProperty ( "MonitorDevice",  MonitorList );
+                CheckedLine   ( "RxDevice",       PortRxList );
+                CheckedLine   ( "TxDevice",       PortTxList );
+                CheckedLine   ( "MonitorDevice",  MonitorList );
               //CheckProperty ( "RxMode",         RxModeList );
               //CheckProperty ( "TxMode",         TxModeList );
-                CheckProperty ( "Template",       TemplateList );
+                CheckedRow    ( "Template",       TxTemplateDoc );
                 StringProperty( "ImageQuality",   SSTVProperties.Names.Std_ImgQuality );
                 StringProperty( "DigiOutputGain", SSTVProperties.Names.Std_MicGain );
                 StringProperty( "MyCall",         SSTVProperties.Names.Tx_MyCall );
@@ -1014,7 +1001,7 @@ namespace Play.SSTV {
             RenderComposite();
         }
 
-        private void OnCheckedEvent_TemplateList(Line oLineChecked) {
+        private void OnCheckedEvent_TemplateList( Row oRow ) {
             RenderComposite();
         }
 
@@ -1427,12 +1414,12 @@ namespace Play.SSTV {
 		public bool RenderComposite() {
 			// sometimes we get events while we're sending. Let's block render for now.
 			if( StateTx ) {
-				LogError( "Already Playing" );
+				LogError( "Already Playing!" );
 				return false;
 			}
 
 			if( TxSSTVModeDoc.SelectedMode is not SSTVMode oMode ) {
-			    //LogError( "Problem prepping template for transmit." );
+			    LogError( "No Transmit mode selected?" );
 			    return false;
 			}
 
@@ -1444,7 +1431,7 @@ namespace Play.SSTV {
 
 			TxBitmapComp.Load( oMode.Resolution ); 
 
-			int iTemplate = TemplateList.CheckedLine is Line oChecked ? oChecked.At : 0;
+			int iTemplate = TxTemplateDoc.CheckedRow is SSTVTxTemplatesDoc.DDRow oChecked ? oChecked.At : 0;
 
 			TemplateSet( oMode, iTemplate );
 			TxBitmapComp.RenderImage();

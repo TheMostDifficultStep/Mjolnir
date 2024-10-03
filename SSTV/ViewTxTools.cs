@@ -86,51 +86,11 @@ namespace Play.SSTV {
             }
         }
 
-        /// <remarks>
-        /// This is a nice hybrid of my model/view where the template list is
-        /// a standard editor window, but we sync with the dropdowns.
-        /// The Famile/Mode pair of dropdowns is more complicated and not sorted yet.
-        /// </remarks>
-        private void OnSelectedIndexChanged_TemplateDD(object sender, EventArgs e) {
-            if( sender is ComboBox ddTemplates ) {
-                _oDocSSTV.TemplateList.CheckedLine =
-                    _oDocSSTV.TemplateList[ ddTemplates.SelectedIndex ];
-            }
-		    _oDocSSTV.RenderComposite();
-        }
-
-        private void OnCheckedEvent_TemplateList(Line oLineChecked) {
-            // if we change the drop down selection b/c of this that'll
-            // send an OnSelectedTemplateChanged() and we loop forever
-            // so don't set this up for now.
-        }
-
         private void InitTemplates() {
-            ComboBox  wnDDTemplates = new ComboBox();
-
-            foreach( Line oLine in _oDocSSTV.TemplateList ) {
-                wnDDTemplates.Items.Add( oLine );
-            }
-            // Set up before callback plugged in.
-            if( _oDocSSTV.TemplateList.CheckedLine != null ) {
-                wnDDTemplates.SelectedIndex = _oDocSSTV.TemplateList.CheckedLine.At;
-            } else {
-                _oDocSSTV.TemplateList.CheckedLine = _oDocSSTV.TemplateList[0];
-                wnDDTemplates.SelectedIndex = 0;
-            }
-
-            _oDocSSTV.TemplateList.CheckedEvent += OnCheckedEvent_TemplateList;
-
-            wnDDTemplates.SelectedIndexChanged += OnSelectedIndexChanged_TemplateDD;
-            wnDDTemplates.AutoSize      = true;
-            wnDDTemplates.Name          = "Template Select";
-            wnDDTemplates.TabIndex      = 1;
-            wnDDTemplates.DropDownStyle = ComboBoxStyle.DropDownList;
-            wnDDTemplates.Parent        = this;
-
             LayoutStack oLayout = new LayoutStackHorizontal() { Spacing = 5 };
+
             oLayout.Add( new LayoutRect( LayoutRect.CSS.None ) );
-            oLayout.Add( new LayoutControl( wnDDTemplates, LayoutRect.CSS.Pixels, 200 ) );
+          //oLayout.Add( new LayoutControl( new ViewTxTemplates( WinSlot( this ), LayoutRect.CSS.Pixels, 200 ) );
             oLayout.Add( new LayoutRect( LayoutRect.CSS.None ) );
 
             //_rgFlock.Add( TransmitCommands.Templates, oLayout );
@@ -227,31 +187,6 @@ namespace Play.SSTV {
         }
 
         /// <summary>
-        /// TODO: If there are multiple TX windows open, they might get out of
-        /// sync with the composition. Still need to sort that all out.
-        /// But we're close.
-        /// </summary>
-        /// <seealso cref="PopulateSubModes"/>
-        //private void OnSelectedModeChanged(object sender, EventArgs e) {
-        //    if( !_bProcessCheckModeList ) {
-        //        _bProcessCheckModeList = true;
-        //        if( sender == _ddModeMain ) { 
-        //            PopulateSubModes( _ddModeMain, _ddModeSub );
-        //        }
-        //        if( _ddModeSub.SelectedItem is SSTVMode oDDListMode ) {
-        //            foreach( Line oLine in _oDocSSTV.RxModeList ) {
-        //                if( oLine.Extra is SSTVMode oRxListMode &&
-        //                    oRxListMode.LegacyMode == oDDListMode.LegacyMode ) 
-        //                {
-        //                    _oDocSSTV.RxModeList.CheckedLine = oLine;
-        //                }
-        //            }
-        //        }
-        //        _bProcessCheckModeList = false;
-        //    }
-        //}
-
-        /// <summary>
         /// Populate the main dropdown and then this will fill in all
         /// the sub modes for the selected item. It's got the ability to track
         /// the TxModeList selection but I don't think I'm going to need that
@@ -278,40 +213,6 @@ namespace Play.SSTV {
                     }
                 }
             }
-        }
-
-        /// <summary>
-        /// When the template changes, the DocSSTV needs to have a doc
-        /// specific mode selection. I might as well have that be the checked item in 
-        /// the TxModeList. This will be how I sync the views. It's a hack since the
-        /// dropdowns send an update event whenever the selection changes even
-        /// if we're changing it ourselves, and that is not convenient in our
-        /// multiview world. We'll ignore the checked event
-        /// if it's coming from ourselves syncing the drop down item
-        /// </summary>
-        /// <param name="oLineChecked">TxModeList line checked.</param>
-        //private void OnCheckedEvent_RxModeList(Line oLineChecked) {
-        //    if( !_bProcessCheckModeList ) {
-        //        if( _oDocSSTV.RxModeList.CheckedLine.Extra is SSTVMode oNewMode ) {
-        //            for( int iIndex = 0; iIndex < _ddModeMain.Items.Count; ++iIndex ) {
-        //                object oItem = _ddModeMain.Items[iIndex];
-        //                if( oItem is SSTVDEM.SSTVFamily oDesc &&
-        //                    oDesc._eFamily == oNewMode.Family ) {
-        //                    _ddModeMain.SelectedIndex = iIndex;
-
-        //                    for( int iSub = 0; iSub < _ddModeSub.Items.Count; ++iSub ) {
-        //                        if( _ddModeSub.Items[iSub] is SSTVMode oMode ) {
-        //                            PopulateSubModes( _ddModeMain, _ddModeSub, oMode );
-        //                        }
-        //                    }
-        //                }
-        //            }
-        //        }
-        //    }
-        //}
-
-        private void OnCheckEvent_RxSSTVModeDoc(Row obj) {
-            throw new NotImplementedException();
         }
 
         /// <summary>

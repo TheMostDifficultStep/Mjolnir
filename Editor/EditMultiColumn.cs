@@ -419,6 +419,10 @@ namespace Play.Edit {
         /// </summary>
         /// <exception cref="IndexOutOfRangeException" />
         bool IsRowChecked( Row oRow ) {
+            // If we get called accidently w/o setting a column, protect
+            if( CheckColumn < 0 || CheckColumn > oRow.Count ) 
+                return false;
+
             return oRow[CheckColumn].CompareTo( _strCheckValue ) == 0;
         }
 
@@ -466,6 +470,12 @@ namespace Play.Edit {
             Row oOld = null;
 
             try {
+                // Alas we can't check the max column. But this is the
+                // primary case: we forgot to specify our check column on
+                // a document that we are treating like it has a check column.
+                if( CheckColumn < 0 ) 
+                    throw new InvalidOperationException( "Invalid Checkmark Column" );
+
                 foreach( Row oReset in _rgRows ) {
                     // Just want an exact match or bust.
                     if( IsRowChecked( oReset ) ) {
@@ -496,11 +506,12 @@ namespace Play.Edit {
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( IndexOutOfRangeException ),
                                     typeof( ArgumentOutOfRangeException ),
-                                    typeof( NullReferenceException ) };
+                                    typeof( NullReferenceException ),
+                                    typeof( InvalidOperationException ) };
                 if( rgErrors.IsUnhandled( oEx ) )
                     throw;
 
-                LogError( "Popup Mouse Error" );
+                LogError( "Error for set check on given row." );
             }
         }
 

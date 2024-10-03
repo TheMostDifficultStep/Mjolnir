@@ -91,4 +91,35 @@ namespace Play.SSTV {
 
             return true;
         }
-    }}
+    }
+    public class ViewTxTemplatesDDEditBox : ViewEditBox {
+        public ViewTxTemplatesDDEditBox(IPgViewSite oViewSite, object oDocument) : 
+            base(oViewSite, oDocument) {
+        }
+
+        public override ViewDDPopup CreatePopup() {
+            return new ViewTxTemplatesPopup( new WinSlot( this ), _oDocBag );
+        }
+    }
+
+    public class ViewTxTemplatesPopup: ViewDDPopup {
+        public ViewTxTemplatesPopup( IPgViewSite oView, object oDocument ) : 
+            base(oView, oDocument) 
+        {
+        }
+
+        protected override bool Initialize() {
+            if( !base.Initialize() )
+                return false;
+
+            // TODO: Check the width of a checkmark at the current font... :-/
+            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Pixels, 20, 1L ), (int)SSTVTxTemplatesDoc.Column.Check ); 
+            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.None,   20, 1L ), (int)SSTVTxTemplatesDoc.Column.Descr ); 
+
+            // Do this so we can return a desired height. O.o;;
+            _oCacheMan.CacheRepair( null, true, true );
+
+            return true;
+        }
+    }
+}
