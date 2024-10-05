@@ -832,6 +832,7 @@ namespace Play.Edit {
                             rgDelete.Add( oRow );
                             break;
                         case IPgSelection.SlxnType.Top:
+                        case IPgSelection.SlxnType.Equal: // Top and bottom are the same.
                             oRowTop = oRow;
                             break;
                         case IPgSelection.SlxnType.Bottom:
