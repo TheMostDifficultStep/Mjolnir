@@ -55,7 +55,7 @@ namespace Play.SSTV {
 		protected void OnChooser( Line oLine, IPgWordRange _ ) { 
 			try {
 				if( oLine is FileLine oFile ) {
-					if( oFile._fIsDirectory ) {
+					if( oFile.IsDirectory ) {
 						string strName = oFile.SubString( 1, oFile.ElementCount - 2 );
 						if( !string.IsNullOrEmpty( strName ) ) {
 							_rgFileList.LoadAgain( Path.Combine(_rgFileList.CurrentDirectory, strName ) );
@@ -74,7 +74,7 @@ namespace Play.SSTV {
 		}
 
 		protected override void TextAreaChecked( Line oLine ) {
-			if( oLine is FileLine oFileLine && !oFileLine._fIsDirectory ) { 
+			if( oLine is FileLine oFileLine && !oFileLine.IsDirectory ) { 
 				base.TextAreaChecked( oLine );
 			}
 		}

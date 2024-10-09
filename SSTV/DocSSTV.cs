@@ -8,7 +8,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Xml;
 using System.Reflection;
-using System.IO.Ports;
 
 using SkiaSharp;
 

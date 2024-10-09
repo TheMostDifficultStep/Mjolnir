@@ -421,7 +421,7 @@ namespace Play.ImageViewer {
                     break;
                 case Keys.Enter:
 					if( _oDocument.CurrentElement is FileLine oFile ) {
-						if( oFile._fIsDirectory ) {
+						if( oFile.IsDirectory ) {
                             try {
 							    _oDocument.LoadAgain(Path.Combine(_oDocument.CurrentDirectory,oFile.ToString()));
                             } catch( Exception oEx ) {
@@ -629,7 +629,7 @@ namespace Play.ImageViewer {
                 Line oLine = _oDocument[i];
                 if( rgSortedThumb[i] == null && oLine is FileLine oFileLine ) {
                     ImageLineBase oNewItem = null;
-                    if( oFileLine._fIsDirectory ) {
+                    if( oFileLine.IsDirectory ) {
                         oNewItem = new DirectoryRect( new FTCacheWrap( oLine ), rcSize, _clrFolder );
                     } else {
 						if( _oDocument.IsLineUnderstood( oLine ) ) {

@@ -159,7 +159,7 @@ namespace Play.ImageViewer {
                     // that gets called when the dispose on the manipulator get's called.
                     using( GateFilesEvent oGate = new GateFilesEvent( this ) ) {
 						FileLine oLineNew      = oManip.LineAppendNoUndo( ".." ) as FileLine;
-						oLineNew._fIsDirectory = true;
+						oLineNew.IsDirectory = true;
 
                         // 12/23/2015 : I could potentially put fileinfo's directly into my document. But 
 						// We're more 'document' compatible if we use string paths.
@@ -179,8 +179,8 @@ namespace Play.ImageViewer {
 							if( !oDirChild.Attributes.HasFlag( FileAttributes.Hidden)) {
 								oLineNew = oManip.LineAppendNoUndo( oDirChild.Name ) as FileLine; // Don't load the path!!!
 
-								oLineNew._dtModifiedDate = oDirChild.LastWriteTime;
-								oLineNew._fIsDirectory   = true;
+								oLineNew.ModifiedDate = oDirChild.LastWriteTime;
+								oLineNew.IsDirectory   = true;
 							}
                         }
 
@@ -194,7 +194,7 @@ namespace Play.ImageViewer {
                             if( IsFileExtensionUnderstood( oFile.Extension ) ) {
                                 oLineNew = oManip.LineAppendNoUndo( oFile.Name ) as FileLine; // Don't load the path!!!
 
-                                oLineNew._dtModifiedDate = oFile.LastWriteTime;
+                                oLineNew.ModifiedDate = oFile.LastWriteTime;
                             }
                         }
 
@@ -220,7 +220,7 @@ namespace Play.ImageViewer {
                 FileList.Clear();
                 using( Editor.Manipulator oManip = FileList.CreateManipulator() ) {
 					FileLine oLineNew = oManip.LineAppendNoUndo( ".." ) as FileLine;
-					oLineNew._fIsDirectory = true;
+					oLineNew.IsDirectory = true;
 				}
 
 				return false;
@@ -236,7 +236,7 @@ namespace Play.ImageViewer {
 			// First try to find matching file in the file list.
             foreach( Line oLine in FileList ) {
 				FileLine oFileLine = oLine as FileLine;
-                if( oLine.CompareTo( strFileName ) == 0 && !oFileLine._fIsDirectory ) {
+                if( oLine.CompareTo( strFileName ) == 0 && !oFileLine.IsDirectory ) {
                     _oDisplayLine = oLine;
                     break;
                 }
@@ -245,7 +245,7 @@ namespace Play.ImageViewer {
             if( Line.IsNullOrEmpty( _oDisplayLine ) ) {
 				foreach( Line oLine in FileList ) {
 					FileLine oFileLine = oLine as FileLine;
-					if( IsLineUnderstood( oFileLine ) && !oFileLine._fIsDirectory ) {
+					if( IsLineUnderstood( oFileLine ) && !oFileLine.IsDirectory ) {
 						_oDisplayLine = oLine;
 						break;
 					}
@@ -485,7 +485,7 @@ namespace Play.ImageViewer {
 
             //Compare old read with newest read.
             foreach( Line oLine in FileList ) {
-                if( oLine is FileLine oFileLine && !oFileLine._fIsDirectory ) {
+                if( oLine is FileLine oFileLine && !oFileLine.IsDirectory ) {
                     // CompareTo() on the Line object generates a string...
                     bool fFound = false;
                     foreach( FileInfo oInfo in rgNewFiles ) {
@@ -512,10 +512,10 @@ namespace Play.ImageViewer {
                 foreach( FileInfo oInfo in rgNewFiles ) {
                     for( int iLine = 0; iLine < FileList.ElementCount; ++iLine ) {
                         Line oLine = FileList[iLine];
-                        if( oLine is FileLine oFileLine && !oFileLine._fIsDirectory ) {
-                            if( oFileLine._dtModifiedDate < oInfo.LastWriteTime ) {
+                        if( oLine is FileLine oFileLine && !oFileLine.IsDirectory ) {
+                            if( oFileLine.ModifiedDate < oInfo.LastWriteTime ) {
                                 if( oManip.LineInsert( oFileLine.At, oInfo.Name ) is FileLine oNew ) {
-                                    oNew._dtModifiedDate = oInfo.LastWriteTime;
+                                    oNew.ModifiedDate = oInfo.LastWriteTime;
                                     break;
                                 }
                             }

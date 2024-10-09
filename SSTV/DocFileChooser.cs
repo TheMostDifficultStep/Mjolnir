@@ -157,7 +157,7 @@ namespace Play.SSTV {
                     // Need the gate AFTER the manipulator since it'll block the call back OnBufferChange()
                     // that gets called when the dispose on the manipulator get's called.
 					FileLine oLine = oManip.LineAppendNoUndo( "[..]" ) as FileLine;
-					oLine._fIsDirectory = true;
+					oLine.IsDirectory = true;
                     oLine.Formatting.Add( new DirectoryHyperLink( 2, 1 ) );
 
                     // 12/23/2015 : I could potentially put fileinfo's directly into my document. But 
@@ -178,8 +178,8 @@ namespace Play.SSTV {
 						if( !oDirChild.Attributes.HasFlag( FileAttributes.Hidden)) {
 							oLine = oManip.LineAppendNoUndo( "[" + oDirChild.Name + "]" ) as FileLine; // Don't load the path!!!
 
-							oLine._dtModifiedDate = oDirChild.LastWriteTime;
-							oLine._fIsDirectory   = true;
+							oLine.ModifiedDate = oDirChild.LastWriteTime;
+							oLine.IsDirectory   = true;
                             oLine.Formatting.Add( new DirectoryHyperLink( oDirChild.Name.Length, 1 ) );
 						}
                     }
@@ -194,7 +194,7 @@ namespace Play.SSTV {
                         if( IsFileExtensionUnderstood( oFile.Extension ) ) {
                             oLine = oManip.LineAppendNoUndo( oFile.Name ) as FileLine; // Don't load the path!!!
 
-                            oLine._dtModifiedDate = oFile.LastWriteTime;
+                            oLine.ModifiedDate = oFile.LastWriteTime;
                         }
                     }
 
@@ -219,7 +219,7 @@ namespace Play.SSTV {
                 FileList.Clear();
                 using( Editor.Manipulator oManip = FileList.CreateManipulator() ) {
 					FileLine oLineNew = oManip.LineAppendNoUndo( "[..]" ) as FileLine;
-					oLineNew._fIsDirectory = true;
+					oLineNew.IsDirectory = true;
                     oLineNew.Formatting.Add( new DirectoryHyperLink( 2, 1 ) );
 				}
 

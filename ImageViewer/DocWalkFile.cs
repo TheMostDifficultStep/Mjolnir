@@ -204,13 +204,12 @@ namespace Play.ImageViewer {
     }
 
     public class FileLine : TextLine {
-        public long     _lFileSize  = 0;
-        public DateTime _dtModifiedDate;
-		public bool     _fIsDirectory = false;
+        public long     FileSize     {get;set;} = 0;
+        public DateTime ModifiedDate {get;set;}
+		public bool     IsDirectory  {get;set;} = false;
 
         public FileLine( int iLine, string strValue) : base( iLine, strValue )
-        {
-        }
+        { }
     }
 
     public class FileEditor : BaseEditor {
@@ -981,11 +980,11 @@ namespace Play.ImageViewer {
                     FileLine oFileNew = _oDisplayLine as FileLine;
                     FileInfo oFile    = new FileInfo( CurrentFullPath );
 
-                    oFileNew._dtModifiedDate = oFile.LastWriteTime;
-                    oFileNew._lFileSize      = oFile.Length;
+                    oFileNew.ModifiedDate = oFile.LastWriteTime;
+                    oFileNew.FileSize      = oFile.Length;
 
-					if( DateTime.Compare( oFileNew._dtModifiedDate, oFileOld._dtModifiedDate ) == 0 &&
-						oFileNew._lFileSize == oFileOld._lFileSize &&
+					if( DateTime.Compare( oFileNew.ModifiedDate, oFileOld.ModifiedDate ) == 0 &&
+						oFileNew.FileSize == oFileOld.FileSize &&
 						Bitmap != null ) {
 						return true;
 					}
@@ -1034,7 +1033,7 @@ namespace Play.ImageViewer {
 				// Note: We want to skip directories, however if the icon's haven't been
 				// populated, then all the line "extra" will be null and we can't find anything!
 				// Use the FileLine._fIsDirectory flag. It's better.
-				if( FileList[iNext] is FileLine oDirLine && !oDirLine._fIsDirectory )
+				if( FileList[iNext] is FileLine oDirLine && !oDirLine.IsDirectory )
 					break;
 			}
 
@@ -1200,8 +1199,8 @@ namespace Play.ImageViewer {
             try {
                 strName     = _oDisplayLine.ToString();
               //strDepth    = _rgPixelDescription[eDepth];
-                dtModified  = oFileLine._dtModifiedDate;
-                lSize       = oFileLine._lFileSize;
+                dtModified  = oFileLine.ModifiedDate;
+                lSize       = oFileLine.FileSize;
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( NullReferenceException ),
                                     typeof( IndexOutOfRangeException ),
