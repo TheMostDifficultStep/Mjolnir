@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-using SkiaSharp;
+﻿using SkiaSharp;
 
 using Play.Edit;
 using Play.Interfaces.Embedding;
@@ -12,6 +6,60 @@ using Play.Rectangles;
 using Play.Parse;
 
 namespace Play.FileManager {
+    public class FileManController : 
+        Controller 
+    {
+        public FileManController() {
+            _rgExtensions.Add( ".fileman" );
+        }
+
+        public override PgDocDescr Suitability(string strExtension) {
+            if( strExtension.CompareTo( ".fileman" ) == 0 ) {
+                return new PgDocDescr( ".fileman", 
+                                       typeof( IPgLoadURL ), 
+                                       255, 
+                                       this );
+            }
+
+            return new PgDocDescr( ".fileman", 
+                                    typeof( IPgLoadURL ), 
+                                    0, 
+                                    this );
+        }
+        public override IDisposable CreateDocument( IPgBaseSite oSite, string strExtension ) {
+            if( string.Compare( strExtension, ".fileman", true ) == 0 )
+                return new FileManager( oSite );
+
+            return new FileManager( oSite );
+        }
+
+        public override IDisposable CreateView( IPgViewSite oBaseSite, object oDocument, Guid guidViewType ) {
+            FileManager oDocFileMan = (FileManager)oDocument;
+
+			try {
+				if( guidViewType == ViewFileMan.GUID )
+					return( new ViewFileMan( oBaseSite, oDocFileMan ) );
+				if( guidViewType == Guid.Empty )
+					return( new ViewFileMan( oBaseSite, oDocFileMan ) );
+
+				return( new ViewFileMan( oBaseSite, oDocFileMan ) );
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( NullReferenceException ),
+                                    typeof( InvalidCastException ),
+                                    typeof( ArgumentNullException ),
+									typeof( ArgumentException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
+
+				throw new InvalidOperationException( "Controller couldn't create view for Image document.", oEx );
+            }
+        }
+
+        public override IEnumerator<IPgViewType> GetEnumerator() {
+ 	        yield return new ViewType( "List", ViewFileMan.GUID );
+        }
+    }
+
     public class ViewFileMan :
         WindowMultiColumn,
         IPgCommandView
@@ -37,10 +85,10 @@ namespace Play.FileManager {
             if( !base.Initialize() )
                 return false;
 
-            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.None,    80, 1L ), (int)FileManager.FMRow.Col.Name ); 
-            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Percent, 10, 1L ), (int)FileManager.FMRow.Col.Type ); 
-            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Percent, 10, 1L ), (int)FileManager.FMRow.Col.Size ); 
-            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Percent, 10, 1L ), (int)FileManager.FMRow.Col.Date );
+            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.None,     80, 1L ), (int)FileManager.FMRow.Col.Name ); 
+            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Pixels,  200, 1L ), (int)FileManager.FMRow.Col.Date );
+            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Pixels,  120, 1L ), (int)FileManager.FMRow.Col.Type ); 
+            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Pixels,  100, 1L ), (int)FileManager.FMRow.Col.Size ); 
 
             HyperLinks.Add( "DirJump", OnCpuJump );
 

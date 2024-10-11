@@ -611,15 +611,16 @@ namespace Mjolnir {
             _oTopMenu.Items.Add( oFileMenu );
 
             List<ToolStripMenuItem> rgSubMenu = new List<ToolStripMenuItem>();
-            rgSubMenu.Add( new ToolStripMenuItem("Html",    BitmapCreateFromChar( "\xE12b" ), new EventHandler(this.OnDocNewHtml  )));
-            rgSubMenu.Add( new ToolStripMenuItem("Text",    BitmapCreateFromChar( "\xE185" ), new EventHandler(this.OnDocNewText  )));
-            rgSubMenu.Add( new ToolStripMenuItem("M3u",     BitmapCreateFromChar( "\xE189" ), new EventHandler(this.OnDocNewM3u   )));
-            rgSubMenu.Add( new ToolStripMenuItem("Scraps",  BitmapCreateFromChar( "\xE0a5" ), new EventHandler(this.OnDocNewScraps)));
-            rgSubMenu.Add( new ToolStripMenuItem("Morse",   BitmapCreateFromChar( "\xE113" ), new EventHandler(this.OnDocNewMorse )));
-            rgSubMenu.Add( new ToolStripMenuItem("Net Log", BitmapCreateFromChar( "\xE113" ), new EventHandler(this.OnDocNewNetLogger)));
-            rgSubMenu.Add( new ToolStripMenuItem("Std Log", BitmapCreateFromChar( "\xE113" ), new EventHandler(this.OnDocNewStdLogger)));
-            rgSubMenu.Add( new ToolStripMenuItem("SSTV",    BitmapCreateFromChar( "\xE114" ), new EventHandler(this.OnDocNewSSTV  )));
-            rgSubMenu.Add( new ToolStripMenuItem("Monitor", BitmapCreateFromChar( "\xE114" ), new EventHandler(this.OnDocNewMonitor )));
+            rgSubMenu.Add( new ToolStripMenuItem("File Man", BitmapCreateFromChar( "\xE12b" ), new EventHandler(this.OnDocNewFileMan )));
+            rgSubMenu.Add( new ToolStripMenuItem("Html",     BitmapCreateFromChar( "\xE12b" ), new EventHandler(this.OnDocNewHtml  )));
+            rgSubMenu.Add( new ToolStripMenuItem("Text",     BitmapCreateFromChar( "\xE185" ), new EventHandler(this.OnDocNewText  )));
+            rgSubMenu.Add( new ToolStripMenuItem("M3u",      BitmapCreateFromChar( "\xE189" ), new EventHandler(this.OnDocNewM3u   )));
+            rgSubMenu.Add( new ToolStripMenuItem("Scraps",   BitmapCreateFromChar( "\xE0a5" ), new EventHandler(this.OnDocNewScraps)));
+            rgSubMenu.Add( new ToolStripMenuItem("Morse",    BitmapCreateFromChar( "\xE113" ), new EventHandler(this.OnDocNewMorse )));
+            rgSubMenu.Add( new ToolStripMenuItem("Net Log",  BitmapCreateFromChar( "\xE113" ), new EventHandler(this.OnDocNewNetLogger)));
+            rgSubMenu.Add( new ToolStripMenuItem("Std Log",  BitmapCreateFromChar( "\xE113" ), new EventHandler(this.OnDocNewStdLogger)));
+            rgSubMenu.Add( new ToolStripMenuItem("SSTV",     BitmapCreateFromChar( "\xE114" ), new EventHandler(this.OnDocNewSSTV  )));
+            rgSubMenu.Add( new ToolStripMenuItem("Monitor",  BitmapCreateFromChar( "\xE114" ), new EventHandler(this.OnDocNewMonitor )));
 
             oFileMenu.DropDownItems.Add(new ToolStripMenuItem("New",      BitmapCreateFromChar( "\xE295" ), rgSubMenu.ToArray() ) );
             oFileMenu.DropDownItems.Add(new ToolStripMenuItem( "Open...", BitmapCreateFromChar( "\xE132" ), new EventHandler(this.OnDocOpen), Keys.Control | Keys.O ));
@@ -1043,6 +1044,9 @@ namespace Mjolnir {
         }
         public void OnDocNewMonitor( object sender, EventArgs e ) {
             EditorInitNewShow( ".asmprg" );
+        }
+        public void OnDocNewFileMan( object sender, EventArgs e ) {
+            EditorInitNewShow( ".fileman" );
         }
 
         public void OnDocOpen( object sender, EventArgs e ) {

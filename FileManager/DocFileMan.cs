@@ -59,7 +59,8 @@ namespace Play.FileManager {
     /// </summary>
     public class FileManager :
         EditMultiColumn,
-        IPgLoadURL
+        IPgLoadURL,
+        IPgSaveURL
     {
         public string HomeURL => Environment.GetFolderPath(Environment.SpecialFolder.Personal);
 
@@ -116,7 +117,7 @@ namespace Play.FileManager {
 
 		public SKBitmap GetResource( string strName ) {
 			Assembly oAsm   = Assembly.GetExecutingAssembly();
-            string   strRes = oAsm.GetName().Name + ".Content." + strName;
+            string   strRes = "Play.FileManager.Content." + strName;
 
 			return SKImageResourceHelper.GetImageResource( oAsm, strRes );
 		}
@@ -207,6 +208,10 @@ namespace Play.FileManager {
                     FMRow oRow = new FMRow( oFile );
                     _rgRows.Add( oRow );
                 }
+
+                RenumberAndSumate();
+
+                DoParse();
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( NullReferenceException ),
                                     typeof( IOException ),
@@ -225,6 +230,10 @@ namespace Play.FileManager {
 				LogError( "Couldn't use the directory given." ); 
                 Clear();
             }
+        }
+
+        public bool Save() {
+            return true;
         }
     }
 }

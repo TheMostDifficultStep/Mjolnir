@@ -1361,6 +1361,7 @@ namespace Mjolnir {
 
             // In the future I'll make these packages load on the fly and I can remove
             // hard dependencies to these assemblies!!
+            Controllers.Add( new Play.FileManager  .FileManController() );
 			Controllers.Add( new Play.ImageViewer  .ImageBrowserScrapsController() );
 			Controllers.Add( new Play.ImageViewer  .ImageBrowserDirController() );
 			Controllers.Add( new Play.MusicWalker  .MusicWalkerController() );

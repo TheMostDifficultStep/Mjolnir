@@ -72,6 +72,7 @@
     <ProjectReference Include="..\Clock\Clock.csproj" />
     <ProjectReference Include="..\Drawing\Drawing.csproj" />
     <ProjectReference Include="..\Editor\Editor.csproj" />
+    <ProjectReference Include="..\FileManager\FileManager.csproj" />
     <ProjectReference Include="..\Forms\Forms.csproj" />
     <ProjectReference Include="..\ImageViewer\ImageViewer.csproj" />
     <ProjectReference Include="..\Interfaces\Interfaces.csproj" />
