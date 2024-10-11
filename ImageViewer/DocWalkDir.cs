@@ -173,7 +173,7 @@ namespace Play.ImageViewer {
                         // Insert the directories first so they are at the top. Sort with NaturalCompare
                         DirectoryInfo[]     rgDir     = oDir.GetDirectories( "*.*" );
                         List<DirectoryInfo> rgDirList = new List<DirectoryInfo>( rgDir );
-                        rgDirList.Sort((x,y) => ( NaturalCompare( x.Name, y.Name ) ) );
+                        rgDirList.Sort((x,y) => FindStuff<string>.NaturalCompare( x.Name, y.Name ) );
 
                         foreach( DirectoryInfo oDirChild in rgDirList ) {
 							if( !oDirChild.Attributes.HasFlag( FileAttributes.Hidden)) {
@@ -260,49 +260,6 @@ namespace Play.ImageViewer {
             ImageLoad( _oDisplayLine, fSendImageUpdate );
         }
 
-        /// <summary>
-        /// This code is pretty much a de-factoring of the enumerators, taking advantage of the
-        /// fact that I know I have array indexible elements instead of needing the enumerators.
-        /// Don't get me wrong, I like enumerators as much as the next guy. But that seems like
-        /// serious overkill for this problem. 
-        /// http://www.interact-sw.co.uk/iangblog/2007/12/13/natural-sorting
-        /// Ian Griffiths
-        /// Thursday 13 December, 2007
-        /// http://opensource.org/licenses/mit-license.php
-        /// </summary>
-        static public int NaturalCompare( string x, string y)
-        {
-            int iLen  = Math.Min( x.Length, y.Length );
-            int iComp = x.Length - y.Length;
-
-            if( iLen == 0 )
-                return( iComp );
-
-            int iResult = 0;
-            int i       = 0;
-
-            // Try exact match the most characters in both strings...
-            while( true ) {
-                iResult = char.ToLower( x[i] ) - char.ToLower( y[i] );
-
-                if( i++ >= iLen-1 )
-                    break;
-
-                if (iResult != 0)
-                    return( iResult );
-            }
-            // If we make it here. Then we made it to the last char
-            // of the stortest string. Or both strings are same length.
-
-            // If the last character in the shortest string is the
-            // same as it's opposite. Then the longest string wins!
-            if( iComp == 0 )
-                return( iResult );
-
-            // Else the last char in shortest string determines sort.
-            return( iComp );
-        }
-
         public override void DirectoryNext( int p_iDirection ) {
             try {
                 if( p_iDirection == 0 ) {
@@ -365,7 +322,7 @@ namespace Play.ImageViewer {
                 return false;
             }
 
-            _rgSiblings.Sort((x,y) => ( NaturalCompare( x.Name, y.Name ) ) );
+            _rgSiblings.Sort((x,y) => FindStuff<string>.NaturalCompare( x.Name, y.Name ) );
 
             using( Editor.Manipulator oManip = _oSiblings.CreateManipulator() ) {
                 foreach( DirectoryInfo oCurrent in _rgSiblings ) {

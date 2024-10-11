@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0-windows</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Play.FileManager</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="Content\icons8-script-96.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Content\icons8-script-96.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Drawing\Drawing.csproj" />
+    <ProjectReference Include="..\Editor\Editor.csproj" />
+    <ProjectReference Include="..\Interfaces\Interfaces.csproj" />
+  </ItemGroup>
+
+</Project>

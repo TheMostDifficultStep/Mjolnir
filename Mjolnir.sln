@@ -47,6 +47,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Kanji-Practice", "Kanji-Pra
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "z80", "..\z80\z80\z80.csproj", "{E0EF3AD5-32AC-4530-9004-C3D8BCDE3B6C}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FileManager", "FileManager\FileManager.csproj", "{222E3D55-28C7-4DD8-8345-ADAF3659CB47}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -261,6 +263,18 @@ Global
 		{E0EF3AD5-32AC-4530-9004-C3D8BCDE3B6C}.Release|x64.Build.0 = Release|Any CPU
 		{E0EF3AD5-32AC-4530-9004-C3D8BCDE3B6C}.Release|x86.ActiveCfg = Release|Any CPU
 		{E0EF3AD5-32AC-4530-9004-C3D8BCDE3B6C}.Release|x86.Build.0 = Release|Any CPU
+		{222E3D55-28C7-4DD8-8345-ADAF3659CB47}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{222E3D55-28C7-4DD8-8345-ADAF3659CB47}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{222E3D55-28C7-4DD8-8345-ADAF3659CB47}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{222E3D55-28C7-4DD8-8345-ADAF3659CB47}.Debug|x64.Build.0 = Debug|Any CPU
+		{222E3D55-28C7-4DD8-8345-ADAF3659CB47}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{222E3D55-28C7-4DD8-8345-ADAF3659CB47}.Debug|x86.Build.0 = Debug|Any CPU
+		{222E3D55-28C7-4DD8-8345-ADAF3659CB47}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{222E3D55-28C7-4DD8-8345-ADAF3659CB47}.Release|Any CPU.Build.0 = Release|Any CPU
+		{222E3D55-28C7-4DD8-8345-ADAF3659CB47}.Release|x64.ActiveCfg = Release|Any CPU
+		{222E3D55-28C7-4DD8-8345-ADAF3659CB47}.Release|x64.Build.0 = Release|Any CPU
+		{222E3D55-28C7-4DD8-8345-ADAF3659CB47}.Release|x86.ActiveCfg = Release|Any CPU
+		{222E3D55-28C7-4DD8-8345-ADAF3659CB47}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

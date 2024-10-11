@@ -198,8 +198,6 @@ namespace Play.Edit {
         IPgCommandBase,
         IEnumerable<ILineRange>
     {
-        public static Guid _sGuid = new Guid( "{03F21BC8-F911-4FE4-931D-9EB9F7A15A10}" );
-
         protected readonly IPgViewSite   _oSiteView;
         protected readonly IPgViewNotify _oViewEvents;
 

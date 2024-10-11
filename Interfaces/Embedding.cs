@@ -45,6 +45,46 @@ namespace Play.Interfaces.Embedding {
 
             return ~iMid;
         }
+
+        /// <summary>
+        /// http://www.interact-sw.co.uk/iangblog/2007/12/13/natural-sorting
+        /// Ian Griffiths
+        /// Thursday 13 December, 2007
+        /// http://opensource.org/licenses/mit-license.php
+        /// </summary>
+        static public int NaturalCompare( string x, string y)
+        {
+            int iLen  = Math.Min( x.Length, y.Length );
+            int iComp = x.Length - y.Length;
+
+            if( iLen == 0 )
+                return iComp;
+
+            int iResult = 0;
+            int i       = 0;
+
+            // Try exact match the most characters in both strings...
+            while( true ) {
+                iResult = char.ToLower( x[i] ) - char.ToLower( y[i] );
+
+                if( i++ >= iLen-1 )
+                    break;
+
+                if (iResult != 0)
+                    return iResult;
+            }
+            // If we make it here. Then we made it to the last char
+            // of the stortest string. Or both strings are same length.
+
+            // If the last character in the shortest string is the
+            // same as it's opposite. Then the longest string wins!
+            if( iComp == 0 )
+                return iResult;
+
+            // Else the last char in shortest string determines sort.
+            return iComp;
+        }
+
     }
 
     // This probably belongs in my Play.Draw includes. Move it sometime.

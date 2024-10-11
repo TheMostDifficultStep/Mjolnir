@@ -532,6 +532,14 @@ namespace Play.Edit {
             }
         }
 
+        protected void CheckForNulls() {
+            foreach( Line oLine in _rgColumns ) {
+                if( oLine == null ) {
+                    throw new InvalidDataException("All Columns not loaded for table.");
+                }
+            }
+        }
+
         public IEnumerator<Line> GetEnumerator() {
             foreach( Line oLine in _rgColumns ) {
                 yield return oLine;
@@ -541,8 +549,6 @@ namespace Play.Edit {
         IEnumerator IEnumerable.GetEnumerator() {
             return GetEnumerator();
         }
-
-        public static int ColumnCount => throw new NotImplementedException();
     }
 
 }
