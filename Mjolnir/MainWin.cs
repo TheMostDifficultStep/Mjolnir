@@ -611,7 +611,7 @@ namespace Mjolnir {
             _oTopMenu.Items.Add( oFileMenu );
 
             List<ToolStripMenuItem> rgSubMenu = new List<ToolStripMenuItem>();
-            rgSubMenu.Add( new ToolStripMenuItem("File Man", BitmapCreateFromChar( "\xE12b" ), new EventHandler(this.OnDocNewFileMan )));
+            rgSubMenu.Add( new ToolStripMenuItem("File Man", BitmapCreateFromChar( "\xE15e" ), new EventHandler(this.OnDocNewFileMan )));
             rgSubMenu.Add( new ToolStripMenuItem("Html",     BitmapCreateFromChar( "\xE12b" ), new EventHandler(this.OnDocNewHtml  )));
             rgSubMenu.Add( new ToolStripMenuItem("Text",     BitmapCreateFromChar( "\xE185" ), new EventHandler(this.OnDocNewText  )));
             rgSubMenu.Add( new ToolStripMenuItem("M3u",      BitmapCreateFromChar( "\xE189" ), new EventHandler(this.OnDocNewM3u   )));

@@ -85,9 +85,9 @@ namespace Play.FileManager {
             if( !base.Initialize() )
                 return false;
 
-            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Pixels,  120, 1L ), (int)FileManager.FMRow.Col.Type ); 
+            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Pixels,   50, 1L ), (int)FileManager.FMRow.Col.Type ); 
             TextLayoutAdd( new LayoutRect( LayoutRect.CSS.None,     80, 1L ), (int)FileManager.FMRow.Col.Name ); 
-            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Pixels,  200, 1L ), (int)FileManager.FMRow.Col.Date );
+            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Pixels,  150, 1L ), (int)FileManager.FMRow.Col.Date );
             TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Pixels,  100, 1L ), (int)FileManager.FMRow.Col.Size ); 
 
             HyperLinks.Add( "DirJump", OnCpuJump );

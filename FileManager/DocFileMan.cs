@@ -83,22 +83,45 @@ namespace Play.FileManager {
                 if( strExt.CompareTo( ".txt" ) == 0 ) {
                     strExt = "\xe160";
                 }
+                if( strExt.CompareTo( ".scraps" ) == 0 ) {
+                    strExt = "\xe14d";
+                }
                 if( strExt.CompareTo( ".png" ) == 0 || 
-                    strExt.CompareTo( ".jpg" ) == 0 ||
+                    string.Compare( strExt, ".jpg", ignoreCase:true ) == 0 ||
                     strExt.CompareTo( ".jpeg" ) == 0 ||
                     strExt.CompareTo( ".webp" ) == 0 ) {
-                    strExt = "\xe2af";
+                    strExt = "\xe156"; // e2af person
+                }
+                if( strExt.CompareTo( ".htm" ) == 0 || 
+                    strExt.CompareTo( ".html" ) == 0 ) {
+                    strExt = "\xe12b";
+                }
+                if( strExt.CompareTo( ".zip" ) == 0 || 
+                    strExt.CompareTo( ".pdf" ) == 0 ) {
+                    strExt = "\xe295";
+                }
+                if( strExt.CompareTo( ".stdlog" ) == 0 || 
+                    strExt.CompareTo( ".netlog" ) == 0 ) {
+                    strExt = "\xe1d3";
+                }
+                if( strExt.CompareTo( ".weather" ) == 0 ) {
+                    strExt = "\xe286";
                 }
 
                 if( strExt.CompareTo( ".mp3" ) == 0 || 
                     strExt.CompareTo( ".m3u" ) == 0 ||
+                    strExt.CompareTo( ".music" ) == 0 ||
                     strExt.CompareTo( ".wav" ) == 0 ) {
                     strExt = "\xe189";
                 }
 
+                if( string.Compare( strExt, oFile.Extension, ignoreCase:true ) == 0 ) {
+                    strExt = "\xe11b"; // question mark.
+                }
+
                 CreateColumn( Col.Type, strExt );
                 CreateColumn( Col.Name, oFile.Name );
-				CreateColumn( Col.Date, oFile.LastWriteTime.ToLongTimeString() );
+				CreateColumn( Col.Date, oFile.LastWriteTime.ToShortDateString() );
                 CreateColumn( Col.Size, oFile.Length.ToString() );
 
                 CheckForNulls();
@@ -109,7 +132,7 @@ namespace Play.FileManager {
 
 
                 CreateColumn( Col.Name, oDir.Name );
-				CreateColumn( Col.Date, oDir.LastWriteTime.ToLongTimeString() );
+				CreateColumn( Col.Date, oDir.LastWriteTime.ToShortDateString() );
                 CreateColumn( Col.Type, "\xe188" );
                 CreateColumn( Col.Size, "--" );
 
