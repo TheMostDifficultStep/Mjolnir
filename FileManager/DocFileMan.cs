@@ -66,9 +66,9 @@ namespace Play.FileManager {
 
         public class FMRow : Row {
             public enum Col :int {
-                Name = 0,
+                Type = 0,
+                Name,
                 Date,
-                Type,
                 Size
             }
 
@@ -76,18 +76,32 @@ namespace Play.FileManager {
             public FMRow( FileInfo oFile ) {
                 _rgColumns = new Line[ColumnCount];
 
+                // TODO: Really cool to map to the assembly I'm likely to use to load!!
+                //       used the config file to get the icons.
+                string strExt = oFile.Extension;
+
+                if( strExt.CompareTo( ".txt" ) == 0 ) {
+                    strExt = "\xe160";
+                }
+                if( strExt.CompareTo( ".png" ) == 0 || 
+                    strExt.CompareTo( ".jpg" ) == 0 ||
+                    strExt.CompareTo( ".jpeg" ) == 0 ||
+                    strExt.CompareTo( ".webp" ) == 0 ) {
+                    strExt = "\xe2af";
+                }
+
+                if( strExt.CompareTo( ".mp3" ) == 0 || 
+                    strExt.CompareTo( ".m3u" ) == 0 ||
+                    strExt.CompareTo( ".wav" ) == 0 ) {
+                    strExt = "\xe189";
+                }
+
+                CreateColumn( Col.Type, strExt );
                 CreateColumn( Col.Name, oFile.Name );
 				CreateColumn( Col.Date, oFile.LastWriteTime.ToLongTimeString() );
-                // TODO: Really cool to map to the assembly I'm likely to use to load!!
-                //       or maybe lunix style permissions!!
-                CreateColumn( Col.Type, oFile.Extension );
                 CreateColumn( Col.Size, oFile.Length.ToString() );
 
                 CheckForNulls();
-            }
-
-            void CreateColumn( Col eCol, string strValue ) {
-				_rgColumns[(int)eCol] = new TextLine( (int)eCol, strValue );
             }
 
             public FMRow( DirectoryInfo oDir ) {
@@ -96,12 +110,16 @@ namespace Play.FileManager {
 
                 CreateColumn( Col.Name, oDir.Name );
 				CreateColumn( Col.Date, oDir.LastWriteTime.ToLongTimeString() );
-                CreateColumn( Col.Type, "-dir-" );
-                CreateColumn( Col.Size, string.Empty );
+                CreateColumn( Col.Type, "\xe188" );
+                CreateColumn( Col.Size, "--" );
 
                 CheckForNulls();
 
                 IsDirectory = true;
+            }
+
+            void CreateColumn( Col eCol, string strValue ) {
+				_rgColumns[(int)eCol] = new TextLine( (int)eCol, strValue );
             }
 
             public bool IsDirectory { get; } = false;
