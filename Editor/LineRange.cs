@@ -58,22 +58,21 @@ namespace Play.Edit {
                 _iColorIndex = value;
             }
         }
-        public virtual bool IsWord => false;
-        public bool         IsTerm => true;
+        public virtual bool   IsWord => false;
+        public virtual bool   IsTerm => true;
         public virtual string StateName => "Manual Color Range";
     } // end class
 
     /// <summary>
     /// A little class to stand in for a MemoryElem at times. 
     /// </summary>
-    public class WordRange : ColorRange, IPgWordRange {
+    public class WordRange : ColorRange {
         public WordRange( int iOffset, int iLength, int iColor ) : base( iOffset, iLength, iColor ) {
         }
 
-        public bool   IsWord    => false;
-        public bool   IsTerm    => true;
-
-        public string StateName => string.Empty;
+        public override bool   IsWord    => false;
+        public override bool   IsTerm    => true;
+        public override string StateName => string.Empty;
     }
 
     /// <summary>

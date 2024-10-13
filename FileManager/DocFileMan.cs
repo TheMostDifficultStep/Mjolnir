@@ -7,6 +7,7 @@ using Play.Drawing;
 using Play.Interfaces.Embedding;
 using Play.Edit;
 using Play.Rectangles;
+using Play.Parse;
 
 namespace Play.FileManager {
     /// <summary>
@@ -50,6 +51,19 @@ namespace Play.FileManager {
             throw new NotImplementedException();
         }
 
+    }
+
+    /// <summary>
+    /// A little class to stand in for a MemoryElem at times. 
+    /// </summary>
+    public class WordRange2 : ColorRange {
+        public WordRange2( int iOffset, int iLength, int iColor ) : 
+            base( iOffset, iLength, iColor ) 
+        {
+        }
+
+        public override bool   IsWord    => true;
+        public override string StateName => "dirjump";
     }
 
     /// <summary>
@@ -129,9 +143,9 @@ namespace Play.FileManager {
 				CreateColumn( DCol.Date, oFile.LastWriteTime.ToShortDateString() );
                 CreateColumn( DCol.Size, oFile.Length.ToString() );
 
-                this[DCol.Type].Formatting.Add( new ColorRange( 0,  10, 5 ) );
-
                 CheckForNulls();
+
+                this[DCol.Type].Formatting.Add( new ColorRange( 0,  10, 5 ) );
             }
 
             public FMRow( DirectoryInfo oDir ) {
@@ -146,7 +160,8 @@ namespace Play.FileManager {
                 CheckForNulls();
 
                 this[DCol.Name].Formatting.Add( new ColorRange( 0, 256,  1 ) );
-                this[DCol.Type].Formatting.Add( new ColorRange( 0,  10, 11 ) );
+              //this[DCol.Type].Formatting.Add( new ColorRange( 0,  10, 11 ) );
+                this[DCol.Type].Formatting.Add( new WordRange2( 0,  10, 11 ) );
 
                 IsDirectory = true;
             }

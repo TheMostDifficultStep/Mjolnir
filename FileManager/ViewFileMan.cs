@@ -110,9 +110,13 @@ namespace Play.FileManager {
 
         protected void OnDirJump( Row oRow, int iColumn, IPgWordRange oRange ) {
             try {
-                Line oText = oRow[iColumn];
+                Line    oText  = oRow[iColumn];
+                string? strDir = oText.ToString();
 
-                string strPath = Path.Combine( _oDocument.CurrentURL, oText.ToString() );
+                if( string.IsNullOrEmpty( strDir ) )
+                    return;
+
+                string strPath = Path.Combine( _oDocument.CurrentURL, strDir );
 
                 _oDocument.ReadDir( strPath );
             } catch( Exception oEx ) {
