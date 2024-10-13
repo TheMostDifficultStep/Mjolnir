@@ -563,6 +563,11 @@ namespace Play.Edit {
             }
         }
 
+        protected void Raise_DocUpdated() {
+            foreach( IPgEditEvents oListener in _rgListeners ) {
+                oListener.OnDocUpdated();
+            }
+        }
         public void Raise_CheckEvent( Row oRow ) {
             RegisterCheckEvent?.Invoke( oRow );
         }

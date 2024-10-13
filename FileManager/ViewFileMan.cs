@@ -110,7 +110,7 @@ namespace Play.FileManager {
 
         protected void OnDirJump( Row oRow, int iColumn, IPgWordRange oRange ) {
             try {
-                Line    oText  = oRow[iColumn];
+                Line    oText  = oRow[(int)FileManager.FMRow.DCol.Name];
                 string? strDir = oText.ToString();
 
                 if( string.IsNullOrEmpty( strDir ) )

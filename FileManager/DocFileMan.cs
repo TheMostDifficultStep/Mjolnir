@@ -63,7 +63,7 @@ namespace Play.FileManager {
         }
 
         public override bool   IsWord    => true;
-        public override string StateName => "dirjump";
+        public override string StateName => "DirJump";
     }
 
     /// <summary>
@@ -207,23 +207,19 @@ namespace Play.FileManager {
             return true;
         }
 
-        public void ReadDir( string strFilePath ) {
-            Clear();
-
+        public void ReadDir( string? strFilePath ) {
 			DirectoryInfo oDirectory;
 
             try {
                 if( Path.HasExtension( strFilePath ) )
-                    _strDirectory = Path.GetDirectoryName( strFilePath );
-                else
-                    _strDirectory = strFilePath;
+                    strFilePath = Path.GetDirectoryName( strFilePath );
 
-                if( string.IsNullOrEmpty( _strDirectory ) ) {
+                if( string.IsNullOrEmpty( strFilePath ) ) {
                     LogError( "Problem locating desired directory." );
                     return;
                 }
 
-                oDirectory = new DirectoryInfo( _strDirectory );
+                oDirectory = new DirectoryInfo( strFilePath );
 
                 ReadDir( oDirectory );
             } catch( Exception oEx ) {
@@ -244,6 +240,10 @@ namespace Play.FileManager {
 
         protected void ReadDir( DirectoryInfo oDir ) {
             try {
+                Clear();
+
+                _strDirectory = oDir.FullName;
+
                 List<FileInfo> rgFiles = new List<FileInfo>();
                 foreach( FileInfo oFile in oDir.GetFiles( "*.*", SearchOption.TopDirectoryOnly ) ) {
 					if( !oFile.Attributes.HasFlag( FileAttributes.Hidden)) {
@@ -278,7 +278,7 @@ namespace Play.FileManager {
 
                 RenumberAndSumate();
 
-                DoParse();
+                Raise_DocFormatted();
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( NullReferenceException ),
                                     typeof( IOException ),
