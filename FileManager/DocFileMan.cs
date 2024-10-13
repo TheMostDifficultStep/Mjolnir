@@ -64,6 +64,7 @@ namespace Play.FileManager {
     {
         public string HomeURL => Environment.GetFolderPath(Environment.SpecialFolder.Personal);
 
+        public readonly IPgStandardUI2 _oStdUI;
         public class FMRow : Row {
             public enum DCol :int {
                 Chck =0,
@@ -74,6 +75,8 @@ namespace Play.FileManager {
             }
 
             static int ColumnCount = Enum.GetValues(typeof(DCol)).Length;
+            public Line this[DCol eValue] => this[(int)eValue];
+
             public FMRow( FileInfo oFile ) {
                 _rgColumns = new Line[ColumnCount];
 
@@ -126,6 +129,8 @@ namespace Play.FileManager {
 				CreateColumn( DCol.Date, oFile.LastWriteTime.ToShortDateString() );
                 CreateColumn( DCol.Size, oFile.Length.ToString() );
 
+                this[DCol.Type].Formatting.Add( new ColorRange( 0,  10, 5 ) );
+
                 CheckForNulls();
             }
 
@@ -139,6 +144,9 @@ namespace Play.FileManager {
                 CreateColumn( DCol.Size, "--" );
 
                 CheckForNulls();
+
+                this[DCol.Name].Formatting.Add( new ColorRange( 0, 256,  1 ) );
+                this[DCol.Type].Formatting.Add( new ColorRange( 0,  10, 11 ) );
 
                 IsDirectory = true;
             }
@@ -156,6 +164,7 @@ namespace Play.FileManager {
 	    protected string? _strDirectory;
 
         public FileManager(IPgBaseSite oSiteBase) : base(oSiteBase) {
+            _oStdUI = (IPgStandardUI2)Services;
         }
 
 		public SKBitmap GetResource( string strName ) {

@@ -432,6 +432,11 @@ namespace Play.Edit {
             _rgLayout.Add( oInfo._oColumn );
             _rgTxtCol.Add( oInfo );
         }
+        public void InitColumns( List<ColumnInfo> rgColumns ) {
+            foreach( ColumnInfo oInfo in rgColumns ) {
+                TextLayoutAdd( oInfo );
+            }
+        }
 
         /// <summary>
         /// 

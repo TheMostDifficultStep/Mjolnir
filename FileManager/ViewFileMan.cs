@@ -78,12 +78,6 @@ namespace Play.FileManager {
 			Icon	   = _oDocument.GetResource( "icons8-script-96.png" );
         }
 
-        public void InitColumns( List<ColumnInfo> rgColumns ) {
-            foreach( ColumnInfo oInfo in rgColumns ) {
-                TextLayoutAdd( oInfo );
-            }
-        }
-
         /// <remarks>
         /// I want to push layout to the init phase so we could potentially
         /// load our layout from a file! ^_^
@@ -104,7 +98,7 @@ namespace Play.FileManager {
 
             InitColumns( rgCols );
 
-            HyperLinks.Add( "DirJump", OnCpuJump );
+            HyperLinks.Add( "DirJump", OnDirJump );
 
             return true;
         }
@@ -114,7 +108,7 @@ namespace Play.FileManager {
                                              typeof( IndexOutOfRangeException ),
                                              typeof( InvalidOperationException ) };
 
-        protected void OnCpuJump( Row oRow, int iColumn, IPgWordRange oRange ) {
+        protected void OnDirJump( Row oRow, int iColumn, IPgWordRange oRange ) {
             try {
                 Line oText = oRow[iColumn];
 
