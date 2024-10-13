@@ -1,12 +1,12 @@
-﻿using System.Data.Common;
-using System.IO;
+﻿using System.IO;
+using System.Reflection;
+
+using SkiaSharp;
 
 using Play.Drawing;
 using Play.Interfaces.Embedding;
 using Play.Edit;
 using Play.Rectangles;
-using SkiaSharp;
-using System.Reflection;
 
 namespace Play.FileManager {
     /// <summary>
@@ -65,14 +65,15 @@ namespace Play.FileManager {
         public string HomeURL => Environment.GetFolderPath(Environment.SpecialFolder.Personal);
 
         public class FMRow : Row {
-            public enum Col :int {
-                Type = 0,
+            public enum DCol :int {
+                Chck =0,
+                Type,
                 Name,
                 Date,
-                Size
+                Size,
             }
 
-            static int ColumnCount = Enum.GetValues(typeof(Col)).Length;
+            static int ColumnCount = Enum.GetValues(typeof(DCol)).Length;
             public FMRow( FileInfo oFile ) {
                 _rgColumns = new Line[ColumnCount];
 
@@ -119,10 +120,11 @@ namespace Play.FileManager {
                     strExt = "\xe11b"; // question mark.
                 }
 
-                CreateColumn( Col.Type, strExt );
-                CreateColumn( Col.Name, oFile.Name );
-				CreateColumn( Col.Date, oFile.LastWriteTime.ToShortDateString() );
-                CreateColumn( Col.Size, oFile.Length.ToString() );
+                CreateColumn( DCol.Chck, string.Empty );
+                CreateColumn( DCol.Type, strExt );
+                CreateColumn( DCol.Name, oFile.Name );
+				CreateColumn( DCol.Date, oFile.LastWriteTime.ToShortDateString() );
+                CreateColumn( DCol.Size, oFile.Length.ToString() );
 
                 CheckForNulls();
             }
@@ -130,18 +132,18 @@ namespace Play.FileManager {
             public FMRow( DirectoryInfo oDir ) {
                 _rgColumns = new Line[ColumnCount];
 
-
-                CreateColumn( Col.Name, oDir.Name );
-				CreateColumn( Col.Date, oDir.LastWriteTime.ToShortDateString() );
-                CreateColumn( Col.Type, "\xe188" );
-                CreateColumn( Col.Size, "--" );
+                CreateColumn( DCol.Chck, string.Empty );
+                CreateColumn( DCol.Name, oDir.Name );
+				CreateColumn( DCol.Date, oDir.LastWriteTime.ToShortDateString() );
+                CreateColumn( DCol.Type, "\xe188" );
+                CreateColumn( DCol.Size, "--" );
 
                 CheckForNulls();
 
                 IsDirectory = true;
             }
 
-            void CreateColumn( Col eCol, string strValue ) {
+            void CreateColumn( DCol eCol, string strValue ) {
 				_rgColumns[(int)eCol] = new TextLine( (int)eCol, strValue );
             }
 
@@ -263,7 +265,8 @@ namespace Play.FileManager {
                                     typeof( DirectoryNotFoundException ),
                                     typeof( System.Security.SecurityException ),
                                     typeof( ArgumentOutOfRangeException ),
-                                    typeof( PlatformNotSupportedException )
+                                    typeof( PlatformNotSupportedException ),
+                                    typeof( InvalidDataException )
                                   };
 				if( rgErrors.IsUnhandled( oEx ) )
 					throw;

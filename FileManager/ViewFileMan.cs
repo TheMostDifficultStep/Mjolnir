@@ -4,6 +4,7 @@ using Play.Edit;
 using Play.Interfaces.Embedding;
 using Play.Rectangles;
 using Play.Parse;
+using System.Data;
 
 namespace Play.FileManager {
     public class FileManController : 
@@ -77,6 +78,12 @@ namespace Play.FileManager {
 			Icon	   = _oDocument.GetResource( "icons8-script-96.png" );
         }
 
+        public void InitColumns( List<ColumnInfo> rgColumns ) {
+            foreach( ColumnInfo oInfo in rgColumns ) {
+                TextLayoutAdd( oInfo );
+            }
+        }
+
         /// <remarks>
         /// I want to push layout to the init phase so we could potentially
         /// load our layout from a file! ^_^
@@ -85,10 +92,17 @@ namespace Play.FileManager {
             if( !base.Initialize() )
                 return false;
 
-            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Pixels,   50, 1L ), (int)FileManager.FMRow.Col.Type ); 
-            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.None,     80, 1L ), (int)FileManager.FMRow.Col.Name ); 
-            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Pixels,  150, 1L ), (int)FileManager.FMRow.Col.Date );
-            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Pixels,  100, 1L ), (int)FileManager.FMRow.Col.Size ); 
+            int iTop = _rgLayout.Count;
+
+            List<ColumnInfo> rgCols = new List<ColumnInfo> {
+                new ColumnInfo( new LayoutRect( LayoutRect.CSS.Pixels,   20, 1L ), (int)FileManager.FMRow.DCol.Chck ),
+                new ColumnInfo( new LayoutRect( LayoutRect.CSS.Pixels,   50, 1L ), (int)FileManager.FMRow.DCol.Type ),       
+                new ColumnInfo( new LayoutRect( LayoutRect.CSS.None,     80, 1L ), (int)FileManager.FMRow.DCol.Name ),
+                new ColumnInfo( new LayoutRect( LayoutRect.CSS.Pixels,  150, 1L ), (int)FileManager.FMRow.DCol.Date ),
+                new ColumnInfo( new LayoutRect( LayoutRect.CSS.Pixels,  100, 1L ), (int)FileManager.FMRow.DCol.Size )
+            };
+
+            InitColumns( rgCols );
 
             HyperLinks.Add( "DirJump", OnCpuJump );
 

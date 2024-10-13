@@ -172,19 +172,18 @@ namespace Play.Edit {
     /// <summary>
     /// Might want to add cache info to this struct too... ?
     /// </summary>
-    public struct ColumnInfo {
-        public readonly SmartRect _oColumn;
+    public class ColumnInfo {
+        public readonly LayoutRect _oColumn;
+        public readonly int        _iDataIdx;
+
         public bool _fReadonly;
-        public int  _iCacheID;
-        public int  _iDataID;
+        public int  _iLayoutIdx;
 
-        public ColumnInfo( SmartRect rcRect, int iUIColumn, int? iDataColumn ) {
-            int iDataColumnValue = iDataColumn.HasValue ? iDataColumn.Value : iUIColumn;
-
+        public ColumnInfo( LayoutRect rcRect, int iDataColumn ) {
             _oColumn   = rcRect ?? throw new ArgumentNullException();
-            _iCacheID  = iUIColumn;        // index of TextColumn on display
-            _iDataID   = iDataColumnValue; // index of data row column representing.
+            _iDataIdx  = iDataColumn; // data row column.
             _fReadonly = false;
+            _iLayoutIdx = -1;
         }
     }
 
@@ -210,7 +209,7 @@ namespace Play.Edit {
 		protected readonly IPgStandardUI2        _oStdUI;
         protected readonly ScrollBar2            _oScrollBarVirt;
         protected readonly LayoutStack           _rgLayout;
-        private   readonly List<ColumnInfo>      _rgTxtCol = new(); // Might not match document columns! O.o
+        protected readonly List<ColumnInfo>      _rgTxtCol = new(); // Might not match document columns! O.o
 
         protected bool  _fReadOnly     = false;
         protected SizeF _szScrollBars  = new SizeF( .1875F, .1875F );
@@ -424,8 +423,14 @@ namespace Play.Edit {
         /// Cache Columns match the text columns directly.
         /// </summary>
         protected void TextLayoutAdd( LayoutRect oLayout, int iDataColumn ) {
-            _rgLayout.Add( oLayout );
-            _rgTxtCol.Add( new ColumnInfo( oLayout, _rgTxtCol.Count, iDataColumn ) );
+            TextLayoutAdd( new ColumnInfo( oLayout, iDataColumn ));
+        }
+
+        protected void TextLayoutAdd( ColumnInfo oInfo ) {
+            oInfo._iLayoutIdx = _rgLayout.Count;
+
+            _rgLayout.Add( oInfo._oColumn );
+            _rgTxtCol.Add( oInfo );
         }
 
         /// <summary>
