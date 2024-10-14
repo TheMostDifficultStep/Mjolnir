@@ -56,14 +56,24 @@ namespace Play.FileManager {
     /// <summary>
     /// A little class to stand in for a MemoryElem at times. 
     /// </summary>
-    public class WordRange2 : ColorRange {
-        public WordRange2( int iOffset, int iLength, int iColor ) : 
+    public class DirRange : ColorRange {
+        public DirRange( int iOffset, int iLength, int iColor ) : 
             base( iOffset, iLength, iColor ) 
         {
         }
 
         public override bool   IsWord    => true;
         public override string StateName => "DirJump";
+    }
+
+    public class FileRange : ColorRange {
+        public FileRange( int iOffset, int iLength, int iColor ) : 
+            base( iOffset, iLength, iColor ) 
+        {
+        }
+
+        public override bool   IsWord    => true;
+        public override string StateName => "FileJump";
     }
 
     /// <summary>
@@ -107,11 +117,13 @@ namespace Play.FileManager {
                 if( strExt.CompareTo( ".png" ) == 0 || 
                     string.Compare( strExt, ".jpg", ignoreCase:true ) == 0 ||
                     strExt.CompareTo( ".jpeg" ) == 0 ||
+                    strExt.CompareTo( ".gif" ) == 0 ||
                     strExt.CompareTo( ".webp" ) == 0 ) {
                     strExt = "\xe156"; // e2af person
                 }
-                if( strExt.CompareTo( ".htm" ) == 0 || 
-                    strExt.CompareTo( ".html" ) == 0 ) {
+                if( strExt.CompareTo( ".htm"  ) == 0 || 
+                    strExt.CompareTo( ".html" ) == 0 ||
+                    strExt.CompareTo( ".css"  ) == 0 ) {
                     strExt = "\xe12b";
                 }
                 if( strExt.CompareTo( ".zip" ) == 0 || 
@@ -145,7 +157,8 @@ namespace Play.FileManager {
 
                 CheckForNulls();
 
-                this[DCol.Type].Formatting.Add( new ColorRange( 0,  10, 5 ) );
+                this[DCol.Type].Formatting.Add( new FileRange( 0,  10, 5 ) );
+
             }
 
             public FMRow( DirectoryInfo oDir ) {
@@ -161,7 +174,7 @@ namespace Play.FileManager {
 
                 this[DCol.Name].Formatting.Add( new ColorRange( 0, 256,  1 ) );
               //this[DCol.Type].Formatting.Add( new ColorRange( 0,  10, 11 ) );
-                this[DCol.Type].Formatting.Add( new WordRange2( 0,  10, 11 ) );
+                this[DCol.Type].Formatting.Add( new DirRange( 0,  10, 11 ) );
 
                 IsDirectory = true;
             }

@@ -71,10 +71,13 @@ namespace Play.FileManager {
         public           static Guid GUID     => _sGuid;
         private readonly static Guid _sGuid   = new( "{D257D1AA-AC3E-4A0F-83A3-97C95AE12782}" );
 
-        protected readonly FileManager _oDocument;
+        protected readonly FileManager   _oDocument;
+        protected readonly IPgMainWindow _oShellWin;
 
         public ViewFileMan(IPgViewSite oViewSite, object oDocument) : base(oViewSite, oDocument) {
             _oDocument = (FileManager)oDocument;
+            _oShellWin = (IPgMainWindow)oViewSite.Host;
+
 			Icon	   = _oDocument.GetResource( "icons8-script-96.png" );
         }
 
@@ -98,7 +101,8 @@ namespace Play.FileManager {
 
             InitColumns( rgCols );
 
-            HyperLinks.Add( "DirJump", OnDirJump );
+            HyperLinks.Add( "DirJump",  OnDirJump );
+            HyperLinks.Add( "FileJump", OnFileJump );
 
             return true;
         }
@@ -119,6 +123,22 @@ namespace Play.FileManager {
                 string strPath = Path.Combine( _oDocument.CurrentURL, strDir );
 
                 _oDocument.ReadDir( strPath );
+            } catch( Exception oEx ) {
+                if( _rgErrors.IsUnhandled(oEx) )
+                    throw;
+            }
+        }
+        protected void OnFileJump( Row oRow, int iColumn, IPgWordRange oRange ) {
+            try {
+                Line    oText   = oRow[(int)FileManager.FMRow.DCol.Name];
+                string? strFile = oText.ToString();
+
+                if( string.IsNullOrEmpty( strFile ) )
+                    return;
+
+                string strPath = Path.Combine( _oDocument.CurrentURL, strFile );
+
+                _oShellWin.DocumentShow( strPath, Guid.Empty, fShow:true );
             } catch( Exception oEx ) {
                 if( _rgErrors.IsUnhandled(oEx) )
                     throw;
