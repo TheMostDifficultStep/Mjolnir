@@ -207,6 +207,17 @@ namespace Play.FileManager {
             return true;
         }
 
+        public void JumpToParentDir() {
+            if( string.IsNullOrEmpty( CurrentURL ) ) {
+                LogError( "Arrghg. Directory confusion" );
+                return;
+            }
+
+            string strPath = Path.Combine( CurrentURL, ".." );
+
+            ReadDir( strPath );
+        }
+
         public void ReadDir( string? strFilePath ) {
 			DirectoryInfo oDirectory;
 
@@ -240,6 +251,8 @@ namespace Play.FileManager {
 
         protected void ReadDir( DirectoryInfo oDir ) {
             try {
+                Raise_DocUpdateBegin( );
+
                 Clear();
 
                 _strDirectory = oDir.FullName;
@@ -278,7 +291,7 @@ namespace Play.FileManager {
 
                 RenumberAndSumate();
 
-                Raise_DocFormatted();
+                Raise_DocUpdateEnd( IPgEditEvents.EditType.Rows, null );
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( NullReferenceException ),
                                     typeof( IOException ),

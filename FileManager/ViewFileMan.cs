@@ -129,6 +129,9 @@ namespace Play.FileManager {
         }
 
         public override bool Execute(Guid gCommand) {
+            if( gCommand == GlobalCommands.JumpParent ) {
+                _oDocument.JumpToParentDir();
+            }
             return false;// none of the base operations are applicable.
         }
     }
