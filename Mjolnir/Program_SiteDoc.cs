@@ -69,7 +69,7 @@ namespace Mjolnir {
             protected string    _strFilePath = string.Empty; // Full path and name.
             protected FILESTATS _eFileStats  = FILESTATS.UNKNOWN;
 
-            protected readonly string _strFileExt;
+            public readonly string _strFileExt;
 
 			public static readonly Type[] _rgFileErrors = { 
 						typeof( ArgumentNullException ),
@@ -851,14 +851,14 @@ namespace Mjolnir {
         /// A persists differently from a normal doc browser. Usually persisting to a given
         /// file per directory. So let's override the Title Long/Short behavior 
         /// </summary>
-        public class DirBrowserSlot : 
+        public class DirSlot : 
             BaseSlot,
             IDocSlot
         {
             IPgLoadURL _oGuestLoad;
             IPgSaveURL _oGuestSave;
 
-            public DirBrowserSlot( Program oProgram, IPgController2 oController, string strFileExtn, int iID = -1 ) : 
+            public DirSlot( Program oProgram, IPgController2 oController, string strFileExtn, int iID = -1 ) : 
                 base( oProgram, oController, strFileExtn, iID ) 
             {
             }
@@ -869,7 +869,7 @@ namespace Mjolnir {
             /// of the object just in case of this problem.
             /// </summary>
 			public override string FilePath { 
-				get { return( _oGuestLoad.CurrentURL ); } 
+				get { return _oGuestLoad.CurrentURL; } 
 				set => base.FilePath = value; 
 			}
 
@@ -903,7 +903,7 @@ namespace Mjolnir {
                 base.GuestSet( value );
 
                 _oGuestLoad = (IPgLoadURL)value;
-                _oGuestSave = (IPgSaveURL)value;
+                _oGuestSave = value as IPgSaveURL;
             }
 
             public override bool InitNew() {
@@ -930,7 +930,7 @@ namespace Mjolnir {
             public bool Save( bool fRename ) {
                 if( _oGuestSave == null ) {
                     LogError( "Cannot persist " + Title, ". The object does not support IPgSaveURL." );
-                    return( false );
+                    return true;
                 }
 
                 _oGuestSave.Save();
@@ -944,7 +944,12 @@ namespace Mjolnir {
             /// Since we can perist thumbs. Let's check if dirty or not.
             /// </summary>
             public override bool IsDirty { 
-                get { return _oGuestSave.IsDirty; }
+                get { 
+                    if( _oGuestSave == null )
+                        return false;
+                    
+                    return _oGuestSave.IsDirty; 
+                }
             }
 
             public override void Notify( ShellNotify eEvent ) {

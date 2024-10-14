@@ -788,10 +788,16 @@ namespace Mjolnir {
 					if (string.IsNullOrEmpty(xmlDoc.InnerText) )
 						throw new InvalidOperationException( "filename innertext failure");
 
-					int iDocID = int.Parse(xmlDoc.GetAttribute("docid") );
+					int    iDocID  = int.Parse(xmlDoc.GetAttribute("docid") );
+                    string strExtn = xmlDoc.GetAttribute( "extn" );
+                    string strPath = xmlDoc.InnerText;
+
+                    if( !string.IsNullOrEmpty( strExtn ) ) {
+                        strPath += strExtn;
+                    }
 
 					// BUG: Need to add some code to validate Doc ID.
-					IDocSlot oDocSite = DocumentCreate( xmlDoc.InnerText, iDocID );
+					IDocSlot oDocSite = DocumentCreate( strPath, iDocID );
 
 					// If oDocSite is null, I should create a place holder document that you can use
 					// to edit the link or try again some time.
@@ -891,6 +897,11 @@ namespace Mjolnir {
 
 					xmlFile.SetAttribute( "docid", oDocSite.ID.ToString() );
                     xmlFile.InnerText = oDocSite.FilePath;
+
+                    // ImageViewer and FileManager are path only but...
+                    if( oDocSite is DirSlot oDirSite ) {
+                        xmlFile.SetAttribute( "extn", oDirSite._strFileExt );
+                    }
 
                     xmlDocs.AppendChild( xmlFile );
                 }
@@ -1020,7 +1031,7 @@ namespace Mjolnir {
                         oNewSite = new Program.TextSlot( this, oDocDesc.Controller, strFileExtn, iID);
                         break;
                     case var r when ( r == typeof( IPgLoadURL ) ):
-                        oNewSite = new Program.DirBrowserSlot( this, oDocDesc.Controller, strFileExtn, iID);
+                        oNewSite = new Program.DirSlot( this, oDocDesc.Controller, strFileExtn, iID);
                         break;
                     case var r when ( r == typeof( IPgLoad<BinaryReader> ) ):
                         oNewSite = new Program.BinarySlot( this, oDocDesc.Controller, strFileExtn, iID);

@@ -1228,6 +1228,7 @@ namespace Play.Edit {
             // Move the caret and reset the Advance.
             _oCacheMan.CaretAdvance( pntClick );
 
+            // Need to move this to mouse up, so I can detect a drag...
             if( e.Button == MouseButtons.Left && !IsCtrl( ModifierKeys ) ) {
                 if( IsInside( pntClick, out int iColumn ) ) {
                     if( !HyperLinkFind( iColumn, pntClick, fDoJump:true ) ) {
