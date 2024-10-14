@@ -167,16 +167,13 @@ namespace Play.Forms {
 			IPgFormBulkUpdates,
 			IDisposable
 		{
-			DocProperties        _oHost;
-            SortedSet<int>       _rgUniqueLines = new SortedSet<int>(); // What propert(y/ies) got updated.
-            List<IPgEditHandler> _rgHandlers = new List<IPgEditHandler>();
+			DocProperties  _oHost;
+            SortedSet<int> _rgUniqueLines = new SortedSet<int>(); // What propert(y/ies) got updated.
 
 			public Manipulator( DocProperties oDoc ) 
 			{
 				_oHost = oDoc ?? throw new ArgumentNullException();
-                foreach( IPgEditEvents oCall in _oHost._rgListeners ) {
-                    _rgHandlers.Add( oCall.CreateEditHandler() );
-                }
+                _oHost.Raise_DocUpdateBegin();
 			}
 
             ///<remarks>Normally this is where we would renumber the
@@ -185,10 +182,9 @@ namespace Play.Forms {
             ///call set's the "At" member...
             ///<seealso cref="AddProperty(string)"/>
 			public void Dispose() {
-                foreach( IPgEditHandler oCall in _rgHandlers ) {
-                    oCall.OnUpdated( EditType.ModifyElem, null );
-                }
                 _rgUniqueLines.Clear();
+
+                _oHost.Raise_DocUpdateEnd( IPgEditEvents.EditType.Rows, null );
                 _oHost.DoParse();
 			}
 
@@ -308,7 +304,7 @@ namespace Play.Forms {
                     oCaret.Offset = 0;
             }
 
-            sTrack.FinishUp( EditType.ModifyElem, _rgRows[iIndex] );
+            sTrack.FinishUp( IPgEditEvents.EditType.Column, _rgRows[iIndex] );
 
             DoParse();
         }
@@ -328,7 +324,7 @@ namespace Play.Forms {
                 }
             }
 
-            sTrack.FinishUp( EditType.ModifyElem, null );
+            sTrack.FinishUp( IPgEditEvents.EditType.Rows, null );
 
             DoParse();
         }
@@ -341,7 +337,7 @@ namespace Play.Forms {
 
                 List<Row> rgTemp = new() { _rgRows[iIndex] }; // BUG: experiment...
 
-                sTrack.FinishUp( EditType.ModifyElem, _rgRows[iIndex] );
+                sTrack.FinishUp( IPgEditEvents.EditType.Column, _rgRows[iIndex] );
                 DoParse();
             }
         }
@@ -356,7 +352,7 @@ namespace Play.Forms {
                     ValueBgColor.Add(iIndex, skBgColor.Value);
                 }
 
-                sTrack.FinishUp( EditType.ModifyElem, _rgRows[iIndex] );
+                sTrack.FinishUp( IPgEditEvents.EditType.Column, _rgRows[iIndex] );
                 DoParse();
             }
         }

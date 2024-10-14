@@ -93,42 +93,38 @@ namespace Monitor {
         }
 
         public bool InitNew() {
-            Append( new TermRow( string.Empty ) );
+            _rgRows.Insert( _rgRows.Count, new TermRow( string.Empty ) );
             return true;
         }
 
         public bool Load(TextReader oStream) {
-            Append( new TermRow( string.Empty ) );
+            _rgRows.Insert( _rgRows.Count, new TermRow( string.Empty ) );
             return true;
         }
         /// <summary>
         /// Appends a character at the end of the current last line.
         /// </summary>
-        /// <param name="cChar"></param>
         public void AppendChar( char cChar ) {
             if( cChar == '\n' ) {
-                Append( new TermRow( string.Empty ) );
+                Raise_DocUpdateBegin();
+                _rgRows.Insert( _rgRows.Count, new TermRow( string.Empty ) );
                 RenumberAndSumate();
+                Raise_DocUpdateEnd( IPgEditEvents.EditType.Rows, null );
                 return;
             }
             if( cChar == '\r' )
                 return;
 
             ReadOnlySpan<char> rgInsert = stackalloc char[1] { cChar };
-
-            Row  oRow  = _rgRows[ElementCount-1];
-            Line oLine = oRow[0];
+            Row                oRow     = _rgRows[ElementCount-1];
+            Line               oLine    = oRow[0];
             
-            List<IPgEditHandler> rgHandlers = new List<IPgEditHandler>();
-            foreach( IPgEditEvents oCall in _rgListeners ) {
-                rgHandlers.Add( oCall.CreateEditHandler() );
-            }
+            Raise_DocUpdateBegin();
+
             // Tack the new character at the end of the line.
             oLine.TryReplace( oLine.ElementCount, 0, rgInsert );
 
-            foreach( IPgEditHandler oCall in rgHandlers ) {
-                oCall.OnUpdated( EditType.ModifyElem, oRow );
-            }
+            Raise_DocUpdateEnd( IPgEditEvents.EditType.Column, oRow );
         }
     }
 

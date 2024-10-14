@@ -10,7 +10,6 @@ using SkiaSharp;
 using Play.Interfaces.Embedding;
 using Play.Parse;
 using Play.Rectangles;
-using System.Linq;
 
 namespace Play.Edit {
     public interface IPgCaretInfo<T> :
@@ -38,7 +37,9 @@ namespace Play.Edit {
     }
 
     public class CacheMultiColumn:         
-        IEnumerable<CacheRow>
+        IEnumerable<CacheRow>,
+        IPgEditEvents,
+        IPgCaretInfo<Row>
     {
         protected readonly ICacheManSite     _oSite;
         protected readonly IReadableBag<Row> _oSiteList;
@@ -47,43 +48,34 @@ namespace Play.Edit {
         protected readonly SmartRect       _oTextRect  = new SmartRect();
         protected readonly List<CacheRow>  _rgOldCache = new List<CacheRow>();
         protected readonly List<CacheRow>  _rgNewCache = new List<CacheRow>(); 
+        protected readonly TextLine        _oDummyLine = new TextLine( -2, string.Empty );
+        protected readonly ReadOnlyCollection<ColumnInfo> _rgColumnInfo;
 
-        protected readonly ReadOnlyCollection<ColumnInfo>  _rgColumnRects;
-        protected readonly TextLine         _oDummyLine = new TextLine( -2, string.Empty );
-        public             SelectionManager Selector { get; }
-
-        protected IPgFontRender Font       { get; }
-        protected IPgGlyph      GlyphLt    { get; } // Our end of line character.
-        public    int           LineHeight { get; } // Helps us determine scrolling distances.
-        public    int           RowSpacing { get; set; } = 1;
-        public    SKPointI      CaretSize  => new SKPointI( 2, LineHeight );
+        public    SelectionManager Selector   { get; }
+        protected IPgFontRender    Font       { get; }
+        protected IPgGlyph         GlyphLt    { get; } // Our end of line character.
+        public    int              LineHeight { get; } // Helps us determine scrolling distances.
+        public    int              RowSpacing { get; set; } = 1;
+        public    SKPointI         CaretSize  => new SKPointI( 2, LineHeight );
 
         protected Row   _oCaretRow; 
         protected int   _iCaretCol;
         protected int   _iCaretOff;
+        protected bool  _fCaretVisible;
         protected float _fAdvance;
 
         /// <seealso cref="CaretInfo" />
         /// <seealso cref="SelectionManager" />
-        protected class CaretTracker :
-            IPgCaretInfo<Row>
-        {
-            readonly CacheMultiColumn _oHost;
-
-            public CaretTracker( CacheMultiColumn oHost ) {
-                _oHost = oHost ?? throw new ArgumentNullException();
-            }
-
-            public Row Row    => _oHost._oCaretRow;
-            public int Column => _oHost._iCaretCol;
-            public int Offset { 
-                get => _oHost._iCaretOff;
-                set => _oHost._iCaretOff = value;
-            }
-            public int Length { 
-                get => 0;
-                set => throw new NotImplementedException(); 
-            }
+        /// <see cref="IPgCaretInfo{T}"/>
+        public Row Row    => _oCaretRow;
+        public int Column => _iCaretCol;
+        public int Offset { 
+            get => _iCaretOff;
+            set => _iCaretOff = value;
+        }
+        public int Length { 
+            get => 0;
+            set => throw new NotImplementedException(); 
         }
 
         protected class SelectionEnumerable :
@@ -406,73 +398,16 @@ namespace Play.Edit {
             }
         } // End class
 
-        /// <summary>
-        /// This is where you put the caret (and in the future, selections)
-        /// so that the editor can enumerate all the values and keep them
-        /// up to date.
-        /// </summary>
-        /// <remarks>
-        /// We need this object since we have to ask where the caret is
-        /// BEFORE the edit. AFTER the edit even if we use the existing cache, 
-        /// the local x,y of the caret comes from the new line measurements
-        /// and we end up with incorrect location information.
-        /// </remarks>
-        protected class EditHandler :
-            IEnumerable<IPgCaretInfo<Row>>,
-            IPgEditHandler
-        {
-            readonly CacheMultiColumn _oHost;
-            readonly bool             _fCaretVisible;
-
-            public EditHandler( CacheMultiColumn oHost ) {
-                _oHost         = oHost ?? throw new ArgumentNullException();
-                _fCaretVisible = oHost.IsCaretVisible( out SKPointI pntCaret );
-            }
-
-            public IEnumerator<IPgCaretInfo<Row>> GetEnumerator() {
-                yield return new CaretTracker( _oHost );
-            }
-
-            /// <summary>
-            /// This gets called at the end of the session.
-            /// </summary>
-            /// <param name="oRow">Null if the whole buffer should
-            /// be measured.</param>
-            public void OnUpdated( EditType eType, Row oRow ) {
-                try {
-                    if( eType == EditType.DeleteRow ) {
-                        if( oRow != null && _oHost._oCaretRow == oRow ) {
-                            if( _oHost._oSiteList[ _oHost.CaretAt ] is Row oNext ) {
-                                _oHost._oCaretRow = oNext;
-                            }
-                        }
-                        _oHost.CacheRepair( oRow, _fCaretVisible, false );
-                    } else {
-                        _oHost.CacheRepair( oRow, _fCaretVisible, oRow == null );
-                    }
-                } catch( Exception oEx ) {
-                    if( _rgStdErrors.IsUnhandled( oEx ) )
-                        throw;
-                    _oHost.LogError( "Edit update issue" );
-                }
-            }
-
-            IEnumerator IEnumerable.GetEnumerator() {
-                return GetEnumerator();
-            }
-        }
-
-
         /// <remarks>Need to sort out the LineHeight accessor since the cache elements might be
         /// variable height, Need to make sure I'm using this correctly. Consider calling it
         /// "LineScroll"</remarks>
         public CacheMultiColumn( ICacheManSite oSite ) :
 			base() 
 		{
-			_oSite         = oSite     ?? throw new ArgumentNullException( "Cache manager is a sited object.");
-            _oSiteList     = (IReadableBag<Row>)oSite;
-            _rgColumnRects = oSite.Columns ?? throw new ArgumentNullException( "Columns list from Edit Window is null!" );
-            Selector       = new SelectionManager( 20 ); // Argh, rgColumns.Count not set yet... :-/
+			_oSite        = oSite     ?? throw new ArgumentNullException( "Cache manager is a sited object.");
+            _oSiteList    = (IReadableBag<Row>)oSite;
+            _rgColumnInfo = oSite.Columns ?? throw new ArgumentNullException( "Columns list from Edit Window is null!" );
+            Selector      = new SelectionManager( 20 ); // Argh, rgColumns.Count not set yet... :-/
 
 			Font       = oSite.FontUse( oSite.FontCache( 12 ) )  ?? throw new ArgumentNullException( "Need a font to get things rolling." );
             GlyphLt    = Font.GetGlyph( 0x003c ); // we used to show carriage return as a '<' sign.
@@ -485,7 +420,7 @@ namespace Play.Edit {
         }
 
         /// <summary>
-        /// Return a location representative of the scroll bar. Always returns
+        /// Return a location representative for the scroll bar. Always returns
         /// a value, bounded by 0 or last element, UNLESS, the cache is empty.
         /// </summary>
         protected virtual Row GetTabOrderAtScroll() {
@@ -606,15 +541,6 @@ namespace Play.Edit {
             CacheWalker( oSeedCache, false );
         }
 
-        /// <summary>
-        /// This object will get called whenever there's an edit to
-        /// the document, such as a typed character or cut/paste.
-        /// It SHOULD NOT be called for format changes/reparse.
-        /// </summary>
-        public IPgEditHandler CreateDocEventObject() {
-            return new EditHandler( this );
-        }
-
         /// <seealso cref="CaretTracker" />
         public struct CaretInfo :
             IPgCaretInfo<Row> 
@@ -656,7 +582,7 @@ namespace Play.Edit {
                     //}
                     for( int iCacheCol=0; iCacheCol<oCacheRow.CacheList.Count; ++iCacheCol ) {
                         if( oCacheRow[iCacheCol] is IPgCacheWindow oCWElem ) {
-                            SmartRect rctColumn = _rgColumnRects[iCacheCol]._oColumn;
+                            SmartRect rctColumn = _rgColumnInfo[iCacheCol]._oColumn;
                             SmartRect rctSquare = new SmartRect();
 
                             rctSquare.SetRect( rctColumn.Left, oCacheRow.Top, rctColumn.Right, oCacheRow.Bottom );
@@ -1082,7 +1008,7 @@ namespace Play.Edit {
             try {
                 // Left top coordinate of the caret offset.
                 Point     pntCaretRelative  = oCaretCacheRow[_iCaretCol].GlyphOffsetToPoint( _iCaretOff );
-                SmartRect oColumn           = _rgColumnRects[_iCaretCol]._oColumn;
+                SmartRect oColumn           = _rgColumnInfo[_iCaretCol]._oColumn;
 
                 pntCaretTop = new SKPointI( pntCaretRelative.X + oColumn.Left,
                                             pntCaretRelative.Y + oCaretCacheRow.Top );
@@ -1164,13 +1090,13 @@ namespace Play.Edit {
             try {
                 Selector.IsSelection( oCacheRow.Row );
 
-                for( int i=0; i<oCacheRow.CacheList.Count && i<_rgColumnRects.Count; ++i ) {
+                for( int i=0; i<oCacheRow.CacheList.Count && i<_rgColumnInfo.Count; ++i ) {
                     IPgCacheMeasures oMeasure = oCacheRow.CacheList[i];
                     if( oMeasure is FTCacheLine oElem ) {
 				        oElem.Measure ( Font );
                         oElem.Colorize( Selector[i] );
                     }
-                    oMeasure.OnChangeSize( _rgColumnRects[i]._oColumn.Width );
+                    oMeasure.OnChangeSize( _rgColumnInfo[i]._oColumn.Width );
                 }
 			} catch( Exception oEx ) {
                 if( IsUnhandledStdRpt( oEx ) )
@@ -1181,7 +1107,7 @@ namespace Play.Edit {
         public bool IsSelecting => !Selector.IsFrozen;
 
         public void BeginSelect() {
-            Selector.SetPin( new CaretTracker( this ) );
+            Selector.SetPin( this );
         }
 
         public void EndSelect() {
@@ -1241,7 +1167,7 @@ namespace Play.Edit {
                 foreach( CacheRow oCacheRow in _rgOldCache ) {
                     Selector.IsSelection( oCacheRow.Row );
 
-                    for( int i=0; i<oCacheRow.CacheList.Count && i<_rgColumnRects.Count; ++i ) {
+                    for( int i=0; i<oCacheRow.CacheList.Count && i<_rgColumnInfo.Count; ++i ) {
                         IPgCacheMeasures oElem = oCacheRow.CacheList[i];
 
                         oElem.Colorize( Selector[i] );
@@ -1375,10 +1301,10 @@ namespace Play.Edit {
                 _iCaretCol += iDir;
 
                 if( _iCaretCol < 0 )
-                    _iCaretCol = _rgColumnRects.Count - 1;
+                    _iCaretCol = _rgColumnInfo.Count - 1;
                 if( _iCaretCol < 0 )
                     _iCaretCol = 0;
-                if( _iCaretCol >= _rgColumnRects.Count )
+                if( _iCaretCol >= _rgColumnInfo.Count )
                     _iCaretCol = 0;
 
                 _fAdvance  = 0;
@@ -1390,7 +1316,7 @@ namespace Play.Edit {
 
                     Point pntCaret = oCaretRow[_iCaretCol].GlyphOffsetToPoint( _iCaretOff );
 
-                    pntCaret.X += _rgColumnRects[_iCaretCol]._oColumn.Left;
+                    pntCaret.X += _rgColumnInfo[_iCaretCol]._oColumn.Left;
                     pntCaret.Y += oCaretRow.Top;
 
                     _oSite.OnCaretPositioned( new SKPointI( pntCaret.X, pntCaret.Y ), true );
@@ -1440,8 +1366,8 @@ namespace Play.Edit {
                         oCacheRow.Bottom >= pntPick.Y ) 
                     {
                         // If we hit any row, now see if pick is within any column
-                        for( int iColumn = 0; iColumn < _rgColumnRects.Count; iColumn++ ) {
-                            SmartRect rctColumn = _rgColumnRects[iColumn]._oColumn;
+                        for( int iColumn = 0; iColumn < _rgColumnInfo.Count; iColumn++ ) {
+                            SmartRect rctColumn = _rgColumnInfo[iColumn]._oColumn;
                             if( rctColumn.IsInside( pntPick.X, pntPick.Y ) ) {
                                 iReturn = iColumn;
                             }
@@ -1464,8 +1390,8 @@ namespace Play.Edit {
         /// <seealso cref="IsRowHit"/>
         public bool CaretAdvance( SKPointI pntPick ) {
             try {
-                for( int iColumn = 0; iColumn < _rgColumnRects.Count; iColumn++ ) {
-                    SmartRect rctColumn = _rgColumnRects[iColumn]._oColumn;
+                for( int iColumn = 0; iColumn < _rgColumnInfo.Count; iColumn++ ) {
+                    SmartRect rctColumn = _rgColumnInfo[iColumn]._oColumn;
                     // First find the column the pick is in. PointToCache will then search each cache row.
                     if( rctColumn.IsInside( pntPick.X, pntPick.Y ) ) {
                         CacheRow oCacheRow = PointToCache( iColumn, pntPick, out int iOffset );
@@ -1574,7 +1500,7 @@ namespace Play.Edit {
                     if( oCacheRow.Top    <= pntScreenPick.Y &&
                         oCacheRow.Bottom >= pntScreenPick.Y ) 
                     {
-                        SmartRect        oColumn  = _rgColumnRects[iColumn]._oColumn;
+                        SmartRect        oColumn  = _rgColumnInfo[iColumn]._oColumn;
                         IPgCacheMeasures oCache   = oCacheRow.CacheList[iColumn];
                         SKPointI         pntLocal = new SKPointI( pntScreenPick.X - oColumn.Left,
                                                                   pntScreenPick.Y - oColumn.Top );
@@ -1645,6 +1571,24 @@ namespace Play.Edit {
             CaretSlideWindow( oCaretCacheRow );
             CacheWalker     ( oCaretCacheRow );
         }
+
+        /// <see cref="IPgEditEvents">
+        /// <remarks>Might just make it so cache can send an
+        /// invalidate() message via the site and I wouldn't
+        /// need to implement IPgEditEvents on the Window!!</remarks>
+        public virtual void OnDocUpdateBegin() {
+            _fCaretVisible = IsCaretVisible( out SKPointI _ );
+        }
+
+        public virtual void OnDocUpdateEnd( IPgEditEvents.EditType eType, Row oRow ) {
+            CacheRepair( oRow, _fCaretVisible, fMeasure:true );
+        }
+
+        public virtual void OnDocFormatted() {
+            CacheReColor();
+        }
+
+        public IPgCaretInfo<Row> Caret2 => this;
 
     } // end class
 }

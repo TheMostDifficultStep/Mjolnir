@@ -335,7 +335,6 @@ namespace Play.Edit {
 
         protected readonly List<Row>   _rgRows = new();
         protected readonly List<bool>  _rgColumnWR; // is the column editable...
-        protected List<IPgEditHandler> _rgTemp      = new();
         protected List<IPgEditEvents>  _rgListeners = new ();
         protected Row                  _oRowHighlight;
         protected StdUIColors          _ePlayColor;
@@ -544,30 +543,29 @@ namespace Play.Edit {
             _rgListeners.Remove( e );
         }
 
-        /// <summary>
-        /// This is turning into our OnDocUpdated style call but it's
-        /// document local versus the per view updates that come from
-        /// IPgEditEvents. You can update the text immediately and then
-        /// schedule a parse.
-        /// </summary>
         public virtual void DoParse() {
             Raise_DocFormatted();
         }
 
-        /// <summary>
-        /// Call this AFTER a parse has occured.
-        /// </summary>
+        /// <see cref="IPgEditEvents" />
         protected void Raise_DocFormatted() {
             foreach( IPgEditEvents oListener in _rgListeners ) {
                 oListener.OnDocFormatted();
             }
         }
 
-        protected void Raise_DocUpdated() {
+        protected void Raise_DocUpdateBegin() {
             foreach( IPgEditEvents oListener in _rgListeners ) {
-                oListener.OnDocUpdated();
+                oListener.OnDocUpdateBegin();
             }
         }
+
+        protected void Raise_DocUpdateEnd( IPgEditEvents.EditType eEdit, Row oRow ) {
+            foreach( IPgEditEvents oListener in _rgListeners ) {
+                oListener.OnDocUpdateEnd( eEdit, oRow );
+            }
+        }
+
         public void Raise_CheckEvent( Row oRow ) {
             RegisterCheckEvent?.Invoke( oRow );
         }
@@ -685,26 +683,17 @@ namespace Play.Edit {
         protected struct TrackerEnumerable :         
             IEnumerable<IPgCaretInfo<Row>>
         {
-            readonly List<IPgEditHandler> _rgHandlers;
-            readonly EditMultiColumn      _oDoc;
+            readonly EditMultiColumn _oHost;
 
             public TrackerEnumerable(EditMultiColumn oHost ) {
-                _oDoc = oHost ?? throw new ArgumentNullException();
+                _oHost = oHost ?? throw new ArgumentNullException();
 
-                // Save us from creating this everytime...
-                _rgHandlers = oHost._rgTemp;
-                _rgHandlers.Clear();
-
-                foreach( IPgEditEvents oListener in oHost._rgListeners ) {
-                    _rgHandlers.Add( oListener.CreateEditHandler() );
-                }
+                _oHost.Raise_DocUpdateBegin();
             }
 
             public IEnumerator<IPgCaretInfo<Row>> GetEnumerator() {
-                foreach( IPgEditHandler oHandler in _rgHandlers ) {
-                    foreach( IPgCaretInfo<Row> oTracker in oHandler ) {
-                        yield return oTracker;
-                    }
+                foreach( IPgEditEvents oListener in _oHost._rgListeners ) {
+                    yield return oListener.Caret2;
                 }
             }
 
@@ -712,13 +701,10 @@ namespace Play.Edit {
                 throw new NotImplementedException();
             }
 
-            public void FinishUp( EditType eEdit, Row oRow = null ) {
-                foreach( IPgEditHandler oHandler in _rgHandlers ) {
-                    oHandler.OnUpdated( eEdit, oRow );
-                }
-                _rgHandlers.Clear();
-                _oDoc      .DoParse(); // At the very least invalidate. Maybe this should be OnUpdated... hmmm...
-                _oDoc      .IsDirty = true;
+            public void FinishUp( IPgEditEvents.EditType eEdit, Row oRow = null ) {
+                _oHost.Raise_DocUpdateEnd( eEdit, oRow );
+                _oHost.DoParse(); // NOTE: Normall would expect the doc to do this...
+                _oHost.IsDirty = true;
             }
         }
 
@@ -742,7 +728,7 @@ namespace Play.Edit {
                     }
                 }
 
-                oTE.FinishUp( EditType.ModifyElem, oRow );
+                oTE.FinishUp( IPgEditEvents.EditType.Column, oRow );
 
                 return true;
             } catch( Exception oEx ) {
@@ -779,7 +765,7 @@ namespace Play.Edit {
                     }
                 }
 
-                oTE.FinishUp( EditType.ModifyElem, oRow );
+                oTE.FinishUp( IPgEditEvents.EditType.Column, oRow );
 
                 return true;
             } catch( Exception oEx ) {
@@ -804,7 +790,7 @@ namespace Play.Edit {
 
                 RenumberAndSumate(); // Huh... This fixes all my bugs. :-/
 
-                oTE.FinishUp( EditType.DeleteRow, oRow );
+                oTE.FinishUp( IPgEditEvents.EditType.Rows, oRow );
 
                 return true;
             } catch( Exception oEx ) {
@@ -884,7 +870,7 @@ namespace Play.Edit {
                 }
                 RenumberAndSumate();
 
-                oTE.FinishUp( EditType.DeleteRow, oRowTop );
+                oTE.FinishUp( IPgEditEvents.EditType.Rows, oRowTop );
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( NullReferenceException ),
                                     typeof( IndexOutOfRangeException ),
@@ -910,22 +896,17 @@ namespace Play.Edit {
         public class BulkLoader :
             IDisposable 
         {
-            readonly EditMultiColumn      _oHost;
-                     bool                 _fDisposed  = false;
-            readonly List<IPgEditHandler> _rgHandlers = new List<IPgEditHandler>();
+            readonly EditMultiColumn _oHost;
+                     bool            _fDisposed = false;
             public BulkLoader( EditMultiColumn oHost ) {
                 _oHost = oHost ?? throw new ArgumentNullException();
-                foreach( IPgEditEvents oCall in _oHost._rgListeners ) {
-                    _rgHandlers.Add( oCall.CreateEditHandler() );
-                }
+                _oHost.Raise_DocUpdateBegin();
             }
 
             public void Dispose() {
                 if( !_fDisposed ) {
                     _oHost.RenumberAndSumate();
-                    foreach( IPgEditHandler oCall in _rgHandlers ) {
-                        oCall.OnUpdated( EditType.InsertRow, null );
-                    }
+                    _oHost.Raise_DocUpdateEnd( IPgEditEvents.EditType.Rows, null );
                     _oHost.DoParse();
                     _fDisposed = true;
                 }
@@ -941,25 +922,15 @@ namespace Play.Edit {
         }
 
         public void Clear() {
+            Raise_DocUpdateBegin();
+
             foreach( Row oRow in _rgRows ) {
                 oRow.At = -2;
                 oRow.Deleted = true;
             }
             _rgRows.Clear();
 
-            foreach( IPgEditEvents oCall in _rgListeners ) {
-                IPgEditHandler oHandle = oCall.CreateEditHandler();
-
-                oHandle.OnUpdated( EditType.DeleteRow, null );
-            }
-        }
-
-        public void InsertAt( int iRow, Row oNew ) {
-            _rgRows.Insert( iRow, oNew );
-        }
-
-        public void Append( Row oNew ) {
-            _rgRows.Insert( _rgRows.Count, oNew );
+            Raise_DocUpdateEnd( IPgEditEvents.EditType.Rows, null );
         }
     }
 }

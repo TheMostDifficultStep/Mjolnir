@@ -15,6 +15,7 @@ using Play.Interfaces.Embedding;
 using Play.Rectangles;
 using Play.Controls;
 using Play.Parse;
+using static Play.Edit.IPgEditEvents;
 
 namespace Play.Edit {
     public interface IPgDocTraits<T> {
@@ -71,24 +72,32 @@ namespace Play.Edit {
         void RaiseCheckEvent(); 
     }
 
-    public enum EditType {
-        ModifyElem, // And TextLine char replace/delete
-        DeleteRow,  // Entire row (or line in text editor) deleted.
-        InsertRow   // Not particularly actionable on bulk inserts... :-/
-    }
+    //public enum EditType {
+    //    ModifyElem, // And TextLine char replace/delete
+    //    DeleteRow,  // Entire row (or line in text editor) deleted.
+    //    InsertRow   // Not particularly actionable on bulk inserts... :-/
+    //}
 
-    public interface IPgEditHandler :
-        IEnumerable<IPgCaretInfo<Row>>
-    {
-        // Basically we might have info at the time of the edit start
-        // that we want to use when we are finishing up. So need this
-        // here and not on the greater window.
-        void OnUpdated( EditType eEdit, Row oRow ); 
-    }
+    //public interface IPgEditHandler :
+    //    IEnumerable<IPgCaretInfo<Row>>
+    //{
+    //    // Basically we might have info at the time of the edit start
+    //    // that we want to use when we are finishing up. So need this
+    //    // here and not on the greater window.
+    //    void OnUpdated( EditType eEdit, Row oRow ); 
+    //}
 
     public interface IPgEditEvents {
-        IPgEditHandler CreateEditHandler(); // Any kind of edit.
-        void           OnDocFormatted();    // Document gets formatted b/c of a parse...
+        public enum EditType {
+            Rows,   // rows were added or removed.
+            Column  // single column edit.
+          //Columns // multiple columns edited. (property page)
+        }
+        void           OnDocUpdateBegin();
+        void           OnDocUpdateEnd  ( EditType eType, Row oRow );
+        void           OnDocFormatted  (); 
+
+        IPgCaretInfo<Row> Caret2 { get; } // TODO: sort this out.
     }
 
         /* Move these to viewform.cs later */
@@ -654,25 +663,21 @@ namespace Play.Edit {
             }
         }
 
-        #region IPgEditEvents
-        public IPgEditHandler CreateEditHandler() {
-            return _oCacheMan.CreateDocEventObject();
+        /// <see cref="IPgEditEvents"/>
+        public virtual void OnDocUpdateBegin() {
+            _oCacheMan.OnDocUpdateBegin();
         }
 
-        /// <summary>
-        /// We remeasure since parse is typically caused by a
-        /// text change.
-        /// </summary>
+        public virtual void OnDocUpdateEnd( EditType eType, Row oRow ) {
+            _oCacheMan.OnDocUpdateEnd( eType, oRow );
+        }
+
         public virtual void OnDocFormatted() {
-            _oCacheMan.CacheReMeasure();
+            _oCacheMan.OnDocFormatted();
             Invalidate();
         }
 
-        public void OnDocUpdated() {
-            _oCacheMan.CacheReMeasure();
-            Invalidate();
-        }
-        #endregion
+        public IPgCaretInfo<Row> Caret2 => _oCacheMan.Caret2;
 
         public class SimpleRange :
             ILineRange {

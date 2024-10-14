@@ -56,7 +56,7 @@ namespace Play.SSTV {
 
             RenumberAndSumate(); // Each row must be numbered, else cache messes up.
 
-            oTE.FinishUp( EditType.DeleteRow );
+            oTE.FinishUp( IPgEditEvents.EditType.Rows );
 
             return true;
         }
@@ -245,7 +245,7 @@ namespace Play.SSTV {
 
             RenumberAndSumate();
 
-            oTE.FinishUp( EditType.InsertRow ); // This will call DoParse();
+            oTE.FinishUp( IPgEditEvents.EditType.Rows );
 
             RegisterOnLoaded?.Invoke();
 

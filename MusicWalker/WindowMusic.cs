@@ -114,17 +114,18 @@ namespace Play.MusicWalker {
 			ParsePropertyValues();
 
 			TrackerEnumerable sTracker = new (this);
-			sTracker.FinishUp( EditType.InsertRow, null );
+			sTracker.FinishUp( IPgEditEvents.EditType.Rows );
 
 			return true;
 		}
 
 		public void LoadDefaultProps() {
+			TrackerEnumerable sTracker = new (this);
+
 			_rgRows.Clear();
 			CreatePropertyPair( "No", "Properties" );
 			
-			TrackerEnumerable sTracker = new (this);
-			sTracker.FinishUp( EditType.InsertRow, null );
+			sTracker.FinishUp( IPgEditEvents.EditType.Rows, null );
 		}
 
 		/// <summary>

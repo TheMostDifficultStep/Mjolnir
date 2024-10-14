@@ -12,6 +12,7 @@ using Play.Interfaces.Embedding;
 using Play.Rectangles;
 using Play.Edit;
 using Play.Drawing;
+using Play.Parse;
 
 namespace Play.Controls {
     /// <summary>
@@ -299,6 +300,8 @@ namespace Play.Controls {
             return false;
         }
 
+        /// <see cref="IPgEditEvents"/>
+
         /// <summary>
         /// At present we are NOT an editble dropdown. So if there are
         /// any changes it's due to the primary document being edited
@@ -321,62 +324,46 @@ namespace Play.Controls {
             Invalidate();
         }
 
-        public IPgEditHandler CreateEditHandler() {
-            throw new NotImplementedException();
+        public void OnDocUpdateBegin() {
         }
 
-        /// <summary>
-        /// This is where you put the caret (and in the future, selections)
-        /// so that the editor can enumerate all the values and keep them
-        /// up to date.
-        /// </summary>
-        /// <remarks>
-        /// We need this object since we have to ask where the caret is
-        /// BEFORE the edit. AFTER the edit even if we use the existing cache, 
-        /// the local x,y of the caret comes from the new line measurements
-        /// and we end up with incorrect location information.
-        /// </remarks>
-        protected class EditHandler :
-            IEnumerable<IPgCaretInfo<Row>>,
-            IPgEditHandler
-        {
-            readonly ViewEditBox _oHost;
 
-            public EditHandler( ViewEditBox oHost ) {
-                _oHost = oHost ?? throw new ArgumentNullException();
-            }
+        public void OnDocUpdateEnd( IPgEditEvents.EditType eType, Row oRowIn ) {
+            try {
+                Row oRow = oRowIn;
 
-            public IEnumerator<IPgCaretInfo<Row>> GetEnumerator() {
-                yield break;
-            }
+                if( oRow == null ) 
+                    oRow =  _oDocBag[ _oTextLine.At ];
 
-            /// <summary>
-            /// This gets called at the end of the session.
-            /// </summary>
-            /// <param name="oRow">Null if the whole buffer should
-            /// be measured.</param>
-            public void OnUpdated( EditType eType, Row oRow ) {
-                try {
-                    if( oRow != null ) {
-                        if( oRow.At == _oHost._oTextLine.At ) {
-                            _oHost._oTextLine.TryReplace( oRow[0].AsSpan );
-                        }
-                    } else {
-                        oRow = _oHost._oDocBag[ _oHost._oTextLine.At ];
-                        _oHost._oTextLine.TryReplace( oRow[0].AsSpan );
-                    }
+                // Note: we expect our text on column zero...
+                _oTextLine.TryReplace( oRow[0].AsSpan );
 
-                    _oHost.ReMeasureText();
-                    _oHost.Invalidate();
-                } catch( NullReferenceException ) {
-                    _oHost.LogError( "ViewDropDown Edit Handler Error" );
-                }
-            }
+                ReMeasureText();
+                Invalidate   ();
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( NullReferenceException ),
+                                    typeof( IndexOutOfRangeException ),
+                                    typeof( ArgumentOutOfRangeException ) };
+                if( rgErrors.IsUnhandled(oEx) )
+                    throw;
 
-            IEnumerator IEnumerable.GetEnumerator() {
-                return GetEnumerator();
+                LogError( "ViewDropDown Edit Handler Error" );
             }
         }
+
+        protected class DumbCaret : IPgCaretInfo<Row> {
+            public Row Row    => null;
+            public int Column => 0;
+            public int Offset { get; set;}
+            public int Length {
+                get => 0;
+                set { throw new NotImplementedException(); }
+            }
+        }
+
+        static DumbCaret _oCaret = new DumbCaret(); 
+
+        public IPgCaretInfo<Row> Caret2 => _oCaret;
     }
 
     public enum WindowStyles : UInt32 {
