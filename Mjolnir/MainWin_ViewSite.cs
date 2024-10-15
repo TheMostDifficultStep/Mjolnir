@@ -102,8 +102,11 @@ namespace Mjolnir {
         /// Plus, I'd rather this object is a IPgParent and not CONTROL!.
         /// </summary>
         internal Control Guest {
-            get { return (_oViewControl); }
-			[Obsolete]set { GuestAssign( value ); }
+            get => _oViewControl;
+
+            // I was going to make this obsolete, but the GuestAssign
+            // function is protected... Others still use this call.
+			set => GuestAssign( value );
         }
 
 		/// <exception cref="ArgumentNullException" />
@@ -164,33 +167,6 @@ namespace Mjolnir {
         }
         
         internal SKBitmap Icon { get { return _oViewCommand.Icon; } }
-
-        /// <summary>
-        /// Go to the guest view and ask for it's bitmap to be used as the icon.
-        /// But here's the rub. You can create an icon handle from a bitmap then
-        /// call Icon.FromHandle() to create an Icon but that little shit won't 
-        /// take control of the handle. Then the lazy form simply takes a reference
-        /// to the given icon, meaning unless you clear the form icon first you 
-        /// can't destroy the handle you're stuck with. Sooooo....
-        /// </summary>
-    //    protected void CreateIcon() {
-    //        IntPtr ipHIcon = IntPtr.Zero;
-    //        try {
-    //            Bitmap oBitmap = (Bitmap)_oViewCommand.Iconic;
-				//if( oBitmap != null ) {
-				//	ipHIcon = oBitmap.GetHicon();
-				//	using( Icon oIcon = Icon.FromHandle( ipHIcon ) ) {
-				//		Icon = (Icon)oIcon.Clone();
-				//	}
-				//}
-    //        } catch( InvalidCastException ) {
-				//// this is kinda cool. If our image is something super modern and cool, I'll have
-				//// to create the icon differently. ^_^;
-    //        } finally {
-    //            if( ipHIcon != IntPtr.Zero )
-    //                MyExtensions.DestroyIcon( ipHIcon );
-    //        }
-    //    }
 
 		/// <summary>
 		/// Got to the view and ask it for all the tools.
@@ -282,8 +258,6 @@ namespace Mjolnir {
 				return( false );
 			}
 
-            //CreateIcon();
-
             _oViewControl.TabStop = false;
 
             return( true );
@@ -291,7 +265,7 @@ namespace Mjolnir {
 
         internal bool Save( XmlDocumentFragment oWriter ) {
 			try {
-				return( _oViewSaveXml.Save( oWriter ) );
+				return _oViewSaveXml.Save( oWriter );
 			} catch( Exception oEx ) {
 				Type[] rgErrors = { typeof( ArgumentException ), 
 					                typeof( ArgumentNullException ),
@@ -302,7 +276,7 @@ namespace Mjolnir {
 
 				LogError( "storage", "Couldn't save view to text writer" );
 			}
-			return( false );
+			return false;
         }
 
        /// <summary>
@@ -311,7 +285,7 @@ namespace Mjolnir {
         /// document as well.
         /// </summary>
         internal IDocSlot DocumentSite {
-            get{ return( _oDocSite ); }
+            get{ return _oDocSite; }
         }
 
         public virtual FILESTATS FileStatus { get { return( FILESTATS.UNKNOWN ); } }

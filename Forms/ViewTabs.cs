@@ -35,7 +35,6 @@ namespace Play.Forms {
     /// We don't inherit from FormsWindow b/c there is no need for the 
     /// tab text to be editable.
     /// </remarks>
-    /// <seealso cref="Mjolnir.WindowTextTabs"/>
     public abstract class TabControl : 
 		SKControl,
 		IPgLoad,
@@ -81,7 +80,9 @@ namespace Play.Forms {
                 _uStdFont = _oStdUI.FontCache(_oStdUI.FaceCache(@"C:\windows\fonts\consola.ttf"), 10, oInfo.pntDpi );
 
 			    foreach( Line oLine in Document ) {
-				    Layout.Add( CreateTab( oLine ) );
+                    if( AcceptItem( oLine ) ) {
+				        Layout.Add( CreateTab( oLine ) );
+                    }
 			    }
 
                 OnEvent( BUFFEREVENTS.MULTILINE );
@@ -90,6 +91,16 @@ namespace Play.Forms {
             } catch( ArgumentOutOfRangeException ) {
                 return false;
             }
+        }
+
+        /// <summary>
+        /// A little filter function to see if we really want to
+        /// add the item into our display. Override to change behavior.
+        /// </summary>
+        /// <param name="oLine"></param>
+        /// <returns></returns>
+        protected virtual bool AcceptItem( Line oLine ) {
+            return true;
         }
 
         protected override void Dispose( bool disposing ) {

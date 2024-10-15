@@ -25,6 +25,15 @@ namespace Mjolnir {
             _oHost = (MainWin)oSiteView.Host;
         }
 
+        protected override bool AcceptItem(Line oLine) {
+            if( oLine is ViewSlot oViewSlot ) {
+                // We'll hide the home page view in the future...
+                return oViewSlot.DocumentSite.Document != null;
+            }
+
+            return base.AcceptItem( oLine );
+        }
+
         public override Size GetPreferredSize( Size oSize ) {
             if( Layout.Count < 2 ) {
                 return new Size( oSize.Width, 0 );
