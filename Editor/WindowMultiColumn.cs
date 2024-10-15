@@ -344,6 +344,10 @@ namespace Play.Edit {
                     User32.SetCaretPos( pntCaret.X, pntCaret.Y );
             }
 
+            /// <summary>
+            /// Return an index into the Font cache. Face Rendered at a particular size.
+            /// </summary>
+            /// <param name="uiHeight">Height in points.</param>
             public uint FontCache( uint uiHeight ) {
                 return _oHost._oStdUI.FontCache( _oHost.StdFace, uiHeight, _oHost.GetDPI() );
             }

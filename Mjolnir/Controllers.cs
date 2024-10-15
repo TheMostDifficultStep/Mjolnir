@@ -311,9 +311,6 @@ namespace Mjolnir {
         public override IDisposable CreateView( IPgViewSite oBaseSite, object oDocument, Guid guidViewType ) {
             try {
                 switch( guidViewType ) {
-                    case var u when u == WindowTextTabs.ViewType:
-                        return new WindowTextTabs( oBaseSite, (Editor)oDocument );
-                     
                     case var r when r == EditWindow2.ViewType:
                     case var s when s == Guid.Empty:
                     default:
@@ -333,7 +330,6 @@ namespace Mjolnir {
 
         public override IEnumerator<IPgViewType> GetEnumerator() {
  	        yield return new ViewType( "Default",   EditWindow2.ViewType );
-            yield return new ViewType( "Test Tabs", WindowTextTabs.ViewType );
         }
 
         /// <summary>

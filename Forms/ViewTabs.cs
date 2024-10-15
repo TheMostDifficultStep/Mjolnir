@@ -32,8 +32,10 @@ namespace Play.Forms {
     /// Creates a flow layout of tabs from the document provided.
     /// </summary>
     /// <remarks>
-    /// We don't inherit from FormsWindow b/c there is no need for the tab text to be editable.
+    /// We don't inherit from FormsWindow b/c there is no need for the 
+    /// tab text to be editable.
     /// </remarks>
+    /// <seealso cref="Mjolnir.WindowTextTabs"/>
     public abstract class TabControl : 
 		SKControl,
 		IPgLoad,
