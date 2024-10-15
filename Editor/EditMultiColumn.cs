@@ -674,11 +674,10 @@ namespace Play.Edit {
             return null;
         }
         /// <summary>
-        /// The cache manager might have multiple objects that might be
-        /// affected by an edit. In order for us to better handle before/after
-        /// changes, we start the edit by getting a handler from it.
-        /// The handler enumerates all the elements that need to track
-        /// the edits on one window.
+        /// This object was part of a broader system for handling the
+        /// begin/end edit cycle that I felt was too cantankerous for
+        /// its minimal benefit. I still the remainder useful for abstracting
+        /// some of the behaviors and so keep it around.
         /// </summary>
         protected struct TrackerEnumerable :         
             IEnumerable<IPgCaretInfo<Row>>
@@ -698,7 +697,7 @@ namespace Play.Edit {
             }
 
             IEnumerator IEnumerable.GetEnumerator() {
-                throw new NotImplementedException();
+                return GetEnumerator();
             }
 
             public void FinishUp( IPgEditEvents.EditType eEdit, Row oRow = null ) {

@@ -81,6 +81,14 @@ namespace Play.FileManager {
 			Icon	   = _oDocument.GetResource( "icons8-script-96.png" );
         }
 
+        protected override void Dispose( bool fDisposing ) {
+            if( fDisposing ) {
+                _oDocument.Event_UpdateBanner -= OnUpdateBanner;
+                Icon?.Dispose();
+            }
+            base.Dispose( fDisposing );
+        }
+
         /// <remarks>
         /// I want to push layout to the init phase so we could potentially
         /// load our layout from a file! ^_^
@@ -104,7 +112,13 @@ namespace Play.FileManager {
             HyperLinks.Add( "DirJump",  OnDirJump );
             HyperLinks.Add( "FileJump", OnFileJump );
 
+            _oDocument.Event_UpdateBanner += OnUpdateBanner;
+
             return true;
+        }
+
+        private void OnUpdateBanner() {
+            _oSiteView.Notify( ShellNotify.BannerChanged );
         }
 
         static readonly Type[] _rgErrors = { typeof( NullReferenceException ),
