@@ -88,6 +88,7 @@ namespace Mjolnir {
         public IDocSlot     FindSlot      => _oDocSlot_Find;
         public IDocSlot     AlertSlot     => _oDocSlot_Alerts;
         public InternalSlot ClockSlot     => _oDocSlot_Clock;
+        public DirSlot      HomeDocSlot   { get; protected set; }
 
         // BUG: I'm dithering on FontMenu living on the program or just the main window.
 		public Font         FontMenu      { get; } = new Font( "Segoe UI Symbol", 11 ); // Segoe UI Symbol, So we can show our play/pause stuff.
@@ -646,6 +647,12 @@ namespace Mjolnir {
                 _oDocSlot_Clock.CreateDocument();
                 _oDocSlot_Clock.InitNew();
             }
+            {
+                PgDocDescr oDescr = GetController( ".fileman" );
+                HomeDocSlot = new DirSlot( this, oDescr.Controller, oDescr.FileExtn );
+                HomeDocSlot.CreateDocument();
+                HomeDocSlot.InitNew();
+            }
         }
 
         /// <summary>
@@ -755,6 +762,10 @@ namespace Mjolnir {
             // Forms act different than a document. They can't be empty.
             if( SearchSlot.Document is Editor oSearchKey ) {
                 oSearchKey.LineAppend( string.Empty, fUndoable:false ); 
+            }
+
+            if( _rgDocSites.Count == 0 ) {
+                MainWindow.ViewCreate( HomeDocSlot, Guid.Empty );
             }
 
 			_fSessionDirty = false;

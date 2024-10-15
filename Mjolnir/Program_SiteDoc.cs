@@ -907,7 +907,7 @@ namespace Mjolnir {
             }
 
             public override bool InitNew() {
-                return( _oGuestLoad.InitNew() );
+                return _oGuestLoad.InitNew();
             }
 
             /// <summary>

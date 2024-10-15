@@ -234,9 +234,11 @@ namespace Play.Forms {
         }
 
         public void OnLineNew(Line oLine) {
-            Layout.Add( CreateTab( oLine ) );
+            if( AcceptItem( oLine ) ) {
+                Layout.Add( CreateTab( oLine ) );
 
-            OnSizeChanged( new EventArgs() );
+                OnSizeChanged( new EventArgs() );
+            }
         }
 
         public void OnLineDelete(Line oLine) {

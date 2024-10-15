@@ -2077,12 +2077,24 @@ namespace Mjolnir {
         }
 
         /// <summary>
-        /// I want to make a home screen that will show all the .pvs files and allow you to open
-        /// those as well as other documents. Tho' there is an issue of what to do if click on 
-        /// ANOTHER .pvs. I should probably warn user, and then I'll have to close all the previous
-        /// files and open the new one... :-/
+        /// If we have the view show it else create it.
         /// </summary>
 		private void OnViewHome(object sender, EventArgs e) {
+            ViewSlot oHomeViewSlot = null;
+
+            foreach( Line oLine in _oDoc_ViewSelector ) {
+                if( oLine is ViewSlot oViewSlot ) {
+                    if( oViewSlot.DocumentSite == Document.HomeDocSlot ) {
+                        oHomeViewSlot = oViewSlot;
+                    }
+                }
+            }
+
+            if( oHomeViewSlot is null ) {
+                ViewCreate( Document.HomeDocSlot, Guid.Empty );
+            } else {
+                ViewSelect( oHomeViewSlot, true );
+            }
 		}
 
         private void OnViewNextAll( object sender, EventArgs e ) {
