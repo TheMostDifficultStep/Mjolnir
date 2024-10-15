@@ -78,7 +78,7 @@ namespace Play.FileManager {
             _oDocument = (FileManager)oDocument;
             _oShellWin = (IPgMainWindow)oViewSite.Host;
 
-			Icon	   = _oDocument.GetResource( "icons8-script-96.png" );
+			Icon	   = _oDocument.GetResource( "icons8-folder-94.png" );
         }
 
         protected override void Dispose( bool fDisposing ) {
