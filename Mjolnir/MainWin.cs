@@ -653,11 +653,6 @@ namespace Mjolnir {
 
             oFileMenu.DropDownItems.Add(new ToolStripMenuItem("Copy",   BitmapCreateFromChar( "\xE16D" ), rgSubMenu3 ) );
 
-            List<ToolStripMenuItem> rgSubMenuPlay = new List<ToolStripMenuItem>();
-            rgSubMenuPlay.Add(new ToolStripMenuItem("Sequential", BitmapCreateFromChar("\xE149"), new EventHandler(this.OnDocPlaySeqential)));
-            rgSubMenuPlay.Add(new ToolStripMenuItem("Random",     BitmapCreateFromChar("\xE14b"), new EventHandler(this.OnDocPlayRandom)));
-            oFileMenu.DropDownItems.Add(new ToolStripMenuItem("Play", BitmapCreateFromChar("\xE189"), rgSubMenuPlay.ToArray()));
-
             oFileMenu.DropDownItems.Add(new ToolStripSeparator() ); //---
 
             oFileMenu.DropDownItems.Add(new ToolStripMenuItem("Close",  BitmapCreateFromChar( "\xe10a" ), new EventHandler(this.OnFileClose), Keys.Control | Keys.W)); // s/b file close, close all views and file!
