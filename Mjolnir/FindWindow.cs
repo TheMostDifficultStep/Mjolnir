@@ -352,7 +352,9 @@ namespace Mjolnir {
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( ArgumentException ),
                                     typeof( ArgumentNullException ),
-                                    typeof( ArgumentOutOfRangeException ) };
+                                    typeof( ArgumentOutOfRangeException ),
+                                    typeof( RegexParseException ),
+                                    typeof( RegexParseError ) };
                 if( rgErrors.IsUnhandled( oEx ) )
                     throw;
 
