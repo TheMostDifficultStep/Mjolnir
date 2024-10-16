@@ -23,7 +23,7 @@ namespace Play.Edit {
         StdUIColors PlayHighlightColor { get; set; }
         bool        IsReadOnly   { get; set; } // Needed? IReadonlyBag vs....
 
-        event Action<T> RegisterHighLightEvent; // Only one line is high lighted.
+        event Action<T> Event_HighLight; // Only one line is high lighted.
     }
 
     public static class DocOpExtender {
@@ -72,21 +72,6 @@ namespace Play.Edit {
         void RaiseCheckEvent(); 
     }
 
-    //public enum EditType {
-    //    ModifyElem, // And TextLine char replace/delete
-    //    DeleteRow,  // Entire row (or line in text editor) deleted.
-    //    InsertRow   // Not particularly actionable on bulk inserts... :-/
-    //}
-
-    //public interface IPgEditHandler :
-    //    IEnumerable<IPgCaretInfo<Row>>
-    //{
-    //    // Basically we might have info at the time of the edit start
-    //    // that we want to use when we are finishing up. So need this
-    //    // here and not on the greater window.
-    //    void OnUpdated( EditType eEdit, Row oRow ); 
-    //}
-
     public interface IPgEditEvents {
         public enum EditType {
             Rows,   // rows were added or removed.
@@ -100,7 +85,7 @@ namespace Play.Edit {
         IPgCaretInfo<Row> Caret2 { get; } // TODO: sort this out.
     }
 
-        /* Move these to viewform.cs later */
+    /* Move these to viewform.cs later */
     public interface IPgCacheWindow {
         public Control Guest     { get; }
         public uint    MaxHeight { get; set; }
@@ -122,8 +107,6 @@ namespace Play.Edit {
         public int     LastOffset => 0;
         public float   UnwrappedWidth { get; protected set; } = 0;
         public bool    IsInvalid { get => false; set { } }
-
-
 
         public CacheControl( Control oGuest ) {
             Guest = oGuest ?? throw new ArgumentNullException();
@@ -250,8 +233,6 @@ namespace Play.Edit {
                 return _fReadOnly;
             }
         }
-
-        public bool IsCaretInCheckColumn => ( _oCacheMan.CaretColumn == _oDocChecks.CheckColumn );
 
         protected class CacheManSite :
             ICacheManSite,
@@ -381,7 +362,7 @@ namespace Play.Edit {
             _oDocList   = (IReadableBag    <Row>)oDocument;
             _oDocTraits = (IPgDocTraits    <Row>)oDocument;
             _oDocOps    = (IPgDocOperations<Row>)oDocument;
-            _oDocChecks = (IPgDocCheckMarks)     oDocument;
+            _oDocChecks = (IPgDocCheckMarks     )oDocument;
 
             _oSiteView   = oViewSite;
             _oViewEvents = oViewSite.EventChain ?? throw new ArgumentException( "Site.EventChain must support IPgViewSiteEvents" );
@@ -513,24 +494,20 @@ namespace Play.Edit {
             }
 
             _oDocOps   .ListenerAdd( this );
-            _oDocTraits.RegisterHighLightEvent += _oDocTraits_OnHighLightEvent;
+            _oDocTraits.Event_HighLight += DocTraits_OnHighLight;
 
             if( this.ContextMenuStrip == null ) {
                 ContextMenuStrip oMenu = new ContextMenuStrip();
                 oMenu.Items.Add( new ToolStripMenuItem( "Cut",   null, OnCut,   Keys.Control | Keys.X ) );
                 oMenu.Items.Add( new ToolStripMenuItem( "Copy",  null, OnCopy,  Keys.Control | Keys.C ) );
                 oMenu.Items.Add( new ToolStripMenuItem( "Paste", null, OnPaste, Keys.Control | Keys.V ) );
-              //oMenu.Items.Add( new ToolStripMenuItem( "Jump",  null, this.OnJump,  Keys.Control | Keys.J ) );
                 this.ContextMenuStrip = oMenu;
             }
 
-
-            //_oCacheMan.CaretReset( _oDocList[0], 0 );
-            // can't reset, not ready yet, but might want the cursor at 0,0 so to speak... :-/
             return true;
         }
 
-        private void _oDocTraits_OnHighLightEvent(Row oRow) {
+        private void DocTraits_OnHighLight(Row oRow) {
             if( Focused && oRow != null ) {
                 _oCacheMan.SetCaretPositionAndScroll( oRow.At, 0, 0, true );
             }
@@ -777,8 +754,8 @@ namespace Play.Edit {
             base.OnLostFocus( e );
 
             _oScrollBarVirt.Show( SHOWSTATE.Inactive );
+            _oViewEvents   .NotifyFocused( false );
 
-            _oViewEvents.NotifyFocused( false );
             User32.DestroyCaret();
 
             Invalidate();
@@ -891,7 +868,6 @@ namespace Play.Edit {
             }
         }
 
-        public static bool IsCtrlKey( Keys oKey ) => ( oKey & Keys.Control ) != 0;
         public struct RangeStruct :
             IColorRange 
         {
@@ -1187,6 +1163,7 @@ namespace Play.Edit {
             _oCacheMan.CaretAdvance( pntClick );
 
             try {
+                // See if want to double click select a word.
                 if( IsInside( pntClick, out int iColumn ) ) {
                     CacheMultiColumn.CaretInfo? sCaret = _oCacheMan.CopyCaret();
 

@@ -342,7 +342,7 @@ namespace Play.Edit {
         protected string               _strCheckValue = "\x2714";
         protected string               _strCheckClear = string.Empty;
 
-        public event Action<Row> RegisterHighLightEvent;
+        public event Action<Row> Event_HighLight;
         public event Action<Row> RegisterCheckEvent; // Events when check marks occur.
 
         public IPgParent Parentage => _oSiteBase.Host;
@@ -363,7 +363,7 @@ namespace Play.Edit {
                 _oRowHighlight = value; 
                 Raise_DocFormatted();
                 if( value != null ) {
-                    RegisterHighLightEvent?.Invoke( value );
+                    Event_HighLight?.Invoke( value );
                 }
             }
         }
