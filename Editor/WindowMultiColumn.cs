@@ -1126,19 +1126,6 @@ namespace Play.Edit {
             }
         }
 
-        protected override void OnMouseMove(MouseEventArgs e) {
-            base.OnMouseMove( e );
-
-            SKPointI pntMouse = new SKPointI( e.X, e.Y );
-
-            CursorUpdate( pntMouse, e.Button );
-            if( _oCacheMan.IsSelecting ) {
-                _oCacheMan.CacheReColor();
-                _oCacheMan.CaretAdvance(pntMouse);
-                Invalidate();
-            }
-        }
-
         public static bool IsCtrl( Keys sKey ) {
             return (ModifierKeys & Keys.Control) != 0;
         }
@@ -1219,7 +1206,20 @@ namespace Play.Edit {
                     Invalidate();
                 }
             }
+        }
 
+        protected override void OnMouseMove(MouseEventArgs e) {
+            base.OnMouseMove( e );
+
+            SKPointI pntMouse = new SKPointI( e.X, e.Y );
+
+            CursorUpdate( pntMouse, e.Button );
+
+            if( _oCacheMan.IsSelecting ) {
+                _oCacheMan.CacheReColor();
+                _oCacheMan.CaretAdvance(pntMouse);
+                Invalidate();
+            }
         }
 
         #region IPgTextView

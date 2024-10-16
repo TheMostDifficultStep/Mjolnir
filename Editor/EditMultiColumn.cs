@@ -702,7 +702,7 @@ namespace Play.Edit {
 
             public void FinishUp( IPgEditEvents.EditType eEdit, Row oRow = null ) {
                 _oHost.Raise_DocUpdateEnd( eEdit, oRow );
-                _oHost.DoParse(); // NOTE: Normall would expect the doc to do this...
+                _oHost.DoParse();
                 _oHost.IsDirty = true;
             }
         }
