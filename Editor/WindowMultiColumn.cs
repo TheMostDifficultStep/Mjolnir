@@ -310,7 +310,7 @@ namespace Play.Edit {
             }
 
             public void OnRefreshComplete(float flProgress, float flVisiblePercent) {
-                _oHost._oScrollBarVirt.Refresh( flProgress, flVisiblePercent );
+                _oHost._oScrollBarVirt.Refresh( flVisiblePercent, flProgress );
 				_oHost.Invalidate();
             }
 

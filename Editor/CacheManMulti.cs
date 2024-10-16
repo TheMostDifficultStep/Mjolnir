@@ -575,6 +575,9 @@ namespace Play.Edit {
             return new CaretInfo( this );
         }
 
+        /// <summary>
+        /// If there are window objects as elements then we need to move those specifically.
+        /// </summary>
         protected void MoveWindows() {
             try {
                 foreach( CacheRow oCacheRow in _rgOldCache ) {
@@ -983,12 +986,14 @@ namespace Play.Edit {
             bool fCaretVisible = IsCaretNear( oCaret, out SKPointI pntCaret );
 
             float flPercent = 1;
+            float flProgres = 0;
 
             if( _oSite.TabCount > 0 ) {
-                flPercent = _rgOldCache.Count / _oSite.TabCount;
+                flPercent = _rgOldCache.Count / (float)_oSite.TabCount;
+                flProgres = iBottomRow        / (float)_oSite.TabCount;
             }
-            _oSite.OnRefreshComplete( iBottomRow, _rgOldCache.Count / flPercent );
-            _oSite.OnCaretPositioned( pntCaret,   fCaretVisible );
+            _oSite.OnRefreshComplete( flProgres, flPercent );
+            _oSite.OnCaretPositioned( pntCaret,  fCaretVisible );
         }
 
         /// <summary>
