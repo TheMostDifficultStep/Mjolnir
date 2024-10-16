@@ -319,6 +319,8 @@ namespace Play.Edit {
             /// If you hide the caret, that seems to destroy it, so
             /// in that case we just move it off screen. :-/
             /// </summary>
+            /// <remarks>Remember the cursor won't show until the
+            /// window gets focus. So won't see it while searching.</remarks>
             /// <param name="pntCaret"></param>
             /// <param name="fVisible"></param>
             public void OnCaretPositioned( SKPointI pntCaret, bool fVisible ) {
@@ -674,23 +676,26 @@ namespace Play.Edit {
         }
 
         /// <summary>
+        /// Search the current column that the user is in. 
+        /// </summary>
+        /// <remarks>
         /// TODO: This is for the system text find dialog. However I notice
         /// I'm not starting at the cursor line but just at the top
         /// of the document. Probably should fix that...
-        /// </summary>
+        /// </remarks>
         public IEnumerator<ILineRange> GetEnumerator() {
             SimpleRange oRange = new SimpleRange();
 
             foreach( Row oRow in _oDocEnum ) {
                 if( _oCacheMan.CaretColumn < _rgTxtCol.Count ) {
-                    foreach( Line oLine in oRow ) {
-                        oRange.Line   = oLine;
-                        oRange.Offset = 0;
-                        oRange.Length = oLine.ElementCount;
-                        oRange.At     = oRow .At;
+                    Line oLine = oRow[_oCacheMan.CaretColumn];
 
-                        yield return oRange;
-                    }
+                    oRange.Line   = oLine;
+                    oRange.Offset = 0;
+                    oRange.Length = oLine.ElementCount;
+                    oRange.At     = oRow .At;
+
+                    yield return oRange;
                 }
             }
         }
@@ -1227,6 +1232,7 @@ namespace Play.Edit {
         }
 
         #region IPgTextView
+        /// <see cref="IPgTextView" />
         public TextPosition Caret {
             get {
                 CacheMultiColumn.CaretInfo? sCaret = _oCacheMan.CopyCaret();
