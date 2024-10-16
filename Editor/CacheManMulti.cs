@@ -66,7 +66,10 @@ namespace Play.Edit {
 
         /// <seealso cref="CaretInfo" />
         /// <seealso cref="SelectionManager" />
-        /// <see cref="IPgCaretInfo{T}"/>
+        /// <seealso cref="IPgCaretInfo{T}"/>
+
+        // I can return myself as a caret. I might just
+        // box this up into an object.
         public Row Row    => _oCaretRow;
         public int Column => _iCaretCol;
         public int Offset { 

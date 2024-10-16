@@ -197,6 +197,7 @@ namespace Play.Edit {
         protected readonly IPgDocTraits    <Row> _oDocTraits;
         protected readonly IPgDocOperations<Row> _oDocOps;
         protected readonly IPgDocCheckMarks      _oDocChecks;
+
         protected readonly CacheMultiColumn      _oCacheMan;
 		protected readonly IPgStandardUI2        _oStdUI;
         protected readonly ScrollBar2            _oScrollBarVirt;
@@ -381,7 +382,7 @@ namespace Play.Edit {
             }
             DPI = new SKPoint( oInfo.pntDpi.X, oInfo.pntDpi.Y );
 
-            StdFace = StdUI.FaceCache(@"C:\windows\fonts\consola.ttf");
+            StdFace = StdUI.FaceCache(@"C:\windows\fonts\seguiemj.ttf"); // consola
 
             _oCacheMan = CreateCacheMan();
 
@@ -661,7 +662,7 @@ namespace Play.Edit {
             Invalidate();
         }
 
-        public IPgCaretInfo<Row> Caret2 => _oCacheMan.Caret2;
+        public IPgCaretInfo<Row> Caret2 => _oCacheMan;
 
         public class SimpleRange :
             ILineRange {
