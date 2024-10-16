@@ -806,17 +806,26 @@ namespace Play.Edit {
         enum InsertAt { TOP,BOTTOM };
 
         /// <summary>
-        /// First remove all deleted lines. BUG: This might
-        /// delete the line with the cursor and we'll 
-        /// really lose track of where we are. 
+        /// First remove all deleted lines that might be presently
+        /// cached. Also, check if the data row that we are pointing
+        /// to got deleted as well!!! Depending on how damaged our
+        /// cache is we might be down to scroll position to recover. 
         /// </summary>
         protected void CacheFlushDeleted() {
             try {
                 _rgNewCache.Clear();
 
                 foreach( CacheRow oCRow in _rgOldCache ) {
-                    if( !oCRow.Row.Deleted )
+                    Row oDRow = oCRow.Row;
+
+                    if( !oDRow.Deleted )
                         _rgNewCache.Add( oCRow );
+
+                    if( oDRow == _oCaretRow ) {
+                        _oCaretRow = null;
+                        _iCaretOff = 0;
+                        // Leave column intact.
+                    }
                 }
 
                 _rgOldCache.Clear();
@@ -972,14 +981,6 @@ namespace Play.Edit {
                 _oSite.OnRefreshComplete( 1, 1 );
                 _oSite.OnCaretPositioned( new SKPointI( -1000,-1000), false );
                 return;
-            }
-
-            if( oCaret == null || oCaret.Row.Deleted ) {
-                oCaret = _rgOldCache[0];
-
-                _oCaretRow = oCaret.Row;
-                _iCaretCol = 0;
-                _iCaretOff = 0;
             }
 
             int  iBottomRow    = ( oBottom == null ) ? 0 : oBottom.At;

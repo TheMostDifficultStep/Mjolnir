@@ -315,14 +315,17 @@ namespace Play.Edit {
             }
 
             /// <summary>
-            /// If you hide the caret, that seems to destroy it.
-            /// So the we just move it off screen. :-/
+            /// If you hide the caret, that seems to destroy it, so
+            /// in that case we just move it off screen. :-/
             /// </summary>
             /// <param name="pntCaret"></param>
             /// <param name="fVisible"></param>
             public void OnCaretPositioned( SKPointI pntCaret, bool fVisible ) {
-                if( _oHost.Focused )
+                if( _oHost.Focused ) {
                     User32.SetCaretPos( pntCaret.X, pntCaret.Y );
+                } else {
+                    User32.SetCaretPos( -20, 0 );
+                }
             }
 
             /// <summary>
