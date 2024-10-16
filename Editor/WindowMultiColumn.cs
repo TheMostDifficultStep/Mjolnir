@@ -515,7 +515,7 @@ namespace Play.Edit {
 
         private void DocTraits_OnHighLight(Row oRow) {
             if( Focused && oRow != null ) {
-                _oCacheMan.SetCaretPositionAndScroll( oRow.At, 0, 0, true );
+                _oCacheMan.SetCaretPositionAndScroll( oRow.At, 0, 0, 0, true );
             }
         }
 
@@ -1252,10 +1252,10 @@ namespace Play.Edit {
                         _oCacheMan.ScrollToCaret();
                         break;
                     case SCROLLPOS.TOP:
-                        _oCacheMan.SetCaretPositionAndScroll( 0, _oCacheMan.CaretColumn, _oDocList.First() );
+                        _oCacheMan.SetCaretPositionAndScroll( 0, _oCacheMan.CaretColumn, _oDocList.First(), 0 );
                         break;
                     case SCROLLPOS.BOTTOM: 
-                        _oCacheMan.SetCaretPositionAndScroll( 0, _oCacheMan.CaretColumn, _oDocList.Final() );
+                        _oCacheMan.SetCaretPositionAndScroll( 0, _oCacheMan.CaretColumn, _oDocList.Final(), 0 );
                         break; 
                 }
             } catch( ArgumentOutOfRangeException ) {
@@ -1264,7 +1264,7 @@ namespace Play.Edit {
         }
 
         public bool SelectionSet(int iLine, int iOffset, int iLength) {
-            return _oCacheMan.SetCaretPositionAndScroll( iLine, _oCacheMan.CaretColumn, iOffset );
+            return _oCacheMan.SetCaretPositionAndScroll( iLine, _oCacheMan.CaretColumn, iOffset, iLength );
         }
 
         public void SelectionClear() {

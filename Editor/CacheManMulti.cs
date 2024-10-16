@@ -1533,10 +1533,14 @@ namespace Play.Edit {
         /// <summary>
         /// Move the caret to a new position. Usually as a result of moving the
         /// caret to some formatting/hyperlink/mouse position.
+        /// TODO: Just make this thing take a IMemoryRange or something...
         /// </summary>
         /// <seealso cref="ScrollToCaret"/>
         /// <exception cref="ArgumentOutOfRangeException" />
-        public bool SetCaretPositionAndScroll( int iDataRow, int iColumn, int iOffset, bool fMeasure = false ) {
+        public bool SetCaretPositionAndScroll( 
+            int iDataRow, int iColumn, int iOffset, 
+            int iLength, bool fMeasure = false 
+        ) {
             try {
                 Row  oDataRow = _oSiteList[ iDataRow ];
                 Line oLine    = oDataRow[iColumn];
@@ -1559,6 +1563,9 @@ namespace Play.Edit {
 
                 CaretSlideWindow ( oCaretCacheRow );
                 CacheWalker( oCaretCacheRow, fMeasure );
+
+                Selector.SetWord( Caret2, new ColorRange( iOffset, iLength ) );
+                CacheReColor();
             } catch( Exception oEx ) {
                 if( IsUnhandledStdRpt( oEx ) )
                     throw;

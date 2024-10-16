@@ -121,7 +121,7 @@ namespace Monitor {
 
                         // Jump to column 1. It will have a value even if it
                         // is a data line.
-                        if( !_oCacheMan.SetCaretPositionAndScroll( oTry.At, 1, 0 ) )
+                        if( !_oCacheMan.SetCaretPositionAndScroll( oTry.At, 1, 0, 0 ) )
                             LogError( "Couldn't jump to desired location. :-/" );
                         break;
                     }
