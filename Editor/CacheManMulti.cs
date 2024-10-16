@@ -818,13 +818,14 @@ namespace Play.Edit {
                 foreach( CacheRow oCRow in _rgOldCache ) {
                     Row oDRow = oCRow.Row;
 
-                    if( !oDRow.Deleted )
+                    if( oDRow.Deleted ) {
+                        if( oDRow == _oCaretRow ) {
+                            _oCaretRow = null;
+                            _iCaretOff = 0;
+                            // Leave column intact.
+                        }
+                    } else {
                         _rgNewCache.Add( oCRow );
-
-                    if( oDRow == _oCaretRow ) {
-                        _oCaretRow = null;
-                        _iCaretOff = 0;
-                        // Leave column intact.
                     }
                 }
 
