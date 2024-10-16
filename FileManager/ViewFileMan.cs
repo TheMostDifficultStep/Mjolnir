@@ -165,6 +165,11 @@ namespace Play.FileManager {
         public override bool Execute(Guid gCommand) {
             if( gCommand == GlobalCommands.JumpParent ) {
                 _oDocument.JumpToParentDir();
+                return true;
+            }
+            if( gCommand == GlobalCommands.Copy ) {
+                ClipboardCopyTo();
+                return true;
             }
             return false;// none of the base operations are applicable.
         }
