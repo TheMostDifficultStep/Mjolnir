@@ -85,6 +85,8 @@ namespace Play.SSTV {
                 throw new ArgumentOutOfRangeException("Can't use None for TX.");
             }
 
+            Raise_DocUpdateBegin();
+
             DDRow oSelected = null;
 
             foreach( DDRow oRow in _rgRows ) {
@@ -103,7 +105,7 @@ namespace Play.SSTV {
             }
 
             // Do NOT sent a check event. 
-            DoParse();
+            Raise_DocUpdateEnd( IPgEditEvents.EditType.Column, null );
 
             return true;
         }

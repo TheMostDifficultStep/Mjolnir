@@ -309,17 +309,7 @@ namespace Play.Controls {
         /// </summary>
         /// <seealso cref="InitNew()"/>
         public virtual void OnDocFormatted() {
-            Row oRow = _oDocChecks.CheckedRow;
-            
-            if( oRow != null ) {
-                _oTextLine.TryReplace( 0, _oTextLine.ElementCount, oRow[1].AsSpan ); // replace the text.
-                _oTextLine.Summate( oRow.At, 0 );
-            } else {
-                _oTextLine.TryReplace( 0, _oTextLine.ElementCount, "-no selection-" );
-                _oTextLine.Summate( -2, 0 );
-            }
-
-            ReMeasureText();
+            _oCacheLine.Colorize( (ILineRange)null ); // Add selection when have it.
 
             Invalidate();
         }
@@ -330,13 +320,15 @@ namespace Play.Controls {
 
         public void OnDocUpdateEnd( IPgEditEvents.EditType eType, Row oRowIn ) {
             try {
-                Row oRow = oRowIn;
-
-                if( oRow == null ) 
-                    oRow =  _oDocBag[ _oTextLine.At ];
-
-                // Note: we expect our text on column zero...
-                _oTextLine.TryReplace( oRow[0].AsSpan );
+                Row oRow = _oDocChecks.CheckedRow;
+            
+                if( oRow != null ) {
+                    _oTextLine.TryReplace( 0, _oTextLine.ElementCount, oRow[1].AsSpan ); // replace the text.
+                    _oTextLine.Summate( oRow.At, 0 );
+                } else {
+                    _oTextLine.TryReplace( 0, _oTextLine.ElementCount, "-no selection-" );
+                    _oTextLine.Summate( -2, 0 );
+                }
 
                 ReMeasureText();
                 Invalidate   ();
