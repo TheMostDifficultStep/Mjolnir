@@ -463,7 +463,7 @@ namespace Play.Edit {
                     char cRigh = Line[oRighCluster.SourceRange.Offset];
 
                     if( cLeft == 'j' ) {
-                        oLeftCluster.AdvanceOffs += 3;
+                        oLeftCluster.AdvanceOffs += 2;
                     }
                     if( oFR.GetKerning( uiLeftGlyph, uiRighGlyph, out SKPoint pntKern ) ) {
                         oLeftCluster.AdvanceOffs += pntKern.X;

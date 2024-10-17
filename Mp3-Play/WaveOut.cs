@@ -292,7 +292,7 @@ namespace Play.Sound {
 		protected WAVEFORMATEX        _oFormat;
 		protected IntPtr              _hWave             = IntPtr.Zero;
 		protected readonly int        _iHeaderCapacity   = 42;   // Bigger, longer play between interruptions, but longer bleed out.
-		protected readonly uint       _uiSamplesPerHeader = 1024; // Was 42/512.
+		protected readonly uint       _uiSamplesPerHeader = 2024; // Was 42/512.
 		protected List<ManagedHeader> _rgHeaders         = new ();
 		protected uint			      _uiWaitInMs; // Bleed time.
 
