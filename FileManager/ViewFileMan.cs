@@ -4,7 +4,6 @@ using Play.Edit;
 using Play.Interfaces.Embedding;
 using Play.Rectangles;
 using Play.Parse;
-using System.Data;
 
 namespace Play.FileManager {
     public class FileManController : 

@@ -101,7 +101,7 @@ namespace Play.Edit {
                 if( iIndex < 0 )
                     iIndex = ~iIndex; // But if miss, this element is on the closest edge.
 
-				return _rgClusters[iIndex].Source.Offset; 
+				return _rgClusters[iIndex].SourceRange.Offset; 
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( ArgumentOutOfRangeException ),
                                     typeof( NullReferenceException ) };

@@ -187,7 +187,7 @@ namespace Play.Edit {
     /// </summary>
     public interface IPgGlyph {
         UInt32     FaceIndex   { get; } // index to the face index from freetype.
-        UInt32     Glyph       { get; }
+        UInt32     GlyphID       { get; }
         SKBitmap   Image       { get; }
         PgGlyphPos Coordinates { get; }
         UInt32     CodePoint   { get; }
@@ -202,6 +202,8 @@ namespace Play.Edit {
     public interface IPgFontRender {
         uint     LineHeight { get; } // Ascenders + decenders.
         IPgGlyph GetGlyph( UInt32 uiCodePoint );
+
+        bool     GetKerning( UInt32 uiGlyphLeft, UInt32 uiGlyphRight, out SKPoint pntOut );
     }
 
     public interface IPgStandardUI2 : IPgStandardUI {

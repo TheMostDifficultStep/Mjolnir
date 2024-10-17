@@ -188,5 +188,30 @@ extern "C" {
         return 0;
     }
 
+    /*
+        FT_KERNING_DEFAULT  Return grid-fitted kerning distances in 26.6 fractional pixels.
+        FT_KERNING_UNFITTED Return un-grid-fitted kerning distances in 26.6 fractional pixels.
+        FT_KERNING_UNSCALED Return the kerning vector in original font units.   
+    */
+
+    FONTMANAGER_API int PG_Get_Kerning(
+        FT_Face     face,
+        DWORD32     left_glyph,
+        DWORD32     right_glyph,
+        DWORD32     kern_mode,
+        INT32 *     iX,
+        INT32 *     iY )
+    {
+        FT_Vector pntKern; 
+
+        FT_Error error = FT_Get_Kerning(face, left_glyph, right_glyph, kern_mode, &pntKern);
+        if( error ) return 7;
+
+        *iX = pntKern.x;
+        *iY = pntKern.y;
+
+        return 0;
+    }
+
 }
 

@@ -7,6 +7,8 @@ using SkiaSharp;
 
 using Play.Interfaces.Embedding;
 using Play.Edit;
+using OpenTK.Audio.OpenAL;
+using System.Drawing;
 
 namespace Mjolnir {
     // Copied from freetype.h if it changes, we're boned.
@@ -61,11 +63,14 @@ namespace Mjolnir {
 
         [DllImport( _dllLocation, EntryPoint = "PG_Face_CurrentGlyphMapData", SetLastError = true )]
         public static extern int PG_Face_CurrentGlyphMapData( IntPtr face, FTGlyphPos * pGlyphPos, FTGlyphBmp * pGlyphBmp );
+
+        [DllImport( _dllLocation, EntryPoint = "PG_Get_Kerning", SetLastError = true )]
+        public static extern int PG_Get_Kerning( IntPtr face, UInt32 uiLeftGlyph, UInt32 uiRigthGlyph, UInt32 uiMode, Int32 * uiX, Int32 * uiY  );
     }
 
     public class GlyphInfo : IPgGlyph {
         public uint FaceIndex { get; }
-        public uint Glyph     { get; }
+        public uint GlyphID     { get; }
 
         public SKBitmap   Image       { get; }
         public PgGlyphPos Coordinates { get; }
@@ -86,7 +91,7 @@ namespace Mjolnir {
         public GlyphInfo( uint uiFaceIndex, uint uiCodePoint, uint uiGlyph, SKBitmap skGlyphBmp, FTGlyphPos ftGlyphPos )
         {
             FaceIndex   = uiFaceIndex;
-            Glyph       = uiGlyph;
+            GlyphID       = uiGlyph;
             CodePoint   = uiCodePoint;
             Image       = skGlyphBmp;
             CodeLength  = 1; // default set UTF32 length. 1 32 bit value.
@@ -280,7 +285,23 @@ namespace Mjolnir {
                 }
                 throw new ApplicationException( "Couldn't get current gen'd glyph: " + iError.ToString() );
             }
+
         }
+        public bool GetKerning( UInt32 uiGlyphLeft, UInt32 uiGlyphRight, out SKPoint pntKern ) {
+            unsafe {
+                Int32 iX, iY;
+
+                int iError = FreeType2API.PG_Get_Kerning( Handle, uiGlyphLeft, uiGlyphRight, 0, &iX, &iY );
+                if( iError != 0 ) {
+                    pntKern = new SKPoint( 0, 0 );
+                    return false;
+                }
+
+                pntKern = new SKPoint( iX/64, iY/64 );
+                return true;
+            }
+        }
+
         /// <summary>Call SetSize first to set the going size of the glyphs being generated.</summary>
         /// <seealso cref="SetSize" />
         /// <remarks>I'm hacking the tab character here. If I allowed the glyph coordinates to be 
@@ -392,11 +413,11 @@ namespace Mjolnir {
         /// <remarks>This is an internal function for the manager. You don't
         /// get font fall back here.</remarks>
         internal bool GlyphLoad( uint uiCode, out IPgGlyph oGlyph ) {
-            // First see if we've already rendered one.
+            // First see if we've already rendered one. BUG: Should use a dictionary...
             foreach( IPgGlyph oTry in _rgRendered ) {
                 if( oTry.CodePoint == uiCode) {
                     oGlyph = oTry;
-                    return oTry.Glyph != 0;
+                    return oTry.GlyphID != 0;
                 }
             }
 
@@ -408,11 +429,15 @@ namespace Mjolnir {
             _rgRendered.Add( oGlyph );
 
             // got something, it is zero if it is a box.
-            return oGlyph.Glyph != 0;
+            return oGlyph.GlyphID != 0;
         }
 
         public IPgGlyph GetGlyph(uint uiCodePoint) {
             return Manager.GlyphFrom( this, uiCodePoint );
+        }
+
+        public bool GetKerning( UInt32 uiGlyphLeft, UInt32 uiGlyphRight, out SKPoint pntKern ) {
+            return Face.GetKerning( uiGlyphLeft, uiGlyphRight, out pntKern );
         }
     }
 

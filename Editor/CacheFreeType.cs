@@ -76,8 +76,8 @@ namespace Play.Edit {
 
         public int ColorIndex { get; set; }
 
-        public MemoryRange Glyphs; // This points to the glyphs array start/length of the glyphs in this cluster.
-        public MemoryRange Source; // 
+        public MemoryRange GlyphsRange; // This points to the glyphs array start/length of the glyphs in this cluster.
+        public MemoryRange SourceRange; // 
 
         public int  Segment       { get; set; }
         public bool IsVisible     { get; set; } = true; 
@@ -90,10 +90,10 @@ namespace Play.Edit {
         public PgCluster( int iGlyphIndex ) {
             Coordinates  = new PgGlyphPos();
 
-            Glyphs.Offset = iGlyphIndex;
-            Glyphs.Length = 0;
-            Source.Offset = 0;
-            Source.Length = 0;
+            GlyphsRange.Offset = iGlyphIndex;
+            GlyphsRange.Length = 0;
+            SourceRange.Offset = 0;
+            SourceRange.Length = 0;
 
             ColorIndex   = 0;
             Segment      = 0;
@@ -103,7 +103,7 @@ namespace Play.Edit {
         /// Enumerate the glyphs that make up this cluster.
         /// </summary>
         public IEnumerator<int> GetEnumerator() {
-            for( int i = Glyphs.Offset; i < Glyphs.Offset + Glyphs.Length; ++i ) {
+            for( int i = GlyphsRange.Offset; i < GlyphsRange.Offset + GlyphsRange.Length; ++i ) {
                 yield return i;
             }
         }
@@ -360,7 +360,7 @@ namespace Play.Edit {
             if( oCluster == null )
                 throw new ArgumentNullException();
 
-            for( int i=oCluster.Glyphs.Offset; i<oCluster.Glyphs.Offset + oCluster.Glyphs.Length; ++i ) {
+            for( int i=oCluster.GlyphsRange.Offset; i<oCluster.GlyphsRange.Offset + oCluster.GlyphsRange.Length; ++i ) {
                 yield return _rgGlyphs[i];
             }
         }
@@ -408,7 +408,7 @@ namespace Play.Edit {
 
           //oCluster.Coordinates    = oGlyph.Coordinates; DO NOT SET!
             oCluster.IsVisible      = false;
-            oCluster.Glyphs.Length  = 1;
+            oCluster.GlyphsRange.Length  = 1;
 
             _rgClusters.Add( oCluster );
             _rgGlyphs  .Add( oGlyph ); // use space glyph, but codepoint LF.
@@ -432,14 +432,49 @@ namespace Play.Edit {
             for( int i = 0; i<_rgClusters.Count; ++i ) {
                 PgCluster oCluster = _rgClusters[i];
 
-                oCluster.Source.Offset = iSrcOffset; // _rgClusterMap.Count; 
-                for( int j = oCluster.Glyphs.Offset; j < oCluster.Glyphs.Offset + oCluster.Glyphs.Length; ++j ) {
+                oCluster.SourceRange.Offset = iSrcOffset; // _rgClusterMap.Count; 
+                for( int j = oCluster.GlyphsRange.Offset; j < oCluster.GlyphsRange.Offset + oCluster.GlyphsRange.Length; ++j ) {
                     iSrcOffset += _rgGlyphs[j].CodeLength;
                     for( int k = 0; k < _rgGlyphs[j].CodeLength; ++k ) {
                         _rgClusterMap.Add( i );
                     }
-                    oCluster.Source.Length += (int)_rgGlyphs[j].CodeLength;
+                    oCluster.SourceRange.Length += (int)_rgGlyphs[j].CodeLength;
                 }
+            }
+        }
+
+        /// <summary>
+        /// This is my first attempt at kerning. It turns out for the seguiemj.ttf
+        /// font it's not kerning specifically for "jpg". The j and p are squished
+        /// together. So I hard coded it just to see if my system is working in general
+        /// and it is!! So looks like something up with how I'm using Free Type...
+        /// </summary>
+        /// <param name="oFR"></param>
+        protected void Update_Kerning( IPgFontRender oFR ) {
+            try {
+                for( int i=0; i< _rgClusters.Count - 1; ++i ) {
+                    PgCluster oLeftCluster = _rgClusters[i];
+                    PgCluster oRighCluster = _rgClusters[i+1];
+
+                    uint uiLeftGlyph = _rgGlyphs[oLeftCluster.GlyphsRange.Offset].GlyphID;
+                    uint uiRighGlyph = _rgGlyphs[oRighCluster.GlyphsRange.Offset].GlyphID;
+
+                    char cLeft = Line[oLeftCluster.SourceRange.Offset];
+                    char cRigh = Line[oRighCluster.SourceRange.Offset];
+
+                    if( oFR.GetKerning( uiLeftGlyph, uiRighGlyph, out SKPoint pntKern ) ) {
+                        oLeftCluster.AdvanceOffs += pntKern.X;
+                    }
+                    if( cLeft == 'j' && cRigh == 'p' ) {
+                        oLeftCluster.AdvanceOffs += 3;
+                    }
+                }
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( NullReferenceException ),
+                                    typeof( IndexOutOfRangeException ),
+                                    typeof( ArgumentOutOfRangeException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
             }
         }
 
@@ -500,7 +535,7 @@ namespace Play.Edit {
                     oCluster = new PgCluster( iGlyphIndex );
                     _rgClusters.Add( oCluster );
 
-                    oCluster.Glyphs.Length++; 
+                    oCluster.GlyphsRange.Length++; 
                     oCluster.Coordinates   = _rgGlyphs[iGlyphIndex].Coordinates;
                     oCluster.IsVisible     = !Rune.IsWhiteSpace( (Rune)_rgGlyphs[iGlyphIndex].CodePoint );
                     oCluster.IsPunctuation = Rune.IsPunctuation( (Rune)_rgGlyphs[iGlyphIndex].CodePoint );
@@ -509,20 +544,20 @@ namespace Play.Edit {
                         break;
 
                     if( _rgGlyphs[iGlyphIndex].CodePoint == 0x200d ) {
-                        oCluster.Glyphs.Length++;
+                        oCluster.GlyphsRange.Length++;
 
                         if( ++iGlyphIndex >= _rgGlyphs.Count )
                             break;
 
                         // Simply eat the alternate character. for now.
-                        oCluster.Glyphs.Length++;
+                        oCluster.GlyphsRange.Length++;
 
                         if( ++iGlyphIndex >= _rgGlyphs.Count )
                             break;
 
                         if( _rgGlyphs[iGlyphIndex].CodePoint >= 0xfe00 &&
                             _rgGlyphs[iGlyphIndex].CodePoint <= 0xfe0f ) {
-                            oCluster.Glyphs.Length++;
+                            oCluster.GlyphsRange.Length++;
 
                             if( ++iGlyphIndex >= _rgGlyphs.Count )
                                 break;
@@ -532,6 +567,7 @@ namespace Play.Edit {
 
                 Update_EndOfLine ( oFR );
                 Update_ClusterMap();
+                Update_Kerning   ( oFR );
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( NullReferenceException ),
                                     typeof( IndexOutOfRangeException ),
@@ -760,7 +796,7 @@ namespace Play.Edit {
 
                     //foreach( int iGlyph in oCluster ) {
                         // Just printing the first one even if multiple glyphs. Good enough for now.
-                        DrawGlyph( skCanvas, skPaint, flX, flY, _rgGlyphs[oCluster.Glyphs.Offset] );
+                        DrawGlyph( skCanvas, skPaint, flX, flY, _rgGlyphs[oCluster.GlyphsRange.Offset] );
                     //}
                 } // end foreach
             } catch( Exception oEx ) {
@@ -823,7 +859,7 @@ namespace Play.Edit {
                         //foreach( int iGlyph in oCluster ) {
                             // Just printing the first one even if multiple glyphs. Nor would I be
                             // changing the color per glyph, which is probabl necessary for color emoji.
-                            DrawGlyph( skCanvas, skPaint, flX, flY, _rgGlyphs[oCluster.Glyphs.Offset] );
+                            DrawGlyph( skCanvas, skPaint, flX, flY, _rgGlyphs[oCluster.GlyphsRange.Offset] );
                         //}
                     } // end foreach
                 } catch( Exception oEx ) {
@@ -880,7 +916,7 @@ namespace Play.Edit {
                     }
 
                     // Only draw first element of cluster. Haven't seen multi elem cluster yet.
-                    DrawGlyph( skCanvas, skPaint, flX, flY, _rgGlyphs[oCluster.Glyphs.Offset] );
+                    DrawGlyph( skCanvas, skPaint, flX, flY, _rgGlyphs[oCluster.GlyphsRange.Offset] );
                 } // end foreach
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( ArgumentOutOfRangeException ),
@@ -1042,7 +1078,7 @@ namespace Play.Edit {
                 if( iNextCluster > -1 && iNextCluster < _rgClusters.Count ) {
                     PgCluster oNewCluster = _rgClusters[iNextCluster];
 
-                    iOffset  = oNewCluster.Source.Offset;
+                    iOffset  = oNewCluster.SourceRange.Offset;
                     flAdvance = oNewCluster.AdvanceLeft;
                     return( true );
                 }
@@ -1081,7 +1117,7 @@ namespace Play.Edit {
             const int iMin = 1 + InvisibleEOL;
             try {
                 if( iIncrement >= 0 && _rgClusters.Count > iMin ) {
-                    return(  _rgClusters[_rgClusters.Count-iMin].Source.Offset ); 
+                    return(  _rgClusters[_rgClusters.Count-iMin].SourceRange.Offset ); 
                 }
             }  catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( ArgumentOutOfRangeException ),
