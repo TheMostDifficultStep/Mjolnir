@@ -118,8 +118,6 @@ namespace Play.Controls {
 
             _oTextLine  = new TextLine( 0, "-no selection-" );
             _oCacheLine = new FTCacheWrap( _oTextLine );
-
-            // BUG: Get the checked line set it to our cacheline.
         }
 
         protected void LogError( string strMessage ) {
@@ -138,7 +136,9 @@ namespace Play.Controls {
             // Show the whole bitamp. Don't look for changes, not a high pri thing.
             _rctWorldPort.SetRect( 0, 0, _oBmpButton.Bitmap.Width, _oBmpButton.Bitmap.Height );
 
-            OnDocFormatted(); // Initialize our text...
+            // Set our text value to the checked line...
+            OnDocUpdateBegin();
+            OnDocUpdateEnd  ( IPgEditEvents.EditType.Rows, null );
 
             return true;
         }
