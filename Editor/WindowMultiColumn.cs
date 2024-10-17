@@ -220,6 +220,7 @@ namespace Play.Edit {
         public SKPoint   DPI { get; protected set; } 
         protected IPgStandardUI2 StdUI => _oStdUI;
         protected ushort         StdFace { get; }
+        public uint CheckColumnWidth {get; }
 
         public bool IsScrollVisible { get; set; } = true;
 
@@ -387,6 +388,10 @@ namespace Play.Edit {
             StdFace = StdUI.FaceCache(@"C:\windows\fonts\seguiemj.ttf"); // consola
 
             _oCacheMan = CreateCacheMan();
+
+            // BUG: CacheManager set's the height. Cacheman defines the
+            //      glyph but not vial the EditMultiColumn.
+            CheckColumnWidth = (uint)_oCacheMan.GlyphCheck.Coordinates.advance_x;
 
             Array.Sort<Keys>( _rgHandledKeys );
 

@@ -405,6 +405,14 @@ namespace Play.Controls {
             IsScrollVisible = false;
         }
 
+        protected override bool Initialize() {
+            if( !base.Initialize() )
+                return false;
+
+
+            return true;
+        }
+
         protected override CreateParams CreateParams {
             get {
                 CreateParams createParams = base.CreateParams;

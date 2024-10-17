@@ -54,6 +54,7 @@ namespace Play.Edit {
         public    SelectionManager Selector   { get; }
         protected IPgFontRender    Font       { get; }
         protected IPgGlyph         GlyphLt    { get; } // Our end of line character.
+        public    IPgGlyph         GlyphCheck { get; } // Our check character.
         public    int              LineHeight { get; } // Helps us determine scrolling distances.
         public    int              RowSpacing { get; set; } = 1;
         public    SKPointI         CaretSize  => new SKPointI( 2, LineHeight );
@@ -414,6 +415,7 @@ namespace Play.Edit {
 
 			Font       = oSite.FontUse( oSite.FontCache( 12 ) )  ?? throw new ArgumentNullException( "Need a font to get things rolling." );
             GlyphLt    = Font.GetGlyph( 0x003c ); // we used to show carriage return as a '<' sign.
+            GlyphCheck = Font.GetGlyph( 0x2714 ); // The multi column editor has this value...
             LineHeight = (int)Font.LineHeight;    // BUG: Cache elem's are variable height in general.
 
             _oCaretRow = null;

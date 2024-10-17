@@ -25,7 +25,7 @@ namespace Play.SSTV {
                 return false;
 
             // TODO: Check the width of a checkmark at the current font... :-/
-            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Pixels, 20, 1L ), (int)SSTVRxFamilyDoc.Column.Check ); 
+            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Pixels, CheckColumnWidth, 1L ), (int)SSTVRxFamilyDoc.Column.Check ); 
             TextLayoutAdd( new LayoutRect( LayoutRect.CSS.None,   20, 1L ), (int)SSTVRxFamilyDoc.Column.Family ); 
 
             // Do this so we can return a desired height. O.o;;
@@ -57,7 +57,7 @@ namespace Play.SSTV {
                 return false;
 
             // I'd really like to use flex. But that seems broken at present...
-            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Pixels,  20, 1L ), (int)SSTVModeDoc.Column.Check ); 
+            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Pixels,  CheckColumnWidth, 1L ), (int)SSTVModeDoc.Column.Check ); 
             TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Percent, 20, 1L ), (int)SSTVModeDoc.Column.Version ); 
             TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Percent, 20, 1L ), (int)SSTVModeDoc.Column.Time ); 
             TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Percent, 20, 1L ), (int)SSTVModeDoc.Column.Width ); 
@@ -80,7 +80,7 @@ namespace Play.SSTV {
                 return false;
 
             // I'd really like to use flex. But that seems broken at present...
-            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Pixels,  20, 1L ), (int)SSTVModeDoc.Column.Check ); 
+            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Pixels,  CheckColumnWidth, 1L ), (int)SSTVModeDoc.Column.Check ); 
             TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Percent, 20, 1L ), (int)SSTVModeDoc.Column.Version ); 
             TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Percent, 20, 1L ), (int)SSTVModeDoc.Column.Time ); 
             TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Percent, 20, 1L ), (int)SSTVModeDoc.Column.Width ); 
@@ -113,7 +113,7 @@ namespace Play.SSTV {
                 return false;
 
             // TODO: Check the width of a checkmark at the current font... :-/
-            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Pixels, 20, 1L ), (int)SSTVTxTemplatesDoc.Column.Check ); 
+            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Pixels, CheckColumnWidth, 1L ), (int)SSTVTxTemplatesDoc.Column.Check ); 
             TextLayoutAdd( new LayoutRect( LayoutRect.CSS.None,   20, 1L ), (int)SSTVTxTemplatesDoc.Column.Descr ); 
 
             // Do this so we can return a desired height. O.o;;
