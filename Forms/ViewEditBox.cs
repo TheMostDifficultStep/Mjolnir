@@ -131,7 +131,7 @@ namespace Play.Controls {
             _oDocOps.ListenerAdd( this ); // Look for check mark move via this.
 
             _rgLayout.Add( new LayoutRect( LayoutRect.CSS.None   )); // Text.
-            _rgLayout.Add( new LayoutRect( LayoutRect.CSS.Pixels, 12, (float)0.1 ) ); // Arrow bitmap.
+            _rgLayout.Add( new LayoutRect( LayoutRect.CSS.Pixels, 15, (float)0.1 ) ); // Arrow bitmap.
 
             // Show the whole bitamp. Don't look for changes, not a high pri thing.
             _rctWorldPort.SetRect( 0, 0, _oBmpButton.Bitmap.Width, _oBmpButton.Bitmap.Height );
