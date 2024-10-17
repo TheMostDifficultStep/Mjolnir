@@ -343,7 +343,7 @@ namespace Play.Edit {
         protected string               _strCheckClear = string.Empty;
 
         public event Action<Row> Event_HighLight;
-        public event Action<Row> RegisterCheckEvent; // Events when check marks occur.
+        public event Action<Row> Event_Check; // Events when check marks occur.
 
         public IPgParent Parentage => _oSiteBase.Host;
         public IPgParent Services  => Parentage.Services;
@@ -475,6 +475,8 @@ namespace Play.Edit {
                 if( CheckColumn < 0 ) 
                     throw new InvalidOperationException( "Invalid Checkmark Column" );
 
+                Raise_DocUpdateBegin();
+
                 foreach( Row oReset in _rgRows ) {
                     // Just want an exact match or bust.
                     if( IsRowChecked( oReset ) ) {
@@ -497,11 +499,9 @@ namespace Play.Edit {
                     // Window's DON'T register for this. They pick up the
                     // UI change via OnFormatChange() gen'd by DoParse()
                     if( IsSingleCheck )
-                        RegisterCheckEvent?.Invoke( oCheck );
-
-                    DoParse(); // Probably should do a 2 second delay in case of multi checking.
+                        Event_Check?.Invoke( oCheck );
                 }
-
+                Raise_DocUpdateEnd( IPgEditEvents.EditType.Rows, null );
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( IndexOutOfRangeException ),
                                     typeof( ArgumentOutOfRangeException ),
@@ -567,7 +567,7 @@ namespace Play.Edit {
         }
 
         public void Raise_CheckEvent( Row oRow ) {
-            RegisterCheckEvent?.Invoke( oRow );
+            Event_Check?.Invoke( oRow );
         }
 
         /// <summary>

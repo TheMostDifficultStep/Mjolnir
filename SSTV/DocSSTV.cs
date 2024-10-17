@@ -487,13 +487,13 @@ namespace Play.SSTV {
 
                     RxHistoryList.ImageUpdated       -= OnImageUpdated_RxHistoryList;
                     TxImageList  .ImageUpdated       -= OnImageUpdated_TxImageList;
-                    TxTemplateDoc.RegisterCheckEvent -= OnCheckedEvent_TemplateList;
+                    TxTemplateDoc.Event_Check -= OnCheckedEvent_TemplateList;
 
-                    RxSSTVFamilyDoc.RegisterCheckEvent -= OnCheckEvent_RxSSTVFamilyDoc;
-                    RxSSTVModeDoc  .RegisterCheckEvent -= OnCheckEvent_RxSSTVModeDoc;
+                    RxSSTVFamilyDoc.Event_Check -= OnCheckEvent_RxSSTVFamilyDoc;
+                    RxSSTVModeDoc  .Event_Check -= OnCheckEvent_RxSSTVModeDoc;
 
-                    TxSSTVFamilyDoc.RegisterCheckEvent -= OnCheckEvent_TxSSTVFamilyDoc;
-                    TxSSTVModeDoc  .RegisterCheckEvent -= OnCheckEvent_TxSSTVModeDoc;
+                    TxSSTVFamilyDoc.Event_Check -= OnCheckEvent_TxSSTVFamilyDoc;
+                    TxSSTVModeDoc  .Event_Check -= OnCheckEvent_TxSSTVModeDoc;
                     TxSSTVModeDoc  .RegisterOnLoaded   -= OnLoaded_TxSSTVModeDoc;
 
                     Properties.Dispose();
@@ -686,20 +686,20 @@ namespace Play.SSTV {
 			}
 
 			RxSSTVFamilyDoc.Load( new SSTVDEM.EnumerateFamilies() );
-            RxSSTVFamilyDoc.RegisterCheckEvent += OnCheckEvent_RxSSTVFamilyDoc;
+            RxSSTVFamilyDoc.Event_Check += OnCheckEvent_RxSSTVFamilyDoc;
 			RxSSTVModeDoc  .Load( RxSSTVFamilyDoc.SelectedFamily.TvFamily );
-            RxSSTVModeDoc  .RegisterCheckEvent += OnCheckEvent_RxSSTVModeDoc;
+            RxSSTVModeDoc  .Event_Check += OnCheckEvent_RxSSTVModeDoc;
 
             TxSSTVFamilyDoc.Load( new SSTVDEM.EnumerateFamilies() );
-            TxSSTVFamilyDoc.RegisterCheckEvent += OnCheckEvent_TxSSTVFamilyDoc;
+            TxSSTVFamilyDoc.Event_Check += OnCheckEvent_TxSSTVFamilyDoc;
 			TxSSTVModeDoc  .Load( TxSSTVFamilyDoc.SelectedFamily.TvFamily );
-            TxSSTVModeDoc  .RegisterCheckEvent += OnCheckEvent_TxSSTVModeDoc;
+            TxSSTVModeDoc  .Event_Check += OnCheckEvent_TxSSTVModeDoc;
             TxSSTVModeDoc  .RegisterOnLoaded   += OnLoaded_TxSSTVModeDoc;
 
             // Get these set up so our std properties get the updates.
             TxImageList  .ImageUpdated       += OnImageUpdated_TxImageList;
             RxHistoryList.ImageUpdated       += OnImageUpdated_RxHistoryList;
-            TxTemplateDoc.RegisterCheckEvent += OnCheckedEvent_TemplateList;
+            TxTemplateDoc.Event_Check += OnCheckedEvent_TemplateList;
 
             // We'll get a callback from this before exiting back into
             // our RenderComposite() method!! And then Load() causes

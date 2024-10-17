@@ -62,7 +62,7 @@ namespace Play.Edit {
 
         void   SetCheckAtRow( Row oRow );
 
-        event Action<Row> RegisterCheckEvent;
+        event Action<Row> Event_Check;
     }
 
     public interface IPgDocMultiCheck : IReadableBag<IPgDocCheckMarks> {

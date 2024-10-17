@@ -139,7 +139,7 @@ namespace Play.SSTV {
 
             _oDocSSTV.RenderComposite();
 
-			_oDocSSTV.TxSSTVModeDoc.RegisterCheckEvent -= OnCheckedEvent_TxModeList;
+			_oDocSSTV.TxSSTVModeDoc.Event_Check -= OnCheckedEvent_TxModeList;
             _oDocSSTV.Send_TxImageAspect               -= OnTxImageAspect_SSTVDoc;
 
 		    _wnTxImageChoice.Dispose();
@@ -153,7 +153,7 @@ namespace Play.SSTV {
                 return false;
 
             _oDocSSTV.TxImageList  .ImageUpdated       += OnImageUpdated_TxImageList;
-			_oDocSSTV.TxSSTVModeDoc.RegisterCheckEvent += OnCheckedEvent_TxModeList;
+			_oDocSSTV.TxSSTVModeDoc.Event_Check += OnCheckedEvent_TxModeList;
             _oDocSSTV              .Send_TxImageAspect += OnTxImageAspect_SSTVDoc;
 
 			_wnTxImageChoice.ToolSelect = 0; 
