@@ -28,8 +28,8 @@ namespace Mjolnir {
         private void InitializeComponent() {
 			// Create the children.
             this.oMatchCase = new System.Windows.Forms.CheckBox();
-            this.button1 = new System.Windows.Forms.Button();
-            this.button2 = new System.Windows.Forms.Button();
+            this.NextBtn = new System.Windows.Forms.Button();
+            this.AllBtn = new System.Windows.Forms.Button();
             this.oSearchType = new System.Windows.Forms.ComboBox();
 
 			// Lay them out.
@@ -70,28 +70,28 @@ namespace Mjolnir {
             // Next
             // 
             //this.button1.Location = new System.Drawing.Point(3, 64);
-            this.button1.Name = "button1";
+            this.NextBtn.Name = "button1";
             //this.button1.Size = new System.Drawing.Size(40, 23);
-            this.button1.TabIndex = 3;
-            this.button1.Text = "Next";
-            this.button1.UseVisualStyleBackColor = true;
+            this.NextBtn.TabIndex = 3;
+            this.NextBtn.Text = "Next";
+            this.NextBtn.UseVisualStyleBackColor = true;
             // 
             // All
             // 
             //this.button2.Location = new System.Drawing.Point(47, 64);
-            this.button2.Name = "button2";
+            this.AllBtn.Name = "button2";
             //this.button2.Size = new System.Drawing.Size(40, 23);
-            this.button2.TabIndex = 4;
-            this.button2.Text = "All";
-            this.button2.UseVisualStyleBackColor = true;
+            this.AllBtn.TabIndex = 4;
+            this.AllBtn.Text = "All";
+            this.AllBtn.UseVisualStyleBackColor = true;
 			// 
 			// FindWindow
 			// 
 			//this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
 			//this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
 			this.Controls.Add(this.oSearchType);
-			this.Controls.Add(this.button2);
-			this.Controls.Add(this.button1);
+			this.Controls.Add(this.AllBtn);
+			this.Controls.Add(this.NextBtn);
 			this.Controls.Add(this.oMatchCase);
 			//this.Controls.Add(this._oWin_SearchKey);
 			this.Margin = new System.Windows.Forms.Padding(10);
@@ -104,8 +104,8 @@ namespace Mjolnir {
 
         #endregion
 
-		private Button    button1;
-        private Button    button2;
+		private Button    NextBtn;
+        private Button    AllBtn;
         private ComboBox  oSearchType;
 		private CheckBox  oMatchCase;
     }

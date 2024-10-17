@@ -67,8 +67,8 @@ namespace Mjolnir {
                 oChild.LostFocus += oLostFocusHandler;
             }
 
-            button1.Click += new System.EventHandler(this.Next_Click);
-            button2.Click += new System.EventHandler(this.SearchAll_Click);
+            NextBtn.Click += new System.EventHandler(this.Next_Click);
+            AllBtn .Click += new System.EventHandler(this.SearchAll_Click);
 
             // Whenever the search results tool window is navigated, I need to know.
             // TODO: We've got the PlayHilights line which would be perfect for this.
@@ -89,31 +89,36 @@ namespace Mjolnir {
                 _oView = oView;
             }
 
-            LayoutSingleLine oLayoutSearchKey = new LayoutSingleLine( new FTCacheWrap( DocForms2.GetLine(0) ), LayoutRect.CSS.Flex) { Span = 4, BgColor=SkiaSharp.SKColors.White };
+            LayoutSingleLine oLayoutSearchKey = new LayoutSingleLine( 
+                new FTCacheWrap( DocForms2.GetLine(0) ), LayoutRect.CSS.Flex) 
+                        { Span = 1, BgColor=SkiaSharp.SKColors.White };
             CacheList.Add( oLayoutSearchKey );
             _iCaretAtLayout = CacheList.Count - 1;
 
-            LayoutTable oTable = new LayoutTable( 5, LayoutRect.CSS.Flex );
+            LayoutTable oTable = new LayoutTable( 4, LayoutRect.CSS.Flex );
             Layout = oTable;
 
-            oTable.AddColumn( LayoutRect.CSS.Pixels, 50 );
-            oTable.AddColumn( LayoutRect.CSS.Pixels, 50 );
-            oTable.AddColumn( LayoutRect.CSS.Pixels, 50 );
-            oTable.AddColumn( LayoutRect.CSS.Pixels, 50 );
-            oTable.AddColumn( LayoutRect.CSS.None   , 0 );
-
-            oTable.AddRow( new List<LayoutRect>() { oLayoutSearchKey } ); 
-
-			oTable.AddRow( new List<LayoutRect>() {
-			    new LayoutControl( oSearchType, LayoutRect.CSS.Flex ) { Span=1 },
-			    new LayoutControl( oMatchCase,  LayoutRect.CSS.Flex ) { Span=1 }
-            } );
+            oTable.AddColumn( LayoutRect.CSS.None,    0 );
+            oTable.AddColumn( LayoutRect.CSS.Pixels, 200 );
+            oTable.AddColumn( LayoutRect.CSS.Pixels, 200 );
+            oTable.AddColumn( LayoutRect.CSS.None,    0 );
 
 			oTable.AddRow( new List<LayoutRect>() {
 			    new LayoutRect( LayoutRect.CSS.Flex ),
+                oLayoutSearchKey,
+                new LayoutRect( LayoutRect.CSS.Flex ) } );
+
+			oTable.AddRow( new List<LayoutRect>() {
 			    new LayoutRect( LayoutRect.CSS.Flex ),
-			    new LayoutControl( button1,  LayoutRect.CSS.Flex ),
-			    new LayoutControl( button2,  LayoutRect.CSS.Flex ),
+			    new LayoutControl( oMatchCase, LayoutRect.CSS.Flex ),
+                new LayoutControl( AllBtn,     LayoutRect.CSS.Flex ),
+                new LayoutRect( LayoutRect.CSS.Flex ) } );
+
+			oTable.AddRow( new List<LayoutRect>() {
+			    new LayoutRect( LayoutRect.CSS.Flex ),
+			    new LayoutControl( oSearchType, LayoutRect.CSS.Flex ),
+                new LayoutControl( NextBtn,     LayoutRect.CSS.Flex ),
+                new LayoutRect( LayoutRect.CSS.Flex ),
             } );
 
             //DocForms.BufferEvent += FindStringChanges;
