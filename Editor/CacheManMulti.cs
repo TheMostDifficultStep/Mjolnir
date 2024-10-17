@@ -176,7 +176,7 @@ namespace Play.Edit {
             /// even if caret moves. 
             /// </summary>
             public void Freeze() {
-                if( Caret == null )
+                if( Caret == null || Caret.Row == null )
                     return;
 
                 Caret    = new CaretInfo( Caret );
@@ -306,7 +306,7 @@ namespace Play.Edit {
                     for( int i=0; i< _rgCache.Length; ++i ) {
                         _rgSelections[i] = null;
                     }
-                    if( Caret == null )
+                    if( Caret == null || Caret.Row == null )
                         return IPgSelection.SlxnType.None;
 
                     if( Caret.Row.At > Pin.Row.At ) {

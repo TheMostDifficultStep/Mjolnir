@@ -462,11 +462,11 @@ namespace Play.Edit {
                     char cLeft = Line[oLeftCluster.SourceRange.Offset];
                     char cRigh = Line[oRighCluster.SourceRange.Offset];
 
+                    if( cLeft == 'j' ) {
+                        oLeftCluster.AdvanceOffs += 3;
+                    }
                     if( oFR.GetKerning( uiLeftGlyph, uiRighGlyph, out SKPoint pntKern ) ) {
                         oLeftCluster.AdvanceOffs += pntKern.X;
-                    }
-                    if( cLeft == 'j' && cRigh == 'p' ) {
-                        oLeftCluster.AdvanceOffs += 3;
                     }
                 }
             } catch( Exception oEx ) {
