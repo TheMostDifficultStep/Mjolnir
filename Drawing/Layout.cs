@@ -7,18 +7,23 @@ using System.Collections;
 using SkiaSharp;
 
 namespace Play.Rectangles {
+
+	/// <summary>
+	/// This used to be in the Play.Edit name space. But it's more 
+	/// convenient here so we can specify what kind of justify we
+	/// want for text inside a Layout... This enum also lives on the
+	/// FTCacheLine. Maybe I can move to the embedding namespace?
+	/// </summary>
 	public enum Align {
         Left,
         Center,
         Right
     }
 
-
 	public class LayoutRect : SmartRect {
 		protected CSS _eLayout;
-		public    SmartRect Padding { get; } = new SmartRect();
-		public Align Justify { get; set; }
-
+		public SmartRect Padding { get; } = new SmartRect();
+		public Align     Justify { get; set; } = Align.Left;
 
 		public enum CSS {
 			Percent,
