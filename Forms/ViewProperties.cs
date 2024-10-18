@@ -229,8 +229,8 @@ namespace Play.Forms {
 
             oLabel.BgColor = _oStdUI.ColorsStandardAt( StdUIColors.BGReadOnly );
 
-            oCache.CacheList.Add( oLabel );
-            oCache.CacheList.Add( new CacheControl( oWinValue ) { MaxHeight = 800 });
+            oCache.CacheColumns.Add( oLabel );
+            oCache.CacheColumns.Add( new CacheControl( oWinValue ) { MaxHeight = 800 });
 
             FixedRows.Add( oCache );
         }
@@ -246,8 +246,8 @@ namespace Play.Forms {
             }
             oLabel.BgColor = _oStdUI.ColorsStandardAt(StdUIColors.BGReadOnly);
 
-            oCache.CacheList.Add( oLabel );
-            oCache.CacheList.Add( oValue );
+            oCache.CacheColumns.Add( oLabel );
+            oCache.CacheColumns.Add( oValue );
 
             FixedRows.Add( oCache );
         }

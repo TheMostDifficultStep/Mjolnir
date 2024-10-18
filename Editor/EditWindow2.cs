@@ -1151,7 +1151,7 @@ namespace Play.Edit {
                 foreach( CacheRow oRow in _oCacheMan ) {
                     PaintBackground(skCanvas, skPaint, oRow);
 
-                    for( int iCache=0; iCache<oRow.CacheList.Count; ++iCache ) {
+                    for( int iCache=0; iCache<oRow.CacheColumns.Count; ++iCache ) {
                         if( oRow[iCache] is IPgCacheRender oRender ) {
                             oRender.Render(skCanvas, _oStdUI, RenderAt(oRow, _rgCacheMap[iCache] ), iCache == 0 ? this.Focused : false );
                         }
@@ -2567,7 +2567,7 @@ namespace Play.Edit {
                 foreach( LineRange oSelection in _rgSelectionTypes ) {
                     if( oSelection.IsHit( oCache.Line ) ) {
                         if( oCache.IsHit( pntWorld ) ) {
-                            int iEdge = oCache.CacheList[0].GlyphPointToOffset( oCache.Top, new SKPointI( pntWorld.X, pntWorld.Y ) );
+                            int iEdge = oCache.CacheColumns[0].GlyphPointToOffset( oCache.Top, new SKPointI( pntWorld.X, pntWorld.Y ) );
 
                             if( oSelection.SelectionType == SelectionTypes.Middle ) {
                                 if( iEdge >= oSelection.Offset &&
@@ -2782,7 +2782,7 @@ namespace Play.Edit {
 
                 FTCacheLine oElem = new FTCacheCheck( new TextLine( oLine.At, string.Empty ), oLine, oCheckedLine );
 
-                oRow.CacheList.Add( oElem );
+                oRow.CacheColumns.Add( oElem );
 
                 return oRow;
             }

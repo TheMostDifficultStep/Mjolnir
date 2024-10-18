@@ -145,9 +145,9 @@ namespace Play.Edit {
         // CacheList s/b always inorder of the CacheMap but not necessarily the
         // same as the "layout" list. For example scroll bar in layout but not
         // the cache system.
-        public List<IPgCacheMeasures> CacheList { get; } = new List<IPgCacheMeasures>();
+        public List<IPgCacheMeasures> CacheColumns { get; } = new List<IPgCacheMeasures>();
 
-        public IPgCacheMeasures this[int iIndex] => CacheList[iIndex];
+        public IPgCacheMeasures this[int iIndex] => CacheColumns[iIndex];
 
         public override string ToString() {
             StringBuilder sbBuilder = new();
@@ -170,8 +170,8 @@ namespace Play.Edit {
             get { 
                 int iHeight = 0;
 
-                for( int i=0; i< CacheList.Count; ++i ) {
-                    IPgCacheMeasures oCache = CacheList[i];
+                for( int i=0; i< CacheColumns.Count; ++i ) {
+                    IPgCacheMeasures oCache = CacheColumns[i];
 
                     if( oCache.Height > iHeight )
                         iHeight = oCache.Height;
@@ -183,7 +183,7 @@ namespace Play.Edit {
         public bool IsInvalid { 
             get {
                 bool fReturn = false;
-                foreach( FTCacheLine oElem in CacheList ) {
+                foreach( FTCacheLine oElem in CacheColumns ) {
                     fReturn |= oElem.IsInvalid;
                 }
                 return fReturn;
@@ -232,12 +232,6 @@ namespace Play.Edit {
         public CacheRow2( Row oDocRow ) {
             _oDocRow = oDocRow ?? throw new ArgumentNullException( nameof( oDocRow ) );
         }
-    }
-
-    public enum Align {
-        Left,
-        Center,
-        Right
     }
 
     /// <summary>

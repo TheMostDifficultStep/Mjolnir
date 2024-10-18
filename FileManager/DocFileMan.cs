@@ -6,8 +6,6 @@ using SkiaSharp;
 using Play.Drawing;
 using Play.Interfaces.Embedding;
 using Play.Edit;
-using Play.Rectangles;
-using Play.Parse;
 
 namespace Play.FileManager {
     /// <summary>
@@ -89,12 +87,13 @@ namespace Play.FileManager {
         public string HomeURL => Environment.GetFolderPath(Environment.SpecialFolder.Personal);
 
         public readonly IPgStandardUI2 _oStdUI;
-        public event Action Event_UpdateBanner;
+        public event Action? Event_UpdateBanner;
         public class FMRow : Row {
             public enum DCol :int {
                 Chck =0,
                 Type,
                 Name,
+                Time,
                 Date,
                 Size,
             }
@@ -153,10 +152,11 @@ namespace Play.FileManager {
                 CreateColumn( DCol.Chck, string.Empty );
                 CreateColumn( DCol.Type, strExt );
                 CreateColumn( DCol.Name, oFile.Name );
+                CreateColumn( DCol.Time, oFile.LastWriteTime.ToShortTimeString() );
 				CreateColumn( DCol.Date, oFile.LastWriteTime.ToShortDateString() );
-                CreateColumn( DCol.Size, oFile.Length.ToString() );
+                CreateColumn( DCol.Size, oFile.Length.ToString("n0") );
 
-                CheckForNulls();
+                CheckForNulls(); 
 
                 this[DCol.Type].Formatting.Add( new FileRange( 0,  10, 5 ) );
 
@@ -166,9 +166,10 @@ namespace Play.FileManager {
                 _rgColumns = new Line[ColumnCount];
 
                 CreateColumn( DCol.Chck, string.Empty );
-                CreateColumn( DCol.Name, oDir.Name );
-				CreateColumn( DCol.Date, oDir.LastWriteTime.ToShortDateString() );
                 CreateColumn( DCol.Type, "\xe188" );
+                CreateColumn( DCol.Name, oDir.Name );
+                CreateColumn( DCol.Time, oDir.LastWriteTime.ToShortTimeString() );
+				CreateColumn( DCol.Date, oDir.LastWriteTime.ToShortDateString() );
                 CreateColumn( DCol.Size, "--" );
 
                 CheckForNulls();

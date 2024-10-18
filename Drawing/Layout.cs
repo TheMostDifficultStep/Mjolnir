@@ -7,9 +7,18 @@ using System.Collections;
 using SkiaSharp;
 
 namespace Play.Rectangles {
+	public enum Align {
+        Left,
+        Center,
+        Right
+    }
+
+
 	public class LayoutRect : SmartRect {
 		protected CSS _eLayout;
 		public    SmartRect Padding { get; } = new SmartRect();
+		public Align Justify { get; set; }
+
 
 		public enum CSS {
 			Percent,

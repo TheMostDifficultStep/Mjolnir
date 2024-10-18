@@ -165,14 +165,14 @@ namespace Play.Edit {
     /// Might want to add cache info to this struct too... ?
     /// </summary>
     public class ColumnInfo {
-        public readonly LayoutRect _oColumn;
+        public readonly LayoutRect _rcBounds;
         public readonly int        _iDataIdx;
 
         public bool _fReadonly;
         public int  _iLayoutIdx;
 
         public ColumnInfo( LayoutRect rcRect, int iDataColumn ) {
-            _oColumn   = rcRect ?? throw new ArgumentNullException();
+            _rcBounds  = rcRect ?? throw new ArgumentNullException();
             _iDataIdx  = iDataColumn; // data row column.
             _fReadonly = false;
             _iLayoutIdx = -1;
@@ -434,7 +434,7 @@ namespace Play.Edit {
         protected void TextLayoutAdd( ColumnInfo oInfo ) {
             oInfo._iLayoutIdx = _rgLayout.Count;
 
-            _rgLayout.Add( oInfo._oColumn );
+            _rgLayout.Add( oInfo._rcBounds );
             _rgTxtCol.Add( oInfo );
         }
         public void InitColumns( List<ColumnInfo> rgColumns ) {
@@ -855,9 +855,9 @@ namespace Play.Edit {
                 // Now paint the rows.
                 SmartRect rctSquare = SparePaintingRect;
                 foreach( CacheRow oCacheRow in _oCacheMan ) {
-                    for( int iCacheCol=0; iCacheCol<oCacheRow.CacheList.Count; ++iCacheCol ) {
+                    for( int iCacheCol=0; iCacheCol<oCacheRow.CacheColumns.Count; ++iCacheCol ) {
                         if( oCacheRow[iCacheCol] is IPgCacheRender oRender ) {
-                            SmartRect oColumn = _rgTxtCol[iCacheCol]._oColumn;
+                            SmartRect oColumn = _rgTxtCol[iCacheCol]._rcBounds;
 
                             rctSquare.SetRect( oColumn.Left, oCacheRow.Top, oColumn.Right, oCacheRow.Bottom );
 
@@ -951,7 +951,7 @@ namespace Play.Edit {
             Cursor oNewCursor = Cursors.Arrow;
 
             for( int iColumn=0; iColumn<_rgTxtCol.Count; ++iColumn ) {
-                SmartRect oColumn = _rgTxtCol[iColumn]._oColumn;
+                SmartRect oColumn = _rgTxtCol[iColumn]._rcBounds;
                 if( oColumn.IsInside( pntLocation.X, pntLocation.Y ) ) {
                     if( _oDocChecks.CheckColumn == iColumn ) {
                         oNewCursor = Cursors.Hand;
@@ -1146,7 +1146,7 @@ namespace Play.Edit {
 
         public bool IsInside( SKPointI pntClick, out int iColumn ) {
             for( iColumn=0; iColumn<_rgTxtCol.Count; ++iColumn ) {
-                SmartRect oColumn = _rgTxtCol[iColumn]._oColumn;
+                SmartRect oColumn = _rgTxtCol[iColumn]._rcBounds;
                 if( oColumn.IsInside( pntClick.X, pntClick.Y ) ) {
                     return true;
                 }

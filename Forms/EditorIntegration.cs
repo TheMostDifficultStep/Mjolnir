@@ -152,7 +152,7 @@ namespace Play.Forms {
 
                 FTCacheLine oElem = new FTCacheLineNumber( new TextLine( oLine.At, oLine.At.ToString() ), oLine );
 
-                oRow.CacheList.Add( oElem );
+                oRow.CacheColumns.Add( oElem );
 
                 return oRow;
             }

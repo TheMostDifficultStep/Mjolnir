@@ -1,12 +1,12 @@
 ﻿using System;
 using System.Drawing;
 using System.Diagnostics;
-using System.Collections.Generic;
 
 using SkiaSharp;
 
 using Play.Interfaces.Embedding;
 using Play.Parse;
+using Play.Rectangles;
 
 namespace Play.Edit {
     /// <summary>

@@ -588,9 +588,9 @@ namespace Play.Edit {
                 foreach( CacheRow oCacheRow in _rgOldCache ) {
                     //foreach( IPgCacheMeasures oCMElem in oCacheRow.CacheList ) {
                     //}
-                    for( int iCacheCol=0; iCacheCol<oCacheRow.CacheList.Count; ++iCacheCol ) {
+                    for( int iCacheCol=0; iCacheCol<oCacheRow.CacheColumns.Count; ++iCacheCol ) {
                         if( oCacheRow[iCacheCol] is IPgCacheWindow oCWElem ) {
-                            SmartRect rctColumn = _rgColumnInfo[iCacheCol]._oColumn;
+                            SmartRect rctColumn = _rgColumnInfo[iCacheCol]._rcBounds;
                             SmartRect rctSquare = new SmartRect();
 
                             rctSquare.SetRect( rctColumn.Left, oCacheRow.Top, rctColumn.Right, oCacheRow.Bottom );
@@ -1020,7 +1020,7 @@ namespace Play.Edit {
             try {
                 // Left top coordinate of the caret offset.
                 Point     pntCaretRelative  = oCaretCacheRow[_iCaretCol].GlyphOffsetToPoint( _iCaretOff );
-                SmartRect oColumn           = _rgColumnInfo[_iCaretCol]._oColumn;
+                SmartRect oColumn           = _rgColumnInfo[_iCaretCol]._rcBounds;
 
                 pntCaretTop = new SKPointI( pntCaretRelative.X + oColumn.Left,
                                             pntCaretRelative.Y + oCaretCacheRow.Top );
@@ -1102,13 +1102,13 @@ namespace Play.Edit {
             try {
                 Selector.IsSelection( oCacheRow.Row );
 
-                for( int i=0; i<oCacheRow.CacheList.Count && i<_rgColumnInfo.Count; ++i ) {
-                    IPgCacheMeasures oMeasure = oCacheRow.CacheList[i];
+                for( int i=0; i<oCacheRow.CacheColumns.Count && i<_rgColumnInfo.Count; ++i ) {
+                    IPgCacheMeasures oMeasure = oCacheRow.CacheColumns[i];
                     if( oMeasure is FTCacheLine oElem ) {
 				        oElem.Measure ( Font );
                         oElem.Colorize( Selector[i] );
                     }
-                    oMeasure.OnChangeSize( _rgColumnInfo[i]._oColumn.Width );
+                    oMeasure.OnChangeSize( _rgColumnInfo[i]._rcBounds.Width );
                 }
 			} catch( Exception oEx ) {
                 if( IsUnhandledStdRpt( oEx ) )
@@ -1179,8 +1179,8 @@ namespace Play.Edit {
                 foreach( CacheRow oCacheRow in _rgOldCache ) {
                     Selector.IsSelection( oCacheRow.Row );
 
-                    for( int i=0; i<oCacheRow.CacheList.Count && i<_rgColumnInfo.Count; ++i ) {
-                        IPgCacheMeasures oElem = oCacheRow.CacheList[i];
+                    for( int i=0; i<oCacheRow.CacheColumns.Count && i<_rgColumnInfo.Count; ++i ) {
+                        IPgCacheMeasures oElem = oCacheRow.CacheColumns[i];
 
                         oElem.Colorize( Selector[i] );
                     }
@@ -1209,9 +1209,15 @@ namespace Play.Edit {
             // TODO: Get the r/w status of the column so we can set its bgcolor.
             // BUG : Doc columns might not match order of row columns!! >_<;;
             // Note: If we suddenly start typing in a dummy lines, we'll have problems..
-            foreach( Line oLine in oDocRow ) {
-                oFreshCacheRow.CacheList.Add( new FTCacheWrap( oLine == null ? _oDummyLine : oLine ) );
-			}
+            for( int i = 0; i<oDocRow.Count; ++i ) {
+                Line        oLine      = oDocRow[i];
+                FTCacheLine oCacheLine = new FTCacheWrap( oLine == null ? _oDummyLine : oLine );
+                ColumnInfo  oInfo      = _rgColumnInfo[i];
+
+                oCacheLine.Justify = oInfo._rcBounds.Justify;
+
+                oFreshCacheRow.CacheColumns.Add( oCacheLine );
+            }
 
             return oFreshCacheRow;
         }
@@ -1328,7 +1334,7 @@ namespace Play.Edit {
 
                     Point pntCaret = oCaretRow[_iCaretCol].GlyphOffsetToPoint( _iCaretOff );
 
-                    pntCaret.X += _rgColumnInfo[_iCaretCol]._oColumn.Left;
+                    pntCaret.X += _rgColumnInfo[_iCaretCol]._rcBounds.Left;
                     pntCaret.Y += oCaretRow.Top;
 
                     _oSite.OnCaretPositioned( new SKPointI( pntCaret.X, pntCaret.Y ), true );
@@ -1379,7 +1385,7 @@ namespace Play.Edit {
                     {
                         // If we hit any row, now see if pick is within any column
                         for( int iColumn = 0; iColumn < _rgColumnInfo.Count; iColumn++ ) {
-                            SmartRect rctColumn = _rgColumnInfo[iColumn]._oColumn;
+                            SmartRect rctColumn = _rgColumnInfo[iColumn]._rcBounds;
                             if( rctColumn.IsInside( pntPick.X, pntPick.Y ) ) {
                                 iReturn = iColumn;
                             }
@@ -1403,7 +1409,7 @@ namespace Play.Edit {
         public bool CaretAdvance( SKPointI pntPick ) {
             try {
                 for( int iColumn = 0; iColumn < _rgColumnInfo.Count; iColumn++ ) {
-                    SmartRect rctColumn = _rgColumnInfo[iColumn]._oColumn;
+                    SmartRect rctColumn = _rgColumnInfo[iColumn]._rcBounds;
                     // First find the column the pick is in. PointToCache will then search each cache row.
                     if( rctColumn.IsInside( pntPick.X, pntPick.Y ) ) {
                         CacheRow oCacheRow = PointToCache( iColumn, pntPick, out int iOffset );
@@ -1512,8 +1518,8 @@ namespace Play.Edit {
                     if( oCacheRow.Top    <= pntScreenPick.Y &&
                         oCacheRow.Bottom >= pntScreenPick.Y ) 
                     {
-                        SmartRect        oColumn  = _rgColumnInfo[iColumn]._oColumn;
-                        IPgCacheMeasures oCache   = oCacheRow.CacheList[iColumn];
+                        SmartRect        oColumn  = _rgColumnInfo[iColumn]._rcBounds;
+                        IPgCacheMeasures oCache   = oCacheRow.CacheColumns[iColumn];
                         SKPointI         pntLocal = new SKPointI( pntScreenPick.X - oColumn.Left,
                                                                   pntScreenPick.Y - oColumn.Top );
 

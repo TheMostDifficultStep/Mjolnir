@@ -334,8 +334,8 @@ namespace Play.Edit {
         /// <seealso cref="CheckList"/>
         protected virtual void RowUpdate( CacheRow oRow ) {
 			try {
-                for( int i=0; i<oRow.CacheList.Count && i<_rgCacheMap.Count; ++i ) {
-                    IPgCacheMeasures oElem = oRow.CacheList[i];
+                for( int i=0; i<oRow.CacheColumns.Count && i<_rgCacheMap.Count; ++i ) {
+                    IPgCacheMeasures oElem = oRow.CacheColumns[i];
 
 				    oElem.Measure            ( Font );
                     oElem.Colorize( _oSite.Selections );
@@ -390,7 +390,7 @@ namespace Play.Edit {
         /// <seealso cref="EditWindow2.OnMultiFinished"/>
         public void Invalidate() {
             foreach( CacheRow oRow in this ) {
-                foreach( FTCacheLine oElem in oRow.CacheList ) {
+                foreach( FTCacheLine oElem in oRow.CacheColumns ) {
                     oElem.IsInvalid = true;
                 }
             }
@@ -460,7 +460,7 @@ namespace Play.Edit {
 				oElem = new FTCacheLine( oLine ); // Simpler object.
 			}
 
-            oRow.CacheList.Add( oElem );
+            oRow.CacheColumns.Add( oElem );
 
             return oRow;
         }
@@ -584,7 +584,7 @@ namespace Play.Edit {
 
             if( iDir != 0 ) {
                 // First, see if we can navigate within the line we are currently at.
-                if( !oRow.CacheList[0].Navigate( eAxis, iDir, ref flAdvance, ref iOffset ) ) {
+                if( !oRow.CacheColumns[0].Navigate( eAxis, iDir, ref flAdvance, ref iOffset ) ) {
                     iDir = iDir < 0 ? -1 : 1; // Only allow move one line up or down.
 
 					// _rgLeft[_rgLeft.Count-1] = _oTextRect.GetScalar( SCALAR.WIDTH );
@@ -593,7 +593,7 @@ namespace Play.Edit {
                         CacheRow oNext = PreCache( oRow.At + iDir );
                         if( oNext != null ) {
                             // Find out where to place the cursor as it moves to the next line.
-                            iOffset = oNext.CacheList[0].OffsetBound( eAxis, iDir * -1, flAdvance );
+                            iOffset = oNext.CacheColumns[0].OffsetBound( eAxis, iDir * -1, flAdvance );
                             oRow    = oNext;
                         }
                     } catch( ArgumentOutOfRangeException ) {
@@ -618,7 +618,7 @@ namespace Play.Edit {
             CacheRow oRow = CacheLocate( oCaret.At );
 
             if( oRow != null ) {
-                Point pntCaretLoc = oRow.CacheList[0].GlyphOffsetToPoint( oCaret.Offset );
+                Point pntCaretLoc = oRow.CacheColumns[0].GlyphOffsetToPoint( oCaret.Offset );
 
                 pntCaretLoc.Y += oRow.Top;
 
@@ -649,7 +649,7 @@ namespace Play.Edit {
         /// <param name="iOffset">Offset into the given cache element.</param>
         public CaretMove CaretLocal( CacheRow oRow, int iOffset ) {
             CaretMove eMove       = CaretMove.LOCAL;
-            Point     pntCaretLoc = oRow.CacheList[0].GlyphOffsetToPoint( iOffset );
+            Point     pntCaretLoc = oRow.CacheColumns[0].GlyphOffsetToPoint( iOffset );
 
             pntCaretLoc.Y += oRow.Top;
 
@@ -709,7 +709,7 @@ namespace Play.Edit {
         ///         changed, needs the "update"</remarks> 
         public void OnChangeFormatting( ICollection<ILineSelection> rgSelection, int iWidth ) {
             foreach( CacheRow oRow in _rgOldCache ) {
-                IPgCacheMeasures oCache = oRow.CacheList[0];
+                IPgCacheMeasures oCache = oRow.CacheColumns[0];
               //oCache.Update( Font ); Just can't call this here. Too slow.
                 oCache.Colorize( rgSelection );
                 oCache.OnChangeSize( iWidth );
@@ -721,7 +721,7 @@ namespace Play.Edit {
         /// </remarks>
         public void OnChangeSelection( ICollection<ILineSelection> rgSelection ) {
             foreach( CacheRow oRow in _rgOldCache ) {
-                oRow.CacheList[0].Colorize( rgSelection );
+                oRow.CacheColumns[0].Colorize( rgSelection );
             }
         }
 
@@ -757,7 +757,7 @@ namespace Play.Edit {
 
                     for( int i=0; i< _rgCacheMap.Count; ++i ) {
                         SmartRect oColumn = _rgCacheMap[i];
-                        oRow.CacheList[i].OnChangeSize( oColumn.Width );
+                        oRow.CacheColumns[i].OnChangeSize( oColumn.Width );
                     }
                 }
             } catch( Exception oEx ) {
@@ -798,7 +798,7 @@ namespace Play.Edit {
 
             if( oRow != null ) {
                 // This one returns local row/col in points(pixels) 0,0 ul of FTCacheLine
-                pntWorld = oRow.CacheList[iCacheColumn].GlyphOffsetToPoint( oCaratPos.Offset );
+                pntWorld = oRow.CacheColumns[iCacheColumn].GlyphOffsetToPoint( oCaratPos.Offset );
                 // This adds the vertical offset of the world.
                 pntWorld.Y += oRow.Top;
                 return true;
@@ -827,10 +827,10 @@ namespace Play.Edit {
                     {
                         // Just bail on the first one. Something is up...
                         if( oWorldLoc._iColumn < 0 || 
-                            oWorldLoc._iColumn >= oRow.CacheList.Count )
+                            oWorldLoc._iColumn >= oRow.CacheColumns.Count )
                             return null;
 
-                        IPgCacheMeasures oCache = oRow.CacheList[oWorldLoc._iColumn];
+                        IPgCacheMeasures oCache = oRow.CacheColumns[oWorldLoc._iColumn];
 
                         oCaret.Line   = oRow.Line;
                         oCaret.Offset = oCache.GlyphPointToOffset(oRow.Top, oWorldLoc._pntLocation );
