@@ -1359,7 +1359,7 @@ namespace Play.Edit {
                 return false;
 
             _oCaretRow = oRow;
-            _iCaretCol = 0;
+            _iCaretCol = iColumn;
             _iCaretOff = 0;
 
             CacheRow oCaret = CacheReset( RefreshNeighborhood.CARET );
