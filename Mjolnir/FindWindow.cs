@@ -95,7 +95,7 @@ namespace Mjolnir {
             CacheList.Add( oLayoutSearchKey );
             _iCaretAtLayout = CacheList.Count - 1;
 
-            LayoutTable oTable = new LayoutTable( 4, LayoutRect.CSS.Flex );
+            LayoutTable oTable = new LayoutTable( 7, LayoutRect.CSS.Flex );
             Layout = oTable;
 
             oTable.AddColumn( LayoutRect.CSS.None,    0 );
