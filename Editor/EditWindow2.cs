@@ -580,6 +580,7 @@ namespace Play.Edit {
                         sbBanner.Append( _oDocument.FileBase );
                     }
 
+                    /* I don't want this anymore (for now :-)
                     string strCurrentLine = oLine.SubString( iStart, 25 );
 
                     sbBanner.Append( " @ " );
@@ -594,6 +595,7 @@ namespace Play.Edit {
                                 sbBanner.Append( oChar );
                         }
                     }
+                    */
 
                     return sbBanner.ToString() ;
                 } catch( NullReferenceException ) {
@@ -2062,7 +2064,8 @@ namespace Play.Edit {
             // Note: Currently used by FindWindow and ViewSiteLine objects.
             LineChanged?.Invoke( oCarat.At );
 
-            _oSiteView.Notify( ShellNotify.BannerChanged );
+            // Not showing current line in the banner anymore...
+            //_oSiteView.Notify( ShellNotify.BannerChanged );
 
             DecorNavigatorUpdate( eSource, oCarat );
         }
