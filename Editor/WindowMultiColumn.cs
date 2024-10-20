@@ -15,6 +15,7 @@ using Play.Interfaces.Embedding;
 using Play.Rectangles;
 using Play.Controls;
 using Play.Parse;
+
 using static Play.Edit.IPgEditEvents;
 
 namespace Play.Edit {
@@ -377,7 +378,8 @@ namespace Play.Edit {
             _oStdUI         = oViewSite.Host.Services as IPgStandardUI2 ?? throw new ArgumentException( "Parent view must provide IPgStandardUI service" );
             _oScrollBarVirt = new ScrollBar2( new DocSlot( this ) );
             // Oh! The find window is a table. But this object looks like one but is not! O.o
-            _rgLayout       = new LayoutStackHorizontal() { Spacing = 10, Units = LayoutRect.CSS.Flex};
+            /// <seealso cref="EditWindow2"/> <seealso cref="Mjolnir.FindWindow"/>
+            _rgLayout       = new LayoutStackHorizontal() { Spacing = 7, Units = LayoutRect.CSS.Flex};
 
             /// <seealso cref="EditWindow2"/>
             IPgMainWindow.PgDisplayInfo oInfo = new IPgMainWindow.PgDisplayInfo();

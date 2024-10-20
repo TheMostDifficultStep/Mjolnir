@@ -34,7 +34,7 @@ namespace Play.MorsePractice {
         readonly protected IPgRoundRobinWork _oWorkPlace; 
         readonly protected string            _strIcon = @"Play.MorsePractice.Content.icons8-copybook-60.jpg";
 
-        public CallsDoc Calls { get; } // List of callsigns in left hand column of notes file.
+        public CallsDoc Calls { get; } // List of callsigns for outline.
 
 		protected class DocSlot :
 			IPgBaseSite
@@ -147,7 +147,8 @@ namespace Play.MorsePractice {
                 }
                 string strOperatorCount = dupes.Count().ToString();
 
-                Calls.LineInsert( "Operator Count : " + strOperatorCount );
+                // This is in the properties page now.
+              //Calls.LineInsert( "Operator Count : " + strOperatorCount );
 
                 if( _oSiteBase.Host is DocNetHost oNetDoc ) {
                     oNetDoc.Props.ValueUpdate( (int)DocLogProperties.Names.Operator_Cnt, strOperatorCount );

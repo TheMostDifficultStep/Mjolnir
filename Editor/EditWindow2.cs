@@ -345,7 +345,7 @@ namespace Play.Edit {
 
         protected          LayoutRect            _rctCheques; // TODO: Move this to the subclass eventually.
         protected readonly LayoutRect            _rctTextArea = new LayoutRect( LayoutRect.CSS.None ); // Not same as the CacheMan text area!!
-        protected readonly LayoutStackHorizontal _rgLayout    = new LayoutStackHorizontal() { Spacing = 5, Units = LayoutRect.CSS.Flex};
+        protected readonly LayoutStackHorizontal _rgLayout    = new LayoutStackHorizontal() { Spacing = 7, Units = LayoutRect.CSS.Flex};
         protected readonly List<SmartRect>       _rgCacheMap   = new (); // We'll phase out _rctTextArea if we can.
 
         // Possible to change if move window from one screen to another. Right now only init at start.
