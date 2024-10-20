@@ -568,19 +568,10 @@ namespace Play.ImageViewer {
         /// </summary>
         public virtual string Banner { 
             get {
-                StringBuilder sbBuilder = new StringBuilder();
+                if( string.IsNullOrEmpty( _oSiteFile.FilePath ) )
+                    return string.Empty;
 
-                sbBuilder.Append( CurrentFileName );
-                sbBuilder.Append(  " @ " );
-                if( string.IsNullOrEmpty( _oSiteFile.FileName ) ) {
-                    sbBuilder.Append( "Unnamed Scraps File" );
-                } else {
-                    sbBuilder.Append( _oSiteFile.FilePath );
-                    sbBuilder.Append( Path.DirectorySeparatorChar );
-                    sbBuilder.Append( _oSiteFile.FileName );
-                }
-
-                return sbBuilder.ToString();
+                return _oSiteFile.FilePath;
         }   }
         public         SKBitmap  Icon { get; }
 

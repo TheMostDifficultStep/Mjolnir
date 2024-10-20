@@ -32,7 +32,7 @@ namespace Play.ImageViewer {
         /// <summary>
         /// Show the file we're pointed at, and then the directory we are perusing.
         /// </summary>
-        public override string Banner => CurrentFileName + " @ " + CurrentDirectory;
+        //public override string Banner => CurrentFileName + " @ " + CurrentDirectory;
 
         public override string CurrentDirectory {
             get { 
