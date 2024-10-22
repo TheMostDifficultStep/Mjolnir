@@ -1921,7 +1921,9 @@ namespace Mjolnir {
             ViewSelect( oViewNext, true );
 
             // If the ref count on the docsite is zero it will be disposed of as well.
-            Document.DocumentsClean( oDocSite );
+            if( !Document.DocumentsClean( oDocSite ) ) {
+                UpdateAllTitlesFor( oDocSite );
+            }
 
             SessionDirtySet( true );
         }

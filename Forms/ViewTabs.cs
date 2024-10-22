@@ -268,10 +268,10 @@ namespace Play.Forms {
                 case BUFFEREVENTS.FORMATTED:
                 case BUFFEREVENTS.SINGLELINE:
                 case BUFFEREVENTS.MULTILINE:
-                    foreach( LayoutSingleLine oCache in _rgTextCache ) {
-                        oCache.Cache.Measure( _oStdUI.FontRendererAt( _uStdFont ) );
-                        oCache.OnChangeFormatting();
-                        oCache.Cache.OnChangeSize( oCache.Width );
+                    foreach( LayoutSingleLine oLayout in _rgTextCache ) {
+                        oLayout.Cache.Measure( _oStdUI.FontRendererAt( _uStdFont ) );
+                        oLayout.OnChangeFormatting();
+                        oLayout.Cache.OnChangeSize( oLayout.Width );
                     }
                     Invalidate();
                     break;
