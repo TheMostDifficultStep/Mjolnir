@@ -12,6 +12,7 @@
 
   <ItemGroup>
     <None Remove="Content\icon-folder.png" />
+    <None Remove="Content\icons8-boxes-64.png" />
     <None Remove="Content\icons8-cardboard-box-48.png" />
     <None Remove="Content\icons8-cut-40.png" />
     <None Remove="Content\icons8-error-48.png" />
@@ -21,6 +22,7 @@
 
   <ItemGroup>
     <EmbeddedResource Include="Content\icon-folder.png" />
+    <EmbeddedResource Include="Content\icons8-boxes-64.png" />
     <EmbeddedResource Include="Content\icons8-cardboard-box-48.png" />
     <EmbeddedResource Include="Content\icons8-cut-40.png" />
     <EmbeddedResource Include="Content\icons8-error-48.png" />

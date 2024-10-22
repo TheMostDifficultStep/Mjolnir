@@ -64,7 +64,7 @@ namespace Play.FileManager {
         WindowMultiColumn,
         IPgCommandView
     {
-        public string    Banner => "File Manager : " + _oDocument.CurrentURL;
+        public string    Banner => _oDocument.CurrentURL;
 		public SKBitmap  Icon { get; protected set; }
         public                  Guid Catagory => _sGuid;
         public           static Guid GUID     => _sGuid;

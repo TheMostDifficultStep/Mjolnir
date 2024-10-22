@@ -14,6 +14,7 @@ using Play.Forms;
 
 using SkiaSharp;
 using SkiaSharp.Views.Desktop;
+using System.Reflection;
 
 namespace Play.ImageViewer {
     public abstract class ImageLineBase : LayoutImageReference {
@@ -152,6 +153,11 @@ namespace Play.ImageViewer {
 
         public ImageViewIcons( IPgViewSite oBaseSite, ImageWalkerDoc oDoc ) : base( oBaseSite, oDoc ) {
             Cursor = Cursors.Hand;
+
+			try {
+				Icon = Document.GetResource( "icons8-boxes-64.png", Assembly.GetExecutingAssembly() );
+			} catch( InvalidOperationException ) {
+			}
 
 			//new LayoutFlowUniform( new Size( 50, 50 ), _rgThumbs );
             _oScrollBarVirt      = new ScrollBar2( new DocSlot( this ) );
