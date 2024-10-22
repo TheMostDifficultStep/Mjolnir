@@ -485,16 +485,16 @@ namespace Play.SSTV {
                     TransmitStop( true );
                     ReceiveLiveStop();
 
-                    RxHistoryList.ImageUpdated       -= OnImageUpdated_RxHistoryList;
-                    TxImageList  .ImageUpdated       -= OnImageUpdated_TxImageList;
-                    TxTemplateDoc.Event_Check -= OnCheckedEvent_TemplateList;
+                    RxHistoryList  .ImageUpdated -= OnImageUpdated_RxHistoryList;
+                    TxImageList    .ImageUpdated -= OnImageUpdated_TxImageList;
+                    TxTemplateDoc  .Event_Check  -= OnCheckedEvent_TemplateList;
 
-                    RxSSTVFamilyDoc.Event_Check -= OnCheckEvent_RxSSTVFamilyDoc;
-                    RxSSTVModeDoc  .Event_Check -= OnCheckEvent_RxSSTVModeDoc;
+                    RxSSTVFamilyDoc.Event_Check  -= OnCheckEvent_RxSSTVFamilyDoc;
+                    RxSSTVModeDoc  .Event_Check  -= OnCheckEvent_RxSSTVModeDoc;
 
-                    TxSSTVFamilyDoc.Event_Check -= OnCheckEvent_TxSSTVFamilyDoc;
-                    TxSSTVModeDoc  .Event_Check -= OnCheckEvent_TxSSTVModeDoc;
-                    TxSSTVModeDoc  .RegisterOnLoaded   -= OnLoaded_TxSSTVModeDoc;
+                    TxSSTVFamilyDoc.Event_Check  -= OnCheckEvent_TxSSTVFamilyDoc;
+                    TxSSTVModeDoc  .Event_Check  -= OnCheckEvent_TxSSTVModeDoc;
+                    TxSSTVModeDoc  .Event_Loaded -= OnLoaded_TxSSTVModeDoc;
 
                     Properties.Dispose();
                 }
@@ -691,10 +691,10 @@ namespace Play.SSTV {
             RxSSTVModeDoc  .Event_Check += OnCheckEvent_RxSSTVModeDoc;
 
             TxSSTVFamilyDoc.Load( new SSTVDEM.EnumerateFamilies() );
-            TxSSTVFamilyDoc.Event_Check += OnCheckEvent_TxSSTVFamilyDoc;
+            TxSSTVFamilyDoc.Event_Check  += OnCheckEvent_TxSSTVFamilyDoc;
 			TxSSTVModeDoc  .Load( TxSSTVFamilyDoc.SelectedFamily.TvFamily );
-            TxSSTVModeDoc  .Event_Check += OnCheckEvent_TxSSTVModeDoc;
-            TxSSTVModeDoc  .RegisterOnLoaded   += OnLoaded_TxSSTVModeDoc;
+            TxSSTVModeDoc  .Event_Check  += OnCheckEvent_TxSSTVModeDoc;
+            TxSSTVModeDoc  .Event_Loaded += OnLoaded_TxSSTVModeDoc;
 
             // Get these set up so our std properties get the updates.
             TxImageList  .ImageUpdated       += OnImageUpdated_TxImageList;

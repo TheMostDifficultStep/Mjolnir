@@ -43,13 +43,6 @@ namespace Play.SSTV {
 			_oTxView  = oWindow ?? throw new ArgumentNullException( "Owning Tx window must not be null" );
 		}
 
-        protected override void Dispose(bool disposing) {
-			if( disposing ) {
-				_oDocSSTV.TxSSTVModeDoc.RegisterOnLoaded -= OnLoaded_TxSSTVModeDoc;
-			}
-            base.Dispose(disposing);
-
-        }
 
         public readonly static int[] Subset = new int[] { 
 			(int)SSTVProperties.Names.Tx_Progress,
@@ -77,8 +70,6 @@ namespace Play.SSTV {
 									 new ViewFamilyDDEditBox( new WinSlot( this ), _oDocSSTV.TxSSTVFamilyDoc ));
 					PropertyInitRow( (int)SSTVProperties.Names.Tx_ModeSelect,
 									 new ViewSSTVModesAsList( new WinSlot( this ), _oDocSSTV.TxSSTVModeDoc ));
-
-					_oDocSSTV.TxSSTVModeDoc.RegisterOnLoaded += OnLoaded_TxSSTVModeDoc;
 				} catch ( Exception oEx ) {
 					Type[] rgErrors = { typeof( NullReferenceException ),
 										typeof( ArgumentOutOfRangeException ) };
@@ -92,7 +83,7 @@ namespace Play.SSTV {
 							 new ImageViewSingle( new WinSlot( this ), _oDocSSTV.DisplayImage )  );
         }
 
-		public void OnLoaded_TxSSTVModeDoc() {
+		public override void OnDocLoaded() {
 			OnSizeChanged( new EventArgs() );
 		}
 		/// <summary>

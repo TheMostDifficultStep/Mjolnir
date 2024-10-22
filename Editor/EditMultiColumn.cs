@@ -342,8 +342,11 @@ namespace Play.Edit {
         protected string               _strCheckValue = "\x2714";
         protected string               _strCheckClear = string.Empty;
 
+        // Often we need these events independento of the listeners b/s some
+        // parent document might be using us and not just the windows!!
         public event Action<Row> Event_HighLight;
-        public event Action<Row> Event_Check; // Events when check marks occur.
+        public event Action<Row> Event_Check;     // Events when check marks occur.
+        public event Action      Event_Loaded;    // Events when the document is loaded.
 
         public IPgParent Parentage => _oSiteBase.Host;
         public IPgParent Services  => Parentage.Services;
@@ -564,6 +567,13 @@ namespace Play.Edit {
             foreach( IPgEditEvents oListener in _rgListeners ) {
                 oListener.OnDocUpdateEnd( eEdit, oRow );
             }
+        }
+
+        protected void Raise_DocLoaded() {
+            foreach( IPgEditEvents oListener in _rgListeners ) {
+                oListener.OnDocLoaded();
+            }
+            Event_Loaded?.Invoke();
         }
 
         public void Raise_CheckEvent( Row oRow ) {

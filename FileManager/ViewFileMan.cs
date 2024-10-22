@@ -82,7 +82,6 @@ namespace Play.FileManager {
 
         protected override void Dispose( bool fDisposing ) {
             if( fDisposing ) {
-                _oDocument.Event_UpdateBanner -= OnUpdateBanner;
                 Icon?.Dispose();
             }
             base.Dispose( fDisposing );
@@ -116,12 +115,11 @@ namespace Play.FileManager {
             HyperLinks.Add( "DirJump",  OnDirJump );
             HyperLinks.Add( "FileJump", OnFileJump );
 
-            _oDocument.Event_UpdateBanner += OnUpdateBanner;
-
             return true;
         }
 
-        private void OnUpdateBanner() {
+        public override void OnDocLoaded() {
+            base.OnDocLoaded();
             _oSiteView.Notify( ShellNotify.BannerChanged );
         }
 

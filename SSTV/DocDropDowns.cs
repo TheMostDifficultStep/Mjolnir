@@ -190,7 +190,7 @@ namespace Play.SSTV {
             public SSTVMode Mode { get; set; }
         }
 
-        public event Action RegisterOnLoaded;
+        //public event Action RegisterOnLoaded;
         public SSTVModeDoc(IPgBaseSite oSiteBase) : base(oSiteBase) {
             CheckColumn = 0; // Just to be clear.
         }
@@ -223,7 +223,7 @@ namespace Play.SSTV {
         /// from the list. Then select the first "default" item. Else
         /// try loading the elligble modes for that family.</param>
         public bool Load( TVFamily eFamily, AllSSTVModes eLegacyMode = AllSSTVModes.smEND ) {
-            TrackerEnumerable oTE = new TrackerEnumerable( this );
+            //TrackerEnumerable oTE = new TrackerEnumerable( this );
 
             Clear();
 
@@ -247,9 +247,10 @@ namespace Play.SSTV {
 
             RenumberAndSumate();
 
-            oTE.FinishUp( IPgEditEvents.EditType.Rows );
+            //oTE.FinishUp( IPgEditEvents.EditType.Rows );
 
-            RegisterOnLoaded?.Invoke();
+            //RegisterOnLoaded?.Invoke();
+            Raise_DocLoaded();
 
             return true;
         }

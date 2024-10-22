@@ -87,7 +87,7 @@ namespace Play.FileManager {
         public string HomeURL => Environment.GetFolderPath(Environment.SpecialFolder.Personal);
 
         public readonly IPgStandardUI2 _oStdUI;
-        public event Action? Event_UpdateBanner;
+        //public event Action? Event_UpdateBanner;
         public class FMRow : Row {
             public enum DCol :int {
                 Chck =0,
@@ -265,7 +265,7 @@ namespace Play.FileManager {
 
         protected void ReadDir( DirectoryInfo oDir ) {
             try {
-                Raise_DocUpdateBegin( );
+                //Raise_DocUpdateBegin( );
 
                 Clear();
 
@@ -305,8 +305,8 @@ namespace Play.FileManager {
 
                 RenumberAndSumate();
 
-                Raise_DocUpdateEnd( IPgEditEvents.EditType.Rows, null );
-                Event_UpdateBanner?.Invoke();
+                //Raise_DocUpdateEnd( IPgEditEvents.EditType.Rows, null );
+                Raise_DocLoaded();
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( NullReferenceException ),
                                     typeof( IOException ),

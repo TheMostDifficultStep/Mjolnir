@@ -33,13 +33,6 @@ namespace Play.SSTV {
 			SSTVDocument = docSSTV ?? throw new ArgumentNullException( nameof( docSSTV ) );
 		}
 
-        protected override void Dispose(bool disposing) {
-			if( disposing ) {
-				SSTVDocument.RxSSTVModeDoc.RegisterOnLoaded -= OnLoaded_RxSSTVModeDoc;
-			}
-            base.Dispose(disposing);
-        }
-
         public override void InitRows() {
 			int[] rgShow = { 
 				(int)SSTVProperties.Names.Std_Process,
@@ -56,10 +49,7 @@ namespace Play.SSTV {
 
 			try {
 				PropertyInitRow( (int)SSTVProperties.Names.Rx_FamilySelect,
-								 new ViewFamilyDDEditBox(new WinSlot(this), SSTVDocument.RxSSTVFamilyDoc ) );
-
-				SSTVDocument.RxSSTVModeDoc.RegisterOnLoaded += OnLoaded_RxSSTVModeDoc;
-
+								 new ViewFamilyDDEditBox( new WinSlot( this ), SSTVDocument.RxSSTVFamilyDoc ) );
 				PropertyInitRow( (int)SSTVProperties.Names.Rx_ModeSelect,
 								 new ViewSSTVModesAsList( new WinSlot( this ), SSTVDocument.RxSSTVModeDoc ) );
 				PropertyInitRow( (int)SSTVProperties.Names.Rx_Diagnostic, 
@@ -76,7 +66,7 @@ namespace Play.SSTV {
 			}
         }
 
-		public void OnLoaded_RxSSTVModeDoc() {
+		public override void OnDocLoaded() {
 			OnSizeChanged( new EventArgs() );
 		}
 	}

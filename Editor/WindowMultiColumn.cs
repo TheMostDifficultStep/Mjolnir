@@ -82,7 +82,7 @@ namespace Play.Edit {
         void           OnDocUpdateBegin();
         void           OnDocUpdateEnd  ( EditType eType, Row oRow );
         void           OnDocFormatted  (); 
-
+        void           OnDocLoaded     (); // Give window opportunity to reset caret.
         IPgCaretInfo<Row> Caret2 { get; } // TODO: sort this out.
     }
 
@@ -670,6 +670,11 @@ namespace Play.Edit {
         public virtual void OnDocFormatted() {
             _oCacheMan.OnDocFormatted();
             Invalidate();
+        }
+
+        public virtual void OnDocLoaded() {
+            // Note: The file manager overrides this and calls update banner...
+            _oCacheMan.OnDocLoaded();
         }
 
         public IPgCaretInfo<Row> Caret2 => _oCacheMan;

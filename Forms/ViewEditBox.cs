@@ -137,8 +137,7 @@ namespace Play.Controls {
             _rctWorldPort.SetRect( 0, 0, _oBmpButton.Bitmap.Width, _oBmpButton.Bitmap.Height );
 
             // Set our text value to the checked line...
-            OnDocUpdateBegin();
-            OnDocUpdateEnd  ( IPgEditEvents.EditType.Rows, null );
+            OnDocLoaded();
 
             return true;
         }
@@ -341,6 +340,10 @@ namespace Play.Controls {
 
                 LogError( "ViewDropDown Edit Handler Error" );
             }
+        }
+
+        public void OnDocLoaded() {
+            OnDocUpdateEnd( IPgEditEvents.EditType.Rows, null );
         }
 
         protected class DumbCaret : IPgCaretInfo<Row> {

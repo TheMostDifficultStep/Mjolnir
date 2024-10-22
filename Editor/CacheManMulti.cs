@@ -1613,6 +1613,19 @@ namespace Play.Edit {
             CacheReColor();
         }
 
+        public virtual void OnDocLoaded() {
+
+            if( _oSiteList.ElementCount > 0 ) {
+                Row oRow = _oSiteList[0];
+
+                // would be nice to have a default column from the site.
+                _oCaretRow = oRow;
+                _iCaretOff = 0;
+
+                CacheWalker( CreateCacheRow( oRow ), fRemeasure:true );
+            }
+        }
+
         public IPgCaretInfo<Row> Caret2 => this;
 
     } // end class
