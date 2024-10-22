@@ -265,8 +265,6 @@ namespace Play.FileManager {
 
         protected void ReadDir( DirectoryInfo oDir ) {
             try {
-                //Raise_DocUpdateBegin( );
-
                 Clear();
 
                 _strDirectory = oDir.FullName;
@@ -305,7 +303,6 @@ namespace Play.FileManager {
 
                 RenumberAndSumate();
 
-                //Raise_DocUpdateEnd( IPgEditEvents.EditType.Rows, null );
                 Raise_DocLoaded();
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( NullReferenceException ),

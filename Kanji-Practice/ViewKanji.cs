@@ -9,6 +9,7 @@ using Play.ImageViewer;
 using Play.Drawing;
 
 using SkiaSharp;
+using System.Reflection;
 
 namespace Kanji_Practice {
     public class ViewScratchPad : ImageViewSingle {
@@ -161,7 +162,7 @@ namespace Kanji_Practice {
         public IPgParent Services  => Parentage.Services;
 
         public string    Banner => "Kanji Cards";
-        public SKBitmap  Icon => null!;
+        public SKBitmap  Icon { get; protected set; }
         public Guid      Catagory => Guid.Empty;
         public bool      IsDirty => false;
 
@@ -200,6 +201,8 @@ namespace Kanji_Practice {
             CenterDisplay = new ViewKanjiProps( new ViewSlot( this ), KanjiDoc ) ;
 
             CenterDisplay.Parent = this;
+
+            Icon          = SKImageResourceHelper.GetImageResource( Assembly.GetExecutingAssembly(), "Kanji_Practice.icons8-kanji-50.png" );
         }
 
         protected override void Dispose(bool disposing) {

@@ -42,8 +42,6 @@ namespace Play.SSTV {
                 throw new ArgumentNullException();
             }
 
-            TrackerEnumerable oTE = new TrackerEnumerable( this );
-
             _rgRows.Clear();
 
             PreLoadRows();
@@ -52,11 +50,12 @@ namespace Play.SSTV {
                 _rgRows.Add( new DDRow( oFamily, CheckClrValue ) );
             }
 
-            _rgRows[0][(int)Column.Check].TryReplace( CheckSetValue );
+            if( _rgRows.Count > 0 ) {
+                _rgRows[0][(int)Column.Check].TryReplace( CheckSetValue );
+            }
 
             RenumberAndSumate(); // Each row must be numbered, else cache messes up.
-
-            oTE.FinishUp( IPgEditEvents.EditType.Rows );
+            Raise_DocLoaded  ();
 
             return true;
         }
@@ -223,8 +222,6 @@ namespace Play.SSTV {
         /// from the list. Then select the first "default" item. Else
         /// try loading the elligble modes for that family.</param>
         public bool Load( TVFamily eFamily, AllSSTVModes eLegacyMode = AllSSTVModes.smEND ) {
-            //TrackerEnumerable oTE = new TrackerEnumerable( this );
-
             Clear();
 
             foreach( SSTVMode oMode in AllDescriptors ) {
@@ -247,9 +244,6 @@ namespace Play.SSTV {
 
             RenumberAndSumate();
 
-            //oTE.FinishUp( IPgEditEvents.EditType.Rows );
-
-            //RegisterOnLoaded?.Invoke();
             Raise_DocLoaded();
 
             return true;

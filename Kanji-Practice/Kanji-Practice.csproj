@@ -8,6 +8,14 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="icons8-kanji-50.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="icons8-kanji-50.png" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Drawing\Drawing.csproj" />
     <ProjectReference Include="..\Editor\Editor.csproj" />
     <ProjectReference Include="..\Forms\Forms.csproj" />
