@@ -70,6 +70,8 @@ namespace Play.SSTV {
 									 new ViewFamilyDDEditBox( new WinSlot( this ), _oDocSSTV.TxSSTVFamilyDoc ));
 					PropertyInitRow( (int)SSTVProperties.Names.Tx_ModeSelect,
 									 new ViewSSTVModesAsList( new WinSlot( this ), _oDocSSTV.TxSSTVModeDoc ));
+
+                    _oDocSSTV.TxSSTVModeDoc.Event_Loaded += OnDocLoaded_TxSSTVModeDoc;
 				} catch ( Exception oEx ) {
 					Type[] rgErrors = { typeof( NullReferenceException ),
 										typeof( ArgumentOutOfRangeException ) };
@@ -83,7 +85,11 @@ namespace Play.SSTV {
 							 new ImageViewSingle( new WinSlot( this ), _oDocSSTV.DisplayImage )  );
         }
 
-		public override void OnDocLoaded() {
+		/// <summary>
+		/// Tell our overall property page to resize because our mode list is 
+		/// a different size.
+		/// </summary>
+        private void OnDocLoaded_TxSSTVModeDoc() {
 			OnSizeChanged( new EventArgs() );
 		}
 		/// <summary>

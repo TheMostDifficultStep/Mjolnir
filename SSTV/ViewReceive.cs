@@ -56,6 +56,8 @@ namespace Play.SSTV {
 								 new ImageViewSingle    ( new WinSlot( this ), SSTVDocument.SyncImage ) );
 				PropertyInitRow( (int)SSTVProperties.Names.Rx_SignalLevel, 
 								 new ImageViewSingle    ( new WinSlot( this ), SSTVDocument.SignalLevel ) );
+
+                SSTVDocument.RxSSTVModeDoc.Event_Loaded += OnDocLoaded_RxSSTVModeDoc;
 			} catch ( Exception oEx ) {
 				Type[] rgErrors = { typeof( NullReferenceException ),
 									typeof( ArgumentOutOfRangeException ),
@@ -66,9 +68,13 @@ namespace Play.SSTV {
 			}
         }
 
-		public override void OnDocLoaded() {
+		/// <summary>
+		/// Tell our overall property page to resize because our mode list is 
+		/// a different size.
+		/// </summary>
+        private void OnDocLoaded_RxSSTVModeDoc() {
 			OnSizeChanged( new EventArgs() );
-		}
+        }
 	}
 
 	/// <summary>

@@ -27,6 +27,10 @@ namespace Play.Controls {
         }
     }
 
+    public interface IPgViewChild : IPgViewSite {
+        void OnChildDisposed();
+    }
+
     /// <summary>
     /// This is basically a single line editor. Right now it's specialized to show
     /// a single line of text and a bitmap on the right.
@@ -62,15 +66,24 @@ namespace Play.Controls {
         public IPgParent Services  => Parentage.Services;
         protected IPgFontRender FontRender => _oStdUI.FontRendererAt( StdFont );
 
+        protected Control Popup { get; set; } = null;
+
         public abstract ViewDDPopup CreatePopup();
 
 		protected class WinSlot :
-			IPgViewSite
+			IPgViewSite,
+            IPgViewChild
 		{
 			protected readonly ViewEditBox _oHost;
 
-			public WinSlot( ViewEditBox oHost ) {
+            public WinSlot( ViewEditBox oHost ) {
 				_oHost = oHost ?? throw new ArgumentNullException();
+
+                // We check if the popup isopen before we attempt to create
+                // it so if it is true now we're in a weird state...
+                if( _oHost.Popup is not null ) {
+                    throw new InvalidOperationException( "Popup confusion. T_T" );
+                }
 			}
 
 			public IPgParent Host => _oHost;
@@ -83,7 +96,19 @@ namespace Play.Controls {
 				_oHost._oSiteView.Notify( eEvent );
 			}
 
+            /// <summary>
+            /// this might happen because either 
+            /// 1) the popup closed itself "esc key"
+            /// 2) We pressed the dropdown button again causing focus to be lost and
+            ///    the control distroys itself.
+            /// 3) select somewhere else in the document, causing focus to be lost.
+            /// </summary>
+
             public IPgViewNotify EventChain => _oHost._oSiteView.EventChain;
+
+            public void OnChildDisposed() {
+                _oHost.Popup = null;
+            }
         }
 
 
@@ -120,6 +145,17 @@ namespace Play.Controls {
             _oCacheLine = new FTCacheWrap( _oTextLine );
         }
 
+        protected override CreateParams CreateParams {
+            get {
+                CreateParams oCP = base.CreateParams;
+
+                //oCP.Style &= ~unchecked((int)(WindowStyles.WS_CLIPCHILDREN));
+
+                oCP.ExStyle |= (int)(WindowStyles.WS_EX_TOOLWINDOW );
+
+                return oCP;
+            }
+        }
         protected void LogError( string strMessage ) {
             _oSiteView.LogError( "Drop Down", strMessage );
         }
@@ -268,11 +304,27 @@ namespace Play.Controls {
         /// <summary>
         /// https://learn.microsoft.com/en-us/windows/win32/winmsg/window-features#pop-up-windows
         /// </summary>
-        /// <param name="e"></param>
+        /// <remarks>You MUST capture after any window was created. Else you lose capture. 
+        /// And you MUST capture on mouse up. If on mouse down, then the newly created window
+        /// which is now the active window catches the next up and kills itself!!</remarks>
+        protected override void OnMouseUp( MouseEventArgs e ) { 
+            base.OnMouseDown( e ); 
+
+            if( Popup is not null ) {
+                Popup.Capture = true;
+            }
+        }
+
         protected override void OnMouseDown( MouseEventArgs e ) { 
             base.OnMouseDown( e ); 
 
-            PreparePopup( CreatePopup() );
+            if( Popup is null ) {
+                ViewDDPopup oPopup = CreatePopup();
+
+                PreparePopup( oPopup );
+                Popup = oPopup;
+                Capture = true;
+            }
         }
 
         /// <summary>
@@ -368,11 +420,13 @@ namespace Play.Controls {
         WS_CLIPCHILDREN      = 0x02000000,
         WS_MAXIMIZEBOX       = 0x00010000,
         WS_BORDER            = 0x00800000,
+        WS_CHILD             = 0x40000000,
                              
         WS_EX_LEFT           = 0x00000000,
         WS_EX_LTRREADING     = 0x00000000,
         WS_EX_RIGHTSCROLLBAR = 0x00000000,
-        WS_EX_TOPMOST        = 0x00000008
+        WS_EX_TOPMOST        = 0x00000008,
+        WS_EX_TOOLWINDOW     = 0x00000080,
     }
 
     public enum MouseActivate : int {
@@ -395,9 +449,21 @@ namespace Play.Controls {
 
         protected IPgDocCheckMarks _oDocCheckMark;
 
+        // This is how we tell the owner window we're dead.
+        protected readonly IPgViewChild _oSiteCtrl;
+
         public ViewDDPopup( IPgViewSite oView, object oDocument ) : base( oView, oDocument ) {
             _oDocCheckMark = (IPgDocCheckMarks)oDocument;
+            _oSiteCtrl     = (IPgViewChild)_oSiteView;
+
             IsScrollVisible = false;
+        }
+
+        protected override void Dispose(bool disposing) {
+            if( disposing ) {
+                _oSiteCtrl.OnChildDisposed();
+            }
+            base.Dispose(disposing);
         }
 
         protected override bool Initialize() {
@@ -415,13 +481,14 @@ namespace Play.Controls {
                 createParams.Style = unchecked((int)(
                                          WindowStyles.WS_POPUP |
                                          WindowStyles.WS_VISIBLE |
-                                         WindowStyles.WS_CLIPSIBLINGS |
-                                         WindowStyles.WS_CLIPCHILDREN |
+                                         //WindowStyles.WS_CLIPSIBLINGS |
+                                         //WindowStyles.WS_CLIPCHILDREN |
                                          WindowStyles.WS_BORDER ));
-                //createParams.ExStyle = (int)(WindowStyles.WS_EX_LEFT |
-                //                       WindowStyles.WS_EX_LTRREADING |
-                //                       WindowStyles.WS_EX_RIGHTSCROLLBAR | 
-                //                       WindowStyles.WS_EX_TOPMOST );
+                createParams.ExStyle = (int)(WindowStyles.WS_EX_TOPMOST |
+                                             WindowStyles.WS_EX_TOOLWINDOW );
+                //                           WindowStyles.WS_EX_LEFT
+                //                           WindowStyles.WS_EX_LTRREADING |
+                //                           WindowStyles.WS_EX_RIGHTSCROLLBAR  
 
                 createParams.Parent  = HostHandle;
 
@@ -429,24 +496,29 @@ namespace Play.Controls {
             }
         }
 
-        protected override void WndProc(ref Message m) {
-            switch( m.Msg ) {
-                case WM_ACTIVATE: {
-                    if( (int)m.WParam == 1 ) {
-                        // window is being activated
-                        if( HostHandle != IntPtr.Zero ) {
-                            User32.SetActiveWindow(HostHandle);
-                        }
-                    }
-                    break;
-                }
-                case WM_MOUSEACTIVATE: {
-                    m.Result = new IntPtr((int)MouseActivate.MA_NOACTIVATE);
-                    return;
-                }
-            }
-            base.WndProc(ref m);
-        }
+        /// <summary>
+        /// This seems to interfere with setting the capture of the mouse
+        /// so I'm commenting it out. It's the recommended way to design a popup
+        /// but I don't see how it helps in anyway. :-/
+        /// </summary>
+        //protected override void WndProc(ref Message m) {
+        //    switch( m.Msg ) {
+        //        case WM_ACTIVATE: {
+        //            if( (int)m.WParam == 1 ) {
+        //                // window is being activated
+        //                if( HostHandle != IntPtr.Zero ) {
+        //                    User32.SetActiveWindow(HostHandle);
+        //                }
+        //            }
+        //            break;
+        //        }
+        //        case WM_MOUSEACTIVATE: {
+        //            m.Result = new IntPtr((int)MouseActivate.MA_NOACTIVATE);
+        //            return;
+        //        }
+        //    }
+        //    base.WndProc(ref m);
+        //}
 
         protected override void OnKeyUp(KeyEventArgs e) {
             base.OnKeyUp(e);
@@ -458,18 +530,14 @@ namespace Play.Controls {
             }
         }
 
-        protected override void OnLostFocus(EventArgs e) {
-            base.OnLostFocus(e);
-            Dispose();
-        }
-
-        /// <summary>
-        /// Must process the check in MOUSE UP. Because if we dispose ourselves on
+        /// <summary>Make sure to set the capture to this control. </summary>
+        /// <remarks>Must process the check in MOUSE UP. Because if we dispose ourselves on
         /// mouse down. Then the window underneath gets the mouse up!!!!
         /// This means you probably get weird effects if you mouse down in on window
         /// and them mouse up in another!! O.o
-        /// </summary>
-        /// <param name="e"></param>
+        /// Alas. Only the active window can capture the mouse. And if
+        /// we're preventing ourself to be activated that is a problem...
+        /// So I've disabled that code.</remarks>
         protected override void OnMouseUp( MouseEventArgs e ) {
             // Assuming we've captured the mouse...
             SmartRect rcClient = new SmartRect( 0, 0, Width, Height );
@@ -491,17 +559,6 @@ namespace Play.Controls {
                 }
                 return IntPtr.Zero;
             }
-        }
-        public void OnFormUpdate(IEnumerable<Line> rgUpdates) {
-            _oCacheMan.CacheRepair( null, true, true );
-        }
-
-        public void OnFormClear() {
-            _oCacheMan.CacheRepair( null, true, true );
-        }
-
-        public void OnFormLoad() {
-            _oCacheMan.CacheRepair( null, true, true );
         }
     }
 }
