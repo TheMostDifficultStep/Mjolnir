@@ -32,7 +32,10 @@ namespace Mjolnir {
 	/// An editor for view sites. This is a bit of an experiment with my non mutiple buffer
 	/// version of the editor.
 	/// </summary>
-    public class ViewsEditor : BaseEditor {
+    public class ViewsEditor : 
+        BaseEditor,
+        IEnumerable<ViewSlot>
+    {
         public ViewsEditor( IPgBaseSite oSite ) : base( oSite ) {}
 
         /// <summary>
@@ -41,7 +44,10 @@ namespace Mjolnir {
         protected override Line CreateLine( int iLine, string strValue ) {
             return new TextLine( iLine, strValue );
         }
-
+        /// <summary>
+        /// The system isn't complaining about the non generic search 
+        /// GetEnum... b/c that one is tied to the original Line enumerator.
+        /// </summary>
         public IEnumerator<ViewSlot> GetEnumerator() {
             foreach( Line oLine in _rgLines ) {
                 if( oLine is ViewSlot oSlot )

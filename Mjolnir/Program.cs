@@ -34,7 +34,6 @@ namespace Mjolnir {
     {
         public static Guid Clock       { get; } = new Guid( "{DEA39235-7E0A-4539-88A0-2FB775E7A8CC}" );
         public static Guid FindDialog  { get; } = new Guid( "{231E4D61-499A-427E-A1D3-EC4A579A5E6D}" );
-        public static Guid MatchesView { get; } = new Guid( "{B9218737-4EC6-4E5F-BF2A-D41949CD07DA}" );
         public static Guid ViewSelector{ get; } = new Guid( "{195E19DB-4BCE-4CAE-BE02-263536F00851}" );
         public static Guid MainWin     { get; } = new Guid( "{B091DED3-33C8-4BD1-8390-CA568CA7F9FC}" );
 
@@ -64,14 +63,14 @@ namespace Mjolnir {
         readonly Timer                    _oTimer      = new Timer();
         readonly List <IPgRoundRobinWork> _rgWorkers   = new List<IPgRoundRobinWork>();
 
-        protected Editor _oDoc_Alerts;
-        protected Editor _oDoc_Recents;
+        protected Editor      _oDoc_Alerts;
+        protected Editor      _oDoc_Recents;
+        public SearchResults Doc_Results { get; protected set; }
 
         // The textslots and xmlslots we could make cache the editor pointers on load
         // so we spot load errors sooner instead of later after the program boots.
         protected InternalSlot      _oDocSlot_Scraps;
         protected TextSlot          _oDocSlot_Alerts;
-        protected TextSlot          _oDocSlot_Results;
         protected XmlSlot           _oDocSlot_Recents;
         protected InternalSlot      _oDocSlot_Fonts;
         protected XmlSlot           _oDocSlot_SearchKey;
@@ -83,7 +82,6 @@ namespace Mjolnir {
         public InternalSlot ScrapBookSlot => _oDocSlot_Scraps;
         public XmlSlot      RecentsSlot   => _oDocSlot_Recents;
         public TextSlot     SessionSlot   => _oDocSite_Session;
-		public TextSlot     ResultsSlot   => _oDocSlot_Results;
 		public XmlSlot      SearchSlot    => _oDocSlot_SearchKey;
         public IDocSlot     FindSlot      => _oDocSlot_Find;
         public IDocSlot     AlertSlot     => _oDocSlot_Alerts;
@@ -175,6 +173,8 @@ namespace Mjolnir {
                 // BUG: I'd like to log it but nothing is ready to go at this point! I should probably make
                 //      an array to hold REALLY EARLY errors like this and then spew 'em when we're we're able.
             }
+
+            Doc_Results = new SearchResults( new TransientSlot( this ) );
 
             _oFTManager = new FTManager();
         }
@@ -622,16 +622,6 @@ namespace Mjolnir {
                 if( _oDocSlot_SearchKey.Document is Editor oEdit ) {
                     oEdit.LineInsert( string.Empty );
                 }
-            }
-
-            {
-                PgDocDescr oDescr = GetController( ".results" );
-                if( oDescr.StgReqmnt != typeof( IPgLoad<TextReader> ) )
-                    throw new InvalidProgramException();
-
-                _oDocSlot_Results = new InternalSlot( this, oDescr, "Find Results" );
-                _oDocSlot_Results.CreateDocument();
-                _oDocSlot_Results.InitNew();
             }
 
             {

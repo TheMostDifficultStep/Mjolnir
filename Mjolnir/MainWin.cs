@@ -18,6 +18,8 @@ using Play.Rectangles;
 using Play.Edit;
 using Play.Parse;
 using Play.Forms;
+using static Play.ImageViewer.DocImageEdit;
+using static Mjolnir.Program;
 
 namespace Mjolnir {
     /// <summary>
@@ -710,10 +712,10 @@ namespace Mjolnir {
             oSettingsMenu.DropDownItems.Add(new ToolStripMenuItem("Save",       BitmapCreateFromChar( "\xe105" ), new EventHandler(this.OnSessionSave  )));
             oSettingsMenu.DropDownItems.Add(new ToolStripMenuItem("Save As...", BitmapCreateFromChar( "\xe159" ), new EventHandler(this.OnSessionSaveAs)));
             oSettingsMenu.DropDownItems.Add(new ToolStripSeparator() );
-            oSettingsMenu.DropDownItems.Add(new ToolStripMenuItem("Alerts!",       BitmapCreateFromChar( "\xE1de" ), new EventHandler(this.OnSessionOpenAlerts )));
-            oSettingsMenu.DropDownItems.Add(new ToolStripMenuItem("Find Results!", BitmapCreateFromChar( "\xE179" ), new EventHandler(this.OnSessionOpenResults)));
-            oSettingsMenu.DropDownItems.Add(new ToolStripMenuItem("Recent List!",  BitmapCreateFromChar( "\xE1a5" ), new EventHandler(this.OnSessionOpenRecents)));
-            oSettingsMenu.DropDownItems.Add(new ToolStripMenuItem("Scrap Book!",   BitmapCreateFromChar( "\xE1d3" ), new EventHandler(this.OnSessionOpenScraps )));
+            oSettingsMenu.DropDownItems.Add(new ToolStripMenuItem("Alerts!",         BitmapCreateFromChar( "\xE1de" ), new EventHandler(this.OnSessionOpenAlerts )));
+//            oSettingsMenu.DropDownItems.Add(new ToolStripMenuItem("Search Results!", BitmapCreateFromChar( "\xE179" ), new EventHandler(this.OnSessionOpenResults)));
+            oSettingsMenu.DropDownItems.Add(new ToolStripMenuItem("Recent List!",    BitmapCreateFromChar( "\xE1a5" ), new EventHandler(this.OnSessionOpenRecents)));
+            oSettingsMenu.DropDownItems.Add(new ToolStripMenuItem("Scrap Book!",     BitmapCreateFromChar( "\xE1d3" ), new EventHandler(this.OnSessionOpenScraps )));
             oSettingsMenu.DropDownItems.Add(new ToolStripSeparator() );
             oSettingsMenu.DropDownItems.Add(new ToolStripMenuItem("About!",     BitmapCreateFromChar( "\xe0a5" ), new EventHandler( this.OnHelpAbout )));  // "\xE2c0" doesn't work. :-(
                                                                                                                                                            //oSettingsMenu.DropDown.MouseLeave += OnDropDown_MouseLeave;
@@ -865,7 +867,6 @@ namespace Mjolnir {
     
         private void OnSessionOpenResults( object s, EventArgs e ) 
         {
-            OpenOrShowFirstView( Document.ResultsSlot );
         }
 
         private void OnSessionOpenRecents(object sender, EventArgs e)
@@ -2520,14 +2521,14 @@ namespace Mjolnir {
 				oAlertsSite.InitNew();
 				DecorAdd( "alerts", oAlertsSite.Guest );
 
-                // BUG: We're using a general controller from the program on the InternalSlot, what we really
-                // need is a specialized controller for these internal views. Because this view is just defaulting
-                // to the standard EditWin. I'd like it to be an EditWindow2, but I can't change the current controller
-                // without effecting views I don't want to change. SeeAlso the "alerts" above.
-				DecorSlot oResultsSite = new DecorSlot( this, Document.ResultsSlot, Shepardfind( "matches" ) );
-                oResultsSite.ViewCreate( Program.MatchesView );
-                oResultsSite.InitNew();
-                DecorAdd( "matches", oResultsSite.Guest );
+				DecorSlot oResultsSite = new DecorSlot( this, 
+                                                        new InternalSlot( Document, 
+                                                                          Document.GetController( ".results" ),
+                                                                          "Search Results" ),
+                                                        Shepardfind( "matches" ) );
+                ViewSearchResults oViewMatches = new ViewSearchResults( oResultsSite, Document.Doc_Results );
+                oViewMatches.InitNew();
+                DecorAdd( "matches", oViewMatches );
 
 				DecorSlot oFindSite = new DecorSlot( this, Document.FindSlot, Shepardfind( "find" ) );
                 oFindSite.ViewCreate( Program.FindDialog );

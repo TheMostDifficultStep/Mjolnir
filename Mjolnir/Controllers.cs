@@ -424,11 +424,11 @@ namespace Mjolnir {
         }
 
         public override IDisposable CreateDocument( IPgBaseSite oSite, string strExtension ) {
-            return new Editor( oSite );
+            throw new NotImplementedException("Controller may not create a doc.");
         }
 
         public override IDisposable CreateView( IPgViewSite oViewSite, object oDocument, Guid guidViewType ) {
-            return new EditWindow2( oViewSite, (Editor)oDocument, fReadOnly:true );
+            return new ViewSearchResults( oViewSite, (Editor)oDocument );
         }
     }
 }

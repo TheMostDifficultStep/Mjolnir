@@ -16,7 +16,7 @@ using Play.Rectangles;
 using Play.Controls;
 using Play.Parse;
 
-using static Play.Edit.IPgEditEvents;
+using static Play.Edit.IPgEditEvents; // move to interfaces project.
 
 namespace Play.Edit {
     public interface IPgDocTraits<T> {

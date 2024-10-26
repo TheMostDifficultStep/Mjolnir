@@ -25,8 +25,7 @@ namespace Mjolnir {
         readonly MainWin _oWinMain; 
 
                  ViewChanged      _oViewChangedHandler;
-        readonly ParseHandlerText _oParseEvents       = null;
-        readonly Editor           _oDoc_SearchResults = null;
+        readonly ParseHandlerText _oParseEvents = null;
 
         IPgTextView             _oView; // This value changes when current view is switched.
         IEnumerator<ILineRange> _oEnumResults;
@@ -39,8 +38,6 @@ namespace Mjolnir {
             base( oSiteView, (Editor)oShell.Document.SearchSlot.Document )
         {
 			_oWinMain = oShell ?? throw new ArgumentNullException( "Shell reference must not be null" );
-
-            _oDoc_SearchResults = _oWinMain.Document.ResultsSlot.Document as Editor;
 
             InitializeComponent();
 
@@ -136,17 +133,25 @@ namespace Mjolnir {
 			get { return _oWinMain; }
 		}
 
-        public string ResultsTitle { get { return( "Results" ); } }
+        public string ResultsTitle { get { return "Results"; } }
 
 		void OnMatchNavigation( int iLine ) {
             try {
-                ILineRange oSearchResult = _oDoc_SearchResults[iLine].Extra as ILineRange;
+                SearchResults.ResultRow oRow = (SearchResults.ResultRow)_oWinMain.Document.Doc_Results[iLine];
+                ILineRange oSearchResult = oRow.Range;
 
                 if( oSearchResult.Line.At > -1 ) {
 				    _oView.SelectionSet( oSearchResult.Line.At, oSearchResult.Offset, oSearchResult.Length );
 				    _oView.ScrollTo    ( SCROLLPOS.CARET );
                 }
-            } catch( NullReferenceException ) {
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( NullReferenceException ),
+                                    typeof( InvalidCastException ),
+                                    typeof( ArgumentOutOfRangeException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
+
+                LogError( "Coundn't Navigate to Search Match" );
             }
         }
         /// <summary>
@@ -180,7 +185,10 @@ namespace Mjolnir {
             Reset();
 
             try {
-                _oParseEvents.DisableParsing = oSearchType.SelectedItem.ToString() != "Regex";
+                if( _oParseEvents != null ) {
+                    _oParseEvents.DisableParsing = 
+                        oSearchType.SelectedItem.ToString() != "Regex";
+                }
             } catch( NullReferenceException ) {
             }
         }
@@ -467,60 +475,15 @@ namespace Mjolnir {
         }
 
         private void SearchAll_Click(object sender, EventArgs e) {
-            try {
-                _oDoc_SearchResults.Clear();
+            SearchResults oDocResults = _oWinMain.Document.Doc_Results;
 
-                using( BaseEditor.Manipulator oSearchManip = _oDoc_SearchResults.CreateManipulator() ) {
-                    StringBuilder oMatchBuilder = new StringBuilder();
+            oDocResults.Load( this );
 
-                    // oSearchType.SelectedItem.ToString() ;
-                    string strFormat = "Location"; // Location or Table
-
-                    foreach( ILineRange oRange in this ) {
-                        int    iStart    = oRange.Offset > 10 ? oRange.Offset - 10 : 0;
-                        int    iDiff     = oRange.Offset - iStart;
-                        int    iPreamble = 0;
-                        
-                        if( strFormat == "Location" ) { // BUG: should be localized ^_^;
-                            oMatchBuilder.Append( "(" );
-                            oMatchBuilder.Append( string.Format( "{0,3}", oRange.At + 1 ) );
-                            oMatchBuilder.Append( ") " );
-
-                            iPreamble = oMatchBuilder.Length;
-                            oMatchBuilder.Append( oRange.Line.SubString( iStart, 50 ) );
-                        } else {
-                            oMatchBuilder.Append( oRange.Line.SubString( oRange.Offset, oRange.Length ) );
-                        }
-
-                        bool fMulti = false;
-                        if( fMulti ) {
-                            // For regex groups, which we don't support at the moment. 
-                            oMatchBuilder.Append( "\t" );
-                        } else {
-                            Line oNew = oSearchManip.LineAppend( oMatchBuilder.ToString() ); 
-                            oMatchBuilder.Length = 0;
-                            if( oNew != null ) {
-							    //_oDoc_SearchResults.WordBreak( oNew, oNew.Formatting );
-                                if( strFormat == "Location" ) {
-                                    oNew.Formatting.Add( new ColorRange( iPreamble + iDiff, oRange.Length, _oWinMain.GetColorIndex( "red" ) ) );
-                                }
-                                oNew.Extra = oRange;
-                            }
-                        }
-                    }; // end foreach
-                } // end using
-
-                if( _oDoc_SearchResults.ElementCount > 0 ) {
-                    _oWinMain.DecorOpen( "matches", true );
-                }
-            } catch( Exception oEx ) {
-                Type[] rgErrors = { typeof( NullReferenceException ),
-                                    typeof( ArgumentOutOfRangeException ) };
-                if( rgErrors.IsUnhandled( oEx ) )
-                    throw;
+            if( oDocResults.ElementCount > 0 ) {
+                _oWinMain.DecorOpen( "matches", true );
             }
         }
-
+        
         /// <summary>
         /// We are set up so that any child when getting the focus will call this method.
         /// </summary>
