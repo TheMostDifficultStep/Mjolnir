@@ -345,30 +345,12 @@ namespace Mjolnir {
                     }
 
                     if( IsDirty ) {
-                        sbTitle.Append( "*" );
+                        sbTitle.Append('*');
                     }
 
-                    return( sbTitle.ToString() );
+                    return sbTitle.ToString();
                 }
             }
-
-            //public virtual string TitleShort {
-            //    get {
-            //        StringBuilder sbTitle = new StringBuilder();
-
-            //        if( string.IsNullOrEmpty( FileName ) ) {
-            //            NewFileTitleAppend( sbTitle );
-            //        } else {
-            //            sbTitle.Append( Path.GetFileName( FileName ) );
-            //        }
-
-            //        if( IsDirty ) {
-            //            sbTitle.Append( "*" );
-            //        }
-
-            //        return( sbTitle.ToString() );
-            //    }
-            //}
 
             public abstract bool IsDirty {
                 get;

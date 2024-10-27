@@ -18,7 +18,6 @@ using Play.Rectangles;
 using Play.Edit;
 using Play.Parse;
 using Play.Forms;
-using static Play.ImageViewer.DocImageEdit;
 using static Mjolnir.Program;
 
 namespace Mjolnir {
