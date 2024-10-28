@@ -331,13 +331,14 @@ namespace Play.Forms {
     /// <summary>
     /// This forms window gives us text without having to have numerous sub
     /// text windows to do that job. Text is held in single line cache elements.
-    /// And this window can layout any LayoutRect object.
+    /// And this window can layout any LayoutRect object. Uses the old fashioned
+    /// line editor.
     /// </summary>
     /// <seealso cref="LayoutRect"/>
+    /// <seealso cref="BaseEditor"/>
     public class FormsWindow : 
         SKControl,
-        IPgCacheCaret,
-        IPgFormEvents
+        IPgCacheCaret
     {
         protected bool _fDisposed { get; private set; }
 
@@ -350,7 +351,6 @@ namespace Play.Forms {
         protected new ParentRect         Layout    { get; set; } = new LayoutStackHorizontal() { Spacing = 5 };
         protected List<LayoutSingleLine> CacheList { get; }      = new List<LayoutSingleLine>();
 
-        protected IReadableBag<Line>      DocForms  { get; }
         protected IPgFormInterface       DocForms2 { get; }     
         
         //protected SimpleCacheCaret Caret    { get; }
@@ -371,7 +371,6 @@ namespace Play.Forms {
         public FormsWindow( IPgViewSite oSiteView, IReadableBag<Line> oDocForms ) {
 			_oSiteView   = oSiteView ?? throw new ArgumentNullException( "Find window needs a site!!" );
             _oViewEvents = oSiteView.EventChain ?? throw new ArgumentException("Site.EventChain must support IPgViewSiteEvents");
-            DocForms     = oDocForms ?? throw new ArgumentNullException( "Forms needs a text buffer" );
             DocForms2    = (IPgFormInterface)oDocForms;
             StdUI        = (IPgStandardUI2)oSiteView.Host.Services;
 
@@ -743,6 +742,8 @@ namespace Play.Forms {
 
         public int Offset { get; set; } = 0;
         public int Length { set { } get => 0; }
+
+        public IPgCaretInfo<Row> Caret2 => throw new NotImplementedException();
         #endregion
 
         public void OnKey_Delete( bool fBackSpace ) {
@@ -1105,22 +1106,6 @@ namespace Play.Forms {
                 if( _rgStdErrors.IsUnhandled( oEx ) )
                     throw;
             }
-        }
-
-        public virtual void OnFormUpdate(IEnumerable<Line> rgUpdates) {
-            OnDocumentEvent( BUFFEREVENTS.MULTILINE );
-        }
-
-        public virtual void OnFormClear() {
-            _iCaretAtLayout = 0;
-
-            CacheList.Clear();
-            Layout   .Clear(); // Hopefully clear the children but not the template for the form.
-
-            Invalidate();
-        }
-
-        public virtual void OnFormLoad() {
         }
     }
 

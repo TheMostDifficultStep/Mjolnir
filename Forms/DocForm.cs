@@ -9,15 +9,6 @@ using Play.Edit;
 
 
 namespace Play.Forms {
-    /// <summary>
-    /// This is the old way of doing things, migrate to the IPgEditEvents. 
-    /// </summary>
-    [Obsolete]public interface IPgFormEvents {
-        void OnFormUpdate( IEnumerable<Line> rgUpdates ); // Line contents have been updated. remeasure
-        void OnFormClear(); // All properties/labels are to be removed.
-        void OnFormLoad (); // All properties/labels have been created.
-    }
-
     public class SimpleRange : ILineSelection {
         int _iStart  = 0;
 
@@ -355,25 +346,6 @@ namespace Play.Forms {
                 sTrack.FinishUp( IPgEditEvents.EditType.Column, _rgRows[iIndex] );
                 DoParse();
             }
-        }
-
-        /// <summary>
-        /// This is for the rare case where a form get's flushed and rebuilt during
-        /// it's lifetime. Most forms are build once and the window shows up
-        /// later and set's itself up to be used for the remainder. You could
-        /// use this event in a scenario where the window is displayed before the
-        /// property document has been constructed.
-        /// </summary>
-        [Obsolete]protected void RaiseLoadedEvent() {
-            RenumberAndSumate(); // Kind of evil in this case. Might not want to do this...
-            
-            foreach( object oCall in _rgListeners ) {
-                if( oCall is IPgFormEvents oEvent ) {
-                    oEvent.OnFormLoad();
-                }
-            }
-            // this call will parse any updated text so we get color.
-            DoParse();
         }
 
         public void Raise_Submit() {

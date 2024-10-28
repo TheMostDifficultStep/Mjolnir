@@ -73,8 +73,7 @@ namespace Play.Forms {
     public class WindowStandardProperties : 
         WindowMultiColumn,
         IPgParent,
-        IPgLoad,
-        IPgFormEvents // BUG: Need to work on this interface...
+        IPgLoad
      {
         protected DocProperties   Document   { get; }
         protected List<Row>       TabList    { get; set; } = new ();
