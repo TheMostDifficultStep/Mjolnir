@@ -22,7 +22,7 @@ namespace Play.Edit {
     public interface ICacheManSite :
         IPgBaseSite
     {
-        Row   TabOrder( Row oRow, int iDir );
+        Row   GetNextTab( Row oRow, int iDir );
         int   TabCount { get; }
         Row   TabStop( int iIndex );
 
@@ -36,7 +36,24 @@ namespace Play.Edit {
         ReadOnlyCollection<ColumnInfo> Columns { get; }
     }
 
-    public class CacheMultiColumn:         
+    /// <summary>Cache with a unchanging set of cache elements.</summary>
+    /// <remarks>
+    ///   When I originaly wrote the system. The base cache system was ment to cache
+    /// a small number of visible lines to a large document. So it would spend
+    /// a lot of effort wading through row insert/deletes and scrolling thru the
+    /// document. I made a subclass to deal with fixed screens like forms and property
+    /// pages. Turns out it's pretty cantankerous that way. So I've done the 
+    /// opposite now.
+    ///   Now it's a fixed cache. This works for the following cases:
+    ///     1) Forms which have child windows and/or require special setup.
+    ///        *ViewKanji in the Kanji-Practice app.
+    ///     2) Property pages. Fixed set of property rows where only the value(s) change.
+    ///        and we might have special fonts on some of the elements.
+    ///        *WindowRxProperties in the SSTV app.
+    ///   All of the standard scrolling documents use CacheMultiColumn
+    /// </remarks>
+    /// <seealso cref="CacheMultiColumn"/>
+    public class CacheMultiBase:         
         IEnumerable<CacheRow>,
         IPgEditEvents,
         IPgCaretInfo<Row>
@@ -47,7 +64,6 @@ namespace Play.Edit {
         // layout columns, those are different.
         protected readonly SmartRect       _oTextRect  = new SmartRect();
         protected readonly List<CacheRow>  _rgOldCache = new List<CacheRow>();
-        protected readonly List<CacheRow>  _rgNewCache = new List<CacheRow>(); 
         protected readonly TextLine        _oDummyLine = new TextLine( -2, string.Empty );
         protected readonly ReadOnlyCollection<ColumnInfo> _rgColumnInfo;
 
@@ -405,7 +421,7 @@ namespace Play.Edit {
         /// <remarks>Need to sort out the LineHeight accessor since the cache elements might be
         /// variable height, Need to make sure I'm using this correctly. Consider calling it
         /// "LineScroll"</remarks>
-        public CacheMultiColumn( ICacheManSite oSite ) :
+        public CacheMultiBase( ICacheManSite oSite ) :
 			base() 
 		{
 			_oSite        = oSite     ?? throw new ArgumentNullException( "Cache manager is a sited object.");
@@ -422,6 +438,99 @@ namespace Play.Edit {
             _iCaretCol = 0; // Make sure the column is editable :-/
             _iCaretOff = 0;
             _fAdvance  = 0;
+        }
+
+        public void Add( CacheRow oCRow ) {
+            _rgOldCache.Add( oCRow );
+        }
+
+        protected virtual void CacheWalker( CacheRow oSeedCache, bool fRemeasure = false ) {
+            CacheRow oLastCache  = null;
+            CacheRow oCaretCache = null;
+
+            int iBottom = _oTextRect.Top;
+
+            foreach( CacheRow oCRow in this ) {
+                if( fRemeasure ) {
+                    RowMeasure( oCRow );
+                }
+                oCRow.Top = iBottom + RowSpacing;
+                iBottom   = oCRow.Bottom;
+
+                if( oCRow.Top < _oTextRect.Bottom )
+                    oLastCache = oCRow;
+                if( oCRow.Row == _oCaretRow )
+                    oCaretCache = oCRow;
+            }
+
+            MoveWindows();
+
+            FinishUp( oLastCache, oCaretCache );
+        }
+
+        protected virtual void CacheFlushDeleted() {
+            foreach( CacheRow oCRow in this ) {
+                if( oCRow.Row.Deleted == true )
+                    throw new InvalidProgramException("Fixed cache must not delete elements.");
+            }
+        }
+        
+        /// <summary>
+        /// New Positioning. The rule is: if the caret is on
+        /// screen, keep it there. Else, repair as best you can, else 
+        /// rebuild the screen from the current cache position. If you
+        /// have scrolled the caret off screen I assume it's intentional.
+        /// Unlike the cachewalker which deals with scrolling. This function
+        /// repairs the cache after random row editing.
+        /// </summary>
+        /// <remarks>BUG: if the row is invalid might need to 
+        /// remeasure such items. It's a little bigger job so I'll
+        /// look into that later...
+        /// Also note that the _rgOldCache might be empty on first run!
+        /// </remarks>
+        /// <param name="fMeasure">Remeasure all row items.</param>
+        /// <param name="fFindCaret">Keep the caret on the screen</param>
+        /// <param name="oPatch">Make sure this item is re-measured.</param>
+        /// <seealso cref="CacheWalker(CacheRow, bool)"/>
+        public void CacheRepair( Row oPatch, bool fFindCaret, bool fMeasure ) {
+            try {
+                CacheFlushDeleted();
+
+                CacheRow oSeedCache = null;
+
+                foreach( CacheRow oCacheRow in _rgOldCache ) {
+                    if( oCacheRow.Row == _oCaretRow ) {
+                        oSeedCache = oCacheRow;
+                    }
+                    if( oPatch        != null &&
+                        oCacheRow.Row == oPatch ) {
+                        RowMeasure(oCacheRow);
+                    }
+                }
+                if( fFindCaret ) {
+                    if( oSeedCache != null )
+                        CaretSlideWindow( oSeedCache );
+                }
+                if( oSeedCache == null ) {
+                    oSeedCache = CacheLocateTop();
+                }
+
+                oSeedCache ??= CacheReset( RefreshNeighborhood.SCROLL );
+
+                // It's quite possible for the document to be EMPTY!
+                // Or the caret isn't set and our cache is empty..
+                // Probably should just force the caret to be on some line
+                // at all times... :-/
+                if( oSeedCache == null ) {
+                    FinishUp( null, null );
+                    return;
+                }
+
+                CacheWalker( oSeedCache, fMeasure );
+            } catch( Exception oEx ) {
+                if( IsUnhandledStdRpt( oEx ) )
+                    throw;
+            }
         }
 
         /// <summary>
@@ -696,7 +805,7 @@ namespace Play.Edit {
         /// <param name="iDataRow">Which data row we want to represent.</param>
         /// <seealso cref="CacheReset"/>
         protected CacheRow CacheRecycle( CacheRow oPrevCache, int iDir, bool fRemeasure = false ) {
-            Row oNextDRow = _oSite.TabOrder( oPrevCache.Row, iDir );
+            Row oNextDRow = _oSite.GetNextTab( oPrevCache.Row, iDir );
 
             if( oNextDRow == null )
                 return null;
@@ -724,20 +833,6 @@ namespace Play.Edit {
         }
 
         /// <summary>
-        /// Right now we assume the cache managed part is basically
-        /// starting from the top of the available window. This doesn't
-        /// have to be and we could use the TextRect.Top as the starter.
-        /// We would have to update the CacheWalker too...
-        /// </summary>
-        protected void CacheRestackFromTop(int iTop) {
-            foreach( CacheRow oCRow in _rgNewCache ) {
-                oCRow.Top = iTop;
-
-                iTop += oCRow.Height + RowSpacing;
-            }
-        }
-
-        /// <summary>
         /// Try locate the top most cache line still in the visible and valid.
         /// </summary>
         /// <remarks>Requiring the row.At to be > 0 at present is the only way
@@ -746,16 +841,23 @@ namespace Play.Edit {
         /// </remarks>
         protected CacheRow CacheLocateTop() {
             CacheRow oSeedCache = null;
+
             if( _rgOldCache.Count > 0 ) {
                 int iTop = _oTextRect.Height;
-                foreach( CacheRow oTestRow in _rgOldCache ) {
-                    if( ClippedHeight( oTestRow ) > 0 && 
-                        oTestRow.At >= 0 && 
-                        oTestRow.Row.Deleted == false 
-                    ) {
-                        if( oTestRow.Top < iTop ) {
-                            oSeedCache = oTestRow;
-                            iTop     = oTestRow.Top;
+
+                if( _oTextRect.Height <= 0 ) {
+                    oSeedCache = _rgOldCache[0];
+                } else {
+                    foreach( CacheRow oTestRow in _rgOldCache ) {
+                        if( oTestRow.Row.Deleted == true || oTestRow.At < 0  ) {
+                            throw new InvalidProgramException("Deleted items should have been flushed by now.");
+                        }
+
+                        if( ClippedHeight( oTestRow ) > 0 ) {
+                            if( oTestRow.Top < iTop ) {
+                                oSeedCache = oTestRow;
+                                iTop       = oTestRow.Top;
+                            }
                         }
                     }
                 }
@@ -806,180 +908,6 @@ namespace Play.Edit {
 
                 return iHeight;
             }
-        }
-
-        enum InsertAt { TOP,BOTTOM };
-
-        /// <summary>
-        /// First remove all deleted lines that might be presently
-        /// cached. Also, check if the data row that we are pointing
-        /// to got deleted as well!!! Depending on how damaged our
-        /// cache is we might be down to scroll position to recover. 
-        /// </summary>
-        protected void CacheFlushDeleted() {
-            try {
-                _rgNewCache.Clear();
-
-                foreach( CacheRow oCRow in _rgOldCache ) {
-                    Row oDRow = oCRow.Row;
-
-                    if( oDRow.Deleted ) {
-                        if( oDRow == _oCaretRow ) {
-                            _oCaretRow = null;
-                            _iCaretOff = 0;
-                            // Leave column intact.
-                        }
-                    } else {
-                        _rgNewCache.Add( oCRow );
-                    }
-                }
-
-                _rgOldCache.Clear();
-
-                foreach( CacheRow oCRow in _rgNewCache ) {
-                    _rgOldCache.Add( oCRow );
-                }
-            } catch( Exception oEx ) {
-                if( IsUnhandledStdRpt( oEx ) )
-                    throw;
-            }
-        }
-
-        /// <summary>
-        /// New Positioning. The rule is: if the caret is on
-        /// screen, keep it there. Else, repair as best you can, else 
-        /// rebuild the screen from the current cache position. If you
-        /// have scrolled the caret off screen I assume it's intentional.
-        /// Unlike the cachewalker which deals with scrolling. This function
-        /// repairs the cache after random row editing.
-        /// </summary>
-        /// <remarks>BUG: if the row is invalid might need to 
-        /// remeasure such items. It's a little bigger job so I'll
-        /// look into that later...
-        /// Also note that the _rgOldCache might be empty on first run!
-        /// </remarks>
-        /// <param name="fMeasure">Remeasure all row items.</param>
-        /// <param name="fFindCaret">Keep the caret on the screen</param>
-        /// <param name="oPatch">Make sure this item is re-measured.</param>
-        /// <seealso cref="CacheWalker(CacheRow, bool)"/>
-        public void CacheRepair( Row oPatch, bool fFindCaret, bool fMeasure ) {
-            try {
-                CacheFlushDeleted();
-
-                CacheRow oSeedCache = null;
-
-                foreach( CacheRow oCacheRow in _rgOldCache ) {
-                    if( oCacheRow.Row == _oCaretRow ) {
-                        oSeedCache = oCacheRow;
-                    }
-                    if( oPatch        != null &&
-                        oCacheRow.Row == oPatch ) {
-                        RowMeasure(oCacheRow);
-                    }
-                }
-                if( fFindCaret ) {
-                    if( oSeedCache != null )
-                        CaretSlideWindow( oSeedCache );
-                }
-                if( oSeedCache == null ) {
-                    oSeedCache = CacheLocateTop();
-                }
-
-                oSeedCache ??= CacheReset( RefreshNeighborhood.SCROLL );
-
-                // It's quite possible for the document to be EMPTY!
-                // Or the caret isn't set and our cache is empty..
-                // Probably should just force the caret to be on some line
-                // at all times... :-/
-                if( oSeedCache == null ) {
-                    FinishUp( null, null );
-                    return;
-                }
-
-                CacheWalker( oSeedCache, fMeasure );
-            } catch( Exception oEx ) {
-                if( IsUnhandledStdRpt( oEx ) )
-                    throw;
-            }
-        }
-
-        /// <summary>
-        /// New code for re-building the cache. Not entirely different
-        /// than the original. Omits the sliding window concept.
-        /// Calls OnRefreshComplete() on the site when finished.
-        /// </summary>
-        /// <remarks>The key to remember is that if any element overlaps the
-        /// visible area, the outside part DOES NOT contribute. That's why
-        /// we check the clipped height!!</remarks>
-        /// <seealso cref="ICacheManSite.OnRefreshComplete"/>
-        protected void CacheWalker( CacheRow oSeedCache, bool fRemeasure = false ) {
-            if( oSeedCache == null ) {
-                LogError( "Cache construction error" );
-                return;
-            }
-
-            if( fRemeasure ) {
-                RowMeasure( oSeedCache );
-            }
-
-            CacheRow oCacheWithCaret = null; // If non null, caret might be visible...
-
-            void NewCacheAdd( InsertAt ePos, CacheRow oNewCacheRow ) {
-                if( oNewCacheRow.Row == _oCaretRow )
-                    oCacheWithCaret = oNewCacheRow;
-
-                if( ePos == InsertAt.BOTTOM )
-                    _rgNewCache.Add( oNewCacheRow );
-                if( ePos == InsertAt.TOP )
-                    _rgNewCache.Insert( 0, oNewCacheRow );
-            }
-
-            _rgNewCache.Clear();
-            NewCacheAdd( InsertAt.BOTTOM, oSeedCache );
-
-            CacheRow oFallCache = oSeedCache; // First go down.
-            while( oFallCache.Bottom < _oTextRect.Bottom ) {
-                CacheRow oNewCache = CacheRecycle( oFallCache, 1, fRemeasure );
-                if( oNewCache == null ) {
-                    _oTextRect.SetScalar( SET.RIGID, SCALAR.BOTTOM, oFallCache.Bottom );
-                    break;
-                }
-
-                NewCacheAdd( InsertAt.BOTTOM, oFallCache = oNewCache );
-            }
-            CacheRow oRiseCache = oSeedCache; // Then go up.
-            while( oRiseCache.Top > _oTextRect.Top ) { 
-                CacheRow oNewCache = CacheRecycle( oRiseCache, -1, fRemeasure );
-                if( oNewCache == null ) {
-                    _oTextRect.SetScalar( SET.RIGID, SCALAR.TOP, oRiseCache.Top );
-                    break;
-                }
-
-                NewCacheAdd( InsertAt.TOP, oRiseCache = oNewCache );
-            }
-            CacheRow oLastCache = oFallCache; // Then try down to finish filling.
-            while( oLastCache.Bottom < _oTextRect.Bottom ) { 
-                CacheRow oNewCache = CacheRecycle( oLastCache, 1, fRemeasure );
-                if( oNewCache == null )
-                    break;
-
-                NewCacheAdd( InsertAt.BOTTOM, oLastCache = oNewCache );
-            }
-
-            if( _oTextRect.Top != 0 && _rgNewCache.Count > 0 ) {
-                int iOldTextTop = _oTextRect.Top;
-                int iNewElemTop = _rgNewCache[0].Top;
-                _oTextRect.SetScalar( SET.RIGID, SCALAR.TOP, 0 );
-                CacheRestackFromTop( iNewElemTop - iOldTextTop );
-            }
-
-            _rgOldCache.Clear();
-            _rgOldCache.AddRange( _rgNewCache );
-            _rgNewCache.Clear();
-
-            MoveWindows();
-
-            FinishUp( oLastCache, oCacheWithCaret );
         }
 
         protected virtual void FinishUp( CacheRow oBottom, CacheRow oCaret ) {
@@ -1280,7 +1208,7 @@ namespace Play.Edit {
                     // First, see if we can navigate within the cache item we are currently at.
                     if( !oCaretCacheRow[_iCaretCol].Navigate( eAxis, iDir, ref _fAdvance, ref _iCaretOff ) ) {
                         // Now try moving vertically, but stay in the same column...
-                        if( _oSite.TabOrder( _oCaretRow, iDir ) is Row oDocRow ) {
+                        if( _oSite.GetNextTab( _oCaretRow, iDir ) is Row oDocRow ) {
                             CacheRow oNewCache = _rgOldCache.Find(item => item.Row == oDocRow);
                             if( oNewCache == null ) {
                                 oNewCache = CreateCacheRow(oDocRow);
@@ -1629,4 +1557,143 @@ namespace Play.Edit {
         public IPgCaretInfo<Row> Caret2 => this;
 
     } // end class
+
+    public class CacheMultiColumn : CacheMultiBase {
+        enum InsertAt { TOP,BOTTOM };
+
+        protected readonly List<CacheRow>  _rgNewCache = new List<CacheRow>(); 
+        public CacheMultiColumn(ICacheManSite oSite ) : 
+            base(oSite) 
+        {
+        }
+
+        /// <summary>
+        /// Right now we assume the cache managed part is basically
+        /// starting from the top of the available window. This doesn't
+        /// have to be and we could use the TextRect.Top as the starter.
+        /// We would have to update the CacheWalker too...
+        /// </summary>
+        protected void CacheRestackFromTop(int iTop) {
+            foreach( CacheRow oCRow in _rgNewCache ) {
+                oCRow.Top = iTop;
+
+                iTop += oCRow.Height + RowSpacing;
+            }
+        }
+
+        /// <summary>
+        /// First remove all deleted lines that might be presently
+        /// cached. Also, check if the data row that we are pointing
+        /// to got deleted as well!!! Depending on how damaged our
+        /// cache is we might be down to scroll position to recover. 
+        /// </summary>
+        protected override void CacheFlushDeleted() {
+            try {
+                _rgNewCache.Clear();
+
+                foreach( CacheRow oCRow in _rgOldCache ) {
+                    Row oDRow = oCRow.Row;
+
+                    if( oDRow.Deleted ) {
+                        if( oDRow == _oCaretRow ) {
+                            _oCaretRow = null;
+                            _iCaretOff = 0;
+                            // Leave column intact.
+                        }
+                    } else {
+                        _rgNewCache.Add( oCRow );
+                    }
+                }
+
+                _rgOldCache.Clear();
+
+                foreach( CacheRow oCRow in _rgNewCache ) {
+                    _rgOldCache.Add( oCRow );
+                }
+            } catch( Exception oEx ) {
+                if( IsUnhandledStdRpt( oEx ) )
+                    throw;
+            }
+        }
+
+        /// <summary>
+        /// New code for re-building the cache. Not entirely different
+        /// than the original. Omits the sliding window concept.
+        /// Calls OnRefreshComplete() on the site when finished.
+        /// </summary>
+        /// <remarks>The key to remember is that if any element overlaps the
+        /// visible area, the outside part DOES NOT contribute. That's why
+        /// we check the clipped height!!</remarks>
+        /// <seealso cref="ICacheManSite.OnRefreshComplete"/>
+        protected override void CacheWalker( CacheRow oSeedCache, bool fRemeasure = false ) {
+            if( oSeedCache == null ) {
+                LogError( "Cache construction error" );
+                return;
+            }
+
+            if( fRemeasure ) {
+                RowMeasure( oSeedCache );
+            }
+
+            CacheRow oCacheWithCaret = null; // If non null, caret might be visible...
+
+            void NewCacheAdd( InsertAt ePos, CacheRow oNewCacheRow ) {
+                if( oNewCacheRow.Row == _oCaretRow )
+                    oCacheWithCaret = oNewCacheRow;
+
+                if( ePos == InsertAt.BOTTOM )
+                    _rgNewCache.Add( oNewCacheRow );
+                if( ePos == InsertAt.TOP )
+                    _rgNewCache.Insert( 0, oNewCacheRow );
+            }
+
+            _rgNewCache.Clear();
+            NewCacheAdd( InsertAt.BOTTOM, oSeedCache );
+
+            CacheRow oFallCache = oSeedCache; // First go down.
+            while( oFallCache.Bottom < _oTextRect.Bottom ) {
+                CacheRow oNewCache = CacheRecycle( oFallCache, 1, fRemeasure );
+                if( oNewCache == null ) {
+                    _oTextRect.SetScalar( SET.RIGID, SCALAR.BOTTOM, oFallCache.Bottom );
+                    break;
+                }
+
+                NewCacheAdd( InsertAt.BOTTOM, oFallCache = oNewCache );
+            }
+            CacheRow oRiseCache = oSeedCache; // Then go up.
+            while( oRiseCache.Top > _oTextRect.Top ) { 
+                CacheRow oNewCache = CacheRecycle( oRiseCache, -1, fRemeasure );
+                if( oNewCache == null ) {
+                    _oTextRect.SetScalar( SET.RIGID, SCALAR.TOP, oRiseCache.Top );
+                    break;
+                }
+
+                NewCacheAdd( InsertAt.TOP, oRiseCache = oNewCache );
+            }
+            CacheRow oLastCache = oFallCache; // Then try down to finish filling.
+            while( oLastCache.Bottom < _oTextRect.Bottom ) { 
+                CacheRow oNewCache = CacheRecycle( oLastCache, 1, fRemeasure );
+                if( oNewCache == null )
+                    break;
+
+                NewCacheAdd( InsertAt.BOTTOM, oLastCache = oNewCache );
+            }
+
+            if( _oTextRect.Top != 0 && _rgNewCache.Count > 0 ) {
+                int iOldTextTop = _oTextRect.Top;
+                int iNewElemTop = _rgNewCache[0].Top;
+                _oTextRect.SetScalar( SET.RIGID, SCALAR.TOP, 0 );
+                CacheRestackFromTop( iNewElemTop - iOldTextTop );
+            }
+
+            _rgOldCache.Clear();
+            _rgOldCache.AddRange( _rgNewCache );
+            _rgNewCache.Clear();
+
+            MoveWindows();
+
+            FinishUp( oLastCache, oCacheWithCaret );
+        }
+
+    }
 }

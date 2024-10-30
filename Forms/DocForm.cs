@@ -143,16 +143,6 @@ namespace Play.Forms {
             return true;
         }
 
-        /// <summary>
-        /// This is turning into our OnDocUpdated style call but it's more
-        /// document global versus the per view updates that come from
-        /// IPgEditEvents. You can update the text immediately and then
-        /// schedual a parse.
-        /// </summary>
-        public override void DoParse() {
-            // Parse columns as you see fit in a subclass.
-        }
-
         public class Manipulator : 
             IEnumerable<Line>,
 			IPgFormBulkUpdates,

@@ -126,15 +126,13 @@ namespace Kanji_Practice {
             Line oKanjiLine = Document.ValueAsLine( (int)KanjiPropEnum.Kanji    );
             Line oHiragLine = Document.ValueAsLine( (int)KanjiPropEnum.Hiragana );
 
-            if( _oCacheMan is CacheMultiFixed oCacheMulti ) {
-                foreach( CacheRow oCRow in oCacheMulti.FixedCache ) {
-                    if( oCRow[1] is FTCacheLine oCElem ) {
-                        if( oCElem.Line == oKanjiLine ) {
-                            oCElem.FontID = BigFont;
-                        }
-                        if( oCElem.Line == oHiragLine ) {
-                            oCElem.FontID = BigFont;
-                        }
+            foreach( CacheRow oCRow in _oCacheMan ) {
+                if( oCRow[1] is FTCacheLine oCElem ) {
+                    if( oCElem.Line == oKanjiLine ) {
+                        oCElem.FontID = BigFont;
+                    }
+                    if( oCElem.Line == oHiragLine ) {
+                        oCElem.FontID = BigFont;
                     }
                 }
             }

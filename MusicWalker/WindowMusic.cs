@@ -75,7 +75,7 @@ namespace Play.MusicWalker {
 		public bool Load(TextReader oFileStream) {
 			Grammer<char> oPropertyGrammar;
 
-			_rgRows.Clear(); // Erase all properties/labels from the form. Starting over.
+			Clear( bSendEvent:false ); // Erase all properties/labels from the form. Starting over.
 
 			try {
 				oPropertyGrammar = (Grammer<char>)((IPgGrammers)Services).GetGrammer( "properties" );
@@ -111,21 +111,24 @@ namespace Play.MusicWalker {
 
 			while( oParser.MoveNext() );
 
+			RenumberAndSumate  ();
+			Raise_DocLoaded    (); 
 			ParsePropertyValues();
-
-			TrackerEnumerable sTracker = new (this);
-			sTracker.FinishUp( IPgEditEvents.EditType.Rows );
 
 			return true;
 		}
 
-		public void LoadDefaultProps() {
-			TrackerEnumerable sTracker = new (this);
+		public override bool InitNew() {
+			if( !base.InitNew() )
+				return false;
 
-			_rgRows.Clear();
+			Clear             ( bSendEvent:false );
 			CreatePropertyPair( "No", "Properties" );
 			
-			sTracker.FinishUp( IPgEditEvents.EditType.Rows, null );
+			RenumberAndSumate();
+			Raise_DocLoaded  ();
+
+			return true;
 		}
 
 		/// <summary>
@@ -141,9 +144,32 @@ namespace Play.MusicWalker {
 
 			//while( oParser.MoveNext() );
 		}
+    }
 
-		public override void DoParse() {	
-			Raise_DocFormatted();
+    /// <summary>
+    /// This is a little different than a standard property window since 
+    /// from album to album we don't know what properties will be there
+    /// and we simply rebuild everything. WindowStandardProperties can't
+    /// handle properties coming and going, just value changes.
+    /// </summary>
+    public class ViewMusicProperties : WindowMultiColumn {
+        public ViewMusicProperties(IPgViewSite oViewSite, object oDocument) : 
+			base(oViewSite, oDocument) 
+		{
+        }
+
+        protected override bool Initialize() {
+            if( !base.Initialize() )
+                return false;
+
+            List<ColumnInfo> rgCols = new List<ColumnInfo> {
+                new ColumnInfo( new LayoutRect( LayoutRect.CSS.Percent, 35, 1L ), 0 ),       
+                new ColumnInfo( new LayoutRect( LayoutRect.CSS.None,    80, 1L ), 1 )
+            };
+
+            InitColumns( rgCols );
+
+			return true;
 		}
     }
 
@@ -494,7 +520,7 @@ namespace Play.MusicWalker {
 			} catch( Exception oEx ) {
 				if( Document.ErrorsStandardFile.IsUnhandled( oEx ) )
 					throw;
-				AlbumProperties.LoadDefaultProps();
+				AlbumProperties.InitNew();
 			}
 
 			try {
@@ -533,7 +559,7 @@ namespace Play.MusicWalker {
                 return new MusicAlbumDecor( oBaseSite, this );
             }
 			if( sGuid.Equals( GlobalDecorations.Properties ) ) {
-				return new WindowStandardProperties( oBaseSite, AlbumProperties );
+				return new ViewMusicProperties( oBaseSite, AlbumProperties );
 			}
 
 			return false;

@@ -930,8 +930,9 @@ namespace Play.Edit {
             }
         }
 
-        public void Clear() {
-            Raise_DocUpdateBegin();
+        public void Clear( bool bSendEvent = true ) {
+            if( bSendEvent == true )
+                Raise_DocUpdateBegin();
 
             foreach( Row oRow in _rgRows ) {
                 oRow.At = -2;
@@ -939,7 +940,8 @@ namespace Play.Edit {
             }
             _rgRows.Clear();
 
-            Raise_DocUpdateEnd( IPgEditEvents.EditType.Rows, null );
+            if( bSendEvent )
+                Raise_DocUpdateEnd( IPgEditEvents.EditType.Rows, null );
         }
     }
 }

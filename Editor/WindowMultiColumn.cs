@@ -199,7 +199,7 @@ namespace Play.Edit {
         protected readonly IPgDocOperations<Row> _oDocOps;
         protected readonly IPgDocCheckMarks      _oDocChecks;
 
-        protected readonly CacheMultiColumn      _oCacheMan;
+        protected readonly CacheMultiBase       _oCacheMan;
 		protected readonly IPgStandardUI2        _oStdUI;
         protected readonly ScrollBar2            _oScrollBarVirt;
         protected readonly LayoutStack           _rgLayout;
@@ -278,7 +278,7 @@ namespace Play.Edit {
             }
             public virtual int TabCount => _oHost._oDocList.ElementCount;
 
-            public virtual Row TabOrder( Row oRow, int iDir ) {
+            public virtual Row GetNextTab( Row oRow, int iDir ) {
                 if( oRow == null )
                     return null;
 
@@ -401,7 +401,7 @@ namespace Play.Edit {
             Parent = _oSiteView.Host as Control;
         }
 
-        protected virtual CacheMultiColumn CreateCacheMan() {
+        protected virtual CacheMultiBase CreateCacheMan() {
             //uint uiStdText  = _oStdUI.FontCache( StdFace, 12, GetDPI() );
             return new CacheMultiColumn( new CacheManSite( this ) ); 
         }
