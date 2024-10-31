@@ -9,7 +9,6 @@ using Play.Rectangles;
 using Play.Interfaces.Embedding;
 using Play.Edit;
 using Play.Parse;
-using static Play.Forms.DocProperties; // weird?
 
 namespace Play.Forms {
     /// <summary>
@@ -146,8 +145,8 @@ namespace Play.Forms {
             if( !base.Initialize() )
                 return false;
 
-            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Percent, 30, 1L ), PropertyRow.ColumnLabel ); 
-            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.None,    70, 1L ), PropertyRow.ColumnValue ); 
+            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Percent, 30, 1L ), DocProperties.PropertyRow.ColumnLabel ); 
+            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.None,    70, 1L ), DocProperties.PropertyRow.ColumnValue ); 
 
             InitRows();
 
