@@ -16,8 +16,6 @@ using Play.Rectangles;
 using Play.Controls;
 using Play.Parse;
 
-using static Play.Edit.IPgEditEvents; // move to interfaces project.
-
 namespace Play.Edit {
     public interface IPgDocTraits<T> {
         T           HighLight { get; set; }
@@ -663,7 +661,7 @@ namespace Play.Edit {
             _oCacheMan.OnDocUpdateBegin();
         }
 
-        public virtual void OnDocUpdateEnd( EditType eType, Row oRow ) {
+        public virtual void OnDocUpdateEnd( IPgEditEvents.EditType eType, Row oRow ) {
             _oCacheMan.OnDocUpdateEnd( eType, oRow );
         }
 
