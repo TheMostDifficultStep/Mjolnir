@@ -560,18 +560,22 @@ namespace Play.ImageViewer {
 
         /// <summary>
         /// Show the file we are viewing and the file from which it came. 
-        /// Note: CurrentDirectory might be null
-        /// in cases where the loading string directory does not exist or at some point if the
-        /// directory we are pointing to gets deleted. Note, this is slightly different than
-        /// standard documents who's files are read by the shell, thus the shell can keep the
-        /// file path.
+        /// But if we're collecting scraps from the shell, we won't necessarily
+        /// have a file name so just add "scraps"
         /// </summary>
         public virtual string Banner { 
             get {
-                if( string.IsNullOrEmpty( _oSiteFile.FilePath ) )
-                    return string.Empty;
+                StringBuilder oBuilder = new();
 
-                return _oSiteFile.FilePath;
+                if( string.IsNullOrEmpty( _oSiteFile.FileName ) ) {
+                    oBuilder.Append( "scraps" );
+                } else {
+                    oBuilder.Append( _oSiteFile.FileName );
+                }
+                oBuilder.Append( " @ " );
+                oBuilder.Append( CurrentFullPath );
+
+                return oBuilder.ToString();
         }   }
         public         SKBitmap  Icon { get; }
 
