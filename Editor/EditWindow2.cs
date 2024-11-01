@@ -201,18 +201,18 @@ namespace Play.Edit {
     /// </summary>
     public interface IPgFontRender {
         uint     LineHeight { get; } // Ascenders + decenders.
-        IPgGlyph GetGlyph( UInt32 uiCodePoint );
-
+        IPgGlyph GetGlyph  ( UInt32 uiCodePoint );
         bool     GetKerning( UInt32 uiGlyphLeft, UInt32 uiGlyphRight, out SKPoint pntOut );
     }
 
+    /// <summary>
+    /// This interface is supplied by the main program as a service.
+    /// </summary>
     public interface IPgStandardUI2 : IPgStandardUI {
         ushort        FaceCache       ( string strFilePath ); // Enter the requested face
-        uint          FontCache       ( ushort uiFaceID, uint uiHeightInPoints, SKPoint skResolution );
-        IPgFontRender FontRendererAt  ( uint uiRenderID );
-        IPgFontRender FontStandardAt  ( string strName, SKSize skResolution );
+        uint          FontCache       ( ushort usFaceID, uint uiHeightInPoints, SKPoint skResolution );
+        IPgFontRender FontRendererAt  ( uint   uiFontID );
         SKColor       ColorsStandardAt( StdUIColors eColor );
-
         SKColor       GrammarTextColor( int iIndex ); // Index to the master grammar indexed colors.
     }
 

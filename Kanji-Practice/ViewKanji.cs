@@ -84,11 +84,7 @@ namespace Kanji_Practice {
         public ViewKanjiProps( IPgViewSite oSite, KanjiDocument oKanjiDoc ) : 
             base( oSite, oKanjiDoc.Properties ) 
         {
-            IPgMainWindow.PgDisplayInfo oInfo = new IPgMainWindow.PgDisplayInfo();
-            if( _oSiteView.Host.TopWindow is IPgMainWindow oMainWin ) {
-                oInfo = oMainWin.MainDisplayInfo;
-            }
-            BigFont = StdUI.FontCache( StdFace, 30, oInfo.pntDpi );
+            BigFont = StdUI.FontCache( StdFace, 30, DPI );
 
             ViewScratch = new ViewScratchPad( new WinSlot( this ), oKanjiDoc.ScratchPad );
             ViewMeaning = new EditWindow2   ( new WinSlot( this ), oKanjiDoc.Meanings ) { ScrollVisible = false };
@@ -136,6 +132,8 @@ namespace Kanji_Practice {
                     }
                 }
             }
+
+            _oCacheMan.PrepCustomFonts();
 
             //OnDocumentEvent( BUFFEREVENTS.FORMATTED );
             Invalidate();

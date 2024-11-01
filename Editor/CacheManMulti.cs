@@ -10,6 +10,7 @@ using SkiaSharp;
 using Play.Interfaces.Embedding;
 using Play.Parse;
 using Play.Rectangles;
+using System.Windows.Forms;
 
 namespace Play.Edit {
     public interface IPgCaretInfo<T> :
@@ -25,9 +26,7 @@ namespace Play.Edit {
         Row   GetNextTab( Row oRow, int iDir );
         int   TabCount { get; }
         Row   TabStop( int iIndex );
-
-        uint          FontCache( uint uiHeight ); // Cache the height we want.
-        IPgFontRender FontUse  ( uint uiFont );   // Get renderer for cached font.
+        uint  FontStd { get; } // So you look like the other windows.
 
         float GetScrollProgress { get; }
         void  OnRefreshComplete( float flProgress, float flVisiblePercent );
@@ -67,8 +66,9 @@ namespace Play.Edit {
         protected readonly TextLine        _oDummyLine = new TextLine( -2, string.Empty );
         protected readonly ReadOnlyCollection<ColumnInfo> _rgColumnInfo;
 
+        protected Dictionary<uint, IPgFontRender> RenderClxn {get; } = new();
+        protected IPgStandardUI2   StdUI      { get; }
         public    SelectionManager Selector   { get; }
-        protected IPgFontRender    Font       { get; }
         protected IPgGlyph         GlyphLt    { get; } // Our end of line character.
         public    IPgGlyph         GlyphCheck { get; } // Our check character.
         public    int              LineHeight { get; } // Helps us determine scrolling distances.
@@ -428,11 +428,15 @@ namespace Play.Edit {
             _oSiteList    = (IReadableBag<Row>)oSite;
             _rgColumnInfo = oSite.Columns ?? throw new ArgumentNullException( "Columns list from Edit Window is null!" );
             Selector      = new SelectionManager( 20 ); // Argh, rgColumns.Count not set yet... :-/
+            StdUI         = (IPgStandardUI2)_oSite.Host.Services;
 
-			Font       = oSite.FontUse( oSite.FontCache( 12 ) )  ?? throw new ArgumentNullException( "Need a font to get things rolling." );
-            GlyphLt    = Font.GetGlyph( 0x003c ); // we used to show carriage return as a '<' sign.
-            GlyphCheck = Font.GetGlyph( 0x2714 ); // The multi column editor has this value...
-            LineHeight = (int)Font.LineHeight;    // BUG: Cache elem's are variable height in general.
+			IPgFontRender oFont = StdUI.FontRendererAt( oSite.FontStd ) ?? throw new ArgumentNullException( "Need a font to get things rolling." );
+
+            GlyphLt    = oFont.GetGlyph( 0x003c ); // we used to show carriage return as a '<' sign.
+            GlyphCheck = oFont.GetGlyph( 0x2714 ); // The multi column editor has this value...
+            LineHeight = (int)oFont.LineHeight;    // BUG: Cache elem's are variable height in general.
+
+            RenderClxn.Add( uint.MaxValue, oFont ); // Preload the std font. (Face + Size)
 
             _oCaretRow = null;
             _iCaretCol = 0; // Make sure the column is editable :-/
@@ -442,6 +446,16 @@ namespace Play.Edit {
 
         public void Add( CacheRow oCRow ) {
             _rgOldCache.Add( oCRow );
+        }
+
+        public void PrepCustomFonts() {
+            foreach( CacheRow oCRow in this ) {
+                foreach( IPgCacheMeasures oColm in oCRow.CacheColumns ) {
+                    if( !RenderClxn.ContainsKey( oColm.FontID ) ) {
+                        RenderClxn.Add( oColm.FontID, StdUI.FontRendererAt( oColm.FontID ) );
+                    }
+                }
+            }
         }
 
         protected virtual void CacheWalker( CacheRow oSeedCache, bool fRemeasure = false ) {
@@ -1032,10 +1046,10 @@ namespace Play.Edit {
 
                 for( int i=0; i<oCacheRow.CacheColumns.Count && i<_rgColumnInfo.Count; ++i ) {
                     IPgCacheMeasures oMeasure = oCacheRow.CacheColumns[i];
-                    if( oMeasure is FTCacheLine oElem ) {
-				        oElem.Measure ( Font );
-                        oElem.Colorize( Selector[i] );
-                    }
+
+				    oMeasure.Measure( RenderClxn[oMeasure.FontID] );
+
+                    oMeasure.Colorize( Selector[i] );
                     oMeasure.OnChangeSize( _rgColumnInfo[i]._rcBounds.Width );
                 }
 			} catch( Exception oEx ) {

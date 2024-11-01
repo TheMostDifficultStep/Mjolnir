@@ -245,6 +245,7 @@ namespace Play.Edit {
         int   LastOffset { get; }
 
         bool  IsInvalid { get; set; }
+        uint  FontID    { get; set; } // the font we want...
         void  Measure( IPgFontRender oRender );
         void  Colorize( ICollection<ILineSelection> rgSelections );
         void  Colorize( IColorRange oColorRange );
@@ -261,7 +262,6 @@ namespace Play.Edit {
     public interface IPgCacheRender {
         SKColor     BgColor { get; set; }
         SKColor     FgColor { get; set; }
-        uint        FontID  { get; set; }
 
         void Render(
             SKCanvas       skCanvas,

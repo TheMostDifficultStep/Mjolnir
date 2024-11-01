@@ -1781,10 +1781,6 @@ namespace Mjolnir {
             return _oFTManager.GetFontRenderer( uiRenderID );
         }
 
-        public IPgFontRender FontStandardAt( string strName, SKSize skResolution ) {
-            throw new NotImplementedException();
-        }
-
         /// <summary>
         /// These are standardized colors for our user interface.
         /// </summary>

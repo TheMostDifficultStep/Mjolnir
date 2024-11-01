@@ -107,6 +107,8 @@ namespace Play.Edit {
         public float   UnwrappedWidth { get; protected set; } = 0;
         public bool    IsInvalid { get => false; set { } }
 
+        public uint    FontID { get; set; } = uint.MaxValue;
+
         public CacheControl( Control oGuest ) {
             Guest = oGuest ?? throw new ArgumentNullException();
         }
@@ -332,16 +334,10 @@ namespace Play.Edit {
             }
 
             /// <summary>
-            /// Return an index into the Font cache. Face Rendered at a particular size.
+            /// Typically we just need one FONT. Whatever face and size for standard,
+            /// anything else you'll need more plumbing anyway.
             /// </summary>
-            /// <param name="uiHeight">Height in points.</param>
-            public uint FontCache( uint uiHeight ) {
-                return _oHost._oStdUI.FontCache( _oHost.StdFace, uiHeight, _oHost.GetDPI() );
-            }
-            public IPgFontRender FontUse( uint uiFont ) {
-                return _oHost._oStdUI.FontRendererAt( uiFont );
-            }
-
+            public uint FontStd => _oHost._oStdUI.FontCache( _oHost.StdFace, 12, _oHost.InitializeDPI() );
         }
 
         protected class DocSlot :
@@ -379,12 +375,7 @@ namespace Play.Edit {
             /// <seealso cref="EditWindow2"/> <seealso cref="Mjolnir.FindWindow"/>
             _rgLayout       = new LayoutStackHorizontal() { Spacing = 7, Units = LayoutRect.CSS.Flex};
 
-            /// <seealso cref="EditWindow2"/>
-            IPgMainWindow.PgDisplayInfo oInfo = new IPgMainWindow.PgDisplayInfo();
-            if( _oSiteView.Host.TopWindow is IPgMainWindow oMainWin ) {
-                oInfo = oMainWin.MainDisplayInfo;
-            }
-            DPI = new SKPoint( oInfo.pntDpi.X, oInfo.pntDpi.Y );
+            InitializeDPI();
 
             StdFace = StdUI.FaceCache(@"C:\windows\fonts\seguiemj.ttf"); // consola
 
@@ -477,14 +468,22 @@ namespace Play.Edit {
             return base.IsInputKey( keyData );
         }
 
-        public SKPoint GetDPI() {
+        /// <summary>This function actually gets the DPI. Then we cache it
+        /// so we chug through this all again. But you could call again
+        /// if perhaps you're in a weird multi mon situation? :-/
+        /// </summary>
+        /// <seealso cref="EditWindow2"/>
+        private SKPoint InitializeDPI() {
             // The object we get from the interface has some standard screen dpi and size
             // values. We then attempt to override those values with our actual values.
             IPgMainWindow.PgDisplayInfo oInfo = new IPgMainWindow.PgDisplayInfo();
             if( _oSiteView.Host.TopWindow is IPgMainWindow oMainWin ) {
                 oInfo = oMainWin.MainDisplayInfo;
             }
-            return new SKPoint( oInfo.pntDpi.X, oInfo.pntDpi.Y );
+
+            DPI = new SKPoint( oInfo.pntDpi.X, oInfo.pntDpi.Y );
+
+            return DPI;
         }
 
         /// <summary>
