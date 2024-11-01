@@ -253,12 +253,23 @@ namespace Kanji_Practice {
         public bool Execute(Guid sGuid) {
             if( sGuid == GlobalCommands.JumpNext ) {
                 KanjiDoc.Jump(1);
+                return true;
             }
             if( sGuid == GlobalCommands.JumpPrev ) {
                 KanjiDoc.Jump(-1);
+                return true;
+            }
+            if( sGuid == GlobalCommands.Recycle ) {
+                KanjiDoc.JumpToStart();
+                return true;
+            }
+            if( sGuid == GlobalCommands.Stop ) {
+                KanjiDoc.Jump( 0 );
+                return true;
             }
             if( sGuid == GlobalCommands.Play ) {
                 KanjiDoc.Jump( 0, fShowAll:true );
+                return true;
             }
             return false;
         }

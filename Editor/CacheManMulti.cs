@@ -1045,11 +1045,11 @@ namespace Play.Edit {
                 Selector.IsSelection( oCacheRow.Row );
 
                 for( int i=0; i<oCacheRow.CacheColumns.Count && i<_rgColumnInfo.Count; ++i ) {
-                    IPgCacheMeasures oMeasure = oCacheRow.CacheColumns[i];
+                    IPgCacheMeasures oColumn = oCacheRow.CacheColumns[i];
 
-				    oMeasure.Measure     ( RenderClxn[oMeasure.FontID] );
-                    oMeasure.Colorize    ( Selector[i] );
-                    oMeasure.OnChangeSize( _rgColumnInfo[i]._rcBounds.Width );
+				    oColumn.Measure     ( RenderClxn[oColumn.FontID] );
+                    oColumn.Colorize    ( Selector[i] );
+                    oColumn.OnChangeSize( _rgColumnInfo[i]._rcBounds.Width );
                 }
 			} catch( Exception oEx ) {
                 if( IsUnhandledStdRpt( oEx ) )

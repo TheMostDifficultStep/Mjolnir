@@ -235,6 +235,11 @@ namespace Kanji_Practice {
             return true;
         }
 
+        public void JumpToStart() {
+            _iFlashLine = 0;
+            Jump( 0 );
+        }
+
         public void Jump( int iDir, bool fShowAll = false ) {
             try {
                 if( FlashCardDoc.IsHit( _iFlashLine + iDir ) ) {
