@@ -321,6 +321,8 @@ namespace Kanji_Practice {
             }
         }
 
+        public string CardFile => _oFileSite.FileName;
+
         public bool Execute(Guid sGuid) {
             if( sGuid == GlobalCommands.JumpNext ) {
                 Jump( 1 );

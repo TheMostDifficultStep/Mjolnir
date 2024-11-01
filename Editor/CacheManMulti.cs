@@ -1047,9 +1047,8 @@ namespace Play.Edit {
                 for( int i=0; i<oCacheRow.CacheColumns.Count && i<_rgColumnInfo.Count; ++i ) {
                     IPgCacheMeasures oMeasure = oCacheRow.CacheColumns[i];
 
-				    oMeasure.Measure( RenderClxn[oMeasure.FontID] );
-
-                    oMeasure.Colorize( Selector[i] );
+				    oMeasure.Measure     ( RenderClxn[oMeasure.FontID] );
+                    oMeasure.Colorize    ( Selector[i] );
                     oMeasure.OnChangeSize( _rgColumnInfo[i]._rcBounds.Width );
                 }
 			} catch( Exception oEx ) {

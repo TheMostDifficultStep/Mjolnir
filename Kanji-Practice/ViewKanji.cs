@@ -1,5 +1,6 @@
 ﻿using System.Xml;
 using System.Windows.Forms;
+using System.Text;
 
 using Play.Interfaces.Embedding;
 using Play.Edit;
@@ -157,7 +158,6 @@ namespace Kanji_Practice {
         public IPgParent Parentage => _oSiteView.Host;
         public IPgParent Services  => Parentage.Services;
 
-        public string    Banner => "Kanji Cards";
         public SKBitmap  Icon { get; protected set; }
         public Guid      Catagory => Guid.Empty;
         public bool      IsDirty => false;
@@ -229,6 +229,20 @@ namespace Kanji_Practice {
             return InitNew();
         }
 
+        public string Banner { 
+            get { 
+                StringBuilder oBuild = new();
+                
+                oBuild.Append( "Kanji Cards" );
+
+                if( !string.IsNullOrEmpty( KanjiDoc.CardFile ) ) {
+                    oBuild.Append( " : " );
+                    oBuild.Append( KanjiDoc.CardFile );
+                }
+
+                return oBuild.ToString();
+            }
+        }
         protected override void OnKeyDown(KeyEventArgs e) {
             base.OnKeyDown(e);
 
