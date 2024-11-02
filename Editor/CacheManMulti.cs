@@ -1491,6 +1491,8 @@ namespace Play.Edit {
             int iLength, bool fMeasure = false 
         ) {
             try {
+                Selector.Clear();
+
                 Row  oDataRow = _oSiteList[ iDataRow ];
                 Line oLine    = oDataRow[iColumn];
 

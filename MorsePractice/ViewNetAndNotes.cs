@@ -14,25 +14,9 @@ using Play.Drawing;
 using Play.Forms;
 
 namespace Play.MorsePractice {
-	/*
-	_rgLayout = new LayoutStackHorizontal() {
-		Spacing = 15,
-		Children = {
-			new LayoutStackVertical( ) {
-				Spacing = 15,
-				Children = {
-				new LayoutControl( ViewSource, LayoutRect.CSS.Percent, 40 ),
-				new LayoutControl( ViewNotes,  LayoutRect.CSS.Percent, 60 )
-				}
-			},
-			new LayoutStackVertical( 350, .3F ) {
-				Spacing = 15,
-				Children = {
-				new LayoutControl( ViewCode, LayoutRect.CSS.Percent, 100 )
-		}	}	}
-	};
-	*/
-
+	/// <summary>
+	/// This is the wrapper for the notes window and the operator log window.
+	/// </summary>
 	public class ViewLogAndNotes :
 		Control,
 		IPgParent,
@@ -123,7 +107,19 @@ namespace Play.MorsePractice {
 			Invalidate();
 		}
 
-		static bool ArraysEqual( ReadOnlySpan<char> a1, ReadOnlySpan<char> a2)
+		/// <remarks>
+		/// Interestign that on a windows form. if the child gets the focus
+		/// it will send an event to it's parent about that.
+		/// In our case it might be nice to remember who had the focus
+		/// last between the notes or log and hand them the focus back... :-/
+		/// </remarks>
+        protected override void OnGotFocus(EventArgs e) {
+            base.OnGotFocus(e);
+
+			ViewLog.Select();
+        }
+
+        static bool ArraysEqual( ReadOnlySpan<char> a1, ReadOnlySpan<char> a2)
 		{
 			if( a1.Length == a2.Length )	{
 				for( int i = 0; i < a1.Length; i++ )	{
