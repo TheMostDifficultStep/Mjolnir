@@ -16,8 +16,8 @@ using Play.Drawing;
 
 namespace Play.MorsePractice {
 	/// <summary>
-	/// Reviving this experiment, multi column log viewer!! This is the 
-	/// inner columnar view beneath the notes in the "ViewLogAndNotes" case.
+	/// Multi column log viewer!! This is the inner columnar view beneath 
+	/// the notes in the "ViewLogAndNotes" case.
 	/// </summary>
 	/// <seealso cref="ViewLogAndNotes"/>
 	public class ViewNetLog : 
@@ -87,11 +87,80 @@ namespace Play.MorsePractice {
 			}
 		}
 
-		public object Decorate(IPgViewSite oBaseSite, Guid sGuid) {
+        protected override void OnKeyDown(KeyEventArgs e) {
+            base.OnKeyDown(e);
+
+			switch( e.KeyCode ) {
+                case Keys.Down:
+                case Keys.Up:
+                case Keys.Right:
+                case Keys.Left:
+					SetOutlineHighlight();
+					break;
+			}
+        }
+
+		protected override void OnMouseUp( MouseEventArgs e ) {
+			base.OnMouseUp( e );
+
+			SetOutlineHighlight();
+		}
+
+        public object Decorate(IPgViewSite oBaseSite, Guid sGuid) {
 			return null;
+		}
+
+		protected void SetOutlineHighlight() {
+			if( Parentage is ViewLogAndNotes oParentView ) {
+				oParentView.SetOutlineCaret( Caret2.Row );
+			} 
 		}
     }
 
+	public class ViewOutline : 
+		WindowMultiColumn
+	{
+		public ViewLogAndNotes Owner { get; private set; }
+		public ViewOutline( IPgViewSite oSiteView, DocLogOutline oDocument, ViewLogAndNotes oOwner ) :
+			base( oSiteView, oDocument )
+		{
+			Owner = oOwner;
+		}
+
+        protected override void Dispose(bool disposing) {
+			if( disposing ) {
+				// Unwind the circle of death. ;-)
+				Owner.ViewOutline = null;
+				Owner = null;
+			}
+            base.Dispose(disposing);
+        }
+
+        protected override bool Initialize() {
+			if( !base.Initialize() )
+				return false;
+
+			TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Pixels, 90, 0.2F ), (int)DocLogOutline.DictRow.DCol.Call );
+			TextLayoutAdd( new LayoutRect( LayoutRect.CSS.None ),             (int)DocLogOutline.DictRow.DCol.Refs );
+
+            HyperLinks.Add( "LogReference", OnLogReference );
+
+			Owner.ViewOutline = this;
+
+			return true;
+		}
+
+        protected void OnLogReference( Row oRow, int iColumn, IPgWordRange oRange ) {
+            if( oRow   is DocLogOutline.DictRow     oDictRow &&
+				oRange is DocLogOutline.ReportRange oReptRange ) 
+			{
+				Row oLogRow = oDictRow.LogRefRows[oReptRange.LogRowIndex];
+
+				Owner.SelectionSet( oLogRow.At, 0, 0 );
+				Owner.ScrollTo    ( SCROLLPOS.CARET  );
+			}
+        }
+    }
 
     /// <summary>
     /// Override to add our hyperlink.
@@ -101,10 +170,9 @@ namespace Play.MorsePractice {
     public class ViewRadioProperties : 
         WindowStandardProperties
      {
-        public static Guid GUID {get;} = new Guid("{80C855E0-C2F6-4641-9A7C-B6A8A53B3FDF}");
-
-
-        public ViewRadioProperties( IPgViewSite oSiteView, DocProperties oDocument ) : base( oSiteView, oDocument ) {
+        public ViewRadioProperties( IPgViewSite oSiteView, DocProperties oDocument ) : 
+			base( oSiteView, oDocument ) 
+		{
         }
 
 		/// <summary>

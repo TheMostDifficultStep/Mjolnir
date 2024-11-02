@@ -33,7 +33,7 @@ namespace Play.MorsePractice {
 	};
 	*/
 
-	class ViewLogAndNotes :
+	public class ViewLogAndNotes :
 		Control,
 		IPgParent,
 		IPgLoad<XmlElement>,
@@ -68,42 +68,45 @@ namespace Play.MorsePractice {
 		} // End class
 
 		readonly IPgViewSite _oSiteView;
-		readonly DocNetHost  _oDocLog;
+		readonly DocNetHost  _DocNetHost;
 		readonly LayoutStack _rgLayout;
 				 bool        _fDisposed = false;
 
 
 		public IPgParent Parentage => _oSiteView.Host;
 		public IPgParent Services  => Parentage.Services;
-		public bool      IsDirty   => _oDocLog.Log.IsDirty || _oDocLog.Notes.IsDirty;
+		public bool      IsDirty   => _DocNetHost.Log.IsDirty || _DocNetHost.Notes.IsDirty;
 		public Guid      Catagory  => ViewCategory;
-		public string    Banner    => string.IsNullOrEmpty( _oDocLog.FileName ) ? "New Net Logger" : _oDocLog.FileName;
+		public string    Banner    => string.IsNullOrEmpty( _DocNetHost.FileName ) ? "New Net Logger" : _DocNetHost.FileName;
 		public SKBitmap  Icon      { get; protected set; }
 
-		EditWindow2 ViewNotes{ get; }
-		ViewNetLog  ViewList { get; }
+		EditWindow2 ViewNotes   { get; }
+		ViewNetLog  ViewLog     { get; }
+		public ViewOutline ViewOutline { get; set; }
 
 		public ViewLogAndNotes( IPgViewSite oSiteView, DocNetHost oDocument ) {
 			_oSiteView = oSiteView ?? throw new ArgumentNullException();
-			_oDocLog   = oDocument ?? throw new ArgumentNullException();
+			_DocNetHost   = oDocument ?? throw new ArgumentNullException();
 
-			ViewNotes = new EditWindow2( new ViewMorseSlot( this ), _oDocLog.Notes ) { Parent = this };
-			ViewList  = new ViewNetLog ( new ViewMorseSlot( this ), _oDocLog.Log   ) { Parent = this };
+			ViewNotes = new EditWindow2( new ViewMorseSlot( this ), _DocNetHost.Notes ) { Parent = this };
+			ViewLog   = new ViewNetLog ( new ViewMorseSlot( this ), _DocNetHost.Log   ) { Parent = this };
 			Icon      = SKImageResourceHelper.GetImageResource( Assembly.GetExecutingAssembly(), _strIcon );
 
 			_rgLayout = new LayoutStackVertical( ) {
 								Spacing  = 10,
 								Children = {
 									new LayoutControl( ViewNotes, LayoutRect.CSS.Flex ),
-									new LayoutControl( ViewList,  LayoutRect.CSS.None )
+									new LayoutControl( ViewLog,   LayoutRect.CSS.None )
 								}
 							};
 		}
 
 		protected override void Dispose( bool disposing ) {
 			if( disposing && !_fDisposed ) {
-				ViewList .Dispose();
+				ViewLog .Dispose();
 				ViewNotes.Dispose();
+
+				ViewOutline = null;
 
 				_fDisposed = true;
 			}
@@ -120,13 +123,41 @@ namespace Play.MorsePractice {
 			Invalidate();
 		}
 
-		public object Decorate(IPgViewSite oBaseSite,Guid sGuid) {
+		static bool ArraysEqual( ReadOnlySpan<char> a1, ReadOnlySpan<char> a2)
+		{
+			if( a1.Length == a2.Length )	{
+				for( int i = 0; i < a1.Length; i++ )	{
+					if( a1[i] != a2[i] )	{
+						return false;
+					}
+				}
+				return true;
+			}
+			return false;
+		}
+
+		/// <param name="oRow">The row in the Log where the caret currently rests.</param>
+		public void SetOutlineCaret( Row oRow ) {
+			if( ViewOutline is not null ) {
+				Row                oFoundRef  = null;
+				ReadOnlySpan<char> spCallSign = oRow[0].AsSpan;
+
+				foreach( Row oRefRow in _DocNetHost.Outline ) {
+					if( ArraysEqual( spCallSign, oRefRow[0].AsSpan ) ) {
+						oFoundRef = oRefRow;
+					}
+				}
+				ViewOutline.SelectionSet( oFoundRef.At, 0, 0 );
+			}
+		}
+
+		public object Decorate(IPgViewSite oViewSite,Guid sGuid) {
             try {
                 if (sGuid.Equals(GlobalDecorations.Outline)) {
-                    return new EditWindow2(oBaseSite, _oDocLog.Log.Calls, fReadOnly: true, fSingleLine: false);
+					return new ViewOutline( oViewSite, _DocNetHost.Outline, this );
                 }
 				if( sGuid.Equals(GlobalDecorations.Properties )) {
-					return new WindowStandardProperties( oBaseSite, _oDocLog.Props );
+					return new WindowStandardProperties( oViewSite, _DocNetHost.Props );
 				}
             } catch (Exception oEx) {
                 Type[] rgErrors = { typeof( NotImplementedException ),
@@ -145,22 +176,22 @@ namespace Play.MorsePractice {
 		public bool Execute(Guid sGuid) {
 			switch( sGuid ) {
 				case var a when sGuid == GlobalCommands.Play:
-					_oDocLog.Props.ValueUpdate( (int)DocLogProperties.Names.LongDate,
+					_DocNetHost.Props.ValueUpdate( (int)DocLogProperties.Names.LongDate,
 												DateTime.Now.ToLongDateString () );
-					_oDocLog.Props.ValueUpdate( (int)DocLogProperties.Names.TimeStart, 
+					_DocNetHost.Props.ValueUpdate( (int)DocLogProperties.Names.TimeStart, 
 						                        DateTime.Now.ToShortTimeString() );
 					return true;
 				case var c when sGuid == GlobalCommands.Stop:
-					_oDocLog.Props.ValueUpdate( (int)DocLogProperties.Names.TimeEnd, 
+					_DocNetHost.Props.ValueUpdate( (int)DocLogProperties.Names.TimeEnd, 
 						                        DateTime.Now.ToShortTimeString() );
 					return true;
 				default:
-					return ViewList.Execute( sGuid );
+					return ViewLog.Execute( sGuid );
 			}
 		}
 
 		public bool InitNew() {
-			if( !ViewList .InitNew() )
+			if( !ViewLog .InitNew() )
 				return false;
 			if( !ViewNotes.InitNew() )
 				return false;
@@ -177,7 +208,7 @@ namespace Play.MorsePractice {
 		}
 
         public IEnumerator<ILineRange> GetEnumerator() {
-			return ViewList.GetEnumerator();
+			return ViewLog.GetEnumerator();
         }
 
         IEnumerator IEnumerable.GetEnumerator() {
@@ -185,19 +216,24 @@ namespace Play.MorsePractice {
         }
 
         #region IPgTextView
-        public TextPosition Caret => ViewList.Caret;
+        public TextPosition Caret => ViewLog.Caret;
 
         public void ScrollTo(SCROLLPOS eEdge) {
-            ViewList.ScrollTo(eEdge);
+            ViewLog.ScrollTo(eEdge);
         }
 
         public bool SelectionSet(int iLine, int iOffset, int iLength) {
-            return ViewList.SelectionSet(iLine, iOffset, iLength);
+            return ViewLog.SelectionSet(iLine, iOffset, iLength);
         }
 
         public void SelectionClear() {
-            ViewList.SelectionClear();
+            ViewLog.SelectionClear();
         }
+
+		public Row LogEntryHighlight {
+			get { return _DocNetHost.Log.HighLight; }
+			set { _DocNetHost.Log.HighLight = value; }
+		}
         #endregion
     }
 }

@@ -199,7 +199,7 @@ namespace Play.Edit {
         protected readonly IPgDocOperations<Row> _oDocOps;
         protected readonly IPgDocCheckMarks      _oDocChecks;
 
-        protected readonly CacheMultiBase       _oCacheMan;
+        protected readonly CacheMultiBase        _oCacheMan;
 		protected readonly IPgStandardUI2        _oStdUI;
         protected readonly ScrollBar2            _oScrollBarVirt;
         protected readonly LayoutStack           _rgLayout;

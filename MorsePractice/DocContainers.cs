@@ -25,6 +25,7 @@ using Play.Integration;
 using Play.Interfaces.Embedding;
 using Play.Parse;
 using Play.Parse.Impl;
+using System.Collections;
 
 namespace Play.MorsePractice {
     public class CallsDoc : Editor {
@@ -242,6 +243,132 @@ namespace Play.MorsePractice {
 		}
     }
 
+    public class DocLogOutline :
+        EditMultiColumn,
+        IPgLoad<IEnumerable<Row>>
+    {
+        public class ReportRange : ColorRange {
+            public int LogRowIndex { get; protected set; }
+            public ReportRange( int iOffset, int iLength, int iIndex ) : 
+                base( iOffset, iLength, 1 ) 
+            {
+                LogRowIndex = iIndex;
+            }
+
+            public override bool   IsWord    => true;
+            public override string StateName => "LogReference";
+        }
+
+        public class DictRow : Row {
+            List<Row> _rgLogRefRows = new();
+            public enum DCol :int {
+                Call =0,
+                Refs,
+            }
+
+            public IReadOnlyList<Row> LogRefRows => _rgLogRefRows;
+
+            static int ColumnCount = Enum.GetValues(typeof(DCol)).Length;
+            public Line this[DCol eValue] => this[(int)eValue];
+
+            public DictRow( string strCallsign, Row oLogRow ) {
+                _rgColumns = new Line[ColumnCount];
+
+                CreateColumn( DCol.Call, strCallsign  );
+                CreateColumn( DCol.Refs, string.Empty );
+
+                _rgLogRefRows.Add( oLogRow );
+
+                CheckForNulls(); 
+            }
+
+            void CreateColumn( DCol eCol, string strValue ) {
+				_rgColumns[(int)eCol] = new TextLine( (int)eCol, strValue );
+            }
+
+            public void AddLog( Row oLogRow ) {
+                _rgLogRefRows.Add( oLogRow );
+            }
+
+            /// <summary>
+            /// Add the hotlinks to all the reports from this operator.
+            /// </summary>
+            public void Summerize() {
+                for( int i=0; i<_rgLogRefRows.Count; ++i ) {
+                    if( i != 0 ) {
+                        this[DCol.Refs].TryAppend( " " );
+                    }
+                    string      strIndex = (i + 1).ToString();
+                    ReportRange oRange   = new( this[1].ElementCount, strIndex.Length, i );
+
+                    this[DCol.Refs].TryAppend( strIndex );
+                    this[DCol.Refs].Formatting.Add( oRange );
+                }
+            }
+        }
+
+        public DocLogOutline(IPgBaseSite oSiteBase) : base(oSiteBase) {
+        }
+
+        public bool InitNew() {
+            return true;
+        }
+
+		public override WorkerStatus PlayStatus {
+            get { 
+                if( HighLight != null )
+                    return WorkerStatus.BUSY;
+
+                return WorkerStatus.FREE;
+            }
+        }
+
+        public bool Load( IEnumerable<Row> rgLog ) {
+            Dictionary< string, DictRow > dcCallSigns = new();
+
+            try {
+                foreach( Row oLogRow in rgLog ) {
+                    string strCall = oLogRow[0].ToString();
+
+                    if( strCall.Length > 0 ) {
+                        if( dcCallSigns.TryGetValue( strCall, out DictRow oDictRow ) ) {
+                            oDictRow.AddLog( oLogRow );
+                        } else {
+                            dcCallSigns.Add( strCall, new DictRow( strCall, oLogRow ) );
+                        }
+                    }
+                }
+
+                _rgRows.Clear();
+                foreach( DictRow oDictRow in dcCallSigns.Values ) {
+                    oDictRow.Summerize();
+                    _rgRows.Add( oDictRow );
+                }
+
+                // Update the operator count property.
+                string strOperatorCount = dcCallSigns.Count().ToString();
+                if( _oSiteBase.Host is DocNetHost oNetDoc ) {
+                    oNetDoc.Props.ValueUpdate( (int)DocLogProperties.Names.Operator_Cnt, strOperatorCount );
+                    oNetDoc.Props.DoParse();
+                }
+
+                RenumberAndSumate();
+                Raise_DocLoaded  ();
+
+                return true;
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( NullReferenceException ),
+                                    typeof( ArgumentNullException ),
+                                    typeof( ArgumentOutOfRangeException ),
+                                    typeof( InvalidCastException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
+
+                LogError( "Scan for callsigns suffered an error." );
+                return false;
+            }
+        }
+    }
     /// <summary>
     /// Our new net logger that uses standard editor for the Notes, and 
     /// the multicolumn editor for the logger...
@@ -287,10 +414,10 @@ namespace Play.MorsePractice {
 		public IPgParent Parentage => _oSiteBase.Host;
 		public IPgParent Services  => Parentage.Services;
 
-        // Stuff for the morse code pracice view.
-		public Editor            Notes { get; } // pointers to net info...
-		public DocLogMultiColumn Log   { get; } // actual log
-        public DocLogProperties  Props { get; }
+		public Editor            Notes   { get; } // pointers to net info...
+		public DocLogMultiColumn Log     { get; } // actual log
+        public DocLogProperties  Props   { get; }
+        public DocLogOutline     Outline { get; }
 
         public DocNetHost( IPgBaseSite oSiteBase ) {
 			_oSiteBase  = oSiteBase ?? throw new ArgumentNullException();
@@ -299,6 +426,7 @@ namespace Play.MorsePractice {
 			Notes       = new Editor           ( new DocNetHostSlot( this, "Notes" ) ); // Notes for running the net.
 			Log         = new DocLogMultiColumn( new DocNetHostSlot( this, "Log"   ) ); // Log the operators.
             Props       = new DocLogProperties ( new DocNetHostSlot( this, "Props" ) );
+            Outline     = new DocLogOutline    ( new DocNetHostSlot( this, "Outline" ) );
 
             new ParseHandlerText( Notes, "text" );
         }
@@ -307,9 +435,12 @@ namespace Play.MorsePractice {
 
 		public void Dispose() {
 			if( !_fDisposed ) {
-				Notes.Dispose();
-				Log  .Dispose();
-                Props.Dispose();
+                Log.Event_RowAdded -= OnLoaded_Log;
+
+				Notes  .Dispose();
+				Log    .Dispose();
+                Props  .Dispose();
+                Outline.Dispose();
 
                 _fDisposed = true;
 			}
@@ -326,11 +457,24 @@ namespace Play.MorsePractice {
                 return false;
             if( !Props.InitNew() )
                 return false;
+            if( !Outline.InitNew() )
+                return false;
 
 			Props.ValueUpdate( (int)DocLogProperties.Names.LongDate,
 							   DateTime.Now.ToLongDateString() );
 
+            Log.Event_RowAdded += OnLoaded_Log;
+
             return true;
+        }
+
+        /// <summary>
+        /// We're always going to be behind what's going on in the log since this
+        /// new line won't have any info associated with it. But let's go with it
+        /// for the moment.
+        /// </summary>
+        private void OnLoaded_Log( Row oRow ) {
+            Outline.Load( Log );
         }
 
         public bool InitNew() {
@@ -422,6 +566,8 @@ namespace Play.MorsePractice {
 
             if( !LoadLogXml( oStream ) ) 
                 return false;
+
+            Outline.Load( Log );
 
 			return true;
 		}

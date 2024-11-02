@@ -23,19 +23,22 @@ namespace Play.MorsePractice {
     }
 
     /// <summary>
-    /// This is our new document to hold the net participants.
-    /// TODO: I can probably move most of this into the EditMultiColumn class.
+    /// This is our new document to hold the net participants. I keep this
+    /// separate from the DocNetHost since it contains this, notes, outline and properties.
+    /// Seems best to go this way.
     /// </summary>
+    /// <seealso cref="DocNetHost"/>
     public class DocLogMultiColumn :
         EditMultiColumn,
-		IPgLoad<TextReader>,
-		IPgSave<TextWriter>
+		IPgLoad,
+		IPgSave
     {
         readonly protected IPgRoundRobinWork _oWorkPlace; 
         readonly protected string            _strIcon = @"Play.MorsePractice.Content.icons8-copybook-60.jpg";
 
-        public CallsDoc Calls { get; } // List of callsigns for outline.
-
+        // Crude way to get edit events. Mostly outsides want to know when rows are added I'm
+        // blind to row removal, but that's actually pri 2 at the moment.
+        public event Action<Row> Event_RowAdded;
 		protected class DocSlot :
 			IPgBaseSite
 		{
@@ -62,7 +65,6 @@ namespace Play.MorsePractice {
             IPgScheduler oSchedular = (IPgScheduler)_oSiteBase.Host.Services;
 
             _oWorkPlace = oSchedular.CreateWorkPlace() ?? throw new InvalidOperationException( "Need the scheduler service in order to work. ^_^;" );
-            Calls       = new CallsDoc( new DocSlot( this ) ); // document for outline, compiled list of stations
         }
 
         public override void Dispose() {
@@ -70,24 +72,40 @@ namespace Play.MorsePractice {
             base.Dispose();
         }
 
-        public Row InsertNew() {
-            return InsertNew( _rgRows.Count );
+        public override WorkerStatus PlayStatus {
+			get { 
+                if( HighLight != null )
+                    return WorkerStatus.BUSY;
+                
+                return WorkerStatus.FREE;
+            }
+		}
+
+        public void InsertNew() {
+            InsertNew( _rgRows.Count );
         }
 
         /// <summary>
         /// Note: It's perfectly legal to insert at the element count.
-        /// This is effectively a append.
+        /// This is effectively an append.
         /// </summary>
         /// <remarks>I could return an actual LogRow... :-/</remarks>
         /// <returns>Newly inserted LogRow</returns>
         public Row InsertNew( int iRow ) {
             try {
+                Raise_DocUpdateBegin();
+
                 Row oNew = new LogRow();
 
                 _rgRows.Insert( iRow, oNew );
 
-                RenumberAndSumate();
-                DoParse     ();
+                RenumberAndSumate ();
+                Raise_DocUpdateEnd( IPgEditEvents.EditType.Rows, oNew );
+
+                // A little hacky but its how our outline can get some events.
+                Event_RowAdded?.Invoke( oNew );
+
+                DoParse();
 
                 return oNew;
             } catch( ArgumentOutOfRangeException ) {
@@ -96,26 +114,11 @@ namespace Play.MorsePractice {
             return null;
         }
 
-        public bool Load(TextReader oStream) {
-            if( !Calls.InitNew() )
-                return false;
-
-            return true;
-        }
-
         public bool InitNew() {
-            if( !Calls.InitNew() )
-                return false;
-
             InsertNew();
 
             return true;
         }
-
-        public bool Save(TextWriter oStream) {
-            return true;
-        }
-
 
         /// <summary>
         /// Scan the entire file for callsigns and pop them into the "Calls" editor.
@@ -123,48 +126,46 @@ namespace Play.MorsePractice {
         /// worry about padding, and now if there happened to be two callsigns in the
         /// column zero we'd pick 'em up. Kinda weird but ok...
         /// </summary>
-        public void ScanForCallsigns() {
-            Calls.Clear();
-            List< string > rgCallSigns = new List<string>();
+        //public void ScanForCallsigns() {
+        //    Calls.Clear();
+        //    List< string > rgCallSigns = new List<string>();
 
-            try {
-                foreach( Row oRow in _rgRows ) {
-                    Line oLine = oRow[0];
+        //    try {
+        //        foreach( Row oRow in _rgRows ) {
+        //            Line oLine = oRow[0];
 
-                    foreach( IColorRange oColor in oLine.Formatting ) {
-                        if( oColor is IPgWordRange oWord &&
-                            string.Compare( oWord.StateName, "callsign" ) == 0 ) 
-                        {
-                            rgCallSigns.Add( oLine.SubString( oWord.Offset, oWord.Length ) );
-                        }
-                    }
-                }
-                IEnumerable<IGrouping<string, string>> dupes = 
-                    rgCallSigns.GroupBy(x => x.ToLower() ).OrderBy( y => y.Key.ToLower() );
+        //            foreach( IColorRange oColor in oLine.Formatting ) {
+        //                if( oColor is IPgWordRange oWord &&
+        //                    string.Compare( oWord.StateName, "callsign" ) == 0 ) 
+        //                {
+        //                    rgCallSigns.Add( oLine.SubString( oWord.Offset, oWord.Length ) );
+        //                }
+        //            }
+        //        }
+        //        IEnumerable<IGrouping<string, string>> dupes = 
+        //            rgCallSigns.GroupBy(x => x.ToLower() ).OrderBy( y => y.Key.ToLower() );
 
-                foreach( IGrouping<string, string> foo in dupes ) {
-                    Calls.LineAppend( foo.Key + " : " + foo.Count().ToString() );
-                }
-                string strOperatorCount = dupes.Count().ToString();
+        //        foreach( IGrouping<string, string> foo in dupes ) {
+        //            Calls.LineAppend( foo.Key + " : " + foo.Count().ToString() );
+        //        }
+        //        string strOperatorCount = dupes.Count().ToString();
 
-                // This is in the properties page now.
-              //Calls.LineInsert( "Operator Count : " + strOperatorCount );
+        //        // Update the operator count property.
+        //        if( _oSiteBase.Host is DocNetHost oNetDoc ) {
+        //            oNetDoc.Props.ValueUpdate( (int)DocLogProperties.Names.Operator_Cnt, strOperatorCount );
+        //            oNetDoc.Props.DoParse();
+        //        }
+        //    } catch( Exception oEx ) {
+        //        Type[] rgErrors = { typeof( NullReferenceException ),
+        //                            typeof( ArgumentNullException ),
+        //                            typeof( ArgumentOutOfRangeException ),
+        //                            typeof( InvalidCastException ) };
+        //        if( rgErrors.IsUnhandled( oEx ) )
+        //            throw;
 
-                if( _oSiteBase.Host is DocNetHost oNetDoc ) {
-                    oNetDoc.Props.ValueUpdate( (int)DocLogProperties.Names.Operator_Cnt, strOperatorCount );
-                    oNetDoc.Props.DoParse();
-                }
-            } catch( Exception oEx ) {
-                Type[] rgErrors = { typeof( NullReferenceException ),
-                                    typeof( ArgumentNullException ),
-                                    typeof( ArgumentOutOfRangeException ),
-                                    typeof( InvalidCastException ) };
-                if( rgErrors.IsUnhandled( oEx ) )
-                    throw;
-
-                LogError( "Scan for callsigns suffered an error." );
-            }
-        }
+        //        LogError( "Scan for callsigns suffered an error." );
+        //    }
+        //}
 
         /// <summary>
         /// This allows me to use my scheduler to delay the parse until
@@ -176,7 +177,6 @@ namespace Play.MorsePractice {
             RenumberAndSumate();
             ParseColumn      ( 0 );
             ParseColumn      ( 2 );
-            ScanForCallsigns ();
 
             Raise_DocFormatted();
 
