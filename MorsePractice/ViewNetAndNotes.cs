@@ -139,15 +139,13 @@ namespace Play.MorsePractice {
 		/// <param name="oRow">The row in the Log where the caret currently rests.</param>
 		public void SetOutlineCaret( Row oRow ) {
 			if( ViewOutline is not null ) {
-				Row                oFoundRef  = null;
 				ReadOnlySpan<char> spCallSign = oRow[0].AsSpan;
 
 				foreach( Row oRefRow in _DocNetHost.Outline ) {
 					if( ArraysEqual( spCallSign, oRefRow[0].AsSpan ) ) {
-						oFoundRef = oRefRow;
+						ViewOutline.SelectionSet( oRefRow.At, 0, 0 );
 					}
 				}
-				ViewOutline.SelectionSet( oFoundRef.At, 0, 0 );
 			}
 		}
 
