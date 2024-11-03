@@ -111,6 +111,32 @@ namespace Play.Edit {
             return oLine.TryReplace( 0, oLine.ElementCount, spReplacements );
         }
 
+        public static bool ArraysEqual( ReadOnlySpan<char> a1, ReadOnlySpan<char> a2)
+		{
+			if( a1.Length == a2.Length )	{
+				for( int i = 0; i < a1.Length; i++ )	{
+					if( a1[i] != a2[i] )	{
+						return false;
+					}
+				}
+				return true;
+			}
+			return false;
+		}
+
+        public static bool IsEqual( this ReadOnlySpan<char> spLeft, ReadOnlySpan<char> spOther ) {
+            return ArraysEqual( spLeft, spOther );
+        }
+
+        /// <summary>
+        /// compare a readonly span to a given line.
+        /// </summary>
+        /// <param name="spLeft">The value we are searching for in a list for example.</param>
+        /// <param name="oOther">use this as the line from an array we are searching. Each element is new.</param>
+        /// <returns></returns>
+        public static bool IsEqual( this ReadOnlySpan<char> spLeft, Line oOther ) {
+            return ArraysEqual( spLeft, oOther.AsSpan );
+        }
     }
 
     /// <summary>
@@ -423,7 +449,7 @@ namespace Play.Edit {
             return _sbBuffer.SubSpan( iOffset, iLength );
         }
 
-        public override ReadOnlySpan<char> AsSpan => _sbBuffer.AsSpan.Slice( 0, _sbBuffer.Length );
+        public override ReadOnlySpan<char> AsSpan => _sbBuffer.Slice( 0, _sbBuffer.Length );
 
         /// <summary>
         /// BUG: This needs to use the new Marker.ShiftReplace() function...

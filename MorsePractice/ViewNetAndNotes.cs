@@ -108,7 +108,7 @@ namespace Play.MorsePractice {
 		}
 
 		/// <remarks>
-		/// Interestign that on a windows form. if the child gets the focus
+		/// Interesting that on a windows form. if the child gets the focus
 		/// it will send an event to it's parent about that.
 		/// In our case it might be nice to remember who had the focus
 		/// last between the notes or log and hand them the focus back... :-/
@@ -119,26 +119,13 @@ namespace Play.MorsePractice {
 			ViewLog.Select();
         }
 
-        static bool ArraysEqual( ReadOnlySpan<char> a1, ReadOnlySpan<char> a2)
-		{
-			if( a1.Length == a2.Length )	{
-				for( int i = 0; i < a1.Length; i++ )	{
-					if( a1[i] != a2[i] )	{
-						return false;
-					}
-				}
-				return true;
-			}
-			return false;
-		}
-
-		/// <param name="oRow">The row in the Log where the caret currently rests.</param>
-		public void SetOutlineCaret( Row oRow ) {
+		/// <param name="oLogRow">The row in the Log where the caret currently rests.</param>
+		public void SetOutlineCaret( Row oLogRow ) {
 			if( ViewOutline is not null ) {
-				ReadOnlySpan<char> spCallSign = oRow[0].AsSpan;
+				ReadOnlySpan<char> oCall = oLogRow[0].AsSpan;
 
 				foreach( Row oRefRow in _DocNetHost.Outline ) {
-					if( ArraysEqual( spCallSign, oRefRow[0].AsSpan ) ) {
+					if( oCall.IsEqual( oRefRow[0] ) ) {
 						ViewOutline.SelectionSet( oRefRow.At, 0, 0 );
 					}
 				}

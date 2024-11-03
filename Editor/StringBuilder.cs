@@ -236,6 +236,10 @@ namespace Play.Edit {
             return _rgValue.AsSpan( iStart, iLength );
         }
 
+        public Span<char> Slice( int iStart, int iLength ) {
+            return _rgValue.AsSpan( iStart, iLength );
+        }
+
         public Span<char> AsSpan => _rgValue.AsSpan();
 
         /// <summary>
