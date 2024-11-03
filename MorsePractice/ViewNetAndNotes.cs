@@ -121,14 +121,25 @@ namespace Play.MorsePractice {
 
 		/// <param name="oLogRow">The row in the Log where the caret currently rests.</param>
 		public void SetOutlineCaret( Row oLogRow ) {
-			if( ViewOutline is not null ) {
-				ReadOnlySpan<char> oCall = oLogRow[0].AsSpan;
+			try {
+				if( ViewOutline is not null && oLogRow is not null ) {
+					ReadOnlySpan<char> oCall = oLogRow[0].AsSpan;
 
-				foreach( Row oRefRow in _DocNetHost.Outline ) {
-					if( oCall.IsEqual( oRefRow[0] ) ) {
-						ViewOutline.SelectionSet( oRefRow.At, 0, 0 );
+					foreach( Row oRefRow in _DocNetHost.Outline ) {
+						if( oCall.IsEqual( oRefRow[0] ) ) {
+							ViewOutline.SelectionSet( oRefRow.At, 0, 0 );
+						}
 					}
 				}
+            } catch (Exception oEx) {
+                Type[] rgErrors = { typeof( NotImplementedException ),
+                                    typeof( NullReferenceException ),
+                                    typeof( ArgumentException ),
+                                    typeof( ArgumentNullException ) };
+                if (rgErrors.IsUnhandled(oEx))
+                    throw;
+
+                _oSiteView.LogError( "View log & notes", "Problem sync to to outline" );
 			}
 		}
 
