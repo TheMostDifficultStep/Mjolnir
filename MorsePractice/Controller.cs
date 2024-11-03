@@ -131,7 +131,7 @@ namespace Play.MorsePractice
 			try {
                 DocNetHost oDocNetHost = (DocNetHost)oDocument;
                 switch( guidViewType ) {
-                    case Guid r when r == ViewNetLog.ViewCatagory:
+                    case Guid r when r == ViewLog.ViewCatagory:
                         return new ViewLogAndNotes(oBaseSite, oDocNetHost );
 
                     default:

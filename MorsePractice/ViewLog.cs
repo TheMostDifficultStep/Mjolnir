@@ -20,7 +20,7 @@ namespace Play.MorsePractice {
 	/// the notes in the "ViewLogAndNotes" case.
 	/// </summary>
 	/// <seealso cref="ViewLogAndNotes"/>
-	public class ViewNetLog : 
+	public class ViewLog : 
 		WindowMultiColumn,
 		IPgCommandView,
         IPgLoad<XmlElement>,
@@ -35,7 +35,7 @@ namespace Play.MorsePractice {
 
 		protected DocLog LogDoc { get; }
 
-		public ViewNetLog( IPgViewSite oSiteView, DocLog oDocument ) :
+		public ViewLog( IPgViewSite oSiteView, DocLog oDocument ) :
 			base( oSiteView, oDocument )
 		{
 			LogDoc = oDocument;

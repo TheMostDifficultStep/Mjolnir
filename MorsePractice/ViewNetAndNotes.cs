@@ -65,7 +65,7 @@ namespace Play.MorsePractice {
 		public SKBitmap  Icon      { get; protected set; }
 
 		EditWindow2 ViewNotes   { get; }
-		ViewNetLog  ViewLog     { get; }
+		ViewLog  ViewLog     { get; }
 		public ViewOutline ViewOutline { get; set; }
 
 		public ViewLogAndNotes( IPgViewSite oSiteView, DocNetHost oDocument ) {
@@ -73,7 +73,7 @@ namespace Play.MorsePractice {
 			_DocNetHost   = oDocument ?? throw new ArgumentNullException();
 
 			ViewNotes = new EditWindow2( new ViewMorseSlot( this ), _DocNetHost.Notes ) { Parent = this };
-			ViewLog   = new ViewNetLog ( new ViewMorseSlot( this ), _DocNetHost.Log   ) { Parent = this };
+			ViewLog   = new ViewLog ( new ViewMorseSlot( this ), _DocNetHost.Log   ) { Parent = this };
 			Icon      = SKImageResourceHelper.GetImageResource( Assembly.GetExecutingAssembly(), _strIcon );
 
 			_rgLayout = new LayoutStackVertical( ) {
@@ -155,16 +155,29 @@ namespace Play.MorsePractice {
 		}
 
 		public bool Execute(Guid sGuid) {
+			DocProperties oProps = _DocNetHost.Props;
+
+			const int iDate = (int)DocLogProperties.Names.LogDate;
+			const int iTime = (int)DocLogProperties.Names.TimeStart;
+			const int iTEnd = (int)DocLogProperties.Names.TimeEnd;
+
 			switch( sGuid ) {
 				case var a when sGuid == GlobalCommands.Play:
-					_DocNetHost.Props.ValueUpdate( (int)DocLogProperties.Names.LongDate,
-												DateTime.Now.ToLongDateString () );
-					_DocNetHost.Props.ValueUpdate( (int)DocLogProperties.Names.TimeStart, 
-						                        DateTime.Now.ToShortTimeString() );
+					if( oProps.IsValueEmpty( iDate ) )
+						oProps.ValueUpdate( iDate, DateTime.Now.ToLongDateString() );
+					else
+						_oSiteView.LogError( "Radio Log", "Date Already Set" );
+					if( oProps.IsValueEmpty( iTime ) )
+						oProps.ValueUpdate( iTime, DateTime.Now.ToShortTimeString() );
+					else
+						_oSiteView.LogError( "Radio Log", "Start Time Already Set" );
+
 					return true;
 				case var c when sGuid == GlobalCommands.Stop:
-					_DocNetHost.Props.ValueUpdate( (int)DocLogProperties.Names.TimeEnd, 
-						                        DateTime.Now.ToShortTimeString() );
+					if( oProps.IsValueEmpty( iTEnd ) )
+						oProps.ValueUpdate( iTEnd, DateTime.Now.ToShortTimeString() );
+					else
+						_oSiteView.LogError( "Radio Log", "End Time Already Set" );
 					return true;
 				default:
 					return ViewLog.Execute( sGuid );

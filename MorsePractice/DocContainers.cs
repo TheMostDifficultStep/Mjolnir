@@ -25,7 +25,6 @@ using Play.Integration;
 using Play.Interfaces.Embedding;
 using Play.Parse;
 using Play.Parse.Impl;
-using System.Collections;
 
 namespace Play.MorsePractice {
     public class CallsDoc : Editor {
@@ -38,7 +37,7 @@ namespace Play.MorsePractice {
 
     public class DocLogProperties : DocProperties, IDisposable {
         public enum Names : int {
-            LongDate,
+            LogDate,
             TimeStart,
             TimeEnd,
 			Operator_Cnt,
@@ -67,7 +66,7 @@ namespace Play.MorsePractice {
                 CreatePropertyPair( eName.ToString() );
             }
 
-            LabelUpdate( (int)Names.LongDate,     "Long Date" );
+            LabelUpdate( (int)Names.LogDate,     "Long Date" );
             LabelUpdate( (int)Names.TimeStart,    "Start Time" );
             LabelUpdate( (int)Names.TimeEnd,      "End Time" );
             LabelUpdate( (int)Names.Operator_Cnt, "Operators", SKColors.LightGreen );
@@ -425,7 +424,7 @@ namespace Play.MorsePractice {
             _oSiteFile  = (IPgFileSite )oSiteBase;
 
 			Notes       = new Editor           ( new DocNetHostSlot( this, "Notes" ) ); // Notes for running the net.
-			Log         = new DocLog( new DocNetHostSlot( this, "Log"   ) ); // Log the operators.
+			Log         = new DocLog           ( new DocNetHostSlot( this, "Log"   ) ); // Log the operators.
             Props       = new DocLogProperties ( new DocNetHostSlot( this, "Props" ) );
             Outline     = new DocLogOutline    ( new DocNetHostSlot( this, "Outline" ) );
 
@@ -461,9 +460,6 @@ namespace Play.MorsePractice {
             if( !Outline.InitNew() )
                 return false;
 
-			Props.ValueUpdate( (int)DocLogProperties.Names.LongDate,
-							   DateTime.Now.ToLongDateString() );
-
             Log.Event_RowAdded += OnLoaded_Log;
 
             return true;
@@ -484,6 +480,9 @@ namespace Play.MorsePractice {
 
 			if( !Log.InitNew() )
 				return false;
+
+			Props.ValueUpdate( (int)DocLogProperties.Names.LogDate,
+							   DateTime.Now.ToLongDateString() );
 
 			return true;
 		}
@@ -536,7 +535,10 @@ namespace Play.MorsePractice {
                     Props.ValueUpdate( (int)DocLogProperties.Names.TimeStart, xmlStartTime.InnerText );
                 }
                 if( xmlDoc.SelectSingleNode( "//Root/TimeEnd" ) is XmlNode xmlEndTime ) {
-                    Props.ValueUpdate( (int)DocLogProperties.Names.TimeStart, xmlEndTime.InnerText );
+                    Props.ValueUpdate( (int)DocLogProperties.Names.TimeEnd, xmlEndTime.InnerText );
+                }
+                if( xmlDoc.SelectSingleNode( "//Root/LogDate" ) is XmlNode xmlLogDate ) {
+                    Props.ValueUpdate( (int)DocLogProperties.Names.LogDate, xmlLogDate.InnerText );
                 }
 
                 Notes.ClearDirty();
@@ -582,6 +584,10 @@ namespace Play.MorsePractice {
             try {
                 if( xmlDoc.CreateElement( "Root" ) is XmlElement xmlRoot ) {
                     xmlDoc.AppendChild( xmlRoot );
+                    if( xmlDoc.CreateElement( "LogDate" ) is XmlElement xmlLogDate ) {
+                        xmlLogDate.InnerText = Props.ValueAsStr( (int)DocLogProperties.Names.LogDate );
+                        xmlRoot.AppendChild( xmlLogDate );
+                    }
                     if( xmlDoc.CreateElement( "TimeStart" ) is XmlElement xmlStartTime ) {
                         xmlStartTime.InnerText = Props.ValueAsStr( (int)DocLogProperties.Names.TimeStart );
                         xmlRoot.AppendChild( xmlStartTime );

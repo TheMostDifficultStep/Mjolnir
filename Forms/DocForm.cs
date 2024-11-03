@@ -254,6 +254,10 @@ namespace Play.Forms {
             return _rgRows[iIndex][1];
         }
 
+        public bool   IsValueEmpty( int iIndex ) {
+            return _rgRows[iIndex][1].IsEmpty();
+        }
+
         protected struct ValueEnumerator :
             IEnumerable<Line> 
         {
