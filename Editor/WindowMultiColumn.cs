@@ -328,9 +328,9 @@ namespace Play.Edit {
             public void OnCaretPositioned( SKPointI pntCaret, bool fVisible ) {
                 if( _oHost.Focused ) {
                     User32.SetCaretPos( pntCaret.X, pntCaret.Y );
-                } else {
-                    User32.SetCaretPos( -20, 0 );
                 }
+                // else don't mess with the caret! You might blast it when
+                // we're not even the current owner (b/c we're not focused! ^_^;;)
             }
 
             /// <summary>
