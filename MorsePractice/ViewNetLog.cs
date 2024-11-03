@@ -33,9 +33,9 @@ namespace Play.MorsePractice {
 		public string Banner   => "Log Viewer";
 		public SKBitmap Icon   { get; protected set; }
 
-		protected DocLogMultiColumn LogDoc { get; }
+		protected DocLog LogDoc { get; }
 
-		public ViewNetLog( IPgViewSite oSiteView, DocLogMultiColumn oDocument ) :
+		public ViewNetLog( IPgViewSite oSiteView, DocLog oDocument ) :
 			base( oSiteView, oDocument )
 		{
 			LogDoc = oDocument;
@@ -46,9 +46,9 @@ namespace Play.MorsePractice {
 			if( !base.Initialize() )
 				return false;
 
-			TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Pixels, 90, 0.2F ), LogRow.ColumnCall );
-			TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Pixels, 40, 0.1F ), LogRow.ColumnStat );
-			TextLayoutAdd( new LayoutRect( LayoutRect.CSS.None ),             LogRow.ColumnNote );
+			TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Pixels, 90, 0.2F ), DocLog.LogRow.ColumnCall );
+			TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Pixels, 40, 0.1F ), DocLog.LogRow.ColumnStat );
+			TextLayoutAdd( new LayoutRect( LayoutRect.CSS.None ),             DocLog.LogRow.ColumnNote );
 
             HyperLinks.Add( "callsign", OnCallSign );
 
@@ -64,7 +64,7 @@ namespace Play.MorsePractice {
                 return;
             if( _oViewEvents.IsCommandPress( e.KeyChar ) )
                 return;
-            if( _fReadOnly )
+            if( IsReadOnly )
                 return;
 
 			switch( e.KeyChar ) {

@@ -1,38 +1,35 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 
 using Play.Interfaces.Embedding;
 using Play.Edit;
-using Play.Parse;
 
 namespace Play.MorsePractice {
-    public class LogRow : Row {
-        public LogRow() {
-            _rgColumns = new Line[3];
-
-            for( int i=0; i<_rgColumns.Length; i++ ) {
-                _rgColumns[i] = new TextLine( i, string.Empty );
-            }
-        }
-
-        public const int ColumnCall = 0;
-        public const int ColumnStat = 1;
-        public const int ColumnNote = 2;
-    }
-
     /// <summary>
     /// This is our new document to hold the net participants. I keep this
     /// separate from the DocNetHost since it contains this, notes, outline and properties.
     /// Seems best to go this way.
     /// </summary>
     /// <seealso cref="DocNetHost"/>
-    public class DocLogMultiColumn :
+    public class DocLog :
         EditMultiColumn,
 		IPgLoad,
 		IPgSave
     {
+        public class LogRow : Row {
+            public LogRow() {
+                _rgColumns = new Line[3];
+
+                for( int i=0; i<_rgColumns.Length; i++ ) {
+                    _rgColumns[i] = new TextLine( i, string.Empty );
+                }
+            }
+
+            public const int ColumnCall = 0;
+            public const int ColumnStat = 1;
+            public const int ColumnNote = 2;
+        }
+
         readonly protected IPgRoundRobinWork _oWorkPlace; 
         readonly protected string            _strIcon = @"Play.MorsePractice.Content.icons8-copybook-60.jpg";
 
@@ -42,9 +39,9 @@ namespace Play.MorsePractice {
 		protected class DocSlot :
 			IPgBaseSite
 		{
-			protected readonly DocLogMultiColumn _oHost;
+			protected readonly DocLog _oHost;
 
-			public DocSlot( DocLogMultiColumn oHost ) {
+			public DocSlot( DocLog oHost ) {
 				_oHost = oHost ?? throw new ArgumentNullException( "Host" );
 			}
 
@@ -61,7 +58,7 @@ namespace Play.MorsePractice {
         /// <exception cref="InvalidOperationException" />
         /// <exception cref="InvalidCastException" />
         /// <exception cref="NullReferenceException" />
-        public DocLogMultiColumn(IPgBaseSite oSiteBase) : base(oSiteBase) {
+        public DocLog(IPgBaseSite oSiteBase) : base(oSiteBase) {
             IPgScheduler oSchedular = (IPgScheduler)_oSiteBase.Host.Services;
 
             _oWorkPlace = oSchedular.CreateWorkPlace() ?? throw new InvalidOperationException( "Need the scheduler service in order to work. ^_^;" );

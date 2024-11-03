@@ -329,8 +329,8 @@ namespace Play.Edit {
                 if( _oHost.Focused ) {
                     User32.SetCaretPos( pntCaret.X, pntCaret.Y );
                 }
-                // else don't mess with the caret! You might blast it when
-                // we're not even the current owner (b/c we're not focused! ^_^;;)
+                // Else don't mess with the caret! You might blast it when
+                // we're not even the current owner (eg. when we're not focused! ^_^;;)
             }
 
             /// <summary>
@@ -608,7 +608,7 @@ namespace Play.Edit {
             object oDataSource, 
             Guid   sOperation 
         ) {
-            if( _fReadOnly )
+            if( IsReadOnly )
                 return;
 
             if( oDataSource == null ) {
@@ -753,7 +753,7 @@ namespace Play.Edit {
 
             _oViewEvents.NotifyFocused( true );
 
-            if( !_fReadOnly ) {
+            if( !IsReadOnly ) {
                 User32.CreateCaret( Handle, IntPtr.Zero, 
                                     _oCacheMan.CaretSize.X, 
                                     _oCacheMan.CaretSize.Y );
@@ -1021,7 +1021,7 @@ namespace Play.Edit {
                     _oCacheMan.CaretMove( Axis.Horizontal, -1 );
                     break;
                 case Keys.Back:
-                    if(  !_fReadOnly && _oCacheMan.CopyCaret() is CacheMultiColumn.CaretInfo oCaret ) {
+                    if(  !IsReadOnly && _oCacheMan.CopyCaret() is CacheMultiColumn.CaretInfo oCaret ) {
                         _oDocOps.TryDeleteAt( oCaret.Row, oCaret.Column, oCaret.Offset - 1, 1 );
                     }
                     break;
@@ -1048,12 +1048,12 @@ namespace Play.Edit {
                         return true;
 
                     case Keys.Control | Keys.Z:
-                        if( !_fReadOnly ) {
+                        if( !IsReadOnly ) {
                             //_oDocument.Undo();
                         }
                         return true;
                     case Keys.Control | Keys.Q:
-                        if( !_fReadOnly ) { // Or column or elem locked...
+                        if( !IsReadOnly ) { // Or column or elem locked...
                             if( _oCacheMan.CopyCaret() is CacheMultiColumn.CaretInfo oCaret ) {
                                 _oDocOps.RowDelete( oCaret.Row );
                             }
@@ -1062,7 +1062,7 @@ namespace Play.Edit {
                     case Keys.Delete: {
                         // The only way to get this event. Tho' a bit ambiguous between delete a character
                         // in a column or delete a row. 
-                        if( !_fReadOnly ) {
+                        if( !IsReadOnly ) {
                             if( _oCacheMan.Selector.RowCount == 0 ) {
                                 if( _oCacheMan.CopyCaret() is CacheMultiColumn.CaretInfo oCaret ) {
                                     _oDocOps.TryDeleteAt(oCaret.Row, oCaret.Column, oCaret.Offset, 1);
@@ -1085,7 +1085,7 @@ namespace Play.Edit {
                 return;
             if( _oViewEvents.IsCommandPress( e.KeyChar ) )
                 return;
-            if( _fReadOnly )
+            if( IsReadOnly )
                 return;
 
             try {

@@ -63,7 +63,7 @@ namespace Monitor {
                 return;
             if( _oViewEvents.IsCommandPress( e.KeyChar ) )
                 return;
-            if( _fReadOnly )
+            if( IsReadOnly )
                 return;
 
             if( !char.IsControl( e.KeyChar ) ||

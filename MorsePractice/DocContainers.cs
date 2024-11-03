@@ -308,6 +308,7 @@ namespace Play.MorsePractice {
         }
 
         public DocLogOutline(IPgBaseSite oSiteBase) : base(oSiteBase) {
+            IsReadOnly = true;
         }
 
         public bool InitNew() {
@@ -415,7 +416,7 @@ namespace Play.MorsePractice {
 		public IPgParent Services  => Parentage.Services;
 
 		public Editor            Notes   { get; } // pointers to net info...
-		public DocLogMultiColumn Log     { get; } // actual log
+		public DocLog Log     { get; } // actual log
         public DocLogProperties  Props   { get; }
         public DocLogOutline     Outline { get; }
 
@@ -424,7 +425,7 @@ namespace Play.MorsePractice {
             _oSiteFile  = (IPgFileSite )oSiteBase;
 
 			Notes       = new Editor           ( new DocNetHostSlot( this, "Notes" ) ); // Notes for running the net.
-			Log         = new DocLogMultiColumn( new DocNetHostSlot( this, "Log"   ) ); // Log the operators.
+			Log         = new DocLog( new DocNetHostSlot( this, "Log"   ) ); // Log the operators.
             Props       = new DocLogProperties ( new DocNetHostSlot( this, "Props" ) );
             Outline     = new DocLogOutline    ( new DocNetHostSlot( this, "Outline" ) );
 
@@ -516,11 +517,11 @@ namespace Play.MorsePractice {
                     }
                 }
                 if( xmlDoc.SelectSingleNode( "//Root/Log" ) is XmlNode xmlLog ) {
-                    StringReader                       oReader = new ( xmlLog.InnerText );
-                    using DocLogMultiColumn.BulkLoader oLoader = new ( Log );
+                    StringReader            oReader = new( xmlLog.InnerText );
+                    using DocLog.BulkLoader oLoader = new( Log );
 
                     while( oReader.ReadLine() is string strLine ) {
-                        LogRow oRow = new LogRow();
+                        DocLog.LogRow oRow = new DocLog.LogRow();
                         ParseTokens( strLine );
                         for( int i=0; i<rgTokens.Count; ++i ) {
                             if( i<3 )
