@@ -359,6 +359,16 @@ namespace Play.Edit {
 			}
 		} // End class
 
+        protected class ViewSlot :
+            DocSlot,
+            IPgViewSite
+        {
+            public ViewSlot(WindowMultiColumn oHost) : base(oHost) {
+            }
+
+            public IPgViewNotify EventChain => _oHost._oSiteView.EventChain;
+        }
+
         public WindowMultiColumn( IPgViewSite oViewSite, object oDocument ) {
             _oDocEnum   = (IEnumerable     <Row>)oDocument;
             _oDocList   = (IReadableBag    <Row>)oDocument;

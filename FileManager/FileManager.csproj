@@ -9,15 +9,18 @@
 
   <ItemGroup>
     <None Remove="Content\icons8-folder-94.png" />
+    <None Remove="Content\pexels-photo-247506_s.jpeg" />
   </ItemGroup>
 
   <ItemGroup>
     <EmbeddedResource Include="Content\icons8-folder-94.png" />
+    <EmbeddedResource Include="Content\pexels-photo-247506_s.jpeg" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Drawing\Drawing.csproj" />
     <ProjectReference Include="..\Editor\Editor.csproj" />
+    <ProjectReference Include="..\ImageViewer\ImageViewer.csproj" />
     <ProjectReference Include="..\Interfaces\Interfaces.csproj" />
   </ItemGroup>
 

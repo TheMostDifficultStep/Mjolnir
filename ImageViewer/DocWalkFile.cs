@@ -256,6 +256,33 @@ namespace Play.ImageViewer {
 			return true;
 		}
 
+        public bool LoadResource( Assembly oAssembly, string strResourceName ) {
+			BitmapDispose();
+
+            if( !Initialize() )
+                return false;
+
+			try {
+                // Let's you peep in on all of them! ^_^
+                // string[] rgStuff = oAssembly.GetManifestResourceNames();
+
+				using( Stream oStream = oAssembly.GetManifestResourceStream( strResourceName )) {
+					return Load( oStream );
+				}
+			} catch( Exception oEx ) {
+				Type[] rgErrors = { typeof( NullReferenceException ), 
+									typeof( ArgumentNullException ),
+									typeof( ArgumentException ),
+									typeof( FileLoadException ),
+									typeof( BadImageFormatException ),
+									typeof( NotImplementedException ) };
+				if( !rgErrors.Contains( oEx.GetType() ) )
+					throw;
+
+				throw new InvalidOperationException( "Could not retrieve given image resource : " + strResourceName );
+			}
+        }
+
 		public bool Load(Stream oStream) {
 			BitmapDispose();
 

@@ -6,6 +6,7 @@ using SkiaSharp;
 using Play.Drawing;
 using Play.Interfaces.Embedding;
 using Play.Edit;
+using Play.ImageViewer;
 
 namespace Play.FileManager {
     /// <summary>
@@ -192,8 +193,33 @@ namespace Play.FileManager {
         // will simply let you attempt to dereference the null value.
 	    protected string? _strDirectory;
 
+        // Move these to the main program when we get this working...
+        public ImageSoloDoc ImgFavs { get; protected set; }
+        public Editor       DocFavs { get; protected set; }
+
+		protected class DocSlot :
+			IPgBaseSite
+		{
+			protected readonly FileManager _oHost;
+
+			public DocSlot( FileManager oHost ) {
+				_oHost = oHost ?? throw new ArgumentNullException( "Host" );
+			}
+
+			public IPgParent Host => _oHost;
+
+            public void LogError(string strMessage, string strDetails, bool fShow=true) {
+				_oHost.LogError( strDetails );
+			}
+
+			public void Notify( ShellNotify eEvent ) {
+			}
+		}
         public FileManager(IPgBaseSite oSiteBase) : base(oSiteBase) {
             _oStdUI = (IPgStandardUI2)Services;
+
+            ImgFavs = new( new DocSlot( this ) );
+            DocFavs = new( new DocSlot( this ) );
         }
 
 		public SKBitmap GetResource( string strName ) {
@@ -205,7 +231,29 @@ namespace Play.FileManager {
 
         public string CurrentURL => _strDirectory;
 
+        /// <summary>
+        /// This will go to the main program eventually.
+        /// </summary>
+        /// <returns></returns>
+        public bool Initialize() {
+            if( !DocFavs.InitNew() )
+                return false;
+
+            if( !ImgFavs.LoadResource( Assembly.GetExecutingAssembly(), 
+                                       "Play.FileManager.Content.pexels-photo-247506_s.jpeg" ) )
+                return false;
+
+            DocFavs.LineAppend( "Images",      fUndoable:false );
+            DocFavs.LineAppend( "Server Docs", fUndoable:false );
+            DocFavs.LineAppend( "Kittehs",     fUndoable:false );
+
+            return true;
+        }
+
         public bool LoadURL( string strURL ) {
+            if( !Initialize() )
+                return false;
+
             ReadDir( strURL );
 
             DoParse();
@@ -214,6 +262,9 @@ namespace Play.FileManager {
         }
 
         public bool InitNew() {
+            if( !Initialize() )
+                return false;
+
             ReadDir( HomeURL );
 
             DoParse();

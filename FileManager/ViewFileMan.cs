@@ -64,20 +64,20 @@ namespace Play.FileManager {
         WindowMultiColumn,
         IPgCommandView
     {
-        public string    Banner => _oDocument.CurrentURL;
+        public string    Banner => Document.CurrentURL;
 		public SKBitmap  Icon { get; protected set; }
         public                  Guid Catagory => _sGuid;
         public           static Guid GUID     => _sGuid;
         private readonly static Guid _sGuid   = new( "{D257D1AA-AC3E-4A0F-83A3-97C95AE12782}" );
 
-        protected readonly FileManager   _oDocument;
+        public FileManager   Document { get; protected set; }
         protected readonly IPgMainWindow _oShellWin;
 
         public ViewFileMan(IPgViewSite oViewSite, object oDocument) : base(oViewSite, oDocument) {
-            _oDocument = (FileManager)oDocument;
+            Document   = (FileManager)oDocument;
             _oShellWin = (IPgMainWindow)oViewSite.Host;
 
-			Icon	   = _oDocument.GetResource( "icons8-folder-94.png" );
+			Icon	   = Document.GetResource( "icons8-folder-94.png" );
         }
 
         protected override void Dispose( bool fDisposing ) {
@@ -136,9 +136,9 @@ namespace Play.FileManager {
                 if( string.IsNullOrEmpty( strDir ) )
                     return;
 
-                string strPath = Path.Combine( _oDocument.CurrentURL, strDir );
+                string strPath = Path.Combine( Document.CurrentURL, strDir );
 
-                _oDocument.ReadDir( strPath );
+                Document.ReadDir( strPath );
             } catch( Exception oEx ) {
                 if( _rgErrors.IsUnhandled(oEx) )
                     throw;
@@ -152,7 +152,7 @@ namespace Play.FileManager {
                 if( string.IsNullOrEmpty( strFile ) )
                     return;
 
-                string strPath = Path.Combine( _oDocument.CurrentURL, strFile );
+                string strPath = Path.Combine( Document.CurrentURL, strFile );
 
                 _oShellWin.DocumentShow( strPath, Guid.Empty, fShow:true );
             } catch( Exception oEx ) {
@@ -161,12 +161,15 @@ namespace Play.FileManager {
             }
         }
         public object Decorate(IPgViewSite oBaseSite, Guid sGuid) {
+            if( sGuid == GlobalDecorations.Outline ) {
+                return new ViewFManOutline( new ViewSlot( this ) );
+            }
             return null;
         }
 
         public override bool Execute(Guid gCommand) {
             if( gCommand == GlobalCommands.JumpParent ) {
-                _oDocument.JumpToParentDir();
+                Document.JumpToParentDir();
                 return true;
             }
             if( gCommand == GlobalCommands.Copy ) {
