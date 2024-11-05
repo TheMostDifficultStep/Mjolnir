@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows.Forms;
+﻿using System.Windows.Forms;
 
 using Play.Edit;
 using Play.Interfaces.Embedding;
@@ -10,6 +6,27 @@ using Play.Rectangles;
 using Play.ImageViewer;
 
 namespace Play.FileManager {
+    internal class ViewFavNames : WindowMultiColumn {
+
+        public ViewFavNames( IPgViewSite oSite, FileFavorites oDocFavorites ) : 
+            base( oSite, oDocFavorites ) 
+        {
+        }
+
+        public override bool InitNew() {
+            if( !base.InitNew() ) 
+                return false;
+
+            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Pixels, 20, 1L ), (int)FileFavorites.DRow.Col.Type ); 
+            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.None,   10, 1L ), (int)FileFavorites.DRow.Col.ShortcutName ); 
+
+            // Do this so we can return a desired height. O.o;;
+            _oCacheMan.CacheRepair( null, true, true );
+
+            return true;
+        }
+    }
+
 	/// <summary>
 	/// A Decor for showing the album art and songs list.
 	/// </summary>
@@ -25,7 +42,7 @@ namespace Play.FileManager {
 		readonly IPgViewSite   _oViewSite;
 
 		ImageViewSingle ViewArt   { get; }
-		EditWindow2     ViewFaves { get; }
+		ViewFavNames    ViewFaves { get; }
 
 		public IPgParent Parentage => _oViewSite.Host; 
 		public IPgParent Services  => _oOwner.Services;
@@ -56,15 +73,15 @@ namespace Play.FileManager {
 			_oOwner   = (ViewFileMan)oViewSite.Host;
 			_oDocFM   = _oOwner.Document;
 
-			ViewFaves = new EditWindow2    ( new DecorSlot(this), _oDocFM.DocFavs, true, false ) { Wrap = false };
-			ViewArt   = new ImageViewSingle( new DecorSlot(this), _oDocFM.ImgFavs );
+			ViewFaves = new ( new DecorSlot(this), _oDocFM.DocFavs );
+			ViewArt   = new ( new DecorSlot(this), _oDocFM.ImgFavs );
 
 			ViewFaves.Parent = this;
 			ViewArt  .Parent = this;
 
 			_rgLayout.SetPoint( SET.STRETCH, LOCUS.UPPERLEFT, 0, 0 );
-			_rgLayout.Add(new LayoutImageView( ViewArt  , LayoutRect.CSS.Percent ) { Track = 30 } );
-			_rgLayout.Add(new LayoutControl  ( ViewFaves, LayoutRect.CSS.Percent ) { Track = 70 });
+			_rgLayout.Add(new LayoutImageView( ViewArt  , LayoutRect.CSS.Pixels ) { Track = 100 });
+			_rgLayout.Add(new LayoutControl  ( ViewFaves, LayoutRect.CSS.None   ) { Track =  70 });
 		}
 
 		protected override void Dispose(bool disposing) {

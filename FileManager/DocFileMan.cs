@@ -13,33 +13,39 @@ namespace Play.FileManager {
     /// This object will be the list of shortcut pinned directories
     /// the shell will save it somewhere by default.
     /// </summary>
-    public class FilePins :
+    public class FileFavorites :
         EditMultiColumn,
         IPgLoad<TextReader>,
         IPgSave<TextWriter>
     {
-        public class FPRow : Row {
+        public class DRow : Row {
             public enum Col {
                 ShortcutName = 0,
                 FileName,
                 Type
             }
             static int ColumnCount = Enum.GetValues(typeof(Col)).Length;
-            public FPRow() {
-                _rgColumns = new Line[3];
+            public DRow( string strShortCut ) {
+                _rgColumns = new Line[ColumnCount];
 
-                for ( int i = 0; i < ColumnCount; i++ ) {
-                    _rgColumns[i] = new TextLine( 0, string.Empty );
-                }
+                _rgColumns[0] = new TextLine( 0, strShortCut );
+                _rgColumns[1] = new TextLine( 0, string.Empty );
+                _rgColumns[2] = new TextLine( 0, string.Empty );
             }
 
             public bool IsDirectory { get; set; } = false;
         }
-        public FilePins(IPgBaseSite oSiteBase) : base(oSiteBase) {
+        public FileFavorites(IPgBaseSite oSiteBase) : base(oSiteBase) {
         }
 
         public bool InitNew() {
-            throw new NotImplementedException();
+            _rgRows.Add( new DRow( "Images" ) );
+            _rgRows.Add( new DRow( "Server Docs" ) );
+            _rgRows.Add( new DRow( "Kittehs" ) );
+
+            RenumberAndSumate();
+
+            return true;
         }
 
         public bool Load(TextReader oStream) {
@@ -194,8 +200,8 @@ namespace Play.FileManager {
 	    protected string? _strDirectory;
 
         // Move these to the main program when we get this working...
-        public ImageSoloDoc ImgFavs { get; protected set; }
-        public Editor       DocFavs { get; protected set; }
+        public ImageSoloDoc  ImgFavs { get; protected set; }
+        public FileFavorites DocFavs { get; protected set; }
 
 		protected class DocSlot :
 			IPgBaseSite
@@ -240,12 +246,8 @@ namespace Play.FileManager {
                 return false;
 
             if( !ImgFavs.LoadResource( Assembly.GetExecutingAssembly(), 
-                                       "Play.FileManager.Content.pexels-photo-247506_s.jpeg" ) )
+                                       "Play.FileManager.Content.icons8-compass-book.png" ) )
                 return false;
-
-            DocFavs.LineAppend( "Images",      fUndoable:false );
-            DocFavs.LineAppend( "Server Docs", fUndoable:false );
-            DocFavs.LineAppend( "Kittehs",     fUndoable:false );
 
             return true;
         }

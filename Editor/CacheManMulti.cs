@@ -1150,10 +1150,18 @@ namespace Play.Edit {
             // TODO: Get the r/w status of the column so we can set its bgcolor.
             // BUG : Doc columns might not match order of row columns!! >_<;;
             // Note: If we suddenly start typing in a dummy lines, we'll have problems..
-            for( int i = 0; i<oDocRow.Count; ++i ) {
-                Line        oLine      = oDocRow[i];
+            //for( int i = 0; i<oDocRow.Count; ++i ) {
+            //    Line        oLine      = oDocRow[i];
+            //    FTCacheLine oCacheLine = new FTCacheWrap( oLine == null ? _oDummyLine : oLine );
+            //    ColumnInfo  oInfo      = _rgColumnInfo[i];
+
+            //    oCacheLine.Justify = oInfo._rcBounds.Justify;
+
+            //    oFreshCacheRow.CacheColumns.Add( oCacheLine );
+            //}
+            foreach( ColumnInfo oInfo in _rgColumnInfo ) {
+                Line        oLine      = oDocRow[oInfo._iDataIdx];
                 FTCacheLine oCacheLine = new FTCacheWrap( oLine == null ? _oDummyLine : oLine );
-                ColumnInfo  oInfo      = _rgColumnInfo[i];
 
                 oCacheLine.Justify = oInfo._rcBounds.Justify;
 
