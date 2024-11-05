@@ -1193,23 +1193,16 @@ namespace Play.MorsePractice {
             /// So take the converted nibble list and skip the first two (iStart = 2)
             /// </summary>
             /// <param name="iFreqInHz">Frequency in Hz</param>
-            /// <param name="iNibbleCount">Totall nibbles we want to generate.</param>
-            /// <param name="iStart"></param>
-            public void AddStream( int iFreqInHz, int iNibbleCount, int iStart = 0 ) {
+            /// <param name="iNibbleCount">Total nibbles we want to generate.</param>
+            /// <param name="iNibbleStart"></param>
+            public void AddStream( int iFreqInHz, int iNibbleCount, int iNibbleStart = 0 ) {
                 Span<int> rgNibbles = stackalloc int[20];
                 int       iCount    = ConvertIntToList( iFreqInHz, rgNibbles );
 
-                // Pad out the higher frequencies...
-                while( iCount < iNibbleCount )
-                    rgNibbles[iCount++] = 0;
-
-                if( iCount != iNibbleCount ) {
-                    LogError( "Civ", "Bad set frequency command format." );
-                    return;
-                }
                 // Convert our nibble digit stream to a stream of bytes
-                for( int j=0; j<iCount; j+=2 ) {
-                    byte bValue = (byte)((rgNibbles[iStart+j+1] << 4) + rgNibbles[iStart+j]);
+                for( int iNibble=0; iNibble<iNibbleCount; iNibble+=2 ) {
+                    byte bValue = (byte)( rgNibbles[iNibbleStart+iNibble  ] | 
+                                         (rgNibbles[iNibbleStart+iNibble+1] << 4 )) ;
                     AddParam( bValue );
                 }
             }
@@ -1264,11 +1257,13 @@ namespace Play.MorsePractice {
             int iCount = 0;
             int i      = iFrequency;
 
+            rgValue.Clear();
+
             while( i > 0 && iCount < rgValue.Length ) {
                 int iDigit = i % 10;
                 i /= 10;
                 //char c = (char)( iDigit + 48 );
-                rgValue[iCount++] = iDigit;
+                rgValue[iCount++] = (byte)iDigit;
             }
 
             return iCount;
@@ -1307,7 +1302,8 @@ namespace Play.MorsePractice {
             // Convert our nibble digit stream to a stream of bytes
             // Because I had to reverse the list, we switch hi/lo order...
             for( int j=0; j<iCount; j+=2 ) {
-                byte bValue = (byte)((rgNibbles[j] << 4) + rgNibbles[j+1]);
+                byte bValue = (byte)((rgNibbles[j  ] << 4) | 
+                                      rgNibbles[j+1]);
                 oCommand.AddParam( bValue );
             }
 
@@ -1323,10 +1319,14 @@ namespace Play.MorsePractice {
             oCommand.Write();
         }
 
+        /// <summary>
+        /// This is good only for the ic-705! O.o
+        /// </summary>
+        /// <param name="iFreqInHz"></param>
         public void SendFreqOffset( int iFreqInHz ) {
             CivCommandStream oCommand = CreateCommander( 0x0d );
 
-            oCommand.AddStream( iFreqInHz, 8, 2 );
+            oCommand.AddStream( iFreqInHz, 6, 2 );
 
             oCommand.Write();
         }
