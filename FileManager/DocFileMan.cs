@@ -21,16 +21,20 @@ namespace Play.FileManager {
         public class DRow : Row {
             public enum Col {
                 ShortcutName = 0,
-                FileName,
+                FilePath,
                 Type
             }
             static int ColumnCount = Enum.GetValues(typeof(Col)).Length;
-            public DRow( string strShortCut ) {
+            public Line this[Col eIndex] {
+                get { return _rgColumns[(int)eIndex]; }
+                set { _rgColumns[(int)eIndex] = value; }
+            }
+            public DRow( string strType, string strShortCut ) {
                 _rgColumns = new Line[ColumnCount];
 
-                _rgColumns[0] = new TextLine( 0, strShortCut );
-                _rgColumns[1] = new TextLine( 0, string.Empty );
-                _rgColumns[2] = new TextLine( 0, string.Empty );
+                this[Col.ShortcutName] = new TextLine( 0, strShortCut );
+                this[Col.Type        ] = new TextLine( 0, strType );
+                this[Col.FilePath    ] = new TextLine( 0, string.Empty );
             }
 
             public bool IsDirectory { get; set; } = false;
@@ -39,9 +43,9 @@ namespace Play.FileManager {
         }
 
         public bool InitNew() {
-            _rgRows.Add( new DRow( "Images" ) );
-            _rgRows.Add( new DRow( "Server Docs" ) );
-            _rgRows.Add( new DRow( "Kittehs" ) );
+            _rgRows.Add( new DRow( "\ue2af", "Images" ) );
+            _rgRows.Add( new DRow( "\ue105", "Server Docs" ) );
+            _rgRows.Add( new DRow( "\ue114", "Kittehs" ) );
 
             RenumberAndSumate();
 
@@ -246,7 +250,7 @@ namespace Play.FileManager {
                 return false;
 
             if( !ImgFavs.LoadResource( Assembly.GetExecutingAssembly(), 
-                                       "Play.FileManager.Content.icons8-compass-book.png" ) )
+                                       "Play.FileManager.Content.icons8-compass.png" ) )
                 return false;
 
             return true;

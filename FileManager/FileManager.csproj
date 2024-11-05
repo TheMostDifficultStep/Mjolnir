@@ -8,12 +8,12 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Remove="Content\icons8-compass-book.png" />
+    <None Remove="Content\icons8-compass.png" />
     <None Remove="Content\icons8-folder-94.png" />
   </ItemGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="Content\icons8-compass-book.png" />
+    <EmbeddedResource Include="Content\icons8-compass.png" />
     <EmbeddedResource Include="Content\icons8-folder-94.png" />
   </ItemGroup>
 

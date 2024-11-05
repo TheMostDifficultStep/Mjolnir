@@ -98,13 +98,12 @@ namespace Play.FileManager {
             int iTop = _rgLayout.Count;
 
             List<ColumnInfo> rgCols = new List<ColumnInfo> {
-                new ColumnInfo( new LayoutRect( LayoutRect.CSS.Pixels,   (uint)_oCacheMan.GlyphCheck.Coordinates.advance_x, 
-                                                                             1L ), (int)FileManager.FMRow.DCol.Chck ),
-                new ColumnInfo( new LayoutRect( LayoutRect.CSS.Pixels,   50, 1L ), (int)FileManager.FMRow.DCol.Type ),       
-                new ColumnInfo( new LayoutRect( LayoutRect.CSS.None,     80, 1L ), (int)FileManager.FMRow.DCol.Name ),
-                new ColumnInfo( new LayoutRect( LayoutRect.CSS.Pixels,  110, 1L ) {Justify = Align.Right }, (int)FileManager.FMRow.DCol.Time ),
-                new ColumnInfo( new LayoutRect( LayoutRect.CSS.Pixels,  130, 1L ) {Justify = Align.Right }, (int)FileManager.FMRow.DCol.Date ),
-                new ColumnInfo( new LayoutRect( LayoutRect.CSS.Pixels,  130, 1L ) {Justify = Align.Right }, (int)FileManager.FMRow.DCol.Size )
+                new ColumnInfo( new LayoutRect( LayoutRect.CSS.Pixels ) {Track=(uint)_oCacheMan.GlyphCheck.Coordinates.advance_x }, (int)FileManager.FMRow.DCol.Chck ),
+                new ColumnInfo( new LayoutRect( LayoutRect.CSS.Pixels ) {Track=30 }, (int)FileManager.FMRow.DCol.Type ),       
+                new ColumnInfo( new LayoutRect( LayoutRect.CSS.None   ),             (int)FileManager.FMRow.DCol.Name ),
+                new ColumnInfo( new LayoutRect( LayoutRect.CSS.Pixels ) {Track=100,Justify = Align.Right }, (int)FileManager.FMRow.DCol.Time ),
+                new ColumnInfo( new LayoutRect( LayoutRect.CSS.Pixels ) {Track=100,Justify = Align.Right }, (int)FileManager.FMRow.DCol.Date ),
+                new ColumnInfo( new LayoutRect( LayoutRect.CSS.Pixels ) {Track= 90,Justify = Align.Right }, (int)FileManager.FMRow.DCol.Size )
             };
 
             // TODO: If you're missing a data column it won't show the dir.
