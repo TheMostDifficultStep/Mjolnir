@@ -169,7 +169,7 @@ namespace Play.FileManager {
 
                 CheckForNulls(); 
 
-                this[DCol.Type].Formatting.Add( new FileRange( 0,  10, 5 ) );
+                this[DCol.Type].Formatting.Add( new FileRange( 0, 10, 5 ) );
 
             }
 
@@ -186,7 +186,7 @@ namespace Play.FileManager {
                 CheckForNulls();
 
                 this[DCol.Name].Formatting.Add( new ColorRange( 0, 256,  1 ) );
-                this[DCol.Type].Formatting.Add( new DirRange  ( 0,  10, 11 ) );
+                this[DCol.Type].Formatting.Add( new DirRange  ( 0,  10, 12 ) );
 
                 IsDirectory = true;
             }
