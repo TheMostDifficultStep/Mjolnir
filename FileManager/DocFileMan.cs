@@ -7,8 +7,53 @@ using Play.Drawing;
 using Play.Interfaces.Embedding;
 using Play.Edit;
 using Play.ImageViewer;
+using Play.Forms;
+using System;
 
 namespace Play.FileManager {
+    public class FileProperties :
+        DocProperties 
+    {
+        public class BulkLoader2 :
+            IDisposable
+        {
+            TrackerEnumerable _sTrack;
+            FileProperties    _rgProp;
+
+            public BulkLoader2( FileProperties oDocProps ) {
+                _rgProp = oDocProps ?? throw new ArgumentNullException();
+                _sTrack = new TrackerEnumerable( _rgProp );
+            }
+
+            public void Dispose() {
+                _sTrack.FinishUp( IPgEditEvents.EditType.Rows, null );
+                _rgProp.DoParse ();
+            }
+
+            public Line this[ FileProperties.Names eIndex ] {
+                get {
+                    return _rgProp[(int)eIndex][1];
+                }
+            }
+
+            public void ValueUpdate( FileProperties.Names eIndex, Line oValue ) {
+                 this[eIndex].TryReplace( oValue.AsSpan );
+            }
+        }
+        public enum Names : int {
+            Time,
+			Date,
+            Size,
+            Type
+        }
+
+        public FileProperties(IPgBaseSite oSite) : base(oSite) {
+            // Set up our basic list of values.
+            foreach( Names eName in Enum.GetValues(typeof(Names)) ) {
+                CreatePropertyPair( eName.ToString() );
+            }
+        }
+    }
     /// <summary>
     /// This object will be the list of shortcut pinned directories
     /// the shell will save it somewhere by default.
@@ -204,8 +249,8 @@ namespace Play.FileManager {
 	    protected string? _strDirectory;
 
         // Move these to the main program when we get this working...
-        public ImageSoloDoc  ImgFavs { get; protected set; }
-        public FileFavorites DocFavs { get; protected set; }
+        public ImageSoloDoc   ImgFavs { get; protected set; }
+        public FileFavorites  DocFavs { get; protected set; }
 
 		protected class DocSlot :
 			IPgBaseSite
@@ -228,8 +273,8 @@ namespace Play.FileManager {
         public FileManager(IPgBaseSite oSiteBase) : base(oSiteBase) {
             _oStdUI = (IPgStandardUI2)Services;
 
-            ImgFavs = new( new DocSlot( this ) );
-            DocFavs = new( new DocSlot( this ) );
+            ImgFavs  = new( new DocSlot( this ) );
+            DocFavs  = new( new DocSlot( this ) );
         }
 
 		public SKBitmap GetResource( string strName ) {

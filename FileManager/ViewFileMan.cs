@@ -4,6 +4,7 @@ using Play.Edit;
 using Play.Interfaces.Embedding;
 using Play.Rectangles;
 using Play.Parse;
+using Play.Forms;
 
 namespace Play.FileManager {
     public class FileManController : 
@@ -70,13 +71,29 @@ namespace Play.FileManager {
         public           static Guid GUID     => _sGuid;
         private readonly static Guid _sGuid   = new( "{D257D1AA-AC3E-4A0F-83A3-97C95AE12782}" );
 
-        public FileManager   Document { get; protected set; }
         protected readonly IPgMainWindow _oShellWin;
+        public FileManager    Document { get; protected set; }
+        public FileProperties DocProps { get; protected set; }
 
+        protected class CachManSiteFM :
+            CacheManSite 
+        {
+            ViewFileMan _oFMHost;
+            public CachManSiteFM(WindowMultiColumn oHost) : base(oHost) {
+                _oFMHost = (ViewFileMan)oHost;
+            }
+
+            public override void OnCaretPositioned(SKPointI pntCaret, bool fVisible) {
+                base.OnCaretPositioned(pntCaret, fVisible);
+
+                _oFMHost.OnCaretCheck();
+            }
+        }
         public ViewFileMan(IPgViewSite oViewSite, object oDocument) : base(oViewSite, oDocument) {
             Document   = (FileManager)oDocument;
             _oShellWin = (IPgMainWindow)oViewSite.Host;
 
+            DocProps   = new( new DocSlot( this ) );
 			Icon	   = Document.GetResource( "icons8-folder-94.png" );
         }
 
@@ -85,6 +102,10 @@ namespace Play.FileManager {
                 Icon?.Dispose();
             }
             base.Dispose( fDisposing );
+        }
+
+        protected override CacheMultiBase CreateCacheMan() {
+            return new CacheMultiColumn( new CachManSiteFM( this ) ); 
         }
 
         /// <remarks>
@@ -115,6 +136,21 @@ namespace Play.FileManager {
             HyperLinks.Add( "FileJump", OnFileJump );
 
             return true;
+        }
+
+        protected void OnCaretCheck() {
+            if( _oCacheMan.Caret2.Row is FileManager.FMRow oFMRow ) {
+                using FileProperties.BulkLoader2 oBulk = new( DocProps );
+
+                oBulk.ValueUpdate( FileProperties.Names.Date, 
+                                   oFMRow[FileManager.FMRow.DCol.Date] );
+                oBulk.ValueUpdate( FileProperties.Names.Time,
+                                   oFMRow[FileManager.FMRow.DCol.Time] );
+                oBulk.ValueUpdate( FileProperties.Names.Size,
+                                   oFMRow[FileManager.FMRow.DCol.Size] );
+                oBulk.ValueUpdate( FileProperties.Names.Type,
+                                   oFMRow[FileManager.FMRow.DCol.Type] );
+            }
         }
 
         public override void OnDocLoaded() {
@@ -162,6 +198,9 @@ namespace Play.FileManager {
         public object Decorate(IPgViewSite oBaseSite, Guid sGuid) {
             if( sGuid == GlobalDecorations.Outline ) {
                 return new ViewFManOutline( new ViewSlot( this ) );
+            }
+            if( sGuid == GlobalDecorations.Properties ) {
+                return new WindowStandardProperties( new ViewSlot( this ), DocProps );
             }
             return null;
         }

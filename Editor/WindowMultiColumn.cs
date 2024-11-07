@@ -325,7 +325,7 @@ namespace Play.Edit {
             /// window gets focus. So won't see it while searching.</remarks>
             /// <param name="pntCaret"></param>
             /// <param name="fVisible"></param>
-            public void OnCaretPositioned( SKPointI pntCaret, bool fVisible ) {
+            public virtual void OnCaretPositioned( SKPointI pntCaret, bool fVisible ) {
                 if( _oHost.Focused ) {
                     User32.SetCaretPos( pntCaret.X, pntCaret.Y );
                 }
