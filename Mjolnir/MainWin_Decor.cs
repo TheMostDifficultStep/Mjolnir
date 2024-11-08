@@ -228,6 +228,15 @@ namespace Mjolnir {
             }
         }
 
+        struct IconProps {
+            public readonly string File;
+            public readonly bool   Solo;
+            public IconProps( string strResourceName, bool fSolo ) {
+                File = "Content." + strResourceName;
+                Solo = fSolo;
+            }
+        }
+
         /// <summary>
         /// Read out the positions of the tools from the config file. This represents the "default" layout
         /// need to consider this in concert with the newer "pvs" session files.
@@ -237,13 +246,24 @@ namespace Mjolnir {
             XmlNodeList                lstTools   = xmlDocument.SelectNodes("config/mainwindow/docking/dock");
             Point                      ptOrigin   = new Point();
 
+            Dictionary<string, IconProps> rgIcons = new() {
+                { "clock",       new("icon_clock.gif",              fSolo: true ) },
+                { "find",        new("icons8-search-64.png",        fSolo: true ) },
+                { "matches",     new("icon_match.gif",              fSolo: true ) },
+                { "outline",     new("icons8-forest-48.png",        fSolo: false) },
+                { "navigate",    new("icons8-edit-property-48.png", fSolo: false) },
+                { "views",       new("icon_windows.gif",            fSolo: true ) },
+                { "alerts",      new("icon_output.gif",             fSolo: true ) },
+                { "productions", new("icon_productions.gif",        fSolo: false) },
+                { "options",     new("icon_productions.gif",        fSolo: false) },
+                { "tools",       new("icon_productions.gif",        fSolo: false) }
+            };
+
             foreach( XmlElement xeType in lstTools ) {
                 string strToolName = xeType.GetAttribute("tool"); // Returns empty string if not found.
                 string strToolEdge = xeType.GetAttribute("edge");
                 string strToolDisp = xeType.GetAttribute("display" );
 				string strToolVis  = xeType.GetAttribute("visible" );
-                string strToolSolo = xeType.GetAttribute("solo");
-                string strToolIcon = xeType.GetAttribute("icon");
                 string strToolGuid = xeType.GetAttribute("decor" );
 
                 SideIdentify eEdge    = SideIdentify.Bottom;
@@ -271,10 +291,13 @@ namespace Mjolnir {
                 // is the piece that gets dragged around if the user want's to see it in
                 // a different place on the edges.
                 SmartHerderBase oShepard;
-                if( string.Compare( strToolSolo, "true", true ) == 0 )
-                    oShepard = new SmartHerderSolo( this, "Content." + strToolIcon, strToolName, strToolDisp, guidTool );
+                string          strResource = rgIcons[strToolName].File;
+                bool            fSolo       = rgIcons[strToolName].Solo;
+
+                if( fSolo )
+                    oShepard = new SmartHerderSolo( this, strResource, strToolName, strToolDisp, guidTool );
                 else
-                    oShepard = new SmartHerderClxn( this, "Content." + strToolIcon, strToolName, strToolDisp, guidTool );
+                    oShepard = new SmartHerderClxn( this, strResource, strToolName, strToolDisp, guidTool );
 
                 // Unfortunately the corner boxes won't be set until we've got our window size.
                 // so just set some arbitray size for now.
@@ -282,8 +305,8 @@ namespace Mjolnir {
                 oShepard.Orientation = eEdge;
                 oShepard.Sizing      = SMARTSIZE.Normal;
 
-                // NOTE: This isn't the final say. The item just also have content.
-                // But at this point we don't know... :-/
+                // NOTE: This isn't the final say. The item must also have content,
+                //       but at this point we don't know... :-/
 				if( strToolVis.ToLower() == "true" )
 					oShepard.Show = SHOWSTATE.Active;
 				else
