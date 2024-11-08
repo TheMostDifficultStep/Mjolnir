@@ -4,6 +4,7 @@ using System.Drawing;
 using System.Windows.Forms;
 using System.Xml;
 using System.Collections;
+using System.IO;
 
 using SkiaSharp;
 
@@ -233,7 +234,6 @@ namespace Mjolnir {
         /// </summary>
         /// <param name="xmlDocument">Config xml file.</param>
         protected void InitializeShepards( XmlDocument xmlDocument ) {
-            Dictionary<string, string> rgToolResx = new Dictionary<string,string>();
             XmlNodeList                lstTools   = xmlDocument.SelectNodes("config/mainwindow/docking/dock");
             Point                      ptOrigin   = new Point();
 
@@ -247,21 +247,8 @@ namespace Mjolnir {
                 string strToolGuid = xeType.GetAttribute("decor" );
 
                 SideIdentify eEdge    = SideIdentify.Bottom;
-                Bitmap       oBitmap  = null;
                 Guid         guidTool = Guid.Empty;
 
-                rgToolResx.Add(strToolName, strToolIcon );
-
-                try {
-                    oBitmap = new Bitmap( GetType(), "Content." + rgToolResx[ strToolName] ); // the icon is a resource now.
-                } catch( Exception oE ) {
-                    Type[] rgErrors = { typeof( KeyNotFoundException ), // This error if the user errored on the attribute name or value.
-                                        typeof( ArgumentException ) };  // This error if we didn't embed resource.
-                    if( rgErrors.IsUnhandled( oE ) )
-                        throw;
-
-                    oBitmap = new Bitmap( 1, 1 ); 
-                }
                 foreach( SideIdentify eSide in _rgSideInfo.Keys ) {
                     if( string.Compare( strToolEdge, eSide.ToString().ToLower() ) == 0 ) {
                         eEdge = eSide;
@@ -285,9 +272,9 @@ namespace Mjolnir {
                 // a different place on the edges.
                 SmartHerderBase oShepard;
                 if( string.Compare( strToolSolo, "true", true ) == 0 )
-                    oShepard = new SmartHerderSolo( this, oBitmap, strToolName, strToolDisp, guidTool );
+                    oShepard = new SmartHerderSolo( this, "Content." + strToolIcon, strToolName, strToolDisp, guidTool );
                 else
-                    oShepard = new SmartHerderClxn( this, oBitmap, strToolName, strToolDisp, guidTool );
+                    oShepard = new SmartHerderClxn( this, "Content." + strToolIcon, strToolName, strToolDisp, guidTool );
 
                 // Unfortunately the corner boxes won't be set until we've got our window size.
                 // so just set some arbitray size for now.

@@ -7,6 +7,8 @@ using SkiaSharp;
 
 using Play.Rectangles;
 using Play.Interfaces.Embedding;
+using Play.Drawing;
+using Play.ImageViewer;
 
 namespace Mjolnir {
     public interface IPgMenuVisibility {
@@ -48,6 +50,33 @@ namespace Mjolnir {
 	}
 
     /// <summary>
+    /// A hacky little object to show the image. Baby step to using all the
+    /// SKImage stuff for when I finally stop MainWin from inheriting from Form! O.o
+    /// </summary>
+    public class ShowImageSolo :
+        SmartRect
+    {
+        readonly Bitmap _oBitmap;
+        public ShowImageSolo( string strResouce ) {
+            try {
+                _oBitmap = new Bitmap( typeof( MainWin ), strResouce ); // the icon is a resource now.
+            } catch( Exception oE ) {
+                Type[] rgErrors = { typeof( KeyNotFoundException ), // This error if the user errored on the attribute name or value.
+                                    typeof( ArgumentException ) };  // This error if we didn't embed resource.
+                if( rgErrors.IsUnhandled( oE ) )
+                    throw;
+
+                _oBitmap = new Bitmap( 1, 1 ); 
+            }
+        }
+
+        [Obsolete]public override void Paint( Graphics p_oGraphics )
+        {
+            p_oGraphics.DrawImage( _oBitmap, this.Rect );
+        }
+    }
+
+    /// <summary>
     /// Base class for a herder. We have two sub classes, one for herders that hold a single object only.
     /// And others that hold one per view. Since the "solo" case doesn't need an index to the given item
     /// we pass null. Solo objects looking for null should complain if an add comes with an index object
@@ -64,25 +93,25 @@ namespace Mjolnir {
         protected readonly SmartRect _rcTitle  = new SmartRect(); // The rect around the title area!
         protected readonly SmartRect _rcMargin = new SmartRect();
 
-        protected MainWin   _oHost;
-                  string    _strTitle;
-                  Bitmap    _bmpIcon;
-                  SHOWSTATE _eViewState = SHOWSTATE.Inactive;
-                  bool      _fHideTitle = false;
+        protected MainWin       _oHost;
+                  string        _strTitle;
+                  SHOWSTATE     _eViewState = SHOWSTATE.Inactive;
+                  bool          _fHideTitle = false;
+                  ShowImageSolo _oViewIcon;
 
         readonly  string    _strName;
         readonly  Guid      _guidDecor;
 
         IPgMenuVisibility _oMenuVis = null; // pointer to shell menu entry.
 
-        public SmartHerderBase(MainWin oMainWin, Bitmap oBitmap, string strName, string strTitle, Guid guidDecor ) :
+        public SmartHerderBase(MainWin oMainWin, string strResource, string strName, string strTitle, Guid guidDecor ) :
 			base( CSS.Percent )
         {
             _oHost     = oMainWin;
             _strTitle  = strTitle;
-            _bmpIcon   = oBitmap;
             _strName   = strName;
             _guidDecor = guidDecor;
+            _oViewIcon = new( strResource );
         }
 
         public abstract bool TabStop {
@@ -233,10 +262,8 @@ namespace Mjolnir {
                     p_oGraphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
 
                     int iBoxWidth = _rcTitle[SCALAR.WIDTH] < _rcTitle[SCALAR.HEIGHT] ? _rcTitle[SCALAR.WIDTH] : _rcTitle[SCALAR.HEIGHT];
-                    if( _bmpIcon != null ) {
-                        float left = ( iBoxWidth - _bmpIcon.Width ) / 2;
-                        p_oGraphics.DrawImage(_bmpIcon, left, left ); // box width and height are the same.
-                    }
+                    _oViewIcon.SetRect( 0, 0, iBoxWidth, iBoxWidth );
+                    _oViewIcon.Paint  ( p_oGraphics );
 
                     int   iFontHeight = _oHost.DecorFont.Height;
                     Point pntTemp     = new Point( iBoxWidth, iBoxWidth );
@@ -414,7 +441,6 @@ namespace Mjolnir {
         }
 
         public virtual void Dispose() {
-            _bmpIcon.Dispose();
             _oMenuVis = null; // probably not strictly necessary. But break the loop.
         }
 
@@ -457,8 +483,8 @@ namespace Mjolnir {
         Dictionary<object, Control > _rgFlock = new Dictionary<object, Control>(); // The controls we are herding.
         bool                         _fTabStop = false;
 
-        public SmartHerderClxn(MainWin oMainWin, Bitmap oBitmap, string strName, string strTitle, Guid guidName ) :
-            base( oMainWin, oBitmap, strName, strTitle, guidName )
+        public SmartHerderClxn(MainWin oMainWin, string strResource, string strName, string strTitle, Guid guidName ) :
+            base( oMainWin, strResource, strName, strTitle, guidName )
         {
         }
 
@@ -637,8 +663,8 @@ namespace Mjolnir {
     {
         Control _oControl;
 
-        public SmartHerderSolo(MainWin oMainWin, Bitmap oBitmap, string strName, string strTitle, Guid guidName ) :
-            base(oMainWin, oBitmap, strName, strTitle, guidName )
+        public SmartHerderSolo(MainWin oMainWin, string strResource, string strName, string strTitle, Guid guidName ) :
+            base(oMainWin, strResource, strName, strTitle, guidName )
         {
         }
 
