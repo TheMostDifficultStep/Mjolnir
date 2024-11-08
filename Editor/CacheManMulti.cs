@@ -10,7 +10,6 @@ using SkiaSharp;
 using Play.Interfaces.Embedding;
 using Play.Parse;
 using Play.Rectangles;
-using System.Windows.Forms;
 
 namespace Play.Edit {
     public interface IPgCaretInfo<T> :

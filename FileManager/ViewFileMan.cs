@@ -135,6 +135,9 @@ namespace Play.FileManager {
             HyperLinks.Add( "DirJump",  OnDirJump );
             HyperLinks.Add( "FileJump", OnFileJump );
 
+            // At present the base window doesn't put the cursor anywhere, sooo...
+            SelectionSet( 0, 0, 0 );
+
             return true;
         }
 
