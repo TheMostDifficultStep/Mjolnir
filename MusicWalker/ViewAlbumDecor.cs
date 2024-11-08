@@ -11,7 +11,7 @@ namespace Play.MusicWalker {
 	/// <summary>
 	/// A Decor for showing the album art and songs list.
 	/// </summary>
-	public class MusicAlbumDecor :
+	public class ViewAlbumDecor :
 		Control,
 		IPgParent,
 		IPgLoad<XmlElement>
@@ -31,9 +31,9 @@ namespace Play.MusicWalker {
 		protected class MusicAlbumDecorSlot :
 			IPgViewSite
 		{
-			protected readonly MusicAlbumDecor _oHost;
+			protected readonly ViewAlbumDecor _oHost;
 
-			public MusicAlbumDecorSlot( MusicAlbumDecor oHost ) {
+			public MusicAlbumDecorSlot( ViewAlbumDecor oHost ) {
 				_oHost = oHost ?? throw new ArgumentNullException();
 			}
 
@@ -48,12 +48,12 @@ namespace Play.MusicWalker {
 			}
 		} // End class
 
-		public MusicAlbumDecor( IPgViewSite oViewSite, MusicWin oMusicWin ) {
+		public ViewAlbumDecor( IPgViewSite oViewSite, MusicWin oMusicWin ) {
 			_oHost       = oMusicWin ?? throw new ArgumentNullException( "Owning window must not be null." );
 			_oViewSite   = oViewSite ?? throw new ArgumentNullException( "Site must not be null." );
 			_oViewEvents = oViewSite.EventChain ?? throw new ArgumentException( "Site must support EventChain" );
 
-			ViewAlbumSongs = new EditWindow2    ( new MusicAlbumDecorSlot(this), oMusicWin.AlbumCurrent, true, false ) { Wrap = false };
+			ViewAlbumSongs = new EditWindow2    ( new MusicAlbumDecorSlot(this), oMusicWin.AlbumCurrent, true, false ) { Wrap = false, ToolSelect=2 };
 			ViewAlbumArt   = new ImageViewSingle( new MusicAlbumDecorSlot(this), oMusicWin.AlbumArtCurrent );
 
 			ViewAlbumSongs.Parent = this;

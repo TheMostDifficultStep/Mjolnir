@@ -260,6 +260,8 @@ namespace Play.MusicWalker {
 				if( this.ContextMenuStrip != null ) {
 					this.ContextMenuStrip.Items.Add( new ToolStripMenuItem( "Queue",  null, new EventHandler( _oDoc.OnQueue  ),  Keys.Control | Keys.Q ) );
 				}
+
+				ToolSelect = 2; // Chooser Mode...
 			}
 
 			protected override void Raise_Navigated( NavigationSource eSource, ILineRange oCarat ) {
@@ -556,7 +558,7 @@ namespace Play.MusicWalker {
 
 		public virtual object Decorate( IPgViewSite oBaseSite, Guid sGuid ) {
             if( sGuid.Equals( GlobalDecorations.Outline ) ) {
-                return new MusicAlbumDecor( oBaseSite, this );
+                return new ViewAlbumDecor( oBaseSite, this );
             }
 			if( sGuid.Equals( GlobalDecorations.Properties ) ) {
 				return new ViewMusicProperties( oBaseSite, AlbumProperties );
