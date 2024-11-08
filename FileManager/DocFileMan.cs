@@ -249,7 +249,6 @@ namespace Play.FileManager {
 	    protected string? _strDirectory;
 
         // Move these to the main program when we get this working...
-        public ImageSoloDoc   ImgFavs { get; protected set; }
         public FileFavorites  DocFavs { get; protected set; }
 
 		protected class DocSlot :
@@ -273,7 +272,6 @@ namespace Play.FileManager {
         public FileManager(IPgBaseSite oSiteBase) : base(oSiteBase) {
             _oStdUI = (IPgStandardUI2)Services;
 
-            ImgFavs  = new( new DocSlot( this ) );
             DocFavs  = new( new DocSlot( this ) );
         }
 
@@ -292,10 +290,6 @@ namespace Play.FileManager {
         /// <returns></returns>
         public bool Initialize() {
             if( !DocFavs.InitNew() )
-                return false;
-
-            if( !ImgFavs.LoadResource( Assembly.GetExecutingAssembly(), 
-                                       "Play.FileManager.Content.icons8-compass.png" ) )
                 return false;
 
             return true;

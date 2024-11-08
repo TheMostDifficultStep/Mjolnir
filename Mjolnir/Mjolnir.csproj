@@ -17,6 +17,8 @@
     <None Remove="Content\config.phree" />
     <None Remove="Content\directory.bnf" />
     <None Remove="Content\icons8-bookmark-book-512.png" />
+    <None Remove="Content\icons8-compass-64.png" />
+    <None Remove="Content\icons8-edit-property-48.png" />
     <None Remove="Content\icons8-forest-48.png" />
     <None Remove="Content\icons8-insert-60.png" />
     <None Remove="Content\icons8-layer-64.png" />
@@ -27,13 +29,11 @@
     <None Remove="Content\icon_find.gif" />
     <None Remove="Content\icon_match.gif" />
     <None Remove="Content\icon_menu.gif" />
-    <None Remove="Content\icon_navigate.gif" />
     <None Remove="Content\icon_outline.gif" />
     <None Remove="Content\icon_output.gif" />
     <None Remove="Content\icon_play.gif" />
     <None Remove="Content\icon_productions.gif" />
     <None Remove="Content\icon_program.ico" />
-    <None Remove="Content\icon_properties.gif" />
     <None Remove="Content\icon_save.gif" />
     <None Remove="Content\icon_windows.gif" />
     <None Remove="Content\linebreaker.bnf" />
@@ -46,6 +46,8 @@
     <EmbeddedResource Include="Content\config.phree" />
     <EmbeddedResource Include="Content\directory.bnf" />
     <EmbeddedResource Include="Content\icons8-bookmark-book-512.png" />
+    <EmbeddedResource Include="Content\icons8-compass-64.png" />
+    <EmbeddedResource Include="Content\icons8-edit-property-48.png" />
     <EmbeddedResource Include="Content\icons8-forest-48.png" />
     <EmbeddedResource Include="Content\icons8-insert-60.png" />
     <EmbeddedResource Include="Content\icons8-layer-64.png" />
@@ -56,13 +58,11 @@
     <EmbeddedResource Include="Content\icon_find.gif" />
     <EmbeddedResource Include="Content\icon_match.gif" />
     <EmbeddedResource Include="Content\icon_menu.gif" />
-    <EmbeddedResource Include="Content\icon_navigate.gif" />
     <EmbeddedResource Include="Content\icon_outline.gif" />
     <EmbeddedResource Include="Content\icon_output.gif" />
     <EmbeddedResource Include="Content\icon_play.gif" />
     <EmbeddedResource Include="Content\icon_productions.gif" />
     <EmbeddedResource Include="Content\icon_program.ico" />
-    <EmbeddedResource Include="Content\icon_properties.gif" />
     <EmbeddedResource Include="Content\icon_save.gif" />
     <EmbeddedResource Include="Content\icon_windows.gif" />
     <EmbeddedResource Include="Content\linebreaker.bnf" />

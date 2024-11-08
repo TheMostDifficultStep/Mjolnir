@@ -28,7 +28,10 @@ namespace Play.FileManager {
     }
 
 	/// <summary>
-	/// A Decor for showing the album art and songs list.
+	/// A Decor for showing the favorites. I used to have an icon
+	/// at the top. But I'm not liking it so i've removed it
+	/// But I'll leave this in case I add some icons for add/remove
+	/// favorites.
 	/// </summary>
 	public class ViewFManOutline :
 		Control,
@@ -41,7 +44,7 @@ namespace Play.FileManager {
 		readonly FileManager   _oDocFM;
 		readonly IPgViewSite   _oViewSite;
 
-		ImageViewSingle ViewArt   { get; }
+	  //ImageViewSingle ViewArt   { get; }
 		ViewFavNames    ViewFaves { get; }
 
 		public IPgParent Parentage => _oViewSite.Host; 
@@ -74,20 +77,20 @@ namespace Play.FileManager {
 			_oDocFM   = _oOwner.Document;
 
 			ViewFaves = new ( new DecorSlot(this), _oDocFM.DocFavs );
-			ViewArt   = new ( new DecorSlot(this), _oDocFM.ImgFavs );
+		  //ViewArt   = new ( new DecorSlot(this), _oDocFM.ImgFavs );
 
 			ViewFaves.Parent = this;
-			ViewArt  .Parent = this;
+	      //ViewArt  .Parent = this;
 
 			_rgLayout.SetPoint( SET.STRETCH, LOCUS.UPPERLEFT, 0, 0 );
-			_rgLayout.Add(new LayoutImageView( ViewArt  , LayoutRect.CSS.Pixels ) { Track = 100 });
+		  //_rgLayout.Add(new LayoutImageView( ViewArt  , LayoutRect.CSS.Pixels ) { Track = 100 });
 			_rgLayout.Add(new LayoutControl  ( ViewFaves, LayoutRect.CSS.None   ) { Track =  70 });
 		}
 
 		protected override void Dispose(bool disposing) {
 			if( disposing ) {
 				ViewFaves.Dispose();
-				ViewArt  .Dispose();
+		      //ViewArt  .Dispose();
 			}
 			base.Dispose(disposing);
 		}
@@ -96,8 +99,8 @@ namespace Play.FileManager {
 			if( !ViewFaves.InitNew() )
 				return false;
 
-			if( !ViewArt.InitNew() )
-				return false;
+			//if( !ViewArt.InitNew() )
+			//	return false;
 
 			return true;
 		}

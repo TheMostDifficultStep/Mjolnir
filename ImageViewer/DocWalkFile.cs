@@ -597,10 +597,8 @@ namespace Play.ImageViewer {
                 if( string.IsNullOrEmpty( _oSiteFile.FileName ) ) {
                     oBuilder.Append( "scraps" );
                 } else {
-                    oBuilder.Append( _oSiteFile.FileName );
+                    oBuilder.Append( CurrentFullPath );
                 }
-                oBuilder.Append( " @ " );
-                oBuilder.Append( CurrentFullPath );
 
                 return oBuilder.ToString();
         }   }
