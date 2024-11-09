@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" ?>
 <bnfstuff>
   <metadata>
-    <colortable> 
+    <colortable>
       <color name="black"     value="black" />
       <color name="blue"      value="blue" />
       <color name="red"       value="red"  />
@@ -13,7 +13,8 @@
       <color name="darkblue"  value="darkblue" />
       <color name="brown"     value="brown" />
       <color name="darkgreen" value="darkgreen" />
-      <color name="yellow"    value="yellowgreen" />
+      <color name="yellow"    value="yellow" />
+	  <color name="folder"    value="Goldenrod" />
     </colortable>
     <terminals>
       <term name="mytoken"   class="TextTermToken" />
@@ -101,6 +102,7 @@
         <nont state="sd-resolve" />
         <nont state="body" />
       </production>
+
       <production>
         <nont state="text" word="true" />
         <nont state="body" />
@@ -380,7 +382,7 @@
       <production lookahead="3" >
         <nont state="mailaddress" id="mailaddress" />
         <term class="mytoken" id="atsign" value="@" />
-        <nont state="domain" id="maildomain" />
+        <nont state="url.path" id="maildomain" />
       </production>
     </state>
 
@@ -413,97 +415,108 @@
       <capture>
         <binding id="url" color="blue" />
         <binding id="protocol" color="blue" /> <!-- Need this here so hyperlinks can determine link type. -->
-        <binding id="domainname" color="purple" />
+        <binding id="url.domain" color="purple" />
         <binding id="urlremaining" />
       </capture>
       <production>
         <nont state="url.next" id="url" />
       </production>
     </state>
-    <!-- consider merging url.next into url, that'll fix our split protocol/uattribs... problem. traditionally in this
-    grammar the interesting bindings where held in the url.next for some reason. -->
+
+	<state name="url.proto" >
+		<production>
+      	  <term class="mytoken" value="file" id ="protocol" />
+    	</production>
+    	<production>
+    		<term class="mytoken" value="http" id ="protocol" />
+    	</production>
+    	<production>
+    		<term class="mytoken" value="vc" id ="protocol" />
+    	</production>
+    	<production>
+    		<term class="mytoken" value="https" id ="protocol" />
+    	</production>
+	</state>
+
+	<state name="url.cont" >
+      <production >
+        <term class="mytoken" value="/" />
+        <nont state="url.path" id="urlremaining"/>
+      </production>
+      <production>
+		<term class="myEmpty" />
+      </production>
+    </state>
+
+    <!-- consider merging url.next into url, that'll fix our split protocol/uattribs... problem. traditionally in this grammar the interesting bindings where held in the url.next for some reason. -->
     <state name="url.next" >
       <capture>
         <binding id="uattribs" color="darkred" />
         <binding id="pbinding" color="red" array="true" />
-        <binding id="urlseperator" color="red" />
+        <binding id="urlquery" color="red" />
       </capture>
-      <production>
-        <term class="mytoken" value="file" id ="protocol" />
+      <production lookahead="2" >
+        <nont state="url.proto"  />
         <term class="mytoken" value="://" />
-        <nont state="domainname" id="domainname" />
-        <nont state="domain" id="urlremaining"/>
-      </production>
-      <production>
-        <term class="mytoken" value="http" id ="protocol" />
-        <term class="mytoken" value="://" />
-        <nont state="domainname" id="domainname" />
-        <nont state="domain" id="urlremaining"/>
-      </production>
-      <production>
-        <term class="mytoken" value="vc" id ="protocol" />
-        <term class="mytoken" value="://" />
-        <nont state="domainname" id="domainname" />
-        <nont state="domain" id="urlremaining"/>
-      </production>
-      <production>
-        <term class="mytoken" value="https" id ="protocol" />
-        <term class="mytoken" value="://" />
-        <nont state="domainname" id="domainname" />
-        <nont state="domain" id="urlremaining"/>
+        <nont state="url.domain" id="domainname" />
+        <nont state="url.cont"   id="urlremaining"/>
       </production>
       <production>
         <!-- If I allow domainname here, we think all text is a domain name, this is probably good enough in general. -->
         <term class="mytoken" value="www." />
-        <nont state="domain"  />
+        <nont state="url.path"  />
       </production>
     </state>
  
     <!-- Shouldn't start with a dot, but let's not worry for now -->
-    <state name="domainname" >
+    <state name="url.domain" >
       <production>
         <term class="myliteral" />
-        <nont state="domainname" />
+        <nont state="url.domain" />
       </production>
       <production>
         <term class="mynumber" />
-        <nont state="domainname" />
+        <nont state="url.domain" />
       </production>
       <production>
         <term class="mytoken" value="." />
-        <nont state="domainname" />
+        <nont state="url.domain" />
       </production>
-      <production>
-        <!-- not dealing with spaces but let's not worry -->
+      <production lookahead ="3" >
         <term class="mytoken" value=":" />
+        <nont state="space" />
         <term class="mynumber" />
-        <term class="mytoken" value="/" />
       </production>
+
+	  <!-- we really have no idea if we grabbed a proper domain name,
+		   http://www.foo.com vs http://www.foo.com/ vs http://
+           but we need a way out if not "properly" termed with backslash :-/ -->
       <production>
-        <term class="mytoken" value="/" />
+        <term class="myEmpty"  />
       </production>
     </state>
 
-    <state name="domain" >
+    <state name="url.path" >
       <production>
         <term class="myliteral" />
-        <nont state="domain" />
+        <nont state="url.path" />
       </production>
       <production>
         <term class="mynumber" />
-        <nont state="domain" />
+        <nont state="url.path" />
       </production>
       <production>
         <!-- Hmmm... looks like a little too much... why not just the dot? -->
         <term class="myanyof" value="$!+./-:=_%(){}~"/>
-        <nont state="domain" />
+        <nont state="url.path" />
       </production>
       <production>
-        <term class="mytoken" value="?" id="urlseperator" />
+        <term class="mytoken" value="?" id="urlquery" />
         <nont state="URL.Attribs" id="uattribs" />
       </production>
       <production>
-        <term class="mytoken" value="#" id="urlseperator" />
+		<!-- actually it's a url fragment section, but that's ok... -->
+        <term class="mytoken" value="#" id="urlquery" />
         <nont state="URL.Attribs" id="uattribs" />
         <!-- <nont state="mailaddress" id="uattribs" /> cheating, but it'll work for now.. -->
       </production>
@@ -967,6 +980,8 @@
         <term class="myEmpty" />
       </production>
     </state>
-  </bnftable>
+
+
+</bnftable>
 
 </bnfstuff>
