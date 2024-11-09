@@ -100,16 +100,16 @@
     <location left="120" top  ="20" width ="1000" height="800" />
     <margin   left="345" right="0"  bottom="100"  tools ="0" options="0" />
     <docking>
-      <dock tool="clock"       visible="false" edge="bottom"  display="Clock" />
-      <dock tool="find"        visible="false" edge="bottom"  display="Find" />
-      <dock tool="matches"     visible="false" edge="bottom"  display="Results" />
-      <dock tool="outline"     visible="true"  edge="left"    display="Outline"     decor="{64EC31FE-F28E-49A6-A12A-9194214DD0D6}" />
-      <dock tool="navigate"    visible="false" edge="left"    display="Properties"  decor="{1509A246-5CB0-41B1-A6D2-572D38EEC9C5}" />
-      <dock tool="views"       visible="false" edge="bottom"  display="Views" />
-      <dock tool="alerts"      visible="false" edge="bottom"  display="Alerts" />
-      <dock tool="productions" visible="false" edge="left"    display="Productions" decor="{266BE614-5336-4B45-A132-43640E659F69}" />
-      <dock tool="options"     visible="false" edge="options" display="Options"     decor="{6AECF17A-D91B-452F-9B67-840144446DDB}" />
-      <dock tool="tools"       visible="false" edge="tools"   display="Tools"       decor="{83F0CB89-16BC-4DA8-8A79-A6F13DF57DA9}" />
+      <dock visible="false" edge="bottom"  display="Clock"       decor="{7E93BF3B-16DB-4967-8F2D-3170240CE1A7}" />
+      <dock visible="false" edge="bottom"  display="Find"        decor="{83A290C0-F2FA-4992-B35D-BC331F95BEE3}" />
+      <dock visible="false" edge="bottom"  display="Results"     decor="{49297D21-146F-4AF8-8D51-76BC70E30C98}" />
+      <dock visible="true"  edge="left"    display="Outline"     decor="{64EC31FE-F28E-49A6-A12A-9194214DD0D6}" />
+      <dock visible="false" edge="left"    display="Properties"  decor="{1509A246-5CB0-41B1-A6D2-572D38EEC9C5}" />
+      <dock visible="false" edge="bottom"  display="Views"       decor="{8FB60D70-371A-4E93-B44A-AEEDBCCF3A15}" />
+      <dock visible="false" edge="bottom"  display="Alerts"      decor="{FDC20452-76D1-4CFB-A67C-E5A044BD0C28}" />
+      <dock visible="false" edge="left"    display="Productions" decor="{266BE614-5336-4B45-A132-43640E659F69}" />
+      <dock visible="false" edge="options" display="Options"     decor="{6AECF17A-D91B-452F-9B67-840144446DDB}" />
+      <dock visible="false" edge="tools"   display="Tools"       decor="{83F0CB89-16BC-4DA8-8A79-A6F13DF57DA9}" />
     </docking>
     <documents bgcolor="white">
     </documents>
