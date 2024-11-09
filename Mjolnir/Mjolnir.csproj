@@ -19,12 +19,12 @@
     <None Remove="Content\icons8-bookmark-book-512.png" />
     <None Remove="Content\icons8-clock-48.png" />
     <None Remove="Content\icons8-compass-64.png" />
-    <None Remove="Content\icons8-edit-property-48.png" />
     <None Remove="Content\icons8-forest-48.png" />
     <None Remove="Content\icons8-insert-60.png" />
     <None Remove="Content\icons8-layer-64.png" />
     <None Remove="Content\icons8-options-64.png" />
     <None Remove="Content\icons8-production-64.png" />
+    <None Remove="Content\icons8-property-48.png" />
     <None Remove="Content\icons8-research-48.png" />
     <None Remove="Content\icons8-search-64.png" />
     <None Remove="Content\icons8-tools-48.png" />
@@ -49,7 +49,7 @@
     <EmbeddedResource Include="Content\icons8-bookmark-book-512.png" />
     <EmbeddedResource Include="Content\icons8-clock-48.png" />
     <EmbeddedResource Include="Content\icons8-compass-64.png" />
-    <EmbeddedResource Include="Content\icons8-edit-property-48.png" />
+    <EmbeddedResource Include="Content\icons8-property-48.png" />
     <EmbeddedResource Include="Content\icons8-forest-48.png" />
     <EmbeddedResource Include="Content\icons8-insert-60.png" />
     <EmbeddedResource Include="Content\icons8-layer-64.png" />

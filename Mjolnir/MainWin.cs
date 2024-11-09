@@ -136,16 +136,16 @@ namespace Mjolnir {
             _oDecorEnum = new MainWinDecorEnum( this );
 
             _rgStdDecor = new() {
-                { GlobalDecor.Clock,       new( "clock",       "icons8-clock-48.png",         fSolo: true ) },
-                { GlobalDecor.Find,        new( "find",        "icons8-search-64.png",        fSolo: true ) },
-                { GlobalDecor.Results,     new( "matches",     "icons8-research-48.png",      fSolo: true ) },
-                { GlobalDecor.Outline,     new( "outline",     "icons8-forest-48.png",        fSolo: false) },
-                { GlobalDecor.Properties,  new( "navigate",    "icons8-edit-property-48.png", fSolo: false) },
-                { GlobalDecor.Views,       new( "views",       "icon_windows.gif",            fSolo: true ) },
-                { GlobalDecor.Alerts,      new( "alerts",      "icons8-warning-48.png",       fSolo: true ) },
-                { GlobalDecor.Productions, new( "productions", "icons8-production-64.png",    fSolo: false) },
-                { GlobalDecor.Options,     new( "options",     "icons8-options-64.png",       fSolo: false) },
-                { GlobalDecor.ToolIcons,   new( "tools",       "icons8-tools-48.png",         fSolo: false) }
+                { GlobalDecor.Clock,       new( "clock",       "icons8-clock-48.png",      fSolo: true  ) },
+                { GlobalDecor.Find,        new( "find",        "icons8-search-64.png",     fSolo: true  ) },
+                { GlobalDecor.Results,     new( "matches",     "icons8-research-48.png",   fSolo: true  ) },
+                { GlobalDecor.Outline,     new( "outline",     "icons8-forest-48.png",     fSolo: false ) },
+                { GlobalDecor.Properties,  new( "navigate",    "icons8-property-48.png",   fSolo: false ) },
+                { GlobalDecor.Views,       new( "views",       "icon_windows.gif",         fSolo: true  ) },
+                { GlobalDecor.Alerts,      new( "alerts",      "icons8-warning-48.png",    fSolo: true  ) },
+                { GlobalDecor.Productions, new( "productions", "icons8-production-64.png", fSolo: false ) },
+                { GlobalDecor.Options,     new( "options",     "icons8-options-64.png",    fSolo: false ) },
+                { GlobalDecor.ToolIcons,   new( "tools",       "icons8-tools-48.png",      fSolo: false ) }
             };
         }
 
