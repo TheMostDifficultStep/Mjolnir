@@ -1492,6 +1492,7 @@ namespace Play.Edit {
         /// TODO: Just make this thing take a IMemoryRange or something...
         /// </summary>
         /// <seealso cref="ScrollToCaret"/>
+        /// <seealso cref="CaretAdvance"/>
         /// <exception cref="ArgumentOutOfRangeException" />
         public bool SetCaretPositionAndScroll( 
             int iDataRow, int iColumn, int iOffset, 
@@ -1507,6 +1508,7 @@ namespace Play.Edit {
                 if( iOffset < 0 || iOffset > oLine.ElementCount )
                     return false;
 
+                _fAdvance  = _rgColumnInfo[iColumn]._rcBounds.Left;
                 _oCaretRow = oDataRow;
                 _iCaretCol = iColumn;
                 _iCaretOff = iOffset;
@@ -1519,10 +1521,14 @@ namespace Play.Edit {
                     oCaretCacheRow = CacheReset( RefreshNeighborhood.CARET );
                 }
 
-                CaretSlideWindow ( oCaretCacheRow );
-                CacheWalker( oCaretCacheRow, fMeasure );
+                CaretSlideWindow( oCaretCacheRow );
+                CacheWalker     ( oCaretCacheRow, fMeasure );
 
-                Selector.SetWord( Caret2, new ColorRange( iOffset, iLength ) );
+                // Should fix the Fileman bug where file open and return
+                // selects everything from row 0 to selected item.
+                if( iLength > 0 )
+                    Selector.SetWord( Caret2, new ColorRange( iOffset, iLength ) );
+
                 CacheReColor();
             } catch( Exception oEx ) {
                 if( IsUnhandledStdRpt( oEx ) )
