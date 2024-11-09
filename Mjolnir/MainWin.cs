@@ -67,7 +67,7 @@ namespace Mjolnir {
         ContextMenuStrip  _oContextMenu       = new ContextMenuStrip();
         Point             _pntContextLocation = new Point(); // context menu object has no activation position! Go figure!
 
-        readonly MainWinDecorEnum _oDecorEnum;
+        readonly MainWinDecorMenus _rgDecorEnum;
 
         readonly Dictionary<Guid, SmartHerderBase> _rgShepards  = new Dictionary<Guid, SmartHerderBase>(); 
 
@@ -131,11 +131,11 @@ namespace Mjolnir {
             _oLayoutPrimary = new LayoutStackVertical() { Spacing = 5 };
             // This one probably won't work anymore. And we'll certainly lose all the
             // docking windows b/c those are docked by the layout now.
-			_oLayout2       = new LayoutFlowSquare_MainWin( this ) { Spacing = 5 };
+			_oLayout2    = new LayoutFlowSquare_MainWin( this ) { Spacing = 5 };
 
-            _oDecorEnum = new MainWinDecorEnum( this );
+            _rgDecorEnum = new MainWinDecorMenus( this );
 
-            _rgStdDecor = new() {
+            _rgStdDecor  = new() {
                 { GlobalDecor.Clock,       new( "clock",       "icons8-clock-48.png",      fSolo: true  ) },
                 { GlobalDecor.Find,        new( "find",        "icons8-search-64.png",     fSolo: true  ) },
                 { GlobalDecor.Results,     new( "matches",     "icons8-research-48.png",   fSolo: true  ) },
@@ -2337,7 +2337,7 @@ namespace Mjolnir {
                 // When we load from a sesson we load up the shepards from
                 // the one's saved. This call is in the window InitNew() path
                 // so we get the same result based on the current decor menu settings.
-                foreach( IPgMenuVisibility oDecorVis in _oDecorEnum ) {
+                foreach( IPgMenuVisibility oDecorVis in _rgDecorEnum ) {
                     if( oDecorVis.Checked == true ) {
 						oDecorVis.Shepard.Hidden = false;
 			            rgOrient.Add( (SideIdentify)oDecorVis.Shepard.Orientation );

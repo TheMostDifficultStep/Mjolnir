@@ -171,12 +171,12 @@ namespace Mjolnir {
 
     public partial class MainWin {
         // Look at making this a struct 
-        public class MainWinDecorEnum :
+        public class MainWinDecorMenus :
             IEnumerable<IPgMenuVisibility> 
         {
             readonly MainWin _oHost;
 
-            public MainWinDecorEnum( MainWin oHost ) {
+            public MainWinDecorMenus( MainWin oHost ) {
                 _oHost = oHost;
                 if( _oHost == null )
                     throw new ArgumentNullException();
@@ -199,7 +199,7 @@ namespace Mjolnir {
         }
 
         protected IEnumerable<IPgMenuVisibility> DecorSettings {
-            get { return _oDecorEnum; }
+            get { return _rgDecorEnum; }
         } 
         /// <summary>
         /// Do this after all the tools, solo, and document adornments are added.
@@ -770,7 +770,7 @@ namespace Mjolnir {
                     dctFindSide.Add( eSide.ToString().ToLower(), eSide );
                 }
                 // Set up copy of the menu assuming no decor specified in the .pvs file
-                foreach( IPgMenuVisibility oDecorVis in _oDecorEnum ) {
+                foreach( IPgMenuVisibility oDecorVis in _rgDecorEnum ) {
                     dctDecor.Add( oDecorVis.Shepard.Decor, new MenuReset( oDecorVis ) );
                 }
                 // If we find a decor specified as shown, flag it that we want it on.
