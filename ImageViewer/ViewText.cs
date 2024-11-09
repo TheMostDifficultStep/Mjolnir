@@ -26,10 +26,10 @@ namespace Play.ImageViewer {
 		public static Guid Guid => _gViewType;
 
         public override object Decorate( IPgViewSite oBaseSite, Guid sGuid ) {
-            if( sGuid == GlobalDecorations.Outline ) {
+            if( sGuid == GlobalDecor.Outline ) {
                 return( new ImageViewIcons( oBaseSite, _oDocumentWalker ) );
             }
-            if( sGuid.Equals( GlobalDecorations.Properties ) ) {
+            if( sGuid.Equals( GlobalDecor.Properties ) ) {
                 return( new WindowStandardProperties( oBaseSite, _oDocumentWalker.Properties ) );
             }
 

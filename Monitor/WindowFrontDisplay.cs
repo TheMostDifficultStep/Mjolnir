@@ -203,7 +203,7 @@ namespace Monitor {
         }
 
         public object Decorate(IPgViewSite oBaseSite, Guid sGuid) {
-			if( sGuid.Equals(GlobalDecorations.Properties) ) {
+			if( sGuid.Equals(GlobalDecor.Properties) ) {
                 return new PropertyWindow( oBaseSite, this.MonitorDoc.Properties );
             }
             return null;

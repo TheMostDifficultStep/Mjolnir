@@ -220,10 +220,10 @@ namespace Mjolnir {
 
         public override object Decorate( IPgViewSite oBaseSite, Guid sGuid ) {
 			try {
-				if ( sGuid.Equals( GlobalDecorations.Productions ) ) {
+				if ( sGuid.Equals( GlobalDecor.Productions ) ) {
 					return new EditWinProductions( oBaseSite, _oDocument );
 				}
-				if ( sGuid.Equals( GlobalDecorations.Properties ) ) {
+				if ( sGuid.Equals( GlobalDecor.Properties ) ) {
 					return new WindowStandardProperties( oBaseSite, _oDoc_Properties );
 				}
 			} catch ( Exception oEx ) {

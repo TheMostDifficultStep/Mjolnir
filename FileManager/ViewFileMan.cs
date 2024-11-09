@@ -199,10 +199,10 @@ namespace Play.FileManager {
             }
         }
         public object Decorate(IPgViewSite oBaseSite, Guid sGuid) {
-            if( sGuid == GlobalDecorations.Outline ) {
+            if( sGuid == GlobalDecor.Outline ) {
                 return new ViewFManOutline( new ViewSlot( this ) );
             }
-            if( sGuid == GlobalDecorations.Properties ) {
+            if( sGuid == GlobalDecor.Properties ) {
                 return new WindowStandardProperties( new ViewSlot( this ), DocProps );
             }
             return null;

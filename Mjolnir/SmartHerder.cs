@@ -99,19 +99,17 @@ namespace Mjolnir {
                   bool          _fHideTitle = false;
                   ShowImageSolo _oViewIcon;
 
-        readonly  string    _strName;
-        readonly  Guid      _guidDecor;
+        public    Guid          Decor { get; protected set; }
 
         IPgMenuVisibility _oMenuVis = null; // pointer to shell menu entry.
 
-        public SmartHerderBase(MainWin oMainWin, string strResource, string strName, string strTitle, Guid guidDecor ) :
+        public SmartHerderBase(MainWin oMainWin, string strResource, string strTitle, Guid gDecor ) :
 			base( CSS.Percent )
         {
             _oHost     = oMainWin;
             _strTitle  = strTitle;
-            _strName   = strName;
-            _guidDecor = guidDecor;
             _oViewIcon = new( strResource );
+            Decor      = gDecor;
         }
 
         public abstract bool TabStop {
@@ -119,7 +117,7 @@ namespace Mjolnir {
         }
 
         public SmartRect Margin {
-            get { return( _rcMargin ); }
+            get { return _rcMargin; }
             set { 
 				_rcMargin.Copy = value; 
 				//Raise_OnSize( this ); 
@@ -127,12 +125,8 @@ namespace Mjolnir {
 			}
         }
 
-        public string Name {
-            get { return( _strName ); }
-        }
-        
         public Guid Guid {
-            get { return( _guidDecor ); }
+            get { return( Decor ); }
         }
 
         public bool HideTitle {
@@ -142,7 +136,7 @@ namespace Mjolnir {
         // Debug helper.
         public override string ToString()
         {
-            return _strName + "@" + Orientation.ToString();
+            return _strTitle + "@" + Orientation.ToString();
         }
 
         public bool DesiresVisiblity {
@@ -483,8 +477,8 @@ namespace Mjolnir {
         Dictionary<object, Control > _rgFlock = new Dictionary<object, Control>(); // The controls we are herding.
         bool                         _fTabStop = false;
 
-        public SmartHerderClxn(MainWin oMainWin, string strResource, string strName, string strTitle, Guid guidName ) :
-            base( oMainWin, strResource, strName, strTitle, guidName )
+        public SmartHerderClxn(MainWin oMainWin, string strResource, string strTitle, Guid guidName ) :
+            base( oMainWin, strResource, strTitle, guidName )
         {
         }
 
@@ -663,8 +657,8 @@ namespace Mjolnir {
     {
         Control _oControl;
 
-        public SmartHerderSolo(MainWin oMainWin, string strResource, string strName, string strTitle, Guid guidName ) :
-            base(oMainWin, strResource, strName, strTitle, guidName )
+        public SmartHerderSolo(MainWin oMainWin, string strResource, string strTitle, Guid guidName ) :
+            base(oMainWin, strResource, strTitle, guidName )
         {
         }
 

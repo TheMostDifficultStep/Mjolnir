@@ -450,13 +450,19 @@ namespace Play.Interfaces.Embedding {
         FILESTATS           Stat { get; }
     }
     
-    public static class GlobalDecorations {
+    public static class GlobalDecor {
         public static Guid Properties  = new Guid( "{1509A246-5CB0-41B1-A6D2-572D38EEC9C5}" );
         public static Guid Syntax      = new Guid( "{7FF3A2FC-459D-49B1-A2C1-B01853DDE2F0}" );
         public static Guid Productions = new Guid( "{266BE614-5336-4B45-A132-43640E659F69}" );
         public static Guid Outline     = new Guid( "{64EC31FE-F28E-49A6-A12A-9194214DD0D6}" );
 		public static Guid Options     = new Guid( "{6AECF17A-D91B-452F-9B67-840144446DDB}" );
         public static Guid ToolIcons   = new Guid( "{83F0CB89-16BC-4DA8-8A79-A6F13DF57DA9}" );
+        public static Guid Alerts      = new Guid( "{FDC20452-76D1-4CFB-A67C-E5A044BD0C28}" );
+        public static Guid Views       = new Guid( "{8FB60D70-371A-4E93-B44A-AEEDBCCF3A15}" );
+        public static Guid Results     = new Guid( "{49297D21-146F-4AF8-8D51-76BC70E30C98}" );
+        public static Guid Find        = new Guid( "{83A290C0-F2FA-4992-B35D-BC331F95BEE3}" );
+        public static Guid Clock       = new Guid( "{7E93BF3B-16DB-4967-8F2D-3170240CE1A7}" );
+        public static Guid Menu        = new Guid( "{48EB9BAC-B122-4DA7-B1ED-9853C1E5203C}" );
     }
 
     /// <summary>

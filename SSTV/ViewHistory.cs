@@ -300,10 +300,10 @@ namespace Play.SSTV {
 
         public object Decorate(IPgViewSite oBaseSite, Guid sGuid) {
 			try {
-				if( sGuid.Equals(GlobalDecorations.Properties) ) {
+				if( sGuid.Equals(GlobalDecor.Properties) ) {
 					return new WindowChooserProperties( oBaseSite, _oDocSSTV );
 				}
-                if( sGuid.Equals(GlobalDecorations.Outline ) ) {
+                if( sGuid.Equals(GlobalDecor.Outline ) ) {
                     return new WindowChooserOutline( oBaseSite, this );
                     //return new WindowSoloImageNav( oBaseSite, _oDocSSTV.RxHistoryList );
                 }
@@ -469,10 +469,10 @@ namespace Play.SSTV {
 
         public object Decorate(IPgViewSite oBaseSite, Guid sGuid) {
 			try {
-				if( sGuid.Equals(GlobalDecorations.Properties) ) {
+				if( sGuid.Equals(GlobalDecor.Properties) ) {
 					return new WindowHistoryProperties( oBaseSite, _oDocSSTV );
 				}
-                if( sGuid.Equals(GlobalDecorations.Outline ) ) {
+                if( sGuid.Equals(GlobalDecor.Outline ) ) {
                     return _wmViewRxHistorySelected.Decorate( oBaseSite, sGuid );
                 }
 				return false;

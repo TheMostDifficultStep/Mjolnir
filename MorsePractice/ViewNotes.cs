@@ -66,7 +66,7 @@ namespace Play.MorsePractice {
 
         public override object Decorate( IPgViewSite oBaseSite, Guid sGuid ) {
             try {
-                if( sGuid.Equals( GlobalDecorations.Properties ) ) {
+                if( sGuid.Equals( GlobalDecor.Properties ) ) {
                     return new ViewRadioProperties( oBaseSite, _oDocNotes.Properties );
                 }
                 return base.Decorate(oBaseSite, sGuid);
@@ -191,12 +191,12 @@ namespace Play.MorsePractice {
 
         public override object Decorate( IPgViewSite oBaseSite, Guid sGuid ) {
             try {
-                if (sGuid.Equals(GlobalDecorations.Outline)) {
+                if (sGuid.Equals(GlobalDecor.Outline)) {
                     // TODO: When Calls gets updated, it would be nice to reset the hilighted line.
                     //       Need some way to communicate with outline owner w/o creating a nightmare.
                     return new EditWindow2(oBaseSite, _oDocMorse.Calls, fReadOnly: true, fSingleLine: false);
                 }
-                if( sGuid.Equals( GlobalDecorations.Properties ) ) {
+                if( sGuid.Equals( GlobalDecor.Properties ) ) {
                     return new ViewRadioProperties( oBaseSite, _oDocMorse.Properties );
                 }
                 return base.Decorate(oBaseSite, sGuid);

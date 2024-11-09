@@ -197,14 +197,14 @@ namespace Play.SSTV {
         }
 
         public override object Decorate( IPgViewSite oBaseSite, Guid sGuid ) {
-			if( sGuid.Equals(GlobalDecorations.Properties) ) {
+			if( sGuid.Equals(GlobalDecor.Properties) ) {
 				return new ViewTxProperties( oBaseSite, _oDocSSTV );
 			}
 			// TODO: Turn back one when useful.
 			//if( sGuid.Equals( GlobalDecorations.Outline ) ) {
 			//	return new CheckList( oBaseSite, _oDocSSTV.TxModeList );
 			//}
-			if( sGuid.Equals( GlobalDecorations.Options ) ) {
+			if( sGuid.Equals( GlobalDecor.Options ) ) {
 				return new ImageViewIcons( oBaseSite, _oDocSSTV.TxImageList );
 			}
             return base.Decorate( oBaseSite, sGuid );
@@ -675,7 +675,7 @@ namespace Play.SSTV {
 		}
 
         public object Decorate( IPgViewSite oBaseSite, Guid sGuid ) {
-			if( sGuid.Equals(GlobalDecorations.Properties) ) {
+			if( sGuid.Equals(GlobalDecor.Properties) ) {
 				_wmTxProperties = new ViewTxProperties( oBaseSite, this, _oDocSSTV );
 				return _wmTxProperties;
 			}
@@ -691,7 +691,7 @@ namespace Play.SSTV {
 			//	_wmToolOptions = new WindowTxTools( oBaseSite, _oDocSSTV );
 			//	return _wmToolOptions;
 			//}
-			if( sGuid.Equals( GlobalDecorations.ToolIcons ) ) {
+			if( sGuid.Equals( GlobalDecor.ToolIcons ) ) {
 				return new WinTransmitTools( oBaseSite, _rgToolIcons, this );
 			}
 			return null;

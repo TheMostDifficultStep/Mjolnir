@@ -737,11 +737,11 @@ namespace Play.ImageViewer {
 
         public object Decorate( IPgViewSite oBaseSite, Guid sGuid ) {
 			try {
-				if( sGuid == GlobalDecorations.Outline ) {
+				if( sGuid == GlobalDecor.Outline ) {
 					//return( new TextWinReadOnly( this ) );
 					return( new WindowSoloImageNav( oBaseSite, this._oDocument ) );
 				}
-				if( sGuid.Equals( GlobalDecorations.Properties ) ) {
+				if( sGuid.Equals( GlobalDecor.Properties ) ) {
 					return( new WindowStandardProperties( oBaseSite, _oDocument.Properties ) );
 				}
 			} catch ( Exception oEx ) {

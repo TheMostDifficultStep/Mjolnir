@@ -178,13 +178,13 @@ namespace Play.SSTV {
 
 		public override object Decorate(IPgViewSite oBaseSite,Guid sGuid) {
 			try {
-				if( sGuid.Equals(GlobalDecorations.Properties) ) {
+				if( sGuid.Equals(GlobalDecor.Properties) ) {
 					return new ViewFileProperties( oBaseSite, _oDocSSTV.Properties );
 				}
-				if( sGuid.Equals( GlobalDecorations.Outline ) ) {
+				if( sGuid.Equals( GlobalDecor.Outline ) ) {
 					return new WindowTextDir( oBaseSite, _rgWavFileList );
 				}
-				if( sGuid.Equals( GlobalDecorations.Options ) ) {
+				if( sGuid.Equals( GlobalDecor.Options ) ) {
 				  //return new CheckList( oBaseSite, _oDocSSTV.RxModeList );
 					return new WindowFileTools( oBaseSite, _oDocSSTV );
 				}

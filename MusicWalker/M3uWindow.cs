@@ -58,10 +58,10 @@ namespace Play.MusicWalker {
 		}
 
 		public override object Decorate( IPgViewSite oBaseSite, Guid sGuid ) {
-            if( sGuid.Equals( GlobalDecorations.Outline ) ) {
+            if( sGuid.Equals( GlobalDecor.Outline ) ) {
                 return( new WindowSoloImageNav( oBaseSite, _oDocumentMusic.AlbumArt ) );
             }
-            if( sGuid.Equals( GlobalDecorations.Properties ) ) {
+            if( sGuid.Equals( GlobalDecor.Properties ) ) {
                 return( new WindowStandardProperties( oBaseSite, _oDocumentMusic.AlbumProperties ) );
             }
 
@@ -131,13 +131,13 @@ namespace Play.MusicWalker {
 		}
 
 		public override object Decorate( IPgViewSite oBaseSite, Guid sGuid ) {
-            if( sGuid.Equals( GlobalDecorations.Outline ) ) {
+            if( sGuid.Equals( GlobalDecor.Outline ) ) {
 				EditWindow2 oWin = new WinMusicText( oBaseSite, _oDocumentMusic ); // use this so we track active song at load.
 				oWin.LineChanged += OutlineLineChanged;
 				oWin.Wrap        = false;
                 return( oWin );
             }
-			if( sGuid.Equals( GlobalDecorations.Properties ) ) {
+			if( sGuid.Equals( GlobalDecor.Properties ) ) {
                 return( new WindowStandardProperties( oBaseSite, _oDocumentMusic.AlbumProperties ) );
 			}
 

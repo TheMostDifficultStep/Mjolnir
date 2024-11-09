@@ -145,10 +145,10 @@ namespace Play.MorsePractice {
 
 		public object Decorate(IPgViewSite oViewSite,Guid sGuid) {
             try {
-                if (sGuid.Equals(GlobalDecorations.Outline)) {
+                if (sGuid.Equals(GlobalDecor.Outline)) {
 					return new ViewOutline( oViewSite, _DocNetHost.Outline, this );
                 }
-				if( sGuid.Equals(GlobalDecorations.Properties )) {
+				if( sGuid.Equals(GlobalDecor.Properties )) {
 					return new WindowStandardProperties( oViewSite, _DocNetHost.Props );
 				}
             } catch (Exception oEx) {

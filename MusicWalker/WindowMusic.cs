@@ -557,10 +557,10 @@ namespace Play.MusicWalker {
 		}
 
 		public virtual object Decorate( IPgViewSite oBaseSite, Guid sGuid ) {
-            if( sGuid.Equals( GlobalDecorations.Outline ) ) {
+            if( sGuid.Equals( GlobalDecor.Outline ) ) {
                 return new ViewAlbumDecor( oBaseSite, this );
             }
-			if( sGuid.Equals( GlobalDecorations.Properties ) ) {
+			if( sGuid.Equals( GlobalDecor.Properties ) ) {
 				return new ViewMusicProperties( oBaseSite, AlbumProperties );
 			}
 

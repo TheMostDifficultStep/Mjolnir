@@ -117,10 +117,10 @@ namespace Play.MusicWalker {
 		}
 
 		public override object Decorate( IPgViewSite oBaseSite, Guid sGuid ) {
-			if( sGuid.Equals( GlobalDecorations.Outline ) ) {
+			if( sGuid.Equals( GlobalDecor.Outline ) ) {
 				return new EditWindow2( oBaseSite, ListOutline, true ) { Wrap = false };
 			}
-			if( sGuid.Equals( GlobalDecorations.Properties ) ) { // Bit rate and etc.
+			if( sGuid.Equals( GlobalDecor.Properties ) ) { // Bit rate and etc.
 				return new EditWindow2( oBaseSite, SongProperties, true );
 			}
 

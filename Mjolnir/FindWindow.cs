@@ -69,7 +69,7 @@ namespace Mjolnir {
 
             // Whenever the search results tool window is navigated, I need to know.
             // TODO: We've got the PlayHilights line which would be perfect for this.
-			if( _oWinMain.DecorSoloSearch( "matches" ) is EditWindow2 oEditMatchesWin ) {
+			if( _oWinMain.DecorSoloSearch( GlobalDecor.Results ) is EditWindow2 oEditMatchesWin ) {
 				oEditMatchesWin.LineChanged += new Navigation( OnMatchNavigation );
 			}
 
@@ -480,7 +480,7 @@ namespace Mjolnir {
             oDocResults.Load( this );
 
             if( oDocResults.ElementCount > 0 ) {
-                _oWinMain.DecorOpen( "matches", true );
+                _oWinMain.DecorOpen( GlobalDecor.Results, true );
             }
         }
         
@@ -494,7 +494,7 @@ namespace Mjolnir {
         {
             OnGotFocus( e );
 
-			SmartHerderBase oShepard = Host.Shepardfind( "find" );
+			SmartHerderBase oShepard = Host.Shepardfind( GlobalDecor.Find );
 
 			if( oShepard != null ) {
 				oShepard.OnFocused();
@@ -507,7 +507,7 @@ namespace Mjolnir {
         {
             OnLostFocus( e );
 
-			SmartHerderBase oShepard = Host.Shepardfind( "find" );
+			SmartHerderBase oShepard = Host.Shepardfind( GlobalDecor.Find );
 
 			if( oShepard != null ) {
 				oShepard.OnBlurred();
@@ -522,7 +522,7 @@ namespace Mjolnir {
             }
         }
         private void Results_LinkClicked( object sender, LinkLabelLinkClickedEventArgs e) {
-            _oWinMain.DecorOpen( "matches", true );
+            _oWinMain.DecorOpen( GlobalDecor.Results, true );
         }
 
         /// <summary>
@@ -570,7 +570,7 @@ namespace Mjolnir {
 			/// gets focus it directly blurs all the herders.
 			/// BUG: But what about move from decor to decor. Hmmm....</remarks>
             public void NotifyFocused(bool fSelect) { 
-				SmartHerderBase oShepard = _oFindWindow.Host.Shepardfind( "find" );
+				SmartHerderBase oShepard = _oFindWindow.Host.Shepardfind( GlobalDecor.Find );
 
 				if( oShepard != null ) {
 					if( fSelect )

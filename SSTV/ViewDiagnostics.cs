@@ -166,7 +166,7 @@ namespace Play.SSTV {
 
 		public object Decorate(IPgViewSite oBaseSite,Guid sGuid) {
 			try {
-				if( sGuid.Equals(GlobalDecorations.Properties) ) {
+				if( sGuid.Equals(GlobalDecor.Properties) ) {
 					return new WindowDiagnosticProperties( oBaseSite, _oDocSSTV );
 				}
 				return false;

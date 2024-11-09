@@ -296,7 +296,7 @@ namespace Play.SSTV {
 
 		public object Decorate(IPgViewSite oBaseSite,Guid sGuid) {
 			try {
-				if( sGuid.Equals(GlobalDecorations.Properties) ) {
+				if( sGuid.Equals(GlobalDecor.Properties) ) {
 					return new WindowRxProperties( oBaseSite, _oDocSSTV );
 				}
 				//if( sGuid.Equals( GlobalDecorations.Outline ) ) {
@@ -534,7 +534,7 @@ namespace Play.SSTV {
 
 		public override object Decorate(IPgViewSite oBaseSite,Guid sGuid) {
 			try {
-				if( sGuid.Equals(GlobalDecorations.Properties) ) {
+				if( sGuid.Equals(GlobalDecor.Properties) ) {
 					return new WindowRxProperties( oBaseSite, _oDocSSTV );
 				}
 				// Property pane contains two dropdowns for this now.

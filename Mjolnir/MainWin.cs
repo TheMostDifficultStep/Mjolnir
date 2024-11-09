@@ -69,7 +69,7 @@ namespace Mjolnir {
 
         readonly MainWinDecorEnum _oDecorEnum;
 
-        readonly Dictionary<string, SmartHerderBase> _rgShepards  = new Dictionary<string, SmartHerderBase>(); 
+        readonly Dictionary<Guid, SmartHerderBase> _rgShepards  = new Dictionary<Guid, SmartHerderBase>(); 
 
 		readonly ParentRect          _oLayout2;
         readonly LayoutStackVertical _oLayoutPrimary; // New general layout.
@@ -82,6 +82,8 @@ namespace Mjolnir {
 		internal  TOPLAYOUT   _eLayout    = TOPLAYOUT.Solo; // Once layout 1&2 are normalized I won't need this.
 
 		protected bool        _fTextInvalid  = true;
+
+        protected Dictionary<Guid, DecorProperties> _rgStdDecor;
 
 		public enum TOPLAYOUT {
 			Solo,
@@ -132,6 +134,19 @@ namespace Mjolnir {
 			_oLayout2       = new LayoutFlowSquare_MainWin( this ) { Spacing = 5 };
 
             _oDecorEnum = new MainWinDecorEnum( this );
+
+            _rgStdDecor = new() {
+                { GlobalDecor.Clock,       new( "clock",       "icon_clock.gif",              fSolo: true ) },
+                { GlobalDecor.Find,        new( "find",        "icons8-search-64.png",        fSolo: true ) },
+                { GlobalDecor.Results,     new( "matches",     "icon_match.gif",              fSolo: true ) },
+                { GlobalDecor.Outline,     new( "outline",     "icons8-forest-48.png",        fSolo: false) },
+                { GlobalDecor.Properties,  new( "navigate",    "icons8-edit-property-48.png", fSolo: false) },
+                { GlobalDecor.Views,       new( "views",       "icon_windows.gif",            fSolo: true ) },
+                { GlobalDecor.Alerts,      new( "alerts",      "icon_output.gif",             fSolo: true ) },
+                { GlobalDecor.Productions, new( "productions", "icon_productions.gif",        fSolo: false) },
+                { GlobalDecor.Options,     new( "options",     "icon_productions.gif",        fSolo: false) },
+                { GlobalDecor.ToolIcons,   new( "tools",       "icon_productions.gif",        fSolo: false) }
+            };
         }
 
 		public IPgParent Parentage => Document;
@@ -345,8 +360,8 @@ namespace Mjolnir {
             oCenter.Add( oInner ); 
             oCenter.Add( _rgSideInfo[SideIdentify.Right] ); 
 
-            _oLayoutPrimary.Add( new LayoutControl( Tabs,  LayoutRect.CSS.Flex, 40) ); 
-            _oLayoutPrimary.Add( new LayoutCenter( _oTopMenu, LayoutRect.CSS.Flex, 34) ); 
+            _oLayoutPrimary.Add( new LayoutControl( Tabs,      LayoutRect.CSS.Flex, 40) ); 
+            _oLayoutPrimary.Add( new LayoutCenter ( _oTopMenu, LayoutRect.CSS.Flex, 34) ); 
             _oLayoutPrimary.Add( oCenter); 
             _oLayoutPrimary.Add( _rgSideInfo[SideIdentify.Bottom] );
 
@@ -712,7 +727,7 @@ namespace Mjolnir {
             oSettingsMenu.DropDownItems.Add(new ToolStripMenuItem("Save As...", BitmapCreateFromChar( "\xe159" ), new EventHandler(this.OnSessionSaveAs)));
             oSettingsMenu.DropDownItems.Add(new ToolStripSeparator() );
             oSettingsMenu.DropDownItems.Add(new ToolStripMenuItem("Alerts!",         BitmapCreateFromChar( "\xE1de" ), new EventHandler(this.OnSessionOpenAlerts )));
-//            oSettingsMenu.DropDownItems.Add(new ToolStripMenuItem("Search Results!", BitmapCreateFromChar( "\xE179" ), new EventHandler(this.OnSessionOpenResults)));
+//          oSettingsMenu.DropDownItems.Add(new ToolStripMenuItem("Search Results!", BitmapCreateFromChar( "\xE179" ), new EventHandler(this.OnSessionOpenResults)));
             oSettingsMenu.DropDownItems.Add(new ToolStripMenuItem("Recent List!",    BitmapCreateFromChar( "\xE1a5" ), new EventHandler(this.OnSessionOpenRecents)));
             oSettingsMenu.DropDownItems.Add(new ToolStripMenuItem("Scrap Book!",     BitmapCreateFromChar( "\xE1d3" ), new EventHandler(this.OnSessionOpenScraps )));
             oSettingsMenu.DropDownItems.Add(new ToolStripSeparator() );
@@ -823,24 +838,27 @@ namespace Mjolnir {
                 }
             }
 
-            // Second check to see if the menu herder is showing. 
-            SmartHerderBase oHerderMenu = Shepardfind("menu");
-
             // Now set up our show/grey stuff in our menu.
             string[] rgContexts = { "minimize", "maximize", "close" }; // BUG: hard coded values.
-            foreach (ToolStripMenuItem oMenuItem in _oContextMenu.Items) {
+            foreach( ToolStripMenuItem oMenuItem in _oContextMenu.Items) {
                 bool fFoundContext = false;
-                foreach (string strContext in rgContexts) {
+                foreach( string strContext in rgContexts) {
                     // There's a "name" value on the oMenuItem which is probably better since it won't be localized!!!
                     // need to set up the menu so that value get's set instead of depending on "text" property.
                     if (string.Compare(strContext, oMenuItem.Text, true) == 0) {
                         fFoundContext = true;
                     }
                 }
-                if (fFoundContext) {
-                    oMenuItem.Enabled = oHerderFound != null;
+                if( fFoundContext) {
+                    oMenuItem.Enabled = oHerderFound is not null ;
                 }
-                if (string.Compare("menu", oMenuItem.Text, true) == 0 && oHerderMenu != null) { // BUG: hard coded values.
+
+                // 11/8/2024: We're not putting the top menu in a shepard, we
+                //            don't have a "menu" context entry either and so
+                //            this should never trigger.
+                if( string.Compare("menu", oMenuItem.Text, true) == 0 && 
+                    Shepardfind(GlobalDecor.Menu) is SmartHerderBase oHerderMenu ) 
+                { 
                     oMenuItem.Enabled = !oHerderMenu.Hidden;
                 }
             }
@@ -1548,8 +1566,7 @@ namespace Mjolnir {
 
         protected void OnEditFind( object sender, EventArgs e ) 
         {
-            SmartHerderBase oHerder = DecorOpen( "find", true );
-            if( oHerder != null ) {
+            if( DecorOpen( GlobalDecor.Find, true ) is SmartHerderBase oHerder ) {
                 oHerder.AdornmentFocus( null ); // since find is a solo, we don't need it's view site!
             }
         }
@@ -2515,34 +2532,34 @@ namespace Mjolnir {
 
                 // BUG: This is a little bit of a problem since the docslot is hosted by the program but the
                 // view is on the main window. So we're not using the best controller for the view creation.
-				DecorSlot oAlertsSite = new DecorSlot( this, Document.AlertSlot, Shepardfind( "alerts" ) );
+				DecorSlot oAlertsSite = new DecorSlot( this, Document.AlertSlot, Shepardfind( GlobalDecor.Alerts ) );
                 oAlertsSite.ViewCreate( Guid.Empty );
 				oAlertsSite.InitNew();
-				DecorAdd( "alerts", oAlertsSite.Guest );
+				DecorAddSolo( GlobalDecor.Alerts, oAlertsSite.Guest );
 
 				DecorSlot oResultsSite = new DecorSlot( this, 
                                                         new InternalSlot( Document, 
                                                                           Document.GetController( ".results" ),
                                                                           "Search Results" ),
-                                                        Shepardfind( "matches" ) );
+                                                                          Shepardfind( GlobalDecor.Alerts ) );
                 ViewSearchResults oViewMatches = new ViewSearchResults( oResultsSite, Document.Doc_Results );
                 oViewMatches.InitNew();
-                DecorAdd( "matches", oViewMatches );
+                DecorAddSolo( GlobalDecor.Results, oViewMatches );
 
-				DecorSlot oFindSite = new DecorSlot( this, Document.FindSlot, Shepardfind( "find" ) );
+				DecorSlot oFindSite = new DecorSlot( this, Document.FindSlot, Shepardfind( GlobalDecor.Find ) );
                 oFindSite.ViewCreate( Program.FindDialog );
 				oFindSite.InitNew();
-				DecorAdd( "find", oFindSite.Guest );
+				DecorAddSolo( GlobalDecor.Find, oFindSite.Guest );
 
-                DecorSlot oSelectorSite = new ViewSelectorSlot(this, _oDoc_ViewSelector.Site as IDocSlot, Shepardfind( "views" ));
+                DecorSlot oSelectorSite = new ViewSelectorSlot(this, _oDoc_ViewSelector.Site as IDocSlot, Shepardfind( GlobalDecor.Views ));
                 oSelectorSite.ViewCreate( Program.ViewSelector );
                 oSelectorSite.InitNew();
-                DecorAdd( "views", oSelectorSite.Guest);
+                DecorAddSolo( GlobalDecor.Views, oSelectorSite.Guest);
 
-                DecorSlot oClockSite = new DecorSlot( this, Document.ClockSlot, Shepardfind( "clock" ) );
+                DecorSlot oClockSite = new DecorSlot( this, Document.ClockSlot, Shepardfind( GlobalDecor.Clock ) );
                 oClockSite.ViewCreate( Program.Clock );
                 oClockSite.InitNew();
-                DecorAdd( "clock", oClockSite.Guest);
+                DecorAddSolo( GlobalDecor.Clock, oClockSite.Guest);
 
             } catch( Exception oEx ) {
 				Type[] rgErrors = { typeof( ArgumentNullException ),

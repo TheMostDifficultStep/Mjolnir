@@ -162,10 +162,10 @@ namespace Monitor {
         }
 
         public object? Decorate(IPgViewSite oBaseSite, Guid sGuid) {
-            if( sGuid == GlobalDecorations.Outline ) {
+            if( sGuid == GlobalDecor.Outline ) {
                 return new EditWindow2( oBaseSite, _oMonDoc.Doc_Outl, fReadOnly:true );
             }
-            if( sGuid == GlobalDecorations.Properties ) {
+            if( sGuid == GlobalDecor.Properties ) {
                 return new WindowStandardProperties( oBaseSite, _oMonDoc.Doc_Props );
             }
             return null;

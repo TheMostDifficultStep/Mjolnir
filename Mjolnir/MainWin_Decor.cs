@@ -228,12 +228,14 @@ namespace Mjolnir {
             }
         }
 
-        struct IconProps {
+        protected struct DecorProperties {
             public readonly string File;
             public readonly bool   Solo;
-            public IconProps( string strResourceName, bool fSolo ) {
+            [Obsolete]public readonly string Name;
+            public DecorProperties( string strName, string strResourceName, bool fSolo ) {
                 File = "Content." + strResourceName;
                 Solo = fSolo;
+                Name = strName;
             }
         }
 
@@ -246,28 +248,14 @@ namespace Mjolnir {
             XmlNodeList                lstTools   = xmlDocument.SelectNodes("config/mainwindow/docking/dock");
             Point                      ptOrigin   = new Point();
 
-            Dictionary<string, IconProps> rgIcons = new() {
-                { "clock",       new("icon_clock.gif",              fSolo: true ) },
-                { "find",        new("icons8-search-64.png",        fSolo: true ) },
-                { "matches",     new("icon_match.gif",              fSolo: true ) },
-                { "outline",     new("icons8-forest-48.png",        fSolo: false) },
-                { "navigate",    new("icons8-edit-property-48.png", fSolo: false) },
-                { "views",       new("icon_windows.gif",            fSolo: true ) },
-                { "alerts",      new("icon_output.gif",             fSolo: true ) },
-                { "productions", new("icon_productions.gif",        fSolo: false) },
-                { "options",     new("icon_productions.gif",        fSolo: false) },
-                { "tools",       new("icon_productions.gif",        fSolo: false) }
-            };
-
             foreach( XmlElement xeType in lstTools ) {
-                string strToolName = xeType.GetAttribute("tool"); // Returns empty string if not found.
                 string strToolEdge = xeType.GetAttribute("edge");
                 string strToolDisp = xeType.GetAttribute("display" );
 				string strToolVis  = xeType.GetAttribute("visible" );
                 string strToolGuid = xeType.GetAttribute("decor" );
 
-                SideIdentify eEdge    = SideIdentify.Bottom;
-                Guid         guidTool = Guid.Empty;
+                SideIdentify eEdge  = SideIdentify.Bottom;
+                Guid         gDecor = Guid.Empty;
 
                 foreach( SideIdentify eSide in _rgSideInfo.Keys ) {
                     if( string.Compare( strToolEdge, eSide.ToString().ToLower() ) == 0 ) {
@@ -277,7 +265,7 @@ namespace Mjolnir {
                 }
 
                 try {
-                    guidTool = new Guid( strToolGuid );
+                    gDecor = new Guid( strToolGuid );
                 } catch ( Exception oEx ) {
                     Type[] rgError = { typeof(ArgumentNullException), 
                                        typeof(FormatException), 
@@ -291,13 +279,13 @@ namespace Mjolnir {
                 // is the piece that gets dragged around if the user want's to see it in
                 // a different place on the edges.
                 SmartHerderBase oShepard;
-                string          strResource = rgIcons[strToolName].File;
-                bool            fSolo       = rgIcons[strToolName].Solo;
+                string          strResource = _rgStdDecor[gDecor].File;
+                bool            fSolo       = _rgStdDecor[gDecor].Solo;
 
                 if( fSolo )
-                    oShepard = new SmartHerderSolo( this, strResource, strToolName, strToolDisp, guidTool );
+                    oShepard = new SmartHerderSolo( this, strResource, strToolDisp, gDecor );
                 else
-                    oShepard = new SmartHerderClxn( this, strResource, strToolName, strToolDisp, guidTool );
+                    oShepard = new SmartHerderClxn( this, strResource, strToolDisp, gDecor );
 
                 // Unfortunately the corner boxes won't be set until we've got our window size.
                 // so just set some arbitray size for now.
@@ -312,12 +300,12 @@ namespace Mjolnir {
 				else
 					oShepard.Hidden = true;
 
-                //if( strToolName == "outline" ) // TODO: Experimental.
+                //if( gDecor == GlobalDecor.Outline ) // TODO: Experimental.
                 //    oShepard.HideTitle = true;
-                if( strToolName == "command" ) // TODO: More experimental.
-                    oShepard.Margin = new SmartRect( 5, 5, 5, 5 );
+                //if( gDecor == GlobalDecor.Command ) // TODO: More experimental. Don't have a command bar 11/8/2024
+                //    oShepard.Margin = new SmartRect( 5, 5, 5, 5 );
 
-                _rgShepards.Add( strToolName, oShepard );
+                _rgShepards.Add( gDecor, oShepard );
 
                 // Stagger all the windows both in x and y so that when we try to arrange them after
                 // our main window get's sized they'll be roughly in the order loaded.
@@ -459,14 +447,14 @@ namespace Mjolnir {
 		/// window providing adornments to itself, or some such.</remarks>
 		/// <exception cref="ArgumentNullException" />
 		/// <exception cref="ArgumentException" />
-        protected bool DecorAdd( string strShepardName, Control oControl ) {
-            SmartHerderBase oShepard = Shepardfind( strShepardName );
+        protected bool DecorAddSolo( Guid gShepardName, Control oControl ) {
+            SmartHerderBase oShepard = Shepardfind( gShepardName );
 
-            if( oShepard == null )
-                return( false );
+            if( Shepardfind( gShepardName ) is not SmartHerderSolo oSolo )
+                return false;
             
-            if( !oShepard.AdornmentAdd(null, oControl ) ) {
-                LogError(null, "internal", "Couldn't add adornment: " + strShepardName );
+            if( !oSolo.AdornmentAdd(null, oControl ) ) {
+                LogError(null, "internal", "Couldn't add adornment" );
                 return( false );
             }
 
@@ -475,30 +463,29 @@ namespace Mjolnir {
             return( true );
         }
 
-		public Control DecorSoloSearch( string strShepardName ) {
-			SmartHerderBase oShepardMatches = Shepardfind( "matches" );
-			if( oShepardMatches != null ) {
-				return oShepardMatches.AdornmentFind( null );
+		public Control DecorSoloSearch( Guid gDecor ) {
+			if( Shepardfind( gDecor ) is SmartHerderSolo oSolo ) {
+				return oSolo.AdornmentFind( null );
 			}
 
 			return null;
 		}
 
         internal IEnumerator<SmartHerderBase> ShepardEnum() {
-            foreach( KeyValuePair<string, SmartHerderBase> oPair in _rgShepards ) {
-                yield return( oPair.Value );
+            foreach( KeyValuePair<Guid, SmartHerderBase> oPair in _rgShepards ) {
+                yield return oPair.Value;
             }
         }
 
-        internal SmartHerderBase Shepardfind( string strName ) {
+        internal SmartHerderBase Shepardfind( Guid gDecor ) {
             SmartHerderBase oHerder = null;
 
             try {
-                oHerder = _rgShepards[strName];
+                oHerder = _rgShepards[gDecor];
             } catch( KeyNotFoundException ) {
             }
 
-            return( oHerder );
+            return oHerder;
         }
 
         internal SHOWSTATE InsideShow {
@@ -674,7 +661,7 @@ namespace Mjolnir {
                         if( !oHerder.Hidden ) {
                             XmlElement xmlDecor =xmlOurRoot.OwnerDocument.CreateElement( "Decor" );
 
-				            xmlDecor.SetAttribute( "name",  oHerder.Name );
+				            xmlDecor.SetAttribute( "decor", oHerder.Decor.ToString() );
                             xmlDecor.SetAttribute( "side",  oHerder.Orientation.ToString().ToLower() );
                             xmlDecor.SetAttribute( "order", i.ToString() );
                             xmlDecor.SetAttribute( "track", oHerder.Track.ToString() );
@@ -750,6 +737,20 @@ namespace Mjolnir {
         }
 
         /// <summary>
+        /// this is a little backward compatibility. We'll get rid of after
+        /// we've updated our PVS files eventually.
+        /// </summary>
+        /// <param name="strName">Old way to look up tool/decor by string name.</param>
+        [Obsolete]protected Guid FindDecorByLegacyName( string strName ) {
+            foreach( KeyValuePair<Guid, DecorProperties> oPair in _rgStdDecor ) {
+                if( string.Compare( oPair.Value.Name, strName, ignoreCase:true ) == 0 ) {
+                    return oPair.Key;
+                }
+            }
+            throw new KeyNotFoundException( "Could not find legacy decor name." );
+        }
+
+        /// <summary>
         /// We depend on ViewSelect() called AFTER this has been called on load.
         /// </summary>
         /// <seealso cref="ViewSelect(ViewSlot, bool)" />
@@ -758,10 +759,10 @@ namespace Mjolnir {
         /// <seealso cref="DecorSave"/>
         public void DecorLoad( XmlElement xmlRoot ) {
             try {
-				XmlNodeList                         rgXmlDecors = xmlRoot.SelectNodes( "Decors/Decor");
-                Dictionary<string, SideIdentify>    dctFindSide = new(); // search side enum by a string.
-                Dictionary<SideIdentify, bool>      dctSides    = new();
-                Dictionary<string, MenuReset>       dctDecor    = new(); // search decor by string.
+				XmlNodeList                       rgXmlDecors = xmlRoot.SelectNodes( "Decors/Decor");
+                Dictionary<string, SideIdentify>  dctFindSide = new(); // search side enum by a string.
+                Dictionary<SideIdentify, bool>    dctSides    = new();
+                Dictionary<Guid, MenuReset>       dctDecor    = new(); // search decor by string.
 
                 // Identify any "side" that will be effected by a shepard visibility.
                 foreach( SideIdentify eSide in Enum.GetValues( typeof( SideIdentify ) ) ) {
@@ -770,16 +771,26 @@ namespace Mjolnir {
                 }
                 // Set up copy of the menu assuming no decor specified in the .pvs file
                 foreach( IPgMenuVisibility oDecorVis in _oDecorEnum ) {
-                    dctDecor.Add( oDecorVis.Shepard.Name, new MenuReset( oDecorVis ) );
+                    dctDecor.Add( oDecorVis.Shepard.Decor, new MenuReset( oDecorVis ) );
                 }
                 // If we find a decor specified as shown, flag it that we want it on.
 				foreach( XmlElement xmlDecor in rgXmlDecors ) {
                     try {
+                        Guid   gDecor = Guid.Empty;
+
                         string strDecorName = xmlDecor.GetAttribute( "name" );
+                        string strDecorGuid = xmlDecor.GetAttribute( "decor" );
                         string strDecorSide = xmlDecor.GetAttribute( "side" );
                         string strDecorOrdr = xmlDecor.GetAttribute( "order" );
                         string strDecorTrak = xmlDecor.GetAttribute( "track" );
-                        MenuReset oReset = dctDecor[strDecorName];
+
+                        if( string.IsNullOrEmpty( strDecorName ) ) {
+						    gDecor = Guid.Parse( strDecorGuid );      // New Path.
+                        } else {
+                            gDecor = FindDecorByLegacyName( strDecorName ); // Old Path.
+                        }
+
+                        MenuReset oReset = dctDecor[gDecor];
 
                         oReset._fVisible = true;
                         oReset._eNewSide = dctFindSide[ strDecorSide ];
@@ -798,7 +809,7 @@ namespace Mjolnir {
                 }
                 // Now go thru all the menu items and see if the .pvs visibility matches it's current visibility.
                 bool fFoundAtLeastOne = false;
-                foreach( KeyValuePair< string,MenuReset> oPair in dctDecor ) {
+                foreach( KeyValuePair< Guid,MenuReset> oPair in dctDecor ) {
                     IPgMenuVisibility oMenuVis = oPair.Value._oDecorMenu;
                     SideIdentify      eOrient  = oPair.Value._eNewSide;   // oMenuVis.Shepard.Orientation;
 
@@ -1076,9 +1087,9 @@ namespace Mjolnir {
 			Invalidate ();
         }
 
-        internal SmartHerderBase DecorOpen( string strName, bool fOpen ) {
+        internal SmartHerderBase DecorOpen( Guid gDecor, bool fOpen ) {
             foreach( IPgMenuVisibility oMenuItem in DecorSettings ) {
-                if( oMenuItem.Shepard.Name == strName ) {
+                if( oMenuItem.Shepard.Decor == gDecor ) {
                     DecorSetState( oMenuItem, fOpen );
                     return( oMenuItem.Shepard );
                 }
@@ -1087,8 +1098,12 @@ namespace Mjolnir {
             return( null );
         }
 
+        /// <summary>
+        /// Presently there is no Menu decor/shepard. The menu is hard coded to be
+        /// in the layout.
+        /// </summary>
         protected void OnDecorMenuOpenCommand( object s, EventArgs e ) {
-            DecorOpen( "menu", true );
+            DecorOpen( GlobalDecor.Menu, true );
         }
 
         /// <summary>

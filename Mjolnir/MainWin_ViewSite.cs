@@ -394,7 +394,7 @@ namespace Mjolnir {
 
         public virtual bool IsCommandKey( CommandKey ckKey, KeyBoardEnum kbModifiers ) {
             if( ckKey == CommandKey.Find && kbModifiers == KeyBoardEnum.Control ) {
-                SmartHerderBase oHerder = _oHost.DecorOpen( "find", true );
+                SmartHerderBase oHerder = _oHost.DecorOpen( GlobalDecor.Find, true );
                 if( oHerder != null ) {
                     oHerder.AdornmentFocus( null ); // since find is a solo, we don't need it's view site!
                 }

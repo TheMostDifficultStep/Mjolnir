@@ -688,10 +688,10 @@ namespace Play.ImageViewer {
 		}
 
         public override object Decorate( IPgViewSite oBaseSite, Guid sGuid ) {
-            if( sGuid == GlobalDecorations.Outline ) {
+            if( sGuid == GlobalDecor.Outline ) {
                 return new ImageViewIcons( oBaseSite, _oDocWalker );
             }
-            if( sGuid.Equals( GlobalDecorations.Properties ) ) {
+            if( sGuid.Equals( GlobalDecor.Properties ) ) {
                 return new WindowStandardProperties( oBaseSite, _oDocWalker.Properties );
             }
 
