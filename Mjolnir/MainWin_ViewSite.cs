@@ -8,6 +8,7 @@ using SkiaSharp;
 using Play.Interfaces.Embedding;
 using Play.Edit;
 using Play.Rectangles;
+using static Play.ImageViewer.DocImageEdit;
 
 namespace Mjolnir {
     /// <summary>
@@ -610,33 +611,35 @@ namespace Mjolnir {
 	/// ViewSelector document is hosted by MainWin and NOT Program,
 	/// thus the view site cannot produce a IDocSlot.
 	/// </summary>
-	internal class DecorSlot : NonRefCountSlot {
+	internal class DecorSlot :
+        IPgViewSite,
+        IPgViewNotify,
+        IDisposable
+    {
 		SmartHerderBase _oHerder;
+        MainWin         _oHost;
+        IDocSlot        _oSlotDoc;
 
-		///<exception cref="ArgumentNullException" />
-        public DecorSlot( MainWin oHost, IDocSlot oDocSite, SmartHerderBase oHerder ) :
-            base( oHost, oDocSite, Guid.Empty )
+        // The decor we are hosting. If I make the slot contained within the main
+        // win, I could make the set property protected.
+        public Control       Guest { get; set; }
+        public IPgViewNotify EventChain => this;
+        public IPgParent     Host       => _oHost;
+
+        ///<exception cref="ArgumentNullException" />
+        public DecorSlot( MainWin oHost, IDocSlot oDocSite, SmartHerderBase oHerder ) 
         {
-			_oHerder = oHerder ?? throw new ArgumentNullException( "Herder required." );
+			_oHerder  = oHerder  ?? throw new ArgumentNullException( "Herder required." );
+            _oHost    = oHost    ?? throw new ArgumentNullException( "Main windowo required." );
+            _oSlotDoc = oDocSite ?? throw new ArgumentNullException( "Document slot must not be null." );
         }
-
-		public override IPgViewNotify EventChain => this;
-
-		/// <remarks>
-		/// A little bit evil, in the future whe should probably have our viewsite inherit from
-		/// the DecorSite which is the restricted one.
-        /// BUG: Look into changing GuestAssign to GuestSet to match others.
-		/// </remarks>
-		protected override void GuestAssign( Control oGuest ) {
-            _oViewControl = oGuest ?? throw new ArgumentNullException( "Decor view site needs a guest to be valid." );
-		}
 
         /// <summary>
         /// Shell focus events are for the tools to track the current document view.
         /// If a tool get's the focus, it's not the same.
         /// </summary>
         /// <param name="fSelect"></param>
-        public override void NotifyFocused(bool fSelect) {
+        public void NotifyFocused(bool fSelect) {
 			if( fSelect )
 				_oHerder.OnFocused();
 			else
@@ -648,40 +651,76 @@ namespace Mjolnir {
         /// <summary>
         /// A dialog control on the side should not accept either TAB and ENTER key.
         /// </summary>
-        public override bool IsCommandKey( CommandKey ckKey, KeyBoardEnum kbModifiers ) {
+        public bool IsCommandKey( CommandKey ckKey, KeyBoardEnum kbModifiers ) {
             switch( ckKey ) {
                 case CommandKey.Tab:
-                    return( true );
+                    return true;
             }
-            return( false );
+            return false;
         }
-        public override bool IsCommandPress( char cChar ) {
+        public bool IsCommandPress( char cChar ) {
             switch( cChar ) {
                 case '\r':
                     return( true );
             }
-            return( false );
+            return false;
         }
 
-		public override void Notify( ShellNotify eEvent ) {
+		public void Notify( ShellNotify eEvent ) {
 			// Ignore this event from decor. These are usually recycled views that don't know
 			// they are being used as decor.
 		}
-	}
+
+        public void LogError(string strMessage, string strDetails, bool fShow = true) {
+            _oHost.LogError( null, strMessage, strDetails, fShow );
+        }
+
+        public bool GuestInit() {
+            if( Guest is IPgLoad oGuestLoad ) {
+                return oGuestLoad.InitNew();
+            }
+            LogError( "Decor", "Could not initialize Guest" );
+            return false;
+        }
+
+        public void ViewCreate( Guid guidViewType ) {
+            try {
+                Guest = (Control)_oSlotDoc.Controller.
+                          CreateView( this, _oSlotDoc.Document, guidViewType ) ;
+                //_oHerder.AdornmentAdd( null, Guest );
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( InvalidOperationException ),
+                                    typeof( ApplicationException ),
+                                    typeof( ArgumentException ),
+                                    typeof( ArgumentNullException ),
+                                    typeof( InvalidCastException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
+
+                LogError( "View", "Unable to create decor on document." );
+                throw new ApplicationException( "Unable to create view", oEx );
+            }
+        }
+
+        public void Dispose() {
+            Guest.Dispose();
+        }
+    }
 
     /// <summary>
-    /// This object begs the question, where is the best place to put all the specialized behavior on these complex objects
+    /// 4/7/2020: This object begs the question, where is the best place to put all the specialized behavior on these complex objects
     /// utilizing my text editor. I'm thinking that I should subclass the edit win, then I can leverage my view creation system.
-    /// But I'm going to go with this for the moment... 4/7/2020
+    /// But I'm going to go with this for the moment...
+    /// 11/9/2024: Probably going to revamp the View for the Views. I've disabled it for now.
     /// </summary>
     /// <remarks>We don't bring to top on views when the user navigates the view window. I prefer hitting the space bar like
     /// a button to make the view switch.</remarks>
-    internal class ViewSelectorSlot : DecorSlot {
+    internal class ViewSelectorSlot : NonRefCountSlot {
         readonly ViewsEditor _oDoc_Views;
                  IPgTextView _oViewText; 
 
         public ViewSelectorSlot(MainWin oHost, IDocSlot oDocSite, SmartHerderBase oHerder ) :
-            base(oHost, oDocSite, oHerder)
+            base(oHost, oDocSite, Guid.Empty )
         {
             _oDoc_Views = oDocSite.Document as ViewsEditor ?? throw new ArgumentException( "Document must support a ViewSite Editor" );
         }

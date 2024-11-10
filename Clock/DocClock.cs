@@ -10,6 +10,7 @@ using Play.Drawing;
 using Play.Interfaces.Embedding;
 using Play.Rectangles;
 using Play.Edit;
+using Play.Forms;
 
 namespace Play.Clock {
     public class ClockRow : Row {
@@ -143,8 +144,8 @@ namespace Play.Clock {
 
     public class WindowClock :
         WindowMultiColumn,
-        IPgLoad<XmlElement>,
-        IPgSave<XmlDocumentFragment>,
+        //IPgLoad<XmlElement>,
+        //IPgSave<XmlDocumentFragment>,
         IPgParent,
         IPgCommandView
     {
@@ -183,10 +184,12 @@ namespace Play.Clock {
             TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Percent, 30, 1L ), ClockRow.ColumnTime); // time
             TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Percent, 45, 1L ), ClockRow.ColumnDate); // date
             TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Percent, 25, 1L ), ClockRow.ColumnZone); // zones.
-            
-            // Figure this out later...
-            //foreach( LayoutSingleLine oCache in CacheList ) {
-            //    oCache.BgColor = _oStdUI.ColorsStandardAt( StdUIColors.BGNoEditText );
+
+            //Figure this out later...
+            //foreach( CacheRow oRow in _oCacheMan ) {
+            //    foreach( IPgCacheRender oCache in oRow ) {
+            //        oCache.BgColor = _oStdUI.ColorsStandardAt(StdUIColors.BGNoEditText);
+            //    }
             //}
 
             return true;

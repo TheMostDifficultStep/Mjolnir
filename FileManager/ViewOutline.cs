@@ -50,12 +50,12 @@ namespace Play.FileManager {
 		public IPgParent Parentage => _oViewSite.Host; 
 		public IPgParent Services  => _oOwner.Services;
 
-		protected class DecorSlot :
+		protected class ViewSlot :
 			IPgViewSite
 		{
 			protected readonly ViewFManOutline _oHost;
 
-			public DecorSlot( ViewFManOutline oHost ) {
+			public ViewSlot( ViewFManOutline oHost ) {
 				_oHost = oHost ?? throw new ArgumentNullException();
 			}
 
@@ -76,7 +76,7 @@ namespace Play.FileManager {
 			_oOwner   = (ViewFileMan)oViewSite.Host;
 			_oDocFM   = _oOwner.Document;
 
-			ViewFaves = new ( new DecorSlot(this), _oDocFM.DocFavs );
+			ViewFaves = new ( new ViewSlot(this), _oDocFM.DocFavs );
 		  //ViewArt   = new ( new DecorSlot(this), _oDocFM.ImgFavs );
 
 			ViewFaves.Parent = this;

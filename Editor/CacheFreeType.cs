@@ -133,7 +133,9 @@ namespace Play.Edit {
     /// mainly for backwards compat. Should I ever retire CacheManager2 in 
     /// favor of CacheMultiColumn, we should be able to upgrade it to a "Row" class.
     /// </remarks>
-    public abstract class CacheRow {
+    public abstract class CacheRow :
+        IEnumerable<IPgCacheRender>
+    {
         // This is super important that the CacheList 0 is used. The other's line
         // numbers are not managed by the text editor.
         public abstract Line   Line { get; } // Hopefully we can remove this when update the CacheManager2
@@ -197,6 +199,16 @@ namespace Play.Edit {
 
         public bool IsHit( Point pntLocation ) {
             return pntLocation.Y >= Top && pntLocation.Y < Bottom;
+        }
+
+        public IEnumerator<IPgCacheRender> GetEnumerator() {
+            foreach( IPgCacheRender oRender in CacheColumns ) {
+                yield return oRender;
+            }
+        }
+
+        IEnumerator IEnumerable.GetEnumerator() {
+            return GetEnumerator();
         }
     }
 

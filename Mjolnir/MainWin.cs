@@ -613,7 +613,7 @@ namespace Mjolnir {
 		/// <param name="xmlConfig"></param>
         protected void InitializeMenu( XmlDocument xmlConfig ) {
 			_oTopMenu = new MyMenuStrip() {
-				Font        = Document.FontMenu,
+				Font        = Document.FontMenu, // new Font( "ChicagoFLF", 14 ) doesn't support my buttons.
 				AutoSize    = false,
 				LayoutStyle = ToolStripLayoutStyle.Flow
 			};
@@ -2534,31 +2534,38 @@ namespace Mjolnir {
                 // view is on the main window. So we're not using the best controller for the view creation.
 				DecorSlot oAlertsSite = new DecorSlot( this, Document.AlertSlot, Shepardfind( GlobalDecor.Alerts ) );
                 oAlertsSite.ViewCreate( Guid.Empty );
-				oAlertsSite.InitNew();
+				oAlertsSite.GuestInit();
 				DecorAddSolo( GlobalDecor.Alerts, oAlertsSite.Guest );
 
 				DecorSlot oResultsSite = new DecorSlot( this, 
                                                         new InternalSlot( Document, 
                                                                           Document.GetController( ".results" ),
                                                                           "Search Results" ),
-                                                                          Shepardfind( GlobalDecor.Alerts ) );
+                                                                          Shepardfind( GlobalDecor.Results ) );
                 ViewSearchResults oViewMatches = new ViewSearchResults( oResultsSite, Document.Doc_Results );
+                oResultsSite.Guest = oViewMatches;
                 oViewMatches.InitNew();
                 DecorAddSolo( GlobalDecor.Results, oViewMatches );
 
 				DecorSlot oFindSite = new DecorSlot( this, Document.FindSlot, Shepardfind( GlobalDecor.Find ) );
                 oFindSite.ViewCreate( Program.FindDialog );
-				oFindSite.InitNew();
+				oFindSite.GuestInit();
 				DecorAddSolo( GlobalDecor.Find, oFindSite.Guest );
 
-                DecorSlot oSelectorSite = new ViewSelectorSlot(this, _oDoc_ViewSelector.Site as IDocSlot, Shepardfind( GlobalDecor.Views ));
-                oSelectorSite.ViewCreate( Program.ViewSelector );
-                oSelectorSite.InitNew();
-                DecorAddSolo( GlobalDecor.Views, oSelectorSite.Guest);
+                // TODO: While this compiles. It's not right plus the ViewSelectorSlot seems rather
+                //       complicated. Probably an antiquated design. I use the menu as it is so
+                //       let's park this for now.
+                //ViewSelectorSlot oSelectorSite = 
+                //    new ViewSelectorSlot( this, 
+                //                          _oDoc_ViewSelector.Site as IDocSlot, 
+                //                          Shepardfind( GlobalDecor.Views ));
+                //oSelectorSite.ViewCreate( Program.ViewSelector );
+                //oSelectorSite.InitNew();
+                //DecorAddSolo( GlobalDecor.Views, oSelectorSite.Guest);
 
                 DecorSlot oClockSite = new DecorSlot( this, Document.ClockSlot, Shepardfind( GlobalDecor.Clock ) );
                 oClockSite.ViewCreate( Program.Clock );
-                oClockSite.InitNew();
+                oClockSite.GuestInit();
                 DecorAddSolo( GlobalDecor.Clock, oClockSite.Guest);
 
             } catch( Exception oEx ) {

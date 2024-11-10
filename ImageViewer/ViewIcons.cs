@@ -1,10 +1,10 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Windows.Forms;
 using System.IO;
 using System.Drawing;
 using System.Xml;
+using System.Reflection;
 
 using Play.Interfaces.Embedding;
 using Play.Rectangles;
@@ -14,7 +14,6 @@ using Play.Forms;
 
 using SkiaSharp;
 using SkiaSharp.Views.Desktop;
-using System.Reflection;
 
 namespace Play.ImageViewer {
     public abstract class ImageLineBase : LayoutImageReference {

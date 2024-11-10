@@ -377,7 +377,7 @@ namespace Mjolnir {
         /// </summary>
         protected bool DecorCreate( ViewSlot oViewSite, SmartHerderBase oShepard ) {
 			IPgCommandView oViewCmmd;
-			ViewSlot       oDecorSite;
+			DecorSlot      oDecorSite;
             Control        oDecor;
 
 			try {
@@ -414,7 +414,7 @@ namespace Mjolnir {
 			try {
 				oDecorSite.Guest = oDecor;
 
-                if( !oDecorSite.InitNew() ) {
+                if( !oDecorSite.GuestInit() ) {
                     oDecorSite.Dispose();
                     LogError( oViewSite, "adornment", "The decoration, was unable to initialize a new instance." );
 					return false;
