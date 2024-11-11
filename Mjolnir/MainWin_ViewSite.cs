@@ -8,7 +8,6 @@ using SkiaSharp;
 using Play.Interfaces.Embedding;
 using Play.Edit;
 using Play.Rectangles;
-using static Play.ImageViewer.DocImageEdit;
 
 namespace Mjolnir {
     /// <summary>

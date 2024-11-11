@@ -178,6 +178,12 @@ namespace Play.Edit {
             _fReadonly = false;
             _iLayoutIdx = -1;
         }
+        public ColumnInfo( int iDataColumn, LayoutRect rcRect ) {
+            _rcBounds  = rcRect ?? throw new ArgumentNullException();
+            _iDataIdx  = iDataColumn; // data row column.
+            _fReadonly = false;
+            _iLayoutIdx = -1;
+        }
     }
 
     public class WindowMultiColumn :

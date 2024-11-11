@@ -6,6 +6,9 @@ using Play.Rectangles;
 using Play.Parse;
 using Play.Forms;
 
+using DClmn = Play.FileManager.FileManager.FMRow.DCol;
+using LCss  = Play.Rectangles.LayoutRect.CSS;
+
 namespace Play.FileManager {
     public class FileManController : 
         Controller 
@@ -116,15 +119,13 @@ namespace Play.FileManager {
             if( !base.Initialize() )
                 return false;
 
-            int iTop = _rgLayout.Count;
-
             List<ColumnInfo> rgCols = new List<ColumnInfo> {
-                new ColumnInfo( new LayoutRect( LayoutRect.CSS.Pixels ) {Track=(uint)_oCacheMan.GlyphCheck.Coordinates.advance_x }, (int)FileManager.FMRow.DCol.Chck ),
-                new ColumnInfo( new LayoutRect( LayoutRect.CSS.Pixels ) {Track=30 }, (int)FileManager.FMRow.DCol.Type ),       
-                new ColumnInfo( new LayoutRect( LayoutRect.CSS.None   ),             (int)FileManager.FMRow.DCol.Name ),
-                new ColumnInfo( new LayoutRect( LayoutRect.CSS.Pixels ) {Track=100,Justify = Align.Right }, (int)FileManager.FMRow.DCol.Time ),
-                new ColumnInfo( new LayoutRect( LayoutRect.CSS.Pixels ) {Track=100,Justify = Align.Right }, (int)FileManager.FMRow.DCol.Date ),
-                new ColumnInfo( new LayoutRect( LayoutRect.CSS.Pixels ) {Track= 90,Justify = Align.Right }, (int)FileManager.FMRow.DCol.Size )
+                new ColumnInfo( (int)DClmn.Chck, new LayoutRect() { Style=LCss.Flex, Track=33 } ),
+                new ColumnInfo( (int)DClmn.Type, new LayoutRect() { Style=LCss.Flex, Track=30 } ),       
+                new ColumnInfo( (int)DClmn.Name, new LayoutRect() { Style=LCss.None } ),
+                new ColumnInfo( (int)DClmn.Time, new LayoutRect() { Style=LCss.Flex, Track=100, Justify = Align.Right } ),
+                new ColumnInfo( (int)DClmn.Date, new LayoutRect() { Style=LCss.Flex, Track=100, Justify = Align.Right } ),
+                new ColumnInfo( (int)DClmn.Size, new LayoutRect() { Style=LCss.Flex, Track= 90, Justify = Align.Right } )
             };
 
             // TODO: If you're missing a data column it won't show the dir.
@@ -132,7 +133,7 @@ namespace Play.FileManager {
 
             InitColumns( rgCols );
 
-            HyperLinks.Add( "DirJump",  OnDirJump );
+            HyperLinks.Add( "DirJump",  OnDirJump  );
             HyperLinks.Add( "FileJump", OnFileJump );
 
             // At present the base window doesn't put the cursor anywhere, sooo...

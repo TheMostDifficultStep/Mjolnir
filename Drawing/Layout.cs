@@ -21,7 +21,7 @@ namespace Play.Rectangles {
     }
 
 	public class LayoutRect : SmartRect {
-		protected CSS _eLayout;
+		public CSS       Style   { get; set; }
 		public SmartRect Padding { get; } = new SmartRect();
 		public Align     Justify { get; set; } = Align.Left;
 
@@ -34,28 +34,28 @@ namespace Play.Rectangles {
 		}
 
 		public LayoutRect( ) : base() { 
-			_eLayout        = CSS.None; 
+			Style           = CSS.None; 
 			Track           = 0;
 			TrackMaxPercent = 1;
 		}
 		public LayoutRect( CSS eLayout ) : base() { 
-			_eLayout        = eLayout;
+			Style        = eLayout;
 			Track           = 0;
 			TrackMaxPercent = 1;
 		}
 
 		public LayoutRect(CSS eLayout, uint uiTrack, float flMaxPercent) : base() {
-			_eLayout        = eLayout;
+			Style           = eLayout;
 			Track           = uiTrack;
 			TrackMaxPercent = flMaxPercent;
 		}
 
-		public CSS   Units { get { return Hidden ? CSS.Hidden : _eLayout; } set { _eLayout = value; } }
+		public CSS   Units { get { return Hidden ? CSS.Hidden : Style; } set { Style = value; } }
 		public uint  Track { get; set; } // TODO: Make this a float.
 		public float TrackMaxPercent { get; set; } // TODO : Use minmax object.
 		public int   Span  { get; set; } = 0; // CSS span value minus 1. Bummer here but shared with SmartTable.
 		public virtual bool  Hidden { get; set; } = false;
-		public CSS   Layout { get => _eLayout; set { _eLayout = value; } }
+		public CSS   Layout { get => Style; set { Style = value; } }
 
 		public virtual uint TrackDesired( TRACK eParentAxis, int uiRail ) { return Track; }
 		public virtual void Invalidate() { }
@@ -674,7 +674,7 @@ namespace Play.Rectangles {
         public override bool LayoutChildren() {
             try {
 
-                if( _eLayout == CSS.Flex ) {
+                if( Style == CSS.Flex ) {
 					_oColStack.Width  = Width;
 					_oColStack.Height = 10000;
 					_oColStack.LayoutChildren();
