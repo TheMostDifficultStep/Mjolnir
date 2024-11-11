@@ -31,7 +31,8 @@ namespace Play.Edit {
         void  OnRefreshComplete( float flProgress, float flVisiblePercent );
         void  OnCaretPositioned( SKPointI pntCaretbool, bool fVisible );
 
-        ReadOnlyCollection<ColumnInfo> Columns { get; }
+        ReadOnlyCollection<ColumnInfo> TextColumns { get; }
+        void  DoLayout();
     }
 
     /// <summary>Cache with a unchanging set of cache elements.</summary>
@@ -425,7 +426,7 @@ namespace Play.Edit {
 		{
 			_oSite        = oSite     ?? throw new ArgumentNullException( "Cache manager is a sited object.");
             _oSiteList    = (IReadableBag<Row>)oSite;
-            _rgColumnInfo = oSite.Columns ?? throw new ArgumentNullException( "Columns list from Edit Window is null!" );
+            _rgColumnInfo = oSite.TextColumns ?? throw new ArgumentNullException( "Columns list from Edit Window is null!" );
             Selector      = new SelectionManager( 20 ); // Argh, rgColumns.Count not set yet... :-/
             StdUI         = (IPgStandardUI2)_oSite.Host.Services;
 
@@ -457,16 +458,54 @@ namespace Play.Edit {
             }
         }
 
+        /// <summary>
+        /// Once we have measured the columns. Use this function to find
+        /// the max width of the flex columns so that we can resize the
+        /// layout and then the columns.
+        /// </summary>
+        /// <remarks>My going theory is that the max lines on the screen
+        /// is when all rows are single line high. We cache that many,
+        /// measure them and then compute the flex and re-size.</remarks>
+        protected void SetFlexColumns( IEnumerable<CacheRow> rgCRows ) {
+            foreach( CacheRow oCRow in rgCRows) {
+                for( int iCol=0; iCol<_oSite.TextColumns.Count; ++iCol ) {
+                    ColumnInfo oInfo = _oSite.TextColumns[iCol];
+                    if( oInfo.Bounds.Style == LayoutRect.CSS.Flex &&
+                        oInfo.Bounds.Track <  oCRow[iCol].UnwrappedWidth ) 
+                    {   oInfo.Bounds.Track = (uint)oCRow[iCol].UnwrappedWidth; }
+                }
+            }
+
+            _oSite.DoLayout();
+        }
+
+        /// <summary>
+        /// This is the sister to RowMeasure(). Once we've measured the text we
+        /// can look at the maximum possible width of a flex column. Prompt
+        /// a relayout at the site and then resize the columns here.
+        /// </summary>
+        protected void RowReSize( CacheRow oCRow ) {
+            for( int i=0; i<oCRow.CacheColumns.Count && i<_rgColumnInfo.Count; ++i ) {
+                ColumnInfo       oInfo   = _rgColumnInfo[i];
+                IPgCacheMeasures oColumn = oCRow.CacheColumns[i];
+
+                oColumn.OnChangeSize( oInfo.Bounds.Width );
+            }
+        }
+
         protected virtual void CacheWalker( CacheRow oSeedCache, bool fRemeasure = false ) {
             CacheRow oLastCache  = null;
             CacheRow oCaretCache = null;
 
             int iBottom = _oTextRect.Top;
 
+            SetFlexColumns( _rgOldCache );
+
             foreach( CacheRow oCRow in this ) {
                 if( fRemeasure ) {
                     RowMeasure( oCRow );
                 }
+                RowReSize( oCRow );
                 oCRow.Top = iBottom + RowSpacing;
                 iBottom   = oCRow.Bottom;
 
@@ -712,7 +751,7 @@ namespace Play.Edit {
                     //}
                     for( int iCacheCol=0; iCacheCol<oCacheRow.CacheColumns.Count; ++iCacheCol ) {
                         if( oCacheRow[iCacheCol] is IPgCacheWindow oCWElem ) {
-                            SmartRect rctColumn = _rgColumnInfo[iCacheCol]._rcBounds;
+                            SmartRect rctColumn = _rgColumnInfo[iCacheCol].Bounds;
                             SmartRect rctSquare = new SmartRect();
 
                             rctSquare.SetRect( rctColumn.Left, oCacheRow.Top, rctColumn.Right, oCacheRow.Bottom );
@@ -838,9 +877,9 @@ namespace Play.Edit {
                 RowMeasure( oNewCache );
 
             if( iDir > 0 )
-                oNewCache.Top = oPrevCache.Bottom + RowSpacing;
+                oNewCache.Top = oPrevCache.Top + LineHeight + RowSpacing;
             else
-                oNewCache.Top = oPrevCache.Top - oNewCache.Height - RowSpacing;
+                oNewCache.Top = oPrevCache.Top - LineHeight - RowSpacing;
 
             return oNewCache;
         }
@@ -961,7 +1000,7 @@ namespace Play.Edit {
             try {
                 // Left top coordinate of the caret offset.
                 Point     pntCaretRelative  = oCaretCacheRow[_iCaretCol].GlyphOffsetToPoint( _iCaretOff );
-                SmartRect oColumn           = _rgColumnInfo[_iCaretCol]._rcBounds;
+                SmartRect oColumn           = _rgColumnInfo[_iCaretCol].Bounds;
 
                 pntCaretTop = new SKPointI( pntCaretRelative.X + oColumn.Left,
                                             pntCaretRelative.Y + oCaretCacheRow.Top );
@@ -1048,7 +1087,7 @@ namespace Play.Edit {
 
 				    oColumn.Measure     ( RenderClxn[oColumn.FontID] );
                     oColumn.Colorize    ( Selector[i] );
-                    oColumn.OnChangeSize( _rgColumnInfo[i]._rcBounds.Width );
+                  //oColumn.OnChangeSize( _rgColumnInfo[i]._rcBounds.Width );
                 }
 			} catch( Exception oEx ) {
                 if( IsUnhandledStdRpt( oEx ) )
@@ -1162,7 +1201,7 @@ namespace Play.Edit {
                 Line        oLine      = oDocRow[oInfo._iDataIdx];
                 FTCacheLine oCacheLine = new FTCacheWrap( oLine == null ? _oDummyLine : oLine );
 
-                oCacheLine.Justify = oInfo._rcBounds.Justify;
+                oCacheLine.Justify = oInfo.Bounds.Justify;
 
                 oFreshCacheRow.CacheColumns.Add( oCacheLine );
             }
@@ -1282,7 +1321,7 @@ namespace Play.Edit {
 
                     Point pntCaret = oCaretRow[_iCaretCol].GlyphOffsetToPoint( _iCaretOff );
 
-                    pntCaret.X += _rgColumnInfo[_iCaretCol]._rcBounds.Left;
+                    pntCaret.X += _rgColumnInfo[_iCaretCol].Bounds.Left;
                     pntCaret.Y += oCaretRow.Top;
 
                     _oSite.OnCaretPositioned( new SKPointI( pntCaret.X, pntCaret.Y ), true );
@@ -1333,7 +1372,7 @@ namespace Play.Edit {
                     {
                         // If we hit any row, now see if pick is within any column
                         for( int iColumn = 0; iColumn < _rgColumnInfo.Count; iColumn++ ) {
-                            SmartRect rctColumn = _rgColumnInfo[iColumn]._rcBounds;
+                            SmartRect rctColumn = _rgColumnInfo[iColumn].Bounds;
                             if( rctColumn.IsInside( pntPick.X, pntPick.Y ) ) {
                                 iReturn = iColumn;
                             }
@@ -1357,7 +1396,7 @@ namespace Play.Edit {
         public bool CaretAdvance( SKPointI pntPick ) {
             try {
                 for( int iColumn = 0; iColumn < _rgColumnInfo.Count; iColumn++ ) {
-                    SmartRect rctColumn = _rgColumnInfo[iColumn]._rcBounds;
+                    SmartRect rctColumn = _rgColumnInfo[iColumn].Bounds;
                     // First find the column the pick is in. PointToCache will then search each cache row.
                     if( rctColumn.IsInside( pntPick.X, pntPick.Y ) ) {
                         CacheRow oCacheRow = PointToCache( iColumn, pntPick, out int iOffset );
@@ -1466,7 +1505,7 @@ namespace Play.Edit {
                     if( oCacheRow.Top    <= pntScreenPick.Y &&
                         oCacheRow.Bottom >= pntScreenPick.Y ) 
                     {
-                        SmartRect        oColumn  = _rgColumnInfo[iColumn]._rcBounds;
+                        SmartRect        oColumn  = _rgColumnInfo[iColumn].Bounds;
                         IPgCacheMeasures oCache   = oCacheRow.CacheColumns[iColumn];
                         SKPointI         pntLocal = new SKPointI( pntScreenPick.X - oColumn.Left,
                                                                   pntScreenPick.Y - oColumn.Top );
@@ -1508,7 +1547,7 @@ namespace Play.Edit {
                 if( iOffset < 0 || iOffset > oLine.ElementCount )
                     return false;
 
-                _fAdvance  = _rgColumnInfo[iColumn]._rcBounds.Left;
+                _fAdvance  = _rgColumnInfo[iColumn].Bounds.Left;
                 _oCaretRow = oDataRow;
                 _iCaretCol = iColumn;
                 _iCaretOff = iOffset;
@@ -1602,9 +1641,12 @@ namespace Play.Edit {
         /// We would have to update the CacheWalker too...
         /// </summary>
         protected void CacheRestackFromTop(int iTop) {
-            foreach( CacheRow oCRow in _rgNewCache ) {
-                oCRow.Top = iTop;
+            SetFlexColumns( _rgNewCache );
 
+            foreach( CacheRow oCRow in _rgNewCache ) {
+                RowReSize( oCRow );
+
+                oCRow.Top = iTop;
                 iTop += oCRow.Height + RowSpacing;
             }
         }
@@ -1707,11 +1749,15 @@ namespace Play.Edit {
                 NewCacheAdd( InsertAt.BOTTOM, oLastCache = oNewCache );
             }
 
-            if( _oTextRect.Top != 0 && _rgNewCache.Count > 0 ) {
-                int iOldTextTop = _oTextRect.Top;
-                int iNewElemTop = _rgNewCache[0].Top;
-                _oTextRect.SetScalar( SET.RIGID, SCALAR.TOP, 0 );
-                CacheRestackFromTop( iNewElemTop - iOldTextTop );
+            if( _rgNewCache.Count > 0  ) {
+                if( _oTextRect.Top != 0 ) {
+                    int iOldTextTop = _oTextRect.Top;
+                    int iNewElemTop = _rgNewCache[0].Top;
+                    _oTextRect.SetScalar( SET.RIGID, SCALAR.TOP, 0 );
+                    CacheRestackFromTop( iNewElemTop - iOldTextTop );
+                } else {
+                    CacheRestackFromTop( _rgNewCache[0].Top );
+                }
             }
 
             _rgOldCache.Clear();

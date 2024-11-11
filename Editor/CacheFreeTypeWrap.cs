@@ -5,7 +5,6 @@ using System.Diagnostics;
 using SkiaSharp;
 
 using Play.Interfaces.Embedding;
-using Play.Parse;
 using Play.Rectangles;
 
 namespace Play.Edit {

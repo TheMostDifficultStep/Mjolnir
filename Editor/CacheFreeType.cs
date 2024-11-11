@@ -341,12 +341,17 @@ namespace Play.Edit {
         /// </summary>
         public float UnwrappedWidth { 
             get { 
-                if( _rgClusters.Count > 0 ) {
-                    PgCluster oTop = _rgClusters[_rgClusters.Count - 1];
-                    return oTop.AdvanceLeft + oTop.AdvanceOffs;
-                }
+                //if( _rgClusters.Count > 0 ) {
+                //    PgCluster oTop = _rgClusters[_rgClusters.Count - 1];
+                //    return oTop.AdvanceLeft + oTop.AdvanceOffs;
+                //}
                 
-                return 0 ;
+                float flAdvance  = 0;
+
+                for( int iCluster = 0; iCluster < _rgClusters.Count; ++iCluster ) {
+                    flAdvance += _rgClusters[iCluster].AdvanceOffs;
+                }
+                return flAdvance;
             }
         }
 
@@ -601,7 +606,6 @@ namespace Play.Edit {
         protected virtual void WrapSegments( int iDisplayWidth ) {
             float flAdvance  = 0;
             int   iWrapCount = 0;
-            Span<float> rgStart = stackalloc float[10];
 
             if( _rgClusters.Count > 0 ) {
                 flAdvance = _rgClusters[0].Increment( flAdvance, iWrapCount );

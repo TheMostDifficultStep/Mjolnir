@@ -17,8 +17,8 @@ namespace Play.FileManager {
             if( !base.InitNew() ) 
                 return false;
 
-            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Pixels, 20, 1L ), (int)FileFavorites.DRow.Col.Type ); 
-            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.None,   10, 1L ), (int)FileFavorites.DRow.Col.ShortcutName ); 
+            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Flex, 20, 1L ), (int)FileFavorites.DRow.Col.Type ); 
+            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.None, 10, 1L ), (int)FileFavorites.DRow.Col.ShortcutName ); 
 
             // Do this so we can return a desired height. O.o;;
             _oCacheMan.CacheRepair( null, true, true );
