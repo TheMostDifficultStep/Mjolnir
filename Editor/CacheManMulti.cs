@@ -483,10 +483,10 @@ namespace Play.Edit {
 
         /// <summary>
         /// This is the sister to RowMeasure(). Once we've measured the text we
-        /// can look at the maximum possible width of a flex column. Prompt
-        /// a relayout at the site and then resize the columns here.
+        /// can look at the maximum possible width of a flex column. The page
+        /// layout is updated and now we need to reflow the cache wrapping here.
         /// </summary>
-        protected void RowReSize( CacheRow oCRow ) {
+        protected void RowLayout( CacheRow oCRow ) {
             for( int i=0; i<oCRow.CacheColumns.Count && i<_rgColumnInfo.Count; ++i ) {
                 ColumnInfo       oInfo   = _rgColumnInfo[i];
                 IPgCacheMeasures oColumn = oCRow.CacheColumns[i];
@@ -506,7 +506,7 @@ namespace Play.Edit {
             foreach( CacheRow oCRow in this ) {
                 if( fRemeasure ) 
                     { RowMeasure( oCRow ); }
-                RowReSize( oCRow );
+                RowLayout( oCRow );
 
                 oCRow.Top = iBottom + RowSpacing;
                 iBottom   = oCRow.Bottom;
@@ -1646,7 +1646,7 @@ namespace Play.Edit {
             SetFlexColumns( _rgNewCache );
 
             foreach( CacheRow oCRow in _rgNewCache ) {
-                RowReSize( oCRow );
+                RowLayout( oCRow );
 
                 oCRow.Top = iTop;
                 iTop += oCRow.Height + RowSpacing;
