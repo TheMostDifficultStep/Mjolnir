@@ -325,7 +325,7 @@ namespace Play.Rectangles {
 				long   iTrackRemaining = iTrackAvailable;
 				uint   uiCssNoneCount  = 0; // Count of the number of layout "none" objects.
 
-				uint[] _rgTrack = new uint[ Count ];
+				Span<uint> _rgTrack = stackalloc uint[ Count ];
 
 				// Layout all the constant sized objects first.
 				for( int i = 0; i<Count; ++i ) {

@@ -104,7 +104,7 @@ namespace Play.Edit {
         public uint    MaxHeight { get; set; } = 200;
         public int     Height    { get; protected set; }
         public int     LastOffset => 0;
-        public float   UnwrappedWidth { get; protected set; } = 0;
+        public uint    UnwrappedWidth { get; protected set; } = 0;
         public bool    IsInvalid { get => false; set { } }
 
         public uint    FontID { get; set; } = uint.MaxValue;
@@ -143,11 +143,14 @@ namespace Play.Edit {
         /// <remarks>So save our height as prefered, and then use it when 
         /// render comes along.</remarks>
         public void OnChangeSize( int iWidth ) {
+            if( iWidth < 0 )
+                throw new ArgumentOutOfRangeException();
+
 			Size szProposed = new Size( iWidth, (int)MaxHeight );
 			Size szPrefered = Guest.GetPreferredSize( szProposed );
 
             Height         = Math.Min( szPrefered.Height, (int)MaxHeight );
-            UnwrappedWidth = iWidth;
+            UnwrappedWidth = (uint)iWidth;
         }
 
         public void Measure(IPgFontRender oRender) {

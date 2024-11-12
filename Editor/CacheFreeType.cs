@@ -253,7 +253,7 @@ namespace Play.Edit {
     /// </summary>
     public interface IPgCacheMeasures {
         int   Height { get; }
-        float UnwrappedWidth { get; }
+        uint  UnwrappedWidth { get; }
         int   LastOffset { get; }
 
         bool  IsInvalid { get; set; }
@@ -339,20 +339,15 @@ namespace Play.Edit {
         /// Total width of the line UNWRAPPED. 
         /// BUG: Let's cache the max size at some point.
         /// </summary>
-        public float UnwrappedWidth { 
-            get { 
-                //if( _rgClusters.Count > 0 ) {
-                //    PgCluster oTop = _rgClusters[_rgClusters.Count - 1];
-                //    return oTop.AdvanceLeft + oTop.AdvanceOffs;
-                //}
-                
-                float flAdvance  = 0;
+        public uint UnwrappedWidth { get; protected set;
+            //get { 
+            //    float flAdvance  = 0;
 
-                for( int iCluster = 0; iCluster < _rgClusters.Count; ++iCluster ) {
-                    flAdvance += _rgClusters[iCluster].AdvanceOffs;
-                }
-                return flAdvance;
-            }
+            //    for( int iCluster = 0; iCluster < _rgClusters.Count; ++iCluster ) {
+            //        flAdvance += _rgClusters[iCluster].AdvanceOffs;
+            //    }
+            //    return (uint)flAdvance;
+            //}
         }
 
         public PgCluster ClusterAt( int iSourceOffset ) {
@@ -412,11 +407,14 @@ namespace Play.Edit {
         /// is always to the left of the current cluster. But make sure
         /// the width is zero, that way it won't affect any line width measurements!
         /// </summary>
-        /// <param name="oFR"></param>
+        /// <seealso cref="Update_Kerning(IPgFontRender)">
+        /// <seealso cref="Measure(IPgFontRender)"/>
         protected void Update_EndOfLine( IPgFontRender oFR ) {
             PgCluster oCluster = new PgCluster(_rgGlyphs.Count);
             IPgGlyph  oGlyph   = oFR.GetGlyph(0x20);
 
+            // if you set the eol to have a width you'll need to 
+            // update unwrapped width to include this. 
           //oCluster.Coordinates    = oGlyph.Coordinates; DO NOT SET!
             oCluster.IsVisible      = false;
             oCluster.GlyphsRange.Length  = 1;
@@ -460,10 +458,13 @@ namespace Play.Edit {
         /// together. So I hard coded it just to see if my system is working in general
         /// and it is!! So looks like something up with how I'm using Free Type...
         /// </summary>
-        /// <param name="oFR"></param>
+        /// <seealso cref="Update_EndOfLine(IPgFontRender)">
         protected void Update_Kerning( IPgFontRender oFR ) {
             try {
-                for( int i=0; i< _rgClusters.Count - 1; ++i ) {
+                float fAdvanceWidth = 0;
+                int   iClusterCount = _rgClusters.Count;
+
+                for( int i=0; i< iClusterCount-1; ++i ) {
                     PgCluster oLeftCluster = _rgClusters[i];
                     PgCluster oRighCluster = _rgClusters[i+1];
 
@@ -479,7 +480,10 @@ namespace Play.Edit {
                     if( oFR.GetKerning( uiLeftGlyph, uiRighGlyph, out SKPoint pntKern ) ) {
                         oLeftCluster.AdvanceOffs += pntKern.X;
                     }
+                    fAdvanceWidth += oLeftCluster.AdvanceOffs;
                 }
+                // Note : We're not counting the EOL width, but it is zero.
+                UnwrappedWidth = (uint)fAdvanceWidth; // override previous value
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( NullReferenceException ),
                                     typeof( IndexOutOfRangeException ),
@@ -542,6 +546,7 @@ namespace Play.Edit {
             int       iGlyphIndex = 0; // Keep track of where we are in our Glyphs.
 
             try {
+                float fAdvanceWidth = 0;
                 while( iGlyphIndex < _rgGlyphs.Count ) {
                     oCluster = new PgCluster( iGlyphIndex );
                     _rgClusters.Add( oCluster );
@@ -551,7 +556,9 @@ namespace Play.Edit {
                     oCluster.IsVisible     = !Rune.IsWhiteSpace( (Rune)_rgGlyphs[iGlyphIndex].CodePoint );
                     oCluster.IsPunctuation = Rune.IsPunctuation( (Rune)_rgGlyphs[iGlyphIndex].CodePoint );
 
-                    if( ++iGlyphIndex >= _rgGlyphs.Count )
+                    fAdvanceWidth += oCluster.AdvanceOffs;
+
+                    if( ++iGlyphIndex >= _rgGlyphs.Count ) // Argh. I forget why check...
                         break;
 
                     if( _rgGlyphs[iGlyphIndex].CodePoint == 0x200d ) {
@@ -575,6 +582,7 @@ namespace Play.Edit {
                         }
                     }
                 }
+                UnwrappedWidth = (uint)fAdvanceWidth;
 
                 Update_EndOfLine ( oFR );
                 Update_ClusterMap();

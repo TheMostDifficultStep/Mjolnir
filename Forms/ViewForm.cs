@@ -142,7 +142,7 @@ namespace Play.Forms {
             Cache.OnChangeSize( uiRail );
 
             switch( eParentAxis ) {
-                case TRACK.HORIZ: return (uint)Cache.UnwrappedWidth;
+                case TRACK.HORIZ: return       Cache.UnwrappedWidth;
                 case TRACK.VERT : return (uint)Cache.Height;
                 default: throw new ArgumentOutOfRangeException();
             }

@@ -469,10 +469,12 @@ namespace Play.Edit {
         protected void SetFlexColumns( IEnumerable<CacheRow> rgCRows ) {
             foreach( CacheRow oCRow in rgCRows) {
                 for( int iCol=0; iCol<_oSite.TextColumns.Count; ++iCol ) {
-                    ColumnInfo oInfo = _oSite.TextColumns[iCol];
-                    if( oInfo.Bounds.Style == LayoutRect.CSS.Flex &&
-                        oInfo.Bounds.Track <  oCRow[iCol].UnwrappedWidth ) 
-                    {   oInfo.Bounds.Track = (uint)oCRow[iCol].UnwrappedWidth; }
+                    IPgCacheMeasures oElem   = oCRow[iCol];
+                    LayoutRect       oBounds = _oSite.TextColumns[iCol].Bounds;
+
+                    if( oBounds.Style == LayoutRect.CSS.Flex &&
+                        oBounds.Track <  oElem.UnwrappedWidth ) 
+                    {   oBounds.Track =  oElem.UnwrappedWidth; }
                 }
             }
 
@@ -502,10 +504,10 @@ namespace Play.Edit {
             SetFlexColumns( _rgOldCache );
 
             foreach( CacheRow oCRow in this ) {
-                if( fRemeasure ) {
-                    RowMeasure( oCRow );
-                }
+                if( fRemeasure ) 
+                    { RowMeasure( oCRow ); }
                 RowReSize( oCRow );
+
                 oCRow.Top = iBottom + RowSpacing;
                 iBottom   = oCRow.Bottom;
 
