@@ -737,14 +737,13 @@ namespace Play.Edit {
         protected override void OnSizeChanged( EventArgs e ) {
             base.OnSizeChanged(e);
 
+            // Might need to reconsider this now that the cacheman
+            // can resize columns based on the text. Might be a waste
+            // of time doing a layoutchildren here..
             _rgLayout.SetRect( 0, 0, Width, Height );
 			_rgLayout.LayoutChildren();
 
-            // Almost ready to remove this. The TextRect is basically
-            // the window display intersecting the union of all the columns.
-            // Only the height really used. Columns come from layout.
-            _oCacheMan.TextRect.SetRect( 0, 0, Width, Height );
-            _oCacheMan.OnChangeSize();
+            _oCacheMan.OnSizeChange( new SmartRect( 0, 0, Width, Height ) );
         }
 
         /// <summary>
@@ -760,8 +759,7 @@ namespace Play.Edit {
 			_rgLayout.SetRect( 0, 0, sProposed.Width, sProposed.Height );
 			_rgLayout.LayoutChildren();
 
-            _oCacheMan.TextRect.Copy = _rgLayout;
-            _oCacheMan.OnChangeSize();
+            _oCacheMan.OnSizeChange( _rgLayout );
 
             sProposed.Height = _oCacheMan.HeightCached;
 

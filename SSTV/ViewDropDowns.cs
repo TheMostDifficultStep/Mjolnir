@@ -29,7 +29,7 @@ namespace Play.SSTV {
             TextLayoutAdd( new LayoutRect( LayoutRect.CSS.None,   20, 1L ), (int)SSTVRxFamilyDoc.Column.Family ); 
 
             // Do this so we can return a desired height. O.o;;
-            _oCacheMan.CacheRepair( null, true, true );
+            _oCacheMan.CacheRepair();
 
             return true;
         }
@@ -64,7 +64,7 @@ namespace Play.SSTV {
             TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Percent, 20, 1L ), (int)SSTVModeDoc.Column.Height ); 
 
             // Do this so we can return a desired height. O.o;;
-            _oCacheMan.CacheRepair( null, true, true );
+            _oCacheMan.CacheRepair();
 
             return true;
         }
@@ -87,7 +87,7 @@ namespace Play.SSTV {
             TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Percent, 20, 1L ), (int)SSTVModeDoc.Column.Height ); 
 
             // Do this so we can return a desired height. O.o;;
-            _oCacheMan.CacheRepair( null, true, true );
+            _oCacheMan.CacheRepair();
 
             return true;
         }
@@ -117,7 +117,7 @@ namespace Play.SSTV {
             TextLayoutAdd( new LayoutRect( LayoutRect.CSS.None,   20, 1L ), (int)SSTVTxTemplatesDoc.Column.Descr ); 
 
             // Do this so we can return a desired height. O.o;;
-            _oCacheMan.CacheRepair( null, true, true );
+            _oCacheMan.CacheRepair();
 
             return true;
         }

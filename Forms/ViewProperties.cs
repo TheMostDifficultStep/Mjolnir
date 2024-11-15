@@ -151,7 +151,7 @@ namespace Play.Forms {
             InitRows();
 
             // This remeasures things so OnSizeChange() responds properly.
-            _oCacheMan.CacheRepair( null, fFindCaret:false, fMeasure:true );
+            _oCacheMan.CacheRepair();
 
             // This certainly does not belong on the base form, but here
             // it is a little more reasonable.
@@ -252,15 +252,15 @@ namespace Play.Forms {
         }
 
         public void OnFormUpdate(IEnumerable<Line> rgUpdates) {
-            _oCacheMan.CacheRepair( null, true, true );
+            _oCacheMan.CacheRepair();
         }
 
         public void OnFormClear() {
-            _oCacheMan.CacheRepair( null, true, true );
+            _oCacheMan.CacheRepair();
         }
 
         public void OnFormLoad() {
-            _oCacheMan.CacheRepair( null, true, true );
+            _oCacheMan.CacheRepair();
         }
     } // End Class
     
