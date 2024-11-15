@@ -230,7 +230,7 @@ namespace Play.Edit {
         public SKPoint   DPI { get; protected set; } 
         protected IPgStandardUI2 StdUI => _oStdUI;
         protected ushort         StdFace { get; }
-        public uint CheckColumnWidth {get; }
+        public uint CheckColumnWidth {get; } // BUG: Now that flex works, we don't need this...
 
         public bool IsScrollVisible { get; set; } = true;
 
