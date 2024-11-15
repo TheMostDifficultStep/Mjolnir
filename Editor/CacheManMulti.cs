@@ -578,14 +578,16 @@ namespace Play.Edit {
         public void CacheRepair( SmartRect rcNew, Row oPatch, bool fMeasure ) {
             try {
                 if( _oSiteList.ElementCount == 0 ) {
-                    // Blah blah....
+                    FinishUp( null, null );
+                    return;
                 }
 
-                CacheRow oSeedRow = CacheLocate( CaretAt );
-                bool     fIsVisible = false;
-                SKPointI pntCaret;
+                CacheFlushDeleted();
 
-                if( IsCaretNear( oSeedRow, out pntCaret ) ) {
+                CacheRow oSeedRow   = CacheLocate( CaretAt );
+                bool     fIsVisible = false;
+
+                if( IsCaretNear( oSeedRow, out SKPointI pntCaret ) ) {
                     bool fTL = _oTextRect.IsInside( pntCaret.X, pntCaret.Y );
                     bool fRB = _oTextRect.IsInside( pntCaret.X + CaretSize.X, pntCaret.Y + CaretSize.Y );
 
@@ -594,7 +596,6 @@ namespace Play.Edit {
                 if( oSeedRow == null || !fIsVisible ) {
                     oSeedRow = CacheLocateTop();
                 }
-                CacheFlushDeleted();
 
                 oSeedRow ??= CacheReset( RefreshNeighborhood.SCROLL );
 
@@ -902,8 +903,9 @@ namespace Play.Edit {
                 return oSeedCache;
 
             foreach( CacheRow oTestRow in _rgOldCache ) {
-                if( IsInside( oTestRow ) && oTestRow.At < oSeedCache.At ) {
+                if( IsInside( oTestRow ) /* && oTestRow.At < oSeedCache.At */ ) {
                     oSeedCache = oTestRow;
+                    break;
                 }
             }
 
@@ -911,8 +913,8 @@ namespace Play.Edit {
         }
 
         protected bool IsInside( CacheRow oTestRow ) {
-            return oTestRow.Bottom < _oTextRect.Top &&
-                   oTestRow.Top    > _oTextRect.Bottom;
+            return oTestRow.Top    < _oTextRect.Bottom &&
+                   oTestRow.Bottom > _oTextRect.Top;
         }
 
         /// <summary>
