@@ -903,26 +903,40 @@ namespace Play.Edit {
                 return oSeedCache;
 
             foreach( CacheRow oTestRow in _rgOldCache ) {
-                if( IsIntersecting( oTestRow ) /* && oTestRow.At < oSeedCache.At */ ) {
-                    oSeedCache = oTestRow;
-                    break;
+                if( IsInside( oTestRow ) /* && oTestRow.At < oSeedCache.At */ ) {
+                    return oTestRow;
+                }
+            }
+            foreach( CacheRow oTestRow in _rgOldCache ) {
+                if( IsEdge( oTestRow )  ) {
+                    return oTestRow;
                 }
             }
 
             return oSeedCache;
         }
 
-        protected bool IsIntersecting( CacheRow oTestRow ) {
-            if( oTestRow.Top    < _oTextRect.Bottom &&
+        /// <remarks>
+        /// System works better if we require the seed
+        /// to be fully inside on first pass. But if the 
+        /// window is really narrow, look for anything
+        /// at least partially visible...
+        /// </remarks>
+        protected bool IsEdge( CacheRow oTestRow ) {
+            if( oTestRow.Top < _oTextRect.Top &&
                 oTestRow.Bottom > _oTextRect.Top )
                 return true;
 
-            if( oTestRow.Top    < _oTextRect.Top &&
-                oTestRow.Bottom > _oTextRect.Top )
-                return true;
-
-            if( oTestRow.Top    < _oTextRect.Bottom &&
+            if( oTestRow.Top < _oTextRect.Bottom &&
                 oTestRow.Bottom > _oTextRect.Bottom )
+                return true;
+
+            return false;
+        }
+
+        protected bool IsInside( CacheRow oTestRow ) {
+            if( oTestRow.Top    < _oTextRect.Bottom &&
+                oTestRow.Bottom > _oTextRect.Top )
                 return true;
 
             return false;
@@ -1800,10 +1814,7 @@ namespace Play.Edit {
             RowLayout  ( oSeedCache );
 
             CacheRow oTopCache = oSeedCache;
-            while( oTopCache.Top > _oTextRect.Top ) { 
-                if( oTopCache.At <= 0 ) {
-                    break;
-                }
+            while( oTopCache.Top > _oTextRect.Top && oTopCache.At > 0 ) { 
                 CacheRecycle( out oTopCache, oTopCache.Row.At - 1, true );
                 NewCacheAdd ( InsertAt.TOP, oTopCache );
                 FlexColumns ( oTopCache );
@@ -1811,19 +1822,13 @@ namespace Play.Edit {
 
             CacheRow oBotCache = oSeedCache;
             int      iLastRow  = _oSiteList.ElementCount - 1;
-            while( oBotCache.Bottom < _oTextRect.Bottom ) { 
-                if( oBotCache.At >= iLastRow ) { 
-                    break;
-                }
+            while( oBotCache.Bottom < _oTextRect.Bottom && oBotCache.At < iLastRow ) { 
                 CacheRecycle( out oBotCache, oBotCache.Row.At + 1, true );
                 NewCacheAdd ( InsertAt.BOTTOM, oBotCache );
                 FlexColumns ( oBotCache );
             }
 
-            while( oBotCache.Bottom - oTopCache.Top < _oTextRect.Height ) { 
-                if( oTopCache.At <= 0 ) { 
-                    break;
-                }
+            while( oBotCache.Bottom - oTopCache.Top < _oTextRect.Height && oTopCache.At > 0 ) { 
                 CacheRecycle( out oTopCache, oTopCache.Row.At - 1, true );
                 NewCacheAdd ( InsertAt.TOP, oTopCache );
                 FlexColumns ( oTopCache );
