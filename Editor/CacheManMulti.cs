@@ -903,7 +903,7 @@ namespace Play.Edit {
                 return oSeedCache;
 
             foreach( CacheRow oTestRow in _rgOldCache ) {
-                if( IsInside( oTestRow ) /* && oTestRow.At < oSeedCache.At */ ) {
+                if( IsIntersecting( oTestRow ) /* && oTestRow.At < oSeedCache.At */ ) {
                     oSeedCache = oTestRow;
                     break;
                 }
@@ -912,9 +912,20 @@ namespace Play.Edit {
             return oSeedCache;
         }
 
-        protected bool IsInside( CacheRow oTestRow ) {
-            return oTestRow.Top    < _oTextRect.Bottom &&
-                   oTestRow.Bottom > _oTextRect.Top;
+        protected bool IsIntersecting( CacheRow oTestRow ) {
+            if( oTestRow.Top    < _oTextRect.Bottom &&
+                oTestRow.Bottom > _oTextRect.Top )
+                return true;
+
+            if( oTestRow.Top    < _oTextRect.Top &&
+                oTestRow.Bottom > _oTextRect.Top )
+                return true;
+
+            if( oTestRow.Top    < _oTextRect.Bottom &&
+                oTestRow.Bottom > _oTextRect.Bottom )
+                return true;
+
+            return false;
         }
 
         /// <summary>
