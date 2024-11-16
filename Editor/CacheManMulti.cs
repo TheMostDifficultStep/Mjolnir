@@ -1811,7 +1811,7 @@ namespace Play.Edit {
             RowLayout  ( oSeedCache );
 
             CacheRow oTopCache = oSeedCache;
-            while( oTopCache.Top > _oTextRect.Top && oTopCache.At > 0 ) { 
+            while( oTopCache.Bottom > _oTextRect.Top && oTopCache.At > 0 ) { 
                 CacheRecycle( out oTopCache, oTopCache.Row.At - 1, true );
                 NewCacheAdd ( InsertAt.TOP, oTopCache );
                 FlexColumns ( oTopCache );
@@ -1819,34 +1819,19 @@ namespace Play.Edit {
 
             CacheRow oBotCache = oSeedCache;
             int      iLastRow  = _oSiteList.ElementCount - 1;
-            while( oBotCache.Bottom < _oTextRect.Bottom && oBotCache.At < iLastRow ) { 
+            // Bot.Top - Top.Bot gives us more buffered lines to deal with slosh.
+            while( oBotCache.Top - oTopCache.Bottom < _oTextRect.Height && oBotCache.At < iLastRow  ) { 
                 CacheRecycle( out oBotCache, oBotCache.Row.At + 1, true );
                 NewCacheAdd ( InsertAt.BOTTOM, oBotCache );
                 FlexColumns ( oBotCache );
-            }
-
-            while( oBotCache.Bottom - oTopCache.Top < _oTextRect.Height && oTopCache.At > 0 ) { 
-                CacheRecycle( out oTopCache, oTopCache.Row.At - 1, true );
-                NewCacheAdd ( InsertAt.TOP, oTopCache );
-                FlexColumns ( oTopCache );
             }
 
             _rgOldCache.Clear   ();
             _rgOldCache.AddRange( _rgNewCache );
             _rgNewCache.Clear   ();
 
-            //CacheResetFromSeed( oSeedCache );
-            int iCacheHeight  = oBotCache .Bottom - oTopCache .Top;
-            int iOffset       = _oTextRect.Height - iCacheHeight;
-
-            if( iOffset > 0 || oTopCache.Top > _oTextRect.Top ) {
-                // Cache is smaller than the screen height.
-                // Or there is a gap at the top.
-                CacheRestackFromTop( _oTextRect.Top );
-            } else {
-                if( oBotCache.Bottom < _oTextRect.Bottom ) {
-                    CacheRestackFromBot( _oTextRect.Bottom );
-                }
+            if( oTopCache.Top > _oTextRect.Top ) {
+                CacheRestackFromTop(_oTextRect.Top);
             }
 
             MoveWindows();
