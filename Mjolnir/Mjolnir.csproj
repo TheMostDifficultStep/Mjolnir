@@ -82,7 +82,7 @@
     <ProjectReference Include="..\Interfaces\Interfaces.csproj" />
     <ProjectReference Include="..\Kanji-Practice\Kanji-Practice.csproj" />
     <ProjectReference Include="..\Monitor\Monitor.csproj" />
-    <ProjectReference Include="..\MorsePractice\MorsePractice.csproj" />
+    <ProjectReference Include="..\MorsePractice\RadioLogger.csproj" />
     <ProjectReference Include="..\Mp3-Play\DSP-Goodies.csproj" />
     <ProjectReference Include="..\MusicWalker\MusicWalker.csproj" />
     <ProjectReference Include="..\ParseAll\ParseAll.csproj" />

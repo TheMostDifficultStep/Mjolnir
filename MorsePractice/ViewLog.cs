@@ -140,8 +140,8 @@ namespace Play.MorsePractice {
 			if( !base.Initialize() )
 				return false;
 
-			TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Pixels, 90, 0.2F ), (int)DocLogOutline.DictRow.DCol.Call );
-			TextLayoutAdd( new LayoutRect( LayoutRect.CSS.None ),             (int)DocLogOutline.DictRow.DCol.Refs );
+			TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Flex ), (int)DocLogOutline.DictRow.DCol.Call );
+			TextLayoutAdd( new LayoutRect( LayoutRect.CSS.None ), (int)DocLogOutline.DictRow.DCol.Refs );
 
             HyperLinks.Add( "LogReference", OnLogReference );
 

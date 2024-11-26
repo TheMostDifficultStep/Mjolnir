@@ -21,7 +21,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ImageViewer", "ImageViewer\
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MusicWalker", "MusicWalker\MusicWalker.csproj", "{65F5819D-8D13-4FF4-9C29-A473C2A1C7AE}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MorsePractice", "MorsePractice\MorsePractice.csproj", "{F03A5C8C-AE39-4820-A7A6-855393C1B9FD}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RadioLogger", "MorsePractice\RadioLogger.csproj", "{F03A5C8C-AE39-4820-A7A6-855393C1B9FD}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "FontManager", "FontManager\FontManager.vcxproj", "{D7F74723-500F-4369-AD42-9DDD0AF45D8C}"
 EndProject
@@ -47,7 +47,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Kanji-Practice", "Kanji-Pra
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "z80", "..\z80\z80\z80.csproj", "{E0EF3AD5-32AC-4530-9004-C3D8BCDE3B6C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FileManager", "FileManager\FileManager.csproj", "{222E3D55-28C7-4DD8-8345-ADAF3659CB47}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FileManager", "FileManager\FileManager.csproj", "{222E3D55-28C7-4DD8-8345-ADAF3659CB47}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
