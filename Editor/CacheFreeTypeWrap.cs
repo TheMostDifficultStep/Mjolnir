@@ -130,8 +130,8 @@ namespace Play.Edit {
         }
 
         /// <summary>
-        /// Find the character offset of the mouse position. I really should be
-        /// using ScriptXtoCP(), but I hate the regular behavor of selection
+        /// Find the character offset of the mouse position.
+        /// I hate the regular behavor of selection
         /// across ltr through rtl regions. At present our selection code doesn't
         /// check the direction of the block. We need to check the boundaries of
         /// a selection avoid copy/cut problems.
@@ -139,6 +139,8 @@ namespace Play.Edit {
         /// <param name="pntWorld">Location relative to the upper left of line 
         /// collection which is 0, 0. Remove any window positioning before passing
         /// coordinates to us.</param>
+        /// <param name="iTop">Top (left) of our cache element, relative to the
+        /// pntWorld.Y</param>
         /// <returns>Character offset of the given location. 0 if left of the
         /// first element.</returns>
         public override int GlyphPointToOffset( int iTop, SKPointI pntWorld ) {

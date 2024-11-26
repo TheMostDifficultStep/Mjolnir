@@ -15,6 +15,7 @@ using Play.Interfaces.Embedding;
 using Play.Rectangles;
 using Play.Controls;
 using Play.Parse;
+using System.Data.Common;
 
 namespace Play.Edit {
     public interface IPgDocTraits<T> {
@@ -777,9 +778,9 @@ namespace Play.Edit {
                                     _oCacheMan.CaretSize.Y );
 
                 // Hiding the caret seems to destroy it so just
-                // immediately show, the cacheman will park it off screen
+                // immediately show it, the cacheman will park it off screen
                 // if it's not displayable on an active cache line.
-                _oCacheMan.IsCaretVisible( out SKPointI pntCaret );
+                SKPointI pntCaret = _oCacheMan.CaretLocation;
 
                 User32.SetCaretPos( pntCaret.X, pntCaret.Y );
                 User32.ShowCaret  ( Handle );
@@ -876,20 +877,22 @@ namespace Play.Edit {
                 skCanvas.DrawRect( new SKRect( 0, 0, Width, Height ), skPaintBG);
 
                 // Now paint the rows.
-                SmartRect rctSquare = SparePaintingRect;
+                SmartRect rctSpare = SparePaintingRect;
                 foreach( CacheRow oCacheRow in _oCacheMan ) {
+                    Extent sRowScrExt = _oCacheMan.RenderAt( oCacheRow, _rgLayout );
+
                     for( int iCacheCol=0; iCacheCol<oCacheRow.CacheColumns.Count; ++iCacheCol ) {
                         if( oCacheRow[iCacheCol] is IPgCacheRender oRender ) {
-                            SmartRect oColumn = _rgTxtCol[iCacheCol].Bounds;
+                            SmartRect rcColumn = _rgTxtCol[iCacheCol].Bounds;
 
-                            rctSquare.SetRect( oColumn.Left, oCacheRow.Top, oColumn.Right, oCacheRow.Bottom );
+                            rctSpare.SetRect( rcColumn.Left, sRowScrExt.Start, rcColumn.Right, sRowScrExt.Stop );
 
                             // Test pattern...
                             //skPaint.Color = iCache % 2 == 0 ? SKColors.Blue : SKColors.Green;
                             //skCanvas.DrawRect( rctSquare.SKRect, skPaint );
-                            PaintSquareBG( skCanvas, skPaintBG, oCacheRow, iCacheCol, oRender, rctSquare );
+                            PaintSquareBG( skCanvas, skPaintBG, oCacheRow, iCacheCol, oRender, rctSpare );
 
-                            oRender.Render(skCanvas, _oStdUI, skPaintTx, rctSquare, this.Focused );
+                            oRender.Render(skCanvas, _oStdUI, skPaintTx, rctSpare, this.Focused );
                         }
                     }
                 }
@@ -949,8 +952,9 @@ namespace Play.Edit {
         /// </remarks>
         protected bool HyperLinkFind( int iColumn, SKPointI pntLocation, bool fDoJump ) {
             try {
-                if( _oCacheMan.PointToRow( iColumn, pntLocation, out int iOff, out Row oRow ) ) {
-                    return HyperLinkFind( oRow, iColumn, iOff, fDoJump );
+                if( _oCacheMan.PointToCache( iColumn, pntLocation, out int iLineOffset ) is CacheRow oCRow ) {
+                //if( _oCacheMan.PointToRow( iColumn, pntLocation, out int iOff, out Row oRow ) ) {
+                    return HyperLinkFind( oCRow.Row, iColumn, iLineOffset, fDoJump );
                 }
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( NullReferenceException ),
@@ -1223,8 +1227,9 @@ namespace Play.Edit {
 
             if( IsInside( pntClick, out int iColumnM ) ) {
                 if( iColumnM == _oDocChecks.CheckColumn ) {
-                    if( _oCacheMan.PointToRow( iColumnM, pntClick, out int iOff, out Row oRow ) ) {
-                        _oDocChecks.SetCheckAtRow( oRow ); // sends a check event if check moves.
+                    if( _oCacheMan.PointToCache( iColumnM, pntClick, out int iLineOffset ) is CacheRow oCRow ) {
+                  //if( _oCacheMan.PointToRow( iColumnM, pntClick, out int iOff, out Row oRow ) ) {
+                        _oDocChecks.SetCheckAtRow( oCRow.Row ); // sends a check event if check moves.
                     }
                     return;
                 }

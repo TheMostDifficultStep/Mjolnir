@@ -779,7 +779,7 @@ namespace Play.Edit {
         /// allocate a paint structure for every call. It's given the square that it's
         /// printing in. Tho' it still might print outside if not configed correctly.
         /// </summary>
-        /// <param name="rcSquare">The actual area we are supposed to print within.
+        /// <param name="rcSquare">The actual screen area we are supposed to print within.
         /// Tho this might not work if the cluster segments haven't been properly measured.</param>
         public virtual void Render(
             SKCanvas       skCanvas,
