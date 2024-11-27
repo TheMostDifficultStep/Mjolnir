@@ -46,9 +46,9 @@ namespace Play.MorsePractice {
 			if( !base.Initialize() )
 				return false;
 
-			TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Pixels, 90, 0.2F ), DocLog.LogRow.ColumnCall );
+			TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Flex ), DocLog.LogRow.ColumnCall );
 			TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Pixels, 40, 0.1F ), DocLog.LogRow.ColumnStat );
-			TextLayoutAdd( new LayoutRect( LayoutRect.CSS.None ),             DocLog.LogRow.ColumnNote );
+			TextLayoutAdd( new LayoutRect( LayoutRect.CSS.None ), DocLog.LogRow.ColumnNote );
 
             HyperLinks.Add( "callsign", OnCallSign );
 
