@@ -731,24 +731,6 @@ namespace Play.Edit {
             CacheWalker( oSeedCache, false );
         }
 
-        /// <summary>
-        /// Slide the cache elements to the new top. Use this for scrolling
-        /// items on the screen. No resize has occured.
-        /// </summary>
-        /// <param name="iTop">A value relative to the TextRect.</param>
-        //protected void Scroll( int iTop ) {
-        //    foreach( CacheRow oCacheRow in _rgOldCache ) {
-        //        oCacheRow.Top = iTop;
-        //        iTop += oCacheRow.Height;
-        //    }
-        //    CacheRow oSeedCache = CacheLocateTop();
-
-        //    if( oSeedCache == null )
-        //        oSeedCache = CacheReset( RefreshNeighborhood.SCROLL );
-
-        //    CacheWalker( oSeedCache, false );
-        //}
-
         /// <seealso cref="CaretTracker" />
         public struct CaretInfo :
             IPgCaretInfo<Row> 
@@ -807,39 +789,6 @@ namespace Play.Edit {
 
                 LogError( "Problem moving sub windows in multi column cache" );
             }
-        }
-
-        /// <summary>
-        /// If part of the cache row is overrlapping the visible area,
-        /// we need to clip that off so we calculate the proper number of
-        /// rows we need to fill the screen.
-        /// </summary>
-        /// <param name="oCacheRow">CRow with top & bottom set.</param>
-        protected int ClippedHeight( CacheRow oCacheRow ) {
-            // Above the visible portion.
-            if( oCacheRow.Bottom < 0 )
-                return 0;
-
-            // Below the visible portion.
-            if( oCacheRow.Top > _oTextRect.Height )
-                return 0;
-
-            int iTop = oCacheRow.Top;
-            int iBot = oCacheRow.Bottom;
-
-            // Top is peaking over the visible portion with bottom inside or below.
-            if( oCacheRow.Top < 0 ) 
-                iTop = 0;
-
-            if( oCacheRow.Bottom > _oTextRect.Height )
-                iBot = _oTextRect.Height;
-
-            int iHeight = iBot - iTop + 1;
-
-            if( iHeight < 0 )
-                return 0;
-
-            return iHeight;
         }
 
         /// <summary>
@@ -1861,6 +1810,11 @@ namespace Play.Edit {
                 CacheRecycle( out oBotCache, oBotCache.Row.At + 1, true );
                 NewCacheAdd ( InsertAt.BOTTOM, oBotCache );
                 FlexColumns ( oBotCache );
+            }
+
+            // Flex columns should be wide enough for the widest element. Now relayout.
+            foreach( CacheRow oCRow in _rgNewCache ) {
+                RowLayout( oCRow );
             }
 
             _rgOldCache.Clear   ();

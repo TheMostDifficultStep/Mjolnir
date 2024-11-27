@@ -745,6 +745,7 @@ namespace Play.Edit {
 			_rgLayout.LayoutChildren();
 
             _oCacheMan.OnSizeChange( new SmartRect( 0, 0, Width, Height ) );
+            Invalidate();
         }
 
         /// <summary>
