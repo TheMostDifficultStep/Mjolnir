@@ -581,9 +581,9 @@ namespace Play.Edit {
                     FinishUp( null, null );
                     return;
                 }
+                //bool fCheck = string.Equals( _oSite.Host.GetType().Name, 
+                //                             "ViewFileMan" );
 
-                bool fCheck = string.Equals( _oSite.Host.GetType().Name, 
-                                             "ViewFileMan" );
                 CacheFlushDeleted();
 
                 CacheRow oSeedRow   = CacheLocate     ( CaretAt );
@@ -1463,18 +1463,7 @@ namespace Play.Edit {
         /// already calculated.</remarks>
         /// <param name="rgSize">The new size of the rectangle.</param>
         public void OnSizeChange( SmartRect rcNew ) {
-            try {
-                bool fCheck = string.Equals( _oSite.Host.GetType().Name, 
-                                             "ViewFileMan" );
-                CacheRepair( rcNew, null, fMeasure:true ); 
-            } catch( Exception oEx ) {
-                // if the _rgCacheMap and the oRow.CacheList don't match
-                // we might walk off the end of one or the other.
-                Type[] rgErrors = { typeof( NullReferenceException ),
-                                    typeof( ArgumentOutOfRangeException ) };
-                if( rgErrors.IsUnhandled( oEx ))
-                    throw;
-            }
+            CacheRepair( rcNew, null, fMeasure:true ); 
         }
 
         /// <summary>
@@ -1774,58 +1763,63 @@ namespace Play.Edit {
                 LogError( "Cache construction error" );
                 return;
             }
-
-            bool fCheck = string.Equals( _oSite.Host.GetType().Name, 
-                                            "ViewFileMan" );
+            //bool fCheck = string.Equals( _oSite.Host.GetType().Name, "ViewFileMan" );
 
             _rgNewCache.Clear();
             _rgNewCache.Add( oSeedCache );
 
-            RowMeasure ( oSeedCache );
-            FlexColumns( oSeedCache );
-            RowLayout  ( oSeedCache );
+            try {
+                RowMeasure ( oSeedCache );
+                FlexColumns( oSeedCache );
+                RowLayout  ( oSeedCache );
 
-            int      iLastRow  = _oSiteList.ElementCount - 1;
-            CacheRow oBotCache = oSeedCache;
-            while( oBotCache.Top < _oTextRect.Bottom ) { 
-                if( oBotCache.At >= iLastRow  ) {
-                    _oTextRect.SetScalar(SET.RIGID, SCALAR.BOTTOM, oBotCache.Bottom ); break;
+                int      iLastRow  = _oSiteList.ElementCount - 1;
+                CacheRow oBotCache = oSeedCache;
+                while( oBotCache.Top < _oTextRect.Bottom ) { 
+                    if( oBotCache.At >= iLastRow  ) {
+                        _oTextRect.SetScalar(SET.RIGID, SCALAR.BOTTOM, oBotCache.Bottom ); break;
+                    }
+                    CacheRecycle( out oBotCache, oBotCache.Row.At + 1, true );
+                    NewCacheAdd ( InsertAt.BOTTOM, oBotCache );
+                    FlexColumns ( oBotCache );
                 }
-                CacheRecycle( out oBotCache, oBotCache.Row.At + 1, true );
-                NewCacheAdd ( InsertAt.BOTTOM, oBotCache );
-                FlexColumns ( oBotCache );
-            }
 
-            CacheRow oTopCache = oSeedCache;
-            while( oTopCache.Bottom > _oTextRect.Top ) { 
-                if( oTopCache.At <= 0 ) {
-                    _oTextRect.SetScalar(SET.RIGID, SCALAR.TOP, oTopCache.Top ); break;
+                CacheRow oTopCache = oSeedCache;
+                while( oTopCache.Bottom > _oTextRect.Top ) { 
+                    if( oTopCache.At <= 0 ) {
+                        _oTextRect.SetScalar(SET.RIGID, SCALAR.TOP, oTopCache.Top ); break;
+                    }
+                    CacheRecycle( out oTopCache, oTopCache.Row.At - 1, true );
+                    NewCacheAdd ( InsertAt.TOP, oTopCache );
+                    FlexColumns ( oTopCache );
                 }
-                CacheRecycle( out oTopCache, oTopCache.Row.At - 1, true );
-                NewCacheAdd ( InsertAt.TOP, oTopCache );
-                FlexColumns ( oTopCache );
+
+                while( oBotCache.Bottom < _oTextRect.Bottom && oBotCache.At > iLastRow ) { 
+                    CacheRecycle( out oBotCache, oBotCache.Row.At + 1, true );
+                    NewCacheAdd ( InsertAt.BOTTOM, oBotCache );
+                    FlexColumns ( oBotCache );
+                }
+
+                // Flex columns should be wide enough for the widest element. Now relayout.
+                foreach( CacheRow oCRow in _rgNewCache ) {
+                    RowLayout( oCRow );
+                }
+
+                _rgOldCache.Clear   ();
+                _rgOldCache.AddRange( _rgNewCache );
+                _rgNewCache.Clear   ();
+
+                MoveWindows();
+
+                CacheRow oCaret = _oCaretRow == oSeedCache.Row ? oSeedCache : null;
+
+                FinishUp( oBotCache, oCaret );
+            } catch( Exception oEx ) {
+                if( IsUnhandledStdRpt( oEx ) )
+                    throw;
+
+                LogError( "Problem in multi col cache walker" );
             }
-
-            while( oBotCache.Bottom < _oTextRect.Bottom && oBotCache.At > iLastRow ) { 
-                CacheRecycle( out oBotCache, oBotCache.Row.At + 1, true );
-                NewCacheAdd ( InsertAt.BOTTOM, oBotCache );
-                FlexColumns ( oBotCache );
-            }
-
-            // Flex columns should be wide enough for the widest element. Now relayout.
-            foreach( CacheRow oCRow in _rgNewCache ) {
-                RowLayout( oCRow );
-            }
-
-            _rgOldCache.Clear   ();
-            _rgOldCache.AddRange( _rgNewCache );
-            _rgNewCache.Clear   ();
-
-            MoveWindows();
-
-            CacheRow oCaret = _oCaretRow == oSeedCache.Row ? oSeedCache : null;
-
-            FinishUp( oBotCache, oCaret );
         }
     }
 }
