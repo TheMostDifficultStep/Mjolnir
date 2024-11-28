@@ -968,31 +968,19 @@ namespace Play.Edit {
         /// </summary>
         /// <remarks>We could intersect the rect for the caret and the TextRect, but
         /// we don't horzontally scroll. So the caret won't be off on the left or right.</remarks>
-        /// <param name="oCaretCacheRow">Cache row representing the data row with the caret.</param>
+        /// <param name="oCaretCacheRow">Cache row representing the data row with the caret. Don't
+        /// even -think- of passing a null here.</param>
         /// <param name="pntCaretUL">Location of the caret on the screen.</param>
         /// <seealso cref="PointToCache"/>
-        protected bool IsCaretNear( CacheRow oCaretCacheRow, out SKPointI pntCaretUL ) {
-            pntCaretUL = new( -10, -10 ); // s/b offscreen in any top/left 0,0 window clent space.
+        protected SKPointI GetCaretScreenLocation( CacheRow oCaretCacheRow ) {
+            // Left top coordinate of the caret offset.
+            Point     pntCaretRelative  = oCaretCacheRow[_iCaretCol].GlyphOffsetToPoint( _iCaretOff );
+            SmartRect oColumn           = _rgColumnInfo [_iCaretCol].Bounds;
 
-            if( oCaretCacheRow == null )
-                return false;
+            Extent sSegment = RenderAt( oCaretCacheRow, oColumn );
 
-            try {
-                // Left top coordinate of the caret offset.
-                Point     pntCaretRelative  = oCaretCacheRow[_iCaretCol].GlyphOffsetToPoint( _iCaretOff );
-                SmartRect oColumn           = _rgColumnInfo [_iCaretCol].Bounds;
-
-                //pntCaretTop = new SKPointI( pntCaretRelative.X + oColumn.Left,
-                //                            pntCaretRelative.Y + oCaretCacheRow.Top );
-                Extent sSegment = RenderAt( oCaretCacheRow, oColumn );
-                pntCaretUL.X = oColumn .Left  + pntCaretRelative.X;
-                pntCaretUL.Y = sSegment.Start + pntCaretRelative.Y;
-            } catch( Exception oEx ) {
-                if( IsUnhandledStdRpt( oEx ) )
-                    throw;
-            }
-
-            return true;
+            return new( oColumn .Left  + pntCaretRelative.X,
+                        sSegment.Start + pntCaretRelative.Y );
         }
 
         public bool IsCaretIntercect() {
@@ -1008,13 +996,20 @@ namespace Play.Edit {
         /// </summary>
         public SKPointI CaretLocation {
             get {
-                CacheRow oCaretRow    = CacheLocate( CaretAt );
-                SKPointI pntScreenLoc = new( -10, -10 ); // s/b offscreen in any top/left 0,0 window clent space.
+                try {
+                    CacheRow oCaretRow = CacheLocate( CaretAt );
 
-                if( IsCaretIntersect( oCaretRow ) ) {
-                    IsCaretNear( oCaretRow, out pntScreenLoc );
+                    if( IsCaretIntersect( oCaretRow ) ) {
+                        return GetCaretScreenLocation( oCaretRow );
+                    }
+                } catch( Exception oEx ) {
+                    if( IsUnhandledStdRpt( oEx ) )
+                        throw;
+
+                    LogError( "Exception in Caret Screen Locater." );
                 }
-                return pntScreenLoc;
+
+                return new( -10, -10 ); // // s/b offscreen in any top/left 0,0 window clent space.
             }
         }
 
@@ -1517,7 +1512,7 @@ namespace Play.Edit {
         /// <param name="pntScreenPick">A screen coordinate.</param>
         /// <param name="iOffset">Offset into the line if row is found.</param>
         /// <returns></returns>
-        /// <seealso cref="IsCaretNear(CacheRow, out SKPointI)"/>
+        /// <seealso cref="GetCaretScreenLocation(CacheRow, out SKPointI)"/>
         public CacheRow PointToCache( int iColumn, SKPointI pntScreenPick, out int iOffset )
         {
             try {
