@@ -172,9 +172,9 @@ namespace Play.Forms {
 
         public bool SelectionIsHit( Point pntClient ) { 
             if( this.IsInside( pntClient.X, pntClient.Y ) ) {
-                SKPointI pntWorld = new SKPointI( pntClient.X - Left,
+                SKPointI pntLocal = new SKPointI( pntClient.X - Left,
                                                   pntClient.Y - Top);
-                int iEdge = Cache.GlyphPointToOffset( this.Top, pntWorld );
+                int iEdge = Cache.GlyphPointToOffset( pntLocal );
 
                 return( iEdge >= Selection.Offset &&
                         iEdge <  Selection.Offset + Selection.Length );
@@ -183,12 +183,12 @@ namespace Play.Forms {
         }
 
         public void SelectHead( IPgCacheCaret oCaret, Point pntClient, bool fGrow ) {
-            SKPointI pntWorld = new SKPointI( pntClient.X - Left,
+            SKPointI pntLocal = new SKPointI( pntClient.X - Left,
                                               pntClient.Y - Top);
-            int iEdge = Cache.GlyphPointToOffset( this.Top, pntWorld );
+            int iEdge = Cache.GlyphPointToOffset( pntLocal );
 
             oCaret.Offset  = iEdge;
-            oCaret.Advance = pntWorld.X;
+            oCaret.Advance = pntLocal.X;
 
             if ( fGrow ) {
                 Selection.Grow  = iEdge;
@@ -199,9 +199,9 @@ namespace Play.Forms {
         }
 
         public void SelectNext( IPgCacheCaret oCaret, Point pntClient ) {
-            SKPointI pntWorld = new SKPointI( pntClient.X - Left,
-                                              pntClient.Y - Top);
-            int iEdge = Cache.GlyphPointToOffset( this.Top, pntWorld );
+            SKPointI pntLocal = new SKPointI( pntClient.X - Left,
+                                              pntClient.Y - Top );
+            int iEdge = Cache.GlyphPointToOffset( pntLocal );
 
             Selection.Grow = iEdge;
             oCaret.Offset  = iEdge;
@@ -983,9 +983,9 @@ namespace Play.Forms {
 
             foreach( LayoutSingleLine oLayout in CacheList ) {
                 if( oLayout.IsInside( e.X, e.Y ) ) {
-                    SKPointI pntWorld = new SKPointI( e.X - oLayout.Left,
+                    SKPointI pntLocal = new SKPointI( e.X - oLayout.Left,
                                                       e.Y - oLayout.Top);
-                    int iEdge = oLayout.Cache.GlyphPointToOffset( this.Top, pntWorld );
+                    int iEdge = oLayout.Cache.GlyphPointToOffset( pntLocal );
                     if( Links.Find( oLayout.Line, iEdge, false ) ) {
                         oCursor = Cursors.Hand;
                     } else {

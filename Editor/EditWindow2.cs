@@ -1799,7 +1799,8 @@ namespace Play.Edit {
                     // Got to do the insert AFTER walking the _oCacheMan b/c stream insert adds 
                     // lines to cache. See OnLineNew() callback! 
                     if( oCacheRow != null ) {
-                        int  iEdge = oCacheRow[0].GlyphPointToOffset( oCacheRow.Top, sWorldLoc._pntLocation );
+                        SKPointI pntLocal = new( sWorldLoc._pntLocation.X, sWorldLoc._pntLocation.Y - oCacheRow.Top );
+                        int      iEdge    = oCacheRow[0].GlyphPointToOffset( pntLocal );
 
                         // We can add in front of the EOL character.
                         //Debug.Assert( iEdge <= oLine.ElementCount );
@@ -2570,7 +2571,8 @@ namespace Play.Edit {
                 foreach( LineRange oSelection in _rgSelectionTypes ) {
                     if( oSelection.IsHit( oCache.Line ) ) {
                         if( oCache.IsHit( pntWorld ) ) {
-                            int iEdge = oCache.CacheColumns[0].GlyphPointToOffset( oCache.Top, new SKPointI( pntWorld.X, pntWorld.Y ) );
+                            // Note there is now left/right scroll so World X == Local X
+                            int iEdge = oCache.CacheColumns[0].GlyphPointToOffset( new SKPointI( pntWorld.X, pntWorld.Y - oCache.Top ) );
 
                             if( oSelection.SelectionType == SelectionTypes.Middle ) {
                                 if( iEdge >= oSelection.Offset &&

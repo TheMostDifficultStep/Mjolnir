@@ -264,7 +264,12 @@ namespace Play.Edit {
 
         void  OnChangeSize( int iWidth );
 
-        int   GlyphPointToOffset( int iRowTop, SKPointI pntWorld );
+        /// <param name="pntLocal">Location relative to the upper left (0, 0)
+        /// of this line's glyph data. Remove any window positioning before
+        /// passing coordinates.</param>
+        /// <returns>Character offset of the given location. 0 if left of the
+        /// first element.</returns>
+        int   GlyphPointToOffset( SKPointI pntLocal );
         Point GlyphOffsetToPoint( int iOffset );
         bool  Navigate( Axis eAxis, int iDir, ref float flAdvance, ref int iOffset );
         int   OffsetBound( Axis eAxis, int iIncrement, float flAdvance );
@@ -311,7 +316,7 @@ namespace Play.Edit {
         protected readonly List<int>       _rgClusterMap = new List<int      >(100); // Cluster map from UTF to Cluster.
 
         public FTCacheLine( Line oLine ) {
-            Line   = oLine ?? throw new ArgumentNullException();
+            Line = oLine ?? throw new ArgumentNullException();
         }
 
         /// <summary>
@@ -1013,17 +1018,17 @@ namespace Play.Edit {
         /// </summary>
         /// <returns>Character offset of the given location. 0 if left of the first element.</returns>
         /// <remarks>The row top is needed for the word wrapped version.</remarks>
-        public virtual int GlyphPointToOffset( int iRowTop, SKPointI pntWorld ) {
+        public virtual int GlyphPointToOffset( SKPointI pntLocal ) {
             if( _rgClusters.Count < 1 )
                 return 0;
 
             try {
-                float flWorldXEm = pntWorld.X;
+                float flLocalXEm = pntLocal.X;
                 // -1 if the sought elem precedes the elem specified by the CompareTo method.
                 int ClusterCompare( PgCluster oTry ) {
-                    if( flWorldXEm < oTry.AdvanceLeft)
+                    if( flLocalXEm < oTry.AdvanceLeft )
                         return -1;
-                    if( flWorldXEm >= oTry.AdvanceLeft + oTry.AdvanceOffs / 2 ) // divide by 2.
+                    if( flLocalXEm >= oTry.AdvanceLeft + oTry.AdvanceOffs / 2 ) // divide by 2.
                         return 1;
                     return 0;
                 }

@@ -821,19 +821,20 @@ namespace Play.Edit {
         /// <param name="oCaret">This object line offset is updated to the closest line offset.</param>
         public IPgCacheMeasures GlyphPointToRange( ref EditWindow2.WorldLocator oWorldLoc, ILineRange oCaret ) {
             try {
-                foreach( CacheRow oRow in _rgOldCache ) {
-                    if( oRow.Top    <= oWorldLoc.Y &&
-                        oRow.Bottom >= oWorldLoc.Y ) 
+                foreach( CacheRow oCRow in _rgOldCache ) {
+                    if( oCRow.Top    <= oWorldLoc.Y &&
+                        oCRow.Bottom >= oWorldLoc.Y ) 
                     {
                         // Just bail on the first one. Something is up...
                         if( oWorldLoc._iColumn < 0 || 
-                            oWorldLoc._iColumn >= oRow.CacheColumns.Count )
+                            oWorldLoc._iColumn >= oCRow.CacheColumns.Count )
                             return null;
+                        // Note there is no left/right scroll. So World X == Local X
+                        IPgCacheMeasures oCache   = oCRow.CacheColumns[oWorldLoc._iColumn];
+                        SKPointI         pntLocal = new( oWorldLoc._pntLocation.X, oWorldLoc._pntLocation.Y - oCRow.Top );
 
-                        IPgCacheMeasures oCache = oRow.CacheColumns[oWorldLoc._iColumn];
-
-                        oCaret.Line   = oRow.Line;
-                        oCaret.Offset = oCache.GlyphPointToOffset(oRow.Top, oWorldLoc._pntLocation );
+                        oCaret.Line   = oCRow.Line;
+                        oCaret.Offset = oCache.GlyphPointToOffset( pntLocal );
 
                         return oCache;
                     }

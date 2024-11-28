@@ -136,25 +136,23 @@ namespace Play.Edit {
         /// check the direction of the block. We need to check the boundaries of
         /// a selection avoid copy/cut problems.
         /// </summary>
-        /// <param name="pntWorld">Location relative to the upper left of line 
-        /// collection which is 0, 0. Remove any window positioning before passing
-        /// coordinates to us.</param>
-        /// <param name="iTop">Top (left) of our cache element, relative to the
-        /// pntWorld.Y</param>
+        /// <param name="pntLocal">Location relative to the upper left  (0, 0)
+        /// of this line's glyph data. Remove any window positioning before
+        /// passing coordinates</param>
         /// <returns>Character offset of the given location. 0 if left of the
         /// first element.</returns>
-        public override int GlyphPointToOffset( int iTop, SKPointI pntWorld ) {
+        public override int GlyphPointToOffset( SKPointI pntLocal ) {
 			try {
 				int iSegment;
 
 				// Since the lines are wrapped, find which segment we think
                 // the desired offset is in.
 				for( iSegment = 0; iSegment <= _iWrapCount; ++iSegment ) {
-					if( ( iTop + ( iSegment + 1 ) * base.Height ) > pntWorld.Y )
+					if( ( iSegment + 1 ) * base.Height > pntLocal.Y )
 						break;
 				}
 
-                return FindNearestOffset( iSegment, pntWorld.X );
+                return FindNearestOffset( iSegment, pntLocal.X );
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( ArgumentOutOfRangeException ),
                                     typeof( NullReferenceException ),

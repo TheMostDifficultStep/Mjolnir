@@ -118,7 +118,7 @@ namespace Play.Edit {
             return new Point( 0, 0 );
         }
 
-        public int GlyphPointToOffset(int iRowTop, SKPointI pntWorld) {
+        public int GlyphPointToOffset( SKPointI pntWorld) {
             return 0;
         }
 

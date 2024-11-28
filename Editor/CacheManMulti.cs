@@ -466,7 +466,7 @@ namespace Play.Edit {
         /// <remarks>My going theory is that the max lines on the screen
         /// is when all rows are single line high. We cache that many,
         /// measure them and then compute the flex and re-size.</remarks>
-        protected void SetFlexColumns( IEnumerable<CacheRow> rgCRows ) {
+        [Obsolete]protected void SetFlexColumns( IEnumerable<CacheRow> rgCRows ) {
             foreach( CacheRow oCRow in rgCRows) {
                 for( int iCol=0; iCol<_oSite.TextColumns.Count; ++iCol ) {
                     IPgCacheMeasures oElem   = oCRow[iCol];
@@ -1532,7 +1532,7 @@ namespace Play.Edit {
                         SKPointI         pntLocal = new SKPointI( pntScreenPick.X - rctColumn.Left,
                                                                   pntScreenPick.Y - sSegment.Start );
 
-                        iOffset = oCache.GlyphPointToOffset( 0, pntLocal );
+                        iOffset = oCache.GlyphPointToOffset( pntLocal );
 
                         return oCacheRow;
                     }
