@@ -1774,7 +1774,7 @@ namespace Play.Edit {
                     if( oBotCache.At >= iLastRow  ) {
                         _oTextRect.SetScalar(SET.RIGID, SCALAR.BOTTOM, oBotCache.Bottom ); break;
                     }
-                    CacheRecycle( out oBotCache, oBotCache.Row.At + 1, true );
+                    CacheRecycle( out oBotCache, oBotCache.Row.At + 1, fRemeasure );
                     NewCacheAdd ( InsertAt.BOTTOM, oBotCache );
                     FlexColumns ( oBotCache );
                 }
@@ -1784,13 +1784,13 @@ namespace Play.Edit {
                     if( oTopCache.At <= 0 ) {
                         _oTextRect.SetScalar(SET.RIGID, SCALAR.TOP, oTopCache.Top ); break;
                     }
-                    CacheRecycle( out oTopCache, oTopCache.Row.At - 1, true );
+                    CacheRecycle( out oTopCache, oTopCache.Row.At - 1, fRemeasure );
                     NewCacheAdd ( InsertAt.TOP, oTopCache );
                     FlexColumns ( oTopCache );
                 }
 
                 while( oBotCache.Bottom < _oTextRect.Bottom && oBotCache.At > iLastRow ) { 
-                    CacheRecycle( out oBotCache, oBotCache.Row.At + 1, true );
+                    CacheRecycle( out oBotCache, oBotCache.Row.At + 1, fRemeasure );
                     NewCacheAdd ( InsertAt.BOTTOM, oBotCache );
                     FlexColumns ( oBotCache );
                 }
