@@ -59,11 +59,10 @@ namespace Play.Edit {
     {
         protected readonly ICacheManSite     _oSite;
         protected readonly IReadableBag<Row> _oSiteList;
-        // World coordinates of our view port. Do not confuse these with the
-        // layout columns, those are different.
-        protected readonly SmartRect       _oTextRect  = new SmartRect();
-        protected readonly List<CacheRow>  _rgOldCache = new List<CacheRow>();
-        protected readonly TextLine        _oDummyLine = new TextLine( -2, string.Empty );
+        protected readonly SmartRect         _oTextRect  = new SmartRect(); // Sliding window, world coords.
+        protected readonly List<CacheRow>    _rgOldCache = new List<CacheRow>();
+        protected readonly TextLine          _oDummyLine = new TextLine( -2, string.Empty );
+
         protected readonly ReadOnlyCollection<ColumnInfo> _rgColumnInfo;
 
         protected Dictionary<uint, IPgFontRender> RenderClxn {get; } = new();
@@ -487,16 +486,17 @@ namespace Play.Edit {
         /// </summary>
         protected bool FlexColumns( CacheRow oCRow ) {
             bool fDoLayout = false;
+            IReadOnlyList<ColumnInfo> rgColumnInfo = _oSite.TextColumns;
 
-            for( int iCol=0; iCol<_oSite.TextColumns.Count; ++iCol ) {
+            for( int iCol=0; iCol<rgColumnInfo.Count; ++iCol ) {
                 IPgCacheMeasures oCElem  = oCRow[iCol];
-                LayoutRect       oBounds = _oSite.TextColumns[iCol].Bounds;
+                LayoutRect       oBounds = rgColumnInfo[iCol].Bounds;
 
-                if( oBounds.Style == LayoutRect.CSS.Flex &&
-                    oBounds.Track <  oCElem.UnwrappedWidth ) 
-                {   
-                    oBounds.Track =  oCElem.UnwrappedWidth; 
-                    fDoLayout = true;
+                if( oBounds.Style == LayoutRect.CSS.Flex ) { 
+                    if( oBounds.Track <  oCElem.UnwrappedWidth ) {   
+                        oBounds.Track =  oCElem.UnwrappedWidth; 
+                        fDoLayout = true;
+                    }
                 }
             }
 
@@ -688,10 +688,15 @@ namespace Play.Edit {
             get {
                 try {
                     if( _oCaretRow == null ) {
-                        if( _oSiteList.ElementCount <= 0 )
+                        if( _oSiteList.ElementCount <= 0 ) {
+                            LogError( "Not expecting an empty doc caret row request" );
                             return -2; // TODO: Erg... O.o
+                        }
 
-                        return _oSiteList[0].At;
+                        // This helps us re-synchronize.
+                        _oCaretRow = _oSiteList[0];
+
+                        return _oCaretRow.At;
                     }
                     if( _oCaretRow.At < 0 )
                         return 0;
@@ -797,7 +802,7 @@ namespace Play.Edit {
         /// The buffer rectangle is reset so it's top is zero and the top of the new cache
         /// element is zero. Old cache is untouched and will need to be cleared.
         /// </summary>
-        /// <seealso cref="CacheRecycle"/>
+        /// <seealso cref="CacheMultiColumn.CacheRecycle"/>
         protected CacheRow CacheReset( RefreshNeighborhood eNeighborhood ) {
             CacheRow oCacheRow = null;
 
@@ -1216,7 +1221,7 @@ namespace Play.Edit {
             //    oFreshCacheRow.CacheColumns.Add( oCacheLine );
             //}
             foreach( ColumnInfo oInfo in _rgColumnInfo ) {
-                Line        oLine      = oDocRow[oInfo._iDataIdx];
+                Line        oLine      = oDocRow[oInfo.DataIndex];
                 FTCacheLine oCacheLine = new FTCacheWrap( oLine == null ? _oDummyLine : oLine );
 
                 oCacheLine.Justify = oInfo.Bounds.Justify;
@@ -1289,6 +1294,7 @@ namespace Play.Edit {
                         if( _oSite.GetNextTab( _oCaretRow, iDir ) is Row oDocRow ) {
                             CacheRow oNewCache = _rgOldCache.Find(item => item.Row == oDocRow);
                             if( oNewCache == null ) {
+                                // BUG: I shouldn't do this in the the CacheMultiBase, but it's subclass.
                                 oNewCache = CreateCacheRow(oDocRow);
                                 RowMeasure( oNewCache );
                             }
@@ -1725,7 +1731,7 @@ namespace Play.Edit {
         /// Make sure to flush the cache before calling this function.
         /// </summary>
         /// <param name="iDataRow">Which data row we want to represent.</param>
-        /// <seealso cref="CacheReset"/>
+        /// <seealso cref="CacheMultiBase.CacheReset"/>
         protected void CacheRecycle( out CacheRow oNewCRow, int iDataRow, bool fRemeasure = false ) {
             oNewCRow = null;
 
@@ -1762,6 +1768,10 @@ namespace Play.Edit {
 
             _rgNewCache.Clear();
             _rgNewCache.Add( oSeedCache );
+
+            foreach( ColumnInfo oInfo in _rgColumnInfo ) {
+                oInfo.Bounds.Track = oInfo.OriginalTrack;
+            }
 
             try {
                 RowMeasure ( oSeedCache );

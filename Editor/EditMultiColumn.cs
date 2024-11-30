@@ -730,7 +730,7 @@ namespace Play.Edit {
                 if( oLine.TryReplace( iSrcOff, iSrcLen, spText ) ) {
                     foreach( IPgCaretInfo<Row> oTracker in oTE ) {
                         if( oTracker.Column == iColumn &&
-                            oTracker.Row    == oRow ) 
+                            oTracker.Row    == oRow       ) 
                         {
                             Marker.ShiftInsert( oTracker, iSrcOff, spText.Length - iSrcLen );
                         }

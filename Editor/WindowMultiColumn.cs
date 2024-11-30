@@ -15,7 +15,6 @@ using Play.Interfaces.Embedding;
 using Play.Rectangles;
 using Play.Controls;
 using Play.Parse;
-using System.Data.Common;
 
 namespace Play.Edit {
     public interface IPgDocTraits<T> {
@@ -171,22 +170,21 @@ namespace Play.Edit {
     /// </summary>
     public class ColumnInfo {
         public LayoutRect Bounds { get; protected set; }
-        public readonly int        _iDataIdx;
+        public int        DataIndex { get; }
+        public bool       IsReadonly { get; set; } = false;
+        public int        LayoutIndex { get; set; } = -1;
+        public uint       OriginalTrack { get; }
 
-        public bool _fReadonly;
-        public int  _iLayoutIdx;
-
-        public ColumnInfo( LayoutRect rcRect, int iDataColumn ) {
-            Bounds  = rcRect ?? throw new ArgumentNullException();
-            _iDataIdx  = iDataColumn; // data row column.
-            _fReadonly = false;
-            _iLayoutIdx = -1;
+        // These constructors are inverts of each other get rid of one...
+        [Obsolete]public ColumnInfo( LayoutRect rcRect, int iDataColumn ) {
+            Bounds        = rcRect ?? throw new ArgumentNullException();
+            DataIndex     = iDataColumn; // data row column.
+            OriginalTrack = rcRect.Track;
         }
         public ColumnInfo( int iDataColumn, LayoutRect rcRect ) {
-            Bounds  = rcRect ?? throw new ArgumentNullException();
-            _iDataIdx  = iDataColumn; // data row column.
-            _fReadonly = false;
-            _iLayoutIdx = -1;
+            Bounds        = rcRect ?? throw new ArgumentNullException();
+            DataIndex     = iDataColumn; // data row column.
+            OriginalTrack = rcRect.Track;
         }
     }
 
@@ -445,7 +443,7 @@ namespace Play.Edit {
         }
 
         protected void TextLayoutAdd( ColumnInfo oInfo ) {
-            oInfo._iLayoutIdx = _rgLayout.Count;
+            oInfo.LayoutIndex = _rgLayout.Count;
 
             _rgLayout.Add( oInfo.Bounds );
             _rgTxtCol.Add( oInfo );
