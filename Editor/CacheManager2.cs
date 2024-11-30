@@ -8,7 +8,6 @@ using SkiaSharp;
 
 using Play.Interfaces.Embedding;
 using Play.Rectangles;
-using Play.Parse;
 
 namespace Play.Edit {
     public enum CaretMove {

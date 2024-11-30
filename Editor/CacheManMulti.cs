@@ -484,7 +484,7 @@ namespace Play.Edit {
         /// As we add rows any particular flex column can only grow.
         /// If we add this row and a column grows... redo the layout.
         /// </summary>
-        protected bool FlexColumns( CacheRow oCRow ) {
+        protected virtual bool FlexColumns( CacheRow oCRow ) {
             bool fDoLayout = false;
             IReadOnlyList<ColumnInfo> rgColumnInfo = _oSite.TextColumns;
 
@@ -500,8 +500,9 @@ namespace Play.Edit {
                 }
             }
 
-            if( fDoLayout )
+            if( fDoLayout ) {
                 _oSite.DoLayout();
+            }
 
             return fDoLayout;
         }
@@ -1348,12 +1349,7 @@ namespace Play.Edit {
                     if( iDir < 0 )
                         _iCaretOff = oCaretRow[_iCaretCol].LastOffset;
 
-                    Point pntCaret = oCaretRow[_iCaretCol].GlyphOffsetToPoint( _iCaretOff );
-
-                    pntCaret.X += _rgColumnInfo[_iCaretCol].Bounds.Left;
-                    pntCaret.Y += oCaretRow.Top;
-
-                    _oSite.OnCaretPositioned( new SKPointI( pntCaret.X, pntCaret.Y ), true );
+                    _oSite.OnCaretPositioned( GetCaretScreenLocation( oCaretRow ), true );
                 } else {
                     _oSite.OnCaretPositioned( new SKPointI( -1000, -1000 ), false );
                 }
@@ -1689,6 +1685,7 @@ namespace Play.Edit {
                 _rgNewCache.Insert( 0, oNew );
             }
         }
+
         /// <summary>
         /// First remove all deleted lines that might be presently
         /// cached. Also, check if the data row that we are pointing
@@ -1806,8 +1803,13 @@ namespace Play.Edit {
                 }
 
                 // Flex columns should be wide enough for the widest element. Now relayout.
+                CacheRow oPrev = null;
                 foreach( CacheRow oCRow in _rgNewCache ) {
                     RowLayout( oCRow );
+                    if( oPrev is not null ) {
+                        oCRow.Top = oPrev.Bottom + RowSpacing;
+                    }
+                    oPrev = oCRow;
                 }
 
                 _rgOldCache.Clear   ();
