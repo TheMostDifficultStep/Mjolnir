@@ -579,6 +579,10 @@ namespace Play.Edit {
         public void CacheRepair( SmartRect rcNew, Row oPatch, bool fMeasure ) {
             try {
                 if( _oSiteList.ElementCount == 0 ) {
+                    if( rcNew != null ) {
+                        _oTextRect.Height = rcNew.Height;
+                        _oTextRect.Width  = rcNew.Width;
+                    }
                     FinishUp( null, null );
                     return;
                 }
@@ -603,6 +607,11 @@ namespace Play.Edit {
                 // Probably should just force the caret to be on some line
                 // at all times... :-/
                 if( oSeedRow == null ) {
+                    if( rcNew != null ) {
+                        _oTextRect.Height = rcNew.Height;
+                        _oTextRect.Width  = rcNew.Width;
+                    }
+
                     FinishUp( null, null );
                     return;
                 }
@@ -1460,6 +1469,7 @@ namespace Play.Edit {
         /// already calculated.</remarks>
         /// <param name="rgSize">The new size of the rectangle.</param>
         public void OnSizeChange( SmartRect rcNew ) {
+            bool fCheck = string.Equals( _oSite.Host.GetType().Name, "ViewOutline" );
             CacheRepair( rcNew, null, fMeasure:true ); 
         }
 
