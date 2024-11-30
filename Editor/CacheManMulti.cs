@@ -1639,6 +1639,7 @@ namespace Play.Edit {
         }
 
         public virtual void OnDocLoaded() {
+            _rgOldCache.Clear();
 
             if( _oSiteList.ElementCount > 0 ) {
                 Row oRow = _oSiteList[0];
@@ -1648,6 +1649,8 @@ namespace Play.Edit {
                 _iCaretOff = 0;
 
                 CacheWalker( CreateCacheRow( oRow ), fRemeasure:true );
+            } else {
+                FinishUp( null, null );
             }
         }
 
@@ -1775,10 +1778,9 @@ namespace Play.Edit {
                 FlexColumns( oSeedCache );
                 RowLayout  ( oSeedCache );
 
-                int      iLastRow  = _oSiteList.ElementCount - 1;
                 CacheRow oBotCache = oSeedCache;
                 while( oBotCache.Top < _oTextRect.Bottom ) { 
-                    if( oBotCache.At >= iLastRow  ) {
+                    if( oBotCache.At >= _oSiteList.ElementCount - 1 ) {
                         _oTextRect.SetScalar(SET.RIGID, SCALAR.BOTTOM, oBotCache.Bottom ); break;
                     }
                     CacheRecycle( out oBotCache, oBotCache.Row.At + 1, fRemeasure );
@@ -1796,7 +1798,7 @@ namespace Play.Edit {
                     FlexColumns ( oTopCache );
                 }
 
-                while( oBotCache.Bottom < _oTextRect.Bottom && oBotCache.At > iLastRow ) { 
+                while( oBotCache.Bottom < _oTextRect.Bottom && oBotCache.At > _oSiteList.ElementCount - 1 ) { 
                     CacheRecycle( out oBotCache, oBotCache.Row.At + 1, fRemeasure );
                     NewCacheAdd ( InsertAt.BOTTOM, oBotCache );
                     FlexColumns ( oBotCache );
