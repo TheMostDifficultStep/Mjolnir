@@ -1641,7 +1641,7 @@ namespace Play.Edit {
         }
 
         public virtual void OnDocUpdateEnd( IPgEditEvents.EditType eType, Row oRow ) {
-            CacheRepair( _oTextRect, oRow, fMeasure:true );
+            CacheRepair( null, oRow, fMeasure:true );
         }
 
         public virtual void OnDocFormatted() {
