@@ -1118,6 +1118,8 @@ namespace Play.Edit {
                     return;
                 }
                 if( !char.IsControl( e.KeyChar ) ) {
+                    _oCacheMan.ScrollToCaret();
+
                     ReadOnlySpan<char>   rgInsert  = stackalloc char[1] { e.KeyChar };
                     CacheMultiColumn.
                         SelectionManager oSelector = _oCacheMan.Selector;

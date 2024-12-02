@@ -1671,31 +1671,31 @@ namespace Play.Edit {
     public class CacheMultiColumn : CacheMultiBase {
         enum InsertAt { TOP,BOTTOM };
 
-        protected readonly List<CacheRow>  _rgNewCache = new List<CacheRow>(); 
+        protected readonly LinkedList<CacheRow> _lsNewCache = new();
+
+
         public CacheMultiColumn(ICacheManSite oSite ) : 
             base(oSite) 
         {
         }
 
         void NewCacheAdd( InsertAt ePos, CacheRow oNew ) {
-            if( _rgNewCache.Count == 0 )
-                throw new InvalidProgramException( "New Cache needs a seed" );
-
             RowLayout( oNew );
 
             if( ePos == InsertAt.BOTTOM ) {
-                CacheRow oPrev = _rgNewCache[_rgNewCache.Count - 1];
+                CacheRow oPrev = _lsNewCache.Last.Value;
                 if( oNew.At < oPrev.At )
                     throw new InvalidProgramException( "cache insert order problem.");
                 oNew.Top = oPrev.Bottom + RowSpacing;
-                _rgNewCache.Add( oNew );
+                _lsNewCache.AddLast( oNew );
             }
+
             if( ePos == InsertAt.TOP ) {
-                CacheRow oPrev = _rgNewCache[0];
+                CacheRow oPrev = _lsNewCache.First.Value;
                 if( oNew.At > oPrev.At )
                     throw new InvalidProgramException( "cache insert order problem.");
                 oNew.Bottom = oPrev.Top - RowSpacing;
-                _rgNewCache.Insert( 0, oNew );
+                _lsNewCache.AddFirst( oNew );
             }
         }
 
@@ -1707,7 +1707,7 @@ namespace Play.Edit {
         /// </summary>
         protected override void CacheFlushDeleted() {
             try {
-                _rgNewCache.Clear();
+                List<CacheRow> _rgNewCache = new(); // Temp usage...
 
                 foreach( CacheRow oCRow in _rgOldCache ) {
                     Row oDRow = oCRow.Row;
@@ -1761,6 +1761,36 @@ namespace Play.Edit {
         }
 
         /// <summary>
+        /// By this time the column widths have settled into the one that will
+        /// be used for this layout. Go back and restack the top/bottom since
+        /// any particular cell might need to wrap differently now, which will
+        /// effect the height of the row.
+        /// </summary>
+        /// <param name="oSeedLink"></param>
+        protected void Restack( LinkedListNode<CacheRow> oSeedLink ) {
+            if( oSeedLink is null )
+                return;
+
+            RowLayout( oSeedLink.Value );
+
+            LinkedListNode<CacheRow> oCur = oSeedLink;
+            while( oCur.Previous is not null ) {
+                RowLayout( oCur.Previous.Value );
+
+                oCur.Previous.Value.Bottom = oCur.Value.Top - RowSpacing;
+                oCur = oCur.Previous;
+            }
+
+            oCur = oSeedLink;
+            while( oCur.Next is not null ) {
+                RowLayout( oCur.Next.Value );
+
+                oCur.Next.Value.Top = oCur.Value.Bottom + RowSpacing;
+                oCur = oCur.Next;
+            }
+        }
+
+        /// <summary>
         /// New code for re-building the cache. Not entirely different
         /// than the original. Omits the sliding window concept.
         /// Calls OnRefreshComplete() on the site when finished.
@@ -1776,8 +1806,8 @@ namespace Play.Edit {
             }
             //bool fCheck = string.Equals( _oSite.Host.GetType().Name, "ViewFileMan" );
 
-            _rgNewCache.Clear();
-            _rgNewCache.Add( oSeedCache );
+            _lsNewCache.Clear();
+            LinkedListNode<CacheRow> oSeedLink = _lsNewCache.AddFirst( oSeedCache );
 
             foreach( ColumnInfo oInfo in _rgColumnInfo ) {
                 oInfo.Bounds.Track = oInfo.OriginalTrack;
@@ -1814,19 +1844,10 @@ namespace Play.Edit {
                     FlexColumns ( oBotCache );
                 }
 
-                // Flex columns should be wide enough for the widest element. Now relayout.
-                CacheRow oPrev = null;
-                foreach( CacheRow oCRow in _rgNewCache ) {
-                    RowLayout( oCRow );
-                    if( oPrev is not null ) {
-                        oCRow.Top = oPrev.Bottom + RowSpacing;
-                    }
-                    oPrev = oCRow;
-                }
+                Restack( oSeedLink );
 
                 _rgOldCache.Clear   ();
-                _rgOldCache.AddRange( _rgNewCache );
-                _rgNewCache.Clear   ();
+                _rgOldCache.AddRange( _lsNewCache );
 
                 MoveWindows();
 
