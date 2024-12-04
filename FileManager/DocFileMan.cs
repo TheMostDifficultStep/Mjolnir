@@ -39,12 +39,19 @@ namespace Play.FileManager {
             public void ValueUpdate( FileProperties.Names eIndex, Line oValue ) {
                  this[eIndex].TryReplace( oValue.AsSpan );
             }
+            public void ValueUpdate( FileProperties.Names eIndex, string strValue ) {
+                 this[eIndex].TryReplace( strValue );
+            }
         }
         public enum Names : int {
             Time,
 			Date,
             Size,
-            Type
+            Type,
+            TmpTop,
+            TmpBottom,
+            TmpRcTop,
+            TmpRcBottom,
         }
 
         public FileProperties(IPgBaseSite oSite) : base(oSite) {

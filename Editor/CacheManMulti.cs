@@ -74,6 +74,10 @@ namespace Play.Edit {
         public    int              RowSpacing { get; set; } = 1;
         public    SKPointI         CaretSize  => new SKPointI( 2, LineHeight );
 
+        public    SmartRect        TextRect => _oTextRect; // TEMP....
+        public    CacheRow         CaretRow => CacheLocate( CaretAt );
+
+
         protected Row   _oCaretRow; 
         protected int   _iCaretCol;
         protected int   _iCaretOff;
@@ -1305,13 +1309,14 @@ namespace Play.Edit {
                             CacheRow oNewCache = _rgOldCache.Find(item => item.Row == oDocRow);
                             if( oNewCache == null ) {
                                 // BUG: I shouldn't do this in the the CacheMultiBase, but it's subclass.
+                                // WORSE: The height settings probably happens in the Walker. Fix later...
                                 oNewCache = CreateCacheRow(oDocRow);
                                 RowMeasure( oNewCache );
-                            }
-                            if( iDir > 0 ) {
-                                oNewCache.Top    = oCaretCacheRow.Bottom + RowSpacing;
-                            } else {
-                                oNewCache.Bottom = oCaretCacheRow.Top - RowSpacing;
+                                if( iDir > 0 ) {
+                                    oNewCache.Top    = oCaretCacheRow.Bottom + RowSpacing;
+                                } else {
+                                    oNewCache.Bottom = oCaretCacheRow.Top - RowSpacing;
+                                }
                             }
                             // If moving up. want to find the offset for the given advance
                             // at the bottom most segment. Or vice versa if going down.
@@ -1679,7 +1684,32 @@ namespace Play.Edit {
         {
         }
 
-        void NewCacheAdd( InsertAt ePos, CacheRow oNew ) {
+        /// <summary>
+        /// Reset the column widths, Do a first layout. Clear the
+        /// new cache linked list and set the first element.
+        /// </summary>
+        /// <param name="oFirst"></param>
+        protected LinkedListNode<CacheRow> CacheAddFirst( CacheRow oFirst ) {
+            foreach( ColumnInfo oInfo in _rgColumnInfo ) {
+                oInfo.Bounds.Track = oInfo.OriginalTrack;
+            }
+
+            _oSite     .DoLayout();
+            _lsNewCache.Clear   ();
+            
+            RowMeasure ( oFirst );
+            FlexColumns( oFirst );
+            RowLayout  ( oFirst );
+
+            return _lsNewCache.AddFirst( oFirst );
+        }
+
+        /// <summary>
+        /// Flex the columns before making this call so the Row height
+        /// is calculated properly!
+        /// </summary>
+        /// <exception cref="InvalidProgramException"></exception>
+        void CacheAddNext( InsertAt ePos, CacheRow oNew ) {
             RowLayout( oNew );
 
             if( ePos == InsertAt.BOTTOM ) {
@@ -1804,19 +1834,11 @@ namespace Play.Edit {
                 LogError( "Cache construction error" );
                 return;
             }
-            //bool fCheck = string.Equals( _oSite.Host.GetType().Name, "ViewFileMan" );
-
-            _lsNewCache.Clear();
-            LinkedListNode<CacheRow> oSeedLink = _lsNewCache.AddFirst( oSeedCache );
-
-            foreach( ColumnInfo oInfo in _rgColumnInfo ) {
-                oInfo.Bounds.Track = oInfo.OriginalTrack;
-            }
+            //string strView = _oSite.Host.GetType().Name;
+            //bool   fCheck  = string.Equals( strView, "ViewLog" ); // ViewFileMan
 
             try {
-                RowMeasure ( oSeedCache );
-                FlexColumns( oSeedCache );
-                RowLayout  ( oSeedCache );
+                LinkedListNode<CacheRow> oSeedLink = CacheAddFirst( oSeedCache );
 
                 CacheRow oBotCache = oSeedCache;
                 while( oBotCache.Top < _oTextRect.Bottom ) { 
@@ -1824,8 +1846,8 @@ namespace Play.Edit {
                         _oTextRect.SetScalar(SET.RIGID, SCALAR.BOTTOM, oBotCache.Bottom ); break;
                     }
                     CacheRecycle( out oBotCache, oBotCache.Row.At + 1, fRemeasure );
-                    NewCacheAdd ( InsertAt.BOTTOM, oBotCache );
                     FlexColumns ( oBotCache );
+                    CacheAddNext( InsertAt.BOTTOM, oBotCache );
                 }
 
                 CacheRow oTopCache = oSeedCache;
@@ -1834,14 +1856,14 @@ namespace Play.Edit {
                         _oTextRect.SetScalar(SET.RIGID, SCALAR.TOP, oTopCache.Top ); break;
                     }
                     CacheRecycle( out oTopCache, oTopCache.Row.At - 1, fRemeasure );
-                    NewCacheAdd ( InsertAt.TOP, oTopCache );
                     FlexColumns ( oTopCache );
+                    CacheAddNext( InsertAt.TOP, oTopCache );
                 }
 
-                while( oBotCache.Bottom < _oTextRect.Bottom && oBotCache.At < _oSiteList.ElementCount - 1 ) { 
+                while( oBotCache.Top < _oTextRect.Bottom && oBotCache.At < _oSiteList.ElementCount - 1 ) { 
                     CacheRecycle( out oBotCache, oBotCache.Row.At + 1, fRemeasure );
-                    NewCacheAdd ( InsertAt.BOTTOM, oBotCache );
                     FlexColumns ( oBotCache );
+                    CacheAddNext( InsertAt.BOTTOM, oBotCache );
                 }
 
                 Restack( oSeedLink );

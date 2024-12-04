@@ -143,17 +143,38 @@ namespace Play.FileManager {
         }
 
         protected void OnCaretCheck() {
-            if( _oCacheMan.Caret2.Row is FileManager.FMRow oFMRow ) {
-                using FileProperties.BulkLoader2 oBulk = new( DocProps );
+            try {
+                if( _oCacheMan.Caret2.Row is FileManager.FMRow oFMRow ) {
+                    using FileProperties.BulkLoader2 oBulk = new( DocProps );
 
-                oBulk.ValueUpdate( FileProperties.Names.Date, 
-                                   oFMRow[FileManager.FMRow.DCol.Date] );
-                oBulk.ValueUpdate( FileProperties.Names.Time,
-                                   oFMRow[FileManager.FMRow.DCol.Time] );
-                oBulk.ValueUpdate( FileProperties.Names.Size,
-                                   oFMRow[FileManager.FMRow.DCol.Size] );
-                oBulk.ValueUpdate( FileProperties.Names.Type,
-                                   oFMRow[FileManager.FMRow.DCol.Type] );
+                    oBulk.ValueUpdate( FileProperties.Names.Date, 
+                                       oFMRow[FileManager.FMRow.DCol.Date] );
+                    oBulk.ValueUpdate( FileProperties.Names.Time,
+                                       oFMRow[FileManager.FMRow.DCol.Time] );
+                    oBulk.ValueUpdate( FileProperties.Names.Size,
+                                       oFMRow[FileManager.FMRow.DCol.Size] );
+                    oBulk.ValueUpdate( FileProperties.Names.Type,
+                                       oFMRow[FileManager.FMRow.DCol.Type] );
+
+                    if( _oCacheMan.CaretRow is CacheRow oCaretRow ) {
+                        oBulk.ValueUpdate( FileProperties.Names.TmpTop,
+                                           oCaretRow.Top.ToString() );
+                        oBulk.ValueUpdate( FileProperties.Names.TmpBottom,
+                                           oCaretRow.Bottom.ToString() );
+                    } else {
+                        oBulk.ValueUpdate( FileProperties.Names.TmpTop,    "No Caret..." );
+                        oBulk.ValueUpdate( FileProperties.Names.TmpBottom, "No Caret..." );
+                    }
+                    oBulk.ValueUpdate( FileProperties.Names.TmpRcTop,
+                                       _oCacheMan.TextRect.Top.ToString() );
+                    oBulk.ValueUpdate( FileProperties.Names.TmpRcBottom,
+                                       _oCacheMan.TextRect.Bottom.ToString() );
+                }
+            } catch( Exception oEx ) {
+                if( _rgErrors.IsUnhandled( oEx ) )
+                    throw;
+
+                LogError( "View File Manager property display error." );
             }
         }
 

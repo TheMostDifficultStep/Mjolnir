@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Text;
 
 using Play.Interfaces.Embedding;
 using Play.Parse;
@@ -547,6 +548,16 @@ namespace Play.Edit {
 
                 return _rgColumns[index];
             }
+        }
+
+        public override string ToString() {
+            StringBuilder sbOut = new();
+
+            foreach( Line oLine in _rgColumns ) {
+                sbOut.Append( oLine.AsSpan );
+            }
+
+            return sbOut.ToString();
         }
 
         public int At { get; set; } = -2;
