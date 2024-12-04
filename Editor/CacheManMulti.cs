@@ -1838,7 +1838,7 @@ namespace Play.Edit {
                     FlexColumns ( oTopCache );
                 }
 
-                while( oBotCache.Bottom < _oTextRect.Bottom && oBotCache.At > _oSiteList.ElementCount - 1 ) { 
+                while( oBotCache.Bottom < _oTextRect.Bottom && oBotCache.At < _oSiteList.ElementCount - 1 ) { 
                     CacheRecycle( out oBotCache, oBotCache.Row.At + 1, fRemeasure );
                     NewCacheAdd ( InsertAt.BOTTOM, oBotCache );
                     FlexColumns ( oBotCache );
