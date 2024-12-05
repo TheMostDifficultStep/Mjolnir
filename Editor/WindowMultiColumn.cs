@@ -228,7 +228,8 @@ namespace Play.Edit {
         public IPgParent Services  => Parentage.Services;
         public SKPoint   DPI { get; protected set; } 
         protected IPgStandardUI2 StdUI => _oStdUI;
-        protected ushort         StdFace { get; }
+        protected virtual ushort StdFace => StdUI.FaceCache(@"C:\windows\fonts\seguiemj.ttf"); // consola
+
         public uint CheckColumnWidth {get; } // BUG: Now that flex works, we don't need this...
 
         public bool IsScrollVisible { get; set; } = true;
@@ -395,8 +396,6 @@ namespace Play.Edit {
             _rgLayout       = new LayoutStackHorizontal() { Spacing = 7, Units = LayoutRect.CSS.Flex};
 
             InitializeDPI();
-
-            StdFace = StdUI.FaceCache(@"C:\windows\fonts\seguiemj.ttf"); // consola
 
             _oCacheMan = CreateCacheMan();
 

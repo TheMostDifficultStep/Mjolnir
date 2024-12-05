@@ -17,6 +17,9 @@ namespace Monitor {
         public Guid     Catagory => GUID;
         public string   Banner => "Basic Viewer - " + DocMain.FileName;
         public SKBitmap Icon => null;
+
+
+        protected override ushort StdFace => StdUI.FaceCache(@"C:\Users\Frodo\AppData\Local\Microsoft\Windows\Fonts\PressStart2P-Regular.ttf");
         protected BasicDocument DocMain { get; }
 
         protected int _iBasicColumnTop = -1;
