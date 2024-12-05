@@ -581,26 +581,31 @@ namespace Play.Edit {
         /// <param name="oPatch">Make sure this item is re-measured.</param>
         /// <seealso cref="CacheWalker(CacheRow, bool)"/>
         public void CacheRepair( SmartRect rcNew, Row oPatch, bool fMeasure ) {
+            // I moved this update inside here in an attempt to check if
+            // the caret is visible before the move and keep it visible.
+            // It wasn't quite working and so. Go with this for now.
+            if( rcNew != null ) {
+                _oTextRect.Height = rcNew.Height;
+                _oTextRect.Width  = rcNew.Width;
+            }
+
             try {
+                CacheFlushDeleted();
+
                 if( _oSiteList.ElementCount == 0 ) {
-                    if( rcNew != null ) {
-                        _oTextRect.Height = rcNew.Height;
-                        _oTextRect.Width  = rcNew.Width;
-                    }
                     FinishUp( null, null );
                     return;
                 }
-                //bool fCheck = string.Equals( _oSite.Host.GetType().Name, 
-                //                             "ViewFileMan" );
+                //bool fCheck = string.Equals( _oSite.Host.GetType().Name, "ViewFileMan" );
 
-                CacheFlushDeleted();
+                // More code to track the caret. I'm not liking how
+                // it works so I've commented it out for now.
+              //CacheRow oSeedRow   = CacheLocate     ( CaretAt );
+              //bool     fIsVisible = IsCaretIntersect( oSeedRow );
 
-                CacheRow oSeedRow   = CacheLocate     ( CaretAt );
-                bool     fIsVisible = IsCaretIntersect( oSeedRow );
-
-                if( oSeedRow is null || !fIsVisible ) {
-                    oSeedRow = CacheLocateTop();
-                }
+                //if( oSeedRow is null /* || !fIsVisible */ ) {
+                CacheRow oSeedRow = CacheLocateTop();
+                //}
 
                 if( oSeedRow is null ) {
                     oSeedRow = CacheReset( RefreshNeighborhood.SCROLL );
@@ -611,25 +616,8 @@ namespace Play.Edit {
                 // Probably should just force the caret to be on some line
                 // at all times... :-/
                 if( oSeedRow == null ) {
-                    if( rcNew != null ) {
-                        _oTextRect.Height = rcNew.Height;
-                        _oTextRect.Width  = rcNew.Width;
-                    }
-
                     FinishUp( null, null );
                     return;
-                }
-
-                if( rcNew != null ) {
-                    // If the seed is the caret, we would like to keep it
-                    // inside the view. But the commented code is a disaster...
-                    //if( oSeedRow.Top < rcNew.Top )
-                    //    oSeedRow.Top = rcNew.Top;
-                    //if( oSeedRow.Bottom > rcNew.Bottom )
-                    //    oSeedRow.Top = rcNew.Bottom - LineHeight;
-
-                    _oTextRect.Height = rcNew.Height;
-                    _oTextRect.Width  = rcNew.Width;
                 }
 
                 CacheWalker( oSeedRow, fMeasure );
@@ -1474,7 +1462,6 @@ namespace Play.Edit {
         /// already calculated.</remarks>
         /// <param name="rgSize">The new size of the rectangle.</param>
         public void OnSizeChange( SmartRect rcNew ) {
-            bool fCheck = string.Equals( _oSite.Host.GetType().Name, "ViewOutline" );
             CacheRepair( rcNew, null, fMeasure:true ); 
         }
 
