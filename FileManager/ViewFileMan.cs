@@ -156,19 +156,20 @@ namespace Play.FileManager {
                     oBulk.ValueUpdate( FileProperties.Names.Type,
                                        oFMRow[FileManager.FMRow.DCol.Type] );
 
-                    if( _oCacheMan.CaretRow is CacheRow oCaretRow ) {
-                        oBulk.ValueUpdate( FileProperties.Names.TmpTop,
-                                           oCaretRow.Top.ToString() );
-                        oBulk.ValueUpdate( FileProperties.Names.TmpBottom,
-                                           oCaretRow.Bottom.ToString() );
-                    } else {
-                        oBulk.ValueUpdate( FileProperties.Names.TmpTop,    "No Caret..." );
-                        oBulk.ValueUpdate( FileProperties.Names.TmpBottom, "No Caret..." );
-                    }
-                    oBulk.ValueUpdate( FileProperties.Names.TmpRcTop,
-                                       _oCacheMan.TextRect.Top.ToString() );
-                    oBulk.ValueUpdate( FileProperties.Names.TmpRcBottom,
-                                       _oCacheMan.TextRect.Bottom.ToString() );
+                    // Debug code.
+                    //if( _oCacheMan.CaretRow is CacheRow oCaretRow ) {
+                    //    oBulk.ValueUpdate( FileProperties.Names.TmpTop,
+                    //                       oCaretRow.Top.ToString() );
+                    //    oBulk.ValueUpdate( FileProperties.Names.TmpBottom,
+                    //                       oCaretRow.Bottom.ToString() );
+                    //} else {
+                    //    oBulk.ValueUpdate( FileProperties.Names.TmpTop,    "No Caret..." );
+                    //    oBulk.ValueUpdate( FileProperties.Names.TmpBottom, "No Caret..." );
+                    //}
+                    //oBulk.ValueUpdate( FileProperties.Names.TmpRcTop,
+                    //                   _oCacheMan.TextRect.Top.ToString() );
+                    //oBulk.ValueUpdate( FileProperties.Names.TmpRcBottom,
+                    //                   _oCacheMan.TextRect.Bottom.ToString() );
                 }
             } catch( Exception oEx ) {
                 if( _rgErrors.IsUnhandled( oEx ) )

@@ -1,14 +1,11 @@
-﻿using System.IO;
-using System.Reflection;
+﻿using System.Reflection;
 
 using SkiaSharp;
 
 using Play.Drawing;
 using Play.Interfaces.Embedding;
 using Play.Edit;
-using Play.ImageViewer;
 using Play.Forms;
-using System;
 
 namespace Play.FileManager {
     public class FileProperties :
@@ -48,10 +45,10 @@ namespace Play.FileManager {
 			Date,
             Size,
             Type,
-            TmpTop,
-            TmpBottom,
-            TmpRcTop,
-            TmpRcBottom,
+            //TmpTop,
+            //TmpBottom,
+            //TmpRcTop,
+            //TmpRcBottom,
         }
 
         public FileProperties(IPgBaseSite oSite) : base(oSite) {
