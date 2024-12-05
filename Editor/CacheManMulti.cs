@@ -1643,6 +1643,9 @@ namespace Play.Edit {
         public virtual void OnDocLoaded() {
             _rgOldCache.Clear();
 
+            // Reset our rect so the new elements line up at top.
+            _oTextRect.SetPoint( SET.RIGID, LOCUS.UPPERLEFT, 0, 0 );
+
             if( _oSiteList.ElementCount > 0 ) {
                 Row oRow = _oSiteList[0];
 
