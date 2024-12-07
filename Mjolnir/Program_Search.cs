@@ -140,14 +140,18 @@ namespace Mjolnir {
         /// <param name="iColumn">The column of the hyperlink.</param>
         /// <param name="oRange">The range of the hyperlink.</param>
         public void OnFileJump( Row oRow, int iColumn, IPgWordRange oRange ) {
-            if( _oMainWin.ViewSiteSelected is Mjolnir.ViewSlot oSlot ) {
-                if( oSlot.Guest is IPgTextView oTextView ) {
-                    if( oRow is ResultRow oResult ) {
-                        // TODO: We can get the column (SrcCol) from the result so in the
-                        //       future when SelectionSet() takes a column. We can pass it along...
-                        oTextView.SelectionSet( oResult.Source.At, oResult.Source.Offset, oResult.Source.Length );
+            try {
+                if( _oMainWin.ViewSiteSelected is Mjolnir.ViewSlot oSlot ) {
+                    if( oSlot.Guest is IPgTextView oTextView ) {
+                        if( oRow is ResultRow oResult ) {
+                            // TODO: We can get the column (SrcCol) from the result so in the
+                            //       future when SelectionSet() takes a column. We can pass it along...
+                            oTextView.SelectionSet( oResult.Source.At, oResult.Source.Offset, oResult.Source.Length );
+                        }
                     }
                 }
+            } catch( NullReferenceException ) {
+                LogError( "Oops problem in Find Results hyperlink jump." );
             }
         }
     }
