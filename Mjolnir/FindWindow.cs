@@ -138,7 +138,7 @@ namespace Mjolnir {
 		void OnMatchNavigation( int iLine ) {
             try {
                 SearchResults.ResultRow oRow = (SearchResults.ResultRow)_oWinMain.Document.Doc_Results[iLine];
-                ILineRange oSearchResult = oRow.Range;
+                ILineRange oSearchResult = oRow.Source;
 
                 if( oSearchResult.Line.At > -1 ) {
 				    _oView.SelectionSet( oSearchResult.Line.At, oSearchResult.Offset, oSearchResult.Length );
@@ -218,11 +218,14 @@ namespace Mjolnir {
              this.Enabled = true;
         }
 
-        /// <summary>
+        /// <summary>This object delineates the red found text in the
+        /// display fragment for the results. This is NOT the range of
+        /// the found text. :-/ </summary>
+        /// <remarks>
         /// Argghgh, yet another line range. Need this so I can override the At operator
         /// which normally gets it from the line! What an amazing stroke of luck that
         /// I can do this!!
-        /// </summary>
+        /// </remarks>
         public class LineRangeForMulti :
             ILineRange 
         {

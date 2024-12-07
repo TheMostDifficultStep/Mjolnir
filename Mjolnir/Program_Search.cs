@@ -6,6 +6,8 @@ using Play.FileManager;
 using Play.Interfaces.Embedding;
 using Play.Rectangles;
 using Play.Parse;
+using static Mjolnir.SearchResults;
+using static Play.FileManager.FileFavorites;
 
 namespace Mjolnir {
     public class TransientSlot : IPgBaseSite {
@@ -34,7 +36,7 @@ namespace Mjolnir {
                 Result
             }
 
-            public ILineRange Range  { get; } // Pos in source.
+            public ILineRange Source  { get; } // Pos in source.
             public int        SrcCol { get; }
 
             static int ColumnCount = Enum.GetValues(typeof(DCol)).Length;
@@ -47,7 +49,7 @@ namespace Mjolnir {
             public ResultRow( int iRow, string strResult, ILineRange oRange, int iSrcCol ) {
                 _rgColumns = new Line[ColumnCount];
 
-                Range  = oRange;
+                Source = oRange;
                 SrcCol = iSrcCol;
 
                 CreateColumn( DCol.Row_Num, iRow.ToString() );
@@ -77,7 +79,7 @@ namespace Mjolnir {
                     int    iDiff      = oRange.Offset - iStart;
                     string strMessage = oRange.Line.SubString( iStart, 50 );
                         
-                    ResultRow    oResult  = new( oRange.At, strMessage, oRange, 0 );
+                    ResultRow oResult  = new( oRange.At, strMessage, oRange, 0 );
                     FileRange oHotLink = new FileRange( iDiff, oRange.Length, oProgram.GetColorIndex( "red" ) );
 
                     oResult[ResultRow.DCol.Result].Formatting.Add( oHotLink );
@@ -104,11 +106,13 @@ namespace Mjolnir {
 
     public class ViewSearchResults : WindowMultiColumn {
         protected readonly SearchResults _oDocument;
+        protected readonly MainWin       _oMainWin;
 
         public ViewSearchResults(IPgViewSite oViewSite, object oDocument) : 
             base(oViewSite, oDocument) 
         {
             _oDocument = (SearchResults)oDocument;
+            _oMainWin  = (MainWin)_oSiteView.Host;
         }
 
         public override bool InitNew() {
@@ -127,8 +131,24 @@ namespace Mjolnir {
             return true;
         }
 
+        /// <summary>
+        /// The is row entered into the results list is a "ResultRow". Cast it to
+        /// that type in order to retrieve the found text span as a result of the search.
+        /// In the old days that would be the "extra" value on the Line object.
+        /// </summary>
+        /// <param name="oRow">The row in the results doc with the hyperlink.</param>
+        /// <param name="iColumn">The column of the hyperlink.</param>
+        /// <param name="oRange">The range of the hyperlink.</param>
         public void OnFileJump( Row oRow, int iColumn, IPgWordRange oRange ) {
-            _oCacheMan.SetCaretPositionAndScroll( oRow.At, iColumn, oRange.Offset, oRange.Length );
+            if( _oMainWin.ViewSiteSelected is Mjolnir.ViewSlot oSlot ) {
+                if( oSlot.Guest is IPgTextView oTextView ) {
+                    if( oRow is ResultRow oResult ) {
+                        // TODO: We can get the column (SrcCol) from the result so in the
+                        //       future when SelectionSet() takes a column. We can pass it along...
+                        oTextView.SelectionSet( oResult.Source.At, oResult.Source.Offset, oResult.Source.Length );
+                    }
+                }
+            }
         }
     }
 }
