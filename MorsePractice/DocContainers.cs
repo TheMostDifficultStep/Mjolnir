@@ -481,9 +481,6 @@ namespace Play.MorsePractice {
 			if( !Log.InitNew() )
 				return false;
 
-			Props.ValueUpdate( (int)DocLogProperties.Names.LogDate,
-							   DateTime.Now.ToLongDateString() );
-
 			return true;
 		}
 
