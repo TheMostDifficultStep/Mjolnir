@@ -1815,9 +1815,12 @@ namespace Play.Edit {
         /// than the original. Omits the sliding window concept.
         /// Calls OnRefreshComplete() on the site when finished.
         /// </summary>
-        /// <remarks>The key to remember is that if any element overlaps the
-        /// visible area, the outside part DOES NOT contribute. That's why
-        /// we check the clipped height!!</remarks>
+        /// <remarks>When going down make sure that the bottom of the
+        /// row HAS NOT reached the bottom of the text area. If you 
+        /// use the top of the row, but there are no more rows below,
+        /// we reset the text frame, which overrides any text area
+        /// sliding we did in the first place! 
+        /// Same goes for going up...</remarks>
         /// <seealso cref="ICacheManSite.OnRefreshComplete"/>
         protected override void CacheWalker( CacheRow oSeedCache, bool fRemeasure = false ) {
             if( oSeedCache == null ) {
@@ -1831,7 +1834,7 @@ namespace Play.Edit {
                 LinkedListNode<CacheRow> oSeedLink = CacheAddFirst( oSeedCache );
 
                 CacheRow oBotCache = oSeedCache;
-                while( oBotCache.Top < _oTextRect.Bottom ) { 
+                while( oBotCache.Bottom < _oTextRect.Bottom ) { 
                     if( oBotCache.At >= _oSiteList.ElementCount - 1 ) {
                         _oTextRect.SetScalar(SET.RIGID, SCALAR.BOTTOM, oBotCache.Bottom ); break;
                     }
@@ -1841,7 +1844,7 @@ namespace Play.Edit {
                 }
 
                 CacheRow oTopCache = oSeedCache;
-                while( oTopCache.Bottom > _oTextRect.Top ) { 
+                while( oTopCache.Top > _oTextRect.Top ) { 
                     if( oTopCache.At <= 0 ) {
                         _oTextRect.SetScalar(SET.RIGID, SCALAR.TOP, oTopCache.Top ); break;
                     }
