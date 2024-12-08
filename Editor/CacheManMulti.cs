@@ -584,6 +584,7 @@ namespace Play.Edit {
             // I moved this update inside here in an attempt to check if
             // the caret is visible before the move and keep it visible.
             // It wasn't quite working and so. Go with this for now.
+            bool fCheck = string.Equals(_oSite.Host.GetType().Name, "ViewFileMan");
             if( rcNew != null ) {
                 _oTextRect.Height = rcNew.Height;
                 _oTextRect.Width  = rcNew.Width;
@@ -596,7 +597,6 @@ namespace Play.Edit {
                     FinishUp( null, null );
                     return;
                 }
-                //bool fCheck = string.Equals( _oSite.Host.GetType().Name, "ViewFileMan" );
 
                 // More code to track the caret. I'm not liking how
                 // it works so I've commented it out for now.
@@ -833,7 +833,7 @@ namespace Play.Edit {
                 // Text rect is reset to UL => 0,0. Now set this element's top down a bit and build around it.
                 switch( eNeighborhood ) {
                     case RefreshNeighborhood.CARET:
-                        oCacheRow.Top = LineHeight * 2; // Match the slop in RefreshCache() else new elem will be outside rect on first load() and get flushed!
+                        oCacheRow.Top = 0; 
                         break;
                     case RefreshNeighborhood.SCROLL:
                         oCacheRow.Top = 0; // If this is bottom line. We'll accumulate backwards to fix up cache.
@@ -1260,7 +1260,7 @@ namespace Play.Edit {
         /// </summary>
         /// <param name="oCaret">The cache row where the caret is situated.</param>
         protected void CaretSlideWindow( CacheRow oCaret ) {
-            if( oCaret is not null ) {
+            if( oCaret is not null && _oTextRect.Width > 0 && _oTextRect.Height > 0 ) {
                 LOCUS eHitTop = oCaret.Top    < _oTextRect.Top    ? LOCUS.TOP    : LOCUS.EMPTY;
                 LOCUS eHitBot = oCaret.Bottom > _oTextRect.Bottom ? LOCUS.BOTTOM : LOCUS.EMPTY;
 
@@ -1827,8 +1827,13 @@ namespace Play.Edit {
                 LogError( "Cache construction error" );
                 return;
             }
-            //string strView = _oSite.Host.GetType().Name;
-            //bool   fCheck  = string.Equals( strView, "ViewLog" ); // ViewFileMan
+            if( _oTextRect.Width == 0 || _oTextRect.Height == 0 ) {
+                _rgOldCache.Clear();
+                return;
+            }
+
+            string strView = _oSite.Host.GetType().Name;
+            bool fCheck = string.Equals(strView, "ViewFileMan"); // ViewFileMan
 
             try {
                 LinkedListNode<CacheRow> oSeedLink = CacheAddFirst( oSeedCache );
