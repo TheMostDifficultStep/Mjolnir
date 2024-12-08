@@ -178,6 +178,7 @@ namespace Play.MorsePractice {
 						oProps.ValueUpdate( iDate, DateTime.Now.ToLongDateString() );
 					else
 						_oSiteView.LogError( "Radio Log", "Date Already Set" );
+
 					if( oProps.IsValueEmpty( iTime ) )
 						oProps.ValueUpdate( iTime, DateTime.Now.ToShortTimeString() );
 					else
