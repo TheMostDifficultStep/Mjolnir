@@ -73,6 +73,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\AddressBook\AddressBook.csproj" />
     <ProjectReference Include="..\Clock\Clock.csproj" />
     <ProjectReference Include="..\Drawing\Drawing.csproj" />
     <ProjectReference Include="..\Editor\Editor.csproj" />

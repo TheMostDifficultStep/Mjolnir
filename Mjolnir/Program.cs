@@ -1390,7 +1390,7 @@ namespace Mjolnir {
             Controllers.Add( new Monitor           .BBCBasicBinaryController() );
             Controllers.Add( new Monitor           .BBCBasicTextController() );
             Controllers.Add( new Kanji_Practice    .KanjiController() );
-
+            Controllers.Add( new AddressBook       .Controller() );
         }
 
         protected class EmbeddedGrammars {
