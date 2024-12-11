@@ -1827,7 +1827,7 @@ namespace Play.Edit {
                 LogError( "Cache construction error" );
                 return;
             }
-            if( _oTextRect.Width == 0 || _oTextRect.Height == 0 ) {
+            if( _oTextRect.Width <= 0 || _oTextRect.Height <= 0 ) {
                 _rgOldCache.Clear();
                 return;
             }
