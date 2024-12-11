@@ -1,12 +1,58 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.Text;
 using System.Xml;
 
 using Play.Edit;
 using Play.Interfaces.Embedding;
 
 namespace AddressBook {
+    public class DocEntry : Editor, IPgLoad<Row>{
+        public DocEntry(IPgBaseSite oSite) : base(oSite) {
+        }
+
+        public bool Load( Row oRow ) {
+			Clear();
+
+			if( oRow is not DocOutline.DDRow oElem )
+				return false;
+
+			using Manipulator oBulk   = CreateManipulator();
+			StringBuilder     sbBuild = new StringBuilder();
+
+			XmlNodeList? rgAddrs = oElem.Entry.SelectNodes( "a" );
+
+			try {
+				sbBuild.Append( oElem.FirstName );
+				sbBuild.Append( ' ' );
+				sbBuild.Append( oElem.LastName  );
+
+				oBulk.LineAppend( sbBuild.ToString() );
+
+				if( rgAddrs is not null && rgAddrs.Count > 0 ) {
+					XmlElement xmlAddr = (XmlElement)rgAddrs[0];
+
+					oBulk.LineAppend( xmlAddr.InnerText );
+
+					sbBuild.Clear();
+					sbBuild.Append( xmlAddr.GetAttribute("city") );
+					sbBuild.Append( ' ' );
+					sbBuild.Append( xmlAddr.GetAttribute("st") );
+					sbBuild.Append( ' ' );
+					sbBuild.Append( xmlAddr.GetAttribute("zip") );
+					
+					oBulk.LineAppend( sbBuild.ToString() );
+				}
+			} catch( Exception oEx ) {
+				Type[] rgErrors = { typeof( NullReferenceException ),
+									typeof( InvalidCastException ) };
+				if( rgErrors.IsUnhandled( oEx ) )
+					throw;
+
+				return false;
+			}
+
+			return true;
+        }
+    }
     public class DocOutline :
         EditMultiColumn,
         IPgLoad<XmlNodeList?>
@@ -18,16 +64,24 @@ namespace AddressBook {
 
         public class DDRow : Row {
             public static int ColumnCount => Enum.GetNames(typeof(Column)).Length;
+			
+			public XmlElement Entry { get; }
 
 			public Line this[ Column eIndex] {
 				get { return _rgColumns[(int)eIndex]; }
 				set { _rgColumns[(int)eIndex] = value; }
 			}
-            public DDRow( string strFirstName, string strLastName ) {
+
+			public string LastName  => this[Column.LastName ].ToString();
+			public string FirstName => this[Column.FirstName].ToString();
+
+            public DDRow( string strFirstName, string strLastName, XmlElement xmlEntry ) {
                 _rgColumns = new Line[ColumnCount];
 
                 this[Column.LastName  ] = new TextLine( (int)Column.LastName,  strLastName );
                 this[Column.FirstName ] = new TextLine( (int)Column.FirstName, strFirstName );
+
+				Entry = xmlEntry ?? throw new ArgumentNullException();
             }
         }
 
@@ -48,7 +102,7 @@ namespace AddressBook {
                     string strFirst = xmlEntry.GetAttribute( "first" );
                     string strLast  = xmlEntry.GetAttribute( "last" );
 
-					_rgRows.Add( new DDRow( strFirst, strLast ) );
+					_rgRows.Add( new DDRow( strFirst, strLast, xmlEntry ) );
 				}
 				// TODO: I'd like to use span's but need to get System.MemoryExtensions working.
 				_rgRows.Sort( (x,y) => string.Compare( x[(int)Column.LastName].ToString(),
@@ -93,7 +147,7 @@ namespace AddressBook {
 		} // End class
 
         public DocOutline Outline { get; }
-		public Editor     Entry   { get; }
+		public DocEntry   Entry   { get; }
 
         public IPgParent Parentage => _oBaseSite.Host;
         public IPgParent Services  => Parentage.Services;
@@ -105,7 +159,7 @@ namespace AddressBook {
             _oBaseSite = oSite ?? throw new ArgumentNullException();
 
             Outline = new ( new DocSlot( this ) );
-			Entry   = new Editor( new DocSlot( this ) );
+			Entry   = new ( new DocSlot( this ) );
         }
 
         public void Dispose() {
@@ -126,7 +180,7 @@ namespace AddressBook {
 		}
 
         public bool Load(TextReader oStream) {
-            XmlDocument  xmlBook   = new XmlDocument();
+            XmlDocument xmlBook = new XmlDocument();
 
             try {
                 xmlBook.Load( oStream );
@@ -135,8 +189,12 @@ namespace AddressBook {
 
 				if( !Outline.Load( rgEntries ) )
 					return false;
+
+				if( Outline.ElementCount > 0 ) {
+					Entry.Load( Outline[0] );
+				}
             } catch( Exception oEx ) {
-				Type[] rgErrors = { typeof( XmlException ) };
+				Type[] rgErrors = { typeof( XmlException ), typeof( NullReferenceException ) };
 				if( rgErrors.IsUnhandled( oEx ) )
 					throw;
 
