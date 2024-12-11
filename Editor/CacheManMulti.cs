@@ -1832,8 +1832,8 @@ namespace Play.Edit {
                 return;
             }
 
-            string strView = _oSite.Host.GetType().Name;
-            bool fCheck = string.Equals(strView, "ViewFileMan"); // ViewFileMan
+            //string strView = _oSite.Host.GetType().Name;
+            //bool fCheck = string.Equals(strView, "ViewFileMan"); // ViewFileMan
 
             try {
                 LinkedListNode<CacheRow> oSeedLink = CacheAddFirst( oSeedCache );
