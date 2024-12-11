@@ -3,11 +3,71 @@ using System.Collections.Generic;
 using System.Text;
 using System.Xml;
 
-using Play.Interfaces;
 using Play.Edit;
 using Play.Interfaces.Embedding;
 
 namespace AddressBook {
+    public class DocOutline :
+        EditMultiColumn,
+        IPgLoad<XmlNodeList?>
+	{
+        public enum Column : int {
+            LastName = 0,
+            FirstName
+        }
+
+        public class DDRow : Row {
+            public static int ColumnCount => Enum.GetNames(typeof(Column)).Length;
+
+			public Line this[ Column eIndex] {
+				get { return _rgColumns[(int)eIndex]; }
+				set { _rgColumns[(int)eIndex] = value; }
+			}
+            public DDRow( string strFirstName, string strLastName ) {
+                _rgColumns = new Line[ColumnCount];
+
+                this[Column.LastName  ] = new TextLine( (int)Column.LastName,  strLastName );
+                this[Column.FirstName ] = new TextLine( (int)Column.FirstName, strFirstName );
+            }
+        }
+
+        public DocOutline(IPgBaseSite oSiteBase) : base(oSiteBase) {
+        }
+
+        public bool InitNew() {
+            return false;
+        }
+
+        public bool Load(XmlNodeList? rgEntries ) {
+			if( rgEntries is null )
+				throw new ArgumentNullException();
+
+			try {
+				// Load up the entries.
+				foreach( XmlElement xmlEntry in rgEntries ) {
+                    string strFirst = xmlEntry.GetAttribute( "first" );
+                    string strLast  = xmlEntry.GetAttribute( "last" );
+
+					_rgRows.Add( new DDRow( strFirst, strLast ) );
+				}
+				// TODO: I'd like to use span's but need to get System.MemoryExtensions working.
+				_rgRows.Sort( (x,y) => string.Compare( x[(int)Column.LastName].ToString(),
+													   y[(int)Column.LastName].ToString() ) );
+
+				RenumberAndSumate();
+
+				return true;
+			} catch( Exception oEx ) {
+				Type[] rgErrors = { typeof( NullReferenceException ) };
+				if( rgErrors.IsUnhandled( oEx ) )
+					throw;
+
+				LogError( "Trouble reading address book." );
+			}
+
+			return false;
+        }
+    }
     public class DocAddrBook :
 		IDisposable,
 		IPgParent,
@@ -32,19 +92,19 @@ namespace AddressBook {
 			}
 		} // End class
 
-        public Editor Outline { get; }
-		public Editor Entry   { get; }
+        public DocOutline Outline { get; }
+		public Editor     Entry   { get; }
 
         public IPgParent Parentage => _oBaseSite.Host;
         public IPgParent Services  => Parentage.Services;
 
         protected IPgBaseSite      _oBaseSite;
-		protected List<XmlElement> _rgEntries = new();
+		protected SortedList<string, XmlElement> _rgEntries = new();
 
         public DocAddrBook( IPgBaseSite oSite ) {
             _oBaseSite = oSite ?? throw new ArgumentNullException();
 
-            Outline = new Editor( new DocSlot( this ) );
+            Outline = new ( new DocSlot( this ) );
 			Entry   = new Editor( new DocSlot( this ) );
         }
 
@@ -67,12 +127,14 @@ namespace AddressBook {
 
         public bool Load(TextReader oStream) {
             XmlDocument  xmlBook   = new XmlDocument();
-			XmlNodeList? rgEntries;
 
             try {
                 xmlBook.Load( oStream );
 
-				rgEntries = xmlBook.SelectNodes("book/entries/entry");
+				XmlNodeList? rgEntries = xmlBook.SelectNodes("book/entries/entry");
+
+				if( !Outline.Load( rgEntries ) )
+					return false;
             } catch( Exception oEx ) {
 				Type[] rgErrors = { typeof( XmlException ) };
 				if( rgErrors.IsUnhandled( oEx ) )
@@ -82,28 +144,6 @@ namespace AddressBook {
 				return false;
             }
 
-			if( rgEntries is null )
-				return false;
-
-			try {
-				using Editor.Manipulator oBulkOutl = Outline.CreateManipulator();
-
-				// Load up the entries.
-				foreach( XmlElement xmlEntry in rgEntries ) {
-                    string strFirst = xmlEntry.GetAttribute( "first" );
-                    string strLast  = xmlEntry.GetAttribute( "last" );
-
-					Line oLine = oBulkOutl.LineAppend( strLast + ": " + strFirst );
-					_rgEntries.Add( xmlEntry );
-					oLine.Extra = oLine;
-				}
-			} catch( Exception oEx ) {
-				Type[] rgErrors = { typeof( NullReferenceException ) };
-				if( rgErrors.IsUnhandled( oEx ) )
-					throw;
-
-				LogError( oEx, "Trouble reading address book." );
-			}
 
 			return true;
         }
