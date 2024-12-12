@@ -5,8 +5,8 @@ using Play.Edit;
 using Play.Interfaces.Embedding;
 
 namespace AddressBook {
-    public class DocEntry : Editor, IPgLoad<Row>{
-        public DocEntry(IPgBaseSite oSite) : base(oSite) {
+    public class DocEntries : Editor, IPgLoad<Row>{
+        public DocEntries(IPgBaseSite oSite) : base(oSite) {
         }
 
         public bool Load( Row oRow ) {
@@ -151,7 +151,7 @@ namespace AddressBook {
 		} // End class
 
         public DocOutline Outline { get; }
-		public DocEntry   Entry   { get; }
+		public DocEntries   Entry   { get; }
 
         public IPgParent Parentage => _oBaseSite.Host;
         public IPgParent Services  => Parentage.Services;
@@ -167,6 +167,7 @@ namespace AddressBook {
         }
 
         public void Dispose() {
+            Outline.Event_Check -= OnCheck_Outline;
 			Outline.Dispose();
         }
 
@@ -192,11 +193,11 @@ namespace AddressBook {
 				if( !Outline.Load( xmlBook.SelectNodes("book/entries/entry" ) ) )
 					return false;
 
-				Outline.PlayHighlightColor = StdUIColors.MusicLine;
-
 				if( Outline.ElementCount > 0 ) {
 					Entry.Load( Outline[0] );
 				}
+				Outline.SetCheckAtRow( Outline[0] );
+                Outline.Event_Check += OnCheck_Outline;
             } catch( Exception oEx ) {
 				Type[] rgErrors = { typeof( XmlException ), typeof( NullReferenceException ) };
 				if( rgErrors.IsUnhandled( oEx ) )
@@ -210,10 +211,14 @@ namespace AddressBook {
 			return true;
         }
 
-		/// <summary>
-		/// Tho' we have no facility for entering new values yet. You have
-		/// to edit the xml file directly! >_<;;
-		/// </summary>
+        private void OnCheck_Outline( Row oRow ) {
+            Entry.Load( oRow );
+        }
+
+        /// <summary>
+        /// Tho' we have no facility for entering new values yet. You have
+        /// to edit the xml file directly! >_<;;
+        /// </summary>
         public bool InitNew() {
             return true;
         }
