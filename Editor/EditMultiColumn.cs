@@ -342,7 +342,7 @@ namespace Play.Edit {
         protected string               _strCheckValue = "\x2714";
         protected string               _strCheckClear = string.Empty;
 
-        // Often we need these events independento of the listeners b/s some
+        // Often we need these events independent of the listeners b/s some
         // parent document might be using us and not just the windows!!
         public event Action<Row> Event_HighLight;
         public event Action<Row> Event_Check;     // Events when check marks occur.

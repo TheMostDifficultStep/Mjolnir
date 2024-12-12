@@ -19,6 +19,7 @@ namespace AddressBook {
             if( !base.Initialize() )
                 return false;
 
+            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Flex ) {Track=10 }, (int)DocOutline.Column.Check ); 
             TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Flex ), (int)DocOutline.Column.LastName ); 
             TextLayoutAdd( new LayoutRect( LayoutRect.CSS.None ), (int)DocOutline.Column.FirstName ); 
 

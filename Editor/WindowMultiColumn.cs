@@ -400,7 +400,7 @@ namespace Play.Edit {
             _oCacheMan = CreateCacheMan();
 
             // BUG: CacheManager set's the height. Cacheman defines the
-            //      glyph but not vial the EditMultiColumn.
+            //      glyph but not via the EditMultiColumn.
             CheckColumnWidth = (uint)_oCacheMan.GlyphCheck.Coordinates.advance_x;
 
             Array.Sort<Keys>( _rgHandledKeys );
@@ -454,7 +454,7 @@ namespace Play.Edit {
         }
 
         /// <summary>
-        /// 
+        /// Launches a browser process on the given url!
         /// </summary>
         /// <exception cref="ObjectDisposedException" />
         /// <exception cref="FileNotFoundException" />
@@ -1099,6 +1099,23 @@ namespace Play.Edit {
             return base.ProcessCmdKey( ref msg, keyData );
         } // end method
 
+        /// <summary>
+        /// If you put the visible columns in a different order than the
+        /// data, well then you've got to look 'em up.
+        /// </summary>
+        public bool IsCaretInCheckColumn {
+            get {
+                if( _oCacheMan.CaretColumn < 0 )
+                    return false;
+
+                foreach( ColumnInfo oCol in _rgTxtCol ) {
+                    if( oCol.DataIndex == _oCacheMan.CaretColumn )
+                        return true;
+                }
+                return false;
+            }
+        }
+
         protected override void OnKeyPress(KeyPressEventArgs e) {
             if( IsDisposed )
                 return;
@@ -1108,7 +1125,7 @@ namespace Play.Edit {
                 return;
 
             try {
-                if( _oCacheMan.CaretColumn == _oDocChecks.CheckColumn ) {
+                if( IsCaretInCheckColumn ) {
                     if( e.KeyChar == ' ' ) { // space bar.
                         Row oRow = _oDocList[_oCacheMan.CaretAt];
                         _oDocChecks.SetCheckAtRow( oRow ); // sends a check event if check moves.

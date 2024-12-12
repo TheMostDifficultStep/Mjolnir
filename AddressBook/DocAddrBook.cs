@@ -59,7 +59,8 @@ namespace AddressBook {
 	{
         public enum Column : int {
             LastName = 0,
-            FirstName
+            FirstName,
+			Check
         }
 
         public class DDRow : Row {
@@ -74,18 +75,21 @@ namespace AddressBook {
 
 			public string LastName  => this[Column.LastName ].ToString();
 			public string FirstName => this[Column.FirstName].ToString();
+			public ReadOnlySpan<char> Check => this[Column.Check].AsSpan;
 
             public DDRow( string strFirstName, string strLastName, XmlElement xmlEntry ) {
                 _rgColumns = new Line[ColumnCount];
 
                 this[Column.LastName  ] = new TextLine( (int)Column.LastName,  strLastName );
                 this[Column.FirstName ] = new TextLine( (int)Column.FirstName, strFirstName );
+				this[Column.Check     ] = new TextLine( (int)Column.Check, string.Empty );
 
 				Entry = xmlEntry ?? throw new ArgumentNullException();
             }
         }
 
         public DocOutline(IPgBaseSite oSiteBase) : base(oSiteBase) {
+			CheckColumn = (int)Column.Check;
         }
 
         public bool InitNew() {
@@ -180,15 +184,15 @@ namespace AddressBook {
 		}
 
         public bool Load(TextReader oStream) {
-            XmlDocument xmlBook = new XmlDocument();
+            XmlDocument xmlBook = new();
 
             try {
                 xmlBook.Load( oStream );
 
-				XmlNodeList? rgEntries = xmlBook.SelectNodes("book/entries/entry");
-
-				if( !Outline.Load( rgEntries ) )
+				if( !Outline.Load( xmlBook.SelectNodes("book/entries/entry" ) ) )
 					return false;
+
+				Outline.PlayHighlightColor = StdUIColors.MusicLine;
 
 				if( Outline.ElementCount > 0 ) {
 					Entry.Load( Outline[0] );
@@ -198,7 +202,7 @@ namespace AddressBook {
 				if( rgErrors.IsUnhandled( oEx ) )
 					throw;
 
-                LogError( oEx, "Couldn't read xml config." );
+                LogError( oEx, "Couldn't read Address Book." );
 				return false;
             }
 

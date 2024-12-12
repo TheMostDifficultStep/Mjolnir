@@ -686,13 +686,13 @@ namespace Play.Edit {
         /// <summary>
         /// Return the row the caret is at. 
         /// </summary>
+        /// <value>Might return -2 for empty document.</value>
         public int CaretAt {
             get {
                 try {
                     if( _oCaretRow == null ) {
                         if( _oSiteList.ElementCount <= 0 ) {
-                            LogError( "Not expecting an empty doc caret row request" );
-                            return -2; // TODO: Erg... O.o
+                            return -2; 
                         }
 
                         // This helps us re-synchronize.
@@ -711,10 +711,14 @@ namespace Play.Edit {
             }
         }
 
-        /// <summary>
+        /// <summary>This column is in the order of the data row columns.</summary>
+        /// <remarks>
+        /// Most my code I originally wrote with the data columns being in the 
+        /// same order as the visual columns, but that's not the case for the
+        /// new address book project. So there might be some bugs lurking around.
         /// Both these functions would be better served by making the caret
         /// a first class object in the CacheMult. I'll do that soon.
-        /// </summary>
+        /// </remarks>
         public int CaretColumn => _iCaretCol;
         public int CaretOffset { 
             set { _iCaretOff = value; }
@@ -830,15 +834,7 @@ namespace Play.Edit {
 
                 RowMeasure( oCacheRow );
 
-                // Text rect is reset to UL => 0,0. Now set this element's top down a bit and build around it.
-                switch( eNeighborhood ) {
-                    case RefreshNeighborhood.CARET:
-                        oCacheRow.Top = 0; 
-                        break;
-                    case RefreshNeighborhood.SCROLL:
-                        oCacheRow.Top = 0; // If this is bottom line. We'll accumulate backwards to fix up cache.
-                        break;
-                }
+                oCacheRow.Top = 0; 
             } catch( Exception oEx ) {
                 if( IsUnhandledStdRpt( oEx ) )
                     throw;
@@ -1280,6 +1276,7 @@ namespace Play.Edit {
         /// <param name="eAxis">Horizontal or Vertical</param>
         /// <param name="iDir">How much to move by, +1 or -1.</param>
         /// <exception cref="ArgumentOutOfRangeException" />
+        /// <seealso cref="CaretAdvance(SKPointI)"/>
         public void CaretMove( Axis eAxis, int iDir ) {
             if( !( iDir == 1 || iDir == -1 ) )
                 throw new ArgumentOutOfRangeException();
@@ -1416,10 +1413,11 @@ namespace Play.Edit {
 
         /// <summary>
         /// This moves the caret and we expect it's position to be updated w/o
-        /// any window invalidate since we are using the windows caret.
+        /// any window invalidate since we are using the windows mouse to pick.
         /// </summary>
         /// <remarks>I could probably take advantage of the new IsRowHit...</remarks>
         /// <seealso cref="IsRowHit"/>
+        /// <seealso cref="CaretMove(Axis, int)"/>
         public bool CaretAdvance( SKPointI pntPick ) {
             try {
                 for( int iColumn = 0; iColumn < _rgColumnInfo.Count; iColumn++ ) {
