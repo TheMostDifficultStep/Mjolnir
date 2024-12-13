@@ -224,13 +224,7 @@ namespace AddressBook {
         }
 
 		public bool IsRowIndexInside( int iRow ) {
-			if( iRow > 0 )
-				return true;
-
-			if( iRow < Outline.ElementCount )
-				return true;
-
-			return false;
+			return iRow > 0 && iRow < Outline.ElementCount;
 		}
 
 		public void Jump( int iDir ) {
