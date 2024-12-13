@@ -50,5 +50,18 @@ namespace AddressBook {
 
             return null;
         }
+
+        public override bool Execute(Guid sGuid) {
+            if( sGuid == GlobalCommands.JumpNext ) {
+                Document.Jump( 1 ); 
+                return true;
+            }
+            if( sGuid == GlobalCommands.JumpPrev ) {
+                Document.Jump( -1 );
+                return true;
+            }
+
+            return false;
+        }
     } // end class
 }

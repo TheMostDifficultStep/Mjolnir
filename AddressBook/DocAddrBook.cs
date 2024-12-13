@@ -222,5 +222,30 @@ namespace AddressBook {
         public bool InitNew() {
             return true;
         }
+
+		public bool IsRowIndexInside( int iRow ) {
+			if( iRow > 0 )
+				return true;
+
+			if( iRow < Outline.ElementCount )
+				return true;
+
+			return false;
+		}
+
+		public void Jump( int iDir ) {
+			if( Math.Abs( iDir ) != 1 )
+				throw new ArgumentOutOfRangeException();
+
+			if( Outline.CheckedRow is null ) {
+				Outline.SetCheckAtRow( Outline[0] );
+				return;
+			}
+
+			int iNext = iDir + Outline.CheckedRow.At;
+			if( IsRowIndexInside( iNext ) ) {
+				Outline.SetCheckAtRow( Outline[iNext] );
+			}
+		}
     }
 }
