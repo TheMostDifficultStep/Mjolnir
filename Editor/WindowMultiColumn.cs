@@ -1105,6 +1105,8 @@ namespace Play.Edit {
         /// </summary>
         public bool IsCaretInCheckColumn {
             get {
+                if( _oDocChecks.CheckColumn < 0 )
+                    return false;
                 if( _oCacheMan.CaretColumn < 0 )
                     return false;
 
