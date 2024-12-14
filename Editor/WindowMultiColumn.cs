@@ -947,6 +947,9 @@ namespace Play.Edit {
         /// do the row in the DocProperties object. row.At in that case is the
         /// TabOrder...
         /// </remarks>
+        /// <param name="iColumn">The text column in the cache manager. Which
+        /// is typically NOT the same as the layout column. Which is not
+        /// necessarily the same column in the actual Data row. O.o;; </param>
         protected bool HyperLinkFind( int iColumn, SKPointI pntLocation, bool fDoJump ) {
             try {
                 if( _oCacheMan.PointToCache( iColumn, pntLocation, out int iLineOffset ) is CacheRow oCRow ) {
@@ -974,17 +977,18 @@ namespace Play.Edit {
         protected void CursorUpdate( SKPointI pntLocation, MouseButtons eButton ) {
             Cursor oNewCursor = Cursors.Arrow;
 
-            for( int iColumn=0; iColumn<_rgTxtCol.Count; ++iColumn ) {
-                SmartRect oColumn = _rgTxtCol[iColumn].Bounds;
-                if( oColumn.IsInside( pntLocation.X, pntLocation.Y ) ) {
-                    if( _oDocChecks.CheckColumn == iColumn ) {
+            for( int iTextColumn=0; iTextColumn<_rgTxtCol.Count; ++iTextColumn ) {
+                SmartRect rcColumn = _rgTxtCol[iTextColumn].Bounds;
+                int       iDataCol = _rgTxtCol[iTextColumn].DataIndex;
+                if( rcColumn.IsInside( pntLocation.X, pntLocation.Y ) ) {
+                    if( _oDocChecks.CheckColumn == iDataCol ) {
                         oNewCursor = Cursors.Hand;
                     } else {
                         oNewCursor = Cursors.IBeam;
                         if( eButton != MouseButtons.Left &&         // if not selecting.
                             ((ModifierKeys & Keys.Control) == 0 ) ) // if not editing...
                         { 
-                            if( HyperLinkFind( iColumn, pntLocation, fDoJump:false ) )
+                            if( HyperLinkFind( iTextColumn, pntLocation, fDoJump:false ) )
                                 oNewCursor = Cursors.Hand;
                             break;
                         }
@@ -1189,9 +1193,9 @@ namespace Play.Edit {
             return (ModifierKeys & Keys.Control) != 0;
         }
 
-        public bool IsInside( SKPointI pntClick, out int iColumn ) {
-            for( iColumn=0; iColumn<_rgTxtCol.Count; ++iColumn ) {
-                SmartRect oColumn = _rgTxtCol[iColumn].Bounds;
+        public bool IsInside( SKPointI pntClick, out int iTextColumn ) {
+            for( iTextColumn=0; iTextColumn<_rgTxtCol.Count; ++iTextColumn ) {
+                SmartRect oColumn = _rgTxtCol[iTextColumn].Bounds;
                 if( oColumn.IsInside( pntClick.X, pntClick.Y ) ) {
                     return true;
                 }
@@ -1210,11 +1214,12 @@ namespace Play.Edit {
 
             try {
                 // See if want to double click select a word.
-                if( IsInside( pntClick, out int iColumn ) ) {
+                if( IsInside( pntClick, out int iTextColumn ) ) {
                     CacheMultiColumn.CaretInfo? sCaret = _oCacheMan.CopyCaret();
 
                     if( sCaret is CacheMultiColumn.CaretInfo oCaret ) {
-                        if( oCaret.Row[iColumn].FindFormattingUnderRange( oCaret ) is IMemoryRange oRange ) {
+                        int iDataCol = _rgTxtCol[iTextColumn].DataIndex;
+                        if( oCaret.Row[iDataCol].FindFormattingUnderRange( oCaret ) is IMemoryRange oRange ) {
                             _oCacheMan.Selector.SetWord( oCaret, oRange );
                             _oCacheMan.CacheReColor();
                             Invalidate();
@@ -1242,10 +1247,12 @@ namespace Play.Edit {
 
             Select();
             SKPointI pntClick = new SKPointI( e.X, e.Y );
+            bool     fInside  = IsInside( pntClick, out int iTextColumn );
 
-            if( IsInside( pntClick, out int iColumnM ) ) {
-                if( iColumnM == _oDocChecks.CheckColumn ) {
-                    if( _oCacheMan.PointToCache( iColumnM, pntClick, out int iLineOffset ) is CacheRow oCRow ) {
+            if( fInside ) {
+                int iDataCol = _rgTxtCol[iTextColumn].DataIndex;
+                if( iDataCol == _oDocChecks.CheckColumn ) {
+                    if( _oCacheMan.PointToCache( iDataCol, pntClick, out int iLineOffset ) is CacheRow oCRow ) {
                   //if( _oCacheMan.PointToRow( iColumnM, pntClick, out int iOff, out Row oRow ) ) {
                         _oDocChecks.SetCheckAtRow( oCRow.Row ); // sends a check event if check moves.
                     }
@@ -1258,8 +1265,9 @@ namespace Play.Edit {
 
             // Need to move this to mouse up, so I can detect a drag...
             if( e.Button == MouseButtons.Left && !IsCtrl( ModifierKeys ) ) {
-                if( IsInside( pntClick, out int iColumn ) ) {
-                    if( !HyperLinkFind( iColumn, pntClick, fDoJump:true ) ) {
+                if( fInside ) {
+                    int iDataCol = _rgTxtCol[iTextColumn].DataIndex;
+                    if( !HyperLinkFind( iDataCol, pntClick, fDoJump:true ) ) {
                         _oCacheMan.BeginSelect();
                         _oCacheMan.CacheReColor();
                     }
