@@ -5,6 +5,7 @@ using System.Text;
 using Play.Interfaces.Embedding;
 using Play.Edit;
 using Play.Rectangles;
+using System.Windows.Forms;
 
 namespace AddressBook {
     /// <summary>
@@ -62,6 +63,27 @@ namespace AddressBook {
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// Turns out this is a case where we don't want to allow 
+        /// ANY typing! O.o I should do more work to override the
+        /// other cases but not now. >_<;;
+        /// </summary>
+        protected override void OnKeyDown(KeyEventArgs e) {
+            if( IsDisposed )
+                return;
+
+            e.Handled = true;
+
+            switch( e.KeyCode ) {
+                case Keys.PageDown:
+                    Document.Jump( 1 );
+                    break;
+                case Keys.PageUp:
+                    Document.Jump( -1 );
+                    break;
+            }
         }
     } // end class
 }
