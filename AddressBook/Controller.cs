@@ -23,6 +23,8 @@ namespace AddressBook {
                 switch( guidViewType ) {
                     case Guid r when r == ViewSingleAddr.ViewCategory:
                         return new ViewSingleAddr(oBaseSite, oMorsePractice);
+                    case Guid r when r == ViewLabel.ViewCategory:
+                        return new ViewLabel(oBaseSite, oMorsePractice);
 
                     default:
                         return new ViewSingleAddr(oBaseSite, oMorsePractice );
@@ -41,6 +43,7 @@ namespace AddressBook {
 
         public override IEnumerator<IPgViewType> GetEnumerator() {
             yield return new ViewType( "Address", ViewSingleAddr.ViewCategory );
+            yield return new ViewType( "Print",   ViewLabel     .ViewCategory );
         }
     }
 }
