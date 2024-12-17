@@ -5,8 +5,11 @@ using Play.Edit;
 using Play.Interfaces.Embedding;
 
 namespace AddressBook {
-    public class DocEntries : Editor, IPgLoad<Row>{
-        public DocEntries(IPgBaseSite oSite) : base(oSite) {
+	/// <summary>
+	/// Use this to construct a simple entry from the XML.
+	/// </summary>
+    public class DocEntry : Editor, IPgLoad<Row>{
+        public DocEntry(IPgBaseSite oSite) : base(oSite) {
         }
 
         public bool Load( Row oRow ) {
@@ -151,7 +154,7 @@ namespace AddressBook {
 		} // End class
 
         public DocOutline Outline { get; }
-		public DocEntries   Entry   { get; }
+		public DocEntry   Entry   { get; }
 
         public IPgParent Parentage => _oBaseSite.Host;
         public IPgParent Services  => Parentage.Services;

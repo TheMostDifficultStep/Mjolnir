@@ -97,7 +97,8 @@ namespace AddressBook {
 
     // https://learn.microsoft.com/en-us/dotnet/api/system.drawing.printing.printdocument?view=windowsdesktop-9.0
     public class ViewLabel : 
-        SKControl,
+        Control,
+        IPgParent,
         IDisposable,
         IPgLoad<XmlElement>,
         IPgCommandView,
@@ -106,6 +107,7 @@ namespace AddressBook {
         protected IPgViewSite _oViewSite;
         public static Guid    ViewCategory => new Guid( "{22AF6601-FB34-40CC-874D-E1925E6B251D}" );
         protected DocAddrBook Document { get; }
+        protected DocEntry    ReturnAddr { get; }
 
         public string Banner => "Print Viewer";
 
@@ -115,17 +117,50 @@ namespace AddressBook {
 
         public bool IsDirty => throw new NotImplementedException();
 
+        public IPgParent Parentage => _oViewSite.Host;
+
+        public IPgParent Services => Parentage.Services;
+
         IEnumerator<int>? _enuPage;
+
+        protected class DocSlot :
+			IPgBaseSite
+		{
+			protected readonly ViewLabel _oHost;
+
+			public DocSlot( ViewLabel oHost ) {
+				_oHost = oHost ?? throw new ArgumentNullException();
+			}
+
+			public IPgParent Host => _oHost;
+
+			public void LogError(string strMessage, string strDetails, bool fShow=true) {
+				_oHost._oViewSite.LogError( strMessage, strDetails, fShow );
+			}
+
+			public void Notify( ShellNotify eEvent ) {
+			}
+		} // End class
 
         public ViewLabel( IPgViewSite oViewSite, DocAddrBook oDocument ) {
             _oViewSite = oViewSite ?? throw new ArgumentNullException();
             Document   = oDocument ?? throw new ArgumentNullException();
+
+            //Font = new Font("Arial", 10);
+            ReturnAddr = new DocEntry( new DocSlot( this ) );
+        }
+
+        void LogError( string strMessage ) {
+            _oViewSite.LogError( "Address Printing", strMessage );
         }
 
         /// <summary>
         /// So the forms api for printing was designed BY MORONS.
         /// Tell me why I need to retrieve the page size on a per
-        /// page basis?? 
+        /// page basis?? Tho' I can guess, since the printer to be
+        /// used hasn't even been determined yet, the want to make
+        /// the usage all in one call. Thus they send those params
+        /// every time.
         /// This is just a little experiment until I make my own 
         /// code for this problem.
         /// </summary>
@@ -180,10 +215,15 @@ namespace AddressBook {
         }
 
         public bool Load(XmlElement oElem) {
-            return true;
+            return InitNew();
         }
 
         public bool InitNew() {
+            if( !ReturnAddr.Load( Document.Outline[0] ) ) {
+                LogError( "Couldn't find return address." );
+                throw new InvalidOperationException();
+            }
+
             return true;
         }
 
@@ -201,6 +241,31 @@ namespace AddressBook {
 
         public bool Save(XmlDocumentFragment oStream) {
             return true;
+        }
+
+        /// <summary>
+        /// As much as it pains me to use the normal windows GDI
+        /// it's way easier for the B/W case.
+        /// </summary>
+        /// <param name="e"></param>
+        protected override void OnPaint(PaintEventArgs e) {
+            Graphics     oDC         = e.Graphics;
+            Point        pntLoc      = new();
+            StringFormat oFormat     = new();
+            int          iFontHeight = (int)Font.GetHeight( oDC );
+
+            foreach( Line oLine in ReturnAddr ) {
+                oDC.DrawString( oLine.ToString(), Font, Brushes.Black,
+                                pntLoc.X, pntLoc.Y, oFormat );
+                pntLoc.Y += iFontHeight + 1;
+            }
+
+            pntLoc.X += 100;
+            foreach( Line oLine in Document.Entry ) {
+                oDC.DrawString( oLine.ToString(), Font, Brushes.Black,
+                                pntLoc.X, pntLoc.Y, oFormat );
+                pntLoc.Y += iFontHeight + 1;
+            }
         }
     }
 }
