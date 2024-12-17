@@ -3,17 +3,15 @@ using System.Collections.Generic;
 using System.Text;
 using System.Windows.Forms;
 using System.Drawing.Printing;
-using System.IO;
 using System.Xml;
+using System.Drawing;
 
 using SkiaSharp.Views.Desktop;
+using SkiaSharp;
 
 using Play.Interfaces.Embedding;
 using Play.Edit;
 using Play.Rectangles;
-using SkiaSharp;
-using System.Drawing;
-using System.Collections;
 
 namespace AddressBook {
     /// <summary>
@@ -97,7 +95,7 @@ namespace AddressBook {
 
     // https://learn.microsoft.com/en-us/dotnet/api/system.drawing.printing.printdocument?view=windowsdesktop-9.0
     public class ViewLabel : 
-        Control,
+        SKControl,
         IPgParent,
         IDisposable,
         IPgLoad<XmlElement>,
@@ -122,6 +120,7 @@ namespace AddressBook {
         public IPgParent Services => Parentage.Services;
 
         IEnumerator<int>? _enuPage;
+
 
         protected class DocSlot :
 			IPgBaseSite
@@ -186,6 +185,10 @@ namespace AddressBook {
             SmartRect    rcRect  = new( LOCUS.UPPERLEFT, leftMargin, topMargin, 100, 10 );
             StringFormat oFormat = new StringFormat();
 
+            Size sMaxLine = CalcMaxRetAddrWidth(oDC);
+
+            //pntLoc.X = ( Width - sMaxLine.Width ) / 2;
+
             for( int i = 0; i<10; ++i ) {
                 oDC.FillRectangle( Brushes.Black, rcRect.Rect );
                 //oDC.DrawString   ( "hello", printFont, Brushes.Black,
@@ -244,10 +247,29 @@ namespace AddressBook {
         }
 
         /// <summary>
-        /// As much as it pains me to use the normal windows GDI
-        /// it's way easier for the B/W case.
+        /// Alas I need the DC for the Dpi of the display.
+        /// I'll fix it later so I don't need the DC all the time.
         /// </summary>
-        /// <param name="e"></param>
+        /// <param name="oDC"></param>
+        protected Size CalcMaxRetAddrWidth( Graphics oDC ) {
+            SizeF sMaxAddrLine = new();
+
+            foreach( Line oLine in Document.Entry ) {
+                SizeF sSize = oDC.MeasureString( oLine.ToString(), Font );
+                if( sSize.Width > sMaxAddrLine.Width )
+                    sMaxAddrLine.Width = sSize.Width;
+            }
+
+            return new( (int)sMaxAddrLine.Width, (int)sMaxAddrLine.Height );
+        }
+
+        /// <summary>
+        /// As much as it pains me to use the normal windows GDI
+        /// it's way easier for the B/W case. HOWEVER, I still need to
+        /// use the SKControl b/c it fixes a Width & Height bug where
+        /// resize on a control does not update these value after
+        /// the first w/h of the document display.
+        /// </summary>
         protected override void OnPaint(PaintEventArgs e) {
             Graphics     oDC         = e.Graphics;
             Point        pntLoc      = new();
@@ -259,8 +281,14 @@ namespace AddressBook {
                                 pntLoc.X, pntLoc.Y, oFormat );
                 pntLoc.Y += iFontHeight + 1;
             }
+            Size sMaxLine = CalcMaxRetAddrWidth(oDC);
 
-            pntLoc.X += 100;
+            pntLoc.X = ( Width - sMaxLine.Width ) / 2;
+            // We'll put a warning in the printing case.
+            if( pntLoc.X < 0 ) {
+                pntLoc.X = 0;
+            }
+
             foreach( Line oLine in Document.Entry ) {
                 oDC.DrawString( oLine.ToString(), Font, Brushes.Black,
                                 pntLoc.X, pntLoc.Y, oFormat );
