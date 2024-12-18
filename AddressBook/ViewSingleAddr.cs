@@ -264,6 +264,10 @@ namespace AddressBook {
         }
 
         public object Decorate(IPgViewSite oBaseSite, Guid sGuid) {
+            if( sGuid == GlobalDecor.Outline ) {
+                return new ViewOutline( oBaseSite, Document.Outline );
+            }
+
             return null;
         }
 
