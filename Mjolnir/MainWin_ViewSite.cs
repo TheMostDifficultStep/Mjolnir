@@ -419,12 +419,15 @@ namespace Mjolnir {
                 Empty();
 				TryAppend( _oViewCommand.Banner );
 
-				if( iViewID > -1 ) {
-                    TryAppend( ", " );
-                    TryAppend( iViewID.ToString() );
-                    TryAppend( " of " );
-                    TryAppend( DocumentSite.Reference.ToString() );
-				}
+                // This tells you that you have more than one view open on the
+                // document. But it looks ugly and I don't find it particularly
+                // useful so, let's disable and think of a better solution.
+				//if( iViewID > -1 ) {
+    //                TryAppend( ", " );
+    //                TryAppend( iViewID.ToString() );
+    //                TryAppend( " of " );
+    //                TryAppend( DocumentSite.Reference.ToString() );
+				//}
 			} catch ( NullReferenceException ) {
 				TryAppend( "View" );
 			}
