@@ -12,6 +12,8 @@ using SkiaSharp;
 using Play.Interfaces.Embedding;
 using Play.Edit;
 using Play.Rectangles;
+using Play.Drawing;
+using System.Reflection;
 
 namespace AddressBook {
     /// <summary>
@@ -42,7 +44,6 @@ namespace AddressBook {
     /// </summary>
     public class ViewSingleAddr : EditWindow2 {
 		public static Guid ViewCategory {get;} = new Guid( "{CB6C6330-7152-4EB3-ABE3-9CFD93EA3B03}" );
-
         protected DocAddrBook Document { get; }
 
         public ViewSingleAddr( IPgViewSite oBaseSite, DocAddrBook oDocument ) : 
@@ -57,6 +58,10 @@ namespace AddressBook {
 
             return null;
         }
+
+        public override SKBitmap Icon => SKImageResourceHelper.GetImageResource( 
+                Assembly.GetExecutingAssembly(), 
+                @"AddressBook.Content.icons8-address-book-96.png" );
 
         public override bool Execute(Guid sGuid) {
             if( sGuid == GlobalCommands.JumpNext ) {

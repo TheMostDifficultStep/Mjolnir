@@ -12,6 +12,12 @@ namespace AddressBook {
         public DocEntry(IPgBaseSite oSite) : base(oSite) {
         }
 
+		/// <summary>
+		/// Since this object is embedded within the address
+		/// book document we need to override this so we'll 
+		/// see the filename in the normal EditWindow2 being
+		/// used to show that document.
+		/// </summary>
 		public override string FileBase {
 			get { 
                 if( _oSiteBase.Host is DocAddrBook oEdit )
