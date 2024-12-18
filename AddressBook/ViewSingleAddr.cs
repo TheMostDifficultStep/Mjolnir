@@ -114,7 +114,10 @@ namespace AddressBook {
 
         public string Banner => "Print Viewer";
 
-        public SKBitmap Icon => null;
+        public SKBitmap Icon => SKImageResourceHelper.GetImageResource( 
+                Assembly.GetExecutingAssembly(), 
+                @"AddressBook.Content.icons8-print-96.png" );
+
 
         public Guid Catagory => ViewCategory;
 
@@ -246,13 +249,16 @@ namespace AddressBook {
         /// I'll fix it later so I don't need the DC all the time.
         /// </summary>
         /// <param name="oDC"></param>
-        protected Size CalcMaxRetAddrWidth( Graphics oDC ) {
+        protected Size GetAddrSize( Graphics oDC, Editor oAddr ) {
             SizeF sMaxAddrLine = new();
+            int   iFontHeight  = (int)Font.GetHeight( oDC );
 
-            foreach( Line oLine in Document.Entry ) {
+            foreach( Line oLine in oAddr ) {
                 SizeF sSize = oDC.MeasureString( oLine.ToString(), Font );
                 if( sSize.Width > sMaxAddrLine.Width )
                     sMaxAddrLine.Width = sSize.Width;
+
+                sMaxAddrLine.Height += iFontHeight + 1;
             }
 
             return new( (int)sMaxAddrLine.Width, (int)sMaxAddrLine.Height );
@@ -285,12 +291,17 @@ namespace AddressBook {
                                 pntLoc.X, pntLoc.Y, oFormat );
                 pntLoc.Y += iFontHeight + 1;
             }
-            Size sMaxLine = CalcMaxRetAddrWidth(oDC);
 
-            pntLoc.X = ( Width - sMaxLine.Width ) / 2;
+            Size sMaxLine = GetAddrSize( oDC, Document.Entry );
+            pntLoc.X = ( rcDisplay.Width  - sMaxLine.Width  ) / 2;
+            pntLoc.Y = ( rcDisplay.Height - sMaxLine.Height ) / 2;
+
             // We'll put a warning in the printing case.
             if( pntLoc.X < 0 ) {
                 pntLoc.X = 0;
+            }
+            if( pntLoc.Y < 0 ) {
+                pntLoc.Y = 0;
             }
 
             foreach( Line oLine in Document.Entry ) {
