@@ -1,4 +1,6 @@
-﻿using System.Text;
+﻿using System.Reflection.Metadata;
+using System.Text;
+using System.Windows.Forms;
 using System.Xml;
 
 using Play.Edit;
@@ -59,6 +61,7 @@ namespace AddressBook {
 					
 					oBulk.LineAppend( sbBuild.ToString() );
 				}
+				Raise_BufferEvent( BUFFEREVENTS.LOADED );
 			} catch( Exception oEx ) {
 				Type[] rgErrors = { typeof( NullReferenceException ),
 									typeof( InvalidCastException ) };
@@ -250,7 +253,7 @@ namespace AddressBook {
         }
 
 		public bool IsRowIndexInside( int iRow ) {
-			return iRow > 0 && iRow < Outline.ElementCount;
+			return iRow >= 0 && iRow < Outline.ElementCount;
 		}
 
 		public void Jump( int iDir ) {
@@ -266,6 +269,31 @@ namespace AddressBook {
 			if( IsRowIndexInside( iNext ) ) {
 				Outline.SetCheckAtRow( Outline[iNext] );
 			}
+		}
+		public void Jump( Keys eKeyCode ) {
+			if( Outline.ElementCount <= 0 )
+				return;
+
+            switch( eKeyCode ) {
+                case Keys.Down:
+                    Jump( 1 );
+                    break;
+                case Keys.Up:
+                    Jump( -1 );
+                    break;
+                case Keys.Right:
+                    Jump( 1 );
+                    break;
+                case Keys.Left:
+                    Jump( -1 );
+                    break;
+                case Keys.Home:
+				    Outline.SetCheckAtRow( Outline[0] );
+                    break;
+                case Keys.End:
+                    Outline.SetCheckAtRow( Outline[Outline.ElementCount-1] );
+                    break;
+            }
 		}
     }
 }

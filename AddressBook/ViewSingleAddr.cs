@@ -14,6 +14,7 @@ using Play.Edit;
 using Play.Rectangles;
 using Play.Drawing;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 
 namespace AddressBook {
     /// <summary>
@@ -107,7 +108,8 @@ namespace AddressBook {
         IPgCommandView,
         IPgSave<XmlDocumentFragment>
     {
-        protected IPgViewSite _oViewSite;
+        protected readonly IPgViewSite   _oViewSite;
+        protected readonly IPgViewNotify _oViewEvents; 
         public static Guid    ViewCategory => new Guid( "{22AF6601-FB34-40CC-874D-E1925E6B251D}" );
         protected DocAddrBook Document { get; }
         protected DocEntry    ReturnAddr { get; }
@@ -117,6 +119,10 @@ namespace AddressBook {
         public SKBitmap Icon => SKImageResourceHelper.GetImageResource( 
                 Assembly.GetExecutingAssembly(), 
                 @"AddressBook.Content.icons8-print-96.png" );
+        public SKBitmap Stamp => SKImageResourceHelper.GetImageResource( 
+                Assembly.GetExecutingAssembly(),
+                @"AddressBook.Content.icons8-postage-stamp-64.png" );
+        public Bitmap StampBmp { get; }
 
 
         public Guid Catagory => ViewCategory;
@@ -129,6 +135,10 @@ namespace AddressBook {
 
         IEnumerator<int>? _enuPage;
 
+        readonly static Keys[] _rgHandledKeys = { Keys.PageDown, Keys.PageUp, Keys.Down,
+                                                  Keys.Up, Keys.Right, Keys.Left, Keys.Back,
+                                                  Keys.Delete, Keys.Enter, Keys.Tab,
+                                                  Keys.Control | Keys.A, Keys.Control | Keys.F };
 
         protected class DocSlot :
 			IPgBaseSite
@@ -150,15 +160,29 @@ namespace AddressBook {
 		} // End class
 
         public ViewLabel( IPgViewSite oViewSite, DocAddrBook oDocument ) {
-            _oViewSite = oViewSite ?? throw new ArgumentNullException();
-            Document   = oDocument ?? throw new ArgumentNullException();
+            _oViewSite   = oViewSite ?? throw new ArgumentNullException();
+            _oViewEvents = oViewSite.EventChain ?? throw new ArgumentException("Site.EventChain must support IPgViewSiteEvents");
+            Document     = oDocument ?? throw new ArgumentNullException();
 
             //Font = new Font("Arial", 10);
             ReturnAddr = new DocEntry( new DocSlot( this ) );
+
+            StampBmp = Stamp.ToBitmap();
+
+            Array.Sort<Keys>( _rgHandledKeys );
         }
 
         void LogError( string strMessage ) {
             _oViewSite.LogError( "Address Printing", strMessage );
+        }
+
+        protected override bool IsInputKey(Keys keyData) {
+            int iIndex = Array.BinarySearch<Keys>(_rgHandledKeys, keyData);
+
+            if (iIndex >= 0)
+                return (true);
+
+            return base.IsInputKey( keyData );
         }
 
         /// <summary>
@@ -215,6 +239,12 @@ namespace AddressBook {
             }
         }
 
+        protected override void Dispose(bool disposing) {
+            Document.Entry.BufferEvent -= OnBufferEvent_Entry;
+
+            base.Dispose(disposing);
+        }
+
         public bool Load(XmlElement oElem) {
             return InitNew();
         }
@@ -224,8 +254,13 @@ namespace AddressBook {
                 LogError( "Couldn't find return address." );
                 throw new InvalidOperationException();
             }
+            Document.Entry.BufferEvent += OnBufferEvent_Entry;
 
             return true;
+        }
+
+        private void OnBufferEvent_Entry(BUFFEREVENTS eEvent) {
+            Invalidate();
         }
 
         public object Decorate(IPgViewSite oBaseSite, Guid sGuid) {
@@ -235,6 +270,15 @@ namespace AddressBook {
         public bool Execute(Guid sGuid) {
             if( sGuid == GlobalCommands.Play ) {
                 DoPrint();
+                return true;
+            }
+            if( sGuid == GlobalCommands.JumpNext ) {
+                Document.Jump( 1 ); 
+                return true;
+            }
+            if( sGuid == GlobalCommands.JumpPrev ) {
+                Document.Jump( -1 );
+                return true;
             }
 
             return false;
@@ -278,7 +322,7 @@ namespace AddressBook {
             DoPaint( rcDisplay, oDC );
         }
 
-        protected void DoPaint( Rectangle rcDisplay, Graphics oDC ) {
+        protected void DoPaint( Rectangle rcDisplay, Graphics oDC, bool fShowStamp = true ) {
             Point        pntLoc      = new();
             StringFormat oFormat     = new();
             int          iFontHeight = (int)Font.GetHeight( oDC );
@@ -290,6 +334,10 @@ namespace AddressBook {
                 oDC.DrawString( oLine.ToString(), Font, Brushes.Black,
                                 pntLoc.X, pntLoc.Y, oFormat );
                 pntLoc.Y += iFontHeight + 1;
+            }
+
+            if( fShowStamp ) {
+                oDC.DrawImage( StampBmp, new PointF( rcDisplay.Right - StampBmp.Width, 0 ));
             }
 
             Size sMaxLine = GetAddrSize( oDC, Document.Entry );
@@ -309,6 +357,30 @@ namespace AddressBook {
                                 pntLoc.X, pntLoc.Y, oFormat );
                 pntLoc.Y += iFontHeight + 1;
             }
+        }
+
+        protected override void OnGotFocus(EventArgs e) {
+            base.OnGotFocus( e );
+
+            _oViewEvents.NotifyFocused( true );
+
+            this.Invalidate();
+        }
+
+        protected override void OnLostFocus(EventArgs e) {
+            base.OnLostFocus( e );
+
+            _oViewEvents.NotifyFocused( false );
+
+            this.Invalidate();
+        }
+        protected override void OnKeyDown(KeyEventArgs e) {
+            if( IsDisposed )
+                return;
+
+            e.Handled = true;
+
+            Document.Jump( e.KeyCode );
         }
     }
 }
