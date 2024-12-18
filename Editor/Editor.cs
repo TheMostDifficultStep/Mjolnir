@@ -374,7 +374,7 @@ namespace Play.Edit {
 			}
 		}
 
-		public string FileBase {
+		public virtual string FileBase {
 			get { 
                 if( _oSiteFile != null )
 					return _oSiteFile.FileName; 

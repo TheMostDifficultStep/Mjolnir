@@ -12,6 +12,15 @@ namespace AddressBook {
         public DocEntry(IPgBaseSite oSite) : base(oSite) {
         }
 
+		public override string FileBase {
+			get { 
+                if( _oSiteBase.Host is DocAddrBook oEdit )
+					return oEdit.FileBase; 
+
+                return string.Empty;
+			}
+		}
+
         public bool Load( Row oRow ) {
 			Clear();
 
@@ -160,10 +169,12 @@ namespace AddressBook {
         public IPgParent Services  => Parentage.Services;
 
         protected IPgBaseSite      _oBaseSite;
+		protected IPgFileSite      _oFileSite;
 		protected SortedList<string, XmlElement> _rgEntries = new();
 
         public DocAddrBook( IPgBaseSite oSite ) {
             _oBaseSite = oSite ?? throw new ArgumentNullException();
+			_oFileSite = (IPgFileSite)oSite;
 
             Outline = new ( new DocSlot( this ) );
 			Entry   = new ( new DocSlot( this ) );
@@ -176,6 +187,12 @@ namespace AddressBook {
 
 		public void LogError( Exception oEx, string strMessage ) {
 			_oBaseSite.LogError( "Address Book", strMessage );
+		}
+
+		public string FileBase {
+			get { 
+                return _oFileSite.FileName; 
+			}
 		}
 
 		protected bool Initialize() {

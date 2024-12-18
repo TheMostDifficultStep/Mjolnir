@@ -175,27 +175,17 @@ namespace AddressBook {
             int       leftMargin = oEV.MarginBounds.Left;
             int       topMargin  = oEV.MarginBounds.Top;
             Graphics  oDC        = oEV.Graphics;
+            Rectangle rcDisplay  = new ( oEV.MarginBounds.Left,
+                                         oEV.MarginBounds.Top,
+                                         oEV.MarginBounds.Width,
+                                         oEV.MarginBounds.Height );
 
             if( oDC is null )
                 throw new ArgumentException( "Null graphics in PrintArgs" );
 
-            // Calculate the number of lines per page.
-            // ev.MarginBounds.Height 
-                
-            SmartRect    rcRect  = new( LOCUS.UPPERLEFT, leftMargin, topMargin, 100, 10 );
-            StringFormat oFormat = new StringFormat();
+            DoPaint( rcDisplay, oDC );
 
-            Size sMaxLine = CalcMaxRetAddrWidth(oDC);
-
-            //pntLoc.X = ( Width - sMaxLine.Width ) / 2;
-
-            for( int i = 0; i<10; ++i ) {
-                oDC.FillRectangle( Brushes.Black, rcRect.Rect );
-                //oDC.DrawString   ( "hello", printFont, Brushes.Black,
-                //                   rcRect.Left, rcRect.Top, oFormat );
-                rcRect.Top += ( i * rcRect.Height ) + 1;
-                yield return i;
-            }
+            yield return 1;
         }
 
         private void Page_OnPrint( object o, PrintPageEventArgs oEvent ) {
@@ -271,10 +261,19 @@ namespace AddressBook {
         /// the first w/h of the document display.
         /// </summary>
         protected override void OnPaint(PaintEventArgs e) {
-            Graphics     oDC         = e.Graphics;
+            Graphics  oDC       = e.Graphics;
+            Rectangle rcDisplay = new( 0, 0, Width, Height );
+
+            DoPaint( rcDisplay, oDC );
+        }
+
+        protected void DoPaint( Rectangle rcDisplay, Graphics oDC ) {
             Point        pntLoc      = new();
             StringFormat oFormat     = new();
             int          iFontHeight = (int)Font.GetHeight( oDC );
+
+            pntLoc.X = rcDisplay.Left;
+            pntLoc.Y = rcDisplay.Top;
 
             foreach( Line oLine in ReturnAddr ) {
                 oDC.DrawString( oLine.ToString(), Font, Brushes.Black,
