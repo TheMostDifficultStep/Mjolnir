@@ -5,6 +5,7 @@ using System.Windows.Forms;
 using System.Drawing.Printing;
 using System.Xml;
 using System.Drawing;
+using System.Reflection;
 
 using SkiaSharp.Views.Desktop;
 using SkiaSharp;
@@ -13,10 +14,76 @@ using Play.Interfaces.Embedding;
 using Play.Edit;
 using Play.Rectangles;
 using Play.Drawing;
-using System.Reflection;
-using System.Runtime.CompilerServices;
+using Play.Forms;
 
 namespace AddressBook {
+    public class ViewPrinterList : WindowMultiColumn {
+        public ViewPrinterList(IPgViewSite oViewSite, object oDocument) : 
+            base(oViewSite, oDocument) 
+        {
+            IsScrollVisible = false;
+        }
+
+        protected override bool Initialize() {
+            if( !base.Initialize() )
+                return false;
+
+            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Flex,  CheckColumnWidth, 1L ), (int)DocPrinters.Column.Check ); 
+            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.None ), (int)DocPrinters.Column.PrinterName ); 
+
+            // Do this so we can return a desired height. O.o;;
+            _oCacheMan.CacheRepair();
+
+            return true;
+        }
+    }
+	/// <summary>
+	/// Property viewer for our address book. 
+	/// </summary>
+	public class ViewAddrProperties : 
+        WindowStandardProperties
+     {
+        public DocAddrBook AddrDoc { get; }
+
+		public ViewAddrProperties( IPgViewSite oViewSite, DocAddrBook docAddr ) : 
+            base( oViewSite, docAddr.Properties ) 
+        {
+			AddrDoc = docAddr ?? throw new ArgumentNullException( nameof( docAddr ) );
+		}
+
+        public override void InitRows() {
+            int[] rgShow = {
+                (int)DocAddrProps.Names.Width,
+                (int)DocAddrProps.Names.Height,
+            };
+
+            base.InitRows(rgShow);
+
+            try {
+				PropertyInitRow( (int)DocAddrProps.Names.Printers,
+								 new ViewPrinterList( new WinSlot( this ), AddrDoc.Printers ) );
+				//PropertyInitRow( (int)AddressProperties.Names.Group,
+				//				 new ViewSSTVModesAsList( new WinSlot( this ), AddrDoc.RxSSTVModeDoc ) );
+
+                //SSTVDocument.RxSSTVModeDoc.Event_Loaded += OnDocLoaded_RxSSTVModeDoc;
+			} catch ( Exception oEx ) {
+				Type[] rgErrors = { typeof( NullReferenceException ),
+									typeof( ArgumentOutOfRangeException ),
+									typeof( ApplicationException ) };
+				if( rgErrors.IsUnhandled( oEx ) )
+					throw;
+				LogError( "Unable to set up receive mode selectors" );
+			}
+        }
+
+		/// <summary>
+		/// Tell our overall property page to resize because our mode list is 
+		/// a different size.
+		/// </summary>
+       // private void OnDocLoaded_RxSSTVModeDoc() {
+			//OnSizeChanged( new EventArgs() );
+       // }
+	}
     /// <summary>
     /// Use this to show all the names in the address book.
     /// </summary>
@@ -159,6 +226,16 @@ namespace AddressBook {
 			}
 		} // End class
 
+        protected class ViewSlot :
+            DocSlot,
+            IPgViewSite
+        {
+            public ViewSlot(ViewLabel oHost) : base(oHost) {
+            }
+
+            public IPgViewNotify EventChain => _oHost._oViewSite.EventChain;
+        }
+
         public ViewLabel( IPgViewSite oViewSite, DocAddrBook oDocument ) {
             _oViewSite   = oViewSite ?? throw new ArgumentNullException();
             _oViewEvents = oViewSite.EventChain ?? throw new ArgumentException("Site.EventChain must support IPgViewSiteEvents");
@@ -266,6 +343,9 @@ namespace AddressBook {
         public object Decorate(IPgViewSite oBaseSite, Guid sGuid) {
             if( sGuid == GlobalDecor.Outline ) {
                 return new ViewOutline( oBaseSite, Document.Outline );
+            }
+            if( sGuid == GlobalDecor.Properties ) {
+                return new ViewAddrProperties( new ViewSlot( this ), Document );
             }
 
             return null;

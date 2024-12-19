@@ -821,7 +821,10 @@ namespace Play.Edit {
                         oDocRow = GetTabOrderAtScroll();
                         break;
                     case RefreshNeighborhood.CARET:
-                        oDocRow = _oSiteList[ CaretAt ];
+                        if( CaretAt < 0 )
+                            oDocRow = GetTabOrderAtScroll();
+                        else 
+                            oDocRow = _oSiteList[ CaretAt ];
                         break;
                 }
                 if( oDocRow == null )

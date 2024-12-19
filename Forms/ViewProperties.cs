@@ -145,8 +145,8 @@ namespace Play.Forms {
             if( !base.Initialize() )
                 return false;
 
-            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Percent, 30, 1L ), DocProperties.PropertyRow.ColumnLabel ); 
-            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.None,    70, 1L ), DocProperties.PropertyRow.ColumnValue ); 
+            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Flex ), DocProperties.PropertyRow.ColumnLabel ); 
+            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.None ), DocProperties.PropertyRow.ColumnValue ); 
 
             InitRows();
 
