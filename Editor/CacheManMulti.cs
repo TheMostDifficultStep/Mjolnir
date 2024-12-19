@@ -462,29 +462,6 @@ namespace Play.Edit {
         }
 
         /// <summary>
-        /// Once we have measured the columns. Use this function to find
-        /// the max width of the flex columns so that we can resize the
-        /// layout and then the columns.
-        /// </summary>
-        /// <remarks>My going theory is that the max lines on the screen
-        /// is when all rows are single line high. We cache that many,
-        /// measure them and then compute the flex and re-size.</remarks>
-        [Obsolete]protected void SetFlexColumns( IEnumerable<CacheRow> rgCRows ) {
-            foreach( CacheRow oCRow in rgCRows) {
-                for( int iCol=0; iCol<_oSite.TextColumns.Count; ++iCol ) {
-                    IPgCacheMeasures oElem   = oCRow[iCol];
-                    LayoutRect       oBounds = _oSite.TextColumns[iCol].Bounds;
-
-                    if( oBounds.Style == LayoutRect.CSS.Flex &&
-                        oBounds.Track <  oElem.UnwrappedWidth ) 
-                    {   oBounds.Track =  oElem.UnwrappedWidth; }
-                }
-            }
-
-            _oSite.DoLayout();
-        }
-
-        /// <summary>
         /// As we add rows any particular flex column can only grow.
         /// If we add this row and a column grows... redo the layout.
         /// </summary>
@@ -529,14 +506,14 @@ namespace Play.Edit {
             CacheRow oLastCache  = null;
             CacheRow oCaretCache = null;
 
-            int iBottom = _oTextRect.Top;
-
-            SetFlexColumns( _rgOldCache );
+            int iBottom = 0; //_oTextRect.Top;
 
             foreach( CacheRow oCRow in this ) {
                 if( fRemeasure ) 
                     { RowMeasure( oCRow ); }
-                RowLayout( oCRow );
+
+                FlexColumns( oCRow );
+                RowLayout  ( oCRow );
 
                 oCRow.Top = iBottom + RowSpacing;
                 iBottom   = oCRow.Bottom;
@@ -782,14 +759,13 @@ namespace Play.Edit {
         protected void MoveWindows() {
             try {
                 foreach( CacheRow oCacheRow in _rgOldCache ) {
-                    //foreach( IPgCacheMeasures oCMElem in oCacheRow.CacheList ) {
-                    //}
+                    SmartRect rctSquare = new SmartRect();
                     for( int iCacheCol=0; iCacheCol<oCacheRow.CacheColumns.Count; ++iCacheCol ) {
                         if( oCacheRow[iCacheCol] is IPgCacheWindow oCWElem ) {
                             SmartRect rctColumn = _rgColumnInfo[iCacheCol].Bounds;
-                            SmartRect rctSquare = new SmartRect();
 
-                            rctSquare.SetRect( rctColumn.Left, oCacheRow.Top, rctColumn.Right, oCacheRow.Bottom );
+                            rctSquare.SetRect( rctColumn.Left,  oCacheRow.Top    - _oTextRect.Top, 
+                                               rctColumn.Right, oCacheRow.Bottom - _oTextRect.Top );
                             oCWElem  .MoveTo( rctSquare );
                         }
                     }
