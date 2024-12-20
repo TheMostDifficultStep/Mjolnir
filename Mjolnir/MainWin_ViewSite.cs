@@ -409,6 +409,11 @@ namespace Mjolnir {
         /// </summary>
         public string Title { get; protected set; }
 
+        /// <summary>
+        /// We want the title of the main window to be the file path, but
+        /// the title of the Tab entry to be just the file name. Longer
+        /// paths always clip.
+        /// </summary>
         public void UpdateTitle() {
             // So it turns out on dispose, sometimes children getting un-focus 
             // events send them up and we'll bomb out. I don't think an exception
@@ -417,7 +422,7 @@ namespace Mjolnir {
 				int iViewID = _oHost.ViewTitleID( this );
 
                 Empty();
-				TryAppend( _oViewCommand.Banner );
+			    TryAppend( _oViewCommand.Banner );
 
                 // This tells you that you have more than one view open on the
                 // document. But it looks ugly and I don't find it particularly
@@ -432,10 +437,10 @@ namespace Mjolnir {
 				TryAppend( "View" );
 			}
 
-            Title = ToString();
+            Title =  _oDocSite.FilePath;
             // Dispose will set the menuitem to null it's a good idea to check it.
             if( _oMenuItem != null ) {
-                _oMenuItem.Text = Title;
+                _oMenuItem.Text = _oViewCommand.Banner;
             }
         }
 
