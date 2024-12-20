@@ -61,7 +61,7 @@ namespace Play.ImageViewer {
         protected readonly IPgShellSite    _oSiteShell;
         protected readonly IPgViewNotify   _oViewEvents; // From our site, window manager (view interface).
 
-		protected WindowStandardProperties PropertiesWin;
+	  //protected WindowStandardProperties PropertiesWin;
 		internal  ImageSnipProperties      PropertiesDoc;
 
         readonly LayoutStackVertical _rgVertStack = new LayoutStackVertical() { Spacing = 5 };
@@ -85,7 +85,7 @@ namespace Play.ImageViewer {
 			SnipView = new ImageViewSingle( new SnipSlotView( this ), SnipDoc );
 
 			PropertiesDoc = new ImageSnipProperties     ( new SnipSlotBase( this ) );
-			PropertiesWin = new WindowStandardProperties( new SnipSlotView( this ), PropertiesDoc );
+		  //PropertiesWin = new WindowStandardProperties( new SnipSlotView( this ), PropertiesDoc );
 		}
 
 		public Guid      Catagory  => Guid;
@@ -121,18 +121,18 @@ namespace Play.ImageViewer {
 				_oSiteBase.LogError( "Snip", "Couldn't set up Snip Properties." );
 				return false;
 			}
-			if( !PropertiesWin.InitNew() ) {
-				_oSiteBase.LogError( "Snip", "Couldn't set up Snip Property Viewer." );
-				return false;
-			}
+			//if( !PropertiesWin.InitNew() ) {
+			//	_oSiteBase.LogError( "Snip", "Couldn't set up Snip Property Viewer." );
+			//	return false;
+			//}
 
 
-			PropertiesWin.Parent = this;
+			//PropertiesWin.Parent = this;
 			SnipView     .Parent = this;
 
 			try {
                 _rgVertStack.Add( new LayoutImageView( SnipView,      LayoutRect.CSS.None ) { TrackMaxPercent = 0.6F } ); 
-                _rgVertStack.Add( new LayoutControl  ( PropertiesWin, LayoutRect.CSS.Flex ) { TrackMaxPercent = 0.4F } );
+                //_rgVertStack.Add( new LayoutControl  ( PropertiesWin, LayoutRect.CSS.Flex ) { TrackMaxPercent = 0.4F } );
 			} catch( Exception oEx ) {
 				LogError( oEx );
 				return false;
@@ -278,6 +278,10 @@ namespace Play.ImageViewer {
 		}
 
 		public object Decorate(IPgViewSite oBaseSite, Guid sGuid) {
+			if( sGuid == GlobalDecor.Outline ||
+				sGuid == GlobalDecor.Properties ) {
+				return new WindowStandardProperties( oBaseSite, PropertiesDoc );
+			}
 			return null;
 		}
 
