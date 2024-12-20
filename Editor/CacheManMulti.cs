@@ -503,10 +503,13 @@ namespace Play.Edit {
         }
 
         protected virtual void CacheWalker( CacheRow oSeedCache, bool fRemeasure = false ) {
+            if( _rgOldCache.Count <= 0 )
+                return;
+
             CacheRow oLastCache  = null;
             CacheRow oCaretCache = null;
 
-            int iBottom = 0; //_oTextRect.Top;
+            int iTop = _rgOldCache[0].Top; //_oTextRect.Top;
 
             foreach( CacheRow oCRow in this ) {
                 if( fRemeasure ) 
@@ -515,14 +518,19 @@ namespace Play.Edit {
                 FlexColumns( oCRow );
                 RowLayout  ( oCRow );
 
-                oCRow.Top = iBottom + RowSpacing;
-                iBottom   = oCRow.Bottom;
+                oCRow.Top = iTop;
+                iTop      = oCRow.Bottom + RowSpacing;
 
                 if( oCRow.Top < _oTextRect.Bottom )
                     oLastCache = oCRow;
                 if( oCRow.Row == _oCaretRow )
                     oCaretCache = oCRow;
             }
+
+            if( _rgOldCache[_rgOldCache.Count-1].Bottom < _oTextRect.Bottom )
+                _oTextRect.SetScalar( SET.RIGID, SCALAR.BOTTOM, _rgOldCache[_rgOldCache.Count-1].Bottom );
+            if( _rgOldCache[0].Top > _oTextRect.Top )
+                _oTextRect.SetScalar( SET.RIGID, SCALAR.TOP, _rgOldCache[0].Top );
 
             MoveWindows();
 
