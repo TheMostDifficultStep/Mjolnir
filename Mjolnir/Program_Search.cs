@@ -146,7 +146,7 @@ namespace Mjolnir {
                         if( oRow is ResultRow oResult ) {
                             // TODO: We can get the column (SrcCol) from the result so in the
                             //       future when SelectionSet() takes a column. We can pass it along...
-                            oTextView.SelectionSet( oResult.Source.At, oResult.Source.Offset, oResult.Source.Length );
+                            oTextView.SelectionSet( oResult.At, oResult.Source.At, oResult.Source.Offset, oResult.Source.Length );
                         }
                     }
                 }

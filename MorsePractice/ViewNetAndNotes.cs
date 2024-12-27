@@ -127,7 +127,7 @@ namespace Play.MorsePractice {
 
 					foreach( Row oRefRow in _DocNetHost.Outline ) {
 						if( oCall.IsEqual( oRefRow[0] ) ) {
-							ViewOutline.SelectionSet( oRefRow.At, 0, 0 );
+							ViewOutline.SelectionSet( oRefRow.At, 0, 0, 0 );
 						}
 					}
 				}
@@ -228,8 +228,8 @@ namespace Play.MorsePractice {
             ViewLog.ScrollTo(eEdge);
         }
 
-        public bool SelectionSet(int iLine, int iOffset, int iLength) {
-            return ViewLog.SelectionSet(iLine, iOffset, iLength);
+        public bool SelectionSet(int iLine, int iColumn, int iOffset, int iLength) {
+            return ViewLog.SelectionSet(iLine, iColumn, iOffset, iLength);
         }
 
         public void SelectionClear() {

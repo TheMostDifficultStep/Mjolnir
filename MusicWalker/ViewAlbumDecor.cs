@@ -113,7 +113,7 @@ namespace Play.MusicWalker {
 				SongCredentials oCurrentSong = _oHost.Document.SongCurrent;
 
 				if( iAlbum == _oHost.CurrentAlbumIndex ) {
-					ViewAlbumSongs.SelectionSet( iSong, 0, 0 );
+					ViewAlbumSongs.SelectionSet( iSong, 0, 0, 0 );
 				}
 			} catch( NullReferenceException ) {
 			}

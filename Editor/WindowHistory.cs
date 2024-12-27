@@ -68,7 +68,7 @@ namespace Play.Edit {
             throw new NotImplementedException();
         }
 
-        public bool SelectionSet(int iLine, int iOffset, int iLength) {
+        public bool SelectionSet(int iLine, int iColumn, int iOffset, int iLength) {
             throw new NotImplementedException();
         }
     }

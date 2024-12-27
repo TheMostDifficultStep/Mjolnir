@@ -599,7 +599,7 @@ namespace Play.MusicWalker {
 			}
 			if( sGuid == GlobalCommands.PlayingShow ) {
 				if( Document.SongCurrent != null ) {
-					ViewLibrary.SelectionSet( Document.SongCurrent.AlbumIndex, iOffset:0, iLength:0 );
+					ViewLibrary.SelectionSet( Document.SongCurrent.AlbumIndex, iColumn:0, iOffset:0, iLength:0 );
 					ViewLibrary.ScrollToCaret();
 				}
 				return true;
@@ -660,8 +660,8 @@ namespace Play.MusicWalker {
 			ViewLibrary.ScrollToCaret();
 		}
 
-		public bool SelectionSet(int iLine, int iOffset, int iLength) {
-			return ViewLibrary.SelectionSet( iLine, iOffset, iLength );
+		public bool SelectionSet(int iLine, int iColumn, int iOffset, int iLength) {
+			return ViewLibrary.SelectionSet( iLine, iColumn, iOffset, iLength );
 		}
 
 		public void SelectionClear() {

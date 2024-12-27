@@ -141,7 +141,7 @@ namespace Mjolnir {
                 ILineRange oSearchResult = oRow.Source;
 
                 if( oSearchResult.Line.At > -1 ) {
-				    _oView.SelectionSet( oSearchResult.Line.At, oSearchResult.Offset, oSearchResult.Length );
+				    _oView.SelectionSet( oSearchResult.At, oSearchResult.Line.At, oSearchResult.Offset, oSearchResult.Length );
 				    _oView.ScrollTo    ( SCROLLPOS.CARET );
                 }
             } catch( Exception oEx ) {
@@ -464,11 +464,11 @@ namespace Mjolnir {
                     ILineRange oRange = _oEnumResults.Current;
 
                     _oView.SelectionClear(); 
-				    _oView.SelectionSet( oRange.At, oRange.Offset, oRange.Length );
+				    _oView.SelectionSet( oRange.At, oRange.Line.At, oRange.Offset, oRange.Length );
 				    _oView.ScrollTo    ( SCROLLPOS.CARET );
                 } else {
-                    _oView.SelectionClear(); 
-				    _oView.SelectionSet( _sEnumStart.RowIndex, _sEnumStart.Offset, 0 );
+                    _oView.SelectionClear(); // BUG....
+				    _oView.SelectionSet( _sEnumStart.RowIndex, 0, _sEnumStart.Offset, 0 );
 				    _oView.ScrollTo    ( SCROLLPOS.CARET );
                     _oEnumResults = null;
                 }

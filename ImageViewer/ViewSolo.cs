@@ -730,7 +730,7 @@ namespace Play.ImageViewer {
 		public void ScrollTo( SCROLLPOS eEdge ) { }
         public void ScrollToCaret()        { }
 
-        public bool SelectionSet( int iLine, int iOffset, int iLength ) { return( _oDocWalker.Given( iLine ) ); }
+        public bool SelectionSet( int iLine, int iColumn, int iOffset, int iLength ) { return( _oDocWalker.Given( iLine ) ); }
         public void SelectionClear() {  }
 
 		public int ToolCount => _rgTools.Count;

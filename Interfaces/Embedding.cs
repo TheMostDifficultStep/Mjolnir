@@ -730,7 +730,7 @@ namespace Play.Interfaces.Embedding {
         /// Simple selection on one line. Works for most cases.
         /// Goto line w/ selection length 0.
         /// </summary>
-        bool SelectionSet( int iLine, int iOffset, int iLength );
+        bool SelectionSet( int iLine, int iColumn, int iOffset, int iLength );
         void SelectionClear();
     }
 

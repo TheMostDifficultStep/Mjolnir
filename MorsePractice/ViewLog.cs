@@ -156,7 +156,7 @@ namespace Play.MorsePractice {
 			{
 				Row oLogRow = oDictRow.LogRefRows[oReptRange.LogRowIndex];
 
-				Owner.SelectionSet( oLogRow.At, 0, 0 );
+				Owner.SelectionSet( oLogRow.At, 0, 0, 0 );
 				Owner.ScrollTo    ( SCROLLPOS.CARET  );
 			}
         }

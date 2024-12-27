@@ -169,9 +169,12 @@ namespace Play.MorsePractice {
             ((IPgTextView)ViewBiograph).ScrollTo(eEdge);
         }
 
-        public bool SelectionSet(int iLine, int iOffset, int iLength)
+        /// <summary>
+        /// TODO: Pick a column... :-/
+        /// </summary>
+        public bool SelectionSet(int iLine, int iColumn, int iOffset, int iLength)
         {
-            return ((IPgTextView)ViewBiograph).SelectionSet(iLine, iOffset, iLength);
+            return ((IPgTextView)ViewBiograph).SelectionSet(iLine, iColumn, iOffset, iLength);
         }
 
         public void SelectionClear()

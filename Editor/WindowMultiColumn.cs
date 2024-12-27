@@ -711,7 +711,7 @@ namespace Play.Edit {
         /// I'm not starting at the cursor line but just at the top
         /// of the document. Probably should fix that...
         /// </remarks>
-        public IEnumerator<ILineRange> GetEnumerator() {
+        public virtual IEnumerator<ILineRange> GetEnumerator() {
             SimpleRange oRange = new SimpleRange();
 
             foreach( Row oRow in _oDocEnum ) {
@@ -1322,8 +1322,8 @@ namespace Play.Edit {
             }
         }
 
-        public bool SelectionSet(int iLine, int iOffset, int iLength) {
-            return _oCacheMan.SetCaretPositionAndScroll( iLine, _oCacheMan.CaretColumn, iOffset, iLength );
+        public bool SelectionSet(int iLine, int iColumn, int iOffset, int iLength) {
+            return _oCacheMan.SetCaretPositionAndScroll( iLine, iColumn, iOffset, iLength );
         }
 
         public void SelectionClear() {

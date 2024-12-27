@@ -1,4 +1,6 @@
-﻿using SkiaSharp;
+﻿using System.Windows.Forms;
+
+using SkiaSharp;
 
 using Play.Edit;
 using Play.Interfaces.Embedding;
@@ -137,7 +139,7 @@ namespace Play.FileManager {
             HyperLinks.Add( "FileJump", OnFileJump );
 
             // At present the base window doesn't put the cursor anywhere, sooo...
-            SelectionSet( 0, 0, 0 );
+            SelectionSet( 0, (int)DClmn.Name, 0, 0 );
 
             return true;
         }
@@ -221,6 +223,47 @@ namespace Play.FileManager {
                     throw;
             }
         }
+        /// <summary>
+        /// 99.9% of the time I want to search the name row. So just
+        /// make that the default. We'll need to do something different
+        /// to search other columns. Maybe a property page value...
+        /// </summary>
+        /// <remarks>
+        /// TODO: This is for the system text find dialog. However I notice
+        /// I'm not starting at the cursor line but just at the top
+        /// of the document. Probably should fix that...
+        /// </remarks>
+        public override IEnumerator<ILineRange> GetEnumerator() {
+            SimpleRange oRange = new SimpleRange();
+
+            foreach( Row oRow in _oDocEnum ) {
+                Line oLine = oRow[(int)DClmn.Name];
+
+                oRange.Line   = oLine;
+                oRange.Offset = 0;
+                oRange.Length = oLine.ElementCount;
+                oRange.At     = oRow .At;
+
+                yield return oRange;
+            }
+        }
+
+        public override void ClipboardCopyTo() {
+            DataObject oDataObject = new DataObject();
+
+			try {
+                if( _oCacheMan.CaretRow is not null ) {
+                    Line oLine = _oCacheMan.CaretRow.Row[(int)DClmn.Name];
+                    string strSelection = Path.Combine( Document.CurrentURL, oLine.ToString() );
+
+                    oDataObject.SetData( strSelection );
+				    Clipboard.SetDataObject( oDataObject );
+                }
+			} catch( NullReferenceException ) {
+                LogError( "Problem with copy to clipboard." );
+			}
+        }
+
         public object Decorate(IPgViewSite oBaseSite, Guid sGuid) {
             if( sGuid == GlobalDecor.Outline ) {
                 return new ViewFManOutline( new ViewSlot( this ) );

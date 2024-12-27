@@ -2538,8 +2538,8 @@ namespace Play.Edit {
 		/// where selection starts. This command moves the Caret.
         /// </summary>
         /// <returns>True if anything is attempted to select. No need to
-        /// call document refresh for this operation.</returns>
-        public bool SelectionSet( int iLine, int iOffset, int iLength ) {
+        /// call document refresh for this operation. Column is ignored for these oldies.</returns>
+        public bool SelectionSet( int iLine, int iColumn, int iOffset, int iLength ) {
             Line oLine = _oDocument.GetLine(iLine);
 
             // Remember caret length is always zero.
