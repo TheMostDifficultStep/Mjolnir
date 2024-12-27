@@ -1626,8 +1626,8 @@ namespace Play.Edit {
         }
 
         public virtual void OnDocLoaded() {
+            Selector   .Clear();
             _rgOldCache.Clear();
-
             // Reset our rect so the new elements line up at top.
             _oTextRect.SetPoint( SET.RIGID, LOCUS.UPPERLEFT, 0, 0 );
 
