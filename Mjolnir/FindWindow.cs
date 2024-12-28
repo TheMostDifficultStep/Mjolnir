@@ -461,14 +461,14 @@ namespace Mjolnir {
                     _oEnumResults = EnumSearchResults();
                 }
                 if( _oEnumResults.MoveNext() ) {
-                    ILineRange oRange = _oEnumResults.Current;
+                    ILineRange oRange  = _oEnumResults.Current;
 
                     _oView.SelectionClear(); 
 				    _oView.SelectionSet( oRange.At, oRange.Line.At, oRange.Offset, oRange.Length );
 				    _oView.ScrollTo    ( SCROLLPOS.CARET );
                 } else {
-                    _oView.SelectionClear(); // BUG....
-				    _oView.SelectionSet( _sEnumStart.RowIndex, 0, _sEnumStart.Offset, 0 );
+                    _oView.SelectionClear();
+				    _oView.SelectionSet( _sEnumStart.RowIndex, 0, _sEnumStart.Offset, 0 ); // BUG....
 				    _oView.ScrollTo    ( SCROLLPOS.CARET );
                     _oEnumResults = null;
                 }

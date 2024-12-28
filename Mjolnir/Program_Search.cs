@@ -79,7 +79,7 @@ namespace Mjolnir {
                     int    iDiff      = oRange.Offset - iStart;
                     string strMessage = oRange.Line.SubString( iStart, 50 );
                         
-                    ResultRow oResult  = new( oRange.At, strMessage, oRange, 0 );
+                    ResultRow oResult  = new( oRange.At, strMessage, oRange, oRange.Line.At );
                     FileRange oHotLink = new FileRange( iDiff, oRange.Length, oProgram.GetColorIndex( "red" ) );
 
                     oResult[ResultRow.DCol.Result].Formatting.Add( oHotLink );
@@ -146,7 +146,7 @@ namespace Mjolnir {
                         if( oRow is ResultRow oResult ) {
                             // TODO: We can get the column (SrcCol) from the result so in the
                             //       future when SelectionSet() takes a column. We can pass it along...
-                            oTextView.SelectionSet( oResult.At, oResult.Source.At, oResult.Source.Offset, oResult.Source.Length );
+                            oTextView.SelectionSet( oResult.Source.At, oResult.SrcCol, oResult.Source.Offset, oResult.Source.Length );
                         }
                     }
                 }

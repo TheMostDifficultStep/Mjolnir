@@ -695,7 +695,8 @@ namespace Play.Edit {
         public IPgCaretInfo<Row> Caret2 => _oCacheMan;
 
         public class SimpleRange :
-            ILineRange {
+            ILineRange 
+        {
             public Line Line { get ; set ; }
             public int  At { get; set; }
             public int  ColorIndex => 0;
