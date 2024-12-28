@@ -248,16 +248,35 @@ namespace Play.FileManager {
             }
         }
 
+        protected void ClipboardCopyTo( string strSelection ) {
+			try {
+                DataObject oDataObject = new DataObject();
+                oDataObject.SetData( strSelection );
+			    Clipboard.SetDataObject( oDataObject );
+			} catch( NullReferenceException ) {
+                LogError( "Problem with copy to clipboard." );
+			}
+        }
+
+        /// <summary>
+        /// Override the clipboard copy to simply use the name column since
+        /// that's what we want 99.9% of the time. If we want something else
+        /// I can add some sort of option to the properties to toggle search 
+        /// modes.
+        /// </summary>
         public override void ClipboardCopyTo() {
-            DataObject oDataObject = new DataObject();
 
 			try {
+                if( _oCacheMan.Selector.RowCount > 0 ) {
+                    string strSelection = _oCacheMan.SelectionCopy();
+                    ClipboardCopyTo( strSelection );
+                    return;
+                }
                 if( _oCacheMan.CaretRow is not null ) {
                     Line oLine = _oCacheMan.CaretRow.Row[(int)DClmn.Name];
                     string strSelection = Path.Combine( Document.CurrentURL, oLine.ToString() );
-
-                    oDataObject.SetData( strSelection );
-				    Clipboard.SetDataObject( oDataObject );
+                    ClipboardCopyTo( strSelection );
+                    return;
                 }
 			} catch( NullReferenceException ) {
                 LogError( "Problem with copy to clipboard." );
