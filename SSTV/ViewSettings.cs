@@ -46,6 +46,7 @@ namespace Play.SSTV {
             SSTVProperties.Names[] rgShow = { SSTVProperties.Names.Std_MnPort, 
                                               SSTVProperties.Names.Std_TxPort, 
                                               SSTVProperties.Names.Std_RxPort, 
+                                              SSTVProperties.Names.Tx_SrcDir,
                                               SSTVProperties.Names.Tx_MyCall,
                                               SSTVProperties.Names.Std_ImgQuality,
                                               SSTVProperties.Names.Std_MicGain,
