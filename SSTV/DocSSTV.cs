@@ -1746,12 +1746,14 @@ namespace Play.SSTV {
         /// </summary>
         public void ResetMode() {
             try {
-                if( !_oThread.IsAlive ) {
+                if( _oThread is null || !_oThread.IsAlive ) {
                     LogError( "Make sure you have stared listening mode: 'press play'." );
                     return;
                 }
-              //RxModeList.CheckedLine = RxModeList[0];
-                RxSSTVFamilyDoc.SelectFamily( TVFamily.None );
+                RxSSTVFamilyDoc.ResetFamily();
+
+                // Go back to "auto" detect on the decoder...s/b no modes in mode doc.
+                _rgUItoBGQueue.Enqueue( new TVMessage( TVMessage.Message.TryNewMode, null ) );
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( NullReferenceException ),
                                     typeof( ArgumentOutOfRangeException ) };
