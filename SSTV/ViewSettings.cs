@@ -49,7 +49,8 @@ namespace Play.SSTV {
                                               SSTVProperties.Names.Tx_MyCall,
                                               SSTVProperties.Names.Std_ImgQuality,
                                               SSTVProperties.Names.Std_MicGain,
-                                              SSTVProperties.Names.Std_Frequency };
+                                              SSTVProperties.Names.Std_Frequency,
+                                              SSTVProperties.Names.Rx_Threads };
 
             foreach( SSTVProperties.Names eName in rgShow ) {
                 switch( eName ) {

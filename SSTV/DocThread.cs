@@ -328,7 +328,8 @@ namespace Play.SSTV {
                                      ConcurrentQueue<SSTVMessage> oToUIQueue, 
                                      ConcurrentQueue<TVMessage>   oInputQueue,
                                      SKBitmap                     oD12,
-                                     SKBitmap                     oRx ) :
+                                     SKBitmap                     oRx,
+                                     int                          iThreadCnt ) :
             base( oToUIQueue )
         {
             _oInputQueue   = oInputQueue ?? throw new ArgumentNullException( nameof( oInputQueue   ) );
@@ -341,7 +342,7 @@ namespace Play.SSTV {
             _dblSampRate   = dblSampleRate;
 
             _oSSTVDeMo = new SSTVDEM ( new SYSSET(), dblSampleRate );
-			_oSSTVDraw = new SSTVDraw( _oSSTVDeMo, oD12, oRx );
+			_oSSTVDraw = new SSTVDraw( _oSSTVDeMo, oD12, oRx, iThreadCnt );
         }
 
         /// <summary>
@@ -718,9 +719,9 @@ namespace Play.SSTV {
 
         public PortListening( int iPort, int iMonitor, int iImageQuality,
                               string strFilePath,ConcurrentQueue<SSTVMessage> oToUIQueue,
-                              ConcurrentQueue<TVMessage> oInputQueue, SKBitmap oD12, SKBitmap oRx ) : 
+                              ConcurrentQueue<TVMessage> oInputQueue, SKBitmap oD12, SKBitmap oRx, int iThreadCnt=3 ) : 
             base( iMonitor, -1, 0.0, iImageQuality, strFilePath, string.Empty, oToUIQueue,
-                  oInputQueue, oD12, oRx )
+                  oInputQueue, oD12, oRx, iThreadCnt )
         {
             int iBytesNeeded = (_iBitRate / 8) * (_iSleepMS / 1000) + 1000;
 

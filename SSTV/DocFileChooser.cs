@@ -280,7 +280,7 @@ namespace Play.SSTV {
         /// </remarks>
         public bool LoadAgain( string strFilePath ) {
             if( string.IsNullOrEmpty( strFilePath ) ) {
-                LogError( "internal", "Image walker initialization parameter must be a filename." );
+                LogError( "internal", "SSTV initialization parameter must be a filename." );
                 return false;
 			}
 

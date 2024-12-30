@@ -329,7 +329,7 @@ namespace Play.SSTV {
 		/// the Raise_ImageUpdated() event public. We raise the SSTVEvents here and the
 		/// receiver of those events will call the image document Raise event.
 		/// </remarks>
-		public SSTVDraw( SSTVDEM p_dp, SKBitmap oD12, SKBitmap oRx ) {
+		public SSTVDraw( SSTVDEM p_dp, SKBitmap oD12, SKBitmap oRx, int iThreadCnt=1 ) {
 			_dp         = p_dp ?? throw new ArgumentNullException( "Demodulator must not be null to SSTVDraw." );
 			_pBitmapD12 = oD12 ?? throw new ArgumentNullException( "D12 bmp must not be null" );
 			_pBitmapRX  = oRx  ?? throw new ArgumentNullException( "D12 bmp must not be null" );
@@ -337,7 +337,7 @@ namespace Play.SSTV {
 			_skD12Canvas = new( _pBitmapD12 );
 
 			// Need to make this variable depending on the processor.
-            for( int i = 0; i < 3; ++i ) { // set to 1 for debug.
+            for( int i = 0; i < iThreadCnt; ++i ) { // set to 1 for debug.
                 _rgBuffers.Add(new ScanBuffers(this));
             }
 

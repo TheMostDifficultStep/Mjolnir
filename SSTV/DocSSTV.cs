@@ -40,6 +40,7 @@ namespace Play.SSTV {
             Rx_Diagnostic,
             Rx_HistoryIcons,
             Rx_SignalLevel,
+            Rx_Threads,
 
             Tx_Progress,
             Tx_SrcDir,
@@ -137,6 +138,7 @@ namespace Play.SSTV {
             LabelUpdate( Names.Rx_Diagnostic,   "Diagnostics" );
             LabelUpdate( Names.Rx_HistoryIcons, "History" );
             LabelUpdate( Names.Rx_SignalLevel,  "Signal Lvl" );
+            LabelUpdate( Names.Rx_Threads,      "Thread Count" );
 
             // I forget where the values get updated... :-/
             ValueUpdate( Names.Tx_SrcDir,      oSSTVDoc.TxImageList  .CurrentShowPath );
@@ -148,6 +150,7 @@ namespace Play.SSTV {
             ValueUpdate( Names.Std_ImgQuality, "80" );
             ValueUpdate( Names.Std_MicGain,    "10000" ); // Out of 30,000
             ValueUpdate( Names.Std_Frequency,  "11025" ); 
+            ValueUpdate( Names.Rx_Threads,     "3" );
 
             return true;
         }
@@ -571,6 +574,8 @@ namespace Play.SSTV {
             }
         }
 
+        public int RxThreadCnt => Properties.ValueAsInt( (int)SSTVProperties.Names.Rx_Threads, 3 );
+
         public bool InitNew2() {
             _oFFT = new CFFT( FFTControlValues.FindMode( 8000 ) );
 
@@ -854,6 +859,9 @@ namespace Play.SSTV {
                 XmlNode oRoot = oDoc.DocumentElement;
                 foreach( XmlNode oNode in oRoot.ChildNodes ) { 
                     switch( oNode.Name ) {
+                        case "RxThreads":
+                            Properties.ValueUpdate( SSTVProperties.Names.Rx_Threads, oNode.InnerText );
+                            break;
                         case "RxDevice":
                             PropertyLoadFromXml( PortRxList, oNode, fLoadMissing:true );
                             break;
@@ -948,6 +956,7 @@ namespace Play.SSTV {
                 StringProperty( "Message",        SSTVProperties.Names.Tx_Message );
                 StringProperty( "TxSrcDir",       SSTVProperties.Names.Tx_SrcDir );
                 StringProperty( "Clock",          SSTVProperties.Names.Std_Frequency );
+                StringProperty( "RxThreads",      SSTVProperties.Names.Rx_Threads );
 
                 oXDoc.Save( oStream );
 			} catch( Exception oEx ) {
@@ -1817,7 +1826,8 @@ namespace Play.SSTV {
                         dblFreq,
                         iQuality, strSaveDir, String.Empty,
                         _rgBGtoUIQueue, _rgUItoBGQueue,
-                        SyncImage.Bitmap, DisplayImage.Bitmap);
+                        SyncImage.Bitmap, DisplayImage.Bitmap,
+                        RxThreadCnt );
 
                     //PortListening oWorker = new PortListening( 
                     //    5, iMonitor,
@@ -1933,8 +1943,8 @@ namespace Play.SSTV {
 
                         _oSSTVBuffer      = new BufferSSTV( oTxSpec );
 					    _oSSTVDeModulator = oDemodTst;
-					    _oSSTVModulator   = new SSTVMOD( 0, oFFTMode.SampFreq, _oSSTVBuffer );
-					    _oRxSSTV          = new SSTVDraw ( _oSSTVDeModulator, oDoc.SyncImage.Bitmap, oDoc.DisplayImage.Bitmap );
+					    _oSSTVModulator   = new SSTVMOD ( 0, oFFTMode.SampFreq, _oSSTVBuffer );
+					    _oRxSSTV          = new SSTVDraw( _oSSTVDeModulator, oDoc.SyncImage.Bitmap, oDoc.DisplayImage.Bitmap, oDoc.RxThreadCnt );
 
 					    _oSSTVGenerator = oMode.TvFamily switch {
 						    TVFamily.PD      => new GeneratePD     ( oDoc.TxBitmapComp.Bitmap, oDemodTst, oMode ),
