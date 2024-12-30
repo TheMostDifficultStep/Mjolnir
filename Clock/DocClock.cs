@@ -11,6 +11,7 @@ using Play.Interfaces.Embedding;
 using Play.Rectangles;
 using Play.Edit;
 using Play.Forms;
+using System.Numerics;
 
 namespace Play.Clock {
     public class ClockRow : Row {
@@ -154,7 +155,8 @@ namespace Play.Clock {
 
         public Guid      Catagory  => Guid.Empty; // Default view.
         public string    Banner    => "World Clock";
-        public SKBitmap  Icon    { get; }
+        public SKBitmap  Icon      { get; }
+        protected uint      ClockFont { get; }
 
         protected DocumentClock Document { get; }
 
@@ -166,6 +168,14 @@ namespace Play.Clock {
 
 			Icon       = SKImageResourceHelper.GetImageResource( Assembly.GetExecutingAssembly(), _strViewIcon );
             _fReadOnly = true;
+
+            try {
+                ClockFont = StdUI.FontCache( StdUI.FaceCache( @"C:\Users\hanaz\AppData\Local\Microsoft\Windows\Fonts\seven segment.ttf" ), 16, DPI );
+            } catch( ApplicationException ) {
+                ClockFont = StdFont;
+            }
+
+            _oCacheMan.RenderClxn.Add( ClockFont, StdUI.FontRendererAt( ClockFont ) );
         }
 
         protected override void Dispose( bool disposing ) {
@@ -181,16 +191,9 @@ namespace Play.Clock {
 
             Document.ClockEvent += OnClockUpdated;
 
-            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Percent, 30, 1L ), ClockRow.ColumnTime); // time
-            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Percent, 45, 1L ), ClockRow.ColumnDate); // date
-            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Percent, 25, 1L ), ClockRow.ColumnZone); // zones.
-
-            //Figure this out later...
-            //foreach( CacheRow oRow in _oCacheMan ) {
-            //    foreach( IPgCacheRender oCache in oRow ) {
-            //        oCache.BgColor = _oStdUI.ColorsStandardAt(StdUIColors.BGNoEditText);
-            //    }
-            //}
+            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Flex ), ClockRow.ColumnTime); // time
+            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Flex ), ClockRow.ColumnZone); // zones.
+            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.None ), ClockRow.ColumnDate); // date
 
             return true;
         }
@@ -201,6 +204,28 @@ namespace Play.Clock {
 
         public override bool Execute(Guid sGuid) {
             return false;
+        }
+
+        protected override void OnSizeChanged(EventArgs e) {
+            foreach( CacheRow oCRow in _oCacheMan ) {
+                oCRow[0].FontID = ClockFont;
+                oCRow[1].FontID = ClockFont;
+                oCRow[2].FontID = ClockFont;
+                if( oCRow.Row.At % 2 != 1 ) { // odd
+                    foreach( IPgCacheRender oElem in oCRow ) {
+                        oElem.BgColor = new SKColor( 201, 250, 201);
+                    }
+                }
+            }
+
+            //Figure this out later...
+            //foreach( CacheRow oRow in _oCacheMan ) {
+            //    foreach( IPgCacheRender oCache in oRow ) {
+            //        oCache.BgColor = _oStdUI.ColorsStandardAt(StdUIColors.BGNoEditText);
+            //    }
+            //}
+
+            base.OnSizeChanged(e);
         }
 
         public void OnClockUpdated() {

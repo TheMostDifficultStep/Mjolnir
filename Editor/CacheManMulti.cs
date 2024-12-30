@@ -65,7 +65,7 @@ namespace Play.Edit {
 
         protected readonly ReadOnlyCollection<ColumnInfo> _rgColumnInfo;
 
-        protected Dictionary<uint, IPgFontRender> RenderClxn {get; } = new();
+        public    Dictionary<uint, IPgFontRender> RenderClxn {get; } = new();
         protected IPgStandardUI2   StdUI      { get; }
         public    SelectionManager Selector   { get; }
         protected IPgGlyph         GlyphLt    { get; } // Our end of line character.

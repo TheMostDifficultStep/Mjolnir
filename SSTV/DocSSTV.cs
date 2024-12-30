@@ -684,6 +684,8 @@ namespace Play.SSTV {
 
             SettingsInit(); // Loads up a bunch of properties here.
 
+            // BUG, this is wrong to load up the list in the Load( Stream ) method
+            // bet we call our generic InitNew() here. Need to fix that...
             string strMyDocs = Environment.GetFolderPath( Environment.SpecialFolder.MyDocuments );
             if( !TxImageList.LoadURL( strMyDocs ) ) {
 				LogError( "Couldn't find pictures tx directory for SSTV" );
@@ -1077,7 +1079,12 @@ namespace Play.SSTV {
                 return;
             } 
 			if( TxImageList.Bitmap == null ) {
-                LogError( "No Tx Images Here." );
+                // the Load( Stream ) method is calling InitNew() on the home directory
+                // which might not be the same as the settings persisted value.
+                // In our case the home directory had no images, but the settings one later
+                // does. So we get this error, even tho' after the system starts we can
+                // see TX images. Need to fix the Load/InitNew sequence.
+             // LogError( "No Tx Images Here." );
                 return;
             } 
 			if( RxHistoryList.Bitmap == null ) {

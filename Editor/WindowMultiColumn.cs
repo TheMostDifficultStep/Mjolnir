@@ -229,6 +229,8 @@ namespace Play.Edit {
         public SKPoint   DPI { get; protected set; } 
         protected IPgStandardUI2 StdUI => _oStdUI;
         protected virtual ushort StdFace => StdUI.FaceCache(@"C:\windows\fonts\seguiemj.ttf"); // consola
+        protected virtual uint   StdFont => StdUI.FontCache( StdFace, 12, InitializeDPI() );
+
 
         public uint CheckColumnWidth {get; } // BUG: Now that flex works, we don't need this...
 
@@ -346,7 +348,7 @@ namespace Play.Edit {
             /// Typically we just need one FONT. Whatever face and size for standard,
             /// anything else you'll need more plumbing anyway.
             /// </summary>
-            public uint FontStd => _oHost._oStdUI.FontCache( _oHost.StdFace, 12, _oHost.InitializeDPI() );
+            public uint FontStd => _oHost.StdFont;
             public void DoLayout() { _oHost._rgLayout.LayoutChildren(); }
         }
 
