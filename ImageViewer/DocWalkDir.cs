@@ -334,13 +334,15 @@ namespace Play.ImageViewer {
 
         /// <summary>
         /// Only the directory viewer is actually capable of reloading our contents on demand.
-        /// Need to redo the view's thumb collection.
+        /// Need to redo the view's thumb collection. Make sure you call LoadURL() 
+        /// before this call!!
         /// </summary>
         /// <remarks>
         /// Can't tell the difference between path's with ext and file with ext.
         /// c:/foo/bar.buzz
         /// c:/foo/bar/name.txt
         /// </remarks>
+        /// <seealso cref="LoadURL(string)"/>
         public override bool LoadAgain( string strFilePath ) {
             if( string.IsNullOrEmpty( strFilePath ) ) {
                 _oSiteBase.LogError( "internal", "Image walker initialization parameter must be a filename." );
@@ -521,7 +523,7 @@ namespace Play.ImageViewer {
         /// Reset() call. Call this or InitNew() once only.
         /// </summary>
         /// <param name="strFilePath"></param>
-        /// <seealso cref="LoadAgain" />
+        /// <seealso cref="LoadAgain(string)" />
         public bool LoadURL( string strFilePath ) {
             if( !InitNew() )
                 return false;

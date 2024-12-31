@@ -639,91 +639,6 @@ namespace Play.SSTV {
 		}
 
         /// <summary>
-        /// Load also calls this function with RenderComposite() getting called
-        /// twice. A little bit of a bummer...
-        /// </summary>
-        /// <see cref="Load(TextReader)"/>
-        public bool InitNew() {
-            if( !TxTemplateDoc.InitNew() ) 
-                return false;
-            if( !TxBitmapComp.InitNew() )
-                return false;
-
-			if( !DisplayImage.InitNew() )
-				return false;
-			if( !SyncImage   .InitNew() )
-				return false;
-            if( !SignalLevel .InitNew() )
-                return false;
-
-            if( !MonitorList.InitNew() )
-                return false;
-            if( !PortTxList .InitNew() )
-                return false;
-            if( !PortRxList .InitNew() ) 
-                return false;
-
-            if( !RxSSTVModeDoc.InitNew() )
-                return false;
-            if( !TxSSTVModeDoc.InitNew() )
-                return false;
-
-            if( !Properties.InitNew() )
-                return false;
-
-            // Largest bitmap needed by any of the types I can decode.
-            SKSizeI szMax = new( 800, 616 );
-		    SyncImage   .Bitmap = new SKBitmap( szMax.Width, szMax.Height, SKColorType.Rgb888x, SKAlphaType.Unknown );
-		    DisplayImage.Bitmap = new SKBitmap( szMax.Width, szMax.Height, SKColorType.Rgb888x, SKAlphaType.Opaque  );
-            SignalLevel .Bitmap = new SKBitmap( 100, 10, SKColorType.Rgb888x, SKAlphaType.Opaque  );
-
-            // Just set it up so it looks ok to start. Gets updated for each image downloaded.
-			DisplayImage.WorldDisplay = new SKRectI( 0, 0, 320,         256 );
-            SyncImage   .WorldDisplay = new SKRectI( 0, 0, szMax.Width, 256 );
-            SignalLevel .WorldDisplay = new SKRectI( 0, 0, 100,          10 );
-
-            SettingsInit(); // Loads up a bunch of properties here.
-
-            // BUG, this is wrong to load up the list in the Load( Stream ) method
-            // bet we call our generic InitNew() here. Need to fix that...
-            string strMyDocs = Environment.GetFolderPath( Environment.SpecialFolder.MyDocuments );
-            if( !TxImageList.LoadURL( strMyDocs ) ) {
-				LogError( "Couldn't find pictures tx directory for SSTV" );
-                return false;
-			}
-
-			RxSSTVFamilyDoc.Load( new SSTVDEM.EnumerateFamilies() );
-            RxSSTVFamilyDoc.Event_Check += OnCheckEvent_RxSSTVFamilyDoc;
-			RxSSTVModeDoc  .Load( RxSSTVFamilyDoc.SelectedFamily.TvFamily );
-            RxSSTVModeDoc  .Event_Check += OnCheckEvent_RxSSTVModeDoc;
-
-            TxSSTVFamilyDoc.Load( new SSTVDEM.EnumerateFamilies() );
-            TxSSTVFamilyDoc.Event_Check  += OnCheckEvent_TxSSTVFamilyDoc;
-			TxSSTVModeDoc  .Load( TxSSTVFamilyDoc.SelectedFamily.TvFamily );
-            TxSSTVModeDoc  .Event_Check  += OnCheckEvent_TxSSTVModeDoc;
-            TxSSTVModeDoc  .Event_Loaded += OnLoaded_TxSSTVModeDoc;
-
-            // Get these set up so our std properties get the updates.
-            TxImageList  .ImageUpdated       += OnImageUpdated_TxImageList;
-            RxHistoryList.ImageUpdated       += OnImageUpdated_RxHistoryList;
-            TxTemplateDoc.Event_Check += OnCheckedEvent_TemplateList;
-
-            // We'll get a callback from this before exiting back into
-            // our RenderComposite() method!! And then Load() causes
-            // another Render. Might see if we can fix that...
-            string strMyPics = Properties[SSTVProperties.Names.Rx_SaveDir];
-            if( !RxHistoryList.LoadURL( strMyPics ) ) {
-				LogError( "Couldn't find history directory for SSTV pictures." );
-                return false;
-            }
-
-            Properties.ParseAll();
-            _oWorkPlace.Queue( CreateTaskReceiver(), Timeout.Infinite );
-
-            return true;
-        }
-
-        /// <summary>
         /// When a TV family is selected, load the modes for that family
         /// in the RxSSTVModeDoc. BUT if the family is "none" there are no
         /// modes defined for it. We won't go into an infinite loop because
@@ -849,8 +764,99 @@ namespace Play.SSTV {
                 }
             }
         }
+        protected bool Initialize() {
+            if( !TxTemplateDoc.InitNew() ) 
+                return false;
+            if( !TxBitmapComp.InitNew() )
+                return false;
+
+			if( !DisplayImage.InitNew() )
+				return false;
+			if( !SyncImage   .InitNew() )
+				return false;
+            if( !SignalLevel .InitNew() )
+                return false;
+
+            if( !MonitorList.InitNew() )
+                return false;
+            if( !PortTxList .InitNew() )
+                return false;
+            if( !PortRxList .InitNew() ) 
+                return false;
+
+            if( !RxSSTVModeDoc.InitNew() )
+                return false;
+            if( !TxSSTVModeDoc.InitNew() )
+                return false;
+
+            if( !Properties.InitNew() )
+                return false;
+
+            // Largest bitmap needed by any of the types I can decode.
+            SKSizeI szMax = new( 800, 616 );
+		    SyncImage   .Bitmap = new SKBitmap( szMax.Width, szMax.Height, SKColorType.Rgb888x, SKAlphaType.Unknown );
+		    DisplayImage.Bitmap = new SKBitmap( szMax.Width, szMax.Height, SKColorType.Rgb888x, SKAlphaType.Opaque  );
+            SignalLevel .Bitmap = new SKBitmap( 100, 10, SKColorType.Rgb888x, SKAlphaType.Opaque  );
+
+            // Just set it up so it looks ok to start. Gets updated for each image downloaded.
+			DisplayImage.WorldDisplay = new SKRectI( 0, 0, 320,         256 );
+            SyncImage   .WorldDisplay = new SKRectI( 0, 0, szMax.Width, 256 );
+            SignalLevel .WorldDisplay = new SKRectI( 0, 0, 100,          10 );
+
+            SettingsInit(); // Loads up a bunch of properties here.
+
+			RxSSTVFamilyDoc.Load( new SSTVDEM.EnumerateFamilies() );
+            RxSSTVFamilyDoc.Event_Check += OnCheckEvent_RxSSTVFamilyDoc;
+			RxSSTVModeDoc  .Load( RxSSTVFamilyDoc.SelectedFamily.TvFamily );
+            RxSSTVModeDoc  .Event_Check += OnCheckEvent_RxSSTVModeDoc;
+
+            TxSSTVFamilyDoc.Load( new SSTVDEM.EnumerateFamilies() );
+            TxSSTVFamilyDoc.Event_Check  += OnCheckEvent_TxSSTVFamilyDoc;
+			TxSSTVModeDoc  .Load( TxSSTVFamilyDoc.SelectedFamily.TvFamily );
+            TxSSTVModeDoc  .Event_Check  += OnCheckEvent_TxSSTVModeDoc;
+            TxSSTVModeDoc  .Event_Loaded += OnLoaded_TxSSTVModeDoc;
+
+            // Get these set up so our std properties get the updates.
+            TxImageList  .ImageUpdated += OnImageUpdated_TxImageList;
+            RxHistoryList.ImageUpdated += OnImageUpdated_RxHistoryList;
+            TxTemplateDoc.Event_Check  += OnCheckedEvent_TemplateList;
+
+            _oWorkPlace.Queue( CreateTaskReceiver(), Timeout.Infinite );
+
+            return true;
+        }
+
+        /// <summary>
+        /// Load also calls this function with RenderComposite() getting called
+        /// twice. A little bit of a bummer...
+        /// </summary>
+        /// <see cref="Load(TextReader)"/>
+        public bool InitNew() {
+            if( !Initialize() ) 
+                return false;
+
+            // Note: this is wrong to load up the list in the Load( Stream ) in this manner.
+            string strMyDocs = Environment.GetFolderPath( Environment.SpecialFolder.MyDocuments );
+            if( !TxImageList.LoadURL( strMyDocs ) ) {
+				LogError( "Couldn't find pictures tx directory for SSTV" );
+                return false;
+			}
+
+            // We'll get a callback from this before exiting back into
+            // our RenderComposite() method!! And then Load() causes
+            // another Render. Might see if we can fix that...
+            if( !RxHistoryList.LoadURL( Properties[SSTVProperties.Names.Rx_SaveDir] ) ) {
+				LogError( "Couldn't find history directory for SSTV pictures." );
+                return false;
+            }
+
+            Properties.ParseAll();
+
+            return true;
+        }
+
         public bool Load( TextReader oStream ) {
-            if( !InitNew() )
+            if( !Initialize() )
                 return false;
 
             try {
@@ -895,7 +901,7 @@ namespace Play.SSTV {
                             Properties.ValueUpdate( SSTVProperties.Names.Tx_Message, oNode.InnerText );
                             break;
                         case "TxSrcDir":
-                            TxImageList.LoadAgain( oNode.InnerText );
+                            TxImageList.LoadURL( oNode.InnerText );
                             // This well endup calling RenderComposite() again... :-/
                             break;
                         case "Clock":
@@ -903,6 +909,16 @@ namespace Play.SSTV {
                             break;
                     }
                 }
+
+                // We'll get a callback from this before exiting back into
+                // our RenderComposite() method!! And then Load() causes
+                // another Render. Might see if we can fix that...
+                if( !RxHistoryList.LoadURL( Properties[SSTVProperties.Names.Rx_SaveDir] ) ) {
+				    LogError( "Couldn't find history directory for SSTV pictures." );
+                    return false;
+                }
+
+                Properties.ParseAll();
 			} catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( NullReferenceException ),
                                     typeof( ArgumentNullException ),
@@ -1077,18 +1093,17 @@ namespace Play.SSTV {
 			if( oMode == null ) {
                 LogError( "Set a transmit mode first." );
                 return;
-            } 
+            }
+            // So I have a little bit of an issue here, updating either
+            // of these causes TemplateSet() to be called and only one can
+            // be loaded first! >_<;; Perhaps I can make a super object
+            // containing both of these to fix that problem...
 			if( TxImageList.Bitmap == null ) {
-                // the Load( Stream ) method is calling InitNew() on the home directory
-                // which might not be the same as the settings persisted value.
-                // In our case the home directory had no images, but the settings one later
-                // does. So we get this error, even tho' after the system starts we can
-                // see TX images. Need to fix the Load/InitNew sequence.
-             // LogError( "No Tx Images Here." );
+                //LogError( "No Tx Images Here." );
                 return;
             } 
 			if( RxHistoryList.Bitmap == null ) {
-             // LogError( "No Rx Images Here." );
+                //LogError( "No Rx Images Here." );
                 return;
             } 
 
