@@ -526,7 +526,7 @@ namespace Play.Rectangles
             SmartRect     p_oGuest,
             SET           p_eStretch,
             LOCUS         p_eEdges,
-            int           p_iX, 
+            int           p_iX, // Mouse pos at start of drag.
             int           p_iY,
             SmartRect     p_rctViewBounds )
         {
@@ -580,6 +580,7 @@ namespace Play.Rectangles
         /// <param name="iY">New position Y of tracking point.</param>
         /// <remarks>TODO: Would be nice if we stick to whatever side we bump
         /// into smoothly when the go past an edge.</remarks>
+        /// <seealso cref="SmartGrab.BeginDrag"/>
         public virtual void Move(int iX, int iY)
         {
 			_pntLastMove.X = iX;
@@ -596,14 +597,53 @@ namespace Play.Rectangles
             // Copy invertable prop else our temp might get inverted when it shouldn't!!
             _rcTemp.Copy       = Guest;
             _rcTemp.Invertable = Guest.Invertable;
+
             _rcTemp.SetPoint(_eStretch, _eEdges, pntTarget.X, pntTarget.Y);
 
-            // So we need to check the WHOLE rect when dragging from the CENTER
-            // and moving the whole object instead of just an edge or corner!!
-            if( _rcViewBounds.IsInside( _rcTemp ) ) {
-                Guest.Copy = _rcTemp;
-                return;
+            // Would love to unify this but haven't quite figured it out yet. >_<;;
+            if( !_rcViewBounds.IsInside( _rcTemp ) ) {
+                if( _eStretch == SET.RIGID ) {
+                    // this is the case where we are moving the rectangle from
+                    // the center. No stretching involved.
+                    SKPointI pntLB = new( _rcViewBounds.Right  - _rcTemp.Width,
+                                          _rcViewBounds.Bottom - _rcTemp.Height );
+                    SmartRect rctBounds = new SmartRect( _rcViewBounds.Left,
+                                                         _rcViewBounds.Top,
+                                                         pntLB.X,
+                                                         pntLB.Y );
+
+                    if( _rcTemp.Top < rctBounds.Top )
+                        _rcTemp.SetScalar(SET.RIGID, SCALAR.TOP, rctBounds.Top );
+                    if( _rcTemp.Top > rctBounds.Bottom )
+                        _rcTemp.SetScalar(SET.RIGID, SCALAR.TOP, rctBounds.Bottom );
+
+                    if( _rcTemp.Left < rctBounds.Left )
+                        _rcTemp.SetScalar(SET.RIGID, SCALAR.LEFT, rctBounds.Left );
+                    if( _rcTemp.Left > rctBounds.Right )
+                        _rcTemp.SetScalar(SET.RIGID, SCALAR.LEFT, rctBounds.Right );
+                } else {
+                    // ghis is the case where we are stretching a corner.
+                    SKPointI pntMoving = _rcTemp.GetPoint( _eEdges );
+                    SCALAR eY = (SCALAR)(_eEdges & ( LOCUS.TOP  | LOCUS.BOTTOM ));
+                    SCALAR eX = (SCALAR)(_eEdges & ( LOCUS.LEFT | LOCUS.RIGHT  ));
+
+                    if( eY != 0 ) {
+                        if( pntMoving.Y < _rcViewBounds.Top )
+                            _rcTemp.SetScalar(SET.STRETCH, eY, _rcViewBounds.Top );
+                        if( pntMoving.Y > _rcViewBounds.Bottom )
+                            _rcTemp.SetScalar(SET.STRETCH, eY, _rcViewBounds.Bottom );
+                    }
+
+                    if( eX != 0 ) {
+                        if( pntMoving.X < _rcViewBounds.Left )
+                            _rcTemp.SetScalar(SET.STRETCH, eX, _rcViewBounds.Left );
+                        if( pntMoving.X > _rcViewBounds.Right )
+                            _rcTemp.SetScalar(SET.STRETCH, eX, _rcViewBounds.Right );
+                    }
+                }
             }
+
+            Guest.Copy = _rcTemp;
         }
 
         /// <summary>

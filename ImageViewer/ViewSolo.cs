@@ -228,6 +228,8 @@ namespace Play.ImageViewer {
 				this.Select();
 			}
 
+			Capture = true;
+
 			if( _eToolCurrent == Tools.Select ) {
 				_rcSelectionView.Mode = DragMode;
 
@@ -250,12 +252,13 @@ namespace Play.ImageViewer {
             base.OnMouseUp(e);
 
 
-			if( _oSmartDrag != null && Document.Bitmap != null ) {
+			if( _oSmartDrag != null /* && Document.Bitmap != null */ ) {
 				_oSmartDrag.Dispose();
 				_oSmartDrag = null;
 
 				AlignBmpSelectionToViewSelection();
 			}
+			Capture = false;
         }
 
         /// <summary>
