@@ -16,7 +16,7 @@ using Play.Interfaces.Embedding;
 using Play.Parse.Impl;
 using Play.Edit;
 using Play.Sound;
-using Play.Integration; // tag grammer used here... Hmmmm.. check this out. Probably move to Play.Parse.Impl
+using Play.Integration;
 
 namespace Mjolnir {
     public delegate void UpdateAllTitlesFor( IDocSlot oSlot );
@@ -32,6 +32,122 @@ namespace Mjolnir {
 		IPgStandardUI2,
 		IDisposable
     {
+        protected class Use :
+            IEnumerable<string>,
+            IPgLoad<XmlElement>
+
+        {
+            protected List<string> _rgExtensions = new List<string>();
+            protected string       _strDescr;
+            public Guid?  GUID        { get; protected set; }
+            public string Name        { get; protected set; }
+            public string Description { get; protected set; }
+            public string Controller  { get; protected set; }
+
+            public IEnumerator<string> GetEnumerator() {
+                return _rgExtensions.GetEnumerator();
+            }
+
+            public bool InitNew() {
+                return false;
+            }
+
+            public bool Load(XmlElement oXml) {
+                if( oXml == null) 
+                    throw new ArgumentNullException();
+
+                try {
+                    if( oXml.SelectNodes( "e" ) is XmlNodeList rgUses ) {
+                        foreach( XmlElement oNode in rgUses ) {
+                            string strFileExtn = oNode.GetAttribute( "v" );
+
+                            if( string.IsNullOrEmpty( strFileExtn ) )
+                                return false;
+
+                            _rgExtensions.Add( strFileExtn );
+                        }
+                    }
+                    Name = oXml.GetAttribute( "name" );
+
+                    string strGuid = oXml.GetAttribute( "guid" );
+
+                    if( string.IsNullOrEmpty(strGuid ) ) {
+                        GUID = Guid.NewGuid();
+                    } else {
+                        GUID = new Guid( strGuid );
+                    }
+
+                    if( oXml.SelectSingleNode( "desc" ) is XmlElement oXmlDesc ) {
+                        Description = oXml.InnerText;
+                    }
+                    if( string.IsNullOrEmpty( Description ) )
+                        return false;
+                } catch( Exception oEx ) {
+                    Type[] rgErrors = { typeof( XPathException ),
+                                        typeof( ArgumentNullException ),
+                                        typeof( FormatException ),
+                                        typeof( OverflowException ) };
+                    if( rgErrors.IsUnhandled( oEx ) )
+                        throw;
+
+                    return false;
+                }
+
+                return true;
+            }
+
+            IEnumerator IEnumerable.GetEnumerator() {
+                return GetEnumerator();
+            }
+        }
+
+        protected class AssemblyEntry :
+            IEnumerable<Use>,
+            IPgLoad<XmlElement>
+        {
+            public string FilePath { get; }
+            public string FileName { get; protected set; }
+
+            public List<Use> _rgUses = new();
+
+            public IEnumerator<Use> GetEnumerator() {
+                return _rgUses.GetEnumerator();
+            }
+
+            IEnumerator IEnumerable.GetEnumerator() {
+                return GetEnumerator();
+            }
+            public bool InitNew() {
+                return false;
+            }
+
+            public bool Load( XmlElement oXml ) {
+                if( oXml == null )
+                    throw new ArgumentNullException();
+                if( _rgUses.Count != 0 )
+                    throw new InvalidProgramException();
+
+                try {
+                    FileName = oXml.GetAttribute( "assm" );
+
+                    if( string.IsNullOrEmpty( FileName ) )
+                        return false;
+
+                    foreach( XmlElement oNode in oXml.SelectNodes( "use" ) ) {
+                        Use oUse = new Use();
+                        if( !oUse.Load( oNode ) )
+                            return false;
+                        _rgUses.Add( oUse );
+                    }
+                } catch( XPathException ) {
+                    return false;
+                }
+
+
+                return true;
+            }
+        }
+
         public static Guid Clock       { get; } = new Guid( "{DEA39235-7E0A-4539-88A0-2FB775E7A8CC}" );
         public static Guid FindDialog  { get; } = new Guid( "{231E4D61-499A-427E-A1D3-EC4A579A5E6D}" );
         public static Guid ViewSelector{ get; } = new Guid( "{195E19DB-4BCE-4CAE-BE02-263536F00851}" );
@@ -95,7 +211,8 @@ namespace Mjolnir {
 
 		protected Alerts _oWin_AlertsForm;
 
-        readonly Dictionary<string, Assembly> _rgAddOns = new Dictionary<string,Assembly>();
+        //readonly Dictionary<string, Assembly> _rgAddOns = new Dictionary<string,Assembly>();
+        readonly List<AssemblyEntry> _rgAssemblyStubs = new ();
 
         private FTManager _oFTManager;
 
@@ -420,16 +537,18 @@ namespace Mjolnir {
 		/// TODO, 1/2/2018 : Hmmm... I see we're loading the assemblies, but we need to grab any controllers
 		/// out of it to really be useful. This looks like a great next step to work on.
 		/// </summary>
+        /// <seealso cref="InitializeControllers"/>
         protected void InitializePlugins( XmlDocument xmlDoc ) {
             XmlNodeList lstTypes = xmlDoc.SelectNodes("config/addons/add");
 
             foreach( XmlElement xeType in lstTypes ) {
-                string strFile = xeType.GetAttribute( "assembly" );
-                string strID   = xeType.GetAttribute( "id" );
-
                 try {
-                    if( !string.IsNullOrEmpty( strFile ) ) {
-                        _rgAddOns.Add( strID, Assembly.LoadFile( strFile ) );
+                    AssemblyEntry oEntry = new AssemblyEntry();
+
+                    if( oEntry.Load( xeType ) ) {
+                        _rgAssemblyStubs.Add( oEntry );
+                    } else {
+                        throw new FileLoadException();
                     }
                 } catch( Exception oEx ) {
                     Type[] rgErrors = { typeof( FileLoadException ), 
@@ -439,7 +558,7 @@ namespace Mjolnir {
                     if( rgErrors.IsUnhandled( oEx ) )
                         throw;
 
-                    LogError( null, "internal", "Can't load plugin, " + strFile );
+                    LogError( null, "internal", "Can't load plugin: " + xeType.OuterXml );
                 }
             }
         }
@@ -1366,7 +1485,12 @@ namespace Mjolnir {
 
             return fCancel;
         }
-
+        
+        /// <summary>
+        /// Loads up all the document controllers that we can possible use. This is
+        /// a bit of a drag since it'll load assemblies that we don't really need.
+        /// </summary>
+        /// <seealso cref="InitializePlugins"/>
         public void InitializeControllers() {
             Controllers.Add( new ControllerForResults   () );
 			Controllers.Add( new ControllerForParsedText( this ) );
@@ -1391,6 +1515,7 @@ namespace Mjolnir {
             Controllers.Add( new Monitor           .BBCBasicTextController() );
             Controllers.Add( new Kanji_Practice    .KanjiController() );
             Controllers.Add( new AddressBook       .Controller() );
+          //Controllers.Add( new Scanner           .ScannerController() );
         }
 
         protected class EmbeddedGrammars {

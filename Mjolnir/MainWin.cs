@@ -18,6 +18,7 @@ using Play.Rectangles;
 using Play.Edit;
 using Play.Parse;
 using Play.Forms;
+
 using static Mjolnir.Program;
 
 namespace Mjolnir {
@@ -637,6 +638,7 @@ namespace Mjolnir {
             rgSubMenu.Add( new ToolStripMenuItem("Std Log",  BitmapCreateFromChar( "\xE113" ), new EventHandler(this.OnDocNewStdLogger)));
             rgSubMenu.Add( new ToolStripMenuItem("SSTV",     BitmapCreateFromChar( "\xE114" ), new EventHandler(this.OnDocNewSSTV  )));
             rgSubMenu.Add( new ToolStripMenuItem("Monitor",  BitmapCreateFromChar( "\xE114" ), new EventHandler(this.OnDocNewMonitor )));
+          //rgSubMenu.Add( new ToolStripMenuItem("Scanner",  BitmapCreateFromChar( "\xE114" ), new EventHandler(this.OnDocNewScan )));
 
             oFileMenu.DropDownItems.Add(new ToolStripMenuItem("New",      BitmapCreateFromChar( "\xE295" ), rgSubMenu.ToArray() ) );
             oFileMenu.DropDownItems.Add(new ToolStripMenuItem( "Open...", BitmapCreateFromChar( "\xE132" ), new EventHandler(this.OnDocOpen), Keys.Control | Keys.O ));
@@ -1060,6 +1062,10 @@ namespace Mjolnir {
         }
         public void OnDocNewFileMan( object sender, EventArgs e ) {
             EditorInitNewShow( ".fileman" );
+        }
+
+        public void OnDocNewScan( object sender, EventArgs e ) {
+            //EditorInitNewShow( ".scan" );
         }
 
         public void OnDocOpen( object sender, EventArgs e ) {

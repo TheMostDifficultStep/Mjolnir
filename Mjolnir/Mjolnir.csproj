@@ -87,6 +87,7 @@
     <ProjectReference Include="..\Mp3-Play\DSP-Goodies.csproj" />
     <ProjectReference Include="..\MusicWalker\MusicWalker.csproj" />
     <ProjectReference Include="..\ParseAll\ParseAll.csproj" />
+    <ProjectReference Include="..\Scanner\Scanner.csproj" />
     <ProjectReference Include="..\SSTV\SSTV.csproj" />
   </ItemGroup>
 
