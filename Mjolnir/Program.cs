@@ -17,6 +17,7 @@ using Play.Parse.Impl;
 using Play.Edit;
 using Play.Sound;
 using Play.Integration;
+using System.Reflection.Metadata.Ecma335;
 
 namespace Mjolnir {
     public delegate void UpdateAllTitlesFor( IDocSlot oSlot );
@@ -39,13 +40,22 @@ namespace Mjolnir {
         {
             protected List<string> _rgExtensions = new List<string>();
             protected string       _strDescr;
-            public Guid?  GUID        { get; protected set; }
+            public Guid   GUID        { get; protected set; }
             public string Name        { get; protected set; }
             public string Description { get; protected set; }
-            public string Controller  { get; protected set; }
+
+            public Use() {
+                GetController = GetFakeController;
+            }
 
             public IEnumerator<string> GetEnumerator() {
                 return _rgExtensions.GetEnumerator();
+            }
+
+            public Func<IPgController2> GetController;
+
+            public IPgController2 GetFakeController() {
+                return null;
             }
 
             public bool InitNew() {
@@ -101,7 +111,7 @@ namespace Mjolnir {
             }
         }
 
-        protected class AssemblyEntry :
+        protected class AssemblyStub :
             IEnumerable<Use>,
             IPgLoad<XmlElement>
         {
@@ -109,6 +119,10 @@ namespace Mjolnir {
             public string FileName { get; protected set; }
 
             public List<Use> _rgUses = new();
+
+            public override string ToString() {
+                return FileName;
+            }
 
             public IEnumerator<Use> GetEnumerator() {
                 return _rgUses.GetEnumerator();
@@ -119,6 +133,15 @@ namespace Mjolnir {
             }
             public bool InitNew() {
                 return false;
+            }
+
+            public IPgController2 GetController( Guid sG ) {
+                foreach( Use oUse in _rgUses ) {
+                    if( sG == oUse.GUID ) {
+                        return oUse.GetController();
+                    }
+                }
+                throw new ArgumentException( "Use ID not found" );
             }
 
             public bool Load( XmlElement oXml ) {
@@ -212,7 +235,7 @@ namespace Mjolnir {
 		protected Alerts _oWin_AlertsForm;
 
         //readonly Dictionary<string, Assembly> _rgAddOns = new Dictionary<string,Assembly>();
-        readonly List<AssemblyEntry> _rgAssemblyStubs = new ();
+        readonly List<AssemblyStub> _rgAssemblyStubs = new ();
 
         private FTManager _oFTManager;
 
@@ -538,12 +561,13 @@ namespace Mjolnir {
 		/// out of it to really be useful. This looks like a great next step to work on.
 		/// </summary>
         /// <seealso cref="InitializeControllers"/>
+        /// <seealso cref="GetController"/>
         protected void InitializePlugins( XmlDocument xmlDoc ) {
             XmlNodeList lstTypes = xmlDoc.SelectNodes("config/addons/add");
 
             foreach( XmlElement xeType in lstTypes ) {
                 try {
-                    AssemblyEntry oEntry = new AssemblyEntry();
+                    AssemblyStub oEntry = new AssemblyStub();
 
                     if( oEntry.Load( xeType ) ) {
                         _rgAssemblyStubs.Add( oEntry );
@@ -1099,15 +1123,38 @@ namespace Mjolnir {
         }
 
         /// <summary>
-        /// Try to find the best controller for the given file extention. 
+        /// Try to find the best controller for the given file extention. If there's a
+        /// duplicate I'm going to return an error. 
         /// </summary>
         /// <param name="strFileExtn"></param>
-        /// <returns></returns>
+        /// <remarks>I'll make a version of this which uses GUID's to find the controller.
+        /// So we can avoid possible overlaps of file extensions.</remarks>
+        /// <seealso cref="InitializePlugins">
 		public PgDocDescr GetController( string strFileExtn, bool fSendMessage = false ) {
             PgDocDescr oPlainDesc  = PlainTextController.Suitability( strFileExtn );
             PgDocDescr oDocDesc    = oPlainDesc;
+            string     strExtnChk;
 
             try {
+                if( strFileExtn[0] == '.' ) {
+                    strExtnChk = strFileExtn.Substring( 1 );
+                } else {
+                    strExtnChk = strFileExtn;
+                }
+
+                IPgController2 oController = null;
+
+                foreach( AssemblyStub oStub in _rgAssemblyStubs ) {
+                    foreach( Use oUse in oStub ) {
+                        foreach( string strExtn in oUse ) {
+                            if( string.Compare( strExtn, strExtnChk, ignoreCase: true ) == 0 ) {
+                                if( oController == null )
+                                    oController = oStub.GetController( oUse.GUID );
+                                // else we have a problem.
+                            }
+                        }
+                    }
+                }
                 foreach( IPgController2 oTryMe in Controllers ) {
                     PgDocDescr oTryDesc = oTryMe.Suitability( strFileExtn );
                     if( oTryDesc.CompareTo( oDocDesc ) >= 0 ) {
