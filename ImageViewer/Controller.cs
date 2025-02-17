@@ -4,6 +4,26 @@ using System.Collections.Generic;
 using Play.Interfaces.Embedding; 
 
 namespace Play.ImageViewer {
+    public class ControllerFactory : 
+        IControllerFactory 
+    {
+        public static Guid Scraps  = new Guid( "{3901F972-CB41-4515-BA17-868389066097}" );
+        public static Guid Dir     = new Guid( "{CD9669C9-5728-47A2-A572-247BCB53915C}" );
+        public ControllerFactory() {
+        }
+
+        public IPgController2 GetController( Guid sID ) {
+            if( sID == Scraps ) {
+                return new ImageBrowserScrapsController();
+            }
+            if( sID == Dir ) {
+                return new ImageBrowserDirController();
+            }
+
+            throw new ArgumentOutOfRangeException();
+        }
+    }
+
     /// <summary>
     /// Our image walker is a bit of an odd bird. It can both read a directory and load/save from
     /// a collection of image filenames. So it comes down to the shell's intention when it creates

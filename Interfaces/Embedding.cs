@@ -11,6 +11,10 @@ using System.Linq;
 using SkiaSharp;
 
 namespace Play.Interfaces.Embedding {
+    public interface IControllerFactory {
+        IPgController2 GetController( Guid sID );
+    }
+
     public delegate int FindPredicate<T>(T obj); // Crazy magic!! ^_^
 
     public static class FindStuff<T> {

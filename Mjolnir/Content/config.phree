@@ -3,14 +3,107 @@
   <fonts>
     <font system="text">C:\windows\fonts\consola.ttf</font>
     <font system="menu">C:\windows\fonts\seguisym.ttf</font>
-    <font              >C:\windows\fonts\UDDigiKyokashoN-R.ttc</font>
+    <font>C:\windows\fonts\UDDigiKyokashoN-R.ttc</font>
   </fonts>
-  <addons>
-  </addons>
+<addons>
+	<add assm="FileManager.dll" >
+		<use name="File Manager" guid="" >
+			<desc>This is my Windows Filemanager replacement. WIP</desc>
+		</use>
+	</add>
+	<add assm="ImageViewer.dll" factory="Play.ImageViewer.ControllerFactory" >
+		<use name="Image Directory Viewer" guid="{CD9669C9-5728-47A2-A572-247BCB53915C}" >
+			<e v="jpeg" />
+			<e v="jpg" />
+			<e v="gif" />
+			<e v="png" />
+			<e v="webp" />
+			<desc>View images of the given types</desc>
+		</use>
+		<use name="Image Scraps viewer" guid="{3901F972-CB41-4515-BA17-868389066097}" >
+			<e v="scraps" />
+			<desc>View images listed in the given file.</desc>
+		</use>
+	</add>
+	<add assm="MusicWalker.dll" >
+		<use name="Music Album Collection Player" guid="" >
+			<e v="music" />
+			<desc>Loads all the .m3u files from the given directory.</desc> 
+		</use>
+		<use name="Music Playlist player." guid="" >
+			<e v="m3u" />
+			<desc>Plays all the songs in the given play list.</desc> 
+		</use>
+		<use name="Music File player." guid="" >
+			<e v="mp3" />
+			<desc>Plays the given sound file.</desc> 
+		</use>	
+	</add>
+	<add assm="RadioLogger.dll" >
+		<use name="Net Logger" guid="" >
+			<e v="netlog" />
+			<desc>Station, status, report logging program! Simple text file.</desc> 
+		</use>		
+		<use name="Standard Logger" guid="" >
+			<e v="stdlog" />
+			<desc>Simple text file for logging radio contacts.</desc> 
+		</use>
+		<use name="Net Logger Update" guid="" >
+			<e v="netlogm" />
+			<desc>Improved logger with start, end times, and notes.</desc> 
+		</use>		
+	</add>
+	<add assm="Clock.dll" >
+		<use name="World Time" guid="" >
+			<e v="weather" />
+			<desc>Date time displayer widget.</desc> 
+		</use>		
+	</add>
+	<add assm="SSTV.dll" >
+		<use name="Slow Scan Television Viewer" guid="" >
+			<e v="mysstv" />
+			<desc>View and send a variety of SSTV signal types via audio.</desc> 
+		</use>
+	</add>
+	<add assm="Monitor.dll" >
+		<use name="Assembly Editor" guid="" >
+			<e v="asmprg" />
+			<desc>Experimental Assembly editor.</desc> 
+		</use>
+		<use name="BBC basic editor." guid="" >
+			<e v="bas" />
+			<e v="bbc" />
+			<desc>BBC Basic parser. Binary persistant.</desc> 
+		</use>
+		<use name="BBC basic editor." guid="" >
+			<e v="btx" />
+			<e v="tbtxt" />
+			<desc>BBC Basic parser. And Tiny Basic. Text persistant.</desc> 
+		</use>
+	</add>
+	<add assm="Kanji-Practice.dll" >
+		<use name="Kanji Practice" guid="" >
+			<e v="deck" />
+			<desc>Practice read and right Kanji.</desc> 
+		</use>
+	</add>
+	<add assm="AddressBook.dll" >
+		<use name="Simple Address book" guid="" >
+			<e v="addr" />
+			<desc>Practice read and right Kanji.</desc> 
+		</use>
+	</add>
+	<add assm="Scanner.dll" >
+		<use name="Simple Scanner App" guid="" >
+			<e v="scan" />
+			<desc>Experiment to control Epson V550 flatbed scanner.</desc> 
+		</use>
+	</add>
+</addons>
   <languages>
     <streams>
-      <parser type="text"  assembly="foo" class="phree_bee.ParseEventsText" />
-      <parser type="tags"  assembly="foo" class="phree_bee.ParseEventsTag" />
+      <parser type="text" assembly="foo" class="phree_bee.ParseEventsText" />
+      <parser type="tags" assembly="foo" class="phree_bee.ParseEventsTag" />
       <parser type="words" assembly="foo" class="EditorNS.SimpleWordBreaker" />
     </streams>
     <grammars homebase="%profile%/bnf">
@@ -34,22 +127,22 @@
       <grammar name="binary-text" type="text" file="binary-text.bnf" />
       <grammar name="qrz" type="tags" file="html_4_qrz.bnf" />
       <grammar name="civ" type="text" file="ci-v.bnf" />
-	  <grammar name="eazyb" type="text" file="eazy-b.bnf" />
-	  <grammar name="asm" type="text" file="assembler.bnf" />
-	  <grammar name="flashcard" type="text" file="flash-card.bnf" />
-	  <grammar name="bbcbasic" type="text" file="bbc-basic.bnf" />
+      <grammar name="eazyb" type="text" file="eazy-b.bnf" />
+      <grammar name="asm" type="text" file="assembler.bnf" />
+      <grammar name="flashcard" type="text" file="flash-card.bnf" />
+      <grammar name="bbcbasic" type="text" file="bbc-basic.bnf" />
       <grammar name="tinybasic" type="text" file="tiny-basic.bnf" />
     </grammars>
     <maps>
-	  <!-- when you map one of these extensions, you will be using the parsed text document type -->
+      <!-- when you map one of these extensions, you will be using the parsed text document type -->
       <!-- overriding any controller you might have mapped to the extension. so be aware! -->
       <!-- Map the extension to a grammar name -->
       <map extn=".rs" grammar="text" />
-	  <map extn=".toml" grammar="ini" />
-      <map extn=".deck" grammar ="flashcard" />
-	  <map extn=".asm" grammar="asm" />
-	  <map extn=".ezb" grammar="eazyb" />
-	  <map extn=".nibble" grammar="text" />
+      <map extn=".toml" grammar="ini" />
+      <map extn=".deck" grammar="flashcard" />
+      <map extn=".asm" grammar="asm" />
+      <map extn=".ezb" grammar="eazyb" />
+      <map extn=".nibble" grammar="text" />
       <map extn=".config" grammar="html" />
       <map extn=".conf" grammar="text" />
       <map extn=".bnf" grammar="html" />
@@ -92,24 +185,24 @@
       <map extn=".civ" grammar="civ" />
       <map extn=".bas" grammar="bbcbasic" />
       <map extn=".bbc" grammar="bbcbasic" />
-	  <map extn=".btx" grammar="bbcbasic" />
+      <map extn=".btx" grammar="bbcbasic" />
       <map extn=".tbtxt" grammar="tinybasic" />
     </maps>
   </languages>
   <mainwindow>
-    <location left="120" top  ="20" width ="1000" height="800" />
-    <margin   left="345" right="0"  bottom="100"  tools ="0" options="0" />
+    <location left="200" top="20" width="1000" height="800" />
+    <margin left="360" right="0" bottom="100" tools="0" options="0" />
     <docking>
-      <dock visible="false" edge="bottom"  display="Clock"       decor="{7E93BF3B-16DB-4967-8F2D-3170240CE1A7}" />
-      <dock visible="false" edge="bottom"  display="Find"        decor="{83A290C0-F2FA-4992-B35D-BC331F95BEE3}" />
-      <dock visible="false" edge="bottom"  display="Results"     decor="{49297D21-146F-4AF8-8D51-76BC70E30C98}" />
-      <dock visible="true"  edge="left"    display="Outline"     decor="{64EC31FE-F28E-49A6-A12A-9194214DD0D6}" />
-      <dock visible="false" edge="left"    display="Properties"  decor="{1509A246-5CB0-41B1-A6D2-572D38EEC9C5}" />
-      <dock visible="false" edge="bottom"  display="Views"       decor="{8FB60D70-371A-4E93-B44A-AEEDBCCF3A15}" />
-      <dock visible="false" edge="bottom"  display="Alerts"      decor="{FDC20452-76D1-4CFB-A67C-E5A044BD0C28}" />
-      <dock visible="false" edge="left"    display="Productions" decor="{266BE614-5336-4B45-A132-43640E659F69}" />
-      <dock visible="false" edge="options" display="Options"     decor="{6AECF17A-D91B-452F-9B67-840144446DDB}" />
-      <dock visible="false" edge="tools"   display="Tools"       decor="{83F0CB89-16BC-4DA8-8A79-A6F13DF57DA9}" />
+      <dock visible="false" edge="bottom" display="Clock" decor="{7E93BF3B-16DB-4967-8F2D-3170240CE1A7}" />
+      <dock visible="false" edge="bottom" display="Find" decor="{83A290C0-F2FA-4992-B35D-BC331F95BEE3}" />
+      <dock visible="false" edge="bottom" display="Results" decor="{49297D21-146F-4AF8-8D51-76BC70E30C98}" />
+      <dock visible="true"  edge="left" display="Outline" decor="{64EC31FE-F28E-49A6-A12A-9194214DD0D6}" />
+      <dock visible="false" edge="left" display="Properties" decor="{1509A246-5CB0-41B1-A6D2-572D38EEC9C5}" />
+      <dock visible="false" edge="bottom" display="Views" decor="{8FB60D70-371A-4E93-B44A-AEEDBCCF3A15}" />
+      <dock visible="false" edge="bottom" display="Alerts" decor="{FDC20452-76D1-4CFB-A67C-E5A044BD0C28}" />
+      <dock visible="false" edge="left" display="Productions" decor="{266BE614-5336-4B45-A132-43640E659F69}" />
+      <dock visible="false" edge="options" display="Options" decor="{6AECF17A-D91B-452F-9B67-840144446DDB}" />
+      <dock visible="false" edge="tools" display="Tools" decor="{83F0CB89-16BC-4DA8-8A79-A6F13DF57DA9}" />
     </docking>
     <documents bgcolor="white">
     </documents>

@@ -18,6 +18,7 @@ using Play.Edit;
 using Play.Sound;
 using Play.Integration;
 using System.Reflection.Metadata.Ecma335;
+using System.Buffers;
 
 namespace Mjolnir {
     public delegate void UpdateAllTitlesFor( IDocSlot oSlot );
@@ -36,26 +37,16 @@ namespace Mjolnir {
         protected class Use :
             IEnumerable<string>,
             IPgLoad<XmlElement>
-
         {
             protected List<string> _rgExtensions = new List<string>();
             protected string       _strDescr;
             public Guid   GUID        { get; protected set; }
             public string Name        { get; protected set; }
             public string Description { get; protected set; }
-
-            public Use() {
-                GetController = GetFakeController;
-            }
+            public IPgController2 Controller { get; set; }
 
             public IEnumerator<string> GetEnumerator() {
                 return _rgExtensions.GetEnumerator();
-            }
-
-            public Func<IPgController2> GetController;
-
-            public IPgController2 GetFakeController() {
-                return null;
             }
 
             public bool InitNew() {
@@ -115,10 +106,12 @@ namespace Mjolnir {
             IEnumerable<Use>,
             IPgLoad<XmlElement>
         {
-            public string FilePath { get; }
+            public string FilePath { get; protected set; }
             public string FileName { get; protected set; }
+            public string TypeName { get; protected set; }
 
-            public List<Use> _rgUses = new();
+            public    List<Use>          _rgUses = new();
+            protected IControllerFactory _oFactory;
 
             public override string ToString() {
                 return FileName;
@@ -135,15 +128,6 @@ namespace Mjolnir {
                 return false;
             }
 
-            public IPgController2 GetController( Guid sG ) {
-                foreach( Use oUse in _rgUses ) {
-                    if( sG == oUse.GUID ) {
-                        return oUse.GetController();
-                    }
-                }
-                throw new ArgumentException( "Use ID not found" );
-            }
-
             public bool Load( XmlElement oXml ) {
                 if( oXml == null )
                     throw new ArgumentNullException();
@@ -151,7 +135,9 @@ namespace Mjolnir {
                     throw new InvalidProgramException();
 
                 try {
-                    FileName = oXml.GetAttribute( "assm" );
+                    FilePath = Path.GetDirectoryName( Assembly.GetExecutingAssembly().Location );
+                    FileName = oXml.GetAttribute    ( "assm" );
+                    TypeName = oXml.GetAttribute    ( "factory" );
 
                     if( string.IsNullOrEmpty( FileName ) )
                         return false;
@@ -162,13 +148,57 @@ namespace Mjolnir {
                             return false;
                         _rgUses.Add( oUse );
                     }
-                } catch( XPathException ) {
+                } catch( Exception oEx ) {
+                    Type[] rgErrors = { typeof( NotSupportedException ),
+                                        typeof( XPathException ),
+                                        typeof( PathTooLongException ),
+                                        typeof( NullReferenceException ) };   
+                    if( rgErrors.IsUnhandled( oEx ) )
+                        throw;
+
                     return false;
                 }
 
 
                 return true;
             }
+            /// <summary>
+            /// 
+            /// </summary>
+            /// <param name="sG"></param>
+            /// <returns></returns>
+            /// <exception cref="ArgumentException" />
+            /// <exception cref="ArgumentNullException" />
+            /// <exception cref="InvalidCastException" />
+            /// <exception cref="ArgumentOutOfRangeException" />
+            /// <exception cref="FileLoadException" />
+            /// <exception cref="FileNotFoundException" />
+            /// <exception cref="BadImageFormatException" />
+            /// <exception cref="NotSupportedException" />
+            /// <exception cref="TargetInvocationException" />
+            /// <exception cref="MethodAccessException" />
+            /// <exception cref="MemberAccessException" />
+            /// <exception cref="MissingMethodException" />
+            /// <exception cref="TypeLoadException" />
+            public IPgController2 GetController( Guid sG ) {
+                if( _oFactory == null ) {
+                    Assembly oAsm         = Assembly.LoadFile( Path.Combine( FilePath, FileName ) );
+                    Type     oFactoryType = oAsm    .GetType ( TypeName );
+
+                    _oFactory = (IControllerFactory)Activator.CreateInstance( oFactoryType );
+
+                    foreach( Use oUse in _rgUses ) {
+                        oUse.Controller = _oFactory.GetController( oUse.GUID );
+                    }
+                }
+                foreach( Use oUse in _rgUses ) {
+                    if( sG == oUse.GUID ) {
+                        return oUse.Controller;
+                    }
+                }
+                throw new ArgumentOutOfRangeException( "Use ID not found" );
+            }
+
         }
 
         public static Guid Clock       { get; } = new Guid( "{DEA39235-7E0A-4539-88A0-2FB775E7A8CC}" );
@@ -1133,9 +1163,10 @@ namespace Mjolnir {
 		public PgDocDescr GetController( string strFileExtn, bool fSendMessage = false ) {
             PgDocDescr oPlainDesc  = PlainTextController.Suitability( strFileExtn );
             PgDocDescr oDocDesc    = oPlainDesc;
-            string     strExtnChk;
-
             try {
+                #if dynamicload
+                string     strExtnChk;
+
                 if( strFileExtn[0] == '.' ) {
                     strExtnChk = strFileExtn.Substring( 1 );
                 } else {
@@ -1148,13 +1179,18 @@ namespace Mjolnir {
                     foreach( Use oUse in oStub ) {
                         foreach( string strExtn in oUse ) {
                             if( string.Compare( strExtn, strExtnChk, ignoreCase: true ) == 0 ) {
-                                if( oController == null )
-                                    oController = oStub.GetController( oUse.GUID );
-                                // else we have a problem.
+                                oController = oStub.GetController( oUse.GUID );
                             }
                         }
                     }
                 }
+                if( oController != null ) {
+                    PgDocDescr oTryDesc = oController.Suitability( strFileExtn );
+                    if( oTryDesc.CompareTo( oDocDesc ) >= 0 )
+                        return oTryDesc;
+                }
+                #endif
+
                 foreach( IPgController2 oTryMe in Controllers ) {
                     PgDocDescr oTryDesc = oTryMe.Suitability( strFileExtn );
                     if( oTryDesc.CompareTo( oDocDesc ) >= 0 ) {
