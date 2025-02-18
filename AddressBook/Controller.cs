@@ -1,10 +1,22 @@
-﻿using System;
-using System.Collections.Generic;
-
-using Play.Interfaces.Embedding; 
-using Play.Edit;
+﻿using Play.Interfaces.Embedding; 
 
 namespace AddressBook {
+    public class ControllerFactory : 
+        IControllerFactory 
+    {
+        public static Guid AddressBook = new Guid( "{03BC9DF5-8298-44F3-8A5F-2D27C99B3C11}" );
+        public ControllerFactory() {
+        }
+
+        public IPgController2 GetController( Guid sID ) {
+            if( sID == AddressBook ) {
+                return new Controller();
+            }
+
+            throw new ArgumentOutOfRangeException();
+        }
+    }
+
     public class Controller :
         Play.Interfaces.Embedding.Controller 
     {
