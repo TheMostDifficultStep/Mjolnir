@@ -2,6 +2,22 @@
 using Play.Forms;
 
 namespace Kanji_Practice {
+    public class ControllerFactory : 
+        IControllerFactory 
+    {
+        public static Guid Kangi = new Guid( "{6D6AF151-4870-4407-A2A1-A8BE3510C7FC}" );
+        public ControllerFactory() {
+        }
+
+        public IPgController2 GetController( Guid sID ) {
+            if( sID == Kangi ) {
+                return new KanjiController();
+            }
+
+            throw new ArgumentOutOfRangeException();
+        }
+    }
+
     public class KanjiController : Controller {
 
         public static Guid ViewPlainCardStackGuid = new Guid( "{3729DF52-4724-43B1-82E4-1148D84A9FDA}" );
