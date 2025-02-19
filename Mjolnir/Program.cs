@@ -60,7 +60,7 @@ namespace Mjolnir {
                         foreach( XmlElement oNode in rgUses ) {
                             string strFileExtn = oNode.GetAttribute( "v" );
 
-                            if( string.IsNullOrEmpty( strFileExtn ) )
+                            if( strFileExtn is null )
                                 return false;
 
                             _rgExtensions.Add( strFileExtn );
@@ -1171,7 +1171,7 @@ namespace Mjolnir {
                 #if true
                 string     strExtnChk;
 
-                if( strFileExtn[0] == '.' ) {
+                if( strFileExtn.Length > 0 && strFileExtn[0] == '.' ) {
                     strExtnChk = strFileExtn.Substring( 1 );
                 } else {
                     strExtnChk = strFileExtn;
