@@ -1168,7 +1168,7 @@ namespace Mjolnir {
             PgDocDescr oPlainDesc  = PlainTextController.Suitability( strFileExtn );
             PgDocDescr oDocDesc    = oPlainDesc;
             try {
-                #if false
+                #if true
                 string     strExtnChk;
 
                 if( strFileExtn[0] == '.' ) {
