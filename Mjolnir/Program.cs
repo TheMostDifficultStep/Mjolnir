@@ -17,8 +17,6 @@ using Play.Parse.Impl;
 using Play.Edit;
 using Play.Sound;
 using Play.Integration;
-using System.Reflection.Metadata.Ecma335;
-using System.Buffers;
 
 namespace Mjolnir {
     public delegate void UpdateAllTitlesFor( IDocSlot oSlot );
@@ -162,35 +160,41 @@ namespace Mjolnir {
 
                 return true;
             }
-            /// <summary>
-            /// 
-            /// </summary>
-            /// <param name="sG"></param>
-            /// <returns></returns>
-            /// <exception cref="ArgumentException" />
-            /// <exception cref="ArgumentNullException" />
-            /// <exception cref="InvalidCastException" />
-            /// <exception cref="ArgumentOutOfRangeException" />
-            /// <exception cref="FileLoadException" />
-            /// <exception cref="FileNotFoundException" />
-            /// <exception cref="BadImageFormatException" />
-            /// <exception cref="NotSupportedException" />
-            /// <exception cref="TargetInvocationException" />
-            /// <exception cref="MethodAccessException" />
-            /// <exception cref="MemberAccessException" />
-            /// <exception cref="MissingMethodException" />
-            /// <exception cref="TypeLoadException" />
+            /// <param name="sG">Guid for the use case controller we are looking for on this stub.</param>
             public IPgController2 GetController( Guid sG ) {
                 if( _oFactory == null ) {
-                    Assembly oAsm         = Assembly.LoadFile( Path.Combine( FilePath, FileName ) );
-                    Type     oFactoryType = oAsm    .GetType ( TypeName );
+                    try {
+                        Assembly oAsm         = Assembly.LoadFile( Path.Combine( FilePath, FileName ) );
+                        Type     oFactoryType = oAsm    .GetType ( TypeName );
 
-                    _oFactory = (IControllerFactory)Activator.CreateInstance( oFactoryType );
-
-                    foreach( Use oUse in _rgUses ) {
-                        oUse.Controller = _oFactory.GetController( oUse.GUID );
+                        _oFactory = (IControllerFactory)Activator.CreateInstance( oFactoryType );
+                    
+                        foreach( Use oUse in _rgUses ) {
+                            oUse.Controller = _oFactory.GetController( oUse.GUID );
+                        }
+                    } catch( Exception oEx ) {
+                        Type[] rgErrors = { typeof( ArgumentException ),
+                                            typeof( ArgumentNullException ),
+                                            typeof( InvalidCastException ),
+                                            typeof( ArgumentOutOfRangeException ),
+                                            typeof( FileLoadException ),
+                                            typeof( FileNotFoundException ),
+                                            typeof( BadImageFormatException ),
+                                            typeof( NotSupportedException ),
+                                            typeof( TargetInvocationException ),
+                                            typeof( MethodAccessException ), 
+                                            typeof( MemberAccessException ),
+                                            typeof( MissingMethodException ),
+                                            typeof( NullReferenceException ),
+                                            typeof( TypeLoadException )
+                                             };
+                        if( rgErrors.IsUnhandled( oEx ) ) 
+                            throw;
                     }
                 }
+                // TODO: Technically it's ok to return a NULL controller for a particular
+                // use. But I'd like to do a better job of reporting it. I should
+                // probably give each stub a site to report back to...
                 foreach( Use oUse in _rgUses ) {
                     if( sG == oUse.GUID ) {
                         return oUse.Controller;
@@ -1164,7 +1168,7 @@ namespace Mjolnir {
             PgDocDescr oPlainDesc  = PlainTextController.Suitability( strFileExtn );
             PgDocDescr oDocDesc    = oPlainDesc;
             try {
-                #if dynamicload
+                #if false
                 string     strExtnChk;
 
                 if( strFileExtn[0] == '.' ) {
@@ -1201,7 +1205,13 @@ namespace Mjolnir {
                 if( oDocDesc == oPlainDesc && fSendMessage ) {
                     LogError( "Controllers", "No controller match, trying Plain Text" );
                 }
-            } catch( NullReferenceException ) {
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( NullReferenceException ),
+                                    typeof( ArgumentOutOfRangeException ),
+                                    typeof( IndexOutOfRangeException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
+
                 LogError( "Controllers", "A controller returned a null Suitability object. Going with best match so far." );
             }
 
@@ -1424,23 +1434,6 @@ namespace Mjolnir {
                 oGrammarSite = GetMappedGrammerSite(oMap._strGrammar);
             }
 
-            // Some business for "addon's" on a per map entry basis, or file extension. It is
-            // for pre written parse event handlers over non "text" types. Since text types can just use built in services.
-            //Assembly oAssembly = null;
-            //if( _rgAddOns.TryGetValue( oMap.AssemblyID, out oAssembly ) ) {
-            //    try {
-            //        p_oController = (PgController)oAssembly.CreateInstance( oMap.Handler ); // Activator.
-            //    } catch( Exception oEx ) {
-            //        Type[] rgErrors = { typeof( MissingMethodException ),
-            //                            typeof( InvalidCastException ) };
-
-            //        if( !rgErrors.Contains( oEx.GetType() ) )
-            //            throw new ApplicationException( "Controller is not compatible.", oEx );
-
-            //        LogError( null, "hosting error", "Controller does not inherit from PgController or no public constructor found: " + oMap.AssemblyID + "," + oMap.Handler );
-            //    }
-            //}
-
             // If grammar is null, we'll depend on the GetMappedGrammerSite() call to actually have returned an error message.
             // So much can go wrong trying to find the proper grammer!
             if( oGrammarSite == null ) {
@@ -1579,26 +1572,27 @@ namespace Mjolnir {
 			Controllers.Add( new ControllerForParsedText( this ) );
             Controllers.Add( new ControllerForHtml      ( this ));
             Controllers.Add( new ControllerForSearch    () );
-
-            // In the future I'll make these packages load on the fly and I can remove
-            // hard dependencies to these assemblies!!
-            Controllers.Add( new Play.FileManager  .FileManController() );
-			Controllers.Add( new Play.ImageViewer  .ImageBrowserScrapsController() );
-			Controllers.Add( new Play.ImageViewer  .ImageBrowserDirController() );
-			Controllers.Add( new Play.MusicWalker  .MusicWalkerController() );
-			Controllers.Add( new Play.MusicWalker  .M3uController() );
-            Controllers.Add( new Play.MusicWalker  .MP3Controller() );
-			Controllers.Add( new Play.MorsePractice.MorseController2() );
-			Controllers.Add( new Play.MorsePractice.MorseController3() );
-            Controllers.Add( new Play.MorsePractice.MorseController4() );
             Controllers.Add( new Play.Clock        .SolarController() );
-            Controllers.Add( new Play.SSTV         .MySSTVController() );
-            Controllers.Add( new Monitor           .NewMonitorController() );
-            Controllers.Add( new Monitor           .BBCBasicBinaryController() );
-            Controllers.Add( new Monitor           .BBCBasicTextController() );
-            Controllers.Add( new Kanji_Practice    .KanjiController() );
-            Controllers.Add( new AddressBook       .Controller() );
-          //Controllers.Add( new Scanner           .ScannerController() );
+            Controllers.Add( new Play.FileManager  .FileManController() );
+
+            // We still have a project dependency for these items but only so
+            // the dll's will get loaded into the debug directory for testing.
+            // Elsewise we could even remove the project dependencies.
+			//Controllers.Add( new Play.ImageViewer  .ImageBrowserScrapsController() );
+			//Controllers.Add( new Play.ImageViewer  .ImageBrowserDirController() );
+			//Controllers.Add( new Play.MusicWalker  .MusicWalkerController() );
+			//Controllers.Add( new Play.MusicWalker  .M3uController() );
+            //Controllers.Add( new Play.MusicWalker  .MP3Controller() );
+			//Controllers.Add( new Play.MorsePractice.MorseController2() );
+			//Controllers.Add( new Play.MorsePractice.MorseController3() );
+            //Controllers.Add( new Play.MorsePractice.MorseController4() );
+            //Controllers.Add( new Play.SSTV         .MySSTVController() );
+            //Controllers.Add( new Monitor           .NewMonitorController() );
+            //Controllers.Add( new Monitor           .BBCBasicBinaryController() );
+            //Controllers.Add( new Monitor           .BBCBasicTextController() );
+            //Controllers.Add( new Kanji_Practice    .KanjiController() );
+            //Controllers.Add( new AddressBook       .Controller() );
+            //Controllers.Add( new Scanner           .ScannerController() );
         }
 
         protected class EmbeddedGrammars {
