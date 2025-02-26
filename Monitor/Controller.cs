@@ -1,9 +1,31 @@
 ﻿using Play.Interfaces.Embedding;
-
 using Play.Edit;
-using Play.ImageViewer;
 
 namespace Monitor {
+    public class ControllerFactory : 
+        IControllerFactory 
+    {
+        public static Guid BBCBasicBinary = new Guid( "{5550F99D-C1D3-40EE-81F6-2D8B929BD112}" );
+        public static Guid BBCBasicText   = new Guid( "{1E2F4285-E83B-4B1E-A28C-AA6CDDF99A23}" );
+        public static Guid Z80Asm         = new Guid( "{51783F31-136A-484F-A02C-D9E0059BF24F}" );
+        public ControllerFactory() {
+        }
+
+        public IPgController2 GetController( Guid sID ) {
+            if( sID == BBCBasicBinary ) {
+                return new BBCBasicBinaryController();
+            }
+            if( sID == BBCBasicText ) {
+                return new BBCBasicTextController();
+            }
+            if( sID == Z80Asm ) {
+                return new NewMonitorController();
+            }
+
+            throw new ArgumentOutOfRangeException();
+        }
+    }
+
     public class OldMonitorController : Controller {
         public OldMonitorController() {
             _rgExtensions.Add( ".asm" );

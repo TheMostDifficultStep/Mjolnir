@@ -4,6 +4,29 @@ using System.Collections.Generic;
 using Play.Interfaces.Embedding;
 
 namespace Play.MusicWalker {
+    public class ControllerFactory : 
+        IControllerFactory 
+    {
+        public static Guid AlbumWalk = new Guid( "{D044478C-3351-4B62-B499-083EE9BE9482}" );
+        public static Guid M3UWalk   = new Guid( "{2DE2D314-D302-48B3-931F-F0D6D815AC8F}" );
+        public static Guid MP3Play   = new Guid( "{0187617E-ED67-424B-8B05-3A4D8E2F2FC4}" );
+        public ControllerFactory() {
+        }
+
+        public IPgController2 GetController( Guid sID ) {
+            if( sID == AlbumWalk ) {
+                return new MusicWalkerController();
+            }
+            if( sID == M3UWalk ) {
+                return new M3uController();
+            }
+            if( sID == MP3Play ) {
+                return new MP3Controller();
+            }
+
+            throw new ArgumentOutOfRangeException();
+        }
+    }
 	public class MusicWalkerController : Controller {
         public readonly static Guid _guidViewPlayList = new Guid( "{E61DA3B2-1CD0-4B23-96E3-D4FEBDEEE5F2}" );
 

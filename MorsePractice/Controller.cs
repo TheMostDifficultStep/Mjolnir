@@ -6,6 +6,29 @@ using Play.Edit;
 
 namespace Play.MorsePractice
 {
+    public class ControllerFactory : 
+        IControllerFactory 
+    {
+        public static Guid NetLog  = new Guid( "{0C7B3599-324D-47C2-8380-013742B2A179}" );
+        public static Guid StdLog  = new Guid( "{9DCACEC0-D90E-4587-8E0F-617D8989DB84}" );
+        public static Guid NetLogM = new Guid( "{628CDE08-ECD8-4919-9274-E72BE8E40413}" );
+        public ControllerFactory() {
+        }
+
+        public IPgController2 GetController( Guid sID ) {
+            if( sID == NetLog ) {
+                return new MorseController2();
+            }
+            if( sID == StdLog ) {
+                return new MorseController3();
+            }
+            if( sID == NetLogM ) {
+                return new MorseController4();
+            }
+
+            throw new ArgumentOutOfRangeException();
+        }
+    }
     public class MorseController2 : 
         Controller 
     {

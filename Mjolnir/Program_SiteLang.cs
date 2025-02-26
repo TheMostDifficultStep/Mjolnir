@@ -149,24 +149,17 @@ namespace Mjolnir {
     }
 
     public class ExtensionMap {
-               string _strAssemblyID;
-        public string _strTypeName;
         public string _strGrammar;
         public string _strExtension;
 
         public ExtensionMap() {
-            _strAssemblyID      = string.Empty;
             _strGrammar         = string.Empty;
-            _strTypeName        = string.Empty;
             _strExtension       = string.Empty;
         }
 
         public ExtensionMap( string strExtension, string strGrammar ) {
             _strExtension = strExtension;
             _strGrammar   = strGrammar;
-
-            _strAssemblyID      = string.Empty;
-            _strTypeName        = string.Empty;
         }
 
         public bool IsEmpty {
@@ -179,8 +172,6 @@ namespace Mjolnir {
 
             _strGrammar         = oXmlElem.GetAttribute( "grammar" );
             _strExtension       = oXmlElem.GetAttribute( "extn" );
-            _strAssemblyID      = oXmlElem.GetAttribute( "addon" );
-            _strTypeName        = oXmlElem.GetAttribute( "handler" );
 
             if( !string.IsNullOrEmpty( oXmlElem.GetAttribute( "encoding" ) ) ) // obsolete.
                 return( false );
@@ -193,15 +184,7 @@ namespace Mjolnir {
         }
 
         public string Extension {
-            get { return( _strExtension ); }
-        }
-
-        public string AssemblyID {
-            get { return( _strAssemblyID ); }
-        }
-
-        public string Handler {
-            get { return( _strTypeName ); }
+            get { return _strExtension; }
         }
     }
 

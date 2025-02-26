@@ -2,9 +2,24 @@
 using System.Collections.Generic;
 
 using Play.Interfaces.Embedding;
-using Play.Edit;
 
 namespace Play.SSTV {
+    public class ControllerFactory : 
+        IControllerFactory 
+    {
+        public static Guid SSTV = new Guid( "{C01C4B93-2C9F-47D6-B9E6-0B0F38E2C1BE}" );
+        public ControllerFactory() {
+        }
+
+        public IPgController2 GetController( Guid sID ) {
+            if( sID == SSTV ) {
+                return new MySSTVController();
+            }
+
+            throw new ArgumentOutOfRangeException();
+        }
+    }
+
 	public class MySSTVController : Controller {
 		public static Guid ViewTransmitModes { get; }  = new Guid( "{9F388C2E-EC54-4330-B7BD-07137D104819}" );
 		public static Guid ViewTransmitImage { get; }  = new Guid( "{B5D3C976-DEFC-46F0-9459-148BABBBEFFE}" );
@@ -14,7 +29,7 @@ namespace Play.SSTV {
 		}
 
 		public override IDisposable CreateDocument(IPgBaseSite oSite, string strExtension) {
-			return( new DocSSTV( oSite ) );
+			return new DocSSTV( oSite );
 		}
 
 		public override IDisposable CreateView(IPgViewSite oBaseSite, object oDocument, Guid guidViewType) {

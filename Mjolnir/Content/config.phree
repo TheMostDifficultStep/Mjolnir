@@ -25,30 +25,30 @@
 			<desc>View images listed in the given file.</desc>
 		</use>
 	</add>
-	<add assm="MusicWalker.dll" >
-		<use name="Music Album Collection Player" guid="" >
+	<add assm="MusicWalker.dll" factory="Play.MusicWalker.ControllerFactory" >
+		<use name="Music Album Collection Player" guid="{D044478C-3351-4B62-B499-083EE9BE9482}" >
 			<e v="music" />
 			<desc>Loads all the .m3u files from the given directory.</desc> 
 		</use>
-		<use name="Music Playlist player." guid="" >
+		<use name="Music Playlist player." guid="{2DE2D314-D302-48B3-931F-F0D6D815AC8F}" >
 			<e v="m3u" />
 			<desc>Plays all the songs in the given play list.</desc> 
 		</use>
-		<use name="Music File player." guid="" >
+		<use name="Music File player." guid="{0187617E-ED67-424B-8B05-3A4D8E2F2FC4}" >
 			<e v="mp3" />
 			<desc>Plays the given sound file.</desc> 
 		</use>	
 	</add>
-	<add assm="RadioLogger.dll" >
-		<use name="Net Logger" guid="" >
+	<add assm="RadioLogger.dll" factory="Play.MorsePractice.ControllerFactory" >
+		<use name="Net Logger" guid="{0C7B3599-324D-47C2-8380-013742B2A179}" >
 			<e v="netlog" />
 			<desc>Station, status, report logging program! Simple text file.</desc> 
 		</use>		
-		<use name="Standard Logger" guid="" >
+		<use name="Standard Logger" guid="{9DCACEC0-D90E-4587-8E0F-617D8989DB84}" >
 			<e v="stdlog" />
 			<desc>Simple text file for logging radio contacts.</desc> 
 		</use>
-		<use name="Net Logger Update" guid="" >
+		<use name="Net Logger Update" guid="{628CDE08-ECD8-4919-9274-E72BE8E40413}" >
 			<e v="netlogm" />
 			<desc>Improved logger with start, end times, and notes.</desc> 
 		</use>		
@@ -59,38 +59,41 @@
 			<desc>Date time displayer widget.</desc> 
 		</use>		
 	</add>
-	<add assm="SSTV.dll" >
-		<use name="Slow Scan Television Viewer" guid="" >
+	<add assm="SSTV.dll" factory="Play.SSTV.ControllerFactory" >
+		<use name="Slow Scan Television Viewer" 
+			 guid="{C01C4B93-2C9F-47D6-B9E6-0B0F38E2C1BE}" >
 			<e v="mysstv" />
 			<desc>View and send a variety of SSTV signal types via audio.</desc> 
 		</use>
 	</add>
-	<add assm="Monitor.dll" >
-		<use name="Assembly Editor" guid="" >
+	<add assm="Monitor.dll" factory="Monitor.ControllerFactory" >
+		<use name="Assembly Editor" guid="{51783F31-136A-484F-A02C-D9E0059BF24F}" >
 			<e v="asmprg" />
 			<desc>Experimental Assembly editor.</desc> 
 		</use>
-		<use name="BBC basic editor." guid="" >
+		<use name="BBC basic editor, binary." guid="{5550F99D-C1D3-40EE-81F6-2D8B929BD112}" >
 			<e v="bas" />
 			<e v="bbc" />
 			<desc>BBC Basic parser. Binary persistant.</desc> 
 		</use>
-		<use name="BBC basic editor." guid="" >
+		<use name="BBC basic editor, text." guid="{1E2F4285-E83B-4B1E-A28C-AA6CDDF99A23}" >
 			<e v="btx" />
 			<e v="tbtxt" />
 			<desc>BBC Basic parser. And Tiny Basic. Text persistant.</desc> 
 		</use>
 	</add>
-	<add assm="Kanji-Practice.dll" >
-		<use name="Kanji Practice" guid="" >
+	<add assm="Kanji-Practice.dll" factory="Kanji_Practice.ControllerFactory" >
+		<use name="Kanji Practice" 
+			 guid="{6D6AF151-4870-4407-A2A1-A8BE3510C7FC}" >
 			<e v="deck" />
 			<desc>Practice read and right Kanji.</desc> 
 		</use>
 	</add>
-	<add assm="AddressBook.dll" >
-		<use name="Simple Address book" guid="" >
+	<add assm="AddressBook.dll" factory="AddressBook.ControllerFactory" >
+		<use name="Simple Address book" 
+			 guid="{03BC9DF5-8298-44F3-8A5F-2D27C99B3C11}" >
 			<e v="addr" />
-			<desc>Practice read and right Kanji.</desc> 
+			<desc>Simple home brew address book viewer.</desc> 
 		</use>
 	</add>
 	<add assm="Scanner.dll" >
