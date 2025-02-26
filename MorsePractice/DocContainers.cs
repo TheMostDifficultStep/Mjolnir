@@ -778,7 +778,10 @@ namespace Play.MorsePractice {
 
 		public void Dispose() {
 			if( !_fDisposed ) {
-                _oCiV  ?.Close();
+                if( _oCiV is not null ) {
+                    _oCiV.DataReceived -= CiV_DataReceived;
+                    _oCiV.Close();
+                }
                 _oParse?.Dispose();
 
 				Notes .Dispose();
@@ -970,6 +973,7 @@ namespace Play.MorsePractice {
             oProps.SetValue( (int)RadioProperties.Names.Radio_Link, "On" );
             oProps.SetValue( (int)RadioProperties.Names.Frequency,  dblFreqInMhz.ToString() + " mHz" );
 
+            // Hmmm... Looks like timer only works when on a repeater.
             if( _rgRepeatersIn.TryGetValue( iFrequency, out oRepeater ) ) {
                 if( !fRequested ) {
                     oProps.SetValue( (int)RadioProperties.Names.Timer,   "Timer start..." );
@@ -1365,10 +1369,6 @@ namespace Play.MorsePractice {
         /// we might not be able to open it, or we don't want to open it right away.
         /// </remarks>
         protected void InitSerial() {
-            // This is crude since we're polling even if no messages.
-            // we'll fix this up later.
-            _oTaskCiv.Queue( ListenToCom(), 100 );
-
             try {
                 string strPortNumber = Properties.ValueAsStr((int)RadioProperties.Names.COM_Port);
                 string strPortID     = "COM";
@@ -1407,7 +1407,7 @@ namespace Play.MorsePractice {
             }
 
             try {
-                if( FlagSComsOn ) {
+                if( FlagSComsOn && !_oCiV.IsOpen ) {
                     _oCiV.Open();
                     Properties.ValueUpdate( RadioProperties.Names.Timer, "On" );
                 } else {
@@ -1417,6 +1417,7 @@ namespace Play.MorsePractice {
                 if( CiVErrorList.IsUnhandled( oEx ) )
                     throw;
 
+                _oCiV.DataReceived -= CiV_DataReceived;
                 _oCiV.Dispose();
 
                 LogError( "Morse COM access", "Unable to open COM port. Timer disabled" );
@@ -1529,6 +1530,11 @@ namespace Play.MorsePractice {
                 return false;
             if( !CallSignAddress.InitNew() )
                 return false;
+
+            // This is crude since we're polling even if no messages.
+            // we'll fix this up later. Move outside of InitSerial()
+            // so we can reset the com port.
+            _oTaskCiv.Queue( ListenToCom(), 100 );
 
             InitSerial    ();
             InitRepeaters ();
@@ -1859,6 +1865,7 @@ namespace Play.MorsePractice {
             if( guidCmnd == GlobalCommands.Play ) {
                 try {
                     if( !_oCiV.IsOpen ) {
+                        InitSerial();
                         _oCiV.Open();
                     } else {
                         // This will get cleared, but leave it for now. Need to have some
@@ -1880,7 +1887,9 @@ namespace Play.MorsePractice {
             if( guidCmnd == GlobalCommands.Stop ) {
                 try {
                     if( _oCiV.IsOpen ) {
+                        _oCiV.DataReceived -= CiV_DataReceived;
                         _oCiV.Close();
+
                         Properties.ValueUpdate( RadioProperties.Names.Timer, "Off" );
                     } else {
                         Properties.ValueUpdate( RadioProperties.Names.Timer, "Already Closed" );
