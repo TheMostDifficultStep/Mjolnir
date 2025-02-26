@@ -18,6 +18,7 @@
 			<e v="gif" />
 			<e v="png" />
 			<e v="webp" />
+			<e v="" />
 			<desc>View images of the given types</desc>
 		</use>
 		<use name="Image Scraps viewer" guid="{3901F972-CB41-4515-BA17-868389066097}" >
