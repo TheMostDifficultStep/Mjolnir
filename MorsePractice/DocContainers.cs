@@ -1374,10 +1374,11 @@ namespace Play.MorsePractice {
                 string strPortID     = "COM";
 
                 if( string.IsNullOrEmpty( strPortNumber ) ) {
-                    strPortID += 4;
-                } else {
-                    strPortID += strPortNumber;
+                    LogError( "Radio Logger", "Please specify COM Port Number." );
+                    Properties.ValueUpdate( RadioProperties.Names.Timer, "Failed Initialize." );
+                    return;
                 }
+                strPortID += strPortNumber;
 
                 // Byte.Parse assumes base ten string. So use Convert.ToByte( str, 16 )
                 TransmitterAddress = Convert.ToByte( Properties.ValueAsStr((int)RadioProperties.Names.Address_Radio     ), 16 );
@@ -1401,8 +1402,8 @@ namespace Play.MorsePractice {
                 if( rgErrors.IsUnhandled( oEx ) )
                     throw;
 
-                LogError( "Morse COM access", "Unable to open COM port. Timer disabled" );
-                Properties.ValueUpdate( RadioProperties.Names.Timer, "Failed Create" );
+                LogError( "Radio Logger", "Unable to open COM port. Timer disabled." );
+                Properties.ValueUpdate( RadioProperties.Names.Timer, "Exception Occured." );
                 return;
             }
 
