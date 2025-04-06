@@ -813,8 +813,7 @@ namespace Play.SSTV {
 		/// <summary>
 		/// OMG I can use the same processor for all or part of the scanlines! 
 		/// </summary>
-		/// <remarks>I've seen entries that StartNew() is a heavy duty thing and
-		/// Task.Run() is the preferable way to go. I can probably fix that easily.
+		/// <remarks>converted from StartNew() to Task.Run() on 4/6/2025
 		/// </remarks>
 		/// <seealso cref="ScanLineEnumerable"/>
 		protected void ProcessCollection( IEnumerable<SSTVPosition> oClxn ) {

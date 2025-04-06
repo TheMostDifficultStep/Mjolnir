@@ -241,7 +241,7 @@ namespace Play.SSTV {
 							}
 						}
 						else if (bpos >= (_oSetting.TW * 3 / 4)) {  // 右側, Right side
-							if ((ps < _oSetting.TW / 4)) {
+							if (ps < _oSetting.TW / 4 ) {
 								ps += _oSetting.TW;
 							}
 						}
