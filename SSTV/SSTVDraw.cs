@@ -336,6 +336,12 @@ namespace Play.SSTV {
 
 			_skD12Canvas = new( _pBitmapD12 );
 
+			int iCpuCount = Environment.ProcessorCount;
+
+			if( iThreadCnt > iCpuCount ) {
+				iThreadCnt = iCpuCount;
+			}
+
 			// Need to make this variable depending on the processor.
             for( int i = 0; i < iThreadCnt; ++i ) { // set to 1 for debug.
                 _rgBuffers.Add(new ScanBuffers(this));
