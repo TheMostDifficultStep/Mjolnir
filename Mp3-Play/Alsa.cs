@@ -64,8 +64,8 @@ namespace Play.Sound {
 		         void *        _pPcmHandle       = null;
 		readonly string        _strPcmName       = "default"; // See command "aplay -l"
 		readonly uint          _uiPeriods        = 4;
-		readonly uint          _uiPlayBytesSize2 = 0;
-		readonly uint          _uiPeriodFrames   = 0;
+	  //readonly uint          _uiPlayBytesSize2 = 0;
+	  //readonly uint          _uiPeriodFrames   = 0;
                  IntPtr        _ipPlayBuff       = IntPtr.Zero;
                  uint          _uiPlayByteSize   = 0;
 
@@ -137,7 +137,7 @@ namespace Play.Sound {
 				snd_pcm_close( _pPcmHandle );
 				_pPcmHandle = null;
 
-				throw oEx;
+				throw;
 			}
 		}
 
@@ -271,7 +271,7 @@ namespace Play.Sound {
 					snd_pcm_close( _pPcmHandle ); 
 					_pPcmHandle = null;
 				}
-				if( _ipPlayBuff != null ) {
+				if( _ipPlayBuff != IntPtr.Zero ) {
 					Marshal.FreeHGlobal( _ipPlayBuff );
 					_ipPlayBuff = IntPtr.Zero;
 				}

@@ -30,6 +30,7 @@ namespace Play.Sound {
 	/// If you change the frequency you must re-alloc the SSTVDEM object.
 	/// </summary>
 	public class SYSSET {
+#if false
 		int     m_Priority = 0;
 
 		int		m_SoundPriority = 1;
@@ -46,6 +47,7 @@ namespace Play.Sound {
 		int		m_TimeOffset;
 		int		m_TimeOffsetMin;
 		int		m_LogLink;
+#endif
 
 	  //public bool   m_TestDem  { get; protected set; } = false; // used
 		public double m_DemOff   { get; } = 0;
@@ -58,6 +60,7 @@ namespace Play.Sound {
 		public bool m_AutoStop  { get; protected set; } = false; // used
 		public bool m_AutoSync  { get; protected set; } = true;
 				  
+#if faose
 		int      m_TXFSKID;
 
 		string[] m_TextList = new string[16];
@@ -68,6 +71,7 @@ namespace Play.Sound {
 		int      m_Differentiator;
 		double   m_DiffLevelP;
 		double   m_DiffLevelM;
+#endif
 
 		public bool	m_bCQ100 { get; protected set; } = false;
 
