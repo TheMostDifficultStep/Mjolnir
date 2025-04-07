@@ -48,10 +48,13 @@ namespace AddressBook {
 
 				oBulk.LineAppend( sbBuild.ToString() );
 
-				if( rgAddrs is not null && rgAddrs.Count > 0 ) {
-					XmlElement xmlAddr = (XmlElement)rgAddrs[0];
-
-					oBulk.LineAppend( xmlAddr.InnerText );
+				if( rgAddrs is not null && 
+					rgAddrs.Count > 0 && 
+					rgAddrs[0] is XmlElement xmlAddr
+				) {
+					if(	xmlAddr.InnerText is string strAddr ) {
+						oBulk.LineAppend( strAddr );
+					}
 
 					sbBuild.Clear();
 					sbBuild.Append( xmlAddr.GetAttribute("city") );
@@ -95,8 +98,8 @@ namespace AddressBook {
 				set { _rgColumns[(int)eIndex] = value; }
 			}
 
-			public string LastName  => this[Column.LastName ].ToString();
-			public string FirstName => this[Column.FirstName].ToString();
+			public string? LastName  => this[Column.LastName ].ToString();
+			public string? FirstName => this[Column.FirstName].ToString();
 			public ReadOnlySpan<char> Check => this[Column.Check].AsSpan;
 
             public DDRow( string strFirstName, string strLastName, XmlElement xmlEntry ) {

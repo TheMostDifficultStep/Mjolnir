@@ -129,7 +129,7 @@ namespace Play.Sound {
 				if( iErr < 0 ) {
 					throw new InvalidOperationException( "Error in prepare : " + GetErrorString( iErr ) );
 				}
-			} catch( InvalidOperationException oEx ) {
+			} catch( InvalidOperationException ) {
 				// Need to catch outofmemory exception too.
 				if( pHwParams != null )
 					snd_pcm_hw_params_free( pHwParams );

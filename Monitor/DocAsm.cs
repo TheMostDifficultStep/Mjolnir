@@ -35,7 +35,7 @@ namespace Monitor {
         public const int ColumnParam   = 5;
         public const int ColumnComment = 6;
 
-        public static new int ColumnCount => 7;
+        public static int ColumnCount => 7;
     }
 
     public class AsmEditor : 
@@ -129,7 +129,7 @@ namespace Monitor {
             return false; // This is a read only kind of deal...
         }
 
-        public bool FindRowAtAddress( int iAddress, out AsmRow oFind ) {
+        public bool FindRowAtAddress( int iAddress, out AsmRow? oFind ) {
             int Look( Row oRow ) {
                 if( oRow is not AsmRow oAsm )
                     throw new InvalidDataException();
@@ -162,11 +162,7 @@ namespace Monitor {
         }
 
         public void UpdateHighlightLine( int iRow ) {
-            if( FindRowAtAddress( iRow, out AsmRow oAsm ) ) {
-                HighLight = oAsm;
-            } else {
-                HighLight = null;
-            }
+            FindRowAtAddress( iRow, out AsmRow? HighLight );
         }
         public override WorkerStatus PlayStatus {
             

@@ -36,7 +36,7 @@ namespace Monitor {
         public IMemoryRange? NumberLocation { get; set; }
         public byte       InstrExt { get; set; } = 0;
 
-        public Z80Instr( string strName, string strParams = null ) {
+        public Z80Instr( string strName, string? strParams = null ) {
             Instr   = 0;
             Name    = strName   ?? throw new ArgumentNullException();
             Params  = strParams ?? string.Empty;
@@ -915,7 +915,8 @@ namespace Monitor {
                             if( xmlNote is XmlElement xmlElem ) {
                                 if( xmlElem.GetAttribute( "addr" ) is string strAddr ) {
                                     if( int.TryParse( strAddr, out int iAddr )) {
-                                        if( Doc_Asm.FindRowAtAddress( iAddr, out AsmRow oAsm ) ) {
+                                        Doc_Asm.FindRowAtAddress( iAddr, out AsmRow? oAsm ); 
+                                        if( oAsm != null ) {
                                             //if( xmlElem.GetAttribute( "lbl" ) is string strLabel ) {
                                             //    oAsm[0].TryReplace( strLabel );
                                             //}

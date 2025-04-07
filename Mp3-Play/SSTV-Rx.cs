@@ -685,7 +685,7 @@ namespace Play.Sound {
 		public double m_AFCDiff { private set; get; }
 		public int    m_AFCFQ   { private set; get; }
 
-		int          m_AFCFlag;
+	  //int          m_AFCFlag;
 		int          m_AFCGard;
 		int          m_AFCDis;
 		readonly int m_AFCInt;
@@ -711,7 +711,7 @@ namespace Play.Sound {
 			m_AFCAVG.SetCount(m_AFCAVG.Max);
 
 			m_AFCData  = m_AFCLock = 0;
-			m_AFCFlag  = 0;
+	      //m_AFCFlag  = 0;
 			m_AFCDiff  = 0.0;
 			m_AFCGard  = 10;
 			m_AFCCount = 0;
@@ -767,7 +767,7 @@ namespace Play.Sound {
 			m_AFCAVG.SetCount(m_AFCAVG.Max);
 
 			m_AFCData  = m_AFCLock = rgFreqTable.AFC_SyncVal;
-			m_AFCFlag  = 0;
+		  //m_AFCFlag  = 0;
 			m_AFCDiff  = 0.0;
 			m_AFCGard  = 10;
 			m_AFCCount = 0;
@@ -806,7 +806,7 @@ namespace Play.Sound {
 							m_AFCLock = m_AFCAVG.Avg(m_AFCData);
 						}
 						m_AFCDiff = m_AFC_SyncVal - m_AFCLock;
-						m_AFCFlag = 15;
+				      //m_AFCFlag = 15;
 						m_AFCDis  = m_AFCInt;
 						return true;
 					}
@@ -865,7 +865,7 @@ namespace Play.Sound {
 		readonly CFIR2 m_BPF = new CFIR2();
 
 		double   _LpfS;
-		int      m_OverFlow;
+	  //int      m_OverFlow;
 		BandPass m_bpf = BandPass.Undefined;
 		int      m_bpftap;
 
@@ -1466,9 +1466,9 @@ namespace Play.Sound {
 		/// <exception cref="NullReferenceException">most likely we get in a problem with
 		/// our finite state automata.</exception>
 		public void Do( in double s) {
-			if( (s > 24578.0) || (s < -24578.0) ){
-				m_OverFlow = 1; // The grapher probably clears this.
-			}
+			//if( (s > 24578.0) || (s < -24578.0) ){
+			//	m_OverFlow = 1; // The grapher probably clears this.
+			//}
 			double d = (s + _LpfS) * 0.5; // LPF, weird considering BPF below?!
 			_LpfS = s;
 			if( m_bpf != BandPass.Undefined ) {

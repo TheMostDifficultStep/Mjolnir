@@ -519,12 +519,10 @@ namespace Monitor {
                 oEdit.Clear();
 
                 Line oLine  = oEdit.LineAppend( String.Empty );
-                int  iIndex = 0;
 
                 while( true ) {
                     byte bByte = oReader.ReadByte();
                     if( bByte == 0x0D ) {
-                        iIndex = 0;
                         oLine = oEdit.LineAppend( "0D " );
                         oLine.Formatting.Add( new ColorRange( 0, 2, 1 ) );
                     } else {
