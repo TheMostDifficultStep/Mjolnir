@@ -776,7 +776,11 @@ namespace Monitor {
 
                         xmlNote.SetAttribute( "addr", oInstr.AddressMap.ToString() );
                       //xmlNote.SetAttribute( "lbl",  oInstr.Label.     ToString() );
-                        xmlNote.InnerText = oInstr.Comment.ToString();
+
+                        string? strComment = oInstr.Comment.ToString();
+                        if( !string.IsNullOrEmpty( strComment ) ) {
+                            xmlNote.InnerText = strComment;
+                        }
 
                         xmlComments.AppendChild( xmlNote );
                     }
@@ -906,16 +910,18 @@ namespace Monitor {
 
                     // This is only valid if disassembled the binary first ... :-/
                     // BUG: I'll need to sort this out eventually.
-                    foreach( XmlNode xmlNote in xmlRoot.SelectNodes( "documenting/note" ) ) {
-                        if( xmlNote is XmlElement xmlElem ) {
-                            if( xmlElem.GetAttribute( "addr" ) is string strAddr ) {
-                                if( int.TryParse( strAddr, out int iAddr )) {
-                                    if( Doc_Asm.FindRowAtAddress( iAddr, out AsmRow oAsm ) ) {
-                                        //if( xmlElem.GetAttribute( "lbl" ) is string strLabel ) {
-                                        //    oAsm[0].TryReplace( strLabel );
-                                        //}
-                                        if( xmlElem.InnerText is string strComment ) {
-                                            oAsm.Comment.TryReplace( strComment );
+                    if( xmlRoot.SelectNodes( "documenting/note" ) is XmlNodeList rgNodes ) {
+                        foreach( XmlNode xmlNote in rgNodes ) {
+                            if( xmlNote is XmlElement xmlElem ) {
+                                if( xmlElem.GetAttribute( "addr" ) is string strAddr ) {
+                                    if( int.TryParse( strAddr, out int iAddr )) {
+                                        if( Doc_Asm.FindRowAtAddress( iAddr, out AsmRow oAsm ) ) {
+                                            //if( xmlElem.GetAttribute( "lbl" ) is string strLabel ) {
+                                            //    oAsm[0].TryReplace( strLabel );
+                                            //}
+                                            if( xmlElem.InnerText is string strComment ) {
+                                                oAsm.Comment.TryReplace( strComment );
+                                            }
                                         }
                                     }
                                 }

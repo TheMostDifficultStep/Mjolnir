@@ -283,7 +283,7 @@ namespace Play.FileManager {
 			}
         }
 
-        public object Decorate(IPgViewSite oBaseSite, Guid sGuid) {
+        public object? Decorate(IPgViewSite oBaseSite, Guid sGuid) {
             if( sGuid == GlobalDecor.Outline ) {
                 return new ViewFManOutline( new ViewSlot( this ) );
             }

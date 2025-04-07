@@ -7,8 +7,6 @@ using SkiaSharp;
 
 using Play.Interfaces.Embedding;
 using Play.Edit;
-using OpenTK.Audio.OpenAL;
-using System.Drawing;
 
 namespace Mjolnir {
     // Copied from freetype.h if it changes, we're boned.

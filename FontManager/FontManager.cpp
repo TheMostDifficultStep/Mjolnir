@@ -34,10 +34,10 @@ extern "C" {
     struct FTGlyphPos {
         FT_Short left;
         FT_Short top;
-        FT_Short advance_x;
-        FT_Short advance_y;
-        FT_Short delta_lsb;
-        FT_Short delta_rsb;
+        FT_Pos   advance_x;
+        FT_Pos   advance_y;
+        FT_Pos   delta_lsb;
+        FT_Pos   delta_rsb;
     };
 
     struct FTGlyphBmp {

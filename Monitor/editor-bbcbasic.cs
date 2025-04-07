@@ -21,7 +21,7 @@ namespace Monitor {
         public Line Text   => _rgColumns[ColumnText];
         public Line Number => _rgColumns[ColumnNumber];
 
-        public static new int ColumnCount => 2;
+        public static int ColumnCount => 2;
     }
 
     public class BasicEditor : 
