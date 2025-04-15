@@ -210,7 +210,7 @@ namespace Play.Edit {
             /// </summary>
             public void Clear() { 
                 Caret = null;
-                for( int i=0; i< _rgCache.Length; ++i ) {
+                for( int i=0; i< _rgSelections.Length; ++i ) {
                     _rgSelections[i] = null;
                 }
                 _fFrozen = true;
@@ -1161,7 +1161,7 @@ namespace Play.Edit {
 			}
         }
 
-        public void CacheReColor() {
+        public void ReColor() {
             try {
                 foreach( CacheRow oCacheRow in _rgOldCache ) {
                     Selector.IsSelection( oCacheRow.Row );
@@ -1270,7 +1270,7 @@ namespace Play.Edit {
 
             try {
                 Selector.Clear();
-                CacheReColor();
+                ReColor();
 
                 CacheRow oCaretCacheRow = CacheLocate( CaretAt );
                 if( oCaretCacheRow != null ) {
@@ -1585,7 +1585,7 @@ namespace Play.Edit {
                 if( iLength > 0 )
                     Selector.SetWord( Caret2, new ColorRange( iOffset, iLength ) );
 
-                CacheReColor();
+                ReColor();
             } catch( Exception oEx ) {
                 if( IsUnhandledStdRpt( oEx ) )
                     throw;
@@ -1622,7 +1622,7 @@ namespace Play.Edit {
         }
 
         public virtual void OnDocFormatted() {
-            CacheReColor();
+            ReColor();
         }
 
         public virtual void OnDocLoaded() {

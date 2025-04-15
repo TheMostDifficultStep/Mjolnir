@@ -290,7 +290,7 @@ namespace Play.FileManager {
         /// A little of a misnomer as we are just returning the dir and
         /// not an attendent file name with it.
         /// </summary>
-        public string CurrentURL => _strDirectory;
+        public string? CurrentURL => _strDirectory;
 
         /// <summary>
         /// This will go to the main program eventually.

@@ -15,6 +15,7 @@ using Play.Interfaces.Embedding;
 using Play.Rectangles;
 using Play.Controls;
 using Play.Parse;
+using System.Linq;
 
 namespace Play.Edit {
     public interface IPgDocTraits<T> {
@@ -1224,7 +1225,7 @@ namespace Play.Edit {
                         int iDataCol = _rgTxtCol[iTextColumn].DataIndex;
                         if( oCaret.Row[iDataCol].FindFormattingUnderRange( oCaret ) is IMemoryRange oRange ) {
                             _oCacheMan.Selector.SetWord( oCaret, oRange );
-                            _oCacheMan.CacheReColor();
+                            _oCacheMan.ReColor();
                             Invalidate();
                         }
                     }
@@ -1272,7 +1273,7 @@ namespace Play.Edit {
                     int iDataCol = _rgTxtCol[iTextColumn].DataIndex;
                     if( !HyperLinkFind( iDataCol, pntClick, fDoJump:true ) ) {
                         _oCacheMan.BeginSelect();
-                        _oCacheMan.CacheReColor();
+                        _oCacheMan.ReColor();
                     }
                     Invalidate();
                 }
@@ -1287,7 +1288,7 @@ namespace Play.Edit {
             CursorUpdate( pntMouse, e.Button );
 
             if( _oCacheMan.IsSelecting ) {
-                _oCacheMan.CacheReColor();
+                _oCacheMan.ReColor();
                 _oCacheMan.CaretAdvance(pntMouse);
                 Invalidate();
             }
@@ -1331,6 +1332,9 @@ namespace Play.Edit {
 
         public void SelectionClear() {
             _oCacheMan.Selector.Clear();
+            _oCacheMan.ReColor();
+            // BUG: Need to correct the Caret offset. It will be
+            //      in the same column it was (for stream select)
         }
 
         public void SelectionDelete() {

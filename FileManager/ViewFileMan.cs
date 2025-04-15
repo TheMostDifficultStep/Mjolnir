@@ -198,10 +198,11 @@ namespace Play.FileManager {
 
                 if( string.IsNullOrEmpty( strDir ) )
                     return;
+                if( Document.CurrentURL is string strUrl ) {
+                    string strPath = Path.Combine( strUrl, strDir );
 
-                string strPath = Path.Combine( Document.CurrentURL, strDir );
-
-                Document.ReadDir( strPath );
+                    Document.ReadDir( strPath );
+                }
             } catch( Exception oEx ) {
                 if( _rgErrors.IsUnhandled(oEx) )
                     throw;
@@ -215,9 +216,11 @@ namespace Play.FileManager {
                 if( string.IsNullOrEmpty( strFile ) )
                     return;
 
-                string strPath = Path.Combine( Document.CurrentURL, strFile );
+                if( Document.CurrentURL is string strUrl ) {
+                    string strPath = Path.Combine( strUrl, strFile );
 
-                _oShellWin.DocumentShow( strPath, Guid.Empty, fShow:true );
+                    _oShellWin.DocumentShow( strPath, Guid.Empty, fShow:true );
+                }
             } catch( Exception oEx ) {
                 if( _rgErrors.IsUnhandled(oEx) )
                     throw;
@@ -274,8 +277,12 @@ namespace Play.FileManager {
                 }
                 if( _oCacheMan.CaretRow is not null ) {
                     Line oLine = _oCacheMan.CaretRow.Row[(int)DClmn.Name];
-                    string strSelection = Path.Combine( Document.CurrentURL, oLine.ToString() );
-                    ClipboardCopyTo( strSelection );
+                    if( oLine.ToString() is string strClip &&
+                        Document.CurrentURL is string strURL ) 
+                    {
+                        string strSelection = Path.Combine( strURL, strClip );
+                        ClipboardCopyTo( strSelection );
+                    }
                     return;
                 }
 			} catch( NullReferenceException ) {

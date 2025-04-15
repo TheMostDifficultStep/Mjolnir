@@ -219,8 +219,7 @@ namespace Play.Edit {
             _oStream = oStream   ?? throw new ArgumentNullException();
             LogError = oLogError ?? throw new ArgumentNullException();
 
-			if( oLanguage == null )
-				throw new ArgumentNullException( "Language must not be null" );
+            ArgumentNullException.ThrowIfNull( oLanguage );
 
 			_oStart  = oLanguage.FindState("start") ?? throw new InvalidOperationException( "Couldn't find start state" );
 		}
@@ -717,6 +716,12 @@ namespace Play.Edit {
             }
         }
 
+        public void FinishUp( IPgEditEvents.EditType eEdit, Row oRow = null ) {
+            Raise_DocUpdateEnd( eEdit, oRow );
+            DoParse();
+            IsDirty = true;
+        }
+
         /// <summary>
         /// This method is for small edits. Like typing characters. Simply an insert
         /// if srclen is 0.
@@ -725,19 +730,19 @@ namespace Play.Edit {
             try {
                 Line oLine = oRow[iColumn];
 
-                TrackerEnumerable oTE = new TrackerEnumerable( this );
-
+                Raise_DocUpdateBegin();
+                
                 if( oLine.TryReplace( iSrcOff, iSrcLen, spText ) ) {
-                    foreach( IPgCaretInfo<Row> oTracker in oTE ) {
-                        if( oTracker.Column == iColumn &&
-                            oTracker.Row    == oRow       ) 
-                        {
-                            Marker.ShiftInsert( oTracker, iSrcOff, spText.Length - iSrcLen );
+                    foreach( IPgEditEvents oListen in _rgListeners ) {
+                        IPgCaretInfo<Row> oCaret = oListen.Caret2;
+
+                        if( oCaret.Row == oRow && oCaret.Column == iColumn ) {
+                            Marker.ShiftInsert( oCaret, iSrcOff, spText.Length - iSrcLen );
                         }
                     }
                 }
 
-                oTE.FinishUp( IPgEditEvents.EditType.Column, oRow );
+                FinishUp( IPgEditEvents.EditType.Column, oRow );
 
                 return true;
             } catch( Exception oEx ) {
@@ -756,25 +761,24 @@ namespace Play.Edit {
                 string strRemoved = string.Empty;
                 Line   oLine      = oRow[iColumn];
 
-                TrackerEnumerable oTE = new TrackerEnumerable( this );
+                Raise_DocUpdateBegin();
+                
                 //strRemoved = oLine.SubString( iSrcOff, iSrcLen );
-               if( oLine.TryReplace( iSrcOff, iSrcLen, null ) ) {
+                if( oLine.TryReplace( iSrcOff, iSrcLen, null ) ) {
                     IMemoryRange oDeleted = new ColorRange( iSrcOff, iSrcLen ); // BUG use struct...
                     foreach( IColorRange oFormat in oLine.Formatting ) {
                         Marker.ShiftDelete( oFormat, oDeleted );
                     }
-                    foreach( IPgCaretInfo<Row> oTracker in oTE ) {
-                        if( oTracker.Row    == oRow &&
-                            oTracker.Column == iColumn )
-                        {
-                            if( oTracker.Offset >= iSrcOff ) {
-                                oTracker.Offset = iSrcOff;
-                            }
+                    foreach( IPgEditEvents oListen in _rgListeners ) {
+                        IPgCaretInfo<Row> oCaret = oListen.Caret2;
+
+                        if( oCaret.Row == oRow && oCaret.Column == iColumn ) {
+                            Marker.ShiftDelete( oListen.Caret2, oDeleted );
                         }
                     }
                 }
 
-                oTE.FinishUp( IPgEditEvents.EditType.Column, oRow );
+                FinishUp( IPgEditEvents.EditType.Column, oRow );
 
                 return true;
             } catch( Exception oEx ) {
@@ -792,14 +796,14 @@ namespace Play.Edit {
 
         public bool RowDelete( Row oRow ) {
             try {
-                TrackerEnumerable oTE = new TrackerEnumerable( this );
-
+                Raise_DocUpdateBegin();
+                
                 _rgRows.Remove( oRow ); // Faster if use index... probably...
                 oRow.Deleted = true;
 
                 RenumberAndSumate(); // Huh... This fixes all my bugs. :-/
 
-                oTE.FinishUp( IPgEditEvents.EditType.Rows, oRow );
+                FinishUp( IPgEditEvents.EditType.Rows, oRow );
 
                 return true;
             } catch( Exception oEx ) {
@@ -816,7 +820,8 @@ namespace Play.Edit {
 
         /// <summary>
         /// Delete all the rows in the selection. Attempt to merge the columns on
-        /// the top and bottom of the selection.
+        /// the top and bottom of the selection. This is for a stream style deletion
+        /// on multiple columns.
         /// </summary>
         /// <seealso cref="CacheMultiColumn.SelectionCopy"/>
         public void RowDelete( IPgSelection oSelection ) {
@@ -824,8 +829,8 @@ namespace Play.Edit {
             Row       oRowTop  = null;
             Row       oRowBot  = null;
             try {
-                TrackerEnumerable oTE = new TrackerEnumerable( this );
-
+                Raise_DocUpdateBegin();
+                
                 foreach( Row oRow in oSelection ) {
                     switch( oSelection.IsSelection( oRow ) ) {
                         case IPgSelection.SlxnType.Middle: 
@@ -876,10 +881,21 @@ namespace Play.Edit {
                     _rgRows.Remove( oRowBot );
                     oRowBot.Deleted = true;
 
+
+                }
+                if( oRowTop is not null ) {
+                    // TODO: Consider patching up formatting too...
+                    if( oSelection.IsSelection( oRowTop ) != IPgSelection.SlxnType.None ) {
+                        foreach( IPgEditEvents oListen in _rgListeners ) {
+                            if( oSelection.AtColumn( oListen.Caret2.Column ) is IMemoryRange oColSel ) {
+                                Marker.ShiftDelete( oListen.Caret2, oColSel );
+                            }
+                        }
+                    }
                 }
                 RenumberAndSumate();
 
-                oTE.FinishUp( IPgEditEvents.EditType.Rows, oRowTop );
+                FinishUp( IPgEditEvents.EditType.Rows, oRowTop );
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( NullReferenceException ),
                                     typeof( IndexOutOfRangeException ),
