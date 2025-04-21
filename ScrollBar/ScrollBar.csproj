@@ -6,7 +6,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="SkiaSharp.Views.WindowsForms" Version="2.88.6" />
+    <PackageReference Include="OpenTK" Version="4.9.4" />
+    <PackageReference Include="SkiaSharp.Views.WindowsForms" Version="3.116.1" />
   </ItemGroup>
 
   <ItemGroup>

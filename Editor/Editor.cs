@@ -189,7 +189,7 @@ namespace Play.Edit {
         readonly ICollection<ILineRange>  _rgCursors         = new List<ILineRange>();
         readonly Stack<IUndoUnit>[]       _rgUndoStacks      = new Stack<IUndoUnit>[2];
 
-		readonly WordBreakerHandler _oParseWords; // A basic word breaker/counter for wrapped views.
+		//readonly WordBreakerHandler _oParseWords; // A basic word breaker/counter for wrapped views.
         
         public event BufferEvent   BufferEvent;
 		public event HilightEvent  HilightEvent;
@@ -294,8 +294,8 @@ namespace Play.Edit {
         }
 
 		public void WordBreak( Line oLine, ICollection<IPgWordRange> rgWords ) {
-            if( _oParseWords != null )
-			    _oParseWords.Parse( oLine.GetStream(), rgWords );
+       //     if( _oParseWords != null )
+			    //_oParseWords.Parse( oLine.GetStream(), rgWords );
 			oLine.WordCount = rgWords.Count;
 		}
 

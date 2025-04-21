@@ -83,7 +83,7 @@ namespace Play.Rectangles {
 
 		IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
-		public override void Paint(Graphics oGraphics) {
+		[Obsolete] public override void Paint(Graphics oGraphics) {
 			foreach( LayoutRect oRect in this ) {
 				if( !oRect.Hidden ) {
 					oRect.Paint( oGraphics );

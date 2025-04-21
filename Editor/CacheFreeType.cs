@@ -719,6 +719,9 @@ namespace Play.Edit {
             SKRect skRect = new SKRect( flX, flY, 
                                         flX + oGlyph.Image.Width, 
                                         flY + oGlyph.Image.Height );
+            //Not sure how to use this yet.
+            //SKSamplingOptions oOptions = new SKSamplingOptions( SKFilterMode.Linear );
+
             // So XOR only works with alpha, which explains why my
             // Alpha8 bitmap works with this.
             skPaint .BlendMode = SKBlendMode.Xor;
@@ -727,7 +730,7 @@ namespace Play.Edit {
             // So the BG is already the color we wanted, it get's XOR'd and
             // has a transparency set, then we draw our text colored rect...
             skPaint .BlendMode = SKBlendMode.DstOver;
-            skCanvas.DrawRect(skRect, skPaint);
+            skCanvas.DrawRect(skRect, skPaint /*, oOptions */ );
         }
 
         /// <summary>
@@ -850,8 +853,6 @@ namespace Play.Edit {
             SKPoint pntLowerLeft = new SKPoint( pntEditAt.X, pntEditAt.Y + FontHeight );
 
             using( SKPaint skPaint = new SKPaint() ) {
-                skPaint.FilterQuality = SKFilterQuality.High;
-
                 try { // Draw all glyphs so whitespace is properly colored when selected.
 			        foreach( PgCluster oCluster in _rgClusters ) {
                         int iYDiff = LineHeight * oCluster.Segment;
