@@ -1,7 +1,6 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Text;
 using System.Windows.Forms;
 using System.Text.RegularExpressions;
 
@@ -472,7 +471,18 @@ namespace Mjolnir {
 				    _oView.ScrollTo    ( SCROLLPOS.CARET );
                     _oEnumResults = null;
                 }
-            } catch( NullReferenceException ) {
+            } catch( Exception oEx ) {
+                // If the collection changes in the middle of our stepping
+                // you'll get the InvalidOp exception.
+                Type[] rgErrors = { typeof( NullReferenceException ),
+                                    typeof( InvalidOperationException ),
+                                    typeof( ArgumentOutOfRangeException ),
+                                    typeof( IndexOutOfRangeException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
+
+                _oEnumResults = null;
+
                 LogError( "Select a document view. Implement IPgTextView..." );
             }
         }
