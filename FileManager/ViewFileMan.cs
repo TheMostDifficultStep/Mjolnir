@@ -235,6 +235,9 @@ namespace Play.FileManager {
         /// TODO: This is for the system text find dialog. However I notice
         /// I'm not starting at the cursor line but just at the top
         /// of the document. Probably should fix that...
+        /// BUG: if you change directories in the middle of an enumeration
+        /// we'll throw an InvalidOperationException. Going to need a
+        /// custom enumerator.
         /// </remarks>
         public override IEnumerator<ILineRange> GetEnumerator() {
             SimpleRange oRange = new SimpleRange();
