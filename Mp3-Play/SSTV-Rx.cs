@@ -1618,6 +1618,14 @@ namespace Play.Sound {
 			return m_B12[ iIndex % m_Buf.Length ];
 		}
 
+		/// <summary>
+		/// Use this function place of SyncGet if you have already
+		/// bounds checked the index.
+		/// </summary>
+		public short SyncRaw( int iIndex ) {
+			return m_B12[ iIndex % m_Buf.Length ];
+		}
+
 		protected void SignalSet( double dblSignal, double dblSync ) {
 			int iOffset = m_wBase++ % m_Buf.Length;
 
