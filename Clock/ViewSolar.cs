@@ -132,7 +132,8 @@ namespace Play.Clock {
         }
 
         bool IPgCommandBase.Execute( Guid sGuid ) {
-            if( sGuid == GlobalCommands.Play ) {
+            if( sGuid == GlobalCommands.Play || 
+                sGuid == GlobalCommands.Recycle ) {
                 Document.LoadSolar();
                 return true;
             }
