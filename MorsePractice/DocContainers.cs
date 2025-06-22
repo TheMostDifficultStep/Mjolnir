@@ -1855,6 +1855,7 @@ namespace Play.MorsePractice {
 
                 try {
                     oCaret.Line.TryReplace( oCaret, sbLine.ToString() );
+                    Notes.CharacterCount( oCaret.Line.At );
                     Notes.Raise_BufferEvent( BUFFEREVENTS.MULTILINE );
 
                 } catch( NullReferenceException ) {
