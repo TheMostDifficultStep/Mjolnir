@@ -1835,7 +1835,7 @@ namespace Play.MorsePractice {
         /// <remarks>It's a little bit of a bummer that the properties are the
         /// human readable values. So if we change things like units on the
         /// power or frequency, it might become inconsistant with this function.</remarks>
-        public void InsertFreqDateTime() {
+        public void InsertFreqDateTime( CaretPosition oCaret ) {
             try {
                 StringBuilder sbLine = new StringBuilder();
                 DateTime   dtNow  = DateTime.UtcNow;
@@ -1849,11 +1849,17 @@ namespace Play.MorsePractice {
                 sbLine.Append( "z\t" ); // tab
                 sbLine.Append( dtNow.ToShortDateString() );
                 sbLine.Append( '\t' ); // tab
-                sbLine.Append( String.IsNullOrEmpty( strPower ) ? "?%" : strPower );
-                sbLine.Append( "w " );
-                sbLine.Append( String.IsNullOrEmpty( strMode ) ? "?Mode" : strMode );
+                sbLine.Append( String.IsNullOrEmpty( strPower ) ? "?Watts" : strPower );
+                sbLine.Append( '\t' ); // tab
+                sbLine.Append( String.IsNullOrEmpty( strMode  ) ? "?Mode" : strMode );
 
-                Notes.LineAppend( sbLine.ToString() );
+                try {
+                    oCaret.Line.TryReplace( oCaret, sbLine.ToString() );
+                    Notes.Raise_BufferEvent( BUFFEREVENTS.MULTILINE );
+
+                } catch( NullReferenceException ) {
+                    Notes.LineAppend( sbLine.ToString() );
+                }
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( ArgumentOutOfRangeException ),
                                     typeof( NullReferenceException ) };
