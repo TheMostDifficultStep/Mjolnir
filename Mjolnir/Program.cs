@@ -962,26 +962,28 @@ namespace Mjolnir {
 
 			try {
 				// Load up the documents.
-				foreach( XmlElement xmlDoc in rgSessionDocs ) {
-					if (string.IsNullOrEmpty(xmlDoc.InnerText) )
-						throw new InvalidOperationException( "filename innertext failure");
+                if( rgSessionDocs != null ) {
+				    foreach( XmlElement xmlDoc in rgSessionDocs ) {
+					    if (string.IsNullOrEmpty(xmlDoc.InnerText) )
+						    throw new InvalidOperationException( "filename innertext failure");
 
-					int    iDocID  = int.Parse(xmlDoc.GetAttribute("docid") );
-                    string strExtn = xmlDoc.GetAttribute( "extn" );
-                    string strPath = xmlDoc.InnerText;
+					    int    iDocID  = int.Parse(xmlDoc.GetAttribute("docid") );
+                        string strExtn = xmlDoc.GetAttribute( "extn" );
+                        string strPath = xmlDoc.InnerText;
 
-                    if( !string.IsNullOrEmpty( strExtn ) ) {
-                        strPath += strExtn;
-                    }
+                        if( !string.IsNullOrEmpty( strExtn ) ) {
+                            strPath += strExtn;
+                        }
 
-					// BUG: Need to add some code to validate Doc ID.
-					IDocSlot oDocSite = DocumentCreate( strPath, iDocID );
+					    // BUG: Need to add some code to validate Doc ID.
+					    IDocSlot oDocSite = DocumentCreate( strPath, iDocID );
 
-					// If oDocSite is null, I should create a place holder document that you can use
-					// to edit the link or try again some time.
-					if( oDocSite == null )
-						throw new InvalidOperationException( "Couldn't create document" );
-				}
+					    // If oDocSite is null, I should create a place holder document that you can use
+					    // to edit the link or try again some time.
+					    if( oDocSite == null )
+						    throw new InvalidOperationException( "Couldn't create document" );
+				    }
+                }
 			} catch( Exception oEx ) {
 				TryLogXmlError( oEx, "Trouble reading documents from session file" );
 			}

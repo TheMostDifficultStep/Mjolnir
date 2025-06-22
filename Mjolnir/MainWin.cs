@@ -911,15 +911,7 @@ namespace Mjolnir {
             Document.LogError( oSite, strCatagory, strDetails, fShow );
         }
 
-        /// <summary>
-        /// Warn not to close if there are open documents.
-        /// </summary>
-		/// <remarks>I need to see if there is a difference between the user requesting
-		/// a close and the system shutting down.</remarks>
-        protected override void OnClosing(CancelEventArgs e)
-        {
-            base.OnClosing(e);
-
+        protected override void OnFormClosing(FormClosingEventArgs e) {
             _fIsClosing = true;
 
             e.Cancel = Document.WarnOnOpenDocuments();
@@ -931,7 +923,31 @@ namespace Mjolnir {
 				//MessageBox.Show( "The session is unsaved.", "Session" );
 				//e.Cancel = true;
 			}
+
+            base.OnFormClosing(e);
         }
+
+        /// <summary>
+        /// Warn not to close if there are open documents. 
+        /// </summary>
+		/// <remarks>I need to see if there is a difference between the user requesting
+		/// a close and the system shutting down.</remarks>
+   //     [Obsolete] protected override void OnClosing(CancelEventArgs e)
+   //     {
+   //         base.OnClosing(e);
+
+   //         _fIsClosing = true;
+
+   //         e.Cancel = Document.WarnOnOpenDocuments();
+
+			//// I'd rather ask the user if they want to save first then close. But that needs a
+			//// better dialog box than I have a the moment. So just auto save.
+			//if( Document.SessionSlot.IsDirty ) {
+			//	Document.SessionSave( false );
+			//	//MessageBox.Show( "The session is unsaved.", "Session" );
+			//	//e.Cancel = true;
+			//}
+   //     }
 
         /// <summary>A disposed would be better but windows are a bit different then everyone else.</summary>
         //protected override void OnClosed( EventArgs e ) {
@@ -2632,10 +2648,15 @@ namespace Mjolnir {
             Document.RecentsAddListener( new MainWin_Recent( this ) );
             Document.EventUpdateTitles += UpdateAllTitlesFor;
 
+            if( xmlWinRoot == null ) {
+                this.LogError( null, "windows session", "Session missing" );
+                return true;
+            }
+
 			try {
 				if( xmlWinRoot.SelectSingleNode( "Location" ) is XmlElement xmlLocation ) {
-					int x = int.Parse( xmlLocation.GetAttribute( "x" ) );
-					int y = int.Parse( xmlLocation.GetAttribute( "y" ) );
+					int x      = int.Parse( xmlLocation.GetAttribute( "x" ) );
+					int y      = int.Parse( xmlLocation.GetAttribute( "y" ) );
 					int width  = int.Parse( xmlLocation.GetAttribute( "width" ) );
 					int height = int.Parse( xmlLocation.GetAttribute( "height" ) );
 
@@ -2773,14 +2794,15 @@ namespace Mjolnir {
 			try {
 				xmlLocation = xmlOurRoot.OwnerDocument.CreateElement( "Location" );
 
-				xmlLocation.SetAttribute( "x", Left.ToString() );
-				xmlLocation.SetAttribute( "y", Top .ToString() );
-				xmlLocation.SetAttribute( "width", Width.ToString() );
-				xmlLocation.SetAttribute( "height", Height.ToString() );
+                // If the window was minimized the RestoreBounds will have the size we want.
+				xmlLocation.SetAttribute( "x",      Left.ToString() );
+				xmlLocation.SetAttribute( "y",      Top .ToString() );
+				xmlLocation.SetAttribute( "width",  Size.Width .ToString() );
+				xmlLocation.SetAttribute( "height", Size.Height.ToString() );
 
 				xmlOurRoot.AppendChild( xmlLocation );
 			} catch( Exception oEx ) {
-				LogError( oEx, "Couldn't create views subcollection" );
+				LogError( oEx, "Couldn't create main window location." );
 			}
 
             DecorSave( xmlOurRoot );

@@ -10,6 +10,7 @@ using SkiaSharp;
 
 using Play.Interfaces.Embedding;
 using Play.Rectangles;
+using System.Net.Http;
 
 namespace Play.Drawing {
 	public class ImageHelpers {
@@ -100,7 +101,10 @@ namespace Play.Drawing {
           //typeof( FileFormatException ),
             typeof( FileNotFoundException ), 
             typeof( IOException ),
-            typeof( NotSupportedException )
+            typeof( NotSupportedException ),
+            typeof( AggregateException ),
+            typeof( HttpRequestException ),
+            typeof( System.Net.Sockets.SocketException )
 		};
 
 		public IPgParent Parentage   => _oSiteBase.Host;
