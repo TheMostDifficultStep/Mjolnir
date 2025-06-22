@@ -1930,6 +1930,7 @@ namespace Play.MorsePractice {
             Repeater_URL,
             Power_Level,
             Alternates,
+            My_Grid_Square,
             COM_Port,
             Address_Radio,
             Address_Controller,
@@ -1963,11 +1964,14 @@ namespace Play.MorsePractice {
             LabelUpdate( Names.Address_Radio,      "Radio Addr" );
             LabelUpdate( Names.Address_Controller, "Controller Addr" );
             LabelUpdate( Names.Mode,               "Mode" ); // Rx or Tx??
+            LabelUpdate( Names.My_Grid_Square,     "My Grid Square" );
 
             // We'll actually initialize the serial port with these values! but they're not changable after that yet.
             ValueUpdate( Names.COM_Port,           "4" );    // While a property,
             ValueUpdate( Names.Address_Radio,      "0xa4" ); // Hex address.
             ValueUpdate( Names.Address_Controller, "0xe0" );
+
+            ValueUpdate( Names.My_Grid_Square,     "CN87xo" );
 
             return true;
         }
