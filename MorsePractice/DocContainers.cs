@@ -1978,8 +1978,6 @@ namespace Play.MorsePractice {
             ValueUpdate( Names.Address_Radio,      "0xa4" ); // Hex address.
             ValueUpdate( Names.Address_Controller, "0xe0" );
 
-            ValueUpdate( Names.My_Grid_Square,     "CN87xo" );
-
             return true;
         }
 
