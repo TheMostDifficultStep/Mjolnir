@@ -1838,6 +1838,7 @@ namespace Play.MorsePractice {
         public void InsertFreqDateTime( CaretPosition oCaret ) {
             try {
                 StringBuilder sbLine = new StringBuilder();
+
                 DateTime   dtNow  = DateTime.UtcNow;
                 string    strFreq = Properties.ValueAsStr( (int)RadioProperties.Names.Frequency );
                 string   strPower = Properties.ValueAsStr( (int)RadioProperties.Names.Power_Level );
@@ -1849,9 +1850,10 @@ namespace Play.MorsePractice {
                 sbLine.Append( "z\t" ); // tab
                 sbLine.Append( dtNow.ToShortDateString() );
                 sbLine.Append( '\t' ); // tab
-                sbLine.Append( String.IsNullOrEmpty( strPower ) ? "?Watts" : strPower );
+                sbLine.Append( String.IsNullOrEmpty( strPower ) ? "?%" : strPower );
                 sbLine.Append( '\t' ); // tab
-                sbLine.Append( String.IsNullOrEmpty( strMode  ) ? "?Mode" : strMode );
+                sbLine.Append( String.IsNullOrEmpty( strMode  ) ? "?" : strMode );
+                sbLine.Append( " Mode" );
 
                 try {
                     oCaret.Line.TryReplace( oCaret, sbLine.ToString() );
