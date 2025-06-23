@@ -1974,7 +1974,7 @@ namespace Play.MorsePractice {
             LabelUpdate( Names.My_Grid_Square,     "My Grid Square" );
 
             // We'll actually initialize the serial port with these values! but they're not changable after that yet.
-            ValueUpdate( Names.COM_Port,           "4" );    // While a property,
+            ValueUpdate( Names.COM_Port,           "5" );    // While a property,
             ValueUpdate( Names.Address_Radio,      "0xa4" ); // Hex address.
             ValueUpdate( Names.Address_Controller, "0xe0" );
 
