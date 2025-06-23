@@ -1999,6 +1999,10 @@ namespace Play.MorsePractice {
         /// Override the clear to only clear the specific repeater information. If you want to 
         /// clear all repeater values. Do NOT call the base, which will clear everything.
         /// </summary>
+        /// <remarks>
+        /// If you change to the next memory setting, you get the 1) mode THEN 2) frequency
+        /// as events! So we can't clear the mode in this function. :-/
+        /// </remarks>
         public override void ValuesEmpty() {
             ValueClear( Names.Frequency        );
             ValueClear( Names.Callsign         );

@@ -320,7 +320,7 @@ namespace Play.Forms {
 
                 oPair.Value.TryReplace( 0, oPair.Value.ElementCount, strValue );
 
-                List<Row> rgTemp = new() { _rgRows[iIndex] }; // BUG: experiment...
+                //List<Row> rgTemp = new() { _rgRows[iIndex] }; // BUG: experiment...
 
                 sTrack.FinishUp( IPgEditEvents.EditType.Column, _rgRows[iIndex] );
                 DoParse();
