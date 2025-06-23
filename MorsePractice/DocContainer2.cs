@@ -1853,7 +1853,7 @@ namespace Play.MorsePractice {
                 sbLine.Append( String.IsNullOrEmpty( strPower ) ? "?%" : strPower );
                 sbLine.Append( '\t' ); // tab
                 sbLine.Append( String.IsNullOrEmpty( strMode  ) ? "?" : strMode );
-                sbLine.Append( " Mode" );
+                sbLine.Append( "-Mode" );
 
                 try {
                     oCaret.Line.TryReplace( oCaret, sbLine.ToString() );
