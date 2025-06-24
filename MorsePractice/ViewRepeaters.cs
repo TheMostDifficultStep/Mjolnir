@@ -27,6 +27,10 @@ namespace Play.MorsePractice {
         public DocRepeaters( IPgBaseSite oSiteBase ) : base(oSiteBase) {
         }
 
+		/// <summary>
+		/// Right now we'll just load the hard coded list into us. In the future
+		/// we'll get all that data from an XML file.
+		/// </summary>
         public bool InitNew() {
 			if( _oSiteBase.Host is DocStdLog oStdLog ) {
                 using( BulkLoader oLoader = new( this ) ) {
@@ -95,7 +99,7 @@ namespace Play.MorsePractice {
 			return true;
 		}
         protected void OnWebSite( Row oRow, int iColumn, IPgWordRange oRange ) {
-			if( oRow is DocRepeaters.RepRow oRepeater ) {
+			if( oRow is DocRepeaters.RepRow oRepeater && !string.IsNullOrEmpty( oRepeater.URL ) ) {
 				BrowserLink( oRepeater.URL );
 			}
         }

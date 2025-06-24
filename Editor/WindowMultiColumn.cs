@@ -962,7 +962,8 @@ namespace Play.Edit {
                 }
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( NullReferenceException ),
-                                    typeof( ArgumentOutOfRangeException ) };
+                                    typeof( ArgumentOutOfRangeException ),
+                                    typeof( InvalidOperationException ) };
                 if( rgErrors.IsUnhandled( oEx ) )
                     throw;
                 if( fDoJump ) // avoid throwing up a pile of messages on mouse move!
