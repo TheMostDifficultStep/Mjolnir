@@ -822,17 +822,19 @@ namespace Play.MorsePractice {
         }
 
         public struct RepeaterInfo {
-            public RepeaterInfo( string strLocation, string strGroup, string strUrl = "" ) {
+            public RepeaterInfo( string strCallSign, string strLocation, string strGroup, string strUrl ) {
                 Location = strLocation;
                 Group    = strGroup;
                 Grid     = string.Empty;
                 URL      = strUrl;
+                CallSign = strCallSign;
             }
 
             public string Location { get; }
             public string Group    { get; }
             public string Grid     { get; }
             public string URL      { get; }
+            public string CallSign { get; }
         }
 
         public struct RepeaterDir {
@@ -1461,22 +1463,26 @@ namespace Play.MorsePractice {
             rgTemp.Add( new RepeaterDir( 147.18,  +600, 120, "wa7law",    "103.5" ));
             rgTemp.Add( new RepeaterDir( 445.575,  5000, 120, "wa7law",    "103.5" ));
 
-            RepeatersInfo.Add( "k7lwh",  new RepeaterInfo( "Kirkland", "Lake Washington Ham Club", "http://www.lakewashingtonhamclub.org/" ));
-            RepeatersInfo.Add( "ww7psr", new RepeaterInfo( "Seattle", "Puget Sound Repeater Group", "http://psrg.org/" ));
-            RepeatersInfo.Add( "k7led",  new RepeaterInfo( "Tiger Mountain East", "Mike & Key ARC", "http://www.mikeandkey.org/index.php" ));
-            RepeatersInfo.Add( "wa7dem", new RepeaterInfo( "Granite Falls", "Snohomish Co. ACS/ARES" ));
-            RepeatersInfo.Add( "w7mir",  new RepeaterInfo( "Mercer island", "Mercer Island Radio Operators" ));
-            RepeatersInfo.Add( "k6rfk",  new RepeaterInfo( "Woodinville", "" ));
-            RepeatersInfo.Add( "w7wwi",  new RepeaterInfo( "Tiger Mtn East", "Sea-Tac Repeater Association" ));
-            RepeatersInfo.Add( "k7sye",  new RepeaterInfo( "Auburn", "Auburn Valley Repeater Group" ));
-            RepeatersInfo.Add( "wa7hjr", new RepeaterInfo( "Issaquah", "Tiger Mountain East", "http://wa7hjr.org/" ) );
-            RepeatersInfo.Add( "w7dk"  , new RepeaterInfo( "Tacoma", "Radio Club of Tacoma" ));
-            RepeatersInfo.Add( "wa7law", new RepeaterInfo( "Everett", "Snohomish County Hams Club", "http://www.wa7law.org/" ));
+            RepeaterAdd( "k7lwh",  "Kirkland", "Lake Washington Ham Club", "http://www.lakewashingtonhamclub.org/" );
+            RepeaterAdd( "ww7psr", "Seattle", "Puget Sound Repeater Group", "http://psrg.org/" );
+            RepeaterAdd( "k7led",  "Tiger Mountain East", "Mike & Key ARC", "http://www.mikeandkey.org/index.php" );
+            RepeaterAdd( "wa7dem", "Granite Falls", "Snohomish Co. ACS/ARES", string.Empty );
+            RepeaterAdd( "w7mir",  "Mercer island", "Mercer Island Radio Operators", string.Empty );
+            RepeaterAdd( "k6rfk",  "Woodinville", string.Empty, string.Empty );
+            RepeaterAdd( "w7wwi",  "Tiger Mtn East", "Sea-Tac Repeater Association", string.Empty );
+            RepeaterAdd( "k7sye",  "Auburn", "Auburn Valley Repeater Group", string.Empty );
+            RepeaterAdd( "wa7hjr", "Issaquah", "Tiger Mountain East", "http://wa7hjr.org/" );
+            RepeaterAdd( "w7dk"  , "Tacoma", "Radio Club of Tacoma", string.Empty );
+            RepeaterAdd( "wa7law", "Everett", "Snohomish County Hams Club", "http://www.wa7law.org/" );
 
             foreach ( RepeaterDir oItem in rgTemp ) {
                 _rgRepeatersIn .Add( oItem.Input, oItem );
                 _rgRepeatersOut.Add( oItem.Output, oItem );
             }
+        }
+
+        private void RepeaterAdd( string strCall, string strLoc, string strName, string strURL ) {
+            RepeatersInfo.Add( strCall, new RepeaterInfo( strCall, strLoc, strName, strURL ));
         }
 
         public RepeaterDir? GetRepeaterByOutputFreq( int iFreqInHz ) {

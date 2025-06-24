@@ -1,8 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Collections;
-using System.Windows.Forms;
-using System.Xml;
 using System.Reflection;
 
 using SkiaSharp;
@@ -10,11 +6,9 @@ using SkiaSharp;
 using Play.Interfaces.Embedding;
 using Play.Rectangles;
 using Play.Edit;
-using Play.Forms;
 using Play.Parse;
 using Play.Drawing;
 using static Play.MorsePractice.DocStdLog;
-using Microsoft.VisualBasic.Logging;
 
 namespace Play.MorsePractice {
     /// <summary>
@@ -47,18 +41,25 @@ namespace Play.MorsePractice {
         public class RepRow : Row {
 			public string URL {get;}
             public RepRow( DocStdLog.RepeaterInfo oInfo ) {
-                _rgColumns = new Line[2];
+                _rgColumns = new Line[3];
 
-				_rgColumns[0] = new TextLine( ColumnName,     oInfo.Group );
-				_rgColumns[1] = new TextLine( ColumnLocation, oInfo.Location );
+				_rgColumns[0] = new TextLine( ColumnCallSign, oInfo.CallSign );
+				_rgColumns[1] = new TextLine( ColumnName,     oInfo.Group );
+				_rgColumns[2] = new TextLine( ColumnLocation, oInfo.Location );
 
 				URL = oInfo.URL;
-
-				_rgColumns[0].Formatting.Add( new RepeaterHyperText( 1, 0, _rgColumns[0].ElementCount, "website" ) );
+				if( !string.IsNullOrEmpty( URL ) ) {
+					AddHyperLink( ColumnName );
+				}
             }
 
-            public const int ColumnName     = 0;
-            public const int ColumnLocation = 1;
+			protected void AddHyperLink( int iColumn ) {
+				_rgColumns[iColumn].Formatting.Add( new RepeaterHyperText( 1, 0, _rgColumns[iColumn].ElementCount, "website" ) );
+			}
+
+			public const int ColumnCallSign = 0;
+            public const int ColumnName     = 1;
+            public const int ColumnLocation = 2;
         }
 	}
 
@@ -91,6 +92,7 @@ namespace Play.MorsePractice {
 			if( !base.Initialize() )
 				return false;
 
+			TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Flex ) { Track = 30 }, DocRepeaters.RepRow.ColumnCallSign );
 			TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Flex ) { Track = 60 }, DocRepeaters.RepRow.ColumnName );
 			TextLayoutAdd( new LayoutRect( LayoutRect.CSS.None ),                DocRepeaters.RepRow.ColumnLocation );
 
