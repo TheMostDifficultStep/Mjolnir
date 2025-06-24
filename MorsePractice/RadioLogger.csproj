@@ -7,11 +7,13 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="Content\icons8-address-48.png" />
     <None Remove="Content\icons8-copybook-60.png" />
     <None Remove="Content\international-morse-code.txt" />
   </ItemGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="Content\icons8-address-48.png" />
     <EmbeddedResource Include="Content\icons8-copybook-60.png" />
     <EmbeddedResource Include="Content\international-morse-code.txt" />
   </ItemGroup>

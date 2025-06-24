@@ -707,9 +707,13 @@ namespace Play.MorsePractice {
 
         readonly Dictionary <int, RepeaterDir>     _rgRepeatersIn   = new Dictionary<int, RepeaterDir>();
         readonly Dictionary <int, RepeaterDir>     _rgRepeatersOut  = new Dictionary<int, RepeaterDir>();
-        readonly Dictionary <string, RepeaterInfo> _rgRepeatersInfo = new Dictionary<string, RepeaterInfo>();
+        public   Dictionary <string, RepeaterInfo> RepeatersInfo { get; } = new Dictionary<string, RepeaterInfo>();
+        public   DocRepeaters RepeatersDoc { get; }
+
         protected int    _iRadioFrequency = 0;
         protected double _dblRadioTone    = 0;
+
+
 
 		protected static readonly HttpClient _oHttpClient = new HttpClient(); 
 
@@ -733,9 +737,9 @@ namespace Play.MorsePractice {
         /// Document object for a little Morse Practice document.
         /// </summary>
         public DocStdLog( IPgBaseSite oSiteBase ) {
-			_oSiteBase  = oSiteBase ?? throw new ArgumentNullException();
-            _oSiteFile  = oSiteBase as IPgFileSite ?? throw new ArgumentException( "Host needs the IPgFileSite interface" );
-            _oScheduler = Services as IPgScheduler ?? throw new ArgumentException("Host requries IPgScheduler");
+			_oSiteBase  = oSiteBase                 ?? throw new ArgumentNullException();
+            _oSiteFile  = oSiteBase as IPgFileSite  ?? throw new ArgumentException( "Host needs the IPgFileSite interface" );
+            _oScheduler = Services  as IPgScheduler ?? throw new ArgumentException("Host requries IPgScheduler");
             _oTaskQrz   = _oScheduler.CreateWorkPlace() ?? throw new ApplicationException("No worksite for file downloader.");
             _oTaskCiv   = _oScheduler.CreateWorkPlace() ?? throw new ApplicationException("No worksite for Civ." );
             _oTaskTimer = _oScheduler.CreateWorkPlace() ?? throw new ApplicationException("No worksite for Frequency Change Listener." );
@@ -759,6 +763,7 @@ namespace Play.MorsePractice {
 			Notes            = new Editor         ( new MorseDocSlot( this, "Notes"  ) ); // Notes for listening to morse, or log files.
             Calls            = new CallsDoc       ( new MorseDocSlot( this, "Calls"  ) ); // document for outline, compiled list of stations
             Properties       = new RadioProperties( new MorseDocSlot( this, "Properties" ) );
+            RepeatersDoc     = new DocRepeaters   ( new MorseDocSlot( this, "Repeaters" ) );
 
             CallSign         = new Editor  ( new MorseDocSlot( this, "CallSign" ) );
             CallSignPageHtml = new Editor  ( new MorseDocSlot( this, "PageSrc"  ) );
@@ -786,6 +791,7 @@ namespace Play.MorsePractice {
 
 				Notes .Dispose();
                 Calls .Dispose();
+                RepeatersDoc.Dispose();
 
                 CallSign        .Dispose();
                 CallSignPageHtml.Dispose();
@@ -990,7 +996,7 @@ namespace Play.MorsePractice {
 
             if( !string.IsNullOrEmpty( oRepeater.CallSign ) ) { 
                 RepeaterInfo oInfo;
-                if( _rgRepeatersInfo.TryGetValue( oRepeater.CallSign, out oInfo ) ) {
+                if( RepeatersInfo.TryGetValue( oRepeater.CallSign, out oInfo ) ) {
                     oProps.SetValue( (int)RadioProperties.Names.Location,      oInfo.Location );
                     oProps.SetValue( (int)RadioProperties.Names.Group,         oInfo.Group );
                     oProps.SetValue( (int)RadioProperties.Names.Repeater_Tone, oRepeater.Tone );
@@ -1455,17 +1461,17 @@ namespace Play.MorsePractice {
             rgTemp.Add( new RepeaterDir( 147.18,  +600, 120, "wa7law",    "103.5" ));
             rgTemp.Add( new RepeaterDir( 445.575,  5000, 120, "wa7law",    "103.5" ));
 
-            _rgRepeatersInfo.Add( "k7lwh",  new RepeaterInfo( "Kirkland", "Lake Washington Ham Club", "http://www.lakewashingtonhamclub.org/" ));
-            _rgRepeatersInfo.Add( "ww7psr", new RepeaterInfo( "Seattle", "Puget Sound Repeater Group", "http://psrg.org/" ));
-            _rgRepeatersInfo.Add( "k7led",  new RepeaterInfo( "Tiger Mountain East", "Mike & Key ARC", "http://www.mikeandkey.org/index.php" ));
-            _rgRepeatersInfo.Add( "wa7dem", new RepeaterInfo( "Granite Falls", "Snohomish Co. ACS/ARES" ));
-            _rgRepeatersInfo.Add( "w7mir",  new RepeaterInfo( "Mercer island", "Mercer Island Radio Operators" ));
-            _rgRepeatersInfo.Add( "k6rfk",  new RepeaterInfo( "Woodinville", "" ));
-            _rgRepeatersInfo.Add( "w7wwi",  new RepeaterInfo( "Tiger Mtn East", "Sea-Tac Repeater Association" ));
-            _rgRepeatersInfo.Add( "k7sye",  new RepeaterInfo( "Auburn", "Auburn Valley Repeater Group" ));
-            _rgRepeatersInfo.Add( "wa7hjr", new RepeaterInfo( "Issaquah", "Tiger Mountain East", "http://wa7hjr.org/" ) );
-            _rgRepeatersInfo.Add( "w7dk"  , new RepeaterInfo( "Tacoma", "Radio Club of Tacoma" ));
-            _rgRepeatersInfo.Add( "wa7law", new RepeaterInfo( "Everett", "Snohomish County Hams Club", "http://www.wa7law.org/" ));
+            RepeatersInfo.Add( "k7lwh",  new RepeaterInfo( "Kirkland", "Lake Washington Ham Club", "http://www.lakewashingtonhamclub.org/" ));
+            RepeatersInfo.Add( "ww7psr", new RepeaterInfo( "Seattle", "Puget Sound Repeater Group", "http://psrg.org/" ));
+            RepeatersInfo.Add( "k7led",  new RepeaterInfo( "Tiger Mountain East", "Mike & Key ARC", "http://www.mikeandkey.org/index.php" ));
+            RepeatersInfo.Add( "wa7dem", new RepeaterInfo( "Granite Falls", "Snohomish Co. ACS/ARES" ));
+            RepeatersInfo.Add( "w7mir",  new RepeaterInfo( "Mercer island", "Mercer Island Radio Operators" ));
+            RepeatersInfo.Add( "k6rfk",  new RepeaterInfo( "Woodinville", "" ));
+            RepeatersInfo.Add( "w7wwi",  new RepeaterInfo( "Tiger Mtn East", "Sea-Tac Repeater Association" ));
+            RepeatersInfo.Add( "k7sye",  new RepeaterInfo( "Auburn", "Auburn Valley Repeater Group" ));
+            RepeatersInfo.Add( "wa7hjr", new RepeaterInfo( "Issaquah", "Tiger Mountain East", "http://wa7hjr.org/" ) );
+            RepeatersInfo.Add( "w7dk"  , new RepeaterInfo( "Tacoma", "Radio Club of Tacoma" ));
+            RepeatersInfo.Add( "wa7law", new RepeaterInfo( "Everett", "Snohomish County Hams Club", "http://www.wa7law.org/" ));
 
             foreach ( RepeaterDir oItem in rgTemp ) {
                 _rgRepeatersIn .Add( oItem.Input, oItem );
@@ -1539,6 +1545,10 @@ namespace Play.MorsePractice {
 
             InitSerial    ();
             InitRepeaters ();
+
+            // This will grab the repeaters initialized above.
+            if( !RepeatersDoc.InitNew() ) 
+                return false;
 
             //for( int i=0; i<3; ++i ) {
             //    List<Line> rgRow = new List<Line>(7);

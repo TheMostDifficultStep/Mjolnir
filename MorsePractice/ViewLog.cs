@@ -1,8 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Collections;
 using System.Windows.Forms;
-using System.Xml;
 using System.Reflection;
 
 using SkiaSharp;
@@ -22,9 +19,7 @@ namespace Play.MorsePractice {
 	/// <seealso cref="ViewLogAndNotes"/>
 	public class ViewLog : 
 		WindowMultiColumn,
-		IPgCommandView,
-        IPgLoad<XmlElement>,
-		IPgSave<XmlDocumentFragment>
+		IPgCommandView
 	{
 		static public Guid ViewCatagory { get; } = new Guid("{BE243DE2-7763-4A44-9499-0EEDBC84D8A4}");
         static readonly protected string _strIcon = @"Play.MorsePractice.Content.icons8-copybook-60.png";

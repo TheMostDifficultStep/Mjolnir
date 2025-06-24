@@ -108,12 +108,14 @@ namespace Play.MorsePractice
         }
 
         public override IDisposable CreateView( IPgViewSite oBaseSite, object oDocument, Guid guidViewType ) {
-            DocStdLog oMorsePractice = oDocument as DocStdLog ?? throw new ArgumentException( "Argument must be an ImageWalkerDoc" );
+            DocStdLog oMorsePractice = oDocument as DocStdLog ?? throw new ArgumentException( "Argument must be an DocStdLog" );
 
 			try {
                 switch( guidViewType ) {
                     case Guid r when r == ViewSimple._guidViewCategory:
                         return new ViewSimple(oBaseSite, oMorsePractice);
+                    case Guid r when r == ViewRepeaters.ViewCatagory:
+                        return new ViewRepeaters( oBaseSite, oMorsePractice.RepeatersDoc );
 
                     default:
                         return new ViewSimple(oBaseSite, oMorsePractice );
@@ -131,7 +133,8 @@ namespace Play.MorsePractice
         }
 
         public override IEnumerator<IPgViewType> GetEnumerator() {
-            yield return new ViewType( "Notes", ViewSimple._guidViewCategory );
+            yield return new ViewType( "Notes",     ViewSimple   ._guidViewCategory );
+            yield return new ViewType( "Repeaters", ViewRepeaters.ViewCatagory );
         }
     }
 

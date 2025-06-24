@@ -1,0 +1,108 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Collections;
+using System.Windows.Forms;
+using System.Xml;
+using System.Reflection;
+
+using SkiaSharp;
+
+using Play.Interfaces.Embedding;
+using Play.Rectangles;
+using Play.Edit;
+using Play.Forms;
+using Play.Parse;
+using Play.Drawing;
+using static Play.MorsePractice.DocStdLog;
+using Microsoft.VisualBasic.Logging;
+
+namespace Play.MorsePractice {
+    /// <summary>
+    /// Repeaters list.
+    /// </summary>
+    public class DocRepeaters :
+        EditMultiColumn,
+		IPgLoad
+    {
+        public DocRepeaters( IPgBaseSite oSiteBase ) : base(oSiteBase) {
+        }
+
+        public bool InitNew() {
+			if( _oSiteBase.Host is DocStdLog oStdLog ) {
+                using( BulkLoader oLoader = new( this ) ) {
+					foreach( DocStdLog.RepeaterInfo oInfo in oStdLog.RepeatersInfo.Values ) {
+						RepRow oRow = new RepRow( oInfo );
+						oLoader.Append( oRow );
+					}
+				}
+				return true;
+			}
+            return false;
+        }
+
+        public class RepRow : Row {
+			public string URL {get;}
+            public RepRow( DocStdLog.RepeaterInfo oInfo ) {
+                _rgColumns = new Line[2];
+
+				_rgColumns[0] = new TextLine( ColumnName,     oInfo.Group );
+				_rgColumns[1] = new TextLine( ColumnLocation, oInfo.Location );
+
+				URL = oInfo.URL;
+
+				_rgColumns[0].Formatting.Add( new RepeaterHyperText( 1, 0, _rgColumns[0].ElementCount, "website" ) );
+            }
+
+            public const int ColumnName     = 0;
+            public const int ColumnLocation = 1;
+        }
+	}
+
+	/// <summary>
+	/// Multi column log viewer!! This is the inner columnar view beneath 
+	/// the notes in the "ViewLogAndNotes" case.
+	/// </summary>
+	/// <seealso cref="ViewLogAndNotes"/>
+	public class ViewRepeaters : 
+		WindowMultiColumn,
+		IPgCommandView
+	{
+		static public Guid ViewCatagory { get; } = new Guid("{D99E1EDF-5D06-4AB1-BBFF-29BC1312F6E6}");
+        static readonly protected string _strIcon = @"Play.MorsePractice.Content.icons8-address-48.png";
+
+		public Guid   Catagory => ViewCatagory;
+		public string Banner   => "Repeater List Viewer";
+		public SKBitmap Icon   { get; protected set; }
+
+		protected DocRepeaters RepeaterDoc { get; }
+
+		public ViewRepeaters( IPgViewSite oSiteView, DocRepeaters oDocument ) :
+			base( oSiteView, oDocument )
+		{
+			RepeaterDoc = oDocument;
+			Icon        = SKImageResourceHelper.GetImageResource( Assembly.GetExecutingAssembly(), _strIcon );
+		}
+
+		protected override bool Initialize() {
+			if( !base.Initialize() )
+				return false;
+
+			TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Flex ) { Track = 60 }, DocRepeaters.RepRow.ColumnName );
+			TextLayoutAdd( new LayoutRect( LayoutRect.CSS.None ),                DocRepeaters.RepRow.ColumnLocation );
+
+            HyperLinks.Add( "website", OnWebSite );
+
+			return true;
+		}
+        protected void OnWebSite( Row oRow, int iColumn, IPgWordRange oRange ) {
+			if( oRow is DocRepeaters.RepRow oRepeater ) {
+				BrowserLink( oRepeater.URL );
+			}
+        }
+
+        public object Decorate(IPgViewSite oBaseSite, Guid sGuid) {
+			return null;
+        }
+    }
+}
+
