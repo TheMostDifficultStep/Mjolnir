@@ -693,7 +693,7 @@ namespace Play.MorsePractice {
         public Editor CallSignBioHtml { get; } // base 64 converted HTML streaml;
         public Editor CallSignPageHtml{ get; } // This is the main page returned by qrz.
 
-                 SerialPort              _oCiV; // Good cantidate for "init once"
+        protected SerialPort              CiV { get; private set; } // Still good candidate for "init once"
         readonly ConcurrentQueue<byte[]> _oMsgQueue = new ConcurrentQueue<byte[]>(); // events to our forground thread.
         readonly Line                    _oDataGram = new TextLine( 0, string.Empty );
         readonly Grammer<char>           _oCiVGrammar;
@@ -737,9 +737,9 @@ namespace Play.MorsePractice {
         /// Document object for a little Morse Practice document.
         /// </summary>
         public DocStdLog( IPgBaseSite oSiteBase ) {
-			_oSiteBase  = oSiteBase                 ?? throw new ArgumentNullException();
-            _oSiteFile  = oSiteBase as IPgFileSite  ?? throw new ArgumentException( "Host needs the IPgFileSite interface" );
-            _oScheduler = Services  as IPgScheduler ?? throw new ArgumentException("Host requries IPgScheduler");
+			_oSiteBase  = oSiteBase                     ?? throw new ArgumentNullException();
+            _oSiteFile  = oSiteBase as IPgFileSite      ?? throw new ArgumentException( "Host needs the IPgFileSite interface" );
+            _oScheduler = Services  as IPgScheduler     ?? throw new ArgumentException("Host requries IPgScheduler");
             _oTaskQrz   = _oScheduler.CreateWorkPlace() ?? throw new ApplicationException("No worksite for file downloader.");
             _oTaskCiv   = _oScheduler.CreateWorkPlace() ?? throw new ApplicationException("No worksite for Civ." );
             _oTaskTimer = _oScheduler.CreateWorkPlace() ?? throw new ApplicationException("No worksite for Frequency Change Listener." );
@@ -783,9 +783,9 @@ namespace Play.MorsePractice {
 
 		public void Dispose() {
 			if( !_fDisposed ) {
-                if( _oCiV is not null ) {
-                    _oCiV.DataReceived -= CiV_DataReceived;
-                    _oCiV.Close();
+                if( CiV is not null ) {
+                    CiV.DataReceived -= CiV_DataReceived;
+                    CiV.Close();
                 }
                 _oParse?.Dispose();
 
@@ -1237,7 +1237,7 @@ namespace Play.MorsePractice {
         }
 
         protected CivCommandStream CreateCommander( byte bCmnd ) {
-            return new CivCommandStream( _oCiV, LogError, TransmitterAddress, ControllerAddress, bCmnd );
+            return new CivCommandStream( CiV, LogError, TransmitterAddress, ControllerAddress, bCmnd );
         }
 
         /// <summary>
@@ -1392,14 +1392,14 @@ namespace Play.MorsePractice {
                 TransmitterAddress = Convert.ToByte( Properties.ValueAsStr((int)RadioProperties.Names.Address_Radio     ), 16 );
                 ControllerAddress  = Convert.ToByte( Properties.ValueAsStr((int)RadioProperties.Names.Address_Controller), 16 );
 
-                _oCiV = new SerialPort( strPortID );
-                _oCiV.BaudRate  = 115200;
-                _oCiV.Parity    = Parity.None;
-                _oCiV.StopBits  = StopBits.One;
-                _oCiV.DataBits  = 8;
-                _oCiV.Handshake = Handshake.None;
+                CiV = new SerialPort( strPortID );
+                CiV.BaudRate  = 115200;
+                CiV.Parity    = Parity.None;
+                CiV.StopBits  = StopBits.One;
+                CiV.DataBits  = 8;
+                CiV.Handshake = Handshake.None;
 
-                _oCiV.DataReceived += CiV_DataReceived;
+                CiV.DataReceived += CiV_DataReceived;
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( IOException ),
                                     typeof( FormatException ),
@@ -1416,8 +1416,8 @@ namespace Play.MorsePractice {
             }
 
             try {
-                if( FlagSComsOn && !_oCiV.IsOpen ) {
-                    _oCiV.Open();
+                if( FlagSComsOn && !CiV.IsOpen ) {
+                    CiV.Open();
                     Properties.ValueUpdate( RadioProperties.Names.Timer, "On" );
                 } else {
                     Properties.ValueUpdate( RadioProperties.Names.Timer, "Off" );
@@ -1426,8 +1426,8 @@ namespace Play.MorsePractice {
                 if( CiVErrorList.IsUnhandled( oEx ) )
                     throw;
 
-                _oCiV.DataReceived -= CiV_DataReceived;
-                _oCiV.Dispose();
+                CiV.DataReceived -= CiV_DataReceived;
+                CiV.Dispose();
 
                 LogError( "Morse COM access", "Unable to open COM port. Timer disabled" );
                 Properties.ValueUpdate( RadioProperties.Names.Timer, "Failed Open" );
@@ -1501,12 +1501,12 @@ namespace Play.MorsePractice {
         /// <remarks>TODO: Would be nice if we could post a message to the forground so that
         /// it spins up a task that can terminate once all the data has been pulled.</remarks>
         private void CiV_DataReceived( object sender, SerialDataReceivedEventArgs e ) {
-            int iBytesWaiting = _oCiV.BytesToRead;
+            int iBytesWaiting = CiV.BytesToRead;
             if( iBytesWaiting > 0 ) {
                 byte[] rgMsg = new byte[iBytesWaiting];
 
                 try {
-                    _oCiV?.Read( rgMsg, 0, iBytesWaiting );
+                    CiV?.Read( rgMsg, 0, iBytesWaiting );
                     _oMsgQueue.Enqueue( rgMsg );
                 } catch( Exception oEx ) {
                     if( CiVErrorList.IsUnhandled( oEx ) )
@@ -1890,9 +1890,9 @@ namespace Play.MorsePractice {
         public bool Execute( Guid guidCmnd ) {
             if( guidCmnd == GlobalCommands.Play ) {
                 try {
-                    if( !_oCiV.IsOpen ) {
+                    if( !CiV.IsOpen ) {
                         InitSerial();
-                        _oCiV.Open();
+                        CiV.Open();
                     } else {
                         // This will get cleared, but leave it for now. Need to have some
                         // properties that have a function that gets called on clear.
@@ -1912,9 +1912,9 @@ namespace Play.MorsePractice {
             }
             if( guidCmnd == GlobalCommands.Stop ) {
                 try {
-                    if( _oCiV.IsOpen ) {
-                        _oCiV.DataReceived -= CiV_DataReceived;
-                        _oCiV.Close();
+                    if( CiV.IsOpen ) {
+                        CiV.DataReceived -= CiV_DataReceived;
+                        CiV.Close();
 
                         Properties.ValueUpdate( RadioProperties.Names.Timer, "Off" );
                     } else {

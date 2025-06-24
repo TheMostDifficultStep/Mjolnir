@@ -9,6 +9,7 @@ using Play.Edit;
 using Play.Parse;
 using Play.Drawing;
 using static Play.MorsePractice.DocStdLog;
+using System.Collections.Generic;
 
 namespace Play.MorsePractice {
     /// <summary>
@@ -61,6 +62,21 @@ namespace Play.MorsePractice {
             public const int ColumnName     = 1;
             public const int ColumnLocation = 2;
         }
+
+        /// <summary>
+        /// Since, at present, we only load the document once there is
+		/// no reason to schedule a parse since this function will only
+		/// be called once after the document is loaded.
+        /// </summary>
+		/// <seealso cref="DocLog.GetParseEnum"/>
+		/// <seealso cref="DocLog.DoParse"/>
+        public override void DoParse() {
+            RenumberAndSumate();
+            ParseColumn      ( RepRow.ColumnCallSign );
+
+            Raise_DocFormatted();
+        }
+
 	}
 
 	/// <summary>
@@ -96,7 +112,8 @@ namespace Play.MorsePractice {
 			TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Flex ) { Track = 60 }, DocRepeaters.RepRow.ColumnName );
 			TextLayoutAdd( new LayoutRect( LayoutRect.CSS.None ),                DocRepeaters.RepRow.ColumnLocation );
 
-            HyperLinks.Add( "website", OnWebSite );
+            HyperLinks.Add( "website",  OnWebSite  );
+			HyperLinks.Add( "callsign", OnCallSign );
 
 			return true;
 		}
@@ -104,6 +121,10 @@ namespace Play.MorsePractice {
 			if( oRow is DocRepeaters.RepRow oRepeater && !string.IsNullOrEmpty( oRepeater.URL ) ) {
 				BrowserLink( oRepeater.URL );
 			}
+        }
+
+        protected void OnCallSign( Row oRow, int iColumn, IPgWordRange oRange ) {
+            BrowserLink( "http://www.qrz.com/db/" +  oRow[iColumn].SubString( oRange.Offset, oRange.Length) );
         }
 
         public object Decorate(IPgViewSite oBaseSite, Guid sGuid) {
