@@ -1099,6 +1099,14 @@ namespace Mjolnir {
         }
 
         /// <summary>
+        /// Let's try opening the requested decor on demand when a view that needs it is opened...
+        /// This method is on the IPgMainWindow interface. 
+        /// </summary>
+        public bool DecorOpen( Guid gDecor ) {
+            return DecorOpen( gDecor, true ) != null;
+        }
+
+        /// <summary>
         /// Presently there is no Menu decor/shepard. The menu is hard coded to be
         /// in the layout.
         /// </summary>

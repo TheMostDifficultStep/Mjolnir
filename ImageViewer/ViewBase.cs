@@ -428,10 +428,13 @@ namespace Play.ImageViewer {
 				if( Document.Bitmap != null ) {
 					ViewPortSizeMax( _rctWorldPort, _rctViewPort );
 				} else {
-					ViewPortSizeCenter(Document.ErrorBitmap, _rctViewPort);
-					_rctWorldPort.SetRect( LOCUS.UPPERLEFT, 0, 0,
-										   Document.ErrorBitmap.Width,
-										   Document.ErrorBitmap.Height);
+					// Looks like we're hitting this when the shell shuts down.
+					if( Document.ErrorBmp != null ) {
+						ViewPortSizeCenter(Document.ErrorBitmap, _rctViewPort);
+						_rctWorldPort.SetRect( LOCUS.UPPERLEFT, 0, 0,
+											   Document.ErrorBitmap.Width,
+											   Document.ErrorBitmap.Height);
+					}
 				}
 			} catch( Exception oEx ) {
 				Type[] rgErrors = { typeof( NullReferenceException ),

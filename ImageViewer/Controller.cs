@@ -62,13 +62,18 @@ namespace Play.ImageViewer {
 
 			try {
 				if( guidViewType == _guidViewImage )
-					return( new WindowSoloImageNav( oBaseSite, oDocImageBrowser ) );
+					return new WindowSoloImageNav( oBaseSite, oDocImageBrowser );
 				if( guidViewType == ViewImageIconsMain.Guid )
-					return( new ViewImageIconsMain( oBaseSite, oDocImageBrowser ) );
+					return new ViewImageIconsMain( oBaseSite, oDocImageBrowser );
 				if( guidViewType == ViewImageText.Guid )
-					return( new ViewImageText     ( oBaseSite, oDocImageBrowser ) );
-				if( guidViewType == ViewSnipDialog.Guid )
-					return( new ViewSnipDialog    ( oBaseSite, oDocImageBrowser ) );
+					return new ViewImageText     ( oBaseSite, oDocImageBrowser );
+				if( guidViewType == ViewSnipDialog.Guid ) {
+                    IDisposable oView = new ViewSnipDialog( oBaseSite, oDocImageBrowser );
+                    if( oView != null && oBaseSite.Host is IPgMainWindow oFrame ) {
+                        oFrame.DecorOpen( GlobalDecor.Properties );
+                    }
+					return oView ;
+                }
 
 				return( new WindowSoloImageNav( oBaseSite, oDocImageBrowser ) );
             } catch( Exception oEx ) {

@@ -295,6 +295,7 @@ namespace Play.Interfaces.Embedding {
         int DocumentShow( string strFileName, Guid guidViewType, bool fShow );
 
         PgDisplayInfo MainDisplayInfo { get; }
+        bool DecorOpen( Guid gDecor );
     }
 
     /// <summary>

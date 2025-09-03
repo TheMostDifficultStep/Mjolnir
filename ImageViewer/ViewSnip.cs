@@ -278,9 +278,11 @@ namespace Play.ImageViewer {
 		}
 
 		public object Decorate(IPgViewSite oBaseSite, Guid sGuid) {
-			if( sGuid == GlobalDecor.Outline ||
-				sGuid == GlobalDecor.Properties ) {
+			if( sGuid == GlobalDecor.Properties ) {
 				return new WindowStandardProperties( oBaseSite, PropertiesDoc );
+			}
+			if( sGuid == GlobalDecor.Outline ) {
+				return new WindowSoloImageNav( oBaseSite, _oDocument );
 			}
 			return null;
 		}

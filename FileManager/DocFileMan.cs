@@ -373,6 +373,8 @@ namespace Play.FileManager {
 
                 _strDirectory = oDir.FullName;
 
+                // BUG: This can be ultra laggy. Would be really cool to put this on a 
+                // bg thread. Start up will be quicker.
                 List<FileInfo> rgFiles = new List<FileInfo>();
                 foreach( FileInfo oFile in oDir.GetFiles( "*.*", SearchOption.TopDirectoryOnly ) ) {
 					if( !oFile.Attributes.HasFlag( FileAttributes.Hidden)) {
