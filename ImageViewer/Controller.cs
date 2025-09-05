@@ -68,11 +68,7 @@ namespace Play.ImageViewer {
 				if( guidViewType == ViewImageText.Guid )
 					return new ViewImageText     ( oBaseSite, oDocImageBrowser );
 				if( guidViewType == ViewSnipDialog.Guid ) {
-                    IDisposable oView = new ViewSnipDialog( oBaseSite, oDocImageBrowser );
-                    if( oView != null && oBaseSite.Host is IPgMainWindow oFrame ) {
-                        oFrame.DecorOpen( GlobalDecor.Properties );
-                    }
-					return oView ;
+					return new ViewSnipDialog( oBaseSite, oDocImageBrowser ) ;
                 }
 
 				return( new WindowSoloImageNav( oBaseSite, oDocImageBrowser ) );

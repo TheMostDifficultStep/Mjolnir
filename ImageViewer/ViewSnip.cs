@@ -143,6 +143,12 @@ namespace Play.ImageViewer {
 			// TODO: We'll add a setting to determine the aspect affinity.
 			OnHeightChanged( BUFFEREVENTS.SINGLELINE );
 
+			// This only works b/c the calling window is typically image nav
+            // which has an eligible property page. Else shell won't open the decor.
+            if( _oSiteBase.Host is IPgMainWindow oFrame ) {
+                oFrame.DecorOpen( GlobalDecor.Properties );
+            }
+
 			return true;
 		}
 
