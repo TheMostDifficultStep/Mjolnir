@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using Microsoft.VisualBasic;
 using SkiaSharp;
 
 //-----------------------------------------------------------------------------------------------------------------------------------------------
@@ -53,6 +52,9 @@ namespace Play.Sound {
         }
     }
 
+    /// <summary>
+    /// This class parses the Robot 24 and 72 data type.
+    /// </summary>
     public class SSTVModeRobot422 : SSTVMode {
         public SSTVModeRobot422( byte bVIS, string strName, double dblSync, double dblGap, double dblClrWidth, SKSizeI skSize, AllSSTVModes eLegacy = AllSSTVModes.smEND) : 
             base( TVFamily.Robot, bVIS, strName, dblClrWidth, skSize, eLegacy ) 
