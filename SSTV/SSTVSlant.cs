@@ -79,7 +79,7 @@ namespace Play.SSTV {
 		readonly ISstvAdjust _oSetting;
 		readonly SSTVDEM     _dp;
 
-		int m_wStgLine;
+		readonly int m_wStgLine;
 		int[] _bp;
 
 		public SSTVSlant( SSTVDEM dp, ISstvAdjust oSettings )  {
