@@ -618,18 +618,31 @@ namespace Play.SSTV {
             WmmPlayer     oPlayer;
             WmmReader     oReader;
 
-            try {
-                oPlayer = new ( oAudio, _iSpeaker );
-                oReader = new ( oAudio, _iMicrophone );
-            } catch( Exception oEx ) {
+            {
                 Type[] rgErrors = { typeof( BadDeviceIdException ),
                                     typeof( ArgumentException ),
-                                    typeof( InvalidHandleException ) };
-                if( rgErrors.IsUnhandled( oEx ) )
-                    throw;
+                                    typeof( InvalidHandleException ),
+                                    typeof( MMSystemException ) };
 
-                _oToUIQueue.Enqueue( new( SSTVEvents.ThreadException, "Bad Device. Try another") );
-                return;
+                try {
+                    oPlayer = new ( oAudio, _iSpeaker );
+                } catch( Exception oEx ) {
+                    if( rgErrors.IsUnhandled( oEx ) )
+                        throw;
+
+                    _oToUIQueue.Enqueue( new( SSTVEvents.ThreadException, "Bad Speaker. Try another") );
+                    return;
+                }
+
+                try {
+                    oReader = new ( oAudio, _iMicrophone );
+                } catch( Exception oEx ) {
+                    if( rgErrors.IsUnhandled( oEx ) )
+                        throw;
+
+                    _oToUIQueue.Enqueue( new( SSTVEvents.ThreadException, "Bad Microphone. Try another") );
+                    return;
+                }
             }
 
             // If we return samples slower than this, our audio level visuals are sluggish.

@@ -68,7 +68,7 @@ namespace Play.ImageViewer {
 				if( guidViewType == ViewImageText.Guid )
 					return new ViewImageText     ( oBaseSite, oDocImageBrowser );
 				if( guidViewType == ViewSnipDialog.Guid ) {
-					return new ViewSnipDialog( oBaseSite, oDocImageBrowser ) ;
+					return new ViewSnipDialog    ( oBaseSite, oDocImageBrowser ) ;
                 }
 
 				return( new WindowSoloImageNav( oBaseSite, oDocImageBrowser ) );
