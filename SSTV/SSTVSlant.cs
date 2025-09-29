@@ -212,13 +212,18 @@ namespace Play.SSTV {
 			NX     nx    = new NX();
 
 			for( int i = 0; i < m_wStgLine; i++) {
+				// BUG!! SyncGet is going out of bounds from time to time!!
+				//       so check the bounds first and simply bail of problem.
+				// Instead of checking for each sample in the scan line now
+				// We just check that the line won't go out of bounds.
+				if( _dp.BoundsCompare( i * ( _oSetting.WD + 1 )) != 0 )
+					break;
 
 				for( int j = 0; j < _oSetting.WD; j++, iBase++) {
 					int   sp_idx = i * _oSetting.WD + j;
-					// BUG!! SyncGet is going out of bounds from time to time!!
-					//       so check the bounds first and simply bail of problem.
-					if( _dp.BoundsCompare( sp_idx ) != 0 )
-						break;
+					// FIX: See about moving out of this loop and check max outside.
+					//if( _dp.BoundsCompare( sp_idx ) != 0 )
+					//	break;
 					short sp = _dp.SyncRaw( sp_idx );
 					int   yy = (int)( iBase / _oSetting.TW );
 
