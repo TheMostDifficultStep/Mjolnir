@@ -23,7 +23,7 @@ namespace Play.Controls {
     public class ImageForDropDown : ImageBaseDoc {
         public ImageForDropDown(IPgBaseSite oSiteBase) : base(oSiteBase) {
             Bitmap = GetSKBitmapResource( Assembly.GetExecutingAssembly(), 
-                                          "Play.Forms.Content.icons8-list-64.png" );
+                                          "Play.Forms.Content.icons8-triangle-96.png" );
         }
     }
 
@@ -118,7 +118,6 @@ namespace Play.Controls {
         /// </summary>
         /// <param name="oViewSite">Site from our parent.</param>
         /// <param name="oDocument">A multiline/multicolumn doc holding our list.</param>
-        /// <param name="oBitmap">Image to use for the dropdown button.</param>
         /// <exception cref="ArgumentNullException"></exception>
         /// <exception cref="ArgumentException"></exception>
         public ViewEditBox( IPgViewSite oViewSite, object oDocument ) {
