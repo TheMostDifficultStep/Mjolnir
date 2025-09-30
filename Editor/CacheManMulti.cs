@@ -1398,6 +1398,21 @@ namespace Play.Edit {
             return null;
         }
 
+        public bool IsInside( SKPointI pntClick, out int iTextColumn ) {
+            SmartRect oColumn = new SmartRect();
+
+            for( iTextColumn=0; iTextColumn<_rgColumnInfo.Count; ++iTextColumn ) {
+                oColumn.Copy =  _rgColumnInfo[iTextColumn].Bounds;
+                if( iTextColumn > 0 ) {
+                    oColumn.Left = _rgColumnInfo[iTextColumn-1].Bounds.Right+1;
+                }
+                if( oColumn.IsInside( pntClick.X, pntClick.Y ) ) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
         /// <summary>
         /// This moves the caret and we expect it's position to be updated w/o
         /// any window invalidate since we are using the windows mouse to pick.
@@ -1407,27 +1422,25 @@ namespace Play.Edit {
         /// <seealso cref="CaretMove(Axis, int)"/>
         public bool CaretAdvance( SKPointI pntPick ) {
             try {
-                for( int iColumn = 0; iColumn < _rgColumnInfo.Count; iColumn++ ) {
+                if( IsInside( pntPick, out int iColumn ) ) {
                     SmartRect rctColumn = _rgColumnInfo[iColumn].Bounds;
-                    // First find the column the pick is in. PointToCache will then search each cache row.
-                    if( rctColumn.IsInside( pntPick.X, pntPick.Y ) ) {
-                        CacheRow oCacheRow = PointToCache( iColumn, pntPick, out int iOffset );
-                        if( oCacheRow != null ) {
-                            _fAdvance  = pntPick.X - rctColumn.Left;
-                            _oCaretRow = oCacheRow.Row;
-                            _iCaretCol = iColumn;
-                            _iCaretOff = iOffset;
+                    CacheRow  oCacheRow = PointToCache( iColumn, pntPick, out int iOffset );
+                    if( oCacheRow != null ) {
+                        int iDiff  = pntPick.X - rctColumn.Left;
 
-                            Extent sSegment = RenderAt( oCacheRow, rctColumn );
-                            Point  pntCaret = oCacheRow[iColumn].GlyphOffsetToPoint( _iCaretOff );
+                        _fAdvance  = iDiff > 0 ? iDiff : 0; // If pic column left leading space.
+                        _oCaretRow = oCacheRow.Row;
+                        _iCaretCol = iColumn;
+                        _iCaretOff = iOffset;
 
-                            pntCaret.X += rctColumn.Left;
-                            pntCaret.Y += sSegment .Start;
+                        Extent sSegment = RenderAt( oCacheRow, rctColumn );
+                        Point  pntCaret = oCacheRow[iColumn].GlyphOffsetToPoint( _iCaretOff );
 
-                            _oSite.OnCaretPositioned( new SKPointI( pntCaret.X, pntCaret.Y ), true );
-                            return true;
-                        }
-                        break;
+                        pntCaret.X += rctColumn.Left;
+                        pntCaret.Y += sSegment .Start;
+
+                        _oSite.OnCaretPositioned( new SKPointI( pntCaret.X, pntCaret.Y ), true );
+                        return true;
                     }
                 }
             } catch( Exception oEx ) {

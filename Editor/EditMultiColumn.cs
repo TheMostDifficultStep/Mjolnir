@@ -885,6 +885,9 @@ namespace Play.Edit {
                 }
                 if( oRowTop is not null ) {
                     // TODO: Consider patching up formatting too...
+                    // Bug: if the row that got deleted contains our caret
+                    // We're not attempting to push it into a valid area.
+                    // The window notices the caret row is invalid and sets it to zero.
                     if( oSelection.IsSelection( oRowTop ) != IPgSelection.SlxnType.None ) {
                         foreach( IPgEditEvents oListen in _rgListeners ) {
                             if( oSelection.AtColumn( oListen.Caret2.Column ) is IMemoryRange oColSel ) {

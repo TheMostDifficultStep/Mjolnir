@@ -1197,16 +1197,6 @@ namespace Play.Edit {
             return (ModifierKeys & Keys.Control) != 0;
         }
 
-        public bool IsInside( SKPointI pntClick, out int iTextColumn ) {
-            for( iTextColumn=0; iTextColumn<_rgTxtCol.Count; ++iTextColumn ) {
-                SmartRect oColumn = _rgTxtCol[iTextColumn].Bounds;
-                if( oColumn.IsInside( pntClick.X, pntClick.Y ) ) {
-                    return true;
-                }
-            }
-            return false;
-        }
-
         protected override void OnMouseDoubleClick( MouseEventArgs e ) {
             base.OnMouseDoubleClick(e);
 
@@ -1218,7 +1208,7 @@ namespace Play.Edit {
 
             try {
                 // See if want to double click select a word.
-                if( IsInside( pntClick, out int iTextColumn ) ) {
+                if( _oCacheMan.IsInside( pntClick, out int iTextColumn ) ) {
                     CacheMultiColumn.CaretInfo? sCaret = _oCacheMan.CopyCaret();
 
                     if( sCaret is CacheMultiColumn.CaretInfo oCaret ) {
@@ -1251,7 +1241,7 @@ namespace Play.Edit {
 
             Select();
             SKPointI pntClick = new SKPointI( e.X, e.Y );
-            bool     fInside  = IsInside( pntClick, out int iTextColumn );
+            bool     fInside  = _oCacheMan.IsInside( pntClick, out int iTextColumn );
 
             if( fInside ) {
                 int iDataCol = _rgTxtCol[iTextColumn].DataIndex;
@@ -1288,8 +1278,8 @@ namespace Play.Edit {
             CursorUpdate( pntMouse, e.Button );
 
             if( _oCacheMan.IsSelecting ) {
-                _oCacheMan.ReColor();
                 _oCacheMan.CaretAdvance(pntMouse);
+                _oCacheMan.ReColor();
                 Invalidate();
             }
         }
