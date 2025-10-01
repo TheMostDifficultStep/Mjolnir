@@ -819,16 +819,35 @@ namespace Play.Edit {
         }
 
         /// <summary>
+        /// Given remove the text out of the selected columns of the row.
+        /// </summary>
+        /// <param name="oSelection"></param>
+        /// <param name="oRow"></param>
+        protected void RemoveTextSelection( IPgSelection oSelection, Row oRow ) {
+            if( oRow != null ) {
+                oSelection.IsSelection( oRow );
+                for( int i=0; i< oRow.Count; ++i ) {
+                    IMemoryRange oRange = oSelection.AtColumn(i);
+                    if( oRange != null ) {
+                        Line oLine = oRow[i];
+                        oLine.TryReplace( oRange, null );
+                    }
+                }
+            }
+        }
+
+        /// <summary>
         /// Delete all the rows in the selection. Attempt to merge the columns on
         /// the top and bottom of the selection. This is for a stream style deletion
         /// on multiple columns.
         /// </summary>
         /// <seealso cref="CacheMultiColumn.SelectionCopy"/>
         public void RowDelete( IPgSelection oSelection ) {
-            List<Row> rgDelete = new List<Row>();
-            Row       oRowTop  = null;
-            Row       oRowBot  = null;
             try {
+                List<Row> rgDelete = new List<Row>();
+                Row       oRowTop  = null;
+                Row       oRowBot  = null;
+
                 Raise_DocUpdateBegin();
                 
                 foreach( Row oRow in oSelection ) {
@@ -849,27 +868,12 @@ namespace Play.Edit {
                     _rgRows.Remove( oRow );
                     oRow.Deleted = true;
                 }
-                // Remove the text from each line element
-                if( oRowTop != null ) {
-                    oSelection.IsSelection( oRowTop );
-                    for( int i=0; i< oRowTop.Count; ++i ) {
-                        IMemoryRange oRange = oSelection.AtColumn(i);
-                        if( oRange != null ) {
-                            Line oLine = oRowTop[i];
-                            oLine.TryReplace( oRange, null );
-                        }
-                    }
-                }
-                if( oRowBot != null ) {
-                    oSelection.IsSelection( oRowBot );
-                    for( int i=0; i< oRowBot.Count; ++i ) {
-                        IMemoryRange oRange = oSelection.AtColumn(i);
-                        if( oRange != null ) {
-                            Line oLine = oRowBot[i];
-                            oLine.TryReplace( oRange, null );
-                        }
-                    }
-                }
+
+                // Note: If Top and Bot are equal, the above should not that and
+                //       we won't have a oRowBot reference. And RTS() will do nothing.
+                RemoveTextSelection( oSelection, oRowTop );
+                RemoveTextSelection( oSelection, oRowBot );
+
                 // Merge lines.
                 if( oRowTop != null && oRowBot != null ) {
                     for( int i=0; i< oRowTop.Count; ++i ) {
@@ -880,24 +884,23 @@ namespace Play.Edit {
                     }
                     _rgRows.Remove( oRowBot );
                     oRowBot.Deleted = true;
-
-
                 }
+
+                // I think I can assume the top row is always non null...but.
                 if( oRowTop is not null ) {
                     // TODO: Consider patching up formatting too...
-                    // Bug: if the row that got deleted contains our caret
-                    // We're not attempting to push it into a valid area.
-                    // The window notices the caret row is invalid and sets it to zero.
                     if( oSelection.IsSelection( oRowTop ) != IPgSelection.SlxnType.None ) {
                         foreach( IPgEditEvents oListen in _rgListeners ) {
-                            if( oSelection.AtColumn( oListen.Caret2.Column ) is IMemoryRange oColSel ) {
-                                Marker.ShiftDelete( oListen.Caret2, oColSel );
+                            if( oListen.Caret2.Row.Deleted ) {
+                                oListen.Caret2.Row = oRowTop;
                             }
                         }
                     }
                 }
                 RenumberAndSumate();
 
+                // BUG: Given this new cursor updating code, we might not need
+                // Finish up need the top row.
                 FinishUp( IPgEditEvents.EditType.Rows, oRowTop );
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( NullReferenceException ),

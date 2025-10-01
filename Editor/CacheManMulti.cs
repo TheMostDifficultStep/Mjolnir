@@ -15,7 +15,7 @@ namespace Play.Edit {
     public interface IPgCaretInfo<T> :
         IMemoryRange
     {
-        T   Row    { get; }
+        T   Row    { get; set; }
         int Column { get; }
     }
 
@@ -90,7 +90,10 @@ namespace Play.Edit {
 
         // I can return myself as a caret. I might just
         // box this up into an object.
-        public Row Row    => _oCaretRow;
+        public Row Row    { 
+            get => _oCaretRow;
+            set => _oCaretRow = value; 
+            }
         public int Column => _iCaretCol;
         public int Offset { 
             get => _iCaretOff;
@@ -743,7 +746,7 @@ namespace Play.Edit {
                 Offset = oSource.Offset;
             }
 
-            public Row Row    { get; }
+            public Row Row    { get; set; }
 
             public int Column { get; }
 

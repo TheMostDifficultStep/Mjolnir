@@ -398,7 +398,7 @@ namespace Play.Controls {
         }
 
         protected class DumbCaret : IPgCaretInfo<Row> {
-            public Row Row    => null;
+            public Row Row    { get => null; set { } }
             public int Column => 0;
             public int Offset { get; set;}
             public int Length {
