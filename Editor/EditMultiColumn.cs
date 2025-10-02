@@ -900,7 +900,7 @@ namespace Play.Edit {
                 RenumberAndSumate();
 
                 // BUG: Given this new cursor updating code, we might not need
-                // Finish up need the top row.
+                // Finish up to have the top row.
                 FinishUp( IPgEditEvents.EditType.Rows, oRowTop );
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( NullReferenceException ),

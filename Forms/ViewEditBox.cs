@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Collections;
 using System.Drawing;
 using System.Windows.Forms;
 using System.Reflection;
@@ -12,7 +10,6 @@ using Play.Interfaces.Embedding;
 using Play.Rectangles;
 using Play.Edit;
 using Play.Drawing;
-using Play.Parse;
 
 namespace Play.Controls {
     /// <summary>

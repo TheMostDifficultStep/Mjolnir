@@ -518,7 +518,7 @@ namespace Play.Edit {
                 if( fRemeasure ) 
                     { RowMeasure( oCRow ); }
 
-                FlexColumns( oCRow );
+                FlexColumns( oCRow ); // BUG: If colum expands, cursor might get pushed off bottom.
                 RowLayout  ( oCRow );
 
                 oCRow.Top = iTop;
