@@ -1,0 +1,239 @@
+<?xml version="1.0" ?>
+<bnfstuff>
+  <metadata>
+    <colortable>
+      <color name="black"     value="black" />
+      <color name="blue"      value="blue" />
+      <color name="red"       value="red"  />
+      <color name="darkred"   value="darkred"  />
+      <color name="green"     value="green"  />
+      <color name="grey"      value="gray" />
+      <color name="purple"    value="purple" />
+      <color name="violet"    value="violet" />
+      <color name="darkblue"  value="darkblue" />
+      <color name="brown"     value="brown" />
+      <color name="darkgreen" value="darkgreen" />
+      <color name="yellow"    value="orange" />
+    </colortable>
+    <terminals>
+      <term name="mytoken"   class="TextTermToken" />
+      <term name="myliteral" class="TextTermLiteral" />
+      <term name="mynumber"  class="TextTermNumber" />
+      <term name="myspace"   class="TextTermSpace" />
+      <term name="mycr"      class="TextTermCR" />
+      <term name="myEmpty"   class="TextTermEmpty" />
+      <term name="myanyof"   class="TextTermAnyOf" />
+    </terminals>
+  </metadata>
+
+  <bnftable>
+    <state name="start">
+      <production>
+        <nont state="body" />
+      </production>
+    </state>
+
+    <state name="body">
+      <production>
+        <nont word="true" state="localpath" />
+        <nont state="body" />
+      </production>
+      <production>
+        <nont word="true" state="email" />
+        <nont state="body" />
+      </production>
+      <production>
+		<nont word="true" state="phone" />
+		<nont state="body" />
+      </production>
+
+      <production>
+        <term class="mycr" />
+        <nont state="body" />
+      </production>
+    </state>
+
+	<state name="phone">
+      <capture>
+        <binding id="areacode"    color="blue" />
+        <binding id="firstcode"   color="red" />
+        <binding id="secondcode"  color="purple" />
+      </capture>
+      <production lookahead = "5" >
+         <term class="mytoken" value="(" />
+		 <term class="myspace" occur="*" />
+         <term class="mynumber" id="areacode" minmatch="3" maxmatch="3"/>
+		 <term class="myspace" occur="*" />
+         <term class="mytoken" value=")" />
+		 <term class="myspace" occur="*" />
+         <term class="mynumber" id="firstcode" />
+		 <term class="mytoken" value="-" />
+         <term class="mynumber" id="secondcode" />
+      </production>
+	</state>
+
+    <state name="date.year" >
+      <production>
+         <term class="mytoken" value="20" />
+         <term class="mynumber" id="dyear" />
+      </production>
+      <production>
+         <term class="mytoken" value="19" />
+         <term class="mynumber" id="dyear" />
+      </production>    
+	</state>
+
+    <state name="date" >
+      <capture>
+        <binding id="dmonth" color="blue" />
+        <binding id="dday"   color="red" />
+        <binding id="dyear"  color="purple" />
+      </capture>
+      <production lookahead = "5" >
+         <nont state="date.year" id="dyear" />
+         <term class="mytoken" value="-" />
+         <term class="mynumber" id="dmonth" />
+         <term class="mytoken" value="-" />
+         <term class="mynumber" id="dday" />
+      </production>
+      <production lookahead="5" >
+         <term class="mynumber" id="dmonth" />
+         <term class="mytoken" value="-" />
+         <term class="mynumber" id="dday" />
+         <term class="mytoken" value="-" />
+         <nont state="date.year" id="dyear" />
+      </production>
+    </state>
+
+    <state name="email" >
+      <capture>
+        <binding id="mailaddress" color="darkred" />
+        <binding id="atsign" color="red" />
+        <binding id="maildomain" color="darkblue" />
+      </capture>
+      <production lookahead="3" >
+        <nont state="email.address" id="mailaddress" />
+        <term class="mytoken" id="atsign" value="@" />
+        <nont state="alphanum" id="maildomain" />
+      </production>
+    </state>
+
+    <state name="email.address" >
+      <production>
+         <term class="myliteral" />
+         <nont state="email.address.next" />
+      </production>
+    </state>
+
+    <state name="email.address.next" >
+      <production>
+         <term class="myliteral" />
+         <nont state="email.address.next" />
+      </production>
+      <production>
+         <term class="myanyof" value="._-" occur="1" />
+         <nont state="email.address.next" />
+      </production>
+      <production>
+         <term class="mynumber" />
+         <nont state="email.address.next" />
+      </production>
+      <production>
+         <term class="myEmpty" />
+      </production>
+    </state>
+
+    <state name="localpath" >
+      <capture>
+        <binding id="name" color="blue" array="true" />
+        <binding id="ext"  color="red" />
+      </capture>
+
+      <production >
+        <nont state="alphanum" id="name" />
+      </production>
+    </state>
+
+    <state name="alphanum" >
+      <production>
+        <nont word="true" state="date" />
+        <nont state="alphanum.cont" />
+      </production>
+      <production>
+        <term class="myliteral" />
+        <nont state="alphanum.cont" />
+      </production>
+      <production>
+        <term class="mynumber" />
+        <nont state="alphanum.cont" />
+      </production>
+
+    </state>
+
+    <state name="alphanum.ext" >
+      <production>
+        <nont state="alphanum.cont" id="ext" />
+      </production>
+      <production>
+        <term class="myEmpty" />
+      </production>
+    </state>
+
+    <state name="alphanum.cont" >
+      <production>
+        <term class="myanyof" value="."/>
+        <nont state="alphanum.ext" />
+      </production>
+      <production>
+        <nont word="true" state="date" />
+        <nont state="alphanum.cont" />
+      </production>
+      <production>
+        <term class="myanyof" value="-_*()[]&amp;"/>
+        <nont state="alphanum.cont" />
+      </production>
+      <production>
+        <term class="myspace" />
+        <nont state="alphanum.cont" />
+      </production>
+      <production>
+        <term class="myliteral" />
+        <nont state="alphanum.cont" />
+      </production>
+      <production>
+        <term class="mynumber" />
+        <nont state="alphanum.cont" />
+      </production>
+      <production>
+        <term class="myEmpty" />
+      </production>
+    </state>
+
+    <!-- space is any blank characters and/or carrage return line feeds -->
+    <state name="nonemptyspace">
+      <production>
+        <term class="myspace" />
+        <nont state="space" />
+      </production>
+      <production>
+        <term class="mycr" />
+        <nont state="space" />
+      </production>
+    </state>
+
+    <state name="space">
+      <production lookahead="2">
+        <term class="myspace" />
+        <nont state="space" />
+      </production>
+      <production lookahead="2">
+        <term class="mycr" />
+        <nont state="space" />
+      </production>
+      <production>
+        <term class="myEmpty" />
+      </production>
+    </state>
+  </bnftable>
+
+</bnfstuff>

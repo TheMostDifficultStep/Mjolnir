@@ -136,11 +136,13 @@
       <grammar name="flashcard" type="text" file="flash-card.bnf" />
       <grammar name="bbcbasic" type="text" file="bbc-basic.bnf" />
       <grammar name="tinybasic" type="text" file="tiny-basic.bnf" />
+      <grammar name="filename" type="text" file="filenames.bnf" />
     </grammars>
     <maps>
       <!-- when you map one of these extensions, you will be using the parsed text document type -->
       <!-- overriding any controller you might have mapped to the extension. so be aware! -->
       <!-- Map the extension to a grammar name -->
+	  <map extn=".adi" grammar="html" />
       <map extn=".rs" grammar="text" />
       <map extn=".toml" grammar="ini" />
       <map extn=".deck" grammar="flashcard" />

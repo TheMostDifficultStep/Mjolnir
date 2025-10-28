@@ -252,6 +252,7 @@ namespace Play.FileManager {
         // will simply let you attempt to dereference the null value.
 	    protected string? _strDirectory;
 
+
         // Move these to the main program when we get this working...
         public FileFavorites  DocFavs { get; protected set; }
 
@@ -309,7 +310,7 @@ namespace Play.FileManager {
 
             ReadDir( strURL );
 
-            DoParse();
+//          DoParse();
 
             return true;
         }
@@ -320,7 +321,7 @@ namespace Play.FileManager {
 
             ReadDir( HomeURL );
 
-            DoParse();
+//          DoParse();
 
             return true;
         }
@@ -409,6 +410,7 @@ namespace Play.FileManager {
 
                 RenumberAndSumate();
 
+                DoParse();
                 Raise_DocLoaded();
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( NullReferenceException ),
@@ -433,6 +435,15 @@ namespace Play.FileManager {
 
         public bool Save() {
             return true;
+        }
+
+        /// <summary>
+        /// Schedule a reparse since we don't want to be parsing and updating
+        /// right in the middle of typing EVERY character.
+        /// </summary>
+        /// <remarks>We'll have to keep this here, but we can move the rest.</remarks>
+        public override void DoParse() {
+             ParseColumn( 2, "filename" );
         }
     }
 }

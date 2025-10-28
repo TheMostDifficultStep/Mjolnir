@@ -16,6 +16,7 @@
     <None Remove="Content\bbc-basic.bnf" />
     <None Remove="Content\config.phree" />
     <None Remove="Content\directory.bnf" />
+    <None Remove="Content\filenames.bnf" />
     <None Remove="Content\icons8-bookmark-book-512.png" />
     <None Remove="Content\icons8-clock-48.png" />
     <None Remove="Content\icons8-compass-64.png" />
@@ -46,6 +47,7 @@
     <EmbeddedResource Include="Content\bbc-basic.bnf" />
     <EmbeddedResource Include="Content\config.phree" />
     <EmbeddedResource Include="Content\directory.bnf" />
+    <EmbeddedResource Include="Content\filenames.bnf" />
     <EmbeddedResource Include="Content\icons8-bookmark-book-512.png" />
     <EmbeddedResource Include="Content\icons8-clock-48.png" />
     <EmbeddedResource Include="Content\icons8-compass-64.png" />
