@@ -46,10 +46,12 @@
 		<nont word="true" state="phone" />
 		<nont state="body" />
       </production>
-
       <production>
         <term class="mycr" />
         <nont state="body" />
+      </production>
+      <production>
+        <term class="myEmpty" />
       </production>
     </state>
 
