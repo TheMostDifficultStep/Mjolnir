@@ -46,9 +46,18 @@ namespace Play.ImageViewer {
             }
 		}
 
-		public SmartRect WorldCoordinates => new SmartRect( 0, 0, 
+		/// <summary>
+		/// What portion of the bitmap we want to show.
+		/// </summary>
+		public virtual SmartRect WorldCoordinates => new SmartRect( 0, 0, 
 			                                                _oDocument.Size.Width, 
 															_oDocument.Size.Height );
+
+		/// <summary>
+		/// Amount of border around the view containing the portion
+		/// of the image we are showing.
+		/// </summary>
+		public virtual Size Border => new Size( 20,20 );
 
 		/// <summary>
 		/// Back port this to LayoutImageView, It's unbelievably cool. 
@@ -75,7 +84,7 @@ namespace Play.ImageViewer {
 		/// </summary>
 		/// <param name="o">Old Size.</param>
 		private void OnSizeEvent(SmartRect o) {
-			ImageHelpers.ViewPortSizeMax( szBorder      : new Size( 5,5 ), 
+			ImageHelpers.ViewPortSizeMax( szBorder      : Border, 
 										  szView        : new Size( Width, Height ), 
 				                          rctBitmapWorld: WorldCoordinates,
 										  rctViewPortOut: _rctViewPort );
