@@ -29,6 +29,39 @@ namespace Play.Forms {
 	} // End class
 
     /// <summary>
+    /// This used to be in the Play.Rectangles namespace. But it's really
+    /// a layout used to check it's paint status based on the view site.
+    /// So this particular subclass really is better here. 
+    /// </summary>
+    public class LayoutPattern : LayoutRect {
+        Func< object, SKColor> _fnStatus; // Global function on the Host.
+        object                 _oID;
+        public LayoutPattern( CSS eLayout, int iTrack, object oID, Func<object, SKColor> fnStatus ) : base(eLayout) {
+            _oID      = oID;
+            _fnStatus = fnStatus ?? throw new ArgumentNullException(nameof(fnStatus));
+            if( iTrack < 0 )
+                throw new ArgumentOutOfRangeException( nameof( iTrack ) );
+
+            Track = (uint)iTrack;
+        }
+
+        public override void Paint(SKCanvas skCanvas) {
+            base.Paint(skCanvas);
+
+            SKColor clrStat = _fnStatus( _oID );
+            if( clrStat != SKColors.Transparent ) {
+                using SKPaint skPaint = new SKPaint() { Color = clrStat };
+
+                // Little experiment for span of pattern.
+                int iRail = 30;
+                int iTop  = Top + Height / 2 - iRail / 2;
+
+                skCanvas.DrawRect( this.Left, iTop, this.Width, iRail, skPaint );
+            }
+        }
+    }
+
+    /// <summary>
     /// Creates a flow layout of tabs from the document provided.
     /// </summary>
     /// <remarks>
@@ -111,17 +144,6 @@ namespace Play.Forms {
             base.Dispose( disposing );
         }
 
-        //protected override void OnGotFocus(EventArgs e) {
-        //    base.OnGotFocus( e );
-
-        //    Invalidate();
-        //}
-
-        //protected override void OnLostFocus(EventArgs e) {
-        //    base.OnLostFocus(e);
-
-        //}
-        
         /// <summary>
         /// This gets called whenever the tab needs to be drawn.
         /// </summary>
@@ -296,6 +318,15 @@ namespace Play.Forms {
                 Invalidate();
             }
             HoverTab = oHover;
+            OnCheckStatus();
+        }
+
+        /// <summary>
+        /// Normally we can update a status of a button right at paint time
+        /// But for changing the layout we cannot. This gives us a chance
+        /// to change layout. Might expand it for the Pattern Layout tab type.
+        /// </summary>
+        protected virtual void OnCheckStatus() {
         }
 
         protected override void OnMouseDown(MouseEventArgs e) {

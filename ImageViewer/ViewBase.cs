@@ -19,6 +19,7 @@ namespace Play.ImageViewer {
 	/// ImageBaseDoc. Think of this as a windowless view style control.
 	/// Show the entired bitmap scaled and centered.
 	/// </summary>
+	/// <seealso cref="LayoutImageAbstract"/>
 	public class LayoutBmpDoc : LayoutRect {
 		protected readonly ImageBaseDoc _oDocument;
 		protected readonly SmartRect    _rctViewPort = new SmartRect();

@@ -6,38 +6,13 @@ using SkiaSharp;
 using Play.Interfaces.Embedding;
 
 namespace Play.Rectangles {
-    public class LayoutPattern : LayoutRect {
-        Func< object, SKColor> _fnStatus;
-        object                 _oID;
-        public LayoutPattern(CSS eLayout, int iTrack, object oID, Func<object, SKColor> fnStatus ) : base(eLayout) {
-            _oID      = oID;
-            _fnStatus = fnStatus ?? throw new ArgumentNullException(nameof(fnStatus));
-            if( iTrack < 0 )
-                throw new ArgumentOutOfRangeException( nameof( iTrack ) );
-
-            Track = (uint)iTrack;
-        }
-
-        public override void Paint(SKCanvas skCanvas) {
-            base.Paint(skCanvas);
-
-            SKColor clrStat = _fnStatus( _oID );
-            if( clrStat != SKColors.Transparent ) {
-                using SKPaint skPaint = new SKPaint() { Color = clrStat };
-
-                // Little experiment for span of pattern.
-                int iRail = 30;
-                int iTop  = Top + Height / 2 - iRail / 2;
-
-                skCanvas.DrawRect( this.Left, iTop, this.Width, iRail, skPaint );
-            }
-        }
-    }
-
     /// <summary>
     /// Split this behavior out, since I need a dynamic image layout. This
     /// class gives you basic image aspect management.
     /// </summary>
+    /// <remarks>This might be obsoleted by my new LayoutBmpDoc object in the
+    /// ImageViewer project</remarks>
+    /// <seealso cref="Play.ImageViewer.LayoutBmpDoc"/>
     public class LayoutImageAbstract : LayoutRect {
         public LayoutImageAbstract( LayoutRect.CSS eLayout ) : base(eLayout) {
         }
@@ -131,6 +106,9 @@ namespace Play.Rectangles {
     /// allocated and you just want to show a portion of it. This class has
     /// members to create the image you want to display.
     /// </summary>
+    /// <remarks>This might be obsoleted by my new LayoutBmpDoc object in the
+    /// ImageViewer project</remarks>
+    /// <seealso cref="Play.ImageViewer.LayoutBmpDoc"/>
     public class LayoutImageReference : LayoutImageAbstract {
 		public virtual SKBitmap  Picture { get; }
 
@@ -218,6 +196,9 @@ namespace Play.Rectangles {
     /// Use this where the bitmap is owned by another object. We
     /// don't attempt to delete the bitmap when we are "disposed"
     /// </summary>
+    /// <remarks>This might be obsoleted by my new LayoutBmpDoc object in the
+    /// ImageViewer project</remarks>
+    /// <seealso cref="Play.ImageViewer.LayoutBmpDoc"/>
     public class LayoutIcon : LayoutImageReference {
 		public override SKBitmap Picture { get; }
         public LayoutIcon( SKBitmap skBmp, CSS eLayout = CSS.None) : 

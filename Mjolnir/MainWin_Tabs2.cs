@@ -1,13 +1,14 @@
-﻿using System.Drawing;
-using System.Reflection;
-
-using SkiaSharp;
-
+﻿using Play.Clock;
 using Play.Edit;
 using Play.Forms;
 using Play.ImageViewer;
 using Play.Interfaces.Embedding;
 using Play.Rectangles;
+using SkiaSharp;
+using System;
+using System.Collections.Generic;
+using System.Drawing;
+using System.Reflection;
 
 namespace Mjolnir {
     /// <summary>
@@ -20,8 +21,9 @@ namespace Mjolnir {
         public IPgParent Parentage => _oSiteView.Host;
         public IPgParent Services  => Parentage.Services;
 
-        readonly MainWin      _oHost;
-        readonly ImageSoloDoc _oCloserImg;
+        readonly MainWin           _oHost;
+      //readonly IPgRoundRobinWork _oWorkPlace;
+        readonly ImageSoloDoc      _oCloserImg;
 
         protected class TabSlot : IPgViewSite {
             readonly MainWin_Tabs _oHost;
@@ -48,6 +50,8 @@ namespace Mjolnir {
 
             _oCloserImg.LoadResource( Assembly.GetExecutingAssembly(), 
                                       "Mjolnir.Content.icons8-close-48.png" );
+
+		    //_oWorkPlace = ((IPgScheduler)Services).CreateWorkPlace();
         }
 
         public override Size TabSize => new Size( 220, 44 );
@@ -63,22 +67,44 @@ namespace Mjolnir {
             LayoutRect oReturn = base.CreateTab(oViewLine);
 
             if( oReturn is LayoutStack oTab ) {
-                oTab.Add( new LayoutBmpDoc( _oCloserImg ) { Units = LayoutRect.CSS.Flex } );
+                oTab.Add( new LayoutBmpDoc( _oCloserImg ) { Units = LayoutRect.CSS.Flex, Hidden = true } );
             }
 
             return oReturn;
         }
 
         /// <summary>
-        /// This gets called whenever the tab needs to be drawn. Usually
-        /// used for the status bar on the left of the icon.
+        /// Note that the window only repaints if you call the base
+        /// OnMouseLeave() event. Else we don't get the behavior we want.
         /// </summary>
-        /// <param name="iID">Id of the tab to return the requested info.</param>
+        protected override void OnMouseLeave(EventArgs e) {
+            foreach( LayoutStack oTab in Layout ) {
+                oTab.Item(3).Hidden = true;
+                oTab.LayoutChildren();
+            }
+
+            base.OnMouseLeave(e);
+        }
+
+        protected override void OnCheckStatus() {
+            foreach( LayoutStack oTab in Layout ) {
+                oTab.Item(3).Hidden = oTab != HoverTab;
+                oTab.LayoutChildren();
+            }
+        }
+
+        /// <summary>
+        /// This gets called whenever the pattern tab needs to be drawn/painted
+        /// </summary>
+        /// <param name="iID">Id of the tab to return the requested info.
+        /// obviously we are depending on the fact that the object in
+        /// question, a line from a Editor that is a list of ViewSlot(s)!!</param>
         /// <returns>Focus status</returns>
         public override SKColor TabStatus( object oID ) {
             if( oID is ViewSlot oSlot ) {
-                if( oSlot.Focused )
+                if( oSlot.Focused ) {
                     return _oStdUI.ColorsStandardAt( StdUIColors.BGSelectedFocus );
+                }
 
                 // Always draw the status if selected. (center view focused or not)
                 if( _oHost.ViewSiteSelected == oSlot ) 
