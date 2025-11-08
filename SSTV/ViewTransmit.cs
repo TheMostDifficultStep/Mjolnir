@@ -260,8 +260,8 @@ namespace Play.SSTV {
             Invalidate();
         }
 
-        protected override void OnTabLeftClicked(object ID) {
-            if( ID is Line oLine ) {
+        protected override void OnTabLeftClicked( LayoutStack oTab, SKPointI sPoint ) {
+            if( oTab.Extra is Line oLine ) {
 				_oTools.ToolSelect = oLine.At;
 			}
         }

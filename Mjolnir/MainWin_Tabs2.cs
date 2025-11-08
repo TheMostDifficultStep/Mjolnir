@@ -4,9 +4,10 @@ using Play.Forms;
 using Play.ImageViewer;
 using Play.Interfaces.Embedding;
 using Play.Rectangles;
+
 using SkiaSharp;
+
 using System;
-using System.Collections.Generic;
 using System.Drawing;
 using System.Reflection;
 
@@ -164,9 +165,13 @@ namespace Mjolnir {
             return skIcon;
         }
 
-        protected override void OnTabLeftClicked( object oID ) {
-            if( oID is ViewSlot oSlot ) {
-                _oHost.ViewSelect( oSlot, fFocus:true );
+        protected override void OnTabLeftClicked( LayoutStack oTab, SKPointI sPoint ) {
+            if( oTab.Extra is ViewSlot oSlot ) {
+                if( oTab.Item(3).IsInside( sPoint.X, sPoint.Y ) ) {
+                    _oHost.ViewClose( oSlot );
+                } else {
+                    _oHost.ViewSelect( oSlot, fFocus:true );
+                }
             }
         }
     }

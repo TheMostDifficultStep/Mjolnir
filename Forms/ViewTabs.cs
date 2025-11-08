@@ -329,8 +329,8 @@ namespace Play.Forms {
         protected virtual void OnCheckStatus() {
         }
 
-        protected override void OnMouseDown(MouseEventArgs e) {
-            base.OnMouseDown(e);
+        protected override void OnMouseUp(MouseEventArgs e) {
+            base.OnMouseUp(e); // On mouseexit, call to the base invalidates window.
             
             LayoutStack oHover = null;
 
@@ -339,7 +339,7 @@ namespace Play.Forms {
                     if( oRect.IsInside( e.X, e.Y ) ) {
                         if( oRect is LayoutStack oTab ) {
                             oHover = oTab;
-                            OnTabLeftClicked( oTab.Extra );
+                            OnTabLeftClicked( oTab, new SKPointI( e.Location.X, e.Location.Y ) );
                             Invalidate(); // Focus might change, need a re-paint.
                             break;
                         }
@@ -359,7 +359,13 @@ namespace Play.Forms {
             Invalidate();
         }
 
-        protected abstract void OnTabLeftClicked( object ID );
+        /// <summary>
+        /// I'd like to pass the whole MouseEventsArg struction, but then I need to
+        /// include windows forms here and I don't want to do that.
+        /// </summary>
+        /// <param name="oTab">The tab clicked</param>
+        /// <param name="sPoint">Mouse X, Y in TabControl window's client space.</param>
+        protected abstract void OnTabLeftClicked( LayoutStack oTab, SKPointI sPoint );
     }
 
     public abstract class ButtonBar : TabControl {
