@@ -1,18 +1,89 @@
-﻿using System;
-using System.Windows.Forms;
-using System.Drawing;
-using System.Collections.Generic;
-
-using SkiaSharp;
-using SkiaSharp.Views.Desktop;
+﻿using Play.Drawing;
+using Play.Edit;
 // https://docs.microsoft.com/en-us/dotnet/api/skiasharp.views.desktop?view=skiasharp-views-1.68.1
 
 using Play.Interfaces.Embedding;
 using Play.Rectangles;
-using Play.Edit;
-using Play.Drawing;
+
+using SkiaSharp;
+using SkiaSharp.Views.Desktop;
+
+using System;
+using System.Collections.Generic;
+using System.Drawing;
+using System.Windows.Forms;
 
 namespace Play.ImageViewer {
+	/// <summary>
+	/// This a new SKControl-LESS LayoutRect subclass. But it uses the
+	/// ImageBaseDoc. Think of this as a windowless view style control.
+	/// Show the entired bitmap scaled and centered.
+	/// </summary>
+	public class LayoutBmpDoc : LayoutRect {
+		protected readonly ImageBaseDoc _oDocument;
+		protected readonly SmartRect    _rctViewPort = new SmartRect();
+
+		public LayoutBmpDoc( ImageBaseDoc oDocSolo ) {
+			_oDocument = oDocSolo;
+
+			this.SizeEvent += OnSizeEvent;
+		}
+			
+		/// <seealso cref="SmartRect.Paint(SKCanvas)"/>
+		/// <seealso cref="LayoutImageReference.Paint(SKCanvas)"/>
+		/// <seealso cref="ImageViewSingle.OnPaintSurface(SKPaintSurfaceEventArgs)"/>
+		public override void Paint( SKCanvas skCanvas ) {
+			if( _oDocument.Bitmap == null )
+                return;
+
+            try {
+				skCanvas.DrawBitmap( _oDocument.Bitmap, 
+									 WorldCoordinates.SKRect,
+									 _rctViewPort.SKRect
+                                   );
+            } catch( NullReferenceException ) {
+            }
+		}
+
+		public SmartRect WorldCoordinates => new SmartRect( 0, 0, 
+			                                                _oDocument.Size.Width, 
+															_oDocument.Size.Height );
+
+		/// <summary>
+		/// Back port this to LayoutImageView, It's unbelievably cool. 
+		/// .ps remember to turn on CSS.Flex, or this doesn't get called.
+		/// </summary>
+		/// <seealso cref="LayoutImageView.TrackDesired(TRACK, int)"/>
+		public override uint TrackDesired( TRACK eParentAxis, int iRailExtent ) {
+			try {
+				return ExtentDesired( _oDocument.Aspect, (uint)iRailExtent, eParentAxis );
+			} catch( Exception oEx ) {
+				Type[] rgErrors = { typeof( NullReferenceException ),
+									typeof( DivideByZeroException ) };
+				if( rgErrors.IsUnhandled( oEx ) )
+					throw;
+
+				return (uint)iRailExtent; // Try for square.
+			}
+		}
+
+		/// <summary>
+		/// We get set to some size or another, but the view on the bitmap is
+		/// going to attempt to retain it's aspect, so It might be slightly 
+		/// narrower or shorter than the Host LayoutRect.
+		/// </summary>
+		/// <param name="o">Old Size.</param>
+		private void OnSizeEvent(SmartRect o) {
+			ImageHelpers.ViewPortSizeMax( szBorder      : new Size( 5,5 ), 
+										  szView        : new Size( Width, Height ), 
+				                          rctBitmapWorld: WorldCoordinates,
+										  rctViewPortOut: _rctViewPort );
+
+			_rctViewPort.SetPoint( SET.RIGID, LOCUS.CENTER, 
+								   Left + Width / 2, Top + Height / 2 );
+		}
+	}
+
 	/// <remarks>
 	/// There are probably a few places I'm using this control, when I could probably use the
 	/// lighter weight LayoutImage class. And it turns out LayoutControl wraps a ImageViewSingle
@@ -47,7 +118,7 @@ namespace Play.ImageViewer {
 					return 0;
 
 				if( _oView.Document.Bitmap == null )
-					return (uint)iRailExtent;
+					return (uint)iRailExtent; // Try for square.
 
 				Size  oBmpSize = new Size( _oView.Document.Bitmap.Width, _oView.Document.Bitmap.Height);
 				float flAspect = (float)oBmpSize.Width / (float)oBmpSize.Height;
@@ -68,7 +139,6 @@ namespace Play.ImageViewer {
 		private void OnSizeEvent(SmartRect o) {
 			_oView.Bounds = this.Rect;
 		}
-
     }
 
     public class ImageViewBase : SKControl, IPgParent {
@@ -206,7 +276,7 @@ namespace Play.ImageViewer {
 
             return( true );
 		}
-    } // end class
+    } // end class inherits SKControl
 
 	public class ImageViewMulti : ImageViewBase {
         protected readonly ImageWalkerDoc _oDocument; 
@@ -314,6 +384,7 @@ namespace Play.ImageViewer {
 			Invalidate();
         }
 
+		/// <seealso cref="LayoutImageView.Paint(SKCanvas)"/>
         protected override void OnPaintSurface( SKPaintSurfaceEventArgs e ) {
             base.OnPaintSurface(e);
 

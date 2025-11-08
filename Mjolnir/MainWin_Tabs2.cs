@@ -1,12 +1,13 @@
-﻿using System;
-using System.Drawing;
-using System.Xml;
+﻿using System.Drawing;
+using System.Reflection;
 
 using SkiaSharp;
 
-using Play.Interfaces.Embedding;
 using Play.Edit;
 using Play.Forms;
+using Play.ImageViewer;
+using Play.Interfaces.Embedding;
+using Play.Rectangles;
 
 namespace Mjolnir {
     /// <summary>
@@ -19,17 +20,53 @@ namespace Mjolnir {
         public IPgParent Parentage => _oSiteView.Host;
         public IPgParent Services  => Parentage.Services;
 
-        MainWin _oHost;
+        readonly MainWin      _oHost;
+        readonly ImageSoloDoc _oCloserImg;
+
+        protected class TabSlot : IPgViewSite {
+            readonly MainWin_Tabs _oHost;
+            public TabSlot( MainWin_Tabs oParent ) {
+                _oHost = oParent;
+            }
+
+            public IPgParent Host => _oHost;
+
+            public IPgViewNotify EventChain => _oHost._oSiteView.EventChain;
+
+            public void LogError(string strMessage, string strDetails, bool fShow = true) {
+                _oHost._oSiteView.LogError(strMessage, strDetails, fShow);
+            }
+
+            public void Notify(ShellNotify eEvent) {
+                _oHost._oSiteView.Notify(eEvent);
+            }
+        }
 
         public MainWin_Tabs(IPgViewSite oSiteView, BaseEditor oDoc) : base(oSiteView, oDoc) {
-            _oHost = (MainWin)oSiteView.Host;
+            _oHost      = (MainWin)oSiteView.Host;
+            _oCloserImg = new( new TabSlot( this ) );
+
+            _oCloserImg.LoadResource( Assembly.GetExecutingAssembly(), 
+                                      "Mjolnir.Content.icons8-close-48.png" );
         }
+
+        public override Size TabSize => new Size( 220, 44 );
 
         public override Size GetPreferredSize( Size oSize ) {
             if( Layout.Count < 2 ) {
                 return new Size( oSize.Width, 0 );
             }
             return base.GetPreferredSize( oSize );
+        }
+
+        protected override LayoutRect CreateTab(Line oViewLine) {
+            LayoutRect oReturn = base.CreateTab(oViewLine);
+
+            if( oReturn is LayoutStack oTab ) {
+                oTab.Add( new LayoutBmpDoc( _oCloserImg ) { Units = LayoutRect.CSS.Flex } );
+            }
+
+            return oReturn;
         }
 
         /// <summary>

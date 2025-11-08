@@ -19,6 +19,7 @@
     <None Remove="Content\filenames.bnf" />
     <None Remove="Content\icons8-bookmark-book-512.png" />
     <None Remove="Content\icons8-clock-48.png" />
+    <None Remove="Content\icons8-close-48.png" />
     <None Remove="Content\icons8-compass-64.png" />
     <None Remove="Content\icons8-forest-48.png" />
     <None Remove="Content\icons8-insert-60.png" />
@@ -50,6 +51,7 @@
     <EmbeddedResource Include="Content\filenames.bnf" />
     <EmbeddedResource Include="Content\icons8-bookmark-book-512.png" />
     <EmbeddedResource Include="Content\icons8-clock-48.png" />
+    <EmbeddedResource Include="Content\icons8-close-48.png" />
     <EmbeddedResource Include="Content\icons8-compass-64.png" />
     <EmbeddedResource Include="Content\icons8-property-48.png" />
     <EmbeddedResource Include="Content\icons8-forest-48.png" />

@@ -234,6 +234,7 @@ namespace Play.FileManager {
 
                 CheckForNulls();
 
+              //We parse the files names now. So don't need name formatting.
               //this[DCol.Name].Formatting.Add( new ColorRange( 0, 256,  1 ) );
                 this[DCol.Type].Formatting.Add( new DirRange  ( 0,  10, 11 ) );
 

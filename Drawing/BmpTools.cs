@@ -18,17 +18,17 @@ namespace Play.Drawing {
 		/// Use this function to scale an image respecting the aspect ratio of the source and target.
 		/// </summary>
 		/// <param name="szBorder">A border to add to the image.</param>
-		/// <param name="szWindow">Size of presentation space.</param>
-		/// <param name="rctBitmap">Portion of the bitmap to show.</param>
-		/// <param name="rctViewPort">Computed rectangle to place the image in the target window. (side effect)</param>
-        public static void ViewPortSizeMax( Size szBorder, Size szWindow, SmartRect rctBitmap, SmartRect rctViewPort ) 
+		/// <param name="szView">Size of presentation space.</param>
+		/// <param name="rctBitmapWorld">Portion of the bitmap to show.</param>
+		/// <param name="rctViewPortOut">Computed rectangle to place the image in the target window. (side effect)</param>
+        public static void ViewPortSizeMax( Size szBorder, Size szView, SmartRect rctBitmapWorld, SmartRect rctViewPortOut ) 
         {
-			Size  szWinSize      = new Size( szWindow.Width - szBorder.Width, szWindow.Height - szBorder.Height );
-            float flImageAspect  = rctBitmap.Width / (float)rctBitmap.Height;
+			Size  szWinSize      = new Size( szView.Width - szBorder.Width, szView.Height - szBorder.Height );
+            float flImageAspect  = rctBitmapWorld.Width / (float)rctBitmapWorld.Height;
             float flWindowAspect = szWinSize.Width / (float)szWinSize.Height;
 
 			// Calculate the new image viewport.
-			Size pntViewSize = new Size( rctBitmap.Width, rctBitmap.Height );
+			Size pntViewSize = new Size( rctBitmapWorld.Width, rctBitmapWorld.Height );
 
 			if ( flWindowAspect > flImageAspect ) {
                 // Window is wide and squat compared to bitmap.
@@ -47,7 +47,7 @@ namespace Play.Drawing {
 				Y = ((szWinSize.Height - pntViewSize.Height + szBorder.Height ) / 2 )
 			};
 
-			rctViewPort.SetRect( LOCUS.UPPERLEFT, pntUpperLeft.X, pntUpperLeft.Y, pntViewSize.Width, pntViewSize.Height );
+			rctViewPortOut.SetRect( LOCUS.UPPERLEFT, pntUpperLeft.X, pntUpperLeft.Y, pntViewSize.Width, pntViewSize.Height );
         }
 
 		/// <summary>
@@ -168,6 +168,8 @@ namespace Play.Drawing {
                 _oSiteBase.LogError( "Image Base Constructor", "Having trouble finding error bitmap resource." );
             }
 		}
+
+        public float Aspect => (float)_skBitmap.Width / (float)_skBitmap.Height;
 
         /// <summary>
         /// We'll pack this out to the embedding interfaces after I get it going in this project.
