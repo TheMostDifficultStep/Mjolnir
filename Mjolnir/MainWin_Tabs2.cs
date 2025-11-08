@@ -50,7 +50,7 @@ namespace Mjolnir {
             _oCloserImg = new( new TabSlot( this ) );
 
             _oCloserImg.LoadResource( Assembly.GetExecutingAssembly(), 
-                                      "Mjolnir.Content.icons8-close-48.png" );
+                                      "Mjolnir.Content.icons8-close-window-94-2.png" );
 
 		    //_oWorkPlace = ((IPgScheduler)Services).CreateWorkPlace();
         }
