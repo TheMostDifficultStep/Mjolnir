@@ -15,7 +15,7 @@ namespace Mjolnir {
     /// <summary>
     /// MainWindow usage TabControl. Shows tabs for the views, 
     /// </summary>
-    public class MainWin_Tabs : 
+    public class TabForMainWin : 
 		TabWindow,
 		IPgParent
 	{
@@ -26,8 +26,8 @@ namespace Mjolnir {
         readonly ImageSoloDoc      _oCloserImg;
 
         protected class TabSlot : IPgViewSite {
-            readonly MainWin_Tabs _oHost;
-            public TabSlot( MainWin_Tabs oParent ) {
+            readonly TabForMainWin _oHost;
+            public TabSlot( TabForMainWin oParent ) {
                 _oHost = oParent;
             }
 
@@ -44,7 +44,7 @@ namespace Mjolnir {
             }
         }
 
-        public MainWin_Tabs(IPgViewSite oSiteView, BaseEditor oDoc) : base(oSiteView, oDoc) {
+        public TabForMainWin(IPgViewSite oSiteView, BaseEditor oDoc) : base(oSiteView, oDoc) {
             _oHost      = (MainWin)oSiteView.Host;
             _oCloserImg = new( new TabSlot( this ) );
 
