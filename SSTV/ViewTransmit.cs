@@ -14,10 +14,8 @@ using Play.Interfaces.Embedding;
 using Play.Rectangles;
 using Play.Edit;
 using Play.ImageViewer;
-using Play.Sound;
 using Play.Forms;
 using Play.Drawing;
-using Microsoft.VisualBasic;
 
 namespace Play.SSTV {
     /// <summary>
@@ -235,13 +233,13 @@ namespace Play.SSTV {
 	}
 
 	public static class ReceiveCommands {
-        public static readonly Guid Mode      = new Guid( "{37BC4B62-5141-410A-B420-2C16983E3859}" );
+        public static readonly Guid Mode = new Guid( "{37BC4B62-5141-410A-B420-2C16983E3859}" );
 	}
 	
 	/// <summary>
 	/// This is the Toolbar adornment. The Tools buttons.
 	/// </summary>
-	public class WinTransmitTools : ButtonBar {
+	public class WinTransmitTools : TabWindow {
 		IPgTools2 _oTools;
 		public WinTransmitTools( IPgViewSite oSite, Editor oDoc, IPgTools2 oTools ) : base( oSite, oDoc ) {
 			_oTools = oTools ?? throw new ArgumentException( nameof( oTools ) );
@@ -256,8 +254,31 @@ namespace Play.SSTV {
 			return true;
         }
 
-        private void OnToolSelectChanged(object sender, int iIndex) {
+        public override Size TabSize => new Size( 55, 40 );
+
+        /// <summary>
+        /// I want to phase out the TabIcon creator in the future. And use the
+        /// LayoutDocBmp layout in the future.
+        /// </summary>
+        /// <param name="oLine">We expect it to be a ViewSlot object.</param>
+        protected override LayoutRect CreateTab( Line oLine ) {
+			LayoutIcon            oTabIcon = new( TabIcon( oLine ), LayoutRect.CSS.Flex );
+            LayoutPattern         oTabStat = new( LayoutRect.CSS.Pixels, 5, oLine, TabStatus );
+				
+			LayoutStackHorizontal oTab = new () { Spacing = 5, 
+                                                  BackgroundColor = TabBackground, 
+                                                  Extra = oLine };
+            oTab.Add( oTabStat );
+			oTab.Add( oTabIcon );
+
+            return oTab;
+        }
+		
+		private void OnToolSelectChanged(object sender, int iIndex) {
             Invalidate();
+        }
+
+        protected override void OnCheckStatus() {
         }
 
         protected override void OnTabLeftClicked( LayoutStack oTab, SKPointI sPoint ) {
@@ -300,6 +321,16 @@ namespace Play.SSTV {
             return SKColors.White;
         }
 
+        /// <summary>
+        /// Make the background the title box colors. Might move this to the tab control too.
+        /// </summary>
+        /// <param name="skCanvas"></param>
+        /// <param name="skPaint"></param>
+        protected override void OnPaintBG(  SKCanvas skCanvas, SKPaint skPaint ) {
+            skPaint.Color = _oStdUI.ColorsStandardAt( Focused ? StdUIColors.TitleBoxFocus : StdUIColors.TitleBoxBlur );
+
+            skCanvas.DrawRect( 0, 0, Width, Height, skPaint );
+        }
     }
 
 	/// <summary>

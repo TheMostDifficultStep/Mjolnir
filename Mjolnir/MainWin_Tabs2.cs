@@ -16,7 +16,7 @@ namespace Mjolnir {
     /// MainWindow usage TabControl. Shows tabs for the views, 
     /// </summary>
     public class MainWin_Tabs : 
-		TabControl,
+		TabWindow,
 		IPgParent
 	{
         public IPgParent Parentage => _oSiteView.Host;
@@ -61,14 +61,23 @@ namespace Mjolnir {
             return base.GetPreferredSize( oSize );
         }
 
-        protected override LayoutRect CreateTab(Line oViewLine) {
-            LayoutRect oReturn = base.CreateTab(oViewLine);
+        protected override LayoutRect CreateTab( Line oViewLine ) {
+            LayoutPattern    oTabStat = new( LayoutRect.CSS.Pixels, 5, oViewLine, TabStatus );
+			LayoutIcon       oTabIcon = new( TabIcon( oViewLine ), LayoutRect.CSS.Flex );
+			LayoutSingleLine oTabText = new LayoutSingleLine( new FTCacheWrap( oViewLine ), 
+                                                              LayoutRect.CSS.None ) 
+                                            { BgColor = SKColors.Transparent };
+			_rgTextCache.Add(oTabText);
 
-            if( oReturn is LayoutStack oTab ) {
-                oTab.Add( new LayoutBmpDoc( _oCloserImg ) { Units = LayoutRect.CSS.Flex, Hidden = true } );
-            }
+            // Round up all the layouts into our tab object here.
+			LayoutStackHorizontal oTab = new () { Spacing = 5, BackgroundColor = TabBackground, Extra = oViewLine };
+				
+            oTab.Add( oTabStat ); // Focus indicator Bar.
+			oTab.Add( oTabIcon ); // Icon for the tab.
+			oTab.Add( oTabText ); // Text for the tab.
+            oTab.Add( new LayoutBmpDoc( _oCloserImg ) { Units = LayoutRect.CSS.Flex, Hidden = true } );
 
-            return oReturn;
+            return oTab;
         }
 
         /// <summary>
@@ -76,18 +85,34 @@ namespace Mjolnir {
         /// OnMouseLeave() event. Else we don't get the behavior we want.
         /// </summary>
         protected override void OnMouseLeave(EventArgs e) {
-            foreach( LayoutStack oTab in Layout ) {
-                oTab.Item(3).Hidden = true;
-                oTab.LayoutChildren();
+            try {
+                foreach( LayoutStack oTab in Layout ) {
+                    oTab.Item(3).Hidden = true;
+                    oTab.LayoutChildren();
+                }
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( ArgumentOutOfRangeException ),
+                                    typeof( NullReferenceException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
+                _oSiteView.LogError( "Main Win Tabs", "Error in collection" );
             }
 
             base.OnMouseLeave(e);
         }
 
         protected override void OnCheckStatus() {
-            foreach( LayoutStack oTab in Layout ) {
-                oTab.Item(3).Hidden = oTab != HoverTab;
-                oTab.LayoutChildren();
+            try {
+                foreach( LayoutStack oTab in Layout ) {
+                    oTab.Item(3).Hidden = oTab != HoverTab;
+                    oTab.LayoutChildren();
+                }
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( ArgumentOutOfRangeException ),
+                                    typeof( NullReferenceException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
+                _oSiteView.LogError( "Main Win Tabs", "Error in collection" );
             }
         }
 

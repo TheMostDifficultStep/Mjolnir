@@ -68,7 +68,7 @@ namespace Play.Forms {
     /// We don't inherit from FormsWindow b/c there is no need for the 
     /// tab text to be editable.
     /// </remarks>
-    public abstract class TabControl : 
+    public abstract class TabWindow : 
 		SKControl,
 		IPgLoad,
         ILineEvents,
@@ -86,7 +86,7 @@ namespace Play.Forms {
 
         public new LayoutFlowSquare_Fixed Layout { get; }
 
-        public TabControl(IPgViewSite oSiteView, BaseEditor oDoc ) 
+        public TabWindow(IPgViewSite oSiteView, BaseEditor oDoc ) 
         {
             _oSiteView = oSiteView ?? throw new ArgumentNullException( nameof( oSiteView ) );
  			_oStdUI    = oSiteView.Host.Services as IPgStandardUI2 ?? throw new ArgumentException( "Parent view must provide IPgStandardUI service" );
@@ -179,25 +179,7 @@ namespace Play.Forms {
         /// </summary>
         /// <param name="oViewLine"></param>
         /// <returns></returns>
-        protected virtual LayoutRect CreateTab( Line oViewLine ) {
-			LayoutIcon       oTabIcon = new( TabIcon( oViewLine ), LayoutRect.CSS.Flex );
-
-			LayoutSingleLine oTabText = new LayoutSingleLine( new FTCacheWrap( oViewLine ), 
-                                                              LayoutRect.CSS.None ) 
-                                            { BgColor = SKColors.Transparent };
-			_rgTextCache.Add(oTabText);
-
-            LayoutPattern oTabStatus = new( LayoutRect.CSS.Pixels, 5, oViewLine, TabStatus );
-
-            // Round up all the layouts into our tab object here.
-			LayoutStackHorizontal oTab = new () { Spacing = 5, BackgroundColor = TabBackground, Extra = oViewLine };
-				
-            oTab.Add( oTabStatus ); // Bar to the left.
-			oTab.Add( oTabIcon );   // Icon for the tab.
-			oTab.Add( oTabText );   // Text for the tab.
-
-            return oTab;
-        }
+        protected abstract LayoutRect CreateTab( Line oViewLine );
 
         protected virtual void OnPaintBG(  SKCanvas skCanvas, SKPaint skPaint ) {
             skPaint.Color = _oStdUI.ColorsStandardAt( StdUIColors.BGReadOnly );
@@ -326,8 +308,7 @@ namespace Play.Forms {
         /// But for changing the layout we cannot. This gives us a chance
         /// to change layout. Might expand it for the Pattern Layout tab type.
         /// </summary>
-        protected virtual void OnCheckStatus() {
-        }
+        protected abstract void OnCheckStatus();
 
         protected override void OnMouseUp(MouseEventArgs e) {
             base.OnMouseUp(e); // On mouseexit, call to the base invalidates window.
@@ -367,42 +348,4 @@ namespace Play.Forms {
         /// <param name="sPoint">Mouse X, Y in TabControl window's client space.</param>
         protected abstract void OnTabLeftClicked( LayoutStack oTab, SKPointI sPoint );
     }
-
-    public abstract class ButtonBar : TabControl {
-        public ButtonBar(IPgViewSite oSiteView, BaseEditor oDoc ) : base( oSiteView, oDoc ) {
-        }
-
-        public override Size TabSize => new Size( 55, 40 );
-
-        /// <summary>
-        /// Unfortunately, we're kind of locked into the LayoutStack because it has the ID
-        /// associated with it. The list implementation is too transparent to the use
-        /// of this object right now.
-        /// </summary>
-        /// <param name="oLine"></param>
-        /// <returns></returns>
-        protected override LayoutRect CreateTab( Line oLine ) {
-			LayoutIcon            oTabIcon   = new( TabIcon( oLine ), LayoutRect.CSS.Flex );
-            LayoutPattern         oTabStatus = new( LayoutRect.CSS.Pixels, 5, oLine, TabStatus );
-			LayoutStackHorizontal oTab       = new () { Spacing = 5, BackgroundColor = TabBackground, Extra = oLine };
-				
-            oTab.Add( oTabStatus );
-			oTab.Add( oTabIcon );
-
-            return oTab;
-        }
-
-        /// <summary>
-        /// Make the background the title box colors. Might move this to the tab control too.
-        /// </summary>
-        /// <param name="skCanvas"></param>
-        /// <param name="skPaint"></param>
-        protected override void OnPaintBG(  SKCanvas skCanvas, SKPaint skPaint ) {
-            skPaint.Color = _oStdUI.ColorsStandardAt( Focused ? StdUIColors.TitleBoxFocus : StdUIColors.TitleBoxBlur );
-
-            skCanvas.DrawRect( 0, 0, Width, Height, skPaint );
-        }
-
-    }
-
 }
