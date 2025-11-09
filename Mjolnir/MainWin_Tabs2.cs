@@ -13,7 +13,8 @@ using System.Reflection;
 
 namespace Mjolnir {
     /// <summary>
-    /// MainWindow usage TabControl. Shows tabs for the views, 
+    /// Shows tabs for the views, with a close window button that appears
+    /// when hovering over a particular tab.
     /// </summary>
     public class TabForMainWin : 
 		TabWindow,
@@ -22,8 +23,8 @@ namespace Mjolnir {
         public IPgParent Parentage => _oSiteView.Host;
         public IPgParent Services  => Parentage.Services;
 
-        readonly MainWin           _oHost;
-        readonly ImageSoloDoc      _oCloserImg;
+        readonly MainWin      _oHost;
+        readonly ImageSoloDoc _oCloserImg;
 
         protected class TabSlot : IPgViewSite {
             readonly TabForMainWin _oHost;
@@ -63,10 +64,12 @@ namespace Mjolnir {
 
         protected override LayoutRect CreateTab( Line oViewLine ) {
             LayoutPattern    oTabStat = new( LayoutRect.CSS.Pixels, 5, oViewLine, TabStatus );
-			LayoutIcon       oTabIcon = new( TabIcon( oViewLine ), LayoutRect.CSS.Flex );
+			LayoutIcon       oTabIcon = new( TabIcon( (ViewSlot)oViewLine ), LayoutRect.CSS.Flex );
 			LayoutSingleLine oTabText = new LayoutSingleLine( new FTCacheWrap( oViewLine ), 
                                                               LayoutRect.CSS.None ) 
                                             { BgColor = SKColors.Transparent };
+            LayoutBmpDoc     oTabKill =  new LayoutBmpDoc( _oCloserImg ) 
+                                            { Units = LayoutRect.CSS.Flex, Hidden = true };
 			_rgTextCache.Add(oTabText);
 
             // Round up all the layouts into our tab object here.
@@ -75,9 +78,29 @@ namespace Mjolnir {
             oTab.Add( oTabStat ); // Focus indicator Bar.
 			oTab.Add( oTabIcon ); // Icon for the tab.
 			oTab.Add( oTabText ); // Text for the tab.
-            oTab.Add( new LayoutBmpDoc( _oCloserImg ) { Units = LayoutRect.CSS.Flex, Hidden = true } );
+            oTab.Add( oTabKill );
 
             return oTab;
+        }
+
+        /// <summary>
+        /// Get the icon for the slot or just generate a red bitmap 
+        /// as a standin. I should probably find some interesting bitmap
+        /// for this case.
+        /// </summary>
+        /// <param name="oSlot">A view slot from the MainWin</param>
+        public SKBitmap TabIcon( ViewSlot oSlot ) {
+            if( oSlot.Icon != null )
+                return oSlot.Icon;
+
+            SKBitmap skIcon = new( 30, 30, SKColorType.Rgb888x, SKAlphaType.Opaque );
+
+            using SKPaint  oPaint  = new () { Color = SKColors.Red };
+			using SKCanvas oCanvas = new ( skIcon );
+
+			oCanvas.DrawRect( 0, 0, skIcon.Width, skIcon.Height, oPaint );
+
+            return skIcon;
         }
 
         /// <summary>
@@ -164,27 +187,6 @@ namespace Mjolnir {
                     return SKColors.LightGray;
             }
             return clrBG;
-        }
-
-        /// <summary>
-        /// Ack! The bitmap on the view, is a windows bitmap and not an SKBitmap.
-        /// I'll fix that later.
-        /// </summary>
-        /// <returns>Return a bitmap</returns>
-        public override SKBitmap TabIcon( object oID ) {
-            if( oID is ViewSlot oSlot ) {
-                if( oSlot.Icon != null )
-                    return oSlot.Icon;
-            }
-
-            SKBitmap skIcon = new( 30, 30, SKColorType.Rgb888x, SKAlphaType.Opaque );
-
-            using SKPaint  oPaint  = new () { Color = SKColors.Red };
-			using SKCanvas oCanvas = new ( skIcon );
-
-			oCanvas.DrawRect( 0, 0, skIcon.Width, skIcon.Height, oPaint );
-
-            return skIcon;
         }
 
         protected override void OnTabLeftClicked( LayoutStack oTab, SKPointI sPoint ) {

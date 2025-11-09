@@ -256,13 +256,8 @@ namespace Play.SSTV {
 
         public override Size TabSize => new Size( 55, 40 );
 
-        /// <summary>
-        /// I want to phase out the TabIcon creator in the future. And use the
-        /// LayoutDocBmp layout in the future.
-        /// </summary>
-        /// <param name="oLine">We expect it to be a ViewSlot object.</param>
         protected override LayoutRect CreateTab( Line oLine ) {
-			LayoutIcon            oTabIcon = new( TabIcon( oLine ), LayoutRect.CSS.Flex );
+			LayoutIcon            oTabIcon = new( ((ToolInfo)oLine.Extra).Icon, LayoutRect.CSS.Flex );
             LayoutPattern         oTabStat = new( LayoutRect.CSS.Pixels, 5, oLine, TabStatus );
 				
 			LayoutStackHorizontal oTab = new () { Spacing = 5, 
@@ -285,14 +280,6 @@ namespace Play.SSTV {
             if( oTab.Extra is Line oLine ) {
 				_oTools.ToolSelect = oLine.At;
 			}
-        }
-
-        public override SKBitmap TabIcon( object ob) {
-            if( ob is Line oLine ) {
-                return ((ToolInfo)oLine.Extra).Icon;
-            }
-
-            throw new ArgumentException( "Argument must be of type : Line" );
         }
 
         public override SKColor TabBackground( object oID ) {

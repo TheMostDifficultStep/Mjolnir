@@ -163,13 +163,6 @@ namespace Play.Forms {
         }
 
         /// <summary>
-        /// This gets called when a Tab is being created.
-        /// </summary>
-        /// <param name="iID"></param>
-        /// <returns>Return a bitmap</returns>
-        [Obsolete]public abstract SKBitmap TabIcon( object oID );
-
-        /// <summary>
         /// So we need some way to associate the view's tab with some thing
         /// it is referencing. In the normal case, a line in the text editor.
         /// Normally, I would have a site that I can put any ancillary info 
