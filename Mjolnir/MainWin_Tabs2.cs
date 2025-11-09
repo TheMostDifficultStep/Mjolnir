@@ -23,7 +23,6 @@ namespace Mjolnir {
         public IPgParent Services  => Parentage.Services;
 
         readonly MainWin           _oHost;
-      //readonly IPgRoundRobinWork _oWorkPlace;
         readonly ImageSoloDoc      _oCloserImg;
 
         protected class TabSlot : IPgViewSite {
@@ -51,8 +50,6 @@ namespace Mjolnir {
 
             _oCloserImg.LoadResource( Assembly.GetExecutingAssembly(), 
                                       "Mjolnir.Content.icons8-close-window-94-2.png" );
-
-		    //_oWorkPlace = ((IPgScheduler)Services).CreateWorkPlace();
         }
 
         public override Size TabSize => new Size( 220, 44 );

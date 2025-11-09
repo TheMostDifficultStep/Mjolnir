@@ -167,7 +167,7 @@ namespace Play.Forms {
         /// </summary>
         /// <param name="iID"></param>
         /// <returns>Return a bitmap</returns>
-        public abstract SKBitmap TabIcon( object oID );
+        [Obsolete]public abstract SKBitmap TabIcon( object oID );
 
         /// <summary>
         /// So we need some way to associate the view's tab with some thing
