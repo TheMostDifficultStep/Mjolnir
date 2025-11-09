@@ -65,12 +65,11 @@ namespace Mjolnir {
         protected override LayoutRect CreateTab( Line oViewLine ) {
             LayoutPattern    oTabStat = new( LayoutRect.CSS.Pixels, 5, oViewLine, TabStatus );
 			LayoutIcon       oTabIcon = new( TabIcon( (ViewSlot)oViewLine ), LayoutRect.CSS.Flex );
-			LayoutSingleLine oTabText = new LayoutSingleLine( new FTCacheWrap( oViewLine ), 
-                                                              LayoutRect.CSS.None ) 
+			LayoutSingleLine oTabText = new LayoutSingleLine( new FTCacheWrap( oViewLine ), LayoutRect.CSS.None ) 
                                             { BgColor = SKColors.Transparent };
-            LayoutBmpDoc     oTabKill =  new LayoutBmpDoc( _oCloserImg ) 
-                                            { Units = LayoutRect.CSS.Flex, Hidden = true };
 			_rgTextCache.Add(oTabText);
+            LayoutBmpDoc     oTabKill = new LayoutBmpDoc( _oCloserImg ) 
+                                            { Units = LayoutRect.CSS.Flex, Hidden = true };
 
             // Round up all the layouts into our tab object here.
 			LayoutStackHorizontal oTab = new () { Spacing = 5, BackgroundColor = TabBackground, Extra = oViewLine };
@@ -78,7 +77,7 @@ namespace Mjolnir {
             oTab.Add( oTabStat ); // Focus indicator Bar.
 			oTab.Add( oTabIcon ); // Icon for the tab.
 			oTab.Add( oTabText ); // Text for the tab.
-            oTab.Add( oTabKill );
+            oTab.Add( oTabKill ); // Icon to indicate we want to close the view.
 
             return oTab;
         }

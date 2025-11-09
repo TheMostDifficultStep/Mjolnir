@@ -67,6 +67,13 @@ namespace Play.Forms {
         // Normally selection lives on the view, but I'll put it here for forms for now.
         protected ILineSelection[] _rgSelections = new ILineSelection[1];
 
+        /// <summary>
+        /// Layout a single line of text.
+        /// </summary>
+        /// <param name="oCache">A cache line containing the text</param>
+        /// <param name="eCSS">Layout desired for the line.Should probably remove and 
+        /// require you to set via the property initializer.</param>
+        /// <exception cref="ArgumentNullException"></exception>
         public LayoutSingleLine( FTCacheLine oCache, CSS eCSS ) : base( eCSS ) {
             Cache = oCache ?? throw new ArgumentNullException();
 
