@@ -474,6 +474,34 @@ namespace Play.Rectangles {
 		}
 	}
 
+	/// <summary>
+	/// This one we expect the layout direction to change on the fly. It 
+	/// could be the case for both vertical and horzontal, but I hate having
+	/// the switch if it really isn't needed ^_^;;
+	/// </summary>
+	public class LayoutStackChoosy : LayoutStack {
+		public LayoutStackChoosy( ) : base( TRACK.HORIZ ) {
+		}
+
+		public LayoutStackChoosy( uint uiTrack, float flMaxPercent ) : 
+			base( TRACK.HORIZ, uiTrack, flMaxPercent ) 
+		{
+		}
+
+		protected override void SetRect( Extent pntRails, Extent pntTrack, SmartRect oClient ) {
+			switch( Direction ) {
+				case  TRACK.HORIZ:
+					oClient.SetRect( pntTrack.Start, pntRails.Start, pntTrack.Stop, pntRails.Stop );
+					break;
+				case TRACK.VERT:
+					oClient.SetRect( pntRails.Start, pntTrack.Start, pntRails.Stop, pntTrack.Stop );
+					break;
+				default:
+					throw new NotImplementedException();
+			}
+		}
+	}
+
     public class LayoutStackBgGradient : LayoutStack {
         public List<SKColor> Colors { get; } = new List<SKColor>();
         public List<float>   Points { get; } = new List<float>();

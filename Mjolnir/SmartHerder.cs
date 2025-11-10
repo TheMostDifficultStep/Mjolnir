@@ -7,8 +7,6 @@ using SkiaSharp;
 
 using Play.Rectangles;
 using Play.Interfaces.Embedding;
-using Play.Drawing;
-using Play.ImageViewer;
 
 namespace Mjolnir {
     public interface IPgMenuVisibility {
