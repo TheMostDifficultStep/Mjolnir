@@ -245,8 +245,8 @@ namespace Mjolnir {
         /// </summary>
         /// <param name="xmlDocument">Config xml file.</param>
         protected void InitializeShepards( XmlDocument xmlDocument ) {
-            XmlNodeList                lstTools   = xmlDocument.SelectNodes("config/mainwindow/docking/dock");
-            Point                      ptOrigin   = new Point();
+            XmlNodeList  lstTools   = xmlDocument.SelectNodes("config/mainwindow/docking/dock");
+            Point        ptOrigin   = new Point();
 
             // This will be needed for the new smart herder implementation
             // but just leave it for now.
