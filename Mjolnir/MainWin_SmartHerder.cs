@@ -130,10 +130,10 @@ namespace Mjolnir {
 
         IPgMenuVisibility _oMenuVis = null; // pointer to shell menu entry.
 
-        protected readonly List<LayoutSingleLine> _rgLayoutText = new();
         protected readonly IPgFontRender          _oFontRender;
         protected readonly ImageSoloDoc           _oDocIcon;
         protected readonly ImageSoloDoc           _oDocCloser; // BUG: Temp here for now.
+        protected readonly List<LayoutSingleLine> _rgLayoutText  = new();
         protected readonly LayoutExclusive        _rgLayoutInner = new(); 
         protected readonly LayoutStackVariable    _rgLayoutBar   = new();
         protected readonly LayoutStackVariable    _rgLayoutOuter = new();
@@ -151,8 +151,7 @@ namespace Mjolnir {
             ArgumentNullException.ThrowIfNull( oMainWin );
             ArgumentNullException.ThrowIfNull( oFontRender );
 
-            Track = 30;
-
+            Track        = 30;
             Decor        = gDecor;
 
             _oHost       = oMainWin;
@@ -297,8 +296,8 @@ namespace Mjolnir {
         /// Bring to front the adornment that matches the view at the site given.
         /// </summary>
         /// <param name="oSite">The site for the view who's decor we want to show.</param>
-        public bool AdornmentShuffle( object oSite ) {
-            _rgLayoutInner.ToFront( oSite );
+        public bool AdornmentShuffle( object oKey ) {
+            _rgLayoutInner.ToFront( oKey );
             return true;
         }
         /// <summary>
@@ -312,8 +311,8 @@ namespace Mjolnir {
             _rgLayoutInner.Clear();
         }
 
-        public void AdornmentFocus( object oSite ) {
-            _rgLayoutInner.Focus( oSite );
+        public void AdornmentFocus( object oKey ) {
+            _rgLayoutInner.Focus( oKey );
         }
 
         public virtual bool IsContained( ViewSlot oSite ) {
@@ -340,14 +339,12 @@ namespace Mjolnir {
         }
 
         /// <summary>
-        /// Add an adornment to this herd. This set's up the sinks for the
-        /// focus events so we know when the adornment gets/loses focus.
         /// In the singleton case I'm allowing the key to be the control
         /// itself for backward compat. I'll check if everything has a site
         /// and if so change the key param
         /// </summary>
         /// <param name="oKey">Associated site, may be null. For singletons
-        ///                     this might be the control.</param>
+        ///                    this might be the control.</param>
         /// <param name="oControl">Control to add.</param>
 		/// <exception cref="ArgumentNullException" />
 		/// <exception cref="InvalidOperationException" />
@@ -369,12 +366,12 @@ namespace Mjolnir {
         /// <summary>
         /// Not that any adornments get removed but it's here if you want.
         /// </summary>
-        public void AdornmentRemove( object oViewSite ) {
-            _rgLayoutInner.Remove( oViewSite );
+        public void AdornmentRemove( object oKey ) {
+            _rgLayoutInner.Remove( oKey );
         }
 
-		public Control AdornmentFind( ViewSlot oViewSite ) {
-            return _rgLayoutInner.Find( oViewSite );
+		public Control AdornmentFind( ViewSlot oKey ) {
+            return _rgLayoutInner.Find( oKey );
         }
 
         public virtual void Dispose() {
@@ -397,16 +394,16 @@ namespace Mjolnir {
         /// </summary>
         public bool Hover( int p_iX, int p_iY, out bool fChanged ) {
 			fChanged = false;
-            return( false );
+            return false;
         }
 
         #endregion
 
         public override bool IsInside(int p_iX, int p_iY)  {
             if( Hidden )
-                return( false );
+                return false;
 
-            return( base.IsInside( p_iX, p_iY ) );
+            return base.IsInside( p_iX, p_iY );
         }
     }
 
