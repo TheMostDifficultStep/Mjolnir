@@ -3,25 +3,27 @@ using Play.Forms;
 using Play.ImageViewer;
 using Play.Interfaces.Embedding;
 using Play.Rectangles;
+
 using SkiaSharp;
+using SkiaSharp.Views.Desktop;
+
 using System;
 using System.Collections.Generic;
-using System.Drawing;
 using System.Reflection;
 using System.Windows.Forms;
 
 namespace Mjolnir {
-    internal class MWHerderSlot : 
+    internal class HerderSlot : 
         IPgViewSite, 
         IPgViewNotify
  {
         readonly MainWin _oMainWin;
-        public MWHerderSlot( MainWin oMainWin ) {
+        public HerderSlot( MainWin oMainWin ) {
             _oMainWin = oMainWin;
         }
         public IPgViewNotify EventChain => this;
 
-        public IPgParent Host => throw new NotImplementedException();
+        public IPgParent Host => _oMainWin;
 
         public bool IsCommandKey(CommandKey ckCommand, KeyBoardEnum kbModifier) {
             return false;
@@ -42,36 +44,81 @@ namespace Mjolnir {
         }
     }
 
+	/// <summary>
+	/// Similar to the stack EXCEPT we only show one of the 
+	/// children at a time. Each child is the same size.
+	/// </summary>
+	public class LayoutExclusive : LayoutRect {
+		protected Dictionary<object, Control > _rgChildren = new();
+		public LayoutExclusive() {
+		}
+
+        public int Count => _rgChildren.Count;
+
+        public void Clear() {
+            foreach( KeyValuePair<object, Control> oPair in _rgChildren ) {
+                oPair.Value.Dispose();
+            }
+            _rgChildren.Clear();
+        }
+
+        public IEnumerator<Control> GetEnumerator() {
+			foreach( KeyValuePair< object, Control > oPair in _rgChildren ) {
+				yield return oPair.Value;
+			}
+        }
+
+		public void Remove( object oKey ) {
+			_rgChildren.Remove( oKey );
+		}
+
+		public Control Find( object oKey ) {
+			foreach( KeyValuePair<object, Control> oPair in _rgChildren ) {
+				if( oPair.Key == oKey )
+					return oPair.Value;
+			}
+			return null;
+		}
+
+		public override bool Hidden { 
+			set {
+				base.Hidden = value;
+				foreach( Control oControl in this ) {
+					oControl.Visible = !value;
+				}
+			}
+		}
+
+        public void Focus( object oKey ) {
+            if( Find( oKey ) is Control oControl ) {
+                oControl.Select();
+            }
+        }
+    }
+
     /// <summary>
-    /// Base class for a herder. We have two sub classes, one for herders that hold a single object only.
-    /// And others that hold one per view. Since the "solo" case doesn't need an index to the given item
-    /// we pass null. Solo objects looking for null should complain if an add comes with an index object
-    /// Collection objects always need an index object and should complain if get a null index. Not that null
-    /// doesn't seem like a fine index value, but it seems various .net collections are starting to throw
-    /// exceptions. Alas, this conflict is because the tool windows for the shell might created per document
-    /// or be single like for the shell main output window.
+    /// New implementation for a herder. Work in progress.
     /// </summary>
     internal abstract class SmartHerderBase2 : 
         LayoutRect,
         IDisposable
     {
+        protected SideIdentify  _eSide;
         protected MainWin       _oHost;
                   Line          _oTitleText;
                   SHOWSTATE     _eViewState = SHOWSTATE.Inactive;
-                  bool          _fHideTitle = false;
-                  ShowImageSolo _oViewIcon;
 
         public    Guid          Decor { get; protected set; }
 
         IPgMenuVisibility _oMenuVis = null; // pointer to shell menu entry.
 
-        protected readonly SmartRect _rcInner  = new SmartRect(); // The inner rect for our flock!
         protected readonly List<LayoutSingleLine> _rgTextCache  = new();
         protected readonly IPgFontRender          _oFontRender;
         protected readonly ImageSoloDoc           _oIconDoc;
-        protected readonly LayoutRect             _oLayoutInner = new(); // BUG, placeholder
-        protected readonly LayoutStackChoosy      _rgLayoutBar  = new();
-        protected readonly LayoutStackChoosy      _rgLayoutBody = new();
+        protected readonly ImageSoloDoc           _oCloserDoc; // BUG: Temp for now.
+        protected readonly LayoutExclusive        _oLayoutInner  = new(); 
+        protected readonly LayoutStackVariable    _rgLayoutBar   = new();
+        protected readonly LayoutStackVariable    _rgLayoutOuter = new();
 
         public SmartHerderBase2( MainWin       oMainWin, 
                                  string        strResource, 
@@ -80,49 +127,80 @@ namespace Mjolnir {
                                  IPgFontRender oFontRender ) :
 			base( CSS.Percent )
         {
+            ArgumentNullException.ThrowIfNull( oMainWin );
+            ArgumentNullException.ThrowIfNull( oFontRender );
+
             Track = 30;
 
             _oHost       = oMainWin;
     		_oFontRender = oFontRender; 
             _oTitleText  = new TextLine( 0, strTitle );
-            _oViewIcon   = new( strResource );
             Decor        = gDecor;
-            _oIconDoc    = new( new MWHerderSlot( oMainWin ) );
+            _oIconDoc    = new( new HerderSlot( oMainWin ) );
 
-            _oIconDoc.LoadResource( Assembly.GetExecutingAssembly(), strResource );
+            Assembly oAsm = Assembly.GetExecutingAssembly();
+
+            _oIconDoc.LoadResource( oAsm, strResource );
+
+            _oCloserDoc = new( new HerderSlot( oMainWin ) );
+
+            _oCloserDoc.LoadResource( oAsm, 
+                                      "Mjolnir.Content.icons8-close-window-94-2.png" );
 
             LayoutBmpDoc     oViewIcon  = new LayoutBmpDoc( _oIconDoc ) 
                                             { Units = LayoutRect.CSS.Flex, Hidden = true };
 			LayoutSingleLine oViewTitle = new LayoutSingleLine( new FTCacheWrap( _oTitleText ), LayoutRect.CSS.None ) 
                                             { BgColor = SKColors.Transparent };
+            LayoutBmpDoc     oViewKill  = new LayoutBmpDoc( _oCloserDoc ) 
+                                            { Units = LayoutRect.CSS.Flex, Hidden = true };
 
 			_rgTextCache.Add( oViewTitle );
 
             // When this horizontal...
             _rgLayoutBar.Add( oViewIcon );
             _rgLayoutBar.Add( oViewTitle );
+            _rgLayoutBar.Add( oViewKill );
 
             // ...This is vertical!
-            _rgLayoutBody.Add( _rgLayoutBar );
-            _rgLayoutBody.Add( _oLayoutInner );
+            _rgLayoutOuter.Add( _rgLayoutBar );
+            _rgLayoutOuter.Add( _oLayoutInner );
+
+            Orientation = SideIdentify.Left;
         }
 
         /// <summary>
-        /// Save the value and update or Direction...
+        /// Save the value and update the Direction...
         /// </summary>
         public SideIdentify Orientation { 
-            get => throw new NotImplementedException();
-            set => throw new NotImplementedException(); 
+            get => _eSide;
+            set { Direction = ToDirection( value );
+                     _eSide = value;
+                }
         }
 
         /// <summary>
-        /// Normally it's the LayoutStack that has direction. But we're
-        /// overloading that idea here.
+        /// Maybe this belongs on the main window... :-/
+        /// </summary>
+        /// <exception cref="ArgumentOutOfRangeException"></exception>
+        public static TRACK ToDirection( SideIdentify eSite ) {
+            switch( eSite ) {
+                case SideIdentify.Left:
+                case SideIdentify.Right: 
+                    return TRACK.VERT;
+                case SideIdentify.Bottom: 
+                    return TRACK.HORIZ;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+        }
+
+        /// <summary>
+        /// The (title) bar is always orthoginal direction to the body.
         /// </summary>
 		protected TRACK Direction { 
-            set { _rgLayoutBody.Direction = value;
+            set { _rgLayoutOuter.Direction = value;
                   _rgLayoutBar .Direction = value == TRACK.HORIZ ? TRACK.VERT : TRACK.HORIZ; }
-            get { return _rgLayoutBody.Direction; } 
+            get { return _rgLayoutOuter.Direction; } 
         }
 
         public override bool LayoutChildren() {
@@ -141,10 +219,6 @@ namespace Mjolnir {
 
         public Guid Guid {
             get { return Decor; }
-        }
-
-        public bool HideTitle {
-            set { _fHideTitle = value; }
         }
 
         // Debug helper.
@@ -185,7 +259,7 @@ namespace Mjolnir {
             if( Hidden ) 
                 return;
 
-            foreach( LayoutRect oLayout in _rgLayoutBar ) {
+            foreach( LayoutRect oLayout in _rgLayoutOuter ) {
                 oLayout.Paint( skCanvas );
             }
 
@@ -205,8 +279,12 @@ namespace Mjolnir {
         /// <summary>
         /// This hides all the adornments but does not set the hidden property.
         /// </summary>
-        public abstract void AdornmentHideAll();
-		public abstract void AdornmentCloseAll();
+        public void AdornmentHideAll() {
+            _rgLayoutOuter.Hidden = true;
+        }
+		public void AdornmentCloseAll() {
+            _oLayoutInner.Clear();
+        }
 
         /// <summary>
         /// Set the focus to the tool window associated with the given document.
@@ -216,7 +294,7 @@ namespace Mjolnir {
         public abstract void AdornmentFocus( object oSite );
 
         public virtual bool IsContained( ViewSlot oSite ) {
-            return( true );
+            return true;
         }
 
         /// <summary>
@@ -252,7 +330,7 @@ namespace Mjolnir {
             ArgumentNullException.ThrowIfNull(oControl);
 
             oControl.Parent  = _oHost;
-            oControl.Bounds  = _rcInner.Rect; // Margin? Ignore for now.
+            oControl.Bounds  = _oLayoutInner.Rect; // Margin? Ignore for now.
             oControl.Visible = !Hidden;
 
             // Get the events from our guest control.
@@ -265,10 +343,13 @@ namespace Mjolnir {
         /// <summary>
         /// Not that any adornments get removed but it's here if you want.
         /// </summary>
-        public virtual void AdornmentRemove(object oViewSite) {
+        public void AdornmentRemove( object oViewSite ) {
+            _oLayoutInner.Remove( oViewSite );
         }
 
-		public abstract Control AdornmentFind( ViewSlot oViewSite);
+		public Control AdornmentFind( ViewSlot oViewSite ) {
+            return _oLayoutInner.Find( oViewSite );
+        }
 
         public virtual void Dispose() {
             _oMenuVis = null; // probably not strictly necessary. But break the loop.

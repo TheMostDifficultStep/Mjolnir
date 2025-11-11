@@ -475,15 +475,15 @@ namespace Play.Rectangles {
 	}
 
 	/// <summary>
-	/// This one we expect the layout direction to change on the fly. It 
+	/// This one we expect the layout direction to change ON THE FLY. It 
 	/// could be the case for both vertical and horzontal, but I hate having
 	/// the switch if it really isn't needed ^_^;;
 	/// </summary>
-	public class LayoutStackChoosy : LayoutStack {
-		public LayoutStackChoosy( ) : base( TRACK.HORIZ ) {
+	public class LayoutStackVariable : LayoutStack {
+		public LayoutStackVariable( ) : base( TRACK.HORIZ ) {
 		}
 
-		public LayoutStackChoosy( uint uiTrack, float flMaxPercent ) : 
+		public LayoutStackVariable( uint uiTrack, float flMaxPercent ) : 
 			base( TRACK.HORIZ, uiTrack, flMaxPercent ) 
 		{
 		}
@@ -919,4 +919,5 @@ namespace Play.Rectangles {
 
 		public void Add( LayoutRect oItem ) => _rgLayout.Add( oItem );
 	} // End class
+
 }

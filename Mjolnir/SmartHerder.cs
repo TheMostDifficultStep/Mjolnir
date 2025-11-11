@@ -48,10 +48,9 @@ namespace Mjolnir {
 	}
 
     /// <summary>
-    /// A hacky little object to show the image. Baby step to using all the
-    /// SKImage stuff for when I finally stop MainWin from inheriting from Form! O.o
+    /// A hacky little object to show the image. 
     /// </summary>
-    public class ShowImageSolo :
+    [Obsolete]public class ShowImageSolo :
         SmartRect
     {
         readonly Bitmap _oBitmap;
