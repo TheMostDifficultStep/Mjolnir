@@ -5,7 +5,6 @@ using Play.Interfaces.Embedding;
 using Play.Rectangles;
 
 using SkiaSharp;
-using SkiaSharp.Views.Desktop;
 
 using System;
 using System.Collections.Generic;
@@ -45,8 +44,10 @@ namespace Mjolnir {
     }
 
 	/// <summary>
-	/// Similar to the stack EXCEPT we only show one of the 
-	/// children at a time. Each child is the same size.
+	/// Similar to the stack EXCEPT we only show one of the children 
+    /// at a time. Each child is the same size. At present we expect
+    /// only controls inside, but we could make it so we have sub
+    /// layouts (windowless). That seems like overkill atm.
 	/// </summary>
 	public class LayoutExclusive : LayoutRect {
 		protected Dictionary<object, Control > _rgChildren = new();
@@ -54,6 +55,16 @@ namespace Mjolnir {
 		}
 
         public int Count => _rgChildren.Count;
+
+        protected override void OnSize() {
+            foreach( KeyValuePair<object, Control> oPair in _rgChildren ) {
+                oPair.Value.Bounds = Rect;
+            }
+        }
+
+        public void Add( object oKey, Control oControl ) {
+            _rgChildren.Add( oKey, oControl );
+        }
 
         public void Clear() {
             foreach( KeyValuePair<object, Control> oPair in _rgChildren ) {
@@ -85,6 +96,7 @@ namespace Mjolnir {
 				base.Hidden = value;
 				foreach( Control oControl in this ) {
 					oControl.Visible = !value;
+                  //Is this the same as oControl.Hide ?
 				}
 			}
 		}
@@ -94,12 +106,18 @@ namespace Mjolnir {
                 oControl.Select();
             }
         }
+
+        public void ToFront( object oKey ) {
+            if( Find( oKey ) is Control oControl ) {
+                oControl.BringToFront();
+            }
+        }
     }
 
     /// <summary>
     /// New implementation for a herder. Work in progress.
     /// </summary>
-    internal abstract class SmartHerderBase2 : 
+    public abstract class SmartHerderBase2 : 
         LayoutRect,
         IDisposable
     {
@@ -108,23 +126,26 @@ namespace Mjolnir {
                   Line          _oTitleText;
                   SHOWSTATE     _eViewState = SHOWSTATE.Inactive;
 
-        public    Guid          Decor { get; protected set; }
+        public Guid Decor { get; protected set; }
 
         IPgMenuVisibility _oMenuVis = null; // pointer to shell menu entry.
 
-        protected readonly List<LayoutSingleLine> _rgTextCache  = new();
+        protected readonly List<LayoutSingleLine> _rgLayoutText = new();
         protected readonly IPgFontRender          _oFontRender;
-        protected readonly ImageSoloDoc           _oIconDoc;
-        protected readonly ImageSoloDoc           _oCloserDoc; // BUG: Temp for now.
-        protected readonly LayoutExclusive        _oLayoutInner  = new(); 
+        protected readonly ImageSoloDoc           _oDocIcon;
+        protected readonly ImageSoloDoc           _oDocCloser; // BUG: Temp here for now.
+        protected readonly LayoutExclusive        _rgLayoutInner = new(); 
         protected readonly LayoutStackVariable    _rgLayoutBar   = new();
         protected readonly LayoutStackVariable    _rgLayoutOuter = new();
+
+        protected readonly bool _fSolo;
 
         public SmartHerderBase2( MainWin       oMainWin, 
                                  string        strResource, 
                                  string        strTitle, 
                                  Guid          gDecor,
-                                 IPgFontRender oFontRender ) :
+                                 IPgFontRender oFontRender, 
+                                 bool          fSolo ) :
 			base( CSS.Percent )
         {
             ArgumentNullException.ThrowIfNull( oMainWin );
@@ -132,29 +153,30 @@ namespace Mjolnir {
 
             Track = 30;
 
+            Decor        = gDecor;
+
             _oHost       = oMainWin;
     		_oFontRender = oFontRender; 
             _oTitleText  = new TextLine( 0, strTitle );
-            Decor        = gDecor;
-            _oIconDoc    = new( new HerderSlot( oMainWin ) );
+            _oDocIcon    = new( new HerderSlot( oMainWin ) );
+            _fSolo       = fSolo;
 
             Assembly oAsm = Assembly.GetExecutingAssembly();
 
-            _oIconDoc.LoadResource( oAsm, strResource );
+            _oDocIcon.LoadResource( oAsm, strResource );
 
-            _oCloserDoc = new( new HerderSlot( oMainWin ) );
+            _oDocCloser = new( new HerderSlot( oMainWin ) );
 
-            _oCloserDoc.LoadResource( oAsm, 
-                                      "Mjolnir.Content.icons8-close-window-94-2.png" );
+            _oDocCloser.LoadResource( oAsm, "Mjolnir.Content.icons8-close-window-94-2.png" );
 
-            LayoutBmpDoc     oViewIcon  = new LayoutBmpDoc( _oIconDoc ) 
+            LayoutBmpDoc     oViewIcon  = new LayoutBmpDoc( _oDocIcon ) 
                                             { Units = LayoutRect.CSS.Flex, Hidden = true };
 			LayoutSingleLine oViewTitle = new LayoutSingleLine( new FTCacheWrap( _oTitleText ), LayoutRect.CSS.None ) 
                                             { BgColor = SKColors.Transparent };
-            LayoutBmpDoc     oViewKill  = new LayoutBmpDoc( _oCloserDoc ) 
+            LayoutBmpDoc     oViewKill  = new LayoutBmpDoc( _oDocCloser ) 
                                             { Units = LayoutRect.CSS.Flex, Hidden = true };
 
-			_rgTextCache.Add( oViewTitle );
+			_rgLayoutText.Add( oViewTitle );
 
             // When this horizontal...
             _rgLayoutBar.Add( oViewIcon );
@@ -163,7 +185,7 @@ namespace Mjolnir {
 
             // ...This is vertical!
             _rgLayoutOuter.Add( _rgLayoutBar );
-            _rgLayoutOuter.Add( _oLayoutInner );
+            _rgLayoutOuter.Add( _rgLayoutInner );
 
             Orientation = SideIdentify.Left;
         }
@@ -204,7 +226,7 @@ namespace Mjolnir {
         }
 
         public override bool LayoutChildren() {
-            foreach( LayoutSingleLine oLayout in _rgTextCache ) {
+            foreach( LayoutSingleLine oLayout in _rgLayoutText ) {
                 oLayout.Cache.Measure( _oFontRender );
                 oLayout.OnChangeFormatting();
                 oLayout.Cache.OnChangeSize( oLayout.Width );
@@ -213,7 +235,7 @@ namespace Mjolnir {
             return true;
         }
 
-        public abstract bool TabStop {
+        public bool TabStop {
             get; set;
         }
 
@@ -275,7 +297,10 @@ namespace Mjolnir {
         /// Bring to front the adornment that matches the view at the site given.
         /// </summary>
         /// <param name="oSite">The site for the view who's decor we want to show.</param>
-        public abstract bool AdornmentShuffle( object oSite );
+        public bool AdornmentShuffle( object oSite ) {
+            _rgLayoutInner.ToFront( oSite );
+            return true;
+        }
         /// <summary>
         /// This hides all the adornments but does not set the hidden property.
         /// </summary>
@@ -283,18 +308,16 @@ namespace Mjolnir {
             _rgLayoutOuter.Hidden = true;
         }
 		public void AdornmentCloseAll() {
-            _oLayoutInner.Clear();
+            _rgLayoutOuter.Hidden = true;
+            _rgLayoutInner.Clear();
         }
 
-        /// <summary>
-        /// Set the focus to the tool window associated with the given document.
-        /// Will fail if there are no windows held by the herder.
-        /// </summary>
-        /// <param name="oSite">The document who's tools we want to show.</param>
-        public abstract void AdornmentFocus( object oSite );
+        public void AdornmentFocus( object oSite ) {
+            _rgLayoutInner.Focus( oSite );
+        }
 
         public virtual bool IsContained( ViewSlot oSite ) {
-            return true;
+            return _rgLayoutInner.Find( oSite ) is not null;
         }
 
         /// <summary>
@@ -319,36 +342,39 @@ namespace Mjolnir {
         /// <summary>
         /// Add an adornment to this herd. This set's up the sinks for the
         /// focus events so we know when the adornment gets/loses focus.
+        /// In the singleton case I'm allowing the key to be the control
+        /// itself for backward compat. I'll check if everything has a site
+        /// and if so change the key param
         /// </summary>
-        /// <param name="oSite">Associated site, may be null.</param>
+        /// <param name="oKey">Associated site, may be null. For singletons
+        ///                     this might be the control.</param>
         /// <param name="oControl">Control to add.</param>
-        /// <remarks>Note: we're not actually keeping track of the children
-        /// in us in this class. That's up to a subclass.</remarks>
 		/// <exception cref="ArgumentNullException" />
-		/// <exception cref="ArgumentException" />
-        public virtual bool AdornmentAdd( object oSite, Control oControl ) {
+		/// <exception cref="InvalidOperationException" />
+        public virtual void AdornmentAdd( object oKey, Control oControl ) {
             ArgumentNullException.ThrowIfNull(oControl);
+            if( _fSolo && _rgLayoutInner.Count > 0 ) {
+                throw new InvalidOperationException( "Solo herder cannot hold more than one control." );
+            }
 
             oControl.Parent  = _oHost;
-            oControl.Bounds  = _oLayoutInner.Rect; // Margin? Ignore for now.
+            oControl.Bounds  = _rgLayoutInner.Rect; // Margin? Ignore for now.
             oControl.Visible = !Hidden;
 
             // Get the events from our guest control.
             //oControl.GotFocus  += _oGotFocusHandler;
             //oControl.LostFocus += _oLostFocusHandler;
-
-            return( true );
         }
 
         /// <summary>
         /// Not that any adornments get removed but it's here if you want.
         /// </summary>
         public void AdornmentRemove( object oViewSite ) {
-            _oLayoutInner.Remove( oViewSite );
+            _rgLayoutInner.Remove( oViewSite );
         }
 
 		public Control AdornmentFind( ViewSlot oViewSite ) {
-            return _oLayoutInner.Find( oViewSite );
+            return _rgLayoutInner.Find( oViewSite );
         }
 
         public virtual void Dispose() {
@@ -381,6 +407,23 @@ namespace Mjolnir {
                 return( false );
 
             return( base.IsInside( p_iX, p_iY ) );
+        }
+    }
+
+    public class SmartHerderClxn2 : SmartHerderBase2 {
+        public SmartHerderClxn2( MainWin oMainWin, string strResource, 
+                                 string strTitle, Guid guidName,
+                                 IPgFontRender oFontRender ) :
+            base( oMainWin, strResource, strTitle, guidName, oFontRender, fSolo:false )
+        {
+        }
+    }
+    public class SmartHerderSolo2 : SmartHerderBase2 {
+        public SmartHerderSolo2( MainWin oMainWin, string strResource, 
+                                 string strTitle, Guid guidName,
+                                 IPgFontRender oFontRender ) :
+            base( oMainWin, strResource, strTitle, guidName, oFontRender, fSolo:true )
+        {
         }
     }
 }
