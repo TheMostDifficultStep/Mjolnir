@@ -82,6 +82,8 @@ namespace Mjolnir {
     /// exceptions. Alas, this conflict is because the tool windows for the shell might created per document
     /// or be single like for the shell main output window.
     /// </summary>
+
+    //#if foo
     public abstract class SmartHerderBase : 
         LayoutRect,
         IDisposable
@@ -796,6 +798,8 @@ namespace Mjolnir {
             _oControl.Dispose();
         }
     } // End Class.
+
+//#endif
 
     public class SmartHerderDrag : SmartGrabDrag
     {

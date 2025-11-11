@@ -91,12 +91,15 @@ namespace Mjolnir {
 			return null;
 		}
 
+        /// <summary>
+        /// Note that the Control::Hide() is a utility function that
+        /// calls the Visible property.
+        /// </summary>
 		public override bool Hidden { 
 			set {
 				base.Hidden = value;
 				foreach( Control oControl in this ) {
 					oControl.Visible = !value;
-                  //Is this the same as oControl.Hide ?
 				}
 			}
 		}
@@ -210,6 +213,10 @@ namespace Mjolnir {
                     return TRACK.VERT;
                 case SideIdentify.Bottom: 
                     return TRACK.HORIZ;
+                case SideIdentify.Tools:
+                    return TRACK.VERT;
+                case SideIdentify.Options:
+                    return TRACK.HORIZ;
                 default:
                     throw new ArgumentOutOfRangeException();
             }
@@ -233,6 +240,8 @@ namespace Mjolnir {
 
             return true;
         }
+
+        public string Title => _oTitleText.ToString();
 
         public bool TabStop {
             get; set;

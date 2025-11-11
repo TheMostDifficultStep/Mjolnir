@@ -4,12 +4,12 @@ using System.Drawing;
 using System.Windows.Forms;
 using System.Xml;
 using System.Collections;
-using System.IO;
 
 using SkiaSharp;
 
 using Play.Interfaces.Embedding;
 using Play.Rectangles;
+using Play.Edit;
 
 namespace Mjolnir {
     /// <summary>
@@ -248,6 +248,11 @@ namespace Mjolnir {
             XmlNodeList                lstTools   = xmlDocument.SelectNodes("config/mainwindow/docking/dock");
             Point                      ptOrigin   = new Point();
 
+            IPgStandardUI2 oStdUI   = (IPgStandardUI2)Services;
+            uint           uStdFont = oStdUI.FontCache( oStdUI.FaceCache(@"C:\windows\fonts\consola.ttf"), 
+                                                        10, MainDisplayInfo.pntDpi );
+            IPgFontRender  oRender  = oStdUI.FontRendererAt( uStdFont );
+
             foreach( XmlElement xeType in lstTools ) {
                 string strToolEdge = xeType.GetAttribute("edge");
                 string strToolDisp = xeType.GetAttribute("display" );
@@ -274,39 +279,49 @@ namespace Mjolnir {
                         throw new ApplicationException( "unexpected error reading tool guid", oEx );
                 }
                 
-                // A herder is the outer frame holding all the dialogs of a particular
-                // function, like outlines, for all the documents in the system. This
-                // is the piece that gets dragged around if the user want's to see it in
-                // a different place on the edges.
-                SmartHerderBase oShepard;
-                string          strResource = _rgStdDecor[gDecor].File;
-                bool            fSolo       = _rgStdDecor[gDecor].Solo;
+                try {
+                    // A herder is the outer frame holding all the dialogs of a particular
+                    // function, like outlines, for all the documents in the system. This
+                    // is the piece that gets dragged around if the user want's to see it in
+                    // a different place on the edges.
+                    SmartHerderBase oShepard;
+                    string          strResource = _rgStdDecor[gDecor].File;
+                    bool            fSolo       = _rgStdDecor[gDecor].Solo;
 
-                if( fSolo )
-                    oShepard = new SmartHerderSolo( this, strResource, strToolDisp, gDecor );
-                else
-                    oShepard = new SmartHerderClxn( this, strResource, strToolDisp, gDecor );
+                    if( fSolo )
+                        oShepard = new SmartHerderSolo( this, strResource, strToolDisp, gDecor/*, oRender */ );
+                    else
+                        oShepard = new SmartHerderClxn( this, strResource, strToolDisp, gDecor/*, oRender */ );
 
-                // Unfortunately the corner boxes won't be set until we've got our window size.
-                // so just set some arbitray size for now.
-                oShepard.SetRect(LOCUS.UPPERLEFT, ptOrigin.X, ptOrigin.Y, 30, 30 );
-                oShepard.Orientation = eEdge;
-                oShepard.Sizing      = SMARTSIZE.Normal;
+                    // Unfortunately the corner boxes won't be set until we've got our window size.
+                    // so just set some arbitray size for now.
+                    oShepard.SetRect(LOCUS.UPPERLEFT, ptOrigin.X, ptOrigin.Y, 30, 30 );
+                    oShepard.Orientation = eEdge;
+                    oShepard.Sizing      = SMARTSIZE.Normal;
 
-                // NOTE: This isn't the final say. The item must also have content,
-                //       but at this point we don't know... :-/
-				if( strToolVis.ToLower() == "true" )
-					oShepard.Show = SHOWSTATE.Active;
-				else
-					oShepard.Hidden = true;
+                    // NOTE: This isn't the final say. The item must also have content,
+                    //       but at this point we don't know... :-/
+				    if( strToolVis.ToLower() == "true" )
+					    oShepard.Show = SHOWSTATE.Active;
+				    else
+					    oShepard.Hidden = true;
 
-                //if( gDecor == GlobalDecor.Outline ) // TODO: Experimental.
-                //    oShepard.HideTitle = true;
-                //if( gDecor == GlobalDecor.Command ) // TODO: More experimental. Don't have a command bar 11/8/2024
-                //    oShepard.Margin = new SmartRect( 5, 5, 5, 5 );
+                    //if( gDecor == GlobalDecor.Outline ) // TODO: Experimental.
+                    //    oShepard.HideTitle = true;
+                    //if( gDecor == GlobalDecor.Command ) // TODO: More experimental. Don't have a command bar 11/8/2024
+                    //    oShepard.Margin = new SmartRect( 5, 5, 5, 5 );
 
-                _rgShepards.Add( gDecor, oShepard );
+                    _rgShepards.Add( gDecor, oShepard );
+                } catch( Exception oEx ) {
+                    Type[] rgErrors = { typeof( ArgumentOutOfRangeException ),
+                                        typeof( ArgumentNullException ),
+                                        typeof( NullReferenceException ),
+                                        typeof( InvalidOperationException ) };
+                    if( rgErrors.IsUnhandled( oEx ) )
+                        throw;
 
+                    LogError( null, "Decor", "Unable to Init a dacor: " + strToolDisp );
+                }
                 // Stagger all the windows both in x and y so that when we try to arrange them after
                 // our main window get's sized they'll be roughly in the order loaded.
                 ptOrigin.Offset( 5, 5 );
@@ -367,6 +382,7 @@ namespace Mjolnir {
         private static readonly Type[] _rgDCErrors = { 
 			typeof( NullReferenceException ), 
             typeof( ArgumentNullException ),
+            typeof( ArgumentOutOfRangeException ),
 			typeof( ArgumentException ),
 			typeof( InvalidCastException ),
 			typeof( InvalidOperationException )
@@ -453,9 +469,14 @@ namespace Mjolnir {
             if( Shepardfind( gShepardName ) is not SmartHerderSolo oSolo )
                 return false;
             
-            if( !oSolo.AdornmentAdd(null, oControl ) ) {
+            try {
+                oSolo.AdornmentAdd(null, oControl );
+            } catch( Exception oEx ) {
+                if( _rgDCErrors.IsUnhandled( oEx ) )
+                    throw;
+
                 LogError(null, "internal", "Couldn't add adornment" );
-                return( false );
+                return false;
             }
 
             oControl.TabStop = false;
