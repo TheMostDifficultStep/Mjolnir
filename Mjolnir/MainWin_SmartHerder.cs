@@ -5,6 +5,7 @@ using Play.Interfaces.Embedding;
 using Play.Rectangles;
 
 using SkiaSharp;
+using SkiaSharp.Views.Desktop;
 
 using System;
 using System.Collections.Generic;
@@ -430,6 +431,69 @@ namespace Mjolnir {
                                  IPgFontRender oFontRender ) :
             base( oMainWin, strResource, strTitle, guidName, oFontRender, fSolo:true )
         {
+        }
+    }
+
+    /// <summary>
+    /// Tack this onto the main window and we should be
+    /// good to go after I make the main window an SKControl.
+    /// </summary>
+    public interface IPgShutdownNotify : IDisposable {
+        bool IsDisposed       { get; }
+        bool RecreatingHandle { get; }
+
+        event EventHandler WinHandleDestroyed;
+    }
+
+    /// <summary>
+    /// Turns out you don't need a Form window to hand to the
+    /// Application.Run() method. You can also pass it an
+    /// application context. It is a bit of a bummer that all
+    /// my subclass needs to include Form class baggage, but
+    /// I think I've coded all that out with this class. 
+    /// </summary>
+    public class MyApplicationContext : ApplicationContext
+    {
+        private readonly IPgShutdownNotify _myForm;
+
+        /// <summary>
+        ///  Creates a new ApplicationContext with the specified mainForm.
+        ///  If OnMainFormClosed is not overridden, the thread's message
+        ///  loop will be terminated when mainForm is closed.
+        /// </summary>
+        public MyApplicationContext( IPgShutdownNotify? mainForm ) : base()
+        {
+            _myForm = mainForm ?? throw new ArgumentException();
+
+            _myForm.WinHandleDestroyed += OnMainFormDestroy;
+        }
+
+        protected override void Dispose(bool disposing) {
+            if( disposing ) {
+                if( !_myForm.IsDisposed ) {
+                    _myForm.Dispose();
+                }
+            }
+
+            base.Dispose( disposing );
+
+            // If you are adding releasing unmanaged resources code here (disposing == false), you need to:
+            // 1. remove GC.SuppressFinalize from constructor of this class and from all of its subclasses
+            // 2. remove ApplicationContext_Subclasses_SuppressFinalizeCall test
+            // 3. modify ~ApplicationContext() description.
+        }
+
+        /// <summary>
+        ///  Called when the mainForm is closed. The default implementation
+        ///  of this will call ExitThreadCore.
+        /// </summary>
+        private void OnMainFormDestroy( object? sender, EventArgs e ) {
+            if( sender is IPgShutdownNotify oShutter ) {
+                if( !oShutter.RecreatingHandle ) {
+                    oShutter.WinHandleDestroyed -= OnMainFormDestroy;
+                    ExitThreadCore();
+                } 
+            }
         }
     }
 }
