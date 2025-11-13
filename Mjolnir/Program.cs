@@ -310,8 +310,10 @@ namespace Mjolnir {
                     }
 			    }
 
+                oProgram.MainWindow.Visible = true;
+
 				try {
-					Application.Run( oProgram.MainWindow );
+					Application.Run( new MyApplicationContext( oProgram.MainWindow ) );
 				} catch( Exception oEx ) {
 					oProgram.LogError( "internal", oEx.Message );
                     oProgram.BombOut( oEx );

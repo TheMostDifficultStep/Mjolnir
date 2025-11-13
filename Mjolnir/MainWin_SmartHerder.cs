@@ -461,7 +461,7 @@ namespace Mjolnir {
         ///  If OnMainFormClosed is not overridden, the thread's message
         ///  loop will be terminated when mainForm is closed.
         /// </summary>
-        public MyApplicationContext( IPgShutdownNotify? mainForm ) : base()
+        public MyApplicationContext( IPgShutdownNotify mainForm ) : base()
         {
             _myForm = mainForm ?? throw new ArgumentException();
 
@@ -487,7 +487,7 @@ namespace Mjolnir {
         ///  Called when the mainForm is closed. The default implementation
         ///  of this will call ExitThreadCore.
         /// </summary>
-        private void OnMainFormDestroy( object? sender, EventArgs e ) {
+        private void OnMainFormDestroy( object sender, EventArgs e ) {
             if( sender is IPgShutdownNotify oShutter ) {
                 if( !oShutter.RecreatingHandle ) {
                     oShutter.WinHandleDestroyed -= OnMainFormDestroy;
