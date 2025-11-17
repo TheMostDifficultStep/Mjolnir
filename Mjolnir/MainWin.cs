@@ -1,7 +1,6 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Text;
 using System.Drawing;
 using System.Windows.Forms;
@@ -12,7 +11,6 @@ using System.Runtime.InteropServices;
 using System.Linq;
 
 using SkiaSharp;
-using SkiaSharp.Views.Desktop;
 
 using Play.Interfaces.Embedding; 
 using Play.Rectangles;
@@ -21,7 +19,6 @@ using Play.Parse;
 using Play.Forms;
 
 using static Mjolnir.Program;
-using Play.Controls;
 
 namespace Mjolnir {
     /// <summary>
