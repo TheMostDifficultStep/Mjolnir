@@ -12,6 +12,7 @@ using System.Runtime.InteropServices;
 using System.Linq;
 
 using SkiaSharp;
+using SkiaSharp.Views.Desktop;
 
 using Play.Interfaces.Embedding; 
 using Play.Rectangles;
@@ -20,6 +21,7 @@ using Play.Parse;
 using Play.Forms;
 
 using static Mjolnir.Program;
+using Play.Controls;
 
 namespace Mjolnir {
     /// <summary>
@@ -92,6 +94,20 @@ namespace Mjolnir {
 			Multi
 		}
 
+        #if foo
+        protected override CreateParams CreateParams { 
+            get{ CreateParams oFoo = base.CreateParams;
+                oFoo.Style = 
+                    (int)WindowStyles.WS_EX_TOPMOST |
+                    (int)WindowStyles.WS_SYSMENU |
+                    (int)WindowStyles.WS_MAXIMIZEBOX |
+                    (int)WindowStyles.WS_MINIMIZEBOX |
+                    (int)WindowStyles.WS_THICKFRAME |
+                    (int)WindowStyles.WS_OVERLAPPED;
+
+                return oFoo; } 
+        }
+        #endif
         /// <summary>
         /// New ViewSite implementation for sub views of this window that are not part
         /// of the main document system. This is for degenerate tools of the main window.
@@ -601,7 +617,7 @@ namespace Mjolnir {
 
             SuspendLayout();
 
-            StartPosition = FormStartPosition.Manual;
+         ///StartPosition = FormStartPosition.Manual;
             Location = new Point( rgMain[0], rgMain[1] );
             Size     = new Size ( rgMain[2], rgMain[3] ); // ends up making LayoutFrame() call.
 
@@ -617,7 +633,8 @@ namespace Mjolnir {
 			_oTopMenu = new MyMenuStrip() {
 				Font        = Document.FontMenu, // new Font( "ChicagoFLF", 14 ) doesn't support my buttons.
 				AutoSize    = false,
-				LayoutStyle = ToolStripLayoutStyle.Flow
+				LayoutStyle = ToolStripLayoutStyle.Flow,
+                Parent      = this
 			};
 
 			// Save Menu shortcut.
@@ -912,7 +929,7 @@ namespace Mjolnir {
             Document.LogError( oSite, strCatagory, strDetails, fShow );
         }
 
-        protected override void OnFormClosing(FormClosingEventArgs e) {
+        protected virtual void OnFormClosing(FormClosingEventArgs e) {
             _fIsClosing = true;
 
             e.Cancel = Document.WarnOnOpenDocuments();
@@ -925,7 +942,7 @@ namespace Mjolnir {
 				//e.Cancel = true;
 			}
 
-            base.OnFormClosing(e);
+            //base.OnFormClosing(e);
         }
 
         /// <summary>
@@ -958,8 +975,8 @@ namespace Mjolnir {
         /// <summary>
         /// Closing our main window.
         /// </summary>
-        protected override void OnFormClosed( FormClosedEventArgs e ) {
-            base.OnFormClosed(e);
+        protected virtual void OnFormClosed( FormClosedEventArgs e ) {
+            //base.OnFormClosed(e);
 
             foreach( ViewSlot oLine in _oDoc_ViewSelector ) {
                 oLine.Dispose();
@@ -1315,7 +1332,7 @@ namespace Mjolnir {
         internal void ViewClose( ViewSlot oViewSite ) {
             if( oViewSite != null ) {
                 // Clear this since the view controlling, the lifetime of the icon, is dying.
-                this.Icon = null; 
+                //this.Icon = null; 
 
                 // if doc count is 1 we ask if they want to save. This is different from the
                 // view remove call which checks if there are any references left. 
@@ -1594,18 +1611,26 @@ namespace Mjolnir {
             }
         }
 
-        protected override void OnShown( EventArgs e ) {
-            base.OnShown(e);
+        protected virtual void OnShown( EventArgs e ) {
+            //base.OnShown(e);
             
             LayoutFrame();
         }
-        
+
+        protected override void OnVisibleChanged(EventArgs e) {
+            base.OnVisibleChanged(e);
+            if( Visible == true )
+                LayoutFrame();
+        }
+
+
+    /// <seealso cref="OnResize">
         protected override void OnSizeChanged(EventArgs e) {
             base.OnSizeChanged(e);
 
 			// BUG: This exposes the issue of what to do when the window gets too small.
 			//      Currently the inside layou starts setting things negative. Evil.
-			if( WindowState != FormWindowState.Minimized )
+			//if( WindowState != FormWindowState.Minimized )
 				LayoutFrame();
 
 			// Note: I don't think I want to dirty the session just b/c of a size change.
@@ -1723,6 +1748,22 @@ namespace Mjolnir {
                 this.LogError( null, oEx.Message, oEx.StackTrace );
             }
         }
+
+        #if foo
+        protected override void OnPaintSurface(SKPaintSurfaceEventArgs e)
+        {
+            try {
+                LayoutPaintSK( e.Surface.Canvas );
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( ExternalException ),
+                                    typeof( NullReferenceException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
+
+                this.LogError( null, oEx.Message, oEx.StackTrace );
+            }
+        }
+        #endif
 
         /// <summary>
         /// Do a hit test of the mouse position to see if it is on any
@@ -1995,7 +2036,7 @@ namespace Mjolnir {
                     _oSelectedWinSite = null;
                     _oSelectedDocSite = null;
                     base.Text = "Mjolnir";
-                    Icon = null;
+                    //Icon = null;
                     InsideShow = SHOWSTATE.Inactive;
 					SetTitle();
                     return;

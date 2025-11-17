@@ -5,7 +5,6 @@ using Play.Interfaces.Embedding;
 using Play.Rectangles;
 
 using SkiaSharp;
-using SkiaSharp.Views.Desktop;
 
 using System;
 using System.Collections.Generic;
@@ -51,41 +50,83 @@ namespace Mjolnir {
     /// layouts (windowless). That seems like overkill atm.
 	/// </summary>
 	public class LayoutExclusive : LayoutRect {
-		protected Dictionary<object, Control > _rgChildren = new();
-		public LayoutExclusive() {
+        /// <summary>
+        /// So you can't create a KeyValuePair by simply "new". 
+        /// You have to call some dumb ass "Create" static method
+        /// because of some dumb ass reflection going on there.
+        /// So just create one myself.
+        /// </summary>
+        public readonly struct AuPair {
+            private readonly object   key; 
+            private readonly Control  value; 
+
+            public AuPair(object key, Control value) {
+                this.key = key;
+                this.value = value;
+            }
+
+            public object  Key   => key;
+            public Control Value => value;
+        }
+
+		protected List<AuPair> _rgChildren   = new();
+        protected int          _iMaxChildren = 0;
+
+		public LayoutExclusive( bool fSolo ) {
+            _iMaxChildren = fSolo ? 1 : int.MaxValue;
 		}
 
         public int Count => _rgChildren.Count;
 
         protected override void OnSize() {
-            foreach( KeyValuePair<object, Control> oPair in _rgChildren ) {
+            foreach( AuPair oPair in _rgChildren ) {
                 oPair.Value.Bounds = Rect;
             }
         }
 
         public void Add( object oKey, Control oControl ) {
-            _rgChildren.Add( oKey, oControl );
+            ArgumentNullException.ThrowIfNull(oControl);
+
+            if( _rgChildren.Count >= _iMaxChildren )
+                throw new InvalidOperationException("Solo herder cannot hold more than one control.");
+
+            _rgChildren.Add( new AuPair( oKey, oControl ) );
         }
 
         public void Clear() {
-            foreach( KeyValuePair<object, Control> oPair in _rgChildren ) {
+            foreach( AuPair oPair in _rgChildren ) {
                 oPair.Value.Dispose();
             }
             _rgChildren.Clear();
         }
 
         public IEnumerator<Control> GetEnumerator() {
-			foreach( KeyValuePair< object, Control > oPair in _rgChildren ) {
+			foreach( AuPair oPair in _rgChildren ) {
 				yield return oPair.Value;
 			}
         }
 
 		public void Remove( object oKey ) {
-			_rgChildren.Remove( oKey );
+			for( int i=0; i<_rgChildren.Count; ++i ) {
+				AuPair oPair = _rgChildren[i];
+                if( oPair.Key == oKey ) {
+                    _rgChildren.RemoveAt(i);
+                    return;
+                }
+			}
 		}
 
+        /// <summary>
+        /// It's a little cheesy, but if we're a solo container, the key is
+        /// the object itself, since we can't load a null into the dictionary
+        /// (lame). So since the only way through a dictionary is iteration,
+        /// just force return on the first element.
+        /// </summary>
+        /// <remarks>I could add an assert that if the key is null, the
+        /// collection only contains one element. I'll see if I need it
+        /// later.</remarks>
 		public Control Find( object oKey ) {
-			foreach( KeyValuePair<object, Control> oPair in _rgChildren ) {
+			foreach( AuPair oPair in _rgChildren ) {
 				if( oPair.Key == oKey )
 					return oPair.Value;
 			}
@@ -121,7 +162,7 @@ namespace Mjolnir {
     /// <summary>
     /// New implementation for a herder. Work in progress.
     /// </summary>
-    public abstract class SmartHerderBase2 : 
+    public class SmartHerderBase2 : 
         LayoutRect,
         IDisposable
     {
@@ -138,13 +179,13 @@ namespace Mjolnir {
         protected readonly ImageSoloDoc           _oDocIcon;
         protected readonly ImageSoloDoc           _oDocCloser; // BUG: Temp here for now.
         protected readonly List<LayoutSingleLine> _rgLayoutText  = new();
-        protected readonly LayoutExclusive        _rgLayoutInner = new(); 
+        protected readonly LayoutExclusive        _rgLayoutInner; 
         protected readonly LayoutStackVariable    _rgLayoutBar   = new();
         protected readonly LayoutStackVariable    _rgLayoutOuter = new();
 
         protected readonly bool _fSolo;
 
-        public SmartHerderBase2( MainWin       oMainWin, 
+        public SmartHerderBase2(  MainWin       oMainWin, 
                                  string        strResource, 
                                  string        strTitle, 
                                  Guid          gDecor,
@@ -162,11 +203,15 @@ namespace Mjolnir {
     		_oFontRender = oFontRender; 
             _oTitleText  = new TextLine( 0, strTitle );
             _oDocIcon    = new( new HerderSlot( oMainWin ) );
-            _fSolo       = fSolo;
 
-            Assembly oAsm = Assembly.GetExecutingAssembly();
+            _rgLayoutInner = new LayoutExclusive( fSolo );
 
-            _oDocIcon.LoadResource( oAsm, strResource );
+            Assembly     oAsm = Assembly.GetExecutingAssembly();
+          //string[] rgStrs = oAsm.GetManifestResourceNames();
+            AssemblyName assemblyName = oAsm.GetName();
+            string       strAsmName = assemblyName.Name;
+
+            _oDocIcon.LoadResource( oAsm, assemblyName.Name + "." + strResource );
 
             _oDocCloser = new( new HerderSlot( oMainWin ) );
 
@@ -232,12 +277,17 @@ namespace Mjolnir {
             get { return _rgLayoutOuter.Direction; } 
         }
 
+        protected override void OnSize() {
+            _rgLayoutOuter.SetRect( Left, Top, Right, Bottom );
+        }
+
         public override bool LayoutChildren() {
             foreach( LayoutSingleLine oLayout in _rgLayoutText ) {
                 oLayout.Cache.Measure( _oFontRender );
                 oLayout.OnChangeFormatting();
                 oLayout.Cache.OnChangeSize( oLayout.Width );
             }
+            _rgLayoutOuter.LayoutChildren();
 
             return true;
         }
@@ -295,11 +345,14 @@ namespace Mjolnir {
             }
 
 			// DEBUG Code.
-            //p_oGraphics.DrawLine(Pens.Aquamarine,
-            //          _rcInner.GetScalar(SCALAR.LEFT),
-            //          _rcInner.GetScalar(SCALAR.TOP),
-            //          _rcInner.GetScalar(SCALAR.RIGHT),
-            //          _rcInner.GetScalar(SCALAR.BOTTOM));
+
+            SKPaint oPaint = new SKPaint() { Color = SKColors.Aquamarine };
+            skCanvas.DrawLine(
+                      _rgLayoutInner.GetScalar(SCALAR.LEFT),
+                      _rgLayoutInner.GetScalar(SCALAR.TOP),
+                      _rgLayoutInner.GetScalar(SCALAR.RIGHT),
+                      _rgLayoutInner.GetScalar(SCALAR.BOTTOM),
+                      oPaint );
         }
 
         /// <summary>
@@ -359,14 +412,11 @@ namespace Mjolnir {
 		/// <exception cref="ArgumentNullException" />
 		/// <exception cref="InvalidOperationException" />
         public virtual void AdornmentAdd( object oKey, Control oControl ) {
-            ArgumentNullException.ThrowIfNull(oControl);
-            if( _fSolo && _rgLayoutInner.Count > 0 ) {
-                throw new InvalidOperationException( "Solo herder cannot hold more than one control." );
-            }
-
             oControl.Parent  = _oHost;
             oControl.Bounds  = _rgLayoutInner.Rect; // Margin? Ignore for now.
             oControl.Visible = !Hidden;
+
+            _rgLayoutInner.Add( oKey, oControl );
 
             // Get the events from our guest control.
             //oControl.GotFocus  += _oGotFocusHandler;

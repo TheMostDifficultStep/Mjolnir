@@ -291,9 +291,9 @@ namespace Mjolnir {
                     bool            fSolo       = _rgStdDecor[gDecor].Solo;
 
                     if( fSolo )
-                        oShepard = new SmartHerderSolo( this, strResource, strToolDisp, gDecor/*, oRender */ );
+                        oShepard = new SmartHerderSolo( this, strResource, strToolDisp, gDecor /*, oRender */);
                     else
-                        oShepard = new SmartHerderClxn( this, strResource, strToolDisp, gDecor/*, oRender */ );
+                        oShepard = new SmartHerderClxn( this, strResource, strToolDisp, gDecor /*, oRender */ );
 
                     // Unfortunately the corner boxes won't be set until we've got our window size.
                     // so just set some arbitray size for now.
@@ -393,6 +393,7 @@ namespace Mjolnir {
         /// <summary>
         /// Attempt create the associated decor for the given view and shepard.
         /// </summary>
+        /// <seealso cref="DecorAddSolo(Guid, Control)"/>
         protected bool DecorCreate( ViewSlot oViewSite, SmartHerderBase oShepard ) {
 			IPgCommandView oViewCmmd;
 			DecorSlot      oDecorSite;
@@ -465,6 +466,7 @@ namespace Mjolnir {
 		/// window providing adornments to itself, or some such.</remarks>
 		/// <exception cref="ArgumentNullException" />
 		/// <exception cref="ArgumentException" />
+        /// <seealso cref="DecorCreate(ViewSlot, SmartHerderBase)"/>
         protected bool DecorAddSolo( Guid gShepardName, Control oControl ) {
             SmartHerderBase oShepard = Shepardfind( gShepardName );
 
@@ -472,7 +474,7 @@ namespace Mjolnir {
                 return false;
             
             try {
-                oSolo.AdornmentAdd(null, oControl );
+                oSolo.AdornmentAdd( null, oControl );
             } catch( Exception oEx ) {
                 if( _rgDCErrors.IsUnhandled( oEx ) )
                     throw;
@@ -527,6 +529,17 @@ namespace Mjolnir {
                     break;
                 case TOPLAYOUT.Multi:
                     _oLayout2.Paint( oG );
+                    break;
+            }
+        }
+
+        protected void LayoutPaintSK( SKCanvas oCanvas ) {
+            switch( _eLayout ) { 
+                case TOPLAYOUT.Solo:
+                    _oLayoutPrimary.Paint( oCanvas );
+                    break;
+                case TOPLAYOUT.Multi:
+                    _oLayout2.Paint( oCanvas );
                     break;
             }
         }
