@@ -310,10 +310,12 @@ namespace Mjolnir {
                     }
 			    }
 
-                oProgram.MainWindow.Visible = true;
+                //oProgram.MainWindow.Parent = null;
+                //oProgram.MainWindow.SetBounds( 50, 50, 200, 200 );
+                oProgram.MainWindow.Show();
 
 				try {
-					Application.Run( new MyApplicationContext( oProgram.MainWindow ) );
+					Application.Run( new ApplicationContext( oProgram.MainWindow ) );
 				} catch( Exception oEx ) {
 					oProgram.LogError( "internal", oEx.Message );
                     oProgram.BombOut( oEx );
@@ -893,6 +895,7 @@ namespace Mjolnir {
             //      Even better. At least show a window with the error.
             try {
                 MainWindow = new MainWin(this);
+              //MainWindow.CreateControl();
                 MainWindow.Initialize(xmlConfig);
             } catch( Exception oEx ) {
 				if( rgErrors.IsUnhandled( oEx ) )

@@ -50,6 +50,7 @@ namespace Mjolnir {
 
             _oCloserImg.LoadResource( Assembly.GetExecutingAssembly(), 
                                       "Mjolnir.Content.icons8-close-window-94-2.png" );
+            Parent = _oHost;
         }
 
         public override Size TabSize => new Size( 220, 44 );

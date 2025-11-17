@@ -44,6 +44,7 @@ namespace Mjolnir {
             if( _oParseEvents != null ) {
                 _oParseEvents.DisableParsing = oSearchType.SelectedItem.ToString() != "Regex";
             }
+            Parent = oShell;
         }
 
 		/// <summary>

@@ -417,6 +417,10 @@ namespace Play.Controls {
         WS_MAXIMIZEBOX       = 0x00010000,
         WS_BORDER            = 0x00800000,
         WS_CHILD             = 0x40000000,
+        WS_MINIMIZEBOX       = 0x00020000,
+        WS_THICKFRAME        = 0x00040000,
+        WS_SYSMENU           = 0x00080000,
+        WS_OVERLAPPED        = 0x00000000,
                              
         WS_EX_LEFT           = 0x00000000,
         WS_EX_LTRREADING     = 0x00000000,
