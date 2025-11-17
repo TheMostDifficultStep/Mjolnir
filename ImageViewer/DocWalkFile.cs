@@ -284,6 +284,8 @@ namespace Play.ImageViewer {
         }
 
 		public bool Load(Stream oStream) {
+            ArgumentNullException.ThrowIfNull( oStream );
+
 			BitmapDispose();
 
             try {
