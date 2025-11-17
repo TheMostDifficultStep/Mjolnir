@@ -660,6 +660,17 @@ namespace Play.Interfaces.Embedding {
         bool Bind( T oStream );
     }
 
+    /// <summary>
+    /// My idea is the shell can use this to save property values 
+    /// from a document that are specific to a session.
+    /// Load would occur AFTER IPgLoad calls.
+    /// Save would occuR AFTER IPgSave calls.
+    /// </summary>
+    public interface IPgPersistProperties {
+        bool Load( IEnumerator<KeyValuePair<string, string>> rgFrom );
+        IEnumerator<KeyValuePair<string, string>> Save();
+    }
+
     public enum SHOWSTATE  {
         Active,
         Focused,
