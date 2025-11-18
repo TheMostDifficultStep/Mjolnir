@@ -23,11 +23,17 @@ namespace Play.ImageViewer {
 	public class LayoutBmpDoc : LayoutRect {
 		protected readonly ImageBaseDoc _oDocument;
 		protected readonly SmartRect    _rctViewPort = new SmartRect();
+		protected Bitmap _oLocalImg;
 
 		public LayoutBmpDoc( ImageBaseDoc oDocSolo ) {
 			_oDocument = oDocSolo;
 
 			this.SizeEvent += OnSizeEvent;
+			WorldCoordinates = new SmartRect( 0, 0, 
+			                                  _oDocument.Size.Width, 
+											  _oDocument.Size.Height );
+			Border = new Size( 20,20 );
+			_oLocalImg = _oDocument.Bitmap.ToBitmap();
 		}
 			
 		/// <seealso cref="SmartRect.Paint(SKCanvas)"/>
@@ -46,18 +52,30 @@ namespace Play.ImageViewer {
             }
 		}
 
+        public override void Paint(Graphics p_oGraphics) {
+			if( _oLocalImg == null )
+                return;
+
+            try {
+				p_oGraphics.DrawImage( _oLocalImg, 
+									   _rctViewPort.Rect,
+									   WorldCoordinates.Rect,
+									   GraphicsUnit.Pixel
+                                   );
+            } catch( NullReferenceException ) {
+            }
+        }
+
 		/// <summary>
 		/// What portion of the bitmap we want to show.
 		/// </summary>
-		public virtual SmartRect WorldCoordinates => new SmartRect( 0, 0, 
-			                                                _oDocument.Size.Width, 
-															_oDocument.Size.Height );
+		public virtual SmartRect WorldCoordinates { get; }
 
 		/// <summary>
 		/// Amount of border around the view containing the portion
 		/// of the image we are showing.
 		/// </summary>
-		public virtual Size Border => new Size( 20,20 );
+		public virtual Size Border {get; set; }
 
 		/// <summary>
 		/// Back port this to LayoutImageView, It's unbelievably cool. 

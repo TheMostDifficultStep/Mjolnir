@@ -8,6 +8,7 @@ using SkiaSharp;
 
 using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Reflection;
 using System.Windows.Forms;
 
@@ -56,11 +57,11 @@ namespace Mjolnir {
         /// because of some dumb ass reflection going on there.
         /// So just create one myself.
         /// </summary>
-        public readonly struct AuPair {
+        public readonly struct MyPair {
             private readonly object   key; 
             private readonly Control  value; 
 
-            public AuPair(object key, Control value) {
+            public MyPair(object key, Control value) {
                 this.key = key;
                 this.value = value;
             }
@@ -69,7 +70,7 @@ namespace Mjolnir {
             public Control Value => value;
         }
 
-		protected List<AuPair> _rgChildren   = new();
+		protected List<MyPair> _rgChildren   = new();
         protected int          _iMaxChildren = 0;
 
 		public LayoutExclusive( bool fSolo ) {
@@ -79,36 +80,42 @@ namespace Mjolnir {
         public int Count => _rgChildren.Count;
 
         protected override void OnSize() {
-            foreach( AuPair oPair in _rgChildren ) {
+            foreach( MyPair oPair in _rgChildren ) {
                 oPair.Value.Bounds = Rect;
             }
         }
 
+        /// <summary>
+        /// No check for duplicate keys. So be careful.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">You'll get this
+        /// if you attempt to put too many elements in a solo container.</exception>
+        /// <exception cref="NullReferenceException" />
         public void Add( object oKey, Control oControl ) {
             ArgumentNullException.ThrowIfNull(oControl);
 
             if( _rgChildren.Count >= _iMaxChildren )
                 throw new InvalidOperationException("Solo herder cannot hold more than one control.");
 
-            _rgChildren.Add( new AuPair( oKey, oControl ) );
+            _rgChildren.Add( new MyPair( oKey, oControl ) );
         }
 
         public void Clear() {
-            foreach( AuPair oPair in _rgChildren ) {
+            foreach( MyPair oPair in _rgChildren ) {
                 oPair.Value.Dispose();
             }
             _rgChildren.Clear();
         }
 
         public IEnumerator<Control> GetEnumerator() {
-			foreach( AuPair oPair in _rgChildren ) {
+			foreach( MyPair oPair in _rgChildren ) {
 				yield return oPair.Value;
 			}
         }
 
 		public void Remove( object oKey ) {
 			for( int i=0; i<_rgChildren.Count; ++i ) {
-				AuPair oPair = _rgChildren[i];
+				MyPair oPair = _rgChildren[i];
                 if( oPair.Key == oKey ) {
                     _rgChildren.RemoveAt(i);
                     return;
@@ -117,16 +124,13 @@ namespace Mjolnir {
 		}
 
         /// <summary>
-        /// It's a little cheesy, but if we're a solo container, the key is
-        /// the object itself, since we can't load a null into the dictionary
-        /// (lame). So since the only way through a dictionary is iteration,
-        /// just force return on the first element.
+        /// If we are a solo container just use null as the key.
         /// </summary>
         /// <remarks>I could add an assert that if the key is null, the
         /// collection only contains one element. I'll see if I need it
         /// later.</remarks>
 		public Control Find( object oKey ) {
-			foreach( AuPair oPair in _rgChildren ) {
+			foreach( MyPair oPair in _rgChildren ) {
 				if( oPair.Key == oKey )
 					return oPair.Value;
 			}
@@ -157,13 +161,34 @@ namespace Mjolnir {
                 oControl.BringToFront();
             }
         }
+
+        public bool Shuffle( object oKey, bool fDesireVisible ) {
+            bool fFound = false;
+
+            // Go thru and hide anything that's not the key. Only show the key
+            // value if we're not being hidden.
+			foreach( LayoutExclusive.MyPair oPair in _rgChildren ) {
+			    if( oKey == oPair.Key && fDesireVisible ) {
+					oPair.Value.BringToFront();
+					oPair.Value.Show();
+                    fFound = true;
+
+                    // Shell sets all tabstops to false, we turn it on only if we are visible.
+                    oPair.Value.TabStop = this[ SCALAR.WIDTH ] > 0 || this[ SCALAR.HEIGHT] > 0;
+			    } else {
+					oPair.Value.Hide();
+                }
+			}
+
+            return fFound;
+        }
     }
 
     /// <summary>
     /// New implementation for a herder. Work in progress.
     /// </summary>
     public class SmartHerderBase2 : 
-        LayoutRect,
+        LayoutStackVariable,
         IDisposable
     {
         protected SideIdentify  _eSide;
@@ -180,8 +205,9 @@ namespace Mjolnir {
         protected readonly ImageSoloDoc           _oDocCloser; // BUG: Temp here for now.
         protected readonly List<LayoutSingleLine> _rgLayoutText  = new();
         protected readonly LayoutExclusive        _rgLayoutInner; 
-        protected readonly LayoutStackVariable    _rgLayoutBar   = new();
-        protected readonly LayoutStackVariable    _rgLayoutOuter = new();
+        protected readonly LayoutStackVariable    _rgLayoutBar   = new() { Track = 30, Style=LayoutRect.CSS.Pixels };
+
+        LayoutBmpDoc     _oViewIcon;
 
         protected readonly bool _fSolo;
 
@@ -191,13 +217,13 @@ namespace Mjolnir {
                                  Guid          gDecor,
                                  IPgFontRender oFontRender, 
                                  bool          fSolo ) :
-			base( CSS.Percent )
+			base(  )
         {
             ArgumentNullException.ThrowIfNull( oMainWin );
             ArgumentNullException.ThrowIfNull( oFontRender );
 
-            Track        = 30;
             Decor        = gDecor;
+            Spacing      = 5;
 
             _oHost       = oMainWin;
     		_oFontRender = oFontRender; 
@@ -217,23 +243,23 @@ namespace Mjolnir {
 
             _oDocCloser.LoadResource( oAsm, "Mjolnir.Content.icons8-close-window-94-2.png" );
 
-            LayoutBmpDoc     oViewIcon  = new LayoutBmpDoc( _oDocIcon ) 
-                                            { Units = LayoutRect.CSS.Flex, Hidden = true };
-			LayoutSingleLine oViewTitle = new LayoutSingleLine( new FTCacheWrap( _oTitleText ), LayoutRect.CSS.None ) 
+            /*LayoutBmpDoc */    _oViewIcon  = new LayoutBmpDoc( _oDocIcon ) 
+                                            { Units = LayoutRect.CSS.Flex, Hidden = true, Border = new Size( 0, 0 ) };
+			LayoutSingleLine oViewTitle = new LayoutSingleLine( new FTCacheWrap( _oTitleText ), LayoutRect.CSS.Flex ) 
                                             { BgColor = SKColors.Transparent };
             LayoutBmpDoc     oViewKill  = new LayoutBmpDoc( _oDocCloser ) 
-                                            { Units = LayoutRect.CSS.Flex, Hidden = true };
+                                            { Units = LayoutRect.CSS.Flex, Hidden = false };
 
 			_rgLayoutText.Add( oViewTitle );
 
             // When this horizontal...
-            _rgLayoutBar.Add( oViewIcon );
+            _rgLayoutBar.Add( _oViewIcon );
             _rgLayoutBar.Add( oViewTitle );
             _rgLayoutBar.Add( oViewKill );
 
             // ...This is vertical!
-            _rgLayoutOuter.Add( _rgLayoutBar );
-            _rgLayoutOuter.Add( _rgLayoutInner );
+            this.Add( _rgLayoutBar );
+            this.Add( _rgLayoutInner );
 
             Orientation = SideIdentify.Left;
         }
@@ -271,14 +297,14 @@ namespace Mjolnir {
         /// <summary>
         /// The (title) bar is always orthoginal direction to the body.
         /// </summary>
-		protected TRACK Direction { 
-            set { _rgLayoutOuter.Direction = value;
-                  _rgLayoutBar .Direction = value == TRACK.HORIZ ? TRACK.VERT : TRACK.HORIZ; }
-            get { return _rgLayoutOuter.Direction; } 
+		public override TRACK Direction { 
+            set { base.Direction = value;
+                  _rgLayoutBar.Direction = value == TRACK.HORIZ ? TRACK.VERT : TRACK.HORIZ; 
+                }
         }
 
         protected override void OnSize() {
-            _rgLayoutOuter.SetRect( Left, Top, Right, Bottom );
+            LayoutChildren();
         }
 
         public override bool LayoutChildren() {
@@ -287,7 +313,7 @@ namespace Mjolnir {
                 oLayout.OnChangeFormatting();
                 oLayout.Cache.OnChangeSize( oLayout.Width );
             }
-            _rgLayoutOuter.LayoutChildren();
+            base.LayoutChildren();
 
             return true;
         }
@@ -340,7 +366,7 @@ namespace Mjolnir {
             if( Hidden ) 
                 return;
 
-            foreach( LayoutRect oLayout in _rgLayoutOuter ) {
+            foreach( LayoutRect oLayout in this ) {
                 oLayout.Paint( skCanvas );
             }
 
@@ -355,22 +381,99 @@ namespace Mjolnir {
                       oPaint );
         }
 
+        // https://stackoverflow.com/questions/45077047/rotate-photo-with-skiasharp
+        /// <summary>
+        /// Going to try to add this backwards compat to my new herder implementation.
+        /// </summary>
+        /// <param name="p_oGraphics"></param>
+        public override void Paint( Graphics p_oGraphics )
+        {
+            if( this.Rect.Width <= 0 || this.Rect.Height <= 0 /* || Orientation == Top */ 
+                || Hidden || _oHost.DecorFont == null )
+                return; // Nothing to do.
+
+            try {
+                // Need this to clip the bitmap.
+                SmartRect oRect = new SmartRect( this );
+                oRect.SetScalar( SET.RIGID, SCALAR.LEFT, 0 );
+                oRect.SetScalar( SET.RIGID, SCALAR.TOP,  0 );
+                Region oRgn     = new Region( oRect.Rect );
+                Color  oBgColor = _oHost.BackColor; // Color.LightGray;
+
+                using( oRgn ) {
+                    SKPointI oPointImage = _rgLayoutBar.GetPoint(LOCUS.UPPERLEFT);
+                    Region   oOldRgn     = p_oGraphics.Clip;
+
+                    p_oGraphics.TranslateTransform( _rgLayoutBar.Left, _rgLayoutBar.Top );
+                    p_oGraphics.Clip = oRgn;
+
+                    if( _eViewState == SHOWSTATE.Focused ) {
+                        oBgColor = _oHost.ToolsBrushActive.Color;
+                        p_oGraphics.FillRectangle( _oHost.ToolsBrushActive,
+                                                   0,
+                                                   0, 
+                                                   _rgLayoutBar.Width  + 1,
+                                                   _rgLayoutBar.Height + 1);
+                    } else {
+                        p_oGraphics.FillRectangle( Brushes.LightGray,
+                                                   0,
+                                                   0, 
+                                                   _rgLayoutBar.Width  + 1,
+                                                   _rgLayoutBar.Height + 1);
+                    }
+
+                    p_oGraphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+
+
+                    int iBoxWidth = _rgLayoutBar.Width < _rgLayoutBar.Height ? 
+                                      _rgLayoutBar.Width : _rgLayoutBar.Height;
+
+                    _oViewIcon.SetRect( 0, 0, iBoxWidth, iBoxWidth );
+                    _oViewIcon.Paint  ( p_oGraphics );
+
+                    int   iFontHeight = _oHost.DecorFont.Height;
+                    Point pntTemp     = new Point( iBoxWidth, iBoxWidth );
+                    switch( Orientation ) {
+                        case SideIdentify.Left:
+                        case SideIdentify.Right: 
+                            pntTemp.Y = pntTemp.Y / 2 - iFontHeight / 2;
+                            break;
+                        case SideIdentify.Bottom: 
+                        default:
+                            p_oGraphics.RotateTransform( 90 );
+                            pntTemp = new Point( pntTemp.X, - ( iFontHeight + (int)( (float)( iBoxWidth - iFontHeight ) / 2 ) ) );
+                            break;
+
+                    }
+
+                    p_oGraphics.DrawString( _oTitleText.ToString(), _oHost.DecorFont, Brushes.Black, pntTemp );
+                    p_oGraphics.ResetTransform();
+
+                    p_oGraphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.Default;
+
+                    p_oGraphics.Clip = oOldRgn;
+                }
+            } catch( OverflowException ) {
+                // Probably rectangle inside out...
+            }
+        }
+
         /// <summary>
         /// Bring to front the adornment that matches the view at the site given.
         /// </summary>
         /// <param name="oSite">The site for the view who's decor we want to show.</param>
-        public bool AdornmentShuffle( object oKey ) {
-            _rgLayoutInner.ToFront( oKey );
-            return true;
+        public bool AdornmentShuffle( object oKey )
+        {
+            return _rgLayoutInner.Shuffle( oKey, DesiresVisiblity );
         }
         /// <summary>
         /// This hides all the adornments but does not set the hidden property.
         /// </summary>
         public void AdornmentHideAll() {
-            _rgLayoutOuter.Hidden = true;
+            Hidden = true;
         }
 		public void AdornmentCloseAll() {
-            _rgLayoutOuter.Hidden = true;
+            Hidden = true;
             _rgLayoutInner.Clear();
         }
 
