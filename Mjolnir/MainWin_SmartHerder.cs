@@ -214,13 +214,13 @@ namespace Mjolnir {
         IPgMenuVisibility _oMenuVis = null; // pointer to shell menu entry.
 
         protected readonly IPgFontRender          _oFontRender;
-        protected readonly ImageSoloDoc           _oDocIcon;
+      //protected readonly ImageSoloDoc           _oDocIcon;
         protected readonly ImageSoloDoc           _oDocCloser; // BUG: Temp here for now.
         protected readonly List<LayoutSingleLine> _rgLayoutText  = new();
         protected readonly LayoutExclusive        _rgLayoutInner; 
         protected readonly LayoutStackVariable    _rgLayoutBar   = new() { Track = 30, Style=LayoutRect.CSS.Pixels };
 
-        LayoutBmpDoc     _oViewIcon;
+        LayoutGdiBitmap     _oViewIcon;
 
         protected readonly bool _fSolo;
 
@@ -241,26 +241,27 @@ namespace Mjolnir {
             _oHost       = oMainWin;
     		_oFontRender = oFontRender; 
             _oTitleText  = new TextLine( 0, strTitle );
-            _oDocIcon    = new( new HerderSlot( oMainWin ) );
+          //_oDocIcon    = new( new HerderSlot( oMainWin ) );
 
             _rgLayoutInner = new LayoutExclusive( fSolo );
 
             Assembly     oAsm = Assembly.GetExecutingAssembly();
           //string[] rgStrs = oAsm.GetManifestResourceNames();
             AssemblyName assemblyName = oAsm.GetName();
-            string       strAsmName = assemblyName.Name;
+            string       strAsmName   = assemblyName.Name;
+            string       strFullName  = assemblyName.Name + "." + strResource;
 
-            _oDocIcon.LoadResource( oAsm, assemblyName.Name + "." + strResource );
+          //_oDocIcon.LoadResource( oAsm, assemblyName.Name + "." + strResource );
 
             _oDocCloser = new( new HerderSlot( oMainWin ) );
 
             _oDocCloser.LoadResource( oAsm, "Mjolnir.Content.icons8-close-window-94-2.png" );
 
-            /*LayoutBmpDoc */    _oViewIcon  = new LayoutBmpDoc( _oDocIcon ) 
+            /*LayoutBmpDoc */    _oViewIcon  = new LayoutGdiBitmap( strFullName ) 
                                             { Units = LayoutRect.CSS.Flex, Hidden = true, Border = new Size( 0, 0 ) };
 			LayoutSingleLine oViewTitle = new LayoutSingleLine( new FTCacheWrap( _oTitleText ), LayoutRect.CSS.Flex ) 
                                             { BgColor = SKColors.Transparent };
-            LayoutBmpDoc     oViewKill  = new LayoutBmpDoc( _oDocCloser ) 
+            LayoutSKBitmap     oViewKill  = new LayoutSKBitmap( _oDocCloser ) 
                                             { Units = LayoutRect.CSS.Flex, Hidden = false };
 
 			_rgLayoutText.Add( oViewTitle );

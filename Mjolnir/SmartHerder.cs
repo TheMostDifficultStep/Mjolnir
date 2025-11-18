@@ -1,12 +1,12 @@
+using Play.Drawing;
+using Play.ImageViewer;
+using Play.Interfaces.Embedding;
+using Play.Rectangles;
+using SkiaSharp;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Windows.Forms;
-
-using SkiaSharp;
-
-using Play.Rectangles;
-using Play.Interfaces.Embedding;
 
 namespace Mjolnir {
     public interface IPgMenuVisibility {
@@ -48,13 +48,19 @@ namespace Mjolnir {
 	}
 
     /// <summary>
-    /// A hacky little object to show the image. 
+	/// Since the form is laying out the herders we need something
+    /// that can paint a bitmap with GDI Graphics object. So here
+    /// we are. Unfortunatly unlike LayoutSKBitmap, we create an
+    /// instance of the bitmap for every view. It's not worth fixing
+    /// until maybe the main window can stop inheriting from "Form"
     /// </summary>
-    [Obsolete]public class ShowImageSolo :
-        SmartRect
+    /// <seealso cref="LayoutSKBitmap"/>
+    public class LayoutGdiBitmap :
+        LayoutSimpleImage
     {
         readonly Bitmap _oBitmap;
-        public ShowImageSolo( string strResouce ) {
+
+        public LayoutGdiBitmap( string strResouce ) : base() {
             try {
                 _oBitmap = new Bitmap( typeof( MainWin ), strResouce ); // the icon is a resource now.
             } catch( Exception oE ) {
@@ -65,12 +71,25 @@ namespace Mjolnir {
 
                 _oBitmap = new Bitmap( 1, 1 ); 
             }
+
+			WorldCoordinates.SetRect( 0, 0, _oBitmap.Width, _oBitmap.Height );
         }
 
-        [Obsolete]public override void Paint( Graphics p_oGraphics )
-        {
-            p_oGraphics.DrawImage( _oBitmap, this.Rect );
+        public override void Paint(Graphics p_oGraphics) {
+			if( _oBitmap == null )
+                return;
+
+            try {
+				p_oGraphics.DrawImage( _oBitmap, 
+									   _rctViewPort.Rect,
+									   WorldCoordinates.Rect,
+									   GraphicsUnit.Pixel
+                                   );
+            } catch( NullReferenceException ) {
+            }
         }
+
+        public override float Aspect => (float)_oBitmap.Width / (float)_oBitmap.Height;
     }
 
     /// <summary>
@@ -96,7 +115,7 @@ namespace Mjolnir {
                   string        _strTitle;
                   SHOWSTATE     _eViewState = SHOWSTATE.Inactive;
                   bool          _fHideTitle = false;
-                  ShowImageSolo _oViewIcon;
+                  LayoutGdiBitmap _oViewIcon;
 
         public    Guid          Decor { get; protected set; }
 
