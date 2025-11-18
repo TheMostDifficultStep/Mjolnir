@@ -80,6 +80,9 @@ namespace Mjolnir {
         public int Count => _rgChildren.Count;
 
         protected override void OnSize() {
+            //SmartRect oRect = new SmartRect( this );
+            //oRect.Inflate( -1, _rcMargin );
+
             foreach( MyPair oPair in _rgChildren ) {
                 oPair.Value.Bounds = Rect;
             }
@@ -124,16 +127,20 @@ namespace Mjolnir {
 		}
 
         /// <summary>
-        /// If we are a solo container just use null as the key.
+        /// If we are a solo container null or the current view
+        /// is legal!! Kind of an oversight on my part. 
         /// </summary>
-        /// <remarks>I could add an assert that if the key is null, the
-        /// collection only contains one element. I'll see if I need it
-        /// later.</remarks>
 		public Control Find( object oKey ) {
-			foreach( MyPair oPair in _rgChildren ) {
-				if( oPair.Key == oKey )
-					return oPair.Value;
-			}
+            try {
+                if( _iMaxChildren == 1 )
+                    return _rgChildren[0].Value;;
+
+			    foreach( MyPair oPair in _rgChildren ) {
+				    if( oPair.Key == oKey )
+					    return oPair.Value;
+			    }
+            } catch( NullReferenceException ) {
+            }
 			return null;
 		}
 
@@ -151,6 +158,9 @@ namespace Mjolnir {
 		}
 
         public void Focus( object oKey ) {
+            if( Hidden )
+                return;
+
             if( Find( oKey ) is Control oControl ) {
                 oControl.Select();
             }
@@ -164,6 +174,9 @@ namespace Mjolnir {
 
         public bool Shuffle( object oKey, bool fDesireVisible ) {
             bool fFound = false;
+
+            if( _iMaxChildren == 1 )
+                oKey = null;
 
             // Go thru and hide anything that's not the key. Only show the key
             // value if we're not being hidden.

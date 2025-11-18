@@ -742,15 +742,6 @@ namespace Mjolnir {
             _oControl = null;
         }
 
-        /// <summary>
-        /// Return our only control we are herding.
-        /// </summary>
-        public Control Adornment {
-            get {
-                return( _oControl );
-            }
-        }
-
         public override bool TabStop
         {
             get
