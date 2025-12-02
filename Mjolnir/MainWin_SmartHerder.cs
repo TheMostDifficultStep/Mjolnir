@@ -127,7 +127,7 @@ namespace Mjolnir {
 		}
 
         /// <summary>
-        /// If we are a solo container null or the current view
+        /// NOTE! If we are a solo container null or the current view
         /// is legal!! Kind of an oversight on my part. 
         /// </summary>
 		public Control Find( object oKey ) {

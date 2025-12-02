@@ -80,7 +80,7 @@ namespace Mjolnir {
             //      so we don't know who's focused at the moment.
             _oViewChangedHandler   = new ViewChanged(OnViewChanged);
             _oWinMain.ViewChanged += _oViewChangedHandler;
-            if( _oWinMain.ViewSiteSelected != null && 
+            if( _oWinMain.ViewSiteSelected is not null && 
                 _oWinMain.ViewSiteSelected.Guest is IPgTextView oView ) 
             {
                 _oView = oView;
