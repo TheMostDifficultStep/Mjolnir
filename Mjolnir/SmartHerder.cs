@@ -6,6 +6,8 @@ using SkiaSharp;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.IO;
+using System.Reflection;
 using System.Windows.Forms;
 
 namespace Mjolnir {
@@ -58,11 +60,13 @@ namespace Mjolnir {
     public class LayoutGdiBitmap :
         LayoutSimpleImage
     {
-        readonly Bitmap _oBitmap;
+        readonly Image _oBitmap;
 
-        public LayoutGdiBitmap( string strResouce ) : base() {
+        public LayoutGdiBitmap( Assembly oAsm, string strResourceName ) {
             try {
-                _oBitmap = new Bitmap( typeof( MainWin ), strResouce ); // the icon is a resource now.
+                using Stream oStream = oAsm.GetManifestResourceStream( strResourceName );
+
+                _oBitmap = Bitmap.FromStream( oStream );
             } catch( Exception oE ) {
                 Type[] rgErrors = { typeof( KeyNotFoundException ), // This error if the user errored on the attribute name or value.
                                     typeof( ArgumentException ) };  // This error if we didn't embed resource.
@@ -71,7 +75,6 @@ namespace Mjolnir {
 
                 _oBitmap = new Bitmap( 1, 1 ); 
             }
-
 			WorldCoordinates.SetRect( 0, 0, _oBitmap.Width, _oBitmap.Height );
         }
 
@@ -89,7 +92,7 @@ namespace Mjolnir {
             }
         }
 
-        public override float Aspect => (float)_oBitmap.Width / (float)_oBitmap.Height;
+        public override float Aspect => _oBitmap.Width / (float)_oBitmap.Height;
     }
 
     /// <summary>
@@ -102,7 +105,7 @@ namespace Mjolnir {
     /// or be single like for the shell main output window.
     /// </summary>
 
-    //#if foo
+    #if foo
     public abstract class SmartHerderBase : 
         LayoutRect,
         IDisposable
@@ -809,7 +812,7 @@ namespace Mjolnir {
         }
     } // End Class.
 
-//#endif
+#endif
 
     public class SmartHerderDrag : SmartGrabDrag
     {

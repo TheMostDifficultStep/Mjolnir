@@ -200,7 +200,7 @@ namespace Mjolnir {
     /// <summary>
     /// New implementation for a herder. Work in progress.
     /// </summary>
-    public class SmartHerderBase2 : 
+    public class SmartHerderBase : 
         LayoutStackVariable,
         IDisposable
     {
@@ -224,7 +224,7 @@ namespace Mjolnir {
 
         protected readonly bool _fSolo;
 
-        public SmartHerderBase2(  MainWin       oMainWin, 
+        public SmartHerderBase(  MainWin       oMainWin, 
                                  string        strResource, 
                                  string        strTitle, 
                                  Guid          gDecor,
@@ -257,8 +257,8 @@ namespace Mjolnir {
 
             _oDocCloser.LoadResource( oAsm, "Mjolnir.Content.icons8-close-window-94-2.png" );
 
-            /*LayoutBmpDoc */    _oViewIcon  = new LayoutGdiBitmap( strFullName ) 
-                                            { Units = LayoutRect.CSS.Flex, Hidden = true, Border = new Size( 0, 0 ) };
+            /*LayoutBmpDoc */    _oViewIcon  = new LayoutGdiBitmap( oAsm, strFullName ) 
+                                            { Units = LayoutRect.CSS.Flex, Hidden = false, Border = new Size( 0, 0 ) };
 			LayoutSingleLine oViewTitle = new LayoutSingleLine( new FTCacheWrap( _oTitleText ), LayoutRect.CSS.Flex ) 
                                             { BgColor = SKColors.Transparent };
             LayoutSKBitmap     oViewKill  = new LayoutSKBitmap( _oDocCloser ) 
@@ -276,6 +276,7 @@ namespace Mjolnir {
             this.Add( _rgLayoutInner );
 
             Orientation = SideIdentify.Left;
+            Style=LayoutRect.CSS.Percent;
         }
 
         /// <summary>
@@ -386,13 +387,13 @@ namespace Mjolnir {
 
 			// DEBUG Code.
 
-            SKPaint oPaint = new SKPaint() { Color = SKColors.Aquamarine };
-            skCanvas.DrawLine(
-                      _rgLayoutInner.GetScalar(SCALAR.LEFT),
-                      _rgLayoutInner.GetScalar(SCALAR.TOP),
-                      _rgLayoutInner.GetScalar(SCALAR.RIGHT),
-                      _rgLayoutInner.GetScalar(SCALAR.BOTTOM),
-                      oPaint );
+            //SKPaint oPaint = new SKPaint() { Color = SKColors.Aquamarine };
+            //skCanvas.DrawLine(
+            //          _rgLayoutInner.GetScalar(SCALAR.LEFT),
+            //          _rgLayoutInner.GetScalar(SCALAR.TOP),
+            //          _rgLayoutInner.GetScalar(SCALAR.RIGHT),
+            //          _rgLayoutInner.GetScalar(SCALAR.BOTTOM),
+            //          oPaint );
         }
 
         // https://stackoverflow.com/questions/45077047/rotate-photo-with-skiasharp
@@ -412,39 +413,28 @@ namespace Mjolnir {
                 oRect.SetScalar( SET.RIGID, SCALAR.LEFT, 0 );
                 oRect.SetScalar( SET.RIGID, SCALAR.TOP,  0 );
                 Region oRgn     = new Region( oRect.Rect );
-                Color  oBgColor = _oHost.BackColor; // Color.LightGray;
 
                 using( oRgn ) {
                     SKPointI oPointImage = _rgLayoutBar.GetPoint(LOCUS.UPPERLEFT);
                     Region   oOldRgn     = p_oGraphics.Clip;
 
-                    p_oGraphics.TranslateTransform( _rgLayoutBar.Left, _rgLayoutBar.Top );
-                    p_oGraphics.Clip = oRgn;
-
-                    if( _eViewState == SHOWSTATE.Focused ) {
-                        oBgColor = _oHost.ToolsBrushActive.Color;
-                        p_oGraphics.FillRectangle( _oHost.ToolsBrushActive,
-                                                   0,
-                                                   0, 
-                                                   _rgLayoutBar.Width  + 1,
-                                                   _rgLayoutBar.Height + 1);
-                    } else {
-                        p_oGraphics.FillRectangle( Brushes.LightGray,
-                                                   0,
-                                                   0, 
-                                                   _rgLayoutBar.Width  + 1,
-                                                   _rgLayoutBar.Height + 1);
-                    }
+                    Brush oBrush = _eViewState == SHOWSTATE.Focused ? 
+                                                    _oHost.ToolsBrushActive : Brushes.LightGray;
+                    p_oGraphics.FillRectangle( oBrush,
+                                                _rgLayoutBar.Left,
+                                                _rgLayoutBar.Top, 
+                                                _rgLayoutBar.Width  + 1,
+                                                _rgLayoutBar.Height + 1);
 
                     p_oGraphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
 
+                    _oViewIcon.Paint( p_oGraphics );
 
-                    int iBoxWidth = _rgLayoutBar.Width < _rgLayoutBar.Height ? 
-                                      _rgLayoutBar.Width : _rgLayoutBar.Height;
+                    p_oGraphics.TranslateTransform( _rgLayoutBar.Left, _rgLayoutBar.Top );
+                    p_oGraphics.Clip = oRgn;
 
-                    _oViewIcon.SetRect( 0, 0, iBoxWidth, iBoxWidth );
-                    _oViewIcon.Paint  ( p_oGraphics );
-
+                    int   iBoxWidth   = _rgLayoutBar.Width < _rgLayoutBar.Height ? 
+                                        _rgLayoutBar.Width : _rgLayoutBar.Height;
                     int   iFontHeight = _oHost.DecorFont.Height;
                     Point pntTemp     = new Point( iBoxWidth, iBoxWidth );
                     switch( Orientation ) {
@@ -584,16 +574,16 @@ namespace Mjolnir {
         }
     }
 
-    public class SmartHerderClxn2 : SmartHerderBase2 {
-        public SmartHerderClxn2( MainWin oMainWin, string strResource, 
+    public class SmartHerderClxn : SmartHerderBase {
+        public SmartHerderClxn( MainWin oMainWin, string strResource, 
                                  string strTitle, Guid guidName,
                                  IPgFontRender oFontRender ) :
             base( oMainWin, strResource, strTitle, guidName, oFontRender, fSolo:false )
         {
         }
     }
-    public class SmartHerderSolo2 : SmartHerderBase2 {
-        public SmartHerderSolo2( MainWin oMainWin, string strResource, 
+    public class SmartHerderSolo : SmartHerderBase {
+        public SmartHerderSolo( MainWin oMainWin, string strResource, 
                                  string strTitle, Guid guidName,
                                  IPgFontRender oFontRender ) :
             base( oMainWin, strResource, strTitle, guidName, oFontRender, fSolo:true )

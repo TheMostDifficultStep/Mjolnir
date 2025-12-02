@@ -291,9 +291,9 @@ namespace Mjolnir {
                     bool            fSolo       = _rgStdDecor[gDecor].Solo;
 
                     if( fSolo )
-                        oShepard = new SmartHerderSolo( this, strResource, strToolDisp, gDecor );//, oRender );
+                        oShepard = new SmartHerderSolo( this, strResource, strToolDisp, gDecor, oRender );
                     else
-                        oShepard = new SmartHerderClxn( this, strResource, strToolDisp, gDecor );//, oRender );
+                        oShepard = new SmartHerderClxn( this, strResource, strToolDisp, gDecor, oRender );
 
                     // Unfortunately the corner boxes won't be set until we've got our window size.
                     // so just set some arbitray size for now.
