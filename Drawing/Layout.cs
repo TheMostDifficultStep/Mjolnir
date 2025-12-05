@@ -224,7 +224,7 @@ namespace Play.Rectangles {
 		protected readonly List<LayoutRect> _rgLayout = new List<LayoutRect>();
 
 		public Func< object, SKColor > BackgroundColor = null;
-		public TRACK                   Direction { get; set; }
+		public virtual TRACK           Direction { get; set; }
 		public object			       Extra { get; set; } = null;
 
 		public LayoutStack( TRACK eAxis ) : 

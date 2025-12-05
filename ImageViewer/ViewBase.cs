@@ -14,50 +14,30 @@ using System.Drawing;
 using System.Windows.Forms;
 
 namespace Play.ImageViewer {
-	/// <summary>
-	/// This a new SKControl-LESS LayoutRect subclass. But it uses the
-	/// ImageBaseDoc. Think of this as a windowless view style control.
-	/// Show the entired bitmap scaled and centered.
-	/// </summary>
+    /// <summary>
+    /// It's a pain. I still need both GDI and SKIA graphics. But I've
+    /// managed to create a base class that puts most the work in one place. 
+    /// </summary>
 	/// <seealso cref="LayoutImageAbstract"/>
-	public class LayoutBmpDoc : LayoutRect {
-		protected readonly ImageBaseDoc _oDocument;
-		protected readonly SmartRect    _rctViewPort = new SmartRect();
+	public abstract class LayoutSimpleImage : LayoutRect {
+		protected readonly SmartRect _rctViewPort = new SmartRect();
 
-		public LayoutBmpDoc( ImageBaseDoc oDocSolo ) {
-			_oDocument = oDocSolo;
-
+		public LayoutSimpleImage() {
 			this.SizeEvent += OnSizeEvent;
 		}
 			
-		/// <seealso cref="SmartRect.Paint(SKCanvas)"/>
-		/// <seealso cref="LayoutImageReference.Paint(SKCanvas)"/>
-		/// <seealso cref="ImageViewSingle.OnPaintSurface(SKPaintSurfaceEventArgs)"/>
-		public override void Paint( SKCanvas skCanvas ) {
-			if( _oDocument.Bitmap == null )
-                return;
-
-            try {
-				skCanvas.DrawBitmap( _oDocument.Bitmap, 
-									 WorldCoordinates.SKRect,
-									 _rctViewPort.SKRect
-                                   );
-            } catch( NullReferenceException ) {
-            }
-		}
-
 		/// <summary>
 		/// What portion of the bitmap we want to show.
 		/// </summary>
-		public virtual SmartRect WorldCoordinates => new SmartRect( 0, 0, 
-			                                                _oDocument.Size.Width, 
-															_oDocument.Size.Height );
+		public virtual SmartRect WorldCoordinates { get; } = new SmartRect();
 
 		/// <summary>
 		/// Amount of border around the view containing the portion
 		/// of the image we are showing.
 		/// </summary>
-		public virtual Size Border => new Size( 20,20 );
+		public virtual Size Border { get; set; }
+
+		public abstract float Aspect { get; }
 
 		/// <summary>
 		/// Back port this to LayoutImageView, It's unbelievably cool. 
@@ -66,7 +46,7 @@ namespace Play.ImageViewer {
 		/// <seealso cref="LayoutImageView.TrackDesired(TRACK, int)"/>
 		public override uint TrackDesired( TRACK eParentAxis, int iRailExtent ) {
 			try {
-				return ExtentDesired( _oDocument.Aspect, (uint)iRailExtent, eParentAxis );
+				return ExtentDesired( Aspect, (uint)iRailExtent, eParentAxis );
 			} catch( Exception oEx ) {
 				Type[] rgErrors = { typeof( NullReferenceException ),
 									typeof( DivideByZeroException ) };
@@ -92,6 +72,40 @@ namespace Play.ImageViewer {
 			_rctViewPort.SetPoint( SET.RIGID, LOCUS.CENTER, 
 								   Left + Width / 2, Top + Height / 2 );
 		}
+	}
+
+	/// <summary>
+	/// Think of this as a windowless view style control.
+	/// Show the entire bitmap scaled and centered. We have
+	/// the benefit of NOT replicating the base image for
+	/// every view upon it.
+	/// </summary>
+	public class LayoutSKBitmap : LayoutSimpleImage {
+		protected readonly ImageBaseDoc _oDocument;
+
+		public LayoutSKBitmap( ImageBaseDoc oDocSolo ) : base() {
+			_oDocument = oDocSolo ?? throw new ArgumentNullException();
+
+			WorldCoordinates.SetRect( 0, 0, oDocSolo.Size.Width, oDocSolo.Size.Height );
+		}
+			
+		/// <seealso cref="SmartRect.Paint(SKCanvas)"/>
+		/// <seealso cref="LayoutImageReference.Paint(SKCanvas)"/>
+		/// <seealso cref="ImageViewSingle.OnPaintSurface(SKPaintSurfaceEventArgs)"/>
+		public override void Paint( SKCanvas skCanvas ) {
+			if( _oDocument.Bitmap == null )
+                return;
+
+            try {
+				skCanvas.DrawBitmap( _oDocument.Bitmap, 
+									 WorldCoordinates.SKRect,
+									 _rctViewPort.SKRect
+                                   );
+            } catch( NullReferenceException ) {
+            }
+		}
+
+        public override float Aspect => _oDocument.Aspect;
 	}
 
 	/// <remarks>

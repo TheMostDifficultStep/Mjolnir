@@ -1,7 +1,6 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Text;
 using System.Drawing;
 using System.Windows.Forms;
@@ -12,7 +11,6 @@ using System.Runtime.InteropServices;
 using System.Linq;
 
 using SkiaSharp;
-using SkiaSharp.Views.Desktop;
 
 using Play.Interfaces.Embedding; 
 using Play.Rectangles;
@@ -21,7 +19,6 @@ using Play.Parse;
 using Play.Forms;
 
 using static Mjolnir.Program;
-using Play.Controls;
 
 namespace Mjolnir {
     /// <summary>
@@ -1103,7 +1100,7 @@ namespace Mjolnir {
         }
 
         public void OnDocOpen( object sender, EventArgs e ) {
-            ViewSlot oViewSite   = this.ViewSiteSelected;
+            ViewSlot oViewSite   = ViewSiteSelected;
             string   strLastPath = Document.UserDocs;
 
             // Look at the currently active view and find the lastpath for that view.
@@ -1187,7 +1184,7 @@ namespace Mjolnir {
         }
 
         public void OnDocSave( object sender, EventArgs e ) {
-            ViewSlot oViewSite = this.ViewSiteSelected;
+            ViewSlot oViewSite = ViewSiteSelected;
 
             if( oViewSite != null ) {
 				if( !oViewSite.Execute( GlobalCommands.Save ) )
@@ -1201,7 +1198,7 @@ namespace Mjolnir {
         }
 
         public void OnDocSaveAs( object sender, EventArgs e ) {
-            ViewSlot oViewSite = this.ViewSiteSelected;
+            ViewSlot oViewSite = ViewSiteSelected;
 
             if( oViewSite != null ) {
 				if( !oViewSite.Execute( GlobalCommands.SaveAs ) )
@@ -1320,7 +1317,7 @@ namespace Mjolnir {
         /// <param name="sender"></param>
         /// <param name="e"></param>
         protected void OnFileClose( object sender, EventArgs e ) {
-            ViewClose( this.ViewSiteSelected );
+            ViewClose( ViewSiteSelected );
         }
 
         /// <summary>
@@ -1994,9 +1991,14 @@ namespace Mjolnir {
             _oDoc_ViewSelector.Remove( oViewSiteToClose );
 
             ViewSlot oViewNext = null;
-            if( _oDoc_ViewSelector.ElementCount != 0 && this.ViewSiteSelected.ID == oViewSiteToClose.ID ) {
-                // Just get the top one in the list. It would be nicer if it was based on some sort of MRU.
-                oViewNext = _oDoc_ViewSelector[0];
+            if( ViewSiteSelected is null || 
+                ( ViewSiteSelected is not null && 
+                  ViewSiteSelected.ID == oViewSiteToClose.ID ))
+            {
+                if( _oDoc_ViewSelector.ElementCount > 0 ) {
+                    // Just get the top one in the list. It would be nicer if it was based on some sort of MRU.
+                    oViewNext = _oDoc_ViewSelector[0];
+                }
             }
 
             ViewSelect( oViewNext, true );

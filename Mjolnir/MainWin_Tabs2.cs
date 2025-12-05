@@ -68,9 +68,9 @@ namespace Mjolnir {
 			LayoutSingleLine oTabText = new LayoutSingleLine( new FTCacheWrap( oViewLine ), LayoutRect.CSS.None ) 
                                             { BgColor = SKColors.Transparent };
 			_rgTextCache.Add(oTabText);
-            LayoutBmpDoc     oTabKill = new LayoutBmpDoc( _oCloserImg ) 
-                                            { Units = LayoutRect.CSS.Flex, Hidden = true };
-
+            LayoutSKBitmap   oTabKill = new LayoutSKBitmap( _oCloserImg ) 
+                                            { Units = LayoutRect.CSS.Flex, Hidden = true, Border = new( 20, 20) };
+            
             // Round up all the layouts into our tab object here.
 			LayoutStackHorizontal oTab = new () { Spacing = 5, BackgroundColor = TabBackground, Extra = oViewLine };
 				
