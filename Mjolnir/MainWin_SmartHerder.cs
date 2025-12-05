@@ -9,11 +9,106 @@ using SkiaSharp;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.IO;
 using System.Reflection;
 using System.Windows.Forms;
 
 namespace Mjolnir {
-    internal class HerderSlot : 
+    public interface IPgMenuVisibility {
+        bool Checked { get; set; }
+        SmartHerderBase Shepard { get; }
+        SideIdentify  Orientation { get; }
+    }
+
+	public class MenuItemHerder : 
+        ToolStripMenuItem,
+        IPgMenuVisibility
+    {
+		SmartHerderBase _oShepard;
+
+		public MenuItemHerder( SmartHerderBase oShepard, EventHandler oHandler ) :
+			base( oShepard.Title, null, oHandler ) {
+			_oShepard = oShepard;
+            _oShepard.MenuVisiblityObject = this;
+		}
+
+		public SmartHerderBase Shepard {
+			get {
+				return( _oShepard );
+			}
+		}
+
+        bool IPgMenuVisibility.Checked {
+            get {
+                return( base.Checked );
+            }
+            set {
+                base.Checked = value;
+            }
+        }
+
+        public SideIdentify Orientation {
+            get { return( _oShepard.Orientation ); }
+        }
+	}
+
+    /// <summary>
+	/// Since the form is laying out the herders we need something
+    /// that can paint a bitmap with GDI Graphics object. So here
+    /// we are. Unfortunatly unlike LayoutSKBitmap, we create an
+    /// instance of the bitmap for every view. It's not worth fixing
+    /// until maybe the main window can stop inheriting from "Form"
+    /// </summary>
+    /// <seealso cref="LayoutSKBitmap"/>
+    public class LayoutGdiBitmap :
+        LayoutSimpleImage
+    {
+        readonly Image _oBitmap;
+
+        public LayoutGdiBitmap( Assembly oAsm, string strResourceName ) {
+            try {
+                using Stream oStream = oAsm.GetManifestResourceStream( strResourceName );
+
+                _oBitmap = Bitmap.FromStream( oStream );
+            } catch( Exception oE ) {
+                Type[] rgErrors = { typeof( KeyNotFoundException ), // This error if the user errored on the attribute name or value.
+                                    typeof( ArgumentException ) };  // This error if we didn't embed resource.
+                if( rgErrors.IsUnhandled( oE ) )
+                    throw;
+
+                _oBitmap = new Bitmap( 1, 1 ); 
+            }
+			WorldCoordinates.SetRect( 0, 0, _oBitmap.Width, _oBitmap.Height );
+        }
+
+        public override void Paint(Graphics p_oGraphics) {
+			if( _oBitmap == null )
+                return;
+
+            try {
+				p_oGraphics.DrawImage( _oBitmap, 
+									   _rctViewPort.Rect,
+									   WorldCoordinates.Rect,
+									   GraphicsUnit.Pixel
+                                   );
+            } catch( NullReferenceException ) {
+            }
+        }
+
+        public override float Aspect => _oBitmap.Width / (float)_oBitmap.Height;
+    }
+
+    /// <summary>
+    /// Base class for a herder. We have two sub classes, one for herders that hold a single object only.
+    /// And others that hold one per view. Since the "solo" case doesn't need an index to the given item
+    /// we pass null. Solo objects looking for null should complain if an add comes with an index object
+    /// Collection objects always need an index object and should complain if get a null index. Not that null
+    /// doesn't seem like a fine index value, but it seems various .net collections are starting to throw
+    /// exceptions. Alas, this conflict is because the tool windows for the shell might created per document
+    /// or be single like for the shell main output window.
+    /// </summary>
+
+ internal class HerderSlot : 
         IPgViewSite, 
         IPgViewNotify
  {
@@ -588,6 +683,29 @@ namespace Mjolnir {
                                  IPgFontRender oFontRender ) :
             base( oMainWin, strResource, strTitle, guidName, oFontRender, fSolo:true )
         {
+        }
+    }
+
+    public class SmartHerderDrag : SmartGrabDrag
+    {
+        /// <summary>
+        /// This constructor is used for the herder dragging case. I'm not going to toss
+        /// this class yet, since I might need it when implement SystemInformation.DragSize
+        /// to control when the drag starts since herders are focusable.
+        /// </summary>
+        /// <param name="p_oFinished">Delegate to call when finished</param>
+        /// <param name="p_rcGuest">Guest that we are moving.</param>
+        /// <param name="p_iX">Starting Origin X.</param>
+        /// <param name="p_iY">Starting Origin Y.</param>
+        public SmartHerderDrag(
+            DragFinished    p_oFinished,
+            SmartHerderBase p_herderGuest,
+            int             p_iX,
+            int             p_iY ) : 
+            base( p_oFinished, p_herderGuest, SET.RIGID, LOCUS.UPPERLEFT, p_iX, p_iY, null )
+        {
+            if( p_oFinished == null )
+                throw new ArgumentNullException( "Need the 'finished' delegate" );
         }
     }
 
