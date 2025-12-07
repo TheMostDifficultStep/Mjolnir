@@ -310,7 +310,7 @@ namespace Mjolnir {
                     }
 			    }
 
-                //oProgram.MainWindow.Parent = null;
+                oProgram.MainWindow.Parent = null;
                 //oProgram.MainWindow.SetBounds( 50, 50, 200, 200 );
                 oProgram.MainWindow.Show();
 

@@ -17,8 +17,10 @@ using Play.Rectangles;
 using Play.Edit;
 using Play.Parse;
 using Play.Forms;
+using Play.Controls;
 
 using static Mjolnir.Program;
+using SkiaSharp.Views.Desktop;
 
 namespace Mjolnir {
     /// <summary>
@@ -91,6 +93,12 @@ namespace Mjolnir {
 			Multi
 		}
 
+        /// <summery>Turns out I need WS_CLIPCHILDREN on the main window or it 
+        /// paints over the chlldren when drawing over the main window 
+        /// client area. In the future we maybe could paint the main window client
+        /// more carefully. But probably an issue if I ever attempt to tackle
+        /// windowless controls.
+        /// </summery>
         #if foo
         protected override CreateParams CreateParams { 
             get{ CreateParams oFoo = base.CreateParams;
@@ -100,7 +108,8 @@ namespace Mjolnir {
                     (int)WindowStyles.WS_MAXIMIZEBOX |
                     (int)WindowStyles.WS_MINIMIZEBOX |
                     (int)WindowStyles.WS_THICKFRAME |
-                    (int)WindowStyles.WS_OVERLAPPED;
+                    (int)WindowStyles.WS_OVERLAPPED |
+                    (int)WindowStyles.WS_CLIPCHILDREN ;
 
                 return oFoo; } 
         }
@@ -359,8 +368,10 @@ namespace Mjolnir {
             // This needs to follow the view selector document assignment.
             Tabs = new(new WinSlot(this), _oDoc_ViewSelector);
             Tabs.Parent = this;
+            Tabs.Visible = true;
             Tabs.Layout.Padding.SetRect( 5, 5, 5, 0 );
             Tabs.InitNew();
+            Tabs.CreateControl();
 
             // Set up our primary layout here...
             LayoutStackVertical   oInner  = new() { Spacing = 5 };
@@ -2075,16 +2086,18 @@ namespace Mjolnir {
                 // This keeps forms from takking focus from old window that had the focus
                 // and assigning it to any of it's children when parent gets hidden...
 				_oSelectedWinSite.BringToFront();
-                _oSelectedWinSite.Guest.Visible = true;
+                //_oSelectedWinSite.Guest.Visible = true;
 
                 if( fFocus )
                     _oSelectedWinSite.SetFocus();
 
                 // Now with the focus on the new client go ahead and hide everyone
                 // else for good measure.
+                // BUG BUG: Changed this too look at the viewslot and 
+                // NOT the guest.
 				for( IEnumerator<ViewSlot> oEnum = ViewEnumerator(); oEnum.MoveNext(); ) {
-                    if( oEnum.Current.Guest != oViewSite.Guest ) {
-					    oEnum.Current.Guest.Visible = false;
+                    if( oEnum.Current != _oSelectedWinSite ) {
+					    oEnum.Current.Guest.Visible = oEnum.Current == _oSelectedWinSite;
                     }
 				}
 				

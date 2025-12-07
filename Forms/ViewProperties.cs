@@ -158,6 +158,9 @@ namespace Play.Forms {
             HyperLinks.Add( "callsign", OnCallSign );
             HyperLinks.Add( "url",      OnURL );
 
+            // TODO: Might need this for FORM less implemetation. Still looking.
+            //CreateControl();
+
             return true;
         }
 
