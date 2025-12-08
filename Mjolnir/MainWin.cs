@@ -1,3 +1,5 @@
+//#define foo
+
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -1972,9 +1974,10 @@ namespace Mjolnir {
 
             oViewSite.Guest.Parent = this;           // When called, the view gets an OnHandleCreated() call!
             oViewSite.Guest.Bounds = _rcFrame.Rect; // When called, the view gets an OnSizeChanged() call!
-            oViewSite.Guest.Text = "Mjolnir - " + oViewSite.Title; // We never see this, but... ^_^;
+            oViewSite.Guest.Text   = "Mjolnir - " + oViewSite.Title; // We never see this, but... ^_^;
 
-            this.Controls.Add( oViewSite.Guest );
+            //this.Controls.Add( oViewSite.Guest );
+            oViewSite.Guest.CreateControl(); // This might solve the focus/select issue...
 
             _oDoc_ViewSelector.Add( oViewSite ); 
 
@@ -2105,19 +2108,15 @@ namespace Mjolnir {
                 // This keeps forms from takking focus from old window that had the focus
                 // and assigning it to any of it's children when parent gets hidden...
 				_oSelectedWinSite.BringToFront();
-                //_oSelectedWinSite.Guest.Visible = true;
 
                 if( fFocus )
                     _oSelectedWinSite.SetFocus();
 
                 // Now with the focus on the new client go ahead and hide everyone
-                // else for good measure.
-                // BUG BUG: Changed this too look at the viewslot and 
-                // NOT the guest.
+                // else for good measure. BUG: what happens in the VIEW ALL case. O.o;;;
+                // Note: Changed this to look at the viewslot and  NOT the guest.
 				for( IEnumerator<ViewSlot> oEnum = ViewEnumerator(); oEnum.MoveNext(); ) {
-                    if( oEnum.Current != _oSelectedWinSite ) {
-					    oEnum.Current.Guest.Visible = oEnum.Current == _oSelectedWinSite;
-                    }
+					oEnum.Current.Guest.Visible = oEnum.Current == _oSelectedWinSite;
 				}
 				
 				LayoutFrame();

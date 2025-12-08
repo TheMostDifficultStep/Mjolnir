@@ -448,6 +448,8 @@ namespace Mjolnir {
             }
 
             try {
+                oDecor.Parent = this;
+                oDecor.CreateControl();
                 oShepard.AdornmentAdd( oViewSite, oDecor );
             } catch( Exception oEx ) {
                 if( _rgDCErrors.IsUnhandled( oEx ) )
@@ -474,6 +476,8 @@ namespace Mjolnir {
                 return false;
             
             try {
+                oControl.Parent = this;
+                oControl.CreateControl();
                 oSolo.AdornmentAdd( null, oControl );
             } catch( Exception oEx ) {
                 if( _rgDCErrors.IsUnhandled( oEx ) )
