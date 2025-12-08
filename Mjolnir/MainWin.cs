@@ -39,7 +39,11 @@ namespace Mjolnir {
     /// The form where all the other window's live for the Retro (normal) desktop case.
     /// </summary>
     public partial class MainWin :
+        #if foo
+        SKControl,
+        #else
         Form,
+        #endif
 		IPgParent,
         IPgLoad<XmlElement>,
         IPgSave<XmlDocumentFragment>,
@@ -113,6 +117,18 @@ namespace Mjolnir {
 
                 return oFoo; } 
         }
+
+        protected override void WndProc(ref Message m) {
+            if( m.Msg == WM_CLOSE ) {
+                WinHandleDestroyed?.Invoke(this, EventArgs.Empty);
+            }
+            if( m.Msg == WM_SYSCOMMAND && m.WParam.ToInt32() == SC_CLOSE ) {
+                // Determine if you want to actually close. If so call the
+                // base else return and we keep running.
+            }
+            base.WndProc(ref m);
+        }
+
         #endif
         /// <summary>
         /// New ViewSite implementation for sub views of this window that are not part
@@ -413,6 +429,9 @@ namespace Mjolnir {
         private const int  WS_EX_ACCEPTFILES = 0x00000010;
         private const int  WM_DROPFILES      = 0x0233;
         private const uint DQ_FILECOUNT      = 0xFFFFFFFF;
+        private const int  WM_CLOSE          = 0x0010;
+        private const int  WM_SYSCOMMAND     = 0x0112;
+        private const int  SC_CLOSE          = 0xF060; 
 
         /*
         protected override CreateParams CreateParams {
