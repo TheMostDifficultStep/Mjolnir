@@ -117,6 +117,7 @@ namespace Play.MorsePractice {
             base.OnGotFocus(e);
 
 			ViewLog.Select();
+			ViewLog.Focus ();
         }
 
 		/// <param name="oLogRow">The row in the Log where the caret currently rests.</param>

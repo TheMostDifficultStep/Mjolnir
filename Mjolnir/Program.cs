@@ -311,7 +311,6 @@ namespace Mjolnir {
 			    }
 
                 oProgram.MainWindow.Parent = null;
-                //oProgram.MainWindow.SetBounds( 50, 50, 200, 200 );
                 oProgram.MainWindow.Show();
 
 				try {
@@ -895,7 +894,6 @@ namespace Mjolnir {
             //      Even better. At least show a window with the error.
             try {
                 MainWindow = new MainWin(this);
-              //MainWindow.CreateControl();
                 MainWindow.Initialize(xmlConfig);
             } catch( Exception oEx ) {
 				if( rgErrors.IsUnhandled( oEx ) )

@@ -310,7 +310,7 @@ namespace Mjolnir {
 			try {
 				// When the view gets the focus message that signals the shell to BringToFront() it.
 				_oViewControl.Select();
-				_oViewControl.Focus();
+				_oViewControl.Focus ();
 			} catch( NullReferenceException ) {
 				LogError( "windowing", "Guest is null!", true );
 			}

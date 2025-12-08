@@ -225,7 +225,8 @@ namespace Play.ImageViewer {
 
 			if( !Focused ) { 
 				//_fSkipMouse = true;
-				this.Select();
+				Select();
+				Focus ();
 			}
 
 			Capture = true;

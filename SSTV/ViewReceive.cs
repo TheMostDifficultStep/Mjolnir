@@ -251,7 +251,8 @@ namespace Play.SSTV {
         }
 
         protected override void OnMouseDown(MouseEventArgs e) {
-            this.Select();
+            Select();
+			Focus ();
 		}
 
         protected override void OnMouseWheel(MouseEventArgs e) {
@@ -446,7 +447,8 @@ namespace Play.SSTV {
         }
 
         protected override void OnMouseDown(MouseEventArgs e) {
-            this.Select();
+            Select();
+            Focus ();
 		}
 
 		public abstract bool Execute( Guid e );

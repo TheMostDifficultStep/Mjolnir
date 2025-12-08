@@ -258,6 +258,7 @@ namespace Mjolnir {
 
             if( Find( oKey ) is Control oControl ) {
                 oControl.Select();
+                oControl.Focus ();
             }
         }
 

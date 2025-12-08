@@ -1201,6 +1201,7 @@ namespace Play.Edit {
             base.OnMouseDoubleClick(e);
 
             Select();
+            Focus ();
             SKPointI pntClick = new SKPointI( e.X, e.Y );
 
             // Move the caret and reset the Advance.
@@ -1240,6 +1241,7 @@ namespace Play.Edit {
             base.OnMouseDown( e );
 
             Select();
+            Focus ();
             SKPointI pntClick = new SKPointI( e.X, e.Y );
             bool     fInside  = _oCacheMan.IsInside( pntClick, out int iTextColumn );
 

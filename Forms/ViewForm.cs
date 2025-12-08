@@ -955,6 +955,7 @@ namespace Play.Forms {
 
             base.OnMouseDown( e );
             Select();
+            Focus ();
 
             if( e.Button == MouseButtons.Left ) {
                 try {

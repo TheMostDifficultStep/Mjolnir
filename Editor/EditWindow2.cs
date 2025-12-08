@@ -1341,6 +1341,7 @@ namespace Play.Edit {
             base.OnMouseDoubleClick(e);
 
             Select();
+            Focus ();
 
             if( !ClientToWorld( new SKPointI( e.Location.X, e.Location.Y ), 
                                 out WorldLocator sWorldLoc ) )
@@ -1385,7 +1386,8 @@ namespace Play.Edit {
                                 out WorldLocator sWorldLoc ) )
                 return; // BUG: This was missing, compiler complained. I think it's what I want.
 
-            this.Select();
+            Select();
+            Focus ();
 
             CaretAndAdvanceReset( ref sWorldLoc );
 
