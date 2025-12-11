@@ -198,11 +198,20 @@ namespace Mjolnir {
             _rgChildren.Add( new MyPair( oKey, oControl ) );
         }
 
+        /// <summary>
+        /// Argh! Another special case. Turns out we don't want to delete the solo's!
+        /// This new implementation is not quite as nice as I was hoping. Might want to
+        /// revisit.
+        /// </summary>
         public void Clear() {
             foreach( MyPair oPair in _rgChildren ) {
-                oPair.Value.Dispose();
+                if( oPair.Key is not null ) {
+                    oPair.Value.Dispose();
+                }
             }
-            _rgChildren.Clear();
+            if( _iMaxChildren != 1 ) {
+                _rgChildren.Clear();
+            }
         }
 
         public IEnumerator<Control> GetEnumerator() {
