@@ -227,8 +227,16 @@ namespace Mjolnir {
         /// </summary>
 		public Control Find( object oKey ) {
             try {
-                if( _iMaxChildren == 1 )
-                    return _rgChildren[0].Value;;
+                if( _iMaxChildren == 1 ) {
+                    switch( _rgChildren.Count ) {
+                        case 1:
+                            return _rgChildren[0].Value;
+                        case 0:
+                            return null;
+                        default:
+                            throw new InvalidOperationException( "Child count must not be greater than 1." );
+                    }
+                }
 
 			    foreach( MyPair oPair in _rgChildren ) {
 				    if( oPair.Key == oKey )
