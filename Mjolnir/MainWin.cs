@@ -1,4 +1,4 @@
-//#define foo
+#define foo
 
 using System;
 using System.Collections;
