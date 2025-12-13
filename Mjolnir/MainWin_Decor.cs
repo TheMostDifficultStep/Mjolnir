@@ -1083,6 +1083,7 @@ namespace Mjolnir {
         /// closing the corresponding side and opening up other tools.
         /// </summary>
         /// <seealso cref="DecorShuffle"/>
+        /// <seealso cref="OnDecorMenuClick(object, EventArgs)"/>
         protected void DecorSetState( IPgMenuVisibility oMenuItem, bool fNewState ) 
         {
             if( oMenuItem == null )
@@ -1100,6 +1101,7 @@ namespace Mjolnir {
                 if( _oSelectedWinSite != null ) {
                     // Check with the menu for final say on state.
                     foreach( IPgMenuVisibility oCurrentMenuItem in DecorSettings ) {
+                        // Check anybody else on the same side needs opening...
                         if( oCurrentMenuItem.Orientation == eOrientation ) {
                             if( oCurrentMenuItem.Checked ) {
                                 // Lazy create the requested decor associated with current view
@@ -1108,9 +1110,9 @@ namespace Mjolnir {
                                     oMenuItem.Shepard.Show = SHOWSTATE.Active;
                                 }
                             } else {
-                                // This shouldn't need messing with. But we work
-                                // better if we clear it.
-                                oCurrentMenuItem.Shepard.Hidden = true;
+                                // Doesn't work well when drag open the side after hiding
+                                // so let's close. Saves memory too.
+                                oCurrentMenuItem.Shepard.AdornmentCloseAll();
                             } 
                         }
                     }
