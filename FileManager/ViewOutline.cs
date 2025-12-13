@@ -40,15 +40,16 @@ namespace Play.FileManager {
 	{
 		protected LayoutStackVertical _rgLayout = new LayoutStackVertical() { Spacing = 5 };
 
-		readonly ViewFileMan   _oOwner;
 		readonly FileManager   _oDocFM;
 		readonly IPgViewSite   _oViewSite;
+		readonly IPgViewNotify _oViewEvents;
+
 
 	  //ImageViewSingle ViewArt   { get; }
 		ViewFavNames    ViewFaves { get; }
 
 		public IPgParent Parentage => _oViewSite.Host; 
-		public IPgParent Services  => _oOwner.Services;
+		public IPgParent Services  => Parentage.Services;
 
 		protected class ViewSlot :
 			IPgViewSite
@@ -70,11 +71,11 @@ namespace Play.FileManager {
 			}
 		} // End class
 
-		public ViewFManOutline( IPgViewSite oViewSite ) {
-			_oViewSite = oViewSite ?? throw new ArgumentNullException( "Site must not be null." );
+		public ViewFManOutline( IPgViewSite oViewSite, ViewFileMan oOwner ) {
+			_oViewSite   = oViewSite ?? throw new ArgumentNullException( "Site must not be null." );
+			_oViewEvents = oViewSite.EventChain ?? throw new ArgumentException( "Site must support EventChain" );
 
-			_oOwner   = (ViewFileMan)oViewSite.Host;
-			_oDocFM   = _oOwner.Document;
+			_oDocFM   = oOwner.Document;
 
 			ViewFaves = new ( new ViewSlot(this), _oDocFM.DocFavs );
 		  //ViewArt   = new ( new DecorSlot(this), _oDocFM.ImgFavs );
@@ -127,6 +128,19 @@ namespace Play.FileManager {
 
 			_rgLayout.SetPoint( SET.STRETCH, LOCUS.LOWERRIGHT, Width, Height < 0 ? 0 : Height );
 			_rgLayout.LayoutChildren();
+		}
+        protected override void OnGotFocus(EventArgs e) {
+            base.OnGotFocus( e );
+
+            _oViewEvents.NotifyFocused( true );
+
+            this.Invalidate();
+        }
+
+		protected override void OnLostFocus(EventArgs e) {
+			base.OnLostFocus(e);
+			_oViewEvents.NotifyFocused( false );
+			this.Invalidate();
 		}
 	}
 }

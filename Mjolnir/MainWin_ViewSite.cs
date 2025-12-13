@@ -709,8 +709,13 @@ namespace Mjolnir {
             }
         }
 
+        /// <summary>
+        /// If the decor bombs out when trying to create it, our guest might
+        /// be null when we dispose of this unused slot.
+        /// </summary>
         public void Dispose() {
-            Guest.Dispose();
+            if( Guest != null )
+                Guest.Dispose();
         }
     }
 
