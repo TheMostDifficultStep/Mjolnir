@@ -446,7 +446,7 @@ namespace Play.Rectangles
 		public DragMode Mode { get; set; }
 
 		public SmartSelect( ) : 
-			base( new SmartRect(), 7, fLiveDrag:false, eMoveable:SCALAR.ALL ) 
+			base( new SmartRect(), 10, fLiveDrag:false, eMoveable:SCALAR.ALL ) 
 		{
 			Mode       = DragMode.FreeStyle;
             Invertable = false;
