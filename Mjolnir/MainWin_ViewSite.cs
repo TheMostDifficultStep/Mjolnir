@@ -340,9 +340,10 @@ namespace Mjolnir {
         }
 
         // BUG: We can change the view a number of ways. Need to unify.
-        internal void BringToFront() {
+        internal void ToFrontVisible() {
 			try {
 				_oViewControl.BringToFront();
+                _oViewControl.Visible = true;
 			} catch( NullReferenceException ) {
 				LogError( "windowing", "Guest is null!", false );
 			}

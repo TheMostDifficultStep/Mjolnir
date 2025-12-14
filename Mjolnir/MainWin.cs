@@ -2107,7 +2107,7 @@ namespace Mjolnir {
                 // First put our new window to front and set the focus
                 // This keeps forms from takking focus from old window that had the focus
                 // and assigning it to any of it's children when parent gets hidden...
-				_oSelectedWinSite.BringToFront();
+				_oSelectedWinSite.ToFrontVisible();
 
                 if( fFocus )
                     _oSelectedWinSite.SetFocus();
