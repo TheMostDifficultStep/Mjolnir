@@ -5,6 +5,8 @@ using System.Drawing.Drawing2D;
 using SkiaSharp;
 
 using Play.Interfaces.Embedding;
+using System.Collections.Generic;
+using System.Collections;
 
 namespace Play.Rectangles
 {
@@ -16,12 +18,26 @@ namespace Play.Rectangles
       //void      Paint( Graphics ); // A paint method would be pretty spiffy, hmmm...
     }
 
+    public struct GrabHandle {
+        public readonly SmartRect _rctBox;
+        public readonly LOCUS     _eLocus;
+        public GrabHandle( SmartRect rctBox, LOCUS eLocus ) { 
+            _rctBox = rctBox; 
+            _eLocus = eLocus;
+        }
+
+        public bool IsInside( int iX, int iY ) {
+            return _rctBox.IsInside( iX, iY );
+        }
+    }
+
     // I inherit from a SmartRect so I'm easy to manipulate. However, there advantages
     // to having no extent and deriving it completely from the Guest I host. For
     // example if the Guest size changes I won't update myself unless I have a callback.
     // The rect we inherit from is the "inner" rect. Outer rect lives as a property.
     public class SmartGrab :
-        SmartRect
+        SmartRect,
+        IEnumerable<GrabHandle>
     {
         protected SmartRect[] m_rgoHandles   = new SmartRect[12];
         protected int         m_iBorderWidth = 6;
@@ -118,9 +134,10 @@ namespace Play.Rectangles
             }
         }
 
-        /// <summary>Our rectangle has changed so let's update the handles to follow.</summary> 
-        public virtual void UpdateHandles()
-        {
+        /// <summary>Our rectangle has changed so let's update the handles to follow.
+        /// </summary> 
+        /// <seealso cref="GetEnumerator"/>
+        public virtual void UpdateHandles() {
             SCALAR[] l_rgSeq = { SCALAR.RIGHT, SCALAR.BOTTOM, SCALAR.LEFT, SCALAR.TOP };
 
             //m_oOuter.Copy = this;
@@ -389,6 +406,35 @@ namespace Play.Rectangles
                 if( oEdgeBrush != null )
                     oEdgeBrush.Dispose();
             }
+        }
+
+        /// <summary>
+        /// Enumerate all the grab handles so you can easily search them.
+        /// </summary>
+        /// <seealso cref="UpdateHandles">
+        public IEnumerator<GrabHandle> GetEnumerator() {
+            // If we change the initialization order of the rects, then this bit
+            // of code will be all messed up. >_<;;
+            LOCUS[] rgscMiddle   = { LOCUS.RIGHT, LOCUS.BOTTOM, LOCUS.LEFT, LOCUS.TOP };
+            LOCUS[] l_rguiCorner = { LOCUS.UPPERRIGHT, 
+                                     LOCUS.LOWERRIGHT, 
+                                     LOCUS.LOWERLEFT, 
+                                     LOCUS.UPPERLEFT };
+
+            for (int i = 0; i < 4; ++i) {
+                if( m_frgMoveable[i] ) {
+                    yield return new GrabHandle( _rgHandlesMiddle[i], rgscMiddle[i] );
+                };
+                // If the and of the two values is the same then both
+                // bits are on and the value should be the same as the corner tested.
+                if( ( (LOCUS)m_eMoveable & l_rguiCorner[i] ) == l_rguiCorner[i] ) {
+                    yield return new GrabHandle( _rgHandlesCorner[i], l_rguiCorner[i] );
+                };
+            }
+        }
+
+        IEnumerator IEnumerable.GetEnumerator() {
+            return GetEnumerator();
         }
     } // class SmartGrab
 
