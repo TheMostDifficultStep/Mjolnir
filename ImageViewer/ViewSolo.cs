@@ -212,30 +212,31 @@ namespace Play.ImageViewer {
 				case Tools.Select:
 					if( !_rcSelectionView.Hidden &&
 						_rcSelectionView.IsInside( e.X, e.Y ) ) {
-						Cursor = Cursors.SizeAll;
+						Cursor foo = Cursors.SizeAll;
 						foreach( GrabHandle sGrabber in _rcSelectionView ) {
 							if( sGrabber.IsInside( e.X, e.Y ) ) {
 								switch( sGrabber._eLocus ) {
 									case LOCUS.LEFT:
 									case LOCUS.RIGHT:
-										Cursor = Cursors.SizeWE;
+										foo = Cursors.SizeWE;
 										break;
 									case LOCUS.TOP:
 									case LOCUS.BOTTOM:
-										Cursor = Cursors.SizeNS;
+										foo = Cursors.SizeNS;
 										break;
 									case LOCUS.UPPERLEFT:
 									case LOCUS.LOWERRIGHT:
-										Cursor = Cursors.SizeNESW;
+										foo = Cursors.SizeNESW;
 										break;
 									case LOCUS.UPPERRIGHT:
 									case LOCUS.LOWERLEFT:
-										Cursor = Cursors.SizeNWSE;
+										foo = Cursors.SizeNWSE;
 										break;
 								}
 								break;
 							}
 						}
+						Cursor = foo;
 					} else {
 						this.Cursor = Cursors.Arrow;
 					}
