@@ -63,6 +63,9 @@ namespace Play.SSTV {
 				if( guidViewType == WindowSSTVHistory.GUID )
 					return new WindowSSTVHistory( oBaseSite, oMySSTVDoc );
 
+				if( guidViewType == WindowImageResize.GUID )
+					return new WindowImageResize ( oBaseSite, oMySSTVDoc );
+
 
 				return new WindowSoloRx( oBaseSite, oMySSTVDoc );
             } catch( Exception oEx ) {
@@ -87,6 +90,7 @@ namespace Play.SSTV {
 			yield return new ViewType( "Chooser",             WindowSSTVChooser .GUID );
 			yield return new ViewType( "History",			  WindowSSTVHistory .GUID );
 			yield return new ViewType( "Settings",            ViewSettings      .GUID );
+			yield return new ViewType( "Resize",              WindowImageResize .GUID );
 		}
 	}
 

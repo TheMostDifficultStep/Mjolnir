@@ -616,15 +616,15 @@ namespace Play.SSTV {
 			if( sGuid == TransmitCommands.Color ) {
 				ShowColorDialog();
  			}
-			if( sGuid == TransmitCommands.Resize ) {
-				// This doesn't prevent us from opening another, but it's not a big deal
-				// and I think I can live with it for now. TODO: Check if close ok even if
-				// the dialog is open.
-				WindowImageResize oDialog = new ( new SSTVWinSlot( this, ChildID.RxWindow ), _oDocSSTV );
-				oDialog.InitNew();
-				oDialog.Show();
-				return true;
-			}
+			//if( sGuid == TransmitCommands.Resize ) {
+			//	// This doesn't prevent us from opening another, but it's not a big deal
+			//	// and I think I can live with it for now. TODO: Check if close ok even if
+			//	// the dialog is open.
+			//	WindowImageResize oDialog = new ( new SSTVWinSlot( this, ChildID.RxWindow ), _oDocSSTV );
+			//	oDialog.InitNew();
+			//	oDialog.Show();
+			//	return true;
+			//}
 			return false;
         }
 

@@ -1,14 +1,11 @@
-﻿using System;
-using System.Drawing;
-using System.Windows.Forms;
-using System.Collections.Generic;
-
-using SkiaSharp;
-
+﻿using Play.Edit;
+using Play.ImageViewer;
 using Play.Interfaces.Embedding;
 using Play.Rectangles;
-using Play.Edit;
-using Play.ImageViewer;
+using SkiaSharp;
+using System;
+using System.Windows.Forms;
+using System.Xml;
 
 namespace Play.SSTV {
     /// <summary>
@@ -19,19 +16,21 @@ namespace Play.SSTV {
     /// our main form and this is EXACTLY what we want.
     /// </summary>
     public abstract class WindowChildForm :
-        Form,
+        Control,
         IPgParent,
         IPgLoad
     {
-        protected readonly IPgViewSite _oSiteView;
+        protected readonly IPgViewSite   _oViewSite;
+        protected readonly IPgViewNotify _oViewNotify;
 
-        public IPgParent Parentage => _oSiteView.Host;
+        public IPgParent Parentage => _oViewSite.Host;
         public IPgParent Services  => Parentage.Services;
 
         protected abstract LayoutRect MyLayout { get; }
         
         public WindowChildForm( IPgViewSite oSite ) { 
-            _oSiteView = oSite ?? throw new ArgumentNullException( nameof( oSite ) );
+            _oViewSite   = oSite ?? throw new ArgumentNullException( nameof( oSite ) );
+            _oViewNotify = oSite.EventChain ?? throw new ArgumentException( "Site must support EventChain" );
         }
 
 		protected class WinSlot :
@@ -50,41 +49,38 @@ namespace Play.SSTV {
 			public IPgParent Host => _oHost;
 
 			public void LogError(string strMessage, string strDetails, bool fShow=true) {
-				_oHost._oSiteView.LogError( strMessage, strDetails, fShow );
+				_oHost._oViewSite.LogError( strMessage, strDetails, fShow );
 			}
 
 			public void Notify( ShellNotify eEvent ) {
-				_oHost._oSiteView.Notify( eEvent );
+				_oHost._oViewSite.Notify( eEvent );
 			}
 
             public void NotifyFocused(bool fSelect) {
 				if( fSelect == true ) {
-					_oHost._oSiteView.EventChain.NotifyFocused( fSelect );
+					_oHost._oViewSite.EventChain.NotifyFocused( fSelect );
 				}
             }
 
             public bool IsCommandKey(CommandKey ckCommand, KeyBoardEnum kbModifier) {
-                return _oHost._oSiteView.EventChain.IsCommandKey( ckCommand, kbModifier );
+                return _oHost._oViewSite.EventChain.IsCommandKey( ckCommand, kbModifier );
             }
 
             public bool IsCommandPress(char cChar) {
-                return _oHost._oSiteView.EventChain.IsCommandPress( cChar );
+                return _oHost._oViewSite.EventChain.IsCommandPress( cChar );
             }
 
             public IPgViewNotify EventChain => this;
         }
 
         public virtual bool InitNew() {
-            Text        = "Select Image Portion";
-            Owner       = (Form)Parentage.TopWindow;
-            MinimizeBox = false;
-            Size        = new Size( 500, 500 );
+            Text  = "Select Image Portion";
 
             return true;
         }
 
         protected void LogError( string strError ) {
-            _oSiteView.LogError( "Resize Image", strError, fShow:true );
+            _oViewSite.LogError( "Resize Image", strError, fShow:true );
         }
 
 		protected override void OnSizeChanged(EventArgs e) {
@@ -95,29 +91,53 @@ namespace Play.SSTV {
 
             //Invalidate();
 		}
+        protected override void OnGotFocus(EventArgs e) {
+            base.OnGotFocus( e );
 
-        protected override void OnShown(EventArgs e) {
-            base.OnShown(e);
-            OnSizeChanged( e );
+            _oViewNotify.NotifyFocused( true );
+
+            Invalidate();
+        }
+
+        protected override void OnLostFocus(EventArgs e) {
+            base.OnLostFocus(e);
+
+            _oViewNotify.NotifyFocused( false );
         }
     }
 
-    public class WindowImageResize : WindowChildForm {
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <seealso cref="ShowColorDialog"/>
+    public class WindowImageResize : 
+        WindowChildForm,
+        IPgCommandView,
+		IPgLoad<XmlElement>,
+		IPgSave<XmlDocumentFragment>
+    {
 
+		public static Guid GUID { get; } = new Guid( "{7269F4D6-4C4B-4F8B-9FCA-0C99812F9D27}" );
 		protected readonly WindowSoloImageNav _wnTxImageChoice;
 
         override protected LayoutRect MyLayout => _lyTxImageChoice;
-        
+
+        public string Banner => Text;
+
+        public SKBitmap Icon => null;
+
+        public Guid Catagory => GUID;
+
+        public bool IsDirty => throw new NotImplementedException();
+
         protected LayoutControl _lyTxImageChoice;
         
-        protected readonly ViewTransmitDeluxe _oParent;
-
         protected DocSSTV _oDocSSTV;
 
-        public WindowImageResize(IPgViewSite oSite, DocSSTV oDoc ) : base(oSite) {
+        public WindowImageResize( IPgViewSite oSite, DocSSTV oDoc ) : base(oSite) {
             _oDocSSTV = oDoc ?? throw new ArgumentNullException( nameof( oDoc ) );
 
-            _oParent = ((ViewTransmitDeluxe)oSite.Host);
+            Parent = (Control)oSite.Host;
 
 			_wnTxImageChoice = new WindowSoloImageNav( new WinSlot( this, ChildID.TxImageChoice ), oDoc.TxImageList );
 
@@ -130,19 +150,23 @@ namespace Play.SSTV {
             _lyTxImageChoice = new LayoutControl( _wnTxImageChoice, LayoutRect.CSS.Percent, 100 );
         }
 
-        protected override void OnFormClosing( FormClosingEventArgs e ) {
-			if( _wnTxImageChoice.Selection.IsEmpty() ) {
-				_wnTxImageChoice.Execute( GlobalCommands.SelectAll );
-			}
+        protected override void Dispose( bool fDisposing ) {
+            if( _wnTxImageChoice is not null ) {
+			    if( _wnTxImageChoice.Selection.IsEmpty() ) {
+				    _wnTxImageChoice.Execute( GlobalCommands.SelectAll );
+			    }
+                _oDocSSTV.Selection.Copy = _wnTxImageChoice.Selection;
 
-            _oDocSSTV.Selection.Copy = _wnTxImageChoice.Selection;
+		        _wnTxImageChoice.Dispose();
+            }
 
             _oDocSSTV.RenderComposite();
 
-			_oDocSSTV.TxSSTVModeDoc.Event_Check -= OnCheckedEvent_TxModeList;
-            _oDocSSTV.Send_TxImageAspect               -= OnTxImageAspect_SSTVDoc;
+			_oDocSSTV.TxSSTVModeDoc.Event_Check        -= OnCheckedEvent_TxModeList;
+            _oDocSSTV.TxImageList  .ImageUpdated       -= OnImageUpdated_TxImageList;
+            _oDocSSTV.              Send_TxImageAspect -= OnTxImageAspect_SSTVDoc;
 
-		    _wnTxImageChoice.Dispose();
+            base.Dispose( fDisposing );
         }
 
         public override bool InitNew() {
@@ -152,8 +176,8 @@ namespace Play.SSTV {
             if( !_wnTxImageChoice.InitNew() )
                 return false;
 
+			_oDocSSTV.TxSSTVModeDoc.Event_Check        += OnCheckedEvent_TxModeList;
             _oDocSSTV.TxImageList  .ImageUpdated       += OnImageUpdated_TxImageList;
-			_oDocSSTV.TxSSTVModeDoc.Event_Check += OnCheckedEvent_TxModeList;
             _oDocSSTV              .Send_TxImageAspect += OnTxImageAspect_SSTVDoc;
 
 			_wnTxImageChoice.ToolSelect = 0; 
@@ -198,5 +222,21 @@ namespace Play.SSTV {
             } catch( NullReferenceException ) {
             }
 		}
+
+        public object Decorate(IPgViewSite oBaseSite, Guid sGuid) {
+            return null;
+        }
+
+        public bool Execute(Guid sGuid) {
+            return false;
+        }
+
+        public bool Load(XmlElement oStream) {
+            return true;
+        }
+
+        public bool Save(XmlDocumentFragment oStream) {
+            return true;
+        }
     }
 }
