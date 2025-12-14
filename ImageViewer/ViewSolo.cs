@@ -212,6 +212,7 @@ namespace Play.ImageViewer {
 				case Tools.Select:
 					if( !_rcSelectionView.Hidden &&
 						_rcSelectionView.IsInside( e.X, e.Y ) ) {
+						Cursor = Cursors.SizeAll;
 						foreach( GrabHandle sGrabber in _rcSelectionView ) {
 							if( sGrabber.IsInside( e.X, e.Y ) ) {
 								switch( sGrabber._eLocus ) {
@@ -233,12 +234,10 @@ namespace Play.ImageViewer {
 										break;
 								}
 								break;
-							} else {
-								Cursor = Cursors.Hand;
 							}
 						}
 					} else {
-						this.Cursor = Cursors.Default;
+						this.Cursor = Cursors.Arrow;
 					}
 					break;
 			}

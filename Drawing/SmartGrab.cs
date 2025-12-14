@@ -255,21 +255,22 @@ namespace Play.Rectangles
             return (l_eType);
         }
 
-        /// <summery>Our notion of what's "inside" is related to the the grab
-        //			 handle itself versus what it is (wrapped) around.</summery>
+        /// <summery>Went and included the INSIDE as well. Since I want to be able
+        /// to show the four arrow mouse cursor if select inside the grab region.</summery>
         public override bool IsInside(int p_iX, int p_iY) {
             if( Hidden )
-                return( false );
+                return false;
 
-            HIT   l_eHit    = IsHit(p_iX, p_iY, out LOCUS l_eEdge );
-            bool  l_fInside = false;
+            HIT   eHit    = IsHit(p_iX, p_iY, out LOCUS l_eEdge );
+            bool  fInside = false;
 
-            if( l_eHit == HIT.CORNER ||
-                l_eHit == HIT.EDGE   ||
-                l_eHit == HIT.MIDPOINT )
-                l_fInside = true;
-            
-            return( l_fInside );
+            if( eHit == HIT.CORNER ||
+                eHit == HIT.EDGE   ||
+                eHit == HIT.MIDPOINT ||
+                eHit == HIT.INSIDE )
+                fInside = true;
+
+            return fInside;
         }
 
         /// <summary>
@@ -455,15 +456,15 @@ namespace Play.Rectangles
         /// Oops, I forgot I overode this. I need to see if still necesssary. Probably not.
         /// </summary>
         /// <seealso cref="BeginAspectDrag"/>
-		public override bool IsInside(int iX,int iY) {
-			if( base.IsInside( iX, iY ) )
-				return true;
+		//public override bool IsInside(int iX,int iY) {
+		//	if( base.IsInside( iX, iY ) )
+		//		return true;
 
-			if( IsHit( iX, iX, out LOCUS eEdges ) == SmartGrab.HIT.INSIDE ) 
-				return true;
+		//	if( IsHit( iX, iX, out LOCUS eEdges ) == SmartGrab.HIT.INSIDE ) 
+		//		return true;
 
-			return false;
-		}
+		//	return false;
+		//}
 
         /// <summary>
         /// When Fixed Ratio is on, we must change our behavor for the "edge" and "middle" selector
