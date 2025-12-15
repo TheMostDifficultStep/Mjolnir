@@ -556,7 +556,8 @@ namespace Mjolnir {
 			try {
 				switch( _eLayout ) {
                     case TOPLAYOUT.Solo:
-                        _oLayoutPrimary.SetRect( 0, 0, ClientRectangle.Width, ClientRectangle.Height );
+                        _oLayoutPrimary.SetRect( 0, 0, Width, Height );
+                        // Was ClientRectangle.Width, ClientRectangle.Height
                         _oLayoutPrimary.LayoutChildren();
 
                         // Might have no view loaded, need to check it.
