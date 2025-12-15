@@ -146,21 +146,33 @@ namespace Play.SSTV {
             _wnTxImageChoice.ToolSelect = 1;
             _wnTxImageChoice.Aspect     = _oDocSSTV.TxImgLayoutAspect;
 			_wnTxImageChoice.DragMode   = DragMode.FixedRatio;
+            _wnTxImageChoice.LostFocus += OnLostFocus_TxImgChoice;
 
             _lyTxImageChoice = new LayoutControl( _wnTxImageChoice, LayoutRect.CSS.Percent, 100 );
         }
 
+        protected void OnLostFocus_TxImgChoice( object s, EventArgs e) {
+			if( _wnTxImageChoice.Selection.IsEmpty() ) {
+				_wnTxImageChoice.Execute( GlobalCommands.SelectAll );
+			}
+            _oDocSSTV.Selection.Copy = _wnTxImageChoice.Selection;
+            _oDocSSTV.RenderComposite();
+        }
+
         protected override void Dispose( bool fDisposing ) {
             if( _wnTxImageChoice is not null ) {
+                _wnTxImageChoice.LostFocus -= OnLostFocus_TxImgChoice;
+
 			    if( _wnTxImageChoice.Selection.IsEmpty() ) {
 				    _wnTxImageChoice.Execute( GlobalCommands.SelectAll );
 			    }
                 _oDocSSTV.Selection.Copy = _wnTxImageChoice.Selection;
 
 		        _wnTxImageChoice.Dispose();
+
+                _oDocSSTV.RenderComposite();
             }
 
-            _oDocSSTV.RenderComposite();
 
 			_oDocSSTV.TxSSTVModeDoc.Event_Check        -= OnCheckedEvent_TxModeList;
             _oDocSSTV.TxImageList  .ImageUpdated       -= OnImageUpdated_TxImageList;
