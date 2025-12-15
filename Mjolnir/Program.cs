@@ -1431,27 +1431,21 @@ namespace Mjolnir {
         /// of a general MainWindow error list. Maybe also add UI so that
         /// the user can map new languages.</remarks>
         public Grammer<char> GetGrammer( ExtensionMap oMap ) {
-            LangSlot  oGrammarSite = null;
+            try {
+                if( oMap.IsEmpty ) {
+                    return (Grammer<char>)GetMappedGrammerSiteNew( "text" ).Guest;
+                }
 
-            if( oMap.IsEmpty ) {
-                oGrammarSite = GetMappedGrammerSite( "text" );
-            } else {
-                oGrammarSite = GetMappedGrammerSite(oMap._strGrammar);
-            }
+                return (Grammer<char>)GetMappedGrammerSiteNew( oMap._strGrammar ).Guest;
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( ArgumentException ),
+                                    typeof( InvalidCastException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
 
-            // If grammar is null, we'll depend on the GetMappedGrammerSite() call to actually have returned an error message.
-            // So much can go wrong trying to find the proper grammer!
-            if( oGrammarSite == null ) {
-                return( null );
-            }
-
-            Grammer<char> oGrammar = oGrammarSite.Guest as Grammer<char>;
-            if( oGrammar == null ) {
                 LogError( "grammer", "The built in language tools only support 'char' streams." );
-                return( null );
+                return null;
             }
-
-            return( oGrammar );
         }
 
         public IEnumerator<ColorMap> GetSharedGrammarColors() {
@@ -1718,22 +1712,19 @@ namespace Mjolnir {
             }
         }
 
-        private GetMappedGrammerErrors GetMappedGrammerSite( string strLanguage, out LangSlot p_oLangSite ) 
+        private LangSlot GetMappedGrammerSiteNew( string strLanguage ) 
         {
-            p_oLangSite = null;
-
             // See if we've already loaded the grammer for the language in question.
             if( _rgLanguageSite.ContainsKey( strLanguage ) ) {
-                p_oLangSite = _rgLanguageSite[strLanguage];
-                return( GetMappedGrammerErrors.OK );
+                return _rgLanguageSite[strLanguage];
             } 
 
             if( _rgGrammarMap.Count == 0 )
-                return( GetMappedGrammerErrors.NoGrammars );
+                throw new ArgumentException( "No Grammars maps loaded." );
 
             // First see if it's a language in the list of grammars we know anything about. If not we can't load it.
             if( !_rgGrammarMap.ContainsKey( strLanguage ) )
-                return( GetMappedGrammerErrors.NotMappedLang );
+                throw new ArgumentException( "Language Not Mapped." );
 
             // Try to demand load the language.
             GrammerMap          oGrammarMap = _rgGrammarMap[ strLanguage ];
@@ -1753,7 +1744,7 @@ namespace Mjolnir {
             }
 
             if( oGrammar == null )
-                return( GetMappedGrammerErrors.UnrecognizedStreamType );
+                throw new ArgumentException( "Unrecognized Grammer Stream Type." );
 
             try {
                 oSite.Guest = (IDisposable)oGrammar;
@@ -1765,57 +1756,25 @@ namespace Mjolnir {
                 if( rgErrors.IsUnhandled( oEx ))
                     throw;
 
-                return( GetMappedGrammerErrors.NotLoadable );
+                throw new ArgumentException( "Grammar Missing Proper Interface." );
             }
 
             if( !oSite.Load() ) {
-                return( GetMappedGrammerErrors.NotLoadable );
+                throw new ArgumentException( "Could not read persistance file." );
             }
 
             _rgLanguageSite.Add(strLanguage, oSite );
-            p_oLangSite = oSite;
 
-            return( GetMappedGrammerErrors.OK );
+            return oSite;
         }
 
-        public LangSlot GetMappedGrammerSite(string strLanguage )
-        {
-			GetMappedGrammerErrors eError = GetMappedGrammerSite(strLanguage, out LangSlot oSite);
+        public LangSlot GetMappedGrammerSite( string strLanguage ) {
+			try {
+                return GetMappedGrammerSiteNew(strLanguage);
+            } catch( ArgumentException e ) {
+                LogError( "grammar", e.Message );
 
-			//if ( eError != GetMappedGrammerErrors.OK ) {
-   //             LogGrammerError( eError, strLanguage );
-   //         }
-
-            return( oSite );
-        }
-
-        private void LogGrammerError(GetMappedGrammerErrors eLoadErrors, string strLanguage ) {
-            StringBuilder sbError = new StringBuilder();
-
-            switch (eLoadErrors)
-            {
-                case GetMappedGrammerErrors.NoGrammars:
-                    sbError.Append( "Strange, there are no languages mapped for your text files? Check your language settings." );
-                    break;
-                case GetMappedGrammerErrors.NotMappedLang:
-                    sbError.Append( "The file type does not have a language mapped to it? I'll attempt to open as text. Check your language settings." );
-                    break;
-                case GetMappedGrammerErrors.NotLoadable:
-                    sbError.Append( "There was a problem loading the language information for this file type. The grammar might be invalid." );
-                    break;
-                case GetMappedGrammerErrors.UnrecognizedStreamType:
-                    sbError.Append( "The stream type for the language of this file type is not one understood by this program. Check your language settings." );
-                    break;
-                case GetMappedGrammerErrors.NotMappedExtn:
-                    sbError.Append( "The file type is not recognized." );
-                    break;
-                default:
-                    sbError.Append( "Unrecognized error trying to retrieve a language." );
-                    break;
-            }
-
-            if( eLoadErrors != GetMappedGrammerErrors.OK ) {
-                LogError( "config", "File Extension Not Understood for language: " + strLanguage + " " + sbError.ToString() );
+                return null;
             }
         }
 
@@ -1953,22 +1912,33 @@ namespace Mjolnir {
 		/// <param name="strName">Name of grammer, not it's file extension.</param>
 		/// <returns>a grammar object. You must cast it to your data type.</returns>
 		public object GetGrammer(string strLanguage ) {
-            LangSlot oSite = GetMappedGrammerSite( strLanguage );
+            try {
+                return GetMappedGrammerSiteNew( strLanguage ).Guest;
+            } catch (Exception oEx ) {
+                Type[] rgErrors = { typeof( ArgumentException ),
+                                    typeof( NullReferenceException ) };
+                if (rgErrors.IsUnhandled( oEx ))
+                    throw;
 
-            if( oSite != null)
-                return( oSite.Guest );
+                LogError( "Grammer", "Couldn't Find Grammer Requested." );
+            }
 
-            return( null );
+            return null;
 		}
 
         public object GetGrammerByExtn( string strExtn ) {
-            ExtensionMap oMap  = GetMappingEx( strExtn );
-            LangSlot     oSite = GetMappedGrammerSite( oMap._strGrammar );
+            try {
+                return GetGrammer( GetMappingEx( strExtn )._strGrammar );
+            } catch( Exception oEx) {
+                Type[] rgErrors = { typeof( ArgumentException ),
+                                    typeof( NullReferenceException ) };
+                if (rgErrors.IsUnhandled( oEx ))
+                    throw;
 
-            if( oSite != null)
-                return oSite.Guest;
+                LogError( "Grammer", "Couldn't Find Grammer Requested by Extension." );
+            }
 
-            throw new ArgumentOutOfRangeException();
+            return null;
         }
 
         /// <summary>
