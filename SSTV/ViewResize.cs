@@ -173,7 +173,6 @@ namespace Play.SSTV {
                 _oDocSSTV.RenderComposite();
             }
 
-
 			_oDocSSTV.TxSSTVModeDoc.Event_Check        -= OnCheckedEvent_TxModeList;
             _oDocSSTV.TxImageList  .ImageUpdated       -= OnImageUpdated_TxImageList;
             _oDocSSTV.              Send_TxImageAspect -= OnTxImageAspect_SSTVDoc;
