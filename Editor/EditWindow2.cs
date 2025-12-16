@@ -2351,6 +2351,18 @@ namespace Play.Edit {
                         OnKeyDelete( false );
                         return( true );
                     }
+                    case Keys.Control | Keys.C: {
+                        ClipboardCopyTo();
+                        return true;
+                    }
+                    case Keys.Control | Keys.V: {
+                        ClipboardPasteFrom( Clipboard.GetDataObject(), ClipboardOperations.Default );
+                        return true;
+                    }
+                    case Keys.Control | Keys.X: {
+                        ClipboardCutTo();
+                        return true;
+                    }
                 }
             } 
 
