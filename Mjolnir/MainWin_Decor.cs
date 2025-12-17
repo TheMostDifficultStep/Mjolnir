@@ -252,7 +252,7 @@ namespace Mjolnir {
             // but just leave it for now.
             IPgStandardUI2 oStdUI   = (IPgStandardUI2)Services;
             uint           uStdFont = oStdUI.FontCache( oStdUI.FaceCache(@"C:\windows\fonts\consola.ttf"), 
-                                                        10, MainDisplayInfo.pntDpi );
+                                                        11, MainDisplayInfo.pntDpi );
             IPgFontRender  oRender  = oStdUI.FontRendererAt( uStdFont );
 
             foreach( XmlElement xeType in lstTools ) {

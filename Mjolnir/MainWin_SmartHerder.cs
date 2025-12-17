@@ -1,5 +1,4 @@
 ﻿using Play.Edit;
-using Play.Forms;
 using Play.ImageViewer;
 using Play.Interfaces.Embedding;
 using Play.Rectangles;
@@ -317,21 +316,21 @@ namespace Mjolnir {
         LayoutStackVariable,
         IDisposable
     {
-        protected SideIdentify  _eSide;
-        protected MainWin       _oHost;
-                  Line          _oTitleText;
-                  SHOWSTATE     _eViewState = SHOWSTATE.Inactive;
+        protected SideIdentify _eSide;
+        protected MainWin      _oHost;
+                  Line         _oTitleText;
+                  SHOWSTATE    _eViewState = SHOWSTATE.Inactive;
 
         public Guid Decor { get; protected set; }
 
         IPgMenuVisibility _oMenuVis = null; // pointer to shell menu entry.
 
-        protected readonly IPgFontRender          _oFontRender;
-        protected readonly ImageSoloDoc           _oDocIcon;
-        protected readonly ImageSoloDoc           _oDocCloser; // BUG: Temp here for now.
-        protected readonly List<FTCacheWrap>      _rgTextCache = new();
-        protected readonly LayoutExclusive        _rgLayoutInner; 
-        protected readonly LayoutStackVariable    _rgLayoutBar   = new() { Track = 40, Style=LayoutRect.CSS.Pixels };
+        protected readonly IPgFontRender       _oFontRender;
+        protected readonly ImageSoloDoc        _oDocIcon;
+        protected readonly ImageSoloDoc        _oDocCloser; // BUG: Temp here for now.
+        protected readonly List<FTCacheWrap>   _rgTextCache = new();
+        protected readonly LayoutExclusive     _rgLayoutInner; 
+        protected readonly LayoutStackVariable _rgLayoutBar = new() { Track = 40, Style=LayoutRect.CSS.Pixels };
 
         protected readonly bool _fSolo;
 
@@ -349,18 +348,18 @@ namespace Mjolnir {
             Decor        = gDecor;
             Spacing      = 5;
 
-            _oHost       = oMainWin;
-    		_oFontRender = oFontRender; 
-            _oTitleText  = new TextLine( 0, strTitle );
-
+            _oHost         = oMainWin;
+    		_oFontRender   = oFontRender; 
+            _oTitleText    = new TextLine( 0, strTitle );
             _rgLayoutInner = new LayoutExclusive( fSolo );
 
             Assembly     oAsm = Assembly.GetExecutingAssembly();
-          //string[] rgStrs = oAsm.GetManifestResourceNames();
+            //string[] rgStrs = oAsm.GetManifestResourceNames();
             AssemblyName assemblyName = oAsm.GetName();
             string       strAsmName   = assemblyName.Name;
             string       strFullName  = assemblyName.Name + "." + strResource;
 
+            // This one is only used in the Gdi+ case.
             LayoutGdiBitmap oViewIconGDI = new LayoutGdiBitmap( oAsm, strFullName ) 
                                 { Units  = LayoutRect.CSS.Flex, 
                                   Hidden = false, 
@@ -374,8 +373,6 @@ namespace Mjolnir {
 
             _rgTextCache.Add( new FTCacheWrap( _oTitleText ) );
 
-			//LayoutSingleLine oViewTitle = new LayoutSingleLine( new FTCacheWrap( _oTitleText ), LayoutRect.CSS.None ) 
-   //                                         { BgColor = SKColors.Transparent, FgColor = SKColors.Black };
             LayoutSKBitmap   oViewIcon  = new LayoutSKBitmap( _oDocIcon ) 
                                             { Units = LayoutRect.CSS.Flex, Hidden = false };
             LayoutRect       oViewTitle = new LayoutRect()
@@ -384,7 +381,7 @@ namespace Mjolnir {
                                             { Units = LayoutRect.CSS.Flex, Hidden = false,
                                               Border = new Size( (int)Spacing, (int)Spacing ) };
 
-            // When this horizontal...
+            // When this horizontal... Implemented for SKIA 
             _rgLayoutBar.Add( oViewIcon  ); // oViewIcon / oViewIconGDI
             _rgLayoutBar.Add( oViewTitle );
             _rgLayoutBar.Add( oViewKill  );
@@ -395,6 +392,7 @@ namespace Mjolnir {
 
             Orientation = SideIdentify.Left;
             Style=LayoutRect.CSS.Percent;
+            MeasureText();
         }
 
         /// <summary>
@@ -440,14 +438,16 @@ namespace Mjolnir {
             LayoutChildren();
         }
 
-        public override bool LayoutChildren() {
+        /// <remarks>
+        /// Since the text never changes (at present) we only need to measure once
+        /// on initialization. 
+        /// </remarks>
+        protected void MeasureText() {
             foreach( FTCacheLine oCache in _rgTextCache ) {
                 oCache.Measure     ( _oFontRender );
+                oCache.Colorize    ( (ILineRange)null ); // Add selection when have it.
                 oCache.OnChangeSize( 300 );
             }
-            base.LayoutChildren();
-
-            return true;
         }
 
         public string Title => _oTitleText.ToString();
