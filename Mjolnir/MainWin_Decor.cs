@@ -82,7 +82,7 @@ namespace Mjolnir {
 		/// Return true if mouse within any of the spacers.
 		/// </summary>
 		/// <param name="fChanged">State of any spacer has changed.</param>
-		/// <returns></returns>
+		/// <seealso cref="MainWin.OnMouseMove">
 		public bool Hover(int iX, int iY, out bool fChanged) {
 			bool fInside = false;
 			fChanged = false;
@@ -99,6 +99,9 @@ namespace Mjolnir {
 			foreach( SmartBinder oSpacer in _rgSpacers ) {
 				oSpacer.HoverStop();
 			}
+            foreach( SmartHerderBase oHerder in this ) {
+                oHerder.HoverStop();
+            }
 		}
 
 		/// <summary>

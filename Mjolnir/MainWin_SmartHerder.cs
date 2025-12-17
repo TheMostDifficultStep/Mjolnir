@@ -331,6 +331,7 @@ namespace Mjolnir {
         protected readonly List<FTCacheWrap>   _rgTextCache = new();
         protected readonly LayoutExclusive     _rgLayoutInner; 
         protected readonly LayoutStackVariable _rgLayoutBar = new() { Track = 40, Style=LayoutRect.CSS.Pixels };
+        protected readonly LayoutRect          _rcKillBtn;
 
         protected readonly bool _fSolo;
 
@@ -378,13 +379,15 @@ namespace Mjolnir {
             LayoutRect       oViewTitle = new LayoutRect()
                                             { Units = LayoutRect.CSS.None, Hidden = false };
             LayoutSKBitmap   oViewKill  = new LayoutSKBitmap( _oDocCloser ) 
-                                            { Units = LayoutRect.CSS.Flex, Hidden = false,
+                                            { Units = LayoutRect.CSS.Flex, Hidden = true,
                                               Border = new Size( (int)Spacing, (int)Spacing ) };
 
             // When this horizontal... Implemented for SKIA 
             _rgLayoutBar.Add( oViewIcon  ); // oViewIcon / oViewIconGDI
             _rgLayoutBar.Add( oViewTitle );
             _rgLayoutBar.Add( oViewKill  );
+
+            _rcKillBtn = oViewKill;
 
             // ...This is vertical!
             this.Add( _rgLayoutBar );
@@ -682,10 +685,6 @@ namespace Mjolnir {
             oControl.Visible = !Hidden;
 
             _rgLayoutInner.Add( oKey, oControl );
-
-            // Get the events from our guest control.
-            //oControl.GotFocus  += _oGotFocusHandler;
-            //oControl.LostFocus += _oLostFocusHandler;
         }
 
         /// <summary>
@@ -706,6 +705,7 @@ namespace Mjolnir {
         #region ISmartDragGuest Members
 
         public void HoverStop() {
+            _rcKillBtn.Hidden = true;
         }
 
         public bool Hovering {
@@ -715,11 +715,40 @@ namespace Mjolnir {
         }
 
         /// <summary>
+        /// Override the kill button to always be hidden by default. This is
+        /// a new case where some Layout has elements that don't always want
+        /// to show or hide with the rest of the group. We only want to show
+        /// it when hovering over it. 
+        /// </summary>
+        /// <remarks>Note that if we unhide but the mouse happens to be right
+        /// over the kill button, we might show it unless cursor moves. ^_^;;
+        /// </remarks>
+		public override bool Hidden { 
+			set {
+				base.Hidden = value;
+
+                _rcKillBtn.Hidden = true;
+			}
+		}
+        /// <summary>
         /// This is our chance to provide a visual cue for what we are doing.
         /// </summary>
-        public bool Hover( int p_iX, int p_iY, out bool fChanged ) {
-			fChanged = false;
-            return false;
+        public bool Hover( int iX, int iY, out bool fChanged ) {
+            LayoutRect rcKill   = _rcKillBtn;
+            bool       fInside  = IsInside( iX, iY ); 
+            bool       fOldHide = rcKill.Hidden;
+
+            rcKill.Hidden = !fInside;
+
+            if( fOldHide != rcKill.Hidden )
+                fChanged = true;
+            else
+                fChanged = false;
+
+            if( fChanged ) 
+                LayoutChildren();
+            
+            return fInside;
         }
 
         #endregion

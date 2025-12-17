@@ -1955,6 +1955,12 @@ namespace Mjolnir {
 								this.Cursor = Cursors.SizeWE; break;
 						}
 					}
+                    // can't put inside the side b/c only want cursor
+                    // to change if in a spacer... :-/
+                    foreach( SmartHerderBase oHerder in oSide ) {
+                        oHerder.Hover( e.X, e.Y, out bool fChanged2 );
+                        fChanged |= fChanged2;
+                    }
 					if( fChanged )
 						Invalidate();
 				}
