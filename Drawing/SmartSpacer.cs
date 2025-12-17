@@ -72,6 +72,7 @@ namespace Play.Rectangles {
 
             using SKPaint skPaint = new SKPaint();
             skPaint .Color = oFocusColor;
+            skPaint .Style = SKPaintStyle.Fill;
             skCanvas.DrawRect( this.SKRect, skPaint );
         }
         #region ISmartDragGuest Members

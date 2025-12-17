@@ -753,6 +753,13 @@ namespace Mjolnir {
 
         #endregion
 
+        /// <remarks>Note that we cant be inside unless we were hovering
+        /// around in the title bar anyway.
+        /// </remarks>
+        public bool IsInsideKill( int iX, int iY ) {
+            return _rcKillBtn.IsInside( iX, iY );
+        }
+
         public override bool IsInside(int p_iX, int p_iY)  {
             if( Hidden )
                 return false;

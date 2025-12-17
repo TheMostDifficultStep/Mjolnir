@@ -1894,6 +1894,13 @@ namespace Mjolnir {
                                         oDragSize.Height );
 
                 foreach( SmartHerderBase oShepard in this ) {
+                    if( oShepard.IsInsideKill( e.X, e.Y ) ) {
+                        _pntContextLocation.X = e.X;
+                        _pntContextLocation.Y = e.Y;
+
+                        OnDecorCloseCommand( null, EventArgs.Empty );
+                        break;
+                    }
                     if( oShepard.IsInside( e.X, e.Y ) ) {
                         oShepard.AdornmentFocus( _oSelectedWinSite );
                     }
