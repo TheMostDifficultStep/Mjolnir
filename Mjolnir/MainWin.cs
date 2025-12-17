@@ -1778,7 +1778,6 @@ namespace Mjolnir {
             }
         }
 
-        #if foo
         protected override void OnPaintSurface(SKPaintSurfaceEventArgs e)
         {
             try {
@@ -1792,7 +1791,6 @@ namespace Mjolnir {
                 this.LogError( null, oEx.Message, oEx.StackTrace );
             }
         }
-        #endif
 
         /// <summary>
         /// Do a hit test of the mouse position to see if it is on any

@@ -4,6 +4,7 @@ using System.Drawing;
 using System.Windows.Forms;
 using System.Xml;
 using System.Collections;
+using System.Diagnostics;
 
 using SkiaSharp;
 
@@ -537,7 +538,11 @@ namespace Mjolnir {
             }
         }
 
-        protected void LayoutPaintSK( SKCanvas oCanvas ) {
+        [Conditional("bugger")] protected void LayoutPaintSK( SKCanvas oCanvas ) {
+			SKPaint skPaint  = new SKPaint() { Color = SKColors.LightGray, 
+											   Style = SKPaintStyle.Fill };
+			oCanvas.DrawRect( _oLayoutPrimary.SKRect, skPaint );
+
             switch( _eLayout ) { 
                 case TOPLAYOUT.Solo:
                     _oLayoutPrimary.Paint( oCanvas );
