@@ -93,7 +93,7 @@ namespace Play.ImageViewer {
 		/// <seealso cref="LayoutImageReference.Paint(SKCanvas)"/>
 		/// <seealso cref="ImageViewSingle.OnPaintSurface(SKPaintSurfaceEventArgs)"/>
 		public override void Paint( SKCanvas skCanvas ) {
-			if( _oDocument.Bitmap == null )
+			if( _oDocument.Bitmap == null || Hidden )
                 return;
 
             try {
