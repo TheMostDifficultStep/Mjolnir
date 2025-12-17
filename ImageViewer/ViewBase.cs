@@ -413,8 +413,9 @@ namespace Play.ImageViewer {
         protected override void OnPaintSurface( SKPaintSurfaceEventArgs e ) {
             base.OnPaintSurface(e);
 
-			SKSurface skSurface = e.Surface;
-			SKCanvas  skCanvas  = skSurface.Canvas;
+			SKSurface         skSurface = e.Surface;
+			SKCanvas          skCanvas  = skSurface.Canvas;
+		  //SKSamplingOptions oOptions  = new SKSamplingOptions( SKFilterMode.Linear );
 
 			using( SKPaint skPaint = new SKPaint() ) {
 				if( Focused ) {

@@ -329,9 +329,9 @@ namespace Mjolnir {
         protected readonly IPgFontRender          _oFontRender;
         protected readonly ImageSoloDoc           _oDocIcon;
         protected readonly ImageSoloDoc           _oDocCloser; // BUG: Temp here for now.
-        protected readonly List<LayoutSingleLine> _rgLayoutText  = new();
+        protected readonly List<FTCacheWrap>      _rgTextCache = new();
         protected readonly LayoutExclusive        _rgLayoutInner; 
-        protected readonly LayoutStackVariable    _rgLayoutBar   = new() { Track = 30, Style=LayoutRect.CSS.Pixels };
+        protected readonly LayoutStackVariable    _rgLayoutBar   = new() { Track = 40, Style=LayoutRect.CSS.Pixels };
 
         protected readonly bool _fSolo;
 
@@ -362,28 +362,31 @@ namespace Mjolnir {
             string       strFullName  = assemblyName.Name + "." + strResource;
 
             LayoutGdiBitmap oViewIconGDI = new LayoutGdiBitmap( oAsm, strFullName ) 
-                                { Units = LayoutRect.CSS.Flex, 
-                                Hidden = false, Border = new Size( 0, 0 ) };
+                                { Units  = LayoutRect.CSS.Flex, 
+                                  Hidden = false, 
+                                  Border = new Size( 0, 0 ) };
 
             _oDocIcon = new( new HerderSlot( oMainWin ) );
             _oDocIcon.LoadResource( oAsm, assemblyName.Name + "." + strResource );
 
             _oDocCloser = new( new HerderSlot( oMainWin ) );
-            _oDocCloser.LoadResource( oAsm, "Mjolnir.Content.icons8-close-window-94-2.png" );
+            _oDocCloser.LoadResource( oAsm, assemblyName.Name + ".Content.icons8-close-window-94-2.png" );
 
-			LayoutSingleLine oViewTitle = new LayoutSingleLine( new FTCacheWrap( _oTitleText ), LayoutRect.CSS.None ) 
-                                            { BgColor = SKColors.Transparent };
+            _rgTextCache.Add( new FTCacheWrap( _oTitleText ) );
+
+			//LayoutSingleLine oViewTitle = new LayoutSingleLine( new FTCacheWrap( _oTitleText ), LayoutRect.CSS.None ) 
+   //                                         { BgColor = SKColors.Transparent, FgColor = SKColors.Black };
             LayoutSKBitmap   oViewIcon  = new LayoutSKBitmap( _oDocIcon ) 
                                             { Units = LayoutRect.CSS.Flex, Hidden = false };
+            LayoutRect       oViewTitle = new LayoutRect()
+                                            { Units = LayoutRect.CSS.None, Hidden = false };
             LayoutSKBitmap   oViewKill  = new LayoutSKBitmap( _oDocCloser ) 
                                             { Units = LayoutRect.CSS.Flex, Hidden = false };
 
-			_rgLayoutText.Add( oViewTitle );
-
             // When this horizontal...
-            _rgLayoutBar.Add( oViewIconGDI); // oViewIcon 
+            _rgLayoutBar.Add( oViewIcon  ); // oViewIcon / oViewIconGDI
             _rgLayoutBar.Add( oViewTitle );
-            //_rgLayoutBar.Add( oViewKill );
+            _rgLayoutBar.Add( oViewKill  );
 
             // ...This is vertical!
             this.Add( _rgLayoutBar );
@@ -437,10 +440,9 @@ namespace Mjolnir {
         }
 
         public override bool LayoutChildren() {
-            foreach( LayoutSingleLine oLayout in _rgLayoutText ) {
-                oLayout.Cache.Measure( _oFontRender );
-                oLayout.OnChangeFormatting();
-                oLayout.Cache.OnChangeSize( oLayout.Width );
+            foreach( FTCacheLine oCache in _rgTextCache ) {
+                oCache.Measure     ( _oFontRender );
+                oCache.OnChangeSize( 300 );
             }
             base.LayoutChildren();
 
@@ -491,47 +493,63 @@ namespace Mjolnir {
             }
         }
 
+        /// <summary>
+        /// Unfortunately the text rotation is a bit special still, so we need to
+        /// handle that separately and that makes this function a little messy.
+        /// </summary>
         public override void Paint( SKCanvas skCanvas ) {
             if( Hidden ) // Add an IsEmpty property.
                 return;
 
-            SKColor  eColor = _eViewState == SHOWSTATE.Focused ? 
-                                             SKColors.Blue : SKColors.Gray;
-            SKPaint  oPaint = new SKPaint() { Color = eColor };
+            try {
+                SKColor  eColor = _eViewState == SHOWSTATE.Focused ? 
+                                                 SKColors.Blue : SKColors.Linen;
+                SKPaint  oPaint = new SKPaint() { Color = eColor };
 
-            skCanvas.DrawRect( _rgLayoutBar.SKRect, oPaint );
+                skCanvas.DrawRect( _rgLayoutBar.SKRect, oPaint ); // color the entire bg of the bar.
 
-            skCanvas.Save();
-            skCanvas.ClipRect( _rgLayoutBar.SKRect, SKClipOperation.Intersect, antialias:false );
+                // Prep for our text operations.
+                skCanvas.Save();
+                skCanvas.ClipRect( _rgLayoutBar.SKRect, SKClipOperation.Intersect, antialias:false );
 
-            SKSamplingOptions oOptions = new SKSamplingOptions( SKFilterMode.Linear );
+                SmartRect rcTitleText  = _rgLayoutBar.Item(1);
+                float     flFontHeight = _oFontRender.LineHeight; 
+                float     flHeight     = 0;
 
-            skCanvas.Translate( _rgLayoutBar.Left, _rgLayoutBar.Top );
+                switch( Orientation ) {
+                    case SideIdentify.Left:
+                    case SideIdentify.Right: 
+                        skCanvas.Translate( rcTitleText.Left, rcTitleText.Top );
+                        flHeight = _rgLayoutBar.Height;
+                        break;
+                    case SideIdentify.Bottom: 
+                    default:
+                        flHeight = _rgLayoutBar.Width;
+                        skCanvas.Translate( rcTitleText.Right, rcTitleText.Top );
+                        skCanvas.RotateDegrees( 90 );
+                        break;
+                }
 
-            int   iBoxWidth   = _rgLayoutBar.Width < _rgLayoutBar.Height ? 
-                                _rgLayoutBar.Width : _rgLayoutBar.Height;
-            int   iFontHeight = _oHost.DecorFont.Height;
-            Point pntTemp     = new Point( iBoxWidth, iBoxWidth );
-            switch( Orientation ) {
-                case SideIdentify.Left:
-                case SideIdentify.Right: 
-                    pntTemp.Y = pntTemp.Y / 2 - iFontHeight / 2;
-                    break;
-                case SideIdentify.Bottom: 
-                default:
-                    skCanvas.RotateDegrees( 90 );
-                    pntTemp = new Point( pntTemp.X, - ( iFontHeight + (int)( (float)( iBoxWidth - iFontHeight ) / 2 ) ) );
-                    break;
+                oPaint.Color = SKColors.Black;
+                flHeight     = flHeight / 2 - flFontHeight / 2;
 
+                _rgTextCache[0].Render( skCanvas, oPaint, new PointF( Spacing, flHeight ) );
+
+                skCanvas.Restore();
+
+                // Finish drawing the icon and x button.
+                foreach( LayoutRect oItem in _rgLayoutBar ) {
+                    oItem.Paint( skCanvas );
+                }
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( NullReferenceException ),
+                                    typeof( IndexOutOfRangeException ),
+                                    typeof( ArithmeticException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
+
+                _oHost.LogError( null, "MainWindow", "Paint problems in Smart Herder.", true );
             }
-
-            oPaint.Color = SKColors.Black;
-            _rgLayoutBar.Item(1).Paint( skCanvas );
-
-            skCanvas.Restore();
-
-            _rgLayoutBar.Item(0).Paint( skCanvas );
-            _rgLayoutBar.Item(2).Paint( skCanvas );
         }
 
         // https://stackoverflow.com/questions/45077047/rotate-photo-with-skiasharp

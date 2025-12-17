@@ -1759,25 +1759,28 @@ namespace Mjolnir {
         }
 
         /// <summary>
-        /// 1/19/2022: Still called by the system. I'd love to convert to a Skia OnPaint version
-        /// but can't yet. Maybe I can just use a control instead of a form. That's the
-        /// next step!
+        /// Jan/19/2022: I'd love to convert to a Skia OnPaint version
+        /// but can't yet. 
         /// </summary>
         /// <param name="oArgs"></param>
-        protected override void OnPaint( PaintEventArgs oArgs )
-        {
-            try {
-                LayoutPaint( oArgs.Graphics );
-            } catch( Exception oEx ) {
-                Type[] rgErrors = { typeof( ExternalException ),
-                                    typeof( NullReferenceException ) };
-                if( rgErrors.IsUnhandled( oEx ) )
-                    throw;
+        //protected override void OnPaint( PaintEventArgs oArgs )
+        //{
+        //    try {
+        //        LayoutPaint( oArgs.Graphics );
+        //    } catch( Exception oEx ) {
+        //        Type[] rgErrors = { typeof( ExternalException ),
+        //                            typeof( NullReferenceException ) };
+        //        if( rgErrors.IsUnhandled( oEx ) )
+        //            throw;
+        //
+        //        this.LogError( null, oEx.Message, oEx.StackTrace );
+        //    }
+        //}
 
-                this.LogError( null, oEx.Message, oEx.StackTrace );
-            }
-        }
-
+        /// <remarks>
+        /// Dec/17/2022: At long last!! We have converted to a SKControl on main win!
+        /// All contained layout elements use SKIA drawing API.
+        /// </remarks>
         protected override void OnPaintSurface(SKPaintSurfaceEventArgs e)
         {
             try {
