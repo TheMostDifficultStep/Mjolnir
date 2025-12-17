@@ -342,7 +342,7 @@ namespace Play.Rectangles
             }
         }
 
-		public Color FocusColor {
+		[Obsolete]public Color FocusColor {
 			get {
 				Color oFocusColor = Color.Empty;
 
@@ -414,7 +414,9 @@ namespace Play.Rectangles
                 return;
 
             try {
-                SKPaint oPaint = new SKPaint() { Color=SKColors.Blue, Style=SKPaintStyle.Fill };
+                Color   oMain  = FocusColor;
+                SKPaint oPaint = new SKPaint() { Color = new SKColor( oMain.R, oMain.G, oMain.B ), 
+                                                 Style = SKPaintStyle.Fill };
 
                 // The main color of the border rect
                 for (int i = 0; i < 4; ++i) {

@@ -537,21 +537,6 @@ namespace Mjolnir {
             }
         }
 
-        protected void LayoutPaintSK( SKCanvas oCanvas ) {
-			SKPaint skPaint  = new SKPaint() { Color = SKColors.LightGray, 
-											   Style = SKPaintStyle.Fill };
-			oCanvas.DrawRect( _oLayoutPrimary.SKRect, skPaint );
-
-            switch( _eLayout ) { 
-                case TOPLAYOUT.Solo:
-                    _oLayoutPrimary.Paint( oCanvas );
-                    break;
-                case TOPLAYOUT.Multi:
-                    _oLayout2.Paint( oCanvas );
-                    break;
-            }
-        }
-
         /// <summary>
         /// When our outside window changes size or any of our sides change extent,
         /// we need to adjust the inside rectangle.

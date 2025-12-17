@@ -502,8 +502,9 @@ namespace Mjolnir {
                 return;
 
             try {
-                SKColor  eColor = _eViewState == SHOWSTATE.Focused ? 
-                                                 SKColors.Blue : SKColors.Linen;
+                SKColor  eBlue  = _oHost.StdUI.ColorsStandardAt( StdUIColors.TitleBoxFocus );
+                SKColor  eBlur  = _oHost.StdUI.ColorsStandardAt( StdUIColors.TitleBoxBlur );
+                SKColor  eColor = _eViewState == SHOWSTATE.Focused ? eBlue : eBlur;
                 SKPaint  oPaint = new SKPaint() { Color = eColor };
 
                 skCanvas.DrawRect( _rgLayoutBar.SKRect, oPaint ); // color the entire bg of the bar.

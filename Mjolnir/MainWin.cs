@@ -53,9 +53,10 @@ namespace Mjolnir {
 		IPgMainWindow,
         IPgShutdownNotify
     {
-        public Font       DecorFont        { get; } = new Font( "Segoe UI Symbol", 12 ) ?? throw new InvalidOperationException("Main Window could not load Decor font."); 
-		public SolidBrush ToolsBrushActive { get; } = new SolidBrush( Color.FromArgb( 255, 112, 165, 234 ) ) ?? throw new InvalidOperationException("Main Window could not create tools color brush."); 
-        public Font		  ToolsFont		   => Document.FontStandard;
+        public Font           DecorFont        { get; } = new Font( "Segoe UI Symbol", 12 ) ?? throw new InvalidOperationException("Main Window could not load Decor font."); 
+		public SolidBrush     ToolsBrushActive { get; } = new SolidBrush( Color.FromArgb( 255, 112, 165, 234 ) ) ?? throw new InvalidOperationException("Main Window could not create tools color brush."); 
+        public Font		      ToolsFont		   => Document.FontStandard;
+        public IPgStandardUI2 StdUI { get; }
 
         readonly SmartGrab _rcFrame = new SmartGrab( new SmartRect( LOCUS.UPPERLEFT, 50, 50, 300, 300 ),  5, true, SCALAR.ALL );
         readonly int       _iMargin = 5;  
@@ -167,6 +168,8 @@ namespace Mjolnir {
 		/// <exception cref="ArgumentNullException" />
         public MainWin( Program oDocument ) {
             Document = oDocument ?? throw new ArgumentNullException(  nameof( oDocument ) );
+
+            StdUI = Services as IPgStandardUI2 ?? throw new ArgumentException( "Parent view must provide IPgStandardUI service" );
 
             // This could be in the initialize/initnew() steps, but it's nice to have
             // these as readonly variables. I'll leave it for now.
@@ -1781,10 +1784,22 @@ namespace Mjolnir {
         /// Dec/17/2022: At long last!! We have converted to a SKControl on main win!
         /// All contained layout elements use SKIA drawing API.
         /// </remarks>
-        protected override void OnPaintSurface(SKPaintSurfaceEventArgs e)
-        {
+        protected override void OnPaintSurface( SKPaintSurfaceEventArgs e ) {
             try {
-                LayoutPaintSK( e.Surface.Canvas );
+                SKCanvas skCanvas = e.Surface.Canvas;
+                SKColor  skBG     = StdUI.ColorsStandardAt( StdUIColors.BGReadOnly );
+			    SKPaint  skPaint  = new SKPaint() { Color = skBG, 
+											        Style = SKPaintStyle.Fill };
+			    skCanvas.DrawRect( 0, 0, ClientSize.Width, ClientSize.Height, skPaint );
+
+                switch( _eLayout ) { 
+                    case TOPLAYOUT.Solo:
+                        _oLayoutPrimary.Paint( skCanvas );
+                        break;
+                    case TOPLAYOUT.Multi:
+                        _oLayout2.Paint( skCanvas );
+                        break;
+                }
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( ExternalException ),
                                     typeof( NullReferenceException ) };
