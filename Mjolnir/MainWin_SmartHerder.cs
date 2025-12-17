@@ -381,7 +381,8 @@ namespace Mjolnir {
             LayoutRect       oViewTitle = new LayoutRect()
                                             { Units = LayoutRect.CSS.None, Hidden = false };
             LayoutSKBitmap   oViewKill  = new LayoutSKBitmap( _oDocCloser ) 
-                                            { Units = LayoutRect.CSS.Flex, Hidden = false };
+                                            { Units = LayoutRect.CSS.Flex, Hidden = false,
+                                              Border = new Size( (int)Spacing, (int)Spacing ) };
 
             // When this horizontal...
             _rgLayoutBar.Add( oViewIcon  ); // oViewIcon / oViewIconGDI
