@@ -327,13 +327,11 @@ namespace Mjolnir {
         IPgMenuVisibility _oMenuVis = null; // pointer to shell menu entry.
 
         protected readonly IPgFontRender          _oFontRender;
-      //protected readonly ImageSoloDoc           _oDocIcon;
+        protected readonly ImageSoloDoc           _oDocIcon;
         protected readonly ImageSoloDoc           _oDocCloser; // BUG: Temp here for now.
         protected readonly List<LayoutSingleLine> _rgLayoutText  = new();
         protected readonly LayoutExclusive        _rgLayoutInner; 
         protected readonly LayoutStackVariable    _rgLayoutBar   = new() { Track = 30, Style=LayoutRect.CSS.Pixels };
-
-        LayoutGdiBitmap     _oViewIcon;
 
         protected readonly bool _fSolo;
 
@@ -354,7 +352,6 @@ namespace Mjolnir {
             _oHost       = oMainWin;
     		_oFontRender = oFontRender; 
             _oTitleText  = new TextLine( 0, strTitle );
-          //_oDocIcon    = new( new HerderSlot( oMainWin ) );
 
             _rgLayoutInner = new LayoutExclusive( fSolo );
 
@@ -364,25 +361,29 @@ namespace Mjolnir {
             string       strAsmName   = assemblyName.Name;
             string       strFullName  = assemblyName.Name + "." + strResource;
 
-          //_oDocIcon.LoadResource( oAsm, assemblyName.Name + "." + strResource );
+            LayoutGdiBitmap oViewIconGDI = new LayoutGdiBitmap( oAsm, strFullName ) 
+                                { Units = LayoutRect.CSS.Flex, 
+                                Hidden = false, Border = new Size( 0, 0 ) };
+
+            _oDocIcon = new( new HerderSlot( oMainWin ) );
+            _oDocIcon.LoadResource( oAsm, assemblyName.Name + "." + strResource );
 
             _oDocCloser = new( new HerderSlot( oMainWin ) );
-
             _oDocCloser.LoadResource( oAsm, "Mjolnir.Content.icons8-close-window-94-2.png" );
 
-            /*LayoutBmpDoc */    _oViewIcon  = new LayoutGdiBitmap( oAsm, strFullName ) 
-                                            { Units = LayoutRect.CSS.Flex, Hidden = false, Border = new Size( 0, 0 ) };
-			LayoutSingleLine oViewTitle = new LayoutSingleLine( new FTCacheWrap( _oTitleText ), LayoutRect.CSS.Flex ) 
+			LayoutSingleLine oViewTitle = new LayoutSingleLine( new FTCacheWrap( _oTitleText ), LayoutRect.CSS.None ) 
                                             { BgColor = SKColors.Transparent };
-            LayoutSKBitmap     oViewKill  = new LayoutSKBitmap( _oDocCloser ) 
+            LayoutSKBitmap   oViewIcon  = new LayoutSKBitmap( _oDocIcon ) 
+                                            { Units = LayoutRect.CSS.Flex, Hidden = false };
+            LayoutSKBitmap   oViewKill  = new LayoutSKBitmap( _oDocCloser ) 
                                             { Units = LayoutRect.CSS.Flex, Hidden = false };
 
 			_rgLayoutText.Add( oViewTitle );
 
             // When this horizontal...
-            _rgLayoutBar.Add( _oViewIcon );
+            _rgLayoutBar.Add( oViewIconGDI); // oViewIcon 
             _rgLayoutBar.Add( oViewTitle );
-            _rgLayoutBar.Add( oViewKill );
+            //_rgLayoutBar.Add( oViewKill );
 
             // ...This is vertical!
             this.Add( _rgLayoutBar );
@@ -491,22 +492,46 @@ namespace Mjolnir {
         }
 
         public override void Paint( SKCanvas skCanvas ) {
-            if( Hidden ) 
+            if( Hidden ) // Add an IsEmpty property.
                 return;
 
-            foreach( LayoutRect oLayout in this ) {
-                oLayout.Paint( skCanvas );
+            SKColor  eColor = _eViewState == SHOWSTATE.Focused ? 
+                                             SKColors.Blue : SKColors.Gray;
+            SKPaint  oPaint = new SKPaint() { Color = eColor };
+
+            skCanvas.DrawRect( _rgLayoutBar.SKRect, oPaint );
+
+            skCanvas.Save();
+            skCanvas.ClipRect( _rgLayoutBar.SKRect, SKClipOperation.Intersect, antialias:false );
+
+            SKSamplingOptions oOptions = new SKSamplingOptions( SKFilterMode.Linear );
+
+            skCanvas.Translate( _rgLayoutBar.Left, _rgLayoutBar.Top );
+
+            int   iBoxWidth   = _rgLayoutBar.Width < _rgLayoutBar.Height ? 
+                                _rgLayoutBar.Width : _rgLayoutBar.Height;
+            int   iFontHeight = _oHost.DecorFont.Height;
+            Point pntTemp     = new Point( iBoxWidth, iBoxWidth );
+            switch( Orientation ) {
+                case SideIdentify.Left:
+                case SideIdentify.Right: 
+                    pntTemp.Y = pntTemp.Y / 2 - iFontHeight / 2;
+                    break;
+                case SideIdentify.Bottom: 
+                default:
+                    skCanvas.RotateDegrees( 90 );
+                    pntTemp = new Point( pntTemp.X, - ( iFontHeight + (int)( (float)( iBoxWidth - iFontHeight ) / 2 ) ) );
+                    break;
+
             }
 
-			// DEBUG Code.
+            oPaint.Color = SKColors.Black;
+            _rgLayoutBar.Item(1).Paint( skCanvas );
 
-            //SKPaint oPaint = new SKPaint() { Color = SKColors.Aquamarine };
-            //skCanvas.DrawLine(
-            //          _rgLayoutInner.GetScalar(SCALAR.LEFT),
-            //          _rgLayoutInner.GetScalar(SCALAR.TOP),
-            //          _rgLayoutInner.GetScalar(SCALAR.RIGHT),
-            //          _rgLayoutInner.GetScalar(SCALAR.BOTTOM),
-            //          oPaint );
+            skCanvas.Restore();
+
+            _rgLayoutBar.Item(0).Paint( skCanvas );
+            _rgLayoutBar.Item(2).Paint( skCanvas );
         }
 
         // https://stackoverflow.com/questions/45077047/rotate-photo-with-skiasharp
@@ -541,7 +566,7 @@ namespace Mjolnir {
 
                     p_oGraphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
 
-                    _oViewIcon.Paint( p_oGraphics );
+                    _rgLayoutBar.Item(0).Paint( p_oGraphics );
 
                     p_oGraphics.TranslateTransform( _rgLayoutBar.Left, _rgLayoutBar.Top );
                     p_oGraphics.Clip = oRgn;
