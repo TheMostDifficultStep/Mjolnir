@@ -444,7 +444,7 @@ namespace Play.Rectangles {
 
         public override void PaintBackground(SKCanvas skCanvas) {
 			if( BackgroundColor != null ) {
-				SKPaint skPaint  = new SKPaint() { Color = SKColors.LightGray, // BackgroundColor( Extra ), 
+				SKPaint skPaint  = new SKPaint() { Color = BackgroundColor( Extra ), 
 												   Style = SKPaintStyle.Fill };
 				skCanvas.DrawRect( SKRect, skPaint );
 			}
