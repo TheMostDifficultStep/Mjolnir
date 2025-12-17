@@ -157,6 +157,10 @@ namespace Play.Rectangles {
             _oSolo.Paint(p_oGraphics);
         }
 
+        public override void Paint(SKCanvas skCanvas) {
+            _oSolo.Paint(skCanvas);
+        }
+
         public override bool Hidden { 
 			get => _oSolo.Hidden;
 			set => _oSolo.Hidden = value; 
@@ -440,8 +444,9 @@ namespace Play.Rectangles {
 
         public override void PaintBackground(SKCanvas skCanvas) {
 			if( BackgroundColor != null ) {
-				SKPaint skPaint  = new SKPaint() { Color = BackgroundColor( Extra ) };
-				skCanvas.DrawRect( this.SKRect, skPaint );
+				SKPaint skPaint  = new SKPaint() { Color = SKColors.LightGray, // BackgroundColor( Extra ), 
+												   Style = SKPaintStyle.Fill };
+				skCanvas.DrawRect( SKRect, skPaint );
 			}
         }
     }

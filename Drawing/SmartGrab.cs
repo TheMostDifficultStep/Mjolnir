@@ -409,6 +409,41 @@ namespace Play.Rectangles
             }
         }
 
+        public override void Paint( SKCanvas oCanvas ) {
+            if( Hidden )
+                return;
+
+            try {
+                SKPaint oPaint = new SKPaint() { Color=SKColors.Blue, Style=SKPaintStyle.Fill };
+
+                // The main color of the border rect
+                for (int i = 0; i < 4; ++i) {
+                    oCanvas.DrawRect( m_rgoHandles[i].SKRect, oPaint );
+                }
+
+                oPaint.Color = SKColors.White;
+
+                if (Hovering) {
+                    SCALAR[] l_rguiCorner = { SCALAR.LEFT   | SCALAR.TOP, 
+                                              SCALAR.TOP    | SCALAR.RIGHT, 
+                                              SCALAR.RIGHT  | SCALAR.BOTTOM, 
+                                              SCALAR.BOTTOM | SCALAR.LEFT };
+
+                    for (int i = 0; i < 4; ++i) {
+                        if( m_frgMoveable[i] ) {
+                            oCanvas.DrawRect( _rgHandlesMiddle[i].SKRect, oPaint );
+                        };
+                        // If the and of the two values is the same then both
+                        // bits are on and the value should be the same as the corner tested.
+                        if( ( m_eMoveable & l_rguiCorner[i] ) == l_rguiCorner[i] ) {
+                            oCanvas.DrawRect( _rgHandlesCorner[i].SKRect, oPaint);
+                        };
+                    }
+                }
+            } catch( OverflowException ) {
+            }
+        }
+
         /// <summary>
         /// Enumerate all the grab handles so you can easily search them.
         /// </summary>
