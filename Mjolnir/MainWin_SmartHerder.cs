@@ -219,7 +219,13 @@ namespace Mjolnir {
 			}
         }
 
-		public void Remove( object oKey ) {
+        /// <summary>
+        ///  Look up the value at the key, dispose
+        ///  and remove the associated value. 
+        /// </summary>
+        /// <param name="oKey">Lookup key (viewslot) for the
+        /// adornment we are looking for.</param>
+		public void RemoveAndDisposeValue( object oKey ) {
 			for( int i=0; i<_rgChildren.Count; ++i ) {
 				MyPair oPair = _rgChildren[i];
                 if( oPair.Key == oKey ) {
@@ -691,8 +697,10 @@ namespace Mjolnir {
         /// <summary>
         /// Not that any adornments get removed but it's here if you want.
         /// </summary>
+        /// <remarks>12/17/2025 : I don't think I'm using docsites anymore so I
+        /// can probably just make this key a viewslot type.</remarks>
         public void AdornmentRemove( object oKey ) {
-            _rgLayoutInner.Remove( oKey );
+            _rgLayoutInner.RemoveAndDisposeValue( oKey );
         }
 
 		public Control AdornmentFind( ViewSlot oKey ) {
