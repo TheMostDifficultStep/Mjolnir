@@ -223,6 +223,7 @@ namespace Mjolnir {
 			for( int i=0; i<_rgChildren.Count; ++i ) {
 				MyPair oPair = _rgChildren[i];
                 if( oPair.Key == oKey ) {
+                    oPair.Value.Dispose();
                     _rgChildren.RemoveAt(i);
                     return;
                 }

@@ -396,6 +396,12 @@ namespace Mjolnir {
         /// <summary>
         /// Attempt create the associated decor for the given view and shepard.
         /// </summary>
+        /// <remarks>
+        /// Note that we don't use or save the decor slot (site) ourselves.
+        /// it is handed off to the decoration() call to be passed to the
+        /// control on new(). Only the SmartHerder has a reference to the
+        /// control. Thus, we must Dispose() the decor when it's owning
+        /// view is removed. Decor dispose is done by the SmartHerderClxn.</remarks>
         /// <seealso cref="DecorAddSolo(Guid, Control)"/>
         protected bool DecorCreate( ViewSlot oViewSite, SmartHerderBase oShepard ) {
 			IPgCommandView oViewCmmd;
