@@ -174,9 +174,6 @@ namespace Mjolnir {
         public int Count => _rgChildren.Count;
 
         protected override void OnSize() {
-            //SmartRect oRect = new SmartRect( this );
-            //oRect.Inflate( -1, _rcMargin );
-
             foreach( MyPair oPair in _rgChildren ) {
                 oPair.Value.Bounds = Rect;
             }
@@ -193,6 +190,8 @@ namespace Mjolnir {
 
             if( _rgChildren.Count >= _iMaxChildren )
                 throw new InvalidOperationException("Solo herder cannot hold more than one control.");
+            if( _iMaxChildren == 1 && oKey is not null )
+                throw new ArgumentException( "Key must be null in singleton case" );
 
             _rgChildren.Add( new MyPair( oKey, oControl ) );
         }
@@ -678,8 +677,8 @@ namespace Mjolnir {
 
         /// <summary>
         /// In the singleton case I'm allowing the key to be the control
-        /// itself for backward compat. I'll check if everything has a site
-        /// and if so change the key param
+        /// itself for backward compat. 
+        /// I don't think this is true. use null for the singleton case.
         /// </summary>
         /// <param name="oKey">Associated site, may be null. For singletons
         ///                    this might be the control.</param>

@@ -58,7 +58,7 @@ namespace Mjolnir {
         public Font		      ToolsFont		   => Document.FontStandard;
         public IPgStandardUI2 StdUI { get; }
 
-        readonly SmartGrab _rcFrame = new SmartGrab( new SmartRect( LOCUS.UPPERLEFT, 50, 50, 300, 300 ),  5, true, SCALAR.ALL );
+        readonly SmartGrab _rcFrame = new SmartGrab( new SmartRect( LOCUS.UPPERLEFT, 50, 50, 300, 300 ),  8, true, SCALAR.ALL );
         readonly int       _iMargin = 5;  
 
         readonly Dictionary<SideIdentify, SideRect> _rgSideInfo = new Dictionary<SideIdentify, SideRect>(5);
