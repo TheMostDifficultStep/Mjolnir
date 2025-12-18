@@ -263,7 +263,6 @@ namespace Mjolnir {
 
         // BUG: I'm dithering on FontMenu living on the program or just the main window.
 		public Font         FontMenu      { get; } = new Font( "Segoe UI Symbol", 11 ); // Segoe UI Symbol, So we can show our play/pause stuff.
-        public Font         FontStandard  { get; } = new Font( "Consolas", 11 ); // Consolas
 		public bool         IsDirty       => _fSessionDirty;
 
 		protected Alerts _oWin_AlertsForm;
@@ -367,7 +366,6 @@ namespace Mjolnir {
             }
 
 			_oMp3Factory.Dispose();
-			FontStandard.Dispose();
 			FontMenu    .Dispose();
 		}
 
@@ -1984,20 +1982,6 @@ namespace Mjolnir {
         [Obsolete]private static UInt32 SetRGB(byte r, byte g, byte b) {
             return ( (UInt32)( r | ( (UInt16)g << 8 ) ) | ( ( (UInt32)b << 16 ) ) );
         }
-
-        /// <summary>
-        /// Return's the standard line color from the index.
-        /// </summary>
-        /// <remarks>This is only for combatibility with GDI32. We'll phase this out.</remarks>
-        [Obsolete]public virtual UInt32 ColorStandardPacked( StdUIColors eColor ) {
-            try {
-                SKColor sColor = _rgStdColors[(int)eColor ];
-                return( SetRGB( sColor.Red, sColor.Green, sColor.Blue ) );
-            } catch( IndexOutOfRangeException ) {
-                return( 0 );
-            }
-        }
-
 	} // End class
 
 	/// <summary>

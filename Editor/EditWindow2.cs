@@ -212,8 +212,6 @@ namespace Play.Edit {
         ushort        FaceCache       ( string strFilePath ); // Enter the requested face
         uint          FontCache       ( ushort usFaceID, uint uiHeightInPoints, SKPoint skResolution );
         IPgFontRender FontRendererAt  ( uint   uiFontID );
-        SKColor       ColorsStandardAt( StdUIColors eColor );
-        SKColor       GrammarTextColor( int iIndex ); // Index to the master grammar indexed colors.
     }
 
     public abstract class DataStream2<T> : DataStream<T> {
