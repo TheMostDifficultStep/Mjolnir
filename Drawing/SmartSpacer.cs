@@ -64,9 +64,9 @@ namespace Play.Rectangles {
                     break;
                 case SHOWSTATE.Inactive:
                     if( _fHovering )
-                        oFocusColor = new SKColor(255, 0xa0, 0xa0, 0xa0);
+                        oFocusColor = SKColors.Blue;
                     else
-                        oFocusColor = new SKColor(000, 0x00, 0x55, 0xE5);
+                        oFocusColor = SKColors.DarkGray;
                     break;
             }
 
