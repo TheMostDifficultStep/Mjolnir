@@ -125,9 +125,9 @@ namespace Play.FileManager {
                 new ColumnInfo( (int)DClmn.Chck, new LayoutRect() { Style=LCss.Flex, Track=33 } ),
                 new ColumnInfo( (int)DClmn.Type, new LayoutRect() { Style=LCss.Flex, Track=30 } ),       
                 new ColumnInfo( (int)DClmn.Name, new LayoutRect() { Style=LCss.None } ),
-                new ColumnInfo( (int)DClmn.Time, new LayoutRect() { Style=LCss.Flex, Track=100, Justify = Align.Right } ),
-                new ColumnInfo( (int)DClmn.Date, new LayoutRect() { Style=LCss.Flex, Track=100, Justify = Align.Right } ),
-                new ColumnInfo( (int)DClmn.Size, new LayoutRect() { Style=LCss.Flex, Track= 10, Justify = Align.Right } )
+                //new ColumnInfo( (int)DClmn.Time, new LayoutRect() { Style=LCss.Flex, Track=100, Justify = Align.Right } ),
+                //new ColumnInfo( (int)DClmn.Date, new LayoutRect() { Style=LCss.Flex, Track=100, Justify = Align.Right } ),
+                //new ColumnInfo( (int)DClmn.Size, new LayoutRect() { Style=LCss.Flex, Track= 10, Justify = Align.Right } )
             };
 
             // TODO: If you're missing a data column it won't show the dir.
