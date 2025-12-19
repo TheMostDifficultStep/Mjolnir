@@ -913,6 +913,7 @@ namespace Mjolnir {
                     // Loads the documents AND the saved views/positions in main window.
 					_oDocSite_Session.Load( rgArgs[iPvs] );
 				}
+                MainWindow.SetFocusAtCenter();
 			} catch( Exception oEx ) {
 				if( rgErrors.IsUnhandled( oEx ) )
 					throw;

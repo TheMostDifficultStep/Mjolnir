@@ -2277,6 +2277,8 @@ namespace Mjolnir {
         public void SetFocusAtCenter() {
             if( _oSelectedWinSite != null ) {
                 _oSelectedWinSite.SetFocus();
+            } else {
+                Focus();
             }
         }
 
