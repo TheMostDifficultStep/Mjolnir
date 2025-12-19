@@ -1,5 +1,3 @@
-#define foo
-
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -41,11 +39,7 @@ namespace Mjolnir {
     /// The form where all the other window's live for the Retro (normal) desktop case.
     /// </summary>
     public partial class MainWin :
-        #if foo
         SKControl,
-        #else
-        Form,
-        #endif
 		IPgParent,
         IPgLoad<XmlElement>,
         IPgSave<XmlDocumentFragment>,
@@ -105,7 +99,7 @@ namespace Mjolnir {
         /// more carefully. But probably an issue if I ever attempt to tackle
         /// windowless controls.
         /// </summery>
-        #if foo
+        /// <remarks>Remove this if you ever go back to a Form based main win.</remarks>
         protected override CreateParams CreateParams { 
             get{ CreateParams oFoo = base.CreateParams;
                 oFoo.Style = 
@@ -120,6 +114,7 @@ namespace Mjolnir {
                 return oFoo; } 
         }
 
+        /// <remarks>Remove this if you ever go back to a Form based main win.</remarks>
         protected override void WndProc(ref Message m) {
             if( m.Msg == WM_CLOSE ) {
                 WinHandleDestroyed?.Invoke(this, EventArgs.Empty);
@@ -131,7 +126,6 @@ namespace Mjolnir {
             base.WndProc(ref m);
         }
 
-        #endif
         /// <summary>
         /// New ViewSite implementation for sub views of this window that are not part
         /// of the main document system. This is for degenerate tools of the main window.
