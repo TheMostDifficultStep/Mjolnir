@@ -954,6 +954,12 @@ namespace Mjolnir {
             Document.LogError( oSite, strCatagory, strDetails, fShow );
         }
 
+        protected override void OnGotFocus(EventArgs e) {
+            if( _oSelectedWinSite is not null ) {
+                _oSelectedWinSite.SetFocus();
+            }
+        }
+
         protected virtual void OnFormClosing(FormClosingEventArgs e) {
             _fIsClosing = true;
 
@@ -2064,6 +2070,7 @@ namespace Mjolnir {
             }
 
             SessionDirtySet( true );
+            Invalidate     ();
         }
 
         static int iViewSelectedCount = 0;

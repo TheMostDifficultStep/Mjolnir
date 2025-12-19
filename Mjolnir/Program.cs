@@ -972,12 +972,14 @@ namespace Mjolnir {
                         string strExtn = xmlDoc.GetAttribute( "extn" );
                         string strPath = xmlDoc.InnerText;
 
-                        if( !string.IsNullOrEmpty( strExtn ) ) {
+                        // If path only then try adding the persisted extn
+                        // so the system can figure out what document to load.
+                        if( string.IsNullOrEmpty( Path.GetExtension(strPath) ) ) {
                             strPath += strExtn;
                         }
 
-					    // BUG: Need to add some code to validate Doc ID.
-					    IDocSlot oDocSite = DocumentCreate( strPath, iDocID );
+                        // BUG: Need to add some code to validate Doc ID.
+                        IDocSlot oDocSite = DocumentCreate( strPath, iDocID );
 
 					    // If oDocSite is null, I should create a place holder document that you can use
 					    // to edit the link or try again some time.

@@ -6,6 +6,7 @@ using System.Xml;
 using System.Xml.XPath;
 using System.Runtime.InteropServices;
 using System.Collections.Generic;
+using System.Collections;
 
 using SkiaSharp;
 
@@ -18,7 +19,6 @@ using Play.Parse.Impl;
 using Play.Parse;
 using Play.Integration;
 using Play.ImageViewer;
-using System.Collections;
 
 namespace Play.MusicWalker {
 
@@ -458,6 +458,7 @@ namespace Play.MusicWalker {
             base.OnGotFocus( e );
 
             _oViewEvents.NotifyFocused( true );
+			ViewLibrary.Focus();
 
             this.Invalidate();
         }
