@@ -366,15 +366,8 @@ namespace Mjolnir {
             string       strAsmName   = assemblyName.Name;
             string       strFullName  = assemblyName.Name + "." + strResource;
 
-            // This one is only used in the Gdi+ case.
-            LayoutGdiBitmap oViewIconGDI = new LayoutGdiBitmap( oAsm, strFullName ) 
-                                { Units  = LayoutRect.CSS.Flex, 
-                                  Hidden = false, 
-                                  Border = new Size( 0, 0 ) };
-
-            _oDocIcon = new( new HerderSlot( oMainWin ) );
-            _oDocIcon.LoadResource( oAsm, assemblyName.Name + "." + strResource );
-
+            _oDocIcon   = new( new HerderSlot( oMainWin ) );
+            _oDocIcon  .LoadResource( oAsm, assemblyName.Name + "." + strResource );
             _oDocCloser = new( new HerderSlot( oMainWin ) );
             _oDocCloser.LoadResource( oAsm, assemblyName.Name + ".Content.icons8-close-window-94-2.png" );
 
@@ -386,7 +379,7 @@ namespace Mjolnir {
                                             { Units = LayoutRect.CSS.None, Hidden = false };
             LayoutSKBitmap   oViewKill  = new LayoutSKBitmap( _oDocCloser ) 
                                             { Units = LayoutRect.CSS.Flex, Hidden = true,
-                                              Border = new Size( (int)Spacing, (int)Spacing ) };
+                                              Border = new Size( 15, 15 ) };
 
             // When this horizontal... Implemented for SKIA 
             _rgLayoutBar.Add( oViewIcon  ); // oViewIcon / oViewIconGDI
