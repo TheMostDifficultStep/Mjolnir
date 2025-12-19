@@ -1978,10 +1978,6 @@ namespace Mjolnir {
         public SKColor GrammarTextColor( int i ) {
             return _rgGrammarColors[i]._sColor;
         }
-
-        [Obsolete]private static UInt32 SetRGB(byte r, byte g, byte b) {
-            return ( (UInt32)( r | ( (UInt16)g << 8 ) ) | ( ( (UInt32)b << 16 ) ) );
-        }
 	} // End class
 
 	/// <summary>

@@ -13,10 +13,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="SmartHerder.cs" />
-  </ItemGroup>
-
-  <ItemGroup>
     <None Remove="Content\bbc-basic.bnf" />
     <None Remove="Content\config.phree" />
     <None Remove="Content\directory.bnf" />
@@ -47,10 +43,6 @@
     <None Remove="Content\linebreaker.bnf" />
     <None Remove="Content\m3u.bnf" />
     <None Remove="Content\text2.bnf" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Content Include="SmartHerder.cs" />
   </ItemGroup>
 
   <ItemGroup>
