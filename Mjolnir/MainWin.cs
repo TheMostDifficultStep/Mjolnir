@@ -51,8 +51,8 @@ namespace Mjolnir {
 		public SolidBrush     ToolsBrushActive { get; } = new SolidBrush( Color.FromArgb( 255, 112, 165, 234 ) ) ?? throw new InvalidOperationException("Main Window could not create tools color brush."); 
         public IPgStandardUI2 StdUI { get; }
 
-        readonly SmartGrab _rcFrame = new SmartGrab( new SmartRect( LOCUS.UPPERLEFT, 50, 50, 300, 300 ),  8, true, SCALAR.ALL );
-        readonly int       _iMargin = 5;  
+        const int          _iMargin = 8;
+        readonly SmartGrab _rcFrame = new SmartGrab( new SmartRect( LOCUS.UPPERLEFT, 50, 50, 300, 300 ), _iMargin, true, SCALAR.ALL );
 
         readonly Dictionary<SideIdentify, SideRect> _rgSideInfo = new Dictionary<SideIdentify, SideRect>(5);
 
@@ -563,7 +563,7 @@ namespace Mjolnir {
                             if( int.TryParse( xmlMargin.GetAttribute( strSide ), out int iValue ) ) {
                                 SideStuff sStuff  = _rgDim[strSide];
 							    _rgSideInfo.Add(eSide, new SideRect( sStuff.eTrack ) { 
-                                    Spacing  = 5,
+                                    Spacing  = _iMargin,
                                     SideInit = sStuff.iInit, // size when opened for the first time.
                                     Track    = (uint)iValue,
                                     Layout   = LayoutRect.CSS.Pixels
