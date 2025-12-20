@@ -51,8 +51,7 @@ namespace Mjolnir {
 		public SolidBrush     ToolsBrushActive { get; } = new SolidBrush( Color.FromArgb( 255, 112, 165, 234 ) ) ?? throw new InvalidOperationException("Main Window could not create tools color brush."); 
         public IPgStandardUI2 StdUI { get; }
 
-        const int          _iMargin = 8;
-        readonly SmartGrab _rcFrame = new SmartGrab( new SmartRect( LOCUS.UPPERLEFT, 50, 50, 300, 300 ), _iMargin, true, SCALAR.ALL );
+        readonly SmartGrab _rcFrame;
 
         readonly Dictionary<SideIdentify, SideRect> _rgSideInfo = new Dictionary<SideIdentify, SideRect>(5);
 
@@ -165,6 +164,9 @@ namespace Mjolnir {
             StdUI = Services as IPgStandardUI2 ?? throw new ArgumentException( "Parent view must provide IPgStandardUI service" );
 
             // This could be in the initialize/initnew() steps, but it's nice to have
+            _rcFrame = new SmartGrab( new SmartRect( LOCUS.UPPERLEFT, 50, 50, 300, 300 ), 
+                                                     (int)StdUI.Space, true, SCALAR.ALL );
+
             // these as readonly variables. I'll leave it for now.
             _oLayoutPrimary = new LayoutStackVertical() { Spacing = 5 };
             // This one probably won't work anymore. And we'll certainly lose all the
@@ -563,7 +565,7 @@ namespace Mjolnir {
                             if( int.TryParse( xmlMargin.GetAttribute( strSide ), out int iValue ) ) {
                                 SideStuff sStuff  = _rgDim[strSide];
 							    _rgSideInfo.Add(eSide, new SideRect( sStuff.eTrack ) { 
-                                    Spacing  = _iMargin,
+                                    Spacing  = StdUI.Space,
                                     SideInit = sStuff.iInit, // size when opened for the first time.
                                     Track    = (uint)iValue,
                                     Layout   = LayoutRect.CSS.Pixels

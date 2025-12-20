@@ -556,8 +556,9 @@ namespace Play.Interfaces.Embedding {
 	}
 
 	public interface IPgStandardUI {
-        SKColor       ColorsStandardAt( StdUIColors eColor );
-        SKColor       GrammarTextColor( int iIndex ); // Index to the master grammar indexed colors.
+        uint     Space { get; }
+        SKColor  ColorsStandardAt( StdUIColors eColor );
+        SKColor  GrammarTextColor( int iIndex ); // Index to the master grammar indexed colors.
 	}
 
     public interface IPgViewNotify  {
