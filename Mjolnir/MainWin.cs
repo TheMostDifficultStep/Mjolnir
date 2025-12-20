@@ -2070,6 +2070,7 @@ namespace Mjolnir {
             }
 
             SessionDirtySet( true );
+            OnSizeChanged  ( EventArgs.Empty );
             Invalidate     ();
         }
 
