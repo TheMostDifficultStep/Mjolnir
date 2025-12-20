@@ -1650,25 +1650,29 @@ namespace Mjolnir {
 
         protected override void OnVisibleChanged(EventArgs e) {
             base.OnVisibleChanged(e);
-            if( Visible == true )
+            if( Visible == true ) {
                 LayoutFrame();
+            }
         }
 
-
-    /// <seealso cref="OnResize">
+        /// <summary>Basically OnSizeChanged responds to changes on the 
+        /// Size property. Which sends OnResize events. But OnResize()
+        /// happens only in a smaller set of circumstances. As I am
+        /// NOT really a FORM anylonger, OnResize is probably fine,
+        /// but I'll leave it with OnSizeChanged as this is what has
+        /// been working up to now. This might change if I make my own
+        /// Control / SKControl type object.</summary>
+        /// <remarks>Note also, CS_HSREDRAW and such determine if the
+        /// window gets invalidated, but I force the invalidate anyway.
+        /// </remarks>
+        /// <seealso cref="OnResize">
+        /// <seealso cref="OnSizeChanged"/>
         protected override void OnSizeChanged(EventArgs e) {
             base.OnSizeChanged(e);
 
 			// BUG: This exposes the issue of what to do when the window gets too small.
 			//      Currently the inside layou starts setting things negative. Evil.
-			//if( WindowState != FormWindowState.Minimized )
-				LayoutFrame();
-
-			// Note: I don't think I want to dirty the session just b/c of a size change.
-			//if( !Document.SessionDirty ) {
-			//	Document.SessionDirtySet();
-			//	SetTitle();
-			//}
+			LayoutFrame();
         }
 
 		protected override void OnLocationChanged(EventArgs e) {

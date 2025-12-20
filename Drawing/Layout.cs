@@ -831,9 +831,12 @@ namespace Play.Rectangles {
 
         /// <summery>Try to figure out how many thumbs will fit on all rows if the
 		/// objects are all the same width, given by the ItemSize member.</summery>
+		/// <remarks>Do not use the Left and Right of our layout b/c we call this
+		/// function in TrackDesired and need to know what our rail WILL BE and
+		/// not what it currently is!</remarks>
 		/// <seealso cref="ItemSize"/>
-		protected int FindDimensions() {
-			int iRight  = Left;
+		protected int FindDimensions( int iRailLeft, int iRailRight ) {
+			int iRight  = iRailLeft;
 			int iHeight = 0;
 			int iCount  = 0;
 
@@ -847,7 +850,7 @@ namespace Play.Rectangles {
                 iRun += Padding.Right;
 
 				// Allow the first one in all cases.
-                if( iRun > Right && iCount > 0 ) 
+                if( iRun > iRailRight && iCount > 0 ) 
                     break;
 
 				_rgColumns.Add( iRight + Padding.Left );
@@ -859,7 +862,7 @@ namespace Play.Rectangles {
             };
 
             // This this makes the columns spring loaded.
-            float fDiff = Right - iRight;
+            float fDiff = iRailRight - iRight;
 			if( fDiff > 0 ) {
 				int iIncr = (int)(fDiff/(_rgColumns.Count+1));
 				int iAcum = iIncr;
@@ -876,7 +879,7 @@ namespace Play.Rectangles {
 		public override bool LayoutChildren() {
 			ItemSizeCalculate();
 
-			int iHeight = FindDimensions();
+			int iHeight = FindDimensions( Left, Right );
 
             for( int i = 0, iTop = Top + Padding.Top; i < Count;  ) {
                 foreach( int iStart in _rgColumns ) {
@@ -892,8 +895,8 @@ namespace Play.Rectangles {
 			return true;
 		}
 
-        public override uint TrackDesired(TRACK eParentAxis, int uiRail) {
-			int    iHeight = FindDimensions();
+        public override uint TrackDesired(TRACK eParentAxis, int iRail) {
+			int    iHeight = FindDimensions( 0, iRail );
 			double dblRows = Math.Ceiling( Count / (double)_rgColumns.Count );
 
 			uint uiSpace = dblRows > 1.0 ? (uint)(dblRows - 1) * Spacing : 0;

@@ -1,12 +1,13 @@
-﻿using System;
+﻿//using System.Web.MimeMapping;  BCL in .NET Framework 4.5. Need to find this.
+
+using Play.Interfaces.Embedding;
+using Play.Parse;
+using SkiaSharp;
+using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
-//using System.Web.MimeMapping;  BCL in .NET Framework 4.5. Need to find this.
-
-using Play.Interfaces.Embedding;
-using Play.Parse;
 
 namespace Play.Edit {
 	[Obsolete( "You can use linq now." )]
@@ -204,6 +205,10 @@ namespace Play.Edit {
         [DllImport("user32.dll", EntryPoint = "ScreenToClient")]
         [return: MarshalAs(UnmanagedType.Bool)]
         public static extern bool ScreenToClient([In] IntPtr hWnd, ref NativePoint lpPoint);
+
+        [DllImport("user32.dll", EntryPoint = "GetClientRect")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool GetClientRect([In] IntPtr hWnd, ref NativeRect lpRect );
     }
 
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
