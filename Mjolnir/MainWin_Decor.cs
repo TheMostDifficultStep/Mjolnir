@@ -70,7 +70,7 @@ namespace Mjolnir {
 				throw new ArgumentNullException();
 
 			if( Count > 0 ) {
-				SmartBinder oSpacer = new SmartSpacer( Direction, Last, oNext, (int)Spacing );
+				SmartBinder oSpacer = new SmartSpacer( Direction, Last, oNext, (int)Spacing, (int)Spacing );
 
 				_rgSpacers.Add( oSpacer );
 				base      .Add( oSpacer );

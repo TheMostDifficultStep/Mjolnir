@@ -135,9 +135,20 @@ namespace Play.Rectangles {
         SmartRect _oTwo;
         SCALAR    _eSideTwo;
 
-        public SmartSpacer( TRACK eDir, SmartRect oOne, SmartRect oTwo, int iPixelTrack ) :
-			base( iPixelTrack )
+        readonly int _iSpacing;
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="eDir"></param>
+        /// <param name="iTrack">This is the narrow side of the Spacer.</param>
+        /// <param name="iSpacing">This is the distance from the edge of the spacer,
+        /// to the next rectangle being moved.</param>
+        public SmartSpacer( TRACK eDir, SmartRect oOne, SmartRect oTwo, int iTrack, int iSpacing ) :
+			base( iTrack )
         {
+            _iSpacing = iSpacing; 
+
             _oOne = oOne;
             _oTwo = oTwo;
 
@@ -149,11 +160,13 @@ namespace Play.Rectangles {
         /// When we are resized/moved we need to move our neighbors too! Be sure
 		/// to recalculate the track percentages for moved objects.
         /// </summary>
+        /// <remarks>Technically I should be using the Spacer property not really
+        /// the track since the two might not be the same...</remarks>
         protected override void OnSize() {
             base.OnSize();
 
             _oOne.SetScalar(SET.STRETCH, _eSideOne, this.GetScalar(_eSideTwo) );
-            _oTwo.SetScalar(SET.STRETCH, _eSideTwo, this.GetScalar(_eSideOne) );
+            _oTwo.SetScalar(SET.STRETCH, _eSideTwo, this.GetScalar(_eSideOne) + _iSpacing );
         }
     } // End SmartGlue
 
