@@ -24,30 +24,33 @@ namespace Play.Rectangles {
     public class SmartBinder : 
         LayoutRect
     {
-        protected bool _fHovering  = false;
-
+        protected bool               _fHovering = false;
+		protected readonly SmartRect _rcMiddle  = new SmartRect();
         public int       Orientation{ get; set; } = 0;
 		public SHOWSTATE Show       { get; set; } = SHOWSTATE.Inactive;
 
-		public SmartBinder( int iPixelExtent ) : base( CSS.Pixels, (uint)iPixelExtent, 1 ) {
+		public SmartBinder( int iTrack ) : base( CSS.Pixels, (uint)iTrack, 1 ) {
+            _rcMiddle.Width  = (int)Track;
+            _rcMiddle.Height = (int)Track;
 		}
 
+        /// <seealso cref="SmartGrab.BarColor"
         protected SKColor BarColor {
             get {
                 SKColor sFocusColor = SKColors.Transparent;
 
                 switch( Show ) {
                     case SHOWSTATE.Focused:
-                        sFocusColor = new SKColor(255, 0x00, 0x55, 0xE5);
+                        sFocusColor = SystemColors.Highlight.ToSKColor();
                         break;
                     case SHOWSTATE.Active:
-                        sFocusColor = new SKColor(125, 0x00, 0x55, 0xE5);
+                        sFocusColor = new SKColor(255, 0xa0, 0xa0, 0xa0);
                         break;
                     case SHOWSTATE.Inactive:
                         if( _fHovering )
-                            sFocusColor = SKColors.Blue;
+                            sFocusColor = SKColors.LightBlue; 
                         else
-                            sFocusColor = SKColors.DarkGray;
+                            sFocusColor = SKColors.LightGray; 
                         break;
                 }
                 return sFocusColor;
@@ -66,6 +69,15 @@ namespace Play.Rectangles {
             }
         }
 
+        protected override void OnSize() {
+            SKPointI l_pntCenter = GetPoint(LOCUS.CENTER);
+
+            l_pntCenter.X -= (int)Track >> 1;
+            l_pntCenter.Y -= (int)Track >> 1;
+
+            _rcMiddle.SetPoint (SET.RIGID, LOCUS.UPPERLEFT, l_pntCenter.X, l_pntCenter.Y);
+        }
+
         /// <summary>
         /// Here we see a good example of sending the Standard UI interface to this object!!
         /// </summary>
@@ -75,10 +87,16 @@ namespace Play.Rectangles {
 
             using SKPaint skPaint = new SKPaint();
 
-            skPaint .Color = BarColor;
-            skPaint .Style = SKPaintStyle.Fill;
+            skPaint.Color = BarColor;
+            skPaint.Style = SKPaintStyle.Fill;
 
             skCanvas.DrawRect( this.SKRect, skPaint );
+
+            if( _fHovering ) {
+                skPaint.Color = SKColors.White;
+
+                skCanvas.DrawRect( _rcMiddle.SKRect, skPaint );
+            }
         }
         #region ISmartDragGuest Members
 

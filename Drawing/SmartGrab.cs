@@ -39,15 +39,15 @@ namespace Play.Rectangles
         SmartRect,
         IEnumerable<GrabHandle>
     {
-        protected SmartRect[] m_rgoHandles   = new SmartRect[12];
+        protected SmartRect[] _rgoHandles   = new SmartRect[12];
         protected int         m_iBorderWidth = 6;
         protected int         m_iHalfWidth   = 3;
-        protected bool        m_fHovering    = false;
-        protected SmartRect   m_rctGuest     = null;
+        protected bool        _fHovering     = false;
+        protected SmartRect   _rctGuest     = null;
       //protected RectSize    m_oMyHandler   = null;
         protected SmartRect   m_rcOuter      = new SmartRect();
         protected bool        m_fLiveDrag    = true;
-        protected SHOWSTATE   m_eShowState   = SHOWSTATE.Inactive;
+        protected SHOWSTATE   _eShowState    = SHOWSTATE.Inactive;
         protected bool[]      m_frgMoveable  = new bool[4];
         protected SCALAR      m_eMoveable    = 0;
 
@@ -69,7 +69,7 @@ namespace Play.Rectangles
         public SmartGrab(SmartRect p_rctGuest, int p_iBorder, bool fLiveDrag, SCALAR eMoveable ) :
             base(p_rctGuest) // copy coords to inner rect of ourselves.
         {
-			m_rctGuest = p_rctGuest ?? throw new ArgumentNullException("The guest must not be null");
+			_rctGuest = p_rctGuest ?? throw new ArgumentNullException("The guest must not be null");
 
             if (p_iBorder < 2)
                 throw new ArgumentException("Border width must be greater than one.");
@@ -89,18 +89,18 @@ namespace Play.Rectangles
           //m_rctGuest.SizeEvent += m_oMyHandler;
 
             // Create all the smart rect's
-            for (int i = 0; i < m_rgoHandles.Length; ++i)
-                m_rgoHandles[i] = new SmartRect();
+            for (int i = 0; i < _rgoHandles.Length; ++i)
+                _rgoHandles[i] = new SmartRect();
 
 			for( int i = 0; i < 4; ++i ) {
-				_rgHandlesBorder[i] = m_rgoHandles[i];
-				_rgHandlesMiddle[i] = m_rgoHandles[i+4];
-				_rgHandlesCorner[i] = m_rgoHandles[i+8];
+				_rgHandlesBorder[i] = _rgoHandles[i];
+				_rgHandlesMiddle[i] = _rgoHandles[i+4];
+				_rgHandlesCorner[i] = _rgoHandles[i+8];
 			}
 
             // The rest are initialized with the border width and height.
-            for (int i = 4; i < m_rgoHandles.Length; ++i)
-                m_rgoHandles[i].SetPoint(SET.RIGID, LOCUS.LOWERRIGHT | LOCUS.EXTENT, p_iBorder, p_iBorder);
+            for (int i = 4; i < _rgoHandles.Length; ++i)
+                _rgoHandles[i].SetPoint(SET.RIGID, LOCUS.LOWERRIGHT | LOCUS.EXTENT, p_iBorder, p_iBorder);
 
             m_iBorderWidth = p_iBorder;
             m_iHalfWidth   = p_iBorder >> 1;
@@ -120,17 +120,17 @@ namespace Play.Rectangles
         public SHOWSTATE Show
         {
             get {
-                return (m_eShowState);
+                return _eShowState;
             }
 
             set {
-                m_eShowState = value;
+                _eShowState = value;
             }
         }
 
         protected SmartRect[] Handles {
             get {
-                return( m_rgoHandles );
+                return _rgoHandles;
             }
         }
 
@@ -196,25 +196,25 @@ namespace Play.Rectangles
 
             UpdateHandles();
 
-            if ( m_fLiveDrag && m_rctGuest != null)
-                m_rctGuest.Copy = this;
+            if ( m_fLiveDrag && _rctGuest != null)
+                _rctGuest.Copy = this;
         }
 
         public SmartRect Guest
         {
-            get { return (m_rctGuest); }
+            get { return (_rctGuest); }
 
             set
             {
 				// If we have an old event sink, remove it.
 				//m_rctGuest.SizeEvent -= m_oMyHandler;
 
-                m_rctGuest = value ?? throw new ArgumentNullException("The guest must not be null"); // Take a pointer to the Guest.
+                _rctGuest = value ?? throw new ArgumentNullException("The guest must not be null"); // Take a pointer to the Guest.
 
                 // Set our handler onto our new guest to listen for size events.
                 //m_rctGuest.SizeEvent += m_oMyHandler;
 
-                Copy = m_rctGuest;  // Copy the coordinates of it to ourselves.
+                Copy = _rctGuest;  // Copy the coordinates of it to ourselves.
                 UpdateHandles();
             }
         }
@@ -313,16 +313,16 @@ namespace Play.Rectangles
 		}
 
         public void HoverStop() {
-            m_fHovering = false;
+            _fHovering = false;
         }
 
         public bool HoverChanged(int p_iX, int p_iY)
         {
             bool l_fIsInside = IsInside(p_iX, p_iY);
-            bool l_fChanged  = l_fIsInside != m_fHovering;
+            bool l_fChanged  = l_fIsInside != _fHovering;
 
             if (l_fChanged) {
-                m_fHovering = l_fIsInside;
+                _fHovering = l_fIsInside;
             }
 
             return (l_fChanged);
@@ -331,7 +331,7 @@ namespace Play.Rectangles
         public bool Hovering
         {
             get {
-                return (m_fHovering);
+                return (_fHovering);
             }
         }
 
@@ -342,6 +342,7 @@ namespace Play.Rectangles
             }
         }
 
+        /// <seealso cref="SmartBinder.BarColor"
         protected SKColor BarColor {
             get {
                 SKColor sFocusColor = SKColors.Transparent;
@@ -354,7 +355,7 @@ namespace Play.Rectangles
                         sFocusColor = new SKColor(255, 0xa0, 0xa0, 0xa0);
                         break;
                     case SHOWSTATE.Inactive:
-                        if( m_fHovering )
+                        if( _fHovering )
                             sFocusColor = SKColors.LightBlue; // Blue
                         else
                             sFocusColor = SKColors.LightGray; // DarkGray
@@ -382,7 +383,7 @@ namespace Play.Rectangles
 
                 // The main color of the border rect
                 for (int i = 0; i < 4; ++i) {
-                    Rectangle oRect = m_rgoHandles[i].Rect;
+                    Rectangle oRect = _rgoHandles[i].Rect;
 
                     oGraphics.FillRectangle(oEdgeBrush, oRect);
                 }
@@ -423,7 +424,7 @@ namespace Play.Rectangles
 
                 // The main color of the border rect
                 for (int i = 0; i < 4; ++i) {
-                    oCanvas.DrawRect( m_rgoHandles[i].SKRect, oPaint );
+                    oCanvas.DrawRect( _rgoHandles[i].SKRect, oPaint );
                 }
 
                 oPaint.Color = SKColors.White;
