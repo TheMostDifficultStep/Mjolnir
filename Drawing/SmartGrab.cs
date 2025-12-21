@@ -1,12 +1,12 @@
 using System;
 using System.Drawing;
 using System.Drawing.Drawing2D;
+using System.Collections.Generic;
+using System.Collections;
 
 using SkiaSharp;
 
 using Play.Interfaces.Embedding;
-using System.Collections.Generic;
-using System.Collections;
 
 namespace Play.Rectangles
 {
@@ -342,28 +342,27 @@ namespace Play.Rectangles
             }
         }
 
-		[Obsolete]public Color FocusColor {
-			get {
-				Color oFocusColor = Color.Empty;
+        protected SKColor BarColor {
+            get {
+                SKColor sFocusColor = SKColors.Transparent;
 
-                switch( m_eShowState ) {
+                switch( Show ) {
                     case SHOWSTATE.Focused:
-                        oFocusColor = SystemColors.Highlight;
+                        sFocusColor = SystemColors.Highlight.ToSKColor();
                         break;
                     case SHOWSTATE.Active:
-                        oFocusColor = Color.FromArgb( 255, 0xa0, 0xa0, 0xa0 );
+                        sFocusColor = new SKColor(255, 0xa0, 0xa0, 0xa0);
                         break;
                     case SHOWSTATE.Inactive:
                         if( m_fHovering )
-                            oFocusColor = Color.FromArgb( 255, 0xa0, 0xa0, 0xa0 );
+                            sFocusColor = SKColors.LightBlue; // Blue
                         else
-                            oFocusColor = Color.FromArgb(255, 211, 211, 211); // Color.FromArgb( 000, 0x00, 0x55, 0xE5);
+                            sFocusColor = SKColors.LightGray; // DarkGray
                         break;
                 }
-
-				return( oFocusColor );
-			}
-		}
+                return sFocusColor;
+            }
+        }
 
         [Obsolete]public override void Paint(Graphics oGraphics) {
             Brush oEdgeBrush   = null;
@@ -373,8 +372,13 @@ namespace Play.Rectangles
                 return;
 
             try {
-                oCornerBrush = new SolidBrush(Color.White);
-                oEdgeBrush   = new SolidBrush(FocusColor);
+                SKColor skEdgeColor = BarColor;
+
+                oCornerBrush = new SolidBrush( Color.White );
+                oEdgeBrush   = new SolidBrush( Color.FromArgb( skEdgeColor.Alpha,
+                                                               skEdgeColor.Red, 
+                                                               skEdgeColor.Green, 
+                                                               skEdgeColor.Blue ));
 
                 // The main color of the border rect
                 for (int i = 0; i < 4; ++i) {
@@ -414,8 +418,7 @@ namespace Play.Rectangles
                 return;
 
             try {
-                Color   oMain  = FocusColor;
-                SKPaint oPaint = new SKPaint() { Color = new SKColor( oMain.R, oMain.G, oMain.B ), 
+                SKPaint oPaint = new SKPaint() { Color = BarColor, 
                                                  Style = SKPaintStyle.Fill };
 
                 // The main color of the border rect
@@ -551,7 +554,7 @@ namespace Play.Rectangles
                 return;
 
             try {
-                using( Brush oCornerBrush = new SolidBrush(FocusColor) ) {
+                using( Brush oCornerBrush = new SolidBrush( BarColor.ToGdiColor() ) ) {
 					using( Brush oBrush = new HatchBrush( HatchStyle.DiagonalCross, 
 						                       foreColor:Color.Black, 
 											   backColor:Color.White ) ) {

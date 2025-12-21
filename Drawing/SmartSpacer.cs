@@ -5,6 +5,21 @@ using Play.Interfaces.Embedding;
 using SkiaSharp;
 
 namespace Play.Rectangles {
+    public static class ColorExt {
+        public static Color ToGdiColor( this SKColor skColor ) {
+            return Color.FromArgb( skColor.Alpha,
+                                   skColor.Red, 
+                                   skColor.Blue, 
+                                   skColor.Green );
+        }
+         public static SKColor ToSKColor( this Color gdiColor ) {
+            return new SKColor( gdiColor.R,
+                                gdiColor.G,
+                                gdiColor.B, 
+                                gdiColor.A );
+        }
+   }
+
 	/// <remarks>Note that Binders are never hidden!! ^_^;;</remarks>
     public class SmartBinder : 
         LayoutRect
@@ -17,27 +32,32 @@ namespace Play.Rectangles {
 		public SmartBinder( int iPixelExtent ) : base( CSS.Pixels, (uint)iPixelExtent, 1 ) {
 		}
 
+        protected SKColor BarColor {
+            get {
+                SKColor sFocusColor = SKColors.Transparent;
+
+                switch( Show ) {
+                    case SHOWSTATE.Focused:
+                        sFocusColor = new SKColor(255, 0x00, 0x55, 0xE5);
+                        break;
+                    case SHOWSTATE.Active:
+                        sFocusColor = new SKColor(125, 0x00, 0x55, 0xE5);
+                        break;
+                    case SHOWSTATE.Inactive:
+                        if( _fHovering )
+                            sFocusColor = SKColors.Blue;
+                        else
+                            sFocusColor = SKColors.DarkGray;
+                        break;
+                }
+                return sFocusColor;
+            }
+        }
+
         [Obsolete]public override void Paint( Graphics p_oGraphics ) {
             base.Paint(p_oGraphics);
 
-            Color oFocusColor = Color.Empty;
-
-            switch( Show ) {
-                case SHOWSTATE.Focused:
-                    oFocusColor = Color.FromArgb(255, 0x00, 0x55, 0xE5);
-                    break;
-                case SHOWSTATE.Active:
-                    oFocusColor = Color.FromArgb(125, 0x00, 0x55, 0xE5);
-                    break;
-                case SHOWSTATE.Inactive:
-                    if( _fHovering )
-                        oFocusColor = Color.FromArgb(255, 0xa0, 0xa0, 0xa0);
-                    else
-                        oFocusColor = Color.FromArgb(000, 0x00, 0x55, 0xE5);
-                    break;
-            }
-
-            using( Brush oFocusBrush = new SolidBrush(oFocusColor )) {
+            using( Brush oFocusBrush = new SolidBrush( BarColor.ToGdiColor() )) {
                 try {
                     p_oGraphics.FillRectangle(oFocusBrush, this.Rect );
                 } catch( OverflowException ) {
@@ -53,26 +73,11 @@ namespace Play.Rectangles {
         public override void Paint( SKCanvas skCanvas ) {
             base.Paint(skCanvas);
 
-            SKColor oFocusColor = SKColors.Transparent;
-
-            switch( Show ) {
-                case SHOWSTATE.Focused:
-                    oFocusColor = new SKColor(255, 0x00, 0x55, 0xE5);
-                    break;
-                case SHOWSTATE.Active:
-                    oFocusColor = new SKColor(125, 0x00, 0x55, 0xE5);
-                    break;
-                case SHOWSTATE.Inactive:
-                    if( _fHovering )
-                        oFocusColor = SKColors.Blue;
-                    else
-                        oFocusColor = SKColors.DarkGray;
-                    break;
-            }
-
             using SKPaint skPaint = new SKPaint();
-            skPaint .Color = oFocusColor;
+
+            skPaint .Color = BarColor;
             skPaint .Style = SKPaintStyle.Fill;
+
             skCanvas.DrawRect( this.SKRect, skPaint );
         }
         #region ISmartDragGuest Members
