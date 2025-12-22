@@ -1975,7 +1975,7 @@ namespace Mjolnir {
         /// services interfaces to be overridable between the program and the mainwin.
         /// b/c if we ever creat different top level windows for different clients.
         /// </summary>
-        public uint Space => 8;
+        public uint Space => 6;
 
         /// <summary>
         /// Return the color from index to the merged grammar color table.
