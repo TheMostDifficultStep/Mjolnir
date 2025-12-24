@@ -269,7 +269,7 @@ namespace Play.Drawing {
             pd.Print(); // Sends to default printer
         }
 
-        private void PrintPageHandler(object sender, PrintPageEventArgs e) {
+        protected virtual void PrintPageHandler(object sender, PrintPageEventArgs e) {
             string text = "Hello, Printing World!";
             Font font = new Font("Arial", 12);
 

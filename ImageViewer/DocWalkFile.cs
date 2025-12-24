@@ -5,6 +5,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Drawing;
 using System.Drawing.Imaging;
+using System.Drawing.Printing;
 using System.Windows.Forms;
 using System.Reflection;
 using System.Linq;
@@ -395,6 +396,12 @@ namespace Play.ImageViewer {
 				return false;
 			}
 		}
+
+        protected override void PrintPageHandler(object sender, PrintPageEventArgs e) {
+            using Bitmap oCopy = Bitmap.ToBitmap();
+
+            e.Graphics.DrawImage( oCopy, 0, 0 );
+        }
 	}
  
     public delegate void ImagesUpdatedEvent();
