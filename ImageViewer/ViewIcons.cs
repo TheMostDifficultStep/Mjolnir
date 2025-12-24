@@ -557,7 +557,7 @@ namespace Play.ImageViewer {
                         if( rgErrors.IsUnhandled( oEx ) )
                             throw;
 
-                        if( _oDocument.ErrorBitmap == null ) {
+                        if( _oDocument.ErrorBmp == null ) {
                             LogError( "Image Icon Viewer", "Noticed that the error bitmap is not loaded.");
                         } else {
                             LayoutImage oError = new LayoutImage( _oDocument.ErrorBmp );

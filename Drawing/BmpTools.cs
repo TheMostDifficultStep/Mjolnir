@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using System.IO;
 using System.Linq;
+using System.Drawing.Printing;
 
 using SkiaSharp;
 
@@ -84,8 +85,11 @@ namespace Play.Drawing {
 	{
         protected readonly IPgBaseSite _oSiteBase;
         protected          Bitmap      _oBitmapUnknown; // An error bitmap.
-        protected          SKBitmap    _oSKBmpError;    // New error bitmap. >_<;;
+        protected          SKImage     _oSKBmpError;    // New error bitmap. >_<;;
 		protected readonly string      _strUnknownImage = @"Drawing.Content.icons8-error-48.png";
+        private            SKBitmap    _skBitmap;
+        protected          SKRectI     _skWorldDisplay;
+
 
         public static readonly Type[] _rgBmpLoadErrs = { 
 			typeof( NullReferenceException ),
@@ -148,11 +152,7 @@ namespace Play.Drawing {
             get { return _skWorldDisplay.Size; }
         }
         
-        public Bitmap    ErrorBitmap => _oBitmapUnknown; // TODO: Remove this...
-        public SKBitmap  ErrorBmp    => _oSKBmpError;
-
-        private   SKBitmap _skBitmap;
-        protected SKRectI  _skWorldDisplay;
+        public SKImage ErrorBmp => _oSKBmpError;
 
         public event ImageUpdatedEvent ImageUpdated;
 
@@ -161,7 +161,7 @@ namespace Play.Drawing {
 
             try {
 				_oBitmapUnknown = ImageResourceHelper.GetImageResource(  Assembly.GetExecutingAssembly(), _strUnknownImage );
-				_oSKBmpError    = GetSKBitmapResource(  Assembly.GetExecutingAssembly(), _strUnknownImage ) ?? throw new InvalidOperationException( "Couldn't Load Error SKBitmap" );
+				_oSKBmpError    = GetSKImageResource(  Assembly.GetExecutingAssembly(), _strUnknownImage ) ?? throw new InvalidOperationException( "Couldn't Load Error SKBitmap" );
             } catch( InvalidOperationException ) {
                 Type[] rgErrors = { typeof( InvalidOperationException ),
                                     typeof( FileNotFoundException ) };
@@ -185,6 +185,33 @@ namespace Play.Drawing {
 
 				using( Stream oStream = oAssembly.GetManifestResourceStream( strResourceName )) {
 					return SKBitmap.Decode( oStream );
+				}
+			} catch( Exception oEx ) {
+				Type[] rgErrors = { typeof( NullReferenceException ), 
+									typeof( ArgumentNullException ),
+									typeof( ArgumentException ),
+									typeof( NotImplementedException ) };
+				if( !rgErrors.Contains( oEx.GetType() ) )
+					throw;
+
+				throw new ApplicationException( "Could not retrieve given image resource : " + strResourceName );
+			}
+		}
+
+        /// <summary>
+        /// We'll pack this out to the embedding interfaces after I get it going in this project.
+        /// </summary>
+        /// <param name="oAssembly"></param>
+        /// <param name="strResourceName"></param>
+        /// <returns></returns>
+        /// <exception cref="ApplicationException" />
+		public static SKImage GetSKImageResource( Assembly oAssembly, string strResourceName ) {
+			try {
+                // Let's you peep in on all of them! ^_^
+                // string[] rgStuff = oAssembly.GetManifestResourceNames();
+
+				using( Stream oStream = oAssembly.GetManifestResourceStream( strResourceName )) {
+					return SKImage.FromEncodedData( oStream );
 				}
 			} catch( Exception oEx ) {
 				Type[] rgErrors = { typeof( NullReferenceException ), 
@@ -235,7 +262,20 @@ namespace Play.Drawing {
 
 			return SKImageResourceHelper.GetImageResource( oAsm, strRes );
 		}
-	}
+
+        public void PrintToDefault() {
+            PrintDocument pd = new PrintDocument();
+            pd.PrintPage += new PrintPageEventHandler(PrintPageHandler);
+            pd.Print(); // Sends to default printer
+        }
+
+        private void PrintPageHandler(object sender, PrintPageEventArgs e) {
+            string text = "Hello, Printing World!";
+            Font font = new Font("Arial", 12);
+
+            e.Graphics.DrawString(text, font, Brushes.Black, 100, 100);
+        }
+    }
 
 	public class SKImageResourceHelper {
 		/// <summary>

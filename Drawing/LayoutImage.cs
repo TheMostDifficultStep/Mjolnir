@@ -208,6 +208,10 @@ namespace Play.Rectangles {
         }
     }
 
+    /// <summary>
+    /// Don't confuse this with LayoutSKImage in the image viewer! >_<;;;
+    /// </summary>
+    /// <seealso cref="Play.ImageViewer.LayoutSKImage"/>
 	public class LayoutImage : LayoutImageReference, IDisposable {
 		public override SKBitmap Picture { get; }
 
@@ -216,6 +220,15 @@ namespace Play.Rectangles {
         public LayoutImage( SKBitmap oImage, CSS eLayout = CSS.None ) : base( new SKSize( oImage.Width, oImage.Height ), eLayout )
 		{
 		    Picture  = oImage ?? throw new ArgumentNullException(); // DirectoryRect doesn't have an image.
+			World.SetRect( 0, 0, (int)oImage.Width, (int)oImage.Height );
+		}
+
+        public LayoutImage( SKImage oImage, CSS eLayout = CSS.None ) : base( new SKSize( oImage.Width, oImage.Height ), eLayout )
+		{
+            if( oImage == null )
+                throw new ArgumentNullException();
+
+		    Picture  = SKBitmap.FromImage( oImage ) ?? throw new ArgumentNullException(); // DirectoryRect doesn't have an image.
 			World.SetRect( 0, 0, (int)oImage.Width, (int)oImage.Height );
 		}
 

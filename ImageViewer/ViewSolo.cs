@@ -693,6 +693,9 @@ namespace Play.ImageViewer {
 					// when it is an adornment.
                     _oDocWalker.CurrentFileDelete();
                     break;
+				case Keys.P:
+					_oDocWalker.PrintToDefault();
+					break;
 
                 default:
                     e.Handled = false;

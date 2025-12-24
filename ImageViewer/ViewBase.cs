@@ -108,14 +108,14 @@ namespace Play.ImageViewer {
         public override float Aspect => _oDocument.Aspect;
 	}
 
-	/// <remarks>
-	/// There are probably a few places I'm using this control, when I could probably use the
-	/// lighter weight LayoutImage class. And it turns out LayoutControl wraps a ImageViewSingle
-	/// nicely and might just want to go to that...
-	/// </remarks>
+    /// <remarks>
+    /// There are probably a few places I'm using this control, when I could probably use the
+    /// lighter weight LayoutImage class. And it turns out LayoutControl wraps a ImageViewSingle
+    /// nicely and might just want to go to that...
+    /// </remarks>
 	/// <seealso cref="LayoutImage"/>
-	/// <seealso cref="LayoutControl"/>
-	public class LayoutImageView : LayoutRect {
+    /// <seealso cref="LayoutControl"/>
+    public class LayoutImageView : LayoutRect {
 		ImageViewSingle _oView;
 
 		/// <summary>
@@ -289,16 +289,34 @@ namespace Play.ImageViewer {
         {
             // If we don't have a bitmap we can't do much about setting our error viewport.
             if( oImage == null )
-                return( false );
+                return false;
 
 			if( oImage.Width > Width || oImage.Height > Height ) {
 				ViewPortSizeMax( oImage, rctViewPort );
-				return( true );
+				return true;
 			}
 
             rctViewPort.SetRect( LOCUS.CENTER, Width / 2, Height / 2, oImage.Width, oImage.Height );
 
-            return( true );
+            return true ;
+		}
+        protected bool ViewPortSizeCenter( SKImage oImage, SmartRect rctViewPort ) 
+        {
+            // If we don't have a bitmap we can't do much about setting our error viewport.
+            if( oImage == null )
+                return false ;
+
+			if( oImage.Width > Width || oImage.Height > Height ) {
+				SmartRect rcBitmap = new SmartRect( 0, 0, oImage.Width, oImage.Height );
+
+				ViewPortSizeMax( rcBitmap, rctViewPort );
+
+				return true;
+			}
+
+            rctViewPort.SetRect( LOCUS.CENTER, Width / 2, Height / 2, oImage.Width, oImage.Height );
+
+            return true;
 		}
     } // end class inherits SKControl
 
@@ -434,13 +452,13 @@ namespace Play.ImageViewer {
 											 skPaint );
                     } else {
                         if (Document.ErrorBmp != null) {
-                            ViewPortSizeCenter(Document.ErrorBmp, _rctViewPort);
-                            _rctWorldPort.SetRect(LOCUS.UPPERLEFT, 0, 0,
+                            ViewPortSizeCenter( Document.ErrorBmp, _rctViewPort );
+                            _rctWorldPort.SetRect( LOCUS.UPPERLEFT, 0, 0,
                                                    Document.ErrorBmp.Width,
                                                    Document.ErrorBmp.Height);
-							skCanvas.DrawBitmap( Document.ErrorBmp,
-												 new SKRect( _rctWorldPort.Left, _rctWorldPort.Top, _rctWorldPort.Right, _rctWorldPort.Bottom ),
-												 new SKRect( _rctViewPort.Left, _rctViewPort.Top, _rctViewPort.Right, _rctViewPort.Bottom ) );
+							skCanvas.DrawImage( Document.ErrorBmp,
+												new SKRect( _rctWorldPort.Left, _rctWorldPort.Top, _rctWorldPort.Right, _rctWorldPort.Bottom ),
+												new SKRect( _rctViewPort.Left, _rctViewPort.Top, _rctViewPort.Right, _rctViewPort.Bottom ) );
                         } else {
                             LogError("Paint", "Couldn't paint error bitmap");
                         }
@@ -527,10 +545,10 @@ namespace Play.ImageViewer {
 				} else {
 					// Looks like we're hitting this when the shell shuts down.
 					if( Document.ErrorBmp != null ) {
-						ViewPortSizeCenter(Document.ErrorBitmap, _rctViewPort);
+						ViewPortSizeCenter(Document.ErrorBmp, _rctViewPort);
 						_rctWorldPort.SetRect( LOCUS.UPPERLEFT, 0, 0,
-											   Document.ErrorBitmap.Width,
-											   Document.ErrorBitmap.Height);
+											   Document.ErrorBmp.Width,
+											   Document.ErrorBmp.Height);
 					}
 				}
 			} catch( Exception oEx ) {
