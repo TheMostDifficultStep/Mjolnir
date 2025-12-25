@@ -561,6 +561,14 @@ namespace Mjolnir {
                         if( _oSelectedWinSite != null ) {
                             _oSelectedWinSite.Guest.Bounds = _rcFrame.Rect;
 						    _oSelectedWinSite.Guest.Show();
+                        } else {
+                            // No selected view (for some reason) So size 'em all!!
+						    IEnumerator<ViewSlot> oEnuSlots = ViewEnumerator();
+                            if( oEnuSlots != null ) {
+							    while( oEnuSlots.MoveNext() ) {
+                                    oEnuSlots.Current.Guest.Bounds = _rcFrame.Rect;
+                                }
+                            }
                         }
                         break;
 
