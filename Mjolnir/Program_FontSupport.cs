@@ -556,11 +556,15 @@ namespace Mjolnir {
             if( iError != 0 )
                 throw new ApplicationException( "Couldn't create new FontFace : " + iError.ToString() );
 
-            FTFace oFace = new FTFace( ipFace, strPath, _rgFace.Count );
+            try {
+                FTFace oFace = new FTFace( ipFace, strPath, _rgFace.Count );
 
-            _rgFace.Add( oFace );
+                _rgFace.Add( oFace );
 
-            return (UInt16)( oFace.ID );
+                return (UInt16)oFace.ID;
+            } catch( ArgumentNullException ) {
+                throw new ApplicationException();
+            }
         }
 
         /// <summary>
