@@ -6,7 +6,7 @@
 
 #include <iostream>
 #include <ft2build.h>
-#include <ftbitmap.h>
+#include <freetype/ftbitmap.h>
 #include <Windows.h>
 #include <WINGDI.H>
 #include <stdio.h>

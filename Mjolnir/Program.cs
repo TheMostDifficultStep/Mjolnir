@@ -232,7 +232,7 @@ namespace Mjolnir {
 
         public event UpdateAllTitlesFor EventUpdateTitles;
 
-		readonly Mpg123Factory            _oMp3Factory = new Mpg123Factory();
+		readonly Mpg123Factory            _oMp3Factory = null;//new Mpg123Factory();
         readonly Timer                    _oTimer      = new Timer();
         readonly List <IPgRoundRobinWork> _rgWorkers   = new List<IPgRoundRobinWork>();
 
@@ -361,12 +361,9 @@ namespace Mjolnir {
 			//}
 
             // It has happened that we bail on startup and don't get the window created.
-            if( MainWindow != null ) {
-			    MainWindow.Dispose(); 
-            }
-
-			_oMp3Factory.Dispose();
-			FontMenu    .Dispose();
+			MainWindow  ?.Dispose(); 
+			_oMp3Factory?.Dispose();
+			FontMenu    ?.Dispose();
 		}
 
         public string AppDataPath => Environment.GetFolderPath( Environment.SpecialFolder.LocalApplicationData) + "\\pg\\mjolnir";
