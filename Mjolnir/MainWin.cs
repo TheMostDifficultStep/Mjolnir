@@ -2927,6 +2927,9 @@ namespace Mjolnir {
         }
 
 		public IEnumerator<ViewSlot> ViewEnumerator() {
+            if( _oDoc_ViewSelector == null )
+                yield break;
+
 			foreach( ViewSlot oLine in _oDoc_ViewSelector ) {
 				yield return oLine;
 			}

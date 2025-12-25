@@ -397,10 +397,18 @@ namespace Play.ImageViewer {
 			}
 		}
 
-        protected override void PrintPageHandler(object sender, PrintPageEventArgs e) {
+        protected override void PrintPageHandler( object sender, PrintPageEventArgs e ) {
             using Bitmap oCopy = Bitmap.ToBitmap();
 
-            e.Graphics.DrawImage( oCopy, 0, 0 );
+            SmartRect rctDest   = new SmartRect();
+            SmartRect rctSource = new SmartRect( 0, 0, Bitmap.Width, Bitmap.Height );
+
+			ImageHelpers.ViewPortSizeMax( szBorder      : new Size( 0, 0 ), 
+										  szView        : new Size( e.MarginBounds.Width, e.MarginBounds.Height ), 
+				                          rctBitmapWorld: rctSource,
+										  rctViewPortOut: rctDest );
+
+            e.Graphics.DrawImage( oCopy, rctDest.Rect, rctSource.Rect, GraphicsUnit.Pixel );
         }
 	}
  
