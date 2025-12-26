@@ -9,8 +9,9 @@ namespace Play.Rectangles {
         public static Color ToGdiColor( this SKColor skColor ) {
             return Color.FromArgb( skColor.Alpha,
                                    skColor.Red, 
-                                   skColor.Blue, 
-                                   skColor.Green );
+                                   skColor.Green,
+                                   skColor.Blue
+                                 );
         }
          public static SKColor ToSKColor( this Color gdiColor ) {
             return new SKColor( gdiColor.R,
