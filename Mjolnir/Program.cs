@@ -232,7 +232,7 @@ namespace Mjolnir {
 
         public event UpdateAllTitlesFor EventUpdateTitles;
 
-		readonly Mpg123Factory            _oMp3Factory = null;//new Mpg123Factory();
+		readonly Mpg123Factory            _oMp3Factory = new Mpg123Factory();
         readonly Timer                    _oTimer      = new Timer();
         readonly List <IPgRoundRobinWork> _rgWorkers   = new List<IPgRoundRobinWork>();
 
