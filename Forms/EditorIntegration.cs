@@ -50,11 +50,12 @@ namespace Play.Forms {
             if( !_oDoc_Productions.InitNew() )
                 return false;
 
-            if( !_oParseHandler.InitNew() )
-                return false;
+            if( _oParseHandler is not null ) {
+                if( !_oParseHandler.InitNew() )
+                    return false;
 
-            _oParseHandler.ProductionsEdit = _oDoc_Productions;
-
+                _oParseHandler.ProductionsEdit = _oDoc_Productions;
+            }
             return true;
         }
 
@@ -85,8 +86,7 @@ namespace Play.Forms {
         }
 
         public override void Dispose() {
-            if( _oParseHandler != null )
-                _oParseHandler.Dispose();
+            _oParseHandler?.Dispose();
 
             _oDoc_Productions.Dispose();
 

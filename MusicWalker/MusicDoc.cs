@@ -733,7 +733,7 @@ namespace Play.MusicWalker {
 									typeof( AddressAlreadyInUseException )*/ }; 
 
 				if( rgErrors.IsUnhandled( oEx ) )
-					throw oEx;
+					throw;
 
 				_oSiteBase.LogError( "musiccollection", "Couldn't start WebServiceHost. Running w/o web service.", true );
 			}
@@ -764,7 +764,7 @@ namespace Play.MusicWalker {
 									typeof( ArgumentOutOfRangeException ),
 									typeof( ArgumentException ) };
 				if( rgErrors.IsUnhandled( oEx ) )
-					throw oEx;
+					throw;
 
 				_oSiteBase.LogError( "musiccollection", "Couldn't read base music directory." );
 				return( false );
@@ -857,7 +857,7 @@ namespace Play.MusicWalker {
 											 typeof( PathTooLongException ),
 											 typeof( InvalidCastException ) };
 						if( _rgErrors.IsUnhandled( oEx ) )
-							throw oEx;
+							throw;
 
 						_oSiteBase.LogError( "player", "Couldn't play a song in your selection" );
 					}
