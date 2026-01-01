@@ -243,7 +243,7 @@ namespace Play.Sound {
 		/// <remarks>So floats are weird and we can get odd numbers even tho' we've got block align.
 		/// So first round the time multiplied by the bit block rate, THEN mult by the block align size.</remarks>
 		[Obsolete("Move to Specification")]public uint BytesNeeded( float flTime ) {
-			return (uint)Math.Round( Spec.Rate * flTime ) * Spec.BlockAlign;
+			return (uint)Math.Round( Spec.Rate * flTime ) * Spec.BytesPerSampleXChannels;
 		}
 
 		public unsafe UInt32 Read( IntPtr ipAddress, UInt32 uiBytesWanted ) {

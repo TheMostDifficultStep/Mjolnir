@@ -10,7 +10,6 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Net.Http;
 using System.Reflection;
-using System.IO;
 
 using Play.Interfaces.Embedding;
 using Play.Sound;

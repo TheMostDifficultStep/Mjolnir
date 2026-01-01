@@ -1863,7 +1863,6 @@ namespace Mjolnir {
         }
 
 		public IPgReader CreateSoundDecoder(string strFileName) {
-            //return new Mpg123FFTSupport( strFileName );
 			return _oMp3Factory.CreateFor( strFileName );
 		}
 

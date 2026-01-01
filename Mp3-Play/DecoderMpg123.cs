@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 
@@ -189,8 +188,9 @@ namespace Play.Sound {
 				throw new InvalidOperationException( "Factory object should be created only once." );
 		}
 
-		public Mpg123 CreateFor( string strFileName ) {
-			return( new Mpg123( strFileName ) );
+		public AbstractReader CreateFor( string strFileName ) {
+			return new Mpg123( strFileName );
+			//return new NLayerMP3( strFileName );
 		}
 
 		public void Dispose() {

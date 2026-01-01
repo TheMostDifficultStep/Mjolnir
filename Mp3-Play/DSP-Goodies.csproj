@@ -12,6 +12,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="NLayer" Version="1.16.0" />
     <PackageReference Include="SkiaSharp" Version="3.116.1" />
   </ItemGroup>
 

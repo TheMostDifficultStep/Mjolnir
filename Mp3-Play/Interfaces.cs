@@ -60,7 +60,16 @@ namespace Play.Sound {
 			_uiChannels       = (uint)iChannels;
 			_iEncoding        = iEncoding; 
 			_uiBitsPerSample  = (uint)iBits;
-			_uiByteRatePerSec = (uint)( lRate * BlockAlign );
+			_uiByteRatePerSec = (uint)( lRate * BytesPerSampleXChannels );
+		}
+
+		/// <summary>
+		/// Returns the number of bytes per sample, including multiple channels.
+		/// </summary>
+		public uint BytesPerSampleXChannels {
+			get {
+				return (uint)(Channels * BitsPerSample / 8);
+			}
 		}
 
         /// <summary>
@@ -80,20 +89,11 @@ namespace Play.Sound {
 		/// </summary>
 		/// <seealso cref="GetAlignedBufferSize"/>
 		public uint GetFrameCount( uint uiBytes ) {
-			return uiBytes / BlockAlign;
+			return uiBytes / BytesPerSampleXChannels;
 		}
 
 		public uint GetByteCount( uint uiFrames ) {
-			return uiFrames * BlockAlign;
-		}
-
-		/// <summary>
-		/// Returns the number of bytes per sample, including multiple channels.
-		/// </summary>
-		public uint BlockAlign {
-			get {
-				return (uint)(Channels * BitsPerSample / 8);
-			}
+			return uiFrames * BytesPerSampleXChannels;
 		}
 
 		/// <summary>
