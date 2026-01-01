@@ -391,9 +391,6 @@ namespace Mjolnir {
                                     typeof( InvalidProgramException ) };
                 if (rgErrors.IsUnhandled(oEx))
                     throw;
-
-                oEditor.Dispose();
-                throw new ApplicationException( "Couldn't create parse handler for shell text editor.", oEx );
             }
 
             return (oEditor);

@@ -136,8 +136,8 @@ namespace Play.Integration {
 
 			try {
 				_oTextGrammar = (Grammer<char>)((IPgGrammers)oDocument.Services).GetGrammer( strLangName );
-                if ( _oTextGrammar == null )
-                    throw new ArgumentOutOfRangeException("Unrecognized grammar name!");
+                if( _oTextGrammar == null )
+                    throw new InvalidOperationException("Unrecognized grammar name!");
 			} catch ( Exception oEx ) {
                 Type[] rgErrors = { typeof( NullReferenceException ),
                                     typeof( InvalidCastException ),
@@ -146,8 +146,6 @@ namespace Play.Integration {
 									typeof( GrammerNotFoundException ) };
                 if( !rgErrors.Contains( oEx.GetType() ) )
                     throw;
-
-				throw new InvalidOperationException( "Couldn't get grammar for parser." );
 			}
             _oWorkPlace = ((IPgScheduler)_oDocument.Services).CreateWorkPlace() ?? throw new InvalidOperationException( "Need the scheduler service in order to work. ^_^;" );
             _oStream    = _oDocument.CreateStream() ?? throw new InvalidProgramException( "Parser Listener couldn't create a stream from the document" );
@@ -462,6 +460,9 @@ namespace Play.Integration {
         /// </summary>
         /// <returns></returns>
         public IEnumerator<int> CreateWorker() {
+            if( _oTextGrammar is null )
+                yield break;
+
 			State<char> oStart  = _oTextGrammar.FindState("start");
 
 			if( oStart == null ) {
