@@ -3,6 +3,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Collections.Generic;
 using System.Collections;
+using System.IO;
 
 namespace Play.Sound {
 	/// <summary>
@@ -325,7 +326,8 @@ namespace Play.Sound {
 						_ulBuffered = BufferReload( uiCopy );
 					} catch( Exception oEx ) {
 						Type[] rgErrors = { typeof( InvalidOperationException ),
-											typeof( NullReferenceException ) };
+											typeof( NullReferenceException ),
+											typeof( IOException ) };
 						if( !rgErrors.Contains( oEx.GetType() ) )
 							throw;
 
@@ -391,7 +393,8 @@ namespace Play.Sound {
 						_ulBuffered = BufferReload( (uint)_rgBuffer.Length ) / (uint)iBytesPerSample;
 					} catch( Exception oEx ) {
 						Type[] rgErrors = { typeof( InvalidOperationException ),
-											typeof( NullReferenceException ) };
+											typeof( NullReferenceException ),
+											typeof( IOException ) };
 						if( !rgErrors.Contains( oEx.GetType() ) )
 							throw;
 
