@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using System.Windows.Forms;
 
 using Play.Interfaces.Embedding;
@@ -7,29 +5,6 @@ using Play.Parse.Impl;
 using Play.Parse.Impl.Text;
 
 namespace Mjolnir {
-
-    /// <summary>
-    /// Let's try to create the named states using reflection! This is just
-    /// half built at present.
-    /// </summary>
-    public class factory 
-    {
-        Dictionary<string, Type> m_rgTypes = new Dictionary<string, Type>();
-        
-        public void Add( string key, Type type )
-        {
-            m_rgTypes.Add( key, type );
-        }
-        
-        public ProdElem<char> this[ string strIndex ] {
-            get {
-                Type type = m_rgTypes[strIndex];
-                
-                return( null );
-            }
-        } 
-    }
-
     /// <summary>
     /// This is the object that holds the grammer for a particular
     /// language. There will be only one instance of this per language.

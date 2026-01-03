@@ -84,6 +84,18 @@ namespace Play.Sound {
 		}
 
 		/// <summary>
+		/// Return the number of bytes of sampling that will last the given time. The value be block aligned.
+		/// </summary>
+		/// <param name="flTime">Time in seconds.</param>
+		/// <returns>Amount of samples to generate generated.</returns>
+		/// <remarks>So floats are weird and we can get odd numbers even tho' we've got block align.
+		/// So first round the time multiplied by the bit block rate, THEN mult by the block align size.</remarks>
+		public uint BytesNeeded( float flTime ) {
+			return (uint)Math.Round( Rate * flTime ) * BytesPerSampleXChannels;
+		}
+
+
+		/// <summary>
 		/// Return the frame count given the number of bytes in a buffer. Assumes no partial frames.
 		/// You should be fine if you allocated the buffer using GetAlignedBufferSize();
 		/// </summary>
