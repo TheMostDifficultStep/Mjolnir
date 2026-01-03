@@ -99,7 +99,7 @@
 
   <ItemGroup>
     <None Update="libmpg123-0.dll">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </None>
   </ItemGroup>
 

@@ -172,6 +172,8 @@ namespace Play.Sound {
 	/// <summary>
 	/// This is the factory object to create MP3 decoder instances. Should only create one of these.
 	/// </summary>
+	/// <remarks>Converted to using NLayer on 1/2/2026. I've stopped copying the
+	/// libmpg123-0.dll along with the build. But I'm keeping it for awhile.</remarks>
 	public class Mpg123Factory : IDisposable {
 		//[DllImport ("/usr/local/lib/libmpg123.so")] private static extern int mpg123_init();
 		//[DllImport ("/usr/local/lib/libmpg123.so")] private static extern int mpg123_exit();
@@ -179,25 +181,25 @@ namespace Play.Sound {
 		[DllImport ("libmpg123-0.dll")] private static extern int mpg123_exit();
 		
 
-		static int iCount = 0;
+		//static int iCount = 0;
 
 		public Mpg123Factory() {
-			if( iCount++ == 0 )
-				mpg123_init(); // looking for libmpg123-0.dll
-			if( iCount > 1 )
-				throw new InvalidOperationException( "Factory object should be created only once." );
+			//if( iCount++ == 0 )
+			//	mpg123_init(); // looking for libmpg123-0.dll
+			//if( iCount > 1 )
+			//	throw new InvalidOperationException( "Factory object should be created only once." );
 		}
 
 		public AbstractReader CreateFor( string strFileName ) {
-			return new Mpg123( strFileName );
-			//return new NLayerMP3( strFileName );
+			//return new Mpg123( strFileName );
+			return new NLayerMP3( strFileName );
 		}
 
 		public void Dispose() {
-			if( --iCount == 0 )
-				mpg123_exit();
-			if( iCount < 0 )
-				throw new InvalidOperationException( "Factory object should be destroyed only once." );
+			//if( --iCount == 0 )
+			//	mpg123_exit();
+			//if( iCount < 0 )
+			//	throw new InvalidOperationException( "Factory object should be destroyed only once." );
 		}
 	}
 }
