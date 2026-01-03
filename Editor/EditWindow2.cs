@@ -1738,7 +1738,8 @@ namespace Play.Edit {
             Point pntLocation  = PointToClient( new Point(oArg.X, oArg.Y));
 
             if( !ClientToWorld( new SKPointI( pntLocation.X, pntLocation.Y ), 
-                                              out WorldLocator sWorldLoc ) );
+                                              out WorldLocator sWorldLoc ) )
+                return;
             CaretAndAdvanceReset( ref sWorldLoc );
             CaretIconRefreshLocation(); // BUG: We need to move the cursor when draging on ourself.
             

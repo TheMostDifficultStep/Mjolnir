@@ -550,7 +550,7 @@ namespace Play.Rectangles
 		/// <summary>
 		/// We draw our rectangle just outside of the selected area!!
 		/// </summary>
-		public override void Paint( Graphics oGraphics ) {
+		[Obsolete]public override void Paint( Graphics oGraphics ) {
             if( Hidden )
                 return;
 
