@@ -532,6 +532,7 @@ namespace Play.Rectangles {
 	/// <summary>
 	/// A table object computes row rail size as the max track needed by a given cell on that row.
 	/// </summary>
+	/// <remarks>Sez obsolete, but now I forget the replacment class. O.o;;</remarks>
 	[Obsolete]public class LayoutTable : ParentRect {
         readonly LayoutStack _oRowStack;
         readonly LayoutStack _oColStack;
