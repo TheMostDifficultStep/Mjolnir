@@ -482,6 +482,7 @@ namespace Play.ImageViewer {
                 Depth,
                 Modified,
                 Size,
+                Directory,
                 MAX
             }
 
@@ -496,12 +497,13 @@ namespace Play.ImageViewer {
                     CreatePropertyPair();
                 }
 
-                LabelUpdate( Names.Name,     "Name", new SKColor( red:0xff, green:0xbf, blue:0 ) );
-                LabelUpdate( Names.Width,    "Width" );
-                LabelUpdate( Names.Height,   "Height" );
-                LabelUpdate( Names.Depth,    "Depth" );
-                LabelUpdate( Names.Modified, "Modified" );
-                LabelUpdate( Names.Size,     "Size" );
+                LabelUpdate( Names.Name,      "Name", new SKColor( red:0xff, green:0xbf, blue:0 ) );
+                LabelUpdate( Names.Width,     "Width" );
+                LabelUpdate( Names.Height,    "Height" );
+                LabelUpdate( Names.Depth,     "Depth" );
+                LabelUpdate( Names.Modified,  "Modified" );
+                LabelUpdate( Names.Size,      "Size" );
+                LabelUpdate( Names.Directory, "Dir" );
 
                 ValuesEmpty();
 
@@ -1175,12 +1177,12 @@ namespace Play.ImageViewer {
         }
 
         public override void Raise_ImageUpdated() {
-            DecorNavigatorUpdate();
-
             CurrentShowPath.Empty();
             CurrentShowPath.TryAppend( CurrentDirectory );
             CurrentShowFile.Empty();
             CurrentShowFile.TryAppend( CurrentFileName );
+
+            DecorNavigatorUpdate();
 
             base.Raise_ImageUpdated();
         }
@@ -1248,12 +1250,13 @@ namespace Play.ImageViewer {
             }
 
             using( ImageProperties.Manipulator oBulk = Properties.CreateManipulator() ) {
-                oBulk.SetValue( (int)ImageProperties.Names.Width,    iWidth .ToString() );
-                oBulk.SetValue( (int)ImageProperties.Names.Height,   iHeight.ToString() );
-                oBulk.SetValue( (int)ImageProperties.Names.Depth,    strDepth );
-                oBulk.SetValue( (int)ImageProperties.Names.Modified, dtModified.ToShortDateString() );
-                oBulk.SetValue( (int)ImageProperties.Names.Size,     lSize.ToString( "n0" ) + " Bytes" );
-                oBulk.SetValue( (int)ImageProperties.Names.Name,     Path.GetFileName( strName ) );
+                oBulk.SetValue( (int)ImageProperties.Names.Width,     iWidth .ToString() );
+                oBulk.SetValue( (int)ImageProperties.Names.Height,    iHeight.ToString() );
+                oBulk.SetValue( (int)ImageProperties.Names.Depth,     strDepth );
+                oBulk.SetValue( (int)ImageProperties.Names.Modified,  dtModified.ToShortDateString() );
+                oBulk.SetValue( (int)ImageProperties.Names.Size,      lSize.ToString( "n0" ) + " Bytes" );
+                oBulk.SetValue( (int)ImageProperties.Names.Name,      Path.GetFileName( strName ) );
+                oBulk.SetValue( (int)ImageProperties.Names.Directory, CurrentShowPath.ToString() );
             }
         }
 

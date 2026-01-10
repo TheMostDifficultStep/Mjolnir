@@ -13,7 +13,7 @@ namespace Scanner {
 			_rgExtensions.Add( ".scan" );
         }
 
-        public override IDisposable CreateDocument( IPgBaseSite oSite, string strExtension ) {
+        public override IDisposable? CreateDocument( IPgBaseSite oSite, string strExtension ) {
 			if( strExtension.ToLower() == ".scan" ) {
 				return new DocScanner( oSite );
 			}

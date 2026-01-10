@@ -191,6 +191,7 @@ namespace Play.ImageViewer {
 				_rgVertStack.SetRect( 0, 0, Width, Height );
 				_rgVertStack.LayoutChildren();
 			}
+			Invalidate();
 		}
 
         protected void JumpBack()
