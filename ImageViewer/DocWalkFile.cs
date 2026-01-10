@@ -1001,7 +1001,7 @@ namespace Play.ImageViewer {
         /// </remarks>
         public bool ImageLoad( Line oLine, bool fSendImageUpdate = false ) {
             // If a bum path got inserted, it's still our current index.
-			Line _oLineOld = _oDisplayLine;
+			Line oDisplayOld = _oDisplayLine;
 
             _oDisplayLine = oLine;
 
@@ -1013,14 +1013,15 @@ namespace Play.ImageViewer {
                 return false;
             }
             try {
-				FileLine oFileOld = _oLineOld as FileLine;
+				FileLine oFileOld = oDisplayOld as FileLine;
+                FileLine oFileNew = _oDisplayLine as FileLine;
+                FileInfo oFile    = new FileInfo( CurrentFullPath );
+                
+                // Make sure these are set all the time so the property page has the values.
+                oFileNew.ModifiedDate = oFile.LastWriteTime;
+                oFileNew.FileSize     = oFile.Length;
 
 				if( !fSendImageUpdate && !FileLine.IsNullOrEmpty( oFileOld ) ) {
-                    FileLine oFileNew = _oDisplayLine as FileLine;
-                    FileInfo oFile    = new FileInfo( CurrentFullPath );
-
-                    oFileNew.ModifiedDate = oFile.LastWriteTime;
-                    oFileNew.FileSize      = oFile.Length;
 
 					if( DateTime.Compare( oFileNew.ModifiedDate, oFileOld.ModifiedDate ) == 0 &&
 						oFileNew.FileSize == oFileOld.FileSize &&
@@ -1035,7 +1036,7 @@ namespace Play.ImageViewer {
 
             try {
                 // But if this fails, we'll have an bad show path, oh well.
-                using( Stream oStream = File.OpenRead( FullPathFromLine( oLine ) ) ) {
+                using( Stream oStream = File.OpenRead( FullPathFromLine( _oDisplayLine ) ) ) {
                     Bitmap = SKBitmap.Decode( oStream );
                 }
 
@@ -1044,7 +1045,7 @@ namespace Play.ImageViewer {
 				if( _rgBmpLoadErrs.IsUnhandled( oEx ) )
 					throw;
 
-                _oSiteBase.LogError( "storage", "Couldn't read file..." + FullPathFromLine( oLine ) );
+                _oSiteBase.LogError( "storage", "Couldn't read file..." + FullPathFromLine( _oDisplayLine ) );
 
                 return false;
 			}            
