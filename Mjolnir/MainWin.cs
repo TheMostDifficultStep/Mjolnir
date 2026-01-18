@@ -2057,17 +2057,18 @@ namespace Mjolnir {
             // This disposes of the ViewSite!! And it's contents.
             _oDoc_ViewSelector.Remove( oViewSiteToClose );
 
+            // Just get the top one in the list. Nicer if it was based on some sort of MRU.
             ViewSlot oViewNext = null;
-            if( ViewSiteSelected is null || 
-                ( ViewSiteSelected is not null && 
-                  ViewSiteSelected.ID == oViewSiteToClose.ID ))
-            {
-                if( _oDoc_ViewSelector.ElementCount > 0 ) {
-                    // Just get the top one in the list. It would be nicer if it was based on some sort of MRU.
-                    oViewNext = _oDoc_ViewSelector[0];
+            if( _oDoc_ViewSelector.ElementCount > 0 ) {
+                oViewNext = _oDoc_ViewSelector[0];
+            }
+            foreach( ViewSlot oFindSibling in _oDoc_ViewSelector ) {
+                if( oFindSibling.DocumentSite == oViewSiteToClose.DocumentSite ) {
+                    oViewNext = oFindSibling;
                 }
             }
 
+            // Don't want next to be null if there are any views at all!
             ViewSelect( oViewNext, true );
 
             // If the ref count on the docsite is zero it will be disposed of as well.
@@ -2097,12 +2098,14 @@ namespace Mjolnir {
 		/// Be careful when using EditorShowEnum.SILENT
         /// </remarks>
 		/// <seealso cref="OnViewFocused"/>
+        /// <param name="oViewSite" >This CAN BE NULL. So make sure that's what you want.</param>
         public void ViewSelect( ViewSlot oViewSite, bool fFocus ) {
             try {
                 iViewSelectedCount++;
                 if( iViewSelectedCount > 1 )
                     return;
 
+                // TODO: Should I really allow this?
                 if( oViewSite == null ) {
                     _oSelectedWinSite = null;
                     _oSelectedDocSite = null;
