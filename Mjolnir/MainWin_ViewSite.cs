@@ -420,25 +420,23 @@ namespace Mjolnir {
             // events send them up and we'll bomb out. I don't think an exception
             // and error message is called for yet.
 			try {
-				int iViewID = _oHost.ViewTitleID( this );
-
                 Empty();
-			    TryAppend( _oViewCommand.Banner );
 
                 // This tells you that you have more than one view open on the
                 // document. But it looks ugly and I don't find it particularly
                 // useful so, let's disable and think of a better solution.
+				//int iViewID = _oHost.ViewTitleID( this );
 				//if( iViewID > -1 ) {
-    //                TryAppend( ", " );
-    //                TryAppend( iViewID.ToString() );
-    //                TryAppend( " of " );
-    //                TryAppend( DocumentSite.Reference.ToString() );
+                //    TryAppend( iViewID.ToString() );
+                //    TryAppend( " : " );
 				//}
+
+			    TryAppend( _oViewCommand.Banner );
 			} catch ( NullReferenceException ) {
 				TryAppend( "View" );
 			}
 
-            Title =  _oDocSite.FilePath;
+            Title = this.ToString();
             // Dispose will set the menuitem to null it's a good idea to check it.
             if( _oMenuItem != null ) {
                 _oMenuItem.Text = _oViewCommand.Banner;
