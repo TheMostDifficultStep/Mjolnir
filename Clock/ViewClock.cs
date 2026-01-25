@@ -128,7 +128,9 @@ namespace Play.Clock {
         IPgCommandView
     {
         private readonly string      _strViewIcon  = "Play.Clock.Content.icon_clock.gif";
-        protected        IPgViewSite _oViewSite;
+        protected readonly IPgViewSite   _oViewSite;
+        protected readonly IPgViewNotify _oViewNotify;
+
 
 		public static Guid Guid { get; } = Guid.Empty;
         public DocumentClock DocClock { get; }
@@ -146,10 +148,22 @@ namespace Play.Clock {
         public Guid Catagory => Guid;
 
         public ViewAnalogClock( IPgViewSite oViewSite, DocumentClock oDocClock ) {
-            DocClock   = oDocClock ?? throw new ArgumentNullException();
-            _oViewSite = oViewSite ?? throw new ArgumentNullException();
+            DocClock     = oDocClock ?? throw new ArgumentNullException();
+            _oViewSite   = oViewSite ?? throw new ArgumentNullException();
 
-			Icon       = SKImageResourceHelper.GetImageResource( Assembly.GetExecutingAssembly(), _strViewIcon );
+            _oViewNotify = _oViewSite.EventChain;
+
+			Icon         = SKImageResourceHelper.GetImageResource( Assembly.GetExecutingAssembly(), _strViewIcon );
+        }
+
+        protected override void OnGotFocus(EventArgs e) {
+            _oViewNotify.NotifyFocused( true );
+            Invalidate();
+        }
+
+        protected override void OnLostFocus(EventArgs e) {
+			_oViewNotify.NotifyFocused( false );
+            Invalidate();
         }
 
         public bool Load(XmlElement oStream) {
