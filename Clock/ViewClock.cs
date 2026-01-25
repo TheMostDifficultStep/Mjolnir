@@ -265,7 +265,7 @@ namespace Play.Clock {
             rgPoints[1] = rgMins;
             rgPoints[2] = rgSecs;
 
-            rgAngle [0] = dtNow.Hour   * 30 % ( 360 * Half( dtNow.Minute ) );
+            rgAngle [0] = dtNow.Hour   * 30 % 360 + Half( dtNow.Minute );
             rgAngle [1] = dtNow.Minute * 6;
             rgAngle [2] = dtNow.Second * 6;
 
