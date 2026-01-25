@@ -1,22 +1,21 @@
-using System;
-using System.Collections.Generic;
-using System.Windows.Forms;
-using System.IO;
-using System.Xml;
-using System.Xml.XPath;
-using System.Text;
-using System.Reflection;
-using System.Drawing;
-using System.Linq;
-using System.Collections;
-
-using SkiaSharp;
-
+using Play.Clock;
+using Play.Edit;
+using Play.Integration;
 using Play.Interfaces.Embedding; 
 using Play.Parse.Impl;
-using Play.Edit;
 using Play.Sound;
-using Play.Integration;
+using SkiaSharp;
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Drawing;
+using System.IO;
+using System.Linq;
+using System.Reflection;
+using System.Text;
+using System.Windows.Forms;
+using System.Xml;
+using System.Xml.XPath;
 
 namespace Mjolnir {
     public delegate void UpdateAllTitlesFor( IDocSlot oSlot );
@@ -205,8 +204,8 @@ namespace Mjolnir {
 
         }
 
-        public static Guid Clock       { get; } = new Guid( "{DEA39235-7E0A-4539-88A0-2FB775E7A8CC}" );
-        public static Guid FindDialog  { get; } = new Guid( "{231E4D61-499A-427E-A1D3-EC4A579A5E6D}" );
+        //public static Guid Clock       { get; } = new Guid( "{DEA39235-7E0A-4539-88A0-2FB775E7A8CC}" );
+        //public static Guid FindDialog  { get; } = new Guid( "{231E4D61-499A-427E-A1D3-EC4A579A5E6D}" );
         public static Guid ViewSelector{ get; } = new Guid( "{195E19DB-4BCE-4CAE-BE02-263536F00851}" );
         public static Guid MainWin     { get; } = new Guid( "{B091DED3-33C8-4BD1-8390-CA568CA7F9FC}" );
 
@@ -248,7 +247,7 @@ namespace Mjolnir {
         protected InternalSlot      _oDocSlot_Fonts;
         protected XmlSlot           _oDocSlot_SearchKey;
         protected ComplexXmlSlot    _oDocSlot_Find;
-        protected InternalSlot      _oDocSlot_Clock;
+        protected TextSlot          _oDocSlot_Clock;
         protected Program.TextSlot  _oDocSite_Session; // Hosting ourself, so don't be confused! ^_^;
           
         /// <summery>Views can use this to create views on the scrapbook</summery>
@@ -258,7 +257,7 @@ namespace Mjolnir {
 		public XmlSlot      SearchSlot    => _oDocSlot_SearchKey;
         public IDocSlot     FindSlot      => _oDocSlot_Find;
         public IDocSlot     AlertSlot     => _oDocSlot_Alerts;
-        public InternalSlot ClockSlot     => _oDocSlot_Clock;
+        public TextSlot     ClockSlot     => _oDocSlot_Clock;
         public DirSlot      HomeDocSlot   { get; protected set; }
 
         // BUG: I'm dithering on FontMenu living on the program or just the main window.
@@ -807,8 +806,8 @@ namespace Mjolnir {
                 _oDocSlot_Find.CreateDocument();
                 _oDocSlot_Find.InitNew();
 
-                oDocDesc = oTopLevelController.Suitability( ".clock" );
-                _oDocSlot_Clock = new InternalSlot( this, oDocDesc, "Clock" );
+                // BUG: Need to fix redundant file extension issue.
+                _oDocSlot_Clock = new TextSlot( this, new ClockController(), ".clock" );
                 _oDocSlot_Clock.CreateDocument();
                 _oDocSlot_Clock.InitNew();
             }

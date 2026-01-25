@@ -83,7 +83,9 @@ namespace Mjolnir {
                         typeof( FileNotFoundException ) };
 
             /// <remarks>TODO: Would be nice to update this to use the PgDocDescr object
-            /// instead of the oController/strFileExt pair. </remarks>
+            /// instead of the oController/strFileExt pair.
+            /// ALSO: Controllers specify the file type so not sure why it's an
+            /// an argument here...</remarks>
             public BaseSlot( Program oProgram, IPgController2 oController, string strFileExt, int iID = -1 ) {
                 _oHost       = oProgram    ?? throw new ArgumentNullException( "Program" );
                 _strFileExt  = strFileExt  ?? throw new ArgumentNullException( "File Extension" );

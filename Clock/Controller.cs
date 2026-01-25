@@ -46,4 +46,52 @@ namespace Play.Clock {
             yield return new ViewType( "Solar Weather", ViewSolar._guidViewCatagory );
         }
     }
+    public class ClockController : 
+        Controller 
+    {
+        public ClockController() {
+			_rgExtensions.Add( ".clock" );
+        }
+
+        public override IDisposable CreateDocument( IPgBaseSite oSite, string strExtension ) {
+			if( strExtension.ToLower() == ".clock" ) {
+				return( new DocumentClock( oSite ) );
+			}
+
+			return null;
+        }
+
+        /// <exception cref="InvalidOperationException"></exception>
+        /// <exception cref="InvalidCastException"></exception>
+        public override IDisposable CreateView( IPgViewSite oBaseSite, object oDocument, Guid guidViewType ) {
+            DocumentClock oDocClock = (DocumentClock)oDocument;
+
+			try {
+                switch( guidViewType ) {
+                    case Guid r when r == ViewAnalogClock.Guid:
+                        return new ViewAnalogClock( oBaseSite, oDocClock );
+                    case Guid r when r == ViewDigitalClock.Guid:
+                        return new ViewDigitalClock( oBaseSite, oDocClock );
+
+                    default:
+                        return new ViewDigitalClock( oBaseSite, oDocClock );
+                }
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( NullReferenceException ),
+                                    typeof( InvalidCastException ),
+                                    typeof( ArgumentNullException ),
+									typeof( ArgumentException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
+
+				throw new InvalidOperationException( "Controller couldn't create view for Image document.", oEx );
+            }
+        }
+
+        public override IEnumerator<IPgViewType> GetEnumerator() {
+            yield return new ViewType( "Time Zones",   ViewDigitalClock    .Guid );
+            yield return new ViewType( "Analog Clock", ViewAnalogClock.Guid );
+        }
+    }
+
 }

@@ -21,6 +21,10 @@ namespace Mjolnir {
             _rgExtensions.Add( ".mainwindow" );
         }
         
+        /// <summary>
+        /// This should be returning a main program object. Which is a singleton.
+        /// But shouldn't be returning a clock. Need to look at that.
+        /// </summary>
         public override IDisposable CreateDocument( IPgBaseSite oSite, string strFileExt) {
             if( string.Compare( strFileExt, ".clock", ignoreCase:true ) == 0 ) {
                 return new DocumentClock( oSite );
@@ -29,16 +33,14 @@ namespace Mjolnir {
             return _oDocument;
         }
 
+        /// <remarks>
+        /// Techically we can handle multiple top windows. But I'm sure you'll have
+        /// problems since I'm not counting top level windows on the program.
+        /// </remarks>
+        /// <exception cref="InvalidOperationException"></exception>
+        /// <exception cref="ArgumentOutOfRangeException"></exception>
         public override IDisposable CreateView( IPgViewSite oBaseSite, object oDocument, Guid guidViewType ) {
             try {
-                if( guidViewType == Program.Clock ) {
-                    return new WindowClock( oBaseSite, oDocument as DocumentClock );
-                }
-				if( guidViewType == Program.FindDialog ) {
-                    if( _oDocument.MainWindow == null )
-                        throw new ApplicationException( "Main Window has not been created yet!" );
-					return new FindWindow( oBaseSite, _oDocument.MainWindow ); // BUG: Maybe should get parent from basesite?...
-                }
 				if( guidViewType == Program.MainWin ) {
                     MainWin oMainWin = new MainWin( _oDocument );
 					return oMainWin;
@@ -57,9 +59,7 @@ namespace Mjolnir {
         }
 
         public override IEnumerator<IPgViewType> GetEnumerator() {
- 	        yield return new ViewType( "Find",         Program.FindDialog  );
  	        yield return new ViewType( "Main Window",  Program.MainWin );
-            yield return new ViewType( "Clock",        Program.Clock );
         }
     }
 

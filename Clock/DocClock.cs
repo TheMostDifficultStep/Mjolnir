@@ -143,7 +143,10 @@ namespace Play.Clock {
         }
     }
 
-    public class WindowClock :
+    /// <summary>
+    /// Since this at present is an adornment. We don't implement Load/Save.
+    /// </summary>
+    public class ViewDigitalClock :
         WindowMultiColumn,
         //IPgLoad<XmlElement>,
         //IPgSave<XmlDocumentFragment>,
@@ -153,14 +156,15 @@ namespace Play.Clock {
         private   readonly string      _strViewIcon  = "Play.Clock.Content.icon_clock.gif";
         protected readonly IPgViewSite _oViewSite;
 
-        public Guid      Catagory  => Guid.Empty; // Default view.
+		public static Guid Guid { get; } = new Guid("AC48BBDF-C10E-4B03-BBFF-074F0445D372");
+        public Guid      Catagory  => Guid;
         public string    Banner    => "World Clock";
         public SKBitmap  Icon      { get; }
-        protected uint      ClockFont { get; }
+        protected uint   ClockFont { get; }
 
         protected DocumentClock Document { get; }
 
-        public WindowClock( IPgViewSite oViewSite, DocumentClock oDocClock ) : 
+        public ViewDigitalClock( IPgViewSite oViewSite, DocumentClock oDocClock ) : 
             base( oViewSite, oDocClock ) 
         {
             Document   = oDocClock ?? throw new ArgumentNullException( "Clock document must not be null." );

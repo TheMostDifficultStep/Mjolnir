@@ -11,6 +11,7 @@ using System.Runtime.InteropServices;
 using System.Linq;
 
 using SkiaSharp;
+using SkiaSharp.Views.Desktop;
 
 using Play.Interfaces.Embedding; 
 using Play.Rectangles;
@@ -18,9 +19,9 @@ using Play.Edit;
 using Play.Parse;
 using Play.Forms;
 using Play.Controls;
+using Play.Clock;
 
 using static Mjolnir.Program;
-using SkiaSharp.Views.Desktop;
 
 namespace Mjolnir {
     /// <summary>
@@ -773,6 +774,7 @@ namespace Mjolnir {
             oSettingsMenu.DropDownItems.Add(new ToolStripMenuItem("Save",       BitmapCreateFromChar( "\xe105" ), new EventHandler(this.OnSessionSave  )));
             oSettingsMenu.DropDownItems.Add(new ToolStripMenuItem("Save As...", BitmapCreateFromChar( "\xe159" ), new EventHandler(this.OnSessionSaveAs)));
             oSettingsMenu.DropDownItems.Add(new ToolStripSeparator() );
+            oSettingsMenu.DropDownItems.Add(new ToolStripMenuItem("Clock!",          BitmapCreateFromChar( "\xE1de" ), new EventHandler(this.OnSessionOpenClock )));
             oSettingsMenu.DropDownItems.Add(new ToolStripMenuItem("Alerts!",         BitmapCreateFromChar( "\xE1de" ), new EventHandler(this.OnSessionOpenAlerts )));
 //          oSettingsMenu.DropDownItems.Add(new ToolStripMenuItem("Search Results!", BitmapCreateFromChar( "\xE179" ), new EventHandler(this.OnSessionOpenResults)));
             oSettingsMenu.DropDownItems.Add(new ToolStripMenuItem("Recent List!",    BitmapCreateFromChar( "\xE1a5" ), new EventHandler(this.OnSessionOpenRecents)));
@@ -927,6 +929,10 @@ namespace Mjolnir {
         private void OnSessionOpenAlerts( object s, EventArgs e ) 
         {
             OpenOrShowFirstView( Document.AlertSlot );
+        }
+
+        private void OnSessionOpenClock( object s, EventArgs e ) {
+            OpenOrShowFirstView( Document.ClockSlot );
         }
     
         private void OnSessionOpenResults( object s, EventArgs e ) 
@@ -2687,7 +2693,8 @@ namespace Mjolnir {
                 DecorAddSolo( GlobalDecor.Results, oViewMatches );
 
 				DecorSlot oFindSite = new DecorSlot( this, Document.FindSlot, Shepardfind( GlobalDecor.Find ) );
-                oFindSite.ViewCreate( Program.FindDialog );
+                FindWindow oFindWindow = new FindWindow( oFindSite, this );
+                oFindSite.Guest = oFindWindow;
 				oFindSite.GuestInit();
 				DecorAddSolo( GlobalDecor.Find, oFindSite.Guest );
 
@@ -2703,7 +2710,8 @@ namespace Mjolnir {
                 //DecorAddSolo( GlobalDecor.Views, oSelectorSite.Guest);
 
                 DecorSlot oClockSite = new DecorSlot( this, Document.ClockSlot, Shepardfind( GlobalDecor.Clock ) );
-                oClockSite.ViewCreate( Program.Clock );
+                ViewDigitalClock oWinClock = new ViewDigitalClock( oClockSite, (DocumentClock)Document.ClockSlot.Document );
+                oClockSite.Guest = oWinClock;
                 oClockSite.GuestInit();
                 DecorAddSolo( GlobalDecor.Clock, oClockSite.Guest);
 
