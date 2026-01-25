@@ -156,13 +156,19 @@ namespace Play.Clock {
 			Icon         = SKImageResourceHelper.GetImageResource( Assembly.GetExecutingAssembly(), _strViewIcon );
         }
 
+        protected override void Dispose(bool disposing) {
+            DocClock.ClockEvent -= ClockEvent;
+        }
+
         protected override void OnGotFocus(EventArgs e) {
             _oViewNotify.NotifyFocused( true );
+            DocClock.SetTimeout( DocumentClock.ClockUpdateInterval.Fast );
             Invalidate();
         }
 
         protected override void OnLostFocus(EventArgs e) {
 			_oViewNotify.NotifyFocused( false );
+            DocClock.SetTimeout( DocumentClock.ClockUpdateInterval.Slow );
             Invalidate();
         }
 

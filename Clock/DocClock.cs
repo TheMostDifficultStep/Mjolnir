@@ -72,6 +72,7 @@ namespace Play.Clock {
 		}
 
         protected IPgRoundRobinWork _oWorkPlace;
+        protected int               _iTimoutInMillisecs = 60000;
 
         public event Action ClockEvent;
 
@@ -110,6 +111,23 @@ namespace Play.Clock {
             return true;
         }
 
+        public enum ClockUpdateInterval {
+            Slow,
+            Fast
+        }
+
+        public void SetTimeout( ClockUpdateInterval eSpeed ) {
+            switch( eSpeed ) {
+                case ClockUpdateInterval.Slow:
+                    _iTimoutInMillisecs = 60000;
+                    break;
+                case ClockUpdateInterval.Fast:
+                    _iTimoutInMillisecs = 1000;
+                    break;
+            }
+            _oWorkPlace.Start( _iTimoutInMillisecs );
+        }
+
         public IEnumerator<int> CreateWorker() {
             while( true ) {
                 DateTime oDT = DateTime.Now;
@@ -130,7 +148,9 @@ namespace Play.Clock {
 
                 ClockEvent?.Invoke();
 
-                yield return 1000;
+                // Note: Changing this doesn't seem to effect anything.
+                //       You need to restart the workplace.
+                yield return _iTimoutInMillisecs;
             }
         }
     }
