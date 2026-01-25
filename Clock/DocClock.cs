@@ -116,16 +116,32 @@ namespace Play.Clock {
             Fast
         }
 
+        public int TimoutInMillisecs {
+            set {
+                _iTimoutInMillisecs = value;
+                _oWorkPlace.Start( _iTimoutInMillisecs );
+            }
+            get {
+                return _iTimoutInMillisecs;
+            }
+        }
+
+        /// <summary>
+        /// Speed up the clock updates if focused. Else
+        /// slow down.
+        /// </summary>
+        /// <remarks>BUG: This actually doesn't make sense on the
+        /// document level. The views should set their own pace.
+        /// I'll fix that later...</remarks>
         public void SetTimeout( ClockUpdateInterval eSpeed ) {
             switch( eSpeed ) {
                 case ClockUpdateInterval.Slow:
-                    _iTimoutInMillisecs = 60000;
+                    TimoutInMillisecs = 60000;
                     break;
                 case ClockUpdateInterval.Fast:
-                    _iTimoutInMillisecs = 1000;
+                    TimoutInMillisecs = 1000;
                     break;
             }
-            _oWorkPlace.Start( _iTimoutInMillisecs );
         }
 
         public IEnumerator<int> CreateWorker() {
@@ -150,7 +166,7 @@ namespace Play.Clock {
 
                 // Note: Changing this doesn't seem to effect anything.
                 //       You need to restart the workplace.
-                yield return _iTimoutInMillisecs;
+                yield return TimoutInMillisecs;
             }
         }
     }

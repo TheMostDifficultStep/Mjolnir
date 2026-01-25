@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Reflection;
 using System.Xml;
+using System.Collections.Generic;
 
 using SkiaSharp;
 using SkiaSharp.Views.Desktop;
@@ -131,6 +132,7 @@ namespace Play.Clock {
         protected readonly IPgViewSite   _oViewSite;
         protected readonly IPgViewNotify _oViewNotify;
 
+        protected readonly List<Hands> _rgFace = new();
 
 		public static Guid Guid { get; } = Guid.Empty;
         public DocumentClock DocClock { get; }
@@ -178,7 +180,74 @@ namespace Play.Clock {
 
         public bool InitNew() {
             DocClock.ClockEvent += ClockEvent;
+            InitFace();
+
             return true;
+        }
+
+        protected abstract class Hands {
+            public readonly SKPoint[] _rgHand;
+            public readonly SKColor   _sColor;
+            protected int             _iAngleInDegrees;
+
+            public Hands( SKPoint[] rgPoints, SKColor sColor, int iDegrees ) {
+                _rgHand          = rgPoints;
+                _sColor          = sColor;
+                _iAngleInDegrees = iDegrees;
+            }
+
+            public int AngleInDegrees => _iAngleInDegrees;
+
+            public abstract void SetAngle( DateTime sDT );
+        }
+
+        protected class HandHours : Hands {
+            public HandHours( SKPoint[] rgPoints, SKColor sColor, int iDegrees ) :
+                base( rgPoints, sColor, iDegrees )
+            { }
+
+            public override void SetAngle(DateTime dtNow ) {
+                _iAngleInDegrees = dtNow.Hour   * 30 % 360 + ViewAnalogClock.Half( dtNow.Minute );
+            }
+        }
+
+        protected class HandMins : Hands {
+            public HandMins( SKPoint[] rgPoints, SKColor sColor, int iDegrees ) :
+                base( rgPoints, sColor, iDegrees )
+            { }
+
+            public override void SetAngle(DateTime dtNow ) {
+                _iAngleInDegrees = dtNow.Minute * 6;
+            }
+        }
+
+        protected class HandSecs : Hands {
+            public HandSecs( SKPoint[] rgPoints, SKColor sColor, int iDegrees ) :
+                base( rgPoints, sColor, iDegrees )
+            { }
+
+            public override void SetAngle(DateTime dtNow ) {
+                _iAngleInDegrees = dtNow.Second * 6;
+            }
+        }
+
+       protected void InitFace() {
+            SKPoint[] rgHours = { new ( 0, -150 ),
+                                  new ( 100,  0 ),
+                                  new ( 0,  600 ),
+                                  new (-100,  0 ),
+                                  new ( 0, -150 ) };
+            SKPoint[] rgMins  = { new ( 0, -200 ),
+                                  new ( 50,   0 ),
+                                  new ( 0,  800 ),
+                                  new (-50,   0 ),
+                                  new ( 0, -200 ) };
+            SKPoint[] rgSecs  = { new ( 0, 0 ),
+                                  new ( 0, 800 ) };
+
+            _rgFace.Add( new HandHours( rgHours, SKColors.Green,    0 ) );
+            _rgFace.Add( new HandMins ( rgMins,  SKColors.DarkBlue, 0 ) );
+            _rgFace.Add( new HandSecs ( rgSecs,  SKColors.Red,      0 ) );
         }
 
         private void ClockEvent() {
@@ -191,13 +260,15 @@ namespace Play.Clock {
 
         /// <summary>
         /// Destructively rotates the point. This code isn't working in
-        /// my case when the X value comming in is NON-zero! This is why
-        /// we can draw the face of the clock. Those points seem to
-        /// rotate in the opposite direction!!! 
-        /// Leaving it for now. But the hands are drawn by setting the
+        /// my case when the X value coming in is NON-zero! This is why
+        /// we can draw the face of the clock but the hands will be
+        /// messed up. non-zero X points seem to rotate in the 
+        /// opposite direction!!! 
+        /// Leaving it for now. Now the hands are drawn by setting the
         /// rotation on the canvas.
         /// </summary>
-        /// <remarks>Probably because MM_ISOTROPIC flips the Y axis.</remarks>
+        /// <remarks>Probably because MM_ISOTROPIC flips the Y axis. If
+        /// you are using windows, but I'm faking it in SKIA.</remarks>
         protected void RotatePoint( ref SKPoint pntPoint, int iAngle ) {
             SKPoint      pntTemp    = new();
             const double dbl2Pi     = Math.PI * 2;
@@ -239,7 +310,7 @@ namespace Play.Clock {
         /// </summary>
         /// <remarks>Could I just shift left?</remarks>
         /// <param name="iInput">The integer to half.</param>
-        public int Half( int iInput ) {
+        public static int Half( int iInput ) {
             int iHalf = 1;
 
             if( iInput != 0 )
@@ -258,50 +329,24 @@ namespace Play.Clock {
         /// </summary>
         /// <param name="oCanvas"></param>
         /// <param name="fSecondsOnly">Show only the seconds hand.</param>
-        protected void DrawHands( SKCanvas oCanvas, bool fSecondsOnly ) {
-            SKPoint[] rgHours = { new ( 0, -150 ),
-                                  new ( 100,  0 ),
-                                  new ( 0,  600 ),
-                                  new (-100,  0 ),
-                                  new ( 0, -150 ) };
-            SKPoint[] rgMins  = { new ( 0, -200 ),
-                                  new ( 50,   0 ),
-                                  new ( 0,  800 ),
-                                  new (-50,   0 ),
-                                  new ( 0, -200 ) };
-            SKPoint[] rgSecs  = { new ( 0, 0 ),
-                                  new ( 0, 800 ) };
-
+        protected void DrawHands( SKCanvas oCanvas ) {
             SKPaint     sPaint   = new();
-            int[]       rgAngle  = new int[3];
-            SKPoint[][] rgPoints = new SKPoint[3][];
-            SKColor[]   rgColors = new SKColor[3];
             DateTime    dtNow    = DateTime.Now;
 
-          //Test code here...
-          //DateTime    dtNow    = new DateTime( new DateOnly( 2026, 1, 24 ), new TimeOnly( 8, _iMinute++ % 60 ) );
+          //DateTime    dtNow    = new DateTime( new DateOnly( 2026, 1, 24 ),
+          //                                     new TimeOnly( 8, _iMinute++ % 60 ) );
 
-            rgPoints[0] = rgHours;
-            rgPoints[1] = rgMins;
-            rgPoints[2] = rgSecs;
+            foreach( Hands oHand in _rgFace ) {
+                if( oHand is HandSecs && !Focused )
+                    break;
 
-            rgAngle [0] = dtNow.Hour   * 30 % 360 + Half( dtNow.Minute );
-            rgAngle [1] = dtNow.Minute * 6;
-            rgAngle [2] = dtNow.Second * 6;
+                sPaint.Color = oHand._sColor;
+                oHand.SetAngle( dtNow );
 
-            rgColors[0] = SKColors.Green;
-            rgColors[1] = SKColors.DarkBlue;
-            rgColors[2] = SKColors.Red;
-
-            for( int iHand = fSecondsOnly ? 2 : 0; iHand < 3; ++iHand ) {
-                sPaint.Color = rgColors[iHand];
                 // This overrides the old value and sets up the new
                 // rotation. It's not cumulative thankfully!
-                oCanvas.RotateDegrees( -rgAngle[iHand] );
-
-                oCanvas.TotalMatrix.MapPoints( rgPoints[iHand] );
-
-                oCanvas.DrawPolyLine( rgPoints[iHand], sPaint );
+                oCanvas.RotateDegrees( -oHand.AngleInDegrees );
+                oCanvas.DrawPolyLine ( oHand._rgHand, sPaint );
             }
         }
 
@@ -328,7 +373,7 @@ namespace Play.Clock {
                 oCanvas.Scale    ( fScale, -fScale );
 
                 DrawTicks( oCanvas );
-                DrawHands( oCanvas, fSecondsOnly:false );
+                DrawHands( oCanvas );
             } catch( NullReferenceException ) {
             } finally {
                 oCanvas.Restore();
