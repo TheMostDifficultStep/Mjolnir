@@ -1,17 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Xml;
-using System.Reflection;
 
-using SkiaSharp;
-
-using Play.Drawing;
 using Play.Interfaces.Embedding;
-using Play.Rectangles;
 using Play.Edit;
-using Play.Forms;
-using System.Numerics;
 
 namespace Play.Clock {
     public class ClockRow : Row {
@@ -140,101 +132,6 @@ namespace Play.Clock {
 
                 yield return 1000;
             }
-        }
-    }
-
-    /// <summary>
-    /// Since this at present is an adornment. We don't implement Load/Save.
-    /// </summary>
-    public class ViewDigitalClock :
-        WindowMultiColumn,
-        //IPgLoad<XmlElement>,
-        //IPgSave<XmlDocumentFragment>,
-        IPgParent,
-        IPgCommandView
-    {
-        private   readonly string      _strViewIcon  = "Play.Clock.Content.icon_clock.gif";
-        protected readonly IPgViewSite _oViewSite;
-
-		public static Guid Guid { get; } = new Guid("AC48BBDF-C10E-4B03-BBFF-074F0445D372");
-        public Guid      Catagory  => Guid;
-        public string    Banner    => "World Clock";
-        public SKBitmap  Icon      { get; }
-        protected uint   ClockFont { get; }
-
-        protected DocumentClock Document { get; }
-
-        public ViewDigitalClock( IPgViewSite oViewSite, DocumentClock oDocClock ) : 
-            base( oViewSite, oDocClock ) 
-        {
-            Document   = oDocClock ?? throw new ArgumentNullException( "Clock document must not be null." );
-            _oViewSite = oViewSite;
-
-			Icon       = SKImageResourceHelper.GetImageResource( Assembly.GetExecutingAssembly(), _strViewIcon );
-            _fReadOnly = true;
-
-            try {
-                ClockFont = StdUI.FontCache( StdUI.FaceCache( @"C:\Users\hanaz\AppData\Local\Microsoft\Windows\Fonts\seven segment.ttf" ), 16, DPI );
-            } catch( ApplicationException ) {
-                ClockFont = StdFont;
-            }
-
-            _oCacheMan.RenderClxn.Add( ClockFont, StdUI.FontRendererAt( ClockFont ) );
-        }
-
-        protected override void Dispose( bool disposing ) {
-            if( disposing ) {
-                Document.ClockEvent -= OnClockUpdated;
-            }
-            base.Dispose(disposing);
-        }
-
-        protected override bool Initialize() {
-            if( !base.Initialize() ) 
-                return false;
-
-            Document.ClockEvent += OnClockUpdated;
-
-            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Flex ), ClockRow.ColumnTime); // time
-            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Flex ), ClockRow.ColumnZone); // zones.
-            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.None ), ClockRow.ColumnDate); // date
-
-            return true;
-        }
-
-        public object Decorate(IPgViewSite oBaseSite, Guid sGuid) {
-            return null;
-        }
-
-        public override bool Execute(Guid sGuid) {
-            return false;
-        }
-
-        protected override void OnSizeChanged(EventArgs e) {
-            foreach( CacheRow oCRow in _oCacheMan ) {
-                oCRow[0].FontID = ClockFont;
-                oCRow[1].FontID = ClockFont;
-                oCRow[2].FontID = ClockFont;
-                if( oCRow.Row.At % 2 != 1 ) { // odd
-                    foreach( IPgCacheRender oElem in oCRow ) {
-                        oElem.BgColor = new SKColor( 201, 250, 201);
-                    }
-                }
-            }
-
-            //Figure this out later...
-            //foreach( CacheRow oRow in _oCacheMan ) {
-            //    foreach( IPgCacheRender oCache in oRow ) {
-            //        oCache.BgColor = _oStdUI.ColorsStandardAt(StdUIColors.BGNoEditText);
-            //    }
-            //}
-
-            base.OnSizeChanged(e);
-        }
-
-        public void OnClockUpdated() {
-            // This remeasures all the items.
-            OnSizeChanged( new EventArgs() );
         }
     }
 }
