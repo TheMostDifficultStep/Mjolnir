@@ -138,7 +138,7 @@ namespace Play.Clock {
 
                 ClockEvent?.Invoke();
 
-                yield return 10000;
+                yield return 1000;
             }
         }
     }

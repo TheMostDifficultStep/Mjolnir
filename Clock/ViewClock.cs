@@ -55,11 +55,16 @@ namespace Play.Clock {
         }
 
         public bool Load(XmlElement oStream) {
-            return true;
+            return InitNew();
         }
 
         public bool InitNew() {
+            DocClock.ClockEvent += ClockEvent;
             return true;
+        }
+
+        private void ClockEvent() {
+            Invalidate();
         }
 
         public bool Save(XmlDocumentFragment oStream) {
