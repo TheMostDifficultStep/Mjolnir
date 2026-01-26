@@ -132,7 +132,7 @@ namespace Play.Clock {
         protected readonly IPgViewSite   _oViewSite;
         protected readonly IPgViewNotify _oViewNotify;
 
-        protected readonly List<Hands> _rgFace = new();
+        protected readonly List<Hand> _rgFace = new();
 
 		public static Guid Guid { get; } = Guid.Empty;
         public DocumentClock DocClock { get; }
@@ -185,12 +185,12 @@ namespace Play.Clock {
             return true;
         }
 
-        protected abstract class Hands {
+        protected abstract class Hand {
             public readonly SKPoint[] _rgHand;
             public readonly SKColor   _sColor;
             protected int             _iAngleInDegrees;
 
-            public Hands( SKPoint[] rgPoints, SKColor sColor, int iDegrees ) {
+            public Hand( SKPoint[] rgPoints, SKColor sColor, int iDegrees ) {
                 _rgHand          = rgPoints;
                 _sColor          = sColor;
                 _iAngleInDegrees = iDegrees;
@@ -201,17 +201,17 @@ namespace Play.Clock {
             public abstract void SetAngle( DateTime sDT );
         }
 
-        protected class HandHours : Hands {
+        protected class HandHours : Hand {
             public HandHours( SKPoint[] rgPoints, SKColor sColor, int iDegrees ) :
                 base( rgPoints, sColor, iDegrees )
             { }
 
             public override void SetAngle(DateTime dtNow ) {
-                _iAngleInDegrees = dtNow.Hour   * 30 % 360 + ViewAnalogClock.Half( dtNow.Minute );
+                _iAngleInDegrees = dtNow.Hour * 30 % 360 + ViewAnalogClock.Half( dtNow.Minute );
             }
         }
 
-        protected class HandMins : Hands {
+        protected class HandMins : Hand {
             public HandMins( SKPoint[] rgPoints, SKColor sColor, int iDegrees ) :
                 base( rgPoints, sColor, iDegrees )
             { }
@@ -221,7 +221,7 @@ namespace Play.Clock {
             }
         }
 
-        protected class HandSecs : Hands {
+        protected class HandSecs : Hand {
             public HandSecs( SKPoint[] rgPoints, SKColor sColor, int iDegrees ) :
                 base( rgPoints, sColor, iDegrees )
             { }
@@ -333,20 +333,24 @@ namespace Play.Clock {
             SKPaint     sPaint   = new();
             DateTime    dtNow    = DateTime.Now;
 
-          //DateTime    dtNow    = new DateTime( new DateOnly( 2026, 1, 24 ),
-          //                                     new TimeOnly( 8, _iMinute++ % 60 ) );
+            //DateTime    dtNow    = new DateTime( new DateOnly( 2026, 1, 24 ),
+            //                                     new TimeOnly( 8, _iMinute++ % 60 ) );
 
-            foreach( Hands oHand in _rgFace ) {
+            foreach( Hand oHand in _rgFace ) 
+            //Hand oHand = _rgFace[1];
+            {
                 if( oHand is HandSecs && !Focused )
                     break;
 
                 sPaint.Color = oHand._sColor;
                 oHand.SetAngle( dtNow );
 
-                // This overrides the old value and sets up the new
-                // rotation. It's not cumulative thankfully!
-                oCanvas.RotateDegrees( -oHand.AngleInDegrees );
+                // pre-concat means the new matrix is multiplied
+                // in front of the old. So save away our original.
+                oCanvas.Save         ();
+                oCanvas.RotateDegrees( oHand.AngleInDegrees );
                 oCanvas.DrawPolyLine ( oHand._rgHand, sPaint );
+                oCanvas.Restore      ();
             }
         }
 
@@ -370,7 +374,7 @@ namespace Play.Clock {
                 oCanvas.DrawRect ( 0, 0, Width, Height, sPaint );
 
                 oCanvas.Translate( rctDevice.Width / 2, rctDevice.Height / 2 );
-                oCanvas.Scale    ( fScale, -fScale );
+                oCanvas.Scale    ( -fScale, -fScale );
 
                 DrawTicks( oCanvas );
                 DrawHands( oCanvas );
