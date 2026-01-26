@@ -345,8 +345,8 @@ namespace Play.Clock {
                 sPaint.Color = oHand._sColor;
                 oHand.SetAngle( dtNow );
 
-                // pre-concat means the new matrix is multiplied
-                // in front of the old. So save away our original.
+                // Pre-concatenating a to b means a = b × a.
+                // So save away our original.
                 oCanvas.Save         ();
                 oCanvas.RotateDegrees( oHand.AngleInDegrees );
                 oCanvas.DrawPolyLine ( oHand._rgHand, sPaint );
