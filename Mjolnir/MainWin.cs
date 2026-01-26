@@ -1333,8 +1333,10 @@ namespace Mjolnir {
 
             if( _oSelectedWinSite != null ) {
                 sbTitle.Append( " | " );
-                sbTitle.Append( _oSelectedDocSite.FileDir );
-                sbTitle.Append( ' ' );
+                if( _oSelectedDocSite.FileDir.Length > 0 ) {
+                    sbTitle.Append( _oSelectedDocSite.FileDir );
+                    sbTitle.Append( ' ' );
+                }
                 sbTitle.Append( _oSelectedWinSite.Title );
 
                 //this.Icon = _oSelectedWinSite.Icon;
