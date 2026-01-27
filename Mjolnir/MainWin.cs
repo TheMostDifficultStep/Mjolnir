@@ -774,7 +774,7 @@ namespace Mjolnir {
             oSettingsMenu.DropDownItems.Add(new ToolStripMenuItem("Save",       BitmapCreateFromChar( "\xe105" ), new EventHandler(this.OnSessionSave  )));
             oSettingsMenu.DropDownItems.Add(new ToolStripMenuItem("Save As...", BitmapCreateFromChar( "\xe159" ), new EventHandler(this.OnSessionSaveAs)));
             oSettingsMenu.DropDownItems.Add(new ToolStripSeparator() );
-            oSettingsMenu.DropDownItems.Add(new ToolStripMenuItem("Clock!",          BitmapCreateFromChar( "\xE1de" ), new EventHandler(this.OnSessionOpenClock )));
+            oSettingsMenu.DropDownItems.Add(new ToolStripMenuItem("Clock!",          BitmapCreateFromChar( "\xe2ad" ), new EventHandler(this.OnSessionOpenClock )));
             oSettingsMenu.DropDownItems.Add(new ToolStripMenuItem("Alerts!",         BitmapCreateFromChar( "\xE1de" ), new EventHandler(this.OnSessionOpenAlerts )));
 //          oSettingsMenu.DropDownItems.Add(new ToolStripMenuItem("Search Results!", BitmapCreateFromChar( "\xE179" ), new EventHandler(this.OnSessionOpenResults)));
             oSettingsMenu.DropDownItems.Add(new ToolStripMenuItem("Recent List!",    BitmapCreateFromChar( "\xE1a5" ), new EventHandler(this.OnSessionOpenRecents)));
