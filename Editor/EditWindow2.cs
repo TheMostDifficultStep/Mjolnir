@@ -209,8 +209,8 @@ namespace Play.Edit {
     /// This interface is supplied by the main program as a service.
     /// </summary>
     public interface IPgStandardUI2 : IPgStandardUI {
-        ushort        FaceCache       ( string strFilePath ); // Enter the requested face
-        uint          FontCache       ( ushort usFaceID, uint uiHeightInPoints, SKPoint skResolution );
+        ushort        FaceCacheNew       ( string strFilePath ); // Enter the requested face
+        uint          FontCacheNew       ( ushort usFaceID, uint uiHeightInPoints, SKPoint skResolution );
         IPgFontRender FontRendererAt  ( uint   uiFontID );
     }
 
@@ -480,8 +480,8 @@ namespace Play.Edit {
             }
             DPI = new SKPoint( oInfo.pntDpi.X, oInfo.pntDpi.Y );
 
-            uint uiStdText = _oStdUI.FontCache( _oStdUI.FaceCache( @"C:\windows\fonts\consola.ttf"  ), 12, DPI );
-            uint uiStdUI   = _oStdUI.FontCache( _oStdUI.FaceCache( @"C:\windows\fonts\seguisym.ttf" ), 12, DPI );
+            uint uiStdText = _oStdUI.FontCacheNew( _oStdUI.FaceCacheNew( @"C:\windows\fonts\consola.ttf"  ), 12, DPI );
+            uint uiStdUI   = _oStdUI.FontCacheNew( _oStdUI.FaceCacheNew( @"C:\windows\fonts\seguisym.ttf" ), 12, DPI );
           //uint uiEmojID  = _oStdUI.FontCache( _oStdUI.FaceCache( @"C:\Users\Frodo\AppData\Local\Microsoft\Windows\Fonts\NotoEmoji-Regular.ttf" ), 12, sResolution );
 
 			_oCacheMan = CreateCacheManager( uiStdText );
@@ -2813,7 +2813,7 @@ namespace Play.Edit {
         {
 			ToolSelect = 2; // BUG: change this to an enum in the future.
 
-            uint uiStdUI = _oStdUI.FontCache( _oStdUI.FaceCache( @"C:\windows\fonts\seguisym.ttf" ), 12, DPI );
+            uint uiStdUI = _oStdUI.FontCacheNew( _oStdUI.FaceCacheNew( @"C:\windows\fonts\seguisym.ttf" ), 12, DPI );
 
             IPgFontRender oRender = _oStdUI.FontRendererAt( uiStdUI );
             

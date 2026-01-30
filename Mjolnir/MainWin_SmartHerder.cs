@@ -556,6 +556,7 @@ namespace Mjolnir {
             }
         }
 
+        #if undead
         // https://stackoverflow.com/questions/45077047/rotate-photo-with-skiasharp
         /// <summary>
         /// Going to try to add this backwards compat to my new herder implementation.
@@ -621,6 +622,7 @@ namespace Mjolnir {
                 // Probably rectangle inside out...
             }
         }
+        #endif
 
         /// <summary>
         /// Bring to front the adornment that matches the view at the site given.

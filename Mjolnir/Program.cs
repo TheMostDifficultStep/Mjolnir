@@ -729,7 +729,7 @@ namespace Mjolnir {
 				        }
                     }
                     foreach( Line oLine in docFonts ) {
-                        FaceCache( oLine.ToString() );
+                        FaceCacheNew( oLine.ToString() );
                     }
                 }
             } catch( Exception oEx ) {
@@ -1942,11 +1942,11 @@ namespace Mjolnir {
         /// </summary>
         /// <param name="strFontFace">path to the font to use.</param>
         /// <returns>FaceID</returns>
-        public UInt16 FaceCache( string strFontFace ) {
+        public UInt16 FaceCacheNew( string strFontFace ) {
             return _oFTManager.FaceCache( strFontFace );
         }
 
-        public uint FontCache( ushort uiFace, uint uiHeightInPoints, SKPoint skResolution ) {
+        public uint FontCacheNew( ushort uiFace, uint uiHeightInPoints, SKPoint skResolution ) {
             return _oFTManager.FaceCacheSize( uiFace, uiHeightInPoints, skResolution );
         }
 
@@ -1983,7 +1983,11 @@ namespace Mjolnir {
         public SKColor GrammarTextColor( int i ) {
             return _rgGrammarColors[i]._sColor;
         }
-	} // End class
+
+        uint IPgStandardUI.StdFont(StdUIFonts iFont) {
+            throw new NotImplementedException();
+        }
+    } // End class
 
 	/// <summary>
 	/// This is a worker enumerator that can be used to generate Morse code from a text file.

@@ -19,7 +19,7 @@ namespace Monitor {
         public SKBitmap Icon => null;
 
 
-        protected override ushort StdFace => StdUI.FaceCache(@"C:\Users\Frodo\AppData\Local\Microsoft\Windows\Fonts\PressStart2P-Regular.ttf");
+        protected override ushort StdFace => StdUI.FaceCacheNew(@"C:\Users\Frodo\AppData\Local\Microsoft\Windows\Fonts\PressStart2P-Regular.ttf");
         protected BasicDocument DocMain { get; }
 
         protected int _iBasicColumnTop = -1;

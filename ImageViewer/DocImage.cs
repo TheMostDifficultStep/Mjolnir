@@ -210,7 +210,7 @@ namespace Play.ImageViewer {
             SKPoint sRez     = new SKPoint( 96, 96 ); 
             uint    uiHeight = (uint)(szExtent.Height / sRez.Y * 72 * Scale );
 
-            FontID = oStdUI.FontCache( FaceID, uiHeight, sRez );
+            FontID = oStdUI.FontCacheNew( FaceID, uiHeight, sRez );
 
             CacheElem.Measure( oStdUI.FontRendererAt( FontID ) );
             OnSize();
@@ -278,7 +278,7 @@ namespace Play.ImageViewer {
                 return false;
 
             try {
-                StdFace = _oStdUI.FaceCache(  @"C:\windows\fonts\impact.ttf" );
+                StdFace = _oStdUI.FaceCacheNew(  @"C:\windows\fonts\impact.ttf" );
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( InvalidOperationException ),
                                     typeof( NullReferenceException ),

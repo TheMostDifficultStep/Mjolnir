@@ -381,14 +381,14 @@ namespace Play.Forms {
             DocForms2    = (IPgFormInterface)oDocForms;
             StdUI        = (IPgStandardUI2)oSiteView.Host.Services;
 
-            StdFace = StdUI.FaceCache(@"C:\windows\fonts\consola.ttf");
+            StdFace = StdUI.FaceCacheNew(@"C:\windows\fonts\consola.ttf");
 
             IPgMainWindow.PgDisplayInfo oInfo = new IPgMainWindow.PgDisplayInfo();
             if( _oSiteView.Host.TopWindow is IPgMainWindow oMainWin ) {
                 oInfo = oMainWin.MainDisplayInfo;
             }
 
-            StdFont = StdUI.FontCache( StdFace, StdFontSize, oInfo.pntDpi );
+            StdFont = StdUI.FontCacheNew( StdFace, StdFontSize, oInfo.pntDpi );
 
             Array.Sort<Keys>(_rgHandledKeys);
         }
@@ -1129,7 +1129,7 @@ namespace Play.Forms {
 			PgSite = oSiteBase ?? throw new ArgumentNullException( "Site for form control must not be null" );
 
  			StdUI      = PgSite.Host.Services as IPgStandardUI2 ?? throw new ArgumentException( "Parent view must provide IPgStandardUI service" );
-            _uiStdText = StdUI.FontCache( StdUI.FaceCache( @"C:\windows\fonts\consola.ttf" ), 12, new SKPoint( 96, 96 ) );
+            _uiStdText = StdUI.FontCacheNew( StdUI.FaceCacheNew( @"C:\windows\fonts\consola.ttf" ), 12, new SKPoint( 96, 96 ) );
 
 			Cache = new FTCacheLine( new TextLine( 0, "hello" ) );
 			Cache.Measure( StdUI.FontRendererAt( _uiStdText ) );

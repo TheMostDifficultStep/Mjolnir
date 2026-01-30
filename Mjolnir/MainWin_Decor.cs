@@ -254,7 +254,7 @@ namespace Mjolnir {
             // This will be needed for the new smart herder implementation
             // but just leave it for now.
             IPgStandardUI2 oStdUI   = (IPgStandardUI2)Services;
-            uint           uStdFont = oStdUI.FontCache( oStdUI.FaceCache(@"C:\windows\fonts\consola.ttf"), 
+            uint           uStdFont = oStdUI.FontCacheNew( oStdUI.FaceCacheNew(@"C:\windows\fonts\consola.ttf"), 
                                                         11, MainDisplayInfo.pntDpi );
             IPgFontRender  oRender  = oStdUI.FontRendererAt( uStdFont );
 

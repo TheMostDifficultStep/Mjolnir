@@ -134,8 +134,8 @@ namespace Play.Controls {
             SKPoint pntDPI = new SKPoint( oInfo.pntDpi.X, oInfo.pntDpi.Y );
 
             // BUG: This is a hot mess.
-            StdFace = _oStdUI.FaceCache(@"C:\windows\fonts\consola.ttf");
-            StdFont = _oStdUI.FontCache( StdFace, 12, pntDPI ); 
+            StdFace = _oStdUI.FaceCacheNew(@"C:\windows\fonts\consola.ttf");
+            StdFont = _oStdUI.FontCacheNew( StdFace, 12, pntDPI ); 
 
             _oTextLine  = new TextLine( 0, "-no selection-" );
             _oCacheLine = new FTCacheWrap( _oTextLine );

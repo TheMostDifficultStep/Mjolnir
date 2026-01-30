@@ -110,7 +110,7 @@ namespace Play.Forms {
                     oInfo = oMainWin.MainDisplayInfo;
                 }
 
-                _uStdFont = _oStdUI.FontCache(_oStdUI.FaceCache(@"C:\windows\fonts\consola.ttf"), 10, oInfo.pntDpi );
+                _uStdFont = _oStdUI.FontCacheNew(_oStdUI.FaceCacheNew(@"C:\windows\fonts\consola.ttf"), 10, oInfo.pntDpi );
 
 			    foreach( Line oLine in Document ) {
                     if( AcceptItem( oLine ) ) {

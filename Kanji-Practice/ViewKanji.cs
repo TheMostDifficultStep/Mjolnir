@@ -85,7 +85,7 @@ namespace Kanji_Practice {
         public ViewKanjiProps( IPgViewSite oSite, KanjiDocument oKanjiDoc ) : 
             base( oSite, oKanjiDoc.Properties ) 
         {
-            BigFont = StdUI.FontCache( StdFace, 30, DPI );
+            BigFont = StdUI.FontCacheNew( StdFace, 30, DPI );
 
             ViewScratch = new ViewScratchPad( new WinSlot( this ), oKanjiDoc.ScratchPad );
             ViewMeaning = new EditWindow2   ( new WinSlot( this ), oKanjiDoc.Meanings ) { ScrollVisible = false };

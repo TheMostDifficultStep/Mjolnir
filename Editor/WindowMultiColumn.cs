@@ -228,8 +228,8 @@ namespace Play.Edit {
         public IPgParent Services  => Parentage.Services;
         public SKPoint   DPI { get; protected set; } 
         protected IPgStandardUI2 StdUI => _oStdUI;
-        protected virtual ushort StdFace => StdUI.FaceCache(@"C:\windows\fonts\seguiemj.ttf"); // consola
-        protected virtual uint   StdFont => StdUI.FontCache( StdFace, 12, InitializeDPI() );
+        protected virtual ushort StdFace => StdUI.FaceCacheNew(@"C:\windows\fonts\seguiemj.ttf"); // consola
+        protected virtual uint   StdFont => StdUI.FontCacheNew( StdFace, 12, InitializeDPI() );
 
 
         public uint CheckColumnWidth {get; } // BUG: Now that flex works, we don't need this...

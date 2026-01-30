@@ -201,7 +201,7 @@ namespace Play.ImageViewer {
                 oInfo = oMainWin.MainDisplayInfo;
             }
 
-            _uiStdFont = _oStdUI.FontCache( _oStdUI.FaceCache( @"C:\windows\fonts\consola.ttf" ), 12, oInfo.pntDpi );
+            _uiStdFont = _oStdUI.FontCacheNew( _oStdUI.FaceCacheNew( @"C:\windows\fonts\consola.ttf" ), 12, oInfo.pntDpi );
             //_oStdUI.FaceCache(@"C:\Windows\Fonts\UDDigiKyokashoN-R.ttc"); // BUG: Let's add this at program level for fallback.
 
             OnTextLoaded(); // the text is available, the thumbs will come along later.

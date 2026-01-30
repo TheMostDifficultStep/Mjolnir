@@ -529,6 +529,15 @@ namespace Play.Interfaces.Embedding {
         Max
     };
 
+    /// <summary>
+    /// This will be the font chosen from a particular face for the given
+    /// main window.
+    /// </summary>
+    public enum StdUIFonts : int {
+        Decor = 0,
+        Text,
+    }
+
     // A copy of popular keys from windows forms.
     public enum CommandKey : int {
         Tab = 9,
@@ -559,6 +568,7 @@ namespace Play.Interfaces.Embedding {
         uint     Space { get; }
         SKColor  ColorsStandardAt( StdUIColors eColor );
         SKColor  GrammarTextColor( int iIndex ); // Index to the master grammar indexed colors.
+        uint     StdFont( StdUIFonts iFont );
 	}
 
     public interface IPgViewNotify  {

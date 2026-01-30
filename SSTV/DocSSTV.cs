@@ -1222,7 +1222,7 @@ namespace Play.SSTV {
 
             // Since we flex, do all this before layout children.
             uint      uiPoints = (uint)( uiPixHeight * iScreenPixPerInch / skEMsPerInch.Y );
-            uint      uiFontID = _oStdUI.FontCache( TxBitmapComp.StdFace, uiPoints, skEMsPerInch );
+            uint      uiFontID = _oStdUI.FontCacheNew( TxBitmapComp.StdFace, uiPoints, skEMsPerInch );
             oSingle.Cache.Measure( _oStdUI.FontRendererAt( uiFontID ) );
 
             oHoriz.Add( oSingle );
@@ -1263,7 +1263,7 @@ namespace Play.SSTV {
             uint                 uiMsgHeight = (uint)((double)oMode.Resolution.Height * dblFractionalHeight );
 
             uint      uiPoints = (uint)( uiMsgHeight * iScreenPixPerInch / skEMsPerInch.Y );
-            uint      uiFontID = _oStdUI.FontCache( TxBitmapComp.StdFace, uiPoints, skEMsPerInch );
+            uint      uiFontID = _oStdUI.FontCacheNew( TxBitmapComp.StdFace, uiPoints, skEMsPerInch );
             oText.Cache.Measure( _oStdUI.FontRendererAt( uiFontID ) );
 
             LayoutImage oImage = new LayoutImage( TxImageList.Bitmap, LayoutRect.CSS.None ) { Stretch = true };
@@ -1314,7 +1314,7 @@ namespace Play.SSTV {
 
             // Since we flex, do all this before layout children.
             uint      uiPoints = (uint)( uiPixHeight * iScreenPixPerInch / skEMsPerInch.Y );
-            uint      uiFontID = _oStdUI.FontCache( TxBitmapComp.StdFace, uiPoints, skEMsPerInch );
+            uint      uiFontID = _oStdUI.FontCacheNew( TxBitmapComp.StdFace, uiPoints, skEMsPerInch );
             oSingle.Cache.Measure( _oStdUI.FontRendererAt( uiFontID ) );
             oSingle.Padding.SetRect( 5, 0, 5, 0 ); // BUG: Doesn't seem to work for text.
 
