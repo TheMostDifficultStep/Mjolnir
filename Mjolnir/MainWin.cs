@@ -48,7 +48,6 @@ namespace Mjolnir {
 		IPgMainWindow,
         IPgShutdownNotify
     {
-		public SolidBrush     ToolsBrushActive { get; } = new SolidBrush( Color.FromArgb( 255, 112, 165, 234 ) ) ?? throw new InvalidOperationException("Main Window could not create tools color brush."); 
         public IPgStandardUI2 StdUI { get; }
 
         readonly SmartGrab _rcFrame;

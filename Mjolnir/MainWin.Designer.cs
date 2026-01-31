@@ -13,13 +13,11 @@ namespace Mjolnir {
         /// </summary>
         /// <param name="disposing">true if managed resources should be disposed; otherwise, false.</param>
         protected override void Dispose(bool disposing) {
-            if (disposing) {
+            if( disposing ) {
                 Document.EventUpdateTitles -= UpdateAllTitlesFor;
-                if(components != null) {
+                if( components != null ) {
                     components.Dispose();
                 }
-			  //DecorFont       .Dispose();
-                ToolsBrushActive.Dispose();
             }
 
             base.Dispose(disposing);
