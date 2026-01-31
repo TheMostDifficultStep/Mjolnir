@@ -48,7 +48,6 @@ namespace Mjolnir {
 		IPgMainWindow,
         IPgShutdownNotify
     {
-      //public Font           DecorFont        { get; } = new Font( "Segoe UI Symbol", 12 ) ?? throw new InvalidOperationException("Main Window could not load Decor font."); 
 		public SolidBrush     ToolsBrushActive { get; } = new SolidBrush( Color.FromArgb( 255, 112, 165, 234 ) ) ?? throw new InvalidOperationException("Main Window could not create tools color brush."); 
         public IPgStandardUI2 StdUI { get; }
 

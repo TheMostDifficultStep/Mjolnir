@@ -480,9 +480,8 @@ namespace Play.Edit {
             }
             DPI = new SKPoint( oInfo.pntDpi.X, oInfo.pntDpi.Y );
 
-            uint uiStdText = _oStdUI.FontCacheNew( _oStdUI.FaceCacheNew( @"C:\windows\fonts\consola.ttf"  ), 12, DPI );
-            uint uiStdUI   = _oStdUI.FontCacheNew( _oStdUI.FaceCacheNew( @"C:\windows\fonts\seguisym.ttf" ), 12, DPI );
-          //uint uiEmojID  = _oStdUI.FontCache( _oStdUI.FaceCache( @"C:\Users\Frodo\AppData\Local\Microsoft\Windows\Fonts\NotoEmoji-Regular.ttf" ), 12, sResolution );
+            uint uiStdText = _oStdUI.StdFontAt( StdUIFonts.Text );
+            uint uiStdUI   = _oStdUI.StdFontAt( StdUIFonts.Symbols );
 
 			_oCacheMan = CreateCacheManager( uiStdText );
         }
@@ -2813,9 +2812,7 @@ namespace Play.Edit {
         {
 			ToolSelect = 2; // BUG: change this to an enum in the future.
 
-            uint uiStdUI = _oStdUI.FontCacheNew( _oStdUI.FaceCacheNew( @"C:\windows\fonts\seguisym.ttf" ), 12, DPI );
-
-            IPgFontRender oRender = _oStdUI.FontRendererAt( uiStdUI );
+            IPgFontRender oRender = _oStdUI.FontRendererAt( _oStdUI.StdFontAt( StdUIFonts.Symbols ) );
             
             _oCheque = oRender.GetGlyph(0x2714); 
 		}

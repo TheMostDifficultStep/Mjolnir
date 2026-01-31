@@ -536,6 +536,7 @@ namespace Play.Interfaces.Embedding {
     public enum StdUIFonts : int {
         Decor = 0,
         Text,
+        Symbols,
     }
 
     // A copy of popular keys from windows forms.
@@ -568,7 +569,7 @@ namespace Play.Interfaces.Embedding {
         uint     Space { get; }
         SKColor  ColorsStandardAt( StdUIColors eColor );
         SKColor  GrammarTextColor( int iIndex ); // Index to the master grammar indexed colors.
-        uint     StdFont( StdUIFonts iFont );
+        uint     StdFontAt( StdUIFonts iFont );
 	}
 
     public interface IPgViewNotify  {

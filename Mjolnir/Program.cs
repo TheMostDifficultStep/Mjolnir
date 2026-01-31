@@ -1,3 +1,4 @@
+using OpenTK.Compute.OpenCL;
 using Play.Clock;
 using Play.Edit;
 using Play.Integration;
@@ -213,9 +214,10 @@ namespace Mjolnir {
 
         List<IPgController2> Controllers { get; }  = new List<IPgController2>();
 
-        readonly Dictionary<string, SKColor> _rgDefColors     = new Dictionary<string, SKColor>(StringComparer.OrdinalIgnoreCase);
-        readonly SKColor[]                   _rgStdColors     = new SKColor[(int)StdUIColors.Max ];
-        readonly List<ColorMap>              _rgGrammarColors = new List<ColorMap>();
+        readonly Dictionary<string, SKColor>  _rgDefColors     = new Dictionary<string, SKColor>(StringComparer.OrdinalIgnoreCase);
+        readonly SKColor[]                    _rgStdColors     = new SKColor[(int)StdUIColors.Max ];
+        readonly List<ColorMap>               _rgGrammarColors = new List<ColorMap>();
+        readonly Dictionary<StdUIFonts, uint> _rgStdFonts      = new();
 
         readonly Dictionary<string, ExtensionMap> _rgExtensionMap  = new Dictionary<string, ExtensionMap>();
         readonly Dictionary<string, LangSlot>     _rgLanguageSite  = new Dictionary<string, LangSlot>();    // Load on demand
@@ -889,6 +891,7 @@ namespace Mjolnir {
             try {
                 MainWindow = new MainWin(this);
                 MainWindow.Initialize(xmlConfig);
+                InitializeFonts( xmlConfig );
             } catch( Exception oEx ) {
 				if( rgErrors.IsUnhandled( oEx ) )
 					throw;
@@ -1591,6 +1594,21 @@ namespace Mjolnir {
             //Controllers.Add( new Scanner           .ScannerController() );
         }
 
+        /// <summary>
+        /// Another reason that the STDUI needs to come from the main window....
+        /// </summary>
+        /// <param name="xmlConfig">Fonts will come from the config.</param>
+        private void InitializeFonts( XmlDocument xmlConfig ) {
+            SKPoint sDPI = MainWindow.MainDisplayInfo.pntDpi;
+
+            _rgStdFonts.Add( StdUIFonts.Text,    FontCacheNew( FaceCacheNew( @"C:\windows\fonts\consola.ttf"  ), 12, sDPI ) );
+            _rgStdFonts.Add( StdUIFonts.Symbols, FontCacheNew( FaceCacheNew( @"C:\windows\fonts\seguisym.ttf" ), 12, sDPI ) ); // seguiemj also! >_<;;
+
+            //Font fallback...
+           //uint uiEmojID  = _oStdUI.FontCache( _oStdUI.FaceCache( @"C:\Users\Frodo\AppData\Local\Microsoft\Windows\Fonts\NotoEmoji-Regular.ttf" ), 12, sResolution );
+
+        }
+
         protected class EmbeddedGrammars {
             public EmbeddedGrammars( string strName, string strPlace ) {
                 _strName  = strName;
@@ -1984,8 +2002,8 @@ namespace Mjolnir {
             return _rgGrammarColors[i]._sColor;
         }
 
-        uint IPgStandardUI.StdFont(StdUIFonts iFont) {
-            throw new NotImplementedException();
+        uint IPgStandardUI.StdFontAt( StdUIFonts iFont ) {
+            return _rgStdFonts[iFont];
         }
     } // End class
 
