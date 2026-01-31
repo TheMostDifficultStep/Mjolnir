@@ -139,7 +139,8 @@ namespace Play.MusicWalker {
 				Type[] rgErrors = { typeof( FormatException ),
 									typeof( FileNotFoundException ),
 									typeof( InvalidOperationException ),
-									typeof( NullReferenceException ) };
+									typeof( NullReferenceException ),
+									typeof( DirectoryNotFoundException ) };
 				if( rgErrors.IsUnhandled( oEx ) )
 					throw;
 
