@@ -132,7 +132,6 @@ namespace Play.Controls {
             }
             SKPoint pntDPI = new SKPoint( oInfo.pntDpi.X, oInfo.pntDpi.Y );
 
-            // BUG: This is a hot mess.
             StdFont = _oStdUI.StdFontAt( StdUIFaces.Text ); 
 
             _oTextLine  = new TextLine( 0, "-no selection-" );
