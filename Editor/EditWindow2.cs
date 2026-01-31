@@ -209,9 +209,9 @@ namespace Play.Edit {
     /// This interface is supplied by the main program as a service.
     /// </summary>
     public interface IPgStandardUI2 : IPgStandardUI {
-        ushort        FaceCacheNew       ( string strFilePath ); // Enter the requested face
-        uint          FontCacheNew       ( ushort usFaceID, uint uiHeightInPoints, SKPoint skResolution );
-        IPgFontRender FontRendererAt  ( uint   uiFontID );
+        ushort        FaceCacheNew  ( string strFilePath ); // Enter the requested face
+        uint          FontCacheNew  ( ushort usFaceID, uint uiHeightInPoints, SKPoint skResolution );
+        IPgFontRender FontRendererAt( uint   uiFontID );
     }
 
     public abstract class DataStream2<T> : DataStream<T> {
