@@ -201,8 +201,7 @@ namespace Play.ImageViewer {
                 oInfo = oMainWin.MainDisplayInfo;
             }
 
-            _uiStdFont = _oStdUI.FontCacheNew( _oStdUI.FaceCacheNew( @"C:\windows\fonts\consola.ttf" ), 12, oInfo.pntDpi );
-            //_oStdUI.FaceCache(@"C:\Windows\Fonts\UDDigiKyokashoN-R.ttc"); // BUG: Let's add this at program level for fallback.
+            _uiStdFont = _oStdUI.StdFontAt( StdUIFaces.Text );
 
             OnTextLoaded(); // the text is available, the thumbs will come along later.
             // BUG: But our size isn't set in our decor slot. So active element scroll doesn't work.

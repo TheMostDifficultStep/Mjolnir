@@ -569,8 +569,8 @@ namespace Play.Interfaces.Embedding {
         uint     Space { get; } // Units? O.o;;;
         SKColor  ColorsStandardAt( StdUIColors eColor );
         SKColor  GrammarTextColor( int iIndex ); // Index to the master grammar indexed colors.
-        uint     StdFontAt( StdUIFaces eFace );
-        UInt16   StdFaceAt( StdUIFaces eFace );
+        uint     StdFontAt( StdUIFaces eFace );  // standard Face and size chosen.
+        UInt16   StdFaceAt( StdUIFaces eFace );  // only the standard Face. User choses size (later).
 	}
 
     public interface IPgViewNotify  {

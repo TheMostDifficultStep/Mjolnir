@@ -278,7 +278,7 @@ namespace Play.ImageViewer {
                 return false;
 
             try {
-                StdFace = _oStdUI.FaceCacheNew(  @"C:\windows\fonts\impact.ttf" );
+                StdFace = _oStdUI.FaceCacheNew( @"C:\windows\fonts\impact.ttf" );
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( InvalidOperationException ),
                                     typeof( NullReferenceException ),

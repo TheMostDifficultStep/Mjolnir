@@ -44,7 +44,6 @@ namespace Play.Controls {
         protected readonly IPgViewSite    _oSiteView;
         protected readonly IPgViewNotify  _oViewEvents;
 		protected readonly IPgStandardUI2 _oStdUI;
-        protected ushort StdFace { get; }
         protected uint   StdFont { get; }
 
 
@@ -134,8 +133,7 @@ namespace Play.Controls {
             SKPoint pntDPI = new SKPoint( oInfo.pntDpi.X, oInfo.pntDpi.Y );
 
             // BUG: This is a hot mess.
-            StdFace = _oStdUI.FaceCacheNew(@"C:\windows\fonts\consola.ttf");
-            StdFont = _oStdUI.FontCacheNew( StdFace, 12, pntDPI ); 
+            StdFont = _oStdUI.StdFontAt( StdUIFaces.Text ); 
 
             _oTextLine  = new TextLine( 0, "-no selection-" );
             _oCacheLine = new FTCacheWrap( _oTextLine );

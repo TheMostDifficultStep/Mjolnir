@@ -1123,16 +1123,13 @@ namespace Play.Forms {
 
 		protected FTCacheLine Cache  { get; }
 
-		protected uint _uiStdText; // Font index;
-
 		public ContextMenuTest( IPgBaseSite oSiteBase ) {
 			PgSite = oSiteBase ?? throw new ArgumentNullException( "Site for form control must not be null" );
 
- 			StdUI      = PgSite.Host.Services as IPgStandardUI2 ?? throw new ArgumentException( "Parent view must provide IPgStandardUI service" );
-            _uiStdText = StdUI.FontCacheNew( StdUI.FaceCacheNew( @"C:\windows\fonts\consola.ttf" ), 12, new SKPoint( 96, 96 ) );
+ 			StdUI  = PgSite.Host.Services as IPgStandardUI2 ?? throw new ArgumentException( "Parent view must provide IPgStandardUI service" );
 
 			Cache = new FTCacheLine( new TextLine( 0, "hello" ) );
-			Cache.Measure( StdUI.FontRendererAt( _uiStdText ) );
+			Cache.Measure( StdUI.FontRendererAt( StdUI.StdFontAt( StdUIFaces.Text ) ) );
 			Cache.OnChangeSize( 300 );
 		}
 

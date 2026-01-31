@@ -891,8 +891,8 @@ namespace Mjolnir {
             //      Even better. At least show a window with the error.
             try {
                 MainWindow = new MainWin(this);
-                MainWindow.Initialize(xmlConfig);
                 InitializeFonts( xmlConfig );
+                MainWindow.Initialize(xmlConfig);
             } catch( Exception oEx ) {
 				if( rgErrors.IsUnhandled( oEx ) )
 					throw;
@@ -1603,14 +1603,17 @@ namespace Mjolnir {
             SKPoint sDPI = MainWindow.MainDisplayInfo.pntDpi;
 
             _rgStdFaces.Add( StdUIFaces.Text,    FaceCacheNew( @"C:\windows\fonts\consola.ttf"  ) );
+            _rgStdFaces.Add( StdUIFaces.Decor,   StdFaceAt   ( StdUIFaces.Text ) ); // Currently the same.
             _rgStdFaces.Add( StdUIFaces.Symbols, FaceCacheNew( @"C:\windows\fonts\seguisym.ttf" ) ); // seguiemj maybe. might need to check.
 
             foreach( KeyValuePair<StdUIFaces, UInt16> oPair in _rgStdFaces ) {
                 _rgStdFonts.Add( oPair.Key, FontCacheNew( oPair.Value, 12, sDPI ) );
             }
 
+            FaceCacheNew(@"C:\Windows\Fonts\UDDigiKyokashoN-R.ttc"); // Add this at program level for fallback.
+
             //Font fallback?
-           //uint uiEmojID  = _oStdUI.FontCache( _oStdUI.FaceCache( @"C:\Users\Frodo\AppData\Local\Microsoft\Windows\Fonts\NotoEmoji-Regular.ttf" ), 12, sResolution );
+            //FaceCacheNew( @"C:\Users\Frodo\AppData\Local\Microsoft\Windows\Fonts\NotoEmoji-Regular.ttf" ) );
         }
 
         protected class EmbeddedGrammars {
@@ -1964,6 +1967,7 @@ namespace Mjolnir {
         /// </summary>
         /// <param name="strFontFace">path to the font to use.</param>
         /// <returns>FaceID</returns>
+        /// <exception cref="ApplicationException" />
         public UInt16 FaceCacheNew( string strFontFace ) {
             return _oFTManager.FaceCache( strFontFace );
         }
@@ -2009,7 +2013,7 @@ namespace Mjolnir {
         uint IPgStandardUI.StdFontAt( StdUIFaces eFont ) {
             return _rgStdFonts[eFont];
         }
-        UInt16 IPgStandardUI.StdFaceAt( StdUIFaces eFont ) {
+        public UInt16 StdFaceAt( StdUIFaces eFont ) {
             return _rgStdFaces[eFont];
         }
     } // End class
