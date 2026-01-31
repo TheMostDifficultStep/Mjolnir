@@ -1,20 +1,21 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Collections;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Diagnostics;
+using System.Drawing;
+using System.IO;
 using System.Windows.Forms;
 using System.Xml;
-using System.Diagnostics;
-using System.IO;
-using System.Drawing;
-using System.Collections.ObjectModel;
 
 using SkiaSharp;
 using SkiaSharp.Views.Desktop;
 
-using Play.Interfaces.Embedding;
-using Play.Rectangles;
 using Play.Controls;
+using Play.Interfaces.Embedding;
 using Play.Parse;
+using Play.Rectangles;
+
 
 namespace Play.Edit {
     public interface IPgDocTraits<T> {
@@ -228,9 +229,6 @@ namespace Play.Edit {
         public IPgParent Services  => Parentage.Services;
         public SKPoint   DPI { get; protected set; } 
         protected IPgStandardUI2 StdUI => _oStdUI;
-        protected virtual ushort StdFace => StdUI.FaceCacheNew(@"C:\windows\fonts\seguiemj.ttf"); // consola
-        protected virtual uint   StdFont => StdUI.FontCacheNew( StdFace, 12, InitializeDPI() );
-
 
         public uint CheckColumnWidth {get; } // BUG: Now that flex works, we don't need this...
 
@@ -348,7 +346,7 @@ namespace Play.Edit {
             /// Typically we just need one FONT. Whatever face and size for standard,
             /// anything else you'll need more plumbing anyway.
             /// </summary>
-            public uint FontStd => _oHost.StdFont;
+            public uint FontStd => _oHost._oStdUI.StdFontAt( StdUIFaces.Text );
             public void DoLayout() { _oHost._rgLayout.LayoutChildren(); }
         }
 
@@ -400,6 +398,8 @@ namespace Play.Edit {
 
             Parent = _oSiteView.Host as Control;
         }
+
+        protected virtual uint StdFont => StdUI.StdFontAt( StdUIFaces.Text );
 
         protected virtual CacheMultiBase CreateCacheMan() {
             //uint uiStdText  = _oStdUI.FontCache( StdFace, 12, GetDPI() );

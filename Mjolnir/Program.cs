@@ -214,10 +214,11 @@ namespace Mjolnir {
 
         List<IPgController2> Controllers { get; }  = new List<IPgController2>();
 
-        readonly Dictionary<string, SKColor>  _rgDefColors     = new Dictionary<string, SKColor>(StringComparer.OrdinalIgnoreCase);
-        readonly SKColor[]                    _rgStdColors     = new SKColor[(int)StdUIColors.Max ];
-        readonly List<ColorMap>               _rgGrammarColors = new List<ColorMap>();
-        readonly Dictionary<StdUIFonts, uint> _rgStdFonts      = new();
+        readonly Dictionary<string, SKColor>    _rgDefColors     = new Dictionary<string, SKColor>(StringComparer.OrdinalIgnoreCase);
+        readonly SKColor[]                      _rgStdColors     = new SKColor[(int)StdUIColors.Max ];
+        readonly List<ColorMap>                 _rgGrammarColors = new List<ColorMap>();
+        readonly Dictionary<StdUIFaces, uint>   _rgStdFonts      = new();
+        readonly Dictionary<StdUIFaces, UInt16> _rgStdFaces      = new();
 
         readonly Dictionary<string, ExtensionMap> _rgExtensionMap  = new Dictionary<string, ExtensionMap>();
         readonly Dictionary<string, LangSlot>     _rgLanguageSite  = new Dictionary<string, LangSlot>();    // Load on demand
@@ -1601,12 +1602,15 @@ namespace Mjolnir {
         private void InitializeFonts( XmlDocument xmlConfig ) {
             SKPoint sDPI = MainWindow.MainDisplayInfo.pntDpi;
 
-            _rgStdFonts.Add( StdUIFonts.Text,    FontCacheNew( FaceCacheNew( @"C:\windows\fonts\consola.ttf"  ), 12, sDPI ) );
-            _rgStdFonts.Add( StdUIFonts.Symbols, FontCacheNew( FaceCacheNew( @"C:\windows\fonts\seguisym.ttf" ), 12, sDPI ) ); // seguiemj also! >_<;;
+            _rgStdFaces.Add( StdUIFaces.Text,    FaceCacheNew( @"C:\windows\fonts\consola.ttf"  ) );
+            _rgStdFaces.Add( StdUIFaces.Symbols, FaceCacheNew( @"C:\windows\fonts\seguisym.ttf" ) ); // seguiemj maybe. might need to check.
 
-            //Font fallback...
+            foreach( KeyValuePair<StdUIFaces, UInt16> oPair in _rgStdFaces ) {
+                _rgStdFonts.Add( oPair.Key, FontCacheNew( oPair.Value, 12, sDPI ) );
+            }
+
+            //Font fallback?
            //uint uiEmojID  = _oStdUI.FontCache( _oStdUI.FaceCache( @"C:\Users\Frodo\AppData\Local\Microsoft\Windows\Fonts\NotoEmoji-Regular.ttf" ), 12, sResolution );
-
         }
 
         protected class EmbeddedGrammars {
@@ -2002,8 +2006,11 @@ namespace Mjolnir {
             return _rgGrammarColors[i]._sColor;
         }
 
-        uint IPgStandardUI.StdFontAt( StdUIFonts iFont ) {
-            return _rgStdFonts[iFont];
+        uint IPgStandardUI.StdFontAt( StdUIFaces eFont ) {
+            return _rgStdFonts[eFont];
+        }
+        UInt16 IPgStandardUI.StdFaceAt( StdUIFaces eFont ) {
+            return _rgStdFaces[eFont];
         }
     } // End class
 

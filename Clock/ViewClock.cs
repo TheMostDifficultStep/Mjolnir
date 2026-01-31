@@ -45,7 +45,7 @@ namespace Play.Clock {
             try {
                 ClockFont = StdUI.FontCacheNew( StdUI.FaceCacheNew( @"C:\Users\hanaz\AppData\Local\Microsoft\Windows\Fonts\seven segment.ttf" ), 16, DPI );
             } catch( ApplicationException ) {
-                ClockFont = StdFont;
+                ClockFont = StdUI.FontCacheNew( StdUI.StdFaceAt( StdUIFaces.Text ), 16, DPI );
             }
 
             _oCacheMan.RenderClxn.Add( ClockFont, StdUI.FontRendererAt( ClockFont ) );

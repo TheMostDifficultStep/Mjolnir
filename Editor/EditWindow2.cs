@@ -480,8 +480,8 @@ namespace Play.Edit {
             }
             DPI = new SKPoint( oInfo.pntDpi.X, oInfo.pntDpi.Y );
 
-            uint uiStdText = _oStdUI.StdFontAt( StdUIFonts.Text );
-            uint uiStdUI   = _oStdUI.StdFontAt( StdUIFonts.Symbols );
+            uint uiStdText = _oStdUI.StdFontAt( StdUIFaces.Text );
+            uint uiStdUI   = _oStdUI.StdFontAt( StdUIFaces.Symbols );
 
 			_oCacheMan = CreateCacheManager( uiStdText );
         }
@@ -2812,7 +2812,7 @@ namespace Play.Edit {
         {
 			ToolSelect = 2; // BUG: change this to an enum in the future.
 
-            IPgFontRender oRender = _oStdUI.FontRendererAt( _oStdUI.StdFontAt( StdUIFonts.Symbols ) );
+            IPgFontRender oRender = _oStdUI.FontRendererAt( _oStdUI.StdFontAt( StdUIFaces.Symbols ) );
             
             _oCheque = oRender.GetGlyph(0x2714); 
 		}

@@ -533,7 +533,7 @@ namespace Play.Interfaces.Embedding {
     /// This will be the font chosen from a particular face for the given
     /// main window.
     /// </summary>
-    public enum StdUIFonts : int {
+    public enum StdUIFaces : int {
         Decor = 0,
         Text,
         Symbols,
@@ -566,10 +566,11 @@ namespace Play.Interfaces.Embedding {
 	}
 
 	public interface IPgStandardUI {
-        uint     Space { get; }
+        uint     Space { get; } // Units? O.o;;;
         SKColor  ColorsStandardAt( StdUIColors eColor );
         SKColor  GrammarTextColor( int iIndex ); // Index to the master grammar indexed colors.
-        uint     StdFontAt( StdUIFonts iFont );
+        uint     StdFontAt( StdUIFaces eFace );
+        UInt16   StdFaceAt( StdUIFaces eFace );
 	}
 
     public interface IPgViewNotify  {
