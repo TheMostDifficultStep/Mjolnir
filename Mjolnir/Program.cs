@@ -1,11 +1,3 @@
-using OpenTK.Compute.OpenCL;
-using Play.Clock;
-using Play.Edit;
-using Play.Integration;
-using Play.Interfaces.Embedding; 
-using Play.Parse.Impl;
-using Play.Sound;
-using SkiaSharp;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -17,6 +9,15 @@ using System.Text;
 using System.Windows.Forms;
 using System.Xml;
 using System.Xml.XPath;
+
+using SkiaSharp;
+
+using Play.Clock;
+using Play.Edit;
+using Play.Integration;
+using Play.Interfaces.Embedding; 
+using Play.Parse.Impl;
+using Play.Sound;
 
 namespace Mjolnir {
     public delegate void UpdateAllTitlesFor( IDocSlot oSlot );
