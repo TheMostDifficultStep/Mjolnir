@@ -223,6 +223,9 @@ namespace Mjolnir {
                 //_miToolsMenu.DropDownItems.Add( oItem2 );
                 _miDecorMenu.DropDownItems.Add( new ToolStripSeparator() );
 
+                ToolStripMenuItem oMenuToggle = _oTopMenuEntry;
+                _miDecorMenu.DropDownItems.Add( _oTopMenuEntry );
+
                 foreach( SmartHerderBase oShepard in this ) {
 				    ToolStripMenuItem oItem = new MenuItemHerder( oShepard, new EventHandler( OnDecorMenuClick ) );
 				    oItem.Checked = !oShepard.Hidden;
@@ -1155,10 +1158,12 @@ namespace Mjolnir {
 
         /// <summary>
         /// Presently there is no Menu decor/shepard. The menu is hard coded to be
-        /// in the layout.
+        /// in the layout. So we'll keep the old reference in case I ever change
+        /// it back, but call the new event handler instead!
         /// </summary>
         protected void OnDecorMenuOpenCommand( object s, EventArgs e ) {
-            DecorOpen( GlobalDecor.Menu, true );
+            //DecorOpen( GlobalDecor.Menu, true );
+            OnTopMenuToggle( s, e );
         }
 
         /// <summary>

@@ -65,6 +65,8 @@ namespace Mjolnir {
         ToolStripMenuItem _miDecorMenu        = null;
 		ToolStripMenuItem _miToolsMenu        = null;
         ToolStripMenuItem _miViewCreate       = null;
+        ToolStripMenuItem _oTopMenuEntry      = null;
+
         ContextMenuStrip  _oContextMenu       = new ContextMenuStrip();
         Point             _pntContextLocation = new Point(); // context menu object has no activation position! Go figure!
 
@@ -754,10 +756,11 @@ namespace Mjolnir {
             oEditMenu.DropDownItems.Add(new ToolStripMenuItem("Collect",    BitmapCreateFromChar( "\xE0e7" ), new EventHandler(this.OnCollect),  Keys.Control | Keys.L ));
             oEditMenu.DropDownItems.Add(new ToolStripMenuItem("Find",       BitmapCreateFromChar( "\xE1a3" ), new EventHandler(this.OnEditFind), Keys.Control | Keys.F));
 
-			_miToolsMenu = new ToolStripMenuItem( "Tool" );
+			_miToolsMenu   = new ToolStripMenuItem( "Tool" );
 			_oTopMenu.Items.Add( _miToolsMenu );
 
-            _miDecorMenu = new ToolStripMenuItem( "Dock" );
+            _oTopMenuEntry = new ToolStripMenuItem( "Menu", null, OnTopMenuToggle ) { Checked = true };
+            _miDecorMenu   = new ToolStripMenuItem( "Dock" );
             _oTopMenu.Items.Add(_miDecorMenu);
 
             _miViewListMenu = new ToolStripMenuItem("Views");
@@ -2287,6 +2290,23 @@ namespace Mjolnir {
 		protected void OnDecorToggle( object sender, EventArgs e ) {
 			DecorToggle();
 		}
+
+        /// <summary>
+        /// We don't treat the top level menu as a solo shepherd since I didn't
+        /// find docking the menu just anywhere to be too helpful. Maybe
+        /// that'll change in the future so we keep the old command for ref.
+        /// </summary>
+        /// <remarks>So it's possible you close it, but the view you're in
+        /// doesn't have the "menu" context item and you can't re-open
+        /// the main menu. Would be nice to make "menu" a main win vent
+        /// item.</remarks>
+        /// <seealso cref="OnDecorMenuOpenCommand"
+        protected void OnTopMenuToggle( object sender, EventArgs e ) {
+            _oTopMenu     .Visible = !_oTopMenu.Visible;
+            _oTopMenuEntry.Checked = _oTopMenu.Visible;
+
+            OnSizeChanged(e);
+        }
 
         public ViewSlot ViewSiteSelected {
             get { return( _oSelectedWinSite ); }
