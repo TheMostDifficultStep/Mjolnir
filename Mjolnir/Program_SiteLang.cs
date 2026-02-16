@@ -4,7 +4,8 @@ using System.IO;
 using System.Reflection;
 using System.Xml;
 
-using Play.Interfaces.Embedding; 
+using Play.Interfaces.Embedding;
+using System.Collections.Generic;
 
 namespace Mjolnir {
     public partial class Program {
@@ -111,10 +112,11 @@ namespace Mjolnir {
                                        typeof( FileNotFoundException ),
                                        typeof( IOException ),
                                        typeof( ArgumentException ), // if the drive doesn't exist.
-                                       typeof( NullReferenceException ) }; 
+                                       typeof( NullReferenceException ),
+                                       typeof( KeyNotFoundException ) }; 
 
                     if( rgTypes.IsUnhandled( oEx ))
-                        throw new InvalidDataException( "Trouble accessing grammer file.");
+                        throw;
 
                     LogError( "grammer", "Could not find or file is currently open :" + strFileName );
                 }

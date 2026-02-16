@@ -670,7 +670,13 @@ namespace Mjolnir {
 					_oDoc_Alerts.LineAppend( strCatagory + "..." + strDetails );
 				} catch( NullReferenceException ) {
 				}
-				if( fAlert ) {
+                // BUG: Since the fonts are sensitive to the DPI of the window they
+                //      are to be displayed in, we can't show anything until that window
+                //      is created. But the program is doing a lot of error prone stuff 
+                //      before that happens. PLUS, the alerts window might be on a different
+                //      monitor! maybe. Anyway. Std font should be assigned on each window, 
+                //      even if the entire collection lives on the program.
+				if( fAlert & _rgStdFonts.Count > 0 ) {
 					AlertsShow(); // BUG: We need to set up event sinks on our main window.
 				}
 				_fLogging = false;
@@ -892,7 +898,7 @@ namespace Mjolnir {
             //      Even better. At least show a window with the error.
             try {
                 MainWindow = new MainWin(this);
-                InitializeFonts( xmlConfig );
+                InitializeFonts( MainWindow, xmlConfig );
                 MainWindow.Initialize(xmlConfig);
             } catch( Exception oEx ) {
 				if( rgErrors.IsUnhandled( oEx ) )
@@ -1600,8 +1606,8 @@ namespace Mjolnir {
         /// Another reason that the STDUI needs to come from the main window....
         /// </summary>
         /// <param name="xmlConfig">Fonts will come from the config.</param>
-        private void InitializeFonts( XmlDocument xmlConfig ) {
-            SKPoint sDPI = MainWindow.MainDisplayInfo.pntDpi;
+        private void InitializeFonts( MainWin oWindow, XmlDocument xmlConfig ) {
+            SKPoint sDPI = oWindow.MainDisplayInfo.pntDpi;
 
             _rgStdFaces.Add( StdUIFaces.Text,    FaceCacheNew( @"C:\windows\fonts\consola.ttf"  ) );
             _rgStdFaces.Add( StdUIFaces.Decor,   StdFaceAt   ( StdUIFaces.Text ) ); // Currently the same.

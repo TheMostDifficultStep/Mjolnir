@@ -372,7 +372,8 @@ namespace Play.FileManager {
                                 typeof( System.Security.SecurityException ),
                                 typeof( ArgumentOutOfRangeException ),
                                 typeof( PlatformNotSupportedException ),
-                                typeof( InvalidDataException )
+                                typeof( InvalidDataException ),
+                                typeof( KeyNotFoundException )
                               };
 			return rgErrors.IsUnhandled( oEx );
         }
