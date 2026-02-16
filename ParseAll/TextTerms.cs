@@ -196,30 +196,27 @@ namespace Play.Parse.Impl.Text
         /// <summary>
         /// Looking for either \n OR \r OR both!
         /// </summary>
-        public override bool IsEqual(int p_iMaxStack, DataStream<char> p_oStream, bool fLookAhead, int p_iPos, out int p_iMatch, out Production<char> p_oProd)
+        public override bool IsEqual(int iMaxStack, DataStream<char> oStream, bool fLookAhead, int iPos, out int r_iMatch, out Production<char> r_oProd)
         {
-            p_iMatch = 0;
-            p_oProd = null;
+            r_iMatch = 0;
+            r_oProd  = null;
 
-            while (p_oStream.InBounds(p_iPos + p_iMatch))
-            {
-                char   cValue   = p_oStream[p_iPos + p_iMatch];
+            while( oStream.InBounds(iPos + r_iMatch) ) {
+                char   cValue   = oStream[iPos + r_iMatch];
                 string arrSpace = "\n\r";
                 bool   fMatch   = false;
 
-                for (int i = 0; i < arrSpace.Length; ++i)
-                {
-                    if (arrSpace[i] == cValue)
+                for( int i = 0; i < arrSpace.Length; ++i) {
+                    if( arrSpace[i] == cValue)
                         fMatch = true;
                 }
-                if (!fMatch)
-                {
-                    return (p_iMatch >= m_iMin );
+                if( !fMatch ) {
+                    return r_iMatch >= m_iMin;
                 }
 
-                ++p_iMatch;
+                ++r_iMatch;
             }
-            return (p_iMatch >= m_iMin );
+            return r_iMatch >= m_iMin;
         } 
 
         public override string ToString()
@@ -233,10 +230,14 @@ namespace Play.Parse.Impl.Text
     /// unless we are at a period. So for the general case of a standard
     /// file name we'll onlly be walking to the end of the extension!
     /// </summary>
+    /// <remarks>Note: since we are reading the file as a stream we need
+    /// to specifically look for CR/LF or we search the entire file!
+    /// Might consider stopping at white space too?</remarks>
     public class TextTermFinalPeriod : ProdElem<char> {
         public TextTermFinalPeriod() { }
         public override bool IsEqual( int iMaxStack, DataStream<char> oStream, bool p_fLookAhead, 
-                                      int iPos, out int r_iMatch, out Production<char> r_oProd) {
+                                      int iPos, out int r_iMatch, out Production<char> r_oProd)
+        {
             r_iMatch = 0;
             r_oProd  = null;
 
@@ -246,10 +247,17 @@ namespace Play.Parse.Impl.Text
             if( oStream[iPos] != '.' )
                 return false;
 
+            var oMatchCR = new TextTermCR();
+            int iTemp    = 0;
+
             // Look ahead and see if there is another period!!
             while( oStream.InBounds(++iPos) ) {
                 if( oStream[iPos] == '.' ) {
                     return false; // Found another period.
+                }
+                // Limit our search... consider checking for white space too..
+                if( oMatchCR.IsEqual( iMaxStack, oStream, false, iPos, out iTemp, out r_oProd ) ) {
+                    break;
                 }
             }
 
