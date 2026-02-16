@@ -114,7 +114,7 @@ namespace Mjolnir {
                                        typeof( NullReferenceException ) }; 
 
                     if( rgTypes.IsUnhandled( oEx ))
-                        throw new InvalidProgramException( "Trouble accessing grammer file.");
+                        throw new InvalidDataException( "Trouble accessing grammer file.");
 
                     LogError( "grammer", "Could not find or file is currently open :" + strFileName );
                 }

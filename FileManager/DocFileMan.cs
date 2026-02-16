@@ -354,19 +354,27 @@ namespace Play.FileManager {
 
                 ReadDir( oDirectory );
             } catch( Exception oEx ) {
-                Type[] rgErrors = { typeof( IOException ),
-                                    typeof( UnauthorizedAccessException ),
-                                    typeof( ArgumentException ),
-                                    typeof( ArgumentNullException ),
-                                    typeof( PathTooLongException ),
-                                    typeof( DirectoryNotFoundException ),
-									typeof( System.Security.SecurityException ),
-                                    typeof( ApplicationException ) };
-                if( rgErrors.IsUnhandled( oEx ) )
+                if( IsUnhandled( oEx ) )
                     throw new ApplicationException( "Unrecognized Directory Read Error", oEx );
 
                 _oSiteBase.LogError( "alert", "Couldn't use the directory given." ); 
             }
+        }
+
+        protected static bool IsUnhandled( Exception oEx ) {
+            Type[] rgErrors = { typeof( NullReferenceException ),
+                                typeof( IOException ),
+                                typeof( UnauthorizedAccessException ),
+                                typeof( ArgumentException ),
+                                typeof( ArgumentNullException ),
+                                typeof( PathTooLongException ),
+                                typeof( DirectoryNotFoundException ),
+                                typeof( System.Security.SecurityException ),
+                                typeof( ArgumentOutOfRangeException ),
+                                typeof( PlatformNotSupportedException ),
+                                typeof( InvalidDataException )
+                              };
+			return rgErrors.IsUnhandled( oEx );
         }
 
         protected void ReadDir( DirectoryInfo oDir ) {
@@ -414,19 +422,7 @@ namespace Play.FileManager {
                 DoParse();
                 Raise_DocLoaded();
             } catch( Exception oEx ) {
-                Type[] rgErrors = { typeof( NullReferenceException ),
-                                    typeof( IOException ),
-                                    typeof( UnauthorizedAccessException ),
-                                    typeof( ArgumentException ),
-                                    typeof( ArgumentNullException ),
-                                    typeof( PathTooLongException ),
-                                    typeof( DirectoryNotFoundException ),
-                                    typeof( System.Security.SecurityException ),
-                                    typeof( ArgumentOutOfRangeException ),
-                                    typeof( PlatformNotSupportedException ),
-                                    typeof( InvalidDataException )
-                                  };
-				if( rgErrors.IsUnhandled( oEx ) )
+				if( IsUnhandled( oEx ) )
 					throw;
 
 				LogError( "Couldn't use the directory given." ); 
@@ -444,7 +440,14 @@ namespace Play.FileManager {
         /// </summary>
         /// <remarks>We'll have to keep this here, but we can move the rest.</remarks>
         public override void DoParse() {
-             ParseColumn( 2, "filename" );
+            try {
+                ParseColumn( 2, "filename" );
+            } catch( Exception oEx ) {
+				if( IsUnhandled( oEx ) )
+					throw;
+
+				LogError( "Couldn't use the directory given." ); 
+            }
         }
     }
 }
