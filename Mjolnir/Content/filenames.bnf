@@ -23,6 +23,7 @@
       <term name="mycr"      class="TextTermCR" />
       <term name="myEmpty"   class="TextTermEmpty" />
       <term name="myanyof"   class="TextTermAnyOf" />
+	  <term name="myext"     class="TextTermFinalPeriod" />
     </terminals>
   </metadata>
 
@@ -158,40 +159,21 @@
 
     <state name="alphanum" >
       <production>
-        <nont word="true" state="date" />
         <nont state="alphanum.cont" />
-      </production>
-      <production>
-        <term class="myliteral" />
-        <nont state="alphanum.cont" />
-      </production>
-      <production>
-        <term class="mynumber" />
-        <nont state="alphanum.cont" />
-      </production>
-
-    </state>
-
-    <state name="alphanum.ext" >
-      <production>
-        <nont state="alphanum.cont" id="ext" />
-      </production>
-      <production>
-        <term class="myEmpty" />
       </production>
     </state>
 
     <state name="alphanum.cont" >
-      <production>
-        <term class="myanyof" value="."/>
-        <nont state="alphanum.ext" />
-      </production>
+	  <production >
+		<term class="myextn" />
+	    <term class="myliteral" id="ext" />
+	  </production>
       <production>
         <nont word="true" state="date" />
         <nont state="alphanum.cont" />
       </production>
       <production>
-        <term class="myanyof" value="-_*()[]&amp;"/>
+        <term class="myanyof" value=".-_*()[]&amp;"/>
         <nont state="alphanum.cont" />
       </production>
       <production>
@@ -207,8 +189,8 @@
         <nont state="alphanum.cont" />
       </production>
       <production>
-        <term class="myEmpty" />
-      </production>
+		<term class="mycr" />
+	  </production>
     </state>
 
     <!-- space is any blank characters and/or carrage return line feeds -->
