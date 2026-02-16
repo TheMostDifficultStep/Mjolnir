@@ -228,9 +228,40 @@ namespace Play.Parse.Impl.Text
         }
 	}
 
+    /// <summary>
+    /// It's not the most efficient thing. But at least we don't look ahead
+    /// unless we are at a period. So for the general case of a standard
+    /// file name we'll onlly be walking to the end of the extension!
+    /// </summary>
+    public class TextTermFinalPeriod : ProdElem<char> {
+        public TextTermFinalPeriod() { }
+        public override bool IsEqual( int iMaxStack, DataStream<char> oStream, bool p_fLookAhead, 
+                                      int iPos, out int r_iMatch, out Production<char> r_oProd) {
+            r_iMatch = 0;
+            r_oProd  = null;
+
+            if( !oStream.InBounds( iPos ) ) {
+                return false;
+            }
+            if( oStream[iPos] != '.' )
+                return false;
+
+            // Look ahead and see if there is another period!!
+            while( oStream.InBounds(++iPos) ) {
+                if( oStream[iPos] == '.' ) {
+                    return false; // Found another period.
+                }
+            }
+
+            r_iMatch = 1;
+
+            return true;
+        }
+    }
+
     // A simple base class to collect the "value" attribute from the XML BNF.
-	// value is typically something like the token we are looking for.
-	public abstract class ValueTerminal : ProdElem<char> 
+    // value is typically something like the token we are looking for.
+    public abstract class ValueTerminal : ProdElem<char> 
 	{
 		protected string m_strValue;
 

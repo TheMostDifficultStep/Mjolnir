@@ -51,6 +51,9 @@ namespace Mjolnir {
                 case "mynotblank":
                     oElem = new TextTermNotBlank();
                     break;
+                case "myextn":
+                    oElem = new TextTermFinalPeriod();
+                    break;
             }
 
             return( oElem );
