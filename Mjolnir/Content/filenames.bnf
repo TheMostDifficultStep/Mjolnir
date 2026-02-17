@@ -164,16 +164,8 @@
     </state>
 
     <state name="alphanum.cont" >
-	  <production >
-		<term class="myextn" />
-	    <term class="myliteral" id="ext" />
-	  </production>
       <production>
-        <nont word="true" state="date" />
-        <nont state="alphanum.cont" />
-      </production>
-      <production>
-        <term class="myanyof" value=".-_*()[]&amp;"/>
+        <nont state="date" word="true" />
         <nont state="alphanum.cont" />
       </production>
       <production>
@@ -188,10 +180,32 @@
         <term class="mynumber" />
         <nont state="alphanum.cont" />
       </production>
+	  <production >
+		<term class="myextn" />
+	    <nont state="alphanum.ext" id="ext" />
+	  </production>
+      <production>
+        <term class="myanyof" value=".-_*()[]{}&amp;&apos;," maxmatch="1" />
+        <nont state="alphanum.cont" />
+      </production>
       <production>
 		<term class="mycr" />
 	  </production>
     </state>
+
+	<state name="alphanum.ext" >
+	  <production>
+	    <term class="myliteral" />
+        <nont state="alphanum.ext" />
+	  </production>
+	  <production>
+	    <term class="mynumber" />
+        <nont state="alphanum.ext" />
+	  </production>
+      <production>
+         <term class="myEmpty" />
+      </production>
+	</state>
 
     <!-- space is any blank characters and/or carrage return line feeds -->
     <state name="nonemptyspace">
