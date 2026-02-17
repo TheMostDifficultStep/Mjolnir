@@ -409,7 +409,7 @@ namespace Play.FileManager {
                 // TODO: I want to create a sort that groups files with similar names
                 //       together with the newest file first and the rest following
                 //       so I can easily see the versions.
-                rgFiles.Sort( (x,y) => - ( x.CreationTime.CompareTo( y.CreationTime ) ) );
+                rgFiles.Sort( (x,y) => - ( x.LastWriteTime.CompareTo( y.LastWriteTime ) ) );
 
                 foreach( FileInfo oFile in rgFiles ) {
 					// Want to override what we load in the dialog box version of this control
