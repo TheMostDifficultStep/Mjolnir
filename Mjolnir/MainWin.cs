@@ -292,7 +292,10 @@ namespace Mjolnir {
         /// decor views want access to an IDocSlot on the document. That sux and we need to work on that.
         /// </summary>
         /// <remarks>1/14/2022 : Might be a bit of overkill with a controller. </remarks>
-        protected class DocSlot : IPgBaseSite, IDocSlot  {
+        protected class DocSlot : 
+            IPgBaseSite, 
+            IDocSlot  
+        {
             readonly MainWin                 _oHost;
             readonly ControllerForMainWindow _oController;
                      IDisposable             _oGuest;
@@ -304,7 +307,7 @@ namespace Mjolnir {
             }
 
             public IPgParent      Host       => _oHost;
-            public int            ID         => 0;
+            public int            ID         {get; set;}
             public IDisposable    Document   => _oGuest;
             public bool           IsDirty    => false;
             public string         Title      => "View Selector";
@@ -936,6 +939,10 @@ namespace Mjolnir {
             OpenOrShowFirstView( Document.ClockSlot );
         }
     
+        public void OnDocNewFileMan( object sender, EventArgs e ) {
+            OpenOrShowFirstView( Document.HomeDocSlot );
+        }
+
         private void OnSessionOpenResults( object s, EventArgs e ) 
         {
         }
@@ -1134,10 +1141,6 @@ namespace Mjolnir {
         public void OnDocNewMonitor( object sender, EventArgs e ) {
             EditorInitNewShow( ".asmprg" );
         }
-        public void OnDocNewFileMan( object sender, EventArgs e ) {
-            EditorInitNewShow( ".fileman" );
-        }
-
         public void OnDocNewScan( object sender, EventArgs e ) {
             //EditorInitNewShow( ".scan" );
         }

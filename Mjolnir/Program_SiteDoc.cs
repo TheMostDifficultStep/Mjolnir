@@ -20,7 +20,7 @@ namespace Mjolnir {
     /// This particular interface is for the Shell's benefit and not the guests. Upward facing so to speak.
     /// </summary>
     public interface IDocSlot {
-		int         ID { get; }
+		int         ID { get; set; }
         IDisposable Document { get; }
         bool        IsDirty  { get; }
         bool        Save( bool fNewLocation );
@@ -56,11 +56,11 @@ namespace Mjolnir {
 			IPgFileSite
         {
             protected readonly Program        _oHost;
-            protected readonly int            _iDocCount;
             protected readonly IPgController2 _oController;
 
             protected IDisposable _oGuestDispose;
 
+            protected int       _iDocCount   = -1;
             protected int       _iReferences = 0;
             protected string    _strFileName = string.Empty; // Just file name if available.
             protected string    _strFileDir  = string.Empty; // Just the path w/ no filename.
@@ -98,7 +98,7 @@ namespace Mjolnir {
             }
 
  			public IPgParent Host => _oHost;
-			public int       ID   => _iDocCount;
+			public int       ID   { get { return _iDocCount; } set { _iDocCount = value; } }
 
             public abstract void Notify( ShellNotify eEvent );
             public virtual  void LogError( string strMessage, string strDetails, bool fShow=true ) {
@@ -387,6 +387,12 @@ namespace Mjolnir {
                 string         strFileExtension,
 				int            iID = -1
 		    ) : base( oProgram, oController, strFileExtension, iID ) {
+            }
+
+            public TextSlot( 
+                Program        oProgram,
+                IPgController2 oController
+		    ) : base( oProgram, oController, oController.PrimaryExtension, ++oProgram._iDocCount ) {
             }
 
             // Debug helper
@@ -842,6 +848,11 @@ namespace Mjolnir {
 
             public DirSlot( Program oProgram, IPgController2 oController, string strFileExtn, int iID = -1 ) : 
                 base( oProgram, oController, strFileExtn, iID ) 
+            {
+            }
+
+            public DirSlot( Program oProgram, IPgController2 oController ) : 
+                base( oProgram, oController, oController.PrimaryExtension, -1 ) 
             {
             }
 

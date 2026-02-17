@@ -817,13 +817,14 @@ namespace Mjolnir {
                 _oDocSlot_Find.InitNew();
 
                 // BUG: Need to fix redundant file extension issue.
-                _oDocSlot_Clock = new TextSlot( this, new ClockController(), ".clock" );
+                Controller oClockController = new ClockController();
+                _oDocSlot_Clock = new TextSlot( this, oClockController );
                 _oDocSlot_Clock.CreateDocument();
                 _oDocSlot_Clock.InitNew();
             }
             {
                 PgDocDescr oDescr = GetController( ".fileman" );
-                HomeDocSlot = new DirSlot( this, oDescr.Controller, oDescr.FileExtn );
+                HomeDocSlot = new DirSlot( this, oDescr.Controller );
                 HomeDocSlot.CreateDocument();
                 HomeDocSlot.InitNew();
             }
@@ -973,7 +974,9 @@ namespace Mjolnir {
 				// Load up the documents.
                 if( rgSessionDocs != null ) {
 				    foreach( XmlElement xmlDoc in rgSessionDocs ) {
-					    if (string.IsNullOrEmpty(xmlDoc.InnerText) )
+                        string strType = xmlDoc.GetAttribute( "internal" );
+
+					    if( string.IsNullOrEmpty(xmlDoc.InnerText) && string.IsNullOrEmpty( strType ) )
 						    throw new InvalidOperationException( "filename innertext failure");
 
 					    int    iDocID  = int.Parse(xmlDoc.GetAttribute("docid") );
@@ -987,7 +990,24 @@ namespace Mjolnir {
                         }
 
                         // BUG: Need to add some code to validate Doc ID.
-                        IDocSlot oDocSite = DocumentCreate( strPath, iDocID );
+                        IDocSlot oDocSite = null;
+                        
+                        if( string.IsNullOrEmpty( strType ) ) {
+                            oDocSite = DocumentCreate( strPath, iDocID );
+                        } else {
+                            switch( strType ) {
+                                case "clock" :
+                                    oDocSite = _oDocSlot_Clock;
+                                    break;
+                                case "fileman" :
+                                    oDocSite = HomeDocSlot;
+                                    break;
+                            }
+                            if( oDocSite != null ) {
+                                oDocSite.ID = iDocID;
+                                _rgDocSites.Add( oDocSite );
+                            }
+                        }
 
 					    // If oDocSite is null, I should create a place holder document that you can use
 					    // to edit the link or try again some time.
@@ -1081,8 +1101,12 @@ namespace Mjolnir {
 				return false;
 			}
 
+            // Reset the doc count so we don't keep adding forever.
+            _iDocCount = 0;
             foreach( IDocSlot oDocSite in DocSlots ) {
-                // If It doesn't have a file name I'm just dropping it from the session.
+                oDocSite.ID = _iDocCount++;
+
+                // If it doesn't have a file name I'm just dropping it from the session.
                 if( !string.IsNullOrEmpty( oDocSite.FilePath ) ) {
                     XmlElement xmlFile = xmlRoot.CreateElement( "FileName" );
 
@@ -1096,9 +1120,29 @@ namespace Mjolnir {
 
                     xmlDocs.AppendChild( xmlFile );
                 }
+
             }
 
-            if (  RecentsSlot != null ) {
+            void CreateInternal( XmlDocument xmlRoot, IDocSlot oDocSite, string strName ) {
+                XmlElement xmlFile = xmlRoot.CreateElement( "FileName" );
+
+				xmlFile.SetAttribute( "docid", oDocSite.ID.ToString() );
+                xmlFile.InnerText = oDocSite.FilePath;
+
+                xmlFile.SetAttribute( "extn", oDocSite.Controller.PrimaryExtension );
+                xmlFile.SetAttribute( "internal", strName );
+
+                xmlDocs.AppendChild( xmlFile );
+            }
+
+            if( HomeDocSlot.Reference > 0 ) {
+                CreateInternal( xmlRoot, HomeDocSlot, "fileman" );
+            }
+            if( _oDocSlot_Clock.Reference > 0 ) {
+                CreateInternal( xmlRoot, _oDocSlot_Clock, "clock" );
+            }
+
+            if(  RecentsSlot != null ) {
                 XmlElement xmlFaves = xmlRoot.CreateElement( "Recent" );
                 xmlSession.AppendChild( xmlFaves );
                 // Since we can't control how much goes into the recent's file. We'll
@@ -1579,7 +1623,7 @@ namespace Mjolnir {
 			Controllers.Add( new ControllerForParsedText( this ) );
             Controllers.Add( new ControllerForHtml      ( this ));
             Controllers.Add( new ControllerForSearch    () );
-            Controllers.Add( new Play.Clock        .SolarController() );
+            Controllers.Add( new SolarController        () );
             Controllers.Add( new Play.FileManager  .FileManController() );
 
             // We still have a project dependency for these items but only so
