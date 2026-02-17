@@ -76,20 +76,22 @@ namespace Play.Parse.Impl.Text
 
 	public class TextTermNumber : ProdElem<char>
 	{
-		public override bool IsEqual( int p_iMaxStack, DataStream<char> p_oStream, bool fLookAhead, int p_iPos, out int p_iMatch, out Production<char> p_oProd )
+		public override bool IsEqual( int iMaxStack, DataStream<char> oStream, bool fLookAhead, int iPos, out int r_iMatch, out Production<char> r_oProd )
 		{
-			p_iMatch = 0;
-			p_oProd  = null;
+			r_iMatch = 0;
+			r_oProd  = null;
 
-			while( p_oStream.InBounds( p_iPos + p_iMatch ) && p_iMatch < _iMaxMatch ) {
-				char cChar = p_oStream[ p_iPos + p_iMatch ];
-				if( ( cChar >= '0' && cChar <= '9' ) )
-					p_iMatch++;
+			while( oStream.InBounds( iPos + r_iMatch ) && r_iMatch < _iMaxMatch ) {
+				char cChar = oStream[ iPos + r_iMatch ];
+				if( cChar >= '0' && cChar <= '9' )
+					r_iMatch++;
 				else
 					break;
 			}
 
-			return( p_iMatch > 0 && p_iMatch <= _iMaxMatch && p_iMatch >= _iMinMatch );
+            // Used to require at least one match. But now just rely on
+            // Max/Min match. By default min match is 1 anyway.
+			return r_iMatch <= _iMaxMatch && r_iMatch >= _iMinMatch;
 		}
 		public override string ToString()
 		{
