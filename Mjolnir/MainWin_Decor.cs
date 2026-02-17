@@ -537,16 +537,16 @@ namespace Mjolnir {
         ///       where if the slot doesn't have a icon then the layout gp faults.
         /// </summary>
         /// <param name="oG"></param>
-        protected void LayoutPaint( Graphics oG ) {
-            switch( _eLayout ) { 
-                case TOPLAYOUT.Solo:
-                    _oLayoutPrimary.Paint( oG );
-                    break;
-                case TOPLAYOUT.Multi:
-                    _oLayout2.Paint( oG );
-                    break;
-            }
-        }
+        //protected void LayoutPaint( Graphics oG ) {
+        //    switch( _eLayout ) { 
+        //        case TOPLAYOUT.Solo:
+        //            _oLayoutPrimary.Paint( oG );
+        //            break;
+        //        case TOPLAYOUT.Multi:
+        //            _oLayout2.Paint( oG );
+        //            break;
+        //    }
+        //}
 
         /// <summary>
         /// When our outside window changes size or any of our sides change extent,
