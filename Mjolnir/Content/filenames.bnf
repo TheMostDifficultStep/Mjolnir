@@ -150,6 +150,7 @@
       <capture>
         <binding id="name" color="blue" array="true" />
         <binding id="ext"  color="red" />
+        <binding id="param" color="green" />
       </capture>
 
       <production >
@@ -157,6 +158,7 @@
       </production>
     </state>
 
+    <!-- File name should start with something... so leave this for now -->
     <state name="alphanum" >
       <production>
         <nont state="alphanum.cont" />
@@ -184,12 +186,25 @@
 		<term class="myextn" />
 	    <nont state="alphanum.ext" id="ext" />
 	  </production>
+	  <production lookahead="2" >
+        <nont state="alphanum.mark" id="param" />
+	    <nont state="alphanum.ext" id="ext" />
+	  </production>
       <production>
         <term class="myanyof" value=".-_*()[]{}&amp;&apos;," maxmatch="1" />
         <nont state="alphanum.cont" />
       </production>
       <production>
 		<term class="mycr" />
+	  </production>
+    </state>
+
+    <state name="alphanum.mark" >
+	  <production>
+		<term class="mytoken" value="_" />
+        <term class="myliteral" maxmatch="1" />
+		<term class="mynumber" minmatch="0" />
+        <term class="myextn" />
 	  </production>
     </state>
 
