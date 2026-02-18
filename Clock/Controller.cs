@@ -4,10 +4,10 @@ using System.Collections.Generic;
 using Play.Interfaces.Embedding; 
 
 namespace Play.Clock {
-    public class SolarController : 
+    public class ControllerForSolar : 
         Controller 
     {
-        public SolarController() {
+        public ControllerForSolar() {
 			_rgExtensions.Add( ".weather" );
         }
 
@@ -46,10 +46,10 @@ namespace Play.Clock {
             yield return new ViewType( "Solar Weather", ViewSolar._guidViewCatagory );
         }
     }
-    public class ClockController : 
+    public class ControllerForClock : 
         Controller 
     {
-        public ClockController() {
+        public ControllerForClock() {
 			_rgExtensions.Add( ".clock" );
         }
 
@@ -94,4 +94,22 @@ namespace Play.Clock {
         }
     }
 
-}
+    public class ControllerFactory : 
+        IControllerFactory 
+    {
+        public static Guid Clock = new Guid( "{36A57A73-2296-4DFB-B430-882B72D98180}" );
+        public static Guid Solar = new Guid( "{E42ED42F-3362-4C68-A393-2AEFCA1B2F9E}" );
+        public ControllerFactory() {
+        }
+
+        public IPgController2 GetController( Guid guidID ) {
+            if( guidID == Clock ) {
+                return new ControllerForSolar();
+            }
+            if( guidID == Solar ) {
+                return new ControllerForClock();
+            }
+
+            throw new ArgumentOutOfRangeException();
+        }
+    }}

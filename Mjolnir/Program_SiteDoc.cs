@@ -45,6 +45,7 @@ namespace Mjolnir {
         bool        InitNew();
         bool        Load( string strFileName ); // Kinda limits us to file types. But it's all the shell really supports anyway.
         string      LastPath { get; }
+        bool        IsInternal { get; }
 
         IPgController2           Controller { get; }
         IEnumerable<IPgViewType> ViewTypes  { get; } // BUG: Probably can get from the controller now...
@@ -118,7 +119,7 @@ namespace Mjolnir {
                 set { _iReferences = value; }
             }
 
-            public string LastPath {
+            public virtual string LastPath {
                 get {
                     // If we've got a filename try that path first. 
                     if( string.IsNullOrEmpty( FilePath ) || 
@@ -400,6 +401,8 @@ namespace Mjolnir {
                 return Title;
             }
 
+            public bool IsInternal { get; set; } = false;
+
 			/// <summary>
 			/// Would be nice if TextSlots return the base editor type.
 			/// </summary>
@@ -601,6 +604,8 @@ namespace Mjolnir {
             {
             }
 
+            public bool IsInternal => false;
+
             public override bool IsDirty {
                 get { 
                     if( _oGuestSave != null )
@@ -752,6 +757,8 @@ namespace Mjolnir {
             ) : base( oProgram, oDescriptor.Controller, oDescriptor.FileExtn ) {
                 _strName = strName ?? throw new ArgumentNullException( nameof( strName ) );
             }
+
+            public bool IsInternal => true;
         }
 
 		/// <summary>
@@ -855,6 +862,8 @@ namespace Mjolnir {
                 base( oProgram, oController, oController.PrimaryExtension, -1 ) 
             {
             }
+
+            public bool IsInternal { get; set; } = false;
 
             /// <summary>
             /// Basically any object here must support the Load/Save URL interfaces.

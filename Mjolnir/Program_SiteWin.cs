@@ -89,9 +89,11 @@ namespace Mjolnir {
                 _oGuest = (IPgSave<TextWriter>)value;
             }
 
-            public string LastPath {
-                get { return( string.Empty ); }
+            public override string LastPath {
+                get { return string.Empty; }
             }
+
+            public bool IsInternal => false;
 
             public override bool InitNew() {
                 IPgLoad<TextReader> oGuestReader = _oGuest as IPgLoad<TextReader>;
@@ -205,8 +207,14 @@ namespace Mjolnir {
                 // We don't want to dispose the program. The program is both the guest and host at present.
             }
 
-            public string LastPath {
-                get { return( string.Empty ); }
+            public bool IsInternal => false;
+
+            /// <summary>
+            /// This is implmented on the BaseSlot AND IDocSlot, that's why I need to have
+            /// the BaseSlot as virtual.
+            /// </summary>
+            public override string LastPath {
+                get { return string.Empty; }
             }
 
             public override void Notify( ShellNotify eEvent ) {

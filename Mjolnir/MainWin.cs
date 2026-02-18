@@ -320,6 +320,7 @@ namespace Mjolnir {
 
             public int    Reference { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
             public string LastPath => throw new NotImplementedException();
+            public bool   IsInternal => false;
 
             public void Dispose() {
                 _oGuest.Dispose();
@@ -940,7 +941,7 @@ namespace Mjolnir {
         }
     
         public void OnDocNewFileMan( object sender, EventArgs e ) {
-            OpenOrShowFirstView( Document.HomeDocSlot );
+            OpenOrShowFirstView( Document.HomeSlot );
         }
 
         private void OnSessionOpenResults( object s, EventArgs e ) 
@@ -2248,14 +2249,14 @@ namespace Mjolnir {
 
             foreach( Line oLine in _oDoc_ViewSelector ) {
                 if( oLine is ViewSlot oViewSlot ) {
-                    if( oViewSlot.DocumentSite == Document.HomeDocSlot ) {
+                    if( oViewSlot.DocumentSite == Document.HomeSlot ) {
                         oHomeViewSlot = oViewSlot;
                     }
                 }
             }
 
             if( oHomeViewSlot is null ) {
-                ViewCreate( Document.HomeDocSlot, Guid.Empty );
+                ViewCreate( Document.HomeSlot, Guid.Empty );
             } else {
                 ViewSelect( oHomeViewSlot, true );
             }

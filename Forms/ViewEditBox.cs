@@ -253,14 +253,13 @@ namespace Play.Controls {
                 //skCanvas.DrawRect( rctSquare.SKRect, skPaint );
                 PaintSquareBG( skCanvas, _oCacheLine, _rgLayout.Item(0) ); // Backgrounds.
 
-                using SKPaint skPaintTx = new SKPaint() { FilterQuality = SKFilterQuality.High };
+                using SKPaint skPaintTx = new SKPaint();
 
                 _oCacheLine.Render(skCanvas, _oStdUI, skPaintTx, _rgLayout.Item(0), this.Focused );
 
                 // Some kind of side effect going on with the Paint object in the Render() function...
                 // So just use a new one... :-/
-                using SKPaint skPaint = new SKPaint() { FilterQuality = SKFilterQuality.High,
-                                                        BlendMode     = SKBlendMode.Src };
+                using SKPaint skPaint = new SKPaint() { BlendMode = SKBlendMode.Src };
 
 				skCanvas.DrawRect( _rgLayout.Item(1).SKRect, skPaint );
                 skCanvas.DrawBitmap( _oBmpButton.Bitmap, _rctWorldPort.SKRect, _rgLayout.Item(1).SKRect,skPaint );

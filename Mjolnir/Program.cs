@@ -12,7 +12,6 @@ using System.Xml.XPath;
 
 using SkiaSharp;
 
-using Play.Clock;
 using Play.Edit;
 using Play.Integration;
 using Play.Interfaces.Embedding; 
@@ -251,7 +250,6 @@ namespace Mjolnir {
         protected InternalSlot      _oDocSlot_Fonts;
         protected XmlSlot           _oDocSlot_SearchKey;
         protected ComplexXmlSlot    _oDocSlot_Find;
-        protected TextSlot          _oDocSlot_Clock;
         protected Program.TextSlot  _oDocSite_Session; // Hosting ourself, so don't be confused! ^_^;
           
         /// <summery>Views can use this to create views on the scrapbook</summery>
@@ -261,8 +259,8 @@ namespace Mjolnir {
 		public XmlSlot      SearchSlot    => _oDocSlot_SearchKey;
         public IDocSlot     FindSlot      => _oDocSlot_Find;
         public IDocSlot     AlertSlot     => _oDocSlot_Alerts;
-        public TextSlot     ClockSlot     => _oDocSlot_Clock;
-        public DirSlot      HomeDocSlot   { get; protected set; }
+        public TextSlot     ClockSlot  { get; set; }
+        public DirSlot      HomeSlot   { get; protected set; }
 
         // BUG: I'm dithering on FontMenu living on the program or just the main window.
 		public Font         FontMenu      { get; } = new Font( "Segoe UI Symbol", 11 ); // Segoe UI Symbol, So we can show our play/pause stuff.
@@ -816,17 +814,22 @@ namespace Mjolnir {
                 _oDocSlot_Find.CreateDocument();
                 _oDocSlot_Find.InitNew();
 
-                // BUG: Need to fix redundant file extension issue.
-                Controller oClockController = new ClockController();
-                _oDocSlot_Clock = new TextSlot( this, oClockController );
-                _oDocSlot_Clock.CreateDocument();
-                _oDocSlot_Clock.InitNew();
+                // Always want clock since we have a solo clock window that needs it.
+                ClockSlot = new TextSlot( this, new Play.Clock.ControllerForClock() );
+                ClockSlot.CreateDocument();
+                ClockSlot.InitNew();
+                ClockSlot.IsInternal = true;
+                _rgDocSites.Add( ClockSlot );
             }
             {
+                // Always want to save the last file open for the session so 
+                // I want to just keep the fileman document open at all times.
                 PgDocDescr oDescr = GetController( ".fileman" );
-                HomeDocSlot = new DirSlot( this, oDescr.Controller );
-                HomeDocSlot.CreateDocument();
-                HomeDocSlot.InitNew();
+                HomeSlot = new DirSlot( this, oDescr.Controller );
+                HomeSlot.CreateDocument();
+                HomeSlot.InitNew();
+                HomeSlot.IsInternal = true;
+                _rgDocSites.Add( HomeSlot );
             }
         }
 
@@ -942,7 +945,7 @@ namespace Mjolnir {
             }
 
             if( _rgDocSites.Count == 0 ) {
-                MainWindow.ViewCreate( HomeDocSlot, Guid.Empty );
+                MainWindow.ViewCreate( HomeSlot, Guid.Empty );
             }
 
 			_fSessionDirty = false;
@@ -995,17 +998,16 @@ namespace Mjolnir {
                         if( string.IsNullOrEmpty( strType ) ) {
                             oDocSite = DocumentCreate( strPath, iDocID );
                         } else {
-                            switch( strType ) {
-                                case "clock" :
-                                    oDocSite = _oDocSlot_Clock;
+                            switch( strExtn ) {
+                                case ".clock" :
+                                    oDocSite = ClockSlot;
                                     break;
-                                case "fileman" :
-                                    oDocSite = HomeDocSlot;
+                                case ".fileman" :
+                                    oDocSite = HomeSlot;
                                     break;
                             }
                             if( oDocSite != null ) {
                                 oDocSite.ID = iDocID;
-                                _rgDocSites.Add( oDocSite );
                             }
                         }
 
@@ -1056,8 +1058,9 @@ namespace Mjolnir {
 			try {
                 XmlElement xmlMainWindow = xmlSession.SelectSingleNode( "Session/Windows/Window[@name='MainWindow']" ) as XmlElement;
 				if( MainWindow is IPgLoad<XmlElement> oWinLoad ) {
-					if( !oWinLoad.Load( xmlMainWindow ) ) 
-						throw new InvalidOperationException();
+					if( !oWinLoad.Load( xmlMainWindow ) ) {
+						LogError( "MainWindow", "Failed to load successfully" );
+                    }
 				} else {
 					MainWindow.InitNew();
 				}
@@ -1107,39 +1110,25 @@ namespace Mjolnir {
                 oDocSite.ID = _iDocCount++;
 
                 // If it doesn't have a file name I'm just dropping it from the session.
-                if( !string.IsNullOrEmpty( oDocSite.FilePath ) ) {
+                if( oDocSite.Reference > 0 ) {
                     XmlElement xmlFile = xmlRoot.CreateElement( "FileName" );
 
 					xmlFile.SetAttribute( "docid", oDocSite.ID.ToString() );
-                    xmlFile.InnerText = oDocSite.FilePath;
 
-                    // ImageViewer and FileManager are path only but...
-                    if( oDocSite is DirSlot oDirSite ) {
-                        xmlFile.SetAttribute( "extn", oDirSite._strFileExt );
+                    if( !string.IsNullOrEmpty( oDocSite.FilePath ) ) {
+                        xmlFile.InnerText = oDocSite.FilePath;
+                    }
+                    // ImageViewer and FileManager are path only so...
+                    string strExtn = Path.GetExtension(  oDocSite.FileName );
+                    if( string.IsNullOrEmpty( strExtn ) ) {
+                        xmlFile.SetAttribute( "extn", oDocSite.Controller.PrimaryExtension );
+                    }
+                    if( oDocSite.IsInternal ) {
+                        xmlFile.SetAttribute( "internal", "yes" );
                     }
 
                     xmlDocs.AppendChild( xmlFile );
                 }
-
-            }
-
-            void CreateInternal( XmlDocument xmlRoot, IDocSlot oDocSite, string strName ) {
-                XmlElement xmlFile = xmlRoot.CreateElement( "FileName" );
-
-				xmlFile.SetAttribute( "docid", oDocSite.ID.ToString() );
-                xmlFile.InnerText = oDocSite.FilePath;
-
-                xmlFile.SetAttribute( "extn", oDocSite.Controller.PrimaryExtension );
-                xmlFile.SetAttribute( "internal", strName );
-
-                xmlDocs.AppendChild( xmlFile );
-            }
-
-            if( HomeDocSlot.Reference > 0 ) {
-                CreateInternal( xmlRoot, HomeDocSlot, "fileman" );
-            }
-            if( _oDocSlot_Clock.Reference > 0 ) {
-                CreateInternal( xmlRoot, _oDocSlot_Clock, "clock" );
             }
 
             if(  RecentsSlot != null ) {
@@ -1623,8 +1612,7 @@ namespace Mjolnir {
 			Controllers.Add( new ControllerForParsedText( this ) );
             Controllers.Add( new ControllerForHtml      ( this ));
             Controllers.Add( new ControllerForSearch    () );
-            Controllers.Add( new SolarController        () );
-            Controllers.Add( new Play.FileManager  .FileManController() );
+            Controllers.Add( new Play.FileManager.FileManController() );
 
             // We still have a project dependency for these items but only so
             // the dll's will get loaded into the debug directory for testing.
