@@ -944,9 +944,8 @@ namespace Mjolnir {
                 oSearchKey.LineAppend( string.Empty, fUndoable:false ); 
             }
 
-            if( _rgDocSites.Count == 0 ) {
-                MainWindow.ViewCreate( HomeSlot, Guid.Empty );
-            }
+            // Bug: If we don't create this view, the screen is wonky!
+            MainWindow.ViewCreate( HomeSlot, Guid.Empty );
 
 			_fSessionDirty = false;
 
