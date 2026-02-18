@@ -2492,8 +2492,11 @@ namespace Mjolnir {
         /// </summary>
         public void DocumentShowAll( List<string> rgArgsClean ) {
 			try {
-				if( rgArgsClean.Count <= 0 )
+				if( rgArgsClean.Count <= 0 ) {
+                    // Bug: If we don't create this view, the screen is wonky!
+                    ViewCreate( Document.HomeSlot, Guid.Empty );
 					return;
+                }
 
 				for( int i = 0; i<rgArgsClean.Count; ++i ) {
 					EditorShowEnum eShow = i == rgArgsClean.Count - 1 ? EditorShowEnum.FOCUS : EditorShowEnum.SILENT;
@@ -2854,7 +2857,10 @@ namespace Mjolnir {
 				}
 				try {
 					// Unloaded sites become zombies so we'll save the reference.
-					if( iBirthCount == 0 ) {
+                    // TODO: Internals are preloaded and it's ok if they don't have an open view.
+                    // It would be nice if I could tell if the internal docs have a view or not
+                    // and add them later so as not to confuse us here.
+					if( iBirthCount == 0 && !oDocSlot.IsInternal ) {
 						if( oDocSlot.Document != null ) {
 							this.LogError( null, "mainwin session", "Couldn't find saved view for saved document, creating one default." );
 						}

@@ -300,7 +300,7 @@ namespace Mjolnir {
                 // but I might separate the xmlConfig for the program and the window and
                 // then I could set up the window on demand, based on the persistance data.
 			    try {
-				    oProgram.SessionLoad( rgArgs, xmlConfig );
+				    oProgram.ReadArgs( rgArgs, xmlConfig );
                 } catch ( Exception oEx ) {
                     string strError2 = "Couldn't configure Main window.";
                     if( oProgram.TryLogXmlError( oEx, strError2 ) ) {
@@ -863,7 +863,7 @@ namespace Mjolnir {
         /// If found, Load() from it. Else, InitNew(). Here "load" is a misnomer because
         /// there is no "SessionInit" so be aware.
         /// </summary>
-        protected void SessionLoad( string[] rgArgs, XmlDocument xmlConfig ) {
+        protected void ReadArgs( string[] rgArgs, XmlDocument xmlConfig ) {
 			List<string> rgArgsClean = new List<string>(5);
 			int          iPvs        = -1;
 
@@ -944,11 +944,7 @@ namespace Mjolnir {
                 oSearchKey.LineAppend( string.Empty, fUndoable:false ); 
             }
 
-            // Bug: If we don't create this view, the screen is wonky!
-            MainWindow.ViewCreate( HomeSlot, Guid.Empty );
-
 			_fSessionDirty = false;
-
 			return true;
 		}
 
