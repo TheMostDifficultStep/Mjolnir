@@ -93,7 +93,7 @@ namespace Mjolnir {
         /// <param name="oSlot">A view slot from the MainWin</param>
         public SKImage TabIcon( ViewSlot oSlot ) {
             if( oSlot.Icon != null )
-                return SKImage.FromBitmap( oSlot.Icon );
+                return oSlot.Icon;
 
             using SKSurface oSurface = SKSurface.Create( _sIconInfo );
             using SKPaint   oPaint   = new () { Color = SKColors.Red };

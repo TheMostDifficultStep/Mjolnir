@@ -166,7 +166,7 @@ namespace Mjolnir {
             get { return( _iID ); }
         }
         
-        internal SKBitmap Icon { get { return _oViewCommand.Icon; } }
+        internal SKImage Icon { get { return SKImage.FromBitmap( _oViewCommand.Icon ); } }
 
 		/// <summary>
 		/// Got to the view and ask it for all the tools.
