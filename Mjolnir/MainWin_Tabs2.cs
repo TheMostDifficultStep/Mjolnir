@@ -67,10 +67,11 @@ namespace Mjolnir {
         protected override LayoutRect CreateTab( Line oViewLine ) {
             LayoutPattern    oTabStat = new( LayoutRect.CSS.Pixels, 5, oViewLine, TabStatus );
 			LayoutIcon       oTabIcon = new( TabIcon( (ViewSlot)oViewLine ), LayoutRect.CSS.Flex );
-			LayoutSingleLine oTabText = new LayoutSingleLine( new FTCacheWrap( oViewLine ), LayoutRect.CSS.None ) 
-                                            { BgColor = SKColors.Transparent };
+			LayoutSingleLine oTabText = new( new FTCacheWrap( oViewLine ), LayoutRect.CSS.None ) 
+                                             { BgColor = SKColors.Transparent };
 			_rgTextCache.Add(oTabText);
-            LayoutSKBitmap   oTabKill = new LayoutSKBitmap( _oCloserImg ) 
+
+            LayoutSKBitmap   oTabKill = new( _oCloserImg ) 
                                             { Units = LayoutRect.CSS.Flex, Hidden = true, Border = new( 20, 20) };
             
             // Round up all the layouts into our tab object here.
