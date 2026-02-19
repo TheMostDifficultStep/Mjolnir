@@ -781,9 +781,12 @@ namespace Play.ImageViewer {
         /// if we didn't open a thumbnail viewer.
         /// </summary>
         /// <remarks>
-        /// Saving seems a bit slow even for small images. Note that the Bitmap object in .NET CORE
-        /// now needs to READ from the stream it is saving to!! 6/18/2020. I get around this by
-        /// saving first to a memory stream, and then saving that object to the zip file.
+        /// Saving seems a bit slow even for small images. 
+        /// Note that the Bitmap object in .NET CORE now needs to READ from the stream it 
+        /// is saving to!! 
+        /// 6/18/2020. I get around this by  saving first to a memory stream, and then 
+        ///            saving that object to the zip file.
+        /// 2/19/2926. I'm using SKImage which seems to be well behaved.
         /// BUG: No need to save if no files were deleted.
         /// </remarks>
         protected void ThumbsSave( ZipArchive oZip ) {
@@ -796,17 +799,10 @@ namespace Play.ImageViewer {
                         string          strLineEncoded = HttpUtility.HtmlEncode( oLine.ToString() );
                         ZipArchiveEntry oZipEntry      = oZip.CreateEntry( strLineEncoded );
 
-                        using Stream oImgStream = new MemoryStream();
-                        using Stream oZipStream = oZipEntry.Open();
-
-                        // TODO: See remarks about this save chicanery. I might be able to remove this
-                        // if the SKBitmap does not attempt to read from it's stream.
+                        using Stream oZipStream   = oZipEntry.Open();
                         using SKData oEncodedData = oImage.Encode(SKEncodedImageFormat.Jpeg, 50);
 
-                        oEncodedData.SaveTo( oImgStream );
-
-                        oImgStream.Seek( 0, SeekOrigin.Begin );
-                        oImgStream.CopyTo( oZipStream );
+                        oEncodedData.SaveTo( oZipStream );
                     }
                 } catch( Exception oEx ) {
                     Type[] rgErrors = { typeof( NullReferenceException ),
