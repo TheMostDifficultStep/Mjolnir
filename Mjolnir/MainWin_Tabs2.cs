@@ -24,6 +24,8 @@ namespace Mjolnir {
 
         readonly MainWin      _oHost;
         readonly ImageSoloDoc _oCloserImg;
+        readonly SKImageInfo  _sIconInfo = new SKImageInfo( 30, 30 , SKColorType.Rgb888x, SKAlphaType.Opaque );
+
 
         protected class TabSlot : IPgViewSite {
             readonly TabForMainWin _oHost;
@@ -64,8 +66,7 @@ namespace Mjolnir {
 
         protected override LayoutRect CreateTab( Line oViewLine ) {
             LayoutPattern    oTabStat = new( LayoutRect.CSS.Pixels, 5, oViewLine, TabStatus );
-            SKImage          oImg     = SKImage.FromBitmap( TabIcon( (ViewSlot)oViewLine ) );
-			LayoutIcon       oTabIcon = new( oImg, LayoutRect.CSS.Flex );
+			LayoutIcon       oTabIcon = new( TabIcon( (ViewSlot)oViewLine ), LayoutRect.CSS.Flex );
 			LayoutSingleLine oTabText = new LayoutSingleLine( new FTCacheWrap( oViewLine ), LayoutRect.CSS.None ) 
                                             { BgColor = SKColors.Transparent };
 			_rgTextCache.Add(oTabText);
@@ -89,18 +90,17 @@ namespace Mjolnir {
         /// for this case.
         /// </summary>
         /// <param name="oSlot">A view slot from the MainWin</param>
-        public SKBitmap TabIcon( ViewSlot oSlot ) {
+        public SKImage TabIcon( ViewSlot oSlot ) {
             if( oSlot.Icon != null )
-                return oSlot.Icon;
+                return SKImage.FromBitmap( oSlot.Icon );
 
-            SKBitmap skIcon = new( 30, 30, SKColorType.Rgb888x, SKAlphaType.Opaque );
+            using SKSurface oSurface = SKSurface.Create( _sIconInfo );
+            using SKPaint   oPaint   = new () { Color = SKColors.Red };
 
-            using SKPaint  oPaint  = new () { Color = SKColors.Red };
-			using SKCanvas oCanvas = new ( skIcon );
+            oSurface.Canvas.DrawRect( 0, 0, _sIconInfo.Width, _sIconInfo.Height, oPaint );
+            oSurface.Flush();
 
-			oCanvas.DrawRect( 0, 0, skIcon.Width, skIcon.Height, oPaint );
-
-            return skIcon;
+            return oSurface.Snapshot();
         }
 
         /// <summary>
