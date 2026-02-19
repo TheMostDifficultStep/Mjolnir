@@ -99,7 +99,7 @@ namespace Mjolnir {
             using SKPaint   oPaint   = new () { Color = SKColors.Red };
 
             oSurface.Canvas.DrawRect( 0, 0, _sIconInfo.Width, _sIconInfo.Height, oPaint );
-            oSurface.Flush();
+            oSurface.Canvas.Flush();
 
             return oSurface.Snapshot();
         }
