@@ -257,7 +257,10 @@ namespace Play.SSTV {
         public override Size TabSize => new Size( 55, 40 );
 
         protected override LayoutRect CreateTab( Line oLine ) {
-			LayoutIcon            oTabIcon = new( ((ToolInfo)oLine.Extra).Icon, LayoutRect.CSS.Flex );
+			SKBitmap oBmp = ((ToolInfo)oLine.Extra).Icon;
+			SKImage  oImg = SKImage.FromBitmap( oBmp ); // BUG: This might cause a leak.
+
+			LayoutIcon            oTabIcon = new( oImg, LayoutRect.CSS.Flex );
             LayoutPattern         oTabStat = new( LayoutRect.CSS.Pixels, 5, oLine, TabStatus );
 				
 			LayoutStackHorizontal oTab = new () { Spacing = 5, 

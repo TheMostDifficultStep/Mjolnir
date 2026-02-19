@@ -64,7 +64,8 @@ namespace Mjolnir {
 
         protected override LayoutRect CreateTab( Line oViewLine ) {
             LayoutPattern    oTabStat = new( LayoutRect.CSS.Pixels, 5, oViewLine, TabStatus );
-			LayoutIcon       oTabIcon = new( TabIcon( (ViewSlot)oViewLine ), LayoutRect.CSS.Flex );
+            SKImage          oImg     = SKImage.FromBitmap( TabIcon( (ViewSlot)oViewLine ) );
+			LayoutIcon       oTabIcon = new( oImg, LayoutRect.CSS.Flex );
 			LayoutSingleLine oTabText = new LayoutSingleLine( new FTCacheWrap( oViewLine ), LayoutRect.CSS.None ) 
                                             { BgColor = SKColors.Transparent };
 			_rgTextCache.Add(oTabText);

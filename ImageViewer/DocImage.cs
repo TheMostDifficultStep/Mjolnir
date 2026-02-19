@@ -37,7 +37,8 @@ namespace Play.ImageViewer {
     }
 
     public abstract class ImageBlock : Block {
-        public ImageBlock( LOCUS eOrigin, int iX, int iY, double dblScale ) : base( eOrigin, iX, iY, dblScale ) {
+        public ImageBlock( LOCUS eOrigin, int iX, int iY, double dblScale ) : 
+            base( eOrigin, iX, iY, dblScale ) {
         }
 
         /// <summary>

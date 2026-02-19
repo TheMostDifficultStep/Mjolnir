@@ -110,7 +110,7 @@ namespace Play.Rectangles {
     /// ImageViewer project</remarks>
     /// <seealso cref="Play.ImageViewer.LayoutBmpDoc"/>
     public class LayoutImageReference : LayoutImageAbstract {
-		public virtual SKBitmap  Picture { get; }
+		public virtual SKImage  Picture { get; }
 
         public bool Stretch { get; set; } = false;
 
@@ -124,7 +124,7 @@ namespace Play.Rectangles {
         /// Create a rescaled image based on this object's dimensions, preserving
         /// aspect ratio of the original image.
         /// </summary>
-        public SKBitmap CreateReScaledImage( SKBitmap bmpSource ) {
+        public SKImage CreateReScaledImage( SKImage bmpSource ) {
             if( bmpSource == null )
                 return null;
 
@@ -133,18 +133,22 @@ namespace Play.Rectangles {
 
                 ViewPortSizeMax( ViewPort );
 
-                SKBitmap oReSized = new SKBitmap( ViewPort.Width, ViewPort.Height );
+                SKImageInfo sImgInfo = new SKImageInfo(ViewPort.Width, ViewPort.Height );
 
-                using( SKCanvas skCanvas = new SKCanvas( oReSized ) ) {
-                    using( SKPaint skPaint = new SKPaint() ) {
-                        skPaint .FilterQuality = SKFilterQuality.High;
-                        skCanvas.DrawBitmap( bmpSource, 
-                                             new SKRect( 0, 0, World.Width,    World.Height ),    // Source.
-                                             new SKRect( 0, 0, oReSized.Width, oReSized.Height ), // Destination
-                                             skPaint );
-                    }
-                }
-                return oReSized;
+                using SKSurface skSurface = SKSurface.Create( sImgInfo );
+                SKSamplingOptions sOptions = new SKSamplingOptions( SKFilterMode.Linear );
+
+                skSurface.Canvas.
+                    DrawImage( bmpSource, 
+                               new SKRect( 0, 0, World   .Width, World   .Height ), // Source.
+                               new SKRect( 0, 0, ViewPort.Width, ViewPort.Height ), // Destination
+                               sOptions
+                             );
+
+                skSurface.Canvas.Flush();
+                return skSurface.Snapshot();
+
+                //return oReSized;
             } catch( NullReferenceException ) {
                 return null;
             }
@@ -154,7 +158,11 @@ namespace Play.Rectangles {
 			try {
 				using( SKPaint skPaint = new SKPaint() ) {
 					skPaint .Color = SKColors.White;
-					skCanvas.DrawRect( new SKRect( ViewPort.Left, ViewPort.Top - pntTopLeft.Y, ViewPort.Right, ViewPort.Bottom - pntTopLeft.Y ), skPaint ); 
+					skCanvas.DrawRect( new SKRect( ViewPort.Left, 
+                                                   ViewPort.Top    - pntTopLeft.Y, 
+                                                   ViewPort.Right, 
+                                                   ViewPort.Bottom - pntTopLeft.Y ), 
+                                                   skPaint ); 
 				}
 			} catch( Exception oEx ) {
 				Type[] rgErrors = { typeof( ArgumentNullException ),
@@ -182,11 +190,14 @@ namespace Play.Rectangles {
                 ViewPortSizeMax( ViewPort ); 
             }
 
+            SKSamplingOptions sOptions = new SKSamplingOptions( SKFilterMode.Linear );
+
             try {
-				skCanvas.DrawBitmap( Picture, 
-									 new SKRect(    World.Left,    World.Top,    World.Right,    World.Bottom ),
-									 new SKRect( ViewPort.Left, ViewPort.Top, ViewPort.Right, ViewPort.Bottom )
-                                   );
+				skCanvas.DrawImage( Picture, 
+								    new SKRect(    World.Left,    World.Top,    World.Right,    World.Bottom ),
+								    new SKRect( ViewPort.Left, ViewPort.Top, ViewPort.Right, ViewPort.Bottom ),
+                                    sOptions
+                                  );
             } catch( NullReferenceException ) {
             }
 		}
@@ -200,8 +211,8 @@ namespace Play.Rectangles {
     /// ImageViewer project</remarks>
     /// <seealso cref="Play.ImageViewer.LayoutBmpDoc"/>
     public class LayoutIcon : LayoutImageReference {
-		public override SKBitmap Picture { get; }
-        public LayoutIcon( SKBitmap skBmp, CSS eLayout = CSS.None) : 
+		public override SKImage Picture { get; }
+        public LayoutIcon( SKImage skBmp, CSS eLayout = CSS.None) : 
             base(new SKSize( skBmp.Width, skBmp.Height), eLayout) 
         {
             Picture = skBmp;
@@ -213,22 +224,14 @@ namespace Play.Rectangles {
     /// </summary>
     /// <seealso cref="Play.ImageViewer.LayoutSKImage"/>
 	public class LayoutImage : LayoutImageReference, IDisposable {
-		public override SKBitmap Picture { get; }
+		public override SKImage Picture { get; }
 
         private bool disposedValue;
 
-        public LayoutImage( SKBitmap oImage, CSS eLayout = CSS.None ) : base( new SKSize( oImage.Width, oImage.Height ), eLayout )
+        public LayoutImage( SKImage oImage, CSS eLayout = CSS.None ) : 
+            base( new SKSize( oImage.Width, oImage.Height ), eLayout )
 		{
 		    Picture  = oImage ?? throw new ArgumentNullException(); // DirectoryRect doesn't have an image.
-			World.SetRect( 0, 0, (int)oImage.Width, (int)oImage.Height );
-		}
-
-        public LayoutImage( SKImage oImage, CSS eLayout = CSS.None ) : base( new SKSize( oImage.Width, oImage.Height ), eLayout )
-		{
-            if( oImage == null )
-                throw new ArgumentNullException();
-
-		    Picture  = SKBitmap.FromImage( oImage ) ?? throw new ArgumentNullException(); // DirectoryRect doesn't have an image.
 			World.SetRect( 0, 0, (int)oImage.Width, (int)oImage.Height );
 		}
 

@@ -687,6 +687,9 @@ namespace Play.ImageViewer {
         }
 
         public static bool IsFileExtensionUnderstood( string strFileExtn ) {
+            if( string.IsNullOrEmpty(strFileExtn) )
+                return false;
+						
             try { 
                 return _rgFileExts.Contains( strFileExtn.ToLower() );
             } catch( ArgumentException ) { 
@@ -789,24 +792,21 @@ namespace Play.ImageViewer {
 
             foreach( Line oLine in FileList ) {
                 try {
-                    if( IsLineUnderstood( oLine ) && oLine.Extra != null ) {
-                        SKBitmap        oImage         = (SKBitmap)oLine.Extra;
+                    if( IsLineUnderstood( oLine ) && oLine.Extra is SKImage oImage ) {
                         string          strLineEncoded = HttpUtility.HtmlEncode( oLine.ToString() );
                         ZipArchiveEntry oZipEntry      = oZip.CreateEntry( strLineEncoded );
 
-                        using Stream oSavedBitmap = new MemoryStream();
-                        using Stream oZipStream   = oZipEntry.Open();
+                        using Stream oImgStream = new MemoryStream();
+                        using Stream oZipStream = oZipEntry.Open();
 
                         // TODO: See remarks about this save chicanery. I might be able to remove this
                         // if the SKBitmap does not attempt to read from it's stream.
-                        oImage.Encode( oSavedBitmap, SKEncodedImageFormat.Jpeg, 80 );
-                      //oImage.Save( oSavedBitmap, System.Drawing.Imaging.ImageFormat.Jpeg );
-                        oSavedBitmap.Seek( 0, SeekOrigin.Begin );
-                        oSavedBitmap.CopyTo( oZipStream );
+                        using SKData oEncodedData = oImage.Encode(SKEncodedImageFormat.Jpeg, 50);
 
-                        //using (StreamWriter oWriter = new StreamWriter(oZipEntry.Open())) {
-                        //    oImage.Save( oWriter.BaseStream, System.Drawing.Imaging.ImageFormat.Jpeg );
-                        //}
+                        oEncodedData.SaveTo( oImgStream );
+
+                        oImgStream.Seek( 0, SeekOrigin.Begin );
+                        oImgStream.CopyTo( oZipStream );
                     }
                 } catch( Exception oEx ) {
                     Type[] rgErrors = { typeof( NullReferenceException ),
@@ -845,9 +845,8 @@ namespace Play.ImageViewer {
                     ZipArchiveEntry oZipEntry = oZip.GetEntry( strLineEncoded );
                     // Looks like new behavior under .net core. I won't get an exception I'll get null entry. Speed improvement!
                     if( oZipEntry != null ) {
-                        using( Stream oZipStream = oZipEntry.Open() ) {
-                            oLine.Extra = SKBitmap.Decode( oZipStream );
-                        }
+                        using Stream oZipStream = oZipEntry.Open();
+                        oLine.Extra = SKImage.FromEncodedData( oZipStream );
                     }
                 } catch( Exception oEx ) {
                     Type[] rgErrors = { typeof( NullReferenceException ),
@@ -877,6 +876,37 @@ namespace Play.ImageViewer {
         }
 
         /// <summary>
+        /// This is very slow. That's why we're using a worker to load and scale all of these!
+        /// </summary>
+        protected SKImage ReScale( string strFullPath, SKSize skSize ) {
+            try {
+			    LayoutImageReference oTempRct = new LayoutImageReference( skSize );
+
+                using Stream  oStream  = new FileStream( strFullPath, FileMode.Open );
+			    using SKImage oImgTemp = SKImage.FromEncodedData( oStream );
+
+			    return oTempRct.CreateReScaledImage( oImgTemp ); 
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( ArgumentException ), 
+                                    typeof( ArgumentNullException ),
+                                    typeof( System.Security.SecurityException ),
+                                    typeof( FileNotFoundException ), 
+                                    typeof( UnauthorizedAccessException ),
+                                    typeof( IOException ),
+                                    typeof( DirectoryNotFoundException ), 
+                                    typeof( PathTooLongException ),
+                                    typeof( ArgumentOutOfRangeException ),
+                                    typeof( NullReferenceException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
+
+                LogError( "Image Walker", "Problem Resizing to thumbnail" );
+
+                return null;
+            }
+        }
+
+        /// <summary>
         /// This is an iterator that generates the thumb nail bitmaps! Very kewl!!
         /// </summary>
         /// <returns>Return time can wait until next call.</returns>
@@ -893,16 +923,9 @@ namespace Play.ImageViewer {
                     } catch( ArgumentException ) {
                         continue;
                     }
-					if( !string.IsNullOrEmpty(strFileName) && 
-						ImageWalkerDoc.IsFileExtensionUnderstood( strFileExtn ) )
-					{
-						// This is very slow. That's why we're using a worker to load and scale all of these!
-						LayoutImageReference oTempRct = new LayoutImageReference( skSize );
-						using SKBitmap  oTempBmp = ImageLineRect.LoadImage( Path.Combine( CurrentDirectory, oFileName.ToString() ) );
+					if( ImageWalkerDoc.IsFileExtensionUnderstood( strFileExtn ) ) {
+						oFileName.Extra = ReScale( Path.Combine( CurrentDirectory, oFileName.ToString() ), skSize ); 
 
-                        if( oTempBmp != null ) {
-						    oFileName.Extra = oTempRct.CreateReScaledImage( oTempBmp ); 
-                        }
                         if( ++iCount % 5 == 0 ) {
                             Raise_UpdatedThumbs();
                         }

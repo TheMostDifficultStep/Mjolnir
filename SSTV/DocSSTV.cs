@@ -1229,7 +1229,8 @@ namespace Play.SSTV {
 
             oStack.Add( oHoriz );
 
-            LayoutImageReference oImage = new LayoutIcon( TxImageList.Bitmap, LayoutRect.CSS.None ) { Stretch = true };
+            SKImage oImgTemp = SKImage.FromBitmap(  TxImageList.Bitmap );
+            LayoutImageReference oImage = new LayoutIcon( oImgTemp, LayoutRect.CSS.None ) { Stretch = true };
             oImage.World.Copy = Selection;
             oStack.Add( oImage );
 
@@ -1266,7 +1267,8 @@ namespace Play.SSTV {
             uint      uiFontID = _oStdUI.FontCacheNew( TxBitmapComp.StdFace, uiPoints, skEMsPerInch );
             oText.Cache.Measure( _oStdUI.FontRendererAt( uiFontID ) );
 
-            LayoutImage oImage = new LayoutImage( TxImageList.Bitmap, LayoutRect.CSS.None ) { Stretch = true };
+            SKImage oImgTemp = SKImage.FromBitmap(  TxImageList.Bitmap );
+            LayoutImage oImage = new LayoutImage( oImgTemp, LayoutRect.CSS.None ) { Stretch = true };
             oImage.World.Copy = Selection;
 
             oStack.Add( oImage );
@@ -1320,10 +1322,12 @@ namespace Play.SSTV {
 
             oVertiMain.Add( oSingle );
 
-            LayoutImageReference oImage1 = new LayoutIcon( TxImageList  .Bitmap, LayoutRect.CSS.None ) { Stretch = true };
+            SKImage oImgTemp1 = SKImage.FromBitmap(  TxImageList.Bitmap );
+            LayoutImageReference oImage1 = new LayoutIcon( oImgTemp1, LayoutRect.CSS.None ) { Stretch = true };
             oImage1.World.Copy = Selection;
 
-            LayoutImageReference oImage2 = new LayoutIcon( RxHistoryList.Bitmap, LayoutRect.CSS.None ) { Stretch = true };
+            SKImage oImgTemp2 = SKImage.FromBitmap(  RxHistoryList.Bitmap );
+            LayoutImageReference oImage2 = new LayoutIcon( oImgTemp2, LayoutRect.CSS.None ) { Stretch = true };
             oHorizImgs.Add( oImage1 );
             oHorizImgs.Add( oImage2 );
 

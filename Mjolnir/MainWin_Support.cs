@@ -266,9 +266,9 @@ namespace Mjolnir {
 			_oViewSite = oViewSite ?? throw new ArgumentNullException();
 			// TODO: Could move this to the program so we don't duplicate loads.
 
-			Icon = ResourceLoader.GetImageResource( Assembly.GetExecutingAssembly(), 
-				                                    "Mjolnir.Content.icons8-bookmark-book-512.png" );
-			Bookmark   = new LayoutImage( Icon );
+			Icon     = ResourceLoader.GetImageResource( Assembly.GetExecutingAssembly(), 
+				                                        "Mjolnir.Content.icons8-bookmark-book-512.png" );
+			Bookmark = new LayoutImage( SKImage.FromBitmap( Icon ) );
 		}
 
         protected override void Dispose( bool disposing ) {
@@ -374,7 +374,8 @@ namespace Mjolnir {
 			_oLayoutBot.Add( new LayoutRect( LayoutRect.CSS.None ) );
 			foreach( string strName in IconNames ) {
 				string strPath = "Mjolnir.Content." + strName;
-				_oLayoutBot.Add( new LayoutImage( ResourceLoader.GetImageResource( Assembly.GetExecutingAssembly(), strPath ), LayoutRect.CSS.Flex ) );
+				using SKBitmap oBmp = ResourceLoader.GetImageResource( Assembly.GetExecutingAssembly(), strPath );
+				_oLayoutBot.Add( new LayoutImage( SKImage.FromBitmap( oBmp ), LayoutRect.CSS.Flex ) );
 			}
 			_oLayoutBot.Add( new LayoutRect( LayoutRect.CSS.None ) );
 

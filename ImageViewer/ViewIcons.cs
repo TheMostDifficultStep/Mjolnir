@@ -31,7 +31,7 @@ namespace Play.ImageViewer {
     /// </summary>
     public class ImageLineRect : ImageLineBase
     {
-        public override SKBitmap Picture => (SKBitmap)Source.Extra;
+        public override SKImage Picture => (SKImage)Source.Extra;
 
         /// <exception cref="ArgumentNullException" />
         /// <exception cref="InvalidCastException" />
@@ -62,16 +62,16 @@ namespace Play.ImageViewer {
             ViewPortSizeMax( ViewPort ); // TODO: Need to look at placement of this call...
 
             try {
-                SmartRect oTarget = 
-                    new SmartRect( LOCUS.UPPERLEFT, 
-                                   ViewPort.Left,
-                                   ViewPort.Top - (int)oTopLeft.Y,
-                                   ViewPort.Width, 
-                                   ViewPort.Height );
+                SKSamplingOptions sOptions = new SKSamplingOptions( SKFilterMode.Linear );
 
-				skCanvas.DrawBitmap( Picture, 
-									 new SKRect( 0, 0, World.Width, World.Height ),
-									 new SKRect( ViewPort.Left, ViewPort.Top - oTopLeft.Y, ViewPort.Right, ViewPort.Bottom - oTopLeft.Y ) );
+				skCanvas.DrawImage( Picture, 
+									new SKRect( 0, 0, World.Width, World.Height ),
+									new SKRect( ViewPort.Left, 
+                                                ViewPort.Top    - oTopLeft.Y, 
+                                                ViewPort.Right, 
+                                                ViewPort.Bottom - oTopLeft.Y ),
+                                    sOptions
+                                  );
             } catch( NullReferenceException ) {
             }
         }

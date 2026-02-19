@@ -112,4 +112,5 @@ namespace Play.Clock {
 
             throw new ArgumentOutOfRangeException();
         }
-    }}
+    }
+}
