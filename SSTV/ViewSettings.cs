@@ -29,7 +29,7 @@ namespace Play.SSTV {
 
         public Guid      Catagory  => GUID; 
         public string    Banner    => "MySSTV Settings";
-        public SKBitmap  Icon    { get; }
+        public SKImage   Icon    { get; }
         public Image     Iconic => null;
         public override bool IsDirty => false;
 

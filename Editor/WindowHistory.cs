@@ -30,7 +30,7 @@ namespace Play.Edit {
 
         public string Banner => _strBanner;
 
-        public SKBitmap Icon => null;
+        public SKImage Icon => null;
 
         public Guid Catagory => _gCat;
 

@@ -483,7 +483,7 @@ namespace Play.Interfaces.Embedding {
 	/// </summary>
     public interface IPgCommandView : IPgCommandBase {
         string   Banner{ get; } 
-        SKBitmap Icon  { get; }
+        SKImage  Icon  { get; }
         Guid    Catagory { get; } // This is the View Type guid. Only used in one place. See if I can factor this out.
         object  Decorate( IPgViewSite oBaseSite, Guid sGuid );
     }

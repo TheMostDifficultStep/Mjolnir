@@ -22,7 +22,7 @@ namespace Play.MusicWalker {
 		readonly M3UDocument _oDocumentMusic;
 		readonly string      _strMusicIcon = @"MusicWalker.Content.icons8-music-24.png";
 
-		SKBitmap _oAlbumArtIcon = null;
+		SKImage _oAlbumArtIcon = null;
 
         public WinMusicText( IPgViewSite oBaseSite, M3UDocument p_oDocument, bool fReadOnly = false, bool fSingleLine = false ) : 
 			base( oBaseSite, p_oDocument, fReadOnly, fSingleLine ) 
@@ -68,7 +68,7 @@ namespace Play.MusicWalker {
             return( base.Decorate( oBaseSite, sGuid ) );
         }
 
-		public override SKBitmap Icon => _oAlbumArtIcon;
+		public override SKImage Icon => _oAlbumArtIcon;
 
 		public override bool Execute(Guid sGuid) {
 			if (sGuid == GlobalCommands.Play) {
@@ -184,7 +184,7 @@ namespace Play.MusicWalker {
 
         public Guid   Catagory => _guidViewImage;
         public string Banner   => "Solo MP3 Player" + ( string.IsNullOrEmpty( _oDocument.CurrentURL ) ? string.Empty : " : " + _oDocument.CurrentURL );
-        public SKBitmap  Icon   { get; }
+        public SKImage  Icon   { get; }
 
 		public WinSoloMP3( IPgViewSite oBaseSite, MP3Document oDocument ) {
 			_oDocument = oDocument ?? throw new ArgumentNullException( "Music Image Win needs Music Document.");

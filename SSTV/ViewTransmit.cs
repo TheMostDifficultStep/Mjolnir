@@ -218,7 +218,7 @@ namespace Play.SSTV {
 		readonly public string   _strToolName;
 		readonly public Guid     _guidID;
 
-		public SKBitmap Icon { get; set; }
+		public SKImage Icon { get; set; }
 	}
 
     public static class TransmitCommands {
@@ -257,8 +257,7 @@ namespace Play.SSTV {
         public override Size TabSize => new Size( 55, 40 );
 
         protected override LayoutRect CreateTab( Line oLine ) {
-			SKBitmap oBmp = ((ToolInfo)oLine.Extra).Icon;
-			SKImage  oImg = SKImage.FromBitmap( oBmp ); // BUG: This might cause a leak.
+			SKImage oImg = ((ToolInfo)oLine.Extra).Icon;
 
 			LayoutIcon            oTabIcon = new( oImg, LayoutRect.CSS.Flex );
             LayoutPattern         oTabStat = new( LayoutRect.CSS.Pixels, 5, oLine, TabStatus );
@@ -346,7 +345,7 @@ namespace Play.SSTV {
 
         public IPgParent Parentage => _oSiteView.Host;
         public IPgParent Services  => Parentage.Services;
-        public SKBitmap	 Icon    { get; protected set; }
+        public SKImage	 Icon    { get; }
 		public Image     Iconic    => null;
         public bool		 IsDirty   => false;
         public    Guid   Catagory  => GUID;

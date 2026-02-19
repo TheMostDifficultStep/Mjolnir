@@ -80,7 +80,7 @@ namespace Play.MorsePractice {
         public IPgParent Services  => Parentage.Services;
 		public Guid      Catagory  => _guidViewCategory;
 		public string    Banner    => "View Qrz";
-		public SKBitmap     Icon    => null;
+		public SKImage     Icon    => null;
 
 		public Editor CallSign       { get { return _oDocMorse.CallSign; } }
         public Editor CallSignBio    { get { return _oDocMorse.CallSignBio; } }

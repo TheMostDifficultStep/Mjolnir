@@ -52,7 +52,7 @@ namespace Monitor {
         public static Guid GUID { get; } = new Guid( "{1DBE2048-619C-44EA-882C-024DF5087743}" );
 
         public string    Banner => "Assembly Monitor : " + _oMonDoc.FileName;
-		public SKBitmap? Icon { get; protected set; }
+		public SKImage? Icon { get; protected set; }
         public Guid      Catagory => GUID;
 
         public int ElementCount => _oMonDoc.Z80Memory.Count;

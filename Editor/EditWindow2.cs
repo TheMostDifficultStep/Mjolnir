@@ -554,7 +554,7 @@ namespace Play.Edit {
             return ( true );
         }
 
-        public virtual SKBitmap Icon { get; }
+        public virtual SKImage Icon { get; protected set; }
 
         public string Banner {
             get { 

@@ -124,7 +124,7 @@ namespace Play.SSTV {
 
         public string Banner => Text;
 
-        public SKBitmap Icon => null;
+        public SKImage Icon => null;
 
         public Guid Catagory => GUID;
 

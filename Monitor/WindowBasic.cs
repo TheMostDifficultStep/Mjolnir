@@ -16,7 +16,7 @@ namespace Monitor {
         protected List<string> _rgTools = new List<string>();
         public Guid     Catagory => GUID;
         public string   Banner => "Basic Viewer - " + DocMain.FileName;
-        public SKBitmap Icon => null;
+        public SKImage  Icon => null;
 
 
         protected override uint StdFont => StdUI.FontCacheNew( StdUI.FaceCacheNew( @"C:\Users\Frodo\AppData\Local\Microsoft\Windows\Fonts\PressStart2P-Regular.ttf"), 

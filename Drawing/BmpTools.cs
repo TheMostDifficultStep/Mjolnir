@@ -257,7 +257,7 @@ namespace Play.Drawing {
         /// <remarks>.net core has new behavior for embedded resources. It is not the
         ///           namespace name, but the assembly name (at last)
         /// </remarks>
-		public SKBitmap GetResource( string strName, Assembly oAsm ) {
+		public SKImage GetResource( string strName, Assembly oAsm ) {
             string strRes = oAsm.GetName().Name + ".Content." + strName;
 
 			return SKImageResourceHelper.GetImageResource( oAsm, strRes );
@@ -278,19 +278,14 @@ namespace Play.Drawing {
     }
 
 	public class SKImageResourceHelper {
-		/// <summary>
-		/// Get the specified resource from the currently executing assembly.
-		/// </summary>
-		/// <exception cref="InvalidOperationException" />
-        /// <remarks>Consider changing the exception to ApplicationException</remarks>
-		public static SKBitmap GetImageResource( Assembly oAssembly, string strResourceName ) {
+		public static SKImage GetImageResource( Assembly oAssembly, string strResourceName ) {
 			try {
                 // Let's you peep in on all of them! ^_^
                 // string[] rgStuff = oAssembly.GetManifestResourceNames();
 
-				using( Stream oStream = oAssembly.GetManifestResourceStream( strResourceName )) {
-					return SKBitmap.Decode( oStream );
-				}
+				using Stream oStream = oAssembly.GetManifestResourceStream( strResourceName );
+
+				return SKImage.FromEncodedData( oStream );
 			} catch( Exception oEx ) {
 				Type[] rgErrors = { typeof( NullReferenceException ), 
 									typeof( ArgumentNullException ),

@@ -62,7 +62,7 @@ namespace Play.MorsePractice {
 		public bool      IsDirty   => _DocNetHost.Log.IsDirty || _DocNetHost.Notes.IsDirty;
 		public Guid      Catagory  => ViewCategory;
 		public string    Banner    => string.IsNullOrEmpty( _DocNetHost.FileName ) ? "New Net Logger" : _DocNetHost.FileName;
-		public SKBitmap  Icon      { get; protected set; }
+		public SKImage  Icon      { get; }
 
 		EditWindow2 ViewNotes   { get; }
 		ViewLog  ViewLog     { get; }

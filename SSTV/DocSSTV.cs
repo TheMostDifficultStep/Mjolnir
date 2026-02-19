@@ -2053,7 +2053,7 @@ namespace Play.SSTV {
             }
         }
 
-        public SKBitmap CreateIconic( string strResource ) {
+        public SKImage CreateIconic( string strResource ) {
             return SKImageResourceHelper.GetImageResource( Assembly.GetExecutingAssembly(), strResource );
         }
 

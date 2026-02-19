@@ -621,7 +621,7 @@ namespace Play.ImageViewer {
 
                 return oBuilder.ToString();
         }   }
-        public         SKBitmap  Icon { get; }
+        public         SKImage  Icon { get; }
 
         internal void LogError( string strCatagory, string strMessage ) {
             _oSiteBase.LogError( strCatagory, strMessage );

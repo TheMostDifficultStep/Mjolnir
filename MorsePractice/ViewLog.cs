@@ -26,7 +26,7 @@ namespace Play.MorsePractice {
 
 		public Guid   Catagory => ViewCatagory;
 		public string Banner   => "Log Viewer";
-		public SKBitmap Icon   { get; protected set; }
+		public SKImage Icon   { get; protected set; }
 
 		protected DocLog LogDoc { get; }
 

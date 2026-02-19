@@ -118,6 +118,11 @@ namespace AddressBook {
             base( oBaseSite, (BaseEditor)oDocument.Entry ) 
         {
             Document = oDocument ?? throw new ArgumentNullException();
+
+            Icon = SKImageResourceHelper.GetImageResource( 
+                Assembly.GetExecutingAssembly(), 
+                @"AddressBook.Content.icons8-address-book-96.png" );
+
         }
         public override object? Decorate(IPgViewSite oBaseSite, Guid sGuid) {
             if( sGuid == GlobalDecor.Outline ) {
@@ -126,10 +131,6 @@ namespace AddressBook {
 
             return null;
         }
-
-        public override SKBitmap Icon => SKImageResourceHelper.GetImageResource( 
-                Assembly.GetExecutingAssembly(), 
-                @"AddressBook.Content.icons8-address-book-96.png" );
 
         public override bool Execute(Guid sGuid) {
             if( sGuid == GlobalCommands.JumpNext ) {
@@ -183,10 +184,10 @@ namespace AddressBook {
 
         public string Banner => "Print Viewer";
 
-        public SKBitmap Icon => SKImageResourceHelper.GetImageResource( 
+        public SKImage Icon => SKImageResourceHelper.GetImageResource( 
                 Assembly.GetExecutingAssembly(), 
                 @"AddressBook.Content.icons8-print-96.png" );
-        public SKBitmap Stamp => SKImageResourceHelper.GetImageResource( 
+        public SKImage Stamp => SKImageResourceHelper.GetImageResource( 
                 Assembly.GetExecutingAssembly(),
                 @"AddressBook.Content.icons8-postage-stamp-64.png" );
         public Bitmap StampBmp { get; }

@@ -218,30 +218,6 @@ namespace Mjolnir {
         }
     } // End class
 
-	public static class ResourceLoader {
-		public static SKBitmap GetImageResource( Assembly oAssembly, string strResourceName ) {
-			try {
-                // Let's you peep in on all of them! ^_^
-                // string[] rgStuff = oAssembly.GetManifestResourceNames();
-
-				using( Stream oStream = oAssembly.GetManifestResourceStream( strResourceName )) {
-					return( SKBitmap.Decode( oStream ) );
-				}
-			} catch( Exception oEx ) {
-				Type[] rgErrors = { typeof( NullReferenceException ), 
-									typeof( ArgumentNullException ),
-									typeof( ArgumentException ),
-									typeof( FileLoadException ),
-									typeof( BadImageFormatException ),
-									typeof( NotImplementedException ) };
-				if( rgErrors.IsUnhandled( oEx ) )
-					throw;
-
-				throw new InvalidOperationException( "Could not retrieve given image resource : " + strResourceName );
-			}
-		}
-	}
-
 	/// <summary>
 	/// Show that we can support aborted load document sites, we use this object to show that
 	/// the document site is being bookmarked. While technically you might think this would be
@@ -266,9 +242,9 @@ namespace Mjolnir {
 			_oViewSite = oViewSite ?? throw new ArgumentNullException();
 			// TODO: Could move this to the program so we don't duplicate loads.
 
-			Icon     = ResourceLoader.GetImageResource( Assembly.GetExecutingAssembly(), 
+			Icon     = SKImageResourceHelper.GetImageResource( Assembly.GetExecutingAssembly(), 
 				                                        "Mjolnir.Content.icons8-bookmark-book-512.png" );
-			Bookmark = new LayoutImage( SKImage.FromBitmap( Icon ) );
+			Bookmark = new LayoutImage( Icon );
 		}
 
         protected override void Dispose( bool disposing ) {
@@ -283,7 +259,7 @@ namespace Mjolnir {
 		public string    Banner    => "Bookmark";
 		public Guid      Catagory  => _oCatagory;
 		public bool      IsDirty   => false; // Never can get dirty.
-		public SKBitmap  Icon      { get; }
+		public SKImage   Icon      { get; }
 
 		protected override void OnPaint(PaintEventArgs e) {
 			base.OnPaint(e);
@@ -353,7 +329,7 @@ namespace Mjolnir {
 		public string    Banner    => "Overview";
 		public Guid      Catagory  => _oCatagory;
 		public bool      IsDirty   => false; // Never can get dirty.
-		public SKBitmap  Icon    { get; }
+		public SKImage   Icon    { get; }
 
 		protected string[] IconNames {
 			get {
@@ -374,8 +350,8 @@ namespace Mjolnir {
 			_oLayoutBot.Add( new LayoutRect( LayoutRect.CSS.None ) );
 			foreach( string strName in IconNames ) {
 				string strPath = "Mjolnir.Content." + strName;
-				using SKBitmap oBmp = ResourceLoader.GetImageResource( Assembly.GetExecutingAssembly(), strPath );
-				_oLayoutBot.Add( new LayoutImage( SKImage.FromBitmap( oBmp ), LayoutRect.CSS.Flex ) );
+				using SKImage oImg = SKImageResourceHelper.GetImageResource( Assembly.GetExecutingAssembly(), strPath );
+				_oLayoutBot.Add( new LayoutImage( oImg, LayoutRect.CSS.Flex ) );
 			}
 			_oLayoutBot.Add( new LayoutRect( LayoutRect.CSS.None ) );
 

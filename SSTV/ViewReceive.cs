@@ -16,7 +16,6 @@ using Play.Edit;
 using Play.ImageViewer;
 using Play.Forms;
 using Play.Sound;
-using Play.Controls;
 
 namespace Play.SSTV {
 	/// <summary>
@@ -92,7 +91,7 @@ namespace Play.SSTV {
 		public static string _strIcon =  "Play.SSTV.Content.icons8_tv.png";
 
         public Guid     Catagory => GUID;
-		public SKBitmap Icon { get; }
+		public SKImage  Icon { get; }
 		public Image    Iconic  => null;
         public bool     IsDirty => false;
 
@@ -353,7 +352,7 @@ namespace Play.SSTV {
         public IPgParent Parentage => _oSiteView.Host;
         public IPgParent Services  => Parentage.Services;
         public abstract Guid Catagory { get; }
-        public SKBitmap	 Icon    { get; protected set; }
+        public SKImage	 Icon    { get; protected set; }
 		public Image Iconic => null;
         public bool		 IsDirty   => false;
 

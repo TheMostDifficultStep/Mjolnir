@@ -128,7 +128,7 @@ namespace Play.ImageViewer {
 
         public ImageWalkerDoc Document { get { return _oDocument; }  }
         public override string Banner => _oDocument.Banner;
-        public virtual SKBitmap Icon { get; } = null;
+        public override SKImage Icon { get; } = null;
 
 
 	    protected class DocSlot :

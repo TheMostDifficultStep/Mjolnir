@@ -91,7 +91,7 @@ namespace Play.ImageViewer {
 		public Guid      Catagory  => Guid;
 		public string    Banner    => _oDocument.CurrentFileName + " : Snippet";
 		public Image     Iconic    => null;
-		public SKBitmap  Icon      { get; }
+		public SKImage   Icon      { get; }
 		public IPgParent Parentage => _oSiteBase.Host;
 		public IPgParent Services  => Parentage.Services;
 

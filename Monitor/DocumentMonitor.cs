@@ -699,7 +699,7 @@ namespace Monitor {
             _oWorkPlace.Stop();
         }
 
-		public SKBitmap GetResource( string strName ) {
+		public SKImage GetResource( string strName ) {
 			Assembly oAsm   = Assembly.GetExecutingAssembly();
             string   strRes = oAsm.GetName().Name + ".Content." + strName;
 

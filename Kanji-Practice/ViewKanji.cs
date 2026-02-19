@@ -158,7 +158,7 @@ namespace Kanji_Practice {
         public IPgParent Parentage => _oSiteView.Host;
         public IPgParent Services  => Parentage.Services;
 
-        public SKBitmap  Icon { get; protected set; }
+        public SKImage   Icon { get; }
         public Guid      Catagory => Guid.Empty;
         public bool      IsDirty => false;
 

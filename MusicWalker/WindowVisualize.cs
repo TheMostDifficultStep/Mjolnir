@@ -77,7 +77,7 @@ namespace Play.MusicWalker {
 		public IPgParent Services  => Parentage.Services;
 		public bool      IsDirty   => false;
 		public string    Banner    => "Frequency Space";
-		public SKBitmap  Icon      => null;
+		public SKImage   Icon      => null;
 		public Guid      Catagory  => _gViewType;
 
         protected static void LoadData( FFTControlValues oCtrl, List<double> rgData ) {

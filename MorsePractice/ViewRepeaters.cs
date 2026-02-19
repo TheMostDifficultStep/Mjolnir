@@ -9,7 +9,6 @@ using Play.Edit;
 using Play.Parse;
 using Play.Drawing;
 using static Play.MorsePractice.DocStdLog;
-using System.Collections.Generic;
 
 namespace Play.MorsePractice {
     /// <summary>
@@ -93,7 +92,7 @@ namespace Play.MorsePractice {
 
 		public Guid   Catagory => ViewCatagory;
 		public string Banner   => "Repeater List Viewer";
-		public SKBitmap Icon   { get; protected set; }
+		public SKImage Icon   { get; }
 
 		protected DocRepeaters RepeaterDoc { get; }
 

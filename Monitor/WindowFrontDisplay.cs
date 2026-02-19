@@ -97,7 +97,7 @@ namespace Monitor {
 
         public string Banner => "Nibble Monitor";
 
-        public SKBitmap Icon => null;
+        public SKImage Icon => null;
 
         public Guid Catagory => Guid.Empty;
 

@@ -36,7 +36,7 @@ namespace Play.ImageViewer {
 
         public virtual Guid      Catagory	  => Guid.Empty;
         public virtual string    Banner		  => "Image Viewer";
-		public         SKBitmap  Icon         { get; protected set; }
+		public         SKImage   Icon         { get; protected set; }
 		public         Image     Iconic => null;
         public         uint      ID { get { return _oSiteShell.SiteID; } }
 

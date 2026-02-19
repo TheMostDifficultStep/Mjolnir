@@ -328,7 +328,7 @@ namespace Play.ImageViewer {
 		}
 
         public virtual string Banner => _oDocument.Banner;
-        public virtual SKBitmap Icon => _oDocument.Icon;
+        public virtual SKImage Icon => _oDocument.Icon;
         public virtual bool   Execute( Guid sGuid ) => _oDocument.Execute( sGuid );
 	}
 	

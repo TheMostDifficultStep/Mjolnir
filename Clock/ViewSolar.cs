@@ -37,7 +37,7 @@ namespace Play.Clock {
 
         public Guid   Catagory => _guidViewCatagory;
         public string Banner   => "Solar Weather";
-        public SKBitmap  Icon   { get; }
+        public SKImage  Icon   { get; }
 
         protected class ViewSolarSlot :
 			IPgBaseSite, IPgViewSite

@@ -281,7 +281,7 @@ namespace Play.FileManager {
             DocFavs  = new( new DocSlot( this ) );
         }
 
-		public SKBitmap GetResource( string strName ) {
+		public SKImage GetResource( string strName ) {
 			Assembly oAsm   = Assembly.GetExecutingAssembly();
             string   strRes = "Play.FileManager.Content." + strName;
 

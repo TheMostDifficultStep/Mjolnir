@@ -71,7 +71,7 @@ namespace Play.FileManager {
         IPgCommandView
     {
         public string    Banner => Document.CurrentURL;
-		public SKBitmap  Icon { get; protected set; }
+		public SKImage  Icon { get; protected set; }
         public                  Guid Catagory => _sGuid;
         public           static Guid GUID     => _sGuid;
         private readonly static Guid _sGuid   = new( "{D257D1AA-AC3E-4A0F-83A3-97C95AE12782}" );

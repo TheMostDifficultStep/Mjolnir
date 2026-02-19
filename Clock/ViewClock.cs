@@ -28,7 +28,7 @@ namespace Play.Clock {
 		public static Guid Guid { get; } = new Guid("AC48BBDF-C10E-4B03-BBFF-074F0445D372");
         public Guid      Catagory  => Guid;
         public string    Banner    => "World Clock";
-        public SKBitmap  Icon      { get; }
+        public SKImage   Icon      { get; }
         protected uint   ClockFont { get; }
 
         protected DocumentClock Document { get; }
@@ -145,7 +145,7 @@ namespace Play.Clock {
 
         public string Banner => "Clock";
 
-        public SKBitmap Icon {get;}
+        public SKImage Icon {get;}
 
         public Guid Catagory => Guid;
 

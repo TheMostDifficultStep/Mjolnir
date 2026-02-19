@@ -203,7 +203,7 @@ namespace Play.MusicWalker {
 		ImageViewSingle ViewAlbumArt{ get; }
 		ImageViewSingle ViewSettings{ get; }
 
-		public SKBitmap  Icon     { get; }
+		public SKImage   Icon     { get; }
 		public string    Banner   => Document.FileBase;
 		public Guid      Catagory => Guid.Empty;
 

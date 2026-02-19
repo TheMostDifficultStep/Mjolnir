@@ -1,15 +1,12 @@
 ﻿using System;
 using System.Drawing;
 using System.Xml;
-using System.Collections.Generic;
 using System.Windows.Forms;
 
 using SkiaSharp;
-using SkiaSharp.Views.Desktop;
 
 using Play.Interfaces.Embedding;
 using Play.Rectangles;
-using Play.Edit;
 using Play.ImageViewer;
 using Play.Forms;
 
@@ -35,7 +32,7 @@ namespace Play.SSTV {
         public string Banner   => "MySSTV Chooser";
         public bool   IsDirty  => false;
         public Image  Iconic { get; }
-		public SKBitmap Icon { get; }
+		public SKImage Icon { get; }
 
         public IPgParent Parentage => _oSiteView.Host;
 
@@ -361,7 +358,7 @@ namespace Play.SSTV {
         public string Banner   => "MySSTV Rx History";
         public bool   IsDirty  => false;
         public Image  Iconic { get; }
-		public SKBitmap Icon { get; }
+		public SKImage Icon { get; }
 
         public IPgParent Parentage => _oSiteView.Host;
 

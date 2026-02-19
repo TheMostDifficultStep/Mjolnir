@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Drawing;
 using System.Xml;
-using System.Collections.Generic;
 using System.Windows.Forms;
 
 using SkiaSharp;
@@ -50,7 +49,7 @@ namespace Play.SSTV {
 	{
 		public static Guid GUID { get; } = new Guid( "{A7F75A46-1800-4605-87EC-2D8B960D1599}" );
 
-		public SKBitmap Icon { get; }
+		public SKImage Icon { get; }
 
 		protected static readonly string _strIcon =  "Play.SSTV.Content.icons8-system-diagnostic-48.png";
 		protected readonly IPgViewSite   _oSiteView;

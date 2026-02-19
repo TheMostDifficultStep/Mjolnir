@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 using System.Windows.Forms;
 
 using SkiaSharp;
@@ -16,7 +14,7 @@ namespace Monitor {
     {
         public readonly static Guid _gViewTerminal = new Guid( "{BE1E1F3D-6CE5-4FE2-9A52-EA2E5F72D3D5}" );
         public string    Banner => "Simple Terminal";
-		public SKBitmap? Icon { get; protected set; }
+		public SKImage?  Icon { get; protected set; }
         public Guid      Catagory => _gViewTerminal;
 
         protected DocumentMonitor DocMon { get; } 
