@@ -1354,7 +1354,9 @@ namespace Mjolnir {
 				sbTitle.Append( strSessionName );
 			}
 
-            base.Text = sbTitle.ToString();
+            // Used to call the base b/c I used to inherit from FORM
+            // but now we're just a regular window!!
+            Text = sbTitle.ToString();
         }
 
         //public string Banner {
@@ -2193,7 +2195,7 @@ namespace Mjolnir {
 
         public void OnViewFocused( ViewSlot oViewSite ) {
             InsideShow = SHOWSTATE.Focused;
-            SetTitle();
+            //SetTitle();
 
 			// While the view decor is smart enough to notify the herder of the focus thru
 			// OnFocus on the ViewSite.EventChain, it's up to the center view to notify

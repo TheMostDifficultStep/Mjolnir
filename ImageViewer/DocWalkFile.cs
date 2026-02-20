@@ -607,18 +607,17 @@ namespace Play.ImageViewer {
         /// But if we're collecting scraps from the shell, we won't necessarily
         /// have a file name so just add "scraps"
         /// </summary>
-        public virtual string Banner { 
+        public virtual string Banner {
             get {
-                StringBuilder oBuilder = new();
+                string strTitle = _oDisplayLine.ToString();
 
-                if( string.IsNullOrEmpty( _oSiteFile.FileName ) ) {
-                    oBuilder.Append( "scraps" );
-                } else {
-                    oBuilder.Append( _oSiteFile.FileName );
+                if( string.IsNullOrEmpty(strTitle) ) {
+                    return "scraps";
                 }
 
-                return oBuilder.ToString();
-        }   }
+                return strTitle;
+            }
+        }
         public         SKImage  Icon { get; }
 
         internal void LogError( string strCatagory, string strMessage ) {
@@ -1056,7 +1055,7 @@ namespace Play.ImageViewer {
                 using( Stream oStream = File.OpenRead( FullPathFromLine( _oDisplayLine ) ) ) {
                     Bitmap = SKBitmap.Decode( oStream );
                 }
-
+                // A new bitmap always sets the world coordinates, which sends a Raise_ImageUpdated event.
 				return true;
 			} catch( Exception oEx ) {
 				if( _rgBmpLoadErrs.IsUnhandled( oEx ) )
