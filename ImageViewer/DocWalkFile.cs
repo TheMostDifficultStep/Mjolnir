@@ -322,6 +322,7 @@ namespace Play.ImageViewer {
                                            new SKRect( rcSourcePortion.Left, rcSourcePortion.Top, rcSourcePortion.Right, rcSourcePortion.Bottom ),
                                            new SKRect( rcDest.Left, rcDest.Top, rcDest.Right, rcDest.Bottom ),
                                            new SKSamplingOptions( SKFilterMode.Linear ) );
+                Bitmap = SKBitmap.FromImage( oSurface.Snapshot() );
 
 				//using( Graphics g = Graphics.FromImage( _oBitmapDisplay ) ) {
 				//	g.SmoothingMode      = SmoothingMode     .HighQuality;
