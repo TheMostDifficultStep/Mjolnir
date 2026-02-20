@@ -290,7 +290,7 @@ namespace Play.ImageViewer {
 			BitmapDispose();
 
             try {
-                Bitmap = SKBitmap.Decode( oStream );
+                Bitmap = SKBitmap.FromEncodedData( oStream );
 			} catch( Exception oEx ) {
 				if( _rgBmpLoadErrs.IsUnhandled( oEx ) )
 					throw;
