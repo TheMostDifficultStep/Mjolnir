@@ -237,7 +237,7 @@ namespace Play.ImageViewer {
 
 		public void BitmapDispose() {
             if( Bitmap != null ) {
-                SKBitmap skTemp = Bitmap;
+                var skTemp = Bitmap;
                 Bitmap = null; // This sends the event.
                 skTemp.Dispose();
             }
@@ -290,7 +290,7 @@ namespace Play.ImageViewer {
 			BitmapDispose();
 
             try {
-                Bitmap = SKBitmap.FromEncodedData( oStream );
+                Bitmap = SKBitmap.Decode( oStream );
 			} catch( Exception oEx ) {
 				if( _rgBmpLoadErrs.IsUnhandled( oEx ) )
 					throw;
@@ -310,21 +310,19 @@ namespace Play.ImageViewer {
         /// <param name="srcImage">source image</param>
         /// <param name="rcSourcePortion">portion of the source image.</param>
         /// <param name="szDestSize">Size of destination bitmap to create.</param>
-		public bool Load(SKBitmap srcImage, SKRectI rcSourcePortion, SKSizeI szDestSize ) {
+		public bool Load(SKImage srcImage, SKRectI rcSourcePortion, SKSizeI szDestSize ) {
 			SmartRect rcDest = new SmartRect( LOCUS.UPPERLEFT, 0, 0, szDestSize.Width, szDestSize.Height );
 
 			BitmapDispose();
 
 			try {
-				Bitmap = new SKBitmap( szDestSize.Width, szDestSize.Height, SKColorType.Rgba8888, SKAlphaType.Opaque );
-                using( SKCanvas skCanvas = new SKCanvas( Bitmap ) ) {
-                    using( SKPaint skPaint = new SKPaint() ) {
-                        skPaint .FilterQuality = SKFilterQuality.High;
-                        skCanvas.DrawBitmap( srcImage, 
-                                             new SKRect( rcSourcePortion.Left, rcSourcePortion.Top, rcSourcePortion.Right, rcSourcePortion.Bottom ),
-                                             new SKRect( rcDest.Left, rcDest.Top, rcDest.Right, rcDest.Bottom ) );
-                    }
-                }
+                SKImageInfo oInfo = new SKImageInfo(szDestSize.Width, szDestSize.Height, SKColorType.Rgba8888, SKAlphaType.Opaque );
+                using SKSurface oSurface = SKSurface.Create( oInfo ) ;
+                oSurface.Canvas.DrawImage( srcImage, 
+                                           new SKRect( rcSourcePortion.Left, rcSourcePortion.Top, rcSourcePortion.Right, rcSourcePortion.Bottom ),
+                                           new SKRect( rcDest.Left, rcDest.Top, rcDest.Right, rcDest.Bottom ),
+                                           new SKSamplingOptions( SKFilterMode.Linear ) );
+
 				//using( Graphics g = Graphics.FromImage( _oBitmapDisplay ) ) {
 				//	g.SmoothingMode      = SmoothingMode     .HighQuality;
 				//	g.CompositingQuality = CompositingQuality.HighQuality;

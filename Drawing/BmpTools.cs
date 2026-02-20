@@ -6,12 +6,12 @@ using System.Reflection;
 using System.IO;
 using System.Linq;
 using System.Drawing.Printing;
+using System.Net.Http;
 
 using SkiaSharp;
 
 using Play.Interfaces.Embedding;
 using Play.Rectangles;
-using System.Net.Http;
 
 namespace Play.Drawing {
 	public class ImageHelpers {
@@ -79,9 +79,21 @@ namespace Play.Drawing {
 
     public delegate void ImageUpdatedEvent();
 
+    public interface IPgImageDocument {
+		bool    IsImageValid { get; }
+		SKSizeI ImageSize    { get; }
+
+        SKRectI WorldDisplay { get; }
+
+		event ImageUpdatedEvent ImageUpdated;
+
+        void ImageClear();
+	}
+
 	public class ImageBaseDoc :
 		IPgParent,
-		IDisposable
+		IDisposable,
+        IPgImageDocument
 	{
         protected readonly IPgBaseSite _oSiteBase;
         protected          Bitmap      _oBitmapUnknown; // An error bitmap.
@@ -137,6 +149,12 @@ namespace Play.Drawing {
 		    }
         }
 
+        public bool IsImageValid => _skBitmap != null;
+        public SKSizeI ImageSize => new SKSizeI( _skBitmap.Width, _skBitmap.Height );
+
+        public void ImageClear() {
+        }
+
         /// <summary>
         /// The portion of the bitmap we want to show.
         /// </summary>
@@ -170,33 +188,6 @@ namespace Play.Drawing {
 		}
 
         public float Aspect => (float)_skBitmap.Width / (float)_skBitmap.Height;
-
-        /// <summary>
-        /// We'll pack this out to the embedding interfaces after I get it going in this project.
-        /// </summary>
-        /// <param name="oAssembly"></param>
-        /// <param name="strResourceName"></param>
-        /// <returns></returns>
-        /// <exception cref="ApplicationException" />
-		public static SKBitmap GetSKBitmapResource( Assembly oAssembly, string strResourceName ) {
-			try {
-                // Let's you peep in on all of them! ^_^
-                // string[] rgStuff = oAssembly.GetManifestResourceNames();
-
-				using( Stream oStream = oAssembly.GetManifestResourceStream( strResourceName )) {
-					return SKBitmap.Decode( oStream );
-				}
-			} catch( Exception oEx ) {
-				Type[] rgErrors = { typeof( NullReferenceException ), 
-									typeof( ArgumentNullException ),
-									typeof( ArgumentException ),
-									typeof( NotImplementedException ) };
-				if( !rgErrors.Contains( oEx.GetType() ) )
-					throw;
-
-				throw new ApplicationException( "Could not retrieve given image resource : " + strResourceName );
-			}
-		}
 
         /// <summary>
         /// We'll pack this out to the embedding interfaces after I get it going in this project.

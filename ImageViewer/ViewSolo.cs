@@ -1,21 +1,76 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Windows.Forms;
-using System.Drawing; // TODO: Working towards deleting this!
-using System.Xml;
 using System.Collections;
+using System.Collections.Generic;
+using System.Drawing; // TODO: Working towards deleting this!
+using System.Reflection;
+using System.Windows.Forms;
+using System.Xml;
 
-using SkiaSharp.Views.Desktop;
 using SkiaSharp;
+using SkiaSharp.Views.Desktop;
 
+using Play.Drawing;
+using Play.Edit;
+using Play.Forms;
 using Play.Interfaces.Embedding;
 using Play.Rectangles;
-using Play.Forms;
-using Play.Edit;
-using Play.Drawing;
-using System.Reflection;
 
 namespace Play.ImageViewer {
+	public class ViewSoloSurface : ViewSinglePerportional {
+		readonly DocImageEdit _oDocEdit;
+		public ViewSoloSurface( IPgViewSite oSiteView, DocImageEdit oDocBase ) :
+			base( oSiteView, oDocBase ) 
+		{
+			_oDocEdit = oDocBase;
+		}
+        protected override void OnPaintSurface( SKPaintSurfaceEventArgs e ) {
+            base.OnPaintSurface(e);
+
+			SKSurface skSurface = e.Surface;
+			SKCanvas  skCanvas  = skSurface.Canvas;
+
+			using( SKPaint skPaint = new SKPaint() ) {
+				if( Focused ) {
+					skPaint.Color = _oStdUI.ColorsStandardAt(StdUIColors.BGSelectedLightFocus);
+				} else { 
+					skPaint.Color = _oStdUI.ColorsStandardAt(StdUIColors.BGReadOnly);
+				}
+				skCanvas.DrawRect( e.Info.Rect, skPaint );
+
+                try {
+                    if( _oDocEdit.IsImageValid ) {
+						// Supposedly this doesn't actually copy the bits from the surface unless they
+						// change during the lifetime of this image. Sooo... maybe ok for now...
+						// but going to need to consider the SKPath object for a painting program.
+						using SKImage oImageSnap = null;
+
+						throw new NotImplementedException();
+
+                        skCanvas.DrawImage( oImageSnap,
+										    new SKRect( _rctWorldPort.Left, _rctWorldPort.Top, _rctWorldPort.Right, _rctWorldPort.Bottom ),
+										    new SKRect( _rctViewPort .Left, _rctViewPort .Top, _rctViewPort.Right,  _rctViewPort .Bottom ),
+										    new SKSamplingOptions( SKFilterMode.Linear ) );
+                    } else {
+                        LogError("Paint", "Couldn't paint error bitmap");
+                    }
+                } catch (Exception oEx) {
+                    Type[] rgErrors = { typeof( ArgumentNullException ),
+										typeof( ArgumentException ),
+										typeof( NullReferenceException ),
+										typeof( OverflowException ),
+										typeof( AccessViolationException ) };
+                    if (rgErrors.IsUnhandled(oEx))
+                        throw;
+
+                    LogError("Paint", "Solo Image viewer having problem painting.");
+				} finally {
+					skCanvas.Flush ();
+                }
+			}
+        }
+
+	}
+
 	public class WindowSoloImage : 
 		ImageViewSingle,
         IPgLoad<XmlElement>,

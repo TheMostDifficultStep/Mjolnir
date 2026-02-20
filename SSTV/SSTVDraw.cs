@@ -300,6 +300,7 @@ namespace Play.SSTV {
 
 		public SKBitmap _pBitmapRX  { get; } 
 		public SKBitmap _pBitmapD12 { get; }
+
 		// Looks like we're only using grey scale on the D12. Look into turning into greyscale later.
 		// Need to look into the greyscale calibration height of bitmap issue. (+16 scan lines)
 		// The D12 bitmap must always be >= to the RX bmp height.

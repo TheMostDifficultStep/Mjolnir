@@ -5,6 +5,8 @@ using System.Collections.Concurrent;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Text;
+using System.Collections;
+using System.IO.Ports;
 
 using NAudio.Wave;
 using NAudio.Wave.SampleProviders;
@@ -14,8 +16,6 @@ using Play.Interfaces.Embedding;
 using Play.Sound;
 using Play.ImageViewer;
 using Play.Sound.FFT;
-using System.Collections;
-using System.IO.Ports;
 
 namespace Play.SSTV {
     public abstract class BGThreadState :
@@ -115,7 +115,10 @@ namespace Play.SSTV {
         protected readonly SSTVDraw _oSSTVDraw;
         protected readonly SSTVDEM  _oSSTVDeMo;
 
-        public FileReadingState( ConcurrentQueue<SSTVMessage> oToUIQueue, string strFileName, SKBitmap oD12, SKBitmap oRx ) :
+        public FileReadingState( 
+            ConcurrentQueue<SSTVMessage> oToUIQueue, 
+            string strFileName, SKBitmap oD12, SKBitmap oRx 
+        ) :
             base( oToUIQueue )
         {
             _strFileName = strFileName ?? throw new ArgumentNullException( nameof( strFileName ) );
@@ -236,7 +239,8 @@ namespace Play.SSTV {
 			    SKRectI rcWorldDisplay = new SKRectI( 0, 0, tvMode.Resolution.Width, tvMode.Resolution.Height );
 
                 // Need to snip the image since we might not be using the entire display image.
-                if( !oSnipDoc.Load( _oSSTVDraw._pBitmapRX, rcWorldDisplay, rcWorldDisplay.Size ) )
+                using SKImage oImage = SKImage.FromBitmap( _oSSTVDraw._pBitmapRX );
+                if( !oSnipDoc.Load( oImage, rcWorldDisplay, rcWorldDisplay.Size ) )
                     return;
 
                 _iDecodeCount++;
@@ -517,7 +521,8 @@ namespace Play.SSTV {
 			        SKRectI rcWorldDisplay = new SKRectI( 0, 0, tvMode.Resolution.Width, tvMode.Resolution.Height );
 
                     // Need to snip the image since we might not be using the entire display image.
-                    if( !oSnipDoc.Load( _oSSTVDraw._pBitmapRX, rcWorldDisplay, rcWorldDisplay.Size ) )
+                    using SKImage oImage = SKImage.FromBitmap( _oSSTVDraw._pBitmapRX );
+                    if( !oSnipDoc.Load( oImage, rcWorldDisplay, rcWorldDisplay.Size ) )
                         return;
 
                     // I could get the name of the file from the settings, HOWEVER then I have to deal

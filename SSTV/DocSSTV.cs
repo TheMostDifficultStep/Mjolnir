@@ -1957,7 +1957,8 @@ namespace Play.SSTV {
                 try {
                     if( oWorkPlace.Status == WorkerStatus.FREE ) {
                         // borrow the Composite Bitmap for this test.
-			            oDoc.TxBitmapComp.Load( oDoc.TxImageList.Bitmap, skSelect, oMode.Resolution );
+                        using SKImage oImage = SKImage.FromBitmap( oDoc.TxImageList.Bitmap );
+			            oDoc.TxBitmapComp.Load( oImage, skSelect, oMode.Resolution );
 
                         // Use a low sample rate so it's easier to slog thru the data. 
                         Specification oTxSpec = new( 8000, 1, 0, 16 );

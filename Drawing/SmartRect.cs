@@ -405,6 +405,12 @@ namespace Play.Rectangles {
             }
         }
 
+        public SKSizeI SKSize {
+            get {
+                return new SKSizeI( Width, Height );
+            }
+        }
+
         public SKPointI GetCenter() {
             SKPointI pntReturn = new SKPointI( 0, 0 );
 

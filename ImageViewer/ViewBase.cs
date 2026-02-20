@@ -1,17 +1,18 @@
-﻿using Play.Drawing;
+﻿using System;
+using System.Collections.Generic;
+using System.Drawing;
+using System.Windows.Forms;
+
+using SkiaSharp;
+using SkiaSharp.Views.Desktop;
+
+using Play.Drawing;
 using Play.Edit;
 // https://docs.microsoft.com/en-us/dotnet/api/skiasharp.views.desktop?view=skiasharp-views-1.68.1
 
 using Play.Interfaces.Embedding;
 using Play.Rectangles;
 
-using SkiaSharp;
-using SkiaSharp.Views.Desktop;
-
-using System;
-using System.Collections.Generic;
-using System.Drawing;
-using System.Windows.Forms;
 
 namespace Play.ImageViewer {
     /// <summary>
@@ -332,12 +333,10 @@ namespace Play.ImageViewer {
         public virtual bool   Execute( Guid sGuid ) => _oDocument.Execute( sGuid );
 	}
 	
-	/// <summary>
-	/// Though we inherit from control (at present) this viewer just shows a bitmap.
-	/// There is no navigation control. In the future we would like inherit to from SmartRect.
-	/// But that might not be possible for a variety of reasons.
-	/// </summary>
-	public class ImageViewSingle : ImageViewBase, IPgParent, IPgLoad {
+	public class ViewSinglePerportional : 
+		ImageViewBase, 
+		IPgParent
+	{
 		public bool _fDisposed { get; private set; } = false;
 
 		public SmartRect Selection { get; } = new SmartRect();   // selection in Bmp coordinates.
@@ -345,23 +344,23 @@ namespace Play.ImageViewer {
         protected readonly SmartRect _rctViewPort    = new SmartRect( LOCUS.UPPERLEFT, 0, 0, 0, 0 );
         protected readonly SmartRect _rctWorldPort   = new SmartRect( LOCUS.UPPERLEFT, 0, 0, 0, 0 );
 
-		public ImageBaseDoc Document { get; }
+		IPgImageDocument _oDocBase;
 
-		public ImageViewSingle( IPgViewSite oSiteBase, ImageBaseDoc oDocSolo ) : base( oSiteBase ) {
-			Document = oDocSolo ?? throw new ArgumentNullException( "Document must not be null." );
-		}
+		public ViewSinglePerportional( IPgViewSite oSiteBase, IPgImageDocument oDocBase ) : base( oSiteBase ) {
+			_oDocBase = oDocBase ?? throw new ArgumentNullException( nameof( oDocBase ) );
 
-        public virtual bool InitNew() {
 			if( Parentage is Control oParent ) {
 				Parent = oParent;
 			}
 
-            if( Document.Bitmap != null ) {
-                _rctWorldPort.SetRect( LOCUS.UPPERLEFT, 0, 0, Document.Bitmap.Width, Document.Bitmap.Height);
-            }
-            Document.ImageUpdated += OnImageUpdated;
+		}
 
-			//OnSizeChanged( new EventArgs() );
+        public virtual bool InitNew() {
+            if( _oDocBase.IsImageValid ) {
+                _rctWorldPort.SetRect( LOCUS.UPPERLEFT, 0, 0, _oDocBase.ImageSize.Width, _oDocBase.ImageSize.Height);
+            }
+            _oDocBase.ImageUpdated += OnImageUpdated;
+
 			OnImageUpdated();
 
 			return( true );
@@ -369,11 +368,9 @@ namespace Play.ImageViewer {
 
 		protected override void Dispose( bool fDisposing ) {
 			if( fDisposing && !_fDisposed ) {
-				Document.ImageUpdated -= OnImageUpdated;
-
-				_fDisposed = true;
+				_oDocBase.ImageUpdated -= OnImageUpdated;
 			}
-			base.Dispose( fDisposing );
+			_fDisposed = true;
 		}
 
  		public SmartRect WorldCoordinates {
@@ -386,28 +383,6 @@ namespace Play.ImageViewer {
 				return _rctWorldPort.Copy;
 			}
 		}
-
-        protected virtual void OnImageUpdated() {
-            try {
-				if( Document.Bitmap != null ) {
-					_rctWorldPort.CopyFrom( Document.WorldDisplay );
-				} else {
-					_rctWorldPort.SetRect( LOCUS.UPPERLEFT, 0, 0, 0, 0 );
-				}
-            } catch( Exception oEx ) {
-				Type[] rgErrors = { typeof( AccessViolationException ),
-									typeof( NullReferenceException ) };
-				if( rgErrors.IsUnhandled( oEx ) )
-					throw;
-
-				LogError( "bitmap", "Serious memory error in image." );
-            }
-            OnSizeChanged( null );
-
-            _oViewSite.Notify( ShellNotify.BannerChanged );
-            Invalidate();
-        }
-
         protected override void OnMouseDown(MouseEventArgs e) {
             base.OnMouseDown(e);
 
@@ -427,13 +402,65 @@ namespace Play.ImageViewer {
 			Invalidate();
         }
 
+        public override Size GetPreferredSize(Size proposedSize) {
+			SmartRect rctViewPort = new SmartRect();
+
+			ImageHelpers.ViewPortFitWidth( new Size( 0, 0 ), 
+										   proposedSize.Width, 
+										   _rctWorldPort, 
+										   rctViewPort );
+
+            return new Size( rctViewPort.Width, rctViewPort.Height );
+        }
+
+        protected virtual void OnImageUpdated() {
+            try {
+				if( _oDocBase.IsImageValid ) {
+					_rctWorldPort.CopyFrom( _oDocBase.WorldDisplay );
+				} else {
+					_rctWorldPort.SetRect( LOCUS.UPPERLEFT, 0, 0, 0, 0 );
+				}
+            } catch( Exception oEx ) {
+				Type[] rgErrors = { typeof( AccessViolationException ),
+									typeof( NullReferenceException ) };
+				if( rgErrors.IsUnhandled( oEx ) )
+					throw;
+
+				LogError( "bitmap", "Serious memory error in image." );
+            }
+            OnSizeChanged( null );
+
+            _oViewSite.Notify( ShellNotify.BannerChanged );
+            Invalidate();
+        }
+
+        protected override void OnSizeChanged(EventArgs e) {
+            base.OnSizeChanged(e);
+
+			ViewPortSizeMax( _rctWorldPort, _rctViewPort );
+            Invalidate();
+        }
+	}
+
+
+	/// <summary>
+	/// Though we inherit from control (at present) this viewer just shows a bitmap.
+	/// There is no navigation control. In the future we would like inherit to from SmartRect.
+	/// But that might not be possible for a variety of reasons.
+	/// </summary>
+	public class ImageViewSingle : ViewSinglePerportional {
+		public ImageBaseDoc Document { get; }
+
+		public ImageViewSingle( IPgViewSite oSiteView, ImageBaseDoc oDocSolo ) : base( oSiteView, oDocSolo ) {
+			Document = oDocSolo ?? throw new ArgumentNullException( "Document must not be null." );
+		}
+
 		/// <seealso cref="LayoutImageView.Paint(SKCanvas)"/>
         protected override void OnPaintSurface( SKPaintSurfaceEventArgs e ) {
             base.OnPaintSurface(e);
 
 			SKSurface         skSurface = e.Surface;
 			SKCanvas          skCanvas  = skSurface.Canvas;
-		  //SKSamplingOptions oOptions  = new SKSamplingOptions( SKFilterMode.Linear );
 
 			using( SKPaint skPaint = new SKPaint() ) {
 				if( Focused ) {
@@ -445,11 +472,12 @@ namespace Play.ImageViewer {
 
                 try {
                     if (Document.Bitmap != null) {
-						skPaint.FilterQuality = SKFilterQuality.High;
-                        skCanvas.DrawBitmap( Document.Bitmap,
-											 new SKRect( _rctWorldPort.Left, _rctWorldPort.Top, _rctWorldPort.Right, _rctWorldPort.Bottom ),
-											 new SKRect( _rctViewPort .Left, _rctViewPort .Top, _rctViewPort.Right,  _rctViewPort .Bottom ),
-											 skPaint );
+						using SKImage oImage = SKImage.FromBitmap( Document.Bitmap );
+                        skCanvas.DrawImage( oImage,
+										    new SKRect( _rctWorldPort.Left, _rctWorldPort.Top, _rctWorldPort.Right, _rctWorldPort.Bottom ),
+										    new SKRect( _rctViewPort .Left, _rctViewPort .Top, _rctViewPort.Right,  _rctViewPort .Bottom ),
+										    new SKSamplingOptions( SKFilterMode.Linear ),
+										    skPaint );
                     } else {
                         if (Document.ErrorBmp != null) {
                             ViewPortSizeCenter( Document.ErrorBmp, _rctViewPort );
@@ -479,70 +507,11 @@ namespace Play.ImageViewer {
 			}
         }
 
-		//protected void OnPaint( PaintEventArgs oE ) {
-  //          // First paint our whole screen.
-  //          SmartRect oRectWhole = new SmartRect( POINT.UPPERLEFT, 0, 0, this.Width, this.Height );
-
-		//	try {
-		//		using( Brush oBrush = new SolidBrush( LOGBRUSH.CreateColor( _oStdUI.ColorStandard( StdLineColor.BG ) ) ) ) {
-		//			oE.Graphics.FillRectangle( oBrush, oRectWhole.Rect ); 
-		//		}
-		//	} catch( Exception oEx ) {
-		//		Type[] rgErrors = { typeof( ArgumentNullException ),
-		//							typeof( ArgumentException ),
-		//							typeof( NullReferenceException ) };
-		//		if( rgErrors.IsUnhandled( oEx ) )
-		//			throw;
-
-		//		LogError( "paint", "Solo Image viewe having problem painting the background." );
-		//	}
-
-  //          SmartRect rctTempView = _rctViewPort;
-
-  //          //if( IsZoomed ) {
-  //          //    rctTempView = oRectWhole;
-  //          //}
-
-		//	try {
-		//		// Then Blit image.
-		//		if( Document.Bitmap != null ) {
-		//			oE.Graphics.DrawImage( Document.Bitmap,
-		//								   rctTempView.Rect,
-		//								   _rctWorldPort.Rect,
-		//								   GraphicsUnit.Pixel);
-		//		} else {
-		//			if( Document.ErrorBmp != null ) {
-		//				ViewPortSizeCenter( Document.ErrorBmp, _rctViewPort );
-		//				_rctWorldPort.SetRect( POINT.UPPERLEFT,0,0,
-		//									   Document.ErrorBmp.Width,
-		//									   Document.ErrorBmp.Height);
-		//				oE.Graphics.DrawImage( Document.ErrorBitmap,
-		//									   _rctViewPort.Rect,
-		//									   _rctWorldPort.Rect,
-		//									   GraphicsUnit.Pixel);
-		//			} else {
-		//				LogError( "Paint", "Couldn't paint error bitmap" );
-		//			}
-		//		}
-		//	} catch( Exception oEx ) {
-		//		Type[] rgErrors = { typeof( ArgumentNullException ),
-		//							typeof( ArgumentException ),
-		//							typeof( NullReferenceException ),
-		//							typeof( OverflowException ) };
-		//		if( rgErrors.IsUnhandled( oEx ) )
-		//			throw;
-
-		//		LogError( "Paint", "Solo Image viewer having problem painting." );
-		//	}
-  //      }
-
         protected override void OnSizeChanged(EventArgs e) {
             base.OnSizeChanged(e);
 
 			try {
-				if( Document.Bitmap != null ) {
-					ViewPortSizeMax( _rctWorldPort, _rctViewPort );
-				} else {
+				if( !Document.IsImageValid ) {
 					// Looks like we're hitting this when the shell shuts down.
 					if( Document.ErrorBmp != null ) {
 						ViewPortSizeCenter(Document.ErrorBmp, _rctViewPort);
@@ -563,20 +532,8 @@ namespace Play.ImageViewer {
         }
 
         public virtual bool Execute( Guid sGuid ) {
-            return( Document.Execute( sGuid ) );
+            return Document.Execute( sGuid );
         }
-
-        public override Size GetPreferredSize(Size proposedSize) {
-			SmartRect rctViewPort = new SmartRect();
-
-			ImageHelpers.ViewPortFitWidth( new Size( 0, 0 ), 
-										   proposedSize.Width, 
-										   _rctWorldPort, 
-										   rctViewPort );
-
-            return new Size( rctViewPort.Width, rctViewPort.Height );
-        }
-
 	}
 
 	public class ImageViewButton : ImageViewSingle {

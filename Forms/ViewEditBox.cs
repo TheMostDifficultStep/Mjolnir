@@ -1,15 +1,16 @@
 ﻿using System;
 using System.Drawing;
-using System.Windows.Forms;
+using System.IO;
 using System.Reflection;
+using System.Windows.Forms;
 
-using SkiaSharp.Views.Desktop;
 using SkiaSharp;
+using SkiaSharp.Views.Desktop;
 
+using Play.Drawing;
+using Play.Edit;
 using Play.Interfaces.Embedding;
 using Play.Rectangles;
-using Play.Edit;
-using Play.Drawing;
 
 namespace Play.Controls {
     /// <summary>
@@ -19,8 +20,10 @@ namespace Play.Controls {
     /// <remarks>Its a shame I'm creating a bitmap for every dropdown instantiated.</remarks>
     public class ImageForDropDown : ImageBaseDoc {
         public ImageForDropDown(IPgBaseSite oSiteBase) : base(oSiteBase) {
-            Bitmap = GetSKBitmapResource( Assembly.GetExecutingAssembly(), 
-                                          "Play.Forms.Content.icons8-triangle-96.png" );
+            Assembly oAssembly = Assembly.GetExecutingAssembly();
+            using Stream oStream = oAssembly.GetManifestResourceStream( "Play.Forms.Content.icons8-triangle-96.png" );
+
+			Bitmap = SKBitmap.Decode( oStream );
         }
     }
 
@@ -262,7 +265,10 @@ namespace Play.Controls {
                 using SKPaint skPaint = new SKPaint() { BlendMode = SKBlendMode.Src };
 
 				skCanvas.DrawRect( _rgLayout.Item(1).SKRect, skPaint );
-                skCanvas.DrawBitmap( _oBmpButton.Bitmap, _rctWorldPort.SKRect, _rgLayout.Item(1).SKRect,skPaint );
+                skCanvas.DrawBitmap( _oBmpButton.Bitmap, 
+                                    _rctWorldPort.SKRect,
+                                    _rgLayout.Item(1).SKRect,
+                                    skPaint );
                 
                 // BG of multi column window is always ReadOnly... O.o
 
