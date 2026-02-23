@@ -371,6 +371,7 @@ namespace Play.ImageViewer {
 				_oDocBase.ImageUpdated -= OnImageUpdated;
 			}
 			_fDisposed = true;
+			base.Dispose( fDisposing );
 		}
 
  		public SmartRect WorldCoordinates {

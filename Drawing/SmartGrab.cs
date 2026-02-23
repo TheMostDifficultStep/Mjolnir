@@ -419,7 +419,7 @@ namespace Play.Rectangles
                 return;
 
             try {
-                SKPaint oPaint = new SKPaint() { Color = BarColor, 
+                using SKPaint oPaint = new SKPaint() { Color = BarColor, 
                                                  Style = SKPaintStyle.Fill };
 
                 // The main color of the border rect

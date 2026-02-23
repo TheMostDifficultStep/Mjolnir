@@ -2063,13 +2063,13 @@ namespace Mjolnir {
                 oHerder.AdornmentRemove( oViewSiteToClose );
             }
 
-            // Save the related doc site so we can see if any other views are open.
+            //// Save the related doc site so we can see if any other views are open.
             IDocSlot oDocSite = oViewSiteToClose.DocumentSite;
 
-            // Clean up any addornments before the view gets disposed!!
-            foreach( SmartHerderBase oHerder in this ) {
-                oHerder.AdornmentRemove( oDocSite );
-            }
+            //// Clean up any addornments before the view gets disposed!!
+            //foreach( SmartHerderBase oHerder in this ) {
+            //    oHerder.AdornmentRemove( oDocSite );
+            //}
 
             // This disposes of the ViewSite!! And it's contents.
             _oDoc_ViewSelector.Remove( oViewSiteToClose );

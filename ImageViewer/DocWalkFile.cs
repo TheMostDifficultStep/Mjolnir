@@ -323,15 +323,6 @@ namespace Play.ImageViewer {
                                            new SKRect( rcDest.Left, rcDest.Top, rcDest.Right, rcDest.Bottom ),
                                            new SKSamplingOptions( SKFilterMode.Linear ) );
                 Bitmap = SKBitmap.FromImage( oSurface.Snapshot() );
-
-				//using( Graphics g = Graphics.FromImage( _oBitmapDisplay ) ) {
-				//	g.SmoothingMode      = SmoothingMode     .HighQuality;
-				//	g.CompositingQuality = CompositingQuality.HighQuality;
-				//	// Can't turn this one on. There's a bug causing a blackish line on the left and top of the image.
-				//	//g.InterpolationMode  = InterpolationMode .HighQualityBicubic;
-
-				//	g.DrawImage( srcImage, rcDest.Rect, rcSourcePortion, GraphicsUnit.Pixel );
-				//}
 			} catch( Exception oEx ) {
 				Type[] rgErrors = { typeof( ArgumentException ),
 									typeof( ArgumentNullException ),
