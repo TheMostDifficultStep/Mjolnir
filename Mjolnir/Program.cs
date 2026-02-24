@@ -1187,7 +1187,7 @@ namespace Mjolnir {
         public bool DocumentsClean( IDocSlot oDocSite ) {
             // Check if we want to remove the document. Documents like the built in Find-Results and Messages
             // will have a reference from us blocking the document removal.
-            if( _rgDocSites.Contains( oDocSite ) && oDocSite.Reference <= 0 ) {
+            if( _rgDocSites.Contains( oDocSite ) && oDocSite.Reference <= 0 && !oDocSite.IsInternal ) {
                 _rgDocSites.Remove( oDocSite );
                 // This will close any associated tool windows. We can't get here if the tool window
                 // view holds a reference on the docsite.
