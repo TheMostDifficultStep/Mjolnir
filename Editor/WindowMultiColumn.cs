@@ -331,12 +331,14 @@ namespace Play.Edit {
             /// in that case we just move it off screen. :-/
             /// </summary>
             /// <remarks>Remember the cursor won't show until the
-            /// window gets focus. So won't see it while searching.</remarks>
-            /// <param name="pntCaret"></param>
-            /// <param name="fVisible"></param>
+            /// window gets focus. So won't see it while searching.
+            /// </remarks>
+            /// <param name="pntCaret" />
+            /// <param name="fVisible" />
             public virtual void OnCaretPositioned( SKPointI pntCaret, bool fVisible ) {
                 if( _oHost.Focused ) {
                     User32.SetCaretPos( pntCaret.X, pntCaret.Y );
+                    _oHost.OnCaretMove();
                 }
                 // Else don't mess with the caret! You might blast it when
                 // we're not even the current owner (eg. when we're not focused! ^_^;;)
@@ -420,6 +422,10 @@ namespace Play.Edit {
 
         protected void LogError( string strMessage, bool fShow = false ) {
             _oSiteView.LogError( "Multi Column Window", strMessage, fShow );
+        }
+
+        protected virtual void OnCaretMove() {
+            _oSiteView.Notify( ShellNotify.BannerChanged );
         }
 
         /// <summary>
