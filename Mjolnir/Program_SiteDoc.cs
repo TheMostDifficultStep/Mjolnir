@@ -904,7 +904,9 @@ namespace Mjolnir {
                     return true;
                 }
 
-                FilePath = _oGuestSave.SaveMoniker();
+                // Not strictly necessary since it's navigating in a dir that
+                // cause the moniker to change. But let's leave this for now.
+                FilePath = _oGuestSave.Moniker;
 
                 _oHost.Raise_UpdateTitles( this );
 
@@ -931,6 +933,9 @@ namespace Mjolnir {
 						//_oHost.OnDocDirtyChanged( this );
 						_oHost.Raise_UpdateTitles( this );
 						break;
+                    case ShellNotify.MonikerChanged:
+                        FilePath = _oGuestSave.Moniker;
+                        break;
 				}
             }
         }

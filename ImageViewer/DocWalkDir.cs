@@ -535,15 +535,8 @@ namespace Play.ImageViewer {
 
             return true;
         }
+        public string Moniker => CurrentFullPath;
 
-        public string SaveMoniker() { 
-            if( _fDirtyThumbs ) {
-                ThumbsSaveAll( Path.Combine( CurrentDirectory, _strThumbsFileName ) );
-                _fDirtyThumbs = false;
-            }
-
-            return CurrentFullPath;
-        } 
 
         public override void CurrentFileDelete() {
             bool fDeleted = true;

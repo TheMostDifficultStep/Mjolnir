@@ -1187,6 +1187,7 @@ namespace Play.ImageViewer {
             CurrentShowFile.TryAppend( CurrentFileName );
 
             DecorNavigatorUpdate();
+            _oSiteBase.Notify( ShellNotify.MonikerChanged );
 
             base.Raise_ImageUpdated();
         }
@@ -1468,7 +1469,7 @@ namespace Play.ImageViewer {
 				}
 
                 if( _oSiteBase.Host is ImageWalkerDoc oDoc ) {
-                    oDoc.NotifyMediaStatusChanged();
+                    oDoc.Raise_MediaStatusChanged();
                 }
 
 			    return( false );
@@ -1586,7 +1587,7 @@ namespace Play.ImageViewer {
             _oWorkPlace.Stop();
         }
 
-        public void NotifyMediaStatusChanged() {
+        public void Raise_MediaStatusChanged() {
             MediaEvent?.Invoke( ShellNotify.MediaStatusChanged );
         }
 

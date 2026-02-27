@@ -327,11 +327,13 @@ namespace Play.FileManager {
             return true;
         }
 
-        public string SaveMoniker() {
-            if( _strDirectory is null )
-                return string.Empty;
+        public string Moniker { 
+            get {
+                if( _strDirectory is null )
+                    return string.Empty;
 
-            return _strDirectory;
+                return _strDirectory;
+            }
         }
 
         public void JumpToParentDir() {
@@ -428,6 +430,8 @@ namespace Play.FileManager {
                 RenumberAndSumate();
 
                 DoParse();
+                _oSiteBase.Notify( ShellNotify.MonikerChanged );
+
                 Raise_DocLoaded();
             } catch( Exception oEx ) {
 				if( IsUnhandled( oEx ) )

@@ -1,17 +1,15 @@
-﻿using System.Windows.Forms;
-
-using SkiaSharp;
-
-using Play.Edit;
-using Play.Interfaces.Embedding;
-using Play.Rectangles;
-using Play.Parse;
+﻿using Play.Edit;
 using Play.Forms;
-
-using DClmn = Play.FileManager.FileManager.FMRow.DCol;
-using LCss  = Play.Rectangles.LayoutRect.CSS;
+using Play.Interfaces.Embedding;
+using Play.Parse;
+using Play.Rectangles;
+using SkiaSharp;
+using System.Windows.Forms;
 
 namespace Play.FileManager {
+using DClmn = FileManager.FMRow.DCol;
+using LCss  = LayoutRect.CSS;
+
     public class FileManController : 
         Controller 
     {
@@ -70,7 +68,14 @@ namespace Play.FileManager {
         WindowMultiColumn,
         IPgCommandView
     {
-        public string    Banner => Document.CurrentURL;
+        public string    Banner { get { 
+                                    if( _oCacheMan.Caret2.Row is Row oRow && oRow[(int)DClmn.Name] is Line oLine ) {
+                                        string? strValue = oLine.ToString();
+
+                                        return strValue is null ? "(Empty)" : strValue;
+                                    }
+                                    return string.Empty;
+                                } }
 		public SKImage  Icon { get; protected set; }
         public                  Guid Catagory => _sGuid;
         public           static Guid GUID     => _sGuid;

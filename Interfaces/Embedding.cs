@@ -585,7 +585,8 @@ namespace Play.Interfaces.Embedding {
 		BannerChanged,
 		ToolChanged,
 		ToolCollectionChanged,
-        MediaStatusChanged
+        MediaStatusChanged,
+        MonikerChanged
 	}
 
 	public interface IPgViewSite : IPgBaseSite {
@@ -644,7 +645,7 @@ namespace Play.Interfaces.Embedding {
     /// Save( string dir ) to save whatever was was being done to a DIFFERENT dir. 
     /// </summary>
     public interface IPgSaveURL : IPgSave {
-        string SaveMoniker();
+        string Moniker { get; }
     }
 
     /// <summary>

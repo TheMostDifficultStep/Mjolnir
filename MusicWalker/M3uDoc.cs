@@ -343,9 +343,7 @@ namespace Play.MusicWalker {
 			return true;
         }
 
-		public string SaveMoniker() {
-			return _strFileName;
-		}
+		public string Moniker => _strFileName;
 
 		public void Play() {
 			switch( _oWorker.Status ) {

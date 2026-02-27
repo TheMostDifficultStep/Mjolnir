@@ -93,7 +93,7 @@ namespace Play.SSTV {
         public string CurrentDirectory {
             get { 
 				try {
-					return( _oDirectory.FullName );
+					return _oDirectory.FullName;
 				} catch( Exception oEx ) {
 					Type[] rgError = { typeof( NullReferenceException ),
 									   typeof( PathTooLongException ),
@@ -106,7 +106,7 @@ namespace Play.SSTV {
             }
         }
 
-        public string SaveMoniker() { return CurrentDirectory; }
+        public string Moniker => CurrentDirectory;
 
         public string CurrentFullPath {
 			get {
