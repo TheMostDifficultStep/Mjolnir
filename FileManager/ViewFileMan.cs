@@ -69,7 +69,9 @@ using LCss  = LayoutRect.CSS;
         IPgCommandView
     {
         public string    Banner { get { 
-                                    if( _oCacheMan.Caret2.Row is Row oRow && oRow[(int)DClmn.Name] is Line oLine ) {
+                                    if( _oCacheMan.Caret2.Row is Row oRow && 
+                                        oRow[(int)DClmn.Name] is Line oLine ) 
+                                    {
                                         string? strValue = oLine.ToString();
 
                                         return strValue is null ? "(Empty)" : strValue;

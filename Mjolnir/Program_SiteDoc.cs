@@ -284,22 +284,24 @@ namespace Mjolnir {
             /// <seealso cref="FileDir"/>
             public virtual string FilePath {
                 set {
-                    FileInfo oFileInfo = new FileInfo( value );
+                    FileInfo      oFileInfo = new FileInfo( value );
+                    DirectoryInfo oDirInfo  = new DirectoryInfo( value );
+
+                    _strFileName = string.Empty;
+                    _strFileDir  = string.Empty;
+
                     if( oFileInfo.Exists ) {
                         _strFileName = oFileInfo.Name;
                         _strFileDir  = oFileInfo.DirectoryName;
                     } else {
-                        _strFileName = string.Empty;
-                        string strDirOnly = Path.GetDirectoryName( value );
-                        _strFileDir  = strDirOnly;
+                        if( oDirInfo.Exists ) {
+                            _strFileName = string.Empty;
+                            _strFileDir  = oDirInfo.FullName;
+                        }
                     }
                     // We cache this b/c it get's called a lot for
                     // the view's title bar.
-                    _strFilePath = oFileInfo.FullName;
-
-                    //if( !string.IsNullOrEmpty( value ) ) {
-                    //    _strFileName = value;
-                    //}
+                    _strFilePath = value;
                 }
 
                 get {
