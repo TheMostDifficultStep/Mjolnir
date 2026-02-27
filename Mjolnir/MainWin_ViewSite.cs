@@ -432,6 +432,9 @@ namespace Mjolnir {
 				//}
 
 			    TryAppend( _oViewCommand.Banner );
+                if( _oDocSite.IsDirty ) {
+                    TryAppend( "*" );
+                }
 			} catch ( NullReferenceException ) {
 				TryAppend( "View" );
 			}

@@ -290,7 +290,8 @@ namespace Mjolnir {
                         _strFileDir  = oFileInfo.DirectoryName;
                     } else {
                         _strFileName = string.Empty;
-                        _strFileDir  = oFileInfo.FullName;
+                        string strDirOnly = Path.GetDirectoryName( value );
+                        _strFileDir  = strDirOnly;
                     }
                     // We cache this b/c it get's called a lot for
                     // the view's title bar.
@@ -850,7 +851,7 @@ namespace Mjolnir {
             BaseSlot,
             IDocSlot
         {
-            IPgLoadURL _oGuestLoad;
+            IPgLoadFromMoniker _oGuestLoad;
             IPgSaveURL _oGuestSave;
 
             public DirSlot( Program oProgram, IPgController2 oController, string strFileExtn, int iID = -1 ) : 
@@ -872,7 +873,7 @@ namespace Mjolnir {
 			protected override void GuestSet( IDisposable value ) {
                 base.GuestSet( value );
 
-                _oGuestLoad = (IPgLoadURL)value;
+                _oGuestLoad = (IPgLoadFromMoniker)value;
                 _oGuestSave = value as IPgSaveURL;
             }
 
@@ -889,7 +890,7 @@ namespace Mjolnir {
             public override bool Load( string strFileName ) {
                 FilePath = strFileName; 
 
-                return _oGuestLoad.LoadURL( strFileName );
+                return _oGuestLoad.LoadFromMoniker( strFileName );
             }
 
             /// <summary>
@@ -903,11 +904,11 @@ namespace Mjolnir {
                     return true;
                 }
 
-                _oGuestSave.Save();
+                FilePath = _oGuestSave.SaveMoniker();
 
                 _oHost.Raise_UpdateTitles( this );
 
-                return true; // Probably should check save but let's do that after up on dot net core 3.
+                return true;
             }
 
             /// <summary>

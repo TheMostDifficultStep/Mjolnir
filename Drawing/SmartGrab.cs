@@ -550,29 +550,63 @@ namespace Play.Rectangles
 		/// <summary>
 		/// We draw our rectangle just outside of the selected area!!
 		/// </summary>
-		[Obsolete]public override void Paint( Graphics oGraphics ) {
+		//[Obsolete]public override void Paint( Graphics oGraphics ) {
+  //          if( Hidden )
+  //              return;
+
+  //          try {
+  //              using( Brush oCornerBrush = new SolidBrush( BarColor.ToGdiColor() ) ) {
+		//			using( Brush oBrush = new HatchBrush( HatchStyle.DiagonalCross, 
+		//				                       foreColor:Color.Black, 
+		//									   backColor:Color.White ) ) {
+		//				using( Pen oPen = new Pen( oBrush ) ) {
+		//					SmartRect oBorder = new SmartRect( this );
+		//					//oBorder  .SetScalar    ( SET.INCR, SCALAR.LEFT | SCALAR.TOP, 1 );
+		//					oGraphics.DrawRectangle( oPen, oBorder.Rect);
+
+		//					for (int i = 0; i < 4; ++i) {
+		//						if( m_frgMoveable[i] ) {
+		//							oGraphics.FillRectangle( oCornerBrush, _rgHandlesMiddle[i].Rect);
+		//							oGraphics.FillRectangle( oCornerBrush, _rgHandlesCorner[i].Rect);
+		//						}
+		//					}
+		//				}
+		//			}
+		//		}
+		//	} catch( Exception oEx ) {
+		//		Type[] rgErrors = { typeof( NullReferenceException ), 
+		//							typeof( IndexOutOfRangeException ) };
+
+		//		if( rgErrors.IsUnhandled( oEx ) )
+		//			throw;
+		//	}
+		//}
+
+        public override void Paint(SKCanvas oCanvas) {
             if( Hidden )
                 return;
 
             try {
-                using( Brush oCornerBrush = new SolidBrush( BarColor.ToGdiColor() ) ) {
-					using( Brush oBrush = new HatchBrush( HatchStyle.DiagonalCross, 
-						                       foreColor:Color.Black, 
-											   backColor:Color.White ) ) {
-						using( Pen oPen = new Pen( oBrush ) ) {
-							SmartRect oBorder = new SmartRect( this );
-							//oBorder  .SetScalar    ( SET.INCR, SCALAR.LEFT | SCALAR.TOP, 1 );
-							oGraphics.DrawRectangle( oPen, oBorder.Rect);
+                using SKPaint      oPaintSolid = new SKPaint() { Color = BarColor, 
+                                                                 Style = SKPaintStyle.Fill };
+                float[] flInterval = { 2, 4 };
 
-							for (int i = 0; i < 4; ++i) {
-								if( m_frgMoveable[i] ) {
-									oGraphics.FillRectangle( oCornerBrush, _rgHandlesMiddle[i].Rect);
-									oGraphics.FillRectangle( oCornerBrush, _rgHandlesCorner[i].Rect);
-								}
-							}
-						}
-					}
-				}
+                using SKPathEffect oDash       = SKPathEffect.CreateDash( flInterval, 0 );
+                using SKPaint      oPaintHatch = new SKPaint() { Color = SKColors.Black,
+                                                                 PathEffect = oDash,
+                                                                 IsStroke = true, 
+                                                                 StrokeWidth = 1 };
+
+				SmartRect oBorder = new SmartRect( this );
+
+                oCanvas.DrawRect( oBorder.SKRect, oPaintHatch );
+
+                for (int i = 0; i < 4; ++i) {
+                    if( m_frgMoveable[i] ) {
+                        oCanvas.DrawRect( _rgHandlesMiddle[i].SKRect, oPaintSolid );
+                        oCanvas.DrawRect( _rgHandlesCorner[i].SKRect, oPaintSolid );
+                    }
+                }
 			} catch( Exception oEx ) {
 				Type[] rgErrors = { typeof( NullReferenceException ), 
 									typeof( IndexOutOfRangeException ) };
@@ -580,7 +614,7 @@ namespace Play.Rectangles
 				if( rgErrors.IsUnhandled( oEx ) )
 					throw;
 			}
-		}
+        }
 
 		public override void UpdateHandles() {
 			base.UpdateHandles();

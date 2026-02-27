@@ -121,20 +121,20 @@ namespace Play.ImageViewer {
         public override PgDocDescr Suitability(string strExtension) {
             if( string.IsNullOrEmpty( strExtension ) ) {
                 return new PgDocDescr( strExtension, 
-                                       typeof( IPgLoadURL ), 
+                                       typeof( IPgLoadFromMoniker ), 
                                        255, 
                                        this );
             }
             foreach( string strExtn in ImageWalkerDoc._rgFileExts ) {
                 if( string.Compare( strExtn, strExtension, ignoreCase:true ) == 0 ) {
                     return new PgDocDescr( strExtension, 
-                                           typeof( IPgLoadURL ), 
+                                           typeof( IPgLoadFromMoniker ), 
                                            200, 
                                            this );
                 }
             }
             return new PgDocDescr( strExtension, 
-                                   typeof( IPgLoadURL ), 
+                                   typeof( IPgLoadFromMoniker ), 
                                    0, 
                                    this );
         }

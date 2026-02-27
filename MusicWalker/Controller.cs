@@ -126,7 +126,7 @@ namespace Play.MusicWalker {
 			}
 
             return new PgDocDescr( strExtension, 
-                                             typeof( IPgLoadURL ), 
+                                             typeof( IPgLoadFromMoniker ), 
                                              bPriority, 
                                              this );
         }

@@ -22,13 +22,13 @@ namespace Play.FileManager {
         public override PgDocDescr Suitability(string strExtension) {
             if( strExtension.CompareTo( ".fileman" ) == 0 ) {
                 return new PgDocDescr( ".fileman", 
-                                       typeof( IPgLoadURL ), 
+                                       typeof( IPgLoadFromMoniker ), 
                                        255, 
                                        this );
             }
 
             return new PgDocDescr( ".fileman", 
-                                    typeof( IPgLoadURL ), 
+                                    typeof( IPgLoadFromMoniker ), 
                                     0, 
                                     this );
         }

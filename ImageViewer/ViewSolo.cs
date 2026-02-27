@@ -234,11 +234,16 @@ namespace Play.ImageViewer {
 								   (int)( Selection.Height * pntAspect.Y ));
 		}
 
-		protected override void OnPaint(PaintEventArgs oE) {
-			base.OnPaint(oE);
+        //protected override void OnPaint(PaintEventArgs oE) {
+        //	base.OnPaint(oE);
 
-			_rcSelectionView.Paint( oE.Graphics );
-		}
+        //	_rcSelectionView.Paint( oE.Graphics );
+        //}
+
+        protected override void OnPaintSurface(SKPaintSurfaceEventArgs e) {
+            base.OnPaintSurface(e);
+			_rcSelectionView.Paint( e.Surface.Canvas );
+        }
 
         protected override void OnGotFocus(EventArgs e) {
             base.OnGotFocus( e );

@@ -1286,7 +1286,7 @@ namespace Mjolnir {
                     case var r when ( r == typeof( IPgLoad<TextReader> ) ):
                         oNewSite = new Program.TextSlot( this, oDocDesc.Controller, strFileExtn, iID);
                         break;
-                    case var r when ( r == typeof( IPgLoadURL ) ):
+                    case var r when ( r == typeof( IPgLoadFromMoniker ) ):
                         oNewSite = new Program.DirSlot( this, oDocDesc.Controller, strFileExtn, iID);
                         break;
                     case var r when ( r == typeof( IPgLoad<BinaryReader> ) ):

@@ -15,7 +15,6 @@ using System.Text;
 
 using SkiaSharp;
 using SkiaSharp.Views.Desktop;
-
 using Play.Drawing;
 using Play.Interfaces.Embedding;
 using Play.Sound;
@@ -23,6 +22,7 @@ using Play.Edit;
 using Play.Forms;
 using Play.Parse.Impl;
 using Play.Rectangles;
+
 
 namespace Play.ImageViewer {
     unsafe public class FileOperationAPIWrapper {
@@ -675,6 +675,22 @@ namespace Play.ImageViewer {
             return( true );
         }
 
+        public override bool IsDirty {
+            get { 
+                return _fDirtyDoc;
+            }
+        }
+
+        /// <summary>
+        /// Unlike the ImageWalkerDir, here we actualy want to save
+        /// our contents out as a file!!
+        /// </summary>
+        public bool Save( TextWriter oStream ) {
+            FileList.Save( oStream );
+            _fDirtyDoc = false;
+            return( true );
+        }
+
         public static bool IsFileExtensionUnderstood( string strFileExtn ) {
             if( string.IsNullOrEmpty(strFileExtn) )
                 return false;
@@ -742,27 +758,6 @@ namespace Play.ImageViewer {
 		//}
   
         public virtual void DirectoryNext( int i ) {
-        }
-
-        public override bool IsDirty {
-            get { 
-                return( _fDirtyDoc );
-            }
-        }
-
-        /// <summary>
-        /// Unlike the ImageWalkerDir, here we actualy want to save
-        /// our contents out as a file!!
-        /// </summary>
-        public bool Save(TextWriter oStream) {
-            FileList.Save( oStream );
-            _fDirtyDoc = false;
-            return( true );
-        }
-
-        public virtual bool Save() {
-            // You know, we could save a thumbnail file for this list. Maybe.
-            return true;
         }
 
         /// <summary>

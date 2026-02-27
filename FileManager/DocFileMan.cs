@@ -141,7 +141,7 @@ namespace Play.FileManager {
     /// </summary>
     public class FileManager :
         EditMultiColumn,
-        IPgLoadURL,
+        IPgLoadFromMoniker,
         IPgSaveURL
     {
         public string HomeURL => Environment.GetFolderPath(Environment.SpecialFolder.Personal);
@@ -305,7 +305,7 @@ namespace Play.FileManager {
             return true;
         }
 
-        public bool LoadURL( string strURL ) {
+        public bool LoadFromMoniker( string strURL ) {
             if( !Initialize() )
                 return false;
 
@@ -325,6 +325,13 @@ namespace Play.FileManager {
 //          DoParse();
 
             return true;
+        }
+
+        public string SaveMoniker() {
+            if( _strDirectory is null )
+                return string.Empty;
+
+            return _strDirectory;
         }
 
         public void JumpToParentDir() {

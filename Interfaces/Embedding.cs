@@ -7,6 +7,7 @@ using System.IO;
 using System.Runtime.InteropServices;
 using System.Reflection;
 using System.Linq;
+using System.Xml;
 
 using SkiaSharp;
 
@@ -643,7 +644,7 @@ namespace Play.Interfaces.Embedding {
     /// Save( string dir ) to save whatever was was being done to a DIFFERENT dir. 
     /// </summary>
     public interface IPgSaveURL : IPgSave {
-        bool Save();
+        string SaveMoniker();
     }
 
     /// <summary>
@@ -663,14 +664,30 @@ namespace Play.Interfaces.Embedding {
         bool Load( T oStream );
     }
 
-    public interface IPgLoadURL : IPgLoad {
-        bool   LoadURL( string strLocation );
-        string CurrentURL { get; }
+    public interface IPgLoadFromMoniker : IPgLoad {
+        bool LoadFromMoniker( string strLocation );
     }
 
     public interface IPgLoadTwoStage<T> {
         bool Load( T oStream );
         bool Bind( T oStream );
+    }
+
+    /// <summary>
+    /// This will be the wrapper for the parent node when an
+    /// document wishes to save embedded data.
+    /// </summary>
+    public interface IPgParentXmlElement :
+        IEnumerable<XmlElement>
+    {
+        XmlElement FirstChild { get; }
+        void       AddChild( XmlElement oChild );
+        XmlElement GetChild( string strName ); // Throw arg exception on dupe?
+    }
+    public interface IPgEmbedXmlFragment : 
+        IPgLoad<IPgParentXmlElement>, IPgSave 
+    {
+        bool Save( Func<string, XmlElement > xCreateElement, IPgParentXmlElement oParent );
     }
 
     /// <summary>

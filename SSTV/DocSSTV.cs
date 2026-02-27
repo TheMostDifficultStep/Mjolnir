@@ -837,7 +837,7 @@ namespace Play.SSTV {
 
             // Note: this is wrong to load up the list in the Load( Stream ) in this manner.
             string strMyDocs = Environment.GetFolderPath( Environment.SpecialFolder.MyDocuments );
-            if( !TxImageList.LoadURL( strMyDocs ) ) {
+            if( !TxImageList.LoadFromMoniker( strMyDocs ) ) {
 				LogError( "Couldn't find pictures tx directory for SSTV" );
                 return false;
 			}
@@ -845,7 +845,7 @@ namespace Play.SSTV {
             // We'll get a callback from this before exiting back into
             // our RenderComposite() method!! And then Load() causes
             // another Render. Might see if we can fix that...
-            if( !RxHistoryList.LoadURL( Properties[SSTVProperties.Names.Rx_SaveDir] ) ) {
+            if( !RxHistoryList.LoadFromMoniker( Properties[SSTVProperties.Names.Rx_SaveDir] ) ) {
 				LogError( "Couldn't find history directory for SSTV pictures." );
                 return false;
             }
@@ -901,7 +901,7 @@ namespace Play.SSTV {
                             Properties.ValueUpdate( SSTVProperties.Names.Tx_Message, oNode.InnerText );
                             break;
                         case "TxSrcDir":
-                            TxImageList.LoadURL( oNode.InnerText );
+                            TxImageList.LoadFromMoniker( oNode.InnerText );
                             // This well endup calling RenderComposite() again... :-/
                             break;
                         case "Clock":
@@ -913,7 +913,7 @@ namespace Play.SSTV {
                 // We'll get a callback from this before exiting back into
                 // our RenderComposite() method!! And then Load() causes
                 // another Render. Might see if we can fix that...
-                if( !RxHistoryList.LoadURL( Properties[SSTVProperties.Names.Rx_SaveDir] ) ) {
+                if( !RxHistoryList.LoadFromMoniker( Properties[SSTVProperties.Names.Rx_SaveDir] ) ) {
 				    LogError( "Couldn't find history directory for SSTV pictures." );
                     return false;
                 }
