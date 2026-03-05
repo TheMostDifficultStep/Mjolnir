@@ -133,8 +133,8 @@ namespace Mjolnir {
 
                 return true; // stop this message being dispatched
             }
-			if( ( GetKeyState( VK_CONTROL ) & iHigh ) == iHigh ) {
-				if( m.Msg == WM_KEYDOWN) {
+			if( m.Msg == WM_KEYDOWN) {
+				if( ( GetKeyState( VK_CONTROL ) & iHigh ) == iHigh ) {
 					switch( m.WParam ) {
 						case 'f':
 							_oMainWin.OnEditFind( null, null );
