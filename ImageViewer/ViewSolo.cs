@@ -391,11 +391,6 @@ namespace Play.ImageViewer {
 			}
 		}
 
-		public void SelectOff() {
-			_rcSelectionView.Hidden = true;
-			Invalidate();
-		}
-
         protected override void OnSizeChanged(EventArgs e) {
             base.OnSizeChanged(e);
 
@@ -411,6 +406,11 @@ namespace Play.ImageViewer {
 
             Invalidate();
         }
+
+		public void SelectOff() {
+			_rcSelectionView.Hidden = true;
+			Invalidate();
+		}
 
 		public virtual void SelectAll() {
 			if( Document.Bitmap != null ) {
@@ -770,6 +770,8 @@ namespace Play.ImageViewer {
         }
 
 		public override void SelectAll() {
+			ToolSelect = (int)Tools.Select;
+
 			base.SelectAll();
 
 			if( Document.Bitmap != null ) {
@@ -834,6 +836,10 @@ namespace Play.ImageViewer {
 				if( _eToolCurrent != eNextTool && 
 					_eToolCurrent == Tools.Select ) {
 					_rcSelectionView.Hidden = true;
+					Invalidate();
+				}
+				if( eNextTool == Tools.Select ) {
+					_rcSelectionView.Hidden = false;
 					Invalidate();
 				}
 

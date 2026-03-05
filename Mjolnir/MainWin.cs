@@ -1650,7 +1650,7 @@ namespace Mjolnir {
                 _oSelectedWinSite.Execute( GlobalCommands.SelectAll );
         }
 
-        protected void OnEditSelectOff( object sender, EventArgs e ) {
+        public void OnEditSelectOff( object sender, EventArgs e ) {
             if( _oSelectedWinSite != null )
                 _oSelectedWinSite.Execute( GlobalCommands.SelectOff );
         }

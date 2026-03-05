@@ -137,19 +137,24 @@ namespace Mjolnir {
 			if( m.Msg == WM_KEYDOWN) {
 				if( ( GetKeyState( VK_CONTROL ) & iHigh ) == iHigh ) {
 					switch( m.WParam ) {
-						case 'f':
+						case 'F':
 							_oMainWin.OnEditFind( null, null );
 							return true;
-						case 'a':
+						case 'A':
 							_oMainWin.OnEditSelectAll( null, null );
 							return true;
-						case 's':
+						case 'D':
+							_oMainWin.OnEditSelectOff( null, null );
+							return true;
+						case 'S':
 							if( ( GetKeyState( VK_SHIFT ) & iHigh ) == iHigh ) {
 								_oMainWin.OnDocSaveAll( null, null );
 							} else {
 								_oMainWin.OnDocSave( null, null );
 							}
 							return true;
+						case 0x11: // Ctrl key.
+							break;
 					}
 				}
 			}
