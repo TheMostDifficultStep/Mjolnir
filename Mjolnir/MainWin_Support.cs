@@ -101,6 +101,7 @@ namespace Mjolnir {
         private const int WM_MOUSEWHEEL = 0x020A;
 		private const int WM_KEYDOWN    = 0x0100;
 		private const int VK_CONTROL    = 0x11;
+		private const int VK_SHIFT      = 0x10;
 
         private uint LOWORD(IntPtr value) {
             return (uint)((((ulong)value.ToInt64()) & 0xffff));
@@ -138,6 +139,16 @@ namespace Mjolnir {
 					switch( m.WParam ) {
 						case 'f':
 							_oMainWin.OnEditFind( null, null );
+							return true;
+						case 'a':
+							_oMainWin.OnEditSelectAll( null, null );
+							return true;
+						case 's':
+							if( ( GetKeyState( VK_SHIFT ) & iHigh ) == iHigh ) {
+								_oMainWin.OnDocSaveAll( null, null );
+							} else {
+								_oMainWin.OnDocSave( null, null );
+							}
 							return true;
 					}
 				}

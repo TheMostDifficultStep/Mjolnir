@@ -723,7 +723,7 @@ namespace Mjolnir {
 
             oFileMenu.DropDownItems.Add(new ToolStripSeparator() ); //---
 
-            oFileMenu.DropDownItems.Add(new ToolStripMenuItem("Close",  BitmapCreateFromChar( "\xe10a" ), new EventHandler(this.OnFileClose), Keys.Control | Keys.W)); // s/b file close, close all views and file!
+            oFileMenu.DropDownItems.Add(new ToolStripMenuItem("Close",  BitmapCreateFromChar( "\xe10a" ), new EventHandler(this.OnFileClose) )); // s/b file close, close all views and file!
 
             // Edit Menu.
             ToolStripMenuItem oEditMenu = new ToolStripMenuItem("Edit");
@@ -740,7 +740,7 @@ namespace Mjolnir {
             };
 
             oEditMenu.DropDownItems.Add(new ToolStripMenuItem("Paste as",   BitmapCreateFromChar( "\xE16C" ), rgSubMenu2 ) );
-            oEditMenu.DropDownItems.Add(new ToolStripMenuItem("Insert...",  BitmapCreateFromChar( "\xE16F" ), new EventHandler( this.OnEditInsert ), Keys.Control | Keys.I ));
+          //oEditMenu.DropDownItems.Add(new ToolStripMenuItem("Insert...",  BitmapCreateFromChar( "\xE16F" ), new EventHandler( this.OnEditInsert ), Keys.Control | Keys.I ));
             oEditMenu.DropDownItems.Add(new ToolStripSeparator() ); //---
 
             oEditMenu.DropDownItems.Add(new ToolStripMenuItem("Undo",       BitmapCreateFromChar( "\xE10e" ), new EventHandler(this.OnEditUndo),    Keys.Control | Keys.Z ));
@@ -754,9 +754,15 @@ namespace Mjolnir {
             };
             oEditMenu.DropDownItems.Add(new ToolStripMenuItem("Text", BitmapCreateFromChar("\xE144"), rgSubMenuLock.ToArray()));
 
+            List<ToolStripMenuItem> rgSubMenuSelect = new List<ToolStripMenuItem> {
+                new ToolStripMenuItem("All", BitmapCreateFromChar( "\x0000" ), new EventHandler(this.OnEditSelectAll ), Keys.Control | Keys.A ),
+                new ToolStripMenuItem("Off", BitmapCreateFromChar( "\x0000" ), new EventHandler(this.OnEditSelectOff ), Keys.Control | Keys.D )
+            };
+            oEditMenu.DropDownItems.Add(new ToolStripMenuItem("Select", BitmapCreateFromChar("\xE14e"), rgSubMenuSelect.ToArray()));
+            //oEditMenu.DropDownItems.Add(new ToolStripMenuItem("Select All", BitmapCreateFromChar( "\xE14e" ), new EventHandler(this.OnEditSelectAll), Keys.Control | Keys.A));
+			//oEditMenu.DropDownItems.Add(new ToolStripMenuItem("Select Off", BitmapCreateFromChar( "\x0000" ), new EventHandler(this.OnEditSelectOff), Keys.Control | Keys.D));
+
             oEditMenu.DropDownItems.Add(new ToolStripSeparator() ); //---
-            oEditMenu.DropDownItems.Add(new ToolStripMenuItem("Select All", BitmapCreateFromChar( "\xE14e" ), new EventHandler(this.OnEditSelectAll), Keys.Control | Keys.A));
-			oEditMenu.DropDownItems.Add(new ToolStripMenuItem("Select Off", BitmapCreateFromChar( "\x0000" ), new EventHandler(this.OnEditSelectOff), Keys.Control | Keys.D));
             oEditMenu.DropDownItems.Add(new ToolStripMenuItem("Collect",    BitmapCreateFromChar( "\xE0e7" ), new EventHandler(this.OnCollect),  Keys.Control | Keys.L ));
             oEditMenu.DropDownItems.Add(new ToolStripMenuItem("Find",       BitmapCreateFromChar( "\xE1a3" ), new EventHandler(this.OnEditFind), Keys.Control | Keys.F));
 
@@ -1639,7 +1645,7 @@ namespace Mjolnir {
             }
         }
 
-        protected void OnEditSelectAll( object sender, EventArgs e ) {
+        public void OnEditSelectAll( object sender, EventArgs e ) {
             if( _oSelectedWinSite != null )
                 _oSelectedWinSite.Execute( GlobalCommands.SelectAll );
         }
