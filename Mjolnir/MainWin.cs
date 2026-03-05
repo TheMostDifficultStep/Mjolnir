@@ -1654,7 +1654,7 @@ namespace Mjolnir {
                 _oSelectedWinSite.Execute( GlobalCommands.Undo );
         }
 
-        protected void OnEditFind( object sender, EventArgs e ) 
+        public void OnEditFind( object sender, EventArgs e ) 
         {
             if( DecorOpen( GlobalDecor.Find, true ) is SmartHerderBase oHerder ) {
                 oHerder.AdornmentFocus( null ); // since find is a solo, we don't need it's view site!

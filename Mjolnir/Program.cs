@@ -280,7 +280,6 @@ namespace Mjolnir {
             Application.SetHighDpiMode(HighDpiMode.SystemAware);
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-            Application.AddMessageFilter(new MouseWheelMessageFilter());
 
 			using( Program oProgram = new Program() ) {
 			    XmlDocument xmlConfig = new XmlDocument();
@@ -312,6 +311,8 @@ namespace Mjolnir {
 
                 oProgram.MainWindow.Parent = null;
                 oProgram.MainWindow.Show();
+
+                Application.AddMessageFilter( new MouseWheelMessageFilter( oProgram.MainWindow ) );
 
 				try {
 					Application.Run( new MyApplicationContext( oProgram.MainWindow ) );

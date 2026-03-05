@@ -5,7 +5,6 @@ using System.Xml;
 using System.Drawing;
 using System.Reflection;
 using System.Collections.Generic;
-using System.IO;
 
 using SkiaSharp;
 
@@ -76,7 +75,14 @@ namespace Mjolnir {
 	/// That is not the normal behavior be we like it.
 	/// </summary>
 	/// <remarks>NOte: This is not likely to port to what ever Lunix thing we land in.</remarks>
-    public class MouseWheelMessageFilter : IMessageFilter {
+    public class MouseWheelMessageFilter : 
+		IMessageFilter 
+	{
+		MainWin _oMainWin;
+		public MouseWheelMessageFilter( MainWin oWindow ) {
+			_oMainWin = oWindow ?? throw new ArgumentNullException(nameof(oWindow));
+		}
+
         [StructLayout(LayoutKind.Sequential)]
         private struct POINT {
             public int x;
@@ -88,8 +94,13 @@ namespace Mjolnir {
 
         [DllImport("user32.dll")]
         public static extern int SendMessage(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam);
+		[DllImport("user32.dll")]
+		public static extern short GetKeyState( [In]int iVirtKey );
 
+		// https://learn.microsoft.com/en-us/windows/win32/inputdev/virtual-key-codes
         private const int WM_MOUSEWHEEL = 0x020A;
+		private const int WM_KEYDOWN    = 0x0100;
+		private const int VK_CONTROL    = 0x11;
 
         private uint LOWORD(IntPtr value) {
             return (uint)((((ulong)value.ToInt64()) & 0xffff));
@@ -99,12 +110,14 @@ namespace Mjolnir {
             return (uint)((((ulong)value.ToInt64()) & 0xffff0000) >> 16);
         }
 
+		private const short iHigh = 0x80;
+		private const short iLow  = 0x01;
+
 		/// <summary>
 		/// Grab the mouse wheel event and dispatch it to the window under the cursor.
 		/// </summary>
         public bool PreFilterMessage(ref Message m) {
-            if (m.Msg == WM_MOUSEWHEEL)
-            {
+            if( m.Msg == WM_MOUSEWHEEL ) {
                 uint screenX = LOWORD(m.LParam);
                 uint screenY = HIWORD(m.LParam);
 
@@ -120,6 +133,15 @@ namespace Mjolnir {
 
                 return true; // stop this message being dispatched
             }
+			if( ( GetKeyState( VK_CONTROL ) & iHigh ) == iHigh ) {
+				if( m.Msg == WM_KEYDOWN) {
+					switch( m.WParam ) {
+						case 'f':
+							_oMainWin.OnEditFind( null, null );
+							return true;
+					}
+				}
+			}
 
             return false;
         }
