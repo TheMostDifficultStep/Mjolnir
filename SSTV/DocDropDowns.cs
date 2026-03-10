@@ -18,7 +18,7 @@ namespace Play.SSTV {
         }
 
         public class DDRow : Row {
-            public static new int ColumnCount => Enum.GetNames(typeof(Column)).Length;
+            public static int ColumnCount => Enum.GetNames(typeof(Column)).Length;
             public DDRow( SSTVDEM.SSTVFamily oFamily, string strCheck ) {
                 Family = oFamily ?? throw new ArgumentNullException();
 
@@ -171,7 +171,7 @@ namespace Play.SSTV {
 
         protected List<SSTVMode> AllDescriptors = new List<SSTVMode>();
         public class DDRow : Row {
-            public static new int ColumnCount => Enum.GetNames(typeof(Column)).Length;
+            public static int ColumnCount => Enum.GetNames(typeof(Column)).Length;
             public DDRow( SSTVMode oMode, string strCheckMark ) {
                 Mode = oMode ?? throw new ArgumentNullException();
 
@@ -301,7 +301,7 @@ namespace Play.SSTV {
         }
 
         public class DDRow : Row {
-            public static new int ColumnCount => Enum.GetNames(typeof(Column)).Length;
+            public static int ColumnCount => Enum.GetNames(typeof(Column)).Length;
 
             public DDRow( string strDescription, string strCheck = "" ) {
                 _rgColumns = new Line[ColumnCount];
