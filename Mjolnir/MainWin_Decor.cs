@@ -237,11 +237,9 @@ namespace Mjolnir {
         protected struct DecorProperties {
             public readonly string File;
             public readonly bool   Solo;
-            [Obsolete]public readonly string Name;
             public DecorProperties( string strName, string strResourceName, bool fSolo ) {
                 File = "Content." + strResourceName;
                 Solo = fSolo;
-                Name = strName;
             }
         }
 
@@ -785,20 +783,6 @@ namespace Mjolnir {
         }
 
         /// <summary>
-        /// this is a little backward compatibility. We'll get rid of after
-        /// we've updated our PVS files eventually.
-        /// </summary>
-        /// <param name="strName">Old way to look up tool/decor by string name.</param>
-        [Obsolete]protected Guid FindDecorByLegacyName( string strName ) {
-            foreach( KeyValuePair<Guid, DecorProperties> oPair in _rgStdDecor ) {
-                if( string.Compare( oPair.Value.Name, strName, ignoreCase:true ) == 0 ) {
-                    return oPair.Key;
-                }
-            }
-            throw new KeyNotFoundException( "Could not find legacy decor name." );
-        }
-
-        /// <summary>
         /// We depend on ViewSelect() called AFTER this has been called on load.
         /// </summary>
         /// <seealso cref="ViewSelect(ViewSlot, bool)" />
@@ -834,8 +818,6 @@ namespace Mjolnir {
 
                         if( string.IsNullOrEmpty( strDecorName ) ) {
 						    gDecor = Guid.Parse( strDecorGuid );      // New Path.
-                        } else {
-                            gDecor = FindDecorByLegacyName( strDecorName ); // Old Path.
                         }
 
                         MenuReset oReset = dctDecor[gDecor];
