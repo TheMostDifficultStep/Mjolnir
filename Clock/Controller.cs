@@ -22,14 +22,14 @@ namespace Play.Clock {
         public override IDisposable CreateView( IPgViewSite oBaseSite, object oDocument, Guid guidViewType ) {
             SolarDoc oMorsePractice = oDocument as SolarDoc ?? throw new ArgumentException( "Argument must be an SolarDoc." );
 
-			try {
-                switch( guidViewType ) {
-                    case Guid r when r == ViewSolar._guidViewCatagory:
-                        return new ViewSolar( oBaseSite, oMorsePractice );
+		    try {
+   //             switch( guidViewType ) {
+   //                 case Guid r when r == ViewSolar._guidViewCatagory:
+   //                     return new ViewSolar( oBaseSite, oMorsePractice );
 
-                    default:
+   //                 default:
                         return new ViewSolar( oBaseSite, oMorsePractice );
-                }
+                //}
             } catch( Exception oEx ) {
                 Type[] rgErrors = { typeof( NullReferenceException ),
                                     typeof( InvalidCastException ),
@@ -104,10 +104,10 @@ namespace Play.Clock {
 
         public IPgController2 GetController( Guid guidID ) {
             if( guidID == Clock ) {
-                return new ControllerForSolar();
+                return new ControllerForClock();
             }
             if( guidID == Solar ) {
-                return new ControllerForClock();
+                return new ControllerForSolar();
             }
 
             throw new ArgumentOutOfRangeException();
