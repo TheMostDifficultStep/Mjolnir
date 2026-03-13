@@ -601,7 +601,9 @@ namespace Play.ImageViewer {
         /// </summary>
         public virtual string Banner {
             get {
-                string strTitle = _oDisplayLine.ToString();
+                string strFile = _oDisplayLine.ToString();
+                string strTitle = Path.GetFileName( strFile );
+
 
                 if( string.IsNullOrEmpty(strTitle) ) {
                     return "scraps";
