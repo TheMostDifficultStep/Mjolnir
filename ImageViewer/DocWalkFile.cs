@@ -907,7 +907,10 @@ namespace Play.ImageViewer {
                     }
 					if( ImageWalkerDoc.IsFileExtensionUnderstood( strFileExtn ) ) {
 						oFileName.Extra = ReScale( Path.Combine( CurrentDirectory, oFileName.ToString() ), skSize ); 
-
+                        if( oFileName.Extra is null ) {
+                            // Adding multiple references, but doesn't seem to bomb things.
+                            oFileName.Extra = ErrorBmp;
+                        }
                         if( ++iCount % 5 == 0 ) {
                             Raise_UpdatedThumbs();
                         }
@@ -1040,20 +1043,24 @@ namespace Play.ImageViewer {
             }
 
             try {
-                // But if this fails, we'll have an bad show path, oh well.
-                using( Stream oStream = File.OpenRead( FullPathFromLine( _oDisplayLine ) ) ) {
-                    Bitmap = SKBitmap.Decode( oStream );
+                string strFileName = FullPathFromLine( _oDisplayLine );
+                if( File.Exists( strFileName ) ) {
+                    // But if this fails, we'll have an bad show path, oh well.
+                    using( Stream oStream = File.OpenRead( FullPathFromLine( _oDisplayLine ) ) ) {
+                        Bitmap = SKBitmap.Decode( oStream );
+                    }
+                    // A new bitmap always sets the world coordinates, which sends a Raise_ImageUpdated event.
+				    return true;
                 }
-                // A new bitmap always sets the world coordinates, which sends a Raise_ImageUpdated event.
-				return true;
 			} catch( Exception oEx ) {
 				if( _rgBmpLoadErrs.IsUnhandled( oEx ) )
 					throw;
 
                 _oSiteBase.LogError( "storage", "Couldn't read file..." + FullPathFromLine( _oDisplayLine ) );
-
-                return false;
-			}            
+			} finally {
+                Raise_ImageUpdated(); // A double if the bitmap gets updated... :-/
+            }
+            return false;
         }
 
         protected Line GetNextIndex( int p_iDir ) {
