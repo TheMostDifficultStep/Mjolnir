@@ -685,22 +685,6 @@ namespace Play.Interfaces.Embedding {
         void       AddChild( XmlElement oChild );
         XmlElement GetChild( string strName ); // Throw arg exception on dupe?
     }
-    public interface IPgEmbedXmlFragment : 
-        IPgLoad<IPgParentXmlElement>, IPgSave 
-    {
-        bool Save( Func<string, XmlElement > xCreateElement, IPgParentXmlElement oParent );
-    }
-
-    /// <summary>
-    /// My idea is the shell can use this to save property values 
-    /// from a document that are specific to a session.
-    /// Load would occur AFTER IPgLoad calls.
-    /// Save would occuR AFTER IPgSave calls.
-    /// </summary>
-    public interface IPgPersistProperties {
-        bool Load( IEnumerator<KeyValuePair<string, string>> rgFrom );
-        IEnumerator<KeyValuePair<string, string>> Save();
-    }
 
     public enum SHOWSTATE  {
         Active,

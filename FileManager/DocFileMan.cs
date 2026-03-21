@@ -1,4 +1,6 @@
 ﻿using System.Reflection;
+using System.Xml;
+using System.Xml.XPath;
 
 using SkiaSharp;
 
@@ -63,12 +65,10 @@ namespace Play.FileManager {
     /// the shell will save it somewhere by default.
     /// </summary>
     public class FileFavorites :
-        EditMultiColumn,
-        IPgLoad<TextReader>,
-        IPgSave<TextWriter>
+        EditMultiColumn
     {
         public class DRow : Row {
-            public enum Col {
+            public enum Col : int {
                 ShortcutName = 0,
                 FilePath,
                 Type
@@ -78,7 +78,7 @@ namespace Play.FileManager {
                 get { return _rgColumns[(int)eIndex]; }
                 set { _rgColumns[(int)eIndex] = value; }
             }
-            public DRow( string strType, string strShortCut ) {
+            public DRow( string strType, string strShortCut, string? strPath = null ) {
                 _rgColumns = new Line[ColumnCount];
 
                 this[Col.ShortcutName] = new TextLine( 0, strShortCut );
@@ -91,22 +91,10 @@ namespace Play.FileManager {
         public FileFavorites(IPgBaseSite oSiteBase) : base(oSiteBase) {
         }
 
-        public bool InitNew() {
-            _rgRows.Add( new DRow( "\ue2af", "Images" ) );
-            _rgRows.Add( new DRow( "\ue105", "Server Docs" ) );
-            _rgRows.Add( new DRow( "\ue114", "Kittehs" ) );
-
-            RenumberAndSumate();
-
-            return true;
-        }
-
-        public bool Load(TextReader oStream) {
-            throw new NotImplementedException();
-        }
-
-        public bool Save(TextWriter oStream) {
-            throw new NotImplementedException();
+        public void Append( string strIcon, string strShortcut, string strPath ) {
+            _rgRows.Add( new DRow( strIcon, strShortcut, strPath ) );
+			RenumberAndSumate  ();
+			Raise_DocLoaded    (); 
         }
 
     }
@@ -142,7 +130,9 @@ namespace Play.FileManager {
     public class FileManager :
         EditMultiColumn,
         IPgLoadFromMoniker,
-        IPgSaveURL
+        IPgSaveURL,
+        IPgLoad<XmlElement>,
+        IPgLoad<TextReader>
     {
         public string HomeURL => Environment.GetFolderPath(Environment.SpecialFolder.Personal);
 
@@ -299,8 +289,8 @@ namespace Play.FileManager {
         /// </summary>
         /// <returns></returns>
         public bool Initialize() {
-            if( !DocFavs.InitNew() )
-                return false;
+            //if( !docfavs.initnew() )
+            //    return false;
 
             return true;
         }
@@ -313,6 +303,60 @@ namespace Play.FileManager {
 
 //          DoParse();
 
+            return true;
+        }
+
+        public bool Load( TextReader oReader ) {
+            ArgumentNullException.ThrowIfNull( oReader );
+
+            XmlDocument oDoc = new XmlDocument();
+
+            try {
+                oDoc.Load( oReader );
+
+                if( oDoc.DocumentElement is XmlElement oRoot ) {
+                    Load( oRoot );
+                }
+            } catch( XmlException ) {
+                return false;
+            }
+
+            return true;
+        }
+        
+        public bool Load(XmlElement oXmlRoot ) {
+            if( !Initialize() )
+                return false;
+
+            ArgumentNullException.ThrowIfNull(oXmlRoot);
+
+            try {
+                string strDirStart = string.Empty;
+                if( oXmlRoot.SelectNodes("favorites/dir") is XmlNodeList oList ) {
+                    foreach( XmlNode xmlNode in oList ) {
+                        if( xmlNode is XmlElement oDir ) {
+                            string strName = oDir.GetAttribute( "name" );
+                            string strDir  = System.Web.HttpUtility.HtmlDecode( oDir.InnerText );
+
+                            if( string.IsNullOrEmpty( strName ) ) {
+                                strDirStart = strDir;
+                            } else {
+                                DocFavs.Append( oDir.GetAttribute( "emoji" ),
+                                                strName,
+                                                strDir );
+                            }
+                        }
+                    }
+                }
+                ReadDir( strDirStart );
+            } catch( Exception oEx ) {
+                Type[] rgErrors = { typeof( XPathException ),
+                                    typeof( NullReferenceException ) };
+                if( rgErrors.IsUnhandled( oEx ) )
+                    throw;
+
+                return false;
+            }
             return true;
         }
 

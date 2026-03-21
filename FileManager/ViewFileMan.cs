@@ -1,68 +1,16 @@
-﻿using Play.Edit;
+﻿using System.Windows.Forms;
+
+using SkiaSharp;
+
+using Play.Edit;
 using Play.Forms;
 using Play.Interfaces.Embedding;
 using Play.Parse;
 using Play.Rectangles;
-using SkiaSharp;
-using System.Windows.Forms;
 
 namespace Play.FileManager {
-using DClmn = FileManager.FMRow.DCol;
-using LCss  = LayoutRect.CSS;
-
-    public class FileManController : 
-        Controller 
-    {
-        public FileManController() {
-            _rgExtensions.Add( ".fileman" );
-        }
-
-        public override PgDocDescr Suitability(string strExtension) {
-            if( strExtension.CompareTo( ".fileman" ) == 0 ) {
-                return new PgDocDescr( ".fileman", 
-                                       typeof( IPgLoadFromMoniker ), 
-                                       255, 
-                                       this );
-            }
-
-            return new PgDocDescr( ".fileman", 
-                                    typeof( IPgLoadFromMoniker ), 
-                                    0, 
-                                    this );
-        }
-        public override IDisposable CreateDocument( IPgBaseSite oSite, string strExtension ) {
-            if( string.Compare( strExtension, ".fileman", true ) == 0 )
-                return new FileManager( oSite );
-
-            return new FileManager( oSite );
-        }
-
-        public override IDisposable CreateView( IPgViewSite oBaseSite, object oDocument, Guid guidViewType ) {
-            FileManager oDocFileMan = (FileManager)oDocument;
-
-			try {
-				if( guidViewType == ViewFileMan.GUID )
-					return( new ViewFileMan( oBaseSite, oDocFileMan ) );
-				if( guidViewType == Guid.Empty )
-					return( new ViewFileMan( oBaseSite, oDocFileMan ) );
-
-				return( new ViewFileMan( oBaseSite, oDocFileMan ) );
-            } catch( Exception oEx ) {
-                Type[] rgErrors = { typeof( NullReferenceException ),
-                                    typeof( InvalidCastException ),
-                                    typeof( ArgumentNullException ),
-									typeof( ArgumentException ) };
-                if( rgErrors.IsUnhandled( oEx ) )
-                    throw;
-
-				throw new InvalidOperationException( "Controller couldn't create view for Image document.", oEx );
-            }
-        }
-
-        public override IEnumerator<IPgViewType> GetEnumerator() {
- 	        yield return new ViewType( "List", ViewFileMan.GUID );
-        }
-    }
+    using DClmn = FileManager.FMRow.DCol;
+    using LCss  = LayoutRect.CSS;
 
     public class ViewFileMan :
         WindowMultiColumn,
@@ -81,7 +29,7 @@ using LCss  = LayoutRect.CSS;
 		public SKImage  Icon { get; protected set; }
         public                  Guid Catagory => _sGuid;
         public           static Guid GUID     => _sGuid;
-        private readonly static Guid _sGuid   = new( "{D257D1AA-AC3E-4A0F-83A3-97C95AE12782}" );
+        private readonly static Guid _sGuid   = new( "{1224D243-93EA-4314-97CB-7C7F48F2E679}" );
 
         protected readonly IPgMainWindow _oShellWin;
         public FileManager    Document { get; protected set; }
