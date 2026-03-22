@@ -2,28 +2,53 @@
 
 using Play.Edit;
 using Play.Interfaces.Embedding;
+using Play.Parse;
 using Play.Rectangles;
-using Play.ImageViewer;
 
 namespace Play.FileManager {
     internal class ViewFavNames : WindowMultiColumn {
-
+		FileFavorites _oDocFavs;
+		FileManager   _oFileMan;
         public ViewFavNames( IPgViewSite oSite, FileFavorites oDocFavorites ) : 
             base( oSite, oDocFavorites ) 
         {
+			_oDocFavs = oDocFavorites;
+			_oFileMan = (FileManager)_oDocFavs.Parentage;
         }
 
+		/// <seealso cref="DirRange"/>
         public override bool InitNew() {
             if( !base.InitNew() ) 
                 return false;
 
-            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Flex, 20, 1L ), (int)FileFavorites.DRow.Col.Type ); 
+            TextLayoutAdd( new LayoutRect( LayoutRect.CSS.Flex, 20, 1L ), (int)FileFavorites.DRow.Col.Emoji ); 
             TextLayoutAdd( new LayoutRect( LayoutRect.CSS.None, 10, 1L ), (int)FileFavorites.DRow.Col.ShortcutName ); 
 
             // Do this so we can return a desired height. O.o;;
             _oCacheMan.CacheRepair();
 
+            HyperLinks.Add( "DirJump", OnDirJump  );
             return true;
+        }
+
+        static readonly Type[] _rgErrors = { typeof( NullReferenceException ),
+                                             typeof( ArgumentOutOfRangeException ),
+                                             typeof( IndexOutOfRangeException ),
+                                             typeof( InvalidOperationException ) };
+
+        protected void OnDirJump( Row oRow, int iColumn, IPgWordRange oRange ) {
+            try {
+                Line    oColm  = oRow[(int)FileFavorites.DRow.Col.FilePath];
+                string? strDir = oColm.ToString();
+
+                if( string.IsNullOrEmpty( strDir ) )
+                    return;
+
+                _oFileMan.ReadDir( strDir );
+            } catch( Exception oEx ) {
+                if( _rgErrors.IsUnhandled(oEx) )
+                    throw;
+            }
         }
     }
 

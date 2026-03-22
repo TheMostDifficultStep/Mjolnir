@@ -1,13 +1,12 @@
-﻿using System.Reflection;
-using System.Xml;
-using System.Xml.XPath;
-
-using SkiaSharp;
-
-using Play.Drawing;
-using Play.Interfaces.Embedding;
+﻿using Play.Drawing;
 using Play.Edit;
 using Play.Forms;
+using Play.Interfaces.Embedding;
+using SkiaSharp;
+using System.Reflection;
+using System.Xml;
+using System.Xml.XPath;
+using static Play.FileManager.FileManager.FMRow;
 
 namespace Play.FileManager {
     public class FileProperties :
@@ -69,21 +68,23 @@ namespace Play.FileManager {
     {
         public class DRow : Row {
             public enum Col : int {
-                ShortcutName = 0,
-                FilePath,
-                Type
+                Emoji =0,
+                ShortcutName,
+                FilePath
             }
             static int ColumnCount = Enum.GetValues(typeof(Col)).Length;
             public Line this[Col eIndex] {
                 get { return _rgColumns[(int)eIndex]; }
                 set { _rgColumns[(int)eIndex] = value; }
             }
-            public DRow( string strType, string strShortCut, string? strPath = null ) {
+            public DRow( string strEmoji, string strShortCut, string? strPath = "") {
                 _rgColumns = new Line[ColumnCount];
 
+                this[Col.Emoji       ] = new TextLine( 0, strEmoji );
                 this[Col.ShortcutName] = new TextLine( 0, strShortCut );
-                this[Col.Type        ] = new TextLine( 0, strType );
-                this[Col.FilePath    ] = new TextLine( 0, string.Empty );
+                this[Col.FilePath    ] = new TextLine( 0, strPath );
+
+                this[Col.Emoji].Formatting.Add( new DirRange ( 0, strEmoji.Length, 5 ) );
             }
 
             public bool IsDirectory { get; set; } = false;
@@ -91,8 +92,12 @@ namespace Play.FileManager {
         public FileFavorites(IPgBaseSite oSiteBase) : base(oSiteBase) {
         }
 
+        /// <summary>
+        /// This is crude but it will work for now.
+        /// </summary>
         public void Append( string strIcon, string strShortcut, string strPath ) {
             _rgRows.Add( new DRow( strIcon, strShortcut, strPath ) );
+
 			RenumberAndSumate  ();
 			Raise_DocLoaded    (); 
         }
