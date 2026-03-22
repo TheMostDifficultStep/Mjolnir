@@ -139,7 +139,16 @@ namespace Play.FileManager {
         IPgLoad<XmlElement>,
         IPgLoad<TextReader>
     {
-        public string HomeURL => Environment.GetFolderPath(Environment.SpecialFolder.Personal);
+        //public string HomeURL => Environment.GetFolderPath(Environment.SpecialFolder.Personal);
+
+        /// <summary>
+        /// Find the URL to get the NON OneDrive path to my prefered home directory! ;-)
+        /// </summary>
+        public string GetHomeURL() {
+            string strProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+
+            return Path.Combine( strProfile, "documents" );
+        }
 
         public readonly IPgStandardUI2 _oStdUI;
         //public event Action? Event_UpdateBanner;
@@ -369,7 +378,7 @@ namespace Play.FileManager {
             if( !Initialize() )
                 return false;
 
-            ReadDir( HomeURL );
+            ReadDir( GetHomeURL() );
 
 //          DoParse();
 
