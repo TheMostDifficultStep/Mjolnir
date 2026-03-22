@@ -134,7 +134,7 @@ namespace Play.FileManager {
     /// </summary>
     public class FileManager :
         EditMultiColumn,
-        IPgLoadFromMoniker,
+        IPgLoadUrl,
         IPgSaveURL,
         IPgLoad<XmlElement>,
         IPgLoad<TextReader>
@@ -309,7 +309,7 @@ namespace Play.FileManager {
             return true;
         }
 
-        public bool LoadFromMoniker( string strURL ) {
+        public bool LoadUrl( string strURL ) {
             if( !Initialize() )
                 return false;
 

@@ -16,7 +16,7 @@ namespace Play.SSTV {
         IPgParent,
         IPgCommandBase,
         IDisposable,
-        IPgLoadFromMoniker,
+        IPgLoadUrl,
         IPgSaveURL
     {
         readonly IPgBaseSite _oSiteBase;
@@ -353,7 +353,7 @@ namespace Play.SSTV {
         /// </summary>
         /// <param name="strFilePath"></param>
         /// <seealso cref="LoadAgain" />
-        public bool LoadFromMoniker( string strFilePath ) {
+        public bool LoadUrl( string strFilePath ) {
             if( !InitNew() )
                 return false;
 

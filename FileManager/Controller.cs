@@ -35,14 +35,14 @@ namespace Play.FileManager {
             }
             if( strExtension.CompareTo( ".fileman" ) == 0 ) {
                 return new PgDocDescr( ".fileman", 
-                                       typeof( IPgLoadFromMoniker ), 
+                                       typeof( IPgLoadUrl ), 
                                        255, 
                                        this );
             }
 
 
             return new PgDocDescr( ".fman", 
-                                    typeof( IPgLoadFromMoniker ), 
+                                    typeof( IPgLoadUrl ), 
                                     0, 
                                     this );
         }

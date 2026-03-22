@@ -665,8 +665,8 @@ namespace Play.Interfaces.Embedding {
         bool Load( T oStream );
     }
 
-    public interface IPgLoadFromMoniker : IPgLoad {
-        bool LoadFromMoniker( string strLocation );
+    public interface IPgLoadUrl : IPgLoad {
+        bool LoadUrl( string strLocation );
     }
 
     public interface IPgLoadTwoStage<T> {

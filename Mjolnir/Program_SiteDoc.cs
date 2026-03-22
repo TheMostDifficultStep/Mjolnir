@@ -853,7 +853,7 @@ namespace Mjolnir {
             BaseSlot,
             IDocSlot
         {
-            IPgLoadFromMoniker _oGuestLoad;
+            IPgLoadUrl _oGuestLoad;
             IPgSaveURL _oGuestSave;
 
             public DirSlot( Program oProgram, IPgController2 oController, string strFileExtn, int iID = -1 ) : 
@@ -875,7 +875,7 @@ namespace Mjolnir {
 			protected override void GuestSet( IDisposable value ) {
                 base.GuestSet( value );
 
-                _oGuestLoad = (IPgLoadFromMoniker)value;
+                _oGuestLoad = (IPgLoadUrl)value;
                 _oGuestSave = value as IPgSaveURL;
             }
 
@@ -892,7 +892,7 @@ namespace Mjolnir {
             public override bool Load( string strFileName ) {
                 FilePath = strFileName; 
 
-                return _oGuestLoad.LoadFromMoniker( strFileName );
+                return _oGuestLoad.LoadUrl( strFileName );
             }
 
             /// <summary>

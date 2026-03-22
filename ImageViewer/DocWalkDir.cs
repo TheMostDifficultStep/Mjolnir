@@ -11,7 +11,7 @@ using Play.Edit;
 namespace Play.ImageViewer {
     public class ImageWalkerDir : 
         ImageWalkerDoc,
-        IPgLoadFromMoniker,
+        IPgLoadUrl,
         IPgSaveURL
     {
         DirectoryInfo                _oDirectory;
@@ -340,7 +340,7 @@ namespace Play.ImageViewer {
         /// c:/foo/bar.buzz
         /// c:/foo/bar/name.txt
         /// </remarks>
-        /// <seealso cref="LoadFromMoniker(string)"/>
+        /// <seealso cref="LoadUrl(string)"/>
         public override bool LoadAgain( string strFilePath ) {
             if( string.IsNullOrEmpty( strFilePath ) ) {
                 _oSiteBase.LogError( "internal", "Image walker initialization parameter must be a filename." );
@@ -522,7 +522,7 @@ namespace Play.ImageViewer {
         /// </summary>
         /// <param name="strFilePath"></param>
         /// <seealso cref="LoadAgain(string)" />
-        public bool LoadFromMoniker( string strFilePath ) {
+        public bool LoadUrl( string strFilePath ) {
             if( !InitNew() )
                 return false;
 

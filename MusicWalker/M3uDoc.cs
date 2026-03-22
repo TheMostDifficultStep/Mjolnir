@@ -238,7 +238,7 @@ namespace Play.MusicWalker {
 				strFullPath = Path.Combine( FilePath, "album.jpg" );
 				// Ok to not load art if not found. We'll still show default icon.
 				// Unless the load fails really bad. Would expect an exception in that case.
-				AlbumArt.LoadFromMoniker( strFullPath );
+				AlbumArt.LoadUrl( strFullPath );
 			} catch( Exception oEx ) {
 				Type[] rgErrors = { typeof( ArgumentNullException ),
 									typeof( ArgumentException ),
@@ -284,7 +284,7 @@ namespace Play.MusicWalker {
 	/// </summary>
     public class MP3Document :
         IPgParent,
-        IPgLoadFromMoniker,
+        IPgLoadUrl,
 		IPgSaveURL,
 		IDisposable
     {
@@ -334,7 +334,7 @@ namespace Play.MusicWalker {
             return true;
         }
 
-        public bool LoadFromMoniker( string strLocation ) {
+        public bool LoadUrl( string strLocation ) {
 			if( string.IsNullOrEmpty( strLocation ) )
 				return false;
 

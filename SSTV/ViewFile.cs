@@ -133,10 +133,10 @@ namespace Play.SSTV {
 
 			string strMyDocs = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments );
 
-			if( !_rgWavFileList  .LoadFromMoniker( strMyDocs )) { 
+			if( !_rgWavFileList  .LoadUrl( strMyDocs )) { 
 				LogError( "File Viewer", "Couldn't view wave file load directory.");
 			}
-			if( !_rgDecodedImages.LoadFromMoniker( strMyDocs )) {
+			if( !_rgDecodedImages.LoadUrl( strMyDocs )) {
 				LogError( "File Viewer", "Couldn't find pictures history directory for SSTV");
 				return false;
 			}
