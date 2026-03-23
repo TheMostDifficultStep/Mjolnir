@@ -914,13 +914,14 @@ namespace Mjolnir {
 
             try {
 				if( iPvs < 0 ) {
-                    // This case is a little weird. Since InitNew has no params
-                    // we just create doc/view pairs outside and then init
-                    // the program (which then init's the main window). Doesn't
-                    // seem to blow up and simplifes code path. Go with it for now.
-                    MainWindow.DocumentShowAll(rgArgsClean);
-
 					_oDocSite_Session.InitNew();
+
+                    // The main window doesn't get initialized until the
+                    // session init is finished. When the main window does
+                    // get init'd it calls DecorShuffle() which will then
+                    // override the DecorHide() call within DocumentShowAll().
+                    // So make sure you InitNew() FIRST!
+                    MainWindow.DocumentShowAll(rgArgsClean);
 				} else {
                     // Loads the documents AND the saved views/positions in main window.
 					_oDocSite_Session.Load( rgArgs[iPvs] );

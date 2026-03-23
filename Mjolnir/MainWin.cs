@@ -2498,10 +2498,12 @@ namespace Mjolnir {
         /// gone through an InitNew() sequence. The window will not be aware of these
         /// arguments and this call happens AFTER the InitNew();
         /// </summary>
+        /// <param name="rgArgsClean">At this point we checked if the program argument
+        /// was a pvs file. It is not those it is a "clean" list of files to load.</param>
         public void DocumentShowAll( List<string> rgArgsClean ) {
 			try {
 				if( rgArgsClean.Count <= 0 ) {
-                    // Bug: If we don't create this view, the screen is wonky!
+                    // Bug: If we don't create this view, the main screen is wonky!
                     ViewCreate( Document.HomeSlot, Guid.Empty );
 					return;
                 }
@@ -2512,7 +2514,7 @@ namespace Mjolnir {
 					DocumentShow( rgArgsClean[i], eShow );
 				}
 
-				string[] rgExts = { ".gif", ".png", ".jpg", ".scraps", ".bmp" };
+				string[] rgExts = { ".gif", ".png", ".jpg", ".scraps", ".bmp", ".webp" };
                 List<SideIdentify> rgOrient = new List<SideIdentify>();
 
                 // When we load from a sesson we load up the shepards from
@@ -2532,14 +2534,15 @@ namespace Mjolnir {
                 }
 
 				// If the last command line doc loaded is a image, hide the decor/frame
-                string strExtn = Path.GetExtension( rgArgsClean.Last<string>() );
-                strExtn = strExtn?.ToLower();
-				if( rgExts.Contains( strExtn ) ) {
-					DecorHide();
-				} else {
-                    DecorShow();
+                if( rgArgsClean.Count == 1 ) {
+                    string strArgExtn = Path.GetExtension( rgArgsClean.Last<string>() );
+                    strArgExtn = strArgExtn?.ToLower();
+				    if( rgExts.Contains( strArgExtn ) ) {
+					    DecorHide();
+				    } else {
+                        DecorShow();
+                    }
                 }
-                
 			} catch( Exception oEx ) {
 				Type[] rgErrors = { typeof( NullReferenceException ),
 									typeof( ArgumentException ),
