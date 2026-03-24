@@ -365,6 +365,11 @@ namespace Mjolnir {
 			MainWindow  ?.Dispose(); 
 			_oMp3Factory?.Dispose();
 			FontMenu    ?.Dispose();
+
+            foreach( IDocSlot oSlot in DocSlots ) {
+                oSlot.Dispose();
+            }
+            DocSlots.Clear();
 		}
 
         public string AppDataPath => Environment.GetFolderPath( Environment.SpecialFolder.LocalApplicationData) + "\\pg\\mjolnir";

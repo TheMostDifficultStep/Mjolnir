@@ -1037,9 +1037,9 @@ namespace Mjolnir {
             }
             _oDoc_ViewSelector.Clear();
 
-            foreach( IDocSlot oSlot in Document.DocSlots ) {
-                oSlot.Dispose();
-            }
+            //foreach( IDocSlot oSlot in Document.DocSlots ) {
+            //    oSlot.Dispose();
+            //}
         }
 
         public string VersionInfo {
@@ -2861,9 +2861,6 @@ namespace Mjolnir {
 				}
 				try {
 					// Unloaded sites become zombies so we'll save the reference.
-                    // TODO: Internals are preloaded and it's ok if they don't have an open view.
-                    // It would be nice if I could tell if the internal docs have a view or not
-                    // and add them later so as not to confuse us here.
 					if( iBirthCount == 0 && !oDocSlot.IsInternal ) {
 						//if( oDocSlot.Document != null ) {
 						//	this.LogError( null, "mainwin session", "Couldn't find saved view for saved document, creating one default." );
@@ -2879,7 +2876,7 @@ namespace Mjolnir {
 				} catch( Exception oEx ) {
 					LogError( oEx, "Error loading views from session" );
 				}
-			}
+			} // end for
 
             if( oFocusedWinSite == null ) {
                 if( _oDoc_ViewSelector.ElementCount > 0 )

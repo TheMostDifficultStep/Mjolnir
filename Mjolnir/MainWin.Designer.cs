@@ -1,4 +1,5 @@
 using System;
+using System.Windows.Forms;
 using Play.Edit;
 
 namespace Mjolnir {
@@ -19,6 +20,8 @@ namespace Mjolnir {
                     components.Dispose();
                 }
             }
+
+            OnFormClosed( new FormClosedEventArgs( CloseReason.MdiFormClosing ) );
 
             base.Dispose(disposing);
         }
