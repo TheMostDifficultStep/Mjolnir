@@ -17,14 +17,15 @@ namespace Play.FileManager {
         IPgCommandView
     {
         public string    Banner { get { 
-                                    if( _oCacheMan.Caret2.Row is Row oRow && 
-                                        oRow[(int)DClmn.Name] is Line oLine ) 
-                                    {
-                                        string? strValue = oLine.ToString();
+                                    //if( _oCacheMan.Caret2.Row is Row oRow && 
+                                    //    oRow[(int)DClmn.Name] is Line oLine ) 
+                                    //{
+                                    //    string? strValue = oLine.ToString();
 
-                                        return strValue is null ? "(Empty)" : strValue;
-                                    }
-                                    return string.Empty;
+                                    //    return strValue is null ? "(Empty)" : strValue;
+                                    //}
+                                    //return string.Empty;
+                                    return Document.Moniker;
                                 } }
 		public SKImage  Icon { get; protected set; }
         public                  Guid Catagory => _sGuid;

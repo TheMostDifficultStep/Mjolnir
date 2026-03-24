@@ -79,7 +79,7 @@ namespace Mjolnir {
             IDocSlot,
             IXmlSlot
         {
-            protected IPgSave<XmlNode> _oGuest;
+            protected IPgSave<XmlNode> _oGuestSave;
 
             public XmlSlotFixedRefCount( Program oProgram, PgDocDescr oDescriptor, string strName ) : 
                 base( oProgram, oDescriptor.Controller, oDescriptor.FileExtn ) 
@@ -96,7 +96,7 @@ namespace Mjolnir {
             protected override void GuestSet( IDisposable value ) {
                 base.GuestSet( value );
 
-                _oGuest = (IPgSave<XmlNode>)value;
+                _oGuestSave = (IPgSave<XmlNode>)value;
             }
 
             public override string LastPath {
@@ -107,7 +107,7 @@ namespace Mjolnir {
             public void SetID( int iID ) { ID = iID; }
 
             public override bool InitNew() {
-                IPgLoad<TextReader> oGuestReader = _oGuest as IPgLoad<TextReader>;
+                IPgLoad<TextReader> oGuestReader = _oGuestSave as IPgLoad<TextReader>;
                 if( oGuestReader == null ) {
                     LogError( "Guest does not support IPgLoad<TextReader>." );
                     return( false );
@@ -139,7 +139,7 @@ namespace Mjolnir {
 
                 XmlNode xmlFrag = oXmlFileNode.OwnerDocument.CreateDocumentFragment();
 
-                if( _oGuest.Save( xmlFrag ) ) {
+                if( _oGuestSave.Save( xmlFrag ) ) {
                     oXmlFileNode.AppendChild( xmlFrag );
                     return true;
                 }
@@ -160,7 +160,7 @@ namespace Mjolnir {
                     return( false );
                 }
 
-                IPgLoad<TextReader> oGuestLoad = _oGuest as IPgLoad<TextReader>;
+                IPgLoad<TextReader> oGuestLoad = _oGuestSave as IPgLoad<TextReader>;
                 if( oGuestLoad == null ) {
                     LogError( "Guest does not support IPgLoad<STextReader>." );
                     return( false );
@@ -192,11 +192,14 @@ namespace Mjolnir {
 					case ShellNotify.DocumentDirty:
 						_oHost.SessionDirtySet();
 						break;
+                    case ShellNotify.MonikerChanged:
+                        _oHost.Raise_UpdateTitles( this );
+                        break;
 				}
             }
 
             public override bool IsDirty {
-                get { return( _oGuest.IsDirty ); }
+                get { return( _oGuestSave.IsDirty ); }
             }
 
             /// <summary>
