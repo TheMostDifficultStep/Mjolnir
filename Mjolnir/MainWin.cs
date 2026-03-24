@@ -999,28 +999,6 @@ namespace Mjolnir {
             //base.OnFormClosing(e);
         }
 
-        /// <summary>
-        /// Warn not to close if there are open documents. 
-        /// </summary>
-		/// <remarks>I need to see if there is a difference between the user requesting
-		/// a close and the system shutting down.</remarks>
-   //     [Obsolete] protected override void OnClosing(CancelEventArgs e)
-   //     {
-   //         base.OnClosing(e);
-
-   //         _fIsClosing = true;
-
-   //         e.Cancel = Document.WarnOnOpenDocuments();
-
-			//// I'd rather ask the user if they want to save first then close. But that needs a
-			//// better dialog box than I have a the moment. So just auto save.
-			//if( Document.SessionSlot.IsDirty ) {
-			//	Document.SessionSave( false );
-			//	//MessageBox.Show( "The session is unsaved.", "Session" );
-			//	//e.Cancel = true;
-			//}
-   //     }
-
         /// <summary>A disposed would be better but windows are a bit different then everyone else.</summary>
         //protected override void OnClosed( EventArgs e ) {
         //    base.OnClosed(e);
