@@ -358,7 +358,17 @@ namespace Mjolnir {
             }
         }
 
-        /// <summary>
+        protected override void Dispose(bool disposing) {
+            if( disposing ) {
+                Document.EventUpdateTitles -= UpdateAllTitlesFor;
+            }
+
+            OnFormClosed( new FormClosedEventArgs( CloseReason.MdiFormClosing ) );
+
+            base.Dispose(disposing);
+        }
+
+       /// <summary>
         /// Load our global configuration. This is different than per instance session state
 		/// which is loaded via a standard InitNew/Load API.
         /// </summary>
